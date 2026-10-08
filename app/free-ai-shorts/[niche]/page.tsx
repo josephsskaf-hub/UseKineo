@@ -22,6 +22,11 @@ import { buildPromptedSignupHref } from '@/lib/growth/publicCreationIntent'
 // de tabela publicando um valor que o checkout não cobrava mais.
 import { STARTER_MONTH } from '@/lib/marketingPrice'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
+// KINEO-GEO-RODADA2-2026-10-08 — nos nichos com filme REAL da casa: o filme, a ideia que o fez e o CTA com essa ideia.
+import NicheHouseFilm from '@/components/NicheHouseFilm'
+import { nicheHouseFilm } from '@/lib/seo/houseFilmIdeas'
+import { STATE_EDITION } from '@/lib/seo/stateOfAiShortsEdition'
+import { stateNicheRankForPath } from '@/lib/seo/stateOfAiShorts'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -522,6 +527,8 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
   })
   const primaryIdea = n.ideas[0]
   const isLocalBusiness = params.niche === 'localbusiness'
+  // KINEO-GEO-RODADA2-2026-10-08 — null = o nicho não tem filme real da casa (a página fica exatamente como estava).
+  const houseFilm = nicheHouseFilm(params.niche)
   const steps = isLocalBusiness
     ? [
         { n: '1', t: 'Describe the real offer', d: 'Add the business, service, customer, differentiator and next step. Short factual phrases work best.' },
@@ -638,6 +645,16 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
             />
           )}
         </section>
+
+        {houseFilm && (
+          <NicheHouseFilm
+            film={houseFilm}
+            nicheLabel={n.label}
+            source={campaign}
+            ctaHref={buildPromptedSignupHref({ prompt: houseFilm.idea, campaign, creationIntent: OFFER.reverseTrial ? 'trial_best' : 'fast' })}
+            stateRank={stateNicheRankForPath(STATE_EDITION, `/free-ai-shorts/${params.niche}`)}
+          />
+        )}
 
         {/* How it works */}
         <section style={{ marginTop: 48 }}>

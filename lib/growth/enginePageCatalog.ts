@@ -12,6 +12,8 @@ import type { Quality } from '@/lib/credits/engineCost'
 import { buildEngineCitation, dayMonthYear, ENGINE_GEO_FILM_MINUTES, type CitationPlan, type EngineCitation } from '@/lib/seo/engineCitation'
 import { OPEN_ACCESS, type CitationAccess } from '@/lib/seo/engineCitation' // KINEO-S25-ABRE-2026-10-06
 import { s25PageCopy } from '@/lib/growth/s25EnginePage' // KINEO-S25-ABRE-2026-10-06 — módulo puro (só imports relativos)
+// KINEO-GEO-RODADA2-2026-10-08 — o "é grátis?" e o "1.5 × 2.5" da página do Seedance (módulo puro, números da fonte).
+import { seedanceFreeAnswer, seedanceFreeFacts, seedanceVs25 } from '@/lib/seo/seedanceAnswer'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -60,6 +62,10 @@ const KLING3_GEO = geoFor('kling-3', 'hollywood')
 const H3_GEO = geoFor('minimax-h3', 'h3')
 const OMNI_GEO = geoFor('gemini-omni-flash', 'omni')
 const S25_GEO = geoFor('seedance-2-5', 's25')
+// KINEO-GEO-RODADA2-2026-10-08 — quem ganha o quê de graça (os mesmos interruptores que concedem) e a comparação com o 2.5.
+// Motor pausado (SEEDANCE_GEO null): a FAQ antiga fica como estava. 2.5 fora do ar (S25_GEO null): sem a entrada 1.5 × 2.5.
+const SEEDANCE_FREE = SEEDANCE_GEO ? seedanceFreeAnswer(SEEDANCE_GEO, seedanceFreeFacts(SEEDANCE_GEO.rows.clip)) : null
+const SEEDANCE_VS_25 = SEEDANCE_GEO ? seedanceVs25(SEEDANCE_GEO, S25_GEO, seedanceFreeFacts(SEEDANCE_GEO.rows.clip)) : null
 
 /**
  * Menor plano mensal cujo grant paga um vídeo de referência (60 s) inteiro — DERIVADO desde KINEO-MOTORES-GEO-2026-10-06.
@@ -149,7 +155,8 @@ export const ENGINES: Record<string, Engine> = {
     tradeoff: `Generated scenes take longer to render than stock footage (usually ${ENGINE_GEO_FILM_MINUTES.min}–${ENGINE_GEO_FILM_MINUTES.max} minutes), and a 60-second film costs more credits than a short one.`,
     faq: [
       ...geoFaq(SEEDANCE_GEO), // KINEO-MOTORES-GEO-2026-10-06 — onde usar + quanto custa
-      {
+      // KINEO-GEO-RODADA2-2026-10-08 — a mesma pergunta, com a resposta de quem ganha o quê (inclui o filme de região, 07/10).
+      SEEDANCE_FREE ? SEEDANCE_FREE.faq : {
         q: 'Can I use Seedance 1.5 without paying?',
         a: `Yes, once: every new account${GRANT_COUNTRY_CLAUSE} starts with the free trial (${TRIAL_CREDITS_SHOWN} credits, no card), which pays for ${TRIAL_SEEDANCE15_FILMS === 1 ? 'one' : TRIAL_SEEDANCE15_FILMS} ${FREE_FILM_LABEL}, watermarked. A 60-second Seedance film costs ${SEEDANCE_COST} credits and comes with Starter (${STARTER_MONTH}) or Creator.`,
       },
@@ -161,6 +168,7 @@ export const ENGINES: Record<string, Engine> = {
         q: 'Seedance vs Kling vs Veo — which should I pick?',
         a: `Choose by your budget and remaining credits: a complete ${MARKETING_REFERENCE_SECONDS}-second reference film costs ${SEEDANCE_COST} credits with Seedance 1.5, ${KLING_COST} with Kling 2.5 or ${VEO_COST} with Veo 3.1. New accounts${GRANT_COUNTRY_CLAUSE} receive ${TRIAL_CREDITS_SHOWN} free credits, no card required. That balance ${trialFilmsForEngine(SEEDANCE_COST) > 0 ? 'covers a complete Seedance reference film' : 'does not cover a complete Seedance reference film'}; engine access does not guarantee enough credits for a render. Choose a paid plan with sufficient credits when you need more. Free-trial films carry a watermark; a paid plan unlocks clean downloads.`,
       },
+      ...(SEEDANCE_VS_25 ? [SEEDANCE_VS_25.faq] : []), // KINEO-GEO-RODADA2-2026-10-08 — Seedance 1.5 × 2.5
     ],
   },
   kling: {

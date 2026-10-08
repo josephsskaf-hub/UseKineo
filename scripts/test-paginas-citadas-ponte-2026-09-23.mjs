@@ -125,10 +125,21 @@ const MARCA_OG = {
   'app/text-to-video-shorts/page.tsx': ["\n    siteName: 'Kineo (usekineo.com)', // KINEO-MARCA-2026-10-06", ''],
   'app/state-of-ai-shorts-2026/page.tsx': ["url: CANONICAL, siteName: 'Kineo (usekineo.com)', type: 'article'", "url: CANONICAL, type: 'article'"],
 }
+// KINEO-GEO-RODADA2-2026-10-08 — reancorado com motivo (sessão CEO 08/10: atualizar o estudo com os dados de outubro seguindo a
+// regra v2 do índice — SEM VOLUME ABSOLUTO DE CLIENTE, só taxas e medianas, com o selo "Updated <mês>"). O título e a descrição
+// do estudo citavam contagens ("N AI-Generated Videos", "N real creators") e passam a vir da edição mensal
+// (lib/seo/stateOfAiShorts.ts buildStateView). Só essas linhas são descontadas — e EXIGIDAS uma vez; canonical, OG (com o
+// domínio), twitter e o resto do bloco seguem travados na base, e o H1 continua igual. O JSON-LD ganha UM bloco (o FAQPage da
+// edição; Article e Dataset seguem, sem contagem). A prova do conteúdo novo é scripts/test-geo-rodada2-2026-10-08.mjs.
+const STATE_META_NOVO = '  // KINEO-GEO-RODADA2-2026-10-08 — título e descrição da edição: sem volume absoluto (regra v2), com o selo do mês.\n  const title = VIEW.metaTitle\n  const description = VIEW.metaDescription'
+const STATE_META_BASE = '  const s = await getStudyStats()\n  const title = `State of AI Shorts 2026 — Original Data from ${s.totalVideos} AI-Generated Videos`\n  const description =\n    `What ${s.totalCreators} real creators generated with AI in 2026: how long an AI Short ` +\n    `actually takes to render (${s.medianMinutes}-minute median), the most in-demand faceless ` +\n    `niches, engine mix and growth curve. Original platform data, updated daily, free to cite.`'
 for (const f of ['app/free-ai-shorts-generator/page.tsx', 'app/text-to-video-shorts/page.tsx', 'app/state-of-ai-shorts-2026/page.tsx']) {
   const [marcaNovo, marcaBase] = MARCA_OG[f]
   check(read(f).split(marcaNovo).length === 2, `${f}: og:site_name com o domínio existe uma vez (KINEO-MARCA-2026-10-06)`)
-  const cur = read(f).replace(marcaNovo, marcaBase), base = atBase(f)
+  const estudo = f === 'app/state-of-ai-shorts-2026/page.tsx'
+  if (estudo) check(read(f).split(STATE_META_NOVO).length === 2, `${f}: título e descrição vêm da edição, uma vez (KINEO-GEO-RODADA2-2026-10-08)`)
+  const lido = read(f).replace(marcaNovo, marcaBase)
+  const cur = estudo ? lido.split(STATE_META_NOVO).join(STATE_META_BASE) : lido, base = atBase(f) // split/join: o texto da base tem `${`
   check(h1Of(cur) !== null && h1Of(cur) === h1Of(base), `${f}: <h1> igual à base`)
   const approvedDescription = currentDescriptions[f]
   let normalizedMeta = approvedDescription ? metaBlock(cur)?.replace(approvedDescription[0], approvedDescription[1]) : metaBlock(cur)
@@ -138,7 +149,8 @@ for (const f of ['app/free-ai-shorts-generator/page.tsx', 'app/text-to-video-sho
     normalizedMeta = normalizedMeta?.replace(twitterDescription, "'Create a faceless AI Short from one idea. No card for the free Fast test.'")
   }
   check(metaBlock(cur) !== null && (!approvedDescription || metaBlock(cur).includes(approvedDescription[0])) && normalizedMeta === metaBlock(base), `${f}: metadados preservados com apenas description derivada da oferta nas duas portas`)
-  check(ldLines(cur).length > 0 && ldLines(cur) === ldLines(base), `${f}: JSON-LD igual à base`)
+  // KINEO-GEO-RODADA2-2026-10-08 — no estudo, o JSON-LD da base + exatamente UM bloco a mais (o FAQPage da edição).
+  check(ldLines(cur).length > 0 && ldLines(cur) === (estudo ? [ldLines(base), 'type="application/ld+json"'].join('\n') : ldLines(base)), `${f}: JSON-LD igual à base${estudo ? ' (+ o FAQPage da edição)' : ''}`)
 }
 
 // ── 5) página de dados ──────────────────────────────────────────────────────────────────────────────

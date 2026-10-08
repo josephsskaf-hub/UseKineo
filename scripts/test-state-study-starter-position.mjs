@@ -29,11 +29,21 @@ check((source.match(/source="starter_state_of_ai_shorts"/g) ?? []).length === 1,
 check(source.includes('placement="after_key_findings"'), 'new position is measurable')
 check(source.includes('analyticsVariant="state_study_starter_after_findings_2026_08_28"'), 'position variant is allow-listed at caller')
 check(source.includes('Turn this topic into a Short →'), 'activation CTA preserved')
-check(source.includes('No card required for the free Fast workflow.'), 'free-workflow contract preserved')
-check(source.includes('The animal with a survival trick science still cannot explain'), 'animal example preserved')
-check(source.includes('The country almost nobody is allowed to enter'), 'geography example preserved')
-check(source.includes('The empire that collapsed in a single generation'), 'history example preserved')
+// KINEO-GEO-RODADA2-2026-10-08 — reancorado com motivo (este guardião já estava vermelho na base 4c23af74, nesta linha):
+// (1) "No card required for the free Fast workflow." descrevia o Kineo 1 grátis, que não existe mais para conta nova
+//     (29/09). A nota do formulário agora lê a frase canônica da entrada grátis (CARD_ENTRY_COPY.noFreeTier, lib/entryPolicy.ts)
+//     — nenhuma promessa digitada na página;
+// (2) as três ideias de exemplo eram fixas (animal, país, império) e a cópia diz "three leading niches in this study". Com a
+//     edição de outubro o ranking mudou (história, mistério, países), então as ideias passam a ser DERIVADAS dos três nichos
+//     que lideram a edição vigente (lib/seo/stateOfAiShorts.ts STATE_NICHES[...].starterIdea → VIEW.starterExamples): a
+//     frase continua verdade quando o ranking mudar. As ideias antigas seguem na tabela da lib (animal, país, império).
+const lib = fs.readFileSync('lib/seo/stateOfAiShorts.ts', 'utf8')
+check(source.includes('${CARD_ENTRY_COPY.noFreeTier}') && source.includes("import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'"), 'free-entry note reads the canonical copy')
+check(source.includes('examples={VIEW.starterExamples}') && lib.includes('starterExamples: topNiches.map((it) => STATE_NICHES[it.key].starterIdea),'), 'examples are the three leading niches of the current edition')
+check(lib.includes("starterIdea: 'The animal with a survival trick science still cannot explain'"), 'animal example preserved in the niche table')
+check(lib.includes("starterIdea: 'The country almost nobody is allowed to enter'"), 'geography example preserved in the niche table')
+check(lib.includes("starterIdea: 'The empire that collapsed in a single generation'"), 'history example preserved in the niche table')
 check(!source.includes('Pick one of the top-3 niches above'), 'removed false above-the-ranking direction')
 check(source.includes('three leading niches in this study'), 'copy remains true in the new position')
 
-console.log(`\n${passed}/21 state-study starter position checks passed`)
+console.log(`\n${passed}/22 state-study starter position checks passed`)

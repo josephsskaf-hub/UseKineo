@@ -153,6 +153,11 @@ function discovery(overrides = {}) {
       AI_VIDEO_INDEX_PATH: '/ai-video-index', AI_VIDEO_INDEX_HEADLINE: { measuredAt: '2026-10-07T01:53:15Z' },
       // The round-1 hub pages (locked above) and their review date as the source exports it.
       HUB_PAGES, HUB_REVIEWED_ISO: '2026-10-06',
+      // KINEO-GEO-RODADA2-2026-10-08 (re-anchored 08/10) — the sitemap imports the round-2 review date, the niche pages that
+      // carry a real house film and the State of AI Shorts edition headline; without them this run died with "Cannot read
+      // properties of undefined (reading 'measuredAt')". Inert here: the real entries are exercised by
+      // test-geo-rodada2-2026-10-08, and the run below REQUIRES the study page exactly once, with the switch on and off.
+      GEO_RODADA2_REVIEWED_ISO: '2026-10-08', NICHE_HOUSE_FILM_SLUGS: [], STATE_HEADLINE: { measuredAt: '2026-10-08T04:30:51Z' },
     }
     new Function('exports', 'require', 'module', js)(mod.exports, () => fixtures, mod)
     return mod.exports.default()
@@ -163,7 +168,7 @@ function discovery(overrides = {}) {
   assert.equal(entry[0].lastModified.toISOString(), '2026-10-01T00:00:00.000Z')
   assert.equal(off.some(item => item.url === url), false, 'Disabled page must leave the sitemap')
   assert.deepEqual(on.filter(item => item.url !== url), off, 'Showcase switch must not alter other routes')
-  for (const p of [...Object.values(HUB_PAGES).map(h => h.path), '/ai-video-index']) {
+  for (const p of [...Object.values(HUB_PAGES).map(h => h.path), '/ai-video-index', '/state-of-ai-shorts-2026']) {
     for (const list of [on, off]) assert.equal(list.filter(item => item.url === `https://www.usekineo.com${p}`).length, 1, `Sitemap must keep one entry for ${p}`)
   }
 }
@@ -194,4 +199,6 @@ check('M17 discovery marker missing turns red', () => mutate('components/showcas
 check('M18 hub page dropped at the source turns red', () => mutate('lib/seo/citableHubPages.ts', "  brand: { path: '/kineo-vs-kineo-studio', label: 'Kineo vs kineo.studio (not the same company)' },\n", '', discovery))
 check('M19 sitemap missing one hub page turns red', () => mutate('app/sitemap.ts', '...Object.values(HUB_PAGES).map(({ path }) => ({', '...Object.values(HUB_PAGES).filter(({ path }) => path !== HUB_PAGES.faceless.path).map(({ path }) => ({', discovery))
 check('M20 sitemap missing the monthly AI Video Index turns red', () => mutate('app/sitemap.ts', 'url: `${BASE}${AI_VIDEO_INDEX_PATH}`,', 'url: `${BASE}/ai-video-index-old`,', discovery))
-console.log(`${count} checks passed, including 20 live mutations. Offline: no keys, database or renders.`)
+// 08/10 (KINEO-GEO-RODADA2-2026-10-08): the study page now carries the edition date; dropping it from the sitemap turns red.
+check('M21 sitemap missing the State of AI Shorts study turns red', () => mutate('app/sitemap.ts', "    { path: '/state-of-ai-shorts-2026', priority: 0.8, freq: 'weekly' },\n", '', discovery))
+console.log(`${count} checks passed, including 21 live mutations. Offline: no keys, database or renders.`)

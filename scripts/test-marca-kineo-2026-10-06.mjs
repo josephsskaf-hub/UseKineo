@@ -112,14 +112,22 @@ async function verify(read) {
   check(lit(prop(lm, 'applicationName')) === SITE_NAME, 'toda página: application-name = "Kineo (usekineo.com)"')
 
   const st = sourceFile('app/state-of-ai-shorts-2026/page.tsx', read('app/state-of-ai-shorts-2026/page.tsx'))
+  // KINEO-GEO-RODADA2-2026-10-08 — reancorado com motivo (sessão CEO 08/10, regra v2 do índice: SEM VOLUME ABSOLUTO DE CLIENTE).
+  // O título protegido era `State of AI Shorts 2026 — Original Data from ${N} AI-Generated Videos` — uma contagem de vídeos de
+  // cliente no <title>. Ele passa a vir da edição mensal (lib/seo/stateOfAiShorts.ts: `${STATE_NAME} — Original Data, ${seal}`,
+  // ex. "… — Original Data, Updated October 2026"): o prefixo de marca fica, a contagem sai. A trava continua: o <title> e o
+  // og:title são o título da edição, o twitter:title segue "State of AI Shorts 2026" e o og:site_name segue com o domínio.
   await attempt('/state-of-ai-shorts-2026 generateMetadata avalia', async () => {
+    const VIEW = { metaTitle: 'TITULO-DA-EDICAO', metaDescription: 'DESCRICAO-DA-EDICAO' }
     const { generateMetadata } = evalFunctions(st, ['generateMetadata'], {
       CANONICAL: 'https://www.usekineo.com/state-of-ai-shorts-2026',
-      getStudyStats: async () => ({ totalVideos: 4321, totalCreators: 765, medianMinutes: 4.2 }),
+      VIEW,
     })
     const m = await generateMetadata()
-    check(m.title === STATE_TITLE(4321) && m.openGraph.title === STATE_TITLE(4321) && m.twitter.title === 'State of AI Shorts 2026', '/state-of-ai-shorts-2026: títulos intactos')
+    check(m.title === VIEW.metaTitle && m.openGraph.title === VIEW.metaTitle && m.twitter.title === 'State of AI Shorts 2026', '/state-of-ai-shorts-2026: títulos = os da edição (twitter:title intacto)')
     check(m.openGraph.siteName === SITE_NAME, '/state-of-ai-shorts-2026: og:site_name com domínio')
+    const lib = read('lib/seo/stateOfAiShorts.ts')
+    check(/\n  const metaTitle = `\$\{STATE_NAME\} — Original Data, \$\{seal\}`\n/.test(lib) && lib.includes("export const STATE_NAME = 'State of AI Shorts 2026'") && lib.includes('const seal = `Updated ${editionLabel}`'), '/state-of-ai-shorts-2026: o título da edição mantém o prefixo "State of AI Shorts 2026 — Original Data" e troca a contagem pelo selo do mês')
   })
 
   const enRel = 'app/ai-video-generator/[engine]/page.tsx', en = sourceFile(enRel, read(enRel))
@@ -182,7 +190,7 @@ const MUTANTS = [
   ['M6 título do motor (kineo-1/seedance) ganha o domínio', 'app/ai-video-generator/[engine]/page.tsx', 'AI Video Generator for YouTube Shorts | Kineo`', 'AI Video Generator for YouTube Shorts | Kineo (usekineo.com)`'],
   ['M7 título do /free-ai-shorts-generator muda', 'app/free-ai-shorts-generator/page.tsx', `title: '${FREE_GEN.title}'`, "title: 'Free AI Shorts Generator | Kineo (usekineo.com)'"],
   ['M8 título do /text-to-video-shorts muda', 'app/text-to-video-shorts/page.tsx', `title: '${TEXT_TO_VIDEO.title}'`, "title: 'Text to Video Shorts Generator | Kineo (usekineo.com)'"],
-  ['M9 título do estudo muda', 'app/state-of-ai-shorts-2026/page.tsx', 'const title = `State of AI Shorts 2026 — Original Data from ${s.totalVideos} AI-Generated Videos`', 'const title = `State of AI Shorts 2026 — Original Data from ${s.totalVideos} AI Videos | Kineo (usekineo.com)`'],
+  ['M9 título do estudo muda', 'app/state-of-ai-shorts-2026/page.tsx', '  const title = VIEW.metaTitle\n', '  const title = `${VIEW.metaTitle} | Kineo (usekineo.com)`\n'], // KINEO-GEO-RODADA2-2026-10-08 — reancorado: o título vem da edição
   ['M10 og:site_name do layout volta a "Kineo"', 'app/layout.tsx', "siteName: 'Kineo (usekineo.com)',", "siteName: 'Kineo',"],
   ['M11 application-name some', 'app/layout.tsx', "  applicationName: 'Kineo (usekineo.com)',\n", ''],
   ['M12 og:site_name some da página de motor', 'app/ai-video-generator/[engine]/page.tsx', "url, siteName: 'Kineo (usekineo.com)', type: 'website' }", "url, type: 'website' }"],

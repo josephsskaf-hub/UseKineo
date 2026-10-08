@@ -10,8 +10,11 @@
 //                        com usar o modelo direto (só fonte oficial, datada) e o CTA para o Studio com o motor
 //                        pré-selecionado e a campanha seo_engine_<slug>, com a frase da marca como linha de apoio.
 // Sem <video> e sem resolução escrita (a página dos motores pagos é travada assim por scripts/test-paid-engine-proof).
+// KINEO-GEO-RODADA2-2026-10-08 — no slug do Seedance 1.5 o cartão termina com components/SeedanceAnswerSections.tsx ("é grátis?
+// e para quem", Seedance 1.5 × 2.5, filmes reais da vitrine com a ideia) — provado por scripts/test-geo-rodada2-2026-10-08.mjs.
 import type { CSSProperties } from 'react'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
+import SeedanceAnswerSections from '@/components/SeedanceAnswerSections' // KINEO-GEO-RODADA2-2026-10-08
 import { ENGINE_GEO } from '@/lib/growth/enginePageCatalog'
 import {
   ENGINE_GEO_BRAND_LINE,
@@ -143,6 +146,10 @@ export function EnginePriceCard({ geo, ctaHref, campaign }: { geo: EngineCitatio
         <p style={{ color: '#d2d2d7', fontSize: '0.95rem', margin: '12px auto 0', maxWidth: 560, lineHeight: 1.55 }}>{ENGINE_GEO_BRAND_LINE}</p>
         <p style={{ color: MUTED, fontSize: '0.82rem', margin: '6px 0 0' }}>{ENGINE_GEO_REWARDS_LINE}</p>
       </div>
+      {/* KINEO-GEO-RODADA2-2026-10-08 — só na página do Seedance 1.5: "é grátis?", 1.5 × 2.5 e filmes reais com a ideia (camada
+          citável extra, dentro do cartão: os guardiões de trava da página descontam o cartão inteiro; a prova desta camada é
+          scripts/test-geo-rodada2-2026-10-08.mjs). Sem <section> aninhada: o cartão termina no primeiro </section>. */}
+      {geo.slug === 'seedance' ? <SeedanceAnswerSections geo={geo} s25={engineGeoFor('seedance-2-5')} /> : null}
     </section>
   )
 }

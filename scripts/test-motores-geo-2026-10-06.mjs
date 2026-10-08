@@ -279,10 +279,17 @@ async function problemas(rep = {}) {
   // (5) sitemap
   const sm = offlineModules({ replacements: rep, mocks: SITEMAP_MOCKS })(SITEMAP).default()
   const urls = sm.map((x) => x.url)
+  // REANCORADO KINEO-GEO-RODADA2-2026-10-08 (com motivo): a rodada 2 de GEO (sessão CEO 08/10) mudou de verdade a página do
+  // Seedance 1.5 ("é grátis?", 1.5 × 2.5, filmes reais) — o lastmod dela passa a ser a data REAL dessa revisão
+  // (GEO_RODADA2_REVIEWED_ISO, lib/seo/houseFilmIdeas.ts), posterior a esta. As outras páginas de motor seguem exigindo a data
+  // desta revisão; a prova da rodada 2 é scripts/test-geo-rodada2-2026-10-08.mjs.
+  const rodada2 = new Date(`${load('lib/seo/houseFilmIdeas.ts').GEO_RODADA2_REVIEWED_ISO}T12:00:00.000Z`).getTime()
+  if (!(rodada2 > lastmodGeo)) p.push('rodada 2: data da revisão não é posterior a esta')
+  const lastmodEsperado = (slug) => (slug === 'seedance' ? rodada2 : lastmodGeo)
   for (const slug of indexaveis) {
     const ent = sm.filter((x) => x.url === `${BASE}/ai-video-generator/${slug}`)
     if (ent.length !== 1) p.push(`sitemap: ${slug} aparece ${ent.length}×`)
-    else if (new Date(ent[0].lastModified).getTime() !== lastmodGeo) p.push(`sitemap: ${slug} sem o lastmod real da revisão`)
+    else if (new Date(ent[0].lastModified).getTime() !== lastmodEsperado(slug)) p.push(`sitemap: ${slug} sem o lastmod real da revisão`)
   }
   for (const slug of fora) if (urls.some((u) => u === `${BASE}/ai-video-generator/${slug}` || u.startsWith(`${BASE}/ai-video-generator/${slug}/`))) p.push(`sitemap: motor pausado ${slug} no mapa`)
   const langs = load('lib/seo/enginePageLangs.ts')
@@ -368,9 +375,11 @@ ok(edicoesMotoresGeo(rd(PAGE)) === 11, 'as 11 edições da página que os guardi
   const fx = engineFixture()
   const cat = fx(CATALOG)
   const langs = fx('lib/seo/enginePageLangs.ts')
+  // REANCORADO KINEO-GEO-RODADA2-2026-10-08 (com motivo): a página do Seedance 1.5 foi revisada de novo em 08/10 (lastmod da
+  // rodada 2), então o ping DESTA revisão (lastmod = 06/10) corretamente não a escolhe mais; o ping da rodada 2 é outro.
   const deveTer = [
     `${BASE}/ai-video-generator`,
-    ...cat.INDEXABLE_ENGINE_SLUGS.map((slug) => `${BASE}/ai-video-generator/${slug}`),
+    ...cat.INDEXABLE_ENGINE_SLUGS.filter((slug) => slug !== 'seedance').map((slug) => `${BASE}/ai-video-generator/${slug}`),
     ...langs.LOCALIZED_ENGINE_SLUGS.filter((s) => cat.INDEXABLE_ENGINE_SLUGS.includes(s)).flatMap((slug) => langs.ENGINE_LANG_CODES.map((code) => `${BASE}/ai-video-generator/${slug}/${code}`)),
     `${BASE}/models-pricing`, `${BASE}/kineo-vs-higgsfield`, `${BASE}/seedance-vs-veo-vs-kling`,
   ].sort()

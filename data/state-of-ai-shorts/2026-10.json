@@ -1,0 +1,111 @@
+{
+    "length": {
+        "sample": "100+",
+        "pct60Plus": 40.2,
+        "pctUnder30": 13.6,
+        "medianSeconds": 44.0
+    },
+    "niches": {
+        "sample": "100+",
+        "ranking": [
+            {
+                "key": "history",
+                "rank": 1,
+                "tier": "most"
+            },
+            {
+                "key": "mystery",
+                "rank": 2,
+                "tier": "most"
+            },
+            {
+                "key": "geography",
+                "rank": 3,
+                "tier": "most"
+            },
+            {
+                "key": "money",
+                "rank": 4,
+                "tier": "most"
+            },
+            {
+                "key": "facts",
+                "rank": 5,
+                "tier": "most"
+            },
+            {
+                "key": "horror",
+                "rank": 5,
+                "tier": "most"
+            },
+            {
+                "key": "science",
+                "rank": 7,
+                "tier": "most"
+            },
+            {
+                "key": "tech",
+                "rank": 8,
+                "tier": "most"
+            },
+            {
+                "key": "animals",
+                "rank": 9,
+                "tier": "common"
+            },
+            {
+                "key": "kids",
+                "rank": 10,
+                "tier": "common"
+            },
+            {
+                "key": "motivation",
+                "rank": 11,
+                "tier": "common"
+            },
+            {
+                "key": "space",
+                "rank": 12,
+                "tier": "common"
+            },
+            {
+                "key": "comedy",
+                "rank": 13,
+                "tier": "common"
+            },
+            {
+                "key": "health",
+                "rank": 14,
+                "tier": "less"
+            },
+            {
+                "key": "faith",
+                "rank": 15,
+                "tier": "less"
+            },
+            {
+                "key": "truecrime",
+                "rank": 15,
+                "tier": "less"
+            }
+        ]
+    },
+    "schema": "kineo-state-of-ai-shorts/1",
+    "window": {
+        "end": "2026-10-07T00:00:00Z",
+        "days": 30,
+        "start": "2026-09-07T00:00:00Z"
+    },
+    "edition": "2026-10",
+    "measuredAt": "2026-10-08T04:30:51Z",
+    "renderTime": {
+        "sample": "100+",
+        "p90Minutes": 16.5,
+        "medianMinutes": 5.9
+    },
+    "reliability": {
+        "pct": 97.4,
+        "sample": "100+",
+        "unknownPct": 0.0
+    }
+}

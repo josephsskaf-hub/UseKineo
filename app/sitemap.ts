@@ -25,6 +25,10 @@ import { effectSitemapEntries } from '@/lib/clips/clipEffectPages'
 // em espelho TS travado contra o JSON: os guardiões que executam o sitemap só carregam .ts de lib/).
 import { AI_VIDEO_INDEX_PATH } from '@/lib/seo/aiVideoIndex'
 import { AI_VIDEO_INDEX_HEADLINE } from '@/lib/seo/aiVideoIndexHeadline'
+// KINEO-GEO-RODADA2-2026-10-08 — rodada 2 de GEO: a página do Seedance, os nichos com filme real da casa e a edição mensal do
+// "State of AI Shorts" (manchete em espelho TS: os guardiões que executam o sitemap só carregam .ts de lib/).
+import { GEO_RODADA2_REVIEWED_ISO, NICHE_HOUSE_FILM_SLUGS } from '@/lib/seo/houseFilmIdeas'
+import { STATE_HEADLINE } from '@/lib/seo/stateOfAiShortsHeadline'
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -80,6 +84,12 @@ const ADS_DOOR_LAST_MODIFIED = new Date('2026-09-24T21:30:00.000Z')
 // layout do segmento) — mesma isIndexableEngineSlug do layout e do llms.txt.
 const ENGINE_GEO_LAST_MODIFIED = new Date(`${ENGINE_GEO_REVIEWED_ISO}T12:00:00.000Z`)
 const ENGINE_GEO_REVISED_PAGES = ['/ai-video-generator', '/models-pricing', '/kineo-vs-higgsfield', '/seedance-vs-veo-vs-kling']
+// KINEO-GEO-RODADA2-2026-10-08 — as páginas que a rodada 2 mudou levam a data REAL dela (o resto do cluster mantém a sua):
+// a página do Seedance 1.5 (o grátis e para quem, 1.5 × 2.5, filmes reais), os nichos com filme real da casa
+// (NICHE_HOUSE_FILM_SLUGS) e o estudo, que leva a data da leitura da edição vigente (muda sozinha a cada edição nova).
+const GEO_RODADA2_LAST_MODIFIED = new Date(`${GEO_RODADA2_REVIEWED_ISO}T12:00:00.000Z`)
+const STATE_STUDY_PATH = '/state-of-ai-shorts-2026'
+const STATE_STUDY_LAST_MODIFIED = new Date(STATE_HEADLINE.measuredAt)
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes: { path: string; priority: number; freq: 'daily' | 'weekly' | 'monthly' }[] = [
@@ -284,18 +294,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...ENGINE_SLUGS.filter((slug) => isIndexableEngineSlug(slug)).map((slug) => `/ai-video-generator/${slug}`),
     ...LOCALIZED_ENGINE_SLUGS.flatMap((slug) => ENGINE_LANG_CODES.map((lang) => `/ai-video-generator/${slug}/${lang}`)),
   ])
+  // KINEO-GEO-RODADA2-2026-10-08 — a página do Seedance 1.5 revisada hoje (só enquanto indexável: motor pausado sai do mapa).
+  // Derivada de ENGINE_SLUGS, como as linhas acima: há guardiões que executam este sitemap com o catálogo simulado só com
+  // ENGINE_SLUGS (sem isIndexableEngineSlug) — a função só é chamada para um slug que existe.
+  const geoRodada2Revised = new Set(ENGINE_SLUGS.filter((slug) => slug === 'seedance' && isIndexableEngineSlug(slug)).map((slug) => `/ai-video-generator/${slug}`))
   const staticEntries = routes.filter((r) => !engineNoIndex.some((p) => r.path === p || r.path.startsWith(`${p}/`))).map((r) => ({
     url: `${BASE}${r.path}`,
     lastModified: r.path === '/ads' ? ADS_DOOR_LAST_MODIFIED
       : ['/business-video-ads', '/sora-alternative', '/omni-flash-vs-sora'].includes(r.path)
-      ? new Date('2026-09-24T13:51:19.000Z') : engineGeoRevised.has(r.path) ? ENGINE_GEO_LAST_MODIFIED : LAST_MODIFIED,
+      ? new Date('2026-09-24T13:51:19.000Z') : geoRodada2Revised.has(r.path) ? GEO_RODADA2_LAST_MODIFIED : r.path === STATE_STUDY_PATH ? STATE_STUDY_LAST_MODIFIED : engineGeoRevised.has(r.path) ? ENGINE_GEO_LAST_MODIFIED : LAST_MODIFIED,
     changeFrequency: r.freq,
     priority: r.priority,
   }))
   // #478 — programmatic SEO niche landing pages (/free-ai-shorts/[niche]).
   const nicheEntries = NICHE_SLUGS.map((slug) => ({
     url: `${BASE}/free-ai-shorts/${slug}`,
-    lastModified: LAST_MODIFIED,
+    lastModified: NICHE_HOUSE_FILM_SLUGS.includes(slug) ? GEO_RODADA2_LAST_MODIFIED : LAST_MODIFIED, // KINEO-GEO-RODADA2-2026-10-08
     changeFrequency: 'weekly' as const,
     priority: 0.8,
   }))
