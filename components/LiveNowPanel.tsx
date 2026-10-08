@@ -158,8 +158,15 @@ export default function LiveNowPanel() {
                     {v.is_paid && (
                       <span className="ml-2 rounded px-1.5 py-0.5 text-[9px] font-black uppercase" style={{ background: 'rgba(52,211,153,.12)', color: '#5FD4A4', border: '1px solid rgba(52,211,153,.35)' }}>sub</span>
                     )}
-                    {v.is_trial && (
+                    {/* KINEO-SELO-AFILIADO-2026-10-08 — cortesia de parceiro usa plano *_trial: não é o trial de $1. */}
+                    {v.is_trial && !v.is_courtesy && (
                       <span className="ml-2 rounded px-1.5 py-0.5 text-[9px] font-black uppercase" title="trial de $1 — vira assinante no dia 8" style={{ background: 'rgba(41,151,255,.12)', color: '#7cc0ff', border: '1px solid rgba(41,151,255,.35)' }}>trial $1</span>
+                    )}
+                    {v.is_affiliate && (
+                      <span className="ml-2 rounded px-1.5 py-0.5 text-[9px] font-black uppercase" title="parceiro do programa de afiliados (código de afiliado ou cortesia de parceiro)" style={{ background: 'rgba(167,139,250,.12)', color: '#C4B5FD', border: '1px solid rgba(167,139,250,.35)' }}>afiliado</span>
+                    )}
+                    {v.is_courtesy && !v.is_affiliate && (
+                      <span className="ml-2 rounded px-1.5 py-0.5 text-[9px] font-black uppercase" title="cortesia ativa que não é de parceiro (cliente, revisor)" style={{ background: 'rgba(255,255,255,.06)', color: 'var(--muted2)', border: '1px solid var(--border)' }}>cortesia</span>
                     )}
                   </td>
                   <td style={{ padding: '9px 12px', color: heatColor(v.heat), fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
