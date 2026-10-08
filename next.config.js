@@ -159,6 +159,10 @@ const nextConfig = {
       // single canonical instead of creating duplicate legacy-name pages.
       { source: '/alternatives/vidyo', destination: '/alternatives/quso', permanent: true },
       { source: '/alternatives/vidyo-ai', destination: '/alternatives/quso', permanent: true },
+      // KINEO-SAASHUB-404-2026-10-08 — a ficha da Kineo no SaaSHub (e o envio de agosto ao Faceless Directory) aponta para
+      // /ai-faceless-video-generator, que nunca existiu: o SaaSHub leu o 404 e pôs a Kineo como "Discontinued" no
+      // "Product Graveyard". A página real é /faceless-video-generator.
+      { source: '/ai-faceless-video-generator', destination: '/faceless-video-generator', permanent: true },
       // KINEO-FILME-GRATIS-15S-2026-09-29 — o Kineo 1 saiu do catálogo público (KINEO1_PUBLIC=false, lib/engineLaunch.ts)
       // e o filme grátis de quem chega passou a ser o Seedance 1.5 de 15 s. A página do Kineo 1 era a que mais recebia
       // chegada do ChatGPT: o redirect permanente leva essas citações (e as 13 línguas) para a página do Seedance em vez
