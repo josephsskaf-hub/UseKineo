@@ -13,12 +13,20 @@
 //
 // O DESENHO (três pontas, nenhuma decide acesso nem preço):
 //   1. components/SourceCapture.tsx (todo pouso) grava o ÚLTIMO clique pago num cookie primário de 90 dias — e só quando
-//      a URL traz sinal pago (gclid/gbraid/wbraid ou utm_medium pago). Visita orgânica nunca apaga um clique pago.
+//      a URL traz sinal pago (gclid/gbraid/wbraid/msclkid ou utm_medium pago). Visita orgânica nunca apaga um clique pago.
 //   2. app/api/stripe/checkout/route.ts copia esse clique para os eventos de checkout (checkout_attempted,
 //      checkout_started, checkout_guest_started…), logado ou convidado.
 //   3. app/api/stripe/webhook/route.ts copia do checkout_started para o payment_success (a mesma leitura que já recuperava
 //      o session_id da aba). Nada entra na Stripe: preço, metadata da sessão e chave de idempotência ficam intactos.
 // O cookie é editável por quem quiser: tudo é saneado AQUI (formato fechado, idade máxima) e serve só para atribuição.
+//
+// KINEO-MSCLKID-2026-10-08 — O CLIQUE DO MICROSOFT ADS (BING) TAMBÉM VIAJA. O mesmo teste por nome de motor vai rodar no
+// Microsoft Advertising, que acrescenta ?msclkid=<GUID de 32 caracteres> a todo clique (auto-tagging, ligado por padrão
+// em conta nova). Até aqui o clique do Bing só virava clique pago pelo utm_medium=cpc e PERDIA o identificador — e um
+// clique com msclkid e sem UTM nem era guardado. Sem o msclkid no payment_success não dá para subir a compra como
+// conversão offline no Microsoft (o equivalente do gclid lá). Agora ele é o 4º identificador, pelo MESMO caminho do
+// gclid: captura no pouso, cookie, eventos de checkout (logado e convidado) e payment_success. O gclid continua
+// vencendo quando os dois aparecem juntos (ordem de PAID_CLICK_ID_TYPES), e nenhuma chave nova entra na metadata.
 //
 // MÓDULO PURO (nenhum import): o guardião scripts/test-anuncio-motor-rastreio-2026-10-07.mjs o transpila e EXECUTA.
 
@@ -29,8 +37,12 @@ export const PAID_CLICK_MAX_AGE_SECONDS = 90 * 24 * 60 * 60
 /** Relógio do navegador adiantado até este limite ainda vale (o cookie carrega a hora do PRÓPRIO navegador). */
 export const PAID_CLICK_CLOCK_SKEW_MS = 10 * 60 * 1000
 
-/** Ordem = precedência: o gclid do Google vence; gbraid/wbraid são os identificadores do iOS quando não há gclid. */
-export const PAID_CLICK_ID_TYPES = ['gclid', 'gbraid', 'wbraid'] as const
+/**
+ * Ordem = precedência: o gclid do Google vence; gbraid/wbraid são os identificadores do iOS quando não há gclid; o
+ * msclkid (Microsoft Ads/Bing, KINEO-MSCLKID-2026-10-08) vem por último — na prática chega sozinho, e a ordem do Google
+ * não muda.
+ */
+export const PAID_CLICK_ID_TYPES = ['gclid', 'gbraid', 'wbraid', 'msclkid'] as const
 export type PaidClickIdType = (typeof PAID_CLICK_ID_TYPES)[number]
 
 /** utm_medium que contam como clique pago mesmo sem identificador (ex.: Reddit/Meta com UTM manual). */
@@ -52,7 +64,7 @@ export type PaidClick = {
   source: string | null
   medium: string | null
   campaign: string | null
-  /** utm_term = a palavra-chave do Google ({keyword} no sufixo do URL final). */
+  /** utm_term = a palavra-chave ({keyword} no sufixo do URL final — no Google e no Microsoft). */
   term: string | null
   idType: PaidClickIdType | null
   id: string | null
@@ -65,7 +77,10 @@ export type PaidClickMetadata = Partial<Record<(typeof PAID_CLICK_METADATA_KEYS)
 const UTM_TOKEN = /^[A-Za-z0-9._~-]{1,100}$/
 /** utm_term: o texto da palavra-chave (letras, números, espaço e . _ ~ + -), até 100 caracteres. */
 const UTM_TERM = /^[A-Za-z0-9 ._~+-]{1,100}$/
-/** gclid/gbraid/wbraid: base64url do Google. Nunca e-mail, URL, aspas ou espaço. */
+/**
+ * gclid/gbraid/wbraid: base64url do Google; msclkid: GUID de 32 caracteres do Microsoft (cabe no mesmo alfabeto).
+ * Nunca e-mail, URL, aspas ou espaço.
+ */
 const CLICK_ID = /^[A-Za-z0-9_-]{8,255}$/
 /** Antes de 2024 é data impossível para um clique (relógio zerado ou valor forjado): nem grava, nem aceita. */
 const OLDEST_PLAUSIBLE_MS = Date.UTC(2024, 0, 1)
@@ -86,8 +101,8 @@ function isIdType(value: unknown): value is PaidClickIdType {
 }
 
 /**
- * O clique pago que esta query string carrega, ou null. Sem gclid/gbraid/wbraid e sem utm_medium pago não há clique:
- * a visita orgânica (ChatGPT, busca, direto) devolve null e, por isso, nunca sobrescreve um clique pago guardado.
+ * O clique pago que esta query string carrega, ou null. Sem gclid/gbraid/wbraid/msclkid e sem utm_medium pago não há
+ * clique: a visita orgânica (ChatGPT, busca, direto) devolve null e, por isso, nunca sobrescreve um clique pago guardado.
  */
 export function paidClickFromSearch(search: string | null | undefined, nowMs: number): PaidClick | null {
   if (!Number.isFinite(nowMs) || nowMs < OLDEST_PLAUSIBLE_MS) return null

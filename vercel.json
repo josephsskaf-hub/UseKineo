@@ -163,6 +163,10 @@
     {
       "path": "/api/cron/ads-v2-advance",
       "schedule": "2-57/5 * * * *"
+    },
+    {
+      "path": "/api/cron/geo-citation-monitor?confirm=SEND",
+      "schedule": "0 12 * * 1"
     }
   ]
 }

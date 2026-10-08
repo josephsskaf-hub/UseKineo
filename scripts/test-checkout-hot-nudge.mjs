@@ -136,8 +136,11 @@ check('evento no futuro (relógio torto) NÃO recebe', dentroDaJanela(AGORA + 60
 // 3. O CHAMADOR — a janela e a porta têm de ser realmente USADAS pela rota
 //    (contrato sem chamador serve zero — memória homônima)
 // ══════════════════════════════════════════════════════════════════════════
+// KINEO-RESGATE-PAGAMENTO-2026-10-08 — a busca devolve a URL E a sessão (a sessão decide a oferta de boas-vindas).
+// Reancorado na linha inteira, sem afrouxar: a URL continua saindo SÓ de escolherPaginaViva, e só ela vira "página".
 check('a rota chama escolherPaginaViva na resposta da Stripe',
-  /return\s+escolherPaginaViva\(s,\s*Date\.now\(\)\)/.test(src))
+  /^\s*const url = escolherPaginaViva\(s, Date\.now\(\)\)$/m.test(src) &&
+  /^\s*return url \? \{ url, sessao: s \} : null$/m.test(src))
 check('a rota busca a sessão na Stripe (não monta link à mão)',
   /stripe\.checkout\.sessions\.retrieve\(sessionId\)/.test(src))
 check('a rota filtra a janela também em código, não só na query',
@@ -146,8 +149,8 @@ check('o corte de baixo entra na query do banco (.lte com JANELA_MIN)',
   /const ate = new Date\(agora - JANELA_MIN_MINUTOS \* 60 \* 1000\)/.test(src) && /\.lte\('created_at', ate\)/.test(src))
 check('a coorte nasce de checkout_started, não de sessão expirada',
   /\.eq\('name', 'checkout_started'\)/.test(src) && !/'checkout_session_expired'/.test(src))
-check('quem não tem página viva é DESCARTADO antes do envio',
-  /if\s*\(!link\)\s*\{\s*semPagina\+\+;\s*continue\s*\}/.test(src))
+check('quem não tem página viva é DESCARTADO antes do envio (e o pulo leva o motivo)',
+  /^\s*if \(!pagina\) \{ semPagina\+\+; pulos\.push\(pulo\(c\.id, 'sem_pagina_viva'\)\); continue \}$/m.test(src))
 check('o laço de envio itera comPagina, nunca a lista crua',
   /for\s*\(const c of comPagina\)/.test(src) && !/for\s*\(const c of naoSuprimidos\)/.test(src))
 
@@ -167,8 +170,12 @@ check('rodapé de descadastro no texto e no html',
 for (const b of ['den.higgins', 'noelrss21', 'emiliomontinari', 'akajitin']) {
   check(`contato proibido bloqueado: ${b}`, src.includes(`'${b}'`))
 }
+// KINEO-RESGATE-PAGAMENTO-2026-10-08 — as quatro portas do perfil moram numa função pura (motivoDoPerfil), cujo
+// motivo vira o evento de pulo; scripts/test-resgate-pagamento-2026-10-08.mjs EXECUTA a tabela-verdade dela.
 check('a lista de bloqueados é realmente consultada',
-  /if\s*\(isBloqueado\(e\)\)\s*\{\s*excluidos\.bloqueado\+\+;\s*return false\s*\}/.test(src))
+  /^\s*if \(isBloqueado\(e\)\) return 'bloqueado'$/m.test(src) &&
+  /^\s*const motivo = motivoDoPerfil\(p\)$/m.test(src) &&
+  /^\s*if \(motivo === null\) return true$/m.test(src))
 check('quem já pagou não recebe (has_paid e payment_success)',
   /p\.has_paid === true/.test(src) && /\.eq\('name', 'payment_success'\)/.test(src))
 check('opt-out respeitado', /p\.email_opted_out === true/.test(src))
@@ -176,8 +183,14 @@ check('e-mail descartável barrado', /DISPOSABLE\.some/.test(src))
 check('carimbo vitalício de 1 carta por pessoa',
   /const SENT_EVENT = 'checkout_hot_nudge_emailed_v1'/.test(src) &&
   /\.eq\('name', SENT_EVENT\)/.test(src) && /if\s*\(ja\.has\(id\)\)/.test(src))
-check('os três dedupes passam pelo tripwire de 1000',
-  (src.match(/dedupeTripwire\(/g) ?? []).length === 3)
+// Âncora morta reancorada (08/10): o `dedupeTripwire` foi trocado pela leitura completa `readAll` (paginação por id)
+// em 09a26a22; a intenção — os três dedupes nunca truncam em 1000 — é a mesma, e test-hot-nudge-janela-campanhas
+// prova a 2ª página com a rota executada.
+check('os três dedupes passam pela leitura completa (readAll), nunca truncam em 1000', [
+  /readAll\(\(\) => admin\s*\.from\('events'\)\.select\('user_id'\)\.eq\('name', 'payment_success'\)\.in\('user_id', baseIds\)/,
+  /readAll\(\(\) => admin\s*\.from\('events'\)\.select\('user_id'\)\.in\('name', OUTRAS_CAMPANHAS\)\.in\('user_id', baseIds\)/,
+  /readAll\(\(\) => admin\s*\.from\('events'\)\.select\('user_id'\)\.eq\('name', SENT_EVENT\)\.in\('user_id', baseIds\)/,
+].every((re) => re.test(src)))
 check('a rota exige CRON_SECRET ou sessão de admin',
   /Boolean\(cronSecret\) && req\.headers\.get\('authorization'\) === `Bearer \$\{cronSecret\}`/.test(src) &&
   /ADMIN_EMAILS\.has/.test(src))
@@ -189,15 +202,25 @@ check('o link pessoal de pagamento NÃO é gravado no banco',
 // ══════════════════════════════════════════════════════════════════════════
 check('não promete crédito', !/\bcredits?\b/i.test(src.split('function corpoTexto')[1].split('type Candidato')[0]))
 const corpo = src.split('function corpoTexto')[1].split('type Candidato')[0]
-check('não inventa cupom nem desconto', !/coupon|discount|% off|promo code/i.test(corpo))
+// KINEO-RESGATE-PAGAMENTO-2026-10-08 — decisão do fundador (08/10): o resgate leva a oferta de boas-vindas que JÁ é
+// pública (WELCOME20) a quem tem direito. A trava continua proibindo cupom/desconto INVENTADO: nenhuma palavra de cupom,
+// nenhum percentual digitado, e o único "% off" sai de WELCOME20_PERCENT_OFF dentro do ramo `oferta.oferecer`.
+check('não inventa cupom nem desconto', !/coupon|discount|promo code/i.test(corpo))
+check('o único desconto nomeado é a oferta de boas-vindas, com o percentual importado (nunca digitado)',
+  (corpo.match(/% off/g) ?? []).length === (corpo.match(/\$\{WELCOME20_PERCENT_OFF\}% off/g) ?? []).length &&
+  (corpo.match(/% off/g) ?? []).length >= 2 && !/\b\d+\s*%/.test(corpo))
+check('a oferta só entra no ramo de quem tem direito (oferta.oferecer)',
+  /const boasVindas = oferta\.oferecer\n/.test(corpo) && /const meio = oferta\.oferecer\n/.test(corpo))
 check('não usa urgência falsa nem contador',
   !/hurry|last chance|expires in \d|only \d+ left|act now/i.test(corpo))
 check('nomeia o filme SÓ quando ele existe',
   /const feito = temFilme/.test(corpo) && /You got as far as the payment page/.test(corpo))
 check('promete a MESMA página, não uma nova escolha',
   /same plan, same price, nothing to pick again/.test(corpo))
-check('a saída barata é o trial de $1 já público, não preço novo',
-  /\$1 for the first 7 days/.test(corpo) && /\$15\/month/.test(corpo))
+// O trial de $1 morreu em 09/09 (65cd0c95, CARD_TRIAL_LIVE = false; o checkout ignora ?trial=1) e esta carta seguiu
+// prometendo-o até 08/10 — 41 envios em 30 dias. A trava se inverte: prometer a porta morta é o defeito.
+check('a carta NÃO promete o trial de $1 (desligado desde 09/09)',
+  !/\$1\b|7 days|trial/i.test(corpo) && !/CARD_TRIAL/.test(src))
 check('o link do plano é etiquetado (senão a venda chega como tráfego direto)',
   /utm_campaign=checkout_hot_nudge/.test(src))
 check('convite de resposta direta ao fundador',

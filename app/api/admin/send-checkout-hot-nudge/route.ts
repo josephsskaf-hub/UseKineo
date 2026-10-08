@@ -33,11 +33,12 @@ import { readAll } from '@/lib/supabase/readAll'
 //
 // POR QUE ISSO NÃO CONTRARIA A CONCLUSÃO FECHADA DO FUNDADOR (19/08 — "o
 // vazamento do checkout é PREÇO", estudo repetido, não reabrir): a carta **não
-// cria preço, cupom nem desconto**. O botão principal reabre a MESMA sessão,
-// mesmo plano, mesmo valor que a pessoa já aceitou ver. A segunda linha nomeia
-// uma oferta que já é pública desde hoje de manhã — o trial de $1 por 7 dias no
-// Creator (`c902516f`, `CARD_TRIAL_ENABLED = true`) — porque se o problema foi
-// preço, esconder a saída barata é que seria desonesto.
+// cria preço, cupom nem desconto**. O botão da mesma página reabre a MESMA
+// sessão, mesmo plano, mesmo valor que a pessoa já aceitou ver; e a oferta que
+// ela pode levar (desde 08/10) é a de boas-vindas que o modal da home já faz a
+// todo visitante, nunca uma nova. (Até 08/10 uma segunda linha nomeava o trial
+// de $1 por 7 dias no Creator — ver o bloco KINEO-RESGATE-PAGAMENTO-2026-10-08
+// logo abaixo: aquela porta morreu em 09/09 e a carta continuou prometendo.)
 //
 // PRECEDÊNCIA (memória `cron-no-mesmo-minuto-nao-tem-ordem`): esta carta e a de
 // sessão expirada falam do MESMO momento e se excluem nos dois sentidos — o
@@ -45,17 +46,50 @@ import { readAll } from '@/lib/supabase/readAll'
 // a carta quente não leva a de expiração, e vice-versa. O cron roda em
 // `6,21,36,51`, longe dos minutos :00/:30 das outras campanhas de checkout.
 //
+// ═══ KINEO-RESGATE-PAGAMENTO-2026-10-08 — a carta quente parou de prometer uma porta morta ═══
+//
+// A AUDITORIA (08/10, produção, só leitura, contas internas fora, 30 dias, por PESSOA):
+//   · 59 pessoas com conta apertaram comprar e não pagaram — as 59 receberam ao menos uma carta de resgate, 55
+//     receberam duas: esta (44, 31–45 min depois do clique, mediana 37), a da sessão expirada
+//     (admin/send-checkout-recovery, 13) e a do cron/send-recovery (57, ~24 h depois, kind 'checkout_recovery' no
+//     email_send_log). A carta EXISTE e DISPARA; construir uma sétima seria fabricar volume.
+//   · O defeito estava DENTRO desta: o trial de $1 morreu em 09/09 21:14 UTC (65cd0c95, o interruptor do trial de
+//     cartão em lib/checkoutPricing ficou desligado; o checkout ignora ?trial=1) e 41 dos 45 envios dos últimos 30
+//     dias saíram depois disso prometendo o Creator a um dólar por sete dias, "then 29.9/month" — oferta que o
+//     cobrador recusa e preço sem cifrão.
+//   · Na história: 0 pagamentos depois desta carta (45) e da de expiração (49); 1 depois do cron/send-recovery (121).
+//     Os 9 pagantes de 30 dias pagaram 0–5 min depois de abrir a sessão que pagaram. O WELCOME20 vendeu 1 Creator (28/09).
+//
+// O QUE MUDOU (decisão do fundador de 08/10: resgate com o WELCOME20 só para quem tem direito):
+//   1. Sai a promessa do trial de $1. No lugar, para quem tem direito, a oferta de boas-vindas que JÁ é pública
+//      (modal "Your first month is 20% off", código WELCOME20, cupom KINEO_WELCOME20, 20% só no 1º mês): um clique
+//      de volta ao MESMO plano, mensal, com o código que o próprio checkout verifica e aplica (caminho logado ou compra
+//      sem login). Direito = `decidirBoasVindas`: has_paid PROVADO false, Creator/Studio mensal (o recorte de
+//      guestWelcomePromoShapeOk, o mesmo do checkout), origem 'standard', sessão SEM desconto nenhum (não acumula) e o
+//      código conferido na Stripe AGORA (loadGuestWelcomePromoCandidate + publicPromoVerificationFailure). Quem não
+//      tem direito recebe a carta de sempre, sem oferta. Um interruptor só: HOT_NUDGE_WELCOME20_LIVE.
+//   2. Quem cai fora ganha uma linha `checkout_hot_nudge_skipped_v1` com o motivo (id determinístico por sessão ×
+//      motivo: o cron de 15 em 15 min não duplica), só no envio de verdade — o ensaio não grava nada. Inclui a compra
+//      sem login: a Stripe não devolve o e-mail de quem abandona sem consentimento promocional, e esse consentimento só
+//      existe para empresa E cliente nos EUA (a conta da casa é brasileira) — o pulo 'convidado_sem_email' é a medida
+//      desse buraco, não um defeito desta rota.
+//   3. O envio grava a versão da carta e a decisão da oferta (EMAIL_VERSION, welcome20_offered, welcome20_reason).
+// O QUE NÃO MUDOU, de propósito: a janela de 30 min–6 h, o carimbo de uma carta por pessoa NA VIDA (guardião
+// test-hot-nudge-janela-campanhas), as exclusões, a supressão de 24 h, o teto de 30 e o cron com confirm=SEND.
+//
 // MODOS (GET):
-//   (sem params)           → DRY RUN: quem receberia, e quem caiu fora e por quê.
-//   ?confirm=SEND&limit=N  → envia para os próximos N (default 30, teto 30).
+//   (sem params)           → DRY RUN: quem receberia, e quem caiu fora e por quê. Não grava nada.
+//   ?confirm=SEND&limit=N  → envia para os próximos N (default 30, teto 30) e grava enviados e pulados.
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { pickMomentumTopic } from '@/lib/momentumTopic'
-import { CARD_TRIAL_THEN_LABEL } from '@/lib/checkoutPricing'
+import { WELCOME20_PERCENT_OFF, WELCOME20_PROMOTION_CODE, publicPromoVerificationFailure } from '@/lib/growth/publicPromoTruth'
+import { guestWelcomePromoShapeOk } from '@/lib/growth/guestCheckout'
+import { deterministicEventUuid, loadGuestWelcomePromoCandidate } from '@/lib/stripe/guestCheckout'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -74,6 +108,20 @@ const FROM_EMAIL = 'Joseph at Kineo <joseph@usekineo.com>'
 const REPLY_TO = 'joseph@usekineo.com'
 const SENT_EVENT = 'checkout_hot_nudge_emailed_v1'
 const SITE = 'https://www.usekineo.com'
+const ROTA = '/api/admin/send-checkout-hot-nudge'
+
+/** KINEO-RESGATE-PAGAMENTO-2026-10-08 — quem caiu fora, e por quê. Só no envio de verdade; o ensaio não grava. */
+export const SKIP_EVENT = 'checkout_hot_nudge_skipped_v1'
+/** A versão da carta, gravada no envio: separa no banco a carta que prometia o trial de $1 (morto em 09/09) desta. */
+export const EMAIL_VERSION = 'hot_nudge_v2_welcome20'
+/**
+ * INTERRUPTOR ÚNICO da oferta de boas-vindas nesta carta. false = a carta sai sem oferta nenhuma (só a mesma página).
+ * DESLIGADO por decisão do fundador (08/10, "sim"): quem desiste já vê a oferta da página (banner Studio50 / modal
+ * Creator30 no /pricing e no /checkout/cancelled); a carta não oferece um segundo desconto diferente.
+ */
+export const HOT_NUDGE_WELCOME20_LIVE = false
+/** A campanha que o clique leva até a Stripe (checkout_started.intent_campaign): é por ela que se mede quem voltou. */
+export const WELCOME20_INTENT_CAMPAIGN = 'checkout_hot_nudge_welcome20'
 
 /** A JANELA, e ela é o produto inteiro desta rota.
  *
@@ -142,6 +190,21 @@ function isBloqueado(email: string): boolean {
   return BLOQUEADOS.some((b) => e.includes(b))
 }
 
+/** Quem sai da lista pelo PERFIL, e por quê — a mesma ordem de sempre (pagante → opt-out → e-mail → bloqueado).
+ *  Pura e exportada: o guardião executa a tabela-verdade, e o motivo vira o evento de pulo. */
+export function motivoDoPerfil(p: {
+  has_paid?: boolean | null
+  email_opted_out?: boolean | null
+  email?: string | null
+}): 'pagante' | 'optout' | 'email_invalido_ou_interno' | 'bloqueado' | null {
+  const e = p.email ?? ''
+  if (p.has_paid === true) return 'pagante'
+  if (p.email_opted_out === true) return 'optout'
+  if (!e || isJunk(e)) return 'email_invalido_ou_interno'
+  if (isBloqueado(e)) return 'bloqueado'
+  return null
+}
+
 function tituloDoFilme(title: string | null | undefined, topic: string | null | undefined): string | null {
   return pickMomentumTopic(title) ?? pickMomentumTopic(topic)
 }
@@ -149,11 +212,153 @@ function escaparHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
-/** A saída barata, etiquetada — senão uma assinatura vinda daqui chega ao
- *  painel como tráfego direto. NÃO é preço novo: o trial de $1 no Creator está
- *  público desde 07/09 de manhã. */
-function planoUrl(): string {
-  return `${SITE}/pricing?utm_source=lifecycle&utm_medium=email&utm_campaign=checkout_hot_nudge`
+// ─── A oferta de boas-vindas (KINEO-RESGATE-PAGAMENTO-2026-10-08) ─────────────────────────────────────────────────
+export type MotivoSemBoasVindas =
+  | 'oferta_desligada'
+  | 'pagamento_nao_provado'
+  | 'welcome20_nao_verificado'
+  | 'nao_e_assinatura'
+  | 'trial_de_cartao'
+  | 'origem_especial'
+  | 'periodo_fora_da_oferta'
+  | 'plano_fora_da_oferta'
+  | 'desconto_desconhecido'
+  | 'ja_tem_desconto'
+
+export type DecisaoBoasVindas =
+  | { oferecer: true; tier: 'basic' | 'pro'; plano: 'Creator' | 'Studio' }
+  | { oferecer: false; motivo: MotivoSemBoasVindas }
+
+/** O pedaço da sessão Stripe que decide a oferta (o objeto que `sessions.retrieve` devolve cabe aqui). */
+export type SessaoParaOferta = {
+  mode?: string | null
+  metadata?: { [key: string]: string } | null
+  total_details?: { amount_discount?: number | null } | null
+} | null | undefined
+
+/** A pessoa tem direito ao WELCOME20 nesta carta? Pura, exportada, e FECHADA por padrão: qualquer coisa que a casa
+ *  não sabe vira "não". As regras são as do checkout (KINEO-WELCOME20-2026-08-25), nunca uma régua nova:
+ *   · has_paid PROVADO false — `!== true` abriria a porta justamente quando o perfil não foi lido (memória
+ *     `predicado-largo-negado-falha-aberta`); "já usou o WELCOME20" está contido em "já pagou";
+ *   · o código conferido na Stripe agora — a carta nunca promete o que o checkout vai recusar;
+ *   · assinatura mensal de Creator ou Studio (o recorte de guestWelcomePromoShapeOk, o mesmo do checkout), nascida
+ *     no checkout padrão (a volta ao vídeo e o Plan Fit têm destino próprio, que o link novo perderia);
+ *   · a página aberta SEM desconto nenhum: a Stripe aceita um só, e quem já tem um (o próprio WELCOME20, intro,
+ *     oferta privada, STUDIO50…) volta pela mesma página, com o desconto que já tinha. Nada acumula. */
+export function decidirBoasVindas(input: {
+  ligada: boolean
+  hasPaid: boolean | null | undefined
+  welcome20Verificado: boolean
+  sessao: SessaoParaOferta
+}): DecisaoBoasVindas {
+  if (input.ligada !== true) return { oferecer: false, motivo: 'oferta_desligada' }
+  if (input.hasPaid !== false) return { oferecer: false, motivo: 'pagamento_nao_provado' }
+  if (input.welcome20Verificado !== true) return { oferecer: false, motivo: 'welcome20_nao_verificado' }
+  const sessao = input.sessao
+  if (!sessao || sessao.mode !== 'subscription') return { oferecer: false, motivo: 'nao_e_assinatura' }
+  const md = sessao.metadata ?? {}
+  if (md.card_trial === '1') return { oferecer: false, motivo: 'trial_de_cartao' }
+  if (md.checkout_origin !== 'standard') return { oferecer: false, motivo: 'origem_especial' }
+  if (md.billing !== 'monthly') return { oferecer: false, motivo: 'periodo_fora_da_oferta' }
+  const tier = md.tier
+  if ((tier !== 'basic' && tier !== 'pro') || !guestWelcomePromoShapeOk({ tier, isAnnual: false })) {
+    return { oferecer: false, motivo: 'plano_fora_da_oferta' }
+  }
+  const desconto = sessao.total_details?.amount_discount
+  if (typeof desconto !== 'number' || !Number.isFinite(desconto)) return { oferecer: false, motivo: 'desconto_desconhecido' }
+  if (desconto !== 0 || md.intro === '1' || Boolean(md.public_promo_state) || Boolean(md.offer)) {
+    return { oferecer: false, motivo: 'ja_tem_desconto' }
+  }
+  return { oferecer: true, tier, plano: tier === 'basic' ? 'Creator' : 'Studio' }
+}
+
+/** Um clique de volta ao MESMO plano, mensal, com o código que o checkout verifica e aplica sozinho. Logado ou não:
+ *  sem sessão, a compra sem login abre a Stripe com o mesmo desconto; com ela, o caminho logado faz o resto.
+ *  Etiquetado, senão a venda chega ao painel como tráfego direto. */
+export function linkBoasVindas(tier: 'basic' | 'pro'): string {
+  return `${SITE}/api/stripe/checkout?tier=${tier}&billing=monthly&promo=${WELCOME20_PROMOTION_CODE}&intent_campaign=${WELCOME20_INTENT_CAMPAIGN}&utm_source=lifecycle&utm_medium=email&utm_campaign=checkout_hot_nudge`
+}
+
+// ─── Quem caiu fora (KINEO-RESGATE-PAGAMENTO-2026-10-08) ─────────────────────────────────────────────────────────
+export type MotivoDePulo =
+  | 'convidado_sem_email'
+  | 'perfil_ausente'
+  | 'pagante'
+  | 'optout'
+  | 'email_invalido_ou_interno'
+  | 'bloqueado'
+  | 'outra_campanha_7d'
+  | 'ja_recebeu'
+  | 'suprimido_24h'
+  | 'supressao_degradada'
+  | 'sem_pagina_viva'
+
+type Pulo = {
+  userId: string | null
+  sessionId: string
+  motivo: MotivoDePulo
+  tier: string | null
+  clicouEm: string
+  uaClass: string | null
+}
+
+/** Uma linha por (sessão Stripe, motivo): o cron passa pela mesma pessoa várias vezes dentro da janela, e o id
+ *  determinístico faz a segunda gravação simplesmente não existir. */
+export function idDoPulo(sessionId: string, motivo: MotivoDePulo): string {
+  return deterministicEventUuid(SKIP_EVENT, `${sessionId}:${motivo}`)
+}
+
+function contarMotivos(itens: Array<{ motivo: string }>): Record<string, number> {
+  const out: Record<string, number> = {}
+  for (const i of itens) out[i.motivo] = (out[i.motivo] ?? 0) + 1
+  return out
+}
+
+/** Grava os pulos que ainda não existem. Nunca lança: a carta já saiu (ou não) quando isto roda, e a medição não
+ *  pode virar 500 nem reenvio. Aguardado até o fim (memória `void-antes-do-return-morre-na-vercel`). */
+async function gravarPulos(
+  admin: SupabaseClient,
+  pulos: Pulo[],
+  agoraMs: number,
+): Promise<{ gravados: number; ja_existiam: number; erro: string | null }> {
+  if (pulos.length === 0) return { gravados: 0, ja_existiam: 0, erro: null }
+  try {
+    const linhas = new Map<string, Record<string, unknown>>()
+    for (const p of pulos) {
+      if (!p.sessionId) continue // sem sessão Stripe não há chave estável: melhor não gravar que gravar em duplicata
+      const id = idDoPulo(p.sessionId, p.motivo)
+      if (linhas.has(id)) continue
+      linhas.set(id, {
+        id,
+        name: SKIP_EVENT,
+        user_id: p.userId,
+        path: ROTA,
+        metadata: {
+          reason: p.motivo,
+          stripe_session_id: p.sessionId,
+          tier: p.tier,
+          checkout_started_at: p.clicouEm,
+          minutes_after_click: Math.round((agoraMs - new Date(p.clicouEm).getTime()) / 60000),
+          ua_class: p.uaClass,
+          email_version: EMAIL_VERSION,
+        },
+      })
+    }
+    const ids = [...linhas.keys()]
+    const existentes = new Set<string>()
+    for (let i = 0; i < ids.length; i += 200) {
+      const fatia = ids.slice(i, i + 200)
+      const { data } = await readAll(() => admin.from('events').select('id').in('id', fatia), { route: ROTA, table: 'events' })
+      for (const r of data ?? []) existentes.add((r as { id: string }).id)
+    }
+    const novas = ids.filter((id) => !existentes.has(id)).map((id) => linhas.get(id) as Record<string, unknown>)
+    if (novas.length === 0) return { gravados: 0, ja_existiam: existentes.size, erro: null }
+    const { error } = await admin.from('events').insert(novas)
+    if (error) return { gravados: 0, ja_existiam: existentes.size, erro: `${error.code ?? ''} ${error.message}`.trim() }
+    return { gravados: novas.length, ja_existiam: existentes.size, erro: null }
+  } catch (e) {
+    return { gravados: 0, ja_existiam: 0, erro: e instanceof Error ? e.message : 'error' }
+  }
 }
 
 function assunto(filme: string | null): string {
@@ -168,26 +373,31 @@ function assunto(filme: string | null): string {
  *   · "still open" — a Stripe respondeu `status: 'open'` segundos atrás;
  *   · "same plan, same price" — é a MESMA sessão, buscada agora, não montada
  *     à mão aqui;
- *   · "$1 for 7 days" — oferta pública viva (CARD_TRIAL_ENABLED = true);
- *   · nenhum crédito, cupom ou desconto novo é prometido em lugar nenhum. */
-function corpoTexto(filme: string | null, liveUrl: string, userId: string, temFilme: boolean): string {
+ *   · a oferta de boas-vindas só aparece com `oferta.oferecer` — direito provado por `decidirBoasVindas` e código
+ *     conferido na Stripe nesta execução; o percentual vem de WELCOME20_PERCENT_OFF, nunca digitado;
+ *   · nenhum crédito, preço, cupom novo ou trial é prometido em lugar nenhum. */
+function corpoTexto(filme: string | null, liveUrl: string, userId: string, temFilme: boolean, oferta: DecisaoBoasVindas): string {
   const feito = temFilme
     ? (filme
       ? `You already made "${filme}" with Kineo, so you know what comes out the other side.`
       : `You already made a short with Kineo, so you know what comes out the other side.`)
     : `You got as far as the payment page, so something about this was worth your time.`
+  const boasVindas = oferta.oferecer
+    ? `If it was the price: your first month of ${oferta.plano} is ${WELCOME20_PERCENT_OFF}% off with our welcome offer. Same plan, applied automatically, no code to type:
+
+${linkBoasVindas(oferta.tier)}
+
+`
+    : ''
   return `Hey — Joseph here, founder of Kineo.
 
 You opened the payment page a little while ago and it is still sitting there, open. No charge was made.
 
 ${feito}
 
-If life just got in the way, this is the same page you left — same plan, same price, nothing to pick again:
+${boasVindas}If life just got in the way, this is the same page you left — same plan, same price, nothing to pick again:
 
 ${liveUrl}
-
-If it was the price and not the tab: Creator is $1 for the first 7 days, ${CARD_TRIAL_THEN_LABEL.replace('/mo', '/month')}. Same films.
-${planoUrl()}
 
 And if something on that page did not add up, hit reply and tell me in one sentence. It comes straight to me, and I would rather know than guess.
 
@@ -196,21 +406,27 @@ Kineo · usekineo.com
 ${emailFooterText(userId)}`
 }
 
-function corpoHtml(filme: string | null, liveUrl: string, userId: string, temFilme: boolean): string {
+function corpoHtml(filme: string | null, liveUrl: string, userId: string, temFilme: boolean, oferta: DecisaoBoasVindas): string {
   const feito = temFilme
     ? (filme
       ? `You already made <strong>&ldquo;${escaparHtml(filme)}&rdquo;</strong> with Kineo, so you know what comes out the other side.`
       : `You already made a short with Kineo, so you know what comes out the other side.`)
     : `You got as far as the payment page, so something about this was worth your time.`
+  const botao = (href: string, rotulo: string) =>
+    `<p style="margin:26px 0">
+  <a href="${href}" style="background:#2997ff;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:700;display:inline-block">${rotulo} &rarr;</a>
+</p>`
+  const meio = oferta.oferecer
+    ? `<p>If it was the price: your first month of <strong>${oferta.plano}</strong> is <strong>${WELCOME20_PERCENT_OFF}% off</strong> with our welcome offer &mdash; same plan, applied automatically, no code to type:</p>
+${botao(linkBoasVindas(oferta.tier), `Finish with ${WELCOME20_PERCENT_OFF}% off your first month`)}
+<p style="font-size:14px;color:#555">If life just got in the way, <a href="${liveUrl}" style="color:#2997ff">the same page you left</a> is still open &mdash; same plan, same price, nothing to pick again.</p>`
+    : `<p>If life just got in the way, this is the <strong>same page you left</strong> &mdash; same plan, same price, nothing to pick again:</p>
+${botao(liveUrl, 'Finish where you left off')}`
   return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1a1a1a;max-width:520px">
 <p>Hey &mdash; Joseph here, founder of <strong>Kineo</strong> 🎬</p>
 <p>You opened the payment page a little while ago and it is <strong>still sitting there, open</strong>. No charge was made.</p>
 <p>${feito}</p>
-<p>If life just got in the way, this is the <strong>same page you left</strong> &mdash; same plan, same price, nothing to pick again:</p>
-<p style="margin:26px 0">
-  <a href="${liveUrl}" style="background:#2997ff;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:700;display:inline-block">Finish where you left off &rarr;</a>
-</p>
-<p style="font-size:14px;color:#555">If it was the price and not the tab: <a href="${planoUrl()}" style="color:#2997ff">Creator is $1 for the first 7 days</a>, ${CARD_TRIAL_THEN_LABEL.replace('/mo', '/month')}. Same films.</p>
+${meio}
 <p>And if something on that page did not add up, hit reply and tell me in one sentence. It comes straight to me, and I would rather know than guess.</p>
 <p>&mdash; Joseph, founder<br/>Kineo &middot; <a href="https://usekineo.com" style="color:#2997ff">usekineo.com</a></p>
 ${emailFooterHtml(userId)}</div>`
@@ -225,6 +441,7 @@ type Candidato = {
   filme: string | null
   temFilme: boolean
   clicouEm: string
+  hasPaid: boolean | null
 }
 
 /** A DECISÃO, isolada da rede de propósito: dada a sessão que a Stripe
@@ -274,14 +491,16 @@ export function dentroDaJanela(
   return idadeMin >= minMinutos && idadeMin <= maxMinutos
 }
 
-/** Busca na Stripe a página viva desta sessão. Devolve null quando a sessão
- *  não está aberta, quando já foi paga, quando não há url, quando ela morreu,
- *  ou quando a Stripe não responde — os cinco casos significam a mesma coisa
- *  para a carta: ela não pode ser enviada. */
-async function paginaViva(sessionId: string): Promise<string | null> {
+/** Busca na Stripe a página viva desta sessão — e a própria sessão, que é quem
+ *  decide a oferta de boas-vindas. Devolve null quando a sessão não está
+ *  aberta, quando já foi paga, quando não há url, quando ela morreu, ou quando
+ *  a Stripe não responde — os cinco casos significam a mesma coisa para a
+ *  carta: ela não pode ser enviada. */
+async function paginaViva(sessionId: string): Promise<{ url: string; sessao: SessaoParaOferta } | null> {
   try {
     const s = await stripe.checkout.sessions.retrieve(sessionId)
-    return escolherPaginaViva(s, Date.now())
+    const url = escolherPaginaViva(s, Date.now())
+    return url ? { url, sessao: s } : null
   } catch {
     return null
   }
@@ -306,6 +525,7 @@ export async function GET(req: NextRequest) {
     const admin = createAdminClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } })
 
     const agora = Date.now()
+    const confirm = req.nextUrl.searchParams.get('confirm') === 'SEND'
     // ── 1. o clique de comprar MAIS RECENTE de cada pessoa, dentro da janela ──
     const desde = new Date(agora - JANELA_MAX_MINUTOS * 60 * 1000).toISOString()
     const ate = new Date(agora - JANELA_MIN_MINUTOS * 60 * 1000).toISOString()
@@ -318,30 +538,50 @@ export async function GET(req: NextRequest) {
       .order('created_at', { ascending: false }), { route: '/api/admin/send-checkout-hot-nudge', table: 'events' })
     if (csErr) return NextResponse.json({ error: csErr.message }, { status: 500 })
 
-    const ultimaSessao = new Map<string, { sessionId: string; tier: string | null; pais: string; quando: string }>()
+    const ultimaSessao = new Map<string, { sessionId: string; tier: string | null; pais: string; quando: string; uaClass: string | null }>()
+    // A compra sem login (lib/growth/guestCheckout) chega aqui sem user_id. Não há a quem escrever: a Stripe não devolve o
+    // e-mail de quem abandona sem consentimento promocional (só existe para empresa e cliente nos EUA). Vira pulo.
+    const convidados = new Map<string, Pulo>()
     for (const r of csRows ?? []) {
       const uid = r.user_id as string | null
-      if (!uid || ultimaSessao.has(uid)) continue // a lista já vem do mais novo para o mais velho
+      if (uid && ultimaSessao.has(uid)) continue // a lista já vem do mais novo para o mais velho
       const md = (r.metadata ?? {}) as Record<string, unknown>
       const sid = typeof md.stripe_session_id === 'string' ? md.stripe_session_id : null
       if (!sid) continue
       // Redundante com o filtro do banco, e de propósito: a janela é a regra
       // desta rota e ela fica auditável em código, não só na query.
       if (!dentroDaJanela(new Date(r.created_at as string).getTime(), agora)) continue
+      const tier = typeof md.tier === 'string' ? md.tier : null
+      const uaClass = typeof md.ua_class === 'string' ? md.ua_class : null
+      if (!uid) {
+        if (!convidados.has(sid)) {
+          convidados.set(sid, { userId: null, sessionId: sid, motivo: 'convidado_sem_email', tier, clicouEm: r.created_at as string, uaClass })
+        }
+        continue
+      }
       ultimaSessao.set(uid, {
         sessionId: sid,
-        tier: typeof md.tier === 'string' ? md.tier : null,
+        tier,
         pais: typeof md.ip_country === 'string' ? md.ip_country : '',
         quando: r.created_at as string,
+        uaClass,
       })
+    }
+    const pulos: Pulo[] = [...convidados.values()]
+    const pulo = (id: string, motivo: MotivoDePulo): Pulo => {
+      const s = ultimaSessao.get(id)
+      return { userId: id, sessionId: s?.sessionId ?? '', motivo, tier: s?.tier ?? null, clicouEm: s?.quando ?? new Date(agora).toISOString(), uaClass: s?.uaClass ?? null }
     }
     const ids = [...ultimaSessao.keys()]
     if (ids.length === 0) {
+      const gravacao = confirm ? await gravarPulos(admin, pulos, agora) : null
       return NextResponse.json({
-        mode: 'DRY_RUN',
+        mode: confirm ? 'SENT' : 'DRY_RUN',
         janela_minutos: [JANELA_MIN_MINUTOS, JANELA_MAX_MINUTOS],
         elegiveis: 0,
-        note: 'ninguém apertou comprar dentro da janela quente',
+        pulos_por_motivo: contarMotivos(pulos),
+        ...(gravacao ? { pulos_gravados: gravacao.gravados, pulos_ja_existiam: gravacao.ja_existiam, pulos_erro: gravacao.erro } : {}),
+        note: 'ninguém com conta apertou comprar dentro da janela quente',
       })
     }
 
@@ -352,14 +592,17 @@ export async function GET(req: NextRequest) {
       .in('id', ids.slice(0, 1000)), { route: '/api/admin/send-checkout-hot-nudge', table: 'profiles' })
     if (perfErr) return NextResponse.json({ error: perfErr.message }, { status: 500 })
 
+    const comPerfil = new Set((perfis ?? []).map((p) => p.id as string))
+    for (const id of ids) if (!comPerfil.has(id)) pulos.push(pulo(id, 'perfil_ausente'))
+
     const excluidos = { pagante: 0, optout: 0, junk: 0, bloqueado: 0, outra_campanha: 0, ja_recebeu: 0 }
+    const CONTADOR = { pagante: 'pagante', optout: 'optout', email_invalido_ou_interno: 'junk', bloqueado: 'bloqueado' } as const
     const base = (perfis ?? []).filter((p) => {
-      const e = (p.email as string | null) ?? ''
-      if (p.has_paid === true) { excluidos.pagante++; return false }
-      if (p.email_opted_out === true) { excluidos.optout++; return false }
-      if (!e || isJunk(e)) { excluidos.junk++; return false }
-      if (isBloqueado(e)) { excluidos.bloqueado++; return false }
-      return true
+      const motivo = motivoDoPerfil(p)
+      if (motivo === null) return true
+      excluidos[CONTADOR[motivo]]++
+      pulos.push(pulo(p.id as string, motivo))
+      return false
     })
     const baseIds = base.map((p) => p.id as string)
 
@@ -393,9 +636,9 @@ export async function GET(req: NextRequest) {
     const candidatos: Candidato[] = []
     for (const p of base) {
       const id = p.id as string
-      if (pagou.has(id)) { excluidos.pagante++; continue }
-      if (outras.has(id)) { excluidos.outra_campanha++; continue }
-      if (ja.has(id)) { excluidos.ja_recebeu++; continue }
+      if (pagou.has(id)) { excluidos.pagante++; pulos.push(pulo(id, 'pagante')); continue }
+      if (outras.has(id)) { excluidos.outra_campanha++; pulos.push(pulo(id, 'outra_campanha_7d')); continue }
+      if (ja.has(id)) { excluidos.ja_recebeu++; pulos.push(pulo(id, 'ja_recebeu')); continue }
       const sess = ultimaSessao.get(id)
       if (!sess) continue
       const f = filmes.get(id)
@@ -408,30 +651,51 @@ export async function GET(req: NextRequest) {
         filme: f ? tituloDoFilme(f.title, f.topic) : null,
         temFilme: Boolean(f),
         clicouEm: sess.quando,
+        hasPaid: typeof p.has_paid === 'boolean' ? p.has_paid : null,
       })
     }
 
     // ── 3. supressão de 24h (falha FECHADA) ─────────────────────────────────
     const sup = await loadLifecycleSuppression(admin, candidatos.map((c) => c.id))
+    for (const c of candidatos) {
+      if (sup.isSuppressed(c.id)) pulos.push(pulo(c.id, sup.degraded ? 'supressao_degradada' : 'suprimido_24h'))
+    }
     const naoSuprimidos = candidatos
       .filter((c) => !sup.isSuppressed(c.id))
       // Quem já entregou filme primeiro: essa pessoa viu o produto funcionar
       // e a carta dela é a mais verdadeira. Depois, o clique mais recente.
       .sort((a, b) => Number(b.temFilme) - Number(a.temFilme) || b.clicouEm.localeCompare(a.clicouEm))
 
-    const confirm = req.nextUrl.searchParams.get('confirm') === 'SEND'
     const limiteParam = Number(req.nextUrl.searchParams.get('limit'))
     const lote = Number.isFinite(limiteParam) && limiteParam > 0 ? Math.min(limiteParam, 30) : 30
 
+    // O código WELCOME20 é conferido na Stripe UMA vez por execução, e só se alguém do lote puder recebê-lo.
+    let welcome20: Promise<boolean> | null = null
+    const verificarWelcome20 = (): Promise<boolean> => {
+      if (!welcome20) {
+        welcome20 = loadGuestWelcomePromoCandidate(stripe, { kind: 'welcome_first_month_20', code: WELCOME20_PROMOTION_CODE, nowMs: agora })
+          .then((candidato) => candidato !== null && publicPromoVerificationFailure(candidato) === null)
+          .catch(() => false)
+      }
+      return welcome20
+    }
+    const ofertaPara = async (hasPaid: boolean | null, sessao: SessaoParaOferta): Promise<DecisaoBoasVindas> => {
+      const provisoria = decidirBoasVindas({ ligada: HOT_NUDGE_WELCOME20_LIVE, hasPaid, welcome20Verificado: true, sessao })
+      if (!provisoria.oferecer) return provisoria
+      return decidirBoasVindas({ ligada: HOT_NUDGE_WELCOME20_LIVE, hasPaid, welcome20Verificado: await verificarWelcome20(), sessao })
+    }
+
     // ── 4. a página viva, na Stripe, uma por pessoa ─────────────────────────
     const alvo = naoSuprimidos.slice(0, lote)
-    const comPagina: Array<Candidato & { liveUrl: string }> = []
+    const comPagina: Array<Candidato & { liveUrl: string; oferta: DecisaoBoasVindas }> = []
     let semPagina = 0
     for (const c of alvo) {
-      const link = await paginaViva(c.sessionId)
-      if (!link) { semPagina++; continue }
-      comPagina.push({ ...c, liveUrl: link })
+      const pagina = await paginaViva(c.sessionId)
+      if (!pagina) { semPagina++; pulos.push(pulo(c.id, 'sem_pagina_viva')); continue }
+      const oferta = await ofertaPara(c.hasPaid, pagina.sessao)
+      comPagina.push({ ...c, liveUrl: pagina.url, oferta })
     }
+    const semOferta = comPagina.flatMap((c) => (c.oferta.oferecer ? [] : [{ motivo: c.oferta.motivo }]))
 
     if (!confirm) {
       return NextResponse.json({
@@ -446,8 +710,13 @@ export async function GET(req: NextRequest) {
         suprimidos_24h: sup.suppressedCount,
         supressao_degradada: sup.degraded,
         excluidos,
+        oferta_boas_vindas_ligada: HOT_NUDGE_WELCOME20_LIVE,
+        com_oferta_boas_vindas: comPagina.length - semOferta.length,
+        sem_oferta_por_motivo: contarMotivos(semOferta),
+        pulos_por_motivo: contarMotivos(pulos),
+        pulos_gravados: 0,
         assunto_exemplo: assunto(comPagina[0]?.filme ?? null),
-        lista: comPagina.map((c) => `${c.email} · ${c.pais || '??'} · ${c.tier ?? '?'} · ${c.temFilme ? 'com filme' : 'SEM filme'} · ${c.filme ?? '(sem título)'} · clicou ${c.clicouEm}`),
+        lista: comPagina.map((c) => `${c.email} · ${c.pais || '??'} · ${c.tier ?? '?'} · ${c.temFilme ? 'com filme' : 'SEM filme'} · ${c.filme ?? '(sem título)'} · clicou ${c.clicouEm} · ${c.oferta.oferecer ? `${WELCOME20_PERCENT_OFF}% ${c.oferta.plano}` : `sem oferta (${c.oferta.motivo})`}`),
         from: FROM_EMAIL,
         hint: 'Acrescente &confirm=SEND (e opcionalmente &limit=N) para enviar.',
       })
@@ -466,8 +735,8 @@ export async function GET(req: NextRequest) {
             to: c.email,
             reply_to: REPLY_TO,
             subject: assunto(c.filme),
-            text: corpoTexto(c.filme, c.liveUrl, c.id, c.temFilme),
-            html: corpoHtml(c.filme, c.liveUrl, c.id, c.temFilme),
+            text: corpoTexto(c.filme, c.liveUrl, c.id, c.temFilme, c.oferta),
+            html: corpoHtml(c.filme, c.liveUrl, c.id, c.temFilme, c.oferta),
             headers: unsubscribeHeaders(c.id),
           }),
         })
@@ -485,6 +754,10 @@ export async function GET(req: NextRequest) {
             stripe_session_id: c.sessionId,
             // O link NÃO é gravado: é uma porta de pagamento pessoal.
             live_url_used: true,
+            email_version: EMAIL_VERSION,
+            welcome20_offered: c.oferta.oferecer,
+            welcome20_tier: c.oferta.oferecer ? c.oferta.tier : null,
+            welcome20_reason: c.oferta.oferecer ? null : c.oferta.motivo,
           },
         })
         enviados++
@@ -496,12 +769,18 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    const gravacao = await gravarPulos(admin, pulos, agora)
     return NextResponse.json({
       mode: 'SENT',
       enviados,
       falhas,
+      com_oferta_boas_vindas: comPagina.length - semOferta.length,
       sem_pagina_viva_nao_receberam: semPagina,
       restam_apos_lote: Math.max(0, naoSuprimidos.length - alvo.length),
+      pulos_por_motivo: contarMotivos(pulos),
+      pulos_gravados: gravacao.gravados,
+      pulos_ja_existiam: gravacao.ja_existiam,
+      pulos_erro: gravacao.erro,
       resultados,
     })
   } catch (e) {

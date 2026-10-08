@@ -51,6 +51,10 @@ export interface LiveVisitor {
   plan: string | null
   is_paid: boolean
   is_trial: boolean
+  /** KINEO-SELO-AFILIADO-2026-10-08 — parceiro do programa: tem código em `affiliates` ou cortesia ativa de parceiro. */
+  is_affiliate: boolean
+  /** Cortesia ativa em `courtesy_grants`: o plano *_trial desta conta NÃO é o trial de $1. */
+  is_courtesy: boolean
   videos: number
   /** Sinais do que a pessoa fez NESTA sessão de hoje — o "testou algo". */
   did: string[]
@@ -276,14 +280,29 @@ export async function GET() {
       // ignorar estorno — igual ao /admin/people (#295), que já fazia isso.
       const animateDelivPromise = readAll(() => admin
         .from('events').select('user_id, metadata').eq('name', 'animate_job_settled').in('user_id', ids), { route: '/api/admin/live', table: 'events' })
-      const [profRes, vidRes, animateDelivRes, imagesRes, audiosRes, grantsRes, purchasesRes, debitsRes, revokesRes, subsRes] = await Promise.all([
+      // KINEO-SELO-AFILIADO-2026-10-08 (fundador: "tira esse 1 e coloca afiliado pra eu saber") — parceiro em
+      // cortesia tem plano creator_trial/studio_trial e aparecia como "trial $1", igual a quem pagou o teste de $1.
+      const affiliatesPromise = readAll(() => admin
+        .from('affiliates').select('user_id').in('user_id', ids), { route: '/api/admin/live', table: 'affiliates' })
+      // Cortesia ativa nem sempre é parceiro (cliente B2B e o revisor da OpenAI também têm): o motivo da
+      // concessão separa — as de parceiro nascem com "Kineo Partners" / afiliado / parceiro no texto.
+      const courtesyPromise = readAll(() => admin
+        .from('courtesy_grants').select('user_id, reason').eq('status', 'active').in('user_id', ids), { route: '/api/admin/live', table: 'courtesy_grants' })
+      const [profRes, vidRes, animateDelivRes, imagesRes, audiosRes, grantsRes, purchasesRes, debitsRes, revokesRes, subsRes, affiliatesRes, courtesyRes] = await Promise.all([
         readAll(() => admin.from('profiles')
           .select('id, email, name, plan, has_paid, video_credits, trial_credits_used, trial_credits_granted, signup_country, last_country, signup_utm_source, created_at')
           .in('id', ids), { route: '/api/admin/live', table: 'profiles' }),
         readAll(() => admin.from('videos').select('user_id').in('user_id', ids), { route: '/api/admin/live', table: 'videos' }),
         animateDelivPromise,
         imagesPromise, audiosPromise, grantsPromise, purchasesPromise, debitsPromise, revokesPromise, subsPromise,
+        affiliatesPromise, courtesyPromise,
       ])
+      const userIdsOf = (rows: unknown[] | null | undefined) =>
+        new Set((rows ?? []).map((r) => (r as { user_id?: string | null }).user_id).filter((u): u is string => Boolean(u)))
+      const affiliateIds = userIdsOf(affiliatesRes.data)
+      const courtesyIds = userIdsOf(courtesyRes.data)
+      const partnerCourtesyIds = userIdsOf((courtesyRes.data ?? []).filter((r) =>
+        /partner|afiliad|parceir/i.test((r as { reason?: string | null }).reason ?? '')))
       // KINEO-PAINEL-MONTANDO-2026-09-19 — entregues nas 24 h por pessoa+motor: a linha de gasto passa a dizer
       // "2 pedidos (1 pronto · 1 montando)" em vez de "2 vídeos", que contradizia o total=1 enquanto o resgate montava.
       const { data: vids24 } = await readAll(() => admin.from('videos').select('user_id, quality_mode').in('user_id', ids).gte('created_at', new Date(now - 24 * 60 * 60 * 1000).toISOString()), { route: '/api/admin/live', table: 'videos' })
@@ -692,6 +711,8 @@ export async function GET() {
             plan: (p.plan as string | null) ?? null,
             is_paid: isPayingPlan((p.plan as string) ?? null), // KINEO-ADMIN-FONTE-UNICA: trial de $1 não é 'sub'
             is_trial: isTrialPlan((p.plan as string) ?? null),
+            is_affiliate: affiliateIds.has(p.id as string) || partnerCourtesyIds.has(p.id as string),
+            is_courtesy: courtesyIds.has(p.id as string),
             videos: vidCount.get(p.id as string) ?? 0,
             did,
             heat,
