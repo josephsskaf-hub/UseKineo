@@ -181,6 +181,8 @@ async function loadMetrics(): Promise<Metrics | null> {
         'checkout_started',
         'card_entry_resume_autostart',
         'subscription_invoice_paid',
+        // KINEO-MRR-TROCA-ANUAL-2026-10-08 — a troca para o anual muda o MRR da pessoa (anual ÷ 12)
+        'plan_switched_to_annual',
         'paywall_hit',
         'starter_checkout_clicked',
         'basic_checkout_clicked',

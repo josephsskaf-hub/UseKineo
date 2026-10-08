@@ -289,9 +289,12 @@ export function isNewSubscriberEvent(name: string, metadata: EventMeta): boolean
 //   · quem cai na tabela é CONTADO no rótulo (paidMrrSourceLabel), para o
 //     número nunca parecer exato sem ser.
 // stripeMrrUsd() fica como conferência ao vivo, no rótulo — não como o número.
+//   · KINEO-MRR-TROCA-ANUAL-2026-10-08: a troca do mensal para o anual (/api/admin/switch-to-annual,
+//     evento `plan_switched_to_annual`) vira a régua da pessoa — anual ÷ 12 — e as próximas faturas da
+//     MESMA assinatura herdam 'annual'. Sem isso o painel mostrava o mensal antigo até a renovação anual.
 
 /** Os dois nomes de evento que carregam valor pago de assinatura (para os `fetchAllRows` das telas). */
-export const MRR_PAID_EVENT_NAMES = ['payment_success', 'subscription_invoice_paid'] as const
+export const MRR_PAID_EVENT_NAMES = ['payment_success', 'subscription_invoice_paid', 'plan_switched_to_annual'] as const
 
 export type PaidAmountEvent = {
   user_id: string | null
@@ -342,6 +345,11 @@ export function isPaidInvoiceEvent(name: string, metadata: EventMeta): boolean {
   return metaNumber(metadata?.amount_paid) > 0
 }
 
+/** KINEO-MRR-TROCA-ANUAL-2026-10-08 — troca do mensal para o anual feita pelo admin, com o valor anual no razão. */
+export function isAnnualSwitchEvent(name: string, metadata: EventMeta): boolean {
+  return name === 'plan_switched_to_annual' && metaNumber(metadata?.annual_minor) > 0
+}
+
 /**
  * user_id → última mensalidade paga. Percorre em ordem cronológica; o mais
  * recente vence. A fatura não diz se é anual: herda o `billing` do checkout da
@@ -369,6 +377,14 @@ export function paidMonthlyUsdByUser(events: PaidAmountEvent[]): Map<string, Pai
       const amountMinor = metaNumber(m?.amount_paid)
       const currency = metaString(m?.currency) ?? 'usd'
       out.set(e.user_id, { usd: paidMinorToMonthlyUsd(amountMinor, currency, billing), source: 'invoice', tier: metaString(m?.tier), billing, amountMinor, currency, at: e.created_at })
+    } else if (isAnnualSwitchEvent(e.name, m)) {
+      // A troca para o anual: a pessoa passa a valer o anual ÷ 12, e a assinatura fica marcada como anual
+      // para as faturas seguintes (a renovação do ano que vem não diz o intervalo).
+      if (sub) billingBySub.set(sub, 'annual')
+      billingByUser.set(e.user_id, 'annual')
+      const amountMinor = metaNumber(m?.annual_minor)
+      const currency = metaString(m?.currency) ?? 'usd'
+      out.set(e.user_id, { usd: paidMinorToMonthlyUsd(amountMinor, currency, 'annual'), source: 'invoice', tier: metaString(m?.tier), billing: 'annual', amountMinor, currency, at: e.created_at })
     }
   }
   return out

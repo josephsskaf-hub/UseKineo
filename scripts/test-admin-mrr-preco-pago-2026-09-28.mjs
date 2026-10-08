@@ -181,7 +181,40 @@ console.log('== 3. o placar com os 11 assinantes reais (formato de 28/09) ==')
   checa('trial e piloto não entram no rótulo; free nem no mapa', !R.perUser.has('t1') && !R.perUser.has('f1') && R.perUser.get('p1').usd === 0)
   checa('quem caiu na tabela é exatamente quem só tem o intro (u2 = 12,90 · table)', R.perUser.get('u2').source === 'table' && perto(R.perUser.get('u2').usd, 12.9))
   checa('rótulo sem ninguém na tabela diz isso', M.paidMrrSourceLabel({ counted: 2, fromInvoice: 1, fromCheckout: 1, fromTable: 0 }) === '2 pagantes · 1 por fatura · 1 por checkout · ninguém pela tabela')
-  checa('MRR_PAID_EVENT_NAMES = os dois eventos com valor de assinatura', JSON.stringify(M.MRR_PAID_EVENT_NAMES) === JSON.stringify(['payment_success', 'subscription_invoice_paid']))
+  checa('MRR_PAID_EVENT_NAMES = os eventos com valor de assinatura (checkout, fatura e a troca para o anual)', JSON.stringify(M.MRR_PAID_EVENT_NAMES) === JSON.stringify(['payment_success', 'subscription_invoice_paid', 'plan_switched_to_annual']))
+}
+
+console.log('== 3b. a troca do mensal para o anual (KINEO-MRR-TROCA-ANUAL-2026-10-08) ==')
+{
+  // O Rick, 08/10: checkout mensal de 9,90 em 01/08; troca para o anual de 71 em 08/10 (razão plan_switched_to_annual).
+  const troca = (uid, at, extra) => ev(uid, 'plan_switched_to_annual', at, { source: 'admin_switch_to_annual', tier: 'starter', currency: 'usd', monthly_minor: 990, annual_minor: 7100, amount_charged_minor: 6785, stripe_subscription_id: 'sub_rick', ...extra })
+  const evs = [
+    checkout('rick', '2026-08-01T16:29:51Z', { tier: 'starter', amount_total: 990, stripe_subscription_id: 'sub_rick' }),
+    troca('rick', '2026-10-08T03:44:56Z'),
+  ]
+  const comTroca = (eventos) => M.paidMonthlyUsdByUser(eventos).get('rick')
+  const p = comTroca(evs)
+  checa('depois da troca a pessoa vale o anual ÷ 12 (71 / 12 = 5,92), não o mensal antigo de 9,90', p && perto(p.usd, 5.92) && p.billing === 'annual' && p.amountMinor === 7100 && p.source === 'invoice')
+  checa('antes da troca valia o mensal (9,90)', perto(comTroca([evs[0]]).usd, 9.9))
+  const renovacao = fatura('rick', '2027-10-08T03:44:56Z', { amount_paid: 7100, stripe_subscription_id: 'sub_rick' })
+  checa('a renovação anual da MESMA assinatura herda o anual (7100 → 5,92/mês, não 71/mês)', perto(comTroca([...evs, renovacao]).usd, 5.92))
+  checa('troca sem valor anual no razão não muda nada (continua o checkout)', perto(comTroca([evs[0], troca('rick', '2026-10-08T03:44:56Z', { annual_minor: 0 })]).usd, 9.9))
+  const R = M.paidMrrForProfiles([{ id: 'rick', plan: 'starter' }], M.paidMonthlyUsdByUser(evs))
+  checa('o MRR do grupo soma 5,92 por fatura (a troca conta como fatura, ninguém pela tabela)', perto(R.mrrUsd, 5.92) && R.fromInvoice === 1 && R.fromTable === 0)
+  // mutante: sem o ramo da troca, o Rick volta a valer 9,90 — a prova acima tem de cair
+  const fonte = rd('app/api/admin/_shared/mrr.ts')
+  const ancora = '    } else if (isAnnualSwitchEvent(e.name, m)) {\n'
+  checa('mutante: a âncora do ramo da troca é única', fonte.split(ancora).length === 2)
+  const mut = fonte.split(ancora).join('    } else if (false) {\n')
+  const jsMut = ts.transpileModule(mut, { compilerOptions: { module: 1, target: 9 } }).outputText
+  const MM = {}
+  vm.runInNewContext(jsMut, {
+    exports: MM,
+    require: (id) => ({ '@/lib/pricing': { PLANS: PLANS_V8 }, '@/lib/stripe': { stripe: {} }, '@/lib/settlementCurrency': { BRL_PER_USD_HOUSE: 5 } })[id] ?? (() => { throw new Error('dependencia inesperada ' + id) })(),
+    console, Date, Map, Set, Math, Number, Object, Array, String, RegExp,
+  })
+  const pm = MM.paidMonthlyUsdByUser(evs).get('rick')
+  checa('mutante "sem o ramo da troca" é pego (o Rick voltaria a 9,90)', pm && perto(pm.usd, 9.9))
 }
 
 console.log('== 4. as quatro superfícies obedecem à régua única ==')
@@ -196,6 +229,7 @@ console.log('== 4. as quatro superfícies obedecem à régua única ==')
   checa('overview (página): calcula pela régua única e o ARPU segue o pago', /const paidByUser = paidMonthlyUsdByUser\(\(eventsQ\.data \?\? \[\]\) as PaidAmountEvent\[\]\)/.test(page) && /const paidMrr = paidMrrForProfiles\(external, paidByUser\)/.test(page) && /const arpuUsd = payingTotal > 0 \? mrrPaidUsd \/ payingTotal : null/.test(page))
   checa('overview (página): o rótulo diz quantos caíram na tabela e se a Stripe respondeu', /mrrPaidLabel = paidMrrSourceLabel\(paidMrr\)/.test(page) && /Stripe indisponível agora/.test(page) && /Stripe ao vivo/.test(page))
   checa('overview (página): payment_success E subscription_invoice_paid continuam na busca de eventos', /'payment_success',/.test(page) && /'subscription_invoice_paid',/.test(page))
+  checa('overview (página): a troca para o anual também entra na busca (MRR do Rick = anual ÷ 12)', /'plan_switched_to_annual',/.test(page))
 
   const ceo = rd('app/api/admin/ceo/compute.ts')
   checa('CEO: busca os eventos com valor e soma por subscriberMrr', /values: \[\.\.\.MRR_PAID_EVENT_NAMES\]/.test(ceo) && /const sub = subscriberMrr\(p\.plan, paidByUser\.get\(p\.id\)\)/.test(ceo) && /const price = sub\.usd/.test(ceo))
