@@ -114,8 +114,12 @@ const ROTA = '/api/admin/send-checkout-hot-nudge'
 export const SKIP_EVENT = 'checkout_hot_nudge_skipped_v1'
 /** A versão da carta, gravada no envio: separa no banco a carta que prometia o trial de $1 (morto em 09/09) desta. */
 export const EMAIL_VERSION = 'hot_nudge_v2_welcome20'
-/** INTERRUPTOR ÚNICO da oferta de boas-vindas nesta carta. false = a carta sai sem oferta nenhuma (só a mesma página). */
-export const HOT_NUDGE_WELCOME20_LIVE = true
+/**
+ * INTERRUPTOR ÚNICO da oferta de boas-vindas nesta carta. false = a carta sai sem oferta nenhuma (só a mesma página).
+ * DESLIGADO por decisão do fundador (08/10, "sim"): quem desiste já vê a oferta da página (banner Studio50 / modal
+ * Creator30 no /pricing e no /checkout/cancelled); a carta não oferece um segundo desconto diferente.
+ */
+export const HOT_NUDGE_WELCOME20_LIVE = false
 /** A campanha que o clique leva até a Stripe (checkout_started.intent_campaign): é por ela que se mede quem voltou. */
 export const WELCOME20_INTENT_CAMPAIGN = 'checkout_hot_nudge_welcome20'
 
