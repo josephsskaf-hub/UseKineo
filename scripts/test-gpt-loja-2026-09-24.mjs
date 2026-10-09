@@ -139,8 +139,8 @@ const HL = carrega('lib/textLanguage').HOLLYWOOD_LANGUAGES
 ok(JSON.stringify([...HL].sort()) === JSON.stringify(['en', 'es', 'pt']), `6f. a lista de idiomas do texto é a do código (HOLLYWOOD_LANGUAGES = ${[...HL]})`)
 // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o primeiro filme grátis de conta nova passou a ser o Seedance 1.5 de 15 s (decisão do fundador);
 // o Kineo 1 não é mais oferecido a conta nova. Os outros 3 acertos seguem iguais.
-ok(/A new account's first film is free on Seedance 1\.5 at 15s \(10-credit trial, no card; watermarked\)/.test(instr) && !/first film is free on Kineo 1/.test(instr) && /- 15s: 47-56 words \("seedance" only\)/.test(instr) && /Credits are per 60s \(35s x35\/60, 90s x1\.5, rounded up\)/.test(instr) && /Yearly \(Starter, Creator, Studio\) = ten months\./.test(instr) && /money-back: 7 days after the first charge only/.test(instr),
-  '6g. os 4 acertos de texto: conta nova, 35/60, anual sem Autopilot, reembolso só na 1ª cobrança')
+ok(/A new account's first film is free on Seedance 1\.5 at 15s \(10-credit trial, no card; watermarked\)/.test(instr) && !/first film is free on Kineo 1/.test(instr) && /- 15s: 47-56 words \("seedance" only\)/.test(instr) && /Credits are per 60s \(35s x35\/60, 90s x1\.5, rounded up\)/.test(instr) && /Yearly: 30% off \(\$83 \/ \$167 \/ \$460\)\./.test(instr) && /money-back: 7 days after the first charge only/.test(instr),
+  '6g. os 4 acertos de texto: conta nova, 35/60, anual 30% (re-ancorado 09/10: era "ten months"; o anual virou 30% em 08/10), reembolso só na 1ª cobrança')
 // COWORK-RELATORIO-2026-09-24 (achado 1) — o arquivo de colar vivia só no disco do fundador (C:/kineo/docs, fora do git) e
 // esta checagem PULAVA em silêncio em qualquer outra máquina. Agora ele mora no repo e a igualdade é obrigatória: quem
 // muda a seção C muda o .txt no mesmo commit, senão a fila fica vermelha.
