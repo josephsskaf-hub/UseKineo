@@ -982,8 +982,11 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
       {/* ───────── Exit-intent modal (Starter Pack rescue offer) ───────── */}
       <ExitIntentOffer />
       {/* KINEO-WELCOME20-2026-08-25 — quem está OLHANDO O PREÇO recebe o
-          convite com nome mais rápido (1.5s): é o momento de maior intenção. */}
-      <WelcomeOfferModal delayMs={1500} surface="pricing" />
+          convite com nome mais rápido (1.5s): é o momento de maior intenção.
+          KINEO-POPUP-SEGURADO-2026-10-09 — fundador ("o 2 pode fazer sim", 09/10): em 1,5 s o pop-up cobria os planos
+          justo quando a pessoa começava a ler o cartão novo. Agora ele espera 20 s: chega para quem ficou na página
+          pensando, não para quem acabou de chegar. A oferta (20% no 1º mês, Creator/Studio) não muda. */}
+      <WelcomeOfferModal delayMs={20000} surface="pricing" />
 
       {/* ───────── Pricing ───────── */}
       <section className="relative z-10 mx-auto max-w-5xl px-4 pt-12 pb-16 sm:px-6 sm:pt-16">

@@ -117,6 +117,9 @@ export const LIFECYCLE_EMAIL_EVENT_NAMES = [
   // KINEO-ANUAL-2o-MES-2026-10-08 — oferta do anual (30%) para quem pagou a 1ª renovação (cron/send-month2-annual-offer).
   // Entra aqui no MESMO commit em que nasce: sem este nome, a pessoa leva outra carta nossa no mesmo dia da oferta.
   'month2_annual_offer_sent',
+  // KINEO-PRECO-CAIU-2026-10-09 — carta "o preço baixou" para quem abriu o checkout na V8-A (admin/send-price-drop).
+  // Entra aqui no MESMO commit em que nasce, pela regra deste arquivo.
+  'price_drop_1009_sent',
 ] as const
 
 export type LifecycleEmailEventName = (typeof LIFECYCLE_EMAIL_EVENT_NAMES)[number]

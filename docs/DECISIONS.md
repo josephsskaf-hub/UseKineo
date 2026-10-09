@@ -2,6 +2,18 @@
 
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
+## 2026-10-09 (~03h30 BRT) — No celular, o Creator primeiro; o pop-up de 20% espera 20 s no /pricing
+
+**QUEM DECIDIU:** o fundador, 09/10, respondendo à proposta "no celular, abrir no Creator" e "segurar o pop-up de 20% que
+cobre os planos": "Pode fazer sim. É, o 2 pode fazer sim."
+
+- **Celular:** no /pricing, abaixo de 900 px, o cartão popular (Creator) vem primeiro (CSS `order` em
+  components/pricing/PlanValueStage.tsx). No computador, a ordem segue Starter · Creator · Studio.
+- **Pop-up WELCOME20 no /pricing:** de 1,5 s para 20 s (`<WelcomeOfferModal delayMs={20000} surface="pricing" />`). A oferta
+  não muda (20% no 1º mês, Creator/Studio mensal); ela só deixa de cobrir os planos de quem acabou de chegar.
+- **Pendente (decisão do fundador):** o desconto "na cara" nos cartões. Ele pediu a conta da margem antes; ver
+  docs/PRECO-CAIU-2026-10-09.md (seção "Margem com 20%").
+
 ## 2026-10-09 (madrugada) — Página de preços nova para todos + anual no 2º mês abre em 12/10
 
 **QUEM DECIDIU:** o fundador, 09/10, respondendo às duas perguntas: "1 sim. 2 sim".

@@ -110,6 +110,7 @@ export const PLAN_VALUE_STAGE_CSS = `
 .pv-stage[data-palette=porcelana] .pv-inc svg{color:var(--pv-text)}
 .pv-foot{margin:auto 10px 6px;padding-top:14px;font-size:12px;color:var(--pv-faint);text-align:center}
 @media (max-width:900px){.pv-grid{grid-template-columns:1fr;gap:20px}
+  .pv-card[data-popular=true]{order:-1}
   .pv-stage[data-palette=cobalto],.pv-stage[data-palette=ambar],.pv-stage[data-palette=tinta]{padding:18px 12px;border-radius:22px}}
 @media (prefers-reduced-motion:reduce){.pv-cta{transition:none}.pv-cta:hover{transform:none}}
 `

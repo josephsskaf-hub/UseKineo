@@ -170,6 +170,9 @@ function problems(replacements = {}) {
     if (!new RegExp(`:root \\{[\\s\\S]*?${tok}:`).test(appear) || !new RegExp(`html\\[data-theme='dark'\\][\\s\\S]*?${tok}:`).test(appear)) p.push(`tema do site sem ${tok} no claro ou no escuro`)
   }
   for (const pal of ['cobalto', 'ambar', 'tinta']) if (!css.includes(`.pv-stage[data-palette=${pal}]`)) p.push(`paleta ${pal} sumiu do CSS (opção do ?tema=)`)
+  // KINEO-PRECOS-CELULAR-E-POPUP-2026-10-09 — no celular o plano popular vem primeiro (fundador: "pode fazer sim").
+  const mobile = (/@media \(max-width:900px\)\{([\s\S]*?)\n@media/.exec(css) || [])[1] || ''
+  if (!mobile.includes('.pv-card[data-popular=true]{order:-1}')) p.push('celular: o Creator (popular) não vem primeiro')
   if (!stage.isPlanValuePalette('porcelana') || stage.isPlanValuePalette('verde') || stage.isPlanValuePalette(null)) p.push('isPlanValuePalette aceita só as 4 paletas')
 
   // 7. nada digitado no componente fora do CSS
@@ -220,6 +223,7 @@ const MUTANTES = [
   ['CSS do cartão volta a ser filho de <style> (hidratação)', troca(CLIENT, '<style dangerouslySetInnerHTML={{ __html: PLAN_VALUE_STAGE_CSS }} />', '<style>{PLAN_VALUE_STAGE_CSS}</style>')],
   ['PricingClient volta a fazer a conta do modelo', troca(CLIENT, "import TwoProductsPricing from '@/components/pricing/TwoProductsPricing'", "import TwoProductsPricing, { twoProductsModelForPage } from '@/components/pricing/TwoProductsPricing'")],
   ['porcelana deixa de seguir o tema escuro', troca(STAGE, '.pv-stage{--pv-card-bg:var(--card);', '.pv-stage{--pv-card-bg:#FFFFFF;')],
+  ['celular volta a abrir no Starter', troca(STAGE, '  .pv-card[data-popular=true]{order:-1}\n', '')],
   ['caixa dos filmes volta ao select', troca(PROOF, "<div className=\"mpp-seg\" role=\"group\" aria-label=\"Film length\">", "<select aria-label=\"Film length\"><div className=\"mpp-seg\" role=\"group\">")],
 ]
 for (const [nome, rep] of MUTANTES) {

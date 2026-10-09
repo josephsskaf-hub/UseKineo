@@ -87,7 +87,8 @@ const home = read('app/KineoLanding.tsx')
 const pricing = read('app/pricing/PricingClient.tsx')
 const dashboard = read('app/(dashboard)/DashboardShell.tsx')
 ok(home.includes('<WelcomeOfferModal surface="home" />'), 'home declares its allow-listed surface')
-ok(pricing.includes('<WelcomeOfferModal delayMs={1500} surface="pricing" />'), 'pricing preserves its exact delay and declares surface')
+// KINEO-POPUP-SEGURADO-2026-10-09 — re-ancorado: o fundador mandou segurar o pop-up no /pricing (1,5 s → 20 s).
+ok(pricing.includes('<WelcomeOfferModal delayMs={20000} surface="pricing" />'), 'pricing preserves its exact delay and declares surface')
 ok(dashboard.includes('<WelcomeOfferModal surface="dashboard" />'), 'dashboard declares its allow-listed surface')
 
 console.log(`Welcome offer frequency: ${checks}/${checks} checks passed`)
