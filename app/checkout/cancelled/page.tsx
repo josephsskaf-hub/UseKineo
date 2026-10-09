@@ -88,8 +88,11 @@ function CheckoutCancelledContent() {
     ? 'autopilot'
     : rawTier === 'starter' || rawTier === 'pro'
       ? rawTier
-      : 'basic'
-  const billing = tier === 'autopilot'
+      // KINEO-BUSINESS-84-2026-10-09 — quem desistiu do Business volta ao Business (antes caía em Creator: preço e retry errados).
+      : rawTier === 'business'
+        ? 'business'
+        : 'basic'
+  const billing = tier === 'autopilot' || tier === 'business'
     ? 'monthly'
     : searchParams.get('billing') === 'annual' ? 'annual' : 'monthly'
   // A return marker preserves intent; the checkout server still checks eligibility.
@@ -133,6 +136,7 @@ function CheckoutCancelledContent() {
     ? 'Autopilot Pilot'
     : tier === 'autopilot'
       ? 'Autopilot'
+      : tier === 'business' ? 'Business' // KINEO-BUSINESS-84-2026-10-09
       : tier === 'starter' ? 'Starter' : tier === 'pro' ? 'Studio' : 'Creator'
   // ═══════════════════════════════════════════════════════════════════════
   // KINEO-OBJECTION-HANDLER-2026-08-04 — ESTA TELA TINHA UMA TABELA DE PREÇOS
@@ -146,7 +150,7 @@ function CheckoutCancelledContent() {
   const money = (amountMinor: number) => formatCheckoutMoney(checkoutCurrency, amountMinor)
   const monthlyOf = (t: CheckoutTier) => money(getTierPrice(t, checkoutCurrency, priceRegion))
   const monthlyPrice = money(monthlyPriceMinor(tier, checkoutCurrency, priceRegion))
-  const annualPrice = tier === 'autopilot'
+  const annualPrice = tier === 'autopilot' || tier === 'business' // KINEO-BUSINESS-84-2026-10-09: sem anual
     ? null
     : money(getAnnualPrice(tier, checkoutCurrency, priceRegion))
   const autopilotPilotPrice = money(AUTOPILOT_PILOT_PRICES[checkoutCurrency])
@@ -187,7 +191,10 @@ function CheckoutCancelledContent() {
   // em R$, em vez de deixar a pessoa achar que o cartão vai ser cobrado em dólar.
   const settleBrl = searchParams.get('settle') === 'brl' && tier !== 'autopilot' && !isAutopilotPilot
   const settleBrlLabel = settleBrl
-    ? formatSettlementMoney('brl', planSettlementAmountMinor(tier as CheckoutTier, billing === 'annual' ? 'annual' : 'monthly', 'brl', 0))
+    ? formatSettlementMoney('brl', tier === 'business'
+      // KINEO-BUSINESS-84-2026-10-09 — o Business não tem linha BRL: a conversão parte do preço em USD (com 0 a tela diria R$ 0,00).
+      ? planSettlementAmountMinor('business', 'monthly', 'brl', monthlyPriceMinor('business', 'usd'))
+      : planSettlementAmountMinor(tier as CheckoutTier, billing === 'annual' ? 'annual' : 'monthly', 'brl', 0))
     : null
   const renewalCopy = settleBrlLabel
     ? `${renewalCopyBase} Your card is charged in Brazilian reais: ${settleBrlLabel}/${billing === 'annual' ? 'year' : 'month'}.`

@@ -48,6 +48,7 @@ import {
   introDiscountMinor,
   isBulkPackId,
   monthlyPriceMinor,
+  planAcceptsPromotions, // KINEO-BUSINESS-84-2026-10-09
   resolveCheckoutCurrency,
   CARD_TRIAL_LIVE,
   resolvePriceRegion,
@@ -61,6 +62,7 @@ import {
   type PriceRegion,
 } from '@/lib/checkoutPricing'
 import { describeSeedanceMix, formatResultCount, videosForCredits } from '@/lib/marketingPrice'
+import { BUSINESS_ADS_PROMISE } from '@/lib/businessPlan' // KINEO-BUSINESS-84-2026-10-09
 import { minutesLine } from '@/lib/credits/creditMinutes'
 // KINEO-PILOT-99-2026-07-26 — plan name + expiry math shared with the cron.
 import { AUTOPILOT_PILOT_PLAN, isAutopilotEntitled } from '@/lib/autopilot/config'
@@ -80,6 +82,7 @@ import { buildSubscriptionCheckoutSuccessUrl } from '@/lib/growth/checkoutSucces
 import { planSettlementAmountMinor, resolveSettlementCurrency, settlementAmountMinor } from '@/lib/settlementCurrency'
 import { ADS_OFFER_VERSION, ADS_PASS_CREDITS, ADS_PASS_ID, ADS_PASS_USD_MINOR, ADS_PRODUCT_NAME, adsPassLive } from '@/lib/ads/offer' // KINEO-STUDIO-ADS-2026-09-25
 import { isAdsInternalEmail } from '@/lib/ads/access' // KINEO-STUDIO-ADS-2026-09-25 (lista exata; revisão 24/09)
+import { AUTOPILOT_UNAVAILABLE_MESSAGE, AUTOPILOT_UNAVAILABLE_REASON, autopilotCheckoutOpen, isAutopilotFamilySku } from '@/lib/autopilotPublic' // KINEO-AUTOPILOT-FORA-2026-10-09
 import { ADS_ACCESS_COLUMN } from '@/lib/ads/offer'
 import {
   attributeAffiliateForUser,
@@ -545,6 +548,34 @@ function isSpeculativeRequest(req: { headers: { get(name: string): string | null
 
 // A prefetch is not an error for the buyer — nobody is looking at it. Answer
 // with a body-less 204 so no Stripe call, no cookie and no redirect happen.
+// KINEO-AUTOPILOT-FORA-2026-10-09 — o Autopilot (US$ 299, Lite US$ 59, piloto US$ 99) saiu da vitrine por decisão do fundador. Compra NOVA
+// da família é recusada aqui, ANTES de qualquer sessão Stripe, com 410 'plan_unavailable' — exceto conta interna
+// (lista exata da casa, pelo e-mail do auth). Assinante existente não passa por aqui: renovação, webhook e agenda
+// seguem intactos. null = pode seguir (SKU de fora da família, interruptor ligado ou conta da casa).
+async function refuseClosedAutopilotCheckout(req: NextRequest, sku: string): Promise<NextResponse | null> {
+  if (!isAutopilotFamilySku(sku)) return null
+  let email: string | null = null
+  let userId: string | null = null
+  try {
+    const { data: { user } } = await createClient().auth.getUser()
+    email = user?.email ?? null
+    userId = user?.id ?? null
+  } catch {
+    // sem sessão legível = não é a casa: recusa (falha fechada)
+  }
+  if (autopilotCheckoutOpen(sku, isAdsInternalEmail(email))) return null
+  await recordCheckoutEvent(
+    'checkout_failed',
+    userId,
+    { selection: sku, stage: 'plan_gate', reason: AUTOPILOT_UNAVAILABLE_REASON },
+    browserSessionIdFrom(req),
+  )
+  return NextResponse.json(
+    { error: AUTOPILOT_UNAVAILABLE_REASON, message: AUTOPILOT_UNAVAILABLE_MESSAGE, pricing: '/pricing' },
+    { status: 410 },
+  )
+}
+
 async function speculativeNoop(req: NextRequest, selection: string): Promise<NextResponse> {
   await recordCheckoutEvent(
     'checkout_prefetch_blocked',
@@ -731,6 +762,13 @@ const TIERS: Record<PlanTier, { name: string; description: string; credits: numb
     description: `Done for you: one Short published to your YouTube channel every day. Includes ${TIER_CREDITS.autopilot} credits / month for videos you make yourself.`,
     credits: TIER_CREDITS.autopilot,
   },
+  // KINEO-BUSINESS-84-2026-10-09 — anúncios de produto para empresas, self-serve no Studio Ads. A promessa (N anúncios de 15 s) é DERIVADA
+  // em lib/businessPlan.ts (créditos do plano ÷ nível Commercial), nunca digitada aqui.
+  business: {
+    name: 'Kineo — Business',
+    description: `${BUSINESS_ADS_PROMISE} (Commercial level, Studio Ads). ${TIER_CREDITS.business} credits / month, commercial use.`,
+    credits: TIER_CREDITS.business,
+  },
 }
 
 // KINEO-AUTOPILOT-299-2026-07-26 — OPTIONAL Stripe Price override.
@@ -744,6 +782,13 @@ const TIERS: Record<PlanTier, { name: string; description: string; credits: numb
 // USD only: a single Price object carries a single currency, and swapping in a
 // USD price for a BRL visitor would silently charge them the wrong money.
 const AUTOPILOT_PRICE_ID_RE = /^price_[A-Za-z0-9]+$/
+
+// KINEO-BUSINESS-84-2026-10-09 — a troca de plano self-serve (/api/stripe/change-plan) só conhece starter/basic/pro: estendê-la ao Business
+// concederia ~440 créditos NA HORA contra uma proration cobrada só na fatura seguinte. Até o fundador decidir, quem
+// já assina e quer o Business é trocado à mão pelo suporte — e a recusa diz isso, em vez de mandar a pessoa a um
+// "Switch to" que não existe para este plano.
+const BUSINESS_SWITCH_BY_SUPPORT_MESSAGE =
+  'You already have a Kineo subscription. To move it to Business, email support@usekineo.com and we switch it for you — no need to cancel.'
 function autopilotPriceIdOverride(currency: Currency): string | null {
   if (currency !== 'usd') return null
   const raw = (process.env.STRIPE_PRICE_AUTOPILOT_USD || '').trim()
@@ -1018,6 +1063,14 @@ async function buildAndRedirect(
     billing = 'monthly'
     intro = false
   }
+  // KINEO-BUSINESS-84-2026-10-09 — Business: mensal, sem intro e SEM CUPOM. O ?promo= é descartado ANTES de qualquer metadado, evento ou
+  // cancel_url (um link com WELCOME20 vira checkout a preço cheio, nunca erro nem desconto); o campo manual da Stripe
+  // também fica desligado mais abaixo (planAcceptsPromotions).
+  if (tier === 'business') {
+    billing = 'monthly'
+    intro = false
+    promo = undefined
+  }
 
   // Always return to the hostname the buyer actually used. The legacy env can
   // still point at shortsforgeai.vercel.app; trusting it adds an unnecessary
@@ -1097,7 +1150,7 @@ async function buildAndRedirect(
   // ANNUAL_PRICES). ?billing=annual on autopilot silently degrades to monthly
   // rather than 500-ing: a buyer who edits the URL should still be able to buy.
   const isAnnual = billing === 'annual'
-  const unitAmount = isAnnual && tier !== 'autopilot' && tier !== 'autopilot_lite'
+  const unitAmount = isAnnual && tier !== 'autopilot' && tier !== 'autopilot_lite' && tier !== 'business' // KINEO-BUSINESS-84-2026-10-09
     ? getAnnualPrice(tier, currency, region)
     : monthlyPriceMinor(tier, currency, region)
   const interval: 'month' | 'year' = isAnnual ? 'year' : 'month'
@@ -1430,6 +1483,7 @@ async function buildAndRedirect(
       const paypalStatus = String(paypalSubscription?.status ?? '').toUpperCase()
       stalePayPalSubscription = paypalStatus === 'CANCELLED' || paypalStatus === 'EXPIRED'
       if (!stalePayPalSubscription) {
+        if (tier === 'business') return redirectError(BUSINESS_SWITCH_BY_SUPPORT_MESSAGE) // KINEO-BUSINESS-84-2026-10-09
         return redirectError('You already have a Kineo subscription. To change plans, use "Switch to" on the pricing page — no need to cancel.')
       }
     } catch (err) {
@@ -1551,7 +1605,7 @@ async function buildAndRedirect(
     // KINEO-AUTOPILOT-299-2026-07-26 — 'autopilot' added. Without it an
     // Autopilot subscriber whose profile needed repair would be written back
     // to plan='free' and instantly lose Autopilot entitlement.
-    if (grantsAccess && (activeTier === 'starter' || activeTier === 'basic' || activeTier === 'pro' || activeTier === 'autopilot' || activeTier === 'autopilot_lite')) {
+    if (grantsAccess && (activeTier === 'starter' || activeTier === 'basic' || activeTier === 'pro' || activeTier === 'autopilot' || activeTier === 'autopilot_lite' || activeTier === 'business')) { // KINEO-BUSINESS-84-2026-10-09
       repair.plan = activeTier
     } else if (!grantsAccess) {
       repair.plan = 'free'
@@ -1559,6 +1613,10 @@ async function buildAndRedirect(
     const { error: repairError } = await supabase.from('profiles').update(repair).eq('id', user.id)
     if (repairError) {
       console.error('[stripe/checkout] active subscription profile repair failed:', user.id, repairError.message)
+    }
+    if (tier === 'business') { // KINEO-BUSINESS-84-2026-10-09
+      console.warn('[stripe/checkout] non-terminal subscription found on Customer; Business switch goes through support:', user.id, existingCustomerSubscription.id, existingCustomerSubscription.status)
+      return redirectError(BUSINESS_SWITCH_BY_SUPPORT_MESSAGE)
     }
     console.warn('[stripe/checkout] non-terminal subscription found on Customer; duplicate checkout blocked:', user.id, existingCustomerSubscription.id, existingCustomerSubscription.status)
     return redirectError('You already have a Kineo subscription. To change plans, use "Switch to" on the pricing page — no need to cancel.')
@@ -2441,7 +2499,8 @@ async function buildAndRedirect(
   // useful for social posts / stories where we can't force the ?promo= link.
   // Stripe forbids combining `discounts` with allow_promotion_codes, so we enable
   // it ONLY when no discount was applied above (never both on the same session).
-  if (!discountApplied) {
+  // KINEO-BUSINESS-84-2026-10-09 — o Business não abre o campo manual (planAcceptsPromotions): WELCOME20 digitado à mão não vale nele.
+  if (!discountApplied && planAcceptsPromotions(tier)) {
     sessionParams.allow_promotion_codes = true
   }
 
@@ -2451,7 +2510,7 @@ async function buildAndRedirect(
   sessionParams.after_expiration = {
     recovery: {
       enabled: true,
-      allow_promotion_codes: !discountApplied,
+      allow_promotion_codes: !discountApplied && planAcceptsPromotions(tier), // KINEO-BUSINESS-84-2026-10-09
     },
   }
 
@@ -3950,6 +4009,8 @@ export async function GET(req: NextRequest) {
       // KINEO-PILOT-99-2026-07-26 — sem este branch o ?pack=autopilot_pilot cai
       // no buildPackAndRedirect e vende um Starter Pack de $4.90 no lugar.
       if (packParam === 'autopilot_pilot') {
+        const closed = await refuseClosedAutopilotCheckout(req, packParam) // KINEO-AUTOPILOT-FORA-2026-10-09
+        if (closed) return closed
         return await buildAutopilotPilotAndRedirect(req, true)
       }
       // KINEO-OFFER290-2026-07-07 — first-purchase $2.90 offer (flag-gated).
@@ -3966,7 +4027,11 @@ export async function GET(req: NextRequest) {
         : tierParam === 'starter' ? 'starter'
           : tierParam === 'autopilot' ? 'autopilot'
             : tierParam === 'autopilot_lite' ? 'autopilot_lite' // KINEO-AUTOPILOT-LITE
-              : 'basic'
+              : tierParam === 'business' ? 'business' // KINEO-BUSINESS-84-2026-10-09
+                : 'basic'
+    // KINEO-AUTOPILOT-FORA-2026-10-09 — Autopilot / Autopilot Lite fechados para compra nova (interna passa).
+    const closedTier = await refuseClosedAutopilotCheckout(req, tier)
+    if (closedTier) return closedTier
     const billing: Billing = req.nextUrl.searchParams.get('billing') === 'annual' ? 'annual' : 'monthly'
     const promo = req.nextUrl.searchParams.get('promo') ?? undefined
     // KINEO-INTRO-MONTH-2026-07-13 — ?intro=1 → 1º mês com desconto.

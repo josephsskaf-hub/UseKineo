@@ -41,6 +41,7 @@ const SUBSCRIPTION_PLANS = new Set([
   'autopilot',
   'autopilot_trial',
   'autopilot_pilot',
+  'business', // KINEO-BUSINESS-84-2026-10-09
 ])
 
 // As escolhas que o /studio lê da URL (StudioClient valida cada uma). Mesma lista do botão de editar.

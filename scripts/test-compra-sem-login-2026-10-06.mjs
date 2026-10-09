@@ -51,6 +51,17 @@ function read(rel) {
   if (!sources.has(rel)) sources.set(rel, readFileSync(join(root, rel), 'utf8').split(CR).join(''))
   return sources.get(rel)
 }
+// KINEO-BUSINESS-84-2026-10-09 — re-ancorado: KINEO-AUTOPILOT-FORA-2026-10-09 (fundador 09/10, Autopilot fora da vitrine)
+// fecha compra NOVA de autopilot/autopilot_lite no checkout (410 plan_unavailable). Este guardião prova a PARIDADE
+// convidado × logado para todo tier que o checkout sabe vender — inclusive a família Autopilot, que volta no dia em que
+// o interruptor ligar. Por isso ele roda com o interruptor LIGADO; a recusa com ele desligado é provada em
+// scripts/test-business-84-2026-10-09.mjs.
+{
+  const apRel = 'lib/autopilotPublic.ts'
+  const apSrc = read(apRel)
+  if (!apSrc.includes('export const AUTOPILOT_PUBLIC = false')) throw new Error('interruptor do Autopilot não encontrado')
+  sources.set(apRel, apSrc.split('export const AUTOPILOT_PUBLIC = false').join('export const AUTOPILOT_PUBLIC = true'))
+}
 
 let passed = 0
 const failed = []

@@ -37,7 +37,7 @@ const exp = {}
 vm.runInNewContext(src, {
   exports: exp,
   require: (id) => {
-    if (id === '@/lib/pricing') return { PLANS: { starter: { price: 9 }, basic: { price: 19 }, pro: { price: 29 }, autopilot: { price: 299 }, autopilot_lite: { price: 59 } } } // KINEO-AUTOPILOT-LITE-2026-09-16
+    if (id === '@/lib/pricing') return { PLANS: { starter: { price: 9 }, basic: { price: 19 }, pro: { price: 29 }, autopilot: { price: 299 }, autopilot_lite: { price: 59 }, business: { price: 84 } } } // KINEO-AUTOPILOT-LITE-2026-09-16 · KINEO-BUSINESS-84-2026-10-09 — re-ancorado: o stub de lib/pricing ganha PLANS.business (mrr.ts lê PLANS.business.price, plano novo decidido pelo fundador 09/10)
     if (id === '@/lib/stripe') return { stripe: {} }
     if (id === '@/lib/settlementCurrency') return { BRL_PER_USD_HOUSE: 5 } // KINEO-MRR-PRECO-PAGO-2026-09-28
     throw new Error('dependencia inesperada ' + id)

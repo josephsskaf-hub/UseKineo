@@ -224,8 +224,12 @@ ok(Boolean(BASE), 'a base (antes do gancho) está disponível')
 if (BASE) {
   // Reancorado 06/10 (KINEO-SEM-LEGENDA-2026-10-06): o /api/compose ganhou depois disto só linhas marcadas com o "sem legenda" (imports, decisão,
   // corte nos dois caminhos, gravação da versão B); saem em memória junto com as do gancho — qualquer outra mudança continua vermelha.
-  ok(semMarca(rota).split('\n').filter((l) => !l.includes('KINEO-SEM-LEGENDA-2026-10-06')).join('\n') === rdBase(ROTA), 'compose: fora das linhas marcadas, byte a byte a base')
-  ok(semMarca(unlock) === rdBase(UNLOCK), 'unlock: fora das linhas marcadas, byte a byte a base')
+  // KINEO-BUSINESS-84-2026-10-09 — re-ancorado: o plano Business (fundador 09/10) entrou na elegibilidade do
+  // /api/compose/unlock SÓ em linhas marcadas com a etiqueta dele (o /api/compose ficou intacto); saem em memória como
+  // as do "sem legenda" — qualquer outra mudança continua vermelha.
+  const semBusiness = (t) => t.split('\n').filter((l) => !l.includes('KINEO-BUSINESS-84-2026-10-09')).join('\n')
+  ok(semBusiness(semMarca(rota).split('\n').filter((l) => !l.includes('KINEO-SEM-LEGENDA-2026-10-06')).join('\n')) === rdBase(ROTA), 'compose: fora das linhas marcadas, byte a byte a base')
+  ok(semBusiness(semMarca(unlock)) === rdBase(UNLOCK), 'unlock: fora das linhas marcadas, byte a byte a base')
   ok(COMPOSE_LIB === rdBase('lib/compose.ts'), 'lib/compose.ts byte a byte a base (trava 8.2)')
 }
 // O "fade de abertura" do Kineo 1 (lib/compose.ts) escurece o frame 0: o gancho (trilha 11, sem transição) fica por cima.

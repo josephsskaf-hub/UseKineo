@@ -3,6 +3,7 @@ import Link from 'next/link'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, TRIAL_FIRST_FILM_SHORT } from '@/lib/freeTierOffer'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
+import { AUTOPILOT_PUBLIC } from '@/lib/autopilotPublic' // KINEO-AUTOPILOT-FORA-2026-10-09
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -196,6 +197,8 @@ export default function CaseStudyPage() {
           <h2 className="font-display text-2xl font-black tracking-tight">
             Decide with the failure history visible
           </h2>
+          {/* KINEO-AUTOPILOT-FORA-2026-10-09 — com o Autopilot fora da vitrine, a página não oferece o piloto nem o mensal. */}
+          {AUTOPILOT_PUBLIC ? (<>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/60">
             Kineo still offers a paid seven-day Autopilot pilot, but this public test is not proof of
             reliable publishing or results. Review the current pilot and monthly terms before you
@@ -209,6 +212,12 @@ export default function CaseStudyPage() {
           >
             Review the pilot and monthly terms
           </OrganicCtaLink>
+          </>) : (
+          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/60">
+            Autopilot is not open to new customers right now, and this public test is not proof of
+            reliable publishing or results. Keep control and test the self-serve generator first.
+          </p>
+          )}
           <Link
             href="/signup?utm_source=case_study&utm_medium=proof&utm_campaign=live_channel"
             className="ml-3 mt-3 inline-block rounded-full border border-white/20 px-6 py-3 text-sm font-black text-white transition hover:border-cyan-200 hover:text-cyan-100 max-sm:ml-0"

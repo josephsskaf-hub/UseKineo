@@ -24,13 +24,15 @@ import {
   ANNUAL_PRICES,
   AUTOPILOT_PRICES,
   AUTOPILOT_LITE_PRICES,
+  BUSINESS_PRICES, // KINEO-BUSINESS-84-2026-10-09
   formatCheckoutMoney,
   TIER_CREDITS,
   TIER_PRICES,
 } from '@/lib/checkoutPricing'
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer' // KINEO-FATOS-VIGENCIA-2026-09-23
 
-export type PlanTier = 'free' | 'starter' | 'basic' | 'pro' | 'autopilot' | 'autopilot_lite'
+// KINEO-BUSINESS-84-2026-10-09 — 'business' entra como o Autopilot Lite: está em PLANS (webhook, admin, direitos), fora de PLAN_LIST.
+export type PlanTier = 'free' | 'starter' | 'basic' | 'pro' | 'autopilot' | 'autopilot_lite' | 'business'
 
 export interface PlanConfig {
   tier: PlanTier
@@ -154,6 +156,18 @@ export const PLANS: Record<PlanTier, PlanConfig> = {
     cta: 'Start Autopilot Lite',
     href: '/api/stripe/checkout?tier=autopilot_lite',
   },
+  // KINEO-BUSINESS-84-2026-10-09 — anúncios de produto para empresas (self-serve no Studio Ads). Fora de PLAN_LIST: o bloco dele mora
+  // embaixo dos 3 cartões do /pricing e na página /business, ancorado contra o mercado de anúncio por IA ($99+).
+  business: {
+    tier: 'business',
+    name: 'Business',
+    price: BUSINESS_PRICES.usd / 100,
+    priceLabel: usdLabel(BUSINESS_PRICES.usd),
+    periodLabel: '/ month',
+    credits: TIER_CREDITS.business,
+    cta: 'Get Business',
+    href: '/api/stripe/checkout?tier=business',
+  },
 }
 
 // Push #276 — remove free card from all surfaces. Only paid plans shown.
@@ -172,3 +186,5 @@ export const PLAN_LIST: PlanConfig[] = [PLANS.starter, PLANS.basic, PLANS.pro]
 export const AUTOPILOT_PLAN: PlanConfig = PLANS.autopilot
 /** KINEO-AUTOPILOT-LITE-2026-09-16 — o degrau semanal. Também fora de PLAN_LIST. */
 export const AUTOPILOT_LITE_PLAN: PlanConfig = PLANS.autopilot_lite
+/** KINEO-BUSINESS-84-2026-10-09 — o plano de anúncios para empresas. Também fora de PLAN_LIST. */
+export const BUSINESS_PLAN: PlanConfig = PLANS.business

@@ -18,6 +18,27 @@ export function effectiveAffiliateCommissionRate(stored: unknown): number {
   return Number.isFinite(rate) && rate > AFFILIATE_COMMISSION_RATE && rate <= 1 ? rate : AFFILIATE_COMMISSION_RATE
 }
 
+// KINEO-BUSINESS-84-2026-10-09 — comissão do plano Business = 20% (fundador 09/10, "sim pra as 4"); os outros planos seguem nos 40% acima.
+// O Business já sai 15% abaixo do mercado (US$ 84) e é vendido a empresa, não a criador: 40% em cima deixaria a margem
+// do pior motor no vermelho. É taxa FIXA do plano: não vale o piso de 40% nem um acordo maior gravado na linha do
+// afiliado (o acordo especial foi negociado sobre os planos de criador). O webhook da Stripe passa o tier da fatura.
+export const BUSINESS_AFFILIATE_COMMISSION_RATE = 0.2
+export const BUSINESS_AFFILIATE_COMMISSION_PCT = `${Math.round(BUSINESS_AFFILIATE_COMMISSION_RATE * 100)}%`
+
+/** A taxa que o webhook aplica a UMA cobrança: Business = 20% fixo; qualquer outro plano (ou pagamento sem plano) = a
+ *  régua de sempre (effectiveAffiliateCommissionRate). */
+export function isBusinessCommissionPlan(plan: string | null | undefined): boolean {
+  return typeof plan === 'string' && plan.trim().toLowerCase() === 'business'
+}
+export function affiliateCommissionRateForPlan(stored: unknown, plan: string | null | undefined): number {
+  if (isBusinessCommissionPlan(plan)) return BUSINESS_AFFILIATE_COMMISSION_RATE
+  return effectiveAffiliateCommissionRate(stored)
+}
+
+/** A frase pública da exceção (partners, painel do afiliado). */
+export const AFFILIATE_BUSINESS_TERMS =
+  `Business plan payments (product ads for companies) earn ${BUSINESS_AFFILIATE_COMMISSION_PCT} recurring; every other plan earns ${AFFILIATE_COMMISSION_PCT}.`
+
 // KINEO-AFILIADO-TERMOS-2026-09-09 — termos de repasse e bônus DECIDIDOS pelo
 // fundador em 09/09 ("mínimo US$20, repasse mensal até dia 15, carência de 30
 // dias; bônus US$3 uma vez por afiliado, teto 20 afiliados/US$60, pago junto da

@@ -40,7 +40,7 @@ import { PARTNER_PACK_DAYS, PARTNER_PACK_LIVE, PARTNER_PACK_STAGE1_CREDITS, PART
 //                         SEPARATE gate from affiliate activation.
 // If the insert status is ever reverted to 'pending', the "live the moment you
 // apply" copy on this page becomes false again and must be reverted with it.
-import { AFFILIATE_BONUS_TERMS, AFFILIATE_COMMISSION_PCT, AFFILIATE_COMMISSION_RATE, AFFILIATE_PAYOUT_TERMS } from '@/lib/affiliateCommission'
+import { AFFILIATE_BONUS_TERMS, AFFILIATE_BUSINESS_TERMS, AFFILIATE_COMMISSION_PCT, AFFILIATE_COMMISSION_RATE, AFFILIATE_PAYOUT_TERMS } from '@/lib/affiliateCommission' // KINEO-BUSINESS-84-2026-10-09: + exceção do Business
 import type { Metadata } from 'next'
 import { TIER_PRICES } from '@/lib/checkoutPricing'
 import Link from 'next/link'
@@ -102,7 +102,7 @@ const SUPPORT = 'mailto:hello@usekineo.com?subject=Kineo%20affiliate%20program%2
 export default function PartnersPage() {
   const faq = [
     { q: 'Do I have to be approved first?', a: 'No. There is no review queue and no waiting. The moment you submit the application your affiliate link is active — it starts logging clicks and setting the 90-day attribution cookie on the very first visitor you send.' },
-    { q: 'How much do I earn?', a: `Affiliates earn ${AFFILIATE_COMMISSION_PCT} of each eligible payment from customers they refer, including recurring payments while the customer remains subscribed and the affiliate account remains active. First-touch tracking lasts 90 days.` },
+    { q: 'How much do I earn?', a: `Affiliates earn ${AFFILIATE_COMMISSION_PCT} of each eligible payment from customers they refer, including recurring payments while the customer remains subscribed and the affiliate account remains active. First-touch tracking lasts 90 days. ${AFFILIATE_BUSINESS_TERMS}` },
     { q: 'How does Kineo compare with other AI video affiliate programs?', a: `Rates are not directly comparable unless duration is included. As verified ${AFFILIATE_COMPARISON_VERIFIED_HUMAN}, Kineo publishes ${AFFILIATE_COMMISSION_PCT} recurring while the referred customer stays subscribed; OpusClip publishes 25% recurring through the first year; InVideo publishes 50% on monthly or 25% on annual purchases for the first billing cycle only; and VEED publishes a 20% recurring base with performance bonuses up to 50%. The comparison on this page links every official source.` },
     { q: 'Can I test Kineo first?', a: `Yes. Every new account${FREE_FILM_COUNTRY_CLAUSE} starts free with ${TRIAL_CREDITS_SHOWN} credits, no card — enough for ${TRIAL_SEEDANCE15_FILMS === 1 ? 'one' : TRIAL_SEEDANCE15_FILMS} watermarked ${TRIAL_FREE_FILM_SECONDS}-second Seedance 1.5 film${TRIAL_SEEDANCE15_FILMS === 1 ? '' : 's'}. Kling, Veo and the other Studio engines need a paid plan. Partners can also get a demo pack to create with: ${PARTNER_PACK_STAGE1_CREDITS} credits with paid-plan engine access for ${PARTNER_PACK_DAYS} days, plus ${PARTNER_PACK_STAGE2_CREDITS} more after you share one public post with your link or coupon and we review it. ${PARTNER_PACK_LIVE ? 'The first part is added when you join.' : 'Email us after you join to get it.'}` },
     { q: 'What do I promote?', a: 'Kineo turns one topic or script into a finished 9:16 Short with script structure, AI voice, matched visuals and captions. Paid plans unlock clean exports and recurring-show tools.' },

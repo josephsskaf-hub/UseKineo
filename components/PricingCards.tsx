@@ -60,6 +60,7 @@ import {
   createInlinePricingDwellController,
 } from '@/lib/growth/inlinePricingDecision'
 import { CARD_TRIAL_LIVE, CARD_TRIAL_SECONDARY_LABEL } from '@/lib/checkoutPricing'
+import { AUTOPILOT_PUBLIC } from '@/lib/autopilotPublic' // KINEO-AUTOPILOT-FORA-2026-10-09
 
 const inlinePricingDecisionRecorder = createInlinePricingDecisionRecorder({
   transport: (eventName, metadata) => trackClosedEvent(eventName, metadata),
@@ -585,6 +586,8 @@ export default function PricingCards({
           tops out at the Studio price reads as a typo (e na V6, com o teto em
           $29, o contraste ficou ainda mais violento). The $99 pilot is the entry.
           ══════════════════════════════════════════════════════════════════ */}
+      {/* KINEO-AUTOPILOT-FORA-2026-10-09 — a faixa só aparece com o Autopilot na vitrine (lib/autopilotPublic.ts). */}
+      {AUTOPILOT_PUBLIC ? (
       <div
         className="mx-auto mt-5 rounded-2xl p-5 sm:p-6"
         style={{
@@ -648,6 +651,7 @@ export default function PricingCards({
           own after {AUTOPILOT_PILOT_DAYS} days and the videos are yours.
         </p>
       </div>
+      ) : null}
     </section>
   )
 }

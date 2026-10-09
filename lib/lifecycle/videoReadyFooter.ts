@@ -379,7 +379,7 @@ export function videoReadyFooter(input: VideoReadyFooterInput): VideoReadyFooter
 // Só planos PAGOS. Em produção (02/09) o trial vive em plan='free' +
 // trial_ends_at; nomes `*_trial` não existem em `profiles` e, se um dia
 // existirem, são trial — não assinatura.
-const READY_PAID_PLANS = new Set(['starter', 'basic', 'pro', 'creator', 'studio'])
+const READY_PAID_PLANS = new Set(['starter', 'basic', 'pro', 'creator', 'studio', 'business']) // KINEO-BUSINESS-84-2026-10-09
 
 export type ReadyProfileRow = { has_paid?: boolean | null; plan?: string | null; video_credits?: number | null } | null
 export type ReadyVideoRow = { title?: string | null; topic?: string | null; credits_used?: number | null; duration?: number | null } | null

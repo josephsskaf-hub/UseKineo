@@ -212,6 +212,8 @@ export async function POST(req: NextRequest) {
       let isEligibleSubscription =
         session.mode === 'subscription' &&
         (subscriptionTier === 'starter' || subscriptionTier === 'basic' || subscriptionTier === 'pro')
+      // KINEO-BUSINESS-84-2026-10-09 — a assinatura Business também destrava o export limpo da volta da marca d'água.
+      if (session.mode === 'subscription' && subscriptionTier === 'business') isEligibleSubscription = true // KINEO-BUSINESS-84-2026-10-09
       if (isEligibleSubscription) {
         const subscriptionId =
           typeof session.subscription === 'string'

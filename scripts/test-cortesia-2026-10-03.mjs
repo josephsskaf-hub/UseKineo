@@ -103,7 +103,7 @@ async function problems(S) {
     const reads = compile(read('lib/supabase/readAll.ts'), { '../serverEvents': { writeServerEvent: async () => true } })
     store = compile(S.store, { '@/lib/courtesy': C, './supabase/readAll': reads })
     M = compile(S.mrr, {
-      '@/lib/pricing': { PLANS: { starter: { price: 12.9 }, basic: { price: 29.9 }, pro: { price: 54.9 }, autopilot: { price: 299 }, autopilot_lite: { price: 59 } } },
+      '@/lib/pricing': { PLANS: { starter: { price: 12.9 }, basic: { price: 29.9 }, pro: { price: 54.9 }, autopilot: { price: 299 }, autopilot_lite: { price: 59 }, business: { price: 84 } } }, // KINEO-BUSINESS-84-2026-10-09 — re-ancorado: o stub de lib/pricing ganha PLANS.business (mrr.ts lê PLANS.business.price; plano novo do fundador 09/10)
       '@/lib/stripe': { stripe: {} },
       '@/lib/settlementCurrency': { BRL_PER_USD_HOUSE: 5 },
     })

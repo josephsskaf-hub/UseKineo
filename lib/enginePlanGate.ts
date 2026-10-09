@@ -36,7 +36,8 @@ export const STUDIO_ONLY_ENGINE_KEYS: ReadonlySet<string> = new Set([
   'kling', 'veo', 'hollywood', 'h3', 'omni', 's25',
 ])
 
-const STUDIO_PLANS: ReadonlySet<string> = new Set(['pro', 'pro_trial', 'studio', 'studio_trial', 'autopilot'])
+// KINEO-BUSINESS-84-2026-10-09 — Business abre todo motor que o Studio abre (decisão do fundador 09/10).
+const STUDIO_PLANS: ReadonlySet<string> = new Set(['pro', 'pro_trial', 'studio', 'studio_trial', 'autopilot', 'business'])
 
 export type EngineGateInput = {
   /** quality (compose) ou engine key (rota cinemática). */

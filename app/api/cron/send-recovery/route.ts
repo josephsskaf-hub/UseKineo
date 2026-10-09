@@ -63,7 +63,7 @@ const LIFECYCLE_EMAILS_ENABLED = process.env.KINEO_LIFECYCLE_EMAILS_ENABLED === 
 // Push #431 — Joseph's rule: lead-recovery/outreach goes out as the TEAM from
 // hello@ (friendlier, commercial); support@ stays for support-only matters.
 const FROM_EMAIL = 'Kineo Team <hello@usekineo.com>'
-const PAID_PLANS = new Set(['starter', 'starter_trial', 'basic', 'basic_trial', 'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial'])
+const PAID_PLANS = new Set(['starter', 'starter_trial', 'basic', 'basic_trial', 'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial', 'business']) // KINEO-BUSINESS-84-2026-10-09
 
 // ═══ KINEO-RECOVERY-STARVATION-2026-08-13 — O LEAD MAIS QUENTE DA CASA ═══
 // ═══ MORRIA DE FOME, CALADO, E O SILÊNCIO ERA O SINTOMA                 ═══

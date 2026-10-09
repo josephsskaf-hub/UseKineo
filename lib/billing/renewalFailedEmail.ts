@@ -132,6 +132,7 @@ const PLAN_LABEL: Record<string, string> = {
   studio: 'Studio',
   autopilot: 'Autopilot',
   autopilot_lite: 'Autopilot Lite',
+  business: 'Business', // KINEO-BUSINESS-84-2026-10-09
 }
 
 export function renewalPlanLabel(tier: string | null | undefined): string | null {

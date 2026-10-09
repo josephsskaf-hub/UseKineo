@@ -2,6 +2,7 @@ import { cookies, headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { AUTOPILOT_PUBLIC } from '@/lib/autopilotPublic' // KINEO-AUTOPILOT-FORA-2026-10-09
 import {
   REVIVE_BASE_URL,
   REVIVE_PILOT_CHECKOUT_PATH,
@@ -136,6 +137,9 @@ function Fact({ children }: { children: React.ReactNode }) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export default async function RevivePage({ params }: { params: { handle: string } }) {
+  // KINEO-AUTOPILOT-FORA-2026-10-09 — esta página inteira vende o piloto do Autopilot (US$ 99). Fora da vitrine, ela não existe (404),
+  // antes de qualquer leitura de banco ou evento; o checkout do piloto também recusa compra nova.
+  if (!AUTOPILOT_PUBLIC) notFound()
   const result = await getReviveProspect(params.handle)
 
   // Handle que realmente não existe = 404 de verdade (app/not-found.tsx), não

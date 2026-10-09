@@ -102,6 +102,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '', priority: 1.0, freq: 'daily' },
     { path: '/pricing', priority: 0.9, freq: 'weekly' },
     { path: '/business-video-ads', priority: 0.9, freq: 'weekly' },
+    { path: '/business', priority: 0.9, freq: 'weekly' }, // KINEO-BUSINESS-84-2026-10-09 — plano Business (anúncios de produto)
     // KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — Studio Ads (make your own ad with your photos, clips and logo).
     // Listed only when NEXT_PUBLIC_ADS_PASS_LIVE=1 (inlined at build): closed, the page says "Opens soon" and is
     // noindex, and a map entry would point crawlers at a page with nothing to buy.

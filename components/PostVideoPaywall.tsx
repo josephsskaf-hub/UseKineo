@@ -21,6 +21,7 @@ import { AUTOPILOT_PILOT_DAYS, AUTOPILOT_PILOT_PRICES, PACK_CREDITS, formatCheck
 import { STUDIO_CINEMATIC_FILMS } from '@/lib/marketingPrice'
 import { trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
+import { AUTOPILOT_PUBLIC } from '@/lib/autopilotPublic' // KINEO-AUTOPILOT-FORA-2026-10-09
 
 interface PostVideoPaywallProps {
   // Current credit balance after the most recent generation. The parent
@@ -238,6 +239,8 @@ export default function PostVideoPaywall({ credits }: PostVideoPaywallProps) {
           Placed BELOW the $4.90 pack on purpose: the pack is the cheap yes,
           this is the different yes. Promise is exactly what the cron ships.
           ══════════════════════════════════════════════════════════════════ */}
+      {/* KINEO-AUTOPILOT-FORA-2026-10-09 — o piloto só é oferecido com o Autopilot na vitrine. */}
+      {AUTOPILOT_PUBLIC ? (
       <button
         type="button"
         disabled={purchasing !== null}
@@ -279,6 +282,7 @@ export default function PostVideoPaywall({ credits }: PostVideoPaywallProps) {
           </>
         )}
       </button>
+      ) : null}
 
       {/* KINEO-CHECKOUT-TRIAGE-2026-07-25 — silent failure is what produced the
           repeat-click bursts. Any checkout that does not open now says so. */}

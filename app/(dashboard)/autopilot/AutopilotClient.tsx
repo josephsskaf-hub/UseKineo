@@ -33,6 +33,7 @@ import { useSearchParams } from 'next/navigation'
 // para 2 das 3 moedas — quem mostra preço é /pricing, que resolve a moeda.
 import { PLANS } from '@/lib/pricing'
 import { AUTOPILOT_PILOT_PLAN } from '@/lib/autopilot/config'
+import { AUTOPILOT_PUBLIC } from '@/lib/autopilotPublic' // KINEO-AUTOPILOT-FORA-2026-10-09
 import { trackEvent } from '@/lib/analytics'
 
 const CYAN = '#2997ff'
@@ -807,6 +808,26 @@ export default function AutopilotClient() {
   // ── ESTADO 1: sem direito ao Autopilot ────────────────────────────────────
   // KINEO-PAID-NOT-ENTITLED-2026-08-06 — DUAS coortes, e elas precisam ouvir
   // coisas diferentes. Ver a nota em isOnPaidPlan().
+  // KINEO-AUTOPILOT-FORA-2026-10-09 — fora da vitrine: quem NÃO tem direito não é mandado a um /pricing#autopilot que não existe mais. Quem tem
+  // direito (assinante existente) segue para os estados abaixo, intactos.
+  if (!data.entitled && !AUTOPILOT_PUBLIC) {
+    return (
+      <div className={WRAP}>
+        {header}
+        <div className="rounded-2xl p-7" style={{ background: CARD, border: '1px solid rgba(41,151,255,.28)' }}>
+          <div className="font-black mb-2" style={{ fontSize: '1.15rem', color: TEXT }}>
+            Autopilot is not open to new customers right now.
+          </div>
+          <p className="text-sm mb-5" style={{ color: MUTED, lineHeight: 1.65 }}>
+            You can keep making videos yourself in the Studio with the credits on your account.
+          </p>
+          <Link href="/studio" className="inline-block text-sm" style={{ ...primaryButton, textDecoration: 'none', display: 'inline-block' }}>
+            Open the Studio →
+          </Link>
+        </div>
+      </div>
+    )
+  }
   if (!data.entitled) {
     const rawPlan = (data.plan ?? '').toString().trim().toLowerCase()
     // O piloto de $99 é compra ÚNICA com prazo: `plan` continua

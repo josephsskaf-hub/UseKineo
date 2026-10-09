@@ -85,7 +85,7 @@ export function deterministicEventUuid(name: string, key: string): string {
 }
 
 // ─── Moeda de liquidação (espelho da conta do caminho logado) ──────────────────────────────────────────────────────
-export type GuestPlanTier = 'starter' | 'basic' | 'pro' | 'autopilot' | 'autopilot_lite'
+export type GuestPlanTier = 'starter' | 'basic' | 'pro' | 'autopilot' | 'autopilot_lite' | 'business' // KINEO-BUSINESS-84-2026-10-09
 
 /**
  * A MESMA conta de app/api/stripe/checkout/route.ts (bloco KINEO-MOEDA-LOCAL-2026-09-09), com uma diferença que é
@@ -271,6 +271,12 @@ export function buildGuestSubscriptionSessionParams(input: GuestSessionInput): {
     ...(affiliateSystem === 'rewardful' && input.rewardfulReferral
       ? { client_reference_id: input.rewardfulReferral }
       : {}),
+  }
+  // KINEO-BUSINESS-84-2026-10-09 — Business: nenhum cupom (espelho de planAcceptsPromotions em lib/checkoutPricing.ts; literal aqui porque
+  // o guardião da compra sem login carrega este módulo com imports fechados). Sem campo manual, nem na recuperação.
+  if (input.tier === 'business') {
+    delete params.allow_promotion_codes
+    params.after_expiration = { recovery: { enabled: true, allow_promotion_codes: false } }
   }
   return { params, affiliateSystem }
 }

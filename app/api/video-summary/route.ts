@@ -154,6 +154,7 @@ RULES:
       const PAID_PLANS = new Set([
         'starter', 'starter_trial', 'basic', 'basic_trial',
         'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial',
+        'business', // KINEO-BUSINESS-84-2026-10-09
       ])
       // ⚠️ DÍVIDA PRÉ-EXISTENTE, DELIBERADAMENTE NÃO CORRIGIDA AQUI: este é o
       // único dos três sites de branding que ignora `has_paid`, então quem

@@ -18,6 +18,7 @@ const SELF_SERVE_PAID_PLANS = new Set([
   'pro_trial',
   'studio',
   'studio_trial',
+  'business', // KINEO-BUSINESS-84-2026-10-09
 ])
 
 /**

@@ -269,6 +269,7 @@ ${emailFooterHtml(userId)}`
 const READY_PAID_PLANS = new Set([
   'starter', 'starter_trial', 'basic', 'basic_trial',
   'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial',
+  'business', // KINEO-BUSINESS-84-2026-10-09
 ])
 const STATUS_READY_STAMP = 'video_ready_email_sent'
 

@@ -17,7 +17,8 @@ import { INTERNAL_EXACT_EMAILS } from '@/lib/internalAccounts'
 import { ADS_ACCESS_COLUMN } from '@/lib/ads/offer'
 
 /** Planos de ASSINATURA que abrem o Studio Ads sem passe (espelha os pagos de app/api/admin/_shared/mrr.ts, sem trial nem piloto). */
-export const ADS_SUBSCRIBER_PLANS: readonly string[] = ['starter', 'basic', 'creator', 'pro', 'studio', 'autopilot', 'autopilot_lite']
+// KINEO-BUSINESS-84-2026-10-09 — 'business' entra: o plano Business É o Studio Ads self-serve (anúncios de produto para empresas).
+export const ADS_SUBSCRIBER_PLANS: readonly string[] = ['starter', 'basic', 'creator', 'pro', 'studio', 'autopilot', 'autopilot_lite', 'business']
 
 export interface AdsAccessFields {
   plan?: unknown

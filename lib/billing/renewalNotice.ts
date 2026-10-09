@@ -38,6 +38,7 @@ export function renewalNoticePlanLabel(plan: string | null | undefined): string 
   if (p === 'basic' || p === 'creator') return 'Creator'
   if (p === 'pro' || p === 'studio') return 'Studio'
   if (p === 'autopilot' || p === 'autopilot_lite') return 'Autopilot'
+  if (p === 'business') return 'Business' // KINEO-BUSINESS-84-2026-10-09
   return 'Kineo'
 }
 

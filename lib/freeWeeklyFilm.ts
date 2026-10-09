@@ -43,6 +43,7 @@ export const FREE_WEEKLY_FILM_COUNTRY_EVENTS: readonly string[] = [FREE_WEEKLY_F
 const NON_FREE_PLANS: ReadonlySet<string> = new Set([
   'starter', 'starter_trial', 'basic', 'basic_trial', 'pro', 'pro_trial', 'creator', 'creator_trial',
   'studio', 'studio_trial', 'autopilot', 'autopilot_trial', 'autopilot_pilot', 'autopilot_lite',
+  'business', // KINEO-BUSINESS-84-2026-10-09
 ])
 /** trial_status que PODEM receber a cota. Tudo o mais (active, blocked, region_paid_only, card_required, desconhecido) não. */
 const ELIGIBLE_TRIAL_STATUSES: ReadonlySet<string> = new Set(['downgraded', 'expired'])

@@ -46,7 +46,8 @@ function walk(dir, out = []) {
   return out
 }
 
-const PLANS_V8 = { starter: { price: 12.9 }, basic: { price: 29.9 }, pro: { price: 54.9 }, autopilot: { price: 299 }, autopilot_lite: { price: 59 } }
+// KINEO-BUSINESS-84-2026-10-09 — re-ancorado: o stub de lib/pricing ganha PLANS.business (mrr.ts lê PLANS.business.price, plano novo decidido pelo fundador 09/10)
+const PLANS_V8 = { starter: { price: 12.9 }, basic: { price: 29.9 }, pro: { price: 54.9 }, autopilot: { price: 299 }, autopilot_lite: { price: 59 }, business: { price: 84 } }
 const M = carrega('app/api/admin/_shared/mrr.ts', {
   '@/lib/pricing': { PLANS: PLANS_V8 },
   '@/lib/stripe': { stripe: {} },

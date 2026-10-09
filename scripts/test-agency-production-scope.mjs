@@ -112,10 +112,23 @@ equal(AGENCY_PRODUCTION_SCOPE_MEASUREMENT_CONTRACT.recurringCampaign, scopeContr
 equal(AGENCY_PRODUCTION_SCOPE_MEASUREMENT_CONTRACT.autopilotCampaign, scopeContract.AGENCY_PRODUCTION_SCOPE_AUTOPILOT_CAMPAIGN, 'Autopilot measurement reads its canonical source')
 equal(AGENCY_PRODUCTION_SCOPE_MEASUREMENT_CONTRACT.fitReview.entryCampaign, scopeContract.AGENCY_PRODUCTION_SCOPE_FIT_REVIEW_CAMPAIGN, 'fit-review measurement reads its canonical source')
 
+// KINEO-BUSINESS-84-2026-10-09 — re-ancorado: a rota passou a ler o interruptor KINEO-AUTOPILOT-FORA-2026-10-09
+// (lib/autopilotPublic.ts, decisão do fundador 09/10 de tirar o Autopilot da vitrine). Com o interruptor LIGADO a rota
+// segue byte a byte o builder de produção (asserção original); DESLIGADO (o valor real de hoje) o caminho 'autopilot'
+// sai do documento e todo o resto fica igual.
 const route = loadTs('app/agency-production-scope.txt/route.ts', {
   '@/lib/kineoFacts': { PRODUCT: { url: 'https://www.usekineo.com' }, BUSINESS_OFFER_FACT: offer },
   '@/lib/growth/agencyProductionScope': scopeContract,
+  '@/lib/autopilotPublic': { AUTOPILOT_PUBLIC: true },
 })
+const routeOff = loadTs('app/agency-production-scope.txt/route.ts', {
+  '@/lib/kineoFacts': { PRODUCT: { url: 'https://www.usekineo.com' }, BUSINESS_OFFER_FACT: offer },
+  '@/lib/growth/agencyProductionScope': scopeContract,
+  '@/lib/autopilotPublic': { AUTOPILOT_PUBLIC: false },
+})
+const offText = await routeOff.GET().text()
+equal(offText, scopeContract.renderAgencyProductionScopeTxt({ ...scope, purchasePaths: scope.purchasePaths.filter((p) => p.id !== 'autopilot') }), 'Autopilot fora da vitrine: o documento perde só o caminho autopilot')
+ok(!/- Autopilot:/.test(offText), 'Autopilot fora da vitrine: nenhuma linha de compra do Autopilot')
 const response = route.GET()
 equal(response.status, 200, 'public scope route returns 200')
 equal(response.headers.get('content-type'), 'text/plain; charset=utf-8', 'public scope route is plain text')

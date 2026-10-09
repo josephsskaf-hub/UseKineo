@@ -6,6 +6,7 @@ export const PRICING_PLAN_CHOICE_TIERS = [
   'basic',
   'pro',
   'autopilot',
+  'business', // KINEO-BUSINESS-84-2026-10-09
 ] as const
 
 export type PricingPlanChoiceTier = (typeof PRICING_PLAN_CHOICE_TIERS)[number]
@@ -65,7 +66,7 @@ export function buildPricingPlanChoiceAttribution(input: {
     : null
   if (!tier) return null
 
-  const billing = tier === 'autopilot'
+  const billing = tier === 'autopilot' || tier === 'business' // KINEO-BUSINESS-84-2026-10-09: só mensal
     ? 'monthly'
     : input.billing === 'monthly' || input.billing === 'annual'
       ? input.billing

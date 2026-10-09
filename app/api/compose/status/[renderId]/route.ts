@@ -582,6 +582,7 @@ export async function GET(
           const PAID_PLANS = new Set([
             'starter', 'starter_trial', 'basic', 'basic_trial',
             'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial',
+            'business', // KINEO-BUSINESS-84-2026-10-09
           ])
           const planName = ((payerProf as { plan?: string } | null)?.plan ?? 'free').toLowerCase()
           // KINEO-TRIAL-BLOCKERS-2026-08-07 — só o caminho LEGADO (render sem
@@ -1002,6 +1003,7 @@ export async function GET(
           const PAID_PLANS = new Set([
             'starter', 'starter_trial', 'basic', 'basic_trial',
             'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial',
+            'business', // KINEO-BUSINESS-84-2026-10-09
           ])
           const planName = ((planRow as { plan?: string } | null)?.plan ?? 'free').toLowerCase()
           const isPaid =

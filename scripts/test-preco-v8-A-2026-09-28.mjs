@@ -162,7 +162,9 @@ const MUTANTES = [
   ['anual do Creator fica no 30% da V8-A (25000) com o mensal a 1990', mut('cp', 'basic: { usd: 16700 }', 'basic: { usd: 25000 }')],
   ['tabela BRL do Studio volta a 19990', mut('sc', 'pro: { monthly: 27490, annual: 230990 }', 'pro: { monthly: 19990, annual: 143990 }')],
   ['anual BRL do Studio volta a 10× (274900)', mut('sc', 'pro: { monthly: 27490, annual: 230990 }', 'pro: { monthly: 27490, annual: 274900 }')],
-  ['grant legado V5 do Studio cai para 180', mut('cp', '  pro: 300,\n  autopilot: 400,\n  autopilot_lite: 160,\n}', '  pro: 180,\n  autopilot: 400,\n  autopilot_lite: 160,\n}')],
+  // KINEO-BUSINESS-84-2026-10-09 — re-ancorado: a escada legada V5 ganhou a linha do Business (500) antes do "}"; o mutante
+  // segue mirando o Studio da V5 (300 → 180), e a âncora inclui a linha nova para continuar única no arquivo.
+  ['grant legado V5 do Studio cai para 180', mut('cp', '  pro: 300,\n  autopilot: 400,\n  autopilot_lite: 160,\n  business: 500, // KINEO-BUSINESS-84-2026-10-09 — sem preço legado: toda fatura do Business comprou 500\n}', '  pro: 180,\n  autopilot: 400,\n  autopilot_lite: 160,\n  business: 500, // KINEO-BUSINESS-84-2026-10-09 — sem preço legado: toda fatura do Business comprou 500\n}')],
   ['literal espelhado do entryPolicy volta a $12.90', mut('ep', 'Plans start at $9.90/month', 'Plans start at $12.90/month')],
   ['9900 volta à lista de ambíguos (entrada obsoleta)', mut('cp', 'new Set<number>([])', 'new Set<number>([9900])')],
 ]

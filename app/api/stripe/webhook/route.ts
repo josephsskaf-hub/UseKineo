@@ -91,6 +91,7 @@ import { CARD_ENTRY_TRIAL_STATUS } from '@/lib/entryPolicy'
 import { renewalCreditsForInvoice } from '@/lib/settlementCurrency'
 import { RENEWAL_CARRY_VERSION, renewalBalance } from '@/lib/credits/renewalBalance' // KINEO-RENOVACAO-PRESERVA-CREDITO-COMPRADO-2026-09-25
 import { effectiveAffiliateCommissionRate } from '@/lib/affiliateCommission' // KINEO-AFILIADOS-40-2026-10-06: taxa do programa = piso
+import { BUSINESS_AFFILIATE_COMMISSION_RATE, isBusinessCommissionPlan } from '@/lib/affiliateCommission' // KINEO-BUSINESS-84-2026-10-09: Business = 20%
 // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — a compra de quem não tinha conta: no começo do Path B o webhook acha/cria o dono
 // pelo e-mail; o grant que vem depois é o mesmo do caminho logado. Sem kineo_guest=1 na sessão, nada disto roda.
 import {
@@ -535,6 +536,9 @@ async function recordAffiliateCommission(
     paymentKind: AffiliatePaymentKind
     attributionSystem?: string | null
     session?: Stripe.Checkout.Session
+    /** KINEO-BUSINESS-84-2026-10-09 — metadata.tier CRU da sessão/assinatura que pagou (o mesmo valor de onde sai o tier
+     *  do grant). 'business' paga 20%; qualquer outro valor ou ausente = régua de sempre. */
+    plan?: string | null
   }
 ): Promise<void> {
   // Rewardful owns this charge. Suppress the custom ledger so the same
@@ -639,7 +643,10 @@ async function recordAffiliateCommission(
     // KINEO-AFILIADOS-40-2026-10-06 — era `Number(aff.commission_rate ?? 0)`: a taxa gravada na linha (0.3 nas 25
     // linhas de hoje) decidia sozinha. Agora a taxa do programa (lib/affiliateCommission.ts) é piso; maior por pessoa vale.
     const rate = effectiveAffiliateCommissionRate(aff.commission_rate)
-    const commission = calculateAffiliateCommission(args.amountGross, rate)
+    // KINEO-BUSINESS-84-2026-10-09 — a cobrança do Business paga 20% fixo (lib/affiliateCommission.ts, mesma regra de
+    // affiliateCommissionRateForPlan); qualquer outro plano segue a régua de antes (`rate`).
+    const chargeRate = isBusinessCommissionPlan(args.plan) ? BUSINESS_AFFILIATE_COMMISSION_RATE : rate
+    const commission = calculateAffiliateCommission(args.amountGross, chargeRate)
 
     const { data: ref, error: referralError } = await supabase
       .from('affiliate_referrals')
@@ -723,7 +730,8 @@ function firstPaymentCreditsFromSession(session: Pick<Stripe.Checkout.Session, '
       : session.metadata?.tier === 'starter' ? 'starter'
         : session.metadata?.tier === 'autopilot' ? 'autopilot'
           : session.metadata?.tier === 'autopilot_lite' ? 'autopilot_lite'
-            : 'basic'
+            : session.metadata?.tier === 'business' ? 'business' // KINEO-BUSINESS-84-2026-10-09
+              : 'basic'
   const planCredits = TIER_CREDITS[tier]
   const introCreditsRaw = Number(session.metadata?.intro_credits ?? 0)
   const introApplied = session.metadata?.intro === '1' &&
@@ -1887,7 +1895,8 @@ export async function POST(req: NextRequest) {
             : session.metadata?.tier === 'starter' ? 'starter'
               : session.metadata?.tier === 'autopilot' ? 'autopilot'
                 : session.metadata?.tier === 'autopilot_lite' ? 'autopilot_lite' // KINEO-AUTOPILOT-LITE
-                  : 'basic'
+                  : session.metadata?.tier === 'business' ? 'business' // KINEO-BUSINESS-84-2026-10-09
+                    : 'basic'
 
         entitlementPending = true
         if (!userId || !customerId || !subscriptionId) {
@@ -1968,7 +1977,7 @@ export async function POST(req: NextRequest) {
         if (fulfilledSession?.id === subscriptionFulfillmentId) {
           entitlementConfirmed = true
           entitlementPending = false
-          await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', paymentKind: 'subscription', attributionSystem: session.metadata?.affiliate_system, session })
+          await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', paymentKind: 'subscription', attributionSystem: session.metadata?.affiliate_system, session, plan: session.metadata?.tier })
           // KINEO-REVERSE-TRIAL-P2-2026-08-07 — cobre a janela de crash entre
           // o publish do fulfillment e o carimbo da primeira execução: o resume
           // idempotente passa por aqui, e a UPDATE guardada faz 0 linhas quando
@@ -2010,7 +2019,7 @@ export async function POST(req: NextRequest) {
           // that Stripe now reports as canceled, unpaid, paused or otherwise
           // non-access. The original payment remains recorded for analytics and
           // affiliate accounting, then this stale event is closed permanently.
-          await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', paymentKind: 'subscription', attributionSystem: session.metadata?.affiliate_system, session })
+          await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', paymentKind: 'subscription', attributionSystem: session.metadata?.affiliate_system, session, plan: session.metadata?.tier })
           await publishSubscriptionFulfillment()
           entitlementConfirmed = true
           entitlementPending = false
@@ -2032,13 +2041,15 @@ export async function POST(req: NextRequest) {
                   ? 'autopilot'
                   : currentSubscription.metadata?.tier === 'autopilot_lite'
                     ? 'autopilot_lite' // KINEO-AUTOPILOT-LITE
-                    : null
+                    : currentSubscription.metadata?.tier === 'business'
+                      ? 'business' // KINEO-BUSINESS-84-2026-10-09
+                      : null
         if (currentSubscriptionTier && currentSubscriptionTier !== tier) {
           // The same Stripe subscription can be changed to another tier after
           // its original Checkout. A delayed replay of that old Checkout must
           // not add the old grant or downgrade the account back to its historic
           // tier. The live subscription metadata is authoritative here.
-          await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', paymentKind: 'subscription', attributionSystem: session.metadata?.affiliate_system, session })
+          await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', paymentKind: 'subscription', attributionSystem: session.metadata?.affiliate_system, session, plan: session.metadata?.tier })
           await publishSubscriptionFulfillment()
           entitlementConfirmed = true
           entitlementPending = false
@@ -2102,7 +2113,7 @@ export async function POST(req: NextRequest) {
         // Commission insert is independently idempotent by external_id. Run it
         // before publishing fulfillment so a crash cannot leave a permanent
         // completed marker with the commission missing.
-        await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', paymentKind: 'subscription', attributionSystem: session.metadata?.affiliate_system, session })
+        await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', paymentKind: 'subscription', attributionSystem: session.metadata?.affiliate_system, session, plan: session.metadata?.tier })
 
         // This marker means completed, so publish it only after the idempotent
         // profile update. If publication fails, Stripe retries; the same
@@ -2512,7 +2523,8 @@ export async function POST(req: NextRequest) {
             : subscription.metadata?.tier === 'starter' ? 'starter'
               : subscription.metadata?.tier === 'autopilot' ? 'autopilot'
                 : subscription.metadata?.tier === 'autopilot_lite' ? 'autopilot_lite' // KINEO-AUTOPILOT-LITE
-                  : 'basic'
+                  : subscription.metadata?.tier === 'business' ? 'business' // KINEO-BUSINESS-84-2026-10-09
+                    : 'basic'
         // KINEO-STUDIO-400-2026-07-06 — renewal credits are SET (not added)
         // each cycle → no rollover between months.
         // KINEO-PRICING-V3D-2026-07-26 — single source (lib/checkoutPricing).
@@ -2588,7 +2600,7 @@ export async function POST(req: NextRequest) {
           // the balance/tier belonging to the profile's newer subscription.
           entitlementConfirmed = true
           entitlementPending = false
-          await recordAffiliateCommission(supabase, { userId: renewalUserId, externalId: invoice.id ?? subscriptionId, amountGross: invoice.amount_paid ?? 0, currency: invoice.currency ?? 'usd', type: 'recurring', paymentKind: 'subscription', attributionSystem: subscription.metadata?.affiliate_system })
+          await recordAffiliateCommission(supabase, { userId: renewalUserId, externalId: invoice.id ?? subscriptionId, amountGross: invoice.amount_paid ?? 0, currency: invoice.currency ?? 'usd', type: 'recurring', paymentKind: 'subscription', attributionSystem: subscription.metadata?.affiliate_system, plan: subscription.metadata?.tier })
           console.warn('[stripe webhook] stale renewal ignored for superseded subscription:', invoice.id, subscriptionId, renewalProfile.stripe_subscription_id)
           break
         }
@@ -2612,7 +2624,7 @@ export async function POST(req: NextRequest) {
             entitlementConfirmed = true
             entitlementPending = false
             await markTrialConverted(supabase, renewalUserId, { source: 'invoice_payment_succeeded', stripeRef: invoice.id ?? subscriptionId })
-            await recordAffiliateCommission(supabase, { userId: renewalUserId, externalId: invoice.id ?? subscriptionId, amountGross: invoice.amount_paid ?? 0, currency: invoice.currency ?? 'usd', type: 'recurring', paymentKind: 'subscription', attributionSystem: subscription.metadata?.affiliate_system })
+            await recordAffiliateCommission(supabase, { userId: renewalUserId, externalId: invoice.id ?? subscriptionId, amountGross: invoice.amount_paid ?? 0, currency: invoice.currency ?? 'usd', type: 'recurring', paymentKind: 'subscription', attributionSystem: subscription.metadata?.affiliate_system, plan: subscription.metadata?.tier })
             console.log('[stripe webhook] renewal already granted for invoice:', invoice.id, subscriptionId)
             break
           }
@@ -2696,7 +2708,7 @@ export async function POST(req: NextRequest) {
         // criada fora do Checkout). Quase sempre 0 linhas (o Checkout já
         // carimbou); idempotente e barato.
         await markTrialConverted(supabase, renewalUserId, { source: 'invoice_payment_succeeded', stripeRef: invoice.id ?? subscriptionId })
-        await recordAffiliateCommission(supabase, { userId: renewalUserId, externalId: invoice.id ?? subscriptionId, amountGross: invoice.amount_paid ?? 0, currency: invoice.currency ?? 'usd', type: 'recurring', paymentKind: 'subscription', attributionSystem: subscription.metadata?.affiliate_system })
+        await recordAffiliateCommission(supabase, { userId: renewalUserId, externalId: invoice.id ?? subscriptionId, amountGross: invoice.amount_paid ?? 0, currency: invoice.currency ?? 'usd', type: 'recurring', paymentKind: 'subscription', attributionSystem: subscription.metadata?.affiliate_system, plan: subscription.metadata?.tier })
 
         break
       }

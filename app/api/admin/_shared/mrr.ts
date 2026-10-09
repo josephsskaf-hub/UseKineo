@@ -67,6 +67,8 @@ export const PLAN_PRICE_USD: Record<string, number> = {
   autopilot: PLANS.autopilot.price,
   autopilot_trial: PLANS.autopilot.price,
   autopilot_lite: PLANS.autopilot_lite.price, // KINEO-AUTOPILOT-LITE-2026-09-16
+  // KINEO-BUSINESS-84-2026-10-09 — Business ($84, anúncios de produto para empresas). Mensal, sem trial: não existe 'business_trial'.
+  business: PLANS.business.price,
   // KINEO-PILOT-99-2026-07-26 — the pilot is a ONE-OFF $99, not a
   // subscription. It must be a KEY (so the buyer counts as a paying customer)
   // with VALUE 0 (so it never inflates MRR).
@@ -150,7 +152,7 @@ async function stripeMrrUsdUncached(subscriptionIds: string[]): Promise<{
   }
 }
 
-export type PlanBase = 'free' | 'starter' | 'creator' | 'studio' | 'autopilot'
+export type PlanBase = 'free' | 'starter' | 'creator' | 'studio' | 'autopilot' | 'business' // KINEO-BUSINESS-84-2026-10-09
 
 /** Stored value → product family, using the names the founder sees in the UI. */
 export function planBase(plan: string | null | undefined): PlanBase {
@@ -159,6 +161,7 @@ export function planBase(plan: string | null | undefined): PlanBase {
   if (p === 'basic' || p === 'creator') return 'creator'
   if (p === 'pro' || p === 'studio') return 'studio'
   if (p === 'autopilot') return 'autopilot'
+  if (p === 'business') return 'business' // KINEO-BUSINESS-84-2026-10-09
   return 'free'
 }
 
@@ -168,6 +171,7 @@ const BASE_NAME: Record<PlanBase, string> = {
   creator: 'Creator',
   studio: 'Studio',
   autopilot: 'Autopilot',
+  business: 'Business', // KINEO-BUSINESS-84-2026-10-09
 }
 
 /** "Creator", "Starter · trial", "Autopilot · pilot". */
@@ -190,6 +194,8 @@ export function planAccent(plan: string | null | undefined): string {
       return '#fbbf24'
     case 'autopilot':
       return '#fb7185'
+    case 'business': // KINEO-BUSINESS-84-2026-10-09
+      return '#34d399'
     default:
       return '#86868b'
   }

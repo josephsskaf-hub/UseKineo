@@ -4,7 +4,7 @@ export const CHECKOUT_CANCEL_OBJECTION_TARGET_ID =
   'checkout-cancel-objection-box' as const
 export const CHECKOUT_CANCEL_OBJECTION_VISIBLE_RATIO = 0.5 as const
 
-export type CheckoutCancelObjectionTier = 'starter' | 'basic' | 'pro' | 'autopilot'
+export type CheckoutCancelObjectionTier = 'starter' | 'basic' | 'pro' | 'autopilot' | 'business' // KINEO-BUSINESS-84-2026-10-09
 export type CheckoutCancelObjectionBilling = 'monthly' | 'annual'
 export type CheckoutCancelObjectionProduct =
   | 'self_serve'

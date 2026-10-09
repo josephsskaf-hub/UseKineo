@@ -46,6 +46,7 @@ const PAID_PLANS = new Set([
   // KINEO-PILOT-99-2026-07-26 — mid-pilot buyers are paying customers; sem isto
   // eles veem o banner "finish your checkout" durante os 7 dias que compraram.
   'autopilot_pilot',
+  'business', // KINEO-BUSINESS-84-2026-10-09
 ])
 
 // KINEO-AUTOPILOT-299-2026-07-26 — includes 'autopilot'; imported so the tier

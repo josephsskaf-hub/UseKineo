@@ -27,6 +27,7 @@
 import {
   AUTOPILOT_PRICES,
   AUTOPILOT_LITE_PRICES,
+  BUSINESS_PRICES, // KINEO-BUSINESS-84-2026-10-09
   LEGACY_TIER_CREDITS_V5,
   LEGACY_TIER_CREDITS_V6,
   TIER_CREDITS,
@@ -161,7 +162,7 @@ export function settlementNote(brlMinor: number, currency: SettlementCurrency, p
 
 /** Preço de plano na moeda de liquidação: em BRL vem da TABELA (anual = 12 × mensal × 0,70 em reais, não a fórmula sobre o anual em USD). */
 export function planSettlementAmountMinor(
-  tier: CheckoutTier | 'autopilot_lite',
+  tier: CheckoutTier | 'autopilot_lite' | 'business',
   billing: 'monthly' | 'annual',
   currency: SettlementCurrency,
   usdMinor: number,
@@ -169,6 +170,8 @@ export function planSettlementAmountMinor(
   if (currency !== 'brl') return usdMinor
   // KINEO-AUTOPILOT-LITE-2026-09-16 — como o Autopilot, o Lite não tem linha na tabela BRL: cobra pela conversão.
   if (tier === 'autopilot_lite') return settlementAmountMinor(usdMinor, currency)
+  // KINEO-BUSINESS-84-2026-10-09 — Business também não tem linha BRL: cobra pela conversão da casa, como o Autopilot.
+  if (tier === 'business') return settlementAmountMinor(usdMinor, currency)
   return BRL_PLAN_PRICES_MINOR[tier][billing]
 }
 
@@ -200,7 +203,7 @@ export function renewalCreditsForInvoice(
 ): number {
   const cur = typeof invoiceCurrency === 'string' ? invoiceCurrency.trim().toLowerCase() : 'usd'
   if (cur !== 'brl') return renewalCreditsFor(tier, amountPaidMinor)
-  const currentBrl = tier === 'autopilot' ? usdToBrlMinor(AUTOPILOT_PRICES.usd) : tier === 'autopilot_lite' ? usdToBrlMinor(AUTOPILOT_LITE_PRICES.usd) : BRL_PLAN_PRICES_MINOR[tier].monthly
+  const currentBrl = tier === 'autopilot' ? usdToBrlMinor(AUTOPILOT_PRICES.usd) : tier === 'autopilot_lite' ? usdToBrlMinor(AUTOPILOT_LITE_PRICES.usd) : tier === 'business' ? usdToBrlMinor(BUSINESS_PRICES.usd) : BRL_PLAN_PRICES_MINOR[tier].monthly
   if (typeof amountPaidMinor === 'number' && amountPaidMinor > 0 && amountPaidMinor < currentBrl) {
     // KINEO-PRECO-V8-A-2026-09-28 — mesma escada da régua em USD (legacyCreditsForUsd), na tabela em reais:
     // quem pagou a tabela V5 (R$ 49,90 · 99,90 · 199,90) comprou 60/150/300 e mantém; abaixo disso, V6.

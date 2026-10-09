@@ -72,11 +72,13 @@ export interface AccountPanelProps {
 const PLAN_LABEL: Record<string, string> = {
   free: 'Free', starter: 'Starter', basic: 'Creator', pro: 'Studio',
   autopilot: 'Autopilot', autopilot_pilot: 'Autopilot pilot',
+  business: 'Business', // KINEO-BUSINESS-84-2026-10-09
 }
 /** Grant mensal do plano — denominador da barra de créditos. */
 const PLAN_GRANT: Record<string, number> = {
   starter: TIER_CREDITS.starter, basic: TIER_CREDITS.basic,
   pro: TIER_CREDITS.pro, autopilot: TIER_CREDITS.autopilot,
+  business: TIER_CREDITS.business, // KINEO-BUSINESS-84-2026-10-09
 }
 const PLAN_PRICE: Record<string, number> = {
   starter: TIER_PRICES.starter.usd, basic: TIER_PRICES.basic.usd, pro: TIER_PRICES.pro.usd,

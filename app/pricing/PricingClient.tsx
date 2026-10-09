@@ -45,6 +45,8 @@ import PricingBusinessPathTelemetry from '@/components/PricingBusinessPathTeleme
 import PricingAdsBlock from '@/components/pricing/PricingAdsBlock' // KINEO-FLUXO-NOVO-2026-09-25 — blocos de compra única abaixo dos planos (peça D)
 import PricingCreditsBlock from '@/components/pricing/PricingCreditsBlock' // KINEO-FLUXO-NOVO-2026-09-25
 import TwoProductsPricing from '@/components/pricing/TwoProductsPricing' // KINEO-PRECOS-DOIS-PRODUTOS-2026-10-05
+import PricingBusinessBlock from '@/components/pricing/PricingBusinessBlock' // KINEO-BUSINESS-84-2026-10-09
+import { AUTOPILOT_PUBLIC } from '@/lib/autopilotPublic' // KINEO-AUTOPILOT-FORA-2026-10-09
 // KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — o cartão que mostra o que o plano compra (imagens, clipes por motor, filmes).
 // KINEO-PRECOS-REFINO-2026-10-09 — o cartão calcula os próprios números (os harnesses de render trocam todo import de @/components por
 // stub e a conta não pode morar aqui); a página só escolhe a paleta.
@@ -61,7 +63,9 @@ import AutopilotBreakEvenCalculator from './AutopilotBreakEvenCalculator'
 // Lite, que deixavam a parte de baixo confusa. Fica só: planos + créditos avulsos (a barra). As peças continuam no
 // código e nas próprias páginas (/ads, /autopilot); voltar é virar o interruptor.
 export const PRICING_SHOW_ADS_BLOCK = false
-export const PRICING_SHOW_AUTOPILOT = false
+// KINEO-AUTOPILOT-FORA-2026-10-09 — fundador (09/10): Autopilot fora da vitrine, "deixar só esse plano business". O valor passa a vir do
+// interruptor único (lib/autopilotPublic.ts); hoje false, como já estava desde 26/09.
+export const PRICING_SHOW_AUTOPILOT = AUTOPILOT_PUBLIC
 // KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — pedido do fundador (09/10, prints da InVideo): o cartão mostra o que o plano
 // compra (imagens Nano Banana Pro, clipes por motor, filmes de 60 s), num palco escuro com uma cor por plano.
 // false = a página de hoje para todo mundo; /pricing?preview=valor mostra o cartão novo SÓ para quem abrir o link (o
@@ -233,7 +237,7 @@ const buildFaqs = (OFFER: FreeTierOffer): { q: string; a: string }[] => [
     // grants 50 credits, not 150. Stating it here as well as on the card is
     // the difference between a discount and a bait-and-switch.
     // KINEO-SELO-OMNI-POPUP-2026-09-30 — "or Omni Flash" só enquanto o motor não estiver pausado (enginePaused).
-    a: `Think in 60-second films: Seedance = ${creditsPerReferenceVideo('cinematic_ai')} credits, Kling 2.5 = ${creditsPerReferenceVideo('cinematic_kling')}, Veo 3.1 = ${creditsPerReferenceVideo('cinematic_veo')}, Kling 3${enginePaused('omni') ? '' : ' or Omni Flash'} = ${creditsPerReferenceVideo('cinematic_hollywood')}. One image = 1-5 credits, one voiceover = 1-2, one HD enhance = 10. Starter includes ${TIER_CREDITS.starter} credits/month (≈${formatResultCount(videosPerMonth('starter', 'cinematic_ai'), 'Seedance film')}), Creator includes ${TIER_CREDITS.basic} (≈${formatResultCount(videosPerMonth('basic', 'cinematic_ai'), 'Seedance film')}), Studio includes ${TIER_CREDITS.pro} (≈${formatResultCount(videosPerMonth('pro', 'cinematic_ai'), 'Seedance film')}, or ${formatResultCount(videosPerMonth('pro', 'cinematic_hollywood'), 'Kling 3 film')}); Autopilot includes ${TIER_CREDITS.autopilot} on top of the daily Short we publish for you. Credits reset each month (no rollover).`,
+    a: `Think in 60-second films: Seedance = ${creditsPerReferenceVideo('cinematic_ai')} credits, Kling 2.5 = ${creditsPerReferenceVideo('cinematic_kling')}, Veo 3.1 = ${creditsPerReferenceVideo('cinematic_veo')}, Kling 3${enginePaused('omni') ? '' : ' or Omni Flash'} = ${creditsPerReferenceVideo('cinematic_hollywood')}. One image = 1-5 credits, one voiceover = 1-2, one HD enhance = 10. Starter includes ${TIER_CREDITS.starter} credits/month (≈${formatResultCount(videosPerMonth('starter', 'cinematic_ai'), 'Seedance film')}), Creator includes ${TIER_CREDITS.basic} (≈${formatResultCount(videosPerMonth('basic', 'cinematic_ai'), 'Seedance film')}), Studio includes ${TIER_CREDITS.pro} (≈${formatResultCount(videosPerMonth('pro', 'cinematic_ai'), 'Seedance film')}, or ${formatResultCount(videosPerMonth('pro', 'cinematic_hollywood'), 'Kling 3 film')})${AUTOPILOT_PUBLIC ? `; Autopilot includes ${TIER_CREDITS.autopilot} on top of the daily Short we publish for you` : ''}. Credits reset each month (no rollover).`,
   },
   {
     // KINEO-AUTOPILOT-299-2026-07-26
@@ -728,13 +732,17 @@ export default function PricingClient({ initialBilling = 'annual', characterLimi
     // that would be silently dropped.
     const isAutopilotFamily = tier === 'autopilot' || tier === 'autopilot_lite' // KINEO-AUTOPILOT-LITE
     const billingParam = billing === 'annual' && !isAutopilotFamily ? '&billing=annual' : '&billing=monthly'
+    // KINEO-BUSINESS-84-2026-10-09 — Business também é só mensal e sem cupom: o servidor força mensal e descarta o cupom
+    // (um ?billing=annual vindo do toggle vira mensal lá); aqui a telemetria e o cupom já seguem a regra.
+    const isBusiness = tier === 'business'
+    const isMonthlyOnly = isAutopilotFamily || isBusiness
     // #453 — forward a ?promo= code (e.g. /pricing?promo=FOUNDING50 from the
     // win-back emails) into checkout so the discount auto-applies on plan click.
     const pricingParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
     // KINEO-WELCOME20-NO-CARTAO-2026-10-09 — sem cupom na URL, o Creator/Studio mensal leva o WELCOME20 que o cartão mostra.
     const cardPromo = welcomeOnCard(tier) ? WELCOME20_PROMOTION_CODE : null
     const promo = pricingParams?.get('promo') ?? cardPromo
-    const promoParam = promo ? `&promo=${encodeURIComponent(promo)}` : ''
+    const promoParam = promo && !isBusiness ? `&promo=${encodeURIComponent(promo)}` : '' // KINEO-BUSINESS-84-2026-10-09: Business sem cupom
     const rawIntentCampaign = pricingParams?.get('intent_campaign')
     const intentCampaign = sanitizePricingIntentCampaign(rawIntentCampaign)
     const intentParam = intentCampaign ? `&intent_campaign=${encodeURIComponent(intentCampaign)}` : ''
@@ -742,16 +750,16 @@ export default function PricingClient({ initialBilling = 'annual', characterLimi
     // com desconto ($4.90/$9.90). O servidor valida elegibilidade (1 por
     // cliente) e ignora o param em annual/pro — aqui só pedimos.
     const introParam = billing === 'monthly' && (tier === 'starter' || tier === 'basic') ? '&intro=1' : ''
-    const effectiveBilling = isAutopilotFamily ? 'monthly' : billing
+    const effectiveBilling = isMonthlyOnly ? 'monthly' : billing // KINEO-BUSINESS-84-2026-10-09
     const started = checkout.launch(
       tier,
       conversionCheckoutHref(`/api/stripe/checkout?tier=${tier}${billingParam}${promoParam}${introParam}${intentParam}`, 'pricing', `${tier}_${effectiveBilling}`),
-      { tier, billing: effectiveBilling, intro: introParam !== '', pricing_surface: 'pricing_page', ...(MRR_CONVERSION_ENABLED && !isAutopilotFamily ? conversionMetadata('pricing', `${tier}_${effectiveBilling}`) : {}), previous_intent_campaign: intentCampaign, ...(cardPromo && !pricingParams?.get('promo') ? { card_promo: cardPromo } : {}) },
+      { tier, billing: effectiveBilling, intro: introParam !== '', pricing_surface: 'pricing_page', ...(MRR_CONVERSION_ENABLED && !isAutopilotFamily ? conversionMetadata('pricing', `${tier}_${effectiveBilling}`) : {}), previous_intent_campaign: intentCampaign, ...(cardPromo && !isBusiness && !pricingParams?.get('promo') ? { card_promo: cardPromo } : {}) },
     )
     // A suppressed duplicate click must not double-count the funnel or fire a
     // second TikTok InitiateCheckout.
     if (!started) return
-    if (placement === 'mobile_sticky' && !isAutopilotFamily) {
+    if (placement === 'mobile_sticky' && !isMonthlyOnly) {
       void trackEvent(
         'pricing_mobile_sticky_checkout_clicked',
         mobileStickyTelemetry({ billing: effectiveBilling, tier: tier as MobileStickyTier }),
@@ -765,7 +773,9 @@ export default function PricingClient({ initialBilling = 'annual', characterLimi
           ? 'autopilot_checkout_clicked'
           : tier === 'autopilot_lite'
             ? 'autopilot_lite_checkout_clicked'
-            : 'basic_checkout_clicked'
+            : tier === 'business'
+              ? 'business_checkout_clicked' // KINEO-BUSINESS-84-2026-10-09
+              : 'basic_checkout_clicked'
     const attribution = buildPricingPlanChoiceAttribution({
       tier,
       billing: effectiveBilling,
@@ -1731,6 +1741,9 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             before you pay. Cancel anytime.
           </p>
         )}
+
+        {/* KINEO-BUSINESS-84-2026-10-09 — o plano Business, EMBAIXO dos 3 cartões (que ficam intactos), antes dos créditos avulsos. */}
+        <PricingBusinessBlock onBuy={() => handleBuy('business')} pending={purchasing === 'business'} />
 
         {PRICING_SHOW_ADS_BLOCK ? <PricingAdsBlock /> : null}
         <PricingCreditsBlock />

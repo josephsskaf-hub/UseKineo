@@ -21,6 +21,7 @@ const SUBSCRIPTION_PLANS = new Set([
   'autopilot',
   'autopilot_trial',
   'autopilot_pilot',
+  'business', // KINEO-BUSINESS-84-2026-10-09
 ])
 
 export function lowBalancePricingBridgeState(input: {

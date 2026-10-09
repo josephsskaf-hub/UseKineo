@@ -23,12 +23,14 @@
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 // KINEO-MARCA-2026-10-06 — nome e desambiguação no topo do /api/facts (módulo puro, sem import).
 import { BRAND_DISAMBIGUATION, BRAND_WITH_DOMAIN } from './brandIdentity'
+import { AUTOPILOT_PUBLIC } from './autopilotPublic' // KINEO-AUTOPILOT-FORA-2026-10-09
 import {
   TIER_PRICES,
   INTRO_PRICES,
   ANNUAL_PRICES,
   AUTOPILOT_PRICES,
   AUTOPILOT_LITE_PRICES,
+  BUSINESS_PRICES, // KINEO-BUSINESS-84-2026-10-09
   // KINEO-PRICING-V6-2026-08-19 — o grant de crédito entra aqui pelo mesmo
   // motivo que o preço já entrava: PLAN_INCLUDES conta "quantos vídeos por mês"
   // um plano rende, e essa conta é o grant dividido pelo custo do motor. Escrita
@@ -356,10 +358,35 @@ const AUTOPILOT_LITE_FACT: PlanFact = {
   ],
 }
 
+// KINEO-BUSINESS-84-2026-10-09 — o plano Business, dito para o ChatGPT/llms.txt/MCP. Preço e créditos vêm da fonte (BUSINESS_PRICES / PLANS);
+// a contagem de anúncios NÃO entra aqui de propósito: lib/businessPlan.ts puxa lib/ads/v2Tiers.ts, e este módulo é
+// carregado inteiro pelos guardiões do llms.txt num orçamento de 5 s por módulo (o import estourava o orçamento).
+const BUSINESS_FACT: PlanFact = {
+  id: 'business' as CheckoutTier,
+  name: PLANS.business.name,
+  monthlyUsd: formatCheckoutMoney('usd', BUSINESS_PRICES.usd),
+  monthlyUsdCents: BUSINESS_PRICES.usd,
+  firstMonthUsd: null,
+  firstMonthUsdCents: null,
+  annualUsd: null,
+  annualUsdCents: null,
+  annualPerMonthUsd: null,
+  annualSavingsPercent: null,
+  creditsPerMonth: PLANS.business.credits,
+  includes: [
+    `Product video ads for companies, made yourself in Kineo: ${PLANS.business.credits} credits a month for short vertical product ads`,
+    'Upload a product photo or paste a product link; Kineo writes, voices and edits a vertical ad with music and on-screen text',
+    'Several variations of an ad to A/B test',
+    'Commercial use; monthly billing, cancel anytime',
+  ],
+}
+
+// KINEO-AUTOPILOT-FORA-2026-10-09 — o Autopilot (mensal e Lite) só entra no catálogo com o interruptor ligado (lib/autopilotPublic.ts): o
+// ChatGPT não pode citar um plano que o checkout recusa. O Business entra no lugar dele.
 export const PLAN_FACTS: PlanFact[] = [
   ...['starter', 'basic', 'pro'].map((id) => buildPlan(id as CheckoutTier)),
-  AUTOPILOT_LITE_FACT,
-  AUTOPILOT_FACT,
+  BUSINESS_FACT,
+  ...(AUTOPILOT_PUBLIC ? [AUTOPILOT_LITE_FACT, AUTOPILOT_FACT] : []),
 ]
 
 /* ------------------------------------------------------------------ *

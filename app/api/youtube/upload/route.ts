@@ -32,6 +32,7 @@ export const maxDuration = 300
 const PAID_PLANS = new Set([
   'starter', 'starter_trial', 'basic', 'basic_trial',
   'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial',
+  'business', // KINEO-BUSINESS-84-2026-10-09
 ])
 
 type YouTubePrivacy = 'public' | 'private' | 'unlisted'

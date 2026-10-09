@@ -14,6 +14,7 @@ import {
   autopilotPilotResumeMetadata,
   isAutopilotPilotResumeMeasurementHost,
 } from '@/lib/growth/autopilotPilotResume'
+import { AUTOPILOT_PUBLIC } from '@/lib/autopilotPublic' // KINEO-AUTOPILOT-FORA-2026-10-09
 
 type PilotResumeOffer = {
   available: true
@@ -87,7 +88,13 @@ async function recordOnce(
   return true
 }
 
+// KINEO-AUTOPILOT-FORA-2026-10-09 — com o Autopilot fora da vitrine, o banner de retomada do piloto não existe (nem consulta a rota).
 export default function AutopilotPilotResumeBanner() {
+  if (!AUTOPILOT_PUBLIC) return null
+  return <AutopilotPilotResumeBannerLive />
+}
+
+function AutopilotPilotResumeBannerLive() {
   const pathname = usePathname()
   const bannerRef = useRef<HTMLElement | null>(null)
   const [offer, setOffer] = useState<PilotResumeOffer | null>(null)

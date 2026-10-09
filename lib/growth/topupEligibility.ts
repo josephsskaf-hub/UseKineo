@@ -12,6 +12,7 @@ const TOPUP_ELIGIBLE_PLANS = new Set([
   'basic_trial',
   'pro',
   'pro_trial',
+  'business', // KINEO-BUSINESS-84-2026-10-09 — empresa que estourou os anúncios do mês recarrega no mesmo clique
 ])
 
 export type TopupEligibilityState = 'eligible' | 'ineligible'

@@ -70,7 +70,10 @@ checa('UI do Autopilot: semanal mostra "one episode a week" e esconde "Shorts pe
 const pc = rd('app/pricing/PricingClient.tsx')
 checa('/pricing: card do Lite acima do Autopilot, com CTA para tier=autopilot_lite e sem anual', pc.includes('id="autopilot-lite"') && pc.indexOf('id="autopilot-lite"') < pc.indexOf('id="autopilot" className') && pc.includes("handleBuy('autopilot_lite')") && pc.includes("const isAutopilotFamily = tier === 'autopilot' || tier === 'autopilot_lite'"))
 const facts = rd('lib/kineoFacts.ts')
-checa('facts/llms.txt: Lite descrito como semanal, entre os planos', facts.includes("id: 'autopilot_lite' as CheckoutTier") && facts.includes('AUTOPILOT_LITE_FACT,\n  AUTOPILOT_FACT,'))
+// KINEO-BUSINESS-84-2026-10-09 — re-ancorado: KINEO-AUTOPILOT-FORA-2026-10-09 (fundador 09/10, "o autopilot a gente pode
+// tirar por enquanto… deixar só esse plano business"): o Lite continua descrito, mas só entra no catálogo com o
+// interruptor lib/autopilotPublic.ts ligado — e na mesma ordem (Lite antes do Autopilot).
+checa('facts/llms.txt: Lite descrito como semanal, entre os planos (atrás do interruptor do Autopilot)', facts.includes("id: 'autopilot_lite' as CheckoutTier") && facts.includes('...(AUTOPILOT_PUBLIC ? [AUTOPILOT_LITE_FACT, AUTOPILOT_FACT] : []),'))
 const mrr = rd('app/api/admin/_shared/mrr.ts')
 checa('MRR: Lite precificado e contado na família Autopilot', mrr.includes('autopilot_lite: PLANS.autopilot_lite.price') && mrr.includes(".replace('_lite', '')"))
 checa('entitlement genérico: qualquer plano ≠ free já é pagante (isPayingProfile), sem lista nova', /plan\s*!==\s*'free'|!== 'free'/.test(rd('lib/reverseTrial.ts')))

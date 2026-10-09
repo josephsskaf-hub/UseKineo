@@ -61,7 +61,7 @@ export function motivoDaRenovacao(motivo: string | null | undefined): string {
   }
 }
 
-const PLAN_NAME: Record<string, string> = { starter: 'Starter', basic: 'Creator', pro: 'Studio', autopilot: 'Autopilot', autopilot_lite: 'Autopilot Lite' }
+const PLAN_NAME: Record<string, string> = { starter: 'Starter', basic: 'Creator', pro: 'Studio', autopilot: 'Autopilot', autopilot_lite: 'Autopilot Lite', business: 'Business' } // KINEO-BUSINESS-84-2026-10-09
 
 function accountUrl(): string {
   return `${SITE}/account?utm_source=lifecycle&utm_medium=email&utm_campaign=${CAMPAIGN}`

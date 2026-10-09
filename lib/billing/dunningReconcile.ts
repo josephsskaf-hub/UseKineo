@@ -38,7 +38,8 @@ import { stripeSubscriptionKeepsAccess } from './subscriptionAccess'
  * aqui como literal porque este arquivo não pode importar por alias e o
  * guardião precisa executá-lo com node puro.
  */
-export const DUNNING_RECONCILE_TIERS = ['starter', 'basic', 'pro', 'autopilot'] as const
+// KINEO-BUSINESS-84-2026-10-09 — 'business' entra: um assinante Business em atraso que voltou a pagar tem de ter o plano restaurado.
+export const DUNNING_RECONCILE_TIERS = ['starter', 'basic', 'pro', 'autopilot', 'business'] as const
 export type DunningReconcileTier = (typeof DUNNING_RECONCILE_TIERS)[number]
 
 /**

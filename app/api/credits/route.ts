@@ -255,7 +255,7 @@ export async function GET(req: Request) {
     const planVal = (data?.plan ?? 'free') as string
     const isStarter = planVal === 'starter' || planVal === 'starter_trial'
     const isCreator = planVal === 'basic' || planVal === 'basic_trial'
-    const isStudio = planVal === 'pro' || planVal === 'pro_trial'
+    const isStudio = planVal === 'pro' || planVal === 'pro_trial' || planVal === 'business' // KINEO-BUSINESS-84-2026-10-09: Business abre o que o Studio abre
     return NextResponse.json({
       credits,
       // feature/ai-avatar CP2 — separate premium add-on balance.

@@ -19,7 +19,7 @@
 //    link to one person, right now, with one tap.
 
 import { useEffect, useRef, useState } from 'react'
-import { AFFILIATE_BONUS_TERMS, AFFILIATE_COMMISSION_PCT, AFFILIATE_PAYOUT_TERMS } from '@/lib/affiliateCommission'
+import { AFFILIATE_BONUS_TERMS, AFFILIATE_BUSINESS_TERMS, AFFILIATE_COMMISSION_PCT, AFFILIATE_PAYOUT_TERMS } from '@/lib/affiliateCommission' // KINEO-BUSINESS-84-2026-10-09
 import Link from 'next/link'
 import { AFFILIATE_PRESENTATION_CSS } from '@/lib/ui/affiliatePresentation'
 import { trackEvent } from '@/lib/analytics'
@@ -887,7 +887,7 @@ export default function AffiliatePage() {
       </div>
       {/* KINEO-AFILIADO-TERMOS-2026-09-09 — os termos de repasse ao lado dos números, da fonte única. */}
       <p data-testid="affiliate-payout-terms" className="text-xs mb-6" style={{ color: 'var(--muted)', lineHeight: 1.5 }}>
-        {AFFILIATE_PAYOUT_TERMS} {AFFILIATE_BONUS_TERMS}
+        {AFFILIATE_PAYOUT_TERMS} {AFFILIATE_BONUS_TERMS} {AFFILIATE_BUSINESS_TERMS}
       </p>
 
       {/* Recent commissions */}

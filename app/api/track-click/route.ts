@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     // /admin/click-stats. O #102 mandou trackCheckoutClick aceitar 'autopilot'
     // e o valor morria AQUI, uma camada depois — medição que existe pela
     // metade mente com mais confiança do que medição que não existe.
-    const ALLOWED_PLANS = new Set(['starter', 'basic', 'pro', 'autopilot', 'autopilot_pilot'])
+    const ALLOWED_PLANS = new Set(['starter', 'basic', 'pro', 'autopilot', 'autopilot_pilot', 'business']) // KINEO-BUSINESS-84-2026-10-09
     const plan = ALLOWED_PLANS.has(rawPlan) ? rawPlan : null
 
     // Resolve the user from the session cookie (don't trust a client-sent id).

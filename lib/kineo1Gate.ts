@@ -29,6 +29,7 @@ import { AUTOPILOT_PAID_PLANS } from '@/lib/autopilot/config'
 export const KINEO1_GATE_PAID_PLANS: ReadonlySet<string> = new Set([
   'starter', 'starter_trial', 'basic', 'basic_trial',
   'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial',
+  'business', // KINEO-BUSINESS-84-2026-10-09
 ])
 
 export const KINEO1_RETIRED_REASON = 'kineo1_retired'

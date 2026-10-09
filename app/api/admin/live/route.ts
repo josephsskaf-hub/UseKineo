@@ -331,7 +331,7 @@ export async function GET() {
         if (uid && Number.isFinite(amt)) led(uid).bought += amt
       }
       // KINEO-RAZAO-ASSINATURA — assinatura (1ª compra) e renovação, com nome do plano e data; soma à parte.
-      const PLAN_NAME: Record<string, string> = { starter: 'Starter', basic: 'Creator', pro: 'Studio', autopilot: 'Autopilot', autopilot_lite: 'Autopilot Lite' }
+      const PLAN_NAME: Record<string, string> = { starter: 'Starter', basic: 'Creator', pro: 'Studio', autopilot: 'Autopilot', autopilot_lite: 'Autopilot Lite', business: 'Business' } // KINEO-BUSINESS-84-2026-10-09
       // KINEO-RAZAO-ASSINANTE-2026-09-17 (fundador: "73 cr = +150 Creator assinou 29/07 − 2 gastos ⚠ −75 sem
       // origem — está muito confuso"). O −75 era o painel ADIVINHANDO: somava o TIER_CREDITS de hoje (150) a uma
       // compra de 29/07 cujo mês de intro concedeu 50. Regra nova: o valor de uma compra só entra na equação

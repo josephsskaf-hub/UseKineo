@@ -17,7 +17,10 @@ export type CheckoutTier = 'starter' | 'basic' | 'pro'
 // KINEO-AUTOPILOT-LITE-2026-09-16 (fundador: "vamos fazer esse Autopilot Lite… um vídeo por semana… tudo integrado"):
 // o degrau entre Studio ($39,90) e Autopilot ($299) — 1 episódio POR SEMANA publicado no YouTube da pessoa,
 // mesmo robô, cadência semanal. Mensal, sem anual, sem intro; monthlyPriceMinor/renewalCreditsFor sabem dele.
-export type CheckoutPlanTier = CheckoutTier | 'autopilot' | 'autopilot_lite'
+// KINEO-BUSINESS-84-2026-10-09 — Business (fundador 09/10, "sim pra as 4"): plano de anúncios de produto para
+// empresas, US$ 84/mês, 500 créditos. Mensal, sem anual, sem intro, sem cupom (igual ao Autopilot Lite); fica
+// FORA de CheckoutTier pelo mesmo motivo do Autopilot (Record<CheckoutTier, …> descreve os 3 cartões self-serve).
+export type CheckoutPlanTier = CheckoutTier | 'autopilot' | 'autopilot_lite' | 'business'
 export type CheckoutIntroTier = 'starter' | 'basic'
 // ═══════════════════════════════════════════════════════════════════════════
 // KINEO-USD-ONLY-2026-08-19 — UMA MOEDA (fundador: "quero leitura em USD pra
@@ -149,6 +152,14 @@ export const AUTOPILOT_LITE_PRICES: Record<CheckoutCurrency, number> = {
 }
 export const AUTOPILOT_LITE_EPISODES_PER_WEEK = 1
 
+// KINEO-BUSINESS-84-2026-10-09 — US$ 84/mês: 15% abaixo do mercado de anúncio de produto por IA (Creatify Pro $99,
+// HeyGen Business $149, Arcads €100-220). Só USD de tabela, só mensal (como o Autopilot): quem liquida em BRL paga
+// pela conversão da casa (settlementAmountMinor), sem linha própria na tabela BRL. Cupom nenhum se aplica (a rota
+// do checkout zera o ?promo= e desliga o campo manual da Stripe para este tier).
+export const BUSINESS_PRICES: Record<CheckoutCurrency, number> = {
+  usd: 8400,
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // KINEO-PILOT-99-2026-07-26 — THE $99 AUTOPILOT PILOT (one-time, 7 days).
 // ═══════════════════════════════════════════════════════════════════════════
@@ -198,6 +209,7 @@ export function monthlyPriceMinor(
 ): number {
   if (tier === 'autopilot') return AUTOPILOT_PRICES[currency]
   if (tier === 'autopilot_lite') return AUTOPILOT_LITE_PRICES[currency]
+  if (tier === 'business') return BUSINESS_PRICES[currency] // KINEO-BUSINESS-84-2026-10-09
   return getTierPrice(tier, currency, region)
 }
 
@@ -238,6 +250,14 @@ export const ANNUAL_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number
 /** KINEO-ANUAL-30-2026-10-08 — o desconto do anual sobre 12 mensalidades (40 de 05/10 a 08/10; 30 desde 08/10,
  *  decisão do fundador). A copy ("save 30%") lê daqui — nunca digita o número. */
 export const ANNUAL_DISCOUNT_PERCENT = 30
+
+// KINEO-BUSINESS-84-2026-10-09 — planos em que NENHUM cupom vale: nem ?promo= (WELCOME20, FIRST50, COMEBACK50, privados), nem o campo
+// manual "Add promotion code" da Stripe (o cupom WELCOME20 na Stripe não tem restrição de produto: digitado à mão ele
+// valeria em qualquer plano). O Business já sai 15% abaixo do mercado; desconto em cima é margem que ninguém decidiu.
+export const NO_PROMOTION_PLAN_TIERS: readonly CheckoutPlanTier[] = ['business']
+export function planAcceptsPromotions(tier: string): boolean {
+  return !(NO_PROMOTION_PLAN_TIERS as readonly string[]).includes(tier)
+}
 /** KINEO-ANUAL-40OFF-2026-10-05 — reembolso do anual: integral dentro deste prazo, nenhum depois (fundador 05/10). */
 export const ANNUAL_REFUND_DAYS = 14
 /** Frase única da política de reembolso do anual — pricing, FAQ e termos leem daqui. */
@@ -520,6 +540,9 @@ export const TIER_CREDITS: Record<CheckoutPlanTier, number> = {
   // cada) e sobra folga para filmes manuais em qualquer motor. Pior caso (tudo em Seedance): 160 × $0,117 ≈ $18,7
   // contra ~$56 líquidos — o invariante (3) confere.
   autopilot_lite: 160,
+  // KINEO-BUSINESS-84-2026-10-09 — 500: ≈ 12 anúncios de 15 s no nível Commercial (41 cr, lib/ads/v2Tiers.ts). A copy
+  // nunca digita o 12: lib/businessPlan.ts deriva floor(500 / 41). Pior caso (tudo no motor mais caro): o invariante (3).
+  business: 500,
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -536,6 +559,7 @@ export const LEGACY_TIER_CREDITS_V6: Record<CheckoutPlanTier, number> = {
   pro: 180,
   autopilot: 400,
   autopilot_lite: 160,
+  business: 500, // KINEO-BUSINESS-84-2026-10-09 — sem preço legado: toda fatura do Business comprou 500
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -561,6 +585,7 @@ export const LEGACY_TIER_CREDITS_V5: Record<CheckoutPlanTier, number> = {
   pro: 300,
   autopilot: 400,
   autopilot_lite: 160,
+  business: 500, // KINEO-BUSINESS-84-2026-10-09 — sem preço legado: toda fatura do Business comprou 500
 }
 
 /** KINEO-ANUAL-30-2026-10-08 — o anual de 40% off (checkout de 05/10 a 08/10: $92,90 / $215 / $395; troca por e-mail
@@ -594,7 +619,8 @@ export function legacyCreditsForUsd(tier: CheckoutPlanTier, amountPaidMinor: num
 }
 
 export function renewalCreditsFor(tier: CheckoutPlanTier, amountPaidMinor: number | null | undefined): number {
-  const current = tier === 'autopilot' ? AUTOPILOT_PRICES.usd : tier === 'autopilot_lite' ? AUTOPILOT_LITE_PRICES.usd : TIER_PRICES[tier].usd
+  // KINEO-BUSINESS-84-2026-10-09 — o Business compara com o próprio preço (8400); abaixo dele o legado também é 500 (nunca subconcede).
+  const current = tier === 'autopilot' ? AUTOPILOT_PRICES.usd : tier === 'autopilot_lite' ? AUTOPILOT_LITE_PRICES.usd : tier === 'business' ? BUSINESS_PRICES.usd : TIER_PRICES[tier].usd
   if (typeof amountPaidMinor === 'number' && amountPaidMinor > 0 && amountPaidMinor < current) {
     return legacyCreditsForUsd(tier, amountPaidMinor, 'monthly')
   }
@@ -978,6 +1004,7 @@ export function checkPricingInvariants(): string[] {
     { id: 'plan:pro', usdMinor: TIER_PRICES.pro.usd, credits: TIER_CREDITS.pro },
     { id: 'plan:autopilot', usdMinor: AUTOPILOT_PRICES.usd, credits: TIER_CREDITS.autopilot },
     { id: 'plan:autopilot_lite', usdMinor: AUTOPILOT_LITE_PRICES.usd, credits: TIER_CREDITS.autopilot_lite },
+    { id: 'plan:business', usdMinor: BUSINESS_PRICES.usd, credits: TIER_CREDITS.business }, // KINEO-BUSINESS-84-2026-10-09
     { id: 'intro:starter', usdMinor: INTRO_PRICES.starter.usd, credits: INTRO_CREDITS.starter },
     { id: 'intro:basic', usdMinor: INTRO_PRICES.basic.usd, credits: INTRO_CREDITS.basic },
     // KINEO-PRICING-V6-2026-08-19 — as quatro linhas da região `value` saíram

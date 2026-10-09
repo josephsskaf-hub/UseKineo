@@ -44,7 +44,7 @@ const EXT_BY_MIME: Record<string, string> = {
   'audio/x-m4a': 'm4a',
 }
 
-const PAID_PLANS = new Set(['starter', 'starter_trial', 'basic', 'basic_trial', 'pro', 'pro_trial'])
+const PAID_PLANS = new Set(['starter', 'starter_trial', 'basic', 'basic_trial', 'pro', 'pro_trial', 'business']) // KINEO-BUSINESS-84-2026-10-09
 
 // ═══ KINEO-BUGHUNT-FILA-2026-08-08 — A RECUSA PASSA A SER MEDIDA ═══════════
 //
@@ -73,7 +73,7 @@ function footageTier(
   ent: EffectiveEntitlement,
 ): string {
   const plan = (profile?.plan ?? '').toString()
-  if (plan === 'pro' || plan === 'pro_trial') return 'studio'
+  if (plan === 'pro' || plan === 'pro_trial' || plan === 'business') return 'studio' // KINEO-BUSINESS-84-2026-10-09
   if (plan === 'basic' || plan === 'basic_trial') return 'creator'
   if (plan === 'starter' || plan === 'starter_trial') return 'starter'
   if (ent.isTrial) return 'trial'

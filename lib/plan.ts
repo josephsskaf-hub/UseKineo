@@ -58,7 +58,8 @@ export async function fetchUserPlan(
   const row = (data ?? {}) as { plan?: string | null; is_pro?: boolean | null; video_credits?: number | null }
   const planRaw = (row.plan ?? '').toString().toLowerCase().trim()
 
-  if (['pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial'].includes(planRaw)) {
+  // KINEO-BUSINESS-84-2026-10-09 — Business abre o que o Studio (pro) abre.
+  if (['pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial', 'business'].includes(planRaw)) {
     return { tier: 'pro', isPro: true }
   }
   if (['basic', 'basic_trial', 'starter', 'starter_trial'].includes(planRaw)) {

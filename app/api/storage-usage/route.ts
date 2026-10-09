@@ -24,6 +24,7 @@ const PLAN_LIMITS: Record<string, { projects: number | null; retention: string }
   basic: { projects: 500, retention: 'forever storage' },
   pro: { projects: null, retention: 'forever storage' }, // null = unlimited
   autopilot: { projects: null, retention: 'forever storage' },
+  business: { projects: null, retention: 'forever storage' }, // KINEO-BUSINESS-84-2026-10-09
 }
 
 export async function GET() {

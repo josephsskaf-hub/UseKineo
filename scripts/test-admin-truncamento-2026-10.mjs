@@ -270,7 +270,7 @@ const newDb = load(read('app/api/admin/_shared/db.ts'), {
 })
 const internal = load(read('lib/internalAccounts.ts'))
 const mrr = load(read('app/api/admin/_shared/mrr.ts'), {
-  '@/lib/pricing': { PLANS: { starter: { price: 10 }, basic: { price: 20 }, pro: { price: 30 }, autopilot: { price: 40 }, autopilot_lite: { price: 50 } } },
+  '@/lib/pricing': { PLANS: { starter: { price: 10 }, basic: { price: 20 }, pro: { price: 30 }, autopilot: { price: 40 }, autopilot_lite: { price: 50 }, business: { price: 60 } } }, // KINEO-BUSINESS-84-2026-10-09 — re-ancorado: o stub de lib/pricing ganha PLANS.business (mrr.ts lê PLANS.business.price, plano novo decidido pelo fundador 09/10)
   '@/lib/stripe': { stripe: {} },
   '@/lib/settlementCurrency': { BRL_PER_USD_HOUSE: 5 },
 })
