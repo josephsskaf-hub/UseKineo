@@ -32,6 +32,9 @@ type HoldInspection =
  * Avatar use separate claim types, but Avatar->Compose keeps the generation id;
  * grouping by that id prevents double-reserving the same 110-credit video.
  */
+/** Tamanho do lote do .in() de credit_debits (URL do PostgREST tem teto; 100 refs ≈ 4,6 KB). */
+export const PROVIDER_DEBIT_REF_CHUNK = 100
+
 export async function inspectActiveComposeCreditHolds(args: {
   db: SupabaseClient
   secret: string
@@ -69,14 +72,21 @@ export async function inspectActiveComposeCreditHolds(args: {
   }))]
   const confirmedProviderDebits = new Map<string, { userId: string; amount: number }>()
   if (candidateProviderDebitRefs.length > 0) {
-    const { data: debitRows, error: debitError } = await args.db
-      .from('credit_debits')
-      .select('render_id,user_id,amount,refunded_at')
-      .in('render_id', candidateProviderDebitRefs)
-    if (debitError) {
-      return { ok: false, error: `provider debit verification failed: ${debitError.message}` }
+    // KINEO-HOLD-EM-LOTES-2026-10-09 — conta com centenas de claims (a do fundador tem 517) fazia um único
+    // .in('render_id', [...517]) virar uma URL de ~24 KB e o PostgREST respondia 400 "Bad Request": a rota
+    // recusava TODO render da conta com "Your credit reservation could not be verified". Lotes de 100.
+    const debitRows: Array<{ render_id?: unknown; user_id?: unknown; amount?: unknown; refunded_at?: unknown }> = []
+    for (let i = 0; i < candidateProviderDebitRefs.length; i += PROVIDER_DEBIT_REF_CHUNK) {
+      const { data: lote, error: debitError } = await args.db
+        .from('credit_debits')
+        .select('render_id,user_id,amount,refunded_at')
+        .in('render_id', candidateProviderDebitRefs.slice(i, i + PROVIDER_DEBIT_REF_CHUNK))
+      if (debitError) {
+        return { ok: false, error: `provider debit verification failed: ${debitError.message}` }
+      }
+      debitRows.push(...(lote ?? []))
     }
-    for (const row of debitRows ?? []) {
+    for (const row of debitRows) {
       const reference = typeof row.render_id === 'string' ? row.render_id : ''
       const userId = typeof row.user_id === 'string' ? row.user_id : ''
       const amount = typeof row.amount === 'number' ? row.amount : Number(row.amount)
