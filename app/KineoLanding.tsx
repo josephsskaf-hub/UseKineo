@@ -7,6 +7,7 @@ import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
 import { clipsVisible } from '@/lib/clips/clipLaunch'
 import { s25Visible, S25_PUBLIC, VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, PAUSED_ENGINES_COPY, enginePaused, avatarVisible, kineo1Visible } from '@/lib/engineLaunch'
 import { S25_PAID_BADGE, s25UpgradeHref } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06
+import EngineNewsBar from '@/components/home/EngineNewsBar' // KINEO-FAIXA-S25-2026-10-09
 import { enginePlanBadge } from '@/lib/enginePlanGate'
 import Link from 'next/link'
 import { InterfaceLanguageSelect, UiLabel, UiText } from '@/components/InterfaceLanguage'
@@ -810,6 +811,8 @@ export default function KineoLanding({
       {/* KINEO-PH-WELCOME-2026-08-04 — só renderiza com utm/ref do Product
           Hunt (launch ter 04/08); invisível para o resto do tráfego. */}
       <PhWelcomeBanner />
+      {/* KINEO-FAIXA-S25-2026-10-09 — o motor novo na manchete, como 7 dos 14 concorrentes fazem (fecha e não volta). */}
+      <EngineNewsBar />
 
       {/* KINEO-FAIXA-CONTINUAR-2026-09-01 — so aparece para quem esta LOGADO e ja tem um
           Short pronto. Visitante anonimo ve a home exatamente como antes.

@@ -208,6 +208,10 @@ const RE_NARRATION_SHORT_CODE = /narration_too_short|narration_guard/i
 // por último, e desculpa ali seria mentira.
 const RE_PROMPT_LONG = /prompt is too long|analyze_prompt_too_long|prompt_len=\d+/i
 const RE_PROMPT_LEN = /prompt_len=(\d+)(?:\s+limite=(\d+))?/i
+// KINEO-PAREDE-15S-FRASE-2026-10-09 — a MESMA recusa da parede dos 15 s chega também pela aba (generate_failed com a frase
+// do servidor, ~0,5 s DEPOIS do evento do servidor). Como o erro mais recente decide, a frase sem regex virava 'bug' e o 1º
+// envio real (desislava, 09/10 14:00 UTC) levou a desculpa de defeito em vez da dica de tamanho. Agora a frase é a parede.
+const RE_FILM_LONG = /reads for about (\d+) seconds?\W{1,4}too long for an? (\d+)-second film(?:.*?\bpick (\d+)\s?s\b)?/i
 // Mesma régua do contador do Studio (~2,3 palavras por segundo de narração).
 const WORDS_PER_SEC = 2.3
 const PROMPT_MAX_CHARS_FALLBACK = 5000
@@ -251,6 +255,13 @@ function classifyFailure(erro: string, meta?: FalhaMeta): { kind: Kind; short?: 
   // marcador pelas regex de roteiro só arriscaria um falso positivo.
   if (erro === SERVER_REFUND_MARK) return { kind: 'bug' }
   const flat = erro.replace(/\s+/g, ' ')
+  const fl = flat.match(RE_FILM_LONG)
+  if (fl) {
+    return {
+      kind: 'film_long',
+      film: { requestedSec: Number(fl[2]), estSec: Number(fl[1]), suggestedSec: fl[3] ? Number(fl[3]) : MIN_DURATION_ALL_ENGINES },
+    }
+  }
   const m = flat.match(RE_SCRIPT_SHORT)
   if (m) {
     return {
