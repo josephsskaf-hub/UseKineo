@@ -105,7 +105,8 @@ ok(banner.indexOf("checkout.launch('resume'") < banner.indexOf('See smaller plan
 ok(!/\$\d/.test(banner), 'banner contains no literal commercial price')
 ok(pricing.includes("import PricingSavedCheckout from '@/components/PricingSavedCheckout'"), 'pricing imports the live card')
 ok(pricing.includes('<PricingSavedCheckout />'), 'pricing renders the live card before plan selection')
-ok(pricing.indexOf('<PricingSavedCheckout />') < pricing.indexOf("setBilling('monthly')"), 'saved choice is visible before a new billing choice')
+// KINEO-WELCOME20-FAIXA-2026-10-09 — re-ancorado: a faixa de 20% do topo também chama setBilling('monthly'); a posição que importa é a do seletor mensal/anual.
+ok(pricing.indexOf('<PricingSavedCheckout />') < pricing.indexOf("onClick={() => setBilling('monthly')}"), 'saved choice is visible before a new billing choice')
 ok(pricing.includes('id="plans" className="scroll-mt-24 grid'), 'pricing exposes a stable, offset-aware destination on the real plan cards')
 
 console.log(`\n${checks}/${checks} pricing saved-checkout checks passed`)
