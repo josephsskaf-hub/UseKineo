@@ -308,25 +308,26 @@ export function cartaoCheckoutHonesto(r: CheckoutHonesto): CartaoCheckoutHonesto
     {
       chave: 'pessoas',
       valor: r.pessoas,
-      rotulo: 'pagamento aberto por pessoa',
-      detalhe: r.sessoesDePessoas !== r.pessoas ? plural(r.sessoesDePessoas, 'sessão', 'sessões') : null,
+      // KINEO-CARTAO-PAGAMENTO-CLARO-2026-10-09 — fundador: "três números, não sei quais são quais". Dois números grandes
+      // (chegaram · pagaram) e uma linha cinza com o que ficou fora da conta.
+      rotulo: 'chegaram ao pagamento',
+      detalhe: r.sessoesDePessoas !== r.pessoas ? plural(r.sessoesDePessoas, 'abertura', 'aberturas') : null,
     },
     {
       chave: 'robo',
       valor: r.roboOuRajada,
-      rotulo: 'aberto por robô ou rajada',
+      rotulo: 'robôs ou cliques repetidos',
       detalhe: r.roboOuRajadaEstimado === 0
         ? null
         : r.roboOuRajadaEstimado === r.roboOuRajada
           ? 'estimativa'
           : `${r.roboOuRajadaEstimado.toLocaleString('pt-BR')} por estimativa`,
     },
-    { chave: 'pagou', valor: r.pagou, rotulo: 'pagou', detalhe: null },
+    { chave: 'pagou', valor: r.pagou, rotulo: 'pagaram', detalhe: null },
   ]
   const conta =
-    `${plural(r.sessoesAbertas, 'pagamento aberto', 'pagamentos abertos')} = ` +
-    `${r.sessoesDePessoas.toLocaleString('pt-BR')} de pessoas + ${r.roboOuRajada.toLocaleString('pt-BR')} de robô ou rajada + ` +
-    `${r.daCasa.toLocaleString('pt-BR')} da casa (fora da conta)`
+    `Fora da conta: ${plural(r.roboOuRajada, 'robô ou clique repetido', 'robôs ou cliques repetidos')} · ` +
+    `${plural(r.daCasa, 'teste da casa', 'testes da casa')} (${plural(r.sessoesAbertas, 'abertura', 'aberturas')} no total)`
   const avisos: string[] = []
   if (r.roboOuRajadaEstimado > 0) {
     avisos.push('Estimativa: pagamento antigo não tem IP gravado; nele, 3 ou mais aberturas sem login no mesmo segundo contam como rajada.')

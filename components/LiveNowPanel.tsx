@@ -57,15 +57,16 @@ export function CheckoutHonestoCard({ loaded, value, cardStyle }: {
       )}
       {value && (
         <>
-          {value.cartao.linhas.map((l) => (
-            <div key={l.chave} className="flex items-baseline gap-2" style={{ lineHeight: 1.35 }}>
-              <span className="font-black" style={{ fontSize: l.chave === 'pessoas' ? '1.25rem' : '1rem', color: LINHA_COR[l.chave] ?? 'var(--text)', minWidth: 28 }}>
-                {l.valor.toLocaleString('pt-BR')}
-              </span>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text)' }}>{l.rotulo}</span>
-              {l.detalhe && <span style={{ fontSize: '0.68rem', color: 'var(--muted2)' }}>· {l.detalhe}</span>}
-            </div>
-          ))}
+          {/* KINEO-CARTAO-PAGAMENTO-CLARO-2026-10-09 — dois números grandes lado a lado; robô e teste da casa na linha cinza. */}
+          <div className="mt-1 grid grid-cols-2 gap-3">
+            {value.cartao.linhas.filter((l) => l.chave !== 'robo').map((l) => (
+              <div key={l.chave}>
+                <div className="font-black" style={{ fontSize: '1.6rem', lineHeight: 1.1, color: LINHA_COR[l.chave] ?? 'var(--text)' }}>{l.valor.toLocaleString('pt-BR')}</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text)' }}>{l.rotulo}</div>
+                {l.detalhe && <div style={{ fontSize: '0.66rem', color: 'var(--muted2)' }}>{l.detalhe}</div>}
+              </div>
+            ))}
+          </div>
           <div className="mt-1" style={{ fontSize: '0.66rem', color: 'var(--muted2)' }}>{value.cartao.conta}</div>
           {value.cartao.avisos.map((a) => (
             <div key={a} style={{ fontSize: '0.66rem', color: '#FFBF58' }}>{a}</div>

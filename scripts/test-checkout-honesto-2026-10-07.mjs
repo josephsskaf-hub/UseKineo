@@ -767,10 +767,11 @@ async function provaRegra(transforms = {}) {
   const c1 = L.cartaoCheckoutHonesto(r1)
   const linha = (c, k) => c.linhas.find((l) => l.chave === k)
   if (c1.linhas.map((l) => l.chave).join() !== 'pessoas,robo,pagou') p.push(`B7: as três linhas fora de ordem (${c1.linhas.map((l) => l.chave).join()})`)
-  if (linha(c1, 'pessoas')?.rotulo !== 'pagamento aberto por pessoa' || linha(c1, 'pessoas')?.valor !== 4 || linha(c1, 'pessoas')?.detalhe !== '5 sessões') p.push(`B7: linha pessoa ${JSON.stringify(linha(c1, 'pessoas'))}`)
-  if (linha(c1, 'robo')?.rotulo !== 'aberto por robô ou rajada' || linha(c1, 'robo')?.valor !== 3 || linha(c1, 'robo')?.detalhe !== 'estimativa') p.push(`B7: linha robô ${JSON.stringify(linha(c1, 'robo'))}`)
-  if (linha(c1, 'pagou')?.rotulo !== 'pagou' || linha(c1, 'pagou')?.valor !== 0) p.push(`B7: linha pagou ${JSON.stringify(linha(c1, 'pagou'))}`)
-  if (c1.conta !== '9 pagamentos abertos = 5 de pessoas + 3 de robô ou rajada + 1 da casa (fora da conta)') p.push(`B7: a conta da tela é "${c1.conta}"`)
+  if (linha(c1, 'pessoas')?.rotulo !== 'chegaram ao pagamento' || linha(c1, 'pessoas')?.valor !== 4 || linha(c1, 'pessoas')?.detalhe !== '5 aberturas') p.push(`B7: linha pessoa ${JSON.stringify(linha(c1, 'pessoas'))}`)
+  if (linha(c1, 'robo')?.rotulo !== 'robôs ou cliques repetidos' || linha(c1, 'robo')?.valor !== 3 || linha(c1, 'robo')?.detalhe !== 'estimativa') p.push(`B7: linha robô ${JSON.stringify(linha(c1, 'robo'))}`)
+  if (linha(c1, 'pagou')?.rotulo !== 'pagaram' || linha(c1, 'pagou')?.valor !== 0) p.push(`B7: linha pagou ${JSON.stringify(linha(c1, 'pagou'))}`)
+  // KINEO-CARTAO-PAGAMENTO-CLARO-2026-10-09 — re-ancorado: o fundador pediu o cartão mais claro ("não sei quais são quais").
+  if (c1.conta !== 'Fora da conta: 3 robôs ou cliques repetidos · 1 teste da casa (9 aberturas no total)') p.push(`B7: a conta da tela é "${c1.conta}"`)
   if (!c1.avisos.some((a) => a.startsWith('Estimativa:') && a.includes('mesmo segundo'))) p.push('B7: a tela não diz que a rajada pelo horário é estimativa')
   if (!c1.avisos.some((a) => a.startsWith('3 pagamentos antigos sem conta, sessão nem IP'))) p.push('B7: a tela não avisa das 3 aberturas sem identidade')
   const c3 = L.cartaoCheckoutHonesto(r3)
@@ -848,8 +849,8 @@ async function provaTela(transforms = {}) {
   const value = { ...r, cartao: L.cartaoCheckoutHonesto(r) }
   const html = renderToStaticMarkup(react.createElement(panel.CheckoutHonestoCard, { loaded: true, value, cardStyle: {} }))
   const texto = html.replace(/<[^>]+>/g, ' ').replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/\s+/g, ' ')
-  for (const frase of ['Pagamento · 24h', '4 pagamento aberto por pessoa · 5 sessões', '3 aberto por robô ou rajada · estimativa', '0 pagou',
-    '9 pagamentos abertos = 5 de pessoas + 3 de robô ou rajada + 1 da casa (fora da conta)', 'Estimativa:', '3 pagamentos antigos sem conta, sessão nem IP']) {
+  for (const frase of ['Pagamento · 24h', '4 chegaram ao pagamento 5 aberturas', '0 pagaram',
+    'Fora da conta: 3 robôs ou cliques repetidos · 1 teste da casa (9 aberturas no total)', 'Estimativa:', '3 pagamentos antigos sem conta, sessão nem IP']) {
     if (!texto.includes(frase)) p.push(`D1: a tela não mostra "${frase}"`)
   }
   if (/Checkouts 24h/.test(texto)) p.push('D1: o número único "Checkouts 24h" voltou ao card')
