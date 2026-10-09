@@ -6,6 +6,12 @@
 //   custo e PARA (ensaio de US$ 0: sem débito, sem fal) → saldo → trava condicional draft|planned→generating (o
 //   índice único parcial faz o "um anúncio por vez" atômico) → débito confirmado no ledger → planos gravados →
 //   envio à fal (imagens das cenas antes do vídeo) → 202. O avanço (tela + cron) faz o resto.
+// KINEO-ADS-AMOSTRA-2026-10-09 — a AMOSTRA GRÁTIS (lib/ads/sample.ts) entra pela mesma porta, com a ordem:
+//   login → loadAdsAccess/adsGate → adsSampleOpen (só 'no_access' que ainda não usou a dela) → adsV2Visible → pedido do
+//   dono, planejado e com cartão → nível/duração da amostra (403 'sample_level_only') → moderação → dry_run PARA (igual)
+//   → teto global do dia (429 'sample_cap', ANTES da trava; leitura que falha = teto) → SEM saldo e SEM débito → trava
+//   condicional com a chave 'adssample-…' e credits_charged 0 → evento ads_sample_started → planos → envio (igual ao pago).
+//   Falha depois disso: failAdsV2Order marca failed e NUNCA estorna chave de amostra (não houve débito).
 import { NextRequest } from 'next/server'
 import { randomUUID } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
@@ -18,6 +24,10 @@ import { adsV2Credits, estimateAdUsd } from '@/lib/ads/v2Tiers'
 import { adsV2BillingRef, chargeAdsV2, failAdsV2Order } from '@/lib/ads/v2Billing'
 import { adsV2View, buildInitialShotRows, dispatchAdsV2Shots, loadAdsV2Order, loadAdsV2Shots } from '@/lib/ads/v2Advance'
 import { v2Fail, v2Json } from '@/lib/ads/v2Server'
+// KINEO-ADS-AMOSTRA-2026-10-09 — a amostra grátis: quem abre, o teto do dia, a chave sem débito e o nível único.
+import { adsSampleCapReached, adsSampleLevelOk, adsSampleOpen } from '@/lib/ads/serverAccess'
+import { adsSampleRef } from '@/lib/ads/sample'
+import type { AdsV2ChargeResult } from '@/lib/ads/v2Billing'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -38,12 +48,16 @@ export async function POST(req: NextRequest) {
     const access = await loadAdsAccess(user.id, user.email)
     admin = access.admin
     const gate = adsGate(access.reason)
-    if (gate !== 'ok') {
+    const sample = gate === 'no_access' && await adsSampleOpen(admin, user.id, access.reason) // KINEO-ADS-AMOSTRA-2026-10-09
+    if (gate !== 'ok' && !sample) {
       await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/api/ads/v2/start', metadata: { reason: gate } })
       return v2Fail(gate === 'closed' ? 'closed' : 'no_access', 403)
     }
     // Interruptor do v2 ANTES de qualquer débito.
     if (!adsV2Visible(user.email)) return v2Fail('v2_closed', 403)
+    // KINEO-ADS-AMOSTRA-2026-10-09 — este início é a amostra grátis (o gate barrou e a amostra abriu). Assinante, passe e
+    // interna (gate 'ok') NUNCA caem aqui: o caminho pago deles fica idêntico.
+    const sampleRun = gate !== 'ok' && sample
 
     const parsed = sanitizeStartBody(await req.json().catch(() => null))
     if (!parsed.ok) return v2Fail(parsed.error, 400)
@@ -56,6 +70,8 @@ export async function POST(req: NextRequest) {
     const plan = order.plan
     if (!plan || !Array.isArray(plan.shots) || plan.shots.length === 0) return v2Fail('plan_required', 409)
     if (!order.card_url) return v2Fail('card_required', 400)
+    // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra só sai no nível e na duração dela (a tela trava o resto; aqui é a lei).
+    if (sampleRun && !adsSampleLevelOk(order.tier, order.seconds)) return v2Fail('sample_level_only', 403)
 
     // Moderação (a régua do v1, superfície ads_render): o texto que vira VOZ e TELA.
     const text = [plan.narration ?? '', ...(plan.overlays ?? []).map((o) => o.text)].filter(Boolean).join('\n')
@@ -81,17 +97,23 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // Saldo antes da trava (o RPC de débito não recusa saldo curto; chargeAdsV2 confere de novo).
-    const prof = await admin.from('profiles').select('video_credits').eq('id', user.id).maybeSingle()
-    const balance = Number((prof.data as { video_credits?: number } | null)?.video_credits ?? 0)
-    if (!(balance >= cost)) return v2Fail('out_of_credits', 402, { needed: cost, balance })
+    if (sampleRun) {
+      // KINEO-ADS-AMOSTRA-2026-10-09 — teto GLOBAL do dia ANTES da trava (o custo da amostra é nosso). Sem saldo: não cobra.
+      if (await adsSampleCapReached(admin)) return v2Fail('sample_cap', 429)
+    } else {
+      // Saldo antes da trava (o RPC de débito não recusa saldo curto; chargeAdsV2 confere de novo).
+      const prof = await admin.from('profiles').select('video_credits').eq('id', user.id).maybeSingle()
+      const balance = Number((prof.data as { video_credits?: number } | null)?.video_credits ?? 0)
+      if (!(balance >= cost)) return v2Fail('out_of_credits', 402, { needed: cost, balance })
+    }
 
     // Trava condicional: só um início por pedido; o índice único parcial deixa só UM anúncio ativo por conta.
     const generationId = randomUUID()
-    const billingRef = adsV2BillingRef(orderId, generationId)
+    // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra trava com a chave 'adssample-…' (sem débito) e credits_charged 0.
+    const billingRef = sampleRun ? adsSampleRef(orderId, generationId) : adsV2BillingRef(orderId, generationId)
     const lock = await admin
       .from('ads_v2_orders')
-      .update({ status: 'generating', generation_id: generationId, billing_ref: billingRef, credits_charged: cost, started_at: new Date().toISOString(), error: null })
+      .update({ status: 'generating', generation_id: generationId, billing_ref: billingRef, credits_charged: sampleRun ? 0 : cost, started_at: new Date().toISOString(), error: null })
       .eq('id', orderId)
       .eq('user_id', user.id)
       .in('status', ['draft', 'planned'])
@@ -101,8 +123,8 @@ export async function POST(req: NextRequest) {
     if (!lock.data) return v2Fail('not_startable', 409)
     locked = { id: orderId, user_id: user.id, billing_ref: billingRef }
 
-    // Débito com o padrão confiável (intenção → saldo → débito → releitura do ledger).
-    const charge = await chargeAdsV2(admin, { userId: user.id, billingRef, cost })
+    // Débito com o padrão confiável (intenção → saldo → débito → releitura do ledger). A amostra NÃO debita (KINEO-ADS-AMOSTRA-2026-10-09).
+    const charge: AdsV2ChargeResult = sampleRun ? { ok: true, balance: null } : await chargeAdsV2(admin, { userId: user.id, billingRef, cost })
     if (!charge.ok) {
       if (!charge.debitPossible) {
         // Provado que nada foi debitado: o pedido volta a 'planned' (só esta geração).
@@ -113,6 +135,11 @@ export async function POST(req: NextRequest) {
       }
       locked = null
       return v2Fail(charge.code, charge.status, charge.balance !== undefined ? { needed: cost, balance: charge.balance } : {})
+    }
+
+    if (sampleRun) {
+      // KINEO-ADS-AMOSTRA-2026-10-09 — o rastro da amostra (o custo é nosso: conta o teto e o US$ estimado).
+      await writeServerEvent({ name: 'ads_sample_started', userId: user.id, path: '/api/ads/v2/start', metadata: { order_id: orderId, generation_id: generationId, billing_ref: billingRef, tier: order.tier, seconds: order.seconds, usd_estimate: usd.totalUsd, credits_list: cost } })
     }
 
     // Planos da geração (text nasce 'skipped_text' e nunca vai à fal).
@@ -132,7 +159,7 @@ export async function POST(req: NextRequest) {
       userId: user.id,
       path: '/api/ads/v2/start',
       metadata: {
-        order_id: orderId, generation_id: generationId, billing_ref: billingRef, tier: order.tier, seconds: order.seconds, credits: cost,
+        order_id: orderId, generation_id: generationId, billing_ref: billingRef, tier: order.tier, seconds: order.seconds, credits: sampleRun ? 0 : cost, sample: sampleRun,
         usd_estimate: usd.totalUsd, shots: rows.length, text_shots: rows.filter((r) => r.kind === 'text').length, submitted_now: sent, ms: Date.now() - started,
       },
     })

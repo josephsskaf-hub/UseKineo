@@ -91,7 +91,9 @@ const importsClient = [...rd(F.client).matchAll(/^import[\s\S]*?from '([^']+)'/g
 // (cliente; importa só react, next/link, videoDownload e as libs puras v2Screen/v2Variations/interfaceLanguage).
 // REANCORADO 01/10 (KINEO-ABAS-PALCO-2026-10-01): + '@/components/ProductStage' — o palco/quadro de engenharia
 // compartilhado com Imagens e Espaços (cliente; importa só react e InterfaceLanguage). Nenhum módulo de servidor.
-const PERMITIDOS = ['@/components/ProductStage', './AdsV2Variations','@/components/AdsPlanChanges', 'react', 'next/link', '@/components/studioKit', '../new/adsWizardTheme', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2ShotLists', '@/lib/ads/v2Screen',
+// KINEO-ADS-AMOSTRA-2026-10-09 — re-ancorado: + '@/lib/ads/sample' — as frases e o nível da amostra grátis (lib PURA: só
+// import type; provado em scripts/test-ads-amostra-2026-10-09.mjs). Nenhum módulo de servidor entrou no cliente.
+const PERMITIDOS = ['@/lib/ads/sample', '@/components/ProductStage', './AdsV2Variations','@/components/AdsPlanChanges', 'react', 'next/link', '@/components/studioKit', '../new/adsWizardTheme', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2ShotLists', '@/lib/ads/v2Screen',
   '@/components/BusinessVisualReferences', '@/components/InterfaceLanguage', './AdsV2Simple', '@/lib/ads/v2Simple', '@/lib/ui/interfaceLanguage']
 check("I1 o cliente começa com 'use client' e só importa módulos de navegador/puros (nada de v2Advance, v2Billing, serverAccess…)", /^'use client'/.test(rd(F.client)) && importsClient.length >= 8 && importsClient.every((m) => PERMITIDOS.includes(m)))
 check('I2 lib/ads/v2Screen.ts é puro (nenhum import/require) e fora da trava 8.2', !/^\s*import\s/m.test(screenSrc) && !/\brequire\(/.test(semComentarios(screenSrc)))

@@ -12,6 +12,8 @@
 //   'adsv2-<order>-<generation>'  pedido pago; é TAMBÉM o videos.render_id da entrega (videos_render_id_unique).
 //   'adsv2redo-<retakeOrderId>'   refação cobrada à parte; o id do pedido de refação é determinístico (pai, plano,
 //                                 linha substituída) e é gravado ANTES do débito e de qualquer POST à fal.
+//   'adssample-<order>-<generation>' KINEO-ADS-AMOSTRA-2026-10-09: a amostra grátis (lib/ads/sample.ts) — também é o
+//                                 videos.render_id da entrega, mas NUNCA tem linha em credit_debits (não cobra, não estorna).
 // Os dois prefixos começam com 'adsv2' e ficam FORA da varredura genérica (lib/credits/refund.ts
 // sweepStuckRenderDebits); quem os varre é sweepAbandonedAdsV2Debits, guiada por ads_v2_orders.
 //
@@ -23,6 +25,7 @@ import { recordRenderIntent } from '@/lib/credits/renderIntent'
 import { debitVideoCredits } from '@/lib/credits/debit'
 import { refundRenderCredits } from '@/lib/credits/refund'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { isAdsSampleRef } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
 
 /** quality gravado em render_jobs e em videos.quality_mode (selo 'Studio Ads' em lib/engineLabel.ts). */
 export const ADS_V2_QUALITY = 'ads_v2'
@@ -156,7 +159,9 @@ export async function failAdsV2Order(
   if (won.error || !won.data) return { won: false, refund: 'skipped', amount: 0 }
   let refund: 'refunded' | 'missing' | 'unconfirmed' | 'skipped' = 'skipped'
   let amount = 0
-  if (order.billing_ref) {
+  // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra grátis ('adssample-…') nunca foi debitada: marca failed e grava o evento,
+  // mas NUNCA chama o estorno (refund 'skipped', 0) — estornar uma chave sem débito não pode virar crédito de presente.
+  if (order.billing_ref && !isAdsSampleRef(order.billing_ref)) {
     const r = await refundAdsV2Confirmed(admin, { userId: order.user_id, billingRef: order.billing_ref })
     refund = r.state
     amount = r.amount
@@ -172,6 +177,7 @@ export async function failAdsV2Order(
       refund,
       credits_returned: amount,
       retake: Boolean(order.parent_order_id),
+      sample: isAdsSampleRef(order.billing_ref), // KINEO-ADS-AMOSTRA-2026-10-09
     },
   })
   return { won: true, refund, amount }

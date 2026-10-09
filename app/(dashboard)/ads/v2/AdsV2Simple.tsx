@@ -72,6 +72,7 @@ import { ADS_V2_MAX_USER_VIDEOS, ADS_V2_USER_VIDEO_MIN_SECONDS, pickLivelyStart,
 import { NARRATION_LANGUAGES, detectNarrationLanguage, narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage'
 import { pickInterfaceCopy, type InterfaceLanguage } from '@/lib/ui/interfaceLanguage'
 import { VariationToggle, variationsCopy, variationsPrice } from './AdsV2Variations'
+import { ADS_SAMPLE_TIER, adsSampleCopy, type AdsSampleCopy } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
 
 // ─── tipos ────────────────────────────────────────────────────────────────────────────────────
 
@@ -330,6 +331,7 @@ export function AdsV2SimpleSession({
   onAskStartOver,
   variations = false,
   onVariationsStarted,
+  sample = false,
 }: {
   resume: boolean
   lang: InterfaceLanguage
@@ -340,9 +342,13 @@ export function AdsV2SimpleSession({
   /** KINEO-ADS-3-VARIACOES-2026-09-30 — a opção "3 variações" liberada para a conta (page.tsx → AdsV2Client). */
   variations?: boolean
   onVariationsStarted?: (groupId: string) => void
+  /** KINEO-ADS-AMOSTRA-2026-10-09 — a conta entrou pela amostra grátis: só o nível dela, sem preço, botão "grátis". */
+  sample?: boolean
 }) {
   const copy: AdsV2SimpleCopy = pickInterfaceCopy(ADS_V2_SIMPLE_COPY, lang)
   const vcopy = variationsCopy(lang)
+  const scopy: AdsSampleCopy | null = sample ? adsSampleCopy(lang) : null
+  const [sampleCap, setSampleCap] = useState(false)
   const [three, setThree] = useState(false)
   const [phase, setPhase] = useState<Phase>(resume ? 'loading' : 'build')
   const [items, setItems] = useState<SimpleItem[]>([])
@@ -355,7 +361,7 @@ export function AdsV2SimpleSession({
   // tela pede para voltar, em vez de acusar o navegador.
   const [tabHidden, setTabHidden] = useState(false)
   const [text, setText] = useState('')
-  const [tier, setTier] = useState<AdsV2Tier | null>(null)
+  const [tier, setTier] = useState<AdsV2Tier | null>(sample ? ADS_SAMPLE_TIER : null)
   const [price, setPrice] = useState('')
   const [contact, setContact] = useState('')
   const [overlaysOn, setOverlaysOn] = useState(true)
@@ -1024,7 +1030,9 @@ export function AdsV2SimpleSession({
           setDraft(null)
           setPlan(null)
         }
-        setPlanError(errorText(lang, r))
+        // KINEO-ADS-AMOSTRA-2026-10-09 — teto do dia: aviso com o link dos planos; nível errado: a regra da amostra.
+        if (scopy && r.code === 'sample_cap') setSampleCap(true)
+        setPlanError(scopy && r.code === 'sample_cap' ? null : scopy && r.code === 'sample_level_only' ? scopy.note : errorText(lang, r))
         void onBalance()
         return
       }
@@ -1101,7 +1109,8 @@ export function AdsV2SimpleSession({
   for (const p of items) if (p.uploaded) itemByFootage.set(p.uploaded.footageId.toLowerCase(), p)
   // KINEO-ADS-3-VARIACOES-2026-09-30 — com "3 variações" ligada, o saldo conferido é o do GRUPO.
   const shownCost = variations && three ? variationsPrice(cost) : cost
-  const short = shownCost !== null && balance !== null && balance < shownCost ? shownCost - balance : 0
+  // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra não cobra: nunca "faltam créditos".
+  const short = scopy ? 0 : shownCost !== null && balance !== null && balance < shownCost ? shownCost - balance : 0
 
   return (
     <div className="adv2-layout">
@@ -1233,12 +1242,14 @@ export function AdsV2SimpleSession({
                 {ADS_V2_TIER_IDS.map((t) => {
                   const credits = adsV2Credits(t, ADS_V2_SCREEN_SECONDS)
                   const tc = copy.tiers[t]
-                  const need = balance !== null && balance < credits ? credits - balance : 0
+                  // KINEO-ADS-AMOSTRA-2026-10-09 — na amostra só o nível dela abre; os outros mostram "planos pagos".
+                  const sampleOff = !!scopy && t !== ADS_SAMPLE_TIER
+                  const need = scopy ? 0 : balance !== null && balance < credits ? credits - balance : 0
                   return (
                     <label key={t} className="adv2-tier">
-                      <input className="adv2-sr" type="radio" name="adv2s-tier" value={t} checked={tier === t} disabled={locked} onChange={() => setTier(t)} />
+                      <input className="adv2-sr" type="radio" name="adv2s-tier" value={t} checked={tier === t} disabled={locked || sampleOff} onChange={() => setTier(t)} />
                       <b>{tc.name}</b>
-                      <span className="cr">{fill(copy.tiers.credits, { n: credits })}</span>
+                      <span className="cr">{scopy ? (sampleOff ? scopy.paidOnly : scopy.badge) : fill(copy.tiers.credits, { n: credits })}</span>
                       <span>{tc.pitch}</span>
                       <span className="adsw-hint" style={{ margin: 0 }}>{fill(copy.tiers.shots, { n: ADS_V2_TIERS[t].shots })}</span>
                       {need > 0 ? <span className="short">{fill(copy.tiers.needMore, { n: need })}</span> : null}
@@ -1247,6 +1258,7 @@ export function AdsV2SimpleSession({
                 })}
               </fieldset>
               {tier && tier !== 'photo_motion' ? <p className="adsw-hint">{copy.tiers.aiPeople}</p> : null}
+              {scopy ? <p className="adsw-hint">{scopy.note}</p> : null}
               <p className="adv2-balance" role="status">
                 {balance === null ? copy.tiers.balanceUnknown : fill(copy.tiers.balance, { n: balance })}{' '}
                 {short > 0 ? <Link className="adsw-link" href="/pricing" target="_blank" rel="noopener">{copy.tiers.getCredits}</Link> : null}
@@ -1297,6 +1309,7 @@ export function AdsV2SimpleSession({
                   copy={copy}
                   cost={cost}
                   three={variations ? { on: three, onChange: setThree, copy: vcopy } : null}
+                  sample={scopy}
                   short={short}
                   busy={busy}
                   narrationOn={narrationOn}
@@ -1307,6 +1320,7 @@ export function AdsV2SimpleSession({
               )}
               {busyNote ? <p className="adsw-hint" role="status">{busyNote}</p> : null}
               {planError ? <p className="adsw-err" role="alert">{planError}</p> : null}
+              {scopy && sampleCap ? <p className="adsw-warn" role="alert">{scopy.cap} <a className="adsw-link" href="/pricing" target="_blank" rel="noopener">{scopy.paidOnly} →</a></p> : null}
             </section>
           </>
         ) : null}
@@ -1341,9 +1355,10 @@ export function AdsV2SimpleSession({
             </div>
             {downloadNote ? <p className="adsw-warn" role="status">{downloadNote}</p> : null}
             <p className="adv2-note">{copy.done.aiLabel}</p>
-            <h3 style={{ margin: '24px 0 6px' }}>{copy.done.redoTitle}</h3>
+            {/* KINEO-ADS-AMOSTRA-2026-10-09 — a amostra não tem refação (a rota segue fechada para free/trial). */}
+            {scopy ? null : <h3 style={{ margin: '24px 0 6px' }}>{copy.done.redoTitle}</h3>}
             <div className="adv2-actions" style={{ marginTop: 0 }}>
-              <a className="adsw-btn ghost small" href={`/ads/v2?mode=full&order=${encodeURIComponent(order.order_id)}`}>{copy.done.redo}</a>
+              {scopy ? null : <a className="adsw-btn ghost small" href={`/ads/v2?mode=full&order=${encodeURIComponent(order.order_id)}`}>{copy.done.redo}</a>}
               <button type="button" className="adsw-btn ghost" onClick={onAskStartOver}>{copy.done.another}</button>
             </div>
           </section>
@@ -1483,6 +1498,7 @@ function SimplePlanPreview({
   copy,
   cost: single,
   three,
+  sample = null,
   short,
   busy,
   narrationOn,
@@ -1493,6 +1509,8 @@ function SimplePlanPreview({
   copy: AdsV2SimpleCopy
   cost: number | null
   three: { on: boolean; onChange: (on: boolean) => void; copy: ReturnType<typeof variationsCopy> } | null
+  /** KINEO-ADS-AMOSTRA-2026-10-09 — a amostra grátis: 0 créditos e o botão "grátis". */
+  sample?: AdsSampleCopy | null
   short: number
   busy: string | null
   narrationOn: boolean
@@ -1538,14 +1556,15 @@ function SimplePlanPreview({
         <b>{copy.plan.voice}</b>
         {narrationOn && plan.narration ? <p>{plan.narration}</p> : <p className="off">{copy.plan.noVoice}</p>}
       </div>
-      <p className="adv2-total">{fill(copy.plan.total, { s: Math.round(plan.total_seconds * 10) / 10, c: cost ?? '' })}</p>
+      <p className="adv2-total">{fill(copy.plan.total, { s: Math.round(plan.total_seconds * 10) / 10, c: sample ? 0 : cost ?? '' })}</p>
+      {sample ? <p className="adsw-hint">{sample.note}</p> : null}
       {short > 0 ? (
         <p className="adsw-warn">{fill(copy.tiers.needMore, { n: short })} <Link className="adsw-link" href="/pricing" target="_blank" rel="noopener">{copy.tiers.getCredits}</Link></p>
       ) : null}
       {three ? <VariationToggle on={three.on} onChange={three.onChange} single={single} copy={three.copy} disabled={busy !== null} /> : null}
       <div className="adv2-actions">
         <button type="button" className="adsw-btn" disabled={busy !== null || cost === null || short > 0} onClick={onMake}>
-          {busy === 'start' ? copy.plan.starting : three?.on ? fill(three.copy.make, { c: cost ?? '' }) : fill(copy.plan.make, { c: cost ?? '' })}
+          {busy === 'start' ? copy.plan.starting : sample ? sample.make : three?.on ? fill(three.copy.make, { c: cost ?? '' }) : fill(copy.plan.make, { c: cost ?? '' })}
         </button>
       </div>
     </>

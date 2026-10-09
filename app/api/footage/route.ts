@@ -27,6 +27,11 @@ import { moderateContent } from '@/lib/safety/contentModeration'
 import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/moderationPolicy'
 import { sniffMediaKind } from '@/lib/safety/mediaKind'
 import { quarantineObject } from '@/lib/safety/quarantine'
+// KINEO-ADS-AMOSTRA-2026-10-09 — a amostra grátis do Studio Ads precisa das FOTOS do negócio: a conta free que ainda tem a
+// amostra aberta (mesma regra das rotas /api/ads/v2/*) sobe fotos pelo montador (purpose 'ads'), só imagem, até
+// ADS_SAMPLE_FOOTAGE_MAX_BYTES no total. Vídeo, áudio e o resto de "My footage" seguem pagos.
+import { adsGate, adsSampleOpen, loadAdsAccess } from '@/lib/ads/serverAccess'
+import { ADS_SAMPLE_FOOTAGE_MAX_BYTES } from '@/lib/ads/sample'
 
 export const dynamic = 'force-dynamic'
 
@@ -126,7 +131,7 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 })
 
-    let body: { action?: string; contentType?: string; sizeBytes?: number; path?: string; kind?: string }
+    let body: { action?: string; contentType?: string; sizeBytes?: number; path?: string; kind?: string; purpose?: string }
     try {
       body = await req.json()
     } catch {
@@ -196,7 +201,17 @@ export async function POST(req: NextRequest) {
     const isPaid = profile?.has_paid === true || PAID_PLANS.has((profile?.plan ?? '').toString())
     const entitlement = getEffectiveEntitlement(profile, { isPaidAccount: isPaid })
     const tier = footageTier(profile, entitlement)
-    if (!entitlement.treatAsPaid) {
+    // KINEO-ADS-AMOSTRA-2026-10-09 — upload da amostra grátis: só pelo montador do Ads, só com a amostra aberta. Erro = fechado.
+    let sampleUpload = false
+    if (!entitlement.treatAsPaid && body.purpose === 'ads' && (body.action === 'upload-url' || body.action === 'confirm')) {
+      try {
+        const acc = await loadAdsAccess(user.id, user.email)
+        sampleUpload = adsGate(acc.reason) === 'no_access' && (await adsSampleOpen(acc.admin, user.id, acc.reason))
+      } catch {
+        sampleUpload = false
+      }
+    }
+    if (!entitlement.treatAsPaid && !sampleUpload) {
       // A recusa que o item #4 mediu 26 vezes sem uma única linha de telemetria.
       await logFootageRefusal('paid_feature', user.id, {
         action: (body.action ?? '').toString(),
@@ -226,7 +241,16 @@ export async function POST(req: NextRequest) {
         await logFootageRefusal('file_too_large', user.id, { tier, size_bytes: sizeBytes })
         return NextResponse.json({ error: 'Each file must be under 50 MB.' }, { status: 400 })
       }
+      // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra usa fotos; vídeo e áudio continuam pagos.
+      if (sampleUpload && !contentType.startsWith('image/')) {
+        await logFootageRefusal('paid_feature', user.id, { action: 'upload-url', tier, sample: true, content_type: contentType.slice(0, 40) })
+        return NextResponse.json({ error: 'The free sample ad uses photos only. Videos come with paid plans.', upsell: 'credits', upgrade: '/pricing' }, { status: 402 })
+      }
       const used = await totalFootageBytes(user.id)
+      if (sampleUpload && used + sizeBytes > ADS_SAMPLE_FOOTAGE_MAX_BYTES) {
+        await logFootageRefusal('quota_exceeded', user.id, { tier, sample: true, size_bytes: sizeBytes, used_bytes: used, quota_bytes: ADS_SAMPLE_FOOTAGE_MAX_BYTES })
+        return NextResponse.json({ error: 'The free sample has room for a few photos only. Remove some and try again.' }, { status: 409 })
+      }
       if (used + sizeBytes > FOOTAGE_QUOTA_PAID) {
         const leftMb = Math.max(0, Math.floor((FOOTAGE_QUOTA_PAID - used) / (1024 * 1024)))
         // Recusa de quem JÁ PAGA e encheu os 500MB — a única desta rota que é
@@ -284,6 +308,8 @@ export async function POST(req: NextRequest) {
         // extensão que o PRÓPRIO servidor escolheu no upload-url.
         const ext = path.split('.').pop() ?? ''
         kind = sniffed === 'image' ? 'image' : ['mp3', 'wav', 'm4a'].includes(ext) ? 'audio' : sniffed
+        // KINEO-ADS-AMOSTRA-2026-10-09 — pela amostra só foto vira linha (os bytes decidem, não o tipo declarado).
+        if (sampleUpload && kind !== 'image') return NextResponse.json({ error: 'The free sample ad uses photos only. Videos come with paid plans.' }, { status: 402 })
       } catch {
         return NextResponse.json({ error: moderationRefusalMessage('unavailable', 'upload'), code: 'moderation_unavailable' }, { status: 503 })
       }

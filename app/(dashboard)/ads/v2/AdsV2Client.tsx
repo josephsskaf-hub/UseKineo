@@ -39,6 +39,7 @@ const ADS_PANEL_CSS = `.adv2 .kps-panel .adv2-layout{grid-template-columns:minma
 .adv2 .kps-panel .adv2-main>.adv2-card:first-of-type{border-top:0;padding-top:0}
 .adv2 .kps-panel .adv2-aside{position:static}`
 import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
+import { ADS_SAMPLE_TIER, adsSampleCopy, type AdsSampleCopy } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { ADS_WIZARD_THEME_CSS } from '../new/adsWizardTheme'
 import { downloadVideoFile } from '@/lib/videoDownload'
@@ -411,7 +412,9 @@ function setGroupParam(id: string | null) {
 // KINEO-ADS-3-VARIACOES-2026-09-30 — variations: a opção "3 variações" (adsVariationsVisible, decidido no page.tsx).
 // Com ela, ?group=<id> (ou o grupo em andamento mais novo) abre o painel das 3 no lugar da sessão; sem ela, nada muda.
 // KINEO-PRODUCAO-ADS-2026-10-01 — producao: o atalho para /ads/producao (producaoVisibleFor, decidido no page.tsx).
-export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean }) {
+// KINEO-ADS-AMOSTRA-2026-10-09 — sample: a conta free/trial entrou pela AMOSTRA GRÁTIS (adsSampleOpen, decidido no page.tsx):
+// os dois modos mostram só o nível da amostra, sem preço, com o botão "grátis"; o servidor é quem manda (403/429).
+export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false, sample = false }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean }) {
   const [session, setSession] = useState(0)
   const [groupId, setGroupId] = useState<string | null>(null)
   const [groupChecked, setGroupChecked] = useState(!variations)
@@ -519,7 +522,8 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
           <h1>{shell.title}</h1>
           <p className="sub">{mode === 'full' ? shell.sub : shell.subSimple}</p>
           {/* KINEO-ADS-V2-VIRADA-2026-09-29 — o assistente antigo continua existindo como opção clássica (discreto, <a> sem prefetch). */}
-          {classicCredits !== null && mode === 'full' ? (
+          {/* KINEO-ADS-AMOSTRA-2026-10-09 — o clássico é pago: a amostra não mostra o atalho. */}
+          {!sample && classicCredits !== null && mode === 'full' ? (
             <p className="adv2-classic">
               <a href="/ads/new?classic=1">Prefer a narrated 35-second ad? Use the classic maker ({classicCredits} credits)</a>
             </p>
@@ -569,6 +573,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
           onAskStartOver={() => setConfirmingReset(true)}
           variations={variations}
           onVariationsStarted={openGroup}
+          sample={sample}
         />
       ) : mode === 'simple' ? (
         <AdsV2SimpleSession
@@ -581,6 +586,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
           onAskStartOver={() => setConfirmingReset(true)}
           variations={variations}
           onVariationsStarted={openGroup}
+          sample={sample}
         />
       ) : null}
       </div>
@@ -602,6 +608,7 @@ function AdsV2Session({
   onAskStartOver,
   variations = false,
   onVariationsStarted,
+  sample = false,
 }: {
   resume: boolean
   balance: number | null
@@ -610,7 +617,11 @@ function AdsV2Session({
   onAskStartOver: () => void
   variations?: boolean
   onVariationsStarted?: (groupId: string) => void
+  /** KINEO-ADS-AMOSTRA-2026-10-09 — a amostra grátis (modo completo = inglês). */
+  sample?: boolean
 }) {
+  const scopy: AdsSampleCopy | null = sample ? adsSampleCopy('en') : null
+  const [sampleCap, setSampleCap] = useState(false)
   const [phase, setPhase] = useState<Phase>(resume ? 'loading' : 'build')
   const [tier, setTier] = useState<AdsV2Tier | null>(null)
   // KINEO-ADS-3-VARIACOES-2026-09-30 — "3 variações" ligada (só aparece com a opção liberada para a conta).
@@ -1256,7 +1267,9 @@ function AdsV2Session({
           setDraft(null)
           setPlan(null)
         }
-        setPlanError(apiError(r))
+        // KINEO-ADS-AMOSTRA-2026-10-09 — teto do dia: aviso com o link dos planos; nível errado: a regra da amostra.
+        if (scopy && r.code === 'sample_cap') setSampleCap(true)
+        setPlanError(scopy && r.code === 'sample_cap' ? null : scopy && r.code === 'sample_level_only' ? scopy.note : apiError(r))
         void onBalance()
         return
       }
@@ -1396,12 +1409,14 @@ function AdsV2Session({
                 {ADS_V2_TIER_IDS.map((t) => {
                   const credits = adsV2Credits(t, ADS_V2_SCREEN_SECONDS)
                   const copy = ADS_V2_TIER_COPY[t]
-                  const short = balance !== null && balance < credits ? credits - balance : 0
+                  // KINEO-ADS-AMOSTRA-2026-10-09 — na amostra só o nível dela abre, sem preço e sem "faltam créditos".
+                  const sampleOff = !!scopy && t !== ADS_SAMPLE_TIER
+                  const short = scopy ? 0 : balance !== null && balance < credits ? credits - balance : 0
                   return (
                     <label key={t} className="adv2-tier">
-                      <input className="adv2-sr" type="radio" name="adv2-tier" value={t} checked={tier === t} disabled={locked} onChange={() => setTier(t)} />
+                      <input className="adv2-sr" type="radio" name="adv2-tier" value={t} checked={tier === t} disabled={locked || sampleOff} onChange={() => setTier(t)} />
                       <b>{copy.name}</b>
-                      <span className="cr">{credits} credits</span>
+                      <span className="cr">{scopy ? (sampleOff ? scopy.paidOnly : scopy.badge) : `${credits} credits`}</span>
                       <span>{copy.pitch}</span>
                       <ul>
                         {copy.includes.map((line) => <li key={line}>{line}</li>)}
@@ -1412,9 +1427,10 @@ function AdsV2Session({
                   )
                 })}
               </fieldset>
+              {scopy ? <p className="adsw-hint">{scopy.note}</p> : null}
               <p className="adv2-balance" role="status">
                 {balance === null ? 'We could not read your credit balance right now.' : `You have ${balance} credits.`}{' '}
-                {cost !== null && balance !== null && balance < cost ? <Link className="adsw-link" href="/pricing" target="_blank" rel="noopener">Get credits (opens a new tab)</Link> : null}
+                {!scopy && cost !== null && balance !== null && balance < cost ? <Link className="adsw-link" href="/pricing" target="_blank" rel="noopener">Get credits (opens a new tab)</Link> : null}
               </p>
             </section>
 
@@ -1547,6 +1563,7 @@ function AdsV2Session({
                   plan={plan as Plan}
                   cost={cost}
                   three={variations ? { on: three, onChange: setThree } : null}
+                  sample={scopy}
                   balance={balance}
                   narrationOn={narrationOn}
                   busy={busy}
@@ -1560,6 +1577,7 @@ function AdsV2Session({
               {busyNote ? <p className="adsw-hint" role="status">{busyNote}</p> : null}
               {checkNote ? <p className="adsw-good adsw-hint" role="status">{checkNote}</p> : null}
               {planError ? <p className="adsw-err" role="alert">{planError}</p> : null}
+              {scopy && sampleCap ? <p className="adsw-warn" role="alert">{scopy.cap} <a className="adsw-link" href="/pricing" target="_blank" rel="noopener">{scopy.paidOnly} →</a></p> : null}
               {buildError ? <p className="adsw-err" role="alert">{buildError}</p> : null}
             </section>
           </>
@@ -1599,12 +1617,13 @@ function AdsV2Session({
             {downloadNote ? <p className="adsw-warn" role="status">{downloadNote}</p> : null}
             <p className="adv2-note">Turn on the AI-generated label when you post on TikTok. Parts of this ad were made with AI from your photos.</p>
 
-            <h3 style={{ margin: '24px 0 6px' }}>Not happy with a shot?</h3>
-            <p className="adsw-hint" style={{ margin: '0 0 12px' }}>Redo one shot with a different camera move. The price shows before you confirm. Screen or text shots are stills and stay exactly as your photo.</p>
+            {/* KINEO-ADS-AMOSTRA-2026-10-09 — a amostra não tem refação (a rota segue fechada para free/trial). */}
+            {scopy ? null : <h3 style={{ margin: '24px 0 6px' }}>Not happy with a shot?</h3>}
+            {scopy ? null : <p className="adsw-hint" style={{ margin: '0 0 12px' }}>Redo one shot with a different camera move. The price shows before you confirm. Screen or text shots are stills and stay exactly as your photo.</p>}
             <ShotGrid
               shots={order.shots}
               orderStatus={order.status}
-              redo={{
+              redo={scopy ? undefined : {
                 ask: redoAsk,
                 busy: busy === 'redo',
                 onAsk: (idx) => { setRedoAsk(idx); setRedoError(null) },
@@ -1784,6 +1803,7 @@ function PlanPreview({
   plan,
   cost: single,
   three,
+  sample = null,
   balance,
   narrationOn,
   busy,
@@ -1795,6 +1815,8 @@ function PlanPreview({
   plan: Plan
   cost: number | null
   three: { on: boolean; onChange: (on: boolean) => void } | null
+  /** KINEO-ADS-AMOSTRA-2026-10-09 — a amostra grátis: botão "grátis", 0 créditos, nada de "faltam créditos". */
+  sample?: AdsSampleCopy | null
   balance: number | null
   narrationOn: boolean
   busy: string | null
@@ -1805,7 +1827,7 @@ function PlanPreview({
 }) {
   // KINEO-ADS-3-VARIACOES-2026-09-30 — com "3 variações" ligada, o preço mostrado e o saldo conferido são os do GRUPO.
   const cost = three?.on ? variationsPrice(single) : single
-  const short = cost !== null && balance !== null && balance < cost ? cost - balance : 0
+  const short = sample ? 0 : cost !== null && balance !== null && balance < cost ? cost - balance : 0
   return (
     <>
       <p className="adsw-lead">This is the ad we will make. Nothing has been charged yet.</p>
@@ -1851,14 +1873,15 @@ function PlanPreview({
         )}
         {!narrationOn ? <p className="adsw-hint" style={{ marginTop: 6 }}>The ad will play with music only.</p> : null}
       </div>
-      <p className="adv2-total">About {Math.round(plan.total_seconds * 10) / 10} seconds · vertical 9:16{cost !== null ? ` · ${cost} credits` : ''}</p>
+      <p className="adv2-total">About {Math.round(plan.total_seconds * 10) / 10} seconds · vertical 9:16{cost !== null ? ` · ${sample ? 0 : cost} credits` : ''}</p>
+      {sample ? <p className="adsw-hint">{sample.note}</p> : null}
       {short > 0 ? (
         <p className="adsw-warn">You need {short} more credits for this ad. <Link className="adsw-link" href="/pricing" target="_blank" rel="noopener">Get credits (opens a new tab)</Link> and come back: your plan stays on this page.</p>
       ) : null}
       {three ? <VariationToggle on={three.on} onChange={three.onChange} single={single} copy={variationsCopy('en')} disabled={busy !== null} /> : null}
       <div className="adv2-actions">
         <button type="button" className="adsw-btn" disabled={busy !== null || cost === null || short > 0} onClick={onMake}>
-          {busy === 'start' ? 'Starting…' : three?.on ? variationsCopy('en').make.replace('{c}', String(cost ?? '')) : `Make my ad · ${cost} credits`}
+          {busy === 'start' ? 'Starting…' : sample ? sample.make : three?.on ? variationsCopy('en').make.replace('{c}', String(cost ?? '')) : `Make my ad · ${cost} credits`}
         </button>
         <button type="button" className="adsw-btn ghost small" disabled={busy !== null} onClick={onCheck}>
           {busy === 'check' ? 'Checking…' : 'Run a free check'}
