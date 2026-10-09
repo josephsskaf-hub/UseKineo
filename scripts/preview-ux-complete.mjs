@@ -68,7 +68,9 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
       // Node crypto. Allow this built-in only; network, DB and env stay blocked.
       if(id==='node:crypto'||id==='crypto')return require(id)
       if(fixture.previewAffiliates && ['OrganicCtaLink','AffiliateBusinessRecruitmentCard','Footer'].some(name=>id==='@/components/'+name))return load(id.slice(2)+'.tsx')
-      if(['EngineVisualReference','BusinessVisualReferences','PublicNavDropdown','ControlIcon','LibraryOrganization','ImageResultPreview','MobileCreationShortcut','DeliveryControls','AdsPlanChanges'].some(name=>id==='@/components/'+name))return load(id.slice(2)+'.tsx')
+      // KINEO-PRECOS-REFINO-2026-10-09 — o cartão de plano do /pricing (e o modelo de clipes e filmes que ele conta) é o
+      // conteúdo principal da página desde 09/10: renderiza de verdade, não como stub.
+      if(['EngineVisualReference','BusinessVisualReferences','PublicNavDropdown','ControlIcon','LibraryOrganization','ImageResultPreview','MobileCreationShortcut','DeliveryControls','AdsPlanChanges','pricing/PlanValueStage','pricing/TwoProductsPricing'].some(name=>id==='@/components/'+name))return load(id.slice(2)+'.tsx')
       if(['./ControlIcon','./InterfaceLanguage'].includes(id))return load('components/'+id.slice(2)+'.tsx')
       if(id==='@/components/studioKit')return load('components/studioKit.tsx')
       if(id==='@/components/InterfaceLanguage')return load('components/InterfaceLanguage.tsx')

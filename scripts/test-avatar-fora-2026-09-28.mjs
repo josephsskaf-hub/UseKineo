@@ -147,12 +147,14 @@ const PORTAS = /href="\/avatar"|Talking Avatar|AI Presenter|Character Lock|Trans
   const html = renderPage('app/pricing/PricingClient.tsx', false, { demoOffer: true, demoShell: true, displayCurrency: 'usd', signedIn: true })
   checa('pricing (render real): sem "AI Presenter", sem "Character Lock", sem ", Avatar" no Studio', !/AI Presenter|Character Lock|Kineo 1, Avatar/.test(html))
   // Reancorado 29/09 (KINEO-ENTRADA-SEEDANCE15, E2b): o Kineo 1 também saiu da /pricing (trava j do E1); o Avatar segue fora.
-  checa('pricing: o resultado do Studio segue, só sem o Avatar', html.includes('Every available engine — Kling 3, Veo 3.1, Kling 2.5, MiniMax H3, Seedance 1.5 — plus 2 free HD enhances'))
+  // Reancorado 09/10 (KINEO-PRECOS-REFINO): o cartão novo do /pricing mostra os motores vendidos motor a motor e o incluso do Studio.
+  checa('pricing: o resultado do Studio segue, só sem o Avatar', ['Kling 3', 'Veo 3.1', 'Kling 2.5', 'MiniMax H3', 'Seedance 1.5'].every((e) => html.includes(`<td>${e}</td>`)) && html.includes('2 free HD enhances a month'))
   // A FAQ do Autopilot hoje nem renderiza (PRICING_SHOW_AUTOPILOT=false filtra a pergunta); a frase é conferida no fonte
   // para não voltar a vender o AI Presenter no dia em que o Autopilot reaparecer.
   const pcSrc = rd('app/pricing/PricingClient.tsx')
   checa('pricing (fonte): FAQ do Autopilot, calculadora, tabela e Character Lock só com AVATAR_PUBLIC', pcSrc.includes("any engine — Seedance, Kling, Hollywood${AVATAR_PUBLIC ? ', AI Presenter' : ''} — completely separately") && pcSrc.includes("...(AVATAR_PUBLIC ? [{ ic: '🧑‍🎤', name: 'AI Presenter videos', cost: costPres }] : []),") && pcSrc.includes('{AVATAR_PUBLIC && <span>✓ Character Lock — same face in every video</span>}') && conta(pcSrc, 'AI Presenter — talking avatar') === 1 && /\.\.\.\(AVATAR_PUBLIC\s+\? \[\{\s+label: `🎬 AI Presenter — talking avatar/.test(pcSrc))
-  checa('pricing: a calculadora e a tabela seguem com os motores vendidos (Kling 3 e Seedance)', html.includes('Kling 3 films · native voice &amp; lip sync') && html.includes('Kling 3 — top cinematic'))
+  // Reancorado 09/10 (KINEO-PRECOS-REFINO): a lista "Kling 3 films · native voice & lip sync" era do cartão antigo; no novo, a tabela por motor.
+  checa('pricing: a calculadora e a tabela seguem com os motores vendidos (Kling 3 e Seedance)', html.includes('<td>Kling 3</td>') && html.includes('<td>Seedance 1.5</td>') && html.includes('Kling 3 — top cinematic'))
 }
 {
   const ft = renderPage('components/Footer.tsx', false, {}, {})

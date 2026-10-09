@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/send-month2-annual-offer?confirm=SEND&limit=20",
+      "schedule": "29 13 * * *"
+    },
+    {
       "path": "/api/admin/send-card-entry-d1?confirm=SEND&limit=30",
       "schedule": "30 12 * * *"
     },

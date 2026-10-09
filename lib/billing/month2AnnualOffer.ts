@@ -20,8 +20,19 @@
  * INTERRUPTOR ÚNICO — false até o fundador dizer "liga".
  * false: nenhuma tela pinta a oferta (nem chama a rota), o autoatendimento responde 404 `offer_not_live` sem ler a Stripe
  * nem gravar nada, e o cron de e-mail só faz ENSAIO (o `?confirm=SEND` é recusado com 409 e nada sai).
+ * KINEO-ANUAL-2o-MES-LIGA-2026-10-09 — o fundador disse "2 sim" (09/10) para ligar a oferta em 12/10, depois que vence a
+ * de 40% enviada por e-mail (válida até 11/10). O interruptor vai a true e a ABERTURA espera MONTH2_ANNUAL_OFFER_STARTS_AT:
+ * quem decide é month2AnnualOfferOpen(), lida na hora de cada pedido (nunca no carregamento do módulo).
  */
-export const MONTH2_ANNUAL_OFFER_LIVE = false
+export const MONTH2_ANNUAL_OFFER_LIVE = true
+
+/** KINEO-ANUAL-2o-MES-LIGA-2026-10-09 — 12/10/2026 00:00 BRT (03:00 UTC): o dia seguinte ao fim da oferta de 40%. */
+export const MONTH2_ANNUAL_OFFER_STARTS_AT = '2026-10-12T03:00:00.000Z'
+
+/** A oferta está aberta AGORA? Interruptor ligado E a data de início já passou. Telas, rota e cron leem daqui. */
+export function month2AnnualOfferOpen(nowMs: number = Date.now()): boolean {
+  return MONTH2_ANNUAL_OFFER_LIVE && nowMs >= Date.parse(MONTH2_ANNUAL_OFFER_STARTS_AT)
+}
 
 /** Id da oferta: vai no selo da assinatura (`annual_switch_offer`) e no razão `plan_switched_to_annual` (`offer`). */
 export const MONTH2_ANNUAL_OFFER = 'month2_annual_30_2026_10_08' as const

@@ -38,8 +38,9 @@ import { ANNUAL_SWITCH_PROFILE_COLUMNS, evaluateAnnualSwitch, eventIdFor, type A
 import {
   MONTH2_ANNUAL_EMAIL_CAMPAIGN,
   MONTH2_ANNUAL_EMAIL_SENT_EVENT,
-  MONTH2_ANNUAL_OFFER_LIVE,
+  MONTH2_ANNUAL_OFFER_STARTS_AT,
   MONTH2_ANNUAL_VERSION,
+  month2AnnualOfferOpen,
   month2Money,
 } from '@/lib/billing/month2AnnualOffer'
 import {
@@ -97,12 +98,12 @@ async function corrida(req: NextRequest): Promise<NextResponse> {
   }
   const confirm = req.nextUrl.searchParams.get('confirm') === 'SEND'
   const modo = confirm ? 'SENT' : 'DRY_RUN'
-  if (confirm && !MONTH2_ANNUAL_OFFER_LIVE) {
+  if (confirm && !month2AnnualOfferOpen()) {
     return NextResponse.json({
       error: 'offer_not_live',
       mode: 'SEND_REFUSED',
       nothing_sent: true,
-      hint: 'MONTH2_ANNUAL_OFFER_LIVE está false (lib/billing/month2AnnualOffer.ts). O ensaio (sem confirm) mostra a coorte; o envio só depois do "liga" do fundador.',
+      hint: `Oferta fechada: MONTH2_ANNUAL_OFFER_LIVE false ou antes de ${MONTH2_ANNUAL_OFFER_STARTS_AT} (lib/billing/month2AnnualOffer.ts). O ensaio (sem confirm) mostra a coorte.`,
     }, { status: 409 })
   }
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -146,7 +147,7 @@ async function corrida(req: NextRequest): Promise<NextResponse> {
   const motivos: Record<string, number> = {}
   if (coorteBruta === 0) {
     if (confirm) await registrarCorrida(admin, corridaAbortada(MONTH2_ANNUAL_EMAIL_CAMPAIGN, 'SENT', 'coorte_vazia'))
-    return NextResponse.json({ mode: modo, live: MONTH2_ANNUAL_OFFER_LIVE, coorte_bruta: 0, note: `nenhuma renovação paga em ${MONTH2_EMAIL_WINDOW_DAYS} dias` })
+    return NextResponse.json({ mode: modo, live: month2AnnualOfferOpen(), coorte_bruta: 0, note: `nenhuma renovação paga em ${MONTH2_EMAIL_WINDOW_DAYS} dias` })
   }
 
   // ── 2. já recebeu (carimbo de id fixo por assinatura) e 3. perfis ───────────────────────────────────────────────
@@ -215,7 +216,7 @@ async function corrida(req: NextRequest): Promise<NextResponse> {
   if (!confirm) {
     return NextResponse.json({
       mode: 'DRY_RUN',
-      live: MONTH2_ANNUAL_OFFER_LIVE,
+      live: month2AnnualOfferOpen(),
       coorte: `1ª renovação paga nos últimos ${MONTH2_EMAIL_WINDOW_DAYS} d · elegível à troca (núcleo) · sem este e-mail · opt-in · sem e-mail nosso em 24 h`,
       coorte_bruta: coorteBruta,
       candidatos_apos_filtros: candidatos.length,
@@ -226,7 +227,7 @@ async function corrida(req: NextRequest): Promise<NextResponse> {
       motivos_dos_bloqueios: motivos,
       lista: doLote.map((c) => `${c.email} · ${c.tier ?? '?'} · ${month2Money(c.monthlyMinor)}/mês → ${month2Money(c.annualMinor)}/ano · ${c.language} · renovou ${c.renewalPaidAt.slice(0, 10)}`),
       assunto_exemplo: doLote[0] ? mensagem(doLote[0]).subject : null,
-      hint: MONTH2_ANNUAL_OFFER_LIVE ? 'Acrescente ?confirm=SEND (e opcionalmente &limit=N) para enviar.' : 'Oferta DESLIGADA: o SEND é recusado até MONTH2_ANNUAL_OFFER_LIVE = true.',
+      hint: month2AnnualOfferOpen() ? 'Acrescente ?confirm=SEND (e opcionalmente &limit=N) para enviar.' : `Oferta FECHADA: o SEND é recusado até ${MONTH2_ANNUAL_OFFER_STARTS_AT} (e com MONTH2_ANNUAL_OFFER_LIVE = true).`,
     })
   }
 

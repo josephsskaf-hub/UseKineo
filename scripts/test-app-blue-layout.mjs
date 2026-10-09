@@ -62,13 +62,16 @@ for(const language of ['en','es','hi']){
 }
 const pricing=page('app/pricing/PricingClient.tsx',{displayCurrency:'usd',signedIn:true})
 html=pricing.render();ok(html.indexOf('id="plans"')<html.indexOf('class="pricing-secondary"'),'plan choice before secondary offer')
-ok(html.includes('credits / month'),'credits visible without expanding details')
+// KINEO-PRECOS-REFINO-2026-10-09 — re-ancorado: o cartão novo (modelo InVideo, "1 sim" do fundador) diz "N credits a month".
+ok(html.includes('credits a month'),'credits visible without expanding details')
 ok(!html.includes('Make 0 AI films'),'no impossible trial film count')
 // KINEO-ANUAL-40OFF-2026-10-05 — o selo do anual virou "SAVE 40%" e o card diz "billed $Y yearly · save 40%" + a política de reembolso.
 // KINEO-ANUAL-30-2026-10-08 — re-ancorado: o fundador baixou o anual para 30% off; selo "SAVE 30%" e "yearly · save 30%".
 pricing.click('AnnualSAVE 30%');html=pricing.render();equal(pricing.state.billing,'annual','real annual switch')
 // KINEO-PRECO-TESTE-2026-10-08 — re-ancorado: Starter a $9,90 no teste de 7 dias → anual $83.00 (12 × 9,90 × 0,7 limpo).
-ok(html.includes('yearly · save 30%')&&html.includes('$83.00 yearly')&&html.includes('refundable in full within 14 days'),'annual payment disclosure retained (yearly total, 30% and refund policy)')
+// KINEO-PRECOS-REFINO-2026-10-09 — re-ancorado: o cartão novo diz "/month, $83.00 billed yearly" e "Save $35.80 a year compared to monthly"
+// (12 × 9,90 − 83); os 30% ficam no seletor (SAVE 30%).
+ok(html.includes('$83.00 billed yearly')&&html.includes('Save <b>$35.80</b> a year compared to monthly')&&html.includes('SAVE 30%')&&html.includes('refundable in full within 14 days'),'annual payment disclosure retained (yearly total, saving, 30% and refund policy)')
 pricing.click('Monthly');html=pricing.render();equal(pricing.state.billing,'monthly','real monthly switch')
 for(const [value,want] of [[null,48],['300',300],['9999',300],['0',1],['-1',48],['oops',48]])equal(load('@/lib/ui/libraryListing').videoListLimit(value),want,'bounded video list')
 // Run the real GET route. Authenticated owner predicate must survive all limits.

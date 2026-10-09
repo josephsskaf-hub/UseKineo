@@ -21,10 +21,10 @@ import {
   MONTH2_ANNUAL_COPY as COPY,
   MONTH2_ANNUAL_DISMISSED_EVENT,
   MONTH2_ANNUAL_DISMISS_KEY,
-  MONTH2_ANNUAL_OFFER_LIVE,
   MONTH2_ANNUAL_PREVIEW_EVENT,
   MONTH2_ANNUAL_SHOWN_EVENT,
   MONTH2_ANNUAL_VERSION,
+  month2AnnualOfferOpen,
   month2ErrorCopyKey,
   month2Money,
   month2OfferVisible,
@@ -64,7 +64,7 @@ export default function Month2AnnualOffer({ variant, surface }: { variant: 'card
   const autoRef = useRef(false)
 
   useEffect(() => {
-    if (!MONTH2_ANNUAL_OFFER_LIVE) return
+    if (!month2AnnualOfferOpen()) return
     if (variant === 'notice') {
       try { if (localStorage.getItem(MONTH2_ANNUAL_DISMISS_KEY)) setDismissed(true) } catch { /* navegador sem storage: o aviso aparece */ }
     }
@@ -76,7 +76,7 @@ export default function Month2AnnualOffer({ variant, surface }: { variant: 'card
     return () => { alive = false }
   }, [variant])
 
-  const offerVisible = month2OfferVisible({ live: MONTH2_ANNUAL_OFFER_LIVE, status, variant, dismissed })
+  const offerVisible = month2OfferVisible({ live: month2AnnualOfferOpen(), status, variant, dismissed })
   const visible = offerVisible || phase === 'done'
   const meta = { version: MONTH2_ANNUAL_VERSION, surface, variant, tier: status?.tier ?? null, monthly_minor: status?.monthlyMinor ?? null, annual_minor: status?.annualMinor ?? null }
 

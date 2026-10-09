@@ -8,9 +8,20 @@ depois) passa a ver a troca para o anual com 30% de desconto — o momento em qu
 anual (ChartMogul). Em 08/10, 6 de 10 assinantes mensais estavam com cancelamento agendado: o anual no 2º mês é a
 resposta de produto a esse vazamento.
 
-**Tudo está atrás de um interruptor que sai DESLIGADO:** `MONTH2_ANNUAL_OFFER_LIVE = false` em
-`lib/billing/month2AnnualOffer.ts`. Desligado, nada aparece na tela, a rota de autoatendimento responde 404
-`offer_not_live` sem ler nada, e o cron do e-mail só faz ensaio (o `?confirm=SEND` é recusado com 409, nada sai).
+**LIGADO em 09/10/2026, com abertura em 12/10 (KINEO-ANUAL-2o-MES-LIGA-2026-10-09).** O fundador respondeu "2 sim" à
+pergunta "ligar a oferta do anual no 2º mês no dia 12/10, quando vence a de 40%?".
+- `MONTH2_ANNUAL_OFFER_LIVE = true`.
+- `MONTH2_ANNUAL_OFFER_STARTS_AT = '2026-10-12T03:00:00.000Z'` (12/10 00:00 BRT).
+- A tela, a rota e o cron perguntam `month2AnnualOfferOpen()` a cada pedido.
+- **Antes de 12/10, nada abre:** a tela não pinta a oferta, a rota responde 404 `offer_not_live` e o cron responde 409.
+- **O cron diário** (`?confirm=SEND&limit=20`, 13:29 UTC) entrou no `vercel.json`. O primeiro envio real é em
+  12/10 às 13:29 UTC.
+- **Emergência:** `MONTH2_ANNUAL_OFFER_LIVE = false` (com `EXPECTED_SHIPPED_LIVE = false` no guardião e a linha do cron
+  fora do `vercel.json`) e publicar.
+
+Antes do "liga": tudo estava atrás de um interruptor que saía DESLIGADO (`MONTH2_ANNUAL_OFFER_LIVE = false`). Desligado,
+nada aparece na tela, a rota de autoatendimento responde 404 `offer_not_live` sem ler nada, e o cron do e-mail só faz
+ensaio (o `?confirm=SEND` é recusado com 409, nada sai).
 
 ### A regra do valor
 

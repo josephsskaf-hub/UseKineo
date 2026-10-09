@@ -105,14 +105,20 @@ function replaceOnce(from, to, label) {
  * do "liga", esta constante vira true junto com MONTH2_ANNUAL_OFFER_LIVE — e só ela: os cenários abaixo forçam o estado
  * que testam (ligado ou desligado) em memória, então continuam valendo nos dois estados do arquivo.
  */
-const EXPECTED_SHIPPED_LIVE = false
+// KINEO-ANUAL-2o-MES-LIGA-2026-10-09 — "2 sim" do fundador (09/10): o arquivo sai LIGADO e a oferta abre em 12/10 03:00 UTC.
+const EXPECTED_SHIPPED_LIVE = true
+const START_LINE = "export const MONTH2_ANNUAL_OFFER_STARTS_AT = '2026-10-12T03:00:00.000Z'"
 /** Força o interruptor em memória (o arquivo fica intacto). Já no estado pedido = nada a trocar. */
-function forceLive(on) {
+/** keepStart: mantém a data de início do arquivo (12/10). Sem ela, o cenário "ligado" abre a oferta já (data no passado),
+ *  para os cenários de troca/e-mail/tela rodarem no relógio T0 (08/10) — a data de início tem cenário próprio (antesDaData). */
+function forceLive(on, { keepStart = false } = {}) {
   const want = `export const MONTH2_ANNUAL_OFFER_LIVE = ${on}`
   const other = `export const MONTH2_ANNUAL_OFFER_LIVE = ${!on}`
   const src = read(OFFER)
-  if (src.includes(want) && !src.includes(other)) return {}
-  return { [OFFER]: [replaceOnce(other, want, on ? 'liga a oferta (cenário)' : 'desliga a oferta (cenário)')] }
+  const ops = []
+  if (!(src.includes(want) && !src.includes(other))) ops.push(replaceOnce(other, want, on ? 'liga a oferta (cenário)' : 'desliga a oferta (cenário)'))
+  if (on && !keepStart) ops.push(replaceOnce(START_LINE, "export const MONTH2_ANNUAL_OFFER_STARTS_AT = '2000-01-01T00:00:00.000Z'", 'abre a oferta já (cenário)'))
+  return ops.length ? { [OFFER]: ops } : {}
 }
 function mergeTransforms(...maps) {
   const out = {}
@@ -438,9 +444,9 @@ const ENV = {
 let activeMutant = null
 const appliedLists = []
 
-function makeEnv({ live = true } = {}) {
+function makeEnv({ live = true, keepStart = false } = {}) {
   clock.now = T0
-  const transforms = mergeTransforms(forceLive(live), activeMutant ?? {})
+  const transforms = mergeTransforms(forceLive(live, { keepStart }), activeMutant ?? {})
   const db = makeDb()
   const stripe = makeStripe()
   const session = { user: null }
@@ -942,6 +948,27 @@ async function sDesligado() {
   return p
 }
 
+/** R6b (KINEO-ANUAL-2o-MES-LIGA-2026-10-09): o arquivo LIGADO, como sai, no relógio de 08/10 — fechado em tudo (GET, POST, cron,
+ *  nada gravado); um minuto depois de MONTH2_ANNUAL_OFFER_STARTS_AT o GET abre. A data de início é lida a cada pedido. */
+async function sAntesDaData() {
+  const p = []
+  const env = makeEnv({ live: true, keepStart: true })
+  seed(env)
+  const before = snapshot(env)
+  const g = await getStatus(env)
+  if (g.status !== 200 || g.body?.live !== false || JSON.stringify(g.body?.reasons) !== '["offer_not_live"]') p.push(`antes de 12/10 o GET abriu: ${JSON.stringify(g.body)}`)
+  const r = await post(env, { confirm: 'SEND', annualAmountUsd: 83 })
+  if (r.status !== 404 || r.body?.error !== 'offer_not_live') p.push(`antes de 12/10 o POST abriu: ${r.status} ${JSON.stringify(r.body)}`)
+  const send = await runCron(env, '?confirm=SEND')
+  if (send.status !== 409 || send.body?.error !== 'offer_not_live' || env.resend.calls.length) p.push(`antes de 12/10 o cron enviou: ${send.status} (${env.resend.calls.length} e-mails)`)
+  if (env.stripe.calls.length || snapshot(env) !== before) p.push('antes de 12/10 algo foi lido na Stripe ou gravado')
+  clock.now = RealDate.parse('2026-10-12T03:01:00.000Z')
+  const g2 = await getStatus(env)
+  if (g2.status !== 200 || g2.body?.live !== true) p.push(`depois de 12/10 03:00 UTC o GET seguiu fechado: ${JSON.stringify(g2.body)}`)
+  clock.now = T0
+  return p
+}
+
 /** R7: o e-mail sai 1× por assinatura, para quem acabou de entrar no 2º mês. */
 async function sEmail() {
   const p = []
@@ -1131,6 +1158,7 @@ function sEstrutura() {
   const admin = read(ADMIN_ROUTE)
   const cron = read(CRON)
   const ui = read(UI)
+  if (!read(OFFER).includes(START_LINE)) p.push('a data de abertura da oferta não é 12/10 03:00 UTC (o fundador ligou para depois da oferta de 40%)')
   if ((core.match(/stripe\.subscriptions\.update\(/g) || []).length !== 1) p.push('o núcleo não tem exatamente UM update da Stripe')
   for (const [f, s] of [[SELF, self], [ADMIN_ROUTE, admin], [CRON, cron]]) if (/subscriptions\.update\(|invoices\.createPreview\(/.test(s)) p.push(`${f} chama a Stripe por conta própria (a troca é só do núcleo)`)
   for (const [f, s] of [[SELF, self], [ADMIN_ROUTE, admin]]) if (!/import \{[^}]*\brunAnnualSwitch\b[^}]*\} from '@\/lib\/billing\/annualSwitchCore'/.test(s)) p.push(`${f} não troca pelo núcleo único`)
@@ -1145,6 +1173,7 @@ function sEstrutura() {
   const crons = (JSON.parse(read(VERCEL)).crons ?? []).filter((c) => String(c.path).startsWith('/api/cron/send-month2-annual-offer'))
   if (!EXPECTED_SHIPPED_LIVE && crons.length) p.push('o cron entrou no vercel.json com a oferta desligada (o fundador liga depois)')
   if (EXPECTED_SHIPPED_LIVE && (crons.length !== 1 || !String(crons[0].path).includes('confirm=SEND'))) p.push('oferta ligada sem o cron no vercel.json (com ?confirm=SEND)')
+  if (EXPECTED_SHIPPED_LIVE && crons.length === 1 && (crons[0].schedule !== '29 13 * * *' || !String(crons[0].path).includes('limit=20'))) p.push(`cron do 2º mês fora do combinado no doc (29 13 * * *, limit=20): ${JSON.stringify(crons[0])}`)
   const events = read(EMAIL_EVENTS)
   if (!/^ {2}'month2_annual_offer_sent',$/m.test(events)) p.push('carimbo fora da lista canônica da supressão (lib/lifecycle/emailEvents.ts)')
   const sink = read(SINK)
@@ -1154,7 +1183,8 @@ function sEstrutura() {
   const names = new Set([...live.matchAll(/'([^']+)'/g)].map((m) => m[1]))
   if (!names.has('month2_annual_offer_sent') || !names.has('plan_switched_to_annual')) p.push('carimbo do e-mail / razão não são só-servidor no sink /api/events')
   // a peça: o interruptor vem ANTES de qualquer chamada à rota
-  const iGate = ui.indexOf('    if (!MONTH2_ANNUAL_OFFER_LIVE) return\n')
+  // KINEO-ANUAL-2o-MES-LIGA-2026-10-09 — a porta agora é month2AnnualOfferOpen() (interruptor + data de abertura).
+  const iGate = ui.indexOf('    if (!month2AnnualOfferOpen()) return\n')
   const iFetch = ui.indexOf('void fetch(MONTH2_ANNUAL_API')
   if (iGate <= 0 || iFetch <= 0 || iGate > iFetch) p.push('a peça chama a rota sem olhar o interruptor primeiro')
   if (/\$\s?\d/.test(ui)) p.push('preço digitado na peça')
@@ -1203,6 +1233,7 @@ const SCENARIOS = {
   trocaBordas: sTrocaBordas,
   propria: sPropria,
   desligado: sDesligado,
+  antesDaData: sAntesDaData,
   email: sEmail,
   emailFalha: sEmailFalha,
   idiomas: sIdiomas,
@@ -1245,12 +1276,14 @@ const MUTANTS = [
   ['M10 troca sem always_invoice (o núcleo é o mesmo do admin)', { [CORE]: [replaceOnce("const PRORATION = 'always_invoice' as const", "const PRORATION = 'create_prorations' as const", 'create_prorations')] }, 'troca'],
   ['M11 e-mail para o 3º mês', { [CRON]: [replaceOnce('if (!ev.renewals || ev.renewals.count !== 1 || ev.renewals.firstPaidAtMs === null)', 'if (!ev.renewals || ev.renewals.firstPaidAtMs === null)', 'qualquer renovação')] }, 'email'],
   ['M12 carimbo por corrida (reenvia no dia seguinte)', { [CRON]: [replaceOnce('const markerOf = (sid: string) => eventIdFor(`${MONTH2_ANNUAL_EMAIL_SENT_EVENT}:${sid}`)', 'const markerOf = (sid: string) => eventIdFor(`${MONTH2_ANNUAL_EMAIL_SENT_EVENT}:${sid}:${readAt}`)', 'carimbo por corrida')] }, 'email'],
-  ['M13 cron envia com a oferta desligada', { [CRON]: [replaceOnce('  if (confirm && !MONTH2_ANNUAL_OFFER_LIVE) {\n', '  if (false) {\n', 'sem o interruptor no cron')] }, 'desligado'],
+  ['M13 cron envia com a oferta desligada', { [CRON]: [replaceOnce('  if (confirm && !month2AnnualOfferOpen()) {\n', '  if (false) {\n', 'sem o interruptor no cron')] }, 'desligado'],
   ['M14 reserva fica depois da falha do Resend', { [CRON]: [replaceOnce("    if (!res.ok) {\n      await admin.from('events').delete().eq('id', markerId)\n", '    if (!res.ok) {\n', 'reserva presa')] }, 'emailFalha'],
   ['M15 supressão de 24 h ignorada', { [CRON]: [replaceOnce('  const alvos = candidatos.filter((c) => !sup.isSuppressed(c.userId))\n', '  const alvos = candidatos\n', 'sem supressão')] }, 'email'],
   ['M16 opt-out ignorado', { [CRON]: [replaceOnce('    if (p.email_opted_out === true) { excluidos.optout++; continue }\n', '', 'sem opt-out')] }, 'email'],
-  ['M17 GET lê com a oferta desligada', { [SELF]: [replaceOnce("  if (!MONTH2_ANNUAL_OFFER_LIVE) return NextResponse.json(closedStatus(['offer_not_live'], false))\n", '', 'GET sem interruptor')] }, 'desligado'],
-  ['M18 POST cobra com a oferta desligada', { [SELF]: [replaceOnce("  if (!MONTH2_ANNUAL_OFFER_LIVE) return NextResponse.json({ error: 'offer_not_live', nothing_written: true }, { status: 404 })\n", '', 'POST sem interruptor')] }, 'desligado'],
+  ['M17 GET lê com a oferta desligada', { [SELF]: [replaceOnce("  if (!month2AnnualOfferOpen()) return NextResponse.json(closedStatus(['offer_not_live'], false))\n", '', 'GET sem interruptor')] }, 'desligado'],
+  ['M18 POST cobra com a oferta desligada', { [SELF]: [replaceOnce("  if (!month2AnnualOfferOpen()) return NextResponse.json({ error: 'offer_not_live', nothing_written: true }, { status: 404 })\n", '', 'POST sem interruptor')] }, 'desligado'],
+  // KINEO-ANUAL-2o-MES-LIGA-2026-10-09 — a abertura sem a data (liga antes de vencer a oferta de 40%).
+  ['M30 a oferta abre sem esperar 12/10', { [OFFER]: [replaceOnce('  return MONTH2_ANNUAL_OFFER_LIVE && nowMs >= Date.parse(MONTH2_ANNUAL_OFFER_STARTS_AT)\n', '  return MONTH2_ANNUAL_OFFER_LIVE\n', 'sem a data')] }, 'antesDaData'],
   ['M19 a peça pinta sem a renovação confirmada pelo servidor', { [OFFER]: [replaceOnce('  if (!s || s.live !== true || s.eligible !== true) return false\n', '  if (!s || s.live !== true) return false\n', 'sem eligible')] }, 'tela'],
   // KINEO-PRECO-TESTE-2026-10-08 — o alvo do M27 segue a linha nova (o vigente devolve o anual do site); + M29, o teto.
   ['M27 o mensal vigente volta a pagar a conta (Studio 461, dois preços anuais para o mesmo plano)', { [LIB]: [replaceOnce('  if (tier && monthlyMinor === current) return siteUsd\n', '  if (false && tier && monthlyMinor === current) return siteUsd\n', 'sem o anual do site')] }, 'regra'],
@@ -1261,10 +1294,11 @@ const MUTANTS = [
 const TEXT_MUTANTS = [
   ['M21 o interruptor sai no estado errado no arquivo', textMutant(OFFER, `export const MONTH2_ANNUAL_OFFER_LIVE = ${EXPECTED_SHIPPED_LIVE}`, `export const MONTH2_ANNUAL_OFFER_LIVE = ${!EXPECTED_SHIPPED_LIVE}`, 'estado trocado no arquivo'), 'estrutura'],
   ['M22 carimbo fora da lista canônica da supressão', textMutant(EMAIL_EVENTS, "  'month2_annual_offer_sent',\n", '', 'fora da lista'), 'estrutura'],
-  ['M23 a peça chama a rota sem olhar o interruptor', textMutant(UI, '    if (!MONTH2_ANNUAL_OFFER_LIVE) return\n', '', 'fetch sem interruptor'), 'estrutura'],
+  ['M23 a peça chama a rota sem olhar o interruptor', textMutant(UI, '    if (!month2AnnualOfferOpen()) return\n', '', 'fetch sem interruptor'), 'estrutura'],
+  ['M31 a data de abertura é antecipada para 09/10', textMutant(OFFER, "'2026-10-12T03:00:00.000Z'", "'2026-10-09T03:00:00.000Z'", 'data antecipada'), 'estrutura'],
   ['M24 tradução some em pt', textMutant(COPYFILE, '    "Switch to annual and save {percent}%": "Mude para o anual e economize {percent}%",\n', '', 'sem pt'), 'idiomas'],
   ['M25 tradução perde o marcador', textMutant(COPYFILE, '"Mude para o anual e economize {percent}%"', '"Mude para o anual e economize 30%"', 'marcador perdido'), 'idiomas'],
-  ['M26 o cron entra no vercel.json', textMutant(VERCEL, '"crons": [', '"crons": [{ "path": "/api/cron/send-month2-annual-offer?confirm=SEND", "schedule": "17 14 * * *" }, ', 'cron agendado'), 'estrutura'],
+  ['M26 o cron entra DUAS vezes no vercel.json (e-mail em dobro)', textMutant(VERCEL, '"crons": [', '"crons": [{ "path": "/api/cron/send-month2-annual-offer?confirm=SEND", "schedule": "17 14 * * *" }, ', 'cron agendado'), 'estrutura'],
 ]
 let killed = 0
 for (const [label, transforms, scenario] of MUTANTS) {
@@ -1304,4 +1338,4 @@ if (failed.length) {
   for (const f of failed) console.log('  ✗ ' + f)
   process.exit(1)
 }
-console.log('OK — anual no 2º mês: anual do site no mensal vigente e 0,7 no legado, renovação paga, ensaio sem escrita, troca única pelo núcleo, só a própria assinatura, interruptor desligado, e-mail 1× por assinatura, 16 línguas')
+console.log('OK — anual no 2º mês: anual do site no mensal vigente e 0,7 no legado, renovação paga, ensaio sem escrita, troca única pelo núcleo, só a própria assinatura, ligada com abertura em 12/10 03:00 UTC (fechada antes, nos 3 consumidores), e-mail 1× por assinatura, 16 línguas')

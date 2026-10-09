@@ -2,6 +2,32 @@
 
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
+## 2026-10-09 (madrugada) — Página de preços nova para todos + anual no 2º mês abre em 12/10
+
+**QUEM DECIDIU:** o fundador, 09/10, respondendo às duas perguntas: "1 sim. 2 sim".
+
+**1. Cartão que mostra o que o plano compra**
+- Cada cartão mostra créditos, imagens Nano Banana Pro, clipes e filmes por motor.
+- Interruptor: `PRICING_VALUE_CARDS_PUBLIC = true`.
+- Doc: docs/PRECOS-CARTAO-VALOR-2026-10-09.md.
+
+**1b. Refino do cartão (mesma madrugada, com o print da InVideo BASIC/PRO/ULTRA)**
+- Fundador: "mais refinado, menos cores, mais fácil da pessoa ver… o botão de comprar abaixo do preço: Get Starter, Get
+  Creator, Get Studio". Pediu 3 ou 4 opções de cor; viu porcelana, cobalto, âmbar e tinta.
+- Escolha: "Cor 1 porcelana, precisamos manter os 2 temas" e, vendo o escuro, "Perfeitoo p tema dark".
+- `PRICING_VALUE_PALETTE = 'porcelana'`: segue o tema claro/escuro do site; cobalto só no plano popular.
+- Modelo InVideo: painel de créditos no topo → preço (mensal riscado no anual) → botão "Get <plano>" → economia do anual →
+  tabela por motor → incluso. Uma fonte só.
+- Abaixo dos planos: saíram "What one credit buys" e a linha de uso comercial; o convite grátis virou uma linha (só sem
+  conta); as agências desceram; "See the film…" virou "How many films do I get?".
+
+**2. Anual no 2º mês**
+- `MONTH2_ANNUAL_OFFER_LIVE = true`, com abertura em 12/10 às 03:00 UTC (`MONTH2_ANNUAL_OFFER_STARTS_AT`). Os consumidores
+  leem `month2AnnualOfferOpen()`. Antes da data, nada abre.
+- Cron diário de e-mail às 13:29 UTC, no vercel.json.
+- A oferta de 40% enviada por e-mail vale até 11/10.
+- Doc: docs/ANUAL-NO-2o-MES-2026-10-08.md.
+
 ## 2026-10-08 (noite) — Teste de 7 dias: Starter US$ 9,90 e Creator US$ 19,90 (Studio fica em US$ 54,90)
 
 **QUEM DECIDIU:**

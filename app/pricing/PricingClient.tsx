@@ -16,7 +16,7 @@ import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 import { PLAN_SWITCH_EMPTY, fetchPlanSwitchState, planSwitchConfirmText, planSwitchErrorText, planSwitchLabel, switchPlan, type PlanSwitchState, type SwitchableTier } from '@/lib/growth/planSwitch'
 import { S25_PUBLIC, AVATAR_PUBLIC, enginePaused } from '@/lib/engineLaunch' // KINEO-AVATAR-FORA-2026-09-28
 import Link from 'next/link'
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { trackCheckoutClick } from '@/lib/trackClick'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
 import RegionalFirstPack from '@/components/RegionalFirstPack'
@@ -44,11 +44,11 @@ import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
 import PricingBusinessPathTelemetry from '@/components/PricingBusinessPathTelemetry'
 import PricingAdsBlock from '@/components/pricing/PricingAdsBlock' // KINEO-FLUXO-NOVO-2026-09-25 — blocos de compra única abaixo dos planos (peça D)
 import PricingCreditsBlock from '@/components/pricing/PricingCreditsBlock' // KINEO-FLUXO-NOVO-2026-09-25
-import TwoProductsPricing, { twoProductsModelForPage } from '@/components/pricing/TwoProductsPricing' // KINEO-PRECOS-DOIS-PRODUTOS-2026-10-05
+import TwoProductsPricing from '@/components/pricing/TwoProductsPricing' // KINEO-PRECOS-DOIS-PRODUTOS-2026-10-05
 // KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — o cartão que mostra o que o plano compra (imagens, clipes por motor, filmes).
-import { PLAN_VALUE_STAGE_CSS, PlanValueCard, PlanValueMatrix, type PlanValueTier } from '@/components/pricing/PlanValueStage'
-import { planValueFor } from '@/lib/pricingPlanValue'
-import { IMG_NANOBANANA_CR } from '@/lib/marketingPrice'
+// KINEO-PRECOS-REFINO-2026-10-09 — o cartão calcula os próprios números (os harnesses de render trocam todo import de @/components por
+// stub e a conta não pode morar aqui); a página só escolhe a paleta.
+import { PLAN_VALUE_STAGE_CSS, PlanValueCard, isPlanValuePalette, type PlanValuePalette, type PlanValueTier } from '@/components/pricing/PlanValueStage'
 import { PRECOS_DOIS_PRODUTOS_PUBLIC } from '@/lib/pricingTwoProducts' // KINEO-PRECOS-DOIS-PRODUTOS-2026-10-05 (desligado)
 import { PRICING_BUSINESS_PATH_TARGET_ID } from '@/lib/growth/pricingBusinessPath'
 import PricingSavedCheckout from '@/components/PricingSavedCheckout'
@@ -66,7 +66,12 @@ export const PRICING_SHOW_AUTOPILOT = false
 // compra (imagens Nano Banana Pro, clipes por motor, filmes de 60 s), num palco escuro com uma cor por plano.
 // false = a página de hoje para todo mundo; /pricing?preview=valor mostra o cartão novo SÓ para quem abrir o link (o
 // fundador aprova antes). Ligar é trocar para true. Guardião: scripts/test-precos-cartao-valor-2026-10-09.mjs.
-export const PRICING_VALUE_CARDS_PUBLIC = false
+// LIGADO 09/10 (madrugada) — o fundador respondeu "1 sim" à pergunta "ligar a página de preços nova para todo mundo?".
+export const PRICING_VALUE_CARDS_PUBLIC = true
+// KINEO-PRECOS-REFINO-2026-10-09 — a paleta do cartão (fundador: "me manda três ou quatro opções de cores… um norte"):
+// 'porcelana' (a do site: segue o tema claro/escuro, cobalto no plano popular) · 'cobalto' · 'ambar' · 'tinta' (palco
+// escuro). /pricing?tema=<nome> mostra outra só para quem abrir o link. Trocar a paleta da página é trocar esta linha.
+export const PRICING_VALUE_PALETTE: PlanValuePalette = 'porcelana'
 import {
   // KINEO-PILOT-99-2026-07-26 — preço e duração do piloto vêm da mesma fonte que
   // o checkout cobra. Retipar "$99" aqui é como os outros três leaks começaram.
@@ -563,17 +568,8 @@ export default function PricingClient({ initialBilling = 'annual', characterLimi
   // KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — o cartão novo: ligado para todos só com PRICING_VALUE_CARDS_PUBLIC; antes disso,
   // ?preview=valor liga para quem abrir o link (lido no efeito abaixo, nunca no render: hidratação igual ao servidor).
   const [valueCards, setValueCards] = useState(PRICING_VALUE_CARDS_PUBLIC)
-  // Só calcula com o cartão novo na tela: desligado, a página de hoje não chama nada novo.
-  const planValues = useMemo(() => {
-    if (!valueCards) return null
-    const model = twoProductsModelForPage()
-    const image = { label: 'Nano Banana Pro', creditsEach: IMG_NANOBANANA_CR }
-    return {
-      starter: planValueFor(TIER_CREDITS.starter, model, image),
-      basic: planValueFor(TIER_CREDITS.basic, model, image),
-      pro: planValueFor(TIER_CREDITS.pro, model, image),
-    }
-  }, [valueCards])
+  // KINEO-PRECOS-REFINO-2026-10-09 — a paleta: a do código; ?tema= troca só para quem abrir o link (lida no efeito abaixo).
+  const [valuePalette, setValuePalette] = useState<PlanValuePalette>(PRICING_VALUE_PALETTE)
 
   // KINEO-PRICING-VIEW-2026-07-15 — admin/funnel and admin/metrics already
   // query this event; the pricing page simply never emitted it before.
@@ -585,6 +581,8 @@ export default function PricingClient({ initialBilling = 'annual', characterLimi
     if (intentCampaign) rememberSignupCampaign(intentCampaign)
     setArrivedWithPromo((params.get('promo') ?? '').trim().length > 0)
     if (params.get('preview') === 'valor') setValueCards(true) // KINEO-PRECOS-CARTAO-VALOR-2026-10-09
+    const tema = params.get('tema') // KINEO-PRECOS-REFINO-2026-10-09
+    if (isPlanValuePalette(tema)) setValuePalette(tema)
     void trackEvent('pricing_view', { ...(intentCampaign ? { source: intentCampaign } : {}), ...(MRR_CONVERSION_ENABLED ? conversionMetadata('pricing') : {}) })
   }, [])
 
@@ -929,6 +927,14 @@ export default function PricingClient({ initialBilling = 'annual', characterLimi
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  // KINEO-PRECOS-REFINO-2026-10-09 — o caminho das agências, montado uma vez e posto num de dois lugares (ver abaixo).
+  const agencyPath = (
+    <div id={PRICING_BUSINESS_PATH_TARGET_ID} className="mx-auto max-w-3xl">
+      <PricingBusinessPathTelemetry />
+      <AgencyVolumeBridge entry="pricing" />
+    </div>
+  )
+
   return (
     <div className="pricing-blue min-h-screen bg-[var(--bg)] text-[var(--text)] font-sans">
       <style dangerouslySetInnerHTML={{__html: `
@@ -1000,7 +1006,8 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                 reversão de risco lê como insegurança, não como confiança; e o
                 "3 grátis / 24h" saiu daqui porque a cota do free não é argumento
                 para quem já está decidindo QUAL plano pagar. */}
-            {['Cancel anytime', billing === 'annual' ? ANNUAL_REFUND_POLICY : '7-day money-back guarantee'].map((label) => (
+            {/* KINEO-PRECOS-REFINO-2026-10-09 — no anual a política já está colada no seletor logo abaixo (data-testid=annual-refund-policy); repetir aqui era a mesma frase duas vezes acima dos planos. */}
+            {['Cancel anytime', ...(billing === 'annual' ? [] : ['7-day money-back guarantee'])].map((label) => (
               <div key={label} className="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--muted)]">
                 <span aria-hidden="true" style={{ color: 'var(--accent)' }}>✓</span>
                 <span>{label}</span>
@@ -1108,24 +1115,29 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         {/* KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — com o cartão novo, os planos vêm logo depois do seletor mensal/anual (como
             a InVideo); a prova do filme desce para baixo do palco, sem sumir. */}
         {valueCards ? null : <MrrPricingProof />}
-        {valueCards && planValues ? (() => {
+        {valueCards ? (() => {
           // KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — o palco novo: mesmo plano, mesmo preço, mesmo handleBuy; muda o que o cartão
-          // CONTA (o que os créditos compram) e a cara. Os números vêm de planValues (lib/pricingPlanValue.ts).
+          // CONTA (o que os créditos compram, calculado dentro do cartão por lib/pricingPlanValue.ts) e a cara.
+          // KINEO-PRECOS-REFINO-2026-10-09 — o desenho da InVideo (fundador, madrugada de 09/10): no anual, o mensal riscado ao
+          // lado do preço; "Get <plano>" logo abaixo do preço; embaixo do botão, a economia do anual (ou "Cancel anytime");
+          // no pé, o que vem incluso. Nenhum número digitado: economia = 12 × getTierPrice − getAnnualPrice, na moeda da tela.
           const valuePlans = buildPricing(resolvedCurrency, resolvedRegion).filter((p) => p.tier === 'starter' || p.tier === 'basic' || p.tier === 'pro')
           return (
             <>
-              <style>{PLAN_VALUE_STAGE_CSS}</style>
-              <section className="pv-stage" aria-label="Plans">
+              <style dangerouslySetInnerHTML={{ __html: PLAN_VALUE_STAGE_CSS }} />
+              <section className="pv-stage" data-palette={valuePalette} aria-label="Plans">
                 <div id="plans" className="pv-grid scroll-mt-24">
                   {valuePlans.map((p) => {
                     const tier = p.tier as PaidTier
+                    const annual = billing === 'annual'
                     const switchLabel = planSwitchLabel(planSwitch, p.tier as SwitchableTier, p.name)
-                    const ctaLabel = switching === p.tier ? 'Switching…' : (switchLabel ?? `Choose ${p.name}`)
+                    const ctaLabel = switching === p.tier ? 'Switching…' : (switchLabel ?? `Get ${p.name}`)
                     const buyLabel = purchasing === p.tier
                       ? 'Opening secure checkout…'
                       : signedIn === false && !guestCheckoutCoversPlanClick({ live: GUEST_CHECKOUT_LIVE, promoRequested: arrivedWithPromo, introDiscount: billing === 'monthly' && (p.tier === 'starter' || p.tier === 'basic') && hasIntroOffer(p.tier, resolvedCurrency, resolvedRegion) })
-                        ? 'Sign up & continue →'
-                        : `${ctaLabel} →`
+                        ? 'Sign up & continue'
+                        : ctaLabel
+                    const annualSavingMinor = getTierPrice(tier, resolvedCurrency, resolvedRegion) * 12 - getAnnualPrice(tier, resolvedCurrency, resolvedRegion)
                     return (
                       <PlanValueCard
                         key={p.tier}
@@ -1134,11 +1146,10 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                         popular={Boolean('popular' in p && p.popular)}
                         requested={requestedTier === p.tier}
                         cardId={pricingTierCardId(p.tier as PricingTierHandoffTier)}
-                        value={planValues[p.tier as PlanValueTier]}
-                        amount={billing === 'annual' ? `≈ ${annualPrices[tier].perMonth}` : p.price}
-                        per={billing === 'annual'
-                          ? `/mo, billed ${displayCurrency ? annualPrices[tier].total : '—'} yearly · save ${ANNUAL_DISCOUNT_PERCENT}%`
-                          : p.priceSub}
+                        credits={TIER_CREDITS[tier]}
+                        amount={annual ? annualPrices[tier].perMonth : p.price}
+                        was={annual && displayCurrency ? p.price : undefined}
+                        per={annual ? `/month, ${displayCurrency ? annualPrices[tier].total : '—'} billed yearly` : '/month'}
                         note={settlementCurrency === 'brl'
                           ? settlementNote(
                             planSettlementAmountMinor(tier, billing === 'annual' ? 'annual' : 'monthly', 'brl', billing === 'annual' ? getAnnualPrice(tier, 'usd') : getTierPrice(tier, 'usd')),
@@ -1149,24 +1160,32 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                         ctaLabel={buyLabel}
                         ctaDisabled={purchasing === p.tier}
                         onBuy={() => handleBuy(tier)}
+                        save={annual && displayCurrency && annualSavingMinor > 0
+                          ? <>Save <b>{formatCheckoutMoney(resolvedCurrency, annualSavingMinor)}</b> a year compared to monthly</>
+                          : 'Cancel anytime'}
                         extra={localMethod === 'upi' && billing === 'monthly' && !planSwitch.subscribed ? (
                           <a
                             href={`/api/dodo/checkout?tier=${p.tier}&utm_source=pricing_plan&utm_medium=local_method&utm_campaign=upi`}
                             data-testid={`plan-upi-${p.tier}`}
                             onClick={() => { void trackEvent('local_method_clicked', { surface: 'pricing_plan', method: 'upi', tier: p.tier, billing: 'monthly' }) }}
-                            style={{ display: 'block', textAlign: 'center', fontSize: 12.5, fontWeight: 800, color: '#cfd6e0' }}
+                            style={{ display: 'block', textAlign: 'center', fontSize: 12.5, fontWeight: 700, color: 'var(--pv-muted)' }}
                           >
                             Pay monthly with UPI / RuPay →
                           </a>
                         ) : undefined}
-                        footnote={`${'storageLine' in p && p.storageLine ? `${p.storageLine} · ` : ''}Cancel anytime`}
+                        included={[
+                          'No watermark',
+                          'Commercial use',
+                          'Voice, captions and music on films',
+                          ...('storageLine' in p && p.storageLine ? [p.storageLine] : []),
+                          // Studio: 2 Enhance HD grátis por mês (app/api/enhance/route.ts, plano 'pro', `(count ?? 0) < 2`).
+                          ...(p.tier === 'pro' ? ['2 free HD enhances a month'] : []),
+                        ]}
                       />
                     )
                   })}
                 </div>
-                <PlanValueMatrix plans={valuePlans.map((p) => ({ tier: p.tier as PlanValueTier, name: p.name, value: planValues[p.tier as PlanValueTier] }))} />
               </section>
-              <div style={{ marginTop: 18 }}><MrrPricingProof /></div>
             </>
           )
         })() : (
@@ -1546,6 +1565,14 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         ) : null}
 
         <div className="pricing-secondary">
+        {/* KINEO-PRECOS-REFINO-2026-10-09 — fundador: "essa parte ficou muito poluída". Com o cartão novo, a caixa do convite
+            grátis vira uma linha só, e só para quem ainda não tem conta (quem tem conta já começou). */}
+        {valueCards ? (signedIn === false ? (
+          <p className="mx-auto mb-7 max-w-2xl text-center text-[13.5px] font-medium text-[var(--muted)]">
+            Not ready to choose?{' '}
+            <Link href="/signup" className="font-bold text-[var(--accent)] hover:underline">{OFFER.copy.ctaPrimary}</Link>
+          </p>
+        ) : null) : (
         <div
           className="mx-auto mb-7 max-w-2xl rounded-2xl px-5 py-4 text-center"
           style={{ background: 'var(--accent-soft)', border: '1px solid var(--border2)' }}
@@ -1559,6 +1586,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             Calculate the exact monthly cost for your output →
           </CostCalculatorLink>
         </div>
+        )}
 
         {/* KINEO-MRR-3-FILME-PROPRIO-2026-09-16 — o filme da própria pessoa + a garantia, antes dos cards. */}
         {latestFilm && (
@@ -1585,9 +1613,12 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
 
         <PricingJourneyProof signedIn={signedIn} intentCampaign={pricingIntentCampaign} />
         </div>
+        {valueCards ? <MrrPricingProof /> : null}
 
         {/* KINEO-CEO-HOUR-2026-08-17 (#5) — o tradutor de creditos VISIVEL,
             nao so no FAQ: uma fita de precos por resultado. */}
+        {/* KINEO-PRECOS-REFINO-2026-10-09 — com o cartão novo, cada plano já diz o que o crédito compra, motor por motor. */}
+        {valueCards ? null : (
         <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-[var(--border)] bg-[var(--card)] px-5 py-4">
           <p className="mb-2.5 text-center text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--accent)]">What one credit buys</p>
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-[12.5px] font-semibold text-[var(--muted)]">
@@ -1600,6 +1631,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             <span>✨ HD Enhance — <b className="text-[var(--text)]">10 cr</b></span>
           </div>
         </div>
+        )}
 
         {/* [KINEO-COMMERCIAL-LICENSE-2026-08-12] — a primeira pergunta de
             qualquer agência ("posso vender isso pro meu cliente?") não tinha
@@ -1609,6 +1641,8 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             MESMA seção 5 impõe (não revender o Serviço em si). Vale para todos
             os planos, por isso vive abaixo da grade inteira e não dentro de um
             card. Sem preço, sem desconto, sem entitlement: só licença. */}
+        {/* KINEO-PRECOS-REFINO-2026-10-09 — com o cartão novo, "Commercial use" está em "Included" de cada plano. */}
+        {valueCards ? null : (
         <p className="mx-auto mt-5 max-w-2xl text-center text-[12.5px] font-semibold leading-relaxed text-[var(--muted)]">
           <span aria-hidden="true" style={{ color: 'var(--accent)' }}>✓</span> Commercial use is included
           on every plan: the videos you generate are yours to post, monetize or deliver to a client.
@@ -1618,11 +1652,9 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
           </Link>
           .
         </p>
+        )}
 
-        <div id={PRICING_BUSINESS_PATH_TARGET_ID} className="mx-auto max-w-3xl">
-          <PricingBusinessPathTelemetry />
-          <AgencyVolumeBridge entry="pricing" />
-        </div>
+        {valueCards ? null : agencyPath}
 
         {/* KINEO-PRICING-CLARITY-2026-08-03 — TODA a letra miúda que saiu dos
             cards vive aqui, uma vez só, abaixo da grade. Mantém a divulgação
@@ -1658,6 +1690,9 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         {PRICING_SHOW_ADS_BLOCK ? <PricingAdsBlock /> : null}
         <PricingCreditsBlock />
         {PRECOS_DOIS_PRODUTOS_PUBLIC ? <TwoProductsPricing /> : null}
+        {/* KINEO-PRECOS-REFINO-2026-10-09 — com o cartão novo, o bloco das agências sai do meio da decisão e vem depois das
+            tabelas: quem compra para cliente acha; quem escolhe plano não tropeça nele. */}
+        {valueCards ? agencyPath : null}
 
         {/* ══════════════════════════════════════════════════════════════
             KINEO-AUTOPILOT-299-2026-07-26 — DONE-FOR-YOU TIER.

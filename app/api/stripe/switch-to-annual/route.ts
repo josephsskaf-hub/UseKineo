@@ -19,7 +19,8 @@
 //            nada é cobrado. Cartão recusado = 402 `card_declined`, a assinatura segue mensal.
 // SÓ A PRÓPRIA ASSINATURA: o perfil é sempre o do usuário da sessão (nenhum id vem do corpo) e o núcleo confere o dono na
 // Stripe (metadata.supabase_user_id e o Customer do perfil).
-// INTERRUPTOR: MONTH2_ANNUAL_OFFER_LIVE (lib/billing/month2AnnualOffer.ts). Desligado: GET devolve live:false sem ler
+// INTERRUPTOR: month2AnnualOfferOpen() (lib/billing/month2AnnualOffer.ts: MONTH2_ANNUAL_OFFER_LIVE e a data de início
+// MONTH2_ANNUAL_OFFER_STARTS_AT — KINEO-ANUAL-2o-MES-LIGA-2026-10-09). Fechada: GET devolve live:false sem ler
 // nada; POST devolve 404 `offer_not_live` antes de qualquer leitura.
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
@@ -27,8 +28,8 @@ import { createClient } from '@/lib/supabase/server'
 import { ANNUAL_REFUND_DAYS } from '@/lib/checkoutPricing'
 import { MONTH2_ANNUAL_OFFER, month2ProfileBlocker } from '@/lib/billing/annualSwitch'
 import {
-  MONTH2_ANNUAL_OFFER_LIVE,
   MONTH2_ANNUAL_PERCENT_OFF,
+  month2AnnualOfferOpen,
   month2Surface,
   type Month2AnnualPreview,
   type Month2AnnualStatus,
@@ -54,12 +55,12 @@ function serviceRoleClient() {
   return createAdminClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
 }
 
-function closedStatus(reasons: string[], live: boolean = MONTH2_ANNUAL_OFFER_LIVE): Month2AnnualStatus {
+function closedStatus(reasons: string[], live: boolean = month2AnnualOfferOpen()): Month2AnnualStatus {
   return { live, eligible: false, reasons }
 }
 
 export async function GET() {
-  if (!MONTH2_ANNUAL_OFFER_LIVE) return NextResponse.json(closedStatus(['offer_not_live'], false))
+  if (!month2AnnualOfferOpen()) return NextResponse.json(closedStatus(['offer_not_live'], false))
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json(closedStatus(['not_signed_in']))
@@ -95,7 +96,7 @@ export async function POST(req: NextRequest) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-  if (!MONTH2_ANNUAL_OFFER_LIVE) return NextResponse.json({ error: 'offer_not_live', nothing_written: true }, { status: 404 })
+  if (!month2AnnualOfferOpen()) return NextResponse.json({ error: 'offer_not_live', nothing_written: true }, { status: 404 })
   const admin = serviceRoleClient()
   if (!admin || !process.env.STRIPE_SECRET_KEY) return NextResponse.json({ error: 'unavailable', nothing_written: true }, { status: 503 })
 
