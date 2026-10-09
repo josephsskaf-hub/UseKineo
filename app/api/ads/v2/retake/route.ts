@@ -16,7 +16,7 @@ import { sanitizeRetakeBody } from '@/lib/ads/v2Contract'
 import { ADS_V2_ENGINES, adsV2RetakeCredits, routeShot } from '@/lib/ads/v2Tiers'
 import { motionPrompt, type AdsV2MotionKind } from '@/lib/ads/v2ShotLists'
 import { adsV2RetakeRef, chargeAdsV2, deterministicUuid, failAdsV2Order } from '@/lib/ads/v2Billing'
-import { adsV2View, dispatchAdsV2Shots, latestShots, loadAdsV2Order, loadAdsV2Shots } from '@/lib/ads/v2Advance'
+import { adsV2ShotEffect, adsV2View, dispatchAdsV2Shots, latestShots, loadAdsV2Order, loadAdsV2Shots } from '@/lib/ads/v2Advance'
 import { v2Fail, v2Json } from '@/lib/ads/v2Server'
 import { adsV2RetakePrompt, variationTagOf } from '@/lib/ads/v2Variations'
 
@@ -135,7 +135,9 @@ export async function POST(req: NextRequest) {
 
     charged = retake
     // Planos: os prontos do pai copiados (sem fal); o refeito com o motor principal e OUTRO movimento.
-    const engine = routeShot(target.kind, parent.tier, 1)
+    // KINEO-ESTILOS-PRODUTO-2026-10-09 — o plano-herói com estilo é refeito no MESMO efeito (o plano do pai vai copiado
+    // para a refação; adsV2ShotEffect lê a chave dele). O preço da refação (adsV2RetakeCredits, acima) não muda.
+    const engine = routeShot(target.kind, parent.tier, 1, adsV2ShotEffect(parent.plan, idx) !== null)
     const variant = target.movement_variant + 1
     // KINEO-ADS-3-VARIACOES-2026-09-30 — refação de uma variação mantém o LOOK dela (grade de cor); pedido comum = o
     // prompt de sempre, byte a byte (adsV2RetakePrompt com slot nulo devolve a base intocada).

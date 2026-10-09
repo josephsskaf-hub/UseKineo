@@ -40,6 +40,9 @@ const ADS_PANEL_CSS = `.adv2 .kps-panel .adv2-layout{grid-template-columns:minma
 .adv2 .kps-panel .adv2-aside{position:static}`
 import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
 import { ADS_SAMPLE_TIER, adsSampleCopy, type AdsSampleCopy } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
+// KINEO-ESTILOS-PRODUTO-2026-10-09 — a escolha de estilo do produto (modo completo = inglês).
+import { ADS_V2_STYLE_COPY, ADS_V2_STYLES_PUBLIC, adsV2SuggestedStyle, type AdsV2StyleChoice } from '@/lib/ads/v2Styles'
+import { AdsStylePicker } from '@/components/ads/AdsStyles'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { ADS_WIZARD_THEME_CSS } from '../new/adsWizardTheme'
 import { downloadVideoFile } from '@/lib/videoDownload'
@@ -107,10 +110,15 @@ interface PlanShot {
   source: string
   cut_seconds: number
   photo: string | null
+  /** KINEO-ESTILOS-PRODUTO-2026-10-09 — a chave do estilo, só no plano que sai pelo efeito. */
+  effect?: string
 }
 interface PlanResponse {
   order_id: string
   credits: number
+  /** KINEO-ESTILOS-PRODUTO-2026-10-09 — o estilo pedido e o aplicado (null = sem foto de produto, saiu sem efeito). */
+  style_asked?: string | null
+  style?: string | null
   narration: string | null
   overlays: { role: string; start: number; end: number; text: string }[]
   total_seconds: number
@@ -624,6 +632,8 @@ function AdsV2Session({
   const [sampleCap, setSampleCap] = useState(false)
   const [phase, setPhase] = useState<Phase>(resume ? 'loading' : 'build')
   const [tier, setTier] = useState<AdsV2Tier | null>(null)
+  // KINEO-ESTILOS-PRODUTO-2026-10-09 — null = segue a sugestão do setor escolhido; a pessoa escolheu = vale a escolha dela.
+  const [styleChoice, setStyleChoice] = useState<AdsV2StyleChoice | null>(null)
   // KINEO-ADS-3-VARIACOES-2026-09-30 — "3 variações" ligada (só aparece com a opção liberada para a conta).
   const [three, setThree] = useState(false)
   const [business, setBusiness] = useState('')
@@ -688,6 +698,10 @@ function AdsV2Session({
   }, [])
 
   const cost = tier ? adsV2Credits(tier, ADS_V2_SCREEN_SECONDS) : null
+  // KINEO-ESTILOS-PRODUTO-2026-10-09 — sugestão pelo setor escolhido (sem setor = sem efeito); o efeito vai na foto marcada
+  // como Product (sem foto de produto, o servidor ignora o estilo e o anúncio sai como antes).
+  const styleSuggested: AdsV2StyleChoice = sector ? adsV2SuggestedStyle(sector) : 'none'
+  const style: AdsV2StyleChoice = ADS_V2_STYLES_PUBLIC ? styleChoice ?? styleSuggested : 'none'
   const composed = composeSentence(business, sentence)
   const linkNorm = normalizeLink(link)
 
@@ -700,8 +714,9 @@ function AdsV2Session({
         sector,
         logo: logo?.footageId ?? null,
         photos: photos.map((p) => [p.key, p.kind, focalSig(p)]),
+        style,
       }),
-    [tier, composed, linkNorm, sector, logo?.footageId, photos],
+    [tier, composed, linkNorm, sector, logo?.footageId, photos, style],
   )
   const cardSig = JSON.stringify({ business: business.trim(), ...card, logo: logo?.footageId ?? null })
   const planFresh = !!plan && plan.sig === planSig
@@ -1158,7 +1173,7 @@ function AdsV2Session({
       setBusyNote('Planning your shots, the words on screen and the voice-over…')
       const r = await api<PlanResponse>('/api/ads/v2/plan', {
         method: 'POST',
-        body: { order_id: orderId, sector, logo_footage_id: logo?.footageId, photos: uploaded, videos, card_footage_id: cardDone.footageId },
+        body: { order_id: orderId, sector, logo_footage_id: logo?.footageId, photos: uploaded, videos, card_footage_id: cardDone.footageId, ...(style !== 'none' ? { style } : {}) },
       })
       if (!aliveRef.current) return
       if (!r.ok) {
@@ -1427,6 +1442,17 @@ function AdsV2Session({
                   )
                 })}
               </fieldset>
+              {ADS_V2_STYLES_PUBLIC ? (
+                <AdsStylePicker
+                  name="adv2-style"
+                  value={style}
+                  suggested={styleSuggested}
+                  onChange={setStyleChoice}
+                  disabled={locked}
+                  copy={ADS_V2_STYLE_COPY.en}
+                  note={ADS_V2_STYLE_COPY.en.target}
+                />
+              ) : null}
               {scopy ? <p className="adsw-hint">{scopy.note}</p> : null}
               <p className="adv2-balance" role="status">
                 {balance === null ? 'We could not read your credit balance right now.' : `You have ${balance} credits.`}{' '}
@@ -1846,7 +1872,7 @@ function PlanPreview({
               </span>
               <span className="tx">
                 <b>{i + 1}. {ADS_V2_ROLE_LABELS[s.role] ?? s.role} · {s.cut_seconds} s</b>
-                <span>{describeShot(s)}</span>
+                <span>{describeShot(s)}{s.effect && s.effect in ADS_V2_STYLE_COPY.en.styles ? <> · ✨ {ADS_V2_STYLE_COPY.en.styles[s.effect as keyof typeof ADS_V2_STYLE_COPY.en.styles].label}</> : null}</span>
               </span>
             </li>
           )
@@ -1856,6 +1882,7 @@ function PlanPreview({
           <span className="tx"><b>{plan.shots.length + 1}. Your last frame</b><span>Your logo, name and button</span></span>
         </li>
       </ol>
+      {plan.style_asked && !plan.style ? <p className="adsw-hint">{ADS_V2_STYLE_COPY.en.noProduct}</p> : null}
       {plan.overlays.length ? (
         <>
           <h3>Words on screen</h3>

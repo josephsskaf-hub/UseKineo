@@ -22,7 +22,19 @@
 //
 // LIB PURA (nenhum import): tipos copiados de lib/ads/v2Tiers.ts; o guardião confere que os ids batem.
 
-export type AdsV2EngineId = 'kling_o3' | 'seedance_20_fast' | 'h3'
+export type AdsV2EngineId = 'kling_o3' | 'seedance_20_fast' | 'h3' | 'pixverse_effect'
+
+// KINEO-ESTILOS-PRODUTO-2026-10-09 — fal-ai/pixverse/v5/effects (o endpoint da sonda app/api/admin/effect-probe/route.ts,
+// testado com render real em 09/10): effect (enum EXATO da fal) · image_url · resolution '720p' · duration '5'. Sem
+// prompt (o efeito é o roteiro), sem áudio. ESPELHO de ADS_V2_STYLES (lib/ads/v2Styles.ts): chave do estilo → enum da fal;
+// o guardião scripts/test-ads-estilos-2026-10-09.mjs confere que os dois batem, letra a letra.
+export const ADS_V2_EFFECT_BY_STYLE: Readonly<Record<string, string>> = {
+  package_explosion: 'Package Explosion',
+  giant_product: 'Giant Product',
+  product_closeup: 'Product close-up',
+  ocean_ad: 'Ocean ad',
+  mechanical_assembly: 'Mechanical Assembly',
+}
 
 export interface KlingO3I2vInput {
   prompt: string
@@ -46,7 +58,13 @@ export interface H3I2vInput {
   resolution: '768P'
   prompt_expansion_mode: 'disabled'
 }
-export type AdsV2ShotInput = KlingO3I2vInput | Seedance20FastI2vInput | H3I2vInput
+export interface PixverseEffectInput {
+  effect: string
+  image_url: string
+  resolution: '720p'
+  duration: '5'
+}
+export type AdsV2ShotInput = KlingO3I2vInput | Seedance20FastI2vInput | H3I2vInput | PixverseEffectInput
 
 /** Kling O3 aceita prompt de até 2500 caracteres; o teto vale para os três motores (o prompt é de 1 movimento). */
 export const ADS_V2_PROMPT_MAX_CHARS = 2500
@@ -63,9 +81,20 @@ function requirePrompt(raw: unknown): string {
   return v
 }
 
-/** Input do image-to-video de um plano. Plano `text` nunca chega aqui (routeShot devolve null). */
-export function buildShotInput(engine: AdsV2EngineId, shot: { imageUrl: string; prompt: string }): AdsV2ShotInput {
+/**
+ * Input do image-to-video de um plano. Plano `text` nunca chega aqui (routeShot devolve null).
+ * KINEO-ESTILOS-PRODUTO-2026-10-09 — `effect` = a CHAVE do estilo do plano (planShots grava em `effect`); só o
+ * 'pixverse_effect' a usa, e sem chave conhecida ele recusa (nunca manda um efeito inventado à fal).
+ */
+export function buildShotInput(engine: AdsV2EngineId, shot: { imageUrl: string; prompt: string; effect?: string | null }): AdsV2ShotInput {
   const image_url = requireHttpsUrl(shot?.imageUrl, 'image_url')
+  if (engine === 'pixverse_effect') {
+    const key = typeof shot?.effect === 'string' ? shot.effect : ''
+    const effect = Object.prototype.hasOwnProperty.call(ADS_V2_EFFECT_BY_STYLE, key) ? ADS_V2_EFFECT_BY_STYLE[key] : ''
+    if (!effect) throw new Error('ads_v2_effect_without_style')
+    const input: PixverseEffectInput = { effect, image_url, resolution: '720p', duration: '5' }
+    return input
+  }
   const prompt = requirePrompt(shot?.prompt)
   if (engine === 'kling_o3') {
     const input: KlingO3I2vInput = { prompt, image_url, duration: '3', generate_audio: false }

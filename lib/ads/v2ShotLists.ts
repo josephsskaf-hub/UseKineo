@@ -52,6 +52,20 @@ export const ADS_V2_CUT_START_HERO = 1.5
 export const ADS_V2_CUT_START_MAX = 0.65
 /** Folga mínima entre o fim do trecho usado (com o dissolve) e o fim do clipe medido. */
 export const ADS_V2_CUT_MARGIN = 0.1
+/**
+ * KINEO-ESTILOS-PRODUTO-2026-10-09 — estilos de produto (espelho de ADS_V2_STYLE_KEYS, lib/ads/v2Styles.ts; o guardião
+ * confere). O plano-herói com estilo sai pelo efeito da PixVerse: clipe de 5 s (espelho de
+ * ADS_V2_ENGINES.pixverse_effect.genSeconds) e o corte começa em 2,0 s — nas prévias dos 5 efeitos (public/ads-styles) o
+ * começo é a foto quase parada e a virada (embalagem estoura, fundo do mar, vista explodida, close) acontece entre 1,5 e
+ * 3 s. 2,0 + 2,5 + 0,25 = 4,75 ≤ 5,0 − 0,1: cabe até no corte de 2,5 s. A reserva H3 (5 s) usa o mesmo trecho.
+ */
+export type AdsV2PlanStyle = 'package_explosion' | 'giant_product' | 'product_closeup' | 'ocean_ad' | 'mechanical_assembly'
+export const ADS_V2_PLAN_STYLES: readonly AdsV2PlanStyle[] = ['package_explosion', 'giant_product', 'product_closeup', 'ocean_ad', 'mechanical_assembly']
+export const ADS_V2_EFFECT_GEN_SECONDS = 5
+export const ADS_V2_CUT_START_EFFECT = 2.0
+export function isAdsV2PlanStyle(raw: unknown): raw is AdsV2PlanStyle {
+  return typeof raw === 'string' && (ADS_V2_PLAN_STYLES as readonly string[]).includes(raw)
+}
 /** Narração: até 30 palavras em 15 s (proporcional em 20/30 s). */
 export const ADS_V2_NARRATION_WORDS_15 = 30
 /** Frase de tela: no máximo 2 linhas no terço do meio. */
@@ -338,8 +352,13 @@ export const ADS_V2_EXTRA_CUT = 2.5
  * - demais (Kling O3, 3 s): até 0,65 s, só quando sobra folga — corte de 2,0 s → 0,65; corte de 2,5 s → 0,15 (como antes).
  * cut_start + cut_seconds + dissolve nunca passa de (clipe − margem); o montador ainda recusa contra o clipe MEDIDO.
  */
-export function adsV2CutStart(cut: number, kind: AdsV2PlanShotKind): number {
+export function adsV2CutStart(cut: number, kind: AdsV2PlanShotKind, effect = false): number {
   if (kind === 'text') return 0
+  // KINEO-ESTILOS-PRODUTO-2026-10-09 — plano com estilo: clipe de 5 s do efeito, corte a partir de 2,0 s (se couber).
+  if (effect === true) {
+    const roomFx = ADS_V2_EFFECT_GEN_SECONDS - cut - ADS_V2_FADE_SECONDS - ADS_V2_CUT_MARGIN
+    return Math.round(Math.max(0, Math.min(ADS_V2_CUT_START_EFFECT, roomFx)) * 1000) / 1000
+  }
   const hero = kind === 'product_hero'
   const gen = hero ? ADS_V2_HERO_GEN_SECONDS : ADS_V2_MIN_GEN_SECONDS
   const cap = hero ? ADS_V2_CUT_START_HERO : ADS_V2_CUT_START_MAX
@@ -408,6 +427,11 @@ export interface AdsV2PlannedShot {
   movementVariant: number
   cutStart: number
   cutSeconds: number
+  /**
+   * KINEO-ESTILOS-PRODUTO-2026-10-09 — só no plano-herói do produto quando o pedido tem estilo: a chave do estilo. O
+   * plano sai pelo efeito da PixVerse (routeShot com styled) e o `prompt` continua o de movimento (é o da reserva H3).
+   */
+  effect?: AdsV2PlanStyle
   /** Só no plano 'user_video': o arquivo do cliente no bucket, a duração MEDIDA e o enquadramento (foco 0..1). */
   videoUrl?: string
   videoSeconds?: number
@@ -436,6 +460,19 @@ export interface AdsV2ShotPlan {
   totalSeconds: number
   narrationMaxWords: number
   photoRequests: readonly string[]
+  /** KINEO-ESTILOS-PRODUTO-2026-10-09 — o estilo APLICADO (só existe quando um plano de produto recebeu o efeito). */
+  style?: AdsV2PlanStyle
+}
+
+/**
+ * KINEO-ESTILOS-PRODUTO-2026-10-09 — o plano que recebe o estilo: o 1º 'product_hero'; sem ele, o 1º 'product' de foto do
+ * cliente. null = não há plano de produto (o estilo é ignorado). Espelho EXATO de adsV2StyleTargetIdx (lib/ads/v2Styles.ts).
+ */
+export function adsV2PlanStyleTarget(shots: readonly { idx: number; kind: string; source: string }[]): number | null {
+  const hero = shots.find((s) => s.kind === 'product_hero' && s.source === 'client_photo')
+  if (hero) return hero.idx
+  const product = shots.find((s) => s.kind === 'product' && s.source === 'client_photo')
+  return product ? product.idx : null
 }
 
 const r3 = (n: number): number => Math.round(n * 1000) / 1000
@@ -464,7 +501,7 @@ export function adsV2OverlaySlots(shotsSeconds: number): AdsV2OverlaySlot[] {
  *     Sem foto de produto entre as referências, as ações do setor não citam produto (sceneActionsNoProduct).
  *     Sem nenhuma foto sem texto, a vaga vira foto do cliente (passos 1-2) — o Nano Banana exige referência.
  */
-export function planShots(input: { sector: AdsV2Sector; tier: AdsV2PlanTier; photos: readonly AdsV2Photo[]; seconds?: number; videos?: readonly AdsV2Video[] }): AdsV2ShotPlan {
+export function planShots(input: { sector: AdsV2Sector; tier: AdsV2PlanTier; photos: readonly AdsV2Photo[]; seconds?: number; videos?: readonly AdsV2Video[]; style?: string | null }): AdsV2ShotPlan {
   const { sector, tier } = input
   const seconds = input.seconds ?? 15
   if (!isAdsV2Sector(sector)) throw new Error(`ads_v2_unknown_sector:${String(sector)}`)
@@ -605,6 +642,17 @@ export function planShots(input: { sector: AdsV2Sector; tier: AdsV2PlanTier; pho
     }
   })
 
+  // KINEO-ESTILOS-PRODUTO-2026-10-09 — estilo: só o plano de produto escolhido (adsV2PlanStyleTarget) ganha `effect` e o
+  // trecho do clipe de 5 s do efeito. Estilo ausente/'none'/desconhecido ou sem plano de produto = o plano de antes, chave
+  // por chave (nem `effect` nem `style` aparecem). A atribuição de fotos e os prompts NUNCA mudam com o estilo.
+  const style = isAdsV2PlanStyle(input.style) ? input.style : null
+  const target = style ? adsV2PlanStyleTarget(shots) : null
+  if (style && target !== null) {
+    const at = shots.findIndex((s) => s.idx === target)
+    const s = shots[at]
+    shots[at] = { ...s, effect: style, cutStart: adsV2CutStart(s.cutSeconds, s.kind, true) }
+  }
+
   const shotsSeconds = r3(shots.reduce((s, x) => s + x.cutSeconds, 0))
   return {
     sector,
@@ -617,5 +665,6 @@ export function planShots(input: { sector: AdsV2Sector; tier: AdsV2PlanTier; pho
     totalSeconds: r3(shotsSeconds + ADS_V2_CARD_SECONDS),
     narrationMaxWords: adsV2NarrationMaxWords(seconds),
     photoRequests: spec.photoRequests,
+    ...(style && target !== null ? { style } : {}),
   }
 }

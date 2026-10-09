@@ -233,7 +233,8 @@ check('E3 H3 i2v: duration 5 NÚMERO (schema pede integer) · resolution 768P ·
   return keys(i) === 'duration,image_url,prompt,prompt_expansion_mode,resolution' && i.duration === 5 && typeof i.duration === 'number' && i.resolution === '768P' && i.prompt_expansion_mode === 'disabled'
 })
 check('E4 NUNCA end_image_url/tail_image_url/multi_prompt, mesmo com o objeto de entrada carregando esses campos', T.ADS_V2_ENGINE_IDS.every((e) => {
-  const i = E.buildShotInput(e, { imageUrl: IMG, prompt: PR, end_image_url: IMG, tail_image_url: IMG, multi_prompt: [{ prompt: 'x' }], generate_audio: true })
+  // KINEO-ESTILOS-PRODUTO-2026-10-09 — re-ancorado: o 'pixverse_effect' exige a chave do estilo (sem ela recusa); os demais ignoram o campo.
+  const i = E.buildShotInput(e, { imageUrl: IMG, prompt: PR, effect: 'giant_product', end_image_url: IMG, tail_image_url: IMG, multi_prompt: [{ prompt: 'x' }], generate_audio: true })
   return !('end_image_url' in i) && !('tail_image_url' in i) && !('multi_prompt' in i) && i.generate_audio !== true
 }))
 check('E5 código sem espalhar objeto (nenhum "..." fora de comentário) e sem os campos proibidos', !/\.\.\./.test(semComentarios(rd(MOD.engines))) && !/end_image_url|tail_image_url/.test(semComentarios(rd(MOD.engines))))
@@ -243,7 +244,8 @@ check('E7 Nano Banana Pro edit: prompt/image_urls/9:16/num_images 1/2K (a mais b
   return keys(i) === 'aspect_ratio,image_urls,num_images,output_format,prompt,resolution' && i.aspect_ratio === '9:16' && i.num_images === 1 && i.resolution === '2K' && i.image_urls.length === 2 && i.output_format === 'jpeg'
 })
 check('E8 cena criada sem referência ou com mais de 14 referências é recusada', throws(() => E.buildSceneImageInput({ prompt: 'A scene', referenceUrls: [] })) && throws(() => E.buildSceneImageInput({ prompt: 'A scene', referenceUrls: Array(15).fill(IMG) })))
-check('E9 cada motor do catálogo (v2Tiers) tem builder; texto não tem (routeShot null nunca chega aqui)', T.ADS_V2_ENGINE_IDS.every((e) => !!E.buildShotInput(e, { imageUrl: IMG, prompt: PR })) && eqSet(T.ADS_V2_ENGINE_IDS, ['kling_o3', 'seedance_20_fast', 'h3']))
+// KINEO-ESTILOS-PRODUTO-2026-10-09 — re-ancorado: + 'pixverse_effect' (o plano-herói com estilo); o builder dele exige a chave do estilo.
+check('E9 cada motor do catálogo (v2Tiers) tem builder; texto não tem (routeShot null nunca chega aqui)', T.ADS_V2_ENGINE_IDS.every((e) => !!E.buildShotInput(e, { imageUrl: IMG, prompt: PR, effect: 'giant_product' })) && eqSet(T.ADS_V2_ENGINE_IDS, ['kling_o3', 'seedance_20_fast', 'h3', 'pixverse_effect']))
 
 // ── 4. adV2Montage ──────────────────────────────────────────────────────────────────────────────
 const montageSrc = rd(MOD.montage)
@@ -359,7 +361,9 @@ check('G4 pedido: billing_ref unique, credits_charged ≥ 0, colunas que o códi
 // migrations_pending/2026-09-29_ads_v2_user_video.sql (a original fica intacta). O conjunto de tipos vale = o da migration
 // original + o que a irmã acrescenta, e tem de bater com v2Tiers.
 const migVideo = existsSync(join(RAIZ, 'migrations_pending/2026-09-29_ads_v2_user_video.sql')) ? rd('migrations_pending/2026-09-29_ads_v2_user_video.sql').replace(/--.*$/gm, '') : ''
-check('G5 plano: kind/source/status/engine nos enums; unique(order_id, idx, attempt)', eqSet([...new Set([...enumIn(shotsSql, 'kind'), ...enumIn(migVideo, 'kind')])], T.ADS_V2_SHOT_KINDS) && enumIn(migVideo, 'kind').includes('user_video') && eqSet(enumIn(shotsSql, 'source'), ['client_photo', 'generated_scene']) && eqSet(enumIn(shotsSql, 'status'), ['pending', 'image_submitted', 'image_done', 'submitted', 'ambiguous', 'done', 'failed', 'stuck', 'skipped_text']) && eqSet(enumIn(shotsSql, 'engine'), T.ADS_V2_ENGINE_IDS) && /unique \(order_id, idx, attempt\)/.test(shotsSql))
+// KINEO-ESTILOS-PRODUTO-2026-10-09 — re-ancorado: o motor do banco = o da migration base + o 'pixverse_effect' da migration dos estilos (2026-10-09_ads_v2_estilos.sql).
+const migEstilos = existsSync(join(RAIZ, 'migrations_pending/2026-10-09_ads_v2_estilos.sql')) ? rd('migrations_pending/2026-10-09_ads_v2_estilos.sql').replace(/--.*$/gm, '') : ''
+check('G5 plano: kind/source/status/engine nos enums; unique(order_id, idx, attempt)', eqSet([...new Set([...enumIn(shotsSql, 'kind'), ...enumIn(migVideo, 'kind')])], T.ADS_V2_SHOT_KINDS) && enumIn(migVideo, 'kind').includes('user_video') && eqSet(enumIn(shotsSql, 'source'), ['client_photo', 'generated_scene']) && eqSet(enumIn(shotsSql, 'status'), ['pending', 'image_submitted', 'image_done', 'submitted', 'ambiguous', 'done', 'failed', 'stuck', 'skipped_text']) && eqSet(enumIn(migEstilos, 'engine'), T.ADS_V2_ENGINE_IDS) && enumIn(shotsSql, 'engine').length === 3 && enumIn(shotsSql, 'engine').every((e) => T.ADS_V2_ENGINE_IDS.includes(e)) && /unique \(order_id, idx, attempt\)/.test(shotsSql))
 check('G6 TEXTO NUNCA VAI A IA também no banco: plano text sem motor e sem pedido na fal', /check \(kind <> 'text' or \(engine is null and request_id is null and image_request_id is null\)\)/.test(shotsSql))
 check('G7 UM pedido ativo por conta: índice único parcial (user_id) em generating/assembling + índices do cron', /create unique index if not exists ads_v2_orders_one_active_per_user\s+on public\.ads_v2_orders \(user_id\)\s+where status in \('generating', 'assembling'\)/.test(code) && /ads_v2_orders_active_status_idx/.test(code) && /ads_v2_shots_pending_status_idx/.test(code))
 check('G8 idempotente: todo create table/index com if not exists e todo trigger precedido de drop trigger if exists', !/create (unique )?index (?!if not exists)/.test(code) && !/create table (?!if not exists)/.test(code) && (code.match(/create trigger (\w+)/g) || []).every((t) => code.includes(`drop trigger if exists ${t.split(' ')[2]}`)))

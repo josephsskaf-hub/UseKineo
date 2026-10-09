@@ -30,6 +30,9 @@ import {
   BUSINESS_PRICE_LABEL,
 } from '@/lib/businessPlan'
 import { DFY_SERVICE_FACT } from '@/lib/growth/dfyServiceFacts'
+// KINEO-ESTILOS-PRODUTO-2026-10-09 — a faixa dos estilos de produto (as prévias são feitas pelo próprio efeito).
+import { ADS_V2_STYLES, ADS_V2_STYLES_PUBLIC } from '@/lib/ads/v2Styles'
+import { AdsStyleStrip } from '@/components/ads/AdsStyles'
 
 const TITLE = 'Kineo Business — AI Product Video Ads for Companies'
 const DESCRIPTION =
@@ -116,6 +119,7 @@ const CSS = `
 .kbz-dfy-card h3 span{color:var(--accent)}
 .kbz-dfy-card p{margin:8px 0 0;font-size:13.5px;line-height:1.55;color:var(--muted2,var(--muted))}
 .kbz-dfy-link{display:block;margin:18px auto 0;text-align:center;font-weight:700;color:var(--accent);text-decoration:none}
+.kbz-styles{margin:28px 0 0;min-width:0}
 .kbz-faq{margin:28px auto 0;max-width:46rem;display:grid;gap:10px}
 .kbz-faq details{border:1px solid var(--border);background:var(--card);border-radius:14px;padding:16px 18px}
 .kbz-faq summary{cursor:pointer;font-weight:700;font-size:15px}
@@ -157,6 +161,14 @@ export default function BusinessPage() {
             </div>
           ))}
         </div>
+
+        {ADS_V2_STYLES_PUBLIC ? (
+          <section id="styles" className="kbz-sec" aria-labelledby="kbz-styles-title" data-kineo="business-styles">
+            <h2 id="kbz-styles-title">Styles your ads can use</h2>
+            <p className="kbz-sec-sub">Pick a style for your product shot — {ADS_V2_STYLES.length} effects made from your own product photo, included in the price. Or keep it simple with no effect.</p>
+            <div className="kbz-styles"><AdsStyleStrip /></div>
+          </section>
+        ) : null}
 
         <section id="plan" className="kbz-sec" aria-labelledby="kbz-plan-title">
           <h2 id="kbz-plan-title">The Business plan</h2>

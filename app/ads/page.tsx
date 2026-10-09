@@ -86,6 +86,9 @@ import { adsSampleOpen } from '@/lib/ads/serverAccess'
 import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample'
 const SAMPLE_SIGNUP_HREF = `/signup?redirect=${encodeURIComponent('/ads/v2')}`
 import { readPartnerStatus } from '@/lib/partnerAccess' // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 — a prova positiva também pergunta pelo parceiro
+// KINEO-ESTILOS-PRODUTO-2026-10-09 — a faixa dos estilos de produto (prévias feitas pelo próprio efeito).
+import { ADS_V2_STYLES, ADS_V2_STYLES_PUBLIC } from '@/lib/ads/v2Styles'
+import { AdsStyleStrip } from '@/components/ads/AdsStyles'
 
 export const dynamic = 'force-dynamic'
 
@@ -388,6 +391,15 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
             ))}
           </ol>
         </section>
+
+        {/* KINEO-ESTILOS-PRODUTO-2026-10-09 — os estilos de produto, com a prévia feita pelo próprio efeito. */}
+        {ADS_V2_STYLES_PUBLIC ? (
+          <section className="ads-sec" aria-labelledby="ads-styles" data-kineo="ads-door-styles">
+            <h2 id="ads-styles">Styles for your product shot</h2>
+            <p className="ads-lede">Pick a style for your product shot: {ADS_V2_STYLES.length} effects made from your own product photo, included in the price. No product photo, no effect — or choose Auto for none.</p>
+            <AdsStyleStrip />
+          </section>
+        ) : null}
 
         <section className="ads-sec" aria-labelledby="ads-levels">
           <h2 id="ads-levels">{V2_LEVELS.length} levels</h2>

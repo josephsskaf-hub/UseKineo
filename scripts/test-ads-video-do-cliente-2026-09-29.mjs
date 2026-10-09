@@ -459,8 +459,9 @@ await check('R3 migration irmã: tipo user_video aceito e a trava "nunca IA" no 
 // ═══ T. TELAS (leitura) ═══════════════════════════════════════════════════════════════════════════════════════════════
 const SIMPLE = semComentarios(SRC.simple)
 const CLIENT = semComentarios(SRC.client)
+// KINEO-ESTILOS-PRODUTO-2026-10-09 — re-ancorado: o corpo do /plan (simples e completo) ganhou o estilo, só quando escolhido (T1 e T3).
 await check('T1 simples: o vídeo que cabe sobe ORIGINAL (uma vez, sem recorte) e vai em `videos` com trecho e foco; o que não cabe vira fotos com o motivo', () =>
-  /const file = p\.video \? p\.video\.file : await cropToVertical\(p\)/.test(SIMPLE) && /photos: uploaded, videos, card_footage_id: card\.footageId, facts: chosen \}/.test(SIMPLE) &&
+  /const file = p\.video \? p\.video\.file : await cropToVertical\(p\)/.test(SIMPLE) && /photos: uploaded, videos, card_footage_id: card\.footageId, facts: chosen, \.\.\.\(style !== 'none' \? \{ style \} : \{\}\) \}/.test(SIMPLE) &&
   /videos\.push\(\{ footage_id: footageId, start: p\.video\.start, focus_x: p\.fx, focus_y: p\.fy, width: p\.video\.width, height: p\.video\.height \}\)/.test(SIMPLE) &&
   /const uploadSig = \(p: Pick<SimpleItem, 'fx' \| 'fy' \| 'video'>\) => \(p\.video \? 'video' : focalSig\(p\)\)/.test(SIMPLE) &&
   /const note = asPhotosNote\(read\.verdict, f\.name\)[\s\S]{0,80}return framesFromVideo\(f, notes\)/.test(SIMPLE) &&
@@ -476,7 +477,7 @@ await check('T2 simples: miniatura + "vai entrar como vídeo" em pt/en/es (tabel
 await check('T3 completo: aceita vídeo, mesma regra (readVideoForAd) e mesmo envio original; texto em inglês do completo; plano B com quadros', () =>
   /import \{ AdsV2SimpleSession, readVideoForAd, videoFramesForAd \} from '\.\/AdsV2Simple'/.test(SRC.client) && /video\/mp4,video\/quicktime,video\/webm,\.mov/.test(CLIENT) &&
   /const read = await readVideoForAd\(f, videosAlready\)/.test(CLIENT) && /const file = p\.video \? p\.video\.file : await cropToVertical\(p\)/.test(CLIENT) &&
-  /photos: uploaded, videos, card_footage_id: cardDone\.footageId \}/.test(CLIENT) && /Goes in as video\./.test(CLIENT) && /await videoFramesForAd\(f\)/.test(CLIENT))
+  /photos: uploaded, videos, card_footage_id: cardDone\.footageId, \.\.\.\(style !== 'none' \? \{ style \} : \{\}\) \}/.test(CLIENT) && /Goes in as video\./.test(CLIENT) && /await videoFramesForAd\(f\)/.test(CLIENT))
 await check('T4 lib de quadros continua SEM import (a regra pura chega por parâmetro); a amostra é 32×18', !/^\s*import\s/m.test(SRC.frames) && /export async function readUserVideo\(/.test(SRC.frames) && /small\.width = 32/.test(SRC.frames) && /small\.height = 18/.test(SRC.frames) && !/^\s*import\s/m.test(SRC.userVideo))
 await check('T5 trava 8.2: nenhum arquivo deste pedido mora em caminho travado', () =>
   Object.values(F).every((p) => !/^(lib\/compose|lib\/hollywood\/|lib\/cinematic\/|lib\/broll\/|lib\/lyriaMusic|lib\/narrationFit|app\/api\/analyze-idea\/|app\/api\/generate-script\/|app\/api\/generate-video-)/.test(p)))

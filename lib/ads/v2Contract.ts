@@ -15,6 +15,12 @@ export const ADS_V2_CONTRACT_TIERS: readonly AdsV2ContractTier[] = ['photo_motio
 export const ADS_V2_CONTRACT_SECONDS: readonly AdsV2ContractSeconds[] = [15, 20, 30]
 export const ADS_V2_CONTRACT_SECTORS: readonly AdsV2ContractSector[] = ['restaurant', 'clinic', 'real_estate', 'gym', 'salon', 'store', 'app_service', 'other']
 export const ADS_V2_CONTRACT_PHOTO_KINDS: readonly AdsV2ContractPhotoKind[] = ['people', 'place', 'product', 'text']
+/**
+ * KINEO-ESTILOS-PRODUTO-2026-10-09 — estilos de produto aceitos no corpo do /plan (espelho de ADS_V2_STYLE_KEYS,
+ * lib/ads/v2Styles.ts; o guardião confere). 'none' (ou ausente) = sem estilo, o plano de antes.
+ */
+export type AdsV2ContractStyle = 'package_explosion' | 'giant_product' | 'product_closeup' | 'ocean_ad' | 'mechanical_assembly'
+export const ADS_V2_CONTRACT_STYLES: readonly AdsV2ContractStyle[] = ['package_explosion', 'giant_product', 'product_closeup', 'ocean_ad', 'mechanical_assembly']
 
 export const ADS_V2_SENTENCE_MAX_CHARS = 400
 export const ADS_V2_LINK_MAX_CHARS = 500
@@ -184,6 +190,8 @@ export interface AdsV2PlanBody {
   mode?: 'simple'
   /** Ids dos fatos da pesquisa que a pessoa deixou marcados (f1..f6). O TEXTO do fato nunca vem do cliente. */
   facts?: string[]
+  /** KINEO-ESTILOS-PRODUTO-2026-10-09 — só aparece quando veio um estilo de verdade (ausente/'none' = sem a chave). */
+  style?: AdsV2ContractStyle
 }
 
 /** Número finito dentro de [min, max]; ausente = `absent`; fora = undefined (recusa). */
@@ -246,6 +254,13 @@ export function sanitizePlanBody(raw: unknown): AdsV2Sanitized<AdsV2PlanBody> {
     }
     facts = [...seenFacts]
   }
+  // KINEO-ESTILOS-PRODUTO-2026-10-09 — estilo: ausente, null ou 'none' = sem estilo; chave da lista = o estilo; qualquer
+  // outra coisa = 400 bad_style (nunca um efeito inventado chega à fal).
+  let style: AdsV2ContractStyle | null = null
+  if (b.style !== undefined && b.style !== null && b.style !== 'none') {
+    if (typeof b.style !== 'string' || !(ADS_V2_CONTRACT_STYLES as readonly string[]).includes(b.style)) return fail('bad_style')
+    style = b.style as AdsV2ContractStyle
+  }
   if (!Array.isArray(b.photos)) return fail('bad_photos')
   const vids = readVideos(b.videos)
   if (!vids.ok) return vids
@@ -275,6 +290,7 @@ export function sanitizePlanBody(raw: unknown): AdsV2Sanitized<AdsV2PlanBody> {
     logo_footage_id: logoId,
     photos,
     ...(videos.length > 0 ? { videos } : {}),
+    ...(style ? { style } : {}),
   }
   return { ok: true, value: simple ? { ...value, mode: 'simple', facts } : value }
 }

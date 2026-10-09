@@ -19,6 +19,8 @@ import { ADS_V2_PLAN_VIDEO_MAX_SECONDS, ADS_V2_PLAN_VIDEO_MIN_SECONDS, adsV2Narr
 import { ADS_V2_PLAN_DAILY_CAP, checkV2Prompts, extractAdsV2Brief } from '@/lib/ads/v2Brief'
 import { adsV2LinkText } from '@/lib/ads/v2Link'
 import { researchState, storedResearchFacts } from '@/lib/ads/v2Research'
+// KINEO-ESTILOS-PRODUTO-2026-10-09 — interruptor único dos estilos de produto (false = o campo `style` é ignorado aqui).
+import { ADS_V2_STYLES_PUBLIC } from '@/lib/ads/v2Styles'
 import { loadAdsV2Order, type AdsV2StoredPlan } from '@/lib/ads/v2Advance'
 import { measureFootageVideo, ownedFootage, v2Fail, v2Json } from '@/lib/ads/v2Server'
 // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra grátis abre o plano (sem custo de fal) para a conta free/trial que ainda não usou a dela.
@@ -154,7 +156,10 @@ export async function POST(req: NextRequest) {
     const sector = simple && input.sector === 'other' && extracted.copy.sectorHint ? extracted.copy.sectorHint : input.sector
 
     // Lista de planos (determinística) e a régua anti-invenção também sobre cada prompt de movimento/cena.
-    const plan = planShots({ sector, tier: order.tier, photos: photos.map((p) => ({ id: p.footage_id, url: p.url, kind: p.kind })), seconds: order.seconds, ...(videos.length ? { videos } : {}) })
+    // KINEO-ESTILOS-PRODUTO-2026-10-09 — estilo pedido (já validado pelo contrato): só o plano-herói do produto ganha o
+    // efeito; sem foto de produto, planShots ignora e o plano sai como antes. O preço em créditos não muda.
+    const styleAsked = ADS_V2_STYLES_PUBLIC ? input.style ?? null : null
+    const plan = planShots({ sector, tier: order.tier, photos: photos.map((p) => ({ id: p.footage_id, url: p.url, kind: p.kind })), seconds: order.seconds, ...(videos.length ? { videos } : {}), ...(styleAsked ? { style: styleAsked } : {}) })
     const promptIssues = checkV2Prompts(plan.shots.flatMap((s) => [s.prompt, s.scenePrompt].filter((x): x is string => !!x)), extracted.brief)
     if (promptIssues.length) {
       await served(false, { stage: 'prompts', why: promptIssues.slice(0, 4) })
@@ -168,7 +173,7 @@ export async function POST(req: NextRequest) {
           .filter((o) => o.text)
     const stored: AdsV2StoredPlan = { ...plan, overlays, narration: extracted.copy.narration }
     const credits = adsV2Credits(order.tier, order.seconds)
-    const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source })), seconds: plan.totalSeconds })
+    const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds })
 
     const upd = await admin
       .from('ads_v2_orders')
@@ -195,7 +200,7 @@ export async function POST(req: NextRequest) {
       .select('id, card_url')
       .maybeSingle()
     if (upd.error || !upd.data) return v2Fail('not_editable', 409)
-    await served(true, { sector, shots: plan.shots.length, text_shots: plan.shots.filter((s) => s.kind === 'text').length, video_shots: plan.shots.filter((s) => s.kind === 'user_video').length, scenes: plan.shots.filter((s) => s.source === 'generated_scene').length, credits, usd: usd.totalUsd, attempts: extracted.attempts, sector_hint: extracted.copy.sectorHint, ...(extracted.voice ? { names_required: extracted.voice.names.length, names_missing: extracted.voice.namesMissing.length, common_noun: extracted.voice.commonNoun !== null } : {}) })
+    await served(true, { sector, shots: plan.shots.length, text_shots: plan.shots.filter((s) => s.kind === 'text').length, video_shots: plan.shots.filter((s) => s.kind === 'user_video').length, scenes: plan.shots.filter((s) => s.source === 'generated_scene').length, credits, usd: usd.totalUsd, attempts: extracted.attempts, sector_hint: extracted.copy.sectorHint, style_asked: styleAsked, style: plan.style ?? null, ...(extracted.voice ? { names_required: extracted.voice.names.length, names_missing: extracted.voice.namesMissing.length, common_noun: extracted.voice.commonNoun !== null } : {}) })
     return v2Json({
       order_id: order.id,
       status: 'planned',
@@ -209,7 +214,10 @@ export async function POST(req: NextRequest) {
       total_seconds: plan.totalSeconds,
       card_ready: Boolean((upd.data as { card_url: string | null }).card_url),
       photo_requests: plan.photoRequests,
-      shots: plan.shots.map((s) => ({ idx: s.idx, role: s.role, beat: s.beat, kind: s.kind, source: s.source, cut_seconds: s.cutSeconds, photo: s.sourceFootageId })),
+      // KINEO-ESTILOS-PRODUTO-2026-10-09 — o estilo pedido e o APLICADO (null = sem foto de produto, sai sem efeito).
+      style_asked: styleAsked,
+      style: plan.style ?? null,
+      shots: plan.shots.map((s) => ({ idx: s.idx, role: s.role, beat: s.beat, kind: s.kind, source: s.source, cut_seconds: s.cutSeconds, photo: s.sourceFootageId, ...(s.effect ? { effect: s.effect } : {}) })),
     })
   } catch (e) {
     console.warn('[ads/v2/plan] falhou:', e instanceof Error ? e.message : String(e))

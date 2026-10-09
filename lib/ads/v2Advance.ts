@@ -33,8 +33,8 @@ import { captionFontFor, narrationLanguage } from '@/lib/textLanguage'
 import { speakableForTts } from '@/lib/ads/speakable'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { buildShotInput } from '@/lib/ads/v2Engines'
-import { ADS_V2_ENGINES, adsV2RetakeCredits, routeShot, type AdsV2Engine, type AdsV2ShotKind, type AdsV2Tier } from '@/lib/ads/v2Tiers'
-import { ADS_V2_CARD_SECONDS, type AdsV2ShotPlan } from '@/lib/ads/v2ShotLists'
+import { ADS_V2_ENGINES, ADS_V2_FALLBACK_FROM_ATTEMPT, adsV2RetakeCredits, routeShot, type AdsV2Engine, type AdsV2ShotKind, type AdsV2Tier } from '@/lib/ads/v2Tiers'
+import { ADS_V2_CARD_SECONDS, isAdsV2PlanStyle, type AdsV2ShotPlan } from '@/lib/ads/v2ShotLists'
 import { buildAdV2Source, ADS_V2_VOICE_START, type AdV2MontageShot } from '@/lib/ads/adV2Montage'
 import { adsV2FallbackTrack, adsV2MusicTrimStart, adsV2MusicUsable, adsV2SwapLibraryTrack } from '@/lib/ads/v2Music'
 import { ADS_V2_QUALITY, confirmAdsV2Debit, failAdsV2Order } from '@/lib/ads/v2Billing'
@@ -195,7 +195,8 @@ export function buildInitialShotRows(orderId: string, tier: AdsV2Tier, plan: Pic
       }
     }
     const isText = s.kind === 'text'
-    const engine = isText ? null : routeShot(s.kind, tier, 1)
+    // KINEO-ESTILOS-PRODUTO-2026-10-09 — plano-herói com estilo nasce no efeito da PixVerse (sem estilo: a rota de antes).
+    const engine = isText ? null : routeShot(s.kind, tier, 1, isAdsV2PlanStyle(s.effect))
     return {
       order_id: orderId,
       idx: s.idx,
@@ -241,6 +242,16 @@ export function latestShots(rows: readonly AdsV2ShotRow[]): AdsV2ShotRow[] {
 }
 
 const READY = new Set(['done', 'skipped_text'])
+
+/**
+ * KINEO-ESTILOS-PRODUTO-2026-10-09 — a chave do estilo do plano `idx` gravada no plano do pedido (planShots marca o
+ * `effect` só no plano-herói do produto). null = plano sem estilo (rota e entrada de antes). Refação e variações copiam o
+ * plano do pai, então o estilo vai junto.
+ */
+export function adsV2ShotEffect(plan: Pick<AdsV2ShotPlan, 'shots'> | null | undefined, idx: number): string | null {
+  const s = Array.isArray(plan?.shots) ? plan!.shots.find((x) => x.idx === idx) : undefined
+  return s && isAdsV2PlanStyle(s.effect) ? s.effect : null
+}
 
 // ── transições de um plano (todas condicionais ao status de origem) ──────────────────────────────────────────────
 async function markShot(admin: SupabaseClient, row: AdsV2ShotRow, from: readonly string[], patch: Record<string, unknown>, stillNull?: 'submit_claimed_at' | 'image_submit_claimed_at'): Promise<boolean> {
@@ -339,9 +350,12 @@ async function submitVideoFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
   if (!claimed) return
   let input: Record<string, unknown>
   try {
-    input = buildShotInput(engine, { imageUrl: row.image_url ?? '', prompt: row.prompt ?? '' }) as unknown as Record<string, unknown>
+    // KINEO-ESTILOS-PRODUTO-2026-10-09 — o efeito sai da chave gravada no plano do pedido (só o 'pixverse_effect' a usa).
+    input = buildShotInput(engine, { imageUrl: row.image_url ?? '', prompt: row.prompt ?? '', effect: adsV2ShotEffect(order.plan, row.idx) }) as unknown as Record<string, unknown>
   } catch (e) {
-    await failShot(admin, row, ['pending', 'image_done'], `shot_input_invalid:${e instanceof Error ? e.message : String(e)}`, 'local_policy_gate')
+    // O efeito recusado AQUI não mata o anúncio: 'invalid_payload' entra na refação automática e, na 3ª tentativa, a
+    // reserva H3 anima a mesma foto com o prompt de movimento normal. Nos motores de antes, a recusa local segue terminal.
+    await failShot(admin, row, ['pending', 'image_done'], `shot_input_invalid:${e instanceof Error ? e.message : String(e)}`, engine === 'pixverse_effect' ? 'invalid_payload' : 'local_policy_gate')
     return
   }
   const spec = ADS_V2_ENGINES[engine]
@@ -466,10 +480,15 @@ async function pollOne(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2Sh
 async function retryOrTerminal(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow): Promise<string | null> {
   if (row.kind === 'text') return `text_shot_${row.idx}_${row.status}` // nunca acontece: text nasce skipped_text
   if (row.kind === 'user_video') return `user_video_shot_${row.idx}_${row.status}` // nunca acontece: nasce 'done', sem IA
-  if (row.reason_class && ADS_V2_NON_RETRY_CLASSES.includes(row.reason_class)) return `shot_${row.idx}_${row.reason_class}`
+  // KINEO-ESTILOS-PRODUTO-2026-10-09 — o efeito da PixVerse sem acesso (404/403 de modelo = 'auth_model_access') NÃO mata o
+  // anúncio: o plano segue para a próxima tentativa e cai na reserva H3, que é outro modelo. Saldo da fal (balance_quota)
+  // continua terminal (a conta é a mesma para todos os motores).
+  const effectAccess = row.engine === 'pixverse_effect' && row.reason_class === 'auth_model_access'
+  if (row.reason_class && ADS_V2_NON_RETRY_CLASSES.includes(row.reason_class) && !effectAccess) return `shot_${row.idx}_${row.reason_class}`
   if (row.attempt >= ADS_V2_MAX_AUTO_ATTEMPTS) return `shot_${row.idx}_exhausted:${row.reason ?? row.status}`
-  const attempt = row.attempt + 1
-  const engine = routeShot(row.kind, order.tier, attempt)
+  // Efeito sem acesso: pula direto para a reserva (repetir o mesmo modelo fechado só queima tempo).
+  const attempt = effectAccess ? Math.max(row.attempt + 1, ADS_V2_FALLBACK_FROM_ATTEMPT) : row.attempt + 1
+  const engine = routeShot(row.kind, order.tier, attempt, adsV2ShotEffect(order.plan, row.idx) !== null)
   if (!engine) return `shot_${row.idx}_no_engine`
   // Cena criada cuja IMAGEM já saiu reaproveita a imagem (só o vídeo falhou); falha na imagem recomeça pela imagem.
   const keepImage = row.source === 'client_photo' || !!row.image_url
