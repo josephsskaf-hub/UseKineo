@@ -75,7 +75,9 @@ import { VariationToggle, variationsCopy, variationsPrice } from './AdsV2Variati
 import { ADS_SAMPLE_TIER, adsSampleCopy, type AdsSampleCopy } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — a escolha de estilo do produto (Auto + 5 efeitos), nas 16 línguas.
 import { ADS_V2_STYLES_PUBLIC, adsV2StyleCopy, adsV2SuggestedStyle, type AdsV2StyleChoice, type AdsV2StyleCopy } from '@/lib/ads/v2Styles'
-import { AdsStylePicker } from '@/components/ads/AdsStyles'
+import { AdsPresenterToggle, AdsStylePicker } from '@/components/ads/AdsStyles'
+// KINEO-ATOR-ANUNCIO-2026-10-09 — o ator de IA ("Person talking about it"): interruptor e frases nas 16 línguas (lib pura).
+import { ADS_V2_PRESENTER_PUBLIC, adsV2PresenterCopy, type AdsV2PresenterCopy } from '@/lib/ads/v2Presenter'
 
 // ─── tipos ────────────────────────────────────────────────────────────────────────────────────
 
@@ -122,6 +124,9 @@ interface PlanResponse {
   /** KINEO-ESTILOS-PRODUTO-2026-10-09 — o estilo pedido e o aplicado (null = sem plano de produto, saiu sem efeito). */
   style_asked?: string | null
   style?: string | null
+  /** KINEO-ATOR-ANUNCIO-2026-10-09 — o ator pedido e o aplicado (false com pedido = sem texto de narração). */
+  presenter_asked?: boolean
+  presenter?: boolean
   narration: string | null
   overlays: { role: string; start: number; end: number; text: string }[]
   total_seconds: number
@@ -372,6 +377,8 @@ export function AdsV2SimpleSession({
   const [tier, setTier] = useState<AdsV2Tier | null>(sample ? ADS_SAMPLE_TIER : null)
   // KINEO-ESTILOS-PRODUTO-2026-10-09 — null = segue a sugestão do setor; a pessoa escolheu = vale a escolha dela.
   const [styleChoice, setStyleChoice] = useState<AdsV2StyleChoice | null>(null)
+  // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator começa desligado (a pessoa liga; nada muda para quem não liga).
+  const [presenterChoice, setPresenterChoice] = useState(false)
   const [price, setPrice] = useState('')
   const [contact, setContact] = useState('')
   const [overlaysOn, setOverlaysOn] = useState(true)
@@ -438,7 +445,12 @@ export function AdsV2SimpleSession({
   const styleCopy: AdsV2StyleCopy = adsV2StyleCopy(lang)
   const styleSuggested: AdsV2StyleChoice = sentence && sector !== 'other' ? adsV2SuggestedStyle(sector) : 'none'
   const style: AdsV2StyleChoice = ADS_V2_STYLES_PUBLIC ? styleChoice ?? styleSuggested : 'none'
-  const firstAsProduct = style !== 'none' && photoKind !== 'text'
+  // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator fala a narração e segura O produto: sem voz ou com fotos de tela ('text'), o
+  // cartão fica desligado com o motivo. Ligado, a 1ª foto também vai como produto (é ela que o ator segura).
+  const presenterCopy: AdsV2PresenterCopy = adsV2PresenterCopy(lang)
+  const presenterWhy: string | null = !narrationOn ? presenterCopy.needsVoice : photoKind === 'text' ? presenterCopy.needsProduct : null
+  const presenterOn = ADS_V2_PRESENTER_PUBLIC && presenterChoice && presenterWhy === null
+  const firstAsProduct = style !== 'none' && photoKind !== 'text' || presenterOn
   const detected = detectNarrationLanguage(sentence).language
   const spoken: NarrationLanguage = voiceLang ?? narrationLanguage(detected) ?? narrationLanguage(lang) ?? 'en'
   const cardTitleFinal = cardTitle.trim() || simpleTitle(sentence)
@@ -449,7 +461,7 @@ export function AdsV2SimpleSession({
 
   /** Chave do rascunho: mudou texto, preço, contato, frases, voz, língua ou nível = rascunho novo (a pesquisa é copiada). */
   const draftKey = JSON.stringify({ text: sentence, price: priceT, contact: contactT, overlays: overlaysOn, voice: narrationOn, lang: spoken, tier })
-  const baseSig = JSON.stringify({ draftKey, sector, items: inAd.map((p) => [p.key, focalSig(p)]), style })
+  const baseSig = JSON.stringify({ draftKey, sector, presenter: presenterOn, items: inAd.map((p) => [p.key, focalSig(p)]), style })
   // A marca de um fato é presa ao CONTEÚDO (fonte + texto), nunca ao id f1..f6: uma pesquisa nova tem outro f1 e não herda
   // a marca do anterior; a mesma pesquisa copiada para um rascunho novo (troca de nível) mantém a marca.
   const factKey = (f: Fact) => JSON.stringify([f.url, f.text])
@@ -985,7 +997,7 @@ export function AdsV2SimpleSession({
       setBusyNote(copy.plan.notePlan)
       const r = await api<PlanResponse>('/api/ads/v2/plan', {
         method: 'POST',
-        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}) },
+        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}) },
       })
       if (!aliveRef.current) return
       if (!r.ok) {
@@ -1286,6 +1298,17 @@ export function AdsV2SimpleSession({
                   note={photoKind === 'text' ? styleCopy.noProduct : styleCopy.targetSimple}
                 />
               ) : null}
+              {ADS_V2_PRESENTER_PUBLIC ? (
+                <AdsPresenterToggle
+                  name="adv2s-presenter"
+                  checked={presenterChoice}
+                  onChange={setPresenterChoice}
+                  disabled={locked}
+                  reason={presenterWhy}
+                  note={presenterCopy.simpleNote}
+                  copy={presenterCopy}
+                />
+              ) : null}
               {scopy ? <p className="adsw-hint">{scopy.note}</p> : null}
               <p className="adv2-balance" role="status">
                 {balance === null ? copy.tiers.balanceUnknown : fill(copy.tiers.balance, { n: balance })}{' '}
@@ -1343,6 +1366,7 @@ export function AdsV2SimpleSession({
                   narrationOn={narrationOn}
                   itemByFootage={itemByFootage}
                   styleCopy={styleCopy}
+                  presenterCopy={presenterCopy}
                   onMake={() => void makeAd()}
                 />
                 </>
@@ -1533,6 +1557,7 @@ function SimplePlanPreview({
   narrationOn,
   itemByFootage,
   styleCopy,
+  presenterCopy,
   onMake,
 }: {
   plan: Plan
@@ -1546,6 +1571,8 @@ function SimplePlanPreview({
   narrationOn: boolean
   itemByFootage: Map<string, SimpleItem>
   styleCopy: AdsV2StyleCopy
+  /** KINEO-ATOR-ANUNCIO-2026-10-09 — frases do ator na língua da tela. */
+  presenterCopy: AdsV2PresenterCopy
   onMake: () => void
 }) {
   const styleName = (k: string | null | undefined) => (k && k in styleCopy.styles ? styleCopy.styles[k as keyof AdsV2StyleCopy['styles']].label : null)
@@ -1579,6 +1606,7 @@ function SimplePlanPreview({
         </li>
       </ol>
       {plan.style_asked && !plan.style ? <p className="adsw-hint">{styleCopy.noProduct}</p> : null}
+      {plan.presenter ? <p className="adsw-hint">🎙 <b>{presenterCopy.title}</b> · {presenterCopy.planLine}</p> : plan.presenter_asked ? <p className="adsw-hint">{presenterCopy.notApplied}</p> : null}
       <h3>{copy.plan.words}</h3>
       {plan.overlays.length ? (
         <ul className="adv2-lines">{plan.overlays.map((o) => <li key={`${o.role}-${o.start}`}>{o.text}</li>)}</ul>

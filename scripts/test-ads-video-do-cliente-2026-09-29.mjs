@@ -360,7 +360,9 @@ const advStubs = {
 // KINEO-ADS-AMOSTRA-2026-10-09 — re-ancorado: v2Billing (failAdsV2Order não estorna chave 'adssample-…') e v2Advance
 // (linhas faltando de amostra sem débito para conferir) passaram a importar a lib PURA lib/ads/sample.ts (isAdsSampleRef);
 // carregada de verdade, não stub — chave 'adsv2-…' segue o caminho de sempre em tudo que este guardião prova.
-const REAL = ['lib/ads/v2Engines.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/adV2Montage.ts', 'lib/ads/v2Music.ts', 'lib/ads/v2Variations.ts', 'lib/ads/sample.ts']
+// KINEO-ATOR-ANUNCIO-2026-10-09 — re-ancorado: o v2Advance importa a lib PURA lib/ads/v2Presenter.ts (o ator de IA); carregada de
+// verdade — pedido sem plan.presenter (todos os daqui) segue o caminho de sempre.
+const REAL = ['lib/ads/v2Engines.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/adV2Montage.ts', 'lib/ads/v2Music.ts', 'lib/ads/v2Variations.ts', 'lib/ads/sample.ts', 'lib/ads/v2Presenter.ts']
 const avanco = (src) => makeLoader(advStubs, { real: REAL, over: src === undefined ? {} : { [F.advance]: src } })(F.advance)
 const A = avanco()
 const ORDER = U(1), USER = U(9)

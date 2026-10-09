@@ -187,7 +187,7 @@ export async function POST(req: NextRequest) {
     const sector = a.sector ?? 'other'
     const base: AdsV2StoredPlan = storedBase && sameJson(applyAdsV2Look(storedBase, 'A', { sector, motion: lookMotion }), a.plan) ? storedBase : a.plan
     const plans = ADS_V2_VARIATION_SLOTS.map((slot) => applyAdsV2Look(base, slot, { sector, motion: lookMotion }))
-    const usdOne = estimateAdUsd({ tier: a.tier, shots: base.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: base.totalSeconds }) // KINEO-ESTILOS-PRODUTO-2026-10-09 — o plano com estilo custa o efeito
+    const usdOne = estimateAdUsd({ tier: a.tier, shots: base.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: base.totalSeconds, presenter: !!base.presenter }) // KINEO-ESTILOS-PRODUTO-2026-10-09 — o plano com estilo custa o efeito · KINEO-ATOR-ANUNCIO-2026-10-09 — o ator custa a foto e o vídeo falado
     const usdTotal = Math.round(usdOne.totalUsd * 3 * 1000) / 1000
 
     if (dryRun) {

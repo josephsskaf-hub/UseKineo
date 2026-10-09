@@ -42,7 +42,9 @@ import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
 import { ADS_SAMPLE_TIER, adsSampleCopy, type AdsSampleCopy } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — a escolha de estilo do produto (modo completo = inglês).
 import { ADS_V2_STYLE_COPY, ADS_V2_STYLES_PUBLIC, adsV2SuggestedStyle, type AdsV2StyleChoice } from '@/lib/ads/v2Styles'
-import { AdsStylePicker } from '@/components/ads/AdsStyles'
+import { AdsPresenterToggle, AdsStylePicker } from '@/components/ads/AdsStyles'
+// KINEO-ATOR-ANUNCIO-2026-10-09 — o ator de IA ("Person talking about it"): interruptor e frases (lib pura; o completo é em inglês).
+import { ADS_V2_PRESENTER_COPY, ADS_V2_PRESENTER_PUBLIC } from '@/lib/ads/v2Presenter'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { ADS_WIZARD_THEME_CSS } from '../new/adsWizardTheme'
 import { downloadVideoFile } from '@/lib/videoDownload'
@@ -119,6 +121,9 @@ interface PlanResponse {
   /** KINEO-ESTILOS-PRODUTO-2026-10-09 — o estilo pedido e o aplicado (null = sem foto de produto, saiu sem efeito). */
   style_asked?: string | null
   style?: string | null
+  /** KINEO-ATOR-ANUNCIO-2026-10-09 — o ator pedido e o aplicado (false com pedido = sem texto de narração). */
+  presenter_asked?: boolean
+  presenter?: boolean
   narration: string | null
   overlays: { role: string; start: number; end: number; text: string }[]
   total_seconds: number
@@ -634,6 +639,8 @@ function AdsV2Session({
   const [tier, setTier] = useState<AdsV2Tier | null>(null)
   // KINEO-ESTILOS-PRODUTO-2026-10-09 — null = segue a sugestão do setor escolhido; a pessoa escolheu = vale a escolha dela.
   const [styleChoice, setStyleChoice] = useState<AdsV2StyleChoice | null>(null)
+  // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator começa desligado (a pessoa liga; nada muda para quem não liga).
+  const [presenterChoice, setPresenterChoice] = useState(false)
   // KINEO-ADS-3-VARIACOES-2026-09-30 — "3 variações" ligada (só aparece com a opção liberada para a conta).
   const [three, setThree] = useState(false)
   const [business, setBusiness] = useState('')
@@ -702,6 +709,11 @@ function AdsV2Session({
   // como Product (sem foto de produto, o servidor ignora o estilo e o anúncio sai como antes).
   const styleSuggested: AdsV2StyleChoice = sector ? adsV2SuggestedStyle(sector) : 'none'
   const style: AdsV2StyleChoice = ADS_V2_STYLES_PUBLIC ? styleChoice ?? styleSuggested : 'none'
+  // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator fala a narração e segura a foto marcada como Product: sem voz ou sem foto de
+  // produto, o cartão fica desligado com o motivo à vista (o servidor recusaria com 400 presenter_needs_voice_and_product).
+  const presenterHasProduct = photos.some((p) => p.kind === 'product' && !p.video)
+  const presenterWhy: string | null = !narrationOn ? ADS_V2_PRESENTER_COPY.en.needsVoice : !presenterHasProduct ? ADS_V2_PRESENTER_COPY.en.needsProduct : null
+  const presenterOn = ADS_V2_PRESENTER_PUBLIC && presenterChoice && presenterWhy === null
   const composed = composeSentence(business, sentence)
   const linkNorm = normalizeLink(link)
 
@@ -715,8 +727,9 @@ function AdsV2Session({
         logo: logo?.footageId ?? null,
         photos: photos.map((p) => [p.key, p.kind, focalSig(p)]),
         style,
+        presenter: presenterOn,
       }),
-    [tier, composed, linkNorm, sector, logo?.footageId, photos, style],
+    [tier, composed, linkNorm, sector, logo?.footageId, photos, style, presenterOn],
   )
   const cardSig = JSON.stringify({ business: business.trim(), ...card, logo: logo?.footageId ?? null })
   const planFresh = !!plan && plan.sig === planSig
@@ -1173,7 +1186,7 @@ function AdsV2Session({
       setBusyNote('Planning your shots, the words on screen and the voice-over…')
       const r = await api<PlanResponse>('/api/ads/v2/plan', {
         method: 'POST',
-        body: { order_id: orderId, sector, logo_footage_id: logo?.footageId, photos: uploaded, videos, card_footage_id: cardDone.footageId, ...(style !== 'none' ? { style } : {}) },
+        body: { order_id: orderId, sector, logo_footage_id: logo?.footageId, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: cardDone.footageId, ...(style !== 'none' ? { style } : {}) },
       })
       if (!aliveRef.current) return
       if (!r.ok) {
@@ -1451,6 +1464,17 @@ function AdsV2Session({
                   disabled={locked}
                   copy={ADS_V2_STYLE_COPY.en}
                   note={ADS_V2_STYLE_COPY.en.target}
+                />
+              ) : null}
+              {ADS_V2_PRESENTER_PUBLIC ? (
+                <AdsPresenterToggle
+                  name="adv2-presenter"
+                  checked={presenterChoice}
+                  onChange={setPresenterChoice}
+                  disabled={locked}
+                  reason={presenterWhy}
+                  note={ADS_V2_PRESENTER_COPY.en.fullNote}
+                  copy={ADS_V2_PRESENTER_COPY.en}
                 />
               ) : null}
               {scopy ? <p className="adsw-hint">{scopy.note}</p> : null}
@@ -1883,6 +1907,7 @@ function PlanPreview({
         </li>
       </ol>
       {plan.style_asked && !plan.style ? <p className="adsw-hint">{ADS_V2_STYLE_COPY.en.noProduct}</p> : null}
+      {plan.presenter ? <p className="adsw-hint">🎙 <b>{ADS_V2_PRESENTER_COPY.en.title}</b> · {ADS_V2_PRESENTER_COPY.en.planLine}</p> : plan.presenter_asked ? <p className="adsw-hint">{ADS_V2_PRESENTER_COPY.en.notApplied}</p> : null}
       {plan.overlays.length ? (
         <>
           <h3>Words on screen</h3>

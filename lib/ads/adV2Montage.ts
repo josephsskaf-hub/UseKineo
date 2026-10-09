@@ -110,6 +110,21 @@ export interface AdV2MontageInput {
    * Ausente/null = anúncio comum, source idêntico ao de antes.
    */
   tint?: string | null
+  /**
+   * KINEO-ATOR-ANUNCIO-2026-10-09 — o ATOR (lib/ads/v2Presenter.ts): o vídeo falado vira a trilha BASE do anúncio e os
+   * planos de `shots` entram só como inserts curtos por cima. Ausente/null = o anúncio de sempre, source idêntico ao de
+   * antes. Com ator, `voiceUrl` é IGNORADO: a voz é o áudio do próprio ator (nunca duas vozes).
+   */
+  presenter?: AdV2PresenterInput | null
+}
+
+/** KINEO-ATOR-ANUNCIO-2026-10-09 — o vídeo do ator, já no NOSSO bucket e medido, e a ordem preferida dos inserts. */
+export interface AdV2PresenterInput {
+  url: string
+  /** Duração MEDIDA do vídeo falado (mvhd): a fala inteira mora nele. */
+  measuredSeconds: number
+  /** Posições em `shots` na ordem de preferência dos inserts (estilo → herói → produto → lugar → gente → vídeo). */
+  insertOrder: readonly number[]
 }
 
 /** Véu aceito: rgba com alfa entre 0,05 e 0,3 (mais que isso lava a foto). */
@@ -126,6 +141,8 @@ const isHttps = (u: unknown): u is string => typeof u === 'string' && /^https:\/
 const finitePos = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n) && n > 0
 
 export function buildAdV2Source(input: AdV2MontageInput): Record<string, unknown> {
+  // KINEO-ATOR-ANUNCIO-2026-10-09 — com ator, outra linha do tempo (abaixo); sem ator, nada muda daqui para baixo.
+  if (input.presenter !== undefined && input.presenter !== null) return buildAdV2PresenterSource(input, input.presenter)
   const { width, height } = input
   if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0 || width % 2 || height % 2) {
     throw new Error('ads_v2_montage_bad_size')
@@ -283,6 +300,182 @@ export function buildAdV2Source(input: AdV2MontageInput): Record<string, unknown
       elements.push(musicEl(rise, total - rise, trim + rise, ADS_V2_MUSIC_VOLUME_NO_VOICE, 0.6, 1))
     } else {
       elements.push(musicEl(0, total, trim, hasVoice ? ADS_V2_MUSIC_VOLUME_WITH_VOICE : ADS_V2_MUSIC_VOLUME_NO_VOICE, 0.5, 1))
+    }
+  }
+
+  return {
+    output_format: 'mp4',
+    width,
+    height,
+    frame_rate: ADS_V2_FRAME_RATE,
+    duration: total,
+    snapshot_time: 1,
+    elements,
+  }
+}
+
+// ── KINEO-ATOR-ANUNCIO-2026-10-09 — o ATOR como trilha base ──────────────────────────────────────────────────────────
+// Linha do tempo com ator (decisão do fundador 09/10, "boca acompanhando a fala"):
+//   · o vídeo falado entra em 0 s, com o SOM dele (é a voz do anúncio), do começo ao fim da fala;
+//   · os 2,5 s de abertura são só o rosto (o gancho é a pessoa); depois, a cada ~3 s de rosto, um insert de 1,5-2,5 s
+//     com uma foto animada do cliente (ou o plano do estilo) POR CIMA, mudo — a fala continua por baixo, sem corte;
+//   · os últimos 2 s antes do cartão voltam ao rosto; o cartão (logo real) entra com dissolve no fim da fala;
+//   · as frases de tela são as mesmas do plano, esticadas para a duração da fala; véu de cor das variações por cima;
+//   · música por baixo, mais baixa que no anúncio de foto (a voz do ator vem do vídeo), e sobe depois da fala.
+/** Abertura só com o rosto. */
+export const ADS_V2_PRESENTER_HOOK = 2.5
+/** Rosto entre um insert e o seguinte. */
+export const ADS_V2_PRESENTER_GAP = 3
+/** Rosto no fim, antes do cartão. */
+export const ADS_V2_PRESENTER_TAIL = 2
+/** Duração alvo de cada insert, e a faixa aceita. */
+export const ADS_V2_PRESENTER_INSERT_SECONDS = 2
+export const ADS_V2_PRESENTER_INSERT_MIN = 1.5
+export const ADS_V2_PRESENTER_INSERT_MAX = 2.5
+/** Fala mais curta que isto não sustenta o anúncio com ator (o chamador volta ao anúncio de sempre). */
+export const ADS_V2_PRESENTER_MIN_SECONDS = 3
+/** Música sob a fala do ator (a voz do vídeo do avatar chega mais baixa que a TTS pura). */
+export const ADS_V2_MUSIC_VOLUME_PRESENTER = '18%'
+/** Trilhas: o ator na trilha dos planos (2); inserts na trilha do cartão (3) — nunca se cruzam no tempo. */
+export const ADS_V2_PRESENTER_TRACK = 2
+export const ADS_V2_PRESENTER_INSERT_TRACK = 3
+
+export interface AdV2PresenterInsert {
+  /** Posição do plano em `shots`. */
+  shot: number
+  time: number
+  seconds: number
+}
+
+/**
+ * Onde entram os inserts (pura): na ordem pedida, a partir do gancho, um a cada (insert + GAP), enquanto couber antes do
+ * rosto final. Cada insert usa o MESMO trecho escolhido no plano (cutStart) e nunca passa do clipe medido. Plano de texto,
+ * sem medida ou sem URL https fica de fora.
+ */
+export function adsV2PresenterInserts(mainSeconds: number, shots: readonly AdV2MontageShot[], order: readonly number[]): AdV2PresenterInsert[] {
+  const out: AdV2PresenterInsert[] = []
+  if (!finitePos(mainSeconds)) return out
+  const seen = new Set<number>()
+  let t = ADS_V2_PRESENTER_HOOK
+  for (const i of Array.isArray(order) ? order : []) {
+    if (!Number.isInteger(i) || i < 0 || i >= shots.length || seen.has(i)) continue
+    seen.add(i)
+    const s = shots[i]
+    if (!s || s.kind === 'text' || !isHttps(s.url) || !finitePos(s.measuredSeconds) || !finitePos(s.cutSeconds)) continue
+    const start = typeof s.cutStart === 'number' && Number.isFinite(s.cutStart) && s.cutStart >= 0 ? s.cutStart : 0
+    const seconds = r3(Math.min(ADS_V2_PRESENTER_INSERT_SECONDS, ADS_V2_PRESENTER_INSERT_MAX, s.cutSeconds, s.measuredSeconds - start))
+    if (!(seconds >= ADS_V2_PRESENTER_INSERT_MIN)) continue
+    if (r3(t + seconds) > r3(mainSeconds - ADS_V2_PRESENTER_TAIL)) break
+    out.push({ shot: i, time: r3(t), seconds })
+    t = r3(t + seconds + ADS_V2_PRESENTER_GAP)
+  }
+  return out
+}
+
+function buildAdV2PresenterSource(input: AdV2MontageInput, presenter: AdV2PresenterInput): Record<string, unknown> {
+  const { width, height } = input
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0 || width % 2 || height % 2) {
+    throw new Error('ads_v2_montage_bad_size')
+  }
+  if (!isHttps(presenter?.url)) throw new Error('ads_v2_montage_bad_presenter')
+  if (!finitePos(presenter.measuredSeconds)) throw new Error('ads_v2_montage_presenter_unmeasured')
+  const clip = r3(presenter.measuredSeconds)
+  // A fala ocupa o clipe inteiro; o cartão entra com dissolve nos últimos ADS_V2_MONTAGE_FADE s do clipe.
+  const main = r3(clip - ADS_V2_MONTAGE_FADE)
+  if (main < ADS_V2_PRESENTER_MIN_SECONDS) throw new Error(`ads_v2_montage_presenter_too_short:${clip}`)
+  const shots = Array.isArray(input.shots) ? input.shots : []
+  if (!isHttps(input.cardUrl)) throw new Error('ads_v2_montage_bad_card')
+  const cardSeconds = input.cardSeconds ?? 2.5
+  if (!finitePos(cardSeconds)) throw new Error('ads_v2_montage_bad_card_seconds')
+  const fontFamily = typeof input.fontFamily === 'string' && input.fontFamily.trim() ? input.fontFamily.trim() : ''
+  if (!fontFamily) throw new Error('ads_v2_montage_bad_font')
+  const total = r3(main + cardSeconds)
+
+  const elements: Record<string, unknown>[] = []
+  elements.push({
+    type: 'shape', track: 1, time: 0, duration: total,
+    x: '50%', y: '50%', width: '100%', height: '100%',
+    path: ADS_V2_RECT_PATH, fill_color: '#000000',
+  })
+  // O ator: o clipe inteiro, COM o som (é a voz do anúncio). Sem loop, sem trecho: a fala começa no 0 do clipe.
+  elements.push({
+    type: 'video', track: ADS_V2_PRESENTER_TRACK, time: 0, duration: clip,
+    source: presenter.url.trim(), fit: 'cover', loop: false, trim_start: 0,
+    x: '50%', y: '50%', width: '100%', height: '100%',
+    volume: '100%',
+  })
+  // Inserts por cima, MUDOS (a fala do ator continua por baixo), corte seco como num vídeo de criador.
+  for (const ins of adsV2PresenterInserts(main, shots, presenter.insertOrder)) {
+    const shot = shots[ins.shot]
+    const start = typeof shot.cutStart === 'number' && Number.isFinite(shot.cutStart) && shot.cutStart >= 0 ? shot.cutStart : 0
+    const frame = shot.kind === 'user_video'
+      ? userVideoFrame(width, height, shot.videoWidth, shot.videoHeight, shot.focusX, shot.focusY)
+      : { x: '50%', y: '50%', width: '100%', height: '100%' }
+    elements.push({
+      type: 'video', track: ADS_V2_PRESENTER_INSERT_TRACK, time: ins.time, duration: ins.seconds,
+      source: shot.url.trim(), fit: 'cover', loop: false, trim_start: r3(start),
+      ...frame,
+      volume: '0%',
+    })
+  }
+  // Cartão final (logo real), no fim da fala.
+  elements.push({
+    type: 'image', track: 3, time: main, duration: r3(cardSeconds),
+    source: input.cardUrl.trim(), fit: 'cover',
+    x: '50%', y: '50%', width: '100%', height: '100%',
+    enter_transition: { type: 'fade', duration: ADS_V2_MONTAGE_FADE },
+  })
+  const tint = input.tint ?? null
+  if (tint !== null) {
+    if (typeof tint !== 'string' || !ADS_V2_TINT_RE.test(tint)) throw new Error('ads_v2_montage_bad_tint')
+    elements.push({
+      type: 'shape', track: ADS_V2_TINT_TRACK, time: 0, duration: main,
+      x: '50%', y: '50%', width: '100%', height: '100%',
+      path: ADS_V2_RECT_PATH, fill_color: tint,
+    })
+  }
+  // Frases: validadas contra a linha do tempo do PLANO (como no anúncio de sempre) e esticadas para a da fala.
+  const shotsSeconds = r3(shots.reduce((sum, s) => sum + (finitePos(s?.cutSeconds) ? s.cutSeconds : 0), 0))
+  const overlays = Array.isArray(input.overlays) ? input.overlays : []
+  if (overlays.length > ADS_V2_MAX_OVERLAYS) throw new Error('ads_v2_montage_too_many_overlays')
+  const scale = shotsSeconds > 0 ? main / shotsSeconds : 1
+  overlays.forEach((o, i) => {
+    const text = typeof o?.text === 'string' ? o.text.trim() : ''
+    if (!text) throw new Error(`ads_v2_montage_empty_overlay:${i}`)
+    if (!(Number.isFinite(o.start) && Number.isFinite(o.end) && o.start >= 0 && o.end > o.start && o.end <= shotsSeconds)) {
+      throw new Error(`ads_v2_montage_overlay_window:${i}`)
+    }
+    const start = r3(o.start * scale)
+    const end = r3(Math.min(o.end * scale, main))
+    if (!(end > start)) throw new Error(`ads_v2_montage_overlay_window:${i}`)
+    elements.push({
+      type: 'text', track: 4, time: start, duration: r3(end - start),
+      text,
+      x: '50%', y: pct(ADS_V2_OVERLAY_Y), x_anchor: '50%', y_anchor: '50%',
+      width: '84%', height: pct(ADS_V2_OVERLAY_H),
+      font_family: fontFamily, font_size: 64, font_weight: '800', line_height: '110%',
+      fill_color: '#ffffff', stroke_color: 'rgba(0,0,0,0.55)', stroke_width: 2,
+      background_color: 'rgba(0,0,0,0.55)', background_x_padding: '3%', background_y_padding: '2%', border_radius: 10,
+      enter_transition: { type: 'fade', duration: 0.2 },
+    })
+  })
+  // NENHUM elemento de voz: a voz é o som do ator (input.voiceUrl é ignorado de propósito — duas vozes, nunca).
+  if (input.musicUrl) {
+    if (!isHttps(input.musicUrl)) throw new Error('ads_v2_montage_bad_music')
+    const trim = input.musicTrimStart ?? 0
+    if (!(typeof trim === 'number' && Number.isFinite(trim) && trim >= 0)) throw new Error('ads_v2_montage_bad_music_trim')
+    const source = input.musicUrl.trim()
+    const musicEl = (time: number, duration: number, start: number, volume: string, fadeIn: number, fadeOut: number): Record<string, unknown> => ({
+      type: 'audio', track: 6, time: r3(time), duration: r3(duration), source, volume,
+      ...(start > 0 ? { trim_start: r3(start) } : { loop: true }),
+      audio_fade_in: fadeIn, audio_fade_out: fadeOut,
+    })
+    const rise = r3(clip + ADS_V2_MUSIC_RISE_AFTER_VOICE)
+    if (rise < total - 0.5) {
+      elements.push(musicEl(0, rise, trim, ADS_V2_MUSIC_VOLUME_PRESENTER, 0.5, 0.3))
+      elements.push(musicEl(rise, total - rise, trim + rise, ADS_V2_MUSIC_VOLUME_NO_VOICE, 0.6, 1))
+    } else {
+      elements.push(musicEl(0, total, trim, ADS_V2_MUSIC_VOLUME_PRESENTER, 0.5, 1))
     }
   }
 

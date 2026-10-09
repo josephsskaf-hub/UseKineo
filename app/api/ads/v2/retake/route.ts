@@ -63,6 +63,8 @@ export async function POST(req: NextRequest) {
     // KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — o vídeo do cliente entra como ele gravou: não passa por IA, então não há o
     // que refazer (nada é cobrado). Outro trecho = planejar de novo, grátis. Decisão: desabilitar com explicação.
     if (target.kind === 'user_video') return v2Fail('video_not_retakable', 400)
+    // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator não tem refação paga (não aparece na lista de planos da tela).
+    if (target.kind === 'presenter') return v2Fail('presenter_not_retakable', 400)
     if (target.status !== 'done' || !target.image_url) return v2Fail('shot_not_ready', 409)
     const price = adsV2RetakeCredits(target.kind, parent.tier)
     if (price !== expected) return v2Fail('price_changed', 409, { credits: price })
@@ -142,7 +144,9 @@ export async function POST(req: NextRequest) {
     // KINEO-ADS-3-VARIACOES-2026-09-30 — refação de uma variação mantém o LOOK dela (grade de cor); pedido comum = o
     // prompt de sempre, byte a byte (adsV2RetakePrompt com slot nulo devolve a base intocada).
     const look = variationTagOf(parent.brief)?.slot ?? null
-    const rows = latest.map((r) => {
+    // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator PRONTO do pai vai copiado (a refação sai com ele, sem custo); o que desistiu fica
+    // de fora (a refação sai sem ator, como o pai saiu — nunca se paga um ator novo numa refação de plano).
+    const rows = latest.filter((r) => r.kind !== 'presenter' || r.status === 'done').map((r) => {
       if (r.idx !== idx) {
         return {
           order_id: retakeId, idx: r.idx, attempt: 1, role: r.role, kind: r.kind, source: r.source, source_footage_id: r.source_footage_id,

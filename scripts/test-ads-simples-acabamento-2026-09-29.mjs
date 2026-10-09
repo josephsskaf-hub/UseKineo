@@ -326,7 +326,8 @@ async function rodaPlano(order, body, { routeSrc, briefSrc, extractSpy = false }
     '@/lib/ads/v2Brief': briefStub,
   }
   // KINEO-ESTILOS-PRODUTO-2026-10-09 — re-ancorado: a rota /plan importa o interruptor ADS_V2_STYLES_PUBLIC de lib/ads/v2Styles.ts (lib PURA).
-  const route = makeLoader(stubs, { real: ['lib/textLanguage.ts', 'lib/ads/v2Contract.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/v2Research.ts', 'lib/ads/v2Styles.ts'], over: routeSrc ? { [F.planRoute]: routeSrc } : {} })(F.planRoute)
+  // KINEO-ATOR-ANUNCIO-2026-10-09 — re-ancorado: a rota /plan importa o interruptor e o plano do ator de lib/ads/v2Presenter.ts (lib PURA).
+  const route = makeLoader(stubs, { real: ['lib/textLanguage.ts', 'lib/ads/v2Contract.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/v2Research.ts', 'lib/ads/v2Styles.ts', 'lib/ads/v2Presenter.ts'], over: routeSrc ? { [F.planRoute]: routeSrc } : {} })(F.planRoute)
   const res = await route.POST({ json: async () => body, nextUrl: { searchParams: new URLSearchParams() } })
   return { res, tables, log, openai: oa.log }
 }

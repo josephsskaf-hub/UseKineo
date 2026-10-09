@@ -167,7 +167,11 @@ await check('A3 trocar de modo é link de página inteira (o anúncio em andamen
 // sugestão pelo setor, o AdsStylePicker no passo 1, o estilo na assinatura e no corpo do /plan quando escolhido, e o nome do
 // efeito na prévia do plano). Sem estilo (Auto) o corpo e o anúncio são os de antes; provado com mutantes em
 // scripts/test-ads-estilos-2026-10-09.mjs. Base anterior: 878af2d0….
-const Z1_BASE = "6cbb8294045d2c7794f85b7a156f415ca237c4630402c99b560d0a09e836e98d"
+// KINEO-ATOR-ANUNCIO-2026-10-09 — re-ancorado: o completo ganhou SÓ o cartão do ator de IA ("Person talking about it": estado
+// presenterChoice, o motivo de desligado sem voz/sem foto de produto, o AdsPresenterToggle no passo 1, o ator na assinatura e
+// no corpo do /plan quando ligado, e a linha do ator na prévia do plano). Desligado (padrão) o corpo e o anúncio são os de
+// antes; provado com mutantes em scripts/test-ads-ator-2026-10-09.mjs. Base anterior: 6cbb8294….
+const Z1_BASE = "5ee17e2b8227bf448df5b3d25368b84eb8135cce03615d0eb5bc6eb3b3dcfdd6"
 const trechoCompleto = (src) => { const s = src.replace(/\r\n/g, '\n'); const i = s.indexOf('function AdsV2Session('); return i < 0 ? '' : semComentarios(s.slice(i)) }
 await check('Z1 impressão digital do modo completo (AdsV2Session, PhotoRow, PlanPreview, ShotGrid) = a do vídeo do cliente (29/09)', sha(trechoCompleto(SRC.client)) === Z1_BASE)
 await check('Z1-mutante: 1 caractere trocado no modo completo fica vermelho', () => sha(trechoCompleto(trocar(SRC.client, "const POLL_RETRY_MS = 20_000", "const POLL_RETRY_MS = 20_001").replace('Plan my ad (free)', 'Plan my ad (freE)'))) !== Z1_BASE)
@@ -296,7 +300,8 @@ function mundo(order, extra = {}) {
   return { tables, log, stubs }
 }
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — re-ancorado: a rota /plan importa o interruptor ADS_V2_STYLES_PUBLIC de lib/ads/v2Styles.ts (lib PURA: só import type).
-const loadRoute = (rel, stubs, src) => makeLoader(stubs, { real: ['lib/textLanguage.ts', 'lib/ads/v2Contract.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/v2Research.ts', 'lib/ads/v2Styles.ts'], over: src === undefined ? {} : { [rel]: src } })(rel)
+// KINEO-ATOR-ANUNCIO-2026-10-09 — re-ancorado: a rota /plan importa o interruptor e o plano do ator de lib/ads/v2Presenter.ts (lib PURA: só import type).
+const loadRoute = (rel, stubs, src) => makeLoader(stubs, { real: ['lib/textLanguage.ts', 'lib/ads/v2Contract.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/v2Research.ts', 'lib/ads/v2Styles.ts', 'lib/ads/v2Presenter.ts'], over: src === undefined ? {} : { [rel]: src } })(rel)
 const req = (body) => ({ json: async () => body, nextUrl: { searchParams: new URLSearchParams() } })
 const PHOTOS = [0, 1, 2].map((i) => ({ footage_id: U(20 + i), kind: 'place' }))
 const FATOS = [
@@ -711,11 +716,13 @@ await check('E2 CONTACTISH da pesquisa = o da régua do texto (v2Brief)', () => 
 // KINEO-ADS-AMOSTRA-2026-10-09 — re-ancorado: + '@/lib/ads/sample' (frases e nível da amostra grátis; lib PURA, conferida abaixo).
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — re-ancorado: + '@/lib/ads/v2Styles' (lib PURA dos estilos, só import type) e '@/components/ads/AdsStyles' (componente de
 // navegador da escolha de estilo; importa só react e a lib pura). Nenhum módulo de servidor.
-const IMPORTS_OK = ['@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', './AdsV2Variations', '@/components/AdsPlanChanges', 'react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/ads/v2UserVideo', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage']
+// KINEO-ATOR-ANUNCIO-2026-10-09 — re-ancorado: + '@/lib/ads/v2Presenter' (lib PURA do ator de IA: interruptor e frases nas 16 línguas, só
+// import type). O cartão do ator mora no componente que já estava liberado (@/components/ads/AdsStyles). Nenhum módulo de servidor.
+const IMPORTS_OK = ['@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', './AdsV2Variations', '@/components/AdsPlanChanges', 'react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/ads/v2UserVideo', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage']
 await check('E3 a tela simples é cliente e só importa módulos de navegador/puros; v2Simple, v2Research e v2VideoFrames não têm import; textLanguage é pura', () => {
   const imps = [...SRC.simple.matchAll(/^import[\s\S]*?from '([^']+)'/gm)].map((m) => m[1])
   return /^'use client'/.test(SRC.simple) && imps.length >= 8 && imps.every((m) => IMPORTS_OK.includes(m)) &&
-    [SRC.simpleLib, SRC.research, SRC.frames, rd('lib/ads/v2UserVideo.ts'), rd('lib/textLanguage.ts'), rd('lib/ui/interfaceLanguage.ts'), rd('lib/ads/sample.ts'), rd('lib/ads/v2Styles.ts')].every((s) => !/^\s*import\s(?!type)/m.test(s)) && !/trackEvent\(/.test(SRC.simple)
+    [SRC.simpleLib, SRC.research, SRC.frames, rd('lib/ads/v2UserVideo.ts'), rd('lib/textLanguage.ts'), rd('lib/ui/interfaceLanguage.ts'), rd('lib/ads/sample.ts'), rd('lib/ads/v2Styles.ts'), rd('lib/ads/v2Presenter.ts')].every((s) => !/^\s*import\s(?!type)/m.test(s)) && !/trackEvent\(/.test(SRC.simple)
 })
 await check('E4 trava 8.2: nenhum arquivo do modo simples mora em caminho travado', () => {
   const novos = [F.simple, F.simpleLib, F.research, F.frames, F.researchRoute, F.contract, F.brief, F.planRoute, F.ordersRoute, F.client]
@@ -738,7 +745,8 @@ const soOsMarcadosNaTela = (src) => {
   return /const chosen = facts\.filter\(\(f\) => isFactOn\(f\)\)\.map\(\(f\) => f\.id\)/.test(plan) &&
     // REANCORADO 29/09 (KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29): o corpo ganhou `videos` (vídeos que entram como vídeo); fatos iguais.
     // KINEO-ESTILOS-PRODUTO-2026-10-09 — re-ancorado: o corpo ganhou o estilo (só quando escolhido, depois dos fatos); fatos iguais.
-    /body: \{ mode: 'simple', order_id: orderId, sector, logo_footage_id: logo\?\.footageId \?\? null, photos: uploaded, videos, card_footage_id: card\.footageId, facts: chosen, \.\.\.\(style !== 'none' \? \{ style \} : \{\}\) \},/.test(plan) &&
+    // KINEO-ATOR-ANUNCIO-2026-10-09 — re-ancorado: o corpo ganhou o ator (só quando ligado, antes das fotos); fatos iguais.
+    /body: \{ mode: 'simple', order_id: orderId, sector, logo_footage_id: logo\?\.footageId \?\? null, \.\.\.\(presenterOn \? \{ presenter: true \} : \{\}\), photos: uploaded, videos, card_footage_id: card\.footageId, facts: chosen, \.\.\.\(style !== 'none' \? \{ style \} : \{\}\) \},/.test(plan) &&
     (plan.match(/facts:/g) || []).length === 2 && /setPlan\(\{ \.\.\.r\.data, sig: JSON\.stringify\(\{ base: baseAtStart, facts: chosen \}\), cardSig: card\.sig \}\)/.test(plan) &&
     (s.match(/'\/api\/ads\/v2\/plan'/g) || []).length === 1 &&
     /const planSig = JSON\.stringify\(\{ base: baseSig, facts: factsNow\.filter\(\(f\) => isFactOn\(f\)\)\.map\(\(f\) => f\.id\) \}\)/.test(s)

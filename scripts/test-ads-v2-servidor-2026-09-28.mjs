@@ -328,7 +328,9 @@ const advStubs = {
 // KINEO-ADS-AMOSTRA-2026-10-09 — re-ancorado: v2Billing (failAdsV2Order não estorna chave 'adssample-…') e v2Advance
 // (linhas faltando de amostra sem débito para conferir) passaram a importar a lib PURA lib/ads/sample.ts (isAdsSampleRef);
 // carregada de verdade, não stub — chave 'adsv2-…' segue o caminho de sempre em tudo que este guardião prova.
-const A = makeLoader(advStubs, { timers: fastTimers, real: ['lib/ads/v2Engines.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/adV2Montage.ts', 'lib/ads/v2Music.ts', 'lib/ads/v2Variations.ts', 'lib/ads/sample.ts'] })('lib/ads/v2Advance.ts')
+// KINEO-ATOR-ANUNCIO-2026-10-09 — re-ancorado: o v2Advance importa a lib PURA lib/ads/v2Presenter.ts (o ator de IA: linha extra,
+// desistência, voz que cabe, ordem dos inserts); carregada de verdade — pedido sem plan.presenter segue o caminho de sempre.
+const A = makeLoader(advStubs, { timers: fastTimers, real: ['lib/ads/v2Engines.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/adV2Montage.ts', 'lib/ads/v2Music.ts', 'lib/ads/v2Variations.ts', 'lib/ads/sample.ts', 'lib/ads/v2Presenter.ts'] })('lib/ads/v2Advance.ts')
 
 const PH = 'https://x.supabase.co/storage/v1/object/public/user-footage/u/'
 const photos = [

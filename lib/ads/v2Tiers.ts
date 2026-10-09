@@ -25,14 +25,16 @@ export type AdsV2ShotKind = 'people' | 'place' | 'product' | 'product_hero' | 't
 export type AdsV2ShotSource = 'client_photo' | 'generated_scene'
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — 'pixverse_effect': o plano-herói do produto com ESTILO (lib/ads/v2Styles.ts) sai pelo
 // efeito da PixVerse em vez do motor normal. Só entra pela rota com `styled` (routeShot); sem estilo, nada muda.
-export type AdsV2Engine = 'kling_o3' | 'seedance_20_fast' | 'h3' | 'pixverse_effect'
+// KINEO-ATOR-ANUNCIO-2026-10-09 — 'kling_avatar': o ATOR de IA que segura o produto e fala a narração (lib/ads/v2Presenter.ts).
+// Só a linha do ator (kind 'presenter', fora dos planos) usa este motor; routeShot NUNCA o devolve para um plano.
+export type AdsV2Engine = 'kling_o3' | 'seedance_20_fast' | 'h3' | 'pixverse_effect' | 'kling_avatar'
 
 export const ADS_V2_TIER_IDS: readonly AdsV2Tier[] = ['photo_motion', 'commercial', 'cinema']
 export const ADS_V2_SECONDS: readonly AdsV2Seconds[] = [15, 20, 30]
 export const ADS_V2_SHOT_KINDS: readonly AdsV2ShotKind[] = ['people', 'place', 'product', 'product_hero', 'text', 'user_video']
 /** Tipos de plano que NUNCA passam por IA de vídeo (sem motor, sem request_id, em nenhuma tentativa). */
 export const ADS_V2_NO_AI_KINDS: readonly AdsV2ShotKind[] = ['text', 'user_video']
-export const ADS_V2_ENGINE_IDS: readonly AdsV2Engine[] = ['kling_o3', 'seedance_20_fast', 'h3', 'pixverse_effect']
+export const ADS_V2_ENGINE_IDS: readonly AdsV2Engine[] = ['kling_o3', 'seedance_20_fast', 'h3', 'pixverse_effect', 'kling_avatar']
 
 export interface AdsV2TierSpec {
   id: AdsV2Tier
@@ -78,6 +80,9 @@ export const ADS_V2_RETAKE_CREDITS: Readonly<Record<AdsV2Engine, number>> = {
   // KINEO-ESTILOS-PRODUTO-2026-10-09 — completa o mapa do tipo; adsV2RetakeCredits NUNCA chega aqui (calcula sem estilo):
   // a refação do plano com estilo custa o MESMO que sem estilo (o efeito é mais barato que o motor que ele substitui).
   pixverse_effect: 5,
+  // KINEO-ATOR-ANUNCIO-2026-10-09 — completa o mapa do tipo: o ator NÃO tem refação paga (não aparece na lista de planos);
+  // adsV2RetakeCredits nunca chega aqui (routeShot não devolve 'kling_avatar').
+  kling_avatar: 0,
 }
 /**
  * Preço da refação do plano. Plano `text` não tem refação (não passa por IA): devolve 0.
@@ -108,6 +113,9 @@ export const ADS_V2_SEEDANCE_20_FAST_I2V_SLUG = 'bytedance/seedance-2.0/fast/ima
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — os 5 estilos de produto (espelho de ADS_V2_STYLE_ENDPOINT, lib/ads/v2Styles.ts; o
 // mesmo modelo da sonda app/api/admin/effect-probe/route.ts). Entrada { effect, image_url, resolution, duration }.
 export const ADS_V2_PIXVERSE_EFFECTS_SLUG = 'fal-ai/pixverse/v5/effects'
+// KINEO-ATOR-ANUNCIO-2026-10-09 — o ator (espelho de PRESENTER_MODEL, lib/avatar/veed.ts, e de ADS_V2_PRESENTER_SLUG,
+// lib/ads/v2Presenter.ts). Entrada { image_url, audio_url, prompt } → { video: { url } }; a duração é a do áudio.
+export const ADS_V2_KLING_AVATAR_SLUG = 'fal-ai/kling-video/ai-avatar/v2/standard'
 
 export const ADS_V2_ENGINES: Readonly<Record<AdsV2Engine, AdsV2EngineSpec>> = {
   // fal: "$0.112 (audio off) or $0.14 (audio on)" por segundo · duração aceita '3'..'15' → 3 s = US$ 0,336.
@@ -119,6 +127,11 @@ export const ADS_V2_ENGINES: Readonly<Record<AdsV2Engine, AdsV2EngineSpec>> = {
   // KINEO-ESTILOS-PRODUTO-2026-10-09 — PixVerse v5 effects em 720p, 5 s ≈ US$ 0,20 por clipe (testes de 09/10):
   // 0,04 × 5 = 0,20. O efeito não tem campo de áudio; o montador zera o volume de todo clipe (como no H3).
   pixverse_effect: { id: 'pixverse_effect', slug: ADS_V2_PIXVERSE_EFFECTS_SLUG, usdPerSecond: 0.04, genSeconds: 5, audioAlwaysOn: true },
+  // KINEO-ATOR-ANUNCIO-2026-10-09 — Kling AI Avatar v2 Standard: US$ 0,0562 por segundo FALADO (espelho de
+  // PRESENTER_USD_PER_SECOND). A duração é a da voz (gravada na linha no envio); genSeconds aqui é só o teto nominal do
+  // anúncio de 30 s (nunca usado para cobrar nem estimar o ator — estimateAdUsd usa a duração do anúncio). O áudio do
+  // ator é a VOZ do anúncio: o montador o mantém (é a única voz; a TTS separada não entra).
+  kling_avatar: { id: 'kling_avatar', slug: ADS_V2_KLING_AVATAR_SLUG, usdPerSecond: 0.0562, genSeconds: 30, audioAlwaysOn: true },
 }
 
 /** Nano Banana Pro edit: US$ 0,15 por imagem em 1K e 2K ("4K outputs will be charged at double"). O v2 usa 2K. */
@@ -196,7 +209,7 @@ const round3 = (n: number): number => Math.round(n * 1000) / 1000
  * Na tabela da especificação (15 s): Foto em movimento 2,266 · Comercial 2,716 · Cinema ~4,465.
  * `seconds` = duração pedida (15/20/30; padrão 15): os fixos de render e voz crescem com ela (adsV2FixedUsd).
  */
-export function estimateAdUsd(plan: { tier: AdsV2Tier; shots: readonly AdsV2CostShot[]; seconds?: number }): AdsV2UsdEstimate {
+export function estimateAdUsd(plan: { tier: AdsV2Tier; shots: readonly AdsV2CostShot[]; seconds?: number; presenter?: boolean }): AdsV2UsdEstimate {
   let videoUsd = 0
   let aiShots = 0
   let sceneImages = 0
@@ -208,6 +221,15 @@ export function estimateAdUsd(plan: { tier: AdsV2Tier; shots: readonly AdsV2Cost
       aiShots += 1
     }
     if (shot.source === 'generated_scene') sceneImages += 1
+  }
+  // KINEO-ATOR-ANUNCIO-2026-10-09 — com o ator: + a foto dele (Nano Banana, a tarifa das cenas criadas) + o vídeo falado
+  // pela duração do anúncio (a voz cabe nela; é o teto honesto — a voz real costuma ser 1-2 s menor). Os planos normais
+  // continuam (viram os inserts por cima do ator e a reserva se ele falhar).
+  if (plan.presenter === true) {
+    const e = ADS_V2_ENGINES.kling_avatar
+    videoUsd += e.usdPerSecond * (plan.seconds ?? 15)
+    aiShots += 1
+    sceneImages += 1
   }
   const imageUsd = sceneImages * ADS_V2_SCENE_IMAGE_USD
   const fixedUsd = adsV2FixedUsd(plan.seconds ?? 15)

@@ -21,6 +21,8 @@ import { adsV2LinkText } from '@/lib/ads/v2Link'
 import { researchState, storedResearchFacts } from '@/lib/ads/v2Research'
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — interruptor único dos estilos de produto (false = o campo `style` é ignorado aqui).
 import { ADS_V2_STYLES_PUBLIC } from '@/lib/ads/v2Styles'
+// KINEO-ATOR-ANUNCIO-2026-10-09 — o ator de IA (interruptor único + o plano dele: foto do produto, pessoa e prompt).
+import { ADS_V2_PRESENTER_PUBLIC, planAdsV2Presenter } from '@/lib/ads/v2Presenter'
 import { loadAdsV2Order, type AdsV2StoredPlan } from '@/lib/ads/v2Advance'
 import { measureFootageVideo, ownedFootage, v2Fail, v2Json } from '@/lib/ads/v2Server'
 // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra grátis abre o plano (sem custo de fal) para a conta free/trial que ainda não usou a dela.
@@ -67,6 +69,10 @@ export async function POST(req: NextRequest) {
     const simple = input.mode === 'simple'
     if (simple && brief0.mode !== 'simple') return v2Fail('mode_mismatch', 400)
     if (researchState(brief0.research, Date.now()) === 'running') return v2Fail('research_running', 409)
+    // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator fala a NARRAÇÃO: com a voz desligada no pedido, 400 (a foto de produto o
+    // contrato já conferiu). Interruptor desligado = o campo é ignorado (o anúncio sai como antes).
+    const presenterAsked = ADS_V2_PRESENTER_PUBLIC && input.presenter === true
+    if (presenterAsked && order.narration !== true) return v2Fail('presenter_needs_voice_and_product', 400)
     // Fatos escolhidos: resolvidos pelos ids contra o que o SERVIDOR gravou. Texto de fato vindo do cliente não existe.
     const known = simple ? storedResearchFacts(brief0.research) : []
     const chosenFacts = (input.facts ?? []).map((id) => known.find((f) => f.id === id))
@@ -171,9 +177,12 @@ export async function POST(req: NextRequest) {
       : plan.overlays
           .map((slot, i) => ({ role: slot.role, start: slot.start, end: slot.end, text: extracted.copy.overlays[i] ?? '' }))
           .filter((o) => o.text)
-    const stored: AdsV2StoredPlan = { ...plan, overlays, narration: extracted.copy.narration }
+    // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator: a 1ª foto marcada como produto, a pessoa pela semente do pedido. Sem texto de
+    // narração (o modelo não escreveu) não há o que falar: o plano sai sem ator e a tela diz por quê (presenter_asked).
+    const presenter = presenterAsked && extracted.copy.narration ? planAdsV2Presenter({ sector, photos, seedKey: order.id }) : null
+    const stored: AdsV2StoredPlan = { ...plan, overlays, narration: extracted.copy.narration, ...(presenter ? { presenter } : {}) }
     const credits = adsV2Credits(order.tier, order.seconds)
-    const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds })
+    const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds, presenter: !!presenter })
 
     const upd = await admin
       .from('ads_v2_orders')
@@ -200,7 +209,7 @@ export async function POST(req: NextRequest) {
       .select('id, card_url')
       .maybeSingle()
     if (upd.error || !upd.data) return v2Fail('not_editable', 409)
-    await served(true, { sector, shots: plan.shots.length, text_shots: plan.shots.filter((s) => s.kind === 'text').length, video_shots: plan.shots.filter((s) => s.kind === 'user_video').length, scenes: plan.shots.filter((s) => s.source === 'generated_scene').length, credits, usd: usd.totalUsd, attempts: extracted.attempts, sector_hint: extracted.copy.sectorHint, style_asked: styleAsked, style: plan.style ?? null, ...(extracted.voice ? { names_required: extracted.voice.names.length, names_missing: extracted.voice.namesMissing.length, common_noun: extracted.voice.commonNoun !== null } : {}) })
+    await served(true, { sector, shots: plan.shots.length, text_shots: plan.shots.filter((s) => s.kind === 'text').length, video_shots: plan.shots.filter((s) => s.kind === 'user_video').length, scenes: plan.shots.filter((s) => s.source === 'generated_scene').length, credits, usd: usd.totalUsd, attempts: extracted.attempts, sector_hint: extracted.copy.sectorHint, style_asked: styleAsked, style: plan.style ?? null, presenter_asked: presenterAsked, presenter: !!presenter, ...(extracted.voice ? { names_required: extracted.voice.names.length, names_missing: extracted.voice.namesMissing.length, common_noun: extracted.voice.commonNoun !== null } : {}) })
     return v2Json({
       order_id: order.id,
       status: 'planned',
@@ -217,6 +226,9 @@ export async function POST(req: NextRequest) {
       // KINEO-ESTILOS-PRODUTO-2026-10-09 — o estilo pedido e o APLICADO (null = sem foto de produto, sai sem efeito).
       style_asked: styleAsked,
       style: plan.style ?? null,
+      // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator pedido e o APLICADO (false com pedido = sem texto de narração).
+      presenter_asked: presenterAsked,
+      presenter: !!presenter,
       shots: plan.shots.map((s) => ({ idx: s.idx, role: s.role, beat: s.beat, kind: s.kind, source: s.source, cut_seconds: s.cutSeconds, photo: s.sourceFootageId, ...(s.effect ? { effect: s.effect } : {}) })),
     })
   } catch (e) {

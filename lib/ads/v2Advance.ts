@@ -39,6 +39,19 @@ import { buildAdV2Source, ADS_V2_VOICE_START, type AdV2MontageShot } from '@/lib
 import { adsV2FallbackTrack, adsV2MusicTrimStart, adsV2MusicUsable, adsV2SwapLibraryTrack } from '@/lib/ads/v2Music'
 import { ADS_V2_QUALITY, confirmAdsV2Debit, failAdsV2Order } from '@/lib/ads/v2Billing'
 import { isAdsSampleRef } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
+// KINEO-ATOR-ANUNCIO-2026-10-09 — o ator de IA (lib pura): a linha dele, quando desiste, a voz que cabe e a ordem dos inserts.
+import {
+  ADS_V2_PRESENTER_GIVEUP_MS,
+  ADS_V2_PRESENTER_IDX,
+  ADS_V2_PRESENTER_KIND,
+  adsV2PresenterGaveUp,
+  adsV2PresenterInitialRow,
+  adsV2PresenterInsertOrder,
+  adsV2PresenterVoiceFits,
+  isAdsV2PresenterPlan,
+  type AdsV2PresenterKind,
+  type AdsV2PresenterPlan,
+} from '@/lib/ads/v2Presenter'
 import {
   ADS_V2_AMBIGUOUS_MAX_MS,
   ADS_V2_BATCH_SIZE,
@@ -80,7 +93,8 @@ export const ADS_V2_SHOT_COLS =
   'id, order_id, idx, attempt, role, kind, source, source_footage_id, image_url, image_request_id, engine, prompt, gen_seconds, cut_start, cut_seconds, request_id, status, fal_url, stored_url, measured_seconds, usd, reason, reason_class, movement_variant, image_submit_claimed_at, submit_claimed_at, submitted_at, fal_done_at, created_at, updated_at'
 
 export interface AdsV2StoredOverlay { role: string; start: number; end: number; text: string }
-export type AdsV2StoredPlan = Omit<AdsV2ShotPlan, 'overlays'> & { overlays: AdsV2StoredOverlay[]; narration: string | null }
+// KINEO-ATOR-ANUNCIO-2026-10-09 — `presenter` só existe quando o pedido pediu o ator e havia foto de produto + narração.
+export type AdsV2StoredPlan = Omit<AdsV2ShotPlan, 'overlays'> & { overlays: AdsV2StoredOverlay[]; narration: string | null; presenter?: AdsV2PresenterPlan }
 
 export interface AdsV2OrderRow {
   id: string
@@ -123,7 +137,8 @@ export interface AdsV2ShotRow {
   idx: number
   attempt: number
   role: string | null
-  kind: AdsV2ShotKind
+  // KINEO-ATOR-ANUNCIO-2026-10-09 — + 'presenter': a linha do ator (idx ADS_V2_PRESENTER_IDX), fora da lista de planos.
+  kind: AdsV2ShotKind | AdsV2PresenterKind
   source: 'client_photo' | 'generated_scene'
   source_footage_id: string | null
   image_url: string | null
@@ -167,8 +182,8 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
  * sem prompt de vídeo e com a própria foto como stored_url — nunca vai à fal (o CHECK ads_v2_shots_text_never_ai
  * repete a regra no banco).
  */
-export function buildInitialShotRows(orderId: string, tier: AdsV2Tier, plan: Pick<AdsV2ShotPlan, 'shots'>): Record<string, unknown>[] {
-  return plan.shots.map((s) => {
+export function buildInitialShotRows(orderId: string, tier: AdsV2Tier, plan: Pick<AdsV2ShotPlan, 'shots'> & { presenter?: unknown }): Record<string, unknown>[] {
+  const rows = plan.shots.map((s): Record<string, unknown> => {
     // KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — o vídeo do cliente nasce 'done': sem motor, sem prompt, sem imagem, com o
     // próprio arquivo como stored_url e a duração MEDIDA pelo servidor. Nunca vai à fal (o CHECK
     // ads_v2_shots_user_video_never_ai, migrations_pending/2026-09-29_ads_v2_user_video.sql, repete a regra no banco).
@@ -216,6 +231,25 @@ export function buildInitialShotRows(orderId: string, tier: AdsV2Tier, plan: Pic
       stored_url: isText ? s.imageUrl : null,
     }
   })
+  // KINEO-ATOR-ANUNCIO-2026-10-09 — com ator no plano, + UMA linha (a dele) depois dos planos; sem ator, as linhas de antes.
+  return isAdsV2PresenterPlan(plan.presenter) ? [...rows, adsV2PresenterInitialRow(orderId, plan.presenter)] : rows
+}
+
+/** KINEO-ATOR-ANUNCIO-2026-10-09 — a linha é a do ator (fora da lista de planos do anúncio)? */
+export function isAdsV2PresenterRow(r: Pick<AdsV2ShotRow, 'kind'>): boolean {
+  return r.kind === ADS_V2_PRESENTER_KIND
+}
+/** KINEO-ATOR-ANUNCIO-2026-10-09 — a linha é um PLANO do anúncio (tudo menos o ator). */
+export function isAdsV2PlanShotRow(r: AdsV2ShotRow): r is AdsV2ShotRow & { kind: AdsV2ShotKind } {
+  return r.kind !== ADS_V2_PRESENTER_KIND
+}
+/** KINEO-ATOR-ANUNCIO-2026-10-09 — o ator gravado no plano do pedido (null = pedido sem ator). */
+export function adsV2PresenterPlanOf(plan: { presenter?: unknown } | null | undefined): AdsV2PresenterPlan | null {
+  return plan && isAdsV2PresenterPlan(plan.presenter) ? plan.presenter : null
+}
+/** KINEO-ATOR-ANUNCIO-2026-10-09 — a voz do pedido está pronta e cabe no ator (só então o vídeo falado sai). */
+export function adsV2PresenterVoiceReady(order: Pick<AdsV2OrderRow, 'narration' | 'voice_url' | 'voice_seconds' | 'seconds'>): boolean {
+  return order.narration === true && typeof order.voice_url === 'string' && /^https:\/\//i.test(order.voice_url) && adsV2PresenterVoiceFits(num(order.voice_seconds), order.seconds)
 }
 
 export async function loadAdsV2Order(admin: SupabaseClient, orderId: string, userId?: string): Promise<{ order: AdsV2OrderRow | null; error: { code?: string; message?: string } | null }> {
@@ -309,8 +343,10 @@ async function submitImageFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
   const claimed = await markShot(admin, row, ['pending'], { image_submit_claimed_at: nowIso() }, 'image_submit_claimed_at')
   if (!claimed) return
   const planned = order.plan?.shots?.find((s) => s.idx === row.idx)
-  const basePrompt = planned?.scenePrompt ?? null
-  const baseRefs = planned?.referenceUrls ?? []
+  // KINEO-ATOR-ANUNCIO-2026-10-09 — a foto do ator: o prompt fixo dele e a foto do PRODUTO do cliente como única referência.
+  const actor = row.kind === ADS_V2_PRESENTER_KIND ? adsV2PresenterPlanOf(order.plan) : null
+  const basePrompt = actor ? actor.actorPrompt : planned?.scenePrompt ?? null
+  const baseRefs = actor ? [actor.productUrl] : planned?.referenceUrls ?? []
   // O still da A entra como ÚLTIMA referência (as fotos do cliente continuam sendo a referência do lugar e do produto).
   const prompt = basePrompt && anchorUrl ? `${basePrompt} ${ADS_V2_SAME_PERSON_LINE}` : basePrompt
   const refs = anchorUrl && baseRefs.length > 0 ? [...baseRefs, anchorUrl] : baseRefs
@@ -351,7 +387,8 @@ async function submitVideoFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
   let input: Record<string, unknown>
   try {
     // KINEO-ESTILOS-PRODUTO-2026-10-09 — o efeito sai da chave gravada no plano do pedido (só o 'pixverse_effect' a usa).
-    input = buildShotInput(engine, { imageUrl: row.image_url ?? '', prompt: row.prompt ?? '', effect: adsV2ShotEffect(order.plan, row.idx) }) as unknown as Record<string, unknown>
+    // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator leva a voz do anúncio (só ele usa audioUrl; sem voz https, recusa local).
+    input = buildShotInput(engine, { imageUrl: row.image_url ?? '', prompt: row.prompt ?? '', audioUrl: order.voice_url ?? '', effect: adsV2ShotEffect(order.plan, row.idx) }) as unknown as Record<string, unknown>
   } catch (e) {
     // O efeito recusado AQUI não mata o anúncio: 'invalid_payload' entra na refação automática e, na 3ª tentativa, a
     // reserva H3 anima a mesma foto com o prompt de movimento normal. Nos motores de antes, a recusa local segue terminal.
@@ -359,14 +396,16 @@ async function submitVideoFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
     return
   }
   const spec = ADS_V2_ENGINES[engine]
+  // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator gera a duração da VOZ (o custo real dele); os outros motores, a do catálogo.
+  const genSeconds = engine === 'kling_avatar' ? (num(order.voice_seconds) ?? spec.genSeconds) : spec.genSeconds
   const outcome = await submitShotOnce(spec.slug, input, { userId: order.user_id, orderId: order.id })
   if (outcome.kind === 'accepted') {
     await markShot(admin, row, ['pending', 'image_done'], {
       status: 'submitted',
       request_id: outcome.requestId,
       submitted_at: nowIso(),
-      gen_seconds: spec.genSeconds,
-      usd: Math.round(spec.usdPerSecond * spec.genSeconds * 10000) / 10000,
+      gen_seconds: genSeconds,
+      usd: Math.round(spec.usdPerSecond * genSeconds * 10000) / 10000,
     })
   } else if (outcome.kind === 'ambiguous') {
     await markShot(admin, row, ['pending', 'image_done'], { status: 'ambiguous', reason: 'submit_ambiguous', reason_class: outcome.reasonClass, submitted_at: nowIso() })
@@ -388,8 +427,10 @@ export async function dispatchAdsV2Shots(admin: SupabaseClient, order: AdsV2Orde
   const rows = await loadAdsV2Shots(admin, order.id)
   if (!rows) return 0
   const latest = latestShots(rows)
-  const images = latest.filter(needsImage)
-  const videos = latest.filter(needsVideo)
+  // KINEO-ATOR-ANUNCIO-2026-10-09 — a foto do ator só sai com a narração ligada; o vídeo dele, só com a voz pronta e
+  // dentro do teto (adsV2PresenterVoiceReady). Os planos do anúncio não mudam.
+  const images = latest.filter(needsImage).filter((r) => r.kind !== ADS_V2_PRESENTER_KIND || order.narration === true)
+  const videos = latest.filter(needsVideo).filter((r) => r.kind !== ADS_V2_PRESENTER_KIND || adsV2PresenterVoiceReady(order))
   const kling = videos.filter((r) => r.engine === 'kling_o3')
   const others = videos.filter((r) => r.engine !== 'kling_o3')
   let sent = 0
@@ -478,6 +519,8 @@ async function pollOne(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2Sh
  * motivo terminal quando não há mais tentativa (o pedido inteiro falha e estorna).
  */
 async function retryOrTerminal(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow): Promise<string | null> {
+  // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator NUNCA é terminal: 2ª tentativa sem cobrar, depois desiste e o anúncio normal sai.
+  if (row.kind === ADS_V2_PRESENTER_KIND) return retryPresenter(admin, order, row)
   if (row.kind === 'text') return `text_shot_${row.idx}_${row.status}` // nunca acontece: text nasce skipped_text
   if (row.kind === 'user_video') return `user_video_shot_${row.idx}_${row.status}` // nunca acontece: nasce 'done', sem IA
   // KINEO-ESTILOS-PRODUTO-2026-10-09 — o efeito da PixVerse sem acesso (404/403 de modelo = 'auth_model_access') NÃO mata o
@@ -519,6 +562,95 @@ async function retryOrTerminal(admin: SupabaseClient, order: AdsV2OrderRow, row:
     })
   }
   return null
+}
+
+/**
+ * KINEO-ATOR-ANUNCIO-2026-10-09 — o ator que falhou ganha UMA 2ª tentativa sem cobrar (a foto pronta é reaproveitada; sem
+ * foto, recomeça pela foto). Desistiu (adsV2PresenterGaveUp: 2ª falha, sem acesso, saldo, recusa nossa, sem voz, prazo)
+ * = nada a fazer aqui: a montagem sai sem ele. Devolve SEMPRE null (o ator nunca mata o pedido).
+ */
+async function retryPresenter(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow): Promise<null> {
+  if (adsV2PresenterGaveUp(row)) return null
+  const keepImage = !!row.image_url
+  const next = {
+    order_id: order.id,
+    idx: row.idx,
+    attempt: row.attempt + 1,
+    role: row.role,
+    kind: row.kind,
+    source: row.source,
+    source_footage_id: row.source_footage_id,
+    image_url: keepImage ? row.image_url : null,
+    engine: row.engine,
+    prompt: row.prompt,
+    gen_seconds: null,
+    cut_start: row.cut_start,
+    cut_seconds: row.cut_seconds,
+    movement_variant: row.movement_variant,
+    status: keepImage ? 'image_done' : 'pending',
+  }
+  const ins = await admin.from('ads_v2_shots').upsert(next, { onConflict: 'order_id,idx,attempt', ignoreDuplicates: true }).select('id')
+  if (!ins.error && Array.isArray(ins.data) && ins.data.length > 0) {
+    await writeServerEvent({
+      name: 'ads_v2_shot_retried',
+      userId: order.user_id,
+      path: '/lib/ads/v2Advance',
+      metadata: { order_id: order.id, idx: row.idx, attempt: next.attempt, engine: row.engine, presenter: true, previous_reason: row.reason, previous_class: row.reason_class, charged: false },
+    })
+  }
+  return null
+}
+
+/**
+ * KINEO-ATOR-ANUNCIO-2026-10-09 — a voz do anúncio, sintetizada UMA vez por pedido (a mesma da montagem): MiniMax, medida,
+ * no bucket voiceovers, gravada no pedido por UPDATE condicional (tela e cron juntos: só um grava; o outro relê a que
+ * venceu). null = sem narração, ou a síntese falhou (a próxima volta tenta de novo).
+ */
+async function ensureAdsV2Voice(admin: SupabaseClient, order: AdsV2OrderRow): Promise<{ voiceUrl: string; voiceSeconds: number } | null> {
+  const have = num(order.voice_seconds)
+  if (order.voice_url && have) return { voiceUrl: order.voice_url, voiceSeconds: have }
+  const plan = order.plan
+  const narration = order.narration && plan && typeof plan.narration === 'string' && plan.narration.trim() ? plan.narration.trim() : null
+  if (!narration) return null
+  const language = narrationLanguage(order.language) ?? 'en'
+  try {
+    const buf = await synthesizeTtsFallback(speakableForTts(narration, language), { userId: order.user_id, generationId: order.generation_id })
+    const voiceSeconds = Math.round(estimateMp3DurationSeconds(buf) * 1000) / 1000
+    const voiceUrl = await uploadVoiceoverToSupabase(order.user_id, buf)
+    const w = await admin.from('ads_v2_orders').update({ voice_url: voiceUrl, voice_seconds: voiceSeconds }).eq('id', order.id).is('voice_url', null).select('id').maybeSingle()
+    if (!w.error && w.data) return { voiceUrl, voiceSeconds }
+    const again = (await loadAdsV2Order(admin, order.id)).order
+    const s = num(again?.voice_seconds)
+    return again?.voice_url && s ? { voiceUrl: again.voice_url, voiceSeconds: s } : null
+  } catch (e) {
+    console.warn(`[ads-v2] voz do ator falhou order=${order.id}:`, e instanceof Error ? e.message : String(e))
+    return null
+  }
+}
+
+/**
+ * KINEO-ATOR-ANUNCIO-2026-10-09 — um passo do ator, antes do despacho. Sem narração = desiste (sem voz não há ator). Prazo
+ * (ADS_V2_PRESENTER_GIVEUP_MS desde o início) = desiste. Senão garante a voz (que a montagem usaria de qualquer jeito) e
+ * desiste se ela passar do teto do ator. Devolve o pedido com a voz para o despacho mandar o vídeo falado.
+ */
+async function stepPresenter(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow | null): Promise<AdsV2OrderRow> {
+  if (!row || READY.has(row.status) || row.status === 'failed' || row.status === 'stuck') return order
+  const narration = order.narration && typeof order.plan?.narration === 'string' && order.plan.narration.trim() ? order.plan.narration : null
+  if (!narration) {
+    await failShot(admin, row, [row.status], 'presenter_no_voice', 'local_policy_gate')
+    return order
+  }
+  if (ageMs(order.started_at) > ADS_V2_PRESENTER_GIVEUP_MS) {
+    await failShot(admin, row, [row.status], 'presenter_deadline', 'local_policy_gate')
+    return order
+  }
+  const voice = await ensureAdsV2Voice(admin, order)
+  if (!voice) return order
+  if (!adsV2PresenterVoiceFits(voice.voiceSeconds, order.seconds)) {
+    await failShot(admin, row, [row.status], `presenter_voice_too_long:${voice.voiceSeconds}`, 'local_policy_gate')
+    return order
+  }
+  return { ...order, voice_url: voice.voiceUrl, voice_seconds: voice.voiceSeconds }
 }
 
 // ── montagem ──────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -564,7 +696,9 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
   }
   if (!narration) { voiceUrl = null; voiceSeconds = null }
   // 3. Linha do tempo: planos na ordem; o cartão cresce se a voz passar do fim (passar do alvo é bom; cortar, nunca).
-  const latest = latestShots(shots)
+  // KINEO-ATOR-ANUNCIO-2026-10-09 — a linha do ator fica FORA da lista de planos (ele entra como trilha base, abaixo).
+  const presenterRow = latestShots(shots).find(isAdsV2PresenterRow) ?? null
+  const latest = latestShots(shots).filter(isAdsV2PlanShotRow)
   const montageShots: AdV2MontageShot[] = latest.map((r) => {
     const base: AdV2MontageShot = {
       url: (r.stored_url ?? '').trim(),
@@ -579,8 +713,42 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
     return { ...base, focusX: p?.focusX ?? 0.5, focusY: p?.focusY ?? 0.5, videoWidth: p?.videoWidth ?? null, videoHeight: p?.videoHeight ?? null }
   })
   const shotsSeconds = montageShots.reduce((s, x) => s + x.cutSeconds, 0)
+  // KINEO-ATOR-ANUNCIO-2026-10-09 — ator pronto (no nosso bucket e medido) = ele vira a trilha base, com a voz DELE (a TTS
+  // separada não entra: duas vozes, nunca). Qualquer recusa da montagem com ator = o anúncio de sempre (nunca mata o pedido).
+  const presenterClip = presenterRow && presenterRow.status === 'done' && presenterRow.stored_url && num(presenterRow.measured_seconds) ? { url: presenterRow.stored_url, measuredSeconds: num(presenterRow.measured_seconds) as number } : null
+  let presenterSource: Record<string, unknown> | null = null
+  let presenterMiss: string | null = presenterRow ? (presenterClip ? null : `presenter_${presenterRow.status}:${presenterRow.reason ?? ''}`.slice(0, 160)) : null
+  if (presenterClip) {
+    try {
+      const frame = renderOutputSpecFor('9:16')
+      const lines = (plan.overlays ?? []).filter((o) => o && typeof o.text === 'string' && o.text.trim()).map((o) => ({ text: o.text, start: o.start, end: o.end }))
+      // Os inserts: posições em montageShots (a mesma ordem de `latest`) na ordem de preferência do ator.
+      const byIdx = new Map(latest.map((r, i) => [r.idx, i] as const))
+      const planShots = latest.map((r) => ({ idx: r.idx, kind: r.kind as string, source: r.source as string, effect: plan.shots?.find((s) => s.idx === r.idx)?.effect }))
+      const insertOrder = adsV2PresenterInsertOrder(planShots).map((idx) => byIdx.get(idx)).filter((i): i is number => typeof i === 'number')
+      presenterSource = buildAdV2Source({
+        width: frame.width,
+        height: frame.height,
+        shots: montageShots,
+        overlays: lines,
+        fontFamily: captionFontFor(language),
+        cardUrl: order.card_url,
+        cardSeconds: ADS_V2_CARD_SECONDS,
+        musicUrl,
+        musicTrimStart: adsV2MusicTrimStart(musicUrl),
+        // A voz é o som do ator: a TTS separada NÃO entra (o montador também a ignora com ator).
+        voiceUrl: null,
+        voiceSeconds: null,
+        tint: variationTintOf(order.brief) ?? null,
+        presenter: { url: presenterClip.url, measuredSeconds: presenterClip.measuredSeconds, insertOrder },
+      })
+    } catch (e) {
+      presenterSource = null
+      presenterMiss = `presenter_montage:${e instanceof Error ? e.message : String(e)}`.slice(0, 160)
+    }
+  }
   let cardSeconds = ADS_V2_CARD_SECONDS
-  if (voiceSeconds) {
+  if (voiceSeconds && !presenterSource) {
     const voiceEnd = ADS_V2_VOICE_START + voiceSeconds + 0.2
     cardSeconds = Math.max(cardSeconds, Math.round((voiceEnd - shotsSeconds) * 1000) / 1000)
     if (cardSeconds > ADS_V2_CARD_MAX_SECONDS) {
@@ -591,7 +759,8 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
   const out = renderOutputSpecFor('9:16')
   let source: Record<string, unknown>
   try {
-    source = buildAdV2Source({
+    // KINEO-ATOR-ANUNCIO-2026-10-09 — com o ator pronto, a montagem dele; senão, a de sempre (abaixo, intocada).
+    source = presenterSource ?? buildAdV2Source({
       width: out.width,
       height: out.height,
       shots: montageShots,
@@ -642,7 +811,7 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
     name: 'ads_v2_assembling',
     userId: order.user_id,
     path: '/lib/ads/v2Advance',
-    metadata: { order_id: order.id, creatomate_render_id: renderId, shots: montageShots.length, card_seconds: cardSeconds, voice_seconds: voiceSeconds, music: Boolean(musicUrl), total_seconds: Math.round((shotsSeconds + cardSeconds) * 1000) / 1000 },
+    metadata: { order_id: order.id, creatomate_render_id: renderId, shots: montageShots.length, card_seconds: cardSeconds, voice_seconds: voiceSeconds, music: Boolean(musicUrl), total_seconds: presenterSource ? Number(presenterSource.duration) : Math.round((shotsSeconds + cardSeconds) * 1000) / 1000, presenter: Boolean(presenterSource), presenter_fallback: presenterMiss },
   })
 }
 
@@ -779,6 +948,8 @@ export interface AdsV2OrderView {
   error: string | null
   parent_order_id: string | null
   shots: AdsV2ShotView[]
+  /** KINEO-ATOR-ANUNCIO-2026-10-09 — só no pedido com ator: o estado dele (desistiu = 'skipped': o anúncio sai sem ele). */
+  presenter?: { state: 'ready' | 'working' | 'skipped'; status: string; attempt: number }
 }
 
 export function adsV2View(order: AdsV2OrderRow, shots: readonly AdsV2ShotRow[]): AdsV2OrderView {
@@ -791,7 +962,8 @@ export function adsV2View(order: AdsV2OrderRow, shots: readonly AdsV2ShotRow[]):
     video_id: order.video_id,
     error: order.status === 'failed' ? (order.error ?? 'failed') : null,
     parent_order_id: order.parent_order_id,
-    shots: latestShots(shots).map((r) => ({
+    ...presenterView(shots),
+    shots: latestShots(shots).filter(isAdsV2PlanShotRow).map((r) => ({
       idx: r.idx,
       kind: r.kind,
       source: r.source,
@@ -802,6 +974,14 @@ export function adsV2View(order: AdsV2OrderRow, shots: readonly AdsV2ShotRow[]):
       retake_credits: r.kind === 'text' || r.kind === 'user_video' ? 0 : adsV2RetakeCredits(r.kind, order.tier),
     })),
   }
+}
+
+/** KINEO-ATOR-ANUNCIO-2026-10-09 — a vista do ator (sem ator = nenhuma chave nova: a vista de antes, chave por chave). */
+function presenterView(shots: readonly AdsV2ShotRow[]): { presenter?: NonNullable<AdsV2OrderView['presenter']> } {
+  const r = latestShots(shots).find(isAdsV2PresenterRow)
+  if (!r) return {}
+  const state = READY.has(r.status) ? 'ready' : r.status === 'failed' || r.status === 'stuck' ? (adsV2PresenterGaveUp(r) ? 'skipped' : 'working') : 'working'
+  return { presenter: { state, status: r.status, attempt: r.attempt } }
 }
 
 /**
@@ -841,7 +1021,10 @@ async function stepGenerating(admin: SupabaseClient, order: AdsV2OrderRow, deadl
   const planned = order.plan?.shots ?? []
   const have = new Set(rows.map((r) => r.idx))
   const missing = planned.filter((s) => !have.has(s.idx))
-  if (missing.length > 0) {
+  // KINEO-ATOR-ANUNCIO-2026-10-09 — a linha do ator também é recriada (só em pedido novo: a refação copia a do pai, se pronta).
+  const presenterPlan = order.parent_order_id ? null : adsV2PresenterPlanOf(order.plan)
+  const presenterMissing = !!presenterPlan && !have.has(ADS_V2_PRESENTER_IDX)
+  if (missing.length > 0 || presenterMissing) {
     const young = ageMs(order.started_at) < ADS_V2_ROWS_GRACE_MS
     if (order.parent_order_id) {
       // Refação: as linhas são CÓPIAS do pai + 1 plano refeito. Recriar pelo plano mandaria o anúncio INTEIRO à fal.
@@ -859,7 +1042,7 @@ async function stepGenerating(admin: SupabaseClient, order: AdsV2OrderRow, deadl
       if (!young) await failAdsV2Order(admin, order, 'rows_missing_debit_unconfirmed', '/lib/ads/v2Advance')
       return
     }
-    await admin.from('ads_v2_shots').upsert(buildInitialShotRows(order.id, order.tier, { shots: missing }), { onConflict: 'order_id,idx,attempt', ignoreDuplicates: true })
+    await admin.from('ads_v2_shots').upsert(buildInitialShotRows(order.id, order.tier, { shots: missing, ...(presenterMissing && presenterPlan ? { presenter: presenterPlan } : {}) }), { onConflict: 'order_id,idx,attempt', ignoreDuplicates: true })
     rows = (await loadAdsV2Shots(admin, order.id)) ?? rows
   }
   // 1. Consulta/copia/marca cada plano em andamento (em lotes, para não estourar o prazo).
@@ -876,12 +1059,18 @@ async function stepGenerating(admin: SupabaseClient, order: AdsV2OrderRow, deadl
       return
     }
   }
+  // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator: sem voz/prazo = desiste; senão garante a voz (o despacho manda o vídeo falado).
+  rows = (await loadAdsV2Shots(admin, order.id)) ?? rows
+  const withVoice = await stepPresenter(admin, order, latestShots(rows).find(isAdsV2PresenterRow) ?? null)
   // 3. Envia o que ficou pronto para sair (imagens das cenas antes do vídeo).
-  await dispatchAdsV2Shots(admin, order, deadlineMs)
+  await dispatchAdsV2Shots(admin, withVoice, deadlineMs)
   // 4. Todos prontos → montagem (só um vence o generating→assembling).
   rows = (await loadAdsV2Shots(admin, order.id)) ?? rows
-  const latest = latestShots(rows)
+  const latest = latestShots(rows).filter(isAdsV2PlanShotRow)
   if (latest.length === 0 || latest.length < planned.length || !latest.every((r) => READY.has(r.status))) return
+  // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator ainda trabalhando segura a montagem; pronto ou desistiu = segue.
+  const actor = latestShots(rows).find(isAdsV2PresenterRow)
+  if (actor && !READY.has(actor.status) && !adsV2PresenterGaveUp(actor)) return
   const token = nowIso()
   const claim = await admin
     .from('ads_v2_orders')

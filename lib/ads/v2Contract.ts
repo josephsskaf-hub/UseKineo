@@ -192,6 +192,12 @@ export interface AdsV2PlanBody {
   facts?: string[]
   /** KINEO-ESTILOS-PRODUTO-2026-10-09 — só aparece quando veio um estilo de verdade (ausente/'none' = sem a chave). */
   style?: AdsV2ContractStyle
+  /**
+   * KINEO-ATOR-ANUNCIO-2026-10-09 — "Person talking about it" (lib/ads/v2Presenter.ts): só aparece quando veio true
+   * (ausente/null/false = sem a chave, o corpo de antes). Exige pelo menos 1 foto marcada 'product' (aqui) e a narração
+   * ligada no pedido (a rota confere order.narration); senão 400 'presenter_needs_voice_and_product'.
+   */
+  presenter?: true
 }
 
 /** Número finito dentro de [min, max]; ausente = `absent`; fora = undefined (recusa). */
@@ -261,6 +267,12 @@ export function sanitizePlanBody(raw: unknown): AdsV2Sanitized<AdsV2PlanBody> {
     if (typeof b.style !== 'string' || !(ADS_V2_CONTRACT_STYLES as readonly string[]).includes(b.style)) return fail('bad_style')
     style = b.style as AdsV2ContractStyle
   }
+  // KINEO-ATOR-ANUNCIO-2026-10-09 — ator: ausente, null ou false = sem ator; true = com ator; qualquer outra coisa = 400.
+  let presenter = false
+  if (b.presenter !== undefined && b.presenter !== null && b.presenter !== false) {
+    if (b.presenter !== true) return fail('bad_presenter')
+    presenter = true
+  }
   if (!Array.isArray(b.photos)) return fail('bad_photos')
   const vids = readVideos(b.videos)
   if (!vids.ok) return vids
@@ -284,6 +296,8 @@ export function sanitizePlanBody(raw: unknown): AdsV2Sanitized<AdsV2PlanBody> {
     if (seen.has(v.footage_id)) return fail('duplicate_photo')
     if (v.footage_id === logoId) return fail('logo_is_photo')
   }
+  // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator segura O produto do cliente: sem foto marcada 'product', não há o que segurar.
+  if (presenter && !photos.some((p) => p.kind === 'product')) return fail('presenter_needs_voice_and_product')
   const value: AdsV2PlanBody = {
     order_id: (b.order_id as string).toLowerCase(),
     sector: b.sector as AdsV2ContractSector,
@@ -291,6 +305,7 @@ export function sanitizePlanBody(raw: unknown): AdsV2Sanitized<AdsV2PlanBody> {
     photos,
     ...(videos.length > 0 ? { videos } : {}),
     ...(style ? { style } : {}),
+    ...(presenter ? { presenter: true as const } : {}),
   }
   return { ok: true, value: simple ? { ...value, mode: 'simple', facts } : value }
 }

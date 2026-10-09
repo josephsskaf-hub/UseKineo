@@ -15,6 +15,14 @@ import {
   type AdsV2StyleCopy,
   type AdsV2StyleKey,
 } from '@/lib/ads/v2Styles'
+// KINEO-ATOR-ANUNCIO-2026-10-09 — o cartão "Person talking about it" (ator de IA) mora ao lado da escolha de estilo.
+import {
+  ADS_V2_PRESENTER_COPY,
+  ADS_V2_PRESENTER_POSTER,
+  ADS_V2_PRESENTER_PREVIEW,
+  ADS_V2_PRESENTER_PUBLIC,
+  type AdsV2PresenterCopy,
+} from '@/lib/ads/v2Presenter'
 
 const CSS = `
 .kst-pick{margin:18px 0 0;min-width:0}
@@ -39,6 +47,15 @@ const CSS = `
 .kst-strip b{font-size:14px;font-weight:700;color:var(--text)}
 .kst-strip span{font-size:12.5px;line-height:1.4;color:var(--muted)}
 @media (min-width:900px){.kst-strip{justify-content:center;overflow-x:visible}.kst-strip li{flex:1 1 0;max-width:190px}}
+.kst-pres{margin:14px 0 0;min-width:0}
+.kst-pres .kst-card{display:grid;grid-template-columns:76px minmax(0,1fr);align-items:center;gap:12px;max-width:440px;padding:8px 12px 8px 8px}
+.kst-pres .kst-txt{display:grid;gap:4px;min-width:0}
+.kst-pres .kst-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.kst-pres .kst-new{padding:1px 7px;border-radius:999px;background:var(--ads-action,var(--accent));color:var(--on-accent,#fff);font-size:10.5px;font-weight:750}
+.kst-pres .kst-why{font-size:11.5px;line-height:1.35;color:var(--ads-muted,var(--muted));font-weight:650}
+.kst-pres .kst-box{width:18px;height:18px;flex:0 0 18px;border-radius:5px;border:2px solid var(--ads-line,var(--border));display:grid;place-items:center;font-size:12px;line-height:1;color:var(--on-accent,#fff)}
+.kst-pres .kst-card[data-on=true] .kst-box{background:var(--ads-action,var(--accent));border-color:var(--ads-action,var(--accent))}
+.kst-strip li.kst-pres-li{border-color:var(--accent)}
 `
 
 /** Vídeo da prévia: mudo, em laço, só toca visível e nunca com "reduzir movimento" (o pôster fica). */
@@ -114,12 +131,66 @@ export function AdsStylePicker({
   )
 }
 
+/**
+ * KINEO-ATOR-ANUNCIO-2026-10-09 — o cartão "Person talking about it": liga/desliga o ator de IA (caixa de seleção de
+ * verdade por baixo). Desligado com o motivo à vista quando falta a narração ou a foto de produto; a prévia é o teste
+ * aprovado pelo fundador (public/ads-styles/presenter.mp4, mudo, em laço, só toca visível).
+ */
+export function AdsPresenterToggle({
+  name,
+  checked,
+  onChange,
+  disabled,
+  reason,
+  note,
+  copy,
+}: {
+  name: string
+  checked: boolean
+  onChange: (next: boolean) => void
+  disabled?: boolean
+  /** Por que está desligado (narração desligada / nenhuma foto de produto). null = disponível. */
+  reason: string | null
+  /** Onde o produto vem (modo simples: a 1ª foto; completo: a foto marcada como Product). */
+  note: string
+  copy: AdsV2PresenterCopy
+}) {
+  const off = !!disabled || !!reason
+  return (
+    <div className="kst-pres" data-kineo="ads-presenter-toggle">
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      <label className="kst-card" data-on={checked && !reason} data-off={off}>
+        <input className="kst-sr" type="checkbox" name={name} checked={checked && !reason} disabled={off} onChange={(e) => onChange(e.target.checked)} />
+        <span className="kst-media"><StyleLoop src={ADS_V2_PRESENTER_PREVIEW} poster={ADS_V2_PRESENTER_POSTER} /></span>
+        <span className="kst-txt">
+          <span className="kst-top">
+            <span className="kst-box" aria-hidden="true">{checked && !reason ? '✓' : ''}</span>
+            <span className="kst-name">{copy.title}</span>
+            <span className="kst-new">{copy.badge}</span>
+          </span>
+          <span className="kst-for">{copy.line}</span>
+          {reason ? <span className="kst-why">{reason}</span> : <span className="kst-for">{note}</span>}
+        </span>
+      </label>
+    </div>
+  )
+}
+
 /** A faixa das páginas públicas (/business, /ads): os 5 estilos com a prévia, o nome e para que servem. Em inglês. */
 export function AdsStyleStrip() {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <ul className="kst-strip" data-kineo="ads-styles-strip">
+        {/* KINEO-ATOR-ANUNCIO-2026-10-09 — o ator de IA abre a faixa (interruptor único em lib/ads/v2Presenter.ts). */}
+        {ADS_V2_PRESENTER_PUBLIC ? (
+          <li key="presenter" className="kst-pres-li" data-kineo="ads-presenter-strip">
+            <span className="kst-media"><StyleLoop src={ADS_V2_PRESENTER_PREVIEW} poster={ADS_V2_PRESENTER_POSTER} /></span>
+            <b>{ADS_V2_PRESENTER_COPY.en.title}</b>
+            <span>{ADS_V2_PRESENTER_COPY.en.line}.</span>
+            <span>Best for: beauty, skincare, any product you can hold</span>
+          </li>
+        ) : null}
         {ADS_V2_STYLES.map((s) => (
           <li key={s.key}>
             <span className="kst-media"><StyleLoop src={s.preview} poster={s.poster} /></span>

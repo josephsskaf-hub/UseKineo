@@ -22,7 +22,7 @@
 //
 // LIB PURA (nenhum import): tipos copiados de lib/ads/v2Tiers.ts; o guardião confere que os ids batem.
 
-export type AdsV2EngineId = 'kling_o3' | 'seedance_20_fast' | 'h3' | 'pixverse_effect'
+export type AdsV2EngineId = 'kling_o3' | 'seedance_20_fast' | 'h3' | 'pixverse_effect' | 'kling_avatar'
 
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — fal-ai/pixverse/v5/effects (o endpoint da sonda app/api/admin/effect-probe/route.ts,
 // testado com render real em 09/10): effect (enum EXATO da fal) · image_url · resolution '720p' · duration '5'. Sem
@@ -64,7 +64,17 @@ export interface PixverseEffectInput {
   resolution: '720p'
   duration: '5'
 }
-export type AdsV2ShotInput = KlingO3I2vInput | Seedance20FastI2vInput | H3I2vInput | PixverseEffectInput
+/**
+ * KINEO-ATOR-ANUNCIO-2026-10-09 — fal-ai/kling-video/ai-avatar/v2/standard (o PRESENTER_MODEL de lib/avatar/veed.ts, o
+ * mesmo input de submitAvatarJob no ramo 'presenter'): image_url (a foto do ator) · audio_url (a voz do anúncio, no NOSSO
+ * bucket) · prompt (a direção de atuação). Sem resolution, sem duração (sai com a duração do áudio).
+ */
+export interface KlingAvatarInput {
+  image_url: string
+  audio_url: string
+  prompt: string
+}
+export type AdsV2ShotInput = KlingO3I2vInput | Seedance20FastI2vInput | H3I2vInput | PixverseEffectInput | KlingAvatarInput
 
 /** Kling O3 aceita prompt de até 2500 caracteres; o teto vale para os três motores (o prompt é de 1 movimento). */
 export const ADS_V2_PROMPT_MAX_CHARS = 2500
@@ -86,8 +96,15 @@ function requirePrompt(raw: unknown): string {
  * KINEO-ESTILOS-PRODUTO-2026-10-09 — `effect` = a CHAVE do estilo do plano (planShots grava em `effect`); só o
  * 'pixverse_effect' a usa, e sem chave conhecida ele recusa (nunca manda um efeito inventado à fal).
  */
-export function buildShotInput(engine: AdsV2EngineId, shot: { imageUrl: string; prompt: string; effect?: string | null }): AdsV2ShotInput {
+export function buildShotInput(engine: AdsV2EngineId, shot: { imageUrl: string; prompt: string; effect?: string | null; audioUrl?: string | null }): AdsV2ShotInput {
   const image_url = requireHttpsUrl(shot?.imageUrl, 'image_url')
+  // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator: foto + voz (https obrigatório; sem voz recusa, nunca manda o ator mudo) + a
+  // direção de atuação. Os outros motores ignoram audioUrl.
+  if (engine === 'kling_avatar') {
+    const audio_url = requireHttpsUrl(shot?.audioUrl, 'audio_url')
+    const input: KlingAvatarInput = { image_url, audio_url, prompt: requirePrompt(shot?.prompt) }
+    return input
+  }
   if (engine === 'pixverse_effect') {
     const key = typeof shot?.effect === 'string' ? shot.effect : ''
     const effect = Object.prototype.hasOwnProperty.call(ADS_V2_EFFECT_BY_STYLE, key) ? ADS_V2_EFFECT_BY_STYLE[key] : ''

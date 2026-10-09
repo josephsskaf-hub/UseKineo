@@ -365,7 +365,9 @@ await check('6h adsV2ShotEffect lê só chave válida do plano (inválida/ausent
 const BILLING_SHA = 'b1ba33894c315fbc017b7d5053fa6db78b9098aa8e79aca94a3c72031943d4b9'
 const SAMPLE_SHA = '5495f78a67a8e622c6c4ebc82e25b3f6d8d130ea7b427c0d267d06cb8c957a93'
 const START_SHA = 'a6de2e638d0fcaee810d6e41bdfea94d6f79607eda14375c2b465cf289ae5059'
-const START_NEW = 'shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds }) // KINEO-ESTILOS-PRODUTO-2026-10-09 — o plano com estilo custa o efeito'
+// KINEO-ATOR-ANUNCIO-2026-10-09 — re-ancorado: a MESMA linha da estimativa ganhou o ator (presenter: !!plan.presenter); o resto
+// do /start segue byte a byte igual à base (mesma impressão digital START_SHA).
+const START_NEW = 'shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds, presenter: !!plan.presenter }) // KINEO-ESTILOS-PRODUTO-2026-10-09 — o plano com estilo custa o efeito · KINEO-ATOR-ANUNCIO-2026-10-09 — o ator custa a foto e o vídeo falado'
 const START_OLD = 'shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source })), seconds: plan.totalSeconds })'
 await check('7a v2Billing.ts e sample.ts byte a byte iguais à base c17771fe (cobrança, estorno, amostra "adssample-")', () =>
   sha(read(F.billing)) === BILLING_SHA && sha(read(F.sample)) === SAMPLE_SHA)
@@ -406,7 +408,9 @@ await check('8f modo completo: escolha no passo do nível, sugestão pelo setor 
   const s = code(read(F.client))
   return ordem(s, 'name="adv2-tier"', '<AdsStylePicker', 'name="adv2-style"', 'copy={ADS_V2_STYLE_COPY.en}') &&
     /const styleSuggested: AdsV2StyleChoice = sector \? adsV2SuggestedStyle\(sector\) : 'none'/.test(s) &&
-    /card_footage_id: cardDone\.footageId, \.\.\.\(style !== 'none' \? \{ style \} : \{\}\) \}/.test(s) && /\[tier, composed, linkNorm, sector, logo\?\.footageId, photos, style\]/.test(s)
+    /card_footage_id: cardDone\.footageId, \.\.\.\(style !== 'none' \? \{ style \} : \{\}\) \}/.test(s) &&
+    // KINEO-ATOR-ANUNCIO-2026-10-09 — re-ancorado: a assinatura do plano ganhou o ator no fim (presenterOn); o estilo continua nela.
+    /\[tier, composed, linkNorm, sector, logo\?\.footageId, photos, style, presenterOn\]/.test(s)
 })
 await check('8g /business: "Styles your ads can use" logo depois dos 3 passos do herói e antes do plano; /ads: depois de "How it works"', () => {
   const b = code(read(F.business))

@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     if (!safety.ok) return v2Fail(safety.reason === 'blocked' ? 'moderation' : `moderation_${safety.reason}`, safety.reason === 'unavailable' ? 503 : 422)
 
     const cost = adsV2Credits(order.tier, order.seconds)
-    const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds }) // KINEO-ESTILOS-PRODUTO-2026-10-09 — o plano com estilo custa o efeito
+    const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds, presenter: !!plan.presenter }) // KINEO-ESTILOS-PRODUTO-2026-10-09 — o plano com estilo custa o efeito · KINEO-ATOR-ANUNCIO-2026-10-09 — o ator custa a foto e o vídeo falado
 
     // ENSAIO DE US$ 0: plano + custo, sem débito e sem fal. Para aqui.
     if (dryRun) {
