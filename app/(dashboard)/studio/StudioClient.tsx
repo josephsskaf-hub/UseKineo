@@ -332,6 +332,9 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
   const [avatarOn, setAvatarOn] = useState<boolean>(AVATAR_PUBLIC)
   // KINEO-STUDIO-TILE-ADS-2026-09-27 — plano cru (profiles.plan) da mesma leitura; null até chegar = porta (falha fechada).
   const [plan, setPlan] = useState<string | null>(null)
+  // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 — parceiro ativo (flag `parceiro` do /api/me/credits; quem decide é o servidor,
+  // lib/partnerAccess.ts): o tile "Business ad" o trata como assinante. Sem a flag = false (porta /ads, falha fechada).
+  const [parceiro, setParceiro] = useState(false)
   // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — a flag kineo1 do /api/me/credits: true/false decididos, null = a leitura
   // de legado falhou ('não sei'), undefined = ainda não chegou. `contaPaga` decide o 'não sei' (kineo1NaTela).
   const [kineo1Flag, setKineo1Flag] = useState<boolean | null | undefined>(undefined)
@@ -354,7 +357,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
     let alive = true
     fetch('/api/me/credits', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (alive) { setKineo1Flag(d?.kineo1 === true ? true : d?.kineo1 === false ? false : null); if (typeof d?.hasPaid === 'boolean') setContaPaga(d.hasPaid); if (d?.estrela === true) setEstrelaOk(true); if (typeof d?.s25Liberado === 'boolean') setS25Liberado(d.s25Liberado) } return d }) // KINEO-ENTRADA-SEEDANCE15 · KINEO-ESTRELA-DO-FILME-2026-09-29 (flag estrela) · KINEO-S25-ABRE-2026-10-06 (flag s25Liberado)
+      .then((d) => { if (alive) { setKineo1Flag(d?.kineo1 === true ? true : d?.kineo1 === false ? false : null); if (typeof d?.hasPaid === 'boolean') setContaPaga(d.hasPaid); if (d?.estrela === true) setEstrelaOk(true); if (typeof d?.s25Liberado === 'boolean') setS25Liberado(d.s25Liberado); if (d?.parceiro === true) setParceiro(true) } return d }) // KINEO-ENTRADA-SEEDANCE15 · KINEO-ESTRELA-DO-FILME-2026-09-29 (flag estrela) · KINEO-S25-ABRE-2026-10-06 (flag s25Liberado) · KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 (flag parceiro)
       .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits); if (alive && d?.internal === true) setInternal(true); if (alive && d?.avatar === true) setAvatarOn(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && d?.curtas === true) setCurtasOk(true); if (alive && typeof d?.plan === 'string') setPlan(d.plan) })
       .catch(() => {}) // saldo é enfeite: falhou, a tela segue como antes
       .finally(() => { if (alive) setFlagsProntas(true) }) // KINEO-ENTRADA-SEEDANCE15
@@ -388,7 +391,8 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
   }, [flagsProntas]) // eslint-disable-line react-hooks/exhaustive-deps
   // KINEO-STUDIO-TILE-ADS-2026-09-27 — o MESMO predicado que abre a porta no servidor (lib/ads/access.ts adsAccessReason →
   // 'subscriber'): plano de assinatura paga entra direto no /ads/new; free, trial e sem plano vão à porta /ads.
-  const adsTileAccess = plan !== null && ADS_SUBSCRIBER_PLANS.includes(plan)
+  // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 — e o parceiro ativo ('partner' no servidor, flag `parceiro` aqui) entra como o assinante.
+  const adsTileAccess = plan !== null && ADS_SUBSCRIBER_PLANS.includes(plan) || parceiro
   const adsTileHref = adsTileAccess ? ADS_TILE_WIZARD_HREF : ADS_TILE_DOOR_HREF
   const [preset, setPreset] = useState<string | null>(null)
   const [prompt, setPrompt] = useState('')

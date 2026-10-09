@@ -45,7 +45,7 @@ import { ADS_AUTO_MIN_ITEMS, adsAutoVisible } from '@/lib/ads/autoBrief' // KINE
 // ─── tipos e constantes ──────────────────────────────────────────────────────────────────────
 
 type Gate = 'ok' | 'no_access' | 'closed' | 'anon' // KINEO-ADS-SEM-LOGIN-2026-09-27: 'anon' = visitante sem login (painel da IA, nenhuma chamada de API)
-type Access = 'pass' | 'subscriber' | 'internal' | 'none'
+type Access = 'pass' | 'subscriber' | 'internal' | 'partner' | 'none' // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09: + partner (parceiro ativo entra como assinante, lib/ads/access.ts)
 
 interface OrdersPayload {
   access: Access

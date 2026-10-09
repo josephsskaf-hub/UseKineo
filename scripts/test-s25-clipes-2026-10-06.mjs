@@ -380,7 +380,9 @@ const MUTANTS = [
   ['desligado mas o card aparece para todo mundo', { [LAUNCH]: swap('return CLIP_S25_PUBLIC || isInternalEmail(email)', 'return true') }],
   ['engineAccessFor sem o portão de pagante do 2.5', { [SERVER]: swap("...(engine === 's25' ? { paidAllowed: clipS25Paying(account) } : {}),", '') }],
   ['launchVisible do 2.5 sem o interruptor único', { [SERVER]: swap("launchVisible: engine !== 's25' || clipS25Visible(account.email),", 'launchVisible: true,') }],
-  ['pagante do clipe ≠ portão do filme (plano ≠ free)', { [SERVER]: swap('return s25AccessFor({ email: account.email, plan: account.plan }).allowed', "return account.plan !== 'free'") }],
+  // REANCORADO KINEO-PARCEIRO-ABRE-TUDO-2026-10-09: o portão do clipe passou a levar a flag do parceiro ativo ao s25AccessFor (a regra
+  // do parceiro é provada em scripts/test-parceiro-abre-tudo-2026-10-09.mjs); a intenção deste mutante é a mesma.
+  ['pagante do clipe ≠ portão do filme (plano ≠ free)', { [SERVER]: swap('return s25AccessFor({ email: account.email, plan: account.plan, partner: account.partner }).allowed', "return account.plan !== 'free'") }],
   ['portão do filme largo (*_trial passa)', { 'lib/s25Access.ts': swap("  if (isPayingPlan(conta.plan)) return { allowed: true, reason: 'paying_plan' }", "  if (isPayingPlan(conta.plan) || isTrialPlan(conta.plan)) return { allowed: true, reason: 'paying_plan' }") }],
   ['casa larga (test% no lugar da lista exata)', { 'lib/s25Access.ts': swap("  if (isDryRunAccount(conta.email)) return { allowed: true, reason: 'house' }", "  if (isDryRunAccount(conta.email) || /^test/.test(String(conta.email))) return { allowed: true, reason: 'house' }") }],
   ['2ª régua do clipe volta ao engineLaunch', { [ENGINE_LAUNCH]: swap('export function s25Visible(email?: string | null): boolean {', 'export function s25ClipVisible(email?: string | null): boolean { return isInternalEmail(email) }\nexport function s25Visible(email?: string | null): boolean {') }],

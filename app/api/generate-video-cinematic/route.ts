@@ -9,6 +9,7 @@ import { S25_PUBLIC, enginePaused } from '@/lib/engineLaunch'
 import { seedance15sVisible } from '@/lib/engineLaunch' // KINEO-SEEDANCE-15S-2026-09-29
 import { S25_PAID_ONLY_EVENT, S25_PAID_ONLY_MESSAGE, S25_PAID_ONLY_REASON, s25UpgradeHref } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06
 import { s25AccessFor } from '@/lib/s25Access' // KINEO-S25-ABRE-2026-10-06 — o 2.5 só para quem paga (isPayingPlan), recusa antes do débito
+import { isActivePartner } from '@/lib/partnerAccess' // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 — e para o parceiro ativo em cortesia (fundador, 09/10: "pode abrir tudo para ele fazer o que ele quiser dentro")
 import { duracoesCurtasVisible } from '@/lib/engineLaunch' // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29
 // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-ESTRELA-DO-FILME-2026-09-29 — as fotos do rosto viram o protagonista:
 // a régua pura (quem, motor, preço ANTES do débito, quais cenas, o pedido ao edit) e o servidor (assinar, gerar, moderar). [KINEO-ESTRELA-DO-FILME-2026-09-29]
@@ -1877,7 +1878,11 @@ async function manipularPost(req: NextRequest) {
     // /studio/create já abre como caixa de planos) e evento de SERVIDOR com o motivo. Os outros motores não passam por aqui. [KINEO-S25-ABRE-2026-10-06]
     // Com S25_PUBLIC=false vale o portão antigo do canário (mais abaixo, 's25_internal_only'). [KINEO-S25-ABRE-2026-10-06]
     if (wantsS25 && S25_PUBLIC) { // KINEO-S25-ABRE-2026-10-06
-      const acessoS25 = s25AccessFor({ email: user.email, plan: planVal }) // KINEO-S25-ABRE-2026-10-06
+      // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 — parceiro ativo (cortesia ativa + afiliado ativo, lib/partnerAccess.ts) usa o 2.5 com o
+      // crédito da cortesia; o débito e o preço abaixo são os de sempre. Só lê para plano de cortesia; falha = não é parceiro [KINEO-PARCEIRO-ABRE-TUDO-2026-10-09]
+      // (a recusa de baixo continua idêntica para quem não é). [KINEO-PARCEIRO-ABRE-TUDO-2026-10-09]
+      const parceiroS25 = await isActivePartner(user.id, planVal) // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09
+      const acessoS25 = s25AccessFor({ email: user.email, plan: planVal, partner: parceiroS25 }) // KINEO-S25-ABRE-2026-10-06 · KINEO-PARCEIRO-ABRE-TUDO-2026-10-09
       if (!acessoS25.allowed) { // KINEO-S25-ABRE-2026-10-06
         await writeServerEvent({ name: S25_PAID_ONLY_EVENT, userId: user.id, path: '/api/generate-video-cinematic', metadata: { engine: 's25', reason: acessoS25.reason, plan: planVal, has_paid: profile?.has_paid === true, trial_active: trialActive, balance, dry_run: body.dry_run === true, charged: false, version: 's25_abre_20261006' } }) // KINEO-S25-ABRE-2026-10-06
         return NextResponse.json({ error: S25_PAID_ONLY_MESSAGE, upsell: 'studio', reason: S25_PAID_ONLY_REASON, engine: 's25', upgradeHref: s25UpgradeHref('server'), balance, retryable: false, charged: false, refunded: false }, { status: 402 }) // KINEO-S25-ABRE-2026-10-06

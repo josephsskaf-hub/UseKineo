@@ -305,6 +305,9 @@ console.log('== (h) resolveKineo1Flag, GET /api/me/credits e /studio/create exec
       // REANCORADO KINEO-S25-ABRE-2026-10-06: a rota ganhou a flag s25Liberado (régua do servidor, lib/s25Access.ts — provada
       // em scripts/test-s25-abre-2026-10-06.mjs). Aqui ela é só um vizinho da flag kineo1: stub fixo.
       '@/lib/s25Access': { s25LiberadoNaTela: () => false },
+      // REANCORADO KINEO-PARCEIRO-ABRE-TUDO-2026-10-09: a rota ganhou a flag `parceiro` (parceiro ativo, lib/partnerAccess.ts —
+      // provada em scripts/test-parceiro-abre-tudo-2026-10-09.mjs). Aqui ela é só outro vizinho da flag kineo1: stub fixo.
+      '@/lib/partnerAccess': { isActivePartner: async () => false },
     }
     const box = { exports: {} }
     vm.runInNewContext(js, { module: box, exports: box.exports, require: (id) => { if (Object.hasOwn(mocks, id)) return mocks[id]; throw new Error('unmocked ' + id) }, Promise })

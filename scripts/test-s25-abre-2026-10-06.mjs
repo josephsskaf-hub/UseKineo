@@ -181,7 +181,10 @@ async function problems(over = {}) {
   else {
     const bloco = rc.slice(iGate, iTrial)
     for (const need of [
-      'const acessoS25 = s25AccessFor({ email: user.email, plan: planVal })',
+      // REANCORADO KINEO-PARCEIRO-ABRE-TUDO-2026-10-09: o portão passou a receber a flag do parceiro ativo (cortesia + afiliado
+      // ativo, lida dentro deste bloco); a régua de quem paga e a recusa abaixo são as mesmas. Prova do parceiro:
+      // scripts/test-parceiro-abre-tudo-2026-10-09.mjs.
+      'const acessoS25 = s25AccessFor({ email: user.email, plan: planVal, partner: parceiroS25 })',
       'if (!acessoS25.allowed) {',
       'await writeServerEvent({ name: S25_PAID_ONLY_EVENT,',
       'reason: acessoS25.reason,',
@@ -216,6 +219,10 @@ async function problems(over = {}) {
       'next/server': { NextResponse: { json: (body, init) => ({ body, status: init?.status ?? 200 }) } },
       '@/lib/supabase/server': { createClient: () => sb },
       '@/lib/kineo1Access': { readKineo1Access: async () => ({ ok: true, usedFast: false, boughtPack: false }) },
+      // REANCORADO KINEO-PARCEIRO-ABRE-TUDO-2026-10-09: a rota passou a ler o parceiro ativo pela chave de serviço
+      // (lib/partnerAccess.ts → lib/userFootage). Aqui ninguém é parceiro (sem cortesia nem afiliado): a régua de pagante é a
+      // de antes, intacta. O parceiro é provado em scripts/test-parceiro-abre-tudo-2026-10-09.mjs.
+      '@/lib/userFootage': { footageAdminClient: () => ({ from: () => { const q = { select: () => q, eq: () => q, maybeSingle: async () => ({ data: null, error: null }) }; return q } }) },
     })
     return (await l2('@/' + CREDITS).GET()).body
   }
@@ -465,9 +472,10 @@ async function problems(over = {}) {
   if ('s25ClipVisible' in L) p.push('voltou uma 2ª régua do clipe do 2.5 em lib/engineLaunch.ts (o interruptor é o CLIP_S25_PUBLIC)')
   if (CL && (!CL.clipS25Visible(HOUSE) || CL.clipS25Visible(STRANGER) !== CL.CLIP_S25_PUBLIC || CL.clipS25Visible(null) !== CL.CLIP_S25_PUBLIC)) p.push('clipe do 2.5 fora do interruptor único (CLIP_S25_PUBLIC)')
   const clipSrc = src(CLIPS)
+  // REANCORADO KINEO-PARCEIRO-ABRE-TUDO-2026-10-09: o portão de pagante do clipe passa a flag do parceiro ativo ao MESMO s25AccessFor.
   if (!hasLine(clipSrc, "launchVisible: engine !== 's25' || clipS25Visible(account.email),")
     || !hasLine(clipSrc, "...(engine === 's25' ? { paidAllowed: clipS25Paying(account) } : {}),")
-    || !hasLine(clipSrc, 'return s25AccessFor({ email: account.email, plan: account.plan }).allowed')) p.push('/clips não usa o interruptor único + o portão de pagante do filme do 2.5')
+    || !hasLine(clipSrc, 'return s25AccessFor({ email: account.email, plan: account.plan, partner: account.partner }).allowed')) p.push('/clips não usa o interruptor único + o portão de pagante do filme do 2.5')
   // /pricing nos dois estados do interruptor do clipe (o do arquivo e o oposto, em memória)
   for (const mundo of mundosDoClipe) try {
     const tp = makeLoader(mundo.over, STRIPE_MOCK)('@/' + TWO_PRODUCTS).twoProductsModelForPage()
@@ -504,7 +512,8 @@ const mutants = [
   ['M7 recusa sem evento de servidor', ROUTE, 'await writeServerEvent({ name: S25_PAID_ONLY_EVENT,', 'await Promise.resolve({ name: S25_PAID_ONLY_EVENT,'],
   ['M8 recusa sem caminho de upgrade', ROUTE, "upsell: 'studio', reason: S25_PAID_ONLY_REASON", 'reason: S25_PAID_ONLY_REASON'],
   ['M9 portão olha a decisão errada', ROUTE, '      if (!acessoS25.allowed) {', '      if (acessoS25.allowed === null) {'],
-  ['M10 /api/me/credits com a flag cravada', CREDITS, '  const s25Liberado = s25LiberadoNaTela(user.email, plan)', '  const s25Liberado = true'],
+  // REANCORADOS KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 (M10, M23c): as duas linhas passaram a levar a flag do parceiro ativo; a intenção é a mesma.
+  ['M10 /api/me/credits com a flag cravada', CREDITS, '  const s25Liberado = s25LiberadoNaTela(user.email, plan, parceiro)', '  const s25Liberado = true'],
   ['M11 /studio escolhe o motor trancado', STUDIO, "router.push(s25UpgradeHref('studio')) }}>", "router.push(s25UpgradeHref('studio')); setEngine(e.key) }}>"],
   ['M12 /studio sem o selo', STUDIO, '<UiLabel>{S25_PAID_BADGE}</UiLabel></span></b>', "<UiLabel>{e.tag ?? ''}</UiLabel></span></b>"],
   ['M12b /studio: degrau do card trancado volta a contar', STUDIO, "(e.key !== 's25' || s25Liberado === true)", '(true)'],
@@ -521,7 +530,7 @@ const mutants = [
   // REANCORADOS KINEO-S25-CLIPES-2026-10-06: a régua do clipe saiu daqui para o interruptor único (lib/clips/clipLaunch.ts).
   ['M23 clipe do 2.5 sem o portão de pagante', CLIPS, "    ...(engine === 's25' ? { paidAllowed: clipS25Paying(account) } : {}),\n", ''],
   ['M23b 2ª régua do clipe volta ao engineLaunch', LAUNCH, 'export function s25Visible(email?: string | null): boolean {', 'export function s25ClipVisible(email?: string | null): boolean { return isInternalEmail(email) }\nexport function s25Visible(email?: string | null): boolean {'],
-  ['M23c clipe do 2.5 com régua de pagante larga', CLIPS, '  return s25AccessFor({ email: account.email, plan: account.plan }).allowed', "  return account.plan !== 'free'"],
+  ['M23c clipe do 2.5 com régua de pagante larga', CLIPS, '  return s25AccessFor({ email: account.email, plan: account.plan, partner: account.partner }).allowed', "  return account.plan !== 'free'"],
   ['M24 frase de pausa ainda cita o 2.5', LAUNCH, "export const PAUSED_ENGINES_COPY = 'Omni Flash is temporarily paused", "export const PAUSED_ENGINES_COPY = 'Omni Flash and Seedance 2.5 are temporarily paused"],
   ['M25 tradução pt do selo faltando', COPYFILE, '    "NEW · paid plans": "NOVO · planos pagos",\n', ''],
   ['M26 [engine] volta a gerar o slug do 2.5', ENGINE_PAGE, 'return ENGINE_SLUGS.filter((engine) => engine !== S25_PAGE_SLUG).map((engine) => ({ engine }))', 'return ENGINE_SLUGS.map((engine) => ({ engine }))'],

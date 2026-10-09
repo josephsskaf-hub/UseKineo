@@ -4,21 +4,33 @@
 // (migration não aplicada, 42703) decide sem ela. Erro de leitura = 'none' (falha fechada).
 // KINEO-STUDIO-ADS-REVISAO-2026-09-24 — `adsGate` junta acesso e interruptor: desligado (NEXT_PUBLIC_ADS_PASS_LIVE
 // !== '1') só a conta interna passa, como no checkout. "Desligado" quer dizer desligado.
+// KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 — "pode abrir tudo para ele fazer o que ele quiser dentro" (fundador, 09/10): quem a régua
+// de sempre deixa em 'none' com plano de cortesia paga UMA leitura a mais (lib/partnerAccess.ts) e, sendo parceiro ativo, entra
+// como 'partner' — que adsGate trata como o assinante. Pagante, passe, casa e conta grátis não leem nada a mais. Leitura do
+// parceiro que falha = 'none' (falha fechada, como a do perfil).
 import { footageAdminClient } from '@/lib/userFootage'
 import { adsAccessReason, ADS_ACCESS_SELECT, type AdsAccessFields, type AdsAccessReason } from '@/lib/ads/access'
 import { adsPassLive } from '@/lib/ads/offer'
 import { ADS_SAMPLE_DAILY_CAP, ADS_SAMPLE_LIVE, ADS_SAMPLE_PREFIX, ADS_SAMPLE_TIER } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
 import { ADS_V2_SCREEN_SECONDS } from '@/lib/ads/v2Screen' // KINEO-ADS-AMOSTRA-2026-10-09
+import { isActivePartner } from '@/lib/partnerAccess' // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09
 
 export async function loadAdsAccess(userId: string, authEmail: string | null | undefined): Promise<{ admin: ReturnType<typeof footageAdminClient>; reason: AdsAccessReason }> {
   const admin = footageAdminClient()
   const withColumn = await admin.from('profiles').select(ADS_ACCESS_SELECT).eq('id', userId).maybeSingle()
-  if (!withColumn.error) return { admin, reason: adsAccessReason(withColumn.data as AdsAccessFields | null, authEmail) }
+  if (!withColumn.error) return { admin, reason: await comParceiro(userId, withColumn.data as AdsAccessFields | null, authEmail) }
   if (withColumn.error.code === '42703') {
     const without = await admin.from('profiles').select('id, plan').eq('id', userId).maybeSingle()
-    return { admin, reason: without.error ? 'none' : adsAccessReason((without.data as AdsAccessFields | null) ?? null, authEmail) }
+    return { admin, reason: without.error ? 'none' : await comParceiro(userId, (without.data as AdsAccessFields | null) ?? null, authEmail) }
   }
   return { admin, reason: 'none' }
+}
+
+/** KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 — a régua de sempre; só o 'none' com perfil lido pergunta pelo parceiro ativo. */
+async function comParceiro(userId: string, row: AdsAccessFields | null, authEmail: string | null | undefined): Promise<AdsAccessReason> {
+  const reason = adsAccessReason(row, authEmail)
+  if (reason !== 'none' || !row || typeof row.plan !== 'string') return reason
+  return adsAccessReason(row, authEmail, undefined, await isActivePartner(userId, row.plan))
 }
 
 /** O que a rota deve fazer: 'ok', 'no_access' (403 com botão do passe) ou 'closed' (desligado; 403 "opens soon"). */

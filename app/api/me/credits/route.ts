@@ -8,6 +8,7 @@ import { duracoesCurtasVisible } from '@/lib/engineLaunch' // KINEO-DURACOES-CUR
 import { estrelaVisible } from '@/lib/engineLaunch' // KINEO-ESTRELA-DO-FILME-2026-09-29
 import { readKineo1Access } from '@/lib/kineo1Access'
 import { s25LiberadoNaTela } from '@/lib/s25Access' // KINEO-S25-ABRE-2026-10-06
+import { isActivePartner } from '@/lib/partnerAccess' // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09
 
 // KINEO-CABE-2026-08-21 — saldo do usuário logado, para a tela poder dizer a
 // verdade ANTES do clique. Existe porque o /studio oferecia motores que o
@@ -59,6 +60,10 @@ export async function GET() {
   // KINEO-S25-ABRE-2026-10-06 — `s25Liberado` = a conta pode USAR o Seedance 2.5 (a MESMA composição do portão da rota do
   // filme, lib/s25Access.ts: plano pago, nunca *_trial). `internal` segue sendo só "o 2.5 aparece" (s25Visible): quem vê
   // sem poder usar ganha o selo "NEW · paid plans" e o clique leva ao upgrade.
-  const s25Liberado = s25LiberadoNaTela(user.email, plan)
-  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), seedance15: seedance15sVisible(user.email), curtas: duracoesCurtasVisible(user.email), estrela: estrelaVisible(user.email), internal: s25Visible(user.email), s25Liberado, hasPaid, kineo1, plan })
+  // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 — "pode abrir tudo para ele fazer o que ele quiser dentro" (fundador, 09/10): o parceiro
+  // ativo (cortesia ativa + afiliado ativo, lib/partnerAccess.ts) usa o 2.5 e o Studio Ads. Só lê para plano de cortesia; falha
+  // de leitura = false. `parceiro` vai à tela para o tile "Business ad" do /studio abrir o assistente como para o assinante.
+  const parceiro = await isActivePartner(user.id, plan)
+  const s25Liberado = s25LiberadoNaTela(user.email, plan, parceiro)
+  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), seedance15: seedance15sVisible(user.email), curtas: duracoesCurtasVisible(user.email), estrela: estrelaVisible(user.email), parceiro, internal: s25Visible(user.email), s25Liberado, hasPaid, kineo1, plan })
 }
