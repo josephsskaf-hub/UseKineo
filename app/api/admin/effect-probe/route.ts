@@ -28,6 +28,7 @@ const PROBES: Record<string, { model: string; input: (image: string) => Record<s
   naked_eye_3d: { model: PIXVERSE, input: (image) => ({ effect: '3D Naked-Eye AD', image_url: image, resolution: '720p', duration: '5' }) },
   giant_product: { model: PIXVERSE, input: (image) => ({ effect: 'Giant Product', image_url: image, resolution: '720p', duration: '5' }) },
   mechanical_assembly: { model: PIXVERSE, input: (image) => ({ effect: 'Mechanical Assembly', image_url: image, resolution: '720p', duration: '5' }) },
+  ocean_ad: { model: PIXVERSE, input: (image) => ({ effect: 'Ocean ad', image_url: image, resolution: '720p', duration: '5' }) }, // KINEO-SONDA-EFEITOS-2026-10-09 — alternativa ao splash do Kling
   product_closeup: { model: PIXVERSE, input: (image) => ({ effect: 'Product close-up', image_url: image, resolution: '720p', duration: '5' }) },
   splash: { model: KLING, input: (image) => ({ effect_scene: 'splashsplash', input_image_urls: [image], duration: '5' }) },
   product_up: { model: VIDU, input: (image) => ({ template: 'creatice_product_up', input_image_urls: [image], aspect_ratio: '9:16' }) },
@@ -37,6 +38,13 @@ async function adminUser() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   return user && ADMIN_EMAILS.has((user.email ?? '').toLowerCase()) ? user : null
+}
+
+/** A fal devolve o motivo no corpo do erro (ApiError.body); sem ele, 'Unprocessable Entity' não diz qual campo. */
+function falDetail(e: unknown): string {
+  const body = (e as { body?: unknown } | null)?.body
+  const msg = e instanceof Error ? e.message : String(e)
+  return (body ? msg + ' ' + JSON.stringify(body) : msg).slice(0, 600)
 }
 
 function falReady(): boolean {
@@ -59,7 +67,7 @@ export async function POST(req: NextRequest) {
     const sub = await fal.queue.submit(probe.model, { input: probe.input(image) })
     return NextResponse.json({ model: probe.model, request_id: sub.request_id })
   } catch (e) {
-    return NextResponse.json({ error: 'submit_failed', detail: e instanceof Error ? e.message.slice(0, 300) : String(e).slice(0, 300) }, { status: 502 })
+    return NextResponse.json({ error: 'submit_failed', detail: falDetail(e) }, { status: 502 })
   }
 }
 
@@ -75,6 +83,6 @@ export async function GET(req: NextRequest) {
     const res = (await fal.queue.result(probe.model, { requestId })) as { data?: { video?: { url?: string } } }
     return NextResponse.json({ status: 'COMPLETED', video_url: res.data?.video?.url ?? null })
   } catch (e) {
-    return NextResponse.json({ status: 'ERROR', detail: e instanceof Error ? e.message.slice(0, 300) : String(e).slice(0, 300), video_url: null })
+    return NextResponse.json({ status: 'ERROR', detail: falDetail(e), video_url: null })
   }
 }
