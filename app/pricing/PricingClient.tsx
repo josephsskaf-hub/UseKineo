@@ -111,6 +111,7 @@ import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, type FreeTierOffer } 
 import { CHECKOUT_PAYMENT_GUIDANCE_COMPACT } from '@/lib/growth/checkoutPaymentGuidance'
 import { GUEST_CHECKOUT_LIVE, guestCheckoutCoversPlanClick } from '@/lib/growth/guestCheckout' // KINEO-COMPRA-SEM-LOGIN-2026-10-06
 import { WELCOME20_PERCENT_OFF, WELCOME20_PROMOTION_CODE } from '@/lib/growth/publicPromoTruth' // KINEO-WELCOME20-NO-CARTAO-2026-10-09
+import PricingDealBar from '@/components/pricing/PricingDealBar' // KINEO-WELCOME20-FAIXA-2026-10-09
 import {
   buildPricingPlanChoiceAttribution,
   sanitizePricingIntentCampaign,
@@ -953,6 +954,18 @@ export default function PricingClient({ initialBilling = 'annual', characterLimi
 
   return (
     <div className="pricing-blue min-h-screen bg-[var(--bg)] text-[var(--text)] font-sans">
+      {/* KINEO-WELCOME20-FAIXA-2026-10-09 — a oferta na faixa do topo (fundador, print de referência): o botão leva ao mensal e
+          aos planos, onde o botão do Creator/Studio aplica o WELCOME20. Some para assinante e para quem chegou com outro cupom. */}
+      {PRICING_WELCOME20_ON_CARD && !arrivedWithPromo && !planSwitch.subscribed ? (
+        <PricingDealBar
+          percent={WELCOME20_PERCENT_OFF}
+          onClaim={() => {
+            setBilling('monthly')
+            void trackEvent('pricing_deal_bar_clicked', { offer: 'welcome20' })
+            document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }}
+        />
+      ) : null}
       <style dangerouslySetInnerHTML={{__html: `
 .pricing-blue{--pricing-error:#b52b3b;--pricing-error-soft:#fff0f2;--pricing-warning:#965209;--pricing-success:#18724e;--pricing-success-soft:#edf8f2;background:var(--bg)!important;color:var(--text)}
 html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft:#381d29;--pricing-warning:#ffc17b;--pricing-success:#73d9aa;--pricing-success-soft:#163629}
@@ -1172,7 +1185,6 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                         amount={annual ? annualPrices[tier].perMonth : welcome !== null ? formatCheckoutMoney(resolvedCurrency, welcome) : p.price}
                         was={(annual || welcome !== null) && displayCurrency ? p.price : undefined}
                         per={annual ? `/month, ${displayCurrency ? annualPrices[tier].total : '—'} billed yearly` : welcome !== null ? `first month, then ${p.price}/month` : '/month'}
-                        deal={welcome !== null ? `${WELCOME20_PERCENT_OFF}% off` : undefined}
                         note={settlementCurrency === 'brl'
                           ? welcome !== null
                             // KINEO-WELCOME20-NO-CARTAO-2026-10-09 — em reais, o cupom vale igual: 1º mês com 20%, depois o mensal da tabela.

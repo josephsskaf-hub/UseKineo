@@ -159,6 +159,10 @@ function problems(replacements = {}) {
   if (!client.includes('const cardPromo = welcomeOnCard(tier) ? WELCOME20_PROMOTION_CODE : null') || !client.includes("const promo = pricingParams?.get('promo') ?? cardPromo")) p.push('20% no cartão: o botão leva o WELCOME20 (o cupom da URL vence)')
   if (!client.includes('Math.round((getTierPrice(tier, resolvedCurrency, resolvedRegion) * (100 - WELCOME20_PERCENT_OFF)) / 100)')) p.push('20% no cartão: o preço do 1º mês sai do caixa × (100 − WELCOME20_PERCENT_OFF)')
   if (!client.includes('{PRICING_WELCOME20_ON_CARD ? null : <WelcomeOfferModal delayMs={20000} surface="pricing" />}')) p.push('20% no cartão: o pop-up não abre mais no /pricing')
+  // KINEO-WELCOME20-FAIXA-2026-10-09 — a oferta na faixa do topo, não como selo no cartão (fundador, print de referência).
+  if (!client.includes("{PRICING_WELCOME20_ON_CARD && !arrivedWithPromo && !planSwitch.subscribed ? (\n        <PricingDealBar") || !client.includes("setBilling('monthly')\n            void trackEvent('pricing_deal_bar_clicked'")) p.push('faixa do topo: aparece com o interruptor e leva ao mensal')
+  if (client.includes('deal={welcome')) p.push('o selo de desconto voltou para o cartão (o fundador pediu a faixa no topo)')
+  if (client.indexOf('<PricingDealBar') < 0 || client.indexOf('<PricingDealBar') > client.indexOf('<nav className="sticky top-0')) p.push('faixa do topo: vem antes do menu da página')
   if (!client.includes("monthlyLabel: welcomeOnCard('basic') ? formatCheckoutMoney(resolvedCurrency, welcomeFirstMonthMinor('basic')) : entryPriceLabel('basic')")) p.push('20% no cartão: a barra do celular diz o que a Stripe cobra hoje (Creator)')
   if (!client.includes("monthlyLabel: formatCheckoutMoney(resolvedCurrency, welcomeOnCard('pro') ? welcomeFirstMonthMinor('pro') : getTierPrice('pro', resolvedCurrency, resolvedRegion))")) p.push('20% no cartão: a barra do celular diz o que a Stripe cobra hoje (Studio)')
   if (!client.includes('<style dangerouslySetInnerHTML={{ __html: PLAN_VALUE_STAGE_CSS }} />') || client.includes('<style>{PLAN_VALUE_STAGE_CSS}</style>')) p.push('CSS do cartão sem escape (o ">" escapado quebra a hidratação)')
