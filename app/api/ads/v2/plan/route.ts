@@ -21,6 +21,8 @@ import { adsV2LinkText } from '@/lib/ads/v2Link'
 import { researchState, storedResearchFacts } from '@/lib/ads/v2Research'
 import { loadAdsV2Order, type AdsV2StoredPlan } from '@/lib/ads/v2Advance'
 import { measureFootageVideo, ownedFootage, v2Fail, v2Json } from '@/lib/ads/v2Server'
+// KINEO-ADS-AMOSTRA-2026-10-09 — a amostra grátis abre o plano (sem custo de fal) para a conta free/trial que ainda não usou a dela.
+import { adsSampleLevelOk, adsSampleOpen } from '@/lib/ads/serverAccess'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -36,7 +38,8 @@ export async function POST(req: NextRequest) {
     if (!process.env.OPENAI_API_KEY) return v2Fail('unavailable', 503)
     const { admin, reason } = await loadAdsAccess(user.id, user.email)
     const gate = adsGate(reason)
-    if (gate !== 'ok') {
+    const sample = gate === 'no_access' && await adsSampleOpen(admin, user.id, reason) // KINEO-ADS-AMOSTRA-2026-10-09
+    if (gate !== 'ok' && !sample) {
       await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/api/ads/v2/plan', metadata: { reason: gate } })
       return v2Fail(gate === 'closed' ? 'closed' : 'no_access', 403)
     }
@@ -54,6 +57,8 @@ export async function POST(req: NextRequest) {
     if (error) return isMissingAdsTable(error.code) ? v2Fail('not_ready', 503) : v2Fail('plan_failed', 502)
     if (!order) return v2Fail('order_not_found', 404)
     if (order.status !== 'draft' && order.status !== 'planned') return v2Fail('not_editable', 409)
+    // KINEO-ADS-AMOSTRA-2026-10-09 — pela amostra, só o pedido no nível e na duração da amostra é planejado.
+    if (gate !== 'ok' && sample && !adsSampleLevelOk(order.tier, order.seconds)) return v2Fail('sample_level_only', 403)
     // KINEO-ADS-MODO-SIMPLES-2026-09-29 — corpo simples só para pedido nascido no modo simples; enquanto a pesquisa roda,
     // não há plano (nem cobrança): 409 research_running (pesquisa parada há > 90 s conta como falha e libera).
     const brief0 = order.brief ?? {}

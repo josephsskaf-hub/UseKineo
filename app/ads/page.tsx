@@ -77,6 +77,13 @@ import { adsPaywallNoSession, adsPaywallOffer, adsPaywallVisible, type AdsPaywal
 import { adsPaywallSources } from '@/lib/ads/paywallSources'
 import { REGION_PAID_ONLY_TRIAL_STATUS } from '@/lib/freeFilmPolicy'
 import AdsPaywall from './AdsPaywall'
+// KINEO-ADS-AMOSTRA-2026-10-09 — o PRIMEIRO anúncio grátis (lib/ads/sample.ts): a porta oferece a amostra ANTES da oferta paga
+// (que continua logo abaixo). Logado e barrado pelo gate ('no_access') com a amostra ainda aberta (adsSampleOpen) → botão para
+// /ads/v2; anônimo CONFIRMADO pelo auth (noSession) → o mesmo botão para /signup?redirect=/ads/v2 (o cadastro volta ao
+// montador). Timeout/erro de leitura = sem botão (falha fechada). Studio Ads fechado (adsPassLive false) = sem botão.
+import { adsSampleOpen } from '@/lib/ads/serverAccess'
+import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample'
+const SAMPLE_SIGNUP_HREF = `/signup?redirect=${encodeURIComponent('/ads/v2')}`
 
 export const dynamic = 'force-dynamic'
 
@@ -284,6 +291,14 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
   // KINEO-PASSE-B-2026-09-28 — passe B do fundador (90 cr): o cartão e a FAQ dizem nível a nível o que o passe paga, com os
   // níveis DERIVADOS desta página (V2_LEVELS) — "1 new ad at any level" deixou de ser a frase inteira (90 paga 2 de Photo motion).
   const passCoverage = adsCoverageLine(ADS_PASS_CREDITS, V2_LEVELS)
+  // KINEO-ADS-AMOSTRA-2026-10-09 — quem vê o botão da amostra grátis e para onde ele leva.
+  const sampleHref: string | null = !ADS_SAMPLE_LIVE || !live || !ADS_V2_PUBLIC
+    ? null
+    : viewer.signedIn && viewer.gate === 'no_access' && viewer.userId
+    ? ((await withTimeout(adsSampleOpen(footageAdminClient(), viewer.userId, 'none'), false)) ? MAKER_HREF : null)
+    : !viewer.signedIn && viewer.noSession
+    ? SAMPLE_SIGNUP_HREF
+    : null
 
   const copy = adsPassCopy()
   const price = adsPassPriceLabel()
@@ -307,6 +322,16 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
         <Suspense fallback={null}>
           <AdsPageBanners live={live} cta={cta} planOffer={planOffer} from={from} />
         </Suspense>
+
+        {/* KINEO-ADS-AMOSTRA-2026-10-09 — o primeiro anúncio grátis vem ANTES da oferta paga (que continua aqui embaixo). */}
+        {sampleHref ? (
+          <div className="ads-banner ads-sample" role="region" aria-label="Free first ad" data-kineo="ads-door-sample">
+            <p>
+              <b>Your first ad is free.</b> One ad per account at the Photo motion level, about {ADS_V2_SCREEN_SECONDS} seconds, from your own photos. No card needed.
+            </p>
+            <a href={sampleHref} className="go ok ads-go">Make your first ad free <span aria-hidden="true">→</span></a>
+          </div>
+        ) : null}
 
         {/* KINEO-ADS-PAREDE-2026-10-06 — quem bateu na parede vê a OFERTA (plano de entrada + Express; sem passe, a mesma para a
             conta 'region_paid_only') no lugar da faixa; impressão e clique saem do próprio componente. */}
@@ -519,6 +544,7 @@ html[data-theme=dark] .stu.ads-door{--ads-door-error:#ff9b9b;--ads-door-error-so
 .ads-navlink:hover{text-decoration:underline}
 .ads-banner{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin:16px 0 0;padding:0 6px 0 14px;border-radius:12px;background:var(--accent-soft);border:1px solid var(--border2);color:var(--text);font-size:14px;line-height:1.5}
 .ads-banner p{margin:12px 0}
+.ads-banner.ads-sample{flex-direction:column;align-items:stretch;gap:0;padding:0 14px 14px}
 .ads-banner.err{background:var(--ads-door-error-soft);border-color:var(--ads-door-error);color:var(--ads-door-error)}
 .ads-x{flex-shrink:0;min-width:44px;min-height:44px;background:none;border:0;color:inherit;font-size:20px;line-height:1;cursor:pointer}
 .ads-hero{padding:46px 0 10px;max-width:780px}

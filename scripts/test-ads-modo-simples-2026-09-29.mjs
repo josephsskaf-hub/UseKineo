@@ -158,7 +158,12 @@ await check('A3 trocar de modo é link de página inteira (o anúncio em andamen
 // "3 variações" — props variations/onVariationsStarted, o estado three, makeVariations (outra rota, preço do grupo
 // mostrado antes do clique) e o VariationToggle no PlanPreview. Sem a opção ligada o botão, o preço e o /start são os de
 // antes; provado em scripts/test-ads-3-variacoes-2026-09-30.mjs (S4, com mutantes). Base anterior: fbed22df….
-const Z1_BASE = "14c118ff2d68c04430579452e48d0f1ddfe3549c2e27c66ec345d042f92e752b"
+// KINEO-ADS-AMOSTRA-2026-10-09 — re-ancorado (decisão do fundador 09/10, "tudo sim": o primeiro anúncio é grátis): o completo
+// ganhou SÓ a prop sample — com ela, os níveis fora de photo_motion ficam desligados ("Paid plans"), o selo da amostra no
+// lugar do preço, nada de "faltam créditos", botão "Make my free ad", a linha da regra, o aviso do teto (429 sample_cap) e
+// a refação escondida. Sem sample (todo pagante) o desenho e os pedidos são os de antes; provado com mutantes em
+// scripts/test-ads-amostra-2026-10-09.mjs. Base anterior: 14c118ff….
+const Z1_BASE = "878af2d0f5a28e303ab11b04f75ecd29e9dc6a5ea600f0003aea31a20015db5d"
 const trechoCompleto = (src) => { const s = src.replace(/\r\n/g, '\n'); const i = s.indexOf('function AdsV2Session('); return i < 0 ? '' : semComentarios(s.slice(i)) }
 await check('Z1 impressão digital do modo completo (AdsV2Session, PhotoRow, PlanPreview, ShotGrid) = a do vídeo do cliente (29/09)', sha(trechoCompleto(SRC.client)) === Z1_BASE)
 await check('Z1-mutante: 1 caractere trocado no modo completo fica vermelho', () => sha(trechoCompleto(trocar(SRC.client, "const POLL_RETRY_MS = 20_000", "const POLL_RETRY_MS = 20_001").replace('Plan my ad (free)', 'Plan my ad (freE)'))) !== Z1_BASE)
@@ -594,7 +599,8 @@ await check('C2-mutante: /start chamado ao planejar fica vermelho', () => !soNoB
 const semPrecoCravado = (tsx, lib) => !/\b(34|41|51)\b/.test(semComentarios(tsx)) && !/\b(34|41|51)\b/.test(semComentarios(lib)) &&
   /const credits = adsV2Credits\(t, ADS_V2_SCREEN_SECONDS\)/.test(tsx) && /const cost = tier \? adsV2Credits\(tier, ADS_V2_SCREEN_SECONDS\) : null/.test(tsx)
 await check('C3 (M10) nenhum preço digitado na tela simples nem na lib: o preço vem de adsV2Credits (o mesmo do débito), que segue 34/41/51', semPrecoCravado(SRC.simple, SRC.simpleLib) && T.adsV2Credits('photo_motion', 15) === 34 && T.adsV2Credits('commercial', 15) === 41 && T.adsV2Credits('cinema', 15) === 51)
-await check('C3-mutante: preço digitado na tela fica vermelho', () => !semPrecoCravado(trocar(SRC.simple, "<span className=\"cr\">{fill(copy.tiers.credits, { n: credits })}</span>", '<span className="cr">41 créditos</span>'), SRC.simpleLib))
+// KINEO-ADS-AMOSTRA-2026-10-09 — re-ancorado: o selo do nível ganhou o ramo da amostra grátis; o preço continua vindo de fill(copy.tiers.credits).
+await check('C3-mutante: preço digitado na tela fica vermelho', () => !semPrecoCravado(trocar(SRC.simple, "<span className=\"cr\">{scopy ? (sampleOff ? scopy.paidOnly : scopy.badge) : fill(copy.tiers.credits, { n: credits })}</span>", '<span className="cr">41 créditos</span>'), SRC.simpleLib))
 
 // ═══ V. VÍDEO VIRA FOTOS NO NAVEGADOR ════════════════════════════════════════════════════════════════════════════════
 const tempos = (M) => {
@@ -697,11 +703,12 @@ await check('E2 CONTACTISH da pesquisa = o da régua do texto (v2Brief)', () => 
 // Approved delivery refinement: browser-only plan comparison; no request or persistence.
 // REANCORADO 30/09 (KINEO-ADS-3-VARIACOES-2026-09-30): + './AdsV2Variations' (a opção e o painel das 3 variações; cliente,
 // só importa react/next/link/videoDownload e libs puras — v2Screen, v2Variations, interfaceLanguage).
-const IMPORTS_OK = ['./AdsV2Variations', '@/components/AdsPlanChanges', 'react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/ads/v2UserVideo', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage']
+// KINEO-ADS-AMOSTRA-2026-10-09 — re-ancorado: + '@/lib/ads/sample' (frases e nível da amostra grátis; lib PURA, conferida abaixo).
+const IMPORTS_OK = ['@/lib/ads/sample', './AdsV2Variations', '@/components/AdsPlanChanges', 'react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/ads/v2UserVideo', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage']
 await check('E3 a tela simples é cliente e só importa módulos de navegador/puros; v2Simple, v2Research e v2VideoFrames não têm import; textLanguage é pura', () => {
   const imps = [...SRC.simple.matchAll(/^import[\s\S]*?from '([^']+)'/gm)].map((m) => m[1])
   return /^'use client'/.test(SRC.simple) && imps.length >= 8 && imps.every((m) => IMPORTS_OK.includes(m)) &&
-    [SRC.simpleLib, SRC.research, SRC.frames, rd('lib/ads/v2UserVideo.ts'), rd('lib/textLanguage.ts'), rd('lib/ui/interfaceLanguage.ts')].every((s) => !/^\s*import\s(?!type)/m.test(s)) && !/trackEvent\(/.test(SRC.simple)
+    [SRC.simpleLib, SRC.research, SRC.frames, rd('lib/ads/v2UserVideo.ts'), rd('lib/textLanguage.ts'), rd('lib/ui/interfaceLanguage.ts'), rd('lib/ads/sample.ts')].every((s) => !/^\s*import\s(?!type)/m.test(s)) && !/trackEvent\(/.test(SRC.simple)
 })
 await check('E4 trava 8.2: nenhum arquivo do modo simples mora em caminho travado', () => {
   const novos = [F.simple, F.simpleLib, F.research, F.frames, F.researchRoute, F.contract, F.brief, F.planRoute, F.ordersRoute, F.client]

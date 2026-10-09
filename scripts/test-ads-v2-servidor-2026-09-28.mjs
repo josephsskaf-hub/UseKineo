@@ -146,7 +146,10 @@ const billingStubs = {
   '@/lib/credits/refund': { refundRenderCredits: async (ref) => { billCalls.refund.push(ref); return refundHook ? refundHook(ref) : 0 } },
   '@/lib/serverEvents': { writeServerEvent: async (e) => { billCalls.events.push(e); return true } },
 }
-const B = makeLoader(billingStubs)('lib/ads/v2Billing.ts')
+// KINEO-ADS-AMOSTRA-2026-10-09 — re-ancorado: v2Billing (failAdsV2Order não estorna chave 'adssample-…') e v2Advance
+// (linhas faltando de amostra sem débito para conferir) passaram a importar a lib PURA lib/ads/sample.ts (isAdsSampleRef);
+// carregada de verdade, não stub — chave 'adsv2-…' segue o caminho de sempre em tudo que este guardião prova.
+const B = makeLoader(billingStubs, { real: ['lib/ads/sample.ts'] })('lib/ads/v2Billing.ts')
 
 await check('B1 chave do pedido = adsv2-<order>-<generation> (é também o videos.render_id da entrega)', B.adsV2BillingRef(ORDER, GEN) === `adsv2-${ORDER}-${GEN}` && B.ADS_V2_BILLING_PREFIX === 'adsv2-' && B.ADS_V2_QUALITY === 'ads_v2')
 await check('B2 chave da refação = adsv2redo-<id>; os dois prefixos começam com adsv2 (a exclusão da varredura genérica cobre os dois)', B.adsV2RetakeRef(ORDER) === `adsv2redo-${ORDER}` && B.adsV2RetakeRef(ORDER).startsWith('adsv2') && B.adsV2BillingRef(ORDER, GEN).startsWith('adsv2'))
@@ -305,7 +308,7 @@ const advStubs = {
   '@/lib/textLanguage': { captionFontFor: () => 'Montserrat', narrationLanguage: (x) => (typeof x === 'string' && x ? x : null) },
   '@/lib/ads/speakable': { speakableForTts: (t) => t },
   '@/lib/serverEvents': { writeServerEvent: async (e) => { prov.events.push({ ...e, orderAtEvent: currentTables ? { ...currentTables.ads_v2_orders[0] } : null }); return true } },
-  '@/lib/ads/v2Billing': makeLoader(billingStubs)('lib/ads/v2Billing.ts'),
+  '@/lib/ads/v2Billing': makeLoader(billingStubs, { real: ['lib/ads/sample.ts'] })('lib/ads/v2Billing.ts'), // KINEO-ADS-AMOSTRA-2026-10-09 — re-ancorado: lib pura sample.ts
   '@/lib/ads/v2Shots': {
     ...SH,
     submitShotOnce: async (model, input, ctx) => { prov.submits.push({ model, input, rowsAtPost: currentTables.ads_v2_shots.map((r) => ({ ...r })) }); return submitImpl(model, input, ctx) },
@@ -322,7 +325,10 @@ const advStubs = {
 // REANCORADO 30/09 (KINEO-ADS-3-VARIACOES-2026-09-30): o v2Advance passou a importar a lib PURA lib/ads/v2Variations.ts
 // (a marca da variação no brief e a espera pelo still da A); carregada de verdade, não stub — pedido comum não tem marca,
 // então todo o comportamento provado aqui segue o caminho de sempre.
-const A = makeLoader(advStubs, { timers: fastTimers, real: ['lib/ads/v2Engines.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/adV2Montage.ts', 'lib/ads/v2Music.ts', 'lib/ads/v2Variations.ts'] })('lib/ads/v2Advance.ts')
+// KINEO-ADS-AMOSTRA-2026-10-09 — re-ancorado: v2Billing (failAdsV2Order não estorna chave 'adssample-…') e v2Advance
+// (linhas faltando de amostra sem débito para conferir) passaram a importar a lib PURA lib/ads/sample.ts (isAdsSampleRef);
+// carregada de verdade, não stub — chave 'adsv2-…' segue o caminho de sempre em tudo que este guardião prova.
+const A = makeLoader(advStubs, { timers: fastTimers, real: ['lib/ads/v2Engines.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/adV2Montage.ts', 'lib/ads/v2Music.ts', 'lib/ads/v2Variations.ts', 'lib/ads/sample.ts'] })('lib/ads/v2Advance.ts')
 
 const PH = 'https://x.supabase.co/storage/v1/object/public/user-footage/u/'
 const photos = [

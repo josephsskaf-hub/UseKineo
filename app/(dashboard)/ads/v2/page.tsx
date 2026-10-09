@@ -9,6 +9,9 @@
 // (sem laço: o /ads/new só redireciona quando ADS_V2_PUBLIC, e aí adsV2Visible é sempre true). O clássico é /ads/new?classic=1.
 // O saldo é lido aqui com a chave de serviço (a mesma de loadAdsAccess) só para o primeiro desenho; a tela relê em
 // /api/credits. Leitura que falha = null ("não sei"), nunca 0. lib/ads/serverAccess só é importado aqui, nunca no cliente.
+// KINEO-ADS-AMOSTRA-2026-10-09 — a 2ª porta abre para a conta free/trial que ainda não usou a AMOSTRA GRÁTIS (adsSampleOpen):
+// ela entra com sample={true} (um nível, 15 s, sem 3 variações), SEM rastro ads_access_denied. Quem já usou a dela segue
+// para /ads?from=v2 como antes.
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { adsGate, loadAdsAccess } from '@/lib/ads/serverAccess'
@@ -18,6 +21,7 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { KINEO1_35S_CREDITS } from '@/lib/ads/offer' // KINEO-ADS-V2-VIRADA-2026-09-29 — o preço do link "classic maker"
 import { isAdsInternalEmail } from '@/lib/ads/access' // KINEO-PRODUCAO-ADS-2026-10-01 — o atalho da Produção
 import { PRODUCAO_PUBLIC, producaoVisibleFor } from '@/lib/ads/producao' // KINEO-PRODUCAO-ADS-2026-10-01
+import { adsSampleOpen } from '@/lib/ads/serverAccess' // KINEO-ADS-AMOSTRA-2026-10-09
 import AdsV2Client from './AdsV2Client'
 
 export const metadata = { title: 'Studio Ads — Kineo' }
@@ -33,9 +37,13 @@ export default async function AdsV2Page() {
 
   const { admin, reason } = await loadAdsAccess(user.id, user.email)
   const gate = adsGate(reason)
+  const sample = gate === 'no_access' && (await adsSampleOpen(admin, user.id, reason)) // KINEO-ADS-AMOSTRA-2026-10-09
   if (gate !== 'ok') {
-    await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/ads/v2', metadata: { stage: 'page', who: gate, reason, redirect: '/ads?from=v2' } })
-    redirect('/ads?from=v2')
+    // KINEO-ADS-AMOSTRA-2026-10-09 — quem entra pela amostra grátis passa SEM rastro de negação; o resto, como antes.
+    if (!sample) {
+      await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/ads/v2', metadata: { stage: 'page', who: gate, reason, redirect: '/ads?from=v2' } })
+      redirect('/ads?from=v2')
+    }
   }
   if (!adsV2Visible(user.email)) redirect('/ads/new')
 
@@ -48,5 +56,5 @@ export default async function AdsV2Page() {
     balance = null
   }
 
-  return <AdsV2Client initialBalance={balance} classicCredits={KINEO1_35S_CREDITS} variations={adsVariationsVisible(user.email)} producao={producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} />
+  return <AdsV2Client initialBalance={balance} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} />
 }

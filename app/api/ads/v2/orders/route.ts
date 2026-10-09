@@ -13,6 +13,9 @@ import { isUuid, sanitizeAssetsBody, sanitizeCreateOrderBody, sanitizePatchBody 
 import { adsV2Credits } from '@/lib/ads/v2Tiers'
 import { adsV2View, loadAdsV2Order, loadAdsV2Shots } from '@/lib/ads/v2Advance'
 import { ownedFootage, v2Fail, v2Json } from '@/lib/ads/v2Server'
+// KINEO-ADS-AMOSTRA-2026-10-09 — a amostra grátis abre o POST e o PATCH para a conta free/trial que ainda não usou a dela;
+// o rascunho da amostra só nasce no nível e na duração da amostra (o /start confere de novo antes de qualquer custo).
+import { adsSampleLevelOk, adsSampleOpen } from '@/lib/ads/serverAccess'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -55,7 +58,8 @@ export async function POST(req: NextRequest) {
     if (!user) return v2Fail('unauthenticated', 401)
     const { admin, reason } = await loadAdsAccess(user.id, user.email)
     const gate = adsGate(reason)
-    if (gate !== 'ok') {
+    const sample = gate === 'no_access' && await adsSampleOpen(admin, user.id, reason) // KINEO-ADS-AMOSTRA-2026-10-09
+    if (gate !== 'ok' && !sample) {
       await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/api/ads/v2/orders', metadata: { reason: gate } })
       return v2Fail(gate === 'closed' ? 'closed' : 'no_access', 403)
     }
@@ -68,6 +72,8 @@ export async function POST(req: NextRequest) {
     if (!assets.ok) return v2Fail(assets.error, 400)
     const o = parsed.value
     const a = assets.value
+    // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra só existe em um nível e uma duração.
+    if (gate !== 'ok' && sample && !adsSampleLevelOk(o.tier, o.seconds)) return v2Fail('sample_level_only', 403)
 
     const ids = [a.logo_footage_id, a.card_footage_id, ...(a.photos ?? []).map((p) => p.footage_id)].filter((x): x is string => !!x)
     const own = await ownedFootage(admin, user.id, ids)
@@ -146,7 +152,8 @@ export async function PATCH(req: NextRequest) {
     if (!user) return v2Fail('unauthenticated', 401)
     const { admin, reason } = await loadAdsAccess(user.id, user.email)
     const gate = adsGate(reason)
-    if (gate !== 'ok') {
+    const sample = gate === 'no_access' && await adsSampleOpen(admin, user.id, reason) // KINEO-ADS-AMOSTRA-2026-10-09
+    if (gate !== 'ok' && !sample) {
       await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/api/ads/v2/orders', metadata: { reason: gate, method: 'PATCH' } })
       return v2Fail(gate === 'closed' ? 'closed' : 'no_access', 403)
     }

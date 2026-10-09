@@ -38,6 +38,7 @@ import { ADS_V2_CARD_SECONDS, type AdsV2ShotPlan } from '@/lib/ads/v2ShotLists'
 import { buildAdV2Source, ADS_V2_VOICE_START, type AdV2MontageShot } from '@/lib/ads/adV2Montage'
 import { adsV2FallbackTrack, adsV2MusicTrimStart, adsV2MusicUsable, adsV2SwapLibraryTrack } from '@/lib/ads/v2Music'
 import { ADS_V2_QUALITY, confirmAdsV2Debit, failAdsV2Order } from '@/lib/ads/v2Billing'
+import { isAdsSampleRef } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
 import {
   ADS_V2_AMBIGUOUS_MAX_MS,
   ADS_V2_BATCH_SIZE,
@@ -828,7 +829,11 @@ async function stepGenerating(admin: SupabaseClient, order: AdsV2OrderRow, deadl
       if (!young) await failAdsV2Order(admin, order, 'retake_rows_missing', '/lib/ads/v2Advance')
       return
     }
-    const debit = order.billing_ref
+    // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra grátis não tem débito para conferir: a chave 'adssample-…' gravada pela
+    // trava do /start (credits_charged 0) é a prova de que o início foi autorizado; recria as linhas como o pago.
+    const debit = isAdsSampleRef(order.billing_ref) && order.credits_charged === 0
+      ? ({ ok: true, refunded: false, amount: 0 } as const)
+      : order.billing_ref
       ? await confirmAdsV2Debit(admin, { userId: order.user_id, billingRef: order.billing_ref, cost: order.credits_charged })
       : ({ ok: false, reason: 'missing' } as const)
     if (!debit.ok || debit.refunded) {

@@ -20,6 +20,9 @@ import { sanitizeResearchBody } from '@/lib/ads/v2Contract'
 import { loadAdsV2Order } from '@/lib/ads/v2Advance'
 import { adsV2LinkText } from '@/lib/ads/v2Link'
 import { v2Fail, v2Json } from '@/lib/ads/v2Server'
+// KINEO-ADS-AMOSTRA-2026-10-09 — a amostra grátis abre a pesquisa (mesmo teto diário por pessoa) para a conta free/trial
+// que ainda não usou a dela.
+import { adsSampleOpen } from '@/lib/ads/serverAccess'
 import {
   ADS_V2_RESEARCH_DAILY_CAP,
   ADS_V2_RESEARCH_MAX_OUTPUT_TOKENS,
@@ -58,7 +61,8 @@ export async function POST(req: NextRequest) {
     if (!process.env.OPENAI_API_KEY) return v2Fail('unavailable', 503)
     const { admin, reason } = await loadAdsAccess(user.id, user.email)
     const gate = adsGate(reason)
-    if (gate !== 'ok') {
+    const sample = gate === 'no_access' && await adsSampleOpen(admin, user.id, reason) // KINEO-ADS-AMOSTRA-2026-10-09
+    if (gate !== 'ok' && !sample) {
       await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/api/ads/v2/research', metadata: { reason: gate } })
       return v2Fail(gate === 'closed' ? 'closed' : 'no_access', 403)
     }

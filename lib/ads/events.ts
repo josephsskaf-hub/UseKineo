@@ -62,6 +62,9 @@ export const ADS_EVENTS = [
   'ads_v2_variations_dry_run_served',
   'ads_v2_variation_chosen',
   'ads_v2_variation_anchor',
+  // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra grátis começou (o /start travou a chave 'adssample-…' sem débito). Fato do
+  // servidor: é o rastro do custo que é NOSSO (~US$ 2,20) e do teto diário.
+  'ads_sample_started',
   // KINEO-ADS-PAREDE-2026-10-06 — a parede vende: impressão (1 por montagem, com o retrato do que foi mostrado) e clique
   // {choice: 'plan' | 'express'} da oferta que /ads mostra a quem chegou por uma porta da parede (app/ads/AdsPaywall.tsx).
   // Navegador, nunca só-servidor; o checkout grava a mesma origem em intent_campaign=ads_paywall.
@@ -102,6 +105,7 @@ export const ADS_SERVER_ONLY_EVENTS: readonly AdsEventName[] = [
   'ads_v2_variations_dry_run_served',
   'ads_v2_variation_chosen',
   'ads_v2_variation_anchor',
+  'ads_sample_started', // KINEO-ADS-AMOSTRA-2026-10-09
 ]
 
 export function isAdsEvent(name: string): name is AdsEventName {

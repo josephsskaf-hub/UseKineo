@@ -80,7 +80,9 @@ await check('0c espelhos: ADS_V2_VARIATION_KEEP_PHRASE = ADS_V2_KEEP_PHRASE (v2S
 await check('I1 ADS_VARIACOES_PUBLIC = true (decisão do fundador 30/09: "preço aprovado") — um literal só', V.ADS_VARIACOES_PUBLIC === true && (rd(P.lib).match(/export const ADS_VARIACOES_PUBLIC\b/g) || []).length === 1 && /export const ADS_VARIACOES_PUBLIC = true\b/.test(rd(P.lib)))
 await check('I2 adsVariationsVisibleFor: desligado + conta de fora = false; desligado + casa = true; ligado = true', !V.adsVariationsVisibleFor(false, false) && V.adsVariationsVisibleFor(false, true) && V.adsVariationsVisibleFor(true, false))
 await check('I3 v2VariationsAccess compõe o interruptor com a lista EXATA da casa (isAdsInternalEmail)', /return adsVariationsVisibleFor\(ADS_VARIACOES_PUBLIC, isAdsInternalEmail\(email\)\)/.test(cod(P.access)))
-await check('I4 a página só liga a opção para quem passa em adsVariationsVisible (e-mail verificado do getUser)', /variations=\{adsVariationsVisible\(user\.email\)\}/.test(cod(P.page)))
+// KINEO-ADS-AMOSTRA-2026-10-09 — re-ancorado: quem entra pela amostra grátis (sample) NUNCA vê "3 variações"; o resto segue
+// decidido por adsVariationsVisible com o e-mail verificado.
+await check('I4 a página só liga a opção para quem passa em adsVariationsVisible (e-mail verificado do getUser)', /variations=\{sample \? false : adsVariationsVisible\(user\.email\)\}/.test(cod(P.page)))
 await check('I5 rota: interruptor ANTES de qualquer leitura de saldo, grupo ou débito (404 not_found)', () => {
   const src = cod(P.route)
   const post = src.slice(src.indexOf('export async function POST'))
@@ -261,7 +263,7 @@ function scenario({ credits = 200, missing = [], failDebit = () => false, extraO
     '@/lib/credits/debit': { debitVideoCredits: async (_db, a) => L.debit(a) },
     '@/lib/credits/refund': { refundRenderCredits: async (ref) => L.refund(ref) },
     '@/lib/serverEvents': { writeServerEvent: async (e) => { events.push(e); return true } },
-  })('lib/ads/v2Billing.ts')
+  }, { real: ['lib/ads/sample.ts'] })('lib/ads/v2Billing.ts') // KINEO-ADS-AMOSTRA-2026-10-09 — re-ancorado: v2Billing importa a lib PURA lib/ads/sample.ts (isAdsSampleRef)
   const Vreal = makeLoader({})('lib/ads/v2Variations.ts')
   const Vmod = flag ? Vreal : { ...Vreal, ADS_VARIACOES_PUBLIC: false }
   const access = makeLoader({ '@/lib/ads/access': { isAdsInternalEmail: (e) => e === CASA }, '@/lib/ads/v2Variations': Vmod })('lib/ads/v2VariationsAccess.ts')
