@@ -123,7 +123,10 @@ if (BASE) {
   // Reancorado 07/10 (KINEO-SAIDA-REGIAO-2026-10-07 [TRAVA 8.2 — "vai pra tudo" do fundador 07/10]): a saída da região entrou na rota SÓ com
   // linhas marcadas (admissão do filme grátis de 15 s, embrulho do gate de plano, recusa nova, releitura, trava depois do claim, evento de uso) e
   // nenhuma linha da base trocada; elas saem em memória dos dois lados. Prova: scripts/test-saida-regiao-2026-10-07.mjs.
-  const semS25 = (s) => (s == null ? s : s.split('\n').filter((l) => !l.includes('KINEO-S25-NOTA95-2026-10-06') && !l.includes('KINEO-S25-ABRE-2026-10-06') && !l.includes('KINEO-JUIZ-STILL-2026-10-06') && !l.includes('KINEO-SAIDA-REGIAO-2026-10-07') && !TROCADAS_S25.includes(l)).join('\n'))
+  // Reancorado 09/10 (KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 [TRAVA 8.2 — "pode abrir tudo" do fundador 09/10]): o parceiro ativo entrou no
+  // portão do 2.5 SÓ com linhas marcadas (import, comentário, leitura do parceiro; a linha do s25AccessFor nasceu no S25-ABRE e segue com as
+  // duas marcas) e nenhuma linha da base trocada; elas saem em memória dos dois lados. Prova: scripts/test-parceiro-abre-tudo-2026-10-09.mjs.
+  const semS25 = (s) => (s == null ? s : s.split('\n').filter((l) => !l.includes('KINEO-S25-NOTA95-2026-10-06') && !l.includes('KINEO-S25-ABRE-2026-10-06') && !l.includes('KINEO-JUIZ-STILL-2026-10-06') && !l.includes('KINEO-SAIDA-REGIAO-2026-10-07') && !l.includes('KINEO-PARCEIRO-ABRE-TUDO-2026-10-09') && !TROCADAS_S25.includes(l)).join('\n'))
   checa('E26 /api/generate-video-cinematic sem as linhas marcadas = base, byte a byte', semS25(semMarca(cinematic)) === semS25(base('app/api/generate-video-cinematic/route.ts')))
 }
 checa('E27 a Estrela continua só com a casa (ESTRELA_PUBLIC = false)', /export const ESTRELA_PUBLIC = false\n/.test(launch))

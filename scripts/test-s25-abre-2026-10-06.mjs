@@ -181,7 +181,10 @@ async function problems(over = {}) {
   else {
     const bloco = rc.slice(iGate, iTrial)
     for (const need of [
-      'const acessoS25 = s25AccessFor({ email: user.email, plan: planVal })',
+      // REANCORADO KINEO-PARCEIRO-ABRE-TUDO-2026-10-09: o portão passou a receber a flag do parceiro ativo (cortesia + afiliado
+      // ativo, lida dentro deste bloco); a régua de quem paga e a recusa abaixo são as mesmas. Prova do parceiro:
+      // scripts/test-parceiro-abre-tudo-2026-10-09.mjs.
+      'const acessoS25 = s25AccessFor({ email: user.email, plan: planVal, partner: parceiroS25 })',
       'if (!acessoS25.allowed) {',
       'await writeServerEvent({ name: S25_PAID_ONLY_EVENT,',
       'reason: acessoS25.reason,',
