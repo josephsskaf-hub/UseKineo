@@ -62,8 +62,9 @@ export const PLAN_VALUE_STAGE_CSS = `
   --pv-pop-shadow:none;--pv-cta-pop-bg:#F2F4F7;--pv-cta-pop-text:#07090D;--pv-cta-bg:transparent;--pv-cta-text:#F2F4F7}
 .pv-stage[data-palette=tinta] .pv-cta:not(.pv-cta-pop){box-shadow:inset 0 0 0 1px rgba(242,244,247,.3)}
 .pv-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:stretch}
-.pv-card{position:relative;display:flex;flex-direction:column;min-width:0;border-radius:22px;padding:8px;background:var(--pv-card-bg);border:1px solid var(--pv-line)}
-.pricing-blue #plans>.pv-card[data-popular=true]{border-color:var(--pv-pop-line);background:var(--pv-pop-bg);box-shadow:var(--pv-pop-shadow)!important}
+.pv-card{position:relative;display:flex;flex-direction:column;min-width:0;border-radius:22px;padding:8px;background:var(--pv-card-bg);border:1px solid var(--pv-line);cursor:pointer;transition:border-color var(--dur-fast) var(--ease-swift)}
+.pv-card:not([data-selected=true]):hover{border-color:var(--pv-faint)}
+.pricing-blue #plans>.pv-card[data-selected=true]{border-color:var(--pv-pop-line);background:var(--pv-pop-bg);box-shadow:var(--pv-pop-shadow)!important}
 .pv-card[data-requested=true]{outline:2px solid var(--pv-accent);outline-offset:3px}
 .pv-head{border-radius:16px;padding:18px 18px 16px;background:var(--pv-head-bg)}
 .pv-title{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
@@ -121,6 +122,9 @@ export interface PlanValueCardProps {
   name: string
   popular: boolean
   requested: boolean
+  /** KINEO-PLANO-SELECIONADO-2026-10-09 — o cartão escolhido (acende); o 1º clique num outro só o seleciona. */
+  selected: boolean
+  onSelect: () => void
   cardId?: string
   /** Créditos do plano por mês (TIER_CREDITS): o cartão calcula o que eles compram. */
   credits: number
@@ -184,7 +188,9 @@ export function PlanValueCard(props: PlanValueCardProps) {
   const filmSeconds = value.films.length ? seconds(value.films.map((f) => f.seconds)) : ''
   const cell = (n: number | null) => (typeof n === 'number' && n >= 1 ? <b>{n}</b> : <span className="pv-none">—</span>)
   return (
-    <div className="pv-card" data-tier={props.tier} data-popular={props.popular ? 'true' : undefined} data-requested={props.requested ? 'true' : undefined} id={props.cardId}>
+    // KINEO-PLANO-SELECIONADO-2026-10-09 — fundador (pedido repetido): "dá o primeiro clique em cada uma e pré-selecionar e não já ir
+    // direto para o pagamento". Clique no cartão = seleciona; o botão do cartão selecionado é o único que abre o pagamento.
+    <div className="pv-card" data-tier={props.tier} data-popular={props.popular ? 'true' : undefined} data-selected={props.selected ? 'true' : undefined} data-requested={props.requested ? 'true' : undefined} id={props.cardId} onClick={() => { if (!props.selected) props.onSelect() }}>
       <div className="pv-head">
         <div className="pv-title">
           <span className="pv-name">{props.name}</span>
@@ -233,8 +239,8 @@ export function PlanValueCard(props: PlanValueCardProps) {
           <span className="pv-per">{props.per}</span>
         </div>
         {props.note ? <p className="pv-note">{props.note}</p> : null}
-        <button type="button" className={props.popular ? 'pv-cta pv-cta-pop' : 'pv-cta'} disabled={props.ctaDisabled} onClick={props.onBuy}>
-          {props.ctaLabel}
+        <button type="button" className={props.selected ? 'pv-cta pv-cta-pop' : 'pv-cta'} disabled={props.ctaDisabled} aria-pressed={props.selected} onClick={(e) => { e.stopPropagation(); if (props.selected) props.onBuy(); else props.onSelect() }}>
+          {props.selected ? props.ctaLabel : `Select ${props.name}`}
         </button>
         {props.save ? <p className="pv-save">{props.save}</p> : null}
         {props.extra ? <div className="pv-extra">{props.extra}</div> : null}

@@ -481,6 +481,9 @@ export default function PricingClient({ initialBilling = 'annual', characterLimi
   const currencyTrackedRef = useRef(false)
   const mobileStickyRef = useRef<HTMLDivElement | null>(null)
   const [requestedTier, setRequestedTier] = useState<PricingTierHandoffTier | null>(null)
+  // KINEO-PLANO-SELECIONADO-2026-10-09 — o plano escolhido no cartão (começa no Creator; quem chega com ?tier= começa nele).
+  const [selectedTier, setSelectedTier] = useState<'starter' | 'basic' | 'pro'>('basic')
+  useEffect(() => { if (requestedTier === 'starter' || requestedTier === 'basic' || requestedTier === 'pro') setSelectedTier(requestedTier) }, [requestedTier])
   const [pricingIntentCampaign, setPricingIntentCampaign] = useState<string | null>(null)
   const [checkoutSetupFailure, setCheckoutSetupFailure] = useState<CheckoutSetupFailureReturnContext | null>(null)
   const [checkoutResumeUnavailable, setCheckoutResumeUnavailable] = useState(false)
@@ -1180,6 +1183,8 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                         name={p.name}
                         popular={Boolean('popular' in p && p.popular)}
                         requested={requestedTier === p.tier}
+                        selected={selectedTier === p.tier}
+                        onSelect={() => { setSelectedTier(tier as 'starter' | 'basic' | 'pro'); void trackEvent('pricing_plan_selected', { tier, billing }) }}
                         cardId={pricingTierCardId(p.tier as PricingTierHandoffTier)}
                         credits={TIER_CREDITS[tier]}
                         amount={annual ? annualPrices[tier].perMonth : welcome !== null ? formatCheckoutMoney(resolvedCurrency, welcome) : p.price}

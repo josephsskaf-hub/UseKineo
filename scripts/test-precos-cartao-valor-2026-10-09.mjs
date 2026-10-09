@@ -106,6 +106,7 @@ function problems(replacements = {}) {
   const props = (tier, name, popular) => ({
     tier, name, popular, requested: false, credits: prices.TIER_CREDITS[tier], amount: '$A', was: '$W', per: '/month, $T billed yearly',
     ctaLabel: `Get ${name}`, ctaDisabled: false, onBuy: () => {}, save: 'SAVE-LINE', included: ['No watermark', 'Commercial use'],
+    selected: popular, onSelect: () => {},
   })
   try {
     const v = values.basic
@@ -122,7 +123,8 @@ function problems(replacements = {}) {
       if (!html.includes(`<tr><td>${c.label}</td><td><b>${c.count}</b></td><td>${filmCell}</td></tr>`)) p.push(`cartão: linha da tabela do ${c.label}`)
     }
     if (!html.includes('Most popular') || !html.includes('data-popular="true"')) p.push('cartão: selo do mais popular')
-    if (!/<button[^>]*class="pv-cta pv-cta-pop"[^>]*>Get Creator<\/button>/.test(html)) p.push('cartão: botão "Get Creator" com a cor do plano popular')
+    // KINEO-PLANO-SELECIONADO-2026-10-09 — o cartão selecionado acende e o botão dele compra; o outro só seleciona.
+    if (!/<button[^>]*class="pv-cta pv-cta-pop"[^>]*>Get Creator<\/button>/.test(html) || !html.includes('data-selected="true"')) p.push('cartão: o selecionado acende e o botão dele diz "Get Creator"')
     const iPrice = html.indexOf('class="pv-amount"'), iCta = html.indexOf('class="pv-cta'), iSave = html.indexOf('SAVE-LINE'), iTable = html.indexOf('class="pv-table"')
     if (!(iPrice > 0 && iPrice < iCta && iCta < iSave && iSave < iTable)) p.push('cartão: ordem preço → botão → economia → tabela (o botão logo abaixo do preço)')
     if (!html.includes('<span class="pv-was">$W</span>')) p.push('cartão: o mensal riscado ao lado do preço do anual')
@@ -132,7 +134,22 @@ function problems(replacements = {}) {
     const htmlS = strip(renderToStaticMarkup(React.createElement(stage.PlanValueCard, props('starter', 'Starter', false))))
     if (!htmlS.includes(`${s.credits}</span> credits a month`) || !htmlS.includes(`${s.images.count}</span> Nano Banana Pro images`)) p.push('cartão do Starter: créditos e imagens do próprio plano')
     if (htmlS.includes('Most popular')) p.push('cartão do Starter com selo de mais popular')
-    if (!/<button[^>]*class="pv-cta"[^>]*>Get Starter<\/button>/.test(htmlS)) p.push('cartão do Starter: botão "Get Starter" neutro')
+    // o clique de verdade: no cartão não selecionado o botão só seleciona; no selecionado, compra
+    const achaBotao = (el) => {
+      if (!el || typeof el !== 'object') return null
+      if (Array.isArray(el)) { for (const x of el) { const b = achaBotao(x); if (b) return b } return null }
+      if (el.type === 'button' && String(el.props?.className || '').includes('pv-cta')) return el
+      return achaBotao(el.props?.children)
+    }
+    for (const sel of [false, true]) {
+      const chamadas = []
+      const arvore = stage.PlanValueCard({ ...props('starter', 'Starter', sel), onBuy: () => chamadas.push('buy'), onSelect: () => chamadas.push('select') })
+      const b = achaBotao(arvore)
+      if (!b) { p.push('clique: botão do cartão não encontrado'); break }
+      b.props.onClick({ stopPropagation() {} })
+      if (chamadas.join() !== (sel ? 'buy' : 'select')) p.push(`clique no botão do cartão ${sel ? 'selecionado' : 'não selecionado'} fez "${chamadas.join()}"`)
+    }
+    if (!/<button[^>]*class="pv-cta"[^>]*>Select Starter<\/button>/.test(htmlS) || htmlS.includes('data-selected="true"')) p.push('cartão não selecionado: o 1º clique só seleciona ("Select Starter"), não compra')
     const zero = s.films.find((f) => f.count === 0)
     if (zero && !htmlS.includes(`<tr><td>${zero.label}</td><td><b>`)) p.push(`cartão do Starter: linha do ${zero.label}`)
     if (zero && !new RegExp(`<tr><td>${zero.label.replace('.', '\\.')}</td><td><b>\\d+</b></td><td><span class="pv-none">—</span></td></tr>`).test(htmlS)) p.push('cartão do Starter: filme que o plano não paga tem de mostrar "—"')
@@ -242,7 +259,7 @@ const MUTANTES = [
   ['tabela mostra filme que o plano não paga', troca(STAGE, "typeof n === 'number' && n >= 1 ? <b>{n}</b>", "typeof n === 'number' ? <b>{n}</b>")],
   ['número digitado no cartão', troca(STAGE, '<span className="pv-n">{value.credits}</span> credits a month', '<span className="pv-n">150</span> credits a month')],
   ['botão volta para baixo da tabela', (() => {
-    const btn = "        <button type=\"button\" className={props.popular ? 'pv-cta pv-cta-pop' : 'pv-cta'} disabled={props.ctaDisabled} onClick={props.onBuy}>\n          {props.ctaLabel}\n        </button>\n"
+    const btn = "        <button type=\"button\" className={props.selected ? 'pv-cta pv-cta-pop' : 'pv-cta'} disabled={props.ctaDisabled} aria-pressed={props.selected} onClick={(e) => { e.stopPropagation(); if (props.selected) props.onBuy(); else props.onSelect() }}>\n          {props.selected ? props.ctaLabel : `Select ${props.name}`}\n        </button>\n"
     const inc = '      <div className="pv-sec">\n        <div className="pv-label">Included</div>\n'
     const s = SRC[STAGE]
     if (s.split(btn).length !== 2 || s.split(inc).length !== 2) throw new Error('mutante do botão sem alvo único')
@@ -261,6 +278,7 @@ const MUTANTES = [
   ['20% no cartão vaza para o anual', troca(CLIENT, "PRICING_WELCOME20_ON_CARD && billing === 'monthly' && ", 'PRICING_WELCOME20_ON_CARD && ')],
   ['o botão mostra 20% e não leva o cupom', troca(CLIENT, "const promo = pricingParams?.get('promo') ?? cardPromo", "const promo = pricingParams?.get('promo') ?? null")],
   ['o pop-up volta junto com o cartão', troca(CLIENT, '{PRICING_WELCOME20_ON_CARD ? null : <WelcomeOfferModal delayMs={20000} surface="pricing" />}', '<WelcomeOfferModal delayMs={20000} surface="pricing" />')],
+  ['o 1º clique volta a comprar direto', troca(STAGE, 'if (props.selected) props.onBuy(); else props.onSelect()', 'props.onBuy()')],
   ['celular volta a abrir no Starter', troca(STAGE, '  .pv-card[data-popular=true]{order:-1}\n', '')],
   ['caixa dos filmes volta ao select', troca(PROOF, "<div className=\"mpp-seg\" role=\"group\" aria-label=\"Film length\">", "<select aria-label=\"Film length\"><div className=\"mpp-seg\" role=\"group\">")],
 ]
