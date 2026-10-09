@@ -27,6 +27,7 @@ const consts = [
   // KINEO-PAREDE-15S-EMAIL-2026-10-09 — re-ancorado: o classificador atalha também no marcador da parede dos 15 s
   // (e usa o 35 s do durationByEngine como saída padrão); sem as duas constantes ele nem roda.
   src.match(/const FILM_LONG_MARK = .+/)[0],
+  src.match(/const RE_FILM_LONG = .+/)[0], // KINEO-PAREDE-15S-FRASE-2026-10-09
   'const MIN_DURATION_ALL_ENGINES = 35',
 ].join('\n')
 const fnSrc = grab('function classifyFailure', '\n// #15: e-mail do roteiro COMPRIDO')
@@ -47,6 +48,12 @@ t('frase do servidor "Prompt is too long" → script_long com 7102', c4.kind ===
 t('script_long sem duracao → durationSec null (nao inventa palavras)', classify(LONGO, {}).long.durationSec === null)
 const c5 = classify('short_film_script_too_long', { requested_seconds: 15, est_speech_seconds: 64, suggested_seconds: 35 })
 t('parede dos 15 s → film_long com 15/64/35 (KINEO-PAREDE-15S-EMAIL-2026-10-09)', c5.kind === 'film_long' && c5.film.requestedSec === 15 && c5.film.estSec === 64 && c5.film.suggestedSec === 35)
+// KINEO-PAREDE-15S-FRASE-2026-10-09 — a frase REAL que a aba gravou (generate_failed, desislava 09/10 12:13:39 UTC) também é a parede.
+const FRASE_15S = 'This script reads for about 64 seconds — too long for a 15-second film. Shorten it to about 56 words to keep the 15-second price, or pick 35 s (21 credits). Nothing was charged.'
+const c6 = classify(FRASE_15S, {})
+t('frase da parede vinda da aba → film_long 15/64/35, nunca bug', c6.kind === 'film_long' && c6.film.requestedSec === 15 && c6.film.estSec === 64 && c6.film.suggestedSec === 35)
+const c7 = classify('This script reads for about 40 seconds — too long for a 15-second film. Shorten it to about 56 words to keep the 15-second price.', {})
+t('frase sem a saída de 35 s → film_long com 35 de padrão', c7.kind === 'film_long' && c7.film.estSec === 40 && c7.film.suggestedSec === 35)
 for (const bug of ['Voiceover generation failed. Please try again.', 'voiceover_script is required.', 'TypeError', 'Could not submit clips to AI generator. Please try again.'])
   t(`defeito real continua bug: "${bug.slice(0, 36)}"`, classify(bug, {}).kind === 'bug')
 t('narration_too_short sem numeros continua script_short', classify('no_detail:narration_too_short|stage=failed|http=none', { reason: 'narration_too_short' }).kind === 'script_short')
