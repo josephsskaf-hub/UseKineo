@@ -16,7 +16,7 @@ import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 import { PLAN_SWITCH_EMPTY, fetchPlanSwitchState, planSwitchConfirmText, planSwitchErrorText, planSwitchLabel, switchPlan, type PlanSwitchState, type SwitchableTier } from '@/lib/growth/planSwitch'
 import { S25_PUBLIC, AVATAR_PUBLIC, enginePaused } from '@/lib/engineLaunch' // KINEO-AVATAR-FORA-2026-09-28
 import Link from 'next/link'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { trackCheckoutClick } from '@/lib/trackClick'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
 import RegionalFirstPack from '@/components/RegionalFirstPack'
@@ -44,7 +44,11 @@ import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
 import PricingBusinessPathTelemetry from '@/components/PricingBusinessPathTelemetry'
 import PricingAdsBlock from '@/components/pricing/PricingAdsBlock' // KINEO-FLUXO-NOVO-2026-09-25 — blocos de compra única abaixo dos planos (peça D)
 import PricingCreditsBlock from '@/components/pricing/PricingCreditsBlock' // KINEO-FLUXO-NOVO-2026-09-25
-import TwoProductsPricing from '@/components/pricing/TwoProductsPricing' // KINEO-PRECOS-DOIS-PRODUTOS-2026-10-05
+import TwoProductsPricing, { twoProductsModelForPage } from '@/components/pricing/TwoProductsPricing' // KINEO-PRECOS-DOIS-PRODUTOS-2026-10-05
+// KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — o cartão que mostra o que o plano compra (imagens, clipes por motor, filmes).
+import { PLAN_VALUE_STAGE_CSS, PlanValueCard, PlanValueMatrix, type PlanValueTier } from '@/components/pricing/PlanValueStage'
+import { planValueFor } from '@/lib/pricingPlanValue'
+import { IMG_NANOBANANA_CR } from '@/lib/marketingPrice'
 import { PRECOS_DOIS_PRODUTOS_PUBLIC } from '@/lib/pricingTwoProducts' // KINEO-PRECOS-DOIS-PRODUTOS-2026-10-05 (desligado)
 import { PRICING_BUSINESS_PATH_TARGET_ID } from '@/lib/growth/pricingBusinessPath'
 import PricingSavedCheckout from '@/components/PricingSavedCheckout'
@@ -58,6 +62,11 @@ import AutopilotBreakEvenCalculator from './AutopilotBreakEvenCalculator'
 // código e nas próprias páginas (/ads, /autopilot); voltar é virar o interruptor.
 export const PRICING_SHOW_ADS_BLOCK = false
 export const PRICING_SHOW_AUTOPILOT = false
+// KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — pedido do fundador (09/10, prints da InVideo): o cartão mostra o que o plano
+// compra (imagens Nano Banana Pro, clipes por motor, filmes de 60 s), num palco escuro com uma cor por plano.
+// false = a página de hoje para todo mundo; /pricing?preview=valor mostra o cartão novo SÓ para quem abrir o link (o
+// fundador aprova antes). Ligar é trocar para true. Guardião: scripts/test-precos-cartao-valor-2026-10-09.mjs.
+export const PRICING_VALUE_CARDS_PUBLIC = false
 import {
   // KINEO-PILOT-99-2026-07-26 — preço e duração do piloto vêm da mesma fonte que
   // o checkout cobra. Retipar "$99" aqui é como os outros três leaks começaram.
@@ -551,6 +560,20 @@ export default function PricingClient({ initialBilling = 'annual', characterLimi
   // corpo do componente é hydration mismatch, e `useSearchParams()` exigiria
   // Suspense em volta desta página.
   const [arrivedWithPromo, setArrivedWithPromo] = useState(false)
+  // KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — o cartão novo: ligado para todos só com PRICING_VALUE_CARDS_PUBLIC; antes disso,
+  // ?preview=valor liga para quem abrir o link (lido no efeito abaixo, nunca no render: hidratação igual ao servidor).
+  const [valueCards, setValueCards] = useState(PRICING_VALUE_CARDS_PUBLIC)
+  // Só calcula com o cartão novo na tela: desligado, a página de hoje não chama nada novo.
+  const planValues = useMemo(() => {
+    if (!valueCards) return null
+    const model = twoProductsModelForPage()
+    const image = { label: 'Nano Banana Pro', creditsEach: IMG_NANOBANANA_CR }
+    return {
+      starter: planValueFor(TIER_CREDITS.starter, model, image),
+      basic: planValueFor(TIER_CREDITS.basic, model, image),
+      pro: planValueFor(TIER_CREDITS.pro, model, image),
+    }
+  }, [valueCards])
 
   // KINEO-PRICING-VIEW-2026-07-15 — admin/funnel and admin/metrics already
   // query this event; the pricing page simply never emitted it before.
@@ -561,6 +584,7 @@ export default function PricingClient({ initialBilling = 'annual', characterLimi
     setRequestedTier(sanitizePricingTierHandoff(params.get('tier')))
     if (intentCampaign) rememberSignupCampaign(intentCampaign)
     setArrivedWithPromo((params.get('promo') ?? '').trim().length > 0)
+    if (params.get('preview') === 'valor') setValueCards(true) // KINEO-PRECOS-CARTAO-VALOR-2026-10-09
     void trackEvent('pricing_view', { ...(intentCampaign ? { source: intentCampaign } : {}), ...(MRR_CONVERSION_ENABLED ? conversionMetadata('pricing') : {}) })
   }, [])
 
@@ -1081,7 +1105,71 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         )}
         {/* KINEO-STUDIO50-2026-09-22 — a oferta mora onde a pessoa volta sozinha; o servidor decide se ela existe. */}
         <Studio50OfferBanner surface="pricing" />
-        <MrrPricingProof />
+        {/* KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — com o cartão novo, os planos vêm logo depois do seletor mensal/anual (como
+            a InVideo); a prova do filme desce para baixo do palco, sem sumir. */}
+        {valueCards ? null : <MrrPricingProof />}
+        {valueCards && planValues ? (() => {
+          // KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — o palco novo: mesmo plano, mesmo preço, mesmo handleBuy; muda o que o cartão
+          // CONTA (o que os créditos compram) e a cara. Os números vêm de planValues (lib/pricingPlanValue.ts).
+          const valuePlans = buildPricing(resolvedCurrency, resolvedRegion).filter((p) => p.tier === 'starter' || p.tier === 'basic' || p.tier === 'pro')
+          return (
+            <>
+              <style>{PLAN_VALUE_STAGE_CSS}</style>
+              <section className="pv-stage" aria-label="Plans">
+                <div id="plans" className="pv-grid scroll-mt-24">
+                  {valuePlans.map((p) => {
+                    const tier = p.tier as PaidTier
+                    const switchLabel = planSwitchLabel(planSwitch, p.tier as SwitchableTier, p.name)
+                    const ctaLabel = switching === p.tier ? 'Switching…' : (switchLabel ?? `Choose ${p.name}`)
+                    const buyLabel = purchasing === p.tier
+                      ? 'Opening secure checkout…'
+                      : signedIn === false && !guestCheckoutCoversPlanClick({ live: GUEST_CHECKOUT_LIVE, promoRequested: arrivedWithPromo, introDiscount: billing === 'monthly' && (p.tier === 'starter' || p.tier === 'basic') && hasIntroOffer(p.tier, resolvedCurrency, resolvedRegion) })
+                        ? 'Sign up & continue →'
+                        : `${ctaLabel} →`
+                    return (
+                      <PlanValueCard
+                        key={p.tier}
+                        tier={p.tier as PlanValueTier}
+                        name={p.name}
+                        popular={Boolean('popular' in p && p.popular)}
+                        requested={requestedTier === p.tier}
+                        cardId={pricingTierCardId(p.tier as PricingTierHandoffTier)}
+                        value={planValues[p.tier as PlanValueTier]}
+                        amount={billing === 'annual' ? `≈ ${annualPrices[tier].perMonth}` : p.price}
+                        per={billing === 'annual'
+                          ? `/mo, billed ${displayCurrency ? annualPrices[tier].total : '—'} yearly · save ${ANNUAL_DISCOUNT_PERCENT}%`
+                          : p.priceSub}
+                        note={settlementCurrency === 'brl'
+                          ? settlementNote(
+                            planSettlementAmountMinor(tier, billing === 'annual' ? 'annual' : 'monthly', 'brl', billing === 'annual' ? getAnnualPrice(tier, 'usd') : getTierPrice(tier, 'usd')),
+                            'brl',
+                            billing === 'annual' ? 'yr' : 'mo',
+                          )
+                          : undefined}
+                        ctaLabel={buyLabel}
+                        ctaDisabled={purchasing === p.tier}
+                        onBuy={() => handleBuy(tier)}
+                        extra={localMethod === 'upi' && billing === 'monthly' && !planSwitch.subscribed ? (
+                          <a
+                            href={`/api/dodo/checkout?tier=${p.tier}&utm_source=pricing_plan&utm_medium=local_method&utm_campaign=upi`}
+                            data-testid={`plan-upi-${p.tier}`}
+                            onClick={() => { void trackEvent('local_method_clicked', { surface: 'pricing_plan', method: 'upi', tier: p.tier, billing: 'monthly' }) }}
+                            style={{ display: 'block', textAlign: 'center', fontSize: 12.5, fontWeight: 800, color: '#cfd6e0' }}
+                          >
+                            Pay monthly with UPI / RuPay →
+                          </a>
+                        ) : undefined}
+                        footnote={`${'storageLine' in p && p.storageLine ? `${p.storageLine} · ` : ''}Cancel anytime`}
+                      />
+                    )
+                  })}
+                </div>
+                <PlanValueMatrix plans={valuePlans.map((p) => ({ tier: p.tier as PlanValueTier, name: p.name, value: planValues[p.tier as PlanValueTier] }))} />
+              </section>
+              <div style={{ marginTop: 18 }}><MrrPricingProof /></div>
+            </>
+          )
+        })() : (
         <div id="plans" className="scroll-mt-24 grid grid-cols-1 gap-7 md:grid-cols-3 max-w-5xl mx-auto pt-5 items-stretch">
           {buildPricing(resolvedCurrency, resolvedRegion).map((p) => {
             const isPaid = p.tier === 'starter' || p.tier === 'basic' || p.tier === 'pro'
@@ -1381,6 +1469,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             )
           })}
         </div>
+        )}
 
         {/* KINEO-WORKS-WITH-CLAUDE-2026-09-30 — selo de confiança verdadeiro: o conector MCP (/api/mcp) funciona hoje
             como conector personalizado no Claude. Fica LOGO ABAIXO dos planos (perto do botão de compra): o topo da

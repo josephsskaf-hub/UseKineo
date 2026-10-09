@@ -304,7 +304,9 @@ export const CHECKOUT_CURRENCY_DISCLOSURE =
 //   · voiceover TTS      = 2cr  (minimax/eleven — app/api/audio)
 // ═══════════════════════════════════════════════════════════════════════════
 const IMG_CHEAPEST_CR = 1
-const IMG_NANOBANANA_CR = 5
+/** KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — exportado para o cartão do /pricing (lib/pricingPlanValue.ts); espelho de
+ *  app/api/images/generate MODELS.nanobanana.cost (o guardião test-precos-cartao-valor confere os dois). */
+export const IMG_NANOBANANA_CR = 5
 const VOICE_TTS_CR = 2
 
 /** "até N imagens" no plano — pela imagem mais barata (número honesto: "up to"). */
