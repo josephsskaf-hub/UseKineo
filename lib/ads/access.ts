@@ -7,6 +7,11 @@
 //   'internal'   → contas da casa, para o canário e a operação.
 // Trial e free NÃO entram. Falha de leitura = 'none' (falha fechada).
 //
+// KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 — e uma quarta, DEPOIS das três: 'partner' → o parceiro ativo (cortesia ativa + afiliado
+// ativo), que o fundador abriu em 09/10: "pode abrir tudo para ele fazer o que ele quiser dentro". Entra como o assinante (sem
+// passe), com o crédito da cortesia — o anúncio debita video_credits igual. A regra segue PURA: quem lê o banco é
+// lib/partnerAccess.ts, no servidor (lib/ads/serverAccess.ts loadAdsAccess), e passa `partner = true`. Sem ela = a régua de antes.
+//
 // KINEO-STUDIO-ADS-REVISAO-2026-09-24 — a v1 usava isPayingProfile (has_paid OU plano != free) e o e-mail de
 // profiles. A revisão adversarial CONFIRMOU: (1) has_paid vira true com QUALQUER pacote avulso e com o próprio passe,
 // então o passe de 365 d nunca expirava e quem comprou US$2,90 entrava para sempre; (2) profiles.email é editável
@@ -25,7 +30,7 @@ export interface AdsAccessFields {
   ads_access_until?: string | Date | null
 }
 
-export type AdsAccessReason = 'pass' | 'subscriber' | 'internal' | 'none'
+export type AdsAccessReason = 'pass' | 'subscriber' | 'internal' | 'partner' | 'none' // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09: + partner
 
 /** Conta da casa para o Studio Ads: lista EXATA confirmada pelo fundador + apelidos josephsskaf+…@gmail.com. */
 export function isAdsInternalEmail(email: string | null | undefined): boolean {
@@ -45,8 +50,9 @@ function passUntil(row: AdsAccessFields): Date | null {
   return Number.isNaN(d.getTime()) ? null : d
 }
 
-/** Por que esta conta entra (ou 'none'). `authEmail` = e-mail do getUser, nunca de profiles. */
-export function adsAccessReason(row: AdsAccessFields | null | undefined, authEmail: string | null | undefined, now: Date = new Date()): AdsAccessReason {
+/** Por que esta conta entra (ou 'none'). `authEmail` = e-mail do getUser, nunca de profiles. `partner` = parceiro ativo lido no
+ *  servidor por lib/partnerAccess.ts (KINEO-PARCEIRO-ABRE-TUDO-2026-10-09); ausente = a régua de antes. */
+export function adsAccessReason(row: AdsAccessFields | null | undefined, authEmail: string | null | undefined, now: Date = new Date(), partner: boolean = false): AdsAccessReason {
   // KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — revisão: a conta da casa decide PRIMEIRO. Com o interruptor desligado só
   // 'internal' passa, e o fundador (plano pro) caía em 'subscriber' e via "opens soon" no próprio canário.
   if (isAdsInternalEmail(authEmail)) return 'internal'
@@ -56,6 +62,9 @@ export function adsAccessReason(row: AdsAccessFields | null | undefined, authEma
     const plan = typeof row.plan === 'string' ? row.plan.trim().toLowerCase() : ''
     if (ADS_SUBSCRIBER_PLANS.includes(plan)) return 'subscriber'
   }
+  // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 — "pode abrir tudo para ele fazer o que ele quiser dentro" (fundador, 09/10): depois da
+  // casa, do passe e do assinante, o parceiro ativo entra como assinante.
+  if (partner === true) return 'partner'
   return 'none'
 }
 

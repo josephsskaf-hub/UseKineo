@@ -58,6 +58,9 @@ import {
 // função do filme do 2.5 (lib/s25Access.ts — só servidor; isPayingPlan da régua única do admin, nunca lista redigitada).
 import { clipPaidUpgradeHref, clipS25Visible } from '@/lib/clips/clipLaunch'
 import { s25AccessFor } from '@/lib/s25Access'
+// KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 — "pode abrir tudo para ele fazer o que ele quiser dentro" (fundador, 09/10): o parceiro
+// ativo (cortesia ativa + afiliado ativo) usa o clipe do 2.5 como o filme. Lido no servidor; só para plano de cortesia.
+import { isActivePartner } from '@/lib/partnerAccess'
 
 export const CLIPS_TABLE = 'clips'
 export const CLIPS_BUCKET = 'renders'
@@ -91,6 +94,8 @@ export interface ClipAccount {
   plan: string | null
   createdAt: string | null
   balance: number
+  /** KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 — parceiro ativo (lib/partnerAccess.ts): só lido para plano de cortesia; falha = false. */
+  partner?: boolean
 }
 
 export async function loadClipAccount(supabase: SupabaseClient, user: { id: string; email?: string | null }): Promise<ClipAccount | null> {
@@ -110,10 +115,11 @@ export async function loadClipAccount(supabase: SupabaseClient, user: { id: stri
     plan: p.plan ?? null,
     createdAt: p.created_at ?? null,
     balance: typeof p.video_credits === 'number' ? p.video_credits : 0,
+    partner: await isActivePartner(user.id, p.plan ?? null), // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09
   }
 }
 
-export function engineAccessFor(account: Pick<ClipAccount, 'email' | 'plan' | 'createdAt'>): (engine: ClipEngineKey) => ClipEngineAccess {
+export function engineAccessFor(account: Pick<ClipAccount, 'email' | 'plan' | 'createdAt' | 'partner'>): (engine: ClipEngineKey) => ClipEngineAccess {
   return (engine) => clipEngineAccess({
     paused: enginePaused(engine) !== null,
     // KINEO-S25-CLIPES-2026-10-06 — UM interruptor para o CLIPE do 2.5: lib/clips/clipLaunch.ts CLIP_S25_PUBLIC (quem VÊ). Ele
@@ -130,9 +136,10 @@ export function engineAccessFor(account: Pick<ClipAccount, 'email' | 'plan' | 'c
  * (lib/s25Access.ts s25AccessFor): a casa EXATA do validador de $0 (isDryRunAccount — não o isInternalEmail largo) ou plano
  * pago AGORA (isPayingPlan de app/api/admin/_shared/mrr.ts: *_trial de cortesia e o trial de $1 NÃO passam; pacote avulso
  * compra crédito, não assinatura — por isso nem isPayingProfile nem treatAsPaid). Plano nulo/ilegível = não paga.
+ * KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 — e o parceiro ativo em cortesia (account.partner, preenchido por loadClipAccount).
  */
-export function clipS25Paying(account: Pick<ClipAccount, 'email' | 'plan'>): boolean {
-  return s25AccessFor({ email: account.email, plan: account.plan }).allowed
+export function clipS25Paying(account: Pick<ClipAccount, 'email' | 'plan' | 'partner'>): boolean {
+  return s25AccessFor({ email: account.email, plan: account.plan, partner: account.partner }).allowed
 }
 
 export interface PublicClipEngine {

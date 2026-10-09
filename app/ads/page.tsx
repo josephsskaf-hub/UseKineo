@@ -84,6 +84,7 @@ import AdsPaywall from './AdsPaywall'
 import { adsSampleOpen } from '@/lib/ads/serverAccess'
 import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample'
 const SAMPLE_SIGNUP_HREF = `/signup?redirect=${encodeURIComponent('/ads/v2')}`
+import { readPartnerStatus } from '@/lib/partnerAccess' // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 — a prova positiva também pergunta pelo parceiro
 
 export const dynamic = 'force-dynamic'
 
@@ -147,6 +148,10 @@ async function readPaywallProof(admin: ReturnType<typeof footageAdminClient>, us
     const { data, error } = await admin.from('profiles').select(`${ADS_ACCESS_SELECT}, trial_status`).eq('id', userId).maybeSingle()
     if (error || !data) return null
     const row = data as AdsAccessFields & { trial_status?: unknown }
+    // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 — "pode abrir tudo para ele fazer o que ele quiser dentro" (fundador, 09/10): plano de
+    // cortesia só vira prova "sem acesso" quando a leitura do parceiro RESPONDEU que não é parceiro. Parceiro ativo nunca recebe a
+    // oferta de plano; leitura que falhou = "não sei" = a faixa de antes. Plano fora da cortesia responde sem ler nada.
+    if ((await readPartnerStatus(userId, typeof row.plan === 'string' ? row.plan : null)) !== 'not_partner') return null
     return { reason: adsAccessReason(row, authEmail), trialStatus: typeof row.trial_status === 'string' ? row.trial_status : null }
   } catch {
     return null

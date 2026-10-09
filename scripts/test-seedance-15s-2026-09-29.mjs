@@ -230,7 +230,9 @@ checa('mutante: régua chumbada em true fica VERMELHO', mutReguaChumbada !== LAU
 // a flag seedance15 segue na mesma linha inteira, pelo interruptor.
 // Reancorado KINEO-S25-ABRE-2026-10-06: a resposta ganhou `s25Liberado` (a régua de quem USA o Seedance 2.5, lib/s25Access.ts);
 // a flag seedance15 segue na mesma linha inteira, pelo interruptor.
-const L_ME = "  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), seedance15: seedance15sVisible(user.email), curtas: duracoesCurtasVisible(user.email), estrela: estrelaVisible(user.email), internal: s25Visible(user.email), s25Liberado, hasPaid, kineo1, plan })"
+// Reancorado KINEO-PARCEIRO-ABRE-TUDO-2026-10-09: a resposta ganhou `parceiro` (parceiro ativo, lib/partnerAccess.ts — o tile
+// "Business ad" do /studio o trata como assinante); a flag seedance15 segue na mesma linha inteira, pelo interruptor.
+const L_ME = "  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), seedance15: seedance15sVisible(user.email), curtas: duracoesCurtasVisible(user.email), estrela: estrelaVisible(user.email), parceiro, internal: s25Visible(user.email), s25Liberado, hasPaid, kineo1, plan })"
 checa('/api/me/credits devolve a flag seedance15 pelo interruptor (linha inteira)', temLinha(ME, L_ME))
 const ANCORAS_STUDIO = [
   ['Studio: botão de 15 s só com Seedance escolhido e com o interruptor', "              {engine === 'seedance' && (seedance15Ok || duration === SEEDANCE_SHORT_SECONDS) && ("],
