@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { composerUrl } from '@/lib/lifecycle/composerUrl'
+import { maxWordsForShortFilm, MIN_DURATION_ALL_ENGINES } from '@/lib/durationByEngine'
+import { creditCostForDuration } from '@/lib/credits/engineCost'
 
 // ═══ KINEO-RESGATE-FALHA-2026-08-21 — QUEM TENTOU E NÃO CONSEGUIU ════════
 //
@@ -141,6 +143,15 @@ const DEFECT_REFUND_REASONS = ['cinematic_abandoned_no_delivery', 'pending_orpha
 // disputa do "erro mais recente" com um texto que o classificador reconhece
 // como defeito.
 const SERVER_REFUND_MARK = 'server_refund_no_delivery'
+// ═══ KINEO-PAREDE-15S-EMAIL-2026-10-09 (fundador: "todo mundo que bate nessa parede receber um e-mail da gente… a pessoa
+// não sabe") — o roteiro grande demais para o filme de 15 s. O servidor recusa ANTES do custo
+// (short_film_script_too_long_refused em generate-video-cinematic) e a tela diz "Shorten it to about 56 words"; medido
+// 09/10: uma conta de trial (10 cr, celular) leu isso, não conseguiu, e foi embora com o crédito intacto. Não é defeito,
+// mas também não é "o produto disse não e acabou": a pessoa QUIS o vídeo e travou numa régua que não enxerga. Por isso
+// entra como pedido de ajuda (ehDefeito = true), com e-mail próprio de hello@, os números dela e o conserto.
+const FILM_LONG_MARK = 'short_film_script_too_long'
+// Espera mínima antes de escrever: quem bateu na parede e já está refazendo não recebe e-mail no meio da tentativa.
+const MIN_IDADE_MS = 30 * 60_000
 
 // ═══ sprint-assinaturas #5 — 02/09/2026 — O CRON IA MENTIR PARA A LISTA MAIS QUENTE
 //
@@ -201,10 +212,11 @@ const RE_PROMPT_LEN = /prompt_len=(\d+)(?:\s+limite=(\d+))?/i
 const WORDS_PER_SEC = 2.3
 const PROMPT_MAX_CHARS_FALLBACK = 5000
 
-type Kind = 'bug' | 'script_short' | 'script_long'
+type Kind = 'bug' | 'script_short' | 'script_long' | 'film_long'
 type ScriptShort = { narrationSec: number; requestedSec: number; wordsMissing: number }
 type ScriptLong = { chars: number; limit: number; durationSec: number | null }
-type FalhaMeta = { reason?: unknown; duration?: unknown }
+type FilmLong = { requestedSec: number; estSec: number; suggestedSec: number }
+type FalhaMeta = { reason?: unknown; duration?: unknown; requested_seconds?: unknown; est_speech_seconds?: unknown; suggested_seconds?: unknown }
 
 // A pergunta única que decide se a pessoa entra ou sai da lista. Ordem
 // importa: a confissão explícita vence a lista de recusas legítimas, e o
@@ -215,12 +227,26 @@ function ehDefeito(erro: string): boolean {
   const e = String(erro ?? '')
   if (!e) return false
   if (e === SERVER_REFUND_MARK) return true
+  if (e === FILM_LONG_MARK) return true
   const low = e.toLowerCase()
   if (DEFEITO_EXPLICITO.some((frag) => low.includes(frag.toLowerCase()))) return true
   return !NAO_E_BUG.some((frag) => low.includes(frag.toLowerCase()))
 }
 
-function classifyFailure(erro: string, meta?: FalhaMeta): { kind: Kind; short?: ScriptShort; long?: ScriptLong } {
+function classifyFailure(erro: string, meta?: FalhaMeta): { kind: Kind; short?: ScriptShort; long?: ScriptLong; film?: FilmLong } {
+  if (erro === FILM_LONG_MARK) {
+    const req = Number(meta?.requested_seconds)
+    const est = Number(meta?.est_speech_seconds)
+    const sug = Number(meta?.suggested_seconds)
+    return {
+      kind: 'film_long',
+      film: {
+        requestedSec: Number.isFinite(req) && req > 0 ? req : 15,
+        estSec: Number.isFinite(est) && est > 0 ? est : 0,
+        suggestedSec: Number.isFinite(sug) && sug > 0 ? sug : MIN_DURATION_ALL_ENGINES,
+      },
+    }
+  }
   // Estorno do servidor não tem mensagem: é defeito genérico, e passar o
   // marcador pelas regex de roteiro só arriscaria um falso positivo.
   if (erro === SERVER_REFUND_MARK) return { kind: 'bug' }
@@ -278,6 +304,43 @@ usekineo.com`
   <p><strong>The 30-second fix:</strong> paste only the narration — the words you want spoken, not the whole conversation or the notes around it — and render again.</p>
   <p style="margin:24px 0"><a href="${url}" style="display:inline-block;background:#2997ff;color:#fff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">Paste the narration and render →</a></p>
   <p>If it still fails, hit reply and paste what you typed. It lands with a real person.</p>
+  <p style="margin:0 0 2px">Kineo Team</p>
+  <p style="margin:0"><a href="https://www.usekineo.com" style="color:#2997ff">usekineo.com</a></p>
+</div>${emailFooterHtml(userId)}`
+
+  return { text: `${text}${emailFooterText(userId)}`, html }
+}
+
+// KINEO-PAREDE-15S-EMAIL-2026-10-09 — o roteiro passou do filme curto. Os números dela, a meta em palavras e o conserto;
+// a saída "escolha 35 s" só aparece para quem tem crédito para ela (trial de 10 cr não tem — oferecer seria mais um muro).
+function buildFilmLongEmail(userId: string, credits: number, f: FilmLong) {
+  const url = composerUrl({ base: APP, campaign: 'failure_recovery_film_long' })
+  const words = maxWordsForShortFilm(f.requestedSec)
+  const cost = creditCostForDuration('cinematic_ai', true, f.suggestedSec)
+  const podeMaior = cost > 0 && credits >= cost
+  const reads = f.estSec > 0 ? `your script reads for about ${f.estSec} seconds` : 'your script was longer than the film'
+  const text = `Hey,
+
+Your ${f.requestedSec}-second video didn't render — and nothing was charged. Your ${credits} credits are all still there.
+
+Here's exactly what happened: ${reads}, and a ${f.requestedSec}-second film fits about ${words} words. Kineo stopped instead of cutting your story in the middle.
+
+The fix takes 30 seconds: shorten the text to about ${words} words — two or three short sentences, one idea — and render again: ${url}
+${podeMaior ? `
+Or keep the whole script and pick ${f.suggestedSec} seconds (${cost} credits).
+` : ''}
+If it still doesn't work, hit reply and paste what you typed. A real person reads it.
+
+Kineo Team
+usekineo.com`
+
+  const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111;line-height:1.6;max-width:480px;">
+  <p>Hey,</p>
+  <p>Your ${f.requestedSec}-second video didn't render — and <strong>nothing was charged</strong>. Your <strong>${credits} credits</strong> are all still there.</p>
+  <p>Here's exactly what happened: ${reads}, and a ${f.requestedSec}-second film fits <strong>about ${words} words</strong>. Kineo stopped instead of cutting your story in the middle.</p>
+  <p><strong>The fix takes 30 seconds:</strong> shorten the text to about ${words} words — two or three short sentences, one idea — and render again.</p>
+  <p style="margin:24px 0"><a href="${url}" style="display:inline-block;background:#2997ff;color:#fff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">Shorten it and render →</a></p>
+${podeMaior ? `  <p>Or keep the whole script and pick <strong>${f.suggestedSec} seconds</strong> (${cost} credits).</p>\n` : ''}  <p>If it still doesn't work, hit reply and paste what you typed. A real person reads it.</p>
   <p style="margin:0 0 2px">Kineo Team</p>
   <p style="margin:0"><a href="https://www.usekineo.com" style="color:#2997ff">usekineo.com</a></p>
 </div>${emailFooterHtml(userId)}`
@@ -452,7 +515,7 @@ export async function GET(req: NextRequest) {
   // A terceira é o SERVIDOR (#6, hoje): o estorno por defeito, que é o único
   // rastro de quem fechou a aba antes do render morrer — 15 das 35 pessoas
   // elegíveis em 30 dias não têm NENHUM evento de navegador na vida.
-  const [{ data: falhas }, { data: longas }, { data: estornos }] = await Promise.all([
+  const [{ data: falhas }, { data: longas }, { data: estornos }, { data: filmesLongos }] = await Promise.all([
     admin
       .from('events')
       .select('user_id, created_at, metadata')
@@ -472,6 +535,13 @@ export async function GET(req: NextRequest) {
       .eq('name', 'credits_refunded')
       .gte('created_at', desde)
       .limit(500),
+    // KINEO-PAREDE-15S-EMAIL-2026-10-09 — a recusa do roteiro longo no filme curto (servidor, antes do custo).
+    admin
+      .from('events')
+      .select('user_id, created_at, metadata')
+      .eq('name', 'short_film_script_too_long_refused')
+      .gte('created_at', desde)
+      .limit(500),
   ])
 
   type Falha = { user_id: string | null; created_at: string; metadata: unknown }
@@ -489,10 +559,19 @@ export async function GET(req: NextRequest) {
       created_at: e.created_at,
       metadata: { error: SERVER_REFUND_MARK, reason: SERVER_REFUND_MARK },
     }))
+  const daParede15s: Falha[] = ((filmesLongos ?? []) as Falha[]).map((e) => {
+    const m = (e.metadata ?? {}) as { requested_seconds?: unknown; est_speech_seconds?: unknown; suggested_seconds?: unknown }
+    return {
+      user_id: e.user_id,
+      created_at: e.created_at,
+      metadata: { error: FILM_LONG_MARK, reason: FILM_LONG_MARK, requested_seconds: m.requested_seconds, est_speech_seconds: m.est_speech_seconds, suggested_seconds: m.suggested_seconds },
+    }
+  })
   const todas: Falha[] = [
     ...((falhas ?? []) as Falha[]),
     ...((longas ?? []) as Falha[]),
     ...doServidor,
+    ...daParede15s,
   ].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)))
 
   // Por pessoa: quantas falhas de defeito/regra-de-roteiro, e o erro MAIS
@@ -506,7 +585,7 @@ export async function GET(req: NextRequest) {
   for (const f of todas) {
     const uid = f.user_id
     if (!uid) continue
-    const meta = (f.metadata ?? {}) as { error?: unknown; reason?: unknown; duration?: unknown }
+    const meta = (f.metadata ?? {}) as { error?: unknown; reason?: unknown; duration?: unknown; requested_seconds?: unknown; est_speech_seconds?: unknown; suggested_seconds?: unknown }
     const erro = String(meta.error ?? '')
     // Só defeito. Saldo/regra/limite não são bug — o produto funcionou.
     // `ehDefeito` inverte a pergunta antiga: a confissão explícita ("this is
@@ -523,7 +602,7 @@ export async function GET(req: NextRequest) {
     }
     if (!naoEBug) cur.n += 1
     cur.erro = erro
-    cur.meta = { reason: meta.reason, duration: meta.duration }
+    cur.meta = { reason: meta.reason, duration: meta.duration, requested_seconds: meta.requested_seconds, est_speech_seconds: meta.est_speech_seconds, suggested_seconds: meta.suggested_seconds }
     cur.naoEBug = naoEBug
     cur.ultima = String(f.created_at)
     cur.doServidor = erro === SERVER_REFUND_MARK
@@ -543,7 +622,7 @@ export async function GET(req: NextRequest) {
   const jaAvisado = new Set((stamps ?? []).map((s) => s.user_id as string))
   const jaTemVideo = new Set((comVideo ?? []).map((v) => v.user_id as string))
 
-  const alvos: Array<{ id: string; email: string; credits: number; falhas: number; erro: string; kind: Kind; short?: ScriptShort; long?: ScriptLong; staleDays: number; fonte: 'navegador' | 'servidor' }> = []
+  const alvos: Array<{ id: string; email: string; credits: number; falhas: number; erro: string; kind: Kind; short?: ScriptShort; long?: ScriptLong; film?: FilmLong; staleDays: number; fonte: 'navegador' | 'servidor' }> = []
   for (const p of profs ?? []) {
     const id = p.id as string
     if (jaAvisado.has(id)) continue
@@ -555,6 +634,8 @@ export async function GET(req: NextRequest) {
     const info = porPessoa.get(id)!
     const cls = classifyFailure(info.erro, info.meta)
     const ms = Date.parse(info.ultima)
+    // KINEO-PAREDE-15S-EMAIL-2026-10-09 — bateu na parede há menos de 30 min: pode estar refazendo agora; fica para a próxima passada.
+    if (cls.kind === 'film_long' && Number.isFinite(ms) && Date.now() - ms < MIN_IDADE_MS) continue
     const staleDays = Number.isFinite(ms) ? Math.max(0, Math.floor((Date.now() - ms) / 86_400_000)) : 0
     alvos.push({
       id,
@@ -565,6 +646,7 @@ export async function GET(req: NextRequest) {
       kind: cls.kind,
       short: cls.short,
       long: cls.long,
+      film: cls.film,
       staleDays,
       fonte: info.doServidor ? 'servidor' : 'navegador',
     })
@@ -580,6 +662,7 @@ export async function GET(req: NextRequest) {
         bug: alvos.filter((a) => a.kind === 'bug').length,
         script_short: alvos.filter((a) => a.kind === 'script_short').length,
         script_long: alvos.filter((a) => a.kind === 'script_long').length,
+        film_long: alvos.filter((a) => a.kind === 'film_long').length,
       },
       // #6: quantos só existem porque o servidor viu. Antes de hoje este
       // número era o tamanho da cegueira do cron.
@@ -597,13 +680,17 @@ export async function GET(req: NextRequest) {
   const results: Array<{ email: string; outcome: string }> = []
   for (const a of alvos.slice(0, MAX_PER_RUN)) {
     const { text, html } =
-      a.kind === 'script_short'
+      a.kind === 'film_long' && a.film
+        ? buildFilmLongEmail(a.id, a.credits, a.film)
+        : a.kind === 'script_short'
         ? buildScriptShortEmail(a.id, a.credits, a.short)
         : a.kind === 'script_long' && a.long
           ? buildScriptLongEmail(a.id, a.credits, a.long)
           : buildEmail(a.id, a.credits, a.staleDays)
     const subject =
-      a.kind === 'script_short' || a.kind === 'script_long'
+      a.kind === 'film_long'
+        ? 'Your video was a little too long — here’s the 30-second fix (credits untouched)'
+        : a.kind === 'script_short' || a.kind === 'script_long'
         ? "Your video didn't render — here's the 30-second fix (credits untouched)"
         : a.staleDays > 7
           ? 'We broke your first Kineo video — and never told you'
@@ -613,9 +700,10 @@ export async function GET(req: NextRequest) {
         method: 'POST',
         headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          from: 'Joseph at Kineo <joseph@usekineo.com>',
+          // KINEO-PAREDE-15S-EMAIL-2026-10-09 — a dica de tamanho sai do hello@ (fundador: "do contato ou do hello"); o resto segue do Joseph.
+          from: a.kind === 'film_long' ? 'Kineo Team <hello@usekineo.com>' : 'Joseph at Kineo <joseph@usekineo.com>',
           to: [a.email],
-          reply_to: 'joseph@usekineo.com',
+          reply_to: a.kind === 'film_long' ? 'hello@usekineo.com' : 'joseph@usekineo.com',
           subject,
           text,
           html,

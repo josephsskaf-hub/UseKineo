@@ -24,6 +24,10 @@ const consts = [
   // #6: o classificador atalha no marcador do estorno do servidor antes de
   // qualquer regex de roteiro — sem a constante, ele nem roda.
   src.match(/const SERVER_REFUND_MARK = .+/)[0],
+  // KINEO-PAREDE-15S-EMAIL-2026-10-09 — re-ancorado: o classificador atalha também no marcador da parede dos 15 s
+  // (e usa o 35 s do durationByEngine como saída padrão); sem as duas constantes ele nem roda.
+  src.match(/const FILM_LONG_MARK = .+/)[0],
+  'const MIN_DURATION_ALL_ENGINES = 35',
 ].join('\n')
 const fnSrc = grab('function classifyFailure', '\n// #15: e-mail do roteiro COMPRIDO')
   .replace(/\(erro: string, meta\?: FalhaMeta\): \{[^}]*\}\s*\{/, '(erro, meta) {')
@@ -41,6 +45,8 @@ t('reason analyze_prompt_too_long sem texto → script_long com fallback 5000', 
 const c4 = classify('Prompt is too long (5,000 chars max). (prompt_len=7102)', {})
 t('frase do servidor "Prompt is too long" → script_long com 7102', c4.kind === 'script_long' && c4.long.chars === 7102)
 t('script_long sem duracao → durationSec null (nao inventa palavras)', classify(LONGO, {}).long.durationSec === null)
+const c5 = classify('short_film_script_too_long', { requested_seconds: 15, est_speech_seconds: 64, suggested_seconds: 35 })
+t('parede dos 15 s → film_long com 15/64/35 (KINEO-PAREDE-15S-EMAIL-2026-10-09)', c5.kind === 'film_long' && c5.film.requestedSec === 15 && c5.film.estSec === 64 && c5.film.suggestedSec === 35)
 for (const bug of ['Voiceover generation failed. Please try again.', 'voiceover_script is required.', 'TypeError', 'Could not submit clips to AI generator. Please try again.'])
   t(`defeito real continua bug: "${bug.slice(0, 36)}"`, classify(bug, {}).kind === 'bug')
 t('narration_too_short sem numeros continua script_short', classify('no_detail:narration_too_short|stage=failed|http=none', { reason: 'narration_too_short' }).kind === 'script_short')

@@ -98,7 +98,7 @@
     },
     {
       "path": "/api/cron/send-failure-recovery?confirm=SEND",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 */2 * * *"
     },
     {
       "path": "/api/cron/send-trial-eve-notice",
