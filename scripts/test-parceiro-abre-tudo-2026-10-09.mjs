@@ -433,7 +433,8 @@ async function problems(over = {}) {
     const P = la('@/' + PAYWALL)
     const viewer = (reason) => ({ signedIn: true, gate: 'no_access', noSession: false, proof: { reason, trialStatus: null } })
     if (P.adsPaywallVisible({ live: true, from: 'v2', viewer: viewer('partner') }) !== false || P.adsPaywallVisible({ live: true, from: 'v2', viewer: viewer('none') }) !== true) p.push('a oferta da parede aparece para partner (ou sumiu para none)')
-    if (JSON.stringify([...ACC.ADS_SUBSCRIBER_PLANS]) !== JSON.stringify(['starter', 'basic', 'creator', 'pro', 'studio', 'autopilot', 'autopilot_lite'])) p.push('ADS_SUBSCRIBER_PLANS mudou (o parceiro não entra pela lista de planos)')
+    // KINEO-BUSINESS-84-2026-10-09 — re-ancorado: o plano Business (fundador 09/10) entra na lista dos planos que abrem o Studio Ads; o parceiro continua fora dela.
+    if (JSON.stringify([...ACC.ADS_SUBSCRIBER_PLANS]) !== JSON.stringify(['starter', 'basic', 'creator', 'pro', 'studio', 'autopilot', 'autopilot_lite', 'business'])) p.push('ADS_SUBSCRIBER_PLANS mudou (o parceiro não entra pela lista de planos)')
   } catch (err) { p.push(`Studio Ads não roda: ${err.message}`) } finally { ADMIN = null }
   const door = src(DOOR)
   const proofFn = door.slice(door.indexOf('async function readPaywallProof('), door.indexOf('/** Who is looking'))
