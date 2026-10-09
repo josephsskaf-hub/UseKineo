@@ -152,12 +152,41 @@ function problems(replacements = {}) {
   if (!client.includes("(switchLabel ?? `Get ${p.name}`)")) p.push('botão: "Get <plano>" (pedido do fundador)')
   if (!client.includes('credits={TIER_CREDITS[tier]}')) p.push('cartão recebe os créditos do plano (TIER_CREDITS)')
   if (!client.includes('const annualSavingMinor = getTierPrice(tier, resolvedCurrency, resolvedRegion) * 12 - getAnnualPrice(tier, resolvedCurrency, resolvedRegion)')) p.push('economia do anual = 12 × mensal − anual, das funções do caixa')
-  if (!client.includes('was={annual && displayCurrency ? p.price : undefined}')) p.push('mensal riscado só no anual')
+  if (!client.includes('was={(annual || welcome !== null) && displayCurrency ? p.price : undefined}')) p.push('preço cheio riscado só no anual e no 1º mês com 20%')
+  // KINEO-WELCOME20-NO-CARTAO-2026-10-09 — os 20% do 1º mês no cartão (fundador 09/10: "Sim. Todas as empresas fazem isso").
+  if (!/^export const PRICING_WELCOME20_ON_CARD = true$/m.test(client)) p.push('20% no cartão: interruptor ligado desde o "sim" do fundador (09/10)')
+  if (!client.includes("PRICING_WELCOME20_ON_CARD && billing === 'monthly' && (tier === 'basic' || tier === 'pro') && !arrivedWithPromo && !planSwitch.subscribed")) p.push('20% no cartão: só Creator/Studio, mensal, sem outro cupom, sem assinatura')
+  if (!client.includes('const cardPromo = welcomeOnCard(tier) ? WELCOME20_PROMOTION_CODE : null') || !client.includes("const promo = pricingParams?.get('promo') ?? cardPromo")) p.push('20% no cartão: o botão leva o WELCOME20 (o cupom da URL vence)')
+  if (!client.includes('Math.round((getTierPrice(tier, resolvedCurrency, resolvedRegion) * (100 - WELCOME20_PERCENT_OFF)) / 100)')) p.push('20% no cartão: o preço do 1º mês sai do caixa × (100 − WELCOME20_PERCENT_OFF)')
+  if (!client.includes('{PRICING_WELCOME20_ON_CARD ? null : <WelcomeOfferModal delayMs={20000} surface="pricing" />}')) p.push('20% no cartão: o pop-up não abre mais no /pricing')
+  if (!client.includes("monthlyLabel: welcomeOnCard('basic') ? formatCheckoutMoney(resolvedCurrency, welcomeFirstMonthMinor('basic')) : entryPriceLabel('basic')")) p.push('20% no cartão: a barra do celular diz o que a Stripe cobra hoje (Creator)')
+  if (!client.includes("monthlyLabel: formatCheckoutMoney(resolvedCurrency, welcomeOnCard('pro') ? welcomeFirstMonthMinor('pro') : getTierPrice('pro', resolvedCurrency, resolvedRegion))")) p.push('20% no cartão: a barra do celular diz o que a Stripe cobra hoje (Studio)')
   if (!client.includes('<style dangerouslySetInnerHTML={{ __html: PLAN_VALUE_STAGE_CSS }} />') || client.includes('<style>{PLAN_VALUE_STAGE_CSS}</style>')) p.push('CSS do cartão sem escape (o ">" escapado quebra a hidratação)')
   if (/twoProductsModelForPage|planValueFor\(|IMG_NANOBANANA_CR/.test(client.replace(/^\s*\/\/.*$/gm, ''))) p.push('PricingClient faz conta de modelo (o harness troca todo import de @/components por stub e a página quebra no teste)')
   if (!client.includes('{valueCards ? null : <MrrPricingProof />}') || !client.includes('{valueCards ? <MrrPricingProof /> : null}')) p.push('a caixa dos filmes desce para baixo dos planos só com o cartão novo')
   if (!client.includes("{valueCards ? null : (\n        <div className=\"mx-auto mt-8 max-w-3xl rounded-2xl border border-[var(--border)] bg-[var(--card)] px-5 py-4\">\n          <p className=\"mb-2.5 text-center text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--accent)]\">What one credit buys</p>")) p.push('"What one credit buys" sai com o cartão novo')
   if (!client.includes('{valueCards ? null : agencyPath}') || !client.includes('{valueCards ? agencyPath : null}')) p.push('o bloco das agências desce com o cartão novo')
+
+  // 5b. o recorte do cartão (Creator/Studio, mensal) é EXATAMENTE o que o servidor aceita para o WELCOME20
+  try {
+    const guest = load('lib/growth/guestCheckout.ts')
+    const promo = load('lib/growth/publicPromoTruth.ts')
+    for (const tier of ['starter', 'basic', 'pro']) for (const isAnnual of [false, true]) {
+      const servidor = guest.guestWelcomePromoShapeOk({ tier, isAnnual })
+      const cartao = (tier === 'basic' || tier === 'pro') && !isAnnual
+      if (servidor !== cartao) p.push(`recorte do WELCOME20 diverge: ${tier} ${isAnnual ? 'anual' : 'mensal'} servidor=${servidor} cartão=${cartao}`)
+    }
+    if (promo.WELCOME20_PERCENT_OFF !== 20 || promo.WELCOME20_PROMOTION_CODE !== 'WELCOME20') p.push('WELCOME20 deixou de ser 20% / código WELCOME20')
+    for (const tier of ['basic', 'pro']) {
+      const cheio = prices.TIER_PRICES[tier].usd
+      const primeiro = Math.round((cheio * (100 - promo.WELCOME20_PERCENT_OFF)) / 100)
+      if (primeiro !== cheio * 0.8 || primeiro <= 0) p.push(`1º mês do ${tier}: ${primeiro} não é 80% de ${cheio}`)
+    }
+    const deal = strip(renderToStaticMarkup(React.createElement(stage.PlanValueCard, { ...props('basic', 'Creator', true), deal: '20% off' })))
+    if (!deal.includes('<span class="pv-chip pv-deal">20% off</span>')) p.push('cartão: selo "20% off" ao lado do nome')
+  } catch (e) {
+    p.push('recorte/1º mês: ' + String(e && e.message))
+  }
 
   // 6. a porcelana segue os 2 temas do site (claro e escuro de app/appearance.css)
   const css = stage.PLAN_VALUE_STAGE_CSS
@@ -223,6 +252,11 @@ const MUTANTES = [
   ['CSS do cartão volta a ser filho de <style> (hidratação)', troca(CLIENT, '<style dangerouslySetInnerHTML={{ __html: PLAN_VALUE_STAGE_CSS }} />', '<style>{PLAN_VALUE_STAGE_CSS}</style>')],
   ['PricingClient volta a fazer a conta do modelo', troca(CLIENT, "import TwoProductsPricing from '@/components/pricing/TwoProductsPricing'", "import TwoProductsPricing, { twoProductsModelForPage } from '@/components/pricing/TwoProductsPricing'")],
   ['porcelana deixa de seguir o tema escuro', troca(STAGE, '.pv-stage{--pv-card-bg:var(--card);', '.pv-stage{--pv-card-bg:#FFFFFF;')],
+  ['20% no cartão desligado sem decisão', troca(CLIENT, 'export const PRICING_WELCOME20_ON_CARD = true', 'export const PRICING_WELCOME20_ON_CARD = false')],
+  ['20% no cartão vaza para o Starter', troca(CLIENT, "(tier === 'basic' || tier === 'pro') && !arrivedWithPromo", "(tier === 'basic' || tier === 'pro' || tier === 'starter') && !arrivedWithPromo")],
+  ['20% no cartão vaza para o anual', troca(CLIENT, "PRICING_WELCOME20_ON_CARD && billing === 'monthly' && ", 'PRICING_WELCOME20_ON_CARD && ')],
+  ['o botão mostra 20% e não leva o cupom', troca(CLIENT, "const promo = pricingParams?.get('promo') ?? cardPromo", "const promo = pricingParams?.get('promo') ?? null")],
+  ['o pop-up volta junto com o cartão', troca(CLIENT, '{PRICING_WELCOME20_ON_CARD ? null : <WelcomeOfferModal delayMs={20000} surface="pricing" />}', '<WelcomeOfferModal delayMs={20000} surface="pricing" />')],
   ['celular volta a abrir no Starter', troca(STAGE, '  .pv-card[data-popular=true]{order:-1}\n', '')],
   ['caixa dos filmes volta ao select', troca(PROOF, "<div className=\"mpp-seg\" role=\"group\" aria-label=\"Film length\">", "<select aria-label=\"Film length\"><div className=\"mpp-seg\" role=\"group\">")],
 ]

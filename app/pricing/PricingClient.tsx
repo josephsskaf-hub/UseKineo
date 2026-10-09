@@ -72,6 +72,13 @@ export const PRICING_VALUE_CARDS_PUBLIC = true
 // 'porcelana' (a do site: segue o tema claro/escuro, cobalto no plano popular) · 'cobalto' · 'ambar' · 'tinta' (palco
 // escuro). /pricing?tema=<nome> mostra outra só para quem abrir o link. Trocar a paleta da página é trocar esta linha.
 export const PRICING_VALUE_PALETTE: PlanValuePalette = 'porcelana'
+// KINEO-WELCOME20-NO-CARTAO-2026-10-09 — fundador (09/10 ~08h BRT): "Colocar 20% no primeiro mês visível no cartão: Sim.
+// Todas as empresas fazem isso". O WELCOME20 (20% no 1º mês, aprovado em 25/08) sai do pop-up e aparece no cartão do
+// Creator e do Studio no MENSAL — o mesmo recorte que o servidor aceita (app/api/stripe/checkout, KINEO-WELCOME20-2026-08-25;
+// convidado: lib/growth/guestCheckout.ts guestWelcomePromoShapeOk). O botão do cartão e a barra do celular levam o cupom;
+// o pop-up deixa de abrir no /pricing. Afiliado: o código dele já dá os mesmos 20% e a Stripe aceita um cupom por compra —
+// nunca somam. false = volta ao pop-up, sem desconto no cartão.
+export const PRICING_WELCOME20_ON_CARD = true
 import {
   // KINEO-PILOT-99-2026-07-26 — preço e duração do piloto vêm da mesma fonte que
   // o checkout cobra. Retipar "$99" aqui é como os outros três leaks começaram.
@@ -98,11 +105,12 @@ import {
   type CheckoutTier as PaidTier,
   type PriceRegion,
 } from '@/lib/checkoutPricing'
-import { planSettlementAmountMinor, settlementNote, type SettlementCurrency } from '@/lib/settlementCurrency'
+import { formatSettlementMoney, planSettlementAmountMinor, settlementNote, type SettlementCurrency } from '@/lib/settlementCurrency'
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, type FreeTierOffer } from '@/lib/freeTierOffer'
 import { CHECKOUT_PAYMENT_GUIDANCE_COMPACT } from '@/lib/growth/checkoutPaymentGuidance'
 import { GUEST_CHECKOUT_LIVE, guestCheckoutCoversPlanClick } from '@/lib/growth/guestCheckout' // KINEO-COMPRA-SEM-LOGIN-2026-10-06
+import { WELCOME20_PERCENT_OFF, WELCOME20_PROMOTION_CODE } from '@/lib/growth/publicPromoTruth' // KINEO-WELCOME20-NO-CARTAO-2026-10-09
 import {
   buildPricingPlanChoiceAttribution,
   sanitizePricingIntentCampaign,
@@ -565,6 +573,12 @@ export default function PricingClient({ initialBilling = 'annual', characterLimi
   // corpo do componente é hydration mismatch, e `useSearchParams()` exigiria
   // Suspense em volta desta página.
   const [arrivedWithPromo, setArrivedWithPromo] = useState(false)
+  // KINEO-WELCOME20-NO-CARTAO-2026-10-09 — o cartão (e o botão) leva os 20% do 1º mês só onde o servidor aceita: Creator ou
+  // Studio, MENSAL, sem outro cupom na URL (o da URL vence, como sempre), e para quem não assina hoje (assinante troca de plano).
+  const welcomeOnCard = (tier: string): tier is 'basic' | 'pro' =>
+    PRICING_WELCOME20_ON_CARD && billing === 'monthly' && (tier === 'basic' || tier === 'pro') && !arrivedWithPromo && !planSwitch.subscribed
+  const welcomeFirstMonthMinor = (tier: 'basic' | 'pro'): number =>
+    Math.round((getTierPrice(tier, resolvedCurrency, resolvedRegion) * (100 - WELCOME20_PERCENT_OFF)) / 100)
   // KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — o cartão novo: ligado para todos só com PRICING_VALUE_CARDS_PUBLIC; antes disso,
   // ?preview=valor liga para quem abrir o link (lido no efeito abaixo, nunca no render: hidratação igual ao servidor).
   const [valueCards, setValueCards] = useState(PRICING_VALUE_CARDS_PUBLIC)
@@ -713,7 +727,9 @@ export default function PricingClient({ initialBilling = 'annual', characterLimi
     // #453 — forward a ?promo= code (e.g. /pricing?promo=FOUNDING50 from the
     // win-back emails) into checkout so the discount auto-applies on plan click.
     const pricingParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
-    const promo = pricingParams?.get('promo') ?? null
+    // KINEO-WELCOME20-NO-CARTAO-2026-10-09 — sem cupom na URL, o Creator/Studio mensal leva o WELCOME20 que o cartão mostra.
+    const cardPromo = welcomeOnCard(tier) ? WELCOME20_PROMOTION_CODE : null
+    const promo = pricingParams?.get('promo') ?? cardPromo
     const promoParam = promo ? `&promo=${encodeURIComponent(promo)}` : ''
     const rawIntentCampaign = pricingParams?.get('intent_campaign')
     const intentCampaign = sanitizePricingIntentCampaign(rawIntentCampaign)
@@ -726,7 +742,7 @@ export default function PricingClient({ initialBilling = 'annual', characterLimi
     const started = checkout.launch(
       tier,
       conversionCheckoutHref(`/api/stripe/checkout?tier=${tier}${billingParam}${promoParam}${introParam}${intentParam}`, 'pricing', `${tier}_${effectiveBilling}`),
-      { tier, billing: effectiveBilling, intro: introParam !== '', pricing_surface: 'pricing_page', ...(MRR_CONVERSION_ENABLED && !isAutopilotFamily ? conversionMetadata('pricing', `${tier}_${effectiveBilling}`) : {}), previous_intent_campaign: intentCampaign },
+      { tier, billing: effectiveBilling, intro: introParam !== '', pricing_surface: 'pricing_page', ...(MRR_CONVERSION_ENABLED && !isAutopilotFamily ? conversionMetadata('pricing', `${tier}_${effectiveBilling}`) : {}), previous_intent_campaign: intentCampaign, ...(cardPromo && !pricingParams?.get('promo') ? { card_promo: cardPromo } : {}) },
     )
     // A suppressed duplicate click must not double-count the funnel or fire a
     // second TikTok InitiateCheckout.
@@ -986,7 +1002,8 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
           KINEO-POPUP-SEGURADO-2026-10-09 — fundador ("o 2 pode fazer sim", 09/10): em 1,5 s o pop-up cobria os planos
           justo quando a pessoa começava a ler o cartão novo. Agora ele espera 20 s: chega para quem ficou na página
           pensando, não para quem acabou de chegar. A oferta (20% no 1º mês, Creator/Studio) não muda. */}
-      <WelcomeOfferModal delayMs={20000} surface="pricing" />
+      {/* KINEO-WELCOME20-NO-CARTAO-2026-10-09 — com os 20% no cartão, o pop-up não abre mais aqui ("no lugar do pop-up"). */}
+      {PRICING_WELCOME20_ON_CARD ? null : <WelcomeOfferModal delayMs={20000} surface="pricing" />}
 
       {/* ───────── Pricing ───────── */}
       <section className="relative z-10 mx-auto max-w-5xl px-4 pt-12 pb-16 sm:px-6 sm:pt-16">
@@ -1141,6 +1158,8 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                         ? 'Sign up & continue'
                         : ctaLabel
                     const annualSavingMinor = getTierPrice(tier, resolvedCurrency, resolvedRegion) * 12 - getAnnualPrice(tier, resolvedCurrency, resolvedRegion)
+                    // KINEO-WELCOME20-NO-CARTAO-2026-10-09 — mensal do Creator/Studio: o 1º mês com 20%, o preço cheio riscado ao lado.
+                    const welcome = welcomeOnCard(tier) && displayCurrency ? welcomeFirstMonthMinor(tier as 'basic' | 'pro') : null
                     return (
                       <PlanValueCard
                         key={p.tier}
@@ -1150,11 +1169,15 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                         requested={requestedTier === p.tier}
                         cardId={pricingTierCardId(p.tier as PricingTierHandoffTier)}
                         credits={TIER_CREDITS[tier]}
-                        amount={annual ? annualPrices[tier].perMonth : p.price}
-                        was={annual && displayCurrency ? p.price : undefined}
-                        per={annual ? `/month, ${displayCurrency ? annualPrices[tier].total : '—'} billed yearly` : '/month'}
+                        amount={annual ? annualPrices[tier].perMonth : welcome !== null ? formatCheckoutMoney(resolvedCurrency, welcome) : p.price}
+                        was={(annual || welcome !== null) && displayCurrency ? p.price : undefined}
+                        per={annual ? `/month, ${displayCurrency ? annualPrices[tier].total : '—'} billed yearly` : welcome !== null ? `first month, then ${p.price}/month` : '/month'}
+                        deal={welcome !== null ? `${WELCOME20_PERCENT_OFF}% off` : undefined}
                         note={settlementCurrency === 'brl'
-                          ? settlementNote(
+                          ? welcome !== null
+                            // KINEO-WELCOME20-NO-CARTAO-2026-10-09 — em reais, o cupom vale igual: 1º mês com 20%, depois o mensal da tabela.
+                            ? `Charged in BRL: ${formatSettlementMoney('brl', Math.round((planSettlementAmountMinor(tier, 'monthly', 'brl', getTierPrice(tier, 'usd')) * (100 - WELCOME20_PERCENT_OFF)) / 100))} first month, then ${formatSettlementMoney('brl', planSettlementAmountMinor(tier, 'monthly', 'brl', getTierPrice(tier, 'usd')))}/mo`
+                            : settlementNote(
                             planSettlementAmountMinor(tier, billing === 'annual' ? 'annual' : 'monthly', 'brl', billing === 'annual' ? getAnnualPrice(tier, 'usd') : getTierPrice(tier, 'usd')),
                             'brl',
                             billing === 'annual' ? 'yr' : 'mo',
@@ -1165,7 +1188,9 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                         onBuy={() => handleBuy(tier)}
                         save={annual && displayCurrency && annualSavingMinor > 0
                           ? <>Save <b>{formatCheckoutMoney(resolvedCurrency, annualSavingMinor)}</b> a year compared to monthly</>
-                          : 'Cancel anytime'}
+                          : welcome !== null
+                            ? <>Save <b>{formatCheckoutMoney(resolvedCurrency, getTierPrice(tier, resolvedCurrency, resolvedRegion) - welcome)}</b> on your first month · cancel anytime</>
+                            : 'Cancel anytime'}
                         extra={localMethod === 'upi' && billing === 'monthly' && !planSwitch.subscribed ? (
                           <a
                             href={`/api/dodo/checkout?tier=${p.tier}&utm_source=pricing_plan&utm_medium=local_method&utm_campaign=upi`}
@@ -2455,7 +2480,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
               : mobileStickyPlanLabel({
                   tier: 'basic',
                   billing,
-                  monthlyLabel: entryPriceLabel('basic'),
+                  monthlyLabel: welcomeOnCard('basic') ? formatCheckoutMoney(resolvedCurrency, welcomeFirstMonthMinor('basic')) : entryPriceLabel('basic'), // KINEO-WELCOME20-NO-CARTAO-2026-10-09
                   annualTotalLabel: annualPrices.basic.total,
                 })}
           </button>
@@ -2481,7 +2506,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
               : mobileStickyPlanLabel({
                   tier: 'pro',
                   billing,
-                  monthlyLabel: formatCheckoutMoney(resolvedCurrency, getTierPrice('pro', resolvedCurrency, resolvedRegion)),
+                  monthlyLabel: formatCheckoutMoney(resolvedCurrency, welcomeOnCard('pro') ? welcomeFirstMonthMinor('pro') : getTierPrice('pro', resolvedCurrency, resolvedRegion)), // KINEO-WELCOME20-NO-CARTAO-2026-10-09
                   annualTotalLabel: annualPrices.pro.total,
                 })}
           </button>

@@ -69,6 +69,7 @@ export const PLAN_VALUE_STAGE_CSS = `
 .pv-title{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
 .pv-name{font-size:20px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;line-height:1.1}
 .pv-chip{border-radius:6px;padding:3px 7px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;line-height:1.2;background:var(--pv-chip-bg);color:var(--pv-chip-text)}
+.pv-chip.pv-deal{background:var(--pv-cta-pop-bg);color:var(--pv-cta-pop-text)}
 .pv-tag{margin:6px 0 0;font-size:13px;font-weight:500;color:var(--pv-muted)}
 .pv-rule{height:1px;margin:14px 0;border:0;background:var(--pv-line)}
 .pv-credits{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700}
@@ -125,8 +126,10 @@ export interface PlanValueCardProps {
   credits: number
   /** O preço grande. */
   amount: string
-  /** O mensal riscado ao lado do preço do anual (só no anual). */
+  /** O preço cheio riscado ao lado do preço com desconto (anual, ou o 1º mês com cupom). */
   was?: string
+  /** O selo do desconto ao lado do nome (KINEO-WELCOME20-NO-CARTAO-2026-10-09: "20% off" no 1º mês). */
+  deal?: string
   per: string
   note?: ReactNode
   ctaLabel: string
@@ -186,6 +189,7 @@ export function PlanValueCard(props: PlanValueCardProps) {
         <div className="pv-title">
           <span className="pv-name">{props.name}</span>
           {props.popular ? <span className="pv-chip">Most popular</span> : null}
+          {props.deal ? <span className="pv-chip pv-deal">{props.deal}</span> : null}
         </div>
         <p className="pv-tag">{PLAN_VALUE_TAGLINES[props.tier]}</p>
         <hr className="pv-rule" />
