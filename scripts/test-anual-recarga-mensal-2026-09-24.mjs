@@ -94,10 +94,18 @@ checa('anual pago ao preço vigente → grant vigente do plano', ['starter', 'ba
 // KINEO-ANUAL-30-2026-10-08 — re-ancorado: com o anual vigente em 30% off (10800/25000/46000), a faixa "abaixo do vigente
 // e no piso ou acima" volta a existir nos TRÊS planos; o piso do anual é o menor entre o V5 10× e o anual de 40% off.
 const PISO_ANUAL = (t) => Math.min(V5_PRICES[t] * 10, ANNUAL40[t])
-checa('anual pago abaixo do vigente mas no piso legado ou acima (vigente − $1) → grant V5 (60/150/300 — o que esse valor comprou)', ['starter', 'basic', 'pro'].every((t) => PISO_ANUAL(t) <= ANNUAL[t].usd - 100 && lib.annualRefillCredits(t, ANNUAL[t].usd - 100, 'usd') === LEGACY_V5[t]))
+// KINEO-PRECO-TESTE-2026-10-08 — re-ancorado: no teste de 7 dias o anual vigente do Starter e do Creator caiu para 8300/16700,
+// ABAIXO do piso legado (9290/19900). Para eles a faixa "abaixo do vigente e no piso ou acima" deixa de existir de novo (como
+// em 05/10): quem pagou o anual antigo pagou ≥ o vigente e recebe o grant vigente (60/150). A faixa segue no Studio
+// ($395 ≤ x < $460). O degrau é provado onde ele existe, e pelo menos um plano tem de tê-lo.
+const COM_FAIXA = ['starter', 'basic', 'pro'].filter((t) => PISO_ANUAL(t) <= ANNUAL[t].usd - 100)
+checa('anual pago abaixo do vigente mas no piso legado ou acima (vigente − $1) → grant V5 (60/150/300 — o que esse valor comprou), em todo plano onde a faixa existe (hoje: ' + COM_FAIXA.join(', ') + ')', COM_FAIXA.length >= 1 && COM_FAIXA.every((t) => lib.annualRefillCredits(t, ANNUAL[t].usd - 100, 'usd') === LEGACY_V5[t]))
+checa('sem a faixa (anual vigente abaixo do piso legado), quem pagou o piso ou mais recebe o grant vigente', ['starter', 'basic', 'pro'].filter((t) => !COM_FAIXA.includes(t)).every((t) => lib.annualRefillCredits(t, PISO_ANUAL(t), 'usd') === TIER_CREDITS[t]))
 checa('anual pago EXATAMENTE no anual V5 (9900/19900/39900, assinante de antes de 28/09) → mantém 60/150/300', ['starter', 'basic', 'pro'].every((t) => lib.annualRefillCredits(t, V5_PRICES[t] * 10, 'usd') === LEGACY_V5[t]))
 checa('anual pago abaixo do piso legado E do vigente (assinante V6) → grant V6 (60/150/180)', ['starter', 'basic', 'pro'].every((t) => lib.annualRefillCredits(t, Math.min(PISO_ANUAL(t), ANNUAL[t].usd) - 100, 'usd') === LEGACY[t]))
-checa('anual de 40% off (9290/21500/39500), agora ABAIXO do vigente → mantém 60/150/300 (sem o degrau o Studio de $395 cairia para 180)', ['starter', 'basic', 'pro'].every((t) => ANNUAL40[t] < ANNUAL[t].usd && lib.annualRefillCredits(t, ANNUAL40[t], 'usd') === LEGACY_V5[t]) && lib.annualRefillCredits('pro', 39500, 'usd') === 300)
+// KINEO-PRECO-TESTE-2026-10-08 — no teste o anual de 40% off do Starter/Creator ($92,90/$215) ficou ACIMA do vigente ($83/$167):
+// recebe o grant vigente; o do Studio ($395) segue abaixo do vigente ($460) e é o degrau legado que o salva de 180.
+checa('anual de 40% off (9290/21500/39500) → mantém 60/150/300 dos dois lados do vigente (sem o degrau o Studio de $395 cairia para 180)', ['starter', 'basic', 'pro'].every((t) => lib.annualRefillCredits(t, ANNUAL40[t], 'usd') === LEGACY_V5[t]) && ANNUAL40.pro < ANNUAL.pro.usd && lib.annualRefillCredits('pro', 39500, 'usd') === 300)
 checa('troca por e-mail a 40% a partir do mensal V8-A ($93 / $215 / $395) → mesmos 60/150/300 de hoje', lib.annualRefillCredits('starter', 9300, 'usd') === 60 && lib.annualRefillCredits('basic', 21500, 'usd') === 150 && lib.annualRefillCredits('pro', 39500, 'usd') === 300)
 checa('Studio que pagou o anual V6 ($290) → 180; Studio no anual vigente de 30% off ($460) → 300', lib.annualRefillCredits('pro', 29000, 'usd') === LEGACY.pro && lib.annualRefillCredits('pro', ANNUAL.pro.usd, 'usd') === TIER_CREDITS.pro && ANNUAL.pro.usd === 46000)
 checa('fatura em BRL não tem legado a honrar → grant vigente', lib.annualRefillCredits('pro', 1, 'brl') === TIER_CREDITS.pro)

@@ -25,6 +25,7 @@ let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else falhas.push(n) }
 // checkoutPricing stubado com os números vigentes (V8-A, 28/09: 1290/2990/5490): a lib só lê constantes e delega a régua USD.
+// KINEO-PRECO-TESTE-2026-10-08 — vigentes do teste de 7 dias: 990/1990/5490 (Studio intocado).
 // KINEO-PRECO-V8-A-2026-09-28 — o stub modela a escada legada da fonte (fatura ≥ piso V5 990/1990/3990 → 60/150/300; abaixo → V6).
 const V5 = { starter: 990, basic: 1990, pro: 3990 }
 const STUB = {
@@ -33,7 +34,7 @@ const STUB = {
   TIER_CREDITS: { starter: 60, basic: 150, pro: 300, autopilot: 400, autopilot_lite: 160 },
   LEGACY_TIER_CREDITS_V5: { starter: 60, basic: 150, pro: 300, autopilot: 400, autopilot_lite: 160 },
   LEGACY_TIER_CREDITS_V6: { starter: 60, basic: 150, pro: 180, autopilot: 400, autopilot_lite: 160 },
-  renewalCreditsFor: (tier, amount) => ({ starter: 1290, basic: 2990, pro: 5490, autopilot: 29900, autopilot_lite: 5900 }[tier] > (amount ?? Infinity) && amount > 0
+  renewalCreditsFor: (tier, amount) => ({ starter: 990, basic: 1990, pro: 5490, autopilot: 29900, autopilot_lite: 5900 }[tier] > (amount ?? Infinity) && amount > 0
     ? (V5[tier] !== undefined && amount >= V5[tier] ? STUB.LEGACY_TIER_CREDITS_V5[tier] : STUB.LEGACY_TIER_CREDITS_V6[tier])
     : STUB.TIER_CREDITS[tier]),
 }
@@ -48,15 +49,16 @@ const m = roda(libSrc)
 // de 09/09 — R$ 49,90/99,90/199,90 — virou o piso do grant legado, LEGACY_V5_BRL_PLAN_PRICES_MINOR).
 // KINEO-ANUAL-40OFF-2026-10-05 — o anual em reais virou 12 × mensal × 0,60 até ,90 (era 10×): 467,90 / 1.079,90 / 1.979,90.
 // KINEO-ANUAL-30-2026-10-08 — reancorado com a decisão do fundador (30% off): 12 × mensal × 0,70 até ,90 = 545,90 / 1.259,90 / 2.309,90.
-checa('Starter R$ 64,90 · anual R$ 545,90', m.BRL_PLAN_PRICES_MINOR.starter.monthly === 6490 && m.BRL_PLAN_PRICES_MINOR.starter.annual === 54590)
-checa('Creator R$ 149,90 · anual R$ 1.259,90', m.BRL_PLAN_PRICES_MINOR.basic.monthly === 14990 && m.BRL_PLAN_PRICES_MINOR.basic.annual === 125990)
+// KINEO-PRECO-TESTE-2026-10-08 — Starter e Creator voltaram à etiqueta da V5 (R$ 49,90 / 99,90); anual 12 × mensal × 0,70 até ,90.
+checa('Starter R$ 49,90 · anual R$ 419,90', m.BRL_PLAN_PRICES_MINOR.starter.monthly === 4990 && m.BRL_PLAN_PRICES_MINOR.starter.annual === 41990)
+checa('Creator R$ 99,90 · anual R$ 839,90', m.BRL_PLAN_PRICES_MINOR.basic.monthly === 9990 && m.BRL_PLAN_PRICES_MINOR.basic.annual === 83990)
 checa('Studio R$ 274,90 · anual R$ 2.309,90', m.BRL_PLAN_PRICES_MINOR.pro.monthly === 27490 && m.BRL_PLAN_PRICES_MINOR.pro.annual === 230990)
 checa('fração paga no anual em reais = 0,70 (espelho de ANNUAL_DISCOUNT_PERCENT = 30)', m.BRL_ANNUAL_PAID_FRACTION === 0.7)
 checa('piso legado V5 em reais: R$ 49,90 · 99,90 · 199,90', m.LEGACY_V5_BRL_PLAN_PRICES_MINOR.starter === 4990 && m.LEGACY_V5_BRL_PLAN_PRICES_MINOR.basic === 9990 && m.LEGACY_V5_BRL_PLAN_PRICES_MINOR.pro === 19990)
-checa('a tabela é exatamente o que a fórmula da casa dá sobre $12,90/$29,90/$54,90 (invariante vazio)', m.checkSettlementInvariants({ starter: 1290, basic: 2990, pro: 5490 }).length === 0)
-checa('o invariante ACUSA uma tabela torta', m.checkSettlementInvariants({ starter: 1490, basic: 2990, pro: 5490 }).length === 1)
+checa('a tabela é exatamente o que a fórmula da casa dá sobre $9,90/$19,90/$54,90 (invariante vazio)', m.checkSettlementInvariants({ starter: 990, basic: 1990, pro: 5490 }).length === 0)
+checa('o invariante ACUSA uma tabela torta', m.checkSettlementInvariants({ starter: 1490, basic: 1990, pro: 5490 }).length === 1)
 checa('fórmula: termina em ,90 e nunca abaixo de R$ 1,90', m.usdToBrlMinor(490) === 2490 && m.usdToBrlMinor(1990) === 9990 && m.usdToBrlMinor(0) === 190 && m.usdToBrlMinor(1) === 190)
-checa('plano: anual em BRL vem da TABELA (12 × mensal × 0,70 até ,90), não da fórmula sobre o anual em USD', m.planSettlementAmountMinor('starter', 'annual', 'brl', 10800) === 54590 && m.usdToBrlMinor(10800) !== 54590)
+checa('plano: anual em BRL vem da TABELA (12 × mensal × 0,70 até ,90), não da fórmula sobre o anual em USD', m.planSettlementAmountMinor('starter', 'annual', 'brl', 8300) === 41990 && m.usdToBrlMinor(8300) !== 41990)
 checa('plano em USD: devolve o próprio preço de lista', m.planSettlementAmountMinor('pro', 'monthly', 'usd', 5490) === 5490 && m.settlementAmountMinor(2990, 'usd') === 2990)
 
 // a decisão

@@ -110,7 +110,12 @@ export function clipFalUsd(engine: ClipEngineKey, seconds: number, _withImage = 
 // público do fundador.
 export const CLIP_PRECO_MERCADO_PUBLIC = true // fundador 05/10: −10% do concorrente onde a margem deixa; senão piso de 40%
 
-/** US$ 29,90 (2990 centavos) — espelho de TIER_PRICES.basic.usd (Creator) em lib/checkoutPricing.ts (guardião confere). */
+/** US$ 29,90 (2990 centavos) — espelho de TIER_PRICES.basic.usd (Creator) em lib/checkoutPricing.ts (guardião confere).
+ *  KINEO-PRECO-TESTE-2026-10-08 — DEIXOU de acompanhar o Creator: no teste de 7 dias o Creator voltou a $19,90, e se esta
+ *  referência acompanhasse, todo clipe da régua de mercado ficaria ~50% mais caro EM CRÉDITOS (créditos = alvo em US$ ÷
+ *  US$/crédito) sem decisão do fundador. Fica congelada no valor em que a régua de 05-06/10 foi decidida; o guardião
+ *  scripts/test-clip-preco-mercado-2026-10-05.mjs confere o 2990. Se o Creator ficar em $19,90 depois do teste, rever a
+ *  régua dos clipes é decisão de preço do fundador. */
 export const CREATOR_PLAN_USD_CENTS = 2990
 /** 150 créditos — espelho de TIER_CREDITS.basic (Creator) em lib/checkoutPricing.ts (guardião confere). */
 export const CREATOR_PLAN_CREDITS = 150

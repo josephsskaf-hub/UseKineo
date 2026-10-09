@@ -428,7 +428,7 @@ const troca = (rel, de, para, extra = {}) => {
   if (src.split(de).length !== 2) throw new Error(`âncora do mutante ausente/ambígua em ${rel}: ${de.slice(0, 80)}`)
   return { ...extra, [rel]: src.split(de).join(para) }
 }
-const precoCreatorMudou = troca(PRICING, 'export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {\n  starter: { usd: 1290 },\n  basic: { usd: 2990 },', 'export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {\n  starter: { usd: 1290 },\n  basic: { usd: 3190 },')
+const precoCreatorMudou = troca(PRICING, 'export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {\n  starter: { usd: 990 },\n  basic: { usd: 1990 },', 'export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {\n  starter: { usd: 990 },\n  basic: { usd: 3190 },')
 const regiaoDesligada = troca(POLICY, 'export const REGION_FREE_FILM_LIVE = true', 'export const REGION_FREE_FILM_LIVE = false')
 const anuncioDesligado = troca(ANSWER, 'export const ANNOUNCE_REGION_FREE_OFFER = true', 'export const ANNOUNCE_REGION_FREE_OFFER = false')
 const s25Pausado = troca(LAUNCH, '  return (PAUSED_ENGINE_KEYS as readonly string[]).includes(k) ? ENGINE_PAUSE[k as PausedEngineKey] : null', "  return k === 's25' ? ENGINE_PAUSE.omni : (PAUSED_ENGINE_KEYS as readonly string[]).includes(k) ? ENGINE_PAUSE[k as PausedEngineKey] : null")

@@ -908,8 +908,9 @@ async function recordPaymentSuccess(
 //     piloto voltou a ser o único dono de 9900; até então era {9900}, Starter anual × piloto);
 //   · packs: 499 (starter, desde 05/10; 490 antes), 290 (starter290); top-ups: 590/1490/1290/5990;
 //   · bulk: 1900/3500/4900/7500; piloto Autopilot: 9900; Autopilot mensal 29900;
-//   · mensais (subscription): 1290/2990/5490; anuais (mode:'subscription' hoje): 10800/25000/46000
-//     (KINEO-ANUAL-30-2026-10-08; eram 9290/21500/39500 desde KINEO-ANUAL-40OFF-2026-10-05 e 12900/29900/54900 antes);
+//   · mensais (subscription): 990/1990/5490; anuais (mode:'subscription' hoje): 8300/16700/46000
+//     (KINEO-PRECO-TESTE-2026-10-08: Starter/Creator a $9,90/$19,90 no teste de 7 dias; eram 1290/2990 e 10800/25000
+//     desde KINEO-ANUAL-30-2026-10-08; 9290/21500/39500 desde KINEO-ANUAL-40OFF-2026-10-05 e 12900/29900/54900 antes);
 //   · legados por valor: 900 e 1900.
 // Nenhum é 10000. O `!pack` é a mesma guarda que o piloto usa: uma sessão da
 // casa SEMPRE carrega metadata.pack, então o fallback por valor só alcança

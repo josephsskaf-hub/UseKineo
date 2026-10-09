@@ -97,14 +97,20 @@ export function offerAnnualUsd(monthlyMinor: number | null | undefined): number 
  * inteira). Os valores conferidos pelo guardião: 9,90 → 83 · 12,90 → 108 · 15,92 → 134 · 19,90 → 167 · 29 → 244 ·
  * 29,90 → 250 · 54,90 → 460. Anual do site que não é dólar inteiro = null: a troca cobra dólares inteiros, então a
  * oferta FECHA para esse plano (falha fechada) — o guardião acusa no mesmo dia.
+ * KINEO-PRECO-TESTE-2026-10-08 — o mensal do Starter e do Creator CAIU (teste de 7 dias: $9,90 / $19,90; anual do site
+ * $83 / $167). Quem assinou a $12,90 / $29,90 passou a pagar MAIS que o vigente, e a conta do legado daria $108 / $251 —
+ * anual mais caro que o do site para o mesmo plano. Teto: quem paga ACIMA do vigente recebe o MENOR entre a conta e o
+ * anual do site (12,90 → 83 · 29,90 → 167); abaixo do vigente segue a conta (15,92 → 134); no vigente, o anual do site.
  */
 export function month2OfferAnnualUsd(monthlyMinor: number | null | undefined, tier?: CheckoutTier | null): number | null {
   if (typeof monthlyMinor !== 'number' || !Number.isInteger(monthlyMinor) || monthlyMinor <= 0) return null
-  if (tier && monthlyMinor === TIER_PRICES[tier]?.usd) {
-    const site = ANNUAL_PRICES[tier]?.usd
-    return typeof site === 'number' && Number.isInteger(site) && site > 0 && site % 100 === 0 ? site / 100 : null
-  }
-  return Math.floor((monthlyMinor * 12 * (100 - MONTH2_ANNUAL_PERCENT_OFF) + 5000) / 10000)
+  const current = tier ? TIER_PRICES[tier]?.usd : undefined
+  const site = tier ? ANNUAL_PRICES[tier]?.usd : undefined
+  const siteUsd = typeof site === 'number' && Number.isInteger(site) && site > 0 && site % 100 === 0 ? site / 100 : null
+  if (tier && monthlyMinor === current) return siteUsd
+  const legacyUsd = Math.floor((monthlyMinor * 12 * (100 - MONTH2_ANNUAL_PERCENT_OFF) + 5000) / 10000)
+  if (tier && typeof current === 'number' && monthlyMinor > current) return siteUsd === null ? null : Math.min(legacyUsd, siteUsd)
+  return legacyUsd
 }
 
 export type AnnualSwitchOfferId = typeof ANNUAL_SWITCH_OFFER | typeof MONTH2_ANNUAL_OFFER

@@ -77,8 +77,11 @@ export const BRL_PLAN_PRICES_MINOR: Record<CheckoutTier, { monthly: number; annu
   // KINEO-ANUAL-30-2026-10-08 — decisão do fundador (08/10): 30% off. anual = 12 × mensal × 0,70, mesma regra de
   // arredondamento (para cima até ,90): 6490×8,4 = 54516 → R$ 545,90 · 14990×8,4 = 125916 → R$ 1.259,90 ·
   // 27490×8,4 = 230916 → R$ 2.309,90 (R$ 45,49 / 104,99 / 192,49 por mês). Era 46790 / 107990 / 197990 (40% off).
-  starter: { monthly: 6490, annual: 54590 },
-  basic: { monthly: 14990, annual: 125990 },
+  // KINEO-PRECO-TESTE-2026-10-08 — Starter e Creator de volta a US$ 9,90 / 19,90 (teste de 7 dias, fundador 08/10):
+  // usdToBrlMinor(990/1990) = R$ 49,90 / 99,90 (a etiqueta da V5); anual 4990×8,4 = 41916 → R$ 419,90 ·
+  // 9990×8,4 = 83916 → R$ 839,90. O Studio fica onde estava. Era 6490/54590 e 14990/125990.
+  starter: { monthly: 4990, annual: 41990 },
+  basic: { monthly: 9990, annual: 83990 },
   pro: { monthly: 27490, annual: 230990 },
 }
 

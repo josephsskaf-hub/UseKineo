@@ -173,9 +173,10 @@ checa(`nenhum valor aceito (3500/7500/10000) está em AMBIGUOUS_ONE_TIME_USD_AMO
 checa('3500/7500 colidem com bulk20/bulk50 de propósito documentado: por isso a 3ª regra só vale para sessão de Payment Link (a casa nunca cria sessão com payment_link) e sem metadata.pack', /sessionPaymentLinkId\(session\) !== null &&\s*DFY_ACCEPTED_AMOUNTS_USD_MINOR\.includes\(session\.amount_total \?\? -1\)/.test(dfyS) && usdAmounts.includes(3500) && usdAmounts.includes(7500) && !usdAmounts.includes(10000) && legados.length >= 2 && dfy.DFY_ACCEPTED_AMOUNTS_USD_MINOR.every((v) => !legados.includes(v)))
 // KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: o Starter anual saiu de 9900 e a lista de ambíguos ficou vazia; o
 // comentário do webhook diz isso e segue listando os valores (490/290, top-ups, bulk, mensais, anuais novos, legados).
-checa('o comentário do webhook registra a prova de não colisão (lista vazia desde V8-A, 490/290, top-ups, bulk, anuais, legados)', /AMBIGUOUS_ONE_TIME_USD_AMOUNTS = \{\} \(vazia desde V8-A/.test(wh) && /anuais \(mode:'subscription' hoje\): 10800\/25000\/46000/.test(wh) && /Nenhum é 10000/.test(wh))
+checa('o comentário do webhook registra a prova de não colisão (lista vazia desde V8-A, 490/290, top-ups, bulk, anuais, legados)', /AMBIGUOUS_ONE_TIME_USD_AMOUNTS = \{\} \(vazia desde V8-A/.test(wh) && /anuais \(mode:'subscription' hoje\): 8300\/16700\/46000/.test(wh) && /Nenhum é 10000/.test(wh))
 // ↑ KINEO-ANUAL-40OFF-2026-10-05 — re-ancorado: os anuais viraram 9290/21500/39500 (40% off); 10000 segue sem dono.
 // ↑ KINEO-ANUAL-30-2026-10-08 — re-ancorado: os anuais viraram 10800/25000/46000 (30% off, fundador 08/10); 10000 segue sem dono.
+// ↑ KINEO-PRECO-TESTE-2026-10-08 — re-ancorado: Starter/Creator a $9,90/$19,90 (teste de 7 dias) → anuais 8300/16700/46000; 10000 segue sem dono.
 // ── GPT-COWORK-FOLLOWUP-2026-09-24 (P0) — o pedido Empresas EXECUTADO, não só lido ──────────────────────────
 // Por quê: o Cowork criou os dois links (Express e Pro) com metadata kind=dfy/tier, mas a Stripe não garante copiar a
 // metadata do Payment Link para a sessão, e a conta tem Adaptive Pricing (valor em moeda local). A única chave que

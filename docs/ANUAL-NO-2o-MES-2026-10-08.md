@@ -17,22 +17,27 @@ resposta de produto a esse vazamento.
 Oferta `month2_annual_30_2026_10_08`, sobre o `unit_amount` que a assinatura cobra hoje na Stripe. **O mesmo plano
 nunca tem dois preços anuais** (coerência é a prioridade nº 1 do fundador — regra de 08/10, KINEO-ANUAL-2o-MES-COERENCIA):
 
-- quem paga o **mensal vigente** do plano (`TIER_PRICES`: US$ 12,90 / 29,90 / 54,90) recebe **o anual do site**
-  (`ANNUAL_PRICES`: US$ 108 / 250 / 460, lido da tabela — nunca digitado). Se o site mudar o anual, a oferta muda junto;
-- quem paga um **mensal legado** (preço antigo, regional ou com desconto: 9,90, 15,92, 19,90, 29…) recebe mensal × 12 ×
-  0,7, **arredondado ao dólar mais próximo** (meio para cima).
+- quem paga o **mensal vigente** do plano (`TIER_PRICES`; no teste de preço de 08/10: US$ 9,90 / 19,90 / 54,90) recebe
+  **o anual do site** (`ANNUAL_PRICES`: US$ 83 / 167 / 460, lido da tabela — nunca digitado). Se o site mudar o anual, a
+  oferta muda junto;
+- quem paga um **mensal legado ABAIXO do vigente** (preço antigo, regional ou com desconto: 15,92, 29…) recebe mensal ×
+  12 × 0,7, **arredondado ao dólar mais próximo** (meio para cima);
+- quem paga **ACIMA do vigente** (KINEO-PRECO-TESTE-2026-10-08: quem assinou a US$ 12,90 / 29,90 antes do teste) recebe
+  o **menor** entre a conta e o anual do site — nunca um anual mais caro que o do site para o mesmo plano.
 
-Os valores conferidos pelo guardião:
+Os valores conferidos pelo guardião (com o preço do teste de 08/10 — Starter e Creator a US$ 9,90 / 19,90):
 
 | mensal hoje | anual no 2º mês | de onde vem | créditos/mês (iguais aos de hoje) |
 |---|---|---|---|
-| US$ 9,90 (Starter antigo) | US$ 83 | × 12 × 0,7 | 60 |
-| US$ 12,90 (Starter) | US$ 108 | anual do site | 60 |
+| US$ 9,90 (Starter) | US$ 83 | anual do site | 60 |
+| US$ 12,90 (Starter V8-A) | US$ 83 | teto: anual do site (a conta daria 108) | 60 |
 | US$ 15,92 (Creator com desconto) | US$ 134 | × 12 × 0,7 | 150 |
-| US$ 19,90 (Creator antigo) | US$ 167 | × 12 × 0,7 | 150 |
+| US$ 19,90 (Creator) | US$ 167 | anual do site | 150 |
 | US$ 29,00 (Studio antigo) | US$ 244 | × 12 × 0,7 | 180 |
-| US$ 29,90 (Creator) | US$ 250 | anual do site | 150 |
+| US$ 29,90 (Creator V8-A) | US$ 167 | teto: anual do site (a conta daria 251) | 150 |
 | US$ 54,90 (Studio) | US$ 460 | anual do site | 300 |
+
+Antes do teste (V8-A), o vigente era US$ 12,90 / 29,90 / 54,90 e o anual do site US$ 108 / 250 / 460.
 
 Se um dia o anual do site tiver centavos, a oferta do 2º mês FECHA para esse plano (a troca cobra dólares inteiros) e o
 guardião fica vermelho no mesmo dia — quem mudar o preço decide o arredondamento antes de publicar.

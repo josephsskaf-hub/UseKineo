@@ -28,13 +28,13 @@ checa('o mensal continua a um clique e o selo "SAVE {ANNUAL_DISCOUNT_PERCENT}%" 
 // escada para 1290/2990/5490 (anual 12900/29900/54900). A promessa desta linha é a do anual = 10× o mensal — provada
 // pelos números lidos da fonte, não por literal solto.
 {
-  const mensal = { starter: 1290, basic: 2990, pro: 5490 }
+  const mensal = { starter: 990, basic: 1990, pro: 5490 } // KINEO-PRECO-TESTE-2026-10-08 — teste de 7 dias
   const anualLido = Object.fromEntries(['starter', 'basic', 'pro'].map((t) => [t, Number((cp.slice(cp.indexOf('export const ANNUAL_PRICES')).match(new RegExp(`${t}: \\{ usd: (\\d+) \\}`)) || [])[1])]))
   // KINEO-ANUAL-40OFF-2026-10-05 — re-ancorado: o anual passou de 10× para 12 × mensal × 0,60 (fundador 04-05/10),
   // arredondado limpo: 9290/21500/39500 (lido da fonte; o desconto real fica a ±0,5 ponto de 40%).
   // KINEO-ANUAL-30-2026-10-08 — re-ancorado com a decisão do fundador (08/10): 12 × mensal × 0,70, arredondado limpo:
   // 10800/25000/46000 (lido da fonte; o desconto real fica a ±0,5 ponto de 30%).
-  checa('a alavanca (1) não muda o mensal: 1290/2990/5490 (V8-A) e anual = 30% off lido da fonte (10800/25000/46000)', /starter: \{ usd: 1290 \},\n  basic: \{ usd: 2990 \},\n  pro: \{ usd: 5490 \},/.test(cp) && ['starter', 'basic', 'pro'].every((t) => Math.abs((1 - anualLido[t] / (mensal[t] * 12)) * 100 - 30) <= 0.5) && anualLido.starter === 10800 && anualLido.basic === 25000 && anualLido.pro === 46000)
+  checa('a alavanca (1) não muda o mensal: 990/1990/5490 (teste de 08/10) e anual = 30% off lido da fonte (8300/16700/46000)', /starter: \{ usd: 990 \},\n  basic: \{ usd: 1990 \},\n  pro: \{ usd: 5490 \},/.test(cp) && ['starter', 'basic', 'pro'].every((t) => Math.abs((1 - anualLido[t] / (mensal[t] * 12)) * 100 - 30) <= 0.5) && anualLido.starter === 8300 && anualLido.basic === 16700 && anualLido.pro === 46000)
 }
 checa('o checkout recebe billing=annual só quando o toggle está no anual (autopilot nunca); mensal vai explícito (A1)', pc.includes("const billingParam = billing === 'annual' && !isAutopilotFamily ? '&billing=annual' : '&billing=monthly'") && pc.includes("const isAutopilotFamily = tier === 'autopilot' || tier === 'autopilot_lite'"))
 

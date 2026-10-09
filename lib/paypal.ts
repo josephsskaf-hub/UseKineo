@@ -85,7 +85,10 @@ export const PAYPAL_PACK = {
 // KINEO-ANUAL-30-2026-10-08 — v3 → v4, mesmo motivo: o anual passou a 30% off ($108 / $250 / $460) e um plano v3
 // anual já criado cobraria o de 40% ($92,90 / $215 / $395) para sempre. ensurePlan (checkout e setup) cria os v4 na
 // primeira chamada; assinaturas v3 existentes seguem mapeadas (tierFromPlanId ignora o sufixo de versão).
-const PLAN_VERSION = 'v4'
+// KINEO-PRECO-TESTE-2026-10-08 — v4 → v5: Starter e Creator voltaram a $9,90 / $19,90 (anual $83 / $167) no teste de
+// 7 dias; um plano v4 já criado cobraria $12,90 / $29,90 para sempre. Studio e Autopilot não mudam de preço, mas ganham
+// v5 também (a versão é uma só para o catálogo inteiro).
+const PLAN_VERSION = 'v5'
 
 export function paypalAdminClient() {
   return createSupabaseAdmin(

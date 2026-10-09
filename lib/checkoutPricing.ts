@@ -122,9 +122,18 @@ export type CheckoutCurrency = 'usd'
 //
 // Guardião: scripts/test-preco-v8-A-2026-09-28.mjs (readFileSync, com mutante).
 // Doc: docs/DECISAO-PRECOS-V8-2026-09-28.md — INERTE até o "vai" do fundador.
+// ═══ KINEO-PRECO-TESTE-2026-10-08 — STARTER E CREATOR DE VOLTA A $9,90 / $19,90 (TESTE DE 7 DIAS) ═══
+// Decisão do fundador (08/10 ~23h BRT): "tudo sim" ao Starter a $9,90 por 7 dias e, na mesma conversa, "se a gente
+// abaixar o valor do plano Creator também, pq ele me traz receita boa". Motivo medido (janelas iguais de 10,1 dias
+// em volta do deploy do V8-A, 28/09 23:53 UTC): visitantes 1.842 → 1.883, cadastros 196 → 184, abriram o checkout
+// 22 → 21, ASSINARAM 4 → 1. Tudo igual até o checkout; caiu quem paga depois de ver o preço. O Studio fica em $54,90
+// (não entrou na decisão). Créditos não mudam (60/150/300). Quem já assina a $12,90/$29,90 segue pagando o que
+// assinou e recebe o mesmo grant (renewalCreditsFor: fatura ≥ vigente → TIER_CREDITS). Medir de novo em 16/10 com
+// payment_success depois do deploy deste commit. Doc: docs/DECISAO-PRECO-TESTE-2026-10-08.md.
+// Guardião: scripts/test-preco-teste-2026-10-08.mjs.
 export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {
-  starter: { usd: 1290 },
-  basic: { usd: 2990 },
+  starter: { usd: 990 },
+  basic: { usd: 1990 },
   pro: { usd: 5490 },
 }
 
@@ -218,8 +227,11 @@ export const ANNUAL_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number
   // lê esta tabela. Quem já pagou o anual de 40% (9290/21500/39500) segue com o grant
   // que comprou: LEGACY_ANNUAL_40OFF_PRICES_USD é o degrau legado dele na recarga anual.
   // O invariante (8b) confere que cada linha fica a ±0,5 ponto de ANNUAL_DISCOUNT_PERCENT.
-  starter: { usd: 10800 },
-  basic: { usd: 25000 },
+  // KINEO-PRECO-TESTE-2026-10-08 — o anual segue o mensal do teste (12 × mensal × 0,70, preço limpo): $118,80 × 0,7 =
+  // $83,16 → $83 ($6,92/mês, 30,1%) · $238,80 × 0,7 = $167,16 → $167 ($13,92/mês, 30,1%). Studio intacto ($460).
+  // Quem pagou o anual de $108/$250 (08/10) fica ACIMA do vigente e recebe o grant cheio na recarga.
+  starter: { usd: 8300 },
+  basic: { usd: 16700 },
   pro: { usd: 46000 },
 }
 
@@ -254,8 +266,9 @@ export const INTRO_PRICES: Record<CheckoutIntroTier, Record<CheckoutCurrency, nu
   // voltar a existir intro, é AQUI que ele nasce, e o hasIntroOffer() acende
   // a UI sozinho. Enquanto for igual, nenhuma tela promete desconto.
   // KINEO-PRECO-V8-A-2026-09-28 — espelha o mensal novo (sem 1º mês).
-  starter: { usd: 1290 },
-  basic: { usd: 2990 },
+  // KINEO-PRECO-TESTE-2026-10-08 — espelha o mensal do teste ($9,90 / $19,90).
+  starter: { usd: 990 },
+  basic: { usd: 1990 },
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

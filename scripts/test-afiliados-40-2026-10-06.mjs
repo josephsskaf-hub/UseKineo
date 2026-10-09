@@ -357,7 +357,7 @@ const mutants = [
   ['M12 dicionário pt com a chave velha', 'lib/ui/interface/pt.ts', "'Affiliate program - 40% recurring': 'Programa de afiliados - 40% recorrente'", "'Affiliate program - 30% recurring': 'Programa de afiliados - 30% recorrente'"],
   ['M13 tabela comparativa volta a 30%', F.comparison, "commission: '40% recurring'", "commission: '30% recurring'"],
   ['M14 kit volta a oferecer 30%', F.kit, 'Earn **40% on every eligible purchase', 'Earn **30% on every eligible purchase'],
-  ['M15 exemplo do kit com o número velho', F.kit, 'US$11.96 on Creator', 'US$8.97 on Creator'],
+  ['M15 exemplo do kit com o número velho', F.kit, 'US$7.96 on Creator', 'US$11.96 on Creator'], // KINEO-PRECO-TESTE-2026-10-08 — Creator a $19,90
   ['M16 convite volta a 30%', F.invite, 'you receive **40% of every payment', 'you receive **30% of every payment'],
   ['M17 ?ref=CODE deixa de levar ao /a/', F.middleware, "dest.pathname = '/a/' + ref", "dest.pathname = '/'"],
   ['M18 rota /a/ sem cookie de prova do clique', F.linkRoute, 'res.cookies.set(CLICK_COOKIE, clickProofId', 'void (CLICK_COOKIE, clickProofId'],

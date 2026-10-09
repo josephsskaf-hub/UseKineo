@@ -160,8 +160,9 @@ const has = (text) => copy.some((x) => x.includes(text))
 const say = (text, truth, label) => check(!has(text) || truth, `${label}: "${text}"`)
 check(has(`Plans From ${PRICE.starter} a Month`) && has(`Creator Plan: ${PRICE.creator} a Month`), 'os títulos de preço usam TIER_PRICES de hoje')
 say('for 60 credits', CREDITS.starter === 60, 'Starter = 60 créditos')
-say('Creator: $29.90/month for 150 credits', PRICE.creator === '$29.90' && CREDITS.creator === 150, 'Creator = US$ 29,90 por 150 créditos')
-say('Creator ($29.90, 150 credits)', PRICE.creator === '$29.90' && CREDITS.creator === 150, 'Creator = US$ 29,90 por 150 créditos')
+// KINEO-PRECO-TESTE-2026-10-08 — Creator a $19,90 no teste de 7 dias (o gerador do anúncio foi atualizado no mesmo commit).
+say('Creator: $19.90/month for 150 credits', PRICE.creator === '$19.90' && CREDITS.creator === 150, 'Creator = US$ 19,90 por 150 créditos')
+say('Creator ($19.90, 150 credits)', PRICE.creator === '$19.90' && CREDITS.creator === 150, 'Creator = US$ 19,90 por 150 créditos')
 say('Studio ($54.90', PRICE.studio === '$54.90', 'Studio = US$ 54,90')
 say('Seedance 2.5 Clips: 8 Credits', S25?.rows.clip.credits === 8, 'clipe do Seedance 2.5 = 8 créditos')
 say('A 5-second Seedance 2.5 clip costs 8 credits', S25?.rows.clip.credits === 8 && S25?.rows.clip.seconds === 5, 'clipe do 2.5 = 5 s por 8 créditos')
@@ -200,7 +201,7 @@ for (const m of copy.join(' ').matchAll(/\b(\d+) [Cc]redits\b/g)) check(allowedC
 const allowedSeconds = new Set([S25?.rows.clip.seconds, K3?.rows.clip.seconds, VEO?.rows.clip.seconds, S25?.rows.film35.seconds, S25?.rows.film60.seconds].map(String))
 for (const m of copy.join(' ').matchAll(/\b(\d+)-[Ss]econd\b/g)) check(allowedSeconds.has(m[1]), `"${m[0]}" é uma duração do código (${[...allowedSeconds].join('/')})`)
 const numbersInCopy = new Set((copy.join(' ').match(/\b\d+(?:\.\d+)?\b/g) ?? []))
-const KNOWN = new Set(['1', '2', '3', '5', '6', '8', '9', '16', '25', '35', '60', '88', '100', '150', '12.90', '29.90', '54.90', '2026', '1.5', '2.5', '3.1'])
+const KNOWN = new Set(['1', '2', '3', '5', '6', '8', '9', '16', '25', '35', '60', '88', '100', '150', '9.90', '19.90', '54.90', '2026', '1.5', '2.5', '3.1'])
 check([...numbersInCopy].every((n) => KNOWN.has(n)), `nenhum número fora da lista conferida: ${[...numbersInCopy].filter((n) => !KNOWN.has(n)).join(', ')}`)
 
 // ═══ Palavras-chave e negativas ════════════════════════════════════════════════════════════════════════════════════════

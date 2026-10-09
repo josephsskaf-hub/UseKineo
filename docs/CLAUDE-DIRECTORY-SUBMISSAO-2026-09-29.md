@@ -68,7 +68,7 @@ What it does not do: the connector does not render or generate any video, image 
 
 Typical use: ask Claude to write a YouTube Short, TikTok or Reels script, or a short ad script for your business. Review and edit it with Claude. When you are happy, ask Claude to send it to Kineo; the tool returns the server's count of spoken words and whether the script fits the chosen length, so Claude can adjust it before you open the link.
 
-No login is needed to use the connector. Opening the link and creating a video requires a free Kineo account; paid plans start at $12.90/month. Setup and documentation: https://www.usekineo.com/claude-connector
+No login is needed to use the connector. Opening the link and creating a video requires a free Kineo account; paid plans start at $9.90/month. Setup and documentation: https://www.usekineo.com/claude-connector
 ```
 
 **Categories** (1 a 5; a lista só aparece no portal logado). Escolher, nesta ordem, as mais próximas de:

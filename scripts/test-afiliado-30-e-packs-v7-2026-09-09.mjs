@@ -30,7 +30,8 @@ for (const f of ['components/Footer.tsx', 'lib/ui/interfaceLabels.ts', 'lib/ui/i
 // KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: o kit foi reescrito em inglês depois da V7 (a frase "$29/mês → $8,70"
 // não existia mais) e a escada é 12,90/29,90/54,90: 30% do Creator = US$8,97. A prova lê a tabela e o exemplo do kit.
 // KINEO-AFILIADOS-40-2026-10-06 — reancorado de novo com motivo: a 40%, o Creator de US$29,90 rende US$11,96 por mês.
-checa('kit de afiliados: 40% e US$11,96 por Creator (US$29,90)', /Earn \*\*40% on every eligible purchase/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')) && /\| Creator \| US\$29\.90 \| 150 \|/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')) && /US\$11\.96 on Creator/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')))
+// KINEO-PRECO-TESTE-2026-10-08 — reancorado com motivo: no teste de 7 dias o Creator é US$19,90 → 40% = US$7,96 por mês.
+checa('kit de afiliados: 40% e US$7,96 por Creator (US$19,90)', /Earn \*\*40% on every eligible purchase/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')) && /\| Creator \| US\$19\.90 \| 150 \|/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')) && /US\$7\.96 on Creator/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')))
 
 console.log('== packs de agência no V7 ==')
 const cp = rd('lib/checkoutPricing.ts')

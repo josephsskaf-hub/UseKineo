@@ -431,7 +431,7 @@ const trocaDupla = (rel, pares, extra = {}) => {
   }
   return { ...extra, [rel]: src }
 }
-const precoCreatorMudou = troca(PRICING, 'export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {\n  starter: { usd: 1290 },\n  basic: { usd: 2990 },', 'export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {\n  starter: { usd: 1290 },\n  basic: { usd: 3190 },')
+const precoCreatorMudou = troca(PRICING, 'export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {\n  starter: { usd: 990 },\n  basic: { usd: 1990 },', 'export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {\n  starter: { usd: 990 },\n  basic: { usd: 3190 },')
 const veoPausado = troca(LAUNCH, '  return (PAUSED_ENGINE_KEYS as readonly string[]).includes(k) ? ENGINE_PAUSE[k as PausedEngineKey] : null', "  return k === 'veo' ? ENGINE_PAUSE.omni : (PAUSED_ENGINE_KEYS as readonly string[]).includes(k) ? ENGINE_PAUSE[k as PausedEngineKey] : null")
 // KINEO-S25-CLIPES-2026-10-06 — o interruptor único do clipe do 2.5 (lib/clips/clipLaunch.ts) forçado em memória: as mesmas
 // provas valem com o clipe do 2.5 à venda e sem ele, seja qual for o valor no arquivo.

@@ -135,7 +135,11 @@ ok(PRICE_SRC.includes('const raw = Math.round((clipFalUsd(engine, seconds, withI
 console.log('2. espelhos')
 const checkout = read('lib/checkoutPricing.ts')
 const tierPrices = checkout.slice(checkout.indexOf('export const TIER_PRICES'))
-ok(Number(/basic:\s*\{\s*usd:\s*(\d+)\s*\}/.exec(tierPrices)[1]) === OFF.price.CREATOR_PLAN_USD_CENTS, 'US$ do Creator = TIER_PRICES.basic.usd')
+// KINEO-PRECO-TESTE-2026-10-08 — o Creator foi a $19,90 no teste de 7 dias; a referência da régua dos clipes fica
+// CONGELADA em 2990 (o valor em que a régua de 05-06/10 foi decidida), senão o clipe subiria ~50% em créditos sem decisão.
+// Enquanto TIER_PRICES.basic for 1990 (teste) ou 2990 (V8-A), a referência é 2990; qualquer outro valor pede revisão.
+ok(OFF.price.CREATOR_PLAN_USD_CENTS === 2990
+  && [1990, 2990].includes(Number(/basic:\s*\{\s*usd:\s*(\d+)\s*\}/.exec(tierPrices)[1])), 'referência do Creator nos clipes congelada em 2990 (TIER_PRICES.basic é 1990 no teste ou 2990)')
 const tierCredits = checkout.slice(checkout.indexOf('export const TIER_CREDITS'))
 ok(Number(/^\s*basic:\s*(\d+),?\s*$/m.exec(tierCredits.slice(0, tierCredits.indexOf('\n}')))[1]) === OFF.price.CREATOR_PLAN_CREDITS, 'créditos do Creator = TIER_CREDITS.basic')
 ok(Math.abs(OFF.price.CREATOR_USD_PER_CREDIT - OFF.price.CREATOR_PLAN_USD_CENTS / 100 / OFF.price.CREATOR_PLAN_CREDITS) < 1e-12, 'US$/crédito do Creator é derivado, não digitado')

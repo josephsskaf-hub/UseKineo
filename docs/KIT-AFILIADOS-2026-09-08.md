@@ -24,11 +24,11 @@ Current monthly plans:
 
 | Plan | Monthly USD price | Monthly credits | Brazilian monthly checkout |
 |---|---:|---:|---:|
-| Starter | US$12.90 | 60 | R$64.90 |
-| Creator | US$29.90 | 150 | R$149.90 |
+| Starter | US$9.90 | 60 | R$49.90 |
+| Creator | US$19.90 | 150 | R$99.90 |
 | Studio | US$54.90 | 300 | R$274.90 |
 
-For full monthly payments actually charged in USD, 40% is US$5.16 on Starter, US$11.96 on Creator, and US$21.96 on Studio — every month the customer stays subscribed. These examples do not apply directly to BRL charges. Cards display USD prices; Brazilian checkout uses the BRL table above. Discounts, failed payments and refunds can change what qualifies. These are not earnings forecasts. Credit amounts describe the plans; output quantity depends on the selected engine and settings.
+For full monthly payments actually charged in USD, 40% is US$3.96 on Starter, US$7.96 on Creator, and US$21.96 on Studio — every month the customer stays subscribed. These examples do not apply directly to BRL charges. Cards display USD prices; Brazilian checkout uses the BRL table above. Discounts, failed payments and refunds can change what qualifies. These are not earnings forecasts. Credit amounts describe the plans; output quantity depends on the selected engine and settings.
 
 ## Payout and activation bonus — approved policy, English wording
 

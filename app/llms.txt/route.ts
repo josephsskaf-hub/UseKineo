@@ -537,7 +537,7 @@ ${geoEngines.some((geo) => geo.rows.clip) ? `- 2026-10-06: the engine pages for 
   paying accounts and one-time business packs).
   Prices returned to $9.90 / $19.90 / $39.90 on 2026-09-09 (credits 60 / 150 / 300 unchanged on that date;
   those prices are history, see 2026-09-28 below). Existing subscribers keep the price they signed up at.
-- 2026-09-28: plans repriced to a three-tier ladder — Starter ${formatCheckoutMoney('usd', TIER_PRICES.starter.usd)} / Creator ${formatCheckoutMoney('usd', TIER_PRICES.basic.usd)} / Studio ${formatCheckoutMoney('usd', TIER_PRICES.pro.usd)}
+- 2026-09-28: plans repriced to a three-tier ladder — Starter $12.90 / Creator $29.90 / Studio $54.90
   per month; annual = 10 months at the time (replaced by 40% off on 2026-10-05, then 30% off on 2026-10-08); credits 60 / 150 / 300 unchanged. Existing subscribers keep the price they signed up at.
 - 2026-10-05: annual plans became 40% off 12 monthly payments (was 10× the monthly price),
   with credits still released month by month; annual is refundable in full within 14 days, then no refund.
@@ -547,6 +547,9 @@ ${geoEngines.some((geo) => geo.rows.clip) ? `- 2026-10-06: the engine pages for 
 - 2026-10-08: engine pages (in ${ENGINE_LANG_CODES.length + 1} languages), the comparison pages and the Studio now quote the measured render time from the Kineo AI Video Index — the median and the 90th percentile per engine, labeled customer renders or Kineo test renders — instead of a fixed range; new direct answers for Seedance 2.5 vs Veo 3.1 vs Kling 3, Kineo vs InVideo AI, Kineo vs CapCut and the best AI video generator for YouTube Shorts (tested); the script timer now estimates the length per engine family.
 - 2026-10-08: the annual discount became ${ANNUAL_DISCOUNT_PERCENT_FACT}% off 12 monthly payments (it was 40% from 2026-10-05);
   credits are still released month by month and the 14-day full refund is unchanged. Annual plans bought at 40% keep their price.
+- 2026-10-09: Starter and Creator went back to ${formatCheckoutMoney('usd', TIER_PRICES.starter.usd)} / ${formatCheckoutMoney('usd', TIER_PRICES.basic.usd)} per month
+  (Studio unchanged at ${formatCheckoutMoney('usd', TIER_PRICES.pro.usd)}); credits 60 / 150 / 300 unchanged and the annual is still ${ANNUAL_DISCOUNT_PERCENT_FACT}% off
+  12 monthly payments. Existing subscribers keep the price they signed up at.
 - 2026-08-23: talking characters with lip sync alternate with narration on
   Kling 3 AND MiniMax H3 inside one Short — verified frame-by-frame on
   customer renders.

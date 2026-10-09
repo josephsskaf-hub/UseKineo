@@ -69,8 +69,9 @@ const checkoutPricing = read('lib/checkoutPricing.ts')
 // KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: escada 13/30/55 do fundador (28/09); anual = 10× o mensal novo.
 // KINEO-ANUAL-40OFF-2026-10-05 — re-ancorado: anual = 12 × mensal × 0,60, arredondado limpo (fundador 04-05/10).
 // KINEO-ANUAL-30-2026-10-08 — re-ancorado: anual = 12 × mensal × 0,70, arredondado limpo (fundador 08/10: "deixa 30%").
-ok(checkoutPricing.includes("starter: { usd: 10800 }"), 'Starter annual total remains canonical (30% off: 12 × $12.90 × 0.7 ≈ $108)')
-ok(checkoutPricing.includes("basic: { usd: 25000 }"), 'Creator annual total remains canonical (30% off ≈ $250)')
+// KINEO-PRECO-TESTE-2026-10-08 — re-ancorado: Starter a $9,90 no teste de 7 dias → anual 8300.
+ok(checkoutPricing.includes("starter: { usd: 8300 }"), 'Starter annual total remains canonical (30% off: 12 × $9.90 × 0.7 ≈ $83)')
+ok(checkoutPricing.includes("basic: { usd: 16700 }"), 'Creator annual total remains canonical (30% off: 12 × $19.90 × 0.7 ≈ $167)')
 ok(checkoutPricing.includes("pro: { usd: 46000 }"), 'Studio annual total remains canonical (30% off ≈ $460)')
 
 console.log(`pricing mobile sticky billing truth: ${checks}/${checks} checks passed`)

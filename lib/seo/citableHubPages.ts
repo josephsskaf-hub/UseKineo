@@ -17,9 +17,11 @@ import { dayMonthYear, monthYear, usd, type CitationPlan, type DirectRoute, type
 import { ENGINE_MARKET, marketQuotesFor, quotePlanListsModel, quoteUsdPerSecond } from '@/lib/clips/clipPriceVsMarket'
 
 export const HUB_MARK = 'KINEO-VISIBILIDADE-CHATGPT-2026-10-06'
-/** Data real da revisão das 4 páginas (sitemap lastmod e o "Prices as of" visível). */
-export const HUB_REVIEWED_ISO = '2026-10-06'
-export const HUB_REVIEWED_DAY = dayMonthYear(HUB_REVIEWED_ISO) // '6 October 2026'
+/** Data real da revisão das 4 páginas (sitemap lastmod e o "Prices as of" visível).
+ *  KINEO-PRECO-TESTE-2026-10-08 — 06/10 → 09/10: o Starter e o Creator mudaram de preço (teste de 7 dias, $9,90/$19,90) e
+ *  as páginas mostram os números novos da fonte única; "Prices as of 6 October" com os preços de 09/10 seria data falsa. */
+export const HUB_REVIEWED_ISO = '2026-10-09'
+export const HUB_REVIEWED_DAY = dayMonthYear(HUB_REVIEWED_ISO) // '9 October 2026'
 export const HUB_REVIEWED_MONTH = monthYear(HUB_REVIEWED_ISO) // 'October 2026'
 export const BASE = 'https://www.usekineo.com'
 

@@ -2,6 +2,40 @@
 
 Só entra aqui o que o Joseph aprovou explicitamente. Uma decisão registrada aqui **não pode ser alterada em silêncio** por nenhuma tarefa.
 
+## 2026-10-08 (noite) — Teste de 7 dias: Starter US$ 9,90 e Creator US$ 19,90 (Studio fica em US$ 54,90)
+
+**QUEM DECIDIU:**
+- o fundador, 08/10 ~23h BRT: "tudo sim" à volta do Starter a US$ 9,90 por 7 dias;
+- na mesma conversa: "e se a gente abaixar o valor do plano Creator também pq ele me traz receita boa".
+
+**O CASO:** em 10 dias iguais antes e depois da V8-A (28/09), visitantes, cadastros e checkouts abertos ficaram iguais
+(22 → 21). As assinaturas caíram de 4 para 1.
+
+**O QUE MUDA:**
+- **Preço:** Starter US$ 9,90 / anual US$ 83 / R$ 49,90; Creator US$ 19,90 / anual US$ 167 / R$ 99,90. Os créditos
+  continuam 60 / 150 / 300.
+- **Quem já assina** mantém o preço e o grant.
+- **Clipes:** a referência de preço congela em US$ 29,90, então o preço em créditos não muda.
+- **Anual do 2º mês:** ganha um teto no anual do site.
+- **PayPal:** planos em v5.
+
+**MEDIR EM 16/10:** contar as assinaturas a partir do deploy, contra a mesma janela antes dele.
+
+**DOC:** docs/DECISAO-PRECO-TESTE-2026-10-08.md.
+**GUARDIÃO:** scripts/test-preco-teste-2026-10-08.mjs. Re-ancorados com o motivo: test-preco-v8-A, test-pacote2-precos,
+test-moeda-local, test-anual-2mes e test-clip-preco-mercado.
+
+## 2026-10-08 — Cobrança: anual a 30% no site e oferta do anual no 2º mês (desligada até depois de 11/10)
+
+**QUEM DECIDIU:** o fundador, 08/10 madrugada: "os próximos clientes a gente só dá 30%... inclusive no site deixa 30%"
+e "mensal e no segundo mês". A oferta de 40% já enviada por e-mail vale até 11/10.
+
+**O QUE:**
+- anual = 12 × mensal × 0,70 (ANNUAL_DISCOUNT_PERCENT = 30);
+- oferta do anual no 2º mês (MONTH2_ANNUAL_OFFER_LIVE = false) só liga depois de 11/10, com o "liga" do fundador.
+
+**DOCS:** docs/ANUAL-NO-2o-MES-2026-10-08.md.
+
 ## 2026-09-30 — ADM Porcelana aprovado para implementação e integração
 
 **DECISÃO APROVADA:** Joseph, nesta conversa Board, após abrir `ADM-ANTES-DEPOIS.html`: "gostei pode dar merge". Implementar a direção visual clara do protótipo no ADM: navegação agrupada compartilhada, títulos menores, cards legíveis, paleta Porcelana e adaptação mobile.

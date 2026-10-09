@@ -847,7 +847,7 @@ const controles = [
     return { rep, json, mocks: { 'lib/seo/aiVideoIndexEdition.ts': { AI_VIDEO_INDEX_EDITION: carregador()('lib/seo/aiVideoIndex.ts').parseEdition(json), AI_VIDEO_INDEX_DATA_FILE: JSON_REL } } }
   }],
   ['K2 preço do Creator muda na fonte → os US$ das respostas acompanham (nada digitado)', ['R1', 'R2'], () => ({
-    rep: troca(PRICING, 'export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {\n  starter: { usd: 1290 },\n  basic: { usd: 2990 },', 'export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {\n  starter: { usd: 1290 },\n  basic: { usd: 3190 },'),
+    rep: troca(PRICING, 'export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {\n  starter: { usd: 990 },\n  basic: { usd: 1990 },', 'export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {\n  starter: { usd: 990 },\n  basic: { usd: 3190 },'),
   })],
 ]
 for (const [rotulo, regras, build] of controles) {
