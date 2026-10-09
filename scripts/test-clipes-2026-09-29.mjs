@@ -417,7 +417,7 @@ ok(existsSync(join(root, 'app/api/clips/route.ts')) && !existsSync(join(root, 'a
 
 // ─── 9. Tela, pares de navegação e 16 línguas ────────────────────────────────
 const client = read('app/(dashboard)/clips/ClipsClient.tsx')
-ok(client.includes("{e.seconds.join(' · ')} s"), 'card do motor mostra as durações reais antes do clique')
+ok(client.includes('{clipSecondsLabel(e.seconds)}') /* KINEO-CLIPES-CARTAO-MOTOR-2026-10-09: faixa das durações reais ("5–12 s") */, 'card do motor mostra as durações reais antes do clique')
 ok(client.includes("t('notLength', { engine: engine.label, s: seconds })") && client.includes('onClick={() => setEngineKey(alt.key)}'), 'duração que o motor não faz: mostra quem faz e troca com 1 clique')
 const sidebar = read('components/Sidebar.tsx')
 ok(read('lib/ui/workspaceNavigation.ts').includes("{ href: '/clips', label: 'Clips', icon: 'clips' }") && sidebar.includes('  clips: ('), 'Sidebar tem Clipes')

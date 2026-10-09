@@ -292,7 +292,7 @@ ok(client.includes(": <span className=\"fx-soon\">{t('previewSoon')}</span>}") &
 ok(client.includes('<span className="tag">{fx.engine_label}</span>') && !client.includes('{fx.credits} cr') && client.includes('{fx.preview.note}') && /photoUrl \? <>\{t\('generate'\)\} · \{effect.credits\}/.test(client), '(7c) cartão com motor real e nota honesta; preço só no botão de gerar')
 ok((client.match(/fetch\('\/api\/avatar\/upload'/g) ?? []).length === 1 && client.includes("fd.append('rights', 'true')") && client.includes("fd.append('purpose', 'animate')"), '(7d) o efeito usa o MESMO upload/termo de direitos do /clips (um caminho só)')
 ok(client.includes("fetch('/api/clips/effect-upsell'") && client.includes("{c.effect && c.film_href && (") && client.includes("{t('filmUpsell')}"), '(7e) clipe de efeito pronto mostra o upsell e passa pela rota antes de navegar')
-ok(client.includes("{e.seconds.join(' · ')} s") && client.includes("t('notLength', { engine: engine.label, s: seconds })"), '(7f) o clipe livre continua igual (durações reais, troca com 1 clique)')
+ok(client.includes('{clipSecondsLabel(e.seconds)}') /* KINEO-CLIPES-CARTAO-MOTOR-2026-10-09: faixa das durações reais ("5–12 s") */ && client.includes("t('notLength', { engine: engine.label, s: seconds })"), '(7f) o clipe livre continua igual (durações reais, troca com 1 clique)')
 ok(!/[ãõçáéíóú]/i.test(client.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '')), '(7g) tela sem texto fixo em português (tudo vem do dicionário)')
 
 // 16 línguas

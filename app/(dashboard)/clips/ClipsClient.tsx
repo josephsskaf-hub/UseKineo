@@ -24,6 +24,7 @@ import { CLIP_POST_COPY, CLIP_POST_EVENTS, CLIP_SHARE_CAPTION } from '@/lib/clip
 import { CLIP_PAID_EVENTS, clipPaidUpgradeHref } from '@/lib/clips/clipLaunch' // KINEO-S25-CLIPES-2026-10-06 — card trancado (só planos pagos)
 import { FREE_CLIP_APPLY_EVENT, FREE_CLIP_IDEA, FREE_CLIP_NOTICE_PARAM } from '@/lib/clips/freeClipNotice' // KINEO-AVISO-CLIPE-GRATIS-2026-10-06
 import { clipEngineShowcase, type ClipEngineShowcase } from '@/lib/clips/clipEngineShowcase' // KINEO-FAROL-VITRINE-2026-10-06
+import { CLIP_ENGINE_TAGLINE, clipSecondsLabel } from '@/lib/clips/clipEngineCard' // KINEO-CLIPES-CARTAO-MOTOR-2026-10-09
 import { FREE_CLIP_MARK_TEST_KEY_PREFIX, FREE_CLIP_MARK_TEST_PARAM } from '@/lib/clips/freeClipWatermark' // KINEO-MARCA-TESTE-INTERNO-2026-10-06
 
 type Engine = {
@@ -79,7 +80,7 @@ type EffectCard = {
 
 const ASPECT_KEY: Record<string, ClipCopyKey> = { '9:16': 'vertical', '16:9': 'wide', '1:1': 'square' }
 const ASPECT_ICON: Record<string, string> = { '9:16': '▯', '16:9': '▭', '1:1': '□' }
-const ICON: Record<string, string> = { seedance: 'S', kling: 'K', hollywood: 'K3', veo: 'G', h3: 'H3', omni: 'OF', s25: 'S2' }
+// KINEO-CLIPES-CARTAO-MOTOR-2026-10-09 — a letra do motor ("S", "K3") saiu do cartão: nome, frase e faixa de duração.
 
 // KINEO-FAROL-VITRINE-2026-10-06 — o vídeo da vitrine do card do motor: o MESMO elemento das prévias dos efeitos (mudo, em
 // loop, com pôster), cobrindo o card por baixo do texto. Decorativo: o nome do motor e o selo vêm em texto no próprio card.
@@ -498,9 +499,11 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
         .stu.clips-workspace .clip-engines{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:0 0 28px}
         .stu.clips-workspace .clip-engine{display:flex;flex-direction:column;gap:8px;padding:14px;border:1px solid var(--border);border-radius:var(--r-sm,13px);background:var(--card);color:var(--text);text-align:start;cursor:pointer;min-width:0}
         .stu.clips-workspace .clip-engine[aria-pressed="true"]{border-color:var(--indigo);background:var(--accent-soft,var(--card2));box-shadow:inset 0 0 0 1px var(--indigo)}
-        .stu.clips-workspace .clip-engine .ic{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid var(--border);border-radius:9px;background:var(--card2);font-size:12px;font-weight:800}
-        .stu.clips-workspace .clip-engine .nm{font-size:13px;font-weight:700}
-        .stu.clips-workspace .clip-engine .sec{font-size:12px;color:var(--text2);font-variant-numeric:tabular-nums}
+        .stu.clips-workspace .clip-engine .nm{font-size:15px;font-weight:700;line-height:1.2}
+        .stu.clips-workspace .clip-engine .tl{font-size:12.5px;line-height:1.35;color:var(--muted)}
+        .stu.clips-workspace .clip-engine .sec{margin-top:auto;align-self:flex-start;font-size:12px;font-weight:600;color:var(--text2);font-variant-numeric:tabular-nums;border:1px solid var(--border);border-radius:999px;padding:2px 9px}
+        .stu.clips-workspace .clip-engine.has-showcase .tl{color:rgba(255,255,255,.86);text-shadow:0 1px 2px rgba(0,0,0,.6)}
+        .stu.clips-workspace .clip-engine.has-showcase .sec{border-color:rgba(255,255,255,.4)}
         .stu.clips-workspace .clip-engine .pr{font-size:11px;color:var(--muted2)}
         .stu.clips-workspace .clip-engine .tag{font-size:10px;color:var(--muted2);border:1px solid var(--border);border-radius:6px;padding:1px 6px;align-self:flex-start}
         .stu.clips-workspace .clip-engine.locked{text-decoration:none;border-style:dashed}
@@ -575,9 +578,9 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
           return (
             <button key={e.key} type="button" className={`clip-engine${sc ? ' has-showcase' : ''}`} aria-pressed={e.key === engineKey} onClick={() => chooseEngine(e)}>
               {sc && <EngineShowcaseMedia sc={sc} />}
-              <span className="ic" aria-hidden="true">{ICON[e.key] ?? '•'}</span>
               <span className="nm">{e.label}</span>
-              <span className="sec">{e.seconds.join(' · ')} s</span>
+              {CLIP_ENGINE_TAGLINE[e.key] && <span className="tl">{CLIP_ENGINE_TAGLINE[e.key]}</span>}
+              <span className="sec">{clipSecondsLabel(e.seconds)}</span>
               {!e.text && <span className="tag">{t('photoOnly')}</span>}
               {sc && <span className="sc-note">{t('madeWith', { engine: e.label })} · {sc.seconds}&nbsp;s</span>}
             </button>
@@ -592,9 +595,9 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
             <a key={`locked-${e.key}`} className={`clip-engine locked${sc ? ' has-showcase' : ''}`} href={e.upgradeHref} data-clip-locked={e.key}
               onClick={() => { void trackClosedEvent(CLIP_PAID_EVENTS.clicked, { surface: 'clips', engine: e.key, balance }) }}>
               {sc && <EngineShowcaseMedia sc={sc} />}
-              <span className="ic" aria-hidden="true">{ICON[e.key] ?? '•'}</span>
               <span className="nm">{e.label}</span>
-              <span className="sec">{e.seconds.join(' · ')} s</span>
+              {CLIP_ENGINE_TAGLINE[e.key] && <span className="tl">{CLIP_ENGINE_TAGLINE[e.key]}</span>}
+              <span className="sec">{clipSecondsLabel(e.seconds)}</span>
               <span className="tag paid">{t('paidBadge')}</span>
               <span className="pr">{t('paidHint')}</span>
               {sc && <span className="sc-note">{t('madeWith', { engine: e.label })} · {sc.seconds}&nbsp;s</span>}
