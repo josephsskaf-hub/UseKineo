@@ -77,6 +77,7 @@ import { adsPaywallNoSession, adsPaywallOffer, adsPaywallVisible, type AdsPaywal
 import { adsPaywallSources } from '@/lib/ads/paywallSources'
 import { REGION_PAID_ONLY_TRIAL_STATUS } from '@/lib/freeFilmPolicy'
 import AdsPaywall from './AdsPaywall'
+import { BUSINESS_ADS_PROMISE, BUSINESS_PAGE_PATH, BUSINESS_PRICE_LABEL } from '@/lib/businessPlan' // KINEO-BUSINESS-84-2026-10-09
 // KINEO-ADS-AMOSTRA-2026-10-09 — o PRIMEIRO anúncio grátis (lib/ads/sample.ts): a porta oferece a amostra ANTES da oferta paga
 // (que continua logo abaixo). Logado e barrado pelo gate ('no_access') com a amostra ainda aberta (adsSampleOpen) → botão para
 // /ads/v2; anônimo CONFIRMADO pelo auth (noSession) → o mesmo botão para /signup?redirect=/ads/v2 (o cadastro volta ao
@@ -336,7 +337,11 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
         {/* KINEO-ADS-PAREDE-2026-10-06 — quem bateu na parede vê a OFERTA (plano de entrada + Express; sem passe, a mesma para a
             conta 'region_paid_only') no lugar da faixa; impressão e clique saem do próprio componente. */}
         {paywallOffer ? (
-          <AdsPaywall offer={paywallOffer} from={from ?? ''} signedIn={viewer.signedIn} regionPaidOnly={viewer.proof?.trialStatus === REGION_PAID_ONLY_TRIAL_STATUS} />
+          <>
+            <AdsPaywall offer={paywallOffer} from={from ?? ''} signedIn={viewer.signedIn} regionPaidOnly={viewer.proof?.trialStatus === REGION_PAID_ONLY_TRIAL_STATUS} />
+            {/* KINEO-BUSINESS-84-2026-10-09 — quem bate na parede (inclusive depois do anúncio grátis) vê também o plano das empresas. */}
+            <p className="ads-plan-line"><b>Making ads every month?</b> Business: {BUSINESS_ADS_PROMISE} for {BUSINESS_PRICE_LABEL}/month. <a href={`${BUSINESS_PAGE_PATH}#plan`}>See Business →</a></p>
+          </>
         ) : (
           <>
             {/* KINEO-ADS-PORTA-PLANO-2026-09-27 — sent back by /ads/new (no access): say why, point to the two doors. No promise
