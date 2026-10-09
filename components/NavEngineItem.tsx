@@ -22,6 +22,7 @@ export default function NavEngineItem({
   icon,
   translateName = false,
   translateChip = false,
+  thumb,
 }: {
   href: string
   name: string
@@ -39,6 +40,8 @@ export default function NavEngineItem({
   /** KINEO-S25-ABRE-2026-10-06 — selo descritivo (ex.: "NEW · paid plans") passa pela tradução da interface; os selos de
       tier de uma palavra (TOP, STUDIO) seguem como estão (padrão). */
   translateChip?: boolean
+  /** KINEO-MENU-MINIATURAS-2026-10-09 — miniatura quadrada de um render REAL do motor (public/nav-thumbs, quadro do clipe da vitrine). */
+  thumb?: string
 }) {
   const ref = useRef<HTMLVideoElement | null>(null)
   return (
@@ -53,7 +56,7 @@ export default function NavEngineItem({
       }}
       onMouseLeave={() => ref.current?.pause()}
     >
-      {icon ? <span className="nm-ic" aria-hidden="true"><KineoBoltText>{icon}</KineoBoltText></span> : null}
+      {thumb ? <span className="nm-th" aria-hidden="true"><img src={thumb} alt="" width={40} height={40} loading="lazy" decoding="async" /></span> : icon ? <span className="nm-ic" aria-hidden="true"><KineoBoltText>{icon}</KineoBoltText></span> : null}
       <span className="nm-tx">
         <b>
           {translateName ? <UiLabel>{name}</UiLabel> : name}

@@ -194,6 +194,7 @@ html{scroll-behavior:smooth}
 .klp .nd-mega .nm-h-next{margin-top:8px;padding-top:13px;border-top:1px solid var(--line)}
 .klp .nd-mega .nm-h{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt2);font-weight:700;padding:6px 15px 7px;margin:0 5px}
 .klp .nd-mega .nm-col a{margin:0 5px;line-height:1.25;display:flex;align-items:center;gap:11px}
+.klp .nm-th{flex-shrink:0;width:40px;height:40px;border-radius:10px;overflow:hidden;background:#111;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}.klp .nm-th img{width:100%;height:100%;object-fit:cover;display:block}
 .klp .nm-ic{flex-shrink:0;width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);font-weight:800;font-size:14px;color:#e8eaee;letter-spacing:-.02em}
 .klp .nm-tx{display:flex;flex-direction:column;align-items:flex-start;min-width:0}
 .klp .nd-mega .nm-col a i{display:block;font-style:normal;font-size:11.5px;color:var(--txt2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px}
@@ -852,8 +853,8 @@ export default function KineoLanding({
                   {showClips && (
                     <>
                       <span className="nm-h"><UiLabel>Clips</UiLabel></span>
-                      <NavEngineItem href="/clips?upload=1" name="Photo to clip" translateName desc="One-click photo effects" preview="/previews/efeito-product_360.mp4" />
-                      <NavEngineItem href="/clips" name="Text to clip" translateName desc="One line, a 5–15 s scene" preview="/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4" />
+                      <NavEngineItem thumb="/nav-thumbs/efeito-product_360.webp" href="/clips?upload=1" name="Photo to clip" translateName desc="One-click photo effects" preview="/previews/efeito-product_360.mp4" />
+                      <NavEngineItem thumb="/nav-thumbs/c4e4fbab-0978-4daa-9fcf-119096370210.webp" href="/clips" name="Text to clip" translateName desc="One line, a 5–15 s scene" preview="/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4" />
                     </>
                   )}
                   <span className={showClips ? 'nm-h nm-h-next' : 'nm-h'}><UiLabel>{showClips ? 'Narrated films' : 'Engines'}</UiLabel></span>
@@ -862,11 +863,11 @@ export default function KineoLanding({
                       pagina) + caixinha com monograma/glifo de cada produto. */}
                   {/* KINEO-MENU-VIDEO-LIMPO-2026-10-09 — fundador ("2 sim"): sem letra, sem selo; Kineo 1 saiu (fora da entrada desde
                       29/09, o menu ainda dizia "fastest"). O filme do 2.5 continua indo aos planos (só roda em plano pago). */}
-                  <NavEngineItem href="/studio?engine=seedance&intent_campaign=nav_mega" name="Seedance 1.5" desc="Fast, everyday narrated films" preview="/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4" />
-                  <NavEngineItem href="/studio?engine=kling&intent_campaign=nav_mega" name="Kling 2.5" desc="Smooth, realistic motion" preview="/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4" />
+                  <NavEngineItem thumb="/nav-thumbs/75728dfb-3b29-47fa-aea8-b806d549a2b9.webp" href="/studio?engine=seedance&intent_campaign=nav_mega" name="Seedance 1.5" desc="Fast, everyday narrated films" preview="/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4" />
+                  <NavEngineItem thumb="/nav-thumbs/c4e4fbab-0978-4daa-9fcf-119096370210.webp" href="/studio?engine=kling&intent_campaign=nav_mega" name="Kling 2.5" desc="Smooth, realistic motion" preview="/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4" />
                   {/* KINEO-VEO-CARD-HONESTO-2026-09-29 — 1080p pelo mesmo preço desde 16/08; o chip
                       STUDIO só volta se o gate religar na fonte (lib/enginePlanGate.ts). */}
-                  <NavEngineItem href="/studio?engine=veo&intent_campaign=nav_mega" name="Veo 3.1" desc="Google’s video model · 1080p" chip={enginePlanBadge('veo') ? 'STUDIO' : undefined} preview="/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4" />
+                  <NavEngineItem thumb="/nav-thumbs/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.webp" href="/studio?engine=veo&intent_campaign=nav_mega" name="Veo 3.1" desc="Google’s video model · 1080p" chip={enginePlanBadge('veo') ? 'STUDIO' : undefined} preview="/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4" />
                   {/* KINEO-OMNI-2026-08-25 — acima do Kling 3 de propósito: é o
                       #1 do ranking cego de agosto. Preview REAL do primeiro
                       render validado (Flight 19, narrador da praia) — selo
@@ -878,14 +879,14 @@ export default function KineoLanding({
                       KINEO-S25-ABRE-2026-10-06 — publico: selo "NEW · paid plans" (traduzido) e o clique vai aos planos.
                       A home nao sabe quem paga (o visitante, na maioria, nem entrou) e o 2.5 so roda em plano pago. */}
                   {s25Visible(initialEmail) && (
-                    <NavEngineItem href={S25_PUBLIC ? s25UpgradeHref('nav') : '/studio?engine=s25&intent_campaign=nav_mega'} name="Seedance 2.5" desc="ByteDance’s newest model" chip={S25_PUBLIC ? undefined : 'INTERNAL'} />
+                    <NavEngineItem thumb="/nav-thumbs/fb1eeb41-48ca-4835-a93a-01d422a17aa4.webp" href={S25_PUBLIC ? s25UpgradeHref('nav') : '/studio?engine=s25&intent_campaign=nav_mega'} name="Seedance 2.5" desc="ByteDance’s newest model" chip={S25_PUBLIC ? undefined : 'INTERNAL'} />
                   )}
-                  <NavEngineItem href="/studio?engine=hollywood&intent_campaign=nav_mega" name="Kling 3" desc="Premium look with native voice" preview="/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4" />
+                  <NavEngineItem thumb="/nav-thumbs/4b12925e-16e6-4b56-af5a-7047f9ae7a28.webp" href="/studio?engine=hollywood&intent_campaign=nav_mega" name="Kling 3" desc="Premium look with native voice" preview="/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4" />
                   {/* KINEO-H3-2026-08-19 — sem `preview` de proposito: o clipe
                       da vitrine tem de ser deste motor, e o primeiro render de
                       validacao ainda nao rodou. Emprestar clipe de outro motor
                       quebraria o selo honesto, que e regra da casa. */}
-                  {!enginePaused('h3') && <NavEngineItem href="/studio?engine=h3&intent_campaign=nav_mega" name="MiniMax H3" desc="Natural people and faces" />}
+                  {!enginePaused('h3') && <NavEngineItem thumb="/nav-thumbs/8aabb05a-2492-48de-a96a-0a7875c0c8d3.webp" href="/studio?engine=h3&intent_campaign=nav_mega" name="MiniMax H3" desc="Natural people and faces" />}
                 </span>
                 <span className="nm-col">
                   <span className="nm-h"><UiLabel>Create</UiLabel></span>
