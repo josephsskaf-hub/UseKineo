@@ -631,22 +631,21 @@ export default function Sidebar({
               Scripts, Animate, Imagem, Audio, Autopilot, Channel Builder, Convide e
               Afiliados vao para "More". Par: MobileNav.tsx (mesmos destinos). */}
           {WORKSPACE_NAV.filter(item => item.href !== '/clips' || clipsVisible(userEmail)).map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={false} pathname={pathname} onClick={onClose} />)}
-          <details className="workspace-nav-group" open={[...MORE_NAV.map(item => item.href), '/referral', '/affiliate'].some(path => workspaceNavActive(pathname, path)) || undefined}>
-            <summary><UiLabel>More</UiLabel></summary>
-            {MORE_NAV.map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={false} pathname={pathname} onClick={onClose} />)}
-            {isLoggedIn && (
+          {/* KINEO-MENU-ENXUTO-2026-10-09 — o "More" saiu (fundador, "1 sim"): Animate/Audio/Autopilot/Channel Builder fora do menu;
+              Invite & Earn + Affiliate viraram um item só, "Earn 40%" (o programa de afiliados). */}
+          {isLoggedIn && (
+            <div className="workspace-nav-group">
               <>
-                <NavItem href="/referral" icon={NAV_ICONS.referral} label="Invite & Earn" exact={false} pathname={pathname} onClick={onClose} />
                 {/* PUSH #95 — the affiliate program (40% recurring, 90-day attribution,
                     working /a/[code] tracking + dashboard) shipped with zero internal
                     links anywhere in the app. Surfacing it here, next to "Invite & Earn"
                     since it's the same job-to-be-done (grow the account by bringing in
                     others). Reuses the "pricing" tag icon — closest existing NAV_ICONS
                     match for a commission/money concept. */}
-                <NavItem href="/affiliate" icon={NAV_ICONS.pricing} label="Affiliate — 40%" exact={false} pathname={pathname} onClick={onClose} badge="NEW" />
+                <NavItem href="/affiliate" icon={NAV_ICONS.pricing} label="Earn 40%" exact={false} pathname={pathname} onClick={onClose} />
               </>
-            )}
-          </details>
+            </div>
+          )}
           <style dangerouslySetInnerHTML={{__html: `.workspace-nav-group{margin-top:14px;padding-top:10px;border-top:1px solid var(--border)}.workspace-nav-group>summary{min-height:44px;padding:10px 12px;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer}.workspace-nav-group>summary:focus-visible{outline:2px solid #2997ff;border-radius:8px}`}} />
 
         </nav>

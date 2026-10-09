@@ -312,7 +312,8 @@ async function problems(over = {}) {
     else if (!line.split(`'${footerLabel}':`)[1].includes(PCT.replace('%', ''))) p.push(`${d}: tradução sem o número ${PCT}`)
     if (s.includes("'Affiliate program - 30% recurring':")) p.push(`${d}: chave velha de 30% ainda presente`)
   }
-  if (!S('sidebar').includes(`label="Affiliate — ${PCT}"`)) p.push('menu lateral diz outra taxa')
+  // KINEO-MENU-ENXUTO-2026-10-09 — re-ancorado: o item do menu lateral virou "Earn 40%" (fundador, "1 sim").
+  if (!S('sidebar').includes(`label="Earn ${PCT}"`)) p.push('menu lateral diz outra taxa')
   if (!S('momentum').includes(`earn ${PCT} on eligible subscription payments`)) p.push('cartão de momentum diz outra taxa')
   const row = pure(S('comparison'), F.comparison).kineoAffiliateComparisonRow()
   if (row.commission !== `${PCT} recurring`) p.push('tabela comparativa: Kineo diz ' + row.commission)
@@ -362,7 +363,7 @@ const mutants = [
   ['M17 ?ref=CODE deixa de levar ao /a/', F.middleware, "dest.pathname = '/a/' + ref", "dest.pathname = '/'"],
   ['M18 rota /a/ sem cookie de prova do clique', F.linkRoute, 'res.cookies.set(CLICK_COOKIE, clickProofId', 'void (CLICK_COOKIE, clickProofId'],
   ['M19 cadastro não grava o referral', F.attribution, "if (!click?.id) return { ok: false, reason: 'invalid_click_proof' }", "if (click?.id) return { ok: false, reason: 'invalid_click_proof' }"],
-  ['M20 menu lateral com outra taxa', F.sidebar, 'label="Affiliate — 40%"', 'label="Affiliate — 30%"'],
+  ['M20 menu lateral com outra taxa', F.sidebar, 'label="Earn 40%"', 'label="Earn 30%"'],
   ['M21 admin esconde a taxa paga', F.admin, 'paga {Math.round(effectiveAffiliateCommissionRate(a.commission_rate) * 100)}%', 'paga {Math.round((a.commission_rate ?? 0) * 100)}%'],
   ['M22 webhook perde o import da fonte', F.webhook, "import { effectiveAffiliateCommissionRate } from '@/lib/affiliateCommission'", "import { AFFILIATE_COMMISSION_RATE as effectiveAffiliateCommissionRateX } from '@/lib/affiliateCommission'"],
 ]

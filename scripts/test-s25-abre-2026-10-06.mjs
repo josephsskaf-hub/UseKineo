@@ -257,7 +257,7 @@ async function problems(over = {}) {
     "if (d.s25Liberado === false) setAiEngine((atual) => (atual === 's25' ? 'seedance' : atual))",
   ]) if (!gc.includes(need)) p.push(`/studio/create sem "${need.slice(0, 70)}…"`)
   const land = src(LANDING)
-  if (!land.includes("href={S25_PUBLIC ? s25UpgradeHref('nav') : '/studio?engine=s25&intent_campaign=nav_mega'}") || !land.includes("chip={S25_PUBLIC ? S25_PAID_BADGE : 'INTERNAL'} translateChip={S25_PUBLIC}")) p.push('mega-menu: 2.5 sem selo traduzido ou sem clique nos planos')
+  if (!land.includes("href={S25_PUBLIC ? s25UpgradeHref('nav') : '/studio?engine=s25&intent_campaign=nav_mega'}") || !land.includes("chip={S25_PUBLIC ? undefined : 'INTERNAL'}")) p.push('mega-menu: 2.5 sem clique nos planos (KINEO-MENU-VIDEO-LIMPO-2026-10-09: o selo "NEW · paid plans" saiu do menu a pedido do fundador; o clique segue indo aos planos)')
   if (!src(NAVITEM).includes('{translateChip ? <UiLabel>{chip}</UiLabel> : chip}')) p.push('NavEngineItem não traduz o selo')
   if (L.S25_PAID_BADGE !== 'NEW · paid plans') p.push('selo do 2.5 mudou')
 

@@ -133,10 +133,11 @@ const semKineo1 = (html) => !html.includes('Kineo 1') && !html.includes('engine=
   // ficam 2 portas do Kineo 1 para a casa (mega-menu e chip final), ainda atrás de showKineo1.
   // REANCORADO KINEO-S25-ABRE-2026-10-06: "Six ... Seedance 1.5 and Seedance 2.5 (paid plans)".
   checa('home (visitante): sem grade de tiles e FAQ "Six ... and Seedance 2.5 (paid plans)"', conta(pub, 'class="tile') === 0 && pub.includes('Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5 and Seedance 2.5 (paid plans)'))
-  checa('home (casa): as 2 portas do Kineo 1 continuam (mega-menu, chip) e o tile saiu', conta(casa, 'engine=fast&amp;intent_campaign=nav_mega') === 1 && conta(casa, 'engine=fast&amp;intent_campaign=engine_tile') === 0 && conta(casa, 'engine=fast&amp;intent_campaign=final_chip') === 1)
+  // KINEO-MENU-VIDEO-LIMPO-2026-10-09 — re-ancorado: o fundador ("2 sim") tirou o Kineo 1 do mega-menu também para a casa; sobra o chip final.
+  checa('home (casa): sobra 1 porta do Kineo 1 (chip final); mega-menu e tile sem ele', conta(casa, 'engine=fast&amp;intent_campaign=nav_mega') === 0 && conta(casa, 'engine=fast&amp;intent_campaign=engine_tile') === 0 && conta(casa, 'engine=fast&amp;intent_campaign=final_chip') === 1)
   checa('mutante (predicado aplicado à casa, que vê as portas) → vermelho', !semKineo1(casa))
   const land = rd('app/KineoLanding.tsx')
-  checa('as 2 portas estão atrás de showKineo1 = kineo1Visible(initialEmail)', land.includes('  const showKineo1 = kineo1Visible(initialEmail)\n') && conta(land, '{showKineo1 && <') === 2 && conta(land, 'engine=fast') === 2)
+  checa('a porta que sobrou está atrás de showKineo1 = kineo1Visible(initialEmail)', land.includes('  const showKineo1 = kineo1Visible(initialEmail)\n') && conta(land, '{showKineo1 && <') === 1 && conta(land, 'engine=fast') === 1)
   // Mutante no JSX real: sem a guarda, o visitante volta a ver o Kineo 1.
   const tmp = tmpRel('k1-home-mutante.tsx')
   try {

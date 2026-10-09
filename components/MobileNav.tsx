@@ -153,8 +153,8 @@ const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolea
 // "More"; Account continua aqui porque o celular nao tem o bloco de conta do Sidebar.
 const MORE_LINKS = [
   ...MORE_NAV.map(item => ({ ...item, signedIn: false })),
-  { href: '/referral', label: 'Invite & Earn', signedIn: true },
-  { href: '/affiliate', label: 'Affiliate', signedIn: true },
+  // KINEO-MENU-ENXUTO-2026-10-09 — par da lateral: Invite & Earn + Affiliate viram "Earn 40%".
+  { href: '/affiliate', label: 'Earn 40%', signedIn: true },
   { href: '/account', label: 'Account', signedIn: true },
 ]
 

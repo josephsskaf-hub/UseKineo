@@ -131,7 +131,8 @@ const PORTAS = /href="\/avatar"|Talking Avatar|AI Presenter|Character Lock|Trans
   // REANCORADO KINEO-S25-ABRE-2026-10-06: "Six", com o Seedance 2.5 marcado "(paid plans)".
   checa('home (visitante): FAQ diz "Six" e a lista sem Avatar', pub.includes('Six') && pub.includes('Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5 and Seedance 2.5 (paid plans)') && !pub.includes('and Avatar'))
   // REANCORADO 30/09 — fundador: "tira essa parte" (a grade "Video" com os tiles de motor saiu da home; os motores seguem no mega-menu e no /studio). O tile do Avatar saiu junto: sobram 2 portas internas (mega-menu e menu mobile).
-  checa('home (conta da casa): as 2 portas internas do Avatar continuam; os cards retirados também saem para a casa', conta(casa, 'href="/avatar"') === 2 && conta(casa, 'class="tcard"') === 0 && !casa.includes('id="toolkit"') && casa.includes('Talking Avatar'))
+  // KINEO-MENU-VIDEO-LIMPO-2026-10-09 — re-ancorado: o fundador ("2 sim") tirou o Avatar dos menus da home também para a casa (/avatar segue no ar).
+  checa('home (conta da casa): sem porta do Avatar nos menus e sem os cards retirados', conta(casa, 'href="/avatar"') === 0 && conta(casa, 'class="tcard"') === 0 && !casa.includes('id="toolkit"') && !casa.includes('Talking Avatar'))
   checa('home (e-mail público logado): mesmas 0 portas', !PORTAS.test(home(PUBLICO)))
 }
 {

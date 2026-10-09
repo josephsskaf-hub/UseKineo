@@ -16,13 +16,9 @@ export const WORKSPACE_NAV = [
   { href: '/pricing', label: 'Pricing', icon: 'pricing' },
 ] as const
 /** Public "More" links shared by Sidebar and MobileNav; each shell appends its signed-in account links. */
-export const MORE_NAV = [
-  { href: '/animate', label: 'Animate', icon: 'animate' },
-  { href: '/audio', label: 'Audio', icon: 'audio' },
-  // Autopilot e Channel Builder moravam no grupo Grow; seguem alcancaveis aqui.
-  { href: '/autopilot', label: 'Autopilot', icon: 'autopilot' },
-  { href: '/channel', label: 'Channel Builder', icon: 'channel' },
-] as const
+// KINEO-MENU-ENXUTO-2026-10-09 — fundador ("1 sim"): Animate (o Clips faz), Audio (0 uso em 30 dias), Autopilot (0
+// assinantes) e Channel Builder (0) saem do menu; as páginas continuam no ar (links e Google). O "More" vira só "Earn 40%".
+export const MORE_NAV: readonly { href: string; label: string; icon: string }[] = []
 export function workspaceNavActive(pathname: string, href: string): boolean {
   const matches = (path: string) => pathname === path || pathname.startsWith(path + '/')
   if (href === '/') return pathname === '/'

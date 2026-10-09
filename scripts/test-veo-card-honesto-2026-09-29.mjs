@@ -58,7 +58,8 @@ const kl = rd('app/KineoLanding.tsx')
 const veoNav = kl.split('\n').find((l) => /<NavEngineItem [^\n]*engine=veo&/.test(l)) ?? ''
 checa('mega-menu: item do Veo existe', veoNav.length > 0)
 checa('mega-menu: chip do Veo deriva de enginePlanBadge("veo"), não de "STUDIO" digitado', /chip=\{enginePlanBadge\('veo'\) \? 'STUDIO' : undefined\}/.test(veoNav) && !/chip="STUDIO"/.test(veoNav))
-checa('mega-menu: desc do Veo diz 1080p', /desc="Google’s flagship engine · 1080p"/.test(veoNav))
+// KINEO-MENU-VIDEO-LIMPO-2026-10-09 — re-ancorado: a frase do Veo virou "Google’s video model · 1080p" (fundador, "2 sim"); o 1080p segue.
+checa('mega-menu: desc do Veo diz 1080p', /desc="Google’s video model · 1080p"/.test(veoNav))
 checa('mega-menu importa enginePlanBadge de lib/enginePlanGate', /import \{ enginePlanBadge \} from '@\/lib\/enginePlanGate'/.test(kl))
 
 // ── 5. nenhuma superfície pública fala de Veo e 720 na mesma linha de CÓDIGO (comentário não conta) ────────

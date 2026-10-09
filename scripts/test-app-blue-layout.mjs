@@ -10,7 +10,8 @@ const load=createOfflineLoader()
 const nav=load('@/lib/ui/workspaceNavigation')
 // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25 — Animate virou item próprio do "More" (não acende Studio junto); os demais modos de vídeo seguem sob Video.
 for(const p of ['/studio','/studio/create','/avatar'])ok(nav.workspaceNavActive(p,'/studio'),'all video tools share Video')
-ok(!nav.workspaceNavActive('/animate','/studio')&&nav.MORE_NAV.some(i=>i.href==='/animate')&&nav.workspaceNavActive('/animate','/animate'),'Animate has its own More item (25/09)')
+// KINEO-MENU-ENXUTO-2026-10-09 — re-ancorado: Animate/Audio/Autopilot/Channel Builder saíram do menu (fundador, "1 sim"); /animate não acende o Studio.
+ok(!nav.workspaceNavActive('/animate','/studio')&&nav.MORE_NAV.length===0&&nav.workspaceNavActive('/animate','/animate'),'More menu is empty (09/10)')
 for(const p of ['/history','/my-videos','/library'])ok(nav.workspaceNavActive(p,'/library'),'legacy history remains in Library context')
 for(const p of ['/studio-not-real','/library-extra'])ok(!nav.workspaceNavActive(p,'/studio')&&!nav.workspaceNavActive(p,'/library'),'path boundary')
 for(const p of ['/studio','/history','/images'])ok(!nav.workspaceNavActive(p,'/'),'home exact match')
@@ -56,7 +57,8 @@ for(const language of ['en','es','hi']){
  const h=renderPage('components/MobileNav.tsx',false,{interfaceLanguage:language},{isLoggedIn:true})
  // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25 — Home saiu da barra de abas (o logo da gaveta leva a /); Images e Ads viraram abas.
  // 25/09 founder: Ads opens the creator directly; server access gates still apply.
- for(const href of ['/studio','/images','/ads/new','/library','/audio','/pricing','/account'])ok(h.includes(`href="${href}"`),'mobile destination '+href)
+ for(const href of ['/studio','/images','/ads/new','/library','/pricing','/account'])ok(h.includes(`href="${href}"`),'mobile destination '+href)
+ for(const href of ['/audio','/autopilot','/channel'])ok(!h.includes(`href="${href}"`),'mobile menu no longer lists '+href+' (09/10)')
  ok(!h.includes('href="/"'),'mobile tab bar no longer carries Home (25/09)')
  for(const href of ['/history','/thumbnail-generator','/avatar'])ok(!h.includes(`href="${href}"`),'no redundant top-level menu '+href)
 }
