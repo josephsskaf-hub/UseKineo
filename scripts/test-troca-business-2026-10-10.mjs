@@ -15,7 +15,8 @@
 //   (5) afiliado: a fatura da subida paga comissão com o tier da assinatura viva (Business = 20%);
 //   (6) TELA: quem assina vê "Switch to Business"/"Current plan" e troca com a prévia (preço e créditos); o checkout e o
 //       /business deixam de mandar o assinante Stripe ao suporte;
-//   (7) mutantes: cada regra quebrada fica vermelha, e cada mutante prova que aplicou.
+//   (7) Business sem promoção: a subida remove todo desconto (assinatura e item) e a prévia mostra o preço cheio;
+//   (8) mutantes: cada regra quebrada fica vermelha, e cada mutante prova que aplicou.
 // Estilo readFileSync + transpile; nenhum import com alias @/ no guardião.
 import fs from 'node:fs'
 import path from 'node:path'
@@ -92,9 +93,11 @@ function makeSub(o = {}) {
   return {
     id: 'sub_1', object: 'subscription', status: o.status ?? 'active', customer: 'cus_1',
     collection_method: 'charge_automatically', cancel_at_period_end: Boolean(o.canceling), schedule: o.schedule ?? null,
+    discount: o.discounted ? { id: 'di_welcome', coupon: { id: 'WELCOME20' } } : null,
+    discounts: o.discounted ? ['di_welcome'] : [],
     current_period_start: PERIOD_START, current_period_end: PERIOD_END,
     metadata: { supabase_user_id: 'u1', tier: o.tier ?? 'starter', affiliate_system: 'kineo' },
-    items: { data: [{ id: 'si_1', quantity: 1, price: { id: 'price_cur', currency: o.currency ?? 'usd', unit_amount: o.amount ?? 990, recurring: { interval: o.interval ?? 'month' } } }] },
+    items: { data: [{ id: 'si_1', quantity: 1, discounts: o.discounted ? ['di_item'] : [], price: { id: 'price_cur', currency: o.currency ?? 'usd', unit_amount: o.amount ?? 990, recurring: { interval: o.interval ?? 'month' } } }] },
   }
 }
 function makeStripe(sub, o = {}) {
@@ -267,6 +270,16 @@ async function runChecks(over = {}, verbose = false) {
   check(p0 && p0.items[0].id === 'si_1' && p0.items[0].price_data.unit_amount === 8400 && p0.items[0].price_data.recurring.interval === 'month' && p0.metadata.tier === 'business' && p0.metadata.business_upgrade_from === 'starter' && p0.metadata.supabase_user_id === 'u1', '(1) item vira US$ 84/mês, metadata carimbada com a troca')
   check(up.profile.video_credits === 60 && up.res.body.credits === 60 && up.res.body.credits_pending === TC.business - TC.starter, '(1)(2) a rota NÃO mexe no saldo — os créditos ficam pendentes da fatura paga (webhook)')
   check(up.profile.plan === 'business', '(1) plano vira business com a fatura da troca paga')
+  // KINEO-TROCA-BUSINESS-2026-10-10 — Business sem promoção: a subida apaga desconto da assinatura e do item; a prévia não herda desconto.
+  check(L.BUSINESS_CLEAR_DISCOUNTS === '' && JSON.stringify(L.discountRefsOf({ discount: { id: 'di_a' }, discounts: ['di_a', { id: 'di_b' }] }, { discounts: ['di_c'] })) === JSON.stringify(['di_a', 'di_b', 'di_c']), '(7) discountRefsOf conta os descontos da assinatura e do item, sem dobrar')
+  const disc = await runRoute(over, { plan: 'basic', credits: 90, body: { tier: 'business' }, sub: { discounted: true, amount: 1990 } })
+  const dp = callsOf(disc.calls, 'subscriptions.update')[0]?.params
+  check(dp && dp.discounts === '' && dp.items?.[0]?.discounts === '', '(7) subida para o Business remove os descontos da assinatura E do item (discounts vazio)')
+  const discEv = disc.events.find((e) => e.name === 'plan_changed')
+  check(discEv && JSON.stringify(discEv.metadata.discounts_removed) === JSON.stringify(['di_welcome', 'di_item']), '(7) o evento registra os descontos removidos')
+  const discPv = await runRoute(over, { plan: 'basic', credits: 90, body: { tier: 'business', preview: true }, sub: { discounted: true, amount: 1990 } })
+  const dpvp = callsOf(discPv.calls, 'invoices.createPreview')[0]?.params
+  check(dpvp && dpvp.discounts === '' && dpvp.subscription_details?.items?.[0]?.discounts === '' && callsOf(discPv.calls, 'subscriptions.update').length === 0, '(7) prévia sem desconto herdado (preço cheio do Business), sem trocar nada')
   const upEv = up.events.find((e) => e.name === 'plan_changed')
   check(upEv && upEv.metadata.ok === true && upEv.metadata.credits_delta === 0 && upEv.metadata.charged_now_minor === 3700 && upEv.metadata.stripe_invoice_id === 'in_up', '(1) evento plan_changed: cobrado agora, créditos 0 na rota')
   const pv = await runRoute(over, { plan: 'pro', credits: 120, body: { tier: 'business', preview: true } })
@@ -384,6 +397,9 @@ function mutate(rel, from, to) {
   return { applied: next !== orig, over: { [rel]: next } }
 }
 const MUTANTS = [
+  ['subida mantém o cupom da assinatura', F.ROUTE, "        discounts: BUSINESS_CLEAR_DISCOUNTS, // Business sem promoção: cupom/código da assinatura sai na subida\n", '', /\(7\) subida para o Business remove/],
+  ['subida mantém o desconto do item', F.ROUTE, "      quantity: 1,\n      discounts: BUSINESS_CLEAR_DISCOUNTS,\n", "      quantity: 1,\n", /\(7\) subida para o Business remove|\(7\) prévia sem desconto/],
+  ['prévia herda o desconto', F.ROUTE, "          discounts: BUSINESS_CLEAR_DISCOUNTS,\n          subscription_details:", "          subscription_details:", /\(7\) prévia sem desconto/],
   ['subida volta ao rateio na próxima fatura', F.LIB, "export const BUSINESS_UPGRADE_PRORATION = 'always_invoice' as const", "export const BUSINESS_UPGRADE_PRORATION = 'create_prorations' as const", /\(1\) subida cobra|\(1\) Stripe: always_invoice/],
   ['cartão recusado deixa a troca pela metade', F.LIB, "export const BUSINESS_UPGRADE_PAYMENT_BEHAVIOR = 'error_if_incomplete' as const", "export const BUSINESS_UPGRADE_PAYMENT_BEHAVIOR = 'allow_incomplete' as const", /error_if_incomplete/],
   ['rota credita na hora (antes da fatura paga)', F.ROUTE, ".update({ plan: BUSINESS_TIER, is_pro: true }).eq('id', userId)", ".update({ plan: BUSINESS_TIER, is_pro: true, video_credits: input.creditsBefore + creditsPending }).eq('id', userId)", /a rota NÃO mexe no saldo|não escreve video_credits/],

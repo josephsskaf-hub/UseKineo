@@ -39,6 +39,25 @@ export const BUSINESS_UPGRADE_PAYMENT_BEHAVIOR = 'error_if_incomplete' as const
 /** Descida: na virada do período, sem rateio (nada devolvido, nada cobrado hoje). */
 export const BUSINESS_DOWNGRADE_PRORATION = 'none' as const
 
+/**
+ * O Business não aceita promoção (NO_PROMOTION_PLAN_TIERS em lib/checkoutPricing.ts): na subida, todo desconto que a
+ * assinatura carregava (cupom do Creator/Studio, WELCOME20, código de afiliado…) é REMOVIDO — na assinatura e no item.
+ * Na API da Stripe, '' num campo Emptyable apaga a lista. A prévia usa o mesmo '' (não herda desconto nenhum), então
+ * o "você paga X agora" já é o preço cheio.
+ */
+export const BUSINESS_CLEAR_DISCOUNTS = '' as const
+
+/** Ids dos descontos que a assinatura carrega hoje (assinatura + item, sem dobrar o legado `discount`). */
+export function discountRefsOf(
+  sub: { discount?: unknown; discounts?: readonly unknown[] | null },
+  item?: { discounts?: readonly unknown[] | null } | null,
+): string[] {
+  const idOf = (v: unknown): string | null =>
+    typeof v === 'string' ? v : v && typeof v === 'object' && typeof (v as { id?: unknown }).id === 'string' ? (v as { id: string }).id : null
+  const ids = [idOf(sub.discount), ...(sub.discounts ?? []).map(idOf), ...(item?.discounts ?? []).map(idOf)].filter((x): x is string => Boolean(x))
+  return [...new Set(ids)]
+}
+
 /** Janela da chave de idempotência da Stripe: dois cliques juntos = uma cobrança; cartão trocado = tenta de novo em 2 min. */
 export const BUSINESS_IDEMPOTENCY_WINDOW_MS = 2 * 60 * 1000
 /** Folga de relógio entre o servidor e a Stripe ao conferir que a fatura é DESTA troca. */

@@ -30,6 +30,8 @@
 //   · subida (Starter/Creator/Studio mensal ATIVO → Business): cobra a proration AGORA ('always_invoice' +
 //     'error_if_incomplete'); o saldo NÃO muda aqui — os créditos entram pelo webhook quando a fatura da troca
 //     está paga (idempotente por troca). POST { tier: 'business', preview: true } = a prévia da fatura, sem escrita.
+//     O Business não aceita promoção: a subida REMOVE todo desconto da assinatura e do item (discounts ''), e a
+//     prévia também ignora desconto — o valor mostrado é o preço cheio.
 //   · descida (Business → Studio/Creator/Starter): agendada para o fim do período pago (Subscription Schedule,
 //     proration 'none'); nada devolvido, nada cobrado hoje, nenhum crédito retirado; a renovação dá a cota nova.
 //   · anual → 409 business_annual_needs_support (o Business não tem anual; o suporte troca). Teste → 409.
@@ -44,6 +46,7 @@ import { PLANS } from '@/lib/pricing'
 import type Stripe from 'stripe'
 import { planSettlementAmountMinor } from '@/lib/settlementCurrency'
 import {
+  BUSINESS_CLEAR_DISCOUNTS,
   BUSINESS_DOWNGRADE_PRORATION,
   BUSINESS_DOWNGRADE_SCHEDULED_EVENT,
   BUSINESS_SCHEDULE_SOURCE,
@@ -53,6 +56,7 @@ import {
   TROCA_BUSINESS_TAG,
   TROCA_BUSINESS_VERSION,
   businessDowngradeIdempotencyKey,
+  discountRefsOf,
   businessDowngradePhaseMetadata,
   businessDowngradePhases,
   businessSwitchDirection,
@@ -309,16 +313,21 @@ async function businessSwitch(input: {
     } catch (e) {
       return NextResponse.json({ error: 'stripe_update_failed', detail: stripeFailure(e).message }, { status: 502 })
     }
+    // Business sem promoção: o item novo nasce SEM desconto ('' apaga os do item) e a assinatura perde os dela (abaixo).
     const businessItem = {
       id: item.id,
       price_data: { currency, product: productId, unit_amount: amountMinor, recurring: { interval: 'month' as const } },
       quantity: 1,
+      discounts: BUSINESS_CLEAR_DISCOUNTS,
     }
+    const discountsRemoved = discountRefsOf(sub, item)
     if (input.preview) {
       try {
         const pv = await stripe.invoices.createPreview({
           customer: customerId ?? undefined,
           subscription: sub.id,
+          // '' = a prévia não herda desconto da assinatura nem do cliente: o "agora" é o preço cheio do Business.
+          discounts: BUSINESS_CLEAR_DISCOUNTS,
           subscription_details: { items: [businessItem], proration_behavior: BUSINESS_UPGRADE_PRORATION },
         })
         return NextResponse.json({
@@ -338,6 +347,7 @@ async function businessSwitch(input: {
         items: [businessItem],
         proration_behavior: BUSINESS_UPGRADE_PRORATION,
         payment_behavior: BUSINESS_UPGRADE_PAYMENT_BEHAVIOR,
+        discounts: BUSINESS_CLEAR_DISCOUNTS, // Business sem promoção: cupom/código da assinatura sai na subida
         metadata: businessUpgradeMetadata(sub.metadata as Record<string, string>, from, upgradeAt),
         expand: ['latest_invoice'],
       }, { idempotencyKey: businessUpgradeIdempotencyKey(sub.id, item.id, from, amountMinor, nowMs) })
@@ -366,6 +376,7 @@ async function businessSwitch(input: {
     await recordPlanChange(PLAN_CHANGED_EVENT, userId, {
       ok: true, from, to: BUSINESS_TIER, direction, status: sub.status,
       proration: BUSINESS_UPGRADE_PRORATION,
+      discounts_removed: discountsRemoved,
       stripe_invoice_id: invoice?.id ?? null,
       invoice_status: invoice?.status ?? null,
       charged_now_minor: chargedNowMinor,
