@@ -213,7 +213,8 @@ const PT_KEY = '"Switch to {plan} now — +{credits} credits today": "Mude para 
 const mutants = [
   ['M1 Starter pula direto para o Studio', LIB, 'return i >= 0 && i < SUBSCRIBER_LADDER.length - 1 ? SUBSCRIBER_LADDER[i + 1] : null', 'return i >= 0 && i < SUBSCRIBER_LADDER.length - 1 ? SUBSCRIBER_LADDER[SUBSCRIBER_LADDER.length - 1] : null'],
   ['M2 "+N today" vira o grant cheio do degrau', LIB, 'const creditsToday = Math.floor(input.credits[to]) - Math.floor(input.credits[from])', 'const creditsToday = Math.floor(input.credits[to])'],
-  ['M3 não-assinante passa a ver', LIB, "if (!state.subscribed || !state.tier || !SUBSCRIBER_LADDER.includes(state.tier)) return { kind: 'none' }", "if (!state.tier || !SUBSCRIBER_LADDER.includes(state.tier)) return { kind: 'none' }"],
+  // KINEO-TROCA-BUSINESS-2026-10-10 — re-ancorado: a guarda passou a comparar como string (o estado da troca também traz 'business').
+  ['M3 não-assinante passa a ver', LIB, "if (!state.subscribed || !state.tier || !(SUBSCRIBER_LADDER as readonly string[]).includes(state.tier)) return { kind: 'none' }", "if (!state.tier || !(SUBSCRIBER_LADDER as readonly string[]).includes(state.tier)) return { kind: 'none' }"],
   ['M4 o topo ganha um degrau inexistente', LIB, 'return i >= 0 && i < SUBSCRIBER_LADDER.length - 1 ? SUBSCRIBER_LADDER[i + 1] : null', 'return i >= 0 && i < SUBSCRIBER_LADDER.length ? SUBSCRIBER_LADDER[i + 1] : null'],
   ['M5 Studio perde a recarga', LIB, "const topupOnly: SubscriberUpgradeOffer = input.topupAllowed ? { kind: 'topup_only', from } : { kind: 'none' }", "const topupOnly: SubscriberUpgradeOffer = { kind: 'none' }"],
   ['M6 teste de 7 dias ganha a troca (que não credita nada hoje)', LIB, "if (!to || state.status !== 'active') return topupOnly", 'if (!to) return topupOnly'],

@@ -7,6 +7,10 @@
 //
 // O botão chama o MESMO handleBuy da página (onBuy): anti-duplo-clique, telemetria e o checkout ?tier=business.
 // O link secundário leva à oferta "feito para você" (Kineo Empresas: Express / Pro, pagamento único).
+//
+// KINEO-TROCA-BUSINESS-2026-10-10 — quem JÁ assina não vai ao checkout (que recusa a 2ª assinatura) nem ao suporte: o
+// /pricing passa o rótulo da troca (switchLabel: "Switch to Business" / "Current plan" / "Switching…") e o mesmo
+// onBuy cai na troca self-serve (prévia com a diferença de preço e os créditos → confirmação → /api/stripe/change-plan).
 import {
   BUSINESS_ADS_PROMISE,
   BUSINESS_BULLETS,
@@ -37,7 +41,15 @@ const CSS = `
 @media (max-width:760px){.kb-biz-card{grid-template-columns:1fr;padding:22px 18px}.kb-biz-price{font-size:38px}}
 `
 
-export default function PricingBusinessBlock({ onBuy, pending }: { onBuy: () => void; pending: boolean }) {
+export default function PricingBusinessBlock({ onBuy, pending, switchLabel = null, switchNote = false }: {
+  onBuy: () => void
+  pending: boolean
+  /** KINEO-TROCA-BUSINESS-2026-10-10 — rótulo da troca para quem já assina (null = visitante/sem assinatura: compra). */
+  switchLabel?: string | null
+  /** KINEO-TROCA-BUSINESS-2026-10-10 — assinante de outro plano: a linha que diz como a troca cobra. */
+  switchNote?: boolean
+}) {
+  const isCurrent = switchLabel === 'Current plan'
   return (
     <section id="business" className="kb-biz" aria-labelledby="kb-biz-title" data-testid="pricing-business-block">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
@@ -53,9 +65,12 @@ export default function PricingBusinessBlock({ onBuy, pending }: { onBuy: () => 
         <div className="kb-biz-buy">
           <div className="kb-biz-price">{BUSINESS_PRICE_LABEL}<small>/mo</small></div>
           <p className="kb-biz-note">{BUSINESS_MONTHLY_CREDITS} credits a month · billed monthly · cancel anytime</p>
-          <button type="button" className="kb-biz-cta" disabled={pending} onClick={onBuy}>
-            {pending ? 'Opening secure checkout…' : 'Get Business →'}
+          <button type="button" className="kb-biz-cta" disabled={pending || isCurrent || switchLabel === 'Switching…'} onClick={onBuy} data-testid="pricing-business-cta">
+            {pending ? 'Opening secure checkout…' : switchLabel ?? 'Get Business →'}
           </button>
+          {switchNote ? (
+            <p className="kb-biz-note" data-testid="pricing-business-switch-note">You pay only the price difference for the rest of this billing period today, and the extra credits arrive as soon as it goes through. No need to cancel.</p>
+          ) : null}
           <div className="kb-biz-links">
             <a href={BUSINESS_DFY_HREF}>Prefer we make it for you? →</a>
             <a href={BUSINESS_PAGE_PATH}>How Business works</a>

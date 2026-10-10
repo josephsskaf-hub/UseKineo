@@ -92,6 +92,7 @@ import { renewalCreditsForInvoice } from '@/lib/settlementCurrency'
 import { RENEWAL_CARRY_VERSION, renewalBalance } from '@/lib/credits/renewalBalance' // KINEO-RENOVACAO-PRESERVA-CREDITO-COMPRADO-2026-09-25
 import { effectiveAffiliateCommissionRate } from '@/lib/affiliateCommission' // KINEO-AFILIADOS-40-2026-10-06: taxa do programa = piso
 import { BUSINESS_AFFILIATE_COMMISSION_RATE, isBusinessCommissionPlan } from '@/lib/affiliateCommission' // KINEO-BUSINESS-84-2026-10-09: Business = 20%
+import { applyBusinessUpgradeGrant, businessUpgradeGrantDecision } from '@/lib/billing/trocaBusiness' // KINEO-TROCA-BUSINESS-2026-10-10
 // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — a compra de quem não tinha conta: no começo do Path B o webhook acha/cria o dono
 // pelo e-mail; o grant que vem depois é o mesmo do caminho logado. Sem kineo_guest=1 na sessão, nada disto roda.
 import {
@@ -2499,6 +2500,76 @@ export async function POST(req: NextRequest) {
         // acionaria o grant legado). A troca já cuidou dos créditos na rota.
         if (billingReason === 'subscription_update') {
           await supabase.from('events').insert({ name: 'subscription_update_invoice_paid', path: '/api/stripe/webhook', metadata: { invoice: invoice.id ?? null, amount_paid: invoice.amount_paid ?? 0, subscription: typeof invoice.subscription === 'string' ? invoice.subscription : null } })
+          // KINEO-TROCA-BUSINESS-2026-10-10 — a ÚNICA exceção: a subida para o Business cobra a proration AGORA (rota
+          // change-plan, 'always_invoice'), e os créditos da diferença só nascem AQUI, com esta fatura paga. A decisão
+          // (lib/billing/trocaBusiness.ts) lê a metadata VIVA da assinatura: tier business + carimbo da troca + fatura
+          // com cobrança, criada depois do carimbo. Qualquer outra fatura de troca segue sem crédito, como sempre.
+          // Idempotente por troca (troca_business_granted:<assinatura>:<carimbo>, razão em `events`).
+          const trocaSubscriptionId = typeof invoice.subscription === 'string' ? invoice.subscription : null
+          if (trocaSubscriptionId) {
+            entitlementPending = true
+            let trocaSubscription: Stripe.Subscription
+            try {
+              trocaSubscription = await stripe.subscriptions.retrieve(trocaSubscriptionId)
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : String(err)
+              throw new RetryableEntitlementError(`Failed to load subscription for Business upgrade (${trocaSubscriptionId}): ${msg}`)
+            }
+            const trocaDecision = businessUpgradeGrantDecision({
+              billingReason,
+              invoice: { total: invoice.total, created: invoice.created },
+              subscription: { id: trocaSubscription.id, metadata: trocaSubscription.metadata },
+            })
+            const trocaUserId = trocaSubscription.metadata?.supabase_user_id ?? null
+            const trocaCustomerId = typeof trocaSubscription.customer === 'string' ? trocaSubscription.customer : trocaSubscription.customer?.id ?? null
+            if (!trocaDecision.grant || !trocaUserId) {
+              entitlementConfirmed = true
+              entitlementPending = false
+              if (trocaDecision.grant || trocaDecision.reason !== 'not_business_upgrade') console.warn('[stripe webhook] subscription_update invoice without Business grant:', invoice.id, trocaSubscriptionId, trocaDecision.grant ? 'no_owner' : trocaDecision.reason)
+              break
+            }
+            if (!stripeSubscriptionKeepsAccess(trocaSubscription.status) || await isProtectedProfile(supabase, { userId: trocaUserId })) {
+              entitlementConfirmed = true
+              entitlementPending = false
+              console.warn('[stripe webhook] Business upgrade grant skipped (no access or protected):', invoice.id, trocaSubscriptionId, trocaSubscription.status)
+              break
+            }
+            const { data: trocaProfile, error: trocaProfileError } = await supabase
+              .from('profiles')
+              .select('id, stripe_customer_id, stripe_subscription_id')
+              .eq('id', trocaUserId)
+              .maybeSingle()
+            if (trocaProfileError || !trocaProfile?.id) {
+              throw new RetryableEntitlementError(`Failed to verify Business upgrade profile (${trocaUserId}): ${trocaProfileError?.message ?? 'profile row missing'}`)
+            }
+            if ((trocaProfile.stripe_customer_id && trocaProfile.stripe_customer_id !== trocaCustomerId) || (trocaProfile.stripe_subscription_id && trocaProfile.stripe_subscription_id !== trocaSubscriptionId)) {
+              entitlementConfirmed = true
+              entitlementPending = false
+              console.error('[stripe webhook] Business upgrade grant refused: profile/subscription mismatch:', invoice.id, trocaSubscriptionId, trocaUserId)
+              break
+            }
+            let trocaGrant: Awaited<ReturnType<typeof applyBusinessUpgradeGrant>>
+            try {
+              trocaGrant = await applyBusinessUpgradeGrant(supabase, {
+                userId: trocaUserId,
+                subscriptionId: trocaSubscriptionId,
+                invoiceId: invoice.id ?? null,
+                amountPaid: invoice.amount_paid ?? 0,
+                currency: invoice.currency ?? 'usd',
+                decision: trocaDecision,
+                path: '/api/stripe/webhook',
+              })
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : String(err)
+              throw new RetryableEntitlementError(`Business upgrade grant failed (${invoice.id}): ${msg}`)
+            }
+            entitlementConfirmed = true
+            entitlementPending = false
+            if (trocaGrant.status === 'ambiguous') console.error('[stripe webhook] Business upgrade grant ambiguous — check /admin/people:', invoice.id, trocaUserId, JSON.stringify(trocaGrant))
+            else console.log('[stripe webhook] Business upgrade grant:', trocaGrant.status, invoice.id, trocaUserId)
+            // A fatura da subida é cobrança do plano: comissão do afiliado na taxa do Business (20%), idempotente por fatura.
+            await recordAffiliateCommission(supabase, { userId: trocaUserId, externalId: invoice.id ?? trocaSubscriptionId, amountGross: invoice.amount_paid ?? 0, currency: invoice.currency ?? 'usd', type: 'recurring', paymentKind: 'subscription', attributionSystem: trocaSubscription.metadata?.affiliate_system, plan: trocaSubscription.metadata?.tier })
+          }
           break
         }
 

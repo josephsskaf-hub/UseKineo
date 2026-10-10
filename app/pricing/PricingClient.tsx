@@ -14,6 +14,7 @@ import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 // launch offer.
 
 import { PLAN_SWITCH_EMPTY, fetchPlanSwitchState, planSwitchConfirmText, planSwitchErrorText, planSwitchLabel, switchPlan, type PlanSwitchState, type SwitchableTier } from '@/lib/growth/planSwitch'
+import { confirmAndSwitchBusiness, type PlanSwitchTier } from '@/lib/growth/planSwitch' // KINEO-TROCA-BUSINESS-2026-10-10
 import { S25_PUBLIC, AVATAR_PUBLIC, enginePaused } from '@/lib/engineLaunch' // KINEO-AVATAR-FORA-2026-09-28
 import Link from 'next/link'
 import React, { useEffect, useRef, useState } from 'react'
@@ -446,16 +447,31 @@ export default function PricingClient({ initialBilling = 'annual', characterLimi
   // KINEO-TROCA-DE-PLANO-2026-09-09 — quem já assina troca de plano aqui mesmo,
   // sem passar pelo checkout (que recusa uma segunda assinatura).
   const [planSwitch, setPlanSwitch] = useState<PlanSwitchState>(PLAN_SWITCH_EMPTY)
-  const [switching, setSwitching] = useState<SwitchableTier | null>(null)
+  const [switching, setSwitching] = useState<PlanSwitchTier | null>(null)
   const [switchNotice, setSwitchNotice] = useState<string | null>(null)
   useEffect(() => {
     let alive = true
     void fetchPlanSwitchState().then((s) => { if (alive) setPlanSwitch(s) })
     return () => { alive = false }
   }, [])
+  // KINEO-TROCA-BUSINESS-2026-10-10 — subir para o Business ou descer dele: prévia da Stripe → confirmação com a diferença
+  // de preço e os créditos (e QUANDO cada um acontece) → troca. Nada de "email support" para quem já assina mensal.
+  async function handleBusinessSwitch(tier: PlanSwitchTier, planName: string) {
+    if (switching) return
+    if (planSwitch.tier === tier) return
+    setSwitching(tier)
+    setSwitchNotice(null)
+    void trackEvent('plan_switch_clicked', { from: planSwitch.tier, to: tier, status: planSwitch.status, surface: 'pricing_page' })
+    const result = await confirmAndSwitchBusiness({ tier, planName, confirm: (text) => typeof window === 'undefined' || window.confirm(text) })
+    setSwitching(null)
+    if (result.status === 'cancelled') return
+    if (result.status === 'done') setPlanSwitch({ subscribed: true, tier: result.tier, status: planSwitch.status })
+    setSwitchNotice(result.notice)
+  }
   async function handleSwitchPlan(tier: SwitchableTier, planName: string, monthlyUsd: string) {
     if (switching) return
     if (planSwitch.tier === tier) return
+    if (planSwitch.tier === 'business') { void handleBusinessSwitch(tier, planName); return } // KINEO-TROCA-BUSINESS-2026-10-10: descida do Business
     if (typeof window !== 'undefined' && !window.confirm(planSwitchConfirmText(planSwitch, planName, monthlyUsd))) return
     setSwitching(tier)
     setSwitchNotice(null)
@@ -722,6 +738,11 @@ export default function PricingClient({ initialBilling = 'annual', characterLimi
   // directly to the GET checkout endpoint which does a server-side 302
   // redirect to Stripe. No fetch(), no await, no gesture breakage.
   function handleBuy(tier: BuyableTier, placement: 'card' | 'mobile_sticky' = 'card') {
+    // KINEO-TROCA-BUSINESS-2026-10-10 — quem já assina sobe para o Business pela TROCA (o checkout recusaria a 2ª assinatura).
+    if (planSwitch.subscribed && tier === 'business') {
+      void handleBusinessSwitch('business', 'Business')
+      return
+    }
     if (planSwitch.subscribed && (tier === 'starter' || tier === 'basic' || tier === 'pro')) {
       const plan = buildPricing(resolvedCurrency, resolvedRegion).find((p) => p.tier === tier)
       void handleSwitchPlan(tier, plan?.name ?? tier, plan?.price ?? '')
@@ -1742,8 +1763,9 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
           </p>
         )}
 
-        {/* KINEO-BUSINESS-84-2026-10-09 — o plano Business, EMBAIXO dos 3 cartões (que ficam intactos), antes dos créditos avulsos. */}
-        <PricingBusinessBlock onBuy={() => handleBuy('business')} pending={purchasing === 'business'} />
+        {/* KINEO-BUSINESS-84-2026-10-09 — o plano Business, EMBAIXO dos 3 cartões (que ficam intactos), antes dos créditos avulsos.
+            KINEO-TROCA-BUSINESS-2026-10-10 — quem já assina vê "Switch to Business" / "Current plan" e troca sem checkout. */}
+        <PricingBusinessBlock onBuy={() => handleBuy('business')} pending={purchasing === 'business'} switchLabel={switching === 'business' ? 'Switching…' : planSwitchLabel(planSwitch, 'business', 'Business')} switchNote={planSwitch.subscribed && planSwitch.tier !== 'business'} />
 
         {PRICING_SHOW_ADS_BLOCK ? <PricingAdsBlock /> : null}
         <PricingCreditsBlock />

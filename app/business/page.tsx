@@ -13,6 +13,9 @@
 //   · Componente de SERVIDOR, sem estado. O menu do topo e a home NÃO mudam (congelados pelo fundador): a página tem
 //     só a barra mínima do /pricing (marca + voltar).
 //   · "Make your first ad free" leva ao /ads (o fluxo da amostra grátis está sendo construído em outra branch).
+//   · KINEO-TROCA-BUSINESS-2026-10-10 — quem JÁ assina outro plano não compra uma 2ª assinatura nem escreve ao
+//     suporte: a linha embaixo do botão leva ao bloco Business do /pricing (BUSINESS_SWITCH_HREF), onde a troca
+//     self-serve mostra a diferença de preço e os créditos antes de confirmar.
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { KineoBrandIcon } from '@/components/KineoBolt'
@@ -28,6 +31,7 @@ import {
   BUSINESS_MONTHLY_CREDITS,
   BUSINESS_PAGE_PATH,
   BUSINESS_PRICE_LABEL,
+  BUSINESS_SWITCH_HREF, // KINEO-TROCA-BUSINESS-2026-10-10
 } from '@/lib/businessPlan'
 import { DFY_SERVICE_FACT } from '@/lib/growth/dfyServiceFacts'
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — a faixa dos estilos de produto (as prévias são feitas pelo próprio efeito).
@@ -184,6 +188,9 @@ export default function BusinessPage() {
               <div className="kbz-price">{BUSINESS_PRICE_LABEL}<small>/mo</small></div>
               <p className="kbz-fine">{BUSINESS_MONTHLY_CREDITS} credits a month · billed monthly · cancel anytime</p>
               <a className="kbz-btn kbz-primary" href={BUSINESS_CHECKOUT_HREF}>Get Business →</a>
+              <p className="kbz-fine" data-testid="business-switch-line">
+                Already on a Kineo plan? <a href={BUSINESS_SWITCH_HREF} style={{ color: 'var(--accent)', fontWeight: 700 }}>Switch to Business</a> — you pay only the price difference, no need to cancel.
+              </p>
             </div>
           </div>
         </section>
