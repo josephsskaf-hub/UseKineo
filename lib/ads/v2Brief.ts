@@ -12,7 +12,7 @@ import { buildAutoBriefMessages, parseAutoBrief } from '@/lib/ads/autoBrief'
 import { briefFactsText, contactOk, countWords, inventedClaims, inventedNumbers } from '@/lib/ads/scriptPrompt'
 import type { AdsBrief } from '@/lib/ads/types'
 import { ADS_V2_OVERLAY_MAX_CHARS, ADS_V2_SECTORS, isAdsV2Sector, type AdsV2Sector } from '@/lib/ads/v2ShotLists'
-import { lowerMidSentence, missingNames, simpleCommonNoun, simpleNames } from '@/lib/ads/v2Simple'
+import { lowerMidSentence, missingNames, simpleCommonNoun, simpleNames, simpleProductAd } from '@/lib/ads/v2Simple'
 
 export const ADS_V2_BRIEF_MODEL = 'gpt-4o-mini'
 /** Teto de planos (chamadas ao GPT) por pessoa em 24 h, contado pelo evento ads_v2_plan_served ANTES do modelo. */
@@ -46,6 +46,32 @@ export interface AdsV2SimpleVoice {
   commonNoun: string | null
 }
 export const ADS_V2_CUSTOMER_NAMES_KEY = 'customer_names'
+
+/**
+ * KINEO-ATOR-AJUSTES-2026-10-09 — QUEM fala e DO QUÊ. Canário 7112d56c (09/10, LUME eau de parfum, ator ligado): a voz saiu
+ * de loja ("At LUME, we offer a captivating selection of eau de parfum that elevates your fragrance experience…") — o modo
+ * simples não sabia que era um PRODUTO e o pedido de texto não sabia que uma PESSOA ia falar para a câmera.
+ *   · product: anúncio de produto físico (lib/ads/v2Simple.ts simpleProductAd) — a voz fala DO PRODUTO, nunca "de loja";
+ *   · presenter: o ator de IA (lib/ads/v2Presenter.ts) fala a narração segurando o produto — 1ª pessoa, tom de criador (UGC).
+ * Ausente = o pedido de texto e a régua de sempre, byte a byte (guardiões Z3 do modo simples/completo).
+ */
+export interface AdsV2AdVoice {
+  product: boolean
+  presenter: boolean
+}
+export const ADS_V2_PRODUCT_NARRATION_RULE =
+  'narration: this is a PRODUCT ad. Talk about the product itself, not about a shop: what it is, its main benefit, one sensory detail (how it looks, feels, smells or tastes — only what the brief says or what is plain from the product), and a short call to action. Speak directly to the viewer. Never sound like a store: never "At <brand>, we offer", "a selection of", "our store", "our collection" or "visit us".'
+export const ADS_V2_PRESENTER_NARRATION_RULE =
+  'narration: a real person says it on camera while holding the product, like a creator\'s video (UGC). Write it in the FIRST PERSON, as that person talking naturally to the camera: short, casual sentences, in the spirit of "Okay, I have to tell you about…" (written in the ad\'s language). Not an announcer, never "we offer". Keep within the word count above.'
+export const ADS_V2_SHOP_TALK_WHY = 'narration: this is a product ad — talk about the product itself (what it is, the benefit, how it feels), not like a shop ("we offer", "a selection of", "our store", "visit us").'
+/** Fala de LOJA num anúncio de produto (en/pt/es): "At LUME, we offer…", "a selection of", "our store", "visit us". */
+export const ADS_V2_AT_BRAND_WE = /(?<![\p{L}\p{N}])[Aa]t \p{Lu}[\p{L}\p{N}&'’.-]*(?: \p{Lu}[\p{L}\p{N}&'’.-]*)*,? [Ww]e(?![\p{L}\p{N}])/u
+export const ADS_V2_SHOP_TALK = /(?<![\p{L}\p{N}])(we offer|we carry|we have a (?:wide |great |curated )?(?:selection|range|collection)|(?:a|our) (?:wide |great |curated |captivating )?selection of|our (?:store|shop|boutique|collection)|visit (?:us|our)|n[oó]s oferecemos|oferecemos|nossa loja|temos uma (?:sele[cç][aã]o|variedade|linha)|uma sele[cç][aã]o de|visite (?:a )?nossa|ofrecemos|nuestra tienda|una selecci[oó]n de|vis[ií]tanos)(?![\p{L}\p{N}])/iu
+/** Pura: a narração fala como loja? ("At LUME, we…" com a marca em maiúscula, ou qualquer frase de vitrine acima). */
+export function isShopTalk(text: string): boolean {
+  const t = String(text ?? '')
+  return ADS_V2_AT_BRAND_WE.test(t) || ADS_V2_SHOP_TALK.test(t)
+}
 export function simpleVoiceFor(brief: Pick<AdsBrief, 'business'>, sentence: string, language: string): AdsV2SimpleVoice {
   return { names: simpleNames(sentence), commonNoun: simpleCommonNoun(brandName(brief), sentence, language) }
 }
@@ -64,7 +90,7 @@ const DECOR = /[[\]{}#*_]|[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]/u
  * KINEO-ADS-MODO-SIMPLES-2026-09-29 — opts.overlays === false (modo simples, "sem frases na tela"): o pedido manda
  * devolver overlays: [] e some a regra da marca. overlays ausente = o texto de sempre, byte a byte (guardião Z3).
  */
-export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts: { maxWords: number; narration: boolean; overlays?: boolean; simple?: AdsV2SimpleVoice }): { system: string; user: string } {
+export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts: { maxWords: number; narration: boolean; overlays?: boolean; simple?: AdsV2SimpleVoice; ad?: AdsV2AdVoice }): { system: string; user: string } {
   const brand = brandName(brief)
   const noOverlays = opts.overlays === false
   const voice = opts.simple
@@ -87,6 +113,9 @@ export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts:
           'narration: be concrete, in the customer\'s own words — what it is, where it is, and for sale or for rent if the customer said so. No empty filler such as "great opportunities" or "come and check out the opportunities".',
         ]
       : []),
+    // KINEO-ATOR-AJUSTES-2026-10-09 — produto fala do produto; com o ator, 1ª pessoa para a câmera. Sem `ad` = nenhuma linha.
+    ...(opts.ad?.product && opts.narration ? [ADS_V2_PRODUCT_NARRATION_RULE] : []),
+    ...(opts.ad?.presenter && opts.narration ? [ADS_V2_PRESENTER_NARRATION_RULE] : []),
     ...(noOverlays
       ? ['overlays: return [] (the customer turned the on-screen phrases off).']
       : [
@@ -161,7 +190,7 @@ export function textIssues(text: string, brief: AdsBrief, label: string): string
 }
 
 /** Valida a resposta do modelo. Pura; nunca lança. */
-export function checkV2Copy(raw: string, brief: AdsBrief, opts: { maxWords: number; narration: boolean; overlays?: boolean; simple?: AdsV2SimpleVoice }): { ok: true; copy: AdsV2Copy } | { ok: false; why: string[] } {
+export function checkV2Copy(raw: string, brief: AdsBrief, opts: { maxWords: number; narration: boolean; overlays?: boolean; simple?: AdsV2SimpleVoice; ad?: AdsV2AdVoice }): { ok: true; copy: AdsV2Copy } | { ok: false; why: string[] } {
   let p: Record<string, unknown>
   try {
     const j = JSON.parse(raw)
@@ -184,6 +213,8 @@ export function checkV2Copy(raw: string, brief: AdsBrief, opts: { maxWords: numb
     const min = Math.ceil(opts.maxWords * 0.5)
     if (words < min || words > opts.maxWords) why.push(`narration: write ${min} to ${opts.maxWords} words (you wrote ${words}).`)
     if (DECOR.test(narration)) why.push('narration: no brackets, markdown or emojis.')
+    // KINEO-ATOR-AJUSTES-2026-10-09 — anúncio de produto não fala como loja ("At LUME, we offer a selection of…").
+    if (opts.ad?.product && isShopTalk(narration)) why.push(ADS_V2_SHOP_TALK_WHY)
     why.push(...textIssues(narration, brief, 'narration'))
   }
   // Modo simples com as frases desligadas: o que o modelo mandar em overlays é IGNORADO (nenhuma frase na tela).
@@ -234,7 +265,7 @@ async function callJson(messages: { role: 'system' | 'user' | 'assistant'; conte
 }
 
 export type AdsV2BriefResult =
-  | { ok: true; brief: AdsBrief; copy: AdsV2Copy; dropped: string[]; attempts: number; voice?: AdsV2SimpleVoice & { namesMissing: string[] } }
+  | { ok: true; brief: AdsBrief; copy: AdsV2Copy; dropped: string[]; attempts: number; voice?: AdsV2SimpleVoice & { namesMissing: string[] }; ad?: AdsV2AdVoice }
   | { ok: false; stage: 'brief' | 'copy'; why: string[]; attempts: number }
 
 /** Fatos públicos escolhidos (modo simples) entram no brief como extra.public_fact_N: o texto os enxerga e a régua
@@ -261,6 +292,10 @@ export async function extractAdsV2Brief(args: {
   /** Modo simples: a frase EXATA que a pessoa escreveu (sem as linhas de preço/contato). Dela saem os nomes que a narração
    *  cita e se o "nome" do brief é substantivo comum. Ausente = como sempre (modo completo intocado). */
   sentence?: string
+  /** KINEO-ATOR-AJUSTES-2026-10-09 — modo simples: alguma foto marcada como produto (com a frase, decide se o anúncio é de
+   *  PRODUTO — simpleProductAd); e o ATOR fala a narração. Ausentes = como sempre. */
+  productPhoto?: boolean
+  presenter?: boolean
 }): Promise<AdsV2BriefResult> {
   const briefMsgs = buildAutoBriefMessages(args.text, args.languageName)
   const briefRaw = await callJson([{ role: 'system', content: briefMsgs.system }, { role: 'user', content: briefMsgs.user }], 0.2, 900)
@@ -270,7 +305,11 @@ export async function extractAdsV2Brief(args: {
   const voice = typeof args.sentence === 'string' ? simpleVoiceFor(parsed.brief, args.sentence, args.language) : null
   const brief = withCustomerNames(withPublicFacts(parsed.brief, args.facts), voice?.names ?? [])
   const base0 = args.overlays === false ? { maxWords: args.maxWords, narration: args.narration, overlays: false } : { maxWords: args.maxWords, narration: args.narration }
-  const opts = voice ? { ...base0, simple: voice } : base0
+  const base1 = voice ? { ...base0, simple: voice } : base0
+  // KINEO-ATOR-AJUSTES-2026-10-09 — produto e/ou ator: o pedido de texto ganha as regras de quem fala e do quê.
+  const productAd = typeof args.sentence === 'string' && simpleProductAd(args.sentence, args.productPhoto === true)
+  const ad: AdsV2AdVoice | null = productAd || args.presenter === true ? { product: productAd, presenter: args.presenter === true } : null
+  const opts: typeof base1 & { ad?: AdsV2AdVoice } = ad ? { ...base1, ad } : base1
   const copyMsgs = buildV2CopyMessages(brief, args.languageName, opts)
   const base = [{ role: 'system' as const, content: copyMsgs.system }, { role: 'user' as const, content: copyMsgs.user }]
   let raw = await callJson(base, 0.6, 700)
@@ -289,14 +328,19 @@ export async function extractAdsV2Brief(args: {
   }
   // Os nomes são acabamento, não honestidade: se a 2ª resposta só deixou de citar algum nome (e passa em TODO o resto —
   // número, fama, contato, tamanho), ela é aceita e o que faltou vai para o evento. Nunca um 502 por causa de um nome.
+  // KINEO-ATOR-AJUSTES-2026-10-09 — a fala de loja num anúncio de produto também é acabamento (o pedido e 1 correção já a
+  // recusaram): nunca um 502 por causa do tom.
   let namesMissing: string[] = []
-  if (!checked.ok && voice && voice.names.length) {
-    const relaxed = checkV2Copy(raw, brief, { ...opts, simple: { ...voice, names: [] } })
+  const relaxNames = !!voice && voice.names.length > 0
+  const relaxShop = opts.ad?.product === true
+  if (!checked.ok && (relaxNames || relaxShop)) {
+    const relaxedOpts = { ...opts, ...(voice ? { simple: { ...voice, names: [] } } : {}), ...(opts.ad ? { ad: { ...opts.ad, product: false } } : {}) }
+    const relaxed = checkV2Copy(raw, brief, relaxedOpts)
     if (relaxed.ok) {
-      namesMissing = missingNames(relaxed.copy.narration ?? '', voice.names)
+      namesMissing = voice ? missingNames(relaxed.copy.narration ?? '', voice.names) : []
       checked = relaxed
     }
   }
   if (!checked.ok) return { ok: false, stage: 'copy', why: checked.why.slice(0, 6), attempts }
-  return { ok: true, brief, copy: checked.copy, dropped: parsed.dropped, attempts, ...(voice ? { voice: { ...voice, namesMissing } } : {}) }
+  return { ok: true, brief, copy: checked.copy, dropped: parsed.dropped, attempts, ...(voice ? { voice: { ...voice, namesMissing } } : {}), ...(ad ? { ad } : {}) }
 }

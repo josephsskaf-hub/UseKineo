@@ -146,6 +146,11 @@ export async function POST(req: NextRequest) {
       narration: order.narration,
       // KINEO-ADS-SIMPLES-ACABAMENTO-2026-09-29 — a frase exata (sem preço/contato): dela saem os nomes que a narração cita.
       ...(simple ? { overlays: overlaysOn, facts: factTexts, sentence: typeof brief0.sentence === 'string' ? brief0.sentence.trim() : '' } : {}),
+      // KINEO-ATOR-AJUSTES-2026-10-09 — canário 7112d56c ("LUME eau de parfum…", ator ligado) saiu com voz de LOJA ("At LUME,
+      // we offer a captivating selection…"). Modo simples: há foto marcada como produto? (a extração decide se é anúncio de
+      // produto pela frase — simpleProductAd). Ator pedido = a narração é a fala dele, em 1ª pessoa. Ausentes = como sempre.
+      ...(simple ? { productPhoto: photos.some((ph) => ph.kind === 'product') } : {}),
+      ...(presenterAsked ? { presenter: true } : {}),
     })
     const modeTag = { mode: simple ? 'simple' : 'full', facts_selected: factTexts.length, overlays: overlaysOn }
     const served = async (ok: boolean, extra: Record<string, unknown>) =>
@@ -209,7 +214,7 @@ export async function POST(req: NextRequest) {
       .select('id, card_url')
       .maybeSingle()
     if (upd.error || !upd.data) return v2Fail('not_editable', 409)
-    await served(true, { sector, shots: plan.shots.length, text_shots: plan.shots.filter((s) => s.kind === 'text').length, video_shots: plan.shots.filter((s) => s.kind === 'user_video').length, scenes: plan.shots.filter((s) => s.source === 'generated_scene').length, credits, usd: usd.totalUsd, attempts: extracted.attempts, sector_hint: extracted.copy.sectorHint, style_asked: styleAsked, style: plan.style ?? null, presenter_asked: presenterAsked, presenter: !!presenter, ...(extracted.voice ? { names_required: extracted.voice.names.length, names_missing: extracted.voice.namesMissing.length, common_noun: extracted.voice.commonNoun !== null } : {}) })
+    await served(true, { sector, shots: plan.shots.length, text_shots: plan.shots.filter((s) => s.kind === 'text').length, video_shots: plan.shots.filter((s) => s.kind === 'user_video').length, scenes: plan.shots.filter((s) => s.source === 'generated_scene').length, credits, usd: usd.totalUsd, attempts: extracted.attempts, sector_hint: extracted.copy.sectorHint, style_asked: styleAsked, style: plan.style ?? null, presenter_asked: presenterAsked, presenter: !!presenter, product_ad: extracted.ad?.product === true, ...(extracted.voice ? { names_required: extracted.voice.names.length, names_missing: extracted.voice.namesMissing.length, common_noun: extracted.voice.commonNoun !== null } : {}) })
     return v2Json({
       order_id: order.id,
       status: 'planned',

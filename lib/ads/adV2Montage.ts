@@ -336,6 +336,18 @@ export const ADS_V2_PRESENTER_INSERT_MAX = 2.5
 export const ADS_V2_PRESENTER_MIN_SECONDS = 3
 /** Música sob a fala do ator (a voz do vídeo do avatar chega mais baixa que a TTS pura). */
 export const ADS_V2_MUSIC_VOLUME_PRESENTER = '18%'
+/**
+ * KINEO-ATOR-AJUSTES-2026-10-09 — frases com ATOR moram no TERÇO DE BAIXO. Canário 7112d56c (09/10): com a caixa de sempre
+ * (centro 45%, terço do meio) "LUME - eau de parfum" / "Captivating fragrance selection" saíram EM CIMA DOS OLHOS da pessoa —
+ * no anúncio com ator o rosto ocupa o terço do meio. Caixa com centro em 77% e a mesma altura (18%): de 68% a 86%, acima dos
+ * ~12% de baixo que a interface do TikTok/Reels cobre. O texto encosta no topo da caixa (como no anúncio de sempre): a 1ª
+ * linha nasce em ~68-70%. Mesmo estilo (fonte, pílula, contorno). Sem ator, a caixa de sempre (ADS_V2_OVERLAY_Y) — intocada.
+ */
+export const ADS_V2_PRESENTER_OVERLAY_Y = 0.77
+/** Faixa de baixo que a interface das redes cobre: nada das frases do ator abaixo disto. */
+export const ADS_V2_PRESENTER_SAFE_BOTTOM = 0.88
+/** Começo do terço de baixo: a caixa das frases do ator nunca sobe acima disto (o rosto mora acima). */
+export const ADS_V2_PRESENTER_LOWER_THIRD = 2 / 3
 /** Trilhas: o ator na trilha dos planos (2); inserts na trilha do cartão (3) — nunca se cruzam no tempo. */
 export const ADS_V2_PRESENTER_TRACK = 2
 export const ADS_V2_PRESENTER_INSERT_TRACK = 3
@@ -418,7 +430,11 @@ function buildAdV2PresenterSource(input: AdV2MontageInput, presenter: AdV2Presen
       volume: '0%',
     })
   }
-  // Cartão final (logo real), no fim da fala.
+  // Cartão final (logo real), no fim da fala, e até o ÚLTIMO quadro: time main + cardSeconds = total (duração do source).
+  // KINEO-ATOR-AJUSTES-2026-10-09 — o "1 s preto no fim" do canário 7112d56c NÃO estava no vídeo: medido no MP4 entregue
+  // (ffprobe/signalstats), os 348 quadros de 14,5 s terminam no cartão (o último, 14,458 s, tem a mesma luma do cartão).
+  // O quadrado preto era o 16º da grade 2×8 feita a 1 quadro/s — 14,5 s dão 15 quadros e o filtro tile completa com preto.
+  // O guardião scripts/test-ads-ator-ajustes-2026-10-09.mjs trava fim do cartão = fim da composição nas DUAS montagens.
   elements.push({
     type: 'image', track: 3, time: main, duration: r3(cardSeconds),
     source: input.cardUrl.trim(), fit: 'cover',
@@ -451,7 +467,8 @@ function buildAdV2PresenterSource(input: AdV2MontageInput, presenter: AdV2Presen
     elements.push({
       type: 'text', track: 4, time: start, duration: r3(end - start),
       text,
-      x: '50%', y: pct(ADS_V2_OVERLAY_Y), x_anchor: '50%', y_anchor: '50%',
+      // KINEO-ATOR-AJUSTES-2026-10-09 — terço de baixo (o rosto do ator mora no terço do meio).
+      x: '50%', y: pct(ADS_V2_PRESENTER_OVERLAY_Y), x_anchor: '50%', y_anchor: '50%',
       width: '84%', height: pct(ADS_V2_OVERLAY_H),
       font_family: fontFamily, font_size: 64, font_weight: '800', line_height: '110%',
       fill_color: '#ffffff', stroke_color: 'rgba(0,0,0,0.55)', stroke_width: 2,

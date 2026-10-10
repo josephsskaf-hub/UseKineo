@@ -58,6 +58,15 @@ export function defaultPhotoKind(sector: AdsV2SimpleSector): AdsV2SimplePhotoKin
 }
 
 // ── o que a pessoa escreveu ─────────────────────────────────────────────────────────────────────────────────────────
+// KINEO-ATOR-AJUSTES-2026-10-09 — canário 7112d56c (09/10): "LUME eau de parfum, a light floral scent that lasts all day"
+// não batia em regra nenhuma, virou 'other', o palpite do modelo virou loja e a voz saiu de LOJA ("At LUME, we offer a
+// captivating selection of eau de parfum…"). Nomes de PRODUTO físico (en/pt/es): perfume, sérum, creme, garrafa, bebida,
+// snack, tênis, fone, relógio, bolsa… Frase com um deles (e sem palavra de loja) é anúncio de PRODUTO. "watch" depois de
+// "to/come/and" é verbo ("come watch the game"), não relógio; "aulas de tênis" é esporte, não calçado.
+export const ADS_V2_PRODUCT_WORDS = /(?<![\p{L}\p{N}])(perfumes?|parfums?|eau de (parfum|toilette|cologne)|colognes?|fragrances?|fragr[aâ]ncias?|fragancias?|col[oô]nias?|serums?|s[eé]runs?|s[eé]rum|cremes?|creams?|cremas?|lotions?|lo[cç][aã]o|lo[cç][oõ]es|lociones?|hidratantes?|moisturi[sz]ers?|skincare|skin care|batons?|lipsticks?|labiales?|maquiagem|makeup|maquillaje|shampoos?|xampus?|condicionador(es)?|conditioners?|sabonetes?|soaps?|jabones?|velas? arom[aá]ticas?|candles?|garrafas?|bottles?|botellas?|tumblers?|canecas?|mugs?|energy drinks?|drink mix|bebida|bebidas energ[eé]ticas?|sucos? de|juices?|jugos?|kombuchas?|refrigerantes?|sodas?|snack|healthy snacks|protein bars?|barras? de prote[ií]na|barrinhas?|chocolates?|biscoitos?|cookies?|galletas?|granolas?|suplementos?|supplements?|whey|(?<!(?:aulas? de|clube de|quadras? de|escola de|escolinha de|jogar|partida de) )t[eê]nis|sneakers?|zapatillas?|sapatos?|shoes?|zapatos?|sand[aá]lias?|sandals?|botas?|boots?|fones?( de ouvido)?|headphones?|earbuds?|auriculares?|aud[ií]fonos?|rel[oó]gios?|(?<!(?:to|come|and|can|let's|we) )watch(es)?|smartwatch(es)?|wristwatch(es)?|bolsas?(?! de estudos?)|handbags?|bags?|backpacks?|mochilas?|carteiras?|wallets?|[oó]culos de sol|sunglasses|gafas de sol|joias?|j[oó]ias?|jewel(le)?ry|joyas?|colares?|necklaces?|brincos?|earrings?|pulseiras?|bracelets?|caixas? de som|speakers?|gadgets?|capinhas?|phone cases?)(?![\p{L}\p{N}])/iu
+/** Palavra de LOJA: "loja de perfumes" é a loja falando (a voz de loja ali é certa), não o produto sozinho. */
+const SHOP_WORDS = /(?<![\p{L}\p{N}])(lojas?|stores?|shops?|boutiques?|tiendas?|e-?commerce|marketplace|perfumarias?|perfumer[ií]as?|drogarias?|farm[aá]cias?)(?![\p{L}\p{N}])/iu
+
 // Palavras-chave pt/en/es; imóvel é conferido ANTES dos outros ("loja à venda" é imóvel, não loja).
 // Fronteira de palavra Unicode por lookaround (\b não vê letra acentuada).
 const SECTOR_RULES: readonly [AdsV2SimpleSector, RegExp][] = [
@@ -66,6 +75,10 @@ const SECTOR_RULES: readonly [AdsV2SimpleSector, RegExp][] = [
   ['clinic', /(?<![\p{L}\p{N}])(cl[ií]nicas?|clinics?|consult[oó]rios?|consultorios?|dentistas?|dentists?|m[eé]dic[oa]s?|doctors?|fisioterapia|psic[oó]log[oa]s?|odontologia|veterin[aá]ri[oa])(?![\p{L}\p{N}])/iu],
   ['gym', /(?<![\p{L}\p{N}])(academias?|gyms?|crossfit|pilates|yoga|ioga|muscula[cç][aã]o|gimnasios?|fitness)(?![\p{L}\p{N}])/iu],
   ['salon', /(?<![\p{L}\p{N}])(sal[aã]o de beleza|barbearias?|barbers?|barber shop|cabeleireir[oa]s?|manicure|nail|nails|hair salon|beauty salon|peluquer[ií]as?|barber[ií]as?|est[eé]tica)(?![\p{L}\p{N}])/iu],
+  // KINEO-ATOR-AJUSTES-2026-10-09 — produto físico ("LUME eau de parfum, a light floral scent…") é anúncio de PRODUTO: o
+  // setor vira 'store' (fotos marcadas como produto). Vem DEPOIS de imóvel/restaurante/clínica/academia/salão: "loja à venda"
+  // segue imóvel e "Clínica X — sérum" segue clínica.
+  ['store', ADS_V2_PRODUCT_WORDS],
   ['store', /(?<![\p{L}\p{N}])(lojas?|stores?|shops?|boutiques?|roupas|clothes|tiendas?|produtos?|products?|e-?commerce)(?![\p{L}\p{N}])/iu],
   ['app_service', /(?<![\p{L}\p{N}])(app|apps|aplicativos?|software|saas|plataformas?|platforms?|curso online|online course|aplicaci[oó]n)(?![\p{L}\p{N}])/iu],
 ]
@@ -75,6 +88,26 @@ export function inferSector(text: string): AdsV2SimpleSector {
   const t = String(text ?? '')
   for (const [sector, re] of SECTOR_RULES) if (re.test(t)) return sector
   return 'other'
+}
+
+/**
+ * KINEO-ATOR-AJUSTES-2026-10-09 — a frase anuncia um PRODUTO físico (perfume, sérum, tênis, fone, relógio, bolsa…), não
+ * um lugar/serviço nem uma loja: as palavras deram 'store', a frase nomeia um produto e não há palavra de loja. Imóvel
+ * ("Loja à venda no Edifício Aurora"), restaurante, clínica, academia e salão decidem antes e nunca viram produto. Pura.
+ */
+export function isProductSentence(text: string): boolean {
+  const t = String(text ?? '')
+  return inferSector(t) === 'store' && ADS_V2_PRODUCT_WORDS.test(t) && !SHOP_WORDS.test(t)
+}
+
+/**
+ * Anúncio de produto no modo simples: a frase nomeia o produto (isProductSentence) OU as palavras não reconheceram nada
+ * ('other' — "marca + produto" que a lista não conhece) e a pessoa marcou uma foto como PRODUTO (estilo de produto ou o
+ * ator segurando o produto). Lugar/serviço reconhecido nunca vira produto. Pura.
+ */
+export function simpleProductAd(sentence: string, hasProductPhoto: boolean): boolean {
+  if (isProductSentence(sentence)) return true
+  return hasProductPhoto === true && inferSector(sentence) === 'other'
 }
 
 /** Título curto do cartão final: a 1ª oração (até vírgula, ponto, travessão ou quebra), no máximo 40 caracteres. */
