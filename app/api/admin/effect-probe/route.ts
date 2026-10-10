@@ -29,6 +29,21 @@ const PROBES: Record<string, { model: string; input: (image: string) => Record<s
   giant_product: { model: PIXVERSE, input: (image) => ({ effect: 'Giant Product', image_url: image, resolution: '720p', duration: '5' }) },
   mechanical_assembly: { model: PIXVERSE, input: (image) => ({ effect: 'Mechanical Assembly', image_url: image, resolution: '720p', duration: '5' }) },
   ocean_ad: { model: PIXVERSE, input: (image) => ({ effect: 'Ocean ad', image_url: image, resolution: '720p', duration: '5' }) }, // KINEO-SONDA-EFEITOS-2026-10-09 — alternativa ao splash do Kling
+  // KINEO-SONDA-MAIS-ESTILOS-2026-10-10 — fundador (10/10): "precisamos colocar mais estilos… só tem 5". A linha "AD" da PixVerse
+  // (mesmo endpoint e preço dos 5 que já estão no anúncio) entra na sonda para o teste real antes de virar estilo.
+  naked_eye_3d_ad: { model: PIXVERSE, input: (image) => ({ effect: '3D Naked-Eye AD', image_url: image, resolution: '720p', duration: '5' }) },
+  beach_ad: { model: PIXVERSE, input: (image) => ({ effect: 'Beach AD', image_url: image, resolution: '720p', duration: '5' }) },
+  lighting_ad: { model: PIXVERSE, input: (image) => ({ effect: 'Lighting AD', image_url: image, resolution: '720p', duration: '5' }) },
+  supermarket_ad: { model: PIXVERSE, input: (image) => ({ effect: 'Supermarket AD', image_url: image, resolution: '720p', duration: '5' }) },
+  poster_ad: { model: PIXVERSE, input: (image) => ({ effect: 'Poster AD', image_url: image, resolution: '720p', duration: '5' }) },
+  graffiti_ad: { model: PIXVERSE, input: (image) => ({ effect: 'Graffiti AD', image_url: image, resolution: '720p', duration: '5' }) },
+  truck_ad: { model: PIXVERSE, input: (image) => ({ effect: 'Truck AD', image_url: image, resolution: '720p', duration: '5' }) },
+  shoal_surround: { model: PIXVERSE, input: (image) => ({ effect: 'Shoal Surround', image_url: image, resolution: '720p', duration: '5' }) },
+  dreamlike_cloud: { model: PIXVERSE, input: (image) => ({ effect: 'Dreamlike Cloud', image_url: image, resolution: '720p', duration: '5' }) },
+  parachute_delivery: { model: PIXVERSE, input: (image) => ({ effect: 'Parachute Delivery', image_url: image, resolution: '720p', duration: '5' }) },
+  dishes_served: { model: PIXVERSE, input: (image) => ({ effect: 'Dishes Served', image_url: image, resolution: '720p', duration: '5' }) },
+  microwave: { model: PIXVERSE, input: (image) => ({ effect: 'Microwave', image_url: image, resolution: '720p', duration: '5' }) },
+  bullet_time_360: { model: KLING, input: (image) => ({ effect_scene: 'bullet_time_360', input_image_urls: [image], duration: '5' }) },
   product_closeup: { model: PIXVERSE, input: (image) => ({ effect: 'Product close-up', image_url: image, resolution: '720p', duration: '5' }) },
   splash: { model: KLING, input: (image) => ({ effect_scene: 'splashsplash', input_image_urls: [image], duration: '5' }) },
   product_up: { model: VIDU, input: (image) => ({ template: 'creatice_product_up', input_image_urls: [image], aspect_ratio: '9:16' }) },
