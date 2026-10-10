@@ -7,6 +7,7 @@
 // quarentena, como no /api/footage) e cota. Devolve a frase sugerida, o host e as fotos {footage_id, url}: a tela baixa
 // cada uma do NOSSO bucket, recorta em 9:16 e sobe pelo caminho de sempre (/api/footage), então o /plan confere dono e tipo
 // como em qualquer foto.
+// KINEO-EQUIPE-BUSINESS-2026-10-10 — membro da equipe Business: a pasta, a cota e o teto do dia são os do DONO do workspace (uid).
 //
 // O QUE ESTA ROTA NUNCA FAZ: criar ou mexer em pedido (ads_v2_orders), cobrar crédito, chamar a fal. Link sem foto não
 // vira pedido: o /plan continua exigindo pelo menos 1 foto (ADS_V2_CONTRACT_MIN_PHOTOS).
@@ -43,9 +44,10 @@ export async function POST(req: NextRequest) {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return v2Fail('unauthenticated', 401)
-    const { admin, reason } = await loadAdsAccess(user.id, user.email)
+    const { admin, reason, ...ws } = await loadAdsAccess(user.id, user.email, { workspace: true })
+    const uid: string = ws.ownerId ?? user.id // KINEO-EQUIPE-BUSINESS-2026-10-10 — workspace: membro do Business age na conta do DONO (stub/chamador antigo = pessoal)
     const gate = adsGate(reason)
-    const sample = gate === 'no_access' && await adsSampleOpen(admin, user.id, reason)
+    const sample = gate === 'no_access' && await adsSampleOpen(admin, uid, reason)
     if (gate !== 'ok' && !sample) {
       await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: PATH, metadata: { reason: gate } })
       return v2Fail(gate === 'closed' ? 'closed' : 'no_access', 403)
@@ -57,14 +59,14 @@ export async function POST(req: NextRequest) {
 
     // Teto diário ANTES da rede (a amostra tem o menor). Leitura que falha = fechado.
     const since = new Date(Date.now() - 24 * 3600_000).toISOString()
-    const capRead = await admin.from('events').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('name', ADS_V2_LINK_EVENT).gte('created_at', since)
+    const capRead = await admin.from('events').select('id', { count: 'exact', head: true }).eq('user_id', uid).eq('name', ADS_V2_LINK_EVENT).gte('created_at', since)
     if (capRead.error || typeof capRead.count !== 'number' || capRead.count >= adsV2LinkDailyCap(sample)) return v2Fail('daily_limit', 429)
     const logRead = (metadata: Record<string, unknown>) =>
-      writeServerEvent({ name: ADS_V2_LINK_EVENT, userId: user.id, path: PATH, metadata: { v2: true, mode: 'simple', sample, ms: Date.now() - started, ...metadata } })
+      writeServerEvent({ name: ADS_V2_LINK_EVENT, userId: uid, path: PATH, metadata: { v2: true, mode: 'simple', sample, ms: Date.now() - started, ...metadata } })
 
     // Cota: a da amostra (fotos só, poucas) ou a de quem paga — o que sobra é o teto de bytes das fotos baixadas.
     const quota = gate === 'ok' ? FOOTAGE_QUOTA_PAID : ADS_SAMPLE_FOOTAGE_MAX_BYTES
-    const room = Math.max(0, quota - (await totalFootageBytes(user.id)))
+    const room = Math.max(0, quota - (await totalFootageBytes(uid)))
 
     const read = await adsV2LinkImport(parsed.value.url, { roomBytes: room }).catch(() => null)
     if (!read) {
@@ -85,7 +87,7 @@ export async function POST(req: NextRequest) {
     if (read.images.length) await ensureFootageBucket(admin)
     for (let i = 0; i < read.images.length; i++) {
       const im = read.images[i]
-      const path = `${user.id}/clip-${Date.now()}-link${i}.${im.ext}`
+      const path = `${uid}/clip-${Date.now()}-link${i}.${im.ext}`
       const up = await admin.storage.from(USER_FOOTAGE_BUCKET).upload(path, im.bytes, { contentType: im.ext === 'png' ? 'image/png' : 'image/jpeg', upsert: false })
       if (up.error) { skipped++; continue }
       const url = `${FOOTAGE_PUBLIC_PREFIX()}${path}`
@@ -97,7 +99,7 @@ export async function POST(req: NextRequest) {
         skipped++
         continue
       }
-      const row = await admin.from('user_footage').insert({ user_id: user.id, url, kind: 'image', size_bytes: im.bytes.byteLength }).select('id, url').maybeSingle()
+      const row = await admin.from('user_footage').insert({ user_id: uid, url, kind: 'image', size_bytes: im.bytes.byteLength, ...(ws.role === 'member' ? { created_by: user.id } : {}) }).select('id, url').maybeSingle()
       if (row.error || !row.data) { skipped++; continue }
       images.push({ footage_id: String((row.data as { id: string }).id), url: String((row.data as { url: string }).url) })
     }

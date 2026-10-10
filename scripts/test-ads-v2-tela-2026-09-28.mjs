@@ -248,7 +248,8 @@ check('T8 foco visível e sem rolagem lateral a 400 px: minmax(0,…), min-width
 // ── P. PATCH do pedido (narração e cartão) ──────────────────────────────────────────────────────
 const patch = bloco(orders, 'export async function PATCH(')
 check('P1 PATCH: login → acesso ao Ads → v2 → corpo sanitizado → só rascunho/planejado (UPDATE condicional)', ordem(patch, "v2Fail('unauthenticated', 401)", 'adsGate(reason)', "if (!adsV2Visible(user.email)) return v2Fail('v2_closed', 403)", 'sanitizePatchBody(', ".in('status', ['draft', 'planned'])"))
-check('P2 PATCH: religar narração sem texto no plano = replan_needed; cartão só PNG do dono', /v2Fail\('replan_needed', 409\)/.test(patch) && /ownedFootage\(admin, user\.id, \[p\.card_footage_id\]\)/.test(patch) && /if \(!card\?\.isPng\) return v2Fail\('card_invalid', 400\)/.test(patch))
+// KINEO-EQUIPE-BUSINESS-2026-10-10 — re-ancorado: o "dono" é o do workspace (uid = ws.ownerId; sem equipe, o próprio user.id).
+check('P2 PATCH: religar narração sem texto no plano = replan_needed; cartão só PNG do dono', /v2Fail\('replan_needed', 409\)/.test(patch) && /ownedFootage\(admin, uid, \[p\.card_footage_id\]\)/.test(patch) && /if \(!card\?\.isPng\) return v2Fail\('card_invalid', 400\)/.test(patch))
 check('P3 sanitizePatchBody: exige order_id uuid e pelo menos um campo; tipos conferidos', () => {
   const U = '11111111-2222-4333-8444-555555555555'
   return CT.sanitizePatchBody({ order_id: U }).error === 'nothing_to_change' && CT.sanitizePatchBody({ order_id: 'x', narration: true }).error === 'bad_order_id' &&

@@ -40,9 +40,10 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return v2Fail('unauthenticated', 401)
     if (!process.env.OPENAI_API_KEY) return v2Fail('unavailable', 503)
-    const { admin, reason } = await loadAdsAccess(user.id, user.email)
+    const { admin, reason, ...ws } = await loadAdsAccess(user.id, user.email, { workspace: true })
+    const uid: string = ws.ownerId ?? user.id // KINEO-EQUIPE-BUSINESS-2026-10-10 — workspace: membro do Business age na conta do DONO (stub/chamador antigo = pessoal)
     const gate = adsGate(reason)
-    const sample = gate === 'no_access' && await adsSampleOpen(admin, user.id, reason) // KINEO-ADS-AMOSTRA-2026-10-09
+    const sample = gate === 'no_access' && await adsSampleOpen(admin, uid, reason) // KINEO-ADS-AMOSTRA-2026-10-09
     if (gate !== 'ok' && !sample) {
       await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/api/ads/v2/plan', metadata: { reason: gate } })
       return v2Fail(gate === 'closed' ? 'closed' : 'no_access', 403)
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
     const input = parsed.value
     const cardId = assets.value.card_footage_id
 
-    const { order, error } = await loadAdsV2Order(admin, input.order_id, user.id)
+    const { order, error } = await loadAdsV2Order(admin, input.order_id, uid)
     if (error) return isMissingAdsTable(error.code) ? v2Fail('not_ready', 503) : v2Fail('plan_failed', 502)
     if (!order) return v2Fail('order_not_found', 404)
     if (order.status !== 'draft' && order.status !== 'planned') return v2Fail('not_editable', 409)
@@ -81,7 +82,7 @@ export async function POST(req: NextRequest) {
 
     // Cada arquivo conferido no user_footage DO DONO; a URL usada é a do banco. Logo só se veio (modo simples: opcional).
     const videosIn = input.videos ?? []
-    const own = await ownedFootage(admin, user.id, [...(input.logo_footage_id ? [input.logo_footage_id] : []), ...(cardId ? [cardId] : []), ...input.photos.map((p) => p.footage_id), ...videosIn.map((v) => v.footage_id)])
+    const own = await ownedFootage(admin, uid, [...(input.logo_footage_id ? [input.logo_footage_id] : []), ...(cardId ? [cardId] : []), ...input.photos.map((p) => p.footage_id), ...videosIn.map((v) => v.footage_id)])
     if (!own) return v2Fail('plan_failed', 502)
     if (input.logo_footage_id && !own.get(input.logo_footage_id)?.isImage) return v2Fail('logo_invalid', 400)
     if (cardId && !own.get(cardId)?.isPng) return v2Fail('card_invalid', 400)
@@ -93,7 +94,7 @@ export async function POST(req: NextRequest) {
 
     // Teto diário ANTES do modelo.
     const since = new Date(Date.now() - 24 * 3600_000).toISOString()
-    const cap = await admin.from('events').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('name', 'ads_v2_plan_served').gte('created_at', since)
+    const cap = await admin.from('events').select('id', { count: 'exact', head: true }).eq('user_id', uid).eq('name', 'ads_v2_plan_served').gte('created_at', since)
     if (!cap.error && (cap.count ?? 0) >= ADS_V2_PLAN_DAILY_CAP) return v2Fail('daily_limit', 429)
 
     // A duração que manda é a MEDIDA aqui (mvhd do arquivo no bucket), nunca a do navegador. Não mediu ou curto demais =
@@ -102,7 +103,7 @@ export async function POST(req: NextRequest) {
     // contava e um vídeo ilegível podia ser medido sem fim. Longo demais (> 10 min) = numeric(6,3) do banco estouraria.
     const videos: AdsV2Video[] = []
     const measureRefused = async (code: 'video_unreadable' | 'video_too_short' | 'video_too_long', footageId: string, seconds: number | null) => {
-      await writeServerEvent({ name: 'ads_v2_plan_served', userId: user.id, path: '/api/ads/v2/plan', metadata: { order_id: order.id, ok: false, stage: 'video_measure', why: code, seconds_measured: seconds, videos: videosIn.length, ms: Date.now() - started } })
+      await writeServerEvent({ name: 'ads_v2_plan_served', userId: uid, path: '/api/ads/v2/plan', metadata: { order_id: order.id, ok: false, stage: 'video_measure', why: code, seconds_measured: seconds, videos: videosIn.length, ms: Date.now() - started } })
       return v2Fail(code, 422, { footage_id: footageId })
     }
     for (const [i, measured] of (await Promise.all(videosIn.map((v) => measureFootageVideo(own.get(v.footage_id)!.url)))).entries()) {
@@ -164,7 +165,7 @@ export async function POST(req: NextRequest) {
     })
     const modeTag = { mode: simple ? 'simple' : 'full', facts_selected: factTexts.length, overlays: overlaysOn }
     const served = async (ok: boolean, extra: Record<string, unknown>) =>
-      writeServerEvent({ name: 'ads_v2_plan_served', userId: user.id, path: '/api/ads/v2/plan', metadata: { order_id: order.id, ok, tier: order.tier, seconds: order.seconds, sector: input.sector, language, ms: Date.now() - started, ...modeTag, ...extra } })
+      writeServerEvent({ name: 'ads_v2_plan_served', userId: uid, path: '/api/ads/v2/plan', metadata: { order_id: order.id, ok, tier: order.tier, seconds: order.seconds, sector: input.sector, language, ms: Date.now() - started, ...modeTag, ...extra } })
     if (!extracted.ok) {
       await served(false, { stage: extracted.stage, why: extracted.why.slice(0, 4), attempts: extracted.attempts })
       return extracted.stage === 'brief'
@@ -219,7 +220,7 @@ export async function POST(req: NextRequest) {
         ...(cardId ? { card_footage_id: cardId, card_url: own.get(cardId)!.url } : {}),
       })
       .eq('id', order.id)
-      .eq('user_id', user.id)
+      .eq('user_id', uid)
       .in('status', ['draft', 'planned'])
       .select('id, card_url')
       .maybeSingle()

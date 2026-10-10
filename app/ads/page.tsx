@@ -170,7 +170,8 @@ async function readViewer(): Promise<DoorViewer> {
     if (!user) return { ...ANONYMOUS, noSession: adsPaywallNoSession(error) }
     const internal = isAdsInternalEmail(user.email)
     try {
-      const { admin, reason } = await loadAdsAccess(user.id, user.email)
+      // KINEO-EQUIPE-BUSINESS-2026-10-10 — o workspace: o membro de uma equipe Business vê a porta do DONO ("Make your ad").
+      const { admin, reason } = await loadAdsAccess(user.id, user.email, { workspace: true })
       const gate = adsGate(reason)
       // KINEO-ADS-PAREDE-2026-10-06 — só quem o gate barrou é relido (assinante nem paga a segunda leitura).
       const proof = gate === 'no_access' ? await readPaywallProof(admin, user.id, user.email) : null

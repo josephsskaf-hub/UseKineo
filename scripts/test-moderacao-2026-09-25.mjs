@@ -112,7 +112,8 @@ const PORTAS = [
   { f: 'app/api/generate-clip/route.ts', s: 'clip', st: 'input', antes: ['debitVideoCredits(', 'submitFalQueueOnce('] },
   { f: 'app/api/generate-avatar/route.ts', s: 'avatar', st: 'input', antes: ['debitVideoCredits('] },
   { f: 'app/api/characters/route.ts', s: 'character', st: 'upload', antes: ['extractCharacterTraits(', 'saveCharacter('] },
-  { f: 'app/api/footage/route.ts', s: 'footage', st: 'upload', antes: ['.insert({ user_id: user.id, url, kind'] },
+  // KINEO-EQUIPE-BUSINESS-2026-10-10 — re-ancorado: a linha do arquivo vai para a pasta do dono do workspace (folderId; fora do Ads da equipe, o próprio user.id).
+  { f: 'app/api/footage/route.ts', s: 'footage', st: 'upload', antes: ['.insert({ user_id: folderId, url, kind'] },
   { f: 'lib/animate/service.ts', s: 'animate', st: 'input', antes: ['confirmAnimateDebit(', 'reserveAnimateCredits(', 'submitAnimateJob('], corpo: 'export async function startAnimateJob(' },
   { f: 'app/api/ads/script/route.ts', s: 'ads_brief', st: 'input', antes: ['openai.chat.completions.create('] },
   { f: 'app/api/ads/render/route.ts', s: 'ads_render', st: 'input', antes: ["update({ status: 'rendering'", 'openai.audio.speech.create('] },

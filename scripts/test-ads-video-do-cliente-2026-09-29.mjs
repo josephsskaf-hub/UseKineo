@@ -553,7 +553,8 @@ const tetoMedicao = (src) => {
     !/v2Fail\('video_(unreadable|too_short|too_long)'/.test(P)
 }
 await check('V3 DINHEIRO: vídeo que o /plan não consegue usar (422) CONTA no teto diário — antes baixava até 2 × 50 MB por chamada, sem limite', () => tetoMedicao(SRC.planRoute))
-await check('V3-mutante: recusa da medição sem gravar o evento fica vermelho', () => !tetoMedicao(trocar(SRC.planRoute, "      await writeServerEvent({ name: 'ads_v2_plan_served', userId: user.id, path: '/api/ads/v2/plan', metadata: { order_id: order.id, ok: false, stage: 'video_measure'", "      void ({ name: 'x', userId: user.id, path: '/api/ads/v2/plan', metadata: { order_id: order.id, ok: false, stage: 'video_measure'")))
+// KINEO-EQUIPE-BUSINESS-2026-10-10 — re-ancorado: o evento (e o teto do dia que ele conta) é do dono do workspace (uid).
+await check('V3-mutante: recusa da medição sem gravar o evento fica vermelho', () => !tetoMedicao(trocar(SRC.planRoute, "      await writeServerEvent({ name: 'ads_v2_plan_served', userId: uid, path: '/api/ads/v2/plan', metadata: { order_id: order.id, ok: false, stage: 'video_measure'", "      void ({ name: 'x', userId: uid, path: '/api/ads/v2/plan', metadata: { order_id: order.id, ok: false, stage: 'video_measure'")))
 
 // Enquadramento: o foco tem o sentido da PRÉVIA (cropRect/focalPosition) — o centro do quadro no render é o centro da
 // janela que a pessoa viu, em qualquer foco, horizontal e vertical alto.

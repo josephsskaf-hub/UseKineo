@@ -36,7 +36,8 @@ export async function POST(req: NextRequest) {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return v2Fail('unauthenticated', 401)
-    const { admin, reason } = await loadAdsAccess(user.id, user.email)
+    const { admin, reason, ...ws } = await loadAdsAccess(user.id, user.email, { workspace: true })
+    const uid: string = ws.ownerId ?? user.id // KINEO-EQUIPE-BUSINESS-2026-10-10 — workspace: membro do Business age na conta do DONO (stub/chamador antigo = pessoal)
     adminRef = admin
     const gate = adsGate(reason)
     if (gate !== 'ok') {
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
     if (!parsed.ok) return v2Fail(parsed.error, 400)
     const { order_id: parentId, idx, expected_credits: expected } = parsed.value
 
-    const { order: parent, error } = await loadAdsV2Order(admin, parentId, user.id)
+    const { order: parent, error } = await loadAdsV2Order(admin, parentId, uid)
     if (error) return isMissingAdsTable(error.code) ? v2Fail('not_ready', 503) : v2Fail('retake_failed', 502)
     if (!parent) return v2Fail('order_not_found', 404)
     if (parent.status !== 'delivered') return v2Fail('not_delivered', 409)
@@ -78,7 +79,7 @@ export async function POST(req: NextRequest) {
       .select('id, status')
       .eq('parent_order_id', parent.id)
       .eq('retake_idx', idx)
-      .eq('user_id', user.id)
+      .eq('user_id', uid)
     if (prior.error) return isMissingAdsTable(prior.error.code) ? v2Fail('not_ready', 503) : v2Fail('retake_failed', 502)
     const closed = ((prior.data ?? []) as { status: string }[]).filter((r) => r.status === 'delivered' || r.status === 'failed' || r.status === 'cancelled').length
     const retakeId = deterministicUuid(`adsv2redo:${parent.id}:${idx}:${target.id}:${closed}`)
@@ -87,7 +88,8 @@ export async function POST(req: NextRequest) {
       .from('ads_v2_orders')
       .insert({
         id: retakeId,
-        user_id: user.id,
+        user_id: uid,
+        ...(ws.role === 'member' ? { created_by: user.id } : {}), // KINEO-EQUIPE-BUSINESS-2026-10-10 — quem pediu a refação (auditoria)
         status: 'generating',
         tier: parent.tier,
         seconds: parent.seconds,
@@ -115,7 +117,7 @@ export async function POST(req: NextRequest) {
     if (ins.error) {
       if (ins.error.code === '23505') {
         // Mesmo clique de novo (mesmo id) → devolve o pedido que já existe; outro anúncio ativo → 409.
-        const again = (await loadAdsV2Order(admin, retakeId, user.id)).order
+        const again = (await loadAdsV2Order(admin, retakeId, uid)).order
         if (again && again.parent_order_id === parent.id && again.retake_idx === idx) {
           return v2Json({ ...adsV2View(again, (await loadAdsV2Shots(admin, retakeId)) ?? []), already_started: true }, 202)
         }
@@ -123,9 +125,9 @@ export async function POST(req: NextRequest) {
       }
       return isMissingAdsTable(ins.error.code) ? v2Fail('not_ready', 503) : v2Fail('retake_failed', 502)
     }
-    const retake = { id: retakeId, user_id: user.id, billing_ref: billingRef, parent_order_id: parent.id }
+    const retake = { id: retakeId, user_id: uid, billing_ref: billingRef, parent_order_id: parent.id }
 
-    const charge = await chargeAdsV2(admin, { userId: user.id, billingRef, cost: price })
+    const charge = await chargeAdsV2(admin, { userId: uid, billingRef, cost: price })
     if (!charge.ok) {
       if (!charge.debitPossible) {
         await admin.from('ads_v2_orders').update({ status: 'cancelled', error: `charge_${charge.code}` }).eq('id', retakeId).eq('status', 'generating')
@@ -168,14 +170,16 @@ export async function POST(req: NextRequest) {
       return v2Fail('retake_failed', 502)
     }
     charged = null
-    const fresh = (await loadAdsV2Order(admin, retakeId, user.id)).order
+    const fresh = (await loadAdsV2Order(admin, retakeId, uid)).order
     const sent = fresh ? await dispatchAdsV2Shots(admin, fresh, started + DISPATCH_BUDGET_MS) : 0
     await writeServerEvent({
       name: 'ads_v2_retake_started',
-      userId: user.id,
+      userId: uid,
       path: '/api/ads/v2/retake',
       metadata: { order_id: retakeId, parent_order_id: parent.id, idx, kind: target.kind, engine, credits: price, billing_ref: billingRef, submitted_now: sent },
     })
+    // KINEO-EQUIPE-BUSINESS-2026-10-10 — rastro de auditoria: o MEMBRO agiu no workspace do dono (o pedido e a cobrança são do dono).
+    if (ws.role === 'member') await writeServerEvent({ name: 'ads_order_by_member', userId: user.id, path: '/api/ads/v2/retake', metadata: { owner_id: uid, action: 'retake', order_id: retakeId, parent_order_id: parent.id, billing_ref: billingRef, credits: price } })
     return v2Json(fresh ? adsV2View(fresh, (await loadAdsV2Shots(admin, retakeId)) ?? []) : { order_id: retakeId, status: 'generating' }, 202)
   } catch (e) {
     console.warn('[ads/v2/retake] falhou:', e instanceof Error ? e.message : String(e))

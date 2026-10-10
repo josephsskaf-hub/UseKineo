@@ -59,9 +59,10 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return v2Fail('unauthenticated', 401)
     if (!process.env.OPENAI_API_KEY) return v2Fail('unavailable', 503)
-    const { admin, reason } = await loadAdsAccess(user.id, user.email)
+    const { admin, reason, ...ws } = await loadAdsAccess(user.id, user.email, { workspace: true })
+    const uid: string = ws.ownerId ?? user.id // KINEO-EQUIPE-BUSINESS-2026-10-10 — workspace: membro do Business age na conta do DONO (stub/chamador antigo = pessoal)
     const gate = adsGate(reason)
-    const sample = gate === 'no_access' && await adsSampleOpen(admin, user.id, reason) // KINEO-ADS-AMOSTRA-2026-10-09
+    const sample = gate === 'no_access' && await adsSampleOpen(admin, uid, reason) // KINEO-ADS-AMOSTRA-2026-10-09
     if (gate !== 'ok' && !sample) {
       await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/api/ads/v2/research', metadata: { reason: gate } })
       return v2Fail(gate === 'closed' ? 'closed' : 'no_access', 403)
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
     const parsed = sanitizeResearchBody(await req.json().catch(() => null))
     if (!parsed.ok) return v2Fail(parsed.error, 400)
 
-    const { order, error } = await loadAdsV2Order(admin, parsed.value.order_id, user.id)
+    const { order, error } = await loadAdsV2Order(admin, parsed.value.order_id, uid)
     if (error) return isMissingAdsTable(error.code) ? v2Fail('not_ready', 503) : v2Fail('research_failed', 502)
     if (!order) return v2Fail('order_not_found', 404)
     if (order.status !== 'draft' && order.status !== 'planned') return v2Fail('not_editable', 409)
@@ -97,14 +98,14 @@ export async function POST(req: NextRequest) {
       .from('ads_v2_orders')
       .update({ brief: { ...brief0, research: { status: 'running', at: lockAt } } })
       .eq('id', order.id)
-      .eq('user_id', user.id)
+      .eq('user_id', uid)
       .in('status', ['draft', 'planned'])
       .is('brief->research', null)
       .select('id')
       .maybeSingle()
     if (lock.error) return isMissingAdsTable(lock.error.code) ? v2Fail('not_ready', 503) : v2Fail('research_failed', 502)
     if (!lock.data) {
-      const again = await loadAdsV2Order(admin, order.id, user.id)
+      const again = await loadAdsV2Order(admin, order.id, uid)
       return view(order.id, (again.order?.brief as Record<string, unknown> | null)?.research ?? null, Date.now())
     }
 
@@ -116,7 +117,7 @@ export async function POST(req: NextRequest) {
     const cap = await admin
       .from('ads_v2_orders')
       .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
+      .eq('user_id', uid)
       .gte('brief->research->>at', since)
       .is('brief->research->>copied_from', null)
     if (cap.error || (cap.count ?? 0) > ADS_V2_RESEARCH_DAILY_CAP) {
@@ -124,7 +125,7 @@ export async function POST(req: NextRequest) {
         .from('ads_v2_orders')
         .update({ brief: { ...brief0, research: null } })
         .eq('id', order.id)
-        .eq('user_id', user.id)
+        .eq('user_id', uid)
         .eq('brief->research->>at', lockAt)
       return cap.error ? v2Fail('research_failed', 502) : v2Fail('daily_limit_research', 429)
     }
@@ -187,11 +188,11 @@ export async function POST(req: NextRequest) {
       .from('ads_v2_orders')
       .update({ brief: { ...brief0, research: stored } })
       .eq('id', order.id)
-      .eq('user_id', user.id)
+      .eq('user_id', uid)
       .in('status', ['draft', 'planned'])
     await writeServerEvent({
       name: 'ads_v2_research_served',
-      userId: user.id,
+      userId: uid,
       path: '/api/ads/v2/research',
       metadata: {
         order_id: order.id,

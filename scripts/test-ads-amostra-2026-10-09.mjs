@@ -302,12 +302,14 @@ ok(fechado(read(F.variations)), '6b /api/ads/v2/variations: nenhuma amostra, a n
 ok(!/adsSample|ADS_SAMPLE/.test(code(read(F.newPage))) && (!fs.existsSync(path.join(ROOT, F.producao)) || !/adsSample|ADS_SAMPLE/.test(code(read(F.producao)))), '6c v1 (/ads/new) e Produção não abrem pela amostra')
 for (const [nome, rel] of [['orders', F.orders], ['plan', F.plan], ['research', F.research]]) {
   const s = code(read(rel))
-  ok(/const sample = gate === 'no_access' && await adsSampleOpen\(admin, user\.id, reason\)/.test(s) && /if \(gate !== 'ok' && !sample\) \{/.test(s), `6d /api/ads/v2/${nome}: abre só pela amostra (gate no_access + adsSampleOpen); o resto nega como antes`)
+  // KINEO-EQUIPE-BUSINESS-2026-10-10 — re-ancorado: a amostra pergunta pela elegibilidade do DONO do workspace (uid = ws.ownerId; sem equipe, o próprio user.id).
+  ok(/const sample = gate === 'no_access' && await adsSampleOpen\(admin, uid, reason\)/.test(s) && /const uid: string = ws\.ownerId \?\? user\.id/.test(s) && /if \(gate !== 'ok' && !sample\) \{/.test(s), `6d /api/ads/v2/${nome}: abre só pela amostra (gate no_access + adsSampleOpen); o resto nega como antes`)
 }
 ok(/if \(gate !== 'ok' && sample && !adsSampleLevelOk\(o\.tier, o\.seconds\)\) return v2Fail\('sample_level_only', 403\)/.test(code(read(F.orders))) && /if \(gate !== 'ok' && sample && !adsSampleLevelOk\(order\.tier, order\.seconds\)\) return v2Fail\('sample_level_only', 403\)/.test(code(read(F.plan))),
   '6e rascunho e plano da amostra só no nível/duração dela (403 sample_level_only)')
 const PAGE = code(read(F.page))
-ok(/const sample = gate === 'no_access' && \(await adsSampleOpen\(admin, user\.id, reason\)\)/.test(PAGE) && ordem(PAGE, "if (gate !== 'ok') {", 'if (!sample) {', "name: 'ads_access_denied'", "redirect('/ads?from=v2')") &&
+// KINEO-EQUIPE-BUSINESS-2026-10-10 — re-ancorado: a página pergunta pela amostra do DONO do workspace (uid).
+ok(/const sample = gate === 'no_access' && \(await adsSampleOpen\(admin, uid, reason\)\)/.test(PAGE) && /const uid: string = ws\.ownerId \?\? user\.id/.test(PAGE) && ordem(PAGE, "if (gate !== 'ok') {", 'if (!sample) {', "name: 'ads_access_denied'", "redirect('/ads?from=v2')") &&
   /variations=\{sample \? false : adsVariationsVisible\(user\.email\)\}/.test(PAGE) && /producao=\{!sample && producaoVisibleFor\(/.test(PAGE) && /sample=\{sample\}/.test(PAGE),
   '6f página /ads/v2: amostra entra sem rastro de negação, sem 3 variações e sem Produção; quem não tem amostra é negado como antes')
 
@@ -338,14 +340,15 @@ ok(/const SAMPLE_SIGNUP_HREF = `\/signup\?redirect=\$\{encodeURIComponent\('\/ad
 // As fotos da amostra: /api/footage abre SÓ para purpose 'ads' + amostra aberta, só imagem (pedido e bytes), com teto próprio.
 const footageOk = (raw) => {
   const s = code(raw)
-  return /if \(!entitlement\.treatAsPaid && body\.purpose === 'ads' && \(body\.action === 'upload-url' \|\| body\.action === 'confirm'\)\) \{/.test(s) &&
+  // KINEO-EQUIPE-BUSINESS-2026-10-10 — re-ancorado: o membro da equipe Business (teamOwnerId) nunca passa pela amostra e usa o plano/cota/pasta do dono (folderId).
+  return /if \(!teamOwnerId && !entitlement\.treatAsPaid && body\.purpose === 'ads' && \(body\.action === 'upload-url' \|\| body\.action === 'confirm'\)\) \{/.test(s) &&
     /sampleUpload = adsGate\(acc\.reason\) === 'no_access' && \(await adsSampleOpen\(acc\.admin, user\.id, acc\.reason\)\)/.test(s) &&
     /\} catch \{\n\s*sampleUpload = false\n\s*\}/.test(s) &&
-    /if \(!entitlement\.treatAsPaid && !sampleUpload\) \{/.test(s) &&
+    /if \(!entitlement\.treatAsPaid && !sampleUpload && !teamOwnerId\) \{/.test(s) &&
     /if \(sampleUpload && !contentType\.startsWith\('image\/'\)\) \{/.test(s) &&
     /if \(sampleUpload && used \+ sizeBytes > ADS_SAMPLE_FOOTAGE_MAX_BYTES\) \{/.test(s) &&
     /if \(sampleUpload && kind !== 'image'\) return NextResponse\.json\(/.test(s) &&
-    ordem(s, "body.purpose === 'ads'", 'if (!entitlement.treatAsPaid && !sampleUpload) {', "if (body.action === 'upload-url') {", "if (sampleUpload && !contentType.startsWith('image/'))", 'const used = await totalFootageBytes(user.id)', 'if (sampleUpload && used + sizeBytes > ADS_SAMPLE_FOOTAGE_MAX_BYTES)', "if (body.action === 'confirm') {", "if (sampleUpload && kind !== 'image')", 'moderateContent(')
+    ordem(s, "body.purpose === 'ads'", 'if (!entitlement.treatAsPaid && !sampleUpload && !teamOwnerId) {', "if (body.action === 'upload-url') {", "if (sampleUpload && !contentType.startsWith('image/'))", 'const used = await totalFootageBytes(folderId)', 'if (sampleUpload && used + sizeBytes > ADS_SAMPLE_FOOTAGE_MAX_BYTES)', "if (body.action === 'confirm') {", "if (sampleUpload && kind !== 'image')", 'moderateContent(')
 }
 const FOOT = read('app/api/footage/route.ts')
 ok(footageOk(FOOT) && S.ADS_SAMPLE_FOOTAGE_MAX_BYTES === 60 * 1024 * 1024, '8e /api/footage: free com amostra aberta sobe FOTO pelo montador (purpose ads), teto de 60 MB; vídeo/áudio e o resto seguem pagos; erro = fechado; a moderação continua')
@@ -353,7 +356,7 @@ ok((read('lib/ads/uploadFootage.ts').match(/purpose: 'ads'/g) || []).length === 
 {
   const m = trocar(FOOT, "      if (sampleUpload && !contentType.startsWith('image/')) {", '      if (false) {')
   ok(m.includes('if (false) {') && !footageOk(m), '9 mutante: amostra subindo vídeo fica vermelho')
-  const m2 = trocar(FOOT, '    if (!entitlement.treatAsPaid && !sampleUpload) {', '    if (false) {')
+  const m2 = trocar(FOOT, '    if (!entitlement.treatAsPaid && !sampleUpload && !teamOwnerId) {', '    if (false) {') // KINEO-EQUIPE-BUSINESS-2026-10-10 — re-ancorado: + !teamOwnerId
   ok(m2.includes('if (false) {') && !footageOk(m2), '9 mutante: /api/footage sem a parede do pago fica vermelho')
 }
 const EV = loaderWith()(F.events)

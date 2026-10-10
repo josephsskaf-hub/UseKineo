@@ -447,7 +447,8 @@ async function problems(over = {}) {
     const s = src(rel)
     if (/(reason|access)\s*[!=]==\s*'(partner|subscriber|pass|internal)'/.test(s)) p.push(`${rel}: decide algo pelo motivo de acesso (o preço tem de ser o mesmo para todo mundo)`)
   }
-  for (const rel of ['app/api/ads/v2/start/route.ts', 'app/api/ads/v2/retake/route.ts', 'app/api/ads/v2/variations/route.ts']) if (!src(rel).includes('chargeAdsV2(admin, { userId: user.id, billingRef')) p.push(`${rel}: geração sem chargeAdsV2`)
+  // KINEO-EQUIPE-BUSINESS-2026-10-10 — re-ancorado: a cobrança sai do saldo do DONO do workspace (uid = ownerId; sem equipe, o próprio user.id).
+  for (const rel of ['app/api/ads/v2/start/route.ts', 'app/api/ads/v2/retake/route.ts', 'app/api/ads/v2/variations/route.ts']) if (!src(rel).includes('chargeAdsV2(admin, { userId: uid, billingRef') || !/const uid: string = (access|ws)\.ownerId \?\? user\.id/.test(src(rel))) p.push(`${rel}: geração sem chargeAdsV2`)
   const compose = src(COMPOSE)
   if (!/const PAID_PLANS = new Set\(\[\n\s*'starter', 'starter_trial', 'basic', 'basic_trial',\n\s*'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial',\n\s*\]\)\n\s*const isFreePlan = !PAID_PLANS\.has/.test(compose)) p.push('/api/compose: a cortesia deixou de ser plano pago no débito do anúncio clássico (free path)')
 

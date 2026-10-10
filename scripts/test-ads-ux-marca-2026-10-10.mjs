@@ -239,7 +239,8 @@ await check('5d a rota só toca ads_brand_kits e user_footage (nunca profiles, p
   const all = [await runRoute('GET'), await runRoute('PUT', { body: { logo_footage_id: LOGO, color: '#00ff00' } })]
   const src = code(read(F.route))
   return all.every((r) => r.log.every((x) => ['ads_brand_kits', 'user_footage'].includes(x.name))) && !/fetch\(|chargeAds|debit|video_credits|writeServerEvent|ads_v2_orders/.test(src) &&
-    /\.eq\('user_id', user\.id\)\.maybeSingle\(\)/.test(src) && /upsert\(\{ user_id: user\.id, \.\.\.kit \}, \{ onConflict: 'user_id' \}\)/.test(src)
+    // KINEO-EQUIPE-BUSINESS-2026-10-10 — re-ancorado: o kit é o do DONO do workspace (uid; sem equipe, o próprio user.id).
+    /const uid: string = ws\.ownerId \?\? user\.id/.test(src) && /\.eq\('user_id', uid\)\.maybeSingle\(\)/.test(src) && /upsert\(\{ user_id: uid, \.\.\.kit \}, \{ onConflict: 'user_id' \}\)/.test(src)
 })
 
 // ═══ 6. dinheiro intocado ════════════════════════════════════════════════════════════════════════════════════════════
@@ -255,8 +256,16 @@ const BASE = {
   'lib/ads/sample.ts': '5495f78a67a8e622c6c4ebc82e25b3f6d8d130ea7b427c0d267d06cb8c957a93',
   'lib/ads/v2Tiers.ts': '18678aa1573651bc61ee6ff55508187393ae56c093dbc09f8737e65d344219a0',
 }
+// KINEO-EQUIPE-BUSINESS-2026-10-10 — re-ancorado: a equipe do Business trocou user.id → uid (o dono do workspace) nas 7 rotas, pediu loadAdsAccess com { workspace: true },
+// somou created_by (só membro) e o rastro ads_order_by_member. desfazEquipe tira EXATAMENTE isso (linhas marcadas, o if do rastro,
+// o created_by, a opção, o ...ws e o uid) e a impressão digital da base aeef024f tem de bater igual — o resto do dinheiro intocado.
+// v2Billing, sample e v2Tiers seguem lidos crus (a equipe não tocou neles).
+const desfazEquipe = (s) => s.split('\n')
+  .filter((l) => !l.includes('KINEO-EQUIPE-BUSINESS-2026-10-10') && !/^\s*if \((access|ws)\.role === 'member'\) await writeServerEvent\(\{ name: 'ads_order_by_member'/.test(l))
+  .join('\n').replace(/, \.\.\.\((access|ws)\.role === 'member' \? \{ created_by: user\.id \} : \{\}\)/g, '')
+  .split(', { workspace: true })').join(')').split(', ...ws } = await loadAdsAccess(').join(' } = await loadAdsAccess(').replace(/(?<!<)\buid\b/g, 'user.id')
 await check('6a /start, /orders, /plan, /research, /variations, /retake, /link-import, v2Billing, sample e v2Tiers byte a byte iguais à base aeef024f', () =>
-  Object.entries(BASE).every(([f, h]) => sha(read(f)) === h))
+  Object.entries(BASE).every(([f, h]) => sha(f.startsWith('app/api/ads/v2/') ? desfazEquipe(read(f)) : read(f)) === h))
 const telaDinheiroOk = (src) => {
   const s = code(src)
   const make = bloco(s, 'async function makeAd()')
@@ -375,9 +384,11 @@ await mutante('nível padrão começando no Premium', F.ux, 'export const ADS_V2
   (over) => { const Ux = pura(over)(F.ux); return [0, 5, 34, 40, 41, 51, 99999].every((b) => Ux.adsV2DefaultTier(b) !== 'cinema') })
 await mutante('corpo do kit aceitando chave extra (user_id)', F.ux, "  if (Object.keys(b).some((k) => !allowed.includes(k))) return { ok: false, error: 'bad_field' }\n", '', (over) => kitPuroOk(pura(over)(F.ux)))
 await mutante('kit trocando o que a pessoa digitou', F.ux, '  if (kit.business && !now.business.trim()) out.business = kit.business', '  if (kit.business) out.business = kit.business', (over) => prefillOk(pura(over)(F.ux)))
-await mutante('GET lendo o kit sem filtrar pela sessão', F.route, ".select(KIT_COLUMNS).eq('user_id', user.id).maybeSingle()", '.select(KIT_COLUMNS).maybeSingle()', (over) => rotaOk(over))
+// KINEO-EQUIPE-BUSINESS-2026-10-10 — re-ancorado: o filtro é pelo dono do workspace (uid).
+await mutante('GET lendo o kit sem filtrar pela sessão', F.route, ".select(KIT_COLUMNS).eq('user_id', uid).maybeSingle()", '.select(KIT_COLUMNS).maybeSingle()', (over) => rotaOk(over))
 await mutante('PUT sem conferir a posse do logo', F.route, "      if (!f || !f.isImage) return v2Fail('bad_logo', 400)\n", '', (over) => escritaOk(over))
-await mutante('PUT gravando sem o user_id da sessão', F.route, '.upsert({ user_id: user.id, ...kit }', '.upsert({ ...kit }', (over) => escritaOk(over))
+// KINEO-EQUIPE-BUSINESS-2026-10-10 — re-ancorado: a escrita é no dono do workspace (uid).
+await mutante('PUT gravando sem o user_id da sessão', F.route, '.upsert({ user_id: uid, ...kit }', '.upsert({ ...kit }', (over) => escritaOk(over))
 await mutante('kit gravado ANTES do /start', F.simple, "    setBusy('start')\n    setPlanError(null)\n    try {\n      if (!(await syncCard(plan))) return\n      setBusyNote(copy.plan.starting)", "    setBusy('start')\n    setPlanError(null)\n    if (saveKit) saveBrandKit()\n    try {\n      if (!(await syncCard(plan))) return\n      setBusyNote(copy.plan.starting)",
   (_o, m) => telaDinheiroOk(m))
 await mutante('língua faltando uma frase', F.ux, "  kit: { chip: 'Kit merek diterapkan', edit: 'Ubah', save: 'Simpan sebagai kit merekku', saveHint: 'Logo, warna, nama, harga, dan kontak terisi sendiri lain kali.' },", "  kit: { chip: 'Kit merek diterapkan', edit: 'Ubah', save: 'Simpan sebagai kit merekku', saveHint: '' },",

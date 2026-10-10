@@ -95,14 +95,15 @@ export async function GET(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return v2Fail('unauthenticated', 401)
     if (!adsVariationsVisible(user.email)) return v2Fail('not_found', 404)
-    const { admin } = await loadAdsAccess(user.id, user.email)
+    const { admin, ...ws } = await loadAdsAccess(user.id, user.email, { workspace: true })
+    const uid: string = ws.ownerId ?? user.id // KINEO-EQUIPE-BUSINESS-2026-10-10 — workspace: membro do Business age na conta do DONO (stub/chamador antigo = pessoal)
     let groupId = (req.nextUrl.searchParams.get('group') ?? '').toLowerCase()
     if (!groupId && req.nextUrl.searchParams.get('latest') === '1') {
       // O grupo mais novo que ainda tem variação em andamento (a tela retoma o painel das 3 sem ?group=).
       const act = await admin
         .from('ads_v2_orders')
         .select('variation_group_id, created_at')
-        .eq('user_id', user.id)
+        .eq('user_id', uid)
         .in('status', ['generating', 'assembling'])
         .not('variation_group_id', 'is', null)
         .order('created_at', { ascending: false })
@@ -113,7 +114,7 @@ export async function GET(req: NextRequest) {
       groupId = row.variation_group_id
     }
     if (!isUuid(groupId)) return v2Fail('bad_group_id', 400)
-    const v = await groupView(admin, user.id, groupId)
+    const v = await groupView(admin, uid, groupId)
     if ('error' in v && v.error) return isMissingVariationSchema(v.error.code) ? v2Fail('not_ready', 503) : v2Fail('variations_failed', 502)
     if (!v.group) return v2Fail('group_not_found', 404)
     return v2Json({ group: v.group })
@@ -129,7 +130,8 @@ export async function POST(req: NextRequest) {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return v2Fail('unauthenticated', 401)
-    const access = await loadAdsAccess(user.id, user.email)
+    const access = await loadAdsAccess(user.id, user.email, { workspace: true })
+    const uid: string = access.ownerId ?? user.id // KINEO-EQUIPE-BUSINESS-2026-10-10 — workspace: membro do Business age na conta do DONO (stub/chamador antigo = pessoal)
     const admin = access.admin
     const gate = adsGate(access.reason)
     if (gate !== 'ok') {
@@ -146,20 +148,20 @@ export async function POST(req: NextRequest) {
 
     // ── "Escolher esta" ─────────────────────────────────────────────────────────────────────────────────────────
     if (body.action === 'choose') {
-      const o = await admin.from('ads_v2_orders').select('id, status, variation_group_id').eq('id', body.order_id).eq('user_id', user.id).maybeSingle()
+      const o = await admin.from('ads_v2_orders').select('id, status, variation_group_id').eq('id', body.order_id).eq('user_id', uid).maybeSingle()
       if (o.error) return isMissingVariationSchema(o.error.code) ? v2Fail('not_ready', 503) : v2Fail('variations_failed', 502)
       const row = o.data as { id: string; status: string; variation_group_id: string | null } | null
       if (!row || !row.variation_group_id) return v2Fail('order_not_found', 404)
       if (row.status !== 'delivered') return v2Fail('not_delivered', 409)
-      const upd = await admin.from('ads_v2_variation_groups').update({ chosen_order_id: row.id, updated_at: new Date().toISOString() }).eq('id', row.variation_group_id).eq('user_id', user.id).select('id').maybeSingle()
+      const upd = await admin.from('ads_v2_variation_groups').update({ chosen_order_id: row.id, updated_at: new Date().toISOString() }).eq('id', row.variation_group_id).eq('user_id', uid).select('id').maybeSingle()
       if (upd.error || !upd.data) return v2Fail('variations_failed', 502)
-      await writeServerEvent({ name: 'ads_v2_variation_chosen', userId: user.id, path: PATH, metadata: { group_id: row.variation_group_id, order_id: row.id } })
+      await writeServerEvent({ name: 'ads_v2_variation_chosen', userId: uid, path: PATH, metadata: { group_id: row.variation_group_id, order_id: row.id } })
       return v2Json({ group_id: row.variation_group_id, chosen_order_id: row.id })
     }
 
     // ── começar as 3 ────────────────────────────────────────────────────────────────────────────────────────────
     const { order_id: orderId, dry_run: dryRun, expected_credits: expected } = body
-    const { order: a, error } = await loadAdsV2Order(admin, orderId, user.id)
+    const { order: a, error } = await loadAdsV2Order(admin, orderId, uid)
     if (error) return isMissingAdsTable(error.code) ? v2Fail('not_ready', 503) : v2Fail('variations_failed', 502)
     if (!a) return v2Fail('order_not_found', 404)
     if (a.status !== 'draft' && a.status !== 'planned') return v2Fail('not_startable', 409, { status: a.status })
@@ -191,7 +193,7 @@ export async function POST(req: NextRequest) {
     const usdTotal = Math.round(usdOne.totalUsd * 3 * 1000) / 1000
 
     if (dryRun) {
-      await writeServerEvent({ name: 'ads_v2_variations_dry_run_served', userId: user.id, path: PATH, metadata: { order_id: orderId, tier: a.tier, seconds: a.seconds, credits: total, shares, usd: usdTotal } })
+      await writeServerEvent({ name: 'ads_v2_variations_dry_run_served', userId: uid, path: PATH, metadata: { order_id: orderId, tier: a.tier, seconds: a.seconds, credits: total, shares, usd: usdTotal } })
       return v2Json({
         dry_run: true,
         charged: false,
@@ -210,7 +212,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Saldo antes de gravar qualquer coisa (chargeAdsV2 confere de novo, parte a parte).
-    const prof = await admin.from('profiles').select('video_credits').eq('id', user.id).maybeSingle()
+    const prof = await admin.from('profiles').select('video_credits').eq('id', uid).maybeSingle()
     const balance = Number((prof.data as { video_credits?: number } | null)?.video_credits ?? 0)
     if (!(balance >= total)) return v2Fail('out_of_credits', 402, { needed: total, balance })
 
@@ -220,9 +222,9 @@ export async function POST(req: NextRequest) {
     const tag = (slot: AdsV2VariationSlot): AdsV2VariationTag => ({ group_id: groupId, slot, look: ADS_V2_LOOKS[slot].id, anchor_order_id: a.id })
     const g = await admin
       .from('ads_v2_variation_groups')
-      .upsert({ id: groupId, user_id: user.id, anchor_order_id: a.id, tier: a.tier, seconds: a.seconds, credits_total: total, shares }, { onConflict: 'id', ignoreDuplicates: true })
+      .upsert({ id: groupId, user_id: uid, anchor_order_id: a.id, tier: a.tier, seconds: a.seconds, credits_total: total, shares }, { onConflict: 'id', ignoreDuplicates: true })
     if (g.error) return isMissingVariationSchema(g.error.code) ? v2Fail('not_ready', 503) : v2Fail('variations_failed', 502)
-    await admin.from('ads_v2_variation_groups').update({ credits_total: total, shares, updated_at: new Date().toISOString() }).eq('id', groupId).eq('user_id', user.id)
+    await admin.from('ads_v2_variation_groups').update({ credits_total: total, shares, updated_at: new Date().toISOString() }).eq('id', groupId).eq('user_id', uid)
 
     // A: recebe o look A, a marca e o plano-base (para o clique seguinte achar a base).
     const { variation_base_plan: _drop, ...briefClean } = briefA
@@ -231,7 +233,7 @@ export async function POST(req: NextRequest) {
       .from('ads_v2_orders')
       .update({ plan: plans[0], brief: { ...briefClean, variation: tag('A'), variation_base_plan: base }, variation_group_id: groupId, variation_slot: 'A' })
       .eq('id', a.id)
-      .eq('user_id', user.id)
+      .eq('user_id', uid)
       .in('status', ['draft', 'planned'])
       .select('id')
       .maybeSingle()
@@ -245,10 +247,10 @@ export async function POST(req: NextRequest) {
         logo_footage_id: a.logo_footage_id, card_footage_id: a.card_footage_id, card_url: a.card_url, photos: a.photos, plan: plans[i],
         variation_group_id: groupId, variation_slot: slot,
       }
-      const ins = await admin.from('ads_v2_orders').upsert({ id: ids[slot], user_id: user.id, status: 'planned', ...clone }, { onConflict: 'id', ignoreDuplicates: true })
+      const ins = await admin.from('ads_v2_orders').upsert({ id: ids[slot], user_id: uid, status: 'planned', ...(access.role === 'member' ? { created_by: user.id } : {}), ...clone }, { onConflict: 'id', ignoreDuplicates: true })
       if (ins.error) return isMissingVariationSchema(ins.error.code) ? v2Fail('not_ready', 503) : v2Fail('variations_failed', 502)
       // Já existia (volta depois de uma recusa): refresca o clone enquanto ainda não começou.
-      const upd = await admin.from('ads_v2_orders').update(clone).eq('id', ids[slot]).eq('user_id', user.id).in('status', ['draft', 'planned']).select('id').maybeSingle()
+      const upd = await admin.from('ads_v2_orders').update(clone).eq('id', ids[slot]).eq('user_id', uid).in('status', ['draft', 'planned']).select('id').maybeSingle()
       if (upd.error || !upd.data) return v2Fail('not_startable', 409, { slot })
     }
 
@@ -263,7 +265,7 @@ export async function POST(req: NextRequest) {
           .from('ads_v2_orders')
           .update({ status: 'generating', generation_id: generationId, billing_ref: billingRef, credits_charged: m.credits, started_at: new Date().toISOString(), error: null })
           .eq('id', m.orderId)
-          .eq('user_id', user.id)
+          .eq('user_id', uid)
           .in('status', ['draft', 'planned'])
           .select('id')
           .maybeSingle()
@@ -273,18 +275,18 @@ export async function POST(req: NextRequest) {
         return { ok: true, billingRef }
       },
       async charge(m, billingRef) {
-        const c = await chargeAdsV2(admin, { userId: user.id, billingRef, cost: m.credits })
+        const c = await chargeAdsV2(admin, { userId: uid, billingRef, cost: m.credits })
         return c.ok ? { ok: true } : { ok: false, code: c.code, status: c.status, debitPossible: c.debitPossible, ...(c.balance !== undefined ? { balance: c.balance } : {}) }
       },
       async refund(_m, billingRef) {
-        return (await refundAdsV2Confirmed(admin, { userId: user.id, billingRef })).state
+        return (await refundAdsV2Confirmed(admin, { userId: uid, billingRef })).state
       },
       async unlock(m, billingRef) {
         await admin.from('ads_v2_orders').update({ status: 'planned', generation_id: null, billing_ref: null, credits_charged: 0, started_at: null })
           .eq('id', m.orderId).eq('billing_ref', billingRef).eq('status', 'generating')
       },
       async fail(m, billingRef, reason) {
-        await failAdsV2Order(admin, { id: m.orderId, user_id: user.id, billing_ref: billingRef, credits_charged: m.credits }, reason, PATH)
+        await failAdsV2Order(admin, { id: m.orderId, user_id: uid, billing_ref: billingRef, credits_charged: m.credits }, reason, PATH)
       },
     })
     if (!res.ok) return v2Fail(res.code, res.status, res.balance !== undefined ? { needed: total, balance: res.balance } : {})
@@ -293,30 +295,32 @@ export async function POST(req: NextRequest) {
     for (const [i, c] of res.charged.entries()) {
       const rows = buildInitialShotRows(c.orderId, a.tier, plans[i])
       const ins = await admin.from('ads_v2_shots').upsert(rows, { onConflict: 'order_id,idx,attempt', ignoreDuplicates: true })
-      if (ins.error) await failAdsV2Order(admin, { id: c.orderId, user_id: user.id, billing_ref: c.billingRef, credits_charged: c.credits }, 'shots_insert_failed', PATH)
+      if (ins.error) await failAdsV2Order(admin, { id: c.orderId, user_id: uid, billing_ref: c.billingRef, credits_charged: c.credits }, 'shots_insert_failed', PATH)
     }
 
     // Envio: A primeiro (o still das pessoas da A é a referência de B e C), depois B e C, dentro do prazo.
     let sent = 0
     const views = []
     for (const c of res.charged) {
-      const fresh = (await loadAdsV2Order(admin, c.orderId, user.id)).order
+      const fresh = (await loadAdsV2Order(admin, c.orderId, uid)).order
       if (fresh) sent += await dispatchAdsV2Shots(admin, fresh, started + DISPATCH_BUDGET_MS)
     }
     for (const c of res.charged) {
-      const fresh = (await loadAdsV2Order(admin, c.orderId, user.id)).order
+      const fresh = (await loadAdsV2Order(admin, c.orderId, uid)).order
       const shots = (await loadAdsV2Shots(admin, c.orderId)) ?? []
       views.push({ slot: c.slot, look: ADS_V2_LOOKS[c.slot].id, ...(fresh ? adsV2View(fresh, shots) : { order_id: c.orderId, status: 'generating', credits: c.credits }) })
     }
     await writeServerEvent({
       name: 'ads_v2_variations_started',
-      userId: user.id,
+      userId: uid,
       path: PATH,
       metadata: {
         group_id: groupId, anchor_order_id: a.id, order_ids: res.charged.map((c) => c.orderId), billing_refs: res.charged.map((c) => c.billingRef),
         tier: a.tier, seconds: a.seconds, credits: total, credits_single: one, shares, usd_estimate: usdTotal, submitted_now: sent, ms: Date.now() - started,
       },
     })
+    // KINEO-EQUIPE-BUSINESS-2026-10-10 — rastro de auditoria: o MEMBRO agiu no workspace do dono (o pedido e a cobrança são do dono).
+    if (access.role === 'member') await writeServerEvent({ name: 'ads_order_by_member', userId: user.id, path: PATH, metadata: { owner_id: uid, action: 'variations', group_id: groupId, order_ids: res.charged.map((c) => c.orderId), credits: total } })
     return v2Json({ group_id: groupId, credits: total, shares, members: views }, 202)
   } catch (e) {
     console.warn('[ads/v2/variations] falhou:', e instanceof Error ? e.message : String(e))

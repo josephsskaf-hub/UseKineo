@@ -13,6 +13,7 @@
 import { ADS_V2_TIERS } from '@/lib/ads/v2Tiers'
 import { ADS_V2_VARIATION_SLOTS } from '@/lib/ads/v2Variations'
 import { BUSINESS_PRICES, TIER_CREDITS } from '@/lib/checkoutPricing'
+import { ADS_TEAM_PATH, BUSINESS_SEATS } from '@/lib/ads/team' // KINEO-EQUIPE-BUSINESS-2026-10-10
 
 /** O nível do Studio Ads que a promessa usa (Commercial: 3 cenas com gente criadas a partir das fotos do cliente). */
 export const BUSINESS_AD_LEVEL = 'commercial' as const
@@ -45,6 +46,9 @@ export const BUSINESS_CHECKOUT_HREF = '/api/stripe/checkout?tier=business'
 export const BUSINESS_DFY_HREF = '/business-video-ads#packages'
 /** KINEO-TROCA-BUSINESS-2026-10-10 — quem já assina outro plano troca no bloco Business do /pricing (sem checkout novo). */
 export const BUSINESS_SWITCH_HREF = '/pricing#business'
+/** KINEO-EQUIPE-BUSINESS-2026-10-10 — a equipe: colegas incluídos no preço (lib/ads/team.ts) e onde o dono convida. */
+export const BUSINESS_TEAM_SEATS: number = BUSINESS_SEATS
+export const BUSINESS_TEAM_HREF: string = ADS_TEAM_PATH
 /** Página de marketing do plano. */
 export const BUSINESS_PAGE_PATH = '/business'
 
@@ -54,5 +58,6 @@ export const BUSINESS_BULLETS: readonly string[] = [
   'Voice, music and on-screen text',
   `${BUSINESS_AB_VARIATIONS} variations to A/B test`,
   'Commercial use',
+  `${BUSINESS_SEATS} teammates included, using your credits`, // KINEO-EQUIPE-BUSINESS-2026-10-10
   'First ad free to try',
 ]

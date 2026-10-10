@@ -45,10 +45,11 @@ export async function POST(req: NextRequest) {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return v2Fail('unauthenticated', 401)
-    const access = await loadAdsAccess(user.id, user.email)
+    const access = await loadAdsAccess(user.id, user.email, { workspace: true })
+    const uid: string = access.ownerId ?? user.id // KINEO-EQUIPE-BUSINESS-2026-10-10 — workspace: membro do Business age na conta do DONO (stub/chamador antigo = pessoal)
     admin = access.admin
     const gate = adsGate(access.reason)
-    const sample = gate === 'no_access' && await adsSampleOpen(admin, user.id, access.reason) // KINEO-ADS-AMOSTRA-2026-10-09
+    const sample = gate === 'no_access' && await adsSampleOpen(admin, uid, access.reason) // KINEO-ADS-AMOSTRA-2026-10-09
     if (gate !== 'ok' && !sample) {
       await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/api/ads/v2/start', metadata: { reason: gate } })
       return v2Fail(gate === 'closed' ? 'closed' : 'no_access', 403)
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
     if (!parsed.ok) return v2Fail(parsed.error, 400)
     const { order_id: orderId, dry_run: dryRun } = parsed.value
 
-    const { order, error } = await loadAdsV2Order(admin, orderId, user.id)
+    const { order, error } = await loadAdsV2Order(admin, orderId, uid)
     if (error) return isMissingAdsTable(error.code) ? v2Fail('not_ready', 503) : v2Fail('start_failed', 502)
     if (!order) return v2Fail('order_not_found', 404)
     if (order.status !== 'draft' && order.status !== 'planned') return v2Fail('not_startable', 409, { status: order.status })
@@ -83,7 +84,7 @@ export async function POST(req: NextRequest) {
 
     // ENSAIO DE US$ 0: plano + custo, sem débito e sem fal. Para aqui.
     if (dryRun) {
-      await writeServerEvent({ name: 'ads_v2_dry_run_served', userId: user.id, path: '/api/ads/v2/start', metadata: { order_id: orderId, tier: order.tier, seconds: order.seconds, credits: cost, usd: usd.totalUsd, shots: plan.shots.length } })
+      await writeServerEvent({ name: 'ads_v2_dry_run_served', userId: uid, path: '/api/ads/v2/start', metadata: { order_id: orderId, tier: order.tier, seconds: order.seconds, credits: cost, usd: usd.totalUsd, shots: plan.shots.length } })
       return v2Json({
         dry_run: true,
         charged: false,
@@ -102,7 +103,7 @@ export async function POST(req: NextRequest) {
       if (await adsSampleCapReached(admin)) return v2Fail('sample_cap', 429)
     } else {
       // Saldo antes da trava (o RPC de débito não recusa saldo curto; chargeAdsV2 confere de novo).
-      const prof = await admin.from('profiles').select('video_credits').eq('id', user.id).maybeSingle()
+      const prof = await admin.from('profiles').select('video_credits').eq('id', uid).maybeSingle()
       const balance = Number((prof.data as { video_credits?: number } | null)?.video_credits ?? 0)
       if (!(balance >= cost)) return v2Fail('out_of_credits', 402, { needed: cost, balance })
     }
@@ -115,16 +116,16 @@ export async function POST(req: NextRequest) {
       .from('ads_v2_orders')
       .update({ status: 'generating', generation_id: generationId, billing_ref: billingRef, credits_charged: sampleRun ? 0 : cost, started_at: new Date().toISOString(), error: null })
       .eq('id', orderId)
-      .eq('user_id', user.id)
+      .eq('user_id', uid)
       .in('status', ['draft', 'planned'])
       .select('id')
       .maybeSingle()
     if (lock.error) return lock.error.code === '23505' ? v2Fail('another_active', 409) : v2Fail('start_failed', 502)
     if (!lock.data) return v2Fail('not_startable', 409)
-    locked = { id: orderId, user_id: user.id, billing_ref: billingRef }
+    locked = { id: orderId, user_id: uid, billing_ref: billingRef }
 
     // Débito com o padrão confiável (intenção → saldo → débito → releitura do ledger). A amostra NÃO debita (KINEO-ADS-AMOSTRA-2026-10-09).
-    const charge: AdsV2ChargeResult = sampleRun ? { ok: true, balance: null } : await chargeAdsV2(admin, { userId: user.id, billingRef, cost })
+    const charge: AdsV2ChargeResult = sampleRun ? { ok: true, balance: null } : await chargeAdsV2(admin, { userId: uid, billingRef, cost })
     if (!charge.ok) {
       if (!charge.debitPossible) {
         // Provado que nada foi debitado: o pedido volta a 'planned' (só esta geração).
@@ -139,7 +140,7 @@ export async function POST(req: NextRequest) {
 
     if (sampleRun) {
       // KINEO-ADS-AMOSTRA-2026-10-09 — o rastro da amostra (o custo é nosso: conta o teto e o US$ estimado).
-      await writeServerEvent({ name: 'ads_sample_started', userId: user.id, path: '/api/ads/v2/start', metadata: { order_id: orderId, generation_id: generationId, billing_ref: billingRef, tier: order.tier, seconds: order.seconds, usd_estimate: usd.totalUsd, credits_list: cost } })
+      await writeServerEvent({ name: 'ads_sample_started', userId: uid, path: '/api/ads/v2/start', metadata: { order_id: orderId, generation_id: generationId, billing_ref: billingRef, tier: order.tier, seconds: order.seconds, usd_estimate: usd.totalUsd, credits_list: cost } })
     }
 
     // Planos da geração (text nasce 'skipped_text' e nunca vai à fal).
@@ -152,17 +153,19 @@ export async function POST(req: NextRequest) {
     }
     locked = null
 
-    const fresh = (await loadAdsV2Order(admin, orderId, user.id)).order
+    const fresh = (await loadAdsV2Order(admin, orderId, uid)).order
     const sent = fresh ? await dispatchAdsV2Shots(admin, fresh, started + DISPATCH_BUDGET_MS) : 0
     await writeServerEvent({
       name: 'ads_v2_started',
-      userId: user.id,
+      userId: uid,
       path: '/api/ads/v2/start',
       metadata: {
         order_id: orderId, generation_id: generationId, billing_ref: billingRef, tier: order.tier, seconds: order.seconds, credits: sampleRun ? 0 : cost, sample: sampleRun,
         usd_estimate: usd.totalUsd, shots: rows.length, text_shots: rows.filter((r) => r.kind === 'text').length, submitted_now: sent, ms: Date.now() - started,
       },
     })
+    // KINEO-EQUIPE-BUSINESS-2026-10-10 — rastro de auditoria: o MEMBRO agiu no workspace do dono (o pedido e a cobrança são do dono).
+    if (access.role === 'member') await writeServerEvent({ name: 'ads_order_by_member', userId: user.id, path: '/api/ads/v2/start', metadata: { owner_id: uid, action: 'start', order_id: orderId, billing_ref: billingRef, credits: sampleRun ? 0 : cost } })
     const shots = (await loadAdsV2Shots(admin, orderId)) ?? []
     return v2Json(fresh ? { ...adsV2View(fresh, shots), usd_estimate: usd } : { order_id: orderId, status: 'generating' }, 202)
   } catch (e) {

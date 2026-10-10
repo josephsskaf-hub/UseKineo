@@ -27,11 +27,12 @@ export async function GET(req: NextRequest) {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return v2Fail('unauthenticated', 401)
-    const { admin } = await loadAdsAccess(user.id, user.email)
+    const { admin, ...ws } = await loadAdsAccess(user.id, user.email, { workspace: true })
+    const uid: string = ws.ownerId ?? user.id // KINEO-EQUIPE-BUSINESS-2026-10-10 — workspace: membro do Business age na conta do DONO (stub/chamador antigo = pessoal)
     const id = req.nextUrl.searchParams.get('id')
     if (id) {
       if (!isUuid(id)) return v2Fail('bad_order_id', 400)
-      const { order, error } = await loadAdsV2Order(admin, id.toLowerCase(), user.id)
+      const { order, error } = await loadAdsV2Order(admin, id.toLowerCase(), uid)
       if (error) return isMissingAdsTable(error.code) ? v2Fail('not_ready', 503) : v2Fail('orders_failed', 502)
       if (!order) return v2Fail('order_not_found', 404)
       const shots = (await loadAdsV2Shots(admin, order.id)) ?? []
@@ -40,7 +41,7 @@ export async function GET(req: NextRequest) {
     const { data, error } = await admin
       .from('ads_v2_orders')
       .select('id, status, tier, seconds, sector, credits_charged, video_id, parent_order_id, retake_idx, error, created_at, updated_at')
-      .eq('user_id', user.id)
+      .eq('user_id', uid)
       .order('created_at', { ascending: false })
       .limit(20)
     if (error) return isMissingAdsTable(error.code) ? v2Fail('not_ready', 503) : v2Fail('orders_failed', 502)
@@ -56,9 +57,10 @@ export async function POST(req: NextRequest) {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return v2Fail('unauthenticated', 401)
-    const { admin, reason } = await loadAdsAccess(user.id, user.email)
+    const { admin, reason, ...ws } = await loadAdsAccess(user.id, user.email, { workspace: true })
+    const uid: string = ws.ownerId ?? user.id // KINEO-EQUIPE-BUSINESS-2026-10-10 — workspace: membro do Business age na conta do DONO (stub/chamador antigo = pessoal)
     const gate = adsGate(reason)
-    const sample = gate === 'no_access' && await adsSampleOpen(admin, user.id, reason) // KINEO-ADS-AMOSTRA-2026-10-09
+    const sample = gate === 'no_access' && await adsSampleOpen(admin, uid, reason) // KINEO-ADS-AMOSTRA-2026-10-09
     if (gate !== 'ok' && !sample) {
       await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/api/ads/v2/orders', metadata: { reason: gate } })
       return v2Fail(gate === 'closed' ? 'closed' : 'no_access', 403)
@@ -76,7 +78,7 @@ export async function POST(req: NextRequest) {
     if (gate !== 'ok' && sample && !adsSampleLevelOk(o.tier, o.seconds)) return v2Fail('sample_level_only', 403)
 
     const ids = [a.logo_footage_id, a.card_footage_id, ...(a.photos ?? []).map((p) => p.footage_id)].filter((x): x is string => !!x)
-    const own = await ownedFootage(admin, user.id, ids)
+    const own = await ownedFootage(admin, uid, ids)
     if (!own) return v2Fail('orders_failed', 502)
     if (a.logo_footage_id && !own.get(a.logo_footage_id)?.isImage) return v2Fail('logo_invalid', 400)
     if (a.card_footage_id && !own.get(a.card_footage_id)?.isPng) return v2Fail('card_invalid', 400)
@@ -93,7 +95,7 @@ export async function POST(req: NextRequest) {
       brief.price = o.price ?? null
       brief.contact = o.contact ?? null
       if (o.research_from) {
-        const prev = await admin.from('ads_v2_orders').select('brief').eq('id', o.research_from).eq('user_id', user.id).maybeSingle()
+        const prev = await admin.from('ads_v2_orders').select('brief').eq('id', o.research_from).eq('user_id', uid).maybeSingle()
         const pb = (prev.data as { brief: Record<string, unknown> | null } | null)?.brief ?? null
         const pr = pb?.research as { status?: unknown; why?: unknown } | undefined
         // Revisão 29/09: "nada achado" / "tudo descartado" também é resultado da MESMA frase — trocar o nível não paga
@@ -106,7 +108,8 @@ export async function POST(req: NextRequest) {
     const ins = await admin
       .from('ads_v2_orders')
       .insert({
-        user_id: user.id,
+        user_id: uid,
+        ...(ws.role === 'member' ? { created_by: user.id } : {}), // KINEO-EQUIPE-BUSINESS-2026-10-10 — quem criou (auditoria; NULL = o dono)
         status: 'draft',
         tier: o.tier,
         seconds: o.seconds,
@@ -126,13 +129,15 @@ export async function POST(req: NextRequest) {
     const credits = adsV2Credits(o.tier, o.seconds)
     await writeServerEvent({
       name: 'ads_v2_order_created',
-      userId: user.id,
+      userId: uid,
       path: '/api/ads/v2/orders',
       metadata: {
         order_id: orderId, tier: o.tier, seconds: o.seconds, sector: o.sector, has_link: Boolean(o.link), has_sentence: Boolean(o.sentence), narration: o.narration, photos: photos.length, credits,
         mode: o.mode === 'simple' ? 'simple' : 'full', overlays: o.overlays !== false, has_price: Boolean(o.price), has_contact: Boolean(o.contact), research_copied: Boolean(brief.research),
       },
     })
+    // KINEO-EQUIPE-BUSINESS-2026-10-10 — rastro de auditoria: o MEMBRO agiu no workspace do dono (o pedido e a cobrança são do dono).
+    if (ws.role === 'member') await writeServerEvent({ name: 'ads_order_by_member', userId: user.id, path: '/api/ads/v2/orders', metadata: { owner_id: uid, action: 'create', order_id: orderId, tier: o.tier, seconds: o.seconds, credits } })
     return v2Json({ order_id: orderId, status: 'draft', credits }, 201)
   } catch (e) {
     console.warn('[ads/v2/orders POST] falhou:', e instanceof Error ? e.message : String(e))
@@ -150,9 +155,10 @@ export async function PATCH(req: NextRequest) {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return v2Fail('unauthenticated', 401)
-    const { admin, reason } = await loadAdsAccess(user.id, user.email)
+    const { admin, reason, ...ws } = await loadAdsAccess(user.id, user.email, { workspace: true })
+    const uid: string = ws.ownerId ?? user.id // KINEO-EQUIPE-BUSINESS-2026-10-10 — workspace: membro do Business age na conta do DONO (stub/chamador antigo = pessoal)
     const gate = adsGate(reason)
-    const sample = gate === 'no_access' && await adsSampleOpen(admin, user.id, reason) // KINEO-ADS-AMOSTRA-2026-10-09
+    const sample = gate === 'no_access' && await adsSampleOpen(admin, uid, reason) // KINEO-ADS-AMOSTRA-2026-10-09
     if (gate !== 'ok' && !sample) {
       await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/api/ads/v2/orders', metadata: { reason: gate, method: 'PATCH' } })
       return v2Fail(gate === 'closed' ? 'closed' : 'no_access', 403)
@@ -163,7 +169,7 @@ export async function PATCH(req: NextRequest) {
     if (!parsed.ok) return v2Fail(parsed.error, 400)
     const p = parsed.value
 
-    const { order, error } = await loadAdsV2Order(admin, p.order_id, user.id)
+    const { order, error } = await loadAdsV2Order(admin, p.order_id, uid)
     if (error) return isMissingAdsTable(error.code) ? v2Fail('not_ready', 503) : v2Fail('orders_failed', 502)
     if (!order) return v2Fail('order_not_found', 404)
     if (order.status !== 'draft' && order.status !== 'planned') return v2Fail('not_editable', 409)
@@ -173,7 +179,7 @@ export async function PATCH(req: NextRequest) {
     if (p.narration !== null) patch.narration = p.narration
     if (p.card_footage_id) {
       if (order.logo_footage_id && p.card_footage_id === order.logo_footage_id.toLowerCase()) return v2Fail('card_is_logo', 400)
-      const own = await ownedFootage(admin, user.id, [p.card_footage_id])
+      const own = await ownedFootage(admin, uid, [p.card_footage_id])
       if (!own) return v2Fail('orders_failed', 502)
       const card = own.get(p.card_footage_id)
       if (!card?.isPng) return v2Fail('card_invalid', 400)
@@ -184,7 +190,7 @@ export async function PATCH(req: NextRequest) {
       .from('ads_v2_orders')
       .update(patch)
       .eq('id', order.id)
-      .eq('user_id', user.id)
+      .eq('user_id', uid)
       .in('status', ['draft', 'planned'])
       .select('id, narration, card_url')
       .maybeSingle()

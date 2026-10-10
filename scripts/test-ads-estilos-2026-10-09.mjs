@@ -383,8 +383,15 @@ const START_NEW = 'shots: plan.shots.map((s) => ({ kind: s.kind, source: s.sourc
 const START_OLD = 'shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source })), seconds: plan.totalSeconds })'
 await check('7a v2Billing.ts e sample.ts byte a byte iguais à base c17771fe (cobrança, estorno, amostra "adssample-")', () =>
   sha(read(F.billing)) === BILLING_SHA && sha(read(F.sample)) === SAMPLE_SHA)
+// KINEO-EQUIPE-BUSINESS-2026-10-10 — re-ancorado: a equipe do Business trocou user.id → uid (o dono do workspace) no /start,
+// pediu loadAdsAccess com { workspace: true } e somou o rastro ads_order_by_member. desfazEquipe tira EXATAMENTE isso (linhas
+// marcadas, o if do rastro, a opção e o uid) e a impressão digital da base tem de bater igual: débito, trava, amostra e envio intocados.
+const desfazEquipe = (s) => s.split('\n')
+  .filter((l) => !l.includes('KINEO-EQUIPE-BUSINESS-2026-10-10') && !/^\s*if \((access|ws)\.role === 'member'\) await writeServerEvent\(\{ name: 'ads_order_by_member'/.test(l))
+  .join('\n').replace(/, \.\.\.\((access|ws)\.role === 'member' \? \{ created_by: user\.id \} : \{\}\)/g, '')
+  .split(', { workspace: true })').join(')').split(', ...ws } = await loadAdsAccess(').join(' } = await loadAdsAccess(').replace(/(?<!<)\buid\b/g, 'user.id')
 await check('7b /start: a ÚNICA mudança é a linha da estimativa em US$ (débito, trava, amostra e envio intocados)', () =>
-  sha(trocar(read(F.start), START_NEW, START_OLD)) === START_SHA)
+  sha(trocar(desfazEquipe(read(F.start)), START_NEW, START_OLD)) === START_SHA)
 
 // ═══ 8. frases, prévias, telas e páginas ══════════════════════════════════════════════════════════════════════════════
 const LANGS = I.INTERFACE_LANGUAGE_OPTIONS.map((o) => o.code)

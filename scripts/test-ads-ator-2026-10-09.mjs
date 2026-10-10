@@ -490,7 +490,14 @@ const START_SHA = 'a6de2e638d0fcaee810d6e41bdfea94d6f79607eda14375c2b465cf289ae5
 const START_NOW = 'shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds, presenter: !!plan.presenter }) // KINEO-ESTILOS-PRODUTO-2026-10-09 — o plano com estilo custa o efeito · KINEO-ATOR-ANUNCIO-2026-10-09 — o ator custa a foto e o vídeo falado'
 const START_OLD = 'shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source })), seconds: plan.totalSeconds })'
 await check('8a v2Billing.ts e sample.ts byte a byte iguais (cobrança, estorno e amostra "adssample-" intocados)', () => sha(read(F.billing)) === BILLING_SHA && sha(read(F.sample)) === SAMPLE_SHA)
-await check('8b /start: a ÚNICA mudança desde a base é a linha da estimativa em US$ (débito, trava, amostra e envio intocados)', () => sha(trocar(read(F.start), START_NOW, START_OLD)) === START_SHA)
+// KINEO-EQUIPE-BUSINESS-2026-10-10 — re-ancorado: a equipe do Business trocou user.id → uid (o dono do workspace) no /start,
+// pediu loadAdsAccess com { workspace: true } e somou o rastro ads_order_by_member. desfazEquipe tira EXATAMENTE isso (linhas
+// marcadas, o if do rastro, a opção e o uid) e a impressão digital da base tem de bater igual: débito, trava, amostra e envio intocados.
+const desfazEquipe = (s) => s.split('\n')
+  .filter((l) => !l.includes('KINEO-EQUIPE-BUSINESS-2026-10-10') && !/^\s*if \((access|ws)\.role === 'member'\) await writeServerEvent\(\{ name: 'ads_order_by_member'/.test(l))
+  .join('\n').replace(/, \.\.\.\((access|ws)\.role === 'member' \? \{ created_by: user\.id \} : \{\}\)/g, '')
+  .split(', { workspace: true })').join(')').split(', ...ws } = await loadAdsAccess(').join(' } = await loadAdsAccess(').replace(/(?<!<)\buid\b/g, 'user.id')
+await check('8b /start: a ÚNICA mudança desde a base é a linha da estimativa em US$ (débito, trava, amostra e envio intocados)', () => sha(trocar(desfazEquipe(read(F.start)), START_NOW, START_OLD)) === START_SHA)
 await check('8c o ator nunca chama cobrança/estorno: v2Advance segue com 11 chamadas a failAdsV2Order e nenhuma no código do ator; v2Presenter sem import de valor', () => {
   const s = code(read(F.advance))
   const fn = (name) => (s.match(new RegExp(`async function ${name}\\([\\s\\S]*?\\n}\\n`)) || [''])[0]

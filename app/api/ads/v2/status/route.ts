@@ -23,8 +23,9 @@ export async function GET(req: NextRequest) {
     if (!user) return v2Fail('unauthenticated', 401)
     const orderId = (req.nextUrl.searchParams.get('order_id') ?? '').toLowerCase()
     if (!isUuid(orderId)) return v2Fail('bad_order_id', 400)
-    const { admin } = await loadAdsAccess(user.id, user.email)
-    const { order, error } = await loadAdsV2Order(admin, orderId, user.id)
+    const { admin, ...ws } = await loadAdsAccess(user.id, user.email, { workspace: true })
+    const uid: string = ws.ownerId ?? user.id // KINEO-EQUIPE-BUSINESS-2026-10-10 — workspace: membro do Business age na conta do DONO (stub/chamador antigo = pessoal)
+    const { order, error } = await loadAdsV2Order(admin, orderId, uid)
     if (error) return isMissingAdsTable(error.code) ? v2Fail('not_ready', 503) : v2Fail('status_failed', 502)
     if (!order) return v2Fail('order_not_found', 404)
     const view = order.status === 'generating' || order.status === 'assembling'
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
     if (!view) return v2Fail('order_not_found', 404)
     let video: { id: string; video_url: string | null; thumbnail_url: string | null } | null = null
     if (view.video_id) {
-      const v = await admin.from('videos').select('id, video_url, thumbnail_url').eq('id', view.video_id).eq('user_id', user.id).maybeSingle()
+      const v = await admin.from('videos').select('id, video_url, thumbnail_url').eq('id', view.video_id).eq('user_id', uid).maybeSingle()
       video = (v.data as typeof video) ?? null
     }
     return v2Json({ ...view, video })

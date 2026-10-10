@@ -148,6 +148,12 @@ const SERVER_ONLY_EVENTS = new Set([
   'ads_v2_variation_anchor',
   // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra grátis do Studio Ads começou: fato do servidor (custo nosso, teto diário).
   'ads_sample_started',
+  // KINEO-EQUIPE-BUSINESS-2026-10-10 — a equipe do Business (convite, entrada, saída) e o pedido feito por membro no workspace do dono: fatos do
+  // servidor (/api/ads/team e as rotas /api/ads/v2/*). O navegador não cunha nenhum.
+  'ads_order_by_member',
+  'team_invite_created',
+  'team_member_joined',
+  'team_member_removed',
   // KINEO-CLIPES-2026-09-29 — clipe avulso (/clips): pedido aceito na fal, entregue no nosso bucket, falhou (com estorno).
   // Fatos do servidor; o navegador não cunha nenhum. clip_failed já era escrito só pelo servidor (Modo Clipe do Studio).
   'clip_requested',

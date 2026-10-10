@@ -33,6 +33,10 @@ import { ADS_HOUSE_STAGE, ProductRow, ProductStage, ProductStageStyles, useProdu
 
 // KINEO-ABAS-PALCO-2026-10-01 — dentro do quadro de engenharia os passos do montador não têm caixa própria, e o quadro
 // "como funciona"/prévia desce para baixo dos passos (a direita é do palco).
+// KINEO-EQUIPE-BUSINESS-2026-10-10 — o aviso do workspace (membro da equipe Business) e o link da equipe (dono do Business).
+const ADS_TEAM_CSS = `.adv2 .adv2-team{margin:8px 0 0;padding:8px 12px;border-radius:10px;border:1px solid rgba(124,92,255,.45);background:rgba(124,92,255,.12);font-size:13px;line-height:1.4}
+.adv2 .adv2-team a{margin-left:6px;text-decoration:underline}`
+
 const ADS_PANEL_CSS = `.adv2 .kps-panel .adv2-layout{grid-template-columns:minmax(0,1fr);gap:8px}
 .adv2 .kps-panel .adv2-main{gap:0}
 .adv2 .kps-panel .adv2-card{background:transparent;border:0;border-top:1px solid var(--border);border-radius:0;box-shadow:none;padding:16px 0 6px}
@@ -427,7 +431,11 @@ function setGroupParam(id: string | null) {
 // KINEO-PRODUCAO-ADS-2026-10-01 — producao: o atalho para /ads/producao (producaoVisibleFor, decidido no page.tsx).
 // KINEO-ADS-AMOSTRA-2026-10-09 — sample: a conta free/trial entrou pela AMOSTRA GRÁTIS (adsSampleOpen, decidido no page.tsx):
 // os dois modos mostram só o nível da amostra, sem preço, com o botão "grátis"; o servidor é quem manda (403/429).
-export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false, sample = false }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean }) {
+// KINEO-EQUIPE-BUSINESS-2026-10-10 — workspace (decidido no page.tsx, tipo espelhado de lib/ads/team.ts AdsWorkspaceView sem importar: a lista de imports
+// do cliente é vigiada): o MEMBRO de uma equipe Business faz anúncio com o saldo e o kit do dono — a tela avisa e relê o saldo
+// do dono em /api/ads/team; o DONO do Business vê o link da equipe. null/ausente = a tela de sempre.
+type AdsV2WorkspaceProp = { role: 'owner' | 'member'; ownerLabel: string | null; teamOwner: boolean } | null
+export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp }) {
   const [session, setSession] = useState(0)
   const [groupId, setGroupId] = useState<string | null>(null)
   const [groupChecked, setGroupChecked] = useState(!variations)
@@ -497,9 +505,10 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
   }
 
   const refreshBalance = useCallback(async () => {
-    const r = await api<{ credits?: unknown }>('/api/credits')
+    // KINEO-EQUIPE-BUSINESS-2026-10-10 — membro: o saldo que vale é o do DONO (o /api/credits é o da própria conta).
+    const r = await api<{ credits?: unknown }>(workspace?.role === 'member' ? '/api/ads/team' : '/api/credits')
     if (r.ok && typeof r.data.credits === 'number' && Number.isFinite(r.data.credits)) setBalance(r.data.credits)
-  }, [])
+  }, [workspace?.role])
 
   useEffect(() => {
     if (confirmingReset) confirmRef.current?.focus()
@@ -534,6 +543,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
       <style dangerouslySetInnerHTML={{ __html: ADS_WIZARD_THEME_CSS + ADS_V2_CSS + ADS_V2_VARIATIONS_CSS }} />
       <ProductStageStyles />
       <style dangerouslySetInnerHTML={{ __html: ADS_PANEL_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: ADS_TEAM_CSS }} />
       <header className="adsw-header adv2-head">
         <div>
           <h1>{shell.title}</h1>
@@ -548,6 +558,17 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
           {mode ? (
             <p className="adv2-classic">
               <a href={mode === 'simple' ? '/ads/v2?mode=full' : '/ads/v2'}>{mode === 'simple' ? nav.toFull : nav.toSimple}</a>
+            </p>
+          ) : null}
+          {workspace?.role === 'member' ? (
+            <p className="adv2-team" role="status">
+              <UiLabel>Working in</UiLabel> <b>{workspace.ownerLabel ?? 'your team'}</b>
+              <UiLabel>'s workspace</UiLabel> — <UiLabel>credits</UiLabel>: {balance === null ? '…' : balance}
+              <a href="/ads/team"><UiLabel>Team</UiLabel></a>
+            </p>
+          ) : workspace?.teamOwner ? (
+            <p className="adv2-classic">
+              <a href="/ads/team"><UiLabel>Team — invite teammates to make ads with your credits</UiLabel></a>
             </p>
           ) : null}
           {producao ? (

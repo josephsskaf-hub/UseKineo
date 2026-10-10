@@ -689,7 +689,8 @@ await check('T2 /start: o bloco do dry_run devolve SEM cobrar (charged:false) e 
 })
 await check('T3 /start: a trava é condicional (draft|planned) e 23505 do índice de "um ativo por conta" vira 409 another_active', /\.in\('status', \['draft', 'planned'\]\)/.test(START) && /23505' \? v2Fail\('another_active', 409\)/.test(START))
 await check('T4 /start: débito sem prova de que não aconteceu → falha COM estorno; provado que não → volta a planned', /if \(!charge\.debitPossible\)/.test(START) && /failAdsV2Order\(admin, locked, `charge_/.test(START))
-await check('T10 /start: a trava de início exige o DONO (id + user_id + draft|planned no mesmo UPDATE)', /\.eq\('id', orderId\)\s*\.eq\('user_id', user\.id\)\s*\.in\('status', \['draft', 'planned'\]\)/.test(START))
+// KINEO-EQUIPE-BUSINESS-2026-10-10 — re-ancorado: o DONO é o do workspace (uid = access.ownerId; sem equipe, o próprio user.id).
+await check('T10 /start: a trava de início exige o DONO (id + user_id + draft|planned no mesmo UPDATE)', /\.eq\('id', orderId\)\s*\.eq\('user_id', uid\)\s*\.in\('status', \['draft', 'planned'\]\)/.test(START) && /const uid: string = access\.ownerId \?\? user\.id/.test(START))
 const RETAKE = cod('app/api/ads/v2/retake/route.ts')
 await check('T5 /retake: v2_closed → text recusado → preço mostrado confere → id determinístico GRAVADO → débito → planos → envio', ordem(RETAKE,
   'adsV2Visible(user.email)', "'v2_closed'", "target.kind === 'text'", "'text_not_retakable'", "'price_changed'", 'deterministicUuid(', ".from('ads_v2_orders')", '.insert(', 'chargeAdsV2(', "from('ads_v2_shots').upsert(", 'dispatchAdsV2Shots('))

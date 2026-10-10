@@ -14,16 +14,40 @@ import { adsPassLive } from '@/lib/ads/offer'
 import { ADS_SAMPLE_DAILY_CAP, ADS_SAMPLE_LIVE, ADS_SAMPLE_PREFIX, ADS_SAMPLE_TIER } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
 import { ADS_V2_SCREEN_SECONDS } from '@/lib/ads/v2Screen' // KINEO-ADS-AMOSTRA-2026-10-09
 import { isActivePartner } from '@/lib/partnerAccess' // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09
+import { personalWorkspace, resolveAdsWorkspace, type AdsWorkspace } from '@/lib/ads/workspace' // KINEO-EQUIPE-BUSINESS-2026-10-10
 
-export async function loadAdsAccess(userId: string, authEmail: string | null | undefined): Promise<{ admin: ReturnType<typeof footageAdminClient>; reason: AdsAccessReason }> {
+/** KINEO-EQUIPE-BUSINESS-2026-10-10 — o que loadAdsAccess devolve: o acesso E o workspace (sem a opção, sempre o pessoal). */
+export interface AdsAccessLoad extends AdsWorkspace {
+  admin: ReturnType<typeof footageAdminClient>
+  reason: AdsAccessReason
+}
+
+/**
+ * KINEO-EQUIPE-BUSINESS-2026-10-10 — `opts.workspace`: SÓ o Studio Ads v2 (rotas /api/ads/v2/*, /api/ads/brand-kit, /ads/v2,
+ * a porta /ads e o /api/footage com purpose 'ads') pede. Aí o resolvedor único (lib/ads/workspace.ts resolveAdsWorkspace)
+ * diz se a pessoa é MEMBRO ativo de um Business: o acesso passa a ser o do DONO ('subscriber' do plano business) e
+ * ownerId = o dono. Sem a opção (v1, Produção, filmes, o resto), nada muda: o workspace é sempre o pessoal e não há
+ * leitura a mais.
+ */
+export async function loadAdsAccess(userId: string, authEmail: string | null | undefined, opts: { workspace?: boolean } = {}): Promise<AdsAccessLoad> {
   const admin = footageAdminClient()
+  const own = await loadOwnAdsAccess(admin, userId, authEmail)
+  if (!opts.workspace) return { admin, reason: own.reason, ...personalWorkspace(userId, own.plan) }
+  const ws = await resolveAdsWorkspace(admin, userId, own.plan)
+  if (ws.role !== 'member') return { admin, reason: own.reason, ...ws }
+  // Membro: o acesso é o do plano do DONO (business → 'subscriber'); o e-mail do membro não entra (nada de 'internal' herdado).
+  return { admin, reason: adsAccessReason({ plan: ws.ownerPlan, ads_access_until: null }, null), ...ws }
+}
+
+/** A régua de sempre, da PRÓPRIA conta (era o corpo de loadAdsAccess); devolve também o plano lido (null = não lido). */
+async function loadOwnAdsAccess(admin: ReturnType<typeof footageAdminClient>, userId: string, authEmail: string | null | undefined): Promise<{ reason: AdsAccessReason; plan: unknown }> {
   const withColumn = await admin.from('profiles').select(ADS_ACCESS_SELECT).eq('id', userId).maybeSingle()
-  if (!withColumn.error) return { admin, reason: await comParceiro(userId, withColumn.data as AdsAccessFields | null, authEmail) }
+  if (!withColumn.error) return { reason: await comParceiro(userId, withColumn.data as AdsAccessFields | null, authEmail), plan: (withColumn.data as AdsAccessFields | null)?.plan ?? null }
   if (withColumn.error.code === '42703') {
     const without = await admin.from('profiles').select('id, plan').eq('id', userId).maybeSingle()
-    return { admin, reason: without.error ? 'none' : await comParceiro(userId, (without.data as AdsAccessFields | null) ?? null, authEmail) }
+    return { reason: without.error ? 'none' : await comParceiro(userId, (without.data as AdsAccessFields | null) ?? null, authEmail), plan: without.error ? null : (without.data as AdsAccessFields | null)?.plan ?? null }
   }
-  return { admin, reason: 'none' }
+  return { reason: 'none', plan: null }
 }
 
 /** KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 — a régua de sempre; só o 'none' com perfil lido pergunta pelo parceiro ativo. */

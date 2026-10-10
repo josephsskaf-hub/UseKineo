@@ -32,6 +32,8 @@ import {
   BUSINESS_PAGE_PATH,
   BUSINESS_PRICE_LABEL,
   BUSINESS_SWITCH_HREF, // KINEO-TROCA-BUSINESS-2026-10-10
+  BUSINESS_TEAM_HREF, // KINEO-EQUIPE-BUSINESS-2026-10-10
+  BUSINESS_TEAM_SEATS, // KINEO-EQUIPE-BUSINESS-2026-10-10
 } from '@/lib/businessPlan'
 import { DFY_SERVICE_FACT } from '@/lib/growth/dfyServiceFacts'
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — a faixa dos estilos de produto (as prévias são feitas pelo próprio efeito).
@@ -183,6 +185,10 @@ export default function BusinessPage() {
               <ul>
                 {BUSINESS_BULLETS.map((b) => <li key={b}>{b}</li>)}
               </ul>
+              {/* KINEO-EQUIPE-BUSINESS-2026-10-10 — a equipe: o dono convida colegas em Studio Ads → Team. */}
+              <p className="kbz-fine" data-testid="business-team-line">
+                Bring your team: invite up to {BUSINESS_TEAM_SEATS} teammates. They sign in with their own account and make ads with the company&apos;s credits. <a href={BUSINESS_TEAM_HREF} style={{ color: 'var(--accent)', fontWeight: 700 }}>Manage your team</a>
+              </p>
             </div>
             <div className="kbz-buy">
               <div className="kbz-price">{BUSINESS_PRICE_LABEL}<small>/mo</small></div>

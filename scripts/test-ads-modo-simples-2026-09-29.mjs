@@ -566,7 +566,8 @@ const copiaCerta = async (src) => {
 }
 await check('R12 (honestidade 5) /orders EXECUTADO: rascunho novo copia a pesquisa da mesma frase — ok, "nada achado" e "tudo descartado"; falha de fornecedor e frase diferente não', copiaCerta())
 await check('R12-mutante: "nada achado" pago de novo a cada troca de nível fica vermelho', async () => !(await copiaCerta(trocar(SRC.ordersRoute, "(pr.status === 'ok' || (pr.status === 'failed' && (pr.why === 'nothing_found' || pr.why === 'all_dropped')))", "pr.status === 'ok'"))))
-await check('R12b a cópia só lê rascunho DESTA conta', /\.select\('brief'\)\.eq\('id', o\.research_from\)\.eq\('user_id', user\.id\)\.maybeSingle\(\)/.test(semComentarios(SRC.ordersRoute)))
+// KINEO-EQUIPE-BUSINESS-2026-10-10 — re-ancorado: "desta conta" = o dono do workspace (uid = ws.ownerId; sem equipe, o próprio user.id).
+await check('R12b a cópia só lê rascunho DESTA conta', /\.select\('brief'\)\.eq\('id', o\.research_from\)\.eq\('user_id', uid\)\.maybeSingle\(\)/.test(semComentarios(SRC.ordersRoute)) && /const uid: string = ws\.ownerId \?\? user\.id/.test(SRC.ordersRoute))
 
 // Revisão de honestidade 29/09, achado 1 (parte do texto): fatos públicos num bloco próprio "do prédio/bairro, nunca do
 // imóvel", e número que só existe nos fatos não vira tamanho/cômodo/andar do imóvel.

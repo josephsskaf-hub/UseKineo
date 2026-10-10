@@ -201,9 +201,22 @@ export async function POST(req: NextRequest) {
     const isPaid = profile?.has_paid === true || PAID_PLANS.has((profile?.plan ?? '').toString())
     const entitlement = getEffectiveEntitlement(profile, { isPaidAccount: isPaid })
     const tier = footageTier(profile, entitlement)
+    // KINEO-EQUIPE-BUSINESS-2026-10-10 — SÓ o montador do Studio Ads (purpose 'ads'): o MEMBRO ativo de um Business sobe para a pasta DO DONO
+    // (user_id = dono, created_by = membro), com a cota e o plano do dono — os pedidos do workspace só aceitam arquivo do dono
+    // (ownedFootage). Fora do purpose 'ads' (My footage, filmes, clipes, imagens) nada muda: estritamente por conta. Erro = pessoal.
+    let teamOwnerId: string | null = null
+    if (body.purpose === 'ads' && (body.action === 'upload-url' || body.action === 'confirm')) {
+      try {
+        const ws = await loadAdsAccess(user.id, user.email, { workspace: true })
+        if (ws.role === 'member' && ws.ownerId !== user.id && adsGate(ws.reason) === 'ok') teamOwnerId = ws.ownerId
+      } catch {
+        teamOwnerId = null
+      }
+    }
+    const folderId: string = teamOwnerId ?? user.id
     // KINEO-ADS-AMOSTRA-2026-10-09 — upload da amostra grátis: só pelo montador do Ads, só com a amostra aberta. Erro = fechado.
     let sampleUpload = false
-    if (!entitlement.treatAsPaid && body.purpose === 'ads' && (body.action === 'upload-url' || body.action === 'confirm')) {
+    if (!teamOwnerId && !entitlement.treatAsPaid && body.purpose === 'ads' && (body.action === 'upload-url' || body.action === 'confirm')) {
       try {
         const acc = await loadAdsAccess(user.id, user.email)
         sampleUpload = adsGate(acc.reason) === 'no_access' && (await adsSampleOpen(acc.admin, user.id, acc.reason))
@@ -211,7 +224,7 @@ export async function POST(req: NextRequest) {
         sampleUpload = false
       }
     }
-    if (!entitlement.treatAsPaid && !sampleUpload) {
+    if (!entitlement.treatAsPaid && !sampleUpload && !teamOwnerId) { // KINEO-EQUIPE-BUSINESS-2026-10-10 — o membro usa o plano do dono (business)
       // A recusa que o item #4 mediu 26 vezes sem uma única linha de telemetria.
       await logFootageRefusal('paid_feature', user.id, {
         action: (body.action ?? '').toString(),
@@ -246,7 +259,7 @@ export async function POST(req: NextRequest) {
         await logFootageRefusal('paid_feature', user.id, { action: 'upload-url', tier, sample: true, content_type: contentType.slice(0, 40) })
         return NextResponse.json({ error: 'The free sample ad uses photos only. Videos come with paid plans.', upsell: 'credits', upgrade: '/pricing' }, { status: 402 })
       }
-      const used = await totalFootageBytes(user.id)
+      const used = await totalFootageBytes(folderId) // KINEO-EQUIPE-BUSINESS-2026-10-10 — a cota é a da pasta onde o arquivo vai morar
       if (sampleUpload && used + sizeBytes > ADS_SAMPLE_FOOTAGE_MAX_BYTES) {
         await logFootageRefusal('quota_exceeded', user.id, { tier, sample: true, size_bytes: sizeBytes, used_bytes: used, quota_bytes: ADS_SAMPLE_FOOTAGE_MAX_BYTES })
         return NextResponse.json({ error: 'The free sample has room for a few photos only. Remove some and try again.' }, { status: 409 })
@@ -270,7 +283,7 @@ export async function POST(req: NextRequest) {
 
       const admin = footageAdminClient()
       await ensureFootageBucket(admin)
-      const path = `${user.id}/clip-${Date.now()}.${ext}`
+      const path = `${folderId}/clip-${Date.now()}.${ext}`
       const { data, error } = await admin.storage.from(USER_FOOTAGE_BUCKET).createSignedUploadUrl(path)
       if (error || !data) {
         console.error('[footage] signed url failed:', error?.message)
@@ -288,8 +301,8 @@ export async function POST(req: NextRequest) {
 
     if (body.action === 'confirm') {
       const path = (body.path ?? '').toString()
-      // Path must be inside THIS user's folder (no cross-user confirms).
-      if (!path.startsWith(`${user.id}/`)) {
+      // Path must be inside THIS user's folder (no cross-user confirms). KINEO-EQUIPE-BUSINESS-2026-10-10: para o membro no Ads, a pasta do DONO.
+      if (!path.startsWith(`${folderId}/`)) {
         return NextResponse.json({ error: 'Invalid upload path.' }, { status: 400 })
       }
       // KINEO-MODERACAO-2026-09-25 — o tipo vem dos PRIMEIROS BYTES do arquivo no bucket, nunca do `kind` que o cliente manda:
@@ -331,7 +344,7 @@ export async function POST(req: NextRequest) {
       }
       const { data, error } = await admin
         .from('user_footage')
-        .insert({ user_id: user.id, url, kind, size_bytes: sizeBytes })
+        .insert({ user_id: folderId, url, kind, size_bytes: sizeBytes, ...(teamOwnerId ? { created_by: user.id } : {}) }) // KINEO-EQUIPE-BUSINESS-2026-10-10
         .select('id, url, kind, size_bytes, created_at')
         .single()
       if (error || !data) {

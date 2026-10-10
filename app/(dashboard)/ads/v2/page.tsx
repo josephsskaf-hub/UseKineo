@@ -22,6 +22,8 @@ import { KINEO1_35S_CREDITS } from '@/lib/ads/offer' // KINEO-ADS-V2-VIRADA-2026
 import { isAdsInternalEmail } from '@/lib/ads/access' // KINEO-PRODUCAO-ADS-2026-10-01 — o atalho da Produção
 import { PRODUCAO_PUBLIC, producaoVisibleFor } from '@/lib/ads/producao' // KINEO-PRODUCAO-ADS-2026-10-01
 import { adsSampleOpen } from '@/lib/ads/serverAccess' // KINEO-ADS-AMOSTRA-2026-10-09
+import { loadAdsWorkspaceLabel } from '@/lib/ads/workspace' // KINEO-EQUIPE-BUSINESS-2026-10-10
+import { isTeamOwnerPlan, type AdsWorkspaceView } from '@/lib/ads/team' // KINEO-EQUIPE-BUSINESS-2026-10-10
 import AdsV2Client from './AdsV2Client'
 
 export const metadata = { title: 'Studio Ads — Kineo' }
@@ -35,9 +37,11 @@ export default async function AdsV2Page() {
   } = await supabase.auth.getUser()
   if (!user) redirect(`/login?redirect=${encodeURIComponent('/ads/v2')}`)
 
-  const { admin, reason } = await loadAdsAccess(user.id, user.email)
+  // KINEO-EQUIPE-BUSINESS-2026-10-10 — o workspace: o membro de um Business entra com o acesso, o saldo e o kit DO DONO (uid = dono).
+  const { admin, reason, ...ws } = await loadAdsAccess(user.id, user.email, { workspace: true })
+  const uid: string = ws.ownerId ?? user.id
   const gate = adsGate(reason)
-  const sample = gate === 'no_access' && (await adsSampleOpen(admin, user.id, reason)) // KINEO-ADS-AMOSTRA-2026-10-09
+  const sample = gate === 'no_access' && (await adsSampleOpen(admin, uid, reason)) // KINEO-ADS-AMOSTRA-2026-10-09
   if (gate !== 'ok') {
     // KINEO-ADS-AMOSTRA-2026-10-09 — quem entra pela amostra grátis passa SEM rastro de negação; o resto, como antes.
     if (!sample) {
@@ -49,12 +53,20 @@ export default async function AdsV2Page() {
 
   let balance: number | null = null
   try {
-    const prof = await admin.from('profiles').select('video_credits').eq('id', user.id).maybeSingle()
+    const prof = await admin.from('profiles').select('video_credits').eq('id', uid).maybeSingle() // KINEO-EQUIPE-BUSINESS-2026-10-10 — o saldo do workspace (do dono)
     const n = Number((prof.data as { video_credits?: unknown } | null)?.video_credits)
     balance = !prof.error && prof.data && Number.isFinite(n) ? n : null
   } catch {
     balance = null
   }
 
-  return <AdsV2Client initialBalance={balance} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} />
+  // KINEO-EQUIPE-BUSINESS-2026-10-10 — membro vê o aviso "Working in X's workspace"; o dono do Business vê o link da equipe.
+  const member = ws.role === 'member'
+  const workspace: AdsWorkspaceView = {
+    role: member ? 'member' : 'owner',
+    ownerLabel: member ? await loadAdsWorkspaceLabel(admin, uid) : null,
+    teamOwner: !member && isTeamOwnerPlan(ws.ownerPlan),
+  }
+
+  return <AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} />
 }
