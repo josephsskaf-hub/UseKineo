@@ -718,11 +718,13 @@ await check('E2 CONTACTISH da pesquisa = o da régua do texto (v2Brief)', () => 
 // navegador da escolha de estilo; importa só react e a lib pura). Nenhum módulo de servidor.
 // KINEO-ATOR-ANUNCIO-2026-10-09 — re-ancorado: + '@/lib/ads/v2Presenter' (lib PURA do ator de IA: interruptor e frases nas 16 línguas, só
 // import type). O cartão do ator mora no componente que já estava liberado (@/components/ads/AdsStyles). Nenhum módulo de servidor.
-const IMPORTS_OK = ['@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', './AdsV2Variations', '@/components/AdsPlanChanges', 'react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/ads/v2UserVideo', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage']
+// KINEO-ADS-1FOTO-LINK-2026-10-10 — re-ancorado: + '@/lib/ads/v2LinkImport' (lib PURA do "Or paste your product link" e do
+// "1 foto basta": números, frase sugerida e frases nas 16 línguas, só import type — conferida abaixo junto das outras).
+const IMPORTS_OK = ['@/lib/ads/v2LinkImport', '@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', './AdsV2Variations', '@/components/AdsPlanChanges', 'react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/ads/v2UserVideo', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage']
 await check('E3 a tela simples é cliente e só importa módulos de navegador/puros; v2Simple, v2Research e v2VideoFrames não têm import; textLanguage é pura', () => {
   const imps = [...SRC.simple.matchAll(/^import[\s\S]*?from '([^']+)'/gm)].map((m) => m[1])
   return /^'use client'/.test(SRC.simple) && imps.length >= 8 && imps.every((m) => IMPORTS_OK.includes(m)) &&
-    [SRC.simpleLib, SRC.research, SRC.frames, rd('lib/ads/v2UserVideo.ts'), rd('lib/textLanguage.ts'), rd('lib/ui/interfaceLanguage.ts'), rd('lib/ads/sample.ts'), rd('lib/ads/v2Styles.ts'), rd('lib/ads/v2Presenter.ts')].every((s) => !/^\s*import\s(?!type)/m.test(s)) && !/trackEvent\(/.test(SRC.simple)
+    [SRC.simpleLib, SRC.research, SRC.frames, rd('lib/ads/v2UserVideo.ts'), rd('lib/textLanguage.ts'), rd('lib/ui/interfaceLanguage.ts'), rd('lib/ads/sample.ts'), rd('lib/ads/v2Styles.ts'), rd('lib/ads/v2Presenter.ts'), rd('lib/ads/v2LinkImport.ts')].every((s) => !/^\s*import\s(?!type)/m.test(s)) && !/trackEvent\(/.test(SRC.simple)
 })
 await check('E4 trava 8.2: nenhum arquivo do modo simples mora em caminho travado', () => {
   const novos = [F.simple, F.simpleLib, F.research, F.frames, F.researchRoute, F.contract, F.brief, F.planRoute, F.ordersRoute, F.client]

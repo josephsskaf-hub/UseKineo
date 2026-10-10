@@ -329,10 +329,12 @@ check('C1 criar pedido: padrão 15 s e narração LIGADA; chave desconhecida ign
 check('C2 criar pedido: recusa nível fora do enum, 35 s, frase > 400 e pedido sem frase nem link', !C.sanitizeCreateOrderBody({ tier: 'gold', sentence: 'x' }).ok && C.sanitizeCreateOrderBody({ tier: 'cinema', seconds: 35, sentence: 'x' }).error === 'bad_seconds' && C.sanitizeCreateOrderBody({ tier: 'cinema', sentence: 'x'.repeat(401) }).error === 'sentence_too_long' && C.sanitizeCreateOrderBody({ tier: 'cinema', sentence: 'x'.repeat(400) }).ok && C.sanitizeCreateOrderBody({ tier: 'cinema' }).error === 'sentence_or_link_required')
 check('C3 criar pedido: link só http(s); setor e idioma validados', C.sanitizeCreateOrderBody({ tier: 'cinema', link: 'javascript:alert(1)' }).error === 'bad_link' && C.sanitizeCreateOrderBody({ tier: 'cinema', link: 'https://casa.jo' }).ok && C.sanitizeCreateOrderBody({ tier: 'cinema', sentence: 'x', sector: 'bakery' }).error === 'bad_sector' && C.sanitizeCreateOrderBody({ tier: 'cinema', sentence: 'x', language: 'english' }).error === 'bad_language')
 const photos = (n, kind = 'place') => Array.from({ length: n }, (_, i) => ({ footage_id: U(10 + i), kind }))
-check('C4 planejar: 3 a 7 fotos (2 e 8 recusadas), cada uma com id uuid e tipo do enum', () => {
+// KINEO-ADS-1FOTO-LINK-2026-10-10 — re-ancorado: o mínimo virou 1 foto (a /business promete "uma foto do produto"); 0 e 8
+// seguem recusadas. Era "3 a 7 (2 e 8 recusadas)".
+check('C4 planejar: 1 a 7 fotos (0 e 8 recusadas), cada uma com id uuid e tipo do enum', () => {
   const base = { order_id: U(1), sector: 'restaurant', logo_footage_id: U(2) }
-  return C.sanitizePlanBody({ ...base, photos: photos(3) }).ok && C.sanitizePlanBody({ ...base, photos: photos(7) }).ok &&
-    C.sanitizePlanBody({ ...base, photos: photos(2) }).error === 'too_few_photos' && C.sanitizePlanBody({ ...base, photos: photos(8) }).error === 'too_many_photos' &&
+  return C.sanitizePlanBody({ ...base, photos: photos(1) }).ok && C.sanitizePlanBody({ ...base, photos: photos(7) }).ok &&
+    C.sanitizePlanBody({ ...base, photos: photos(0) }).error === 'too_few_photos' && C.sanitizePlanBody({ ...base, photos: photos(8) }).error === 'too_many_photos' &&
     C.sanitizePlanBody({ ...base, photos: [...photos(2), { footage_id: 'abc', kind: 'place' }] }).error === 'bad_photo_id' &&
     C.sanitizePlanBody({ ...base, photos: [...photos(2), { footage_id: U(30), kind: 'logo' }] }).error === 'bad_photo_kind'
 })

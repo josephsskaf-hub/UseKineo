@@ -70,7 +70,15 @@ export function isAdsV2PlanStyle(raw: unknown): raw is AdsV2PlanStyle {
 export const ADS_V2_NARRATION_WORDS_15 = 30
 /** Frase de tela: no máximo 2 linhas no terço do meio. */
 export const ADS_V2_OVERLAY_MAX_CHARS = 42
-export const ADS_V2_MIN_PHOTOS = 3
+/**
+ * KINEO-ADS-1FOTO-LINK-2026-10-10 — 1 foto basta (era 3). A /business e os anúncios pagos prometem "uma foto do produto
+ * vira um anúncio pronto"; o mínimo de 3 barrava o vendedor com 1 foto (os concorrentes aceitam 1). Com menos fotos que
+ * planos, planShots preenche os 15 s com honestidade: a MESMA foto ganha outro movimento a cada uso (variante = nº de usos,
+ * nunca o mesmo movimento colado no anterior), Comercial/Premium somam as cenas criadas a partir dela, e o plano `text`
+ * repetido colado no anterior vira UM plano mais longo (foto parada não tem outro movimento: seria o mesmo quadro 2x).
+ * Espelhos: ADS_V2_CONTRACT_MIN_PHOTOS (lib/ads/v2Contract.ts) e ADS_V2_SIMPLE_MIN_IN_AD (lib/ads/v2Simple.ts).
+ */
+export const ADS_V2_MIN_PHOTOS = 1
 export const ADS_V2_MAX_PHOTOS = 7
 /** Final obrigatório de todo prompt de movimento. */
 export const ADS_V2_KEEP_PHRASE = 'Keep everything exactly as in the photo.'
@@ -477,6 +485,23 @@ export function adsV2PlanStyleTarget(shots: readonly { idx: number; kind: string
 
 const r3 = (n: number): number => Math.round(n * 1000) / 1000
 
+/**
+ * KINEO-ADS-1FOTO-LINK-2026-10-10 — junta planos `text` seguidos da MESMA foto em um só (soma dos cortes, início 0) e
+ * renumera os índices. Sem repetição colada, devolve os mesmos objetos na mesma ordem. Pura, exportada para o guardião.
+ */
+export function mergeRepeatedTextShots(shots: readonly AdsV2PlannedShot[]): AdsV2PlannedShot[] {
+  const out: AdsV2PlannedShot[] = []
+  for (const s of shots) {
+    const prev = out[out.length - 1]
+    if (prev && s.kind === 'text' && prev.kind === 'text' && s.sourceFootageId !== null && prev.sourceFootageId === s.sourceFootageId) {
+      out[out.length - 1] = { ...prev, cutSeconds: r3(prev.cutSeconds + s.cutSeconds) }
+      continue
+    }
+    out.push(s.idx === out.length ? s : { ...s, idx: out.length })
+  }
+  return out
+}
+
 /** 2-3 frases de tela, distribuídas em terços da parte com planos: marca/oferta nos primeiros 5 s, o que tem, onde fica. */
 export function adsV2OverlaySlots(shotsSeconds: number): AdsV2OverlaySlot[] {
   const third = shotsSeconds / 3
@@ -570,7 +595,7 @@ export function planShots(input: { sector: AdsV2Sector; tier: AdsV2PlanTier; pho
     videoAt.set(at, v)
   })
 
-  const shots: AdsV2PlannedShot[] = slots.map((slot, idx) => {
+  const built: AdsV2PlannedShot[] = slots.map((slot, idx) => {
     const video = videoAt.get(idx)
     if (video) {
       const start = adsV2UserVideoStart(video.start, video.seconds, slot.cut)
@@ -641,6 +666,12 @@ export function planShots(input: { sector: AdsV2Sector; tier: AdsV2PlanTier; pho
       cutSeconds: slot.cut,
     }
   })
+
+  // KINEO-ADS-1FOTO-LINK-2026-10-10 — com 1 foto (ou poucas), a mesma foto de TEXTO pode cair em 2 vagas seguidas: o
+  // montador dá à foto parada sempre o mesmo zoom, então seriam 2 planos idênticos colados. Viram UM plano com a soma dos
+  // cortes (a duração total não muda) e os índices são renumerados em sequência. Foto com movimento de IA nunca se junta:
+  // cada uso tem outra variante de movimento (prompt diferente). Sem texto repetido colado, o plano é o de antes.
+  const shots = mergeRepeatedTextShots(built)
 
   // KINEO-ESTILOS-PRODUTO-2026-10-09 — estilo: só o plano de produto escolhido (adsV2PlanStyleTarget) ganha `effect` e o
   // trecho do clipe de 5 s do efeito. Estilo ausente/'none'/desconhecido ou sem plano de produto = o plano de antes, chave

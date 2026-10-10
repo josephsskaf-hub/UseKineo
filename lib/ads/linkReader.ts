@@ -216,3 +216,23 @@ export function isPrivateHost(h: string): boolean {
   if (host.includes(':')) return host === '::1' || host === '::' || /^f[cd]/i.test(host) || /^fe80/i.test(host) || /^::ffff:/i.test(host)
   return false
 }
+
+/**
+ * KINEO-ADS-1FOTO-LINK-2026-10-10 — candidatas a FOTO DO PRODUTO para o "Or paste your product link" do modo simples do
+ * /ads/v2: as imagens de readLinkFacts (foto do JSON-LD Product, depois <img> grandes; og:image/twitter:image só quando
+ * não há outra), conferidas de novo: só http(s), com cara de foto (looksLikePhoto), sem repetir o mesmo arquivo (pathKey).
+ * No máximo `max`. Pura (a rota baixa; aqui só se escolhe).
+ */
+export function productImageCandidates(images: readonly unknown[], max = MAX_IMAGES): string[] {
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const raw of Array.isArray(images) ? images : []) {
+    if (out.length >= max) break
+    if (typeof raw !== 'string' || !/^https?:\/\//i.test(raw) || !looksLikePhoto(raw)) continue
+    const key = pathKey(raw)
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(raw)
+  }
+  return out
+}

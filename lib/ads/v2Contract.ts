@@ -2,7 +2,7 @@
 //
 // Cada corpo é montado CAMPO A CAMPO a partir do JSON recebido (nada de espalhar o objeto do cliente). Chave
 // desconhecida é ignorada; valor fora do enum ou do limite é recusado com um código curto que a rota devolve em 400.
-// Limites: frase ≤ 400 caracteres, 3 a 7 fotos, ids uuid, tier/segundos/setor/tipo de foto nos enums.
+// Limites: frase ≤ 400 caracteres, 1 a 7 fotos (KINEO-ADS-1FOTO-LINK-2026-10-10: eram 3 a 7), ids uuid, tier/segundos/setor/tipo de foto nos enums.
 //
 // LIB PURA (nenhum import): enums copiados de lib/ads/v2Tiers.ts e lib/ads/v2ShotLists.ts; o guardião confere o espelho.
 
@@ -24,7 +24,9 @@ export const ADS_V2_CONTRACT_STYLES: readonly AdsV2ContractStyle[] = ['package_e
 
 export const ADS_V2_SENTENCE_MAX_CHARS = 400
 export const ADS_V2_LINK_MAX_CHARS = 500
-export const ADS_V2_CONTRACT_MIN_PHOTOS = 3
+// KINEO-ADS-1FOTO-LINK-2026-10-10 — 1 foto basta (era 3): espelho de ADS_V2_MIN_PHOTOS (lib/ads/v2ShotLists.ts). Pelo menos
+// 1 FOTO continua obrigatória no /plan: vídeo sozinho ou link sozinho nunca planejam (a cena criada usa a foto de referência).
+export const ADS_V2_CONTRACT_MIN_PHOTOS = 1
 export const ADS_V2_CONTRACT_MAX_PHOTOS = 7
 /**
  * KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — vídeos do cliente que entram COMO VÍDEO (espelho de ADS_V2_MAX_USER_VIDEOS,
@@ -235,7 +237,7 @@ function readVideos(raw: unknown): AdsV2Sanitized<AdsV2PlanVideo[]> {
 }
 
 /**
- * POST planejar: setor, logo e 3 a 7 fotos JÁ recortadas em 9:16 no navegador, cada uma com o tipo marcado.
+ * POST planejar: setor, logo e 1 a 7 fotos (KINEO-ADS-1FOTO-LINK-2026-10-10: eram 3 a 7) JÁ recortadas em 9:16 no navegador, cada uma com o tipo marcado.
  * KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — mais até 2 vídeos que entram como vídeo: fotos + vídeos entre 3 e 7, com pelo
  * menos 1 foto. Sem vídeo, as regras e o valor devolvido são os de antes.
  */
@@ -362,7 +364,7 @@ export interface AdsV2AssetsBody {
   logo_footage_id: string | null
   /** Cartão final (PNG 1080×1920 desenhado no navegador por lib/ads/endCard.ts e enviado ao user_footage). */
   card_footage_id: string | null
-  /** null = não mandou fotos ainda (o rascunho pode nascer só com a frase); mandou = 3 a 7, sem repetir. */
+  /** null = não mandou fotos ainda (o rascunho pode nascer só com a frase); mandou = 1 a 7 (eram 3 a 7 até KINEO-ADS-1FOTO-LINK-2026-10-10), sem repetir. */
   photos: AdsV2PlanPhoto[] | null
 }
 
@@ -438,4 +440,26 @@ export function sanitizePatchBody(raw: unknown): AdsV2Sanitized<AdsV2PatchBody> 
   }
   if (narration === null && card === null) return fail('nothing_to_change')
   return { ok: true, value: { order_id: (b.order_id as string).toLowerCase(), narration, card_footage_id: card } }
+}
+
+export interface AdsV2LinkImportBody {
+  /** O link como a pessoa colou (aparado; sem esquema ganha https://). O servidor ainda passa por safeLinkUrl/isPrivateHost. */
+  url: string
+}
+
+/**
+ * KINEO-ADS-1FOTO-LINK-2026-10-10 — POST /api/ads/v2/link-import (modo simples: "Or paste your product link"). Só o link:
+ * texto curto, sem espaço, até ADS_V2_LINK_MAX_CHARS, http(s) (sem esquema = https://). Esquema estranho (javascript:,
+ * file:, data:…) = link_invalid. Nada aqui cria pedido: a rota só lê a página e guarda as fotos no user_footage do dono.
+ */
+export function sanitizeLinkImportBody(raw: unknown): AdsV2Sanitized<AdsV2LinkImportBody> {
+  const b = obj(raw)
+  if (!b) return fail('bad_body')
+  if (typeof b.url !== 'string') return fail('link_invalid')
+  const t = b.url.trim()
+  if (!t || t.length > ADS_V2_LINK_MAX_CHARS || /\s/.test(t)) return fail('link_invalid')
+  if (/^[a-z][a-z0-9+.-]*:(?!\d)/i.test(t) &&!/^https?:\/\//i.test(t)) return fail('link_invalid')
+  const url = /^https?:\/\//i.test(t) ? t : `https://${t}`
+  if (url.length > ADS_V2_LINK_MAX_CHARS) return fail('link_invalid')
+  return { ok: true, value: { url } }
 }

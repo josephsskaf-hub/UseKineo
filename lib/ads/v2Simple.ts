@@ -19,7 +19,8 @@ export type AdsV2SimpleLang = 'en' | 'pt' | 'es'
 export const ADS_V2_SIMPLE_VIDEO_FRACTIONS: readonly number[] = [0.2, 0.5, 0.8]
 /** Espelho de ADS_V2_MAX_PHOTOS/ADS_V2_MIN_PHOTOS (lib/ads/v2ShotLists.ts); o guardião confere. */
 export const ADS_V2_SIMPLE_MAX_IN_AD = 7
-export const ADS_V2_SIMPLE_MIN_IN_AD = 3
+// KINEO-ADS-1FOTO-LINK-2026-10-10 — 1 foto basta (era 3): a /business promete "uma foto do produto vira um anúncio".
+export const ADS_V2_SIMPLE_MIN_IN_AD = 1
 /** Quantos arquivos a tela guarda (os que passam de 7 ficam "fora do anúncio", trocáveis). */
 export const ADS_V2_SIMPLE_MAX_ITEMS = 24
 export const ADS_V2_SIMPLE_ACCEPT = 'image/jpeg,image/png,image/webp,video/mp4,video/quicktime,video/webm,.mov'
@@ -330,7 +331,7 @@ const EN = {
   },
   files: {
     title: 'Your photos and videos',
-    lead: 'Send 3 to 7 photos and videos: up to 2 videos go into the ad as video. Your best photo first.',
+    lead: 'Send 1 to 7 photos or videos — your product photo first. Up to 2 videos go into the ad as video.',
     add: 'Add photos or videos',
     addMore: 'Add more',
     count: '{n} of {max} in the ad',
@@ -405,7 +406,7 @@ const EN = {
   },
   plan: {
     missingTitle: 'Before planning:',
-    needFiles: 'Add {n} more photos or a video ({min} to {max} in the ad).',
+    needFiles: 'Add at least {min} photo ({min} to {max} in the ad).',
     needPhoto: 'Add at least 1 photo along with your videos.',
     needText: 'Write in a few words what you want to sell or show.',
     textTooLong: 'Shorten your text (400 characters).',
@@ -531,7 +532,7 @@ const PT: AdsV2SimpleCopy = {
   },
   files: {
     title: 'Suas fotos e vídeos',
-    lead: 'Mande de 3 a 7 fotos e vídeos: até 2 vídeos entram no anúncio como vídeo. A melhor foto primeiro.',
+    lead: 'Envie de 1 a 7 fotos ou vídeos — a foto do produto primeiro. Até 2 vídeos entram no anúncio como vídeo.',
     add: 'Adicionar fotos ou vídeos',
     addMore: 'Adicionar mais',
     count: '{n} de {max} no anúncio',
@@ -606,7 +607,7 @@ const PT: AdsV2SimpleCopy = {
   },
   plan: {
     missingTitle: 'Antes de planejar:',
-    needFiles: 'Adicione mais {n} fotos ou um vídeo ({min} a {max} no anúncio).',
+    needFiles: 'Adicione pelo menos {min} foto ({min} a {max} no anúncio).',
     needPhoto: 'Junto com os vídeos, adicione pelo menos 1 foto.',
     needText: 'Escreva em poucas palavras o que você quer vender ou mostrar.',
     textTooLong: 'Encurte o texto (400 caracteres).',
@@ -730,7 +731,7 @@ const ES: AdsV2SimpleCopy = {
   },
   files: {
     title: 'Tus fotos y videos',
-    lead: 'Envía de 3 a 7 fotos y videos: hasta 2 videos entran en el anuncio como video. Tu mejor foto primero.',
+    lead: 'Envía de 1 a 7 fotos o videos — la foto del producto primero. Hasta 2 videos entran en el anuncio como video.',
     add: 'Agregar fotos o videos',
     addMore: 'Agregar más',
     count: '{n} de {max} en el anuncio',
@@ -805,7 +806,7 @@ const ES: AdsV2SimpleCopy = {
   },
   plan: {
     missingTitle: 'Antes de planificar:',
-    needFiles: 'Agrega {n} fotos más o un video ({min} a {max} en el anuncio).',
+    needFiles: 'Agrega al menos {min} foto ({min} a {max} en el anuncio).',
     needPhoto: 'Junto con los videos, agrega al menos 1 foto.',
     needText: 'Escribe en pocas palabras qué quieres vender o mostrar.',
     textTooLong: 'Acorta el texto (400 caracteres).',
@@ -934,7 +935,7 @@ const ERR_PT: Record<string, string> = {
   bad_link: 'Esse link não parece certo. Cole o endereço completo, começando com https://',
   link_unreachable: 'Não conseguimos ler esse link. Escreva o que você quer vender em poucas palavras.',
   brief_needs_business: 'Não entendemos o que está sendo anunciado. Diga no texto o que é (por exemplo, "apartamento à venda no Edifício Aurora") e planeje de novo.',
-  too_few_photos: 'Adicione pelo menos 3 fotos (ou um vídeo).',
+  too_few_photos: 'Adicione pelo menos 1 foto.',
   too_many_photos: 'Use no máximo 7 fotos. Tire as mais fracas.',
   media_not_owned: 'Um dos arquivos não subiu direito. Tire, adicione de novo e planeje de novo.',
   bad_photo_id: 'Um dos arquivos não subiu direito. Tire, adicione de novo e planeje de novo.',
@@ -997,7 +998,7 @@ const ERR_ES: Record<string, string> = {
   bad_link: 'Ese enlace no parece correcto. Pega la dirección completa, empezando con https://',
   link_unreachable: 'No pudimos leer ese enlace. Escribe en pocas palabras qué quieres vender.',
   brief_needs_business: 'No entendimos qué se anuncia. Dilo en el texto (por ejemplo, "departamento en venta en el Edificio Aurora") y planifica de nuevo.',
-  too_few_photos: 'Agrega al menos 3 fotos (o un video).',
+  too_few_photos: 'Agrega al menos 1 foto.',
   too_many_photos: 'Usa como máximo 7 fotos. Quita las más débiles.',
   media_not_owned: 'Uno de los archivos no se subió bien. Quítalo, agrégalo de nuevo y planifica otra vez.',
   bad_photo_id: 'Uno de los archivos no se subió bien. Quítalo, agrégalo de nuevo y planifica otra vez.',

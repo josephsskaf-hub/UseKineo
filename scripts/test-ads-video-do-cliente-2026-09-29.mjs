@@ -160,7 +160,9 @@ const contrato = (K) => {
   const logo = K.sanitizePlanBody({ order_id: U(1), sector: 'real_estate', logo_footage_id: U(2), photos: fotos(2), videos: [vid(1, { footage_id: U(2) })] })
   const foco = K.sanitizePlanBody({ order_id: U(1), sector: 'real_estate', logo_footage_id: U(2), photos: fotos(2), videos: [vid(1, { focus_x: 1.5 })] })
   const assets = K.sanitizeAssetsBody({ photos: fotos(2), videos: [vid(1)] })
-  const assetsSem = K.sanitizeAssetsBody({ photos: fotos(2) })
+  // KINEO-ADS-1FOTO-LINK-2026-10-10 — re-ancorado: 1 foto basta, então "sem vídeo e sem foto suficiente" agora é 0 fotos
+  // (era 2 fotos sem vídeo, com mínimo 3).
+  const assetsSem = K.sanitizeAssetsBody({ photos: [] })
   return semVideo.ok && keys(semVideo.value) === 'logo_footage_id,order_id,photos,sector' &&
     umVideo.ok && umVideo.value.videos.length === 1 && umVideo.value.videos[0].start === 6.3 && umVideo.value.photos.length === 2 &&
     doisVideos.ok && doisVideos.value.videos.length === 2 &&
@@ -168,7 +170,7 @@ const contrato = (K) => {
     !repetido.ok && repetido.error === 'duplicate_photo' && !logo.ok && logo.error === 'logo_is_photo' && !foco.ok && foco.error === 'bad_video' &&
     assets.ok && !assetsSem.ok && assetsSem.error === 'too_few_photos'
 }
-await check('C1 contrato: fotos + vídeos entre 3 e 7, pelo menos 1 foto, até 2 vídeos, sem repetir nem virar logo; sem vídeo = as chaves de antes', () => contrato(C))
+await check('C1 contrato: fotos + vídeos entre 1 e 7 (KINEO-ADS-1FOTO-LINK-2026-10-10 — re-ancorado: eram 3 e 7), pelo menos 1 foto, até 2 vídeos, sem repetir nem virar logo; sem vídeo = as chaves de antes', () => contrato(C))
 await check('C1-mutante: 3 vídeos passando no contrato fica vermelho', () => !contrato(pura(F.contract, trocar(SRC.contract, 'export const ADS_V2_CONTRACT_MAX_VIDEOS = 2', 'export const ADS_V2_CONTRACT_MAX_VIDEOS = 3'))))
 
 // ═══ P. PLANO (lib/ads/v2ShotLists.ts) ═══════════════════════════════════════════════════════════════════════════════

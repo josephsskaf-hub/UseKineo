@@ -1,6 +1,6 @@
 // KINEO-ADS-V2-2026-09-28 — plano do anúncio v2 (especificação, seção 5, passo 2). SEM COBRAR e sem chamar a fal.
 //
-// Recebe setor, logo, 3 a 7 fotos JÁ recortadas em 9:16 no navegador (cada uma com o tipo marcado) e, se quiser, o
+// Recebe setor, logo, 1 a 7 fotos (KINEO-ADS-1FOTO-LINK-2026-10-10: eram 3 a 7) JÁ recortadas em 9:16 no navegador (cada uma com o tipo marcado) e, se quiser, o
 // cartão final. Extrai o brief da frase (ou do link) com gpt-4o-mini (lib/ads/v2Brief.ts), monta a lista de planos
 // pelo molde do setor (lib/ads/v2ShotLists.ts planShots, determinístico), passa os validadores anti-invenção pela
 // narração, pelas frases de tela E por cada prompt de movimento/cena, e devolve o custo em créditos e em US$
@@ -122,6 +122,16 @@ export async function POST(req: NextRequest) {
       text = [text, price ? `Price: ${price}` : '', contact ? `Contact: ${contact}` : ''].filter(Boolean).join('\n')
     }
     let pageLang: string | null = null
+    // KINEO-ADS-1FOTO-LINK-2026-10-10 — modo simples com o link do produto colado (/api/ads/v2/link-import): a frase da
+    // pessoa continua mandando; o que a página DIZ (nome, descrição, preço, site) entra embaixo como fonte do roteiro. Página
+    // que não abre agora = segue só com a frase (nunca derruba o plano). Sem link, o texto é o de antes.
+    if (simple && text && typeof brief0.link === 'string' && brief0.link) {
+      const page = await adsV2LinkText(brief0.link).catch(() => null)
+      if (page) {
+        text = `${text}\nFrom the product page: ${page.text}`
+        pageLang = page.lang
+      }
+    }
     if (!text && typeof brief0.link === 'string' && brief0.link) {
       const read = await adsV2LinkText(brief0.link)
       if (!read) return v2Fail('link_unreachable', 422)

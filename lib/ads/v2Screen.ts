@@ -261,7 +261,7 @@ export function adsV2ErrorMessage(code: string | null | undefined, extra: { need
     case 'brief_needs_business':
       return 'We could not tell which business this is. Write the business name in your sentence and plan again.'
     case 'too_few_photos':
-      return 'Add at least 3 photos of your business.'
+      return 'Add at least 1 photo of your product or business.'
     case 'too_many_photos':
       return 'Use at most 7 photos. Remove the weakest ones.'
     case 'media_not_owned':

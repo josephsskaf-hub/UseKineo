@@ -78,6 +78,8 @@ import { ADS_V2_STYLES_PUBLIC, adsV2StyleCopy, adsV2SuggestedStyle, type AdsV2St
 import { AdsPresenterToggle, AdsStylePicker } from '@/components/ads/AdsStyles'
 // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator de IA ("Person talking about it"): interruptor e frases nas 16 línguas (lib pura).
 import { ADS_V2_PRESENTER_PUBLIC, adsV2PresenterCopy, type AdsV2PresenterCopy } from '@/lib/ads/v2Presenter'
+// KINEO-ADS-1FOTO-LINK-2026-10-10 — 1 foto basta e "Or paste your product link" (frases nas 16 línguas, lib pura).
+import { ADS_V2_LINK_IMPORT_MAX_IMAGES, adsV2LinkImportCopy, adsV2LinkImportError, type AdsV2LinkImportCopy } from '@/lib/ads/v2LinkImport'
 
 // ─── tipos ────────────────────────────────────────────────────────────────────────────────────
 
@@ -156,6 +158,8 @@ interface SimpleItem {
   fx: number
   fy: number
   fromVideo: boolean
+  /** KINEO-ADS-1FOTO-LINK-2026-10-10 — veio do link do produto (a página diz que é foto do produto). */
+  fromLink?: boolean
   /**
    * KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — preenchido quando o arquivo entra COMO VÍDEO: o original (sobe como está), a
    * duração/dimensões lidas no navegador e o início do trecho mais vivo. srcUrl é a miniatura desse trecho.
@@ -331,6 +335,9 @@ const SIMPLE_CSS = `
 .adv2 .adv2s-facts input{margin-top:3px;accent-color:var(--ads-action);flex-shrink:0}
 .adv2 .adv2s-facts a{font-size:12px;color:var(--ads-muted);text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
 .adv2 .adv2s-facts .tx{display:grid;gap:2px;min-width:0}
+.adv2 .adv2s-link{margin-top:16px}
+.adv2 .adv2s-linkrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.adv2 .adv2s-linkrow input{flex:1 1 220px;min-width:0}
 `
 
 // ─── a sessão do modo simples ─────────────────────────────────────────────────────────────────
@@ -359,6 +366,7 @@ export function AdsV2SimpleSession({
   sample?: boolean
 }) {
   const copy: AdsV2SimpleCopy = pickInterfaceCopy(ADS_V2_SIMPLE_COPY, lang)
+  const lcopy: AdsV2LinkImportCopy = adsV2LinkImportCopy(lang) // KINEO-ADS-1FOTO-LINK-2026-10-10 — 16 línguas
   const vcopy = variationsCopy(lang)
   const scopy: AdsSampleCopy | null = sample ? adsSampleCopy(lang) : null
   const [sampleCap, setSampleCap] = useState(false)
@@ -374,6 +382,12 @@ export function AdsV2SimpleSession({
   // tela pede para voltar, em vez de acusar o navegador.
   const [tabHidden, setTabHidden] = useState(false)
   const [text, setText] = useState('')
+  // KINEO-ADS-1FOTO-LINK-2026-10-10 — o link do produto: o que está no campo, o que a rota LEU (vai ao pedido como `link`,
+  // fonte do roteiro) e o aviso da leitura. Link sem foto não planeja: a regra de "pelo menos 1 foto" fica em `missing`.
+  const [link, setLink] = useState('')
+  const [linkRead, setLinkRead] = useState<string | null>(null)
+  const [linkBusy, setLinkBusy] = useState(false)
+  const [linkNote, setLinkNote] = useState<{ warn: boolean; text: string } | null>(null)
   const [tier, setTier] = useState<AdsV2Tier | null>(sample ? ADS_SAMPLE_TIER : null)
   // KINEO-ESTILOS-PRODUTO-2026-10-09 — null = segue a sugestão do setor; a pessoa escolheu = vale a escolha dela.
   const [styleChoice, setStyleChoice] = useState<AdsV2StyleChoice | null>(null)
@@ -460,7 +474,7 @@ export function AdsV2SimpleSession({
   const contactT = contact.replace(/\s+/g, ' ').trim()
 
   /** Chave do rascunho: mudou texto, preço, contato, frases, voz, língua ou nível = rascunho novo (a pesquisa é copiada). */
-  const draftKey = JSON.stringify({ text: sentence, price: priceT, contact: contactT, overlays: overlaysOn, voice: narrationOn, lang: spoken, tier })
+  const draftKey = JSON.stringify({ text: sentence, price: priceT, contact: contactT, overlays: overlaysOn, voice: narrationOn, lang: spoken, tier, link: linkRead })
   const baseSig = JSON.stringify({ draftKey, sector, presenter: presenterOn, items: inAd.map((p) => [p.key, focalSig(p)]), style })
   // A marca de um fato é presa ao CONTEÚDO (fonte + texto), nunca ao id f1..f6: uma pesquisa nova tem outro f1 e não herda
   // a marca do anterior; a mesma pesquisa copiada para um rascunho novo (troca de nível) mantém a marca.
@@ -474,7 +488,9 @@ export function AdsV2SimpleSession({
   const planFresh = !!plan && plan.sig === planSig
 
   const missing: string[] = []
-  if (inAd.length < ADS_V2_SIMPLE_MIN_IN_AD) missing.push(fill(copy.plan.needFiles, { n: ADS_V2_SIMPLE_MIN_IN_AD - inAd.length, min: ADS_V2_SIMPLE_MIN_IN_AD, max: ADS_V2_SIMPLE_MAX_IN_AD }))
+  // KINEO-ADS-1FOTO-LINK-2026-10-10 — 1 foto basta; link sem foto NÃO planeja (a frase pede a foto nas 16 línguas).
+  if (inAd.length < ADS_V2_SIMPLE_MIN_IN_AD) missing.push(fill(lcopy.needPhoto, { n: ADS_V2_SIMPLE_MIN_IN_AD - inAd.length, min: ADS_V2_SIMPLE_MIN_IN_AD, max: ADS_V2_SIMPLE_MAX_IN_AD }))
+  if (linkBusy) missing.push(lcopy.linkReading)
   // O vídeo ocupa vaga de foto, mas o plano precisa de pelo menos 1 foto (referência das cenas criadas).
   if (inAd.length > 0 && inAd.every((p) => p.video)) missing.push(copy.plan.needPhoto)
   if (!sentence) missing.push(copy.plan.needText)
@@ -781,6 +797,52 @@ export function AdsV2SimpleSession({
     if (aliveRef.current) setFileNote(notes.length ? notes.join(' ') : null)
   }
 
+  /**
+   * KINEO-ADS-1FOTO-LINK-2026-10-10 — "Or paste your product link": o servidor lê a página e guarda até 3 fotos do produto
+   * no user_footage DESTA conta (/api/ads/v2/link-import, com moderação e cota); aqui cada foto é baixada do NOSSO bucket e
+   * entra como um arquivo escolhido pela pessoa (recorte 9:16, foco arrastável, sobe pelo caminho de sempre no planejar).
+   * Frase vazia ganha a sugestão da página. Nenhuma foto = o aviso pedido ("add at least one photo"); o link lido fica
+   * para o roteiro. Nada aqui cria pedido.
+   */
+  async function importLink(raw?: string) {
+    const url = (raw ?? link).trim()
+    if (!url || linkBusy || busy !== null) return
+    setLinkBusy(true)
+    setLinkNote(null)
+    try {
+      const r = await api<{ link?: string; host?: string; sentence?: string; images?: { footage_id: string; url: string }[] }>('/api/ads/v2/link-import', { method: 'POST', body: { url } })
+      if (!aliveRef.current) return
+      if (!r.ok) {
+        setLinkNote({ warn: true, text: r.code.startsWith('moderation') || r.code === 'no_access' || r.code === 'closed' ? errorText(lang, r) : adsV2LinkImportError(r.code, lcopy) })
+        return
+      }
+      const host = typeof r.data.host === 'string' ? r.data.host : ''
+      setLinkRead(typeof r.data.link === 'string' && r.data.link ? r.data.link : null)
+      const suggested = typeof r.data.sentence === 'string' ? r.data.sentence.trim() : ''
+      if (suggested) setText((cur) => (cur.trim() ? cur : suggested))
+      const added: SimpleItem[] = []
+      const list = Array.isArray(r.data.images) ? r.data.images.slice(0, ADS_V2_LINK_IMPORT_MAX_IMAGES) : []
+      for (const [i, im] of list.entries()) {
+        try {
+          const res = await fetch(im.url, { cache: 'no-store' })
+          if (!res.ok) continue
+          const blob = await res.blob()
+          const png = blob.type === 'image/png' || /\.png(\?|$)/i.test(im.url)
+          const f = new File([blob], `${(host || 'product').replace(/[^\w-]+/g, '-')}-${i + 1}.${png ? 'png' : 'jpg'}`, { type: png ? 'image/png' : 'image/jpeg' })
+          const it = await itemFromFile(f, false)
+          if (it) added.push({ ...it, fromLink: true })
+        } catch {
+          /* foto que não baixou: as outras seguem */
+        }
+        if (!aliveRef.current) return
+      }
+      if (added.length) setItems((prev) => [...prev, ...added].slice(0, ADS_V2_SIMPLE_MAX_ITEMS))
+      setLinkNote(added.length ? { warn: false, text: fill(lcopy.linkGot, { n: added.length, host: host || url }) } : { warn: true, text: lcopy.linkNoPhotos })
+    } finally {
+      if (aliveRef.current) setLinkBusy(false)
+    }
+  }
+
   function updateItem(key: string, patch: Partial<SimpleItem>) {
     setItems((prev) => prev.map((p) => (p.key === key ? { ...p, ...patch } : p)))
   }
@@ -837,7 +899,9 @@ export function AdsV2SimpleSession({
     const videos: PlanVideoBody[] = []
     const push = (p: SimpleItem, footageId: string) => {
       if (p.video) videos.push({ footage_id: footageId, start: p.video.start, focus_x: p.fx, focus_y: p.fy, width: p.video.width, height: p.video.height })
-      else out.push({ footage_id: footageId, kind: firstAsProduct && out.length === 0 ? 'product' : photoKind })
+      // KINEO-ADS-1FOTO-LINK-2026-10-10 — foto que veio do link do PRODUTO é produto quando o texto não reconheceu lugar
+      // nenhum ('other'): movimento de produto, não de "atravessar o espaço". Setor reconhecido (imóvel, restaurante…) manda.
+      else out.push({ footage_id: footageId, kind: (firstAsProduct && out.length === 0) || (p.fromLink === true && sector === 'other') ? 'product' : photoKind })
     }
     let n = 0
     for (const p of inAd) {
@@ -934,6 +998,8 @@ export function AdsV2SimpleSession({
         price: priceT || null,
         contact: contactT || null,
         research_from: draft?.id ?? null,
+        // KINEO-ADS-1FOTO-LINK-2026-10-10 — o link que a rota LEU: o /plan junta o que a página diz à frase da pessoa.
+        link: linkRead,
       },
     })
     if (!aliveRef.current) return null
@@ -1159,7 +1225,7 @@ export function AdsV2SimpleSession({
             {/* 1. Arquivos */}
             <section className="adv2-card" aria-labelledby="adv2s-s1">
               <h2 id="adv2s-s1"><span className="adv2-num" aria-hidden="true">1</span>{copy.files.title}</h2>
-              <p className="adsw-lead">{copy.files.lead}</p>
+              <p className="adsw-lead">{lcopy.lead}</p>
               {items.length ? (
                 <>
                   <p className="adsw-hint" style={{ margin: '0 0 10px' }}>{fill(copy.files.count, { n: inAd.length, max: ADS_V2_SIMPLE_MAX_IN_AD })} · {copy.files.frameHint}</p>
@@ -1196,6 +1262,36 @@ export function AdsV2SimpleSession({
               </div>
               {videoBusy > 0 ? <p className="adsw-hint" role="status">{tabHidden ? copy.files.videoHidden : copy.files.readingVideo}</p> : null}
               {fileNote ? <p className="adsw-warn" role="status">{fileNote}</p> : null}
+              {/* KINEO-ADS-1FOTO-LINK-2026-10-10 — "Or paste your product link": colar já busca; Enter ou o botão também. */}
+              <div className="adsw-f adv2s-link" data-kineo="ads-link-import">
+                <label htmlFor="adv2s-link">{lcopy.linkLabel}</label>
+                <small>{lcopy.linkHint}</small>
+                <div className="adv2s-linkrow">
+                  <input
+                    id="adv2s-link"
+                    type="url"
+                    inputMode="url"
+                    autoComplete="url"
+                    value={link}
+                    maxLength={500}
+                    disabled={locked || linkBusy}
+                    placeholder={lcopy.linkPlaceholder}
+                    onChange={(e) => { setLink(e.target.value); if (!e.target.value.trim()) setLinkRead(null) }}
+                    onPaste={(e) => {
+                      const pasted = e.clipboardData.getData('text').trim()
+                      if (!pasted) return
+                      e.preventDefault()
+                      setLink(pasted)
+                      void importLink(pasted)
+                    }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void importLink() } }}
+                  />
+                  <button type="button" className="adsw-btn ghost small" disabled={locked || linkBusy || !link.trim() || items.length >= ADS_V2_SIMPLE_MAX_ITEMS} onClick={() => void importLink()}>
+                    {linkBusy ? lcopy.linkReading : lcopy.linkButton}
+                  </button>
+                </div>
+                {linkNote ? <p className={linkNote.warn ? 'adsw-warn' : 'adsw-hint'} role="status">{linkNote.text}</p> : null}
+              </div>
             </section>
 
             {/* 2. O texto */}

@@ -400,7 +400,9 @@ await check('8e modo simples: escolha perto do nível, sugestão só com setor r
   const s = code(read(F.simple))
   return ordem(s, 'name="adv2s-tier"', '<AdsStylePicker', 'name="adv2s-style"', 'aria-labelledby="adv2s-s4"') &&
     /const styleSuggested: AdsV2StyleChoice = sentence && sector !== 'other' \? adsV2SuggestedStyle\(sector\) : 'none'/.test(s) &&
-    /const firstAsProduct = style !== 'none' && photoKind !== 'text'/.test(s) && /kind: firstAsProduct && out\.length === 0 \? 'product' : photoKind/.test(s) &&
+    // KINEO-ADS-1FOTO-LINK-2026-10-10 — re-ancorado: a 1ª foto segue virando produto com estilo; agora a foto que veio do link
+    // do produto também vira produto quando o texto não reconheceu setor ('other'). A regra do estilo não mudou.
+    /const firstAsProduct = style !== 'none' && photoKind !== 'text'/.test(s) && /kind: \(firstAsProduct && out\.length === 0\) \|\| \(p\.fromLink === true && sector === 'other'\) \? 'product' : photoKind/.test(s) &&
     /facts: chosen, \.\.\.\(style !== 'none' \? \{ style \} : \{\}\) \}/.test(s) && /items: inAd\.map\(\(p\) => \[p\.key, focalSig\(p\)\]\), style \}\)/.test(s) &&
     /\{ADS_V2_STYLES_PUBLIC \? \(/.test(s) && /copy=\{styleCopy\}/.test(s) && /const styleCopy: AdsV2StyleCopy = adsV2StyleCopy\(lang\)/.test(s)
 })
