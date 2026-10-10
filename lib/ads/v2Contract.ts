@@ -19,8 +19,9 @@ export const ADS_V2_CONTRACT_PHOTO_KINDS: readonly AdsV2ContractPhotoKind[] = ['
  * KINEO-ESTILOS-PRODUTO-2026-10-09 — estilos de produto aceitos no corpo do /plan (espelho de ADS_V2_STYLE_KEYS,
  * lib/ads/v2Styles.ts; o guardião confere). 'none' (ou ausente) = sem estilo, o plano de antes.
  */
-export type AdsV2ContractStyle = 'package_explosion' | 'giant_product' | 'product_closeup' | 'ocean_ad' | 'mechanical_assembly'
-export const ADS_V2_CONTRACT_STYLES: readonly AdsV2ContractStyle[] = ['package_explosion', 'giant_product', 'product_closeup', 'ocean_ad', 'mechanical_assembly']
+// KINEO-ADS-UX-MARCA-2026-10-10 — 15 estilos (+10 do mesmo endpoint); espelho de ADS_V2_STYLE_KEYS.
+export type AdsV2ContractStyle = 'package_explosion' | 'giant_product' | 'product_closeup' | 'ocean_ad' | 'mechanical_assembly' | 'naked_eye_3d_ad' | 'beach_ad' | 'lighting_ad' | 'supermarket_ad' | 'poster_ad' | 'graffiti_ad' | 'dreamlike_cloud' | 'parachute_delivery' | 'shoal_surround' | 'dishes_served'
+export const ADS_V2_CONTRACT_STYLES: readonly AdsV2ContractStyle[] = ['package_explosion', 'giant_product', 'product_closeup', 'ocean_ad', 'mechanical_assembly', 'naked_eye_3d_ad', 'beach_ad', 'lighting_ad', 'supermarket_ad', 'poster_ad', 'graffiti_ad', 'dreamlike_cloud', 'parachute_delivery', 'shoal_surround', 'dishes_served']
 
 export const ADS_V2_SENTENCE_MAX_CHARS = 400
 export const ADS_V2_LINK_MAX_CHARS = 500

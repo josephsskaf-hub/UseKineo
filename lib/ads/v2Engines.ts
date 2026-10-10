@@ -34,6 +34,17 @@ export const ADS_V2_EFFECT_BY_STYLE: Readonly<Record<string, string>> = {
   product_closeup: 'Product close-up',
   ocean_ad: 'Ocean ad',
   mechanical_assembly: 'Mechanical Assembly',
+  // KINEO-ADS-UX-MARCA-2026-10-10 — +10 (enum EXATO da fal, o mesmo da sonda testada em 10/10).
+  naked_eye_3d_ad: '3D Naked-Eye AD',
+  beach_ad: 'Beach AD',
+  lighting_ad: 'Lighting AD',
+  supermarket_ad: 'Supermarket AD',
+  poster_ad: 'Poster AD',
+  graffiti_ad: 'Graffiti AD',
+  dreamlike_cloud: 'Dreamlike Cloud',
+  parachute_delivery: 'Parachute Delivery',
+  shoal_surround: 'Shoal Surround',
+  dishes_served: 'Dishes Served',
 }
 
 export interface KlingO3I2vInput {

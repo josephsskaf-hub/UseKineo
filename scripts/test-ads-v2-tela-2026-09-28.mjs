@@ -128,7 +128,9 @@ check('S5 nenhum dado do pedido mora fora da sessão: o invólucro só tem sessi
   const nomes = [...wrapper.matchAll(/const \[(\w+), set\w+\] = useState/g)].map((m) => m[1])
   // REANCORADO 30/09 (KINEO-ADS-3-VARIACOES-2026-09-30): + `groupId`/`groupChecked` — o ENDEREÇO do painel das 3 variações
   // (?group=), que é escolha de tela; os pedidos e o dinheiro continuam no servidor e na sessão.
-  return eqSet(nomes, ['session', 'balance', 'confirmingReset', 'activeWork', 'mode', 'groupId', 'groupChecked'])
+  // KINEO-ADS-UX-MARCA-2026-10-10 — re-ancorado: + `previewSlot`/`simplePreview` — a VAGA do palco onde a sessão desenha a prévia
+  // ao vivo (um elemento da página) e se ela está ocupando o palco agora. Escolha de tela; nenhum dado do pedido sai da sessão.
+  return eqSet(nomes, ['session', 'balance', 'confirmingReset', 'activeWork', 'mode', 'groupId', 'groupChecked', 'previewSlot', 'simplePreview'])
 })
 check('S6 o estado do anúncio (nível, texto, logo, fotos, cartão, rascunho, plano, pedido, vídeo) nasce VAZIO dentro da sessão', () =>
   [

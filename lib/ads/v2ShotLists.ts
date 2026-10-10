@@ -59,8 +59,9 @@ export const ADS_V2_CUT_MARGIN = 0.1
  * começo é a foto quase parada e a virada (embalagem estoura, fundo do mar, vista explodida, close) acontece entre 1,5 e
  * 3 s. 2,0 + 2,5 + 0,25 = 4,75 ≤ 5,0 − 0,1: cabe até no corte de 2,5 s. A reserva H3 (5 s) usa o mesmo trecho.
  */
-export type AdsV2PlanStyle = 'package_explosion' | 'giant_product' | 'product_closeup' | 'ocean_ad' | 'mechanical_assembly'
-export const ADS_V2_PLAN_STYLES: readonly AdsV2PlanStyle[] = ['package_explosion', 'giant_product', 'product_closeup', 'ocean_ad', 'mechanical_assembly']
+// KINEO-ADS-UX-MARCA-2026-10-10 — 15 estilos (+10 do mesmo endpoint); espelho de ADS_V2_STYLE_KEYS.
+export type AdsV2PlanStyle = 'package_explosion' | 'giant_product' | 'product_closeup' | 'ocean_ad' | 'mechanical_assembly' | 'naked_eye_3d_ad' | 'beach_ad' | 'lighting_ad' | 'supermarket_ad' | 'poster_ad' | 'graffiti_ad' | 'dreamlike_cloud' | 'parachute_delivery' | 'shoal_surround' | 'dishes_served'
+export const ADS_V2_PLAN_STYLES: readonly AdsV2PlanStyle[] = ['package_explosion', 'giant_product', 'product_closeup', 'ocean_ad', 'mechanical_assembly', 'naked_eye_3d_ad', 'beach_ad', 'lighting_ad', 'supermarket_ad', 'poster_ad', 'graffiti_ad', 'dreamlike_cloud', 'parachute_delivery', 'shoal_surround', 'dishes_served']
 export const ADS_V2_EFFECT_GEN_SECONDS = 5
 export const ADS_V2_CUT_START_EFFECT = 2.0
 export function isAdsV2PlanStyle(raw: unknown): raw is AdsV2PlanStyle {

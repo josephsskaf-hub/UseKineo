@@ -8,9 +8,12 @@
 // o fieldset estica até o conteúdo e a página inteira ganha rolagem lateral. Cores só pelos tokens da tela que hospeda
 // (--ads-* no /ads/v2; --text/--card/--border/--accent nas páginas públicas), então claro e escuro seguem sozinhos.
 // Movimento: o vídeo só toca visível (IntersectionObserver) e nunca toca com "reduzir movimento" (fica o pôster).
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   ADS_V2_STYLES,
+  ADS_V2_STYLE_CATEGORY_IDS,
+  adsV2StylesIn,
+  type AdsV2StyleCategory,
   type AdsV2StyleChoice,
   type AdsV2StyleCopy,
   type AdsV2StyleKey,
@@ -24,6 +27,8 @@ import {
   type AdsV2PresenterCopy,
 } from '@/lib/ads/v2Presenter'
 
+// KINEO-ADS-UX-MARCA-2026-10-10 — 15 estilos + o ator não cabem numa linha: a faixa rola também no computador; o
+// seletor ganhou categorias (filtro) e setas de carrossel (só com mouse; no toque a rolagem já é o gesto).
 const CSS = `
 .kst-pick{margin:18px 0 0;min-width:0}
 .kst-pick h3{margin:0;font-size:15px;font-weight:750;color:var(--ads-text,var(--text))}
@@ -46,7 +51,17 @@ const CSS = `
 .kst-strip .kst-media{border-radius:11px}
 .kst-strip b{font-size:14px;font-weight:700;color:var(--text)}
 .kst-strip span{font-size:12.5px;line-height:1.4;color:var(--muted)}
-@media (min-width:900px){.kst-strip{justify-content:center;overflow-x:visible}.kst-strip li{flex:1 1 0;max-width:190px}}
+@media (min-width:900px){.kst-strip li{flex:0 0 172px}}
+.kst-cats{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0;min-width:0}
+.kst-cat{min-height:32px;padding:4px 12px;border-radius:999px;border:1px solid var(--ads-line,var(--border));background:var(--ads-card,var(--card));color:var(--ads-secondary,var(--muted));font:inherit;font-size:12.5px;font-weight:650;cursor:pointer}
+.kst-cat[aria-pressed=true]{border-color:var(--ads-action,var(--accent));color:var(--ads-text,var(--text));box-shadow:inset 0 0 0 1px var(--ads-action,var(--accent))}
+.kst-cat:focus-visible,.kst-nav button:focus-visible{outline:2px solid var(--ads-action,var(--accent));outline-offset:2px}
+.kst-carousel{position:relative;min-width:0}
+.kst-nav{position:absolute;inset:0 0 auto 0;top:38%;display:flex;justify-content:space-between;pointer-events:none}
+.kst-nav button{pointer-events:auto;width:34px;height:34px;border-radius:999px;border:1px solid var(--ads-line,var(--border));background:var(--ads-card,var(--card));color:var(--ads-text,var(--text));font-size:18px;line-height:1;cursor:pointer;box-shadow:0 6px 18px -8px rgba(0,0,0,.45)}
+.kst-nav button:disabled{opacity:0;pointer-events:none}
+@media (hover:none){.kst-nav{display:none}}
+@media (prefers-reduced-motion: reduce){.kst-row{scroll-behavior:auto}}
 .kst-pres{margin:14px 0 0;min-width:0}
 .kst-pres .kst-card{display:grid;grid-template-columns:76px minmax(0,1fr);align-items:center;gap:12px;max-width:440px;padding:8px 12px 8px 8px}
 .kst-pres .kst-txt{display:grid;gap:4px;min-width:0}
@@ -98,6 +113,7 @@ export function AdsStylePicker({
   disabled,
   copy,
   note,
+  carousel,
 }: {
   name: string
   value: AdsV2StyleChoice
@@ -107,26 +123,72 @@ export function AdsStylePicker({
   copy: AdsV2StyleCopy
   /** Onde o efeito entra (modo simples: a 1ª foto; completo: a foto marcada como produto). */
   note: string
+  /**
+   * KINEO-ADS-UX-MARCA-2026-10-10 — opcional (modo simples): filtro por categoria, selo "Recommended for your product" e
+   * setas de carrossel. Sem isto, o seletor de antes (modo completo), igual.
+   */
+  carousel?: { labels: Record<AdsV2StyleCategory | 'all', string>; recommended: string; prev: string; next: string }
 }) {
   const titleId = `${name}-title`
+  const [cat, setCat] = useState<AdsV2StyleCategory | 'all'>('all')
+  const rowRef = useRef<HTMLFieldSetElement | null>(null)
+  const [edges, setEdges] = useState({ start: true, end: false })
+  const shown = carousel ? adsV2StylesIn(cat) : ADS_V2_STYLES.map((s) => s.key)
+  const syncEdges = () => {
+    const el = rowRef.current
+    if (!el) return
+    setEdges({ start: el.scrollLeft <= 4, end: el.scrollLeft + el.clientWidth >= el.scrollWidth - 4 })
+  }
+  useEffect(() => {
+    if (!carousel) return
+    const el = rowRef.current
+    if (el) el.scrollLeft = 0
+    syncEdges()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cat, !!carousel])
+  const slide = (dir: 1 | -1) => {
+    const el = rowRef.current
+    if (!el) return
+    let reduce = false
+    try { reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches } catch { reduce = false }
+    el.scrollBy({ left: dir * Math.max(140, el.clientWidth * 0.8), behavior: reduce ? 'auto' : 'smooth' })
+  }
   const card = (key: AdsV2StyleChoice, media: ReactNode, label: string, bestFor: string) => (
     <label key={key} className="kst-card" data-on={value === key} data-off={!!disabled}>
       <input className="kst-sr" type="radio" name={name} value={key} checked={value === key} disabled={disabled} onChange={() => onChange(key)} />
-      {suggested === key && key !== 'none' ? <span className="kst-tag">{copy.suggested}</span> : null}
+      {suggested === key && key !== 'none' ? <span className="kst-tag">{carousel ? carousel.recommended : copy.suggested}</span> : null}
       <span className="kst-media">{media}</span>
       <span className="kst-name">{label}</span>
       <span className="kst-for">{bestFor}</span>
     </label>
+  )
+  const row = (
+    <fieldset ref={rowRef} className="kst-row" aria-labelledby={titleId} onScroll={carousel ? syncEdges : undefined}>
+      {card('none', <span className="kst-auto" aria-hidden="true"><span><b>∅</b>{copy.autoLabel}</span></span>, copy.autoLabel, copy.autoBestFor)}
+      {ADS_V2_STYLES.filter((s) => shown.includes(s.key)).map((s) => card(s.key, <StyleLoop src={s.preview} poster={s.poster} />, copy.styles[s.key as AdsV2StyleKey].label, copy.styles[s.key as AdsV2StyleKey].bestFor))}
+    </fieldset>
   )
   return (
     <div className="kst-pick" data-kineo="ads-styles-picker">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <h3 id={titleId}>{copy.title}</h3>
       <p className="kst-hint">{copy.hint} {note}</p>
-      <fieldset className="kst-row" aria-labelledby={titleId}>
-        {card('none', <span className="kst-auto" aria-hidden="true"><span><b>∅</b>{copy.autoLabel}</span></span>, copy.autoLabel, copy.autoBestFor)}
-        {ADS_V2_STYLES.map((s) => card(s.key, <StyleLoop src={s.preview} poster={s.poster} />, copy.styles[s.key as AdsV2StyleKey].label, copy.styles[s.key as AdsV2StyleKey].bestFor))}
-      </fieldset>
+      {carousel ? (
+        <>
+          <div className="kst-cats" role="group" aria-labelledby={titleId}>
+            {(['all', ...ADS_V2_STYLE_CATEGORY_IDS] as const).map((c) => (
+              <button key={c} type="button" className="kst-cat" aria-pressed={cat === c} onClick={() => setCat(c)}>{carousel.labels[c]}</button>
+            ))}
+          </div>
+          <div className="kst-carousel">
+            {row}
+            <div className="kst-nav">
+              <button type="button" aria-label={carousel.prev} disabled={edges.start} onClick={() => slide(-1)}>‹</button>
+              <button type="button" aria-label={carousel.next} disabled={edges.end} onClick={() => slide(1)}>›</button>
+            </div>
+          </div>
+        </>
+      ) : row}
     </div>
   )
 }

@@ -720,7 +720,11 @@ await check('E2 CONTACTISH da pesquisa = o da régua do texto (v2Brief)', () => 
 // import type). O cartão do ator mora no componente que já estava liberado (@/components/ads/AdsStyles). Nenhum módulo de servidor.
 // KINEO-ADS-1FOTO-LINK-2026-10-10 — re-ancorado: + '@/lib/ads/v2LinkImport' (lib PURA do "Or paste your product link" e do
 // "1 foto basta": números, frase sugerida e frases nas 16 línguas, só import type — conferida abaixo junto das outras).
-const IMPORTS_OK = ['@/lib/ads/v2LinkImport', '@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', './AdsV2Variations', '@/components/AdsPlanChanges', 'react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/ads/v2UserVideo', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage']
+// KINEO-ADS-UX-MARCA-2026-10-10 — re-ancorado: + '@/lib/ads/v2SimpleUx' (lib PURA da tela nova: frases nas 16 línguas, nível padrão, linha
+// de custo = adsV2Credits, enquadramento e o kit da marca; só importa as libs puras v2Tiers e v2Screen) e './AdsV2SimpleUx' (peças de
+// navegador: passo a passo, soltar arquivos, editor de enquadramento, prévia ao vivo; importa só react, react-dom e libs puras). O
+// guardião scripts/test-ads-ux-marca-2026-10-10.mjs confere as duas. Nenhum módulo de servidor.
+const IMPORTS_OK = ['@/lib/ads/v2SimpleUx', './AdsV2SimpleUx', '@/lib/ads/v2LinkImport', '@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', './AdsV2Variations', '@/components/AdsPlanChanges', 'react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/ads/v2UserVideo', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage']
 await check('E3 a tela simples é cliente e só importa módulos de navegador/puros; v2Simple, v2Research e v2VideoFrames não têm import; textLanguage é pura', () => {
   const imps = [...SRC.simple.matchAll(/^import[\s\S]*?from '([^']+)'/gm)].map((m) => m[1])
   return /^'use client'/.test(SRC.simple) && imps.length >= 8 && imps.every((m) => IMPORTS_OK.includes(m)) &&

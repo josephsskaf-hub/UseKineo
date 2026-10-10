@@ -63,6 +63,17 @@ const ENUMS = {
   product_closeup: 'Product close-up',
   ocean_ad: 'Ocean ad',
   mechanical_assembly: 'Mechanical Assembly',
+  // KINEO-ADS-UX-MARCA-2026-10-10 — re-ancorado: +10 estilos do MESMO endpoint (fundador 10/10: 15 estilos dos mais usados).
+  naked_eye_3d_ad: '3D Naked-Eye AD',
+  beach_ad: 'Beach AD',
+  lighting_ad: 'Lighting AD',
+  supermarket_ad: 'Supermarket AD',
+  poster_ad: 'Poster AD',
+  graffiti_ad: 'Graffiti AD',
+  dreamlike_cloud: 'Dreamlike Cloud',
+  parachute_delivery: 'Parachute Delivery',
+  shoal_surround: 'Shoal Surround',
+  dishes_served: 'Dishes Served',
 }
 const KEYS = Object.keys(ENUMS)
 const SLUG = 'fal-ai/pixverse/v5/effects'
@@ -166,8 +177,9 @@ const SECTORS = ['restaurant', 'clinic', 'real_estate', 'gym', 'salon', 'store',
 const SECONDS = [15, 20, 30]
 
 // ═══ 1. enums, espelhos, endpoint ═════════════════════════════════════════════════════════════════════════════════════
-await check('1a os 5 estilos, na ordem, com o enum EXATO da fal (maiúsculas e hífen contam)', () =>
-  S.ADS_V2_STYLES.length === 5 && S.ADS_V2_STYLES.every((s, i) => s.key === KEYS[i] && s.effect === ENUMS[s.key]))
+// KINEO-ADS-UX-MARCA-2026-10-10 — re-ancorado: 5 → 15 estilos (os 5 de antes na mesma ordem, +10 no fim).
+await check('1a os 15 estilos, na ordem, com o enum EXATO da fal (maiúsculas e hífen contam)', () =>
+  S.ADS_V2_STYLES.length === 15 && S.ADS_V2_STYLES.every((s, i) => s.key === KEYS[i] && s.effect === ENUMS[s.key]))
 await check('1b espelhos: chaves de v2Styles = v2Contract = v2ShotLists = v2Engines; enums de v2Engines = v2Styles', () =>
   JSON.stringify(S.ADS_V2_STYLE_KEYS) === JSON.stringify(KEYS) && JSON.stringify(C.ADS_V2_CONTRACT_STYLES) === JSON.stringify(KEYS) &&
   JSON.stringify(SL.ADS_V2_PLAN_STYLES) === JSON.stringify(KEYS) && JSON.stringify(Object.keys(E.ADS_V2_EFFECT_BY_STYLE)) === JSON.stringify(KEYS) &&

@@ -24,7 +24,7 @@ import Link from 'next/link'
 import { downloadVideoFile } from '@/lib/videoDownload'
 import { ADS_UPLOAD_ACCEPT_LOGO, AdsUploadError, normalizeFootageType, uploadFootage } from '@/lib/ads/uploadFootage'
 import { drawEndCard, endCardCtaLabel, loadLogoImage, toPngFile } from '@/lib/ads/endCard'
-import { ADS_V2_TIER_IDS, ADS_V2_TIERS, adsV2Credits, type AdsV2Tier } from '@/lib/ads/v2Tiers'
+import { ADS_V2_TIER_IDS, adsV2Credits, type AdsV2Tier } from '@/lib/ads/v2Tiers'
 import {
   ADS_V2_CROP,
   ADS_V2_ROLE_LABELS,
@@ -74,12 +74,28 @@ import { pickInterfaceCopy, type InterfaceLanguage } from '@/lib/ui/interfaceLan
 import { VariationToggle, variationsCopy, variationsPrice } from './AdsV2Variations'
 import { ADS_SAMPLE_TIER, adsSampleCopy, type AdsSampleCopy } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — a escolha de estilo do produto (Auto + 5 efeitos), nas 16 línguas.
-import { ADS_V2_STYLES_PUBLIC, adsV2StyleCopy, adsV2SuggestedStyle, type AdsV2StyleChoice, type AdsV2StyleCopy } from '@/lib/ads/v2Styles'
+import { ADS_V2_STYLES, ADS_V2_STYLES_PUBLIC, adsV2StyleCopy, adsV2SuggestedStyle, type AdsV2StyleChoice, type AdsV2StyleCopy } from '@/lib/ads/v2Styles'
 import { AdsPresenterToggle, AdsStylePicker } from '@/components/ads/AdsStyles'
 // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator de IA ("Person talking about it"): interruptor e frases nas 16 línguas (lib pura).
-import { ADS_V2_PRESENTER_PUBLIC, adsV2PresenterCopy, type AdsV2PresenterCopy } from '@/lib/ads/v2Presenter'
+import { ADS_V2_PRESENTER_POSTER, ADS_V2_PRESENTER_PUBLIC, adsV2PresenterCopy, type AdsV2PresenterCopy } from '@/lib/ads/v2Presenter'
 // KINEO-ADS-1FOTO-LINK-2026-10-10 — 1 foto basta e "Or paste your product link" (frases nas 16 línguas, lib pura).
 import { ADS_V2_LINK_IMPORT_MAX_IMAGES, adsV2LinkImportCopy, adsV2LinkImportError, type AdsV2LinkImportCopy } from '@/lib/ads/v2LinkImport'
+// KINEO-ADS-UX-MARCA-2026-10-10 — passo a passo, soltar arquivos, enquadramento, prévia ao vivo, custo e o kit da marca
+// (lib PURA com as frases nas 16 línguas + as peças de tela; nenhuma chama rota de dinheiro).
+import {
+  ADS_V2_RECOMMENDED_TIER,
+  adsV2CostLine,
+  adsV2DefaultTier,
+  adsV2MoveTo,
+  adsV2TierIncludes,
+  adsV2UxCopy,
+  brandKitFromScreen,
+  brandKitIsEmpty,
+  brandKitPrefill,
+  type AdsBrandKit,
+  type AdsV2UxCopy,
+} from '@/lib/ads/v2SimpleUx'
+import { CropEditor, DropZone, LiveStage, MobilePreviewBar, SIMPLE_UX_CSS, SimpleStepper, TierIncludes, goToSection, type LivePreviewData } from './AdsV2SimpleUx'
 
 // ─── tipos ────────────────────────────────────────────────────────────────────────────────────
 
@@ -352,6 +368,8 @@ export function AdsV2SimpleSession({
   variations = false,
   onVariationsStarted,
   sample = false,
+  previewSlot = null,
+  onPreview,
 }: {
   resume: boolean
   lang: InterfaceLanguage
@@ -364,6 +382,10 @@ export function AdsV2SimpleSession({
   onVariationsStarted?: (groupId: string) => void
   /** KINEO-ADS-AMOSTRA-2026-10-09 — a conta entrou pela amostra grátis: só o nível dela, sem preço, botão "grátis". */
   sample?: boolean
+  /** KINEO-ADS-UX-MARCA-2026-10-10 — a vaga do palco da direita (AdsV2Client) para a prévia ao vivo; null = sem palco. */
+  previewSlot?: HTMLElement | null
+  /** Avisa o invólucro que a prévia ao vivo ocupa o palco (ele esconde o palco da casa enquanto isso). */
+  onPreview?: (on: boolean) => void
 }) {
   const copy: AdsV2SimpleCopy = pickInterfaceCopy(ADS_V2_SIMPLE_COPY, lang)
   const lcopy: AdsV2LinkImportCopy = adsV2LinkImportCopy(lang) // KINEO-ADS-1FOTO-LINK-2026-10-10 — 16 línguas
@@ -418,6 +440,16 @@ export function AdsV2SimpleSession({
   const [downloading, setDownloading] = useState(false)
   const [downloadNote, setDownloadNote] = useState<string | null>(null)
   const [notReady, setNotReady] = useState(false)
+  // KINEO-ADS-UX-MARCA-2026-10-10 — frases novas (16 línguas), reordenar por arrasto, editor de enquadramento, a imagem do
+  // cartão final para a prévia ao vivo e o kit da marca (aplicado na abertura; salvo depois que o anúncio começou).
+  const ux: AdsV2UxCopy = adsV2UxCopy(lang)
+  const [dragKey, setDragKey] = useState<string | null>(null)
+  const [dropKey, setDropKey] = useState<string | null>(null)
+  const [editKey, setEditKey] = useState<string | null>(null)
+  const [cardPreviewUrl, setCardPreviewUrl] = useState<string | null>(null)
+  const [kitApplied, setKitApplied] = useState<AdsBrandKit | null>(null)
+  const [saveKit, setSaveKit] = useState(true)
+  const tierAutoRef = useRef(false)
 
   const aliveRef = useRef(true)
   // Revisão (29/09): uma seleção por vez. O limite de 2 vídeos é contado sobre `items`, que só atualiza na próxima
@@ -664,6 +696,104 @@ export function AdsV2SimpleSession({
     }
   }, [phase, moreOpen, logo?.localUrl, cardTitleFinal, priceT, contactT, cardColor, spoken])
 
+  // KINEO-ADS-UX-MARCA-2026-10-10 — a imagem do cartão final para a PRÉVIA AO VIVO: o MESMO desenho (drawEndCard) que sobe
+  // no planejar, refeito 160 ms depois da última tecla. Só imagem local (blob); nada sobe daqui.
+  useEffect(() => {
+    if (phase !== 'build') return
+    let stop = false
+    const t = window.setTimeout(() => {
+      void (async () => {
+        let img: HTMLImageElement | null = null
+        if (logo?.localUrl) {
+          try { img = await loadLogoImage(logo.localUrl) } catch { img = null }
+        }
+        if (stop) return
+        try {
+          const canvas = document.createElement('canvas')
+          drawEndCard(canvas, { logo: img, business: cardTitleFinal, offer: priceT, ctaLabel: contactT ? endCardCtaLabel(simpleCtaKind(contactT), spoken) : '', contact: contactT, accent: cardColor })
+          canvas.toBlob((b) => {
+            if (stop || !b || !aliveRef.current) return
+            const u = trackUrl(URL.createObjectURL(b))
+            setCardPreviewUrl((old) => {
+              if (old && old !== u) dropUrl(old)
+              return u
+            })
+          }, 'image/jpeg', 0.82)
+        } catch {
+          /* navegador sem canvas: a prévia mostra o nome do quadro */
+        }
+      })()
+    }, 160)
+    return () => {
+      stop = true
+      window.clearTimeout(t)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, logo?.localUrl, cardTitleFinal, priceT, contactT, cardColor, spoken])
+
+  // KINEO-ADS-UX-MARCA-2026-10-10 — nível já marcado pelo saldo (uma vez, quando o saldo chega; a escolha da pessoa manda
+  // sempre). Na amostra o nível é o dela. Marcar não cobra: o débito segue só no botão "Make my ad".
+  useEffect(() => {
+    if (tierAutoRef.current || sample || tier !== null) return
+    const d = adsV2DefaultTier(balance)
+    if (!d) return
+    tierAutoRef.current = true
+    setTier(d)
+  }, [balance, sample, tier])
+
+  // KINEO-ADS-UX-MARCA-2026-10-10 — o KIT DA MARCA na abertura: preenche SÓ o que ainda está vazio (cor ainda a padrão, sem
+  // logo). O logo é baixado do NOSSO bucket e vira arquivo local (o cartão é desenhado e sobe pelo caminho de sempre); o id
+  // dele é do user_footage desta conta (a rota conferiu; o /plan confere de novo). Kit que não carrega = tela de sempre.
+  const formRef = useRef({ cardTitle: '', price: '', contact: '', cardColor: DEFAULT_COLOR, hasLogo: false })
+  formRef.current = { cardTitle, price, contact, cardColor, hasLogo: !!logo }
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      const r = await api<{ kit?: AdsBrandKit | null; logo_url?: string | null }>('/api/ads/brand-kit')
+      if (cancelled || !aliveRef.current || !r.ok || !r.data.kit || brandKitIsEmpty(r.data.kit)) return
+      const kit = r.data.kit
+      let logoLocal: string | null = null
+      if (kit.logo_footage_id && typeof r.data.logo_url === 'string' && r.data.logo_url) {
+        try {
+          const res = await fetch(r.data.logo_url, { cache: 'no-store' })
+          if (res.ok) logoLocal = trackUrl(URL.createObjectURL(await res.blob()))
+        } catch {
+          logoLocal = null
+        }
+      }
+      if (cancelled || !aliveRef.current) {
+        dropUrl(logoLocal)
+        return
+      }
+      const f = formRef.current
+      const fillIn = brandKitPrefill(kit, { business: f.cardTitle, price: f.price, contact: f.contact, color: f.cardColor, defaultColor: DEFAULT_COLOR, hasLogo: f.hasLogo }, logoLocal)
+      if (fillIn.business) setCardTitle(fillIn.business)
+      if (fillIn.price) setPrice(fillIn.price)
+      if (fillIn.contact) setContact(fillIn.contact)
+      if (fillIn.color) setCardColor(fillIn.color)
+      if (fillIn.logo) setLogo({ footageId: fillIn.logo.footageId, localUrl: fillIn.logo.url, busy: false, error: null })
+      else dropUrl(logoLocal)
+      if (Object.keys(fillIn).length) setKitApplied(kit)
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  /** Grava o kit da marca DEPOIS que o anúncio começou (nunca antes, nunca no caminho do débito). Falha = silêncio. */
+  function saveBrandKit() {
+    const body = brandKitFromScreen({ business: cardTitle, price: priceT, contact: contactT, color: cardColor, logoFootageId: logo?.footageId ?? null })
+    void api('/api/ads/brand-kit', { method: 'PUT', body })
+  }
+
+  // A prévia ao vivo ocupa o palco da direita enquanto a pessoa monta; o invólucro esconde o palco da casa nesse tempo.
+  const previewOn = phase === 'build' && !!previewSlot
+  useEffect(() => {
+    onPreview?.(previewOn)
+  }, [previewOn, onPreview])
+  useEffect(() => () => onPreview?.(false), [onPreview])
+
   // ── arquivos ─────────────────────────────────────────────────────────────────────────────
 
   function trackUrl(u: string) {
@@ -861,6 +991,18 @@ export function AdsV2SimpleSession({
       ;[next[i - 1], next[i]] = [next[i], next[i - 1]]
       return next
     })
+  }
+  /** KINEO-ADS-UX-MARCA-2026-10-10 — desce uma posição (dentro do anúncio; a 1ª continua sendo a foto do produto). */
+  function moveDown(key: string) {
+    setItems((prev) => {
+      const i = prev.findIndex((p) => p.key === key)
+      if (i < 0 || i >= Math.min(prev.length, ADS_V2_SIMPLE_MAX_IN_AD) - 1) return prev
+      return adsV2MoveTo(prev, i, i + 1)
+    })
+  }
+  /** KINEO-ADS-UX-MARCA-2026-10-10 — arrastar um cartão para o lugar de outro (a ordem é a mesma lista de sempre). */
+  function moveItemTo(fromKey: string, toKey: string) {
+    setItems((prev) => adsV2MoveTo(prev, prev.findIndex((p) => p.key === fromKey), prev.findIndex((p) => p.key === toKey)))
   }
   /** Um arquivo que ficou fora do anúncio entra no lugar do último que está dentro. */
   function promoteItem(key: string) {
@@ -1133,6 +1275,7 @@ export function AdsV2SimpleSession({
       }
       setDraft(null)
       void onBalance()
+      if (saveKit) saveBrandKit() // KINEO-ADS-UX-MARCA-2026-10-10 — só depois do /start aceito; não espera a resposta
       const v = r.data.order_id ? r.data : ({ ...r.data, order_id: plan.order_id } as StatusView)
       adoptOrder({ ...v, shots: Array.isArray(v.shots) ? v.shots : [] })
     } finally {
@@ -1166,6 +1309,7 @@ export function AdsV2SimpleSession({
       }
       setDraft(null)
       void onBalance()
+      if (saveKit) saveBrandKit() // KINEO-ADS-UX-MARCA-2026-10-10 — só depois das 3 variações aceitas
       onVariationsStarted(r.data.group_id)
     } finally {
       if (aliveRef.current) {
@@ -1207,9 +1351,39 @@ export function AdsV2SimpleSession({
   // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra não cobra: nunca "faltam créditos".
   const short = scopy ? 0 : shownCost !== null && balance !== null && balance < shownCost ? shownCost - balance : 0
 
+  // KINEO-ADS-UX-MARCA-2026-10-10 — passo a passo (✓ quando o passo está pronto) e a prévia ao vivo (palco/barra).
+  const steps = [
+    { id: 'product' as const, section: 'adv2s-sec1', done: inAd.length >= ADS_V2_SIMPLE_MIN_IN_AD && !inAd.every((p) => p.video) && videoBusy === 0 && !linkBusy },
+    { id: 'message' as const, section: 'adv2s-sec2', done: !!sentence && sentence.length <= ADS_V2_SCREEN_SENTENCE_MAX },
+    { id: 'look' as const, section: 'adv2s-sec3', done: !!tier },
+    { id: 'review' as const, section: 'adv2s-sec4', done: planFresh },
+  ]
+  const costLine = adsV2CostLine({ tier, balance, sample: !!scopy, group: variations && three ? variationsPrice(cost) : null })
+  const tierName = tier ? copy.tiers[tier].name : null
+  const costText = !tier || costLine.credits === null
+    ? ux.preview.chooseLevel
+    : scopy
+      ? fill(ux.preview.costFree, { s: costLine.seconds, tier: tierName ?? '' })
+      : balance === null
+        ? fill(ux.preview.costUnknown, { s: costLine.seconds, tier: tierName ?? '', c: costLine.credits })
+        : fill(ux.preview.cost, { s: costLine.seconds, tier: tierName ?? '', c: costLine.credits, n: balance })
+  const styleSpec = style !== 'none' ? ADS_V2_STYLES.find((s) => s.key === style) ?? null : null
+  const liveData: LivePreviewData = {
+    photos: inAd.map((p) => ({ key: p.key, srcUrl: p.srcUrl, fx: p.fx, fy: p.fy })),
+    productName: sentence ? cardTitleFinal : cardTitle.trim(),
+    style: styleSpec && style !== 'none' ? { label: styleCopy.styles[style].label, oneLine: styleCopy.styles[style].oneLine, preview: styleSpec.preview, poster: styleSpec.poster } : null,
+    presenter: presenterOn ? { poster: ADS_V2_PRESENTER_POSTER } : null,
+    cardUrl: cardPreviewUrl,
+    voice: narrationOn ? NARRATION_LANGUAGES.find((l) => l.code === spoken)?.native ?? spoken : copy.plan.noVoice,
+    tierName,
+    costText,
+    shortText: costLine.short > 0 ? fill(ux.preview.short, { n: costLine.short }) : null,
+  }
+  const editing = editKey ? inAd.find((p) => p.key === editKey) ?? null : null
+
   return (
     <div className="adv2-layout">
-      <style dangerouslySetInnerHTML={{ __html: SIMPLE_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: SIMPLE_CSS + SIMPLE_UX_CSS }} />
       <div className="adv2-main">
         {notReady ? <p className="adv2-note" role="status">{copy.notReady}</p> : null}
 
@@ -1222,8 +1396,10 @@ export function AdsV2SimpleSession({
 
         {phase === 'build' ? (
           <>
+            {/* KINEO-ADS-UX-MARCA-2026-10-10 — o passo a passo (gruda no topo do quadro; ✓ em cada passo pronto). */}
+            <SimpleStepper copy={ux} steps={steps} />
             {/* 1. Arquivos */}
-            <section className="adv2-card" aria-labelledby="adv2s-s1">
+            <section id="adv2s-sec1" className="adv2-card" aria-labelledby="adv2s-s1">
               <h2 id="adv2s-s1"><span className="adv2-num" aria-hidden="true">1</span>{copy.files.title}</h2>
               <p className="adsw-lead">{lcopy.lead}</p>
               {items.length ? (
@@ -1233,17 +1409,39 @@ export function AdsV2SimpleSession({
                     {inAd.map((p, i) => (
                       <ItemCard key={p.key} item={p} index={i} copy={copy} locked={locked} out={false}
                         onFocal={(fx, fy) => updateItem(p.key, { fx, fy })}
-                        onRemove={() => removeItem(p.key)}
+                        onRemove={() => { if (editKey === p.key) setEditKey(null); removeItem(p.key) }}
                         onMoveUp={i > 0 ? () => moveUp(p.key) : undefined}
+                        ux={ux}
+                        onMoveDown={i < inAd.length - 1 ? () => moveDown(p.key) : undefined}
+                        onAdjust={() => setEditKey((k) => (k === p.key ? null : p.key))}
+                        adjusting={editKey === p.key}
+                        drag={{
+                          dragging: dragKey === p.key,
+                          target: dropKey === p.key && dragKey !== null && dragKey !== p.key,
+                          start: () => setDragKey(p.key),
+                          over: () => setDropKey(p.key),
+                          drop: () => { if (dragKey && dragKey !== p.key) moveItemTo(dragKey, p.key); setDragKey(null); setDropKey(null) },
+                          end: () => { setDragKey(null); setDropKey(null) },
+                        }}
                       />
                     ))}
                   </ol>
+                  {editing ? (
+                    <CropEditor
+                      key={editing.key}
+                      item={editing}
+                      copy={ux}
+                      label={fill(copy.files.frameLabel, { n: inAd.indexOf(editing) + 1 })}
+                      onFocal={(fx, fy) => updateItem(editing.key, { fx, fy })}
+                      onDone={() => setEditKey(null)}
+                    />
+                  ) : null}
                   {items.length > ADS_V2_SIMPLE_MAX_IN_AD ? (
                     <>
                       <p className="adv2s-out">{fill(copy.files.outTitle, { max: ADS_V2_SIMPLE_MAX_IN_AD })}</p>
                       <ol className="adv2s-items">
                         {items.slice(ADS_V2_SIMPLE_MAX_IN_AD).map((p, j) => (
-                          <ItemCard key={p.key} item={p} index={ADS_V2_SIMPLE_MAX_IN_AD + j} copy={copy} locked={locked} out
+                          <ItemCard key={p.key} item={p} index={ADS_V2_SIMPLE_MAX_IN_AD + j} copy={copy} locked={locked} out ux={ux}
                             onFocal={() => undefined}
                             onRemove={() => removeItem(p.key)}
                             onUse={() => promoteItem(p.key)}
@@ -1255,10 +1453,18 @@ export function AdsV2SimpleSession({
                 </>
               ) : null}
               <input ref={fileInputRef} className="adv2-sr" type="file" accept={ADS_V2_SIMPLE_ACCEPT} multiple tabIndex={-1} aria-hidden="true" onChange={(e) => { void addFiles(e.target.files); e.target.value = '' }} />
+              {/* KINEO-ADS-UX-MARCA-2026-10-10 — soltar arquivos aqui OU o botão de sempre (mesmo addFiles, mesmas regras). */}
               <div style={{ marginTop: 14 }}>
-                <button type="button" className="adv2-add" disabled={locked || items.length >= ADS_V2_SIMPLE_MAX_ITEMS} onClick={() => fileInputRef.current?.click()}>
-                  <span aria-hidden="true">+</span> {items.length ? copy.files.addMore : copy.files.add}
-                </button>
+                <DropZone
+                  copy={ux}
+                  disabled={locked || items.length >= ADS_V2_SIMPLE_MAX_ITEMS}
+                  onFiles={(list) => void addFiles(list)}
+                  button={
+                    <button type="button" className="adv2-add" disabled={locked || items.length >= ADS_V2_SIMPLE_MAX_ITEMS} onClick={() => fileInputRef.current?.click()}>
+                      <span aria-hidden="true">+</span> {items.length ? copy.files.addMore : copy.files.add}
+                    </button>
+                  }
+                />
               </div>
               {videoBusy > 0 ? <p className="adsw-hint" role="status">{tabHidden ? copy.files.videoHidden : copy.files.readingVideo}</p> : null}
               {fileNote ? <p className="adsw-warn" role="status">{fileNote}</p> : null}
@@ -1295,8 +1501,17 @@ export function AdsV2SimpleSession({
             </section>
 
             {/* 2. O texto */}
-            <section className="adv2-card" aria-labelledby="adv2s-s2">
+            <section id="adv2s-sec2" className="adv2-card" aria-labelledby="adv2s-s2">
               <h2 id="adv2s-s2"><span className="adv2-num" aria-hidden="true">2</span>{copy.text.title}</h2>
+              {/* KINEO-ADS-UX-MARCA-2026-10-10 — o kit da marca entrou: mostra o que entrou (cor, logo, nome, preço) e "Editar". */}
+              {kitApplied ? (
+                <p className="adv2s-kit" role="status" data-kineo="ads-brand-kit-chip">
+                  {kitApplied.color ? <span className="sw" aria-hidden="true" style={{ background: cardColor }} /> : null}
+                  {logo?.localUrl ? <img src={logo.localUrl} alt="" /> : null}
+                  <span>{ux.kit.chip}{cardTitle.trim() ? ` · ${cardTitle.trim()}` : ''}{priceT ? ` · ${priceT}` : ''}</span>
+                  <button type="button" disabled={locked} onClick={() => { setMoreOpen(true); window.setTimeout(() => goToSection('adv2s-sec2'), 30) }}>{ux.kit.edit}</button>
+                </p>
+              ) : null}
               <label className="adsw-f">
                 <span>{copy.text.question}</span>
                 <small>{copy.text.hint}</small>
@@ -1360,7 +1575,7 @@ export function AdsV2SimpleSession({
             </section>
 
             {/* 3. Nível */}
-            <section className="adv2-card" aria-labelledby="adv2s-s3">
+            <section id="adv2s-sec3" className="adv2-card" aria-labelledby="adv2s-s3">
               <h2 id="adv2s-s3"><span className="adv2-num" aria-hidden="true">3</span>{copy.tiers.title}</h2>
               <fieldset className="adv2-tiers">
                 <legend className="adv2-sr">{copy.tiers.title}</legend>
@@ -1376,7 +1591,9 @@ export function AdsV2SimpleSession({
                       <b>{tc.name}</b>
                       <span className="cr">{scopy ? (sampleOff ? scopy.paidOnly : scopy.badge) : fill(copy.tiers.credits, { n: credits })}</span>
                       <span>{tc.pitch}</span>
-                      <span className="adsw-hint" style={{ margin: 0 }}>{fill(copy.tiers.shots, { n: ADS_V2_TIERS[t].shots })}</span>
+                      {/* KINEO-ADS-UX-MARCA-2026-10-10 — o que o nível inclui (números de ADS_V2_TIERS) e o selo do recomendado. */}
+                      <TierIncludes copy={ux} inc={adsV2TierIncludes(t)} />
+                      {t === ADS_V2_RECOMMENDED_TIER && !scopy ? <span className="adv2s-rec">{ux.tiers.recommended}</span> : null}
                       {need > 0 ? <span className="short">{fill(copy.tiers.needMore, { n: need })}</span> : null}
                     </label>
                   )
@@ -1392,6 +1609,7 @@ export function AdsV2SimpleSession({
                   disabled={locked}
                   copy={styleCopy}
                   note={photoKind === 'text' ? styleCopy.noProduct : styleCopy.targetSimple}
+                  carousel={{ labels: { all: ux.styles.all, food: ux.styles.food, beauty: ux.styles.beauty, tech: ux.styles.tech, any: ux.styles.any }, recommended: ux.styles.recommended, prev: ux.styles.prev, next: ux.styles.next }}
                 />
               ) : null}
               {ADS_V2_PRESENTER_PUBLIC ? (
@@ -1413,7 +1631,7 @@ export function AdsV2SimpleSession({
             </section>
 
             {/* 4. Descobrir, planejar e fazer */}
-            <section className="adv2-card" aria-labelledby="adv2s-s4">
+            <section id="adv2s-sec4" className="adv2-card" aria-labelledby="adv2s-s4">
               <h2 id="adv2s-s4" ref={planHeadingRef} tabIndex={-1}><span className="adv2-num" aria-hidden="true">4</span>{copy.plan.title}</h2>
               {factsNow.length ? (
                 <>
@@ -1467,10 +1685,19 @@ export function AdsV2SimpleSession({
                 />
                 </>
               )}
+              {/* KINEO-ADS-UX-MARCA-2026-10-10 — quanto demora e "Salvar como meu kit da marca" (ligado; grava só depois que o anúncio começou). */}
+              <p className="adv2s-eta">⏱ {ux.preview.delivery}</p>
+              <label className="adv2s-save" data-kineo="ads-brand-kit-save">
+                <input type="checkbox" checked={saveKit} disabled={locked} onChange={(e) => setSaveKit(e.target.checked)} />
+                <span>{ux.kit.save}<small>{ux.kit.saveHint}</small></span>
+              </label>
               {busyNote ? <p className="adsw-hint" role="status">{busyNote}</p> : null}
               {planError ? <p className="adsw-err" role="alert">{planError}</p> : null}
               {scopy && sampleCap ? <p className="adsw-warn" role="alert">{scopy.cap} <a className="adsw-link" href="/pricing" target="_blank" rel="noopener">{scopy.paidOnly} →</a></p> : null}
             </section>
+            {/* KINEO-ADS-UX-MARCA-2026-10-10 — a prévia ao vivo: palco da direita (computador) e barra que gruda embaixo (celular). */}
+            <LiveStage slot={previewSlot} data={liveData} copy={ux} />
+            <MobilePreviewBar data={liveData} copy={ux} />
           </>
         ) : null}
 
@@ -1560,6 +1787,11 @@ function ItemCard({
   onRemove,
   onMoveUp,
   onUse,
+  ux,
+  onMoveDown,
+  onAdjust,
+  adjusting = false,
+  drag: dnd,
 }: {
   item: SimpleItem
   index: number
@@ -1570,7 +1802,15 @@ function ItemCard({
   onRemove: () => void
   onMoveUp?: () => void
   onUse?: () => void
+  /** KINEO-ADS-UX-MARCA-2026-10-10 — frases novas, descer, abrir o editor de enquadramento e reordenar por arrasto. */
+  ux: AdsV2UxCopy
+  onMoveDown?: () => void
+  onAdjust?: () => void
+  adjusting?: boolean
+  drag?: { dragging: boolean; target: boolean; start: () => void; over: () => void; drop: () => void; end: () => void }
 }) {
+  const liRef = useRef<HTMLLIElement | null>(null)
+  const internal = (e: { dataTransfer: DataTransfer | null }) => Array.from(e.dataTransfer?.types ?? []).includes('text/x-kineo-item')
   const drag = useRef<{ x: number; y: number; fx: number; fy: number; id: number } | null>(null)
   const frameRef = useRef<HTMLDivElement | null>(null)
   const small = isSmallCrop(cropRect(item.w, item.h, item.fx, item.fy))
@@ -1603,7 +1843,38 @@ function ItemCard({
   }
 
   return (
-    <li className="adv2s-item" data-out={out}>
+    <li
+      ref={liRef}
+      className="adv2s-item"
+      data-out={out}
+      data-dragging={dnd?.dragging ?? false}
+      data-target={dnd?.target ?? false}
+      onDragOver={dnd && !locked ? (e) => { if (!internal(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; dnd.over() } : undefined}
+      onDrop={dnd && !locked ? (e) => { if (!internal(e)) return; e.preventDefault(); dnd.drop() } : undefined}
+    >
+      <div style={{ position: 'relative' }}>
+      {index === 0 && !out ? <span className="adv2s-first">{ux.first}</span> : null}
+      {dnd && !locked ? (
+        <button
+          type="button"
+          className="adv2s-grip"
+          draggable
+          aria-label={fill(ux.dragHandle, { n: index + 1 })}
+          onDragStart={(e) => {
+            e.dataTransfer.effectAllowed = 'move'
+            e.dataTransfer.setData('text/x-kineo-item', item.key)
+            if (liRef.current) {
+              try { e.dataTransfer.setDragImage(liRef.current, 40, 40) } catch { /* ignore */ }
+            }
+            dnd.start()
+          }}
+          onDragEnd={dnd.end}
+          onKeyDown={(e) => {
+            if ((e.key === 'ArrowLeft' || e.key === 'ArrowUp') && onMoveUp) { e.preventDefault(); onMoveUp() }
+            if ((e.key === 'ArrowRight' || e.key === 'ArrowDown') && onMoveDown) { e.preventDefault(); onMoveDown() }
+          }}
+        >⠿</button>
+      ) : null}
       <div
         ref={frameRef}
         className="adv2-frame"
@@ -1621,6 +1892,7 @@ function ItemCard({
         <img src={item.srcUrl} alt={fill(copy.files.photoAlt, { n: index + 1 })} draggable={false} style={{ objectPosition: focalPosition(item.fx, item.fy) }} />
         <span className="badge">{index + 1}</span>
       </div>
+      </div>
       {item.fromVideo ? <small className="adsw-hint" style={{ margin: 0 }}>{copy.files.fromVideo}</small> : null}
       {item.video ? (
         <small className="adv2s-asvideo" style={{ margin: 0 }}>
@@ -1633,7 +1905,9 @@ function ItemCard({
       {item.error ? <small className="adsw-err" style={{ margin: 0 }} role="alert">{item.error}</small> : null}
       <div className="row">
         {onUse ? <button type="button" className="adsw-btn ghost small" disabled={locked} onClick={onUse}>{copy.files.useThis}</button> : null}
+        {onAdjust && !out ? <button type="button" className="adsw-btn ghost small" aria-pressed={adjusting} disabled={locked} onClick={onAdjust}>{adjusting ? ux.adjustDone : ux.adjust}</button> : null}
         {onMoveUp ? <button type="button" className="adsw-btn ghost small" disabled={locked} onClick={onMoveUp}>{copy.files.moveUp}</button> : null}
+        {onMoveDown ? <button type="button" className="adsw-btn ghost small" disabled={locked} onClick={onMoveDown}>{ux.moveDown}</button> : null}
         <button type="button" className="adsw-btn ghost small" disabled={locked} onClick={onRemove}>{copy.files.remove}</button>
       </div>
     </li>

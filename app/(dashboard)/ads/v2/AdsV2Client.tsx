@@ -435,6 +435,10 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
   const [confirmingReset, setConfirmingReset] = useState(false)
   const [activeWork, setActiveWork] = useState(false)
   const [mode, setMode] = useState<'simple' | 'full' | null>(null)
+  // KINEO-ADS-UX-MARCA-2026-10-10 — a vaga do palco para a PRÉVIA AO VIVO do modo simples: enquanto a pessoa monta o anúncio, o
+  // celular 9:16 da prévia ocupa o lugar do palco da casa (que volta no progresso/entrega e no modo completo).
+  const [previewSlot, setPreviewSlot] = useState<HTMLDivElement | null>(null)
+  const [simplePreview, setSimplePreview] = useState(false)
   const lang = useInterfaceLanguage()
   // Foco na opção SEGURA ("Keep working"): Enter segurado no "Start over" não apaga tudo por repetição de tecla.
   const confirmRef = useRef<HTMLButtonElement | null>(null)
@@ -600,10 +604,13 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
           variations={variations}
           onVariationsStarted={openGroup}
           sample={sample}
+          previewSlot={previewSlot}
+          onPreview={setSimplePreview}
         />
       ) : null}
       </div>
-        <ProductStage name={shell.title} desc={mode === 'full' ? shell.sub : shell.subSimple} items={ADS_HOUSE_STAGE} wide />
+        {mode === 'simple' ? <div ref={setPreviewSlot} className="adv2s-slot" /> : null}
+        {mode === 'simple' && simplePreview ? null : <ProductStage name={shell.title} desc={mode === 'full' ? shell.sub : shell.subSimple} items={ADS_HOUSE_STAGE} wide />}
       </div>
       )}
       <ProductRow title="Made on Kineo" sub="Three looks of the same product, ready to A/B test." items={ADS_HOUSE_STAGE.map((x) => ({ title: x.title, image: x.poster! }))} wide />
