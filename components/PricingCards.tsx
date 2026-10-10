@@ -13,6 +13,7 @@
 // the flow falls back to /login.
 
 import { PLAN_SWITCH_EMPTY, fetchPlanSwitchState, planSwitchConfirmText, planSwitchErrorText, planSwitchLabel, switchPlan, type PlanSwitchState, type SwitchableTier } from '@/lib/growth/planSwitch'
+import { confirmAndSwitchBusiness, type PlanSwitchTier } from '@/lib/growth/planSwitch' // KINEO-TROCA-BUSINESS-2026-10-10
 import { useEffect, useRef, useState } from 'react'
 import { PLANS } from '@/lib/pricing'
 import {
@@ -153,7 +154,7 @@ export default function PricingCards({
   const [alreadySubscribed, setAlreadySubscribed] = useState(false)
   // KINEO-TROCA-DE-PLANO-2026-09-09 — assinante troca de plano aqui, sem checkout.
   const [planSwitch, setPlanSwitch] = useState<PlanSwitchState>(PLAN_SWITCH_EMPTY)
-  const [switching, setSwitching] = useState<SwitchableTier | null>(null)
+  const [switching, setSwitching] = useState<PlanSwitchTier | null>(null)
   const [switchNotice, setSwitchNotice] = useState<string | null>(null)
   useEffect(() => {
     let alive = true
@@ -163,6 +164,18 @@ export default function PricingCards({
   async function handleSwitchPlan(tier: SwitchableTier) {
     if (switching || planSwitch.tier === tier) return
     const name = PLANS[tier].name
+    // KINEO-TROCA-BUSINESS-2026-10-10 — descida do Business: vale na renovação, sem rateio; a prévia diz a data e os números.
+    if (planSwitch.tier === 'business') {
+      setSwitching(tier)
+      setSwitchNotice(null)
+      void trackEvent('plan_switch_clicked', { from: planSwitch.tier, to: tier, status: planSwitch.status, surface: 'generate_step_1' })
+      const result = await confirmAndSwitchBusiness({ tier, planName: name, confirm: (text) => typeof window === 'undefined' || window.confirm(text) })
+      setSwitching(null)
+      if (result.status === 'cancelled') return
+      if (result.status === 'done') setPlanSwitch({ subscribed: true, tier: result.tier, status: planSwitch.status })
+      setSwitchNotice(result.notice)
+      return
+    }
     if (typeof window !== 'undefined' && !window.confirm(planSwitchConfirmText(planSwitch, name, priceFor(tier)))) return
     setSwitching(tier)
     setSwitchNotice(null)

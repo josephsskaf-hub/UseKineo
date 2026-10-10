@@ -231,9 +231,12 @@ equal((paymentPath.match(/await recordAffiliateCommission\(supabase/g) ?? []).le
 equal((paymentPath.match(/paymentKind:\s*'one_time'/g) ?? []).length, 1, 'payment path explicitly classifies its one-time commission')
 // KINEO-STRIPE-ATRASO-2026-09-28 — +1 chamador de assinatura: a renovação idempotente por fatura ganhou o ramo
 // "fatura já concedida" (renewal_granted:${invoice.id}), que repete a comissão idempotente como o checkout_fulfilled: já faz.
-equal((webhookSource.match(/paymentKind:\s*'subscription'/g) ?? []).length, 7, 'all seven subscription commission callers classify payment explicitly')
+// KINEO-TROCA-BUSINESS-2026-10-10 — re-ancorado: +1 chamador de assinatura, a fatura da subida para o Business (always_invoice),
+// que paga a comissão idempotente por fatura com o tier da assinatura viva.
+equal((webhookSource.match(/paymentKind:\s*'subscription'/g) ?? []).length, 8, 'all eight subscription commission callers classify payment explicitly')
 equal((webhookSource.match(/paymentKind:\s*'one_time'/g) ?? []).length, 1, 'exactly one one-time commission caller exists')
-equal((webhookSource.match(/await recordAffiliateCommission\(supabase/g) ?? []).length, 8, 'all eight real commission callers remain present')
+// KINEO-TROCA-BUSINESS-2026-10-10 — re-ancorado: 8 → 9 (o mesmo chamador novo da subida para o Business).
+equal((webhookSource.match(/await recordAffiliateCommission\(supabase/g) ?? []).length, 9, 'all nine real commission callers remain present')
 ok(/paymentKind:\s*AffiliatePaymentKind/.test(webhookSource), 'recordAffiliateCommission requires explicit payment kind')
 // Retry now also includes the checkout-analytics sink. Assert each cause and
 // the composed guard instead of freezing the former two-term source line.

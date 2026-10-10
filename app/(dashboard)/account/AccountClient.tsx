@@ -503,14 +503,15 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
                 <>
                   {/* KINEO-TROCA-DE-PLANO-2026-09-09 — trocar de plano é no /pricing
                       (rota /api/stripe/change-plan), sem cancelar; o portal da
-                      Stripe cuida de cartão, faturas e cancelamento. */}
+                      Stripe cuida de cartão, faturas e cancelamento.
+                      KINEO-TROCA-BUSINESS-2026-10-10 — o Business também troca por lá. */}
                   <a
                     href="/pricing#plans"
                     className="acc-row-btn block w-full rounded-xl py-3 text-sm font-bold text-center mb-2"
                     style={{ background: 'rgba(41,151,255,.10)', border: '1px solid rgba(41,151,255,.35)', color: '#7cc0ff', textDecoration: 'none' }}
                     data-testid="account-change-plan"
                   >
-                    Change plan — Starter, Creator or Studio, without cancelling
+                    Change plan — Starter, Creator, Studio or Business, without cancelling
                   </a>
                   {/* Stripe customer portal — change card, see invoices,
                       upgrade/downgrade or cancel. The real control center. */}

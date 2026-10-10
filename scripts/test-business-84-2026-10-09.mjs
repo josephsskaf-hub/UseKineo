@@ -133,7 +133,8 @@ function runChecks(over = {}, verbose = false) {
   check(/const chargeRate = isBusinessCommissionPlan\(args\.plan\) \? BUSINESS_AFFILIATE_COMMISSION_RATE : rate\n\s+const commission = calculateAffiliateCommission\(args\.amountGross, chargeRate\)/.test(wh), '(6) webhook calcula a comissão pela taxa por plano')
   check(A.isBusinessCommissionPlan('business') && !A.isBusinessCommissionPlan('pro') && !A.isBusinessCommissionPlan(null), '(6) isBusinessCommissionPlan só reconhece business')
   const subCalls = wh.match(/recordAffiliateCommission\(supabase, \{[^\n]*paymentKind: 'subscription'[^\n]*\}\)/g) || []
-  check(subCalls.length === 7 && subCalls.every((c) => /plan: (session|subscription)\.metadata\?\.tier \}\)$/.test(c)), `(6) as 7 comissões de assinatura passam o tier (${subCalls.length})`)
+  // KINEO-TROCA-BUSINESS-2026-10-10 — re-ancorado: +1 comissão (a fatura da subida para o Business, cobrada na hora), que passa o tier da assinatura viva.
+  check(subCalls.length === 8 && subCalls.every((c) => /plan: (session|subscription|trocaSubscription)\.metadata\?\.tier \}\)$/.test(c)), `(6) as 8 comissões de assinatura passam o tier (${subCalls.length})`)
 
   // (7) cupom
   check(P.planAcceptsPromotions('business') === false && P.planAcceptsPromotions('pro') === true, '(7) planAcceptsPromotions: business não, pro sim')

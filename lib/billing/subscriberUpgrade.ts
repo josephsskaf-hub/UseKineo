@@ -58,8 +58,9 @@ export function subscriberUpgradeOffer(input: {
 }): SubscriberUpgradeOffer {
   const { state } = input
   if (!(input.enabled ?? SUBSCRIBER_UPGRADE_ENABLED)) return { kind: 'none' }
-  if (!state.subscribed || !state.tier || !SUBSCRIBER_LADDER.includes(state.tier)) return { kind: 'none' }
-  const from = state.tier
+  // KINEO-TROCA-BUSINESS-2026-10-10 — o estado da troca agora também traz 'business' (fora da escada): continua 'none'.
+  if (!state.subscribed || !state.tier || !(SUBSCRIBER_LADDER as readonly string[]).includes(state.tier)) return { kind: 'none' }
+  const from = state.tier as SwitchableTier
   const topupOnly: SubscriberUpgradeOffer = input.topupAllowed ? { kind: 'topup_only', from } : { kind: 'none' }
   const to = nextTierUp(from)
   if (!to || state.status !== 'active') return topupOnly

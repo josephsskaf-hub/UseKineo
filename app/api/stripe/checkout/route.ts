@@ -783,12 +783,16 @@ const TIERS: Record<PlanTier, { name: string; description: string; credits: numb
 // USD price for a BRL visitor would silently charge them the wrong money.
 const AUTOPILOT_PRICE_ID_RE = /^price_[A-Za-z0-9]+$/
 
-// KINEO-BUSINESS-84-2026-10-09 — a troca de plano self-serve (/api/stripe/change-plan) só conhece starter/basic/pro: estendê-la ao Business
-// concederia ~440 créditos NA HORA contra uma proration cobrada só na fatura seguinte. Até o fundador decidir, quem
-// já assina e quer o Business é trocado à mão pelo suporte — e a recusa diz isso, em vez de mandar a pessoa a um
-// "Switch to" que não existe para este plano.
-const BUSINESS_SWITCH_BY_SUPPORT_MESSAGE =
-  'You already have a Kineo subscription. To move it to Business, email support@usekineo.com and we switch it for you — no need to cancel.'
+// KINEO-BUSINESS-84-2026-10-09 — a troca de plano self-serve (/api/stripe/change-plan) só conhecia starter/basic/pro: estendê-la ao Business
+// concederia ~440 créditos NA HORA contra uma proration cobrada só na fatura seguinte.
+// KINEO-TROCA-BUSINESS-2026-10-10 — agora conhece: a subida cobra a diferença NA HORA e os créditos só entram com a
+// fatura paga (lib/billing/trocaBusiness.ts). Quem assina pela Stripe e chega aqui (o /business linka o checkout) volta
+// ao /pricing com o caminho da troca — "Switch to Business", sem cancelar. Assinatura pelo PayPal não tem troca
+// self-serve (a rota responde paypal_subscription): para ela, o suporte segue sendo o caminho.
+const BUSINESS_SWITCH_SELF_SERVE_MESSAGE =
+  'You already have a Kineo subscription. To move it to Business, use "Switch to Business" in the Business section of the pricing page — you pay only the price difference, no need to cancel.'
+const BUSINESS_SWITCH_PAYPAL_MESSAGE =
+  'Your Kineo subscription is billed through PayPal. To move it to Business, email support@usekineo.com and we switch it for you — no need to cancel.'
 function autopilotPriceIdOverride(currency: Currency): string | null {
   if (currency !== 'usd') return null
   const raw = (process.env.STRIPE_PRICE_AUTOPILOT_USD || '').trim()
@@ -1483,7 +1487,7 @@ async function buildAndRedirect(
       const paypalStatus = String(paypalSubscription?.status ?? '').toUpperCase()
       stalePayPalSubscription = paypalStatus === 'CANCELLED' || paypalStatus === 'EXPIRED'
       if (!stalePayPalSubscription) {
-        if (tier === 'business') return redirectError(BUSINESS_SWITCH_BY_SUPPORT_MESSAGE) // KINEO-BUSINESS-84-2026-10-09
+        if (tier === 'business') return redirectError(BUSINESS_SWITCH_PAYPAL_MESSAGE) // KINEO-BUSINESS-84-2026-10-09 · KINEO-TROCA-BUSINESS-2026-10-10: PayPal sem troca self-serve
         return redirectError('You already have a Kineo subscription. To change plans, use "Switch to" on the pricing page — no need to cancel.')
       }
     } catch (err) {
@@ -1615,8 +1619,8 @@ async function buildAndRedirect(
       console.error('[stripe/checkout] active subscription profile repair failed:', user.id, repairError.message)
     }
     if (tier === 'business') { // KINEO-BUSINESS-84-2026-10-09
-      console.warn('[stripe/checkout] non-terminal subscription found on Customer; Business switch goes through support:', user.id, existingCustomerSubscription.id, existingCustomerSubscription.status)
-      return redirectError(BUSINESS_SWITCH_BY_SUPPORT_MESSAGE)
+      console.warn('[stripe/checkout] non-terminal subscription found on Customer; Business switch goes through the self-serve change-plan:', user.id, existingCustomerSubscription.id, existingCustomerSubscription.status)
+      return redirectError(BUSINESS_SWITCH_SELF_SERVE_MESSAGE) // KINEO-TROCA-BUSINESS-2026-10-10
     }
     console.warn('[stripe/checkout] non-terminal subscription found on Customer; duplicate checkout blocked:', user.id, existingCustomerSubscription.id, existingCustomerSubscription.status)
     return redirectError('You already have a Kineo subscription. To change plans, use "Switch to" on the pricing page — no need to cancel.')

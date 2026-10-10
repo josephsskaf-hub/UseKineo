@@ -215,7 +215,9 @@ async function problems(S) {
   }
   const initialSite = sites.find((t) => /type: 'initial'/.test(t) && /paymentKind: 'subscription'/.test(t))
   const packSite = sites.find((t) => /paymentKind: 'one_time'/.test(t))
-  const renewalSite = sites.find((t) => /type: 'recurring'/.test(t))
+  // KINEO-TROCA-BUSINESS-2026-10-10 — re-ancorado: a fatura da subida para o Business (cobrada na hora) também paga comissão
+  // 'recurring' e vem ANTES no arquivo; a renovação é a chamada de renewalUserId.
+  const renewalSite = sites.find((t) => /type: 'recurring'/.test(t) && /userId: renewalUserId/.test(t))
   if (!initialSite || !packSite || !renewalSite) return [...p, 'webhook sem chamada de comissão inicial/pacote/renovação']
   const initialArgs = evalArgs(initialSite, { session, userId: session.metadata.supabase_user_id })
   try { await payment.recordAffiliateCommission(db, initialArgs); await payment.recordAffiliateCommission(db, initialArgs) } catch (e) { p.push('comissão inicial lançou: ' + e.message) }

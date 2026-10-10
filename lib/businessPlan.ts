@@ -43,6 +43,8 @@ export const BUSINESS_ADS_PROMISE: string = `${BUSINESS_ADS_PER_MONTH} product a
 export const BUSINESS_CHECKOUT_HREF = '/api/stripe/checkout?tier=business'
 /** Onde mora a oferta "feito para você" (Kineo Empresas: Express / Pro, pagamento único). */
 export const BUSINESS_DFY_HREF = '/business-video-ads#packages'
+/** KINEO-TROCA-BUSINESS-2026-10-10 — quem já assina outro plano troca no bloco Business do /pricing (sem checkout novo). */
+export const BUSINESS_SWITCH_HREF = '/pricing#business'
 /** Página de marketing do plano. */
 export const BUSINESS_PAGE_PATH = '/business'
 
