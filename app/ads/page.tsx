@@ -84,6 +84,10 @@ import { BUSINESS_ADS_PROMISE, BUSINESS_PAGE_PATH, BUSINESS_PRICE_LABEL } from '
 // montador). Timeout/erro de leitura = sem botão (falha fechada). Studio Ads fechado (adsPassLive false) = sem botão.
 import { adsSampleOpen } from '@/lib/ads/serverAccess'
 import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample'
+// KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — amostra JÁ usada: a porta troca o convite pela oferta do Business, com o anúncio dela.
+import { loadAdsSampleUsedAd, type AdsSampleUsedAd } from '@/lib/ads/serverAccess'
+import { adsAfterSampleCopy, fillAfterSample } from '@/lib/ads/afterSample'
+import { businessAdsOffer } from '@/lib/businessPlan'
 const SAMPLE_SIGNUP_HREF = `/signup?redirect=${encodeURIComponent('/ads/v2')}`
 import { readPartnerStatus } from '@/lib/partnerAccess' // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 — a prova positiva também pergunta pelo parceiro
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — a faixa dos estilos de produto (prévias feitas pelo próprio efeito).
@@ -310,6 +314,14 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
     ? SAMPLE_SIGNUP_HREF
     : null
 
+  // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — logado, barrado pelo gate, SEM amostra aberta e com a amostra USADA → a oferta do
+  // Business no lugar do convite (o mesmo lugar, antes da oferta paga). Timeout/erro de leitura = null (a porta de antes).
+  const afterSample: AdsSampleUsedAd | null = ADS_SAMPLE_LIVE && live && ADS_V2_PUBLIC && !sampleHref && viewer.signedIn && viewer.gate === 'no_access' && viewer.userId
+    ? await withTimeout(loadAdsSampleUsedAd(footageAdminClient(), viewer.userId), null).then((r) => (r && r.used && r.delivered ? r : null))
+    : null
+  const business = businessAdsOffer()
+  const afterCopy = adsAfterSampleCopy('en')
+
   const copy = adsPassCopy()
   const price = adsPassPriceLabel()
   const lengths = Array.from(new Set(ADS_MODELS.map((m) => m.seconds))).sort((a, b) => a - b)
@@ -340,6 +352,26 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
               <b>Your first ad is free.</b> One ad per account at the Photo motion level, about {ADS_V2_SCREEN_SECONDS} seconds, from your own photos. No card needed.
             </p>
             <a href={sampleHref} className="go ok ads-go">Make your first ad free <span aria-hidden="true">→</span></a>
+          </div>
+        ) : null}
+
+        {/* KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a amostra já foi usada: a oferta do Business, com o anúncio que a pessoa fez. */}
+        {afterSample ? (
+          <div className="ads-banner ads-sample ads-after-sample" role="region" aria-label="Business plan" data-kineo="ads-door-after-sample">
+            <div className="ads-after-row">
+              {afterSample.videoUrl ? (
+                <div className="ads-after-ad">
+                  <video src={afterSample.videoUrl} poster={afterSample.posterUrl ?? undefined} controls playsInline muted preload="metadata" />
+                  <span className="ads-after-label">{afterCopy.yourAd}</span>
+                </div>
+              ) : null}
+              <div className="ads-after-text">
+                <p><b>{afterCopy.title}</b></p>
+                <p>{fillAfterSample(afterCopy.body, business)}</p>
+                <a href={business.checkoutHref} className="go ok ads-go">{fillAfterSample(afterCopy.cta, business)} <span aria-hidden="true">→</span></a>
+                <p className="ads-after-more"><a href={business.pageHref}>{afterCopy.more} →</a></p>
+              </div>
+            </div>
           </div>
         ) : null}
 
@@ -568,6 +600,15 @@ html[data-theme=dark] .stu.ads-door{--ads-door-error:#ff9b9b;--ads-door-error-so
 .ads-banner{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin:16px 0 0;padding:0 6px 0 14px;border-radius:12px;background:var(--accent-soft);border:1px solid var(--border2);color:var(--text);font-size:14px;line-height:1.5}
 .ads-banner p{margin:12px 0}
 .ads-banner.ads-sample{flex-direction:column;align-items:stretch;gap:0;padding:0 14px 14px}
+/* KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a oferta do Business depois da amostra: o anúncio dela (9:16) ao lado do texto. */
+.ads-after-row{display:flex;gap:16px;align-items:flex-start;padding-top:14px;flex-wrap:wrap}
+.ads-after-ad{margin:0;flex:0 0 150px;max-width:150px}
+.ads-after-ad video{display:block;width:100%;aspect-ratio:9/16;object-fit:cover;border-radius:10px;background:#000}
+.ads-after-ad .ads-after-label{display:block;margin-top:6px;font-size:12px;opacity:.75}
+.ads-after-text{flex:1 1 240px;min-width:0}
+.ads-after-text p{margin:0 0 10px}
+.ads-after-text .ads-after-more{margin:10px 0 0}
+@media(max-width:520px){.ads-after-ad{flex-basis:120px;max-width:120px}}
 .ads-banner.err{background:var(--ads-door-error-soft);border-color:var(--ads-door-error);color:var(--ads-door-error)}
 .ads-x{flex-shrink:0;min-width:44px;min-height:44px;background:none;border:0;color:inherit;font-size:20px;line-height:1;cursor:pointer}
 .ads-hero{padding:46px 0 10px;max-width:780px}

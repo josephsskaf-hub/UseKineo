@@ -29,6 +29,9 @@ import { stripeNetRevenue, type NetRevenue } from '@/app/api/admin/_shared/reven
 import { PAID_PLANS, PLAN_PRICE_USD, isTrialPlan } from '@/app/api/admin/_shared/mrr'
 // KINEO-MRR-PRECO-PAGO-2026-09-28 — o MRR é o que cada assinante PAGA (última fatura), não a tabela de hoje.
 import { paidMonthlyUsdByUser, paidMrrForProfiles, paidMrrSourceLabel, type PaidAmountEvent } from '@/app/api/admin/_shared/mrr'
+// KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — vendas de verdade (checkout + renovação + troca de plano), uma por fatura/sessão.
+import { SALE_EVENT_NAMES, saleKindLabel, salesFromEvents, summarizeSales, type SaleEvent, type SalesSummary } from '@/app/api/admin/_shared/sales'
+import { BRL_PER_USD_HOUSE } from '@/lib/settlementCurrency'
 // KINEO-CORTESIA-2026-10-03 — cortesia do admin aparece com o plano real (free): fora de pagante, trial de $1 e MRR.
 import { maskCourtesyPlans } from '@/lib/courtesy'
 import { loadActiveCourtesyGrants } from '@/lib/courtesyStore'
@@ -114,6 +117,8 @@ type Metrics = {
   revenue: NetRevenue | null
   arpuUsd: number | null
   oneTimePurchases: number
+  /** KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — "última venda" e "vendas 7 d" pela régua de vendas (_shared/sales). */
+  sales: SalesSummary
   versaoB: { today: FunilB; d7: FunilB; since: string }
   // KINEO-ADMIN-ENTRANTES-2026-09-09 — quem entrou pela porta, por pessoa.
   entrantes: Entrante[]
@@ -183,6 +188,9 @@ async function loadMetrics(): Promise<Metrics | null> {
         'subscription_invoice_paid',
         // KINEO-MRR-TROCA-ANUAL-2026-10-08 — a troca para o anual muda o MRR da pessoa (anual ÷ 12)
         'plan_switched_to_annual',
+        // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a fatura de troca de plano e a subida para o Business também são VENDA
+        'subscription_update_invoice_paid',
+        'business_upgrade_credits_granted',
         'paywall_hit',
         'starter_checkout_clicked',
         'basic_checkout_clicked',
@@ -265,6 +273,16 @@ async function loadMetrics(): Promise<Metrics | null> {
     // KINEO-VERSAO-B-PAINEL — o $1 do trial NÃO é compra avulsa
     (e) => e.name === 'payment_success' && e.user_id != null && extIds.has(e.user_id) && !metaTrue(e.metadata, 'card_trial')
   ).length
+  // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — vendas: uma por fatura/sessão (a troca para o anual de 08/10 era invisível para
+  // quem contava só payment_success). Dono sem user_id (fatura de troca) sai da assinatura do perfil; conta interna fora.
+  const userBySubscription = new Map<string, string>()
+  for (const p of profiles) if (typeof p.stripe_subscription_id === 'string' && p.stripe_subscription_id) userBySubscription.set(p.stripe_subscription_id, p.id)
+  const internalIds = new Set(profiles.filter((p) => isInternalEmail(p.email)).map((p) => p.id))
+  const saleNames = new Set<string>(SALE_EVENT_NAMES)
+  const sales = summarizeSales(
+    salesFromEvents(eventRows.filter((e) => saleNames.has(e.name)) as SaleEvent[], { brlPerUsd: BRL_PER_USD_HOUSE, userBySubscription, excluded: (id) => internalIds.has(id) }),
+    now,
+  )
   const versaoB = { today: funilVersaoB(eventRows, todayStart, extIds), d7: funilVersaoB(eventRows, Math.max(since7d, new Date(VERSAO_B_SINCE).getTime()), extIds), since: VERSAO_B_SINCE }
 
   // ── growth ────────────────────────────────────────────────────────────────
@@ -427,6 +445,7 @@ async function loadMetrics(): Promise<Metrics | null> {
     mrrPaidFromTable,
     arpuUsd,
     oneTimePurchases,
+    sales,
     versaoB,
     entrantes,
     trial1,
@@ -700,6 +719,15 @@ export default async function AdminOverviewPage() {
             {/* KINEO-RECEITA-LIQUIDA-2026-09-21 — fundador: "tem gente que faz top-up e fica comprando; o admin só mostra MRR".
                 Stripe = fonte (cobranças pagas, conta interna fora, líquido = balance_transaction.net − estornos, BRL→USD
                 pela taxa da casa). Assinaturas = cobrança com fatura; avulsos = checkout de pagamento único (pacotes). */}
+            {/* KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — vendas pela régua nova (_shared/sales): checkout, renovação, troca de plano,
+                troca para o anual e subida para o Business, UMA por fatura/sessão. Antes só payment_success contava. */}
+            <Kpi
+              label="Vendas · 7 d"
+              value={String(m.sales.d7.count)}
+              sub={`${fmtMoney(m.sales.d7.usd)}${m.sales.d7NotCheckout > 0 ? ` · ${m.sales.d7NotCheckout} fora do checkout` : ''} · 30 d: ${m.sales.d30.count} (${fmtMoney(m.sales.d30.usd)}) · última: ${m.sales.last ? `${m.sales.last.at.slice(0, 10)} · ${saleKindLabel(m.sales.last.kind)} · ${fmtMoney(m.sales.last.usd)}` : 'nenhuma'}`}
+              tooltip="Conta todo pagamento confirmado pela Stripe: checkout, renovação, troca de plano (inclui a troca para o anual) e subida para o Business. Uma venda por fatura ou sessão; a mesma fatura gravada em dois eventos conta uma vez. Conta interna fora."
+              accent="245,245,247"
+            />
             <Kpi
               label="Receita líquida 30 d"
               value={m.revenue ? fmtMoney(m.revenue.windows.d30.netUsd) : '—'}

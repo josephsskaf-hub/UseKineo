@@ -14,6 +14,7 @@ import { ADS_V2_TIERS } from '@/lib/ads/v2Tiers'
 import { ADS_V2_VARIATION_SLOTS } from '@/lib/ads/v2Variations'
 import { BUSINESS_PRICES, TIER_CREDITS } from '@/lib/checkoutPricing'
 import { ADS_TEAM_PATH, BUSINESS_SEATS } from '@/lib/ads/team' // KINEO-EQUIPE-BUSINESS-2026-10-10
+import type { AdsBusinessOffer } from '@/lib/ads/afterSample'
 
 /** O nível do Studio Ads que a promessa usa (Commercial: 3 cenas com gente criadas a partir das fotos do cliente). */
 export const BUSINESS_AD_LEVEL = 'commercial' as const
@@ -61,3 +62,18 @@ export const BUSINESS_BULLETS: readonly string[] = [
   `${BUSINESS_SEATS} teammates included, using your credits`, // KINEO-EQUIPE-BUSINESS-2026-10-10
   'First ad free to try',
 ]
+
+// KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a oferta que o Studio Ads mostra DEPOIS do anúncio grátis (amostra usada ou teto do
+// dia). Os números saem daqui (nada digitado na tela); o checkout leva a campanha 'ads_after_sample' (intentCampaignFrom do
+// /api/stripe/checkout aceita) para o payment_success dizer que a venda nasceu do pós-amostra.
+export const BUSINESS_AFTER_SAMPLE_CHECKOUT_HREF = `${BUSINESS_CHECKOUT_HREF}&intent_campaign=ads_after_sample`
+export function businessAdsOffer(): AdsBusinessOffer {
+  return {
+    price: BUSINESS_PRICE_LABEL,
+    credits: BUSINESS_MONTHLY_CREDITS,
+    ads: BUSINESS_ADS_PER_MONTH,
+    seconds: BUSINESS_AD_SECONDS,
+    checkoutHref: BUSINESS_AFTER_SAMPLE_CHECKOUT_HREF,
+    pageHref: `${BUSINESS_PAGE_PATH}#plan`,
+  }
+}

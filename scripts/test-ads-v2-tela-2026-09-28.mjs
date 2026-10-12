@@ -97,7 +97,10 @@ const importsClient = [...rd(F.client).matchAll(/^import[\s\S]*?from '([^']+)'/g
 // escolha de estilo). Nenhum módulo de servidor entrou no cliente.
 // KINEO-ATOR-ANUNCIO-2026-10-09 — re-ancorado: + '@/lib/ads/v2Presenter' (lib PURA do ator de IA: interruptor e frases; só import type).
 // O cartão do ator mora no componente já liberado (@/components/ads/AdsStyles). Nenhum módulo de servidor entrou no cliente.
-const PERMITIDOS = ['@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', '@/components/ProductStage', './AdsV2Variations','@/components/AdsPlanChanges', 'react', 'next/link', '@/components/studioKit', '../new/adsWizardTheme', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2ShotLists', '@/lib/ads/v2Screen',
+// KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — re-ancorado: + '@/lib/ads/afterSample' (lib PURA do pós-amostra: frases da oferta do
+// Business nas 16 línguas e o tipo da oferta; só import type — provado em scripts/test-business-depois-da-amostra.mjs 1h).
+// Nenhum módulo de servidor entrou no cliente.
+const PERMITIDOS = ['@/lib/ads/afterSample', '@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', '@/components/ProductStage', './AdsV2Variations','@/components/AdsPlanChanges', 'react', 'next/link', '@/components/studioKit', '../new/adsWizardTheme', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2ShotLists', '@/lib/ads/v2Screen',
   '@/components/BusinessVisualReferences', '@/components/InterfaceLanguage', './AdsV2Simple', '@/lib/ads/v2Simple', '@/lib/ui/interfaceLanguage']
 check("I1 o cliente começa com 'use client' e só importa módulos de navegador/puros (nada de v2Advance, v2Billing, serverAccess…)", /^'use client'/.test(rd(F.client)) && importsClient.length >= 8 && importsClient.every((m) => PERMITIDOS.includes(m)))
 check('I2 lib/ads/v2Screen.ts é puro (nenhum import/require) e fora da trava 8.2', !/^\s*import\s/m.test(screenSrc) && !/\brequire\(/.test(semComentarios(screenSrc)))
@@ -130,7 +133,9 @@ check('S5 nenhum dado do pedido mora fora da sessão: o invólucro só tem sessi
   // (?group=), que é escolha de tela; os pedidos e o dinheiro continuam no servidor e na sessão.
   // KINEO-ADS-UX-MARCA-2026-10-10 — re-ancorado: + `previewSlot`/`simplePreview` — a VAGA do palco onde a sessão desenha a prévia
   // ao vivo (um elemento da página) e se ela está ocupando o palco agora. Escolha de tela; nenhum dado do pedido sai da sessão.
-  return eqSet(nomes, ['session', 'balance', 'confirmingReset', 'activeWork', 'mode', 'groupId', 'groupChecked', 'previewSlot', 'simplePreview'])
+  // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — re-ancorado: + `sampleGone` — a sessão avisou que a amostra já foi usada (403
+  // no_access) e o invólucro mostra a oferta do Business no lugar dela. Escolha de tela; nenhum dado do pedido sai da sessão.
+  return eqSet(nomes, ['session', 'balance', 'confirmingReset', 'activeWork', 'mode', 'groupId', 'groupChecked', 'previewSlot', 'simplePreview', 'sampleGone'])
 })
 check('S6 o estado do anúncio (nível, texto, logo, fotos, cartão, rascunho, plano, pedido, vídeo) nasce VAZIO dentro da sessão', () =>
   [

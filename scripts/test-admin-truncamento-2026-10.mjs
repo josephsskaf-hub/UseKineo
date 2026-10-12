@@ -299,6 +299,10 @@ async function overview(fetchAllRows, options = {}) {
     '@/lib/internalAccounts': internal,
     '@/app/api/admin/_shared/mrr': { ...mrr, stripeMrrUsd: async () => null },
     '@/app/api/admin/_shared/revenue': { stripeNetRevenue: async () => null },
+    // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — re-ancorado: o overview passou a contar VENDAS pela régua _shared/sales (pura, sem
+    // dependência: carregada do arquivo real) e lê a taxa BRL→USD da casa (o mesmo stub do mrr acima).
+    '@/app/api/admin/_shared/sales': load(read('app/api/admin/_shared/sales.ts')),
+    '@/lib/settlementCurrency': { BRL_PER_USD_HOUSE: 5 },
     '@/lib/courtesy': courtesy,
     '@/lib/courtesyStore': { loadActiveCourtesyGrants: async () => (tables.courtesy_grants ?? []).filter((r) => r.status === 'active') },
     '@/lib/admin/versaoBFunnel': funnel,

@@ -299,6 +299,8 @@ export function isNewSubscriberEvent(name: string, metadata: EventMeta): boolean
 //     evento `plan_switched_to_annual`) vira a régua da pessoa — anual ÷ 12 — e as próximas faturas da
 //     MESMA assinatura herdam 'annual'. Sem isso o painel mostrava o mensal antigo até a renovação anual.
 
+// KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — VENDA (dinheiro que entrou, uma por fatura/sessão, inclusive troca de plano) não é
+// MRR: mora em _shared/sales.ts (SALE_EVENT_NAMES / salesFromEvents). Esta lista continua sendo só a do MRR.
 /** Os dois nomes de evento que carregam valor pago de assinatura (para os `fetchAllRows` das telas). */
 export const MRR_PAID_EVENT_NAMES = ['payment_success', 'subscription_invoice_paid', 'plan_switched_to_annual'] as const
 

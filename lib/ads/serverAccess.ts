@@ -118,3 +118,50 @@ export async function adsSampleCapReached(admin: ReturnType<typeof footageAdminC
     return true
   }
 }
+
+// ═══ KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a amostra JÁ USADA e o anúncio que a pessoa fez ═════════════════════════════
+// A porta /ads troca o convite da amostra pela oferta do Business quando a conta barrada ('no_access') já usou a dela. "Usou"
+// é o MESMO critério de adsSampleOpen (pedido 'adssample-…' em generating/assembling/delivered — amostra que falhou não conta).
+// O anúncio mostrado é o último pedido ENTREGUE da conta (ads_v2_orders.video_id → videos, do próprio dono). Só leitura;
+// qualquer erro = { used: false } (sem oferta nova: a porta segue como antes, nunca inventa um anúncio).
+// `delivered`: a amostra já foi ENTREGUE — a porta só diz "Your free ad is done" quando é verdade (amostra ainda montando = a
+// porta de antes).
+export interface AdsSampleUsedAd {
+  used: boolean
+  delivered: boolean
+  videoUrl: string | null
+  posterUrl: string | null
+}
+
+/** Os estados em que a amostra conta como USADA — os mesmos do adsSampleOpen acima (o guardião confere que as duas listas são iguais). */
+const ADS_SAMPLE_USED_STATUSES = ['generating', 'assembling', 'delivered']
+
+export async function loadAdsSampleUsedAd(admin: ReturnType<typeof footageAdminClient>, userId: string): Promise<AdsSampleUsedAd> {
+  const none: AdsSampleUsedAd = { used: false, delivered: false, videoUrl: null, posterUrl: null }
+  try {
+    const used = await admin
+      .from('ads_v2_orders')
+      .select('status')
+      .eq('user_id', userId)
+      .like('billing_ref', `${ADS_SAMPLE_PREFIX}%`)
+      .in('status', ADS_SAMPLE_USED_STATUSES)
+      .limit(5)
+    if (used.error || !Array.isArray(used.data) || used.data.length === 0) return none
+    const delivered = (used.data as { status?: string | null }[]).some((r) => r.status === 'delivered')
+    const last = await admin
+      .from('ads_v2_orders')
+      .select('video_id')
+      .eq('user_id', userId)
+      .eq('status', 'delivered')
+      .not('video_id', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(1)
+    const videoId = !last.error && Array.isArray(last.data) ? (last.data[0] as { video_id?: string | null } | undefined)?.video_id ?? null : null
+    if (!videoId) return { used: true, delivered, videoUrl: null, posterUrl: null }
+    const v = await admin.from('videos').select('video_url, thumbnail_url').eq('id', videoId).eq('user_id', userId).maybeSingle()
+    const row = (v.data as { video_url?: string | null; thumbnail_url?: string | null } | null) ?? null
+    return { used: true, delivered, videoUrl: !v.error && typeof row?.video_url === 'string' ? row.video_url : null, posterUrl: !v.error && typeof row?.thumbnail_url === 'string' ? row.thumbnail_url : null }
+  } catch {
+    return none
+  }
+}

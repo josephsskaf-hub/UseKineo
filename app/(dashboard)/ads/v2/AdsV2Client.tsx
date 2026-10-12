@@ -27,6 +27,7 @@ import Link from 'next/link'
 import BusinessVisualReferences from '@/components/BusinessVisualReferences'
 import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { AdsV2SimpleSession, readVideoForAd, videoFramesForAd } from './AdsV2Simple'
+import { AdsAfterSampleOffer } from './AdsV2Simple' // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a oferta do Business depois da amostra
 import { ADS_V2_VARIATIONS_CSS, VariationToggle, VariationsBoard, variationsCopy, variationsPrice } from './AdsV2Variations'
 import { ADS_V2_SIMPLE_COPY } from '@/lib/ads/v2Simple'
 import { ADS_HOUSE_STAGE, ProductRow, ProductStage, ProductStageStyles, useProductStage } from '@/components/ProductStage' // KINEO-ABAS-PALCO-2026-10-01
@@ -44,6 +45,7 @@ const ADS_PANEL_CSS = `.adv2 .kps-panel .adv2-layout{grid-template-columns:minma
 .adv2 .kps-panel .adv2-aside{position:static}`
 import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
 import { ADS_SAMPLE_TIER, adsSampleCopy, type AdsSampleCopy } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
+import { adsAfterSampleCopy, fillAfterSample, type AdsBusinessOffer } from '@/lib/ads/afterSample' // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — a escolha de estilo do produto (modo completo = inglês).
 import { ADS_V2_STYLE_COPY, ADS_V2_STYLES_PUBLIC, adsV2SuggestedStyle, type AdsV2StyleChoice } from '@/lib/ads/v2Styles'
 import { AdsPresenterToggle, AdsStylePicker } from '@/components/ads/AdsStyles'
@@ -435,7 +437,11 @@ function setGroupParam(id: string | null) {
 // do cliente é vigiada): o MEMBRO de uma equipe Business faz anúncio com o saldo e o kit do dono — a tela avisa e relê o saldo
 // do dono em /api/ads/team; o DONO do Business vê o link da equipe. null/ausente = a tela de sempre.
 type AdsV2WorkspaceProp = { role: 'owner' | 'member'; ownerLabel: string | null; teamOwner: boolean } | null
-export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp }) {
+// KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — business: a oferta do Business (page.tsx → lib/businessPlan.ts businessAdsOffer), só com a amostra. Quando a sessão
+// descobre que a amostra já foi usada (403 'no_access' / 402 do envio de foto), o invólucro troca a sessão pela oferta, com o
+// último anúncio entregue da conta. Sem a prop (assinante, passe, interna), nada muda.
+export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null, business = null }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp; business?: AdsBusinessOffer | null }) {
+  const [sampleGone, setSampleGone] = useState(false) // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
   const [session, setSession] = useState(0)
   const [groupId, setGroupId] = useState<string | null>(null)
   const [groupChecked, setGroupChecked] = useState(!variations)
@@ -601,7 +607,10 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
       // KINEO-ABAS-PALCO-2026-10-01 — o formato do Studio: o montador é o quadro de engenharia; o palco mostra anúncios da casa.
       <div className="kps-grid">
       <div className="kps-panel">
-      {mode === 'full' ? (
+      {/* KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a amostra já foi usada: a oferta do Business no lugar da sessão (e do erro genérico). */}
+      {sampleGone && sample && business && mode ? (
+        <AdsAfterSampleOffer lang={mode === 'full' ? 'en' : lang} business={business} />
+      ) : mode === 'full' ? (
         <AdsV2Session
           key={session}
           resume={session === 0}
@@ -612,6 +621,8 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
           variations={variations}
           onVariationsStarted={openGroup}
           sample={sample}
+          businessOffer={business}
+          onSampleGone={() => setSampleGone(true)}
         />
       ) : mode === 'simple' ? (
         <AdsV2SimpleSession
@@ -627,6 +638,8 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
           sample={sample}
           previewSlot={previewSlot}
           onPreview={setSimplePreview}
+          business={business}
+          onSampleGone={() => setSampleGone(true)}
         />
       ) : null}
       </div>
@@ -650,6 +663,8 @@ function AdsV2Session({
   variations = false,
   onVariationsStarted,
   sample = false,
+  businessOffer = null,
+  onSampleGone,
 }: {
   resume: boolean
   balance: number | null
@@ -660,8 +675,21 @@ function AdsV2Session({
   onVariationsStarted?: (groupId: string) => void
   /** KINEO-ADS-AMOSTRA-2026-10-09 — a amostra grátis (modo completo = inglês). */
   sample?: boolean
+  /** KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a oferta do Business (só com a amostra) e o aviso "amostra já usada" para o invólucro. */
+  businessOffer?: AdsBusinessOffer | null
+  onSampleGone?: () => void
 }) {
   const scopy: AdsSampleCopy | null = sample ? adsSampleCopy('en') : null
+  // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — quem entrou pela amostra e já a usou recebe 403 'no_access' (rotas do v2) ou 402 'paid_feature' (envio de foto):
+  // em vez do erro genérico, o invólucro mostra a oferta do Business. Assinante/passe/interna nunca entram com sample=true.
+  const acopy = adsAfterSampleCopy('en')
+  const sampleGone = (code: string | null | undefined): boolean => {
+    if (!sample || code !== 'no_access') return false
+    onSampleGone?.()
+    return true
+  }
+  const failText = (r: { code: string; body: Record<string, unknown> }): string | null => (sampleGone(r.code) ? null : apiError(r))
+  const uploadGone = (e: unknown): boolean => (e instanceof AdsUploadError && e.reason === 'paid_feature' ? sampleGone('no_access') : false)
   const [sampleCap, setSampleCap] = useState(false)
   const [phase, setPhase] = useState<Phase>(resume ? 'loading' : 'build')
   const [tier, setTier] = useState<AdsV2Tier | null>(null)
@@ -947,6 +975,7 @@ function AdsV2Session({
       setLogo({ footageId: up.footageId, localUrl: up.localUrl ? trackUrl(up.localUrl) : up.url, busy: false, error: null })
     } catch (e) {
       if (!aliveRef.current) return
+      if (uploadGone(e)) return // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
       setLogo({ footageId: null, localUrl: null, busy: false, error: e instanceof AdsUploadError ? e.message : 'The logo did not upload. Try again.' })
     }
   }
@@ -1128,6 +1157,7 @@ function AdsV2Session({
         push(p, up.footageId)
       } catch (e) {
         if (!aliveRef.current) return null
+        if (uploadGone(e)) return null // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
         const msg = e instanceof AdsUploadError ? e.message : 'This photo could not be framed and uploaded. Try again, or add it again as JPG.'
         updatePhoto(p.key, { busy: false, error: msg })
         setPlanError(`Photo ${n}: ${msg}`)
@@ -1157,6 +1187,7 @@ function AdsV2Session({
       return done
     } catch (e) {
       if (!aliveRef.current) return null
+      if (uploadGone(e)) return null // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
       setPlanError(e instanceof AdsUploadError ? e.message : 'We could not draw your last frame. Add the logo again as PNG or JPG and try again.')
       return null
     }
@@ -1180,7 +1211,7 @@ function AdsV2Session({
     if (!aliveRef.current) return null
     if (!r.ok) {
       if (r.code === 'not_ready') setNotReady(true)
-      setPlanError(apiError(r))
+      setPlanError(failText(r))
       return null
     }
     setDraft({ id: r.data.order_id, key })
@@ -1222,7 +1253,7 @@ function AdsV2Session({
         if (VIDEO_TO_PHOTOS_CODES.includes(r.code)) void videoBackToPhotos(typeof r.body.footage_id === 'string' ? r.body.footage_id : null)
         if (r.code === 'too_many_videos') void videosPastLimitToPhotos()
         if (r.code === 'not_editable') setDraft(null)
-        setPlanError(apiError(r))
+        setPlanError(failText(r))
         return
       }
       rememberPlan(r.data)
@@ -1253,7 +1284,7 @@ function AdsV2Session({
     if (!aliveRef.current) return
     setBusy(null)
     if (!r.ok) {
-      setPlanError(apiError(r))
+      setPlanError(failText(r))
       return
     }
     const on = r.data.narration === true
@@ -1270,7 +1301,7 @@ function AdsV2Session({
     const r = await api('/api/ads/v2/orders', { method: 'PATCH', body: { order_id: p.order_id, card_footage_id: done.footageId } })
     if (!aliveRef.current) return false
     if (!r.ok) {
-      setPlanError(apiError(r))
+      setPlanError(failText(r))
       return false
     }
     setPlan((cur) => (cur && cur.order_id === p.order_id ? { ...cur, cardSig: done.sig } : cur))
@@ -1287,7 +1318,7 @@ function AdsV2Session({
       const r = await api<{ credits: number; shots: unknown[] }>('/api/ads/v2/start', { method: 'POST', body: { order_id: plan.order_id, dry_run: true } })
       if (!aliveRef.current) return
       if (!r.ok) {
-        setPlanError(apiError(r))
+        setPlanError(failText(r))
         return
       }
       setCheckNote(`Check passed: ${Array.isArray(r.data.shots) ? r.data.shots.length : plan.shots.length} shots, ${r.data.credits} credits. Nothing was charged and nothing was sent to production.`)
@@ -1325,7 +1356,7 @@ function AdsV2Session({
         }
         // KINEO-ADS-AMOSTRA-2026-10-09 — teto do dia: aviso com o link dos planos; nível errado: a regra da amostra.
         if (scopy && r.code === 'sample_cap') setSampleCap(true)
-        setPlanError(scopy && r.code === 'sample_cap' ? null : scopy && r.code === 'sample_level_only' ? scopy.note : apiError(r))
+        setPlanError(scopy && r.code === 'sample_cap' ? null : scopy && r.code === 'sample_level_only' ? scopy.note : failText(r))
         void onBalance()
         return
       }
@@ -1655,7 +1686,8 @@ function AdsV2Session({
               {busyNote ? <p className="adsw-hint" role="status">{busyNote}</p> : null}
               {checkNote ? <p className="adsw-good adsw-hint" role="status">{checkNote}</p> : null}
               {planError ? <p className="adsw-err" role="alert">{planError}</p> : null}
-              {scopy && sampleCap ? <p className="adsw-warn" role="alert">{scopy.cap} <a className="adsw-link" href="/pricing" target="_blank" rel="noopener">{scopy.paidOnly} →</a></p> : null}
+              {/* KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — teto do dia: "amostras cheias hoje, volte amanhã ou assine o Business" (com o link do checkout). */}
+              {scopy && sampleCap ? <p className="adsw-warn" role="alert">{businessOffer ? acopy.cap : scopy.cap} {businessOffer ? <><a className="adsw-link" href={businessOffer.checkoutHref}>{fillAfterSample(acopy.cta, businessOffer)} →</a>{' · '}</> : null}<a className="adsw-link" href="/pricing" target="_blank" rel="noopener">{scopy.paidOnly} →</a></p> : null}
               {buildError ? <p className="adsw-err" role="alert">{buildError}</p> : null}
             </section>
           </>
@@ -1694,6 +1726,8 @@ function AdsV2Session({
             </div>
             {downloadNote ? <p className="adsw-warn" role="status">{downloadNote}</p> : null}
             <p className="adv2-note">Turn on the AI-generated label when you post on TikTok. Parts of this ad were made with AI from your photos.</p>
+            {/* KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a amostra acabou de ser entregue: a oferta do Business logo abaixo. */}
+            {scopy && businessOffer ? <AdsAfterSampleOffer lang="en" business={businessOffer} compact /> : null}
 
             {/* KINEO-ADS-AMOSTRA-2026-10-09 — a amostra não tem refação (a rota segue fechada para free/trial). */}
             {scopy ? null : <h3 style={{ margin: '24px 0 6px' }}>Not happy with a shot?</h3>}

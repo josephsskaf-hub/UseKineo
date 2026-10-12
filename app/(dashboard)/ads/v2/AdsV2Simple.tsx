@@ -73,6 +73,8 @@ import { NARRATION_LANGUAGES, detectNarrationLanguage, narrationLanguage, type N
 import { pickInterfaceCopy, type InterfaceLanguage } from '@/lib/ui/interfaceLanguage'
 import { VariationToggle, variationsCopy, variationsPrice } from './AdsV2Variations'
 import { ADS_SAMPLE_TIER, adsSampleCopy, type AdsSampleCopy } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
+// KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — depois da amostra: a oferta do Business (frases nas 16 línguas, números vindos do servidor).
+import { adsAfterSampleCopy, fillAfterSample, type AdsBusinessOffer } from '@/lib/ads/afterSample'
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — a escolha de estilo do produto (Auto + 5 efeitos), nas 16 línguas.
 import { ADS_V2_STYLES, ADS_V2_STYLES_PUBLIC, adsV2StyleCopy, adsV2SuggestedStyle, type AdsV2StyleChoice, type AdsV2StyleCopy } from '@/lib/ads/v2Styles'
 import { AdsPresenterToggle, AdsStylePicker } from '@/components/ads/AdsStyles'
@@ -356,6 +358,75 @@ const SIMPLE_CSS = `
 .adv2 .adv2s-linkrow input{flex:1 1 220px;min-width:0}
 `
 
+// ─── KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a oferta do Business depois da amostra ───────────────────────────────────
+// Mostrada (1) pelo invólucro AdsV2Client NO LUGAR da sessão quando a amostra já foi usada (403 'no_access' / 402 do envio), com
+// o último anúncio ENTREGUE da conta (GET /api/ads/v2/orders → /api/ads/v2/status, as mesmas rotas da tela; nada cobra nada), e
+// (2) compacta, logo abaixo da amostra entregue. Os números chegam prontos do servidor (lib/businessPlan.ts businessAdsOffer);
+// as frases, das 16 línguas (lib/ads/sample.ts ADS_AFTER_SAMPLE_COPY). Sem anúncio achado = só o texto (nunca um vídeo inventado).
+const AFTER_SAMPLE_CSS = `
+.adv2 .adv2s-after .adv2s-after-row{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.adv2 .adv2s-after .adv2s-after-ad{margin:0;flex:0 0 160px;max-width:160px}
+.adv2 .adv2s-after video{display:block;width:100%;aspect-ratio:9/16;object-fit:cover;border-radius:12px;background:#000}
+.adv2 .adv2s-after .adv2s-after-label{display:block;margin-top:6px;font-size:12px;color:var(--ads-muted)}
+.adv2 .adv2s-after .adv2s-after-text{flex:1 1 240px;min-width:0}
+.adv2 .adv2s-after.compact{margin:18px 0 0;padding:14px;border:1px solid var(--ads-line);border-radius:14px;background:var(--ads-tint)}
+.adv2 .adv2s-after.compact h3{margin:0 0 6px;font-size:15px}
+`
+
+export function AdsAfterSampleOffer({ lang, business, compact = false }: { lang: InterfaceLanguage; business: AdsBusinessOffer; compact?: boolean }) {
+  const c = adsAfterSampleCopy(lang)
+  const [ad, setAd] = useState<{ url: string; poster: string | null } | null>(null)
+  useEffect(() => {
+    if (compact) return
+    let alive = true
+    void (async () => {
+      const list = await api<{ orders?: { id: string; status: string; video_id: string | null }[] }>('/api/ads/v2/orders')
+      if (!alive || !list.ok) return
+      const last = (Array.isArray(list.data.orders) ? list.data.orders : []).find((o) => o.status === 'delivered' && !!o.video_id)
+      if (!last) return
+      const st = await api<{ video?: { video_url: string | null; thumbnail_url: string | null } | null }>(`/api/ads/v2/status?order_id=${encodeURIComponent(last.id)}`)
+      if (!alive || !st.ok || !st.data.video?.video_url) return
+      setAd({ url: st.data.video.video_url, poster: st.data.video.thumbnail_url ?? null })
+    })()
+    return () => {
+      alive = false
+    }
+  }, [compact])
+  const text = (
+    <>
+      <p className="adsw-lead">{fillAfterSample(c.body, business)}</p>
+      <div className="adv2-actions">
+        <a className="adsw-btn" href={business.checkoutHref}>{fillAfterSample(c.cta, business)} →</a>
+        <a className="adsw-link" href={business.pageHref}>{c.more} →</a>
+      </div>
+    </>
+  )
+  if (compact) {
+    return (
+      <div className="adv2s-after compact" data-kineo="ads-after-sample-delivered">
+        <style dangerouslySetInnerHTML={{ __html: AFTER_SAMPLE_CSS }} />
+        <h3>{c.title}</h3>
+        {text}
+      </div>
+    )
+  }
+  return (
+    <section className="adv2-card adv2s-after" aria-labelledby="adv2s-after-h" data-kineo="ads-after-sample">
+      <style dangerouslySetInnerHTML={{ __html: AFTER_SAMPLE_CSS }} />
+      <h2 id="adv2s-after-h">{c.title}</h2>
+      <div className="adv2s-after-row">
+        {ad ? (
+          <div className="adv2s-after-ad">
+            <video src={ad.url} poster={ad.poster ?? undefined} controls playsInline muted preload="metadata" />
+            <span className="adv2s-after-label">{c.yourAd}</span>
+          </div>
+        ) : null}
+        <div className="adv2s-after-text">{text}</div>
+      </div>
+    </section>
+  )
+}
+
 // ─── a sessão do modo simples ─────────────────────────────────────────────────────────────────
 
 export function AdsV2SimpleSession({
@@ -370,6 +441,8 @@ export function AdsV2SimpleSession({
   sample = false,
   previewSlot = null,
   onPreview,
+  business = null,
+  onSampleGone,
 }: {
   resume: boolean
   lang: InterfaceLanguage
@@ -386,6 +459,10 @@ export function AdsV2SimpleSession({
   previewSlot?: HTMLElement | null
   /** Avisa o invólucro que a prévia ao vivo ocupa o palco (ele esconde o palco da casa enquanto isso). */
   onPreview?: (on: boolean) => void
+  /** KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a oferta do Business (page.tsx → AdsV2Client); só chega com a amostra. */
+  business?: AdsBusinessOffer | null
+  /** KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a amostra já foi usada (403 'no_access' / 402 do envio): o invólucro troca a sessão pela oferta. */
+  onSampleGone?: () => void
 }) {
   const copy: AdsV2SimpleCopy = pickInterfaceCopy(ADS_V2_SIMPLE_COPY, lang)
   const lcopy: AdsV2LinkImportCopy = adsV2LinkImportCopy(lang) // KINEO-ADS-1FOTO-LINK-2026-10-10 — 16 línguas
@@ -514,6 +591,17 @@ export function AdsV2SimpleSession({
   const isFactOn = (f: Fact) => factOn[factKey(f)] ?? ADS_V2_SIMPLE_FACTS_DEFAULT_ON
   // Erro de envio na língua da tela (a lib de envio só fala inglês).
   const uploadError = (e: unknown, fallback: string) => (e instanceof AdsUploadError ? simpleUploadErrorMessage(e.reason, lang) ?? e.message : fallback)
+  // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — quem entrou pela amostra e já a usou recebe 403 'no_access' (rotas do v2) ou 402
+  // 'paid_feature' (envio de foto): em vez do erro genérico, o invólucro mostra a oferta do Business. Assinante/passe/interna
+  // nunca entram com sample=true, então o caminho pago não passa por aqui.
+  const sampleGone = (code: string | null | undefined): boolean => {
+    if (!sample || code !== 'no_access') return false
+    onSampleGone?.()
+    return true
+  }
+  const failText = (r: { code: string; body: Record<string, unknown> }): string | null => (sampleGone(r.code) ? null : errorText(lang, r))
+  const uploadGone = (e: unknown): boolean => (e instanceof AdsUploadError && e.reason === 'paid_feature' ? sampleGone('no_access') : false)
+  const acopy = adsAfterSampleCopy(lang)
   const factsNow = research && draft && research.orderId === draft.id ? research.facts : []
   const planSig = JSON.stringify({ base: baseSig, facts: factsNow.filter((f) => isFactOn(f)).map((f) => f.id) })
   const cardSig = JSON.stringify({ title: cardTitleFinal, price: priceT, contact: contactT, color: cardColor, logo: logo?.footageId ?? null, lang: spoken })
@@ -943,6 +1031,7 @@ export function AdsV2SimpleSession({
       const r = await api<{ link?: string; host?: string; sentence?: string; images?: { footage_id: string; url: string }[] }>('/api/ads/v2/link-import', { method: 'POST', body: { url } })
       if (!aliveRef.current) return
       if (!r.ok) {
+        if (sampleGone(r.code)) return // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
         setLinkNote({ warn: true, text: r.code.startsWith('moderation') || r.code === 'no_access' || r.code === 'closed' ? errorText(lang, r) : adsV2LinkImportError(r.code, lcopy) })
         return
       }
@@ -1027,6 +1116,7 @@ export function AdsV2SimpleSession({
       setLogo({ footageId: up.footageId, localUrl: up.localUrl ? trackUrl(up.localUrl) : up.url, busy: false, error: null })
     } catch (e) {
       if (!aliveRef.current) return
+      if (uploadGone(e)) return // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
       setLogo({ footageId: null, localUrl: null, busy: false, error: uploadError(e, copy.plan.logoFailed) })
     }
   }
@@ -1063,6 +1153,7 @@ export function AdsV2SimpleSession({
         push(p, up.footageId)
       } catch (e) {
         if (!aliveRef.current) return null
+        if (uploadGone(e)) return null // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
         const msg = uploadError(e, copy.plan.uploadFailed)
         updateItem(p.key, { busy: false, error: msg })
         setPlanError(fill(copy.plan.photoError, { n, msg }))
@@ -1117,6 +1208,7 @@ export function AdsV2SimpleSession({
       return done
     } catch (e) {
       if (!aliveRef.current) return null
+      if (uploadGone(e)) return null // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
       setPlanError(uploadError(e, copy.plan.cardFailed))
       return null
     }
@@ -1147,7 +1239,7 @@ export function AdsV2SimpleSession({
     if (!aliveRef.current) return null
     if (!r.ok) {
       if (r.code === 'not_ready') setNotReady(true)
-      setPlanError(errorText(lang, r))
+      setPlanError(failText(r)) // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
       return null
     }
     setDraft({ id: r.data.order_id, key: draftKey })
@@ -1213,7 +1305,7 @@ export function AdsV2SimpleSession({
         if (VIDEO_TO_PHOTOS_CODES.includes(r.code)) void videoBackToFrames(typeof r.body.footage_id === 'string' ? r.body.footage_id : null)
         if (r.code === 'too_many_videos') void videosPastLimitToFrames()
         if (r.code === 'not_editable') setDraft(null)
-        setPlanError(errorText(lang, r))
+        setPlanError(failText(r)) // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
         return
       }
       rememberPlan(r.data)
@@ -1235,7 +1327,7 @@ export function AdsV2SimpleSession({
     const r = await api('/api/ads/v2/orders', { method: 'PATCH', body: { order_id: p.order_id, card_footage_id: done.footageId } })
     if (!aliveRef.current) return false
     if (!r.ok) {
-      setPlanError(errorText(lang, r))
+      setPlanError(failText(r)) // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
       return false
     }
     setPlan((cur) => (cur && cur.order_id === p.order_id ? { ...cur, cardSig: done.sig } : cur))
@@ -1269,7 +1361,7 @@ export function AdsV2SimpleSession({
         }
         // KINEO-ADS-AMOSTRA-2026-10-09 — teto do dia: aviso com o link dos planos; nível errado: a regra da amostra.
         if (scopy && r.code === 'sample_cap') setSampleCap(true)
-        setPlanError(scopy && r.code === 'sample_cap' ? null : scopy && r.code === 'sample_level_only' ? scopy.note : errorText(lang, r))
+        setPlanError(scopy && r.code === 'sample_cap' ? null : scopy && r.code === 'sample_level_only' ? scopy.note : failText(r)) // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
         void onBalance()
         return
       }
@@ -1693,7 +1785,8 @@ export function AdsV2SimpleSession({
               </label>
               {busyNote ? <p className="adsw-hint" role="status">{busyNote}</p> : null}
               {planError ? <p className="adsw-err" role="alert">{planError}</p> : null}
-              {scopy && sampleCap ? <p className="adsw-warn" role="alert">{scopy.cap} <a className="adsw-link" href="/pricing" target="_blank" rel="noopener">{scopy.paidOnly} →</a></p> : null}
+              {/* KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — teto do dia: "amostras cheias hoje, volte amanhã ou assine o Business" (com o link do checkout). */}
+              {scopy && sampleCap ? <p className="adsw-warn" role="alert">{business ? acopy.cap : scopy.cap} {business ? <><a className="adsw-link" href={business.checkoutHref}>{fillAfterSample(acopy.cta, business)} →</a>{' · '}</> : null}<a className="adsw-link" href="/pricing" target="_blank" rel="noopener">{scopy.paidOnly} →</a></p> : null}
             </section>
             {/* KINEO-ADS-UX-MARCA-2026-10-10 — a prévia ao vivo: palco da direita (computador) e barra que gruda embaixo (celular). */}
             <LiveStage slot={previewSlot} data={liveData} copy={ux} />
@@ -1731,6 +1824,8 @@ export function AdsV2SimpleSession({
             </div>
             {downloadNote ? <p className="adsw-warn" role="status">{downloadNote}</p> : null}
             <p className="adv2-note">{copy.done.aiLabel}</p>
+            {/* KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a amostra acabou de ser entregue (o pico da alegria): a oferta do Business logo abaixo. */}
+            {scopy && business ? <AdsAfterSampleOffer lang={lang} business={business} compact /> : null}
             {/* KINEO-ADS-AMOSTRA-2026-10-09 — a amostra não tem refação (a rota segue fechada para free/trial). */}
             {scopy ? null : <h3 style={{ margin: '24px 0 6px' }}>{copy.done.redoTitle}</h3>}
             <div className="adv2-actions" style={{ marginTop: 0 }}>
