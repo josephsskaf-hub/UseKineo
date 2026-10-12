@@ -15,6 +15,11 @@
 /** O ID de projeto do Clarity é curto e alfanumérico (ex.: "abc12de3fg"). Qualquer outra coisa = sem Clarity. */
 export const CLARITY_ID_PATTERN = /^[a-z0-9]{6,32}$/i
 
+// KINEO-CLARITY-ID-2026-10-12 — o projeto "Kineo" criado pelo fundador (12/10). Fica no código porque o ID é público
+// (vai no HTML de toda página gravada) e a integração da Vercel não tem permissão para criar env de produção.
+// NEXT_PUBLIC_CLARITY_ID, se um dia for posto na Vercel, continua tendo prioridade; passa pela mesma régua acima.
+export const KINEO_CLARITY_PROJECT_ID = 'ywlh8m9437'
+
 export function clarityProjectId(raw: string | null | undefined): string | null {
   const id = (raw ?? '').trim()
   return CLARITY_ID_PATTERN.test(id) ? id : null
