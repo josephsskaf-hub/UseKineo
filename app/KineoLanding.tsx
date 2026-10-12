@@ -42,6 +42,11 @@ import { promoCardsFor } from '@/lib/ui/promoCards'
 // por isso a home mostrava R$24,90 (regional) ao lado de $19.90 e $39.90
 // (chumbados). Agora os TRÊS planos falam a moeda do visitante.
 import LandingPlanPrice from '@/components/LandingPlanPrice'
+// KINEO-HOME-TEXTOS-2026-10-12 — os 20% do 1º mês do Creator/Studio mensal saem do MESMO interruptor que o servidor usa
+// para aplicar o WELCOME20 sozinho (app/api/stripe/checkout/route.ts, public_promo_source auto_banner): desligou lá, o
+// cartão volta ao preço cheio aqui. As respostas da FAQ que mentiam moram em lib/growth/homeTextos.ts (espelho do JSON-LD).
+import { WELCOME20_SITE_OFFER_LIVE } from '@/lib/growth/publicPromoTruth'
+import { HOME_FAQ_EDITING_ANSWER, HOME_FAQ_TIME_ANSWER } from '@/lib/growth/homeTextos'
 import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing' // KINEO-AEO-PRICE-TRUTH-2026-08-19
 import { GUEST_CHECKOUT_LIVE } from '@/lib/growth/guestCheckout' // KINEO-COMPRA-SEM-LOGIN-2026-10-06
 // KINEO-CLIPES-2026-08-19 — filme pronto + cenas, ver lib/marketingPrice.
@@ -407,6 +412,8 @@ html{scroll-behavior:smooth}
 .klp .plan .pr{margin-top:8px;font-size:2.75rem;font-weight:600;letter-spacing:-.03em;line-height:1;font-family:var(--font-display),var(--font-inter),'Inter',sans-serif}
 .klp .plan .pr span{font-size:1rem;font-weight:500;color:var(--muted);letter-spacing:0}
 .klp .plan .pr-then{margin-top:7px;font-size:.85rem;font-weight:550;color:var(--muted2)}
+/* KINEO-HOME-TEXTOS-2026-10-12 — preço cheio riscado ao lado do 1º mês com 20% (Creator/Studio mensal). */
+.klp .plan .pr .pr-was{font-size:1.15rem;font-weight:500;color:var(--muted);letter-spacing:0;margin-right:8px;text-decoration:line-through}
 /* Linha fina separando "quanto custa" de "o que vem" — antes as duas
    informacoes eram um bloco unico e a lista comecava sem respiro. */
 .klp .plan ul{list-style:none;margin:24px 0 26px;padding-top:22px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:13px}
@@ -747,8 +754,12 @@ a.pl-badge:hover{color:var(--txt);border-color:rgba(41,151,255,.5)}
 function pricingCheckoutHref(checkoutPath: string, isSignedIn: boolean): string {
   if (isSignedIn) return checkoutPath
   // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — com a compra sem login ligada, o card da home vai direto ao checkout (estes três
-  // links não levam cupom e o 1º mês não tem desconto: guestCheckoutFallbackReason devolve null e a Stripe abre sem conta).
+  // links não levam ?promo=: guestCheckoutFallbackReason devolve null e a Stripe abre sem conta).
   if (GUEST_CHECKOUT_LIVE) return checkoutPath
+  // KINEO-HOME-TEXTOS-2026-10-12 — correção do comentário de cima: desde KINEO-CLARITY-WELCOME20-2026-10-12 o Creator e o
+  // Studio MENSAL sem ?promo= recebem o WELCOME20 automático no servidor (20% no 1º mês, logado ou convidado; fica de fora
+  // quem tem afiliado, ou se a Stripe não confirmar o cupom). O intro=1 do Starter/Creator não dá desconto nenhum
+  // (INTRO_PRICES = preço cheio → introDiscountMinor 0) e por isso não bloqueia o automático. Starter segue sem desconto.
 
   // Signed-out buyers see the auth screen before the payment API. This keeps
   // public link checkers from inflating checkout telemetry while preserving
@@ -1264,7 +1275,9 @@ export default function KineoLanding({
                 <li><span className="ck">✓</span> <b><UiLabel>{filmsAndScenes('starter')}</UiLabel></b></li>
                 <li><span className="ck">✓</span><UiLabel> Up to </UiLabel><b>{imagesFor('starter')}<UiLabel> AI images</UiLabel></b> — {nanoBananasFor('starter')}<UiLabel> on Nano Banana</UiLabel></li>
                 <li><span className="ck">✓</span> <b>{voiceoversFor('starter')}<UiLabel> AI voiceovers</UiLabel></b><UiLabel> · 4 voices</UiLabel></li>
-                <li><span className="ck">✓</span><UiLabel> Every video engine incl. MiniMax H3</UiLabel></li>
+                {/* KINEO-HOME-TEXTOS-2026-10-12 — a linha velha ("todo motor, incluindo o H3") fazia crer que os 60 créditos rendem filmes no
+                    H3; qualquer motor pode ser USADO, mas os premium gastam mais crédito por filme (a 1ª linha já diz quantos). */}
+                <li><span className="ck">✓</span><UiLabel> Any video engine — premium engines use more credits per film</UiLabel></li>
                 <li><span className="ck">✓</span><UiLabel> Watermark-free MP4 · 100 projects · 90-day storage</UiLabel></li>
               </ul>
               <HomePricingCheckoutLink href={starterCheckoutHref} tier="starter"><LandingPlanPrice tier="starter" variant="cta" ctaLabel="Start" /></HomePricingCheckoutLink>
@@ -1273,13 +1286,16 @@ export default function KineoLanding({
               {/* KINEO-PRICING-V5-2026-08-17 — $19.90/140cr: 7 filmes PRONTOS
                   vs InVideo Plus $25 sem motor premium nenhum. */}
               <div className="pt"><UiLabel>Most popular</UiLabel></div><div className="nm">Creator</div>
-              <div className="pr"><LandingPlanPrice tier="basic" variant="big" /></div>
+              <div className="pr"><LandingPlanPrice tier="basic" variant="big" welcomeFirstMonth={WELCOME20_SITE_OFFER_LIVE} /></div>
+              {WELCOME20_SITE_OFFER_LIVE ? <div className="pr-then"><LandingPlanPrice tier="basic" variant="then" /></div> : null}
               <ul>
                 <li><span className="ck">✓</span> <b><UiLabel>{filmsAndScenes('basic')}</UiLabel></b><UiLabel>, finished</UiLabel></li>
                 <li><span className="ck">✓</span><UiLabel> Or </UiLabel><b>{filmsOn('basic', 'cinematic_kling')}<UiLabel> Kling 2.5 cinematic films</UiLabel></b><UiLabel> — Kling and Veo included</UiLabel></li>
                 <li><span className="ck">✓</span><UiLabel> Up to </UiLabel><b>{imagesFor('basic')}<UiLabel> AI images</UiLabel></b> — {nanoBananasFor('basic')}<UiLabel> on Nano Banana</UiLabel></li>
                 <li><span className="ck">✓</span> <b>{voiceoversFor('basic')}<UiLabel> AI voiceovers</UiLabel></b><UiLabel> · voice + karaoke captions + score</UiLabel></li>
-                <li><span className="ck">✓</span><UiLabel> 500 projects · forever storage</UiLabel></li>
+                {/* KINEO-HOME-TEXTOS-2026-10-12 — o armazenamento "para sempre" era promessa sem garantia: app/api/storage-usage/route.ts só CONTA
+                    projetos ("Ainda NAO deleta nada"); não há retenção nem enforcement. Fica o que é verdade hoje. */}
+                <li><span className="ck">✓</span><UiLabel> 500 projects · your films stay in your library</UiLabel></li>
                 <li><span className="ck">✓</span><UiLabel> Cancel anytime — 7-day money-back</UiLabel></li>
               </ul>
               <HomePricingCheckoutLink href={creatorCheckoutHref} tier="basic"><LandingPlanPrice tier="basic" variant="cta" ctaLabel="Go Creator" /></HomePricingCheckoutLink>
@@ -1289,7 +1305,8 @@ export default function KineoLanding({
                   todo mes + 2 Enhance HD gratis + storage ilimitado. 20% abaixo
                   do Higgsfield Plus ($49), entregando filme pronto. */}
               <div className="pt"><UiLabel>Best value per film</UiLabel></div><div className="nm"><UiLabel>Studio</UiLabel></div>
-              <div className="pr"><LandingPlanPrice tier="pro" variant="big" /></div>
+              <div className="pr"><LandingPlanPrice tier="pro" variant="big" welcomeFirstMonth={WELCOME20_SITE_OFFER_LIVE} /></div>
+              {WELCOME20_SITE_OFFER_LIVE ? <div className="pr-then"><LandingPlanPrice tier="pro" variant="then" /></div> : null}
               <ul>
                 <li><span className="ck">✓</span> <b><UiLabel>{filmsAndScenes('pro')}</UiLabel></b></li>
                 {/* KINEO-SELO-OMNI-POPUP-2026-09-30 — o cartão Studio vendia "Or N films on Omni Flash" com o Omni pausado
@@ -1297,7 +1314,7 @@ export default function KineoLanding({
                 {enginePaused('omni') ? <li><span className="ck">✓</span><UiLabel> Or </UiLabel><b>{filmsOn('pro', 'cinematic_hollywood')}<UiLabel> Kling 3 films</UiLabel></b><UiLabel> — native voice & lip sync</UiLabel></li> : <li><span className="ck">✓</span><UiLabel> Or </UiLabel><b>{filmsOn('pro', 'cinematic_omni')}<UiLabel> films on Omni Flash</UiLabel></b><UiLabel> — Google’s Gemini engine</UiLabel></li>}
                 <li><span className="ck">✓</span><UiLabel> Up to </UiLabel><b>{imagesFor('pro')}<UiLabel> AI images</UiLabel></b> — {nanoBananasFor('pro')}<UiLabel> on Nano Banana</UiLabel></li>
                 <li><span className="ck">✓</span> <b>{voiceoversFor('pro')}<UiLabel> AI voiceovers</UiLabel></b><UiLabel> · 2 free HD enhances / month</UiLabel></li>
-                <li><span className="ck">✓</span><UiLabel> Unlimited projects · forever storage</UiLabel></li>
+                <li><span className="ck">✓</span><UiLabel> Unlimited projects · your films stay in your library</UiLabel></li>
                 <li><span className="ck">✓</span><UiLabel> Everything in Creator</UiLabel></li>
               </ul>
               <HomePricingCheckoutLink href={studioCheckoutHref} tier="pro"><LandingPlanPrice tier="pro" variant="cta" ctaLabel="Go Studio" /></HomePricingCheckoutLink>
@@ -1342,7 +1359,7 @@ export default function KineoLanding({
                 NAO TEM marca d'agua. Flag OFF devolve as frases atuais byte a
                 byte; o texto fora do ft() nao mudou. */}
             <details className="qa"><summary><h3><UiLabel>Is the video really mine to post?</UiLabel></h3></summary><p><UiLabel>{ft(OFFER, 'Yes. Never-paid free users can download, share and post the watermarked MP4.', 'Yes. Never-paid free users can download, share and post the watermarked MP4.')}</UiLabel><UiLabel> Paid plans unlock the clean, watermark-free MP4 for YouTube, TikTok or Reels.</UiLabel></p></details>
-            <details className="qa"><summary><h3><UiLabel>Do I need any editing skills?</UiLabel></h3></summary><p><UiLabel>None. You type one idea and the AI writes the script, records the voice, finds the footage and adds captions. </UiLabel><UiLabel>{ft(OFFER, 'Free downloads carry a watermark; paid plans unlock the clean MP4.', 'Free downloads carry a watermark; paid plans unlock the clean MP4.')}</UiLabel></p></details>
+            <details className="qa"><summary><h3><UiLabel>Do I need any editing skills?</UiLabel></h3></summary><p><UiLabel>{`${HOME_FAQ_EDITING_ANSWER} `}</UiLabel><UiLabel>{ft(OFFER, 'Free downloads carry a watermark; paid plans unlock the clean MP4.', 'Free downloads carry a watermark; paid plans unlock the clean MP4.')}</UiLabel></p></details>
             <details className="qa"><summary><h3><UiLabel>Is there a watermark?</UiLabel></h3></summary><p><UiLabel>{ft(OFFER, 'Free access gives new users up to 3 watermarked Fast videos every 24 hours, with no card. You can download and share them.', `New accounts get ${TRIAL_GRANT_CREDITS_COPY} credits — ${TRIAL_FIRST_FILM_PHRASE}; trial films are watermarked.`)}</UiLabel><UiLabel> Paid plans export clean, watermark-free MP4s.</UiLabel></p></details>
             {/* KINEO-CEO-HOUR-2026-08-17 (#9) — os produtos novos entram no FAQ */}
             <details className="qa"><summary><h3><UiLabel>Can Kineo also generate images and voiceovers?</UiLabel></h3></summary><p><UiLabel>Yes — Kineo includes an AI image studio (6 engines including FLUX, Seedream and Nano Banana Pro, from 1 credit per image) and a voice studio with 4 text-to-speech engines (from 1 credit per 1000 characters). Everything you make lives in your Library.</UiLabel></p></details>
@@ -1362,7 +1379,7 @@ export default function KineoLanding({
                 byte a byte ao FAQ de /pricing e ao FAQPage JSON-LD em
                 components/StructuredData.tsx — mudar nos tres ou em nenhum. */}
             <details className="qa"><summary><h3><UiLabel>Can I use the videos commercially, or for client work?</UiLabel></h3></summary><p><UiLabel>Yes. Our terms let you use Kineo for lawful personal or commercial purposes and confirm that you keep ownership of the videos you generate, so you can post them, monetize them and deliver them to a client as part of your own paid service. No extra license, no per-video royalty. Two limits come from the same terms: you cannot resell or redistribute Kineo itself, and the stock clips inside a render are licensed for use in your finished video, not for re-upload as standalone stock footage. Paid plans export the clean, watermark-free MP4.</UiLabel></p></details>
-            <details className="qa"><summary><h3><UiLabel>How long does one video take?</UiLabel></h3></summary><p><UiLabel>Fast Mode usually finishes in 3–7 minutes. AI-generated and cinematic videos take a little longer because every scene is generated before the final MP4 is composed.</UiLabel></p></details>
+            <details className="qa"><summary><h3><UiLabel>How long does one video take?</UiLabel></h3></summary><p><UiLabel>{HOME_FAQ_TIME_ANSWER}</UiLabel></p></details>
             {/* KINEO-AEO-PRICE-TRUTH-2026-08-19 — as tres perguntas abaixo sao
                 escritas na FORMA em que a pessoa digita no ChatGPT, nao na
                 forma de FAQ institucional. 205 dos 245 cadastros desta semana

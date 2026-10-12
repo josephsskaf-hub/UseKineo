@@ -302,6 +302,13 @@ export const INTERFACE_ES: Record<string, string> = {
   'films on Omni Flash': 'vídeos con Omni Flash', '— the #1-ranked model': '— el modelo n.º 1',
   '· 2 free HD enhances / month': '· 2 mejoras HD gratuitas al mes',
   'Unlimited projects · forever storage': 'Proyectos ilimitados · almacenamiento permanente',
+  // KINEO-HOME-TEXTOS-2026-10-12 — as frases verdadeiras que substituíram as falsas no cartão de preços e na FAQ da home.
+  'Any video engine — premium engines use more credits per film': 'Cualquier motor de vídeo — los motores premium gastan más créditos por vídeo',
+  '500 projects · your films stay in your library': '500 proyectos · tus vídeos se quedan en tu biblioteca',
+  'Unlimited projects · your films stay in your library': 'Proyectos ilimitados · tus vídeos se quedan en tu biblioteca',
+  '20% off your first month · then': '20% de descuento el primer mes · después',
+  '/first month': '/primer mes',
+  'None. You type one idea and the AI writes the script, records the voice, generates every scene and adds captions.': 'No. Escribes una idea y la IA redacta el guion, graba la voz, genera cada escena y añade subtítulos.',
   'Everything in Creator': 'Todo lo incluido en Creator', 'Try it first:': 'Pruébalo primero:',
   'Secure checkout by Stripe · Cancel in one click · Credits refunded automatically if a render fails': 'Pago seguro con Stripe · Cancela con un clic · Devolución automática de créditos si falla la generación',
   'Full pricing, FAQ & plan comparison →': 'Todos los precios, preguntas y comparación de planes →',
