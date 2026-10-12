@@ -186,6 +186,7 @@ export default function ComingSoonPage() {
           >
             <input
               type="email"
+              data-clarity-mask="true"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -236,7 +237,7 @@ export default function ComingSoonPage() {
               fontSize: '0.92rem',
             }}
           >
-            ✓ Obrigado! Vamos te avisar em <span style={{ color: '#fff' }}>{email}</span>.
+            ✓ Obrigado! Vamos te avisar em <span data-clarity-mask="true" style={{ color: '#fff' }}>{email}</span>.
           </div>
         )}
 

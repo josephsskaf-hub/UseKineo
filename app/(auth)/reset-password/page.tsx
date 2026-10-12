@@ -247,6 +247,7 @@ export default function ResetPasswordPage() {
                   </label>
                   <input
                     id="reset-password"
+                    data-clarity-mask="true"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -268,6 +269,7 @@ export default function ResetPasswordPage() {
                   </label>
                   <input
                     id="reset-confirm-password"
+                    data-clarity-mask="true"
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}

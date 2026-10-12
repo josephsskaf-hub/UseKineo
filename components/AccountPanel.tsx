@@ -199,7 +199,7 @@ export default function AccountPanel({
                 {planName}
               </span>
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div data-clarity-mask="true" style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {email}
             </div>
           </div>

@@ -58,6 +58,8 @@ import PricingSavedCheckout from '@/components/PricingSavedCheckout'
 import MrrPricingProof from '@/components/growth/MrrPricingProof'
 import PricingJourneyProof from '@/components/growth/PricingJourneyProof'
 import AutopilotBreakEvenCalculator from './AutopilotBreakEvenCalculator'
+// KINEO-CLARITY-WELCOME20-2026-10-12 — antes das constantes: PRICING_WELCOME20_ON_CARD lê o interruptor daqui.
+import { WELCOME20_PERCENT_OFF, WELCOME20_PROMOTION_CODE, WELCOME20_SITE_OFFER_LIVE } from '@/lib/growth/publicPromoTruth' // KINEO-WELCOME20-NO-CARTAO-2026-10-09 · KINEO-CLARITY-WELCOME20-2026-10-12
 
 // KINEO-PRICING-LIMPA-2026-09-26 — fundador (26/09): "tirar por enquanto" o bloco "Ads for your business" (Make it
 // yourself · We make it for you: duas coisas que não têm nada a ver na página de preço) e o Autopilot ($299) + Autopilot
@@ -83,7 +85,10 @@ export const PRICING_VALUE_PALETTE: PlanValuePalette = 'porcelana'
 // convidado: lib/growth/guestCheckout.ts guestWelcomePromoShapeOk). O botão do cartão e a barra do celular levam o cupom;
 // o pop-up deixa de abrir no /pricing. Afiliado: o código dele já dá os mesmos 20% e a Stripe aceita um cupom por compra —
 // nunca somam. false = volta ao pop-up, sem desconto no cartão.
-export const PRICING_WELCOME20_ON_CARD = true
+// KINEO-CLARITY-WELCOME20-2026-10-12 — o valor mora em lib/growth/publicPromoTruth.ts (WELCOME20_SITE_OFFER_LIVE): o
+// servidor do checkout lê o MESMO interruptor para aplicar o WELCOME20 sozinho em quem chega por outra porta (home,
+// landing, link direto). Um interruptor só: a faixa nunca anuncia o que o caixa não cobra.
+export const PRICING_WELCOME20_ON_CARD = WELCOME20_SITE_OFFER_LIVE
 import {
   // KINEO-PILOT-99-2026-07-26 — preço e duração do piloto vêm da mesma fonte que
   // o checkout cobra. Retipar "$99" aqui é como os outros três leaks começaram.
@@ -115,7 +120,6 @@ import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, type FreeTierOffer } from '@/lib/freeTierOffer'
 import { CHECKOUT_PAYMENT_GUIDANCE_COMPACT } from '@/lib/growth/checkoutPaymentGuidance'
 import { GUEST_CHECKOUT_LIVE, guestCheckoutCoversPlanClick } from '@/lib/growth/guestCheckout' // KINEO-COMPRA-SEM-LOGIN-2026-10-06
-import { WELCOME20_PERCENT_OFF, WELCOME20_PROMOTION_CODE } from '@/lib/growth/publicPromoTruth' // KINEO-WELCOME20-NO-CARTAO-2026-10-09
 import PricingDealBar from '@/components/pricing/PricingDealBar' // KINEO-WELCOME20-FAIXA-2026-10-09
 import {
   buildPricingPlanChoiceAttribution,

@@ -18,6 +18,9 @@ import { APPEARANCE_BOOT } from '@/lib/ui/appearance'
 import { FreeTierOfferProvider } from '@/components/FreeTierOfferProvider'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import { LLMS_TXT_PATH } from '@/lib/gptHandoff'
+// KINEO-CLARITY-WELCOME20-2026-10-12 — gravação de sessão (Microsoft Clarity) só com NEXT_PUBLIC_CLARITY_ID; travas em lib/clarityTag.ts.
+import ClarityTag from '@/components/ClarityTag'
+import { clarityProjectId } from '@/lib/clarityTag'
 import './globals.css'
 import './appearance.css'
 
@@ -27,6 +30,9 @@ import './appearance.css'
 // atual byte a byte). Na Vercel, virar a flag = setar env + REDEPLOY (o rebuild
 // troca as páginas estáticas junto — ver lib/freeTierOffer.ts).
 const OFFER = getFreeTierOffer()
+// KINEO-CLARITY-WELCOME20-2026-10-12 — sem ID válido = null = o componente nem é montado (nenhum byte do Clarity sai).
+// Variável NEXT_PUBLIC_: é embutida no build — pôr o ID na Vercel exige um novo deploy para valer.
+const CLARITY_ID = clarityProjectId(process.env.NEXT_PUBLIC_CLARITY_ID)
 
 // Founder-approved direction B, 2026-09-07. One variable family, self-hosted
 // by Next. No Google request from a visitor; swap retains readable fallback.
@@ -251,7 +257,7 @@ export default function RootLayout({
       {/* [KINEO-TRIAL-SWAP-2026-08-07] — FreeTierOfferProvider envolve TODO o
           conteúdo: é o único caminho pelo qual client components leem a oferta
           do free tier (a env da flag não existe no browser). */}
-      <body><StructuredData /><InterfaceLanguageProvider><AppearanceProvider><FreeTierOfferProvider offer={OFFER}><SourceCapture /><NavClickTelemetry /><CheckoutResumeBanner /><AutopilotPilotResumeBanner /><CheckoutStalledCta />{children}</FreeTierOfferProvider></AppearanceProvider></InterfaceLanguageProvider><Analytics /></body>
+      <body><StructuredData /><InterfaceLanguageProvider><AppearanceProvider><FreeTierOfferProvider offer={OFFER}><SourceCapture /><NavClickTelemetry /><CheckoutResumeBanner /><AutopilotPilotResumeBanner /><CheckoutStalledCta />{children}</FreeTierOfferProvider></AppearanceProvider></InterfaceLanguageProvider><Analytics />{CLARITY_ID ? <ClarityTag projectId={CLARITY_ID} /> : null}</body>
     </html>
   )
 }

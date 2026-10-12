@@ -1922,8 +1922,10 @@ async function sWelcomeReuse(env) {
   await deliver(env, 'checkout.session.completed', first.snapshot)
   if (reused().some((e) => e.user_id === fresh.id) || sentFor(first.sessionId).length !== 0) p.push('primeira vez: acusada de reuso (a reentrega leu o has_paid DESTA compra)')
   // (c) Conta que já pagou comprando SEM o desconto: não é reuso.
+  // KINEO-CLARITY-WELCOME20-2026-10-12 — desde 12/10 o Creator/Studio mensal sem ?promo= leva o WELCOME20 automático
+  // (a oferta da faixa do /pricing vale em qualquer porta), então "sem desconto" passou a ser o Starter mensal.
   const plain = env.db.seedUser({ email: 'pagou.sem.cupom@exemplo.com', profile: { has_paid: true, plan: 'free', is_pro: false } })
-  const noPromo = await guestPurchase(env, { email: 'pagou.sem.cupom@exemplo.com', query: 'tier=basic&billing=monthly' })
+  const noPromo = await guestPurchase(env, { email: 'pagou.sem.cupom@exemplo.com', query: 'tier=starter&billing=monthly' })
   if (noPromo.delivered?.res.status !== 200 || reused().some((e) => e.user_id === plain.id)) p.push('sem cupom: acusada de reuso')
   // (d) Assinante ATIVO com o desconto: conflito (nada concedido) E reuso, cada um com o seu aviso.
   const active = env.db.seedUser({ email: 'ativo@exemplo.com', profile: { has_paid: true, is_pro: true, plan: 'pro', stripe_subscription_id: 'sub_ativa', stripe_customer_id: 'cus_ativo', video_credits: 50 } })

@@ -269,7 +269,7 @@ export default function AuthModal({ onClose, defaultTab = 'signup', redirectTo }
               </h2>
               <p className="text-sm mb-6" style={{ color: 'var(--muted)', lineHeight: 1.6 }}>
                 We sent a confirmation link to{' '}
-                <strong style={{ color: 'var(--text2)' }}>{email}</strong>.
+                <strong data-clarity-mask="true" style={{ color: 'var(--text2)' }}>{email}</strong>.
                 <br />Click it to activate your account and start generating.
               </p>
               <button
@@ -361,6 +361,7 @@ export default function AuthModal({ onClose, defaultTab = 'signup', redirectTo }
                   </label>
                   <input
                     type="email"
+                    data-clarity-mask="true"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -390,6 +391,7 @@ export default function AuthModal({ onClose, defaultTab = 'signup', redirectTo }
                   </div>
                   <input
                     type="password"
+                    data-clarity-mask="true"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required

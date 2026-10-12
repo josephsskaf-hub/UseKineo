@@ -160,7 +160,7 @@ export default function TeamClient({ seats, inviteDays, businessHref }: { seats:
           {!view.team_ready ? <p className="err">{ERRORS.not_ready}</p> : null}
           <div className="card">
             <form onSubmit={invite}>
-              <input type="email" required placeholder="teammate@company.com" value={email} onChange={(e) => setEmail(e.target.value)} aria-label="Teammate e-mail" disabled={busy || live >= seats} />
+              <input type="email" data-clarity-mask="true" required placeholder="teammate@company.com" value={email} onChange={(e) => setEmail(e.target.value)} aria-label="Teammate e-mail" disabled={busy || live >= seats} />
               <button type="submit" disabled={busy || live >= seats || !email.trim()}>Invite</button>
             </form>
             <p className="sub" style={{ margin: '8px 0 0' }}>
@@ -168,7 +168,7 @@ export default function TeamClient({ seats, inviteDays, businessHref }: { seats:
             </p>
             {link ? (
               <>
-                <div className="link">{link}</div>
+                <div className="link" data-clarity-mask="true">{link}</div>
                 <button type="button" className="ghost" onClick={copy}>Copy link</button>
               </>
             ) : null}
@@ -177,7 +177,7 @@ export default function TeamClient({ seats, inviteDays, businessHref }: { seats:
             {team.length === 0 ? <p className="sub" style={{ margin: 0 }}>No teammates yet.</p> : null}
             {team.map((t) => (
               <div key={t.id} className="row">
-                <span>
+                <span data-clarity-mask="true">
                   {t.email} <span className={`tag ${t.status}`}>{t.status === 'active' ? 'active' : t.status === 'expired' ? 'invite expired' : 'invite pending'}</span>
                 </span>
                 {t.status === 'active' ? (
@@ -194,7 +194,7 @@ export default function TeamClient({ seats, inviteDays, businessHref }: { seats:
         </>
       ) : null}
 
-      {msg ? <p className={msg.kind}>{msg.text}</p> : null}
+      {msg ? <p className={msg.kind} data-clarity-mask="true">{msg.text}</p> : null}
     </div>
   )
 }

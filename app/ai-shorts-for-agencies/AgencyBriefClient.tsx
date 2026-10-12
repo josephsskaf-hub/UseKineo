@@ -144,6 +144,7 @@ export default function AgencyBriefClient() {
             Work email
             <input
               type="email"
+              data-clarity-mask="true"
               inputMode="email"
               autoComplete="email"
               required

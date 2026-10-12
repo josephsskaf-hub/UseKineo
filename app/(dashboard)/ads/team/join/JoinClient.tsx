@@ -58,7 +58,7 @@ export default function JoinClient({ token, email }: { token: string; email: str
         </>
       ) : (
         <>
-          <p>You were invited to make ads in a company&apos;s Studio Ads workspace{email ? <> as <b>{email}</b></> : null}.</p>
+          <p>You were invited to make ads in a company&apos;s Studio Ads workspace{email ? <> as <b data-clarity-mask="true">{email}</b></> : null}.</p>
           <button type="button" onClick={join} disabled={busy || !token}>{busy ? 'Joining…' : 'Join the team'}</button>
           {!token ? <p className="err">{ERRORS.invite_invalid}</p> : null}
           {error ? <p className="err">{error}</p> : null}
