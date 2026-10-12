@@ -320,6 +320,7 @@ export default function LoginPage() {
                 </label>
                 <input
                   id="login-email"
+                  data-clarity-mask="true"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -368,6 +369,7 @@ export default function LoginPage() {
                 <div className="relative">
                   <input
                     id="login-password"
+                    data-clarity-mask="true"
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}

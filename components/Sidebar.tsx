@@ -804,7 +804,7 @@ export default function Sidebar({
                     )}
                   </div>
                   {userEmail && (
-                    <div style={{ fontSize: '0.62rem', color: 'var(--muted)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div data-clarity-mask="true" style={{ fontSize: '0.62rem', color: 'var(--muted)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {userEmail}
                     </div>
                   )}

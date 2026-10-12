@@ -30,7 +30,9 @@ const MKT = 'lib/marketingPrice.ts'
 const ROUTE = 'app/api/images/generate/route.ts'
 const PROOF = 'components/growth/MrrPricingProof.tsx'
 const APPEAR = 'app/appearance.css'
-const SRC = { [VALUE]: read(VALUE), [STAGE]: read(STAGE), [CLIENT]: read(CLIENT), [MKT]: read(MKT), [ROUTE]: read(ROUTE), [PROOF]: read(PROOF), [APPEAR]: read(APPEAR) }
+// KINEO-CLARITY-WELCOME20-2026-10-12 — o interruptor dos 20% mora aqui desde 12/10 (o checkout lê o MESMO valor).
+const PROMO = 'lib/growth/publicPromoTruth.ts'
+const SRC = { [VALUE]: read(VALUE), [STAGE]: read(STAGE), [CLIENT]: read(CLIENT), [MKT]: read(MKT), [ROUTE]: read(ROUTE), [PROOF]: read(PROOF), [APPEAR]: read(APPEAR), [PROMO]: read(PROMO) }
 
 const strip = (html) => html.replace(/<!-- -->/g, '')
 
@@ -171,7 +173,8 @@ function problems(replacements = {}) {
   if (!client.includes('const annualSavingMinor = getTierPrice(tier, resolvedCurrency, resolvedRegion) * 12 - getAnnualPrice(tier, resolvedCurrency, resolvedRegion)')) p.push('economia do anual = 12 × mensal − anual, das funções do caixa')
   if (!client.includes('was={(annual || welcome !== null) && displayCurrency ? p.price : undefined}')) p.push('preço cheio riscado só no anual e no 1º mês com 20%')
   // KINEO-WELCOME20-NO-CARTAO-2026-10-09 — os 20% do 1º mês no cartão (fundador 09/10: "Sim. Todas as empresas fazem isso").
-  if (!/^export const PRICING_WELCOME20_ON_CARD = true$/m.test(client)) p.push('20% no cartão: interruptor ligado desde o "sim" do fundador (09/10)')
+  // KINEO-CLARITY-WELCOME20-2026-10-12 — o cartão segue o interruptor único (lib/growth/publicPromoTruth.ts), que continua ligado.
+  if (!/^export const PRICING_WELCOME20_ON_CARD = WELCOME20_SITE_OFFER_LIVE$/m.test(client) || !/^export const WELCOME20_SITE_OFFER_LIVE = true$/m.test(src(PROMO))) p.push('20% no cartão: interruptor ligado desde o "sim" do fundador (09/10)')
   if (!client.includes("PRICING_WELCOME20_ON_CARD && billing === 'monthly' && (tier === 'basic' || tier === 'pro') && !arrivedWithPromo && !planSwitch.subscribed")) p.push('20% no cartão: só Creator/Studio, mensal, sem outro cupom, sem assinatura')
   if (!client.includes('const cardPromo = welcomeOnCard(tier) ? WELCOME20_PROMOTION_CODE : null') || !client.includes("const promo = pricingParams?.get('promo') ?? cardPromo")) p.push('20% no cartão: o botão leva o WELCOME20 (o cupom da URL vence)')
   if (!client.includes('Math.round((getTierPrice(tier, resolvedCurrency, resolvedRegion) * (100 - WELCOME20_PERCENT_OFF)) / 100)')) p.push('20% no cartão: o preço do 1º mês sai do caixa × (100 − WELCOME20_PERCENT_OFF)')
@@ -273,7 +276,8 @@ const MUTANTES = [
   ['CSS do cartão volta a ser filho de <style> (hidratação)', troca(CLIENT, '<style dangerouslySetInnerHTML={{ __html: PLAN_VALUE_STAGE_CSS }} />', '<style>{PLAN_VALUE_STAGE_CSS}</style>')],
   ['PricingClient volta a fazer a conta do modelo', troca(CLIENT, "import TwoProductsPricing from '@/components/pricing/TwoProductsPricing'", "import TwoProductsPricing, { twoProductsModelForPage } from '@/components/pricing/TwoProductsPricing'")],
   ['porcelana deixa de seguir o tema escuro', troca(STAGE, '.pv-stage{--pv-card-bg:var(--card);', '.pv-stage{--pv-card-bg:#FFFFFF;')],
-  ['20% no cartão desligado sem decisão', troca(CLIENT, 'export const PRICING_WELCOME20_ON_CARD = true', 'export const PRICING_WELCOME20_ON_CARD = false')],
+  ['20% no cartão desligado sem decisão', troca(PROMO, 'export const WELCOME20_SITE_OFFER_LIVE = true', 'export const WELCOME20_SITE_OFFER_LIVE = false')],
+  ['o cartão volta a ter interruptor próprio (dois interruptores)', troca(CLIENT, 'export const PRICING_WELCOME20_ON_CARD = WELCOME20_SITE_OFFER_LIVE', 'export const PRICING_WELCOME20_ON_CARD = true')],
   ['20% no cartão vaza para o Starter', troca(CLIENT, "(tier === 'basic' || tier === 'pro') && !arrivedWithPromo", "(tier === 'basic' || tier === 'pro' || tier === 'starter') && !arrivedWithPromo")],
   ['20% no cartão vaza para o anual', troca(CLIENT, "PRICING_WELCOME20_ON_CARD && billing === 'monthly' && ", 'PRICING_WELCOME20_ON_CARD && ')],
   ['o botão mostra 20% e não leva o cupom', troca(CLIENT, "const promo = pricingParams?.get('promo') ?? cardPromo", "const promo = pricingParams?.get('promo') ?? null")],

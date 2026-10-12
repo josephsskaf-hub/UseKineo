@@ -311,7 +311,7 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
           </span>
         </h1>
         <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
-          Signed in as <span style={{ color: 'var(--text2)' }}>{email}</span>
+          Signed in as <span data-clarity-mask="true" style={{ color: 'var(--text2)' }}>{email}</span>
         </p>
       </div>
 
@@ -381,7 +381,7 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
               </div>
               <div>
                 <div className="font-bold text-sm" style={{ color: 'var(--text)' }}>{fullName || email.split('@')[0]}</div>
-                <div className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>{email}</div>
+                <div className="text-xs mt-0.5" data-clarity-mask="true" style={{ color: 'var(--muted)' }}>{email}</div>
                 <span
                   className="inline-flex items-center mt-1.5 text-xs font-bold px-2 py-0.5 rounded-full"
                   style={{ background: planStyle.bg, border: `1px solid ${planStyle.border}`, color: planStyle.color }}

@@ -143,6 +143,12 @@ import {
   promisedPublicPromoKind,
   resolvePromisedPublicPromo,
   WELCOME20_COUPON_ID,
+  // KINEO-CLARITY-WELCOME20-2026-10-12 — o MESMO interruptor da faixa do /pricing e a régua do WELCOME20 automático.
+  WELCOME20_AUTO_SOURCE,
+  WELCOME20_PROMOTION_CODE,
+  WELCOME20_REQUESTED_SOURCE,
+  WELCOME20_SITE_OFFER_LIVE,
+  welcome20AutoSkipReason,
   type PromisedPublicPromoKind,
   type PublicPromoFailureReason,
 } from '@/lib/growth/publicPromoTruth'
@@ -1276,6 +1282,29 @@ async function buildAndRedirect(
     // exact percentage, duration and scope promised by the live UI.
     ...publicPromoTruthMetadata(promisedPublicPromo, 'requested'),
   }
+  // ═══ KINEO-CLARITY-WELCOME20-2026-10-12 — os 20% da faixa do /pricing valem em QUALQUER porta ═══════════════════
+  // A faixa anuncia "20% off your first month on Creator and Studio monthly plans" para todo visitante; só o botão do
+  // cartão do /pricing levava o ?promo=WELCOME20. Agora, com o MESMO interruptor (WELCOME20_SITE_OFFER_LIVE), o Creator/
+  // Studio mensal SEM nenhum outro desconto ganha o WELCOME20 aqui no servidor — logado ou convidado. Diferença de
+  // propósito para o pedido explícito: o automático NÃO é uma promessa feita naquela tela, então se a Stripe não
+  // confirmar o cupom a compra segue a preço cheio, sem erro (o explícito continua falhando fechado, como sempre).
+  // `requestedPromo` fica intocado (cancel_url, generic promo block, recuperação): o automático vive em variáveis próprias.
+  const welcome20AutoSkip = welcome20AutoSkipReason({
+    live: WELCOME20_SITE_OFFER_LIVE,
+    tier,
+    isAnnual,
+    promoRequested: rawPromo.length > 0,
+    wantsTrial,
+    introDiscount: intro && !isAnnual && (tier === 'starter' || tier === 'basic') && introDiscountMinor(tier, currency, region) > 0,
+    checkoutRecovery,
+    affiliatePresent: Boolean(normalizeAffiliateCode(req.cookies.get('sf_aff')?.value))
+      || Boolean(req.cookies.get('rewardful_referral')?.value?.trim()),
+  })
+  let autoWelcome20 = welcome20AutoSkip === null
+  // Só o recorte da oferta ganha a chave (Starter/anual/Business/Autopilot ficam com a metadata de sempre).
+  if ((tier === 'basic' || tier === 'pro') && !isAnnual) {
+    checkoutMetadata.public_promo_auto = welcome20AutoSkip ?? 'eligible'
+  }
   // From here on, a failure event carries the full purchase intent.
   failureContext = { ...checkoutMetadata }
 
@@ -1327,9 +1356,13 @@ async function buildAndRedirect(
           checkoutMetadata,
           checkoutValueContext,
           // Só chega aqui com cupom quando a régua liberou a oferta de boas-vindas; sem cupom, null (a compra de sempre).
+          // KINEO-CLARITY-WELCOME20-2026-10-12 — sem ?promo= nenhum, o Creator/Studio mensal leva o WELCOME20 automático
+          // (auto: true = se a Stripe não confirmar, segue convidado a preço cheio em vez de voltar ao cadastro).
           welcomePromo: promisedPublicPromo && requestedPromo
             ? { kind: promisedPublicPromo, requestedCode: requestedPromo }
-            : null,
+            : autoWelcome20 && GUEST_WELCOME_PROMO_LIVE
+              ? { kind: 'welcome_first_month_20', requestedCode: WELCOME20_PROMOTION_CODE, auto: true }
+              : null,
         })
         if (guest.ok) return guest.response
         guestFailure = guest.failure
@@ -1411,6 +1444,13 @@ async function buildAndRedirect(
     return isGet
       ? redirectError('Your account is still being prepared. Please refresh and try again.')
       : jsonError('Your account is still being prepared. Please refresh and try again.', 503)
+  }
+  // KINEO-CLARITY-WELCOME20-2026-10-12 — conta já atribuída a um afiliado (first-touch permanente, sem o cookie neste
+  // navegador) também fica fora do automático: o campo manual da Stripe continua aberto para o cupom do parceiro.
+  if (autoWelcome20 && typeof profile.affiliate_id === 'string' && profile.affiliate_id.length > 0) {
+    autoWelcome20 = false
+    checkoutMetadata.public_promo_auto = 'affiliate'
+    failureContext = { ...checkoutMetadata }
   }
 
   // KINEO-CHECKOUT-INTENT-2026-09-03 — a checkout sem filme nao e uma causa.
@@ -2483,6 +2523,65 @@ async function buildAndRedirect(
     )
   }
 
+  // ═══ KINEO-CLARITY-WELCOME20-2026-10-12 — o WELCOME20 automático (Creator/Studio mensal, sem outro desconto) ═════
+  // A MESMA prova do pedido explícito (resolvePromisedPublicPromo: código WELCOME20 ativo, cupom KINEO_WELCOME20 de 20%
+  // "once", sem restrição de cliente/valor/moeda/produto) e o MESMO carimbo na sessão e na assinatura. A diferença é
+  // só o desfecho da recusa: aqui ninguém prometeu nada NAQUELE clique, então a compra segue a preço cheio, com o campo
+  // manual de cupom aberto como sempre, e o motivo vai para o checkout_started (public_promo_auto_failure_reason).
+  // Roda DEPOIS de todo outro desconto: com qualquer `discounts` já posto, não entra (nunca empilha).
+  // SÓ LEITURA na Stripe, igual ao convidado (loadGuestWelcomePromoCandidate): o automático não cria cupom nem código —
+  // quem provisiona o WELCOME20 continua sendo o pedido explícito (cartão do /pricing). Logado e convidado decidem igual.
+  let autoWelcome20Applied = false
+  if (autoWelcome20 && !discountApplied && !promoBlocked && !privatePackPromo && !promisedPublicPromo) {
+    const autoKind: PromisedPublicPromoKind = 'welcome_first_month_20'
+    const autoResolution = await resolvePromisedPublicPromo(
+      autoKind,
+      unitAmount,
+      async () => {
+        const candidate = await loadGuestWelcomePromoCandidate(stripe, {
+          kind: autoKind,
+          code: WELCOME20_PROMOTION_CODE,
+          nowMs: Date.now(),
+        })
+        // O cliente desta compra existe (caminho logado): a checagem de restrição por cliente usa o id real.
+        return candidate ? { ...candidate, currentCustomerId: customerId } : null
+      },
+    )
+    if (autoResolution.status === 'applied') {
+      sessionParams.discounts = [{ promotion_code: autoResolution.promotionCodeId }]
+      discountApplied = true
+      autoWelcome20Applied = true
+      const autoVerified = publicPromoTruthMetadata(autoKind, 'verified')
+      const autoApplied = publicPromoTruthMetadata(autoKind, 'applied')
+      checkoutMetadata = {
+        ...checkoutMetadata,
+        ...autoVerified,
+        public_promo_first_charge_minor: autoResolution.firstChargeMinor,
+        public_promo_source: WELCOME20_AUTO_SOURCE,
+      }
+      failureContext = { ...checkoutMetadata }
+      Object.assign(sessionParams.metadata!, autoApplied, { public_promo_source: WELCOME20_AUTO_SOURCE })
+      Object.assign(sessionParams.subscription_data!.metadata!, autoApplied, { public_promo_source: WELCOME20_AUTO_SOURCE })
+      sessionParams.metadata!.public_promo_first_charge_minor = String(autoResolution.firstChargeMinor)
+      sessionParams.subscription_data!.metadata!.public_promo_first_charge_minor = String(autoResolution.firstChargeMinor)
+      // A volta do pagamento reporta o que a Stripe cobrou hoje (o 1º mês com 20%), como no pedido explícito.
+      sessionParams.success_url = buildSubscriptionCheckoutSuccessUrl({
+        appUrl,
+        tier,
+        currency: chargeCurrency,
+        amount: autoResolution.firstChargeMinor,
+      })
+    } else {
+      console.warn('[stripe/checkout] WELCOME20 automático não confirmado; segue a preço cheio:', autoResolution.reason)
+      checkoutMetadata = {
+        ...checkoutMetadata,
+        public_promo_auto: 'fallback_full_price',
+        public_promo_auto_failure_reason: autoResolution.reason,
+      }
+      failureContext = { ...checkoutMetadata }
+    }
+  }
+
   // A recovery banner displays the exact price saved on the abandoned
   // Session. If an intro or supplied promotion can no longer be reproduced,
   // fail closed instead of opening a full-price Checkout behind that promise.
@@ -2680,6 +2779,14 @@ async function buildAndRedirect(
     }
     failureContext = { ...checkoutMetadata }
   }
+  // KINEO-CLARITY-WELCOME20-2026-10-12 — o automático também só vira 'applied' depois que a sessão existe.
+  if (autoWelcome20Applied) {
+    checkoutMetadata = {
+      ...checkoutMetadata,
+      ...publicPromoTruthMetadata('welcome_first_month_20', 'applied'),
+    }
+    failureContext = { ...checkoutMetadata }
+  }
 
   await recordCheckoutEvent(
     'checkout_started',
@@ -2688,7 +2795,11 @@ async function buildAndRedirect(
       ...checkoutMetadata,
       intro_applied: discountApplied && intro,
       private_offer_applied: privatePackPromo && discountApplied,
-      public_promo_applied: promisedPublicPromoVerified,
+      public_promo_applied: promisedPublicPromoVerified || autoWelcome20Applied,
+      // KINEO-CLARITY-WELCOME20-2026-10-12 — de onde veio o desconto: o link/cartão com ?promo=WELCOME20 ou o automático.
+      public_promo_source: autoWelcome20Applied
+        ? WELCOME20_AUTO_SOURCE
+        : promisedPublicPromoVerified ? WELCOME20_REQUESTED_SOURCE : null,
       stripe_session_id: session.id,
       checkout_session_window_hours: RECURRING_CHECKOUT_WINDOW_HOURS,
       checkout_session_window_version: RECURRING_CHECKOUT_WINDOW_VERSION,
@@ -2727,7 +2838,7 @@ async function buildGuestSubscriptionAndRedirect(
     checkoutMetadata: Record<string, unknown>
     checkoutValueContext: ReturnType<typeof buildCheckoutValueContext>
     /** KINEO-CUPOM-CONVIDADO-2026-10-07 — a oferta de boas-vindas liberada pela régua; null = compra sem cupom. */
-    welcomePromo: { kind: PromisedPublicPromoKind; requestedCode: string } | null
+    welcomePromo: { kind: PromisedPublicPromoKind; requestedCode: string; auto?: true } | null
   },
 ): Promise<
   | { ok: true; response: NextResponse }
@@ -2739,7 +2850,30 @@ async function buildGuestSubscriptionAndRedirect(
   // na Stripe. Qualquer recusa = { ok: false } com o motivo no formato do logado → quem chama devolve o visitante ao
   // cadastro (nunca pior que hoje: de lá, o caminho logado faz exatamente o que já fazia com este link).
   let welcome: GuestWelcomePromoApplied | null = null
-  if (ctx.welcomePromo) {
+  // KINEO-CLARITY-WELCOME20-2026-10-12 — o WELCOME20 automático (sem ?promo=): recusado pela Stripe, o convidado segue a
+  // preço cheio (ninguém prometeu nada naquele clique); o pedido explícito continua voltando ao cadastro, como antes.
+  let autoWelcomeFallback: PublicPromoFailureReason | null = null
+  if (ctx.welcomePromo?.auto === true) {
+    const auto = ctx.welcomePromo
+    const autoResolution = guestWelcomePromoShapeOk({ tier: ctx.tier, isAnnual: ctx.isAnnual })
+      ? await resolvePromisedPublicPromo(
+          auto.kind,
+          ctx.unitAmount,
+          () => loadGuestWelcomePromoCandidate(stripe, { kind: auto.kind, code: auto.requestedCode, nowMs: Date.now() }),
+        )
+      : { status: 'rejected' as const, reason: 'invalid_checkout_shape' as const }
+    if (autoResolution.status === 'rejected') {
+      console.warn('[stripe/checkout] WELCOME20 automático (convidado) não confirmado; segue a preço cheio:', autoResolution.reason)
+      autoWelcomeFallback = autoResolution.reason
+    } else {
+      welcome = {
+        kind: auto.kind,
+        requestedCode: auto.requestedCode,
+        promotionCodeId: autoResolution.promotionCodeId,
+        firstChargeMinor: autoResolution.firstChargeMinor,
+      }
+    }
+  } else if (ctx.welcomePromo) {
     const offer = ctx.welcomePromo
     if (!guestWelcomePromoShapeOk({ tier: ctx.tier, isAnnual: ctx.isAnnual })) {
       return { ok: false, failure: { reason: 'welcome_promo_unavailable', detail: publicPromoTruthMetadata(offer.kind, 'failed', 'invalid_checkout_shape') } }
@@ -2835,6 +2969,12 @@ async function buildGuestSubscriptionAndRedirect(
     ...(welcome
       ? { ...publicPromoTruthMetadata(welcome.kind, 'applied'), public_promo_first_charge_minor: welcome.firstChargeMinor }
       : {}),
+    // KINEO-CLARITY-WELCOME20-2026-10-12 — de onde veio o desconto (ou por que o automático não entrou).
+    ...(welcome
+      ? { public_promo_source: ctx.welcomePromo?.auto === true ? WELCOME20_AUTO_SOURCE : WELCOME20_REQUESTED_SOURCE }
+      : autoWelcomeFallback
+        ? { public_promo_auto: 'fallback_full_price', public_promo_auto_failure_reason: autoWelcomeFallback }
+        : {}),
   }
 
   let session: Stripe.Checkout.Session

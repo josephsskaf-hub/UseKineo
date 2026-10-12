@@ -784,6 +784,7 @@ export default function SignupPage() {
                     </label>
                     <input
                       id="signup-email"
+                      data-clarity-mask="true"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -820,6 +821,7 @@ export default function SignupPage() {
                     <div className="relative">
                       <input
                         id="signup-password"
+                        data-clarity-mask="true"
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
