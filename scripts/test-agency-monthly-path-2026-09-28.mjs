@@ -8,6 +8,11 @@ const base = execFileSync('git', ['show', 'f834c583:' + path], { cwd: root, enco
 const events = []
 const mocks = Object.fromEntries(['components/Footer.tsx', 'app/ai-shorts-for-agencies/AgencyHeaderCta.tsx', 'app/ai-shorts-for-agencies/AgencyMarginCalculator.tsx', 'app/ai-shorts-for-agencies/AgencyPacksClient.tsx', 'app/ai-shorts-for-agencies/AgencyBriefClient.tsx'].map(file => [file, { __esModule: true, default: props => React.createElement('div', { 'data-boundary': file, 'data-props': JSON.stringify(props) }) }]))
 mocks['lib/analytics.ts'] = { trackEvent: (...args) => events.push(args) }
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — reancorado com motivo: com os pacotes avulsos fora da vitrine (lib/bulkPacksPublic.ts,
+// BULK_PACKS_PUBLIC=false) esta página redireciona para /business. A trava abaixo continua provando a página COMO ELA VOLTA
+// quando o interruptor for religado (mock só do interruptor); e o fim deste arquivo prova o redirecionamento com o valor real.
+const realAfter = offlineModules({ mocks: { ...mocks } })
+mocks['lib/bulkPacksPublic.ts'] = { BULK_PACKS_PUBLIC: true, BULK_PACK_REPLACEMENT_PATH: '/business' }
 const before = offlineModules({ mocks, replacements: { [path]: base } })
 const after = offlineModules({ mocks })
 const tree = after(path).default()
@@ -51,3 +56,6 @@ assert.equal(link.props.href, '/pricing')
 assert.equal(prevented, false, 'native direct navigation remains available')
 assert.deepEqual(JSON.parse(JSON.stringify(events)), [['organic_cta_clicked', { source: 'ai_shorts_for_agencies', placement: 'hero_monthly_plans', destination: '/pricing' }]])
 console.log('PASS: exact page scope, original pack order/data, canonical, visible/JSON-LD FAQ and existing direct-plan click event')
+
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — com o interruptor REAL (desligado), a página leva ao plano Business.
+assert.throws(() => realAfter(path).default(), /NEXT_REDIRECT:\/business\?from=agencies#plan/, 'pacotes fechados: a página redireciona para o Business')

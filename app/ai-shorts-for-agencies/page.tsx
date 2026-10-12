@@ -10,6 +10,12 @@ import AgencyPacksClient, { type AgencyPackView } from './AgencyPacksClient'
 import AgencyMarginCalculator from './AgencyMarginCalculator'
 import AgencyBriefClient from './AgencyBriefClient'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — os pacotes avulsos saíram da vitrine (lib/bulkPacksPublic.ts) e o checkout deles
+// responde 410 para compra nova. Esta página É a vitrine dos pacotes: com o interruptor desligado ela leva ao plano
+// Business (o substituto) em vez de mostrar quatro botões que não compram. Footer, roteador de empresas, planner e brief
+// continuam apontando para cá e chegam no lugar certo. Interruptor ligado = a página volta como estava.
+import { redirect } from 'next/navigation'
+import { BULK_PACKS_PUBLIC, BULK_PACK_REPLACEMENT_PATH } from '@/lib/bulkPacksPublic'
 
 const CANONICAL = 'https://www.usekineo.com/ai-shorts-for-agencies'
 
@@ -76,6 +82,7 @@ const WHO = [
 ] as const
 
 export default function AiShortsForAgenciesPage() {
+  if (!BULK_PACKS_PUBLIC) redirect(`${BULK_PACK_REPLACEMENT_PATH}?from=agencies#plan`)
   const low = Math.min(...PACKS.map((pack) => pack.priceMinor)) / 100
   const high = Math.max(...PACKS.map((pack) => pack.priceMinor)) / 100
   const structuredData = [

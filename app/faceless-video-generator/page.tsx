@@ -7,7 +7,7 @@ import ExampleVideoPlayer from '@/app/examples/ExampleVideoPlayer'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
 import { buildBlankStudioSignupHref } from '@/lib/growth/publicCreationIntent'
-import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { getFreeTierOffer, swapFreeTierCopy as ft, FREE_FILM_LABEL } from '@/lib/freeTierOffer'
 // KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
 // lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
 // de tabela publicando um valor que o checkout não cobrava mais.
@@ -190,7 +190,8 @@ export default function FacelessVideoGeneratorPage({ searchParams }: { searchPar
             note: ft(
               OFFER,
               'Your topic stays attached through signup so Kineo can start the first watermarked Fast video without a card.',
-              'Your topic stays attached through signup. Your active trial starts with Seedance when its balance covers it; otherwise Kineo falls back safely to Fast.',
+              // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — a frase antiga do recuo para o motor rápido prometia o Kineo 1, fora da entrada desde 29/09.
+              `Your topic stays attached through signup and becomes your ${FREE_FILM_LABEL}, watermarked, no card.`,
             ),
           }}
         />

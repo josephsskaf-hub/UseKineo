@@ -17,6 +17,8 @@ import { ADS_SUBSCRIBER_PLANS } from '../ads/access'
 import { ADS_V2_PUBLIC, ADS_V2_TIER_IDS, adsV2Credits } from '../ads/v2Tiers'
 import { ADS_V2_SCREEN_SECONDS, ADS_V2_TIER_COPY } from '../ads/v2Screen'
 import { ADS_V2_CONTRACT_MIN_PHOTOS, ADS_V2_CONTRACT_MAX_PHOTOS } from '../ads/v2Contract'
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — o 1º anúncio grátis (lib/ads/sample.ts, desde 09/10) entra na frase de acesso.
+import { ADS_SAMPLE_LIVE, ADS_SAMPLE_TIER } from '../ads/sample'
 
 export const STUDIO_ADS_PATH = '/ads'
 
@@ -51,6 +53,8 @@ export interface StudioAdsFact {
     subscriberNeedsPass: false
     usesPlanCredits: true
     trialIncluded: false
+    /** KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — free/trial accounts get ONE free sample ad (lib/ads/sample.ts). */
+    firstAdFree: boolean
     summary: string
   }
 }
@@ -60,7 +64,12 @@ export function studioAdsFact(): StudioAdsFact | null {
   const copy = adsPassCopy()
   const seconds35 = ADS_MODELS.filter((m) => m.seconds === 35).length
   const seconds60 = ADS_MODELS.filter((m) => m.seconds === 60).length
-  const accessSummary = 'Eligible paid subscribers use Studio Ads with their plan credits; no separate ad pass is required. The free trial does not include Studio Ads. People without an eligible paid plan can choose the one-time pass.'
+  // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — dizia "The free trial does not include Studio Ads": desde 09/10 a conta free/trial
+  // faz o 1º anúncio grátis (uma amostra por conta, nível e duração de lib/ads/sample.ts, teto diário global).
+  const firstAdSentence = ADS_SAMPLE_LIVE
+    ? `Free and trial accounts can make their first ad free: one per account, ${ADS_V2_TIER_COPY[ADS_SAMPLE_TIER].name} level, ${ADS_V2_SCREEN_SECONDS} seconds, within a daily limit; more ads need a paid plan.`
+    : 'The free trial does not include Studio Ads.'
+  const accessSummary = `Eligible paid subscribers use Studio Ads with their plan credits; no separate ad pass is required. ${firstAdSentence} People without an eligible paid plan can choose the one-time pass.`
   const classic = {
     url: 'https://www.usekineo.com/ads/new?classic=1',
     description: `Classic: upload authorized photos, clips and a logo, choose from ${ADS_MODELS.length} models (${seconds35} of 35 seconds, ${seconds60} of 60 seconds), and approve a script and AI voice for a narrated vertical ad.`,
@@ -112,6 +121,7 @@ export function studioAdsFact(): StudioAdsFact | null {
       subscriberNeedsPass: false,
       usesPlanCredits: true,
       trialIncluded: false,
+      firstAdFree: ADS_SAMPLE_LIVE,
       summary: accessSummary,
     },
   }

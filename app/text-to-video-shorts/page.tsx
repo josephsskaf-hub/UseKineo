@@ -12,6 +12,7 @@ import { buildBlankStudioSignupHref } from '@/lib/growth/publicCreationIntent'
 import TextToVideoIntentForm from './TextToVideoIntentForm'
 // KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — ponte roteiro → Seedance acima da dobra (fundador 23/09, jogada 3).
 import PaidSeedanceBridge from '@/components/PaidSeedanceBridge'
+import BuyCreatorCta from '@/components/BuyCreatorCta' // KINEO-PAGINAS-QUE-VENDEM-2026-10-12
 import { ENGINES } from '@/lib/growth/enginePageCatalog'
 import { enginePaused } from '@/lib/engineLaunch'
 
@@ -135,11 +136,25 @@ export default function TextToVideoShortsPage() {
         <p style={{ fontSize: '1.08rem', color: '#86868b', lineHeight: 1.6, margin: '16px 0 0' }}>
           Paste a topic, prompt, or full script. Kineo turns it into a faceless vertical video with AI voiceover, visuals, captions, and an MP4 export for YouTube Shorts, TikTok, and Reels.
         </p>
+        {/* KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — compra direta do Creator na primeira dobra; o botão grátis vira o secundário. */}
+        {!enginePaused(ENGINES.seedance.param) && (
+          <BuyCreatorCta
+            page="text_to_video_shorts"
+            align="left"
+            secondary={
+              <OrganicCtaLink href={`#${FORM_ID}`} source={CAMPAIGN} placement="hero" style={{ border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 800, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>
+                Try text to video free
+              </OrganicCtaLink>
+            }
+          />
+        )}
         {!enginePaused(ENGINES.seedance.param) && <PaidSeedanceBridge from="text_to_video_shorts" compact />}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '26px 0 0' }}>
-          <OrganicCtaLink href={`#${FORM_ID}`} source={CAMPAIGN} placement="hero" style={{ background: '#f5f5f7', color: '#000', fontWeight: 850, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>
-            Try text to video free
-          </OrganicCtaLink>
+          {enginePaused(ENGINES.seedance.param) && (
+            <OrganicCtaLink href={`#${FORM_ID}`} source={CAMPAIGN} placement="hero" style={{ background: '#f5f5f7', color: '#000', fontWeight: 850, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>
+              Try text to video free
+            </OrganicCtaLink>
+          )}
           <OrganicCtaLink href={signupUrl} source={CAMPAIGN} placement="hero_signup" style={{ border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 750, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>
             Start with a blank prompt
           </OrganicCtaLink>

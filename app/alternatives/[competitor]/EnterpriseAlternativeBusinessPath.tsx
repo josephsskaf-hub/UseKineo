@@ -4,6 +4,10 @@ import Link from 'next/link'
 import { useEffect, useRef } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { agencyPacksHref } from '@/lib/agencyDistribution'
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — pacotes avulsos fora da vitrine: o cartão fala do Business (o link do pacote já
+// redireciona para /business). A frase dos pacotes volta sozinha com BULK_PACKS_PUBLIC=true.
+import { BULK_PACKS_PUBLIC } from '@/lib/bulkPacksPublic'
+import { businessPitch } from '@/lib/growth/businessPitch'
 import {
   ENTERPRISE_ALTERNATIVE_BUSINESS_PATH_VISIBLE_RATIO,
   createEnterpriseAlternativeBusinessEventRecorder,
@@ -99,8 +103,14 @@ export default function EnterpriseAlternativeBusinessPath({
           Producing short-form for clients or one business?
         </h2>
         <p style={{ margin: '6px 0 0', color: '#9a9aa1', fontSize: '.86rem', lineHeight: 1.6 }}>
-          Compare Kineo&apos;s existing one-time self-service packs for 10–50 Fast Shorts.
-          They do not include a team workspace, avatar governance or a managed service.
+          {BULK_PACKS_PUBLIC ? (
+            <>
+              Compare Kineo&apos;s existing one-time self-service packs for 10–50 Fast Shorts.
+              They do not include a team workspace, avatar governance or a managed service.
+            </>
+          ) : (
+            <>{businessPitch().sentence} Self-service, not a managed service.</>
+          )}
         </p>
       </div>
       <Link

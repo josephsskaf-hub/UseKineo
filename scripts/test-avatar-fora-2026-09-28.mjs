@@ -87,7 +87,10 @@ const provaFatos = (F) => {
   const facts = F.getKineoFacts()
   return !F.ENGINE_FACTS.some((e) => /Avatar|Presenter/i.test(e.name) || /ai-avatar/.test(e.url)) &&
     !facts.plans.some((p) => p.includes.some((line) => /Avatar|Character Lock|gesture clips|UGC product ads/.test(line))) &&
-    facts.notAFit.some((n) => /does not currently offer an avatar or presenter engine/.test(n.useInstead)) &&
+    // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — reancorado com motivo: "does not currently offer an avatar" deixou de ser verdade
+    // inteira (a pessoa de IA opcional do anúncio de produto, lib/ads/v2Presenter.ts). A frase honesta nova: nenhum motor de
+    // avatar para FILMES; o Avatar segue proibido como motor (as linhas de cima e de baixo ficam intactas).
+    facts.notAFit.some((n) => /Kineo has no avatar engine for films/.test(n.useInstead)) &&
     !facts.notAFit.some((n) => /Kineo has an Avatar engine/.test(n.useInstead))
 }
 {
@@ -106,7 +109,7 @@ const provaFatos = (F) => {
 {
   const load = createOfflineLoader({ env: ENV, globals: { Response } })
   const body = await load('app/llms.txt/route.ts').GET().text()
-  checa('/llms.txt real: nenhum link /ai-avatar, nenhuma linha **Avatar**, "Kineo does not currently offer"', !/ai-avatar/.test(body) && !/\*\*Avatar\*\*/.test(body) && /Kineo does not currently offer an avatar or presenter engine/.test(body))
+  checa('/llms.txt real: nenhum link /ai-avatar, nenhuma linha **Avatar**, "Kineo does not currently offer"', !/ai-avatar/.test(body) && !/\*\*Avatar\*\*/.test(body) && /Kineo has no avatar engine for films/.test(body)) // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — frase honesta nova
   const F = load('lib/kineoFacts.ts')
   const fixture = { ...F, TRIAL_ACCESS: { ...F.TRIAL_ACCESS, everyEngineUnlocked: false } }
   const dormente = await createOfflineLoader({ env: ENV, globals: { Response }, mocks: { '@/lib/kineoFacts': fixture } })('app/llms.txt/route.ts').GET().text()
@@ -249,8 +252,9 @@ console.log('== (f) copy de SEO/comparação sem apresentador ==')
     const hey = C.getPair('heygen-vs-kineo')?.faq.find((f) => f.q === 'Does Kineo have avatars at all?')
     const syn = faqs.find((f) => f.q === 'Does Kineo have avatars?')
     return !/AI Presenter|presenter render type, priced/.test(tudo) && !/Presenter/.test(C.TOOLS.kineo.exportLimits) &&
-      /^Not today\. .*does not currently offer an avatar or presenter render type/.test(hey?.a ?? '') &&
-      /^Not today\. .*does not currently offer an avatar or presenter render type/.test(syn?.a ?? '')
+      // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — "Not today" continua; a frase passa a dizer "para filmes" (o anúncio tem a pessoa de IA).
+      /^Not today\. .*has no avatar or presenter render type for films/.test(hey?.a ?? '') &&
+      /^Not today\. .*has no avatar or presenter render type for films/.test(syn?.a ?? '')
   }
   const C = carrega(compSrc)
   checa('comparisons (executado): régua de créditos, linha da Kineo e as 2 FAQs sem "AI Presenter"; respostas "Not today"', provaComp(C))

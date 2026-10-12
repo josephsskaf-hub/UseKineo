@@ -83,6 +83,7 @@ import { planSettlementAmountMinor, resolveSettlementCurrency, settlementAmountM
 import { ADS_OFFER_VERSION, ADS_PASS_CREDITS, ADS_PASS_ID, ADS_PASS_USD_MINOR, ADS_PRODUCT_NAME, adsPassLive } from '@/lib/ads/offer' // KINEO-STUDIO-ADS-2026-09-25
 import { isAdsInternalEmail } from '@/lib/ads/access' // KINEO-STUDIO-ADS-2026-09-25 (lista exata; revisão 24/09)
 import { AUTOPILOT_UNAVAILABLE_MESSAGE, AUTOPILOT_UNAVAILABLE_REASON, autopilotCheckoutOpen, isAutopilotFamilySku } from '@/lib/autopilotPublic' // KINEO-AUTOPILOT-FORA-2026-10-09
+import { BULK_PACK_REPLACEMENT_PATH, BULK_PACK_UNAVAILABLE_MESSAGE, BULK_PACK_UNAVAILABLE_REASON, bulkPackCheckoutOpen, isBulkPackSku } from '@/lib/bulkPacksPublic' // KINEO-PAGINAS-QUE-VENDEM-2026-10-12
 import { ADS_ACCESS_COLUMN } from '@/lib/ads/offer'
 import {
   attributeAffiliateForUser,
@@ -578,6 +579,34 @@ async function refuseClosedAutopilotCheckout(req: NextRequest, sku: string): Pro
   )
   return NextResponse.json(
     { error: AUTOPILOT_UNAVAILABLE_REASON, message: AUTOPILOT_UNAVAILABLE_MESSAGE, pricing: '/pricing' },
+    { status: 410 },
+  )
+}
+
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — os pacotes avulsos de agência (bulk10/20/30/50, vendidos em filmes Kineo 1) saíram
+// da vitrine (lib/bulkPacksPublic.ts). Compra NOVA é recusada aqui com 410 'pack_unavailable', ANTES de qualquer sessão
+// Stripe — exceto conta interna. Mesmo padrão do Autopilot acima. Quem já comprou não passa por aqui: o webhook (Path A,
+// metadata.pack bulk*), o crédito concedido e o acesso legado ao Kineo 1 seguem intactos. null = pode seguir.
+async function refuseClosedBulkPackCheckout(req: NextRequest, sku: string): Promise<NextResponse | null> {
+  if (!isBulkPackSku(sku)) return null
+  let email: string | null = null
+  let userId: string | null = null
+  try {
+    const { data: { user } } = await createClient().auth.getUser()
+    email = user?.email ?? null
+    userId = user?.id ?? null
+  } catch {
+    // sem sessão legível = não é a casa: recusa (falha fechada)
+  }
+  if (bulkPackCheckoutOpen(sku, isAdsInternalEmail(email))) return null
+  await recordCheckoutEvent(
+    'checkout_failed',
+    userId,
+    { selection: sku, stage: 'plan_gate', reason: BULK_PACK_UNAVAILABLE_REASON },
+    browserSessionIdFrom(req),
+  )
+  return NextResponse.json(
+    { error: BULK_PACK_UNAVAILABLE_REASON, message: BULK_PACK_UNAVAILABLE_MESSAGE, business: BULK_PACK_REPLACEMENT_PATH },
     { status: 410 },
   )
 }
@@ -4148,6 +4177,8 @@ export async function GET(req: NextRequest) {
         return await buildAdsPassAndRedirect(req, true)
       }
       if (isBulkPackId(packParam)) {
+        const closedPack = await refuseClosedBulkPackCheckout(req, packParam) // KINEO-PAGINAS-QUE-VENDEM-2026-10-12
+        if (closedPack) return closedPack
         return await buildBulkPackAndRedirect(req, packParam, true)
       }
       // KINEO-PILOT-99-2026-07-26 — sem este branch o ?pack=autopilot_pilot cai

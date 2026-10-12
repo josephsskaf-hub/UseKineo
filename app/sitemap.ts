@@ -4,6 +4,7 @@ import { COMPETITOR_SLUGS } from './alternatives/[competitor]/page'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
 import { CANONICAL_SLUGS } from '@/lib/comparisons'
 import { AVATAR_PUBLIC } from '@/lib/engineLaunch' // KINEO-AVATAR-FORA-2026-09-28
+import { BULK_PACKS_PUBLIC } from '@/lib/bulkPacksPublic' // KINEO-PAGINAS-QUE-VENDEM-2026-10-12
 import { SCRIPT_VERTICAL_SLUGS } from '@/lib/scriptLibrary'
 import { CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED } from '@/lib/publicSurfacePolicy'
 // KINEO-ENGINE-SEO-2026-08-15 — cluster por MOTOR (hub + 5 páginas).
@@ -233,7 +234,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // KINEO-B2B-BULK-2026-08-27 — the checkout and four approved one-time
     // agency packs existed without a single public caller. This is the first
     // indexable door for freelancers, agencies and businesses buying batches.
-    { path: '/ai-shorts-for-agencies', priority: 0.9, freq: 'weekly' },
+    // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — com os pacotes fechados a página redireciona para /business: sai do mapa.
+    ...(BULK_PACKS_PUBLIC ? [{ path: '/ai-shorts-for-agencies', priority: 0.9, freq: 'weekly' as const }] : []),
     // KINEO-AEO-SERIE-2026-09-06 — the season (next episodes written after a
     // finished film) fired for 28 people in 24h and had no public page; answer
     // engines cite page URLs, not /llms.txt. 0.9: it is the differentiator.
@@ -241,7 +243,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // KINEO-B2B-SCOPE-2026-09-02 — portable, machine-readable product scope
     // for the buyer or approver. It is a factual brief, not a contract or a
     // lead event; only an explicit move to an existing human surface is measured.
-    { path: '/agency-production-scope.txt', priority: 0.7, freq: 'monthly' },
+    ...(BULK_PACKS_PUBLIC ? [{ path: '/agency-production-scope.txt', priority: 0.7, freq: 'monthly' as const }] : []), // KINEO-PAGINAS-QUE-VENDEM-2026-10-12
     // KINEO-B2B-VENDOR-EVALUATION-2026-09-03 — a neutral, downloadable
     // procurement worksheet. A crawler GET/download is never treated as a
     // person; commercial measurement starts only after an attributed signup.

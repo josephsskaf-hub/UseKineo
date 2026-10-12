@@ -1,4 +1,6 @@
 import type { AgencyDistributionEntry } from '@/lib/agencyDistribution'
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — com os pacotes avulsos fechados, a faixa leva ao Business: o destino do evento diz isso.
+import { BULK_PACKS_PUBLIC } from '@/lib/bulkPacksPublic'
 
 export const AGENCY_BRIDGE_VISIBILITY_VERSION =
   'agency_volume_bridge_visibility_v1' as const
@@ -11,7 +13,7 @@ export type AgencyBridgeTelemetryMetadata = {
   version: typeof AGENCY_BRIDGE_VISIBILITY_VERSION
   entry: AgencyDistributionEntry
   surface: 'agency_volume_bridge'
-  destination: 'agency_packs'
+  destination: 'agency_packs' | 'business_plan'
 }
 
 export function agencyBridgeTelemetryMetadata(
@@ -21,7 +23,7 @@ export function agencyBridgeTelemetryMetadata(
     version: AGENCY_BRIDGE_VISIBILITY_VERSION,
     entry,
     surface: 'agency_volume_bridge',
-    destination: 'agency_packs',
+    destination: BULK_PACKS_PUBLIC ? 'agency_packs' : 'business_plan',
   }
 }
 

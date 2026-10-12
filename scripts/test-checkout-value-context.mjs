@@ -75,21 +75,31 @@ for (const [input, label] of [
 
 const starter = policy.buildCheckoutValueContext({ billing: 'monthly', credits: 40, intentCampaign: undefined, tier: 'starter' })
 equal(starter.variant, 'standard_result_count', 'ordinary Starter receives result-count copy')
-equal(starter.outputCount, 8, 'Starter derives eight Fast Shorts from canonical 5-credit cost')
-check(starter.lineItemDescription.includes('up to 8 ready-to-post Fast Shorts'), 'Starter names the output')
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — reancorado com motivo (fundador 12/10, "tudo sim"): a linha da Stripe contava
+// "Fast Shorts" (Kineo 1), motor que a conta NOVA não recebe desde 29/09 — o comprador que chega pelo botão "Get Creator"
+// lia na Stripe uma promessa que o produto não cumpre para ele. A trava continua a mesma ideia (contagem DERIVADA da
+// função que cobra, nada digitado), agora em filmes de Seedance 1.5, e passa a EXIGIR a ausência de Fast e da fila prioritária.
+const SEEDANCE_35S_STARTER = engineCost.creditCostForDuration('cinematic_ai', true, 35)
+equal(starter.outputCount, Math.floor(40 / SEEDANCE_60S), `Starter derives Seedance 60s films from canonical ${SEEDANCE_60S}-credit cost`)
+check(starter.lineItemDescription.includes(`up to ${Math.floor(40 / SEEDANCE_60S)} Seedance 60s AI film`), 'Starter names the output')
+check(starter.lineItemDescription.includes(`or ${Math.floor(40 / SEEDANCE_35S_STARTER)} of 35s`), 'Starter also names the shorter Seedance film')
 check(starter.lineItemDescription.includes('AI voiceover, captions and no watermark'), 'Starter names the finished-video benefits')
+check(!/Fast/.test(starter.lineItemDescription), 'Starter no longer promises Kineo 1 (Fast) output to a new buyer')
 
 const creator = policy.buildCheckoutValueContext({ billing: 'monthly', credits: 90, intentCampaign: 'unrelated', tier: 'basic' })
 equal(creator.variant, 'standard_result_count', 'ordinary Creator receives result-count copy')
 // KINEO-SEEDANCE-35CR-2026-10-04 — custo do Seedance de 60 s lido da função (35 cr; era 25).
 equal(creator.outputCount, Math.floor(90 / SEEDANCE_60S), `Creator derives Seedance films from canonical ${SEEDANCE_60S}-credit cost`)
 check(creator.lineItemDescription.includes(`up to ${Math.floor(90 / SEEDANCE_60S)} Seedance 60s AI films`), 'Creator names engine, count and duration')
-check(creator.lineItemDescription.includes('or 18 ready-to-post Fast Shorts'), 'Creator also names the high-volume output a Fast user already understands')
-check(creator.lineItemDescription.includes('voiceover, captions and no watermark'), 'Creator keeps finished-output ownership visible after both counts')
+check(!/Fast/.test(creator.lineItemDescription), 'Creator no longer promises Kineo 1 (Fast) output to a new buyer') // KINEO-PAGINAS-QUE-VENDEM-2026-10-12
+check(creator.lineItemDescription.includes('voiceover, captions and no watermark'), 'Creator keeps finished-output ownership visible')
 
 const studio = policy.buildCheckoutValueContext({ billing: 'monthly', credits: 180, intentCampaign: undefined, tier: 'pro' })
 equal(studio.outputCount, 1, 'Studio derives one Kling 3 film from canonical 150-credit cost')
-check(studio.lineItemDescription.includes('1 Kling 3 60s film plus up to 6 Fast Shorts'), 'Studio translates its remainder into usable outputs')
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — o resto do Studio era "Fast Shorts, priority queue": Kineo 1 (fora da entrada) e
+// uma fila prioritária que não existe. Agora: a alternativa em Seedance 60 s, da mesma função que cobra.
+check(studio.lineItemDescription.includes(`1 Kling 3 60s film or up to ${Math.floor(180 / SEEDANCE_60S)} Seedance 60s AI films`), 'Studio translates its grant into usable outputs')
+check(!/Fast|priority queue/.test(studio.lineItemDescription), 'Studio promises neither Kineo 1 nor a priority queue')
 
 equal(
   creatorBridge.submitMessage,
@@ -107,7 +117,7 @@ check(!policySource.includes('/api/'), 'policy cannot create a checkout or mutat
 check(!/\$\d/.test(policySource), 'policy contains no copied commercial price')
 check(policySource.includes('TRIAL_BALANCE_BRIDGE_COST'), 'output math imports the canonical per-film cost')
 check(policySource.includes('TRIAL_BALANCE_BRIDGE_DURATION'), 'output label imports the canonical duration')
-check(policySource.includes("creditCostForDuration('fast', true, 60)"), 'standard Fast count uses the canonical engine-cost function')
+check(!policySource.includes("creditCostForDuration('fast'"), 'no standard count is made in Kineo 1 (Fast) any more') // KINEO-PAGINAS-QUE-VENDEM-2026-10-12
 check(policySource.includes("creditCostForDuration('cinematic_ai', true, 60)"), 'standard Seedance count uses the canonical engine-cost function')
 check(policySource.includes("creditCostForDuration('cinematic_hollywood', true, 60)"), 'standard Kling count uses the canonical engine-cost function')
 

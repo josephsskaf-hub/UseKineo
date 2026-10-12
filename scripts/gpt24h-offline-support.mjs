@@ -27,7 +27,7 @@ export function offlineModules({ replacements = {}, mocks = {} } = {}) {
     const code = ts.transpileModule(input, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText
     function localRequire(name) {
       if (name.endsWith('.module.css')) return new Proxy({}, { get: (_, prop) => prop === '__esModule' ? false : String(prop) })
-      if (name === 'next/navigation') return { notFound() { throw new Error('NEXT_NOT_FOUND') } }
+      if (name === 'next/navigation') return { notFound() { throw new Error('NEXT_NOT_FOUND') }, redirect(url) { throw new Error('NEXT_REDIRECT:' + url) } } // redirect: KINEO-PAGINAS-QUE-VENDEM-2026-10-12
       if (name === 'next/image') return function Image({ priority, ...props }) { return React.createElement('img', props) }
       if (name === 'next/link') return function Link({ children, ...props }) { return React.createElement('a', props, children) }
       if (name === 'react' || name.startsWith('react/')) return require(name)

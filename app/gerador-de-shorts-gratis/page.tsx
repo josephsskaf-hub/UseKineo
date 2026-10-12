@@ -16,6 +16,12 @@ import LocalizedScriptHandoff from '@/components/LocalizedScriptHandoff'
 // de tabela publicando um valor que o checkout não cobrava mais.
 import { STARTER_USD_AMOUNT } from '@/lib/marketingPrice'
 import { freeShortsAlternates } from '@/lib/seo/freeShortsGeneratorLangs'
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — compra direta do Creator na primeira dobra (versão em português) e a verdade de hoje
+// sobre o grátis: 1 filme de 15 s no Seedance 1.5, com marca d'água, sem cartão (o "vídeo Fast" saiu da entrada em 29/09).
+import BuyCreatorCta from '@/components/BuyCreatorCta'
+import { TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer'
+
+const FILME_GRATIS = `1 filme grátis de ${TRIAL_FREE_FILM_SECONDS} s no Seedance 1.5, com marca d’água, sem cartão`
 
 const BASE = 'https://www.usekineo.com'
 const CAMPAIGN = 'seo_gerador_pt'
@@ -47,11 +53,11 @@ const FAQ = [
   },
   {
     q: 'É grátis mesmo? Precisa de cartão?',
-    a: 'Você cria, assiste, baixa e posta vídeos Fast com marca d’água sem cartão nenhum. Planos pagos liberam o MP4 limpo, a partir de US$ ' + STARTER_USD_AMOUNT + ' por mês como preço de referência em USD. Para clientes no Brasil, a cobrança normalmente é em reais; confira o valor no checkout.',
+    a: 'Toda conta nova ganha ' + FILME_GRATIS + ' — você assiste, baixa e posta. Planos pagos liberam o MP4 limpo, a partir de US$ ' + STARTER_USD_AMOUNT + ' por mês como preço de referência em USD. Para clientes no Brasil, a cobrança normalmente é em reais; confira o valor no checkout.',
   },
   {
     q: 'Preciso aparecer ou saber editar?',
-    a: 'Não. É o formato faceless: a IA escreve, narra, escolhe as cenas e adiciona as legendas. Você digita o tema e baixa o vídeo pronto, normalmente em 3 a 7 minutos.',
+    a: 'Não. É o formato faceless: a IA escreve, narra, escolhe as cenas e adiciona as legendas. Você digita o tema e baixa o vídeo pronto, em cerca de 6 minutos.',
   },
 ]
 
@@ -81,6 +87,17 @@ export default function GeradorDeShortsPage() {
           Digite uma ideia e o Kineo gera o Short vertical completo: roteiro, narração em português, cenas e legendas — pronto para postar no YouTube Shorts, TikTok ou Reels. Sem cartão.
         </p>
 
+        <BuyCreatorCta
+          page="gerador_pt"
+          lang="pt"
+          align="left"
+          secondary={
+            <a href={`#${FORM_ID}`} style={{ display: 'inline-block', border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 800, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>
+              Criar meu Short grátis ↓
+            </a>
+          }
+        />
+
         <TopicGeneratorForm
           campaign={CAMPAIGN}
           source={CAMPAIGN}
@@ -96,7 +113,7 @@ export default function GeradorDeShortsPage() {
             placeholder: 'Ex.: a ilha proibida que aparece no mapa',
             submit: 'Criar meu Short grátis',
             examplesLabel: 'Ideias prontas',
-            note: 'Sua ideia atravessa o cadastro — o primeiro vídeo Fast começa sem cartão.',
+            note: `Sua ideia atravessa o cadastro e vira o seu ${FILME_GRATIS}.`,
           }}
         />
 
@@ -106,7 +123,7 @@ export default function GeradorDeShortsPage() {
           language="pt"
           eyebrow="Ou, se você já tem o roteiro"
           heading="Já tem um roteiro? Cole aqui."
-          description="Seu roteiro segue pelo cadastro e chega ao Kineo com alvo de 35 segundos. O Kineo usa Seedance se o saldo do teste ativo cobrir; senão, usa Fast. Você não precisa colar de novo."
+          description={`Seu roteiro segue pelo cadastro e chega ao Kineo com alvo de 35 segundos. Numa conta nova, o grátis é ${FILME_GRATIS}; o filme de 35 s sai com um plano. Você não precisa colar de novo.`}
           label="Cole o roteiro que você já tem"
           placeholder="Cole até 1.000 caracteres. Pode manter rótulos como Voiceover:, Narração:, Visual:, Câmera:, cenas e marcações de tempo."
           submit="Transformar este roteiro em Short →"

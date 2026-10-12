@@ -10,6 +10,7 @@ import styles from '@/app/localized-public.module.css'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Footer from '@/components/Footer'
+import Kineo1RetiredNotice from '@/components/Kineo1RetiredNotice' // KINEO-PAGINAS-QUE-VENDEM-2026-10-12
 import WallMedia from '@/components/WallMedia'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { getEngineRenders, getHouseEngineExamples } from '@/lib/engineWall'
@@ -83,6 +84,8 @@ export default async function EngineLangPage({ params }: { params: { engine: str
             {e.name} · {e.creditCost} cr / 60 s
           </span>
           <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 900, lineHeight: 1.15, margin: '16px 0 0' }}>{L.h1(facts)}</h1>
+          {/* KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — o 301 do Kineo 1 nas 13 línguas chega aqui com ?from=kineo-1. */}
+          {params.engine === 'seedance' && <Kineo1RetiredNotice />}
           <p style={{ ...p, fontSize: '1.08rem', marginTop: 14 }}>{L.lead(facts)}</p>
           {pause && (
             <p style={{ ...p, color: '#ffb454' }}>{e.name} — maintenance · <Link href={`/studio?engine=${pause.alternative.key}&intent_campaign=engine_paused`} style={{ color: '#ffb454', fontWeight: 700 }}>{pause.alternative.label} →</Link></p>

@@ -111,6 +111,15 @@ export const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000
 // até o interruptor virar.
 export const HANDOFF_ENGINES = ['fast', 'seedance', 'kling', 'veo', 'hollywood', 'h3', 'omni'] as const
 export type HandoffEngine = (typeof HANDOFF_ENGINES)[number]
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — ACEITO ≠ ANUNCIADO. 'fast' (Kineo 1, fora da entrada desde 29/09; segue para quem
+// já paga e usa) e 'omni' (Omni Flash, em manutenção desde 15/09) continuam ACEITOS pelo /make, pela rota do handoff e pelo
+// esquema da Action do GPT (public/gpt/openapi.json) — um link antigo ou uma conta legada não quebra. Mas o que se ENSINA ao
+// ChatGPT (/llms.txt, /api/facts) é só esta lista: ninguém recomenda a uma conta nova um motor que ela não vê.
+// O contrato do app do ChatGPT em revisão (lib/mcp/chatgptContract.ts CHATGPT_V1_ENGINES) NÃO lê daqui de propósito.
+export const UNADVERTISED_HANDOFF_ENGINES: readonly HandoffEngine[] = ['fast', 'omni']
+export const ADVERTISED_HANDOFF_ENGINES: readonly HandoffEngine[] = HANDOFF_ENGINES.filter(
+  (engine) => !UNADVERTISED_HANDOFF_ENGINES.includes(engine),
+)
 export type HandoffDuration = (typeof DURATIONS)[number]
 export type HandoffFamily = 'classic' | 'hollywood'
 export type HandoffFit = 'short' | 'ok' | 'long'

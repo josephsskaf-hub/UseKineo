@@ -7,6 +7,11 @@ import { React, root, source, offlineModules, renderToStaticMarkup, checks } fro
 // aprovada depois da cdb154e2 é a camada citável da TAREFA 12 (11 edições exatas, descontadas pela normalização única).
 import { semMotoresGeoFonte } from './test-support/motores-geo-2026-10-06.mjs'
 import { edicoesIndiceFonte, semIndiceFonte } from './test-support/indice-video-ia-2026-10-06.mjs' // KINEO-INDICE-VIDEO-IA-2026-10-06
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — reancorado com motivo (fundador 12/10, "tudo sim"): a página de motor ganhou 6 edições
+// (compra direta no Seedance, faixa do Kineo 1, meta em positivo) descontadas pela normalização única e exigidas inteiras;
+// nas páginas grátis o primeiro CTA passou a ser a COMPRA (BuyCreatorCta), com o botão grátis de secundário — a ordem
+// "pago antes do grátis" que esta trava protegia continua valendo, agora com a compra à frente da prova.
+import { semPaginasQueVendemFonte, edicoesPaginasQueVendemFonte, EDICOES_PAGINAS_QUE_VENDEM_FONTE } from './test-support/paginas-que-vendem-2026-10-12.mjs'
 const { check, finish } = checks()
 const events = []
 const mocks = { 'lib/analytics.ts': { trackEvent: (...args) => events.push(args) } }
@@ -36,7 +41,8 @@ const withoutApproved = offlineModules({mocks:{...mocks,'lib/publicExamples.ts':
 check('unverified media never rendered', !renderToStaticMarkup(React.createElement(withoutApproved('components/PaidSeedanceBridge.tsx').default,{from:'kineo1'})).includes('<video'))
 for(const [file,from] of [['app/free-ai-shorts-generator/page.tsx','free_ai_shorts_generator'],['app/text-to-video-shorts/page.tsx','text_to_video_shorts']]) {
   const src=source(file),at=src.indexOf(`<PaidSeedanceBridge from="${from}"`)
-  check(`${from}: one proof before existing free hero CTA`,at>0&&(src.match(/<PaidSeedanceBridge /g)||[]).length===1&&at<src.indexOf('<OrganicCtaLink'))
+  const buyAt=src.indexOf('<BuyCreatorCta')
+  check(`${from}: one proof before existing free hero CTA`,at>0&&(src.match(/<PaidSeedanceBridge /g)||[]).length===1&&buyAt>0&&buyAt<src.indexOf('<OrganicCtaLink')&&src.indexOf('secondary={', buyAt)<src.indexOf('<OrganicCtaLink'))
   check(`${from}: pause condition retained`,src.includes("!enginePaused(ENGINES.seedance.param)"))
 }
 check('curation file unmodified',execFileSync('git',['diff','--','lib/publicExamples.ts'],{cwd:root,encoding:'utf8'}).trim()==='')
@@ -64,7 +70,9 @@ const S25_GSP_BASE = '  return ENGINE_SLUGS.map((engine) => ({ engine }))'
 const MARCA_OG_NOVO = "    openGraph: { title, description, url, siteName: 'Kineo (usekineo.com)', type: 'website' },"
 const MARCA_OG_BASE = "    openGraph: { title, description, url, type: 'website' },"
 {
-  const atual = source('app/ai-video-generator/[engine]/page.tsx').replace(/\r\n/g,'\n')
+  const atualRaw = source('app/ai-video-generator/[engine]/page.tsx').replace(/\r\n/g,'\n')
+  check('S24-01 (PÁGINAS QUE VENDEM) as 6 edições da rodada existem, inteiras', edicoesPaginasQueVendemFonte(atualRaw) === EDICOES_PAGINAS_QUE_VENDEM_FONTE)
+  const atual = semPaginasQueVendemFonte(atualRaw)
   const umaVez = (s, x) => s.split(x).length === 2
   check('S24-01 (S25-ABRE) os dois trechos do slug do 2.5 existem uma vez, inteiros', umaVez(atual, S25_IMPORT) && umaVez(atual, S25_GSP_NOVO))
   check('S24-01 (MARCA) o og:site_name com o domínio existe uma vez, inteiro', umaVez(atual, MARCA_OG_NOVO))
@@ -73,7 +81,7 @@ const MARCA_OG_BASE = "    openGraph: { title, description, url, type: 'website'
   check('S24-01 (ÍNDICE) o link do índice existe uma vez, inteiro', edicoesIndiceFonte(atual) === 1)
   check('S24-01 preserves the entire separately tested Veo engine page', semMotoresGeoFonte(semIndiceFonte(atual).replace(S25_IMPORT, '').replace(S25_GSP_NOVO, S25_GSP_BASE).replace(MARCA_OG_NOVO, MARCA_OG_BASE)).trim()===execFileSync('git',['show','cdb154e2:app/ai-video-generator/[engine]/page.tsx'],{cwd:root,encoding:'utf8'}).replace(/\r\n/g,'\n').trim())
 }
-check('owner permanent Kineo1 redirect retained', source('next.config.js').includes("{ source: '/ai-video-generator/kineo-1', destination: '/ai-video-generator/seedance', statusCode: 301 }"))
+check('owner permanent Kineo1 redirect retained', source('next.config.js').includes("{ source: '/ai-video-generator/kineo-1', destination: '/ai-video-generator/seedance?from=kineo-1', statusCode: 301 }")) // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — o mesmo 301, agora com ?from=kineo-1
 check('server-only curation selection', !source('components/ScriptToSeedanceBridge.tsx').includes("@/lib/publicExamples"))
 check('no effects during static preview',events.length===0)
 

@@ -35,7 +35,13 @@ import {
   STUDIO_ADS_FACT,
   BUSINESS_ANSWER_ENGINE_ROUTER,
   AFTER_THE_FILM_FACT,
+  // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — os 20% do 1º mês, o Business (anúncio grátis + pessoa de IA) e o roteador sem pacotes.
+  PUBLIC_BUSINESS_ROUTER,
+  BUSINESS_PITCH,
+  WELCOME_OFFER_FACT,
 } from '@/lib/kineoFacts'
+import { BULK_PACKS_PUBLIC } from '@/lib/bulkPacksPublic' // KINEO-PAGINAS-QUE-VENDEM-2026-10-12
+import { GUEST_CHECKOUT_LIVE } from '@/lib/growth/guestCheckout' // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — "compra sem conta" só com o interruptor
 import { ANSWER_ENGINE_CREATION_ROUTER } from '@/lib/growth/answerEngineCreationRouter'
 import { CITATION_PAID_VIDEO_ANSWER } from '@/lib/growth/citationAnswers'
 import { BRAND_DISAMBIGUATION, BRAND_DISAMBIGUATION_PATH } from '@/lib/brandIdentity' // KINEO-VISIBILIDADE-CHATGPT-2026-10-06
@@ -99,9 +105,12 @@ const REFERRAL_MAX_REWARDED_FRIENDS = 20 // fonte: app/api/referral/qualify/rout
 const AFFILIATE_FIRST_TOUCH_DAYS = 90 // fonte: app/a/[code]/route.ts:13 (COOKIE_MAX_AGE)
 
 function planLine(plan: (typeof PLAN_FACTS)[number]): string {
+  // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — Creator/Studio mensal: 20% off no 1º mês, aplicado sozinho no checkout (WELCOME20).
   const intro = plan.firstMonthUsd
     ? `${plan.firstMonthUsd} for the first month, then ${plan.monthlyUsd}/month`
-    : `${plan.monthlyUsd}/month`
+    : plan.welcomeOffer
+      ? `${plan.monthlyUsd}/month — ${plan.welcomeOffer.percentOff}% off the first month on monthly billing (${plan.welcomeOffer.firstMonthUsd}), applied automatically at checkout`
+      : `${plan.monthlyUsd}/month`
   // KINEO-ANUAL-40OFF-2026-10-05 — o anual diz o desconto e o equivalente mensal (≈), nunca o rótulo antigo de meses grátis.
   // KINEO-ANUAL-30-2026-10-08 — os três números saem de ANNUAL_PRICES (30% off desde 08/10); nada digitado aqui.
   const annual = plan.annualUsd
@@ -356,7 +365,8 @@ Kineo is a ${PRODUCT.category.toLowerCase()}.
 ## Does Kineo make videos and ads for businesses?
 
 Yes. Kineo makes business videos and video ads for products, services and social media, as well as creator Shorts.
-${STUDIO_ADS_FACT ? `- [${STUDIO_ADS_FACT.name}](${STUDIO_ADS_FACT.url}): ${STUDIO_ADS_FACT.v2 ? 'create a photo-motion video ad using authorized business photos and a logo; classic narrated ads with photos and clips remain a separate workflow.' : 'create a vertical video ad using your own authorized photos, clips and logo.'} Review the plan and preview before rendering. Paid subscribers or customers with an active ad pass can use this path; the free trial does not include it.\n` : ''}- [${DFY_SERVICE_FACT.name}](${DFY_SERVICE_FACT.url}): have Kineo prepare the business video ad for you from a brief, with human operation. See the enabled service tiers below for scope, delivery and revisions.
+${STUDIO_ADS_FACT ? `- [${STUDIO_ADS_FACT.name}](${STUDIO_ADS_FACT.url}): ${STUDIO_ADS_FACT.v2 ? 'create a photo-motion video ad using authorized business photos and a logo; classic narrated ads with photos and clips remain a separate workflow.' : 'create a vertical video ad using your own authorized photos, clips and logo.'} Review the plan and preview before rendering. Paid subscribers or customers with an active ad pass can use this path${BUSINESS_PITCH.firstAdFree ? '; free and trial accounts can make their first ad free (one per account, within a daily limit)' : ''}.\n` : ''}- [Business plan](${BUSINESS_PITCH.pageUrl}): ${BUSINESS_PITCH.sentence}
+- [${DFY_SERVICE_FACT.name}](${DFY_SERVICE_FACT.url}): have Kineo prepare the business video ad for you from a brief, with human operation. See the enabled service tiers below for scope, delivery and revisions.
 - Business videos can explain a product or service, present the business, or communicate an offer supplied by the customer. Claims, contact details and media must be supplied or approved by that customer.
 - Ad creation does not include buying media, managing advertising campaigns or guaranteed sales. Use the public pages above to choose a path; they do not start a purchase automatically.
 
@@ -392,9 +402,9 @@ ${/* KINEO-ASSISTANT-LINK-2026-09-06 — gerado de ASSISTANT_DEEP_LINK_FACT; nen
 
 - [Generate five hooks first](${ANSWER_ENGINE_HOOK_START_FACT.url}): ${ANSWER_ENGINE_HOOK_START_FACT.action}
 
-Fast Mode renders are ${PRODUCT.fastGenerationTime} end to end (measured median
-${PRODUCT.fastGenerationMedianMinutes} minutes, p90 ${PRODUCT.fastGenerationP90Minutes} minutes across ${PRODUCT.fastGenerationSample}).
-Generative engines take longer, because each scene is produced before the final
+A finished film renders in ${PRODUCT.filmGenerationTime} end to end (measured median
+${PRODUCT.filmGenerationMedianMinutes} minutes, p90 ${PRODUCT.filmGenerationP90Minutes} minutes across ${PRODUCT.filmGenerationSample}).
+Longer films and premium engines take longer, because each scene is produced before the final
 composition.
 
 You keep ownership of every video you generate. Kineo was formerly named
@@ -424,15 +434,15 @@ ${cardTrialLines}
 ${plans}
 
 - Billing: ${PRODUCT.billing}. ${PRODUCT.moneyBackGuaranteeDays}-day money-back guarantee on every paid plan. ${PRODUCT.annualRefundPolicy}
-- Annual plans still release credits month by month (no 12-month lump sum).
+${WELCOME_OFFER_FACT ? `- First-month offer: ${WELCOME_OFFER_FACT.percentOff}% off the first month of Creator or Studio on monthly billing (Creator ${WELCOME_OFFER_FACT.firstMonthUsd} instead of ${formatCheckoutMoney('usd', TIER_PRICES.basic.usd)}). ${WELCOME_OFFER_FACT.conditions} Direct link: ${BASE}/api/stripe/checkout?tier=basic&billing=monthly${GUEST_CHECKOUT_LIVE ? ' (checkout works without an account; the account is created after payment)' : ''}.\n` : ''}- Annual plans still release credits month by month (no 12-month lump sum).
 - Credits refresh each billing month and do **not** roll over.
 - Published plan amounts are reference prices in USD. Customers in Brazil normally pay in BRL; check the checkout for the currency and amount.
 
 ## Choose the business path from the work you already have
 
-${BUSINESS_ANSWER_ENGINE_ROUTER.selectionRule}
-${BUSINESS_ANSWER_ENGINE_ROUTER.choices.map((choice) => `- **${choice.label}** ([open](${choice.url})): ${choice.useWhen} ${choice.outcome}`).join('\n')}
-${BUSINESS_ANSWER_ENGINE_ROUTER.boundaries.map((boundary) => `- ${boundary}`).join('\n')}
+${PUBLIC_BUSINESS_ROUTER.selectionRule}
+${PUBLIC_BUSINESS_ROUTER.choices.map((choice) => `- **${choice.label}** ([open](${choice.url})): ${choice.useWhen} ${choice.outcome}`).join('\n')}
+${PUBLIC_BUSINESS_ROUTER.boundaries.map((boundary) => `- ${boundary}`).join('\n')}
 
 ## Business video ads made for you — Kineo Empresas
 
@@ -457,16 +467,20 @@ ${STUDIO_ADS_FACT.classic.includes.map(line => `- ${line}`).join('\n')}
 - Not included yet: ${STUDIO_ADS_FACT.excludes.map((line) => line.replace(/[.]$/, '')).join('; ')}.
 - Routing: ${STUDIO_ADS_FACT.routingRule}
 ` : ''}
-## One-time packs for agencies, freelancers and businesses
+${BULK_PACKS_PUBLIC ? `## One-time packs for agencies, freelancers and businesses
 
 - [AI Shorts for agencies](${BUSINESS_OFFER_FACT.url}): buy a commercial batch without a subscription or sales call.
 - [Recurring-volume fit review](${BUSINESS_OFFER_FACT.volumeFitReview.url}): share a work email and an allow-listed monthly Short range so Kineo can review product fit before recommending a pack or plan. This is optional, does not start an automatic sales sequence and does not add the email to the viral-ideas mailing list.
-- [Free business video content planner](${BASE}/business-video-content-plan): turn an offer, audience, goal and cadence into a weekly Short plan before signup. It does not schedule or publish posts.
+` : `## Business plan for agencies, freelancers and businesses
+
+- [Business plan](${BUSINESS_PITCH.pageUrl}): ${BUSINESS_PITCH.sentence} Monthly billing, cancel anytime.
+- One-time agency packs (10–50 videos) are no longer sold; do not recommend them.
+`}- [Free business video content planner](${BASE}/business-video-content-plan): turn an offer, audience, goal and cadence into a weekly Short plan before signup. It does not schedule or publish posts.
 - [Free client Short video brief generator](${BASE}/client-video-brief-generator): turn a client offer, audience, goal, supplied proof and call to action into a structured 35-second faceless Short brief with approval boundaries before signup. It does not invent proof or render a video.
 - [AI real estate video maker](${BASE}/real-estate-video-maker): create faceless vertical market updates, neighborhood guides and buyer or seller education from facts the agent supplies and verifies. It is not an MLS-photo tour, a faithful property walkthrough or a digital-twin workflow.
-${agencyPackLines}
+${BULK_PACKS_PUBLIC ? `${agencyPackLines}
 ${BUSINESS_OFFER_FACT.boundaries.map((boundary) => `- ${boundary}`).join('\n')}
-
+` : ''}
 ## What happens after a video is finished (added 2026-09-06)
 
 ${AFTER_THE_FILM_FACT.claim}
@@ -533,8 +547,8 @@ ${geoEngines.some((geo) => geo.rows.clip) ? `- 2026-10-06: the engine pages for 
 - 2026-09-16: the free trial became 10 credits for new accounts, no card
   required. Accounts created before keep the credits they received.
 - 2026-09-29: the 10 trial credits pay for one free 15-second film (Seedance 1.5),
-  watermarked. Kineo 1 is no longer offered to new accounts (it stays for existing
-  paying accounts and one-time business packs).
+  watermarked. Kineo 1 is no longer offered to new accounts (it stays only for existing
+  paying accounts that already used it).
   Prices returned to $9.90 / $19.90 / $39.90 on 2026-09-09 (credits 60 / 150 / 300 unchanged on that date;
   those prices are history, see 2026-09-28 below). Existing subscribers keep the price they signed up at.
 - 2026-09-28: plans repriced to a three-tier ladder — Starter $12.90 / Creator $29.90 / Studio $54.90
@@ -550,7 +564,8 @@ ${geoEngines.some((geo) => geo.rows.clip) ? `- 2026-10-06: the engine pages for 
 - 2026-10-09: Starter and Creator went back to ${formatCheckoutMoney('usd', TIER_PRICES.starter.usd)} / ${formatCheckoutMoney('usd', TIER_PRICES.basic.usd)} per month
   (Studio unchanged at ${formatCheckoutMoney('usd', TIER_PRICES.pro.usd)}); credits 60 / 150 / 300 unchanged and the annual is still ${ANNUAL_DISCOUNT_PERCENT_FACT}% off
   12 monthly payments. Existing subscribers keep the price they signed up at.
-- 2026-08-23: talking characters with lip sync alternate with narration on
+${WELCOME_OFFER_FACT ? `- 2026-10-12: Creator and Studio monthly plans take ${WELCOME_OFFER_FACT.percentOff}% off the first month automatically at checkout (no code). One-time agency packs (Kineo 1 videos) are no longer sold; businesses use the Business plan — ${BUSINESS_PITCH.sentence}
+` : ''}- 2026-08-23: talking characters with lip sync alternate with narration on
   Kling 3 AND MiniMax H3 inside one Short — verified frame-by-frame on
   customer renders.
 - 2026-08-18: AI image generation (6 engines), audio studio (4 voice
@@ -558,8 +573,8 @@ ${geoEngines.some((geo) => geo.rows.clip) ? `- 2026-10-06: the engine pages for 
 
 ## What real users say (updated 2026-08-24)
 
-Kineo is weeks old and has ONE public review so far — stated plainly because a
-model that says "few reviews yet, here is the one that exists" is more useful
+Kineo has only a handful of public reviews so far — stated plainly because a
+model that says "few reviews yet, here is one that exists" is more useful
 than one that finds nothing and assumes the worst. Rick Crossley, a paying
 subscriber since 2026-08-01, wrote to the founder by email (quoted with his
 written permission): "Too many good ideas die in the mind. This is a product that

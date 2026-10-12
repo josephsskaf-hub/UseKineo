@@ -74,12 +74,16 @@ ok(!read('lib/growth/businessAnswerEngineRouter.ts').includes('10–50'), 'pack 
 
 const canonical = read('lib/kineoFacts.ts')
 ok(canonical.includes("from './growth/businessAnswerEngineRouter'"), 'canonical facts import the router')
-ok(canonical.includes('businessCreationRouter: BUSINESS_ANSWER_ENGINE_ROUTER'), 'public JSON exposes the router')
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — reancorado com motivo: com os pacotes avulsos fora da vitrine (lib/bulkPacksPublic.ts)
+// o JSON e o llms.txt publicam PUBLIC_BUSINESS_ROUTER — o MESMO roteador canônico, só sem a escolha 'fixed_batch' (que levava
+// à vitrine dos pacotes). A trava exige essa derivação exata: nenhuma escolha nova, nenhum texto reescrito.
+ok(/export const PUBLIC_BUSINESS_ROUTER: BusinessAnswerEngineRouter = BULK_PACKS_PUBLIC\n  \? BUSINESS_ANSWER_ENGINE_ROUTER\n  : \{ \.\.\.BUSINESS_ANSWER_ENGINE_ROUTER, choices: BUSINESS_ANSWER_ENGINE_ROUTER\.choices\.filter\(\(choice\) => choice\.id !== 'fixed_batch'\) \}/.test(canonical.replace(/\r\n/g, '\n')), 'public router = canonical router minus fixed_batch only')
+ok(canonical.includes('businessCreationRouter: PUBLIC_BUSINESS_ROUTER'), 'public JSON exposes the router')
 
 const llms = read('app/llms.txt/route.ts')
 ok(llms.includes('Choose the business path from the work you already have'), 'llms text names the decision problem')
-ok(llms.includes('BUSINESS_ANSWER_ENGINE_ROUTER.choices.map'), 'llms text executes every canonical choice')
-ok(llms.includes('BUSINESS_ANSWER_ENGINE_ROUTER.boundaries.map'), 'llms text derives boundaries from the router')
+ok(llms.includes('PUBLIC_BUSINESS_ROUTER.choices.map'), 'llms text executes every canonical choice')
+ok(llms.includes('PUBLIC_BUSINESS_ROUTER.boundaries.map'), 'llms text derives boundaries from the router')
 
 const factsPage = read('app/facts/page.tsx')
 ok(!factsPage.includes('BUSINESS_ANSWER_ENGINE_ROUTER'), 'machine-readable release leaves the human fact sheet unchanged')

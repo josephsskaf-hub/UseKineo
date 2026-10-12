@@ -7,6 +7,10 @@ import {offlineModules,renderToStaticMarkup,source} from './gpt24h-offline-suppo
 // descontada dos DOIS lados pela normalização única; o caminho de compra do Veo e o resto seguem travados.
 import {semMotoresGeoHtml} from './test-support/motores-geo-2026-10-06.mjs'
 import {edicoesIndiceHtml,semIndiceHtml} from './test-support/indice-video-ia-2026-10-06.mjs' // KINEO-INDICE-VIDEO-IA-2026-10-06
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — reancorado com motivo: no Seedance a fileira de ações virou a compra direta do Creator
+// (descontada dos dois lados pelo marcador neutro e PROVADA renderizada por provaCompraSeedance); a meta description de quem o
+// trial não cobre passou a terminar em positivo (desfeita só nesse final exato). O caminho de compra do Veo segue travado.
+import {comAcoesNeutras,provaCompraSeedance,semMetaPositiva} from './test-support/paginas-que-vendem-2026-10-12.mjs'
 const file='app/ai-video-generator/[engine]/page.tsx',base=execFileSync('git',['show','7dbd47c1:'+file],{encoding:'utf8'})
 const mutant=process.argv.includes('--mutant')
 const before=engineFixture({[file]:base}),after=engineFixture(mutant?{'components/SeedanceHeroActions.tsx':source('components/SeedanceHeroActions.tsx').replace('href="/pricing"','href="/signup"')}:{})
@@ -27,7 +31,8 @@ for(const engine of served){
  if(engine!=='veo'){
   // A mutated shared component affects Seedance as well; the mutant below
   // is evaluated against the Veo purchase path, not an incidental sibling.
-  if(!mutant)assert.equal(html,old,engine+': entire page preserved');count++
+  if(engine==='seedance'){assert.ok(provaCompraSeedance(html),'seedance: compra direta renderizada (Creator mensal, conta ao lado, planos abaixo)');count++}
+  if(!mutant)assert.equal(engine==='seedance'?comAcoesNeutras(html):html,engine==='seedance'?comAcoesNeutras(old):old,engine+': entire page preserved');count++
  }else{
   assert.ok(hero(old)&&hero(html));count++
   assert.equal(html.replace(hero(html),''),old.replace(hero(old),''),'Veo content outside hero preserved');count++
@@ -43,7 +48,7 @@ for(const engine of served){
  // KINEO-MARCA-2026-10-06 — reancorado com motivo (fundador, "vai marca"): a desambiguação Kineo (usekineo.com) × kineo.studio
  // vai no og:site_name desta página, com o título intacto. Só essa chave nova é descontada, e ela é EXIGIDA com o valor exato;
  // todo o resto do metadata segue travado na base. Prova completa: scripts/test-marca-kineo-2026-10-06.mjs.
- const metaNow=after(file).generateMetadata({params:{engine}}),{siteName:marcaSiteName,...ogNow}=metaNow.openGraph
+ const metaNow=semMetaPositiva(after(file).generateMetadata({params:{engine}})),{siteName:marcaSiteName,...ogNow}=metaNow.openGraph
  assert.equal(marcaSiteName,'Kineo (usekineo.com)',engine+': og:site_name carries the domain');count++
  assert.equal(JSON.stringify({...metaNow,openGraph:ogNow}),JSON.stringify(before(file).generateMetadata({params:{engine}})),'all canonical metadata preserved');count++
 }

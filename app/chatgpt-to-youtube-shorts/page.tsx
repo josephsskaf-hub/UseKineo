@@ -31,7 +31,7 @@ import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { CREATION_HANDOFF_PROMPT_MAX_CHARS } from '@/lib/creationHandoff'
-import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { getFreeTierOffer, swapFreeTierCopy as ft, FREE_FILM_LABEL } from '@/lib/freeTierOffer'
 import { ASPECTS } from '@/lib/aspect'
 import { DEFAULT_LANGUAGE, DURATIONS, ENGINE_LABELS, HANDOFF_ENGINES, SCRIPT_MAX_CHARS, TOPIC_MAX_CHARS } from '@/lib/gptHandoff'
 import { DURATION_FOLLOWS_SCRIPT_CEILING_SECONDS } from '@/lib/durationFollowsScript'
@@ -426,8 +426,9 @@ export default function ChatGptToYouTubeShortsPage() {
             Already have the script? Paste it here.
           </h2>
           <p style={p}>
+            {/* KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — sem o recuo para o motor rápido (Kineo 1 fora da entrada desde 29/09). */}
             Your script stays attached through signup and arrives in Kineo ready for the best engine your active trial
-            can cover; otherwise it falls back safely to Fast. You do not need to copy it a second time.
+            can cover — for a new account, a {FREE_FILM_LABEL}. You do not need to copy it a second time.
           </p>
           <TopicGeneratorForm
             campaign={CAMPAIGN}

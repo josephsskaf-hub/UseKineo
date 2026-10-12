@@ -74,7 +74,10 @@ ok(on.facts.businessVideoService && on.facts.businessVideoService.humanOperated 
 ok(/business video ads/.test(on.facts.product.oneLiner) && /creators and businesses/.test(on.facts.product.oneLiner), '1m. apresentação principal do JSON inclui criadores, empresas e anúncios')
 const intro = on.llms.slice(0, on.llms.indexOf('## Videos from an idea or a script'))
 ok(intro.includes(f.url) && intro.includes(on.facts.businessVideoService.url), '1n. início do llms oferece os dois caminhos públicos de anúncio')
-ok(intro.includes('free trial does not include it') && intro.includes('guaranteed sales'), '1o. anúncio não recebe promessa de trial nem de vendas')
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — reancorado com motivo: desde 09/10 (KINEO-ADS-AMOSTRA) a conta free/trial faz o 1º
+// anúncio grátis; "the free trial does not include it" virou mentira. A trava segue a mesma ideia — nada de prometer ao
+// trial mais do que ele tem —: exige o limite exato (um por conta, teto diário) e continua proibindo promessa de vendas.
+ok(intro.includes('free and trial accounts can make their first ad free (one per account, within a daily limit)') && !intro.includes('free trial does not include it') && intro.includes('guaranteed sales'), '1o. anúncio: o trial recebe só a amostra (1 por conta, teto diário), nenhuma promessa de vendas')
 ok(!on.llms.includes('there is no\nfootage to upload') && on.llms.includes('separate workflows'), '1p. limite de vídeo a partir de texto não nega upload nos anúncios')
 const schema = JSON.parse(rd('public/gpt/openapi.json'))
 const factsOp = schema.paths['/api/facts'].get
@@ -111,7 +114,9 @@ ok(off.offer.adsPassLive() === false, '2a. premissa: env 0 desliga o passe')
 ok(!/Studio Ads|usekineo\.com\/ads\b/.test(off.llms), '2b. desligado: o llms.txt não cita Studio Ads nem /ads')
 ok(off.facts.studioAds === null, '2c. desligado: /api/facts devolve studioAds null')
 ok(off.llms.includes(off.facts.businessVideoService.url) && off.llms.includes('Does Kineo make videos and ads for businesses?'), '2e. desligar self-service preserva o serviço humano na apresentação')
-ok(/self-service production\.\n\n## One-time packs for agencies/.test(off.llms), '2d. desligado: o bloco das Empresas fecha exatamente como antes (sem linha em branco a mais nem a menos)')
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — reancorado com motivo: com os pacotes avulsos fora da vitrine (BULK_PACKS_PUBLIC=false)
+// a seção seguinte passou a ser a do plano Business; a trava do espaçamento (uma linha em branco, nem mais nem menos) é a mesma.
+ok(/self-service production\.\n\n## (One-time packs|Business plan) for agencies/.test(off.llms), '2d. desligado: o bloco das Empresas fecha exatamente como antes (sem linha em branco a mais nem a menos)')
 
 // ── 3. nada digitado ───────────────────────────────────────────────────────────────────────────────────
 const fatos = rd('lib/growth/studioAdsFacts.ts')

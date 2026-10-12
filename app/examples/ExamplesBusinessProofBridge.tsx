@@ -3,6 +3,10 @@
 import Link from 'next/link'
 import { useEffect, useRef } from 'react'
 import { trackEvent } from '@/lib/analytics'
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — pacotes avulsos fora da vitrine: o cartão fala do Business (o destino já redireciona
+// para /business). A frase dos pacotes volta sozinha com BULK_PACKS_PUBLIC=true.
+import { BULK_PACKS_PUBLIC } from '@/lib/bulkPacksPublic'
+import { businessPitch } from '@/lib/growth/businessPitch'
 import {
   EXAMPLES_BUSINESS_PROOF_CLICK_MARKER,
   EXAMPLES_BUSINESS_PROOF_DESTINATION,
@@ -81,8 +85,14 @@ export default function ExamplesBusinessProofBridge() {
           Making Shorts for clients?
         </h2>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-white/55">
-          Compare one-time self-service packs for 10–50 Fast Shorts. Clean commercial-use MP4s,
-          one Kineo account and no recurring contract.
+          {BULK_PACKS_PUBLIC ? (
+            <>
+              Compare one-time self-service packs for 10–50 Fast Shorts. Clean commercial-use MP4s,
+              one Kineo account and no recurring contract.
+            </>
+          ) : (
+            <>{businessPitch().sentence}</>
+          )}
         </p>
       </div>
       <Link

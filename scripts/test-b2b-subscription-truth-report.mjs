@@ -631,8 +631,10 @@ check(agencyHeaderCallerSource.includes('AGENCY_HEADER_LOGIN_HREF'), 'signed-out
 check(agencyHeaderSource.includes('encodeURIComponent(AGENCY_HEADER_RETURN_HREF)'), 'login redirect encodes the internal agency-page return')
 equal(B2B_AGENCY_HEADER_MEASUREMENT_START, '2026-09-03T05:00:00.000Z', 'agency header measurement starts after the planned production deploy')
 check(answerRouterSource.includes(`'${answerRouterRecurringPath.intentCampaign}'`), 'recurring campaign comes from the canonical business answer router')
-check(llmsSource.includes('BUSINESS_ANSWER_ENGINE_ROUTER.choices.map'), 'llms text executes every canonical business destination')
-check(llmsSource.includes('BUSINESS_ANSWER_ENGINE_ROUTER.boundaries.map'), 'llms text publishes the no-enterprise boundaries from the canonical router')
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — o llms.txt publica PUBLIC_BUSINESS_ROUTER (o canônico menos o 'fixed_batch' dos
+// pacotes avulsos, que saíram da vitrine); a derivação exata é travada em scripts/test-business-answer-engine-router.mjs.
+check(llmsSource.includes('PUBLIC_BUSINESS_ROUTER.choices.map'), 'llms text executes every canonical business destination')
+check(llmsSource.includes('PUBLIC_BUSINESS_ROUTER.boundaries.map'), 'llms text publishes the no-enterprise boundaries from the canonical router')
 const pilotBase = Date.parse(B2B_PILOT_REVIEW_MEASUREMENT_START)
 const pilotAt = (minute) => new Date(pilotBase + minute * 60_000).toISOString()
 const pilotProfiles = [

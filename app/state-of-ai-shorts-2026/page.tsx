@@ -25,7 +25,10 @@ import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
 // KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — ponte roteiro → Seedance acima da dobra (fundador 23/09, jogada 3).
-import ScriptToSeedanceBridge from '@/components/ScriptToSeedanceBridge'
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — a ponte virou a versão PAGA (PaidSeedanceBridge: vídeo real da casa + preço) e
+// a primeira dobra ganhou a compra direta do Creator (BuyCreatorCta). Medido 12/10: 108 visitas, nenhum vídeo.
+import PaidSeedanceBridge from '@/components/PaidSeedanceBridge'
+import BuyCreatorCta from '@/components/BuyCreatorCta'
 import { ENGINES } from '@/lib/growth/enginePageCatalog'
 import { enginePaused } from '@/lib/engineLaunch'
 import { STATE_EDITION } from '@/lib/seo/stateOfAiShortsEdition'
@@ -63,7 +66,7 @@ export default function StateOfAiShortsPage() {
   // em 60 d) e a que menos converte (26 contas, 0 pagantes). A ponte roteiro → Seedance nasce aqui, logo antes do
   // bloco do formulário, e é renderizada no TOPO do conteúdo (depois do lead, antes de "Key findings"). Título, H1,
   // lead e JSON-LD intocados. Some se o Seedance estiver pausado.
-  const seedanceBridge = !enginePaused(ENGINES.seedance.param) ? <ScriptToSeedanceBridge from="state_of_ai" /> : null
+  const seedanceBridge = !enginePaused(ENGINES.seedance.param) ? <PaidSeedanceBridge from="state_of_ai" /> : null
 
   // KINEO-GROWTH-STATE-STARTER-2026-08-28 — production evidence showed the
   // embedded starter converts when it is reached, but it sat after the entire
@@ -147,6 +150,8 @@ export default function StateOfAiShortsPage() {
           creator data.
         </p>
 
+        {/* KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — compra direta na primeira dobra, logo antes da ponte paga. */}
+        {seedanceBridge && <div style={{ margin: '-24px 0 18px' }}><BuyCreatorCta page="state_of_ai" align="left" /></div>}
         {seedanceBridge && <div style={{ margin: '-16px 0 40px' }}>{seedanceBridge}</div>}
 
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 16px' }}>Key findings</h2>

@@ -100,11 +100,18 @@ import {
   DEFAULT_ENGINE,
   DEFAULT_LANGUAGE,
   DURATIONS,
-  HANDOFF_ENGINES,
+  ADVERTISED_HANDOFF_ENGINES,
   HANDOFF_TTL_DAYS,
   SCRIPT_MAX_CHARS,
   TOPIC_MAX_CHARS,
 } from './gptHandoff'
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — o que o ChatGPT lê passa a bater com o que as páginas vendem: os 20% do 1º mês
+// (mesmo interruptor do servidor), o Business com o anúncio grátis e a pessoa de IA, os pacotes avulsos fora e o tempo de
+// filme medido no estudo do mês (não mais a amostra do Kineo 1 de agosto).
+import { WELCOME20_PERCENT_OFF, WELCOME20_SITE_OFFER_LIVE } from './growth/publicPromoTruth'
+import { BULK_PACKS_PUBLIC } from './bulkPacksPublic'
+import { businessPitch, type BusinessPitch } from './growth/businessPitch'
+import { STATE_HEADLINE } from './seo/stateOfAiShortsHeadline'
 import { CARD_ENTRY_COPY, CARD_ENTRY_ONLY, CARD_ENTRY_TRIAL_CREDITS } from './entryPolicy'
 import { NARRATION_LANGUAGE_CODES } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 
@@ -201,6 +208,21 @@ export interface PlanFact {
   creditsPerMonth: number
   /** O que o plano inclui, como aparece em /pricing. */
   includes: string[]
+  /** KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — oferta de boas-vindas do 1º mês (WELCOME20), aplicada sozinha no checkout. */
+  welcomeOffer?: WelcomeOfferFact | null
+}
+
+/** KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — os 20% do 1º mês, do MESMO interruptor que aplica o cupom no servidor. */
+export interface WelcomeOfferFact {
+  percentOff: number
+  /** Primeiro mês já com o desconto (ex.: "$15.92"). */
+  firstMonthUsd: string
+  firstMonthUsdCents: number
+  /** Só no mensal. */
+  billing: 'monthly'
+  /** Aplicado sozinho em qualquer link de checkout do plano; nenhum código para digitar. */
+  automatic: true
+  conditions: string
 }
 
 export interface EngineFact {
@@ -243,7 +265,9 @@ export interface CompetitorFact {
 const PLAN_INCLUDES: Record<CheckoutTier, string[]> = {
   starter: [
     'AI writes the script and the voiceover',
-    'Stock footage matched scene by scene to the narration',
+    // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — dizia "Stock footage matched scene by scene": era o Kineo 1, fora da entrada desde
+    // 29/09. O Starter usa qualquer motor com os créditos do mês; a contagem é a do Seedance 1.5 de 60 s (mesma régua do Creator).
+    `Any engine on the plan's credits — about ${videosPerMonth('starter', 'cinematic_ai')} Seedance 1.5 film${videosPerMonth('starter', 'cinematic_ai') === 1 ? '' : 's'} of 60 s a month (AI-generated scenes)`,
     'Auto-captions burned into the video',
     'Watermark-free MP4 download',
     'Video history ("My Videos")',
@@ -276,7 +300,9 @@ const PLAN_INCLUDES: Record<CheckoutTier, string[]> = {
     // 320 créditos (Kling 2.5 = 50 ⇒ "about 4"; Seedance = 20 ⇒ "roughly 10").
     // Com 160 elas viraram 3 e 8 — e "about 4 premium videos" cobrado como
     // benefício de plano é o tipo de arredondamento que o comprador confere.
-    `Cinematic Kling 2.5 at 1080p — about ${videosPerMonth('pro', 'cinematic_kling')} premium videos per month`,
+    // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — saiu o "at 1080p": o payload do Kling 2.5 (fal-ai/kling-video/v2.5-turbo/pro,
+    // app/api/generate-video-cinematic/route.ts) não pede resolução nenhuma; o código não sustenta a promessa.
+    `Cinematic Kling 2.5 — about ${videosPerMonth('pro', 'cinematic_kling')} premium videos per month`,
     `Or roughly ${videosPerMonth('pro', 'cinematic_ai')} Seedance videos per month with the same credits`,
     // KINEO-AVATAR-FORA-2026-09-28 — ' and Avatar' só volta com AVATAR_PUBLIC=true.
     `Every available engine: Kling 2.5, Veo 3.1, Kling 3${AVATAR_PUBLIC ? ', MiniMax H3 and Avatar' : ' and MiniMax H3'} (Omni Flash is temporarily paused for maintenance since 15 September 2026)`, // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 · KINEO-H3-DE-VOLTA-2026-09-22
@@ -302,7 +328,36 @@ function buildPlan(id: CheckoutTier): PlanFact {
     annualSavingsPercent: annualSavingsPercent(id),
     creditsPerMonth: plan.credits,
     includes: PLAN_INCLUDES[id],
+    // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — só Creator ('basic') e Studio ('pro'), o mesmo recorte do WELCOME20 automático.
+    welcomeOffer: id === 'basic' || id === 'pro' ? welcomeOfferFor(TIER_PRICES[id].usd) : null,
   }
+}
+
+/**
+ * KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — os 20% do 1º mês (WELCOME20) no Creator e no Studio mensais. A rota do checkout aplica
+ * o cupom SOZINHA (KINEO-CLARITY-WELCOME20-2026-10-12, welcome20AutoSkipReason) em qualquer link
+ * /api/stripe/checkout?tier=basic|pro sem outro desconto, logado ou convidado. null com o interruptor desligado.
+ */
+export function welcomeOfferFor(monthlyMinor: number): WelcomeOfferFact | null {
+  if (!WELCOME20_SITE_OFFER_LIVE) return null
+  const firstMinor = Math.round((monthlyMinor * (100 - WELCOME20_PERCENT_OFF)) / 100)
+  return {
+    percentOff: WELCOME20_PERCENT_OFF,
+    firstMonthUsd: formatCheckoutMoney('usd', firstMinor),
+    firstMonthUsdCents: firstMinor,
+    billing: 'monthly',
+    automatic: true,
+    conditions:
+      'Creator and Studio monthly plans only, applied automatically at checkout (no code to type); not combined with another discount, an annual plan or a partner coupon. From the second month on, the regular monthly price applies.',
+  }
+}
+export const WELCOME_OFFER_FACT: WelcomeOfferFact | null = welcomeOfferFor(TIER_PRICES.basic.usd)
+
+/** KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — "September 7 – October 6, 2026" (o fim da janela é exclusivo). */
+function stateWindowLabel(): string {
+  const fmt = (iso: string) => new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', timeZone: 'UTC' })
+  const end = new Date(Date.parse(STATE_HEADLINE.windowEnd) - 24 * 60 * 60 * 1000).toISOString()
+  return `${fmt(STATE_HEADLINE.windowStart)} – ${fmt(end)}, ${end.slice(0, 4)}`
 }
 
 // KINEO-AUTOPILOT-299-2026-07-26 — o Autopilot é montado À MÃO em vez de
@@ -361,6 +416,11 @@ const AUTOPILOT_LITE_FACT: PlanFact = {
 // KINEO-BUSINESS-84-2026-10-09 — o plano Business, dito para o ChatGPT/llms.txt/MCP. Preço e créditos vêm da fonte (BUSINESS_PRICES / PLANS);
 // a contagem de anúncios NÃO entra aqui de propósito: lib/businessPlan.ts puxa lib/ads/v2Tiers.ts, e este módulo é
 // carregado inteiro pelos guardiões do llms.txt num orçamento de 5 s por módulo (o import estourava o orçamento).
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — a contagem ENTRA agora (fundador: o ChatGPT precisa dizer "≈12 anúncios de 15 s,
+// o 1º grátis, pessoa de IA opcional"). lib/ads/v2Tiers.ts já vinha no grafo por lib/growth/studioAdsFacts.ts; o que se
+// soma é businessPlan/v2Styles/v2Presenter/sample/v2Variations/team — módulos puros e pequenos. Se um guardião estourar
+// o orçamento de novo, a saída é ele carregar o grafo uma vez, não tirar a promessa daqui.
+export const BUSINESS_PITCH: BusinessPitch = businessPitch(BASE)
 const BUSINESS_FACT: PlanFact = {
   id: 'business' as CheckoutTier,
   name: PLANS.business.name,
@@ -375,7 +435,13 @@ const BUSINESS_FACT: PlanFact = {
   creditsPerMonth: PLANS.business.credits,
   includes: [
     `Product video ads for companies, made yourself in Kineo: ${PLANS.business.credits} credits a month for short vertical product ads`,
+    // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — a contagem, os estilos, a pessoa de IA e o 1º anúncio grátis, lidos de
+    // lib/growth/businessPitch.ts (que lê lib/businessPlan.ts e lib/ads/*). Cada linha some com o interruptor dela.
+    `About ${BUSINESS_PITCH.adsPerMonth} product ads of ${BUSINESS_PITCH.adSeconds} s a month`,
     'Upload a product photo or paste a product link; Kineo writes, voices and edits a vertical ad with music and on-screen text',
+    ...(BUSINESS_PITCH.styles ? [`${BUSINESS_PITCH.styles} ad styles to choose from`] : []),
+    ...(BUSINESS_PITCH.aiPerson ? ['Optional AI person holding the product and talking about it'] : []),
+    ...(BUSINESS_PITCH.firstAdFree ? ['First ad free to try (free and trial accounts, one per account, within a daily limit)'] : []),
     'Several variations of an ad to A/B test',
     'Commercial use; monthly billing, cancel anytime',
   ],
@@ -531,6 +597,13 @@ export const BUSINESS_OFFER_FACT: BusinessOfferFact = buildBusinessOfferFact(
 
 export const BUSINESS_ANSWER_ENGINE_ROUTER: BusinessAnswerEngineRouter =
   buildBusinessAnswerEngineRouter(BASE, BUSINESS_OFFER_FACT)
+
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — o roteador que vai a público (/llms.txt e /api/facts): com os pacotes avulsos
+// fechados, sai a escolha 'fixed_batch' ("Buy a fixed batch without a subscription"), que levava à vitrine dos pacotes.
+// O roteador completo segue exportado acima (contrato puro e seus guardiões intactos).
+export const PUBLIC_BUSINESS_ROUTER: BusinessAnswerEngineRouter = BULK_PACKS_PUBLIC
+  ? BUSINESS_ANSWER_ENGINE_ROUTER
+  : { ...BUSINESS_ANSWER_ENGINE_ROUTER, choices: BUSINESS_ANSWER_ENGINE_ROUTER.choices.filter((choice) => choice.id !== 'fixed_batch') }
 
 /* ------------------------------------------------------------------ *
  * Plano gratuito
@@ -820,11 +893,14 @@ export const PRODUCT = {
   // ⚠️ AINDA DESALINHADO: a faixa "3–7 minutes" continua escrita à mão em ~20
   // páginas públicas (app/layout.tsx, KineoLanding, páginas de nicho). Trocar
   // todas é a próxima ordem — está registrada em docs/SPRINT-2026-08-05.md.
-  fastGenerationTime: 'usually 3–7 minutes',
-  fastGenerationMedianMinutes: 4.2,
-  fastGenerationP90Minutes: 6.6,
-  fastGenerationSample:
-    '114 completed Fast renders since August 2, 2026 (measured end-to-end, per attempt)',
+  // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — a amostra acima era do Kineo 1 (Fast), motor fora da entrada desde 29/09: o ChatGPT
+  // seguia prometendo "3–7 minutes, median 4.2" para um motor que a conta nova não vê. Os campos viraram `film*` e leem a
+  // edição do mês do State of AI Shorts (lib/seo/stateOfAiShortsHeadline.ts, espelho travado do JSON da edição): mediana e
+  // p90 dos filmes de clientes nos motores que geram cada cena. Edição nova = número novo, sem redigitar.
+  filmGenerationTime: 'about 5–7 minutes',
+  filmGenerationMedianMinutes: STATE_HEADLINE.medianMinutes,
+  filmGenerationP90Minutes: STATE_HEADLINE.p90Minutes,
+  filmGenerationSample: `customer films on the engines that generate every scene, ${stateWindowLabel()} (State of AI Shorts 2026, ${STATE_HEADLINE.edition} edition)`,
   // fonte: app/terms/page.tsx:79 — "You retain ownership of the videos you
   // generate".
   userOwnsOutput: true,
@@ -905,7 +981,11 @@ export const NOT_A_FIT: { situation: string; useInstead: string }[] = [
       // KINEO-AVATAR-FORA-2026-09-28 — dizia "Kineo has an Avatar engine"; o Avatar saiu do catálogo público em 27/09.
       AVATAR_PUBLIC
         ? 'A dedicated avatar platform such as HeyGen or Synthesia. Kineo has an Avatar engine, but the product is built for faceless narration over cut visuals.'
-        : 'A dedicated avatar platform such as HeyGen or Synthesia. Kineo does not currently offer an avatar or presenter engine: it makes faceless narrated films over cut visuals.',
+        // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — "não temos avatar" deixou de ser verdade inteira: o Studio Ads tem a pessoa de
+        // IA opcional segurando o produto e falando (lib/ads/v2Presenter.ts). Para FILMES continua não havendo motor de avatar.
+        : BUSINESS_PITCH.aiPerson
+          ? 'A dedicated avatar platform such as HeyGen or Synthesia. Kineo has no avatar engine for films — it makes faceless narrated films over cut visuals; only its self-service product ads (Business plan) can add an optional AI person holding the product and talking about it.'
+          : 'A dedicated avatar platform such as HeyGen or Synthesia. Kineo has no avatar engine for films: it makes faceless narrated films over cut visuals.',
   },
   {
     // KINEO-MULTIFORMATO-2026-09-02 — esta entrada existia na lista "quando NÃO
@@ -1070,7 +1150,8 @@ export const ASSISTANT_DEEP_LINK_FACT: AssistantDeepLinkFact = {
   params: {
     script: { required: true, maxChars: SCRIPT_MAX_CHARS, encoding: 'urlencoded', aliases: ['prompt'] },
     duration: { required: false, values: DURATIONS, default: DEFAULT_DURATION, aliases: ['durationSec'] },
-    engine: { required: false, values: HANDOFF_ENGINES, default: DEFAULT_ENGINE, aliases: ['engineHint'] },
+    // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — anuncia só o que a conta nova vê; 'fast' e 'omni' seguem ACEITOS (lib/gptHandoff.ts).
+    engine: { required: false, values: ADVERTISED_HANDOFF_ENGINES, default: DEFAULT_ENGINE, aliases: ['engineHint'] },
     aspect: { required: false, values: ASPECTS, default: DEFAULT_ASPECT },
     language: { required: false, format: `short code, one of ${NARRATION_LANGUAGE_CODES.join(', ')}`, default: DEFAULT_LANGUAGE }, // KINEO-IDIOMAS-15: o catálogo, não três literais
     topic: { required: false, maxChars: TOPIC_MAX_CHARS },
@@ -1343,8 +1424,12 @@ export interface KineoFactsPayload {
   freeTools: FreeToolFact[]
   /** Public no-signup calculator for production cost and current plan fit. */
   costPlanner: PublicCostPlannerFact
-  /** One-time commercial production packs; distinct from recurring plans. */
-  businessOffer: BusinessOfferFact
+  /** One-time commercial production packs; distinct from recurring plans. null = packs no longer sold (KINEO-PAGINAS-QUE-VENDEM-2026-10-12). */
+  businessOffer: BusinessOfferFact | null
+  /** KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — the Business plan in one sentence (product ads, first ad free, optional AI person). */
+  businessPlan: BusinessPitch
+  /** KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — 20% off the first month on Creator/Studio monthly, applied automatically; null when off. */
+  welcomeOffer: WelcomeOfferFact | null
   /** Human-operated one-time video service, never subscription MRR. */
   businessVideoService: typeof DFY_SERVICE_FACT
   /** Self-service business ad pass (Studio Ads, /ads); null while the pass is switched off. */
@@ -1410,10 +1495,13 @@ export function getKineoFacts(): KineoFactsPayload {
     recurringFreeAccess: RECURRING_FREE_ACCESS,
     freeTools: FREE_TOOL_FACTS,
     costPlanner: PUBLIC_COST_PLANNER_FACT,
-    businessOffer: BUSINESS_OFFER_FACT,
+    // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — pacotes avulsos fora da vitrine (lib/bulkPacksPublic.ts): o JSON para de oferecê-los.
+    businessOffer: BULK_PACKS_PUBLIC ? BUSINESS_OFFER_FACT : null,
+    businessPlan: BUSINESS_PITCH,
+    welcomeOffer: WELCOME_OFFER_FACT,
     businessVideoService: DFY_SERVICE_FACT,
     studioAds: STUDIO_ADS_FACT,
-    businessCreationRouter: BUSINESS_ANSWER_ENGINE_ROUTER,
+    businessCreationRouter: PUBLIC_BUSINESS_ROUTER,
     plans: PLAN_FACTS,
     engines: ENGINE_FACTS,
     paidVideoBuyerGuidance: PAID_VIDEO_BUYER_GUIDANCE,

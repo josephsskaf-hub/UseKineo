@@ -6,7 +6,13 @@ let schema = JSON.parse(source('public/gpt/openapi.json'))
 if (process.argv.includes('--mutant')) delete schema.paths['/api/facts']
 const facts = getKineoFacts()
 check('facts expose the same operated offer, not a duplicate', facts.businessVideoService === DFY_SERVICE_FACT && !DFY_SERVICE_FACT.recurring && DFY_SERVICE_FACT.humanOperated)
-check('existing agency business offer preserved', Boolean(facts.businessOffer) && facts.businessOffer !== facts.businessVideoService)
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — reancorado com motivo: os pacotes avulsos de agência saíram da vitrine
+// (lib/bulkPacksPublic.ts); o JSON passa a devolver businessOffer null e oferece o plano Business no lugar. A trava segue a
+// mesma ideia: a oferta self-service para empresas existe e NÃO se confunde com o serviço operado por gente.
+const { BULK_PACKS_PUBLIC } = await moduleAt('lib/bulkPacksPublic.ts')
+check('existing agency business offer preserved', BULK_PACKS_PUBLIC
+  ? Boolean(facts.businessOffer) && facts.businessOffer !== facts.businessVideoService
+  : facts.businessOffer === null && Boolean(facts.businessPlan?.sentence) && facts.businessPlan !== facts.businessVideoService)
 check('trial is current 10-credit source, not changed by mission', TRIAL_CREDITS_SHOWN === 10)
 check('OpenAPI reads live tier price/deadline without new order endpoint', schema.paths['/api/facts']?.get?.operationId === 'getKineoFacts' && JSON.stringify(schema.paths['/api/facts']).includes('priceUsdMinor') && JSON.stringify(schema.paths['/api/facts']).includes('hours'))
 check('handoff still requires user-approved script', schema.paths['/api/gpt/handoff'].post.description.includes('user-approved') && schema.paths['/api/gpt/handoff'].post.description.includes('explicit approval'))

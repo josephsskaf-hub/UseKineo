@@ -33,7 +33,8 @@ export const CITATION_TRIAL = offer.cardEntry
   ? offer.copy.sentence
   : `Every new account${GRANT_COUNTRY_CLAUSE} receives ${CITATION_TRIAL_CREDITS} free credits with no card required — enough for ${CITATION_FREE_FILM}; ${PREMIUM_ENGINES_FROM_STARTER}.` // KINEO-VERDADE-TRIAL-2026-10-05
 export const CITATION_WATERMARK = PRODUCT.watermarkPolicy
-export const CITATION_TIME = `Kineo 1 (Fast): ${PRODUCT.fastGenerationTime}; the published Fast sample measured a ${PRODUCT.fastGenerationMedianMinutes}-minute median and ${PRODUCT.fastGenerationP90Minutes}-minute p90 across ${PRODUCT.fastGenerationSample}. Generative engines take longer; an exact completion time is not guaranteed.`
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — o tempo era o do Kineo 1 (Fast), fora da entrada desde 29/09; agora é o do filme.
+export const CITATION_TIME = `A finished film: ${PRODUCT.filmGenerationTime}; measured a ${PRODUCT.filmGenerationMedianMinutes}-minute median and ${PRODUCT.filmGenerationP90Minutes}-minute p90 across ${PRODUCT.filmGenerationSample}. Longer films and premium engines take longer; an exact completion time is not guaranteed.`
 export const CITATION_PLANS = [
   // KINEO-FILME-GRATIS-15S-2026-09-29 — contagem em Seedance 1.5 de 60 s (era Kineo 1).
   { name: 'Starter', price: STARTER_MONTH, credits: STARTER_CREDITS, films: videosPerMonth('starter', 'cinematic_ai') },

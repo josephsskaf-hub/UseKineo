@@ -21,14 +21,15 @@ for(const route of ['free-ai-shorts-generator','text-to-video-shorts']){
   const faq=JSON.parse([...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(m=>m[1]).find(s=>s.includes('FAQPage')))
   assert.ok(faq.mainEntity.every(q=>html.includes(q.name)&&html.includes(q.acceptedAnswer.text.replace(/&/g,'&amp;'))));count++
   if(route==='free-ai-shorts-generator'){
-    const answer=faq.mainEntity.find(q=>q.name==='What happens after the free videos?').acceptedAnswer.text
+    // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — reancorado: a pergunta virou "after your free film?" (o grátis é UM filme); a resposta é a mesma.
+    const answer=faq.mainEntity.find(q=>q.name==='What happens after your free film?').acceptedAnswer.text
     assert.ok(answer.includes(offer.copy.sentence)&&answer.includes('before making your first film'));count++
     assert.ok(!answer.includes('free daily limit'));count++
     const badSource=source(file).replace('`${OFFER.copy.sentence} For recurring production, compare the monthly plans and the credits required by your chosen engine and duration. You can choose a plan before making your first film.`',"'You can keep testing with watermarked Fast videos within the free daily limit.'")
     const mutated=offlineModules({mocks:{...mocks,'lib/freeTierOffer.ts':{...canonical,getFreeTierOffer:()=>offer}},replacements:{[file]:badSource}})(file)
     const badHtml=renderToStaticMarkup(React.createElement(mutated.default,{searchParams:{}}))
     const badFaq=JSON.parse([...badHtml.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(m=>m[1]).find(s=>s.includes('FAQPage')))
-    assert.ok(!badFaq.mainEntity.find(q=>q.name==='What happens after the free videos?').acceptedAnswer.text.includes(offer.copy.sentence));count++
+    assert.ok(!badFaq.mainEntity.find(q=>q.name==='What happens after your free film?').acceptedAnswer.text.includes(offer.copy.sentence));count++
   }
   assert.ok(html.includes('data-bridge="bridge_paid_proof_v2"')&&html.includes('trying a film first is optional'));count++
   assert.ok(!html.includes('utm_source=chatgpt'));count++

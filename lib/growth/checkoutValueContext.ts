@@ -37,39 +37,43 @@ function resultCountDescription(input: CheckoutValueContextInput): {
 } {
   if (input.billing !== 'monthly') return { lineItemDescription: null, outputCount: null }
 
+  // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — a linha do produto na Stripe é o que o comprador lê no checkout (o botão "Get
+  // Creator" das páginas citadas leva direto para lá). Ela prometia curtas do motor rápido — o Kineo 1, que a conta nova não vê desde
+  // 29/09 — e o Studio ainda prometia uma fila prioritária, que não existe. Agora só o que a conta nova recebe: filmes de Seedance
+  // 1.5 (e, no Studio, de Kling 3), contados pela MESMA função que cobra.
   if (input.tier === 'starter') {
-    const fastCost = creditCostForDuration('fast', true, 60)
-    const outputCount = Math.floor(input.credits / fastCost)
+    const seedanceCost = creditCostForDuration('cinematic_ai', true, 60)
+    const seedanceShortCost = creditCostForDuration('cinematic_ai', true, 35)
+    const outputCount = Math.floor(input.credits / seedanceCost)
+    const shortCount = Math.floor(input.credits / seedanceShortCost)
     return {
       lineItemDescription:
-        `${input.credits} credits / month — up to ${outputCount} ready-to-post Fast Shorts ` +
-        'with AI voiceover, captions and no watermark',
+        `${input.credits} credits / month — up to ${outputCount} Seedance 60s AI film${outputCount === 1 ? '' : 's'} ` +
+        `or ${shortCount} of 35s, with AI voiceover, captions and no watermark`,
       outputCount,
     }
   }
 
   if (input.tier === 'basic') {
     const seedanceCost = creditCostForDuration('cinematic_ai', true, 60)
-    const fastCost = creditCostForDuration('fast', true, 60)
     const outputCount = Math.floor(input.credits / seedanceCost)
-    const fastOutputCount = Math.floor(input.credits / fastCost)
     return {
       lineItemDescription:
-        `${input.credits} credits / month — up to ${outputCount} Seedance 60s AI films ` +
-        `or ${fastOutputCount} ready-to-post Fast Shorts, with voiceover, captions and no watermark`,
+        `${input.credits} credits / month — up to ${outputCount} Seedance 60s AI films, ` +
+        'with voiceover, captions and no watermark',
       outputCount,
     }
   }
 
   if (input.tier === 'pro') {
     const klingCost = creditCostForDuration('cinematic_hollywood', true, 60)
-    const fastCost = creditCostForDuration('fast', true, 60)
+    const seedanceCost = creditCostForDuration('cinematic_ai', true, 60)
     const klingFilms = Math.floor(input.credits / klingCost)
-    const fastRemainder = Math.floor((input.credits - klingFilms * klingCost) / fastCost)
+    const seedanceFilms = Math.floor(input.credits / seedanceCost)
     return {
       lineItemDescription:
         `${input.credits} credits / month — ${klingFilms} Kling 3 60s film` +
-        `${klingFilms === 1 ? '' : 's'} plus up to ${fastRemainder} Fast Shorts, priority queue`,
+        `${klingFilms === 1 ? '' : 's'} or up to ${seedanceFilms} Seedance 60s AI films, with voiceover, captions and no watermark`,
       outputCount: klingFilms,
     }
   }

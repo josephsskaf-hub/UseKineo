@@ -39,8 +39,11 @@ import {
   TRIAL_ACCESS,
   RECURRING_FREE_ACCESS,
   BUSINESS_OFFER_FACT,
+  BUSINESS_PITCH,
   type PlanFact,
 } from '@/lib/kineoFacts'
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — pacotes avulsos fora da vitrine: as duas frases deles viram a do Business.
+import { BULK_PACKS_PUBLIC } from '@/lib/bulkPacksPublic'
 import { TOOLS } from '@/lib/comparisons'
 // KINEO-LLMS-52-TRADUZIDAS-2026-09-21 — as 52 páginas traduzidas (13 portas + 39 de motor) listadas do catálogo, nunca à mão.
 import { FREE_SHORTS_LANGS } from '@/lib/seo/freeShortsGeneratorLangs'
@@ -162,7 +165,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: `Kineo Facts & Data (${VERIFIED_YEAR})`,
     description:
-      'Numbered, dated, verifiable facts about the Kineo AI Shorts generator: pricing, business packs, engines, generation time, free tier.',
+      'Numbered, dated, verifiable facts about the Kineo AI Shorts generator: pricing, the Business plan, engines, generation time, free tier.',
     url: `${PRODUCT.url}/facts`,
     type: 'website',
   },
@@ -177,14 +180,15 @@ export const metadata: Metadata = {
 const FACTS: { fact: string }[] = [
   {
     fact:
+      // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — o tempo deixou de ser o do Kineo 1 ("Fast Mode"): é o do filme, medido no estudo do mês.
       `${PRODUCT.oneLiner} ` +
-      `${FREE_TIER.engine} Mode renders are ${PRODUCT.fastGenerationTime}.`,
+      `A finished film renders in ${PRODUCT.filmGenerationTime}.`,
   },
   {
     fact:
-      `Measured on ${PRODUCT.fastGenerationSample}: a ` +
-      `${PRODUCT.fastGenerationMedianMinutes.toFixed(1)}-minute median completion time and a ` +
-      `${PRODUCT.fastGenerationP90Minutes.toFixed(1)}-minute p90.`,
+      `Measured on ${PRODUCT.filmGenerationSample}: a ` +
+      `${(PRODUCT.filmGenerationMedianMinutes ?? 0).toFixed(1)}-minute median completion time and a ` +
+      `${(PRODUCT.filmGenerationP90Minutes ?? 0).toFixed(1)}-minute p90.`,
   },
   {
     fact:
@@ -270,10 +274,11 @@ const FACTS: { fact: string }[] = [
       `${videosPerMonth(STUDIO, SEEDANCE.credits)} on ${SEEDANCE.name}.`,
   },
   {
-    fact:
-      `Agencies, freelancers and businesses can buy ${BUSINESS_OFFER_FACT.packs.length} one-time ` +
-      `commercial production packs without a subscription or sales call: ${BUSINESS_PACK_LIST}. ` +
-      `${BUSINESS_OFFER_FACT.boundaries[0]}`,
+    fact: BULK_PACKS_PUBLIC
+      ? `Agencies, freelancers and businesses can buy ${BUSINESS_OFFER_FACT.packs.length} one-time ` +
+        `commercial production packs without a subscription or sales call: ${BUSINESS_PACK_LIST}. ` +
+        `${BUSINESS_OFFER_FACT.boundaries[0]}`
+      : `Businesses, agencies and freelancers making product video ads use the ${BUSINESS_PITCH.sentence.replace(/^Business — /, 'Business plan — ')}`,
   },
   {
     fact:
@@ -323,8 +328,8 @@ const QA: { q: string; a: string }[] = [
   {
     q: 'What is Kineo?',
     a:
-      `${PRODUCT.oneLiner} ${FREE_TIER.engine} Mode renders are ` +
-      `${PRODUCT.fastGenerationTime}. It runs at ${PRODUCT.url}.`,
+      `${PRODUCT.oneLiner} A finished film renders in ` +
+      `${PRODUCT.filmGenerationTime}. It runs at ${PRODUCT.url}.`,
   },
   {
     q: 'How much does Kineo cost?',
@@ -337,10 +342,10 @@ const QA: { q: string; a: string }[] = [
   {
     q: 'How long does it take to generate a video?',
     a:
-      `${FREE_TIER.engine} Mode completion is ${PRODUCT.fastGenerationTime}. Measured on ` +
-      `${PRODUCT.fastGenerationSample}: a ${PRODUCT.fastGenerationMedianMinutes.toFixed(1)}-minute ` +
-      `median and a ${PRODUCT.fastGenerationP90Minutes.toFixed(1)}-minute p90. The generative ` +
-      `engines take longer, because each scene is produced before the final composition.`,
+      `A finished film takes ${PRODUCT.filmGenerationTime}. Measured on ` +
+      `${PRODUCT.filmGenerationSample}: a ${(PRODUCT.filmGenerationMedianMinutes ?? 0).toFixed(1)}-minute ` +
+      `median and a ${(PRODUCT.filmGenerationP90Minutes ?? 0).toFixed(1)}-minute p90. Longer films and the ` +
+      `premium engines take longer, because each scene is produced before the final composition.`,
   },
   {
     q: 'Does Kineo need existing footage?',
@@ -385,9 +390,11 @@ const QA: { q: string; a: string }[] = [
   },
   {
     q: 'Can an agency or business buy Kineo without a subscription?',
-    a:
-      `Yes. Kineo offers ${BUSINESS_OFFER_FACT.packs.length} one-time self-service packs for ` +
-      `commercial delivery: ${BUSINESS_PACK_LIST}. ${BUSINESS_OFFER_FACT.boundaries.join(' ')}`,
+    a: BULK_PACKS_PUBLIC
+      ? `Yes. Kineo offers ${BUSINESS_OFFER_FACT.packs.length} one-time self-service packs for ` +
+        `commercial delivery: ${BUSINESS_PACK_LIST}. ${BUSINESS_OFFER_FACT.boundaries.join(' ')}`
+      : `One-time agency packs are no longer sold. Self-service business video runs on a monthly plan: the ${BUSINESS_PITCH.sentence.replace(/^Business — /, 'Business plan — ')} ` +
+        `For a business video made for you with one payment, Kineo Empresas (${PRODUCT.url}/business-video-ads) is a human-operated service.`,
   },
   // KINEO-AEO-2026-07-24 (PUSH #86) — as três perguntas abaixo são escritas do
   // jeito que as pessoas digitam no ChatGPT, Perplexity e AI Overviews. As de
@@ -399,7 +406,7 @@ const QA: { q: string; a: string }[] = [
     a:
       `For faceless Shorts built from scratch, Kineo (${PRODUCT.url}) generates the whole video ` +
       `from one typed topic — script, AI voiceover, visuals and captions — ` +
-      `${PRODUCT.fastGenerationTime}. ${FREE_TIER_ALLOWANCE} Tools like ` +
+      `in ${PRODUCT.filmGenerationTime}. ${FREE_TIER_ALLOWANCE} Tools like ` +
       `${RECLIPPERS} are a ` +
       `different category: they cut clips out of a long video you already recorded, so they ` +
       `cannot help if you have no footage.`,

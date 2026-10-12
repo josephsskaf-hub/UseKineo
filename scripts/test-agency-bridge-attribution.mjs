@@ -22,12 +22,19 @@ function loadTs(path) {
   const module = { exports: {} }
   new Function('require', 'module', 'exports', output)((id) => {
     if (id === '@/lib/agencyDistribution') return {}
+    // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — o destino do evento segue o interruptor dos pacotes (módulo puro, carregado real).
+    if (id === '@/lib/bulkPacksPublic') return loadTs('lib/bulkPacksPublic.ts')
     throw new Error(`${path}: unexpected import ${id}`)
   }, module, module.exports)
   return module.exports
 }
 
 const policy = loadTs('lib/growth/agencyBridgeTelemetry.ts')
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — reancorado com motivo: com os pacotes avulsos fora da vitrine (BULK_PACKS_PUBLIC=false)
+// a faixa leva ao plano Business, e o evento diz isso (destination 'business_plan'). Mesma trava: categoria fechada, sem PII.
+const bulkSwitch = loadTs('lib/bulkPacksPublic.ts')
+const expectedDestination = bulkSwitch.BULK_PACKS_PUBLIC ? 'agency_packs' : 'business_plan'
+equal(bulkSwitch.BULK_PACKS_PUBLIC, false, 'pacotes avulsos fora da vitrine (12/10)')
 const entries = [
   'home', 'state_report', 'cost_page', 'pricing', 'comment_tool',
   'product_tool', 'content_plan', 'real_estate', 'client_brief', 'kineo1_engine',
@@ -45,7 +52,7 @@ for (const entry of entries) {
     version: 'agency_volume_bridge_visibility_v1',
     entry,
     surface: 'agency_volume_bridge',
-    destination: 'agency_packs',
+    destination: expectedDestination,
   }, `${entry}: metadata is finite and PII-free`)
   equal(
     policy.agencyBridgeViewMarker(entry),

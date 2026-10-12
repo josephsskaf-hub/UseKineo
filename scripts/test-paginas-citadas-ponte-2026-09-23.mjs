@@ -67,8 +67,10 @@ const PAGES = [
 ]
 for (const p of PAGES) {
   const src = read(p.file)
-  // S24-01 after E3: paid proof on free/text; state and redirected engine body keep v1.
-  const component = ['state_of_ai', 'kineo1'].includes(p.from) ? 'ScriptToSeedanceBridge' : 'PaidSeedanceBridge'
+  // S24-01 after E3: paid proof on free/text; redirected engine body keeps v1.
+  // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — reancorado com motivo (fundador 12/10, item 6): o estudo (108 visitas, nenhum vídeo)
+  // passou para a ponte PAGA (vídeo real + preço) na primeira dobra. Mesma trava: uma ponte só, antes do formulário, some na pausa.
+  const component = ['kineo1'].includes(p.from) ? 'ScriptToSeedanceBridge' : 'PaidSeedanceBridge'
   const tag = `<${component} from="${p.from}"`
   check(src.includes(`import ${component} from '@/components/${component}'`), `${p.file}: importa a ponte`)
   check((src.match(new RegExp(`<${component} `, 'g')) ?? []).length === 1, `${p.file}: uma ponte só`)
@@ -81,7 +83,7 @@ for (const p of PAGES) {
   const state = read('app/state-of-ai-shorts-2026/page.tsx')
   check(free.includes(`{${PAUSE_GUARD} && <PaidSeedanceBridge from="free_ai_shorts_generator" compact />}`), 'free: some quando o Seedance pausa')
   check(text.includes(`{${PAUSE_GUARD} && <PaidSeedanceBridge from="text_to_video_shorts" compact />}`), 'text-to-video: some quando o Seedance pausa')
-  check(state.includes(`const seedanceBridge = ${PAUSE_GUARD} ? <ScriptToSeedanceBridge from="state_of_ai" /> : null`), 'state: some quando o Seedance pausa')
+  check(state.includes(`const seedanceBridge = ${PAUSE_GUARD} ? <PaidSeedanceBridge from="state_of_ai" /> : null`), 'state: some quando o Seedance pausa')
   for (const [name, src] of [['free', free], ['text', text], ['state', state]]) {
     check(src.includes("import { ENGINES } from '@/lib/growth/enginePageCatalog'") && src.includes("import { enginePaused } from '@/lib/engineLaunch'"), `${name}: pausa pelo mesmo helper da página do motor`)
   }

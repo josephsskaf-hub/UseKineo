@@ -83,6 +83,11 @@ function stateMocks(world) {
     'app/youtube-shorts-from-topic/TopicGeneratorForm.tsx': { __esModule: true, default: ({ examples }) => React.createElement('div', { 'data-offline-boundary': 'TopicGeneratorForm', 'data-examples': JSON.stringify(examples ?? []) }) },
     'components/AgencyVolumeBridge.tsx': { __esModule: true, default: plain('AgencyVolumeBridge') },
     'components/ScriptToSeedanceBridge.tsx': { __esModule: true, default: plain('ScriptToSeedanceBridge') },
+    // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — a ponte paga e a compra direta são OFERTAS (capacidade do plano: "4 films of 60 s"),
+    // não volume do estudo; são fronteiras como a ponte de antes, provadas pelos guardiões delas
+    // (test-paginas-que-vendem-1210, test-paid-seedance-bridge-2026-09-28). A regra "sem volume" segue valendo no estudo.
+    'components/PaidSeedanceBridge.tsx': { __esModule: true, default: plain('PaidSeedanceBridge') },
+    'components/BuyCreatorCta.tsx': { __esModule: true, default: plain('BuyCreatorCta') },
     'components/OrganicCtaLink.tsx': ctaMock,
   }
   if (world.json) mocks[STATE_EDITION_MOD] = { STATE_DATA_FILE: 'x', STATE_EDITION: lib.parseStateEdition(world.json) }
@@ -95,6 +100,7 @@ function nicheModules(world) {
       'components/Footer.tsx': { __esModule: true, default: plain('Footer') },
       'app/youtube-shorts-from-topic/TopicGeneratorForm.tsx': { __esModule: true, default: plain('TopicGeneratorForm') },
       'app/free-ai-shorts/[niche]/LocalBusinessAdBrief.tsx': { __esModule: true, default: plain('LocalBusinessAdBrief') },
+      'components/BuyCreatorCta.tsx': { __esModule: true, default: plain('BuyCreatorCta') }, // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — oferta, não volume
       'components/OrganicCtaLink.tsx': ctaMock,
       'lib/scriptLibrary.ts': { SCRIPT_VERTICAL_SLUGS: [] },
     },

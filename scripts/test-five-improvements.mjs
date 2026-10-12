@@ -107,8 +107,13 @@ const KINEO1_REDIRECT_BLOCK=[
 "      // e o filme grátis de quem chega passou a ser o Seedance 1.5 de 15 s. A página do Kineo 1 era a que mais recebia",
 "      // chegada do ChatGPT: o redirect permanente leva essas citações (e as 13 línguas) para a página do Seedance em vez",
 "      // de um 404 (301 literal, pedido do fundador; os demais daqui são 308). Saiu também do sitemap (ENGINE_SLUGS/LOCALIZED_ENGINE_SLUGS). Decisão do fundador (29/09).",
-"      { source: '/ai-video-generator/kineo-1', destination: '/ai-video-generator/seedance', statusCode: 301 },",
-"      { source: '/ai-video-generator/kineo-1/:lang', destination: '/ai-video-generator/seedance/:lang', statusCode: 301 },",
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — reancorado com motivo: o MESMO bloco ganhou ?from=kineo-1 no destino (a página do
+// Seedance mostra a faixa "Kineo 1 was retired") e o comentário que diz isso. Segue exato e único; o resto, byte a byte.
+"      // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — o destino leva ?from=kineo-1: a página do Seedance mostra a faixa honesta",
+"      // (components/Kineo1RetiredNotice) \"Kineo 1 was retired — your free film is now 15 s on Seedance 1.5\". Query de quem",
+"      // chega (utm etc.) continua sendo repassada pelo Next junto com esta.",
+"      { source: '/ai-video-generator/kineo-1', destination: '/ai-video-generator/seedance?from=kineo-1', statusCode: 301 },",
+"      { source: '/ai-video-generator/kineo-1/:lang', destination: '/ai-video-generator/seedance/:lang?from=kineo-1', statusCode: 301 },",
 ""].join('\n')
 const nextCfg=fs.readFileSync('next.config.js','utf8').replace(/\r\n/g,'\n')
 ok(nextCfg.split(KINEO1_REDIRECT_BLOCK).length===2,'next.config carries the exact Kineo 1 301 block once')

@@ -9,7 +9,7 @@ import { PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
 import ExampleLiveMedia from '@/app/examples/ExampleLiveMedia'
 import ExitIntentOffer from '@/components/ExitIntentOffer'
 import { buildBlankStudioSignupHref } from '@/lib/growth/publicCreationIntent'
-import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { getFreeTierOffer, swapFreeTierCopy as ft, FREE_FILM_LABEL } from '@/lib/freeTierOffer'
 import AffiliateLandingContext from '@/components/AffiliateLandingContext'
 import {
   affiliateLandingContext,
@@ -18,6 +18,7 @@ import {
 import { freeShortsAlternates } from '@/lib/seo/freeShortsGeneratorLangs'
 // KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — ponte roteiro → Seedance acima da dobra (fundador 23/09, jogada 3).
 import PaidSeedanceBridge from '@/components/PaidSeedanceBridge'
+import BuyCreatorCta from '@/components/BuyCreatorCta' // KINEO-PAGINAS-QUE-VENDEM-2026-10-12
 import { ENGINES } from '@/lib/growth/enginePageCatalog'
 import { enginePaused } from '@/lib/engineLaunch'
 
@@ -59,7 +60,7 @@ const FAQ = [
     a: 'Yes. Kineo is built for faceless Shorts, so you do not need to film yourself, record your voice, or edit a timeline.',
   },
   {
-    q: 'What happens after the free videos?',
+    q: 'What happens after your free film?', // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — o grátis é UM filme, não "videos"
     a: `${OFFER.copy.sentence} For recurring production, compare the monthly plans and the credits required by your chosen engine and duration. You can choose a plan before making your first film.`,
   },
 ] as const
@@ -133,11 +134,25 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
         <p style={{ fontSize: '1.08rem', color: '#86868b', lineHeight: 1.6, margin: '16px 0 0' }}>
           Type one idea and Kineo generates a ready-to-post vertical Short: script, AI voiceover, visuals, captions, and MP4 export. {ft(OFFER, 'Try the Fast workflow with no credit card.', 'Your active trial starts with the best engine it can cover — Seedance when eligible.')}
         </p>
+        {/* KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — compra direta do Creator na primeira dobra; o botão grátis vira o secundário. */}
+        {!enginePaused(ENGINES.seedance.param) && (
+          <BuyCreatorCta
+            page="free_ai_shorts_generator"
+            align="left"
+            secondary={
+              <OrganicCtaLink href={`#${FORM_ID}`} source={CAMPAIGN} placement="hero" style={{ border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 800, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>
+                Generate a free Short
+              </OrganicCtaLink>
+            }
+          />
+        )}
         {!enginePaused(ENGINES.seedance.param) && <PaidSeedanceBridge from="free_ai_shorts_generator" compact />}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '26px 0 0' }}>
-          <OrganicCtaLink href={`#${FORM_ID}`} source={CAMPAIGN} placement="hero" style={{ background: '#f5f5f7', color: '#000', fontWeight: 850, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>
-            Generate a free Short
-          </OrganicCtaLink>
+          {enginePaused(ENGINES.seedance.param) && (
+            <OrganicCtaLink href={`#${FORM_ID}`} source={CAMPAIGN} placement="hero" style={{ background: '#f5f5f7', color: '#000', fontWeight: 850, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>
+              Generate a free Short
+            </OrganicCtaLink>
+          )}
           <OrganicCtaLink href={signupUrl} source={CAMPAIGN} placement="hero_signup" style={{ border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 750, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>
             Start from scratch
           </OrganicCtaLink>
@@ -164,7 +179,8 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
             note: ft(
               OFFER,
               'Your idea is carried into signup so the first Fast video can start without a card.',
-              'Your idea stays attached through signup. Your active trial starts with Seedance when its balance covers it; otherwise Kineo falls back safely to Fast.',
+              // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — a frase antiga do recuo para o motor rápido prometia o Kineo 1, fora da entrada desde 29/09.
+              `Your idea stays attached through signup and becomes your ${FREE_FILM_LABEL}, watermarked, no card.`,
             ),
           }}
         />

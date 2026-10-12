@@ -25,8 +25,11 @@ for (const [name, source] of [
     source.includes("creationIntent={OFFER.reverseTrial ? 'trial_best' : 'fast'}"),
     name + ': active reverse trial requests trial_best while legacy offer keeps Fast',
   )
-  check(source.includes('starts with Seedance when its balance covers it'), name + ': form explains premium-first')
-  check(source.includes('falls back safely to Fast'), name + ': ineligible state is explained')
+  // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — reancorado com motivo: desde 29/09 a conta NOVA não recua para o Fast (Kineo 1 fora
+  // da entrada; lib/growth/trialActivationIntent.ts resolveActivationRender nunca devolve 'fast' para ela) — o "falls back
+  // safely to Fast" virou promessa falsa. A nota agora diz o que a conta nova ganha (FREE_FILM_LABEL, a fonte única).
+  check(/becomes your \$\{FREE_FILM_LABEL\}, watermarked, no card\./.test(source), name + ': form explains premium-first')
+  check(!source.includes('falls back safely to Fast'), name + ': no Fast fallback promised to a new account')
 }
 
 check(helper.includes("type PromptedCreationIntent = 'fast' | 'trial_best'"), 'helper accepts only internal intents')

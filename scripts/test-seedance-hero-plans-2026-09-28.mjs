@@ -8,6 +8,11 @@ import { offlineModules, renderToStaticMarkup } from './gpt24h-offline-support.m
 // travados. O conteúdo novo é provado por scripts/test-motores-geo-2026-10-06.mjs.
 import { semMotoresGeoHtml } from './test-support/motores-geo-2026-10-06.mjs'
 import { edicoesIndiceHtml, semIndiceHtml } from './test-support/indice-video-ia-2026-10-06.mjs' // KINEO-INDICE-VIDEO-IA-2026-10-06
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — reancorado com motivo (fundador 12/10, "tudo sim"): no Seedance o botão principal do
+// hero deixou de ser "/pricing" e virou a compra direta do Creator mensal, com "Create your account" ao lado (secundário) e
+// "See plans" logo abaixo. O bloco novo é PROVADO renderizado (provaCompraSeedance) e descontado dos dois lados pelo marcador
+// neutro; tudo fora dele segue byte a byte. O Veo mantém a hierarquia antiga, travada abaixo como antes.
+import { comAcoesNeutras, provaCompraSeedance } from './test-support/paginas-que-vendem-2026-10-12.mjs'
 
 // Actual server-page rendering, offline boundaries; no visits or analytics writes.
 const path = 'app/ai-video-generator/[engine]/page.tsx'
@@ -33,7 +38,10 @@ for (const engine of served) {
   //30/09: founder increased acquisition work; Veo adopts the same actions.
   // Its entire non-action content remains byte-locked, as do all other pages.
   if (engine !== 'seedance' && engine !== 'veo') assert.equal(current, old, engine + ': entire rendered page unchanged')
-  else {
+  else if (engine === 'seedance') {
+    assert.ok(provaCompraSeedance(current), 'seedance: compra direta do Creator mensal no hero, conta ao lado, planos abaixo')
+    assert.equal(comAcoesNeutras(current), comAcoesNeutras(old), 'seedance: página inteira igual fora do bloco de compra')
+  } else {
     assert.ok(hero(old) && hero(current), 'both heroes exist')
     assert.equal(current.replace(hero(current), ''), old.replace(hero(old), ''), 'all content outside hero unchanged')
     const actionRow = /<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:22px">[\s\S]*?<\/div>/

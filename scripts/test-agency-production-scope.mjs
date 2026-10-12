@@ -116,16 +116,39 @@ equal(AGENCY_PRODUCTION_SCOPE_MEASUREMENT_CONTRACT.fitReview.entryCampaign, scop
 // (lib/autopilotPublic.ts, decisão do fundador 09/10 de tirar o Autopilot da vitrine). Com o interruptor LIGADO a rota
 // segue byte a byte o builder de produção (asserção original); DESLIGADO (o valor real de hoje) o caminho 'autopilot'
 // sai do documento e todo o resto fica igual.
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — reancorado com motivo: os pacotes avulsos saíram da vitrine (lib/bulkPacksPublic.ts).
+// O documento abaixo é provado COMO ELE VOLTA com o interruptor religado (mock só do interruptor); o interruptor REAL é
+// provado logo depois: 410 com o caminho de hoje (Business + planos), sem listar pacote nenhum.
+const pitchMock = { businessPitch: (base) => ({ sentence: 'Business — $84/month: about 12 product ads of 15 s per month.', pageUrl: `${base}/business` }) }
 const route = loadTs('app/agency-production-scope.txt/route.ts', {
   '@/lib/kineoFacts': { PRODUCT: { url: 'https://www.usekineo.com' }, BUSINESS_OFFER_FACT: offer },
   '@/lib/growth/agencyProductionScope': scopeContract,
   '@/lib/autopilotPublic': { AUTOPILOT_PUBLIC: true },
+  '@/lib/bulkPacksPublic': { BULK_PACKS_PUBLIC: true },
+  '@/lib/growth/businessPitch': pitchMock,
 })
 const routeOff = loadTs('app/agency-production-scope.txt/route.ts', {
   '@/lib/kineoFacts': { PRODUCT: { url: 'https://www.usekineo.com' }, BUSINESS_OFFER_FACT: offer },
   '@/lib/growth/agencyProductionScope': scopeContract,
   '@/lib/autopilotPublic': { AUTOPILOT_PUBLIC: false },
+  '@/lib/bulkPacksPublic': { BULK_PACKS_PUBLIC: true },
+  '@/lib/growth/businessPitch': pitchMock,
 })
+{
+  const bulkReal = loadTs('lib/bulkPacksPublic.ts')
+  const routeFechada = loadTs('app/agency-production-scope.txt/route.ts', {
+    '@/lib/kineoFacts': { PRODUCT: { url: 'https://www.usekineo.com' }, BUSINESS_OFFER_FACT: offer },
+    '@/lib/growth/agencyProductionScope': scopeContract,
+    '@/lib/autopilotPublic': { AUTOPILOT_PUBLIC: false },
+    '@/lib/bulkPacksPublic': bulkReal,
+    '@/lib/growth/businessPitch': pitchMock,
+  })
+  const r = routeFechada.GET()
+  const t = await r.text()
+  equal(bulkReal.BULK_PACKS_PUBLIC, false, 'pacotes avulsos fora da vitrine (12/10)')
+  equal(r.status, 410, 'pacotes fechados: o documento responde 410')
+  ok(t.includes('One-time agency packs are no longer sold.') && t.includes('https://www.usekineo.com/business') && t.includes('https://www.usekineo.com/pricing') && !/\d+ videos: \$/.test(t), 'pacotes fechados: aponta Business e planos, nenhum pacote listado')
+}
 const offText = await routeOff.GET().text()
 equal(offText, scopeContract.renderAgencyProductionScopeTxt({ ...scope, purchasePaths: scope.purchasePaths.filter((p) => p.id !== 'autopilot') }), 'Autopilot fora da vitrine: o documento perde só o caminho autopilot')
 ok(!/- Autopilot:/.test(offText), 'Autopilot fora da vitrine: nenhuma linha de compra do Autopilot')

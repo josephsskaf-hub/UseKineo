@@ -244,7 +244,9 @@ console.log('== 4. openapi do GPT, página do Kineo 1 (301) e sitemap ==')
   const cfg = require(join(root, 'next.config.js'))
   const redirs = await cfg.redirects()
   const tem = (s, d) => redirs.some((r) => r.source === s && r.destination === d && r.statusCode === 301)
-  checa('next.config: /ai-video-generator/kineo-1 (e /:lang) → 301 para o Seedance', tem('/ai-video-generator/kineo-1', '/ai-video-generator/seedance') && tem('/ai-video-generator/kineo-1/:lang', '/ai-video-generator/seedance/:lang'))
+  // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — reancorado com motivo: o MESMO 301 agora leva ?from=kineo-1 (a página do Seedance
+  // mostra a faixa "Kineo 1 was retired"). Destino, código e as duas rotas seguem exatos.
+  checa('next.config: /ai-video-generator/kineo-1 (e /:lang) → 301 para o Seedance', tem('/ai-video-generator/kineo-1', '/ai-video-generator/seedance?from=kineo-1') && tem('/ai-video-generator/kineo-1/:lang', '/ai-video-generator/seedance/:lang?from=kineo-1'))
   const L = criaLoader()
   const cat = L('lib/growth/enginePageCatalog.ts')
   const langs = L('lib/seo/enginePageLangs.ts')

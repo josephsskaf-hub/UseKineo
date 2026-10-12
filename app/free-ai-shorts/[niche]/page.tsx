@@ -15,8 +15,11 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import LocalBusinessAdBrief from './LocalBusinessAdBrief'
 import { SCRIPT_VERTICAL_SLUGS } from '@/lib/scriptLibrary'
-import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, FREE_FILM_LABEL } from '@/lib/freeTierOffer'
 import { buildPromptedSignupHref } from '@/lib/growth/publicCreationIntent'
+import BuyCreatorCta from '@/components/BuyCreatorCta' // KINEO-PAGINAS-QUE-VENDEM-2026-10-12
+import { ENGINES } from '@/lib/growth/enginePageCatalog'
+import { enginePaused } from '@/lib/engineLaunch'
 // KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
 // lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
 // de tabela publicando um valor que o checkout não cobrava mais.
@@ -41,7 +44,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Money & Finance',
     h1: 'Free AI Money & Finance Shorts Generator',
     intro:
-      'Turn any money or finance idea into a ready-to-post YouTube Short usually in 3–7 minutes. The AI writes the script, records the voiceover, adds captions and finds the footage — no filming, no editing, no face on camera.',
+      'Turn any money or finance idea into a ready-to-post YouTube Short in about 6 minutes. The AI writes the script, records the voiceover, adds captions and generates every scene — no filming, no editing, no face on camera.',
     ideas: [
       '$200 a month makes you a millionaire — here’s the exact math',
       'The money habit 90% of millionaires share',
@@ -75,7 +78,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Faith & Devotional',
     h1: 'Free AI Faith & Devotional Shorts Generator',
     intro:
-      'Turn a Bible verse or a devotional thought into a ready-to-post YouTube Short usually in 3–7 minutes. The AI writes the script, records the voiceover, adds captions and finds the footage — faceless, and consistent enough to post every single day.',
+      'Turn a Bible verse or a devotional thought into a ready-to-post YouTube Short in about 6 minutes. The AI writes the script, records the voiceover, adds captions and generates every scene — faceless, and consistent enough to post every single day.',
     ideas: [
       'The verse for anyone who is tired of pretending they are fine',
       'What Psalm 34:18 actually promises the brokenhearted',
@@ -88,7 +91,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Mystery & Unsolved',
     h1: 'Free AI Mystery Shorts Generator',
     intro:
-      'Turn any unsolved case or eerie mystery into a binge-worthy YouTube Short usually in 3–7 minutes. The AI writes the script, voices it, adds captions and footage — fully faceless.',
+      'Turn any unsolved case or eerie mystery into a binge-worthy YouTube Short in about 6 minutes. The AI writes the script, voices it, adds captions and generates every scene — fully faceless.',
     ideas: [
       'The disappearance nobody solved in 70 years',
       'The signal from space scientists still can’t explain',
@@ -101,7 +104,7 @@ const NICHES: Record<string, Niche> = {
     label: 'History',
     h1: 'Free AI History Shorts Generator',
     intro:
-      'Turn any historical event into a gripping YouTube Short usually in 3–7 minutes — script, voiceover, captions and footage generated automatically. No editing skills needed.',
+      'Turn any historical event into a gripping YouTube Short in about 6 minutes — script, voiceover, captions and every scene generated automatically. No editing skills needed.',
     ideas: [
       'Why ancient Rome collapsed in 5 steps',
       'The empire that fell in a single day',
@@ -114,7 +117,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Motivation & Mindset',
     h1: 'Free AI Motivation Shorts Generator',
     intro:
-      'Turn any mindset or discipline idea into a punchy, shareable YouTube Short usually in 3–7 minutes. The AI handles the script, voiceover, captions and visuals — you just pick the idea.',
+      'Turn any mindset or discipline idea into a punchy, shareable YouTube Short in about 6 minutes. The AI handles the script, voiceover, captions and visuals — you just pick the idea.',
     ideas: [
       'The 5am habit that rewires your brain',
       'Why discipline beats motivation every time',
@@ -127,7 +130,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Mind-Blowing Facts',
     h1: 'Free AI Facts Shorts Generator',
     intro:
-      'Turn any surprising fact into a scroll-stopping YouTube Short usually in 3–7 minutes. The AI writes, voices, captions and sources the footage automatically — completely faceless.',
+      'Turn any surprising fact into a scroll-stopping YouTube Short in about 6 minutes. The AI writes, voices, captions and generates every scene — completely faceless.',
     ideas: [
       'The everyday object that’s secretly 1,000 years old',
       'Your body does this 100,000 times a day without you noticing',
@@ -140,7 +143,7 @@ const NICHES: Record<string, Niche> = {
     label: 'AI & Tech',
     h1: 'Free AI Tech Shorts Generator',
     intro:
-      'Turn any AI or tech topic into a timely YouTube Short usually in 3–7 minutes. Script, voiceover, captions and footage are generated for you — post daily without touching an editor.',
+      'Turn any AI or tech topic into a timely YouTube Short in about 6 minutes. Script, voiceover, captions and every scene are generated for you — post daily without touching an editor.',
     ideas: [
       'The AI tool replacing 10 jobs right now',
       '5 AI tools that feel illegal to know',
@@ -153,7 +156,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Countries & Places',
     h1: 'Free AI Geography Shorts Generator',
     intro:
-      'Turn any country, city or place into a fascinating YouTube Short usually in 3–7 minutes. The AI writes the script, adds the voiceover, captions and footage — no filming required.',
+      'Turn any country, city or place into a fascinating YouTube Short in about 6 minutes. The AI writes the script, adds the voiceover and captions and generates every scene — no filming required.',
     ideas: [
       'The country where it’s illegal to die',
       'The city built on top of another city',
@@ -166,7 +169,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Space',
     h1: 'Free AI Space Shorts Generator',
     intro:
-      'Turn any space topic into a mind-bending YouTube Short usually in 3–7 minutes. The AI writes, voices, captions and finds the footage — fully faceless, ready to post.',
+      'Turn any space topic into a mind-bending YouTube Short in about 6 minutes. The AI writes, voices, captions and generates every scene — fully faceless, ready to post.',
     ideas: [
       'What NASA found on Mars they never announced',
       'The sound a black hole actually makes',
@@ -179,7 +182,7 @@ const NICHES: Record<string, Niche> = {
     label: 'True Crime',
     h1: 'Free AI True Crime Shorts Generator',
     intro:
-      'Turn any unsolved case or cold case into a gripping, binge-worthy YouTube Short usually in 3–7 minutes. The AI writes the script, records the voiceover, adds captions and finds the footage — no filming, no editing, completely faceless.',
+      'Turn any unsolved case or cold case into a gripping, binge-worthy YouTube Short in about 6 minutes. The AI writes the script, records the voiceover, adds captions and generates every scene — no filming, no editing, completely faceless.',
     ideas: [
       'The cold case solved by a single typo',
       'The killer who mailed the police his own confession',
@@ -192,7 +195,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Psychology Facts',
     h1: 'Free AI Psychology Shorts Generator',
     intro:
-      'Turn any mind trick or behavior insight into a scroll-stopping YouTube Short usually in 3–7 minutes. The AI writes the script, voices it, adds captions and footage automatically — fully faceless.',
+      'Turn any mind trick or behavior insight into a scroll-stopping YouTube Short in about 6 minutes. The AI writes the script, voices it, adds captions and generates every scene — fully faceless.',
     ideas: [
       'Say this one sentence and people instantly trust you',
       'The reason your brain remembers embarrassment forever',
@@ -205,7 +208,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Sports Legends',
     h1: 'Free AI Sports Legends Shorts Generator',
     intro:
-      'Turn any iconic moment or legendary athlete into an electric YouTube Short usually in 3–7 minutes. The AI writes the script, records the voiceover, adds captions and footage — no editing skills needed, completely faceless.',
+      'Turn any iconic moment or legendary athlete into an electric YouTube Short in about 6 minutes. The AI writes the script, records the voiceover, adds captions and generates every scene — no editing skills needed, completely faceless.',
     ideas: [
       'The shot that ended a career in one second',
       'The athlete who was told he’d never walk again',
@@ -218,7 +221,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Science Facts',
     h1: 'Free AI Science Shorts Generator',
     intro:
-      'Turn any mind-blowing science fact into a jaw-dropping YouTube Short usually in 3–7 minutes. The AI writes, voices, captions and sources the footage automatically — no filming required.',
+      'Turn any mind-blowing science fact into a jaw-dropping YouTube Short in about 6 minutes. The AI writes, voices, captions and generates every scene — no filming required.',
     ideas: [
       'There’s enough gold in the ocean to make everyone rich — here’s the catch',
       'A teaspoon of a neutron star weighs 6 billion tons',
@@ -231,7 +234,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Conspiracies & Cover-ups',
     h1: 'Free AI Conspiracy Shorts Generator',
     intro:
-      'Turn any conspiracy or alleged cover-up into a suspenseful YouTube Short usually in 3–7 minutes. The AI writes the script, voices it, adds captions and footage — fully faceless, ready to post.',
+      'Turn any conspiracy or alleged cover-up into a suspenseful YouTube Short in about 6 minutes. The AI writes the script, voices it, adds captions and generates every scene — fully faceless, ready to post.',
     ideas: [
       'The “accident” that destroyed the evidence days before the trial',
       'The document declassified 50 years too late',
@@ -244,7 +247,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Luxury & Billionaire',
     h1: 'Free AI Luxury & Billionaire Shorts Generator',
     intro:
-      'Turn any luxury or billionaire topic into an aspirational, scroll-stopping YouTube Short usually in 3–7 minutes. The AI writes the script, records the voiceover, adds captions and finds the footage — no filming, no editing, completely faceless.',
+      'Turn any luxury or billionaire topic into an aspirational, scroll-stopping YouTube Short in about 6 minutes. The AI writes the script, records the voiceover, adds captions and generates every scene — no filming, no editing, completely faceless.',
     ideas: [
       'What a $500 million yacht actually costs to run per day',
       'The hotel room that costs more per night than a house',
@@ -257,7 +260,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Stoicism & Philosophy',
     h1: 'Free AI Stoicism Shorts Generator',
     intro:
-      'Turn any Stoic idea or life lesson into a calm, powerful YouTube Short usually in 2\u20134 minutes. The AI writes the script, records the voiceover, adds captions and finds the footage \u2014 no filming, no editing, completely faceless.',
+      'Turn any Stoic idea or life lesson into a calm, powerful YouTube Short in about 6 minutes. The AI writes the script, records the voiceover, adds captions and generates every scene \u2014 no filming, no editing, completely faceless.',
     ideas: [
       'The Stoic rule that kills anxiety in 10 seconds',
       'Marcus Aurelius\u2019 morning routine that still works today',
@@ -270,7 +273,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Crypto & Investing',
     h1: 'Free AI Crypto Shorts Generator',
     intro:
-      'Turn any crypto or investing topic into a timely, scroll-stopping YouTube Short usually in 2\u20134 minutes. The AI writes the script, voices it, adds captions and footage \u2014 fully faceless, ready to post daily.',
+      'Turn any crypto or investing topic into a timely, scroll-stopping YouTube Short in about 6 minutes. The AI writes the script, voices it, adds captions and generates every scene \u2014 fully faceless, ready to post daily.',
     ideas: [
       'The $100 Bitcoin bet that turned into a fortune',
       'Why most people buy crypto at exactly the wrong time',
@@ -283,7 +286,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Business & Entrepreneurship',
     h1: 'Free AI Business Shorts Generator',
     intro:
-      'Turn any business or startup lesson into a sharp YouTube Short usually in 2\u20134 minutes. The AI writes the script, records the voiceover, adds captions and finds the footage \u2014 no editing skills needed.',
+      'Turn any business or startup lesson into a sharp YouTube Short in about 6 minutes. The AI writes the script, records the voiceover, adds captions and generates every scene \u2014 no editing skills needed.',
     ideas: [
       'The business that made millions with almost no employees',
       'Why 90% of startups die in the first year',
@@ -296,7 +299,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Fitness & Gym Motivation',
     h1: 'Free AI Fitness Shorts Generator',
     intro:
-      'Turn any fitness or discipline idea into a high-energy YouTube Short usually in 2\u20134 minutes. The AI writes, voices, captions and sources the footage automatically \u2014 completely faceless.',
+      'Turn any fitness or discipline idea into a high-energy YouTube Short in about 6 minutes. The AI writes, voices, captions and generates every scene \u2014 completely faceless.',
     ideas: [
       'The 20-minute habit that changes your body in 30 days',
       'Why most people never see gym results \u2014 and the fix',
@@ -309,7 +312,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Relationships & Dating',
     h1: 'Free AI Relationship Shorts Generator',
     intro:
-      'Turn any relationship or dating insight into a scroll-stopping YouTube Short usually in 2\u20134 minutes. The AI writes the script, voices it, adds captions and footage \u2014 fully faceless.',
+      'Turn any relationship or dating insight into a scroll-stopping YouTube Short in about 6 minutes. The AI writes the script, voices it, adds captions and generates every scene \u2014 fully faceless.',
     ideas: [
       'The one text that instantly changes how they see you',
       'Why the person who cares less holds the power',
@@ -322,7 +325,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Scary Stories & Horror',
     h1: 'Free AI Horror Shorts Generator',
     intro:
-      'Turn any scary story or creepy legend into a binge-worthy YouTube Short usually in 2\u20134 minutes. The AI writes the script, records the voiceover, adds captions and finds the footage \u2014 completely faceless.',
+      'Turn any scary story or creepy legend into a binge-worthy YouTube Short in about 6 minutes. The AI writes the script, records the voiceover, adds captions and generates every scene \u2014 completely faceless.',
     ideas: [
       'The 3am rule you should never break',
       'The last text she sent before she vanished',
@@ -335,7 +338,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Celebrity & Fame',
     h1: 'Free AI Celebrity Shorts Generator',
     intro:
-      'Turn any celebrity story or fame topic into a scroll-stopping YouTube Short usually in 2\u20134 minutes. The AI writes, voices, captions and sources the footage automatically \u2014 no filming required.',
+      'Turn any celebrity story or fame topic into a scroll-stopping YouTube Short in about 6 minutes. The AI writes, voices, captions and generates every scene \u2014 no filming required.',
     ideas: [
       'The star who went from broke to a billion dollars',
       'The contract clause that ended a career overnight',
@@ -348,7 +351,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Animals & Nature',
     h1: 'Free AI Animal Shorts Generator',
     intro:
-      'Turn any animal or nature fact into a jaw-dropping YouTube Short usually in 2\u20134 minutes. The AI writes the script, adds the voiceover, captions and footage \u2014 fully faceless, ready to post.',
+      'Turn any animal or nature fact into a jaw-dropping YouTube Short in about 6 minutes. The AI writes the script, adds the voiceover and captions and generates every scene \u2014 fully faceless, ready to post.',
     ideas: [
       'The animal that can survive being frozen solid',
       'Why octopuses might be the closest thing to aliens',
@@ -361,7 +364,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Health & Longevity',
     h1: 'Free AI Health Shorts Generator',
     intro:
-      'Turn any health or longevity tip into a clean, credible YouTube Short usually in 2\u20134 minutes. The AI writes the script, records the voiceover, adds captions and finds the footage \u2014 no filming, no editing, completely faceless.',
+      'Turn any health or longevity tip into a clean, credible YouTube Short in about 6 minutes. The AI writes the script, records the voiceover, adds captions and generates every scene \u2014 no filming, no editing, completely faceless.',
     ideas: [
       'The 30-second habit that adds years to your life',
       'What happens to your body when you walk daily',
@@ -374,7 +377,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Cars & Supercars',
     h1: 'Free AI Car Shorts Generator',
     intro:
-      'Turn any car or supercar topic into a high-octane YouTube Short usually in 2\u20134 minutes. The AI writes, voices, captions and sources the footage automatically \u2014 fully faceless, ready to post.',
+      'Turn any car or supercar topic into a high-octane YouTube Short in about 6 minutes. The AI writes, voices, captions and generates every scene \u2014 fully faceless, ready to post.',
     ideas: [
       'The $3 million car only 10 people can buy',
       'Why this engine should be illegal',
@@ -387,7 +390,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Gaming',
     h1: 'Free AI Gaming Shorts Generator',
     intro:
-      'Turn any gaming story or fact into a fast-paced YouTube Short usually in 2\u20134 minutes. The AI writes the script, adds the voiceover, captions and footage \u2014 no editing skills needed.',
+      'Turn any gaming story or fact into a fast-paced YouTube Short in about 6 minutes. The AI writes the script, adds the voiceover and captions and generates every scene \u2014 no editing skills needed.',
     ideas: [
       'The game that was never supposed to exist',
       'The speedrun record thought to be impossible',
@@ -400,7 +403,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Movie & Film Facts',
     h1: 'Free AI Movie Shorts Generator',
     intro:
-      'Turn any movie fact or behind-the-scenes story into a scroll-stopping YouTube Short usually in 2\u20134 minutes. The AI writes, voices, captions and sources the footage automatically \u2014 completely faceless.',
+      'Turn any movie fact or behind-the-scenes story into a scroll-stopping YouTube Short in about 6 minutes. The AI writes, voices, captions and generates every scene \u2014 completely faceless.',
     ideas: [
       'The movie scene that was completely unscripted',
       'The role that was recast at the last minute',
@@ -413,7 +416,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Food & Cooking Facts',
     h1: 'Free AI Food Shorts Generator',
     intro:
-      'Turn any food fact or cooking secret into a mouth-watering YouTube Short usually in 2\u20134 minutes. The AI writes the script, records the voiceover, adds captions and footage \u2014 fully faceless.',
+      'Turn any food fact or cooking secret into a mouth-watering YouTube Short in about 6 minutes. The AI writes the script, records the voiceover, adds captions and generates every scene \u2014 fully faceless.',
     ideas: [
       'The food that never actually expires',
       'Why restaurants add this one secret ingredient',
@@ -426,7 +429,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Travel & Places',
     h1: 'Free AI Travel Shorts Generator',
     intro:
-      'Turn any travel destination or hidden place into a wanderlust-inducing YouTube Short usually in 2\u20134 minutes. The AI writes, voices, captions and finds the footage automatically \u2014 no filming required.',
+      'Turn any travel destination or hidden place into a wanderlust-inducing YouTube Short in about 6 minutes. The AI writes, voices, captions and generates every scene \u2014 no filming required.',
     ideas: [
       'The place tourists are banned from entering',
       'The town that only exists for one month a year',
@@ -480,7 +483,7 @@ const NICHES: Record<string, Niche> = {
     label: 'Local Business & Services',
     h1: 'Free AI Video Ad Maker for Local Businesses',
     intro:
-      'Turn what your business actually does into a ready-to-post vertical video, usually in 3–7 minutes. The AI writes the script, records the voiceover, adds captions and finds the footage — no film crew, no agency retainer, and nobody from your team on camera. Post it to Instagram Reels, TikTok, YouTube Shorts or a Google Business profile.',
+      'Turn what your business actually does into a ready-to-post vertical video, in about 6 minutes. The AI writes the script, records the voiceover, adds captions and generates every scene — no film crew, no agency retainer, and nobody from your team on camera. Post it to Instagram Reels, TikTok, YouTube Shorts or a Google Business profile.',
     ideas: [
       'The one question every customer asks before booking us — answered in 30 seconds',
       '3 things to check before you hire anyone in this trade',
@@ -526,6 +529,9 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
     creationIntent: OFFER.reverseTrial ? 'trial_best' : 'fast',
   })
   const primaryIdea = n.ideas[0]
+  // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — o link grátis do hero, UM só (vai de secundário ao lado da compra, ou de principal
+  // com o Seedance pausado): continua presa a uma ideia real, como a lista e o fim.
+  const heroFreeHref = signupUrlForIdea(primaryIdea)
   const isLocalBusiness = params.niche === 'localbusiness'
   // KINEO-GEO-RODADA2-2026-10-08 — null = o nicho não tem filme real da casa (a página fica exatamente como estava).
   const houseFilm = nicheHouseFilm(params.niche)
@@ -537,7 +543,7 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
       ]
     : [
         { n: '1', t: 'Pick an idea', d: `Type any ${n.label.toLowerCase()} topic — or use one of the ready-made viral ideas below.` },
-        { n: '2', t: 'AI builds the video', d: 'The script, voiceover, on-screen captions and footage are generated automatically.' },
+        { n: '2', t: 'AI builds the video', d: 'The script, voiceover, on-screen captions and every scene are generated automatically.' },
         { n: '3', t: 'Download & post', d: 'Get a vertical 9:16 MP4 in a few minutes, ready for YouTube Shorts, TikTok or Reels.' },
       ]
 
@@ -557,9 +563,32 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
             {n.intro}
           </p>
           <p style={{ fontSize: '0.85rem', color: '#86868b', margin: '10px 0 0' }}>
-            Script • Voiceover • Captions • Footage • Ready in a few minutes · <b style={{ color: '#2997ff' }}>{ft(OFFER, 'up to 3 watermarked Fast videos / 24h', OFFER.copy.chipLower)}</b>, no card
+            Script • Voiceover • Captions • AI-generated scenes • Ready in about 6 minutes · <b style={{ color: '#2997ff' }}>{ft(OFFER, 'up to 3 watermarked Fast videos / 24h', OFFER.copy.chipLower)}</b>, no card
           </p>
-          {isLocalBusiness ? (
+          {/* KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — compra direta do Creator na primeira dobra dos 30 nichos; o botão grátis de
+              sempre (ou o roteiro de anúncio, no localbusiness) vira o secundário, ao lado. Seedance pausado = hero de antes. */}
+          {!enginePaused(ENGINES.seedance.param) ? (
+            <BuyCreatorCta
+              page={`niche_${params.niche}`}
+              secondary={isLocalBusiness ? (
+                <Link
+                  href="#business-ad-builder"
+                  style={{ display: 'inline-block', border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 800, padding: '14px 22px', borderRadius: 14, textDecoration: 'none' }}
+                >
+                  Build my business ad script →
+                </Link>
+              ) : (
+                <OrganicCtaLink
+                  href={heroFreeHref}
+                  source={campaign}
+                  placement="hero"
+                  style={{ display: 'inline-block', border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 800, padding: '14px 22px', borderRadius: 14, textDecoration: 'none' }}
+                >
+                  {ft(OFFER, `Generate a free ${n.label} Fast video →`, `Make my best ${n.label} film free →`)}
+                </OrganicCtaLink>
+              )}
+            />
+          ) : isLocalBusiness ? (
             <Link
               href="#business-ad-builder"
               style={{ display: 'inline-block', marginTop: 22, background: '#2997ff', color: '#000', fontWeight: 900, padding: '15px 32px', borderRadius: 14, textDecoration: 'none', fontSize: '1.05rem' }}
@@ -568,7 +597,7 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
             </Link>
           ) : (
             <OrganicCtaLink
-              href={signupUrlForIdea(primaryIdea)}
+              href={heroFreeHref}
               source={campaign}
               placement="hero"
               style={{ display: 'inline-block', marginTop: 22, background: 'linear-gradient(135deg,#2997ff,#2997ff)', color: '#000', fontWeight: 900, padding: '15px 32px', borderRadius: 14, textDecoration: 'none', fontSize: '1.05rem' }}
@@ -639,7 +668,8 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
                 note: ft(
                   OFFER,
                   'Your idea is carried into signup so the first Fast video can start without a card.',
-                  'Your idea stays attached through signup. Your active trial starts with Seedance when its balance covers it; otherwise Kineo falls back safely to Fast.',
+                  // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — a frase antiga do recuo para o motor rápido prometia o Kineo 1, fora da entrada desde 29/09.
+                  `Your idea stays attached through signup and becomes your ${FREE_FILM_LABEL}, watermarked, no card.`,
                 ),
               }}
             />
@@ -690,7 +720,7 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
           {/* KINEO-GRANT-COPY-UNICA-2026-08-17 — o número vinha digitado à mão e
               ficou em 40 quando o grant virou 50 hoje: este H2 é o mesmo em 30
               páginas, então era o erro multiplicado por 30. Agora deriva. */}
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>{ft(OFFER, `Make a ${n.label} Fast video free`, `Start free — ${TRIAL_GRANT_CREDITS_COPY} Creator credits for ${n.label} Shorts`)}</h2>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>{ft(OFFER, `Make a ${n.label} Fast video free`, `Start free — ${TRIAL_GRANT_CREDITS_COPY} free credits for ${n.label} Shorts` /* KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — não são créditos "Creator" */)}</h2>
           <p style={{ color: '#CBD5E1', margin: '8px 0 18px', fontSize: '0.95rem' }}>{ft(OFFER, 'Up to 3 watermarked Fast videos every 24h. No card.', OFFER.copy.headline)} Starter is {STARTER_MONTH} when you want clean exports.</p>
           {isLocalBusiness ? (
             <Link href="#business-ad-builder" style={{ display: 'inline-block', background: '#2997ff', color: '#000', fontWeight: 900, padding: '14px 30px', borderRadius: 12, textDecoration: 'none', fontSize: '1.02rem' }}>

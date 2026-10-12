@@ -26,6 +26,7 @@ import Footer from '@/components/Footer'
 import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import SeedanceHeroActions from '@/components/SeedanceHeroActions'
+import Kineo1RetiredNotice from '@/components/Kineo1RetiredNotice' // KINEO-PAGINAS-QUE-VENDEM-2026-10-12
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
 import WallMedia from '@/components/WallMedia'
 import PaidEngineBudget from '@/components/PaidEngineBudget'
@@ -37,6 +38,8 @@ import {
   getFreeTierOffer,
   swapFreeTierCopy as ft,
   TRIAL_CREDITS_SHOWN,
+  FREE_FILM_LABEL,
+  TRIAL_SEEDANCE15_FILMS,
 } from '@/lib/freeTierOffer'
 import {
   buildEngineLandingDestination,
@@ -79,7 +82,9 @@ export function generateMetadata({ params }: { params: { engine: string } }): Me
   // describe the available workflow, never promise public customer renders.
   const description = pause
     ? `${e.name} is temporarily paused for maintenance in Kineo. ${pause.alternative.label} is an available alternative; compare its credits and limits before creating.`
-    : `${e.name} in Kineo: a complete narrated vertical Short with captions, ${engineCostLabel(e).toLowerCase()}. Free trial: ${TRIAL_CREDITS_SHOWN} credits, no card; ${TRIAL_CREDITS_SHOWN >= e.creditCost ? 'covers this reference video' : 'not enough for this reference video'}.`
+    // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — terminava em "not enough for this reference video" (a frase que o Google e o
+    // ChatGPT citam terminava num "não"). Mesma honestidade, em positivo: o que o trial dá de fato e onde está o filme inteiro.
+    : `${e.name} in Kineo: a complete narrated vertical Short with captions, ${engineCostLabel(e).toLowerCase()}. Free trial: ${TRIAL_CREDITS_SHOWN} credits, no card; ${TRIAL_CREDITS_SHOWN >= e.creditCost ? 'covers this reference video' : `${TRIAL_SEEDANCE15_FILMS >= 1 ? `start with a ${FREE_FILM_LABEL}; ` : ''}the full 60-second ${e.name} video comes with a paid plan`}.`
   const url = `${BASE}/ai-video-generator/${params.engine}`
   return {
     metadataBase: new URL(BASE),
@@ -164,6 +169,9 @@ export default async function EnginePage({ params }: { params: { engine: string 
             {e.name} · {engineCostLabel(e)}
           </div>
           <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 900, lineHeight: 1.15, margin: '16px 0 0' }}>{e.h1}</h1>
+          {/* KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — quem chega pelo 301 do Kineo 1 (?from=kineo-1) lê o que mudou; no Seedance o
+              botão principal do hero passou a ser a compra direta do Creator (SeedanceHeroActions buyPage). */}
+          {params.engine === 'seedance' && <Kineo1RetiredNotice />}
           {geo && <EngineAnswerLead geo={geo} />}
           {!enginePaused(e.param) && <PaidEngineBudget slug={params.engine} />}
           {enginePaused(e.param) && (
@@ -174,7 +182,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
           )}
           <p style={{ fontSize: '1.02rem', color: '#86868b', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 680 }}>{e.intro}</p>
           {params.engine === 'seedance' || params.engine === 'veo' ? (
-            <SeedanceHeroActions signupHref={signupUrl} campaign={campaign} />
+            <SeedanceHeroActions signupHref={signupUrl} campaign={campaign} buyPage={params.engine === 'seedance' ? 'seedance' : undefined} />
           ) : <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 22 }}>
             <OrganicCtaLink
               href={primaryCtaHref}

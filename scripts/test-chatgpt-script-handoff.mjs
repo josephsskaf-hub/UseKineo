@@ -168,7 +168,11 @@ try {
   includes(page, 'duration={35}', 'landing explicitly requests its advertised duration')
   includes(page, 'creationIntent="trial_best"', 'landing explicitly requests the best eligible trial engine')
   includes(page, 'preserveHandoffForSignedIn', 'landing keeps the script when an authenticated visitor skips signup')
-  includes(page, 'otherwise it falls back safely to Fast', 'landing tells the truth about the safe fallback')
+  // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — reancorado com motivo: o recuo para o Fast deixou de existir para conta nova desde
+  // 29/09 (lib/growth/trialActivationIntent.ts resolveActivationRender: com a entrada nova, nunca 'fast' para conta nova; o
+  // roteiro vira o Seedance 1.5 de 15 s). A verdade da página agora é essa, lida de FREE_FILM_LABEL.
+  includes(page, 'can cover — for a new account, a {FREE_FILM_LABEL}.', 'landing tells the truth about what a new account gets')
+  ok(!page.includes('falls back safely to Fast'), 'landing no longer promises a Fast fallback to new accounts')
   includes(page, 'CREATION_HANDOFF_PROMPT_MAX_CHARS.toLocaleString', 'landing derives the advertised limit from the handoff contract')
   includes(page, 'If your script contains at least two Voiceover: or Narration: labels', 'landing conditions speech-only mode on two labels')
   includes(page, 'recognized Visual:, Camera:, scene headers and timecodes stay out of narration', 'landing names only recognized production directions')
@@ -305,7 +309,10 @@ try {
   ok(!localizedHandoff.includes('utmSource='), 'localized launcher does not overwrite the real referring source')
   ok(!localizedHandoff.includes('utmMedium='), 'localized launcher does not overwrite the real referring medium')
   ok(!localizedHandoff.includes("'de' | 'fr'"), 'unsupported German and French launchers stay fail-closed')
-  includes(portuguesePage, 'Seedance se o saldo do teste ativo cobrir; senão, usa Fast', 'Portuguese copy names the bounded trial router')
+  // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — reancorado com motivo: conta nova não recua mais para o Fast (Kineo 1 fora da
+  // entrada desde 29/09); a página em português diz o que a conta nova ganha, e que o filme de 35 s sai com um plano.
+  includes(portuguesePage, 'Numa conta nova, o grátis é ${FILME_GRATIS}; o filme de 35 s sai com um plano.', 'Portuguese copy names the bounded trial router')
+  ok(!portuguesePage.includes('senão, usa Fast'), 'Portuguese copy no longer promises a Fast fallback')
   includes(spanishPage, 'Seedance si el saldo de la prueba activa alcanza; si no, usa Fast', 'Spanish copy names the bounded trial router')
   // KINEO-PORTAS-16-LINGUAS-2026-09-20: o hreflang das portas vem de uma fonte única (16 línguas + x-default).
   includes(spanishPage, 'languages: freeShortsAlternates(BASE)', 'Spanish hreflang comes from the shared 16-language map')
