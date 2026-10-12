@@ -16,6 +16,9 @@ import {
   type CheckoutTier,
   type PriceRegion,
 } from '@/lib/checkoutPricing'
+// KINEO-HOME-TEXTOS-2026-10-12 — o 1º mês com 20% (WELCOME20 automático do servidor no Creator/Studio mensal) é calculado
+// pela MESMA função que o checkout grava em public_promo_first_charge_minor: nenhum $15.92/$43.92 digitado aqui.
+import { publicPromoFirstChargeMinor, WELCOME20_PERCENT_OFF } from '@/lib/growth/publicPromoTruth'
 
 type Resolved = { currency: CheckoutCurrency; region: PriceRegion }
 
@@ -53,11 +56,16 @@ export default function LandingPlanPrice({
   tier,
   variant,
   ctaLabel,
+  welcomeFirstMonth = false,
 }: {
   tier: CheckoutTier
-  variant: 'big' | 'cta'
+  /** 'then' (KINEO-HOME-TEXTOS-2026-10-12) = a linha de baixo do preço com 1º mês: "20% off your first month · then $X/mo". */
+  variant: 'big' | 'cta' | 'then'
   /** Verbo do botão: "Start", "Go Creator", "Go Studio". */
   ctaLabel?: string
+  /** KINEO-HOME-TEXTOS-2026-10-12 — só no 'big': mostra o 1º mês com 20% e o preço cheio riscado. O chamador passa o
+   *  interruptor único (WELCOME20_SITE_OFFER_LIVE); o Starter nunca recebe o desconto, mesmo se alguém passar true. */
+  welcomeFirstMonth?: boolean
 }) {
   const [resolved, setResolved] = useState<Resolved | null>(null)
 
@@ -77,6 +85,22 @@ export default function LandingPlanPrice({
     : USD_FALLBACK[tier]
 
   if (variant === 'cta') return <><UiLabel>{ctaLabel ?? 'Start'}</UiLabel> — {price}<UiLabel>/mo</UiLabel></>
+  if (variant === 'then') return <><UiLabel>{`${WELCOME20_PERCENT_OFF}% off your first month · then `}</UiLabel>{price}<UiLabel>/mo</UiLabel></>
+  // KINEO-HOME-TEXTOS-2026-10-12 — mesma regra do servidor (welcome20AutoSkipReason): só Creator ('basic') e Studio ('pro').
+  const currency: CheckoutCurrency = resolved?.currency ?? 'usd'
+  const fullMinor = resolved ? getTierPrice(tier, resolved.currency, resolved.region) : TIER_PRICES[tier].usd
+  const firstMinor = welcomeFirstMonth && (tier === 'basic' || tier === 'pro')
+    ? publicPromoFirstChargeMinor('welcome_first_month_20', fullMinor)
+    : null
+  if (firstMinor !== null) {
+    return (
+      <>
+        <s className="pr-was">{price}</s>
+        {formatCheckoutMoney(currency, firstMinor)}
+        <span><UiLabel>/first month</UiLabel></span>
+      </>
+    )
+  }
   return (
     <>
       {price}

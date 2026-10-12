@@ -6,6 +6,9 @@ import { BRAND_ALIASES, BRAND_NAME, BRAND_URL } from '@/lib/brandIdentity'
 import { BRAND_DISAMBIGUATION } from '@/lib/brandIdentity' // KINEO-VISIBILIDADE-CHATGPT-2026-10-06 — kineo.studio é outra empresa
 import { BRAND_SAME_AS } from '@/lib/brandIdentity' // KINEO-MARCA-2026-10-06 — sameAs só com perfil nosso
 import { ASSISTANT_DEEP_LINK_FACT } from '@/lib/kineoFacts'
+// KINEO-HOME-TEXTOS-2026-10-12 — as duas respostas que mentiam (a IA "achava" vídeo de banco; o tempo era a faixa velha
+// do Kineo 1) vêm da MESMA constante que a FAQ visível da home renderiza: o espelho verbatim deixa de depender de cópia à mão.
+import { HOME_FAQ_EDITING_ANSWER, HOME_FAQ_TIME_ANSWER } from '@/lib/growth/homeTextos'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -202,7 +205,7 @@ const faqSchema = {
       name: 'Do I need any editing skills?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `None. You type one idea and the AI writes the script, records the voice, finds the footage and adds captions. ${ft(OFFER, 'Free downloads carry a watermark; paid plans unlock the clean MP4.', 'Free downloads carry a watermark; paid plans unlock the clean MP4.')}`,
+        text: `${HOME_FAQ_EDITING_ANSWER} ${ft(OFFER, 'Free downloads carry a watermark; paid plans unlock the clean MP4.', 'Free downloads carry a watermark; paid plans unlock the clean MP4.')}`,
       },
     },
     {
@@ -271,7 +274,7 @@ const faqSchema = {
       name: 'How long does one video take?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Fast Mode usually finishes in 3–7 minutes. AI-generated and cinematic videos take a little longer because every scene is generated before the final MP4 is composed.',
+        text: HOME_FAQ_TIME_ANSWER,
       },
     },
     // KINEO-AEO-PRICE-TRUTH-2026-08-19 — as três perguntas abaixo são novas e
