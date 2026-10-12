@@ -264,8 +264,17 @@ const desfazEquipe = (s) => s.split('\n')
   .filter((l) => !l.includes('KINEO-EQUIPE-BUSINESS-2026-10-10') && !/^\s*if \((access|ws)\.role === 'member'\) await writeServerEvent\(\{ name: 'ads_order_by_member'/.test(l))
   .join('\n').replace(/, \.\.\.\((access|ws)\.role === 'member' \? \{ created_by: user\.id \} : \{\}\)/g, '')
   .split(', { workspace: true })').join(')').split(', ...ws } = await loadAdsAccess(').join(' } = await loadAdsAccess(').replace(/(?<!<)\buid\b/g, 'user.id')
+// REANCORADO 12/10 (KINEO-ANUNCIO-CONSERTOS-2026-10-12): os consertos dos anúncios de amostra tocaram /orders (o texto do plano
+// editável, grátis), /plan (a fonte da régua de honestidade e os limites da edição) e /link-import (WebP embutido e o porquê da
+// página que não abre) — nada de preço, crédito ou débito. desfazConsertos tira EXATAMENTE isso (as linhas marcadas e 4 trocas
+// pontuais do /link-import) e a impressão digital da base aeef024f tem de bater igual — o resto do dinheiro intocado.
+const desfazConsertos = (s) => s.split('\n').filter((l) => !l.includes('KINEO-ANUNCIO-CONSERTOS-2026-10-12')).join('\n')
+  .split(', why: failWhy }').join(' }')
+  .split(", reason: failWhy.value ?? 'unreachable' })").join(' })')
+  .split(", 422, { why: failWhy.value ?? 'unreachable' })").join(', 422)')
+  .split('footage_id: string | null; url: string }[] = []').join('footage_id: string; url: string }[] = []')
 await check('6a /start, /orders, /plan, /research, /variations, /retake, /link-import, v2Billing, sample e v2Tiers byte a byte iguais à base aeef024f', () =>
-  Object.entries(BASE).every(([f, h]) => sha(f.startsWith('app/api/ads/v2/') ? desfazEquipe(read(f)) : read(f)) === h))
+  Object.entries(BASE).every(([f, h]) => sha(f.startsWith('app/api/ads/v2/') ? desfazEquipe(desfazConsertos(read(f))) : read(f)) === h))
 const telaDinheiroOk = (src) => {
   const s = code(src)
   const make = bloco(s, 'async function makeAd()')

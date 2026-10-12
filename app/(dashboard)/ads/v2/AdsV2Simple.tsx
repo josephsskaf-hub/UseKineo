@@ -96,6 +96,18 @@ import {
   brandKitPrefill,
   type AdsBrandKit,
   type AdsV2UxCopy,
+  // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — os consertos dos anúncios de amostra (frases nas 16 línguas + regras puras).
+  ADS_V2_EDIT_DEFAULT_LIMITS,
+  ADS_V2_LINK_SMALL_WIDTH,
+  ADS_V2_TIER_MEMORY_KEY,
+  adsV2CountWords,
+  adsV2DominantColor,
+  adsV2FixCopy,
+  adsV2LinkHost,
+  adsV2RememberTier,
+  adsV2RememberedTier,
+  brandKitIsOtherBrand,
+  type AdsV2FixCopy,
 } from '@/lib/ads/v2SimpleUx'
 import { CropEditor, DropZone, LiveStage, MobilePreviewBar, SIMPLE_UX_CSS, SimpleStepper, TierIncludes, goToSection, type LivePreviewData } from './AdsV2SimpleUx'
 
@@ -149,6 +161,8 @@ interface PlanResponse {
   presenter?: boolean
   narration: string | null
   overlays: { role: string; start: number; end: number; text: string }[]
+  /** KINEO-ANUNCIO-CONSERTOS-2026-10-12 — os limites da edição do texto (palavras da voz, caracteres por frase). */
+  edit_limits?: { narration_words: number; overlay_chars: number }
   total_seconds: number
   shots: PlanShot[]
 }
@@ -195,6 +209,13 @@ interface LogoItem {
 }
 
 type Phase = 'loading' | 'build' | 'progress' | 'delivered' | 'failed'
+
+/**
+ * KINEO-ANUNCIO-CONSERTOS-2026-10-12 — prospecção de 12/10: "o primeiro texto digitado logo depois de abrir a página se perde".
+ * O link e a frase moram também aqui (memória da PÁGINA, não do componente): se a sessão for montada de novo na mesma visita
+ * (retomada, troca de carregamento), o que a pessoa digitou volta. "Start over" (sessão nova, resume=false) começa vazio.
+ */
+const typedMemory = { link: '', text: '' }
 
 type ApiResult<T> = { ok: true; status: number; data: T } | { ok: false; status: number; code: string; body: Record<string, unknown> }
 
@@ -480,10 +501,10 @@ export function AdsV2SimpleSession({
   // KINEO-ADS-SIMPLES-ACABAMENTO-2026-09-29 — aba oculta durante a leitura do vídeo: a leitura espera (v2VideoFrames) e a
   // tela pede para voltar, em vez de acusar o navegador.
   const [tabHidden, setTabHidden] = useState(false)
-  const [text, setText] = useState('')
+  const [text, setText] = useState(() => (resume ? typedMemory.text : ''))
   // KINEO-ADS-1FOTO-LINK-2026-10-10 — o link do produto: o que está no campo, o que a rota LEU (vai ao pedido como `link`,
   // fonte do roteiro) e o aviso da leitura. Link sem foto não planeja: a regra de "pelo menos 1 foto" fica em `missing`.
-  const [link, setLink] = useState('')
+  const [link, setLink] = useState(() => (resume ? typedMemory.link : ''))
   const [linkRead, setLinkRead] = useState<string | null>(null)
   const [linkBusy, setLinkBusy] = useState(false)
   const [linkNote, setLinkNote] = useState<{ warn: boolean; text: string } | null>(null)
@@ -527,6 +548,18 @@ export function AdsV2SimpleSession({
   const [kitApplied, setKitApplied] = useState<AdsBrandKit | null>(null)
   const [saveKit, setSaveKit] = useState(true)
   const tierAutoRef = useRef(false)
+  // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — os consertos dos anúncios de amostra (12/10): frases novas, o nome do kit salvo (o
+  // "Save as my brand kit" desmarca sozinho para OUTRA marca; o clique da pessoa manda), a cor da foto do produto para o
+  // cartão final, os campos lidos do DOM e a edição do texto do plano (grátis, sem o modelo).
+  const fix: AdsV2FixCopy = adsV2FixCopy(lang)
+  const [kitBusiness, setKitBusiness] = useState<string | null>(null)
+  const saveKitTouchedRef = useRef(false)
+  const [photoColor, setPhotoColor] = useState<string | null>(null)
+  const linkInputRef = useRef<HTMLInputElement | null>(null)
+  const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
+  const [copyEdit, setCopyEdit] = useState<{ narration: string; overlays: string[] } | null>(null)
+  const [copyBusy, setCopyBusy] = useState(false)
+  const [copyNote, setCopyNote] = useState<{ warn: boolean; text: string } | null>(null)
 
   const aliveRef = useRef(true)
   // Revisão (29/09): uma seleção por vez. O limite de 2 vídeos é contado sobre `items`, que só atualiza na próxima
@@ -581,6 +614,15 @@ export function AdsV2SimpleSession({
   const inAd = items.slice(0, ADS_V2_SIMPLE_MAX_IN_AD)
   const priceT = price.replace(/\s+/g, ' ').trim()
   const contactT = contact.replace(/\s+/g, ' ').trim()
+  // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o cartão final sem kit deixa de ser o azul genérico: a cor da foto do produto (cor
+  // escolhida pela pessoa ou pelo kit = vale a dela), fundo na cor da marca, e o site do link LIDO como contato quando a
+  // pessoa não escreveu nenhum ("Buy now" + o domínio que ela mesma colou). Sem link e sem contato = sem botão (nada inventado).
+  const cardAccent = cardColor !== DEFAULT_COLOR ? cardColor : photoColor ?? DEFAULT_COLOR
+  const linkHost = adsV2LinkHost(linkRead)
+  const cardContact = contactT || linkHost
+  const cardCta = contactT ? endCardCtaLabel(simpleCtaKind(contactT), spoken) : linkHost ? endCardCtaLabel('buy', spoken) : ''
+  const otherBrand = brandKitIsOtherBrand(kitBusiness, cardTitleFinal, sentence)
+  const firstPhotoUrl = items.slice(0, ADS_V2_SIMPLE_MAX_IN_AD).find((p) => !p.video)?.srcUrl ?? null
 
   /** Chave do rascunho: mudou texto, preço, contato, frases, voz, língua ou nível = rascunho novo (a pesquisa é copiada). */
   const draftKey = JSON.stringify({ text: sentence, price: priceT, contact: contactT, overlays: overlaysOn, voice: narrationOn, lang: spoken, tier, link: linkRead })
@@ -604,7 +646,7 @@ export function AdsV2SimpleSession({
   const acopy = adsAfterSampleCopy(lang)
   const factsNow = research && draft && research.orderId === draft.id ? research.facts : []
   const planSig = JSON.stringify({ base: baseSig, facts: factsNow.filter((f) => isFactOn(f)).map((f) => f.id) })
-  const cardSig = JSON.stringify({ title: cardTitleFinal, price: priceT, contact: contactT, color: cardColor, logo: logo?.footageId ?? null, lang: spoken })
+  const cardSig = JSON.stringify({ title: cardTitleFinal, price: priceT, contact: cardContact, cta: cardCta, color: cardAccent, logo: logo?.footageId ?? null, lang: spoken })
   const planFresh = !!plan && plan.sig === planSig
 
   const missing: string[] = []
@@ -774,7 +816,7 @@ export function AdsV2SimpleSession({
       }
       if (stop) return
       try {
-        drawEndCard(canvas, { logo: img, business: cardTitleFinal, offer: priceT, ctaLabel: contactT ? endCardCtaLabel(simpleCtaKind(contactT), spoken) : '', contact: contactT, accent: cardColor })
+        drawEndCard(canvas, { logo: img, business: cardTitleFinal, offer: priceT, ctaLabel: cardCta, contact: cardContact, accent: cardAccent, brandBg: true })
       } catch {
         /* navegador sem canvas: a prévia fica vazia */
       }
@@ -782,7 +824,7 @@ export function AdsV2SimpleSession({
     return () => {
       stop = true
     }
-  }, [phase, moreOpen, logo?.localUrl, cardTitleFinal, priceT, contactT, cardColor, spoken])
+  }, [phase, moreOpen, logo?.localUrl, cardTitleFinal, priceT, cardContact, cardCta, cardAccent, spoken])
 
   // KINEO-ADS-UX-MARCA-2026-10-10 — a imagem do cartão final para a PRÉVIA AO VIVO: o MESMO desenho (drawEndCard) que sobe
   // no planejar, refeito 160 ms depois da última tecla. Só imagem local (blob); nada sobe daqui.
@@ -798,7 +840,7 @@ export function AdsV2SimpleSession({
         if (stop) return
         try {
           const canvas = document.createElement('canvas')
-          drawEndCard(canvas, { logo: img, business: cardTitleFinal, offer: priceT, ctaLabel: contactT ? endCardCtaLabel(simpleCtaKind(contactT), spoken) : '', contact: contactT, accent: cardColor })
+          drawEndCard(canvas, { logo: img, business: cardTitleFinal, offer: priceT, ctaLabel: cardCta, contact: cardContact, accent: cardAccent, brandBg: true })
           canvas.toBlob((b) => {
             if (stop || !b || !aliveRef.current) return
             const u = trackUrl(URL.createObjectURL(b))
@@ -817,12 +859,20 @@ export function AdsV2SimpleSession({
       window.clearTimeout(t)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, logo?.localUrl, cardTitleFinal, priceT, contactT, cardColor, spoken])
+  }, [phase, logo?.localUrl, cardTitleFinal, priceT, cardContact, cardCta, cardAccent, spoken])
 
   // KINEO-ADS-UX-MARCA-2026-10-10 — nível já marcado pelo saldo (uma vez, quando o saldo chega; a escolha da pessoa manda
   // sempre). Na amostra o nível é o dela. Marcar não cobra: o débito segue só no botão "Make my ad".
   useEffect(() => {
     if (tierAutoRef.current || sample || tier !== null) return
+    // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o nível escolhido da última vez (lembrado neste navegador) vem antes do saldo:
+    // quem faz vários anúncios no Standard não troca de novo a cada um. Leitura que falha = a regra do saldo.
+    const remembered = adsV2RememberedTier(() => window.localStorage.getItem(ADS_V2_TIER_MEMORY_KEY))
+    if (remembered) {
+      tierAutoRef.current = true
+      setTier(remembered)
+      return
+    }
     const d = adsV2DefaultTier(balance)
     if (!d) return
     tierAutoRef.current = true
@@ -840,6 +890,7 @@ export function AdsV2SimpleSession({
       const r = await api<{ kit?: AdsBrandKit | null; logo_url?: string | null }>('/api/ads/brand-kit')
       if (cancelled || !aliveRef.current || !r.ok || !r.data.kit || brandKitIsEmpty(r.data.kit)) return
       const kit = r.data.kit
+      setKitBusiness(typeof kit.business === 'string' && kit.business.trim() ? kit.business : null) // KINEO-ANUNCIO-CONSERTOS-2026-10-12
       let logoLocal: string | null = null
       if (kit.logo_footage_id && typeof r.data.logo_url === 'string' && r.data.logo_url) {
         try {
@@ -868,6 +919,57 @@ export function AdsV2SimpleSession({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — "Save as my brand kit" NÃO vem marcado quando já existe um kit com OUTRO nome de marca
+  // (prospecção de 12/10: quem anuncia para várias marcas sobrescrevia o próprio kit sem perceber). O clique da pessoa manda.
+  useEffect(() => {
+    if (saveKitTouchedRef.current) return
+    setSaveKit(!otherBrand)
+  }, [otherBrand])
+
+  // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — a cor dominante da 1ª foto (o produto), para o cartão final sem kit. Foto local
+  // (blob:), sem rede; navegador sem canvas = a cor de sempre.
+  useEffect(() => {
+    if (!firstPhotoUrl) {
+      setPhotoColor(null)
+      return
+    }
+    let stop = false
+    void (async () => {
+      try {
+        const img = await loadImage(firstPhotoUrl)
+        if (stop) return
+        const c = document.createElement('canvas')
+        c.width = 48
+        c.height = 48
+        const ctx = c.getContext('2d', { willReadFrequently: true } as CanvasRenderingContext2DSettings)
+        if (!ctx) return
+        ctx.drawImage(img, 0, 0, 48, 48)
+        const col = adsV2DominantColor(ctx.getImageData(0, 0, 48, 48).data)
+        if (!stop && aliveRef.current) setPhotoColor(col)
+      } catch {
+        if (!stop && aliveRef.current) setPhotoColor(null)
+      }
+    })()
+    return () => {
+      stop = true
+    }
+  }, [firstPhotoUrl])
+
+  // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o que foi digitado fica na memória da página (typedMemory) e, ao abrir o formulário,
+  // o que já estiver escrito NOS CAMPOS (digitado antes do React assumir) é adotado em vez de apagado.
+  useEffect(() => {
+    typedMemory.link = link
+    typedMemory.text = text
+  }, [link, text])
+  useEffect(() => {
+    if (phase !== 'build') return
+    const domLink = linkInputRef.current?.value ?? ''
+    const domText = textAreaRef.current?.value ?? ''
+    if (domLink && !link) setLink(domLink)
+    if (domText && !text) setText(domText)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase])
 
   /** Grava o kit da marca DEPOIS que o anúncio começou (nunca antes, nunca no caminho do débito). Falha = silêncio. */
   function saveBrandKit() {
@@ -1024,7 +1126,13 @@ export function AdsV2SimpleSession({
    */
   async function importLink(raw?: string) {
     const url = (raw ?? link).trim()
-    if (!url || linkBusy || busy !== null) return
+    // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — "Get photos" com o campo vazio avisava nada; agora diz o que fazer.
+    if (!url) {
+      setLinkNote({ warn: true, text: fix.linkEmpty })
+      linkInputRef.current?.focus()
+      return
+    }
+    if (linkBusy || busy !== null) return
     setLinkBusy(true)
     setLinkNote(null)
     try {
@@ -1032,7 +1140,7 @@ export function AdsV2SimpleSession({
       if (!aliveRef.current) return
       if (!r.ok) {
         if (sampleGone(r.code)) return // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
-        setLinkNote({ warn: true, text: r.code.startsWith('moderation') || r.code === 'no_access' || r.code === 'closed' ? errorText(lang, r) : adsV2LinkImportError(r.code, lcopy) })
+        setLinkNote({ warn: true, text: r.code.startsWith('moderation') || r.code === 'no_access' || r.code === 'closed' ? errorText(lang, r) : r.code === 'link_unreachable' && r.body.why === 'blocked' ? fix.linkBlocked : r.code === 'link_unreachable' && r.body.why === 'not_found' ? fix.linkNotFound : adsV2LinkImportError(r.code, lcopy) }) // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o porquê da página que não abriu (bloqueou / não existe)
         return
       }
       const host = typeof r.data.host === 'string' ? r.data.host : ''
@@ -1047,7 +1155,9 @@ export function AdsV2SimpleSession({
           if (!res.ok) continue
           const blob = await res.blob()
           const png = blob.type === 'image/png' || /\.png(\?|$)/i.test(im.url)
-          const f = new File([blob], `${(host || 'product').replace(/[^\w-]+/g, '-')}-${i + 1}.${png ? 'png' : 'jpg'}`, { type: png ? 'image/png' : 'image/jpeg' })
+          // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — WebP chega embutido (data:): o navegador o lê e o recorte 9:16 sobe como JPG.
+          const webp = blob.type === 'image/webp' || /^data:image\/webp/i.test(im.url)
+          const f = new File([blob], `${(host || 'product').replace(/[^\w-]+/g, '-')}-${i + 1}.${webp ? 'webp' : png ? 'png' : 'jpg'}`, { type: webp ? 'image/webp' : png ? 'image/png' : 'image/jpeg' })
           const it = await itemFromFile(f, false)
           if (it) added.push({ ...it, fromLink: true })
         } catch {
@@ -1199,7 +1309,7 @@ export function AdsV2SimpleSession({
         try { img = await loadLogoImage(logo.localUrl) } catch { img = null }
       }
       const canvas = document.createElement('canvas')
-      drawEndCard(canvas, { logo: img, business: cardTitleFinal, offer: priceT, ctaLabel: contactT ? endCardCtaLabel(simpleCtaKind(contactT), spoken) : '', contact: contactT, accent: cardColor })
+      drawEndCard(canvas, { logo: img, business: cardTitleFinal, offer: priceT, ctaLabel: cardCta, contact: cardContact, accent: cardAccent, brandBg: true })
       const file = await toPngFile(canvas)
       const up = await uploadFootage(file)
       if (!aliveRef.current) return null
@@ -1310,6 +1420,8 @@ export function AdsV2SimpleSession({
       }
       rememberPlan(r.data)
       setPlan({ ...r.data, sig: JSON.stringify({ base: baseAtStart, facts: chosen }), cardSig: card.sig })
+      setCopyEdit(null) // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — plano novo = texto novo (a edição do anterior não vale mais)
+      setCopyNote(null) // KINEO-ANUNCIO-CONSERTOS-2026-10-12
       window.setTimeout(() => planHeadingRef.current?.focus(), 30)
     } finally {
       if (aliveRef.current) {
@@ -1334,8 +1446,57 @@ export function AdsV2SimpleSession({
     return true
   }
 
+  // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — editar o texto do plano (narração e frases de tela) antes de gerar: PATCH no pedido,
+  // sem o modelo e sem custo. O limite de palavras é o da duração (o servidor confere de novo; o /start modera o texto).
+  const editLimits = plan?.edit_limits ?? { narration_words: ADS_V2_EDIT_DEFAULT_LIMITS.narrationWords, overlay_chars: ADS_V2_EDIT_DEFAULT_LIMITS.overlayChars }
+  const editVoiceOn = narrationOn && !!plan?.narration
+  function startCopyEdit() {
+    if (!plan || busy !== null) return
+    setCopyNote(null)
+    setCopyEdit({ narration: plan.narration ?? '', overlays: plan.overlays.map((o) => o.text) })
+  }
+  async function saveCopyEdit() {
+    if (!plan || !copyEdit || copyBusy) return
+    const narr = copyEdit.narration.replace(/\s+/g, ' ').trim()
+    if (editVoiceOn && !narr) {
+      setCopyNote({ warn: true, text: fix.emptyVoice })
+      return
+    }
+    if (editVoiceOn && adsV2CountWords(narr) > editLimits.narration_words) {
+      setCopyNote({ warn: true, text: fill(fix.tooLong, { max: editLimits.narration_words }) })
+      return
+    }
+    const body: Record<string, unknown> = { order_id: plan.order_id }
+    if (editVoiceOn) body.narration_text = narr
+    if (plan.overlays.length) body.overlay_texts = copyEdit.overlays.map((o) => o.replace(/\s+/g, ' ').trim().slice(0, editLimits.overlay_chars))
+    if (!('narration_text' in body) && !('overlay_texts' in body)) {
+      setCopyEdit(null)
+      return
+    }
+    setCopyBusy(true)
+    setCopyNote(null)
+    try {
+      const r = await api<{ plan_narration?: string | null; plan_overlays?: Plan['overlays'] }>('/api/ads/v2/orders', { method: 'PATCH', body })
+      if (!aliveRef.current) return
+      if (!r.ok) {
+        setCopyNote({ warn: true, text: r.code === 'narration_too_long' ? fill(fix.tooLong, { max: editLimits.narration_words }) : failText(r) ?? '' })
+        return
+      }
+      const id = plan.order_id
+      setPlan((cur) => (cur && cur.order_id === id ? { ...cur, narration: typeof r.data.plan_narration === 'string' ? r.data.plan_narration : cur.narration, overlays: Array.isArray(r.data.plan_overlays) ? r.data.plan_overlays : cur.overlays } : cur))
+      setCopyEdit(null)
+      setCopyNote({ warn: false, text: fix.saved })
+    } finally {
+      if (aliveRef.current) setCopyBusy(false)
+    }
+  }
+
   async function makeAd() {
     if (!plan || !planFresh || busy || cost === null) return
+    if (copyEdit) {
+      setPlanError(fix.saveFirst)
+      return
+    }
     if (plan.credits !== cost) {
       setPlanError(copy.plan.priceChanged)
       return
@@ -1368,6 +1529,8 @@ export function AdsV2SimpleSession({
       setDraft(null)
       void onBalance()
       if (saveKit) saveBrandKit() // KINEO-ADS-UX-MARCA-2026-10-10 — só depois do /start aceito; não espera a resposta
+      typedMemory.link = '' // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o anúncio começou: o rascunho digitado não volta na próxima visita
+      typedMemory.text = '' // KINEO-ANUNCIO-CONSERTOS-2026-10-12
       const v = r.data.order_id ? r.data : ({ ...r.data, order_id: plan.order_id } as StatusView)
       adoptOrder({ ...v, shots: Array.isArray(v.shots) ? v.shots : [] })
     } finally {
@@ -1499,7 +1662,7 @@ export function AdsV2SimpleSession({
                   <p className="adsw-hint" style={{ margin: '0 0 10px' }}>{fill(copy.files.count, { n: inAd.length, max: ADS_V2_SIMPLE_MAX_IN_AD })} · {copy.files.frameHint}</p>
                   <ol className="adv2s-items" aria-label={copy.files.title}>
                     {inAd.map((p, i) => (
-                      <ItemCard key={p.key} item={p} index={i} copy={copy} locked={locked} out={false}
+                      <ItemCard key={p.key} item={p} index={i} copy={copy} locked={locked} out={false} fix={fix}
                         onFocal={(fx, fy) => updateItem(p.key, { fx, fy })}
                         onRemove={() => { if (editKey === p.key) setEditKey(null); removeItem(p.key) }}
                         onMoveUp={i > 0 ? () => moveUp(p.key) : undefined}
@@ -1533,7 +1696,7 @@ export function AdsV2SimpleSession({
                       <p className="adv2s-out">{fill(copy.files.outTitle, { max: ADS_V2_SIMPLE_MAX_IN_AD })}</p>
                       <ol className="adv2s-items">
                         {items.slice(ADS_V2_SIMPLE_MAX_IN_AD).map((p, j) => (
-                          <ItemCard key={p.key} item={p} index={ADS_V2_SIMPLE_MAX_IN_AD + j} copy={copy} locked={locked} out ux={ux}
+                          <ItemCard key={p.key} item={p} index={ADS_V2_SIMPLE_MAX_IN_AD + j} copy={copy} locked={locked} out ux={ux} fix={fix}
                             onFocal={() => undefined}
                             onRemove={() => removeItem(p.key)}
                             onUse={() => promoteItem(p.key)}
@@ -1570,6 +1733,7 @@ export function AdsV2SimpleSession({
                     type="url"
                     inputMode="url"
                     autoComplete="url"
+                    ref={linkInputRef}
                     value={link}
                     maxLength={500}
                     disabled={locked || linkBusy}
@@ -1584,7 +1748,7 @@ export function AdsV2SimpleSession({
                     }}
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void importLink() } }}
                   />
-                  <button type="button" className="adsw-btn ghost small" disabled={locked || linkBusy || !link.trim() || items.length >= ADS_V2_SIMPLE_MAX_ITEMS} onClick={() => void importLink()}>
+                  <button type="button" className="adsw-btn ghost small" disabled={locked || linkBusy || items.length >= ADS_V2_SIMPLE_MAX_ITEMS} onClick={() => void importLink()}>
                     {linkBusy ? lcopy.linkReading : lcopy.linkButton}
                   </button>
                 </div>
@@ -1607,7 +1771,7 @@ export function AdsV2SimpleSession({
               <label className="adsw-f">
                 <span>{copy.text.question}</span>
                 <small>{copy.text.hint}</small>
-                <textarea className="adsw-ta" rows={3} maxLength={ADS_V2_SCREEN_SENTENCE_MAX} value={text} disabled={locked} onChange={(e) => setText(e.target.value)} placeholder={copy.text.placeholder} />
+                <textarea ref={textAreaRef} className="adsw-ta" rows={3} maxLength={ADS_V2_SCREEN_SENTENCE_MAX} value={text} disabled={locked} onChange={(e) => setText(e.target.value)} placeholder={copy.text.placeholder} />
               </label>
               <label className="adv2s-lang">
                 {copy.text.voiceIn}
@@ -1679,7 +1843,7 @@ export function AdsV2SimpleSession({
                   const need = scopy ? 0 : balance !== null && balance < credits ? credits - balance : 0
                   return (
                     <label key={t} className="adv2-tier">
-                      <input className="adv2-sr" type="radio" name="adv2s-tier" value={t} checked={tier === t} disabled={locked || sampleOff} onChange={() => setTier(t)} />
+                      <input className="adv2-sr" type="radio" name="adv2s-tier" value={t} checked={tier === t} disabled={locked || sampleOff} onChange={() => { setTier(t); if (!scopy) adsV2RememberTier((v) => window.localStorage.setItem(ADS_V2_TIER_MEMORY_KEY, v), t) }} />
                       <b>{tc.name}</b>
                       <span className="cr">{scopy ? (sampleOff ? scopy.paidOnly : scopy.badge) : fill(copy.tiers.credits, { n: credits })}</span>
                       <span>{tc.pitch}</span>
@@ -1770,6 +1934,18 @@ export function AdsV2SimpleSession({
                   short={short}
                   busy={busy}
                   narrationOn={narrationOn}
+                  editor={{
+                    fix,
+                    edit: copyEdit,
+                    busy: copyBusy,
+                    note: copyNote,
+                    limits: editLimits,
+                    voiceOn: editVoiceOn,
+                    onStart: startCopyEdit,
+                    onChange: setCopyEdit,
+                    onSave: () => void saveCopyEdit(),
+                    onCancel: () => { setCopyEdit(null); setCopyNote(null) },
+                  }}
                   itemByFootage={itemByFootage}
                   styleCopy={styleCopy}
                   presenterCopy={presenterCopy}
@@ -1780,7 +1956,7 @@ export function AdsV2SimpleSession({
               {/* KINEO-ADS-UX-MARCA-2026-10-10 — quanto demora e "Salvar como meu kit da marca" (ligado; grava só depois que o anúncio começou). */}
               <p className="adv2s-eta">⏱ {ux.preview.delivery}</p>
               <label className="adv2s-save" data-kineo="ads-brand-kit-save">
-                <input type="checkbox" checked={saveKit} disabled={locked} onChange={(e) => setSaveKit(e.target.checked)} />
+                <input type="checkbox" checked={saveKit} disabled={locked} onChange={(e) => { saveKitTouchedRef.current = true; setSaveKit(e.target.checked) }} />
                 <span>{ux.kit.save}<small>{ux.kit.saveHint}</small></span>
               </label>
               {busyNote ? <p className="adsw-hint" role="status">{busyNote}</p> : null}
@@ -1887,6 +2063,7 @@ function ItemCard({
   onAdjust,
   adjusting = false,
   drag: dnd,
+  fix,
 }: {
   item: SimpleItem
   index: number
@@ -1903,12 +2080,17 @@ function ItemCard({
   onAdjust?: () => void
   adjusting?: boolean
   drag?: { dragging: boolean; target: boolean; start: () => void; over: () => void; drop: () => void; end: () => void }
+  /** KINEO-ANUNCIO-CONSERTOS-2026-10-12 — frases dos consertos (o aviso neutro da foto do link). */
+  fix?: AdsV2FixCopy
 }) {
   const liRef = useRef<HTMLLIElement | null>(null)
   const internal = (e: { dataTransfer: DataTransfer | null }) => Array.from(e.dataTransfer?.types ?? []).includes('text/x-kineo-item')
   const drag = useRef<{ x: number; y: number; fx: number; fy: number; id: number } | null>(null)
   const frameRef = useRef<HTMLDivElement | null>(null)
-  const small = isSmallCrop(cropRect(item.w, item.h, item.fx, item.fy))
+  // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — foto que veio do LINK é do site da própria marca: nada de "cópia de app de conversa".
+  // Ela só ganha um aviso neutro quando é pequena DE VERDADE para 1080×1920 (recorte abaixo de metade da largura).
+  const crop = cropRect(item.w, item.h, item.fx, item.fy)
+  const small = item.fromLink ? crop.sw < ADS_V2_LINK_SMALL_WIDTH : isSmallCrop(crop)
   const canDrag = !locked && !out
 
   function down(e: ReactPointerEvent<HTMLDivElement>) {
@@ -1995,7 +2177,7 @@ function ItemCard({
           <span>{copy.files.asVideoHint}</span>
         </small>
       ) : null}
-      {small && !out && !item.video ? <small className="adsw-warn" style={{ margin: 0 }}>{copy.files.small}</small> : null}
+      {small && !out && !item.video ? <small className={item.fromLink ? 'adsw-hint' : 'adsw-warn'} style={{ margin: 0 }}>{item.fromLink ? fix?.linkSmall ?? copy.files.small : copy.files.small}</small> : null}
       {item.busy ? <small className="adsw-hint" style={{ margin: 0 }} role="status">{copy.files.uploading}</small> : null}
       {item.error ? <small className="adsw-err" style={{ margin: 0 }} role="alert">{item.error}</small> : null}
       <div className="row">
@@ -2024,6 +2206,7 @@ function SimplePlanPreview({
   styleCopy,
   presenterCopy,
   onMake,
+  editor = null,
 }: {
   plan: Plan
   copy: AdsV2SimpleCopy
@@ -2039,6 +2222,19 @@ function SimplePlanPreview({
   /** KINEO-ATOR-ANUNCIO-2026-10-09 — frases do ator na língua da tela. */
   presenterCopy: AdsV2PresenterCopy
   onMake: () => void
+  /** KINEO-ANUNCIO-CONSERTOS-2026-10-12 — editar a narração e as frases de tela antes de gerar (grátis; PATCH no pedido). */
+  editor?: {
+    fix: AdsV2FixCopy
+    edit: { narration: string; overlays: string[] } | null
+    busy: boolean
+    note: { warn: boolean; text: string } | null
+    limits: { narration_words: number; overlay_chars: number }
+    voiceOn: boolean
+    onStart: () => void
+    onChange: (next: { narration: string; overlays: string[] }) => void
+    onSave: () => void
+    onCancel: () => void
+  } | null
 }) {
   const styleName = (k: string | null | undefined) => (k && k in styleCopy.styles ? styleCopy.styles[k as keyof AdsV2StyleCopy['styles']].label : null)
   const cost = three?.on ? variationsPrice(single) : single
@@ -2073,15 +2269,73 @@ function SimplePlanPreview({
       {plan.style_asked && !plan.style ? <p className="adsw-hint">{styleCopy.noProduct}</p> : null}
       {plan.presenter ? <p className="adsw-hint">🎙 <b>{presenterCopy.title}</b> · {presenterCopy.planLine}</p> : plan.presenter_asked ? <p className="adsw-hint">{presenterCopy.notApplied}</p> : null}
       <h3>{copy.plan.words}</h3>
-      {plan.overlays.length ? (
-        <ul className="adv2-lines">{plan.overlays.map((o) => <li key={`${o.role}-${o.start}`}>{o.text}</li>)}</ul>
+      {editor?.edit ? (
+        // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — prospecção de 12/10: no modo simples não dava para corrigir uma frase da voz
+        // ("transforms your skin", "made in British") sem replanejar. Um campo por frase, com o limite da duração.
+        <div className="adv2s-copyedit" data-kineo="ads-copy-edit">
+          <p className="adsw-hint" style={{ margin: '0 0 10px' }}>{editor.fix.editTitle}</p>
+          {plan.overlays.map((o, i) => (
+            <label key={`${o.role}-${o.start}`} className="adsw-f">
+              <span>{fill(editor.fix.line, { n: i + 1 })}</span>
+              <small>{fill(editor.fix.lineHint, { max: editor.limits.overlay_chars })}</small>
+              <input
+                type="text"
+                value={editor.edit?.overlays[i] ?? ''}
+                maxLength={editor.limits.overlay_chars}
+                disabled={editor.busy}
+                onChange={(e) => {
+                  const cur = editor.edit
+                  if (!cur) return
+                  const overlays = cur.overlays.slice()
+                  overlays[i] = e.target.value
+                  editor.onChange({ ...cur, overlays })
+                }}
+              />
+            </label>
+          ))}
+          {editor.voiceOn ? (
+            <label className="adsw-f">
+              <span>{editor.fix.voice}</span>
+              <small className={adsV2CountWords(editor.edit.narration) > editor.limits.narration_words ? 'adsw-warn' : undefined}>
+                {fill(editor.fix.words, { n: adsV2CountWords(editor.edit.narration), max: editor.limits.narration_words })}
+              </small>
+              <textarea
+                className="adsw-ta"
+                rows={3}
+                maxLength={400}
+                value={editor.edit.narration}
+                disabled={editor.busy}
+                onChange={(e) => {
+                  const cur = editor.edit
+                  if (cur) editor.onChange({ ...cur, narration: e.target.value })
+                }}
+              />
+            </label>
+          ) : null}
+          <div className="adv2-actions" style={{ marginTop: 6 }}>
+            <button type="button" className="adsw-btn small" disabled={editor.busy} onClick={editor.onSave}>{editor.busy ? editor.fix.saving : editor.fix.save}</button>
+            <button type="button" className="adsw-btn ghost small" disabled={editor.busy} onClick={editor.onCancel}>{editor.fix.cancel}</button>
+          </div>
+        </div>
       ) : (
-        <p className="adsw-hint" style={{ margin: '0 0 18px' }}>{copy.plan.noWords}</p>
+        <>
+          {plan.overlays.length ? (
+            <ul className="adv2-lines">{plan.overlays.map((o) => <li key={`${o.role}-${o.start}`}>{o.text}</li>)}</ul>
+          ) : (
+            <p className="adsw-hint" style={{ margin: '0 0 18px' }}>{copy.plan.noWords}</p>
+          )}
+          <div className="adv2-voice">
+            <b>{copy.plan.voice}</b>
+            {narrationOn && plan.narration ? <p>{plan.narration}</p> : <p className="off">{copy.plan.noVoice}</p>}
+          </div>
+          {editor && (plan.overlays.length || editor.voiceOn) ? (
+            <button type="button" className="adsw-btn ghost small" data-kineo="ads-copy-edit-open" disabled={busy !== null} onClick={editor.onStart} style={{ marginBottom: 12 }}>
+              ✎ {editor.fix.edit}
+            </button>
+          ) : null}
+        </>
       )}
-      <div className="adv2-voice">
-        <b>{copy.plan.voice}</b>
-        {narrationOn && plan.narration ? <p>{plan.narration}</p> : <p className="off">{copy.plan.noVoice}</p>}
-      </div>
+      {editor?.note ? <p className={editor.note.warn ? 'adsw-warn' : 'adsw-hint'} role="status">{editor.note.text}</p> : null}
       <p className="adv2-total">{fill(copy.plan.total, { s: Math.round(plan.total_seconds * 10) / 10, c: sample ? 0 : cost ?? '' })}</p>
       {sample ? <p className="adsw-hint">{sample.note}</p> : null}
       {short > 0 ? (
@@ -2089,10 +2343,11 @@ function SimplePlanPreview({
       ) : null}
       {three ? <VariationToggle on={three.on} onChange={three.onChange} single={single} copy={three.copy} disabled={busy !== null} /> : null}
       <div className="adv2-actions">
-        <button type="button" className="adsw-btn" disabled={busy !== null || cost === null || short > 0} onClick={onMake}>
+        <button type="button" className="adsw-btn" disabled={busy !== null || cost === null || short > 0 || !!editor?.edit} onClick={onMake}>
           {busy === 'start' ? copy.plan.starting : sample ? sample.make : three?.on ? fill(three.copy.make, { c: cost ?? '' }) : fill(copy.plan.make, { c: cost ?? '' })}
         </button>
       </div>
+      {editor?.edit ? <p className="adsw-hint">{editor.fix.saveFirst}</p> : null}
     </>
   )
 }

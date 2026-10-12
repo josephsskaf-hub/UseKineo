@@ -162,7 +162,7 @@ const html = ({ jsonld = true, imgs = true, og = true } = {}) => `<!doctype html
 <meta property="og:site_name" content="Loja Exemplo">
 ${og ? '<meta property="og:image" content="https://cdn.example.com/share/og-tenis.jpg">' : ''}
 <meta name="description" content="Tênis leve de malha, solado macio.">
-${jsonld ? `<script type="application/ld+json">{"@type":"Product","name":"Tênis Azul Runner","image":["https://cdn.example.com/p/tenis-1.jpg","https://cdn.example.com/p/tenis-1.jpg?v=2","https://cdn.example.com/p/tenis-2.png"],"offers":{"price":"299","priceCurrency":"BRL"}}</script>` : ''}
+${jsonld ? `<script type="application/ld+json">{"@type":"Product","name":"Tênis Azul Runner","image":["https://cdn.example.com/p/tenis-1.jpg","https://cdn.example.com/p/tenis-1.jpg?v=2","https://cdn.example.com/p/tenis-2.png","https://cdn.example.com/p/tenis-6.jpg","https://cdn.example.com/p/tenis-7.jpg"],"offers":{"price":"299","priceCurrency":"BRL"}}</script>` : ''}
 </head><body>
 ${imgs ? `<img src="/img/logo-loja.png" width="400"><img src="https://cdn.example.com/p/tenis-3.jpg" width="800"><img src="https://cdn.example.com/p/sprite.svg">
 <img src="data:image/png;base64,AAAA"><img src="https://cdn.example.com/p/thumb.jpg" width="80"><img src="https://cdn.example.com/p/tenis-4.jpg"><img src="https://cdn.example.com/p/tenis-5.webp">` : ''}
@@ -203,6 +203,8 @@ function internet(over = {}) {
     'https://cdn.example.com/p/tenis-3.jpg': { bytes: JPG(30_000) },
     'https://cdn.example.com/p/tenis-4.jpg': { bytes: JPG(30_000) },
     'https://cdn.example.com/p/tenis-5.webp': { bytes: WEBP(30_000) },
+    'https://cdn.example.com/p/tenis-6.jpg': { bytes: JPG(30_000) },
+    'https://cdn.example.com/p/tenis-7.jpg': { bytes: JPG(30_000) },
     'https://cdn.example.com/share/og-tenis.jpg': { bytes: JPG(20_000) },
     ...over.site,
   }
@@ -235,9 +237,13 @@ const importa = async (raw, opts = {}, netOver = {}, over = {}) => {
   const r = await V.adsV2LinkImport(raw, opts)
   return { r, calls: net.calls }
 }
-await check('4a página com 5 candidatas: no máximo 3 fotos, JPG/PNG pelos bytes, na ordem da página; a frase e o link final voltam', async () => {
+// REANCORADO 12/10 (KINEO-ANUNCIO-CONSERTOS-2026-10-12): a página do fixture declara 4 fotos DO PRODUTO no JSON-LD (tenis-1, 2,
+// 6 e 7) para o teto de 3 seguir provado. Regra nova (prospecção de 12/10: a pessoa e o "outro pote" da Black Chicken vinham
+// das <img> soltas): com foto declarada, só elas entram — as <img> (tenis-3/4/5) só quando nenhuma declarada baixa (4j).
+await check('4a página com 4 fotos declaradas do produto + 3 <img> soltas: no máximo 3 fotos, SÓ as declaradas, na ordem; JPG/PNG pelos bytes; a frase e o link final voltam', async () => {
   const { r } = await importa(PAGE_URL)
-  return r && r.images.length === 3 && r.images.map((i) => i.src).join() === ['tenis-1.jpg', 'tenis-2.png', 'tenis-3.jpg'].map((x) => 'https://cdn.example.com/p/' + x).join() &&
+  return r && r.images.length === 3 && r.images.map((i) => i.src).join() === ['tenis-1.jpg', 'tenis-2.png', 'tenis-6.jpg'].map((x) => 'https://cdn.example.com/p/' + x).join() &&
+    !r.images.some((i) => /tenis-[345]/.test(i.src)) &&
     r.images[1].ext === 'png' && r.images.every((i) => i.bytes.byteLength >= 2000) && r.sentence === 'Tênis Azul Runner — Loja Exemplo' && r.link === PAGE_URL && r.host === 'loja.example.com' && /Price: BRL 299/.test(r.text)
 })
 await check('4b IP interno literal, localhost, porta estranha e credencial: recusados ANTES de qualquer pedido à rede', async () => {
@@ -259,12 +265,20 @@ await check('4d redirecionamento da página para host interno (IP literal OU nom
 await check('4e imagem citada pela página em host interno (direto ou por DNS): pulada sem pedido; as públicas seguem', async () => {
   const page = html().split('https://cdn.example.com/p/tenis-1.jpg').join('http://192.168.0.10/tenis-1.jpg').replace('https://cdn.example.com/p/tenis-2.png', 'https://interno.example.com/tenis-2.png')
   const { r, calls } = await importa(PAGE_URL, {}, { site: { [PAGE_URL]: { html: page } } })
-  return r && r.images.length === 2 && r.images.map((i) => i.src.split('/').pop()).join() === 'tenis-3.jpg,tenis-4.jpg' && !calls.some((c) => /192\.168|interno\.example/.test(c)) && r.skipped === 3
+  // REANCORADO 12/10: as públicas que seguem são as outras DECLARADAS (tenis-6/7); os 2 internos pulados sem pedido.
+  return r && r.images.length === 2 && r.images.map((i) => i.src.split('/').pop()).join() === 'tenis-6.jpg,tenis-7.jpg' && !calls.some((c) => /192\.168|interno\.example/.test(c)) && r.skipped === 2
 })
-await check('4f imagem acima do teto (declarada ou no fluxo) abortada; WebP e imagem minúscula puladas', async () => {
-  const big = { 'https://cdn.example.com/p/tenis-1.jpg': { bytes: JPG(LI.ADS_V2_LINK_IMAGE_MAX_BYTES + 10) }, 'https://cdn.example.com/p/tenis-2.png': { bytes: PNG(100), declared: LI.ADS_V2_LINK_IMAGE_MAX_BYTES + 1 }, 'https://cdn.example.com/p/tenis-3.jpg': { bytes: JPG(900) } }
+// REANCORADO 12/10: WebP deixou de ser pulado — volta como 'webp' (a rota o embute e o navegador converte no recorte).
+await check('4f imagem acima do teto (declarada ou no fluxo) abortada; imagem minúscula pulada; WebP pelos BYTES entra como webp', async () => {
+  const big = { 'https://cdn.example.com/p/tenis-1.jpg': { bytes: JPG(LI.ADS_V2_LINK_IMAGE_MAX_BYTES + 10) }, 'https://cdn.example.com/p/tenis-2.png': { bytes: PNG(100), declared: LI.ADS_V2_LINK_IMAGE_MAX_BYTES + 1 }, 'https://cdn.example.com/p/tenis-6.jpg': { bytes: JPG(900) }, 'https://cdn.example.com/p/tenis-7.jpg': { bytes: WEBP(30_000) } }
   const { r } = await importa(PAGE_URL, {}, { site: big })
-  return r && r.images.length === 1 && r.images[0].src.endsWith('tenis-4.jpg') && r.skipped === 4
+  return r && r.images.length === 1 && r.images[0].src.endsWith('tenis-7.jpg') && r.images[0].ext === 'webp' && r.skipped === 3 &&
+    LI.adsV2ImageKind(WEBP(30)) === 'webp' && LI.adsV2ImageKind(JPG(30)) === 'jpg' && LI.adsV2ImageKind(new TextEncoder().encode('<html>')) === null
+})
+await check('4j nenhuma foto declarada baixou (todas 404): as <img> grandes da página entram como antes (a lista da página tem teto de 6 candidatas)', async () => {
+  const fora = Object.fromEntries(['tenis-1.jpg', 'tenis-2.png', 'tenis-6.jpg', 'tenis-7.jpg'].map((x) => [`https://cdn.example.com/p/${x}`, { bytes: JPG(10), type: 'text/html' }]))
+  const { r } = await importa(PAGE_URL, {}, { site: fora })
+  return r && r.images.map((i) => i.src.split('/').pop()).join() === 'tenis-3.jpg,tenis-4.jpg' && r.skipped === 4
 })
 await check('4g teto de bytes da conta (roomBytes): só entra o que cabe; sem espaço nenhum, nenhuma imagem é baixada', async () => {
   const a = await importa(PAGE_URL, { roomBytes: 60_000 })

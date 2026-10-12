@@ -13,6 +13,8 @@ import { briefFactsText, contactOk, countWords, inventedClaims, inventedNumbers 
 import type { AdsBrief } from '@/lib/ads/types'
 import { ADS_V2_OVERLAY_MAX_CHARS, ADS_V2_SECTORS, isAdsV2Sector, type AdsV2Sector } from '@/lib/ads/v2ShotLists'
 import { lowerMidSentence, missingNames, simpleCommonNoun, simpleNames, simpleProductAd } from '@/lib/ads/v2Simple'
+// KINEO-ANUNCIO-CONSERTOS-2026-10-12 — a narração e as frases só afirmam o que veio do cliente (regra no pedido + régua + conserto).
+import { ADS_V2_HONESTY_RULE, adsV2PlaceRule, honestyIssues, isDemonym, repairHonesty, type AdsV2HonestySource } from '@/lib/ads/v2Honesty'
 
 export const ADS_V2_BRIEF_MODEL = 'gpt-4o-mini'
 /** Teto de planos (chamadas ao GPT) por pessoa em 24 h, contado pelo evento ads_v2_plan_served ANTES do modelo. */
@@ -90,7 +92,7 @@ const DECOR = /[[\]{}#*_]|[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]/u
  * KINEO-ADS-MODO-SIMPLES-2026-09-29 — opts.overlays === false (modo simples, "sem frases na tela"): o pedido manda
  * devolver overlays: [] e some a regra da marca. overlays ausente = o texto de sempre, byte a byte (guardião Z3).
  */
-export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts: { maxWords: number; narration: boolean; overlays?: boolean; simple?: AdsV2SimpleVoice; ad?: AdsV2AdVoice }): { system: string; user: string } {
+export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts: { maxWords: number; narration: boolean; overlays?: boolean; simple?: AdsV2SimpleVoice; ad?: AdsV2AdVoice; honesty?: AdsV2HonestySource }): { system: string; user: string } {
   const brand = brandName(brief)
   const noOverlays = opts.overlays === false
   const voice = opts.simple
@@ -101,6 +103,8 @@ export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts:
   const system = [
     'You write the on-screen phrases and the short voice-over of a vertical video ad for a small business. The video shows the business\'s own real photos in motion.',
     'Use ONLY the facts of the brief. Never invent a price, number, discount, deadline, rating, award, customer count, product, dish, service or place.',
+    // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — com a fonte do cliente (a rota sempre passa), a regra de honestidade. Sem = Z3.
+    ...(opts.honesty ? [ADS_V2_HONESTY_RULE] : []),
     `Write everything in ${languageName}.`,
     opts.narration
       ? `narration: one to three short spoken sentences, ${Math.ceil(opts.maxWords * 0.5)} to ${opts.maxWords} words in total (count them). Warm and natural. ${sayName} No phone number, link or address unless copied exactly from the brief.`
@@ -116,6 +120,8 @@ export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts:
     // KINEO-ATOR-AJUSTES-2026-10-09 — produto fala do produto; com o ator, 1ª pessoa para a câmera. Sem `ad` = nenhuma linha.
     ...(opts.ad?.product && opts.narration ? [ADS_V2_PRODUCT_NARRATION_RULE] : []),
     ...(opts.ad?.presenter && opts.narration ? [ADS_V2_PRESENTER_NARRATION_RULE] : []),
+    // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — produto: o lugar é opcional e só em forma natural ("made in the UK", "from Toronto").
+    ...(opts.honesty?.product && opts.narration ? [adsV2PlaceRule(opts.honesty.places)] : []),
     ...(noOverlays
       ? ['overlays: return [] (the customer turned the on-screen phrases off).']
       : [
@@ -190,7 +196,7 @@ export function textIssues(text: string, brief: AdsBrief, label: string): string
 }
 
 /** Valida a resposta do modelo. Pura; nunca lança. */
-export function checkV2Copy(raw: string, brief: AdsBrief, opts: { maxWords: number; narration: boolean; overlays?: boolean; simple?: AdsV2SimpleVoice; ad?: AdsV2AdVoice }): { ok: true; copy: AdsV2Copy } | { ok: false; why: string[] } {
+export function checkV2Copy(raw: string, brief: AdsBrief, opts: { maxWords: number; narration: boolean; overlays?: boolean; simple?: AdsV2SimpleVoice; ad?: AdsV2AdVoice; honesty?: AdsV2HonestySource; minWords?: number }): { ok: true; copy: AdsV2Copy } | { ok: false; why: string[] } {
   let p: Record<string, unknown>
   try {
     const j = JSON.parse(raw)
@@ -210,12 +216,14 @@ export function checkV2Copy(raw: string, brief: AdsBrief, opts: { maxWords: numb
     const missing = voice ? missingNames(narration, voice.names) : []
     if (missing.length) why.push(`narration: say ${missing.map((n) => `"${n}"`).join(', ')} exactly as the customer wrote ${missing.length > 1 ? 'them' : 'it'} — it is where the ad takes place.`)
     const words = countWords(narration)
-    const min = Math.ceil(opts.maxWords * 0.5)
+    // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — minWords: só o texto CONSERTADO em código (a frase inventada saiu) aceita menos palavras.
+    const min = typeof opts.minWords === 'number' ? opts.minWords : Math.ceil(opts.maxWords * 0.5)
     if (words < min || words > opts.maxWords) why.push(`narration: write ${min} to ${opts.maxWords} words (you wrote ${words}).`)
     if (DECOR.test(narration)) why.push('narration: no brackets, markdown or emojis.')
     // KINEO-ATOR-AJUSTES-2026-10-09 — anúncio de produto não fala como loja ("At LUME, we offer a selection of…").
     if (opts.ad?.product && isShopTalk(narration)) why.push(ADS_V2_SHOP_TALK_WHY)
     why.push(...textIssues(narration, brief, 'narration'))
+    if (opts.honesty) why.push(...honestyIssues(narration, opts.honesty, 'narration'))
   }
   // Modo simples com as frases desligadas: o que o modelo mandar em overlays é IGNORADO (nenhuma frase na tela).
   if (opts.overlays === false) {
@@ -230,6 +238,7 @@ export function checkV2Copy(raw: string, brief: AdsBrief, opts: { maxWords: numb
     if (o.length > ADS_V2_OVERLAY_MAX_CHARS) why.push(`overlays[${i}]: at most ${ADS_V2_OVERLAY_MAX_CHARS} characters (it has ${o.length}).`)
     if (DECOR.test(o) || /["“”]/.test(o)) why.push(`overlays[${i}]: no quotes, brackets, hashtags or emojis.`)
     why.push(...textIssues(o, brief, `overlays[${i}]`))
+    if (opts.honesty) why.push(...honestyIssues(o, opts.honesty, `overlays[${i}]`))
   })
   const brand = brandName(brief)
   if (brand && brand.length <= ADS_V2_OVERLAY_MAX_CHARS && overlays[0] && !overlays[0].toLowerCase().includes(brand.toLowerCase())) {
@@ -256,6 +265,36 @@ export function checkV2Prompts(prompts: readonly string[], brief: AdsBrief): str
   return why
 }
 
+/** KINEO-ANUNCIO-CONSERTOS-2026-10-12 — conserta narração e frases de uma resposta JSON (repairHonesty); frase de tela que
+ *  ficou vazia sai. null = nada a consertar (ou JSON ilegível). Pura. */
+export function repairCopyRaw(raw: string, honesty: AdsV2HonestySource): { raw: string; fixes: string[] } | null {
+  let p: Record<string, unknown>
+  try {
+    const j = JSON.parse(raw)
+    if (!j || typeof j !== 'object' || Array.isArray(j)) return null
+    p = j as Record<string, unknown>
+  } catch {
+    return null
+  }
+  const fixes: string[] = []
+  const out: Record<string, unknown> = { ...p }
+  if (typeof p.narration === 'string') {
+    const r = repairHonesty(p.narration, honesty)
+    if (r.fixes.length) { out.narration = r.text; fixes.push(...r.fixes) }
+  }
+  if (Array.isArray(p.overlays)) {
+    out.overlays = p.overlays
+      .map((o) => {
+        if (typeof o !== 'string') return o
+        const r = repairHonesty(o, honesty)
+        if (r.fixes.length) fixes.push(...r.fixes.map((f) => `overlay:${f}`))
+        return r.fixes.length ? r.text : o
+      })
+      .filter((o) => typeof o !== 'string' || o.trim())
+  }
+  return fixes.length ? { raw: JSON.stringify(out), fixes } : null
+}
+
 async function callJson(messages: { role: 'system' | 'user' | 'assistant'; content: string }[], temperature: number, maxTokens: number): Promise<string> {
   const completion = await openai.chat.completions.create(
     { model: ADS_V2_BRIEF_MODEL, messages, temperature, max_tokens: maxTokens, response_format: { type: 'json_object' } },
@@ -265,7 +304,7 @@ async function callJson(messages: { role: 'system' | 'user' | 'assistant'; conte
 }
 
 export type AdsV2BriefResult =
-  | { ok: true; brief: AdsBrief; copy: AdsV2Copy; dropped: string[]; attempts: number; voice?: AdsV2SimpleVoice & { namesMissing: string[] }; ad?: AdsV2AdVoice }
+  | { ok: true; brief: AdsBrief; copy: AdsV2Copy; dropped: string[]; attempts: number; voice?: AdsV2SimpleVoice & { namesMissing: string[] }; ad?: AdsV2AdVoice; honestyFixes?: string[] }
   | { ok: false; stage: 'brief' | 'copy'; why: string[]; attempts: number }
 
 /** Fatos públicos escolhidos (modo simples) entram no brief como extra.public_fact_N: o texto os enxerga e a régua
@@ -296,20 +335,34 @@ export async function extractAdsV2Brief(args: {
    *  PRODUTO — simpleProductAd); e o ATOR fala a narração. Ausentes = como sempre. */
   productPhoto?: boolean
   presenter?: boolean
+  /** KINEO-ANUNCIO-CONSERTOS-2026-10-12 — só o que a pessoa DIGITOU (frase + preço + contato), sem a página do link: alegação de
+   *  saúde só vale se estiver aqui. Ausente = a frase (ou o texto). */
+  typed?: string
 }): Promise<AdsV2BriefResult> {
   const briefMsgs = buildAutoBriefMessages(args.text, args.languageName)
   const briefRaw = await callJson([{ role: 'system', content: briefMsgs.system }, { role: 'user', content: briefMsgs.user }], 0.2, 900)
   const parsed = parseAutoBrief(briefRaw, args.text, args.language)
   let attempts = 1
   if (parsed.needs.includes('business')) return { ok: false, stage: 'brief', why: ['business_name_missing'], attempts }
-  const voice = typeof args.sentence === 'string' ? simpleVoiceFor(parsed.brief, args.sentence, args.language) : null
-  const brief = withCustomerNames(withPublicFacts(parsed.brief, args.facts), voice?.names ?? [])
-  const base0 = args.overlays === false ? { maxWords: args.maxWords, narration: args.narration, overlays: false } : { maxWords: args.maxWords, narration: args.narration }
-  const base1 = voice ? { ...base0, simple: voice } : base0
   // KINEO-ATOR-AJUSTES-2026-10-09 — produto e/ou ator: o pedido de texto ganha as regras de quem fala e do quê.
   const productAd = typeof args.sentence === 'string' && simpleProductAd(args.sentence, args.productPhoto === true)
+  const voiceRaw = typeof args.sentence === 'string' ? simpleVoiceFor(parsed.brief, args.sentence, args.language) : null
+  // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — prospecção de 12/10: "glow in Toronto today", "today in Australian", "made in
+  // British". A exigência de citar TODO nome próprio (feita para o imóvel) colava a cidade e o adjetivo de nacionalidade em
+  // qualquer frase do anúncio de PRODUTO. Agora: adjetivo de nacionalidade nunca é nome exigido; no anúncio de produto
+  // nenhum lugar é exigido — os lugares (fora da marca) viram opção, só em forma natural (adsV2PlaceRule + placeMisuse).
+  // Os nomes continuam no brief como fato (customer_names): "Rua 25 de Março" segue sem virar número inventado.
+  const business = String(parsed.brief.business ?? '').toLowerCase()
+  const places = voiceRaw && productAd ? voiceRaw.names.filter((n) => !isDemonym(n) && !business.includes(n.toLowerCase())) : []
+  const voice = voiceRaw ? { ...voiceRaw, names: productAd ? [] : voiceRaw.names.filter((n) => !isDemonym(n)) } : null
+  const brief = withCustomerNames(withPublicFacts(parsed.brief, args.facts), voiceRaw?.names ?? [])
+  const base0 = args.overlays === false ? { maxWords: args.maxWords, narration: args.narration, overlays: false } : { maxWords: args.maxWords, narration: args.narration }
+  const base1 = voice ? { ...base0, simple: voice } : base0
   const ad: AdsV2AdVoice | null = productAd || args.presenter === true ? { product: productAd, presenter: args.presenter === true } : null
-  const opts: typeof base1 & { ad?: AdsV2AdVoice } = ad ? { ...base1, ad } : base1
+  // A fonte da régua de honestidade: tudo o que o cliente deu (frase, preço, contato, página do produto, fatos marcados) e só
+  // o que ele DIGITOU (alegação de saúde só vale dali — nunca copiada da página).
+  const honesty: AdsV2HonestySource = { source: [args.text, ...(args.facts ?? [])].join('\n'), typed: args.typed ?? args.sentence ?? args.text, product: productAd, places }
+  const opts: typeof base1 & { ad?: AdsV2AdVoice; honesty: AdsV2HonestySource } = ad ? { ...base1, ad, honesty } : { ...base1, honesty }
   const copyMsgs = buildV2CopyMessages(brief, args.languageName, opts)
   const base = [{ role: 'system' as const, content: copyMsgs.system }, { role: 'user' as const, content: copyMsgs.user }]
   let raw = await callJson(base, 0.6, 700)
@@ -333,14 +386,30 @@ export async function extractAdsV2Brief(args: {
   let namesMissing: string[] = []
   const relaxNames = !!voice && voice.names.length > 0
   const relaxShop = opts.ad?.product === true
+  const relaxedOpts = { ...opts, ...(voice ? { simple: { ...voice, names: [] } } : {}), ...(opts.ad ? { ad: { ...opts.ad, product: false } } : {}) }
   if (!checked.ok && (relaxNames || relaxShop)) {
-    const relaxedOpts = { ...opts, ...(voice ? { simple: { ...voice, names: [] } } : {}), ...(opts.ad ? { ad: { ...opts.ad, product: false } } : {}) }
     const relaxed = checkV2Copy(raw, brief, relaxedOpts)
     if (relaxed.ok) {
       namesMissing = voice ? missingNames(relaxed.copy.narration ?? '', voice.names) : []
       checked = relaxed
     }
   }
+  // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — a 2ª resposta AINDA tem alegação sem fonte ou lugar mal colado: o conserto é em
+  // código (repairHonesty: a frase inventada sai inteira; "made in British" → "made in the UK"; "in Toronto" colado sai) e o
+  // texto consertado passa por TODA a régua de novo (número, contato, fama, honestidade). Só a contagem mínima de palavras
+  // afrouxa — tirar a frase inventada encurta a fala, e fala curta e verdadeira vale mais que 502.
+  let honestyFixes: string[] = []
+  if (!checked.ok) {
+    const fixed = repairCopyRaw(raw, honesty)
+    if (fixed) {
+      const again = checkV2Copy(fixed.raw, brief, { ...relaxedOpts, minWords: Math.max(5, Math.ceil(args.maxWords * 0.25)) })
+      if (again.ok) {
+        namesMissing = voice ? missingNames(again.copy.narration ?? '', voice.names) : []
+        honestyFixes = fixed.fixes
+        checked = again
+      }
+    }
+  }
   if (!checked.ok) return { ok: false, stage: 'copy', why: checked.why.slice(0, 6), attempts }
-  return { ok: true, brief, copy: checked.copy, dropped: parsed.dropped, attempts, ...(voice ? { voice: { ...voice, namesMissing } } : {}), ...(ad ? { ad } : {}) }
+  return { ok: true, brief, copy: checked.copy, dropped: parsed.dropped, attempts, ...(voice ? { voice: { ...voice, namesMissing } } : {}), ...(ad ? { ad } : {}), ...(honestyFixes.length ? { honestyFixes } : {}) }
 }

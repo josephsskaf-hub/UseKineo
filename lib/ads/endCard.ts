@@ -22,6 +22,11 @@ export interface EndCardInput {
   contact: string
   /** Cor de destaque (padrão: o azul da casa). */
   accent?: string
+  /**
+   * KINEO-ANUNCIO-CONSERTOS-2026-10-12 — fundo na cor da MARCA (a de destaque escurecida), não o azul-marinho da casa.
+   * Prospecção de 12/10: "o cartão final é um fundo azul genérico com o nome em branco". Ausente = o fundo de sempre.
+   */
+  brandBg?: boolean
 }
 
 const FONT_STACK = 'system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, sans-serif'
@@ -200,9 +205,16 @@ export function drawEndCard(canvas: HTMLCanvasElement, input: EndCardInput): voi
 
   // Fundo: gradiente escuro + brilho suave da cor de destaque (cobre a tela toda por causa do zoom).
   const bg = ctx.createLinearGradient(0, 0, 0, H)
-  bg.addColorStop(0, '#0d1422')
-  bg.addColorStop(0.55, '#090d15')
-  bg.addColorStop(1, '#05070b')
+  if (input.brandBg) {
+    // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — a cor da marca, escurecida o bastante para o texto branco ler (topo → base).
+    bg.addColorStop(0, shade(accent, 0.5))
+    bg.addColorStop(0.55, shade(accent, 0.72))
+    bg.addColorStop(1, shade(accent, 0.86))
+  } else {
+    bg.addColorStop(0, '#0d1422')
+    bg.addColorStop(0.55, '#090d15')
+    bg.addColorStop(1, '#05070b')
+  }
   ctx.fillStyle = bg
   ctx.fillRect(0, 0, W, H)
   const glow = ctx.createRadialGradient(W / 2, H * 0.36, 40, W / 2, H * 0.36, W * 0.95)
@@ -359,6 +371,13 @@ function parseHex(hex: string): [number, number, number] | null {
 function hexToRgba(hex: string, alpha: number): string {
   const rgb = parseHex(hex) ?? [41, 151, 255]
   return `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${alpha})`
+}
+
+/** KINEO-ANUNCIO-CONSERTOS-2026-10-12 — a cor misturada com preto (`amount` 0 = a cor, 1 = preto). */
+function shade(hex: string, amount: number): string {
+  const rgb = parseHex(hex) ?? [41, 151, 255]
+  const mix = rgb.map((c) => Math.round(c * (1 - amount)))
+  return `rgb(${mix[0]},${mix[1]},${mix[2]})`
 }
 
 function lighten(hex: string, amount = 0.35): string {

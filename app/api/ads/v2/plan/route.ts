@@ -16,6 +16,7 @@ import { adsV2Visible } from '@/lib/ads/v2Access'
 import { sanitizeAssetsBody, sanitizePlanBody } from '@/lib/ads/v2Contract'
 import { adsV2Credits, estimateAdUsd } from '@/lib/ads/v2Tiers'
 import { ADS_V2_PLAN_VIDEO_MAX_SECONDS, ADS_V2_PLAN_VIDEO_MIN_SECONDS, adsV2NarrationMaxWords, planShots, type AdsV2Video } from '@/lib/ads/v2ShotLists'
+import { ADS_V2_OVERLAY_MAX_CHARS } from '@/lib/ads/v2ShotLists' // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o limite da edição do texto
 import { ADS_V2_PLAN_DAILY_CAP, checkV2Prompts, extractAdsV2Brief } from '@/lib/ads/v2Brief'
 import { adsV2LinkText } from '@/lib/ads/v2Link'
 import { researchState, storedResearchFacts } from '@/lib/ads/v2Research'
@@ -122,6 +123,9 @@ export async function POST(req: NextRequest) {
       const contact = typeof brief0.contact === 'string' ? brief0.contact.trim() : ''
       text = [text, price ? `Price: ${price}` : '', contact ? `Contact: ${contact}` : ''].filter(Boolean).join('\n')
     }
+    // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o que a pessoa DIGITOU (frase + preço + contato), antes da página do link: alegação
+    // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — de saúde só vale se estiver aqui (lib/ads/v2Honesty.ts); a página nunca a autoriza.
+    const typed = text // KINEO-ANUNCIO-CONSERTOS-2026-10-12
     let pageLang: string | null = null
     // KINEO-ADS-1FOTO-LINK-2026-10-10 — modo simples com o link do produto colado (/api/ads/v2/link-import): a frase da
     // pessoa continua mandando; o que a página DIZ (nome, descrição, preço, site) entra embaixo como fonte do roteiro. Página
@@ -162,8 +166,10 @@ export async function POST(req: NextRequest) {
       // produto pela frase — simpleProductAd). Ator pedido = a narração é a fala dele, em 1ª pessoa. Ausentes = como sempre.
       ...(simple ? { productPhoto: photos.some((ph) => ph.kind === 'product') } : {}),
       ...(presenterAsked ? { presenter: true } : {}),
+      typed, // KINEO-ANUNCIO-CONSERTOS-2026-10-12
     })
     const modeTag = { mode: simple ? 'simple' : 'full', facts_selected: factTexts.length, overlays: overlaysOn }
+    if (extracted.ok && extracted.honestyFixes) Object.assign(modeTag, { honesty_fixes: extracted.honestyFixes }) // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o que a régua consertou em código
     const served = async (ok: boolean, extra: Record<string, unknown>) =>
       writeServerEvent({ name: 'ads_v2_plan_served', userId: uid, path: '/api/ads/v2/plan', metadata: { order_id: order.id, ok, tier: order.tier, seconds: order.seconds, sector: input.sector, language, ms: Date.now() - started, ...modeTag, ...extra } })
     if (!extracted.ok) {
@@ -236,6 +242,7 @@ export async function POST(req: NextRequest) {
       usd_estimate: usd,
       narration: extracted.copy.narration,
       overlays,
+      edit_limits: { narration_words: maxWords, overlay_chars: ADS_V2_OVERLAY_MAX_CHARS }, // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — a tela edita o texto antes de gerar
       total_seconds: plan.totalSeconds,
       card_ready: Boolean((upd.data as { card_url: string | null }).card_url),
       photo_requests: plan.photoRequests,

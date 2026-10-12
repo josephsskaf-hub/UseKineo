@@ -43,6 +43,22 @@ export function adsV2ImageExt(b: Uint8Array | null | undefined): 'jpg' | 'png' |
   return null
 }
 
+/**
+ * KINEO-ANUNCIO-CONSERTOS-2026-10-12 — JPG, PNG ou WEBP pelos bytes (adsV2ImageExt segue só JPG/PNG: é a régua do que vai ao
+ * bucket). A Graydon (12/10) tinha a foto principal em WebP e o importador a recusava. O WebP NÃO vai ao bucket (o bucket
+ * user-footage só aceita JPG/PNG e não há conversor no servidor): volta à tela embutido (data:), o navegador o desenha no
+ * recorte 9:16 e o recorte sobe como JPG pelo /api/footage — que modera a imagem como qualquer foto.
+ */
+export function adsV2ImageKind(b: Uint8Array | null | undefined): 'jpg' | 'png' | 'webp' | null {
+  const ext = adsV2ImageExt(b)
+  if (ext) return ext
+  if (!b || typeof b !== 'object' || typeof (b as { length?: unknown }).length !== 'number' || b.length < 12) return null
+  return b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50 ? 'webp' : null
+}
+/** WebP embutido na resposta: teto por foto e no total (a resposta da Vercel não passa de ~4,5 MB; base64 cresce 1/3). */
+export const ADS_V2_LINK_WEBP_INLINE_MAX_BYTES = 1_500_000
+export const ADS_V2_LINK_WEBP_INLINE_TOTAL_BYTES = 2_600_000
+
 /** Teto da frase sugerida (a frase do modo simples aceita 400; a sugestão fica curta para a pessoa ajustar). */
 export const ADS_V2_LINK_PREFILL_MAX = 160
 
@@ -334,6 +350,15 @@ export const ADS_V2_LINK_IMPORT_COPY: Record<InterfaceLanguage, AdsV2LinkImportC
 /** Frases na língua da interface (língua desconhecida = inglês). */
 export function adsV2LinkImportCopy(language: InterfaceLanguage | string | null | undefined): AdsV2LinkImportCopy {
   return (typeof language === 'string' && (ADS_V2_LINK_IMPORT_COPY as Record<string, AdsV2LinkImportCopy>)[language]) || ADS_V2_LINK_IMPORT_COPY.en
+}
+
+/** KINEO-ANUNCIO-CONSERTOS-2026-10-12 — por que a página não abriu (o corpo do 422 'link_unreachable' traz `why`). */
+export type AdsV2LinkFailWhy = 'blocked' | 'not_found' | 'not_html' | 'unreachable'
+export function adsV2LinkFailWhy(status: number | null | undefined, gotPage: boolean): AdsV2LinkFailWhy {
+  if (gotPage) return 'not_html'
+  if (status === 401 || status === 403 || status === 429 || status === 503) return 'blocked'
+  if (status === 404 || status === 410) return 'not_found'
+  return 'unreachable'
 }
 
 /** O código de erro da rota → a frase da tela (moderação e o resto caem em linkFailed; a tela mostra a do servidor se houver). */

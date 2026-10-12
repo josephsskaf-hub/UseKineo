@@ -419,6 +419,51 @@ export interface AdsV2PatchBody {
   narration: boolean | null
   /** Troca o cartão final do plano (a pessoa editou o cartão depois de planejar). Ausente = não mexe. */
   card_footage_id: string | null
+  /** KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o TEXTO da narração editado pela pessoa no plano (grátis, sem o modelo). Ausente = não mexe. */
+  narration_text: string | null
+  /** KINEO-ANUNCIO-CONSERTOS-2026-10-12 — as frases de tela editadas, na ordem do plano ('' = tirar a frase). Ausente = não mexe. */
+  overlay_texts: string[] | null
+}
+
+/** KINEO-ANUNCIO-CONSERTOS-2026-10-12 — limites da edição do texto. ESPELHO de ADS_V2_OVERLAY_MAX_CHARS (lib/ads/v2ShotLists.ts,
+ *  42) e das 3 frases de tela; o guardião scripts/test-anuncio-consertos-1210.mjs confere. Palavras da voz: a rota confere
+ *  com adsV2NarrationMaxWords(segundos do pedido) — a mesma régua do modelo. */
+export const ADS_V2_EDIT_OVERLAY_MAX_CHARS = 42
+export const ADS_V2_EDIT_MAX_OVERLAYS = 3
+export const ADS_V2_EDIT_NARRATION_MAX_CHARS = 400
+/** ESPELHO de ADS_V2_NARRATION_WORDS_15 (lib/ads/v2ShotLists.ts): 30 palavras em 15 s, proporcional em 20/30 s. */
+export const ADS_V2_EDIT_NARRATION_WORDS_15 = 30
+export function adsV2EditNarrationMaxWords(seconds: number): number {
+  return Math.floor((ADS_V2_EDIT_NARRATION_WORDS_15 * seconds) / 15)
+}
+
+/**
+ * KINEO-ANUNCIO-CONSERTOS-2026-10-12 — aplica o texto editado pela pessoa ao plano gravado (PATCH /api/ads/v2/orders). Pura.
+ * null = nada de texto no corpo. Recusa: sem plano (409 plan_required), voz acima das palavras da duração (400
+ * narration_too_long), número de frases diferente do plano (400 overlays_mismatch — as janelas de tempo são do plano). Frase
+ * vazia sai (a montagem recusa frase vazia). Nada aqui chama modelo nem mexe em preço: é o texto da pessoa no lugar do texto
+ * do modelo (a moderação do /start lê o texto final antes de qualquer débito).
+ */
+export function applyAdsV2CopyEdit<P extends { shots?: unknown; narration: string | null; overlays: readonly { text: string }[] }>(
+  plan: P | null | undefined,
+  seconds: number,
+  body: Pick<AdsV2PatchBody, 'narration_text' | 'overlay_texts'>,
+): null | { ok: true; plan: P } | { ok: false; error: string; status: number; extra?: Record<string, unknown> } {
+  if (body.narration_text === null && body.overlay_texts === null) return null
+  if (!plan || !Array.isArray(plan.shots) || plan.shots.length === 0) return { ok: false, error: 'plan_required', status: 409 }
+  const next = { ...plan }
+  if (body.narration_text !== null) {
+    const max = adsV2EditNarrationMaxWords(seconds)
+    if (body.narration_text.trim().split(/\s+/).filter(Boolean).length > max) return { ok: false, error: 'narration_too_long', status: 400, extra: { max_words: max } }
+    next.narration = body.narration_text
+  }
+  if (body.overlay_texts !== null) {
+    const cur = Array.isArray(plan.overlays) ? plan.overlays : []
+    if (body.overlay_texts.length !== cur.length) return { ok: false, error: 'overlays_mismatch', status: 400 }
+    const texts = body.overlay_texts
+    next.overlays = cur.map((o, i) => ({ ...o, text: texts[i] })).filter((o) => o.text) as P['overlays']
+  }
+  return { ok: true, plan: next }
 }
 
 /**
@@ -439,8 +484,28 @@ export function sanitizePatchBody(raw: unknown): AdsV2Sanitized<AdsV2PatchBody> 
     if (!isUuid(b.card_footage_id)) return fail('bad_card_footage_id')
     card = (b.card_footage_id as string).toLowerCase()
   }
-  if (narration === null && card === null) return fail('nothing_to_change')
-  return { ok: true, value: { order_id: (b.order_id as string).toLowerCase(), narration, card_footage_id: card } }
+  // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o texto editado: espaços colapsados; voz 1..400 caracteres; até 3 frases de até 42.
+  let narrationText: string | null = null
+  if (b.narration_text !== undefined && b.narration_text !== null) {
+    if (typeof b.narration_text !== 'string') return fail('bad_narration_text')
+    const t = b.narration_text.replace(/\s+/g, ' ').trim()
+    if (!t || t.length > ADS_V2_EDIT_NARRATION_MAX_CHARS) return fail('bad_narration_text')
+    narrationText = t
+  }
+  let overlayTexts: string[] | null = null
+  if (b.overlay_texts !== undefined && b.overlay_texts !== null) {
+    if (!Array.isArray(b.overlay_texts) || b.overlay_texts.length > ADS_V2_EDIT_MAX_OVERLAYS) return fail('bad_overlay_texts')
+    const list: string[] = []
+    for (const o of b.overlay_texts) {
+      if (typeof o !== 'string') return fail('bad_overlay_texts')
+      const t = o.replace(/\s+/g, ' ').trim()
+      if (t.length > ADS_V2_EDIT_OVERLAY_MAX_CHARS) return fail('overlay_too_long')
+      list.push(t)
+    }
+    overlayTexts = list
+  }
+  if (narration === null && card === null && narrationText === null && overlayTexts === null) return fail('nothing_to_change')
+  return { ok: true, value: { order_id: (b.order_id as string).toLowerCase(), narration, card_footage_id: card, narration_text: narrationText, overlay_texts: overlayTexts } }
 }
 
 export interface AdsV2LinkImportBody {

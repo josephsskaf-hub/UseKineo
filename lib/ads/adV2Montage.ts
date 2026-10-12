@@ -116,6 +116,17 @@ export interface AdV2MontageInput {
    * antes. Com ator, `voiceUrl` é IGNORADO: a voz é o áudio do próprio ator (nunca duas vozes).
    */
   presenter?: AdV2PresenterInput | null
+  /**
+   * KINEO-ANUNCIO-CONSERTOS-2026-10-12 — 'lower_third' = anúncio de PRODUTO sem ator: as frases descem para o terço de baixo
+   * (a MESMA caixa do ator, ADS_V2_PRESENTER_OVERLAY_Y), longe do centro onde mora o rótulo. Prospecção de 12/10: a frase cobriu
+   * o rótulo do café (East Coast) e o logo do relógio (Votch). Ausente/null = o centro de sempre, source idêntico ao de antes.
+   */
+  overlayPlacement?: 'lower_third' | null
+}
+
+/** KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o anúncio tem foto marcada como PRODUTO? (as frases de tela descem para o terço de baixo). Pura. */
+export function adsV2ProductOverlays(photos: readonly { kind?: unknown }[] | null | undefined): boolean {
+  return Array.isArray(photos) && photos.some((p) => p && p.kind === 'product')
 }
 
 /** KINEO-ATOR-ANUNCIO-2026-10-09 — o vídeo do ator, já no NOSSO bucket e medido, e a ordem preferida dos inserts. */
@@ -252,7 +263,8 @@ export function buildAdV2Source(input: AdV2MontageInput): Record<string, unknown
     elements.push({
       type: 'text', track: 4, time: r3(o.start), duration: r3(o.end - o.start),
       text,
-      x: '50%', y: pct(ADS_V2_OVERLAY_Y), x_anchor: '50%', y_anchor: '50%',
+      // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — produto sem ator: terço de baixo (o rótulo mora no centro). Sem a opção, o centro.
+      x: '50%', y: pct(input.overlayPlacement === 'lower_third' ? ADS_V2_PRESENTER_OVERLAY_Y : ADS_V2_OVERLAY_Y), x_anchor: '50%', y_anchor: '50%',
       width: '84%', height: pct(ADS_V2_OVERLAY_H),
       font_family: fontFamily, font_size: 64, font_weight: '800', line_height: '110%',
       fill_color: '#ffffff', stroke_color: 'rgba(0,0,0,0.55)', stroke_width: 2,

@@ -27,6 +27,7 @@ import { adsV2Visible } from '@/lib/ads/v2Access'
 import { ADS_V2_LINK_MAX_CHARS, sanitizeLinkImportBody } from '@/lib/ads/v2Contract'
 import { adsV2LinkImport } from '@/lib/ads/v2Link'
 import { ADS_V2_LINK_EVENT, adsV2LinkDailyCap } from '@/lib/ads/v2LinkImport'
+import { ADS_V2_LINK_WEBP_INLINE_MAX_BYTES, ADS_V2_LINK_WEBP_INLINE_TOTAL_BYTES, type AdsV2LinkFailWhy } from '@/lib/ads/v2LinkImport' // KINEO-ANUNCIO-CONSERTOS-2026-10-12
 import { ADS_SAMPLE_FOOTAGE_MAX_BYTES } from '@/lib/ads/sample'
 import { ensureFootageBucket, FOOTAGE_PUBLIC_PREFIX, FOOTAGE_QUOTA_PAID, totalFootageBytes, USER_FOOTAGE_BUCKET } from '@/lib/userFootage'
 import { v2Fail, v2Json } from '@/lib/ads/v2Server'
@@ -68,10 +69,11 @@ export async function POST(req: NextRequest) {
     const quota = gate === 'ok' ? FOOTAGE_QUOTA_PAID : ADS_SAMPLE_FOOTAGE_MAX_BYTES
     const room = Math.max(0, quota - (await totalFootageBytes(uid)))
 
-    const read = await adsV2LinkImport(parsed.value.url, { roomBytes: room }).catch(() => null)
+    const failWhy: { value?: AdsV2LinkFailWhy } = {} // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o porquê (bloqueou / não existe / não é página) volta no 422
+    const read = await adsV2LinkImport(parsed.value.url, { roomBytes: room, why: failWhy }).catch(() => null)
     if (!read) {
-      await logRead({ ok: false, why: 'page_unreachable' })
-      return v2Fail('link_unreachable', 422)
+      await logRead({ ok: false, why: 'page_unreachable', reason: failWhy.value ?? 'unreachable' })
+      return v2Fail('link_unreachable', 422, { why: failWhy.value ?? 'unreachable' })
     }
 
     const safety = await moderateContent({ surface: 'ads_brief', stage: 'input', userId: user.id, text: read.text, meta: { mode: 'link_import', host: read.host } })
@@ -81,12 +83,17 @@ export async function POST(req: NextRequest) {
     }
 
     // As fotos → pasta da conta, com moderação; barrada vai para a quarentena e não vira linha (nenhum plano a alcança).
-    const images: { footage_id: string; url: string }[] = []
+    const images: { footage_id: string | null; url: string }[] = []
     let skipped = read.skipped
     let blocked = 0
+    let inlineBytes = 0 // KINEO-ANUNCIO-CONSERTOS-2026-10-12
     if (read.images.length) await ensureFootageBucket(admin)
     for (let i = 0; i < read.images.length; i++) {
       const im = read.images[i]
+      // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — WebP (a foto da Graydon): o bucket só aceita JPG/PNG e não há conversor no servidor. Volta
+      // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — EMBUTIDO (data:, teto por foto e no total); o navegador desenha no recorte 9:16 e o recorte
+      // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — sobe como JPG pelo /api/footage, que modera a imagem antes de qualquer plano a alcançar.
+      if (im.ext === 'webp') { if (im.bytes.byteLength > ADS_V2_LINK_WEBP_INLINE_MAX_BYTES || inlineBytes + im.bytes.byteLength > ADS_V2_LINK_WEBP_INLINE_TOTAL_BYTES) { skipped++; continue } inlineBytes += im.bytes.byteLength; images.push({ footage_id: null, url: `data:image/webp;base64,${Buffer.from(im.bytes).toString('base64')}` }); continue } // KINEO-ANUNCIO-CONSERTOS-2026-10-12
       const path = `${uid}/clip-${Date.now()}-link${i}.${im.ext}`
       const up = await admin.storage.from(USER_FOOTAGE_BUCKET).upload(path, im.bytes, { contentType: im.ext === 'png' ? 'image/png' : 'image/jpeg', upsert: false })
       if (up.error) { skipped++; continue }

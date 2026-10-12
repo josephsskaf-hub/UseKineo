@@ -819,3 +819,427 @@ export const ADS_V2_UX_COPY: Record<InterfaceLanguage, AdsV2UxCopy> = {
 export function adsV2UxCopy(language: InterfaceLanguage | string | null | undefined): AdsV2UxCopy {
   return (typeof language === 'string' && (ADS_V2_UX_COPY as Record<string, AdsV2UxCopy>)[language]) || ADS_V2_UX_COPY.en
 }
+
+// ─── KINEO-ANUNCIO-CONSERTOS-2026-10-12 — consertos achados nos 10 anúncios de amostra para marcas (12/10) ───────────────
+// Tudo PURO (sem import novo): as frases novas nas 16 línguas, a memória do nível, a regra do "Save as my brand kit", a cor
+// dominante da foto do produto para o cartão final, o site do link como contato do cartão e o limite de "foto pequena" para
+// a foto que veio do site da própria marca.
+
+export interface AdsV2FixCopy {
+  /** "Get photos" com o campo vazio */
+  linkEmpty: string
+  /** a página respondeu 401/403/429/503 (barra leitura automática) */
+  linkBlocked: string
+  /** 404/410 */
+  linkNotFound: string
+  /** foto do link REALMENTE pequena para 1080p (texto neutro: a foto é do site da marca, não "cópia de app de conversa") */
+  linkSmall: string
+  /** editar o texto do plano (grátis) */
+  edit: string
+  editTitle: string
+  voice: string
+  /** {n} {max} */
+  words: string
+  /** {n} */
+  line: string
+  /** {max} */
+  lineHint: string
+  save: string
+  saving: string
+  cancel: string
+  saved: string
+  /** {max} */
+  tooLong: string
+  saveFirst: string
+  emptyVoice: string
+}
+
+const FIX_EN: AdsV2FixCopy = {
+  linkEmpty: 'Paste your product link in the box first.',
+  linkBlocked: 'That site blocks automatic reading. Save the product photo from the page and add it here.',
+  linkNotFound: 'We could not find that page. Check the link and try again.',
+  linkSmall: 'This photo from the page is low resolution, so it may look soft in the video.',
+  edit: 'Edit text',
+  editTitle: 'Change the words before you make the ad — editing is free.',
+  voice: 'Voice-over',
+  words: '{n} of {max} words',
+  line: 'On-screen phrase {n}',
+  lineHint: 'Up to {max} characters. Leave it empty to remove it.',
+  save: 'Save text',
+  saving: 'Saving…',
+  cancel: 'Cancel',
+  saved: 'Text saved.',
+  tooLong: 'Too long for 15 seconds: keep the voice-over to {max} words.',
+  saveFirst: 'Save or cancel your text changes first.',
+  emptyVoice: 'Write the voice-over, or turn the voice off in More options.',
+}
+const FIX_PT: AdsV2FixCopy = {
+  linkEmpty: 'Cole primeiro o link do seu produto no campo.',
+  linkBlocked: 'Esse site bloqueia a leitura automática. Salve a foto do produto da página e adicione aqui.',
+  linkNotFound: 'Não encontramos essa página. Confira o link e tente de novo.',
+  linkSmall: 'Esta foto da página tem resolução baixa e pode ficar sem nitidez no vídeo.',
+  edit: 'Editar texto',
+  editTitle: 'Mude as palavras antes de fazer o anúncio — editar é grátis.',
+  voice: 'Narração',
+  words: '{n} de {max} palavras',
+  line: 'Frase na tela {n}',
+  lineHint: 'Até {max} caracteres. Deixe vazio para tirar.',
+  save: 'Salvar texto',
+  saving: 'Salvando…',
+  cancel: 'Cancelar',
+  saved: 'Texto salvo.',
+  tooLong: 'Longo demais para 15 segundos: use até {max} palavras na narração.',
+  saveFirst: 'Salve ou cancele a edição do texto primeiro.',
+  emptyVoice: 'Escreva a narração ou desligue a voz em Mais opções.',
+}
+const FIX_ES: AdsV2FixCopy = {
+  linkEmpty: 'Primero pega el enlace de tu producto en el campo.',
+  linkBlocked: 'Ese sitio bloquea la lectura automática. Guarda la foto del producto de la página y agrégala aquí.',
+  linkNotFound: 'No encontramos esa página. Revisa el enlace e inténtalo de nuevo.',
+  linkSmall: 'Esta foto de la página tiene baja resolución y puede verse borrosa en el video.',
+  edit: 'Editar texto',
+  editTitle: 'Cambia las palabras antes de hacer el anuncio — editar es gratis.',
+  voice: 'Narración',
+  words: '{n} de {max} palabras',
+  line: 'Frase en pantalla {n}',
+  lineHint: 'Hasta {max} caracteres. Déjala vacía para quitarla.',
+  save: 'Guardar texto',
+  saving: 'Guardando…',
+  cancel: 'Cancelar',
+  saved: 'Texto guardado.',
+  tooLong: 'Demasiado largo para 15 segundos: usa hasta {max} palabras en la narración.',
+  saveFirst: 'Primero guarda o cancela los cambios del texto.',
+  emptyVoice: 'Escribe la narración o apaga la voz en Más opciones.',
+}
+const FIX_FR: AdsV2FixCopy = {
+  linkEmpty: 'Collez d’abord le lien de votre produit dans le champ.',
+  linkBlocked: 'Ce site bloque la lecture automatique. Enregistrez la photo du produit depuis la page et ajoutez-la ici.',
+  linkNotFound: 'Page introuvable. Vérifiez le lien et réessayez.',
+  linkSmall: 'Cette photo de la page est en basse résolution et peut paraître floue dans la vidéo.',
+  edit: 'Modifier le texte',
+  editTitle: 'Changez les mots avant de créer la pub — la modification est gratuite.',
+  voice: 'Voix off',
+  words: '{n} sur {max} mots',
+  line: 'Phrase à l’écran {n}',
+  lineHint: 'Jusqu’à {max} caractères. Laissez vide pour la retirer.',
+  save: 'Enregistrer le texte',
+  saving: 'Enregistrement…',
+  cancel: 'Annuler',
+  saved: 'Texte enregistré.',
+  tooLong: 'Trop long pour 15 secondes : gardez la voix off à {max} mots.',
+  saveFirst: 'Enregistrez ou annulez d’abord vos modifications du texte.',
+  emptyVoice: 'Écrivez la voix off, ou coupez la voix dans Plus d’options.',
+}
+const FIX_DE: AdsV2FixCopy = {
+  linkEmpty: 'Füge zuerst den Link zu deinem Produkt in das Feld ein.',
+  linkBlocked: 'Diese Seite blockiert automatisches Lesen. Speichere das Produktfoto von der Seite und füge es hier hinzu.',
+  linkNotFound: 'Diese Seite wurde nicht gefunden. Prüfe den Link und versuche es erneut.',
+  linkSmall: 'Dieses Foto von der Seite hat eine niedrige Auflösung und kann im Video unscharf wirken.',
+  edit: 'Text bearbeiten',
+  editTitle: 'Ändere die Wörter, bevor du die Anzeige erstellst — Bearbeiten ist kostenlos.',
+  voice: 'Sprecherstimme',
+  words: '{n} von {max} Wörtern',
+  line: 'Text im Bild {n}',
+  lineHint: 'Bis zu {max} Zeichen. Leer lassen, um ihn zu entfernen.',
+  save: 'Text speichern',
+  saving: 'Wird gespeichert…',
+  cancel: 'Abbrechen',
+  saved: 'Text gespeichert.',
+  tooLong: 'Zu lang für 15 Sekunden: höchstens {max} Wörter für die Sprecherstimme.',
+  saveFirst: 'Speichere oder verwirf zuerst deine Textänderungen.',
+  emptyVoice: 'Schreibe den Sprechertext oder schalte die Stimme unter Weitere Optionen aus.',
+}
+const FIX_IT: AdsV2FixCopy = {
+  linkEmpty: 'Incolla prima il link del tuo prodotto nel campo.',
+  linkBlocked: 'Quel sito blocca la lettura automatica. Salva la foto del prodotto dalla pagina e aggiungila qui.',
+  linkNotFound: 'Non abbiamo trovato quella pagina. Controlla il link e riprova.',
+  linkSmall: 'Questa foto della pagina ha una risoluzione bassa e potrebbe risultare poco nitida nel video.',
+  edit: 'Modifica testo',
+  editTitle: 'Cambia le parole prima di creare l’annuncio — modificare è gratis.',
+  voice: 'Voce narrante',
+  words: '{n} di {max} parole',
+  line: 'Frase sullo schermo {n}',
+  lineHint: 'Fino a {max} caratteri. Lasciala vuota per toglierla.',
+  save: 'Salva testo',
+  saving: 'Salvataggio…',
+  cancel: 'Annulla',
+  saved: 'Testo salvato.',
+  tooLong: 'Troppo lungo per 15 secondi: usa al massimo {max} parole nella voce.',
+  saveFirst: 'Salva o annulla prima le modifiche al testo.',
+  emptyVoice: 'Scrivi la voce narrante oppure spegni la voce in Altre opzioni.',
+}
+const FIX_NL: AdsV2FixCopy = {
+  linkEmpty: 'Plak eerst de link naar je product in het veld.',
+  linkBlocked: 'Die site blokkeert automatisch lezen. Sla de productfoto van de pagina op en voeg hem hier toe.',
+  linkNotFound: 'We konden die pagina niet vinden. Controleer de link en probeer het opnieuw.',
+  linkSmall: 'Deze foto van de pagina heeft een lage resolutie en kan in de video wazig lijken.',
+  edit: 'Tekst bewerken',
+  editTitle: 'Pas de woorden aan voordat je de advertentie maakt — bewerken is gratis.',
+  voice: 'Voice-over',
+  words: '{n} van {max} woorden',
+  line: 'Tekst in beeld {n}',
+  lineHint: 'Maximaal {max} tekens. Laat leeg om te verwijderen.',
+  save: 'Tekst opslaan',
+  saving: 'Opslaan…',
+  cancel: 'Annuleren',
+  saved: 'Tekst opgeslagen.',
+  tooLong: 'Te lang voor 15 seconden: houd de voice-over op {max} woorden.',
+  saveFirst: 'Sla je tekstwijzigingen eerst op of annuleer ze.',
+  emptyVoice: 'Schrijf de voice-over, of zet de stem uit bij Meer opties.',
+}
+const FIX_PL: AdsV2FixCopy = {
+  linkEmpty: 'Najpierw wklej w pole link do swojego produktu.',
+  linkBlocked: 'Ta strona blokuje automatyczne czytanie. Zapisz zdjęcie produktu ze strony i dodaj je tutaj.',
+  linkNotFound: 'Nie znaleźliśmy tej strony. Sprawdź link i spróbuj ponownie.',
+  linkSmall: 'To zdjęcie ze strony ma niską rozdzielczość i w filmie może wyglądać nieostro.',
+  edit: 'Edytuj tekst',
+  editTitle: 'Zmień słowa, zanim zrobisz reklamę — edycja jest bezpłatna.',
+  voice: 'Lektor',
+  words: '{n} z {max} słów',
+  line: 'Napis na ekranie {n}',
+  lineHint: 'Do {max} znaków. Zostaw puste, aby usunąć.',
+  save: 'Zapisz tekst',
+  saving: 'Zapisywanie…',
+  cancel: 'Anuluj',
+  saved: 'Tekst zapisany.',
+  tooLong: 'Za długo na 15 sekund: lektor może mieć najwyżej {max} słów.',
+  saveFirst: 'Najpierw zapisz lub anuluj zmiany tekstu.',
+  emptyVoice: 'Napisz tekst lektora albo wyłącz głos w Więcej opcji.',
+}
+const FIX_TR: AdsV2FixCopy = {
+  linkEmpty: 'Önce ürün bağlantını kutuya yapıştır.',
+  linkBlocked: 'Bu site otomatik okumayı engelliyor. Ürün fotoğrafını sayfadan kaydet ve buraya ekle.',
+  linkNotFound: 'Bu sayfayı bulamadık. Bağlantıyı kontrol edip tekrar dene.',
+  linkSmall: 'Sayfadaki bu fotoğrafın çözünürlüğü düşük; videoda bulanık görünebilir.',
+  edit: 'Metni düzenle',
+  editTitle: 'Reklamı yapmadan önce kelimeleri değiştir — düzenlemek ücretsiz.',
+  voice: 'Seslendirme',
+  words: '{n} / {max} kelime',
+  line: 'Ekrandaki ifade {n}',
+  lineHint: 'En fazla {max} karakter. Kaldırmak için boş bırak.',
+  save: 'Metni kaydet',
+  saving: 'Kaydediliyor…',
+  cancel: 'İptal',
+  saved: 'Metin kaydedildi.',
+  tooLong: '15 saniye için çok uzun: seslendirme en fazla {max} kelime olsun.',
+  saveFirst: 'Önce metin değişikliklerini kaydet ya da iptal et.',
+  emptyVoice: 'Seslendirmeyi yaz ya da Diğer seçenekler’den sesi kapat.',
+}
+const FIX_RU: AdsV2FixCopy = {
+  linkEmpty: 'Сначала вставьте в поле ссылку на товар.',
+  linkBlocked: 'Этот сайт блокирует автоматическое чтение. Сохраните фото товара со страницы и добавьте его сюда.',
+  linkNotFound: 'Мы не нашли эту страницу. Проверьте ссылку и попробуйте ещё раз.',
+  linkSmall: 'У этого фото со страницы низкое разрешение, в видео оно может выглядеть нерезким.',
+  edit: 'Изменить текст',
+  editTitle: 'Измените слова до создания рекламы — это бесплатно.',
+  voice: 'Голос за кадром',
+  words: '{n} из {max} слов',
+  line: 'Фраза на экране {n}',
+  lineHint: 'До {max} символов. Оставьте пустой, чтобы убрать.',
+  save: 'Сохранить текст',
+  saving: 'Сохраняем…',
+  cancel: 'Отмена',
+  saved: 'Текст сохранён.',
+  tooLong: 'Слишком длинно для 15 секунд: не больше {max} слов для голоса.',
+  saveFirst: 'Сначала сохраните или отмените изменения текста.',
+  emptyVoice: 'Напишите текст для голоса или выключите голос в разделе «Ещё».',
+}
+const FIX_UK: AdsV2FixCopy = {
+  linkEmpty: 'Спочатку вставте в поле посилання на товар.',
+  linkBlocked: 'Цей сайт блокує автоматичне читання. Збережіть фото товару зі сторінки й додайте його сюди.',
+  linkNotFound: 'Ми не знайшли цю сторінку. Перевірте посилання й спробуйте ще раз.',
+  linkSmall: 'Це фото зі сторінки має низьку роздільність, у відео воно може виглядати нечітким.',
+  edit: 'Змінити текст',
+  editTitle: 'Змініть слова до створення реклами — це безкоштовно.',
+  voice: 'Голос за кадром',
+  words: '{n} з {max} слів',
+  line: 'Фраза на екрані {n}',
+  lineHint: 'До {max} символів. Залиште порожньою, щоб прибрати.',
+  save: 'Зберегти текст',
+  saving: 'Зберігаємо…',
+  cancel: 'Скасувати',
+  saved: 'Текст збережено.',
+  tooLong: 'Задовго для 15 секунд: не більше {max} слів для голосу.',
+  saveFirst: 'Спершу збережіть або скасуйте зміни тексту.',
+  emptyVoice: 'Напишіть текст для голосу або вимкніть голос у розділі «Більше».',
+}
+const FIX_AR: AdsV2FixCopy = {
+  linkEmpty: 'الصق رابط منتجك في الحقل أولًا.',
+  linkBlocked: 'هذا الموقع يمنع القراءة التلقائية. احفظ صورة المنتج من الصفحة وأضفها هنا.',
+  linkNotFound: 'لم نعثر على تلك الصفحة. تحقّق من الرابط وحاول مرة أخرى.',
+  linkSmall: 'دقة هذه الصورة من الصفحة منخفضة، وقد تبدو غير واضحة في الفيديو.',
+  edit: 'تعديل النص',
+  editTitle: 'غيّر الكلمات قبل إنشاء الإعلان — التعديل مجاني.',
+  voice: 'التعليق الصوتي',
+  words: '{n} من {max} كلمة',
+  line: 'عبارة على الشاشة {n}',
+  lineHint: 'حتى {max} حرفًا. اتركها فارغة لحذفها.',
+  save: 'حفظ النص',
+  saving: 'جارٍ الحفظ…',
+  cancel: 'إلغاء',
+  saved: 'تم حفظ النص.',
+  tooLong: 'طويل جدًا لـ 15 ثانية: اجعل التعليق الصوتي {max} كلمة على الأكثر.',
+  saveFirst: 'احفظ تعديلات النص أو ألغِها أولًا.',
+  emptyVoice: 'اكتب التعليق الصوتي، أو أوقف الصوت من خيارات إضافية.',
+}
+const FIX_UR: AdsV2FixCopy = {
+  linkEmpty: 'پہلے خانے میں اپنی پروڈکٹ کا لنک پیسٹ کریں۔',
+  linkBlocked: 'یہ سائٹ خودکار پڑھائی روکتی ہے۔ صفحے سے پروڈکٹ کی تصویر محفوظ کریں اور یہاں شامل کریں۔',
+  linkNotFound: 'ہمیں وہ صفحہ نہیں ملا۔ لنک چیک کر کے دوبارہ کوشش کریں۔',
+  linkSmall: 'صفحے کی اس تصویر کی ریزولیوشن کم ہے، ویڈیو میں دھندلی لگ سکتی ہے۔',
+  edit: 'متن میں ترمیم',
+  editTitle: 'اشتہار بنانے سے پہلے الفاظ بدلیں — ترمیم مفت ہے۔',
+  voice: 'وائس اوور',
+  words: '{max} میں سے {n} الفاظ',
+  line: 'اسکرین پر جملہ {n}',
+  lineHint: 'زیادہ سے زیادہ {max} حروف۔ ہٹانے کے لیے خالی چھوڑ دیں۔',
+  save: 'متن محفوظ کریں',
+  saving: 'محفوظ ہو رہا ہے…',
+  cancel: 'منسوخ',
+  saved: 'متن محفوظ ہو گیا۔',
+  tooLong: '15 سیکنڈ کے لیے بہت لمبا: وائس اوور زیادہ سے زیادہ {max} الفاظ رکھیں۔',
+  saveFirst: 'پہلے متن کی تبدیلیاں محفوظ یا منسوخ کریں۔',
+  emptyVoice: 'وائس اوور لکھیں، یا مزید اختیارات میں آواز بند کریں۔',
+}
+const FIX_HI: AdsV2FixCopy = {
+  linkEmpty: 'पहले बॉक्स में अपने प्रोडक्ट का लिंक पेस्ट करें।',
+  linkBlocked: 'यह साइट अपने-आप पढ़ने को रोकती है। पेज से प्रोडक्ट की फ़ोटो सेव करें और यहाँ जोड़ें।',
+  linkNotFound: 'हमें वह पेज नहीं मिला। लिंक जाँचें और फिर कोशिश करें।',
+  linkSmall: 'पेज की इस फ़ोटो का रेज़ोल्यूशन कम है, वीडियो में यह धुंधली दिख सकती है।',
+  edit: 'टेक्स्ट बदलें',
+  editTitle: 'विज्ञापन बनाने से पहले शब्द बदलें — बदलना मुफ़्त है।',
+  voice: 'वॉइस-ओवर',
+  words: '{max} में से {n} शब्द',
+  line: 'स्क्रीन पर वाक्य {n}',
+  lineHint: 'ज़्यादा से ज़्यादा {max} अक्षर। हटाने के लिए ख़ाली छोड़ें।',
+  save: 'टेक्स्ट सेव करें',
+  saving: 'सेव हो रहा है…',
+  cancel: 'रद्द करें',
+  saved: 'टेक्स्ट सेव हो गया।',
+  tooLong: '15 सेकंड के लिए बहुत लंबा: वॉइस-ओवर ज़्यादा से ज़्यादा {max} शब्द रखें।',
+  saveFirst: 'पहले टेक्स्ट के बदलाव सेव या रद्द करें।',
+  emptyVoice: 'वॉइस-ओवर लिखें, या और विकल्प में आवाज़ बंद करें।',
+}
+const FIX_ID: AdsV2FixCopy = {
+  linkEmpty: 'Tempel dulu tautan produkmu di kolom.',
+  linkBlocked: 'Situs itu memblokir pembacaan otomatis. Simpan foto produk dari halaman itu lalu tambahkan di sini.',
+  linkNotFound: 'Kami tidak menemukan halaman itu. Periksa tautannya lalu coba lagi.',
+  linkSmall: 'Foto dari halaman ini beresolusi rendah, jadi bisa tampak kurang tajam di video.',
+  edit: 'Ubah teks',
+  editTitle: 'Ganti kata-katanya sebelum membuat iklan — mengedit gratis.',
+  voice: 'Sulih suara',
+  words: '{n} dari {max} kata',
+  line: 'Kalimat di layar {n}',
+  lineHint: 'Maksimal {max} karakter. Kosongkan untuk menghapus.',
+  save: 'Simpan teks',
+  saving: 'Menyimpan…',
+  cancel: 'Batal',
+  saved: 'Teks tersimpan.',
+  tooLong: 'Terlalu panjang untuk 15 detik: sulih suara maksimal {max} kata.',
+  saveFirst: 'Simpan atau batalkan perubahan teks dulu.',
+  emptyVoice: 'Tulis sulih suaranya, atau matikan suara di Opsi lainnya.',
+}
+const FIX_VI: AdsV2FixCopy = {
+  linkEmpty: 'Trước tiên hãy dán liên kết sản phẩm vào ô.',
+  linkBlocked: 'Trang đó chặn việc đọc tự động. Hãy lưu ảnh sản phẩm từ trang rồi thêm vào đây.',
+  linkNotFound: 'Chúng tôi không tìm thấy trang đó. Hãy kiểm tra liên kết và thử lại.',
+  linkSmall: 'Ảnh từ trang này có độ phân giải thấp, có thể trông mờ trong video.',
+  edit: 'Sửa chữ',
+  editTitle: 'Đổi lời trước khi tạo quảng cáo — chỉnh sửa miễn phí.',
+  voice: 'Lời thuyết minh',
+  words: '{n} / {max} từ',
+  line: 'Câu trên màn hình {n}',
+  lineHint: 'Tối đa {max} ký tự. Để trống để bỏ câu này.',
+  save: 'Lưu chữ',
+  saving: 'Đang lưu…',
+  cancel: 'Hủy',
+  saved: 'Đã lưu chữ.',
+  tooLong: 'Quá dài cho 15 giây: lời thuyết minh tối đa {max} từ.',
+  saveFirst: 'Hãy lưu hoặc hủy thay đổi chữ trước.',
+  emptyVoice: 'Hãy viết lời thuyết minh, hoặc tắt giọng trong Tùy chọn khác.',
+}
+
+export const ADS_V2_FIX_COPY: Record<InterfaceLanguage, AdsV2FixCopy> = {
+  en: FIX_EN, pt: FIX_PT, es: FIX_ES, fr: FIX_FR, de: FIX_DE, it: FIX_IT, nl: FIX_NL, pl: FIX_PL, tr: FIX_TR, ru: FIX_RU, uk: FIX_UK, ar: FIX_AR, ur: FIX_UR, hi: FIX_HI, id: FIX_ID, vi: FIX_VI,
+}
+
+/** As frases dos consertos na língua da interface (língua desconhecida = inglês). */
+export function adsV2FixCopy(language: InterfaceLanguage | string | null | undefined): AdsV2FixCopy {
+  return (typeof language === 'string' && (ADS_V2_FIX_COPY as Record<string, AdsV2FixCopy>)[language]) || ADS_V2_FIX_COPY.en
+}
+
+/** Limites da edição do texto quando o plano não os trouxe. ESPELHO de lib/ads/v2ShotLists.ts (30 palavras em 15 s; 42
+ *  caracteres por frase) — o guardião scripts/test-anuncio-consertos-1210.mjs confere; o PATCH confere de novo no servidor. */
+export const ADS_V2_EDIT_DEFAULT_LIMITS = { narrationWords: 30, overlayChars: 42 } as const
+
+/** Palavras de um texto (mesma régua do servidor: countWords de lib/ads/scriptPrompt.ts). Pura. */
+export function adsV2CountWords(text: string): number {
+  return String(text ?? '').trim().split(/\s+/).filter(Boolean).length
+}
+
+// ── o nível escolhido é lembrado entre anúncios (só neste navegador; leitura/escrita que falham = como antes) ──────────
+export const ADS_V2_TIER_MEMORY_KEY = 'kineo.ads.v2.tier'
+/** O nível lembrado, se for um nível que existe. `read` lança (modo privado, armazenamento bloqueado) = null. Pura. */
+export function adsV2RememberedTier(read: () => string | null): AdsV2Tier | null {
+  let v: string | null = null
+  try { v = read() } catch { v = null }
+  return v && (ADS_V2_TIER_IDS as readonly string[]).includes(v) ? (v as AdsV2Tier) : null
+}
+/** Grava o nível (falha = silêncio). */
+export function adsV2RememberTier(write: (v: string) => void, tier: AdsV2Tier): void {
+  try { write(tier) } catch { /* armazenamento bloqueado: a tela segue sem lembrar */ }
+}
+
+// ── "Save as my brand kit" ─────────────────────────────────────────────────────────────────────────────────────────
+const normName = (s: unknown) => String(s ?? '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
+/**
+ * Já existe um kit com OUTRO nome de marca? (prospecção de 12/10: quem faz anúncio para várias marcas sobrescrevia o próprio
+ * kit sem perceber.) Outra marca = o nome do cartão difere do kit, ou a frase existe e não cita a marca do kit. Sem kit, ou
+ * kit sem nome = false (o padrão de sempre: marcado). Pura.
+ */
+export function brandKitIsOtherBrand(kitBusiness: string | null | undefined, cardTitle: string, sentence: string): boolean {
+  const kit = normName(kitBusiness)
+  if (!kit) return false
+  const title = normName(cardTitle)
+  if (title && title !== kit) return true
+  const s = normName(sentence)
+  return !!s && !` ${s} `.includes(` ${kit} `)
+}
+
+// ── a foto do link: "pequena" só quando REALMENTE é pequena para 1080p ─────────────────────────────────────────────────
+/** Largura do recorte 9:16 abaixo da qual a foto vinda do site da marca fica mole em 1080×1920 (metade da largura). */
+export const ADS_V2_LINK_SMALL_WIDTH = 540
+
+// ── o cartão final sem kit: a cor da foto do produto e o site do link ─────────────────────────────────────────────────
+/**
+ * A cor dominante de uma amostra RGBA (ex.: a foto do produto reduzida a 48×48): ignora transparente, quase branco, quase
+ * preto e cinza (fundo de estúdio), agrupa em caixas de 4 bits e devolve a média da caixa mais cheia, escurecida o bastante
+ * para o texto branco do cartão ler bem. Nenhuma cor viva = null (fica a cor de sempre). Pura.
+ */
+export function adsV2DominantColor(data: ArrayLike<number>): string | null {
+  const bins = new Map<number, { n: number; r: number; g: number; b: number }>()
+  for (let i = 0; i + 3 < data.length; i += 4) {
+    const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3]
+    if (a < 128) continue
+    const max = Math.max(r, g, b), min = Math.min(r, g, b)
+    if (max < 36 || min > 222 || max - min < 30) continue
+    const k = ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4)
+    const cur = bins.get(k) ?? { n: 0, r: 0, g: 0, b: 0 }
+    cur.n++; cur.r += r; cur.g += g; cur.b += b
+    bins.set(k, cur)
+  }
+  let best: { n: number; r: number; g: number; b: number } | null = null
+  for (const v of bins.values()) if (!best || v.n > best.n) best = v
+  if (!best || best.n < 6) return null
+  let [r, g, b] = [best.r / best.n, best.g / best.n, best.b / best.n]
+  // Luminância alta demais = o texto branco some: escurece até ~0,42.
+  const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255
+  if (lum > 0.42) { const k = 0.42 / lum; r *= k; g *= k; b *= k }
+  const hx = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0')
+  return `#${hx(r)}${hx(g)}${hx(b)}`
+}
+
+/** O site do produto (o link que a pessoa colou e a rota LEU) como contato do cartão: só o domínio, sem "www.". Pura. */
+export function adsV2LinkHost(link: string | null | undefined): string {
+  try { return link ? new URL(link).hostname.replace(/^www\./i, '') : '' } catch { return '' }
+}

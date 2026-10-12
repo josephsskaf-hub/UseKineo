@@ -35,7 +35,7 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { buildShotInput } from '@/lib/ads/v2Engines'
 import { ADS_V2_ENGINES, ADS_V2_FALLBACK_FROM_ATTEMPT, adsV2RetakeCredits, routeShot, type AdsV2Engine, type AdsV2ShotKind, type AdsV2Tier } from '@/lib/ads/v2Tiers'
 import { ADS_V2_CARD_SECONDS, isAdsV2PlanStyle, type AdsV2ShotPlan } from '@/lib/ads/v2ShotLists'
-import { buildAdV2Source, ADS_V2_VOICE_START, type AdV2MontageShot } from '@/lib/ads/adV2Montage'
+import { buildAdV2Source, ADS_V2_VOICE_START, adsV2ProductOverlays, type AdV2MontageShot } from '@/lib/ads/adV2Montage'
 import { adsV2FallbackTrack, adsV2MusicTrimStart, adsV2MusicUsable, adsV2SwapLibraryTrack } from '@/lib/ads/v2Music'
 import { ADS_V2_QUALITY, confirmAdsV2Debit, failAdsV2Order } from '@/lib/ads/v2Billing'
 import { isAdsSampleRef } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
@@ -774,6 +774,8 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
       voiceSeconds,
       // KINEO-ADS-3VAR-COR-2026-09-30 — a cor do look na montagem (null fora das 3 variações).
       tint: variationTintOf(order.brief),
+      // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — anúncio com foto de PRODUTO: frases no terço de baixo (não cobrem o rótulo).
+      ...(adsV2ProductOverlays(order.photos) ? { overlayPlacement: 'lower_third' as const } : {}),
     })
   } catch (e) {
     await failAdsV2Order(admin, order, `montage_invalid:${e instanceof Error ? e.message : String(e)}`, '/lib/ads/v2Advance')

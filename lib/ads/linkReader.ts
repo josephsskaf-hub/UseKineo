@@ -236,3 +236,78 @@ export function productImageCandidates(images: readonly unknown[], max = MAX_IMA
   }
   return out
 }
+
+// ── KINEO-ANUNCIO-CONSERTOS-2026-10-12 — a FOTO DO PRODUTO primeiro, nunca o logo nem a pessoa ──────────────────────────
+// Prospecção de 12/10: na Black Chicken o link trouxe a foto de uma pessoa e o pote de OUTRO produto (as <img> da página:
+// relacionados, banners, equipe) e o anúncio saiu vendendo o produto errado; na East Coast veio o LOGO como "foto". Na
+// Graydon a página não abriu e a foto principal era WebP. Regra nova: quando a página DECLARA o produto (JSON-LD Product,
+// og:type=product) ou é uma loja Shopify (/products/<handle>.json), só as fotos desse produto entram; as <img> soltas da
+// página só servem quando não há nenhuma foto declarada. Puro (a rede mora em lib/ads/v2Link.ts).
+
+/** As fotos que a página diz serem DO PRODUTO: JSON-LD Product.image; sem ela, og:image só se og:type = product. */
+export function productPageImages(html: string, pageUrl: string): string[] {
+  const head = String(html ?? '').slice(0, 600_000)
+  const product = jsonLdNodes(head).find((n) => typeIs(n, 'Product'))
+  const fromLd = imagesOf(product?.image).map((u) => absolute(u, pageUrl)).filter((u): u is string => !!u)
+  if (fromLd.length) return fromLd
+  const metas = tags(head, 'meta')
+  if (!metaContent(metas, 'og:type').some((t) => /product/i.test(t))) return []
+  return metaContent(metas, 'og:image', 'og:image:secure_url', 'og:image:url').map((u) => absolute(u, pageUrl)).filter((u): u is string => !!u)
+}
+
+/** A página é de uma loja Shopify (marcas do tema/CDN no HTML). */
+export function isShopifyHtml(html: string | null | undefined): boolean {
+  return /cdn\.shopify\.com|Shopify\.shop|shopify-section|\/cdn\/shop\//i.test(String(html ?? '').slice(0, 600_000))
+}
+
+/** "/products/<handle>" (também dentro de /collections/x/) → o JSON público do produto na MESMA origem. null = não é página de produto. */
+export function shopifyProductJsonUrl(pageUrl: string): string | null {
+  try {
+    const u = new URL(pageUrl)
+    const m = /\/products\/([a-z0-9][a-z0-9._~%-]*)\/?$/i.exec(u.pathname)
+    if (!m || /\.(json|js|xml|oembed)$/i.test(m[1])) return null
+    return `${u.origin}/products/${m[1]}.json`
+  } catch {
+    return null
+  }
+}
+
+export interface ShopifyProduct {
+  title: string
+  vendor: string
+  description: string
+  price: string | null
+  images: string[]
+}
+
+/** Lê o /products/<handle>.json do Shopify (só o que ele DIZ). JSON ilegível ou sem produto = null. */
+export function shopifyProductFromJson(text: string): ShopifyProduct | null {
+  let j: unknown
+  try { j = JSON.parse(String(text ?? '')) } catch { return null }
+  const p = (j && typeof j === 'object' ? (j as Json).product : null) as Json | null
+  if (!p || typeof p !== 'object') return null
+  const imgs = Array.isArray(p.images) ? (p.images as unknown[]) : []
+  const images = imgs.map((i) => (i && typeof i === 'object' && typeof (i as Json).src === 'string' ? String((i as Json).src) : typeof i === 'string' ? i : '')).filter((u) => /^https?:\/\//i.test(u))
+  const variants = Array.isArray(p.variants) ? (p.variants as Json[]) : []
+  const price = variants[0] && variants[0].price !== undefined && /\d/.test(String(variants[0].price)) ? String(variants[0].price).trim() : null
+  const description = clean(String(p.body_html ?? '').replace(/<[^>]+>/g, ' '), 400)
+  return { title: clean(p.title as string, 160), vendor: clean(p.vendor as string, 80), description, price, images }
+}
+
+/** Mesmo arquivo em endereços diferentes (o JSON-LD do tema e o JSON do Shopify): mesma imagem. */
+export function imageFileKey(u: string): string {
+  try { return decodeURIComponent(new URL(u).pathname.split('/').pop() ?? '').toLowerCase() } catch { return String(u).toLowerCase() }
+}
+
+/** WebP do CDN do Shopify: pede o JPG ao próprio CDN (format=jpg). Outra URL = a mesma. */
+export function preferJpegUrl(u: string): string {
+  try {
+    const x = new URL(u)
+    const shopify = /(^|\.)cdn\.shopify\.com$/i.test(x.hostname) || /\/cdn\/shop\//i.test(x.pathname)
+    if (!shopify || !/\.webp$/i.test(x.pathname) || x.searchParams.has('format')) return u
+    x.searchParams.set('format', 'jpg')
+    return x.toString()
+  } catch {
+    return u
+  }
+}

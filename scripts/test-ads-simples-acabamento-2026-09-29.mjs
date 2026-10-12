@@ -234,7 +234,9 @@ const extracaoCerta = async (over) => {
     /"Edifício Villa Versace", "São Paulo" exactly as the customer wrote them/.test(correcao) && a.log[1].messages[0].content.includes('"Edifício Villa Versace", "Moema", "São Paulo"')
 }
 await check('N8 extractAdsV2Brief EXECUTADA com o brief REAL de produção: a narração de produção volta com o motivo ("Edifício Villa Versace", "São Paulo"); a corrigida sai com os nomes e "espaço comercial" minúsculo', extracaoCerta())
-await check('N8-mutante: extração sem as regras da voz (sentence ignorada) fica vermelho', async () => !(await extracaoCerta({ [F.brief]: trocar(SRC.brief, "const voice = typeof args.sentence === 'string' ? simpleVoiceFor(parsed.brief, args.sentence, args.language) : null", 'const voice = null as AdsV2SimpleVoice | null') })))
+// REANCORADO 12/10 (KINEO-ANUNCIO-CONSERTOS-2026-10-12): a voz da frase nasce como `voiceRaw` (o anúncio de produto deixa de
+// exigir lugares); o mutante segue o mesmo — a frase ignorada na extração tem de ficar vermelha.
+await check('N8-mutante: extração sem as regras da voz (sentence ignorada) fica vermelho', async () => !(await extracaoCerta({ [F.brief]: trocar(SRC.brief, "const voiceRaw = typeof args.sentence === 'string' ? simpleVoiceFor(parsed.brief, args.sentence, args.language) : null", 'const voiceRaw = null as AdsV2SimpleVoice | null') })))
 await check('N9 nome é acabamento, não honestidade: 2ª resposta limpa que ainda esquece um nome é ACEITA e o que faltou vai para voice.namesMissing (nunca 502 por um nome)', async () => {
   const semSP = FRASES[0].boa.replace(', São Paulo', '')
   const a = await extrai([BRIEF_PRODUCAO, { narration: FRASES[0].producao, overlays: [], sector: 'real_estate' }, { narration: semSP, overlays: [], sector: 'real_estate' }])

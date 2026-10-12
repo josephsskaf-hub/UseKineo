@@ -10,6 +10,7 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { adsGate, isMissingAdsTable, loadAdsAccess } from '@/lib/ads/serverAccess'
 import { adsV2Visible } from '@/lib/ads/v2Access'
 import { isUuid, sanitizeAssetsBody, sanitizeCreateOrderBody, sanitizePatchBody } from '@/lib/ads/v2Contract'
+import { applyAdsV2CopyEdit } from '@/lib/ads/v2Contract' // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o texto do plano editado pela pessoa (pura)
 import { adsV2Credits } from '@/lib/ads/v2Tiers'
 import { adsV2View, loadAdsV2Order, loadAdsV2Shots } from '@/lib/ads/v2Advance'
 import { ownedFootage, v2Fail, v2Json } from '@/lib/ads/v2Server'
@@ -177,6 +178,11 @@ export async function PATCH(req: NextRequest) {
 
     const patch: Record<string, unknown> = {}
     if (p.narration !== null) patch.narration = p.narration
+    // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — prospecção de 12/10: no modo simples não dava para corrigir a voz nem as frases sem replanejar.
+    // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o texto da pessoa troca o do plano: sem o modelo, sem custo; o /start modera antes do débito.
+    const copyEdit = applyAdsV2CopyEdit(order.plan, order.seconds, p) // KINEO-ANUNCIO-CONSERTOS-2026-10-12
+    if (copyEdit && !copyEdit.ok) return v2Fail(copyEdit.error, copyEdit.status, copyEdit.extra ?? {}) // KINEO-ANUNCIO-CONSERTOS-2026-10-12
+    if (copyEdit?.ok) patch.plan = copyEdit.plan // KINEO-ANUNCIO-CONSERTOS-2026-10-12
     if (p.card_footage_id) {
       if (order.logo_footage_id && p.card_footage_id === order.logo_footage_id.toLowerCase()) return v2Fail('card_is_logo', 400)
       const own = await ownedFootage(admin, uid, [p.card_footage_id])
@@ -197,6 +203,7 @@ export async function PATCH(req: NextRequest) {
     if (upd.error) return isMissingAdsTable(upd.error.code) ? v2Fail('not_ready', 503) : v2Fail('orders_failed', 502)
     if (!upd.data) return v2Fail('not_editable', 409)
     const row = upd.data as { id: string; narration: boolean; card_url: string | null }
+    if (copyEdit?.ok) return v2Json({ order_id: row.id, narration: row.narration, card_ready: Boolean(row.card_url), plan_narration: copyEdit.plan.narration, plan_overlays: copyEdit.plan.overlays }) // KINEO-ANUNCIO-CONSERTOS-2026-10-12
     return v2Json({ order_id: row.id, narration: row.narration, card_ready: Boolean(row.card_url) })
   } catch (e) {
     console.warn('[ads/v2/orders PATCH] falhou:', e instanceof Error ? e.message : String(e))
