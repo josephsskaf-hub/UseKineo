@@ -20,7 +20,7 @@ import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import { LLMS_TXT_PATH } from '@/lib/gptHandoff'
 // KINEO-CLARITY-WELCOME20-2026-10-12 — gravação de sessão (Microsoft Clarity) só com NEXT_PUBLIC_CLARITY_ID; travas em lib/clarityTag.ts.
 import ClarityTag from '@/components/ClarityTag'
-import { clarityProjectId } from '@/lib/clarityTag'
+import { clarityProjectId, KINEO_CLARITY_PROJECT_ID } from '@/lib/clarityTag'
 import './globals.css'
 import './appearance.css'
 
@@ -32,7 +32,8 @@ import './appearance.css'
 const OFFER = getFreeTierOffer()
 // KINEO-CLARITY-WELCOME20-2026-10-12 — sem ID válido = null = o componente nem é montado (nenhum byte do Clarity sai).
 // Variável NEXT_PUBLIC_: é embutida no build — pôr o ID na Vercel exige um novo deploy para valer.
-const CLARITY_ID = clarityProjectId(process.env.NEXT_PUBLIC_CLARITY_ID)
+// KINEO-CLARITY-ID-2026-10-12 — sem env, vale o projeto "Kineo" (ID público em lib/clarityTag.ts).
+const CLARITY_ID = clarityProjectId(process.env.NEXT_PUBLIC_CLARITY_ID || KINEO_CLARITY_PROJECT_ID)
 
 // Founder-approved direction B, 2026-09-07. One variable family, self-hosted
 // by Next. No Google request from a visitor; swap retains readable fallback.

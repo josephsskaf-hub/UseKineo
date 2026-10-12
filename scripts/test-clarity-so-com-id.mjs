@@ -83,7 +83,9 @@ function problems(rep = {}) {
 
   // 2. layout + componente
   const layout = src(LAYOUT)
-  if (!layout.includes('const CLARITY_ID = clarityProjectId(process.env.NEXT_PUBLIC_CLARITY_ID)')) p.push('layout não lê o ID pela régua')
+  // KINEO-CLARITY-ID-2026-10-12 — o ID padrão do projeto "Kineo" também passa pela régua (env tem prioridade).
+  if (!layout.includes('const CLARITY_ID = clarityProjectId(process.env.NEXT_PUBLIC_CLARITY_ID || KINEO_CLARITY_PROJECT_ID)')) p.push('layout não lê o ID pela régua')
+  if (lib.clarityProjectId(lib.KINEO_CLARITY_PROJECT_ID) !== 'ywlh8m9437') p.push('ID do projeto Kineo fora da régua ou trocado')
   if ((layout.match(/<ClarityTag /g) ?? []).length !== 1 || !layout.includes('{CLARITY_ID ? <ClarityTag projectId={CLARITY_ID} /> : null}')) p.push('layout não monta o Clarity UMA vez e só com ID')
   const tag = src(TAG)
   if (!tag.startsWith("'use client'")) p.push('componente não é client')
