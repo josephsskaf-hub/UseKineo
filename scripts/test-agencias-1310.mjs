@@ -173,7 +173,7 @@ function mutate(rel, from, to) {
 const MUTANTS = [
   ['agência volta a 20%', F.AFF, 'export const AGENCY_BUSINESS_COMMISSION_RATE = 0.3', 'export const AGENCY_BUSINESS_COMMISSION_RATE = 0.2', /\(1\) taxa de agência/],
   ['todo afiliado vira agência', F.AFF, "return isAgencyPartner(partnerType) ? AGENCY_BUSINESS_COMMISSION_RATE : BUSINESS_AFFILIATE_COMMISSION_RATE", 'return AGENCY_BUSINESS_COMMISSION_RATE', /\(1\) criador \/ nulo/],
-  ['agência ganha 30% em todo plano', F.AFF, '  return effectiveAffiliateCommissionRate(stored)\n}\n\n// KINEO-AGENCIAS', '  return isAgencyPartner(partnerType) ? AGENCY_BUSINESS_COMMISSION_RATE : effectiveAffiliateCommissionRate(stored)\n}\n\n// KINEO-AGENCIAS', /\(1\) matriz/],
+  ['agência ganha 30% em todo plano', F.AFF, '  return effectiveAffiliateCommissionRate(stored, createdAt)\n}\n\n// KINEO-AGENCIAS', '  return isAgencyPartner(partnerType) ? AGENCY_BUSINESS_COMMISSION_RATE : effectiveAffiliateCommissionRate(stored, createdAt)\n}\n\n// KINEO-AGENCIAS', /\(1\) matriz/],
   ['webhook ignora o tipo', F.WEBHOOK, '? businessAffiliateCommissionRate(partnerType) : rate', '? businessAffiliateCommissionRate(null) : rate', /\(2\) webhook: tipo lido/],
   ['webhook lê o tipo em todo plano', F.WEBHOOK, 'const partnerType = isBusinessCommissionPlan(args.plan) ? await readAffiliatePartnerType(supabase, affiliateId) : null', 'const partnerType = await readAffiliatePartnerType(supabase, affiliateId)', /\(2\) webhook: tipo lido/],
   ['webhook engole erro de leitura', F.WEBHOOK, "    throw new AffiliateLedgerIntegrityError('Could not read affiliate partner type')", '    return null', /\(2\) outra falha/],
