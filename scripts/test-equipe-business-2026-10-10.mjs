@@ -466,7 +466,11 @@ ok(footOk(read(F.footage)), '6e /api/footage: o workspace SÓ no purpose "ads" (
 const files = []
 const walk = (d) => { for (const e of fs.readdirSync(path.join(ROOT, d), { withFileTypes: true })) { const r = `${d}/${e.name}`; if (e.isDirectory()) { if (e.name !== 'node_modules' && !e.name.startsWith('.')) walk(r) } else if (/\.tsx?$/.test(e.name)) files.push(r) } }
 walk('app'); walk('lib'); walk('components')
-const PERMITIDOS_WS = new Set([...WS_ROUTES, F.footage, F.page, F.door, F.teamRoute])
+// REANCORADO 13/10 (KINEO-ADS-LOTE-1310): o modo lote do Studio Ads v2 também resolve o workspace — a rota /api/ads/v2/batch
+// (membro age no lote do dono) e lib/ads/v2Batch.ts (o cron drena a fila com o acesso de HOJE de quem montou o lote). As duas
+// só chamam o /plan e o /start de sempre (adsV2PlanFor/adsV2StartFor), que já resolvem o dono; o guardião do lote
+// (scripts/test-ads-lote-1310.mjs) confere que o pedido é lido pelo uid do dono e que o membro que saiu não drena a fila.
+const PERMITIDOS_WS = new Set([...WS_ROUTES, F.footage, F.page, F.door, F.teamRoute, 'app/api/ads/v2/batch/route.ts', 'lib/ads/v2Batch.ts'])
 const pedem = files.filter((f) => /workspace: true \}\)/.test(code(read(f))))
 const importam = files.filter((f) => /from '@\/lib\/ads\/workspace'/.test(read(f)))
 ok(pedem.every((f) => PERMITIDOS_WS.has(f)) && [...PERMITIDOS_WS].every((f) => pedem.includes(f)),

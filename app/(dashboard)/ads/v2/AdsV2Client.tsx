@@ -28,6 +28,7 @@ import BusinessVisualReferences from '@/components/BusinessVisualReferences'
 import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { AdsV2SimpleSession, readVideoForAd, videoFramesForAd } from './AdsV2Simple'
 import { AdsAfterSampleOffer } from './AdsV2Simple' // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a oferta do Business depois da amostra
+import { AdsV2BatchSession } from './AdsV2Batch' // KINEO-ADS-LOTE-1310 — ?mode=batch: vários anúncios em fila de uma vez
 import { ADS_V2_VARIATIONS_CSS, VariationToggle, VariationsBoard, variationsCopy, variationsPrice } from './AdsV2Variations'
 import { ADS_V2_SIMPLE_COPY } from '@/lib/ads/v2Simple'
 import { ADS_HOUSE_STAGE, ProductRow, ProductStage, ProductStageStyles, useProductStage } from '@/components/ProductStage' // KINEO-ABAS-PALCO-2026-10-01
@@ -454,7 +455,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
   const [balance, setBalance] = useState<number | null>(initialBalance)
   const [confirmingReset, setConfirmingReset] = useState(false)
   const [activeWork, setActiveWork] = useState(false)
-  const [mode, setMode] = useState<'simple' | 'full' | null>(null)
+  const [mode, setMode] = useState<'simple' | 'full' | 'batch' | null>(null) // KINEO-ADS-LOTE-1310 — + 'batch'
   // KINEO-ADS-UX-MARCA-2026-10-10 — a vaga do palco para a PRÉVIA AO VIVO do modo simples: enquanto a pessoa monta o anúncio, o
   // celular 9:16 da prévia ocupa o lugar do palco da casa (que volta no progresso/entrega e no modo completo).
   const [previewSlot, setPreviewSlot] = useState<HTMLDivElement | null>(null)
@@ -471,12 +472,14 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
   // ?mode=full abre o construtor completo; qualquer outra coisa, o simples.
   useEffect(() => {
     let m: 'simple' | 'full' = 'simple'
+    let batch = false // KINEO-ADS-LOTE-1310 — ?mode=batch abre o modo lote
     try {
       if (new URLSearchParams(window.location.search).get('mode') === 'full') m = 'full'
+      if (new URLSearchParams(window.location.search).get('mode') === 'batch') batch = true // KINEO-ADS-LOTE-1310
     } catch {
       m = 'simple'
     }
-    setMode(m)
+    setMode(batch ? 'batch' : m)
   }, [])
 
   // KINEO-ADS-3-VARIACOES-2026-09-30 — retomar o painel das 3: ?group=<id>, ou (sem ?order=) o grupo em andamento mais novo.
@@ -490,7 +493,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
         const q = new URLSearchParams(window.location.search)
         const g = q.get('group')
         if (g && /^[0-9a-f-]{36}$/i.test(g)) wanted = g.toLowerCase()
-        hasOrder = !!q.get('order')
+        hasOrder = !!q.get('order') || q.get('mode') === 'batch' // KINEO-ADS-LOTE-1310 — o lote não abre o painel das 3 sozinho
       } catch {
         wanted = null
       }
@@ -572,6 +575,12 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
               <a href={mode === 'simple' ? '/ads/v2?mode=full' : '/ads/v2'}>{mode === 'simple' ? nav.toFull : nav.toSimple}</a>
             </p>
           ) : null}
+          {/* KINEO-ADS-LOTE-1310 — o modo lote: vários anúncios de uma vez (a conta sem o Studio Ads vê a oferta do Business lá dentro). */}
+          {mode && mode !== 'batch' ? (
+            <p className="adv2-classic">
+              <a href="/ads/v2?mode=batch"><UiLabel>New: make many ads at once (batch)</UiLabel></a>
+            </p>
+          ) : null}
           {workspace?.role === 'member' ? (
             <p className="adv2-team" role="status">
               <UiLabel>Working in</UiLabel> <b>{workspace.ownerLabel ?? 'your team'}</b>
@@ -630,6 +639,8 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
           businessOffer={business}
           onSampleGone={() => setSampleGone(true)}
         />
+      ) : mode === 'batch' ? (
+        <AdsV2BatchSession key={session} balance={balance} onBalance={refreshBalance} sample={sample} business={business} />
       ) : mode === 'simple' ? (
         <AdsV2SimpleSession
           key={session}

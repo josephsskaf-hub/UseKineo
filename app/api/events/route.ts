@@ -161,6 +161,10 @@ const SERVER_ONLY_EVENTS = new Set([
   'ads_order_by_member',
   // KINEO-ATORES-IA-2026-10-13 — o apresentador de IA que entrou no plano (id da biblioteca ou 'auto'): fato do servidor (/plan).
   'ads_presenter_selected',
+  // KINEO-ADS-LOTE-1310 — o modo lote do Studio Ads (roteiros, fila, desfecho de cada linha): fatos do servidor.
+  'ads_batch_planned',
+  'ads_batch_started',
+  'ads_batch_row',
   'team_invite_created',
   'team_member_joined',
   'team_member_removed',

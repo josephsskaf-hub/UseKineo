@@ -339,7 +339,9 @@ await mutante('amostra marcada pendente com o arquivo lá (a tela esconderia a v
 await mutante('cartão sem o selo AI', F.picker, '            <span className="kpp-ai">{copy.ai}</span>\n            <span className="kpp-check"', '            <span className="kpp-check"', (m) => seletorHonesto(m))
 await mutante('nota de estrelas inventada no cartão', F.picker, '          <span className="kpp-tag">{p ? copy.tags[p.tag] : copy.autoLine}</span>', '          <span className="kpp-tag">{p ? copy.tags[p.tag] : copy.autoLine} ★ 4.9 rating</span>', (m) => seletorHonesto(m))
 await mutante('frase de honestidade fora do topo', F.picker, '<p className="kpp-hint">{copy.hint} {copy.vary}</p>', '<p className="kpp-hint">{copy.vary}</p>', (m) => seletorHonesto(m))
-await mutante('evento aberto ao navegador (fora do só-servidor)', F.events, "  'ads_presenter_selected', // KINEO-ATORES-IA-2026-10-13\n]", ']', (m) => medicaoOk(m, SRC.sink, SRC.plan))
+// reancorado KINEO-LEVA6-1310 — com o lote, a linha marcada do apresentador deixou de ser a última da lista só-servidor;
+// o mutante tira a MESMA linha marcada (inteira, única: a de ADS_EVENTS não tem o comentário) sem depender do "]" seguinte.
+await mutante('evento aberto ao navegador (fora do só-servidor)', F.events, "  'ads_presenter_selected', // KINEO-ATORES-IA-2026-10-13\n", '', (m) => medicaoOk(m, SRC.sink, SRC.plan))
 await mutante('frase faltando numa língua', F.library, "    voiceSoon: 'Sắp có giọng mẫu',\n", '', (m) => copyOk(world({ [F.library]: m }).load(F.library).ADS_V2_PRESENTER_PICKER_COPY))
 await mutante('língua copiada do inglês', F.library, "    title: 'Escolha o apresentador',", "    title: 'Choose your presenter',", (m) => copyOk(world({ [F.library]: m }).load(F.library).ADS_V2_PRESENTER_PICKER_COPY))
 

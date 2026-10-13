@@ -71,6 +71,11 @@ export const ADS_EVENTS = [
   // KINEO-ATORES-IA-2026-10-13 — o apresentador de IA que entrou no plano ({presenter_id: id da biblioteca | 'auto', picked}).
   // Fato do servidor (/api/ads/v2/plan), com order_id.
   'ads_presenter_selected',
+  // KINEO-ADS-LOTE-1310 — modo lote: roteiros escritos (N × /plan), fila gravada e 1ª linha começada, e o desfecho de cada
+  // linha que a fila tentou começar (começou / recusou e parou). Fatos do servidor (o débito de cada linha é o do /start).
+  'ads_batch_planned',
+  'ads_batch_started',
+  'ads_batch_row',
   // KINEO-ADS-PAREDE-2026-10-06 — a parede vende: impressão (1 por montagem, com o retrato do que foi mostrado) e clique
   // {choice: 'plan' | 'express'} da oferta que /ads mostra a quem chegou por uma porta da parede (app/ads/AdsPaywall.tsx).
   // Navegador, nunca só-servidor; o checkout grava a mesma origem em intent_campaign=ads_paywall.
@@ -114,6 +119,9 @@ export const ADS_SERVER_ONLY_EVENTS: readonly AdsEventName[] = [
   'ads_sample_started', // KINEO-ADS-AMOSTRA-2026-10-09
   'ads_order_by_member', // KINEO-EQUIPE-BUSINESS-2026-10-10
   'ads_presenter_selected', // KINEO-ATORES-IA-2026-10-13
+  'ads_batch_planned', // KINEO-ADS-LOTE-1310
+  'ads_batch_started', // KINEO-ADS-LOTE-1310
+  'ads_batch_row', // KINEO-ADS-LOTE-1310
 ]
 
 export function isAdsEvent(name: string): name is AdsEventName {
