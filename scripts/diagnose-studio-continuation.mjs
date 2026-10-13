@@ -88,6 +88,11 @@ export function roundTrip(href, initial = {}, edits = {}) {
     campaignRef, onboardingGoalRef,
     sessionStorage: { setItem: (key, value) => writes.push({ key, value }), removeItem: () => {} },
     trialFirstDeliveryStudioIntent: () => null,
+    // KINEO-PRIMEIRO-FILME-2026-10-13 — generate() consulta a descida para o filme grátis de 15 s (lib/growth/descidaFilmeGratis.ts,
+    // com guardião próprio: scripts/test-primeiro-filme-1310.mjs); o simulador entra com conta que não desce (o caminho de antes).
+    estrelaLigada: false, balance: null, contaPaga: null, trialOn: false, seedance15Ok: false, SEEDANCE_SHORT_SECONDS: 15,
+    custoSeedance: () => 0, decidirDescidaFilmeGratis: () => ({ descer: false, para: null, de: null }),
+    DESCIDA_FILME_GRATIS_EVENT: 'trial_downshift_to_free_film', DESCIDA_FILME_GRATIS_PARAM: 'free_film_from', DESCIDA_FILME_GRATIS_VERSION: 'sim',
     trackEvent: (...event) => events.push(event),
     router: { push: (url) => navigations.push(url) },
   })

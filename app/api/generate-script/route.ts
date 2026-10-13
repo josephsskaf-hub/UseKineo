@@ -20,6 +20,8 @@ import { detectPastedScript, pastedScriptMinWords, PASTED_SCRIPT_RULE } from '@/
 // KINEO1-ROTEIRO-DA-COTA-2026-09-18 — a cota de duração do filme grátis, lida pelo predicado do cobrador.
 import { getEffectiveEntitlement, TRIAL_ENTITLEMENT_COLUMNS } from '@/lib/reverseTrial'
 import { looksLikeModelRefusal, MODEL_REFUSAL_MESSAGE } from '@/lib/modelRefusal' // KINEO1-JUIZ-HONESTO-2026-09-21
+import { decidirNovaTentativaDoRoteiro, SCRIPT_DECLINED_RETRY_EVENT } from '@/lib/storyFromDirectives' // KINEO-PRIMEIRO-FILME-2026-10-13
+import { moderateContent } from '@/lib/safety/contentModeration' // KINEO-PRIMEIRO-FILME-2026-10-13
 // KINEO-ROTEIRO-CURTO-15S-2026-09-29 [TRAVA 8.2 — "vai" do 15 s] — o roteiro de ≤ 20 s nunca sai acima do teto que a guarda
 // do filme curto da rota do cinematic aceita (lib/durationByEngine.ts), contado na MESMA régua dela (parseUserScript).
 import { parseUserScript } from '@/lib/scriptParser'
@@ -451,8 +453,39 @@ export async function POST(req: NextRequest) {
     }
     // KINEO1-JUIZ-HONESTO-2026-09-21 — a RECUSA do modelo não é roteiro: antes (33c24d46, 17/09) "I'm sorry, but I can't
     // assist with that request" virou 6 cenas narradas, 5 créditos cobrados e nota 100 no juiz. Recusa aqui, antes do gasto.
+    // [TRAVA 8.2 — vai do fundador 13/10 'tudo sim nos 3 consertos'] KINEO-PRIMEIRO-FILME-2026-10-13 (CONSERTO 3) — prompt-mestre
+    // colado de outra IA (Style:/Camera:/SCENE 1 — 00:00–00:03/"make a video"/9:16) fazia o roteirista recusar a HISTÓRIA junto // KINEO-PRIMEIRO-FILME-2026-10-13
+    // com as diretivas (6 pessoas recentes). Antes da recusa: UMA nova tentativa só com a história (lib/storyFromDirectives.ts), // KINEO-PRIMEIRO-FILME-2026-10-13
+    // nunca se a moderação aponta conteúdo proibido de verdade (ou não responde) e nunca sem diretiva para tirar. Esta rota não // KINEO-PRIMEIRO-FILME-2026-10-13
+    // cobra: a tentativa não gasta crédito. Rastro: script_declined_retry (ok | failed | skipped). // KINEO-PRIMEIRO-FILME-2026-10-13
+    let tentativaDaHistoria = false // KINEO-PRIMEIRO-FILME-2026-10-13
     if (looksLikeModelRefusal(script)) {
+      const novaTentativa = decidirNovaTentativaDoRoteiro(topic) // KINEO-PRIMEIRO-FILME-2026-10-13
+      const rastroDaTentativa = async (outcome: 'ok' | 'failed' | 'skipped', reason: string, extra: Record<string, unknown> = {}) => // KINEO-PRIMEIRO-FILME-2026-10-13
+        writeServerEvent({ name: SCRIPT_DECLINED_RETRY_EVENT, userId: user.id, path: '/api/generate-script', metadata: { outcome, reason, removed_lines: novaTentativa.removedLines, story_words: novaTentativa.words, topic_words: scriptWordCount(topic), target_seconds: alvoSegundos, engine: typeof body.engine === 'string' ? body.engine : null, ...extra } }).catch(() => false) // KINEO-PRIMEIRO-FILME-2026-10-13
+      let historiaAceita: string | null = null // KINEO-PRIMEIRO-FILME-2026-10-13
+      if (!novaTentativa.tentar) { // KINEO-PRIMEIRO-FILME-2026-10-13
+        await rastroDaTentativa('skipped', novaTentativa.motivo) // KINEO-PRIMEIRO-FILME-2026-10-13
+      } else { // KINEO-PRIMEIRO-FILME-2026-10-13
+        const moderacao = await moderateContent({ surface: 'script', stage: 'input', userId: user.id, text: topic }) // KINEO-PRIMEIRO-FILME-2026-10-13
+        if (!moderacao.ok) { // KINEO-PRIMEIRO-FILME-2026-10-13 — conteúdo proibido (ou moderação fora do ar): respeita a recusa
+          await rastroDaTentativa('skipped', moderacao.reason === 'blocked' ? 'moderation_blocked' : 'moderation_unavailable') // KINEO-PRIMEIRO-FILME-2026-10-13
+        } else { // KINEO-PRIMEIRO-FILME-2026-10-13
+          try { // KINEO-PRIMEIRO-FILME-2026-10-13
+            const deNovo = await openai.chat.completions.create({ model: 'gpt-4o', temperature: 0.7, max_tokens: 700, messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: 'Write a viral YouTube Short script about this topic:\n\n' + novaTentativa.story }] }, { timeout: OPENAI_SCRIPT_TIMEOUT_MS, maxRetries: 0 }) // KINEO-PRIMEIRO-FILME-2026-10-13
+            const roteiroDeNovo = deNovo.choices[0]?.message?.content?.trim() ?? '' // KINEO-PRIMEIRO-FILME-2026-10-13
+            if (roteiroDeNovo && !looksLikeModelRefusal(roteiroDeNovo)) historiaAceita = roteiroDeNovo // KINEO-PRIMEIRO-FILME-2026-10-13
+            await rastroDaTentativa(historiaAceita ? 'ok' : 'failed', historiaAceita ? 'story_only_accepted' : roteiroDeNovo ? 'declined_again' : 'empty_completion') // KINEO-PRIMEIRO-FILME-2026-10-13
+          } catch (erroDaTentativa) { // KINEO-PRIMEIRO-FILME-2026-10-13
+            await rastroDaTentativa('failed', 'retry_error', { error_name: erroDaTentativa instanceof Error ? erroDaTentativa.name : 'unknown' }) // KINEO-PRIMEIRO-FILME-2026-10-13
+          } // KINEO-PRIMEIRO-FILME-2026-10-13
+        } // KINEO-PRIMEIRO-FILME-2026-10-13
+      } // KINEO-PRIMEIRO-FILME-2026-10-13
+      if (historiaAceita === null) { // KINEO-PRIMEIRO-FILME-2026-10-13
       return await recusar(422, { error: MODEL_REFUSAL_MESSAGE, reason: 'model_refused_topic', retryable: false }, user.id, { reason: 'model_refused_topic', head: script.slice(0, 120) })
+      } // KINEO-PRIMEIRO-FILME-2026-10-13
+      script = historiaAceita // KINEO-PRIMEIRO-FILME-2026-10-13
+      tentativaDaHistoria = true // KINEO-PRIMEIRO-FILME-2026-10-13 — o orçamento de 60 s da rota já gastou uma 2ª chamada: sem a regeneração de qualidade
     }
 
     const secoesCortadas: string[] = []
@@ -501,6 +534,7 @@ export async function POST(req: NextRequest) {
     const curtoParaOAlvo = (t: string) => scriptWordCount(t) < alvoPalavras
     // KINEO1-ROTEIRO-DA-COTA — o formato curto (≤ 20 s) dispensa ESCALATION/RHYTHM/MICRO REWARD 3 de propósito.
     let missing = alvoSegundos <= 20 ? missingElements(script).filter((m) => m === 'HOOK' || m === 'PAYOFF') : missingElements(script)
+    if (!tentativaDaHistoria) { // KINEO-PRIMEIRO-FILME-2026-10-13: depois da tentativa da história, sem 3ª chamada (teto de 60 s da rota); o fecho determinístico do filme curto segue valendo
     if (missing.length > 0 || payoffIsEmpty(script) || curtoParaOAlvo(script) || longoParaOFilmeCurto(script)) {
       const problems: string[] = []
       // KINEO-ROTEIRO-CURTO-15S-2026-09-29 — o número vai no pedido, como no "curto": "escreva menos" não é instrução.
@@ -563,6 +597,7 @@ export async function POST(req: NextRequest) {
         console.warn('[generate-script] regenerate failed:', retryErr instanceof Error ? retryErr.message : String(retryErr))
       }
     }
+    } // KINEO-PRIMEIRO-FILME-2026-10-13 — fim do "sem 3ª chamada depois da tentativa da história"
     // KINEO-ROTEIRO-CURTO-15S-2026-09-29 — a trava final, antes do forceAuthoring e do retorno normal (vale para os dois).
     // KINEO-ROTEIRO-15S-FRASE-INTEIRA-2026-09-29: é o MESMO corte por frases (idempotente sobre o que o fecho já cortou);
     // acima do teto duro (frases gigantes) o texto segue e a guarda do cinematic recusa com "encurte", sem cobrar.

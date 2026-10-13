@@ -175,7 +175,9 @@ const imp = ['app', 'lib', 'components'].flatMap(walk).filter((p) => /from '@\/l
 // cenas modera a ideia ANTES do roteiro e das imagens, e cada imagem na SAÍDA antes de guardar).
 // KINEO-ADS-1FOTO-LINK-2026-10-10 — re-ancorado: +1 importador de servidor, app/api/ads/v2/link-import/route.ts ("Or paste
 // your product link" modera o texto da página e cada foto baixada ANTES de virar linha do user_footage).
-ok(imp.length === 28 && imp.every((p) => !/^\s*['"]use client['"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`)
+// KINEO-PRIMEIRO-FILME-2026-10-13 — re-ancorado: +1 importador de servidor, app/api/generate-script/route.ts (o texto colado é
+// moderado ANTES da única nova tentativa do roteirista que recusou; barrado ou fora do ar = sem nova chamada).
+ok(imp.length === 29 && imp.every((p) => !/^\s*['"]use client['"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`)
 
 // ── 5. upload: o tipo pelos bytes ──────────────────────────────────────────────────────────────────────
 const K = roda('lib/safety/mediaKind.ts')

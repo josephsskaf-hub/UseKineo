@@ -68,6 +68,7 @@ import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
 import { ENGINE_GATE_ACTIVE, STUDIO_ONLY_ENGINE_KEYS } from '@/lib/enginePlanGate'
 import { SEEDANCE_SHORT_SECONDS, MIN_DURATION_ALL_ENGINES } from '@/lib/durationByEngine' // KINEO-SEEDANCE-15S-2026-09-29
 import { supportedDurationsFor } from '@/lib/durationByEngine' // KINEO-DURACOES-CURTAS-2026-09-29 — a tabela motor × durações (fonte única do servidor)
+import { decidirDescidaFilmeGratis, DESCIDA_FILME_GRATIS_EVENT, DESCIDA_FILME_GRATIS_PARAM, DESCIDA_FILME_GRATIS_VERSION } from '@/lib/growth/descidaFilmeGratis' // KINEO-PRIMEIRO-FILME-2026-10-13
 import DiretorKineo from '@/components/DiretorKineo' // DIRETOR-KINEO-20260923
 import DfyOfferCard from '@/components/DfyOfferCard' // KINEO-EMPRESAS-COCKPIT-2026-09-24
 // KINEO-STUDIO-TILE-ADS-2026-09-27 — tile "Business ad" na fileira de miniaturas. Fato: 0 dos 10 assinantes tocaram /ads em
@@ -864,6 +865,12 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
       sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine, prompt: finalPrompt, language }))
     } catch {}
     const q = new URLSearchParams({ engine, prompt: finalPrompt, duration: String(duration), script_mode: scriptMode, autoanalyze: '1', studio: '1', intent_campaign: campaignRef.current })
+    // [TRAVA 8.2 — vai do fundador 13/10 'tudo sim nos 3 consertos'] (CONSERTO 1) — o Gerar com uma duração que o // KINEO-PRIMEIRO-FILME-2026-10-13
+    // saldo do teste não paga (mas paga o filme grátis de 15 s do Seedance 1.5) despacha os 15 s, com a duração pedida // KINEO-PRIMEIRO-FILME-2026-10-13
+    // em free_film_from (a nota honesta do /studio/create lê daqui). Mesma regra pura do servidor // KINEO-PRIMEIRO-FILME-2026-10-13
+    // (lib/growth/descidaFilmeGratis.ts); com a estrela ligada, nada muda (o preço dela é outro). // KINEO-PRIMEIRO-FILME-2026-10-13
+    const descida = estrelaLigada ? null : decidirDescidaFilmeGratis({ engine, requestedSeconds: duration, balance, paid: contaPaga, freeFilmEntitled: trialOn === true, shortSeconds: SEEDANCE_SHORT_SECONDS, shortVisible: seedance15Ok, custoSeedance }) // KINEO-PRIMEIRO-FILME-2026-10-13
+    if (descida?.descer && descida.para !== null && descida.de !== null) { q.set('duration', String(descida.para)); q.set(DESCIDA_FILME_GRATIS_PARAM, String(descida.de)); void trackEvent(DESCIDA_FILME_GRATIS_EVENT, { surface: 'studio_button', requested_seconds: descida.de, to_seconds: descida.para, balance, requested_cost: descida.custoPedido, short_cost: descida.custoCurto, version: DESCIDA_FILME_GRATIS_VERSION }) } // KINEO-PRIMEIRO-FILME-2026-10-13
     carryStudioSeriesReview(new URLSearchParams(searchSignature), q)
     // KINEO-MULTIFORMATO-2026-09-02 — a escolha de enquadramento PASSA A
     // VIAJAR. Até hoje o estado `aspect` existia na tela e morria nela: não

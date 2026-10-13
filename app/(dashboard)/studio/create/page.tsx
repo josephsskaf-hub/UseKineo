@@ -34,6 +34,10 @@ import { lerAvisoDeRecusa } from '@/lib/entrega/refusalNoticeServer'
 import GenerateClient from '../../generate/GenerateClient'
 import { previaPath, shouldRouteGenerateToPreview, type PreviaProfile } from '@/lib/scenePreview' // KINEO-PREVIA-CENAS-2026-10-03
 import { creditCostForDuration } from '@/lib/credits/engineCost' // KINEO-PREVIA-CENAS-2026-10-03 — o saldo paga o filme pedido?
+import { decidirDescidaFilmeGratis, duracaoPedidaDaUrl, DESCIDA_FILME_GRATIS_EVENT, DESCIDA_FILME_GRATIS_PARAM, DESCIDA_FILME_GRATIS_VERSION } from '@/lib/growth/descidaFilmeGratis' // KINEO-PRIMEIRO-FILME-2026-10-13
+import { isTrialActive } from '@/lib/reverseTrial' // KINEO-PRIMEIRO-FILME-2026-10-13
+import { regionFreeFilmEligibility } from '@/lib/freeFilmPolicy' // KINEO-PRIMEIRO-FILME-2026-10-13
+import { SEEDANCE_SHORT_SECONDS } from '@/lib/durationByEngine' // KINEO-PRIMEIRO-FILME-2026-10-13
 
 // KINEO-PREVIA-CENAS-2026-10-03 — chave de motor do Studio → quality do cobrador (o mesmo mapa da rota do cinematic).
 const PREVIA_STUDIO_QUALITY: Record<string, 'fast' | 'cinematic_ai' | 'cinematic_kling' | 'cinematic_veo' | 'cinematic_hollywood' | 'cinematic_h3' | 'cinematic_h3max' | 'cinematic_omni' | 'cinematic_s25'> = { // KINEO-H3MAX-2026-10-13
@@ -166,7 +170,39 @@ export default async function StudioCreatePage({ searchParams }: StudioCreatePag
   // Studio (studio=1/autoanalyze=1) — link de e-mail, retomada de checkout e criação automática seguem iguais. Regra pura
   // em lib/scenePreview.ts shouldRouteGenerateToPreview; nada é gerado no desvio.
   try {
-    const { data: prev } = await supabase.from('profiles').select('trial_status, has_paid, plan, video_credits').eq('id', user.id).maybeSingle()
+    const { data: prev } = await supabase.from('profiles').select('trial_status, has_paid, plan, video_credits, trial_ends_at, trial_credits_used, trial_credits_granted').eq('id', user.id).maybeSingle() // KINEO-PRIMEIRO-FILME-2026-10-13: + colunas do isTrialActive
+    // [TRAVA 8.2 — vai do fundador 13/10 'tudo sim nos 3 consertos'] KINEO-PRIMEIRO-FILME-2026-10-13 (CONSERTO 1) — o pedido de
+    // Seedance 1.5 de 35/60/90 s (link de SEO/ChatGPT/campanha com duration=60, ou a escolha no /studio) que o saldo do teste
+    // (10 cr) ou da região (14 cr) NÃO paga, mas paga o filme grátis de 15 s, DESCE para 15 s aqui — antes da prévia de cenas
+    // (que levava ao /pricing) e antes da parede de crédito do cliente. Regra pura em lib/growth/descidaFilmeGratis.ts; o
+    // direito ao filme grátis é o MESMO do cinematic (isTrialActive | regionFreeFilmEligibility) e não muda. Criação
+    // automática (create_intent) e retomada (resume) decidem a própria duração e não passam aqui. A URL ganha
+    // free_film_from=<pedido> (a nota honesta lê daqui); o prompt viaja inteiro (createPath corta em 2.000).
+    {
+      const descidaDuracao = duracaoPedidaDaUrl(firstParam(searchParams, 'duration')) // KINEO-PRIMEIRO-FILME-2026-10-13
+      const descidaPerfil = prev as (PreviaProfile & { trial_ends_at?: string | null; trial_credits_used?: number | null; trial_credits_granted?: number | null }) | null // KINEO-PRIMEIRO-FILME-2026-10-13
+      const descidaPlano = typeof descidaPerfil?.plan === 'string' ? descidaPerfil.plan.trim().toLowerCase() : '' // KINEO-PRIMEIRO-FILME-2026-10-13
+      const descida = !firstParam(searchParams, 'create_intent') && !firstParam(searchParams, 'resume') && (firstParam(searchParams, 'prompt') ?? '').trim()
+        ? decidirDescidaFilmeGratis({ // KINEO-PRIMEIRO-FILME-2026-10-13
+          engine: firstParam(searchParams, 'engine'),
+          requestedSeconds: descidaDuracao,
+          balance: typeof descidaPerfil?.video_credits === 'number' ? descidaPerfil.video_credits : null,
+          paid: descidaPerfil ? descidaPerfil.has_paid === true || !(descidaPlano === '' || descidaPlano === 'free') : null,
+          freeFilmEntitled: descidaPerfil ? isTrialActive(descidaPerfil) || regionFreeFilmEligibility(descidaPerfil) === 'eligible' : null,
+          shortSeconds: SEEDANCE_SHORT_SECONDS,
+          shortVisible: seedance15sVisible(user.email),
+          custoSeedance: (s: number) => creditCostForDuration('cinematic_ai', true, s),
+        })
+        : null // KINEO-PRIMEIRO-FILME-2026-10-13
+      if (descida?.descer) { // KINEO-PRIMEIRO-FILME-2026-10-13
+        await writeServerEvent({ name: DESCIDA_FILME_GRATIS_EVENT, userId: user.id, path: '/studio/create', sessionId, metadata: { surface: 'studio_create_server', requested_seconds: descida.de, to_seconds: descida.para, balance: descidaPerfil?.video_credits ?? null, requested_cost: descida.custoPedido, short_cost: descida.custoCurto, trial_status: descidaPerfil?.trial_status ?? null, autoanalyze: firstParam(searchParams, 'autoanalyze') === '1', studio: firstParam(searchParams, 'studio') === '1', version: DESCIDA_FILME_GRATIS_VERSION } }) // KINEO-PRIMEIRO-FILME-2026-10-13
+        const descidaQuery = new URLSearchParams() // KINEO-PRIMEIRO-FILME-2026-10-13
+        for (const [k, v] of Object.entries(searchParams ?? {})) for (const x of Array.isArray(v) ? v : [v]) if (typeof x === 'string' && k !== 'duration' && k !== DESCIDA_FILME_GRATIS_PARAM) descidaQuery.append(k, x) // KINEO-PRIMEIRO-FILME-2026-10-13
+        descidaQuery.set('duration', String(descida.para)) // KINEO-PRIMEIRO-FILME-2026-10-13
+        descidaQuery.set(DESCIDA_FILME_GRATIS_PARAM, String(descida.de)) // KINEO-PRIMEIRO-FILME-2026-10-13
+        redirect(`/studio/create?${descidaQuery.toString()}`) // KINEO-PRIMEIRO-FILME-2026-10-13
+      } // KINEO-PRIMEIRO-FILME-2026-10-13
+    }
     const engineParam = firstParam(searchParams, 'engine')
     const quality = PREVIA_STUDIO_QUALITY[engineParam ?? ''] ?? null
     const seconds = Number(firstParam(searchParams, 'duration'))
@@ -178,7 +214,7 @@ export default async function StudioCreatePage({ searchParams }: StudioCreatePag
       create_intent: firstParam(searchParams, 'create_intent'),
       resume: firstParam(searchParams, 'resume'),
     }
-    if (shouldRouteGenerateToPreview({ profile: prev as PreviaProfile | null, params, filmCost })) {
+    if (shouldRouteGenerateToPreview({ profile: prev as PreviaProfile | null, params, filmCost, freeShortFilmCost: engineParam === 'seedance' && seedance15sVisible(user.email) ? creditCostForDuration('cinematic_ai', true, SEEDANCE_SHORT_SECONDS) : null })) { // KINEO-PRIMEIRO-FILME-2026-10-13: + freeShortFilmCost
       await writeServerEvent({ name: 'scene_preview_routed', userId: user.id, path: '/studio/create', metadata: { engine: engineParam, seconds: Number.isFinite(seconds) ? seconds : null, film_cost: filmCost } })
       redirect(previaPath({ prompt: params.prompt ?? '', engine: engineParam, duration: firstParam(searchParams, 'duration'), language: firstParam(searchParams, 'language') }))
     }
