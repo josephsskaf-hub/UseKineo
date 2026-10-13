@@ -5,7 +5,7 @@
 //   de acesso da loja (guardado, renovado ou trocado a partir do token de sessão; 401 'reauthorize' se não houver caminho) →
 //   Admin GraphQL (só leitura: read_products) → até 25 produtos, mais recentes primeiro, com a foto de capa.
 import { NextRequest, NextResponse } from 'next/server'
-import { bearerFrom, readShopifyCreds, shopifyAppLive, shopifyNotFound, verifySessionToken } from '@/lib/shopify/core'
+import { bearerFrom, readShopifyCreds, redactForLog, shopifyAppLive, shopifyNotFound, verifySessionToken } from '@/lib/shopify/core'
 import { adminGraphql, shopifyAdmin, validAccessToken } from '@/lib/shopify/server'
 
 export const runtime = 'nodejs'
@@ -31,7 +31,10 @@ export async function GET(req: NextRequest) {
   if (!creds) return NextResponse.json({ error: 'not_configured' }, { status: 503 })
   const sessionToken = bearerFrom(req.headers.get('authorization'))
   const session = verifySessionToken(sessionToken, creds)
-  if (!session.ok) return NextResponse.json({ error: 'invalid_session', reason: session.reason }, { status: 401 })
+  if (!session.ok) {
+    console.warn('[shopify] invalid_session', redactForLog({ reason: session.reason })) // KINEO-SHOPIFY-DIAG-1310
+    return NextResponse.json({ error: 'invalid_session', reason: session.reason }, { status: 401 })
+  }
   const admin = shopifyAdmin()
   if (!admin) return NextResponse.json({ error: 'not_ready' }, { status: 503 })
   const token = await validAccessToken(admin, creds, session.shop, sessionToken)

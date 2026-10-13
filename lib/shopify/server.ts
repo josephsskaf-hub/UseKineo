@@ -103,7 +103,8 @@ export function exchangeCode(shop: string, body: URLSearchParams): Promise<Shopi
  */
 export async function validAccessToken(admin: SupabaseClient, creds: ShopifyCreds, shop: string, sessionToken: string | null): Promise<string | null> {
   const key = readTokenKey()
-  if (!key) return null
+  // KINEO-SHOPIFY-DIAG-1310 — cada saída nula diz em qual degrau parou (só o nome do degrau; nenhum segredo).
+  if (!key) { console.warn('[shopify] reauthorize', redactForLog({ shop, stage: 'enc_key_invalid' })); return null }
   const row = await loadShop(admin, shop)
   const now = Date.now()
   if (row && row.status === 'installed' && row.access_token_enc) {
@@ -119,10 +120,12 @@ export async function validAccessToken(admin: SupabaseClient, creds: ShopifyCred
       if (t && (await saveShopTokens(admin, shop, t))) return t.accessToken
     }
   }
-  if (!sessionToken) return null
+  if (!sessionToken) { console.warn('[shopify] reauthorize', redactForLog({ shop, stage: 'no_session_token' })); return null }
   const t = await postToken(shop, tokenExchangeBody(creds, sessionToken))
-  if (!t) return null
-  return (await saveShopTokens(admin, shop, t)) ? t.accessToken : null
+  if (!t) { console.warn('[shopify] reauthorize', redactForLog({ shop, stage: 'exchange_failed' })); return null }
+  if (await saveShopTokens(admin, shop, t)) return t.accessToken
+  console.warn('[shopify] reauthorize', redactForLog({ shop, stage: 'save_failed' }))
+  return null
 }
 
 /** Admin GraphQL (a única API que app público novo pode usar). Erro = null; o token nunca aparece no log. */

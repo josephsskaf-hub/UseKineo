@@ -9,7 +9,7 @@
 // ORDEM DAS TRAVAS: interruptor (404) → credenciais (503) → token de sessão (401) → corpo com id de produto da Shopify (400) →
 // token da loja (401 'reauthorize') → produto lido (404) → produto publicado na loja online (422 'product_not_public').
 import { NextRequest, NextResponse } from 'next/server'
-import { adHandoffPath, bearerFrom, productLinkForAd, readShopifyCreds, shopifyAppLive, shopifyAppOrigin, shopifyNotFound, verifySessionToken } from '@/lib/shopify/core'
+import { adHandoffPath, bearerFrom, productLinkForAd, readShopifyCreds, redactForLog, shopifyAppLive, shopifyAppOrigin, shopifyNotFound, verifySessionToken } from '@/lib/shopify/core'
 import { adminGraphql, shopifyAdmin, validAccessToken } from '@/lib/shopify/server'
 import { writeServerEvent } from '@/lib/serverEvents'
 
@@ -28,7 +28,10 @@ export async function POST(req: NextRequest) {
   if (!creds) return NextResponse.json({ error: 'not_configured' }, { status: 503 })
   const sessionToken = bearerFrom(req.headers.get('authorization'))
   const session = verifySessionToken(sessionToken, creds)
-  if (!session.ok) return NextResponse.json({ error: 'invalid_session', reason: session.reason }, { status: 401 })
+  if (!session.ok) {
+    console.warn('[shopify] invalid_session', redactForLog({ reason: session.reason })) // KINEO-SHOPIFY-DIAG-1310
+    return NextResponse.json({ error: 'invalid_session', reason: session.reason }, { status: 401 })
+  }
   const body = (await req.json().catch(() => null)) as { product_id?: unknown } | null
   const productId = typeof body?.product_id === 'string' ? body.product_id.trim() : ''
   if (!/^gid:\/\/shopify\/Product\/\d{1,20}$/.test(productId)) return NextResponse.json({ error: 'invalid_product' }, { status: 400 })
