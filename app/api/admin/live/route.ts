@@ -22,6 +22,7 @@ import { INTERNAL_EXACT_EMAILS, INTERNAL_LIKE_PATTERNS, isInternalEmail } from '
 import { isPayingPlan, isTrialPlan } from '../_shared/mrr'
 import { TIER_CREDITS, type CheckoutPlanTier } from '@/lib/checkoutPricing' // KINEO-RAZAO-ASSINATURA-2026-09-16
 import { carregarCheckoutHonesto, type CheckoutHonestoComCartao } from '@/lib/admin/checkoutHonesto' // KINEO-CHECKOUT-HONESTO-2026-10-07
+import { LEDGER_GRANT_EVENTS, summarizeLedgerGrants, type LedgerGrantEvent } from '@/lib/admin/ledgerGrants' // KINEO-PAINEL-ORIGEM-2026-10-13
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -262,6 +263,11 @@ export async function GET() {
       // (credits_granted, renovação). Termo próprio: "+ 60 Starter assinou 16/09".
       const subsPromise = readAll(() => admin
         .from('events').select('user_id, name, created_at, metadata').in('name', ['payment_success', 'subscription_invoice_paid', 'checkout_payment_failed']).in('user_id', ids), { route: '/api/admin/live', table: 'events' }) // KINEO-RAZAO-ASSINANTE: + renovação recusada
+      // KINEO-PAINEL-ORIGEM-2026-10-13 — os presentes que o código concede (clipe e filme grátis de região, recarga semanal,
+      // cortesia, prêmio de post, subida p/ Business…) e que a equação não lia: sem eles toda conta de região acusava
+      // "+14 sem origem". Regra e rótulos em lib/admin/ledgerGrants.ts (só entra o que o evento prova que somou).
+      const giftsPromise = readAll(() => admin
+        .from('events').select('user_id, name, created_at, metadata').in('name', [...LEDGER_GRANT_EVENTS]).in('user_id', ids), { route: '/api/admin/live', table: 'events' })
       const debitsPromise = readAll(() => admin
         .from('credit_debits').select('user_id, amount, refunded_at, render_id, created_at').in('user_id', ids), { route: '/api/admin/live', table: 'credit_debits' })
       // KINEO-ENTREGAS-TOTAIS-2026-08-28 — a coluna "VIDEOS (TOTAL)" só
@@ -288,15 +294,16 @@ export async function GET() {
       // concessão separa — as de parceiro nascem com "Kineo Partners" / afiliado / parceiro no texto.
       const courtesyPromise = readAll(() => admin
         .from('courtesy_grants').select('user_id, reason').eq('status', 'active').in('user_id', ids), { route: '/api/admin/live', table: 'courtesy_grants' })
-      const [profRes, vidRes, animateDelivRes, imagesRes, audiosRes, grantsRes, purchasesRes, debitsRes, revokesRes, subsRes, affiliatesRes, courtesyRes] = await Promise.all([
+      const [profRes, vidRes, animateDelivRes, imagesRes, audiosRes, grantsRes, purchasesRes, debitsRes, revokesRes, subsRes, affiliatesRes, courtesyRes, giftsRes] = await Promise.all([
         readAll(() => admin.from('profiles')
           .select('id, email, name, plan, has_paid, video_credits, trial_credits_used, trial_credits_granted, signup_country, last_country, signup_utm_source, created_at')
           .in('id', ids), { route: '/api/admin/live', table: 'profiles' }),
         readAll(() => admin.from('videos').select('user_id').in('user_id', ids), { route: '/api/admin/live', table: 'videos' }),
         animateDelivPromise,
         imagesPromise, audiosPromise, grantsPromise, purchasesPromise, debitsPromise, revokesPromise, subsPromise,
-        affiliatesPromise, courtesyPromise,
+        affiliatesPromise, courtesyPromise, giftsPromise,
       ])
+      const giftsBy = summarizeLedgerGrants((giftsRes.data ?? []) as LedgerGrantEvent[]) // KINEO-PAINEL-ORIGEM-2026-10-13
       const userIdsOf = (rows: unknown[] | null | undefined) =>
         new Set((rows ?? []).map((r) => (r as { user_id?: string | null }).user_id).filter((u): u is string => Boolean(u)))
       const affiliateIds = userIdsOf(affiliatesRes.data)
@@ -672,6 +679,8 @@ export async function GET() {
           const terms: string[] = []
           if (trialGranted > 0) terms.push(`${trialGranted} trial`)
           if (lg.bonus > 0) terms.push(`+ ${lg.bonus} bônus`)
+          const gifts = giftsBy.get(p.id as string) ?? { total: 0, terms: [] } // KINEO-PAINEL-ORIGEM-2026-10-13
+          for (const t of gifts.terms) terms.push(t)
           const subs = subsBy.get(p.id as string) ?? { total: 0, labels: [], unknown: [], plan: null, since: null, paid: null, refused: 0, refusedLast: null, refusedWhy: null }
           for (const t of subs.labels) terms.push(t) // KINEO-RAZAO-ASSINATURA
           if (lg.bought > 0) terms.push(`+ ${lg.bought} compras`)
@@ -680,7 +689,7 @@ export async function GET() {
           // KINEO-LEDGER-V2 — o termo que explicava 5 dos 10 "furos" da
           // auditoria: reverse trial expira e revoga o que sobrou.
           if (lg.revoked > 0) terms.push(`− ${lg.revoked} expirado`)
-          const expected = trialGranted + lg.bonus + lg.bought + subs.total + lg.refunded - lg.spent - lg.revoked
+          const expected = trialGranted + lg.bonus + gifts.total + lg.bought + subs.total + lg.refunded - lg.spent - lg.revoked // KINEO-PAINEL-ORIGEM-2026-10-13: + presentes
           // KINEO-RAZAO-ASSINANTE-2026-09-17 — com compra sem registro de crédito a equação não tem como
           // fechar; o painel diz isso em vez de acusar "sem origem".
           const ledgerNote = subs.unknown.length > 0

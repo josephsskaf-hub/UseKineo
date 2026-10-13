@@ -916,6 +916,8 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
       {/* KINEO-STUDIO-TELA-COR-2026-09-30 — cor de cada motor (gerada de STAGE_TINT); o CSS grande abaixo segue estático. */}
       <style dangerouslySetInnerHTML={{ __html: STAGE_CSS }} />
+      {/* KINEO-STUDIO-CLS-2026-10-13 — o layout ANTES do conteúdo (ver STUDIO_LAYOUT_CSS no fim do arquivo). */}
+      <style dangerouslySetInnerHTML={{ __html: STUDIO_LAYOUT_CSS }} />
 
       <h1><UiLabel>Studio</UiLabel></h1>
       <p className="sub"><UiLabel>Pick an engine, write your idea, then generate.</UiLabel></p>
@@ -1068,7 +1070,6 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                   : 'Paste the idea or one sentence below. Kineo will write the hook, scenes and payoff; Seedance and the 60s target are already selected.'}
               </div>
             ) : null}
-            {!prompt.trim() && scriptMode !== 'clip' && <MrrFirstFilm historyEmpty={firstFilmHistoryEmpty} trialActive={trialOn} hasPaid={contaPaga} shortFilmAllowed={entrada15} balance={balance} />}
             <div className="row" style={{ marginBottom: 8 }}>
               {([
                 ['📊 Facts', '5 shocking facts about ', 'ai'],
@@ -1088,6 +1089,11 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                 : chatGptQuickstart === 'idea'
                   ? (t('Paste the idea from ChatGPT here…', 'Pega aquí la idea de ChatGPT…'))
                   : (t('What’s your video about? One idea in — a finished film out: voiced, scored and captioned.', '¿De qué trata tu vídeo? Una idea se convierte en un vídeo con voz, música y subtítulos.'))} />
+            {/* KINEO-STUDIO-CLS-2026-10-13 — o cartão do primeiro filme só nasce DEPOIS de três leituras (/api/me/credits,
+                /api/credits, /api/videos). Em cima da caixa ele empurrava a caixa e tudo abaixo quando chegava — e a puxava de
+                volta quando a pessoa digitava a 1ª letra (ele some com texto). Embaixo da caixa, a caixa da ideia não se mexe.
+                Mesma regra de quem vê (firstFilmOffer), mesmo texto. */}
+            {!prompt.trim() && scriptMode !== 'clip' && <div className="studio-first-film-slot"><MrrFirstFilm historyEmpty={firstFilmHistoryEmpty} trialActive={trialOn} hasPaid={contaPaga} shortFilmAllowed={entrada15} balance={balance} /></div>}
             {MRR_NEAR_IDEA_ENABLED && scriptMode !== 'clip' && (
               <StudioNearIdeaAction prompt={prompt} cost={cost} balance={balance} overLimit={limit.over}
                 bareStarter={isBareStarter(prompt)} engineName={eng.name} seconds={duration}
@@ -1641,9 +1647,18 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
             ))}
           </div>
       </details>
-      {/* Static, developer-authored CSS only: style is HTML raw text, so React's
-          escaped text children would disagree with the browser during hydration. */}
-      <style dangerouslySetInnerHTML={{ __html: `
+    </div>
+  )
+}
+
+// KINEO-STUDIO-CLS-2026-10-13 — o CSS de layout do Studio (grade, palco, abas Film/Clip) morava no FIM do JSX, depois de
+// toda a tela. Medido com o Edge sem cabeça (visitante, 1440×900): o navegador pintava a tela ANTES de ler este <style>
+// (nav em bloco, ajustes na coluna da direita, vídeo do motor lá embaixo) e ~0,5 s depois tudo pulava para o lugar:
+// CLS 0,345, quase todo num único salto da grade. Agora o <style> vai no TOPO do JSX, logo depois do STAGE_CSS — a ordem
+// entre os três estilos da tela é a mesma de antes (kit → cor do motor → layout), só que ANTES do conteúdo.
+// Static, developer-authored CSS only: style is HTML raw text, so React's escaped text children would disagree with the
+// browser during hydration.
+const STUDIO_LAYOUT_CSS = `
 .composer-proposal .composer-proposal-grid{grid-template-columns:minmax(0,1fr)350px;gap:20px;max-width:1320px}
 /* KINEO-STUDIO-HEROI-2026-09-30 — esquerda: ideia + configuração + gerar; direita: o vídeo do motor (fixo ao rolar). */
 .composer-proposal .composer-proposal-grid{grid-template-columns:minmax(460px,1fr) minmax(0,1.6fr);grid-template-rows:auto auto;align-items:start}
@@ -1771,7 +1786,6 @@ html .stu.composer-proposal .sub{margin-bottom:14px}html .stu.composer-proposal 
 @media(max-width:600px){.composer-proposal .studio-generation-review{grid-template-columns:repeat(2,minmax(0,1fr))}.studio-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.studio-modes button,.studio-modes a{padding:10px}}
 @media(max-width:900px){.composer-proposal .composer-proposal-grid{grid-template-columns:1fr;grid-template-rows:none;gap:18px}.composer-proposal .composer-proposal-idea,.composer-proposal .composer-proposal-settings{grid-column:1;grid-row:auto}.studio-engine-hero{grid-column:1;grid-row:auto;position:static;order:-1}.composer-proposal-idea{padding:16px}.composer-proposal textarea{min-height:160px}}
 @media(max-width:900px){.composer-proposal .studio-prompt{min-height:260px}}
-` }} />
-    </div>
-  )
-}
+/* KINEO-STUDIO-CLS-2026-10-13 — o cartão do primeiro filme mora embaixo da caixa da ideia; vazio, não ocupa nada. */
+.studio-first-film-slot{margin-top:10px}.studio-first-film-slot:empty{display:none}
+`

@@ -78,6 +78,7 @@ import { regionFreeFilmAvailable } from '@/lib/freeFilmPolicy' // KINEO-SAIDA-RE
 import { blockedNeutralNoticeVisible } from '@/lib/freeFilmPolicy' // KINEO-PAIS-SEM-GRATIS-2026-10-13
 import BlockedNeutralNotice from '@/components/BlockedNeutralNotice'
 import ScenePreviewResumeBanner from '@/components/ScenePreviewResumeBanner' // KINEO-PREVIA-CENAS-2026-10-03
+import { trialBannerReserveExpected } from '@/lib/layout/trialBannerReserve' // KINEO-STUDIO-CLS-2026-10-13
 
 // KINEO-ACQ-SPRINT-2026-07-29 — KEEP THE APP OUT OF THE SEARCH INDEX.
 //
@@ -132,7 +133,7 @@ export default async function DashboardLayout({
   if (user) {
     const { data } = await supabase
       .from('profiles')
-      .select('is_pro, email, trial_status, has_paid, plan, video_credits, stripe_subscription_id')
+      .select('is_pro, email, trial_status, has_paid, plan, video_credits, stripe_subscription_id, trial_ends_at, trial_credits_used, trial_credits_granted') // KINEO-STUDIO-CLS-2026-10-13: + as 3 colunas do trial (reserva do banner)
       .eq('id', user.id)
       .single()
     profile = data
@@ -164,7 +165,9 @@ export default async function DashboardLayout({
           propósito: em fluxo normal, no topo do `<main>`, é o único lugar do app
           que toda tela autenticada atravessa e que não cobre nada. `userKey`
           vem do SERVIDOR pelo mesmo motivo do modal abaixo. */}
-      {user && REVERSE_TRIAL_ENABLED && <TrialActiveBanner userKey={user.id.slice(0, 8)} />}
+      {/* KINEO-STUDIO-CLS-2026-10-13 — `reserve`: o servidor já sabe que o banner abre (as 4 guardas dele sobre este perfil);
+          o lugar fica guardado até o fetch voltar, e a tela não pula. */}
+      {user && REVERSE_TRIAL_ENABLED && <TrialActiveBanner userKey={user.id.slice(0, 8)} reserve={trialBannerReserveExpected(profile as Parameters<typeof trialBannerReserveExpected>[0])} />}
       {/* KINEO-AVISO-RENOVACAO-RECUSADA-2026-09-18 — só monta com assinatura Stripe no perfil; o status vem da Stripe viva. */}
       {user && (
         <RenewalDeclinedBanner

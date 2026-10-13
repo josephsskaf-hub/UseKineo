@@ -213,7 +213,9 @@ function provaTelas(over = {}) {
   const iOferta = ban.indexOf('    if (firstFilmOffer) return <RegionFirstFilmStrip offer={firstFilmOffer}')
   const iClipe = ban.indexOf('  if (surface) return <FreeClipNotice key={surface} surface={surface} />')
   if (!(iFilme >= 0 && iOferta > iFilme && iClipe > iOferta)) p.push('faixa: a ordem não é filme grátis → oferta → aviso do clipe')
-  if (!ban.includes("  if (REGION_FIRST_FILM_OFFER_LIVE && surface !== 'clips') {\n    if (firstFilmOffer === undefined) return null")) p.push('faixa: a oferta não está atrás do interruptor ou pinta a faixa velha enquanto espera (duas faixas)')
+  // reancorado 13/10 (KINEO-STUDIO-CLS-2026-10-13): esperando o servidor, null OU a reserva vazia do lugar da faixa
+  // (RegionStripReserve: caixa sem texto, sem oferta, sem evento — a tela não pula). A faixa velha continua proibida aqui.
+  if (!/ {2}if \(REGION_FIRST_FILM_OFFER_LIVE && surface !== 'clips'\) \{\n(?: {4}\/\/[^\n]*\n)* {4}if \(firstFilmOffer === undefined\) return (?:null|<RegionStripReserve \/>)\n/.test(ban)) p.push('faixa: a oferta não está atrás do interruptor ou pinta a faixa velha enquanto espera (duas faixas)')
   if (!strip.includes("fetch('/api/region-pass?surface=first_film'") || !strip.includes("checkout.launch('region_paid_first_film', offer.href,")) p.push('a faixa não pergunta ao servidor nem navega pelo link que ele devolve')
   if (!/o\.surface === 'first_film'/.test(strip)) p.push('a faixa aceita oferta de outra superfície')
   if (/\$\s?\d|R\$\s?\d|₹|\b4[.,]99\b|\b24[.,]90\b/.test(semComentarios(strip))) p.push('a faixa tem preço digitado')
