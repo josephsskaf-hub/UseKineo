@@ -3039,6 +3039,12 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // KINEO-ESTORNO-NARRACAO-2026-10-13 — a recusa de narração só vai ao finalizador quando ele consegue AMARRAR o débito:
+      // rejectCinematicQuality exige custo do claim do compose (reservado acima por creditCostForDuration) == custo do [KINEO-ESTORNO-NARRACAO-2026-10-13]
+      // nascimento. Onde os dois diferem (resgate do cron com custo antigo, Estrela do filme com sobretaxa) o finalizador [KINEO-ESTORNO-NARRACAO-2026-10-13]
+      // devolveria support_pending com o mutex RETIDO e a varredura de 100 min veria um compose 'ambíguo' para sempre — ali [KINEO-ESTORNO-NARRACAO-2026-10-13]
+      // fica o 502 de sempre (mutex solto → varredura estorna), que é exatamente o comportamento de hoje. [KINEO-ESTORNO-NARRACAO-2026-10-13]
+      const narracaoNoFinalizador = cinematicUpstreamDebited && cinematicBirthClaim?.creditCost === creditCostForDuration(quality, true, duration) // KINEO-ESTORNO-NARRACAO-2026-10-13
       const inicioTts = Date.now() // KINEO-PLANO-B-OPENAI-2026-09-28 — o plano B de voz só entra em falha rápida
       try {
         if (!cachedVoiceover && (!audioBuffer || audioBuffer.length === 0)) {
@@ -3058,8 +3064,19 @@ export async function POST(req: NextRequest) {
         // KINEO-PLANO-B-OPENAI-2026-09-28 — OpenAI sem crédito/5xx/conexão: a voz sai pela fal em vez do 502.
         const planoB = await narrarPeloPlanoB(err, 'primary', inicioTts)
         if (!planoB) {
+          // KINEO-ESTORNO-NARRACAO-2026-10-13 — o filme cinematográfico JÁ foi debitado no nascimento (claim 'settled').
+          // Sem o `code`, este 502 só soltava o mutex do compose: o débito ficava vivo, o cron de resgate repetia o [KINEO-ESTORNO-NARRACAO-2026-10-13]
+          // mesmo erro 2×, desistia, e só a varredura de 100 min (refund-sweep, :30 de cada hora) devolvia — 1h45 depois [KINEO-ESTORNO-NARRACAO-2026-10-13]
+          // no caso de 11/10, e nunca antes do fundador devolver à mão no de 13/10. Com o `code` o pedido entra pelo [KINEO-ESTORNO-NARRACAO-2026-10-13]
+          // MESMO finalizador que a estrada hollywood já usa para voz indisponível (rejectCinematicQuality: estorno [KINEO-ESTORNO-NARRACAO-2026-10-13]
+          // idempotente pelo RPC refund_render_credits, claim de nascimento 'released', mutex retido) — e o estorno [KINEO-ESTORNO-NARRACAO-2026-10-13]
+          // devolve o filme grátis de região junto (regionFreeFilmExclusive conta débito cinematic-* NÃO estornado). [KINEO-ESTORNO-NARRACAO-2026-10-13]
+          // Sem débito upstream (Kineo 1 / fast) a resposta segue a de sempre, byte a byte. [KINEO-ESTORNO-NARRACAO-2026-10-13]
           return rejectBeforeProviderSubmission(
             NextResponse.json(
+              narracaoNoFinalizador // KINEO-ESTORNO-NARRACAO-2026-10-13
+                ? { error: 'Voiceover generation failed. No film was assembled; see the credit details below. Your script is kept.', code: 'cinematic_voice_unavailable' } // KINEO-ESTORNO-NARRACAO-2026-10-13
+                : // KINEO-ESTORNO-NARRACAO-2026-10-13
               { error: 'Voiceover generation failed. Please try again.' },
               { status: 502 },
             ),
@@ -3073,6 +3090,9 @@ export async function POST(req: NextRequest) {
         console.error('[compose] TTS produced an empty buffer — refusing to upload.')
         return rejectBeforeProviderSubmission(
           NextResponse.json(
+            narracaoNoFinalizador // KINEO-ESTORNO-NARRACAO-2026-10-13 — mesmo finalizador do bloco acima (débito upstream vivo e amarrável)
+              ? { error: 'Voiceover generation returned no audio. No film was assembled; see the credit details below. Your script is kept.', code: 'cinematic_voice_unavailable' } // KINEO-ESTORNO-NARRACAO-2026-10-13
+              : // KINEO-ESTORNO-NARRACAO-2026-10-13
             { error: 'Voiceover generation returned no audio. Please try again.' },
             { status: 502 },
           ),

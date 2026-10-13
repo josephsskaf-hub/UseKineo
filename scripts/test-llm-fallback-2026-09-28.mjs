@@ -275,7 +275,7 @@ const FECHO = fatia('    let ttsFallbackUsed = false\n', '    // ═══ fim K
 const PRIMARIA = fatia('      const inicioTts = Date.now() // KINEO-PLANO-B-OPENAI-2026-09-28 — o plano B de voz só entra em falha rápida\n      try {\n        if (!cachedVoiceover && (!audioBuffer || audioBuffer.length === 0)) {\n          audioBuffer = await generateTTS(', '        audioBuffer = planoB\n        ttsFallbackUsed = true\n      }')
 const CORRETIVA = fatia('        let retryBuffer: Awaited<ReturnType<typeof generateTTS>> | null = null\n', 'if (retryBuffer && retryBuffer.length > 0) {', false)
 checa('as três fatias existem no compose (fecho narrarPeloPlanoB, TTS primária, laço corretivo)', !!FECHO && !!PRIMARIA && !!CORRETIVA)
-const CTX = ['generateTTS', 'scaledScript', 'explicitSpeed', 'vertical', 'narrationTier', 'language', 'rejectBeforeProviderSubmission', 'NextResponse', 'ttsFallbackApplies', 'synthesizeTtsFallback', 'registerTtsFallbackUse', 'TTS_FALLBACK_MODEL', 'primaryStatusOf', 'authenticatedUserId', 'generationId', 'quality', 'correctiveSpeed', 'ttsFallbackSkipsRetry']
+const CTX = ['generateTTS', 'scaledScript', 'explicitSpeed', 'vertical', 'narrationTier', 'language', 'rejectBeforeProviderSubmission', 'NextResponse', 'ttsFallbackApplies', 'synthesizeTtsFallback', 'registerTtsFallbackUse', 'TTS_FALLBACK_MODEL', 'primaryStatusOf', 'authenticatedUserId', 'generationId', 'quality', 'correctiveSpeed', 'ttsFallbackSkipsRetry', 'narracaoNoFinalizador'] // reancorado KINEO-ESTORNO-NARRACAO-2026-10-13: a fatia da TTS primária lê a flag marcada (definida logo antes de inicioTts)
 const montarPrimaria = (relogio) => carregar(`exports.rodar = async function (ctx: any) {\n  const { ${CTX.join(', ')} } = ctx\n  let audioBuffer: any = null\n  const cachedVoiceover: any = null\n  const clonedVoiceUsed = false\n${FECHO}\n${PRIMARIA}\n  return { audioBuffer, ttsFallbackUsed, rejeitado: null }\n}`, { filename: '/compose-primaria.js', relogio }).rodar
 const montarCorretiva = (relogio) => carregar(`exports.rodar = async function (ctx: any) {\n  const { ${CTX.join(', ')} } = ctx\n  let audioBuffer: any = null\n${FECHO}\n${CORRETIVA}\n  return { retryBuffer, correctiveViaPlanoB, ttsFallbackUsed }\n}`, { filename: '/compose-corretiva.js', relogio }).rodar
 function ctxCompose(w, gerar) {
@@ -290,6 +290,7 @@ function ctxCompose(w, gerar) {
     ttsFallbackApplies: w.tts.ttsFallbackApplies, synthesizeTtsFallback: w.tts.synthesizeTtsFallback, registerTtsFallbackUse: w.tts.registerTtsFallbackUse, TTS_FALLBACK_MODEL: w.tts.TTS_FALLBACK_MODEL,
     primaryStatusOf: w.lf.primaryStatusOf, authenticatedUserId: 'u-1', generationId: 'gen-0928', quality: 'fast', correctiveSpeed: 1.1,
     ttsFallbackSkipsRetry: w.tts.ttsFallbackSkipsRetry, // (e3) FIX-REVISAO-2
+    narracaoNoFinalizador: false, // reancorado KINEO-ESTORNO-NARRACAO-2026-10-13: quality 'fast' não tem débito upstream → a recusa de sempre (prova do ramo com débito: scripts/test-estorno-narracao-1310.mjs)
   }
   return { ctx, chamadas: () => chamadasTts, Relogio }
 }
