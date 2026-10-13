@@ -31,6 +31,11 @@ export interface AdsV2HonestySource {
   product: boolean
   /** Lugares que o cliente escreveu (nomes próprios fora da marca). Só usados quando product. */
   places: readonly string[]
+  /** KINEO-ATOR-FTC-2026-10-13 — o ATOR de IA fala a narração: ela é de apresentador, nunca depoimento de cliente
+   *  (testimonialMarks / repairTestimonial). Ausente = sem ator (a régua de sempre). */
+  presenter?: boolean
+  /** A marca do brief: some antes da régua do depoimento ("I Love Sushi") e é o que sobra se nada mais sobrar. */
+  brand?: string
 }
 
 // ── alegações ─────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -140,6 +145,8 @@ export function honestyIssues(text: string, h: AdsV2HonestySource, label: string
     const bad = placeMisuse(text, h.places)
     if (bad.length) why.push(`${label}: ${bad.map((p) => `"${p}"`).join(', ')} is glued onto a sentence where it makes no sense. Use a place only as "made in X" or "from X", or leave it out.`)
   }
+  // KINEO-ATOR-FTC-2026-10-13 — com o ator, a NARRAÇÃO (o que ele fala) nunca é depoimento de cliente.
+  if (h.presenter && label === 'narration' && testimonialMarks(text, h.brand).length) why.push(ADS_V2_TESTIMONIAL_WHY)
   return why
 }
 
@@ -185,4 +192,117 @@ export function repairHonesty(text: string, h: AdsV2HonestySource): { text: stri
   })
   t = tidy(kept.join(' '))
   return { text: t, fixes }
+}
+
+// ── depoimento falso na boca do ATOR (FTC) ────────────────────────────────────────────────────────────────────────
+// KINEO-ATOR-FTC-2026-10-13 — o ator de IA (lib/ads/v2Presenter.ts) falava como CLIENTE: "Okay, I have to tell you about
+// this LUME…", "I've been using it for a week", "my skin has never looked better". Nos EUA a regra da FTC contra depoimento e
+// avaliação falsa (16 CFR 465) e os Guias de Endosso (16 CFR 255) tratam isso como endosso enganoso: uma pessoa que nunca
+// usou o produto dizendo que usou, comprou ou teve resultado. Decisão do fundador (13/10, "tudo sim"): com o ator a fala é
+// de APRESENTADOR — terceira pessoa / voz de marca ("Meet LUME…", "This is LUME — …", "Here's why…"). O pedido de texto
+// já manda isso (ADS_V2_PRESENTER_NARRATION_RULE, v2Brief); aqui a régua em código confere a NARRAÇÃO (só ela: é o que o
+// ator fala) e, depois da 1 correção do modelo, CONSERTA: o gancho de criador vira apresentação ("Meet X"), "honestly"/
+// "trust me" saem, e a frase que ainda alega uso, compra, gosto ou resultado pessoal sai inteira. Nunca derruba o plano.
+// Sem ator (narrador de marca) nada disto roda: o pedido e a régua ficam byte a byte os de antes.
+
+/** Fronteiras: nem letra/número antes ou depois, nem dentro de link, @ ou domínio (".io", ".eu", "my.site"). */
+const P = (body: string, flags = 'iu') => new RegExp(`(?<![.@/\\p{L}\\p{N}])(?:${body})(?![\\p{L}\\p{N}]|\\.\\p{L})`, flags)
+
+/** [régua, rótulo]. Cada uma é a voz de quem USOU/COMPROU/GOSTOU — nunca a de um apresentador. */
+export const ADS_V2_TESTIMONIAL: ReadonlyArray<readonly [RegExp, string]> = [
+  // en — "I" de quem conta a própria experiência ("I'll show you" / "I will" é de apresentador e passa). Só "I" maiúsculo.
+  [P("I(?:['’](?:m|ve|d))?(?!['’]ll|\\s+will(?![\\p{L}]))", 'u'), 'I'],
+  [P('my|mine|myself'), 'my'],
+  [P("trust me|honestly|in love with|obsessed with|can['’]?t stop|changed (?:my|our) li(?:fe|ves)|holy grail"), 'personal endorsement'],
+  [P('before and after|before-and-after'), 'before/after'],
+  // pt
+  [P('eu|meu|minha|meus|minhas|comigo'), 'eu/meu'],
+  [P('comprei|usei|testei|experimentei|provei|amei|adorei|recomendo|indico|confesso|juro|estou usando|t[oô] usando|venho usando|me apaixonei|apaixonad[ao]|obcecad[ao]|preciso (?:te |de te |muito te )?(?:contar|falar|mostrar)|tenho (?:que|de) (?:te )?(?:contar|falar)|antes e depois'), 'pt testimonial'],
+  // es (só as formas acentuadas: "use", "compre", "probe" e "mia" sem acento são outra coisa)
+  [P('yo|mi|mis|mío|mía|conmigo'), 'yo/mi'],
+  [P('compré|usé|probé|he probado|he usado|estoy usando|llevo usando|me encanta|me encant[oó]|lo amo|la amo|recomiendo|te lo recomiendo|tengo que contarte|necesito contarte|antes y despu[eé]s|enamorad[ao]|obsesionad[ao]'), 'es testimonial'],
+  // fr / de / it / nl — o pronome de 1ª pessoa e o possessivo sem ambiguidade com outra língua.
+  [P("je|j['’]|moi"), 'fr je'],
+  [P('ich|mein|meine|meinen|meinem|meiner'), 'de ich'],
+  [P('io|ho provato|ho comprato|ho usato|lo adoro|la adoro|mi piace|la mia|il mio|i miei|le mie'), 'it io'],
+  [P('ik|mijn'), 'nl ik'],
+  // ru / uk / pl / tr / id / vi / hi
+  [P('я|мой|моя|моё|мои|мне|мій|моє|мої'), 'ru/uk я'],
+  [P('mój|moja|moje|kupiłam|kupiłem|używam|polecam'), 'pl'],
+  [P('benim|kullanıyorum|aldım|bayıldım'), 'tr benim'],
+  [P('aku|saya'), 'id aku'],
+  [P('tôi'), 'vi tôi'],
+  [P('मैं|मेरा|मेरी|मेरे'), 'hi मैं'],
+]
+
+const escapeAll = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+/** A marca do cliente pode ter "I"/"my" ("I Love Sushi", "My Little Box", "Mi Band"): ela some antes da régua. */
+function maskBrand(text: string, brand: string | null | undefined): string {
+  const b = String(brand ?? '').trim()
+  if (!b) return text
+  return text.split(new RegExp(escapeAll(b), 'giu')).join(' '.repeat(b.length))
+}
+
+/** Marcas de depoimento em 1ª pessoa no texto (rótulos, sem repetir). Pura. */
+export function testimonialMarks(text: string, brand?: string | null): string[] {
+  const t = maskBrand(String(text ?? ''), brand)
+  const out: string[] = []
+  for (const [re, label] of ADS_V2_TESTIMONIAL) {
+    const m = re.exec(t)
+    if (m) out.push(`${label} ("${m[0]}")`)
+  }
+  return out
+}
+
+export const ADS_V2_TESTIMONIAL_WHY =
+  'narration: the AI presenter is not a customer and never used the product. Do not speak as someone who bought, used, tried, loves or recommends it, and no personal result or before/after ("I\'ve been using", "my skin", "I love it", "changed my life", "honestly I"). Present it in the third person or the brand\'s voice: "Meet <name>…", "This is <name> — …", "Here\'s why…".'
+
+// Gancho de criador → apresentação. Só no começo da frase; o que vem depois (o produto) fica.
+const LEAD_FILLER = String.raw`(?:(?:okay|ok|so|alright|all right|guys|hey|listen|oh my god|omg|gente|olha|ent[aã]o|bom|chicos|mira|bueno)[\s,!.…-]+)*`
+const HOOKS: ReadonlyArray<readonly [RegExp, string]> = [
+  [new RegExp(String.raw`^${LEAD_FILLER}(?:I(?:['’]ve)?\s+(?:just\s+|really\s+)?(?:have|had|need|needed|got|gotta|have got)\s+(?:got\s+)?(?:to\s+)?tell\s+you(?:\s+all)?\s+about|let me tell you about|I(?:\s+just)?\s+(?:found|discovered))\s+(?:(?:this|these|my|the|our)\s+)?`, 'iu'), 'Meet '],
+  [new RegExp(String.raw`^${LEAD_FILLER}(?:(?:eu\s+)?(?:preciso|tenho\s+que|tenho\s+de)\s+(?:te\s+|vos\s+|lhe\s+|de\s+te\s+)?(?:contar|falar)\s+(?:sobre|d[oa]s?|de)|(?:eu\s+)?(?:descobri|encontrei|achei))\s+(?:(?:este|esta|esse|essa|o|a|meu|minha)\s+)?`, 'iu'), 'Conheça '],
+  [new RegExp(String.raw`^${LEAD_FILLER}(?:(?:yo\s+)?(?:tengo\s+que|necesito)\s+(?:contarte|contaros|hablarte)\s+(?:sobre|del?)|(?:yo\s+)?(?:descubr[ií]|encontr[eé]))\s+(?:(?:este|esta|el|la|mi)\s+)?`, 'iu'), 'Conoce '],
+]
+/** "Honestly," / "Trust me," no começo da frase: saem (a frase fica). */
+const LEAD_ENDORSE = /^(?:honestly|trust me|seriously|sinceramente|confia em mim|confía en mí|de verdad)[\s,!.…-]+/iu
+
+const capFirst = (s: string) => s.replace(/^(\P{L}*)(\p{Ll})/u, (_m, pre: string, c: string) => pre + c.toUpperCase())
+
+/**
+ * Conserta a NARRAÇÃO do ator: gancho de criador → apresentação ("Okay, I have to tell you about this LUME" → "Meet LUME"),
+ * "Honestly,"/"Trust me," no começo saem, e a frase que ainda fala como cliente (uso, compra, gosto, resultado pessoal) sai
+ * inteira. Se nada sobrar, fica só a marca ("LUME.") — fala curta e verdadeira vale mais que 502. Pura.
+ */
+export function repairTestimonial(text: string, brand?: string | null): { text: string; fixes: string[] } {
+  const fixes: string[] = []
+  const kept: string[] = []
+  for (const s0 of sentences(String(text ?? ''))) {
+    let s = s0
+    for (const [re, lead] of HOOKS) {
+      const m = re.exec(s)
+      if (m && m[0].length < s.length) {
+        s = lead + s.slice(m[0].length)
+        fixes.push('testimonial_hook')
+        break
+      }
+    }
+    const endorse = LEAD_ENDORSE.exec(s)
+    if (endorse && endorse[0].length < s.length) {
+      s = capFirst(s.slice(endorse[0].length))
+      fixes.push('testimonial_filler')
+    }
+    if (testimonialMarks(s, brand).length) {
+      fixes.push('testimonial_sentence')
+      continue
+    }
+    kept.push(s)
+  }
+  let out = tidy(kept.join(' '))
+  const b = String(brand ?? '').trim()
+  if (!out && fixes.length && b) {
+    out = `${b}.`
+    fixes.push('testimonial_brand_only')
+  }
+  return { text: fixes.length ? out : String(text ?? ''), fixes }
 }

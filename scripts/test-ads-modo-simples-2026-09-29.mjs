@@ -178,7 +178,11 @@ await check('A3 trocar de modo é link de página inteira (o anúncio em andamen
 // do Business, SÓ com sample=true), o aviso do teto com o checkout do Business e a oferta compacta abaixo da amostra entregue.
 // Sem sample (todo pagante) o desenho, os erros e os pedidos são os de antes; provado em
 // scripts/test-business-depois-da-amostra.mjs (1j/1n/1o). Base anterior: 5ee17e2b….
-const Z1_BASE = "27b1ef06e8298505a8b3a02f148fca4d8ca7be9b8de6dc99d6ed2bffbe084f6c"
+// KINEO-ATOR-FTC-2026-10-13 — re-ancorado (fundador 13/10, "tudo sim"): o completo trocou SÓ a linha do rótulo de IA na
+// entrega ("Turn on the AI-generated label when you post on TikTok…" → adsV2AiLabelNotice('en'), lib pura lib/ads/v2AiLabel.ts:
+// "Made with AI — when you post it, turn on the platform's AI label…"). Nada mais do completo mudou; provado em
+// scripts/test-ator-sem-depoimento-1310.mjs (4e). Base anterior: 27b1ef06….
+const Z1_BASE = "413b63f6b78e1caa4218461df7c7f2bdbfe51db4f00c6f4a21315ad4283efca4"
 const trechoCompleto = (src) => { const s = src.replace(/\r\n/g, '\n'); const i = s.indexOf('function AdsV2Session('); return i < 0 ? '' : semComentarios(s.slice(i)) }
 await check('Z1 impressão digital do modo completo (AdsV2Session, PhotoRow, PlanPreview, ShotGrid) = a do vídeo do cliente (29/09)', sha(trechoCompleto(SRC.client)) === Z1_BASE)
 await check('Z1-mutante: 1 caractere trocado no modo completo fica vermelho', () => sha(trechoCompleto(trocar(SRC.client, "const POLL_RETRY_MS = 20_000", "const POLL_RETRY_MS = 20_001").replace('Plan my ad (free)', 'Plan my ad (freE)'))) !== Z1_BASE)
@@ -734,7 +738,8 @@ await check('E2 CONTACTISH da pesquisa = o da régua do texto (v2Brief)', () => 
 // guardião scripts/test-ads-ux-marca-2026-10-10.mjs confere as duas. Nenhum módulo de servidor.
 // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — re-ancorado: + '@/lib/ads/afterSample' (lib PURA do pós-amostra: frases da oferta do
 // Business nas 16 línguas e o tipo da oferta; só import type — entra na conferência de pureza abaixo). Nenhum módulo de servidor.
-const IMPORTS_OK = ['@/lib/ads/afterSample', '@/lib/ads/v2SimpleUx', './AdsV2SimpleUx', '@/lib/ads/v2LinkImport', '@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', './AdsV2Variations', '@/components/AdsPlanChanges', 'react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/ads/v2UserVideo', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage']
+// KINEO-ATOR-FTC-2026-10-13 — re-ancorado: + '@/lib/ads/v2AiLabel' (lib PURA do aviso de rótulo de IA nas 16 línguas; só import type).
+const IMPORTS_OK = ['@/lib/ads/v2AiLabel', '@/lib/ads/afterSample', '@/lib/ads/v2SimpleUx', './AdsV2SimpleUx', '@/lib/ads/v2LinkImport', '@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', './AdsV2Variations', '@/components/AdsPlanChanges', 'react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/ads/v2UserVideo', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage']
 await check('E3 a tela simples é cliente e só importa módulos de navegador/puros; v2Simple, v2Research e v2VideoFrames não têm import; textLanguage é pura', () => {
   const imps = [...SRC.simple.matchAll(/^import[\s\S]*?from '([^']+)'/gm)].map((m) => m[1])
   return /^'use client'/.test(SRC.simple) && imps.length >= 8 && imps.every((m) => IMPORTS_OK.includes(m)) &&

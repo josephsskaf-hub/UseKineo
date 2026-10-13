@@ -80,6 +80,8 @@ import { ADS_V2_STYLES, ADS_V2_STYLES_PUBLIC, adsV2StyleCopy, adsV2SuggestedStyl
 import { AdsPresenterToggle, AdsStylePicker } from '@/components/ads/AdsStyles'
 // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator de IA ("Person talking about it"): interruptor e frases nas 16 línguas (lib pura).
 import { ADS_V2_PRESENTER_POSTER, ADS_V2_PRESENTER_PUBLIC, adsV2PresenterCopy, type AdsV2PresenterCopy } from '@/lib/ads/v2Presenter'
+// KINEO-ATOR-FTC-2026-10-13 — aviso de rótulo de IA na entrega (16 línguas, lib pura; não é marca d'água).
+import { adsV2AiLabelNotice } from '@/lib/ads/v2AiLabel'
 // KINEO-ADS-1FOTO-LINK-2026-10-10 — 1 foto basta e "Or paste your product link" (frases nas 16 línguas, lib pura).
 import { ADS_V2_LINK_IMPORT_MAX_IMAGES, adsV2LinkImportCopy, adsV2LinkImportError, type AdsV2LinkImportCopy } from '@/lib/ads/v2LinkImport'
 // KINEO-ADS-UX-MARCA-2026-10-10 — passo a passo, soltar arquivos, enquadramento, prévia ao vivo, custo e o kit da marca
@@ -1999,7 +2001,7 @@ export function AdsV2SimpleSession({
               <Link className="adsw-link" href="/history">{copy.done.open}</Link>
             </div>
             {downloadNote ? <p className="adsw-warn" role="status">{downloadNote}</p> : null}
-            <p className="adv2-note">{copy.done.aiLabel}</p>
+            <p className="adv2-note" role="note">{adsV2AiLabelNotice(lang)}</p>
             {/* KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a amostra acabou de ser entregue (o pico da alegria): a oferta do Business logo abaixo. */}
             {scopy && business ? <AdsAfterSampleOffer lang={lang} business={business} compact /> : null}
             {/* KINEO-ADS-AMOSTRA-2026-10-09 — a amostra não tem refação (a rota segue fechada para free/trial). */}
