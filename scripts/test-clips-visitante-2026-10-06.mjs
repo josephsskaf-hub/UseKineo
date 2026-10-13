@@ -68,7 +68,7 @@ async function run({ mutate = null, cutoff = null, rollback = false } = {}) {
     assert.deepEqual(guest.body.engines, fresh.body.engines, 'Guest engines = real new account engines, including credit quotes')
     assert.deepEqual(guest.body.effects, fresh.body.effects, 'Guest effects = real new account effects')
   }
-  if (!cutoff && !rollback) assert.equal(guest.body.effects.length, 9)
+  if (!cutoff && !rollback) assert.equal(guest.body.effects.length, 12) // KINEO-EFEITOS-NOVOS-2026-10-13: 9 → 12 (3 efeitos-modelo no trilho kling)
   if (cutoff || rollback) assert.equal(guest.body.effects.length, 2, 'The guest still respects a future gate/rollback')
   assert.ok(!guest.body.engines.some(e => e.key === 'omni' || e.key === 's25'), 'Paused/internal engines stay hidden')
   assert.equal(server.engineAccessFor({ email: null, plan: null, createdAt: null })('kling').ok, false, 'Missing real profile still fails closed')
@@ -106,5 +106,5 @@ for (const [name, file, before, after, withGate] of mutants) {
 }
 assert.throws(() => checkPrices(ui.replace('{fx.engine_label}', '{fx.engine_label} {fx.credits} cr')), undefined, 'Card price mutant')
 assert.throws(() => checkPrices(ui.replace('{effect.credits}', '')), undefined, 'Missing Generate quote mutant')
-console.log('PASS: actual guest GET = new account, 9 effects; active gate, rollback, no billing, 6 mutants.')
+console.log('PASS: actual guest GET = new account, 12 effects; active gate, rollback, no billing, 6 mutants.')
 

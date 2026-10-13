@@ -110,13 +110,16 @@ async function problems(M) {
   // (1) catálogo
   // Reancorado 05/10 (KINEO-HOME-CLIPES-EM-CIMA, 2ª rodada): +2 efeitos testados antes de entrar (melt, secret_cake); inflate
   // foi testado e NÃO entrou (o motor faz um balão em volta do objeto). cartoon_3d segue fora (o motor não estiliza a foto).
-  if (effects.length !== 9) p.push(`catálogo com ${effects.length} efeitos (esperado 9 — melt e secret_cake entraram em 05/10; cartoon_3d e inflate ficaram fora: o motor não faz o que o nome promete)`)
+  // Reancorado 13/10 (KINEO-EFEITOS-NOVOS-2026-10-13): +3 efeitos-modelo aprovados pelo fundador depois do render real (wings,
+  // dollar_rain, muscle_surge — scripts/test-efeitos-novos-1310.mjs prova o ramo do template). 9 → 12.
+  if (effects.length !== 12) p.push(`catálogo com ${effects.length} efeitos (esperado 12 — melt e secret_cake entraram em 05/10, wings/dollar_rain/muscle_surge em 13/10; cartoon_3d e inflate ficaram fora: o motor não faz o que o nome promete)`)
   if (new Set(effects.map((e) => e.key)).size !== effects.length) p.push('chave de efeito repetida')
   for (const e of effects) {
     const v = cat.validateClipRequest({ engine: e.engine, seconds: e.seconds, aspect: null, prompt: e.prompt, imageUrl: PHOTO }, { userId: U, supabaseUrl: SUPA })
     if (!v.ok) { p.push(`${e.key}: não é um pedido de clipe válido com foto (${v.code})`); continue }
     if (v.request.mode !== 'i2v' || v.request.aspect !== 'image') p.push(`${e.key}: efeito não é image-to-video no formato da foto`)
-    if (!/No text, no captions, no logos, no watermark\./.test(e.prompt)) p.push(`${e.key}: prompt sem a trava de texto/logo/marca d'água`)
+    // KINEO-EFEITOS-NOVOS-2026-10-13 — efeito-modelo não tem prompt nosso: o campo é o sentinela da linha ([effect:<chave>]).
+    if (e.template ? e.prompt !== `[effect:${e.key}]` : !/No text, no captions, no logos, no watermark\./.test(e.prompt)) p.push(`${e.key}: prompt sem a trava de texto/logo/marca d'água`)
     if (!e.filmIdea || e.filmIdea.length < 10) p.push(`${e.key}: sem ideia de filme para o upsell`)
     if (e.preview) {
       if (!fs.existsSync(path.join(ROOT, 'public', e.preview.video))) p.push(`${e.key}: prévia aponta arquivo que não existe (${e.preview.video})`)
@@ -134,8 +137,9 @@ async function problems(M) {
   if (cards.length !== effects.length) p.push('galeria não mostra todos os efeitos com todos os motores livres')
   for (const c of cards) {
     const e = fx.clipEffectByKey(c.key)
-    if (c.credits !== price.clipCreditCost(e.engine, e.seconds)) p.push(`${c.key}: preço da galeria ≠ clipCreditCost(engine, seconds)`)
-    if (c.engine_label !== cat.CLIP_ENGINES[e.engine].label) p.push(`${c.key}: selo do motor não é o motor real`)
+    // KINEO-EFEITOS-NOVOS-2026-10-13 — efeito-modelo: preço do endpoint dele (clipTemplateCreditCost) e selo do modelo real.
+    if (c.credits !== (e.template ? price.clipTemplateCreditCost(e.template.usd) : price.clipCreditCost(e.engine, e.seconds))) p.push(`${c.key}: preço da galeria ≠ clipCreditCost(engine, seconds)`)
+    if (c.engine_label !== (e.template ? e.template.label : cat.CLIP_ENGINES[e.engine].label)) p.push(`${c.key}: selo do motor não é o motor real`)
     if ('prompt' in c) p.push(`${c.key}: galeria entrega o prompt ao navegador`)
   }
   const noKling = fx.publicClipEffects((engine) => engine !== 'kling')
@@ -164,9 +168,14 @@ async function problems(M) {
     const { deps, calls, seen } = fakeSubmitDeps()
     const out = await flow.submitClip(deps, { userId: U, idempotencyKey: KEY, body: r.body })
     if (!out.ok) { p.push(`${e.key}: submitClip recusou o efeito (${out.code})`); continue }
-    if (!seen.falInput || seen.falInput.prompt !== e.prompt || /IGNORE/.test(JSON.stringify(seen.falInput))) p.push(`${e.key}: payload da fal não leva o prompt do catálogo`)
-    if (seen.falModel !== cat.CLIP_ENGINES[e.engine].i2vModel) p.push(`${e.key}: modelo da fal não é o image-to-video do motor do efeito`)
-    if (seen.falInput.image_url !== PHOTO) p.push(`${e.key}: a foto não vai como 1º quadro`)
+    if (e.template) {
+      // KINEO-EFEITOS-NOVOS-2026-10-13 — efeito-modelo: endpoint e entrada do catálogo, com a foto como único valor de fora.
+      if (seen.falModel !== e.template.model || JSON.stringify(seen.falInput) !== JSON.stringify(e.template.input(PHOTO)) || /IGNORE/.test(JSON.stringify(seen.falInput))) p.push(`${e.key}: efeito-modelo não enviou o endpoint/entrada do catálogo`)
+    } else {
+      if (!seen.falInput || seen.falInput.prompt !== e.prompt || /IGNORE/.test(JSON.stringify(seen.falInput))) p.push(`${e.key}: payload da fal não leva o prompt do catálogo`)
+      if (seen.falModel !== cat.CLIP_ENGINES[e.engine].i2vModel) p.push(`${e.key}: modelo da fal não é o image-to-video do motor do efeito`)
+      if (seen.falInput.image_url !== PHOTO) p.push(`${e.key}: a foto não vai como 1º quadro`)
+    }
     if (!seen.moderation || seen.moderation.text !== e.prompt || seen.moderation.imageUrls?.[0] !== PHOTO) p.push(`${e.key}: moderação de entrada não viu o prompt e a foto`)
     if (calls.indexOf('moderate') < 0 || calls.indexOf('moderate') > calls.indexOf('debit')) p.push(`${e.key}: moderação não vem antes do débito`)
     if (seen.debited !== fx.clipEffectCredits(e) || seen.debited !== cards.find((c) => c.key === e.key)?.credits) p.push(`${e.key}: débito ≠ preço mostrado na galeria`)

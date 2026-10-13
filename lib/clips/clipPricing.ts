@@ -178,6 +178,17 @@ export function clipCreditCostRegra2909(engine: ClipEngineKey, seconds: number, 
   return Math.max(CLIP_MIN_CREDITS, Math.ceil(raw))
 }
 
+/**
+ * KINEO-EFEITOS-NOVOS-2026-10-13 — créditos de um EFEITO-MODELO (lib/clips/clipEffects.ts `template`: efeito pronto do
+ * fornecedor, custo fixo por clipe). Mesma régua de 29/09 sem filme de referência: piso de 50% de margem no crédito do Studio
+ * (o mais barato da casa) e mínimo de 5 cr. Não mexe no preço de nenhum outro clipe.
+ */
+export function clipTemplateCreditCost(usd: number): number {
+  if (typeof usd !== 'number' || !Number.isFinite(usd) || usd <= 0) throw new Error('clipTemplateCreditCost: usd must be a positive number')
+  const raw = Math.round((usd / (STUDIO_USD_PER_CREDIT * (1 - CLIP_MARGIN_FLOOR))) * 1e6) / 1e6
+  return Math.max(CLIP_MIN_CREDITS, Math.ceil(raw))
+}
+
 /** Margem real do clipe no crédito do Studio (0..1), para a tabela e o guardião. */
 export function clipMarginAtStudio(engine: ClipEngineKey, seconds: number, withImage = false): number {
   const revenue = clipCreditCost(engine, seconds, withImage) * STUDIO_USD_PER_CREDIT

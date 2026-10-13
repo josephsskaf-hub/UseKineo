@@ -232,6 +232,9 @@ export interface ClipRequestInput {
   aspect: unknown
   prompt: unknown
   imageUrl: unknown
+  /** KINEO-EFEITOS-NOVOS-2026-10-13 — chave de um efeito-modelo, posta SÓ pelo servidor (resolveClipEffectRequest). A rota
+   *  nunca copia este campo do corpo do navegador; o submitClip confere no catálogo (clipTemplateForRequest). */
+  effect?: unknown
 }
 
 export interface ClipRequest {

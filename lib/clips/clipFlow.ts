@@ -33,7 +33,7 @@ import {
   type ClipRequestInput,
 } from './clipCatalog'
 import { clipCreditCost, clipFalUsd } from './clipPricing'
-import { clipEffectEventMetadata, clipEffectForRow } from './clipEffects'
+import { clipEffectCredits, clipEffectEventMetadata, clipEffectForRow, clipTemplateForRequest } from './clipEffects'
 
 /** Pedido sem request_id da fal há mais que isto = o envio morreu no meio; estorna. */
 export const CLIP_PENDING_STALE_MS = 10 * 60 * 1000
@@ -114,6 +114,12 @@ export async function submitClip(
   const checked = validateClipRequest(args.body, { userId: args.userId, supabaseUrl: deps.supabaseUrl })
   if (!checked.ok) return { ok: false, status: checked.status, code: checked.code, error: checked.error }
   const req = checked.request
+  // KINEO-EFEITOS-NOVOS-2026-10-13 — efeito-modelo (template do fornecedor): conferido no catálogo ANTES de qualquer custo. O
+  // modelo, a entrada da fal e o preço saem de effect.template; motor visível, replay, teto, foto, moderação, saldo, linha,
+  // débito e estorno são os de baixo, iguais para todo clipe. Sem `effect` no pedido, `template` é null e nada muda.
+  const tpl = clipTemplateForRequest(args.body.effect, req)
+  if (!tpl.ok) return { ok: false, status: 400, code: 'effect', error: 'Choose one of the listed effects.' }
+  const template = tpl.effect?.template ?? null
 
   const access = deps.engineAccess(req.engine)
   if (!access.ok) {
@@ -155,7 +161,7 @@ export async function submitClip(
     return { ok: false, status: safety.status, code: safety.reason === 'blocked' ? 'moderation' : `moderation_${safety.reason}`, error: safety.message }
   }
 
-  const credits = clipCreditCost(req.engine, req.seconds, req.mode === 'i2v')
+  const credits = tpl.effect && template ? clipEffectCredits(tpl.effect) : clipCreditCost(req.engine, req.seconds, req.mode === 'i2v') // KINEO-EFEITOS-NOVOS-2026-10-13
   const balance = await deps.getBalance(args.userId)
   if (balance < credits) {
     return { ok: false, status: 402, code: 'credits', error: `This clip costs ${credits} credits. You have ${balance}. Not enough credits.`, balance }
@@ -170,13 +176,13 @@ export async function submitClip(
     billing_reference: `clips-${id}`,
     engine: req.engine,
     mode: req.mode === 'i2v' ? 'image' : 'text',
-    model: req.model,
+    model: template ? template.model : req.model, // KINEO-EFEITOS-NOVOS-2026-10-13 — o pollFal lê o resultado deste modelo
     seconds: req.seconds,
     aspect: req.aspect,
     prompt: req.prompt,
     image_url: req.imageUrl,
     credits,
-    fal_usd: clipFalUsd(req.engine, req.seconds, req.mode === 'i2v'),
+    fal_usd: template ? template.usd : clipFalUsd(req.engine, req.seconds, req.mode === 'i2v'), // KINEO-EFEITOS-NOVOS-2026-10-13
     status: 'pending',
     fal_request_id: null,
     video_url: null,
@@ -214,7 +220,10 @@ export async function submitClip(
     return out
   }
 
-  const sent = await deps.submit(req.model, buildClipFalInput(req))
+  // KINEO-EFEITOS-NOVOS-2026-10-13 — efeito-modelo: endpoint e entrada do catálogo; a foto é a já conferida (posse + bytes + moderação).
+  const sent = template && req.imageUrl
+    ? await deps.submit(template.model, template.input(req.imageUrl))
+    : await deps.submit(req.model, buildClipFalInput(req))
   if (!sent.ok) {
     return closeWithRefund(sent.ambiguous ? 'submit_ambiguous' : 'provider_rejected', 502, 'The engine could not accept this clip.')
   }

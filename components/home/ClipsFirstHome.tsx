@@ -26,9 +26,8 @@ import ResumeStrip from '@/components/ResumeStrip'
 import LandingViewTracker from '@/components/LandingViewTracker'
 import SignupConversionTracker from '@/components/SignupConversionTracker'
 import WelcomeOfferModal from '@/components/WelcomeOfferModal'
-import { CLIP_EFFECTS, type ClipEffect } from '@/lib/clips/clipEffects'
+import { CLIP_EFFECTS, clipEffectCredits, clipEffectEngineLabel, type ClipEffect } from '@/lib/clips/clipEffects' // KINEO-EFEITOS-NOVOS-2026-10-13
 import { clipCreditCost } from '@/lib/clips/clipPricing'
-import { CLIP_ENGINES } from '@/lib/clips/clipCatalog'
 import { ENGINE_PAGE_LEAD, FOUNDER_SHOWCASE, type FounderShowcaseExample } from '@/lib/publicExamples'
 import { engineLabelFor } from '@/lib/engineLabel'
 import { creditCostFor } from '@/lib/credits/engineCost'
@@ -58,8 +57,9 @@ export interface ClipsFirstEffectCard {
 export function clipsFirstEffectCards(signedIn: boolean): ClipsFirstEffectCard[] {
   return CLIP_EFFECTS.map((effect) => ({
     effect,
-    credits: clipCreditCost(effect.engine, effect.seconds),
-    engineLabel: CLIP_ENGINES[effect.engine].label,
+    // KINEO-EFEITOS-NOVOS-2026-10-13 — efeito-modelo: preço e selo do próprio modelo (a mesma função que o /clips cobra).
+    credits: effect.template ? clipEffectCredits(effect) : clipCreditCost(effect.engine, effect.seconds),
+    engineLabel: clipEffectEngineLabel(effect),
     href: clipEffectEntryHref(effect.key, signedIn),
   }))
 }
