@@ -7,6 +7,7 @@
 // Se a linha trocada do runway for editada depois, as strings param de casar e o texto volta INTOCADO no que importa: o
 // guardião que usa este desfaz fica vermelho — de propósito (falha fechada). Provas das mudanças:
 // scripts/test-escritor-monumento-1310.mjs e scripts/test-omni-etapa1-1310.mjs.
+import { desfazRomanceAdulto, linhaDoRomanceAdulto } from './desfaz-romance-adulto-1310.mjs' // KINEO-ROMANCE-ADULTO-2026-10-13
 export const MARCA_ESCRITOR = 'KINEO-ESCRITOR-MONUMENTO-2026-10-13'
 export const MARCA_OMNI_ETAPA1 = 'KINEO-OMNI-ETAPA1-2026-10-13'
 const INSERCAO_RUNWAY = "${typeof writerOptions?.placeRule === 'string' ? writerOptions.placeRule : ''}"
@@ -15,6 +16,7 @@ const COMENTARIO_RUNWAY = ' · placeRule: KINEO-ESCRITOR-MONUMENTO-2026-10-13 (a
 /** O arquivo `p` (caminho relativo à raiz, com '/') sem as mudanças de 13/10 do escritor e do Omni; null/undefined passam direto. */
 export function desfazEscritorOmni(p, s) {
   if (s == null) return s
+  s = desfazRomanceAdulto(p, s) // KINEO-ROMANCE-ADULTO-2026-10-13 — a leva do romance adulto (13/10, 'tudo sim') também sai, em memória
   const crlf = s.includes('\r\n')
   let t = crlf ? s.replace(/\r\n/g, '\n') : s
   t = desfazEstornoNarracaoLf(p, t) // KINEO-LEVA3-1310 — o conserto da narração (13/10, 'tudo sim nos 3 consertos') também sai
@@ -26,7 +28,7 @@ export function desfazEscritorOmni(p, s) {
 /** Linhas da base que a mudança TROCOU (para guardiões que leem o `git diff` e só aceitam acréscimos). */
 export function linhaDoEscritorOmni(linha) {
   const l = String(linha ?? '').replace(/\r$/, '')
-  return l.includes(MARCA_ESCRITOR) || l.includes(MARCA_OMNI_ETAPA1)
+  return l.includes(MARCA_ESCRITOR) || l.includes(MARCA_OMNI_ETAPA1) || linhaDoRomanceAdulto(l) // KINEO-ROMANCE-ADULTO-2026-10-13
 }
 
 // KINEO-LEVA3-1310 [TRAVA 8.2 — vai do fundador 13/10 'tudo sim nos 3 consertos'] — KINEO-ESTORNO-NARRACAO-2026-10-13 em memória:

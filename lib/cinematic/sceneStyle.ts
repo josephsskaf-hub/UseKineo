@@ -73,9 +73,22 @@ export const DRAWN_LOOK_PATTERNS: ReadonlyArray<RegExp> = [
   /(?<![\p{L}])(kartun|animasi)(?![\p{L}])/iu, // id
   /(hoạt hình|phim hoạt hình)/i, // vi
 ]
+// ═══ KINEO-ROMANCE-ADULTO-2026-10-13 — menção NEGADA não pede o look ═══
+// d.hein.0 (13/10, Seedance 1.5, romance de adultos): "no logo animation" casou `animation` e o filme inteiro saiu [KINEO-ROMANCE-ADULTO-2026-10-13]
+// "stylized 3D animated film look" — com "young couple", rostos de criança num romance. A janela do negador ("no", [KINEO-ROMANCE-ADULTO-2026-10-13]
+// "not", "non-", "without", "never", "avoid", "sem", "sin", "não", "sans", "ohne", "senza"…) vai até 4 palavras, para em [KINEO-ROMANCE-ADULTO-2026-10-13]
+// pontuação e em "but/just/only/instead/rather/pure"; se ela contém palavra de estilo, sai do texto ANTES do teste do look. [KINEO-ROMANCE-ADULTO-2026-10-13]
+// "no text, 3D animated film" e "not photorealistic but animated" seguem desenho. Texto sem negação: byte a byte igual. [KINEO-ROMANCE-ADULTO-2026-10-13]
+const NEGADOR_DE_ESTILO = String.raw`(?:no|not|non|without|never|avoid|avoiding|zero|sem|sin|nunca|nao|não|sans|ohne|kein|keine|keinen|senza|nada\s+de|pas\s+de|ni)` // KINEO-ROMANCE-ADULTO-2026-10-13
+const JANELA_NEGADA_RE = new RegExp(String.raw`(?<![\p{L}\p{N}])${NEGADOR_DE_ESTILO}(?:[\s-]+(?!(?:but|just|only|instead|rather|pure|purely|then|yet|mas|pero|sino)(?![\p{L}\p{N}]))[\p{L}\p{N}'’]+){1,4}`, 'giu') // KINEO-ROMANCE-ADULTO-2026-10-13
+/** O texto sem as janelas negadas que citam estilo ("no logo animation", "without cartoon"). [KINEO-ROMANCE-ADULTO-2026-10-13] */
+export function semEstiloNegado(text: string | null | undefined): string { // KINEO-ROMANCE-ADULTO-2026-10-13
+  const src = text ?? '' // KINEO-ROMANCE-ADULTO-2026-10-13
+  return src.replace(JANELA_NEGADA_RE, (janela: string) => (ESTILO_NA_JANELA.some((re) => re.test(janela)) ? ' ' : janela)) // KINEO-ROMANCE-ADULTO-2026-10-13
+} // KINEO-ROMANCE-ADULTO-2026-10-13
 /** O texto pede desenho/animação (qualquer língua da casa)? */
 export function looksLikeDrawnRequest(text: string | null | undefined): boolean {
-  const t = (text ?? '').trim()
+  const t = semEstiloNegado(text).trim() // KINEO-ROMANCE-ADULTO-2026-10-13 — era (text ?? '').trim()
   if (!t) return false
   return DRAWN_LOOK_PATTERNS.some((re) => re.test(t))
 }
@@ -87,11 +100,25 @@ const LOOK_RE: Array<[RegExp, StyleLook]> = [
   [/\bstorybook\b|\bwatercolou?r\b|\billustrat(ed|ion)\b|\bpainterly\b|\bfairy ?tale\b|\bbedtime story\b/i, 'illustration'],
   [/\bfilm noir\b|\bblack and white\b|\bnoir\b/i, 'noir'],
 ]
+// KINEO-ROMANCE-ADULTO-2026-10-13 — o que conta como "palavra de estilo" dentro de uma janela negada: os mesmos padrões do look.
+const ESTILO_NA_JANELA: RegExp[] = [...DRAWN_LOOK_PATTERNS, ...LOOK_RE.map(([re]) => re)] // KINEO-ROMANCE-ADULTO-2026-10-13
+const ESTILO_DESENHADO: RegExp[] = LOOK_RE.filter(([, look]) => look !== 'noir').map(([re]) => re) // KINEO-ROMANCE-ADULTO-2026-10-13
+/** [KINEO-ROMANCE-ADULTO-2026-10-13]
+ * KINEO-ROMANCE-ADULTO-2026-10-13 — pedido romântico é SEMPRE fotorreal: desenho/anime/3D/ilustração com "casal" é onde
+ * os motores desenham rosto de criança. Noir (fotorreal P&B) e fotorreal passam intactos (o mesmo objeto). O estilo [KINEO-ROMANCE-ADULTO-2026-10-13]
+ * explícito do cliente fica na trava só se não pedir desenho. [KINEO-ROMANCE-ADULTO-2026-10-13]
+ */ // KINEO-ROMANCE-ADULTO-2026-10-13
+export function forcePhotorealAnchor(anchor: StyleAnchor, explicitStyleSuffix?: string): StyleAnchor { // KINEO-ROMANCE-ADULTO-2026-10-13
+  if (anchor.look === 'photoreal' || anchor.look === 'noir') return anchor // KINEO-ROMANCE-ADULTO-2026-10-13
+  const extra = explicitStyleSuffix && explicitStyleSuffix.trim() ? explicitStyleSuffix.trim().replace(/^,\s*/, '') : '' // KINEO-ROMANCE-ADULTO-2026-10-13
+  const fica = extra && !ESTILO_DESENHADO.some((re) => re.test(semEstiloNegado(extra))) ? extra : '' // KINEO-ROMANCE-ADULTO-2026-10-13
+  return { look: 'photoreal', lookPhrase: LOOKS.photoreal.phrase, suffix: `, ${LOOKS.photoreal.lock}${fica ? `, ${fica}` : ''}` } // KINEO-ROMANCE-ADULTO-2026-10-13
+} // KINEO-ROMANCE-ADULTO-2026-10-13
 
 /** Decide UMA vez por filme, a partir do roteiro inteiro (nunca por cena). */
 export function deriveStyleAnchor(scriptAndVisuals: string, explicitStyleSuffix?: string): StyleAnchor {
-  const t = (scriptAndVisuals || '').slice(0, 8000)
-  const explicit = explicitStyleSuffix || ''
+  const t = semEstiloNegado((scriptAndVisuals || '').slice(0, 8000)) // KINEO-ROMANCE-ADULTO-2026-10-13 — "no logo animation" não pede animação
+  const explicit = semEstiloNegado(explicitStyleSuffix || '') // KINEO-ROMANCE-ADULTO-2026-10-13
   let look: StyleLook = 'photoreal'
   // The client's explicit style must decide the look, not merely be appended
   // after a contradictory photoreal lock chosen from a planner's description.

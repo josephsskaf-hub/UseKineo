@@ -35,7 +35,7 @@ const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else { falhas.push(n); console.log('  FALHOU: ' + n) } }
-const roda = (src, globals = {}) => { const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText; const exp = {}; vm.runInNewContext(js, { exports: exp, console, JSON, Math, Set, Array, Object, ...globals }); return exp }
+const roda = (src, globals = {}) => { const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText; const exp = {}; vm.runInNewContext(js, { exports: exp, console, JSON, Math, Set, Array, Object, romanceAdulto: { ativo: false }, ...globals }); return exp } // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; pedido sem romance = as linhas da leva são no-op)
 const clone = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)))
 const fatia = (src, ini, fim, incluiFim = true) => { const a = src.indexOf(ini); if (a < 0) return null; const b = src.indexOf(fim, a + ini.length); return b < 0 ? null : src.slice(a, incluiFim ? b + fim.length : b) }
 

@@ -160,15 +160,33 @@ export function scrubInventedSetting(visual: string, context: string): SettingSc
   return { text: out, removed }
 }
 
+// ═══ KINEO-ROMANCE-ADULTO-2026-10-13 — o apagão de pessoa do faceless não pode deixar frase quebrada ═══
+// d.hein.0 (13/10): "Close-up shot of a man and a woman standing…" virava "Close-up shot of and standing…" — o motor [KINEO-ROMANCE-ADULTO-2026-10-13]
+// recebia uma frase sem sujeito e inventava. Agora cada pessoa apagada vira uma marca; grupos coordenados ("a man and a [KINEO-ROMANCE-ADULTO-2026-10-13]
+// woman", "men, women and children") viram UMA marca; possessivo ("a man's hands") some com a pessoa; marca depois de [KINEO-ROMANCE-ADULTO-2026-10-13]
+// preposição/verbo que pede objeto ("of", "with", "between", "showing"…) vira o sujeito neutro do faceless (a mesma [KINEO-ROMANCE-ADULTO-2026-10-13]
+// silhueta de costas dos nomes reais); o resto vira espaço, exatamente como antes. Sem pessoa no texto: byte a byte igual. [KINEO-ROMANCE-ADULTO-2026-10-13]
+const PESSOA_APAGADA = '\u0000P\u0000' // KINEO-ROMANCE-ADULTO-2026-10-13
+const GRUPO_DE_PESSOAS_RE = /\u0000P\u0000(?:\s*(?:,|\band\b|\bor\b|&|\bwith\b)\s*\u0000P\u0000)+/g // KINEO-ROMANCE-ADULTO-2026-10-13
+const PEDE_OBJETO = String.raw`(?:of|with|between|among|amongst|featuring|showing|shows|depicting|depicts|by|for|from|to|at|beside|behind|near|toward|towards|around|about|watching|follows|following|reveals|revealing|captures|capturing)` // KINEO-ROMANCE-ADULTO-2026-10-13
+function semPessoaSemFragmento(texto: string): string { // KINEO-ROMANCE-ADULTO-2026-10-13
+  if (!texto.includes(PESSOA_APAGADA)) return texto // KINEO-ROMANCE-ADULTO-2026-10-13
+  return texto // KINEO-ROMANCE-ADULTO-2026-10-13
+    .replace(GRUPO_DE_PESSOAS_RE, '\u0000G\u0000') // KINEO-ROMANCE-ADULTO-2026-10-13
+    .replace(/\u0000[PG]\u0000['’]s\b\s*/g, '') // KINEO-ROMANCE-ADULTO-2026-10-13 — "a man's hands" → "hands"
+    .replace(new RegExp(String.raw`\b(${PEDE_OBJETO})\s*\u0000G\u0000`, 'gi'), '$1 distant silhouetted figures seen from behind') // KINEO-ROMANCE-ADULTO-2026-10-13
+    .replace(new RegExp(String.raw`\b(${PEDE_OBJETO})\s*\u0000P\u0000`, 'gi'), '$1 a distant silhouetted figure seen from behind') // KINEO-ROMANCE-ADULTO-2026-10-13
+    .replace(/\u0000[PG]\u0000/g, ' ') // KINEO-ROMANCE-ADULTO-2026-10-13 — o resto: espaço, como sempre
+} // KINEO-ROMANCE-ADULTO-2026-10-13
 export function buildClassicVisualPrompt(visual: string, policy: VisualPromptPolicy): string {
   let prompt: string
   if (policy.mode !== 'documentary_faceless') {
     prompt = buildStoryScenePrompt(visual, policy.style, policy.character ?? null)
   } else {
-    const subject = (visual || '')
+    const subject = semPessoaSemFragmento((visual || '') // KINEO-ROMANCE-ADULTO-2026-10-13 — o apagão de pessoa não deixa "of and"
       .replace(NAMED_FIGURE_RE, 'a distant silhouetted figure seen from behind')
       .replace(NAMED_TITLE_RE, 'a distant silhouetted figure seen from behind')
-      .replace(PERSON_NOUN_RE, ' ')
+      .replace(PERSON_NOUN_RE, PESSOA_APAGADA)) // KINEO-ROMANCE-ADULTO-2026-10-13 — era .replace(PERSON_NOUN_RE, ' ')
       .replace(/\s+/g, ' ').replace(/^[\s,.;:–-]+/, '').trim()
     prompt = applyStyleAnchor(
       `${subject || 'the described story setting'}, faceless cinematic b-roll, ` +

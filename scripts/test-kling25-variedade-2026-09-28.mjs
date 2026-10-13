@@ -35,7 +35,7 @@ const checa = (n, c) => { if (c) ok++; else { falhas.push(n); console.log('  FAL
 const roda = (src, globals = {}) => {
   const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText
   const exp = {}
-  vm.runInNewContext(js, { exports: exp, console: { log() {}, warn() {}, error() {} }, JSON, Math, Number, Array, Object, Set, Map, String, RegExp, process: { env: {} }, ...globals })
+  vm.runInNewContext(js, { exports: exp, console: { log() {}, warn() {}, error() {} }, JSON, Math, Number, Array, Object, Set, Map, String, RegExp, process: { env: {} }, romanceAdulto: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op)
   return exp
 }
 const palavras = (t) => String(t ?? '').replace(/[.,;:!?()]/g, ' ').split(/\s+/).filter(Boolean)

@@ -218,6 +218,20 @@ export async function generateHollywoodAnchors(args: {
 // is disposable and is NEVER re-POSTed (the scene falls back to a *different*
 // model, t2v), so the paid-once contract — which protects the scene's billable
 // CLIP submit in the route — is not at stake for this throwaway image.
+// KINEO-ROMANCE-ADULTO-2026-10-13 — o prompt do still por cena, puro. Sem `adultSuffix`: exatamente o texto de antes.
+// Com ele (romance), o sufixo de adultos entra logo depois da cena — se a cena ainda não o traz —, antes do estilo e do quadro. [KINEO-ROMANCE-ADULTO-2026-10-13]
+export function cinematicSceneStillPrompt(args: { scenePrompt: string; styleSuffix: string; aspect?: string | null; adultSuffix?: string }): string | null { // KINEO-ROMANCE-ADULTO-2026-10-13
+  const cena = (args.scenePrompt ?? '').replace(/\s+/g, ' ').trim() // KINEO-ROMANCE-ADULTO-2026-10-13
+  if (cena.length < 3) return null // KINEO-ROMANCE-ADULTO-2026-10-13
+  const adulto = (args.adultSuffix ?? '').replace(/\s+/g, ' ').trim() // KINEO-ROMANCE-ADULTO-2026-10-13
+  const scene = adulto && !cena.includes(adulto) ? `${cena.replace(/[\s,;.]+$/, '')}${adulto.startsWith(',') ? '' : ', '}${adulto}` : cena // KINEO-ROMANCE-ADULTO-2026-10-13
+  const style = (args.styleSuffix ?? '').replace(/\s+/g, ' ').replace(/^[,\s]+/, '').trim() // KINEO-ROMANCE-ADULTO-2026-10-13
+  return ( // KINEO-ROMANCE-ADULTO-2026-10-13
+    `${scene}${style ? `. Consistent look across all scenes: ${style}` : ''}. ` + // KINEO-ROMANCE-ADULTO-2026-10-13
+    `${aspectSpec(args.aspect).promptFraming}, cinematic frame, ` + // KINEO-ROMANCE-ADULTO-2026-10-13
+    `sharp focus, ${ONE_FRAME_RULE}, no text, no letters, no watermark, no logo` // KINEO-ROMANCE-ADULTO-2026-10-13
+  ) // KINEO-ROMANCE-ADULTO-2026-10-13
+} // KINEO-ROMANCE-ADULTO-2026-10-13
 export async function generateCinematicSceneStill(args: {
   /** This scene's own visual prompt, with the approved mode/style/era applied. */
   scenePrompt: string
@@ -229,18 +243,15 @@ export async function generateCinematicSceneStill(args: {
   /** Bounded poll window so the still phase never blows the route's 60s budget. */
   pollWindowMs?: number
   aspect?: string | null
+  /** KINEO-ROMANCE-ADULTO-2026-10-13 — pedido romântico: o sufixo de adultos (lib/cinematic/romanceGuard), garantido no still. */
+  adultSuffix?: string // KINEO-ROMANCE-ADULTO-2026-10-13
 }): Promise<string | null> {
   const key = process.env.FAL_KEY
   if (!key) return null
   try {
     fal.config({ credentials: key })
-    const scene = (args.scenePrompt ?? '').replace(/\s+/g, ' ').trim()
-    if (scene.length < 3) return null
-    const style = (args.styleSuffix ?? '').replace(/\s+/g, ' ').replace(/^[,\s]+/, '').trim()
-    const prompt =
-      `${scene}${style ? `. Consistent look across all scenes: ${style}` : ''}. ` +
-      `${aspectSpec(args.aspect).promptFraming}, cinematic frame, ` +
-      `sharp focus, ${ONE_FRAME_RULE}, no text, no letters, no watermark, no logo`
+    const prompt = cinematicSceneStillPrompt(args) // KINEO-ROMANCE-ADULTO-2026-10-13 — o texto do still virou função pura (o guardião a executa)
+    if (prompt === null) return null // KINEO-ROMANCE-ADULTO-2026-10-13
     return await generateAnchorImage(prompt, args.seed, args.pollWindowMs ?? 12_000, args.aspect)
   } catch (err) {
     console.warn(

@@ -8,6 +8,7 @@
 // Mutantes: ROTA_ALVO=<arquivo> roda contra uma cópia mutada (scripts/test-reconexao-mesmo-filme-2026-10-13.mutantes.sh).
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
+import { desfazRomanceAdulto } from './test-support/desfaz-romance-adulto-1310.mjs' // reancorado KINEO-LEVA7-1310: o conserto do romance (13/10) também sai, em memória, antes do byte a byte
 
 const MARCA = 'KINEO-RECONEXAO-MESMO-FILME-2026-10-13'
 const CAMINHO = 'app/api/generate-video-cinematic/route.ts'
@@ -52,7 +53,7 @@ if (!process.env.ROTA_ALVO) {
     base = git(['show', `${ref}:${CAMINHO}`]).replace(/\r\n/g, '\n')
   } catch { base = null }
   const semMarca = (s) => s.split('\n').filter((l) => !l.includes(MARCA)).join('\n')
-  checa('sem as linhas marcadas, a rota = base byte a byte', base !== null && semMarca(rota) === base)
+  checa('sem as linhas marcadas, a rota = base byte a byte', base !== null && desfazRomanceAdulto(CAMINHO, semMarca(rota)) === base) // reancorado KINEO-LEVA7-1310
 }
 
 console.log(`\ntest-reconexao-mesmo-filme-2026-10-13: ${ok} ok · ${falhas} falhas`)

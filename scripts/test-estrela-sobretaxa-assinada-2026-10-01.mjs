@@ -13,6 +13,7 @@ import ts from 'typescript'
 // em scripts/test-support/h3max-2026-10-13-trocas.json; par que não casa = texto intocado = vermelho). O resto segue byte a byte.
 import { desfazH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
 import { desfazEscritorOmni } from './test-support/desfaz-escritor-omni-1310.mjs' // reancorado 13/10 (KINEO-ESCRITOR-MONUMENTO-2026-10-13 · KINEO-OMNI-ETAPA1-2026-10-13, 'tudo sim' do fundador): runway/compose/cinematic sem as mudanças de 13/10, em memória, antes do byte a byte
+import { desfazRomanceAdulto } from './test-support/desfaz-romance-adulto-1310.mjs' // KINEO-ROMANCE-ADULTO-2026-10-13 — reancorado: a leva do romance adulto sai em memória antes do byte a byte da rota (E26)
 import { semMonumento } from './test-support/desfaz-monumento-1310.mjs' // KINEO-MONUMENTO-2026-10-13
 
 let ok = 0, falhas = 0
@@ -139,7 +140,7 @@ if (BASE) {
   // Reancorado 13/10 (KINEO-MONUMENTO-2026-10-13 — o fundador autorizou o conserto do monumento no pipeline): linhas novas marcadas + 5 linhas da
   // base trocadas de propósito (contexto dos filtros anti-invenção via comVocabularioDoLugar); semMonumento tira só essas, dos dois lados.
   // Prova: scripts/test-monumento-real-1310.mjs.
-  checa('E26 /api/generate-video-cinematic sem as linhas marcadas = base, byte a byte', semMonumento(semS25(semMarca(desfazH3max('app/api/generate-video-cinematic/route.ts', cinematic)))) === semMonumento(semS25(base('app/api/generate-video-cinematic/route.ts'))))
+  checa('E26 /api/generate-video-cinematic sem as linhas marcadas = base, byte a byte', semMonumento(semS25(semMarca(desfazH3max('app/api/generate-video-cinematic/route.ts', desfazRomanceAdulto('app/api/generate-video-cinematic/route.ts', cinematic))))) === semMonumento(semS25(base('app/api/generate-video-cinematic/route.ts'))))
 }
 checa('E27 a Estrela continua só com a casa (ESTRELA_PUBLIC = false)', /export const ESTRELA_PUBLIC = false\n/.test(launch))
 

@@ -17,6 +17,7 @@ import { execFileSync } from 'node:child_process'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
+import { desfazRomanceAdulto } from './test-support/desfaz-romance-adulto-1310.mjs' // KINEO-ROMANCE-ADULTO-2026-10-13 — reancorado: a única linha da leva dentro do bloco FLUX (adultSuffix no still) sai em memória no C1
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -188,7 +189,7 @@ const ROTA_BASE = rdBase('app/api/generate-video-cinematic/route.ts')
 const INI_BLOCO = '    if (anchorActive) {\n'
 const FIM_BLOCO = '(user credits unchanged; kling=${KLING_CREDIT_COST}cr)`,\n      )\n    }\n'
 const fatia = (s, a, b) => { const i = s.indexOf(a); if (i < 0) return null; const j = s.indexOf(b, i); return j < 0 ? null : s.slice(i, j + b.length) }
-const blocoHead = fatia(SRC.rota, INI_BLOCO, FIM_BLOCO)
+const blocoHead = fatia(desfazRomanceAdulto('app/api/generate-video-cinematic/route.ts', SRC.rota), INI_BLOCO, FIM_BLOCO) // KINEO-ROMANCE-ADULTO-2026-10-13 — reancorado (ver o import)
 const blocoBase = ROTA_BASE ? fatia(ROTA_BASE, INI_BLOCO, FIM_BLOCO) : null
 checa('C1 o bloco de âncoras FLUX clássico é BYTE A BYTE o da base ' + BASE + ' (a estrela corre ao lado, não dentro)', Boolean(blocoHead) && blocoHead === blocoBase)
 
@@ -210,6 +211,7 @@ exports.rodaFatia = async function (ctx) {
   const ANCHORS_USD = 0.1
   const KLING_CREDIT_COST = 50
   let providerSubmissionMayExist = false
+  const romanceAdulto = { ativo: false } // KINEO-ROMANCE-ADULTO-2026-10-13 — reancorado: sem romance a linha do still é no-op
   const sceneStills = new Array(scenes.length).fill(null)
 ${bloco}
   return { sceneStills, providerSubmissionMayExist }

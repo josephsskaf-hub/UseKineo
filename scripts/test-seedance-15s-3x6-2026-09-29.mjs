@@ -42,6 +42,7 @@ import { desfaz3x6KlingShots } from './test-support/desfaz-3x6-klingshots.mjs'
 // par que não casa = texto intocado = vermelho); linhasTrocadasH3max lista as linhas da base trocadas. Fora disso, o byte a byte de sempre.
 import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
 import { TROCADAS_MONUMENTO } from './test-support/desfaz-monumento-1310.mjs' // KINEO-MONUMENTO-2026-10-13
+import { TROCADAS_ROMANCE_ADULTO } from './test-support/desfaz-romance-adulto-1310.mjs' // KINEO-ROMANCE-ADULTO-2026-10-13
 import { desfazEstornoNarracao } from './test-support/desfaz-escritor-omni-1310.mjs' // reancorado KINEO-LEVA3-1310 [TRAVA 8.2 — vai do fundador 13/10 'tudo sim nos 3 consertos']: lib/compose.ts sem o conserto da narração (KINEO-ESTORNO-NARRACAO-2026-10-13), em memória, antes do byte a byte
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
@@ -54,7 +55,7 @@ const checa = (n, c) => { if (c) { ok++; console.log('  ✓ ' + n) } else { falh
 const roda = (src, globals = {}) => {
   const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText
   const exp = {}
-  vm.runInNewContext(js, { exports: exp, console: { log() {}, warn() {}, error() {} }, JSON, Math, Number, Array, Object, Set, Map, process: { env: {} }, ...globals })
+  vm.runInNewContext(js, { exports: exp, console: { log() {}, warn() {}, error() {} }, JSON, Math, Number, Array, Object, Set, Map, process: { env: {} }, romanceAdulto: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op)
   return exp
 }
 const fatia = (src, ini, fim, incluiFim = true) => { const a = src.indexOf(ini); if (a < 0) return null; const b = src.indexOf(fim, a + ini.length); return b < 0 ? null : src.slice(a, incluiFim ? b + fim.length : b) }
@@ -438,6 +439,7 @@ function soAcrescimos(p) {
     // A leva marca toda linha nova com KINEO-MONUMENTO-2026-10-13 e troca de propósito CINCO linhas da base (o contexto dos filtros
     // anti-invenção vira comVocabularioDoLugar(...)). Exatamente essas cinco. Prova: scripts/test-monumento-real-1310.mjs.
     ...TROCADAS_MONUMENTO,
+    ...TROCADAS_ROMANCE_ADULTO.filter(([arq]) => arq === 'app/api/generate-video-cinematic/route.ts').flatMap(([, , linhas]) => linhas), // KINEO-ROMANCE-ADULTO-2026-10-13 — reancorado: as 4 linhas da base da rota que a leva trocou
   ])
   // KINEO-H3MAX-2026-10-13 — reancorado com motivo: + as linhas da base que a entrada do MiniMax H3 Max trocou de propósito nas duas rotas
   // (lista exata em scripts/test-support/h3max-2026-10-13-trocas.json; cada substituta marcada e provada em test-h3max-motor-2026-10-13).
