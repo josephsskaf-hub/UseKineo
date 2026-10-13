@@ -18,6 +18,8 @@ import { REGION_FREE_CLIP_NOTICE_FILM_LIVE, REGION_FREE_FILM_CREDITS, REGION_FRE
 import { PREVIA_CENAS_PUBLIC, PREVIA_COPY } from '@/lib/scenePreview' // KINEO-PREVIA-CENAS-2026-10-03
 import FreeClipNotice from '@/components/FreeClipNotice' // KINEO-AVISO-CLIPE-GRATIS-2026-10-06
 import { freeClipNoticeSurface, freeClipStillAvailable } from '@/lib/clips/freeClipNotice'
+import { REGION_FIRST_FILM_OFFER_LIVE } from '@/lib/freeFilmPolicy' // KINEO-PAIS-SEM-GRATIS-2026-10-13
+import RegionFirstFilmStrip, { useRegionFirstFilmOffer } from '@/components/RegionFirstFilmStrip'
 
 export const REGION_PAID_ONLY_BANNER_VERSION = 'region_paid_only_notice_v1' as const
 
@@ -32,7 +34,17 @@ export default function RegionPaidOnlyBanner({ freeClip = false, freeFilm = fals
   const gift = useFreeClipGift(freeClip)
   const film = useRegionFilmGift(REGION_FREE_FILM_LIVE && freeFilm) // KINEO-SAIDA-REGIAO-2026-10-07
   const surface = freeClipNoticeSurface(usePathname(), gift)
+  // KINEO-PAIS-SEM-GRATIS-2026-10-13 — sem o filme grátis ao alcance, a faixa vira o passe com o preço (o servidor decide).
+  // Só pergunta quando a faixa PODE aparecer (o servidor grava region_paid_offer_shown a cada pergunta).
+  const firstFilmOffer = useRegionFirstFilmOffer(REGION_FIRST_FILM_OFFER_LIVE && !(REGION_FREE_FILM_LIVE && film) && surface !== 'clips')
   if (REGION_FREE_FILM_LIVE && film) return <RegionFreeFilmStrip /> // KINEO-SAIDA-REGIAO-2026-10-07
+  // KINEO-PAIS-SEM-GRATIS-2026-10-13 — no /clips com o clipe grátis, o aviso do clipe continua (ele preenche a tela ali
+  // mesmo); no resto (o /studio incluído) a oferta. Esperando o servidor: nada (nunca duas faixas, nunca a troca na cara).
+  // Servidor disse não ou falhou: a faixa de sempre, abaixo.
+  if (REGION_FIRST_FILM_OFFER_LIVE && surface !== 'clips') {
+    if (firstFilmOffer === undefined) return null
+    if (firstFilmOffer) return <RegionFirstFilmStrip offer={firstFilmOffer} freeClip={gift} freeFilmUsed={REGION_FREE_FILM_LIVE && freeFilm} />
+  }
   if (surface) return <FreeClipNotice key={surface} surface={surface} />
   if (REGION_FREE_FILM_LIVE) return <RegionPaidOnlyStrip freeClip={gift} filmLive /> // KINEO-SAIDA-REGIAO-2026-10-07
   return <RegionPaidOnlyStrip freeClip={gift} />

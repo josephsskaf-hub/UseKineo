@@ -305,3 +305,50 @@ export const REGION_PLANS_NOTICE_FILM_LIVE: { en: RegionPaidOnlyNoticeCopy; pt: 
     cta: 'Ver planes',
   },
 }
+
+// ═══ KINEO-PAIS-SEM-GRATIS-2026-10-13 — OFERTA CLARA NA HORA (fundador 13/10, ação D: "tudo sim") ════════════════════════
+// O DADO (Supabase, só SELECT, 30 dias até 13/10): 108 contas 'region_paid_only' nunca fizeram filme. 80 nasceram ANTES do
+// filme grátis de região (08/10 03:03 UTC) — 71 com o clipe de 5 cr parado, ninguém lhes disse o preço do passe; a faixa
+// do topo dizia "Keep creating / See plans" e levava ao /pricing (assinaturas de US$ 9,90/mês para cima). 30 bateram na
+// parede de saldo; 12 abriram checkout de PLANO; 0 pagaram. O passe de US$ 4,99 só aparecia na parede (5 pessoas) e no
+// /pricing (12).
+// A ENTREGA: com o filme grátis FORA de alcance (conta antiga, filme já usado, saldo abaixo de 1 filme), a faixa do topo
+// (o /studio incluído) passa a ser o PASSE com o preço na moeda da cobrança e o botão direto ao checkout
+// (components/RegionPassOffer.tsx · RegionFirstFilmStrip; app/api/region-pass surface=first_film; campanha
+// region_paid_first_film). Quem TEM o filme grátis continua vendo "Seu primeiro filme é grátis" — intocado.
+// 'blocked' (anti-abuso: digital do aparelho estourada ou e-mail descartável, lib/reverseTrial.ts) NÃO recebe oferta de
+// compra: só um aviso neutro, sem acusação e sem botão (decisão do pedido de 13/10).
+// false = hoje, byte a byte (scripts/test-pais-sem-gratis-1310.mjs).
+export const REGION_FIRST_FILM_OFFER_LIVE = true
+export const BLOCKED_NEUTRAL_NOTICE_LIVE = true
+
+/** O carimbo anti-abuso (lib/reverseTrial.ts grava 'blocked' com a guarda .is('trial_status', null)). */
+export const BLOCKED_TRIAL_STATUS = 'blocked'
+
+/** A conta 'blocked' que comprovadamente não pagou e está no plano grátis vê o aviso neutro (pagou → some). */
+export function blockedNeutralNoticeVisible(
+  row: { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null } | null | undefined,
+  live: boolean = BLOCKED_NEUTRAL_NOTICE_LIVE,
+): boolean {
+  if (!live || !row || row.trial_status !== BLOCKED_TRIAL_STATUS) return false
+  if (row.has_paid !== false) return false
+  const plan = typeof row.plan === 'string' ? row.plan.trim().toLowerCase() : 'free'
+  return plan === 'free' || plan === ''
+}
+
+/** Aviso neutro (sem botão de compra, sem acusação, sem citar o motivo do bloqueio). pt/en/es; o resto cai no inglês. */
+export interface BlockedNeutralNoticeCopy { title: string; body: string }
+export const BLOCKED_NEUTRAL_NOTICE: { en: BlockedNeutralNoticeCopy; pt: BlockedNeutralNoticeCopy; es: BlockedNeutralNoticeCopy } = {
+  en: {
+    title: 'This account doesn’t include a free film',
+    body: 'Free films are limited, and this account isn’t eligible for one. You can still browse the examples and every engine.',
+  },
+  pt: {
+    title: 'Esta conta não inclui um filme grátis',
+    body: 'Os filmes grátis são limitados, e esta conta não está entre as elegíveis. Você ainda pode ver os exemplos e todos os motores.',
+  },
+  es: {
+    title: 'Esta cuenta no incluye una película gratis',
+    body: 'Las películas gratis son limitadas, y esta cuenta no es elegible. Aún puedes ver los ejemplos y todos los motores.',
+  },
+}
