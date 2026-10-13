@@ -111,7 +111,9 @@ const importsClient = [...rd(F.client).matchAll(/^import[\s\S]*?from '([^']+)'/g
 // libs puras — provado em scripts/test-ads-cena-1310.mjs) e './AdsV2SceneField' (componente de navegador do campo da cena no
 // modo completo). Nenhum módulo de servidor entrou no cliente.
 // reancorado KINEO-LEVA6-1310 — união das três listas (apresentadores + lote + cena).
-const PERMITIDOS = ['@/lib/ads/v2Scene', './AdsV2SceneField', './AdsV2Batch', '@/components/ads/AdsPresenterPicker', '@/lib/ads/v2PresenterLibrary', '@/lib/ads/v2AiLabel', '@/lib/ads/afterSample', '@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', '@/components/ProductStage', './AdsV2Variations','@/components/AdsPlanChanges', 'react', 'next/link', '@/components/studioKit', '../new/adsWizardTheme', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2ShotLists', '@/lib/ads/v2Screen',
+// KINEO-ADS-FLUXO-2026-10-13 — re-ancorado: + '@/components/ads/AdsFlow' (as abas Um anúncio/Lote/Produção e o CSS do fluxo novo;
+// componente de navegador, só react e libs puras) e '@/lib/ads/v2Flow' (lib PURA, só import type) — provado em scripts/test-ads-fluxo-1310.mjs.
+const PERMITIDOS = ['@/components/ads/AdsFlow', '@/lib/ads/v2Flow','@/lib/ads/v2Scene', './AdsV2SceneField', './AdsV2Batch', '@/components/ads/AdsPresenterPicker', '@/lib/ads/v2PresenterLibrary', '@/lib/ads/v2AiLabel', '@/lib/ads/afterSample', '@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', '@/components/ProductStage', './AdsV2Variations','@/components/AdsPlanChanges', 'react', 'next/link', '@/components/studioKit', '../new/adsWizardTheme', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2ShotLists', '@/lib/ads/v2Screen',
   '@/components/BusinessVisualReferences', '@/components/InterfaceLanguage', './AdsV2Simple', '@/lib/ads/v2Simple', '@/lib/ui/interfaceLanguage']
 check("I1 o cliente começa com 'use client' e só importa módulos de navegador/puros (nada de v2Advance, v2Billing, serverAccess…)", /^'use client'/.test(rd(F.client)) && importsClient.length >= 8 && importsClient.every((m) => PERMITIDOS.includes(m)))
 check('I2 lib/ads/v2Screen.ts é puro (nenhum import/require) e fora da trava 8.2', !/^\s*import\s/m.test(screenSrc) && !/\brequire\(/.test(semComentarios(screenSrc)))
@@ -146,7 +148,9 @@ check('S5 nenhum dado do pedido mora fora da sessão: o invólucro só tem sessi
   // ao vivo (um elemento da página) e se ela está ocupando o palco agora. Escolha de tela; nenhum dado do pedido sai da sessão.
   // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — re-ancorado: + `sampleGone` — a sessão avisou que a amostra já foi usada (403
   // no_access) e o invólucro mostra a oferta do Business no lugar dela. Escolha de tela; nenhum dado do pedido sai da sessão.
-  return eqSet(nomes, ['session', 'balance', 'confirmingReset', 'activeWork', 'mode', 'groupId', 'groupChecked', 'previewSlot', 'simplePreview', 'sampleGone'])
+  // KINEO-ADS-FLUXO-2026-10-13 — re-ancorado: + `rowSlot` — a VAGA embaixo do quadro onde a sessão desenha "Comece deste" (um
+  // elemento da página). Escolha de tela; nenhum dado do pedido sai da sessão.
+  return eqSet(nomes, ['session', 'balance', 'confirmingReset', 'activeWork', 'mode', 'groupId', 'groupChecked', 'previewSlot', 'simplePreview', 'sampleGone', 'rowSlot'])
 })
 check('S6 o estado do anúncio (nível, texto, logo, fotos, cartão, rascunho, plano, pedido, vídeo) nasce VAZIO dentro da sessão', () =>
   [

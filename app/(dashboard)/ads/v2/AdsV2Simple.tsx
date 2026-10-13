@@ -19,7 +19,7 @@ import AdsPlanChanges, { usePlanComparison } from '@/components/AdsPlanChanges'
 // ESPELHO: api, loadImage, canvasToBlob e cropToVertical são cópias EXATAS do AdsV2Client.tsx (import de lá seria
 // circular); o guardião test-ads-modo-simples confere os corpos. Eventos do v2 são só-servidor: nada de trackEvent.
 
-import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type Ref } from 'react'
 import Link from 'next/link'
 import { downloadVideoFile } from '@/lib/videoDownload'
 import { ADS_UPLOAD_ACCEPT_LOGO, AdsUploadError, normalizeFootageType, uploadFootage } from '@/lib/ads/uploadFootage'
@@ -113,8 +113,12 @@ import {
   brandKitIsOtherBrand,
   type AdsV2FixCopy,
 } from '@/lib/ads/v2SimpleUx'
-import { CropEditor, DropZone, LiveStage, MobilePreviewBar, SIMPLE_UX_CSS, SimpleStepper, TierIncludes, goToSection, type LivePreviewData } from './AdsV2SimpleUx'
+import { CropEditor, DropZone, MobilePreviewBar, SIMPLE_UX_CSS, SimpleStepper, TierIncludes, goToSection, type LivePreviewData } from './AdsV2SimpleUx'
 // KINEO-ADS-CENA-2026-10-13 — o campo da cena, os 4 climas prontos, produto x lugar e a frase que pede cena (16 línguas).
+// KINEO-ADS-FLUXO-2026-10-13 — o fluxo novo no formato do Studio: link primeiro + "Lemos sua página", palco do estilo, cartão de
+// revisão com "Gerar · N créditos", "Comece deste" e a vaga dos 2–3 roteiros (frases nas 16 línguas, lib pura).
+import { adsV2FlowCopy, adsV2FlowName, adsV2ScriptOptions, adsV2StartFromRecipe, adsV2StyleTint, type AdsV2FlowCopy, type AdsV2ScriptOption } from '@/lib/ads/v2Flow' // KINEO-ADS-FLUXO-2026-10-13
+import { AdsReadCard, AdsStartFromRow, AdsStyleStage, type AdsStyleStageData } from '@/components/ads/AdsFlow' // KINEO-ADS-FLUXO-2026-10-13
 import { ADS_V2_SCENE_MAX_CHARS, ADS_V2_SCENE_PRESETS, adsV2AdKind, adsV2ApplyScenePreset, adsV2ProductTitle, adsV2SceneAllowed, adsV2SceneCopy, adsV2SceneErrorText, adsV2SceneIssues, adsV2SceneRow, adsV2SplitSceneRequest, sanitizeAdsV2Scene, type AdsV2AdKind, type AdsV2SceneCopy } from '@/lib/ads/v2Scene'
 
 // ─── tipos ────────────────────────────────────────────────────────────────────────────────────
@@ -175,6 +179,8 @@ interface PlanResponse {
   /** KINEO-ADS-CENA-2026-10-13 — a cena que entrou nas cenas criadas (null = sem cena) e se o anúncio é de produto ou lugar. */
   scene?: string | null
   ad_kind?: 'product' | 'place'
+  /** KINEO-ADS-FLUXO-2026-10-13 — a vaga dos 2–3 roteiros (outra pista entrega no /plan); ausente = o roteiro único de hoje. */
+  scripts?: unknown
 }
 interface Plan extends PlanResponse {
   sig: string
@@ -482,6 +488,7 @@ export function AdsV2SimpleSession({
   onPreview,
   business = null,
   onSampleGone,
+  rowSlot = null, // KINEO-ADS-FLUXO-2026-10-13
 }: {
   resume: boolean
   lang: InterfaceLanguage
@@ -502,6 +509,8 @@ export function AdsV2SimpleSession({
   business?: AdsBusinessOffer | null
   /** KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a amostra já foi usada (403 'no_access' / 402 do envio): o invólucro troca a sessão pela oferta. */
   onSampleGone?: () => void
+  /** KINEO-ADS-FLUXO-2026-10-13 — a vaga embaixo do quadro (AdsV2Client) para a fileira "Comece deste"; null = sem fileira. */
+  rowSlot?: HTMLElement | null
 }) {
   const copy: AdsV2SimpleCopy = pickInterfaceCopy(ADS_V2_SIMPLE_COPY, lang)
   const lcopy: AdsV2LinkImportCopy = adsV2LinkImportCopy(lang) // KINEO-ADS-1FOTO-LINK-2026-10-10 — 16 línguas
@@ -601,6 +610,20 @@ export function AdsV2SimpleSession({
   const [copyEdit, setCopyEdit] = useState<{ narration: string; overlays: string[] } | null>(null)
   const [copyBusy, setCopyBusy] = useState(false)
   const [copyNote, setCopyNote] = useState<{ warn: boolean; text: string } | null>(null)
+  // KINEO-ADS-FLUXO-2026-10-13 — o fluxo novo: frases (16 línguas), o que a página do link DISSE (cartão "Lemos sua página"),
+  // o aviso do "Comece deste", o roteiro escolhido (quando o /plan trouxer 2–3) e o botão principal do cartão de revisão
+  // (a barra do celular só repassa o clique a ele: o débito continua tendo uma porta só).
+  const fc: AdsV2FlowCopy = adsV2FlowCopy(lang)
+  const [linkFacts, setLinkFacts] = useState<{ host: string; priceFound: boolean } | null>(null)
+  const [startNote, setStartNote] = useState<string | null>(null)
+  const [scriptPick, setScriptPick] = useState<string | null>(null)
+  const goBtnRef = useRef<HTMLButtonElement | null>(null)
+  useEffect(() => { setScriptPick(null) }, [plan?.order_id, plan?.sig]) // KINEO-ADS-FLUXO-2026-10-13 — plano novo = roteiros novos
+  useEffect(() => { // KINEO-ADS-FLUXO-2026-10-13 — o aviso do "Comece deste" some sozinho
+    if (!startNote) return
+    const t = window.setTimeout(() => setStartNote(null), 6000)
+    return () => window.clearTimeout(t)
+  }, [startNote])
 
   const aliveRef = useRef(true)
   // Revisão (29/09): uma seleção por vez. O limite de 2 vídeos é contado sobre `items`, que só atualiza na próxima
@@ -1187,8 +1210,9 @@ export function AdsV2SimpleSession({
     if (linkBusy || busy !== null) return
     setLinkBusy(true)
     setLinkNote(null)
+    setLinkFacts(null) // KINEO-ADS-FLUXO-2026-10-13
     try {
-      const r = await api<{ link?: string; host?: string; sentence?: string; images?: { footage_id: string; url: string }[] }>('/api/ads/v2/link-import', { method: 'POST', body: { url } })
+      const r = await api<{ link?: string; host?: string; sentence?: string; title?: string; price?: string | null; images?: { footage_id: string; url: string }[] }>('/api/ads/v2/link-import', { method: 'POST', body: { url } })
       if (!aliveRef.current) return
       if (!r.ok) {
         if (sampleGone(r.code)) return // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
@@ -1199,6 +1223,12 @@ export function AdsV2SimpleSession({
       setLinkRead(typeof r.data.link === 'string' && r.data.link ? r.data.link : null)
       const suggested = typeof r.data.sentence === 'string' ? r.data.sentence.trim() : ''
       if (suggested) setText((cur) => (cur.trim() ? cur : suggested))
+      // KINEO-ADS-FLUXO-2026-10-13 — "Lemos sua página": o nome e o preço que a página DIZ entram só no campo vazio (o cartão deixa corrigir).
+      const pageName = adsV2FlowName(r.data.title) // KINEO-ADS-FLUXO-2026-10-13
+      const pagePrice = typeof r.data.price === 'string' ? r.data.price.replace(/\s+/g, ' ').trim().slice(0, 60) : '' // KINEO-ADS-FLUXO-2026-10-13
+      if (pageName) setCardTitle((cur) => (cur.trim() ? cur : pageName)) // KINEO-ADS-FLUXO-2026-10-13
+      if (pagePrice) setPrice((cur) => (cur.trim() ? cur : pagePrice)) // KINEO-ADS-FLUXO-2026-10-13
+      setLinkFacts({ host: host || url, priceFound: !!pagePrice }) // KINEO-ADS-FLUXO-2026-10-13
       const added: SimpleItem[] = []
       const list = Array.isArray(r.data.images) ? r.data.images.slice(0, ADS_V2_LINK_IMPORT_MAX_IMAGES) : []
       for (const [i, im] of list.entries()) {
@@ -1222,6 +1252,61 @@ export function AdsV2SimpleSession({
     } finally {
       if (aliveRef.current) setLinkBusy(false)
     }
+  }
+
+  /**
+   * KINEO-ADS-FLUXO-2026-10-13 — o botão "Colar" da caixa do link: lê a área de transferência e segue pelo MESMO importLink
+   * (o colar no campo continua funcionando igual). Navegador que bloqueia a leitura = o aviso de colar à mão.
+   */
+  async function pasteLink() {
+    if (linkBusy || busy !== null) return
+    let raw = ''
+    try {
+      raw = (await navigator.clipboard.readText()).trim()
+    } catch {
+      raw = ''
+    }
+    if (!aliveRef.current) return
+    if (!raw) {
+      setLinkNote({ warn: true, text: fc.link.pasteFail })
+      linkInputRef.current?.focus()
+      return
+    }
+    setLink(raw)
+    void importLink(raw)
+  }
+
+  /**
+   * KINEO-ADS-FLUXO-2026-10-13 — "Comece deste": o anúncio da casa copia SÓ o estilo, a cena (o clima pronto, nas 16 línguas) e a
+   * pessoa. Fotos, texto, link, preço, nível e quadro final ficam como estão — nada aqui chama rota.
+   */
+  function startFrom(id: string) {
+    const rec = adsV2StartFromRecipe(id)
+    if (!rec || busy !== null) return
+    setStyleChoice(rec.style)
+    setKindChoice('product')
+    setScene(rec.scene ? sc.presets[rec.scene].text : '')
+    setPresenterChoice(rec.presenter !== null)
+    setPresenterPick(rec.presenter)
+    setStartNote(fc.start.applied)
+    window.setTimeout(() => goToSection('adv2s-sec3'), 30)
+  }
+
+  /**
+   * KINEO-ADS-FLUXO-2026-10-13 — a vaga dos 2–3 roteiros: escolher um abre a edição de sempre JÁ com o texto dele (a pessoa
+   * salva pelo botão de sempre — o PATCH grátis do pedido). O mesmo texto do plano = só marca a escolha.
+   */
+  function chooseScript(opt: AdsV2ScriptOption) {
+    if (!plan || busy !== null || copyBusy) return
+    setScriptPick(opt.key)
+    const narration = opt.narration ?? plan.narration ?? ''
+    const overlays = plan.overlays.map((o, i) => opt.overlays[i] ?? o.text)
+    if (narration === (plan.narration ?? '') && overlays.every((t, i) => t === plan.overlays[i].text)) {
+      setCopyEdit(null)
+      return
+    }
+    setCopyNote(null)
+    setCopyEdit({ narration, overlays })
   }
 
   function updateItem(key: string, patch: Partial<SimpleItem>) {
@@ -1699,6 +1784,55 @@ export function AdsV2SimpleSession({
     shortText: costLine.short > 0 ? fill(ux.preview.short, { n: costLine.short }) : null,
   }
   const editing = editKey ? inAd.find((p) => p.key === editKey) ?? null : null
+  // KINEO-ADS-FLUXO-2026-10-13 — o palco do estilo (cor do estilo no brilho), o cartão de revisão e o botão principal. O número
+  // do botão é o MESMO `cost`/`shownCost` de sempre (adsV2Credits; variationsPrice no grupo das 3) — nada digitado.
+  const styleTint = adsV2StyleTint(style)
+  const stageData: AdsStyleStageData = {
+    style,
+    tint: styleTint,
+    name: styleSpec && style !== 'none' ? styleCopy.styles[style].label : styleCopy.autoLabel,
+    desc: styleSpec && style !== 'none' ? styleCopy.styles[style].oneLine : fc.stage.autoDesc,
+    bestFor: styleSpec && style !== 'none' ? styleCopy.styles[style].bestFor : null,
+    preview: styleSpec ? styleSpec.preview : null,
+    poster: styleSpec ? styleSpec.poster : null,
+    photo: inAd[0] ? { srcUrl: inAd[0].srcUrl, fx: inAd[0].fx, fy: inAd[0].fy } : null,
+    cardUrl: cardPreviewUrl,
+    presenterPoster: liveData.presenter?.poster ?? null,
+    productName: liveData.productName,
+    scene: liveData.scene ?? null,
+    voice: liveData.voice,
+    costText: liveData.costText,
+    shortText: liveData.shortText,
+  }
+  const presenterAi = adsV2PresenterPickerCopy(lang).ai
+  const presenterSummary = !presenterOn ? fc.review.noPerson : adsV2PresenterById(presenterPick)?.name ?? fc.review.surprise
+  const goLabel = shownCost === null ? ux.preview.chooseLevel : scopy ? scopy.make : fill(fc.review.go, { c: shownCost })
+  const scriptOptions = planFresh && plan ? adsV2ScriptOptions(plan.scripts) : null
+  const goDisabled = planFresh ? busy !== null || cost === null || short > 0 || !!copyEdit : locked || missing.length > 0
+  /** "Comece deste": o nome do anúncio da casa (estilo, ou a pessoa com o selo de IA) e as etiquetas da receita (cena, pessoa). */
+  const startTitle = (id: string): string => {
+    const r = adsV2StartFromRecipe(id)
+    if (!r) return ''
+    if (r.style !== 'none') return styleCopy.styles[r.style].label
+    const p = adsV2PresenterById(r.presenter)
+    return p ? `${p.name} · ${presenterAi}` : styleCopy.autoLabel
+  }
+  const startChips = (id: string): string[] => {
+    const r = adsV2StartFromRecipe(id)
+    if (!r) return []
+    const out: string[] = []
+    const preset = r.scene ? ADS_V2_SCENE_PRESETS.find((x) => x.id === r.scene) : null
+    if (preset) out.push(`${preset.emoji} ${sc.presets[preset.id].label}`)
+    const p = r.style !== 'none' ? adsV2PresenterById(r.presenter) : null
+    if (p) out.push(`${p.name} · ${presenterAi}`)
+    return out
+  }
+  /** A barra do celular repassa ao botão do cartão (plano grátis ou "Gerar"); sem poder clicar, leva ao cartão (mostra o que falta). */
+  function goFromBar() {
+    const b = goBtnRef.current
+    if (b && !b.disabled && !goDisabled) b.click()
+    else goToSection('adv2s-sec4')
+  }
 
   return (
     <div className="adv2-layout">
@@ -1719,7 +1853,62 @@ export function AdsV2SimpleSession({
             <SimpleStepper copy={ux} steps={steps} />
             {/* 1. Arquivos */}
             <section id="adv2s-sec1" className="adv2-card" aria-labelledby="adv2s-s1">
-              <h2 id="adv2s-s1"><span className="adv2-num" aria-hidden="true">1</span>{copy.files.title}</h2>
+              <h2 id="adv2s-s1"><span className="adv2-num" aria-hidden="true">1</span>{ux.steps.product}</h2>
+              {/* KINEO-ADS-FLUXO-2026-10-13 — LINK PRIMEIRO (Topview/Creatify): a caixa grande com "Colar"; colar já busca; Enter ou o
+                  botão também (o MESMO importLink de sempre). Depois, "Lemos sua página" para corrigir; a foto vira a 2ª opção. */}
+              <div className="adsw-f adv2s-link adv2f-link" data-kineo="ads-link-import">
+                <label htmlFor="adv2s-link">{fc.link.title}</label>
+                <p className="adv2f-stores">{fc.link.stores}</p>
+                <div className="adv2s-linkrow">
+                  <input
+                    id="adv2s-link"
+                    type="url"
+                    inputMode="url"
+                    autoComplete="url"
+                    ref={linkInputRef}
+                    value={link}
+                    maxLength={500}
+                    disabled={locked || linkBusy}
+                    placeholder={lcopy.linkPlaceholder}
+                    onChange={(e) => { setLink(e.target.value); if (!e.target.value.trim()) { setLinkRead(null); setLinkFacts(null) } }}
+                    onPaste={(e) => {
+                      const pasted = e.clipboardData.getData('text').trim()
+                      if (!pasted) return
+                      e.preventDefault()
+                      setLink(pasted)
+                      void importLink(pasted)
+                    }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void importLink() } }}
+                  />
+                  {!link.trim() ? (
+                    <button type="button" className="adsw-btn small" data-kineo="ads-link-paste" disabled={locked || linkBusy || items.length >= ADS_V2_SIMPLE_MAX_ITEMS} onClick={() => void pasteLink()}>
+                      {linkBusy ? lcopy.linkReading : fc.link.paste}
+                    </button>
+                  ) : (
+                    <button type="button" className="adsw-btn small" disabled={locked || linkBusy || items.length >= ADS_V2_SIMPLE_MAX_ITEMS} onClick={() => void importLink()}>
+                      {linkBusy ? lcopy.linkReading : lcopy.linkButton}
+                    </button>
+                  )}
+                </div>
+                <small>{lcopy.linkHint}</small>
+                {linkNote ? <p className={linkNote.warn ? 'adsw-warn' : 'adsw-hint'} role="status">{linkNote.text}</p> : null}
+              </div>
+              {linkFacts ? (
+                <AdsReadCard
+                  copy={fc}
+                  host={linkFacts.host}
+                  photos={items.filter((p) => p.fromLink).map((p) => p.srcUrl)}
+                  name={cardTitle}
+                  namePlaceholder={adsV2ProductTitle(sentence, adKind)}
+                  onName={setCardTitle}
+                  price={price}
+                  onPrice={setPrice}
+                  pricePlaceholder={copy.text.pricePlaceholder}
+                  priceFound={linkFacts.priceFound}
+                  disabled={locked}
+                />
+              ) : null}
+              <p className="adv2f-or">{fc.link.orPhoto}</p>
               <p className="adsw-lead">{lcopy.lead}</p>
               {items.length ? (
                 <>
@@ -1787,37 +1976,6 @@ export function AdsV2SimpleSession({
               </div>
               {videoBusy > 0 ? <p className="adsw-hint" role="status">{tabHidden ? copy.files.videoHidden : copy.files.readingVideo}</p> : null}
               {fileNote ? <p className="adsw-warn" role="status">{fileNote}</p> : null}
-              {/* KINEO-ADS-1FOTO-LINK-2026-10-10 — "Or paste your product link": colar já busca; Enter ou o botão também. */}
-              <div className="adsw-f adv2s-link" data-kineo="ads-link-import">
-                <label htmlFor="adv2s-link">{lcopy.linkLabel}</label>
-                <small>{lcopy.linkHint}</small>
-                <div className="adv2s-linkrow">
-                  <input
-                    id="adv2s-link"
-                    type="url"
-                    inputMode="url"
-                    autoComplete="url"
-                    ref={linkInputRef}
-                    value={link}
-                    maxLength={500}
-                    disabled={locked || linkBusy}
-                    placeholder={lcopy.linkPlaceholder}
-                    onChange={(e) => { setLink(e.target.value); if (!e.target.value.trim()) setLinkRead(null) }}
-                    onPaste={(e) => {
-                      const pasted = e.clipboardData.getData('text').trim()
-                      if (!pasted) return
-                      e.preventDefault()
-                      setLink(pasted)
-                      void importLink(pasted)
-                    }}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void importLink() } }}
-                  />
-                  <button type="button" className="adsw-btn ghost small" disabled={locked || linkBusy || items.length >= ADS_V2_SIMPLE_MAX_ITEMS} onClick={() => void importLink()}>
-                    {linkBusy ? lcopy.linkReading : lcopy.linkButton}
-                  </button>
-                </div>
-                {linkNote ? <p className={linkNote.warn ? 'adsw-warn' : 'adsw-hint'} role="status">{linkNote.text}</p> : null}
-              </div>
             </section>
 
             {/* 2. O texto */}
@@ -1978,6 +2136,7 @@ export function AdsV2SimpleSession({
               ) : null}
               {/* KINEO-ATORES-IA-2026-10-13 — com o ator ligado, a escolha do apresentador (padrão = o sorteio de sempre). */}
               {presenterOn ? <AdsPresenterPicker name="adv2s-presenter-pick" value={presenterPick} onChange={setPresenterPick} copy={adsV2PresenterPickerCopy(lang)} disabled={locked} /> : null}
+              {startNote ? <p className="adsw-hint" role="status" data-kineo="ads-start-from-note">✓ {startNote}</p> : null}
               {scopy ? <p className="adsw-hint">{scopy.note}</p> : null}
               <p className="adv2-balance" role="status">
                 {balance === null ? copy.tiers.balanceUnknown : fill(copy.tiers.balance, { n: balance })}{' '}
@@ -1987,7 +2146,17 @@ export function AdsV2SimpleSession({
 
             {/* 4. Descobrir, planejar e fazer */}
             <section id="adv2s-sec4" className="adv2-card" aria-labelledby="adv2s-s4">
-              <h2 id="adv2s-s4" ref={planHeadingRef} tabIndex={-1}><span className="adv2-num" aria-hidden="true">4</span>{copy.plan.title}</h2>
+              <h2 id="adv2s-s4" ref={planHeadingRef} tabIndex={-1}><span className="adv2-num" aria-hidden="true">4</span>{fc.review.title}</h2>
+              {/* KINEO-ADS-FLUXO-2026-10-13 — o cartão de revisão do Studio: produto, estilo, cena, pessoa, nível e voz num bloco só,
+                  sempre à vista; o botão embaixo diz "Gerar · N créditos" (o número é o `cost` de sempre, de adsV2Credits). */}
+              <dl className="adv2f-sum" data-kineo="ads-review-summary">
+                <div><dt>{fc.review.product}</dt><dd className={liveData.productName ? undefined : 'muted'}>{liveData.productName || fc.review.none}{inAd.length ? ` · ${inAd.length} 📷` : ''}</dd></div>
+                <div><dt>{fc.review.style}</dt><dd>{stageData.name}</dd></div>
+                <div><dt>{fc.review.scene}</dt><dd className={liveData.scene && !liveData.scene.muted ? undefined : 'muted'}>{liveData.scene ? liveData.scene.text : fc.review.none}</dd></div>
+                <div><dt>{fc.review.presenter}</dt><dd className={presenterOn ? undefined : 'muted'}>{presenterSummary}{presenterOn ? <span className="adv2f-ai">{presenterAi}</span> : null}</dd></div>
+                <div><dt>{fc.review.level}</dt><dd className={tierName ? undefined : 'muted'}>{tierName ?? fc.review.none}</dd></div>
+                <div><dt>{copy.plan.voice}</dt><dd className={narrationOn ? undefined : 'muted'}>{liveData.voice}</dd></div>
+              </dl>
               {factsNow.length ? (
                 <>
                   <h3>{adKind === 'product' ? sc.research.factsTitle : copy.plan.factsTitle}</h3>
@@ -2016,14 +2185,31 @@ export function AdsV2SimpleSession({
                     </div>
                   ) : null}
                   <div className="adv2-actions">
-                    <button type="button" className="adsw-btn" disabled={locked || missing.length > 0} onClick={() => void planAd()}>
+                    <button ref={goBtnRef} type="button" className="adsw-btn" disabled={locked || missing.length > 0} onClick={() => void planAd()}>
                       {busy === 'plan' ? copy.plan.planning : plan ? copy.plan.again : copy.plan.go}
                     </button>
                   </div>
+                  {/* KINEO-ADS-FLUXO-2026-10-13 — o "Gerar · N créditos" à vista ANTES do plano (o plano é grátis; o débito só no botão do roteiro). */}
+                  <p className="adv2f-next" data-kineo="ads-review-next">{fill(fc.review.then, { go: goLabel })}</p>
                 </>
               ) : (
                 <>
                 <AdsPlanChanges before={previousPlan} after={plan as Plan} />
+                {/* KINEO-ADS-FLUXO-2026-10-13 — a VAGA dos 2–3 roteiros: só aparece quando o /plan devolver `scripts: [...]`
+                    (outra pista). Escolher abre a edição de sempre com o texto dele; sem `scripts`, o roteiro único de hoje. */}
+                {scriptOptions ? (
+                  <fieldset className="adv2f-scripts" data-kineo="ads-script-options">
+                    <legend>{fc.review.scripts}</legend>
+                    <p className="adsw-hint" style={{ margin: 0 }}>{fc.review.scriptsHint}</p>
+                    {scriptOptions.map((o) => (
+                      <label key={o.key}>
+                        <input className="adv2-sr" type="radio" name="adv2f-script" checked={scriptPick === o.key} disabled={busy !== null || copyBusy} onChange={() => chooseScript(o)} />
+                        <b aria-hidden="true">{o.letter}</b>
+                        <span>{o.tone ? <small>{o.tone}</small> : null}{o.narration ?? o.overlays.join(' · ')}</span>
+                      </label>
+                    ))}
+                  </fieldset>
+                ) : null}
                 <SimplePlanPreview
                   plan={plan as Plan}
                   copy={copy}
@@ -2051,6 +2237,8 @@ export function AdsV2SimpleSession({
                   presenterAiLabel={adsV2PresenterPickerCopy(lang).ai}
                   scenes={{ product: ((plan as Plan).ad_kind ?? adKind) === 'product', scene: (plan as Plan).scene ?? null, sc }}
                   onMake={() => void makeAd()}
+                  makeLabel={scopy || (variations && three) ? null : goLabel}
+                  makeRef={goBtnRef}
                 />
                 </>
               )}
@@ -2065,9 +2253,21 @@ export function AdsV2SimpleSession({
               {/* KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — teto do dia: "amostras cheias hoje, volte amanhã ou assine o Business" (com o link do checkout). */}
               {scopy && sampleCap ? <p className="adsw-warn" role="alert">{business ? acopy.cap : scopy.cap} {business ? <><a className="adsw-link" href={business.checkoutHref}>{fillAfterSample(acopy.cta, business)} →</a>{' · '}</> : null}<a className="adsw-link" href="/pricing" target="_blank" rel="noopener">{scopy.paidOnly} →</a></p> : null}
             </section>
-            {/* KINEO-ADS-UX-MARCA-2026-10-10 — a prévia ao vivo: palco da direita (computador) e barra que gruda embaixo (celular). */}
-            <LiveStage slot={previewSlot} data={liveData} copy={ux} />
-            <MobilePreviewBar data={liveData} copy={ux} />
+            {/* KINEO-ADS-FLUXO-2026-10-13 — o PALCO DO ESTILO (no lugar da prévia ao vivo): o vídeo do estilo escolhido, a cor dele no
+                brilho, e as miniaturas para ver a sua abertura e o quadro final. No celular ele vem primeiro, menor. */}
+            <AdsStyleStage slot={previewSlot} data={stageData} copy={fc} labels={{ product: ux.preview.product, voice: ux.preview.voice, delivery: ux.preview.delivery, empty: ux.preview.empty, presenter: ux.preview.presenter }} />
+            {/* KINEO-ADS-FLUXO-2026-10-13 — no celular, a barra que gruda embaixo leva o botão principal do cartão de revisão. */}
+            <MobilePreviewBar data={liveData} copy={ux} go={{ label: planFresh ? goLabel : fc.review.planShort, onClick: goFromBar, disabled: goDisabled }} />
+            {/* KINEO-ADS-FLUXO-2026-10-13 — "Comece deste": anúncios da casa embaixo do quadro (copiam estilo, cena e pessoa). */}
+            <AdsStartFromRow
+              slot={rowSlot}
+              copy={fc}
+              titleOf={startTitle}
+              chipsOf={startChips}
+              tintOf={(id) => adsV2StyleTint(adsV2StartFromRecipe(id)?.style)[0]}
+              onUse={startFrom}
+              disabled={locked}
+            />
           </>
         ) : null}
 
@@ -2310,7 +2510,12 @@ function SimplePlanPreview({
   onMake,
   editor = null,
   scenes = null,
+  makeLabel = null,
+  makeRef,
 }: {
+  /** KINEO-ADS-FLUXO-2026-10-13 — o rótulo do cartão de revisão ("Gerar · N créditos", do mesmo `cost`) e o ref do botão (a barra do celular repassa o clique). */
+  makeLabel?: string | null
+  makeRef?: Ref<HTMLButtonElement>
   /** KINEO-ADS-CENA-2026-10-13 — anúncio de produto: sem "Your place" (vira "Final look"); com cena, as cenas criadas dizem a cena. */
   scenes?: { product: boolean; scene: string | null; sc: AdsV2SceneCopy } | null
   plan: Plan
@@ -2451,8 +2656,8 @@ function SimplePlanPreview({
       ) : null}
       {three ? <VariationToggle on={three.on} onChange={three.onChange} single={single} copy={three.copy} disabled={busy !== null} /> : null}
       <div className="adv2-actions">
-        <button type="button" className="adsw-btn" disabled={busy !== null || cost === null || short > 0 || !!editor?.edit} onClick={onMake}>
-          {busy === 'start' ? copy.plan.starting : sample ? sample.make : three?.on ? fill(three.copy.make, { c: cost ?? '' }) : fill(copy.plan.make, { c: cost ?? '' })}
+        <button ref={makeRef} type="button" className="adsw-btn" disabled={busy !== null || cost === null || short > 0 || !!editor?.edit} onClick={onMake}>
+          {busy === 'start' ? copy.plan.starting : sample ? sample.make : three?.on ? fill(three.copy.make, { c: cost ?? '' }) : makeLabel ?? fill(copy.plan.make, { c: cost ?? '' })}
         </button>
       </div>
       {editor?.edit ? <p className="adsw-hint">{editor.fix.saveFirst}</p> : null}

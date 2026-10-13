@@ -381,7 +381,9 @@ export function LiveStage({ slot, data, copy }: { slot: HTMLElement | null; data
 }
 
 /** Celular/tablet: a barra que gruda embaixo (miniatura + custo) e a prévia em folha. */
-export function MobilePreviewBar({ data, copy }: { data: LivePreviewData; copy: AdsV2UxCopy }) {
+// KINEO-ADS-FLUXO-2026-10-13 — `go`: o botão principal do cartão de revisão grudado embaixo (no celular o "Gerar · N créditos"
+// fica sempre à vista). O clique só repassa ao botão do cartão (onClick da sessão): nenhuma rota é chamada daqui.
+export function MobilePreviewBar({ data, copy, go }: { data: LivePreviewData; copy: AdsV2UxCopy; go?: { label: string; onClick: () => void; disabled: boolean } | null }) {
   const [open, setOpen] = useState(false)
   const closeRef = useRef<HTMLButtonElement | null>(null)
   const openRef = useRef<HTMLButtonElement | null>(null)
@@ -401,7 +403,11 @@ export function MobilePreviewBar({ data, copy }: { data: LivePreviewData; copy: 
           {data.costText}
           <span>{data.shortText ?? copy.preview.delivery}</span>
         </span>
-        <button ref={openRef} type="button" className="adsw-btn ghost small" onClick={() => setOpen(true)}>{copy.preview.open}</button>
+        {go ? (
+          <button type="button" className="adsw-btn small adv2f-gobtn" data-kineo="ads-mobile-go" aria-disabled={go.disabled} onClick={go.onClick}>{go.label}</button> // KINEO-ADS-FLUXO-2026-10-13
+        ) : (
+          <button ref={openRef} type="button" className="adsw-btn ghost small" onClick={() => setOpen(true)}>{copy.preview.open}</button>
+        )}
       </div>
       {open && typeof document !== 'undefined'
         ? createPortal(
