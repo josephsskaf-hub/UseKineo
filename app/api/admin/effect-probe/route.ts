@@ -7,6 +7,7 @@
 // banco nem cobra crédito: é sonda de qualidade, ~US$ 0,20–0,50 por efeito.
 //   POST { probe: 'package_explosion' | …, image_url } → { model, request_id }
 //   GET  ?probe=…&request_id=…                        → { status, video_url }
+//   KINEO-SONDA-H3MAX-2026-10-13: POST { probe: 'h3_t2v' | 'h3max_t2v', prompt } · { probe: 'h3_i2v' | 'h3max_i2v', prompt, image_url }
 import { NextRequest, NextResponse } from 'next/server'
 import { fal } from '@fal-ai/client'
 import { createClient } from '@/lib/supabase/server'
@@ -49,6 +50,33 @@ const PROBES: Record<string, { model: string; input: (image: string) => Record<s
   product_up: { model: VIDU, input: (image) => ({ template: 'creatice_product_up', input_image_urls: [image], aspect_ratio: '9:16' }) },
 }
 
+// KINEO-SONDA-H3MAX-2026-10-13 — fundador (13/10: "Testar o H3"): o MiniMax H3 Max (versão pós-treinada pela fal) é candidato a
+// substituir o Omni. Esta é só a SONDA de comparação: o pipeline de vídeo (lib/hollywood, lib/compose, generate-video-cinematic,
+// compose) NÃO muda. Comparação justa = MESMO prompt e MESMOS parâmetros nos dois motores: 5 s, 768P, 9:16 no texto→vídeo, e
+// prompt_expansion_mode 'disabled' (o mesmo padrão que a casa usa no H3 — KINEO-H3-SEM-REESCRITA; o H3 Max reescreveria o texto
+// com o padrão 'balanced'). Nenhum dos dois tem chave de áudio: os dois geram som nativo sozinhos.
+// Schemas lidos em 13/10/2026: https://fal.ai/models/minimax/h3/text-to-video/api · …/minimax/h3/image-to-video/api ·
+// https://fal.ai/models/minimax/h3-max/text-to-video/api · https://fal.ai/models/minimax/h3-max/image-to-video/api
+// (image_url = 1º quadro; saída em data.video.url nos quatro). Preço 768P: H3 US$ 0,06/s · H3 Max US$ 0,08/s (≈ US$ 0,30 × 0,40
+// por clipe de 5 s). ÚNICO lugar desta rota com texto livre: o `prompt` entra SÓ nestas chaves, string, até 600 caracteres.
+const H3_PROMPT_MAX = 600
+const H3_SAME = { duration: 5, resolution: '768P', prompt_expansion_mode: 'disabled' } as const
+const H3_PROBES: Record<string, { model: string; needsImage: boolean; input: (prompt: string, image: string) => Record<string, unknown> }> = {
+  h3_t2v: { model: 'minimax/h3/text-to-video', needsImage: false, input: (prompt) => ({ prompt, ...H3_SAME, aspect_ratio: '9:16' }) },
+  h3max_t2v: { model: 'minimax/h3-max/text-to-video', needsImage: false, input: (prompt) => ({ prompt, ...H3_SAME, aspect_ratio: '9:16' }) },
+  h3_i2v: { model: 'minimax/h3/image-to-video', needsImage: true, input: (prompt, image) => ({ prompt, image_url: image, ...H3_SAME }) },
+  h3max_i2v: { model: 'minimax/h3-max/image-to-video', needsImage: true, input: (prompt, image) => ({ prompt, image_url: image, ...H3_SAME }) },
+}
+
+/** KINEO-SONDA-H3MAX-2026-10-13 — prompt da sonda H3: só texto (string), sem caractere de controle além de quebra de linha/tab, 1–600. */
+function h3Prompt(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null
+  const p = raw.trim()
+  if (!p || p.length > H3_PROMPT_MAX) return null
+  if (/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(p)) return null
+  return p
+}
+
 async function adminUser() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -71,16 +99,25 @@ function falReady(): boolean {
 
 export async function POST(req: NextRequest) {
   if (!(await adminUser())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  const body = (await req.json().catch(() => null)) as { probe?: unknown; image_url?: unknown } | null
-  const probe = typeof body?.probe === 'string' ? PROBES[body.probe] : undefined
-  if (!probe) return NextResponse.json({ error: 'unknown_probe', probes: Object.keys(PROBES) }, { status: 400 })
+  const body = (await req.json().catch(() => null)) as { probe?: unknown; image_url?: unknown; prompt?: unknown } | null
+  const key = typeof body?.probe === 'string' ? body.probe : ''
+  const h3 = Object.prototype.hasOwnProperty.call(H3_PROBES, key) ? H3_PROBES[key] : undefined // KINEO-SONDA-H3MAX-2026-10-13
+  const probe = !h3 && Object.prototype.hasOwnProperty.call(PROBES, key) ? PROBES[key] : undefined
+  if (!probe && !h3) return NextResponse.json({ error: 'unknown_probe', probes: [...Object.keys(PROBES), ...Object.keys(H3_PROBES)] }, { status: 400 })
+  // KINEO-SONDA-H3MAX-2026-10-13 — o resto do catálogo continua SEM texto livre: prompt fora das chaves h3* é recusado.
+  if (probe && body?.prompt !== undefined) return NextResponse.json({ error: 'prompt_not_allowed' }, { status: 400 })
+  const prompt = h3 ? h3Prompt(body?.prompt) : null
+  if (h3 && !prompt) return NextResponse.json({ error: 'bad_prompt', max_chars: H3_PROMPT_MAX }, { status: 400 })
   const image = typeof body?.image_url === 'string' ? body.image_url.trim() : ''
   const storage = `${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''}/storage/v1/object/public/`
-  if (!image || !storage.startsWith('https://') || !image.startsWith(storage)) return NextResponse.json({ error: 'image_must_be_our_storage' }, { status: 400 })
+  const needsImage = h3 ? h3.needsImage : true
+  if (needsImage && (!image || !storage.startsWith('https://') || !image.startsWith(storage))) return NextResponse.json({ error: 'image_must_be_our_storage' }, { status: 400 })
   if (!falReady()) return NextResponse.json({ error: 'fal_unavailable' }, { status: 503 })
+  const model = h3 ? h3.model : probe!.model
+  const input = h3 ? h3.input(prompt as string, image) : probe!.input(image)
   try {
-    const sub = await fal.queue.submit(probe.model, { input: probe.input(image) })
-    return NextResponse.json({ model: probe.model, request_id: sub.request_id })
+    const sub = await fal.queue.submit(model, { input })
+    return NextResponse.json({ model, request_id: sub.request_id })
   } catch (e) {
     return NextResponse.json({ error: 'submit_failed', detail: falDetail(e) }, { status: 502 })
   }
@@ -88,14 +125,18 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   if (!(await adminUser())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  const probe = PROBES[req.nextUrl.searchParams.get('probe') ?? '']
+  // KINEO-SONDA-H3MAX-2026-10-13 — o status das chaves h3* sai pelo mesmo caminho (a saída do H3/H3 Max é data.video.url).
+  const key = req.nextUrl.searchParams.get('probe') ?? ''
+  const isH3 = Object.prototype.hasOwnProperty.call(H3_PROBES, key)
+  const probe = isH3 ? H3_PROBES[key] : Object.prototype.hasOwnProperty.call(PROBES, key) ? PROBES[key] : undefined
   const requestId = (req.nextUrl.searchParams.get('request_id') ?? '').trim()
   if (!probe || !/^[0-9a-f-]{20,64}$/i.test(requestId)) return NextResponse.json({ error: 'bad_request' }, { status: 400 })
   if (!falReady()) return NextResponse.json({ error: 'fal_unavailable' }, { status: 503 })
   try {
     const st = (await fal.queue.status(probe.model, { requestId })) as { status?: string }
     if (st.status !== 'COMPLETED') return NextResponse.json({ status: st.status ?? 'UNKNOWN', video_url: null })
-    const res = (await fal.queue.result(probe.model, { requestId })) as { data?: { video?: { url?: string } } }
+    const res = (await fal.queue.result(probe.model, { requestId })) as { data?: { video?: { url?: string }; expanded_prompt?: string | null } }
+    if (isH3) return NextResponse.json({ status: 'COMPLETED', model: probe.model, video_url: res.data?.video?.url ?? null, expanded_prompt: res.data?.expanded_prompt ?? null })
     return NextResponse.json({ status: 'COMPLETED', video_url: res.data?.video?.url ?? null })
   } catch (e) {
     return NextResponse.json({ status: 'ERROR', detail: falDetail(e), video_url: null })
