@@ -21,6 +21,8 @@
 // Só aparece com a narração LIGADA e com pelo menos UMA foto marcada como produto (senão 400
 // 'presenter_needs_voice_and_product'). A voz padrão da MiniMax 2.8 HD na casa (sem voice_setting) é feminina; por isso o
 // ator é sempre uma MULHER adulta (varia idade/cabelo pela semente do pedido) — boca e voz do mesmo gênero.
+// KINEO-ATORES-IA-2026-10-13 — SEM escolha, continua assim. COM escolha na biblioteca (lib/ads/v2PresenterLibrary.ts), a
+// descrição e o pronome vêm do apresentador e a VOZ dele vem junto (lib/ads/v2PresenterVoice.ts): boca e voz seguem casadas.
 //
 // LIB PURA (só `import type`, apagado na transpilação): o guardião scripts/test-ads-ator-2026-10-09.mjs importa este
 // arquivo cru no Node. ESPELHOS conferidos pelo guardião: ADS_V2_PRESENTER_SLUG = PRESENTER_MODEL e
@@ -69,6 +71,90 @@ export const ADS_V2_PRESENTER_PEOPLE: readonly string[] = [
   'a smiling woman in her late twenties with a red-brown bob haircut',
 ]
 
+// ─── KINEO-ATORES-IA-2026-10-13 — a BIBLIOTECA de apresentadores (12) ───────────────────────────────────────────────
+// Mora AQUI (lib pura que o /plan e o v2Advance já importam) para não abrir import novo nas rotas. A tela e as frases do
+// seletor ficam em lib/ads/v2PresenterLibrary.ts (re-exporta isto). Os 6 primeiros = ADS_V2_PRESENTER_PEOPLE, mesma ordem e
+// mesmo texto (escolher a Sofia dá o mesmo prompt que o sorteio daria para a pessoa 0). Ninguém real, ninguém com menos de 25.
+// Voz: MiniMax de sempre (sem voice_setting) ou ElevenLabs v3 com as vozes da lista fechada da rota /audio.
+export type AdsV2PresenterTag = 'casual' | 'business' | 'fitness' | 'beauty' | 'home'
+export const ADS_V2_PRESENTER_TAGS: readonly AdsV2PresenterTag[] = ['casual', 'business', 'fitness', 'beauty', 'home']
+
+/** Vozes ElevenLabs v3 que o ator pode usar (subconjunto da lista fechada ELEVEN_VOICES de app/api/audio/generate). */
+export const ADS_V2_PRESENTER_ELEVEN_VOICES = ['Brian', 'Daniel', 'Aria', 'Jessica'] as const
+export type AdsV2PresenterElevenVoice = (typeof ADS_V2_PRESENTER_ELEVEN_VOICES)[number]
+
+export type AdsV2PresenterVoice = { engine: 'minimax' } | { engine: 'eleven'; voice: AdsV2PresenterElevenVoice }
+/** A voz de sempre do anúncio (MiniMax 2.8 HD sem voice_setting, synthesizeTtsFallback). */
+export const ADS_V2_PRESENTER_DEFAULT_VOICE: AdsV2PresenterVoice = { engine: 'minimax' }
+
+export interface AdsV2PresenterEntry {
+  /** Id estável (o que o cliente manda e o que fica gravado no pedido). Só [a-z]. */
+  id: string
+  /** Nome genérico de exibição (nunca de pessoa real). */
+  name: string
+  gender: 'woman' | 'man'
+  ageMin: number
+  ageMax: number
+  tag: AdsV2PresenterTag
+  /** A descrição que entra no prompt da foto do ator ("Realistic vertical smartphone selfie photo of <look>, …"). */
+  look: string
+  /** Pronome da frase "<Pronoun> holds the product…" no prompt. */
+  pronoun: 'She' | 'He'
+  voice: AdsV2PresenterVoice
+  /** Retrato 9:16 (public/ads/presenters/<id>.webp, ≤ 120 KB). null = prévia pendente (gerar em produção). */
+  portrait: string | null
+  /** Vídeo curto do ator de verdade, feito pelo próprio motor (public/ads/presenters/<id>.mp4). null = sem vídeo. */
+  clip: string | null
+  /**
+   * Amostra de ~4 s da VOZ deste apresentador (public/ads/presenters/<id>-voice.mp3), feita pelo próprio motor de voz dele.
+   * null = amostra pendente (gerar em produção); a tela mostra "Voice sample soon". O guardião confere: caminho ⇔ arquivo existe.
+   */
+  voiceSample: string | null
+}
+
+const P = '/ads/presenters/'
+
+export const ADS_V2_PRESENTER_LIBRARY: readonly AdsV2PresenterEntry[] = [
+  // ── os 6 de sempre (ADS_V2_PRESENTER_PEOPLE, mesma ordem e mesmo texto) — voz MiniMax de sempre ──────────────────────
+  { id: 'sofia', name: 'Sofia', gender: 'woman', ageMin: 27, ageMax: 30, tag: 'casual', look: 'a friendly woman in her late twenties with long dark wavy hair', pronoun: 'She', voice: { engine: 'minimax' }, portrait: `${P}sofia.webp`, clip: `${P}sofia.mp4`, voiceSample: `${P}sofia-voice.mp3` },
+  { id: 'clara', name: 'Clara', gender: 'woman', ageMin: 30, ageMax: 39, tag: 'beauty', look: 'a friendly woman in her thirties with short curly hair', pronoun: 'She', voice: { engine: 'minimax' }, portrait: null, clip: null, voiceSample: `${P}clara-voice.mp3` },
+  { id: 'hannah', name: 'Hannah', gender: 'woman', ageMin: 40, ageMax: 49, tag: 'business', look: 'a cheerful woman in her forties with shoulder-length blonde hair', pronoun: 'She', voice: { engine: 'minimax' }, portrait: null, clip: null, voiceSample: `${P}hannah-voice.mp3` },
+  { id: 'jade', name: 'Jade', gender: 'woman', ageMin: 30, ageMax: 34, tag: 'fitness', look: 'a friendly woman in her early thirties with straight black hair in a low ponytail', pronoun: 'She', voice: { engine: 'minimax' }, portrait: null, clip: null, voiceSample: `${P}jade-voice.mp3` },
+  { id: 'amara', name: 'Amara', gender: 'woman', ageMin: 30, ageMax: 39, tag: 'beauty', look: 'a warm woman in her thirties with long brown braids', pronoun: 'She', voice: { engine: 'minimax' }, portrait: `${P}amara.webp`, clip: `${P}amara.mp4`, voiceSample: `${P}amara-voice.mp3` },
+  { id: 'chloe', name: 'Chloe', gender: 'woman', ageMin: 27, ageMax: 30, tag: 'casual', look: 'a smiling woman in her late twenties with a red-brown bob haircut', pronoun: 'She', voice: { engine: 'minimax' }, portrait: null, clip: null, voiceSample: `${P}chloe-voice.mp3` },
+  // ── os 6 novos (13/10): homens, 50+, estilos que faltavam — voz ElevenLabs v3 ─────────────────────────────────────────
+  { id: 'marcus', name: 'Marcus', gender: 'man', ageMin: 30, ageMax: 34, tag: 'fitness', look: 'a friendly Black man in his early thirties with a short fade haircut and a neatly trimmed beard, wearing a fitted athletic t-shirt', pronoun: 'He', voice: { engine: 'eleven', voice: 'Brian' }, portrait: null, clip: null, voiceSample: null },
+  { id: 'rahul', name: 'Rahul', gender: 'man', ageMin: 27, ageMax: 30, tag: 'casual', look: 'a cheerful South Asian man in his late twenties with short wavy black hair, wearing a casual hoodie', pronoun: 'He', voice: { engine: 'eleven', voice: 'Brian' }, portrait: null, clip: null, voiceSample: null },
+  { id: 'kenji', name: 'Kenji', gender: 'man', ageMin: 40, ageMax: 49, tag: 'business', look: 'a confident East Asian man in his forties with short neat black hair, wearing a navy blazer over a white shirt', pronoun: 'He', voice: { engine: 'eleven', voice: 'Daniel' }, portrait: null, clip: null, voiceSample: null },
+  { id: 'robert', name: 'Robert', gender: 'man', ageMin: 55, ageMax: 59, tag: 'home', look: 'a warm white man in his late fifties with short gray hair and a short gray beard, wearing a knit cardigan', pronoun: 'He', voice: { engine: 'eleven', voice: 'Daniel' }, portrait: null, clip: null, voiceSample: null },
+  { id: 'lucia', name: 'Lucía', gender: 'woman', ageMin: 50, ageMax: 54, tag: 'home', look: 'a warm Latina woman in her early fifties with shoulder-length dark hair with a few gray strands, wearing a simple linen apron over a blouse', pronoun: 'She', voice: { engine: 'eleven', voice: 'Aria' }, portrait: null, clip: null, voiceSample: null },
+  { id: 'yasmin', name: 'Yasmin', gender: 'woman', ageMin: 25, ageMax: 27, tag: 'beauty', look: 'a smiling Middle Eastern woman in her mid twenties with long dark hair, wearing a soft cream blouse', pronoun: 'She', voice: { engine: 'eleven', voice: 'Jessica' }, portrait: null, clip: null, voiceSample: null },
+]
+
+export const ADS_V2_PRESENTER_IDS: readonly string[] = ADS_V2_PRESENTER_LIBRARY.map((p) => p.id)
+
+/** O apresentador pelo id — lista fechada, igualdade exata (nada de "constructor", caixa trocada ou texto livre). */
+export function adsV2PresenterById(id: unknown): AdsV2PresenterEntry | null {
+  if (typeof id !== 'string') return null
+  return ADS_V2_PRESENTER_LIBRARY.find((p) => p.id === id) ?? null
+}
+
+/** Posição na biblioteca (−1 = não existe). Para os 6 primeiros, é o mesmo índice de ADS_V2_PRESENTER_PEOPLE. */
+export function adsV2PresenterIndex(id: unknown): number {
+  const p = adsV2PresenterById(id)
+  return p ? ADS_V2_PRESENTER_LIBRARY.indexOf(p) : -1
+}
+
+/** A voz do pedido: apresentador escolhido = a voz dele; sem escolha (ou id desconhecido) = a voz de sempre. */
+export function adsV2PresenterVoiceOf(id: unknown): AdsV2PresenterVoice {
+  return adsV2PresenterById(id)?.voice ?? ADS_V2_PRESENTER_DEFAULT_VOICE
+}
+
+/** Onde mora a amostra de voz do apresentador (o caminho fixo; `voiceSample` da entrada diz se ela já existe). */
+export function adsV2PresenterVoiceSample(id: string): string {
+  return `${P}${id}-voice.mp3`
+}
+
 /** Fundo neutro que combina com o setor (sempre desfocado: o produto e o rosto mandam). */
 const SETTING: Readonly<Record<string, string>> = {
   restaurant: 'a cozy restaurant interior',
@@ -100,10 +186,19 @@ export function adsV2PresenterPerson(seedKey: string): number {
  */
 export function adsV2ActorPrompt(sector: string | null | undefined, person: number): string {
   const who = ADS_V2_PRESENTER_PEOPLE[Number.isInteger(person) && person >= 0 ? person % ADS_V2_PRESENTER_PEOPLE.length : 0]
+  return adsV2ActorPromptFor(sector, who, 'She')
+}
+
+/**
+ * KINEO-ATORES-IA-2026-10-13 — o MESMO prompt, com a descrição e o pronome do apresentador escolhido na biblioteca
+ * (lib/ads/v2PresenterLibrary.ts). Com 'She' e uma pessoa de ADS_V2_PRESENTER_PEOPLE, sai byte a byte o prompt do sorteio.
+ */
+export function adsV2ActorPromptFor(sector: string | null | undefined, who: string, pronoun: 'She' | 'He'): string {
   const where = SETTING[typeof sector === 'string' ? sector : 'other'] ?? SETTING.other
+  const their = pronoun === 'He' ? 'his' : 'her'
   return [
     `Realistic vertical smartphone selfie photo of ${who}, looking straight into the camera with a friendly, natural expression, mouth closed.`,
-    'She holds the product from the reference photo in one hand near her face and chest, label facing the camera, clearly visible.',
+    `${pronoun} holds the product from the reference photo in one hand near ${their} face and chest, label facing the camera, clearly visible.`,
     'Keep the product EXACTLY as in the reference photo: same shape, colors, label, text and proportions. Do not redesign, rename, resize or add anything to the product.',
     'Head, shoulders and the hand with the product in frame, centered, face in the upper half of the frame, natural window light, real skin texture, UGC look.',
     `Background: ${where}, softly out of focus.`,
@@ -116,9 +211,14 @@ export interface AdsV2PresenterPlan {
   /** A foto do produto do cliente (user_footage do dono) que vai como referência da foto do ator. */
   productFootageId: string
   productUrl: string
-  /** Índice em ADS_V2_PRESENTER_PEOPLE (semente do pedido). */
+  /** Índice em ADS_V2_PRESENTER_PEOPLE (semente do pedido) — ou, com apresentador escolhido, o índice dele na biblioteca. */
   person: number
   actorPrompt: string
+  /**
+   * KINEO-ATORES-IA-2026-10-13 — o apresentador escolhido na biblioteca (lib/ads/v2PresenterLibrary.ts), gravado no pedido
+   * para medir e para escolher a VOZ dele. Ausente = o sorteio de sempre (a voz de sempre).
+   */
+  presenterId?: string
 }
 
 const HTTPS_RE = /^https:\/\/\S+$/i
@@ -127,9 +227,15 @@ const HTTPS_RE = /^https:\/\/\S+$/i
  * O ator do pedido: a 1ª foto marcada como 'product'. null = sem foto de produto (a rota recusa antes, com 400).
  * `seedKey` = o id do pedido (a pessoa varia de pedido para pedido, e é a mesma em toda tentativa do mesmo pedido).
  */
-export function planAdsV2Presenter(input: { sector: string | null | undefined; photos: readonly { footage_id: string; kind: string; url: string }[]; seedKey: string }): AdsV2PresenterPlan | null {
+export function planAdsV2Presenter(input: { sector: string | null | undefined; photos: readonly { footage_id: string; kind: string; url: string }[]; seedKey: string; presenterId?: string | null }): AdsV2PresenterPlan | null {
   const photo = (Array.isArray(input.photos) ? input.photos : []).find((p) => p && p.kind === 'product' && typeof p.url === 'string' && HTTPS_RE.test(p.url.trim()))
   if (!photo) return null
+  // KINEO-ATORES-IA-2026-10-13 — apresentador escolhido (resolvido AQUI, contra a lista fechada) = a descrição e o pronome
+  // DELE, e o id gravado no pedido; sem escolha (ou id fora da lista — o contrato já recusa antes) = o sorteio de sempre.
+  const pick = adsV2PresenterById(input.presenterId)
+  if (pick) {
+    return { productFootageId: photo.footage_id, productUrl: photo.url.trim(), person: ADS_V2_PRESENTER_LIBRARY.indexOf(pick), actorPrompt: adsV2ActorPromptFor(input.sector, pick.look, pick.pronoun), presenterId: pick.id }
+  }
   const person = adsV2PresenterPerson(input.seedKey)
   return { productFootageId: photo.footage_id, productUrl: photo.url.trim(), person, actorPrompt: adsV2ActorPrompt(input.sector, person) }
 }
@@ -137,7 +243,8 @@ export function planAdsV2Presenter(input: { sector: string | null | undefined; p
 export function isAdsV2PresenterPlan(raw: unknown): raw is AdsV2PresenterPlan {
   const p = raw as Partial<AdsV2PresenterPlan> | null
   return !!p && typeof p === 'object' && typeof p.productFootageId === 'string' && typeof p.productUrl === 'string' && HTTPS_RE.test(p.productUrl) &&
-    typeof p.actorPrompt === 'string' && p.actorPrompt.trim().length > 10 && typeof p.person === 'number'
+    typeof p.actorPrompt === 'string' && p.actorPrompt.trim().length > 10 && typeof p.person === 'number' &&
+    (p.presenterId === undefined || adsV2PresenterById(p.presenterId) !== null) // KINEO-ATORES-IA-2026-10-13 — só id da lista fechada
 }
 
 /** A voz cabe no ator? (alvo do anúncio + a mesma folga do cartão; e o teto do modelo). */

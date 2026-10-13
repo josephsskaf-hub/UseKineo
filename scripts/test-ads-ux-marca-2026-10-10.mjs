@@ -23,6 +23,7 @@ import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { desfazExtracao, textoOriginalV2 } from './test-support/shopify-extracao-v2-1310.mjs' // KINEO-SHOPIFY-2026-10-13 (etapa 2)
+import { desfazAtoresIa } from './test-support/desfaz-atores-ia-1310.mjs' // KINEO-ATORES-IA-2026-10-13
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -32,7 +33,9 @@ const readCru = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/
 // em que rodam; a impressão digital da base usa o texto de ANTES remontado por test-support/shopify-extracao-v2-1310.mjs.
 const NUCLEO_V2 = { 'app/api/ads/v2/plan/route.ts': 'lib/ads/v2PlanCore.ts', 'app/api/ads/v2/start/route.ts': 'lib/ads/v2StartCore.ts' }
 const read = (rel) => (NUCLEO_V2[rel] ? `${readCru(rel)}\n${readCru(NUCLEO_V2[rel])}` : readCru(rel))
-const leBaseV2 = (rel) => (rel === 'app/api/ads/v2/plan/route.ts' ? textoOriginalV2('plan', ROOT) : rel === 'app/api/ads/v2/start/route.ts' ? textoOriginalV2('start', ROOT) : readCru(rel))
+// KINEO-ATORES-IA-2026-10-13 — re-ancorado: no /plan, desfazAtoresIa tira SÓ o id do apresentador na chamada do ator e as 2 linhas
+// marcadas da biblioteca de apresentadores (evento e presenter_id na resposta); a impressão digital da base segue igual.
+const leBaseV2 = (rel) => (rel === 'app/api/ads/v2/plan/route.ts' ? desfazAtoresIa(textoOriginalV2('plan', ROOT)) : rel === 'app/api/ads/v2/start/route.ts' ? textoOriginalV2('start', ROOT) : readCru(rel))
 let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }
@@ -292,7 +295,8 @@ const telaDinheiroOk = (src) => {
     ordem(make, "api<StatusView>('/api/ads/v2/start'", 'if (!r.ok) {', 'return', 'setDraft(null)', 'if (saveKit) saveBrandKit()', 'adoptOrder(') &&
     ordem(vari, "'/api/ads/v2/variations'", "if (!r.ok || typeof r.data.group_id !== 'string') {", 'return', 'setDraft(null)', 'if (saveKit) saveBrandKit()', 'onVariationsStarted(r.data.group_id)') &&
     (s.match(/saveBrandKit\(\)/g) || []).length === 3 &&
-    /body: \{ mode: 'simple', order_id: orderId, sector, logo_footage_id: logo\?\.footageId \?\? null, \.\.\.\(presenterOn \? \{ presenter: true \} : \{\}\), photos: uploaded, videos, card_footage_id: card\.footageId, facts: chosen, \.\.\.\(style !== 'none' \? \{ style \} : \{\}\) \}/.test(s) &&
+    // KINEO-ATORES-IA-2026-10-13 — re-ancorado: o corpo ganhou, no fim, o apresentador escolhido (só com o ator ligado e uma escolha).
+    /body: \{ mode: 'simple', order_id: orderId, sector, logo_footage_id: logo\?\.footageId \?\? null, \.\.\.\(presenterOn \? \{ presenter: true \} : \{\}\), photos: uploaded, videos, card_footage_id: card\.footageId, facts: chosen, \.\.\.\(style !== 'none' \? \{ style \} : \{\}\), \.\.\.\(presenterOn && presenterPick \? \{ presenter_id: presenterPick \} : \{\}\) \}/.test(s) &&
     /if \(!plan \|\| !planFresh \|\| busy \|\| cost === null\) return/.test(make) && /const cost = tier \? adsV2Credits\(tier, ADS_V2_SCREEN_SECONDS\) : null/.test(s)
 }
 await check('6b tela: 1 só chamada ao /start (no botão); o kit só é gravado DEPOIS do /start/variações aceitos; corpo do /plan igual; preço = adsV2Credits', () => telaDinheiroOk(read(F.simple)))

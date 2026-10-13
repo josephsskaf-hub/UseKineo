@@ -201,7 +201,19 @@ export interface AdsV2PlanBody {
    * ligada no pedido (a rota confere order.narration); senão 400 'presenter_needs_voice_and_product'.
    */
   presenter?: true
+  /**
+   * KINEO-ATORES-IA-2026-10-13 — o apresentador escolhido na biblioteca (lib/ads/v2PresenterLibrary.ts). Só aparece com
+   * presenter true e um id da lista fechada; ausente/null/'auto' = o sorteio de sempre (sem a chave); qualquer outra coisa
+   * = 400 bad_presenter_id. Nunca URL de imagem nem texto livre.
+   */
+  presenter_id?: string
 }
+
+/**
+ * KINEO-ATORES-IA-2026-10-13 — os ids da biblioteca de apresentadores. ESPELHO de ADS_V2_PRESENTER_IDS (lib/ads/v2Presenter.ts),
+ * conferido pelo guardião scripts/test-atores-ia-1310.mjs (este contrato é puro: sem import).
+ */
+export const ADS_V2_CONTRACT_PRESENTER_IDS = ['sofia', 'clara', 'hannah', 'jade', 'amara', 'chloe', 'marcus', 'rahul', 'kenji', 'robert', 'lucia', 'yasmin'] as const
 
 /** Número finito dentro de [min, max]; ausente = `absent`; fora = undefined (recusa). */
 function numIn(v: unknown, min: number, max: number, absent: number | null): number | null | undefined {
@@ -276,6 +288,12 @@ export function sanitizePlanBody(raw: unknown): AdsV2Sanitized<AdsV2PlanBody> {
     if (b.presenter !== true) return fail('bad_presenter')
     presenter = true
   }
+  // KINEO-ATORES-IA-2026-10-13 — apresentador escolhido: só com o ator ligado e só um id da lista fechada (nunca URL/texto livre).
+  let presenterId: string | null = null
+  if (b.presenter_id !== undefined && b.presenter_id !== null && b.presenter_id !== 'auto') {
+    if (!presenter || typeof b.presenter_id !== 'string' || !(ADS_V2_CONTRACT_PRESENTER_IDS as readonly string[]).includes(b.presenter_id)) return fail('bad_presenter_id')
+    presenterId = b.presenter_id
+  }
   if (!Array.isArray(b.photos)) return fail('bad_photos')
   const vids = readVideos(b.videos)
   if (!vids.ok) return vids
@@ -309,6 +327,7 @@ export function sanitizePlanBody(raw: unknown): AdsV2Sanitized<AdsV2PlanBody> {
     ...(videos.length > 0 ? { videos } : {}),
     ...(style ? { style } : {}),
     ...(presenter ? { presenter: true as const } : {}),
+    ...(presenter && presenterId ? { presenter_id: presenterId } : {}),
   }
   return { ok: true, value: simple ? { ...value, mode: 'simple', facts } : value }
 }

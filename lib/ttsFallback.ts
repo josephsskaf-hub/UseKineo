@@ -128,6 +128,49 @@ async function sintetizaPelaFal(script: string): Promise<Buffer> {
   return buf
 }
 
+// ═══ KINEO-ATORES-IA-2026-10-13 — a voz ElevenLabs v3 do apresentador de IA escolhido no Studio Ads ═══════════════════
+// O anúncio narra na MiniMax de sempre (synthesizeTtsFallback). Quando o anunciante escolhe na biblioteca um apresentador de
+// voz ElevenLabs (lib/ads/v2Presenter.ts, ADS_V2_PRESENTER_LIBRARY: os homens e duas mulheres), a narração sai aqui: o MESMO
+// motor e o MESMO corpo da rota /audio (app/api/audio/generate MODELS.eleven: { text, voice, stability: 0.5 }, vozes da lista
+// fechada) — nenhum parâmetro inventado. Recusa por saldo toca o mesmo alarme único da fal.
+export const ADS_PRESENTER_ELEVEN_MODEL = 'fal-ai/elevenlabs/tts/eleven-v3'
+export const ADS_PRESENTER_ELEVEN_VOICES = ['Brian', 'Daniel', 'Aria', 'Jessica'] as const
+/** O corpo EXATO da rota /audio para a ElevenLabs v3. */
+export function elevenTtsInput(text: string, voice: (typeof ADS_PRESENTER_ELEVEN_VOICES)[number]): { text: string; voice: string; stability: number } {
+  return { text, voice, stability: 0.5 }
+}
+
+/** A narração na voz ElevenLabs v3 (mp3 em Buffer). Voz fora da lista fechada = erro (nunca chega à fal). */
+export async function synthesizeElevenVoice(
+  script: string,
+  voice: string,
+  ctx: { userId?: string | null; generationId?: string | null } = {},
+): Promise<Buffer> {
+  if (!(ADS_PRESENTER_ELEVEN_VOICES as readonly string[]).includes(voice)) throw new Error(`eleven voice not allowed: ${voice}`)
+  try {
+    const falKey = process.env.FAL_KEY
+    if (!falKey) throw new Error('FAL_KEY is not set')
+    const cleaned = stripScriptMarkers(script)
+    const text = (cleaned.length > TTS_FALLBACK_MAX_CHARS ? cleaned.slice(0, TTS_FALLBACK_MAX_CHARS) : cleaned).trim()
+    if (!text) throw new Error('eleven TTS: narration is empty after marker strip')
+    fal.config({ credentials: falKey })
+    const result = (await fal.subscribe(ADS_PRESENTER_ELEVEN_MODEL, {
+      input: elevenTtsInput(text, voice as (typeof ADS_PRESENTER_ELEVEN_VOICES)[number]),
+      timeout: TTS_FALLBACK_TIMEOUT_MS,
+    })) as { data?: { audio?: { url?: string } }; audio?: { url?: string } }
+    const url = result?.data?.audio?.url ?? result?.audio?.url ?? null
+    if (!url) throw new Error('eleven TTS returned no audio url')
+    const res = await fetch(url, { signal: AbortSignal.timeout(TTS_FALLBACK_DOWNLOAD_MS) })
+    if (!res.ok) throw new Error(`eleven TTS audio fetch failed: ${res.status}`)
+    const buf = Buffer.from(await res.arrayBuffer())
+    if (buf.length === 0) throw new Error('eleven TTS audio is empty')
+    return buf
+  } catch (e) {
+    await avisaSaldoDaFalNaVoz(e, ctx)
+    throw e
+  }
+}
+
 /**
  * Evento `tts_fallback_used` + alarme ao fundador (mesmo limitador de 30 min por tipo), com o MESMO teto do plano B de
  * texto (settleWithin, 2,5 s): o compose aguarda isto depois do débito, e um Resend/Supabase travado no apagão não pode

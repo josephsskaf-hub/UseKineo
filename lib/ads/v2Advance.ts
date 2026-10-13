@@ -26,7 +26,7 @@ import {
 } from '@/lib/compose'
 import { getLyriaMusicUrl } from '@/lib/lyriaMusic'
 import { getBackgroundMusicUrl, type MusicMood } from '@/lib/pixabayMusic'
-import { synthesizeTtsFallback } from '@/lib/ttsFallback'
+import { synthesizeElevenVoice, synthesizeTtsFallback } from '@/lib/ttsFallback'
 import { persistRenderAssets } from '@/lib/renderAssets'
 import { renderOutputSpecFor } from '@/lib/renderProfile'
 import { captionFontFor, narrationLanguage } from '@/lib/textLanguage'
@@ -48,6 +48,7 @@ import {
   adsV2PresenterInitialRow,
   adsV2PresenterInsertOrder,
   adsV2PresenterVoiceFits,
+  adsV2PresenterVoiceOf, // KINEO-ATORES-IA-2026-10-13 — a voz do apresentador escolhido
   isAdsV2PresenterPlan,
   type AdsV2PresenterKind,
   type AdsV2PresenterPlan,
@@ -602,6 +603,27 @@ async function retryPresenter(admin: SupabaseClient, order: AdsV2OrderRow, row: 
 }
 
 /**
+ * KINEO-ATORES-IA-2026-10-13 — a voz da narração do pedido. Sem apresentador escolhido, ou apresentador de voz MiniMax =
+ * synthesizeTtsFallback(texto, ctx), a chamada de sempre. Apresentador de voz ElevenLabs = a voz DELE (synthesizeElevenVoice,
+ * o corpo da rota /audio). `fallbackToDefault`: no passo do ATOR é false (voz de mulher na boca de um homem é pior que esperar:
+ * a próxima volta tenta de novo e, no prazo do ator, o anúncio sai sem ele); na MONTAGEM é true (lá o ator já desistiu — senão
+ * a voz estaria gravada — e a narração sai na voz de sempre em vez de travar o pedido).
+ */
+async function adsV2NarrationVoice(order: AdsV2OrderRow, text: string, fallbackToDefault: boolean): Promise<Buffer> {
+  const ctx = { userId: order.user_id, generationId: order.generation_id }
+  const presenterId = adsV2PresenterPlanOf(order.plan)?.presenterId ?? null
+  const voice = presenterId ? adsV2PresenterVoiceOf(presenterId) : null
+  if (!voice || voice.engine !== 'eleven') return synthesizeTtsFallback(text, ctx)
+  try {
+    return await synthesizeElevenVoice(text, voice.voice, ctx)
+  } catch (e) {
+    console.warn(`[ads-v2] voz ${voice.voice} do apresentador ${presenterId} falhou order=${order.id}:`, e instanceof Error ? e.message : String(e))
+    if (!fallbackToDefault) throw e
+    return synthesizeTtsFallback(text, ctx)
+  }
+}
+
+/**
  * KINEO-ATOR-ANUNCIO-2026-10-09 — a voz do anúncio, sintetizada UMA vez por pedido (a mesma da montagem): MiniMax, medida,
  * no bucket voiceovers, gravada no pedido por UPDATE condicional (tela e cron juntos: só um grava; o outro relê a que
  * venceu). null = sem narração, ou a síntese falhou (a próxima volta tenta de novo).
@@ -614,7 +636,9 @@ async function ensureAdsV2Voice(admin: SupabaseClient, order: AdsV2OrderRow): Pr
   if (!narration) return null
   const language = narrationLanguage(order.language) ?? 'en'
   try {
-    const buf = await synthesizeTtsFallback(speakableForTts(narration, language), { userId: order.user_id, generationId: order.generation_id })
+    // KINEO-ATORES-IA-2026-10-13 — apresentador escolhido = a voz DELE (sem cair na voz de sempre: boca e voz casadas);
+    // sem escolha, a chamada de sempre.
+    const buf = await adsV2NarrationVoice(order, speakableForTts(narration, language), false)
     const voiceSeconds = Math.round(estimateMp3DurationSeconds(buf) * 1000) / 1000
     const voiceUrl = await uploadVoiceoverToSupabase(order.user_id, buf)
     const w = await admin.from('ads_v2_orders').update({ voice_url: voiceUrl, voice_seconds: voiceSeconds }).eq('id', order.id).is('voice_url', null).select('id').maybeSingle()
@@ -689,7 +713,9 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
   let voiceSeconds = num(order.voice_seconds)
   const narration = order.narration && typeof plan.narration === 'string' && plan.narration.trim() ? plan.narration.trim() : null
   if (narration && (!voiceUrl || !voiceSeconds)) {
-    const buf = await synthesizeTtsFallback(speakableForTts(narration, language), { userId: order.user_id, generationId: order.generation_id })
+    // KINEO-ATORES-IA-2026-10-13 — aqui o ator já desistiu (senão a voz estaria gravada): a voz do apresentador escolhido,
+    // e se ela falhar, a de sempre (o pedido nunca trava por isso). Sem escolha, a chamada de sempre.
+    const buf = await adsV2NarrationVoice(order, speakableForTts(narration, language), true)
     voiceSeconds = Math.round(estimateMp3DurationSeconds(buf) * 1000) / 1000
     voiceUrl = await uploadVoiceoverToSupabase(order.user_id, buf)
     await admin.from('ads_v2_orders').update({ voice_url: voiceUrl, voice_seconds: voiceSeconds }).eq('id', order.id)

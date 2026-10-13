@@ -79,7 +79,10 @@ import { adsAfterSampleCopy, fillAfterSample, type AdsBusinessOffer } from '@/li
 import { ADS_V2_STYLES, ADS_V2_STYLES_PUBLIC, adsV2StyleCopy, adsV2SuggestedStyle, type AdsV2StyleChoice, type AdsV2StyleCopy } from '@/lib/ads/v2Styles'
 import { AdsPresenterToggle, AdsStylePicker } from '@/components/ads/AdsStyles'
 // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator de IA ("Person talking about it"): interruptor e frases nas 16 línguas (lib pura).
-import { ADS_V2_PRESENTER_POSTER, ADS_V2_PRESENTER_PUBLIC, adsV2PresenterCopy, type AdsV2PresenterCopy } from '@/lib/ads/v2Presenter'
+import { ADS_V2_PRESENTER_POSTER, ADS_V2_PRESENTER_PUBLIC, adsV2PresenterById, adsV2PresenterCopy, type AdsV2PresenterCopy } from '@/lib/ads/v2Presenter'
+// KINEO-ATORES-IA-2026-10-13 — o seletor de apresentadores de IA e as frases dele (a biblioteca mora em v2Presenter).
+import { AdsPresenterPicker } from '@/components/ads/AdsPresenterPicker'
+import { adsV2PresenterPickerCopy } from '@/lib/ads/v2PresenterLibrary'
 // KINEO-ATOR-FTC-2026-10-13 — aviso de rótulo de IA na entrega (16 línguas, lib pura; não é marca d'água).
 import { adsV2AiLabelNotice } from '@/lib/ads/v2AiLabel'
 // KINEO-ADS-1FOTO-LINK-2026-10-10 — 1 foto basta e "Or paste your product link" (frases nas 16 línguas, lib pura).
@@ -161,6 +164,7 @@ interface PlanResponse {
   /** KINEO-ATOR-ANUNCIO-2026-10-09 — o ator pedido e o aplicado (false com pedido = sem texto de narração). */
   presenter_asked?: boolean
   presenter?: boolean
+  presenter_id?: string // KINEO-ATORES-IA-2026-10-13
   narration: string | null
   overlays: { role: string; start: number; end: number; text: string }[]
   /** KINEO-ANUNCIO-CONSERTOS-2026-10-12 — os limites da edição do texto (palavras da voz, caracteres por frase). */
@@ -533,6 +537,8 @@ export function AdsV2SimpleSession({
   const [styleChoice, setStyleChoice] = useState<AdsV2StyleChoice | null>(null)
   // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator começa desligado (a pessoa liga; nada muda para quem não liga).
   const [presenterChoice, setPresenterChoice] = useState(false)
+  // KINEO-ATORES-IA-2026-10-13 — o apresentador escolhido na biblioteca (null = "Surprise me", o sorteio de sempre).
+  const [presenterPick, setPresenterPick] = useState<string | null>(null)
   const [price, setPrice] = useState('')
   const [contact, setContact] = useState('')
   const [overlaysOn, setOverlaysOn] = useState(true)
@@ -646,7 +652,7 @@ export function AdsV2SimpleSession({
 
   /** Chave do rascunho: mudou texto, preço, contato, frases, voz, língua ou nível = rascunho novo (a pesquisa é copiada). */
   const draftKey = JSON.stringify({ text: sentence, price: priceT, contact: contactT, overlays: overlaysOn, voice: narrationOn, lang: spoken, tier, link: linkRead })
-  const baseSig = JSON.stringify({ draftKey, sector, presenter: presenterOn, items: inAd.map((p) => [p.key, focalSig(p)]), style })
+  const baseSig = JSON.stringify({ draftKey, sector, presenter: presenterOn, items: inAd.map((p) => [p.key, focalSig(p)]), style, ...(presenterOn && presenterPick ? { presenterPick } : {}) })
   // A marca de um fato é presa ao CONTEÚDO (fonte + texto), nunca ao id f1..f6: uma pesquisa nova tem outro f1 e não herda
   // a marca do anterior; a mesma pesquisa copiada para um rascunho novo (troca de nível) mantém a marca.
   const factKey = (f: Fact) => JSON.stringify([f.url, f.text])
@@ -1427,7 +1433,7 @@ export function AdsV2SimpleSession({
       setBusyNote(copy.plan.notePlan)
       const r = await api<PlanResponse>('/api/ads/v2/plan', {
         method: 'POST',
-        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}) },
+        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}) },
       })
       if (!aliveRef.current) return
       if (!r.ok) {
@@ -1647,7 +1653,7 @@ export function AdsV2SimpleSession({
     photos: inAd.map((p) => ({ key: p.key, srcUrl: p.srcUrl, fx: p.fx, fy: p.fy })),
     productName: sentence ? cardTitleFinal : cardTitle.trim(),
     style: styleSpec && style !== 'none' ? { label: styleCopy.styles[style].label, oneLine: styleCopy.styles[style].oneLine, preview: styleSpec.preview, poster: styleSpec.poster } : null,
-    presenter: presenterOn ? { poster: ADS_V2_PRESENTER_POSTER } : null,
+    presenter: presenterOn ? { poster: adsV2PresenterById(presenterPick)?.portrait ?? ADS_V2_PRESENTER_POSTER } : null, // KINEO-ATORES-IA-2026-10-13 — o rosto escolhido, se tiver retrato
     cardUrl: cardPreviewUrl,
     voice: narrationOn ? NARRATION_LANGUAGES.find((l) => l.code === spoken)?.native ?? spoken : copy.plan.noVoice,
     tierName,
@@ -1899,6 +1905,8 @@ export function AdsV2SimpleSession({
                   copy={presenterCopy}
                 />
               ) : null}
+              {/* KINEO-ATORES-IA-2026-10-13 — com o ator ligado, a escolha do apresentador (padrão = o sorteio de sempre). */}
+              {presenterOn ? <AdsPresenterPicker name="adv2s-presenter-pick" value={presenterPick} onChange={setPresenterPick} copy={adsV2PresenterPickerCopy(lang)} disabled={locked} /> : null}
               {scopy ? <p className="adsw-hint">{scopy.note}</p> : null}
               <p className="adv2-balance" role="status">
                 {balance === null ? copy.tiers.balanceUnknown : fill(copy.tiers.balance, { n: balance })}{' '}
@@ -1969,6 +1977,7 @@ export function AdsV2SimpleSession({
                   itemByFootage={itemByFootage}
                   styleCopy={styleCopy}
                   presenterCopy={presenterCopy}
+                  presenterAiLabel={adsV2PresenterPickerCopy(lang).ai}
                   onMake={() => void makeAd()}
                 />
                 </>
@@ -2225,6 +2234,7 @@ function SimplePlanPreview({
   itemByFootage,
   styleCopy,
   presenterCopy,
+  presenterAiLabel = 'AI',
   onMake,
   editor = null,
 }: {
@@ -2241,6 +2251,8 @@ function SimplePlanPreview({
   styleCopy: AdsV2StyleCopy
   /** KINEO-ATOR-ANUNCIO-2026-10-09 — frases do ator na língua da tela. */
   presenterCopy: AdsV2PresenterCopy
+  /** KINEO-ATORES-IA-2026-10-13 — o selo "AI" ao lado do nome do apresentador escolhido, na língua da tela. */
+  presenterAiLabel?: string
   onMake: () => void
   /** KINEO-ANUNCIO-CONSERTOS-2026-10-12 — editar a narração e as frases de tela antes de gerar (grátis; PATCH no pedido). */
   editor?: {
@@ -2287,7 +2299,7 @@ function SimplePlanPreview({
         </li>
       </ol>
       {plan.style_asked && !plan.style ? <p className="adsw-hint">{styleCopy.noProduct}</p> : null}
-      {plan.presenter ? <p className="adsw-hint">🎙 <b>{presenterCopy.title}</b> · {presenterCopy.planLine}</p> : plan.presenter_asked ? <p className="adsw-hint">{presenterCopy.notApplied}</p> : null}
+      {plan.presenter ? <p className="adsw-hint">🎙 <b>{presenterCopy.title}</b> · {presenterCopy.planLine}{adsV2PresenterById(plan.presenter_id) ? ` · ${adsV2PresenterById(plan.presenter_id)!.name} (${presenterAiLabel})` : ''}</p> : plan.presenter_asked ? <p className="adsw-hint">{presenterCopy.notApplied}</p> : null}
       <h3>{copy.plan.words}</h3>
       {editor?.edit ? (
         // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — prospecção de 12/10: no modo simples não dava para corrigir uma frase da voz

@@ -188,7 +188,12 @@ await check('A3 trocar de modo é link de página inteira (o anúncio em andamen
 // entrega ("Turn on the AI-generated label when you post on TikTok…" → adsV2AiLabelNotice('en'), lib pura lib/ads/v2AiLabel.ts:
 // "Made with AI — when you post it, turn on the platform's AI label…"). Nada mais do completo mudou; provado em
 // scripts/test-ator-sem-depoimento-1310.mjs (4e). Base anterior: 27b1ef06….
-const Z1_BASE = "413b63f6b78e1caa4218461df7c7f2bdbfe51db4f00c6f4a21315ad4283efca4"
+// KINEO-ATORES-IA-2026-10-13 — re-ancorado (fundador 13/10, "manda fazer mais pessoas de IA … agora"): o completo ganhou SÓ a
+// escolha do apresentador de IA — estado presenterPick, o AdsPresenterPicker logo abaixo do cartão do ator (só com o ator ligado),
+// a assinatura planSig = planSigBase + o id escolhido (sem escolha, a de antes), o presenter_id no fim do corpo do /plan e o nome
+// do escolhido na linha do ator da prévia. Sem escolha ("Surprise me", o padrão) o corpo e o anúncio são os de antes; provado em
+// scripts/test-atores-ia-1310.mjs. Base anterior: 413b63f6….
+const Z1_BASE = "235bfb6dfef9d097b8a9f4258c8a350200057f4f588fea9f6f97c3ac3094da12"
 const trechoCompleto = (src) => { const s = src.replace(/\r\n/g, '\n'); const i = s.indexOf('function AdsV2Session('); return i < 0 ? '' : semComentarios(s.slice(i)) }
 await check('Z1 impressão digital do modo completo (AdsV2Session, PhotoRow, PlanPreview, ShotGrid) = a do vídeo do cliente (29/09)', sha(trechoCompleto(SRC.client)) === Z1_BASE)
 await check('Z1-mutante: 1 caractere trocado no modo completo fica vermelho', () => sha(trechoCompleto(trocar(SRC.client, "const POLL_RETRY_MS = 20_000", "const POLL_RETRY_MS = 20_001").replace('Plan my ad (free)', 'Plan my ad (freE)'))) !== Z1_BASE)
@@ -745,11 +750,14 @@ await check('E2 CONTACTISH da pesquisa = o da régua do texto (v2Brief)', () => 
 // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — re-ancorado: + '@/lib/ads/afterSample' (lib PURA do pós-amostra: frases da oferta do
 // Business nas 16 línguas e o tipo da oferta; só import type — entra na conferência de pureza abaixo). Nenhum módulo de servidor.
 // KINEO-ATOR-FTC-2026-10-13 — re-ancorado: + '@/lib/ads/v2AiLabel' (lib PURA do aviso de rótulo de IA nas 16 línguas; só import type).
-const IMPORTS_OK = ['@/lib/ads/v2AiLabel', '@/lib/ads/afterSample', '@/lib/ads/v2SimpleUx', './AdsV2SimpleUx', '@/lib/ads/v2LinkImport', '@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', './AdsV2Variations', '@/components/AdsPlanChanges', 'react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/ads/v2UserVideo', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage']
+// KINEO-ATORES-IA-2026-10-13 — re-ancorado: + '@/components/ads/AdsPresenterPicker' (componente de navegador do seletor de
+// apresentadores; importa só react e as libs puras v2Presenter/v2PresenterLibrary) e '@/lib/ads/v2PresenterLibrary' (lib PURA das
+// frases do seletor nas 16 línguas; só import type — conferida na pureza abaixo e em scripts/test-atores-ia-1310.mjs).
+const IMPORTS_OK = ['@/components/ads/AdsPresenterPicker', '@/lib/ads/v2PresenterLibrary', '@/lib/ads/v2AiLabel', '@/lib/ads/afterSample', '@/lib/ads/v2SimpleUx', './AdsV2SimpleUx', '@/lib/ads/v2LinkImport', '@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', './AdsV2Variations', '@/components/AdsPlanChanges', 'react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/ads/v2UserVideo', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage']
 await check('E3 a tela simples é cliente e só importa módulos de navegador/puros; v2Simple, v2Research e v2VideoFrames não têm import; textLanguage é pura', () => {
   const imps = [...SRC.simple.matchAll(/^import[\s\S]*?from '([^']+)'/gm)].map((m) => m[1])
   return /^'use client'/.test(SRC.simple) && imps.length >= 8 && imps.every((m) => IMPORTS_OK.includes(m)) &&
-    [SRC.simpleLib, SRC.research, SRC.frames, rd('lib/ads/v2UserVideo.ts'), rd('lib/textLanguage.ts'), rd('lib/ui/interfaceLanguage.ts'), rd('lib/ads/sample.ts'), rd('lib/ads/v2Styles.ts'), rd('lib/ads/v2Presenter.ts'), rd('lib/ads/v2LinkImport.ts'), rd('lib/ads/afterSample.ts')].every((s) => !/^\s*import\s(?!type)/m.test(s)) && !/trackEvent\(/.test(SRC.simple)
+    [SRC.simpleLib, SRC.research, SRC.frames, rd('lib/ads/v2UserVideo.ts'), rd('lib/textLanguage.ts'), rd('lib/ui/interfaceLanguage.ts'), rd('lib/ads/sample.ts'), rd('lib/ads/v2Styles.ts'), rd('lib/ads/v2Presenter.ts'), rd('lib/ads/v2LinkImport.ts'), rd('lib/ads/afterSample.ts'), rd('lib/ads/v2PresenterLibrary.ts')].every((s) => !/^\s*import\s(?!type)/m.test(s)) && !/trackEvent\(/.test(SRC.simple)
 })
 await check('E4 trava 8.2: nenhum arquivo do modo simples mora em caminho travado', () => {
   const novos = [F.simple, F.simpleLib, F.research, F.frames, F.researchRoute, F.contract, F.brief, F.planRoute, F.ordersRoute, F.client]
@@ -773,7 +781,8 @@ const soOsMarcadosNaTela = (src) => {
     // REANCORADO 29/09 (KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29): o corpo ganhou `videos` (vídeos que entram como vídeo); fatos iguais.
     // KINEO-ESTILOS-PRODUTO-2026-10-09 — re-ancorado: o corpo ganhou o estilo (só quando escolhido, depois dos fatos); fatos iguais.
     // KINEO-ATOR-ANUNCIO-2026-10-09 — re-ancorado: o corpo ganhou o ator (só quando ligado, antes das fotos); fatos iguais.
-    /body: \{ mode: 'simple', order_id: orderId, sector, logo_footage_id: logo\?\.footageId \?\? null, \.\.\.\(presenterOn \? \{ presenter: true \} : \{\}\), photos: uploaded, videos, card_footage_id: card\.footageId, facts: chosen, \.\.\.\(style !== 'none' \? \{ style \} : \{\}\) \},/.test(plan) &&
+    // KINEO-ATORES-IA-2026-10-13 — re-ancorado: o corpo ganhou, no fim, o apresentador escolhido (só com o ator ligado); fatos iguais.
+    /body: \{ mode: 'simple', order_id: orderId, sector, logo_footage_id: logo\?\.footageId \?\? null, \.\.\.\(presenterOn \? \{ presenter: true \} : \{\}\), photos: uploaded, videos, card_footage_id: card\.footageId, facts: chosen, \.\.\.\(style !== 'none' \? \{ style \} : \{\}\), \.\.\.\(presenterOn && presenterPick \? \{ presenter_id: presenterPick \} : \{\}\) \},/.test(plan) &&
     (plan.match(/facts:/g) || []).length === 2 && /setPlan\(\{ \.\.\.r\.data, sig: JSON\.stringify\(\{ base: baseAtStart, facts: chosen \}\), cardSig: card\.sig \}\)/.test(plan) &&
     (s.match(/'\/api\/ads\/v2\/plan'/g) || []).length === 1 &&
     /const planSig = JSON\.stringify\(\{ base: baseSig, facts: factsNow\.filter\(\(f\) => isFactOn\(f\)\)\.map\(\(f\) => f\.id\) \}\)/.test(s)

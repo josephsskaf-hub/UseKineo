@@ -232,7 +232,8 @@ await check('2d rota /plan: interruptor + narração do PEDIDO (400 presenter_ne
   return /const presenterAsked = ADS_V2_PRESENTER_PUBLIC && input\.presenter === true/.test(s) &&
     /if \(presenterAsked && order\.narration !== true\) return v2Fail\('presenter_needs_voice_and_product', 400\)/.test(s) &&
     ordem(s, 'const presenterAsked', "v2Fail('presenter_needs_voice_and_product', 400)", 'ownedFootage(', 'extractAdsV2Brief(', 'planAdsV2Presenter(', 'const stored: AdsV2StoredPlan') &&
-    /const presenter = presenterAsked && extracted\.copy\.narration \? planAdsV2Presenter\(\{ sector, photos, seedKey: order\.id \}\) : null/.test(s) &&
+    // KINEO-ATORES-IA-2026-10-13 — re-ancorado: a chamada ganhou o apresentador escolhido (presenterId; ausente = o sorteio de sempre).
+    /const presenter = presenterAsked && extracted\.copy\.narration \? planAdsV2Presenter\(\{ sector, photos, seedKey: order\.id, presenterId: input\.presenter_id \?\? null \}\) : null/.test(s) &&
     /\.\.\.\(presenter \? \{ presenter \} : \{\}\) \}/.test(s) && /seconds: plan\.totalSeconds, presenter: !!presenter \}\)/.test(s) && P.ADS_V2_PRESENTER_PUBLIC === true
 })
 
