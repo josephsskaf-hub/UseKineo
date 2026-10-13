@@ -9,7 +9,7 @@ import { captionFontFor, DEFAULT_CAPTION_FONT, type NarrationLanguage } from '@/
 import { toFile } from 'openai'
 import { createClient as createSupabaseClient, type SupabaseClient } from '@supabase/supabase-js'
 import { buildCaptionSegments, pickHighlightWord, OPENAI_TTS_TIMEOUT_MS, OPENAI_WHISPER_TIMEOUT_MS, type CaptionSegment } from '@/lib/openai'
-import { stripScriptMarkers } from '@/lib/scriptParser'
+import { stripScriptMarkers, salvageScriptNarration } from '@/lib/scriptParser' // KINEO-ESTORNO-NARRACAO-2026-10-13 (+salvageScriptNarration)
 // KINEO-RENDER-PROFILE-2026-08-10 — o bloco de output (width/height/fps) do
 // payload do Creatomate. Módulo puro, sem cliente e sem chave de API: seguro
 // para o caminho do compose-status (ver o NOTE do topo deste arquivo).
@@ -555,7 +555,14 @@ export async function generateTTS(
   // Push #236 — last line of defense: strip any residual script markers /
   // directives so the narrator can never speak "[Pexels: ...]" or a "speed:"
   // line, no matter what upstream produced `script`. Idempotent on clean text.
-  const cleaned = stripScriptMarkers(script)
+  // KINEO-ESTORNO-NARRACAO-2026-10-13 — a MESMA escada do /api/compose (estrito → tolerante). O estrito trata como
+  // "cabeçalho em MAIÚSCULAS" toda linha com letra latina maiúscula e nenhuma minúscula latina: um roteiro em urdu [KINEO-ESTORNO-NARRACAO-2026-10-13]
+  // com "CEO" (13/10, cinematic-aee83c6e, 194 caracteres) ou "AI COPILOT" (11/10, cinematic-a9159832) vira ''. O [KINEO-ESTORNO-NARRACAO-2026-10-13]
+  // compose resgata pelo tolerante, mas esta função re-saneava pelo estrito e mandava input '' à OpenAI → 400 [KINEO-ESTORNO-NARRACAO-2026-10-13]
+  // string_too_short → 502 "Voiceover generation failed", DETERMINÍSTICO (o cron de resgate repetiu e levou o mesmo). [KINEO-ESTORNO-NARRACAO-2026-10-13]
+  // Texto que o estrito já aceita segue byte a byte igual (o tolerante só entra quando sobrou zero). [KINEO-ESTORNO-NARRACAO-2026-10-13]
+  const cleaned = stripScriptMarkers(script) || salvageScriptNarration(script) // KINEO-ESTORNO-NARRACAO-2026-10-13
+  if (!cleaned.trim()) throw new Error('TTS input is empty after sanitization') // KINEO-ESTORNO-NARRACAO-2026-10-13 — nunca chama a OpenAI com ''
 
   // ── Phase 2b: ElevenLabs premium provider (flag-gated, fail-open) ─────────
   // When ELEVENLABS_API_KEY is set AND KINEO_ELEVENLABS_ENABLED is on AND the
@@ -1516,7 +1523,7 @@ export function resolveTtsVoiceIdentity(
   language: NarrationLanguage, // KINEO-IDIOMAS-15
   model: string,
 ): { voice: string; speed: number; model: string } {
-  const cleaned = stripScriptMarkers(script)
+  const cleaned = stripScriptMarkers(script) || salvageScriptNarration(script) // KINEO-ESTORNO-NARRACAO-2026-10-13 — espelho de generateTTS (mesma persona, mesma chave de cache)
   if (vertical) {
     try {
       const persona = selectPersonaForScript(cleaned, vertical, userTier, language)

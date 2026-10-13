@@ -122,7 +122,18 @@ let BASE = null
 const rdBase = (p) => { if (!BASE) return null; try { return semCR(git(['show', `${BASE}:${p}`])) } catch { return null } }
 console.log(`   base de comparação: ${BASE ?? '(nenhuma)'}`)
 
-const SRC = { rota: rd(ROTA_P), compose: rd(COMPOSE_P), lib: rd(LIB_P), voz: rd(VOZ_P) }
+// reancorado KINEO-ESTORNO-NARRACAO-2026-10-13 [TRAVA 8.2 — vai do fundador 13/10 'tudo sim nos 3 consertos']: o conserto de 13/10 troca em
+// lib/compose.ts SÓ linhas marcadas (a escada estrito → tolerante em generateTTS/resolveTtsVoiceIdentity, o import e a trava de input
+// vazio — prova própria em scripts/test-estorno-narracao-1310.mjs). Aqui elas voltam à forma da base em memória; qualquer outra mudança
+// em lib/compose.ts segue vermelha no byte a byte abaixo.
+const MARCA_ESTORNO_NARRACAO = 'KINEO-ESTORNO-NARRACAO-2026-10-13'
+const semEstornoNarracao = (t) => (t == null ? t : t.split(LF).flatMap((l) => {
+  if (!l.includes(MARCA_ESTORNO_NARRACAO)) return [l]
+  if (l.startsWith('import { stripScriptMarkers, salvageScriptNarration } from ')) return ["import { stripScriptMarkers } from '@/lib/scriptParser'"]
+  if (l.startsWith('  const cleaned = stripScriptMarkers(script) || salvageScriptNarration(script) //')) return ['  const cleaned = stripScriptMarkers(script)']
+  return []
+}).join(LF))
+const SRC = { rota: rd(ROTA_P), compose: rd(COMPOSE_P), lib: semEstornoNarracao(rd(LIB_P)), voz: rd(VOZ_P) } // reancorado KINEO-ESTORNO-NARRACAO-2026-10-13
 const SRC_BASE = { rota: rdBase(ROTA_P), compose: rdBase(COMPOSE_P), lib: rdBase(LIB_P), voz: null }
 checa('a base (rota, compose e lib/compose sem o conserto) está disponível e não tem o marcador',
   Boolean(SRC_BASE.rota && SRC_BASE.compose && SRC_BASE.lib) && ![SRC_BASE.rota, SRC_BASE.compose, SRC_BASE.lib].some((s) => s.includes(MARCA)))
