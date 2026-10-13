@@ -1,4 +1,4 @@
-// KINEO-AGENCIAS-2026-10-13 — guardião do PROGRAMA DE AGÊNCIAS (fundador 13/10, "tudo sim").
+// KINEO-AGENCIAS-2026-10-13 (reancorado no merge com KINEO-AFILIADO-30-NOVOS: select e régua ganharam created_at) — guardião do PROGRAMA DE AGÊNCIAS (fundador 13/10, "tudo sim").
 //
 // Prova, EXECUTANDO os módulos puros pelo carregador offline da casa e lendo as rotas que não rodam fora do servidor:
 //   (1) comissão: agência (affiliates.partner_type = 'agency') ganha 30% SÓ na cobrança do Business; afiliado comum segue
@@ -69,14 +69,14 @@ function runChecks(over = {}, verbose = false) {
   check(A.BUSINESS_AFFILIATE_COMMISSION_RATE === 0.2, '(1) Business comum segue 0.2')
   check(A.businessAffiliateCommissionRate('agency') === 0.3 && A.businessAffiliateCommissionRate(' Agency ') === 0.3, '(1) agência → 30% no Business')
   check([undefined, null, '', 'creator', 'agencyx', 'x', 1, {}].every((t) => A.businessAffiliateCommissionRate(t) === 0.2), '(1) criador / nulo / lixo → 20% no Business')
-  check(A.affiliateCommissionRateForPlan(0.3, 'business', 'agency') === 0.3 && A.affiliateCommissionRateForPlan(0.5, 'business', 'agency') === 0.3, '(1) agência no Business = 30% (acordo maior não vale no Business)')
-  check(A.affiliateCommissionRateForPlan(0.3, 'business') === 0.2 && A.affiliateCommissionRateForPlan(0.5, 'business', 'creator') === 0.2, '(1) sem tipo / criador no Business = 20% (como antes)')
+  check(A.affiliateCommissionRateForPlan(0.3, 'business', undefined, 'agency') === 0.3 && A.affiliateCommissionRateForPlan(0.5, 'business', undefined, 'agency') === 0.3, '(1) agência no Business = 30% (acordo maior não vale no Business)')
+  check(A.affiliateCommissionRateForPlan(0.3, 'business') === 0.2 && A.affiliateCommissionRateForPlan(0.5, 'business', undefined, 'creator') === 0.2, '(1) sem tipo / criador no Business = 20% (como antes)')
   {
     let same = true
     for (const stored of [null, undefined, 0.3, 0.4, 0.5, 0.9, 'x', 2, -1, '0.45']) {
       for (const plan of ['basic', 'pro', 'studio', 'starter', 'autopilot', 'autopilot_lite', null, undefined, '']) {
         for (const t of [undefined, null, 'creator', 'agency']) {
-          if (A.affiliateCommissionRateForPlan(stored, plan, t) !== A.effectiveAffiliateCommissionRate(stored)) same = false
+          if (A.affiliateCommissionRateForPlan(stored, plan, undefined, t) !== A.effectiveAffiliateCommissionRate(stored)) same = false
         }
       }
     }
@@ -86,8 +86,8 @@ function runChecks(over = {}, verbose = false) {
 
   // (2) webhook
   const wh = codeOnly(src(over, F.WEBHOOK))
-  check(wh.includes(".select('id, commission_rate, status')"), "(2) webhook: o select de sempre ('id, commission_rate, status') não mudou")
-  check(wh.includes('const rate = effectiveAffiliateCommissionRate(aff.commission_rate)'), '(2) webhook: régua dos outros planos intacta')
+  check(wh.includes(".select('id, commission_rate, status, created_at')"), "(2) webhook: o select de sempre ('id, commission_rate, status') não mudou")
+  check(wh.includes('const rate = effectiveAffiliateCommissionRate(aff.commission_rate, aff.created_at)'), '(2) webhook: régua dos outros planos intacta')
   check(/const partnerType = isBusinessCommissionPlan\(args\.plan\) \? await readAffiliatePartnerType\(supabase, affiliateId\) : null\n\s+const chargeRate = isBusinessCommissionPlan\(args\.plan\) \? businessAffiliateCommissionRate\(partnerType\) : rate\n\s+const commission = calculateAffiliateCommission\(args\.amountGross, chargeRate\)/.test(wh), '(2) webhook: tipo lido só no Business e a taxa do Business sai de businessAffiliateCommissionRate(partnerType)')
   const fn = wh.match(/async function readAffiliatePartnerType\([\s\S]*?\n\}/)?.[0] ?? ''
   check(/\.select\('partner_type'\)/.test(fn) && /\.eq\('id', affiliateId\)/.test(fn), '(2) readAffiliatePartnerType lê só partner_type da linha do afiliado')
@@ -177,7 +177,7 @@ const MUTANTS = [
   ['webhook ignora o tipo', F.WEBHOOK, '? businessAffiliateCommissionRate(partnerType) : rate', '? businessAffiliateCommissionRate(null) : rate', /\(2\) webhook: tipo lido/],
   ['webhook lê o tipo em todo plano', F.WEBHOOK, 'const partnerType = isBusinessCommissionPlan(args.plan) ? await readAffiliatePartnerType(supabase, affiliateId) : null', 'const partnerType = await readAffiliatePartnerType(supabase, affiliateId)', /\(2\) webhook: tipo lido/],
   ['webhook engole erro de leitura', F.WEBHOOK, "    throw new AffiliateLedgerIntegrityError('Could not read affiliate partner type')", '    return null', /\(2\) outra falha/],
-  ['select principal muda', F.WEBHOOK, ".select('id, commission_rate, status')", ".select('id, commission_rate, status, partner_type')", /\(2\) webhook: o select de sempre/],
+  ['select principal muda', F.WEBHOOK, ".select('id, commission_rate, status, created_at')", ".select('id, commission_rate, status, created_at, partner_type')", /\(2\) webhook: o select de sempre/],
   ['site aceita host sem domínio', F.PROG, "if (!u.hostname.includes('.') || u.username || u.password) return null", 'if (u.username || u.password) return null', /\(3\) site/],
   ['site perde a limpeza de credencial', F.PROG, "if (!u.hostname.includes('.') || u.username || u.password) return null", "if (!u.hostname.includes('.')) return null", /\(3\) site/],
   ['armadilha removida da rota', F.ROUTE, '  if (isAgencyHoneypotHit(body)) return reply({ ok: true })\n', '', /\(6\) armadilha/],

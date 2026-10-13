@@ -8,7 +8,7 @@ import { FREE_FILM_COUNTRY_CLAUSE } from '@/lib/freeFilmPolicy' // KINEO-E4-CONS
 import { TRIAL_CREDITS_SHOWN, TRIAL_FREE_FILM_SECONDS, TRIAL_SEEDANCE15_FILMS } from '@/lib/freeTierOffer'
 import { PARTNER_PACK_DAYS, PARTNER_PACK_LIVE, PARTNER_PACK_STAGE1_CREDITS, PARTNER_PACK_STAGE2_CREDITS } from '@/lib/partnerPack'
 // #486 — Public affiliate-recruiting landing. The page every outreach links to.
-// Explains the verified recurring model (rate = AFFILIATE_COMMISSION_PCT, 40% since 06/10), first-touch window and how to
+// Explains the verified recurring model (rate = AFFILIATE_COMMISSION_PCT, 30% for affiliates who join from 14/10; earlier ones keep 40%), first-touch window and how to
 // apply through the built-in affiliate dashboard. Static, in sitemap for SEO.
 //
 // PUSH #101 — COPY DRIFT KILLED. This page used to promise a human review step
@@ -16,10 +16,11 @@ import { PARTNER_PACK_DAYS, PARTNER_PACK_LIVE, PARTNER_PACK_STAGE1_CREDITS, PART
 // true when app/api/affiliate/apply/route.ts:110 started inserting new
 // affiliates with `status: 'active'` instead of 'pending'. Every claim below is
 // now traceable to code:
-//   40% commission      → app/api/affiliate/apply/route.ts grava commission_rate: AFFILIATE_COMMISSION_RATE (0.4,
+//   30% commission      → app/api/affiliate/apply/route.ts grava commission_rate: AFFILIATE_COMMISSION_RATE (0.3,
 //                         lib/affiliateCommission.ts); o webhook (recordAffiliateCommission) paga
-//                         effectiveAffiliateCommissionRate(linha): a taxa do programa é piso, então as linhas antigas
-//                         gravadas com 0.3 também recebem 40%. KINEO-AFILIADOS-40-2026-10-06 (fundador 06/10: 30% → 40%).
+//                         effectiveAffiliateCommissionRate(linha, created_at): o piso é 40% para quem entrou antes de
+//                         14/10 (veterano, mesmo com 0.3 gravado) e 30% depois. KINEO-AFILIADO-30-NOVOS-2026-10-13
+//                         (fundador 13/10: novos 30%; era 40% desde KINEO-AFILIADOS-40-2026-10-06).
 //   90-day first touch  → app/a/[code]/route.ts:13 (COOKIE_MAX_AGE) + :58-68
 //                         (cookie is only set when absent = first touch wins)
 //   link live instantly → app/api/affiliate/apply/route.ts:110 ('active') is
@@ -55,7 +56,7 @@ import {
 
 // KINEO-PRICING-V6-2026-08-19 — a ilustração de ganhos é CALCULADA, não
 // digitada. A taxa é a que app/api/affiliate/apply/route.ts grava e o webhook paga
-// (AFFILIATE_COMMISSION_RATE, 40% desde 06/10 — era 30% de 09/09 a 06/10); o piso e o teto são o plano mais barato e o mais caro
+// (AFFILIATE_COMMISSION_RATE, 30% desde 14/10 — 40% de 06/10 a 13/10, 30% de 09/09 a 06/10); o piso e o teto são o plano mais barato e o mais caro
 // da escada de assinatura (Autopilot fica de fora de propósito: $299/mês num
 // exemplo de afiliado infla a promessa com um produto que quase ninguém compra).
 const COMMISSION_RATE = AFFILIATE_COMMISSION_RATE

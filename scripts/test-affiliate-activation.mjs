@@ -69,7 +69,8 @@ ok(component.includes("href=\"/affiliate\""), 'card enters existing partner kit'
 ok(component.includes('affiliate_momentum_card_viewed'), 'visible card is measured')
 ok(component.includes('affiliate_momentum_card_clicked'), 'activation click is measured')
 ok(component.includes("state === 'pending' || state === 'suspended'"), 'non-actionable accounts are not sold another state')
-ok(component.includes('40% on eligible subscription payments'), 'approved commission promise is qualified')
+// KINEO-AFILIADO-30-NOVOS-2026-10-13 — re-anchored: the card speaks to people who are NOT affiliates yet, so it says the new-affiliate rate (30%).
+ok(component.includes('30% on eligible subscription payments'), 'approved commission promise is qualified')
 ok(history.includes('isAffiliateMomentumEligible({'), 'real history caller uses eligibility policy')
 ok(history.includes('isHistorySubscriptionOfferEligible({'), 'real history caller uses subscription recovery policy')
 ok(history.includes('history_first_video_offer_viewed'), 'one-video recovery impression is measured separately')

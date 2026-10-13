@@ -140,7 +140,7 @@ ${sig}`
   if (seg === 'paying') {
     return `${open}
 <p>Hey — Joseph here, founder of Kineo.</p>
-<p>You're one of the first paying customers we've ever had, and I don't take that lightly. So before I tell anyone else: our affiliate program pays <b>40% of every payment, recurring</b> — for anyone you send our way.</p>
+<p>You're one of the first paying customers we've ever had, and I don't take that lightly. So before I tell anyone else: our affiliate program pays <b>30% of every payment, recurring</b> — for anyone you send our way.</p>
 <p>You already know what the product does. If one creator friend signs up on Creator, that's real money every month, forever.</p>
 <p style="margin:22px 0"><a href="https://usekineo.com/affiliate?intent_campaign=hotlead_paying" style="background:#2997ff;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold">Get your link &rarr;</a></p>
 <p>And as always — anything broken, anything missing, reply here. Founding customers get founder answers.</p>
@@ -234,7 +234,7 @@ async function collectSegments(): Promise<Record<Segment, Lead[]>> {
     const lead: Lead = { id: p.id, email, videos, credits }
     const isPaying = PAID_PLANS.has((p.plan ?? '').toString())
     if (isPaying) {
-      // Unico segmento de pagantes: convite de afiliado 40%.
+      // Unico segmento de pagantes: convite de afiliado 30% (era 40% até 13/10).
       out.paying.push(lead)
       continue
     }

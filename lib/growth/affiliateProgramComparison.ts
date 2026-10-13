@@ -26,9 +26,9 @@ export interface AffiliateProgramComparisonRow {
 export const AFFILIATE_PROGRAM_COMPARISON: readonly AffiliateProgramComparisonRow[] = [
   {
     program: 'Kineo',
-    // Espelho de AFFILIATE_COMMISSION_PCT (lib/affiliateCommission.ts) — lib pura, sem import. 40% desde 06/10;
+    // Espelho de AFFILIATE_COMMISSION_PCT (lib/affiliateCommission.ts) — lib pura, sem import. 30% para quem entra desde 14/10 (KINEO-AFILIADO-30-NOVOS-2026-10-13; era 40% desde 06/10);
     // scripts/test-afiliados-40-2026-10-06.mjs fica vermelho se o espelho divergir da fonte.
-    commission: '40% recurring',
+    commission: '30% recurring',
     recurrence: 'Eligible payments while the referred customer stays subscribed',
     activation: 'Instant, self-serve in Kineo',
     distribution: 'Tracked link plus a spoken checkout coupon for linkless video',

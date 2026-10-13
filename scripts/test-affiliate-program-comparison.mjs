@@ -33,7 +33,7 @@ equal(comparison.affiliateComparisonPrograms().join(','), 'Kineo,OpusClip,InVide
 const kineo = comparison.kineoAffiliateComparisonRow()
 // Reancorado 06/10 (KINEO-AFILIADOS-40-2026-10-06, fundador: 30% → 40%): a linha da Kineo é espelho da fonte única.
 const commissionSource = loadTs('lib/affiliateCommission.ts')
-equal(kineo.commission, `${commissionSource.AFFILIATE_COMMISSION_PCT} recurring`, 'Kineo rate mirrors AFFILIATE_COMMISSION_PCT (40% desde 06/10)')
+equal(kineo.commission, `${commissionSource.AFFILIATE_COMMISSION_PCT} recurring`, 'Kineo rate mirrors AFFILIATE_COMMISSION_PCT (30% para o afiliado novo desde 14/10 — KINEO-AFILIADO-30-NOVOS-2026-10-13)')
 ok(kineo.recurrence.includes('stays subscribed'), 'Kineo duration is explicit')
 ok(kineo.activation.includes('Instant'), 'Kineo instant activation is explicit')
 ok(kineo.distribution.includes('coupon'), 'Kineo linkless-video advantage is explicit')

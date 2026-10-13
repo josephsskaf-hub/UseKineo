@@ -21,7 +21,8 @@ checa('decisões do fundador na fonte: mínimo 20, dia 15, carência 30, bônus 
 checa('frase de repasse derivada (30 days, 15th, $20 minimum, roll over)', /30 days after/.test(exp.AFFILIATE_PAYOUT_TERMS) && /by the 15th/.test(exp.AFFILIATE_PAYOUT_TERMS) && /\$20 minimum/.test(exp.AFFILIATE_PAYOUT_TERMS) && /roll over/.test(exp.AFFILIATE_PAYOUT_TERMS))
 checa('frase do bônus derivada ($3, first 20, paid together, never separate)', /\$3 after/.test(exp.AFFILIATE_BONUS_TERMS) && /first 20 affiliates/.test(exp.AFFILIATE_BONUS_TERMS) && /paid together with your first commission, never as a separate payout/.test(exp.AFFILIATE_BONUS_TERMS))
 // Reancorado 06/10 (KINEO-AFILIADOS-40-2026-10-06): o fundador voltou a comissão para 40% recorrente.
-checa('comissão é 40% (decisão do fundador 06/10)', exp.AFFILIATE_COMMISSION_RATE === 0.4)
+// Reancorado 13/10 (KINEO-AFILIADO-30-NOVOS-2026-10-13): afiliado novo ganha 30%; quem entrou antes do corte segue com 40%.
+checa('comissão do afiliado novo é 30% e o veterano segue 40% (decisão do fundador 13/10)', exp.AFFILIATE_COMMISSION_RATE === 0.3 && exp.LEGACY_AFFILIATE_COMMISSION_RATE === 0.4 && typeof exp.affiliateCommissionFloor === 'function' && exp.affiliateCommissionFloor('2026-10-06T12:00:00Z') === 0.4 && exp.affiliateCommissionFloor('2026-10-20T00:00:00Z') === 0.3)
 
 const partners = rd('app/partners/page.tsx')
 checa('/partners: "When do I get paid?" usa AFFILIATE_PAYOUT_TERMS e pede o PayPal', /When do I get paid\?', a: `[^`]*\$\{AFFILIATE_PAYOUT_TERMS\}[^`]*PayPal/.test(partners))

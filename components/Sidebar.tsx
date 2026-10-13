@@ -638,7 +638,7 @@ export default function Sidebar({
             {MORE_TOOLS_NAV.filter(item => item.href !== '/clips' || clipsVisible(userEmail)).map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={false} pathname={pathname} onClick={onClose} />)}
           </div>
           {/* KINEO-MENU-ENXUTO-2026-10-09 — o "More" saiu (fundador, "1 sim"): Animate/Audio/Autopilot/Channel Builder fora do menu;
-              Invite & Earn + Affiliate viraram um item só, "Earn 40%" (o programa de afiliados). */}
+              Invite & Earn + Affiliate viraram um item só, "Earn 30%" (o programa de afiliados; 30% para quem entra desde 14/10 — KINEO-AFILIADO-30-NOVOS-2026-10-13). */}
           {isLoggedIn && (
             <div className="workspace-nav-group">
               <>
@@ -648,7 +648,7 @@ export default function Sidebar({
                     since it's the same job-to-be-done (grow the account by bringing in
                     others). Reuses the "pricing" tag icon — closest existing NAV_ICONS
                     match for a commission/money concept. */}
-                <NavItem href="/affiliate" icon={NAV_ICONS.pricing} label="Earn 40%" exact={false} pathname={pathname} onClick={onClose} />
+                <NavItem href="/affiliate" icon={NAV_ICONS.pricing} label="Earn 30%" exact={false} pathname={pathname} onClick={onClose} />
               </>
             </div>
           )}

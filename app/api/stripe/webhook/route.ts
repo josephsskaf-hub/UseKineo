@@ -651,7 +651,7 @@ async function recordAffiliateCommission(
     const currency = normalizeAffiliateCurrency(args.currency || 'usd')
     const { data: aff, error: affiliateError } = await supabase
       .from('affiliates')
-      .select('id, commission_rate, status')
+      .select('id, commission_rate, status, created_at')
       .eq('id', affiliateId)
       .single()
     if (affiliateError) {
@@ -660,7 +660,8 @@ async function recordAffiliateCommission(
     if (!aff || aff.status !== 'active') return
     // KINEO-AFILIADOS-40-2026-10-06 — era `Number(aff.commission_rate ?? 0)`: a taxa gravada na linha (0.3 nas 25
     // linhas de hoje) decidia sozinha. Agora a taxa do programa (lib/affiliateCommission.ts) é piso; maior por pessoa vale.
-    const rate = effectiveAffiliateCommissionRate(aff.commission_rate)
+    // KINEO-AFILIADO-30-NOVOS-2026-10-13 — + created_at: veterano (antes do corte) tem piso 40%, novo 30%.
+    const rate = effectiveAffiliateCommissionRate(aff.commission_rate, aff.created_at)
     // KINEO-BUSINESS-84-2026-10-09 — a cobrança do Business paga 20% fixo (lib/affiliateCommission.ts, mesma regra de
     // affiliateCommissionRateForPlan); qualquer outro plano segue a régua de antes (`rate`).
     // KINEO-AGENCIAS-2026-10-13 — no Business, a agência (affiliates.partner_type = 'agency') ganha 30% em vez de 20%.

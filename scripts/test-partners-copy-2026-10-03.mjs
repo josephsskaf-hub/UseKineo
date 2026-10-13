@@ -87,7 +87,8 @@ const mutants = [
   ['copy antiga ("every engine unlocked")', () => problems(withLine(OLD))],
   ['copy promete entrega automática com o interruptor desligado', () => problems(PAGE.replace("${PARTNER_PACK_LIVE ? 'The first part is added when you join.' : 'Email us after you join to get it.'}", 'The first part is added when you join.'))],
   ['créditos digitados à mão', () => problems(PAGE.replace('starts free with ${TRIAL_CREDITS_SHOWN} credits', 'starts free with 30 credits'))],
-  ['comentário volta a digitar a taxa', () => problems(PAGE.replace('commission_rate: AFFILIATE_COMMISSION_RATE (0.4,', 'commission_rate: 0.4 (0.4,'))],
+  // Reancorado 13/10 (KINEO-AFILIADO-30-NOVOS-2026-10-13): o comentário agora diz (0.3,.
+  ['comentário volta a digitar a taxa', () => problems(PAGE.replace('commission_rate: AFFILIATE_COMMISSION_RATE (0.3,', 'commission_rate: 0.3 (0.3,'))],
 ]
 for (const [name, run] of mutants) {
   let caught = false

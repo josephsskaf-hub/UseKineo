@@ -62,7 +62,7 @@ export default function AffiliateMomentumCard({ completedVideoCount }: { complet
         <p className="text-xs leading-relaxed" style={{ color: 'var(--muted2)', margin: 0, maxWidth: 650 }}>
           {active
             ? 'Send people to the free script generator with your link. Eligible subscription payments stay credited to you while the customer remains subscribed.'
-            : 'You have real output to show now. Activate a partner link, send people to a useful free script tool, and earn 40% on eligible subscription payments you refer.'}
+            : 'You have real output to show now. Activate a partner link, send people to a useful free script tool, and earn 30% on eligible subscription payments you refer.'}
         </p>
       </div>
       <Link
