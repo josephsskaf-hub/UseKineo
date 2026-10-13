@@ -17,6 +17,7 @@ export function desfazEscritorOmni(p, s) {
   if (s == null) return s
   const crlf = s.includes('\r\n')
   let t = crlf ? s.replace(/\r\n/g, '\n') : s
+  t = desfazEstornoNarracaoLf(p, t) // KINEO-LEVA3-1310 — o conserto da narração (13/10, 'tudo sim nos 3 consertos') também sai
   if (p === 'lib/runway.ts') t = t.split(INSERCAO_RUNWAY).join('').split(COMENTARIO_RUNWAY).join('')
   t = t.split('\n').filter((l) => !l.includes(MARCA_ESCRITOR) && !l.includes(MARCA_OMNI_ETAPA1)).join('\n')
   return crlf ? t.replace(/\n/g, '\r\n') : t
@@ -26,4 +27,27 @@ export function desfazEscritorOmni(p, s) {
 export function linhaDoEscritorOmni(linha) {
   const l = String(linha ?? '').replace(/\r$/, '')
   return l.includes(MARCA_ESCRITOR) || l.includes(MARCA_OMNI_ETAPA1)
+}
+
+// KINEO-LEVA3-1310 [TRAVA 8.2 — vai do fundador 13/10 'tudo sim nos 3 consertos'] — KINEO-ESTORNO-NARRACAO-2026-10-13 em memória:
+//   · lib/compose.ts — DUAS linhas da base foram TROCADAS (o import ganhou salvageScriptNarration; o `cleaned` ganhou "|| salvage")
+//     e voltam por string exata; as demais linhas marcadas são novas e saem;
+//   · app/api/compose/route.ts — só linhas NOVAS marcadas (saem).
+// Linha marcada que troque OUTRA linha da base some daqui e a base fica faltando essa linha: o byte a byte fica vermelho
+// (falha fechada). Prova da mudança: scripts/test-estorno-narracao-1310.mjs.
+export const MARCA_ESTORNO_NARRACAO = 'KINEO-ESTORNO-NARRACAO-2026-10-13'
+function desfazEstornoNarracaoLf(p, t) {
+  return t.split('\n').flatMap((l) => {
+    if (!l.includes(MARCA_ESTORNO_NARRACAO)) return [l]
+    if (p === 'lib/compose.ts' && l.startsWith('import { stripScriptMarkers, salvageScriptNarration } from ')) return ["import { stripScriptMarkers } from '@/lib/scriptParser'"]
+    if (p === 'lib/compose.ts' && l.startsWith('  const cleaned = stripScriptMarkers(script) || salvageScriptNarration(script) //')) return ['  const cleaned = stripScriptMarkers(script)']
+    return []
+  }).join('\n')
+}
+/** O arquivo `p` sem o conserto da narração de 13/10 (só ele); null/undefined passam direto. */
+export function desfazEstornoNarracao(p, s) {
+  if (s == null) return s
+  const crlf = s.includes('\r\n')
+  const t = desfazEstornoNarracaoLf(p, crlf ? s.replace(/\r\n/g, '\n') : s)
+  return crlf ? t.replace(/\n/g, '\r\n') : t
 }

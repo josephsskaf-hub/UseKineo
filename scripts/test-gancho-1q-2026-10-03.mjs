@@ -25,6 +25,7 @@ import { execFileSync } from 'node:child_process'
 // par que não casa = texto intocado = vermelho). Fora disso, o byte a byte de sempre.
 import { desfazH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
 import { desfazEscritorOmni } from './test-support/desfaz-escritor-omni-1310.mjs' // reancorado 13/10 (KINEO-ESCRITOR-MONUMENTO-2026-10-13 · KINEO-OMNI-ETAPA1-2026-10-13, 'tudo sim' do fundador): runway/compose/cinematic sem as mudanças de 13/10, em memória, antes do byte a byte
+import { desfazEstornoNarracao } from './test-support/desfaz-escritor-omni-1310.mjs' // reancorado KINEO-LEVA3-1310 [TRAVA 8.2 — vai do fundador 13/10 'tudo sim nos 3 consertos']: lib/compose.ts sem o conserto da narração (KINEO-ESTORNO-NARRACAO-2026-10-13), em memória, antes do byte a byte
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -236,7 +237,8 @@ if (BASE) {
   const semBusiness = (t) => t.split('\n').filter((l) => !l.includes('KINEO-BUSINESS-84-2026-10-09')).join('\n')
   ok(semBusiness(semMarca(desfazEscritorOmni(ROTA, desfazH3max(ROTA, rota))).split('\n').filter((l) => !l.includes('KINEO-SEM-LEGENDA-2026-10-06')).join('\n')) === rdBase(ROTA), 'compose: fora das linhas marcadas, byte a byte a base')
   ok(semBusiness(semMarca(unlock)) === rdBase(UNLOCK), 'unlock: fora das linhas marcadas, byte a byte a base')
-  ok(COMPOSE_LIB === rdBase('lib/compose.ts'), 'lib/compose.ts byte a byte a base (trava 8.2)')
+  ok(desfazEstornoNarracao('lib/compose.ts', COMPOSE_LIB) === rdBase('lib/compose.ts'), // reancorado KINEO-LEVA3-1310
+    'lib/compose.ts byte a byte a base (trava 8.2)')
 }
 // O "fade de abertura" do Kineo 1 (lib/compose.ts) escurece o frame 0: o gancho (trilha 11, sem transição) fica por cima.
 ok(/const FAST_OPENING_FADE_SECONDS = 0\.5/.test(COMPOSE_LIB) && /isFastStock && i === 0 && reuseIndex === 0\s*\n\s*\? \{ enter_transition: \{ type: 'fade', duration: FAST_OPENING_FADE_SECONDS \} \}/.test(COMPOSE_LIB),

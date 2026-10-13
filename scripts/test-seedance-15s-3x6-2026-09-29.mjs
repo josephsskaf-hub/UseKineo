@@ -42,6 +42,7 @@ import { desfaz3x6KlingShots } from './test-support/desfaz-3x6-klingshots.mjs'
 // par que não casa = texto intocado = vermelho); linhasTrocadasH3max lista as linhas da base trocadas. Fora disso, o byte a byte de sempre.
 import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
 import { TROCADAS_MONUMENTO } from './test-support/desfaz-monumento-1310.mjs' // KINEO-MONUMENTO-2026-10-13
+import { desfazEstornoNarracao } from './test-support/desfaz-escritor-omni-1310.mjs' // reancorado KINEO-LEVA3-1310 [TRAVA 8.2 — vai do fundador 13/10 'tudo sim nos 3 consertos']: lib/compose.ts sem o conserto da narração (KINEO-ESTORNO-NARRACAO-2026-10-13), em memória, antes do byte a byte
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ) // o loader offline resolve '@/...' a partir do cwd
@@ -468,7 +469,7 @@ const compoe = (src) => {
   return exports
 }
 const C = compoe(COMPOSE_LIB)
-checa('lib/compose.ts é o da base (o conserto é o plano assinado chegar; o ramo assinado já existia)', COMPOSE_LIB === rdBase('lib/compose.ts'))
+checa('lib/compose.ts é o da base (o conserto é o plano assinado chegar; o ramo assinado já existia)', desfazEstornoNarracao('lib/compose.ts', COMPOSE_LIB) === rdBase('lib/compose.ts')) // reancorado KINEO-LEVA3-1310
 const FIM_FRASE = /[.!?…]["'”’)\]]*$/u
 const falaDe = (texto, total) => { const ws = palavras(texto); const passo = (total - 0.5) / ws.length; return ws.map((w, i) => ({ word: w.replace(/[^\p{L}\p{N}'-]/gu, ''), start: Math.round(i * passo * 1000) / 1000, end: Math.round((i * passo + passo * 0.85) * 1000) / 1000, sentenceEnd: FIM_FRASE.test(w) })) }
 const urlsDe = (n) => Array.from({ length: n }, (_, i) => `https://v3b.fal.media/files/b/seedance/clip-${i + 1}.mp4`)

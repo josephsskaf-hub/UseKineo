@@ -25,6 +25,7 @@ import { execFileSync } from 'node:child_process'
 // par que não casa = texto intocado = vermelho); linhasTrocadasH3max lista as linhas da base trocadas. Fora disso, o byte a byte de sempre.
 import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
 import { desfazEscritorOmni } from './test-support/desfaz-escritor-omni-1310.mjs' // reancorado 13/10 (KINEO-ESCRITOR-MONUMENTO-2026-10-13 · KINEO-OMNI-ETAPA1-2026-10-13, 'tudo sim' do fundador): runway/compose/cinematic sem as mudanças de 13/10, em memória, antes do byte a byte
+import { desfazEstornoNarracao } from './test-support/desfaz-escritor-omni-1310.mjs' // reancorado KINEO-LEVA3-1310 [TRAVA 8.2 — vai do fundador 13/10 'tudo sim nos 3 consertos']: lib/compose.ts sem o conserto da narração (KINEO-ESTORNO-NARRACAO-2026-10-13), em memória, antes do byte a byte
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -638,7 +639,8 @@ console.log('5) Trava 8.2')
 console.log(`   base de comparação: ${BASE ?? '(nenhuma)'}`)
 ok(Boolean(BASE), 'a base (antes desta entrega) está disponível')
 if (BASE) {
-  ok(read('lib/compose.ts') === rdBase('lib/compose.ts'), 'lib/compose.ts byte a byte a base (o montador não muda)')
+  ok(desfazEstornoNarracao('lib/compose.ts', read('lib/compose.ts')) === rdBase('lib/compose.ts'), // reancorado KINEO-LEVA3-1310
+    'lib/compose.ts byte a byte a base (o montador não muda)')
   const pt = problemasTrava(SRC_ROTA)
   ok(pt.length === 0, '/api/compose: fora das linhas marcadas, byte a byte a base (só linhas novas, todas marcadas)')
 }
