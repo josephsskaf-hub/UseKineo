@@ -209,7 +209,7 @@ export async function GET() {
     // Find the affiliate owned by this user.
     const { data: affiliate } = await admin
       .from('affiliates')
-      .select('id, code, status, commission_rate, coupon_code')
+      .select('id, code, status, commission_rate, coupon_code, created_at')
       .eq('user_id', user.id)
       .maybeSingle()
 
@@ -315,7 +315,7 @@ export async function GET() {
       affiliate: {
         code: affiliate.code,
         status: affiliate.status,
-        commission_rate: effectiveAffiliateCommissionRate(affiliate.commission_rate),
+        commission_rate: effectiveAffiliateCommissionRate(affiliate.commission_rate, affiliate.created_at),
         coupon_code: couponCode,
       },
       link: 'https://www.usekineo.com/a/' + affiliate.code,

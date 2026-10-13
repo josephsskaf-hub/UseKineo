@@ -155,8 +155,8 @@ const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolea
 const MORE_LINKS = [
   ...MORE_TOOLS_NAV.filter(item => item.href !== '/clips' || CLIPS_PUBLIC).map(item => ({ href: item.href, label: item.label, signedIn: false })),
   ...MORE_NAV.map(item => ({ ...item, signedIn: false })),
-  // KINEO-MENU-ENXUTO-2026-10-09 — par da lateral: Invite & Earn + Affiliate viram "Earn 40%".
-  { href: '/affiliate', label: 'Earn 40%', signedIn: true },
+  // KINEO-MENU-ENXUTO-2026-10-09 — par da lateral: Invite & Earn + Affiliate viram "Earn 30%" (era 40% até 13/10).
+  { href: '/affiliate', label: 'Earn 30%', signedIn: true }, // KINEO-AFILIADO-30-NOVOS-2026-10-13: taxa de quem entra agora
   { href: '/account', label: 'Account', signedIn: true },
 ]
 

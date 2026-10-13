@@ -1,5 +1,7 @@
 # Convite "Kineo Partners" — rascunho (03/10/2026)
 
+**ATUALIZAÇÃO 13/10/2026 (KINEO-AFILIADO-30-NOVOS-2026-10-13):** a partir de **14/10/2026, afiliados novos ganham 30% recorrente**; **quem entrou antes do corte segue com 40%** (piso por `affiliates.created_at` em `lib/affiliateCommission.ts`). As três línguas abaixo (EN/PT/ES) já dizem 30% — é o convite para parceiro NOVO. Não mandar este texto a um afiliado que já existe: a taxa dele continua 40%.
+
 **Status: RASCUNHO. Não enviar antes de:** (1) aplicar as migrations `20261003120000_courtesy_grants.sql` e
 `20261003121000_partner_packs.sql`; (2) o fundador decidir se a etapa 1 sai sozinha na inscrição
 (`PARTNER_PACK_LIVE` em `lib/partnerPack.ts`, hoje `false`) ou pelo botão "dar etapa 1" em `/admin/partners`.
@@ -7,7 +9,8 @@
 Fontes dos números (não digitar à mão em outro lugar):
 - créditos e prazo: `PARTNER_PACK_STAGE1_CREDITS` (25), `PARTNER_PACK_STAGE2_CREDITS` (25), `PARTNER_PACK_DAYS` (30) e
   `PARTNER_PACK_LEVEL` (`creator_trial`) em `lib/partnerPack.ts`;
-- comissão: `AFFILIATE_COMMISSION_RATE` (0,4 → 40% desde 06/10; de 09/09 a 06/10 era 0,3 → 30%) em `lib/affiliateCommission.ts`, recorrente enquanto o indicado
+- comissão: `AFFILIATE_COMMISSION_RATE` (0,3 → 30% para quem entra desde 14/10; quem entrou antes segue com 40% pelo piso
+  `affiliateCommissionFloor(created_at)`; histórico: 30% de 09/09 a 06/10, 40% de 06/10 a 13/10) em `lib/affiliateCommission.ts`, recorrente enquanto o indicado
   assinar;
 - repasse: `AFFILIATE_PAYOUT_TERMS` (liberação 30 dias depois do pagamento, PayPal até o dia 15, mínimo US$ 20);
 - cupom do parceiro: 20% no primeiro mês do indicado (`AFFILIATE_COUPON_PERCENT` em `app/api/affiliate/me/route.ts`).
@@ -19,7 +22,7 @@ parceiro ganha créditos para CRIAR; a comissão é consequência do que os indi
 
 ## English
 
-**Subject:** Create with Kineo on us — and earn 40% from the people you bring
+**Subject:** Create with Kineo on us — and earn 30% from the people you bring
 
 Hi {first name},
 
@@ -29,7 +32,7 @@ You get **25 credits to create with Kineo**, with the Creator engines unlocked f
 actually post, publish it with your personal link or coupon, and send us the post link from your partner dashboard —
 after a quick review we add **25 more credits**.
 
-From then on, you receive **40% of every payment your referred customers make, every month, for as long as they stay
+From then on, you receive **30% of every payment your referred customers make, every month, for as long as they stay
 subscribed.** Your coupon gives them 20% off their first month.
 
 How it works:
@@ -47,7 +50,7 @@ $20 minimum balance (smaller balances roll over).
 
 ## Português
 
-**Assunto:** Crie com a Kineo por nossa conta — e receba 40% de quem você trouxer
+**Assunto:** Crie com a Kineo por nossa conta — e receba 30% de quem você trouxer
 
 Oi, {nome},
 
@@ -57,7 +60,7 @@ Você ganha **25 créditos para criar com a Kineo**, com os motores do Creator l
 você postaria de verdade, publique com o seu link ou cupom e mande o link do post pelo seu painel de parceiro —
 depois de uma revisão rápida a gente soma **mais 25 créditos**.
 
-A partir daí, você recebe **40% de tudo que os seus indicados pagarem, todo mês, enquanto eles assinarem.** O seu
+A partir daí, você recebe **30% de tudo que os seus indicados pagarem, todo mês, enquanto eles assinarem.** O seu
 cupom dá 20% de desconto no primeiro mês deles.
 
 Como funciona:
@@ -75,7 +78,7 @@ com saldo mínimo de US$ 20 (saldo menor acumula para o mês seguinte).
 
 ## Español
 
-**Asunto:** Crea con Kineo por nuestra cuenta — y recibe el 40% de quien traigas
+**Asunto:** Crea con Kineo por nuestra cuenta — y recibe el 30% de quien traigas
 
 Hola, {nombre}:
 
@@ -85,7 +88,7 @@ Recibes **25 créditos para crear con Kineo**, con los motores del plan Creator 
 que de verdad publicarías, publícalo con tu enlace o cupón y envíanos el enlace de la publicación desde tu panel de
 socio — tras una revisión rápida sumamos **25 créditos más**.
 
-Desde entonces, recibes **el 40% de todo lo que paguen tus referidos, cada mes, mientras sigan suscritos.** Tu cupón
+Desde entonces, recibes **el 30% de todo lo que paguen tus referidos, cada mes, mientras sigan suscritos.** Tu cupón
 les da un 20% de descuento en su primer mes.
 
 Cómo funciona:
@@ -103,7 +106,7 @@ con un saldo mínimo de US$ 20 (los saldos menores se acumulan para el mes sigui
 
 ### Notas para quem envia
 - Remetente: comercial/parceria nova sai de joseph@usekineo.com (regra de 29/09). Sempre rascunho; o fundador envia.
-- "40% de tudo que pagarem": vale para mensalidades e pacotes avulsos. A fatura de rateio de troca de plano
+- "30% de tudo que pagarem": vale para mensalidades e pacotes avulsos. A fatura de rateio de troca de plano
   (upgrade no meio do mês, `billing_reason = subscription_update`) hoje NÃO gera comissão — 0 faturas dessas desde que o
   evento `subscription_update_invoice_paid` existe (09/09), mas se o fundador quiser o "tudo" literal, é uma linha no webhook (ver relatório de 03/10).
 - Conta que já paga não recebe o pacote (a cortesia nunca vai por cima de plano). Para esse parceiro, retirar o
