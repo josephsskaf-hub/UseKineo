@@ -46,6 +46,7 @@ export const runtime = 'nodejs'
 const USD_PER_RENDER: Record<string, number> = {
   cinematic_ai: 3.30,        // Seedance 1.5 — $398.93 / 121 renders (medido)
   cinematic_h3: 3.90,        // MiniMax H3 — $0.06/s × 65s (ainda sem fatura)
+  cinematic_h3max: 5.20,     // MiniMax H3 Max — $0.08/s × 65s (estimado, sem fatura) · KINEO-H3MAX-2026-10-13
   cinematic_omni: 8.45,      // Omni Flash — $0.13/s × 65s (estimado, sem fatura)
   cinematic_kling: 8.40,     // Kling 2.5 — KINEO-KLING25-60CR-2026-09-29: ~18 planos de 5 s + 18 stills (estimado, sem fatura; era 3.00 pré-mutirão 27-28/09)
   cinematic_veo: 9.75,
@@ -57,6 +58,7 @@ const ENGINE_LABEL: Record<string, string> = {
   cinematic_ai: 'Seedance 1.5',
   cinematic_kling: 'Kling 2.5',
   cinematic_h3: 'MiniMax H3',
+  cinematic_h3max: 'MiniMax H3 Max', // KINEO-H3MAX-2026-10-13
   cinematic_omni: 'Omni Flash',
   cinematic_veo: 'Veo 3.1',
   cinematic_hollywood: 'Kling 3',

@@ -36,8 +36,8 @@ import { previaPath, shouldRouteGenerateToPreview, type PreviaProfile } from '@/
 import { creditCostForDuration } from '@/lib/credits/engineCost' // KINEO-PREVIA-CENAS-2026-10-03 — o saldo paga o filme pedido?
 
 // KINEO-PREVIA-CENAS-2026-10-03 — chave de motor do Studio → quality do cobrador (o mesmo mapa da rota do cinematic).
-const PREVIA_STUDIO_QUALITY: Record<string, 'fast' | 'cinematic_ai' | 'cinematic_kling' | 'cinematic_veo' | 'cinematic_hollywood' | 'cinematic_h3' | 'cinematic_omni' | 'cinematic_s25'> = {
-  fast: 'fast', seedance: 'cinematic_ai', kling: 'cinematic_kling', veo: 'cinematic_veo', hollywood: 'cinematic_hollywood', h3: 'cinematic_h3', omni: 'cinematic_omni', s25: 'cinematic_s25',
+const PREVIA_STUDIO_QUALITY: Record<string, 'fast' | 'cinematic_ai' | 'cinematic_kling' | 'cinematic_veo' | 'cinematic_hollywood' | 'cinematic_h3' | 'cinematic_h3max' | 'cinematic_omni' | 'cinematic_s25'> = { // KINEO-H3MAX-2026-10-13
+  fast: 'fast', seedance: 'cinematic_ai', kling: 'cinematic_kling', veo: 'cinematic_veo', hollywood: 'cinematic_hollywood', h3: 'cinematic_h3', h3max: 'cinematic_h3max', omni: 'cinematic_omni', s25: 'cinematic_s25', // KINEO-H3MAX-2026-10-13
 }
 
 // sprint-ui #11 (2026-08-30) — titulo de aba proprio. Sem isto, a aba

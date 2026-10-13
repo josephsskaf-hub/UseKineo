@@ -7,6 +7,7 @@ import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
 import { clipsVisible } from '@/lib/clips/clipLaunch'
 import { s25Visible, S25_PUBLIC, VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, PAUSED_ENGINES_COPY, enginePaused, avatarVisible, kineo1Visible } from '@/lib/engineLaunch'
 import { S25_PAID_BADGE, s25UpgradeHref } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06
+import { H3MAX_PUBLIC, h3maxVisible } from '@/lib/engineLaunch' // KINEO-H3MAX-2026-10-13
 import EngineNewsBar from '@/components/home/EngineNewsBar' // KINEO-FAIXA-S25-2026-10-09
 import { enginePlanBadge } from '@/lib/enginePlanGate'
 import Link from 'next/link'
@@ -905,6 +906,8 @@ export default function KineoLanding({
                   <NavEngineItem href="/studio?engine=veo&intent_campaign=nav_mega" name="Veo 3.1" desc="Google’s video model · 1080p" chip={enginePlanBadge('veo') ? 'STUDIO' : undefined} preview="/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4" thumb="/nav-thumbs/veo.webp" />
                   {/* KINEO-OMNI-FORA-2026-10-12 — o item do Omni Flash saiu do mega-menu (motor fora da oferta,
                       lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS). Os filmes dele seguem na vitrine. */}
+                  {/* KINEO-H3MAX-2026-10-13 — o MiniMax H3 Max entra no lugar que era do Omni (interruptor H3MAX_PUBLIC; desligado, só a casa vê). Sem preview nem miniatura: ainda não há render dele na vitrine (selo honesto). */}
+                  {h3maxVisible(initialEmail) && !enginePaused('h3max') && <NavEngineItem href="/studio?engine=h3max&intent_campaign=nav_mega" name="MiniMax H3 Max" desc="MiniMax’s sharpest film engine" chip={H3MAX_PUBLIC ? 'NEW' : 'INTERNAL'} icon="H3+" />} {/* KINEO-H3MAX-2026-10-13 */}
                   {/* KINEO-S25-LAUNCH-2026-09-01 — Seedance 2.5: so a casa ve ate o
                       canario passar (s25Visible); S25_PUBLIC=true abre pra todos.
                       Sem preview de proposito (selo honesto: clipe so deste motor).

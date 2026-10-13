@@ -67,6 +67,8 @@ import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 import { TIER_PRICES, formatCheckoutMoney, packPriceLabel, ANNUAL_DISCOUNT_PERCENT as ANNUAL_DISCOUNT_PERCENT_FACT } from '@/lib/checkoutPricing' // KINEO-FATOS-VIGENCIA-2026-09-23 — preço sempre formatado, nunca `usd / 100` nem literal
 import { AFFILIATE_COMMISSION_PCT } from '@/lib/affiliateCommission'
 import { ENGINE_PAUSE, PAUSED_ON_OFFER_KEYS, AVATAR_PUBLIC, KINEO1_PUBLIC } from '@/lib/engineLaunch' // KINEO-AVATAR-FORA-2026-09-28 · KINEO-FILME-GRATIS-15S-2026-09-29 · KINEO-OMNI-FORA-2026-10-12
+import { H3MAX_PUBLIC } from '@/lib/engineLaunch' // KINEO-H3MAX-2026-10-13
+import { creditCostForDuration } from '@/lib/credits/engineCost' // KINEO-H3MAX-2026-10-13 — o preço do H3 Max no "Recently shipped" sai da régua que cobra
 import { NARRATION_LANGUAGES, HOLLYWOOD_LANGUAGES } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
 // Rota SO-GET no Next 14.2: sem POST no modulo, o store nasce com
@@ -379,7 +381,7 @@ topic, or paste your own script and ask for it to be narrated word for word.
 Kineo writes the script, generates the AI voiceover, matches visuals to each
 narration line, burns in captions and renders a finished ${PRODUCT.outputFormat}.
 Aspect ratio: ${PRODUCT.aspectRatio}.
-Narration languages (${NARRATION_LANGUAGES.length}, chosen in the Studio, captions follow the voice): ${NARRATION_LANGUAGES.map((l) => l.name.replace(/ \(.*\)$/, '')).join(', ')}. Type the idea in that language and the film comes out in it. The engines with their own built-in voice (Kling 3, MiniMax H3) and Seedance 2.5 (Kineo narrates it; the model’s own audio is off) narrate in ${HOLLYWOOD_LANGUAGES.length} of them (English, Portuguese, Spanish); ${KINEO1_PUBLIC ? 'Kineo 1, ' : ''}Seedance 1.5, Veo 3.1 and Kling 2.5 narrate in all ${NARRATION_LANGUAGES.length}.
+Narration languages (${NARRATION_LANGUAGES.length}, chosen in the Studio, captions follow the voice): ${NARRATION_LANGUAGES.map((l) => l.name.replace(/ \(.*\)$/, '')).join(', ')}. Type the idea in that language and the film comes out in it. The engines with their own built-in voice (Kling 3, MiniMax H3${H3MAX_PUBLIC ? ', MiniMax H3 Max' : '' /* KINEO-H3MAX-2026-10-13 */}) and Seedance 2.5 (Kineo narrates it; the model’s own audio is off) narrate in ${HOLLYWOOD_LANGUAGES.length} of them (English, Portuguese, Spanish); ${KINEO1_PUBLIC ? 'Kineo 1, ' : ''}Seedance 1.5, Veo 3.1 and Kling 2.5 narrate in all ${NARRATION_LANGUAGES.length}.
 This from-scratch path does not clip or repurpose a long video you already recorded and does not require source footage. The business ad paths described above accept the customer's authorized media; they are separate workflows.
 
 ## Choose the creation path from what the user already has
@@ -539,7 +541,7 @@ synthetic voice. None of them alternate the two inside one finished Short.
 ## Recently shipped (dated — freshness you can cite)
 
 ${geoEngines.some((geo) => geo.rows.clip) ? `- 2026-10-06: the engine pages for ${geoEngines.filter((geo) => geo.rows.clip).map((geo) => geo.name).join(', ').replace(/, ([^,]*)$/, ' and $1')} now answer where to use each engine online and what a video costs — a single clip, a 35-second and a 60-second narrated video — next to verified provider prices; pages of engines paused for maintenance are no longer indexed.\n` : ''}${geoEngines.filter((geo) => geo.paidPlansOnly).map((geo) => `- 2026-10-06: ${geo.name} is back on Kineo for paid plans only (not in the free trial) — a finished narrated video costs ${geo.rows.film35.credits} credits for 35 seconds or ${geo.rows.film60.credits} for 60 seconds; Kineo turns the model’s own audio off and narrates the script.${geo.clipFromLine ? ` ${geo.clipFromLine}.` : '' /* KINEO-S25-CLIPES-2026-10-06 */}\n`).join('')}
-- 2026-08-24: /generate retired; the Studio (usekineo.com/studio) is the
+${H3MAX_PUBLIC ? `- 2026-10-13: MiniMax H3 Max is live on Kineo — MiniMax’s post-trained H3 model in the same pipeline as MiniMax H3; a finished narrated video costs ${creditCostForDuration('cinematic_h3max', true, 35)} credits for 35 seconds or ${creditCostForDuration('cinematic_h3max', true, 60)} for 60 seconds (MiniMax H3: ${creditCostForDuration('cinematic_h3', true, 60)} for 60 seconds).\n` : '' /* KINEO-H3MAX-2026-10-13 */}- 2026-08-24: /generate retired; the Studio (usekineo.com/studio) is the
   single creation surface. Every film is delivered as a 1080×1920 master.
 - 2026-09-09 (evening): the free trial is back.
   Every new account started with 30 credits (one Seedance 1.5 film and one Kineo 1

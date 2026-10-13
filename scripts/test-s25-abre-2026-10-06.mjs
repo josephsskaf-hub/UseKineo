@@ -141,7 +141,8 @@ async function problems(over = {}) {
   // (2) interruptor + catálogo público
   if (L.S25_PUBLIC !== true) p.push('S25_PUBLIC não está ligado')
   if (!L.VIDEO_ENGINE_LIST_COPY.includes('Seedance 2.5 (paid plans)')) p.push('lista pública sem o 2.5 marcado "(paid plans)"')
-  if (L.VIDEO_ENGINE_COUNT_WORD !== 'Six') p.push(`contagem pública ${L.VIDEO_ENGINE_COUNT_WORD} (esperado Six: os 5 de antes + o 2.5)`)
+  // KINEO-H3MAX-2026-10-13 — reancorado com motivo: Seven — o MiniMax H3 Max entrou no catálogo público (H3MAX_PUBLIC, fundador 13/10).
+  if (L.VIDEO_ENGINE_COUNT_WORD !== 'Seven') p.push(`contagem pública ${L.VIDEO_ENGINE_COUNT_WORD} (esperado Seven: os 5 de antes + o 2.5 + o H3 Max)`)
   if (!L.s25Visible(STRANGER)) p.push('o 2.5 não aparece para o público')
 
   // (3) régua de quem usa — com o isPayingPlan REAL
@@ -549,7 +550,8 @@ const mutants = [
   ['M32 o 2.5 deixa de ser "só plano pago" nas páginas', LAUNCH, "export function engineIsPaidPlansOnly(engine: string | null | undefined): boolean {\n  return engine === 's25'", "export function engineIsPaidPlansOnly(engine: string | null | undefined): boolean {\n  return engine === 'nenhum'"],
   ['M33 página do 2.5 pausado continua indexável', PAGE, '    ...(isIndexableEngineSlug(S25_PAGE_SLUG) ? {} : { robots: { index: false, follow: true } }),\n', ''],
   // KINEO-OMNI-FORA-2026-10-12 — reancorado: o Omni saiu da frase (fora da oferta); o mutante é o mesmo (2.5 com voz própria).
-  ['M34 llms.txt volta a dar voz própria ao 2.5', LLMS, 'The engines with their own built-in voice (Kling 3, MiniMax H3) and Seedance 2.5 (Kineo narrates it; the model’s own audio is off) narrate in', 'The engines with their own built-in voice (Kling 3, MiniMax H3, Seedance 2.5) narrate in'],
+  // KINEO-H3MAX-2026-10-13 — reancorado: a âncora do mutante segue a frase da fonte, que ganhou o H3 Max (pelo interruptor) entre os de voz própria.
+  ['M34 llms.txt volta a dar voz própria ao 2.5', LLMS, "The engines with their own built-in voice (Kling 3, MiniMax H3${H3MAX_PUBLIC ? ', MiniMax H3 Max' : '' /* KINEO-H3MAX-2026-10-13 */}) and Seedance 2.5 (Kineo narrates it; the model’s own audio is off) narrate in", "The engines with their own built-in voice (Kling 3, MiniMax H3${H3MAX_PUBLIC ? ', MiniMax H3 Max' : '' /* KINEO-H3MAX-2026-10-13 */}, Seedance 2.5) narrate in"],
   ['M35 llms.txt sem o "paid plans only"', LLMS, "const acesso = geo.paidPlansOnly ? 'paid plans only (not in the free trial); ' : ''", "const acesso = ''"],
   ['M36 a resposta citável sai de baixo do H1', PAGE, '          {geo && <EngineAnswerLead geo={geo} />}\n', ''],
   // M37 REANCORADO KINEO-S25-CLIPES-2026-10-06 (a nota ganhou a frase do clipe à venda; a intenção é a mesma).

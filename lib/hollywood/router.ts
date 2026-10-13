@@ -148,6 +148,30 @@ export const H3_PROMPT_EXPANSION = ((): 'disabled' | 'fast' | 'balanced' | 'qual
   return v === 'fast' || v === 'balanced' || v === 'quality' ? v : 'disabled'
 })()
 
+// ═══════════════════════════════════════════════════════════════════════════ [KINEO-H3MAX-2026-10-13]
+// KINEO-H3MAX-2026-10-13 — MINIMAX H3 MAX: A VERSÃO PÓS-TREINADA DO H3, NA MESMA ESTRADA.
+// ═══════════════════════════════════════════════════════════════════════════ [KINEO-H3MAX-2026-10-13]
+// Fundador (13/10, "vai H3 Max"): motor novo no lugar do Omni, ao lado do H3 (que fica). Família própria ('h3max') [KINEO-H3MAX-2026-10-13]
+// só para escolher o ENDPOINT e o custo; todo o resto é a regra do H3 — sem reescrita do prompt, mesma voz/régua [KINEO-H3MAX-2026-10-13]
+// hollywood (2,3 pal/s), clipes mudos + narração da casa, sem encolher a cena narrada, mesmo contrato de cena, [KINEO-H3MAX-2026-10-13]
+// mesmos fallbacks e mesmo estorno. Sonda de 13/10 (KINEO-SONDA-H3MAX): mesmos prompts funcionaram, qualidade um [KINEO-H3MAX-2026-10-13]
+// pouco melhor que o H3. [KINEO-H3MAX-2026-10-13]
+// Schema oficial lido em 13/10 (fal.ai/models/minimax/h3-max/text-to-video/api · …/image-to-video/api): [KINEO-H3MAX-2026-10-13]
+//   · duration DECIMAL (padrão 5; a saída pode passar ~0,7 s do pedido) — mandamos o inteiro da cena, como no H3; [KINEO-H3MAX-2026-10-13]
+//     a sobra sai na montagem, que corta o clipe no segundo que o plano assinou; [KINEO-H3MAX-2026-10-13]
+//   · resolution 480P|768P|1080P — 768P, como o H3 (1080P é refino latente de 768P); [KINEO-H3MAX-2026-10-13]
+//   · prompt_expansion_mode com padrão 'balanced' — vai 'disabled' (mesmo interruptor do H3); [KINEO-H3MAX-2026-10-13]
+//   · image_url = 1º quadro (i2v; a proporção segue a imagem); end_image_url opcional (não usamos); [KINEO-H3MAX-2026-10-13]
+//   · áudio nativo sempre (sem chave) — o mute do compose vale igual; saída em data.video.url. [KINEO-H3MAX-2026-10-13]
+export const H3MAX_MODELS: Record<HollywoodSceneType, string> = { // KINEO-H3MAX-2026-10-13
+  dialogue: 'minimax/h3-max/text-to-video', // KINEO-H3MAX-2026-10-13
+  cinematic: 'minimax/h3-max/text-to-video', // KINEO-H3MAX-2026-10-13
+  support: 'minimax/h3-max/text-to-video', // KINEO-H3MAX-2026-10-13
+} // KINEO-H3MAX-2026-10-13
+export const H3MAX_I2V_MODEL = 'minimax/h3-max/image-to-video' // KINEO-H3MAX-2026-10-13
+// fal, 13/10: US$ 0,08/s em 768P (H3: US$ 0,06/s). [KINEO-H3MAX-2026-10-13]
+export const H3MAX_USD_PER_SECOND = 0.08 // KINEO-H3MAX-2026-10-13
+export const H3MAX_RESOLUTION = '768P' as const // KINEO-H3MAX-2026-10-13
 // ═══════════════════════════════════════════════════════════════════════════
 // KINEO-OMNI-2026-08-25 — GEMINI OMNI FLASH: O #1 DO RANKING ENTRA NA ESTRADA.
 // ═══════════════════════════════════════════════════════════════════════════
@@ -196,7 +220,7 @@ export const S25_USD_PER_SECOND = 0.208
 export const S25_RESOLUTION = '480p' as const
 
 /** Família de motor do caminho cinematográfico. */
-export type CinematicFamily = 'hollywood' | 'h3' | 'omni' | 's25'
+export type CinematicFamily = 'hollywood' | 'h3' | 'h3max' | 'omni' | 's25' // KINEO-H3MAX-2026-10-13
 
 /**
  * PONTO ÚNICO de escolha de modelo por cena. Os quatro lugares do route que
@@ -210,6 +234,7 @@ export function cinematicSceneModel(
   hasAnchor: boolean,
 ): string {
   if (family === 'h3') return hasAnchor ? H3_I2V_MODEL : H3_MODELS[type]
+  if (family === 'h3max') return hasAnchor ? H3MAX_I2V_MODEL : H3MAX_MODELS[type] // KINEO-H3MAX-2026-10-13
   // KINEO-S25-2026-09-01 — com ancora i2v (consistencia visual); sem, t2v.
   if (family === 's25') return hasAnchor ? S25_I2V_MODEL : S25_T2V_MODEL
   // KINEO-OMNI-2026-08-25 — o fal só expõe Omni em i2v/edit (sem t2v). Com
@@ -222,6 +247,7 @@ export function cinematicSceneModel(
 /** Custo por segundo da família — usado na estimativa e nos logs. */
 export function cinematicUsdPerSecond(family: CinematicFamily, type: HollywoodSceneType): number {
   if (family === 'h3') return H3_USD_PER_SECOND
+  if (family === 'h3max') return H3MAX_USD_PER_SECOND // KINEO-H3MAX-2026-10-13
   if (family === 's25') return S25_USD_PER_SECOND
   if (family === 'omni') return OMNI_USD_PER_SECOND
   return HOLLYWOOD_USD_PER_SECOND[type]
@@ -1021,7 +1047,9 @@ export function logHollywoodCost(
     // H3 ao preço do Kling ($0.168/s vs $0.06/s): custo aparente inflado 2.8×.
     // Só afeta o NOSSO log de margem, mas margem errada = decisão errada.
     const isH3Model = model === H3_I2V_MODEL || model === H3_MODELS.dialogue || model === H3_MODELS.cinematic || model === H3_MODELS.support
+    const isH3MaxModel = model === H3MAX_I2V_MODEL || Object.values(H3MAX_MODELS).includes(model) // KINEO-H3MAX-2026-10-13
     const perSecond =
+      isH3MaxModel ? H3MAX_USD_PER_SECOND : // KINEO-H3MAX-2026-10-13
       isH3Model
         ? H3_USD_PER_SECOND
         : model === PRESENTER_MODEL

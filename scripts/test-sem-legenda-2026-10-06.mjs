@@ -19,6 +19,11 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: a entrada do MiniMax H3 Max ([TRAVA 8.2 — vai do fundador 13/10 'vai H3 Max'])
+// acrescentou SÓ linhas marcadas às rotas travadas e trocou de propósito linhas da base (o H3 Max ao lado do H3 em listas, ternários e
+// frases). desfazH3max devolve, em memória, o arquivo sem essa entrada (pares exatos em scripts/test-support/h3max-2026-10-13-trocas.json;
+// par que não casa = texto intocado = vermelho); linhasTrocadasH3max lista as linhas da base trocadas. Fora disso, o byte a byte de sempre.
+import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -614,7 +619,7 @@ const rdBase = (p) => { try { return git(['show', `${BASE}:${p}`]).replace(/\r\n
 const semMarca = (s) => s.split('\n').filter((l) => !l.includes(MARCA)).join('\n')
 function problemasTrava(rota) {
   if (!BASE) return ['sem base de comparação']
-  return semMarca(rota) === rdBase(ROTA) ? [] : ['/api/compose: há linha nova ou alterada sem a marca ' + MARCA]
+  return semMarca(desfazH3max(ROTA, rota)) === rdBase(ROTA) ? [] : ['/api/compose: há linha nova ou alterada sem a marca ' + MARCA] // KINEO-H3MAX-2026-10-13 — reancorado (ver o import)
 }
 
 // ═══ execução ═══════════════════════════════════════════════════════════════════════════════════════════════════════

@@ -30,7 +30,8 @@ const ESTRELA_ONE_FRAME = 'One single continuous composition filling the whole f
 // COM âncora (image-to-video a partir do nosso still): a estrela entra no still.
 //   seedance (Seedance 1.5), kling (Kling 2.5), veo (Veo 3.1) — estrada clássica, still por cena (KINEO-ANCORA-3-MOTORES);
 //   hollywood (Kling 3 / O3 i2v), h3 (MiniMax H3 i2v), omni (Omni Flash i2v) — estrada hollywood, retrato + still por cena.
-export const ESTRELA_MOTORES = ['seedance', 'kling', 'veo', 'hollywood', 'h3', 'omni'] as const
+//   h3max (MiniMax H3 Max i2v, image_url = 1º quadro) — mesma regra do H3 (KINEO-H3MAX-2026-10-13).
+export const ESTRELA_MOTORES = ['seedance', 'kling', 'veo', 'hollywood', 'h3', 'h3max', 'omni'] as const // KINEO-H3MAX-2026-10-13
 export type EstrelaMotor = (typeof ESTRELA_MOTORES)[number]
 /** SEM caminho de âncora para a estrela — a opção some da tela e o servidor recusa ANTES do débito. */
 export const ESTRELA_MOTORES_SEM_ANCORA: Readonly<Record<string, string>> = {

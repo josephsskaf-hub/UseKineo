@@ -22,7 +22,9 @@ vm.runInNewContext(compiled, {
 }, { filename: 'lib/growth/engineLandingIntent.ts' })
 const intent = moduleBox.exports
 
-const expectedEngines = ['fast', 'seedance', 'kling', 'veo', 'hollywood', 'h3', 'omni', 's25']
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: o MiniMax H3 Max entrou como motor (fundador 13/10, "vai H3 Max"), logo depois
+// do H3; a página dele existe só com H3MAX_PUBLIC (publicação separada, como o s25). Toda a jornada abaixo vale para ele também.
+const expectedEngines = ['fast', 'seedance', 'kling', 'veo', 'hollywood', 'h3', 'h3max', 'omni', 's25']
 equal(intent.ENGINE_LANDING_PARAMS.join(','), expectedEngines.join(','), 'all declared engine params are allowlisted; publication/availability is gated separately')
 
 for (const engine of expectedEngines) {
@@ -65,7 +67,8 @@ check(page.includes('href={studioUrl}'), 'existing member goes directly to the s
 check(!page.includes('&engine=${e.param}'), 'discarded top-level engine query is gone')
 check(!page.includes('const generateUrl ='), 'legacy generate hop is gone')
 
-const paramsInPage = [...read('lib/growth/enginePageCatalog.ts').matchAll(/param:\s*'(fast|seedance|kling|veo|hollywood|h3|omni|s25)'/g)].map((match) => match[1])
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: + 'h3max' na alternância (a página do MiniMax H3 Max mora no catálogo).
+const paramsInPage = [...read('lib/growth/enginePageCatalog.ts').matchAll(/param:\s*'(fast|seedance|kling|veo|hollywood|h3|h3max|omni|s25)'/g)].map((match) => match[1])
 equal([...new Set(paramsInPage)].sort().join(','), [...expectedEngines].sort().join(','), 'page data and handoff allowlist cover the same engines')
 
 const signupPage = read('app/(auth)/signup/page.tsx')

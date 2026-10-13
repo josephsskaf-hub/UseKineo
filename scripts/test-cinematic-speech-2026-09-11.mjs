@@ -100,12 +100,15 @@ const constants = {
   H3_PROMPT_EXPANSION: 'disabled', // KINEO-H3-SEM-REESCRITA-2026-09-16
   OMNI_I2V_MODEL: 'google/gemini-omni-flash/image-to-video',
   S25_I2V_MODEL: 's25-i2v', S25_T2V_MODEL: 's25-t2v', S25_RESOLUTION: '720p',
+  // KINEO-H3MAX-2026-10-13 — reancorado com motivo: o buildFalInput ganhou os ramos do MiniMax H3 Max (motor novo, fundador 13/10);
+  // as constantes dele entram no escopo e os dois endpoints passam pelo MESMO laço de payload oficial (sem chave de áudio inventada).
+  H3MAX_I2V_MODEL: 'minimax/h3-max/image-to-video', H3MAX_MODELS: { dialogue: 'minimax/h3-max/text-to-video' }, H3MAX_RESOLUTION: '768P',
 }
 const actualInput = evaluate(`export ${inputNode.getText(generationAst)}`, { ...constants, ...load('@/lib/aspect') }).buildFalInput
-for (const model of [constants.H3_I2V_MODEL, constants.H3_MODELS.dialogue, constants.OMNI_I2V_MODEL]) {
+for (const model of [constants.H3_I2V_MODEL, constants.H3_MODELS.dialogue, constants.H3MAX_I2V_MODEL, constants.H3MAX_MODELS.dialogue, constants.OMNI_I2V_MODEL]) { // KINEO-H3MAX-2026-10-13 — reancorado: + H3 Max
   const input = actualInput(model, 'An actor says the approved line.', true, true, 8, 'https://example.invalid/anchor.png')
   eq(input.duration, 8, 'Model receives requested scene duration')
-  if (model !== constants.H3_MODELS.dialogue) eq(input.image_url, 'https://example.invalid/anchor.png', 'Native image-to-video keeps the intended avatar anchor')
+  if (model !== constants.H3_MODELS.dialogue && model !== constants.H3MAX_MODELS.dialogue) eq(input.image_url, 'https://example.invalid/anchor.png', 'Native image-to-video keeps the intended avatar anchor')
   ok(!Object.hasOwn(input, 'generate_audio'), 'Exact official H3/Omni payload does not invent audio switches')
   ok(!Object.hasOwn(input, 'audio_url'), 'No unsupported input-audio field or extra provider introduced')
 }
@@ -312,7 +315,7 @@ eq(notRequested.calls.length, 0, 'No clone/profile lookup when unrequested')
 {
   const loadReal = createOfflineLoader({ mocks: { '@fal-ai/client': { fal: { config() {}, subscribe() { throw Error('provider forbidden') }, queue: { submit() { throw Error('provider forbidden') } } } } } })
   const router = loadReal('@/lib/hollywood/router')
-  const real = { KLING3_MODEL: router.HOLLYWOOD_MODELS.dialogue, KLING3_I2V_MODEL: router.KLING3_I2V_MODEL, H3_I2V_MODEL: router.H3_I2V_MODEL, H3_MODELS: router.H3_MODELS, H3_RESOLUTION: router.H3_RESOLUTION, H3_PROMPT_EXPANSION: router.H3_PROMPT_EXPANSION, OMNI_I2V_MODEL: router.OMNI_I2V_MODEL, S25_I2V_MODEL: router.S25_I2V_MODEL, S25_T2V_MODEL: router.S25_T2V_MODEL, S25_RESOLUTION: router.S25_RESOLUTION }
+  const real = { KLING3_MODEL: router.HOLLYWOOD_MODELS.dialogue, KLING3_I2V_MODEL: router.KLING3_I2V_MODEL, H3_I2V_MODEL: router.H3_I2V_MODEL, H3_MODELS: router.H3_MODELS, H3_RESOLUTION: router.H3_RESOLUTION, H3_PROMPT_EXPANSION: router.H3_PROMPT_EXPANSION, OMNI_I2V_MODEL: router.OMNI_I2V_MODEL, S25_I2V_MODEL: router.S25_I2V_MODEL, S25_T2V_MODEL: router.S25_T2V_MODEL, S25_RESOLUTION: router.S25_RESOLUTION, H3MAX_I2V_MODEL: router.H3MAX_I2V_MODEL, H3MAX_MODELS: router.H3MAX_MODELS, H3MAX_RESOLUTION: router.H3MAX_RESOLUTION } // KINEO-H3MAX-2026-10-13 — reancorado: o router real fornece o H3 Max
   const realInput = evaluate(`export ${inputNode.getText(generationAst)}`, { ...real, ...load('@/lib/aspect') }).buildFalInput
   const anchor = 'https://example.invalid/anchor.png'
   // Kling 3 — família 'hollywood': com âncora i2v (fala nativa ligada), sem âncora t2v.
@@ -325,6 +328,11 @@ eq(notRequested.calls.length, 0, 'No clone/profile lookup when unrequested')
   eq([k3s.duration, k3s.aspect_ratio, k3s.generate_audio, k3s.cfg_scale], ['8', '9:16', true, 0.6], 'Kling 3 t2v: string duration, explicit 9:16, native audio ON, cfg_scale 0.6')
   ok(/^cartoon, anime, illustration, 3d render, /.test(k3s.negative_prompt) && /chinese text/.test(k3s.negative_prompt), 'Kling 3 t2v: anti-CGI + anti-Chinese-text negatives by default')
   ok(!/cartoon/.test(realInput(k3t2v, 'x', true, true, 8, undefined, undefined, true).negative_prompt), 'Kling 3 t2v: stylized film drops the anti-CGI negatives')
+  // KINEO-H3MAX-2026-10-13 — reancorado com motivo: a família 'h3max' (MiniMax H3 Max) pelo router REAL e o payload REAL — endpoints
+  // minimax/h3-max/*, 768P, prompt literal, sem chave de áudio; com âncora i2v (proporção da imagem), sem âncora t2v em 9:16.
+  eq([router.cinematicSceneModel('h3max', 'dialogue', true), router.cinematicSceneModel('h3max', 'support', false)], ['minimax/h3-max/image-to-video', 'minimax/h3-max/text-to-video'], 'H3 Max: router picks h3-max i2v with anchor, h3-max t2v without')
+  eq(realInput('minimax/h3-max/image-to-video', 'x', true, true, 8, anchor), { image_url: anchor, prompt: 'x', duration: 8, resolution: '768P', prompt_expansion_mode: 'disabled' }, 'H3 Max i2v: exact payload (768P, literal prompt, no audio switch)')
+  eq(realInput('minimax/h3-max/text-to-video', 'x', true, true, 8), { prompt: 'x', duration: 8, resolution: '768P', aspect_ratio: '9:16', prompt_expansion_mode: 'disabled' }, 'H3 Max t2v: exact payload (explicit 9:16)')
   // Omni Flash — família 'omni': só i2v existe no fal; sem âncora cai no Kling t2v.
   eq([router.cinematicSceneModel('omni', 'dialogue', true), router.cinematicSceneModel('omni', 'support', false)], [real.OMNI_I2V_MODEL, k3t2v], 'Omni: anchored scenes go to Omni i2v; without anchor the router falls back to Kling t2v')
   const om = realInput(real.OMNI_I2V_MODEL, 'Storm over the bay.', true, true, 8, anchor)

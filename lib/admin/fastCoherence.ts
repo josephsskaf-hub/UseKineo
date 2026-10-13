@@ -71,6 +71,7 @@ export const ENGINE_LABEL: Record<string, string> = {
   cinematic_kling: 'Kling 2.5',
   cinematic_hollywood: 'Kling 3',
   cinematic_h3: 'MiniMax H3',
+  cinematic_h3max: 'MiniMax H3 Max', // KINEO-H3MAX-2026-10-13
   cinematic_omni: 'Omni',
   cinematic_s25: 'Seedance 2.5',
   avatar: 'Avatar',

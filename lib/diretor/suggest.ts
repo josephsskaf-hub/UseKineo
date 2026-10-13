@@ -39,7 +39,7 @@ export function diretorCharLimit(engine: string): number | null {
 // `prompt.length > 12000`, trava 8.2 — o guardião confere que o literal lá continua igual a este). O Studio aceita 20.000
 // no modo ideia; sem isto, 12.001–20.000 caracteres morriam em "Prompt is too long." depois da análise.
 export const CINEMATIC_DISPATCH_MAX_CHARS = 12000
-export const DIRETOR_CINEMATIC_ENGINES = ['seedance', 'kling', 'veo', 'hollywood', 'h3', 'omni', 's25'] as const
+export const DIRETOR_CINEMATIC_ENGINES = ['seedance', 'kling', 'veo', 'hollywood', 'h3', 'h3max', 'omni', 's25'] as const // KINEO-H3MAX-2026-10-13
 /** Alvo do texto condensado: folga de 10% sob o teto, e nunca acima de 4.500 — a resposta cabe em max_tokens (1.600) sem
  *  cortar o JSON no meio (motores de IA têm teto de 12.000, que o modelo não conseguiria devolver inteiro). */
 export const DIRETOR_CONDENSE_MAX_CHARS = 4500

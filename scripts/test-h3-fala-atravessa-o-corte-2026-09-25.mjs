@@ -55,7 +55,9 @@ checa('respiro entre falas: 0,4 s de preferência nos dois lados, 0,2 s no apert
 checa('a recusa honesta continua (reason scene_speech_exceeds_footage, estorno via rejectBeforeProviderSubmission) e agora deixa evento compose_refused com cena e estouro', fatia.includes("reason: 'scene_speech_exceeds_footage'") && fatia.includes("await logComposeRefusal('scene_speech_exceeds_footage', authenticatedUserId, {") && fatia.includes('scene: rt.sceneIdx + 1, scene_seconds: rt.slot, speech_seconds:'))
 checa('os blocos de narração usam as janelas da travessia (time/endCap)', compose.includes('const janela = janelas.get(m.sceneIdx)') && compose.includes('endCap: janela?.endCap ?? Math.round((time + secondsOf(c)) * 1000) / 1000,'))
 checa('FALA-CABE intacto: respiro 0,4 s e teto ×1,10', fatia.includes('const FALA_CABE_RESPIRO_S = 0.4') && fatia.includes('const FALA_CABE_MAX_FATOR = 1.1'))
-checa('H3 nunca encolhe (KINEO-H3-DURACAO intacto) e a cena nunca cresce além da footage (loop:true)', fatia.includes("if (c && c.engine === 'support' && quality !== 'cinematic_h3') {") && fatia.includes('const need = Math.min(originalFootageSeconds[m.sceneIdx], Math.round((m.dur + 0.6) * 10) / 10)'))
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: o MiniMax H3 Max (motor novo, fundador 13/10) herda a regra do H3 — a cena narrada
+// também nunca encolhe nele; a condição ganhou a segunda qualidade na MESMA linha. A trava do H3 é a mesma.
+checa('H3 (e o H3 Max) nunca encolhe (KINEO-H3-DURACAO intacto) e a cena nunca cresce além da footage (loop:true)', fatia.includes("if (c && c.engine === 'support' && quality !== 'cinematic_h3' && quality !== 'cinematic_h3max') { // KINEO-H3MAX-2026-10-13") && fatia.includes('const need = Math.min(originalFootageSeconds[m.sceneIdx], Math.round((m.dur + 0.6) * 10) / 10)'))
 
 // ── o mundo do Polo: 12 cenas de apoio H3 [4,9,6,11,7,10,10,9,5,10,7,7] s, voz luxury-narrator (alloy, 0,9) a 2,07 pal/s.
 // WORDS = as palavras reais das 12 narrações; a 2,07 seis cenas ficam 0,1-0,3 s acima do clipe (o FALA-CABE acelera cada uma).

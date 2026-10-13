@@ -64,18 +64,20 @@ const L = rodaLaunch(launchSrc)
 // REANCORADO KINEO-S25-ABRE-2026-10-06 — o Seedance 2.5 voltou ao catálogo público marcado "(paid plans)" (S25_PUBLIC=true,
 // só plano pago usa — scripts/test-s25-abre-2026-10-06.mjs): a contagem vira "Six" e ligar o Avatar devolve "Seven". A
 // vigilância é a mesma: Avatar fora, e o interruptor o traz de volta por derivação, nunca por número digitado.
-const provaA = (M) => M.AVATAR_PUBLIC === false && M.VIDEO_ENGINE_COUNT_WORD === 'Six' && M.VIDEO_ENGINE_COUNT_SENTENCE_START === 'Six' &&
-  M.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5 and Seedance 2.5 (paid plans)' && !/Avatar/.test(M.VIDEO_ENGINE_LIST_COPY)
-checa('AVATAR_PUBLIC=false; contagem "Six" e lista pública sem Avatar', provaA(L))
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: o MiniMax H3 Max entrou no catálogo público (H3MAX_PUBLIC=true, fundador 13/10
+// "vai H3 Max"), logo depois do MiniMax H3: a contagem vira "Seven" e ligar o Avatar devolve "Eight". A vigilância é a mesma.
+const provaA = (M) => M.AVATAR_PUBLIC === false && M.VIDEO_ENGINE_COUNT_WORD === 'Seven' && M.VIDEO_ENGINE_COUNT_SENTENCE_START === 'Seven' &&
+  M.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, MiniMax H3 Max, Seedance 1.5 and Seedance 2.5 (paid plans)' && !/Avatar/.test(M.VIDEO_ENGINE_LIST_COPY)
+checa('AVATAR_PUBLIC=false; contagem "Seven" e lista pública sem Avatar', provaA(L))
 checa('avatarVisible: público e anônimo não veem; conta da casa vê', L.avatarVisible(PUBLICO) === false && L.avatarVisible(null) === false && L.avatarVisible(undefined) === false && L.avatarVisible(INTERNO) === true)
 checa('Avatar não virou pausa (pausa diria "manutenção", motivo falso); S25 público desde 06/10 (só plano pago usa)', !L.enginePaused('avatar') && !L.enginePaused('presenter') && !L.PAUSED_ENGINE_KEYS.includes('avatar') && L.S25_PUBLIC === true)
 {
   const ligado = LIGA(launchSrc)
   const V = rodaLaunch(ligado)
-  checa('virar o interruptor devolve "Seven" e "... Seedance 2.5 (paid plans) and Avatar" (derivado, não digitado)', ligado !== launchSrc && V.AVATAR_PUBLIC === true && V.VIDEO_ENGINE_COUNT_WORD === 'Seven' && V.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5, Seedance 2.5 (paid plans) and Avatar' && V.avatarVisible(PUBLICO) === true)
+  checa('virar o interruptor devolve "Eight" e "... Seedance 2.5 (paid plans) and Avatar" (derivado, não digitado)', ligado !== launchSrc && V.AVATAR_PUBLIC === true && V.VIDEO_ENGINE_COUNT_WORD === 'Eight' && V.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, MiniMax H3 Max, Seedance 1.5, Seedance 2.5 (paid plans) and Avatar' && V.avatarVisible(PUBLICO) === true) // KINEO-H3MAX-2026-10-13 — reancorado: + MiniMax H3 Max
   // 29/09: a contagem virou o tamanho da lista derivada; o mutante crava a contagem na palavra antiga.
-  const mutante = launchSrc.replace('export const VIDEO_ENGINE_COUNT_WORD: string = ENGINE_COUNT_WORDS[PUBLIC_VIDEO_ENGINE_NAMES.length]', "export const VIDEO_ENGINE_COUNT_WORD: string = 'Seven'")
-  checa('mutante (contagem cravada "Seven") → vermelho', mutante !== launchSrc && !provaA(rodaLaunch(mutante)))
+  const mutante = launchSrc.replace('export const VIDEO_ENGINE_COUNT_WORD: string = ENGINE_COUNT_WORDS[PUBLIC_VIDEO_ENGINE_NAMES.length]', "export const VIDEO_ENGINE_COUNT_WORD: string = 'Eight'") // KINEO-H3MAX-2026-10-13 — reancorado: a palavra cravada errada passa a ser "Eight"
+  checa('mutante (contagem cravada "Eight") → vermelho', mutante !== launchSrc && !provaA(rodaLaunch(mutante)))
   const mutante2 = launchSrc.replace('return AVATAR_PUBLIC || isInternalEmail(email)', 'return true')
   checa('mutante (avatarVisible sempre true) → vermelho', mutante2 !== launchSrc && rodaLaunch(mutante2).avatarVisible(PUBLICO) === true)
 }
@@ -132,7 +134,8 @@ const PORTAS = /href="\/avatar"|Talking Avatar|AI Presenter|Character Lock|Trans
   checa('home (visitante): a grade de tiles de motor saiu e o toolkit removido não reaparece', conta(pub, 'class="tile') === 0 && !pub.includes('id="toolkit"') && conta(pub, 'class="tcard"') === 0)
   // 29/09 (KINEO-KINEO1-FORA): "Five" e a lista sem Kineo 1 nem Avatar.
   // REANCORADO KINEO-S25-ABRE-2026-10-06: "Six", com o Seedance 2.5 marcado "(paid plans)".
-  checa('home (visitante): FAQ diz "Six" e a lista sem Avatar', pub.includes('Six') && pub.includes('Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5 and Seedance 2.5 (paid plans)') && !pub.includes('and Avatar'))
+  // KINEO-H3MAX-2026-10-13 — reancorado com motivo: "Seven", com o MiniMax H3 Max logo depois do MiniMax H3.
+  checa('home (visitante): FAQ diz "Seven" e a lista sem Avatar', pub.includes('Seven') && pub.includes('Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, MiniMax H3 Max, Seedance 1.5 and Seedance 2.5 (paid plans)') && !pub.includes('and Avatar'))
   // REANCORADO 30/09 — fundador: "tira essa parte" (a grade "Video" com os tiles de motor saiu da home; os motores seguem no mega-menu e no /studio). O tile do Avatar saiu junto: sobram 2 portas internas (mega-menu e menu mobile).
   // KINEO-MENU-VIDEO-LIMPO-2026-10-09 — re-ancorado: o fundador ("2 sim") tirou o Avatar dos menus da home também para a casa (/avatar segue no ar).
   checa('home (conta da casa): sem porta do Avatar nos menus e sem os cards retirados', conta(casa, 'href="/avatar"') === 0 && conta(casa, 'class="tcard"') === 0 && !casa.includes('id="toolkit"') && !casa.includes('Talking Avatar'))

@@ -42,7 +42,11 @@ for(const engine of intent.ENGINE_LANDING_PARAMS){
   const campaign=`seo_engine_${engine}`, href=intent.buildEngineLandingSignupHref({engine,campaign})
   const url=new URL(href,'https://www.usekineo.com')
   const original=new URL(previous.buildEngineLandingSignupHref({engine,campaign}),'https://www.usekineo.com')
-  assert.equal(url.searchParams.get('redirect'),original.searchParams.get('redirect'),'Destination and selected engine unchanged')
+  // KINEO-H3MAX-2026-10-13 — reancorado com motivo: o motor novo 'h3max' (MiniMax H3 Max, fundador 13/10) não existia no commit de
+  // referência (lá ele cairia no 'fast'). Para ele, o destino é o próprio motor no Studio; para todos os outros, o de antes, intacto.
+  const novoMotor=!(previous.ENGINE_LANDING_PARAMS??[]).includes(engine)
+  assert.ok(!novoMotor||engine==='h3max','Only the H3 Max is new in the engine list')
+  assert.equal(url.searchParams.get('redirect'),novoMotor?`/studio?engine=${engine}&intent_campaign=${campaign}`:original.searchParams.get('redirect'),'Destination and selected engine unchanged')
   assert.equal(url.searchParams.get('intent_campaign'),campaign)
   for(const [search,ref,expected] of [
     ['', 'https://chatgpt.com/', 'chatgpt'],

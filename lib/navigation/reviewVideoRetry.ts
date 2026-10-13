@@ -14,6 +14,7 @@ export const STUDIO_ENGINE_FOR_QUALITY: Readonly<Record<string, string>> = {
   cinematic_veo: 'veo',
   cinematic_hollywood: 'hollywood',
   cinematic_h3: 'h3',
+  cinematic_h3max: 'h3max', // KINEO-H3MAX-2026-10-13
   cinematic_omni: 'omni',
   cinematic_s25: 's25',
 }

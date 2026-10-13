@@ -26,6 +26,11 @@ import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
 import crypto from 'node:crypto'
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: a entrada do MiniMax H3 Max ([TRAVA 8.2 — vai do fundador 13/10 'vai H3 Max'])
+// acrescentou SÓ linhas marcadas às rotas travadas e trocou de propósito linhas da base (o H3 Max ao lado do H3 em listas, ternários e
+// frases). desfazH3max devolve, em memória, o arquivo sem essa entrada (pares exatos em scripts/test-support/h3max-2026-10-13-trocas.json;
+// par que não casa = texto intocado = vermelho); linhasTrocadasH3max lista as linhas da base trocadas. Fora disso, o byte a byte de sempre.
+import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(root)
@@ -526,7 +531,11 @@ checa('mutante (casa pelos padrões LIKE de isInternalEmail) → vermelho', !pro
     const mudadas = d.split('\n').filter((l) => /^[+-]/.test(l) && !/^(\+\+\+|---) /.test(l))
     // Reancorado 06/10 (KINEO-S25-ABRE-2026-10-06): o compose/status ganhou só linhas ACRESCENTADAS e marcadas (o Enhance
     // automático da conta da casa deixa de rodar no Seedance 2.5, pedido do fundador). Mesma prova: nada removido, tudo marcado.
-    intocados = mudadas.every((l) => l.startsWith('+') && (l.includes('KINEO-GANCHO-1Q-2026-10-03') || l.includes('KINEO-S25-ABRE-2026-10-06')))
+    // KINEO-H3MAX-2026-10-13 — reancorado com motivo: o compose/status ganhou o MiniMax H3 Max (motor novo, fundador 13/10) ao lado do H3 em
+    // DUAS linhas trocadas de propósito (o tipo Quality e a lista das qualidades cinematográficas) — a nova vem marcada e a velha é a da
+    // lista exata (linhasTrocadasH3max). Nada mais pode sair; o unlock segue intocado.
+    const trocadasH3max = linhasTrocadasH3max('app/api/compose/status/[renderId]/route.ts')
+    intocados = mudadas.every((l) => (l.startsWith('+') && (l.includes('KINEO-GANCHO-1Q-2026-10-03') || l.includes('KINEO-S25-ABRE-2026-10-06') || l.includes('KINEO-H3MAX-2026-10-13'))) || (l.startsWith('-') && trocadasH3max.includes(l.slice(1))))
   } catch { intocados = !/kineo1Gate/.test(rd('app/api/compose/unlock/route.ts')) }
   checa('compose/status e compose/unlock intocados', intocados && !rd('app/api/compose/unlock/route.ts').includes('kineo1Gate'))
   const OFFER = L0('lib/freeTierOffer.ts')

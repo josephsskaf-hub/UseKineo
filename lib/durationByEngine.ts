@@ -50,8 +50,8 @@ export const DEFAULT_ENGINE_DURATIONS = [35, 60, 90] as const
 export function isSeedance15(engine: string | null | undefined): boolean {
   const k = typeof engine === 'string' ? engine.trim().toLowerCase() : ''
   if (k === '' || k === 'seedance' || k === 'cinematic_ai') return true
-  const outros = ['kling', 'veo', 'sora', 'hollywood', 'h3', 'omni', 's25', 'fast', 'creator', 'avatar', 'presenter']
-  const qualidades = ['cinematic_kling', 'cinematic_veo', 'cinematic_sora', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_omni', 'cinematic_s25']
+  const outros = ['kling', 'veo', 'sora', 'hollywood', 'h3', 'h3max', 'omni', 's25', 'fast', 'creator', 'avatar', 'presenter'] // KINEO-H3MAX-2026-10-13
+  const qualidades = ['cinematic_kling', 'cinematic_veo', 'cinematic_sora', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_h3max', 'cinematic_omni', 'cinematic_s25'] // KINEO-H3MAX-2026-10-13
   return !outros.includes(k) && !qualidades.includes(k)
 }
 
@@ -77,7 +77,7 @@ export function isVeo31(engine: string | null | undefined): boolean {
 /** Motor da estrada hollywood (voz própria): Kling 3 ('hollywood'), MiniMax H3, Omni, Seedance 2.5 — chave da UI ou quality. */
 export function isHollywoodRoad(engine: string | null | undefined): boolean {
   const k = motorNormalizado(engine)
-  return ['hollywood', 'h3', 'omni', 's25', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_omni', 'cinematic_s25'].includes(k)
+  return ['hollywood', 'h3', 'h3max', 'omni', 's25', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_h3max', 'cinematic_omni', 'cinematic_s25'].includes(k) // KINEO-H3MAX-2026-10-13
 }
 /** Motor clássico com filme de 15 s: Seedance 1.5 (inclui motor ausente), Kling 2.5 e Veo 3.1. */
 export function isClassicShortEngine(engine: string | null | undefined): boolean {
@@ -104,6 +104,7 @@ export function nomePublicoDoMotor(engine: string | null | undefined): string {
   if (isVeo31(k)) return 'Veo 3.1'
   if (k === 'hollywood' || k === 'cinematic_hollywood') return 'Kling 3'
   if (k === 'h3' || k === 'cinematic_h3') return 'MiniMax H3'
+  if (k === 'h3max' || k === 'cinematic_h3max') return 'MiniMax H3 Max' // KINEO-H3MAX-2026-10-13
   if (k === 'omni' || k === 'cinematic_omni') return 'Omni'
   if (k === 's25' || k === 'cinematic_s25') return 'Seedance 2.5'
   return 'Seedance 1.5'

@@ -4,6 +4,11 @@
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: a entrada do MiniMax H3 Max ([TRAVA 8.2 — vai do fundador 13/10 'vai H3 Max'])
+// acrescentou SÓ linhas marcadas às rotas travadas e trocou de propósito linhas da base (o H3 Max ao lado do H3 em listas, ternários e
+// frases). desfazH3max devolve, em memória, o arquivo sem essa entrada (pares exatos em scripts/test-support/h3max-2026-10-13-trocas.json;
+// par que não casa = texto intocado = vermelho); linhasTrocadasH3max lista as linhas da base trocadas. Fora disso, o byte a byte de sempre.
+import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
@@ -58,7 +63,7 @@ console.log('== 5. a volta ==')
 checa('success só libera com has_paid true e plano pago (basic_trial incluso)', /if \(input\.hasPaid !== true\) return 'payment_pending'/.test(ent) && /SELF_SERVE_PAID_PLANS/.test(ent))
 checa('basic_trial está na lista de planos do success', /basic_trial/.test(ent))
 checa('volta cai no Studio com a ideia e dispara uma vez', /destination = '\/studio\/create\?resume=card_entry'/.test(sp) && /resumeFiredRef\.current = true/.test(gc))
-checa('gate de motor: trial usa Kineo 1 + Seedance', /'seedance'\n\s*const engineGate = decideEngineGate/.test(rd('app/api/generate-video-cinematic/route.ts')))
+checa('gate de motor: trial usa Kineo 1 + Seedance', /'seedance'\n\s*const engineGate = decideEngineGate/.test(desfazH3max('app/api/generate-video-cinematic/route.ts', rd('app/api/generate-video-cinematic/route.ts')))) // KINEO-H3MAX-2026-10-13 — reancorado: a linha do gateEngineKey ganhou o H3 Max (marcada)
 
 console.log(`\n  verificacoes: ${ok + falhas.length} · falhas: ${falhas.length}`)
 if (falhas.length) { for (const f of falhas) console.log('  ✗ ' + f); process.exit(1) }

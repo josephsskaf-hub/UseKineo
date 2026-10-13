@@ -82,6 +82,9 @@ function fixture(options = {}) {
       '@/lib/hollywood/router': {
         HOLLYWOOD_MODELS: { dialogue: modelKling, cinematic: modelKling, support: modelKling }, KLING3_I2V_MODEL: 'fal-ai/kling-video/o3/pro/image-to-video',
         H3_MODELS: { dialogue: modelH3, cinematic: modelH3, support: modelH3 }, H3_I2V_MODEL: modelI2V, H3_RESOLUTION: '768P', OMNI_I2V_MODEL: modelOmni,
+        // KINEO-H3MAX-2026-10-13 — reancorado com motivo: a retomada passou a importar os endpoints do MiniMax H3 Max (motor novo, fundador 13/10)
+        // e o interruptor de reescrita do H3; o dublê do router os fornece. O que este guardião prova (mutex antes do gasto) não mudou.
+        H3MAX_MODELS: { dialogue: 'minimax/h3-max/text-to-video', cinematic: 'minimax/h3-max/text-to-video', support: 'minimax/h3-max/text-to-video' }, H3MAX_I2V_MODEL: 'minimax/h3-max/image-to-video', H3MAX_RESOLUTION: '768P', H3_PROMPT_EXPANSION: 'disabled',
       },
       '@/lib/openai': { openai: { chat: { completions: { create: async input => {
         ok(api.mutex(), 'Mutex exists before paid OpenAI caller')

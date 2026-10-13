@@ -34,7 +34,7 @@ import { ritmoDaVozNoIdioma } from '@/lib/durationByEngine'
 import { vozDoFilmeCurto } from '@/lib/vozDoFilmeCurto'
 import { VOICE_PERSONAS } from '@/lib/narration/personas'
 
-export type ContadorMotor = 'fast' | 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25'
+export type ContadorMotor = 'fast' | 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'h3max' | 'omni' | 's25' // KINEO-H3MAX-2026-10-13
 
 /** Piso do "desce" por rota, como está escrito nas rotas: generate-video-fast `floorSeconds: 35`; cinematic clássico `: 15`; hollywood `AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD`. Com o seletor em 35/60/90 os três dão o mesmo resultado; ficam aqui para o guardião provar o espelho. */
 export const CONTADOR_FLOOR_FAST_SECONDS = 35

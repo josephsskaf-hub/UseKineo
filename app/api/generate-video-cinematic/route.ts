@@ -14,6 +14,7 @@ import { duracoesCurtasVisible } from '@/lib/engineLaunch' // [TRAVA 8.2 — vai
 // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-ESTRELA-DO-FILME-2026-09-29 — as fotos do rosto viram o protagonista:
 // a régua pura (quem, motor, preço ANTES do débito, quais cenas, o pedido ao edit) e o servidor (assinar, gerar, moderar). [KINEO-ESTRELA-DO-FILME-2026-09-29]
 import { estrelaVisible } from '@/lib/engineLaunch' // KINEO-ESTRELA-DO-FILME-2026-09-29
+import { h3maxVisible } from '@/lib/engineLaunch' // KINEO-H3MAX-2026-10-13
 import { decideEstrelaRequest, estrelaPedida, estrelaSobretaxa, estrelaFingerprintSuffix, formatoComEstrela, fichaDaEstrela, planoDaEstrela, promptRetratoEstrela, relatoDaEstrela, motorDaEstrela, ESTRELA_VERSION } from '@/lib/estrelaDoFilme' // KINEO-ESTRELA-DO-FILME-2026-09-29
 import { assinarFotosDaEstrela, gerarStillsDaEstrela, ESTRELA_STILL_USD } from '@/lib/estrelaServer' // KINEO-ESTRELA-DO-FILME-2026-09-29
 import { mentionsContemporaryFigure } from '@/lib/hollywood/router' // KINEO-ESTRELA-DO-FILME-2026-09-29 — celebridade atual nomeada + estrela = recusa
@@ -131,6 +132,9 @@ import {
   H3_MODELS,
   H3_PROMPT_EXPANSION,
   H3_RESOLUTION,
+  H3MAX_I2V_MODEL, // KINEO-H3MAX-2026-10-13
+  H3MAX_MODELS, // KINEO-H3MAX-2026-10-13
+  H3MAX_RESOLUTION, // KINEO-H3MAX-2026-10-13
   OMNI_I2V_MODEL, // KINEO-OMNI-2026-08-25
   S25_T2V_MODEL, // KINEO-S25-2026-09-01
   S25_I2V_MODEL,
@@ -252,6 +256,7 @@ const HOLLYWOOD_CREDIT_COST = 150
 // preço que a rota cobra e o que o settle cobra é a classe de bug que o próprio
 // engineCost.ts foi criado para matar.
 const H3_CREDIT_COST = 45
+const H3MAX_CREDIT_COST = creditCostFor('cinematic_h3max') // KINEO-H3MAX-2026-10-13 — lê a régua única (60 a 60 s), sem espelho digitado
 // KINEO-S25-2026-09-01 — espelha creditCostFor('cinematic_s25'); ver o porque
 // dos 250 la (a $0.462/s, 150cr seria prejuizo). TRANCADO a contas internas.
 const S25_CREDIT_COST = 150
@@ -600,6 +605,28 @@ function buildFalInput(
       // no generate_audio/audio_url input. Verify native dialogue in compose.
     }
   }
+  // KINEO-H3MAX-2026-10-13 — MiniMax H3 Max: o MESMO payload do H3 (768P, prompt literal, duração inteira 5–15 da cena),
+  // KINEO-H3MAX-2026-10-13 — só o endpoint muda. A duração do schema é decimal; mandamos o inteiro que o plano assinou e a
+  // KINEO-H3MAX-2026-10-13 — sobra de até ~0,7 s que o modelo devolve sai na montagem (o compose corta no segundo da cena).
+  // KINEO-H3MAX-2026-10-13 — https://fal.ai/models/minimax/h3-max/image-to-video/api · …/text-to-video/api (lidos 13/10)
+  if (model === H3MAX_I2V_MODEL) { // KINEO-H3MAX-2026-10-13
+    return { // KINEO-H3MAX-2026-10-13
+      image_url: imageUrl, // KINEO-H3MAX-2026-10-13
+      prompt, // KINEO-H3MAX-2026-10-13
+      duration: Math.max(5, Math.min(15, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10))), // KINEO-H3MAX-2026-10-13
+      resolution: H3MAX_RESOLUTION, // KINEO-H3MAX-2026-10-13
+      prompt_expansion_mode: H3_PROMPT_EXPANSION, // KINEO-H3MAX-2026-10-13 — mesmo interruptor do H3 ('disabled')
+    } // KINEO-H3MAX-2026-10-13
+  } // KINEO-H3MAX-2026-10-13
+  if (model === H3MAX_MODELS.dialogue) { // KINEO-H3MAX-2026-10-13
+    return { // KINEO-H3MAX-2026-10-13
+      prompt, // KINEO-H3MAX-2026-10-13
+      duration: Math.max(5, Math.min(15, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10))), // KINEO-H3MAX-2026-10-13
+      resolution: H3MAX_RESOLUTION, // KINEO-H3MAX-2026-10-13
+      aspect_ratio: frame.falAspectRatio, // KINEO-H3MAX-2026-10-13 — t2v tem padrão 16:9: o 9:16 vai explícito
+      prompt_expansion_mode: H3_PROMPT_EXPANSION, // KINEO-H3MAX-2026-10-13
+    } // KINEO-H3MAX-2026-10-13
+  } // KINEO-H3MAX-2026-10-13
   if (model === KLING3_I2V_MODEL) {
     const sec = Math.max(3, Math.min(15, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10)))
     return {
@@ -1527,6 +1554,8 @@ async function manipularPost(req: NextRequest) {
     // duração, a narração verbatim e a variedade determinística. `family` só
     // decide QUAL modelo cada cena chama.
     const wantsH3 = body.engine === 'h3'
+    // KINEO-H3MAX-2026-10-13 — MiniMax H3 Max: família própria na MESMA estrada (endpoint e custo dele; o resto é a regra do H3).
+    const wantsH3Max = body.engine === 'h3max' // KINEO-H3MAX-2026-10-13
     // KINEO-OMNI-2026-08-25 — Gemini Omni Flash: #1 do ranking de agosto,
     // mesma estrada do Hollywood/H3 (familia nova, nunca caminho novo).
     const wantsOmni = body.engine === 'omni'
@@ -1546,20 +1575,26 @@ async function manipularPost(req: NextRequest) {
         return NextResponse.json({ error: pausa.message, reason: 'engine_paused', engine: body.engine, alternative: pausa.alternative, retryable: false, charged: false, refunded: false }, { status: 423 })
       }
     }
+    // KINEO-H3MAX-2026-10-13 — o interruptor do H3 Max (lib/engineLaunch.ts H3MAX_PUBLIC) vale também aqui, ANTES de qualquer
+    // KINEO-H3MAX-2026-10-13 — reserva/débito e de qualquer POST: com a flag desligada só a casa usa; o resto recebe a recusa sem cobrança.
+    if (wantsH3Max && !h3maxVisible(user.email)) { // KINEO-H3MAX-2026-10-13
+      void writeServerEvent({ name: 'h3max_not_public_refused', userId: user.id, path: '/api/generate-video-cinematic', metadata: { engine: 'h3max', charged: false } }) // KINEO-H3MAX-2026-10-13
+      return NextResponse.json({ error: 'MiniMax H3 Max is not available right now. MiniMax H3 is the closest engine. Nothing was charged.', reason: 'h3max_not_public', engine: 'h3max', alternative: { key: 'h3', label: 'MiniMax H3' }, retryable: false, charged: false, refunded: false }, { status: 400 }) // KINEO-H3MAX-2026-10-13
+    } // KINEO-H3MAX-2026-10-13
     // ═══ KINEO-IDIOMA-DO-TEXTO-2026-09-12 — a voz fala a língua do texto (ver
     // generate-video-fast). Escolha explícita vence; "en" cede ao texto claro.
     const narrationLanguage = resolveNarrationLanguage(body.language, prompt)
     if (narrationLanguage.switched) {
       await writeServerEvent({ name: 'narration_language_autodetected', userId: user.id, path: '/api/generate-video-cinematic', metadata: { requested: body.language ?? null, detected: narrationLanguage.detected, confidence: narrationLanguage.confidence, engine: body.engine ?? 'seedance' } })
     }
-    const hollywoodPath = wantsHollywood || wantsH3 || wantsOmni || wantsS25
+    const hollywoodPath = wantsHollywood || wantsH3 || wantsH3Max || wantsOmni || wantsS25 // KINEO-H3MAX-2026-10-13: o H3 Max anda na estrada hollywood (planner, verbatim, piso 95%, contrato de cena)
     // KINEO-IDIOMAS-15-2026-09-17 — os motores de voz própria (Kling 3, H3, Omni, Seedance 2.5) só têm prova em
     // inglês, português e espanhol. As outras 13 línguas do catálogo saem pelos clássicos (TTS da casa). Recusa
     // ANTES de qualquer débito, com a saída certa na mensagem.
     if (hollywoodPath && !isHollywoodLanguage(narrationLanguage.language)) {
       await writeServerEvent({ name: 'narration_language_engine_refused', userId: user.id, path: '/api/generate-video-cinematic', metadata: { language: narrationLanguage.language, engine: typeof body.engine === 'string' ? body.engine : null } })
       return NextResponse.json({
-        error: `${LANGUAGE_NAMES[narrationLanguage.language]} narration is available on Kineo 1, Seedance 1.5, Veo 3.1 and Kling 2.5. Kling 3, MiniMax H3, Omni and Seedance 2.5 speak English, Portuguese and Spanish for now — pick one of those engines, or switch the narration language.`,
+        error: `${LANGUAGE_NAMES[narrationLanguage.language]} narration is available on Kineo 1, Seedance 1.5, Veo 3.1 and Kling 2.5. Kling 3, MiniMax H3, MiniMax H3 Max and Seedance 2.5 speak English, Portuguese and Spanish for now — pick one of those engines, or switch the narration language.`, // KINEO-H3MAX-2026-10-13 (o Omni saiu da oferta em 12/10; o H3 Max entra na lista)
         reason: 'language_not_supported_by_engine', language: narrationLanguage.language, retryable: false,
       }, { status: 422 })
     }
@@ -1572,7 +1607,7 @@ async function manipularPost(req: NextRequest) {
       engine: body.engine, // KINEO-ESTRELA-DO-FILME-2026-09-29
       userId: user.id, // KINEO-ESTRELA-DO-FILME-2026-09-29
       visible: estrelaVisible(user.email), // KINEO-ESTRELA-DO-FILME-2026-09-29
-      anchorEnabled: wantsHollywood || wantsH3 || wantsOmni || wantsS25 || CINEMATIC_ANCHOR_ENABLED, // KINEO-ESTRELA-DO-FILME-2026-09-29 (estrada hollywood = âncora sempre; clássicos = o interruptor)
+      anchorEnabled: wantsHollywood || wantsH3 || wantsH3Max || wantsOmni || wantsS25 || CINEMATIC_ANCHOR_ENABLED, // KINEO-ESTRELA-DO-FILME-2026-09-29 (estrada hollywood = âncora sempre; clássicos = o interruptor) · KINEO-H3MAX-2026-10-13
     }) // KINEO-ESTRELA-DO-FILME-2026-09-29
     if (!estrelaDecisao.ok) { // KINEO-ESTRELA-DO-FILME-2026-09-29
       void writeServerEvent({ name: 'estrela_requested', userId: user.id, path: '/api/generate-video-cinematic', metadata: { outcome: 'refused', code: estrelaDecisao.code, engine: motorDaEstrela(body.engine), charged: false, version: ESTRELA_VERSION } }) // KINEO-ESTRELA-DO-FILME-2026-09-29
@@ -1611,7 +1646,7 @@ async function manipularPost(req: NextRequest) {
         return NextResponse.json({ error: mensagemDaRecusaDeDuracao(checagemDuracao, typeof body.engine === 'string' ? body.engine : null), reason: checagemDuracao.recusa, engine: typeof body.engine === 'string' ? body.engine : null, requested_seconds: duration, suggested_seconds: checagemDuracao.sugestao, retryable: false, charged: false, refunded: false }, { status: 422 }) // KINEO-DURACOES-CURTAS-2026-09-29
       }
     }
-    const family: CinematicFamily = wantsH3 ? 'h3' : wantsOmni ? 'omni' : wantsS25 ? 's25' : 'hollywood'
+    const family: CinematicFamily = wantsH3 ? 'h3' : wantsH3Max ? 'h3max' : wantsOmni ? 'omni' : wantsS25 ? 's25' : 'hollywood' // KINEO-H3MAX-2026-10-13
 
     // Parse script for verbatim mode
     // KINEO-DEGRAU-2026-09-03 — o parse e a decisão "é verbatim?" subiram para
@@ -1943,7 +1978,7 @@ async function manipularPost(req: NextRequest) {
     // que fecha a margem dos planos de $9/$19. Conta criada antes de
     // ENGINE_GATE_SINCE não perde nada (grandfather). Roda ANTES de qualquer
     // reserva de crédito: recusar aqui custa zero.
-    const gateEngineKey = wantsS25 ? 's25' : wantsOmni ? 'omni' : wantsH3 ? 'h3' : wantsHollywood ? 'hollywood' : wantsKling ? 'kling' : wantsVeo ? 'veo' : 'seedance'
+    const gateEngineKey = wantsS25 ? 's25' : wantsOmni ? 'omni' : wantsH3 ? 'h3' : wantsH3Max ? 'h3max' : wantsHollywood ? 'hollywood' : wantsKling ? 'kling' : wantsVeo ? 'veo' : 'seedance' // KINEO-H3MAX-2026-10-13
     const engineGate = decideEngineGate({
       engine: gateEngineKey,
       plan: planVal,
@@ -1984,7 +2019,7 @@ async function manipularPost(req: NextRequest) {
     // Push #402 — per-engine cost. KINEO-PRICING-V3B-2026-07-10: Hollywood 150,
     // Kling 50, Veo 90, Sora 100 (blocked), Seedance 20 — valores de REFERÊNCIA
     // para 60s. A cobrança real escala com a duração (abaixo).
-    const baseCost = wantsS25 ? S25_CREDIT_COST : wantsH3 ? H3_CREDIT_COST : wantsHollywood ? HOLLYWOOD_CREDIT_COST : wantsKling ? KLING_CREDIT_COST : wantsVeo ? VEO_CREDIT_COST : wantsSora ? SORA_CREDIT_COST : SEEDANCE_CREDIT_COST
+    const baseCost = wantsS25 ? S25_CREDIT_COST : wantsH3 ? H3_CREDIT_COST : wantsH3Max ? H3MAX_CREDIT_COST : wantsHollywood ? HOLLYWOOD_CREDIT_COST : wantsKling ? KLING_CREDIT_COST : wantsVeo ? VEO_CREDIT_COST : wantsSora ? SORA_CREDIT_COST : SEEDANCE_CREDIT_COST // KINEO-H3MAX-2026-10-13
     // ═══ KINEO-DURACAO-2026-08-20 — O SERVIDOR COBRA O QUE A TELA MOSTROU ═══
     // O /studio calcula o "Estimated cost" com creditCostForDuration; se esta
     // linha usasse outro número, a pessoa veria 30 e seria debitada 20 (ou o
@@ -1998,6 +2033,8 @@ async function manipularPost(req: NextRequest) {
       ? 'cinematic_s25'
       : wantsH3
       ? 'cinematic_h3'
+      : wantsH3Max // KINEO-H3MAX-2026-10-13
+      ? 'cinematic_h3max' // KINEO-H3MAX-2026-10-13
       : wantsOmni
         ? 'cinematic_omni'
       : wantsHollywood
@@ -2272,6 +2309,7 @@ async function manipularPost(req: NextRequest) {
       const MOTOR_PARA_QUALIDADE: Record<string, Quality> = {
         seedance: 'cinematic_ai',
         h3: 'cinematic_h3',
+        h3max: 'cinematic_h3max', // KINEO-H3MAX-2026-10-13
         kling: 'cinematic_kling',
         veo: 'cinematic_veo',
         hollywood: 'cinematic_hollywood',
@@ -2281,6 +2319,7 @@ async function manipularPost(req: NextRequest) {
       const NOME_PUBLICO_DO_MOTOR: Record<string, string> = {
         seedance: 'AI Generated',
         h3: 'MiniMax H3',
+        h3max: 'MiniMax H3 Max', // KINEO-H3MAX-2026-10-13
         kling: 'Kling 2.5',
         veo: 'Veo 3.1',
         hollywood: 'Kling 3',
@@ -2289,6 +2328,7 @@ async function manipularPost(req: NextRequest) {
       }
       const motorPedido = wantsS25 ? 's25'
         : wantsH3 ? 'h3'
+        : wantsH3Max ? 'h3max' // KINEO-H3MAX-2026-10-13
         : wantsOmni ? 'omni'
         : wantsHollywood ? 'hollywood'
         : wantsKling ? 'kling'
@@ -2315,7 +2355,7 @@ async function manipularPost(req: NextRequest) {
             duracoes: duracoesDoResgateCurtas ?? duracoesDoResgate, // KINEO-DURACOES-CURTAS-2026-09-29
             custoDe,
             motoresDisponiveis: premiumLiberado
-              ? ['seedance', 'h3', 'kling', 'veo', 'hollywood', 'omni']
+              ? ['seedance', 'h3', ...(h3maxVisible(user.email) ? ['h3max'] : []), 'kling', 'veo', 'hollywood', 'omni'] // KINEO-H3MAX-2026-10-13
               : ['seedance'],
           })
       const fraseDoResgate =
@@ -2350,7 +2390,7 @@ async function manipularPost(req: NextRequest) {
         hold_age_ms: hold.newestAgeMs,
         hold_in_flight: holdIsInFlight,
         live_release_credits: liveRelease.creditsReturned,
-        engine: wantsS25 ? 's25' : wantsOmni ? 'omni' : wantsH3 ? 'h3' : wantsHollywood ? 'hollywood' : wantsKling ? 'kling' : wantsVeo ? 'veo' : 'seedance',
+        engine: wantsS25 ? 's25' : wantsOmni ? 'omni' : wantsH3 ? 'h3' : wantsH3Max ? 'h3max' : wantsHollywood ? 'hollywood' : wantsKling ? 'kling' : wantsVeo ? 'veo' : 'seedance', // KINEO-H3MAX-2026-10-13
         trial_phase: trialUi.phase,
         trial_credits_granted: trialUi.creditsGranted,
         is_paid: isPaidUser,
@@ -2422,6 +2462,8 @@ async function manipularPost(req: NextRequest) {
       ? 'cinematic_s25'
       : wantsH3
       ? 'cinematic_h3'
+      : wantsH3Max // KINEO-H3MAX-2026-10-13
+      ? 'cinematic_h3max' // KINEO-H3MAX-2026-10-13
       : wantsOmni
       ? 'cinematic_omni'
       : wantsHollywood
@@ -2440,6 +2482,8 @@ async function manipularPost(req: NextRequest) {
       ? 'omni'
       : wantsH3
       ? 'h3'
+      : wantsH3Max // KINEO-H3MAX-2026-10-13
+      ? 'h3max' // KINEO-H3MAX-2026-10-13
       : wantsHollywood
       ? 'hollywood'
       : wantsKling
@@ -5298,7 +5342,7 @@ async function manipularPost(req: NextRequest) {
           ? `${accepted.length} scene${accepted.length === 1 ? '' : 's'} had already started and ${accepted.length === 1 ? 'was' : 'were'} set aside`
           : 'No video scene was started'
         return NextResponse.json({
-          error: `Seedance 2.5 cannot voice an on-camera presenter for this film (${motivo}). ${submittedPart}${released ? ' and your credits are back' : ''}. Choose Kling 3, MiniMax H3 or Omni Flash for a presenter, or ask for a narrated film without a presenter on Seedance 2.5.`,
+          error: `Seedance 2.5 cannot voice an on-camera presenter for this film (${motivo}). ${submittedPart}${released ? ' and your credits are back' : ''}. Choose Kling 3, MiniMax H3 or MiniMax H3 Max for a presenter, or ask for a narrated film without a presenter on Seedance 2.5.`, // KINEO-H3MAX-2026-10-13 (o Omni saiu da oferta em 12/10 — pendência do KINEO-SELO-OMNI-2026-10-13)
           qualityCheckFailed: true, reason: 's25_dialogue_without_host', motivo,
           generationId, refunded, refundConfirmed: refunded, claimReleased: released, retryable: false,
           dialogueScenes: s25DialogueScenes, visualMode: formatoVisual.modo,

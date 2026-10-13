@@ -432,7 +432,7 @@ export async function GET() {
       // "Seedance×2 (40cr) · Kineo 1×3 (6cr)" — o extrato de hoje, por pessoa.
       const ENGINE_SHORT: Record<string, string> = {
         fast: 'Kineo 1', cinematic_ai: 'Seedance', cinematic_kling: 'Kling 2.5',
-        cinematic_h3: 'H3', cinematic_veo: 'Veo', cinematic_hollywood: 'Kling 3',
+        cinematic_h3: 'H3', cinematic_h3max: 'H3 Max' /* KINEO-H3MAX-2026-10-13 */, cinematic_veo: 'Veo', cinematic_hollywood: 'Kling 3',
         cinematic_omni: 'Omni', // KINEO-OMNI-2026-08-25
         cinematic_s25: 'Seedance 2.5',
         avatar: 'Avatar', presenter: 'Presenter',
