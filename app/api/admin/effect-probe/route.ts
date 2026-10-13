@@ -8,6 +8,7 @@
 //   POST { probe: 'package_explosion' | …, image_url } → { model, request_id }
 //   GET  ?probe=…&request_id=…                        → { status, video_url }
 //   KINEO-SONDA-EFEITOS-VIRAIS-2026-10-13: POST { probe: 'fx_hug' | 'fx_kiss' | 'fx_vampire' | 'fx_wings' | 'fx_dollar_rain' | 'fx_muscle', image_url }
+//   KINEO-EFEITOS-NOVOS-2026-10-13: POST { probe: 'fx_witch' | 'fx_zombie', image_url } (Halloween sem fogo)
 //   KINEO-SONDA-H3MAX-2026-10-13: POST { probe: 'h3_t2v' | 'h3max_t2v', prompt } · { probe: 'h3_i2v' | 'h3max_i2v', prompt, image_url }
 import { NextRequest, NextResponse } from 'next/server'
 import { fal } from '@fal-ai/client'
@@ -60,6 +61,10 @@ const PROBES: Record<string, { model: string; input: (image: string) => Record<s
   fx_wings: { model: KLING, input: (image) => ({ effect_scene: 'pure_white_wings', input_image_urls: [image], duration: '5' }) },
   fx_dollar_rain: { model: KLING, input: (image) => ({ effect_scene: 'dollar_rain_pro', input_image_urls: [image], duration: '5' }) },
   fx_muscle: { model: PIXVERSE_55, input: (image) => ({ effect: 'Muscle Surge', image_url: image, resolution: '720p', duration: '5' }) },
+  // KINEO-EFEITOS-NOVOS-2026-10-13 — Halloween SEM FOGO (fundador 13/10): o vampire_transform saiu demônio de fogo, então a sonda
+  // testa bruxa e zumbi. Os dois valores existem no enum effect_scene do Kling 1.6 STANDARD (OpenAPI da fal salvo em 13/10).
+  fx_witch: { model: KLING, input: (image) => ({ effect_scene: 'witch_transform', input_image_urls: [image], duration: '5' }) },
+  fx_zombie: { model: KLING, input: (image) => ({ effect_scene: 'zombie_transform', input_image_urls: [image], duration: '5' }) },
 }
 
 // KINEO-SONDA-H3MAX-2026-10-13 — fundador (13/10: "Testar o H3"): o MiniMax H3 Max (versão pós-treinada pela fal) é candidato a

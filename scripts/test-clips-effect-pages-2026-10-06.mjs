@@ -18,9 +18,9 @@ function load(mutation=null,off=false,paused=false){
 }
 function check(data) {
   const effects=data.publicEffectPages(),entries=data.effectSitemapEntries()
-  assert.equal(effects.length,9)
-  assert.equal(entries.length,144)
-  assert.equal(new Set(entries.map(e=>e.url)).size,144)
+  assert.equal(effects.length,12) // KINEO-EFEITOS-NOVOS-2026-10-13: +wings, dollar_rain, muscle_surge (9 → 12)
+  assert.equal(entries.length,192)
+  assert.equal(new Set(entries.map(e=>e.url)).size,192)
   assert.equal(data.effectPage('product_360'),null)
   assert.equal(data.effectPage('cartoon-3d'),null)
   assert.equal(data.effectLanguage('invalid'),null)
@@ -89,5 +89,5 @@ for(const [name,from,to] of variants){
 }
 assert.ok(read(FILE).includes('CLIP_EFFECT_PAGES_PUBLIC && CLIPS_PUBLIC && CLIP_EFFECTS_PUBLIC'))
 assert.notEqual(load(['CLIP_EFFECT_PAGES_PUBLIC && CLIPS_PUBLIC && CLIP_EFFECTS_PUBLIC','true'],true).effectSitemapEntries().length,0,'Off-switch mutant detected')
-console.log('PASS: 9 effect pages × 16 languages, real previews, SEO, signup handoff, price-free cards, 6 mutants.')
+console.log('PASS: 12 effect pages × 16 languages, real previews, SEO, signup handoff, price-free cards, 6 mutants.')
 

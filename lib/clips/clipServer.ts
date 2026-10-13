@@ -221,7 +221,7 @@ export function toPublicClip(row: ClipRow): PublicClip {
   return {
     id: row.id,
     engine: row.engine,
-    label: CLIP_ENGINES[row.engine]?.label ?? row.engine,
+    label: effect?.template?.label ?? CLIP_ENGINES[row.engine]?.label ?? row.engine, // KINEO-EFEITOS-NOVOS-2026-10-13 — selo do modelo real
     with_image: row.mode === 'image',
     seconds: row.seconds,
     aspect: row.aspect,

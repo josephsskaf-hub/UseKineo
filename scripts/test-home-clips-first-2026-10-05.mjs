@@ -277,7 +277,8 @@ ok(/export function homeVariantStamp\(userId: string \| null, email\?: string \|
 
 // ── (10) a variante
 const cf = read('components/home/ClipsFirstHome.tsx')
-ok(/credits: clipCreditCost\(effect\.engine, effect\.seconds\)/.test(cf), '(10a) preço do efeito = clipCreditCost(effect.engine, effect.seconds)')
+// Reancorado 13/10 (KINEO-EFEITOS-NOVOS-2026-10-13): o efeito-modelo cobra clipEffectCredits (o preço do /clips); os outros, clipCreditCost.
+ok(/credits: effect\.template \? clipEffectCredits\(effect\) : clipCreditCost\(effect\.engine, effect\.seconds\)/.test(cf), '(10a) preço do efeito = clipCreditCost(effect.engine, effect.seconds) (efeito-modelo: clipEffectCredits)')
 ok(!/\b\d+\s*(credits|cr)\b/.test(cf.replace(/\/\/.*$/gm, '')), '(10b) nenhum preço digitado à mão na variante')
 ok(/CLIP_EFFECTS\.map/.test(cf) && /clipEffectEntryHref\(effect\.key, signedIn\)/.test(cf) && /clipUploadEntryHref\(signedIn\)/.test(cf) && /Upload a photo/.test(cf), '(10c) galeria = catálogo inteiro, links do contrato, "Upload a photo" grande')
 ok(/if \(!effect\.preview\)/.test(cf) && /Preview coming soon/.test(cf) && /className="tag soon"/.test(cf), '(10d) placeholder MARCADO onde preview=null')

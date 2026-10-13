@@ -143,6 +143,16 @@ const VIRAL_EXPECTED = {
   fx_dollar_rain: { model: 'fal-ai/kling-video/v1.6/standard/effects', input: { effect_scene: 'dollar_rain_pro', input_image_urls: [VIRAL_IMG], duration: '5' } },
   fx_muscle: { model: 'fal-ai/pixverse/v5.5/effects', input: { effect: 'Muscle Surge', image_url: VIRAL_IMG, resolution: '720p', duration: '5' } },
 }
+// KINEO-EFEITOS-NOVOS-2026-10-13 — Halloween SEM FOGO: o vampire_transform saiu demônio de fogo (fundador 13/10), então entram
+// bruxa e zumbi na MESMA sonda fechada. Os dois valores estão no enum effect_scene de fal-ai/kling-video/v1.6/standard/effects
+// (OpenAPI salvo em 13/10: 98 valores, contém 'witch_transform' e 'zombie_transform'; NÃO existe 'witch' nem 'zombie' soltos).
+const HALLOWEEN_EXPECTED = {
+  fx_witch: { model: 'fal-ai/kling-video/v1.6/standard/effects', input: { effect_scene: 'witch_transform', input_image_urls: [VIRAL_IMG], duration: '5' } },
+  fx_zombie: { model: 'fal-ai/kling-video/v1.6/standard/effects', input: { effect_scene: 'zombie_transform', input_image_urls: [VIRAL_IMG], duration: '5' } },
+}
+const KLING_STD_ENUM_CHECKED = new Set(['vampire_transform', 'pure_white_wings', 'dollar_rain_pro', 'witch_transform', 'zombie_transform', 'bullet_time_360', 'splashsplash'])
+/** Todas as chaves fx_* que o catálogo pode ter, na ordem: as 6 virais e as 2 de Halloween. */
+const FX_EXPECTED = { ...VIRAL_EXPECTED, ...HALLOWEEN_EXPECTED }
 const MODEL_CONSTS = {
   PIXVERSE: 'fal-ai/pixverse/v5/effects', KLING: 'fal-ai/kling-video/v1.6/standard/effects',
   VIDU: 'fal-ai/vidu/template-to-video', PIXVERSE_55: 'fal-ai/pixverse/v5.5/effects',
@@ -163,7 +173,8 @@ function rulesViral(src) {
   if (!P) return false
   const fx = Object.keys(P).filter((k) => k.startsWith('fx_'))
   const other = 'https://other.example/z.jpg'
-  return JSON.stringify(fx) === JSON.stringify(Object.keys(VIRAL_EXPECTED)) &&
+  // KINEO-EFEITOS-NOVOS-2026-10-13 — a lista fechada de fx_* agora é a das 6 virais + 2 de Halloween (FX_EXPECTED)
+  return JSON.stringify(fx) === JSON.stringify(Object.keys(FX_EXPECTED)) &&
     Object.entries(VIRAL_EXPECTED).every(([k, v]) => P[k].model === v.model && JSON.stringify(P[k].input(VIRAL_IMG)) === JSON.stringify(v.input)) &&
     // a foto é o único valor externo: trocar a foto troca só a foto
     Object.entries(VIRAL_EXPECTED).every(([k, v]) => JSON.stringify(P[k].input(other)) === JSON.stringify(v.input).split(VIRAL_IMG).join(other)) &&
@@ -205,6 +216,34 @@ mut('foto fixa em vez da foto recebida', "fx_hug: { model: VIDU, input: (image) 
 mut('modelo livre (string crua) no catálogo', 'fx_hug: { model: VIDU,', "fx_hug: { model: 'fal-ai/qualquer/coisa',", rulesClosedCatalog)
 mut('entrada lê valor de fora', "fx_vampire: { model: KLING, input: (image) => ({ effect_scene: 'vampire_transform',", "fx_vampire: { model: KLING, input: (image) => ({ effect_scene: (globalThis as any).scene ?? 'vampire_transform',", rulesClosedCatalog)
 mut('GET sem hasOwnProperty no catálogo', ': Object.prototype.hasOwnProperty.call(PROBES, key) ? PROBES[key] : undefined', ': PROBES[key]', rulesClosedCatalog)
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+// KINEO-EFEITOS-NOVOS-2026-10-13 — (10) Halloween sem fogo: fx_witch e fx_zombie executados devolvem o modelo (Kling 1.6
+// STANDARD) e a entrada exatos; o valor de effect_scene está no enum conferido; nenhum dos dois é vampiro/fogo/demônio; a foto é
+// o único valor externo. (11) mutantes vermelhos e aplicados.
+function rulesHalloween(src) {
+  const P = loadProbes(src)
+  if (!P) return false
+  const other = 'https://other.example/h.jpg'
+  return Object.entries(HALLOWEEN_EXPECTED).every(([k, v]) => {
+    const p = Object.prototype.hasOwnProperty.call(P, k) ? P[k] : null
+    if (!p || p.model !== v.model || p.input.length !== 1) return false
+    const got = p.input(VIRAL_IMG)
+    return JSON.stringify(got) === JSON.stringify(v.input) &&
+      KLING_STD_ENUM_CHECKED.has(got.effect_scene) &&
+      !/fire|flame|demon|vampire|burn/i.test(JSON.stringify(got)) &&
+      JSON.stringify(p.input(other)) === JSON.stringify(v.input).split(VIRAL_IMG).join(other)
+  })
+}
+check('10 Halloween sem fogo: fx_witch/fx_zombie no Kling 1.6 standard com witch_transform/zombie_transform (enum conferido), 5 s, só a foto de fora', () => rulesHalloween(SRC))
+check('10b o catálogo fechado e os 6 virais seguem verdes com as 2 chaves novas', () => rulesViral(SRC) && rulesClosedCatalog(SRC))
+mut('bruxa trocada por vampiro (o que saiu de fogo)', "effect_scene: 'witch_transform'", "effect_scene: 'vampire_transform'", rulesHalloween)
+mut('zumbi com valor fora do enum', "effect_scene: 'zombie_transform'", "effect_scene: 'zombie'", rulesHalloween)
+mut('bruxa no Kling 1.6 PRO (outro endpoint/preço)', "  fx_witch: { model: KLING,", "  fx_witch: { model: 'fal-ai/kling-video/v1.6/pro/effects',", rulesHalloween)
+mut('zumbi com duração 10', "effect_scene: 'zombie_transform', input_image_urls: [image], duration: '5'", "effect_scene: 'zombie_transform', input_image_urls: [image], duration: '10'", rulesHalloween)
+mut('chave fx_zombie some do catálogo', '  fx_zombie: { model: KLING,', '  zombie: { model: KLING,', rulesHalloween)
+mut('chave fx_witch renomeada (fora da lista fechada fx_*)', '  fx_witch: { model: KLING,', '  fx_bruxa: { model: KLING,', rulesViral)
+mut('zumbi lê valor de fora', "fx_zombie: { model: KLING, input: (image) => ({ effect_scene: 'zombie_transform',", "fx_zombie: { model: KLING, input: (image) => ({ effect_scene: (globalThis as any).scene ?? 'zombie_transform',", rulesClosedCatalog)
 
 console.log(fails ? `\n${fails} FALHA(S)` : '\nTODOS PASS')
 process.exit(fails ? 1 : 0)

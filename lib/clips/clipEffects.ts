@@ -16,8 +16,18 @@
 // motor, duração e formato saem daqui (resolveClipEffectRequest) e o resto do pedido segue o submitClip de sempre
 // (moderação de entrada, saldo, débito, estorno, MP4 no nosso bucket). Interruptor antes de tudo: efeito com
 // CLIP_EFFECTS_PUBLIC=false e conta de fora → 404, nada lido nem cobrado.
+//
+// KINEO-EFEITOS-NOVOS-2026-10-13 — EFEITO-MODELO (template do fornecedor). Fundador (13/10, "tudo sim", depois de ver os
+// renders reais da sonda app/api/admin/effect-probe fx_wings/fx_dollar_rain/fx_muscle): 3 efeitos que NÃO são foto + prompt
+// nosso, e sim um efeito PRONTO do modelo (Kling 1.6 standard effects e PixVerse 5.5 effects — o efeito é um valor de enum,
+// sem prompt). O campo `template` diz o endpoint e a entrada fixa (a foto é o ÚNICO valor de fora — mesmos parâmetros da sonda
+// que produziu os renders aprovados). O resto do caminho é o MESMO do efeito de sempre: o navegador manda só `effect` + foto,
+// o servidor resolve aqui, e o submitClip faz posse da foto, moderação, saldo, débito, envio e estorno — sem caminho paralelo
+// de dinheiro. `engine` de um efeito-modelo é o TRILHO de acesso (portão de plano, pausa e a coluna `engine` da tabela
+// `clips`, que só aceita os 7 motores): os 3 andam no trilho 'kling'. O selo honesto vem de template.label ("Kling 1.6",
+// "PixVerse 5.5") e o modelo REAL fica gravado em clips.model (é dele que o pollFal lê o resultado).
 import { CLIP_ENGINES, type ClipEngineKey, type ClipRequestInput } from './clipCatalog'
-import { clipCreditCost } from './clipPricing'
+import { clipCreditCost, clipTemplateCreditCost } from './clipPricing'
 import { clipMeasurementVersion } from './clipMeasurement'
 
 /** Interruptor dos efeitos. false = só as contas da casa veem a galeria (o fundador liga). */
@@ -34,6 +44,34 @@ export type ClipEffectKey =
   | 'storm_behind'
   | 'melt'
   | 'secret_cake'
+  | 'wings' // KINEO-EFEITOS-NOVOS-2026-10-13
+  | 'dollar_rain' // KINEO-EFEITOS-NOVOS-2026-10-13
+  | 'muscle_surge' // KINEO-EFEITOS-NOVOS-2026-10-13
+
+/**
+ * KINEO-EFEITOS-NOVOS-2026-10-13 — efeito PRONTO de um modelo do fornecedor (sem prompt). Tudo fixo no catálogo: o navegador
+ * nunca escolhe modelo nem entrada; a foto (já conferida como da conta) é o único valor de fora.
+ */
+export interface ClipEffectTemplate {
+  /** Endpoint da fal (um de CLIP_TEMPLATE_MODELS). */
+  model: string
+  /** Entrada exata do schema da fal; recebe SÓ a foto. */
+  input: (photoUrl: string) => Record<string, unknown>
+  /** Custo fal do clipe em US$ (base do preço: piso de 50% de margem e mínimo de 5 cr — clipTemplateCreditCost). */
+  usd: number
+  /** Selo honesto: o motor REAL que faz o clipe. */
+  label: string
+}
+
+/** KINEO-EFEITOS-NOVOS-2026-10-13 — os únicos endpoints de efeito-modelo (schemas OpenAPI da fal lidos em 13/10). */
+export const CLIP_TEMPLATE_KLING16 = 'fal-ai/kling-video/v1.6/standard/effects'
+export const CLIP_TEMPLATE_PIXVERSE55 = 'fal-ai/pixverse/v5.5/effects'
+export const CLIP_TEMPLATE_MODELS: readonly string[] = [CLIP_TEMPLATE_KLING16, CLIP_TEMPLATE_PIXVERSE55]
+
+/** Prompt-sentinela gravado na linha de um efeito-modelo (o modelo não recebe prompt; a linha precisa voltar ao efeito). */
+export function clipTemplatePrompt(key: ClipEffectKey): string {
+  return `[effect:${key}]`
+}
 
 export interface ClipEffectPreview {
   video: string
@@ -57,6 +95,8 @@ export interface ClipEffect {
   /** O efeito pede rosto/pessoa na foto? (só para a dica da tela; a moderação é a de sempre). */
   person: boolean
   preview: ClipEffectPreview | null
+  /** KINEO-EFEITOS-NOVOS-2026-10-13 — presente = efeito pronto do modelo (o `prompt` é só o sentinela da linha). */
+  template?: ClipEffectTemplate
 }
 
 const NO_TEXT = 'No text, no captions, no logos, no watermark.'
@@ -184,6 +224,62 @@ export const CLIP_EFFECTS: readonly ClipEffect[] = [
     person: false,
     preview: { video: '/previews/efeito-secret_cake.mp4', poster: '/posters/efeito-secret_cake.webp', note: 'Made with this effect from an AI-generated product photo (Kling 2.5)' },
   },
+  // KINEO-EFEITOS-NOVOS-2026-10-13 — os 3 efeitos virais de pessoa aprovados pelo fundador depois do render real (13/10, "tudo
+  // sim"). Entrada IGUAL à da sonda que fez os renders aprovados (app/api/admin/effect-probe fx_wings/fx_dollar_rain/fx_muscle).
+  // Enums conferidos no OpenAPI da fal em 13/10: no Kling 1.6 STANDARD só existe 'dollar_rain_pro' (não 'dollar_rain'); o
+  // 'Muscle Surge' só existe na PixVerse v5.5. Prévias = os próprios renders aprovados, aliviados (720×1280, mudos, faststart).
+  // Halloween NÃO entrou: o vampire_transform saiu demônio de fogo (fundador: sem fogo) — witch/zombie seguem na sonda.
+  {
+    key: 'wings',
+    title: 'Angel wings',
+    sub: 'Pure white wings unfold behind you.',
+    engine: 'kling',
+    seconds: 5,
+    prompt: clipTemplatePrompt('wings'),
+    filmIdea: 'The day this person got wings — a 60-second story',
+    person: true,
+    preview: { video: '/previews/efeito-wings.mp4', poster: '/posters/efeito-wings.webp', note: 'Made with this effect from an AI-generated photo (Kling 1.6)' },
+    template: {
+      model: CLIP_TEMPLATE_KLING16,
+      input: (photoUrl) => ({ effect_scene: 'pure_white_wings', input_image_urls: [photoUrl], duration: '5' }),
+      usd: 0.28,
+      label: 'Kling 1.6',
+    },
+  },
+  {
+    key: 'dollar_rain',
+    title: 'Dollar rain',
+    sub: 'Dollar bills rain down all around you.',
+    engine: 'kling',
+    seconds: 5,
+    prompt: clipTemplatePrompt('dollar_rain'),
+    filmIdea: 'How this person got rich overnight — a 60-second story',
+    person: true,
+    preview: { video: '/previews/efeito-dollar_rain.mp4', poster: '/posters/efeito-dollar_rain.webp', note: 'Made with this effect from an AI-generated photo (Kling 1.6)' },
+    template: {
+      model: CLIP_TEMPLATE_KLING16,
+      input: (photoUrl) => ({ effect_scene: 'dollar_rain_pro', input_image_urls: [photoUrl], duration: '5' }),
+      usd: 0.28,
+      label: 'Kling 1.6',
+    },
+  },
+  {
+    key: 'muscle_surge',
+    title: 'Muscle surge',
+    sub: 'You bulk up into a superhero body in seconds.',
+    engine: 'kling',
+    seconds: 5,
+    prompt: clipTemplatePrompt('muscle_surge'),
+    filmIdea: 'The transformation — a 60-second story of becoming unstoppable',
+    person: true,
+    preview: { video: '/previews/efeito-muscle_surge.mp4', poster: '/posters/efeito-muscle_surge.webp', note: 'Made with this effect from an AI-generated photo (PixVerse 5.5)' },
+    template: {
+      model: CLIP_TEMPLATE_PIXVERSE55,
+      input: (photoUrl) => ({ effect: 'Muscle Surge', image_url: photoUrl, resolution: '720p', duration: '5' }),
+      usd: 0.2,
+      label: 'PixVerse 5.5',
+    },
+  },
 ]
 
 export function clipEffectByKey(key: unknown): ClipEffect | null {
@@ -217,7 +313,16 @@ export const CLIP_EFFECT_EVENTS = ['clip_effect_chosen', 'clip_effect_ready', 'c
  * submitClip faz na hora do débito (efeito é sempre com foto → withImage=true; hoje a fal cobra igual com e sem foto).
  */
 export function clipEffectCredits(effect: ClipEffect): number {
+  // KINEO-EFEITOS-NOVOS-2026-10-13 — efeito-modelo: o custo é o do endpoint dele (não o do motor do trilho), com a MESMA régua
+  // de piso (50% de margem no crédito do Studio, mínimo de 5 cr). Os efeitos de prompt seguem na linha de baixo, intocada.
+  if (effect.template) return clipTemplateCreditCost(effect.template.usd)
   return clipCreditCost(effect.engine, effect.seconds, true)
+}
+
+/** KINEO-EFEITOS-NOVOS-2026-10-13 — selo honesto do efeito: o modelo real do efeito-modelo, senão o motor do catálogo. */
+export function clipEffectEngineLabel(effect: Pick<ClipEffect, 'key' | 'engine'>): string {
+  const own = clipEffectByKey(effect.key)
+  return own?.template?.label ?? CLIP_ENGINES[effect.engine].label
 }
 
 /** O que a galeria recebe do GET /api/clips — sem o prompt (o navegador não precisa dele nem o manda de volta). */
@@ -241,7 +346,7 @@ export function publicClipEffects(engineOk: (engine: ClipEngineKey) => boolean):
     title: e.title,
     sub: e.sub,
     engine: e.engine,
-    engine_label: CLIP_ENGINES[e.engine].label,
+    engine_label: e.template ? e.template.label : CLIP_ENGINES[e.engine].label, // KINEO-EFEITOS-NOVOS-2026-10-13
     seconds: e.seconds,
     credits: clipEffectCredits(e),
     person: e.person,
@@ -273,7 +378,26 @@ export function resolveClipEffectRequest(raw: unknown, ctx: { visible: boolean; 
   if (!effect) return { ok: false, status: 400, code: 'effect', error: 'Choose one of the listed effects.' }
   const imageUrl = typeof ctx.imageUrl === 'string' ? ctx.imageUrl.trim() : ''
   if (!imageUrl) return { ok: false, status: 400, code: 'effect_photo', error: 'This effect starts from your photo. Add a photo first.' }
-  return { ok: true, effect, body: { engine: effect.engine, seconds: effect.seconds, aspect: null, prompt: effect.prompt, imageUrl } }
+  const body: ClipRequestInput = { engine: effect.engine, seconds: effect.seconds, aspect: null, prompt: effect.prompt, imageUrl }
+  // KINEO-EFEITOS-NOVOS-2026-10-13 — só o efeito-modelo leva a chave ao submitClip (o ramo do template); os outros, idênticos.
+  return { ok: true, effect, body: effect.template ? { ...body, effect: effect.key } : body }
+}
+
+/**
+ * KINEO-EFEITOS-NOVOS-2026-10-13 — o ramo do efeito-modelo no submitClip. `raw` é o `effect` que SÓ o servidor põe no pedido
+ * (resolveClipEffectRequest; o clipe livre da rota nunca copia esse campo do corpo). Ausente = clipe de sempre (null). Presente,
+ * tem de ser um efeito-modelo do catálogo e o pedido validado tem de ser EXATAMENTE o dele (foto, trilho, duração, sentinela) —
+ * senão o pedido é recusado antes de qualquer custo. Modelo e entrada saem de effect.template, nunca do pedido.
+ */
+export function clipTemplateForRequest(
+  raw: unknown,
+  req: { engine: string; mode: string; seconds: number; prompt: string; imageUrl: string | null },
+): { ok: true; effect: ClipEffect | null } | { ok: false } {
+  if (raw === undefined) return { ok: true, effect: null }
+  const effect = clipEffectByKey(raw)
+  if (!effect || !effect.template || !CLIP_TEMPLATE_MODELS.includes(effect.template.model)) return { ok: false }
+  if (req.mode !== 'i2v' || !req.imageUrl || req.engine !== effect.engine || req.seconds !== effect.seconds || req.prompt !== effect.prompt) return { ok: false }
+  return { ok: true, effect }
 }
 
 /**
@@ -281,9 +405,11 @@ export function resolveClipEffectRequest(raw: unknown, ctx: { visible: boolean; 
  * duração + foto identificam o efeito sem coluna nova na tabela. (Se o texto de um efeito mudar no catálogo, os clipes
  * antigos dele deixam de ser reconhecidos — perdem só o botão do upsell e o evento de pronto.)
  */
-export function clipEffectForRow(row: { prompt: string; engine: string; seconds: number; mode: string }): ClipEffect | null {
+export function clipEffectForRow(row: { prompt: string; engine: string; seconds: number; mode: string; model?: string }): ClipEffect | null {
   if (row.mode !== 'image') return null
-  return CLIP_EFFECTS.find((e) => e.prompt === row.prompt && e.engine === row.engine && e.seconds === row.seconds) ?? null
+  // KINEO-EFEITOS-NOVOS-2026-10-13 — o efeito-modelo só é reconhecido com o modelo dele na linha (clips.model): um clipe livre
+  // que copiasse o sentinela "[effect:…]" como texto foi para o motor de sempre e NÃO é o efeito.
+  return CLIP_EFFECTS.find((e) => e.prompt === row.prompt && e.engine === row.engine && e.seconds === row.seconds && (!e.template || e.template.model === row.model)) ?? null
 }
 
 /** Metadata dos eventos do efeito: só a forma do pedido (sem foto, texto ou e-mail). */

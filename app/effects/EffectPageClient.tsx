@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { KineoBrandIcon } from '@/components/KineoBolt'
 import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 import { INTERFACE_LANGUAGE_OPTIONS, interfaceLanguageIsRtl, type InterfaceLanguage } from '@/lib/ui/interfaceLanguage'
-import { CLIP_ENGINES } from '@/lib/clips/clipCatalog'
+import { clipEffectEngineLabel } from '@/lib/clips/clipEffects' // KINEO-EFEITOS-NOVOS-2026-10-13: selo do modelo real (Kling 1.6 / PixVerse 5.5 nos efeitos-modelo)
 import { effectDestination, effectPagePath, effectSlug, effectText, type EffectPageCard } from '@/lib/clips/clipEffectPages'
 import EffectPreview from './EffectPreview'
 import './effects.css'
@@ -33,7 +33,7 @@ export default function EffectPageClient({ effect, language, signedIn, related, 
           <span className="ep-eyebrow">{t('Made on Kineo')}</span>
           <h1 id="effect-title">{t(effect.title)}</h1>
           <p className="ep-lead">{t(effect.sub)}</p>
-          <span className="ep-engine" dir="ltr">{CLIP_ENGINES[effect.engine].label}</span>
+          <span className="ep-engine" dir="ltr">{clipEffectEngineLabel(effect)}</span>
           <ol className="ep-steps"><li>{t('Use this effect')}</li><li>{t('Add your photo')}</li><li>{t('Generate your clip')}</li></ol>
           <Link className="ep-cta" href={effectDestination(effect, signedIn)} prefetch={false} data-effect-use={effect.key} data-clip-action="use_effect" data-clip-effect={effect.key}>{t('Use this effect')} <span aria-hidden="true">↗</span></Link>
           <p className="ep-note">{t('Your result depends on your photo.')}</p>
@@ -49,7 +49,7 @@ export default function EffectPageClient({ effect, language, signedIn, related, 
           {/* House posters only; no additional videos or paid renders. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={item.preview!.poster} alt={t(item.title)} loading="lazy" width={270} height={480} />
-          <span className="ep-card-engine" dir="ltr">{CLIP_ENGINES[item.engine].label}</span>
+          <span className="ep-card-engine" dir="ltr">{clipEffectEngineLabel(item)}</span>
           <h3>{t(item.title)}</h3>
         </Link>)}</div>
       </section>

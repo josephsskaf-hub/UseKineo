@@ -258,7 +258,13 @@
     "Creator ${price}/month, {pct}% off the first month": "Creator ${price}/month, {pct}% off the first month",
     "Creator ${price}/month": "Creator ${price}/month",
     "Your first ad is free": "Your first ad is free",
-    "Business {price}/month ≈ {n} ads": "Business {price}/month ≈ {n} ads"
+    "Business {price}/month ≈ {n} ads": "Business {price}/month ≈ {n} ads",
+    "Angel wings": "Angel wings",
+    "Pure white wings unfold behind you.": "Pure white wings unfold behind you.",
+    "Dollar rain": "Dollar rain",
+    "Dollar bills rain down all around you.": "Dollar bills rain down all around you.",
+    "Muscle surge": "Muscle surge",
+    "You bulk up into a superhero body in seconds.": "You bulk up into a superhero body in seconds."
   },
   "pt": {
     "Studio Ads is included in every paid plan": "O Studio Ads está incluído em todos os planos pagos",
@@ -518,7 +524,13 @@
     "Creator ${price}/month, {pct}% off the first month": "Creator ${price}/mês, {pct}% off no 1º mês",
     "Creator ${price}/month": "Creator ${price}/mês",
     "Your first ad is free": "Seu primeiro anúncio é grátis",
-    "Business {price}/month ≈ {n} ads": "Business {price}/mês ≈ {n} anúncios"
+    "Business {price}/month ≈ {n} ads": "Business {price}/mês ≈ {n} anúncios",
+    "Angel wings": "Asas de anjo",
+    "Pure white wings unfold behind you.": "Asas brancas se abrem atrás de você.",
+    "Dollar rain": "Chuva de dólares",
+    "Dollar bills rain down all around you.": "Notas de dólar chovem ao seu redor.",
+    "Muscle surge": "Músculos na hora",
+    "You bulk up into a superhero body in seconds.": "Você ganha um corpo de super-herói em segundos."
   },
   "es": {
     "Studio Ads is included in every paid plan": "Studio Ads está incluido en todos los planes de pago",
@@ -777,7 +789,13 @@
     "Creator ${price}/month, {pct}% off the first month": "Creator ${price}/mes, {pct}% de descuento el primer mes",
     "Creator ${price}/month": "Creator ${price}/mes",
     "Your first ad is free": "Tu primer anuncio es gratis",
-    "Business {price}/month ≈ {n} ads": "Business {price}/mes ≈ {n} anuncios"
+    "Business {price}/month ≈ {n} ads": "Business {price}/mes ≈ {n} anuncios",
+    "Angel wings": "Alas de ángel",
+    "Pure white wings unfold behind you.": "Unas alas blancas se despliegan detrás de ti.",
+    "Dollar rain": "Lluvia de dólares",
+    "Dollar bills rain down all around you.": "Billetes de dólar llueven a tu alrededor.",
+    "Muscle surge": "Músculos al instante",
+    "You bulk up into a superhero body in seconds.": "Tu cuerpo se vuelve de superhéroe en segundos."
   },
   "fr": {
     "Studio Ads is included in every paid plan": "Studio Ads est inclus dans toutes les offres payantes",
@@ -1037,7 +1055,13 @@
     "Creator ${price}/month, {pct}% off the first month": "Creator ${price}/mois, {pct}% de réduction le 1er mois",
     "Creator ${price}/month": "Creator ${price}/mois",
     "Your first ad is free": "Votre première pub est offerte",
-    "Business {price}/month ≈ {n} ads": "Business {price}/mois ≈ {n} pubs"
+    "Business {price}/month ≈ {n} ads": "Business {price}/mois ≈ {n} pubs",
+    "Angel wings": "Ailes d’ange",
+    "Pure white wings unfold behind you.": "De pures ailes blanches se déploient derrière vous.",
+    "Dollar rain": "Pluie de dollars",
+    "Dollar bills rain down all around you.": "Des billets de dollar pleuvent tout autour de vous.",
+    "Muscle surge": "Muscles express",
+    "You bulk up into a superhero body in seconds.": "Vous prenez un corps de super-héros en quelques secondes."
   },
   "de": {
     "Studio Ads is included in every paid plan": "Studio Ads ist in jedem bezahlten Plan enthalten",
@@ -1297,7 +1321,13 @@
     "Creator ${price}/month, {pct}% off the first month": "Creator ${price}/Monat, {pct}% Rabatt im 1. Monat",
     "Creator ${price}/month": "Creator ${price}/Monat",
     "Your first ad is free": "Deine erste Anzeige ist gratis",
-    "Business {price}/month ≈ {n} ads": "Business {price}/Monat ≈ {n} Anzeigen"
+    "Business {price}/month ≈ {n} ads": "Business {price}/Monat ≈ {n} Anzeigen",
+    "Angel wings": "Engelsflügel",
+    "Pure white wings unfold behind you.": "Reinweiße Flügel entfalten sich hinter dir.",
+    "Dollar rain": "Dollarregen",
+    "Dollar bills rain down all around you.": "Dollarscheine regnen rund um dich herab.",
+    "Muscle surge": "Muskel-Boost",
+    "You bulk up into a superhero body in seconds.": "In Sekunden bekommst du einen Superheldenkörper."
   },
   "it": {
     "Studio Ads is included in every paid plan": "Studio Ads è incluso in tutti i piani a pagamento",
@@ -1557,7 +1587,13 @@
     "Creator ${price}/month, {pct}% off the first month": "Creator ${price}/mese, {pct}% di sconto il 1° mese",
     "Creator ${price}/month": "Creator ${price}/mese",
     "Your first ad is free": "Il tuo primo annuncio è gratis",
-    "Business {price}/month ≈ {n} ads": "Business {price}/mese ≈ {n} annunci"
+    "Business {price}/month ≈ {n} ads": "Business {price}/mese ≈ {n} annunci",
+    "Angel wings": "Ali d’angelo",
+    "Pure white wings unfold behind you.": "Ali bianchissime si aprono dietro di te.",
+    "Dollar rain": "Pioggia di dollari",
+    "Dollar bills rain down all around you.": "Banconote da un dollaro piovono tutto intorno a te.",
+    "Muscle surge": "Muscoli all’istante",
+    "You bulk up into a superhero body in seconds.": "In pochi secondi hai un fisico da supereroe."
   },
   "nl": {
     "Studio Ads is included in every paid plan": "Studio Ads zit in elk betaald plan",
@@ -1817,7 +1853,13 @@
     "Creator ${price}/month, {pct}% off the first month": "Creator ${price}/maand, {pct}% korting de 1e maand",
     "Creator ${price}/month": "Creator ${price}/maand",
     "Your first ad is free": "Je eerste advertentie is gratis",
-    "Business {price}/month ≈ {n} ads": "Business {price}/maand ≈ {n} advertenties"
+    "Business {price}/month ≈ {n} ads": "Business {price}/maand ≈ {n} advertenties",
+    "Angel wings": "Engelenvleugels",
+    "Pure white wings unfold behind you.": "Spierwitte vleugels ontvouwen zich achter je.",
+    "Dollar rain": "Dollarregen",
+    "Dollar bills rain down all around you.": "Dollarbiljetten regenen overal om je heen.",
+    "Muscle surge": "Spierboost",
+    "You bulk up into a superhero body in seconds.": "In een paar seconden krijg je een superheldenlichaam."
   },
   "pl": {
     "Studio Ads is included in every paid plan": "Studio Ads jest w każdym płatnym planie",
@@ -2077,7 +2119,13 @@
     "Creator ${price}/month, {pct}% off the first month": "Creator ${price}/mies., {pct}% taniej w 1. miesiącu",
     "Creator ${price}/month": "Creator ${price}/mies.",
     "Your first ad is free": "Twoja pierwsza reklama jest gratis",
-    "Business {price}/month ≈ {n} ads": "Business {price}/mies. ≈ {n} reklam"
+    "Business {price}/month ≈ {n} ads": "Business {price}/mies. ≈ {n} reklam",
+    "Angel wings": "Anielskie skrzydła",
+    "Pure white wings unfold behind you.": "Za tobą rozkładają się śnieżnobiałe skrzydła.",
+    "Dollar rain": "Deszcz dolarów",
+    "Dollar bills rain down all around you.": "Banknoty dolarowe spadają wokół ciebie.",
+    "Muscle surge": "Mięśnie w sekundę",
+    "You bulk up into a superhero body in seconds.": "W kilka sekund zyskujesz ciało superbohatera."
   },
   "tr": {
     "Studio Ads is included in every paid plan": "Studio Ads tüm ücretli planlara dahil",
@@ -2337,7 +2385,13 @@
     "Creator ${price}/month, {pct}% off the first month": "Creator ${price}/ay, ilk ay %{pct} indirim",
     "Creator ${price}/month": "Creator ${price}/ay",
     "Your first ad is free": "İlk reklamın ücretsiz",
-    "Business {price}/month ≈ {n} ads": "Business {price}/ay ≈ {n} reklam"
+    "Business {price}/month ≈ {n} ads": "Business {price}/ay ≈ {n} reklam",
+    "Angel wings": "Melek kanatları",
+    "Pure white wings unfold behind you.": "Arkanda bembeyaz kanatlar açılıyor.",
+    "Dollar rain": "Dolar yağmuru",
+    "Dollar bills rain down all around you.": "Etrafına dolar banknotları yağıyor.",
+    "Muscle surge": "Kas patlaması",
+    "You bulk up into a superhero body in seconds.": "Saniyeler içinde süper kahraman vücuduna kavuşuyorsun."
   },
   "ru": {
     "Studio Ads is included in every paid plan": "Studio Ads входит в каждый платный план",
@@ -2597,7 +2651,13 @@
     "Creator ${price}/month, {pct}% off the first month": "Creator ${price}/мес., скидка {pct}% на 1-й месяц",
     "Creator ${price}/month": "Creator ${price}/мес.",
     "Your first ad is free": "Первая реклама бесплатно",
-    "Business {price}/month ≈ {n} ads": "Business {price}/мес. ≈ {n} реклам"
+    "Business {price}/month ≈ {n} ads": "Business {price}/мес. ≈ {n} реклам",
+    "Angel wings": "Крылья ангела",
+    "Pure white wings unfold behind you.": "За спиной раскрываются белоснежные крылья.",
+    "Dollar rain": "Долларовый дождь",
+    "Dollar bills rain down all around you.": "Вокруг вас сыплются долларовые купюры.",
+    "Muscle surge": "Мгновенные мышцы",
+    "You bulk up into a superhero body in seconds.": "За секунды у вас тело супергероя."
   },
   "uk": {
     "Studio Ads is included in every paid plan": "Studio Ads входить у кожен платний план",
@@ -2857,7 +2917,13 @@
     "Creator ${price}/month, {pct}% off the first month": "Creator ${price}/міс., знижка {pct}% на 1-й місяць",
     "Creator ${price}/month": "Creator ${price}/міс.",
     "Your first ad is free": "Перша реклама безкоштовно",
-    "Business {price}/month ≈ {n} ads": "Business {price}/міс. ≈ {n} реклам"
+    "Business {price}/month ≈ {n} ads": "Business {price}/міс. ≈ {n} реклам",
+    "Angel wings": "Крила ангела",
+    "Pure white wings unfold behind you.": "За спиною розгортаються білосніжні крила.",
+    "Dollar rain": "Доларовий дощ",
+    "Dollar bills rain down all around you.": "Навколо вас сиплються доларові купюри.",
+    "Muscle surge": "Миттєві м’язи",
+    "You bulk up into a superhero body in seconds.": "За секунди у вас тіло супергероя."
   },
   "ar": {
     "Studio Ads is included in every paid plan": "Studio Ads مشمول في كل خطة مدفوعة",
@@ -3117,7 +3183,13 @@
     "Creator ${price}/month, {pct}% off the first month": "Creator ‏${price}/شهريًا، خصم {pct}% في الشهر الأول",
     "Creator ${price}/month": "Creator ‏${price}/شهريًا",
     "Your first ad is free": "إعلانك الأول مجاني",
-    "Business {price}/month ≈ {n} ads": "Business ‏{price}/شهريًا ≈ {n} إعلانًا"
+    "Business {price}/month ≈ {n} ads": "Business ‏{price}/شهريًا ≈ {n} إعلانًا",
+    "Angel wings": "أجنحة ملاك",
+    "Pure white wings unfold behind you.": "تنفتح خلفك أجنحة بيضاء ناصعة.",
+    "Dollar rain": "مطر الدولارات",
+    "Dollar bills rain down all around you.": "تتساقط أوراق الدولار من حولك.",
+    "Muscle surge": "عضلات فورية",
+    "You bulk up into a superhero body in seconds.": "تحصل على جسم بطل خارق في ثوانٍ."
   },
   "ur": {
     "Studio Ads is included in every paid plan": "Studio Ads ہر پیڈ پلان میں شامل ہے",
@@ -3377,7 +3449,13 @@
     "Creator ${price}/month, {pct}% off the first month": "Creator ‏${price}/ماہ، پہلے مہینے {pct}% رعایت",
     "Creator ${price}/month": "Creator ‏${price}/ماہ",
     "Your first ad is free": "آپ کا پہلا اشتہار مفت ہے",
-    "Business {price}/month ≈ {n} ads": "Business ‏{price}/ماہ ≈ {n} اشتہارات"
+    "Business {price}/month ≈ {n} ads": "Business ‏{price}/ماہ ≈ {n} اشتہارات",
+    "Angel wings": "فرشتے کے پر",
+    "Pure white wings unfold behind you.": "آپ کے پیچھے سفید براق پر کھل جاتے ہیں۔",
+    "Dollar rain": "ڈالروں کی بارش",
+    "Dollar bills rain down all around you.": "آپ کے چاروں طرف ڈالر کے نوٹ برستے ہیں۔",
+    "Muscle surge": "فوری مسلز",
+    "You bulk up into a superhero body in seconds.": "چند سیکنڈ میں آپ کا جسم سپر ہیرو جیسا بن جاتا ہے۔"
   },
   "hi": {
     "Studio Ads is included in every paid plan": "Studio Ads हर पेड प्लान में शामिल है",
@@ -3635,7 +3713,13 @@
     "Creator ${price}/month, {pct}% off the first month": "Creator ${price}/महीना, पहले महीने {pct}% छूट",
     "Creator ${price}/month": "Creator ${price}/महीना",
     "Your first ad is free": "आपका पहला विज्ञापन मुफ़्त है",
-    "Business {price}/month ≈ {n} ads": "Business {price}/महीना ≈ {n} विज्ञापन"
+    "Business {price}/month ≈ {n} ads": "Business {price}/महीना ≈ {n} विज्ञापन",
+    "Angel wings": "फ़रिश्ते के पंख",
+    "Pure white wings unfold behind you.": "आपके पीछे सफ़ेद पंख खुल जाते हैं।",
+    "Dollar rain": "डॉलर की बारिश",
+    "Dollar bills rain down all around you.": "आपके चारों ओर डॉलर के नोट बरसते हैं।",
+    "Muscle surge": "तुरंत मसल्स",
+    "You bulk up into a superhero body in seconds.": "कुछ ही सेकंड में आपका शरीर सुपरहीरो जैसा बन जाता है।"
   },
   "id": {
     "Studio Ads is included in every paid plan": "Studio Ads sudah termasuk di setiap paket berbayar",
@@ -3895,7 +3979,13 @@
     "Creator ${price}/month, {pct}% off the first month": "Creator ${price}/bulan, diskon {pct}% di bulan pertama",
     "Creator ${price}/month": "Creator ${price}/bulan",
     "Your first ad is free": "Iklan pertama Anda gratis",
-    "Business {price}/month ≈ {n} ads": "Business {price}/bulan ≈ {n} iklan"
+    "Business {price}/month ≈ {n} ads": "Business {price}/bulan ≈ {n} iklan",
+    "Angel wings": "Sayap malaikat",
+    "Pure white wings unfold behind you.": "Sayap putih bersih terbentang di belakangmu.",
+    "Dollar rain": "Hujan dolar",
+    "Dollar bills rain down all around you.": "Uang kertas dolar berjatuhan di sekelilingmu.",
+    "Muscle surge": "Otot instan",
+    "You bulk up into a superhero body in seconds.": "Dalam hitungan detik tubuhmu jadi seperti superhero."
   },
   "vi": {
     "Studio Ads is included in every paid plan": "Studio Ads có trong mọi gói trả phí",
@@ -4155,6 +4245,12 @@
     "Creator ${price}/month, {pct}% off the first month": "Creator ${price}/tháng, giảm {pct}% tháng đầu",
     "Creator ${price}/month": "Creator ${price}/tháng",
     "Your first ad is free": "Quảng cáo đầu tiên miễn phí",
-    "Business {price}/month ≈ {n} ads": "Business {price}/tháng ≈ {n} quảng cáo"
+    "Business {price}/month ≈ {n} ads": "Business {price}/tháng ≈ {n} quảng cáo",
+    "Angel wings": "Đôi cánh thiên thần",
+    "Pure white wings unfold behind you.": "Đôi cánh trắng muốt dang rộng sau lưng bạn.",
+    "Dollar rain": "Mưa đô la",
+    "Dollar bills rain down all around you.": "Những tờ đô la rơi như mưa quanh bạn.",
+    "Muscle surge": "Cơ bắp tức thì",
+    "You bulk up into a superhero body in seconds.": "Chỉ vài giây, bạn có thân hình siêu anh hùng."
   }
 }
