@@ -882,11 +882,8 @@ export default function KineoLanding({
                   {/* KINEO-VEO-CARD-HONESTO-2026-09-29 — 1080p pelo mesmo preço desde 16/08; o chip
                       STUDIO só volta se o gate religar na fonte (lib/enginePlanGate.ts). */}
                   <NavEngineItem href="/studio?engine=veo&intent_campaign=nav_mega" name="Veo 3.1" desc="Google’s video model · 1080p" chip={enginePlanBadge('veo') ? 'STUDIO' : undefined} preview="/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4" thumb="/nav-thumbs/veo.webp" />
-                  {/* KINEO-OMNI-2026-08-25 — acima do Kling 3 de propósito: é o
-                      #1 do ranking cego de agosto. Preview REAL do primeiro
-                      render validado (Flight 19, narrador da praia) — selo
-                      honesto cumprido: só entrou aqui DEPOIS da auditoria. */}
-                  {!enginePaused('omni') && <NavEngineItem href="/studio?engine=omni&intent_campaign=nav_mega" name="Omni Flash" desc="Google's Gemini Omni Flash — cinematic scenes" preview="/previews/41924eb2-d81d-4f2c-a5bb-5477c042af04.mp4" />}
+                  {/* KINEO-OMNI-FORA-2026-10-12 — o item do Omni Flash saiu do mega-menu (motor fora da oferta,
+                      lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS). Os filmes dele seguem na vitrine. */}
                   {/* KINEO-S25-LAUNCH-2026-09-01 — Seedance 2.5: so a casa ve ate o
                       canario passar (s25Visible); S25_PUBLIC=true abre pra todos.
                       Sem preview de proposito (selo honesto: clipe so deste motor).
@@ -1309,9 +1306,9 @@ export default function KineoLanding({
               {WELCOME20_SITE_OFFER_LIVE ? <div className="pr-then"><LandingPlanPrice tier="pro" variant="then" /></div> : null}
               <ul>
                 <li><span className="ck">✓</span> <b><UiLabel>{filmsAndScenes('pro')}</UiLabel></b></li>
-                {/* KINEO-SELO-OMNI-POPUP-2026-09-30 — o cartão Studio vendia "Or N films on Omni Flash" com o Omni pausado
-                    desde 15/09; a linha agora lê o interruptor (enginePaused) e volta sozinha quando o motor voltar. */}
-                {enginePaused('omni') ? <li><span className="ck">✓</span><UiLabel> Or </UiLabel><b>{filmsOn('pro', 'cinematic_hollywood')}<UiLabel> Kling 3 films</UiLabel></b><UiLabel> — native voice & lip sync</UiLabel></li> : <li><span className="ck">✓</span><UiLabel> Or </UiLabel><b>{filmsOn('pro', 'cinematic_omni')}<UiLabel> films on Omni Flash</UiLabel></b><UiLabel> — Google’s Gemini engine</UiLabel></li>}
+                {/* KINEO-SELO-OMNI-POPUP-2026-09-30 · KINEO-OMNI-FORA-2026-10-12 — o cartão Studio vendia "Or N films on
+                    Omni Flash"; com o Omni fora da oferta a linha é sempre a do Kling 3 (sem ramo do Omni). */}
+                <li><span className="ck">✓</span><UiLabel> Or </UiLabel><b>{filmsOn('pro', 'cinematic_hollywood')}<UiLabel> Kling 3 films</UiLabel></b><UiLabel> — native voice & lip sync</UiLabel></li>
                 <li><span className="ck">✓</span><UiLabel> Up to </UiLabel><b>{imagesFor('pro')}<UiLabel> AI images</UiLabel></b> — {nanoBananasFor('pro')}<UiLabel> on Nano Banana</UiLabel></li>
                 <li><span className="ck">✓</span> <b>{voiceoversFor('pro')}<UiLabel> AI voiceovers</UiLabel></b><UiLabel> · 2 free HD enhances / month</UiLabel></li>
                 <li><span className="ck">✓</span><UiLabel> Unlimited projects · your films stay in your library</UiLabel></li>

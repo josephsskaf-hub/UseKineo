@@ -149,12 +149,9 @@ const ENGINES: { paused?: boolean; /* KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 */
   // Starter — o selo automático abaixo (ENGINE_GATE_ACTIVE) volta sozinho se o gate religar.
   { key: 'veo', preview: '/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4', icon: 'G', name: 'Veo 3.1', desc: 'Google’s flagship cinematic engine · 1080p', res: '1080p', credits: `${creditCostFor('cinematic_veo', true)} cr`, supportsRef: false },
   { key: 'hollywood', preview: '/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4', icon: 'K3', name: 'Kling 3', tag: 'Studio', desc: 'Film scenes, native voice & lip sync', res: '720p', credits: `${creditCostFor('cinematic_hollywood', true)} cr`, supportsRef: true },
-  // KINEO-OMNI-2026-08-25 — o #1 do ranking cego de agosto (1245 Elo,
-  // Artificial Analysis arena) entra no topo do catálogo. Selo honesto: a
-  // claim '#1 ranked' tem fonte datada (docs/MOTOR-OMNI-FLASH-2026-08-25.md)
-  // e sai do card se o ranking mudar. Sem preview ainda — entra depois do
-  // render de validação (vitrine com clipe de outro motor quebraria o selo).
-  { key: 'omni', paused: Boolean(enginePaused('omni')), icon: 'OF', name: 'Omni Flash', /* KINEO-SELO-POR-NOTA-2026-09-22: '#1 ranked' (arena de agosto) saiu do seletor até o motor ter 3 filmes com nota ≥ 75 no juiz — 0 clientes em 30 d com o selo */ desc: 'Google’s Gemini Omni Flash — cinematic scenes', res: '720p', credits: `${creditCostFor('cinematic_omni', true)} cr`, supportsRef: true },
+  // KINEO-OMNI-FORA-2026-10-12 — o card do Omni Flash saiu do seletor (motor fora da oferta, lib/engineLaunch.ts
+  // OFFER_RETIRED_ENGINE_KEYS). Sem a linha aqui, ?engine=omni não acha o motor e cai no padrão (linha do
+  // KINEO-MOTOR-EM-MANUTENCAO abaixo), e o servidor segue recusando o Omni antes de qualquer débito.
   // KINEO-S25-CARD-2026-09-01 — Seedance 2.5, visivel SO para contas internas
   // (flag `internal` do /api/me/credits) ate os 4 carimbos do canario. Nunca
   // mostrar botao que o publico nao pode apertar — a licao do Seedance 2.0.
@@ -1247,7 +1244,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                 ))}
               </select>
               {!isHollywoodLanguage(language) && (
-                <span style={{ fontSize: 11, color: 'var(--muted2)' }}>{kineo1Shown ? 'Kineo 1, ' : ''}Seedance 1.5, Veo 3.1 and Kling 2.5 narrate in this language. Kling 3, H3, Omni and Seedance 2.5: English, Portuguese, Spanish only.</span>
+                <span style={{ fontSize: 11, color: 'var(--muted2)' }}>{kineo1Shown ? 'Kineo 1, ' : ''}Seedance 1.5, Veo 3.1 and Kling 2.5 narrate in this language. Kling 3, H3 and Seedance 2.5: English, Portuguese, Spanish only.{/* KINEO-OMNI-FORA-2026-10-12 */}</span>
               )}
             </div>
             {/* ⚠️ KINEO-RES-HONESTA-2026-08-20 — a tela se contradizia.

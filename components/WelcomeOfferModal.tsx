@@ -45,7 +45,6 @@ import {
   formatPlanFilmCapacity,
   planFilmLanguageMetadata,
 } from '@/lib/growth/planFilmLanguage'
-import { enginePaused } from '@/lib/engineLaunch'
 
 // ═══ KINEO-SELO-OMNI-POPUP-2026-09-30 — o cartão Studio prometia "N films on Omni Flash — the #1 model — plus
 // change" com o Omni PAUSADO desde 15/09 (PAUSED_ENGINE_KEYS em lib/engineLaunch.ts): o comprador pagava por um
@@ -54,8 +53,9 @@ import { enginePaused } from '@/lib/engineLaunch'
 // indica, mesma etiqueta de 150cr); de volta ao ar → Omni Flash, sozinho, sem ninguém redigitar a linha.
 // Guardião: scripts/test-selo-omni-pausado-2026-09-30.mjs.
 const KLING3_LEAD = { quality: 'cinematic_hollywood', film: 'Kling 3 film' } as const
-const OMNI_LEAD = { quality: 'cinematic_omni', film: 'Omni Flash film' } as const
-const studioLead = enginePaused('omni') ? KLING3_LEAD : OMNI_LEAD
+// KINEO-OMNI-FORA-2026-10-12 — o Omni saiu da oferta (lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS): o motor-âncora do
+// Studio é sempre o Kling 3. Sem ramo do Omni e sem leitura do interruptor — voltar o Omni à oferta é decisão do fundador.
+const studioLead = KLING3_LEAD
 
 let memorySeenAt: number | null = null
 let memoryDashboardSuppressed = false

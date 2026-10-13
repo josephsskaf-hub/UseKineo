@@ -42,7 +42,8 @@ checa('persona/hostVoice/handoff: tipos do catálogo', !rd('lib/narration/niche-
 console.log('3) as telas')
 const st = rd('app/(dashboard)/studio/StudioClient.tsx'), gc = rd('app/(dashboard)/generate/GenerateClient.tsx')
 checa('Studio: seletor com as 16 línguas, lê ?language=, manda ?language= (só quando ≠ en) e guarda no go', st.includes('id="studio-narration-language"') && st.includes('{NARRATION_LANGUAGES.map((l) => (') && st.includes("const requestedLanguage = narrationLanguage(sp.get('language'))") && st.includes("if (language !== 'en') q.set('language', language)") && st.includes("prompt: finalPrompt, language }"))
-checa('Studio: aviso honesto quando a língua não tem prova nos motores de voz própria', st.includes('{!isHollywoodLanguage(language) && (') && st.includes('Kling 3, H3, Omni and Seedance 2.5: English, Portuguese, Spanish only.'))
+// KINEO-OMNI-FORA-2026-10-12 — reancorado com motivo: o Omni saiu do aviso (motor fora da oferta); o aviso segue exigido igual.
+checa('Studio: aviso honesto quando a língua não tem prova nos motores de voz própria', st.includes('{!isHollywoodLanguage(language) && (') && st.includes('Kling 3, H3 and Seedance 2.5: English, Portuguese, Spanish only.'))
 checa('Generate: estado e URL pelo catálogo', gc.includes('useState<NarrationLanguage>(initialLanguage)') && gc.includes("const initialLanguage: NarrationLanguage = narrationLanguage(requestedLanguage) ?? 'en'") && gc.includes("const language = narrationLanguage(input.language) ?? 'en'"))
 
 console.log('4) as páginas de idioma do Projeto 1 entregam o que prometem')

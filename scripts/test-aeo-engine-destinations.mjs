@@ -38,7 +38,9 @@ const expected = {
   veo: '/ai-video-generator/veo',
   hollywood: '/ai-video-generator/kling-3',
   h3: '/ai-video-generator/minimax-h3',
-  omni: '/ai-video-generator/gemini-omni-flash',
+  // KINEO-OMNI-FORA-2026-10-12 — reancorado com motivo: o Omni Flash saiu da oferta e /ai-video-generator/gemini-omni-flash virou
+  // 301 para a página do Kling 3 (next.config.js); o caminho canônico de 'omni' é o destino final, como o de 'fast'.
+  omni: '/ai-video-generator/kling-3',
   s25: '/ai-video-generator/seedance-2-5',
 }
 
@@ -53,11 +55,14 @@ for (const [engine, path] of Object.entries(expected)) {
 const facts = read('lib/kineoFacts.ts')
 ok(facts.includes("import { engineLandingPublicPath } from './growth/engineLandingIntent'"), 'public facts use the shared destination source')
 // S25 has a declared path behind S25_PUBLIC, but is not in ENGINE_FACTS yet.
-for (const engine of Object.keys(expected).filter((key) => key !== 's25')) {
+// KINEO-OMNI-FORA-2026-10-12 — reancorado com motivo: o Omni Flash saiu da oferta e do catálogo público de fatos (ENGINE_FACTS);
+// os outros motores seguem derivando a URL, e o Omni NÃO pode voltar a aparecer nos fatos (6 URLs derivadas, era 7).
+for (const engine of Object.keys(expected).filter((key) => key !== 's25' && key !== 'omni')) {
   ok(facts.includes(`engineLandingPublicPath('${engine}')`), `${engine}: facts derive the engine URL`)
 }
+ok(!facts.includes("engineLandingPublicPath('omni')"), 'omni: fora da oferta, ausente dos fatos públicos')
 ok(facts.includes("url: `${BASE}/ai-avatar`"), 'Avatar keeps its canonical standalone page')
-equal((facts.match(/url: `\$\{BASE\}\$\{engineLandingPublicPath\('/g) ?? []).length, 7, 'all seven video-engine URLs are derived once')
+equal((facts.match(/url: `\$\{BASE\}\$\{engineLandingPublicPath\('/g) ?? []).length, 6, 'all six offered video-engine URLs are derived once')
 
 const llms = read('app/llms.txt/route.ts')
 ok(llms.includes('[**${engine.name}**](${engine.url})'), 'llms catalog emits a direct Markdown link per engine')
@@ -78,6 +83,8 @@ for (const [engine, path] of Object.entries(expected)) {
   const entry = enginePage.slice(entryStart, entryEnd)
   // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o motor aposentado ('fast') cai na página do seu sucessor (Seedance).
   if (engine === 'fast') { ok(entry.includes("param: 'seedance'"), 'fast (Kineo 1, aposentado da vitrine): destino é a página do Seedance'); continue }
+  // KINEO-OMNI-FORA-2026-10-12 — o Omni (fora da oferta) cai na página do Kling 3, a alternativa oficial do ENGINE_PAUSE.
+  if (engine === 'omni') { ok(entry.includes("param: 'hollywood'"), 'omni (fora da oferta): destino é a página do Kling 3'); continue }
   ok(entry.includes(`param: '${engine}'`), `${engine}: destination resolves to the matching generator parameter`)
 }
 

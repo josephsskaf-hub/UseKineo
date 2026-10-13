@@ -26,7 +26,7 @@ const LAST_UPDATED = 'September 24, 2026'
 export const metadata: Metadata = {
   title: 'Sora Is Shut Down — Where Sora Users Are Going in 2026',
   description:
-    'Sora 2 API shutdown: September 24, 2026. Compare available Kineo engines, current film credit costs and the path to Studio. Omni Flash is paused.',
+    'Sora 2 API shutdown: September 24, 2026. Compare available Kineo engines, current film credit costs and the path to Studio.', // KINEO-OMNI-FORA-2026-10-12
   alternates: { canonical: `${BASE}/sora-alternative` },
   openGraph: {
     title: 'Sora Is Shut Down — Where Sora Users Are Going',
@@ -84,7 +84,7 @@ export default function SoraAlternativePage() {
         <ul style={{ color: '#c7c7cc', margin: '10px 0 0', paddingLeft: 20 }}>
           <li>This is the <b>API shutdown date</b>, not a claim that the consumer app closed today.</li>
           <li>Kineo does not offer Sora as a replacement engine.</li>
-          <li>Choose an available engine below; Omni Flash is currently paused.</li>
+          <li>Choose an available engine below.</li>{/* KINEO-OMNI-FORA-2026-10-12 — o aviso do Omni saiu com a linha dele. */}
         </ul>
         <p style={{ color: '#86868b', fontSize: 13, marginTop: 10 }}>
           Source:{' '}

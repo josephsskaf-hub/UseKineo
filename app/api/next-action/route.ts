@@ -11,7 +11,7 @@ import { COMPOSE_CLAIM_EVENT, COMPOSE_CLAIM_PATH } from '@/lib/composeClaim'
 import { EVENT_SESSION_COOKIE } from '@/lib/growth/checkoutAuthSessionBridge'
 // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — com a entrada nova (seedance15sVisible), o Kineo 1 só é oferecido a quem tem
 // a flag kineo1 (a MESMA composição do /api/me/credits), e o Seedance de 15 s vira a saída barata que cabe no trial.
-import { resolveKineo1Flag, seedance15sVisible } from '@/lib/engineLaunch'
+import { resolveKineo1Flag, seedance15sVisible, engineOffered } from '@/lib/engineLaunch'
 import { readKineo1Access } from '@/lib/kineo1Access'
 import { SEEDANCE_SHORT_SECONDS } from '@/lib/durationByEngine'
 
@@ -441,7 +441,10 @@ export async function GET(req: NextRequest) {
     // Fail-closed: cota não verificada = Kineo 1 grátis não é oferecido.
     const fastGratisDisponivel = noCaminhoGratis ? vagasConhecidas !== null && vagasConhecidas > 0 : true
 
-    const acessiveis = MOTORES.map((m) => ({
+    // KINEO-OMNI-FORA-2026-10-12 — motor fora da oferta (Omni Flash) não vira próxima jogada: empatado em custo com o
+    // Kling 3 e ANTES dele em MOTORES, o ordenamento estável o punha em primeiro para quem tinha 150 cr — um botão que o
+    // servidor recusa (423). A linha fica em MOTORES só para nomear filmes antigos (rotuloDoMotor/deeplinkDoMotor).
+    const acessiveis = MOTORES.filter((m) => engineOffered(m.deeplink)).map((m) => ({
       engine: m.quality,
       label: m.label,
       cost: creditCostForDuration(m.quality, isPaidUser, segundos),

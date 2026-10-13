@@ -36,7 +36,9 @@ export const ENGINE_LANDING_PUBLIC_PATHS: Record<EngineLandingParam, string> = {
   veo: '/ai-video-generator/veo',
   hollywood: '/ai-video-generator/kling-3',
   h3: '/ai-video-generator/minimax-h3',
-  omni: '/ai-video-generator/gemini-omni-flash',
+  // KINEO-OMNI-FORA-2026-10-12 — a página do Omni Flash virou 301 para a do Kling 3 (next.config.js); o caminho público
+  // de 'omni' aponta para o destino final, sem pular por um redirect (mesmo padrão do Kineo 1 acima).
+  omni: '/ai-video-generator/kling-3',
   s25: '/ai-video-generator/seedance-2-5',
 }
 

@@ -305,7 +305,7 @@ const PLAN_INCLUDES: Record<CheckoutTier, string[]> = {
     `Cinematic Kling 2.5 — about ${videosPerMonth('pro', 'cinematic_kling')} premium videos per month`,
     `Or roughly ${videosPerMonth('pro', 'cinematic_ai')} Seedance videos per month with the same credits`,
     // KINEO-AVATAR-FORA-2026-09-28 — ' and Avatar' só volta com AVATAR_PUBLIC=true.
-    `Every available engine: Kling 2.5, Veo 3.1, Kling 3${AVATAR_PUBLIC ? ', MiniMax H3 and Avatar' : ' and MiniMax H3'} (Omni Flash is temporarily paused for maintenance since 15 September 2026)`, // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 · KINEO-H3-DE-VOLTA-2026-09-22
+    `Every available engine: Kling 2.5, Veo 3.1, Kling 3${AVATAR_PUBLIC ? ', MiniMax H3 and Avatar' : ' and MiniMax H3'}`, // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 · KINEO-H3-DE-VOLTA-2026-09-22 · KINEO-OMNI-FORA-2026-10-12 (o parêntese do Omni saiu)
   ],
 }
 
@@ -547,15 +547,8 @@ export const ENGINE_FACTS: EngineFact[] = [
     credits: creditsPerReferenceVideo('cinematic_h3'),
     what: 'Back online since 22 September 2026 (768p, own narration voice, 45 credits per 60 s). Lower-credit cinematic multi-scene film. Renders talking-character scenes — a person on screen speaks the exact scripted line with lip sync — alternating with documentary narration. Kineo seeds each scene with one planned anchor image; identity can still drift between shots.',
   },
-  {
-    // KINEO-OMNI-2026-08-25 — entra APÓS a validação real (render Flight 19,
-    // 72s, auditoria ffmpeg zero-apagão em docs/MOTOR-OMNI-FLASH) — selo
-    // honesto: o llms.txt só fala de motor que a casa viu entregar.
-    name: 'Omni Flash',
-    url: `${BASE}${engineLandingPublicPath('omni')}`,
-    credits: creditsPerReferenceVideo('cinematic_omni'),
-    what: "TEMPORARILY PAUSED for maintenance since 15 September 2026 — new films cannot be started and nothing is charged for a blocked attempt; Kling 3 covers the same job meanwhile. Google's Gemini Omni Flash as a full multi-scene film when available: image-anchored scenes for consistent characters and world, documentary narration, karaoke captions. Same price tier as Kling 3.",
-  },
+  // KINEO-OMNI-FORA-2026-10-12 — a ficha do Omni Flash saiu do catálogo de motores (fora da oferta, lib/engineLaunch.ts
+  // OFFER_RETIRED_ENGINE_KEYS): o llms.txt, /api/facts e o GPT não citam mais o motor, nem como pausado.
   {
     name: 'Kling 3',
     url: `${BASE}${engineLandingPublicPath('hollywood')}`,

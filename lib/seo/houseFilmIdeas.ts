@@ -49,7 +49,8 @@ export const HOUSE_ENGINE_PATHS: Partial<Record<HouseFilmEngine, string>> = {
   cinematic_veo: '/ai-video-generator/veo',
   cinematic_hollywood: '/ai-video-generator/kling-3',
   cinematic_h3: '/ai-video-generator/minimax-h3',
-  cinematic_omni: '/ai-video-generator/gemini-omni-flash',
+  // KINEO-OMNI-FORA-2026-10-12 — espelho do destino final: a página do Omni virou 301 para a do Kling 3 (o filme e o selo ficam).
+  cinematic_omni: '/ai-video-generator/kling-3',
 }
 
 export type IdeaSource = 'exact_prompt' | 'prompt_opening' | 'script_opening' | 'translated_prompt'

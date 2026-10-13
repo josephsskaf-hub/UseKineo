@@ -371,9 +371,9 @@ export const TOOLS: Record<ToolId, Tool> = {
       'AI voiceover generated from the script, with a narrator voice matched to the subject. On Kling 3 and MiniMax H3 a character on screen can also speak the scripted line with lip sync, alternating with the narrator inside the same film.',
     stock: 'Stock footage matched scene by scene to the actual voiceover lines, plus generative engines on higher tiers.',
     exportLimits:
-      // KINEO-OMNI-2026-08-25 — Omni Flash entra na régua pública após a
-      // validação real; custo SEMPRE de creditCostFor (disciplina #296).
-      `Credit-metered per 60-second video: Seedance ${KINEO_SEEDANCE_COST} credits, MiniMax H3 ${creditsPerReferenceVideo('cinematic_h3')}, Kling 2.5 ${KINEO_KLING_COST}, Kling 3 ${KINEO_KLING3_COST}, and Omni Flash (Google's #1-ranked video model, Aug 2026 arena) ${creditsPerReferenceVideo('cinematic_omni')}. Credits do not roll over between months.`,
+      // Custo SEMPRE de creditCostFor (disciplina #296). KINEO-OMNI-FORA-2026-10-12 — o Omni Flash saiu desta régua
+      // pública (motor fora da oferta, lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS).
+      `Credit-metered per 60-second video: Seedance ${KINEO_SEEDANCE_COST} credits, MiniMax H3 ${creditsPerReferenceVideo('cinematic_h3')}, Kling 2.5 ${KINEO_KLING_COST}, Kling 3 ${KINEO_KLING3_COST}. Credits do not roll over between months.`,
     source: BASE + '/pricing',
     homepage: BASE,
     verified: VERIFIED_ON,

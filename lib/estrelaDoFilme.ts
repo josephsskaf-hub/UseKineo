@@ -85,7 +85,7 @@ export const ESTRELA_MSG = {
 export function estrelaMotorSemAncoraMensagem(engine: unknown): string {
   const m = motorDaEstrela(engine)
   const why = ESTRELA_MOTORES_SEM_ANCORA[m] ?? 'This engine has no first-frame image to put a face in.'
-  return `Star of the film works on Seedance 1.5, Kling 2.5, Veo 3.1, Kling 3, MiniMax H3 and Omni Flash. ${why} Nothing was charged.`
+  return `Star of the film works on Seedance 1.5, Kling 2.5, Veo 3.1, Kling 3 and MiniMax H3. ${why} Nothing was charged.` // KINEO-OMNI-FORA-2026-10-12 — sem o Omni na lista (fora da oferta)
 }
 
 /**

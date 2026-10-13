@@ -68,7 +68,9 @@ checa('degrau: custo pela MESMA função do cobrador (creditCostForDuration na q
 checa('degrau: clique troca duração + motor e grava studio_shorter_step_clicked com from/to/cost', st.includes("void trackEvent('studio_shorter_step_clicked', { engine: e.key, from: duration, to: st.seconds, cost: st.cost, balance }); setDuration(st.seconds); setEngine(e.key); setPickerOpen(false)"))
 checa('degrau: impressão medida no mesmo gatilho (picker aberto) com os degraus oferecidos', st.includes("void trackEvent('studio_shorter_step_shown', { duration, balance, steps })"))
 checa('degrau: não aninha <button> dentro do card-botão (role=button)', st.includes('<span role="button" tabIndex={0} className="pill on"'))
-checa('selo: Omni sem "#1 ranked" no seletor do Studio', !/tag: '#1 ranked'/.test(st) && st.includes("desc: 'Google’s Gemini Omni Flash — cinematic scenes'"))
+// KINEO-OMNI-FORA-2026-10-12 — reancorado com motivo: o card do Omni saiu do seletor (motor fora da oferta). Mais forte que
+// "sem #1 ranked": nenhum "#1 ranked" e nenhum card com key 'omni' no seletor do Studio.
+checa('selo: sem "#1 ranked" e sem card do Omni no seletor do Studio', !/tag: '#1 ranked'/.test(st) && !/\{ key: 'omni'/.test(st))
 const land = rd('app/KineoLanding.tsx')
 checa('selo: mega-menu sem chip "#1 RANKED" e sem "#1-ranked model" no pricing da home', !land.includes('chip="#1 RANKED"') && !land.includes('the #1-ranked model'))
 checa('selo: /generate e /models-pricing sem "#1 ranked"', !rd('app/(dashboard)/generate/GenerateClient.tsx').includes("#1 ranked, Aug 2026") && !rd('app/models-pricing/page.tsx').includes('#1 ranked, Aug 2026 arena'))

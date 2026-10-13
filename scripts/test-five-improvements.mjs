@@ -115,9 +115,24 @@ const KINEO1_REDIRECT_BLOCK=[
 "      { source: '/ai-video-generator/kineo-1', destination: '/ai-video-generator/seedance?from=kineo-1', statusCode: 301 },",
 "      { source: '/ai-video-generator/kineo-1/:lang', destination: '/ai-video-generator/seedance/:lang?from=kineo-1', statusCode: 301 },",
 ""].join('\n')
+// KINEO-OMNI-FORA-2026-10-12 — reancorado com motivo: a segunda mudança autorizada é o bloco EXATO dos 301 do Omni Flash
+// (motor fora da oferta, ordem do fundador 12/10): a página do motor vai para a do Kling 3 e /omni-flash-vs-sora para
+// /sora-alternative. Mesma regra: o bloco existe uma vez, inteiro, logo depois do bloco do Kineo 1; o resto segue byte a byte.
+const OMNI_REDIRECT_BLOCK=[
+"      // KINEO-OMNI-FORA-2026-10-12 — o Omni Flash saiu da oferta (fundador 12/10: \"tira o Omni dos motores… deixa os",
+"      // vídeos\"; lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS). A página do motor vira 301 para a do Kling 3: é a",
+"      // alternativa oficial que o próprio ENGINE_PAUSE indica, custa o mesmo (150 cr o filme de 60 s), roda na mesma",
+"      // estrada (cenas ancoradas em imagem, voz própria) — quem chega procurando o filme carro-chefe acha o carro-chefe",
+"      // que pode apertar. A comparação /omni-flash-vs-sora vira 301 para /sora-alternative (a mesma pergunta, só com",
+"      // motores disponíveis). As duas saíram do sitemap (RETIRED_ENGINE_SLUGS e a lista estática de app/sitemap.ts).",
+"      { source: '/ai-video-generator/gemini-omni-flash', destination: '/ai-video-generator/kling-3', statusCode: 301 },",
+"      { source: '/ai-video-generator/gemini-omni-flash/:lang', destination: '/ai-video-generator/kling-3', statusCode: 301 },",
+"      { source: '/omni-flash-vs-sora', destination: '/sora-alternative', statusCode: 301 },",
+""].join('\n')
 const nextCfg=fs.readFileSync('next.config.js','utf8').replace(/\r\n/g,'\n')
 ok(nextCfg.split(KINEO1_REDIRECT_BLOCK).length===2,'next.config carries the exact Kineo 1 301 block once')
-eq(nextCfg.replace(KINEO1_REDIRECT_BLOCK,''),execFileSync('git',['show','19708bd0:next.config.js'],{encoding:'utf8'}).replace(/\r\n/g,'\n'),'build settings remain the production baseline pending cross-lane route fix')
+ok(nextCfg.split(KINEO1_REDIRECT_BLOCK+OMNI_REDIRECT_BLOCK).length===2,'next.config carries the exact Omni 301 block once, right after the Kineo 1 block')
+eq(nextCfg.replace(KINEO1_REDIRECT_BLOCK+OMNI_REDIRECT_BLOCK,''),execFileSync('git',['show','19708bd0:next.config.js'],{encoding:'utf8'}).replace(/\r\n/g,'\n'),'build settings remain the production baseline pending cross-lane route fix')
 // AST compare all functional Studio handlers to the approved base, not regex names.
 const file='app/(dashboard)/studio/StudioClient.tsx'
 const old=execFileSync('git',['show','5b155dc5:'+file],{encoding:'utf8'})

@@ -154,7 +154,10 @@ console.log('== (e) /arena: sem o card, contagem = cards ==')
   const renderArena = (entry) => renderPage(entry, false, {}, {})
   const html = renderArena('app/arena/page.tsx')
   const cards = conta(html, 'Try this engine →')
-  checa(`/arena: sem "KINEO 1", sem engine=fast, ${cards} cards e a página diz "Six"/"six" (nunca "seven")`, !html.includes('KINEO 1') && !html.includes('engine=fast') && cards === 6 && html.includes('Six AI video engines.') && html.includes('All six.') && !/seven/i.test(html))
+  // KINEO-OMNI-FORA-2026-10-12 — reancorado com motivo: o card do Omni Flash também saiu (motor fora da oferta), então a
+  // contagem renderizada caiu de 6 para 5 ("Five"/"five"). A regra que este bloco protege (palavra = número de cards, sem
+  // Kineo 1) segue igual; e o Omni não pode voltar a virar card (sem engine=omni).
+  checa(`/arena: sem "KINEO 1", sem engine=fast, ${cards} cards e a página diz "Five"/"five" (nunca "seven")`, !html.includes('KINEO 1') && !html.includes('engine=fast') && !html.includes('engine=omni') && cards === 5 && html.includes('Five AI video engines.') && html.includes('All five.') && !/seven/i.test(html))
   checa('/arena: o card continua DECLARADO (dado em publicExamples exigido pela vitrine) e só o filtro o tira', arenaSrc.includes("badge: 'KINEO 1',") && arenaSrc.includes("const FIGHTERS: Fighter[] = FIGHTER_CARDS.filter((f) => f.quality !== 'fast' || KINEO1_PUBLIC)") && pe.PUBLIC_ENGINE_EXAMPLES.some((e) => e.id === '0ab3e871-2c99-4f6e-9f3c-59773208b12e'))
   // Conserto da revisão E1 (R2): o `metadata` não sai no HTML renderizado, e a checagem antiga só ancorava as
   // constantes — voltar o título/descrição de compartilhamento para "seven … Kineo 1" cravado passava verde. Agora o
@@ -175,9 +178,10 @@ console.log('== (e) /arena: sem o card, contagem = cards ==')
   }
   const provaMeta = (m) => {
     const t = [m?.title, m?.description, m?.openGraph?.title, m?.openGraph?.description].map((x) => String(x ?? ''))
-    return t.every((x) => x.length > 0 && !/Kineo 1|seven/i.test(x)) && /\bsix different AI video engines\b/.test(t[1]) && t[2].includes('six engines') && t[3].includes('Kling 2.5 and Seedance 1.5 — side by side')
+    // KINEO-OMNI-FORA-2026-10-12 — reancorado: "five" (o Omni saiu da contagem) e o Omni fora do título/descrição.
+    return t.every((x) => x.length > 0 && !/Kineo 1|seven|Omni/i.test(x)) && /\bfive different AI video engines\b/.test(t[1]) && t[2].includes('five engines') && t[3].includes('Kling 2.5 and Seedance 1.5 — side by side')
   }
-  checa('/arena metadata EXECUTADO: descrição e openGraph dizem "six", sem "Kineo 1" e sem "seven"', provaMeta(metaArena(arenaSrc)))
+  checa('/arena metadata EXECUTADO: descrição e openGraph dizem "five", sem "Kineo 1", sem Omni e sem "seven"', provaMeta(metaArena(arenaSrc)))
   checa('mutante (openGraph.title cravado em "seven") → vermelho', !provaMeta(metaArena(trocar(arenaSrc, 'title: `AI Video Engine Arena — ${ARENA_COUNT} engines, real renders, one pipeline`', "title: 'AI Video Engine Arena — seven engines, real renders, one pipeline'"))))
   checa('mutante (openGraph.description cravada com Kineo 1) → vermelho', !provaMeta(metaArena(trocar(arenaSrc, 'description: `${ARENA_ENGINE_LIST} — side by side, honestly labeled.`', "description: 'Omni Flash (#1, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5 and Kineo 1 — side by side, honestly labeled.'"))))
   checa('mutante (KINEO1_PUBLIC=true no engineLaunch) → metadata volta a "seven"/Kineo 1 (derivado do interruptor)', !provaMeta(metaArena(arenaSrc, { ...launchReal, KINEO1_PUBLIC: true })))
@@ -185,7 +189,7 @@ console.log('== (e) /arena: sem o card, contagem = cards ==')
   try {
     writeFileSync(join(RAIZ, tmp), trocar(arenaSrc, "import { KINEO1_PUBLIC } from '@/lib/engineLaunch'\n", 'const KINEO1_PUBLIC = true\n'))
     const mut = renderArena(tmp)
-    checa('mutante (KINEO1_PUBLIC=true na página) → 7 cards, "Seven" e o card do Kineo 1 de volta', conta(mut, 'Try this engine →') === 7 && mut.includes('Seven AI video engines.') && mut.includes('KINEO 1'))
+    checa('mutante (KINEO1_PUBLIC=true na página) → 6 cards, "Six" e o card do Kineo 1 de volta', conta(mut, 'Try this engine →') === 6 && mut.includes('Six AI video engines.') && mut.includes('KINEO 1')) // KINEO-OMNI-FORA-2026-10-12
   } finally { rmSync(join(RAIZ, tmp), { force: true }) }
 }
 

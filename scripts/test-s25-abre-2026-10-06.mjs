@@ -130,8 +130,11 @@ async function problems(over = {}) {
   if (!L.enginePaused('omni') || !L.qualityPaused('cinematic_omni')) p.push('Omni saiu da pausa (não podia)')
   if (JSON.stringify([...L.PAUSED_ENGINE_KEYS]) !== '["omni"]') p.push(`PAUSED_ENGINE_KEYS ≠ ['omni']: ${JSON.stringify(L.PAUSED_ENGINE_KEYS)}`)
   for (const k of ['fast', 'seedance', 'kling', 'veo', 'hollywood', 'h3']) if (L.enginePaused(k) !== null) p.push(`${k} ficou pausado`)
-  const pausados = L.PAUSED_ENGINE_KEYS.map((k) => L.ENGINE_PAUSE[k]?.label ?? `(${k} sem registro de pausa)`)
-  if (!pausados.every((n) => L.PAUSED_ENGINES_COPY.includes(n)) || /Seedance 2\.5/.test(L.PAUSED_ENGINES_COPY) || !/nothing is charged/i.test(L.PAUSED_ENGINES_COPY)) {
+  // KINEO-OMNI-FORA-2026-10-12 — reancorado com motivo: a frase pública nomeia os pausados que AINDA ESTÃO NA OFERTA
+  // (PAUSED_ON_OFFER_KEYS); o Omni segue pausado (checado acima) mas saiu da oferta, então hoje a frase é vazia. A regra
+  // deste guardião (não citar o 2.5 como pausado; quem é citado leva o "nothing is charged") segue igual.
+  const pausados = (L.PAUSED_ON_OFFER_KEYS ?? []).map((k) => L.ENGINE_PAUSE[k]?.label ?? `(${k} sem registro de pausa)`)
+  if (!pausados.every((n) => L.PAUSED_ENGINES_COPY.includes(n)) || /Seedance 2\.5/.test(L.PAUSED_ENGINES_COPY) || (L.PAUSED_ENGINES_COPY !== '' && !/nothing is charged/i.test(L.PAUSED_ENGINES_COPY)) || (pausados.length === 0 && L.PAUSED_ENGINES_COPY !== '')) {
     p.push('frase pública de pausa não nomeia exatamente os pausados (ou ainda cita o 2.5)')
   }
 
@@ -531,7 +534,8 @@ const mutants = [
   ['M23 clipe do 2.5 sem o portão de pagante', CLIPS, "    ...(engine === 's25' ? { paidAllowed: clipS25Paying(account) } : {}),\n", ''],
   ['M23b 2ª régua do clipe volta ao engineLaunch', LAUNCH, 'export function s25Visible(email?: string | null): boolean {', 'export function s25ClipVisible(email?: string | null): boolean { return isInternalEmail(email) }\nexport function s25Visible(email?: string | null): boolean {'],
   ['M23c clipe do 2.5 com régua de pagante larga', CLIPS, '  return s25AccessFor({ email: account.email, plan: account.plan, partner: account.partner }).allowed', "  return account.plan !== 'free'"],
-  ['M24 frase de pausa ainda cita o 2.5', LAUNCH, "export const PAUSED_ENGINES_COPY = 'Omni Flash is temporarily paused", "export const PAUSED_ENGINES_COPY = 'Omni Flash and Seedance 2.5 are temporarily paused"],
+  // KINEO-OMNI-FORA-2026-10-12 — reancorado: a frase virou derivada (PAUSED_ON_OFFER_KEYS); o mutante põe o 2.5 de volta nela.
+  ['M24 frase de pausa ainda cita o 2.5', LAUNCH, "export const PAUSED_ENGINES_COPY: string = PAUSED_ON_OFFER_KEYS.map(", "export const PAUSED_ENGINES_COPY: string = 'Seedance 2.5 is temporarily paused for maintenance; nothing is charged. ' + PAUSED_ON_OFFER_KEYS.map("],
   ['M25 tradução pt do selo faltando', COPYFILE, '    "NEW · paid plans": "NOVO · planos pagos",\n', ''],
   ['M26 [engine] volta a gerar o slug do 2.5', ENGINE_PAGE, 'return ENGINE_SLUGS.filter((engine) => engine !== S25_PAGE_SLUG).map((engine) => ({ engine }))', 'return ENGINE_SLUGS.map((engine) => ({ engine }))'],
   ['M27 clique do /studio/create sem a caixa de planos', GEN, "onUpgradeS25={() => openOutOfCreditsModal('studio')}", 'onUpgradeS25={() => undefined}'],
@@ -544,7 +548,8 @@ const mutants = [
   ['M31b camada citável esconde o clipe do 2.5 com o interruptor ligado', CATALOG, "clipOnSale: param !== 's25' || clipS25Visible(null) }", "clipOnSale: param !== 's25' }"],
   ['M32 o 2.5 deixa de ser "só plano pago" nas páginas', LAUNCH, "export function engineIsPaidPlansOnly(engine: string | null | undefined): boolean {\n  return engine === 's25'", "export function engineIsPaidPlansOnly(engine: string | null | undefined): boolean {\n  return engine === 'nenhum'"],
   ['M33 página do 2.5 pausado continua indexável', PAGE, '    ...(isIndexableEngineSlug(S25_PAGE_SLUG) ? {} : { robots: { index: false, follow: true } }),\n', ''],
-  ['M34 llms.txt volta a dar voz própria ao 2.5', LLMS, 'The engines with their own built-in voice (Kling 3, MiniMax H3, Omni) and Seedance 2.5 (Kineo narrates it; the model’s own audio is off) narrate in', 'The engines with their own built-in voice (Kling 3, MiniMax H3, Omni, Seedance 2.5) narrate in'],
+  // KINEO-OMNI-FORA-2026-10-12 — reancorado: o Omni saiu da frase (fora da oferta); o mutante é o mesmo (2.5 com voz própria).
+  ['M34 llms.txt volta a dar voz própria ao 2.5', LLMS, 'The engines with their own built-in voice (Kling 3, MiniMax H3) and Seedance 2.5 (Kineo narrates it; the model’s own audio is off) narrate in', 'The engines with their own built-in voice (Kling 3, MiniMax H3, Seedance 2.5) narrate in'],
   ['M35 llms.txt sem o "paid plans only"', LLMS, "const acesso = geo.paidPlansOnly ? 'paid plans only (not in the free trial); ' : ''", "const acesso = ''"],
   ['M36 a resposta citável sai de baixo do H1', PAGE, '          {geo && <EngineAnswerLead geo={geo} />}\n', ''],
   // M37 REANCORADO KINEO-S25-CLIPES-2026-10-06 (a nota ganhou a frase do clipe à venda; a intenção é a mesma).

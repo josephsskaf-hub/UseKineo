@@ -25,7 +25,7 @@ import { videosPerMonth } from '@/lib/marketingPrice' // KINEO-FILME-GRATIS-15S-
 // desses três lugares são a METADATA, ou seja, o texto que o Product Hunt e o
 // X puxam como prévia do link. O site dizia oito e o cartão de compartilhamento
 // do lançamento dizia nove.
-import { VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, AVATAR_PUBLIC, enginePaused } from '@/lib/engineLaunch'
+import { VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, AVATAR_PUBLIC } from '@/lib/engineLaunch'
 
 export const dynamic = 'force-static'
 
@@ -181,8 +181,8 @@ export default function PhPage() {
             ['Starter', TIER_PRICES.starter.usd, `${videosPerMonth('starter', 'cinematic_ai')} AI films a month`, 'Seedance 1.5'],
             ['Creator', TIER_PRICES.basic.usd, `${videosPerMonth('basic', 'cinematic_ai')} AI films a month`, 'Seedance 1.5'],
             // KINEO-AVATAR-FORA-2026-09-28 — ', Avatar' só com AVATAR_PUBLIC=true (Avatar fora do catálogo desde 27/09).
-            // KINEO-SELO-OMNI-POPUP-2026-09-30 — ', Omni Flash' só enquanto o motor não estiver pausado.
-            ['Studio', TIER_PRICES.pro.usd, 'Every engine', `Kling 3, Veo 3.1, MiniMax H3${enginePaused('omni') ? '' : ', Omni Flash'}${AVATAR_PUBLIC ? ', Avatar' : ''}`],
+            // KINEO-SELO-OMNI-POPUP-2026-09-30 · KINEO-OMNI-FORA-2026-10-12 — ', Omni Flash' saiu de vez (motor fora da oferta).
+            ['Studio', TIER_PRICES.pro.usd, 'Every engine', `Kling 3, Veo 3.1, MiniMax H3${AVATAR_PUBLIC ? ', Avatar' : ''}`],
           ] as Array<[string, number, string, string]>).map(([name, minor, promise, engines]) => (
             <div key={name} style={{ border: '1px solid rgba(255,255,255,.12)', borderRadius: 14, padding: '16px 18px' }}>
               <div style={{ fontSize: 13, fontWeight: 800, color: 'rgba(255,255,255,.6)', letterSpacing: '.06em', textTransform: 'uppercase' }}>{name}</div>

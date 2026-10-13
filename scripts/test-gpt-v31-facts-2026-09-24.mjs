@@ -28,7 +28,9 @@ check('invalid recurring duration is rejected',invalidCapRejected)
 check('not-a-fit copy names the free 15-second film as the only advertised free film', getKineoFacts().notAFit.some(f=>f.useInstead.includes('free 15-second film (Seedance 1.5)') && f.useInstead.includes('the only free film Kineo advertises') && !f.useInstead.includes('no recurring free films')))
 // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o trial cobre o Seedance de 15 s, não mais o Kineo 1.
 check('start route explains new grant and preserves existing account balances', START_HERE_FACT.action.includes('free 15-second film (Seedance 1.5)') && START_HERE_FACT.action.includes('Existing accounts'))
-check('paused Omni is not advertised with ranking badge', ENGINE_FACTS.find(e=>e.name==='Omni Flash').what.includes('PAUSED') && !ENGINE_FACTS.find(e=>e.name==='Omni Flash').what.includes('#1'))
+// KINEO-OMNI-FORA-2026-10-12 — reancorado com motivo: o Omni Flash saiu da oferta (fundador 12/10) e da lista de motores dos
+// fatos. Mais forte que "pausado sem #1": não aparece de jeito nenhum (nem selo de ranking, nem como pausado).
+check('Omni (fora da oferta) is not advertised at all', !ENGINE_FACTS.some(e=>/omni/i.test(e.name)) && !ENGINE_FACTS.some(e=>/#1/.test(e.what)))
 const llms=source('app/llms.txt/route.ts')
 check('llms includes source-derived recurring seconds and no stale Omni badge', llms.includes('RECURRING_FREE_ACCESS.maxSeconds') && !llms.includes('#1-ranked'))
 const costCopy=schema.paths['/api/gpt/handoff'].post.responses['200'].description+' '+props.durationSec.description

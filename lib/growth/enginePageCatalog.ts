@@ -372,7 +372,13 @@ export const ENGINES: Record<string, Engine> = {
 // lib/engineLaunch.ts). Espelho sem import de propósito (este catálogo é carregado por guardiões com lista fechada de
 // imports); scripts/test-copy-filme-gratis-15s-2026-09-29.mjs confere que o espelho e o interruptor andam juntos.
 export const RETIRED_ENGINE_SLUGS: readonly string[] = ['kineo-1']
-export const ENGINE_SLUGS = Object.keys(ENGINES).filter((slug) => !RETIRED_ENGINE_SLUGS.includes(slug))
+// KINEO-OMNI-FORA-2026-10-12 — o Omni Flash saiu da oferta (lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS): a página
+// /ai-video-generator/gemini-omni-flash virou 301 para a do Kling 3 (next.config.js) e o slug sai de ENGINE_SLUGS — some do
+// hub, do sitemap, da tabela "Every engine, side by side" e dos links "other engines" de toda página de motor. O texto do
+// catálogo fica (mesmo padrão do Kineo 1) para o dia em que o fundador devolver o motor à oferta. Lista separada da do
+// Kineo 1 de propósito: o guardião do Kineo 1 muta a linha acima pelo texto exato.
+export const OFFER_RETIRED_ENGINE_SLUGS: readonly string[] = ['gemini-omni-flash']
+export const ENGINE_SLUGS = Object.keys(ENGINES).filter((slug) => !RETIRED_ENGINE_SLUGS.includes(slug) && !OFFER_RETIRED_ENGINE_SLUGS.includes(slug))
 
 // ═══ KINEO-MOTORES-GEO-2026-10-06 — a camada citável por slug e a régua "motor desligado não tem página indexável" ═══
 // ENGINE_GEO[slug] = resposta + tabela de preço + comparação direta (lib/seo/engineCitation.ts); null = motor pausado
@@ -385,7 +391,7 @@ export const ENGINE_GEO: Record<string, EngineCitation | null> = {
   veo: VEO_GEO,
   'kling-3': KLING3_GEO,
   'minimax-h3': H3_GEO,
-  'gemini-omni-flash': OMNI_GEO,
+  'gemini-omni-flash': OMNI_GEO, // KINEO-OMNI-FORA-2026-10-12 — null enquanto pausado; e o slug está fora de ENGINE_SLUGS (não indexável)
   ...(S25_PUBLIC ? { 'seedance-2-5': S25_GEO } : {}),
 }
 /** A página /ai-video-generator/<slug> pode ser indexada? (publicada, fora de manutenção, liberada pelo lançamento) */
