@@ -26,7 +26,10 @@ const studio=page('app/(dashboard)/studio/StudioClient.tsx',{prompt:'A lighthous
 let html=studio.render()
 // reancorado 30/09 (KINEO-STUDIO-HEROI): fundador — "na lateral esquerda os ambientes de configuração, na direita o vídeo do
 // motor". O "Revisar e gerar" fecha a coluna de configuração (depois do formato); a direita é o vídeo do motor.
-ok(html.indexOf('<section class="composer-proposal-settings"')<html.indexOf('studio-generation-review')&&html.indexOf('studio-generation-review')<html.indexOf('studio-engine-hero'),'cost and action close the settings column; engine video on the right')
+// reancorado 13/10 (KINEO-STUDIO-CLS-2026-10-13): o <style> do layout subiu para o TOPO do JSX (a tela pulava com ele no fim) e
+// carrega os nomes das classes; a ordem que importa é a do DOM, então a busca começa no 1º elemento depois dos estilos (<h1>).
+const dom=html.slice(html.indexOf('<h1'))
+ok(html.indexOf('<h1')>0&&dom.indexOf('<section class="composer-proposal-settings"')>=0&&dom.indexOf('<section class="composer-proposal-settings"')<dom.indexOf('studio-generation-review')&&dom.indexOf('studio-generation-review')<dom.indexOf('studio-engine-hero'),'cost and action close the settings column; engine video on the right')
 studio.click('Clip');html=studio.render();equal(studio.state.scriptMode,'clip','real Clip handler')
 ok(html.includes('Render clip · 5 cr'),'clip cost from server constant')
 ok(html.includes('without narration'),'clip does not promise film narration')

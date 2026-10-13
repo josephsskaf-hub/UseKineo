@@ -44,7 +44,8 @@ checa('decisão importada da lib, não redigitada', b.includes("from '@/lib/bill
 checa('botão abre o portal da Stripe (cartão novo)', b.includes("fetch('/api/stripe/portal', { method: 'POST'") && b.includes('window.location.assign(j.url)'))
 checa('impressão e clique medidos', b.includes("trackEvent('renewal_declined_banner_shown'") && b.includes("trackEvent('renewal_declined_banner_clicked'"))
 const lay = rd('app/(dashboard)/layout.tsx')
-checa('layout lê stripe_subscription_id do perfil', lay.includes("'is_pro, email, trial_status, has_paid, plan, video_credits, stripe_subscription_id'"))
+// reancorado 13/10 (KINEO-STUDIO-CLS-2026-10-13): o select ganhou as 3 colunas do trial no FIM (reserva do banner do trial).
+checa('layout lê stripe_subscription_id do perfil', /\.select\('is_pro, email, trial_status, has_paid, plan, video_credits, stripe_subscription_id(, trial_ends_at, trial_credits_used, trial_credits_granted)?'\)/.test(lay))
 checa('layout monta o banner para usuário logado', lay.includes("import RenewalDeclinedBanner from '@/components/RenewalDeclinedBanner'") && /\{user && \(\s*\n\s*<RenewalDeclinedBanner/.test(lay))
 const sub = rd('app/api/me/subscription/route.ts')
 checa('/api/me/subscription devolve o status vivo da Stripe', sub.includes('status: sub.status ?? null'))

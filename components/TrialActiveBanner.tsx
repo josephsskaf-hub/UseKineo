@@ -188,8 +188,14 @@ function formatTimeLeft(msLeft: number): string | null {
   return `in ${days} day${days === 1 ? '' : 's'}`
 }
 
-export default function TrialActiveBanner({ userKey }: { userKey: string }) {
+// KINEO-STUDIO-CLS-2026-10-13 — `reserve`: o layout (servidor) já leu o perfil e sabe que esta conta passa nas 4 guardas
+// abaixo (lib/layout/trialBannerReserve.ts, as MESMAS regras). Enquanto /api/credits não responde, o lugar do cabeçalho
+// do banner fica reservado (caixa vazia, mesma moldura) — antes ele chegava depois do fetch e empurrava a tela inteira
+// (Clarity: CLS 1,4 no /studio). Quem decide se o banner APARECE continua sendo só o servidor, pelo fetch de sempre.
+export const TRIAL_BANNER_RESERVE_MIN_HEIGHT = 70 as const
+export default function TrialActiveBanner({ userKey, reserve = false }: { userKey: string; reserve?: boolean }) {
   const [open, setOpen] = useState(false)
+  const [settled, setSettled] = useState(false) // KINEO-STUDIO-CLS-2026-10-13: a 1ª resposta (ou a dispensa) chegou
   const [granted, setGranted] = useState(0)
   const [used, setUsed] = useState<number | null>(null)
   const [credits, setCredits] = useState<number | null>(null)
@@ -250,7 +256,7 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
     let cancelled = false
 
     try {
-      if (window.localStorage.getItem(dismissKey) === '1') return
+      if (window.localStorage.getItem(dismissKey) === '1') { setSettled(true); return } // KINEO-STUDIO-CLS-2026-10-13
     } catch {
       // localStorage bloqueado nunca esconde o banner nem derruba a tela.
     }
@@ -262,6 +268,7 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
       })
       .then((data) => {
         if (cancelled) return
+        setSettled(true) // KINEO-STUDIO-CLS-2026-10-13
         const trial = data.trial
 
         // Guarda 1 — fase. Só 'active'. 'ending' e 'downgraded' são do modal de
@@ -350,6 +357,7 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
       })
       .catch(() => {
         // Falha de rede não vira upsell: sem verdade do servidor, nada aparece.
+        if (!cancelled) setSettled(true) // KINEO-STUDIO-CLS-2026-10-13: a reserva sai
       })
 
     return () => {
@@ -565,7 +573,20 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
     setOpen(false)
   }, [dismissKey, msLeft])
 
-  if (!open || msLeft === null) return null
+  if (!open || msLeft === null) {
+    // KINEO-STUDIO-CLS-2026-10-13 — só a caixa vazia, e só antes da 1ª resposta. Mesmas classes de margem do banner.
+    if (reserve && !settled) {
+      return (
+        <div
+          aria-hidden="true"
+          data-trial-banner-reserve="1"
+          className="mx-3 mt-3 rounded-xl md:mx-6"
+          style={{ minHeight: TRIAL_BANNER_RESERVE_MIN_HEIGHT, background: 'linear-gradient(135deg, rgba(41,151,255,.12), rgba(41,151,255,.04))', border: '1px solid rgba(41,151,255,.32)' }}
+        />
+      )
+    }
+    return null
+  }
 
   const timeLeft = formatTimeLeft(msLeft)
   if (timeLeft === null) return null

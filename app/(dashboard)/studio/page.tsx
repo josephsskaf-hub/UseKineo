@@ -9,6 +9,7 @@ import { getHouseEngineExamples } from '@/lib/engineWall'
 import { ENGINE_PAGE_LEAD, FOUNDER_SHOWCASE } from '@/lib/publicExamples'
 import StudioClient, { type StudioBestFilm, type StudioHeroVideo } from './StudioClient'
 import StudioIdeaArrival from '@/components/StudioIdeaArrival'
+import { SEEDANCE_15S_PUBLIC } from '@/lib/engineLaunch' // KINEO-STUDIO-CLS-2026-10-13 — o motor que a tela abre (o mesmo useState do StudioClient)
 
 export const metadata = { title: 'Studio — Kineo' }
 
@@ -57,8 +58,13 @@ export default function StudioPage() {
   })
   // KINEO-IDEIA-POUSA-NO-STUDIO-2026-10-03 — o cadastro com ideia agora pousa aqui: a conversão do Ads (?signup=1), o
   // catch-all de origem e a prova de chegada moram em StudioIdeaArrival (fora do StudioClient, de propósito).
+  // KINEO-STUDIO-CLS-2026-10-13 — o LCP do /studio é o pôster do vídeo do motor (VIDEO.seh-main, medido com o Edge sem
+  // cabeça). <video poster> não aceita fetchpriority e mora no fim de um HTML grande; o preload põe o pôster do motor de
+  // entrada na fila alta já no começo do documento. Só o 1º filme do motor de abertura (o que a tela mostra sem clique).
+  const lcpPoster = engineHeroes[SEEDANCE_15S_PUBLIC ? 'seedance' : 'fast']?.[0]?.poster
   return (
     <>
+      {lcpPoster ? <link rel="preload" as="image" href={lcpPoster} fetchPriority="high" /> : null}
       <StudioIdeaArrival />
       <StudioClient engineHeroes={engineHeroes} bestFilms={bestFilms} />
     </>

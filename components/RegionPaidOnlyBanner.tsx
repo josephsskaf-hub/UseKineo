@@ -42,12 +42,37 @@ export default function RegionPaidOnlyBanner({ freeClip = false, freeFilm = fals
   // mesmo); no resto (o /studio incluído) a oferta. Esperando o servidor: nada (nunca duas faixas, nunca a troca na cara).
   // Servidor disse não ou falhou: a faixa de sempre, abaixo.
   if (REGION_FIRST_FILM_OFFER_LIVE && surface !== 'clips') {
-    if (firstFilmOffer === undefined) return null
+    // KINEO-STUDIO-CLS-2026-10-13 — esperando o servidor, o LUGAR da faixa já fica reservado (caixa vazia com a moldura e a
+    // altura da faixa do passe: o pôster de 110 px + o respiro). O servidor já decidiu que esta conta vê UMA faixa aqui (o
+    // layout só monta este componente para ela); sem a reserva, a faixa chegava depois do fetch e empurrava a tela inteira.
+    // Nenhum texto, nenhuma oferta, nenhum evento — e continua "nunca duas faixas".
+    if (firstFilmOffer === undefined) return <RegionStripReserve />
+
     if (firstFilmOffer) return <RegionFirstFilmStrip offer={firstFilmOffer} freeClip={gift} freeFilmUsed={REGION_FREE_FILM_LIVE && freeFilm} />
   }
   if (surface) return <FreeClipNotice key={surface} surface={surface} />
   if (REGION_FREE_FILM_LIVE) return <RegionPaidOnlyStrip freeClip={gift} filmLive /> // KINEO-SAIDA-REGIAO-2026-10-07
   return <RegionPaidOnlyStrip freeClip={gift} />
+}
+
+// KINEO-STUDIO-CLS-2026-10-13 — a reserva do lugar da faixa enquanto /api/region-pass responde. Mesma margem, moldura e
+// fundo da RegionFirstFilmStrip; altura = o pôster de 110 px + 14+14 de respiro + a borda (142 px no computador). No celular
+// os botões descem para uma 2ª linha: a reserva cresce com a tela estreita (até 196 px em 390 px de largura).
+export const REGION_STRIP_RESERVE_MIN_HEIGHT = 'clamp(142px, calc(262px - 15vw), 196px)' as const
+function RegionStripReserve() {
+  return (
+    <div
+      aria-hidden="true"
+      data-region-strip-reserve="1"
+      style={{
+        margin: '12px 16px 0',
+        minHeight: REGION_STRIP_RESERVE_MIN_HEIGHT,
+        borderRadius: 12,
+        background: 'linear-gradient(135deg, rgba(41,151,255,.14), rgba(41,151,255,.05))',
+        border: '1px solid rgba(41,151,255,.4)',
+      }}
+    />
+  )
 }
 
 // KINEO-SAIDA-REGIAO-2026-10-07 (a) — o filme grátis continua de pé depois de uma mudança de saldo NESTA aba? A MESMA regra
