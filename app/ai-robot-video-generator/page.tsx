@@ -19,10 +19,11 @@ import {
 // KINEO-SELO-OMNI-POPUP-2026-09-30 — o filme desta página continua sendo o render real do Omni Flash (atribuição
 // honesta), mas a PROMESSA DE COMPRA ("the Studio plan fits N flagship film a month plus change") vendia um motor
 // pausado desde 15/09 — e o "plus change" era falso (300cr ÷ 150cr = 2, sobra 0). Com o motor pausado, a página
-// avisa e o custo passa a ser o do Kling 3, a alternativa do ENGINE_PAUSE; quando o Omni voltar, volta sozinha.
-import { enginePaused } from '@/lib/engineLaunch'
-const OMNI_PAUSED = Boolean(enginePaused('omni'))
-const PLAN_ENGINE = OMNI_PAUSED ? { quality: 'cinematic_hollywood', name: 'Kling 3' } as const : { quality: 'cinematic_omni', name: 'Omni Flash' } as const
+// avisa e o custo passa a ser o do Kling 3, a alternativa do ENGINE_PAUSE.
+// KINEO-OMNI-FORA-2026-10-12 — o Omni saiu da OFERTA (lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS); o FILME fica
+// (ordem do fundador: "deixa os vídeos"). A página não vende mais o Omni nem o "#1-ranked" e não põe selo de motor no
+// filme (como o pop-up de boas-vindas); todo número de compra é do Kling 3 — o motor que o cliente aperta hoje.
+const PLAN_ENGINE = { quality: 'cinematic_hollywood', name: 'Kling 3' } as const
 
 export const dynamic = 'force-static'
 
@@ -51,7 +52,7 @@ Machines built to protect us. This is what it costs when they disagree.`
 export const metadata: Metadata = {
   title: 'AI Robot Video Generator — type the battle, get the whole film | Kineo',
   description:
-    `Type a 150-word script and get a finished giant-robot battle film: scenes, voiceover, captions and soundtrack${OMNI_PAUSED ? '' : ', rendered by Omni Flash — the #1-ranked video model (Aug 2026)'}. Watch the real film and the exact text that made it.`,
+    'Type a 150-word script and get a finished giant-robot battle film: scenes, voiceover, captions and soundtrack. Watch the real film and the exact text that made it.',
   alternates: { canonical: `${BASE}/ai-robot-video-generator` },
   openGraph: {
     title: 'AI Robot Video Generator — type the battle, get the whole film',
@@ -70,7 +71,7 @@ const FAQ_JSONLD = {
       name: 'Can AI really generate a full robot fight video from text?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Yes — the film on this page was generated from the 150-word script published next to it. Kineo plans the scenes, renders them on Omni Flash (Google’s #1-ranked video model, Aug 2026 arena), adds narration, karaoke captions and a soundtrack, and delivers a vertical 1080×1920 film. No editing step.',
+        text: `Yes — the film on this page was generated from the 150-word script published next to it. Kineo plans the scenes, renders them, adds narration, karaoke captions and a soundtrack, and delivers a vertical 1080×1920 film. No editing step. New films like this one run on ${PLAN_ENGINE.name}.`,
       },
     },
     {
@@ -86,7 +87,7 @@ const FAQ_JSONLD = {
       name: 'How much does a robot battle film cost?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `${OMNI_PAUSED ? 'Omni Flash, the engine that rendered this film, is paused for maintenance right now. ' : ''}On ${PLAN_ENGINE.name}${OMNI_PAUSED ? ', the closest engine available today' : ''}, a full 60-second multi-scene film costs ${creditsPerReferenceVideo(PLAN_ENGINE.quality)} credits — the Studio plan (${STUDIO_MONTH}, ${STUDIO_CREDITS} credits) fits ${formatResultCount(videosPerMonth('pro', PLAN_ENGINE.quality), 'flagship film')} a month. Cheaper engines start at ${creditsPerReferenceVideo('cinematic_ai')} credits per 60-second film, and every new account${GRANT_COUNTRY_CLAUSE} starts free with 10 credits, no card.`,
+        text: `On ${PLAN_ENGINE.name}, a full 60-second multi-scene film costs ${creditsPerReferenceVideo(PLAN_ENGINE.quality)} credits — the Studio plan (${STUDIO_MONTH}, ${STUDIO_CREDITS} credits) fits ${formatResultCount(videosPerMonth('pro', PLAN_ENGINE.quality), 'flagship film')} a month. Cheaper engines start at ${creditsPerReferenceVideo('cinematic_ai')} credits per 60-second film, and every new account${GRANT_COUNTRY_CLAUSE} starts free with 10 credits, no card.`,
       },
     },
   ],
@@ -104,15 +105,10 @@ export default function RobotVideoPage() {
       </h1>
       <p style={{ color: '#c7c7cc', fontSize: 16, marginBottom: 26 }}>
         The film below was generated from <b>150 words of text</b> — the exact script is published next to it.
-        No cameras, no CGI team, no editing. Kineo plans the scenes, renders them on{' '}
-        <b>Omni Flash</b> (Google’s #1-ranked video model, Aug 2026 arena), and returns a finished vertical film
-        with narration, captions and soundtrack.
+        No cameras, no CGI team, no editing. Kineo plans the scenes, renders them, and returns a finished vertical film
+        with narration, captions and soundtrack. New films like this one run on <b>{PLAN_ENGINE.name}</b> — same text box,
+        same finished film.
       </p>
-      {OMNI_PAUSED && (
-        <p style={{ color: '#ffb454', fontSize: 14, margin: '-14px 0 26px' }}>
-          Omni Flash is paused for maintenance right now. Kling 3 is the closest engine available today — same text box, same finished film.
-        </p>
-      )}
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start' }}>
         <video
@@ -153,8 +149,7 @@ export default function RobotVideoPage() {
 
       <h2 style={{ fontSize: 22, fontWeight: 900, margin: '30px 0 10px' }}>Why the fights look real</h2>
       <p style={{ color: '#c7c7cc' }}>
-        The engine behind this page is Omni Flash — ranked #1 in the August 2026 blind video arena precisely for
-        physical realism: how metal collides, how glass falls, how fire spreads. Kineo stages one clear action per
+        A battle reads as real when the physics does: how metal collides, how glass falls, how fire spreads. Kineo stages one clear action per
         shot (a punch landing, a tower falling, a machine rising), which is the difference between a battle you can
         follow and a chaotic blur.
       </p>

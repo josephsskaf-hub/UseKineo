@@ -168,6 +168,15 @@ const nextConfig = {
       // chega (utm etc.) continua sendo repassada pelo Next junto com esta.
       { source: '/ai-video-generator/kineo-1', destination: '/ai-video-generator/seedance?from=kineo-1', statusCode: 301 },
       { source: '/ai-video-generator/kineo-1/:lang', destination: '/ai-video-generator/seedance/:lang?from=kineo-1', statusCode: 301 },
+      // KINEO-OMNI-FORA-2026-10-12 — o Omni Flash saiu da oferta (fundador 12/10: "tira o Omni dos motores… deixa os
+      // vídeos"; lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS). A página do motor vira 301 para a do Kling 3: é a
+      // alternativa oficial que o próprio ENGINE_PAUSE indica, custa o mesmo (150 cr o filme de 60 s), roda na mesma
+      // estrada (cenas ancoradas em imagem, voz própria) — quem chega procurando o filme carro-chefe acha o carro-chefe
+      // que pode apertar. A comparação /omni-flash-vs-sora vira 301 para /sora-alternative (a mesma pergunta, só com
+      // motores disponíveis). As duas saíram do sitemap (RETIRED_ENGINE_SLUGS e a lista estática de app/sitemap.ts).
+      { source: '/ai-video-generator/gemini-omni-flash', destination: '/ai-video-generator/kling-3', statusCode: 301 },
+      { source: '/ai-video-generator/gemini-omni-flash/:lang', destination: '/ai-video-generator/kling-3', statusCode: 301 },
+      { source: '/omni-flash-vs-sora', destination: '/sora-alternative', statusCode: 301 },
       // 02/08 ordem C (AEO): a rota exact-match do spec aponta para a
       // ferramenta que JÁ existe e já está no sitemap (Regra Zero — não criar
       // página duplicada). 308 real captura a busca sem diluir crawl budget.

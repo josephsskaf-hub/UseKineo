@@ -43,6 +43,21 @@ export function enginePaused(engine: string | null | undefined): EnginePause | n
   const k = typeof engine === 'string' ? engine.toLowerCase() : ''
   return (PAUSED_ENGINE_KEYS as readonly string[]).includes(k) ? ENGINE_PAUSE[k as PausedEngineKey] : null
 }
+// ═══ KINEO-OMNI-FORA-2026-10-12 — ordem do fundador (12/10, noite): "tira o Omni sim… dos motores, a gente vai arrumar
+// mais pra frente… mas NÃO tira os vídeos que ele nos proporcionou, deixa os vídeos."
+// PAUSA ≠ FORA DA OFERTA. A pausa continua igual (ENGINE_PAUSE/PAUSED_ENGINE_KEYS: o servidor recusa antes de qualquer
+// débito; link velho com engine=omni cai no motor padrão ou na recusa, sem cobrar). FORA DA OFERTA quer dizer que
+// nenhuma tela de venda — menu, seletor do /studio e do /generate, tabela de preço, FAQ, schema, llms.txt, fatos — cita
+// o motor, nem como "pausado": o cliente não vê opção que não pode apertar. Os FILMES já feitos com ele (vitrine,
+// exemplos, trending, lib/engineWall.ts, lib/homeVideoCuration.ts) ficam onde estão. Para devolver o Omni à oferta:
+// tirar 'omni' daqui E religar as linhas apagadas nesta mudança (o guardião lista as superfícies).
+// Guardião: scripts/test-omni-fora-da-oferta-1210.mjs.
+export const OFFER_RETIRED_ENGINE_KEYS: readonly string[] = ['omni']
+/** O motor (chave da UI/rota) está na oferta pública? false = fora de todo menu, seletor, tabela e copy de venda. */
+export function engineOffered(engine: string | null | undefined): boolean {
+  const k = typeof engine === 'string' ? engine.toLowerCase() : ''
+  return !OFFER_RETIRED_ENGINE_KEYS.includes(k)
+}
 /** Pausa pela quality do biller ('cinematic_omni'). */
 export function qualityPaused(quality: string | null | undefined): EnginePause | null {
   const q = typeof quality === 'string' ? quality.toLowerCase() : ''
@@ -218,4 +233,16 @@ export const VIDEO_ENGINE_COUNT_SENTENCE_START = VIDEO_ENGINE_COUNT_WORD
 export const VIDEO_ENGINE_LIST_COPY = PUBLIC_VIDEO_ENGINE_NAMES.slice(0, -1).join(', ') + ' and ' + PUBLIC_VIDEO_ENGINE_NAMES[PUBLIC_VIDEO_ENGINE_NAMES.length - 1]
 // KINEO-S25-ABRE-2026-10-06 — só o Omni segue pausado (a frase nomeia exatamente PAUSED_ENGINE_KEYS; o guardião
 // scripts/test-s25-abre-2026-10-06.mjs confere).
-export const PAUSED_ENGINES_COPY = 'Omni Flash is temporarily paused for maintenance (since 15 September 2026); nothing is charged for a blocked attempt, and Kling 3 covers the same jobs meanwhile.'
+// KINEO-OMNI-FORA-2026-10-12 — a frase nomeia só os motores PAUSADOS que ainda estão NA OFERTA. Motor fora da oferta
+// (OFFER_RETIRED_ENGINE_KEYS) não é citado nem como pausado: hoje a frase é VAZIA e as 3 telas que a leem (FAQ da home,
+// schema, /models-pricing) não mostram aviso. Se um motor da oferta pausar, a frase volta sozinha, derivada do ENGINE_PAUSE.
+const MONTHS_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] as const
+function pauseDay(iso: string): string {
+  const [y, m, d] = iso.split('-').map((x) => Number(x))
+  return `${d} ${MONTHS_EN[m - 1]} ${y}`
+}
+export const PAUSED_ON_OFFER_KEYS: readonly PausedEngineKey[] = PAUSED_ENGINE_KEYS.filter((k) => engineOffered(k))
+export const PAUSED_ENGINES_COPY: string = PAUSED_ON_OFFER_KEYS.map((k) => {
+  const p = ENGINE_PAUSE[k]
+  return `${p.label} is temporarily paused for maintenance (since ${pauseDay(p.since)}); nothing is charged for a blocked attempt, and ${p.alternative.label} covers the same jobs meanwhile.`
+}).join(' ')

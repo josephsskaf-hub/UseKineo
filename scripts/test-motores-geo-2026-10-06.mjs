@@ -454,9 +454,11 @@ const mutantes = [
   ['M1 preço do clipe digitado', troca(GEO, "  const clip = row('clip', clipSeconds, clipCreditCost(key, clipSeconds, false))", "  const clip = row('clip', clipSeconds, 5)")],
   ['M2 preço do filme de 60 s digitado', troca(GEO, "  const film60 = row('film60', 60, creditCostForDuration(quality, true, 60))", "  const film60 = row('film60', 60, 35)")],
   ['M3 preço do plano digitado (com a fonte mudando)', troca(CATALOG, "  { tier: 'basic', label: 'Creator', usdCents: TIER_PRICES.basic.usd, credits: TIER_CREDITS.basic },", "  { tier: 'basic', label: 'Creator', usdCents: 2990, credits: TIER_CREDITS.basic },", precoCreatorMudou)],
-  ['M4 motor pausado ganha página citável', troca(CATALOG, "  return !enginePaused(param) && (param !== 's25' || S25_PUBLIC)", "  return param !== 's25' || S25_PUBLIC")],
+  // KINEO-OMNI-FORA-2026-10-12 — reancorado com motivo: o Omni (único pausado) saiu também de ENGINE_SLUGS (fora da oferta),
+  // então M4 e M6 passam a rodar com o Veo pausado em memória (como o M5) — continua havendo um motor pausado no catálogo.
+  ['M4 motor pausado ganha página citável (com o Veo pausado)', troca(CATALOG, "  return !enginePaused(param) && (param !== 's25' || S25_PUBLIC)", "  return param !== 's25' || S25_PUBLIC", veoPausado)],
   ['M5 sitemap ignora a pausa (com o Veo pausado)', troca(SITEMAP, '  const engineNoIndex = ENGINE_SLUGS.filter((slug) => !isIndexableEngineSlug(slug)).map((slug) => `/ai-video-generator/${slug}`)', '  const engineNoIndex: string[] = []', veoPausado)],
-  ['M6 layout não põe noindex', troca(LAYOUT, '  return ENGINES[params.engine] && !isIndexableEngineSlug(params.engine) ? { robots: { index: false, follow: true } } : {}', '  return {}')],
+  ['M6 layout não põe noindex (com o Veo pausado)', troca(LAYOUT, '  return ENGINES[params.engine] && !isIndexableEngineSlug(params.engine) ? { robots: { index: false, follow: true } } : {}', '  return {}', veoPausado)],
   ['M7 robots sem o Bingbot', troca(ROBOTS, "const SEARCH_INDEX_CRAWLERS = ['Bingbot']", 'const SEARCH_INDEX_CRAWLERS: string[] = []')],
   ['M8 robots sem o OAI-SearchBot', troca(ROBOTS, "  'OAI-SearchBot',\n", '')],
   ['M9 robots bloqueia as páginas de motor', troca(ROBOTS, "const DISALLOW = ['/api/',", "const DISALLOW = ['/ai-video-generator', '/api/',")],

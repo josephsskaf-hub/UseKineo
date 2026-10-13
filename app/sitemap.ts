@@ -279,7 +279,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/kineo-vs-higgsfield', priority: 0.8, freq: 'weekly' },
     { path: '/tiktok-creator-rewards-videos', priority: 0.9, freq: 'weekly' },
     { path: '/ai-robot-video-generator', priority: 0.8, freq: 'weekly' },
-    { path: '/omni-flash-vs-sora', priority: 0.9, freq: 'weekly' },
+    // KINEO-OMNI-FORA-2026-10-12 — /omni-flash-vs-sora saiu do mapa: virou 301 para /sora-alternative (next.config.js).
     { path: '/terms', priority: 0.2, freq: 'monthly' },
     { path: '/privacy', priority: 0.2, freq: 'monthly' },
   ]
@@ -320,7 +320,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const staticEntries = routes.filter((r) => !engineNoIndex.some((p) => r.path === p || r.path.startsWith(`${p}/`))).map((r) => ({
     url: `${BASE}${r.path}`,
     lastModified: r.path === '/ads' ? ADS_DOOR_LAST_MODIFIED
-      : ['/business-video-ads', '/sora-alternative', '/omni-flash-vs-sora'].includes(r.path)
+      : ['/business-video-ads', '/sora-alternative'].includes(r.path)
       ? new Date('2026-09-24T13:51:19.000Z') : geoRodada2Revised.has(r.path) ? GEO_RODADA2_LAST_MODIFIED : geoRodada3Revised.has(r.path) ? GEO_RODADA3_LAST_MODIFIED : r.path === STATE_STUDY_PATH ? STATE_STUDY_LAST_MODIFIED : engineGeoRevised.has(r.path) ? ENGINE_GEO_LAST_MODIFIED : LAST_MODIFIED,
     changeFrequency: r.freq,
     priority: r.priority,

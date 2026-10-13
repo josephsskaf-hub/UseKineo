@@ -25,6 +25,7 @@ import { formatCheckoutMoney, getTierPrice } from '@/lib/checkoutPricing'
 import { TRIAL_GRANT_CREDITS_COPY, GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer'
 import { getPublicEngineExample } from '@/lib/publicExamples'
 import { KINEO1_PUBLIC } from '@/lib/engineLaunch'
+import { engineOffered } from '@/lib/engineLaunch' // KINEO-OMNI-FORA-2026-10-12
 
 export const dynamic = 'force-static'
 
@@ -34,12 +35,15 @@ const STARTER_PRICE_LABEL = formatCheckoutMoney('usd', getTierPrice('starter', '
 // lib/publicExamples, exigido por test-vitrine-sem-filme-de-cliente), mas só é RENDERIZADO com KINEO1_PUBLIC. A
 // contagem da página segue o interruptor; scripts/test-kineo1-fora-vitrine-2026-09-29.mjs prova que a palavra bate
 // com o número de cards renderizados.
-const ARENA_COUNT = KINEO1_PUBLIC ? 'seven' : 'six'
-const ARENA_COUNT_CAP = KINEO1_PUBLIC ? 'Seven' : 'Six'
-const ARENA_ENGINE_LIST = 'Omni Flash (#1, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5' + (KINEO1_PUBLIC ? ', Seedance 1.5 and Kineo 1' : ' and Seedance 1.5')
+// KINEO-OMNI-FORA-2026-10-12 — o Omni Flash saiu da oferta (lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS): o card dele
+// continua DECLARADO em FIGHTER_CARDS (mesmo padrão do Kineo 1), mas não é renderizado; a contagem, a lista, o título e a
+// FAQ deixam de citá-lo. O filme dos robôs segue na vitrine da home e do /examples.
+const ARENA_COUNT = KINEO1_PUBLIC ? 'six' : 'five'
+const ARENA_COUNT_CAP = KINEO1_PUBLIC ? 'Six' : 'Five'
+const ARENA_ENGINE_LIST = 'Veo 3.1, Kling 3, MiniMax H3, Kling 2.5' + (KINEO1_PUBLIC ? ', Seedance 1.5 and Kineo 1' : ' and Seedance 1.5')
 
 export const metadata: Metadata = {
-  title: 'AI Video Engine Arena — Omni Flash vs Veo 3.1 vs Kling 3 vs MiniMax H3 | Kineo',
+  title: 'AI Video Engine Arena — Veo 3.1 vs Kling 3 vs MiniMax H3 vs Kling 2.5 | Kineo',
   description:
     `The same kind of script, rendered by ${ARENA_COUNT} different AI video engines — real Kineo renders, honest engine labels, credit cost per film. Pick the engine by what you actually see, not by a demo reel.`,
   alternates: { canonical: `${BASE}/arena` },
@@ -63,7 +67,9 @@ type Fighter = {
 
 // Curadoria: o MESMO tipo de cena (o melhor clipe curado de cada motor na
 // vitrine) para a comparação ser justa. Ver lib/engineWall.ts.
-const FIGHTER_CARDS: Fighter[] = [
+// KINEO-OMNI-FORA-2026-10-12 — motor fora da oferta (lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS) fica declarado e não renderiza.
+const soNaOferta = (cards: Fighter[]): Fighter[] => cards.filter((f) => engineOffered(f.engineParam))
+const FIGHTER_CARDS: Fighter[] = soNaOferta([
   {
     badge: 'OMNI FLASH',
     engineParam: 'omni',
@@ -105,8 +111,8 @@ const FIGHTER_CARDS: Fighter[] = [
     engineParam: 'kling',
     quality: 'cinematic_kling',
     exampleId: 'c4e4fbab-0978-4daa-9fcf-119096370210',
-    strength: 'Lower-credit cinematic camera work — dolly, crane and orbit — without paying the Veo, Kling 3 or Omni tier.',
-    watchOut: 'Less physical realism than Omni Flash on heavy action, and no directed lip-synced dialogue.',
+    strength: 'Lower-credit cinematic camera work — dolly, crane and orbit — without paying the Veo or Kling 3 tier.',
+    watchOut: 'No directed lip-synced dialogue — for a character who speaks on camera, use Kling 3 or MiniMax H3.',
     bestFor: 'The daily driver for cinematic Shorts on a budget.',
   },
   {
@@ -127,7 +133,7 @@ const FIGHTER_CARDS: Fighter[] = [
     watchOut: 'You get reality, not imagination: it cannot render a giant robot.',
     bestFor: 'Facts, finance and news formats where footage beats generation.',
   },
-]
+])
 const FIGHTERS: Fighter[] = FIGHTER_CARDS.filter((f) => f.quality !== 'fast' || KINEO1_PUBLIC)
 
 const FAQ_JSONLD = {
@@ -139,7 +145,7 @@ const FAQ_JSONLD = {
       name: 'Which AI video model is the best in 2026?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Gemini Omni Flash ranked #1 in the August 2026 blind video arena and is strongest on physical realism. But "best" depends on the shot: Veo 3.1 leads on cinematic light; Kling 3 gives dialogue scenes native generated voice and lip sync; MiniMax H3 also supports directed lip-synced dialogue at a lower credit cost; and Kling 2.5 is the lower-credit camera-motion option. On Kineo all of them run in the same pipeline, so you pick per video instead of per subscription.',
+        text: '"Best" depends on the shot: Veo 3.1 leads on cinematic light; Kling 3 gives dialogue scenes native generated voice and lip sync; MiniMax H3 also supports directed lip-synced dialogue at a lower credit cost; and Kling 2.5 is the lower-credit camera-motion option. On Kineo all of them run in the same pipeline, so you pick per video instead of per subscription.',
       },
     },
     {
@@ -233,7 +239,7 @@ export default function ArenaPage() {
       </div>
 
       <p style={{ color: '#5a5a60', fontSize: 12, textAlign: 'center', marginTop: 18 }}>
-        Arena rankings move — the #1 claim reflects the August 2026 standings. Clips are real customer-pipeline renders, never demo reels.
+        Clips are real customer-pipeline renders, never demo reels.{/* KINEO-OMNI-FORA-2026-10-12 — o aviso do "#1" saiu com o card do Omni. */}
       </p>
     </main>
   )

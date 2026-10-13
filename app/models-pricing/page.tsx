@@ -64,7 +64,8 @@ const ROWS: Row[] = [
   { key: 'kling', name: 'Kling 2.5', quality: 'cinematic_kling', what: 'Cinematic motion and camera work', path: ENGINE_LANDING_PUBLIC_PATHS.kling },
   { key: 'veo', name: 'Veo 3.1', quality: 'cinematic_veo', what: 'Google’s Veo 3.1, in its Fast version', path: ENGINE_LANDING_PUBLIC_PATHS.veo },
   { key: 'hollywood', name: 'Kling 3', quality: 'cinematic_hollywood', what: 'Film scenes, native voice and lip sync', path: ENGINE_LANDING_PUBLIC_PATHS.hollywood },
-  { key: 'omni', name: 'Omni Flash', quality: 'cinematic_omni', what: 'Gemini Omni Flash — cinematic scenes', path: ENGINE_LANDING_PUBLIC_PATHS.omni },
+  // KINEO-OMNI-FORA-2026-10-12 — a linha do Omni Flash saiu da tabela (motor fora da oferta, lib/engineLaunch.ts
+  // OFFER_RETIRED_ENGINE_KEYS). Os filmes feitos com ele seguem na vitrine; o preço dele não é mais anunciado.
   // O S25 só aparece quando o interruptor único abrir para o público — mostrar
   // preço de motor que ninguém pode escolher é a lição do Seedance 2.0.
   // KINEO-S25-ABRE-2026-10-06 — a linha diz a entrega real (o ✨HD Enhance é o botão do filme pronto, nunca embutido —
@@ -147,7 +148,8 @@ export default function ModelsPricingPage() {
         </table>
       </div>
 
-      <p style={{ fontSize: 13.5, lineHeight: 1.7, color: '#ffb454', margin: '12px 0 0' }}>{PAUSED_ENGINES_COPY}</p>
+      {/* KINEO-OMNI-FORA-2026-10-12 — sem motor pausado na oferta, a frase é vazia e o aviso laranja some. */}
+      {PAUSED_ENGINES_COPY && <p style={{ fontSize: 13.5, lineHeight: 1.7, color: '#ffb454', margin: '12px 0 0' }}>{PAUSED_ENGINES_COPY}</p>}
       <p style={{ fontSize: 14, lineHeight: 1.7, color: '#8f8f9c', margin: '16px 0 40px' }}>
         A 35-second film costs about 60% of the 60-second price and a 90-second film about 150% — the same
         function that prints these numbers is the one that charges your account, so the screen and the invoice

@@ -244,7 +244,8 @@ for (const language of ['en', 'es', 'hi']) {
   ok(settled.includes(thisAttempt) && pending.includes(thisAttempt), `${language}: the explanation is scoped to this attempt`)
   const universal = /cannot voice|has no voice|no puede dar voz|no tiene voz|आवाज़ नहीं दे सकता|आवाज़ नहीं है|cannot (make|do|voice) (a |an )?presenter|does not support/i
   ok(!universal.test(settled) && !universal.test(pending), `${language}: the card never declares Seedance 2.5 universally unable to voice a presenter (healthy host path proven, Board R2/R4)`)
-  ok(settled.includes('Kling 3') && settled.includes('MiniMax H3') && settled.includes('Omni Flash'), `${language}: the exit names the engines that are options for a presenter`)
+  // KINEO-OMNI-FORA-2026-10-12 — reancorado com motivo: o Omni Flash saiu da oferta e não pode mais ser oferecido como saída.
+  ok(settled.includes('Kling 3') && settled.includes('MiniMax H3') && !settled.includes('Omni Flash'), `${language}: the exit names the engines that are options for a presenter`)
   const guarantee = /will work|guarantee|guaranteed|funcionar[áa]|garantiza|ज़रूर काम|automatically retry|retry automatically|we will retry|volveremos a intentar|reintentaremos|फिर से कोशिश करेंगे/i
   ok(!guarantee.test(settled) && !guarantee.test(pending), `${language}: alternatives are choices, not a guarantee, and no automatic retry or provider recovery is promised`)
   const silent = { en: 'silent presenter', es: 'presentador mudo', hi: 'मूक प्रस्तुतकर्ता' }[language]

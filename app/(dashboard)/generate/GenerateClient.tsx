@@ -21415,10 +21415,9 @@ function ModeSelector({
               // nenhum Kling 3 (150cr); a 45cr ele faz dois H3. Se o cliente so
               // enxerga o de 150 ele conclui que filme e coisa de Studio.
               { key: 'h3', label: 'MiniMax H3', sub: 'cinematic film · fits your plan', cr: creditCostForDuration('cinematic_h3', true, duration) },
-              // KINEO-S25-LAUNCH-2026-09-01 — auditoria do fundador: o Omni NUNCA
-              // entrou neste seletor (so no /studio) — dois seletores, duas
-              // verdades. Entra agora, e o 2.5 junto (gate: s25Ok).
-              { key: 'omni', label: 'Omni Flash', sub: 'Google · Gemini Omni Flash', cr: creditCostForDuration('cinematic_omni', true, duration) },
+              // KINEO-S25-LAUNCH-2026-09-01 — o 2.5 entra com gate (s25Ok).
+              // KINEO-OMNI-FORA-2026-10-12 — o botão do Omni Flash saiu deste seletor, como saiu do /studio (motor fora
+              // da oferta, lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS). O servidor segue recusando o Omni sem cobrar.
               ...(s25Ok ? [{ key: 's25' as const, label: 'Seedance 2.5', sub: 'ByteDance · newest · 480p→HD', cr: creditCostForDuration('cinematic_s25', true, duration) }] : []),
               // KINEO-VEO-CARD-HONESTO-2026-09-29 — 1080p pelo mesmo preço desde 16/08 (KINEO-VEO-1080).
               { key: 'veo', label: 'Veo 3.1', sub: 'Google · best motion · 1080p', cr: creditCostForDuration('cinematic_veo', true, duration) },

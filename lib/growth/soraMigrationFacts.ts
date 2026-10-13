@@ -8,7 +8,8 @@ export const SORA_REPLACEMENTS = ([
   { name: 'Seedance 1.5', quality: 'cinematic_ai', key: 'seedance' },
   { name: 'Kling 3', quality: 'cinematic_hollywood', key: 'hollywood' },
   { name: 'Veo 3.1', quality: 'cinematic_veo', key: 'veo' },
-  { name: 'Omni Flash', quality: 'cinematic_omni', key: 'omni' },
+  // KINEO-OMNI-FORA-2026-10-12 — a linha do Omni Flash saiu (motor fora da oferta, lib/engineLaunch.ts
+  // OFFER_RETIRED_ENGINE_KEYS). A coluna de pausa continua derivada do portão comum para os motores que ficaram.
 ] as const).map(engine => {
   const credits = creditCostForDuration(engine.quality as Quality, true, DURATION_REFERENCE_SECONDS)
   return { ...engine, credits, paused: enginePaused(engine.key),

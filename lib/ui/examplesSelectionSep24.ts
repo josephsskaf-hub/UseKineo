@@ -8,11 +8,11 @@ const selectedOmniIds = ['1b8e12f9-83e5-411c-8fda-0b277d289934', '36a04f7b-65f7-
 const omni: WallVideo[] = selectedOmniIds.map(id => {
   const video = FOUNDER_SHOWCASE.find(v => v.id === id)!
   const asset = id === selectedOmniIds[0] ? 'tunguska-globe' : 'robot-collision'
-  return { id, title: video.title, engine: video.engine, badge: 'OMNI FLASH',
+  return { id, title: video.title, engine: video.engine, badge: 'AI FILM', // KINEO-SELO-OMNI-2026-10-13
     videoUrl: `/previews/examples-hd-sep24/${asset}.mp4`, previewUrl: `/previews/examples-hd-sep24/${asset}.mp4`,
     posterUrl: `/posters/examples-hd-sep24/${asset}.webp`,
     focalPoint: id === selectedOmniIds[0] ? '50% 44%' : '50% 47%',
-    href: '/studio?engine=omni&intent_campaign=examples_showcase', publicSource: 'founder_owned_engine_example' }
+    href: '/studio?engine=hollywood&intent_campaign=examples_showcase', publicSource: 'founder_owned_engine_example' }
 })
 
 const selectedVideos: readonly WallVideo[] = [

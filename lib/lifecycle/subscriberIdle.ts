@@ -106,13 +106,15 @@ ${ideas.map((i, n) => `${n + 1}. ${i.label}\n   ${i.url}`).join('\n')}
 What changed since you were last here:
 - Every film now gets an AI-composed soundtrack (Google Lyria 3), not stock music.
 - Narration moved to MiniMax 2.8 HD — the top-ranked voice model right now.
-- Kling 3 and Omni Flash render true film scenes, and Nano Banana Pro is in the image studio.
+- Kling 3 and MiniMax H3 render true film scenes, and Nano Banana Pro is in the image studio.
 
 If something got in your way last time — a render that failed, a result you didn't like, anything — hit reply and tell me. It lands with me, not a bot.
 
 Joseph
 usekineo.com`
 
+  // KINEO-OMNI-FORA-2026-10-12 — o e-mail citava o Omni Flash (fora da oferta) como novidade; agora é o MiniMax H3, que o
+  // assinante pode apertar hoje. Texto e HTML mudam juntos.
   const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111;line-height:1.6;max-width:500px;">
   <p>Hey,</p>
   <p>Quick, honest note: you're on the Kineo <strong>${plan}</strong> plan, ${idleLine}, and you have <strong>${t.credits} credits</strong> sitting unused. ${filmsLine}</p>
@@ -124,7 +126,7 @@ usekineo.com`
   <ul style="padding-left:18px;margin:0 0 16px">
     <li>Every film now gets an <strong>AI-composed soundtrack</strong> (Google Lyria 3), not stock music.</li>
     <li>Narration moved to <strong>MiniMax 2.8 HD</strong> — the top-ranked voice model right now.</li>
-    <li><strong>Kling 3</strong> and <strong>Omni Flash</strong> render true film scenes, and <strong>Nano Banana Pro</strong> is in the image studio.</li>
+    <li><strong>Kling 3</strong> and <strong>MiniMax H3</strong> render true film scenes, and <strong>Nano Banana Pro</strong> is in the image studio.</li>
   </ul>
   <p>If something got in your way last time — a render that failed, a result you didn't like, anything — hit reply and tell me. It lands with me, not a bot.</p>
   <p style="margin:0 0 2px">Joseph</p>
