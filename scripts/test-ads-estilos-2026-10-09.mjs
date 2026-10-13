@@ -429,14 +429,16 @@ await check('8e modo simples: escolha perto do nível, sugestão só com setor r
     // KINEO-ADS-1FOTO-LINK-2026-10-10 — re-ancorado: a 1ª foto segue virando produto com estilo; agora a foto que veio do link
     // do produto também vira produto quando o texto não reconheceu setor ('other'). A regra do estilo não mudou.
     /const firstAsProduct = style !== 'none' && photoKind !== 'text'/.test(s) && /kind: \(firstAsProduct && out\.length === 0\) \|\| \(p\.fromLink === true && sector === 'other'\) \? 'product' : photoKind/.test(s) &&
-    /facts: chosen, \.\.\.\(style !== 'none' \? \{ style \} : \{\}\) \}/.test(s) && /items: inAd\.map\(\(p\) => \[p\.key, focalSig\(p\)\]\), style \}\)/.test(s) &&
+    // KINEO-ATORES-IA-2026-10-13 — re-ancorado: o corpo e a assinatura ganharam, no fim, o apresentador escolhido; o estilo continua igual.
+    /facts: chosen, \.\.\.\(style !== 'none' \? \{ style \} : \{\}\), \.\.\.\(presenterOn && presenterPick \? \{ presenter_id: presenterPick \} : \{\}\) \}/.test(s) && /items: inAd\.map\(\(p\) => \[p\.key, focalSig\(p\)\]\), style, \.\.\.\(presenterOn && presenterPick \? \{ presenterPick \} : \{\}\) \}\)/.test(s) &&
     /\{ADS_V2_STYLES_PUBLIC \? \(/.test(s) && /copy=\{styleCopy\}/.test(s) && /const styleCopy: AdsV2StyleCopy = adsV2StyleCopy\(lang\)/.test(s)
 })
 await check('8f modo completo: escolha no passo do nível, sugestão pelo setor escolhido, estilo no corpo e na assinatura, inglês', () => {
   const s = code(read(F.client))
   return ordem(s, 'name="adv2-tier"', '<AdsStylePicker', 'name="adv2-style"', 'copy={ADS_V2_STYLE_COPY.en}') &&
     /const styleSuggested: AdsV2StyleChoice = sector \? adsV2SuggestedStyle\(sector\) : 'none'/.test(s) &&
-    /card_footage_id: cardDone\.footageId, \.\.\.\(style !== 'none' \? \{ style \} : \{\}\) \}/.test(s) &&
+    // KINEO-ATORES-IA-2026-10-13 — re-ancorado: o corpo ganhou, no fim, o apresentador escolhido; o estilo continua igual.
+    /card_footage_id: cardDone\.footageId, \.\.\.\(style !== 'none' \? \{ style \} : \{\}\), \.\.\.\(presenterOn && presenterPick \? \{ presenter_id: presenterPick \} : \{\}\) \}/.test(s) &&
     // KINEO-ATOR-ANUNCIO-2026-10-09 — re-ancorado: a assinatura do plano ganhou o ator no fim (presenterOn); o estilo continua nela.
     /\[tier, composed, linkNorm, sector, logo\?\.footageId, photos, style, presenterOn\]/.test(s)
 })

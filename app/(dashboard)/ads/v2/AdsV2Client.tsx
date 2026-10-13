@@ -50,7 +50,10 @@ import { adsAfterSampleCopy, fillAfterSample, type AdsBusinessOffer } from '@/li
 import { ADS_V2_STYLE_COPY, ADS_V2_STYLES_PUBLIC, adsV2SuggestedStyle, type AdsV2StyleChoice } from '@/lib/ads/v2Styles'
 import { AdsPresenterToggle, AdsStylePicker } from '@/components/ads/AdsStyles'
 // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator de IA ("Person talking about it"): interruptor e frases (lib pura; o completo é em inglês).
-import { ADS_V2_PRESENTER_COPY, ADS_V2_PRESENTER_PUBLIC } from '@/lib/ads/v2Presenter'
+import { ADS_V2_PRESENTER_COPY, ADS_V2_PRESENTER_PUBLIC, adsV2PresenterById } from '@/lib/ads/v2Presenter'
+// KINEO-ATORES-IA-2026-10-13 — o seletor de apresentadores de IA e as frases dele (modo completo: inglês, como o resto da tela).
+import { AdsPresenterPicker } from '@/components/ads/AdsPresenterPicker'
+import { ADS_V2_PRESENTER_PICKER_COPY } from '@/lib/ads/v2PresenterLibrary'
 // KINEO-ATOR-FTC-2026-10-13 — aviso de rótulo de IA na entrega (16 línguas, lib pura; não é marca d'água).
 import { adsV2AiLabelNotice } from '@/lib/ads/v2AiLabel'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
@@ -132,6 +135,7 @@ interface PlanResponse {
   /** KINEO-ATOR-ANUNCIO-2026-10-09 — o ator pedido e o aplicado (false com pedido = sem texto de narração). */
   presenter_asked?: boolean
   presenter?: boolean
+  presenter_id?: string // KINEO-ATORES-IA-2026-10-13
   narration: string | null
   overlays: { role: string; start: number; end: number; text: string }[]
   total_seconds: number
@@ -699,6 +703,8 @@ function AdsV2Session({
   const [styleChoice, setStyleChoice] = useState<AdsV2StyleChoice | null>(null)
   // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator começa desligado (a pessoa liga; nada muda para quem não liga).
   const [presenterChoice, setPresenterChoice] = useState(false)
+  // KINEO-ATORES-IA-2026-10-13 — o apresentador escolhido na biblioteca (null = "Surprise me", o sorteio de sempre).
+  const [presenterPick, setPresenterPick] = useState<string | null>(null)
   // KINEO-ADS-3-VARIACOES-2026-09-30 — "3 variações" ligada (só aparece com a opção liberada para a conta).
   const [three, setThree] = useState(false)
   const [business, setBusiness] = useState('')
@@ -775,7 +781,7 @@ function AdsV2Session({
   const composed = composeSentence(business, sentence)
   const linkNorm = normalizeLink(link)
 
-  const planSig = useMemo(
+  const planSigBase = useMemo(
     () =>
       JSON.stringify({
         tier,
@@ -789,6 +795,8 @@ function AdsV2Session({
       }),
     [tier, composed, linkNorm, sector, logo?.footageId, photos, style, presenterOn],
   )
+  // KINEO-ATORES-IA-2026-10-13 — trocar o apresentador pede plano novo; sem escolha, a assinatura é a de antes.
+  const planSig = presenterOn && presenterPick ? `${planSigBase}|presenter:${presenterPick}` : planSigBase
   const cardSig = JSON.stringify({ business: business.trim(), ...card, logo: logo?.footageId ?? null })
   const planFresh = !!plan && plan.sig === planSig
 
@@ -1247,7 +1255,7 @@ function AdsV2Session({
       setBusyNote('Planning your shots, the words on screen and the voice-over…')
       const r = await api<PlanResponse>('/api/ads/v2/plan', {
         method: 'POST',
-        body: { order_id: orderId, sector, logo_footage_id: logo?.footageId, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: cardDone.footageId, ...(style !== 'none' ? { style } : {}) },
+        body: { order_id: orderId, sector, logo_footage_id: logo?.footageId, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: cardDone.footageId, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}) },
       })
       if (!aliveRef.current) return
       if (!r.ok) {
@@ -1538,6 +1546,8 @@ function AdsV2Session({
                   copy={ADS_V2_PRESENTER_COPY.en}
                 />
               ) : null}
+              {/* KINEO-ATORES-IA-2026-10-13 — com o ator ligado, a escolha do apresentador (padrão = o sorteio de sempre). */}
+              {presenterOn ? <AdsPresenterPicker name="adv2-presenter-pick" value={presenterPick} onChange={setPresenterPick} copy={ADS_V2_PRESENTER_PICKER_COPY.en} disabled={locked} /> : null}
               {scopy ? <p className="adsw-hint">{scopy.note}</p> : null}
               <p className="adv2-balance" role="status">
                 {balance === null ? 'We could not read your credit balance right now.' : `You have ${balance} credits.`}{' '}
@@ -1971,7 +1981,7 @@ function PlanPreview({
         </li>
       </ol>
       {plan.style_asked && !plan.style ? <p className="adsw-hint">{ADS_V2_STYLE_COPY.en.noProduct}</p> : null}
-      {plan.presenter ? <p className="adsw-hint">🎙 <b>{ADS_V2_PRESENTER_COPY.en.title}</b> · {ADS_V2_PRESENTER_COPY.en.planLine}</p> : plan.presenter_asked ? <p className="adsw-hint">{ADS_V2_PRESENTER_COPY.en.notApplied}</p> : null}
+      {plan.presenter ? <p className="adsw-hint">🎙 <b>{ADS_V2_PRESENTER_COPY.en.title}</b> · {ADS_V2_PRESENTER_COPY.en.planLine}{adsV2PresenterById(plan.presenter_id) ? ` · ${adsV2PresenterById(plan.presenter_id)!.name} (AI)` : ''}</p> : plan.presenter_asked ? <p className="adsw-hint">{ADS_V2_PRESENTER_COPY.en.notApplied}</p> : null}
       {plan.overlays.length ? (
         <>
           <h3>Words on screen</h3>

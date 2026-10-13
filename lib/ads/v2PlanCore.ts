@@ -204,7 +204,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
           .filter((o) => o.text)
     // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator: a 1ª foto marcada como produto, a pessoa pela semente do pedido. Sem texto de
     // narração (o modelo não escreveu) não há o que falar: o plano sai sem ator e a tela diz por quê (presenter_asked).
-    const presenter = presenterAsked && extracted.copy.narration ? planAdsV2Presenter({ sector, photos, seedKey: order.id }) : null
+    const presenter = presenterAsked && extracted.copy.narration ? planAdsV2Presenter({ sector, photos, seedKey: order.id, presenterId: input.presenter_id ?? null }) : null
     const stored: AdsV2StoredPlan = { ...plan, overlays, narration: extracted.copy.narration, ...(presenter ? { presenter } : {}) }
     const credits = adsV2Credits(order.tier, order.seconds)
     const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds, presenter: !!presenter })
@@ -235,6 +235,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
       .maybeSingle()
     if (upd.error || !upd.data) return v2Fail('not_editable', 409)
     await served(true, { sector, shots: plan.shots.length, text_shots: plan.shots.filter((s) => s.kind === 'text').length, video_shots: plan.shots.filter((s) => s.kind === 'user_video').length, scenes: plan.shots.filter((s) => s.source === 'generated_scene').length, credits, usd: usd.totalUsd, attempts: extracted.attempts, sector_hint: extracted.copy.sectorHint, style_asked: styleAsked, style: plan.style ?? null, presenter_asked: presenterAsked, presenter: !!presenter, product_ad: extracted.ad?.product === true, ...(extracted.voice ? { names_required: extracted.voice.names.length, names_missing: extracted.voice.namesMissing.length, common_noun: extracted.voice.commonNoun !== null } : {}) })
+    if (presenter) await writeServerEvent({ name: 'ads_presenter_selected', userId: uid, path: '/api/ads/v2/plan', metadata: { order_id: order.id, presenter_id: presenter.presenterId ?? 'auto', picked: !!presenter.presenterId, person: presenter.person, mode: simple ? 'simple' : 'full', language } }) // KINEO-ATORES-IA-2026-10-13 — medição: o apresentador escolhido, ou 'auto' (o sorteio de sempre)
     return v2Json({
       order_id: order.id,
       status: 'planned',
@@ -255,6 +256,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
       // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator pedido e o APLICADO (false com pedido = sem texto de narração).
       presenter_asked: presenterAsked,
       presenter: !!presenter,
+      ...(presenter?.presenterId ? { presenter_id: presenter.presenterId } : {}), // KINEO-ATORES-IA-2026-10-13 — quem foi escolhido
       shots: plan.shots.map((s) => ({ idx: s.idx, role: s.role, beat: s.beat, kind: s.kind, source: s.source, cut_seconds: s.cutSeconds, photo: s.sourceFootageId, ...(s.effect ? { effect: s.effect } : {}) })),
     })
   } catch (e) {

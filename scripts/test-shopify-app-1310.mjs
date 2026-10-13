@@ -325,7 +325,11 @@ ok('acesso: o da conta; só "none" vira "subscriber" com plano pago ATIVO fora d
 console.log('\nM. /plan e /start extraídos sem mudar uma linha (equivalência)')
 const PLAN_BASE_SHA = '95c7c1ec1db4a6bd4ca0c7979e0d672fd89aa9ad3cc5fd043a661f9df824bac1' // app/api/ads/v2/plan/route.ts em c6c414e7
 const START_BASE_SHA = 'd80097067c7a40121329c4336c046d177cdd16f678b361c96412b10ab937c49b' // app/api/ads/v2/start/route.ts em c6c414e7
-ok('rota + núcleo remontam o /plan de antes BYTE A BYTE', sha(textoOriginalV2('plan', raiz)) === PLAN_BASE_SHA)
+// KINEO-ATORES-IA-2026-10-13 — re-ancorado: a biblioteca de apresentadores de IA mudou SÓ a chamada do ator (o id escolhido) e
+// somou 2 linhas marcadas (evento ads_presenter_selected e presenter_id na resposta). desfazAtoresIa tira EXATAMENTE isso
+// (scripts/test-support/desfaz-atores-ia-1310.mjs) e o /plan remontado tem de bater com a base igual — o resto intocado.
+const { desfazAtoresIa } = await import(pathToFileURL(path.join(raiz, 'scripts', 'test-support', 'desfaz-atores-ia-1310.mjs')).href)
+ok('rota + núcleo remontam o /plan de antes BYTE A BYTE', sha(desfazAtoresIa(textoOriginalV2('plan', raiz))) === PLAN_BASE_SHA)
 ok('rota + núcleo remontam o /start de antes BYTE A BYTE (dinheiro: saldo, trava, débito, amostra, estorno)', sha(textoOriginalV2('start', raiz)) === START_BASE_SHA)
 {
   const core2 = ler('lib', 'ads', 'v2StartCore.ts')
