@@ -1415,6 +1415,17 @@ export async function POST(req: NextRequest) {
         requested_voice_unavailable: 'scene_narration_failed',
       }
       const reason = qualityReasons[String(detail?.reason ?? detail?.code ?? '')]
+      // KINEO-OMNI-ETAPA1-2026-10-13 — a recusa ANTES do fornecedor também vira `compose_failed` com estágio e mensagem. Os 2
+      // filmes Omni que "morreram no compose sem motivo" (8a519488 15/09: cinematic_timeline_too_short — 6 de 7 cenas, 1 job
+      // terminal na fal; e7918140 16/09: scene_narration_failed — TTS da cena 8) passaram por AQUI, não pelo catch geral de
+      // 22/09: o motivo só ficou em compose_submission_claim.quality_rejection.reason, sem a frase, e o cliente gravou
+      // `no_detail:unreported_stage_failure`. Mesmo buraco no H3 7127d8b4 (25/09, scene_speech_exceeds_footage). AWAIT: este
+      // caminho responde na linha seguinte (void morre na Vercel). logComposeEvent nunca lança.
+      await logComposeEvent('compose_failed', reason ?? String(detail?.reason ?? detail?.code ?? `http_${response.status}`), authenticatedUserId, {
+        kind: 'rejected_before_provider', quality, generation_id: generationId, stage: composeCtx.stage, http_status: response.status,
+        code: typeof detail?.code === 'string' ? detail.code : null, message: String(detail?.error ?? '').slice(0, 400),
+        upstream_debited: cinematicUpstreamDebited,
+      }) // KINEO-OMNI-ETAPA1-2026-10-13
       if (reason && cinematicUpstreamDebited) {
         const facts = await rejectCinematicQuality({
           db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, generationId,

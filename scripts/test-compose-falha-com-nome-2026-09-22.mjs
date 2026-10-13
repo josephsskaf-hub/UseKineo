@@ -35,15 +35,18 @@ checa('a resposta 500 carrega reason, stage, detail e generationId (o ledger do 
 checa('logComposeEvent continua best-effort (nunca lança) — o evento não pode virar uma segunda falha', /async function logComposeEvent\([\s\S]{0,400}try \{/.test(src))
 
 console.log('== mutantes ==')
+// Reancorado 13/10 (KINEO-OMNI-ETAPA1-2026-10-13, autorizado pelo fundador): rejectBeforeProviderSubmission passou a gravar
+// compose_failed também (recusa antes do fornecedor), ANTES do catch no arquivo — os mutantes agora miram o catch final.
+const antesDoCatch = src.slice(0, iCatch) // KINEO-OMNI-ETAPA1-2026-10-13
 {
-  const mut = src.replace(/\s*await logComposeEvent\('compose_failed'[\s\S]*?\}\)\n/, '\n')
+  const mut = antesDoCatch + src.slice(iCatch).replace(/\s*await logComposeEvent\('compose_failed'[\s\S]*?\}\)\n/, '\n') // KINEO-OMNI-ETAPA1-2026-10-13
   checa('mutante (catch sem o evento) aplicou', mut !== src)
   const body = mut.slice(mut.lastIndexOf('} catch (error: unknown) {'), mut.lastIndexOf('} catch (error: unknown) {') + 1600)
   checa('mutante é pego: sem compose_failed no catch', !/await logComposeEvent\('compose_failed'/.test(body))
 }
 {
-  const mut = src.replace("await logComposeEvent('compose_failed'", "void logComposeEvent('compose_failed'")
-  checa('mutante (void em vez de await — morre na Vercel) é pego', mut !== src && !/await logComposeEvent\('compose_failed'/.test(mut))
+  const mut = antesDoCatch + src.slice(iCatch).replace("await logComposeEvent('compose_failed'", "void logComposeEvent('compose_failed'") // KINEO-OMNI-ETAPA1-2026-10-13
+  checa('mutante (void em vez de await — morre na Vercel) é pego', mut !== src && !/await logComposeEvent\('compose_failed'/.test(mut.slice(iCatch))) // KINEO-OMNI-ETAPA1-2026-10-13
 }
 
 console.log(`\n${ok} ok · ${falhas.length} falhas`)
