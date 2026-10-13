@@ -93,6 +93,29 @@ async function postToken(shop: string, body: URLSearchParams): Promise<ShopifyTo
   }
 }
 
+/**
+ * KINEO-SHOPIFY-2026-10-13 (etapa 2) — a resposta CRUA do /admin/oauth/access_token (a troca por token ONLINE traz o
+ * `associated_user`, que diz quem abriu o app). O chamador só lê o usuário; o token online não é guardado nem logado.
+ */
+export async function postTokenRaw(shop: string, body: URLSearchParams): Promise<unknown | null> {
+  try {
+    const res = await fetch(accessTokenUrl(shop), {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
+      body: body.toString(),
+      cache: 'no-store',
+    })
+    if (!res.ok) {
+      console.warn('[shopify] token online recusado', redactForLog({ shop, status: res.status }))
+      return null
+    }
+    return await res.json().catch(() => null)
+  } catch (e) {
+    console.warn('[shopify] token online falhou', redactForLog({ shop, error: e instanceof Error ? e.message : 'unknown' }))
+    return null
+  }
+}
+
 export function exchangeCode(shop: string, body: URLSearchParams): Promise<ShopifyTokenSet | null> {
   return postToken(shop, body)
 }

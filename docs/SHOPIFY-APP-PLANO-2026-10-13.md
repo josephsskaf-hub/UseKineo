@@ -1,4 +1,4 @@
-# App da Kineo na Shopify App Store: plano técnico (ETAPA 1)
+# App da Kineo na Shopify App Store: plano técnico (ETAPAS 1 e 2)
 
 KINEO-SHOPIFY-2026-10-13. Aprovação do fundador em 13/10/2026: vender o Studio Ads direto para lojistas pela Shopify App Store.
 Branch: `codex/shopify-app-1310`. **Nada publicado, nada aplicado.** A flag `SHOPIFY_APP_LIVE` fica desligada: todas as rotas novas respondem 404.
@@ -71,7 +71,7 @@ Arquivo: `supabase/migrations/20261013200000_shopify_shops.sql`
 
 ---
 
-## 4. Planos via Shopify App Pricing (PROPOSTA: o preço é decisão do fundador)
+## 4. Planos via Shopify App Pricing (APROVADOS pelo fundador em 13/10 — ver a seção 9 para handles e textos)
 
 Base: o Business de hoje sai a US$ 84 por 500 cr. Um anúncio Commercial de 15 s custa 41 cr, então o plano dá 12 anúncios (`lib/businessPlan.ts`).
 
@@ -158,3 +158,112 @@ Base: o Business de hoje sai a US$ 84 por 500 cr. Um anúncio Commercial de 15 s
 - `scripts/test-shopify-app-1310.mjs`: guardião.
 
 Fontes: shopify.dev/docs/apps/build/authentication-authorization/access-tokens/token-exchange · …/authorization-code-grant · …/session-tokens · shopify.dev/docs/apps/build/compliance/privacy-law-compliance · shopify.dev/docs/apps/build/webhooks/subscribe/https · shopify.dev/docs/apps/launch/billing · …/billing/managed-pricing · shopify.dev/docs/apps/build/app-events/send-events · shopify.dev/docs/apps/build/online-store/product-media · shopify.dev/docs/apps/launch/shopify-app-store/app-store-requirements · shopify.dev/docs/apps/launch/app-store-review/review-process · shopify.dev/docs/apps/launch/distribution/revenue-share · community.shopify.dev ("Longer App Store Review Times", 2026).
+
+---
+
+## 9. ETAPA 2 (13/10/2026) — o anúncio nasce DENTRO do admin (requisito 2.2.2)
+
+Aprovação do fundador em 13/10: seguir para a etapa 2 com os preços Free (1 amostra) · Shop Starter US$ 29/mês 170 cr ·
+Shop Business US$ 84/mês 500 cr · anúncio extra US$ 7 (uso, teto no nosso código). Acréscimos aprovados no mesmo dia ("tudo sim"):
+posicionamento "1 anúncio novo por semana", "Add to product page", pedido de avaliação sem incentivo e rótulo "Made with AI".
+
+### 9.1 Fluxo do lojista
+
+1. Instala o "Kineo Ads" (instalação gerida pela Shopify) e abre o app no admin.
+2. Na primeira abertura, a tela pede `/api/shopify/account`: a porta da loja (`lib/shopify/request.ts`) confere o token de sessão,
+   obtém o token da loja e cria **ou vincula** a conta Kineo da loja (`lib/shopify/account.ts`):
+   - e-mail = `shop.email` (Admin API); quem abriu é lido por uma troca de token **online** (`associated_user`, nunca guardado);
+   - não há conta com o e-mail → cria (sem senha; confirmada só se a Shopify provar o e-mail de quem abriu);
+   - já há conta com o e-mail → **vincula** (nunca duplica), mas só com a prova (`email_verified` + mesmo e-mail). Sem a prova,
+     403 `unverified_owner`: senão quem cria uma loja com o e-mail de outra pessoa gastaria os créditos dela;
+   - o vínculo é condicional (`owner_user_id is null`): duas aberturas juntas nunca vinculam duas contas.
+3. A tela mostra o plano com a promessa dele (Free "1 free sample ad" · Starter "A new ad for your product every week" ·
+   Business "12 ads a month"), o saldo, e o botão **Plans** (abre a página de planos da App Pricing no topo do admin).
+   Plano pago, saldo para um Commercial e nenhum anúncio começado em 7 dias → "Your weekly ad is ready to make" (só no app).
+4. Escolhe um produto → nível (Free: só Photo motion, a amostra) e estilo → **Write my ad**: `POST /api/shopify/ads {action:'plan'}`
+   - fotos do produto pela Admin API já recortadas em 9:16 pelo CDN da Shopify (transform crop CENTER 1080×1920 JPG), só
+     `cdn.shopify.com`, baixadas pela MESMA porta SSRF do link-import (`adsV2FetchImage` → `safeGet`), moderadas e gravadas em
+     `user-footage/<uid>/` (quarentena se barradas), na cota da conta;
+   - cartão final desenhado no servidor (`lib/shopify/card.tsx`, next/og, mesma zona segura do `drawEndCard`), moderado e gravado;
+   - rascunho pelo MESMO contrato do `POST /api/ads/v2/orders` (`sanitizeCreateOrderBody`, modo simples, 15 s, setor loja);
+   - `adsV2PlanFor` = o corpo do `/api/ads/v2/plan` (moderação, teto do dia, amostra, posse das fotos, régua anti-invenção).
+   A tela mostra o texto (voz + frases) e o custo ANTES de gastar.
+5. **Generate**: `POST /api/shopify/ads {action:'start', order_id}` → `adsV2StartFor` = o corpo do `/api/ads/v2/start` (saldo,
+   trava, `chargeAdsV2`, amostra sem débito, estorno por `failAdsV2Order`). Plano pago sem saldo: o botão diz
+   "extra ad US$ 7"; com o clique explícito, `chargeExtraAd` (abaixo) e depois o mesmo `adsV2StartFor`.
+6. Andamento: `GET /api/shopify/ads/status` a cada 6 s (o mesmo motor de avanço do site e do cron) → o MP4 do nosso storage toca
+   na tela, com o rótulo **"Made with AI"**, **Download MP4** e **Add to product page**.
+7. **Add to product page** (`POST /api/shopify/ads/attach`): confere AO VIVO os escopos (`currentAppInstallation.accessScopes`);
+   sem `write_products,write_files` → 403 `scope_missing` e a tela pede os escopos OPCIONAIS (`shopify.scopes.request`) só
+   nesse clique; com eles: `stagedUploadsCreate` → upload do MP4 → `productUpdate(product, media)`. `SHOPIFY_ATTACH_MEDIA=false`
+   desliga o botão. ⚠ Não exercitado ainda: validar na loja de desenvolvimento.
+8. Depois do 1º anúncio entregue: cartão "Enjoying Kineo Ads? Leave a review" → `SHOPIFY_APP_STORE_URL` (só `apps.shopify.com`;
+   sem a env o cartão não aparece). Nenhum incentivo oferecido (regra da Shopify).
+
+### 9.2 Função extraída (sem caminho paralelo de dinheiro)
+
+- `lib/ads/v2PlanCore.ts` `adsV2PlanFor(user, access, readBody, started)` e `lib/ads/v2StartCore.ts` `adsV2StartFor(...)`: o corpo das
+  duas rotas copiado linha a linha por script. As rotas `/api/ads/v2/plan` e `/start` leem o cookie + `loadAdsAccess(..., { workspace:
+  true })` e chamam o núcleo. Prova: `scripts/test-support/shopify-extracao-v2-1310.mjs` remonta, dos dois arquivos de hoje, o texto
+  EXATO das rotas de antes (sha-256 igual ao de c6c414e7); os 16 guardiões do ads v2 seguem verdes (re-ancorados para ler rota + núcleo
+  e mutar o núcleo) e os de impressão digital do `/start` (ator, estilos, ux-marca) seguem com o MESMO hash de antes.
+- Acesso da conta da loja (`shopAdsAccess`): o da própria conta (`loadAdsAccess`, conta pessoal); se for `none`, plano PAGO ativo da loja
+  (fora de loja de desenvolvimento) vale `subscriber`. O plano da Shopify **nunca** escreve `profiles.plan` (a conta pode ser de quem
+  já assina pela Stripe).
+
+### 9.3 Cobrança e créditos
+
+- **Planos** (formulário de envio, Pricing): handles `free`, `shop-starter`, `shop-business` (o código também aceita `starter`/`business`).
+  Starter = 170 cr = 4 anúncios Commercial de 15 s (41 cr); Business = 500 cr = 12. Uso extra: medidor `extra_ad`, US$ 7, só pagos.
+- **Plano atual**: nunca da URL. O `plan_handle` do retorno só dispara a releitura na Partner API (`activeSubscription(appId, shopId)`),
+  feita por `syncShopPlan` (tela a cada 10 min, retorno da página de planos e o cron diário).
+- **Crédito do ciclo**: `decideCycleGrant` (puro) concede só assinatura ativa, paga, conhecida, fora do teste grátis, com ciclo lido, fora
+  de loja de desenvolvimento (salvo `SHOPIFY_TEST_SHOPS`). Chave = loja + início do ciclo (anual: um mês por vez). A função SQL
+  `shopify_grant_credits` grava o recibo (PK loja + ciclo) e soma o crédito na MESMA transação — tela, retorno e cron juntos somam uma vez.
+  Crédito é SOMADO (não zera o saldo: a conta pode ter créditos da Stripe).
+- **Anúncio extra** (`chargeExtraAd`): reserva a linha em `shopify_usage_charges` (chave = o pedido) → confere os tetos contando a própria
+  reserva (3/dia, 20/mês por loja; só até 41 cr — Cinema fica fora) → 1 evento no App Events API (`POST https://api.shopify.com/app/2026-10/events`,
+  token por client credentials, `idempotency_key` = a chave) → só com 202 concede os créditos do anúncio (`extra:<pedido>`, idempotente) →
+  o `/start` de sempre debita. Recusado = `failed` (não conta, nenhum crédito). Repetir o pedido nunca manda outro evento.
+- **Free** = a amostra grátis do Studio Ads (`lib/ads/sample.ts`, uma por conta, Photo motion 15 s, teto global do dia).
+
+### 9.4 SQL novo (DEVOLVIDO, NÃO aplicado)
+
+`supabase/migrations/20261013210000_shopify_etapa2.sql` (aplicar DEPOIS de `20261013200000_shopify_shops.sql`):
+colunas `shop_gid`, `partner_development`, `plan_checked_at` em `shopify_shops`; tabelas `shopify_credit_grants` (PK loja + ciclo) e
+`shopify_usage_charges` (chave única, status pending/sent/failed, dia/mês); função `shopify_grant_credits` (SECURITY DEFINER, só
+`service_role`); RLS ligado, nenhuma policy, `anon`/`authenticated` sem privilégio.
+
+### 9.5 Variáveis novas (Vercel, o fundador cola; eu nunca vejo)
+
+| Variável | Para quê | Sem ela |
+|---|---|---|
+| `SHOPIFY_PARTNER_ORG_ID` | id numérico da organização Partner | nenhum crédito de plano (falha fechada) |
+| `SHOPIFY_PARTNER_API_TOKEN` | token da Partner API (Partner Dashboard → Settings → Partner API clients, permissão "Manage apps") | idem |
+| `SHOPIFY_APP_GID` | `gid://partners/App/<id>` do app | idem |
+| `SHOPIFY_APP_HANDLE` | o handle do app na URL da página de planos | usa `kineo-ads` |
+| `SHOPIFY_TEST_SHOPS` | lojas de desenvolvimento do fundador que podem ganhar o crédito do plano de teste (vírgula) | dev store nunca ganha crédito |
+| `SHOPIFY_APP_STORE_URL` | página do app na App Store (`https://apps.shopify.com/...`) | o cartão de avaliação não aparece |
+| `SHOPIFY_ATTACH_MEDIA` | `false` desliga o "Add to product page" | ligado |
+
+**Cron** (entra no `vercel.json` no dia do "vai shopify", não antes):
+`{ "path": "/api/cron/shopify-plans", "schedule": "17 9 * * *" }` — com o interruptor desligado responde 404.
+
+### 9.6 Listagem (regra da FTC e posicionamento)
+
+- Posicionamento: Starter = "A new ad for your product every week"; Business = "12 ads a month"; Free = "1 free sample ad".
+  Nunca "unlimited".
+- A listagem NÃO promete "UGC" nem "testimonial": a pessoa de IA do anúncio não fala como cliente (conserto em outra branch, lib/ads).
+  O anúncio pronto mostra "Made with AI" na tela.
+- Pedido de avaliação sem incentivo (nada de crédito em troca).
+
+### 9.7 O que falta até a submissão
+
+1. Fundador: conta Partner + loja de desenvolvimento + app + variáveis (seção 5 e 9.5) + planos no formulário (handles da 9.3).
+2. "vai shopify": aplicar as 2 migrations, integrar a branch, ligar `SHOPIFY_APP_LIVE=true` só na dev store, pôr o cron.
+3. Validar na loja de desenvolvimento: instalação → conta criada → amostra → plano de teste (dev store na `SHOPIFY_TEST_SHOPS`) →
+   crédito do ciclo → anúncio pago → extra de US$ 7 (na dev store sai a US$ 0) → "Add to product page" → desinstalar → webhooks.
+4. Polaris: conferir `s-page`/`s-section`/`s-button`/`s-text-field` na loja; estados vazios e de erro; Web Vitals do admin.
+5. Listagem: nome "Kineo Ads", ícone 1200×1200, capturas da interface real, **screencast** em inglês (instalar → escolher produto →
+   anúncio pronto tocando no admin → Add to product page), **política de privacidade** com o parágrafo Shopify, credenciais do revisor.
+6. Enviar ("Submit your app").

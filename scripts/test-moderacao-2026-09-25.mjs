@@ -175,7 +175,10 @@ const imp = ['app', 'lib', 'components'].flatMap(walk).filter((p) => /from '@\/l
 // cenas modera a ideia ANTES do roteiro e das imagens, e cada imagem na SAÍDA antes de guardar).
 // KINEO-ADS-1FOTO-LINK-2026-10-10 — re-ancorado: +1 importador de servidor, app/api/ads/v2/link-import/route.ts ("Or paste
 // your product link" modera o texto da página e cada foto baixada ANTES de virar linha do user_footage).
-ok(imp.length === 28 && imp.every((p) => !/^\s*['"]use client['"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`)
+// KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o /plan e o /start do anúncio v2 moveram o corpo (com a moderação) para
+// lib/ads/v2PlanCore.ts e lib/ads/v2StartCore.ts (troca 2 por 2, saldo zero), e +1 importador de servidor, lib/shopify/adFlow.ts
+// (o app da Shopify modera cada foto do produto e o cartão final ANTES de virarem linha do user_footage).
+ok(imp.length === 29 && imp.every((p) => !/^\s*['"]use client['"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`)
 
 // ── 5. upload: o tipo pelos bytes ──────────────────────────────────────────────────────────────────────
 const K = roda('lib/safety/mediaKind.ts')
