@@ -20,7 +20,44 @@ import { ADS_V2_HONESTY_RULE, adsV2PlaceRule, honestyIssues, isDemonym, repairHo
 export const ADS_V2_BRIEF_MODEL = 'gpt-4o-mini'
 /** Teto de planos (chamadas ao GPT) por pessoa em 24 h, contado pelo evento ads_v2_plan_served ANTES do modelo. */
 export const ADS_V2_PLAN_DAILY_CAP = 20
-const CALL_TIMEOUT_MS = 20_000
+// KINEO-ADS-CENA-2026-10-13 — PLANO QUE MORRIA EM TIMEOUT (fundador 13/10 19:10:06 UTC, request fvsq2-1791918606278): o
+// /api/ads/v2/plan logou "[ads/v2/plan] falhou: Request timed out." 21,5 s depois de começar — 1,5 s de portas/moderação +
+// os 20 s da 1ª chamada (a do brief, 900 tokens). O APIConnectionTimeoutError subia do callJson, o catch da rota devolvia
+// plan_failed 502 ("Something went wrong on our side") e nenhum evento contava o porquê. Agora: 15 s por tentativa, UMA
+// nova tentativa no timeout (só se cabe no prazo), prazo total amarrado ao maxDuration 60 da rota (o núcleo passa
+// deadlineMs = início + ADS_V2_PLAN_MODEL_DEADLINE_MS; sem ele, ADS_V2_BRIEF_BUDGET_MS a partir da extração), e o timeout
+// final vira { ok:false, why:[ADS_V2_BRIEF_TIMEOUT_WHY] } — a rota responde 503 'unavailable' ("nada foi cobrado, tente
+// em um minuto") com o evento ads_v2_plan_served. O plano nunca cobra: falhar fechado aqui não custa nada a ninguém.
+const CALL_TIMEOUT_MS = 15_000 // KINEO-ADS-CENA-2026-10-13 — era 20_000 (uma tentativa só)
+/** Prazo das chamadas ao modelo, contado do INÍCIO da rota do plano (maxDuration 60 − ~8 s para gravar e responder). */
+export const ADS_V2_PLAN_MODEL_DEADLINE_MS = 52_000
+/** Sem prazo vindo de quem chama: o orçamento das chamadas a partir da extração. */
+export const ADS_V2_BRIEF_BUDGET_MS = 42_000
+/** Menos que isto no prazo = nem tenta (a chamada morreria no meio); é também o mínimo para a nova tentativa. */
+export const ADS_V2_BRIEF_MIN_CALL_MS = 5_000
+/** Quantas novas tentativas no timeout cabem numa extração inteira (brief + texto + correção). */
+export const ADS_V2_BRIEF_TIMEOUT_RETRIES = 1
+export const ADS_V2_BRIEF_TIMEOUT_WHY = 'model_timeout'
+/** Teto dos fatos públicos que entram no pedido ao modelo (o prompt não incha com a pesquisa). */
+export const ADS_V2_BRIEF_FACTS_MAX = 6
+export const ADS_V2_BRIEF_FACT_MAX_CHARS = 200
+
+/** O erro é o timeout do SDK da OpenAI (APIConnectionTimeoutError "Request timed out.") ou um abort por prazo? Pura. */
+export function isAdsV2ModelTimeout(e: unknown): boolean {
+  if (!e || typeof e !== 'object') return false
+  const x = e as { name?: unknown; message?: unknown; constructor?: { name?: unknown } }
+  const name = `${String(x.name ?? '')} ${String(x.constructor?.name ?? '')}`
+  return /APIConnectionTimeoutError|TimeoutError|AdsV2BriefTimeout/.test(name) || /request timed out|timed? ?out/i.test(String(x.message ?? ''))
+}
+
+/** O prazo das chamadas de UMA extração: quando acaba e quantas novas tentativas no timeout ainda restam. */
+interface AdsV2CallBudget { deadline: number; retriesLeft: number; retried: number }
+class AdsV2BriefTimeout extends Error {
+  constructor() {
+    super('Request timed out.')
+    this.name = 'AdsV2BriefTimeout'
+  }
+}
 
 export interface AdsV2Copy {
   /** null = narração desligada pelo cliente. */
@@ -305,30 +342,65 @@ export function repairCopyRaw(raw: string, honesty: AdsV2HonestySource): { raw: 
   return fixes.length ? { raw: JSON.stringify(out), fixes } : null
 }
 
-async function callJson(messages: { role: 'system' | 'user' | 'assistant'; content: string }[], temperature: number, maxTokens: number): Promise<string> {
-  const completion = await openai.chat.completions.create(
+async function callJson(messages: { role: 'system' | 'user' | 'assistant'; content: string }[], temperature: number, maxTokens: number, budget?: AdsV2CallBudget): Promise<string> {
+  // KINEO-ADS-CENA-2026-10-13 — cada tentativa cabe no prazo (nunca passa de CALL_TIMEOUT_MS nem do que resta); timeout =
+  // UMA nova tentativa por extração, só se ainda há ADS_V2_BRIEF_MIN_CALL_MS de prazo. Erro que não é timeout sobe igual.
+  const room = () => (budget ? budget.deadline - Date.now() : CALL_TIMEOUT_MS)
+  const once = (timeout: number) => openai.chat.completions.create(
     { model: ADS_V2_BRIEF_MODEL, messages, temperature, max_tokens: maxTokens, response_format: { type: 'json_object' } },
-    { timeout: CALL_TIMEOUT_MS, maxRetries: 0 },
+    { timeout, maxRetries: 0 },
   )
+  const first = Math.min(CALL_TIMEOUT_MS, room())
+  if (first < ADS_V2_BRIEF_MIN_CALL_MS) throw new AdsV2BriefTimeout()
+  let completion
+  try {
+    completion = await once(first)
+  } catch (e) {
+    const left = room()
+    if (!budget || !isAdsV2ModelTimeout(e) || budget.retriesLeft <= 0 || left < ADS_V2_BRIEF_MIN_CALL_MS) throw e
+    budget.retriesLeft -= 1
+    budget.retried += 1
+    completion = await once(Math.min(CALL_TIMEOUT_MS, left))
+  }
   return completion.choices[0]?.message?.content ?? ''
 }
 
 export type AdsV2BriefResult =
-  | { ok: true; brief: AdsBrief; copy: AdsV2Copy; dropped: string[]; attempts: number; voice?: AdsV2SimpleVoice & { namesMissing: string[] }; ad?: AdsV2AdVoice; honestyFixes?: string[] }
-  | { ok: false; stage: 'brief' | 'copy'; why: string[]; attempts: number }
+  | { ok: true; brief: AdsBrief; copy: AdsV2Copy; dropped: string[]; attempts: number; voice?: AdsV2SimpleVoice & { namesMissing: string[] }; ad?: AdsV2AdVoice; honestyFixes?: string[]; timeoutRetries?: number }
+  | { ok: false; stage: 'brief' | 'copy' | 'timeout'; why: string[]; attempts: number; timeoutRetries?: number }
 
 /** Fatos públicos escolhidos (modo simples) entram no brief como extra.public_fact_N: o texto os enxerga e a régua
- *  anti-invenção (briefFactsText lê extra) os trata como fato. Pura. */
+ *  anti-invenção (briefFactsText lê extra) os trata como fato. Pura.
+ *  KINEO-ADS-CENA-2026-10-13 — no máximo ADS_V2_BRIEF_FACTS_MAX fatos de até ADS_V2_BRIEF_FACT_MAX_CHARS (o prompt não incha). */
 export function withPublicFacts(brief: AdsBrief, facts: readonly string[] | undefined): AdsBrief {
-  const list = (facts ?? []).map((f) => f.replace(/\s+/g, ' ').trim()).filter(Boolean)
+  const list = (facts ?? []).map((f) => f.replace(/\s+/g, ' ').trim().slice(0, ADS_V2_BRIEF_FACT_MAX_CHARS)).filter(Boolean).slice(0, ADS_V2_BRIEF_FACTS_MAX)
   if (!list.length) return brief
   const extra: Record<string, string> = { ...(brief.extra ?? {}) }
   list.forEach((f, i) => { extra[`public_fact_${i + 1}`] = f })
   return { ...brief, extra }
 }
 
-/** Extrai o brief (1 chamada) e escreve o texto (1 chamada + no máximo 1 correção com o motivo). */
-export async function extractAdsV2Brief(args: {
+/**
+ * Extrai o brief (1 chamada) e escreve o texto (1 chamada + no máximo 1 correção com o motivo).
+ * KINEO-ADS-CENA-2026-10-13 — tudo dentro de UM prazo (deadlineMs absoluto, vindo do núcleo do /plan; sem ele,
+ * ADS_V2_BRIEF_BUDGET_MS a partir daqui) com no máximo ADS_V2_BRIEF_TIMEOUT_RETRIES nova tentativa no timeout. Timeout que
+ * sobra = { ok:false, stage:'timeout', why:[ADS_V2_BRIEF_TIMEOUT_WHY] } — nunca mais exceção crua até o catch da rota.
+ */
+export async function extractAdsV2Brief(args: AdsV2ExtractArgs & { deadlineMs?: number }): Promise<AdsV2BriefResult> {
+  const deadline = typeof args.deadlineMs === 'number' && Number.isFinite(args.deadlineMs) ? args.deadlineMs : Date.now() + ADS_V2_BRIEF_BUDGET_MS
+  const budget: AdsV2CallBudget = { deadline, retriesLeft: ADS_V2_BRIEF_TIMEOUT_RETRIES, retried: 0 }
+  try {
+    const r = await extractWithBudget(args, budget)
+    return budget.retried ? { ...r, timeoutRetries: budget.retried } : r
+  } catch (e) {
+    if (!isAdsV2ModelTimeout(e)) throw e
+    return { ok: false, stage: 'timeout', why: [ADS_V2_BRIEF_TIMEOUT_WHY], attempts: 0, timeoutRetries: budget.retried }
+  }
+}
+
+type AdsV2ExtractArgs = Parameters<typeof extractWithBudget>[0]
+
+async function extractWithBudget(args: {
   text: string
   language: string
   languageName: string
@@ -348,9 +420,9 @@ export async function extractAdsV2Brief(args: {
   /** KINEO-ANUNCIO-CONSERTOS-2026-10-12 — só o que a pessoa DIGITOU (frase + preço + contato), sem a página do link: alegação de
    *  saúde só vale se estiver aqui. Ausente = a frase (ou o texto). */
   typed?: string
-}): Promise<AdsV2BriefResult> {
+}, budget: AdsV2CallBudget): Promise<AdsV2BriefResult> {
   const briefMsgs = buildAutoBriefMessages(args.text, args.languageName)
-  const briefRaw = await callJson([{ role: 'system', content: briefMsgs.system }, { role: 'user', content: briefMsgs.user }], 0.2, 900)
+  const briefRaw = await callJson([{ role: 'system', content: briefMsgs.system }, { role: 'user', content: briefMsgs.user }], 0.2, 900, budget)
   const parsed = parseAutoBrief(briefRaw, args.text, args.language)
   let attempts = 1
   if (parsed.needs.includes('business')) return { ok: false, stage: 'brief', why: ['business_name_missing'], attempts }
@@ -376,19 +448,25 @@ export async function extractAdsV2Brief(args: {
   const opts: typeof base1 & { ad?: AdsV2AdVoice; honesty: AdsV2HonestySource } = ad ? { ...base1, ad, honesty } : { ...base1, honesty }
   const copyMsgs = buildV2CopyMessages(brief, args.languageName, opts)
   const base = [{ role: 'system' as const, content: copyMsgs.system }, { role: 'user' as const, content: copyMsgs.user }]
-  let raw = await callJson(base, 0.6, 700)
+  let raw = await callJson(base, 0.6, 700, budget)
   attempts += 1
   let checked = checkV2Copy(raw, brief, opts)
   if (!checked.ok) {
     // 1 correção com o motivo da recusa (padrão do /api/ads/script).
     const fix = checked.why
-    raw = await callJson([
-      ...base,
-      { role: 'assistant', content: raw.slice(0, 4000) || '{}' },
-      { role: 'user', content: `This cannot be used. Fix all of this and answer again:\n- ${fix.join('\n- ')}\nKeep every other rule. Answer with the JSON only.` },
-    ], 0.4, 700)
-    attempts += 1
-    checked = checkV2Copy(raw, brief, opts)
+    // KINEO-ADS-CENA-2026-10-13 — a correção que estoura o prazo não derruba o plano: segue com a 1ª resposta para o
+    // afrouxamento e o conserto em código abaixo (que passam pela régua inteira de novo).
+    try {
+      raw = await callJson([
+        ...base,
+        { role: 'assistant', content: raw.slice(0, 4000) || '{}' },
+        { role: 'user', content: `This cannot be used. Fix all of this and answer again:\n- ${fix.join('\n- ')}\nKeep every other rule. Answer with the JSON only.` },
+      ], 0.4, 700, budget)
+      attempts += 1
+      checked = checkV2Copy(raw, brief, opts)
+    } catch (e) {
+      if (!isAdsV2ModelTimeout(e)) throw e
+    }
   }
   // Os nomes são acabamento, não honestidade: se a 2ª resposta só deixou de citar algum nome (e passa em TODO o resto —
   // número, fama, contato, tamanho), ela é aceita e o que faltou vai para o evento. Nunca um 502 por causa de um nome.

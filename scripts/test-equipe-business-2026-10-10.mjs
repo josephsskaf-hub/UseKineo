@@ -422,6 +422,9 @@ const ATOR_OK = [
   /moderateContent\(\{ surface: '[a-z_]+', stage: '[a-z]+', userId: user\.id/,
   /created_by: user\.id/,
   /name: 'ads_order_by_member', userId: user\.id/,
+  // KINEO-ADS-CENA-2026-10-13 — re-ancorado: a cena do rascunho passa pela MESMA moderação (moderateContent com o userId do
+  // ATOR, como acima) dentro de lib/ads/v2SceneServer.ts; o pedido segue gravado no uid do dono.
+  /adsV2SceneForDraft\(body, o\.tier, user\.id\)/,
 ]
 const fiacao = (srcOf) => {
   const p = []

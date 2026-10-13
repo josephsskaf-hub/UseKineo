@@ -22,10 +22,16 @@ const achar = (arr, pred, desc) => {
   return i
 }
 
+// KINEO-ADS-CENA-2026-10-13 — a cena do anúncio de produto entrou no núcleo do /plan (e no /orders e /research) SÓ como
+// linhas inteiras novas, cada uma com a marca: semCena tira EXATAMENTE essas linhas e o texto de antes volta byte a byte (o
+// /start não tem nenhuma). scripts/test-ads-cena-1310.mjs confere que as linhas marcadas são só as esperadas.
+export const MARCA_CENA = 'KINEO-ADS-CENA-2026-10-13'
+export const semCena = (s) => String(s).replace(/\r\n/g, '\n').split('\n').filter((l) => !l.includes(MARCA_CENA)).join('\n')
+
 /** O texto da rota de ANTES (LF), remontado de route.ts + núcleo. kind = 'plan' | 'start'. Lança se faltar uma costura. */
 export function desfazExtracao(kind, routeText, coreText) {
-  const R = linhas(routeText)
-  const C = linhas(coreText)
+  const R = linhas(semCena(routeText))
+  const C = linhas(semCena(coreText))
   const marca = achar(R, (l) => l.startsWith('// KINEO-SHOPIFY-2026-10-13 (etapa 2) — o corpo foi EXTRAÍDO'), 'marca da rota')
   if (R[marca - 1] !== '//') throw new Error('desfazExtracao: linha // antes da marca')
   const header = R.slice(0, marca - 1)

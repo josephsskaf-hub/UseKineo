@@ -333,7 +333,8 @@ async function rodaPlano(order, body, { routeSrc, briefSrc, extractSpy = false }
   }
   // KINEO-ESTILOS-PRODUTO-2026-10-09 — re-ancorado: a rota /plan importa o interruptor ADS_V2_STYLES_PUBLIC de lib/ads/v2Styles.ts (lib PURA).
   // KINEO-ATOR-ANUNCIO-2026-10-09 — re-ancorado: a rota /plan importa o interruptor e o plano do ator de lib/ads/v2Presenter.ts (lib PURA).
-  const route = makeLoader(stubs, { real: ['lib/textLanguage.ts', 'lib/ads/v2Contract.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/v2Research.ts', 'lib/ads/v2Styles.ts', 'lib/ads/v2Presenter.ts', PLAN_CORE], over: routeSrc ? { [PLAN_CORE]: routeSrc } : {} })(F.planRoute) // KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o núcleo do /plan
+  // KINEO-ADS-CENA-2026-10-13 — re-ancorado: o núcleo do /plan importa a lib PURA da cena (lib/ads/v2Scene.ts) e as libs puras que ela lê.
+  const route = makeLoader(stubs, { real: ['lib/textLanguage.ts', 'lib/ads/v2Contract.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/v2Research.ts', 'lib/ads/v2Styles.ts', 'lib/ads/v2Presenter.ts', PLAN_CORE, 'lib/ads/v2Scene.ts', 'lib/ads/v2Honesty.ts', 'lib/ads/scriptPrompt.ts', 'lib/ads/v2Simple.ts'], over: routeSrc ? { [PLAN_CORE]: routeSrc } : {} })(F.planRoute) // KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o núcleo do /plan
   const res = await route.POST({ json: async () => body, nextUrl: { searchParams: new URLSearchParams() } })
   return { res, tables, log, openai: oa.log }
 }

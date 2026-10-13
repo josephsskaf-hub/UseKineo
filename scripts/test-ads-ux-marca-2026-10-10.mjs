@@ -23,6 +23,7 @@ import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { desfazExtracao, textoOriginalV2 } from './test-support/shopify-extracao-v2-1310.mjs' // KINEO-SHOPIFY-2026-10-13 (etapa 2)
+import { semCena } from './test-support/shopify-extracao-v2-1310.mjs' // KINEO-ADS-CENA-2026-10-13
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -32,7 +33,8 @@ const readCru = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/
 // em que rodam; a impressão digital da base usa o texto de ANTES remontado por test-support/shopify-extracao-v2-1310.mjs.
 const NUCLEO_V2 = { 'app/api/ads/v2/plan/route.ts': 'lib/ads/v2PlanCore.ts', 'app/api/ads/v2/start/route.ts': 'lib/ads/v2StartCore.ts' }
 const read = (rel) => (NUCLEO_V2[rel] ? `${readCru(rel)}\n${readCru(NUCLEO_V2[rel])}` : readCru(rel))
-const leBaseV2 = (rel) => (rel === 'app/api/ads/v2/plan/route.ts' ? textoOriginalV2('plan', ROOT) : rel === 'app/api/ads/v2/start/route.ts' ? textoOriginalV2('start', ROOT) : readCru(rel))
+// KINEO-ADS-CENA-2026-10-13 — re-ancorado: a cena entrou no /orders e no /research só por linhas inteiras marcadas; semCena as tira.
+const leBaseV2 = (rel) => (rel === 'app/api/ads/v2/plan/route.ts' ? textoOriginalV2('plan', ROOT) : rel === 'app/api/ads/v2/start/route.ts' ? textoOriginalV2('start', ROOT) : semCena(readCru(rel)))
 let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }

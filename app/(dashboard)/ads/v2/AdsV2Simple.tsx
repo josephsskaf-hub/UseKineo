@@ -63,7 +63,6 @@ import {
   simpleErrorMessage,
   simpleLabel,
   simpleUploadErrorMessage,
-  simpleTitle,
   videoFrameTimes,
   type AdsV2SimpleCopy,
 } from '@/lib/ads/v2Simple'
@@ -112,6 +111,8 @@ import {
   type AdsV2FixCopy,
 } from '@/lib/ads/v2SimpleUx'
 import { CropEditor, DropZone, LiveStage, MobilePreviewBar, SIMPLE_UX_CSS, SimpleStepper, TierIncludes, goToSection, type LivePreviewData } from './AdsV2SimpleUx'
+// KINEO-ADS-CENA-2026-10-13 — o campo da cena, os 4 climas prontos, produto x lugar e a frase que pede cena (16 línguas).
+import { ADS_V2_SCENE_MAX_CHARS, ADS_V2_SCENE_PRESETS, adsV2AdKind, adsV2ApplyScenePreset, adsV2ProductTitle, adsV2SceneAllowed, adsV2SceneCopy, adsV2SceneErrorText, adsV2SceneIssues, adsV2SceneRow, adsV2SplitSceneRequest, sanitizeAdsV2Scene, type AdsV2AdKind, type AdsV2SceneCopy } from '@/lib/ads/v2Scene'
 
 // ─── tipos ────────────────────────────────────────────────────────────────────────────────────
 
@@ -167,6 +168,9 @@ interface PlanResponse {
   edit_limits?: { narration_words: number; overlay_chars: number }
   total_seconds: number
   shots: PlanShot[]
+  /** KINEO-ADS-CENA-2026-10-13 — a cena que entrou nas cenas criadas (null = sem cena) e se o anúncio é de produto ou lugar. */
+  scene?: string | null
+  ad_kind?: 'product' | 'place'
 }
 interface Plan extends PlanResponse {
   sig: string
@@ -367,6 +371,14 @@ const SIMPLE_CSS = `
 .adv2 .adv2s-asvideo b{color:var(--ads-action);font-weight:700}
 .adv2 .adv2s-out{margin:16px 0 8px;font-size:13px;font-weight:650;color:var(--ads-secondary)}
 .adv2 .adv2s-lang{display:inline-flex;align-items:center;gap:8px;margin:10px 0 0;font-size:13.5px;font-weight:650;color:var(--ads-text)}
+.adv2 .adv2s-kind{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 10px;font-size:13px;color:var(--ads-muted)}
+.adv2 .adv2s-kind button{min-height:32px;padding:4px 12px;border-radius:999px;border:1px solid var(--ads-line);background:var(--ads-card);color:var(--ads-text);font:inherit;font-weight:650;cursor:pointer}
+.adv2 .adv2s-kind button[aria-pressed=true]{background:var(--ads-action);border-color:var(--ads-action);color:#fff}
+.adv2 .adv2s-scene input{width:100%}
+.adv2 .adv2s-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 0;font-size:13px;color:var(--ads-muted)}
+.adv2 .adv2s-chips button{min-height:32px;padding:4px 10px;border-radius:999px;border:1px solid var(--ads-line);background:var(--ads-card);color:var(--ads-text);font:inherit;cursor:pointer}
+.adv2 .adv2s-chips button:hover{border-color:var(--ads-accent)}
+.adv2 .adv2s-movescene{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .adv2 .adv2s-lang select{min-height:36px;padding:4px 8px;border-radius:9px;border:1px solid var(--ads-line);background:var(--ads-card);color:var(--ads-text);font:inherit}
 .adv2 .adv2s-more{margin-top:14px;border:1px solid var(--ads-line);border-radius:14px;padding:4px 14px 14px;background:var(--ads-bg)}
 .adv2 .adv2s-more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--ads-text)}
@@ -504,6 +516,9 @@ export function AdsV2SimpleSession({
   // tela pede para voltar, em vez de acusar o navegador.
   const [tabHidden, setTabHidden] = useState(false)
   const [text, setText] = useState(() => (resume ? typedMemory.text : ''))
+  // KINEO-ADS-CENA-2026-10-13 — "Where does your product appear?" (opcional) e a escolha produto/lugar (null = detectada).
+  const [scene, setScene] = useState('')
+  const [kindChoice, setKindChoice] = useState<AdsV2AdKind | null>(null)
   // KINEO-ADS-1FOTO-LINK-2026-10-10 — o link do produto: o que está no campo, o que a rota LEU (vai ao pedido como `link`,
   // fonte do roteiro) e o aviso da leitura. Link sem foto não planeja: a regra de "pelo menos 1 foto" fica em `missing`.
   const [link, setLink] = useState(() => (resume ? typedMemory.link : ''))
@@ -629,7 +644,17 @@ export function AdsV2SimpleSession({
   const firstAsProduct = style !== 'none' && photoKind !== 'text' || presenterOn
   const detected = detectNarrationLanguage(sentence).language
   const spoken: NarrationLanguage = voiceLang ?? narrationLanguage(detected) ?? narrationLanguage(lang) ?? 'en'
-  const cardTitleFinal = cardTitle.trim() || simpleTitle(sentence)
+  // KINEO-ADS-CENA-2026-10-13 — produto x lugar (a pergunta, o exemplo e a pesquisa mudam) e a CENA: o campo, ou a parte da
+  // frase que pede cena ("…num hotel com uma chuva"), só em Comercial/Premium. A frase que pede cena nunca vira o título.
+  const sc: AdsV2SceneCopy = adsV2SceneCopy(lang)
+  const adKind: AdsV2AdKind = kindChoice ?? adsV2AdKind(sentence)
+  const textAsk = adKind === 'product' ? sc.product : sc.place
+  const sceneSplit = adKind === 'product' ? adsV2SplitSceneRequest(sentence) : { product: '', scene: null }
+  const sceneTyped = sanitizeAdsV2Scene(scene)
+  const sceneTierOk = tier === null || adsV2SceneAllowed(tier)
+  const sceneFinal = adKind === 'product' && tier !== null && adsV2SceneAllowed(tier) ? sceneTyped || sceneSplit.scene || '' : ''
+  const sceneProblem = adKind === 'product' && sceneTierOk ? adsV2SceneIssues(sceneTyped || sceneSplit.scene || '')[0] ?? null : null
+  const cardTitleFinal = cardTitle.trim() || adsV2ProductTitle(sentence, adKind)
   const cost = tier ? adsV2Credits(tier, ADS_V2_SCREEN_SECONDS) : null
   const inAd = items.slice(0, ADS_V2_SIMPLE_MAX_IN_AD)
   const priceT = price.replace(/\s+/g, ' ').trim()
@@ -645,7 +670,7 @@ export function AdsV2SimpleSession({
   const firstPhotoUrl = items.slice(0, ADS_V2_SIMPLE_MAX_IN_AD).find((p) => !p.video)?.srcUrl ?? null
 
   /** Chave do rascunho: mudou texto, preço, contato, frases, voz, língua ou nível = rascunho novo (a pesquisa é copiada). */
-  const draftKey = JSON.stringify({ text: sentence, price: priceT, contact: contactT, overlays: overlaysOn, voice: narrationOn, lang: spoken, tier, link: linkRead })
+  const draftKey = JSON.stringify({ text: sentence, scene: sceneFinal, kind: adKind, price: priceT, contact: contactT, overlays: overlaysOn, voice: narrationOn, lang: spoken, tier, link: linkRead })
   const baseSig = JSON.stringify({ draftKey, sector, presenter: presenterOn, items: inAd.map((p) => [p.key, focalSig(p)]), style })
   // A marca de um fato é presa ao CONTEÚDO (fonte + texto), nunca ao id f1..f6: uma pesquisa nova tem outro f1 e não herda
   // a marca do anterior; a mesma pesquisa copiada para um rascunho novo (troca de nível) mantém a marca.
@@ -676,6 +701,7 @@ export function AdsV2SimpleSession({
   // O vídeo ocupa vaga de foto, mas o plano precisa de pelo menos 1 foto (referência das cenas criadas).
   if (inAd.length > 0 && inAd.every((p) => p.video)) missing.push(copy.plan.needPhoto)
   if (!sentence) missing.push(copy.plan.needText)
+  if (sceneProblem) missing.push(adsV2SceneErrorText(sceneProblem, lang) ?? sc.errors.bad_scene) // KINEO-ADS-CENA-2026-10-13 — cena com alegação/depoimento não planeja
   if (sentence.length > ADS_V2_SCREEN_SENTENCE_MAX) missing.push(copy.plan.textTooLong)
   if (!tier) missing.push(copy.plan.needTier)
   if (logo?.busy) missing.push(copy.plan.waitLogo)
@@ -1364,11 +1390,15 @@ export function AdsV2SimpleSession({
         research_from: draft?.id ?? null,
         // KINEO-ADS-1FOTO-LINK-2026-10-10 — o link que a rota LEU: o /plan junta o que a página diz à frase da pessoa.
         link: linkRead,
+        // KINEO-ADS-CENA-2026-10-13 — a cena (só Comercial/Premium; o servidor limpa, confere e modera de novo) e produto/lugar.
+        scene: sceneFinal || null,
+        kind: adKind,
       },
     })
     if (!aliveRef.current) return null
     if (!r.ok) {
       if (r.code === 'not_ready') setNotReady(true)
+      if (adsV2SceneErrorText(r.code, lang)) { setPlanError(adsV2SceneErrorText(r.code, lang)); return null } // KINEO-ADS-CENA-2026-10-13
       setPlanError(failText(r)) // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
       return null
     }
@@ -1379,9 +1409,9 @@ export function AdsV2SimpleSession({
   /** Pesquisa (grátis para o cliente): uma por rascunho; o servidor devolve a gravada/copiada sem pesquisar de novo. */
   async function ensureResearch(orderId: string): Promise<Fact[]> {
     if (research && research.orderId === orderId) return research.facts
-    setBusyNote(copy.plan.noteResearch)
+    setBusyNote(adKind === 'product' ? sc.research.noteProduct : copy.plan.noteResearch) // KINEO-ADS-CENA-2026-10-13 — produto lê só a página dele
     for (let attempt = 0; attempt < 6; attempt++) {
-      const r = await api<{ status: string; facts?: Fact[] }>('/api/ads/v2/research', { method: 'POST', body: { order_id: orderId } })
+      const r = await api<{ status: string; facts?: Fact[]; why?: string }>('/api/ads/v2/research', { method: 'POST', body: { order_id: orderId } })
       if (!aliveRef.current) return []
       if (r.ok && r.data.status === 'running') {
         await new Promise((res) => window.setTimeout(res, 4000))
@@ -1391,6 +1421,8 @@ export function AdsV2SimpleSession({
       const facts = r.ok && r.data.status === 'ok' && Array.isArray(r.data.facts) ? r.data.facts : []
       setResearch({ orderId, status: facts.length ? 'ok' : 'failed', facts })
       setFactsNote(facts.length ? null : r.ok ? copy.plan.factsNone : errorText(lang, r))
+      // KINEO-ADS-CENA-2026-10-13 — produto sem link: nada da web (nunca outras marcas); a tela pede o link do produto.
+      if (!facts.length && r.ok && (r.data.why === 'product_no_link' || (adKind === 'product' && !linkRead))) setFactsNote(sc.research.productNoLink)
       return facts
     }
     setResearch({ orderId, status: 'failed', facts: [] })
@@ -1646,6 +1678,12 @@ export function AdsV2SimpleSession({
   const liveData: LivePreviewData = {
     photos: inAd.map((p) => ({ key: p.key, srcUrl: p.srcUrl, fx: p.fx, fy: p.fy })),
     productName: sentence ? cardTitleFinal : cardTitle.trim(),
+    // KINEO-ADS-CENA-2026-10-13 — PRODUTO e CENA em linhas separadas: a frase que pede cena aparece como cena, nunca como nome.
+    scene: adKind !== 'product' ? null
+      : !sceneTierOk ? { label: sc.preview.scene, text: sc.scene.standard, muted: true }
+      : sceneTyped ? { label: sc.preview.scene, text: sceneTyped, muted: false }
+      : sceneSplit.scene ? { label: sc.preview.scene, text: `${sceneSplit.scene} ${sc.scene.fromText}`, muted: false }
+      : { label: sc.preview.scene, text: sc.preview.sceneNone, muted: true },
     style: styleSpec && style !== 'none' ? { label: styleCopy.styles[style].label, oneLine: styleCopy.styles[style].oneLine, preview: styleSpec.preview, poster: styleSpec.poster } : null,
     presenter: presenterOn ? { poster: ADS_V2_PRESENTER_POSTER } : null,
     cardUrl: cardPreviewUrl,
@@ -1778,7 +1816,7 @@ export function AdsV2SimpleSession({
 
             {/* 2. O texto */}
             <section id="adv2s-sec2" className="adv2-card" aria-labelledby="adv2s-s2">
-              <h2 id="adv2s-s2"><span className="adv2-num" aria-hidden="true">2</span>{copy.text.title}</h2>
+              <h2 id="adv2s-s2"><span className="adv2-num" aria-hidden="true">2</span>{textAsk.title}</h2>
               {/* KINEO-ADS-UX-MARCA-2026-10-10 — o kit da marca entrou: mostra o que entrou (cor, logo, nome, preço) e "Editar". */}
               {kitApplied ? (
                 <p className="adv2s-kit" role="status" data-kineo="ads-brand-kit-chip">
@@ -1788,11 +1826,44 @@ export function AdsV2SimpleSession({
                   <button type="button" disabled={locked} onClick={() => { setMoreOpen(true); window.setTimeout(() => goToSection('adv2s-sec2'), 30) }}>{ux.kit.edit}</button>
                 </p>
               ) : null}
+              {/* KINEO-ADS-CENA-2026-10-13 — produto ou lugar: detectado pela frase; a pessoa troca com um toque. */}
+              <div className="adv2s-kind" role="group" aria-label={sc.kindLabel} data-kineo="ads-kind">
+                <span>{sc.kindLabel}</span>
+                <button type="button" aria-pressed={adKind === 'product'} disabled={locked} onClick={() => setKindChoice('product')}>{sc.kindProduct}</button>
+                <button type="button" aria-pressed={adKind === 'place'} disabled={locked} onClick={() => setKindChoice('place')}>{sc.kindPlace}</button>
+              </div>
               <label className="adsw-f">
-                <span>{copy.text.question}</span>
-                <small>{copy.text.hint}</small>
-                <textarea ref={textAreaRef} className="adsw-ta" rows={3} maxLength={ADS_V2_SCREEN_SENTENCE_MAX} value={text} disabled={locked} onChange={(e) => setText(e.target.value)} placeholder={copy.text.placeholder} />
+                <span>{textAsk.question}</span>
+                <small>{textAsk.hint}</small>
+                <textarea ref={textAreaRef} className="adsw-ta" rows={3} maxLength={ADS_V2_SCREEN_SENTENCE_MAX} value={text} disabled={locked} onChange={(e) => setText(e.target.value)} placeholder={textAsk.placeholder} />
               </label>
+              {/* KINEO-ADS-CENA-2026-10-13 — a frase pede cena ("…num hotel com uma chuva"): dizemos o que lemos e oferecemos mover. */}
+              {adKind === 'product' && sceneSplit.scene && !sceneTyped ? (
+                <p className="adsw-hint adv2s-movescene" role="status" data-kineo="ads-scene-from-text">
+                  {fill(sc.scene.moveNote, { scene: sceneSplit.scene })}{' '}
+                  <button type="button" className="adsw-btn ghost small" disabled={locked} onClick={() => { setScene(sceneSplit.scene ?? ''); if (sceneSplit.product) setText(sceneSplit.product) }}>{sc.scene.move}</button>
+                </p>
+              ) : null}
+              {/* KINEO-ADS-CENA-2026-10-13 — "Where does your product appear?" (opcional) + 4 climas prontos. Só cria cena em
+                  Comercial/Premium: no Normal fica desligado com o porquê. */}
+              {adKind === 'product' ? (
+                <div className="adsw-f adv2s-scene" data-kineo="ads-scene">
+                  <label htmlFor="adv2s-scene">{sc.scene.label}</label>
+                  <small>{sceneTierOk ? sc.scene.hint : sc.scene.standard}</small>
+                  <input id="adv2s-scene" type="text" value={scene} maxLength={ADS_V2_SCENE_MAX_CHARS} disabled={locked || !sceneTierOk} onChange={(e) => setScene(e.target.value)} placeholder={sc.scene.placeholder} />
+                  {sceneTierOk ? (
+                    <p className="adv2s-chips">
+                      <span>{sc.scene.tryLabel}</span>
+                      {ADS_V2_SCENE_PRESETS.map((p) => (
+                        <button key={p.id} type="button" data-preset={p.id} disabled={locked} onClick={() => setScene((cur) => adsV2ApplyScenePreset(cur, sc.presets[p.id].text))}>
+                          <span aria-hidden="true">{p.emoji}</span> {sc.presets[p.id].label}
+                        </button>
+                      ))}
+                    </p>
+                  ) : null}
+                  {sceneProblem ? <p className="adsw-warn" role="alert">{adsV2SceneErrorText(sceneProblem, lang)}</p> : null}
+                </div>
+              ) : null}
               <label className="adv2s-lang">
                 {copy.text.voiceIn}
                 <select value={spoken} disabled={locked} onChange={(e) => setVoiceLang(narrationLanguage(e.target.value))}>
@@ -1825,7 +1896,7 @@ export function AdsV2SimpleSession({
                     <label className="adsw-f">
                       <span>{copy.text.cardTitle}</span>
                       <small>{copy.text.cardTitleHint}</small>
-                      <input type="text" value={cardTitle} maxLength={60} disabled={locked} onChange={(e) => setCardTitle(e.target.value)} placeholder={simpleTitle(sentence)} />
+                      <input type="text" value={cardTitle} maxLength={60} disabled={locked} onChange={(e) => setCardTitle(e.target.value)} placeholder={adsV2ProductTitle(sentence, adKind)} />
                     </label>
                     <div className="adsw-f">
                       <span>{copy.text.logo}</span>
@@ -1911,7 +1982,7 @@ export function AdsV2SimpleSession({
               <h2 id="adv2s-s4" ref={planHeadingRef} tabIndex={-1}><span className="adv2-num" aria-hidden="true">4</span>{copy.plan.title}</h2>
               {factsNow.length ? (
                 <>
-                  <h3>{copy.plan.factsTitle}</h3>
+                  <h3>{adKind === 'product' ? sc.research.factsTitle : copy.plan.factsTitle}</h3>
                   <p className="adsw-hint" style={{ margin: '0 0 10px' }}>{copy.plan.factsHint}</p>
                   <ul className="adv2s-facts">
                     {factsNow.map((f) => (
@@ -1969,6 +2040,7 @@ export function AdsV2SimpleSession({
                   itemByFootage={itemByFootage}
                   styleCopy={styleCopy}
                   presenterCopy={presenterCopy}
+                  scenes={{ product: ((plan as Plan).ad_kind ?? adKind) === 'product', scene: (plan as Plan).scene ?? null, sc }}
                   onMake={() => void makeAd()}
                 />
                 </>
@@ -2227,7 +2299,10 @@ function SimplePlanPreview({
   presenterCopy,
   onMake,
   editor = null,
+  scenes = null,
 }: {
+  /** KINEO-ADS-CENA-2026-10-13 — anúncio de produto: sem "Your place" (vira "Final look"); com cena, as cenas criadas dizem a cena. */
+  scenes?: { product: boolean; scene: string | null; sc: AdsV2SceneCopy } | null
   plan: Plan
   copy: AdsV2SimpleCopy
   cost: number | null
@@ -2275,8 +2350,8 @@ function SimplePlanPreview({
                 )}
               </span>
               <span className="tx">
-                <b>{i + 1}. {simpleLabel(copy, ADS_V2_ROLE_LABELS[s.role] ?? s.role)} · {s.cut_seconds} s</b>
-                <span>{simpleLabel(copy, describeShot(s))}{styleName(s.effect) ? <> · ✨ {styleName(s.effect)}</> : null}</span>
+                <b>{i + 1}. {scenes?.product && s.role === 'place' ? scenes.sc.plan.finalLook : simpleLabel(copy, ADS_V2_ROLE_LABELS[s.role] ?? s.role)} · {s.cut_seconds} s</b>
+                <span>{scenes?.scene && s.source === 'generated_scene' ? adsV2SceneRow(scenes.sc, scenes.scene) : simpleLabel(copy, describeShot(s))}{styleName(s.effect) ? <> · ✨ {styleName(s.effect)}</> : null}</span>
               </span>
             </li>
           )
@@ -2286,6 +2361,7 @@ function SimplePlanPreview({
           <span className="tx"><b>{plan.shots.length + 1}. {copy.plan.lastFrame}</b><span>{copy.plan.lastFrameDesc}</span></span>
         </li>
       </ol>
+      {scenes?.scene ? <p className="adsw-hint" data-kineo="ads-plan-scene">🎬 <b>{scenes.sc.preview.scene}:</b> {scenes.scene}</p> : null}
       {plan.style_asked && !plan.style ? <p className="adsw-hint">{styleCopy.noProduct}</p> : null}
       {plan.presenter ? <p className="adsw-hint">🎙 <b>{presenterCopy.title}</b> · {presenterCopy.planLine}</p> : plan.presenter_asked ? <p className="adsw-hint">{presenterCopy.notApplied}</p> : null}
       <h3>{copy.plan.words}</h3>

@@ -17,6 +17,7 @@ import { ownedFootage, v2Fail, v2Json } from '@/lib/ads/v2Server'
 // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra grátis abre o POST e o PATCH para a conta free/trial que ainda não usou a dela;
 // o rascunho da amostra só nasce no nível e na duração da amostra (o /start confere de novo antes de qualquer custo).
 import { adsSampleLevelOk, adsSampleOpen } from '@/lib/ads/serverAccess'
+import { adsV2SameKind, adsV2SceneForDraft } from '@/lib/ads/v2SceneServer' // KINEO-ADS-CENA-2026-10-13
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -75,6 +76,7 @@ export async function POST(req: NextRequest) {
     if (!assets.ok) return v2Fail(assets.error, 400)
     const o = parsed.value
     const a = assets.value
+    const cena = await adsV2SceneForDraft(body, o.tier, user.id); if (!cena.ok) return cena.fail // KINEO-ADS-CENA-2026-10-13 — cena + produto/lugar: limpa, régua de honestidade e a MESMA moderação do texto
     // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra só existe em um nível e uma duração.
     if (gate !== 'ok' && sample && !adsSampleLevelOk(o.tier, o.seconds)) return v2Fail('sample_level_only', 403)
 
@@ -90,6 +92,7 @@ export async function POST(req: NextRequest) {
     // contato que a PESSOA escreveu. research_from: rascunho anterior DESTA conta; se a frase for idêntica, a pesquisa
     // gravada (ok, ou "nada achado") é copiada — trocar voz, frases, preço, contato ou nível não paga outra pesquisa.
     const brief: Record<string, unknown> = { sentence: o.sentence, link: o.link }
+    Object.assign(brief, cena.fields) // KINEO-ADS-CENA-2026-10-13 — brief.scene (só Comercial/Premium) e brief.kind; sem eles, o brief de antes
     if (o.mode === 'simple') {
       brief.mode = 'simple'
       brief.overlays = o.overlays !== false
@@ -103,6 +106,7 @@ export async function POST(req: NextRequest) {
         // outra busca. Falha de fornecedor (timeout, openai_5xx) não é copiada: aí vale tentar de novo.
         const reusable = !!pr && (pr.status === 'ok' || (pr.status === 'failed' && (pr.why === 'nothing_found' || pr.why === 'all_dropped')))
         if (pb && pb.sentence === o.sentence && reusable) brief.research = { ...pr, copied_from: o.research_from, selected: undefined }
+        if (brief.research && !adsV2SameKind(pb, brief)) delete brief.research // KINEO-ADS-CENA-2026-10-13 — trocou produto↔lugar: a pesquisa do outro tipo não vale
       }
     }
 
