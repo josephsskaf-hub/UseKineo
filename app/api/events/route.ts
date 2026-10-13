@@ -27,6 +27,10 @@ const SERVER_ONLY_EVENTS = new Set([
   'payment_webhook_failed',
   'mrr_ready_film_claimed',
   'mrr_ready_film_sent',
+  // KINEO-EMAILS-VENDA-2026-10-13 — reserva e carimbo da carta do filme pronto (admin/send-winback-film-60s): o navegador
+  // não pode cunhar nenhum dos dois (um carimbo forjado tiraria a pessoa da coorte para sempre).
+  'winback_film_60s_claimed',
+  'winback_film_60s_emailed',
   'video_published_v1',
   'video_unpublished_v1',
   'compose_submission_claim',
