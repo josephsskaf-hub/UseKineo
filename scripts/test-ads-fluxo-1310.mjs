@@ -31,6 +31,9 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+// reancorado KINEO-LEVA8-1310 — a pista dos roteiros (655a9cb5) entrou junto: no núcleo do /plan ela só pôs linhas inteiras marcadas
+// KINEO-ADS-ROTEIROS-2026-10-13, que semRoteiros tira em memória antes da impressão digital (a de antes segue valendo, byte a byte).
+import { semRoteiros } from './test-support/desfaz-roteiros-1310.mjs'
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -255,7 +258,9 @@ ok(palcoLigado(read(F.simple)), 'D3 o palco usa o MESMO `style` que vai ao /plan
 const BASE = {
   'lib/ads/v2StartCore.ts': '4393d6ccf8d02426eecded99df5b3be56c0ee9072d5a74221bef566b474dbbde',
   'lib/ads/v2PlanCore.ts': '3fd1819ef2109e36673ea80a890e20914f2b74114c6bff52ad54e9393e7e8eb2',
-  'lib/ads/v2Brief.ts': 'd08ed7db8be2a240351d7ca3e33da6a53408c51c19ad5df5dd862fb51546f15e',
+  // reancorado KINEO-LEVA8-1310 — v2Brief com os 2 roteiros a mais (versões bold/story) da pista KINEO-ADS-ROTEIROS-2026-10-13: o texto
+  // dela não tem linhas marcadas para tirar, então a impressão é a do arquivo EXATO do commit 655a9cb5 (conferida, segue byte a byte).
+  'lib/ads/v2Brief.ts': '99678c0ef6e681544a984c307ff1524318ac6bb71016133ad8e5a7e38ce5d193',
   'app/api/ads/v2/start/route.ts': 'a8b490a3ab2b297f16c612057763bb4124d4a0acc669816a363449a2ec615f29',
   'app/api/ads/v2/plan/route.ts': 'f9f90f41060eccd96cdfbb07a115b35dd56478ed7f2b70d702fac4c7261fcbfb',
   'app/api/ads/v2/link-import/route.ts': '58e5c3ed1141c2b65fe773fbede9d300973a0eb6ff38fac98290b030e4177810',
@@ -269,7 +274,9 @@ const STUDIO_BASE = {
   'components/studioKit.tsx': 'c2e1679411a5816f5e80f8a592c17499843e931b3c49b3fbf770637bb8040727',
   'components/ProductStage.tsx': '87f17f599dbb14ff5e7921007304fd0728e26e6b611112def8a55246ac441bd3',
 }
-const iguais = (tab, over = {}) => Object.entries(tab).every(([f, h]) => sha(over[f] !== undefined ? over[f] : read(f)) === h)
+// reancorado KINEO-LEVA8-1310 — só o núcleo do /plan passa por semRoteiros (as linhas marcadas dos roteiros saem); o resto, como sempre.
+const DESFAZ = { 'lib/ads/v2PlanCore.ts': semRoteiros }
+const iguais = (tab, over = {}) => Object.entries(tab).every(([f, h]) => sha((DESFAZ[f] || ((x) => x))(over[f] !== undefined ? over[f] : read(f))) === h)
 ok(iguais(STUDIO_BASE), 'D4 o Studio de filmes, o kit (STUDIO_KIT_CSS) e o ProductStage byte a byte iguais à base — nada foi extraído de lá')
 
 // ═══ E. cartão de revisão ═══════════════════════════════════════════════════════════════════════════════════════════
