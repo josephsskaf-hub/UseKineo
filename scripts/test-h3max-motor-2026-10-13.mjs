@@ -144,9 +144,12 @@ function launchModule(launchSrc) {
   return load(launchSrc, { '@/lib/internalAccounts': { isInternalEmail: (e) => typeof e === 'string' && e.toLowerCase() === CASA } })
 }
 function rulesFlag(launchSrc, routeSrc, meSrc) {
-  const on = launchModule(launchSrc)
-  const offSrc = launchSrc.split('export const H3MAX_PUBLIC = true // KINEO-H3MAX-2026-10-13\n').join('export const H3MAX_PUBLIC = false // KINEO-H3MAX-2026-10-13\n')
-  if (offSrc === launchSrc) return false
+  // KINEO-LEVA-1310 — a régua vale nos dois estados do interruptor (publicado desligado para o canário da casa).
+  const flagRe = /export const H3MAX_PUBLIC = (true|false) \/\/ KINEO-H3MAX-2026-10-13[^\r\n]*/
+  if (!flagRe.test(launchSrc)) return false
+  const onSrc = launchSrc.replace(flagRe, 'export const H3MAX_PUBLIC = true // KINEO-H3MAX-2026-10-13')
+  const offSrc = launchSrc.replace(flagRe, 'export const H3MAX_PUBLIC = false // KINEO-H3MAX-2026-10-13')
+  const on = launchModule(onSrc)
   const off = launchModule(offSrc)
   const gate = "    if (wantsH3Max && !h3maxVisible(user.email)) { // KINEO-H3MAX-2026-10-13\n"
   const iGate = routeSrc.indexOf(gate)
