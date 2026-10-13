@@ -15,7 +15,7 @@ import { emailFooterHtml, emailFooterText } from '@/lib/emailSuppression'
 import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost'
 
 export const STAMP = 'subscriber_idle_sent'
-export const IDLE_DAYS = 10
+export const IDLE_DAYS = 3 // KINEO-ASSINANTE-DIA3-2026-10-13 — era 10: o pagante some no dia 1 e cancela antes do dia 10
 export const RESEND_DAYS = 30
 export const HOT_HOURS = 24
 export const MAX_BATCH = 20

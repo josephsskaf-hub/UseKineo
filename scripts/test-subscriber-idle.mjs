@@ -20,15 +20,19 @@ ok(route.includes('isInternalEmail(email)') && route.includes('p.email_opted_out
 ok(route.includes(".eq('name', STAMP)") && route.includes('RESEND_DAYS'), 'stamp lido com janela de re-envio')
 ok(route.includes('HOT_HOURS') && route.includes('quente.has'), 'pula quem esteve ativo nas ultimas horas')
 ok(route.includes('t.daysIdle == null || t.daysIdle >= IDLE_DAYS'), 'so quem esta ha >= IDLE_DAYS sem video (ou nunca fez)')
-ok(route.includes('.range(from, from + 999)') && route.includes('data.length < 1000'), 'paginacao anti-1000')
+ok(route.includes("import { readAll } from '@/lib/supabase/readAll'") && route.split('readAll(').length - 1 >= 2, 'paginacao anti-1000 (readAll compartilhado; KINEO-ASSINANTE-DIA3-2026-10-13 reancorado)')
 ok(route.includes("name: STAMP") && route.includes('days_idle: a.daysIdle'), 'evento subscriber_idle_sent com days_idle/credits/plan')
 ok(route.indexOf('if (!res.ok)') < route.indexOf('name: STAMP') && /if \(!res\.ok\) \{.*continue \}/.test(route), 'stamp so depois do Resend aceitar')
 ok(route.includes('Math.min(limitParam, MAX_BATCH)'), 'teto de lote')
 const exportsRoute = [...route.matchAll(/^export (?:const|async function|function) (\w+)/gm)].map((m) => m[1])
-ok(exportsRoute.every((e) => ['GET', 'maxDuration', 'dynamic'].includes(e)), `route.ts so exporta handler/config (${exportsRoute.join(',')})`)
+ok(exportsRoute.every((e) => ['GET', 'maxDuration', 'dynamic', 'fetchCache'].includes(e)), `route.ts so exporta handler/config (${exportsRoute.join(',')})`)
 
+// KINEO-ASSINANTE-DIA3-2026-10-13 — o envio passa a rodar sozinho 1x/dia pelo cron, com a porta FECHADA sem a env
+ok(route.includes('if (!cronSecret) return false') && route.includes('`Bearer ${cronSecret}`'), 'cron: CRON_SECRET obrigatório (sem env = porta fechada)')
+ok(route.includes('(!user || !ADMIN_EMAILS.has(adminEmail)) && !porCron'), 'admin logado OU cron — ninguém mais')
+{ const vj = JSON.parse(readFileSync(new URL('../vercel.json', import.meta.url), 'utf8')); const c = (vj.crons || []).find((x) => String(x.path).startsWith('/api/admin/send-subscriber-idle')); ok(Boolean(c) && /confirm=SEND/.test(c.path) && /limit=20/.test(c.path) && String(c.schedule).trim().split(/ +/).length === 5 && String(c.schedule).endsWith("* * *"), 'vercel.json: send-subscriber-idle 1x/dia, lote 20') }
 console.log('lib: constantes e copy')
-ok(/export const IDLE_DAYS = 10/.test(lib), 'IDLE_DAYS = 10')
+ok(/export const IDLE_DAYS = 3\b/.test(lib), 'IDLE_DAYS = 3 (KINEO-ASSINANTE-DIA3-2026-10-13: era 10)')
 ok(/export const RESEND_DAYS = 30/.test(lib), 'RESEND_DAYS = 30')
 ok(/export const MAX_BATCH = 20/.test(lib), 'MAX_BATCH = 20')
 ok(lib.includes("basic: 'Creator'") && lib.includes("pro: 'Studio'"), 'nomes de plano como o site mostra (basic=Creator, pro=Studio)')
