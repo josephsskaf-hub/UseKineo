@@ -159,6 +159,10 @@ const SERVER_ONLY_EVENTS = new Set([
   // KINEO-EQUIPE-BUSINESS-2026-10-10 — a equipe do Business (convite, entrada, saída) e o pedido feito por membro no workspace do dono: fatos do
   // servidor (/api/ads/team e as rotas /api/ads/v2/*). O navegador não cunha nenhum.
   'ads_order_by_member',
+  // KINEO-ADS-LOTE-1310 — o modo lote do Studio Ads (roteiros, fila, desfecho de cada linha): fatos do servidor.
+  'ads_batch_planned',
+  'ads_batch_started',
+  'ads_batch_row',
   'team_invite_created',
   'team_member_joined',
   'team_member_removed',

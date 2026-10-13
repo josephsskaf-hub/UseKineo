@@ -10,6 +10,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { footageAdminClient } from '@/lib/userFootage'
 import { isMissingAdsTable } from '@/lib/ads/serverAccess'
 import { advanceAdsV2Order } from '@/lib/ads/v2Advance'
+// KINEO-ADS-LOTE-1310 — com a aba fechada, a fila do modo lote anda aqui: depois de avançar os pedidos, a próxima linha de
+// cada lote começa pelo /start de sempre (adsV2StartFor). Nunca lança; sem fila, uma leitura só.
+import { drainAdsV2Batches } from '@/lib/ads/v2Batch'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -49,6 +52,7 @@ export async function GET(req: NextRequest) {
     const view = await advanceAdsV2Order(admin, o.id, { deadlineMs: Math.min(started + TOTAL_BUDGET_MS, Date.now() + PER_ORDER_BUDGET_MS) })
     results.push({ order_id: o.id, before: o.status, after: view?.status ?? null })
   }
-  console.log('[cron/ads-v2-advance]', JSON.stringify({ scanned: results.length, results, ms: Date.now() - started }))
-  return NextResponse.json({ ok: true, scanned: results.length, results })
+  const batches = await drainAdsV2Batches(admin, { deadlineMs: started + TOTAL_BUDGET_MS }) // KINEO-ADS-LOTE-1310
+  console.log('[cron/ads-v2-advance]', JSON.stringify({ scanned: results.length, results, batches, ms: Date.now() - started }))
+  return NextResponse.json({ ok: true, scanned: results.length, results, batches })
 }
