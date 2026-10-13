@@ -195,6 +195,7 @@ import {
 import { closingSceneVariation, deriveStoryCharacter, deriveExplicitCharacter, deriveStyleAnchor, textSafetySuffix, NO_TEXT_OBJECT_DIRECTION } from '@/lib/cinematic/sceneStyle'
 import { buildClassicVisualPrompt, classicVisualNegativePrompt, isStylizedLook, scrubInventedSetting, visualDescriptionDirection, type VisualPromptPolicy } from '@/lib/cinematic/visualPromptPolicy'
 import { ancoraDoLugar, ancorarLugarNoPrompt, comVocabularioDoLugar, lugarPrincipal, pedidoDeTourNarrado, promptTemOLugar } from '@/lib/cinematic/monumentoReal' // KINEO-MONUMENTO-2026-10-13
+import { cobrirFalaComImagem, SEEDANCE_COBRE_VARIACAO } from '@/lib/cinematic/seedanceCobreAFala' // KINEO-MONUMENTO-2026-10-13 (duração)
 import { classifyEngineFit } from '@/lib/engineFit'
 import { FalQueueSubmitError, submitFalQueueOnce } from '@/lib/falQueue'
 import {
@@ -6419,6 +6420,27 @@ async function manipularPost(req: NextRequest) {
       console.log(`[cinematic] SEEDANCE-15S-3X6: ${scenes.length} clipes de ${segundos} s = ${segundos * scenes.length}s de imagem ≈ US$ ${(segundos * scenes.length * SEEDANCE_720P_USD_PER_SECOND).toFixed(2)} (fala ≈ ${fala.toFixed(1)}s, ${palavrasDoFilme} palavras)`)
     }
 
+    // ═══ KINEO-MONUMENTO-2026-10-13 (duração) — Seedance 1.5 (35/60/90 s): a imagem cobre a fala INTEIRA (lib/cinematic/seedanceCobreAFala.ts) ═══ [KINEO-MONUMENTO-2026-10-13 (duração)]
+    // Dry-run de produção 13/10, "Drone tour of the Palace of Versailles" 35 s: 4 × 10 s = 40 s de imagem para 106 palavras ≈ 43,3 s [KINEO-MONUMENTO-2026-10-13 (duração)]
+    // de fala → FAIL ("o compose repetiria cena"). O número de clipes nasce da DURAÇÃO, antes do escritor; com o vocabulário do [KINEO-MONUMENTO-2026-10-13 (duração)]
+    // monumento preservado a fala passa da imagem. Regra do fundador: passar do alvo é bom, ficar abaixo é defeito, nunca amputar [KINEO-MONUMENTO-2026-10-13 (duração)]
+    // a fala nem repetir cena: a cena de mais palavras vira 2 planos (fronteira de frase), o 2º com outro enquadramento, até cobrir [KINEO-MONUMENTO-2026-10-13 (duração)]
+    // (teto 12). Nenhuma palavra muda. Antes do scrub, do supervisor fala×imagem, da âncora do lugar e das stills: tudo vale para os [KINEO-MONUMENTO-2026-10-13 (duração)]
+    // planos novos. Fala que cabe (o controle de mistério): nada roda, cenas byte a byte. Kling 2.5/Veo/Sora/15 s têm régua própria. [KINEO-MONUMENTO-2026-10-13 (duração)]
+    let seedanceCoberturaRelato: { palavras: number; fala_s: number; imagem_antes_s: number; imagem_depois_s: number; divididas: number[]; ainda_curta: boolean } | null = null // KINEO-MONUMENTO-2026-10-13 (duração)
+    if (!hollywoodPath && !wantsKling && !wantsVeo && !wantsSora && !seedanceShortFilm && scenes.length > 0 && scenes.every((s) => typeof s.clipSeconds !== 'number')) { // KINEO-MONUMENTO-2026-10-13 (duração)
+      const cobertura = cobrirFalaComImagem(scenes, { wordsPerSecond: narrationRate.wordsPerSecond, fazerCena: (base, fala, segundaParte) => ({ ...base, voiceover: fala, caption: shortCaptionFromVoiceover(fala), ...(segundaParte && !(base.aiPrompt ?? '').includes(SEEDANCE_COBRE_VARIACAO) ? { aiPrompt: (base.aiPrompt || base.description || base.stockSearchQuery || '') + SEEDANCE_COBRE_VARIACAO } : {}) }) }) // KINEO-MONUMENTO-2026-10-13 (duração)
+      if (cobertura.cenas !== scenes) { // KINEO-MONUMENTO-2026-10-13 (duração)
+        const remapeadas = new Set<number>() // KINEO-MONUMENTO-2026-10-13 (duração) — o supervisor fala×imagem lê os índices das cenas sem descrição do modelo
+        cobertura.origem.forEach((o, k) => { if (cenasSemDescricaoDoModelo.has(o)) remapeadas.add(k) }) // KINEO-MONUMENTO-2026-10-13 (duração)
+        cenasSemDescricaoDoModelo.clear() // KINEO-MONUMENTO-2026-10-13 (duração)
+        for (const k of remapeadas) cenasSemDescricaoDoModelo.add(k) // KINEO-MONUMENTO-2026-10-13 (duração)
+        scenes = cobertura.cenas // KINEO-MONUMENTO-2026-10-13 (duração)
+        clipCount = scenes.length // KINEO-MONUMENTO-2026-10-13 (duração)
+        seedanceCoberturaRelato = { palavras: cobertura.palavras, fala_s: cobertura.fala_s, imagem_antes_s: cobertura.imagem_antes_s, imagem_depois_s: cobertura.imagem_depois_s, divididas: cobertura.divididas, ainda_curta: cobertura.ainda_curta } // KINEO-MONUMENTO-2026-10-13 (duração)
+        console.log(`[cinematic] KINEO-MONUMENTO-DURACAO: ${cobertura.palavras} palavras ≈ ${cobertura.fala_s}s de fala; imagem ${cobertura.imagem_antes_s}s → ${cobertura.imagem_depois_s}s (${scenes.length} clipes; divididas: ${cobertura.divididas.join(',')})${cobertura.ainda_curta ? ' — AINDA CURTA (teto/cenas curtas)' : ''}`) // KINEO-MONUMENTO-2026-10-13 (duração)
+      } // KINEO-MONUMENTO-2026-10-13 (duração)
+    } // KINEO-MONUMENTO-2026-10-13 (duração)
     // KINEO-VIGIA-CENARIO-2026-09-11 — antes de qualquer still ou clipe pago,
     // as TRÊS fontes de visual (descritor, GPT das cenas, plano de b-roll)
     // passam pelo filtro determinístico: nome próprio, ano/década e adjetivo
@@ -6598,6 +6620,7 @@ async function manipularPost(req: NextRequest) {
         contrato_cena: contratoRelatoClassico,
         fala_x_imagem: alinhamentoFalaImagem, // KINEO-FALA-X-IMAGEM — o que o supervisor reescreveu, a $0
         ...(monumentoRelato ? { monumento: monumentoRelato } : {}), // KINEO-MONUMENTO-2026-10-13
+        ...(seedanceCoberturaRelato ? { cobertura_da_fala: seedanceCoberturaRelato } : {}), // KINEO-MONUMENTO-2026-10-13 (duração)
         // KINEO-ESTRELA-DO-FILME-2026-09-29 — o ensaio de $0 mostra, cena a cena, qual still iria ao edit com o rosto (nada é gerado)
         ...(estrelaAtiva ? { estrela: { ficha: estrelaFicha, sobretaxa_cr: estrelaSobretaxaDe(duration), cenas: planoDaEstrela(scenes.map((s, i) => ({ prompt: classicScenePrompts[i], visual: s.aiPrompt || s.stockSearchQuery || s.description })), estrelaFicha ?? fichaDaEstrela(prompt, null), true, prompt).map((p) => ({ cena: p.indice + 1, estrela: p.protagonista })) } } : {}), // KINEO-ESTRELA-DO-FILME-2026-09-29
         ...relatorioDoEnsaio,

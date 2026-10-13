@@ -8,6 +8,9 @@
 // `semMonumento(texto)` tira, em memória, as linhas marcadas (lado da rota nova) e as cinco linhas exatas da base
 // que elas substituíram (lado da base). Aplicado aos DOIS lados, o resto continua comparado byte a byte. Nada além
 // dessas linhas é descontado: qualquer outra mudança na rota segue vermelha.
+// 13/10 (parte 2, "KINEO-MONUMENTO-2026-10-13 (duração)"): o bloco do Seedance 35/60/90 que cobre a fala com imagem
+// (lib/cinematic/seedanceCobreAFala.ts; prova: scripts/test-monumento-duracao-1310.mjs) entrou SÓ com linhas novas que levam a
+// mesma marca — nenhuma linha da base trocada; a lista abaixo continua com as cinco.
 export const MARCA_MONUMENTO = 'KINEO-MONUMENTO-2026-10-13'
 
 export const TROCADAS_MONUMENTO = [
