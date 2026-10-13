@@ -167,6 +167,10 @@ function discovery(overrides = {}) {
       // without them this run died mapping an undefined list. Inert here: the real entries are exercised by
       // test-paginas-lote1-1210, and the run below still REQUIRES the showcase/hub/study entries exactly as before.
       LOTE1_REVIEWED_ISO: '2026-10-12', LOTE1_NICHE_SLUG_LIST: [], LOTE1_LANDING_PATH_LIST: [],
+      // KINEO-VS-ALTERNATIVAS-1310 (re-anchored 13/10) — the sitemap imports the 4 /vs "alternatives to X" pages
+      // (lib/seo/vsAlternatives1310.ts); without them this run died mapping an undefined list. Inert here: the real entries
+      // are exercised by test-vs-alternativas-1310, and the run below still REQUIRES the showcase/hub/study entries as before.
+      VS_ALT_REVIEWED_ISO: '2026-10-13', VS_ALTERNATIVE_LINKS: [],
     }
     new Function('exports', 'require', 'module', js)(mod.exports, () => fixtures, mod)
     return mod.exports.default()

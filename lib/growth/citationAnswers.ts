@@ -67,7 +67,10 @@ function candidates(names: readonly string[]): ComparisonCandidate[] {
   })
 }
 
-export type CitationAnswerId = 'script' | 'tiktok' | 'cost' | 'invideo' | 'budget' | 'youtube' | 'horror' | 'handoff'
+export type CitationGuideId = 'script' | 'tiktok' | 'cost' | 'invideo' | 'budget' | 'youtube' | 'horror' | 'handoff'
+// KINEO-VS-ALTERNATIVAS-1310 — as 4 páginas /vs "alternativa a X" de 13/10 usam o MESMO molde e o mesmo padrão de campanha
+// (citacoes_01_<id>); os dados ficam em lib/growth/vsAlternativeAnswers.ts, fora de CITATION_ANSWERS (as 8 guias de sempre).
+export type CitationAnswerId = CitationGuideId | import('@/lib/seo/vsAlternatives1310').VsAlternativeId
 type Faq = { question: string; answer: string }
 export type CitationAnswer = {
   id: CitationAnswerId
@@ -100,7 +103,7 @@ const currencyFaq: Faq = {
   answer: `Starter is ${STARTER_MONTH} for ${STARTER_CREDITS} credits, Creator is ${CREATOR_MONTH} for ${CREATOR_CREDITS}, and Studio is ${STUDIO_MONTH} for ${STUDIO_CREDITS}. These are monthly subscriptions; credits refresh monthly and do not roll over. Brazilian customers pay in reais at checkout.`,
 }
 
-export const CITATION_ANSWERS: Record<CitationAnswerId, CitationAnswer> = {
+export const CITATION_ANSWERS: Record<CitationGuideId, CitationAnswer> = {
   script: {
     id: 'script', path: '/ai-video-generator/free-script-to-faceless-video', label: 'Script to a free faceless video',
     question: 'How can I turn my script into a complete faceless video for free, including voiceover and captions?',
@@ -383,6 +386,9 @@ export const CITATION_ANSWERS: Record<CitationAnswerId, CitationAnswer> = {
     ],
   },
 }
+
+// KINEO-VS-ALTERNATIVAS-1310 — as FAQs comuns, reaproveitadas pelas páginas /vs de 13/10 (mesmo texto, mesma fonte).
+export { trialFaq as CITATION_TRIAL_FAQ, watermarkFaq as CITATION_WATERMARK_FAQ, currencyFaq as CITATION_CURRENCY_FAQ }
 
 export const CITATION_ANSWER_LINKS = Object.values(CITATION_ANSWERS).map(({ path, label }) => ({ path, label }))
 
