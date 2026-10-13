@@ -22,6 +22,7 @@ import { isDeepStrictEqual } from 'node:util'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { desfazEscritorOmni } from './test-support/desfaz-escritor-omni-1310.mjs'
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
@@ -36,11 +37,7 @@ const CONTROLE = 'The mystery of the Flannan Isles lighthouse keepers who vanish
 
 // A inserção em lib/runway.ts (desfeita em memória para reconstruir a base).
 const INSERCAO_RUNWAY = "${typeof writerOptions?.placeRule === 'string' ? writerOptions.placeRule : ''}"
-const COMENTARIO_RUNWAY = ' · placeRule: KINEO-ESCRITOR-MONUMENTO-2026-10-13 (ausente = texto byte a byte)'
-const semPlaceRule = (src) => src
-  .split(INSERCAO_RUNWAY).join('')
-  .split(COMENTARIO_RUNWAY).join('')
-  .split('\n').filter((l) => l !== '  placeRule?: string' && !(l.includes(MARCA) && l.includes('frase extra da regra da fala'))).join('\n')
+const semPlaceRule = (src) => desfazEscritorOmni('lib/runway.ts', src) // a inserção, o comentário e o campo marcado saem
 // (conferido em 13/10: semPlaceRule(lib/runway.ts deste commit) === `git show origin/main:lib/runway.ts`, byte a byte)
 
 const chamadas = []

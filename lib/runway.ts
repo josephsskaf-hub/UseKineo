@@ -274,7 +274,7 @@ export interface SceneWriterOptions {
   /** KINEO-KLING25-PLANOS-5S-2026-09-28 — segundos do plano que a fala enche (Kling 2.5: 5). Ausente = "~10-second scene", o texto de sempre. */
   sceneSeconds?: number
   /** KINEO-ESCRITOR-MONUMENTO-2026-10-13 — frase extra da regra da fala quando o pedido é um lugar real (lib/cinematic/escritorNoLugar.ts). Ausente = texto de sempre. */
-  placeRule?: string
+  placeRule?: string // KINEO-ESCRITOR-MONUMENTO-2026-10-13
 }
 
 export async function generateScenes(prompt: string, count = 4, visualPolicy?: VisualPromptPolicy, writerOptions?: SceneWriterOptions): Promise<Scene[]> {

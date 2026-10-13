@@ -20,7 +20,8 @@ const rejectDecl=find(n=>ts.isFunctionDeclaration(n)&&n.name?.text==='rejectBefo
 for(const qualityCode of reasonList){
   for(const settled of [true,false]){
     const calls=[]
-    const context={NextResponse:next,cinematicUpstreamDebited:true,composeAdmin:{},serviceRoleKey:'FIXTURE_ONLY',authenticatedUserId:'fixture',generationId:'fixture-generation',ownsSubmissionClaim:true,composeProviderAttempted:false,
+    const eventos=[] // KINEO-OMNI-ETAPA1-2026-10-13: a recusa antes do fornecedor grava compose_failed (dublê que registra)
+    const context={logComposeEvent:async(...a)=>{eventos.push(a)},composeCtx:{stage:'fixture_stage'},quality:'cinematic_hollywood',NextResponse:next,cinematicUpstreamDebited:true,composeAdmin:{},serviceRoleKey:'FIXTURE_ONLY',authenticatedUserId:'fixture',generationId:'fixture-generation',ownsSubmissionClaim:true,composeProviderAttempted:false,
       rejectCinematicQuality:async args=>{calls.push(args);return {refunded:settled,refundConfirmed:settled,claimReleased:settled,retryable:false,outcome:settled?'quality_rejected_refunded':'quality_rejection_support_pending'}},
       releaseGenerationClaim:async()=>{throw Error('Paid quality rejection must not DELETE the mutex')}}
     const module=evaluate(`const qualityFailureResponse=${responseInitializer}; export ${rejectDecl}`,context)
@@ -29,11 +30,12 @@ for(const qualityCode of reasonList){
     eq(result.status,422);eq(body.qualityCheckFailed,true);eq(body.refunded,settled);eq(body.refundConfirmed,settled)
     eq(body.claimReleased,settled);eq(body.retryable,false);eq(body.generationId,'fixture-generation')
     eq(calls.length,1);eq(calls[0].ownsComposeClaim,true);eq(calls[0].composeProviderAttempted,false)
+    eq(eventos.length,1);eq(eventos[0][0],'compose_failed');eq(eventos[0][3].stage,'fixture_stage');eq(eventos[0][3].message,'Safe quality failure') // KINEO-OMNI-ETAPA1-2026-10-13
   }
 }
 // Existing non-quality failures retain their old pre-submit release policy.
 let released=0
-const ordinary=evaluate(`const qualityFailureResponse=${responseInitializer}; export ${rejectDecl}`,{NextResponse:next,cinematicUpstreamDebited:false,generationId:'fixture-generation',ownsSubmissionClaim:false,
+const ordinary=evaluate(`const qualityFailureResponse=${responseInitializer}; export ${rejectDecl}`,{logComposeEvent:async()=>{},composeCtx:{stage:'fixture_stage'},quality:'cinematic_hollywood',authenticatedUserId:'fixture' /* KINEO-OMNI-ETAPA1-2026-10-13 */,NextResponse:next,cinematicUpstreamDebited:false,generationId:'fixture-generation',ownsSubmissionClaim:false,
   releaseGenerationClaim:async()=>released++,rejectCinematicQuality:async()=>{throw Error('Unexpected financial unwind')}})
 eq((await ordinary.rejectBeforeProviderSubmission(json({error:'Bad URL'},{status:400}))).status,400);eq(released,1)
 const noDebit=await (await ordinary.rejectBeforeProviderSubmission(json({error:'Clone unavailable',code:'requested_voice_unavailable'},{status:422}))).json()
