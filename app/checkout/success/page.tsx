@@ -30,6 +30,9 @@ import { CARD_ENTRY_DRAFT_KEY, readCardEntryDraft } from '@/lib/growth/cardEntry
 // KINEO-PAREDE-V1-2026-09-23 — quem pagou na parede volta para o PRÓPRIO
 // roteiro, sem disparo automático (regra 18-19/09). Ver lib/growth/wallV1.ts.
 import { WALL_V1_VERSION, checkoutSuccessResumeHref } from '@/lib/growth/wallV1'
+// KINEO-VERSAO-60S-2026-10-13 — quem comprou pela "versão de 60 s deste filme" volta ao Studio com o mesmo texto, Seedance,
+// 60 s e "Let AI structure" — SEM disparo (o Studio só preenche). O bilhete vive na sessionStorage; ver lib/growth/filmReady60s.ts.
+import { FILM60_HANDOFF_KEY, film60StudioHref, readFilm60Handoff } from '@/lib/growth/filmReady60sHandoff'
 // KINEO-SUCESSO-STUDIO-ADS-2026-09-27 — quem acabou de ASSINAR fica sabendo que o Studio Ads já está no plano.
 // Fato medido (27/09): 0 dos 10 assinantes pagos tocou /ads em 30 dias, e ninguém contava isso a quem acabou de pagar.
 // "Included" é fato de lib/ads/access.ts: adsAccessReason({ plan }) === 'subscriber' para todo plano em
@@ -84,6 +87,8 @@ export default function CheckoutSuccessPage() {
   // KINEO-PAREDE-V1-2026-09-23 — rascunho FRESCO (dentro do TTL) com texto: o CTA
   // principal vira "Back to your script →" e leva a /studio/create?resume=wall_v1,
   // que restaura e ESPERA o clique em Generate. Nulo = copy padrão intacta.
+  // KINEO-VERSAO-60S-2026-10-13 — bilhete fresco da versão de 60 s: o destino vira o Studio preenchido (vence o rascunho).
+  const [film60Pending, setFilm60Pending] = useState(false)
   const [freshDraft, setFreshDraft] = useState<{ engine: string | null; mode: string | null; duration: number | null } | null>(null)
   const resumeOfferedEventSent = useRef(false)
   // KINEO-SUCESSO-STUDIO-ADS-2026-09-27 — pack avulso (?pack=…, mode payment) nunca ganha o bloco do Studio Ads.
@@ -107,6 +112,10 @@ export default function CheckoutSuccessPage() {
         setFreshDraft({ engine: draft.engine, mode: draft.mode, duration: draft.duration })
       }
     } catch { /* Storage may be unavailable; the ordinary Studio remains usable. */ }
+    try {
+      // KINEO-VERSAO-60S-2026-10-13 — o MESMO leitor do Studio decide se o bilhete está fresco (chave e TTL do módulo).
+      if (readFilm60Handoff(sessionStorage.getItem(FILM60_HANDOFF_KEY), Date.now())) setFilm60Pending(true)
+    } catch { /* sem storage: volta ao Studio de sempre */ }
 
     // Computed after mount so the time-seeded shuffle can never cause a
     // hydration mismatch. Autopilot buyers need channel setup, not a generic
@@ -271,6 +280,9 @@ export default function CheckoutSuccessPage() {
     // arma o autostart). Rascunho vencido segue o caminho antigo, que também
     // não arma (`resumeArmedRef = draft.fresh`).
     if (freshDraft) destination = checkoutSuccessResumeHref()
+    // KINEO-VERSAO-60S-2026-10-13 — a compra nasceu no bloco da versão de 60 s (bilhete gravado no clique, minutos antes):
+    // botão E relógio vão ao Studio com Seedance · 60 s · Let AI structure, e o Studio preenche o texto do filme e ESPERA.
+    if (film60Pending) destination = film60StudioHref()
   }
   useEffect(() => {
     if (!autopilotReady || autopilotReadyEventSent.current) return
@@ -669,7 +681,7 @@ export default function CheckoutSuccessPage() {
                 letterSpacing: '-0.01em',
               }}
             >
-              {freshDraft ? 'Back to your script →' : 'Go to Generate Video'}
+              {film60Pending ? 'Make the 60-second version →' : freshDraft ? 'Back to your script →' : 'Go to Generate Video'}
             </Link>
           ) : isSelfServe ? (
             <button

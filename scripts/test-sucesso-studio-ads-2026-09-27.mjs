@@ -75,7 +75,8 @@ checa('4h. Autopilot fica fora: o bloco vem DEPOIS do fecho do ternário do CTA,
 checa('4i. adsPassLive() é o interruptor único (NEXT_PUBLIC_ADS_PASS_LIVE=0 desliga) e está ligado em código hoje', offer.adsPassLive() === true && rd('lib/ads/offer.ts').includes("if (env === '0') return false"))
 
 // ── 5. posição: abaixo do CTA principal, nunca no lugar dele ──
-const iPrimary = PAGE.indexOf("{freshDraft ? 'Back to your script →' : 'Go to Generate Video'}")
+// KINEO-VERSAO-60S-2026-10-13 — reancorado: o CTA principal ganhou o ramo film60Pending na frente (mesmo elemento, mesma posição).
+const iPrimary = PAGE.indexOf("{film60Pending ? 'Make the 60-second version →' : freshDraft ? 'Back to your script →' : 'Go to Generate Video'}")
 const iGate = PAGE.indexOf(GATE)
 const iMyVideos = PAGE.indexOf('href="/my-videos"')
 checa('5a. CTA principal intacto ("Go to Generate Video" / "Back to your script →", 1 vez) e "View My Videos" intacto', iPrimary > 0 && count(PAGE, "'Go to Generate Video'") === 1 && count(PAGE, 'View My Videos') === 1)

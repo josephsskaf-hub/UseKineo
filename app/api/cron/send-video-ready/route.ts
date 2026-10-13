@@ -11,6 +11,7 @@ import { packEmailHtml, packEmailText } from '@/lib/publishPackEmail'
 import { publishHref, unpublishHref } from '@/lib/videoShareLink'
 import { feedbackRowHtml, feedbackRowText } from '@/lib/filmFeedback' // KINEO-FEEDBACK-DO-FILME-2026-09-16
 import type { PacoteDePublicacao } from '@/lib/publishPack'
+import { film60Copy, film60EmailHref, film60UpsellEligible } from '@/lib/growth/filmReady60s' // KINEO-VERSAO-60S-2026-10-13
 
 // send-video-ready — Medida 6 do PLANO-SEMANA-2026-08-03 (Bloco B, gerar→baixar).
 //
@@ -116,6 +117,8 @@ interface ReadyVideo {
   thumb: string | null
   creditsUsed: number | null
   duration: number | null
+  /** KINEO-VERSAO-60S-2026-10-13 — o motor do filme (cinematic_ai = Seedance 1.5): decide a oferta da versão de 60 s. */
+  qualityMode: string | null
 }
 
 interface EmailContext {
@@ -125,6 +128,8 @@ interface EmailContext {
   /** KINEO-PACOTE-DE-PUBLICACAO-2026-09-06 — null e o caminho NORMAL, nao um
    *  erro: sem pacote o e-mail sai byte a byte como saia antes desta peca. */
   pack?: PacoteDePublicacao | null
+  /** KINEO-VERSAO-60S-2026-10-13 — conta que não paga + filme curto do Seedance: o bloco "versão de 60 s" entra. */
+  film60?: boolean
 }
 
 function escapeHtmlText(v: string): string {
@@ -238,6 +243,30 @@ Write the next episode with ChatGPT (or Claude, or Gemini) — grab our prompt, 
   <p style="margin:0;"><a href="${chatgptUrl}" style="display:inline-block;background:#111;color:#ffffff;text-decoration:none;font-weight:bold;font-size:14px;padding:10px 22px;border-radius:10px;">Get the prompt &rarr;</a></p>
 </div>`
 
+  // ═══ KINEO-VERSAO-60S-2026-10-13 — a versão de 60 s DESTE filme ═══════════════════════════════════════════════
+  // Só para quem NÃO paga e recebeu o filme curto do Seedance 1.5 (decisão em lib/growth/filmReady60s.ts, a mesma da
+  // tela de filme pronto). Preço e contagem de filmes vêm da fonte única (buyCreatorPrice/creatorSeedanceFilms) — nada
+  // digitado. O link vai à ponte /film-60?v=<id>, que grava o bilhete da volta e segue ao checkout do Creator mensal
+  // (WELCOME20 automático). Fora do recorte, as duas variáveis são string vazia e nenhum bloco entra no e-mail.
+  const film60 = ctx.film60 ? film60Copy('en') : null
+  const film60Href = ctx.film60 ? film60EmailHref(APP_URL, video.id) : null
+  const film60Button = film60 ? film60.button.replace(/\s*→$/, '') : ''
+  const film60Text = film60 && film60Href
+    ? `
+── ${film60.title.toUpperCase()} ──
+${film60.subtitle}
+${film60Button}: ${film60Href}
+──────────────
+`
+    : ''
+  const film60Html = film60 && film60Href
+    ? `<div style="border:2px solid #2997ff;border-radius:12px;padding:16px;margin:0 0 16px;">
+  <p style="margin:0 0 8px;font-weight:bold;font-size:16px;">${escapeHtmlText(film60.title)} 🎬</p>
+  <p style="margin:0 0 14px;color:#475569;font-size:14px;">${escapeHtmlText(film60.subtitle)}</p>
+  <p style="margin:0;"><a href="${film60Href}" style="display:inline-block;background:#2997ff;color:#ffffff;text-decoration:none;font-weight:bold;font-size:14px;padding:10px 22px;border-radius:10px;">${escapeHtmlText(film60Button)} &rarr;</a></p>
+</div>`
+    : ''
+
   const text = `Hey,
 
 ${headlineText}
@@ -245,7 +274,7 @@ ${headlineText}
 Watch it and grab the download here: ${url}
 
 Your video is private by default. Download the MP4 if you want to send it directly.
-${shareText}${packText}${feedbackRowText(video.id, APP_URL, 'video_ready_email')}${chatgptText}
+${film60Text}${shareText}${packText}${feedbackRowText(video.id, APP_URL, 'video_ready_email')}${chatgptText}
 ${closingText}
 
 Kineo Team
@@ -261,6 +290,7 @@ usekineo.com`
   ${thumbHtml}
   <p style="margin:0 0 24px;"><a href="${url}" style="display:inline-block;background:#2997ff;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">${ctx.sawIt ? 'Download the MP4' : 'Watch &amp; download'} &rarr;</a></p>
   <p style="margin:0 0 14px;color:#475569;font-size:14px;">Your video is private by default. Download the MP4 if you want to send it directly.</p>
+  ${film60Html}
   ${shareHtml}
   ${packHtml}
   ${feedbackRowHtml(video.id, APP_URL, 'video_ready_email', 'light')}
@@ -344,6 +374,7 @@ export async function GET(req: NextRequest) {
         thumb: (row.thumb_url as string | null) ?? (row.thumbnail_url as string | null),
         creditsUsed: typeof row.credits_used === 'number' ? (row.credits_used as number) : null,
         duration: typeof row.duration === 'number' ? (row.duration as number) : null,
+        qualityMode: (row as { quality_mode?: string | null }).quality_mode ?? null,
         earliest: row.created_at as string,
       })
     } else if ((row.created_at as string) < existing.earliest) {
@@ -507,7 +538,10 @@ export async function GET(req: NextRequest) {
         })
       } catch { /* observar nunca pode impedir o e-mail */ }
     }
-    const ctx: EmailContext = { sawIt: sawIt.has(u.id as string), footer, pack }
+    // KINEO-VERSAO-60S-2026-10-13 — mesma régua da tela: não pagante (has_paid=false + plano que não é assinatura) e
+    // filme curto do Seedance 1.5 (quality_mode cinematic_ai, < 35 s). Não muda quem recebe nem a frequência.
+    const film60 = film60UpsellEligible({ plan: prof.plan, hasPaid: prof.has_paid, quality: video.qualityMode, seconds: video.duration, delivered: true })
+    const ctx: EmailContext = { sawIt: sawIt.has(u.id as string), footer, pack, film60 }
     const { subject, text, html } = buildEmail(u.id, video, ctx)
     try {
       const res = await fetch('https://api.resend.com/emails', {
@@ -559,6 +593,8 @@ export async function GET(req: NextRequest) {
               // recebeu o pacote", que foi o erro que a casa ja cometeu com a
               // porta do episodio 2 (memoria `remedio-nunca-apertado`).
               publish_pack: !!ctx.pack,
+              // KINEO-VERSAO-60S-2026-10-13 — o denominador da oferta da versão de 60 s no e-mail.
+              film60_offer: !!ctx.film60,
             },
           })
         } catch (e) {

@@ -236,6 +236,8 @@ const page = load('app/checkout/success/page.tsx', {
   // modulo REAL entra no mapa, com o seu unico import (engineLabel), para que
   // um import novo derrube este contrato em vez de mata-lo antes da 1a checagem.
   '@/lib/growth/wallV1': load('lib/growth/wallV1.ts', { '@/lib/engineLabel': load('lib/engineLabel.ts') }),
+  // KINEO-VERSAO-60S-2026-10-13 — a volta da "versão de 60 s" (bilhete na sessionStorage). Módulo REAL, sem imports.
+  '@/lib/growth/filmReady60sHandoff': load('lib/growth/filmReady60sHandoff.ts'),
   '@/lib/ads/offer': adsOffer,
   '@/lib/ads/models': load('lib/ads/models.ts'),
   '@/lib/ads/access': load('lib/ads/access.ts', { '@/lib/internalAccounts': internal, '@/lib/ads/offer': adsOffer }),

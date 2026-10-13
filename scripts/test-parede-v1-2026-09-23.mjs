@@ -149,7 +149,8 @@ check('(8c) a tela de sucesso lê o rascunho com o leitor do módulo (readCardEn
   /readCardEntryDraft\(sessionStorage\.getItem\(CARD_ENTRY_DRAFT_KEY\), Date\.now\(\)\)/.test(SUCCESS_CODIGO))
 check('(8d) só rascunho FRESCO com texto arma o CTA', /if \(draft && draft\.fresh && draft\.prompt\)/.test(SUCCESS_CODIGO))
 check('(8e) o CTA principal vira "Back to your script →" e o destino é o resume da parede',
-  /\{freshDraft \? 'Back to your script →' : 'Go to Generate Video'\}/.test(SUCCESS) && /if \(freshDraft\) destination = checkoutSuccessResumeHref\(\)/.test(SUCCESS_CODIGO))
+  // KINEO-VERSAO-60S-2026-10-13 — reancorado: o CTA ganhou o ramo film60Pending na frente; o par da parede segue exigido igual.
+  /\{film60Pending \? 'Make the 60-second version →' : freshDraft \? 'Back to your script →' : 'Go to Generate Video'\}/.test(SUCCESS) && /if \(freshDraft\) destination = checkoutSuccessResumeHref\(\)/.test(SUCCESS_CODIGO))
 check('(8f) checkout_success_resume_offered com engine/mode/duration, uma vez',
   /checkout_success_resume_offered', \{\n\s+version: WALL_V1_VERSION,\n\s+engine: freshDraft\.engine,\n\s+mode: freshDraft\.mode,\n\s+duration: freshDraft\.duration,/.test(SUCCESS) && /resumeOfferedEventSent\.current = true/.test(SUCCESS))
 check('(8g) o caminho antigo card_entry segue no arquivo (trava da outra pista) e sem create_intent na volta',

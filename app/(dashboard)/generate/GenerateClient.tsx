@@ -263,6 +263,8 @@ import SubscriberUpgradeNudge, { SUBSCRIBER_UPGRADE_ENABLED } from '@/components
 import MrrEpisodeValue from '@/components/growth/MrrEpisodeValue'
 import MrrShareFooter from '@/components/growth/MrrShareFooter'
 import FilmReadyExits from '@/components/FilmReadyExits' // KINEO-FLUXO-NOVO-2026-09-25 — as 3 saídas do filme pronto
+import FilmReady60sUpsell from '@/components/FilmReady60sUpsell' // KINEO-VERSAO-60S-2026-10-13 — "Make the 60-second version of this film"
+import { film60UpsellEligible } from '@/lib/growth/filmReady60s' // KINEO-VERSAO-60S-2026-10-13
 // KINEO-PAREDE-V1-2026-09-23 — a parede dos 10 créditos com o filme da pessoa na
 // frente (ver lib/growth/wallV1.ts para o dado que motivou). `filmsCoveredByTier`
 // é a MESMA conta que a caixa de recarga já faz — nenhum número novo.
@@ -17690,6 +17692,21 @@ export default function GenerateClient({
                 )}
                 {/* KINEO-VENDER-NO-DOWNLOAD-2026-09-18 — o gêmeo, no ramo onde o trial cai. */}
                 {!showPostVideoExportChoice && cleanDownloadTwinButton}
+
+                {/* KINEO-VERSAO-60S-2026-10-13 — a versão de 60 s DESTE filme, logo abaixo do download nos DOIS ramos (com a
+                    caixa de export limpo o ramo de cima já mostrou o download; sem ela, o download está logo acima). Só para
+                    conta que não paga (has_paid=false + plano lido que não é assinatura) com o filme curto do Seedance 1.5
+                    entregue — decisão em lib/growth/filmReady60s.ts. O texto do filme vai no bilhete da sessionStorage, nunca
+                    na URL; o clique leva ao checkout do Creator mensal (WELCOME20 automático no servidor). Nada é gerado. */}
+                {film60UpsellEligible({
+                  plan: commercialPlan,
+                  hasPaid,
+                  engine: mode === 'cinematic_ai' ? aiEngine : null,
+                  seconds: duration,
+                  delivered: phase === 'done' && Boolean(finalVideoUrl),
+                }) && (
+                  <FilmReady60sUpsell videoId={publicVideoId} plan={commercialPlan} seconds={finalVideoSeconds ?? duration} prompt={prompt} />
+                )}
 
                 {/* sprint-retencao #11 (2026-09-05) — A MESMA PORTA, NO RAMO
                     ONDE QUASE TODO MUNDO CAI.
