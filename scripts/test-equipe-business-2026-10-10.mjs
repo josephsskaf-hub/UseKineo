@@ -474,6 +474,10 @@ walk('app'); walk('lib'); walk('components')
 // só chamam o /plan e o /start de sempre (adsV2PlanFor/adsV2StartFor), que já resolvem o dono; o guardião do lote
 // (scripts/test-ads-lote-1310.mjs) confere que o pedido é lido pelo uid do dono e que o membro que saiu não drena a fila.
 const PERMITIDOS_WS = new Set([...WS_ROUTES, F.footage, F.page, F.door, F.teamRoute, 'app/api/ads/v2/batch/route.ts', 'lib/ads/v2Batch.ts'])
+// REANCORADO KINEO-ADS-ROTEIROS-2026-10-13: escolher 1 dos 2-3 roteiros (/api/ads/v2/plan/choose) também resolve o workspace —
+// o membro troca o roteiro do pedido do DONO (lib/ads/v2ChooseCore.ts lê o pedido por ws.ownerId ?? user.id, como o /plan);
+// scripts/test-ads-roteiros-1310.mjs confere dono, status e que o UPDATE só troca o plano.
+PERMITIDOS_WS.add('app/api/ads/v2/plan/choose/route.ts') // KINEO-ADS-ROTEIROS-2026-10-13
 const pedem = files.filter((f) => /workspace: true \}\)/.test(code(read(f))))
 const importam = files.filter((f) => /from '@\/lib\/ads\/workspace'/.test(read(f)))
 ok(pedem.every((f) => PERMITIDOS_WS.has(f)) && [...PERMITIDOS_WS].every((f) => pedem.includes(f)),

@@ -330,7 +330,8 @@ function mundo(order, extra = {}) {
 // KINEO-ATOR-ANUNCIO-2026-10-09 — re-ancorado: a rota /plan importa o interruptor e o plano do ator de lib/ads/v2Presenter.ts (lib PURA: só import type).
 // KINEO-ADS-CENA-2026-10-13 — re-ancorado: o /plan, o /orders e o /research importam a cena (lib/ads/v2Scene.ts, pura, e
 // lib/ads/v2SceneServer.ts, que usa os MESMOS stubs de eventos/moderação/link deste mundo) e as libs puras que ela lê.
-const loadRoute = (rel, stubs, src) => makeLoader(stubs, { real: ['lib/textLanguage.ts', 'lib/ads/v2Contract.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/v2Research.ts', 'lib/ads/v2Styles.ts', 'lib/ads/v2Presenter.ts', PLAN_CORE, 'lib/ads/v2Scene.ts', 'lib/ads/v2SceneServer.ts', 'lib/ads/v2Honesty.ts', 'lib/ads/scriptPrompt.ts', 'lib/ads/v2Simple.ts'], over: src === undefined ? {} : { [rel === F.planRoute ? PLAN_CORE : rel]: src } })(rel) // KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o núcleo do /plan
+// KINEO-ADS-ROTEIROS-2026-10-13 — re-ancorado: o núcleo do /plan importa a lib PURA dos roteiros (lib/ads/v2Scripts.ts, só import type).
+const loadRoute = (rel, stubs, src) => makeLoader(stubs, { real: ['lib/textLanguage.ts', 'lib/ads/v2Contract.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/v2Research.ts', 'lib/ads/v2Styles.ts', 'lib/ads/v2Presenter.ts', PLAN_CORE, 'lib/ads/v2Scene.ts', 'lib/ads/v2SceneServer.ts', 'lib/ads/v2Honesty.ts', 'lib/ads/scriptPrompt.ts', 'lib/ads/v2Simple.ts', 'lib/ads/v2Scripts.ts'], over: src === undefined ? {} : { [rel === F.planRoute ? PLAN_CORE : rel]: src } })(rel) // KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o núcleo do /plan
 const req = (body) => ({ json: async () => body, nextUrl: { searchParams: new URLSearchParams() } })
 const PHOTOS = [0, 1, 2].map((i) => ({ footage_id: U(20 + i), kind: 'place' }))
 const FATOS = [
