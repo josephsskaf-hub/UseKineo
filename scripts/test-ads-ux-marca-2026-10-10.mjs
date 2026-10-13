@@ -22,10 +22,17 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { desfazExtracao, textoOriginalV2 } from './test-support/shopify-extracao-v2-1310.mjs' // KINEO-SHOPIFY-2026-10-13 (etapa 2)
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+const readCru = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+// KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o corpo do /plan e do /start foi EXTRAÍDO, sem mudar uma linha, para
+// lib/ads/v2PlanCore.ts e lib/ads/v2StartCore.ts (a rota só lê o cookie e chama o núcleo). Ler a rota = rota + núcleo, na ordem
+// em que rodam; a impressão digital da base usa o texto de ANTES remontado por test-support/shopify-extracao-v2-1310.mjs.
+const NUCLEO_V2 = { 'app/api/ads/v2/plan/route.ts': 'lib/ads/v2PlanCore.ts', 'app/api/ads/v2/start/route.ts': 'lib/ads/v2StartCore.ts' }
+const read = (rel) => (NUCLEO_V2[rel] ? `${readCru(rel)}\n${readCru(NUCLEO_V2[rel])}` : readCru(rel))
+const leBaseV2 = (rel) => (rel === 'app/api/ads/v2/plan/route.ts' ? textoOriginalV2('plan', ROOT) : rel === 'app/api/ads/v2/start/route.ts' ? textoOriginalV2('start', ROOT) : readCru(rel))
 let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }
@@ -274,7 +281,7 @@ const desfazConsertos = (s) => s.split('\n').filter((l) => !l.includes('KINEO-AN
   .split(", 422, { why: failWhy.value ?? 'unreachable' })").join(', 422)')
   .split('footage_id: string | null; url: string }[] = []').join('footage_id: string; url: string }[] = []')
 await check('6a /start, /orders, /plan, /research, /variations, /retake, /link-import, v2Billing, sample e v2Tiers byte a byte iguais à base aeef024f', () =>
-  Object.entries(BASE).every(([f, h]) => sha(f.startsWith('app/api/ads/v2/') ? desfazEquipe(desfazConsertos(read(f))) : read(f)) === h))
+  Object.entries(BASE).every(([f, h]) => sha(f.startsWith('app/api/ads/v2/') ? desfazEquipe(desfazConsertos(leBaseV2(f))) : read(f)) === h))
 const telaDinheiroOk = (src) => {
   const s = code(src)
   const make = bloco(s, 'async function makeAd()')
@@ -406,7 +413,8 @@ await mutante('enum de estilo novo com a caixa trocada', F.engines, "  beach_ad:
   (over) => { const Lx = pura(over); return estilosOk(Lx(F.styles), Lx(F.contract), Lx(F.shots), Lx(F.engines)) })
 await mutante('espelho do contrato sem um estilo novo', F.contract, ", 'shoal_surround', 'dishes_served']", ", 'shoal_surround']",
   (over) => { const Lx = pura(over); return estilosOk(Lx(F.styles), Lx(F.contract), Lx(F.shots), Lx(F.engines)) })
-await mutante('1 caractere a mais no /start', 'app/api/ads/v2/start/route.ts', "export const runtime = 'nodejs'", "export const runtime = 'nodejs' ", (_o, m) => sha(m) === BASE['app/api/ads/v2/start/route.ts'])
+await mutante('1 caractere a mais no /start', 'app/api/ads/v2/start/route.ts', "export const runtime = 'nodejs'", "export const runtime = 'nodejs' ", (_o, m) => sha(desfazEquipe(desfazConsertos(desfazExtracao('start', m, readCru('lib/ads/v2StartCore.ts'))))) === BASE['app/api/ads/v2/start/route.ts'])
+await mutante('1 caractere a mais no núcleo do /start (o débito)', 'lib/ads/v2StartCore.ts', 'chargeAdsV2(admin, { userId: uid, billingRef, cost })', 'chargeAdsV2(admin, { userId: uid, billingRef, cost: cost })', (_o, m) => sha(desfazEquipe(desfazConsertos(desfazExtracao('start', readCru('app/api/ads/v2/start/route.ts'), m)))) === BASE['app/api/ads/v2/start/route.ts'])
 
 console.log(`\ntest-ads-ux-marca-2026-10-10: ${pass} ok · ${fail} falhas`)
 process.exit(fail ? 1 : 0)

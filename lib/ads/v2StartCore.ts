@@ -1,0 +1,173 @@
+// KINEO-ADS-V2-2026-09-28 — início do anúncio v2 (especificação, seção 5, passos 3 e 4).
+//
+// ORDEM DAS TRAVAS (guardião scripts/test-ads-v2-servidor-2026-09-28.mjs confere a ordem no arquivo):
+//   login → loadAdsAccess/adsGate → adsV2Visible (403 'v2_closed' ANTES de qualquer débito) → pedido do dono,
+//   planejado e com cartão → moderação (a mesma régua do v1: narração + frases de tela) → dry_run devolve plano e
+//   custo e PARA (ensaio de US$ 0: sem débito, sem fal) → saldo → trava condicional draft|planned→generating (o
+//   índice único parcial faz o "um anúncio por vez" atômico) → débito confirmado no ledger → planos gravados →
+//   envio à fal (imagens das cenas antes do vídeo) → 202. O avanço (tela + cron) faz o resto.
+// KINEO-ADS-AMOSTRA-2026-10-09 — a AMOSTRA GRÁTIS (lib/ads/sample.ts) entra pela mesma porta, com a ordem:
+//   login → loadAdsAccess/adsGate → adsSampleOpen (só 'no_access' que ainda não usou a dela) → adsV2Visible → pedido do
+//   dono, planejado e com cartão → nível/duração da amostra (403 'sample_level_only') → moderação → dry_run PARA (igual)
+//   → teto global do dia (429 'sample_cap', ANTES da trava; leitura que falha = teto) → SEM saldo e SEM débito → trava
+//   condicional com a chave 'adssample-…' e credits_charged 0 → evento ads_sample_started → planos → envio (igual ao pago).
+//   Falha depois disso: failAdsV2Order marca failed e NUNCA estorna chave de amostra (não houve débito).
+//
+// KINEO-SHOPIFY-2026-10-13 (etapa 2) — o CORPO desta rota mora aqui, numa função que recebe quem age (user) e o acesso JÁ
+// resolvido (loadAdsAccess), em vez de ler o cookie do Supabase. A rota /api/ads/v2/start só lê o cookie e chama esta
+// função (comportamento idêntico); o app da Shopify (/api/shopify/ads) chama a MESMA função com a conta da loja. O dinheiro
+// (saldo, trava, chargeAdsV2, amostra sem débito, estorno por failAdsV2Order) é este código, copiado da rota linha a linha.
+// O guardião scripts/test-shopify-app-1310.mjs desfaz a extração e confere a impressão digital do corpo de antes.
+import type { NextResponse } from 'next/server'
+import { randomUUID } from 'crypto'
+import { writeServerEvent } from '@/lib/serverEvents'
+import { moderateContent } from '@/lib/safety/contentModeration'
+import { adsGate, isMissingAdsTable, loadAdsAccess, type AdsAccessLoad } from '@/lib/ads/serverAccess'
+import { adsV2Visible } from '@/lib/ads/v2Access'
+import { sanitizeStartBody } from '@/lib/ads/v2Contract'
+import { adsV2Credits, estimateAdUsd } from '@/lib/ads/v2Tiers'
+import { adsV2BillingRef, chargeAdsV2, failAdsV2Order } from '@/lib/ads/v2Billing'
+import { adsV2View, buildInitialShotRows, dispatchAdsV2Shots, loadAdsV2Order, loadAdsV2Shots } from '@/lib/ads/v2Advance'
+import { v2Fail, v2Json } from '@/lib/ads/v2Server'
+// KINEO-ADS-AMOSTRA-2026-10-09 — a amostra grátis: quem abre, o teto do dia, a chave sem débito e o nível único.
+import { adsSampleCapReached, adsSampleLevelOk, adsSampleOpen } from '@/lib/ads/serverAccess'
+import { adsSampleRef } from '@/lib/ads/sample'
+import type { AdsV2ChargeResult } from '@/lib/ads/v2Billing'
+import type { AdsV2Caller } from '@/lib/ads/v2PlanCore'
+
+/** Prazo para abrir envios novos nesta chamada (o resto sai pelo avanço da tela/cron). */
+const DISPATCH_BUDGET_MS = 40_000
+
+/** O início do anúncio v2 para `user`, com o acesso `access` já resolvido. `readBody` lê o corpo só depois das portas. */
+export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, readBody: () => Promise<unknown>, started: number = Date.now()): Promise<NextResponse> {
+  let locked: { id: string; user_id: string; billing_ref: string | null } | null = null
+  let admin: Awaited<ReturnType<typeof loadAdsAccess>>['admin'] | null = null
+  try {
+    const uid: string = access.ownerId ?? user.id // KINEO-EQUIPE-BUSINESS-2026-10-10 — workspace: membro do Business age na conta do DONO (stub/chamador antigo = pessoal)
+    admin = access.admin
+    const gate = adsGate(access.reason)
+    const sample = gate === 'no_access' && await adsSampleOpen(admin, uid, access.reason) // KINEO-ADS-AMOSTRA-2026-10-09
+    if (gate !== 'ok' && !sample) {
+      await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/api/ads/v2/start', metadata: { reason: gate } })
+      return v2Fail(gate === 'closed' ? 'closed' : 'no_access', 403)
+    }
+    // Interruptor do v2 ANTES de qualquer débito.
+    if (!adsV2Visible(user.email)) return v2Fail('v2_closed', 403)
+    // KINEO-ADS-AMOSTRA-2026-10-09 — este início é a amostra grátis (o gate barrou e a amostra abriu). Assinante, passe e
+    // interna (gate 'ok') NUNCA caem aqui: o caminho pago deles fica idêntico.
+    const sampleRun = gate !== 'ok' && sample
+
+    const parsed = sanitizeStartBody(await readBody())
+    if (!parsed.ok) return v2Fail(parsed.error, 400)
+    const { order_id: orderId, dry_run: dryRun } = parsed.value
+
+    const { order, error } = await loadAdsV2Order(admin, orderId, uid)
+    if (error) return isMissingAdsTable(error.code) ? v2Fail('not_ready', 503) : v2Fail('start_failed', 502)
+    if (!order) return v2Fail('order_not_found', 404)
+    if (order.status !== 'draft' && order.status !== 'planned') return v2Fail('not_startable', 409, { status: order.status })
+    const plan = order.plan
+    if (!plan || !Array.isArray(plan.shots) || plan.shots.length === 0) return v2Fail('plan_required', 409)
+    if (!order.card_url) return v2Fail('card_required', 400)
+    // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra só sai no nível e na duração dela (a tela trava o resto; aqui é a lei).
+    if (sampleRun && !adsSampleLevelOk(order.tier, order.seconds)) return v2Fail('sample_level_only', 403)
+
+    // Moderação (a régua do v1, superfície ads_render): o texto que vira VOZ e TELA.
+    const text = [plan.narration ?? '', ...(plan.overlays ?? []).map((o) => o.text)].filter(Boolean).join('\n')
+    const safety = await moderateContent({ surface: 'ads_render', stage: 'input', userId: user.id, text, meta: { order_id: orderId, v2: true } })
+    if (!safety.ok) return v2Fail(safety.reason === 'blocked' ? 'moderation' : `moderation_${safety.reason}`, safety.reason === 'unavailable' ? 503 : 422)
+
+    const cost = adsV2Credits(order.tier, order.seconds)
+    const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds, presenter: !!plan.presenter }) // KINEO-ESTILOS-PRODUTO-2026-10-09 — o plano com estilo custa o efeito · KINEO-ATOR-ANUNCIO-2026-10-09 — o ator custa a foto e o vídeo falado
+
+    // ENSAIO DE US$ 0: plano + custo, sem débito e sem fal. Para aqui.
+    if (dryRun) {
+      await writeServerEvent({ name: 'ads_v2_dry_run_served', userId: uid, path: '/api/ads/v2/start', metadata: { order_id: orderId, tier: order.tier, seconds: order.seconds, credits: cost, usd: usd.totalUsd, shots: plan.shots.length } })
+      return v2Json({
+        dry_run: true,
+        charged: false,
+        order_id: orderId,
+        credits: cost,
+        usd_estimate: usd,
+        total_seconds: plan.totalSeconds,
+        narration: plan.narration,
+        overlays: plan.overlays,
+        shots: plan.shots.map((s) => ({ idx: s.idx, role: s.role, kind: s.kind, source: s.source, cut_seconds: s.cutSeconds, prompt: s.prompt, scene_prompt: s.scenePrompt })),
+      })
+    }
+
+    if (sampleRun) {
+      // KINEO-ADS-AMOSTRA-2026-10-09 — teto GLOBAL do dia ANTES da trava (o custo da amostra é nosso). Sem saldo: não cobra.
+      if (await adsSampleCapReached(admin)) return v2Fail('sample_cap', 429)
+    } else {
+      // Saldo antes da trava (o RPC de débito não recusa saldo curto; chargeAdsV2 confere de novo).
+      const prof = await admin.from('profiles').select('video_credits').eq('id', uid).maybeSingle()
+      const balance = Number((prof.data as { video_credits?: number } | null)?.video_credits ?? 0)
+      if (!(balance >= cost)) return v2Fail('out_of_credits', 402, { needed: cost, balance })
+    }
+
+    // Trava condicional: só um início por pedido; o índice único parcial deixa só UM anúncio ativo por conta.
+    const generationId = randomUUID()
+    // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra trava com a chave 'adssample-…' (sem débito) e credits_charged 0.
+    const billingRef = sampleRun ? adsSampleRef(orderId, generationId) : adsV2BillingRef(orderId, generationId)
+    const lock = await admin
+      .from('ads_v2_orders')
+      .update({ status: 'generating', generation_id: generationId, billing_ref: billingRef, credits_charged: sampleRun ? 0 : cost, started_at: new Date().toISOString(), error: null })
+      .eq('id', orderId)
+      .eq('user_id', uid)
+      .in('status', ['draft', 'planned'])
+      .select('id')
+      .maybeSingle()
+    if (lock.error) return lock.error.code === '23505' ? v2Fail('another_active', 409) : v2Fail('start_failed', 502)
+    if (!lock.data) return v2Fail('not_startable', 409)
+    locked = { id: orderId, user_id: uid, billing_ref: billingRef }
+
+    // Débito com o padrão confiável (intenção → saldo → débito → releitura do ledger). A amostra NÃO debita (KINEO-ADS-AMOSTRA-2026-10-09).
+    const charge: AdsV2ChargeResult = sampleRun ? { ok: true, balance: null } : await chargeAdsV2(admin, { userId: uid, billingRef, cost })
+    if (!charge.ok) {
+      if (!charge.debitPossible) {
+        // Provado que nada foi debitado: o pedido volta a 'planned' (só esta geração).
+        await admin.from('ads_v2_orders').update({ status: 'planned', generation_id: null, billing_ref: null, credits_charged: 0, started_at: null })
+          .eq('id', orderId).eq('generation_id', generationId).eq('status', 'generating')
+      } else {
+        await failAdsV2Order(admin, locked, `charge_${charge.code}`, '/api/ads/v2/start')
+      }
+      locked = null
+      return v2Fail(charge.code, charge.status, charge.balance !== undefined ? { needed: cost, balance: charge.balance } : {})
+    }
+
+    if (sampleRun) {
+      // KINEO-ADS-AMOSTRA-2026-10-09 — o rastro da amostra (o custo é nosso: conta o teto e o US$ estimado).
+      await writeServerEvent({ name: 'ads_sample_started', userId: uid, path: '/api/ads/v2/start', metadata: { order_id: orderId, generation_id: generationId, billing_ref: billingRef, tier: order.tier, seconds: order.seconds, usd_estimate: usd.totalUsd, credits_list: cost } })
+    }
+
+    // Planos da geração (text nasce 'skipped_text' e nunca vai à fal).
+    const rows = buildInitialShotRows(orderId, order.tier, plan)
+    const ins = await admin.from('ads_v2_shots').upsert(rows, { onConflict: 'order_id,idx,attempt', ignoreDuplicates: true })
+    if (ins.error) {
+      await failAdsV2Order(admin, locked, 'shots_insert_failed', '/api/ads/v2/start')
+      locked = null
+      return v2Fail('start_failed', 502)
+    }
+    locked = null
+
+    const fresh = (await loadAdsV2Order(admin, orderId, uid)).order
+    const sent = fresh ? await dispatchAdsV2Shots(admin, fresh, started + DISPATCH_BUDGET_MS) : 0
+    await writeServerEvent({
+      name: 'ads_v2_started',
+      userId: uid,
+      path: '/api/ads/v2/start',
+      metadata: {
+        order_id: orderId, generation_id: generationId, billing_ref: billingRef, tier: order.tier, seconds: order.seconds, credits: sampleRun ? 0 : cost, sample: sampleRun,
+        usd_estimate: usd.totalUsd, shots: rows.length, text_shots: rows.filter((r) => r.kind === 'text').length, submitted_now: sent, ms: Date.now() - started,
+      },
+    })
+    // KINEO-EQUIPE-BUSINESS-2026-10-10 — rastro de auditoria: o MEMBRO agiu no workspace do dono (o pedido e a cobrança são do dono).
+    if (access.role === 'member') await writeServerEvent({ name: 'ads_order_by_member', userId: user.id, path: '/api/ads/v2/start', metadata: { owner_id: uid, action: 'start', order_id: orderId, billing_ref: billingRef, credits: sampleRun ? 0 : cost } })
+    const shots = (await loadAdsV2Shots(admin, orderId)) ?? []
+    return v2Json(fresh ? { ...adsV2View(fresh, shots), usd_estimate: usd } : { order_id: orderId, status: 'generating' }, 202)
+  } catch (e) {
+    console.warn('[ads/v2/start] falhou:', e instanceof Error ? e.message : String(e))
+    if (locked && admin) await failAdsV2Order(admin, locked, `exception:${e instanceof Error ? e.message : String(e)}`, '/api/ads/v2/start').catch(() => null)
+    return v2Fail('start_failed', 502)
+  }
+}

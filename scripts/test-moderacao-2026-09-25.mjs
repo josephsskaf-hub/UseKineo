@@ -177,7 +177,11 @@ const imp = ['app', 'lib', 'components'].flatMap(walk).filter((p) => /from '@\/l
 // your product link" modera o texto da página e cada foto baixada ANTES de virar linha do user_footage).
 // KINEO-PRIMEIRO-FILME-2026-10-13 — re-ancorado: +1 importador de servidor, app/api/generate-script/route.ts (o texto colado é
 // moderado ANTES da única nova tentativa do roteirista que recusou; barrado ou fora do ar = sem nova chamada).
-ok(imp.length === 29 && imp.every((p) => !/^\s*['"]use client['"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`)
+// KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o /plan e o /start do anúncio v2 moveram o corpo (com a moderação) para
+// lib/ads/v2PlanCore.ts e lib/ads/v2StartCore.ts (troca 2 por 2, saldo zero), e +1 importador de servidor, lib/shopify/adFlow.ts
+// (o app da Shopify modera cada foto do produto e o cartão final ANTES de virarem linha do user_footage).
+// KINEO-LEVA4-1310 — as duas reancoragens juntas: 28 + generate-script (+1) + adFlow (+1) = 30 importadores.
+ok(imp.length === 30 && imp.every((p) => !/^\s*['"]use client['"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`)
 
 // ── 5. upload: o tipo pelos bytes ──────────────────────────────────────────────────────────────────────
 const K = roda('lib/safety/mediaKind.ts')

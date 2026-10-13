@@ -41,6 +41,10 @@ const F = {
   billing: 'lib/ads/v2Billing.ts',
   advance: 'lib/ads/v2Advance.ts',
   start: 'app/api/ads/v2/start/route.ts',
+  // KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o corpo do /start e do /plan foi EXTRAÍDO, sem mudar uma linha, para os núcleos
+  // abaixo (a rota só lê o cookie e chama o núcleo). Leitura = rota + núcleo; os mutantes do /start trocam a fonte do NÚCLEO.
+  startCore: 'lib/ads/v2StartCore.ts',
+  planCore: 'lib/ads/v2PlanCore.ts',
   orders: 'app/api/ads/v2/orders/route.ts',
   plan: 'app/api/ads/v2/plan/route.ts',
   research: 'app/api/ads/v2/research/route.ts',
@@ -260,7 +264,7 @@ await check('4i Studio Ads desligado → a conta free não ganha amostra (403)',
   const r = await runStart(world(), { env: { NEXT_PUBLIC_ADS_PASS_LIVE: '0' } })
   return r.res.status === 403 && r.order.status === 'planned'
 })
-const START = code(read(F.start))
+const START = code(read(F.start) + '\n' + read(F.startCore))
 ok(ordem(START, 'auth.getUser()', 'adsGate(', 'adsSampleOpen(', "'v2_closed'", "'sample_level_only'", 'moderateContent(', 'if (dryRun)', 'adsSampleCapReached(', "update({ status: 'generating'", 'chargeAdsV2(', "'ads_sample_started'", 'buildInitialShotRows(', 'dispatchAdsV2Shots('),
   '4j ordem no arquivo: gate → amostra → v2 → nível → moderação → dry_run → TETO → trava → (sem) débito → evento → planos → envio')
 ok((START.match(/chargeAdsV2\(/g) || []).length === 1 && /sampleRun \? \{ ok: true, balance: null \} : await chargeAdsV2\(/.test(START) && /credits_charged: sampleRun \? 0 : cost/.test(START) && /sampleRun \? adsSampleRef\(orderId, generationId\) : adsV2BillingRef\(orderId, generationId\)/.test(START),
@@ -301,11 +305,11 @@ ok(fechado(read(F.retake)), '6a /api/ads/v2/retake: nenhuma amostra, a negação
 ok(fechado(read(F.variations)), '6b /api/ads/v2/variations: nenhuma amostra, a negação gate !== ok intacta')
 ok(!/adsSample|ADS_SAMPLE/.test(code(read(F.newPage))) && (!fs.existsSync(path.join(ROOT, F.producao)) || !/adsSample|ADS_SAMPLE/.test(code(read(F.producao)))), '6c v1 (/ads/new) e Produção não abrem pela amostra')
 for (const [nome, rel] of [['orders', F.orders], ['plan', F.plan], ['research', F.research]]) {
-  const s = code(read(rel))
+  const s = code(read(rel) + (rel === F.plan ? '\n' + read(F.planCore) : ''))
   // KINEO-EQUIPE-BUSINESS-2026-10-10 — re-ancorado: a amostra pergunta pela elegibilidade do DONO do workspace (uid = ws.ownerId; sem equipe, o próprio user.id).
   ok(/const sample = gate === 'no_access' && await adsSampleOpen\(admin, uid, reason\)/.test(s) && /const uid: string = ws\.ownerId \?\? user\.id/.test(s) && /if \(gate !== 'ok' && !sample\) \{/.test(s), `6d /api/ads/v2/${nome}: abre só pela amostra (gate no_access + adsSampleOpen); o resto nega como antes`)
 }
-ok(/if \(gate !== 'ok' && sample && !adsSampleLevelOk\(o\.tier, o\.seconds\)\) return v2Fail\('sample_level_only', 403\)/.test(code(read(F.orders))) && /if \(gate !== 'ok' && sample && !adsSampleLevelOk\(order\.tier, order\.seconds\)\) return v2Fail\('sample_level_only', 403\)/.test(code(read(F.plan))),
+ok(/if \(gate !== 'ok' && sample && !adsSampleLevelOk\(o\.tier, o\.seconds\)\) return v2Fail\('sample_level_only', 403\)/.test(code(read(F.orders))) && /if \(gate !== 'ok' && sample && !adsSampleLevelOk\(order\.tier, order\.seconds\)\) return v2Fail\('sample_level_only', 403\)/.test(code(read(F.plan) + '\n' + read(F.planCore))),
   '6e rascunho e plano da amostra só no nível/duração dela (403 sample_level_only)')
 const PAGE = code(read(F.page))
 // KINEO-EQUIPE-BUSINESS-2026-10-10 — re-ancorado: a página pergunta pela amostra do DONO do workspace (uid).
@@ -364,7 +368,7 @@ const sinkSet = (read(F.sink).match(/const SERVER_ONLY_EVENTS = new Set\(\[([\s\
 ok(EV.isAdsEvent('ads_sample_started') && EV.ADS_SERVER_ONLY_EVENTS.includes('ads_sample_started') && sinkSet.includes("'ads_sample_started'"), '8d ads_sample_started: lista fechada, só-servidor, e o sink do navegador recusa')
 
 // ═══ 9. mutantes (cada um prova que aplicou e fica vermelho) ═════════════════════════════════════════════════════════
-const SRC = { sample: read(F.sample), access: read(F.access), start: read(F.start), billing: read(F.billing) }
+const SRC = { sample: read(F.sample), access: read(F.access), startCore: read(F.startCore), billing: read(F.billing) }
 async function mutante(nome, rel, de, para, ficaVermelho) {
   const src = SRC[rel] ?? read(rel)
   const m = trocar(src, de, para)
@@ -382,13 +386,13 @@ await mutante('amostra usada sem o filtro de status (falhou = usou)', 'access', 
   async (over) => (await eligible('none', [sampleRow('failed')], { over })).v === true)
 await mutante('teto que falha virando "aberto"', 'access', "    if (error || typeof count !== 'number') return true", "    if (error || typeof count !== 'number') return false",
   async (over) => (await capReached([], { failWhen: (n) => n === 'ads_v2_orders', over })) === true)
-await mutante('/start sem a checagem do teto', 'start', "      if (await adsSampleCapReached(admin)) return v2Fail('sample_cap', 429)\n", '',
+await mutante('/start sem a checagem do teto', 'startCore', "      if (await adsSampleCapReached(admin)) return v2Fail('sample_cap', 429)\n", '',
   async (over) => (await runStart(world({ extraOrders: sampleStarted(10) }), { over })).res.status === 429)
-await mutante('/start cobrando a amostra (credits_charged = custo)', 'start', 'credits_charged: sampleRun ? 0 : cost', 'credits_charged: cost',
+await mutante('/start cobrando a amostra (credits_charged = custo)', 'startCore', 'credits_charged: sampleRun ? 0 : cost', 'credits_charged: cost',
   async (over) => amostraOk(await runStart(world(), { over })))
-await mutante('/start chamando o débito na amostra', 'start', 'sampleRun ? { ok: true, balance: null } : await chargeAdsV2(', 'await chargeAdsV2(',
+await mutante('/start chamando o débito na amostra', 'startCore', 'sampleRun ? { ok: true, balance: null } : await chargeAdsV2(', 'await chargeAdsV2(',
   async (over) => amostraOk(await runStart(world(), { over })))
-await mutante('/start sem forçar o nível da amostra', 'start', "    if (sampleRun && !adsSampleLevelOk(order.tier, order.seconds)) return v2Fail('sample_level_only', 403)\n", '',
+await mutante('/start sem forçar o nível da amostra', 'startCore', "    if (sampleRun && !adsSampleLevelOk(order.tier, order.seconds)) return v2Fail('sample_level_only', 403)\n", '',
   async (over) => (await runStart(world({ tier: 'cinema' }), { over })).res.status === 403)
 await mutante('failAdsV2Order estornando chave de amostra', 'billing', 'if (order.billing_ref && !isAdsSampleRef(order.billing_ref)) {', 'if (order.billing_ref) {',
   async (over) => { const r = await runFail(`adssample-${ORDER}-${GEN}`, over); return r.refunds.length === 0 && r.out.refund === 'skipped' })

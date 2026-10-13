@@ -57,6 +57,9 @@ const F = {
   iface: 'lib/ui/interfaceLanguage.ts',
 }
 const SRC = Object.fromEntries(Object.entries(F).map(([k, v]) => [k, read(v)]))
+// KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o corpo do /plan foi EXTRAÍDO, sem mudar uma linha, para lib/ads/v2PlanCore.ts
+// (a rota só lê o cookie e chama o núcleo). Leitura do /plan = rota + núcleo, na ordem em que rodam.
+SRC.planRoute = `${SRC.planRoute}\n${read('lib/ads/v2PlanCore.ts')}`
 const mundo = (over = {}, mocks = {}, globals = {}) => createOfflineLoader({ mocks, globals, source: (rel, text) => (over[rel] !== undefined ? over[rel] : text) })
 const pura = (over = {}) => mundo(over)
 

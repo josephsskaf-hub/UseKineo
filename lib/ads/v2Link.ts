@@ -215,3 +215,18 @@ export async function adsV2LinkImport(raw: string, opts: { max?: number; roomByt
     skipped,
   }
 }
+
+/**
+ * KINEO-SHOPIFY-2026-10-13 (etapa 2) — UMA foto por URL, pelo MESMO safeGet do link-import (host público antes e depois do DNS, a
+ * cada salto; tempo e bytes limitados; download abortado no meio quando passa do teto) e só JPG/PNG/WebP pelos BYTES. É a porta
+ * das fotos do produto que o app da Shopify lê na Admin API (o chamador ainda exige o host do CDN da Shopify). Nada é gravado aqui.
+ */
+export async function adsV2FetchImage(raw: string, maxBytes: number): Promise<{ ext: 'jpg' | 'png' | 'webp'; bytes: Uint8Array } | null> {
+  const u = safeLinkUrl(raw)
+  const cap = Math.min(ADS_V2_LINK_IMAGE_MAX_BYTES, Math.max(0, maxBytes))
+  if (!u || cap < ADS_V2_LINK_IMAGE_MIN_BYTES) return null
+  const img = await safeGet(u, 'image/jpeg,image/png;q=0.9,*/*;q=0.1', cap, false).catch(() => null)
+  const ext = img ? adsV2ImageKind(img.body) : null
+  if (!img || !ext || img.body.byteLength < ADS_V2_LINK_IMAGE_MIN_BYTES) return null
+  return { ext, bytes: img.body }
+}

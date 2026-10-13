@@ -19,10 +19,17 @@ import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { desfazExtracao, textoOriginalV2 } from './test-support/shopify-extracao-v2-1310.mjs' // KINEO-SHOPIFY-2026-10-13 (etapa 2)
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+const readCru = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+// KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o corpo do /plan e do /start foi EXTRAÍDO, sem mudar uma linha, para
+// lib/ads/v2PlanCore.ts e lib/ads/v2StartCore.ts (a rota só lê o cookie e chama o núcleo). Ler a rota = rota + núcleo, na ordem
+// em que rodam; a impressão digital da base usa o texto de ANTES remontado por test-support/shopify-extracao-v2-1310.mjs.
+const NUCLEO_V2 = { 'app/api/ads/v2/plan/route.ts': 'lib/ads/v2PlanCore.ts', 'app/api/ads/v2/start/route.ts': 'lib/ads/v2StartCore.ts' }
+const read = (rel) => (NUCLEO_V2[rel] ? `${readCru(rel)}\n${readCru(NUCLEO_V2[rel])}` : readCru(rel))
+const leBaseV2 = (rel) => (rel === 'app/api/ads/v2/plan/route.ts' ? textoOriginalV2('plan', ROOT) : rel === 'app/api/ads/v2/start/route.ts' ? textoOriginalV2('start', ROOT) : readCru(rel))
 let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }

@@ -187,7 +187,11 @@ ok(/\{scopy && businessOffer \? <AdsAfterSampleOffer lang="en" business=\{busine
 // a página só entrega a oferta para a amostra; o caminho pago fica sem prop
 const pg = codigo(rd(F.page))
 ok(/ sample=\{sample\} business=\{sample \? businessAdsOffer\(\) : null\} \/>/.test(pg) && /import \{ businessAdsOffer \} from '@\/lib\/businessPlan'/.test(pg), '1p /ads/v2 passa a oferta SÓ com sample (assinante/passe/interna: null)')
-ok(!/businessAdsOffer|POS-AMOSTRA|AfterSample/.test(rd(F.start)) && /return v2Fail\(gate === 'closed' \? 'closed' : 'no_access', 403\)/.test(rd(F.start)) && /if \(!\(balance >= cost\)\) return v2Fail\('out_of_credits', 402, \{ needed: cost, balance \}\)/.test(rd(F.start)),'1q /api/ads/v2/start intocado (o 403 no_access e o caminho pago seguem iguais no servidor)')
+// KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o corpo do /start foi EXTRAÍDO, sem mudar uma linha, para lib/ads/v2StartCore.ts
+// (a rota só lê o cookie e chama o núcleo). Leitura do /start = rota + núcleo, na ordem em que rodam.
+const START_V2 = `${rd(F.start)}
+${rd('lib/ads/v2StartCore.ts')}`
+ok(!/businessAdsOffer|POS-AMOSTRA|AfterSample/.test(START_V2) && /return v2Fail\(gate === 'closed' \? 'closed' : 'no_access', 403\)/.test(START_V2) && /if \(!\(balance >= cost\)\) return v2Fail\('out_of_credits', 402, \{ needed: cost, balance \}\)/.test(START_V2),'1q /api/ads/v2/start intocado (o 403 no_access e o caminho pago seguem iguais no servidor)')
 // a porta /ads: amostra usada → oferta no lugar do convite
 const door = codigo(rd(F.door))
 ok(/const afterSample: AdsSampleUsedAd \| null = ADS_SAMPLE_LIVE && live && ADS_V2_PUBLIC && !sampleHref && viewer\.signedIn && viewer\.gate === 'no_access' && viewer\.userId\n\s+\? await withTimeout\(loadAdsSampleUsedAd\(footageAdminClient\(\), viewer\.userId\), null\)\.then\(\(r\) => \(r && r\.used && r\.delivered \? r : null\)\)\n\s+: null/.test(door),

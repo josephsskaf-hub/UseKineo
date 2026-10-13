@@ -110,6 +110,12 @@ const F = {
 for (const p of Object.values(F)) await check(`arquivo existe: ${p}`, existsSync(join(RAIZ, p)))
 
 const SRC = Object.fromEntries(Object.entries(F).map(([k, p]) => [k, rd(p)]))
+// KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o corpo do /plan e do /start foi EXTRAÍDO, sem mudar uma linha, para os núcleos
+// lib/ads/v2PlanCore.ts e lib/ads/v2StartCore.ts (a rota só lê o cookie e chama o núcleo). SRC.planRoute = a fonte do NÚCLEO (é nela
+// que os mutantes mexem; loadRoute carrega a rota real com o núcleo trocado); SRC.startRoute = rota + núcleo, na ordem em que rodam.
+const PLAN_CORE = 'lib/ads/v2PlanCore.ts'
+SRC.planRoute = rd(PLAN_CORE)
+SRC.startRoute = `${SRC.startRoute}\n${rd('lib/ads/v2StartCore.ts')}`
 const C = pura(F.contract)
 const R = pura(F.research)
 const S = pura(F.simpleLib)
@@ -312,7 +318,7 @@ function mundo(order, extra = {}) {
 }
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — re-ancorado: a rota /plan importa o interruptor ADS_V2_STYLES_PUBLIC de lib/ads/v2Styles.ts (lib PURA: só import type).
 // KINEO-ATOR-ANUNCIO-2026-10-09 — re-ancorado: a rota /plan importa o interruptor e o plano do ator de lib/ads/v2Presenter.ts (lib PURA: só import type).
-const loadRoute = (rel, stubs, src) => makeLoader(stubs, { real: ['lib/textLanguage.ts', 'lib/ads/v2Contract.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/v2Research.ts', 'lib/ads/v2Styles.ts', 'lib/ads/v2Presenter.ts'], over: src === undefined ? {} : { [rel]: src } })(rel)
+const loadRoute = (rel, stubs, src) => makeLoader(stubs, { real: ['lib/textLanguage.ts', 'lib/ads/v2Contract.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/v2Research.ts', 'lib/ads/v2Styles.ts', 'lib/ads/v2Presenter.ts', PLAN_CORE], over: src === undefined ? {} : { [rel === F.planRoute ? PLAN_CORE : rel]: src } })(rel) // KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o núcleo do /plan
 const req = (body) => ({ json: async () => body, nextUrl: { searchParams: new URLSearchParams() } })
 const PHOTOS = [0, 1, 2].map((i) => ({ footage_id: U(20 + i), kind: 'place' }))
 const FATOS = [

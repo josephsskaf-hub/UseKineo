@@ -71,6 +71,9 @@ const F = {
   screen: 'lib/ads/v2Screen.ts',
 }
 const SRC = Object.fromEntries(Object.entries(F).map(([k, v]) => [k, read(v)]))
+// KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o corpo do /plan foi EXTRAÍDO, sem mudar uma linha, para lib/ads/v2PlanCore.ts
+// (a rota só lê o cookie e chama o núcleo). A leitura do /plan = rota + núcleo, na ordem em que rodam.
+SRC.plan = `${SRC.plan}\n${read('lib/ads/v2PlanCore.ts')}`
 const pura = (over = {}) => createOfflineLoader({ source: (rel, text) => (over[rel] !== undefined ? over[rel] : text) })
 
 // ═══ 1. 1 foto basta, cliente e servidor ═════════════════════════════════════════════════════════════════════════════
