@@ -36,8 +36,11 @@ import { REGION_PASS_OFFER_LIVE, REGION_PAID_ONLY_TRIAL_STATUS } from './freeFil
 export const REGION_PASS_VERSION = 'region_pass_v1' as const
 
 /** As telas onde o passe aparece: a parede do Studio, o /pricing (onde a prévia e a faixa levam) e o filme grátis pronto. */
-export type RegionPassSurface = 'wall' | 'pricing' | 'after_film'
-export const REGION_PASS_SURFACES: readonly RegionPassSurface[] = ['wall', 'pricing', 'after_film']
+// KINEO-PAIS-SEM-GRATIS-2026-10-13 — + 'first_film': a faixa do topo (toda tela do painel, o /studio incluído) para quem
+// nasceu 'region_paid_only' e está SEM o filme grátis disponível. Mesmo passe, mesmo preço, mesma régua; muda só a
+// campanha (REGION_PAID_FIRST_FILM_CAMPAIGN) e os nomes dos eventos (region_paid_offer_shown/_clicked).
+export type RegionPassSurface = 'wall' | 'pricing' | 'after_film' | 'first_film'
+export const REGION_PASS_SURFACES: readonly RegionPassSurface[] = ['wall', 'pricing', 'after_film', 'first_film']
 export function isRegionPassSurface(raw: unknown): raw is RegionPassSurface {
   return typeof raw === 'string' && (REGION_PASS_SURFACES as readonly string[]).includes(raw)
 }
@@ -45,6 +48,18 @@ export function isRegionPassSurface(raw: unknown): raw is RegionPassSurface {
 /** Eventos de SERVIDOR (app/api/region-pass; estão em SERVER_ONLY_EVENTS de app/api/events/route.ts). */
 export const REGION_PASS_OFFER_SHOWN_EVENT = 'region_pass_offer_shown'
 export const REGION_PASS_OFFER_CLICKED_EVENT = 'region_pass_offer_clicked'
+/** KINEO-PAIS-SEM-GRATIS-2026-10-13 — os eventos (de SERVIDOR) da faixa do topo, separados dos da parede/pricing/filme pronto. */
+export const REGION_PAID_OFFER_SHOWN_EVENT = 'region_paid_offer_shown'
+export const REGION_PAID_OFFER_CLICKED_EVENT = 'region_paid_offer_clicked'
+/** KINEO-PAIS-SEM-GRATIS-2026-10-13 — a campanha da faixa do topo (fundador, 13/10: intent_campaign=region_paid_first_film). */
+export const REGION_PAID_FIRST_FILM_CAMPAIGN = 'region_paid_first_film' as const
+
+function shownEventFor(surface: RegionPassSurface): string {
+  return surface === 'first_film' ? REGION_PAID_OFFER_SHOWN_EVENT : REGION_PASS_OFFER_SHOWN_EVENT
+}
+function clickedEventFor(surface: RegionPassSurface): string {
+  return surface === 'first_film' ? REGION_PAID_OFFER_CLICKED_EVENT : REGION_PASS_OFFER_CLICKED_EVENT
+}
 
 /** O SKU que o checkout grava (checkout_*.metadata.sku e a metadata.pack da sessão → payment_success.metadata.pack). */
 export const REGION_PASS_SKU = 'starter10' as const
@@ -53,6 +68,7 @@ export const REGION_PASS_PACK_PARAM = 'starter' as const
 
 /** A campanha que viaja do clique ao payment_success (intent_campaign): o placar separa o passe de região dos outros. */
 export function regionPassIntentCampaign(surface: RegionPassSurface): string {
+  if (surface === 'first_film') return REGION_PAID_FIRST_FILM_CAMPAIGN // KINEO-PAIS-SEM-GRATIS-2026-10-13
   return `region_pass_${surface}_v1`
 }
 
@@ -118,6 +134,9 @@ export interface RegionPassOffer {
   price: RegionPassPrice
   href: string
   balance: number | null
+  /** KINEO-PAIS-SEM-GRATIS-2026-10-13 — a conta ainda não tem NENHUM vídeo (contagem do servidor): o texto diz "primeiro
+   *  filme", não "próximo". Contagem que falhou = false (o texto de sempre). */
+  firstFilm: boolean
   version: typeof REGION_PASS_VERSION
 }
 
@@ -142,6 +161,8 @@ export function decideRegionPassRequest(input: {
   ipCountry: string | null
   acceptLanguage: string | null
   live?: boolean
+  /** KINEO-PAIS-SEM-GRATIS-2026-10-13 — quantos vídeos a conta tem (null/ausente = não consegui contar). */
+  videosCount?: number | null
 }): RegionPassDecision {
   const live = input.live ?? REGION_PASS_OFFER_LIVE
   const surface = isRegionPassSurface(input.surface) ? input.surface : null
@@ -155,7 +176,7 @@ export function decideRegionPassRequest(input: {
       kind: 'redirect',
       location: regionPassCheckoutHref(surface),
       event: {
-        name: REGION_PASS_OFFER_CLICKED_EVENT,
+        name: clickedEventFor(surface), // KINEO-PAIS-SEM-GRATIS-2026-10-13
         metadata: { surface, currency: price.currency, amount_minor: price.amountMinor, usd_minor: price.usdMinor, settlement_reason: price.reason, sku: REGION_PASS_SKU, intent_campaign: regionPassIntentCampaign(surface), country: input.ipCountry, version: REGION_PASS_VERSION },
       },
     }
@@ -166,14 +187,15 @@ export function decideRegionPassRequest(input: {
   if (!regionPassOfferEligible(input.profile, live)) return { kind: 'json', status: 200, body: { eligible: false, reason: 'not_eligible' }, event: null }
   const price = regionPassPrice({ ipCountry: input.ipCountry, acceptLanguage: input.acceptLanguage })
   const balance = typeof input.profile?.video_credits === 'number' ? input.profile.video_credits : null
-  const offer: RegionPassOffer = { eligible: true, surface, price, href: regionPassGoHref(surface), balance, version: REGION_PASS_VERSION }
+  const firstFilm = input.videosCount === 0 // KINEO-PAIS-SEM-GRATIS-2026-10-13
+  const offer: RegionPassOffer = { eligible: true, surface, price, href: regionPassGoHref(surface), balance, firstFilm, version: REGION_PASS_VERSION }
   return {
     kind: 'json',
     status: 200,
     body: offer as unknown as Record<string, unknown>,
     event: {
-      name: REGION_PASS_OFFER_SHOWN_EVENT,
-      metadata: { surface, currency: price.currency, amount_minor: price.amountMinor, usd_minor: price.usdMinor, settlement_reason: price.reason, sku: REGION_PASS_SKU, balance, country: input.ipCountry, version: REGION_PASS_VERSION },
+      name: shownEventFor(surface), // KINEO-PAIS-SEM-GRATIS-2026-10-13
+      metadata: { surface, currency: price.currency, amount_minor: price.amountMinor, usd_minor: price.usdMinor, settlement_reason: price.reason, sku: REGION_PASS_SKU, balance, first_film: firstFilm, intent_campaign: regionPassIntentCampaign(surface), country: input.ipCountry, version: REGION_PASS_VERSION },
     },
   }
 }
@@ -186,6 +208,17 @@ export interface RegionPassCopy {
   body: (seconds: number, credits: number) => string
   cta: (price: string) => string
   chargedIn: (currencyCode: string) => string
+  // KINEO-PAIS-SEM-GRATIS-2026-10-13 — a conta ainda não fez nenhum filme ("primeiro", não "próximo") e a faixa do topo.
+  firstTitle: (price: string) => string
+  firstCta: (price: string) => string
+  /** A frase honesta da faixa: esta conta não tem o filme grátis (nunca "no seu país": com o filme de região no ar, a conta
+   *  NOVA do mesmo país ganha um — dizer "país" seria mentira; ver REGION_FREE_FILM_NOTICE em lib/freeFilmPolicy.ts). */
+  noFreeFilm: string
+  /** Depois do filme grátis de região já usado. */
+  freeFilmUsed: string
+  exampleLabel: string
+  plans: string
+  freeClip: string
 }
 export const REGION_PASS_COPY: { en: RegionPassCopy; pt: RegionPassCopy; es: RegionPassCopy } = {
   en: {
@@ -195,6 +228,13 @@ export const REGION_PASS_COPY: { en: RegionPassCopy; pt: RegionPassCopy; es: Reg
     body: (s, c) => `A ${s}-second Seedance 1.5 film from your own idea — ${c} credits, paid once. No watermark, no renewal.`,
     cta: (p) => `Make my next film · ${p}`,
     chargedIn: (code) => `Charged in ${code}.`,
+    firstTitle: (p) => `Your first film for ${p}`,
+    firstCta: (p) => `Make my first film · ${p}`,
+    noFreeFilm: 'This account doesn’t include a free film.',
+    freeFilmUsed: 'Your free film is used.',
+    exampleLabel: 'Made with Kineo · Seedance 1.5',
+    plans: 'See plans',
+    freeClip: 'Use my free clip',
   },
   pt: {
     kicker: 'UM FILME · SEM ASSINATURA',
@@ -203,6 +243,13 @@ export const REGION_PASS_COPY: { en: RegionPassCopy; pt: RegionPassCopy; es: Reg
     body: (s, c) => `Um filme de ${s} segundos no Seedance 1.5, a partir da sua ideia — ${c} créditos, pagos uma vez. Sem marca d’água, sem renovação.`,
     cta: (p) => `Fazer meu próximo filme · ${p}`,
     chargedIn: (code) => `Cobrado em ${code}.`,
+    firstTitle: (p) => `Seu primeiro filme por ${p}`,
+    firstCta: (p) => `Fazer meu primeiro filme · ${p}`,
+    noFreeFilm: 'Esta conta não inclui um filme grátis.',
+    freeFilmUsed: 'Seu filme grátis já foi usado.',
+    exampleLabel: 'Feito com a Kineo · Seedance 1.5',
+    plans: 'Ver planos',
+    freeClip: 'Usar meu clipe grátis',
   },
   es: {
     kicker: 'UNA PELÍCULA · SIN SUSCRIPCIÓN',
@@ -211,5 +258,12 @@ export const REGION_PASS_COPY: { en: RegionPassCopy; pt: RegionPassCopy; es: Reg
     body: (s, c) => `Una película de ${s} segundos en Seedance 1.5, a partir de tu idea — ${c} créditos, un solo pago. Sin marca de agua, sin renovación.`,
     cta: (p) => `Hacer mi próxima película · ${p}`,
     chargedIn: (code) => `Cobrado en ${code}.`,
+    firstTitle: (p) => `Tu primera película por ${p}`,
+    firstCta: (p) => `Hacer mi primera película · ${p}`,
+    noFreeFilm: 'Esta cuenta no incluye una película gratis.',
+    freeFilmUsed: 'Ya usaste tu película gratis.',
+    exampleLabel: 'Hecho con Kineo · Seedance 1.5',
+    plans: 'Ver planes',
+    freeClip: 'Usar mi clip gratis',
   },
 }

@@ -71,7 +71,8 @@ export default function RegionPassOffer({
     <div data-region-pass={REGION_PASS_VERSION} data-surface={surface} data-currency={offer.price.currency} style={panel}>
       <p style={{ margin: '0 0 5px', fontSize: 12, color: 'var(--accent)', fontWeight: 800 }}>{copy.kicker}</p>
       <strong style={{ display: 'block', fontSize: 21, lineHeight: 1.25, color: 'var(--text)' }}>
-        {surface === 'after_film' ? copy.afterFilmTitle(price) : copy.title(price)}
+        {/* KINEO-PAIS-SEM-GRATIS-2026-10-13 — conta sem nenhum filme lê "seu primeiro filme", não "o próximo". */}
+        {surface === 'after_film' ? copy.afterFilmTitle(price) : offer.firstFilm === true ? copy.firstTitle(price) : copy.title(price)}
       </strong>
       <p style={{ margin: '8px 0', lineHeight: 1.5, color: 'var(--text)' }}>{copy.body(offer.price.seconds, offer.price.credits)}</p>
       {offer.price.currency !== 'usd' ? (
@@ -95,7 +96,7 @@ export default function RegionPassOffer({
           })
         }}
       >
-        {pending ? '…' : copy.cta(price)}
+        {pending ? '…' : surface !== 'after_film' && offer.firstFilm === true ? copy.firstCta(price) : copy.cta(price)}
       </button>
       {checkout.error ? <p role="alert" style={{ marginTop: 8, fontSize: 12, color: 'var(--danger, #d43b3b)' }}>{checkout.error}</p> : null}
     </div>

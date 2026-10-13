@@ -26,6 +26,17 @@ export async function GET(req: NextRequest) {
     const { data } = await supabase.from('profiles').select('trial_status, has_paid, plan, video_credits').eq('id', user.id).maybeSingle()
     profile = (data as typeof profile) ?? null
   }
+  // KINEO-PAIS-SEM-GRATIS-2026-10-13 — quantos vídeos a conta tem: 0 = o texto diz "primeiro filme" (nunca "próximo" a
+  // quem não fez nenhum). Só para a conta da régua e só na oferta (o clique não precisa). Falhou = null = o texto de sempre.
+  let videosCount: number | null = null
+  if (user && (profile as { trial_status?: string | null } | null)?.trial_status === 'region_paid_only' && req.nextUrl.searchParams.get('go') !== '1') {
+    try {
+      const res = (await supabase.from('videos').select('id', { count: 'exact', head: true }).eq('user_id', user.id)) as { count?: number | null; error?: unknown }
+      videosCount = !res?.error && typeof res?.count === 'number' ? res.count : null
+    } catch {
+      videosCount = null
+    }
+  }
   const decision = decideRegionPassRequest({
     userId: user?.id ?? null,
     profile,
@@ -33,6 +44,7 @@ export async function GET(req: NextRequest) {
     go: req.nextUrl.searchParams.get('go') === '1',
     ipCountry: req.headers.get('x-vercel-ip-country'),
     acceptLanguage: req.headers.get('accept-language'),
+    videosCount, // KINEO-PAIS-SEM-GRATIS-2026-10-13
   })
   // AWAIT: a Vercel congela a função quando a resposta sai — o evento antes do return é a única forma de ele existir.
   if (decision.event && user) {

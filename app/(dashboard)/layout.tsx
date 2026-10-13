@@ -75,6 +75,8 @@ import TrialContinueNowBanner from '@/components/TrialContinueNowBanner'
 import RegionPaidOnlyBanner from '@/components/RegionPaidOnlyBanner' // KINEO-E4-SAIDA-B-2026-09-29
 import { regionFreeClipAvailable, regionPaidOnlyNoticeVisible } from '@/lib/freeFilmPolicy'
 import { regionFreeFilmAvailable } from '@/lib/freeFilmPolicy' // KINEO-SAIDA-REGIAO-2026-10-07
+import { blockedNeutralNoticeVisible } from '@/lib/freeFilmPolicy' // KINEO-PAIS-SEM-GRATIS-2026-10-13
+import BlockedNeutralNotice from '@/components/BlockedNeutralNotice'
 import ScenePreviewResumeBanner from '@/components/ScenePreviewResumeBanner' // KINEO-PREVIA-CENAS-2026-10-03
 
 // KINEO-ACQ-SPRINT-2026-07-29 — KEEP THE APP OUT OF THE SEARCH INDEX.
@@ -192,6 +194,9 @@ export default async function DashboardLayout({
           a de sempre. */}
       {user && regionFreeFilmAvailable(profile as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null; video_credits?: number | null } | null, videosCount) && <RegionPaidOnlyBanner freeFilm freeClip={regionFreeClipAvailable(profile as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null; video_credits?: number | null } | null)} />}
       {user && regionPaidOnlyNoticeVisible(profile as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null } | null) && !regionFreeFilmAvailable(profile as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null; video_credits?: number | null } | null, videosCount) && <RegionPaidOnlyBanner freeClip={regionFreeClipAvailable(profile as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null; video_credits?: number | null } | null)} />}
+      {/* KINEO-PAIS-SEM-GRATIS-2026-10-13 — conta 'blocked' (anti-abuso) lê um aviso neutro, sem oferta de compra. Exclusiva
+          com as duas de cima: 'blocked' nunca é 'region_paid_only'. */}
+      {user && blockedNeutralNoticeVisible(profile as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null } | null) && <BlockedNeutralNotice />}
       {/* KINEO-PREVIA-CENAS-2026-10-03 — depois de pagar, quem viu a prévia volta ao Studio com o roteiro a 1 clique. Só para
           conta que já pode fazer filme (pagou ou tem plano); o aviso só aparece com a prévia guardada no navegador. */}
       {user && ((profile as { has_paid?: boolean | null } | null)?.has_paid === true || !['free', ''].includes(String((profile as { plan?: string | null } | null)?.plan ?? 'free').toLowerCase())) && <ScenePreviewResumeBanner />}
