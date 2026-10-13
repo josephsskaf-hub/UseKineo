@@ -3,7 +3,8 @@
 //       afiliado, conta que paga fica fora, link de post só https público e fora da nossa casa;
 //   (2) escritas (lib/partnerPackStore.ts + lib/courtesyStore.ts reais) num banco em memória: etapa 1 via cortesia,
 //       post registrado, aprovação de 1 clique = etapa 2 (+25) uma vez só, recusa, etapa 2 depois da cortesia vencida;
-//   (3) a inscrição só entrega a etapa 1 atrás de PARTNER_PACK_LIVE; a taxa é a da fonte (AFFILIATE_COMMISSION_RATE, 40% desde 06/10);
+//   (3) a inscrição só entrega a etapa 1 atrás de PARTNER_PACK_LIVE; a taxa é a da fonte (AFFILIATE_COMMISSION_RATE, 30% para o
+//       afiliado novo desde 14/10 — KINEO-AFILIADO-30-NOVOS-2026-10-13; veterano segue 40%);
 //   (4) a lista do admin conta indicados, pagantes e créditos usados desde a etapa 1;
 //   (5) o painel do parceiro mostra cliques/cadastros/pagantes/comissão pendente e paga; o convite existe em en/pt/es
 //       sem promessa de ganho.
@@ -186,7 +187,8 @@ async function problems(S) {
 
   // (3) inscrição + taxa
   // Reancorado 06/10 (KINEO-AFILIADOS-40-2026-10-06): o fundador voltou a comissão para 40% recorrente.
-  if (AC.AFFILIATE_COMMISSION_RATE !== 0.4) p.push('taxa de comissão mudou')
+  // Reancorado 13/10 (KINEO-AFILIADO-30-NOVOS-2026-10-13): afiliado novo 30% (o convite é para parceiro novo).
+  if (AC.AFFILIATE_COMMISSION_RATE !== 0.3) p.push('taxa de comissão mudou')
   if (!/commission_rate: AFFILIATE_COMMISSION_RATE/.test(S.apply)) p.push('inscrição não grava AFFILIATE_COMMISSION_RATE')
   const calls = S.apply.match(/grantPartnerPackStage1\(/g) ?? []
   if (calls.length !== 1 || !/if \(shouldGrantPackOnApply\(\)\) \{\s*try \{\s*await grantPartnerPackStage1\(/.test(S.apply)) p.push('inscrição entrega o pacote fora do interruptor')
@@ -212,7 +214,8 @@ async function problems(S) {
   if (!S.invite) p.push('convite ausente')
   else {
     for (const h of ['## English', '## Português', '## Español']) if (!S.invite.includes(h)) p.push('convite sem a seção ' + h)
-    for (const w of ['25 credits', '25 créditos', '40%', 'every month', 'todo mês', 'cada mes']) if (!S.invite.includes(w)) p.push('convite sem: ' + w)
+    for (const w of ['25 credits', '25 créditos', `${AC.AFFILIATE_COMMISSION_PCT} of every payment`, `${AC.AFFILIATE_COMMISSION_PCT} de tudo`, `el ${AC.AFFILIATE_COMMISSION_PCT} de todo`, 'every month', 'todo mês', 'cada mes']) if (!S.invite.includes(w)) p.push('convite sem: ' + w)
+    if (/40% of every payment|40% de tudo|el 40% de todo/.test(S.invite)) p.push('convite promete 40% a parceiro novo')
     if (/(guarante|garant|passive income|renda extra|renda passiva|ingresos pasivos|earn up to|ganhe até|make \$)/i.test(S.invite)) p.push('convite promete ganho')
   }
   if (!/affiliate_id\s+uuid not null unique/.test(S.migration)) p.push('banco não garante 1 pacote por afiliado')
@@ -230,7 +233,8 @@ const mutants = [
   ['aprovação sem trava do clique duplo', { packStore: REAL.packStore.replace(".eq('post_status', 'pending')\n    .is('stage2_at', null)", '') }],
   ['post registrado já dá crédito', { packStore: REAL.packStore.replace("await event(admin, input.userId, 'partner_post_submitted'", "await addCourtesyCredits(admin, { grantId: (pack as PartnerPackRow).courtesy_grant_id!, credits: 25, reason: 'x', grantedBy: 'x' }); await event(admin, input.userId, 'partner_post_submitted'") }],
   ['inscrição dá o pacote sem interruptor', { apply: REAL.apply.replace('if (shouldGrantPackOnApply()) {', 'if (true) {') }],
-  ['taxa volta a 30%', { commission: REAL.commission.replace('export const AFFILIATE_COMMISSION_RATE = 0.4', 'export const AFFILIATE_COMMISSION_RATE = 0.3') }],
+  ['taxa do novo volta a 40%', { commission: REAL.commission.replace('export const AFFILIATE_COMMISSION_RATE = 0.3', 'export const AFFILIATE_COMMISSION_RATE = 0.4') }],
+  ['convite volta a 40%', { invite: REAL.invite.replace('**30% de tudo', '**40% de tudo') }],
   ['painel perde "Paid out"', { page: REAL.page.replace('label="Paid out $"', 'label="Paid"') }],
   ['convite promete renda', { invite: REAL.invite.replace('## Português', '## Português\n\nRenda passiva garantida.') }],
 ]

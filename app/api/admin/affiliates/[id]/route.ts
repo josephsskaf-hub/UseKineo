@@ -13,6 +13,8 @@ import {
   AffiliateLedgerIntegrityError,
   normalizeAffiliateAdminUpdate,
 } from '@/lib/affiliateLedger'
+// KINEO-AGENCIAS-2026-10-13 — o fundador marca a linha como agência (30% no Business) ou volta para criador.
+import { normalizePartnerType } from '@/lib/affiliateCommission'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -27,6 +29,7 @@ interface Body {
   action?: 'approve' | 'suspend' | 'activate'
   commission_rate?: number
   coupon_code?: string
+  partner_type?: string
 }
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
@@ -86,6 +89,14 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       throw error
     }
 
+    // KINEO-AGENCIAS-2026-10-13 — partner_type: só 'agency' ou 'creator'; qualquer outro valor é recusado (400), nunca gravado.
+    if (body.partner_type !== undefined) {
+      const partnerType = normalizePartnerType(body.partner_type)
+      if (!partnerType) {
+        return NextResponse.json({ error: "partner_type must be 'agency' or 'creator'" }, { status: 400 })
+      }
+      update.partner_type = partnerType
+    }
     if (Object.keys(update).length === 0) {
       return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
     }

@@ -149,6 +149,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // (a página responde com robots noindex); volta com AVATAR_PUBLIC=true.
     ...(AVATAR_PUBLIC ? [{ path: '/ai-avatar', priority: 0.8, freq: 'weekly' as const }] : []),
     { path: '/partners', priority: 0.8, freq: 'weekly' },
+    { path: '/agencies', priority: 0.8, freq: 'weekly' }, // KINEO-AGENCIAS-2026-10-13 — programa de agências (revenda do Business)
     { path: '/youtube-shorts-from-topic', priority: 0.9, freq: 'weekly' },
     { path: '/text-to-video-shorts', priority: 0.9, freq: 'weekly' },
     { path: '/cheapest-ai-shorts-maker', priority: 0.8, freq: 'weekly' },

@@ -1,6 +1,8 @@
-# Kineo Affiliate Kit v7 — 40% recurring on eligible purchases, paid in USD
+# Kineo Affiliate Kit v7 — 30% recurring on eligible purchases, paid in USD
 
-**FATO CONFIRMADO / IMPLEMENTADO — 06/10/2026, branch `codex/afiliados-40-0610` (KINEO-AFILIADOS-40-2026-10-06):** a comissão voltou a **40% recorrente** por decisão do fundador ("2 sim", sprint "MRR hoje"). Fonte única: `AFFILIATE_COMMISSION_RATE = 0.4` em `lib/affiliateCommission.ts`. Quem já era afiliado (linhas gravadas com 0.3) também recebe 40%: o webhook paga `effectiveAffiliateCommissionRate(linha)`, que usa a taxa do programa como piso. **A duração não mudou:** a comissão sai em toda cobrança elegível enquanto o indicado seguir assinando, sem teto de meses. Os 30% abaixo, onde ainda aparecerem em registros históricos, valeram de 09/09 a 06/10.
+**ATUALIZAÇÃO 13/10/2026 (KINEO-AFILIADO-30-NOVOS-2026-10-13):** a partir de **14/10/2026, afiliados novos ganham 30% recorrente** (`AFFILIATE_COMMISSION_RATE = 0.3` em `lib/affiliateCommission.ts`); **quem entrou antes do corte segue com 40%** (`affiliateCommissionFloor(created_at)`; o webhook paga `effectiveAffiliateCommissionRate(linha, created_at)`). A copy em inglês abaixo é a do parceiro NOVO (30%). Para um veterano, não reenviar este kit como se a taxa dele tivesse caído: a dele continua 40%.
+
+**HISTÓRICO (substituído pela atualização de 13/10 acima) — FATO CONFIRMADO / IMPLEMENTADO — 06/10/2026, branch `codex/afiliados-40-0610` (KINEO-AFILIADOS-40-2026-10-06):** a comissão voltou a **40% recorrente** por decisão do fundador ("2 sim", sprint "MRR hoje"). Fonte única: `AFFILIATE_COMMISSION_RATE = 0.4` em `lib/affiliateCommission.ts`. Quem já era afiliado (linhas gravadas com 0.3) também recebe 40%: o webhook paga `effectiveAffiliateCommissionRate(linha)`, que usa a taxa do programa como piso. **A duração não mudou:** a comissão sai em toda cobrança elegível enquanto o indicado seguir assinando, sem teto de meses. Os 30% abaixo, onde ainda aparecerem em registros históricos, valeram de 09/09 a 06/10.
 
 **⚠ ATENÇÃO — ENTRADA GRÁTIS DESATUALIZADA NESTE KIT (conferido 06/10/2026 no código):** as frases "30 credits", "every engine unlocked" e "30 free starting credits" nas legendas e roteiros abaixo são de 10/09 e **não valem mais**. Hoje (`lib/freeTierOffer.ts`, `lib/freeFilmPolicy.ts`, resposta "Can I test Kineo first?" da `/partners`): toda conta nova *nos países atendidos* começa grátis com **10 créditos, sem cartão — um filme Seedance 1.5 de 15 segundos com marca d'água**; Kling, Veo e os outros motores do Studio pedem plano pago. Trocar a frase de entrada em cada legenda/roteiro antes de entregar o kit a um parceiro.
 
@@ -16,9 +18,9 @@
 
 ## Partner offer — proposed English copy
 
-Earn **40% on every eligible purchase validly attributed to you, paid in USD**. Eligible subscription payments keep earning 40% recurring commissions for as long as your referred customer keeps paying. You get your own affiliate link and a dashboard for attributed activity and commissions. The attribution window is **90 days**, using the first eligible affiliate touch. A future purchase or top-up must qualify and retain valid attribution; commission on every future recharge is not guaranteed.
+Earn **30% on every eligible purchase validly attributed to you, paid in USD**. Eligible subscription payments keep earning 30% recurring commissions for as long as your referred customer keeps paying. You get your own affiliate link and a dashboard for attributed activity and commissions. The attribution window is **90 days**, using the first eligible affiliate touch. A future purchase or top-up must qualify and retain valid attribution; commission on every future recharge is not guaranteed.
 
-Your audience can **start free in supported countries with 10 credits and no card — enough for one watermarked 15-second Seedance 1.5 film**. Kling, Veo and the other Studio engines need a paid plan. Paid plans start at **US$12.90/month** and remove the watermark from paid exports. Credit use depends on the engine and video settings.
+Your audience can **start free in supported countries with 10 credits and no card — enough for one watermarked 15-second Seedance 1.5 film**. Kling, Veo and the other Studio engines need a paid plan. Paid plans start at **US$9.90/month** and remove the watermark from paid exports. Credit use depends on the engine and video settings.
 
 Current monthly plans:
 
@@ -28,7 +30,7 @@ Current monthly plans:
 | Creator | US$19.90 | 150 | R$99.90 |
 | Studio | US$54.90 | 300 | R$274.90 |
 
-For full monthly payments actually charged in USD, 40% is US$3.96 on Starter, US$7.96 on Creator, and US$21.96 on Studio — every month the customer stays subscribed. These examples do not apply directly to BRL charges. Cards display USD prices; Brazilian checkout uses the BRL table above. Discounts, failed payments and refunds can change what qualifies. These are not earnings forecasts. Credit amounts describe the plans; output quantity depends on the selected engine and settings.
+For full monthly payments actually charged in USD, 30% is US$2.97 on Starter, US$5.97 on Creator, and US$16.47 on Studio — every month the customer stays subscribed. These examples do not apply directly to BRL charges. Cards display USD prices; Brazilian checkout uses the BRL table above. Discounts, failed payments and refunds can change what qualifies. These are not earnings forecasts. Credit amounts describe the plans; output quantity depends on the selected engine and settings.
 
 ## Payout and activation bonus — approved policy, English wording
 
@@ -57,7 +59,7 @@ There is a **one-time US$3 activation bonus per affiliate** after the first appr
 - A discount, extra demo credits, free work or a payout exception that has not been agreed.
 - That the bonus is immediate cash, available for every renewal or paid separately below the minimum.
 
-**SUGESTÃO — controle de versão:** não reutilizar as ofertas antigas de US$1 por sete dias, 80 créditos de entrada ou comissão de 30% (a taxa de 09/09 a 06/10; desde 06/10 a comissão é 40% recorrente). Não citar Product Hunt como prova da Kineo: o endereço homônimo citado no briefing pertence a outro produto. O único link de review indicado pelo fundador é [Kineo on There's An AI For That](https://theresanaiforthat.com/ai/kineo).
+**SUGESTÃO — controle de versão:** não reutilizar as ofertas antigas de US$1 por sete dias, 80 créditos de entrada nem oferecer 40% a parceiro novo (os 40% seguem valendo só para quem entrou antes de 14/10 — veteranos, inclusive as linhas antigas gravadas com 0.3; de 09/09 a 06/10 a taxa era 30%; desde 14/10 o afiliado novo ganha 30% recorrente — KINEO-AFILIADO-30-NOVOS-2026-10-13). Não citar Product Hunt como prova da Kineo: o endereço homônimo citado no briefing pertence a outro produto. O único link de review indicado pelo fundador é [Kineo on There's An AI For That](https://theresanaiforthat.com/ai/kineo).
 
 ## Your link and attribution
 

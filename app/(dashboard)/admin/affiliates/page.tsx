@@ -11,7 +11,8 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 // KINEO-AFILIADOS-40-2026-10-06 — a taxa gravada por pessoa virou "acordo especial"; o webhook paga a maior entre ela e o piso.
-import { AFFILIATE_COMMISSION_PCT, effectiveAffiliateCommissionRate } from '@/lib/affiliateCommission'
+import { AFFILIATE_COMMISSION_PCT, affiliateCommissionFloor, effectiveAffiliateCommissionRate } from '@/lib/affiliateCommission'
+import { AGENCY_BUSINESS_COMMISSION_PCT, BUSINESS_AFFILIATE_COMMISSION_PCT, isAgencyPartner } from '@/lib/affiliateCommission' // KINEO-AGENCIAS-2026-10-13
 
 type Money = Record<string, number>
 
@@ -23,6 +24,7 @@ interface Affiliate {
   status: string | null
   commission_rate: number | null
   coupon_code: string | null
+  partner_type?: string | null // KINEO-AGENCIAS-2026-10-13
   created_at: string | null
   internal: boolean
   clicks: number
@@ -68,6 +70,8 @@ interface Dashboard {
   destinationClicks: Record<string, number>
   destinationLabels: Record<string, string>
   affiliates: Affiliate[]
+  /** KINEO-AGENCIAS-2026-10-13 — false = a coluna affiliates.partner_type ainda não existe (migration não aplicada). */
+  partnerTypeReady?: boolean
 }
 
 type SortKey = 'name' | 'clicks7' | 'clicks30' | 'clicks' | 'visitors' | 'lastClickAt' | 'signups' | 'paid' | 'conv' | 'gross' | 'owed'
@@ -555,13 +559,30 @@ export default function AdminAffiliatesPage() {
                                         <input id={`rate-${a.id}`} type="number" min={0} max={100} step={0.5} value={rateDraft[a.id] ?? ''} onChange={(e) => setRateDraft((d) => ({ ...d, [a.id]: e.target.value }))} style={{ ...input, width: 80 }} />
                                         <span>%</span>
                                         <button type="button" disabled={busy} onClick={() => { const p = parseFloat(rateDraft[a.id]); if (!Number.isNaN(p)) post(a.id, { commission_rate: p / 100 }) }} style={btn('ghost')}>Salvar</button>
-                                        <span style={{ fontSize: 12, color: C.muted }}>paga {Math.round(effectiveAffiliateCommissionRate(a.commission_rate) * 100)}% (piso do programa {AFFILIATE_COMMISSION_PCT}; vale a maior)</span>
+                                        <span style={{ fontSize: 12, color: C.muted }}>paga {Math.round(effectiveAffiliateCommissionRate(a.commission_rate, a.created_at) * 100)}% (piso {Math.round(affiliateCommissionFloor(a.created_at) * 100)}%: 40% para quem entrou antes de 14/10, {AFFILIATE_COMMISSION_PCT} depois; vale a maior)</span>
                                       </label>
                                       <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13, color: C.text2 }}>
                                         <span style={{ width: 70 }}>Cupom</span>
                                         <input id={`coupon-${a.id}`} type="text" value={couponDraft[a.id] ?? ''} placeholder="—" onChange={(e) => setCouponDraft((d) => ({ ...d, [a.id]: e.target.value }))} style={{ ...input, width: 140 }} />
                                         <button type="button" disabled={busy} onClick={() => post(a.id, { coupon_code: couponDraft[a.id] ?? '' })} style={btn('ghost')}>Definir</button>
                                       </label>
+                                      {/* KINEO-AGENCIAS-2026-10-13 — agência (inscrição aprovada em /agencies) ganha 30% no Business; criador, 20%. */}
+                                      <div data-kineo="agency-partner-type" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: 13, color: C.text2 }}>
+                                        <span style={{ width: 70 }}>Tipo</span>
+                                        {data?.partnerTypeReady === false ? (
+                                          <span style={{ fontSize: 12, color: C.muted }}>aplicar a migration 20261013120000_agency_program.sql para marcar agências</span>
+                                        ) : isAgencyPartner(a.partner_type) ? (
+                                          <>
+                                            <span>Agência · Business paga {AGENCY_BUSINESS_COMMISSION_PCT}</span>
+                                            <button type="button" disabled={busy} onClick={() => post(a.id, { partner_type: 'creator' })} style={btn('ghost')}>Voltar a criador</button>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <span>Criador · Business paga {BUSINESS_AFFILIATE_COMMISSION_PCT}</span>
+                                            <button type="button" disabled={busy} onClick={() => post(a.id, { partner_type: 'agency' })} style={btn('ghost')}>Marcar agência ({AGENCY_BUSINESS_COMMISSION_PCT} no Business)</button>
+                                          </>
+                                        )}
+                                      </div>
                                       <div style={{ display: 'flex', gap: 8 }}>
                                         {status === 'pending' ? <button type="button" disabled={busy} onClick={() => post(a.id, { action: 'approve' })} style={btn('primary')}>Aprovar</button> : null}
                                         {status === 'suspended'

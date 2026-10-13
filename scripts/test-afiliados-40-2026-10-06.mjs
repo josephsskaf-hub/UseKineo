@@ -1,13 +1,18 @@
-// KINEO-AFILIADOS-40-2026-10-06 — guardião da comissão de afiliado em 40% RECORRENTE (fundador 06/10, "2 sim", sprint
-// "MRR hoje": recrutar 30 criadores de países ricos; a sessão CEO escolheu 40 e não 50 por margem).
+// KINEO-AFILIADOS-40-2026-10-06 — guardião da comissão de afiliado RECORRENTE (nasceu em 06/10 com 40%, fundador "2 sim").
+// KINEO-AFILIADO-30-NOVOS-2026-10-13 — reancorado com motivo: o fundador (13/10, "vai pra 30% de comissao pra 20 novos
+// convites") baixou a taxa do afiliado NOVO para 30% recorrente; quem entrou ANTES do corte (AFFILIATE_30_CUTOVER_ISO,
+// 14/10 00:00 BRT) segue com 40% — o piso de cada linha sai de affiliates.created_at (data ausente/ilegível = veterano).
+// O nome do arquivo ficou (o CI e outros guardiões apontam para ele).
 // Prova, EXECUTANDO o código real (readFileSync + ts.transpileModule, sem alias @/ — cada import vira dublê explícito):
-//   (1) fonte única: lib/affiliateCommission.ts é pura, AFFILIATE_COMMISSION_RATE = 0.4, PCT = "40%", e
-//       effectiveAffiliateCommissionRate usa a taxa do programa como PISO (0.3 gravado → 0.4; acordo 0.5 → 0.5; lixo → 0.4);
+//   (1) fonte única: lib/affiliateCommission.ts é pura, AFFILIATE_COMMISSION_RATE = 0.3, PCT = "30%",
+//       LEGACY = 0.4, corte em 2026-10-14T03:00:00Z, e effectiveAffiliateCommissionRate(gravada, created_at) usa o piso
+//       da linha nos DOIS regimes: sem data/antes do corte 0.3 → 0.4, depois do corte 0.3 → 0.3; acordo 0.5 → 0.5; lixo → piso;
 //   (2) a atribuição registra o referral de ponta a ponta: ?ref=CODE (middleware real) → /a/CODE (rota real) → cookies
 //       sf_aff + sf_aff_click → finalizador real do cadastro → affiliate_referrals (status 'signup') + profiles.affiliate_id;
-//   (3) o webhook real (recordAffiliateCommission) paga 40% sobre a linha ANTIGA gravada com 0.3 — na 1ª cobrança, na
-//       renovação e numa renovação 400 dias depois (a duração não mudou: enquanto o indicado assinar) — e marca o referral
-//       como 'paid'; um acordo especial acima do piso (0.5) continua valendo;
+//   (3) o webhook real (recordAffiliateCommission) paga 40% sobre a linha ANTIGA gravada com 0.3 (sem created_at e com
+//       created_at antes do corte) — na 1ª cobrança, na renovação e numa renovação 400 dias depois (a duração não mudou:
+//       enquanto o indicado assinar) — e marca o referral como 'paid'; o afiliado NOVO (created_at depois do corte) recebe
+//       30%; um acordo especial acima do piso (0.5) continua valendo;
 //   (4) as telas dizem o mesmo número: /partners (título, h1, FAQ avaliadas com as constantes reais), painel /affiliate,
 //       /api/affiliate/me, /admin/affiliates, rodapé + 15 dicionários, menu lateral, cartão de momentum, tabela
 //       comparativa, llms.txt, kit (docs/KIT-AFILIADOS-*.md, com o exemplo em US$ recalculado da escada TIER_PRICES) e o
@@ -46,6 +51,7 @@ const F = {
   admin: 'app/(dashboard)/admin/affiliates/page.tsx',
   footer: 'components/Footer.tsx',
   sidebar: 'components/Sidebar.tsx',
+  mobileNav: 'components/MobileNav.tsx',
   momentum: 'components/AffiliateMomentumCard.tsx',
   comparison: 'lib/growth/affiliateProgramComparison.ts',
   llms: 'app/llms.txt/route.ts',
@@ -61,6 +67,9 @@ const DICTS = [
 const CODE = 'ABCD2345'
 const HUMAN_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'
 const DAY = 86400000
+// KINEO-AFILIADO-30-NOVOS-2026-10-13 — uma data de cada lado do corte (2026-10-14T03:00:00Z).
+const VET_AT = '2026-10-06T12:00:00Z'
+const NEW_AT = '2026-10-20T00:00:00Z'
 
 // Relógio só do webhook: deixa a renovação "400 dias depois" acontecer de verdade dentro da função.
 let offsetMs = 0
@@ -135,14 +144,25 @@ class Query {
 function newDb() {
   const db = {
     tables: {
-      profiles: [{ id: 'buyer', affiliate_id: null }, { id: 'buyer-vip', affiliate_id: 'aff-vip' }],
+      profiles: [
+        { id: 'buyer', affiliate_id: null }, { id: 'buyer-vip', affiliate_id: 'aff-vip' },
+        { id: 'buyer-vet', affiliate_id: 'aff-vet' }, { id: 'buyer-new', affiliate_id: 'aff-new' },
+      ],
       // As 25 linhas reais nasceram com 0.3; a do acordo especial mostra que taxa MAIOR por pessoa continua valendo.
+      // KINEO-AFILIADO-30-NOVOS-2026-10-13 — aff-1 fica SEM created_at (linha legada: piso 40%); aff-vet entrou antes do
+      // corte (40%); aff-new entrou depois do corte, também com 0.3 gravado (30%).
       affiliates: [
         { id: 'aff-1', code: CODE, user_id: 'owner', status: 'active', commission_rate: 0.3 },
         { id: 'aff-vip', code: 'WXYZ2345', user_id: 'owner-vip', status: 'active', commission_rate: 0.5 },
+        { id: 'aff-vet', code: 'STUV2345', user_id: 'owner-vet', status: 'active', commission_rate: 0.3, created_at: VET_AT },
+        { id: 'aff-new', code: 'NPQR2345', user_id: 'owner-new', status: 'active', commission_rate: 0.3, created_at: NEW_AT },
       ],
       affiliate_clicks: [],
-      affiliate_referrals: [{ id: 'ref-vip', affiliate_id: 'aff-vip', referred_user_id: 'buyer-vip', status: 'signup' }],
+      affiliate_referrals: [
+        { id: 'ref-vip', affiliate_id: 'aff-vip', referred_user_id: 'buyer-vip', status: 'signup' },
+        { id: 'ref-vet', affiliate_id: 'aff-vet', referred_user_id: 'buyer-vet', status: 'signup' },
+        { id: 'ref-new', affiliate_id: 'aff-new', referred_user_id: 'buyer-new', status: 'signup' },
+      ],
       affiliate_commissions: [],
     },
     from(table) { return new Query(db, table) },
@@ -168,16 +188,38 @@ async function problems(over = {}) {
   // ── (1) fonte única ──────────────────────────────────────────────────────────────────────────────────────────────
   let C
   try { C = pure(S('commission'), F.commission) } catch (e) { return ['fonte: ' + e.message] }
-  if (C.AFFILIATE_COMMISSION_RATE !== 0.4) p.push(`taxa do programa = ${C.AFFILIATE_COMMISSION_RATE}, a decisão do fundador (06/10) é 0.4`)
-  if (C.AFFILIATE_COMMISSION_PCT !== '40%') p.push(`AFFILIATE_COMMISSION_PCT = ${C.AFFILIATE_COMMISSION_PCT}, esperado "40%"`)
+  if (C.AFFILIATE_COMMISSION_RATE !== 0.3) p.push(`taxa do programa = ${C.AFFILIATE_COMMISSION_RATE}, a decisão do fundador (13/10) é 0.3 para afiliado novo`)
+  if (C.AFFILIATE_COMMISSION_PCT !== '30%') p.push(`AFFILIATE_COMMISSION_PCT = ${C.AFFILIATE_COMMISSION_PCT}, esperado "30%"`)
+  if (C.LEGACY_AFFILIATE_COMMISSION_RATE !== 0.4) p.push(`LEGACY_AFFILIATE_COMMISSION_RATE = ${C.LEGACY_AFFILIATE_COMMISSION_RATE}, o veterano tem 0.4 prometido`)
+  if (C.AFFILIATE_30_CUTOVER_ISO !== '2026-10-14T03:00:00Z') p.push(`corte = ${C.AFFILIATE_30_CUTOVER_ISO}, a decisão é 2026-10-14T03:00:00Z (14/10 00:00 BRT)`)
   const eff = C.effectiveAffiliateCommissionRate
   if (typeof eff !== 'function') return [...p, 'effectiveAffiliateCommissionRate sumiu da fonte']
+  // KINEO-AFILIADO-30-NOVOS-2026-10-13 — os dois regimes. [gravada, created_at (SEM = chamada de 1 argumento), esperado, rótulo]
+  const SEM = Symbol('sem created_at')
   const casos = [
-    [0.3, 0.4, 'linha antiga gravada com 0.3'], [null, 0.4, 'nulo'], [undefined, 0.4, 'ausente'], ['0.3', 0.4, 'texto "0.3"'],
-    [0.5, 0.5, 'acordo especial 0.5'], ['0.45', 0.45, 'texto "0.45"'], [1, 1, 'teto 1'], [1.5, 0.4, 'acima de 1'],
-    [0, 0.4, 'zero'], [-1, 0.4, 'negativo'], [NaN, 0.4, 'NaN'], ['abc', 0.4, 'lixo'],
+    // legado: sem created_at → piso 40% (na dúvida, a casa paga a mais)
+    [0.3, SEM, 0.4, 'linha antiga gravada com 0.3'], [null, SEM, 0.4, 'nulo'], [undefined, SEM, 0.4, 'ausente'], ['0.3', SEM, 0.4, 'texto "0.3"'],
+    [0.5, SEM, 0.5, 'acordo especial 0.5'], ['0.45', SEM, 0.45, 'texto "0.45"'], [1, SEM, 1, 'teto 1'], [1.5, SEM, 0.4, 'acima de 1'],
+    [0, SEM, 0.4, 'zero'], [-1, SEM, 0.4, 'negativo'], [NaN, SEM, 0.4, 'NaN'], ['abc', SEM, 0.4, 'lixo'],
+    [0.3, null, 0.4, 'created_at nulo'], [0.3, 'não-é-data', 0.4, 'created_at ilegível'],
+    // veterano: entrou antes do corte → 40%
+    [0.3, VET_AT, 0.4, 'veterano (06/10) com 0.3'], [null, VET_AT, 0.4, 'veterano (06/10) nulo'], [0.5, VET_AT, 0.5, 'veterano (06/10) acordo 0.5'],
+    [0.3, '2026-10-14T02:59:59.999Z', 0.4, 'veterano 1 ms antes do corte'], [0.3, new Date(VET_AT), 0.4, 'veterano (Date)'],
+    // novo: entrou no corte ou depois → 30%
+    [0.3, NEW_AT, 0.3, 'novo (20/10) com 0.3'], [null, NEW_AT, 0.3, 'novo (20/10) nulo'], [0.5, NEW_AT, 0.5, 'novo (20/10) acordo 0.5'],
+    [0, NEW_AT, 0.3, 'novo (20/10) zero'], [1.5, NEW_AT, 0.3, 'novo (20/10) acima de 1'], [0.35, NEW_AT, 0.35, 'novo (20/10) acordo 0.35'],
+    ['abc', NEW_AT, 0.3, 'novo (20/10) lixo'], [0.3, '2026-10-14T03:00:00Z', 0.3, 'novo exatamente no corte'],
   ]
-  for (const [v, want, label] of casos) if (eff(v) !== want) p.push(`piso errado para ${label}: ${eff(v)} (esperado ${want})`)
+  for (const [v, at, want, label] of casos) {
+    const got = at === SEM ? eff(v) : eff(v, at)
+    if (got !== want) p.push(`piso errado para ${label}: ${got} (esperado ${want})`)
+  }
+  if (typeof C.affiliateCommissionRateForPlan !== 'function') p.push('affiliateCommissionRateForPlan sumiu da fonte')
+  else {
+    if (C.affiliateCommissionRateForPlan(0.3, 'basic', NEW_AT) !== 0.3) p.push('affiliateCommissionRateForPlan ignora o created_at do afiliado novo')
+    if (C.affiliateCommissionRateForPlan(0.3, 'basic', VET_AT) !== 0.4 || C.affiliateCommissionRateForPlan(0.3, 'basic') !== 0.4) p.push('affiliateCommissionRateForPlan tira os 40% do veterano')
+    if (C.affiliateCommissionRateForPlan(0.5, 'business', VET_AT) !== 0.2) p.push('Business deixou de ser 20% fixo')
+  }
   const PCT = C.AFFILIATE_COMMISSION_PCT
 
   // ── (2) atribuição de ponta a ponta ──────────────────────────────────────────────────────────────────────────────
@@ -234,7 +276,7 @@ async function problems(over = {}) {
   if (db.tables.profiles[0].affiliate_id !== 'aff-1') p.push('perfil do indicado não carimbado com o afiliado')
   if (!events.some((e) => e.name === 'affiliate_signup_attribution_result' && e.metadata?.outcome === 'attributed')) p.push('cadastro sem o evento affiliate_signup_attribution_result')
 
-  // ── (3) webhook: 40% sobre a linha antiga, recorrente, sem teto de meses ─────────────────────────────────────────
+  // ── (3) webhook: 40% sobre a linha antiga/veterana, 30% para o novo, recorrente, sem teto de meses ──────────────
   const pay = (a) => payment.recordAffiliateCommission(db, { userId: 'buyer', currency: 'usd', paymentKind: 'subscription', attributionSystem: 'custom', ...a })
   try {
     await pay({ externalId: 'cs_starter', amountGross: 1290, type: 'initial' })
@@ -251,6 +293,16 @@ async function problems(over = {}) {
     await payment.recordAffiliateCommission(db, { userId: 'buyer-vip', externalId: 'cs_vip', amountGross: 1290, currency: 'usd', type: 'initial', paymentKind: 'subscription', attributionSystem: 'custom' })
   } catch (e) { p.push('webhook (acordo especial) lançou: ' + e.message) }
   if (db.tables.affiliate_commissions.find((c) => c.external_id === 'cs_vip')?.commission_amount !== 645) p.push('acordo especial de 50% não foi honrado (esperado 645 centavos)')
+  // KINEO-AFILIADO-30-NOVOS-2026-10-13 — o veterano com data antes do corte segue em 40%; o novo (depois do corte) recebe 30%.
+  try {
+    for (const [userId, externalId, type] of [['buyer-vet', 'cs_vet', 'initial'], ['buyer-new', 'cs_new', 'initial'], ['buyer-new', 'in_new_2', 'recurring']]) {
+      await payment.recordAffiliateCommission(db, { userId, externalId, amountGross: 1290, currency: 'usd', type, paymentKind: 'subscription', attributionSystem: 'custom' })
+    }
+  } catch (e) { p.push('webhook (veterano/novo) lançou: ' + e.message) }
+  const amt = (id) => db.tables.affiliate_commissions.find((c) => c.external_id === id)
+  if (amt('cs_vet')?.commission_amount !== 516 || amt('cs_vet')?.affiliate_id !== 'aff-vet') p.push(`veterano (entrou 06/10) recebeu ${amt('cs_vet')?.commission_amount} centavos; esperado 516 (40% prometido)`)
+  if (amt('cs_new')?.commission_amount !== 387 || amt('cs_new')?.affiliate_id !== 'aff-new') p.push(`afiliado novo (entrou 20/10) recebeu ${amt('cs_new')?.commission_amount} centavos; esperado 387 (30%)`)
+  if (amt('in_new_2')?.commission_amount !== 387 || amt('in_new_2')?.type !== 'recurring') p.push('afiliado novo sem os 30% recorrentes na renovação')
   const webhook = S('webhook')
   if (!/^import \{ effectiveAffiliateCommissionRate \} from '@\/lib\/affiliateCommission'/m.test(webhook)) p.push('webhook sem o import da fonte única')
 
@@ -279,7 +331,7 @@ async function problems(over = {}) {
     'const COMMISSION_RATE = AFFILIATE_COMMISSION_RATE',
   ]) if (!partners.includes(anchor)) p.push('/partners sem: ' + anchor)
   const earn = faqA('How much do I earn?')
-  if (!earn || !earn.includes(`earn ${PCT} of each eligible payment`) || !/while the customer remains subscribed/.test(earn)) p.push('FAQ "How much do I earn?" não diz 40% recorrente enquanto assinar')
+  if (!earn || !earn.includes(`earn ${PCT} of each eligible payment`) || !/while the customer remains subscribed/.test(earn)) p.push(`FAQ "How much do I earn?" não diz ${PCT} recorrente enquanto assinar`)
   const compare = faqA('How does Kineo compare with other AI video affiliate programs?')
   if (!compare || !compare.includes(`Kineo publishes ${PCT} recurring`)) p.push('FAQ comparativa não diz a taxa da fonte')
 
@@ -298,8 +350,10 @@ async function problems(over = {}) {
   if (!panel.includes('earn {AFFILIATE_COMMISSION_PCT} recurring') || !panel.includes('and earn {AFFILIATE_COMMISSION_PCT} recurring on eligible subscription')) p.push('painel (quem ainda não é afiliado) não deriva a taxa')
   if (/\b[34]0 ?%/.test(semComentarios(panel))) p.push('painel digita 30%/40%')
   if (!panel.includes('const ratePct = `${Math.round((a.commission_rate ?? 0) * 100)}%`')) p.push('painel ativo deixou de mostrar a taxa devolvida pela API')
-  if (!S('me').includes('commission_rate: effectiveAffiliateCommissionRate(affiliate.commission_rate),')) p.push('/api/affiliate/me devolve a taxa crua da linha, não a que o webhook paga')
-  if (!S('admin').includes('paga {Math.round(effectiveAffiliateCommissionRate(a.commission_rate) * 100)}%')) p.push('/admin/affiliates não mostra a taxa paga (piso)')
+  // KINEO-AFILIADO-30-NOVOS-2026-10-13 — reancorado: a taxa mostrada passa o created_at (o mesmo piso que o webhook paga).
+  if (!S('me').includes('commission_rate: effectiveAffiliateCommissionRate(affiliate.commission_rate, affiliate.created_at),')) p.push('/api/affiliate/me devolve uma taxa diferente da que o webhook paga (sem o created_at)')
+  if (!S('me').includes(".select('id, code, status, commission_rate, coupon_code, created_at')")) p.push('/api/affiliate/me não lê affiliates.created_at (o novo veria 40%)')
+  if (!S('admin').includes('paga {Math.round(effectiveAffiliateCommissionRate(a.commission_rate, a.created_at) * 100)}%')) p.push('/admin/affiliates não mostra a taxa paga (piso por created_at)')
   if (!S('apply').includes('commission_rate: AFFILIATE_COMMISSION_RATE,')) p.push('inscrição não grava a fonte')
   if (!S('llms').includes('${AFFILIATE_COMMISSION_PCT} commission on every eligible payment')) p.push('llms.txt não deriva a taxa')
 
@@ -310,10 +364,12 @@ async function problems(over = {}) {
     const line = s.split('\n').find((l) => l.includes(`'${footerLabel}':`))
     if (!line) p.push(`${d}: sem a tradução de "${footerLabel}"`)
     else if (!line.split(`'${footerLabel}':`)[1].includes(PCT.replace('%', ''))) p.push(`${d}: tradução sem o número ${PCT}`)
-    if (s.includes("'Affiliate program - 30% recurring':")) p.push(`${d}: chave velha de 30% ainda presente`)
+    if (s.includes("'Affiliate program - 40% recurring':")) p.push(`${d}: chave velha de 40% ainda presente`)
   }
   // KINEO-MENU-ENXUTO-2026-10-09 — re-ancorado: o item do menu lateral virou "Earn 40%" (fundador, "1 sim").
+  // KINEO-AFILIADO-30-NOVOS-2026-10-13 — agora "Earn 30%" (a taxa de quem entra); o par do celular diz o mesmo.
   if (!S('sidebar').includes(`label="Earn ${PCT}"`)) p.push('menu lateral diz outra taxa')
+  if (!S('mobileNav').includes(`label: 'Earn ${PCT}'`)) p.push('menu do celular diz outra taxa')
   if (!S('momentum').includes(`earn ${PCT} on eligible subscription payments`)) p.push('cartão de momentum diz outra taxa')
   const row = pure(S('comparison'), F.comparison).kineoAffiliateComparisonRow()
   if (row.commission !== `${PCT} recurring`) p.push('tabela comparativa: Kineo diz ' + row.commission)
@@ -322,7 +378,8 @@ async function problems(over = {}) {
   const kit = S('kit')
   if (!kit.split('\n')[0].includes(`${PCT} recurring`)) p.push('título do kit não diz ' + PCT)
   if (!kit.includes(`Earn **${PCT} on every eligible purchase`)) p.push('oferta do kit não diz ' + PCT)
-  if (/Earn \*\*30%|30% is US\$|30% on every eligible/.test(kit)) p.push('kit ainda oferece 30%')
+  if (/Earn \*\*40%|40% is US\$|40% on every eligible|40% recurring commissions/.test(kit)) p.push('kit ainda oferece 40% a parceiro novo')
+  if (!kit.includes('KINEO-AFILIADO-30-NOVOS-2026-10-13') || !/quem entrou antes do corte segue com 40%/.test(kit)) p.push('kit sem a nota de 13/10 (veterano segue 40%)')
   const pr = S('pricing')
   const block = pr.slice(pr.indexOf('export const TIER_PRICES'), pr.indexOf('\n}', pr.indexOf('export const TIER_PRICES')))
   const cents = (tier) => Number((block.match(new RegExp(`\\b${tier}: \\{ usd: (\\d+) \\}`)) ?? [])[1])
@@ -334,38 +391,49 @@ async function problems(over = {}) {
 
   const inv = S('invite')
   for (const w of [`earn ${PCT} from the people you bring`, `**${PCT} of every payment`, `receba ${PCT} de quem`, `**${PCT} de tudo`, `el ${PCT} de quien`, `**el ${PCT} de todo`]) if (!inv.includes(w)) p.push('convite sem: ' + w)
-  if (/30% of every payment|30% de tudo|el 30% de|earn 30% from/.test(inv)) p.push('convite ainda promete 30%')
+  if (/40% of every payment|40% de tudo|el 40% de|earn 40% from|receba 40% de/.test(inv)) p.push('convite ainda promete 40% a parceiro novo')
+  if (!inv.includes('KINEO-AFILIADO-30-NOVOS-2026-10-13') || !/quem entrou antes do corte segue com 40%/.test(inv)) p.push('convite sem a nota de 13/10 (veterano segue 40%)')
   return p
 }
 
-console.log('TESTE afiliados 40% recorrente — 06/10')
+console.log('TESTE afiliados: novo 30% recorrente, veterano (antes de 14/10) segue 40% — 06/10 + 13/10')
 const real = await problems()
-ok(real.length === 0, '(1–5) fonte 40% com piso, ?ref → /a → cadastro → referral, webhook 40% recorrente sem teto, telas/kit/convite no mesmo número, sem PayPal inventado' + (real.length ? ' → ' + real.join(' | ') : ''))
+ok(real.length === 0, '(1–5) fonte 30% com piso 40% para veterano (created_at), ?ref → /a → cadastro → referral, webhook 40% legado / 30% novo recorrente sem teto, telas/kit/convite no mesmo número, sem PayPal inventado' + (real.length ? ' → ' + real.join(' | ') : ''))
 
 // ── (6) mutantes: cada regra quebrada precisa ficar vermelha ─────────────────────────────────────────────────────────
 const mutants = [
-  ['M1 taxa volta a 30%', F.commission, 'export const AFFILIATE_COMMISSION_RATE = 0.4', 'export const AFFILIATE_COMMISSION_RATE = 0.3'],
-  ['M2 piso some (linha antiga volta a pagar 30%)', F.commission, 'rate > AFFILIATE_COMMISSION_RATE && rate <= 1 ? rate : AFFILIATE_COMMISSION_RATE', 'rate > 0 && rate <= 1 ? rate : AFFILIATE_COMMISSION_RATE'],
-  ['M3 webhook paga a taxa crua da linha', F.webhook, 'const rate = effectiveAffiliateCommissionRate(aff.commission_rate)', 'const rate = Number(aff.commission_rate ?? 0)'],
+  // KINEO-AFILIADO-30-NOVOS-2026-10-13 — mutantes reancorados para a regra nova (novo 30%, veterano 40%).
+  ['M1 taxa do novo volta a 40%', F.commission, 'export const AFFILIATE_COMMISSION_RATE = 0.3', 'export const AFFILIATE_COMMISSION_RATE = 0.4'],
+  ['M2 piso some (linha antiga volta a pagar 30%)', F.commission, 'rate > floor && rate <= 1 ? rate : floor', 'rate > 0 && rate <= 1 ? rate : floor'],
+  ['M3 webhook paga a taxa crua da linha', F.webhook, 'const rate = effectiveAffiliateCommissionRate(aff.commission_rate, aff.created_at)', 'const rate = Number(aff.commission_rate ?? 0)'],
   ['M4 renovação deixa de pagar', F.webhook, '    if (!affiliateId) return\n    // Só AGORA o valor importa', "    if (!affiliateId) return\n    if (args.type === 'recurring') return\n    // Só AGORA o valor importa"],
   ['M5 teto de 12 meses na renovação', F.webhook, '    if (!affiliateId) return\n    // Só AGORA o valor importa', "    if (!affiliateId) return\n    if (args.type === 'recurring' && Date.now() - Date.parse('2026-10-01T00:00:00Z') > 365 * 86400000) return\n    // Só AGORA o valor importa"],
-  ['M6 h1 da /partners digita 30%', F.partners, 'Earn {AFFILIATE_COMMISSION_PCT} Recurring</h1>', 'Earn 30% Recurring</h1>'],
-  ['M7 FAQ de ganho digita 30%', F.partners, 'a: `Affiliates earn ${AFFILIATE_COMMISSION_PCT} of each eligible payment', 'a: `Affiliates earn 30% of each eligible payment'],
+  ['M6 h1 da /partners digita 40%', F.partners, 'Earn {AFFILIATE_COMMISSION_PCT} Recurring</h1>', 'Earn 40% Recurring</h1>'],
+  ['M7 FAQ de ganho digita 40%', F.partners, 'a: `Affiliates earn ${AFFILIATE_COMMISSION_PCT} of each eligible payment', 'a: `Affiliates earn 40% of each eligible payment'],
   ['M8 FAQ volta a prometer campo de PayPal', F.partners, 'Before your first payout we e-mail you to confirm the PayPal account to pay — there is nothing to set up in the dashboard.', 'Add your PayPal e-mail in the affiliate dashboard so the payout can go out.'],
-  ['M9 painel diz 30% a quem não é afiliado', F.panel, 'earn {AFFILIATE_COMMISSION_PCT} recurring\n            </span>', 'earn 30% recurring\n            </span>'],
-  ['M10 /api/affiliate/me devolve a taxa crua', F.me, 'commission_rate: effectiveAffiliateCommissionRate(affiliate.commission_rate),', 'commission_rate: affiliate.commission_rate,'],
-  ['M11 rodapé volta a 30%', F.footer, "label: 'Affiliate program - 40% recurring'", "label: 'Affiliate program - 30% recurring'"],
-  ['M12 dicionário pt com a chave velha', 'lib/ui/interface/pt.ts', "'Affiliate program - 40% recurring': 'Programa de afiliados - 40% recorrente'", "'Affiliate program - 30% recurring': 'Programa de afiliados - 30% recorrente'"],
-  ['M13 tabela comparativa volta a 30%', F.comparison, "commission: '40% recurring'", "commission: '30% recurring'"],
-  ['M14 kit volta a oferecer 30%', F.kit, 'Earn **40% on every eligible purchase', 'Earn **30% on every eligible purchase'],
-  ['M15 exemplo do kit com o número velho', F.kit, 'US$7.96 on Creator', 'US$11.96 on Creator'], // KINEO-PRECO-TESTE-2026-10-08 — Creator a $19,90
-  ['M16 convite volta a 30%', F.invite, 'you receive **40% of every payment', 'you receive **30% of every payment'],
+  ['M9 painel diz 40% a quem não é afiliado', F.panel, 'earn {AFFILIATE_COMMISSION_PCT} recurring\n            </span>', 'earn 40% recurring\n            </span>'],
+  ['M10 /api/affiliate/me devolve a taxa crua', F.me, 'commission_rate: effectiveAffiliateCommissionRate(affiliate.commission_rate, affiliate.created_at),', 'commission_rate: affiliate.commission_rate,'],
+  ['M11 rodapé volta a 40%', F.footer, "label: 'Affiliate program - 30% recurring'", "label: 'Affiliate program - 40% recurring'"],
+  ['M12 dicionário pt com a chave velha', 'lib/ui/interface/pt.ts', "'Affiliate program - 30% recurring': 'Programa de afiliados - 30% recorrente'", "'Affiliate program - 40% recurring': 'Programa de afiliados - 40% recorrente'"],
+  ['M13 tabela comparativa volta a 40%', F.comparison, "commission: '30% recurring'", "commission: '40% recurring'"],
+  ['M14 kit volta a oferecer 40% ao novo', F.kit, 'Earn **30% on every eligible purchase', 'Earn **40% on every eligible purchase'],
+  ['M15 exemplo do kit com o número velho (40% do Creator)', F.kit, 'US$5.97 on Creator', 'US$7.96 on Creator'], // KINEO-AFILIADO-30-NOVOS-2026-10-13 — 30% do Creator de $19,90
+  ['M16 convite volta a 40%', F.invite, 'you receive **30% of every payment', 'you receive **40% of every payment'],
   ['M17 ?ref=CODE deixa de levar ao /a/', F.middleware, "dest.pathname = '/a/' + ref", "dest.pathname = '/'"],
   ['M18 rota /a/ sem cookie de prova do clique', F.linkRoute, 'res.cookies.set(CLICK_COOKIE, clickProofId', 'void (CLICK_COOKIE, clickProofId'],
   ['M19 cadastro não grava o referral', F.attribution, "if (!click?.id) return { ok: false, reason: 'invalid_click_proof' }", "if (click?.id) return { ok: false, reason: 'invalid_click_proof' }"],
-  ['M20 menu lateral com outra taxa', F.sidebar, 'label="Earn 40%"', 'label="Earn 30%"'],
-  ['M21 admin esconde a taxa paga', F.admin, 'paga {Math.round(effectiveAffiliateCommissionRate(a.commission_rate) * 100)}%', 'paga {Math.round((a.commission_rate ?? 0) * 100)}%'],
+  ['M20 menu lateral com outra taxa', F.sidebar, 'label="Earn 30%"', 'label="Earn 40%"'],
+  ['M21 admin esconde a taxa paga', F.admin, 'paga {Math.round(effectiveAffiliateCommissionRate(a.commission_rate, a.created_at) * 100)}%', 'paga {Math.round((a.commission_rate ?? 0) * 100)}%'],
   ['M22 webhook perde o import da fonte', F.webhook, "import { effectiveAffiliateCommissionRate } from '@/lib/affiliateCommission'", "import { AFFILIATE_COMMISSION_RATE as effectiveAffiliateCommissionRateX } from '@/lib/affiliateCommission'"],
+  // KINEO-AFILIADO-30-NOVOS-2026-10-13 — mutantes da regra nova.
+  ['M23 webhook perde o created_at (novo recebe 40%)', F.webhook, 'const rate = effectiveAffiliateCommissionRate(aff.commission_rate, aff.created_at)', 'const rate = effectiveAffiliateCommissionRate(aff.commission_rate)'],
+  ['M24 webhook não lê created_at do banco (novo recebe 40%)', F.webhook, ".select('id, commission_rate, status, created_at')", ".select('id, commission_rate, status')"],
+  ['M25 corte perdido: sem data vira 30% (veterano legado cai)', F.commission, '  if (!Number.isFinite(t)) return LEGACY_AFFILIATE_COMMISSION_RATE', '  if (!Number.isFinite(t)) return AFFILIATE_COMMISSION_RATE'],
+  ['M26 corte movido para 01/01 (veterano de 06/10 cai a 30%)', F.commission, "export const AFFILIATE_30_CUTOVER_ISO = '2026-10-14T03:00:00Z'", "export const AFFILIATE_30_CUTOVER_ISO = '2026-01-01T00:00:00Z'"],
+  ['M27 piso único de 30% para todo mundo', F.commission, '  return t < Date.parse(AFFILIATE_30_CUTOVER_ISO) ? LEGACY_AFFILIATE_COMMISSION_RATE : AFFILIATE_COMMISSION_RATE', '  return AFFILIATE_COMMISSION_RATE'],
+  ['M28 /api/affiliate/me não lê created_at', F.me, ".select('id, code, status, commission_rate, coupon_code, created_at')", ".select('id, code, status, commission_rate, coupon_code')"],
+  ['M29 menu do celular com outra taxa', F.mobileNav, "label: 'Earn 30%'", "label: 'Earn 40%'"],
+  ['M30 kit perde a nota do veterano', F.kit, 'quem entrou antes do corte segue com 40%', 'todos passam a 30%'],
 ]
 for (const [label, file, from, to] of mutants) {
   const base = read(file)

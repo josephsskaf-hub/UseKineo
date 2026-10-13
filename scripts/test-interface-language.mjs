@@ -97,7 +97,9 @@ const retiredNavigationLinks=new Set(['/scripts','/viral-now'])
 // Shorts, the brand page against kineo.studio) and the monthly AI Video Index. Typed on purpose, one per page: the exact
 // multiset below still fails on any other missing or extra link, and dropping (or duplicating) one of these four fails it.
 const citablePageLinks=['/seedance-kling-veo-in-one-place','/faceless-youtube-shorts-generator','/kineo-vs-kineo-studio','/ai-video-index']
-const addedNavigationLinks=['/claude-connector?src=footer#connect', ...(pure('lib/showcaseTelemetry.ts').SHOWCASE_PUBLIC ? ['/showcase'] : []), ...citablePageLinks]
+// 13/10 (KINEO-AGENCIAS-2026-10-13, fundador "tudo sim"): one documented ADDITION — the agency partner program page
+// (/agencies). Typed on purpose; the exact multiset below still fails on any other missing or extra link.
+const addedNavigationLinks=['/claude-connector?src=footer#connect', ...(pure('lib/showcaseTelemetry.ts').SHOWCASE_PUBLIC ? ['/showcase'] : []), ...citablePageLinks, '/agencies']
 equal(links(footerAfter),[...links(footerBefore).map(h=>h==='/business-video-ads'?'/ads':h).filter(h=>!retiredNavigationLinks.has(h)&&!(avatarOffCatalogue&&h==='/ai-avatar')),...segmentLinks,...addedNavigationLinks].sort(),'footer preserves all destinations except documented navigation removals and off-catalogue Avatar, with direct Ads, derived segment doors and the documented Claude connector addition, plus the four documented citable pages')
 equal((footerAfter.match(/<details /g)||[]).length,4,'four footer navigation groups')
 console.log(`PASS ${checks} locale and workspace checks; no network, database, email or generation`)

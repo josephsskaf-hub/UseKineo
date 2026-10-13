@@ -25,7 +25,7 @@ export const MORE_TOOLS_NAV = [
 ] as const
 /** Public "More" links shared by Sidebar and MobileNav; each shell appends its signed-in account links. */
 // KINEO-MENU-ENXUTO-2026-10-09 — fundador ("1 sim"): Animate (o Clips faz), Audio (0 uso em 30 dias), Autopilot (0
-// assinantes) e Channel Builder (0) saem do menu; as páginas continuam no ar (links e Google). O "More" vira só "Earn 40%".
+// assinantes) e Channel Builder (0) saem do menu; as páginas continuam no ar (links e Google). O "More" vira só "Earn 30%" (era 40% até 13/10).
 export const MORE_NAV: readonly { href: string; label: string; icon: string }[] = []
 export function workspaceNavActive(pathname: string, href: string): boolean {
   const matches = (path: string) => pathname === path || pathname.startsWith(path + '/')

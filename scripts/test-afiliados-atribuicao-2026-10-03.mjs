@@ -94,6 +94,7 @@ function newDb() {
   return {
     tables: {
       profiles: [{ id: 'buyer', affiliate_id: null }],
+      // KINEO-AFILIADO-30-NOVOS-2026-10-13 — aff-1 sem created_at = linha legada (veterano): piso 40%, por isso 1196/396 abaixo.
       affiliates: [{ id: 'aff-1', code: CODE, user_id: 'owner', status: 'active', commission_rate: 0.3 }],
       affiliate_clicks: [], affiliate_referrals: [], affiliate_commissions: [],
     },
@@ -267,7 +268,8 @@ const mutants = [
   ['comissão ignora o afiliado do perfil', { webhook: REAL.webhook.replace("let affiliateId = (prof?.affiliate_id as string | null | undefined) ?? null", 'let affiliateId = null as string | null') }],
   // Reancorado 06/10: a 40% a taxa fixa de 40% não é mais um defeito visível; o mutante realista é voltar a 30% cravado.
   ['ledger calcula comissão com taxa fixa de 30%', { ledger: REAL.ledger.replace('const amount = Math.round(amountGross * rate)', 'const amount = Math.round(amountGross * 0.3)') }],
-  ['webhook volta a pagar a taxa crua gravada na linha (0.3)', { webhook: REAL.webhook.replace('const rate = effectiveAffiliateCommissionRate(aff.commission_rate)', 'const rate = Number(aff.commission_rate ?? 0)') }],
+  // Reancorado 13/10 (KINEO-AFILIADO-30-NOVOS-2026-10-13): a chamada passa o created_at da linha.
+  ['webhook volta a pagar a taxa crua gravada na linha (0.3)', { webhook: REAL.webhook.replace('const rate = effectiveAffiliateCommissionRate(aff.commission_rate, aff.created_at)', 'const rate = Number(aff.commission_rate ?? 0)') }],
   ['primeiro toque aceita conta sem prova de clique', { attribution: REAL.attribution.replace("if (!clickId) return { ok: false, reason: 'invalid_click_proof' }", "if (!clickId) return { ok: true, affiliateId: affiliate.id, already: false }") }],
 ]
 for (const [name, patch] of mutants) {

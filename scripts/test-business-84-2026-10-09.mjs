@@ -130,7 +130,9 @@ function runChecks(over = {}, verbose = false) {
   check(A.affiliateCommissionRateForPlan(0.5, 'business') === 0.2, '(6) Business paga 20% mesmo com acordo especial maior')
   check(A.affiliateCommissionRateForPlan(0.3, 'pro') === 0.4 && A.affiliateCommissionRateForPlan(null, null) === 0.4, '(6) outros planos / sem plano = 40%')
   check(A.affiliateCommissionRateForPlan(0.5, 'basic') === 0.5, '(6) acordo especial maior segue valendo fora do Business')
-  check(/const chargeRate = isBusinessCommissionPlan\(args\.plan\) \? BUSINESS_AFFILIATE_COMMISSION_RATE : rate\n\s+const commission = calculateAffiliateCommission\(args\.amountGross, chargeRate\)/.test(wh), '(6) webhook calcula a comissão pela taxa por plano')
+  // Reancorado 13/10 (KINEO-AGENCIAS-2026-10-13): a taxa do Business sai de businessAffiliateCommissionRate(partnerType) —
+  // 20% para todo afiliado comum (o mesmo número de antes), 30% só para affiliates.partner_type = 'agency'.
+  check(/const chargeRate = isBusinessCommissionPlan\(args\.plan\) \? businessAffiliateCommissionRate\(partnerType\) : rate\n\s+const commission = calculateAffiliateCommission\(args\.amountGross, chargeRate\)/.test(wh), '(6) webhook calcula a comissão pela taxa por plano')
   check(A.isBusinessCommissionPlan('business') && !A.isBusinessCommissionPlan('pro') && !A.isBusinessCommissionPlan(null), '(6) isBusinessCommissionPlan só reconhece business')
   const subCalls = wh.match(/recordAffiliateCommission\(supabase, \{[^\n]*paymentKind: 'subscription'[^\n]*\}\)/g) || []
   // KINEO-TROCA-BUSINESS-2026-10-10 — re-ancorado: +1 comissão (a fatura da subida para o Business, cobrada na hora), que passa o tier da assinatura viva.
