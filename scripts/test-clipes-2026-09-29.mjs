@@ -421,9 +421,12 @@ ok(client.includes('{clipSecondsLabel(e.seconds)}') /* KINEO-CLIPES-CARTAO-MOTOR
 ok(client.includes("t('notLength', { engine: engine.label, s: seconds })") && client.includes('onClick={() => setEngineKey(alt.key)}'), 'duração que o motor não faz: mostra quem faz e troca com 1 clique')
 const sidebar = read('components/Sidebar.tsx')
 ok(read('lib/ui/workspaceNavigation.ts').includes("{ href: '/clips', label: 'Clips', icon: 'clips' }") && sidebar.includes('  clips: ('), 'Sidebar tem Clipes')
-ok(sidebar.includes("WORKSPACE_NAV.filter(item => item.href !== '/clips' || clipsVisible(userEmail))"), 'Sidebar respeita o interruptor do clipe')
+// Reancorado 13/10 (KINEO-DUAS-PORTAS-2026-10-13, fundador "tudo sim", ação B): Clipes saiu do topo da lateral e da barra
+// do celular para o grupo "More tools" (MORE_TOOLS_NAV) — continua a 1 clique na lateral e no "More" do celular, atrás do
+// MESMO interruptor.
+ok(sidebar.includes("MORE_TOOLS_NAV.filter(item => item.href !== '/clips' || clipsVisible(userEmail))"), 'Sidebar respeita o interruptor do clipe')
 const mobile = read('components/MobileNav.tsx')
-ok(mobile.includes("href: '/clips'") && mobile.includes("{CLIPS_PUBLIC && primaryLink('/clips')}") && mobile.includes("...(CLIPS_PUBLIC ? ['/clips'] : [])"), 'MobileNav tem Clipes (par) atrás do interruptor')
+ok(mobile.includes("href: '/clips'") && mobile.includes("...MORE_TOOLS_NAV.filter(item => item.href !== '/clips' || CLIPS_PUBLIC)"), 'MobileNav tem Clipes (par) atrás do interruptor')
 const landing = read('app/KineoLanding.tsx')
 // Reancorado 05/10 (KINEO-HOME-CLIPES-EM-CIMA-2026-10-05) — fundador: "os clips em cima, os filmes narrados embaixo". O Clips
 // saiu da coluna Create e virou o grupo do topo da 1ª coluna do mega-menu ("Photo to clip" / "Text to clip"), e abre o
@@ -431,8 +434,10 @@ const landing = read('app/KineoLanding.tsx')
 // 05/10 noite: o checkout do Windows traz CRLF (autocrlf) e as regex abaixo usam \n — normalizar antes (no Linux já passava).
 const landingLF = landing.replace(/\r\n/g, '\n')
 ok(/\n  const showClips = clipsVisible\(initialEmail\)\n/.test(landingLF)
-  && /\{showClips && \(\n\s*<>\n\s*<span className="nm-h"><UiLabel>Clips<\/UiLabel><\/span>\n\s*<NavEngineItem href="\/clips\?upload=1"[^\n]*\/>\n\s*<NavEngineItem href="\/clips"/.test(landingLF)
-  && /\{showClips\n\s*\? <><Link href="\/clips" data-nav-item="more:clips">/.test(landingLF)
+  // Reancorado 13/10 (KINEO-DUAS-PORTAS-2026-10-13): o grupo Clips mudou do mega-menu "Video" para o "More tools" do topo
+  // (2ª coluna), e no celular desceu para o bloco "More tools" — mesmos 2 links, mesmo interruptor.
+  && /\{showClips && \(\n\s*<span data-nav-item="more:clips" style=\{\{ display: 'contents' \}\}>\n\s*<span className="nm-h"><UiLabel>Clips<\/UiLabel><\/span>\n\s*<NavEngineItem href="\/clips\?upload=1"[^\n]*\/>\n\s*<NavEngineItem href="\/clips"/.test(landingLF)
+  && /\{showClips && <Link href="\/clips" data-nav-item="more:clips">/.test(landingLF)
   && (landingLF.match(/href="\/clips"/g) ?? []).length === 2, 'mega-menu e menu público têm Clipes (par) atrás do interruptor')
 
 // ─── 10. Interruptor de lançamento: preço é PROPOSTA até o "vai" do fundador ─

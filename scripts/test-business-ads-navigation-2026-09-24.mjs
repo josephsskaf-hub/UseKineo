@@ -15,10 +15,12 @@ const linked = html => html.includes(destination) && /Videos for businesses|For 
 // reancorado 30/09 (KINEO-NAV-TOPO-ADS): o fundador trocou o topo para "Ads" (como os concorrentes) indo direto ao painel
 // /ads/new — que manda o logado ao montador e o visitante à porta pública /ads (nunca ao /login nem ao checkout).
 // O rodapé segue "Videos for businesses" → /ads.
-const topLinked = html => /href="\/ads\/new"[^>]*>(?:<!-- -->)?(?:<[^>]+>)*Ads</.test(html) && !html.includes('buy.stripe.com') && !/For businesses/.test(html)
+// reancorado 13/10 (KINEO-DUAS-PORTAS-2026-10-13, fundador "tudo sim", ação B): o item vira a 2ª porta, "Product ads", mesmo
+// destino /ads/new; Imagem e Spaces desceram para o "More tools" (depois da porta), Pricing segue por último.
+const topLinked = html => /href="\/ads\/new"[^>]*>(?:<!-- -->)?(?:<[^>]+>)*Product ads</.test(html) && !html.includes('buy.stripe.com') && !/For businesses/.test(html)
 check('desktop menu opens the Ads panel, not checkout', topLinked(desktop))
 check('mobile menu opens the Ads panel, not checkout', topLinked(mobile))
-check('top menu order: Images · Spaces · Ads · Pricing', (() => { const i = ['href="/images', 'href="/spaces"', 'href="/ads/new"', 'href="/pricing"'].map((h) => desktop.indexOf(h)); return i.every((x) => x >= 0) && i.every((x, k) => k === 0 || x > i[k - 1]) })())
+check('top menu order: Product ads · More tools (Images · Spaces) · Pricing', (() => { const i = ['href="/ads/new"', 'href="/images', 'href="/spaces"', 'href="/pricing"'].map((h) => desktop.indexOf(h)); return i.every((x) => x >= 0) && i.every((x, k) => k === 0 || x > i[k - 1]) })())
 check('/ads/new sends visitors to the public door, never /login', /redirect\(visitante \? adsV2Href\(searchParams\) : adsPublicHref\(searchParams\)\)/.test(read('app/(dashboard)/ads/new/page.tsx')))
 check('shared footer opens the creator', linked(footer))
 check('existing pricing and studio destinations survive', nav.includes('href="/pricing"') && nav.includes('href="/studio"'))

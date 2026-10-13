@@ -123,7 +123,9 @@ export function promoCardsFor(open: { clips: boolean }): PromoCard[] {
 // intocados. Clique por card vira evento de navegador para ler em 7 dias. A leitura corta por metadata->>'promo_v'
 // (sobe quando o contrato mudar), nunca pelo relógio do deploy.
 export const PROMO_CLICK_EVENT = 'promo_card_clicked' as const
-export const PROMO_TELEMETRY_VERSION = 2 // 2 = fileira de 4 cards com carrossel (30/09); 1 = 3 cards
+// KINEO-DUAS-PORTAS-2026-10-13 — 3 = a fileira desceu da 1ª dobra para "More tools" (depois dos filmes; as 2 portas abrem a
+// página): o mesmo card numa posição de página diferente não é comparável, então a leitura corta aqui.
+export const PROMO_TELEMETRY_VERSION = 3 // 3 = "More tools" abaixo dos filmes (13/10); 2 = fileira de 4 cards com carrossel (30/09); 1 = 3 cards
 
 /** Metadados FECHADOS do clique: id do card (nunca o texto traduzido), posição 1-based, destino e versão. */
 export function promoClickMetadata(card: PromoCard, index: number): { card: string; position: number; href: string; surface: 'home'; promo_v: number } {

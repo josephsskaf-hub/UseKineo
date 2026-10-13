@@ -3,7 +3,7 @@
 import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
 
 import Link from 'next/link'
-import { WORKSPACE_NAV, MORE_NAV, navItemIdFor, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
+import { WORKSPACE_NAV, MORE_NAV, MORE_TOOLS_NAV, navItemIdFor, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
 import { clipsVisible } from '@/lib/clips/clipLaunch' // KINEO-CLIPES-2026-09-29 — item Clips só com o interruptor (ou conta da casa)
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { usePathname, useRouter } from 'next/navigation'
@@ -630,7 +630,13 @@ export default function Sidebar({
               fixas (Studio, Biblioteca, Anuncios, Precos) sem kicker; Viral Now,
               Scripts, Animate, Imagem, Audio, Autopilot, Channel Builder, Convide e
               Afiliados vao para "More". Par: MobileNav.tsx (mesmos destinos). */}
-          {WORKSPACE_NAV.filter(item => item.href !== '/clips' || clipsVisible(userEmail)).map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={false} pathname={pathname} onClick={onClose} />)}
+          {/* KINEO-DUAS-PORTAS-2026-10-13 — as 2 portas (Make a film · Product ads) + Library + Pricing; logo abaixo, o grupo
+              "More tools" SEMPRE ABERTO (Imagem, Clipes, Espaços — 1 clique, como antes). Par: MobileNav.tsx e o topo do site. */}
+          {WORKSPACE_NAV.map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={false} pathname={pathname} onClick={onClose} />)}
+          <div className="workspace-nav-group" role="group" aria-label="More tools">
+            <div className="workspace-nav-kicker"><UiLabel>More tools</UiLabel></div>
+            {MORE_TOOLS_NAV.filter(item => item.href !== '/clips' || clipsVisible(userEmail)).map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={false} pathname={pathname} onClick={onClose} />)}
+          </div>
           {/* KINEO-MENU-ENXUTO-2026-10-09 — o "More" saiu (fundador, "1 sim"): Animate/Audio/Autopilot/Channel Builder fora do menu;
               Invite & Earn + Affiliate viraram um item só, "Earn 40%" (o programa de afiliados). */}
           {isLoggedIn && (
@@ -646,7 +652,7 @@ export default function Sidebar({
               </>
             </div>
           )}
-          <style dangerouslySetInnerHTML={{__html: `.workspace-nav-group{margin-top:14px;padding-top:10px;border-top:1px solid var(--border)}.workspace-nav-group>summary{min-height:44px;padding:10px 12px;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer}.workspace-nav-group>summary:focus-visible{outline:2px solid #2997ff;border-radius:8px}`}} />
+          <style dangerouslySetInnerHTML={{__html: `.workspace-nav-group{margin-top:14px;padding-top:10px;border-top:1px solid var(--border)}.workspace-nav-kicker{padding:4px 12px 6px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:700}.workspace-nav-group>summary{min-height:44px;padding:10px 12px;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer}.workspace-nav-group>summary:focus-visible{outline:2px solid #2997ff;border-radius:8px}`}} />
 
         </nav>
 

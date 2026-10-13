@@ -167,8 +167,13 @@ function landingProblems(src) {
   const nav = src.indexOf('</div></nav>')
   const row = src.indexOf('<PromoCards cards={promoCardsFor({ clips: clipsVisible(initialEmail) })} />')
   const hero = src.indexOf('<header className="hero">')
+  // REANCORADO 13/10 (KINEO-DUAS-PORTAS-2026-10-13, fundador: "tudo sim", ação B): a 1ª dobra passou a ser das 2 portas
+  // (filme narrado · anúncio de produto) e a fileira desceu para "More tools", logo DEPOIS do hero de filmes. Continua
+  // obrigatória na home, uma vez só, com os 4 cards — o mutante M13 prova que a âncora existe.
+  const heroEnd = src.indexOf('</header>', hero)
   if (row < 0) probs.push('fileira ausente da home')
-  else if (!(nav < row && row < hero)) probs.push('fileira fora do lugar (tem de vir logo abaixo do menu, antes do hero)')
+  else if (!(nav < hero && heroEnd > 0 && row > heroEnd)) probs.push('fileira fora do lugar (tem de vir em "More tools", depois do hero de filmes)')
+  if ((src.match(/<PromoCards /g) || []).length !== 1) probs.push('fileira repetida')
   if (!src.includes("import PromoCards from '@/components/PromoCards'")) probs.push('import do componente ausente')
   // Curadoria do fundador intocada: hero de filmes e vitrine de motores seguem na página.
   // REANCORADO 30/09 — fundador: "tira essa parte" (a grade "Video" com os tiles de motor saiu da home; os motores seguem no mega-menu e no /studio).
@@ -259,7 +264,7 @@ ok(componentProblems(compSrc.replace('@media (prefers-reduced-motion: no-prefere
 ok(componentProblems(compSrc.replace('preload="none"', 'autoPlay preload="auto"')).length > 0, '(M12) autoPlay + preload pesado → vermelho')
 // Reancorado 05/10 (KINEO-HOME-CLIPES-EM-CIMA-2026-10-05, 2ª rodada): a fileira voltou a abrir a página nos dois braços
 // do A/B (fundador: "tem que vir em cima, com quatro"); o mutante tira a linha e PROVA que a âncora existia.
-const M13_FROM = '      <PromoCards cards={promoCardsFor({ clips: clipsVisible(initialEmail) })} />\n'
+const M13_FROM = '        <PromoCards cards={promoCardsFor({ clips: clipsVisible(initialEmail) })} />\n'
 ok(landing.includes(M13_FROM) && landingProblems(landing.replace(M13_FROM, '')).length > 0, '(M13) fileira removida da home → vermelho')
 ok(dataProblems(dataSrc.replace("gate: 'clips',", '')).length > 0, '(M14) Clips sem interruptor → vermelho')
 ok(dataProblems(dataSrc.replace("href: '/ads',", "href: '/ads/new',")).length > 0, '(M16) link de Ads errado → vermelho')

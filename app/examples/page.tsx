@@ -50,9 +50,11 @@ export default async function ExamplesPage() {
         <div className={styles.headerInner}>
           <Link href="/" className={styles.brand}><KineoBrandIcon size={26} />Kineo</Link>
           <nav className={styles.nav} aria-label="Main navigation" data-nav-surface="top" data-nav-area="public">
-            <Link href="/studio" className={styles.navPrimary} data-nav-item="video"><UiLabel>Video</UiLabel></Link>
+            {/* KINEO-DUAS-PORTAS-2026-10-13 — par do topo da home: as 2 portas primeiro (filme narrado · anúncio de produto);
+                Imagem segue à vista (fundador: "pode deixar Imagem no topo"); o resto mora no "More tools" da home. */}
+            <Link href="/studio" className={styles.navPrimary} data-nav-item="video"><UiLabel>Make a film</UiLabel></Link>
+            <Link href="/ads/new" className={styles.navPrimary} data-nav-item="business"><UiLabel>Product ads</UiLabel></Link>
             <Link href="/images" data-nav-item="image"><UiLabel>Images</UiLabel></Link>
-            <Link href="/ads/new" data-nav-item="business"><UiLabel>Ads</UiLabel></Link>
             <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
           </nav>
           <div className={styles.headerTools}>
