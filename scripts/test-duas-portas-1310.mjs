@@ -78,9 +78,11 @@ function libProblems(src) {
 function mediaProblems(src) {
   const probs = []
   const M = roda(src)
-  const film = M.HOME_DOOR_FILM_CLIPS || []
+  // KINEO-PORTA-FILME-TRIOS-2026-10-13 — reancorado: a porta do filme alterna 2 trios (HOME_DOOR_FILM_TRIOS) com selo calculado.
+  const trios = M.HOME_DOOR_FILM_TRIOS || []
+  const film = trios.flat()
   const ads = M.HOME_DOOR_ADS_CLIPS || []
-  if (film.length !== 3) probs.push(`porta do filme com ${film.length} filmes (esperado 3)`)
+  if (trios.length !== 2 || trios.some((t) => t.length !== 3)) probs.push(`porta do filme com ${trios.map((t) => t.length).join('+')} filmes (esperado 2 trios de 3)`)
   if (ads.length !== 3) probs.push(`porta do anúncio com ${ads.length} vídeos (esperado 3)`)
   for (const clip of [...film, ...ads]) {
     for (const rel of [clip.src, clip.poster]) {
@@ -98,14 +100,22 @@ function mediaProblems(src) {
       if (b.includes(Buffer.from('soun'))) probs.push(`${clip.src} com áudio`)
     }
   }
-  // Selo honesto: o selo diz SEEDANCE 1.5, então os 3 filmes têm de ser Seedance 1.5 (cinematic_ai) na vitrine pública.
-  if (M.HOME_DOOR_FILM_BADGE !== 'SEEDANCE 1.5') probs.push(`selo do filme = ${M.HOME_DOOR_FILM_BADGE}`)
-  for (const clip of film) {
-    const id = (clip.src.match(/ex-([0-9a-f-]{36})\.mp4$/) || [])[1]
-    const line = id ? PUBLIC_EX.split('\n').find((l) => l.includes(`id: '${id}'`) && l.includes(`/previews/ex-${id}.mp4`)) : null
-    if (!line) probs.push(`${clip.src} não é um filme da vitrine pública`)
-    else if (!/engine: 'cinematic_ai'/.test(line)) probs.push(`${clip.src} não é Seedance 1.5 (selo mentiria)`)
+  // Selo honesto: cada trio mostra o selo CALCULADO dos motores dos seus 3 filmes (homeDoorTrioBadge), e o motor de cada
+  // filme é o do banco (conferido 13/10); quando o filme também está na vitrine pública, o motor de lá tem de bater.
+  const LABEL = { cinematic_ai: 'SEEDANCE 1.5', cinematic_hollywood: 'KLING 3', cinematic_veo: 'VEO 3.1', cinematic_s25: 'SEEDANCE 2.5' }
+  for (const [k, v] of Object.entries(LABEL)) if (M.HOME_DOOR_ENGINE_LABEL?.[k] !== v) probs.push(`rótulo do motor ${k} = ${M.HOME_DOOR_ENGINE_LABEL?.[k]}`)
+  for (const trio of trios) {
+    const want = [...new Set(trio.map((c) => LABEL[c.engine]))].join(' · ')
+    if (M.homeDoorTrioBadge?.(trio) !== want) probs.push(`selo do trio = ${M.homeDoorTrioBadge?.(trio)} (motores: ${want})`)
   }
+  for (const clip of film) {
+    if (!LABEL[clip.engine]) probs.push(`${clip.src} sem motor conhecido`)
+    if (clip.src !== `/previews/door-${clip.id}.mp4` || clip.poster !== `/posters/door-${clip.id}.webp`) probs.push(`${clip.src} fora do padrão door-<id>`)
+    const line = PUBLIC_EX.split('\n').find((l) => l.includes(`id: '${clip.id}'`))
+    const pub = line && (line.match(/engine: '([a-z_0-9]+)'/) || [])[1]
+    if (pub && pub !== clip.engine) probs.push(`${clip.id}: motor ${clip.engine} ≠ vitrine pública ${pub} (selo mentiria)`)
+  }
+  if (new Set(film.map((c) => c.id)).size !== film.length) probs.push('filme repetido entre os trios')
   return probs
 }
 
@@ -130,6 +140,10 @@ function componentProblems(src) {
     if (!/preload="none"/.test(v) || /autoPlay/.test(v)) probs.push('vídeo com autoPlay/preload pesado')
   }
   if (!/onEnded=\{\(\) => setActive\(\(i \+ 1\) % count\)\}/.test(code)) probs.push('carrossel do anúncio sem troca no fim do vídeo')
+  // KINEO-PORTA-FILME-TRIOS-2026-10-13 — os trios trocam no FIM do vídeo (nunca timer) e o selo vem da lib, calculado.
+  if (!code.includes('onEnded={i === 0 ? () => setActive((t + 1) % count) : undefined}')) probs.push('trios do filme sem troca no fim do vídeo')
+  if (!code.includes('{homeDoorTrioBadge(HOME_DOOR_FILM_TRIOS[active])}')) probs.push('selo do filme não é o calculado da lib')
+  if (/setInterval|setTimeout\(/.test(code)) probs.push('troca por timer')
   if (!/if \(visible && !reduce\)/.test(code)) probs.push('vídeo toca com reduced-motion')
   if (!/aspect-ratio:768\/440/.test(code)) probs.push('mídia sem altura fixa (layout shift)')
   // Nenhum número de oferta digitado: preço, créditos ou contagem vêm por props.
@@ -304,7 +318,10 @@ function mut(src, from, to, check, label) {
 mut(LIB, "film: 'home_door_film_clicked'", "film: 'home_door_clicked'", libProblems, '(M1) evento do filme renomeado → vermelho')
 mut(LIB, "if (door === 'ads') return `/ads/new?utm_source=${HOME_DOOR_CAMPAIGN}`", "if (door === 'ads') return '/ads'", libProblems, '(M2) porta do anúncio fora do /ads/new → vermelho')
 mut(LIB, '    signed_in: signedIn,\n', "    signed_in: signedIn,\n    label: 'Make my film',\n", libProblems, '(M3) texto vazando nos metadados → vermelho')
-mut(LIB, "preview('ex-cbd676d0-340a-4728-8a5f-439fd9dd64c5'),", "preview('ex-a66e975a-3f6c-4bf4-9510-cd15b895b58b'),", mediaProblems, '(M4) filme de outro motor sob o selo SEEDANCE 1.5 → vermelho')
+mut(LIB, "door('83db8b63-b654-491e-a0aa-86ce1bc1f3d7', 'cinematic_ai')", "door('83db8b63-b654-491e-a0aa-86ce1bc1f3d7', 'cinematic_veo')", mediaProblems, '(M4) motor do filme contradiz a vitrine pública → vermelho')
+mut(LIB, "return Array.from(new Set(clips.map((c) => HOME_DOOR_ENGINE_LABEL[c.engine]))).join(' · ')", "return 'SEEDANCE 1.5'", mediaProblems, '(M4b) selo fixo em vez de calculado → vermelho')
+mut(LIB, "door('909f9d36-45f2-42ed-8ffd-8062e933cc9c', 'cinematic_s25')", "door('909f9d36-45f2-42ed-8ffd-8062e933cc9c-x', 'cinematic_s25')", mediaProblems, '(M4c) vídeo de trio que não existe → vermelho')
+mut(COMP, '{homeDoorTrioBadge(HOME_DOOR_FILM_TRIOS[active])}', "{'SEEDANCE 1.5'}", componentProblems, '(M4d) selo digitado no componente → vermelho')
 mut(LIB, "preview('promo-ads-3var-3'),", "preview('promo-ads-3var-9'),", mediaProblems, '(M5) prévia inexistente → vermelho')
 mut(COMP, 'onClick={() => track(\'ads\')}', '', componentProblems, '(M6) cartão do anúncio sem medição → vermelho')
 mut(COMP, '<li>{line(adsOffer.plan)}</li>', '<li>Business $84/month</li>', componentProblems, '(M7) preço digitado no componente → vermelho')

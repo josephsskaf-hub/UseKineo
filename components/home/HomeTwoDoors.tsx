@@ -15,8 +15,8 @@ import { trackEvent } from '@/lib/analytics'
 import {
   HOME_DOOR_ADS_CLIPS,
   HOME_DOOR_EVENTS,
-  HOME_DOOR_FILM_BADGE,
-  HOME_DOOR_FILM_CLIPS,
+  HOME_DOOR_FILM_TRIOS,
+  homeDoorTrioBadge,
   homeDoorClickMetadata,
   homeDoorHref,
   type HomeDoorId,
@@ -50,6 +50,8 @@ export const HOME_TWO_DOORS_CSS = `
 .k2d-phones{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:42px 12% 12px;background:radial-gradient(ellipse at 50% 120%,rgba(10,92,255,.28),transparent 70%)}
 .k2d-phone{position:relative;border-radius:12px;overflow:hidden;background:#05070B;box-shadow:0 12px 30px -16px rgba(0,0,0,.8)}
 .k2d-reel video{opacity:0;transition:opacity .7s ease}
+.k2d-trios .k2d-phones{opacity:0;transition:opacity .7s ease}
+.k2d-trios .k2d-phones[data-on]{opacity:1}
 .k2d-reel video[data-on]{opacity:1}
 .k2d-badge{position:absolute;left:10px;top:10px;z-index:2;font-size:11px;font-weight:800;letter-spacing:.08em;padding:5px 8px;border-radius:7px;background:rgba(7,9,13,.72);color:#fff;border:1px solid rgba(255,255,255,.18)}
 .k2d-text{display:flex;flex-direction:column;gap:6px;padding:0 6px;flex:1}
@@ -92,20 +94,50 @@ function useDoorPlayback(ref: RefObject<HTMLElement>, selector: string) {
   }, [ref, selector])
 }
 
-/** Porta do filme: 3 filmes verticais reais lado a lado, em loop. */
+/** Porta do filme: 2 trios de filmes verticais reais (lib: HOME_DOOR_FILM_TRIOS) que se alternam quando o vídeo da 1ª tela
+ *  TERMINA (onEnded, nunca timer); só o trio visível toca. O selo é calculado dos motores do trio na tela. KINEO-PORTA-FILME-TRIOS-2026-10-13 */
 function FilmMedia() {
   const ref = useRef<HTMLDivElement>(null)
-  useDoorPlayback(ref, 'video')
+  const [active, setActive] = useState(0)
+  const count = HOME_DOOR_FILM_TRIOS.length
+  useDoorPlayback(ref, '.k2d-phones[data-on] video')
+  useEffect(() => {
+    const box = ref.current
+    if (!box) return
+    const trios = Array.from(box.querySelectorAll<HTMLElement>('.k2d-phones'))
+    trios[(active + 1) % trios.length]?.querySelectorAll('video').forEach((v) => { v.preload = 'auto' })
+    const reduce = typeof window.matchMedia === 'function' && window.matchMedia(REDUCED_MOTION).matches
+    trios.forEach((trio, i) => trio.querySelectorAll('video').forEach((video) => {
+      if (i === active && box.dataset.visible === '1' && !reduce) {
+        video.currentTime = 0
+        video.play().catch(() => { /* autoplay recusado: fica o pôster */ })
+      } else if (i !== active) {
+        video.pause()
+      }
+    }))
+  }, [active])
   return (
-    <div className="k2d-media" ref={ref}>
-      <span className="k2d-phones">
-        {HOME_DOOR_FILM_CLIPS.map((clip) => (
-          <span key={clip.src} className="k2d-phone">
-            <video src={clip.src} poster={clip.poster} muted playsInline loop preload="none" disablePictureInPicture aria-hidden="true" tabIndex={-1} />
-          </span>
-        ))}
-      </span>
-      <span className="k2d-badge" aria-hidden="true">{HOME_DOOR_FILM_BADGE}</span>
+    <div className="k2d-media k2d-trios" ref={ref}>
+      {HOME_DOOR_FILM_TRIOS.map((trio, t) => (
+        <span key={trio[0].id} className="k2d-phones" data-on={t === active ? '' : undefined}>
+          {trio.map((clip, i) => (
+            <span key={clip.src} className="k2d-phone">
+              <video
+                src={clip.src}
+                poster={clip.poster}
+                onEnded={i === 0 ? () => setActive((t + 1) % count) : undefined}
+                muted
+                playsInline
+                preload="none"
+                disablePictureInPicture
+                aria-hidden="true"
+                tabIndex={-1}
+              />
+            </span>
+          ))}
+        </span>
+      ))}
+      <span className="k2d-badge" aria-hidden="true">{homeDoorTrioBadge(HOME_DOOR_FILM_TRIOS[active])}</span>
     </div>
   )
 }

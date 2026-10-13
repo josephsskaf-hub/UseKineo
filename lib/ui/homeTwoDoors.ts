@@ -58,17 +58,34 @@ export function homeDoorClickMetadata(door: HomeDoorId, signedIn: boolean): {
 export type HomeDoorClip = { src: string; poster: string }
 const preview = (name: string): HomeDoorClip => ({ src: `/previews/${name}.mp4`, poster: `/posters/${name}.webp` })
 
+
 /**
- * Mídia da porta do FILME: 3 filmes narrados verticais REAIS do Seedance 1.5 (o motor do filme grátis), lado a lado como
- * telas de celular — Voynich, Ilha de Páscoa e Mary Celeste, da vitrine pública (lib/publicExamples.ts). Selo honesto: os três são
- * engine 'cinematic_ai' (Seedance 1.5), por isso o selo diz SEEDANCE 1.5. Nenhum é filme do hero logo abaixo (sem repetir).
+ * KINEO-PORTA-FILME-TRIOS-2026-10-13 — o fundador assistiu às opções (Área de Trabalho/ads/vitrine-filme-2026-10-13) e pediu
+ * "esses 2 intercalando": o trio D (mar e tempestade, Seedance 1.5) e o trio B (o melhor de cada motor). O card alterna os
+ * dois trios lado a lado — troca quando o vídeo TERMINA (onEnded), nunca por timer — e o SELO É CALCULADO dos motores dos 3
+ * filmes do trio visível (homeDoorTrioBadge): o selo nunca promete um motor que não está na tela.
+ * Motores conferidos no banco em 13/10 (events.metadata.engine de cada render; 83db8b63 também na vitrine pública).
+ * Todos de contas internas do fundador; 970d03e6 e d16781b8 são da conta hotmail dele (sem a marca usekineo.com/free).
  */
-export const HOME_DOOR_FILM_CLIPS: readonly HomeDoorClip[] = [
-  preview('ex-7ffd064e-cb37-4a97-a207-70a202bc72b6'),
-  preview('ex-a09706da-a79f-4029-b213-69f43d6a2775'),
-  preview('ex-cbd676d0-340a-4728-8a5f-439fd9dd64c5'),
+export type HomeDoorEngine = 'cinematic_ai' | 'cinematic_hollywood' | 'cinematic_veo' | 'cinematic_s25'
+export const HOME_DOOR_ENGINE_LABEL: Record<HomeDoorEngine, string> = {
+  cinematic_ai: 'SEEDANCE 1.5',
+  cinematic_hollywood: 'KLING 3',
+  cinematic_veo: 'VEO 3.1',
+  cinematic_s25: 'SEEDANCE 2.5',
+}
+export type HomeDoorFilmClip = HomeDoorClip & { id: string; engine: HomeDoorEngine }
+const door = (id: string, engine: HomeDoorEngine): HomeDoorFilmClip => ({ id, engine, src: `/previews/door-${id}.mp4`, poster: `/posters/door-${id}.webp` })
+/** O selo do trio: os motores reais, sem repetir, na ordem das telas ("KLING 3 · VEO 3.1 · SEEDANCE 2.5"). */
+export function homeDoorTrioBadge(clips: readonly { engine: HomeDoorEngine }[]): string {
+  return Array.from(new Set(clips.map((c) => HOME_DOOR_ENGINE_LABEL[c.engine]))).join(' · ')
+}
+export const HOME_DOOR_FILM_TRIOS: readonly (readonly HomeDoorFilmClip[])[] = [
+  // D — mar e tempestade: o farol de Flannan, o penhasco do megatsunami de Lituya, o veleiro na arrebentação.
+  [door('970d03e6-9b87-403f-bef7-810db80ba8ce', 'cinematic_ai'), door('83db8b63-b654-491e-a0aa-86ce1bc1f3d7', 'cinematic_ai'), door('dabfdca7-33a1-4de3-b2b4-050333b8a21c', 'cinematic_ai')],
+  // B — o melhor de cada motor: o robô submarino (Kling 3), o Titanic (Veo 3.1), Londres no nevoeiro de 1952 (Seedance 2.5).
+  [door('07252598-1392-4226-b5d5-d02bd892d69b', 'cinematic_hollywood'), door('d16781b8-0557-4c7e-b339-3bf048ff700c', 'cinematic_veo'), door('909f9d36-45f2-42ed-8ffd-8062e933cc9c', 'cinematic_s25')],
 ]
-export const HOME_DOOR_FILM_BADGE = 'SEEDANCE 1.5'
 
 /**
  * Mídia da porta do ANÚNCIO: o mesmo carrossel do card "ADS: 3 VARIATIONS" (KINEO-CARD-ADS-3VAR-2026-09-30), feito na
