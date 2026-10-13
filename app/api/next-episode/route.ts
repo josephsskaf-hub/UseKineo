@@ -11,6 +11,7 @@ import {
   type EpisodioEscrito,
 } from '@/lib/nextEpisodeMemoria'
 import { LANGUAGE_NAMES, narrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
+import { blocoDeContinuidade } from '@/lib/episodeContinuity' // KINEO-EPISODIO2-NO-ASSUNTO-2026-10-13
 
 // ═══ KINEO-PROXIMO-EPISODIO-2026-08-21 ═════════════════════════════════════
 //
@@ -103,11 +104,15 @@ interface LinhaVideo {
   id: string
   title: string | null
   topic: string | null
+  script?: string | null // KINEO-EPISODIO2-NO-ASSUNTO-2026-10-13 — a narração real do filme de origem
 }
 
 interface MemoriaSerie {
   /** `videos.topic` do filme de origem (fallback de `previousTopic`). */
   topicOrigem: string
+  /** KINEO-EPISODIO2-NO-ASSUNTO-2026-10-13 — `videos.script` do filme de
+   *  origem: a NARRAÇÃO que o filme falou, fonte preferida da âncora de assunto. */
+  narracaoOrigem: string
   /** Se a linha do filme de origem foi lida (e era do dono). */
   hadMemory: boolean
   /** "ALREADY COVERED" montado pelo servidor, já normalizado, sem o de origem. */
@@ -126,7 +131,7 @@ async function lerMemoriaSerie(
   userId: string,
   fromVideoId: string | undefined,
 ): Promise<MemoriaSerie> {
-  const vazia: MemoriaSerie = { topicOrigem: '', hadMemory: false, jaFeitos: [], totalConcluidos: 0 }
+  const vazia: MemoriaSerie = { topicOrigem: '', narracaoOrigem: '', hadMemory: false, jaFeitos: [], totalConcluidos: 0 } // KINEO-EPISODIO2-NO-ASSUNTO-2026-10-13
   const memoria: MemoriaSerie = { ...vazia }
   const origemId = fromVideoId && UUID_RE.test(fromVideoId) ? fromVideoId : undefined
 
@@ -136,7 +141,7 @@ async function lerMemoriaSerie(
     try {
       const { data, error } = await supabase
         .from('videos')
-        .select('id, title, topic')
+        .select('id, title, topic, script') // KINEO-EPISODIO2-NO-ASSUNTO-2026-10-13 — + script (a narração real)
         .eq('id', origemId)
         .eq('user_id', userId)
         .maybeSingle()
@@ -145,6 +150,7 @@ async function lerMemoriaSerie(
       } else if (data) {
         const linha = data as LinhaVideo
         memoria.topicOrigem = (linha.topic ?? linha.title ?? '').trim()
+        memoria.narracaoOrigem = typeof linha.script === 'string' ? linha.script.trim() : '' // KINEO-EPISODIO2-NO-ASSUNTO-2026-10-13
         memoria.hadMemory = true
       }
     } catch (e) {
@@ -372,9 +378,20 @@ export async function POST(req: NextRequest) {
 
     // A instrução carrega a regra da casa: 150-165 palavras, que é o que dá
     // 60s+ de narração a 2,3 palavras/s — o piso do TikTok Creator Rewards.
-    const sistema = `You write short-form video scripts for a knowledge/curiosity channel.
-You will be given the script of an episode the creator JUST made. Write EPISODE 2:
-a different story in the same subject area, same voice, same format.
+    //
+    // ═══ KINEO-EPISODIO2-NO-ASSUNTO-2026-10-13 (vai do fundador 13/10) ═══
+    // ESTE BLOCO ERA A CAUSA do episódio 2 fora do assunto (Milo → pizza,
+    // Mila → floresta, dinossauro → água-viva, janela de avião → mel): o
+    // `sistema` mandava "a different story in the same subject area" e "Same
+    // curiosity, new subject", num "knowledge/curiosity channel" cujo "no
+    // invented people" proibia a própria personagem da história. Agora a ordem
+    // é CONTINUAR: mesmo assunto, mesmos personagens, mesmo mundo; a regra de
+    // fatos vale para episódio factual; e o prompt do usuário leva a âncora
+    // de assunto (lib/episodeContinuity.ts). Guardião:
+    // scripts/test-episodio2-no-assunto-1310.mjs. Até o fim do `usuario`.
+    const sistema = `You write short-form video scripts for a creator's ongoing series.
+You will be given the episode the creator JUST made. Write the NEXT EPISODE of that
+same series: same subject, same characters, same world, same voice, same format.
 
 HARD RULES
 - Output ONLY the script, using these four markers on their own lines, in this order:
@@ -393,19 +410,31 @@ PAYOFF
 <1-2 sentences that close the loop opened in the HOOK>
 - 150 to 165 words of narration total. This is a contract: shorter fails.
 - Language: ${idioma}.
-- It must be a DIFFERENT story, not a rephrasing of episode 1. Same curiosity, new subject.
-- Only real, verifiable facts. No invented statistics, no invented quotes, no invented
-  people. If you are not certain a detail is true, leave it out. The creator will publish
-  this publicly and a false claim damages them.
+- STAY ON THE SUBJECT of episode 1. If it is a story, continue it with the SAME characters
+  (same names) in the SAME world: what happens to them next. If it is factual (history,
+  science, facts, an explainer), stay on the SAME theme and take the next angle or the
+  next chapter of it. Never switch to an unrelated topic. Never turn a story into a
+  documentary.
+- Do not rephrase episode 1: new events, new facts, a fresh payoff, inside the same subject.
+- ALREADY COVERED (if present) lists episodes the creator already made: do not repeat
+  their exact events, but never leave the subject of episode 1 to avoid them.
+- When the episode is factual: only real, verifiable facts. No invented statistics, no
+  invented quotes, no invented people. If you are not certain a detail is true, leave it
+  out. The creator will publish this publicly and a false claim damages them. In a story,
+  the characters are fiction by design; any real-world fact in it must still be true.
 - The HOOK is one sentence that creates an open loop. The PAYOFF closes it.
 - Plain spoken language. No "in this video", no "subscribe", no emoji, no stage directions.
 
 Also output, on the very first line and prefixed with "TITLE: ", a 4-8 word title for
 this episode. The title line is NOT part of the narration word count.`
 
+    // KINEO-EPISODIO2-NO-ASSUNTO-2026-10-13 — a âncora de assunto vem da
+    // narração real do filme de origem (`videos.script`) e, sem ela, do próprio
+    // EPISODE 1. '' (filme sem assunto utilizável) = o prompt de antes.
+    const continuidade = blocoDeContinuidade({ anterior, narracaoOrigem: memoria.narracaoOrigem })
     const usuario = `EPISODE 1 (just produced):
 ${anterior}
-
+${continuidade ? `\n${continuidade}\n` : ''}
 ${jaFeitosFinal.length ? `ALREADY COVERED — do not repeat these:\n${jaFeitosFinal.map((t) => `- ${t.slice(0, 120)}`).join('\n')}` : ''}
 
 Write EPISODE ${episodeNumber}.`
