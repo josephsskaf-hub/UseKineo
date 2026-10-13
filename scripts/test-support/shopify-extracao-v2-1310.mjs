@@ -18,6 +18,9 @@ import { join } from 'node:path'
 // linhas marcadas (semCena + desfazAtoresIa: a chamada do ator volta à de antes e as 2 linhas KINEO-ATORES-IA-2026-10-13 saem).
 // desfazAtoresIa é idempotente (sem a chamada nova, devolve o texto igual): quem ainda a aplica por fora segue igual.
 import { desfazAtoresIa } from './desfaz-atores-ia-1310.mjs'
+// reancorado KINEO-ADS-ROTEIROS-2026-10-13 — os 2 a 3 roteiros entraram no núcleo do /plan só por linhas inteiras marcadas;
+// semRoteiros as tira (terceira leva, depois da cena e dos atores IA).
+import { semRoteiros } from './desfaz-roteiros-1310.mjs'
 
 const linhas = (s) => s.replace(/\r\n/g, '\n').split('\n')
 const achar = (arr, pred, desc) => {
@@ -35,7 +38,7 @@ export const semCena = (s) => String(s).replace(/\r\n/g, '\n').split('\n').filte
 /** O texto da rota de ANTES (LF), remontado de route.ts + núcleo. kind = 'plan' | 'start'. Lança se faltar uma costura. */
 export function desfazExtracao(kind, routeText, coreText) {
   const R = linhas(semCena(routeText))
-  const C = linhas(desfazAtoresIa(semCena(coreText))) // reancorado KINEO-LEVA6-1310 — as duas levas marcadas
+  const C = linhas(semRoteiros(desfazAtoresIa(semCena(coreText)))) // reancorado KINEO-LEVA6-1310 — as duas levas marcadas · reancorado KINEO-ADS-ROTEIROS-2026-10-13 — + os roteiros
   const marca = achar(R, (l) => l.startsWith('// KINEO-SHOPIFY-2026-10-13 (etapa 2) — o corpo foi EXTRAÍDO'), 'marca da rota')
   if (R[marca - 1] !== '//') throw new Error('desfazExtracao: linha // antes da marca')
   const header = R.slice(0, marca - 1)

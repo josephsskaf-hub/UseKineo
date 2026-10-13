@@ -365,8 +365,101 @@ async function callJson(messages: { role: 'system' | 'user' | 'assistant'; conte
   return completion.choices[0]?.message?.content ?? ''
 }
 
+// ═══ KINEO-ADS-ROTEIROS-2026-10-13 — 2 a 3 roteiros para escolher ════════════════════════════════════════════════════
+// O texto de sempre é o roteiro 1 (tom 'benefit'). Com scripts: true, UMA chamada a mais (em paralelo com a do texto, sob o
+// MESMO prazo, sem nova tentativa) pede 2 versões em outros tons. Cada versão passa pela MESMA régua do texto de sempre
+// (checkV2Copy com as mesmas opções; o afrouxamento de nomes/tom de loja e o conserto em código de repairCopyRaw, como o
+// texto de sempre) — mas SEM baixar o piso de palavras: versão que só passa encurtada sai. Timeout, erro ou JSON ruim = 0
+// versões e o plano segue com 1 roteiro. Ausente scripts = nenhuma chamada a mais (os guardiões contam as chamadas).
+export type AdsV2AltTone = 'bold' | 'story'
+export const ADS_V2_ALT_TONES: readonly AdsV2AltTone[] = ['bold', 'story']
+/** max_tokens da chamada das versões (≠ 900 do brief e 700 do texto: os simuladores dos guardiões respondem por ele). */
+export const ADS_V2_VARIANTS_MAX_TOKENS = 1100
+export const ADS_V2_VARIANTS_HEADER =
+  'Now write TWO alternative versions of this same ad, each in a different tone. Each version follows EVERY rule above: only the facts of the brief, the same language, the same word count for the narration, the same on-screen phrases rules (the business name in the 1st one). The two versions must not repeat each other\'s sentences.'
+export const ADS_V2_TONE_RULES: Readonly<Record<AdsV2AltTone, string>> = {
+  bold: 'Version "bold": open with a scroll-stopping hook in the first words — a short question or a bold statement built ONLY from the brief (never fake urgency, scarcity, a deadline, a ranking, a superlative or a number the brief does not have) — then the product and a crisp call to action. Punchy, short sentences.',
+  story: 'Version "story": open on a small everyday moment or mood the viewer recognizes, then bring in what is advertised as the answer, and close warmly with the call to action. Never a personal experience or result, never a testimonial, never "I" or "my". Warm and evocative.',
+}
+/** A cena que a pessoa escolheu (KINEO-ADS-CENA) pode dar o clima da versão "story" — nunca vira fato do produto. */
+export function adsV2StorySceneRule(scene: string): string {
+  return `The video is set in this scene chosen by the customer: "${scene}". The "story" version may borrow its mood. It only describes the place and the light of the video — never present it as a fact about the product.`
+}
+
+export interface AdsV2CopyVariant { tone: AdsV2AltTone; copy: AdsV2Copy; honestyFixes?: string[] }
+/** O que aconteceu com as versões: pedidas, aprovadas e por que faltou (timeout/error/bad_json/skipped). */
+export interface AdsV2VariantsInfo { asked: number; kept: number; dropped: number; why?: string }
+
+/** O pedido das versões: o MESMO system do texto (todas as regras), sem a linha de resposta, + tons + a forma {variants}. Pura. */
+export function buildV2VariantMessages(copyMsgs: { system: string; user: string }, opts: { overlays?: boolean; scene?: string | null }): { system: string; user: string } {
+  const cut = copyMsgs.system.lastIndexOf('\nAnswer with JSON only:')
+  const rules = cut >= 0 ? copyMsgs.system.slice(0, cut) : copyMsgs.system
+  const ov = opts.overlays === false ? '[]' : '["",""]'
+  const system = [
+    rules,
+    ADS_V2_VARIANTS_HEADER,
+    ADS_V2_TONE_RULES.bold,
+    ADS_V2_TONE_RULES.story,
+    ...(opts.scene ? [adsV2StorySceneRule(opts.scene)] : []),
+    `Answer with JSON only: {"variants":[{"tone":"bold","narration":"","overlays":${ov}},{"tone":"story","narration":"","overlays":${ov}}]}`,
+  ].join('\n')
+  return { system, user: copyMsgs.user }
+}
+
+/** As versões da resposta, cada uma no formato do texto de sempre ({narration, overlays, sector}). Sem tom conhecido = o tom
+ *  da posição; tom repetido sai; no máximo 2. JSON ruim = null. Pura. */
+export function parseV2Variants(raw: string): { tone: AdsV2AltTone; raw: string }[] | null {
+  let p: unknown
+  try {
+    p = JSON.parse(raw)
+  } catch {
+    return null
+  }
+  const list = p && typeof p === 'object' && !Array.isArray(p) ? (p as { variants?: unknown }).variants : null
+  if (!Array.isArray(list)) return null
+  const out: { tone: AdsV2AltTone; raw: string }[] = []
+  list.slice(0, ADS_V2_ALT_TONES.length).forEach((v, i) => {
+    if (!v || typeof v !== 'object' || Array.isArray(v)) return
+    const x = v as Record<string, unknown>
+    const tone = (ADS_V2_ALT_TONES as readonly unknown[]).includes(x.tone) ? (x.tone as AdsV2AltTone) : ADS_V2_ALT_TONES[i]
+    if (out.some((o) => o.tone === tone)) return
+    out.push({ tone, raw: JSON.stringify({ narration: x.narration ?? '', overlays: x.overlays ?? [], sector: '' }) })
+  })
+  return out
+}
+
+type AdsV2CopyOpts = Parameters<typeof checkV2Copy>[2]
+/** UMA versão pela MESMA régua do texto de sempre (sem baixar o piso de palavras). Pura; nunca lança. */
+export function checkV2Variant(raw: string, brief: AdsBrief, opts: AdsV2CopyOpts, relaxedOpts: AdsV2CopyOpts, honesty: AdsV2HonestySource): { ok: true; copy: AdsV2Copy; fixes: string[] } | { ok: false; why: string[] } {
+  let c = checkV2Copy(raw, brief, opts)
+  if (!c.ok) {
+    const r = checkV2Copy(raw, brief, relaxedOpts)
+    if (r.ok) c = r
+  }
+  let fixes: string[] = []
+  if (!c.ok) {
+    const repaired = repairCopyRaw(raw, honesty)
+    if (repaired) {
+      const again = checkV2Copy(repaired.raw, brief, relaxedOpts)
+      if (again.ok) { c = again; fixes = repaired.fixes }
+    }
+  }
+  return c.ok ? { ok: true, copy: c.copy, fixes } : { ok: false, why: c.why }
+}
+
+/** A chamada das versões: prazo próprio (o MESMO deadline, sem nova tentativa) e NUNCA rejeita. */
+async function variantsCall(msgs: { system: string; user: string }, deadline: number): Promise<{ list: { tone: AdsV2AltTone; raw: string }[]; why?: string }> {
+  try {
+    const raw = await callJson([{ role: 'system', content: msgs.system }, { role: 'user', content: msgs.user }], 0.8, ADS_V2_VARIANTS_MAX_TOKENS, { deadline, retriesLeft: 0, retried: 0 })
+    const list = parseV2Variants(raw)
+    return list ? { list } : { list: [], why: 'bad_json' }
+  } catch (e) {
+    return { list: [], why: isAdsV2ModelTimeout(e) ? 'timeout' : 'error' }
+  }
+}
+
 export type AdsV2BriefResult =
-  | { ok: true; brief: AdsBrief; copy: AdsV2Copy; dropped: string[]; attempts: number; voice?: AdsV2SimpleVoice & { namesMissing: string[] }; ad?: AdsV2AdVoice; honestyFixes?: string[]; timeoutRetries?: number }
+  | { ok: true; brief: AdsBrief; copy: AdsV2Copy; dropped: string[]; attempts: number; voice?: AdsV2SimpleVoice & { namesMissing: string[] }; ad?: AdsV2AdVoice; honestyFixes?: string[]; timeoutRetries?: number; variants?: AdsV2CopyVariant[]; variantsInfo?: AdsV2VariantsInfo }
   | { ok: false; stage: 'brief' | 'copy' | 'timeout'; why: string[]; attempts: number; timeoutRetries?: number }
 
 /** Fatos públicos escolhidos (modo simples) entram no brief como extra.public_fact_N: o texto os enxerga e a régua
@@ -420,6 +513,10 @@ async function extractWithBudget(args: {
   /** KINEO-ANUNCIO-CONSERTOS-2026-10-12 — só o que a pessoa DIGITOU (frase + preço + contato), sem a página do link: alegação de
    *  saúde só vale se estiver aqui. Ausente = a frase (ou o texto). */
   typed?: string
+  /** KINEO-ADS-ROTEIROS-2026-10-13 — true = pede também 2 versões em outros tons (o /plan). Ausente = nenhuma chamada a mais. */
+  scripts?: boolean
+  /** KINEO-ADS-ROTEIROS-2026-10-13 — a cena já limpa (adsV2SceneSetting) dá o clima da versão "story". */
+  scene?: string | null
 }, budget: AdsV2CallBudget): Promise<AdsV2BriefResult> {
   const briefMsgs = buildAutoBriefMessages(args.text, args.languageName)
   const briefRaw = await callJson([{ role: 'system', content: briefMsgs.system }, { role: 'user', content: briefMsgs.user }], 0.2, 900, budget)
@@ -448,7 +545,12 @@ async function extractWithBudget(args: {
   const opts: typeof base1 & { ad?: AdsV2AdVoice; honesty: AdsV2HonestySource } = ad ? { ...base1, ad, honesty } : { ...base1, honesty }
   const copyMsgs = buildV2CopyMessages(brief, args.languageName, opts)
   const base = [{ role: 'system' as const, content: copyMsgs.system }, { role: 'user' as const, content: copyMsgs.user }]
-  let raw = await callJson(base, 0.6, 700, budget)
+  // KINEO-ADS-ROTEIROS-2026-10-13 — as versões saem em paralelo com o texto de sempre (que sai PRIMEIRO), sob o mesmo prazo;
+  // a promessa das versões nunca rejeita.
+  const rawP = callJson(base, 0.6, 700, budget)
+  const wantVariants = args.scripts === true && (args.narration || args.overlays !== false)
+  const variantsP = wantVariants ? variantsCall(buildV2VariantMessages(copyMsgs, { overlays: args.overlays, scene: args.scene ?? null }), budget.deadline) : null
+  let raw = await rawP
   attempts += 1
   let checked = checkV2Copy(raw, brief, opts)
   if (!checked.ok) {
@@ -503,5 +605,17 @@ async function extractWithBudget(args: {
     }
   }
   if (!checked.ok) return { ok: false, stage: 'copy', why: checked.why.slice(0, 6), attempts }
-  return { ok: true, brief, copy: checked.copy, dropped: parsed.dropped, attempts, ...(voice ? { voice: { ...voice, namesMissing } } : {}), ...(ad ? { ad } : {}), ...(honestyFixes.length ? { honestyFixes } : {}) }
+  // KINEO-ADS-ROTEIROS-2026-10-13 — cada versão pela MESMA régua; reprovada sai (nunca derruba o plano).
+  let variants: AdsV2CopyVariant[] = []
+  let variantsInfo: AdsV2VariantsInfo | null = null
+  if (variantsP) {
+    const alt = await variantsP
+    for (const v of alt.list) {
+      const r = checkV2Variant(v.raw, brief, opts, relaxedOpts, honesty)
+      if (r.ok) variants.push({ tone: v.tone, copy: r.copy, ...(r.fixes.length ? { honestyFixes: r.fixes } : {}) })
+    }
+    variants = variants.slice(0, ADS_V2_ALT_TONES.length)
+    variantsInfo = { asked: ADS_V2_ALT_TONES.length, kept: variants.length, dropped: alt.list.length - variants.length, ...(alt.why ? { why: alt.why } : {}) }
+  }
+  return { ok: true, brief, copy: checked.copy, dropped: parsed.dropped, attempts, ...(voice ? { voice: { ...voice, namesMissing } } : {}), ...(ad ? { ad } : {}), ...(honestyFixes.length ? { honestyFixes } : {}), ...(variantsInfo ? { variants, variantsInfo } : {}) }
 }

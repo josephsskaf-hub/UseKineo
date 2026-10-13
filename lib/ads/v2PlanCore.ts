@@ -35,6 +35,7 @@ import { measureFootageVideo, ownedFootage, v2Fail, v2Json } from '@/lib/ads/v2S
 import { adsSampleLevelOk, adsSampleOpen } from '@/lib/ads/serverAccess'
 import { adsV2IsProductOrder, adsV2SceneSetting, adsV2SceneShots } from '@/lib/ads/v2Scene' // KINEO-ADS-CENA-2026-10-13 — a cena da pessoa no prompt das cenas criadas (só Comercial/Premium)
 import { ADS_V2_BRIEF_TIMEOUT_WHY, ADS_V2_PLAN_MODEL_DEADLINE_MS } from '@/lib/ads/v2Brief' // KINEO-ADS-CENA-2026-10-13 — prazo do modelo amarrado ao maxDuration e timeout que não vira 502 cru
+import { adsV2BuildScripts } from '@/lib/ads/v2Scripts' // KINEO-ADS-ROTEIROS-2026-10-13 — 2 a 3 roteiros para escolher (o 1º = o texto de sempre); troca em /api/ads/v2/plan/choose
 
 /** Quem age: o id do auth (moderação e rastro) e o e-mail VERIFICADO dele (adsV2Visible). */
 export interface AdsV2Caller {
@@ -173,9 +174,11 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
       ...(presenterAsked ? { presenter: true } : {}),
       typed, // KINEO-ANUNCIO-CONSERTOS-2026-10-12
       deadlineMs: started + ADS_V2_PLAN_MODEL_DEADLINE_MS, // KINEO-ADS-CENA-2026-10-13 — as chamadas ao modelo terminam antes do maxDuration 60
+      scripts: (body as { scripts?: unknown } | null)?.scripts !== false, scene: adsV2SceneSetting(brief0, order.tier), // KINEO-ADS-ROTEIROS-2026-10-13 — +2 versões em outros tons, em paralelo e no MESMO prazo (a cena dá o clima da "story"); corpo com scripts:false (ex.: o lote) = só o texto de sempre
     })
     const modeTag = { mode: simple ? 'simple' : 'full', facts_selected: factTexts.length, overlays: overlaysOn }
     if (extracted.ok && extracted.honestyFixes) Object.assign(modeTag, { honesty_fixes: extracted.honestyFixes }) // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o que a régua consertou em código
+    if (extracted.ok && extracted.variantsInfo) Object.assign(modeTag, { scripts: 1 + extracted.variantsInfo.kept, scripts_dropped: extracted.variantsInfo.dropped, ...(extracted.variantsInfo.why ? { scripts_why: extracted.variantsInfo.why } : {}) }) // KINEO-ADS-ROTEIROS-2026-10-13 — quantos roteiros saíram e por que faltou
     const served = async (ok: boolean, extra: Record<string, unknown>) =>
       writeServerEvent({ name: 'ads_v2_plan_served', userId: uid, path: '/api/ads/v2/plan', metadata: { order_id: order.id, ok, tier: order.tier, seconds: order.seconds, sector: input.sector, language, ms: Date.now() - started, ...modeTag, ...extra } })
     if (extracted.timeoutRetries) Object.assign(modeTag, { timeout_retries: extracted.timeoutRetries }) // KINEO-ADS-CENA-2026-10-13 — o plano saiu na 2ª tentativa (timeout na 1ª)
@@ -212,7 +215,9 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator: a 1ª foto marcada como produto, a pessoa pela semente do pedido. Sem texto de
     // narração (o modelo não escreveu) não há o que falar: o plano sai sem ator e a tela diz por quê (presenter_asked).
     const presenter = presenterAsked && extracted.copy.narration ? planAdsV2Presenter({ sector, photos, seedKey: order.id, presenterId: input.presenter_id ?? null }) : null
+    const scripts = adsV2BuildScripts([{ tone: 'benefit', narration: extracted.copy.narration, overlays: extracted.copy.overlays }, ...(extracted.variants ?? []).map((v) => ({ tone: v.tone, narration: v.copy.narration, overlays: v.copy.overlays }))], plan.overlays, overlaysOn) // KINEO-ADS-ROTEIROS-2026-10-13 — o 1º é o texto de sempre (= narration/overlays abaixo)
     const stored: AdsV2StoredPlan = { ...plan, overlays, narration: extracted.copy.narration, ...(presenter ? { presenter } : {}) }
+    Object.assign(stored, { scripts, script_id: scripts[0]?.id ?? 'a' }) // KINEO-ADS-ROTEIROS-2026-10-13 — os roteiros ficam NO plano do pedido; o /choose só copia daqui (preço intocado)
     const credits = adsV2Credits(order.tier, order.seconds)
     const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds, presenter: !!presenter })
 
@@ -266,6 +271,8 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
       ...(presenter?.presenterId ? { presenter_id: presenter.presenterId } : {}), // KINEO-ATORES-IA-2026-10-13 — quem foi escolhido
       scene: sceneSetting, // KINEO-ADS-CENA-2026-10-13 — a cena que entrou no plano (a tela mostra antes de pagar)
       ad_kind: adsV2IsProductOrder(brief0, sector) ? 'product' : 'place', // KINEO-ADS-CENA-2026-10-13 — rótulos do plano (produto: nada de "Your place")
+      scripts, // KINEO-ADS-ROTEIROS-2026-10-13 — [{ id, tone, label, narration, overlays, words }], 1 a 3 (contrato em lib/ads/v2Scripts.ts)
+      script_id: scripts[0]?.id ?? 'a', // KINEO-ADS-ROTEIROS-2026-10-13 — o roteiro que está no plano
       shots: plan.shots.map((s) => ({ idx: s.idx, role: s.role, beat: s.beat, kind: s.kind, source: s.source, cut_seconds: s.cutSeconds, photo: s.sourceFootageId, ...(s.effect ? { effect: s.effect } : {}) })),
     })
   } catch (e) {
