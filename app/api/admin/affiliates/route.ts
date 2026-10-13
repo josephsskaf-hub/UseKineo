@@ -71,8 +71,20 @@ export async function GET() {
     ])
 
     // Campos antigos (clicks/signups/paid/owed em centavos USD) seguem na mesma forma para quem já lê a rota.
-    const legacy = dashboard.affiliates.map((a) => ({ ...a, owed: a.owed.usd ?? 0, owedByCurrency: a.owed }))
-    return NextResponse.json({ ...dashboard, affiliates: legacy, destinationClicks: dashboard.destinationClicks, destinationLabels })
+    // KINEO-AGENCIAS-2026-10-13 — o tipo do parceiro (agência = 30% no Business) numa leitura À PARTE e tolerante: antes da
+    // migration 20261013120000_agency_program.sql a coluna não existe, e o painel inteiro não pode cair por isso
+    // (partnerTypeReady=false avisa a tela). A leitura de cima segue idêntica.
+    const partnerTypes = new Map<string, string>()
+    let partnerTypeReady = false
+    try {
+      const rows = await fetchAllRows<{ id: string; partner_type: string | null }>(admin, 'affiliates', 'id, partner_type', undefined, '/api/admin/affiliates')
+      for (const r of rows) if (r?.id && typeof r.partner_type === 'string') partnerTypes.set(r.id, r.partner_type)
+      partnerTypeReady = true
+    } catch {
+      partnerTypeReady = false
+    }
+    const legacy = dashboard.affiliates.map((a) => ({ ...a, owed: a.owed.usd ?? 0, owedByCurrency: a.owed, partner_type: partnerTypes.get(a.id) ?? null }))
+    return NextResponse.json({ ...dashboard, affiliates: legacy, destinationClicks: dashboard.destinationClicks, destinationLabels, partnerTypeReady })
   } catch (err) {
     console.error('[admin/affiliates] unexpected:', err)
     return NextResponse.json({ error: 'Failed to load affiliates', affiliates: [] }, { status: 500 })

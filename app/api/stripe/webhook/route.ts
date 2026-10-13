@@ -91,7 +91,8 @@ import { CARD_ENTRY_TRIAL_STATUS } from '@/lib/entryPolicy'
 import { renewalCreditsForInvoice } from '@/lib/settlementCurrency'
 import { RENEWAL_CARRY_VERSION, renewalBalance } from '@/lib/credits/renewalBalance' // KINEO-RENOVACAO-PRESERVA-CREDITO-COMPRADO-2026-09-25
 import { effectiveAffiliateCommissionRate } from '@/lib/affiliateCommission' // KINEO-AFILIADOS-40-2026-10-06: taxa do programa = piso
-import { BUSINESS_AFFILIATE_COMMISSION_RATE, isBusinessCommissionPlan } from '@/lib/affiliateCommission' // KINEO-BUSINESS-84-2026-10-09: Business = 20%
+import { isBusinessCommissionPlan } from '@/lib/affiliateCommission' // KINEO-BUSINESS-84-2026-10-09: Business = 20%
+import { businessAffiliateCommissionRate } from '@/lib/affiliateCommission' // KINEO-AGENCIAS-2026-10-13: agência = 30% no Business
 import { applyBusinessUpgradeGrant, businessUpgradeGrantDecision } from '@/lib/billing/trocaBusiness' // KINEO-TROCA-BUSINESS-2026-10-10
 // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — a compra de quem não tinha conta: no começo do Path B o webhook acha/cria o dono
 // pelo e-mail; o grant que vem depois é o mesmo do caminho logado. Sem kineo_guest=1 na sessão, nada disto roda.
@@ -522,6 +523,22 @@ async function resolveAffiliateByCoupon(
   }
 }
 
+// KINEO-AGENCIAS-2026-10-13 — o tipo do parceiro (affiliates.partner_type), lido só na cobrança do Business.
+// 42703 / PGRST204 = a coluna ainda não existe (migration 20261013120000_agency_program.sql não aplicada) → null (criador).
+async function readAffiliatePartnerType(supabase: AdminClient, affiliateId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('affiliates')
+    .select('partner_type')
+    .eq('id', affiliateId)
+    .maybeSingle()
+  if (error) {
+    if (error.code === '42703' || error.code === 'PGRST204') return null
+    throw new AffiliateLedgerIntegrityError('Could not read affiliate partner type')
+  }
+  const value = (data as { partner_type?: unknown } | null)?.partner_type
+  return typeof value === 'string' ? value : null
+}
+
 // #480 — Affiliate commission. If the paying user was attributed to an affiliate
 // (profiles.affiliate_id), record a PENDING commission (rate × amount paid).
 // Idempotent via unique(provider, external_id). Stays 'pending' until the admin
@@ -646,7 +663,13 @@ async function recordAffiliateCommission(
     const rate = effectiveAffiliateCommissionRate(aff.commission_rate)
     // KINEO-BUSINESS-84-2026-10-09 — a cobrança do Business paga 20% fixo (lib/affiliateCommission.ts, mesma regra de
     // affiliateCommissionRateForPlan); qualquer outro plano segue a régua de antes (`rate`).
-    const chargeRate = isBusinessCommissionPlan(args.plan) ? BUSINESS_AFFILIATE_COMMISSION_RATE : rate
+    // KINEO-AGENCIAS-2026-10-13 — no Business, a agência (affiliates.partner_type = 'agency') ganha 30% em vez de 20%.
+    // A leitura do tipo é SEPARADA e só acontece em cobrança do Business: o select de cima, e todo plano que não é Business,
+    // ficam byte a byte como antes. Coluna ainda inexistente (migration não aplicada) = criador = 20%, nunca erro;
+    // qualquer outra falha de leitura lança como a leitura de cima (a Stripe reenvia) — subpagar calado uma agência
+    // seria permanente, porque a comissão é gravada uma vez só por cobrança.
+    const partnerType = isBusinessCommissionPlan(args.plan) ? await readAffiliatePartnerType(supabase, affiliateId) : null
+    const chargeRate = isBusinessCommissionPlan(args.plan) ? businessAffiliateCommissionRate(partnerType) : rate
     const commission = calculateAffiliateCommission(args.amountGross, chargeRate)
 
     const { data: ref, error: referralError } = await supabase

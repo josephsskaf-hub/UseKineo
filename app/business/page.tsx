@@ -39,6 +39,8 @@ import { DFY_SERVICE_FACT } from '@/lib/growth/dfyServiceFacts'
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — a faixa dos estilos de produto (as prévias são feitas pelo próprio efeito).
 import { ADS_V2_STYLES, ADS_V2_STYLES_PUBLIC } from '@/lib/ads/v2Styles'
 import { AdsStyleStrip } from '@/components/ads/AdsStyles'
+import { AGENCY_BUSINESS_COMMISSION_PCT } from '@/lib/affiliateCommission' // KINEO-AGENCIAS-2026-10-13
+import { AGENCIES_PAGE_PATH } from '@/lib/growth/agencyProgram' // KINEO-AGENCIAS-2026-10-13
 
 const TITLE = 'Kineo Business — AI Product Video Ads for Companies'
 const DESCRIPTION =
@@ -217,6 +219,16 @@ export default function BusinessPage() {
             <a className="kbz-dfy-link" href={BUSINESS_DFY_HREF}>See the done-for-you options →</a>
           </section>
         ) : null}
+
+        {/* KINEO-AGENCIAS-2026-10-13 — a porta do programa de agências (revenda do Business). */}
+        <section id="agencies" className="kbz-sec" aria-labelledby="kbz-agencies-title" data-kineo="business-agencies-link">
+          <h2 id="kbz-agencies-title">Run ads for clients?</h2>
+          <p className="kbz-sec-sub">
+            Agencies can resell Business: your client subscribes through your partner link, your team makes the ads with the {BUSINESS_TEAM_SEATS} seats,
+            and you earn {AGENCY_BUSINESS_COMMISSION_PCT} of every Business payment while the client stays.
+          </p>
+          <a className="kbz-dfy-link" href={AGENCIES_PAGE_PATH}>See the agency partner program →</a>
+        </section>
 
         <section id="faq" className="kbz-sec" aria-labelledby="kbz-faq-title">
           <h2 id="kbz-faq-title">Questions</h2>

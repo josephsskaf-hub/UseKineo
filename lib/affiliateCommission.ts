@@ -30,9 +30,36 @@ export const BUSINESS_AFFILIATE_COMMISSION_PCT = `${Math.round(BUSINESS_AFFILIAT
 export function isBusinessCommissionPlan(plan: string | null | undefined): boolean {
   return typeof plan === 'string' && plan.trim().toLowerCase() === 'business'
 }
-export function affiliateCommissionRateForPlan(stored: unknown, plan: string | null | undefined): number {
-  if (isBusinessCommissionPlan(plan)) return BUSINESS_AFFILIATE_COMMISSION_RATE
+export function affiliateCommissionRateForPlan(stored: unknown, plan: string | null | undefined, partnerType?: unknown): number {
+  // KINEO-AGENCIAS-2026-10-13 — 3º argumento opcional: sem ele (ou criador), Business = 20% exatamente como antes.
+  if (isBusinessCommissionPlan(plan)) return businessAffiliateCommissionRate(partnerType)
   return effectiveAffiliateCommissionRate(stored)
+}
+
+// KINEO-AGENCIAS-2026-10-13 — PROGRAMA DE AGÊNCIAS (fundador 13/10, "tudo sim"): a agência de social media / tráfego que
+// revende o Business ganha 30% recorrente na cobrança do Business — e SÓ ela. Quem é agência é a coluna
+// affiliates.partner_type = 'agency' (migration 20261013120000_agency_program.sql; padrão 'creator'), marcada pelo fundador
+// em /admin/affiliates depois de aprovar a inscrição de /agencies. Afiliado comum segue nos 20% fixos do Business; os outros
+// planos seguem a régua de sempre (piso 40% / acordo maior) PARA TODO MUNDO, agência inclusive — a exceção é só do Business.
+export const AGENCY_PARTNER_TYPE = 'agency' as const
+export const CREATOR_PARTNER_TYPE = 'creator' as const
+export type AffiliatePartnerType = typeof AGENCY_PARTNER_TYPE | typeof CREATOR_PARTNER_TYPE
+export const AGENCY_BUSINESS_COMMISSION_RATE = 0.3
+export const AGENCY_BUSINESS_COMMISSION_PCT = `${Math.round(AGENCY_BUSINESS_COMMISSION_RATE * 100)}%`
+
+/** A linha é de agência? Só o texto 'agency' conta; nulo, coluna ausente (antes da migration) ou lixo = criador. */
+export function isAgencyPartner(partnerType: unknown): boolean {
+  return typeof partnerType === 'string' && partnerType.trim().toLowerCase() === AGENCY_PARTNER_TYPE
+}
+/** Normaliza o que o admin manda: 'agency' | 'creator', ou null se não for nenhum dos dois. */
+export function normalizePartnerType(raw: unknown): AffiliatePartnerType | null {
+  if (typeof raw !== 'string') return null
+  const v = raw.trim().toLowerCase()
+  return v === AGENCY_PARTNER_TYPE ? AGENCY_PARTNER_TYPE : v === CREATOR_PARTNER_TYPE ? CREATOR_PARTNER_TYPE : null
+}
+/** A taxa da cobrança do Business: agência = 30%; qualquer outro = os 20% fixos de sempre. */
+export function businessAffiliateCommissionRate(partnerType: unknown): number {
+  return isAgencyPartner(partnerType) ? AGENCY_BUSINESS_COMMISSION_RATE : BUSINESS_AFFILIATE_COMMISSION_RATE
 }
 
 /** A frase pública da exceção (partners, painel do afiliado). */
