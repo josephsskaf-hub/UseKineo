@@ -138,6 +138,11 @@ export default function GeneradorDeShortsPage() {
             </div>
           ))}
         </section>
+        {/* KINEO-PAGINAS-LOTE1-2026-10-12 — a irmã de terror em espanhol (horror é o nicho que mais traz gente). */}
+        <p style={{ marginTop: 24, textAlign: 'center', fontSize: '0.95rem', color: '#86868b' }}>
+          ¿Haces videos de miedo?{' '}
+          <a href="/generador-de-videos-de-terror" style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}>Generador de videos de terror con IA →</a>
+        </p>
       </div>
       <ExitIntentOffer variant="free" />
       <Footer />

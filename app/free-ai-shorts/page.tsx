@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { NICHE_SLUGS } from './[niche]/page'
+import { LOTE1_NICHES } from '@/lib/seo/paginasLote1' // KINEO-PAGINAS-LOTE1-2026-10-12
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 // KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
 // lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
@@ -125,6 +126,12 @@ const NICHE_CARDS: Record<string, { label: string; title: string; example: strin
 // a página afirma sobre si mesma (<title>, og:description, subtítulo e <h2>).
 // Enquanto os quatro eram literais, a página anunciava 28 no Google, 14 no
 // texto e mostrava 29.
+// KINEO-PAGINAS-LOTE1-2026-10-12 — o card de cada nicho do lote 1 (sem ele a página nasceria órfã do hub — a lição do
+// localbusiness acima). Vem da MESMA fonte da página: LOTE1_NICHES[slug].hubCard.
+for (const [slug, n] of Object.entries(LOTE1_NICHES)) {
+  if (!NICHE_CARDS[slug]) NICHE_CARDS[slug] = { label: n.label, title: n.hubCard.title, example: n.hubCard.example }
+}
+
 const HUB_NICHE_SLUGS = NICHE_SLUGS.filter((slug) => NICHE_CARDS[slug])
 const HUB_NICHE_COUNT = HUB_NICHE_SLUGS.length
 

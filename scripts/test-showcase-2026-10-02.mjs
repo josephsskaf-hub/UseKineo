@@ -163,6 +163,10 @@ function discovery(overrides = {}) {
       // here: the real entries are exercised by test-geo-rodada3-2026-10-08, and the run below still REQUIRES every hub page,
       // the index and the study exactly once, with the switch on and off.
       GEO_RODADA3_LAST_MODIFIED_ISO: '2026-10-08T18:00:00.000Z', GEO_RODADA3_STATIC_PATHS: [], GEO_RODADA3_ALTERNATIVE_SLUGS: [],
+      // KINEO-PAGINAS-LOTE1-2026-10-12 (re-anchored 12/10) — the sitemap imports the batch-1 paths (lib/seo/paginasLote1Paths.ts);
+      // without them this run died mapping an undefined list. Inert here: the real entries are exercised by
+      // test-paginas-lote1-1210, and the run below still REQUIRES the showcase/hub/study entries exactly as before.
+      LOTE1_REVIEWED_ISO: '2026-10-12', LOTE1_NICHE_SLUG_LIST: [], LOTE1_LANDING_PATH_LIST: [],
     }
     new Function('exports', 'require', 'module', js)(mod.exports, () => fixtures, mod)
     return mod.exports.default()

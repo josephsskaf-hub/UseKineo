@@ -20,8 +20,12 @@ import { HOUSE_FILM_REMIX_LABEL, HOUSE_FILM_REMIX_PLACEMENT, houseFilmRemixHref 
 
 const CARD: CSSProperties = { background: 'rgba(11,17,32,0.85)', border: '1px solid rgba(255,255,255,0.08)' }
 
-export default function NicheHouseFilm({ film, nicheLabel, ctaHref, source, stateRank }: {
+// KINEO-PAGINAS-LOTE1-2026-10-12 — honestNote/ctaLabel opcionais: nos nichos novos sem filme do tema exato (desenho, what-if),
+// o card diz que é o filme mais próximo e o botão não promete "um Short do nicho a partir desta ideia". Sem os dois, igual a antes.
+export default function NicheHouseFilm({ film, nicheLabel, ctaHref, source, stateRank, honestNote = null, ctaLabel }: {
   film: HouseFilm & { kind: string }
+  honestNote?: string | null
+  ctaLabel?: string
   nicheLabel: string
   ctaHref: string
   source: string
@@ -35,6 +39,9 @@ export default function NicheHouseFilm({ film, nicheLabel, ctaHref, source, stat
       <p style={{ textAlign: 'center', color: '#86868b', fontSize: '0.88rem', margin: '0 auto 18px', maxWidth: 620, lineHeight: 1.6 }}>
         A Kineo-owned film, not a mockup — the badge is the engine that rendered it. Customer videos stay private.
       </p>
+      {honestNote ? (
+        <p data-kineo="niche-house-film-honest" style={{ textAlign: 'center', color: '#ffb454', fontSize: '0.86rem', margin: '-8px auto 18px', maxWidth: 620, lineHeight: 1.6 }}>{honestNote}</p>
+      ) : null}
       <div style={{ ...CARD, borderRadius: 16, padding: 16, display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', alignItems: 'start' }}>
         <div style={{ position: 'relative', aspectRatio: '9 / 16', overflow: 'hidden', borderRadius: 12, background: '#000', maxWidth: 300, width: '100%', justifySelf: 'center' }}>
           <video src={film.previewPath} poster={film.posterPath} muted playsInline controls preload="none" style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -52,7 +59,7 @@ export default function NicheHouseFilm({ film, nicheLabel, ctaHref, source, stat
             placement="house_film"
             style={{ display: 'inline-block', background: '#2997ff', color: '#000', fontWeight: 900, padding: '13px 22px', borderRadius: 12, textDecoration: 'none', fontSize: '0.98rem' }}
           >
-            Make a {nicheLabel} Short from this idea →
+            {ctaLabel ?? <>Make a {nicheLabel} Short from this idea →</>}
           </OrganicCtaLink>
           <OrganicCtaLink
             href={houseFilmRemixHref(film, source)}

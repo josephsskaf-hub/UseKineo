@@ -379,7 +379,10 @@ async function problemas(world = { rep: {} }) {
   if (cat.INDEXABLE_ENGINE_SLUGS.includes('seedance') && lm('/ai-video-generator/seedance') !== r2) p.push('D: sitemap: Seedance sem o lastmod da rodada 2')
   if (mirror && lm('/state-of-ai-shorts-2026') !== new Date(mirror.measuredAt).toISOString()) p.push('D: sitemap: estudo sem o lastmod da leitura da edição')
   for (const slug of nicheSlugs) {
-    const want = ideas.NICHE_HOUSE_FILM_SLUGS.includes(slug) ? r2 : new Date('2026-09-17T05:00:00.000Z').toISOString()
+    // KINEO-PAGINAS-LOTE1-2026-10-12 — reancorado: a lista de nichos cresceu com os 7 do lote 1 (lib/seo/paginasLote1Paths.ts), que
+    // nascem com a data do lote; os 30 de antes seguem exigindo exatamente o que exigiam (rodada 2 ou 17/09).
+    const LOTE1_NICHOS = ['cartoon', 'what-if', 'ocean', 'disasters', 'nature', 'ancient-mysteries', 'creepy-facts']
+    const want = LOTE1_NICHOS.includes(slug) ? new Date('2026-10-12T12:00:00.000Z').toISOString() : ideas.NICHE_HOUSE_FILM_SLUGS.includes(slug) ? r2 : new Date('2026-09-17T05:00:00.000Z').toISOString()
     if (lm(`/free-ai-shorts/${slug}`) !== want) p.push(`D: sitemap: nicho ${slug} com lastmod ${lm(`/free-ai-shorts/${slug}`)} (esperado ${want})`)
   }
   for (const path of ['/pricing', '/ai-video-generator/veo', '/free-ai-shorts-generator']) if (lm(path) === r2) p.push(`D: sitemap: re-datou página que a rodada não tocou (${path})`)
