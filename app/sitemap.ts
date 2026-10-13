@@ -33,6 +33,8 @@ import { STATE_HEADLINE } from '@/lib/seo/stateOfAiShortsHeadline'
 // KINEO-GEO-RODADA3-2026-10-08 — rodada 3 de GEO: as 4 respostas (modelos, InVideo, CapCut, melhor gerador), o tempo medido
 // nas páginas de motor (14 línguas) e no /alternatives, e o timer de roteiro. Módulo sem import em tempo de execução.
 import { GEO_RODADA3_ALTERNATIVE_SLUGS, GEO_RODADA3_LAST_MODIFIED_ISO, GEO_RODADA3_STATIC_PATHS } from '@/lib/seo/geoRodada3'
+// KINEO-PAGINAS-LOTE1-2026-10-12 — lote 1 das 10 páginas novas (7 nichos + 3 de intenção). Módulo PURO, sem import.
+import { LOTE1_LANDING_PATH_LIST, LOTE1_NICHE_SLUG_LIST, LOTE1_REVIEWED_ISO } from '@/lib/seo/paginasLote1Paths'
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -92,6 +94,7 @@ const ENGINE_GEO_REVISED_PAGES = ['/ai-video-generator', '/models-pricing', '/ki
 // a página do Seedance 1.5 (o grátis e para quem, 1.5 × 2.5, filmes reais), os nichos com filme real da casa
 // (NICHE_HOUSE_FILM_SLUGS) e o estudo, que leva a data da leitura da edição vigente (muda sozinha a cada edição nova).
 const GEO_RODADA2_LAST_MODIFIED = new Date(`${GEO_RODADA2_REVIEWED_ISO}T12:00:00.000Z`)
+const LOTE1_LAST_MODIFIED = new Date(`${LOTE1_REVIEWED_ISO}T12:00:00.000Z`) // KINEO-PAGINAS-LOTE1-2026-10-12
 // KINEO-GEO-RODADA3-2026-10-08 — as páginas que SÓ a rodada 3 mudou levam a data real dela (carimbo posterior ao da rodada 2, no
 // mesmo dia); as que a rodada 2 já carimbou hoje (Seedance 1.5, nichos com filme) seguem com o carimbo dela.
 const GEO_RODADA3_LAST_MODIFIED = new Date(GEO_RODADA3_LAST_MODIFIED_ISO)
@@ -330,6 +333,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   }))
   // #482 — comparison / "X alternative" SEO pages (/alternatives/[competitor]).
+  // KINEO-PAGINAS-LOTE1-2026-10-12 — os 7 nichos do lote 1 nascem com a data do lote (a linha acima fica intacta para os 30
+  // de antes); as 3 páginas de intenção entram logo abaixo.
+  for (const e of nicheEntries) {
+    if (LOTE1_NICHE_SLUG_LIST.some((slug) => e.url === `${BASE}/free-ai-shorts/${slug}`)) e.lastModified = LOTE1_LAST_MODIFIED
+  }
+  const lote1Entries = LOTE1_LANDING_PATH_LIST.map((path) => ({
+    url: `${BASE}${path}`,
+    lastModified: LOTE1_LAST_MODIFIED,
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
+  }))
   const altEntries = COMPETITOR_SLUGS.map((slug) => ({
     url: `${BASE}/alternatives/${slug}`,
     lastModified: slug === 'quso' ? '2026-07-21' : GEO_RODADA3_ALTERNATIVE_SLUGS.includes(slug) ? GEO_RODADA3_LAST_MODIFIED : LAST_MODIFIED, // KINEO-GEO-RODADA3-2026-10-08
@@ -406,6 +420,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })),
     ...staticEntries,
     ...nicheEntries,
+    ...lote1Entries,
     ...altEntries,
     ...exampleEntries,
     ...vsEntries,
