@@ -450,6 +450,7 @@ export function AdsV2BatchSession({ balance, onBalance, sample = false, business
         facts: [],
         ...(ADS_V2_STYLES_PUBLIC && row.style !== 'none' ? { style: row.style } : {}),
         ...(presenterOn ? { presenter: true } : {}),
+        scripts: false, // KINEO-ADS-FLUXO-2026-10-13 — o lote não pede os 2–3 roteiros (contrato codex/ads-roteiros-1310): um roteiro por linha
       }
     } catch (e) {
       updateRow(row.key, { error: e instanceof AdsUploadError ? e.message : 'A photo could not be prepared. Try another photo.' })

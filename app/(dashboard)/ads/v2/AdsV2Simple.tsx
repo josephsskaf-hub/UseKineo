@@ -117,7 +117,7 @@ import { CropEditor, DropZone, MobilePreviewBar, SIMPLE_UX_CSS, SimpleStepper, T
 // KINEO-ADS-CENA-2026-10-13 — o campo da cena, os 4 climas prontos, produto x lugar e a frase que pede cena (16 línguas).
 // KINEO-ADS-FLUXO-2026-10-13 — o fluxo novo no formato do Studio: link primeiro + "Lemos sua página", palco do estilo, cartão de
 // revisão com "Gerar · N créditos", "Comece deste" e a vaga dos 2–3 roteiros (frases nas 16 línguas, lib pura).
-import { adsV2FlowCopy, adsV2FlowName, adsV2ScriptOptions, adsV2StartFromRecipe, adsV2StyleTint, type AdsV2FlowCopy, type AdsV2ScriptOption } from '@/lib/ads/v2Flow' // KINEO-ADS-FLUXO-2026-10-13
+import { ADS_V2_AUTO_PLAN_MS, ADS_V2_SCRIPT_CHOOSE_ROUTE, adsV2FlowCopy, adsV2FlowName, adsV2ScriptOptions, adsV2StartFromRecipe, adsV2StyleTint, type AdsV2FlowCopy, type AdsV2ScriptOption } from '@/lib/ads/v2Flow' // KINEO-ADS-FLUXO-2026-10-13
 import { AdsReadCard, AdsStartFromRow, AdsStyleStage, type AdsStyleStageData } from '@/components/ads/AdsFlow' // KINEO-ADS-FLUXO-2026-10-13
 import { ADS_V2_SCENE_MAX_CHARS, ADS_V2_SCENE_PRESETS, adsV2AdKind, adsV2ApplyScenePreset, adsV2ProductTitle, adsV2SceneAllowed, adsV2SceneCopy, adsV2SceneErrorText, adsV2SceneIssues, adsV2SceneRow, adsV2SplitSceneRequest, sanitizeAdsV2Scene, type AdsV2AdKind, type AdsV2SceneCopy } from '@/lib/ads/v2Scene'
 
@@ -181,6 +181,8 @@ interface PlanResponse {
   ad_kind?: 'product' | 'place'
   /** KINEO-ADS-FLUXO-2026-10-13 — a vaga dos 2–3 roteiros (outra pista entrega no /plan); ausente = o roteiro único de hoje. */
   scripts?: unknown
+  /** KINEO-ADS-FLUXO-2026-10-13 — o roteiro em vigor ('a' = a narration/overlays desta resposta). */
+  script_id?: string
 }
 interface Plan extends PlanResponse {
   sig: string
@@ -618,6 +620,10 @@ export function AdsV2SimpleSession({
   const [startNote, setStartNote] = useState<string | null>(null)
   const [scriptPick, setScriptPick] = useState<string | null>(null)
   const goBtnRef = useRef<HTMLButtonElement | null>(null)
+  // KINEO-ADS-FLUXO-2026-10-13 — roteiro automático (sem o botão "Descobrir e planejar"): a última assinatura tentada sozinha
+  // (nunca planeja de novo sem mudança de verdade) e a pausa depois de uma falha (teto diário, moderação…) até o clique manual.
+  const [autoPaused, setAutoPaused] = useState(false)
+  const autoRef = useRef<{ sig: string | null; running: boolean }>({ sig: null, running: false })
   useEffect(() => { setScriptPick(null) }, [plan?.order_id, plan?.sig]) // KINEO-ADS-FLUXO-2026-10-13 — plano novo = roteiros novos
   useEffect(() => { // KINEO-ADS-FLUXO-2026-10-13 — o aviso do "Comece deste" some sozinho
     if (!startNote) return
@@ -1293,20 +1299,35 @@ export function AdsV2SimpleSession({
   }
 
   /**
-   * KINEO-ADS-FLUXO-2026-10-13 — a vaga dos 2–3 roteiros: escolher um abre a edição de sempre JÁ com o texto dele (a pessoa
-   * salva pelo botão de sempre — o PATCH grátis do pedido). O mesmo texto do plano = só marca a escolha.
+   * KINEO-ADS-FLUXO-2026-10-13 — os 2–3 roteiros (contrato codex/ads-roteiros-1310): escolher = POST /api/ads/v2/plan/choose
+   * { order_id, script_id } (grátis; não cobra nem planeja de novo). A narração e as frases que VOLTAM passam a ser as do plano
+   * — a edição de texto (PATCH /orders) parte delas. 400/404/409 = o aviso de sempre, o roteiro anterior fica.
    */
-  function chooseScript(opt: AdsV2ScriptOption) {
-    if (!plan || busy !== null || copyBusy) return
-    setScriptPick(opt.key)
-    const narration = opt.narration ?? plan.narration ?? ''
-    const overlays = plan.overlays.map((o, i) => opt.overlays[i] ?? o.text)
-    if (narration === (plan.narration ?? '') && overlays.every((t, i) => t === plan.overlays[i].text)) {
-      setCopyEdit(null)
-      return
-    }
+  async function chooseScript(opt: AdsV2ScriptOption) {
+    if (!plan || busy !== null || copyBusy || copyEdit) return
+    if (opt.key === (scriptPick ?? plan.script_id ?? 'a')) return
+    const id = plan.order_id
+    setCopyBusy(true)
     setCopyNote(null)
-    setCopyEdit({ narration, overlays })
+    try {
+      const r = await api<{ script_id?: string; narration?: string | null; overlays?: Plan['overlays']; credits?: number }>(ADS_V2_SCRIPT_CHOOSE_ROUTE, { method: 'POST', body: { order_id: id, script_id: opt.key } })
+      if (!aliveRef.current) return
+      if (!r.ok) {
+        setCopyNote({ warn: true, text: failText(r) ?? '' })
+        return
+      }
+      const chosen = typeof r.data.script_id === 'string' ? r.data.script_id : opt.key
+      setScriptPick(chosen)
+      setPlan((cur) => (cur && cur.order_id === id ? {
+        ...cur,
+        script_id: chosen,
+        narration: typeof r.data.narration === 'string' || r.data.narration === null ? r.data.narration : cur.narration,
+        overlays: Array.isArray(r.data.overlays) ? r.data.overlays : cur.overlays,
+        credits: typeof r.data.credits === 'number' ? r.data.credits : cur.credits,
+      } : cur))
+    } finally {
+      if (aliveRef.current) setCopyBusy(false)
+    }
   }
 
   function updateItem(key: string, patch: Partial<SimpleItem>) {
@@ -1827,6 +1848,31 @@ export function AdsV2SimpleSession({
     if (p) out.push(`${p.name} · ${presenterAi}`)
     return out
   }
+  // KINEO-ADS-FLUXO-2026-10-13 — ROTEIRO AUTOMÁTICO: com o produto e o texto prontos, ADS_V2_AUTO_PLAN_MS (1,2 s) depois da última
+  // mudança, o MESMO planAd de sempre roda sozinho (grátis; o /plan tem teto diário por conta). Só com mudança de verdade (a
+  // assinatura do plano mudou desde a última tentativa), nunca com o plano em dia, ocupado, editando o texto ou pausado.
+  const planAdRef = useRef(planAd)
+  planAdRef.current = planAd
+  useEffect(() => {
+    if (phase !== 'build' || autoPaused || busy !== null || copyEdit || linkBusy || missing.length > 0 || planFresh) return
+    if (autoRef.current.sig === planSig) return
+    const t = window.setTimeout(() => {
+      autoRef.current = { sig: planSig, running: true }
+      void planAdRef.current()
+    }, ADS_V2_AUTO_PLAN_MS)
+    return () => window.clearTimeout(t)
+  }, [phase, autoPaused, busy, copyEdit, linkBusy, missing.length, planFresh, planSig])
+  // A tentativa automática terminou com erro: pausa (nada de tentar de novo sozinho) até a pessoa tocar em "Atualizar roteiros".
+  useEffect(() => {
+    if (busy !== null || !autoRef.current.running) return
+    autoRef.current.running = false
+    if (planError) setAutoPaused(true)
+  }, [busy, planError])
+  /** O clique manual ("Atualizar roteiros"/"Escrever agora") tira a pausa e conta como a tentativa desta assinatura. */
+  function manualPlan() {
+    autoRef.current = { sig: planSig, running: false }
+    setAutoPaused(false)
+  }
   /** A barra do celular repassa ao botão do cartão (plano grátis ou "Gerar"); sem poder clicar, leva ao cartão (mostra o que falta). */
   function goFromBar() {
     const b = goBtnRef.current
@@ -2184,9 +2230,12 @@ export function AdsV2SimpleSession({
                       <ul>{missing.map((m) => <li key={m}>{m}</li>)}</ul>
                     </div>
                   ) : null}
+                  {/* KINEO-ADS-FLUXO-2026-10-13 — o roteiro sai SOZINHO (efeito do roteiro automático acima); o botão grande
+                      "Descobrir e planejar" virou o link manual "Escrever agora"/"Atualizar roteiros" (que também tira a pausa). */}
+                  <p className="adv2f-auto" role="status" data-kineo="ads-auto-plan">{busy === 'plan' ? copy.plan.planning : autoPaused ? fc.auto.paused : fc.auto.note}</p>
                   <div className="adv2-actions">
-                    <button ref={goBtnRef} type="button" className="adsw-btn" disabled={locked || missing.length > 0} onClick={() => void planAd()}>
-                      {busy === 'plan' ? copy.plan.planning : plan ? copy.plan.again : copy.plan.go}
+                    <button ref={goBtnRef} type="button" className="adsw-link adv2f-refresh" disabled={locked || missing.length > 0} onClick={() => void planAd()} onClickCapture={manualPlan}>
+                      {busy === 'plan' ? copy.plan.planning : plan ? fc.auto.refresh : fc.auto.writeNow}
                     </button>
                   </div>
                   {/* KINEO-ADS-FLUXO-2026-10-13 — o "Gerar · N créditos" à vista ANTES do plano (o plano é grátis; o débito só no botão do roteiro). */}
@@ -2203,13 +2252,15 @@ export function AdsV2SimpleSession({
                     <p className="adsw-hint" style={{ margin: 0 }}>{fc.review.scriptsHint}</p>
                     {scriptOptions.map((o) => (
                       <label key={o.key}>
-                        <input className="adv2-sr" type="radio" name="adv2f-script" checked={scriptPick === o.key} disabled={busy !== null || copyBusy} onChange={() => chooseScript(o)} />
+                        <input className="adv2-sr" type="radio" name="adv2f-script" checked={(scriptPick ?? (plan as Plan).script_id ?? scriptOptions[0].key) === o.key} disabled={busy !== null || copyBusy || !!copyEdit} onChange={() => void chooseScript(o)} />
                         <b aria-hidden="true">{o.letter}</b>
-                        <span>{o.tone ? <small>{o.tone}</small> : null}{o.narration ?? o.overlays.join(' · ')}</span>
+                        <span>{o.tone || o.label ? <small>{o.tone ? fc.tones[o.tone] : o.label}</small> : null}{o.narration ?? o.overlays.join(' · ')}</span>
                       </label>
                     ))}
                   </fieldset>
                 ) : null}
+                {/* KINEO-ADS-FLUXO-2026-10-13 — "Atualizar roteiros": o link manual (o automático nunca refaz sem mudança). */}
+                <button type="button" className="adsw-link adv2f-refresh" data-kineo="ads-refresh-scripts" disabled={busy !== null || copyBusy || !!copyEdit || missing.length > 0} onClick={() => void planAd()} onClickCapture={manualPlan}>↻ {fc.auto.refresh}</button>
                 <SimplePlanPreview
                   plan={plan as Plan}
                   copy={copy}
@@ -2257,7 +2308,7 @@ export function AdsV2SimpleSession({
                 brilho, e as miniaturas para ver a sua abertura e o quadro final. No celular ele vem primeiro, menor. */}
             <AdsStyleStage slot={previewSlot} data={stageData} copy={fc} labels={{ product: ux.preview.product, voice: ux.preview.voice, delivery: ux.preview.delivery, empty: ux.preview.empty, presenter: ux.preview.presenter }} />
             {/* KINEO-ADS-FLUXO-2026-10-13 — no celular, a barra que gruda embaixo leva o botão principal do cartão de revisão. */}
-            <MobilePreviewBar data={liveData} copy={ux} go={{ label: planFresh ? goLabel : fc.review.planShort, onClick: goFromBar, disabled: goDisabled }} />
+            <MobilePreviewBar data={liveData} copy={ux} go={{ label: planFresh ? goLabel : busy === 'plan' ? copy.plan.planning : fc.review.planShort, onClick: goFromBar, disabled: goDisabled }} />
             {/* KINEO-ADS-FLUXO-2026-10-13 — "Comece deste": anúncios da casa embaixo do quadro (copiam estilo, cena e pessoa). */}
             <AdsStartFromRow
               slot={rowSlot}

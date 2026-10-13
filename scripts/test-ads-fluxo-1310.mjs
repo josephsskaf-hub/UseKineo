@@ -18,6 +18,8 @@
 //   I. caminho do dinheiro intocado: v2StartCore/v2PlanCore/v2Brief/rotas/billing/tiers byte a byte iguais à base (origin/main
 //      cca1ca13) e makeAd/planAd/ensureDraft/syncCard/makeVariations da tela também;
 //   J. rótulo de IA na entrega e o selo "AI" da pessoa;
+//   K. roteiro automático (sem "Descobrir e planejar"): 1,2 s depois da última mudança, só com mudança de verdade, pausa após
+//      falha até o link "Atualizar roteiros"; escolha do roteiro por POST /api/ads/v2/plan/choose; o lote manda `scripts: false`;
 //   M. mutantes: cada regra quebrada fica vermelha, e cada mutante prova que aplicou (âncora única, texto trocado).
 // ATENÇÃO (pista paralela KINEO-ADS-ROTEIROS, branch codex/ads-roteiros-1310): ela muda lib/ads/v2PlanCore.ts e lib/ads/v2Brief.ts
 // de propósito. Ao juntar as duas, reancorar SÓ as impressões digitais desses dois arquivos (I1) com o texto novo conferido.
@@ -131,20 +133,31 @@ const comeceOk = (M) => {
   }) && M.adsV2StartFromRecipe('nao-existe') === null && list.some((x) => x.presenter) && list.some((x) => x.scene)
 }
 ok(tenta(() => comeceOk(FLOW)), 'A4 "Comece deste": cada anúncio da casa existe em public/ (prévia do PRÓPRIO efeito ou clipe real do apresentador) e a receita é SÓ {estilo, cena, pessoa}')
+// Contrato da pista codex/ads-roteiros-1310 (13/10): scripts: [{ id: 'a'|'b'|'c', tone: 'benefit'|'bold'|'story', label, narration,
+// overlays: [{role,start,end,text}], words }] + script_id; escolher = POST /api/ads/v2/plan/choose { order_id, script_id }.
 const roteirosOk = (M) => {
-  const a = M.adsV2ScriptOptions([{ id: 'p', tone: 'Price', narration: ' Só  hoje. ', overlays: [{ text: 'A' }, 'B'] }, { tone: 'Pain', narration: 'Cansado?' }, { narration: 'Desejo' }, { narration: 'quarto' }])
+  const ov = (t) => ({ role: 'hook', start: 0, end: 2, text: t })
+  const a = M.adsV2ScriptOptions([
+    { id: 'a', tone: 'benefit', label: 'Benefit', narration: ' Só  hoje. ', overlays: [ov('A'), 'B'], words: 12 },
+    { id: 'b', tone: 'inventado', label: 'Pain', narration: 'Cansado?', overlays: [ov('C')], words: 'x' },
+    { id: 'c', tone: 'story', narration: 'Desejo' },
+    { id: 'd', tone: 'bold', narration: 'quarto' },
+  ])
   return M.adsV2ScriptOptions(undefined) === null && M.adsV2ScriptOptions(null) === null && M.adsV2ScriptOptions('x') === null &&
-    M.adsV2ScriptOptions([{ narration: 'só um' }]) === null && M.adsV2ScriptOptions([{ narration: 'um' }, { foo: 1 }]) === null &&
-    Array.isArray(a) && a.length === 3 && a.map((o) => o.letter).join('') === 'ABC' && a[0].key === 'p' && a[0].tone === 'Price' && a[0].narration === 'Só hoje.' &&
-    JSON.stringify(a[0].overlays) === '["A","B"]' && a[1].key === '1' && a[2].tone === null
+    M.adsV2ScriptOptions([{ id: 'a', narration: 'só um' }]) === null && M.adsV2ScriptOptions([{ narration: 'um' }, { foo: 1 }]) === null &&
+    Array.isArray(a) && a.length === 3 && a.map((o) => o.letter).join('') === 'ABC' && a.map((o) => o.key).join('') === 'abc' &&
+    a[0].tone === 'benefit' && a[0].label === 'Benefit' && a[0].narration === 'Só hoje.' && a[0].words === 12 && JSON.stringify(a[0].overlays) === '["A","B"]' &&
+    a[1].tone === null && a[1].label === 'Pain' && a[1].words === null && a[2].tone === 'story' && a[2].label === null &&
+    JSON.stringify(M.ADS_V2_SCRIPT_TONES) === '["benefit","bold","story"]' && M.ADS_V2_SCRIPT_CHOOSE_ROUTE === '/api/ads/v2/plan/choose' &&
+    M.ADS_V2_AUTO_PLAN_MS >= 800 && M.ADS_V2_AUTO_PLAN_MS <= 2000
 }
-ok(tenta(() => roteirosOk(FLOW)), 'A5 vaga dos roteiros: lê `scripts` com tolerância; menos de 2 opções = null (o roteiro único de hoje); no máximo 3 (A/B/C)')
+ok(tenta(() => roteirosOk(FLOW)), 'A5 roteiros: lê `scripts` do /plan (id a/b/c, tom benefit/bold/story, rótulo, palavras) com tolerância; menos de 2 = null (o roteiro único); no máximo 3; rota de escolha e espera de 1,2 s')
 const linguasOk = (M) => {
   const en = M.ADS_V2_FLOW_COPY.en
   const flat = (o, p = '') => Object.entries(o).flatMap(([k, v]) => (typeof v === 'string' ? [[p + k, v]] : flat(v, p + k + '.')))
   const E = Object.fromEntries(flat(en))
   const marc = (s) => (s.match(/\{\w+\}/g) || []).sort().join(',')
-  const MUDAM = ['tabs.one', 'link.title', 'link.paste', 'read.title', 'review.title', 'review.go', 'review.then', 'review.planShort', 'start.use', 'start.title', 'stage.autoDesc']
+  const MUDAM = ['tabs.one', 'link.title', 'link.paste', 'read.title', 'review.title', 'review.go', 'review.then', 'review.planShort', 'start.use', 'start.title', 'stage.autoDesc', 'auto.note', 'auto.refresh', 'auto.paused', 'tones.benefit', 'tones.story']
   return LANGS.length === 16 && Object.keys(M.ADS_V2_FLOW_COPY).length === 16 && LANGS.every((l) => {
     const t = M.ADS_V2_FLOW_COPY[l]
     if (!t) return false
@@ -268,18 +281,23 @@ const revisaoOk = (src) => {
     /const goLabel = shownCost === null \? ux\.preview\.chooseLevel : scopy \? scopy\.make : fill\(fc\.review\.go, \{ c: shownCost \}\)/.test(s) &&
     /makeLabel=\{scopy \|\| \(variations && three\) \? null : goLabel\}/.test(s) && /: makeLabel \?\? fill\(copy\.plan\.make, \{ c: cost \?\? '' \}\)/.test(prev) &&
     /<p className="adv2f-next" data-kineo="ads-review-next">\{fill\(fc\.review\.then, \{ go: goLabel \}\)\}<\/p>/.test(s) &&
-    ordem(s, 'aria-labelledby="adv2s-s4"', '{fc.review.title}', 'data-kineo="ads-review-summary"', '{fc.review.product}', '{fc.review.style}', '{fc.review.scene}', '{fc.review.presenter}', '{fc.review.level}', '{copy.plan.voice}', 'onClick={() => void planAd()}', 'data-kineo="ads-review-next"', '<SimplePlanPreview') &&
+    ordem(s, 'aria-labelledby="adv2s-s4"', '{fc.review.title}', 'data-kineo="ads-review-summary"', '{fc.review.product}', '{fc.review.style}', '{fc.review.scene}', '{fc.review.presenter}', '{fc.review.level}', '{copy.plan.voice}', 'data-kineo="ads-auto-plan"', 'onClick={() => void planAd()}', 'data-kineo="ads-review-next"', 'data-kineo="ads-refresh-scripts"', '<SimplePlanPreview') &&
     !/\b(34|41|51)\b/.test(bloco(s, "const goLabel =").slice(0, 200)) && !/\b(34|41|51) (credits|créditos)/.test(read(F.comp) + read(F.flow))
 }
 ok(revisaoOk(read(F.simple)), 'E1 o cartão de revisão (produto · estilo · cena · pessoa · nível · voz) e "Gerar · N créditos" com N = cost/shownCost (adsV2Credits; o grupo das 3) — nenhum número digitado')
 const vagaOk = (src) => {
   const s = code(src)
-  const ch = bloco(s, 'function chooseScript(')
+  const ch = bloco(s, 'async function chooseScript(')
   return /const scriptOptions = planFresh && plan \? adsV2ScriptOptions\(plan\.scripts\) : null/.test(s) && /\{scriptOptions \? \(\s*<fieldset className="adv2f-scripts" data-kineo="ads-script-options">/.test(s) &&
-    /<legend>\{fc\.review\.scripts\}<\/legend>/.test(s) && /onChange=\{\(\) => chooseScript\(o\)\}/.test(s) && /setCopyEdit\(\{ narration, overlays \}\)/.test(ch) && !/api\(|\/api\//.test(ch) &&
-    /scripts\?: unknown/.test(s)
+    /<legend>\{fc\.review\.scripts\}<\/legend>/.test(s) && /onChange=\{\(\) => void chooseScript\(o\)\}/.test(s) && /\{o\.tone \? fc\.tones\[o\.tone\] : o\.label\}/.test(s) &&
+    /checked=\{\(scriptPick \?\? \(plan as Plan\)\.script_id \?\? scriptOptions\[0\]\.key\) === o\.key\}/.test(s) &&
+    /api<[^>]*>\(ADS_V2_SCRIPT_CHOOSE_ROUTE, \{ method: 'POST', body: \{ order_id: id, script_id: opt\.key \} \}\)/.test(ch) && (ch.match(/api</g) || []).length === 1 && !/\/api\/ads\/v2\/(start|orders|variations)/.test(ch) &&
+    /overlays: Array\.isArray\(r\.data\.overlays\) \? r\.data\.overlays : cur\.overlays,/.test(ch) && /narration: typeof r\.data\.narration === 'string' \|\| r\.data\.narration === null \? r\.data\.narration : cur\.narration,/.test(ch) &&
+    /if \(!plan \|\| busy !== null \|\| copyBusy \|\| copyEdit\) return/.test(ch) &&
+    /setCopyEdit\(\{ narration: plan\.narration \?\? '', overlays: plan\.overlays\.map\(\(o\) => o\.text\) \}\)/.test(s) &&
+    /scripts\?: unknown/.test(s) && /script_id\?: string/.test(s)
 }
-ok(vagaOk(read(F.simple)), 'E2 a vaga "Escolha seu roteiro (A/B/C)": só quando o /plan trouxer `scripts`; escolher abre a edição grátis de sempre (nenhuma rota nova)')
+ok(vagaOk(read(F.simple)), 'E2 "Escolha seu roteiro (A/B/C)": só com `scripts` no /plan; o tom traduzido; escolher = POST /plan/choose (grátis) e a narração/frases que VOLTAM viram as do plano — a edição (PATCH) parte delas')
 
 // ═══ F. botão grudado no celular ═══════════════════════════════════════════════════════════════════════════════════
 console.log('\nF. botão grudado no celular')
@@ -291,8 +309,8 @@ const repasseOk = (src) => {
   const g = bloco(s, 'function goFromBar()')
   const prev = trecho(s, 'function SimplePlanPreview(', 'function SimpleShotGrid(')
   return /if \(b && !b\.disabled && !goDisabled\) b\.click\(\)/.test(g) && !/makeAd|planAd|api\(|\/api\//.test(g) &&
-    /<MobilePreviewBar data=\{liveData\} copy=\{ux\} go=\{\{ label: planFresh \? goLabel : fc\.review\.planShort, onClick: goFromBar, disabled: goDisabled \}\} \/>/.test(s) &&
-    /<button ref=\{goBtnRef\} type="button" className="adsw-btn" disabled=\{locked \|\| missing\.length > 0\} onClick=\{\(\) => void planAd\(\)\}>/.test(s) && /makeRef=\{goBtnRef\}/.test(s) &&
+    /<MobilePreviewBar data=\{liveData\} copy=\{ux\} go=\{\{ label: planFresh \? goLabel : busy === 'plan' \? copy\.plan\.planning : fc\.review\.planShort, onClick: goFromBar, disabled: goDisabled \}\} \/>/.test(s) &&
+    /<button ref=\{goBtnRef\} type="button" className="adsw-link adv2f-refresh" disabled=\{locked \|\| missing\.length > 0\} onClick=\{\(\) => void planAd\(\)\} onClickCapture=\{manualPlan\}>/.test(s) && /makeRef=\{goBtnRef\}/.test(s) &&
     /<button ref=\{makeRef\} type="button" className="adsw-btn" disabled=\{busy !== null \|\| cost === null \|\| short > 0 \|\| !!editor\?\.edit\} onClick=\{onMake\}>/.test(prev) &&
     (s.match(/void makeAd\(\)/g) || []).length === 1 && (s.match(/'\/api\/ads\/v2\/start'/g) || []).length === 1
 }
@@ -377,6 +395,22 @@ const semInglesNoComp = (src) => {
 }
 ok(semInglesNoComp(read(F.comp)), 'J2 os componentes novos não têm texto de interface cravado: tudo vem das frases (16 línguas)')
 
+// ═══ K. roteiro automático e lote ═══════════════════════════════════════════════════════════════════════════════════
+console.log('\nK. roteiro automático (sem "Descobrir e planejar") e lote')
+const autoOk = (src) => {
+  const s = code(src)
+  const ef = trecho(s, 'const planAdRef = useRef(planAd)', 'function manualPlan()')
+  return /if \(phase !== 'build' \|\| autoPaused \|\| busy !== null \|\| copyEdit \|\| linkBusy \|\| missing\.length > 0 \|\| planFresh\) return/.test(ef) &&
+    /if \(autoRef\.current\.sig === planSig\) return/.test(ef) && ordem(ef, 'window.setTimeout(() => {', 'autoRef.current = { sig: planSig, running: true }', 'void planAdRef.current()', '}, ADS_V2_AUTO_PLAN_MS)', 'return () => window.clearTimeout(t)') &&
+    /\}, \[phase, autoPaused, busy, copyEdit, linkBusy, missing\.length, planFresh, planSig\]\)/.test(ef) && /if \(planError\) setAutoPaused\(true\)/.test(ef) &&
+    /autoRef\.current = \{ sig: planSig, running: false \}\n\s*setAutoPaused\(false\)/.test(bloco(s, 'function manualPlan()')) &&
+    (s.match(/onClickCapture=\{manualPlan\}/g) || []).length === 2 && !/<button[^>]*className="adsw-btn"[^>]*onClick=\{\(\) => void planAd\(\)\}/.test(s) &&
+    /\{busy === 'plan' \? copy\.plan\.planning : autoPaused \? fc\.auto\.paused : fc\.auto\.note\}/.test(s)
+}
+ok(autoOk(read(F.simple)), 'K1 o roteiro sai SOZINHO 1,2 s depois da última mudança (o MESMO planAd), nunca sem mudança de verdade nem com o plano em dia; falhou = pausa até o link manual "Atualizar roteiros"')
+const loteSemVariantes = (src) => /\.\.\.\(presenterOn \? \{ presenter: true \} : \{\}\),\n\s*scripts: false,/.test(code(src))
+ok(loteSemVariantes(read(F.batch)), 'K2 o lote pede o /plan com `scripts: false` (um roteiro por linha, sem variantes)')
+
 // ═══ M. mutantes ═══════════════════════════════════════════════════════════════════════════════════════════════════
 console.log('\nM. mutantes (cada um aplicado e vermelho)')
 const muta = (rel, de, para) => {
@@ -413,6 +447,14 @@ vermelho('M19 aviso de rótulo de IA tirado da entrega', F.simple, '<p className
 vermelho('M20 texto em inglês cravado num componente novo', F.comp, '<h2 id="adv2f-start-h">{copy.start.title}</h2>', '<h2 id="adv2f-start-h">Start from a Kineo ad</h2>', (s) => semInglesNoComp(s))
 vermelho('M21 lote com a conta fora do total', F.batch, '· {total} credits</span>', '· {total + 1} credits</span>', (s) => loteOk(s))
 vermelho('M22 Studio de filmes mexido (1 caractere)', 'app/(dashboard)/studio/StudioClient.tsx', 'function EngineHero(', 'function  EngineHero(', (_s, o) => iguais(STUDIO_BASE, o))
+
+vermelho('M23 roteiro automático refazendo sem mudança', F.simple, '    if (autoRef.current.sig === planSig) return\n', '', (s) => autoOk(s))
+vermelho('M24 roteiro automático sem esperar a pessoa parar de digitar', F.simple, '    }, ADS_V2_AUTO_PLAN_MS)', '    }, 0)', (s) => autoOk(s))
+vermelho('M25 falha automática sem pausa (tentaria de novo sozinho)', F.simple, '    if (planError) setAutoPaused(true)', '    if (planError) setAutoPaused(false)', (s) => autoOk(s))
+vermelho('M26 escolher o roteiro sem trocar as frases do plano', F.simple, '        overlays: Array.isArray(r.data.overlays) ? r.data.overlays : cur.overlays,\n', '', (s) => vagaOk(s))
+vermelho('M27 escolher o roteiro pela rota errada', F.flow, "export const ADS_V2_SCRIPT_CHOOSE_ROUTE = '/api/ads/v2/plan/choose'", "export const ADS_V2_SCRIPT_CHOOSE_ROUTE = '/api/ads/v2/start'", (_s, o) => roteirosOk(libs(o)(F.flow)))
+vermelho('M28 lote pedindo variantes', F.batch, '        scripts: false, //', '        scripts: true, //', (s) => loteSemVariantes(s))
+vermelho('M29 tom do roteiro sem tradução numa língua', F.flow, "tones: { benefit: 'Benefício'", "tones: { benefit: 'Benefit'", (_s, o) => linguasOk(libs(o)(F.flow)))
 
 console.log(`\ntest-ads-fluxo-1310: ${pass} verdes, ${fail} vermelhos`)
 process.exit(fail ? 1 : 0)

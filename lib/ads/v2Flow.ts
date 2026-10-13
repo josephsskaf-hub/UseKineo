@@ -78,16 +78,30 @@ export function adsV2StartFromRecipe(id: string): { style: AdsV2StyleChoice; sce
   return it ? { style: it.style, scene: it.scene, presenter: it.presenter } : null
 }
 
-// ─── a vaga dos 2–3 roteiros (KINEO-ADS-ROTEIROS, outra pista: o /plan pode devolver `scripts: [...]`) ────────────────
+// ─── os 2–3 roteiros (KINEO-ADS-ROTEIROS, pista codex/ads-roteiros-1310) ─────────────────────────────────────────────
+// Contrato: POST /api/ads/v2/plan devolve, além do de sempre, `scripts: [{ id: 'a'|'b'|'c', tone: 'benefit'|'bold'|'story',
+// label, narration, overlays: [{role,start,end,text}], words }]` e `script_id: 'a'` (o 'a' = a própria narration/overlays da
+// resposta). Escolher = POST /api/ads/v2/plan/choose { order_id, script_id } → { order_id, script_id, tone, narration,
+// overlays, credits } (400 id ruim, 404 não achou, 409 já gerando). O lote manda `scripts: false`. Sem `scripts` = o de hoje.
+
+export const ADS_V2_SCRIPT_TONES = ['benefit', 'bold', 'story'] as const
+export type AdsV2ScriptTone = (typeof ADS_V2_SCRIPT_TONES)[number]
+/** O /plan só é disparado sozinho depois que a pessoa para de digitar por este tempo (e só com mudança de verdade). */
+export const ADS_V2_AUTO_PLAN_MS = 1200
+/** Rota de escolha do roteiro (grátis; não cobra, não planeja de novo). */
+export const ADS_V2_SCRIPT_CHOOSE_ROUTE = '/api/ads/v2/plan/choose'
 
 export interface AdsV2ScriptOption {
   key: string
   /** A, B, C — pela ordem em que o servidor mandou */
   letter: string
-  /** o tom que o servidor deu (preço, dor, desejo…), se deu */
-  tone: string | null
+  /** o tom conhecido (traduzido na tela pelas frases) ou null */
+  tone: AdsV2ScriptTone | null
+  /** o rótulo que o servidor deu (usado só quando o tom não é conhecido) */
+  label: string | null
   narration: string | null
   overlays: string[]
+  words: number | null
 }
 /** Lê `scripts` da resposta do /plan com tolerância; menos de 2 opções válidas = null (a tela mostra o roteiro único de hoje). */
 export function adsV2ScriptOptions(raw: unknown): AdsV2ScriptOption[] | null {
@@ -103,8 +117,10 @@ export function adsV2ScriptOptions(raw: unknown): AdsV2ScriptOption[] | null {
       .filter(Boolean)
     if (!narration && !overlays.length) continue
     const key = typeof o.id === 'string' && o.id.trim() ? o.id.trim() : String(i)
-    const tone = typeof o.tone === 'string' && o.tone.trim() ? o.tone.trim() : typeof o.label === 'string' && o.label.trim() ? o.label.trim() : null
-    out.push({ key, letter: String.fromCharCode(65 + out.length), tone, narration, overlays })
+    const tone = typeof o.tone === 'string' && (ADS_V2_SCRIPT_TONES as readonly string[]).includes(o.tone) ? (o.tone as AdsV2ScriptTone) : null
+    const label = typeof o.label === 'string' && o.label.trim() ? o.label.trim() : null
+    const words = typeof o.words === 'number' && Number.isFinite(o.words) && o.words >= 0 ? Math.round(o.words) : null
+    out.push({ key, letter: String.fromCharCode(65 + out.length), tone, label, narration, overlays, words })
   }
   return out.length >= 2 ? out : null
 }
@@ -127,6 +143,10 @@ export interface AdsV2FlowCopy {
   stage: { eyebrow: string; autoDesc: string; bestFor: string; style: string; opening: string; end: string; badge: string }
   review: { planShort: string; title: string; product: string; style: string; scene: string; presenter: string; level: string; none: string; noPerson: string; surprise: string; then: string; go: string; scripts: string; scriptsHint: string }
   start: { title: string; sub: string; use: string; applied: string }
+  /** o roteiro sai sozinho (sem o botão "Descobrir e planejar"); "Atualizar roteiros" fica como link manual */
+  auto: { note: string; paused: string; refresh: string; writeNow: string }
+  /** o tom de cada roteiro do /plan (benefit/bold/story), traduzido */
+  tones: Record<AdsV2ScriptTone, string>
 }
 
 const EN: AdsV2FlowCopy = {
@@ -135,6 +155,8 @@ const EN: AdsV2FlowCopy = {
   read: { title: 'We read your page', name: 'Product name', price: 'Price', priceNone: 'No price on the page — add one if you want it in the ad.', from: 'From {host} · {n} photos', fix: 'Fix anything that looks wrong.' },
   stage: { eyebrow: 'Style', autoDesc: 'We pick the look from your product.', bestFor: 'Best for', style: 'Style', opening: 'Your opening', end: 'End card', badge: 'Style preview' },
   review: { planShort: 'Script (free)', title: 'Review and generate', product: 'Product', style: 'Style', scene: 'Scene', presenter: 'Person', level: 'Level', none: '—', noPerson: 'No person', surprise: 'Surprise me', then: 'Free. Next: {go}', go: 'Generate · {c} credits', scripts: 'Choose your script', scriptsHint: 'Pick one; you can still edit it before you generate.' },
+  auto: { note: 'We write your scripts by ourselves once your product and text are in — free.', paused: 'Automatic scripts paused. Tap “Refresh scripts” to try again.', refresh: 'Refresh scripts', writeNow: 'Write my scripts now' },
+  tones: { benefit: 'Benefit', bold: 'Bold', story: 'Story' },
   start: { title: 'Start from a Kineo ad', sub: 'One tap copies the style, scene and person. Your product stays yours.', use: 'Start from this', applied: 'Copied the style, scene and person. Your photos and text did not change.' },
 }
 const PT: AdsV2FlowCopy = {
@@ -143,6 +165,8 @@ const PT: AdsV2FlowCopy = {
   read: { title: 'Lemos sua página', name: 'Nome do produto', price: 'Preço', priceNone: 'A página não tem preço — coloque um se quiser no anúncio.', from: 'De {host} · {n} fotos', fix: 'Corrija o que estiver errado.' },
   stage: { eyebrow: 'Estilo', autoDesc: 'A gente escolhe o visual pelo seu produto.', bestFor: 'Ideal para', style: 'Estilo', opening: 'Sua abertura', end: 'Quadro final', badge: 'Prévia do estilo' },
   review: { planShort: 'Roteiro (grátis)', title: 'Revisar e gerar', product: 'Produto', style: 'Estilo', scene: 'Cena', presenter: 'Pessoa', level: 'Nível', none: '—', noPerson: 'Sem pessoa', surprise: 'Surpresa', then: 'Grátis. Depois: {go}', go: 'Gerar · {c} créditos', scripts: 'Escolha seu roteiro', scriptsHint: 'Escolha um; dá para editar antes de gerar.' },
+  auto: { note: 'Escrevemos seus roteiros sozinhos assim que o produto e o texto estiverem aqui — grátis.', paused: 'Roteiros automáticos pausados. Toque em “Atualizar roteiros” para tentar de novo.', refresh: 'Atualizar roteiros', writeNow: 'Escrever meus roteiros agora' },
+  tones: { benefit: 'Benefício', bold: 'Direto', story: 'História' },
   start: { title: 'Comece de um anúncio da Kineo', sub: 'Um toque copia o estilo, a cena e a pessoa. O produto continua sendo o seu.', use: 'Comece deste', applied: 'Estilo, cena e pessoa copiados. Suas fotos e seu texto não mudaram.' },
 }
 const ES: AdsV2FlowCopy = {
@@ -151,6 +175,8 @@ const ES: AdsV2FlowCopy = {
   read: { title: 'Leímos tu página', name: 'Nombre del producto', price: 'Precio', priceNone: 'La página no tiene precio: añade uno si lo quieres en el anuncio.', from: 'De {host} · {n} fotos', fix: 'Corrige lo que esté mal.' },
   stage: { eyebrow: 'Estilo', autoDesc: 'Elegimos el estilo según tu producto.', bestFor: 'Ideal para', style: 'Estilo', opening: 'Tu apertura', end: 'Cierre', badge: 'Vista previa del estilo' },
   review: { planShort: 'Guion (gratis)', title: 'Revisar y generar', product: 'Producto', style: 'Estilo', scene: 'Escena', presenter: 'Persona', level: 'Nivel', none: '—', noPerson: 'Sin persona', surprise: 'Sorpréndeme', then: 'Gratis. Después: {go}', go: 'Generar · {c} créditos', scripts: 'Elige tu guion', scriptsHint: 'Elige uno; aún puedes editarlo antes de generar.' },
+  auto: { note: 'Escribimos tus guiones solos en cuanto estén el producto y el texto — gratis.', paused: 'Guiones automáticos en pausa. Toca «Actualizar guiones» para intentarlo de nuevo.', refresh: 'Actualizar guiones', writeNow: 'Escribir mis guiones ahora' },
+  tones: { benefit: 'Beneficio', bold: 'Directo', story: 'Historia' },
   start: { title: 'Empieza desde un anuncio de Kineo', sub: 'Un toque copia el estilo, la escena y la persona. Tu producto sigue siendo tuyo.', use: 'Empezar desde este', applied: 'Copiamos el estilo, la escena y la persona. Tus fotos y tu texto no cambiaron.' },
 }
 const FR: AdsV2FlowCopy = {
@@ -159,6 +185,8 @@ const FR: AdsV2FlowCopy = {
   read: { title: 'Nous avons lu votre page', name: 'Nom du produit', price: 'Prix', priceNone: 'Pas de prix sur la page — ajoutez-en un si vous le voulez dans la pub.', from: 'De {host} · {n} photos', fix: 'Corrigez ce qui semble faux.' },
   stage: { eyebrow: 'Style', autoDesc: 'Nous choisissons le rendu selon votre produit.', bestFor: 'Idéal pour', style: 'Style', opening: 'Votre ouverture', end: 'Carte finale', badge: 'Aperçu du style' },
   review: { planShort: 'Script (gratuit)', title: 'Vérifier et générer', product: 'Produit', style: 'Style', scene: 'Scène', presenter: 'Personne', level: 'Niveau', none: '—', noPerson: 'Sans personne', surprise: 'Surprenez-moi', then: 'Gratuit. Ensuite : {go}', go: 'Générer · {c} crédits', scripts: 'Choisissez votre script', scriptsHint: 'Choisissez-en un ; vous pourrez encore le modifier avant de générer.' },
+  auto: { note: 'Nous écrivons vos scripts tout seuls dès que le produit et le texte sont là — gratuit.', paused: 'Scripts automatiques en pause. Touchez « Actualiser les scripts » pour réessayer.', refresh: 'Actualiser les scripts', writeNow: 'Écrire mes scripts maintenant' },
+  tones: { benefit: 'Bénéfice', bold: 'Audacieux', story: 'Histoire' },
   start: { title: 'Partir d’une pub Kineo', sub: 'Un clic copie le style, la scène et la personne. Votre produit reste le vôtre.', use: 'Partir de celle-ci', applied: 'Style, scène et personne copiés. Vos photos et votre texte n’ont pas changé.' },
 }
 const DE: AdsV2FlowCopy = {
@@ -167,6 +195,8 @@ const DE: AdsV2FlowCopy = {
   read: { title: 'Wir haben deine Seite gelesen', name: 'Produktname', price: 'Preis', priceNone: 'Kein Preis auf der Seite — trag einen ein, wenn er in die Anzeige soll.', from: 'Von {host} · {n} Fotos', fix: 'Korrigiere, was nicht stimmt.' },
   stage: { eyebrow: 'Stil', autoDesc: 'Wir wählen den Look passend zu deinem Produkt.', bestFor: 'Ideal für', style: 'Stil', opening: 'Dein Einstieg', end: 'Abschlusskarte', badge: 'Stil-Vorschau' },
   review: { planShort: 'Skript (gratis)', title: 'Prüfen und erstellen', product: 'Produkt', style: 'Stil', scene: 'Szene', presenter: 'Person', level: 'Stufe', none: '—', noPerson: 'Ohne Person', surprise: 'Überrasch mich', then: 'Kostenlos. Danach: {go}', go: 'Erstellen · {c} Credits', scripts: 'Wähle dein Skript', scriptsHint: 'Wähle eins; du kannst es vor dem Erstellen noch bearbeiten.' },
+  auto: { note: 'Wir schreiben deine Skripte von selbst, sobald Produkt und Text da sind — kostenlos.', paused: 'Automatische Skripte pausiert. Tippe auf „Skripte aktualisieren“, um es erneut zu versuchen.', refresh: 'Skripte aktualisieren', writeNow: 'Meine Skripte jetzt schreiben' },
+  tones: { benefit: 'Nutzen', bold: 'Mutig', story: 'Geschichte' },
   start: { title: 'Starte mit einer Kineo-Anzeige', sub: 'Ein Tipp übernimmt Stil, Szene und Person. Dein Produkt bleibt deins.', use: 'Damit starten', applied: 'Stil, Szene und Person übernommen. Deine Fotos und dein Text sind unverändert.' },
 }
 const IT: AdsV2FlowCopy = {
@@ -175,6 +205,8 @@ const IT: AdsV2FlowCopy = {
   read: { title: 'Abbiamo letto la tua pagina', name: 'Nome del prodotto', price: 'Prezzo', priceNone: 'Nessun prezzo nella pagina: aggiungine uno se lo vuoi nell’annuncio.', from: 'Da {host} · {n} foto', fix: 'Correggi ciò che non va.' },
   stage: { eyebrow: 'Stile', autoDesc: 'Scegliamo lo stile in base al tuo prodotto.', bestFor: 'Ideale per', style: 'Stile', opening: 'La tua apertura', end: 'Schermata finale', badge: 'Anteprima dello stile' },
   review: { planShort: 'Copione (gratis)', title: 'Rivedi e genera', product: 'Prodotto', style: 'Stile', scene: 'Scena', presenter: 'Persona', level: 'Livello', none: '—', noPerson: 'Nessuna persona', surprise: 'Sorprendimi', then: 'Gratis. Poi: {go}', go: 'Genera · {c} crediti', scripts: 'Scegli il tuo copione', scriptsHint: 'Scegline uno; puoi ancora modificarlo prima di generare.' },
+  auto: { note: 'Scriviamo i tuoi copioni da soli appena ci sono prodotto e testo — gratis.', paused: 'Copioni automatici in pausa. Tocca «Aggiorna copioni» per riprovare.', refresh: 'Aggiorna copioni', writeNow: 'Scrivi ora i miei copioni' },
+  tones: { benefit: 'Beneficio', bold: 'Audace', story: 'Storia' },
   start: { title: 'Parti da un annuncio Kineo', sub: 'Un tocco copia stile, scena e persona. Il prodotto resta il tuo.', use: 'Parti da questo', applied: 'Stile, scena e persona copiati. Le tue foto e il tuo testo non sono cambiati.' },
 }
 const NL: AdsV2FlowCopy = {
@@ -183,6 +215,8 @@ const NL: AdsV2FlowCopy = {
   read: { title: 'We hebben je pagina gelezen', name: 'Productnaam', price: 'Prijs', priceNone: 'Geen prijs op de pagina — voeg er een toe als je die in de advertentie wilt.', from: 'Van {host} · {n} foto’s', fix: 'Verbeter wat niet klopt.' },
   stage: { eyebrow: 'Stijl', autoDesc: 'We kiezen de look op basis van je product.', bestFor: 'Ideaal voor', style: 'Stijl', opening: 'Je opening', end: 'Eindkaart', badge: 'Stijlvoorbeeld' },
   review: { planShort: 'Script (gratis)', title: 'Controleren en maken', product: 'Product', style: 'Stijl', scene: 'Scène', presenter: 'Persoon', level: 'Niveau', none: '—', noPerson: 'Geen persoon', surprise: 'Verras me', then: 'Gratis. Daarna: {go}', go: 'Maken · {c} credits', scripts: 'Kies je script', scriptsHint: 'Kies er een; je kunt het nog bewerken voordat je maakt.' },
+  auto: { note: 'We schrijven je scripts vanzelf zodra product en tekst er zijn — gratis.', paused: 'Automatische scripts gepauzeerd. Tik op ‘Scripts vernieuwen’ om het opnieuw te proberen.', refresh: 'Scripts vernieuwen', writeNow: 'Schrijf mijn scripts nu' },
+  tones: { benefit: 'Voordeel', bold: 'Gedurfd', story: 'Verhaal' },
   start: { title: 'Begin met een Kineo-advertentie', sub: 'Eén tik kopieert de stijl, scène en persoon. Je product blijft van jou.', use: 'Hiermee beginnen', applied: 'Stijl, scène en persoon gekopieerd. Je foto’s en tekst zijn niet veranderd.' },
 }
 const PL: AdsV2FlowCopy = {
@@ -191,6 +225,8 @@ const PL: AdsV2FlowCopy = {
   read: { title: 'Odczytaliśmy Twoją stronę', name: 'Nazwa produktu', price: 'Cena', priceNone: 'Na stronie nie ma ceny — dodaj ją, jeśli ma być w reklamie.', from: 'Z {host} · zdjęcia: {n}', fix: 'Popraw to, co się nie zgadza.' },
   stage: { eyebrow: 'Styl', autoDesc: 'Dobieramy wygląd do Twojego produktu.', bestFor: 'Najlepszy do', style: 'Styl', opening: 'Twój początek', end: 'Plansza końcowa', badge: 'Podgląd stylu' },
   review: { planShort: 'Scenariusz (za darmo)', title: 'Sprawdź i wygeneruj', product: 'Produkt', style: 'Styl', scene: 'Scena', presenter: 'Osoba', level: 'Poziom', none: '—', noPerson: 'Bez osoby', surprise: 'Zaskocz mnie', then: 'Za darmo. Potem: {go}', go: 'Generuj · {c} kredytów', scripts: 'Wybierz scenariusz', scriptsHint: 'Wybierz jeden; przed generowaniem nadal możesz go edytować.' },
+  auto: { note: 'Piszemy scenariusze sami, gdy tylko będą produkt i tekst — za darmo.', paused: 'Automatyczne scenariusze wstrzymane. Stuknij „Odśwież scenariusze”, aby spróbować ponownie.', refresh: 'Odśwież scenariusze', writeNow: 'Napisz teraz moje scenariusze' },
+  tones: { benefit: 'Korzyść', bold: 'Odważny', story: 'Historia' },
   start: { title: 'Zacznij od reklamy Kineo', sub: 'Jedno dotknięcie kopiuje styl, scenę i osobę. Produkt zostaje Twój.', use: 'Zacznij od tej', applied: 'Skopiowano styl, scenę i osobę. Twoje zdjęcia i tekst się nie zmieniły.' },
 }
 const TR: AdsV2FlowCopy = {
@@ -199,6 +235,8 @@ const TR: AdsV2FlowCopy = {
   read: { title: 'Sayfanı okuduk', name: 'Ürün adı', price: 'Fiyat', priceNone: 'Sayfada fiyat yok — reklamda olsun istersen bir fiyat ekle.', from: '{host} kaynağından · {n} fotoğraf', fix: 'Yanlış görünen her şeyi düzelt.' },
   stage: { eyebrow: 'Stil', autoDesc: 'Görünümü ürününe göre biz seçeriz.', bestFor: 'En uygun', style: 'Stil', opening: 'Açılışın', end: 'Kapanış kartı', badge: 'Stil önizlemesi' },
   review: { planShort: 'Senaryo (ücretsiz)', title: 'Gözden geçir ve oluştur', product: 'Ürün', style: 'Stil', scene: 'Sahne', presenter: 'Kişi', level: 'Seviye', none: '—', noPerson: 'Kişi yok', surprise: 'Beni şaşırt', then: 'Ücretsiz. Sonra: {go}', go: 'Oluştur · {c} kredi', scripts: 'Senaryonu seç', scriptsHint: 'Birini seç; oluşturmadan önce yine düzenleyebilirsin.' },
+  auto: { note: 'Ürün ve metin hazır olunca senaryolarını kendimiz yazarız — ücretsiz.', paused: 'Otomatik senaryolar duraklatıldı. Yeniden denemek için “Senaryoları yenile”ye dokun.', refresh: 'Senaryoları yenile', writeNow: 'Senaryolarımı şimdi yaz' },
+  tones: { benefit: 'Fayda', bold: 'Cesur', story: 'Hikâye' },
   start: { title: 'Bir Kineo reklamından başla', sub: 'Tek dokunuş stili, sahneyi ve kişiyi kopyalar. Ürün senin kalır.', use: 'Bundan başla', applied: 'Stil, sahne ve kişi kopyalandı. Fotoğrafların ve metnin değişmedi.' },
 }
 const RU: AdsV2FlowCopy = {
@@ -207,6 +245,8 @@ const RU: AdsV2FlowCopy = {
   read: { title: 'Мы прочитали вашу страницу', name: 'Название товара', price: 'Цена', priceNone: 'На странице нет цены — добавьте её, если она нужна в рекламе.', from: 'С {host} · фото: {n}', fix: 'Исправьте то, что выглядит неверно.' },
   stage: { eyebrow: 'Стиль', autoDesc: 'Мы подберём стиль под ваш товар.', bestFor: 'Лучше всего для', style: 'Стиль', opening: 'Ваше начало', end: 'Финальный кадр', badge: 'Пример стиля' },
   review: { planShort: 'Сценарий (бесплатно)', title: 'Проверить и создать', product: 'Товар', style: 'Стиль', scene: 'Сцена', presenter: 'Человек', level: 'Уровень', none: '—', noPerson: 'Без человека', surprise: 'Удивите меня', then: 'Бесплатно. Затем: {go}', go: 'Создать · {c} кредитов', scripts: 'Выберите сценарий', scriptsHint: 'Выберите один; его ещё можно изменить перед созданием.' },
+  auto: { note: 'Мы сами напишем сценарии, как только будут товар и текст, — бесплатно.', paused: 'Автоматические сценарии на паузе. Нажмите «Обновить сценарии», чтобы попробовать снова.', refresh: 'Обновить сценарии', writeNow: 'Написать сценарии сейчас' },
+  tones: { benefit: 'Выгода', bold: 'Смело', story: 'История' },
   start: { title: 'Начните с рекламы Kineo', sub: 'Одно нажатие копирует стиль, сцену и человека. Товар остаётся вашим.', use: 'Начать с этой', applied: 'Стиль, сцена и человек скопированы. Ваши фото и текст не изменились.' },
 }
 const UK: AdsV2FlowCopy = {
@@ -215,6 +255,8 @@ const UK: AdsV2FlowCopy = {
   read: { title: 'Ми прочитали вашу сторінку', name: 'Назва товару', price: 'Ціна', priceNone: 'На сторінці немає ціни — додайте її, якщо вона потрібна в рекламі.', from: 'З {host} · фото: {n}', fix: 'Виправте те, що виглядає неправильно.' },
   stage: { eyebrow: 'Стиль', autoDesc: 'Ми підберемо стиль під ваш товар.', bestFor: 'Найкраще для', style: 'Стиль', opening: 'Ваш початок', end: 'Фінальний кадр', badge: 'Приклад стилю' },
   review: { planShort: 'Сценарій (безкоштовно)', title: 'Перевірити й створити', product: 'Товар', style: 'Стиль', scene: 'Сцена', presenter: 'Людина', level: 'Рівень', none: '—', noPerson: 'Без людини', surprise: 'Здивуйте мене', then: 'Безкоштовно. Далі: {go}', go: 'Створити · {c} кредитів', scripts: 'Оберіть сценарій', scriptsHint: 'Оберіть один; його ще можна змінити перед створенням.' },
+  auto: { note: 'Ми самі напишемо сценарії, щойно будуть товар і текст, — безкоштовно.', paused: 'Автоматичні сценарії на паузі. Натисніть «Оновити сценарії», щоб спробувати знову.', refresh: 'Оновити сценарії', writeNow: 'Написати сценарії зараз' },
+  tones: { benefit: 'Вигода', bold: 'Сміливо', story: 'Історія' },
   start: { title: 'Почніть із реклами Kineo', sub: 'Одне натискання копіює стиль, сцену й людину. Товар лишається вашим.', use: 'Почати з цієї', applied: 'Стиль, сцену й людину скопійовано. Ваші фото й текст не змінилися.' },
 }
 const AR: AdsV2FlowCopy = {
@@ -223,6 +265,8 @@ const AR: AdsV2FlowCopy = {
   read: { title: 'قرأنا صفحتك', name: 'اسم المنتج', price: 'السعر', priceNone: 'لا يوجد سعر في الصفحة — أضف سعرًا إن أردته في الإعلان.', from: 'من {host} · {n} صور', fix: 'صحّح أي شيء يبدو خاطئًا.' },
   stage: { eyebrow: 'النمط', autoDesc: 'نختار الشكل المناسب لمنتجك.', bestFor: 'الأنسب لـ', style: 'النمط', opening: 'افتتاحيتك', end: 'البطاقة الختامية', badge: 'معاينة النمط' },
   review: { planShort: 'النص (مجانًا)', title: 'راجع وأنشئ', product: 'المنتج', style: 'النمط', scene: 'المشهد', presenter: 'الشخص', level: 'المستوى', none: '—', noPerson: 'بدون شخص', surprise: 'فاجئني', then: 'مجانًا. بعد ذلك: {go}', go: 'أنشئ · {c} رصيد', scripts: 'اختر النص', scriptsHint: 'اختر واحدًا؛ يمكنك تعديله قبل الإنشاء.' },
+  auto: { note: 'نكتب نصوصك تلقائيًا بمجرد إضافة المنتج والنص — مجانًا.', paused: 'النصوص التلقائية متوقفة. اضغط «تحديث النصوص» للمحاولة مرة أخرى.', refresh: 'تحديث النصوص', writeNow: 'اكتب نصوصي الآن' },
+  tones: { benefit: 'الفائدة', bold: 'جريء', story: 'قصة' },
   start: { title: 'ابدأ من إعلان من Kineo', sub: 'لمسة واحدة تنسخ النمط والمشهد والشخص. منتجك يبقى منتجك.', use: 'ابدأ من هذا', applied: 'نُسخ النمط والمشهد والشخص. صورك ونصك لم يتغيرا.' },
 }
 const UR: AdsV2FlowCopy = {
@@ -231,6 +275,8 @@ const UR: AdsV2FlowCopy = {
   read: { title: 'ہم نے آپ کا صفحہ پڑھ لیا', name: 'پروڈکٹ کا نام', price: 'قیمت', priceNone: 'صفحے پر قیمت نہیں — اگر اشتہار میں چاہیے تو شامل کریں۔', from: '{host} سے · {n} تصاویر', fix: 'جو غلط لگے اسے درست کریں۔' },
   stage: { eyebrow: 'اسٹائل', autoDesc: 'ہم آپ کی پروڈکٹ کے مطابق انداز چنتے ہیں۔', bestFor: 'بہترین برائے', style: 'اسٹائل', opening: 'آپ کا آغاز', end: 'آخری کارڈ', badge: 'اسٹائل کا نمونہ' },
   review: { planShort: 'اسکرپٹ (مفت)', title: 'جائزہ لیں اور بنائیں', product: 'پروڈکٹ', style: 'اسٹائل', scene: 'منظر', presenter: 'شخص', level: 'لیول', none: '—', noPerson: 'کوئی شخص نہیں', surprise: 'حیران کریں', then: 'مفت۔ اس کے بعد: {go}', go: 'بنائیں · {c} کریڈٹس', scripts: 'اپنا اسکرپٹ چنیں', scriptsHint: 'ایک چنیں؛ بنانے سے پہلے آپ اسے اب بھی بدل سکتے ہیں۔' },
+  auto: { note: 'پروڈکٹ اور متن آتے ہی ہم خود آپ کے اسکرپٹ لکھ دیتے ہیں — مفت۔', paused: 'خودکار اسکرپٹ رکے ہوئے ہیں۔ دوبارہ کوشش کے لیے “اسکرپٹ تازہ کریں” دبائیں۔', refresh: 'اسکرپٹ تازہ کریں', writeNow: 'میرے اسکرپٹ ابھی لکھیں' },
+  tones: { benefit: 'فائدہ', bold: 'بے باک', story: 'کہانی' },
   start: { title: 'Kineo کے کسی اشتہار سے شروع کریں', sub: 'ایک ٹیپ اسٹائل، منظر اور شخص کاپی کرتا ہے۔ پروڈکٹ آپ ہی کی رہتی ہے۔', use: 'اسی سے شروع کریں', applied: 'اسٹائل، منظر اور شخص کاپی ہو گئے۔ آپ کی تصاویر اور متن نہیں بدلے۔' },
 }
 const HI: AdsV2FlowCopy = {
@@ -239,6 +285,8 @@ const HI: AdsV2FlowCopy = {
   read: { title: 'हमने आपका पेज पढ़ लिया', name: 'प्रोडक्ट का नाम', price: 'कीमत', priceNone: 'पेज पर कीमत नहीं है — विज्ञापन में चाहिए तो जोड़ें।', from: '{host} से · {n} फ़ोटो', fix: 'जो गलत लगे उसे ठीक करें।' },
   stage: { eyebrow: 'स्टाइल', autoDesc: 'हम आपके प्रोडक्ट के हिसाब से लुक चुनते हैं।', bestFor: 'सबसे अच्छा', style: 'स्टाइल', opening: 'आपकी शुरुआत', end: 'आख़िरी कार्ड', badge: 'स्टाइल का नमूना' },
   review: { planShort: 'स्क्रिप्ट (मुफ़्त)', title: 'जाँचें और बनाएँ', product: 'प्रोडक्ट', style: 'स्टाइल', scene: 'सीन', presenter: 'व्यक्ति', level: 'लेवल', none: '—', noPerson: 'कोई व्यक्ति नहीं', surprise: 'मुझे चौंकाएँ', then: 'मुफ़्त। फिर: {go}', go: 'बनाएँ · {c} क्रेडिट', scripts: 'अपनी स्क्रिप्ट चुनें', scriptsHint: 'एक चुनें; बनाने से पहले आप इसे अब भी बदल सकते हैं।' },
+  auto: { note: 'प्रोडक्ट और टेक्स्ट आते ही हम खुद आपकी स्क्रिप्ट लिख देते हैं — मुफ़्त।', paused: 'अपने-आप स्क्रिप्ट रुकी हुई है। फिर से कोशिश करने के लिए “स्क्रिप्ट रीफ़्रेश करें” दबाएँ।', refresh: 'स्क्रिप्ट रीफ़्रेश करें', writeNow: 'मेरी स्क्रिप्ट अभी लिखें' },
+  tones: { benefit: 'फ़ायदा', bold: 'दमदार', story: 'कहानी' },
   start: { title: 'Kineo के किसी विज्ञापन से शुरू करें', sub: 'एक टैप स्टाइल, सीन और व्यक्ति कॉपी करता है। प्रोडक्ट आपका ही रहता है।', use: 'इससे शुरू करें', applied: 'स्टाइल, सीन और व्यक्ति कॉपी हो गए। आपकी फ़ोटो और टेक्स्ट नहीं बदले।' },
 }
 const ID: AdsV2FlowCopy = {
@@ -247,6 +295,8 @@ const ID: AdsV2FlowCopy = {
   read: { title: 'Kami sudah membaca halamanmu', name: 'Nama produk', price: 'Harga', priceNone: 'Tidak ada harga di halaman — tambahkan jika ingin ada di iklan.', from: 'Dari {host} · {n} foto', fix: 'Perbaiki yang terlihat salah.' },
   stage: { eyebrow: 'Gaya', autoDesc: 'Kami memilih tampilan sesuai produkmu.', bestFor: 'Cocok untuk', style: 'Gaya', opening: 'Pembukaanmu', end: 'Kartu penutup', badge: 'Pratinjau gaya' },
   review: { planShort: 'Naskah (gratis)', title: 'Periksa dan buat', product: 'Produk', style: 'Gaya', scene: 'Adegan', presenter: 'Orang', level: 'Level', none: '—', noPerson: 'Tanpa orang', surprise: 'Kejutkan aku', then: 'Gratis. Berikutnya: {go}', go: 'Buat · {c} kredit', scripts: 'Pilih naskahmu', scriptsHint: 'Pilih satu; kamu masih bisa mengeditnya sebelum membuat.' },
+  auto: { note: 'Kami menulis naskahmu sendiri begitu produk dan teks sudah ada — gratis.', paused: 'Naskah otomatis dijeda. Ketuk “Segarkan naskah” untuk mencoba lagi.', refresh: 'Segarkan naskah', writeNow: 'Tulis naskahku sekarang' },
+  tones: { benefit: 'Manfaat', bold: 'Berani', story: 'Cerita' },
   start: { title: 'Mulai dari iklan Kineo', sub: 'Satu ketukan menyalin gaya, adegan, dan orangnya. Produkmu tetap milikmu.', use: 'Mulai dari ini', applied: 'Gaya, adegan, dan orang disalin. Foto dan teksmu tidak berubah.' },
 }
 const VI: AdsV2FlowCopy = {
@@ -255,6 +305,8 @@ const VI: AdsV2FlowCopy = {
   read: { title: 'Chúng tôi đã đọc trang của bạn', name: 'Tên sản phẩm', price: 'Giá', priceNone: 'Trang không có giá — hãy thêm nếu bạn muốn có trong quảng cáo.', from: 'Từ {host} · {n} ảnh', fix: 'Sửa bất cứ điều gì có vẻ sai.' },
   stage: { eyebrow: 'Phong cách', autoDesc: 'Chúng tôi chọn giao diện theo sản phẩm của bạn.', bestFor: 'Phù hợp nhất cho', style: 'Phong cách', opening: 'Phần mở đầu', end: 'Thẻ kết thúc', badge: 'Xem trước phong cách' },
   review: { planShort: 'Kịch bản (miễn phí)', title: 'Xem lại và tạo', product: 'Sản phẩm', style: 'Phong cách', scene: 'Cảnh', presenter: 'Người', level: 'Cấp độ', none: '—', noPerson: 'Không có người', surprise: 'Gây bất ngờ cho tôi', then: 'Miễn phí. Tiếp theo: {go}', go: 'Tạo · {c} tín dụng', scripts: 'Chọn kịch bản của bạn', scriptsHint: 'Chọn một; bạn vẫn có thể sửa trước khi tạo.' },
+  auto: { note: 'Chúng tôi tự viết kịch bản ngay khi có sản phẩm và văn bản — miễn phí.', paused: 'Kịch bản tự động đang tạm dừng. Chạm “Làm mới kịch bản” để thử lại.', refresh: 'Làm mới kịch bản', writeNow: 'Viết kịch bản ngay' },
+  tones: { benefit: 'Lợi ích', bold: 'Táo bạo', story: 'Câu chuyện' },
   start: { title: 'Bắt đầu từ một quảng cáo của Kineo', sub: 'Một chạm sao chép phong cách, cảnh và người. Sản phẩm vẫn là của bạn.', use: 'Bắt đầu từ cái này', applied: 'Đã sao chép phong cách, cảnh và người. Ảnh và văn bản của bạn không đổi.' },
 }
 

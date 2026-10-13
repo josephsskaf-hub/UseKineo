@@ -79,6 +79,10 @@ export const ADS_FLOW_CSS = `
 .adv2 .adv2f-sum dd.muted{color:var(--ads-muted);font-weight:500}
 .adv2 .adv2f-ai{display:inline-block;margin-inline-start:4px;padding:0 6px;border-radius:99px;background:var(--ads-action);color:var(--on-accent,#fff);font-size:10px;font-weight:800;vertical-align:1px}
 @media(max-width:600px){.adv2 .adv2f-sum{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.adv2 .adv2f-auto{margin:6px 0 0;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--stage-a) 7%,var(--ads-bg));border:1px dashed color-mix(in srgb,var(--stage-a) 35%,var(--ads-line));font-size:13px;line-height:1.45;color:var(--ads-text)}
+.adv2 .adv2f-refresh{min-height:36px;padding:4px 2px;border:0;background:none;color:var(--ads-accent);font:inherit;font-size:13px;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.adv2 .adv2f-refresh:disabled{opacity:.5;cursor:default;text-decoration:none}
+.adv2 .adv2f-refresh:focus-visible{outline:2px solid var(--ads-action);outline-offset:2px;border-radius:6px}
 .adv2 .adv2f-next{margin:8px 0 0;font-size:12.5px;color:var(--ads-muted);font-variant-numeric:tabular-nums}
 .adv2 .adv2f-scripts{margin:0 0 14px;padding:0;border:0;display:grid;gap:8px;min-width:0}
 .adv2 .adv2f-scripts legend{padding:0;margin:0 0 4px;font-size:14px;font-weight:750;color:var(--ads-text)}
