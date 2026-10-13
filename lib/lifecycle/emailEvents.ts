@@ -123,6 +123,9 @@ export const LIFECYCLE_EMAIL_EVENT_NAMES = [
   // KINEO-EMAILS-VENDA-2026-10-13 — carta "seu filme está pronto — quer a versão de 60 s?" (admin/send-winback-film-60s).
   // Entra aqui no MESMO commit em que nasce. A RESERVA (winback_film_60s_claimed) NÃO entra: reserva não é envio.
   'winback_film_60s_emailed',
+  // KINEO-EMAILS-REGIAO-2026-10-13 — carta do 1º filme das contas 'region_paid_only' (admin/send-region-first-film).
+  // Entra aqui no MESMO commit em que nasce. A RESERVA (region_first_film_claimed) NÃO entra: reserva não é envio.
+  'region_first_film_emailed',
 ] as const
 
 export type LifecycleEmailEventName = (typeof LIFECYCLE_EMAIL_EVENT_NAMES)[number]
