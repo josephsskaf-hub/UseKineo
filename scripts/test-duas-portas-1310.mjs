@@ -220,7 +220,9 @@ function navProblems(src) {
     else if (m[0] === '</PublicNavDropdown>') depth--
     else if (depth === 0) top.push(m[4])
   }
-  if (top.join(' · ') !== '▾Make a film · Product ads · ▾More tools · Pricing') probs.push(`topo = ${top.join(' · ')}`)
+  // reancorado KINEO-TRENDING-2026-10-13: item pedido pelo fundador 13/10 — o '🔥 Trending' (/trending) entra logo antes de Pricing.
+  // A lista segue EXATA: qualquer OUTRO item a mais no topo continua vermelho (M15).
+  if (top.join(' · ') !== '▾Make a film · Product ads · ▾More tools · 🔥 Trending · Pricing') probs.push(`topo = ${top.join(' · ')}`)
   if (!/<Link href="\/ads\/new" data-nav-item="business" className="nav-primary"><UiLabel>Product ads<\/UiLabel><\/Link>/.test(code)) probs.push('Product ads sem o peso de porta (nav-primary) ou fora do /ads/new')
   if (!/<Link href="\/studio\?intent_campaign=nav_door" data-nav-item="video"><span className="nm-tx"><b><UiLabel>Start a narrated film<\/UiLabel><\/b>/.test(code)) probs.push('Make a film não abre com "Start a narrated film" → /studio')
   for (const dest of REACHABLE) if (!code.includes(dest)) probs.push(`destino sumiu do menu: ${dest}`)
@@ -256,7 +258,8 @@ function appPairProblems(navCfg, side, mob, examples) {
   const probs = []
   const wn = (navCfg.match(/export const WORKSPACE_NAV = \[([\s\S]*?)\] as const/) || [, ''])[1]
   const items = [...wn.matchAll(/\{ href: '([^']+)', label: '([^']+)'/g)].map((m) => `${m[1]}=${m[2]}`)
-  if (items.join(' ') !== '/studio=Make a film /ads/new=Product ads /library=Library /pricing=Pricing') probs.push(`WORKSPACE_NAV = ${items.join(' ')}`)
+  // reancorado KINEO-TRENDING-2026-10-13: item pedido pelo fundador 13/10 — '🔥 Trending' antes de Pricing; nenhum outro a mais.
+  if (items.join(' ') !== '/studio=Make a film /ads/new=Product ads /library=Library /trending=🔥 Trending /pricing=Pricing') probs.push(`WORKSPACE_NAV = ${items.join(' ')}`)
   const mt = (navCfg.match(/export const MORE_TOOLS_NAV = \[([\s\S]*?)\] as const/) || [, ''])[1]
   const tools = [...mt.matchAll(/\{ href: '([^']+)'/g)].map((m) => m[1])
   if (tools.join(' ') !== '/images /clips /spaces') probs.push(`MORE_TOOLS_NAV = ${tools.join(' ')} (Imagem primeiro, nada some)`)

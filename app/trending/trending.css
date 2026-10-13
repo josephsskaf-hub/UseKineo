@@ -1,0 +1,42 @@
+/* KINEO-TRENDING-2026-10-13 — /trending. Mesmo kit do /examples (cabeçalho) e do /effects (cartões 9:16); mobile primeiro. */
+.trending-page{overflow-x:clip}
+.trending-page *{box-sizing:border-box}
+.tr-wrap{width:min(1800px,100%);margin:auto;padding:0 clamp(16px,3vw,56px) 40px}
+.tr-hero{padding:34px 0 10px;max-width:860px}
+.tr-eyebrow{margin:0;font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--muted2,var(--muted,#586c83))}
+.tr-hero h1{font-size:clamp(34px,5vw,60px);line-height:1.06;letter-spacing:-.035em;margin:12px 0 14px;overflow-wrap:anywhere}
+.tr-lead{font-size:clamp(16px,1.7vw,20px);line-height:1.55;margin:0;color:var(--text2,var(--text,#17273b))}
+.tr-note{font-size:13px;line-height:1.55;margin:10px 0 0;color:var(--muted,#586c83)}
+.tr-note-pick{font-weight:650;color:var(--text,#17273b)}
+.tr-jump{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+.tr-jump a{display:inline-flex;align-items:center;min-height:40px;padding:8px 14px;border:1px solid var(--border,#d5e0ec);border-radius:999px;background:var(--card,#fff);color:var(--text,#17273b);font-size:13px;font-weight:600;text-decoration:none}
+.tr-jump a:hover{border-color:var(--accent,#1766d3)}
+.tr-block{padding:30px 0 6px;border-top:1px solid var(--border,#d5e0ec);margin-top:26px;scroll-margin-top:16px}
+.tr-block-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 18px;margin-bottom:18px}
+.tr-block-head h2{font-size:clamp(22px,2.4vw,30px);letter-spacing:-.02em;margin:0}
+.tr-block-head p{margin:0;font-size:14px;color:var(--muted,#586c83)}
+.tr-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media(min-width:700px){.tr-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}}
+@media(min-width:1000px){.tr-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(min-width:1300px){.tr-grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
+.tr-card{display:flex;flex-direction:column;min-width:0;border:1px solid var(--border,#d5e0ec);background:var(--card,#fff);border-radius:14px;overflow:hidden}
+.tr-media{position:relative;aspect-ratio:9/16;background:#090c13;overflow:hidden}
+.tr-video{display:block;width:100%;height:100%;object-fit:cover;background:#090c13}
+.tr-script{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:6px;padding:18px 16px;background:linear-gradient(160deg,#1b2340,#0b0f1c 62%,#2a1340);color:#f2f4f8}
+.tr-script-mark{font-size:54px;line-height:.6;color:#ff8a3d;font-family:Georgia,serif}
+.tr-script p{margin:0;font-size:clamp(14px,1.5vw,17px);line-height:1.45;font-weight:600;display:-webkit-box;-webkit-line-clamp:9;-webkit-box-orient:vertical;overflow:hidden}
+.tr-badge{position:absolute;left:8px;top:8px;padding:4px 9px;border-radius:999px;font-size:11px;font-weight:750;letter-spacing:.02em;line-height:1.3}
+.tr-badge-new{background:#ff5a1f;color:#fff}
+.tr-badge-pick{background:#ffd23f;color:#20252b}
+.tr-badge-script{top:auto;bottom:8px;background:#ffffffe6;color:#20252b}
+.tr-body{display:flex;flex-direction:column;gap:6px;padding:10px 10px 12px;flex:1}
+.tr-engine{font-size:11px;color:var(--muted,#586c83);line-height:1.4}
+.tr-body h3{font-size:14px;line-height:1.35;margin:0;overflow-wrap:anywhere}
+.tr-sub{font-size:12.5px;line-height:1.45;margin:0;color:var(--muted,#586c83);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.tr-caption{font-size:11px;margin:0;color:var(--muted,#586c83)}
+.trending-page .tr-cta{margin-top:auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:42px;padding:9px 12px;border-radius:10px;background:var(--accent,#1766d3);color:var(--on-accent,#fff);font-size:14px;font-weight:700;text-decoration:none}
+.trending-page .tr-cta:hover{filter:brightness(1.07)}
+.tr-footer{display:flex;justify-content:space-between;gap:16px;padding:26px 0 0;margin-top:30px;border-top:1px solid var(--border,#d5e0ec);font-size:13px;color:var(--muted,#586c83)}
+.trending-page :is(a,video):focus-visible{outline:3px solid #06b6d4;outline-offset:3px}
+@media(max-width:760px){.trending-page header nav{row-gap:4px;column-gap:16px}.tr-hero{padding-top:24px}.tr-body h3{font-size:13px}}
+@media(prefers-reduced-motion:reduce){.trending-page *{scroll-behavior:auto}}
