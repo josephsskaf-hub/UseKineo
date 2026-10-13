@@ -34,9 +34,16 @@ export const LEMBRETE_IDEIA_CAMPAIGN = 'd0_activation_own_idea'
 /** Estados de trial em que a conta NÃO tem como gerar de graça (0 crédito por desenho). */
 export const TRIAL_SEM_FILME: readonly string[] = ['region_paid_only', 'blocked']
 
-/** A conta pode receber "seu primeiro filme está a um clique"? (plano pago é tratado antes, pela rota). */
-export function podeGerarParaLembrete(row: { trial_status?: string | null } | null | undefined): boolean {
+/**
+ * A conta pode receber "seu primeiro filme está a um clique"? (plano pago é tratado antes, pela rota).
+ * KINEO-EMAILS-REGIAO-2026-10-13 — `filmeDeRegiaoDisponivel`: desde 08/10 a conta 'region_paid_only' nova nasce COM o filme
+ * grátis (Seedance 1.5 de 15 s, lib/freeFilmPolicy.ts REGION_FREE_FILM_LIVE). A rota calcula se ESTA conta tem o filme no
+ * saldo (lib/lifecycle/regionFirstFilmEmail.ts filmeDeRegiaoNoSaldo) e passa aqui; true = a mesma carta do 1º filme.
+ * Padrão false = a regra de 03/10, byte a byte. 'blocked' nunca recebe, com ou sem o parâmetro.
+ */
+export function podeGerarParaLembrete(row: { trial_status?: string | null } | null | undefined, filmeDeRegiaoDisponivel: boolean = false): boolean {
   const ts = typeof row?.trial_status === 'string' ? row.trial_status.trim().toLowerCase() : ''
+  if (ts === 'region_paid_only' && filmeDeRegiaoDisponivel === true) return true
   return !TRIAL_SEM_FILME.includes(ts)
 }
 
