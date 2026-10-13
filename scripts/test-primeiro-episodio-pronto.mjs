@@ -135,8 +135,15 @@ check('19. e nenhuma leitura de banco a mais para montar os episodios', !/from\(
 check('20. episodiosProntos tem try/catch e devolve [] no erro', /function episodiosProntos\(\)[\s\S]{0,1200}?\} catch \{\n\s*return \[\]\n\s*\}/.test(atual))
 check('21. ou os TRES, ou nenhum (nao sai carta com 1 exemplo torto)', /return out\.length === 3 \? out : \[\]/.test(atual))
 // Reancorado 03/10 (KINEO-LEMBRETE-COM-A-IDEIA-2026-10-03): a chamada ganhou o 3º argumento (ideiaNaCarta).
-check('22. o pool e calculado UMA vez por execucao, fora do laco', /const episodiosDoLote = episodiosProntos\(\)/.test(atual) && atual.includes('buildEmail(u.id, episodiosDoLote') && atual.indexOf('const episodiosDoLote') < atual.indexOf('buildEmail(u.id, episodiosDoLote'))
-check('23. o assunto nomeia o primeiro episodio quando ele existe', /episodiosDoLote\.length > 0\n\s*\? `Your first video: "\$\{episodiosDoLote\[0\]\.titulo\}"`/.test(atual))
+// Reancorado 13/10 (KINEO-EMAILS-VENDA-2026-10-13): as 3 ideias passaram a ser POR PESSOA (nicho do cadastro → página
+// do nicho; senão filmes campeões da vitrine — lib/lifecycle/primeiroFilmeIdeias.ts). O pool continua calculado UMA vez,
+// fora do laço, e é o que a carta usa quando as ideias da pessoa não chegam a 3 (`episodiosDaPessoa` cai nele).
+check('22. o pool e calculado UMA vez por execucao, fora do laco', /const episodiosDoLote = episodiosProntos\(\)/.test(atual)
+  && atual.includes('buildEmail(u.id, episodiosDaPessoa')
+  && /episodiosDoLote\.map\(\(e\) => \(\{ \.\.\.e, href: comMotorDeEntrada\(e\.href\) \}\)\)/.test(atual)
+  && atual.indexOf('const episodiosDoLote') < atual.indexOf('for (const u of candidates ?? [])'))
+// Reancorado 13/10 (KINEO-EMAILS-VENDA-2026-10-13): nomeia a 1ª ideia DESTA pessoa, cortada em palavra (ideiaNoAssunto).
+check('23. o assunto nomeia o primeiro episodio quando ele existe', /episodiosDaPessoa\.length > 0\n\s*\? `Your first video: "\$\{ideiaNoAssunto\(episodiosDaPessoa\[0\]\.titulo\)\}"`/.test(atual))
 // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: "Fast video" era o Kineo 1 (fora do catálogo público; o
 // primeiro filme de conta nova é o Seedance de 15 s). O assunto de hoje continua o mesmo, só sem o nome do motor.
 check('24. e volta ao assunto de hoje quando nao existe', atual.includes("'Your first film is a few minutes away'") && !atual.includes('Your first Fast video'))

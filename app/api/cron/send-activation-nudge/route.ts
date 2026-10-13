@@ -19,7 +19,17 @@ import {
   blocoDaIdeia,
   ideiaDoCadastro,
   podeGerarParaLembrete,
+  ideiaNoAssunto,
 } from '@/lib/lifecycle/lembreteComIdeia'
+// KINEO-EMAILS-VENDA-2026-10-13 — as 3 ideias no TEMA da pessoa (nicho do cadastro → página do nicho; senão filmes
+// campeões da vitrine) e todo link de ideia abrindo o Studio no Seedance 1.5 de 15 s. Ver o cabeçalho do módulo.
+import {
+  PRIMEIRO_FILME_IDEIAS_VERSION,
+  comMotorDeEntrada,
+  ideiasDoPrimeiroFilme,
+  nichoDoCadastro,
+  type FonteDasIdeias,
+} from '@/lib/lifecycle/primeiroFilmeIdeias'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = atual).
 const OFFER = getFreeTierOffer()
@@ -157,15 +167,17 @@ function buildEmail(userId: string, episodios: EpisodioPronto[] = [], ideia: { t
     : 'Type any idea ("the Bermuda Triangle mystery", "how Bezos starts his day") and the AI writes the script, adds the voiceover, captions and footage.'
   const esc = (v: string) =>
     v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  // KINEO-EMAILS-VENDA-2026-10-13 — "working right now" valia para o pool viral; as ideias agora podem vir da página do
+  // nicho ou da vitrine, e todo link abre o Seedance de 15 s (comMotorDeEntrada na rota). A frase diz isso, sem exagero.
   const episodiosTexto = episodios.length
     ? `
-Three that are working right now — each one opens the studio with the topic already in the box:
+Three ideas ready to go — each one opens the studio with the idea already in the box, set up as a 15-second film:
 
 ${episodios.map((e, i) => `${i + 1}. ${e.titulo}\n   ${e.href}`).join('\n\n')}
 `
     : ''
   const episodiosHtml = episodios.length
-    ? `<p style="margin:0 0 10px;font-size:14px;color:#475569;">Three that are working right now — each one opens the studio with the topic already in the box:</p>
+    ? `<p style="margin:0 0 10px;font-size:14px;color:#475569;">Three ideas ready to go — each one opens the studio with the idea already in the box, set up as a 15-second film:</p>
   <table style="border-collapse:separate;border-spacing:0 8px;width:100%;margin:0 0 18px;">${episodios
     .map(
       (e) => `<tr><td style="border:1px solid #e6e8ec;border-radius:10px;padding:12px 14px;">
@@ -294,6 +306,8 @@ export async function GET(req: NextRequest) {
   // de duas pessoas do MESMO lote receberem listas diferentes se a janela
   // virasse no meio do envio.
   const episodiosDoLote = episodiosProntos()
+  // KINEO-EMAILS-VENDA-2026-10-13 — contadores sem PII da fonte das 3 ideias (nicho × vitrine × pool de sempre).
+  const porFonte: Record<FonteDasIdeias | 'pool', number> = { niche: 0, showcase: 0, none: 0, pool: 0 }
   for (const u of candidates ?? []) {
     // Suprimido = recebeu outro e-mail de ciclo de vida nas últimas 24h.
     // NÃO carimba `activation_nudge_sent_at` — o usuário continua elegível na
@@ -410,13 +424,32 @@ export async function GET(req: NextRequest) {
     }
     if (ideia) comIdeia++
     const usarIdeia = LEMBRETE_COM_IDEIA === 'live' && ideia !== null
+    // KINEO-EMAILS-VENDA-2026-10-13 — o botão da ideia DELA também abre no Seedance de 15 s (o mesmo 1º filme das 3 ideias).
     const ideiaNaCarta = usarIdeia && ideia
-      ? { texto: ideia, href: composerUrl({ base: APP_URL, campaign: LEMBRETE_IDEIA_CAMPAIGN, prompt: ideia }) }
+      ? { texto: ideia, href: comMotorDeEntrada(composerUrl({ base: APP_URL, campaign: LEMBRETE_IDEIA_CAMPAIGN, prompt: ideia })) }
       : null
+
+    // KINEO-EMAILS-VENDA-2026-10-13 — as 3 ideias desta PESSOA: o nicho do cadastro (signup_utm_campaign
+    // push63_niche_<slug>) escolhe as ideias da página que ela viu; sem nicho, os filmes campeões da vitrine; se nada
+    // der 3, o pool de sempre (episodiosDoLote), também com o Seedance de 15 s. Leitura best-effort (falhou = sem nicho)
+    // e SÓ para quem já passou por todos os filtros acima — a coorte e a ordem dos pulos não mudam.
+    let nicho: string | null = null
+    try {
+      const { data: perfil } = await admin.from('profiles').select('signup_utm_campaign').eq('id', u.id).maybeSingle()
+      nicho = nichoDoCadastro((perfil as { signup_utm_campaign?: unknown } | null)?.signup_utm_campaign)
+    } catch {
+      nicho = null
+    }
+    const escolha = ideiasDoPrimeiroFilme(APP_URL, nicho)
+    const fonteDasIdeias: FonteDasIdeias | 'pool' = escolha.ideias.length === 3 ? escolha.fonte : 'pool'
+    const episodiosDaPessoa = escolha.ideias.length === 3
+      ? escolha.ideias
+      : episodiosDoLote.map((e) => ({ ...e, href: comMotorDeEntrada(e.href) }))
+    porFonte[fonteDasIdeias]++
     // ?dry_run=1: nada sai, nada é carimbado.
     if (dryRun) continue
 
-    const { text, html } = buildEmail(u.id, episodiosDoLote, ideiaNaCarta)
+    const { text, html } = buildEmail(u.id, episodiosDaPessoa, ideiaNaCarta)
     try {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -435,8 +468,9 @@ export async function GET(req: NextRequest) {
           // KINEO-LEMBRETE-COM-A-IDEIA-2026-10-03 — com a ideia ('live'), o assunto é o filme DELA.
           subject: ideiaNaCarta
             ? assuntoComIdeia(ideiaNaCarta.texto)
-            : episodiosDoLote.length > 0
-              ? `Your first video: "${episodiosDoLote[0].titulo}"`
+            // KINEO-EMAILS-VENDA-2026-10-13 — o assunto nomeia a 1ª ideia DESTA pessoa (cortada em palavra, ≤ 60).
+            : episodiosDaPessoa.length > 0
+              ? `Your first video: "${ideiaNoAssunto(episodiosDaPessoa[0].titulo)}"`
               : 'Your first film is a few minutes away', // KINEO-FILME-GRATIS-15S-2026-09-29 — "Fast video" era o Kineo 1
           text,
           html,
@@ -461,6 +495,10 @@ export async function GET(req: NextRequest) {
             idea_mode: LEMBRETE_COM_IDEIA,
             with_idea: Boolean(ideiaNaCarta),
             had_idea: ideia !== null,
+            // KINEO-EMAILS-VENDA-2026-10-13 — de onde vieram as 3 ideias (niche/showcase/pool) e o nicho, para o placar.
+            ideas_version: PRIMEIRO_FILME_IDEIAS_VERSION,
+            ideas_source: fonteDasIdeias,
+            niche: nicho,
             hours_after_signup: Math.round(((Date.now() - Date.parse(String(u.created_at))) / 3_600_000) * 10) / 10,
           },
         })
@@ -486,5 +524,7 @@ export async function GET(req: NextRequest) {
     eligible: elegiveis,
     with_idea: comIdeia,
     skipped_cannot_generate: semFilmePulados,
+    // KINEO-EMAILS-VENDA-2026-10-13
+    ideas_source: porFonte,
   })
 }

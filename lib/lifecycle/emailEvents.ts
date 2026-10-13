@@ -120,6 +120,9 @@ export const LIFECYCLE_EMAIL_EVENT_NAMES = [
   // KINEO-PRECO-CAIU-2026-10-09 — carta "o preço baixou" para quem abriu o checkout na V8-A (admin/send-price-drop).
   // Entra aqui no MESMO commit em que nasce, pela regra deste arquivo.
   'price_drop_1009_sent',
+  // KINEO-EMAILS-VENDA-2026-10-13 — carta "seu filme está pronto — quer a versão de 60 s?" (admin/send-winback-film-60s).
+  // Entra aqui no MESMO commit em que nasce. A RESERVA (winback_film_60s_claimed) NÃO entra: reserva não é envio.
+  'winback_film_60s_emailed',
 ] as const
 
 export type LifecycleEmailEventName = (typeof LIFECYCLE_EMAIL_EVENT_NAMES)[number]

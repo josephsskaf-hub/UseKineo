@@ -30,6 +30,9 @@ import NicheHouseFilm from '@/components/NicheHouseFilm'
 import { nicheHouseFilm } from '@/lib/seo/houseFilmIdeas'
 import { STATE_EDITION } from '@/lib/seo/stateOfAiShortsEdition'
 import { stateNicheRankForPath } from '@/lib/seo/stateOfAiShorts'
+// KINEO-PAGINAS-LOTE1-2026-10-12 — 7 nichos novos (desenho 3D, what-if, oceano, desastres, natureza, mistérios antigos, fatos
+// sinistros) com texto útil próprio, FAQ e filme real da casa; os dados vivem em lib/seo/paginasLote1.ts.
+import { LOTE1_NICHES, lote1NicheFilm } from '@/lib/seo/paginasLote1'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -494,6 +497,12 @@ const NICHES: Record<string, Niche> = {
   },
 }
 
+// KINEO-PAGINAS-LOTE1-2026-10-12 — os nichos do lote 1 entram no MESMO registro: sitemap, rodapé "More:" das irmãs e
+// generateStaticParams derivam daqui (o card do hub vem de LOTE1_NICHES[slug].hubCard em app/free-ai-shorts/page.tsx).
+for (const [slug, n] of Object.entries(LOTE1_NICHES)) {
+  if (!NICHES[slug]) NICHES[slug] = { label: n.label, h1: n.h1, intro: n.intro, ideas: n.ideas }
+}
+
 export const NICHE_SLUGS = Object.keys(NICHES)
 
 export function generateStaticParams() {
@@ -503,8 +512,10 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: { params: { niche: string } }): Metadata {
   const n = NICHES[params.niche]
   if (!n) return {}
-  const title = `${n.h1} — Kineo`
-  const description = `${n.intro} ${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24h with no card.', OFFER.copy.headline)} Starter is ${STARTER_MONTH}.`
+  // KINEO-PAGINAS-LOTE1-2026-10-12 — os nichos do lote 1 têm título e descrição escritos para a busca que miram.
+  const lote1 = Object.prototype.hasOwnProperty.call(LOTE1_NICHES, params.niche) ? LOTE1_NICHES[params.niche] : null
+  const title = lote1 ? lote1.metaTitle : `${n.h1} — Kineo`
+  const description = lote1 ? lote1.metaDescription : `${n.intro} ${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24h with no card.', OFFER.copy.headline)} Starter is ${STARTER_MONTH}.`
   const url = `https://www.usekineo.com/free-ai-shorts/${params.niche}`
   return {
     metadataBase: new URL('https://www.usekineo.com'),
@@ -534,7 +545,18 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
   const heroFreeHref = signupUrlForIdea(primaryIdea)
   const isLocalBusiness = params.niche === 'localbusiness'
   // KINEO-GEO-RODADA2-2026-10-08 — null = o nicho não tem filme real da casa (a página fica exatamente como estava).
-  const houseFilm = nicheHouseFilm(params.niche)
+  // KINEO-PAGINAS-LOTE1-2026-10-12 — nichos do lote 1: o filme da casa sai de lib/seo/paginasLote1.ts (mesma vitrine, mesmo
+  // resolveHouseFilm), com a nota honesta quando o filme não é do tema exato.
+  const lote1 = Object.prototype.hasOwnProperty.call(LOTE1_NICHES, params.niche) ? LOTE1_NICHES[params.niche] : null
+  const lote1Film = lote1 ? lote1NicheFilm(params.niche) : null
+  const houseFilm = nicheHouseFilm(params.niche) ?? lote1Film
+  const lote1FaqJsonLd = lote1
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: lote1.faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+      }
+    : null
   const steps = isLocalBusiness
     ? [
         { n: '1', t: 'Describe the real offer', d: 'Add the business, service, customer, differentiator and next step. Short factual phrases work best.' },
@@ -683,6 +705,8 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
             source={campaign}
             ctaHref={buildPromptedSignupHref({ prompt: houseFilm.idea, campaign, creationIntent: OFFER.reverseTrial ? 'trial_best' : 'fast' })}
             stateRank={stateNicheRankForPath(STATE_EDITION, `/free-ai-shorts/${params.niche}`)}
+            honestNote={lote1Film?.honestNote ?? null}
+            ctaLabel={lote1Film?.ctaLabel}
           />
         )}
 
@@ -699,6 +723,30 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
             ))}
           </div>
         </section>
+
+        {/* KINEO-PAGINAS-LOTE1-2026-10-12 — o texto útil e a FAQ própria dos nichos do lote 1 (os 30 de antes não mudam). */}
+        {lote1 && (
+          <section data-kineo="lote1-guide" style={{ marginTop: 48 }}>
+            {lote1FaqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(lote1FaqJsonLd).replace(/</g, '\\u003c') }} />}
+            {lote1.sections.map((s) => (
+              <div key={s.h2} style={{ marginBottom: 28 }}>
+                <h2 style={{ fontSize: '1.3rem', fontWeight: 900, margin: '0 0 12px' }}>{s.h2}</h2>
+                {s.paragraphs.map((p) => (
+                  <p key={p.slice(0, 40)} style={{ color: '#CBD5E1', fontSize: '0.98rem', lineHeight: 1.7, margin: '0 0 12px' }}>{p}</p>
+                ))}
+              </div>
+            ))}
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 900, margin: '8px 0 14px' }}>{n.label} Shorts: questions</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {lote1.faq.map((f) => (
+                <div key={f.q} style={{ ...CARD, borderRadius: 12, padding: '14px 16px' }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 6px' }}>{f.q}</h3>
+                  <p style={{ margin: 0, color: '#CBD5E1', fontSize: '0.92rem', lineHeight: 1.6 }}>{f.a}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Niche ideas */}
         {!isLocalBusiness && <section style={{ marginTop: 48 }}>
@@ -753,6 +801,20 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
               </Link>
             </p>
           </section>
+        )}
+
+        {/* KINEO-PAGINAS-LOTE1-2026-10-12 — a irmã em espanhol do nicho nº 1 (horror) e a página de curta-metragem, ligadas daqui. */}
+        {params.niche === 'horror' && (
+          <p style={{ marginTop: 32, textAlign: 'center', fontSize: '0.9rem', color: '#CBD5E1' }}>
+            En español:{' '}
+            <Link href="/generador-de-videos-de-terror" style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 800 }}>Generador de videos de terror con IA →</Link>
+          </p>
+        )}
+        {(params.niche === 'horror' || params.niche === 'ocean') && (
+          <p style={{ marginTop: 12, textAlign: 'center', fontSize: '0.9rem', color: '#CBD5E1' }}>
+            Want a longer story with a narrator?{' '}
+            <Link href="/ai-short-film-generator" style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 800 }}>AI short film generator →</Link>
+          </p>
         )}
 
         <nav style={{ marginTop: 40, textAlign: 'center', fontSize: '0.8rem', color: '#64748B' }}>

@@ -59,7 +59,8 @@ export function buyCreatorPrice(live: boolean = WELCOME20_SITE_OFFER_LIVE): BuyC
   }
 }
 
-export type BuyCreatorLang = 'en' | 'pt'
+// KINEO-PAGINAS-LOTE1-2026-10-12 — 'es' para a porta /generador-de-videos-de-terror (mesmos números, só a língua muda).
+export type BuyCreatorLang = 'en' | 'pt' | 'es'
 
 export interface BuyCreatorCopy {
   button: string
@@ -81,6 +82,17 @@ export function buyCreatorCopy(lang: BuyCreatorLang = 'en', live: boolean = WELC
         ? `${price.firstMonth} no 1º mês, depois ${price.full}/mês`
         : `${price.full}/mês`,
       note: `${TIER_CREDITS.basic} créditos por mês = ${films} filmes de ${s} s no Seedance 1.5, sem marca d’água. Cancele quando quiser. Preço de referência em USD; no Brasil a cobrança normalmente é em reais.`,
+    }
+  }
+  if (lang === 'es') {
+    return {
+      button: price.firstMonth
+        ? `Suscribirme a Creator — ${price.percentOff}% de descuento el 1er mes · ${films} videos de ${s} s`
+        : `Suscribirme a Creator · ${films} videos de ${s} s`,
+      priceLine: price.firstMonth
+        ? `${price.firstMonth} el primer mes, después ${price.full}/mes`
+        : `${price.full}/mes`,
+      note: `${TIER_CREDITS.basic} créditos al mes = ${films} videos de ${s} s en Seedance 1.5, sin marca de agua. Cancela cuando quieras. Precio de referencia en USD.`,
     }
   }
   return {

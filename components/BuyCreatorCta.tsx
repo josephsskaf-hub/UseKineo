@@ -61,7 +61,7 @@ export default function BuyCreatorCta({
           }}
           style={{ display: 'inline-block', background: '#2997ff', color: '#001b33', fontWeight: 900, padding: '15px 26px', borderRadius: 980, textDecoration: 'none', fontSize: '1.02rem', lineHeight: 1.3 }}
         >
-          {pending ? (lang === 'pt' ? 'Abrindo o checkout seguro…' : 'Opening secure checkout…') : copy.button}
+          {pending ? (lang === 'pt' ? 'Abrindo o checkout seguro…' : lang === 'es' ? 'Abriendo el pago seguro…' : 'Opening secure checkout…') : copy.button}
         </a>
         {secondary}
       </div>
@@ -69,7 +69,7 @@ export default function BuyCreatorCta({
         {price.firstMonth ? (
           <>
             <s style={{ color: '#86868b' }}>{price.full}</s> <strong>{price.firstMonth}</strong>{' '}
-            {lang === 'pt' ? `no 1º mês, depois ${price.full}/mês` : `for the first month, then ${price.full}/month`}
+            {lang === 'pt' ? `no 1º mês, depois ${price.full}/mês` : lang === 'es' ? `el primer mes, después ${price.full}/mes` : `for the first month, then ${price.full}/month`}
           </>
         ) : (
           <strong>{copy.priceLine}</strong>
