@@ -23,6 +23,7 @@ import { v2Fail, v2Json } from '@/lib/ads/v2Server'
 // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra grátis abre a pesquisa (mesmo teto diário por pessoa) para a conta free/trial
 // que ainda não usou a dela.
 import { adsSampleOpen } from '@/lib/ads/serverAccess'
+import { adsV2ProductResearch } from '@/lib/ads/v2SceneServer' // KINEO-ADS-CENA-2026-10-13
 import {
   ADS_V2_RESEARCH_DAILY_CAP,
   ADS_V2_RESEARCH_MAX_OUTPUT_TOKENS,
@@ -81,6 +82,7 @@ export async function POST(req: NextRequest) {
 
     // Já pesquisado (ou copiado de um rascunho anterior com a mesma frase): devolve o gravado, sem chamar o modelo.
     if (researchState(brief0.research, Date.now()) !== 'none') return view(order.id, brief0.research, Date.now())
+    const soProduto = await adsV2ProductResearch({ admin, order, uid, brief0, started }); if (soProduto) return soProduto // KINEO-ADS-CENA-2026-10-13 — PRODUTO não busca na web aberta: só a página do próprio produto (link) ou nada
 
     // Só a FRASE gravada no pedido vai à busca — nunca o preço nem o contato dos campos próprios.
     const sentence = typeof brief0.sentence === 'string' ? brief0.sentence : ''

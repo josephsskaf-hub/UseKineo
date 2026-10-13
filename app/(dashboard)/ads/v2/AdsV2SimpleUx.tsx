@@ -77,6 +77,7 @@ export const SIMPLE_UX_CSS = `
 .adv2s-live .info dl{margin:0;display:grid;gap:8px}
 .adv2s-live .info dt{font-size:11px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;color:#ffffff99}
 .adv2s-live .info dd{margin:2px 0 0;font-size:13.5px;line-height:1.4;color:#eef2f7;overflow-wrap:anywhere}
+.adv2s-live .info dd.muted{color:#9aa3b2;font-style:italic}
 .adv2s-live .cost{padding:10px 12px;border-radius:14px;background:#ffffff14;border:1px solid #ffffff26;font-size:13px;font-weight:700;line-height:1.4;color:#fff;font-variant-numeric:tabular-nums}
 .adv2s-live .cost .short{display:block;margin-top:4px;color:#ffcf8a;font-weight:650}
 .adv2s-live .eta{font-size:12.5px;color:#ffffffb3}
@@ -274,6 +275,8 @@ export type LiveView = 'opening' | 'style' | 'end'
 export interface LivePreviewData {
   photos: { key: string; srcUrl: string; fx: number; fy: number }[]
   productName: string
+  /** KINEO-ADS-CENA-2026-10-13 — a CENA, separada do produto: rótulo + o texto (ou o porquê de não haver). Ausente = sem linha. */
+  scene?: { label: string; text: string; muted: boolean } | null
   style: { label: string; oneLine: string; preview: string; poster: string } | null
   presenter: { poster: string } | null
   cardUrl: string | null
@@ -338,6 +341,7 @@ export function LivePreview({ data, copy }: { data: LivePreviewData; copy: AdsV2
         <h2>{copy.preview.title}</h2>
         <dl>
           <div><dt>{copy.preview.product}</dt><dd>{data.productName || '—'}</dd></div>
+          {data.scene ? <div data-kineo="ads-live-scene"><dt>{data.scene.label}</dt><dd className={data.scene.muted ? 'muted' : undefined}>{data.scene.text}</dd></div> : null}
           <div><dt>{copy.preview.look}</dt><dd>{data.style ? `${data.style.label} — ${data.style.oneLine}` : copy.preview.noStyle}</dd></div>
         </dl>
         <span className="eta">🎙 {fill(copy.preview.voice, { lang: data.voice })}</span>

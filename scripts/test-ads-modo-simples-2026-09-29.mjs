@@ -194,7 +194,12 @@ await check('A3 trocar de modo é link de página inteira (o anúncio em andamen
 // do escolhido na linha do ator da prévia. Sem escolha ("Surprise me", o padrão) o corpo e o anúncio são os de antes; provado em
 // scripts/test-atores-ia-1310.mjs. Base anterior: 413b63f6….
 const Z1_BASE = "235bfb6dfef9d097b8a9f4258c8a350200057f4f588fea9f6f97c3ac3094da12"
-const trechoCompleto = (src) => { const s = src.replace(/\r\n/g, '\n'); const i = s.indexOf('function AdsV2Session('); return i < 0 ? '' : semComentarios(s.slice(i)) }
+// KINEO-ADS-CENA-2026-10-13 — re-ancorado SEM trocar a base: o completo ganhou o campo da cena só por linhas inteiras marcadas e um
+// pedaço marcado no corpo do POST /orders (`/* KINEO-ADS-CENA-2026-10-13 */ ...cenaBody, `). desfazCenaCompleto tira EXATAMENTE isso
+// ANTES de tirar os comentários; o resto do completo tem de bater com a mesma impressão digital.
+// reancorado KINEO-LEVA6-1310 — as duas pistas juntas: a base é a dos atores IA (235bf…) e a cena sai antes, pelo desfazCenaCompleto.
+const desfazCenaCompleto = (s) => s.split('/* KINEO-ADS-CENA-2026-10-13 */ ...cenaBody, ').join('').split('\n').filter((l) => !l.includes('KINEO-ADS-CENA-2026-10-13')).join('\n')
+const trechoCompleto = (src) => { const s = desfazCenaCompleto(src.replace(/\r\n/g, '\n')); const i = s.indexOf('function AdsV2Session('); return i < 0 ? '' : semComentarios(s.slice(i)) }
 await check('Z1 impressão digital do modo completo (AdsV2Session, PhotoRow, PlanPreview, ShotGrid) = a do vídeo do cliente (29/09)', sha(trechoCompleto(SRC.client)) === Z1_BASE)
 await check('Z1-mutante: 1 caractere trocado no modo completo fica vermelho', () => sha(trechoCompleto(trocar(SRC.client, "const POLL_RETRY_MS = 20_000", "const POLL_RETRY_MS = 20_001").replace('Plan my ad (free)', 'Plan my ad (freE)'))) !== Z1_BASE)
 
@@ -323,7 +328,9 @@ function mundo(order, extra = {}) {
 }
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — re-ancorado: a rota /plan importa o interruptor ADS_V2_STYLES_PUBLIC de lib/ads/v2Styles.ts (lib PURA: só import type).
 // KINEO-ATOR-ANUNCIO-2026-10-09 — re-ancorado: a rota /plan importa o interruptor e o plano do ator de lib/ads/v2Presenter.ts (lib PURA: só import type).
-const loadRoute = (rel, stubs, src) => makeLoader(stubs, { real: ['lib/textLanguage.ts', 'lib/ads/v2Contract.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/v2Research.ts', 'lib/ads/v2Styles.ts', 'lib/ads/v2Presenter.ts', PLAN_CORE], over: src === undefined ? {} : { [rel === F.planRoute ? PLAN_CORE : rel]: src } })(rel) // KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o núcleo do /plan
+// KINEO-ADS-CENA-2026-10-13 — re-ancorado: o /plan, o /orders e o /research importam a cena (lib/ads/v2Scene.ts, pura, e
+// lib/ads/v2SceneServer.ts, que usa os MESMOS stubs de eventos/moderação/link deste mundo) e as libs puras que ela lê.
+const loadRoute = (rel, stubs, src) => makeLoader(stubs, { real: ['lib/textLanguage.ts', 'lib/ads/v2Contract.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/v2Research.ts', 'lib/ads/v2Styles.ts', 'lib/ads/v2Presenter.ts', PLAN_CORE, 'lib/ads/v2Scene.ts', 'lib/ads/v2SceneServer.ts', 'lib/ads/v2Honesty.ts', 'lib/ads/scriptPrompt.ts', 'lib/ads/v2Simple.ts'], over: src === undefined ? {} : { [rel === F.planRoute ? PLAN_CORE : rel]: src } })(rel) // KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o núcleo do /plan
 const req = (body) => ({ json: async () => body, nextUrl: { searchParams: new URLSearchParams() } })
 const PHOTOS = [0, 1, 2].map((i) => ({ footage_id: U(20 + i), kind: 'place' }))
 const FATOS = [
@@ -753,7 +760,10 @@ await check('E2 CONTACTISH da pesquisa = o da régua do texto (v2Brief)', () => 
 // KINEO-ATORES-IA-2026-10-13 — re-ancorado: + '@/components/ads/AdsPresenterPicker' (componente de navegador do seletor de
 // apresentadores; importa só react e as libs puras v2Presenter/v2PresenterLibrary) e '@/lib/ads/v2PresenterLibrary' (lib PURA das
 // frases do seletor nas 16 línguas; só import type — conferida na pureza abaixo e em scripts/test-atores-ia-1310.mjs).
-const IMPORTS_OK = ['@/components/ads/AdsPresenterPicker', '@/lib/ads/v2PresenterLibrary', '@/lib/ads/v2AiLabel', '@/lib/ads/afterSample', '@/lib/ads/v2SimpleUx', './AdsV2SimpleUx', '@/lib/ads/v2LinkImport', '@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', './AdsV2Variations', '@/components/AdsPlanChanges', 'react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/ads/v2UserVideo', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage']
+// KINEO-ADS-CENA-2026-10-13 — re-ancorado: + '@/lib/ads/v2Scene' (lib PURA da cena e do produto x lugar: limpeza, régua, presets e
+// frases nas 16 línguas; só importa libs puras — provado em scripts/test-ads-cena-1310.mjs). Nenhum módulo de servidor.
+// reancorado KINEO-LEVA6-1310 — união das duas listas (apresentadores + cena).
+const IMPORTS_OK = ['@/lib/ads/v2Scene', '@/components/ads/AdsPresenterPicker', '@/lib/ads/v2PresenterLibrary', '@/lib/ads/v2AiLabel', '@/lib/ads/afterSample', '@/lib/ads/v2SimpleUx', './AdsV2SimpleUx', '@/lib/ads/v2LinkImport', '@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', './AdsV2Variations', '@/components/AdsPlanChanges', 'react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/ads/v2UserVideo', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage']
 await check('E3 a tela simples é cliente e só importa módulos de navegador/puros; v2Simple, v2Research e v2VideoFrames não têm import; textLanguage é pura', () => {
   const imps = [...SRC.simple.matchAll(/^import[\s\S]*?from '([^']+)'/gm)].map((m) => m[1])
   return /^'use client'/.test(SRC.simple) && imps.length >= 8 && imps.every((m) => IMPORTS_OK.includes(m)) &&

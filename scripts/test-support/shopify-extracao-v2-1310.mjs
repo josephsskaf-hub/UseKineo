@@ -14,6 +14,10 @@
 // que conferem o /start byte a byte (ator, estilos, ux-marca) e o de equivalência (test-shopify-app-1310) ficam vermelhos.
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+// reancorado KINEO-LEVA6-1310 — com a cena e os atores IA juntos no núcleo do /plan, o desfazer em memória tira AS DUAS levas de
+// linhas marcadas (semCena + desfazAtoresIa: a chamada do ator volta à de antes e as 2 linhas KINEO-ATORES-IA-2026-10-13 saem).
+// desfazAtoresIa é idempotente (sem a chamada nova, devolve o texto igual): quem ainda a aplica por fora segue igual.
+import { desfazAtoresIa } from './desfaz-atores-ia-1310.mjs'
 
 const linhas = (s) => s.replace(/\r\n/g, '\n').split('\n')
 const achar = (arr, pred, desc) => {
@@ -22,10 +26,16 @@ const achar = (arr, pred, desc) => {
   return i
 }
 
+// KINEO-ADS-CENA-2026-10-13 — a cena do anúncio de produto entrou no núcleo do /plan (e no /orders e /research) SÓ como
+// linhas inteiras novas, cada uma com a marca: semCena tira EXATAMENTE essas linhas e o texto de antes volta byte a byte (o
+// /start não tem nenhuma). scripts/test-ads-cena-1310.mjs confere que as linhas marcadas são só as esperadas.
+export const MARCA_CENA = 'KINEO-ADS-CENA-2026-10-13'
+export const semCena = (s) => String(s).replace(/\r\n/g, '\n').split('\n').filter((l) => !l.includes(MARCA_CENA)).join('\n')
+
 /** O texto da rota de ANTES (LF), remontado de route.ts + núcleo. kind = 'plan' | 'start'. Lança se faltar uma costura. */
 export function desfazExtracao(kind, routeText, coreText) {
-  const R = linhas(routeText)
-  const C = linhas(coreText)
+  const R = linhas(semCena(routeText))
+  const C = linhas(desfazAtoresIa(semCena(coreText))) // reancorado KINEO-LEVA6-1310 — as duas levas marcadas
   const marca = achar(R, (l) => l.startsWith('// KINEO-SHOPIFY-2026-10-13 (etapa 2) — o corpo foi EXTRAÍDO'), 'marca da rota')
   if (R[marca - 1] !== '//') throw new Error('desfazExtracao: linha // antes da marca')
   const header = R.slice(0, marca - 1)

@@ -24,6 +24,7 @@ import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { desfazExtracao, textoOriginalV2 } from './test-support/shopify-extracao-v2-1310.mjs' // KINEO-SHOPIFY-2026-10-13 (etapa 2)
 import { desfazAtoresIa } from './test-support/desfaz-atores-ia-1310.mjs' // KINEO-ATORES-IA-2026-10-13
+import { semCena } from './test-support/shopify-extracao-v2-1310.mjs' // KINEO-ADS-CENA-2026-10-13
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -35,7 +36,9 @@ const NUCLEO_V2 = { 'app/api/ads/v2/plan/route.ts': 'lib/ads/v2PlanCore.ts', 'ap
 const read = (rel) => (NUCLEO_V2[rel] ? `${readCru(rel)}\n${readCru(NUCLEO_V2[rel])}` : readCru(rel))
 // KINEO-ATORES-IA-2026-10-13 — re-ancorado: no /plan, desfazAtoresIa tira SÓ o id do apresentador na chamada do ator e as 2 linhas
 // marcadas da biblioteca de apresentadores (evento e presenter_id na resposta); a impressão digital da base segue igual.
-const leBaseV2 = (rel) => (rel === 'app/api/ads/v2/plan/route.ts' ? desfazAtoresIa(textoOriginalV2('plan', ROOT)) : rel === 'app/api/ads/v2/start/route.ts' ? textoOriginalV2('start', ROOT) : readCru(rel))
+// KINEO-ADS-CENA-2026-10-13 — re-ancorado: a cena entrou no /orders e no /research só por linhas inteiras marcadas; semCena as tira.
+// reancorado KINEO-LEVA6-1310 — as duas pistas juntas: /plan sem os atores IA, demais arquivos sem a cena.
+const leBaseV2 = (rel) => (rel === 'app/api/ads/v2/plan/route.ts' ? desfazAtoresIa(textoOriginalV2('plan', ROOT)) : rel === 'app/api/ads/v2/start/route.ts' ? textoOriginalV2('start', ROOT) : semCena(readCru(rel)))
 let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }

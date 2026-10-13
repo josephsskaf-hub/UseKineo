@@ -107,8 +107,11 @@ const importsClient = [...rd(F.client).matchAll(/^import[\s\S]*?from '([^']+)'/g
 // type — provado em scripts/test-atores-ia-1310.mjs). Nenhum módulo de servidor entrou no cliente.
 // KINEO-ADS-LOTE-1310 — re-ancorado: + './AdsV2Batch' (a tela do modo lote, 'use client'; ela mesma só importa libs de navegador/
 // puras — lib/ads/v2BatchRules.ts sem import nenhum — provado em scripts/test-ads-lote-1310.mjs). Nenhum módulo de servidor entrou.
-// reancorado KINEO-LEVA6-1310 — união das duas listas (apresentadores + lote).
-const PERMITIDOS = ['./AdsV2Batch', '@/components/ads/AdsPresenterPicker', '@/lib/ads/v2PresenterLibrary', '@/lib/ads/v2AiLabel', '@/lib/ads/afterSample', '@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', '@/components/ProductStage', './AdsV2Variations','@/components/AdsPlanChanges', 'react', 'next/link', '@/components/studioKit', '../new/adsWizardTheme', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2ShotLists', '@/lib/ads/v2Screen',
+// KINEO-ADS-CENA-2026-10-13 — re-ancorado: + '@/lib/ads/v2Scene' (lib PURA da cena: limpeza, régua, presets, 16 línguas; só importa
+// libs puras — provado em scripts/test-ads-cena-1310.mjs) e './AdsV2SceneField' (componente de navegador do campo da cena no
+// modo completo). Nenhum módulo de servidor entrou no cliente.
+// reancorado KINEO-LEVA6-1310 — união das três listas (apresentadores + lote + cena).
+const PERMITIDOS = ['@/lib/ads/v2Scene', './AdsV2SceneField', './AdsV2Batch', '@/components/ads/AdsPresenterPicker', '@/lib/ads/v2PresenterLibrary', '@/lib/ads/v2AiLabel', '@/lib/ads/afterSample', '@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', '@/components/ProductStage', './AdsV2Variations','@/components/AdsPlanChanges', 'react', 'next/link', '@/components/studioKit', '../new/adsWizardTheme', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2ShotLists', '@/lib/ads/v2Screen',
   '@/components/BusinessVisualReferences', '@/components/InterfaceLanguage', './AdsV2Simple', '@/lib/ads/v2Simple', '@/lib/ui/interfaceLanguage']
 check("I1 o cliente começa com 'use client' e só importa módulos de navegador/puros (nada de v2Advance, v2Billing, serverAccess…)", /^'use client'/.test(rd(F.client)) && importsClient.length >= 8 && importsClient.every((m) => PERMITIDOS.includes(m)))
 check('I2 lib/ads/v2Screen.ts é puro (nenhum import/require) e fora da trava 8.2', !/^\s*import\s/m.test(screenSrc) && !/\brequire\(/.test(semComentarios(screenSrc)))

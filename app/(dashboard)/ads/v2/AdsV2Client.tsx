@@ -64,6 +64,8 @@ import { ADS_UPLOAD_ACCEPT_LOGO, AdsUploadError, uploadFootage } from '@/lib/ads
 import { drawEndCard, loadLogoImage, toPngFile } from '@/lib/ads/endCard'
 import { ADS_V2_TIER_IDS, ADS_V2_TIERS, adsV2Credits, type AdsV2Tier } from '@/lib/ads/v2Tiers'
 import { ADS_V2_MAX_PHOTOS, ADS_V2_MIN_PHOTOS, ADS_V2_PLAN_MAX_VIDEOS, ADS_V2_SECTOR_SPECS } from '@/lib/ads/v2ShotLists'
+import { adsV2SceneAllowed, adsV2SceneCopy, adsV2SceneErrorText, sanitizeAdsV2Scene } from '@/lib/ads/v2Scene' // KINEO-ADS-CENA-2026-10-13
+import { AdsV2SceneField } from './AdsV2SceneField' // KINEO-ADS-CENA-2026-10-13
 import {
   ADS_V2_AD_SHAPE,
   ADS_V2_CROP,
@@ -720,6 +722,7 @@ function AdsV2Session({
   const [three, setThree] = useState(false)
   const [business, setBusiness] = useState('')
   const [sentence, setSentence] = useState('')
+  const [scene, setScene] = useState('') // KINEO-ADS-CENA-2026-10-13 — "Where does your product appear?" (opcional; loja/outro, Comercial/Premium)
   const [link, setLink] = useState('')
   const [sector, setSector] = useState<AdsV2ScreenSector | null>(null)
   const [logo, setLogo] = useState<LogoItem | null>(null)
@@ -1225,11 +1228,14 @@ function AdsV2Session({
     const key = draftKey(narrationOn)
     if (draft && draft.key === key) return draft.id
     setBusyNote('Saving your ad…')
+    const sceneSent = (sector === 'store' || sector === 'other') && tier !== null && adsV2SceneAllowed(tier) ? sanitizeAdsV2Scene(scene) : '' // KINEO-ADS-CENA-2026-10-13
+    const cenaBody = sceneSent ? { scene: sceneSent, ...(sector === 'store' ? { kind: 'product' } : {}) } : {} // KINEO-ADS-CENA-2026-10-13
     const r = await api<{ order_id: string }>('/api/ads/v2/orders', {
       method: 'POST',
-      body: { tier, seconds: ADS_V2_SCREEN_SECONDS, sector, sentence: composed && composed !== 'too_long' ? composed : null, link: linkNorm || null, narration: narrationOn },
+      body: { tier, seconds: ADS_V2_SCREEN_SECONDS, sector, sentence: composed && composed !== 'too_long' ? composed : null, link: linkNorm || null, /* KINEO-ADS-CENA-2026-10-13 */ ...cenaBody, narration: narrationOn },
     })
     if (!aliveRef.current) return null
+    if (!r.ok && adsV2SceneErrorText(r.code, 'en')) { setPlanError(adsV2SceneErrorText(r.code, 'en')); return null } // KINEO-ADS-CENA-2026-10-13
     if (!r.ok) {
       if (r.code === 'not_ready') setNotReady(true)
       setPlanError(failText(r))
@@ -1591,6 +1597,7 @@ function AdsV2Session({
                   {ADS_V2_SECTOR_OPTIONS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
                 </select>
               </label>
+              {sector === 'store' || sector === 'other' ? <AdsV2SceneField value={scene} onChange={(v) => { setScene(v); setDraft(null); setPlan(null) }} enabled={tier === null || adsV2SceneAllowed(tier)} disabled={locked} copy={adsV2SceneCopy('en')} lang="en" /> : null}{/* KINEO-ADS-CENA-2026-10-13 — a cena no modo completo (loja/outro) */}
             </section>
 
             {/* 3. Logo e fotos */}
