@@ -48,6 +48,12 @@ export function readShopifyCreds(env: Env = process.env): ShopifyCreds | null {
   const apiKey = (env.SHOPIFY_API_KEY ?? '').trim()
   const apiSecret = (env.SHOPIFY_API_SECRET ?? '').trim()
   if (!apiKey || !apiSecret) return null
+  // KINEO-SHOPIFY-CHAVE-1310 — o Client ID vai PÚBLICO na página do app (meta shopify-api-key). Em 13/10 a chave secreta
+  // (prefixo shpss_) foi colada no lugar dele e saiu na página: com segredo no campo do Client ID, o app recusa subir
+  // (503 not_configured) em vez de publicar o segredo. Módulo puro: sem console aqui.
+  if (/^shp[a-z]{2}_/i.test(apiKey) || apiKey === apiSecret) {
+    return null
+  }
   const scopes = (env.SHOPIFY_SCOPES ?? '').trim() || SHOPIFY_DEFAULT_SCOPES
   return { apiKey, apiSecret, scopes }
 }
