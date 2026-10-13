@@ -14,7 +14,8 @@ import type { AdsBrief } from '@/lib/ads/types'
 import { ADS_V2_OVERLAY_MAX_CHARS, ADS_V2_SECTORS, isAdsV2Sector, type AdsV2Sector } from '@/lib/ads/v2ShotLists'
 import { lowerMidSentence, missingNames, simpleCommonNoun, simpleNames, simpleProductAd } from '@/lib/ads/v2Simple'
 // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — a narração e as frases só afirmam o que veio do cliente (regra no pedido + régua + conserto).
-import { ADS_V2_HONESTY_RULE, adsV2PlaceRule, honestyIssues, isDemonym, repairHonesty, type AdsV2HonestySource } from '@/lib/ads/v2Honesty'
+// KINEO-ATOR-FTC-2026-10-13 — repairTestimonial: com o ator, a narração consertada em código deixa de ser depoimento de cliente.
+import { ADS_V2_HONESTY_RULE, adsV2PlaceRule, honestyIssues, isDemonym, repairHonesty, repairTestimonial, type AdsV2HonestySource } from '@/lib/ads/v2Honesty'
 
 export const ADS_V2_BRIEF_MODEL = 'gpt-4o-mini'
 /** Teto de planos (chamadas ao GPT) por pessoa em 24 h, contado pelo evento ads_v2_plan_served ANTES do modelo. */
@@ -54,7 +55,8 @@ export const ADS_V2_CUSTOMER_NAMES_KEY = 'customer_names'
  * de loja ("At LUME, we offer a captivating selection of eau de parfum that elevates your fragrance experience…") — o modo
  * simples não sabia que era um PRODUTO e o pedido de texto não sabia que uma PESSOA ia falar para a câmera.
  *   · product: anúncio de produto físico (lib/ads/v2Simple.ts simpleProductAd) — a voz fala DO PRODUTO, nunca "de loja";
- *   · presenter: o ator de IA (lib/ads/v2Presenter.ts) fala a narração segurando o produto — 1ª pessoa, tom de criador (UGC).
+ *   · presenter: o ator de IA (lib/ads/v2Presenter.ts) fala a narração segurando o produto — APRESENTADOR, terceira pessoa /
+ *     voz de marca, nunca depoimento de cliente (KINEO-ATOR-FTC-2026-10-13; antes era 1ª pessoa de criador, UGC).
  * Ausente = o pedido de texto e a régua de sempre, byte a byte (guardiões Z3 do modo simples/completo).
  */
 export interface AdsV2AdVoice {
@@ -63,8 +65,11 @@ export interface AdsV2AdVoice {
 }
 export const ADS_V2_PRODUCT_NARRATION_RULE =
   'narration: this is a PRODUCT ad. Talk about the product itself, not about a shop: what it is, its main benefit, one sensory detail (how it looks, feels, smells or tastes — only what the brief says or what is plain from the product), and a short call to action. Speak directly to the viewer. Never sound like a store: never "At <brand>, we offer", "a selection of", "our store", "our collection" or "visit us".'
+// KINEO-ATOR-FTC-2026-10-13 — era "FIRST PERSON… like a creator's video (UGC)… 'Okay, I have to tell you about…'": a pessoa
+// de IA falava como CLIENTE que usou o produto (depoimento falso / endosso enganoso para a FTC). Agora é APRESENTADOR, em
+// terceira pessoa / voz de marca; a régua em código (lib/ads/v2Honesty.ts testimonialMarks/repairTestimonial) confere.
 export const ADS_V2_PRESENTER_NARRATION_RULE =
-  'narration: a real person says it on camera while holding the product, like a creator\'s video (UGC). Write it in the FIRST PERSON, as that person talking naturally to the camera: short, casual sentences, in the spirit of "Okay, I have to tell you about…" (written in the ad\'s language). Not an announcer, never "we offer". Keep within the word count above.'
+  'narration: an AI presenter says it on camera while holding the product. The presenter is NOT a customer and never used the product: write it as a presenter or in the brand\'s voice — third person, or speaking to the viewer — in the spirit of "Meet <name>…", "This is <name> — …" or "Here\'s why…" (written in the ad\'s language). Never a testimonial: no "I bought", "I use", "I\'ve been using", "I tried", "I love it", "I recommend", "my skin", "changed my life", no personal result and no before/after. Short, natural sentences; never "we offer". Keep within the word count above.'
 export const ADS_V2_SHOP_TALK_WHY = 'narration: this is a product ad — talk about the product itself (what it is, the benefit, how it feels), not like a shop ("we offer", "a selection of", "our store", "visit us").'
 /** Fala de LOJA num anúncio de produto (en/pt/es): "At LUME, we offer…", "a selection of", "our store", "visit us". */
 export const ADS_V2_AT_BRAND_WE = /(?<![\p{L}\p{N}])[Aa]t \p{Lu}[\p{L}\p{N}&'’.-]*(?: \p{Lu}[\p{L}\p{N}&'’.-]*)*,? [Ww]e(?![\p{L}\p{N}])/u
@@ -281,6 +286,11 @@ export function repairCopyRaw(raw: string, honesty: AdsV2HonestySource): { raw: 
   if (typeof p.narration === 'string') {
     const r = repairHonesty(p.narration, honesty)
     if (r.fixes.length) { out.narration = r.text; fixes.push(...r.fixes) }
+    // KINEO-ATOR-FTC-2026-10-13 — com o ator: gancho de criador vira apresentação; a frase de cliente (uso/compra/gosto/resultado) sai.
+    if (honesty.presenter) {
+      const t = repairTestimonial(String(out.narration ?? ''), honesty.brand)
+      if (t.fixes.length) { out.narration = t.text; fixes.push(...t.fixes) }
+    }
   }
   if (Array.isArray(p.overlays)) {
     out.overlays = p.overlays
@@ -361,7 +371,8 @@ export async function extractAdsV2Brief(args: {
   const ad: AdsV2AdVoice | null = productAd || args.presenter === true ? { product: productAd, presenter: args.presenter === true } : null
   // A fonte da régua de honestidade: tudo o que o cliente deu (frase, preço, contato, página do produto, fatos marcados) e só
   // o que ele DIGITOU (alegação de saúde só vale dali — nunca copiada da página).
-  const honesty: AdsV2HonestySource = { source: [args.text, ...(args.facts ?? [])].join('\n'), typed: args.typed ?? args.sentence ?? args.text, product: productAd, places }
+  // KINEO-ATOR-FTC-2026-10-13 — com o ator, a régua também recusa (e conserta) depoimento de cliente na narração.
+  const honesty: AdsV2HonestySource = { source: [args.text, ...(args.facts ?? [])].join('\n'), typed: args.typed ?? args.sentence ?? args.text, product: productAd, places, ...(args.presenter === true ? { presenter: true, brand: brandName(parsed.brief) } : {}) }
   const opts: typeof base1 & { ad?: AdsV2AdVoice; honesty: AdsV2HonestySource } = ad ? { ...base1, ad, honesty } : { ...base1, honesty }
   const copyMsgs = buildV2CopyMessages(brief, args.languageName, opts)
   const base = [{ role: 'system' as const, content: copyMsgs.system }, { role: 'user' as const, content: copyMsgs.user }]
@@ -402,7 +413,10 @@ export async function extractAdsV2Brief(args: {
   if (!checked.ok) {
     const fixed = repairCopyRaw(raw, honesty)
     if (fixed) {
-      const again = checkV2Copy(fixed.raw, brief, { ...relaxedOpts, minWords: Math.max(5, Math.ceil(args.maxWords * 0.25)) })
+      let again = checkV2Copy(fixed.raw, brief, { ...relaxedOpts, minWords: Math.max(5, Math.ceil(args.maxWords * 0.25)) })
+      // KINEO-ATOR-FTC-2026-10-13 — o depoimento tirado da boca do ator nunca derruba o plano: a fala curta que sobrou (no limite,
+      // só a marca) passa se estiver limpa em todo o resto (número, contato, fama, honestidade).
+      if (!again.ok && fixed.fixes.some((f) => f.startsWith('testimonial'))) again = checkV2Copy(fixed.raw, brief, { ...relaxedOpts, minWords: 1 })
       if (again.ok) {
         namesMissing = voice ? missingNames(again.copy.narration ?? '', voice.names) : []
         honestyFixes = fixed.fixes

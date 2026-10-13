@@ -16,6 +16,8 @@ import { downloadVideoFile } from '@/lib/videoDownload'
 import { isActiveOrderStatus } from '@/lib/ads/v2Screen'
 import { ADS_V2_VARIATIONS_COPY, adsV2VariationCredits, variationLabel, type AdsV2VariationSlot, type AdsV2VariationsCopy } from '@/lib/ads/v2Variations'
 import { pickInterfaceCopy, type InterfaceLanguage } from '@/lib/ui/interfaceLanguage'
+// KINEO-ATOR-FTC-2026-10-13 — aviso de rótulo de IA na entrega (16 línguas, lib pura; não é marca d'água).
+import { adsV2AiLabelNotice } from '@/lib/ads/v2AiLabel'
 
 const POLL_MS = 8000
 const POLL_RETRY_MS = 20_000
@@ -292,6 +294,7 @@ export function VariationsBoard({
       </div>
       {group.refunded > 0 ? <p className="adsw-hint" role="status">{fillV(copy.refunded, { c: group.refunded })}</p> : null}
       {note ? <p className="adsw-warn" role="status">{note}</p> : null}
+      {group.members.some((m) => (status[m.order_id]?.status ?? m.status) === 'delivered') ? <p className="adv2-note" role="note">{adsV2AiLabelNotice(lang)}</p> : null}
       <div className="adv2-actions">
         <button type="button" className="adsw-btn ghost" onClick={onAnother}>{copy.back}</button>
       </div>

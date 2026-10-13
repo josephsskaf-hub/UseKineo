@@ -9,7 +9,7 @@
 //       Medido no MP4 entregue: o "1 s preto" era o 16º quadrado da grade 2×8 (15 quadros a 1/s), não o vídeo;
 //   (3) PRODUTO É PRODUTO: frase com nome de produto (perfume/sérum/tênis, en/pt/es) = setor 'store', foto 'product' e
 //       anúncio de PRODUTO; os exemplos de LUGAR (o placeholder nas 3 línguas + mais 2) seguem lugar; o pedido de texto ganha
-//       a regra de produto (sem "At X, we offer a selection") e, com ator, a fala em 1ª pessoa de criador (UGC); sem
+//       a regra de produto (sem "At X, we offer a selection") e, com ator, a fala de APRESENTADOR (KINEO-ATOR-FTC-2026-10-13: era 1ª pessoa de criador/UGC — depoimento falso para a FTC; reancorado); sem
 //       produto/ator o pedido é byte a byte o da base; a régua recusa a fala de loja do canário, pede 1 correção e nunca dá
 //       502 pelo tom; a rota manda productPhoto/presenter à extração;
 //   (4) mutantes: cada regra quebrada fica vermelha, e cada mutante prova que aplicou.
@@ -174,16 +174,17 @@ await check('3c serviço/loja seguem o que eram: pizzaria = restaurant, "Clínic
 const LUME = 'LUME eau de parfum, a light floral scent that lasts all day'
 const BRIEF_LUME = { business: 'LUME — eau de parfum', offer: '', cta: 'buy', contact: '', language: 'en', tone: 'warm', audience: '', extra: { description: 'a light floral scent that lasts all day' } }
 const CANARIO = 'At LUME, we offer a captivating selection of eau de parfum that elevates your fragrance experience. Discover your signature scent with us today.'
-const UGC = 'Okay, I have to tell you about LUME eau de parfum. It is a light floral scent, and it lasts all day. Honestly, just try it.'
+// KINEO-ATOR-FTC-2026-10-13 — a fala corrigida com ator é de APRESENTADOR (era "Okay, I have to tell you about LUME…", 1ª pessoa de cliente).
+const UGC = 'Meet LUME eau de parfum. It is a light floral scent, and it lasts all day. Go on, just try it.'
 const MAXW = SL.adsV2NarrationMaxWords(15)
 const OVS = ['LUME eau de parfum', 'Light floral, all day']
 const voz = (Bm) => Bm.simpleVoiceFor(BRIEF_LUME, LUME, 'en')
 const msgs = (Bm, ad, extra = {}) => Bm.buildV2CopyMessages(BRIEF_LUME, 'English', { maxWords: MAXW, narration: true, simple: voz(Bm), ...extra, ...(ad ? { ad } : {}) }).system
-await check('3d pedido de texto: produto ganha a regra de PRODUTO (fala do produto, benefício, detalhe sensorial, chamada; nunca "At <brand>, we offer"/"a selection of"); ator ganha a fala em 1ª PESSOA de criador (UGC)', () => {
+await check('3d pedido de texto: produto ganha a regra de PRODUTO (fala do produto, benefício, detalhe sensorial, chamada; nunca "At <brand>, we offer"/"a selection of"); ator ganha a fala de APRESENTADOR (terceira pessoa / voz de marca, nunca depoimento — KINEO-ATOR-FTC-2026-10-13)', () => {
   const a = msgs(BR, { product: true, presenter: true })
   return a.includes(BR.ADS_V2_PRODUCT_NARRATION_RULE) && a.includes(BR.ADS_V2_PRESENTER_NARRATION_RULE) &&
     /PRODUCT ad/.test(BR.ADS_V2_PRODUCT_NARRATION_RULE) && /never "At <brand>, we offer", "a selection of"/.test(BR.ADS_V2_PRODUCT_NARRATION_RULE) && /sensory detail/.test(BR.ADS_V2_PRODUCT_NARRATION_RULE) && /call to action/.test(BR.ADS_V2_PRODUCT_NARRATION_RULE) &&
-    /FIRST PERSON/.test(BR.ADS_V2_PRESENTER_NARRATION_RULE) && /Okay, I have to tell you about/.test(BR.ADS_V2_PRESENTER_NARRATION_RULE) && /UGC/.test(BR.ADS_V2_PRESENTER_NARRATION_RULE) && /short, casual sentences/.test(BR.ADS_V2_PRESENTER_NARRATION_RULE) && /word count/.test(BR.ADS_V2_PRESENTER_NARRATION_RULE) &&
+    /AI presenter/.test(BR.ADS_V2_PRESENTER_NARRATION_RULE) && /NOT a customer/.test(BR.ADS_V2_PRESENTER_NARRATION_RULE) && /Meet <name>/.test(BR.ADS_V2_PRESENTER_NARRATION_RULE) && !/FIRST PERSON|UGC|Okay, I have to tell you about/.test(BR.ADS_V2_PRESENTER_NARRATION_RULE) && /Short, natural sentences/.test(BR.ADS_V2_PRESENTER_NARRATION_RULE) && /word count/.test(BR.ADS_V2_PRESENTER_NARRATION_RULE) &&
     ordem(a, 'narration: one to three short spoken sentences', BR.ADS_V2_PRODUCT_NARRATION_RULE, BR.ADS_V2_PRESENTER_NARRATION_RULE, 'sector: one of') &&
     !msgs(BR, { product: true, presenter: false }).includes(BR.ADS_V2_PRESENTER_NARRATION_RULE) && !msgs(BR, { product: false, presenter: true }).includes(BR.ADS_V2_PRODUCT_NARRATION_RULE) &&
     !msgs(BR, { product: true, presenter: true }, { narration: false }).includes('PRODUCT ad')
@@ -200,7 +201,7 @@ await check('3e sem produto e sem ator, o pedido de texto é byte a byte o da ba
   return casos.every(([b, l, o]) => JSON.stringify(BR.buildV2CopyMessages(b, l, o)) === JSON.stringify(BRB.buildV2CopyMessages(b, l, o)))
 })
 const regua = (Bm, narration, ad) => Bm.checkV2Copy(JSON.stringify({ narration, overlays: OVS, sector: 'store' }), BRIEF_LUME, { maxWords: MAXW, narration: true, simple: voz(Bm), ...(ad ? { ad } : {}) })
-await check('3f régua: num anúncio de PRODUTO a fala de loja do canário ("At LUME, we offer a captivating selection…") é RECUSADA com o motivo; a fala UGC passa; sem produto, a régua de sempre', () => {
+await check('3f régua: num anúncio de PRODUTO a fala de loja do canário ("At LUME, we offer a captivating selection…") é RECUSADA com o motivo; a fala de apresentador passa; sem produto, a régua de sempre', () => {
   const ruim = regua(BR, CANARIO, { product: true, presenter: true })
   const boa = regua(BR, UGC, { product: true, presenter: true })
   return !ruim.ok && ruim.why.includes(BR.ADS_V2_SHOP_TALK_WHY) && boa.ok && boa.copy.narration === UGC && regua(BR, CANARIO, null).ok && regua(BR, CANARIO, { product: false, presenter: true }).ok &&
@@ -224,14 +225,14 @@ const canarioCorrigido = async (over) => {
   return a.r.ok && a.r.attempts === 3 && a.r.copy.narration === UGC && JSON.stringify(a.r.ad) === '{"product":true,"presenter":true}' &&
     sys.includes(BR.ADS_V2_PRODUCT_NARRATION_RULE) && sys.includes(BR.ADS_V2_PRESENTER_NARRATION_RULE) && correcao.includes(BR.ADS_V2_SHOP_TALK_WHY)
 }
-await check('3g extração EXECUTADA com o caso do canário: o pedido leva as regras de produto e de ator; a fala de loja volta com o motivo; a corrigida (1ª pessoa) é a gravada', () => canarioCorrigido())
+await check('3g extração EXECUTADA com o caso do canário: o pedido leva as regras de produto e de ator; a fala de loja volta com o motivo; a corrigida (voz de apresentador) é a gravada', () => canarioCorrigido())
 const tomNaoDa502 = async (over) => {
   const a = await extrai([copia(CANARIO), copia(CANARIO)], { productPhoto: true, presenter: true }, over)
   return a.r.ok && a.r.attempts === 3 && a.r.copy.narration === CANARIO
 }
 await check('3h o tom é acabamento: se a 2ª resposta AINDA fala como loja (e passa em todo o resto), o anúncio sai — nunca um 502 pelo tom', () => tomNaoDa502())
 await check('3i a honestidade continua dura no anúncio de produto: 2ª resposta com número inventado = recusa (stage copy)', async () => {
-  const a = await extrai([copia(CANARIO), copia(UGC.replace('Honestly, just try it.', 'Rated 5 stars by 300 people.'))], { productPhoto: true, presenter: true })
+  const a = await extrai([copia(CANARIO), copia(UGC.replace('Go on, just try it.', 'Rated 5 stars by 300 people.'))], { productPhoto: true, presenter: true })
   return !a.r.ok && a.r.stage === 'copy' && a.r.why.some((w) => /300/.test(w))
 })
 const lugarSemProduto = async (over) => {
@@ -245,14 +246,14 @@ const lugarSemProduto = async (over) => {
   return r1.ok && r2.ok && !('ad' in r1) && !('ad' in r2) && JSON.stringify(com.log[1].messages) === JSON.stringify(sem.log[1].messages) && !com.log[1].messages[0].content.includes('PRODUCT ad')
 }
 await check('3j LUGAR na extração: o placeholder pt com foto de produto NÃO vira produto — pedido idêntico ao sem foto de produto, sem regra de produto', () => lugarSemProduto())
-await check('3k modo completo (sem frase) com ator: só a regra do ator (1ª pessoa), nunca a de produto; sem ator nem produto, nenhum `ad`', async () => {
+await check('3k modo completo (sem frase) com ator: só a regra do ator (apresentador), nunca a de produto; sem ator nem produto, nenhum `ad`', async () => {
   const oa = openaiFalsa([BRIEF_RAW, copia(UGC)])
   const r = await world({}, oa)(F.brief).extractAdsV2Brief({ text: LUME, language: 'en', languageName: 'English', maxWords: MAXW, narration: true, presenter: true })
   const oa2 = openaiFalsa([BRIEF_RAW, copia(UGC)])
   const r2 = await world({}, oa2)(F.brief).extractAdsV2Brief({ text: LUME, language: 'en', languageName: 'English', maxWords: MAXW, narration: true })
   const sys = oa.log[1].messages[0].content
   return r.ok && JSON.stringify(r.ad) === '{"product":false,"presenter":true}' && sys.includes(BR.ADS_V2_PRESENTER_NARRATION_RULE) && !sys.includes(BR.ADS_V2_PRODUCT_NARRATION_RULE) &&
-    r2.ok && !('ad' in r2) && !oa2.log[1].messages[0].content.includes('FIRST PERSON')
+    r2.ok && !('ad' in r2) && !oa2.log[1].messages[0].content.includes(BR.ADS_V2_PRESENTER_NARRATION_RULE)
 })
 const rotaCerta = (src) => {
   const s = code(src)
@@ -300,7 +301,7 @@ await mutante('regra de produto ANTES do imóvel ("Loja de tênis à venda" vira
 await mutante('loja de perfumes contada como produto (sem a trava da palavra de loja)', F.simple, ' && !SHOP_WORDS.test(t)\n', '\n',
   (over) => !Sw(over).isProductSentence('Loja de perfumes importados no centro'))
 const Bw = (over) => world(over)(F.brief)
-await mutante('pedido de texto sem a regra do ator (1ª pessoa)', F.brief, '    ...(opts.ad?.presenter && opts.narration ? [ADS_V2_PRESENTER_NARRATION_RULE] : []),\n', '',
+await mutante('pedido de texto sem a regra do ator (apresentador)', F.brief, '    ...(opts.ad?.presenter && opts.narration ? [ADS_V2_PRESENTER_NARRATION_RULE] : []),\n', '',
   (over) => msgs(Bw(over), { product: true, presenter: true }).includes(BR.ADS_V2_PRESENTER_NARRATION_RULE))
 await mutante('pedido de texto sem a regra de produto', F.brief, '    ...(opts.ad?.product && opts.narration ? [ADS_V2_PRODUCT_NARRATION_RULE] : []),\n', '',
   (over) => msgs(Bw(over), { product: true, presenter: false }).includes(BR.ADS_V2_PRODUCT_NARRATION_RULE))

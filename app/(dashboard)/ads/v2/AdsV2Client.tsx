@@ -51,6 +51,8 @@ import { ADS_V2_STYLE_COPY, ADS_V2_STYLES_PUBLIC, adsV2SuggestedStyle, type AdsV
 import { AdsPresenterToggle, AdsStylePicker } from '@/components/ads/AdsStyles'
 // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator de IA ("Person talking about it"): interruptor e frases (lib pura; o completo é em inglês).
 import { ADS_V2_PRESENTER_COPY, ADS_V2_PRESENTER_PUBLIC } from '@/lib/ads/v2Presenter'
+// KINEO-ATOR-FTC-2026-10-13 — aviso de rótulo de IA na entrega (16 línguas, lib pura; não é marca d'água).
+import { adsV2AiLabelNotice } from '@/lib/ads/v2AiLabel'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { ADS_WIZARD_THEME_CSS } from '../new/adsWizardTheme'
 import { downloadVideoFile } from '@/lib/videoDownload'
@@ -1725,7 +1727,7 @@ function AdsV2Session({
               <Link className="adsw-link" href="/history">Open in My Videos</Link>
             </div>
             {downloadNote ? <p className="adsw-warn" role="status">{downloadNote}</p> : null}
-            <p className="adv2-note">Turn on the AI-generated label when you post on TikTok. Parts of this ad were made with AI from your photos.</p>
+            <p className="adv2-note" role="note">{adsV2AiLabelNotice('en')}</p>
             {/* KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a amostra acabou de ser entregue: a oferta do Business logo abaixo. */}
             {scopy && businessOffer ? <AdsAfterSampleOffer lang="en" business={businessOffer} compact /> : null}
 
