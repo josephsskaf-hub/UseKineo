@@ -26,6 +26,7 @@ import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { TROCADAS_MONUMENTO } from './test-support/desfaz-monumento-1310.mjs' // KINEO-MONUMENTO-2026-10-13
 import { desfazCobertura15s } from './test-support/desfaz-cobertura-15s.mjs' // reancorado 30/09 (KINEO-COBERTURA-15S): a régua de 15 s é desfeita em memória antes do byte a byte
 // ═══ Reancorado KINEO-DURACOES-CURTAS-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] ═══
 // A entrega das durações curtas (15 s em todo motor de IA, 30 s na estrada hollywood) marca TODA linha que acrescenta à rota do
@@ -69,7 +70,13 @@ const MARCA_SAIDA_REGIAO = 'KINEO-SAIDA-REGIAO-2026-10-07'
 // acrescenta à rota do cinematic com KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 e não troca nenhuma linha da base deste guardião (a única linha
 // trocada, a do s25AccessFor, nasceu no KINEO-S25-ABRE-2026-10-06 e segue com as duas marcas). Prova: scripts/test-parceiro-abre-tudo-2026-10-09.mjs.
 const MARCA_PARCEIRO = 'KINEO-PARCEIRO-ABRE-TUDO-2026-10-09'
-const semCurtas = (t) => (t == null ? t : t.split('\n').filter((l) => !l.includes(MARCA_CURTAS) && !l.includes(MARCA_ESTRELA) && !l.includes(MARCA_S25) && !l.includes(MARCA_JUIZ) && !l.includes(MARCA_SAIDA_REGIAO)).join('\n'))
+// ═══ Reancorado KINEO-MONUMENTO-2026-10-13 (o fundador autorizou o conserto do monumento no pipeline, 13/10) ═══
+// A leva marca TODA linha que acrescenta à rota do cinematic com KINEO-MONUMENTO-2026-10-13 e troca de propósito CINCO linhas da base (o
+// contexto dos filtros anti-invenção vira comVocabularioDoLugar(...)). Este guardião aceita exatamente isso: as linhas marcadas saem do lado
+// da rota, as cinco linhas exatas da base saem do lado da base. Prova: scripts/test-monumento-real-1310.mjs.
+const MARCA_MONUMENTO = 'KINEO-MONUMENTO-2026-10-13'
+TROCADAS_CURTAS.push(...TROCADAS_MONUMENTO)
+const semCurtas = (t) => (t == null ? t : t.split('\n').filter((l) => !l.includes(MARCA_CURTAS) && !l.includes(MARCA_ESTRELA) && !l.includes(MARCA_S25) && !l.includes(MARCA_JUIZ) && !l.includes(MARCA_SAIDA_REGIAO) && !l.includes(MARCA_MONUMENTO) /* reancorado KINEO-MONUMENTO-2026-10-13 */).join('\n'))
 const semTrocadas = (t) => (t == null ? t : t.split('\n').filter((l) => !TROCADAS_CURTAS.includes(l.replace(/\r$/, ''))).join('\n'))
 
 
@@ -359,7 +366,7 @@ if (rotaBase) {
     fatia(rota, '    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29 — no filme de 15 s do', '      if (vozCurta) return vozCurta\n'), fatia(rota, '    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29 — só no filme de 15 s do', 'response.narration_voice = campoDaVozAssinada(vozCurta)\n'), rota.split('\n').find((l) => l.startsWith('import {') && l.includes("from '@/lib/vozDoFilmeCurto'")),
     // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29 — o ritmo da língua do filme de 15 s do Seedance (a régua do portão e a guarda de roteiro longo da língua) mora em linhas próprias, marcadas, só ACRESCENTADAS, com import em linha própria; este guardião as aceita
     fatia(rota, '    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29 — no filme de 15 s do', 'narrationRate.wordsPerSecond = ritmoDaVozNoIdioma(narrationRate.wordsPerSecond, narrationLanguage.language)\n'), fatia(rota, '    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29 — a guarda de roteiro longo', '    // ═══ KINEO-SEEDANCE-15S-2026-09-29 [TRAVA 8.2 — "vai" do 15 s] — roteiro longo pedido como filme curto ═══'), rota.split('\n').find((l) => l.startsWith('import {') && l.includes("from '@/lib/durationByEngine'") && l.includes('KINEO-RITMO-POR-IDIOMA-15S-2026-09-29')), ...blocosE4Rota(rota)].filter(Boolean).join('\n').split('\n')
-  const foraDoLugar = adicionadas.filter((l) => l.trim() && !permitidas.includes(l) && !l.includes(MARCA_CURTAS) && !l.includes(MARCA_ESTRELA) && !l.includes('KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01') && !l.includes(MARCA_S25) && !l.includes('KINEO-S25-ABRE-2026-10-06') && !l.includes(MARCA_JUIZ) && !l.includes(MARCA_SAIDA_REGIAO) && !l.includes(MARCA_PARCEIRO)) // reancorado KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 · KINEO-SAIDA-REGIAO-2026-10-07 ·KINEO-DURACOES-CURTAS · KINEO-ESTRELA-DO-FILME · KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01 · KINEO-S25-NOTA95-2026-10-06 · KINEO-S25-ABRE-2026-10-06 · KINEO-JUIZ-STILL-2026-10-06 (só linhas marcadas: o portão pago do 2.5, a passada de cenas do s25 e o juiz da foto-base)
+  const foraDoLugar = adicionadas.filter((l) => l.trim() && !permitidas.includes(l) && !l.includes(MARCA_CURTAS) && !l.includes(MARCA_ESTRELA) && !l.includes('KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01') && !l.includes(MARCA_S25) && !l.includes('KINEO-S25-ABRE-2026-10-06') && !l.includes(MARCA_JUIZ) && !l.includes(MARCA_SAIDA_REGIAO) && !l.includes(MARCA_PARCEIRO) && !l.includes(MARCA_MONUMENTO)) // reancorado KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 · KINEO-SAIDA-REGIAO-2026-10-07 ·KINEO-DURACOES-CURTAS · KINEO-ESTRELA-DO-FILME · KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01 · KINEO-S25-NOTA95-2026-10-06 · KINEO-S25-ABRE-2026-10-06 · KINEO-JUIZ-STILL-2026-10-06 (só linhas marcadas: o portão pago do 2.5, a passada de cenas do s25 e o juiz da foto-base)
   checa(`diff da rota contra a base: ${adicionadas.length} linhas novas, todas dentro do bloco do roteiro marcado, do import e do relato (${foraDoLugar.length} fora: ${foraDoLugar.slice(0, 2).map((l) => l.trim().slice(0, 60)).join(' | ')})`, adicionadas.length > 0 && foraDoLugar.length === 0)
   checa(`diff da rota contra a base: NENHUMA linha da base alterada ou apagada fora das 6 trocas marcadas das durações curtas — a rota só ganhou linhas (${removidas.filter((l) => !TROCADAS_CURTAS.includes(l)).length} removida(s))`, removidas.filter((l) => !TROCADAS_CURTAS.includes(l)).length === 0)
 }

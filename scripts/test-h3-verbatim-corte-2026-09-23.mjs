@@ -18,6 +18,9 @@ const checa = (n, c) => { if (c) ok++; else falhas.push(n) }
 const roda = (src, globals = {}) => { const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText; const exp = {}; vm.runInNewContext(js, { exports: exp, console, ...globals }); return exp }
 const TL = roda(rd('lib/cinematic/timelineContract.ts'))
 const FID = roda(rd('lib/hollywood/fidelidade.ts'))
+// KINEO-MONUMENTO-2026-10-13 — reancorado: a varredura final da fala (hollywood) passa o contexto por comVocabularioDoLugar
+// (lib/cinematic/monumentoReal, sem imports). Entra a função REAL: os roteiros daqui não citam lugar curado → a MESMA string.
+const MON = roda(rd('lib/cinematic/monumentoReal.ts'))
 const rota = rd('app/api/generate-video-cinematic/route.ts')
 const runway = rd('lib/runway.ts')
 const wordsOf = (t) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
@@ -39,14 +42,14 @@ checa('só cenas sem diálogo com folga > 0,9 s pedem continuação; segundos nu
 checa('a linha aceita fica intacta: só entra continuação que começa pela linha original', fatia.includes("!nova.startsWith(base.trim().replace(/[.!?…]$/, ''))) return"))
 checa('rota importa appendNarrationToTargets de @/lib/runway', rota.includes("expandVoiceoversToTargets, appendNarrationToTargets, FILLER_LINE_RE } from '@/lib/runway'"))
 
-const params = ['plan', 'verbatim', 'duration', 'DIALOGUE_CAP', 'SCENE_CAP', 'FILLER_LINE_RE', 'expandVoiceoversToTargets', 'appendNarrationToTargets', 'hollywoodLanguage', 'prompt', 'apararComFolga', 'removerDatasInventadas' /* 15/09 R4 */, 'scrubInventedSetting' /* 15/09 R9 */, 'planSilenceReport', 'writeServerEvent', 'user', 'generationId', 'family', 'verbatimOverflowWords', 'MAX_VERBATIM_SCENES', 'hollywoodVoiceover', 'releaseBirthClaim', 'cinematicAdmin', 'body', 'NextResponse', 'hollywoodTarget', 'requestedDuration', 'degrau', 'formatoVisual', 'resolveCharacterVoice', 'cinematicSceneModel', 'buildFalInput', 'confirmCinematicRefund', 'SILENCE_SCENE_MAX_SECONDS', 'SILENCE_TOTAL_MAX_SECONDS', 'fitCinematicPlanFloor', 'console', 'resolveHollywoodVoice', 'hollywoodVertical', 'sceneNarrationsForPlan']
+const params = ['plan', 'verbatim', 'duration', 'DIALOGUE_CAP', 'SCENE_CAP', 'FILLER_LINE_RE', 'expandVoiceoversToTargets', 'appendNarrationToTargets', 'hollywoodLanguage', 'prompt', 'apararComFolga', 'removerDatasInventadas' /* 15/09 R4 */, 'scrubInventedSetting' /* 15/09 R9 */, 'comVocabularioDoLugar' /* KINEO-MONUMENTO-2026-10-13 */, 'planSilenceReport', 'writeServerEvent', 'user', 'generationId', 'family', 'verbatimOverflowWords', 'MAX_VERBATIM_SCENES', 'hollywoodVoiceover', 'releaseBirthClaim', 'cinematicAdmin', 'body', 'NextResponse', 'hollywoodTarget', 'requestedDuration', 'degrau', 'formatoVisual', 'resolveCharacterVoice', 'cinematicSceneModel', 'buildFalInput', 'confirmCinematicRefund', 'SILENCE_SCENE_MAX_SECONDS', 'SILENCE_TOTAL_MAX_SECONDS', 'fitCinematicPlanFloor', 'console', 'resolveHollywoodVoice', 'hollywoodVertical', 'sceneNarrationsForPlan']
 const montar = (fatiaSrc) => roda(`export async function rodar(ctx: any) {\n  const { ${params.join(', ')} } = ctx\n${fatiaSrc}\n  return { plan, duracaoReconciliada, rejeitado: null }\n}`).rodar
 const executar = montar(fatia)
 const NextResponse = { json: (b, init) => ({ rejeitado: b, status: init?.status ?? 200 }) }
 const ctxBase = (plan, extra = {}) => ({
   plan, verbatim: false, duration: 60, DIALOGUE_CAP: 15, SCENE_CAP: 12, FILLER_LINE_RE: /^(here is something most people do not know about|imagine|what if|most people don'?t know)/i,
   hollywoodLanguage: 'en', prompt: 'Create a 60-second historical documentary short in English about the 1958 Lituya Bay megatsunami',
-  apararComFolga: FID.apararComFolga, removerDatasInventadas: FID.removerDatasInventadas ?? ((t) => ({ texto: t, removidas: [] })), scrubInventedSetting: (t) => ({ text: t, removed: [] }), planSilenceReport: TL.planSilenceReport, writeServerEvent: async (e) => { (ctxBase.eventos ??= []).push(e); return true },
+  apararComFolga: FID.apararComFolga, comVocabularioDoLugar: MON.comVocabularioDoLugar, /* KINEO-MONUMENTO-2026-10-13 */ removerDatasInventadas: FID.removerDatasInventadas ?? ((t) => ({ texto: t, removidas: [] })), scrubInventedSetting: (t) => ({ text: t, removed: [] }), planSilenceReport: TL.planSilenceReport, writeServerEvent: async (e) => { (ctxBase.eventos ??= []).push(e); return true },
   user: { id: 'u1', email: 'cliente@example.com' }, generationId: 'g1', family: 'h3', verbatimOverflowWords: 0, MAX_VERBATIM_SCENES: 12, hollywoodVoiceover: '',
   releaseBirthClaim: async () => true, cinematicAdmin: { from: () => ({ insert: async () => ({}) }) }, body: {}, NextResponse, hollywoodTarget: 68, requestedDuration: 60, degrau: null,
   formatoVisual: { modo: 'documentary_faceless' }, resolveCharacterVoice: () => null, cinematicSceneModel: () => 'x', buildFalInput: () => ({}), confirmCinematicRefund: async () => true,

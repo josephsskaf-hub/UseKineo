@@ -80,6 +80,9 @@ const D = roda(D_SRC)
 const D_BASE = D_BASE_SRC ? roda(D_BASE_SRC) : null
 const COMPOSE = rd('app/api/compose/route.ts')
 const P = L('lib/scriptParser.ts')
+// KINEO-MONUMENTO-2026-10-13 — reancorado: a fala clássica da rota passa o contexto por comVocabularioDoLugar (lib/cinematic/monumentoReal).
+// Entra a função REAL: os roteiros daqui não citam lugar curado, então o contexto volta a MESMA string e nada muda.
+const MON = L('lib/cinematic/monumentoReal.ts')
 const VB = L('lib/cinematic/verbatimBeats.ts')
 const SR = L('lib/speechRate.ts')
 const NM = L('lib/narration/niche-mapping.ts')
@@ -121,7 +124,7 @@ async function rodaRota(src, Dx, { texto, engine, duration, verbatim = null }) {
     wantsKling: engine === 'kling', wantsVeo: engine === 'veo', wantsSora: engine === 'sora',
     resolveVerbatimSegments: VB.resolveVerbatimSegments, shortCaptionFromVoiceover: (t) => String(t).slice(0, 40),
     generateScenes: stubCenasIA, SCENE_WRITER_INPUT_MAX_CHARS: 12000, classicVisualPolicy: {}, classicWriterOptions: {},
-    removerDatasInventadas: (t) => ({ texto: t, removidas: [] }), scrubInventedSetting: (t) => ({ text: t, removed: [] }),
+    comVocabularioDoLugar: MON.comVocabularioDoLugar, /* KINEO-MONUMENTO-2026-10-13 */ removerDatasInventadas: (t) => ({ texto: t, removidas: [] }), scrubInventedSetting: (t) => ({ text: t, removed: [] }),
     SEEDANCE_SHORT_SECONDS: Dx.SEEDANCE_SHORT_SECONDS, SEEDANCE_SHORT_CLIPS: Dx.SEEDANCE_SHORT_CLIPS, isSeedance15: Dx.isSeedance15,
     seedanceShortMarkedScenes: Dx.seedanceShortMarkedScenes,
     kling25FootageNeeded: K.kling25FootageNeeded, kling25ShotCount: K.kling25ShotCount, kling25VerbatimPlan: K.kling25VerbatimPlan, kling25VisualHint: K.kling25VisualHint,

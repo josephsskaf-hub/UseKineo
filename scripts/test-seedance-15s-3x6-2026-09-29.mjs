@@ -36,6 +36,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { desfaz3x6KlingShots } from './test-support/desfaz-3x6-klingshots.mjs'
+import { TROCADAS_MONUMENTO } from './test-support/desfaz-monumento-1310.mjs' // KINEO-MONUMENTO-2026-10-13
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ) // o loader offline resolve '@/...' a partir do cwd
@@ -423,6 +424,10 @@ function soAcrescimos(p) {
     // (a escolha da foto de ambiente e a montagem do prompt da cena, só no ramo s25). Prova: scripts/test-s25-nota95-2026-10-06.mjs.
     '          const inNarratorWorld = envSig.length > 8 && hs.prompt.toLowerCase().includes(envSig)',
     '          const scenePromptBruto = mouthPrefix + uprightPrefix + hs.prompt + eraSuffix + mouthSuffix + spectacleSuffix',
+    // ═══ Reancorado KINEO-MONUMENTO-2026-10-13 (o fundador autorizou o conserto do monumento no pipeline, 13/10) ═══
+    // A leva marca toda linha nova com KINEO-MONUMENTO-2026-10-13 e troca de propósito CINCO linhas da base (o contexto dos filtros
+    // anti-invenção vira comVocabularioDoLugar(...)). Exatamente essas cinco. Prova: scripts/test-monumento-real-1310.mjs.
+    ...TROCADAS_MONUMENTO,
   ])
   const tiradas = diff.split(LF).filter((l) => l.startsWith('-') && !l.startsWith('---') && !(p.endsWith('generate-video-cinematic/route.ts') && TROCADAS.has(l.slice(1))))
   return { ok: tiradas.length === 0, n: diff.split(LF).filter((l) => l.startsWith('+') && !l.startsWith('+++')).length }

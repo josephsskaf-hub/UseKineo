@@ -190,6 +190,7 @@ import {
 } from '@/lib/refusalSpiral'
 import { closingSceneVariation, deriveStoryCharacter, deriveExplicitCharacter, deriveStyleAnchor, textSafetySuffix, NO_TEXT_OBJECT_DIRECTION } from '@/lib/cinematic/sceneStyle'
 import { buildClassicVisualPrompt, classicVisualNegativePrompt, isStylizedLook, scrubInventedSetting, visualDescriptionDirection, type VisualPromptPolicy } from '@/lib/cinematic/visualPromptPolicy'
+import { ancoraDoLugar, ancorarLugarNoPrompt, comVocabularioDoLugar, lugarPrincipal, pedidoDeTourNarrado, promptTemOLugar } from '@/lib/cinematic/monumentoReal' // KINEO-MONUMENTO-2026-10-13
 import { classifyEngineFit } from '@/lib/engineFit'
 import { FalQueueSubmitError, submitFalQueueOnce } from '@/lib/falQueue'
 import {
@@ -337,6 +338,7 @@ interface DispatchContext {
   submittedPrompts: string[]
   /** KINEO-VIGIA-CENARIO-2026-09-11 — lugar/época fora da história removidos por cena (vazio = nada inventado). */
   cenarioRemovido: string[]
+  monumento?: { lugar: string; curado: boolean; cenas: number; com_nome: number; reparadas: number[] } | null // KINEO-MONUMENTO-2026-10-13 — lugar real ancorado (cenas com o nome / reparadas pela verificação)
   /** KINEO-MOTIVO-REAL-2026-09-16 — a última recusa EXPLÍCITA classificada por submitToFal (status + classe). O laço
    *  hollywood lê isto logo depois de um `null` para o ledger dizer "balance_quota 403" em vez de "unknown null". */
   ultimaRecusa: { model: string; status: number | null; reason_class: ReasonClass; message: string } | null
@@ -429,6 +431,7 @@ async function finalizarDespacho(ctx: DispatchContext, res: Response): Promise<v
         scenes: ctx.outcomes.map(safeLogFields),
         submitted_prompts: ctx.submittedPrompts.map((x) => (typeof x === 'string' ? x.slice(0, 240) : null)),
         setting_scrubbed: ctx.cenarioRemovido.map((x) => x.slice(0, 160)),
+        monument: ctx.monumento ?? null, // KINEO-MONUMENTO-2026-10-13
       },
     })
   } catch (e) {
@@ -1416,6 +1419,19 @@ async function manipularPost(req: NextRequest) {
     if (prompt.length > 12000) {
       return NextResponse.json({ error: 'Prompt is too long.' }, { status: 400 })
     }
+    // ═══ KINEO-MONUMENTO-2026-10-13 — LUGAR REAL QUE O PÚBLICO RECONHECE (lib/cinematic/monumentoReal.ts) ═══ [KINEO-MONUMENTO-2026-10-13]
+    // Parceiro Logan, 11/10 21:01–21:07 UTC: 3 pedidos de "drone tour" do Palácio de Versalhes com linhas "Style:" e "Camera:" [KINEO-MONUMENTO-2026-10-13]
+    // (617–669 palavras, modo "as is") recusados aqui embaixo como plano de clipe (shot_spec_detected keyed_shot_spec). [KINEO-MONUMENTO-2026-10-13]
+    // Plano sobre lugar real é pedido de FILME: as linhas de plano viram uma linha de direção visual, o pedido ganha [KINEO-MONUMENTO-2026-10-13]
+    // "The story of <lugar>, told as a narrated cinematic tour", e o modo vira IA (a narradora nunca lê o plano). [KINEO-MONUMENTO-2026-10-13]
+    // Plano SEM lugar real segue recusado como antes. `lugarDoPedido` também ancora o lugar nos prompts das cenas, abaixo. [KINEO-MONUMENTO-2026-10-13]
+    const lugarDoPedido = lugarPrincipal(prompt) // KINEO-MONUMENTO-2026-10-13
+    if (lugarDoPedido && detectShotSpec(prompt).isShotSpec) { // KINEO-MONUMENTO-2026-10-13
+      const planoOriginal = detectShotSpec(prompt) // KINEO-MONUMENTO-2026-10-13
+      prompt = pedidoDeTourNarrado(prompt, lugarDoPedido) // KINEO-MONUMENTO-2026-10-13
+      body.script_mode = 'ai' // KINEO-MONUMENTO-2026-10-13
+      void writeServerEvent({ name: 'shot_spec_place_admitted', userId: user.id, path: '/api/generate-video-cinematic', metadata: { place: lugarDoPedido.id, place_name: lugarDoPedido.nome, curated: lugarDoPedido.curado, reason: planoOriginal.reason, keys: planoOriginal.keys.slice(0, 6), prompt_length: prompt.length, version: 'monumento_v1' } }) // KINEO-MONUMENTO-2026-10-13
+    } // KINEO-MONUMENTO-2026-10-13
     // ═══ KINEO-TRES-MODOS-2026-09-11 — PLANO COLADO NÃO VIRA NARRAÇÃO ══════
     // Render 802f024e (11/09): a pessoa colou um plano JSON (clip/duration/
     // action/camera/vfx) e a narradora LEU O JSON em voz alta. Um prompt de
@@ -3476,10 +3492,11 @@ async function manipularPost(req: NextRequest) {
       // aqui, na fala do escritor clássico, ANTES de o footage ser escolhido para ela. Contexto = só o pedido.
       if (!hollywoodPath) {
         const tiradas: string[] = []
+        const contextoFalaClassica = comVocabularioDoLugar(prompt) // KINEO-MONUMENTO-2026-10-13 — pedido sem lugar real: a MESMA string; com lugar curado: + sub-lugares/figuras/anos verdadeiros (608449fe perdeu "Hall of Mirrors", "Treaty of Versailles", "World War I")
         for (const sc of scenes) {
           if (typeof sc.voiceover !== 'string' || !sc.voiceover.trim()) continue
-          const r = removerDatasInventadas(sc.voiceover, prompt)
-          const r2 = scrubInventedSetting(r.texto, prompt)
+          const r = removerDatasInventadas(sc.voiceover, contextoFalaClassica) // KINEO-MONUMENTO-2026-10-13
+          const r2 = scrubInventedSetting(r.texto, contextoFalaClassica) // KINEO-MONUMENTO-2026-10-13
           const texto = r2.removed.length ? r2.text : r.texto
           if (r.removidas.length || r2.removed.length) { sc.voiceover = texto; sc.caption = shortCaptionFromVoiceover(texto); tiradas.push(...r.removidas, ...r2.removed) }
         }
@@ -5025,7 +5042,7 @@ async function manipularPost(req: NextRequest) {
       // depois do filtro do planejador). A última palavra é do código, depois de toda reescrita. ═══
       {
         // Contexto = só o pedido (em verbatim o pedido É o texto): o brief escrito pela IA trazia "In 2023" e "legitimava" a data.
-        const contextoDatas = prompt
+        const contextoDatas = comVocabularioDoLugar(prompt) // KINEO-MONUMENTO-2026-10-13 — sem lugar real curado = `prompt`, a mesma string
         const tiradas: string[] = []
         for (const sc of plan.scenes) {
           for (const campo of ['voiceover', 'dialogueLine'] as const) {
@@ -6366,7 +6383,7 @@ async function manipularPost(req: NextRequest) {
     // House", "1910 New England farmhouse", "Nokia 3310") — a regra no prompt
     // do descritor é pedido; isto é garantia. A narração nunca é tocada.
     {
-      const historia = `${prompt} ${scenes.map((s) => s.voiceover ?? '').join(' ')}`
+      const historia = comVocabularioDoLugar(`${prompt} ${scenes.map((s) => s.voiceover ?? '').join(' ')}`) // KINEO-MONUMENTO-2026-10-13
       const cenarioRemovido: string[] = []
       scenes = scenes.map((s, i) => {
         const aiPrompt = s.aiPrompt ? scrubInventedSetting(s.aiPrompt, historia) : null
@@ -6418,7 +6435,7 @@ async function manipularPost(req: NextRequest) {
         scenes: scenes.map((sc) => ({ voiceover: sc.voiceover ?? '', shot: sc.aiPrompt || sc.stockSearchQuery || sc.description || '' })),
       }, wantsKling ? kling25AlignBudget(scenes.length) : undefined) // KINEO-KLING25-PLANOS-5S-2026-09-28: o dobro de cenas ganha teto de tokens e prazo proporcionais; Seedance/Veo: chamada idêntica
       if (alinhado) {
-        const historiaAlinhada = `${prompt} ${scenes.map((sc) => sc.voiceover ?? '').join(' ')}`
+        const historiaAlinhada = comVocabularioDoLugar(`${prompt} ${scenes.map((sc) => sc.voiceover ?? '').join(' ')}`) // KINEO-MONUMENTO-2026-10-13
         for (const c of alinhado.rewritten) {
           // [TRAVA 8.2] KLING25-DESCRICOES: cena cujo plano nasceu do fallback (sem descrição do modelo) tem fala com metáfora/CTA —
           // a reescrita do supervisor (lib compartilhada com o hollywood, por isso intocada) não pode trazê-la de volta como criatura/CTA literal.
@@ -6438,6 +6455,11 @@ async function manipularPost(req: NextRequest) {
     } catch (e) {
       console.warn('[fala-x-imagem] falhou, planos originais seguem:', e instanceof Error ? e.message : String(e))
     }
+    // KINEO-MONUMENTO-2026-10-13 — o lugar real do pedido vai na frente do plano de CADA cena (nome + país + 1–2 descritores [KINEO-MONUMENTO-2026-10-13]
+    // verdadeiros) e os negativos óbvios no fim — depois do scrub e do supervisor, antes do prompt final que alimenta o still [KINEO-MONUMENTO-2026-10-13]
+    // e o clipe. 608449fe: a cena 7 subiu "Wide establishing shot, reflecting the evening sky, with boats" e o Seedance inventou o lugar. [KINEO-MONUMENTO-2026-10-13]
+    // Pedido sem lugar real (lugarDoPedido null): nada roda, os planos ficam byte a byte. [KINEO-MONUMENTO-2026-10-13]
+    if (lugarDoPedido) for (let i = 0; i < scenes.length; i++) scenes[i].aiPrompt = ancorarLugarNoPrompt(scenes[i].aiPrompt || scenes[i].stockSearchQuery || scenes[i].description || '', lugarDoPedido) // KINEO-MONUMENTO-2026-10-13
     const classicScenePrompts = scenes.map((scene, sceneIndex) => {
       const visualPrompt = scene.aiPrompt || scene.stockSearchQuery || scene.description
       const cinematicBruto = buildClassicVisualPrompt(visualPrompt, {
@@ -6476,6 +6498,16 @@ async function manipularPost(req: NextRequest) {
     // do Kling, prefixada, nada cortado), aplicado no MESMO vetor que alimenta o still FLUX e o clipe. Fora do ternário acima
     // para o ponto do Kling ficar literal; Seedance/Sora: vetor intocado, byte a byte.
     if (wantsVeo) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = veoApplyShotAxis(classicScenePrompts[i], i)
+    // KINEO-MONUMENTO-2026-10-13 — verificação em código, depois do último toque no prompt (contrato, eixos do Kling/Veo) e antes [KINEO-MONUMENTO-2026-10-13]
+    // do dry-run e de qualquer still/POST: cena cujo prompt final não diz o lugar ganha a âncora de novo; o relato vai ao ensaio e ao despacho. [KINEO-MONUMENTO-2026-10-13]
+    let monumentoRelato: { lugar: string; curado: boolean; cenas: number; com_nome: number; reparadas: number[] } | null = null // KINEO-MONUMENTO-2026-10-13
+    if (lugarDoPedido) { // KINEO-MONUMENTO-2026-10-13
+      const reparadas: number[] = [] // KINEO-MONUMENTO-2026-10-13
+      for (let i = 0; i < classicScenePrompts.length; i++) if (!promptTemOLugar(classicScenePrompts[i], lugarDoPedido)) { classicScenePrompts[i] = `${ancoraDoLugar(lugarDoPedido)} ${classicScenePrompts[i]}`; reparadas.push(i + 1) } // KINEO-MONUMENTO-2026-10-13
+      monumentoRelato = { lugar: lugarDoPedido.nome, curado: lugarDoPedido.curado, cenas: classicScenePrompts.length, com_nome: classicScenePrompts.filter((p) => promptTemOLugar(p, lugarDoPedido)).length, reparadas } // KINEO-MONUMENTO-2026-10-13
+      ctxDespacho().monumento = monumentoRelato // KINEO-MONUMENTO-2026-10-13
+      console.log(`[cinematic] KINEO-MONUMENTO: ${lugarDoPedido.nome} ancorado em ${monumentoRelato.com_nome}/${monumentoRelato.cenas} cena(s)${reparadas.length ? `, reparadas: ${reparadas.join(',')}` : ''}`) // KINEO-MONUMENTO-2026-10-13
+    } // KINEO-MONUMENTO-2026-10-13
 
     // ═══ KINEO-DRYRUN-CLASSICO-2026-09-12 — O VALIDADOR DE $0 COBRE OS CLÁSSICOS ═══
     // Até 11/09 `dry_run: true` só parava a família Kling 3/H3/Omni (bloco
@@ -6521,6 +6553,7 @@ async function manipularPost(req: NextRequest) {
         visual_mode_reason: formatoVisual.motivo,
         contrato_cena: contratoRelatoClassico,
         fala_x_imagem: alinhamentoFalaImagem, // KINEO-FALA-X-IMAGEM — o que o supervisor reescreveu, a $0
+        ...(monumentoRelato ? { monumento: monumentoRelato } : {}), // KINEO-MONUMENTO-2026-10-13
         // KINEO-ESTRELA-DO-FILME-2026-09-29 — o ensaio de $0 mostra, cena a cena, qual still iria ao edit com o rosto (nada é gerado)
         ...(estrelaAtiva ? { estrela: { ficha: estrelaFicha, sobretaxa_cr: estrelaSobretaxaDe(duration), cenas: planoDaEstrela(scenes.map((s, i) => ({ prompt: classicScenePrompts[i], visual: s.aiPrompt || s.stockSearchQuery || s.description })), estrelaFicha ?? fichaDaEstrela(prompt, null), true, prompt).map((p) => ({ cena: p.indice + 1, estrela: p.protagonista })) } } : {}), // KINEO-ESTRELA-DO-FILME-2026-09-29
         ...relatorioDoEnsaio,

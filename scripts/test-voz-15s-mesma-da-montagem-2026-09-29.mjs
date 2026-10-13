@@ -29,6 +29,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { reguaDe95No15s } from './test-support/desfaz-cobertura-15s.mjs'
+import { TROCADAS_MONUMENTO } from './test-support/desfaz-monumento-1310.mjs' // KINEO-MONUMENTO-2026-10-13
 // ═══ Reancorado KINEO-DURACOES-CURTAS-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] ═══
 // A entrega das durações curtas (15 s em todo motor de IA, 30 s na estrada hollywood) marca TODA linha que acrescenta à rota do
 // cinematic (e às outras rotas travadas) com KINEO-DURACOES-CURTAS-2026-09-29, e troca de propósito SEIS linhas da base (a frase da
@@ -57,6 +58,10 @@ TROCADAS_CURTAS.push("    const formatoVisual = decidirFormato(prompt, tagFacele
 // isso — nada fora do marcador, nenhuma outra linha da base trocada. Prova: scripts/test-s25-nota95-2026-10-06.mjs.
 const MARCA_S25 = 'KINEO-S25-NOTA95-2026-10-06'
 TROCADAS_CURTAS.push('          const inNarratorWorld = envSig.length > 8 && hs.prompt.toLowerCase().includes(envSig)', '          const scenePromptBruto = mouthPrefix + uprightPrefix + hs.prompt + eraSuffix + mouthSuffix + spectacleSuffix')
+// ═══ Reancorado KINEO-MONUMENTO-2026-10-13 (o fundador autorizou o conserto do monumento no pipeline, 13/10) ═══
+// A leva troca de propósito CINCO linhas da base da rota (o contexto dos filtros anti-invenção vira comVocabularioDoLugar(...)); só
+// essas cinco entram na lista de trocas aceitas. Prova: scripts/test-monumento-real-1310.mjs.
+TROCADAS_CURTAS.push(...TROCADAS_MONUMENTO)
 const semCurtas = (t) => (t == null ? t : t.split('\n').filter((l) => !l.includes(MARCA_CURTAS) && !l.includes(MARCA_ESTRELA) && !l.includes(MARCA_S25)).join('\n'))
 const semTrocadas = (t) => (t == null ? t : t.split('\n').filter((l) => !TROCADAS_CURTAS.includes(l.replace(/\r$/, ''))).join('\n'))
 

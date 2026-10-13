@@ -7,6 +7,7 @@
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import ts from 'typescript'
+import { semMonumento } from './test-support/desfaz-monumento-1310.mjs' // KINEO-MONUMENTO-2026-10-13
 
 let ok = 0, falhas = 0
 function checa(nome, cond) { if (cond) { ok++; console.log('  ✓', nome) } else { falhas++; console.log('  ✗', nome) } }
@@ -127,7 +128,10 @@ if (BASE) {
   // portão do 2.5 SÓ com linhas marcadas (import, comentário, leitura do parceiro; a linha do s25AccessFor nasceu no S25-ABRE e segue com as
   // duas marcas) e nenhuma linha da base trocada; elas saem em memória dos dois lados. Prova: scripts/test-parceiro-abre-tudo-2026-10-09.mjs.
   const semS25 = (s) => (s == null ? s : s.split('\n').filter((l) => !l.includes('KINEO-S25-NOTA95-2026-10-06') && !l.includes('KINEO-S25-ABRE-2026-10-06') && !l.includes('KINEO-JUIZ-STILL-2026-10-06') && !l.includes('KINEO-SAIDA-REGIAO-2026-10-07') && !l.includes('KINEO-PARCEIRO-ABRE-TUDO-2026-10-09') && !TROCADAS_S25.includes(l)).join('\n'))
-  checa('E26 /api/generate-video-cinematic sem as linhas marcadas = base, byte a byte', semS25(semMarca(cinematic)) === semS25(base('app/api/generate-video-cinematic/route.ts')))
+  // Reancorado 13/10 (KINEO-MONUMENTO-2026-10-13 — o fundador autorizou o conserto do monumento no pipeline): linhas novas marcadas + 5 linhas da
+  // base trocadas de propósito (contexto dos filtros anti-invenção via comVocabularioDoLugar); semMonumento tira só essas, dos dois lados.
+  // Prova: scripts/test-monumento-real-1310.mjs.
+  checa('E26 /api/generate-video-cinematic sem as linhas marcadas = base, byte a byte', semMonumento(semS25(semMarca(cinematic))) === semMonumento(semS25(base('app/api/generate-video-cinematic/route.ts'))))
 }
 checa('E27 a Estrela continua só com a casa (ESTRELA_PUBLIC = false)', /export const ESTRELA_PUBLIC = false\n/.test(launch))
 

@@ -50,6 +50,10 @@ const style = load('lib/cinematic/sceneStyle.ts')
 const policy = load('lib/cinematic/visualPromptPolicy.ts')
 const aspect = load('lib/aspect.ts')
 const visualMode = load('lib/cinematic/visualMode.ts')
+// KINEO-MONUMENTO-2026-10-13 — reancorado: a fatia clássica da rota ganhou a âncora do lugar real (lugarDoPedido + lib/cinematic/monumentoReal,
+// sem imports). Entra a lib REAL e o lugar calculado pela função real sobre a fala da fixture (Mira/Kyoto 1930 = nenhum lugar curado → null,
+// a fatia segue byte a byte como antes). Nenhuma asserção deste guardião foi afrouxada.
+const monumento = execute(read('lib/cinematic/monumentoReal.ts'))
 const truth = load('lib/cinematic/sceneTruth.ts')
 const dispatch = load('lib/cinematic/dispatchScenes.ts')
 // GUARDIOES-EIXO-KLING25-2026-09-29: the executed route slice now prefixes a deterministic shot axis on Kling 2.5
@@ -121,6 +125,7 @@ async function run({ look = 'photoreal', mode = 'character_story', frame = '16:9
   })
   const globals = { ...aspect, ...policy, ...truth, ...visualMode, ...dispatch, ...providerConstants, ...routeHelpers, ...style,
     body: { dry_run: false },
+    ...monumento, lugarDoPedido: monumento.lugarPrincipal(narration), // KINEO-MONUMENTO-2026-10-13
     scenes, classicVisualPolicy: { mode, style: anchor, character: mode === 'documentary_faceless' ? null : 'Mira, a young woman', aspect: frame },
     classicVisualMode: mode, storyCharacter: mode === 'documentary_faceless' ? null : 'Mira, a young woman', styleAnchor: anchor,
     eraSuffix, aspectRequested: frame,
@@ -398,6 +403,7 @@ async function entryToPayload({ prompt, scriptMode, anchored = false, engine = '
     generateScenes: plannerApi.generateScenes, shortCaptionFromVoiceover: plannerApi.shortCaptionFromVoiceover,
     // 15/09 (KINEO-FALA-CLASSICA-FIEL): a varredura de datas/lugares na fala clássica roda dentro do construtor; aqui é identidade (o texto do fixture não tem data inventada)
     removerDatasInventadas: (t) => ({ texto: t, removidas: [] }), scrubInventedSetting: (t) => ({ text: t, removed: [] }),
+    comVocabularioDoLugar: monumento.comVocabularioDoLugar, // KINEO-MONUMENTO-2026-10-13 — a função real (fixture Lituya Bay não é lugar curado → a mesma string)
   })
   const scenes = await constructed.run()
   const model = modelForEngine(engine)

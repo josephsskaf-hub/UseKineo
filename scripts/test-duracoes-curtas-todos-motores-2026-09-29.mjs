@@ -50,6 +50,9 @@ function carregador(fontes = {}) {
   return carrega
 }
 const L = carregador()
+// KINEO-MONUMENTO-2026-10-13 — reancorado: a fala clássica da rota passa o contexto por comVocabularioDoLugar (lib/cinematic/monumentoReal).
+// Entra a função REAL: os roteiros daqui não citam lugar curado, então o contexto volta a MESMA string e nada muda.
+const MON = L('lib/cinematic/monumentoReal')
 const D = L('lib/durationByEngine')
 const E = L('lib/credits/engineCost')
 const K = L('lib/cinematic/klingShots')
@@ -136,7 +139,7 @@ function montarRota(rota) {
   const conta = fatia(rota, '    // #442 — in verbatim mode the final video follows the SCRIPT length, not the', '    if (seedanceShortFilm) clipCount = SEEDANCE_SHORT_CLIPS\n')
   const cenas = fatia(rota, '    let scenes: { description: string; voiceover: string; caption: string; stockSearchQuery?: string; aiPrompt?: string; clipSeconds?: number }[]', '    // ═══ KINEO-ZERO-SCENES-FALLBACK-2026-09-04')
   const segundos = fatia(rota, '    let kling25ClipSeconds: number[] | null = null', '    // KINEO-VIGIA-CENARIO-2026-09-11 — antes de qualquer still ou clipe pago,')
-  const nomes = ['verbatim', 'wantsKling', 'wantsVeo', 'wantsSora', 'parsedScript', 'narrationRate', 'narrationLanguage', 'body', 'prompt', 'hollywoodPath', 'generateScenes', 'classicVisualPolicy', 'SCENE_WRITER_INPUT_MAX_CHARS', 'resolveVerbatimSegments', 'shortCaptionFromVoiceover', 'removerDatasInventadas', 'scrubInventedSetting', 'seedanceShortMarkedScenes', 'pistasDosTrechos', 'isSeedance15', 'SEEDANCE_SHORT_SECONDS', 'SEEDANCE_SHORT_CLIPS', 'seedanceShortSpeechSeconds', 'seedanceShortClipSeconds', 'SEEDANCE_720P_USD_PER_SECOND', 'wordsPerSceneFor', 'KLING25_CLIP_LOSS_SECONDS', 'VEO_MAX_SHOTS', 'cenasSemDescricaoDoModelo', 'console',
+  const nomes = ['verbatim', 'wantsKling', 'wantsVeo', 'wantsSora', 'parsedScript', 'narrationRate', 'narrationLanguage', 'body', 'prompt', 'hollywoodPath', 'generateScenes', 'classicVisualPolicy', 'SCENE_WRITER_INPUT_MAX_CHARS', 'resolveVerbatimSegments', 'shortCaptionFromVoiceover', 'comVocabularioDoLugar' /* KINEO-MONUMENTO-2026-10-13 */, 'removerDatasInventadas', 'scrubInventedSetting', 'seedanceShortMarkedScenes', 'pistasDosTrechos', 'isSeedance15', 'SEEDANCE_SHORT_SECONDS', 'SEEDANCE_SHORT_CLIPS', 'seedanceShortSpeechSeconds', 'seedanceShortClipSeconds', 'SEEDANCE_720P_USD_PER_SECOND', 'wordsPerSceneFor', 'KLING25_CLIP_LOSS_SECONDS', 'VEO_MAX_SHOTS', 'cenasSemDescricaoDoModelo', 'console',
     ...Object.keys(K).filter((k) => k.startsWith('kling25')), ...Object.keys(V).filter((k) => k.startsWith('veo'))]
   const src = `${L_CLIPCOUNT}\nexport async function rodar(ctx: any) {\n  const { ${[...new Set(nomes)].join(', ')} } = ctx\n  let duration = ctx.duration\n  let clipCount = clipCountForDuration(duration)\n${L_VEO_CLIPS}\n${conta}\n  const classicWriterOptions: any = { wordsPerScene: wordsPerSceneFor(duration, clipCount, narrationRate.wordsPerSecond), language: narrationLanguage.language }\n  if (wantsKling) Object.assign(classicWriterOptions, { sceneSeconds: kling25AverageShotSeconds(clipCount, kling25Footage) }, kling25WriterBudget(clipCount))\n${cenas}\n${segundos}\n  return { scenes, clipCount, kling25ClipSeconds, veoClipSeconds, seedanceClipSeconds, kling25Footage, veoFootage }\n}`
   const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText
@@ -153,7 +156,7 @@ function ctxClassico(Kx, Vx, Dx, { motor, duracao, roteiro, verbatim, wps, idiom
     narrationRate: { wordsPerSecond: wps }, narrationLanguage: { language: idioma }, body: { engine: motor }, prompt: roteiro, hollywoodPath: false,
     generateScenes: async (_p, n) => (cenasIA ?? []).slice(0, n).map((v, i) => ({ description: `shot ${i + 1} of the story`, voiceover: v, caption: v.split(' ').slice(0, 4).join(' '), stockSearchQuery: `shot ${i + 1}` })),
     classicVisualPolicy: {}, SCENE_WRITER_INPUT_MAX_CHARS: 6000, resolveVerbatimSegments: VB.resolveVerbatimSegments, shortCaptionFromVoiceover: (t) => String(t ?? '').split(' ').slice(0, 5).join(' '),
-    removerDatasInventadas: (t) => ({ texto: t, removidas: [] }), scrubInventedSetting: (t) => ({ text: t, removed: [] }),
+    comVocabularioDoLugar: MON.comVocabularioDoLugar, /* KINEO-MONUMENTO-2026-10-13 */ removerDatasInventadas: (t) => ({ texto: t, removidas: [] }), scrubInventedSetting: (t) => ({ text: t, removed: [] }),
     seedanceShortMarkedScenes: Dx.seedanceShortMarkedScenes, pistasDosTrechos: Dx.pistasDosTrechos, isSeedance15: Dx.isSeedance15, SEEDANCE_SHORT_SECONDS: Dx.SEEDANCE_SHORT_SECONDS, SEEDANCE_SHORT_CLIPS: Dx.SEEDANCE_SHORT_CLIPS,
     seedanceShortSpeechSeconds: Dx.seedanceShortSpeechSeconds, seedanceShortClipSeconds: Dx.seedanceShortClipSeconds, SEEDANCE_720P_USD_PER_SECOND: 0.026,
     wordsPerSceneFor: SW.wordsPerSceneFor, KLING25_CLIP_LOSS_SECONDS: Kx.KLING25_CLIP_LOSS_SECONDS, VEO_MAX_SHOTS: Vx.VEO_MAX_SHOTS, cenasSemDescricaoDoModelo: new Set(), console: silencio,
@@ -478,7 +481,7 @@ const FID = L('lib/hollywood/fidelidade')
 function montarHollywood(rota) {
   const s = fatia(rota, INI_HW, FIM_HW)
   if (!s) return null
-  const nomes = ['plan', 'verbatim', 'duration', 'DIALOGUE_CAP', 'SCENE_CAP', 'FILLER_LINE_RE', 'expandVoiceoversToTargets', 'appendNarrationToTargets', 'hollywoodLanguage', 'prompt', 'apararComFolga', 'removerDatasInventadas', 'scrubInventedSetting', 'planSilenceReport', 'writeServerEvent', 'user', 'generationId', 'family', 'MAX_VERBATIM_SCENES', 'hollywoodVoiceover', 'releaseBirthClaim', 'cinematicAdmin', 'body', 'NextResponse', 'hollywoodTarget', 'requestedDuration', 'degrau', 'formatoVisual', 'resolveCharacterVoice', 'cinematicSceneModel', 'buildFalInput', 'confirmCinematicRefund', 'SILENCE_SCENE_MAX_SECONDS', 'SILENCE_TOTAL_MAX_SECONDS', 'fitCinematicPlanFloor', 'console', 'resolveHollywoodVoice', 'hollywoodVertical', 'sceneNarrationsForPlan']
+  const nomes = ['plan', 'verbatim', 'duration', 'DIALOGUE_CAP', 'SCENE_CAP', 'FILLER_LINE_RE', 'expandVoiceoversToTargets', 'appendNarrationToTargets', 'hollywoodLanguage', 'prompt', 'apararComFolga', 'comVocabularioDoLugar' /* KINEO-MONUMENTO-2026-10-13 */, 'removerDatasInventadas', 'scrubInventedSetting', 'planSilenceReport', 'writeServerEvent', 'user', 'generationId', 'family', 'MAX_VERBATIM_SCENES', 'hollywoodVoiceover', 'releaseBirthClaim', 'cinematicAdmin', 'body', 'NextResponse', 'hollywoodTarget', 'requestedDuration', 'degrau', 'formatoVisual', 'resolveCharacterVoice', 'cinematicSceneModel', 'buildFalInput', 'confirmCinematicRefund', 'SILENCE_SCENE_MAX_SECONDS', 'SILENCE_TOTAL_MAX_SECONDS', 'fitCinematicPlanFloor', 'console', 'resolveHollywoodVoice', 'hollywoodVertical', 'sceneNarrationsForPlan']
   const src = `export async function rodar(ctx: any) {\n  const { ${nomes.join(', ')} } = ctx\n${s}\n  return { plan, rejeitado: null }\n}`
   const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText
   const exp = {}
@@ -496,7 +499,7 @@ function ctxHollywood({ plan, familia, duracao, roteiro, ritmo = 1.0, idioma = '
   const proibido = async () => { throw new Error('modelo de texto chamado em verbatim') }
   return {
     plan, verbatim: true, duration: duracao, DIALOGUE_CAP, SCENE_CAP, FILLER_LINE_RE: /^(imagine|what if)/i, expandVoiceoversToTargets: proibido, appendNarrationToTargets: proibido,
-    hollywoodLanguage: idioma, prompt: roteiro, apararComFolga: FID.apararComFolga, removerDatasInventadas: (t) => ({ texto: t, removidas: [] }), scrubInventedSetting: (t) => ({ text: t, removed: [] }),
+    hollywoodLanguage: idioma, prompt: roteiro, apararComFolga: FID.apararComFolga, comVocabularioDoLugar: MON.comVocabularioDoLugar, /* KINEO-MONUMENTO-2026-10-13 */ removerDatasInventadas: (t) => ({ texto: t, removidas: [] }), scrubInventedSetting: (t) => ({ text: t, removed: [] }),
     planSilenceReport: TL.planSilenceReport, writeServerEvent: async () => true, user: { id: 'u1', email: 'cliente@example.com' }, generationId: 'g1', family: familia, MAX_VERBATIM_SCENES: 12,
     hollywoodVoiceover: roteiro, releaseBirthClaim: async () => true, cinematicAdmin: { from: () => ({ insert: async () => ({}) }) }, body: {}, NextResponse, hollywoodTarget: ALVO(duracao), requestedDuration: duracao, degrau: null,
     formatoVisual: { modo: 'documentary_faceless' }, resolveCharacterVoice: () => null, cinematicSceneModel: () => 'x', buildFalInput: () => ({}), confirmCinematicRefund: async () => true,
