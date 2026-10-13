@@ -123,5 +123,88 @@ mut('limite sobe para 6000', 'const H3_PROMPT_MAX = 600\n', 'const H3_PROMPT_MAX
 mut('validador aceita não-string', "if (typeof raw !== 'string') return null", 'raw = String(raw)', rulesLimit)
 mut('validador sem filtro de controle', '  if (/[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]/.test(p)) return null\n', '', rulesLimit)
 
+// ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+// KINEO-SONDA-EFEITOS-VIRAIS-2026-10-13 — fundador (13/10: "tudo sim"): 6 efeitos virais de pessoa entram no catálogo FECHADO
+// da mesma sonda para 1 render real cada. Prova:
+//   (6) o catálogo PROBES executado de verdade (transpilado) devolve, para as 6 chaves fx_*, exatamente o modelo e a entrada
+//       conferidos no OpenAPI da fal em 13/10 — e a foto é o ÚNICO valor que vem de fora;
+//   (7) catálogo fechado: toda entrada usa um dos 4 modelos fixos, recebe só (image), não lê body/req/prompt, e as chaves
+//       são procuradas com hasOwnProperty (POST e GET) — nada de modelo ou efeito vindo do cliente;
+//   (8) o commit dos efeitos virais NÃO tocou lib/clips nem o pipeline de vídeo;
+//   (9) mutantes: enum fora do schema, modelo trocado, entrada aceitando valor do cliente — todos vermelhos e aplicados.
+// Enums verificados nos schemas OpenAPI salvos em 13/10 (fal-ai/vidu/template-to-video · fal-ai/kling-video/v1.6/standard/effects
+// · fal-ai/pixverse/v5.5/effects). No Kling STANDARD o enum tem 'dollar_rain_pro' e NÃO tem 'dollar_rain'.
+const VIRAL_IMG = 'https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/x/foto.jpg'
+const VIRAL_EXPECTED = {
+  fx_hug: { model: 'fal-ai/vidu/template-to-video', input: { template: 'hug', input_image_urls: [VIRAL_IMG], aspect_ratio: '9:16' } },
+  fx_kiss: { model: 'fal-ai/vidu/template-to-video', input: { template: 'kiss', input_image_urls: [VIRAL_IMG], aspect_ratio: '9:16' } },
+  fx_vampire: { model: 'fal-ai/kling-video/v1.6/standard/effects', input: { effect_scene: 'vampire_transform', input_image_urls: [VIRAL_IMG], duration: '5' } },
+  fx_wings: { model: 'fal-ai/kling-video/v1.6/standard/effects', input: { effect_scene: 'pure_white_wings', input_image_urls: [VIRAL_IMG], duration: '5' } },
+  fx_dollar_rain: { model: 'fal-ai/kling-video/v1.6/standard/effects', input: { effect_scene: 'dollar_rain_pro', input_image_urls: [VIRAL_IMG], duration: '5' } },
+  fx_muscle: { model: 'fal-ai/pixverse/v5.5/effects', input: { effect: 'Muscle Surge', image_url: VIRAL_IMG, resolution: '720p', duration: '5' } },
+}
+const MODEL_CONSTS = {
+  PIXVERSE: 'fal-ai/pixverse/v5/effects', KLING: 'fal-ai/kling-video/v1.6/standard/effects',
+  VIDU: 'fal-ai/vidu/template-to-video', PIXVERSE_55: 'fal-ai/pixverse/v5.5/effects',
+}
+const PROBES_HEAD = 'const PROBES: Record<string, { model: string; input: (image: string) => Record<string, unknown> }> = {'
+
+function loadProbes(src) {
+  const consts = Object.keys(MODEL_CONSTS).map((k) => (src.match(new RegExp('^const ' + k + " = '[^'\\n]+'", 'm')) || [''])[0])
+  const probes = block(src, PROBES_HEAD, '\n}\n')
+  if (consts.some((c) => !c) || !probes) return null
+  const js = ts.transpileModule(consts.join('\n') + '\n' + probes + '\nexport { PROBES }', { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText
+  const m = { exports: {} }
+  new Function('module', 'exports', js)(m, m.exports)
+  return m.exports.PROBES
+}
+function rulesViral(src) {
+  const P = loadProbes(src)
+  if (!P) return false
+  const fx = Object.keys(P).filter((k) => k.startsWith('fx_'))
+  const other = 'https://other.example/z.jpg'
+  return JSON.stringify(fx) === JSON.stringify(Object.keys(VIRAL_EXPECTED)) &&
+    Object.entries(VIRAL_EXPECTED).every(([k, v]) => P[k].model === v.model && JSON.stringify(P[k].input(VIRAL_IMG)) === JSON.stringify(v.input)) &&
+    // a foto é o único valor externo: trocar a foto troca só a foto
+    Object.entries(VIRAL_EXPECTED).every(([k, v]) => JSON.stringify(P[k].input(other)) === JSON.stringify(v.input).split(VIRAL_IMG).join(other)) &&
+    src.includes("const PIXVERSE_55 = 'fal-ai/pixverse/v5.5/effects'")
+}
+function rulesClosedCatalog(src) {
+  const P = loadProbes(src)
+  const probes = block(src, PROBES_HEAD, '\n}\n')
+  if (!P || !probes) return false
+  const models = new Set(Object.values(MODEL_CONSTS))
+  const lines = probes.split('\n').filter((l) => /^ {2}[a-z0-9_]+: /.test(l))
+  const entries = lines.map((l) => l.match(/^ {2}([a-z0-9_]+): \{ model: ([A-Z0-9_]+), input: \(image\) => \(\{.*\}\) \},(?: \/\/.*)?$/)).filter(Boolean)
+  const code = probes.split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n')
+  const post = fn(src, 'POST'), get = fn(src, 'GET')
+  return entries.length === lines.length && entries.length === Object.keys(P).length &&
+    entries.every((m) => m[2] in MODEL_CONSTS) &&
+    Object.values(P).every((p) => models.has(p.model) && p.input.length === 1) &&
+    !/\b(body|req|prompt|searchParams|globalThis|process)\b/.test(code) &&
+    post.includes('Object.prototype.hasOwnProperty.call(PROBES, key)') && get.includes('Object.prototype.hasOwnProperty.call(PROBES, key)') &&
+    post.includes('probe!.input(image)') && post.includes('probe!.model')
+}
+function viralUntouched() {
+  const c = git(['log', '--format=%H', '-S', 'KINEO-SONDA-EFEITOS-VIRAIS-2026-10-13', '--', ROUTE]).split('\n').filter(Boolean).pop()
+  const paths = ['lib/clips', ...PIPELINE]
+  const changed = c ? git(['diff', '--name-only', `${c}^`, c, '--', ...paths]) : git(['diff', '--name-only', 'HEAD', '--', ...paths])
+  return changed === ''
+}
+
+check('6 efeitos virais: as 6 chaves fx_* executadas devolvem o modelo e a entrada exatos do schema (a foto é o único valor externo)', () => rulesViral(SRC))
+check('7 catálogo fechado: 4 modelos fixos, entrada só (image), sem body/req/prompt; hasOwnProperty no POST e no GET', () => rulesClosedCatalog(SRC))
+check('8 o commit dos efeitos virais não tocou lib/clips nem o pipeline de vídeo (diff vazio)', () => viralUntouched())
+
+mut('Kling standard com dollar_rain (fora do enum)', "effect_scene: 'dollar_rain_pro'", "effect_scene: 'dollar_rain'", rulesViral)
+mut('Muscle Surge apontado para a PixVerse v5 (sem o enum)', 'fx_muscle: { model: PIXVERSE_55,', 'fx_muscle: { model: PIXVERSE,', rulesViral)
+mut('kiss trocado por french_kiss_8s', "template: 'kiss'", "template: 'french_kiss_8s'", rulesViral)
+mut('wings com duração 10', "effect_scene: 'pure_white_wings', input_image_urls: [image], duration: '5'", "effect_scene: 'pure_white_wings', input_image_urls: [image], duration: '10'", rulesViral)
+mut('chave fx_wings some do catálogo', '  fx_wings: { model: KLING,', '  wings: { model: KLING,', rulesViral)
+mut('foto fixa em vez da foto recebida', "fx_hug: { model: VIDU, input: (image) => ({ template: 'hug', input_image_urls: [image]", "fx_hug: { model: VIDU, input: (image) => ({ template: 'hug', input_image_urls: ['" + VIRAL_IMG + "']", rulesViral)
+mut('modelo livre (string crua) no catálogo', 'fx_hug: { model: VIDU,', "fx_hug: { model: 'fal-ai/qualquer/coisa',", rulesClosedCatalog)
+mut('entrada lê valor de fora', "fx_vampire: { model: KLING, input: (image) => ({ effect_scene: 'vampire_transform',", "fx_vampire: { model: KLING, input: (image) => ({ effect_scene: (globalThis as any).scene ?? 'vampire_transform',", rulesClosedCatalog)
+mut('GET sem hasOwnProperty no catálogo', ': Object.prototype.hasOwnProperty.call(PROBES, key) ? PROBES[key] : undefined', ': PROBES[key]', rulesClosedCatalog)
+
 console.log(fails ? `\n${fails} FALHA(S)` : '\nTODOS PASS')
 process.exit(fails ? 1 : 0)

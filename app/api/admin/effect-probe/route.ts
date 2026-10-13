@@ -7,6 +7,7 @@
 // banco nem cobra crédito: é sonda de qualidade, ~US$ 0,20–0,50 por efeito.
 //   POST { probe: 'package_explosion' | …, image_url } → { model, request_id }
 //   GET  ?probe=…&request_id=…                        → { status, video_url }
+//   KINEO-SONDA-EFEITOS-VIRAIS-2026-10-13: POST { probe: 'fx_hug' | 'fx_kiss' | 'fx_vampire' | 'fx_wings' | 'fx_dollar_rain' | 'fx_muscle', image_url }
 //   KINEO-SONDA-H3MAX-2026-10-13: POST { probe: 'h3_t2v' | 'h3max_t2v', prompt } · { probe: 'h3_i2v' | 'h3max_i2v', prompt, image_url }
 import { NextRequest, NextResponse } from 'next/server'
 import { fal } from '@fal-ai/client'
@@ -21,6 +22,7 @@ const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', '
 const PIXVERSE = 'fal-ai/pixverse/v5/effects'
 const KLING = 'fal-ai/kling-video/v1.6/standard/effects'
 const VIDU = 'fal-ai/vidu/template-to-video'
+const PIXVERSE_55 = 'fal-ai/pixverse/v5.5/effects' // KINEO-SONDA-EFEITOS-VIRAIS-2026-10-13 — o Muscle Surge só existe no enum da v5.5
 
 /** Catálogo fechado: chave → modelo + entrada fixa (a foto entra no lugar certo de cada fornecedor). */
 const PROBES: Record<string, { model: string; input: (image: string) => Record<string, unknown> }> = {
@@ -48,6 +50,16 @@ const PROBES: Record<string, { model: string; input: (image: string) => Record<s
   product_closeup: { model: PIXVERSE, input: (image) => ({ effect: 'Product close-up', image_url: image, resolution: '720p', duration: '5' }) },
   splash: { model: KLING, input: (image) => ({ effect_scene: 'splashsplash', input_image_urls: [image], duration: '5' }) },
   product_up: { model: VIDU, input: (image) => ({ template: 'creatice_product_up', input_image_urls: [image], aspect_ratio: '9:16' }) },
+  // KINEO-SONDA-EFEITOS-VIRAIS-2026-10-13 — fundador (13/10: "tudo sim"): 6 efeitos virais de pessoa (os mais usados no mercado,
+  // 09/10) ganham 1 render real cada antes de qualquer decisão de produto. Só sonda: lib/clips NÃO muda. Enums conferidos no
+  // OpenAPI da fal em 13/10. Vidu hug/kiss: UMA foto com as duas pessoas lado a lado (formato do exemplo oficial). No Kling
+  // standard o enum só tem 'dollar_rain_pro' (não existe 'dollar_rain').
+  fx_hug: { model: VIDU, input: (image) => ({ template: 'hug', input_image_urls: [image], aspect_ratio: '9:16' }) },
+  fx_kiss: { model: VIDU, input: (image) => ({ template: 'kiss', input_image_urls: [image], aspect_ratio: '9:16' }) },
+  fx_vampire: { model: KLING, input: (image) => ({ effect_scene: 'vampire_transform', input_image_urls: [image], duration: '5' }) },
+  fx_wings: { model: KLING, input: (image) => ({ effect_scene: 'pure_white_wings', input_image_urls: [image], duration: '5' }) },
+  fx_dollar_rain: { model: KLING, input: (image) => ({ effect_scene: 'dollar_rain_pro', input_image_urls: [image], duration: '5' }) },
+  fx_muscle: { model: PIXVERSE_55, input: (image) => ({ effect: 'Muscle Surge', image_url: image, resolution: '720p', duration: '5' }) },
 }
 
 // KINEO-SONDA-H3MAX-2026-10-13 — fundador (13/10: "Testar o H3"): o MiniMax H3 Max (versão pós-treinada pela fal) é candidato a
