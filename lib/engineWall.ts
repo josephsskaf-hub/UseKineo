@@ -73,7 +73,9 @@ const REPOSITORY_ENGINE_HREFS: Record<string, string> = {
   cinematic_veo: '/studio?engine=veo&intent_campaign=home_curated',
   cinematic_hollywood: '/studio?engine=hollywood&intent_campaign=home_curated',
   cinematic_h3: '/studio?engine=h3&intent_campaign=home_curated',
-  cinematic_omni: '/studio?engine=omni&intent_campaign=home_curated',
+  // KINEO-SELO-OMNI-2026-10-13 — Omni fora da oferta (12/10): o vídeo fica, o clique abre o Kling 3 (a alternativa
+  // oficial do Omni: mesmo custo, mesma estrada de cenas ancoradas em imagem).
+  cinematic_omni: '/studio?engine=hollywood&intent_campaign=home_curated',
   presenter: '/avatar?intent_campaign=home_curated',
 }
 
@@ -126,7 +128,9 @@ const ENGINE_BADGES: Record<string, string> = {
   // tela, substituir por minimax e omni flash") — os dois motores novos entram
   // na parede com selo honesto: todo clipe destes cards É render real deles.
   cinematic_h3: 'MINIMAX H3',
-  cinematic_omni: 'OMNI FLASH',
+  // KINEO-SELO-OMNI-2026-10-13 — fundador (13/10, "tudo sim"): o vídeo do Omni fica na vitrine com selo genérico,
+  // sem prometer um motor que não se escolhe mais.
+  cinematic_omni: 'AI FILM',
   basic_ai: 'AI',
   fast: 'KINEO 1',
   presenter: 'AVATAR',
