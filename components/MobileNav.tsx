@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { MORE_NAV, MORE_TOOLS_NAV, navItemIdFor, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
+import { MORE_NAV, MORE_TOOLS_NAV, WORKSPACE_NAV, navItemIdFor, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { CLIPS_PUBLIC } from '@/lib/clips/clipLaunch'
 import { usePathname } from 'next/navigation'
@@ -152,7 +152,11 @@ const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolea
 // KINEO-NAV-4-ITENS-2026-09-25 — o grupo Tools (Images/Audio) virou parte do
 // "More"; Account continua aqui porque o celular nao tem o bloco de conta do Sidebar.
 // KINEO-DUAS-PORTAS-2026-10-13 — Imagem, Clipes e Espaços saíram da barra e ABREM o "More" (mesma ordem da lateral).
+// KINEO-TRENDING-2026-10-13 — o "🔥 Trending" da lateral (WORKSPACE_NAV) abre o "More" do celular: a barra fica com as 5 vagas de
+// sempre (nada encolhe) e o item novo é o 1º da folha.
+const TRENDING_LINK = WORKSPACE_NAV.find(item => item.href === '/trending')
 const MORE_LINKS = [
+  ...(TRENDING_LINK ? [{ href: TRENDING_LINK.href, label: TRENDING_LINK.label, signedIn: false }] : []),
   ...MORE_TOOLS_NAV.filter(item => item.href !== '/clips' || CLIPS_PUBLIC).map(item => ({ href: item.href, label: item.label, signedIn: false })),
   ...MORE_NAV.map(item => ({ ...item, signedIn: false })),
   // KINEO-MENU-ENXUTO-2026-10-09 — par da lateral: Invite & Earn + Affiliate viram "Earn 30%" (era 40% até 13/10).

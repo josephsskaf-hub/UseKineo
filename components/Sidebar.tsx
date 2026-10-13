@@ -181,6 +181,13 @@ const NAV_ICONS: Record<string, JSX.Element> = {
       <path d="M8.5 11h2M13.5 11h2" />
     </svg>
   ),
+  // KINEO-TRENDING-2026-10-13 — "🔥 Trending" (a página /trending): seta de tendência subindo; o fogo já está no rótulo.
+  trending: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m3 17 6-6 4 4 8-8" />
+      <path d="M15 7h6v6" />
+    </svg>
+  ),
   ads: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M4 9.5h3l7.5-4.5v14L7 14.5H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1Z" />

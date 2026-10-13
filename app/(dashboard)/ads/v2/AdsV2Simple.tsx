@@ -75,7 +75,7 @@ import { ADS_SAMPLE_TIER, adsSampleCopy, type AdsSampleCopy } from '@/lib/ads/sa
 // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — depois da amostra: a oferta do Business (frases nas 16 línguas, números vindos do servidor).
 import { adsAfterSampleCopy, fillAfterSample, type AdsBusinessOffer } from '@/lib/ads/afterSample'
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — a escolha de estilo do produto (Auto + 5 efeitos), nas 16 línguas.
-import { ADS_V2_STYLES, ADS_V2_STYLES_PUBLIC, adsV2StyleCopy, adsV2SuggestedStyle, type AdsV2StyleChoice, type AdsV2StyleCopy } from '@/lib/ads/v2Styles'
+import { ADS_V2_STYLES, ADS_V2_STYLES_PUBLIC, adsV2StyleCopy, adsV2SuggestedStyle, isAdsV2Style, type AdsV2StyleChoice, type AdsV2StyleCopy } from '@/lib/ads/v2Styles'
 import { AdsPresenterToggle, AdsStylePicker } from '@/components/ads/AdsStyles'
 // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator de IA ("Person talking about it"): interruptor e frases nas 16 línguas (lib pura).
 import { ADS_V2_PRESENTER_POSTER, ADS_V2_PRESENTER_PUBLIC, adsV2PresenterById, adsV2PresenterCopy, type AdsV2PresenterCopy } from '@/lib/ads/v2Presenter'
@@ -550,6 +550,18 @@ export function AdsV2SimpleSession({
   const [tier, setTier] = useState<AdsV2Tier | null>(sample ? ADS_SAMPLE_TIER : null)
   // KINEO-ESTILOS-PRODUTO-2026-10-09 — null = segue a sugestão do setor; a pessoa escolheu = vale a escolha dela.
   const [styleChoice, setStyleChoice] = useState<AdsV2StyleChoice | null>(null)
+  // KINEO-TRENDING-2026-10-13 — /ads/v2?style=<chave> (o "Make mine" do /trending) abre com o estilo já marcado. Só chave do
+  // catálogo (isAdsV2Style) e só com os estilos ligados; qualquer outra coisa é ignorada e a tela segue a sugestão do setor.
+  useEffect(() => {
+    if (!ADS_V2_STYLES_PUBLIC) return
+    let wanted: string | null = null
+    try {
+      wanted = new URLSearchParams(window.location.search).get('style')
+    } catch {
+      wanted = null
+    }
+    if (isAdsV2Style(wanted)) setStyleChoice(wanted)
+  }, [])
   // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator começa desligado (a pessoa liga; nada muda para quem não liga).
   const [presenterChoice, setPresenterChoice] = useState(false)
   // KINEO-ATORES-IA-2026-10-13 — o apresentador escolhido na biblioteca (null = "Surprise me", o sorteio de sempre).
