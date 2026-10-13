@@ -46,6 +46,8 @@ export const LIFECYCLE_EMAIL_EVENT_NAMES = [
   // ── campanhas de admin (carimbo `*_emailed_v1`) ──────────────────────────
   'season_letter_emailed_v1',
   'next_episode_wall_emailed_v1',
+  // KINEO-ASSINANTE-DIA3-2026-10-13 — o e-mail do assinante parado virou cron diário (dia 3); entra na janela de 24h de todos.
+  'subscriber_idle_sent',
   'checkout_recovery_emailed_v1',
   // KINEO-RESGATE-PAGAMENTO-2026-10-08 — a carta QUENTE do checkout (admin/send-checkout-hot-nudge, 30 min depois do
   // clique de comprar). Nasceu em 07/09 FORA desta lista e ficou invisivel para a supressao de 24h: em 30 dias, 8 das

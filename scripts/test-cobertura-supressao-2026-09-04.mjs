@@ -200,7 +200,8 @@ const INVISIVEIS_CONHECIDAS = {
   'app/api/admin/send-dfy-offer': 'campanha manual, boolean dfy_offer_emailed',
   'app/api/admin/send-feature-announce': 'campanha manual, boolean feature_announce_emailed',
   'app/api/admin/send-pack-offer': 'campanha manual, boolean pack_offer_emailed',
-  'app/api/admin/send-subscriber-idle': 'campanha manual',
+  // KINEO-ASSINANTE-DIA3-2026-10-13 — send-subscriber-idle saiu daqui: virou cron diário, respeita a supressão e carimba
+  // 'subscriber_idle_sent' (na lista canônica de lib/lifecycle/emailEvents.ts).
 }
 
 // Rotas que NAO enviam: precisam de motivo, senao um "nao envia" por engano

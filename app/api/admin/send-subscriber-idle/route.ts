@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { unsubscribeHeaders } from '@/lib/emailSuppression'
+import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression' // KINEO-ASSINANTE-DIA3-2026-10-13
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { creditCostFor } from '@/lib/credits/engineCost'
 import {
@@ -54,6 +55,10 @@ function autorizadoPorCron(req: NextRequest): boolean {
   if (!cronSecret) return false
   return req.headers.get('authorization') === `Bearer ${cronSecret}`
 }
+
+// Carimbo literal = STAMP (o compilador confere): a cobertura da supressão lê o nome literal na rota. KINEO-ASSINANTE-DIA3-2026-10-13
+const STAMP_LITERAL: typeof STAMP = 'subscriber_idle_sent'
+void STAMP_LITERAL
 
 export async function GET(req: NextRequest) {
   const readAt = Date.now() // Same time boundary on every page of this request.
@@ -117,7 +122,7 @@ export async function GET(req: NextRequest) {
       for (const r of s ?? []) jaAvisado.add(r.user_id as string)
       for (const r of q ?? []) quente.add(r.user_id as string)
     }
-    const alvos: IdleTarget[] = subs
+    const alvosTodos: IdleTarget[] = subs
       .filter((s) => !jaAvisado.has(s.id) && !quente.has(s.id))
       .map((s) => {
         const lv = lastVideo.get(s.id)
@@ -126,6 +131,11 @@ export async function GET(req: NextRequest) {
       })
       .filter((t) => t.daysIdle == null || t.daysIdle >= IDLE_DAYS)
       .sort((a, b) => b.credits - a.credits)
+    // KINEO-ASSINANTE-DIA3-2026-10-13 — agora que roda sozinho todo dia, respeita a janela de 24h da casa: quem levou
+    // QUALQUER outro e-mail nosso nas últimas 24h fica para o dia seguinte (e o carimbo deste entra na lista canônica,
+    // lib/lifecycle/emailEvents.ts, para os outros jobs também o verem). Falha da leitura = suprime mais, nunca menos.
+    const sup = await loadLifecycleSuppression(admin, alvosTodos.map((a) => a.id))
+    const alvos = alvosTodos.filter((a) => !sup.isSuppressed(a.id))
 
     if (!confirm) {
       return NextResponse.json({
