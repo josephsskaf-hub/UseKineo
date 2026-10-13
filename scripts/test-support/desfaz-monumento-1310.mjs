@@ -11,6 +11,9 @@
 // 13/10 (parte 2, "KINEO-MONUMENTO-2026-10-13 (duração)"): o bloco do Seedance 35/60/90 que cobre a fala com imagem
 // (lib/cinematic/seedanceCobreAFala.ts; prova: scripts/test-monumento-duracao-1310.mjs) entrou SÓ com linhas novas que levam a
 // mesma marca — nenhuma linha da base trocada; a lista abaixo continua com as cinco.
+// 13/10 (parte 3, "KINEO-MONUMENTO-2026-10-13 (escritor) — KINEO-ESCRITOR-MONUMENTO-2026-10-13"): a régua do escritor em
+// pedido de lugar real (lib/cinematic/escritorNoLugar.ts; prova: scripts/test-escritor-monumento-1310.mjs) entrou na rota
+// SÓ com linhas novas (1 import + 4 de comentário + 2 de código) que levam a mesma marca — nenhuma linha da base trocada.
 export const MARCA_MONUMENTO = 'KINEO-MONUMENTO-2026-10-13'
 
 export const TROCADAS_MONUMENTO = [

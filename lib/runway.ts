@@ -273,6 +273,8 @@ export interface SceneWriterOptions {
   timeoutMs?: number
   /** KINEO-KLING25-PLANOS-5S-2026-09-28 — segundos do plano que a fala enche (Kling 2.5: 5). Ausente = "~10-second scene", o texto de sempre. */
   sceneSeconds?: number
+  /** KINEO-ESCRITOR-MONUMENTO-2026-10-13 — frase extra da regra da fala quando o pedido é um lugar real (lib/cinematic/escritorNoLugar.ts). Ausente = texto de sempre. */
+  placeRule?: string
 }
 
 export async function generateScenes(prompt: string, count = 4, visualPolicy?: VisualPromptPolicy, writerOptions?: SceneWriterOptions): Promise<Scene[]> {
@@ -284,7 +286,7 @@ export async function generateScenes(prompt: string, count = 4, visualPolicy?: V
   const wps = writerOptions?.wordsPerScene
   const wpsLo = wps ? Math.max(6, Math.floor(wps[0])) : 0
   const voiceoverRule = wps
-    ? `${wpsLo}-${Math.max(wpsLo, Math.ceil(wps[1]))} words — this line alone must fill its ~${typeof writerOptions?.sceneSeconds === 'number' && writerOptions.sceneSeconds > 0 ? Math.round(writerOptions.sceneSeconds) : 10}-second scene when spoken; two sentences are fine. Every event, place, clock time, date, name and number in this line must come from the idea text: never invent a character name, a time of day, a date or a statistic, and describe people exactly as the idea describes them` // KINEO-ESCRITOR-R2-2026-09-15: ensaio do Veo inventou "Dr. Emily Carter" e "4:17 AM"
+    ? `${wpsLo}-${Math.max(wpsLo, Math.ceil(wps[1]))} words — this line alone must fill its ~${typeof writerOptions?.sceneSeconds === 'number' && writerOptions.sceneSeconds > 0 ? Math.round(writerOptions.sceneSeconds) : 10}-second scene when spoken; two sentences are fine. Every event, place, clock time, date, name and number in this line must come from the idea text: never invent a character name, a time of day, a date or a statistic, and describe people exactly as the idea describes them${typeof writerOptions?.placeRule === 'string' ? writerOptions.placeRule : ''}` // KINEO-ESCRITOR-R2-2026-09-15 · placeRule: KINEO-ESCRITOR-MONUMENTO-2026-10-13 (ausente = texto byte a byte): ensaio do Veo inventou "Dr. Emily Carter" e "4:17 AM"
     : '10-22 words'
   // KINEO-IDIOMA-DO-TEXTO-2026-09-12 — só entra no texto quando a língua não é
   // inglês (sem opção o prompt continua byte-idêntico: golden hash do Codex).
