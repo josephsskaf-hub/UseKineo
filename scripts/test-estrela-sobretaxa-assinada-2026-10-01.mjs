@@ -133,7 +133,9 @@ if (BASE) {
   // Reancorado 09/10 (KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 [TRAVA 8.2 — "pode abrir tudo" do fundador 09/10]): o parceiro ativo entrou no
   // portão do 2.5 SÓ com linhas marcadas (import, comentário, leitura do parceiro; a linha do s25AccessFor nasceu no S25-ABRE e segue com as
   // duas marcas) e nenhuma linha da base trocada; elas saem em memória dos dois lados. Prova: scripts/test-parceiro-abre-tudo-2026-10-09.mjs.
-  const semS25 = (s) => (s == null ? s : s.split('\n').filter((l) => !l.includes('KINEO-S25-NOTA95-2026-10-06') && !l.includes('KINEO-S25-ABRE-2026-10-06') && !l.includes('KINEO-JUIZ-STILL-2026-10-06') && !l.includes('KINEO-SAIDA-REGIAO-2026-10-07') && !l.includes('KINEO-PARCEIRO-ABRE-TUDO-2026-10-09') && !TROCADAS_S25.includes(l)).join('\n'))
+  // Reancorado 13/10 (KINEO-RECONEXAO-MESMO-FILME-2026-10-13): o conserto da reconexão entrou na rota SÓ com linhas marcadas e nenhuma linha da base trocada.
+  // Prova: scripts/test-reconexao-mesmo-filme-2026-10-13.mjs.
+  const semS25 = (s) => (s == null ? s : s.split('\n').filter((l) => !l.includes('KINEO-S25-NOTA95-2026-10-06') && !l.includes('KINEO-S25-ABRE-2026-10-06') && !l.includes('KINEO-JUIZ-STILL-2026-10-06') && !l.includes('KINEO-SAIDA-REGIAO-2026-10-07') && !l.includes('KINEO-PARCEIRO-ABRE-TUDO-2026-10-09') && !l.includes('KINEO-RECONEXAO-MESMO-FILME-2026-10-13') && !TROCADAS_S25.includes(l)).join('\n'))
   // Reancorado 13/10 (KINEO-MONUMENTO-2026-10-13 — o fundador autorizou o conserto do monumento no pipeline): linhas novas marcadas + 5 linhas da
   // base trocadas de propósito (contexto dos filtros anti-invenção via comVocabularioDoLugar); semMonumento tira só essas, dos dois lados.
   // Prova: scripts/test-monumento-real-1310.mjs.

@@ -1155,6 +1155,22 @@ const EMPTY_HOLD: UnsettledHold = { held: 0, newestAgeMs: null }
 // recebem a mesma frase: render ainda no forno (mediana medida: 2 minutos —
 // 11 das 16 recusas) e render velho que já morreu. Fail-closed continua
 // devolvendo held=0, que preserva o comportamento antigo inteiro.
+// A tela reconecta com o MESMO generationId quando o fetch cai (aba em segundo plano, rede do celular). // KINEO-RECONEXAO-MESMO-FILME-2026-10-13
+// Esse pedido já debitou, então o saldo lido é o de DEPOIS do próprio filme. Caso real (TR, 13/10 19:36): débito de 9, reconexão 10 s // KINEO-RECONEXAO-MESMO-FILME-2026-10-13
+// depois → saldo 5 < 9 → 402 credits_held_by_render pelo crédito do PRÓPRIO filme → tela "failed" e painel FAILED com 3/3 cenas no forno. // KINEO-RECONEXAO-MESMO-FILME-2026-10-13
+// Débito vivo desta geração = reconexão: o portão de saldo não vale, e o claim logo abaixo (replay/pending) decide sem debitar de novo // KINEO-RECONEXAO-MESMO-FILME-2026-10-13
+// (débito idempotente pelo mesmo render_id). Geração nova nunca tem débito. Erro de leitura → false → portão antigo (fail-closed). // KINEO-RECONEXAO-MESMO-FILME-2026-10-13
+async function geracaoJaDebitada(userId: string, generationId: string): Promise<boolean> { // KINEO-RECONEXAO-MESMO-FILME-2026-10-13
+  try { // KINEO-RECONEXAO-MESMO-FILME-2026-10-13
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL // KINEO-RECONEXAO-MESMO-FILME-2026-10-13
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY // KINEO-RECONEXAO-MESMO-FILME-2026-10-13
+    if (!url || !key) return false // KINEO-RECONEXAO-MESMO-FILME-2026-10-13
+    const db = createAdminClient(url, key, { auth: { persistSession: false } }) // KINEO-RECONEXAO-MESMO-FILME-2026-10-13
+    const { data, error } = await db.from('credit_debits').select('user_id, refunded_at').eq('render_id', `cinematic-${cinematicClaimId(userId, generationId)}`).maybeSingle() // KINEO-RECONEXAO-MESMO-FILME-2026-10-13
+    if (error || !data) return false // KINEO-RECONEXAO-MESMO-FILME-2026-10-13
+    return data.user_id === userId && !data.refunded_at // KINEO-RECONEXAO-MESMO-FILME-2026-10-13
+  } catch { return false } // KINEO-RECONEXAO-MESMO-FILME-2026-10-13
+} // KINEO-RECONEXAO-MESMO-FILME-2026-10-13
 type UnsettledHold = { held: number; newestAgeMs: number | null }
 async function creditsHeldByUnsettledRender(userId: string): Promise<UnsettledHold> {
   try {
@@ -2216,6 +2232,9 @@ async function manipularPost(req: NextRequest) {
     // não há consulta nova nenhuma: quem tem saldo não paga nada por isto.
     let hold: UnsettledHold = EMPTY_HOLD
     let liveRelease: LiveHoldRelease = NO_LIVE_RELEASE
+    const reconexaoDoMesmoFilme = balance < cost && await geracaoJaDebitada(user.id, generationId) // KINEO-RECONEXAO-MESMO-FILME-2026-10-13
+    const saldoDaReconexao = balance // KINEO-RECONEXAO-MESMO-FILME-2026-10-13 — o saldo real volta logo depois dos dois portões
+    if (reconexaoDoMesmoFilme) { balance = cost; console.info('[cinematic] reconexão da mesma geração já debitada — portão de saldo pulado') } // KINEO-RECONEXAO-MESMO-FILME-2026-10-13
     if (balance < cost) {
       hold = await creditsHeldByUnsettledRender(user.id)
       if (classifyHold({ hold, balance, cost }).explainsGap) {
@@ -2472,6 +2491,7 @@ async function manipularPost(req: NextRequest) {
         { status: 402 }
       )
     }
+    if (reconexaoDoMesmoFilme) balance = saldoDaReconexao // KINEO-RECONEXAO-MESMO-FILME-2026-10-13
 
     // KINEO-353A.1 — MOTOR REAL. O #353A gravava `engine: 'hollywood'` no
     // FAILFAST premium, o que apagava H3 e Omni: os tres viravam a mesma linha
