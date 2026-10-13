@@ -258,6 +258,13 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
             Try the free generator
           </OrganicCtaLink>
         </div>
+        {/* KINEO-PAGINAS-LOTE1-2026-10-12 — irmãs do lote 1: quem chega aqui pergunta pela marca d'água e pelo filme longo. */}
+        <p style={{ marginTop: 28, textAlign: 'center', fontSize: 14, color: '#86868b' }}>
+          Related:{' '}
+          <Link href="/ai-shorts-generator-no-watermark" style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}>AI Shorts with no watermark — what is free and what is paid</Link>
+          {' · '}
+          <Link href="/ai-short-film-generator" style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}>AI short film generator</Link>
+        </p>
       </div>
       <Footer />
     </main>
