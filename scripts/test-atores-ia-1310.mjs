@@ -156,10 +156,11 @@ const arquivosOk = (L) => {
   return files.length > 0 && files.every((f) => pointed.has(f))
 }
 await check('2a retratos WebP 9:16 ≤ 120 KB, vídeos MP4 ≤ 400 KB, amostras MP3 ≤ 120 KB; apontado ⇔ existe; pendente (null) ⇔ ausente; nada solto na pasta', () => arquivosOk(P.ADS_V2_PRESENTER_LIBRARY))
-await check('2b o que já existe hoje: 2 retratos (Sofia, Amara, de renders internos), 2 vídeos e as amostras da voz MiniMax das 6 do sorteio', () => {
+await check('2b 12 retratos (Sofia/Amara de renders internos; os outros 10 gerados em produção 13/10), 2 vídeos e as 12 amostras de voz (6 MiniMax + 6 ElevenLabs) — KINEO-ATORES-IA-RETRATOS-2026-10-13', () => {
   const L = P.ADS_V2_PRESENTER_LIBRARY
-  return L.filter((p) => p.portrait).map((p) => p.id).join() === 'sofia,amara' && L.filter((p) => p.clip).length === 2 &&
-    L.filter((p) => p.voiceSample).map((p) => p.id).join() === 'sofia,clara,hannah,jade,amara,chloe' && L.filter((p) => p.voiceSample).every((p) => p.voice.engine === 'minimax')
+  return L.length === 12 && L.every((p) => p.portrait) && L.filter((p) => p.clip).length === 2 &&
+    L.every((p) => p.voiceSample) && L.filter((p) => p.voice.engine === 'minimax').map((p) => p.id).join() === 'sofia,clara,hannah,jade,amara,chloe' &&
+    L.filter((p) => p.gender === 'man').every((p) => p.voice.engine === 'eleven')
 })
 
 // ═══ 3. nenhuma entrada livre ════════════════════════════════════════════════════════════════════════════════════════
@@ -318,8 +319,8 @@ await mutante('contrato aceitando id sem o ator ligado', F.contract, "    if (!p
   (m) => contratoFechado(world({ [F.contract]: m }).load(F.contract)))
 await mutante('Sofia com outra descrição (sai do sorteio de sempre)', F.presenter, "look: 'a friendly woman in her late twenties with long dark wavy hair', pronoun: 'She', voice: { engine: 'minimax' }, portrait: `${P}sofia.webp`",
   "look: 'a friendly woman in her late twenties with long dark wavy hair and glasses', pronoun: 'She', voice: { engine: 'minimax' }, portrait: `${P}sofia.webp`", (m) => bibliotecaOk(comPresenter(m), C))
-await mutante('homem com a voz feminina de sempre', F.presenter, "pronoun: 'He', voice: { engine: 'eleven', voice: 'Brian' }, portrait: null, clip: null, voiceSample: null },\n  { id: 'rahul'",
-  "pronoun: 'He', voice: { engine: 'minimax' }, portrait: null, clip: null, voiceSample: null },\n  { id: 'rahul'", (m) => bibliotecaOk(comPresenter(m), C))
+await mutante('homem com a voz feminina de sempre', F.presenter, "voice: { engine: 'eleven', voice: 'Brian' }, portrait: `${P}marcus.webp`", // reancorado KINEO-ATORES-IA-RETRATOS-2026-10-13
+  "voice: { engine: 'minimax' }, portrait: `${P}marcus.webp`", (m) => bibliotecaOk(comPresenter(m), C))
 await mutante('apresentador de 19 anos', F.presenter, "{ id: 'yasmin', name: 'Yasmin', gender: 'woman', ageMin: 25,", "{ id: 'yasmin', name: 'Yasmin', gender: 'woman', ageMin: 19,", (m) => bibliotecaOk(comPresenter(m), C))
 await mutante('espelho do contrato sem um id', F.contract, "'lucia', 'yasmin'] as const", "'lucia'] as const", (m) => bibliotecaOk(P, world({ [F.contract]: m }).load(F.contract)))
 await mutante('escolha ignorada (sempre o sorteio)', F.presenter, '  const pick = adsV2PresenterById(input.presenterId)\n', '  const pick = adsV2PresenterById(null)\n',
@@ -331,7 +332,7 @@ await mutante('padrão mudado (sorteio com outra semente)', F.presenter, '  let 
 await mutante('voz da montagem sem reserva (pedido trava se a ElevenLabs cair)', F.advance, '    if (!fallbackToDefault) throw e\n', '    throw e\n', (m) => vozOk(m))
 await mutante('voz do ator caindo na voz de sempre (mulher na boca de homem)', F.advance, '    if (!fallbackToDefault) throw e\n', '', (m) => vozOk(m))
 await mutante('ElevenLabs com parâmetro inventado', F.tts, '  return { text, voice, stability: 0.5 }\n}', '  return { text, voice, stability: 0.5, speed: 1.2 } as never\n}', (m) => elevenOk(m))
-await mutante('retrato apontando arquivo que não existe', F.presenter, "portrait: null, clip: null, voiceSample: `${P}clara-voice.mp3` },", "portrait: `${P}clara.webp`, clip: null, voiceSample: `${P}clara-voice.mp3` },",
+await mutante('retrato apontando arquivo que não existe', F.presenter, "portrait: `${P}clara.webp`, clip: null", "portrait: `${P}clara-nao-existe.webp`, clip: null", // reancorado KINEO-ATORES-IA-RETRATOS-2026-10-13
   (m) => arquivosOk(comPresenter(m).ADS_V2_PRESENTER_LIBRARY))
 await mutante('amostra marcada pendente com o arquivo lá (a tela esconderia a voz)', F.presenter, "clip: `${P}amara.mp4`, voiceSample: `${P}amara-voice.mp3` },", "clip: `${P}amara.mp4`, voiceSample: null },",
   (m) => arquivosOk(comPresenter(m).ADS_V2_PRESENTER_LIBRARY))
