@@ -77,6 +77,8 @@ export function shouldRouteGenerateToPreview(args: {
   params: { studio?: string | null; autoanalyze?: string | null; prompt?: string | null; create_intent?: string | null; resume?: string | null }
   filmCost: number | null
   publicFlag?: boolean
+  /** KINEO-PRIMEIRO-FILME-2026-10-13 — custo do filme grátis de 15 s do Seedance 1.5, só quando o pedido é Seedance. */
+  freeShortFilmCost?: number | null
 }): boolean {
   if (!previaEligible(args.profile, args.publicFlag ?? PREVIA_CENAS_PUBLIC)) return false
   const p = args.params
@@ -85,6 +87,9 @@ export function shouldRouteGenerateToPreview(args: {
   if (typeof p.prompt !== 'string' || p.prompt.trim().length < PREVIA_IDEA_MIN) return false
   const balance = typeof args.profile?.video_credits === 'number' ? args.profile.video_credits : 0
   const cost = typeof args.filmCost === 'number' && args.filmCost > 0 ? args.filmCost : 1
+  // [TRAVA 8.2 — vai do fundador 13/10 'tudo sim nos 3 consertos'] KINEO-PRIMEIRO-FILME-2026-10-13 (CONSERTO 1) — saldo que paga o
+  // filme grátis de 15 s não vai para a prévia (que leva ao /pricing): o pedido desce para os 15 s (lib/growth/descidaFilmeGratis.ts).
+  if (typeof args.freeShortFilmCost === 'number' && args.freeShortFilmCost > 0 && balance >= args.freeShortFilmCost) return false
   return balance < cost
 }
 

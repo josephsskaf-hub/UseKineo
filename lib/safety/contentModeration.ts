@@ -25,6 +25,7 @@ export type ModerationSurface =
   | 'footage' | 'ads_brief' | 'ads_render' | 'images_reference'
   | 'spaces' // KINEO-ESPACOS-2026-09-30 — pedido do "Espaços" (o que vai dentro do espaço vazio)
   | 'estrela' // KINEO-ESTRELA-DO-FILME-2026-09-29 — still da estrela (Nano Banana Pro edit) conferido ANTES de virar âncora de cena
+  | 'script' // KINEO-PRIMEIRO-FILME-2026-10-13 — o texto colado, antes da nova tentativa do roteirista que recusou (/api/generate-script)
 export type ModerationStage = 'input' | 'output' | 'upload'
 
 export type ModerationVerdict =

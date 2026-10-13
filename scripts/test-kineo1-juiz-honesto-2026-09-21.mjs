@@ -55,7 +55,11 @@ const adm = rd('lib/admin/fastCoherence.ts')
 checa('leitor do painel passa a duração do CLAIM (já clampada) ao juiz, com a do vídeo de reserva', adm.includes('claim_seconds: number | null') && adm.includes('filmSeconds: r.claim_seconds ?? r.seconds'))
 checa('scoreFastCoherence entrega narração + duração ao normalizador e consulta o caso conhecido com a narração', rd('lib/fastCoherence.ts').includes('const known = knownCoherenceCase(input.prompt, input.narration)') && rd('lib/fastCoherence.ts').includes('scenes: input.scenes ?? null, narration: input.narration, filmSeconds: input.filmSeconds ?? null }'))
 const gs = rd('app/api/generate-script/route.ts')
-checa('o ESCRITOR recusa a recusa (422 model_refused_topic) antes de qualquer gasto, pela mesma fonte única', gs.includes("import { looksLikeModelRefusal, MODEL_REFUSAL_MESSAGE } from '@/lib/modelRefusal'") && gs.includes("if (looksLikeModelRefusal(script)) {\n      return await recusar(422, { error: MODEL_REFUSAL_MESSAGE, reason: 'model_refused_topic', retryable: false }"))
+// Reancorado 13/10 (KINEO-PRIMEIRO-FILME-2026-10-13, CONSERTO 3 aprovado pelo fundador): antes da recusa, a rota tenta UMA vez só
+// com a história do texto colado (guardião próprio: scripts/test-primeiro-filme-1310.mjs). Tiradas as linhas marcadas, a recusa 422
+// volta a ser a primeira coisa do bloco — byte a byte a de antes.
+const gsBase = gs.split('\n').filter((l) => !l.includes('KINEO-PRIMEIRO-FILME-2026-10-13')).join('\n')
+checa('o ESCRITOR recusa a recusa (422 model_refused_topic) antes de qualquer gasto, pela mesma fonte única', gs.includes("import { looksLikeModelRefusal, MODEL_REFUSAL_MESSAGE } from '@/lib/modelRefusal'") && gsBase.includes("if (looksLikeModelRefusal(script)) {\n      return await recusar(422, { error: MODEL_REFUSAL_MESSAGE, reason: 'model_refused_topic', retryable: false }"))
 
 console.log(`\n${ok} ok · ${falhas.length} falhas`)
 for (const f of falhas) console.log('  ✗ ' + f)

@@ -265,6 +265,8 @@ import MrrEpisodeValue from '@/components/growth/MrrEpisodeValue'
 import MrrShareFooter from '@/components/growth/MrrShareFooter'
 import FilmReadyExits from '@/components/FilmReadyExits' // KINEO-FLUXO-NOVO-2026-09-25 — as 3 saídas do filme pronto
 import FilmReady60sUpsell from '@/components/FilmReady60sUpsell' // KINEO-VERSAO-60S-2026-10-13 — "Make the 60-second version of this film"
+import { decidirDescidaFilmeGratis, lerDescidaDaUrl, notaDaDescida, DESCIDA_FILME_GRATIS_EVENT, DESCIDA_FILME_GRATIS_PARAM, DESCIDA_FILME_GRATIS_VERSION } from '@/lib/growth/descidaFilmeGratis' // KINEO-PRIMEIRO-FILME-2026-10-13
+import { BUY_CREATOR_FILM_SECONDS, buyCreatorPrice } from '@/lib/growth/buyCreatorOffer' // KINEO-PRIMEIRO-FILME-2026-10-13 — o preço da nota (o mesmo do bloco pós-filme)
 import { film60UpsellEligible } from '@/lib/growth/filmReady60s' // KINEO-VERSAO-60S-2026-10-13
 // KINEO-PAREDE-V1-2026-09-23 — a parede dos 10 créditos com o filme da pessoa na
 // frente (ver lib/growth/wallV1.ts para o dado que motivou). `filmsCoveredByTier`
@@ -2480,6 +2482,15 @@ export default function GenerateClient({
   // KINEO-PAREDE-NO-CLIQUE-2026-09-27 — o auto-analyze espera o saldo chegar (até 1,5 s) antes de decidir se abre a parede.
   const [autoWaitTick, setAutoWaitTick] = useState(0)
   const autoWaitScheduledRef = useRef(false)
+  // [TRAVA 8.2 — vai do fundador 13/10 'tudo sim nos 3 consertos'] KINEO-PRIMEIRO-FILME-2026-10-13 (CONSERTO 1) — a duração
+  // PEDIDA quando o pedido desceu para o filme grátis de 15 s (lib/growth/descidaFilmeGratis.ts): vem da URL (o /studio/create
+  // e o /studio já descem antes de chegar aqui: free_film_from=<pedido> com duration=15&engine=seedance) ou da guarda do
+  // autoanalyze abaixo (rede de segurança). Com isto preenchido, a nota honesta aparece e a URL não devolve a duração pedida.
+  const [freeFilmFrom, setFreeFilmFrom] = useState<number | null>(() =>
+    searchParams?.get('engine') === 'seedance' && Number(searchParams?.get('duration')) === SEEDANCE_SHORT_SECONDS
+      ? lerDescidaDaUrl(searchParams?.get(DESCIDA_FILME_GRATIS_PARAM), SEEDANCE_SHORT_SECONDS)
+      : null) // KINEO-PRIMEIRO-FILME-2026-10-13
+  const freeFilmDownshiftRef = useRef(false) // KINEO-PRIMEIRO-FILME-2026-10-13 — a guarda do autoanalyze desceu nesta montagem
 
   // sprint-v1v4 #43 — desarme (a). No instante em que existe saldo, a memoria
   // do muro deixa de ser verdade: quem comprou, ganhou credito do /admin ou
@@ -9091,6 +9102,21 @@ export default function GenerateClient({
         return
       }
     } else if (outOfCredits()) {
+      // [TRAVA 8.2 — vai do fundador 13/10 'tudo sim nos 3 consertos'] KINEO-PRIMEIRO-FILME-2026-10-13 (CONSERTO 1) — antes da
+      // parede: o saldo não paga a duração pedida mas paga o filme grátis de 15 s do Seedance 1.5 → desce e segue (o efeito
+      // roda de novo com 15 s; o roteiro nasce na régua do 15 s). A regra de quem tem filme grátis não muda: teste ativo,
+      // sem pagar, saldo que cobre os 15 s. Fora disso, a parede de sempre.
+      const descida = mode === 'cinematic_ai' && !freeFilmDownshiftRef.current
+        ? decidirDescidaFilmeGratis({ engine: aiEngine, requestedSeconds: duration, balance: credits, paid: planTier === null ? null : hasPaid || isStarter || isCreator || isStudio, freeFilmEntitled: trialActive === true, shortSeconds: SEEDANCE_SHORT_SECONDS, shortVisible: seedance15Ok, custoSeedance })
+        : null // KINEO-PRIMEIRO-FILME-2026-10-13
+      if (descida?.descer && descida.para !== null) { // KINEO-PRIMEIRO-FILME-2026-10-13
+        freeFilmDownshiftRef.current = true
+        void trackEvent(DESCIDA_FILME_GRATIS_EVENT, { surface: 'studio_create_autoanalyze', requested_seconds: descida.de, to_seconds: descida.para, balance: credits, requested_cost: descida.custoPedido, short_cost: descida.custoCurto, version: DESCIDA_FILME_GRATIS_VERSION })
+        setFreeFilmFrom(descida.de)
+        setDuration(descida.para as Duration)
+        setAutoWaitTick((t) => t + 1)
+        return
+      } // KINEO-PRIMEIRO-FILME-2026-10-13
       autoAnalyzeKeyRef.current = key
       void trackEvent('wall_before_script', { surface: 'studio_create_autoanalyze', credits, mode, engine: aiEngine, duration })
       openOutOfCreditsModal()
@@ -9148,7 +9174,7 @@ export default function GenerateClient({
       if (mode !== 'cinematic_ai') { setMode('cinematic_ai'); setAiEngine(uEng as 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni' | 's25'); return }
       if (aiEngine !== uEng) { setAiEngine(uEng as 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni' | 's25'); return }
     }
-    const uDur = Number(searchParams?.get('duration') ?? '')
+    const uDur = freeFilmDownshiftRef.current ? duration : Number(searchParams?.get('duration') ?? '') // KINEO-PRIMEIRO-FILME-2026-10-13: a descida para o filme grátis (guarda do autoanalyze) vence a duração da URL
     if ((uDur === 35 || uDur === 45 || uDur === 60 || uDur === 90 || (uDur === SEEDANCE_SHORT_SECONDS && uEng === 'seedance')) && duration !== uDur) { setDuration(uDur); return } // KINEO-SEEDANCE-15S-2026-09-29: 15 s do Studio (só Seedance)
     if (uDur > 0 && uDur < 35 && uEng !== '' && uEng !== 'seedance' && supportedDurationsFor(uEng).includes(uDur) && duration !== uDur) { setDuration(uDur as Duration); return } // KINEO-DURACOES-CURTAS-2026-09-29: a curta do Studio nos outros motores (tabela do servidor)
     try {
@@ -13956,6 +13982,14 @@ export default function GenerateClient({
               {showStep2 && 'Pick duration and quality, then generate.'}
               {showRender && phase !== 'done' && 'Rendering your vertical 9:16 Short.'}
             </p>
+            {/* KINEO-PRIMEIRO-FILME-2026-10-13 (CONSERTO 1) — a nota honesta da descida: o pedido era maior que o saldo, o
+                filme que sai é o grátis de 15 s; a versão completa e o preço (o mesmo do bloco pós-filme) ficam à vista. Some
+                no filme pronto (lá o FilmReady60sUpsell oferece a versão de 60 s com o botão) e se a pessoa mudar a duração. */}
+            {freeFilmFrom !== null && phase !== 'done' && phase !== 'failed' && mode === 'cinematic_ai' && aiEngine === 'seedance' && duration === SEEDANCE_SHORT_SECONDS && (
+              <p data-kineo="descida-filme-gratis" className="text-xs mt-1" style={{ color: 'var(--muted2)' }}>
+                {notaDaDescida({ language, shortSeconds: SEEDANCE_SHORT_SECONDS, fullSeconds: BUY_CREATOR_FILM_SECONDS, price: buyCreatorPrice() })}
+              </p>
+            )}
           </div>
           <CreditsChip
             credits={credits}
