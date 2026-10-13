@@ -45,7 +45,7 @@ const iCl = rota.indexOf('withBrandLogo(source,'), iClBuild = rota.indexOf('    
 checa('L8 o logo entra DEPOIS de montar e ANTES de enviar', iHw > 0 && iHw < iHwSubmit && iCl > iClBuild)
 checa('L9 a versão limpa (unlock) mantém o logo', unlock.includes('withBrandLogo(source, await findBrandLogoUrl(user.id, admin))'))
 let composeIgual = null
-try { composeIgual = desfazEstornoNarracao('lib/compose.ts', ler('lib/compose.ts').split('\r\n').join('\n')) === execSync('git show origin/main:lib/compose.ts', { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).split('\r\n').join('\n') } catch { composeIgual = null } // reancorado KINEO-LEVA3-1310: igual à main fora o conserto da narração (em memória)
+try { composeIgual = desfazEstornoNarracao('lib/compose.ts', ler('lib/compose.ts').split('\r\n').join('\n')) === desfazEstornoNarracao('lib/compose.ts', execSync('git show origin/main:lib/compose.ts', { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).split('\r\n').join('\n')) } catch { composeIgual = null } // reancorado KINEO-LEVA3-1310 + KINEO-LEVA4-1310: o conserto da narração sai dos DOIS lados (a main já o tem desde fee89ed0)
 checa('L10 lib/compose.ts (trava 8.2) não muda', composeIgual !== false && !/brandLogo/i.test(ler('lib/compose.ts')))
 
 // ── armazenamento e API ──
