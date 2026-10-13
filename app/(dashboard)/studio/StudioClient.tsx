@@ -79,6 +79,7 @@ import { ADS_MODELS } from '@/lib/ads/models'
 import { formatCheckoutMoney, getTierPrice } from '@/lib/checkoutPricing'
 import SubscriberUpgradeNudge from '@/components/billing/SubscriberUpgradeNudge' // KINEO-ASSINANTE-SOBE-2026-10-06 — clipe sem crédito: o assinante sobe de plano ou recarrega
 import Month2AnnualOffer from '@/components/billing/Month2AnnualOffer' // KINEO-ANUAL-2o-MES-2026-10-08 — aviso dispensável do anual (30%) para quem está no 2º mês
+import { FILM60_ARRIVED_EVENT, FILM60_HANDOFF_KEY, FILM60_VERSION, readFilm60Handoff } from '@/lib/growth/filmReady60sHandoff' // KINEO-VERSAO-60S-2026-10-13 — a volta da versão de 60 s
 
 // A chave do card → a Quality que o biller entende. Uma fonte só para os dois
 // (tela e cobrança) evita a classe de bug que este arquivo já teve: custo em
@@ -522,6 +523,32 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
     if (ic) campaignRef.current = ic
     const onboardingGoal = sp.get('onboarding_goal')
     if (isOnboardingGoalId(onboardingGoal)) onboardingGoalRef.current = onboardingGoal
+  }, [searchSignature])
+
+  // KINEO-VERSAO-60S-2026-10-13 — a volta da "versão de 60 s deste filme". A /checkout/success manda para
+  // /studio?film60=1&engine=seedance&duration=60&script_mode=ai (o efeito de URL acima já escolhe motor, duração e modo);
+  // aqui o texto do filme sai do bilhete da sessionStorage (nunca da URL) e entra na caixa da ideia. SÓ PREENCHE: nenhum
+  // disparo, nenhum gatilho de autostart — a pessoa aperta Create já assinante. ?prompt= explícito vence o bilhete.
+  // O bilhete é consumido (removido) para que uma compra futura nesta aba não volte para cá.
+  const film60ConsumedRef = useRef(false)
+  useEffect(() => {
+    const sp = new URLSearchParams(searchSignature)
+    if (sp.get('film60') !== '1' || film60ConsumedRef.current) return
+    film60ConsumedRef.current = true
+    let handoff: ReturnType<typeof readFilm60Handoff> = null
+    try {
+      handoff = readFilm60Handoff(sessionStorage.getItem(FILM60_HANDOFF_KEY), Date.now())
+      sessionStorage.removeItem(FILM60_HANDOFF_KEY)
+    } catch { handoff = null }
+    const filled = Boolean(handoff?.prompt) && !sp.get('prompt')
+    if (filled && handoff) setPrompt(handoff.prompt)
+    void trackEvent(FILM60_ARRIVED_EVENT, {
+      version: FILM60_VERSION,
+      surface: handoff?.surface ?? null,
+      video_id: handoff?.videoId ?? null,
+      prompt_filled: filled,
+      prompt_words: filled && handoff ? handoff.prompt.split(/\s+/).filter(Boolean).length : 0,
+    })
   }, [searchSignature])
 
   // KINEO-S25-ABRE-2026-10-06 — ?engine=s25 (página do motor, handoff do GPT, link de quem já assina): o efeito de URL acima
