@@ -64,15 +64,17 @@ const launchReal = createOfflineLoader()('lib/engineLaunch.ts')
 // REANCORADO KINEO-S25-ABRE-2026-10-06 — o Seedance 2.5 voltou ao catálogo público marcado "(paid plans)" (S25_PUBLIC=true;
 // só plano pago usa — scripts/test-s25-abre-2026-10-06.mjs): "Six", e cada interruptor ligado soma um. A vigilância é a
 // mesma: Kineo 1 fora da lista pública, e os interruptores o devolvem por derivação, nunca por número digitado.
-const provaA = (M) => M.KINEO1_PUBLIC === false && M.VIDEO_ENGINE_COUNT_WORD === 'Six' && M.VIDEO_ENGINE_COUNT_SENTENCE_START === 'Six' &&
-  M.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5 and Seedance 2.5 (paid plans)' && !/Kineo 1|Avatar/.test(M.VIDEO_ENGINE_LIST_COPY)
-checa('KINEO1_PUBLIC=false; contagem "Six" e lista pública sem Kineo 1', provaA(L))
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: o MiniMax H3 Max entrou no catálogo público logo depois do MiniMax H3
+// (H3MAX_PUBLIC=true, fundador 13/10 "vai H3 Max"): "Seven", e cada interruptor ligado segue somando um. A vigilância é a mesma.
+const provaA = (M) => M.KINEO1_PUBLIC === false && M.VIDEO_ENGINE_COUNT_WORD === 'Seven' && M.VIDEO_ENGINE_COUNT_SENTENCE_START === 'Seven' &&
+  M.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, MiniMax H3 Max, Seedance 1.5 and Seedance 2.5 (paid plans)' && !/Kineo 1|Avatar/.test(M.VIDEO_ENGINE_LIST_COPY)
+checa('KINEO1_PUBLIC=false; contagem "Seven" e lista pública sem Kineo 1', provaA(L))
 {
   const ligaK1 = trocar(launchSrc, 'export const KINEO1_PUBLIC = false', 'export const KINEO1_PUBLIC = true')
   const V = rodaLaunch(ligaK1)
-  checa('ligar o Kineo 1 devolve "Seven" e "... Seedance 2.5 (paid plans) and Kineo 1" (derivado, não digitado)', V.VIDEO_ENGINE_COUNT_WORD === 'Seven' && V.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5, Seedance 2.5 (paid plans) and Kineo 1' && V.kineo1Visible(PUBLICO) === true && !provaA(V))
+  checa('ligar o Kineo 1 devolve "Eight" e "... Seedance 2.5 (paid plans) and Kineo 1" (derivado, não digitado)', V.VIDEO_ENGINE_COUNT_WORD === 'Eight' && V.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, MiniMax H3 Max, Seedance 1.5, Seedance 2.5 (paid plans) and Kineo 1' && V.kineo1Visible(PUBLICO) === true && !provaA(V))
   const ambos = rodaLaunch(trocar(ligaK1, 'export const AVATAR_PUBLIC = false', 'export const AVATAR_PUBLIC = true'))
-  checa('ligar os dois devolve "Eight" e "..., Kineo 1 and Avatar"', ambos.VIDEO_ENGINE_COUNT_WORD === 'Eight' && ambos.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5, Seedance 2.5 (paid plans), Kineo 1 and Avatar')
+  checa('ligar os dois devolve "Nine" e "..., Kineo 1 and Avatar"', ambos.VIDEO_ENGINE_COUNT_WORD === 'Nine' && ambos.VIDEO_ENGINE_LIST_COPY === 'Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, MiniMax H3 Max, Seedance 1.5, Seedance 2.5 (paid plans), Kineo 1 and Avatar') // KINEO-H3MAX-2026-10-13 — reancorado: + H3 Max
   const cravado = trocar(launchSrc, "...(KINEO1_PUBLIC ? ['Kineo 1'] : []),", "'Kineo 1',")
   checa('mutante (Kineo 1 cravado na lista) → vermelho', !provaA(rodaLaunch(cravado)))
 }
@@ -132,7 +134,8 @@ const semKineo1 = (html) => !html.includes('Kineo 1') && !html.includes('engine=
   // REANCORADO 30/09 — fundador: "tira essa parte" (a grade "Video" com os tiles de motor saiu da home). Some a porta do tile;
   // ficam 2 portas do Kineo 1 para a casa (mega-menu e chip final), ainda atrás de showKineo1.
   // REANCORADO KINEO-S25-ABRE-2026-10-06: "Six ... Seedance 1.5 and Seedance 2.5 (paid plans)".
-  checa('home (visitante): sem grade de tiles e FAQ "Six ... and Seedance 2.5 (paid plans)"', conta(pub, 'class="tile') === 0 && pub.includes('Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, Seedance 1.5 and Seedance 2.5 (paid plans)'))
+  // KINEO-H3MAX-2026-10-13 — reancorado: + "MiniMax H3 Max" na lista do FAQ (contagem "Seven").
+  checa('home (visitante): sem grade de tiles e FAQ "Seven ... and Seedance 2.5 (paid plans)"', conta(pub, 'class="tile') === 0 && pub.includes('Veo 3.1, Kling 3, Kling 2.5, MiniMax H3, MiniMax H3 Max, Seedance 1.5 and Seedance 2.5 (paid plans)'))
   // KINEO-MENU-VIDEO-LIMPO-2026-10-09 — re-ancorado: o fundador ("2 sim") tirou o Kineo 1 do mega-menu também para a casa; sobra o chip final.
   checa('home (casa): sobra 1 porta do Kineo 1 (chip final); mega-menu e tile sem ele', conta(casa, 'engine=fast&amp;intent_campaign=nav_mega') === 0 && conta(casa, 'engine=fast&amp;intent_campaign=engine_tile') === 0 && conta(casa, 'engine=fast&amp;intent_campaign=final_chip') === 1)
   checa('mutante (predicado aplicado à casa, que vê as portas) → vermelho', !semKineo1(casa))

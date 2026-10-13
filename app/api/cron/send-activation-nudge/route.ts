@@ -30,6 +30,8 @@ import {
   nichoDoCadastro,
   type FonteDasIdeias,
 } from '@/lib/lifecycle/primeiroFilmeIdeias'
+// KINEO-EMAILS-REGIAO-2026-10-13 — a conta 'region_paid_only' com o filme grátis de região no saldo também recebe a carta.
+import { filmeDeRegiaoNoSaldo } from '@/lib/lifecycle/regionFirstFilmEmail'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = atual).
 const OFFER = getFreeTierOffer()
@@ -340,7 +342,11 @@ export async function GET(req: NextRequest) {
     // KINEO-LEMBRETE-COM-A-IDEIA-2026-10-03 — quem NÃO PODE gerar (region_paid_only: fora do filme grátis por país;
     // blocked: trial negado pelas travas) não recebe "seu primeiro filme é grátis". Sentinela: a linha sai deste job e
     // segue elegível para os outros (a supressão de 24 h ignora o sentinela).
-    if (!podeGerarParaLembrete(u as { trial_status?: string | null })) {
+    // KINEO-EMAILS-REGIAO-2026-10-13 — a conta 'region_paid_only' que TEM o filme grátis de região no saldo (cadastro desde
+    // 08/10: 14 cr = filme Seedance 15 s + clipe) recebe a MESMA carta do 1º filme. Leitura só para conta da região;
+    // falhou = false = a recusa de sempre. 'blocked' continua fora (podeGerarParaLembrete).
+    const regiaoComFilme = await filmeDeRegiaoNoSaldo(admin, u as { id?: unknown; trial_status?: string | null })
+    if (!podeGerarParaLembrete(u as { trial_status?: string | null }, regiaoComFilme)) {
       skipped++
       semFilmePulados++
       await carimbarPulo(u.id as string)
@@ -499,6 +505,7 @@ export async function GET(req: NextRequest) {
             ideas_version: PRIMEIRO_FILME_IDEIAS_VERSION,
             ideas_source: fonteDasIdeias,
             niche: nicho,
+            region_free_film: regiaoComFilme, // KINEO-EMAILS-REGIAO-2026-10-13
             hours_after_signup: Math.round(((Date.now() - Date.parse(String(u.created_at))) / 3_600_000) * 10) / 10,
           },
         })

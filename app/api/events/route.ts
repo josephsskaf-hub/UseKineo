@@ -31,6 +31,10 @@ const SERVER_ONLY_EVENTS = new Set([
   // não pode cunhar nenhum dos dois (um carimbo forjado tiraria a pessoa da coorte para sempre).
   'winback_film_60s_claimed',
   'winback_film_60s_emailed',
+  // KINEO-EMAILS-REGIAO-2026-10-13 — reserva e carimbo da carta do 1º filme das contas 'region_paid_only'
+  // (admin/send-region-first-film): um carimbo forjado tiraria a pessoa da coorte para sempre.
+  'region_first_film_claimed',
+  'region_first_film_emailed',
   'video_published_v1',
   'video_unpublished_v1',
   'compose_submission_claim',

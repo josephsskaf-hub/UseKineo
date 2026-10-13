@@ -13,6 +13,7 @@ import { HOLLYWOOD_SCENE_RETRIED_EVENT } from '@/lib/stuckScene' // KINEO-CENA-P
 import { loadVerifiedCinematicClaim, retargetCinematicRequestId, validCinematicGenerationId, type CinematicClaim } from '@/lib/cinematic/claim'
 import { acquireSceneRetryMutex, markSceneRetryHold, readVerifiedSceneRetryHold, releaseSceneRetryMutex } from '@/lib/cinematic/sceneRetry'
 import { HOLLYWOOD_MODELS, KLING3_I2V_MODEL, H3_MODELS, H3_I2V_MODEL, H3_RESOLUTION, OMNI_I2V_MODEL, S25_I2V_MODEL, S25_T2V_MODEL, S25_RESOLUTION } from '@/lib/hollywood/router'
+import { H3MAX_MODELS, H3MAX_I2V_MODEL, H3MAX_RESOLUTION, H3_PROMPT_EXPANSION } from '@/lib/hollywood/router' // KINEO-H3MAX-2026-10-13
 import { openai } from '@/lib/openai'
 import { normalizeAspect } from '@/lib/aspect' // LOTE2-RESGATE-FIEL-2026-09-23
 import { CLASSIC, CLASSIC_I2V } from '@/lib/classicSceneRetry' // KINEO-CENA-CLASSICA-2026-09-28
@@ -40,6 +41,7 @@ async function softenPromptForModeration(prompt: string): Promise<string> {
 }
 
 const H3_SET = new Set<string>([...Object.values(H3_MODELS), H3_I2V_MODEL])
+const H3MAX_SET = new Set<string>([...Object.values(H3MAX_MODELS), H3MAX_I2V_MODEL]) // KINEO-H3MAX-2026-10-13 — a cena falhada do H3 Max também ganha a retomada
 // ═══ KINEO-CENA-CLASSICA-2026-09-28 — a retomada de cena passa a valer para os motores CLÁSSICOS ═══
 // Casos: 3ab8128c (conta externa vinda do TAAFT, Seedance 60 s, 16/09) — 7/7 cenas aceitas, 6 prontas, a 7ª nunca voltou;
 // o filme morreu no prazo de 50 min e os 25 cr voltaram por estorno. d6e8e8b3 (fundador, Seedance 60 s, 15/09) saiu com 6
@@ -51,7 +53,7 @@ const H3_SET = new Set<string>([...Object.values(H3_MODELS), H3_I2V_MODEL])
 // que o fal aceitou (response.scene_fal_inputs[i], gravado pela rota de geração): mesmo seed, negative_prompt, still,
 // duração e quadro; só o prompt troca, e só na 2ª rodada (sanitize), suavizado. Inerte até a rota de geração gravar
 // scene_fal_inputs (commit [TRAVA 8.2]): sem o campo, signedClassic devolve null e a resposta é o 409 de hoje.
-const ALLOWED = new Set<string>([...Object.values(HOLLYWOOD_MODELS), KLING3_I2V_MODEL, ...H3_SET, OMNI_I2V_MODEL, S25_I2V_MODEL, S25_T2V_MODEL]) // KINEO-S25-STATUS-2026-09-15: a retomada também conhece o Seedance 2.5
+const ALLOWED = new Set<string>([...Object.values(HOLLYWOOD_MODELS), KLING3_I2V_MODEL, ...H3_SET, ...H3MAX_SET /* KINEO-H3MAX-2026-10-13 */, OMNI_I2V_MODEL, S25_I2V_MODEL, S25_T2V_MODEL]) // KINEO-S25-STATUS-2026-09-15: a retomada também conhece o Seedance 2.5
 for (const model of CLASSIC) ALLOWED.add(model) // KINEO-CENA-CLASSICA-2026-09-28: e os 6 clássicos
 type Slot = { index: number; oldRequestId: string | null; model: string }
 
@@ -76,7 +78,7 @@ function signedScene(claim: CinematicClaim, slot: Slot) {
   const anchor = Array.isArray(response?.scene_anchor_urls) ? response.scene_anchor_urls[slot.index] : null
   if (typeof prompt !== 'string' || prompt.trim().length < 20 || prompt.length > 6000 ||
     typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds < 3 || seconds > 15) return null
-  const requiresAnchor = [KLING3_I2V_MODEL, H3_I2V_MODEL, OMNI_I2V_MODEL, S25_I2V_MODEL].includes(slot.model)
+  const requiresAnchor = [KLING3_I2V_MODEL, H3_I2V_MODEL, H3MAX_I2V_MODEL, OMNI_I2V_MODEL, S25_I2V_MODEL].includes(slot.model) // KINEO-H3MAX-2026-10-13
   if (requiresAnchor && (typeof anchor !== 'string' || !anchor.startsWith('https://'))) return null
   // LOTE2-RESGATE-FIEL-2026-09-23 — o formato do filme vem do claim assinado; a cena refeita usa o MESMO que o render original.
   return { prompt: prompt.trim(), seconds: Math.round(seconds), anchor: requiresAnchor ? anchor as string : null, aspect: normalizeAspect(response?.aspect) }
@@ -161,6 +163,9 @@ function sceneInput(model: string, scene: NonNullable<ReturnType<typeof signedSc
   // compose owns muting support audio when trusted narration is present.
   if (H3_SET.has(model)) return { ...(scene.anchor ? { image_url: scene.anchor } : { aspect_ratio: scene.aspect }),
     prompt, duration: Math.max(5, Math.min(15, scene.seconds)), resolution: H3_RESOLUTION }
+  // KINEO-H3MAX-2026-10-13 — H3 Max: o mesmo payload do H3 (768P, duração inteira 5–15) e o prompt literal ('disabled'), como na geração.
+  if (H3MAX_SET.has(model)) return { ...(scene.anchor ? { image_url: scene.anchor } : { aspect_ratio: scene.aspect }), // KINEO-H3MAX-2026-10-13
+    prompt, duration: Math.max(5, Math.min(15, scene.seconds)), resolution: H3MAX_RESOLUTION, prompt_expansion_mode: H3_PROMPT_EXPANSION } // KINEO-H3MAX-2026-10-13
   if (model === KLING3_I2V_MODEL) return { image_url: scene.anchor, prompt, duration: String(scene.seconds), generate_audio: true }
   return {
     prompt: prompt.startsWith(ENQUADRAMENTO[scene.aspect]) ? prompt : `${ENQUADRAMENTO[scene.aspect]} composition, camera upright, horizon perfectly LEVEL and horizontal across the frame. ${prompt}`,

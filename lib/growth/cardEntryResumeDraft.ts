@@ -29,14 +29,14 @@ export const CARD_ENTRY_DRAFT_TTL_MS = 45 * 60 * 1000
 export type DraftQuality = 'fast' | 'basic' | 'basic_ai' | 'pro' | 'cinematic_ai'
 export type DraftMode = 'fast' | 'cinematic_ai' | 'cinematic' | 'creator'
 export type DraftEngine =
-  | 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25'
+  | 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'h3max' | 'omni' | 's25' // KINEO-H3MAX-2026-10-13
 
 // Espelham as uniões `Quality` / `GenerationMode` / o estado `aiEngine` do
 // GenerateClient. São listas em valor porque `typeof` não sobrevive ao runtime:
 // o rascunho vem do sessionStorage, que é `unknown` até ser conferido.
 const DRAFT_QUALITIES: readonly DraftQuality[] = ['fast', 'basic', 'basic_ai', 'pro', 'cinematic_ai']
 const DRAFT_MODES: readonly DraftMode[] = ['fast', 'cinematic_ai', 'cinematic', 'creator']
-const DRAFT_ENGINES: readonly DraftEngine[] = ['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'omni', 's25']
+const DRAFT_ENGINES: readonly DraftEngine[] = ['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'h3max', 'omni', 's25'] // KINEO-H3MAX-2026-10-13
 const DRAFT_DURATIONS: readonly number[] = [35, 45, 60, 90]
 
 export interface CardEntryDraft {

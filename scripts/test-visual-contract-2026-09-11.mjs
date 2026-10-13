@@ -61,7 +61,9 @@ const dispatch = load('lib/cinematic/dispatchScenes.ts')
 // (kling25StripShotAxis, 7b2838d5). The REAL functions run here (pure lib, no imports), not a stub, so the checks
 // below prove the actual caller with the actual axis.
 const klingShots = execute(read('lib/cinematic/klingShots.ts'))
-const routerNames = ['HOLLYWOOD_MODELS', 'KLING3_I2V_MODEL', 'H3_MODELS', 'H3_I2V_MODEL', 'H3_RESOLUTION',
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: o buildFalInput da rota ganhou os ramos do MiniMax H3 Max (motor novo, fundador 13/10);
+// as três constantes dele entram no escopo, lidas do router real. Nada do contrato visual daqui mudou.
+const routerNames = ['HOLLYWOOD_MODELS', 'KLING3_I2V_MODEL', 'H3_MODELS', 'H3_I2V_MODEL', 'H3_RESOLUTION', 'H3MAX_MODELS', 'H3MAX_I2V_MODEL', 'H3MAX_RESOLUTION',
   'OMNI_I2V_MODEL', 'S25_I2V_MODEL', 'S25_T2V_MODEL', 'S25_RESOLUTION',
   'CONTEMPORARY_FIGURE_RE', 'HISTORICAL_FIGURE_RE', 'HISTORICAL_TITLE_NAME_RE']
 const providerConstants = execute(routerNames.map(n => varSource(router, n)).join('\n') + '\n' +

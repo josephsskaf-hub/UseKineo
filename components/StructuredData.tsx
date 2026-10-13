@@ -213,7 +213,7 @@ const faqSchema = {
       name: 'Is there a watermark?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `${ft(OFFER, 'Free access gives new users up to 3 watermarked Fast videos every 24 hours, with no card. You can download and share them.', `New accounts get ${TRIAL_GRANT_CREDITS_COPY} credits — ${TRIAL_FIRST_FILM_PHRASE}; trial films are watermarked.`)} Paid plans export clean, watermark-free MP4s.`,
+        text: `${ft(OFFER, `New accounts get ${TRIAL_GRANT_CREDITS_COPY} credits — ${TRIAL_FIRST_FILM_PHRASE}; trial films are watermarked.`, `New accounts get ${TRIAL_GRANT_CREDITS_COPY} credits — ${TRIAL_FIRST_FILM_PHRASE}; trial films are watermarked.`)} Paid plans export clean, watermark-free MP4s.`,
       },
     },
     {

@@ -349,7 +349,7 @@ async function logCreatomateRejection(
 // Checkpoint 1: no credit cost wired yet (billing lands in checkpoint 2).
 // KINEO-HOLLYWOOD-2026-07-09 — 'cinematic_hollywood' added (per-scene engines,
 // native audio, block TTS).
-type Quality = 'fast' | 'basic' | 'basic_ai' | 'pro' | 'cinematic_ai' | 'cinematic_kling' | 'cinematic_veo' | 'cinematic_sora' | 'cinematic_hollywood' | 'cinematic_h3' | 'cinematic_omni' | 'cinematic_s25' | 'avatar' | 'presenter'
+type Quality = 'fast' | 'basic' | 'basic_ai' | 'pro' | 'cinematic_ai' | 'cinematic_kling' | 'cinematic_veo' | 'cinematic_sora' | 'cinematic_hollywood' | 'cinematic_h3' | 'cinematic_h3max' | 'cinematic_omni' | 'cinematic_s25' | 'avatar' | 'presenter' // KINEO-H3MAX-2026-10-13
 
 type SubmissionCacheEntry = { promise: Promise<string>; expiresAt: number }
 const composeSubmissionCache = new Map<string, SubmissionCacheEntry>()
@@ -757,7 +757,7 @@ export async function POST(req: NextRequest) {
       // KINEO-HOLLYWOOD-2026-07-09 — cinematic_hollywood accepted.
       // KINEO-H3-FIX-2026-08-19 — sem 'cinematic_h3' aqui o normalize colapsava
       // o render H3 para 'basic_ai' (8 creditos) e a composicao errada.
-      return q === 'fast' || q === 'basic' || q === 'pro' || q === 'cinematic_ai' || q === 'cinematic_kling' || q === 'cinematic_veo' || q === 'cinematic_sora' || q === 'cinematic_hollywood' || q === 'cinematic_h3' || q === 'cinematic_omni' || q === 'cinematic_s25' ? q : 'basic_ai'
+      return q === 'fast' || q === 'basic' || q === 'pro' || q === 'cinematic_ai' || q === 'cinematic_kling' || q === 'cinematic_veo' || q === 'cinematic_sora' || q === 'cinematic_hollywood' || q === 'cinematic_h3' || q === 'cinematic_h3max' || q === 'cinematic_omni' || q === 'cinematic_s25' ? q : 'basic_ai' // KINEO-H3MAX-2026-10-13
     })()
 
     // Push #316 — output language. OpenAI TTS auto-detects from the script text.
@@ -814,7 +814,7 @@ export async function POST(req: NextRequest) {
     }, { status: 422 })
     const cinematicQualities = new Set<Quality>([
       'cinematic_ai', 'cinematic_kling', 'cinematic_veo',
-      'cinematic_sora', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_omni', 'cinematic_s25',
+      'cinematic_sora', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_h3max', 'cinematic_omni', 'cinematic_s25', // KINEO-H3MAX-2026-10-13
     ])
     const clientRequestedCinematic = cinematicQualities.has(quality)
     if (cinematicBirthClaim) {
@@ -925,7 +925,7 @@ export async function POST(req: NextRequest) {
       if (cinematicBirthClaim.response) {
         try {
           const aligned = signedSceneMetadata(cinematicBirthClaim.response, cinematicBirthClaim.authorizedCompletedUrls, clipUrls,
-            ['cinematic_hollywood', 'cinematic_h3', 'cinematic_omni', 'cinematic_s25'].includes(trustedQuality))
+            ['cinematic_hollywood', 'cinematic_h3', 'cinematic_h3max', 'cinematic_omni', 'cinematic_s25'].includes(trustedQuality)) // KINEO-H3MAX-2026-10-13
           Object.assign(body, aligned)
         } catch {
           // Defer rejection until this request owns the compose mutex. Never
@@ -1699,7 +1699,7 @@ export async function POST(req: NextRequest) {
       : undefined
     // Map render quality → narration tier so premium/cinematic users get better personas.
     const narrationTier: 'free' | 'premium' | 'cinematic' =
-      quality === 'cinematic_ai' || quality === 'cinematic_kling' || quality === 'cinematic_veo' || quality === 'cinematic_sora' || quality === 'cinematic_hollywood' || quality === 'cinematic_h3' || quality === 'cinematic_omni' || quality === 'cinematic_s25' ? 'cinematic' : quality === 'pro' ? 'premium' : 'free'
+      quality === 'cinematic_ai' || quality === 'cinematic_kling' || quality === 'cinematic_veo' || quality === 'cinematic_sora' || quality === 'cinematic_hollywood' || quality === 'cinematic_h3' || quality === 'cinematic_h3max' || quality === 'cinematic_omni' || quality === 'cinematic_s25' ? 'cinematic' : quality === 'pro' ? 'premium' : 'free' // KINEO-H3MAX-2026-10-13
 
     // Push #235 — explicit user speed. When supplied (verbatim mode), the
     // narration is the user's exact text spoken at this rate; we don't rewrite
@@ -1725,7 +1725,7 @@ export async function POST(req: NextRequest) {
     // KINEO-HOLLYWOOD-2026-07-09 — cinematic_hollywood is credit-based (Studio
     // gate enforced upstream in generate-video-cinematic), so it's exempt here
     // like the other fal engines.
-    if (quality !== 'fast' && quality !== 'cinematic_ai' && quality !== 'cinematic_kling' && quality !== 'cinematic_veo' && quality !== 'cinematic_sora' && quality !== 'cinematic_hollywood' && quality !== 'cinematic_h3' && quality !== 'cinematic_omni' && quality !== 'cinematic_s25' && quality !== 'avatar' && quality !== 'presenter') {
+    if (quality !== 'fast' && quality !== 'cinematic_ai' && quality !== 'cinematic_kling' && quality !== 'cinematic_veo' && quality !== 'cinematic_sora' && quality !== 'cinematic_hollywood' && quality !== 'cinematic_h3' && quality !== 'cinematic_h3max' && quality !== 'cinematic_omni' && quality !== 'cinematic_s25' && quality !== 'avatar' && quality !== 'presenter') { // KINEO-H3MAX-2026-10-13
       const plan = await fetchUserPlan(supabase, user.id)
       if (!plan.isPro) {
         return NextResponse.json(
@@ -2056,7 +2056,7 @@ export async function POST(req: NextRequest) {
     const isCreditBilledQuality =
       quality === 'cinematic_ai' || quality === 'cinematic_kling' ||
       quality === 'cinematic_veo' || quality === 'cinematic_sora' ||
-      quality === 'cinematic_hollywood' || quality === 'cinematic_h3' || quality === 'cinematic_omni' || quality === 'cinematic_s25' || quality === 'avatar' ||
+      quality === 'cinematic_hollywood' || quality === 'cinematic_h3' || quality === 'cinematic_h3max' || quality === 'cinematic_omni' || quality === 'cinematic_s25' || quality === 'avatar' || // KINEO-H3MAX-2026-10-13
       quality === 'presenter' || (quality === 'fast' && !isFreePlanFast)
     if (isCreditBilledQuality && !ownsSubmissionClaim) {
       if (cinematicUpstreamDebited || avatarUpstreamDebited) {
@@ -2133,7 +2133,7 @@ export async function POST(req: NextRequest) {
     // same per-scene mp3 (offset = scene start). Dialogue scenes are never
     // narrated over. Speech failures stop before composition; silent scenes
     // and captions copied from a requested line are not successful delivery.
-    if (quality === 'cinematic_hollywood' || quality === 'cinematic_h3' || quality === 'cinematic_omni' || quality === 'cinematic_s25') {
+    if (quality === 'cinematic_hollywood' || quality === 'cinematic_h3' || quality === 'cinematic_h3max' || quality === 'cinematic_omni' || quality === 'cinematic_s25') { // KINEO-H3MAX-2026-10-13
       if (cinematicSceneMetadataInvalid) {
         return rejectBeforeProviderSubmission(NextResponse.json({
           error: 'The saved scene timing or speech metadata is incomplete. We will not invent narration or a shorter film.',
@@ -2465,7 +2465,7 @@ export async function POST(req: NextRequest) {
         // de negócio nº1 da casa. Com os clipes mudos (muteClipAudio) e a
         // cama musical, o respiro pós-narração é música — não silêncio, não
         // voz fantasma. O clipe preenche os segundos que o plano prometeu.
-        if (c && c.engine === 'support' && quality !== 'cinematic_h3') {
+        if (c && c.engine === 'support' && quality !== 'cinematic_h3' && quality !== 'cinematic_h3max') { // KINEO-H3MAX-2026-10-13
           c.seconds = trimNarratedSupport(hollywoodClips, m.sceneIdx, m.dur, duration)
         }
         // KINEO-TAIL-GROW-2026-08-25 (parte 2, cenas do MEIO) — o endCap
@@ -2709,7 +2709,7 @@ export async function POST(req: NextRequest) {
           musicUrl: hollywoodMusicUrl,
           aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02
         // KINEO-H3-AUDIO-2026-08-20 — ver o comentário no builder.
-        muteClipAudio: quality === 'cinematic_h3' || quality === 'cinematic_omni' || quality === 'cinematic_s25', // KINEO-S25: generate_audio ja vai false; o mute aqui e cinto E suspensorio // KINEO-OMNI-2026-08-25: V1 mudo+TTS ate o render de validacao provar o audio nativo
+        muteClipAudio: quality === 'cinematic_h3' || quality === 'cinematic_h3max' /* KINEO-H3MAX-2026-10-13 */ || quality === 'cinematic_omni' || quality === 'cinematic_s25', // KINEO-S25: generate_audio ja vai false; o mute aqui e cinto E suspensorio // KINEO-OMNI-2026-08-25: V1 mudo+TTS ate o render de validacao provar o audio nativo
         })
       } catch (err) {
         if (err instanceof CinematicTimelineError) {

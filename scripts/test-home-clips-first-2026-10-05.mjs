@@ -236,7 +236,10 @@ ok(!/ClipsFirst|homeClipsFirst|home_variant/.test(wall) && !/resolveHomeVariant|
 // O que o fundador pediu, preso aqui para ninguém desfazer sem querer:
 // Reancorado 05/10 (2ª rodada, fundador): "a fileira de cards tem que vir em cima, com quatro… depois os clips, metade
 // clips, metade narrated films: quatro clips, quatro narrated films… e daí já vai para Videos for business".
-ok(/\n      <PromoCards cards=\{promoCardsFor\(\{ clips: clipsVisible\(initialEmail\) \}\)\} \/>\n      \{clipsFirst && <HomeClipsStrip signedIn=\{isSignedIn\} \/>\}\n\n      <header className="hero">/.test(landing), '(8j) a fileira de 4 cards abre a página nos dois braços; no clips_first a faixa de Clipes vem logo abaixo, antes dos filmes')
+// Reancorado 13/10 (KINEO-DUAS-PORTAS-2026-10-13, fundador "tudo sim", ação B): a página abre com as 2 PORTAS (filme narrado ·
+// anúncio de produto) nos dois braços; a fileira de 4 cards desceu para "More tools", depois dos filmes. No clips_first a
+// faixa de Clipes continua logo abaixo da abertura, antes dos filmes.
+ok(/\n      <HomeTwoDoors signedIn=\{isSignedIn\} filmOffer=\{filmDoorOffer\} adsOffer=\{adsDoorOffer\} \/>\n      \{clipsFirst && <HomeClipsStrip signedIn=\{isSignedIn\} \/>\}\n\n      <header className="hero">/.test(landing) && landing.indexOf('<PromoCards cards={promoCardsFor({ clips: clipsVisible(initialEmail) })} />') > landing.indexOf('</header>'), '(8j) as 2 portas abrem a página nos dois braços; no clips_first a faixa de Clipes vem logo abaixo, antes dos filmes; os 4 cards em More tools')
 const strip = read('components/home/HomeClipsStrip.tsx')
 const homeKeys = (strip.match(/export const HOME_CLIP_KEYS: readonly ClipEffectKey\[\] = \[([^\]]*)\]/)?.[1] ?? '').match(/'([a-z0-9_]+)'/g)?.map((k) => k.slice(1, -1)) ?? []
 const fxAll = load(effectsSrc, 'lib/clips').CLIP_EFFECTS
@@ -246,13 +249,15 @@ ok(homeKeys.length === 4 && new Set(homeKeys).size === 4 && homeKeys.every((k) =
 const theme = read('app/kineoLandingTheme.ts')
 const filmRule = theme.match(/\.klp #samples \.\$\{gallery\.featuredFour\} \{ (--film-height:clamp\([^)]*\)); (grid-template-columns:repeat\(4,minmax\(0,1fr\)\)); height:var\(--film-height\); gap:(\d+px); \}/)
 ok(Boolean(filmRule) && strip.includes(`${filmRule[1]};display:grid;${filmRule[2]};height:var(--film-height);gap:${filmRule[3]}`), '(8o) os 4 clipes usam a MESMA grade dos 4 filmes narrados (altura, 4 colunas e espaço iguais), para as duas metades baterem')
-ok(/\n      \{clipsFirst && businessShowcase\}\n\n      \{\/\* Approved home layout/.test(landing) && /\n      \{!clipsFirst && businessShowcase\}\n/.test(landing) && landing.indexOf('{clipsFirst && businessShowcase}') > landing.indexOf('</header>'), '(8p) no clips_first, depois dos filmes vem direto "Videos for your business."; no controle a ordem é a de sempre')
+ok(/\n      \{clipsFirst && businessShowcase\}\n\n      \{\/\* KINEO-DUAS-PORTAS-2026-10-13 — "More tools"/.test(landing) /* reancorado 13/10: entre ela e o layout aprovado entra a fileira More tools */ && /\n      \{!clipsFirst && businessShowcase\}\n/.test(landing) && landing.indexOf('{clipsFirst && businessShowcase}') > landing.indexOf('</header>'), '(8p) no clips_first, depois dos filmes vem direto "Videos for your business."; no controle a ordem é a de sempre')
 ok(!/Turn any photo into a video/.test(strip) && !/Turn any photo into a video/.test(landing), '(8l) o bloco "Turn any photo into a video in one click" não volta para a home')
 // 05/10 (4ª rodada, fundador + pesquisa de mercado): cartão de clipe na home sem preço e sem segundos — só o motor.
 const stripCode = strip.replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/\/\/.*$/gm, '')
 ok(/<i>\{c\.engineLabel\}<\/i>/.test(stripCode) && !/c\.credits/.test(stripCode) && !/\bcr<\/i>|credits`/.test(stripCode) && !/c\.effect\.seconds/.test(stripCode), '(8q) cartão de clipe da home mostra só o motor: sem crédito nem segundos (o preço mora no botão de gerar do /clips)')
 ok(landing.includes('href={clipsFirstFilmHref(isSignedIn)}') && landing.indexOf('href={clipsFirstFilmHref(isSignedIn)}') > landing.indexOf('<header className="hero">'), '(8m) o botão dos filmes narrados da variante leva a campanha que a SQL do A/B lê (home_clips_first_film)')
-ok(/<PublicNavDropdown item="video" label="Video">/.test(landing) && ['/spaces', '/ads/new', '/claude-connector', '/pricing'].every((h) => landing.includes(`<Link href="${h}"`)) && !/data-nav-item="clips"/.test(landing), '(8n) menu do topo como era (Video · Images · Spaces · Ads · MCP · Pricing), sem item solto de Clipes')
+// Reancorado 13/10 (KINEO-DUAS-PORTAS-2026-10-13): o topo virou Make a film ▾ · Product ads · More tools ▾ · Pricing — Spaces,
+// MCP e Imagem moram no More tools; nenhum destino saiu (guardião scripts/test-duas-portas-1310.mjs confere todos).
+ok(/<PublicNavDropdown item="video" label="Make a film">/.test(landing) && /<PublicNavDropdown item="more:tools" label="More tools">/.test(landing) && ['/spaces', '/ads/new', '/claude-connector', '/pricing'].every((h) => landing.includes(`<Link href="${h}"`)) && !/data-nav-item="clips"/.test(landing), '(8n) menu do topo com as 2 portas + More tools + Pricing, sem item solto de Clipes')
 const lvt = read('components/LandingViewTracker.tsx')
 ok(/variant = 'kineo_landing_v3'/.test(lvt) && /<LandingViewTracker signedIn=\{Boolean\(initialUser\)\} \/>/.test(landing), "(8g) homepage_view da home atual continua 'kineo_landing_v3'")
 const mw = read('middleware.ts')

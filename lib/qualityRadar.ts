@@ -47,7 +47,7 @@ export function decideRadarAlert(input: { score: number | null; hasPaid: boolean
 
 const ENGINE_PT: Record<string, string> = {
   fast: 'Kineo 1', cinematic_ai: 'Seedance 1.5', cinematic_veo: 'Veo 3.1', cinematic_kling: 'Kling 2.5',
-  cinematic_hollywood: 'Kling 3', cinematic_h3: 'MiniMax H3', cinematic_omni: 'Omni', cinematic_s25: 'Seedance 2.5', avatar: 'Avatar',
+  cinematic_hollywood: 'Kling 3', cinematic_h3: 'MiniMax H3', cinematic_h3max: 'MiniMax H3 Max' /* KINEO-H3MAX-2026-10-13 */, cinematic_omni: 'Omni', cinematic_s25: 'Seedance 2.5', avatar: 'Avatar',
 }
 const engineLabel = (e: string) => ENGINE_PT[e] ?? e
 

@@ -3,17 +3,25 @@
 // (Studio, Biblioteca, Anuncios, Precos) e o resto vai para "More". 14 dias: video
 // 172 pessoas, Animate 11, Viral Now/roteiros 10, Imagem 4, Audio 0; os 9 pagantes
 // de 45 dias so usaram video. Home saiu: o logo ja leva a /.
+// KINEO-DUAS-PORTAS-2026-10-13 — fundador 13/10 ("tudo sim", ação B): 2 PORTAS no topo da lateral e do celular — "Make a
+// film" (o Studio, filme narrado: 11 dos 12 pagantes) e "Product ads" (o Studio Ads, plano Business) — + Library e
+// Pricing. Imagem, Clipes e Espaços descem para MORE_TOOLS_NAV (grupo "More tools", sempre à vista na lateral e 1º item
+// do "More" no celular): nenhuma rota saiu, tudo segue a ≤ 2 cliques.
 export const WORKSPACE_NAV = [
-  { href: '/studio', label: 'Studio', icon: 'generate' },
-  // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25 — Imagem é porta do topo (fundador 25/09); espelha na lateral e no mobile.
+  { href: '/studio', label: 'Make a film', icon: 'generate' },
+  { href: '/ads/new', label: 'Product ads', icon: 'ads' },
+  { href: '/library', label: 'Library', icon: 'videos' },
+  { href: '/pricing', label: 'Pricing', icon: 'pricing' },
+] as const
+/** KINEO-DUAS-PORTAS-2026-10-13 — o que saiu do topo, na ordem: Imagem primeiro (fundador: "pode deixar Imagem no topo, os
+ *  outros sites têm" — aqui ela abre o grupo), depois Clipes e Espaços. Par: Sidebar.tsx (grupo) e MobileNav.tsx ("More"). */
+export const MORE_TOOLS_NAV = [
+  // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25 — Imagem (fundador 25/09); espelha na lateral e no mobile.
   { href: '/images', label: 'Images', icon: 'images' },
   // KINEO-CLIPES-2026-09-29 — Clipes (5–15 s, uma cena, sem narração) ao lado de Imagem; par no MobileNav e no mega-menu.
   { href: '/clips', label: 'Clips', icon: 'clips' },
-  { href: '/ads/new', label: 'Ads', icon: 'ads' },
   // KINEO-ESPACOS-LANCAMENTO-2026-09-30 — Espaços (espaço vazio → pronto, vídeo antes → depois); par no MobileNav e no mega-menu.
   { href: '/spaces', label: 'Spaces', icon: 'spaces' },
-  { href: '/library', label: 'Library', icon: 'videos' },
-  { href: '/pricing', label: 'Pricing', icon: 'pricing' },
 ] as const
 /** Public "More" links shared by Sidebar and MobileNav; each shell appends its signed-in account links. */
 // KINEO-MENU-ENXUTO-2026-10-09 — fundador ("1 sim"): Animate (o Clips faz), Audio (0 uso em 30 dias), Autopilot (0

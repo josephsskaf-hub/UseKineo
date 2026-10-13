@@ -27,7 +27,9 @@ check('descricao honesta de apresentador', src.includes('Talking AI presenter fr
 const cardBlock = src.split('KINEO-SPRINT-UI8-2026-08-30')[1]?.split('</button>')[0] ?? ''
 check('sem claim de resolucao no card do Avatar', !cardBlock.includes('1080p'))
 // nao virou EngineKey — o fluxo de cobrança do Studio continua intocado
-check("EngineKey continua sem 'avatar'", src.includes("type EngineKey = 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni'"))
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: a união ganhou 'h3max' (motor novo, fundador 13/10) entre 'h3' e 'omni'; a regra
+// continua a mesma — a linha inteira do tipo é conferida e não pode conter 'avatar'.
+check("EngineKey continua sem 'avatar'", /^type EngineKey = 'fast' \| 'seedance' \| 'kling' \| 'veo' \| 'hollywood' \| 'h3' \| 'h3max' \| 'omni' \| 's25'(?: \/\/ KINEO-H3MAX-2026-10-13)?\r?$/m.test(src) && !/^type EngineKey = .*'avatar'/m.test(src))
 check('card e depois do map dos motores (dentro do picker)', src.indexOf('KINEO-SPRINT-UI8-2026-08-30') > src.indexOf('{ENGINES.map((e) => ('))
 // KINEO-AVATAR-FORA-2026-09-28 — o card continua existindo (a casa ainda o usa), mas atrás do interruptor: fundador
 // (27/09) "avatar sai por hora". avatarOn nasce de AVATAR_PUBLIC e só vira true pela flag `avatar` do /api/me/credits

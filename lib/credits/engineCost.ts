@@ -20,6 +20,7 @@ export type Quality =
   | 'cinematic_sora'
   | 'cinematic_hollywood'
   | 'cinematic_h3'
+  | 'cinematic_h3max' // KINEO-H3MAX-2026-10-13
   | 'cinematic_omni'
   | 'cinematic_s25'
   | 'avatar'
@@ -131,6 +132,13 @@ export function creditCostFor(quality: Quality, isPaidUser = false): number {
       // carro-chefe (Kling 3 custa 150cr) — margem melhor num produto que não
       // cabe no plano vale zero.
       return 45
+    case 'cinematic_h3max': // KINEO-H3MAX-2026-10-13
+      // KINEO-H3MAX-2026-10-13 — MiniMax H3 Max (fundador 13/10: "vai H3 Max"), a versão pós-treinada do H3 que entra
+      // no lugar do Omni. fal: US$ 0,08/s em 768P (H3: US$ 0,06/s) — filme de 65 s ≈ US$ 5,20 de fornecedor. A 60 [KINEO-H3MAX-2026-10-13]
+      // créditos, ao preço por crédito do Creator (~US$ 0,1667), a receita é ~US$ 10 e a margem fica perto de 48%. [KINEO-H3MAX-2026-10-13]
+      // Preço aprovado pelo fundador: 60 por 60 s; a régua por duração (creditCostForDuration) faz o resto — [KINEO-H3MAX-2026-10-13]
+      // 15 s = 15, 30 s = 30, 35 s = 35, 90 s = 90. O H3 segue em 45. [KINEO-H3MAX-2026-10-13]
+      return 60 // KINEO-H3MAX-2026-10-13
     case 'cinematic_veo':
       // #489/#491 — Veo 3.1 Fast premium. KINEO-REBASE — 180 → 90.
       // KINEO-V6.1-2026-08-25 — 90 → 100: custo fal ~$9.75/render vs ~$9.65
@@ -236,6 +244,7 @@ export function normalizeQuality(raw: string | null | undefined): Quality {
     case 'cinematic_sora':
     case 'cinematic_hollywood':
     case 'cinematic_h3': // KINEO-H3-2026-08-19
+    case 'cinematic_h3max': // KINEO-H3MAX-2026-10-13
     case 'cinematic_omni': // KINEO-OMNI-2026-08-25
     case 'cinematic_s25': // KINEO-S25-2026-09-01
     case 'avatar':

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { MORE_NAV, navItemIdFor, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
+import { MORE_NAV, MORE_TOOLS_NAV, navItemIdFor, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { CLIPS_PUBLIC } from '@/lib/clips/clipLaunch'
 import { usePathname } from 'next/navigation'
@@ -23,7 +23,7 @@ const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolea
         <path d="M16.5 10.5 21.5 7v10l-5-3.5" />
       </svg>
     ),
-    label: 'Studio',
+    label: 'Make a film', // KINEO-DUAS-PORTAS-2026-10-13 — porta 1 (par do Sidebar e do topo do site)
     exact: false,
   },
   {
@@ -34,7 +34,7 @@ const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolea
         <path d="m7 14.5 1.3 4.5h2.4M18 9.5a3.5 3.5 0 0 1 0 5" />
       </svg>
     ),
-    label: 'Ads',
+    label: 'Product ads', // KINEO-DUAS-PORTAS-2026-10-13 — porta 2 (par do Sidebar e do topo do site)
     exact: false,
   },
   // KINEO-IMAGES-PROD-2026-08-17 — par do Sidebar: Kineo Images no mobile.
@@ -151,7 +151,9 @@ const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolea
 // Same destinations as the desktop sidebar; no checkout or generation side effects.
 // KINEO-NAV-4-ITENS-2026-09-25 — o grupo Tools (Images/Audio) virou parte do
 // "More"; Account continua aqui porque o celular nao tem o bloco de conta do Sidebar.
+// KINEO-DUAS-PORTAS-2026-10-13 — Imagem, Clipes e Espaços saíram da barra e ABREM o "More" (mesma ordem da lateral).
 const MORE_LINKS = [
+  ...MORE_TOOLS_NAV.filter(item => item.href !== '/clips' || CLIPS_PUBLIC).map(item => ({ href: item.href, label: item.label, signedIn: false })),
   ...MORE_NAV.map(item => ({ ...item, signedIn: false })),
   // KINEO-MENU-ENXUTO-2026-10-09 — par da lateral: Invite & Earn + Affiliate viram "Earn 40%".
   { href: '/affiliate', label: 'Earn 40%', signedIn: true },
@@ -185,7 +187,8 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
     return () => document.removeEventListener('pointerdown', closeOutside)
   }, [])
 
-  const primary = NAV_ITEMS.filter((item) => ['/studio', '/images', ...(CLIPS_PUBLIC ? ['/clips'] : []), '/library', '/ads/new', '/spaces', '/pricing'].includes(item.href)) // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25 · KINEO-CLIPES-2026-09-29
+  // KINEO-DUAS-PORTAS-2026-10-13 — barra = 2 portas (Make a film · Product ads) + Library + Pricing + More (5 slots).
+  const primary = NAV_ITEMS.filter((item) => ['/studio', '/ads/new', '/library', '/pricing'].includes(item.href))
   const groups = [
     { label: 'More', links: MORE_LINKS.filter((item) => isLoggedIn || !item.signedIn) },
   ]
@@ -251,10 +254,7 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
       }}>
       <div className="kineo-mobile-row">
         {primaryLink('/studio')}
-        {primaryLink('/images')}
-        {CLIPS_PUBLIC && primaryLink('/clips')}
         {primaryLink('/ads/new')}
-        {primaryLink('/spaces')}
         {primaryLink('/library')}
         {primaryLink('/pricing')}
         {disclosure(groups[0])}

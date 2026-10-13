@@ -37,9 +37,14 @@ const LINHAS_TROCADAS = [
   ],
 ]
 
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: a página de motor ganhou UMA linha trocada pela entrada do MiniMax H3 Max (o tempo
+// de entrega do motor novo, sem tempo medido ainda, não cai na faixa "3–7 minutes" digitada). desfazH3max a devolve, em memória, à
+// linha da base antes das 11 edições daqui serem descontadas; qualquer outra diferença continua vermelha.
+import { desfazH3max } from './desfaz-h3max-2026-10-13.mjs'
+
 /** Fonte (LF) da página de motor → a mesma fonte sem as 11 edições desta mudança. */
 export function semMotoresGeoFonte(src) {
-  const lf = src.replace(/\r\n/g, '\n')
+  const lf = desfazH3max('app/ai-video-generator/[engine]/page.tsx', src.replace(/\r\n/g, '\n'))
   let out = lf.split('\n').filter((linha) => !LINHAS_NOVAS.includes(linha)).map((linha) => {
     const troca = LINHAS_TROCADAS.find(([nova]) => nova === linha)
     return troca ? troca[1] : linha

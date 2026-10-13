@@ -1,0 +1,316 @@
+{
+ "app/(dashboard)/generate/GenerateClient.tsx": [
+  [
+   "  const [aiEngine, setAiEngine] = useState<'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'h3max' | 'omni' | 's25'>('seedance') // KINEO-H3MAX-2026-10-13",
+   "  const [aiEngine, setAiEngine] = useState<'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25'>('seedance')"
+  ],
+  [
+   "    fetch('/api/me/credits', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive && d?.internal === true) setS25Ok(true); if (alive && d?.h3max === true) setH3maxOk(true); /* KINEO-H3MAX-2026-10-13 */ if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && d?.curtas === true) setCurtasOk(true); if (alive && typeof d?.s25Liberado === 'boolean') { setS25Liberado(d.s25Liberado); if (d.s25Liberado === false) setAiEngine((atual) => (atual === 's25' ? 'seedance' : atual)) } }).catch(() => {}) // KINEO-DURACOES-CURTAS-2026-09-29: + curtas · KINEO-S25-ABRE-2026-10-06: + s25Liberado (quem não paga não fica com o 2.5 escolhido pela URL)",
+   "    fetch('/api/me/credits', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive && d?.internal === true) setS25Ok(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && d?.curtas === true) setCurtasOk(true); if (alive && typeof d?.s25Liberado === 'boolean') { setS25Liberado(d.s25Liberado); if (d.s25Liberado === false) setAiEngine((atual) => (atual === 's25' ? 'seedance' : atual)) } }).catch(() => {}) // KINEO-DURACOES-CURTAS-2026-09-29: + curtas · KINEO-S25-ABRE-2026-10-06: + s25Liberado (quem não paga não fica com o 2.5 escolhido pela URL)"
+  ],
+  [
+   "    if (['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'h3max', 'omni', 's25'].includes(engine)) { // KINEO-H3MAX-2026-10-13",
+   "    if (['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'omni', 's25'].includes(engine)) {"
+  ],
+  [
+   "      setAiEngine(engine as 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'h3max' | 'omni' | 's25') // KINEO-H3MAX-2026-10-13",
+   "      setAiEngine(engine as 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25')"
+  ],
+  [
+   "            const urlPickedEngine = ['fast', 'seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'h3max' /* KINEO-H3MAX-2026-10-13 */, 'omni', 's25'].includes(urlEnginePick) && (!enginePaused(urlEnginePick) || searchParams?.get('maint') === '1') // KINEO-MOTOR-EM-MANUTENCAO",
+   "            const urlPickedEngine = ['fast', 'seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'omni', 's25'].includes(urlEnginePick) && (!enginePaused(urlEnginePick) || searchParams?.get('maint') === '1') // KINEO-MOTOR-EM-MANUTENCAO"
+  ],
+  [
+   "            ...(falUsedRef.current && (falQualityRef.current === 'cinematic_hollywood' || falQualityRef.current === 'cinematic_h3' || falQualityRef.current === 'cinematic_h3max' /* KINEO-H3MAX-2026-10-13 */ || falQualityRef.current === 'cinematic_omni' || falQualityRef.current === 'cinematic_s25') && sceneEnginesRef.current.length > 0",
+   "            ...(falUsedRef.current && (falQualityRef.current === 'cinematic_hollywood' || falQualityRef.current === 'cinematic_h3' || falQualityRef.current === 'cinematic_omni' || falQualityRef.current === 'cinematic_s25') && sceneEnginesRef.current.length > 0"
+  ],
+  [
+   "    const isHollywoodRaw = mode === 'cinematic_ai' && (aiEngine === 'hollywood' || aiEngine === 'h3' || aiEngine === 'h3max' || aiEngine === 'omni' || aiEngine === 's25') // KINEO-H3MAX-2026-10-13",
+   "    const isHollywoodRaw = mode === 'cinematic_ai' && (aiEngine === 'hollywood' || aiEngine === 'h3' || aiEngine === 'omni' || aiEngine === 's25')"
+  ],
+  [
+   "        falQualityRef.current = data.quality === 'cinematic_kling' ? 'cinematic_kling' : data.quality === 'cinematic_veo' ? 'cinematic_veo' : data.quality === 'cinematic_sora' ? 'cinematic_sora' : data.quality === 'cinematic_hollywood' ? 'cinematic_hollywood' : data.quality === 'cinematic_h3' ? 'cinematic_h3' : data.quality === 'cinematic_h3max' ? 'cinematic_h3max' /* KINEO-H3MAX-2026-10-13: sem isto o compose cobraria Seedance e não mutaria o áudio nativo */ : data.quality === 'cinematic_omni' ? 'cinematic_omni' : data.quality === 'cinematic_s25' ? 'cinematic_s25' : 'cinematic_ai'",
+   "        falQualityRef.current = data.quality === 'cinematic_kling' ? 'cinematic_kling' : data.quality === 'cinematic_veo' ? 'cinematic_veo' : data.quality === 'cinematic_sora' ? 'cinematic_sora' : data.quality === 'cinematic_hollywood' ? 'cinematic_hollywood' : data.quality === 'cinematic_h3' ? 'cinematic_h3' : data.quality === 'cinematic_omni' ? 'cinematic_omni' : data.quality === 'cinematic_s25' ? 'cinematic_s25' : 'cinematic_ai'"
+  ],
+  [
+   "  aiEngine: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'h3max' | 'omni' | 's25' // KINEO-H3MAX-2026-10-13",
+   "  aiEngine: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25'"
+  ],
+  [
+   "  setAiEngine: (e: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'h3max' | 'omni' | 's25') => void // KINEO-H3MAX-2026-10-13",
+   "  setAiEngine: (e: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25') => void"
+  ],
+  [
+   "    hollywood: 'Kling 3', h3: 'MiniMax H3', h3max: 'MiniMax H3 Max' /* KINEO-H3MAX-2026-10-13 */, sora: 'Sora', omni: 'Omni', s25: 'Seedance 2.5',",
+   "    hollywood: 'Kling 3', h3: 'MiniMax H3', sora: 'Sora', omni: 'Omni', s25: 'Seedance 2.5',"
+  ],
+  [
+   "    ...(cinematicUnlocked ? ['hollywood', 'veo', 'kling', 'h3', ...(h3maxOk ? ['h3max'] : [])] : []), // KINEO-H3MAX-2026-10-13",
+   "    ...(cinematicUnlocked ? ['hollywood', 'veo', 'kling', 'h3'] : []),"
+  ],
+  [
+   "            ] as { key: 'veo' | 'sora' | 'kling' | 'hollywood' | 'h3' | 'h3max' | 'omni' | 's25'; label: string; sub: string; cr: number }[]).map((m) => { // KINEO-H3MAX-2026-10-13",
+   "            ] as { key: 'veo' | 'sora' | 'kling' | 'hollywood' | 'h3' | 'omni' | 's25'; label: string; sub: string; cr: number }[]).map((m) => {"
+  ]
+ ],
+ "app/(dashboard)/studio/StudioClient.tsx": [
+  [
+   "type EngineKey = 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'h3max' | 'omni' | 's25' // KINEO-H3MAX-2026-10-13",
+   "type EngineKey = 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni' | 's25'"
+  ],
+  [
+   "      .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits); if (alive && d?.internal === true) setInternal(true); if (alive && d?.h3max === true) setH3maxOk(true); /* KINEO-H3MAX-2026-10-13 */ if (alive && d?.avatar === true) setAvatarOn(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && d?.curtas === true) setCurtasOk(true); if (alive && typeof d?.plan === 'string') setPlan(d.plan) })",
+   "      .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits); if (alive && d?.internal === true) setInternal(true); if (alive && d?.avatar === true) setAvatarOn(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && d?.curtas === true) setCurtasOk(true); if (alive && typeof d?.plan === 'string') setPlan(d.plan) })"
+  ],
+  [
+   "    if (e && ENGINES.some((x) => x.key === e) && (e !== 's25') && (e !== 'h3max' || h3maxOk) && !ENGINES.find((x) => x.key === e)?.paused) setEngine(e as EngineKey) // KINEO-MOTOR-EM-MANUTENCAO: ?engine= pausado cai no padrão · KINEO-H3MAX-2026-10-13: H3 Max escondido também",
+   "    if (e && ENGINES.some((x) => x.key === e) && (e !== 's25') && !ENGINES.find((x) => x.key === e)?.paused) setEngine(e as EngineKey) // KINEO-MOTOR-EM-MANUTENCAO: ?engine= pausado cai no padrão"
+  ],
+  [
+   "    const steps = ENGINES.filter((e) => !e.paused && (e.key !== 'fast' || kineo1Shown) && (e.key !== 'h3max' || h3maxOk) /* KINEO-H3MAX-2026-10-13 */ && (e.key !== 's25' || s25Liberado === true) /* KINEO-S25-ABRE-2026-10-06: card trancado não oferece degrau */).map((e) => ({ engine: e.key, step: stepDownFor(e.key) })).filter((s) => s.step).map((s) => ({ engine: s.engine, to: s.step!.seconds, cost: s.step!.cost }))",
+   "    const steps = ENGINES.filter((e) => !e.paused && (e.key !== 'fast' || kineo1Shown) && (e.key !== 's25' || s25Liberado === true) /* KINEO-S25-ABRE-2026-10-06: card trancado não oferece degrau */).map((e) => ({ engine: e.key, step: stepDownFor(e.key) })).filter((s) => s.step).map((s) => ({ engine: s.engine, to: s.step!.seconds, cost: s.step!.cost }))"
+  ],
+  [
+   "                {ENGINES.filter((e) => (e.key !== 's25' || internal) && (e.key !== 'h3max' || h3maxOk) /* KINEO-H3MAX-2026-10-13 */ && (e.key !== 'fast' || kineo1Shown)).map((e) => { const pausa = e.paused ? enginePaused(e.key) : null; const trancado = !pausa && e.key === 's25' && s25Liberado !== true /* KINEO-S25-ABRE-2026-10-06: o 2.5 para quem não paga — selo + upgrade, nunca escolhe o motor */; return trancado ? (",
+   "                {ENGINES.filter((e) => (e.key !== 's25' || internal) && (e.key !== 'fast' || kineo1Shown)).map((e) => { const pausa = e.paused ? enginePaused(e.key) : null; const trancado = !pausa && e.key === 's25' && s25Liberado !== true /* KINEO-S25-ABRE-2026-10-06: o 2.5 para quem não paga — selo + upgrade, nunca escolhe o motor */; return trancado ? ("
+  ],
+  [
+   "                <span style={{ fontSize: 11, color: 'var(--muted2)' }}>{kineo1Shown ? 'Kineo 1, ' : ''}Seedance 1.5, Veo 3.1 and Kling 2.5 narrate in this language. Kling 3, H3, H3 Max and Seedance 2.5: English, Portuguese, Spanish only.{/* KINEO-H3MAX-2026-10-13 */}{/* KINEO-OMNI-FORA-2026-10-12 */}</span>",
+   "                <span style={{ fontSize: 11, color: 'var(--muted2)' }}>{kineo1Shown ? 'Kineo 1, ' : ''}Seedance 1.5, Veo 3.1 and Kling 2.5 narrate in this language. Kling 3, H3 and Seedance 2.5: English, Portuguese, Spanish only.{/* KINEO-OMNI-FORA-2026-10-12 */}</span>"
+  ]
+ ],
+ "app/(dashboard)/studio/create/page.tsx": [
+  [
+   "const PREVIA_STUDIO_QUALITY: Record<string, 'fast' | 'cinematic_ai' | 'cinematic_kling' | 'cinematic_veo' | 'cinematic_hollywood' | 'cinematic_h3' | 'cinematic_h3max' | 'cinematic_omni' | 'cinematic_s25'> = { // KINEO-H3MAX-2026-10-13",
+   "const PREVIA_STUDIO_QUALITY: Record<string, 'fast' | 'cinematic_ai' | 'cinematic_kling' | 'cinematic_veo' | 'cinematic_hollywood' | 'cinematic_h3' | 'cinematic_omni' | 'cinematic_s25'> = {"
+  ],
+  [
+   "  fast: 'fast', seedance: 'cinematic_ai', kling: 'cinematic_kling', veo: 'cinematic_veo', hollywood: 'cinematic_hollywood', h3: 'cinematic_h3', h3max: 'cinematic_h3max', omni: 'cinematic_omni', s25: 'cinematic_s25', // KINEO-H3MAX-2026-10-13",
+   "  fast: 'fast', seedance: 'cinematic_ai', kling: 'cinematic_kling', veo: 'cinematic_veo', hollywood: 'cinematic_hollywood', h3: 'cinematic_h3', omni: 'cinematic_omni', s25: 'cinematic_s25',"
+  ]
+ ],
+ "app/admin/people/PeopleClient.tsx": [
+  [
+   "  cinematic_h3: 'MiniMax H3', cinematic_h3max: 'MiniMax H3 Max' /* KINEO-H3MAX-2026-10-13 */, cinematic_hollywood: 'Kling 3', cinematic_omni: 'Omni Flash',",
+   "  cinematic_h3: 'MiniMax H3', cinematic_hollywood: 'Kling 3', cinematic_omni: 'Omni Flash',"
+  ]
+ ],
+ "app/ai-video-generator/[engine]/page.tsx": [
+  [
+   "                  ['Typical turnaround', geo ? geo.turnaround : e.param === 'h3max' ? 'New engine: the turnaround is measured from its first delivered films' : '3–7 minutes from idea to download'], // KINEO-H3MAX-2026-10-13 — sem tempo medido ainda, sem faixa digitada",
+   "                  ['Typical turnaround', geo ? geo.turnaround : '3–7 minutes from idea to download'],"
+  ]
+ ],
+ "app/api/admin/live/route.ts": [
+  [
+   "        cinematic_h3: 'H3', cinematic_h3max: 'H3 Max' /* KINEO-H3MAX-2026-10-13 */, cinematic_veo: 'Veo', cinematic_hollywood: 'Kling 3',",
+   "        cinematic_h3: 'H3', cinematic_veo: 'Veo', cinematic_hollywood: 'Kling 3',"
+  ]
+ ],
+ "app/api/compose/route.ts": [
+  [
+   "type Quality = 'fast' | 'basic' | 'basic_ai' | 'pro' | 'cinematic_ai' | 'cinematic_kling' | 'cinematic_veo' | 'cinematic_sora' | 'cinematic_hollywood' | 'cinematic_h3' | 'cinematic_h3max' | 'cinematic_omni' | 'cinematic_s25' | 'avatar' | 'presenter' // KINEO-H3MAX-2026-10-13",
+   "type Quality = 'fast' | 'basic' | 'basic_ai' | 'pro' | 'cinematic_ai' | 'cinematic_kling' | 'cinematic_veo' | 'cinematic_sora' | 'cinematic_hollywood' | 'cinematic_h3' | 'cinematic_omni' | 'cinematic_s25' | 'avatar' | 'presenter'"
+  ],
+  [
+   "      return q === 'fast' || q === 'basic' || q === 'pro' || q === 'cinematic_ai' || q === 'cinematic_kling' || q === 'cinematic_veo' || q === 'cinematic_sora' || q === 'cinematic_hollywood' || q === 'cinematic_h3' || q === 'cinematic_h3max' || q === 'cinematic_omni' || q === 'cinematic_s25' ? q : 'basic_ai' // KINEO-H3MAX-2026-10-13",
+   "      return q === 'fast' || q === 'basic' || q === 'pro' || q === 'cinematic_ai' || q === 'cinematic_kling' || q === 'cinematic_veo' || q === 'cinematic_sora' || q === 'cinematic_hollywood' || q === 'cinematic_h3' || q === 'cinematic_omni' || q === 'cinematic_s25' ? q : 'basic_ai'"
+  ],
+  [
+   "      'cinematic_sora', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_h3max', 'cinematic_omni', 'cinematic_s25', // KINEO-H3MAX-2026-10-13",
+   "      'cinematic_sora', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_omni', 'cinematic_s25',"
+  ],
+  [
+   "            ['cinematic_hollywood', 'cinematic_h3', 'cinematic_h3max', 'cinematic_omni', 'cinematic_s25'].includes(trustedQuality)) // KINEO-H3MAX-2026-10-13",
+   "            ['cinematic_hollywood', 'cinematic_h3', 'cinematic_omni', 'cinematic_s25'].includes(trustedQuality))"
+  ],
+  [
+   "      quality === 'cinematic_ai' || quality === 'cinematic_kling' || quality === 'cinematic_veo' || quality === 'cinematic_sora' || quality === 'cinematic_hollywood' || quality === 'cinematic_h3' || quality === 'cinematic_h3max' || quality === 'cinematic_omni' || quality === 'cinematic_s25' ? 'cinematic' : quality === 'pro' ? 'premium' : 'free' // KINEO-H3MAX-2026-10-13",
+   "      quality === 'cinematic_ai' || quality === 'cinematic_kling' || quality === 'cinematic_veo' || quality === 'cinematic_sora' || quality === 'cinematic_hollywood' || quality === 'cinematic_h3' || quality === 'cinematic_omni' || quality === 'cinematic_s25' ? 'cinematic' : quality === 'pro' ? 'premium' : 'free'"
+  ],
+  [
+   "    if (quality !== 'fast' && quality !== 'cinematic_ai' && quality !== 'cinematic_kling' && quality !== 'cinematic_veo' && quality !== 'cinematic_sora' && quality !== 'cinematic_hollywood' && quality !== 'cinematic_h3' && quality !== 'cinematic_h3max' && quality !== 'cinematic_omni' && quality !== 'cinematic_s25' && quality !== 'avatar' && quality !== 'presenter') { // KINEO-H3MAX-2026-10-13",
+   "    if (quality !== 'fast' && quality !== 'cinematic_ai' && quality !== 'cinematic_kling' && quality !== 'cinematic_veo' && quality !== 'cinematic_sora' && quality !== 'cinematic_hollywood' && quality !== 'cinematic_h3' && quality !== 'cinematic_omni' && quality !== 'cinematic_s25' && quality !== 'avatar' && quality !== 'presenter') {"
+  ],
+  [
+   "      quality === 'cinematic_hollywood' || quality === 'cinematic_h3' || quality === 'cinematic_h3max' || quality === 'cinematic_omni' || quality === 'cinematic_s25' || quality === 'avatar' || // KINEO-H3MAX-2026-10-13",
+   "      quality === 'cinematic_hollywood' || quality === 'cinematic_h3' || quality === 'cinematic_omni' || quality === 'cinematic_s25' || quality === 'avatar' ||"
+  ],
+  [
+   "    if (quality === 'cinematic_hollywood' || quality === 'cinematic_h3' || quality === 'cinematic_h3max' || quality === 'cinematic_omni' || quality === 'cinematic_s25') { // KINEO-H3MAX-2026-10-13",
+   "    if (quality === 'cinematic_hollywood' || quality === 'cinematic_h3' || quality === 'cinematic_omni' || quality === 'cinematic_s25') {"
+  ],
+  [
+   "        if (c && c.engine === 'support' && quality !== 'cinematic_h3' && quality !== 'cinematic_h3max') { // KINEO-H3MAX-2026-10-13",
+   "        if (c && c.engine === 'support' && quality !== 'cinematic_h3') {"
+  ],
+  [
+   "        muteClipAudio: quality === 'cinematic_h3' || quality === 'cinematic_h3max' /* KINEO-H3MAX-2026-10-13 */ || quality === 'cinematic_omni' || quality === 'cinematic_s25', // KINEO-S25: generate_audio ja vai false; o mute aqui e cinto E suspensorio // KINEO-OMNI-2026-08-25: V1 mudo+TTS ate o render de validacao provar o audio nativo",
+   "        muteClipAudio: quality === 'cinematic_h3' || quality === 'cinematic_omni' || quality === 'cinematic_s25', // KINEO-S25: generate_audio ja vai false; o mute aqui e cinto E suspensorio // KINEO-OMNI-2026-08-25: V1 mudo+TTS ate o render de validacao provar o audio nativo"
+  ]
+ ],
+ "app/api/compose/status/[renderId]/route.ts": [
+  [
+   "type Quality = 'fast' | 'basic' | 'basic_ai' | 'pro' | 'cinematic_ai' | 'cinematic_kling' | 'cinematic_veo' | 'cinematic_sora' | 'cinematic_hollywood' | 'cinematic_h3' | 'cinematic_h3max' | 'cinematic_omni' | 'cinematic_s25' | 'avatar' | 'presenter' // KINEO-H3MAX-2026-10-13",
+   "type Quality = 'fast' | 'basic' | 'basic_ai' | 'pro' | 'cinematic_ai' | 'cinematic_kling' | 'cinematic_veo' | 'cinematic_sora' | 'cinematic_hollywood' | 'cinematic_h3' | 'cinematic_omni' | 'cinematic_s25' | 'avatar' | 'presenter'"
+  ],
+  [
+   "      quality === 'cinematic_hollywood' || quality === 'cinematic_h3' || quality === 'cinematic_h3max' || // KINEO-H3MAX-2026-10-13",
+   "      quality === 'cinematic_hollywood' || quality === 'cinematic_h3' ||"
+  ]
+ ],
+ "app/api/generate-video-cinematic/route.ts": [
+  [
+   "    const hollywoodPath = wantsHollywood || wantsH3 || wantsH3Max || wantsOmni || wantsS25 // KINEO-H3MAX-2026-10-13: o H3 Max anda na estrada hollywood (planner, verbatim, piso 95%, contrato de cena)",
+   "    const hollywoodPath = wantsHollywood || wantsH3 || wantsOmni || wantsS25"
+  ],
+  [
+   "        error: `${LANGUAGE_NAMES[narrationLanguage.language]} narration is available on Kineo 1, Seedance 1.5, Veo 3.1 and Kling 2.5. Kling 3, MiniMax H3, MiniMax H3 Max and Seedance 2.5 speak English, Portuguese and Spanish for now — pick one of those engines, or switch the narration language.`, // KINEO-H3MAX-2026-10-13 (o Omni saiu da oferta em 12/10; o H3 Max entra na lista)",
+   "        error: `${LANGUAGE_NAMES[narrationLanguage.language]} narration is available on Kineo 1, Seedance 1.5, Veo 3.1 and Kling 2.5. Kling 3, MiniMax H3, Omni and Seedance 2.5 speak English, Portuguese and Spanish for now — pick one of those engines, or switch the narration language.`,"
+  ],
+  [
+   "      anchorEnabled: wantsHollywood || wantsH3 || wantsH3Max || wantsOmni || wantsS25 || CINEMATIC_ANCHOR_ENABLED, // KINEO-ESTRELA-DO-FILME-2026-09-29 (estrada hollywood = âncora sempre; clássicos = o interruptor) · KINEO-H3MAX-2026-10-13",
+   "      anchorEnabled: wantsHollywood || wantsH3 || wantsOmni || wantsS25 || CINEMATIC_ANCHOR_ENABLED, // KINEO-ESTRELA-DO-FILME-2026-09-29 (estrada hollywood = âncora sempre; clássicos = o interruptor)"
+  ],
+  [
+   "    const family: CinematicFamily = wantsH3 ? 'h3' : wantsH3Max ? 'h3max' : wantsOmni ? 'omni' : wantsS25 ? 's25' : 'hollywood' // KINEO-H3MAX-2026-10-13",
+   "    const family: CinematicFamily = wantsH3 ? 'h3' : wantsOmni ? 'omni' : wantsS25 ? 's25' : 'hollywood'"
+  ],
+  [
+   "    const gateEngineKey = wantsS25 ? 's25' : wantsOmni ? 'omni' : wantsH3 ? 'h3' : wantsH3Max ? 'h3max' : wantsHollywood ? 'hollywood' : wantsKling ? 'kling' : wantsVeo ? 'veo' : 'seedance' // KINEO-H3MAX-2026-10-13",
+   "    const gateEngineKey = wantsS25 ? 's25' : wantsOmni ? 'omni' : wantsH3 ? 'h3' : wantsHollywood ? 'hollywood' : wantsKling ? 'kling' : wantsVeo ? 'veo' : 'seedance'"
+  ],
+  [
+   "    const baseCost = wantsS25 ? S25_CREDIT_COST : wantsH3 ? H3_CREDIT_COST : wantsH3Max ? H3MAX_CREDIT_COST : wantsHollywood ? HOLLYWOOD_CREDIT_COST : wantsKling ? KLING_CREDIT_COST : wantsVeo ? VEO_CREDIT_COST : wantsSora ? SORA_CREDIT_COST : SEEDANCE_CREDIT_COST // KINEO-H3MAX-2026-10-13",
+   "    const baseCost = wantsS25 ? S25_CREDIT_COST : wantsH3 ? H3_CREDIT_COST : wantsHollywood ? HOLLYWOOD_CREDIT_COST : wantsKling ? KLING_CREDIT_COST : wantsVeo ? VEO_CREDIT_COST : wantsSora ? SORA_CREDIT_COST : SEEDANCE_CREDIT_COST"
+  ],
+  [
+   "              ? ['seedance', 'h3', ...(h3maxVisible(user.email) ? ['h3max'] : []), 'kling', 'veo', 'hollywood', 'omni'] // KINEO-H3MAX-2026-10-13",
+   "              ? ['seedance', 'h3', 'kling', 'veo', 'hollywood', 'omni']"
+  ],
+  [
+   "        engine: wantsS25 ? 's25' : wantsOmni ? 'omni' : wantsH3 ? 'h3' : wantsH3Max ? 'h3max' : wantsHollywood ? 'hollywood' : wantsKling ? 'kling' : wantsVeo ? 'veo' : 'seedance', // KINEO-H3MAX-2026-10-13",
+   "        engine: wantsS25 ? 's25' : wantsOmni ? 'omni' : wantsH3 ? 'h3' : wantsHollywood ? 'hollywood' : wantsKling ? 'kling' : wantsVeo ? 'veo' : 'seedance',"
+  ],
+  [
+   "          error: `Seedance 2.5 cannot voice an on-camera presenter for this film (${motivo}). ${submittedPart}${released ? ' and your credits are back' : ''}. Choose Kling 3, MiniMax H3 or MiniMax H3 Max for a presenter, or ask for a narrated film without a presenter on Seedance 2.5.`, // KINEO-H3MAX-2026-10-13 (o Omni saiu da oferta em 12/10 — pendência do KINEO-SELO-OMNI-2026-10-13)",
+   "          error: `Seedance 2.5 cannot voice an on-camera presenter for this film (${motivo}). ${submittedPart}${released ? ' and your credits are back' : ''}. Choose Kling 3, MiniMax H3 or Omni Flash for a presenter, or ask for a narrated film without a presenter on Seedance 2.5.`,"
+  ]
+ ],
+ "app/api/me/credits/route.ts": [
+  [
+   "  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, h3max: h3maxVisible(user.email) /* KINEO-H3MAX-2026-10-13: o H3 Max aparece (H3MAX_PUBLIC || casa) */, avatar: avatarVisible(user.email), seedance15: seedance15sVisible(user.email), curtas: duracoesCurtasVisible(user.email), estrela: estrelaVisible(user.email), parceiro, internal: s25Visible(user.email), s25Liberado, hasPaid, kineo1, plan })",
+   "  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), seedance15: seedance15sVisible(user.email), curtas: duracoesCurtasVisible(user.email), estrela: estrelaVisible(user.email), parceiro, internal: s25Visible(user.email), s25Liberado, hasPaid, kineo1, plan })"
+  ]
+ ],
+ "app/api/retry-hollywood-scene/route.ts": [
+  [
+   "const ALLOWED = new Set<string>([...Object.values(HOLLYWOOD_MODELS), KLING3_I2V_MODEL, ...H3_SET, ...H3MAX_SET /* KINEO-H3MAX-2026-10-13 */, OMNI_I2V_MODEL, S25_I2V_MODEL, S25_T2V_MODEL]) // KINEO-S25-STATUS-2026-09-15: a retomada também conhece o Seedance 2.5",
+   "const ALLOWED = new Set<string>([...Object.values(HOLLYWOOD_MODELS), KLING3_I2V_MODEL, ...H3_SET, OMNI_I2V_MODEL, S25_I2V_MODEL, S25_T2V_MODEL]) // KINEO-S25-STATUS-2026-09-15: a retomada também conhece o Seedance 2.5"
+  ],
+  [
+   "  const requiresAnchor = [KLING3_I2V_MODEL, H3_I2V_MODEL, H3MAX_I2V_MODEL, OMNI_I2V_MODEL, S25_I2V_MODEL].includes(slot.model) // KINEO-H3MAX-2026-10-13",
+   "  const requiresAnchor = [KLING3_I2V_MODEL, H3_I2V_MODEL, OMNI_I2V_MODEL, S25_I2V_MODEL].includes(slot.model)"
+  ]
+ ],
+ "app/llms.txt/route.ts": [
+  [
+   "Narration languages (${NARRATION_LANGUAGES.length}, chosen in the Studio, captions follow the voice): ${NARRATION_LANGUAGES.map((l) => l.name.replace(/ \\(.*\\)$/, '')).join(', ')}. Type the idea in that language and the film comes out in it. The engines with their own built-in voice (Kling 3, MiniMax H3${H3MAX_PUBLIC ? ', MiniMax H3 Max' : '' /* KINEO-H3MAX-2026-10-13 */}) and Seedance 2.5 (Kineo narrates it; the model’s own audio is off) narrate in ${HOLLYWOOD_LANGUAGES.length} of them (English, Portuguese, Spanish); ${KINEO1_PUBLIC ? 'Kineo 1, ' : ''}Seedance 1.5, Veo 3.1 and Kling 2.5 narrate in all ${NARRATION_LANGUAGES.length}.",
+   "Narration languages (${NARRATION_LANGUAGES.length}, chosen in the Studio, captions follow the voice): ${NARRATION_LANGUAGES.map((l) => l.name.replace(/ \\(.*\\)$/, '')).join(', ')}. Type the idea in that language and the film comes out in it. The engines with their own built-in voice (Kling 3, MiniMax H3) and Seedance 2.5 (Kineo narrates it; the model’s own audio is off) narrate in ${HOLLYWOOD_LANGUAGES.length} of them (English, Portuguese, Spanish); ${KINEO1_PUBLIC ? 'Kineo 1, ' : ''}Seedance 1.5, Veo 3.1 and Kling 2.5 narrate in all ${NARRATION_LANGUAGES.length}."
+  ],
+  [
+   "${H3MAX_PUBLIC ? `- 2026-10-13: MiniMax H3 Max is live on Kineo — MiniMax’s post-trained H3 model in the same pipeline as MiniMax H3; a finished narrated video costs ${creditCostForDuration('cinematic_h3max', true, 35)} credits for 35 seconds or ${creditCostForDuration('cinematic_h3max', true, 60)} for 60 seconds (MiniMax H3: ${creditCostForDuration('cinematic_h3', true, 60)} for 60 seconds).\\n` : '' /* KINEO-H3MAX-2026-10-13 */}- 2026-08-24: /generate retired; the Studio (usekineo.com/studio) is the",
+   "- 2026-08-24: /generate retired; the Studio (usekineo.com/studio) is the"
+  ]
+ ],
+ "lib/contadorVoz.ts": [
+  [
+   "export type ContadorMotor = 'fast' | 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'h3max' | 'omni' | 's25' // KINEO-H3MAX-2026-10-13",
+   "export type ContadorMotor = 'fast' | 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25'"
+  ]
+ ],
+ "lib/creationHandoff.ts": [
+  [
+   "const CURTAS_DO_HANDOFF: Readonly<Record<string, readonly number[]>> = { kling: [15], veo: [15], hollywood: [15, 30], h3: [15, 30], h3max: [15, 30], omni: [15, 30], s25: [15, 30] } // KINEO-H3MAX-2026-10-13",
+   "const CURTAS_DO_HANDOFF: Readonly<Record<string, readonly number[]>> = { kling: [15], veo: [15], hollywood: [15, 30], h3: [15, 30], omni: [15, 30], s25: [15, 30] }"
+  ]
+ ],
+ "lib/diretor/suggest.ts": [
+  [
+   "export const DIRETOR_CINEMATIC_ENGINES = ['seedance', 'kling', 'veo', 'hollywood', 'h3', 'h3max', 'omni', 's25'] as const // KINEO-H3MAX-2026-10-13",
+   "export const DIRETOR_CINEMATIC_ENGINES = ['seedance', 'kling', 'veo', 'hollywood', 'h3', 'omni', 's25'] as const"
+  ]
+ ],
+ "lib/durationByEngine.ts": [
+  [
+   "  const outros = ['kling', 'veo', 'sora', 'hollywood', 'h3', 'h3max', 'omni', 's25', 'fast', 'creator', 'avatar', 'presenter'] // KINEO-H3MAX-2026-10-13",
+   "  const outros = ['kling', 'veo', 'sora', 'hollywood', 'h3', 'omni', 's25', 'fast', 'creator', 'avatar', 'presenter']"
+  ],
+  [
+   "  const qualidades = ['cinematic_kling', 'cinematic_veo', 'cinematic_sora', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_h3max', 'cinematic_omni', 'cinematic_s25'] // KINEO-H3MAX-2026-10-13",
+   "  const qualidades = ['cinematic_kling', 'cinematic_veo', 'cinematic_sora', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_omni', 'cinematic_s25']"
+  ],
+  [
+   "  return ['hollywood', 'h3', 'h3max', 'omni', 's25', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_h3max', 'cinematic_omni', 'cinematic_s25'].includes(k) // KINEO-H3MAX-2026-10-13",
+   "  return ['hollywood', 'h3', 'omni', 's25', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_omni', 'cinematic_s25'].includes(k)"
+  ]
+ ],
+ "lib/engineLaunch.ts": [
+  [
+   "  'Veo 3.1', 'Kling 3', 'Kling 2.5', 'MiniMax H3', // KINEO-H3MAX-2026-10-13",
+   "  'Veo 3.1', 'Kling 3', 'Kling 2.5', 'MiniMax H3', 'Seedance 1.5',"
+  ]
+ ],
+ "lib/enginePlanGate.ts": [
+  [
+   "  'kling', 'veo', 'hollywood', 'h3', 'h3max', 'omni', 's25', // KINEO-H3MAX-2026-10-13",
+   "  'kling', 'veo', 'hollywood', 'h3', 'omni', 's25',"
+  ]
+ ],
+ "lib/estrelaDoFilme.ts": [
+  [
+   "export const ESTRELA_MOTORES = ['seedance', 'kling', 'veo', 'hollywood', 'h3', 'h3max', 'omni'] as const // KINEO-H3MAX-2026-10-13",
+   "export const ESTRELA_MOTORES = ['seedance', 'kling', 'veo', 'hollywood', 'h3', 'omni'] as const"
+  ]
+ ],
+ "lib/growth/cardEntryResumeDraft.ts": [
+  [
+   "  | 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'h3max' | 'omni' | 's25' // KINEO-H3MAX-2026-10-13",
+   "  | 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25'"
+  ],
+  [
+   "const DRAFT_ENGINES: readonly DraftEngine[] = ['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'h3max', 'omni', 's25'] // KINEO-H3MAX-2026-10-13",
+   "const DRAFT_ENGINES: readonly DraftEngine[] = ['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'omni', 's25']"
+  ]
+ ],
+ "lib/growth/enginePageCatalog.ts": [
+  [
+   "  return !enginePaused(param) && (param !== 's25' || S25_PUBLIC) && (param !== 'h3max' || H3MAX_PUBLIC) // KINEO-H3MAX-2026-10-13",
+   "  return !enginePaused(param) && (param !== 's25' || S25_PUBLIC)"
+  ]
+ ],
+ "lib/hollywood/router.ts": [
+  [
+   "export type CinematicFamily = 'hollywood' | 'h3' | 'h3max' | 'omni' | 's25' // KINEO-H3MAX-2026-10-13",
+   "export type CinematicFamily = 'hollywood' | 'h3' | 'omni' | 's25'"
+  ]
+ ],
+ "lib/qualityRadar.ts": [
+  [
+   "  cinematic_hollywood: 'Kling 3', cinematic_h3: 'MiniMax H3', cinematic_h3max: 'MiniMax H3 Max' /* KINEO-H3MAX-2026-10-13 */, cinematic_omni: 'Omni', cinematic_s25: 'Seedance 2.5', avatar: 'Avatar',",
+   "  cinematic_hollywood: 'Kling 3', cinematic_h3: 'MiniMax H3', cinematic_omni: 'Omni', cinematic_s25: 'Seedance 2.5', avatar: 'Avatar',"
+  ]
+ ],
+ "lib/showcase.ts": [
+  [
+   "  cinematic_veo: 'Veo 3.1', cinematic_hollywood: 'Kling 3', cinematic_h3: 'MiniMax H3', cinematic_h3max: 'MiniMax H3 Max' /* KINEO-H3MAX-2026-10-13 */,",
+   "  cinematic_veo: 'Veo 3.1', cinematic_hollywood: 'Kling 3', cinematic_h3: 'MiniMax H3',"
+  ]
+ ],
+ "lib/speechRate.ts": [
+  [
+   "  return /^(cinematic_)?(hollywood|h3|h3max|omni|s25)$/.test(q) ? 'hollywood' : 'classic' // KINEO-H3MAX-2026-10-13: o H3 Max fala na régua hollywood (2,3 pal/s), como o H3",
+   "  return /^(cinematic_)?(hollywood|h3|omni|s25)$/.test(q) ? 'hollywood' : 'classic'"
+  ]
+ ]
+}

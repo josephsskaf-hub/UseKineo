@@ -7,6 +7,7 @@ import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
 import { clipsVisible } from '@/lib/clips/clipLaunch'
 import { s25Visible, S25_PUBLIC, VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, PAUSED_ENGINES_COPY, enginePaused, avatarVisible, kineo1Visible } from '@/lib/engineLaunch'
 import { S25_PAID_BADGE, s25UpgradeHref } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06
+import { H3MAX_PUBLIC, h3maxVisible } from '@/lib/engineLaunch' // KINEO-H3MAX-2026-10-13
 import EngineNewsBar from '@/components/home/EngineNewsBar' // KINEO-FAIXA-S25-2026-10-09
 import { enginePlanBadge } from '@/lib/enginePlanGate'
 import Link from 'next/link'
@@ -36,6 +37,13 @@ import TrendingRow from '@/components/TrendingRow'
 // KINEO-PROMO-CARDS-2026-09-30 — fileira de cards grandes logo abaixo do menu (Kineo for Claude + Clips).
 import PromoCards from '@/components/PromoCards'
 import HomeClipsStrip from '@/components/home/HomeClipsStrip' // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05
+// KINEO-DUAS-PORTAS-2026-10-13 — as 2 portas da primeira dobra (filme narrado · anúncio de produto). Os números da oferta
+// saem das fontes abaixo, nunca digitados (guardião scripts/test-duas-portas-1310.mjs).
+import HomeTwoDoors, { type HomeDoorOffer } from '@/components/home/HomeTwoDoors'
+import { BUSINESS_ADS_PER_MONTH, BUSINESS_PRICE_LABEL } from '@/lib/businessPlan'
+import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample'
+import { WELCOME20_PERCENT_OFF } from '@/lib/growth/publicPromoTruth'
+import { TRIAL_FREE_FILM_SECONDS, TRIAL_SEEDANCE15_FILMS } from '@/lib/freeTierOffer'
 import { clipsFirstFilmHref } from '@/lib/growth/homeClipsFirst'
 import { promoCardsFor } from '@/lib/ui/promoCards'
 // KINEO-VITRINE-MOEDA-2026-08-19 — LandingStarterPrice cobria SÓ o Starter, e
@@ -800,6 +808,22 @@ export default function KineoLanding({
   // resolvido no servidor do Studio (lib/kineo1Access.ts, E2b). A grade do bento fecha sozinha para qualquer contagem
   // (lib/ui/homePresentation.ts): visitante 4 tiles, casa 6.
   const showKineo1 = kineo1Visible(initialEmail)
+  // KINEO-DUAS-PORTAS-2026-10-13 — a oferta de cada porta com a verdade de hoje, LIDA das fontes:
+  //   filme: 1 filme grátis de 15 s no Seedance 1.5, com marca d'água (lib/freeTierOffer; país fora da lista nasce sem
+  //   crédito → a cláusula aparece) + Creator $19.90 com 20% no 1º mês (TIER_PRICES.basic + WELCOME20, só se no ar);
+  //   anúncio: 1º anúncio grátis (lib/ads/sample, só se no ar) + Business $84 ≈ 12 anúncios (lib/businessPlan).
+  const filmDoorOffer: HomeDoorOffer = {
+    free: TRIAL_SEEDANCE15_FILMS >= 1
+      ? { template: GRANT_COUNTRY_CLAUSE ? 'First {s}-second film free, watermarked (supported countries)' : 'First {s}-second film free, watermarked', vars: { s: String(TRIAL_FREE_FILM_SECONDS) } }
+      : { template: 'Start free, no card' },
+    plan: WELCOME20_SITE_OFFER_LIVE
+      ? { template: 'Creator ${price}/month, {pct}% off the first month', vars: { price: usdPrice(TIER_PRICES.basic.usd), pct: String(WELCOME20_PERCENT_OFF) } }
+      : { template: 'Creator ${price}/month', vars: { price: usdPrice(TIER_PRICES.basic.usd) } },
+  }
+  const adsDoorOffer: HomeDoorOffer = {
+    free: ADS_SAMPLE_LIVE ? { template: 'Your first ad is free' } : { template: 'Studio Ads is included in every paid plan' },
+    plan: { template: 'Business {price}/month ≈ {n} ads', vars: { price: BUSINESS_PRICE_LABEL, n: String(BUSINESS_ADS_PER_MONTH) } },
+  }
 
   return (
     <>
@@ -861,17 +885,15 @@ export default function KineoLanding({
                 coisas". O topo é o de antes nos DOIS braços do A/B (Video · Images · Spaces · Ads · MCP · Pricing); dentro
                 de Video a 1ª coluna abre com os Clipes e logo embaixo vêm os filmes narrados (os motores, que antes se
                 chamavam só "Engines"). O item Clips saiu da coluna Create para não aparecer duas vezes. */}
-            <PublicNavDropdown item="video" label="Video">
+            {/* KINEO-DUAS-PORTAS-2026-10-13 — fundador 13/10 ("tudo sim", ação B): o topo vira 2 PORTAS — "Make a film" (este
+                mega-menu: começar o filme no Studio + os motores, intocados) e "Product ads" (/ads/new) — + "More tools" +
+                Pricing + Log in. Dos 12 pagantes, 11 compraram filme narrado; empresa compra anúncio. Clips, Images, Spaces e
+                MCP foram para "More tools" (1 clique para abrir, 1 para entrar: tudo segue a ≤ 2 cliques); nenhuma rota saiu. */}
+            <PublicNavDropdown item="video" label="Make a film">
               <span className="nd-menu nd-mega">
                 <span className="nm-col">
-                  {showClips && (
-                    <>
-                      <span className="nm-h"><UiLabel>Clips</UiLabel></span>
-                      <NavEngineItem href="/clips?upload=1" name="Photo to clip" translateName desc="One-click photo effects" preview="/previews/efeito-product_360.mp4" thumb="/nav-thumbs/photo.webp" />
-                      <NavEngineItem href="/clips" name="Text to clip" translateName desc="One line, a 5–15 s scene" preview="/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4" thumb="/nav-thumbs/kling.webp" />
-                    </>
-                  )}
-                  <span className={showClips ? 'nm-h nm-h-next' : 'nm-h'}><UiLabel>{showClips ? 'Narrated films' : 'Engines'}</UiLabel></span>
+                  <Link href="/studio?intent_campaign=nav_door" data-nav-item="video"><span className="nm-tx"><b><UiLabel>Start a narrated film</UiLabel></b><i><UiLabel>One idea in, a finished film out</UiLabel></i></span></Link>
+                  <span className="nm-h nm-h-next"><UiLabel>Narrated films</UiLabel></span>
                   {/* KINEO-MENU-ICONES-2026-08-17 (fundador, ref. Higgsfield):
                       SEM preco no menu (atrito antes da hora — preco mora na
                       pagina) + caixinha com monograma/glifo de cada produto. */}
@@ -884,6 +906,8 @@ export default function KineoLanding({
                   <NavEngineItem href="/studio?engine=veo&intent_campaign=nav_mega" name="Veo 3.1" desc="Google’s video model · 1080p" chip={enginePlanBadge('veo') ? 'STUDIO' : undefined} preview="/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4" thumb="/nav-thumbs/veo.webp" />
                   {/* KINEO-OMNI-FORA-2026-10-12 — o item do Omni Flash saiu do mega-menu (motor fora da oferta,
                       lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS). Os filmes dele seguem na vitrine. */}
+                  {/* KINEO-H3MAX-2026-10-13 — o MiniMax H3 Max entra no lugar que era do Omni (interruptor H3MAX_PUBLIC; desligado, só a casa vê). Sem preview nem miniatura: ainda não há render dele na vitrine (selo honesto). */}
+                  {h3maxVisible(initialEmail) && !enginePaused('h3max') && <NavEngineItem href="/studio?engine=h3max&intent_campaign=nav_mega" name="MiniMax H3 Max" desc="MiniMax’s sharpest film engine" chip={H3MAX_PUBLIC ? 'NEW' : 'INTERNAL'} icon="H3+" />} {/* KINEO-H3MAX-2026-10-13 */}
                   {/* KINEO-S25-LAUNCH-2026-09-01 — Seedance 2.5: so a casa ve ate o
                       canario passar (s25Visible); S25_PUBLIC=true abre pra todos.
                       Sem preview de proposito (selo honesto: clipe so deste motor).
@@ -910,19 +934,34 @@ export default function KineoLanding({
                     Thumbnails 0 uso, Avatar fora do catálogo). As páginas seguem no ar. */}
               </span>
             </PublicNavDropdown>
-            <PublicNavDropdown item="image" label="Images">
-              <span className="nd-menu nd-images">
-                {IMG_ENGINES.map(engine => <NavEngineItem key={engine.key} href={`/images?engine=${engine.key}`} name={engine.name} desc={engine.desc} icon={engine.icon} />)}
+            {/* KINEO-NAV-TOPO-ADS-2026-09-30 — /ads/new leva quem está logado ao montador e o visitante à porta pública /ads.
+                KINEO-DUAS-PORTAS-2026-10-13 — vira a 2ª porta do topo, "Product ads", com o mesmo peso do "Make a film". */}
+            <Link href="/ads/new" data-nav-item="business" className="nav-primary"><UiLabel>Product ads</UiLabel></Link>
+            {/* KINEO-DUAS-PORTAS-2026-10-13 — "More tools": tudo que saiu do topo, a 1 clique de distância. Imagem ABRE o menu
+                (fundador: "pode deixar Imagem no topo, os outros sites têm" — aqui ela é a 1ª coluna, visível na 1ª abertura,
+                com os 6 motores); depois Clips (foto → clipe, texto → clipe), Spaces e o MCP (/claude-connector). */}
+            <PublicNavDropdown item="more:tools" label="More tools">
+              <span className="nd-menu nd-mega nd-more-tools">
+                <span className="nm-col" data-nav-item="image">
+                  <span className="nm-h"><UiLabel>Images</UiLabel></span>
+                  {IMG_ENGINES.map(engine => <NavEngineItem key={engine.key} href={`/images?engine=${engine.key}`} name={engine.name} desc={engine.desc} icon={engine.icon} />)}
+                </span>
+                <span className="nm-col">
+                  {showClips && (
+                    <span data-nav-item="more:clips" style={{ display: 'contents' }}>
+                      <span className="nm-h"><UiLabel>Clips</UiLabel></span>
+                      <NavEngineItem href="/clips?upload=1" name="Photo to clip" translateName desc="One-click photo effects" preview="/previews/efeito-product_360.mp4" thumb="/nav-thumbs/photo.webp" />
+                      <NavEngineItem href="/clips" name="Text to clip" translateName desc="One line, a 5–15 s scene" preview="/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4" thumb="/nav-thumbs/kling.webp" />
+                    </span>
+                  )}
+                  <span className={showClips ? 'nm-h nm-h-next' : 'nm-h'}><UiLabel>More</UiLabel></span>
+                  <Link href="/spaces" data-nav-item="more:spaces"><span className="nm-tx"><b><UiLabel>Spaces</UiLabel></b><i><UiLabel>Empty space in, finished space out</UiLabel></i></span></Link>
+                  {/* KINEO-NAV-MCP-2026-09-30 — fundador: "colocar o MCP no menu" (como Buzzy/Higgsfield). A página do MCP é a
+                      /claude-connector (URL de documentação do diretório do Claude — não muda de endereço). */}
+                  <Link href="/claude-connector" data-nav-item="more:mcp"><span className="nm-tx"><b><UiLabel>MCP</UiLabel></b><i><UiLabel>Write your video in Claude, render it in Kineo Studio</UiLabel></i></span></Link>
+                </span>
               </span>
             </PublicNavDropdown>
-            {/* KINEO-NAV-TOPO-ADS-2026-09-30 — fundador 30/09: ordem Video · Images · Spaces · Ads; "For businesses" vira "Ads"
-                (como os concorrentes) e entra direto no painel: /ads/new leva quem está logado ao montador e o visitante à
-                porta pública /ads. */}
-            <Link href="/spaces" data-nav-item="more:spaces"><UiLabel>Spaces</UiLabel></Link>
-            <Link href="/ads/new" data-nav-item="business"><UiLabel>Ads</UiLabel></Link>
-            {/* KINEO-NAV-MCP-2026-09-30 — fundador: "colocar o MCP no menu" (como Buzzy/Higgsfield). A página do MCP é a
-                /claude-connector (URL de documentação do diretório do Claude — não muda de endereço). */}
-            <Link href="/claude-connector" data-nav-item="more:mcp"><UiLabel>MCP</UiLabel></Link>
             <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
           </div>
         <div className="nav-right">
@@ -940,20 +979,22 @@ export default function KineoLanding({
               {/* KINEO-NAV-4-ITENS-2026-09-25 — par do topo: os 4 itens + Log in
                   ou Dashboard; o resto vai para "More tools", secundario. */}
               {/* KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 — par do mega-menu: Clipes em cima, filmes narrados embaixo. */}
-              {showClips
-                ? <><Link href="/clips" data-nav-item="more:clips"><UiLabel>Clips</UiLabel></Link><Link href="/studio" data-nav-item="video"><UiLabel>Narrated films</UiLabel></Link></>
-                : <Link href="/studio" data-nav-item="video"><UiLabel>Video</UiLabel></Link>}
-              <Link href="/images" data-nav-item="image"><UiLabel>Images</UiLabel></Link>
-              <span className="nav-mobile-engines">
-                {IMG_ENGINES.map(engine => <Link key={engine.key} href={`/images?engine=${engine.key}`} data-nav-item="image"><span className="nm-ic" aria-hidden="true">{engine.icon}</span>{engine.name}</Link>)}
-              </span>
-              <Link href="/spaces" data-nav-item="more:spaces"><UiLabel>Spaces</UiLabel></Link>
-              <Link href="/ads/new" data-nav-item="business"><UiLabel>Ads</UiLabel></Link>
-              <Link href="/claude-connector" data-nav-item="more:mcp"><UiLabel>MCP</UiLabel></Link>
+              {/* KINEO-DUAS-PORTAS-2026-10-13 — par do topo: as 2 portas + Pricing + Log in/Dashboard em cima; embaixo, sob o
+                  rótulo "More tools", tudo o que saiu do topo (Imagem com os motores primeiro, Clips, Spaces, MCP, Examples). */}
+              <Link href="/studio" data-nav-item="video"><UiLabel>Make a film</UiLabel></Link>
+              <Link href="/ads/new" data-nav-item="business"><UiLabel>Product ads</UiLabel></Link>
               <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
               {initialUser
                 ? <Link className="btn btn-w" href="/studio"><UiLabel>Dashboard</UiLabel></Link>
                 : <Link href="/login" data-nav-item="login"><UiLabel>Log in</UiLabel></Link>}
+              <span className="nav-mobile-kicker"><UiLabel>More tools</UiLabel></span>
+              <Link href="/images" data-nav-item="image"><UiLabel>Images</UiLabel></Link>
+              <span className="nav-mobile-engines">
+                {IMG_ENGINES.map(engine => <Link key={engine.key} href={`/images?engine=${engine.key}`} data-nav-item="image"><span className="nm-ic" aria-hidden="true">{engine.icon}</span>{engine.name}</Link>)}
+              </span>
+              {showClips && <Link href="/clips" data-nav-item="more:clips"><UiLabel>Clips</UiLabel></Link>}
+              <Link href="/spaces" data-nav-item="more:spaces"><UiLabel>Spaces</UiLabel></Link>
+              <Link href="/claude-connector" data-nav-item="more:mcp"><UiLabel>MCP</UiLabel></Link>
               {/* KINEO-MENU-VIDEO-LIMPO-2026-10-09 — par do mega-menu: só Examples fica. */}
               <Link className="nav-mobile-more" href="/examples" data-nav-item="examples"><UiLabel>Examples</UiLabel></Link>
               {initialUser
@@ -970,7 +1011,11 @@ export default function KineoLanding({
       {/* KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 (2ª rodada, fundador): a fileira de cards fica no TOPO nos dois braços, com os
           4 (Claude · Ads · Clips · Nano Banana Pro); no braço clips_first vem logo abaixo a vitrine dividida — 4 clipes
           (HomeClipsStrip) + os 4 filmes narrados do hero — e daí direto "Videos for your business". */}
-      <PromoCards cards={promoCardsFor({ clips: clipsVisible(initialEmail) })} />
+      {/* KINEO-DUAS-PORTAS-2026-10-13 — fundador 13/10 ("tudo sim", ação B): a primeira dobra abre com as 2 PORTAS, filme
+          narrado (11 dos 12 pagantes) e anúncio de produto (Business). A fileira de 4 cards desceu para "More tools", logo
+          depois dos filmes da casa; o hero de filmes (curadoria do fundador) segue intacto e na mesma ordem. No braço
+          clips_first do A/B a faixa de Clipes continua vindo antes dos filmes. */}
+      <HomeTwoDoors signedIn={isSignedIn} filmOffer={filmDoorOffer} adsOffer={adsDoorOffer} />
       {clipsFirst && <HomeClipsStrip signedIn={isSignedIn} />}
 
       <header className="hero">
@@ -1029,12 +1074,21 @@ export default function KineoLanding({
           for Business"; no braço clips_first a fileira "Start with the full toolkit" desce para depois dela. */}
       {clipsFirst && businessShowcase}
 
+      {/* KINEO-DUAS-PORTAS-2026-10-13 — "More tools": a fileira de 4 cards (Claude · Ads · Clips · Nano Banana Pro) que abria a
+          página, agora DEPOIS dos filmes. Os 4 ficam (grade sempre cheia, regra do fundador), mesmo o de Ads repetindo a porta. */}
+      <section className="home-more-tools" aria-label="More tools">
+        <div className="wrap"><div className="home-business-heading" style={{ margin: '34px 0 0' }}><h2><UiLabel>More tools</UiLabel></h2></div></div>
+        <PromoCards cards={promoCardsFor({ clips: clipsVisible(initialEmail) })} />
+      </section>
+
       {/* Approved home layout: creation first, proof together, engine catalog retained below. */}
       <section className="home-create" aria-label="Create with Kineo">
         <div className="wrap">
               <div className="home-start">
                 <div className="home-start-copy"><h2><UiLabel>Start with the full toolkit</UiLabel></h2>
-                <p><UiLabel>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h — no card.', OFFER.copy.headline)}</UiLabel></p>
+                {/* KINEO-DUAS-PORTAS-2026-10-13 — coerência: "3 Fast videos every 24h" não é mais verdade (o Kineo 1 saiu da entrada em
+                    29/09). Mesma frase verdadeira que o FAQ já usa: o grant do cadastro paga o 1º filme de 15 s. */}
+                <p><UiLabel>{ft(OFFER, `Every new account${GRANT_COUNTRY_CLAUSE} starts free with ${TRIAL_CREDITS_SHOWN} credits — ${TRIAL_FIRST_FILM_PHRASE}, no card.`, `Every new account${GRANT_COUNTRY_CLAUSE} starts free with ${TRIAL_CREDITS_SHOWN} credits — ${TRIAL_FIRST_FILM_PHRASE}, no card.`)}</UiLabel></p>
                 </div>
                 {/* Opening the editor goes straight to Studio; /studio/create owns submitted jobs. */}
                 <Link className="btn btn-blue" href={isSignedIn ? '/studio?src=engine_bento' : referralBridge ? '#try-kineo' : '/signup?utm_source=engine_bento'}>{isSignedIn ? 'Open the generator' : CARD_ENTRY_COPY.ctaShort}</Link>
@@ -1242,7 +1296,7 @@ export default function KineoLanding({
 
       <section id="pricing">
         <div className="wrap">
-          <div className="sec-h"><span className="sec-eyebrow"><UiLabel>Pricing</UiLabel></span><h2><UiLabel>{CARD_ENTRY_ONLY ? 'Simple pricing. Start with 7 days for $1.' : 'Simple pricing. Start free first.'}</UiLabel></h2><p><UiLabel>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}</UiLabel><UiLabel> Paid plans unlock clean MP4s.</UiLabel></p></div>
+          <div className="sec-h"><span className="sec-eyebrow"><UiLabel>Pricing</UiLabel></span><h2><UiLabel>{CARD_ENTRY_ONLY ? 'Simple pricing. Start with 7 days for $1.' : 'Simple pricing. Start free first.'}</UiLabel></h2><p><UiLabel>{ft(OFFER, `Every new account${GRANT_COUNTRY_CLAUSE} starts free with ${TRIAL_CREDITS_SHOWN} credits — ${TRIAL_FIRST_FILM_PHRASE}, no card.`, `Every new account${GRANT_COUNTRY_CLAUSE} starts free with ${TRIAL_CREDITS_SHOWN} credits — ${TRIAL_FIRST_FILM_PHRASE}, no card.`)}</UiLabel><UiLabel> Paid plans unlock clean MP4s.</UiLabel></p></div>
           <HomePricingCheckoutGroup isSignedIn={isSignedIn}>
           <div className="price">
             {/* Signed-in buyers go straight to Stripe. Signed-out buyers go to
@@ -1321,7 +1375,9 @@ export default function KineoLanding({
           {/* KINEO-SPRINT-OFFER-2026-07-14 — the "10 videos for $4.90 one-time"
               note is gone (single-offer cleanup; ?pack=starter stays alive for
               the watermark unlock only). The intro month is the entry path. */}
-          <div className="snote"><UiLabel>Try it first: </UiLabel><b><UiLabel>{ft(OFFER, 'create, watch, download and share up to 3 Fast videos every 24h', `every new account${GRANT_COUNTRY_CLAUSE} gets ${TRIAL_GRANT_CREDITS_COPY} free credits — ${TRIAL_FIRST_FILM_PHRASE}`)}</UiLabel></b><UiLabel>{ft(OFFER, ' — no card, watermark included.', ' — no card.')}</UiLabel></div>
+          {/* KINEO-DUAS-PORTAS-2026-10-13 — coerência: a frase "3 Fast videos every 24h" saiu (Kineo 1 fora da entrada desde 29/09);
+              fica a verdade do grant (1º filme de 15 s, com marca d'água). */}
+          <div className="snote"><UiLabel>Try it first: </UiLabel><b><UiLabel>{ft(OFFER, `every new account${GRANT_COUNTRY_CLAUSE} gets ${TRIAL_GRANT_CREDITS_COPY} free credits — ${TRIAL_FIRST_FILM_PHRASE}`, `every new account${GRANT_COUNTRY_CLAUSE} gets ${TRIAL_GRANT_CREDITS_COPY} free credits — ${TRIAL_FIRST_FILM_PHRASE}`)}</UiLabel></b><UiLabel>{' — no card, watermark included.'}</UiLabel></div>
           {/* KINEO-CRO-2026-07-25 — payment-trust line to lower checkout anxiety. */}
           <p style={{ marginTop: 14, textAlign: 'center', fontSize: 12.5, letterSpacing: '.02em', color: 'var(--muted2)' }}><UiLabel>
             Secure checkout by Stripe&nbsp;·&nbsp;Cancel in one click&nbsp;·&nbsp;Credits refunded automatically if a render fails
@@ -1357,7 +1413,7 @@ export default function KineoLanding({
                 byte; o texto fora do ft() nao mudou. */}
             <details className="qa"><summary><h3><UiLabel>Is the video really mine to post?</UiLabel></h3></summary><p><UiLabel>{ft(OFFER, 'Yes. Never-paid free users can download, share and post the watermarked MP4.', 'Yes. Never-paid free users can download, share and post the watermarked MP4.')}</UiLabel><UiLabel> Paid plans unlock the clean, watermark-free MP4 for YouTube, TikTok or Reels.</UiLabel></p></details>
             <details className="qa"><summary><h3><UiLabel>Do I need any editing skills?</UiLabel></h3></summary><p><UiLabel>{`${HOME_FAQ_EDITING_ANSWER} `}</UiLabel><UiLabel>{ft(OFFER, 'Free downloads carry a watermark; paid plans unlock the clean MP4.', 'Free downloads carry a watermark; paid plans unlock the clean MP4.')}</UiLabel></p></details>
-            <details className="qa"><summary><h3><UiLabel>Is there a watermark?</UiLabel></h3></summary><p><UiLabel>{ft(OFFER, 'Free access gives new users up to 3 watermarked Fast videos every 24 hours, with no card. You can download and share them.', `New accounts get ${TRIAL_GRANT_CREDITS_COPY} credits — ${TRIAL_FIRST_FILM_PHRASE}; trial films are watermarked.`)}</UiLabel><UiLabel> Paid plans export clean, watermark-free MP4s.</UiLabel></p></details>
+            <details className="qa"><summary><h3><UiLabel>Is there a watermark?</UiLabel></h3></summary><p><UiLabel>{ft(OFFER, `New accounts get ${TRIAL_GRANT_CREDITS_COPY} credits — ${TRIAL_FIRST_FILM_PHRASE}; trial films are watermarked.`, `New accounts get ${TRIAL_GRANT_CREDITS_COPY} credits — ${TRIAL_FIRST_FILM_PHRASE}; trial films are watermarked.`)}</UiLabel><UiLabel> Paid plans export clean, watermark-free MP4s.</UiLabel></p></details>
             {/* KINEO-CEO-HOUR-2026-08-17 (#9) — os produtos novos entram no FAQ */}
             <details className="qa"><summary><h3><UiLabel>Can Kineo also generate images and voiceovers?</UiLabel></h3></summary><p><UiLabel>Yes — Kineo includes an AI image studio (6 engines including FLUX, Seedream and Nano Banana Pro, from 1 credit per image) and a voice studio with 4 text-to-speech engines (from 1 credit per 1000 characters). Everything you make lives in your Library.</UiLabel></p></details>
             <details className="qa"><summary><h3><UiLabel>Can I make my videos sharper?</UiLabel></h3></summary><p><UiLabel>Every video has a one-click Enhance option powered by Topaz film restoration — it removes compression artifacts, recovers detail and adds fine cinematic grain. 10 credits per video; the Studio plan includes 2 free enhances a month.</UiLabel></p></details>
@@ -1399,7 +1455,7 @@ export default function KineoLanding({
             <div className="glow" />
             <div style={{ position: 'relative', zIndex: 1 }}>
               <h2 className="gtxt"><UiLabel>Pick your engine. Ship a Short today.</UiLabel></h2>
-              <p><UiLabel>{ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24h — no card.', OFFER.copy.headline)}</UiLabel></p>
+              <p><UiLabel>{ft(OFFER, `Every new account${GRANT_COUNTRY_CLAUSE} starts free with ${TRIAL_CREDITS_SHOWN} credits — ${TRIAL_FIRST_FILM_PHRASE}, no card.`, `Every new account${GRANT_COUNTRY_CLAUSE} starts free with ${TRIAL_CREDITS_SHOWN} credits — ${TRIAL_FIRST_FILM_PHRASE}, no card.`)}</UiLabel></p>
               {/* #10 (aprovado 15/08) — fechamento no estilo vitrine: os 5
                   motores clicaveis + Start free. O href antigo #try-kineo
                   apontava para o composer, que nao existe mais. */}

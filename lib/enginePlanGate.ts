@@ -25,6 +25,7 @@ export const STUDIO_ONLY_QUALITIES: ReadonlySet<string> = new Set([
   'cinematic_sora',
   'cinematic_hollywood',
   'cinematic_h3',
+  'cinematic_h3max', // KINEO-H3MAX-2026-10-13
   'cinematic_omni',
   'cinematic_s25',
   'avatar',
@@ -33,7 +34,7 @@ export const STUDIO_ONLY_QUALITIES: ReadonlySet<string> = new Set([
 
 /** `body.engine` da rota cinemática que cai no gate (o resto é Seedance). */
 export const STUDIO_ONLY_ENGINE_KEYS: ReadonlySet<string> = new Set([
-  'kling', 'veo', 'hollywood', 'h3', 'omni', 's25',
+  'kling', 'veo', 'hollywood', 'h3', 'h3max', 'omni', 's25', // KINEO-H3MAX-2026-10-13
 ])
 
 // KINEO-BUSINESS-84-2026-10-09 — Business abre todo motor que o Studio abre (decisão do fundador 09/10).
@@ -81,6 +82,9 @@ export function engineDisplayName(engine: string): string {
     case 'h3':
     case 'cinematic_h3':
       return 'MiniMax H3'
+    case 'h3max': // KINEO-H3MAX-2026-10-13
+    case 'cinematic_h3max': // KINEO-H3MAX-2026-10-13
+      return 'MiniMax H3 Max' // KINEO-H3MAX-2026-10-13
     case 'omni':
     case 'cinematic_omni':
       return 'Omni Flash'

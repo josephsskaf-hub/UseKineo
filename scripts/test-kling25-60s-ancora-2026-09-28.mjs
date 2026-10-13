@@ -241,7 +241,9 @@ const composeRota = rd('app/api/compose/route.ts')
 const condCorretivo = fatia(composeRota, '    if (\n      !cachedVoiceover && // never re-synthesize a cache hit', 'Math.abs(realAudioDuration - duration) > DURATION_TOLERANCE_SECONDS\n    ) {')
 checa('/api/compose: o passe corretivo de velocidade exige !claimVerbatim — roteiro literal de 66-70 s não é acelerado', Boolean(condCorretivo) && condCorretivo.includes('!claimVerbatim &&'))
 const iTail = composeRota.indexOf('KINEO-TAIL-2026-08-20')
-const iFamiliaHollywood = composeRota.indexOf("if (quality === 'cinematic_hollywood' || quality === 'cinematic_h3' || quality === 'cinematic_omni' || quality === 'cinematic_s25') {")
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: o if da família hollywood ganhou o MiniMax H3 Max (motor novo, fundador 13/10) logo
+// depois do H3, na mesma linha marcada. A regra é a mesma: o KINEO-TAIL vive dentro dessa família, nunca no Kling 2.5.
+const iFamiliaHollywood = composeRota.indexOf("if (quality === 'cinematic_hollywood' || quality === 'cinematic_h3' || quality === 'cinematic_h3max' || quality === 'cinematic_omni' || quality === 'cinematic_s25') { // KINEO-H3MAX-2026-10-13")
 checa('/api/compose: a apara do rabo mudo (KINEO-TAIL) vive dentro da família hollywood, depois do seu if — não no Kling 2.5', iFamiliaHollywood > 0 && iTail > iFamiliaHollywood)
 
 // ═══ (e) mutantes ══════════════════════════════════════════════════════════════════════════════════════════════════

@@ -38,6 +38,9 @@ const expected = {
   veo: '/ai-video-generator/veo',
   hollywood: '/ai-video-generator/kling-3',
   h3: '/ai-video-generator/minimax-h3',
+  // KINEO-H3MAX-2026-10-13 — reancorado com motivo: o MiniMax H3 Max entrou como motor (fundador 13/10, "vai H3 Max") com página
+  // própria atrás do interruptor H3MAX_PUBLIC; o caminho canônico dele é exato, como o dos outros.
+  h3max: '/ai-video-generator/minimax-h3-max',
   // KINEO-OMNI-FORA-2026-10-12 — reancorado com motivo: o Omni Flash saiu da oferta e /ai-video-generator/gemini-omni-flash virou
   // 301 para a página do Kling 3 (next.config.js); o caminho canônico de 'omni' é o destino final, como o de 'fast'.
   omni: '/ai-video-generator/kling-3',
@@ -62,7 +65,7 @@ for (const engine of Object.keys(expected).filter((key) => key !== 's25' && key 
 }
 ok(!facts.includes("engineLandingPublicPath('omni')"), 'omni: fora da oferta, ausente dos fatos públicos')
 ok(facts.includes("url: `${BASE}/ai-avatar`"), 'Avatar keeps its canonical standalone page')
-equal((facts.match(/url: `\$\{BASE\}\$\{engineLandingPublicPath\('/g) ?? []).length, 6, 'all six offered video-engine URLs are derived once')
+equal((facts.match(/url: `\$\{BASE\}\$\{engineLandingPublicPath\('/g) ?? []).length, 7, 'all seven offered video-engine URLs are derived once') // KINEO-H3MAX-2026-10-13 — reancorado: + a ficha do MiniMax H3 Max (7, era 6)
 
 const llms = read('app/llms.txt/route.ts')
 ok(llms.includes('[**${engine.name}**](${engine.url})'), 'llms catalog emits a direct Markdown link per engine')

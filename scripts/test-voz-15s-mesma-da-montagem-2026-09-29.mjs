@@ -29,6 +29,11 @@ import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { reguaDe95No15s } from './test-support/desfaz-cobertura-15s.mjs'
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: a entrada do MiniMax H3 Max ([TRAVA 8.2 — vai do fundador 13/10 'vai H3 Max'])
+// acrescentou SÓ linhas marcadas às rotas travadas e trocou de propósito linhas da base (o H3 Max ao lado do H3 em listas, ternários e
+// frases). desfazH3max devolve, em memória, o arquivo sem essa entrada (pares exatos em scripts/test-support/h3max-2026-10-13-trocas.json;
+// par que não casa = texto intocado = vermelho); linhasTrocadasH3max lista as linhas da base trocadas. Fora disso, o byte a byte de sempre.
+import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
 import { TROCADAS_MONUMENTO } from './test-support/desfaz-monumento-1310.mjs' // KINEO-MONUMENTO-2026-10-13
 // ═══ Reancorado KINEO-DURACOES-CURTAS-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] ═══
 // A entrega das durações curtas (15 s em todo motor de IA, 30 s na estrada hollywood) marca TODA linha que acrescenta à rota do
@@ -382,7 +387,7 @@ console.log('4) 35/60/90 e os outros motores (e o 15 s fora do Seedance): rota e
   checa('campo narration_voice inválido (vertical não-texto ou longo, fator fora de (0, 1], tipo errado): ignorado — o corpo do cliente intacto', todosIguais.every(Boolean))
   checa('sem claim (Kineo 1 / fast): nenhuma voz assinada, TTS igual à base', await (async () => { const g = await AGORA.compose({ response: null, bodyVertical: 'History', quality: 'fast' }); const a = await ANTES.compose({ response: null, bodyVertical: 'History', quality: 'fast' }); return g.vozAssinada === null && eqJ(g.tts, a.tts) && eqJ(g.bodyDepois, a.bodyDepois) })())
   // as duas rotas só GANHARAM linhas (a trava do 3x6 exige; e nenhuma chamada de TTS do compose mudou)
-  const soAcrescimos = (p) => { try { const d = semCR(execFileSync('git', ['diff', '--unified=0', '--no-color', BASE, '--', p], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024 }).toString()); return d.split(LF).filter((l) => l.startsWith('-') && !l.startsWith('---') && !TROCADAS_CURTAS.includes(l.slice(1))).length === 0 } /* reancorado KINEO-DURACOES-CURTAS: as 6 trocas marcadas */ catch { return false } }
+  const soAcrescimos = (p) => { try { const d = semCR(execFileSync('git', ['diff', '--unified=0', '--no-color', BASE, '--', p], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024 }).toString()); return d.split(LF).filter((l) => l.startsWith('-') && !l.startsWith('---') && !TROCADAS_CURTAS.includes(l.slice(1)) && !linhasTrocadasH3max(p).includes(l.slice(1))).length === 0 } /* reancorado KINEO-DURACOES-CURTAS: as 6 trocas marcadas · KINEO-H3MAX-2026-10-13: + as linhas da base trocadas pela entrada do H3 Max (lista exata) */ catch { return false } }
   checa('rota do cinematic e /api/compose: nenhuma linha da base alterada ou apagada — só acréscimos', Boolean(BASE) && soAcrescimos(ROTA_P) && soAcrescimos(COMPOSE_P))
 }
 

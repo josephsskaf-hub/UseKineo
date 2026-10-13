@@ -115,7 +115,9 @@ console.log('== (b) buildFalInput real ==')
 const aspect = load('@/lib/aspect')
 const policy = load('@/lib/cinematic/visualPromptPolicy')
 const router = rd('lib/hollywood/router.ts')
-const routerNames = ['HOLLYWOOD_MODELS', 'KLING3_I2V_MODEL', 'H3_MODELS', 'H3_I2V_MODEL', 'H3_RESOLUTION', 'OMNI_I2V_MODEL', 'S25_I2V_MODEL', 'S25_T2V_MODEL', 'S25_RESOLUTION']
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: o buildFalInput da rota ganhou os ramos do MiniMax H3 Max (motor novo, fundador 13/10);
+// as três constantes dele entram no escopo, lidas do router real. Nenhum payload antigo mudou (as comparações com a base seguem iguais).
+const routerNames = ['HOLLYWOOD_MODELS', 'KLING3_I2V_MODEL', 'H3_MODELS', 'H3_I2V_MODEL', 'H3_RESOLUTION', 'H3MAX_MODELS', 'H3MAX_I2V_MODEL', 'H3MAX_RESOLUTION', 'OMNI_I2V_MODEL', 'S25_I2V_MODEL', 'S25_T2V_MODEL', 'S25_RESOLUTION']
 const R = roda(routerNames.map((n) => `export ${varDe(router, n)}`).join('\n'))
 const modelNames = ['SEEDANCE_MODEL', 'KLING_MODEL', 'KLING_I2V_MODEL', 'SEEDANCE_I2V_MODEL', 'VEO_I2V_MODEL', 'VEO_MODEL', 'SORA_MODEL', 'KLING3_MODEL']
 const montaBuilder = (src) => {

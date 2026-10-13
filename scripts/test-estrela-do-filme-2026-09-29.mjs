@@ -89,12 +89,13 @@ function verificaLib(src = SRC) {
   // motor sem âncora
   c('A10 Kineo 1 / Sora / Seedance 2.5 / Avatar → 422 estrela_engine', ['fast', 'sora', 's25', 'avatar'].every((engine) => { const d = dec(pedido, { engine }); return !d.ok && d.status === 422 && d.code === 'estrela_engine' }))
   c('A11 motor com âncora mas caminho de âncora desligado (CINEMATIC_ANCHOR_ENABLED=0) → 422', (() => { const d = dec(pedido, { anchorEnabled: false }); return !d.ok && d.code === 'estrela_engine' })())
-  c('A12 os 6 motores com âncora aceitam (Seedance 1.5 = engine ausente)', ['seedance', 'kling', 'veo', 'hollywood', 'h3', 'omni', undefined].every((engine) => { const d = dec(pedido, { engine }); return d.ok && d.ativa }))
+  // KINEO-H3MAX-2026-10-13 — reancorado com motivo: o MiniMax H3 Max (i2v com image_url, mesma regra do H3) entra na lista dos motores com âncora.
+  c('A12 os 7 motores com âncora aceitam (Seedance 1.5 = engine ausente)', ['seedance', 'kling', 'veo', 'hollywood', 'h3', 'h3max', 'omni', undefined].every((engine) => { const d = dec(pedido, { engine }); return d.ok && d.ativa }))
   // sobretaxa
   const tab = [15, 30, 35, 60, 90].map((s) => L.estrelaSobretaxa('kling', s))
   c(`A13 sobretaxa = 2 cr a cada 6 s — preço B do fundador 29/09 (15→6, 30→10, 35→12, 60→20, 90→30): ${tab.join('/')}`, JSON.stringify(tab) === '[6,10,12,20,30]')
   c('A14 sobretaxa 0 em motor sem âncora e em duração inválida', L.estrelaSobretaxa('fast', 60) === 0 && L.estrelaSobretaxa('s25', 60) === 0 && L.estrelaSobretaxa('kling', NaN) === 0 && L.estrelaSobretaxa('kling', 0) === 0)
-  c('A15 sobretaxa igual em todos os motores com âncora (mesma régua para tela e servidor)', ['seedance', 'veo', 'hollywood', 'h3', 'omni', undefined].every((e) => L.estrelaSobretaxa(e, 35) === 12))
+  c('A15 sobretaxa igual em todos os motores com âncora (mesma régua para tela e servidor)', ['seedance', 'veo', 'hollywood', 'h3', 'h3max', 'omni', undefined].every((e) => L.estrelaSobretaxa(e, 35) === 12)) // KINEO-H3MAX-2026-10-13 — + h3max
   // impressão digital do claim
   c('A16 impressão do claim: sem estrela = "" (a de sempre); com estrela muda', L.estrelaFingerprintSuffix({ ok: true, ativa: false }) === '' && L.estrelaFingerprintSuffix(d1).startsWith('|estrela:'))
   // formato
@@ -265,7 +266,7 @@ function verificaRota(r = SRC.rota) {
   const iCeleb = i('if (estrelaAtiva && mentionsContemporaryFigure(prompt)) {')
   const iAssina = i('const assinadas = await assinarFotosDaEstrela(estrelaDecisao.paths)')
   c('C10 o pedido da estrela é decidido ANTES do custo, do claim e do débito', iDec > 0 && iDec < iCusto && iCusto < iClaim && iClaim < iDebito)
-  c('C11 interruptor: visible = estrelaVisible(user.email); âncora: estrada hollywood || CINEMATIC_ANCHOR_ENABLED', r.includes('visible: estrelaVisible(user.email),') && r.includes('anchorEnabled: wantsHollywood || wantsH3 || wantsOmni || wantsS25 || CINEMATIC_ANCHOR_ENABLED,'))
+  c('C11 interruptor: visible = estrelaVisible(user.email); âncora: estrada hollywood || CINEMATIC_ANCHOR_ENABLED', r.includes('visible: estrelaVisible(user.email),') && r.includes('anchorEnabled: wantsHollywood || wantsH3 || wantsH3Max || wantsOmni || wantsS25 || CINEMATIC_ANCHOR_ENABLED,')) // KINEO-H3MAX-2026-10-13 — reancorado: o MiniMax H3 Max anda na estrada hollywood (âncora sempre), como o H3
   c('C12 recusa da estrela sai com o status da régua e charged:false, antes de tudo', /if \(!estrelaDecisao\.ok\) \{[\s\S]{0,400}return NextResponse\.json\(\{ error: estrelaDecisao\.error, reason: estrelaDecisao\.code, retryable: false, charged: false, refunded: false \}, \{ status: estrelaDecisao\.status \}\)/.test(r))
   c('C13 sobretaxa definida ANTES do custo, somada no MESMO `cost` que vai ao claim e ao débito (nunca depois)', iSobre > 0 && iSobre < iCusto && iCusto < iDebito && !/ensureCinematicDebit\((?!cost\))/.test(r.slice(iDebito)) && !/\n\s+cost = /.test(r))
   c('C14 o preço da duração entregue também leva a estrela (a diferença volta junto)', r.includes('const precoEntregue = creditCostForDuration(costQuality, true, duration) + estrelaSobretaxaDe(duration)'))

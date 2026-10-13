@@ -305,7 +305,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
                   ['Cost per video', engineCostLabel(e)],
                   ['Smallest monthly grant that covers one', paidBudget?.label ?? (e.tier === 'Free' ? 'None — runs on a free account' : e.tier)],
                   ['Output', 'Vertical 9:16 MP4, script + AI voiceover + captions already assembled'],
-                  ['Typical turnaround', geo ? geo.turnaround : '3–7 minutes from idea to download'],
+                  ['Typical turnaround', geo ? geo.turnaround : e.param === 'h3max' ? 'New engine: the turnaround is measured from its first delivered films' : '3–7 minutes from idea to download'], // KINEO-H3MAX-2026-10-13 — sem tempo medido ainda, sem faixa digitada
                   ['Best for', e.bestFor],
                   ['Trade-off', e.tradeoff],
                 ].map(([k, v], i) => (
