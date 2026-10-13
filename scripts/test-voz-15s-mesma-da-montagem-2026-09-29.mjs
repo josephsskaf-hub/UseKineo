@@ -35,6 +35,7 @@ import { reguaDe95No15s } from './test-support/desfaz-cobertura-15s.mjs'
 // par que não casa = texto intocado = vermelho); linhasTrocadasH3max lista as linhas da base trocadas. Fora disso, o byte a byte de sempre.
 import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
 import { TROCADAS_MONUMENTO } from './test-support/desfaz-monumento-1310.mjs' // KINEO-MONUMENTO-2026-10-13
+import { MARCA_ROMANCE_ADULTO, TROCADAS_ROMANCE_ADULTO } from './test-support/desfaz-romance-adulto-1310.mjs' // KINEO-ROMANCE-ADULTO-2026-10-13 — reancorado: as linhas novas marcadas e as 4 linhas da base da rota que a leva trocou ('tudo sim' do fundador 13/10)
 // ═══ Reancorado KINEO-DURACOES-CURTAS-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] ═══
 // A entrega das durações curtas (15 s em todo motor de IA, 30 s na estrada hollywood) marca TODA linha que acrescenta à rota do
 // cinematic (e às outras rotas travadas) com KINEO-DURACOES-CURTAS-2026-09-29, e troca de propósito SEIS linhas da base (a frase da
@@ -67,6 +68,7 @@ TROCADAS_CURTAS.push('          const inNarratorWorld = envSig.length > 8 && hs.
 // A leva troca de propósito CINCO linhas da base da rota (o contexto dos filtros anti-invenção vira comVocabularioDoLugar(...)); só
 // essas cinco entram na lista de trocas aceitas. Prova: scripts/test-monumento-real-1310.mjs.
 TROCADAS_CURTAS.push(...TROCADAS_MONUMENTO)
+TROCADAS_CURTAS.push(...TROCADAS_ROMANCE_ADULTO.filter(([arq]) => arq === 'app/api/generate-video-cinematic/route.ts').flatMap(([, , linhas]) => linhas)) // KINEO-ROMANCE-ADULTO-2026-10-13
 const semCurtas = (t) => (t == null ? t : t.split('\n').filter((l) => !l.includes(MARCA_CURTAS) && !l.includes(MARCA_ESTRELA) && !l.includes(MARCA_S25)).join('\n'))
 const semTrocadas = (t) => (t == null ? t : t.split('\n').filter((l) => !TROCADAS_CURTAS.includes(l.replace(/\r$/, ''))).join('\n'))
 

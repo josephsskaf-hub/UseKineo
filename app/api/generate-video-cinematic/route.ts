@@ -195,6 +195,10 @@ import {
 import { closingSceneVariation, deriveStoryCharacter, deriveExplicitCharacter, deriveStyleAnchor, textSafetySuffix, NO_TEXT_OBJECT_DIRECTION } from '@/lib/cinematic/sceneStyle'
 import { buildClassicVisualPrompt, classicVisualNegativePrompt, isStylizedLook, scrubInventedSetting, visualDescriptionDirection, type VisualPromptPolicy } from '@/lib/cinematic/visualPromptPolicy'
 import { ancoraDoLugar, ancorarLugarNoPrompt, comVocabularioDoLugar, lugarPrincipal, pedidoDeTourNarrado, promptTemOLugar } from '@/lib/cinematic/monumentoReal' // KINEO-MONUMENTO-2026-10-13
+import { aplicarRomanceAdulto, decidirRomanceAdulto, negativoRomanceAdulto, textoParaModeracao, ROMANCE_ADULT_SUFFIX, ROMANCE_ADULTO_VERSAO } from '@/lib/cinematic/romanceGuard' // KINEO-ROMANCE-ADULTO-2026-10-13
+import { forcePhotorealAnchor } from '@/lib/cinematic/sceneStyle' // KINEO-ROMANCE-ADULTO-2026-10-13
+import { moderateContent } from '@/lib/safety/contentModeration' // KINEO-ROMANCE-ADULTO-2026-10-13
+import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/moderationPolicy' // KINEO-ROMANCE-ADULTO-2026-10-13
 import { cobrirFalaComImagem, SEEDANCE_COBRE_VARIACAO } from '@/lib/cinematic/seedanceCobreAFala' // KINEO-MONUMENTO-2026-10-13 (duração)
 import { faixaDoEscritorNoLugar } from '@/lib/cinematic/escritorNoLugar' // KINEO-MONUMENTO-2026-10-13 (escritor) — KINEO-ESCRITOR-MONUMENTO-2026-10-13
 import { classifyEngineFit } from '@/lib/engineFit'
@@ -862,12 +866,16 @@ function buildFalInput(
 // pessoa real (bloqueou o render do fundador). Título+Nome agora é
 // case-sensitive; só a lista de nomes explícitos mantém o `i`.
 
-const ERA_YEAR_RE = /\b1[0-8][0-9]{2}\b|\b19[0-3][0-9]\b/ // years 1000–1939
+const ERA_YEAR_RE = /(?<![×✕*xX]\s{0,2})\b(?:1[0-8][0-9]{2}|19[0-3][0-9])\b(?!\s{0,2}(?:[×✕*xX]\s{0,2}\d|p\b|px\b|pixels?\b|fps\b|hz\b))/ // years 1000–1939 — KINEO-ROMANCE-ADULTO-2026-10-13: nunca um lado de resolução (1080 × 1920, 1080p, 1920px)
 const ERA_WORD_RE =
   /\b(ancient|medieval|middle\s+ages|renaissance|victorian|napoleonic|roman\s+empire|byzantine|colonial\s+era|civil\s+war|revolutionary\s+war|b\.?c\.?e?\b|\d{1,2}(?:st|nd|rd|th)\s+century)\b/i
+// KINEO-ROMANCE-ADULTO-2026-10-13 — d.hein.0 (13/10): "Resolution: 1080 × 1920" no pedido virou "period piece set strictly in
+// KINEO-ROMANCE-ADULTO-2026-10-13 — the year 1080" (castelo medieval num romance de hoje). A especificação de tela sai do contexto
+// KINEO-ROMANCE-ADULTO-2026-10-13 — antes da busca de ano: "resolution: 1080", "1080 x 1920", "1080 by 1920", "1080p", "1920px".
+const RESOLUCAO_NO_PEDIDO_RE = /\b(?:resolution|resolução|resolucao|resolución|resolucion|res)\s*[:=]?\s*\d{3,4}(?:\s*(?:[×✕*xX]|by|por)\s*\d{3,4})?|\b\d{3,4}\s*(?:[×✕*xX]|by|por)\s*\d{3,4}\b|\b\d{3,4}\s*(?:p|px|pixels?|fps|hz)\b/gi // KINEO-ROMANCE-ADULTO-2026-10-13
 
 function eraLockSuffix(context: string): string {
-  const ctx = (context || '').slice(0, 4000)
+  const ctx = (context || '').slice(0, 4000).replace(RESOLUCAO_NO_PEDIDO_RE, ' ') // KINEO-ROMANCE-ADULTO-2026-10-13 — era (context || '').slice(0, 4000)
   const yearMatch = ctx.match(ERA_YEAR_RE)
   if (!yearMatch && !ERA_WORD_RE.test(ctx)) return ''
   const era = yearMatch ? `the year ${yearMatch[0]}` : 'the historical era being narrated'
@@ -1440,6 +1448,10 @@ async function manipularPost(req: NextRequest) {
     // documentary_faceless vira character_story (pessoa muda em cena). Pedido de estrela recusado mais abaixo volta antes de [KINEO-ESTRELA-DO-FILME-2026-09-29]
     // qualquer trabalho; sem `estrela` no corpo, formatoComEstrela devolve a decisão de sempre (o mesmo objeto). [KINEO-ESTRELA-DO-FILME-2026-09-29]
     const formatoVisual = formatoComEstrela(decidirFormato(prompt, tagFacelessPresente), estrelaPedida((body as { estrela?: unknown }).estrela)) // KINEO-ESTRELA-DO-FILME-2026-09-29
+    // KINEO-ROMANCE-ADULTO-2026-10-13 — pedido romântico (lib/cinematic/romanceGuard; só o texto do CLIENTE): mostra as duas pessoas
+    // KINEO-ROMANCE-ADULTO-2026-10-13 — (character_story, nunca o faceless que apagava "man/woman"); a tag [faceless] e o apresentador pedido vencem.
+    const romanceAdulto = decidirRomanceAdulto(prompt) // KINEO-ROMANCE-ADULTO-2026-10-13
+    if (romanceAdulto.ativo && !tagFacelessPresente && formatoVisual.modo === 'documentary_faceless') Object.assign(formatoVisual, { modo: 'character_story', motivo: `${romanceAdulto.motivo}: as duas pessoas aparecem, mudas, adultas` }) // KINEO-ROMANCE-ADULTO-2026-10-13
     const facelessRequested = !permiteApresentador(formatoVisual.modo)
     console.log(`[formato] visual_mode=${formatoVisual.modo} — ${formatoVisual.motivo}`)
     if (!prompt) {
@@ -3493,9 +3505,10 @@ async function manipularPost(req: NextRequest) {
     // or generated from the narration below (verbatim).
     // Resolve the user's visual intent BEFORE either existing planner call.
     const styleAnchor = deriveStyleAnchor(
-      `${prompt} ${planScenes.map((s) => s.brollPrompt || '').join(' ')}`,
+      prompt, // KINEO-ROMANCE-ADULTO-2026-10-13 — o look vem SÓ do texto do cliente; o plano do GPT ("illustrated by their body language") não decide mais
       styleSuffix,
     )
+    if (romanceAdulto.ativo) Object.assign(styleAnchor, forcePhotorealAnchor(styleAnchor, styleSuffix)) // KINEO-ROMANCE-ADULTO-2026-10-13 — romance é sempre fotorreal
     const storyMode = isStylizedLook(styleAnchor) || formatoVisual.modo === 'character_story' || classifyEngineFit(prompt).verdict === 'stock_cannot_tell'
     const storyCharacter = storyMode ? deriveStoryCharacter(prompt) : null
     const classicVisualMode: VisualMode = tagFacelessPresente ? 'documentary_faceless'
@@ -6558,6 +6571,9 @@ async function manipularPost(req: NextRequest) {
         return cinematicBruto
       }
     })
+      // KINEO-ROMANCE-ADULTO-2026-10-13 — romance: idade adulta nas palavras, elenco fixo na frente e o sufixo de adultos no fim de TODA cena
+      // KINEO-ROMANCE-ADULTO-2026-10-13 — (o still FLUX nasce deste mesmo vetor). Antes dos eixos do Kling/Veo, que só PREFIXAM. Sem romance: o mesmo prompt.
+      .map((promptDaCena) => (romanceAdulto.ativo ? aplicarRomanceAdulto(promptDaCena, romanceAdulto) : promptDaCena)) // KINEO-ROMANCE-ADULTO-2026-10-13
       // ═══ KINEO-KLING25-VARIEDADE-2026-09-28 — um eixo de enquadramento por plano, SÓ no Kling 2.5 ═══
       // Fundador (28/09): "a única coisa é mais variedade de cenas" · "melhore o Kling 2.5 (...) foca em melhorar ele". Com 12
       // planos de 5 s o descritor repete enquadramento e movimento nos vizinhos apesar do pedido "do not repeat the same shot
@@ -6581,6 +6597,19 @@ async function manipularPost(req: NextRequest) {
       ctxDespacho().monumento = monumentoRelato // KINEO-MONUMENTO-2026-10-13
       console.log(`[cinematic] KINEO-MONUMENTO: ${lugarDoPedido.nome} ancorado em ${monumentoRelato.com_nome}/${monumentoRelato.cenas} cena(s)${reparadas.length ? `, reparadas: ${reparadas.join(',')}` : ''}`) // KINEO-MONUMENTO-2026-10-13
     } // KINEO-MONUMENTO-2026-10-13
+    // ═══ KINEO-ROMANCE-ADULTO-2026-10-13 — a moderação lê o TEXTO FINAL das cenas antes do still e do POST pago ═══
+    // KINEO-ROMANCE-ADULTO-2026-10-13 — Só em pedido romântico (o risco do caso d.hein.0): omni-moderation é gratuito, 1 chamada de até 8 s,
+    // KINEO-ROMANCE-ADULTO-2026-10-13 — superfície 'clip' (a do /api/generate-clip, mesma régua). O nosso sufixo de adultos sai do texto
+    // KINEO-ROMANCE-ADULTO-2026-10-13 — conferido ("no children" é termo de menor e barraria romance adulto legítimo). Falha FECHADA, como
+    // KINEO-ROMANCE-ADULTO-2026-10-13 — toda porta da casa: barrado ou fora do ar = claim liberado, crédito devolvido, nada gerado.
+    if (romanceAdulto.ativo) { // KINEO-ROMANCE-ADULTO-2026-10-13
+      const moderacaoRomance = await moderateContent({ surface: 'clip', stage: 'input', userId: user.id, text: textoParaModeracao(classicScenePrompts), meta: { route: 'generate-video-cinematic', check: 'final_scene_text', romance: true, version: ROMANCE_ADULTO_VERSAO, scenes: classicScenePrompts.length } }) // KINEO-ROMANCE-ADULTO-2026-10-13
+      void writeServerEvent({ name: 'romance_adult_guard', userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { version: ROMANCE_ADULTO_VERSAO, motivo: romanceAdulto.motivo, elenco: romanceAdulto.elenco, visual_mode: classicVisualMode, look: styleAnchor.look, scenes: classicScenePrompts.length, scenes_with_adult_suffix: classicScenePrompts.filter((p) => p.includes(ROMANCE_ADULT_SUFFIX)).length, moderation: moderacaoRomance.ok ? 'ok' : moderacaoRomance.reason, dry_run: body.dry_run === true } }) // KINEO-ROMANCE-ADULTO-2026-10-13
+      if (!moderacaoRomance.ok) { // KINEO-ROMANCE-ADULTO-2026-10-13
+        const devolvido = await releaseBirthClaim(`content_moderation_${moderacaoRomance.reason}_no_charge`) // KINEO-ROMANCE-ADULTO-2026-10-13
+        return NextResponse.json({ error: moderationRefusalMessage(moderacaoRomance.reason), reason: `content_moderation_${moderacaoRomance.reason}`, retryable: moderacaoRomance.reason === 'unavailable', charged: false, refunded: devolvido }, { status: moderationRefusalStatus(moderacaoRomance.reason) }) // KINEO-ROMANCE-ADULTO-2026-10-13
+      } // KINEO-ROMANCE-ADULTO-2026-10-13
+    } // KINEO-ROMANCE-ADULTO-2026-10-13
 
     // ═══ KINEO-DRYRUN-CLASSICO-2026-09-12 — O VALIDADOR DE $0 COBRE OS CLÁSSICOS ═══
     // Até 11/09 `dry_run: true` só parava a família Kling 3/H3/Omni (bloco
@@ -6627,6 +6656,7 @@ async function manipularPost(req: NextRequest) {
         contrato_cena: contratoRelatoClassico,
         fala_x_imagem: alinhamentoFalaImagem, // KINEO-FALA-X-IMAGEM — o que o supervisor reescreveu, a $0
         ...(monumentoRelato ? { monumento: monumentoRelato } : {}), // KINEO-MONUMENTO-2026-10-13
+        ...(romanceAdulto.ativo ? { romance_adulto: { motivo: romanceAdulto.motivo, elenco: romanceAdulto.elencoFrase, look: styleAnchor.look, cenas_com_sufixo: classicScenePrompts.filter((p) => p.includes(ROMANCE_ADULT_SUFFIX)).length } } : {}), // KINEO-ROMANCE-ADULTO-2026-10-13
         ...(seedanceCoberturaRelato ? { cobertura_da_fala: seedanceCoberturaRelato } : {}), // KINEO-MONUMENTO-2026-10-13 (duração)
         // KINEO-ESTRELA-DO-FILME-2026-09-29 — o ensaio de $0 mostra, cena a cena, qual still iria ao edit com o rosto (nada é gerado)
         ...(estrelaAtiva ? { estrela: { ficha: estrelaFicha, sobretaxa_cr: estrelaSobretaxaDe(duration), cenas: planoDaEstrela(scenes.map((s, i) => ({ prompt: classicScenePrompts[i], visual: s.aiPrompt || s.stockSearchQuery || s.description })), estrelaFicha ?? fichaDaEstrela(prompt, null), true, prompt).map((p) => ({ cena: p.indice + 1, estrela: p.protagonista })) } } : {}), // KINEO-ESTRELA-DO-FILME-2026-09-29
@@ -6721,6 +6751,7 @@ async function manipularPost(req: NextRequest) {
             const url = await generateCinematicSceneStill({
               scenePrompt,
               styleSuffix: '', // Already applied once in classicScenePrompts.
+              ...(romanceAdulto.ativo ? { adultSuffix: ROMANCE_ADULT_SUFFIX } : {}), // KINEO-ROMANCE-ADULTO-2026-10-13 — o still garante o sufixo mesmo se a cena perdeu a cauda
               seed: generationSeed,
               pollWindowMs: STILL_POLL_WINDOW_MS,
               aspect: aspectRequested,
@@ -6793,7 +6824,7 @@ async function manipularPost(req: NextRequest) {
         sceneIndex,
         models: modelos,
         visualPrompt: cinematic,
-        safeVisualPrompt,
+        safeVisualPrompt: romanceAdulto.ativo && safeVisualPrompt ? aplicarRomanceAdulto(safeVisualPrompt, romanceAdulto) : safeVisualPrompt, // KINEO-ROMANCE-ADULTO-2026-10-13 — a 2ª tentativa "family-safe" também é de adultos
         submit: async (m, promptForAttempt, onPost) => {
           // KINEO-MULTIFORMATO-2026-09-02 — o caminho clássico (Seedance 1.5,
           // Kling 2.5, Veo) gera cada cena já no quadro pedido.
@@ -6801,6 +6832,7 @@ async function manipularPost(req: NextRequest) {
           // i2v e no t2v de reserva); em Seedance/Veo/Sora é undefined — o mesmo `undefined` de antes, payload byte a byte.
           // KINEO-CENA-CLASSICA-2026-09-28 — o input assinado fica em classicSceneInputs para a retomada da cena.
           const input = buildFalInput(m, promptForAttempt, hd, false, scene.clipSeconds, m === modelos[0] ? imageUrl : undefined, generationSeed, isStylizedLook(styleAnchor), aspectRequested, classicVisualMode)
+          if (romanceAdulto.ativo && typeof input.negative_prompt === 'string') input.negative_prompt = negativoRomanceAdulto(input.negative_prompt) // KINEO-ROMANCE-ADULTO-2026-10-13 — Veo/Kling 2.5 (o Seedance não tem negative: vale o sufixo)
           classicSceneInputs[sceneIndex] = input // KINEO-CENA-CLASSICA-2026-09-28
           return submitFalQueueOnce(m, input, onPost)
         },

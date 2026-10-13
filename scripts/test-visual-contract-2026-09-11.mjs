@@ -29,7 +29,7 @@ const noNetwork = () => { throw new Error('Network is forbidden in this test') }
 function execute(source, globals = {}) {
   const exports = {}
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText,
-    { exports, console: { log() {}, warn() {}, error() {} }, process: { env: {} }, fetch: noNetwork, ...globals })
+    { exports, console: { log() {}, warn() {}, error() {} }, process: { env: {} }, fetch: noNetwork, romanceAdulto: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op)
   return exports
 }
 const allowed = new Set(['lib/aspect.ts', 'lib/cinematic/sceneStyle.ts', 'lib/cinematic/visualMode.ts',
@@ -364,7 +364,7 @@ check(LITUYA_SCRIPT.split(/\s+/).length >= 175 && LITUYA_SCRIPT.split(/\s+/).len
 // executed, so the Lituya cases never inherit the Kyoto-1930 fixture era.
 const usedModelLine = variable(route, 'usedModel').parent.parent.getText(route)
 const eraSuffixLine = variable(route, 'eraSuffix').parent.parent.getText(route)
-const eraApi = execute([varSource(route, 'ERA_YEAR_RE'), varSource(route, 'ERA_WORD_RE'), functionSource(route, 'eraLockSuffix'),
+const eraApi = execute([varSource(route, 'ERA_YEAR_RE'), varSource(route, 'ERA_WORD_RE'), varSource(route, 'RESOLUCAO_NO_PEDIDO_RE'), functionSource(route, 'eraLockSuffix'), // RESOLUCAO_NO_PEDIDO_RE: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; a era tira a resolução do contexto antes do ano)
   'exports.eraLockSuffix = eraLockSuffix;'].join('\n'))
 check(usedModelLine.includes('wantsVeo ? VEO_MODEL') && eraSuffixLine.includes('eraLockSuffix(') && eraSuffixLine.includes('s.voiceover'), 'Actual usedModel / eraSuffix lines located by AST')
 const ENGINE_FLAGS = engine => ({ wantsKling: engine === 'kling', wantsVeo: engine === 'veo', wantsSora: engine === 'sora' })
