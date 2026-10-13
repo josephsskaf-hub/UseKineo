@@ -45,13 +45,24 @@ const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', '
 const FROM_EMAIL = 'Joseph at Kineo <joseph@usekineo.com>'
 const REPLY_TO = 'joseph@usekineo.com'
 
+// KINEO-ASSINANTE-DIA3-2026-10-13 — o fundador aprovou ("tudo sim", 13/10) ligar este e-mail sozinho: 0 de 11 assinantes
+// receberam QUALQUER e-mail de relacionamento entre o dia 1 e o dia 7 depois de pagar, e 8 de 11 não fizeram o 2º filme —
+// o churn medido na Stripe é 10 de 15. O Vercel chama com `Authorization: Bearer ${CRON_SECRET}` (vercel.json, 1×/dia).
+// FAIL-CLOSED: sem a env, ninguém entra por aqui (mesma função do send-next-episode-wall).
+function autorizadoPorCron(req: NextRequest): boolean {
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret) return false
+  return req.headers.get('authorization') === `Bearer ${cronSecret}`
+}
+
 export async function GET(req: NextRequest) {
   const readAt = Date.now() // Same time boundary on every page of this request.
   try {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     const adminEmail = (user?.email ?? '').toLowerCase()
-    if (!user || !ADMIN_EMAILS.has(adminEmail)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const porCron = autorizadoPorCron(req) // KINEO-ASSINANTE-DIA3-2026-10-13
+    if ((!user || !ADMIN_EMAILS.has(adminEmail)) && !porCron) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     const resendKey = process.env.RESEND_API_KEY
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
     const svc = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -141,7 +152,7 @@ export async function GET(req: NextRequest) {
         if (!res.ok) { results.push({ email: a.email, outcome: `resend ${res.status}` }); continue }
         await admin.from('events').insert({
           user_id: a.id, name: STAMP,
-          metadata: { campaign: 'subscriber_idle', plan: a.plan, credits: a.credits, days_idle: a.daysIdle, sequel: Boolean(a.lastTitle), sent_by: adminEmail },
+          metadata: { campaign: 'subscriber_idle', plan: a.plan, credits: a.credits, days_idle: a.daysIdle, sequel: Boolean(a.lastTitle), sent_by: porCron && !ADMIN_EMAILS.has(adminEmail) ? 'cron' : adminEmail }, // KINEO-ASSINANTE-DIA3-2026-10-13
         })
         sent += 1
         results.push({ email: a.email, outcome: 'sent' })
