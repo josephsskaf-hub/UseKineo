@@ -307,6 +307,11 @@ export function AdsV2BatchSession({ balance, onBalance, sample = false, business
   const canAdd = rows.length < ADS_V2_BATCH_MAX_ROWS && (balance === null || total + adsV2Credits(DEFAULT_TIER, ADS_V2_SCREEN_SECONDS) <= balance)
   const overBalance = balance !== null && total > balance
   const allPlanned = rows.length > 0 && planned.length === rows.length
+  // KINEO-ADS-FLUXO-2026-10-13 — a conta do lote antes de gerar ("3 products × 2 styles = 6 ads · N credits"): produtos = textos/links
+  // diferentes, estilos = estilos diferentes; o "×…=" só aparece quando a grade fecha de verdade. O total é o MESMO `total` de cima.
+  const mathProducts = new Set(rows.map((r) => r.linkRead ?? (r.text.replace(/\s+/g, ' ').trim().toLowerCase() || r.key))).size
+  const mathStyles = new Set(rows.map((r) => r.style)).size
+  const mathGrid = rows.length > 1 && mathProducts * mathStyles === rows.length && mathProducts > 1 && mathStyles > 1
 
   function updateRow(key: string, patch: Partial<BatchRow>) {
     setRows((prev) => prev.map((r) => (r.key === key ? { ...r, ...patch } : r)))
@@ -445,6 +450,7 @@ export function AdsV2BatchSession({ balance, onBalance, sample = false, business
         facts: [],
         ...(ADS_V2_STYLES_PUBLIC && row.style !== 'none' ? { style: row.style } : {}),
         ...(presenterOn ? { presenter: true } : {}),
+        scripts: false, // KINEO-ADS-FLUXO-2026-10-13 — o lote não pede os 2–3 roteiros (contrato codex/ads-roteiros-1310): um roteiro por linha
       }
     } catch (e) {
       updateRow(row.key, { error: e instanceof AdsUploadError ? e.message : 'A photo could not be prepared. Try another photo.' })
@@ -748,6 +754,8 @@ export function AdsV2BatchSession({ balance, onBalance, sample = false, business
         <button type="button" className="adsw-btn ghost" disabled={!canAdd || busy !== null} onClick={addRow}>+ Add another ad</button>
       </div>
       <p className="adv2b-total" aria-live="polite">
+        {/* KINEO-ADS-FLUXO-2026-10-13 — a conta do lote, à vista antes de gerar. */}
+        <span data-kineo="ads-batch-math">{mathProducts} product{mathProducts === 1 ? '' : 's'} {mathGrid ? '×' : '·'} {mathStyles} style{mathStyles === 1 ? '' : 's'} {mathGrid ? '=' : '·'} {rows.length} ad{rows.length === 1 ? '' : 's'} · {total} credits</span>
         <span>Total: <b>{total} credits</b> for {rows.length} ad{rows.length === 1 ? '' : 's'}</span>
         {balance !== null ? <span>You have {balance} credits · {Math.max(0, balance - total)} left after this batch</span> : null}
       </p>

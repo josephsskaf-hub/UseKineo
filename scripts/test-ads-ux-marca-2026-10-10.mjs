@@ -359,7 +359,9 @@ await check('8d frases dos 15 estilos nas 16 línguas: nome, para que serve e o 
 // ═══ 9. tela, invólucro, componente e migração (leitura) ═════════════════════════════════════════════════════════════
 await check('9a tela: passo a passo, soltar arquivos pelo MESMO addFiles, editor de enquadramento, nível do saldo, estilos em carrossel, prévia ao vivo e barra do celular', () => {
   const s = code(read(F.simple))
-  return ordem(s, '<SimpleStepper copy={ux} steps={steps} />', 'aria-labelledby="adv2s-s1"', '<DropZone', 'onFiles={(list) => void addFiles(list)}', 'data-kineo="ads-link-import"', 'aria-labelledby="adv2s-s2"', 'data-kineo="ads-brand-kit-chip"', 'aria-labelledby="adv2s-s3"', '<TierIncludes', '<AdsStylePicker', 'carousel={{', 'aria-labelledby="adv2s-s4"', 'data-kineo="ads-brand-kit-save"', '<LiveStage slot={previewSlot}', '<MobilePreviewBar') &&
+  // KINEO-ADS-FLUXO-2026-10-13 — re-ancorado: LINK PRIMEIRO (a caixa do link vem antes da área de soltar fotos) e o palco do estilo
+  // (<AdsStyleStage slot={previewSlot}>, components/ads/AdsFlow.tsx) no lugar da prévia ao vivo; a barra do celular segue.
+  return ordem(s, '<SimpleStepper copy={ux} steps={steps} />', 'aria-labelledby="adv2s-s1"', 'data-kineo="ads-link-import"', '<DropZone', 'onFiles={(list) => void addFiles(list)}', 'aria-labelledby="adv2s-s2"', 'data-kineo="ads-brand-kit-chip"', 'aria-labelledby="adv2s-s3"', '<TierIncludes', '<AdsStylePicker', 'carousel={{', 'aria-labelledby="adv2s-s4"', 'data-kineo="ads-brand-kit-save"', '<AdsStyleStage slot={previewSlot}', '<MobilePreviewBar') &&
     /const costLine = adsV2CostLine\(\{ tier, balance, sample: !!scopy, group: variations && three \? variationsPrice\(cost\) : null \}\)/.test(s) &&
     /const d = adsV2DefaultTier\(balance\)/.test(s) && /if \(tierAutoRef\.current \|\| sample \|\| tier !== null\) return/.test(s) &&
     /const \[saveKit, setSaveKit\] = useState\(true\)/.test(s) && /<CropEditor/.test(s) && /moveItemTo\(dragKey, p\.key\)/.test(s) &&

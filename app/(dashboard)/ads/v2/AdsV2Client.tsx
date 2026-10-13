@@ -32,6 +32,9 @@ import { AdsV2BatchSession } from './AdsV2Batch' // KINEO-ADS-LOTE-1310 — ?mod
 import { ADS_V2_VARIATIONS_CSS, VariationToggle, VariationsBoard, variationsCopy, variationsPrice } from './AdsV2Variations'
 import { ADS_V2_SIMPLE_COPY } from '@/lib/ads/v2Simple'
 import { ADS_HOUSE_STAGE, ProductRow, ProductStage, ProductStageStyles, useProductStage } from '@/components/ProductStage' // KINEO-ABAS-PALCO-2026-10-01
+// KINEO-ADS-FLUXO-2026-10-13 — as abas "Um anúncio / Lote / Produção" (como Filme/Clipe no Studio) e o CSS do fluxo novo.
+import { ADS_FLOW_CSS, AdsFlowTabs } from '@/components/ads/AdsFlow' // KINEO-ADS-FLUXO-2026-10-13
+import { adsV2FlowCopy, adsV2FlowTabFor } from '@/lib/ads/v2Flow' // KINEO-ADS-FLUXO-2026-10-13
 
 // KINEO-ABAS-PALCO-2026-10-01 — dentro do quadro de engenharia os passos do montador não têm caixa própria, e o quadro
 // "como funciona"/prévia desce para baixo dos passos (a direita é do palco).
@@ -462,6 +465,8 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
   // celular 9:16 da prévia ocupa o lugar do palco da casa (que volta no progresso/entrega e no modo completo).
   const [previewSlot, setPreviewSlot] = useState<HTMLDivElement | null>(null)
   const [simplePreview, setSimplePreview] = useState(false)
+  // KINEO-ADS-FLUXO-2026-10-13 — a vaga da fileira "Comece deste" (embaixo do quadro), preenchida pela sessão do modo simples.
+  const [rowSlot, setRowSlot] = useState<HTMLDivElement | null>(null)
   const lang = useInterfaceLanguage()
   // Foco na opção SEGURA ("Keep working"): Enter segurado no "Start over" não apaga tudo por repetição de tecla.
   const confirmRef = useRef<HTMLButtonElement | null>(null)
@@ -561,10 +566,13 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
       <ProductStageStyles />
       <style dangerouslySetInnerHTML={{ __html: ADS_PANEL_CSS }} />
       <style dangerouslySetInnerHTML={{ __html: ADS_TEAM_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: ADS_FLOW_CSS }} />
       <header className="adsw-header adv2-head">
         <div>
           <h1>{shell.title}</h1>
           <p className="sub">{mode === 'full' ? shell.sub : shell.subSimple}</p>
+          {/* KINEO-ADS-FLUXO-2026-10-13 — as abas do topo: Um anúncio (simples) · Lote (?mode=batch) · Produção (?mode=full). */}
+          {mode ? <AdsFlowTabs active={adsV2FlowTabFor(mode)} copy={adsV2FlowCopy(mode === 'full' ? 'en' : lang)} /> : null}
           {/* KINEO-ADS-V2-VIRADA-2026-09-29 — o assistente antigo continua existindo como opção clássica (discreto, <a> sem prefetch). */}
           {/* KINEO-ADS-AMOSTRA-2026-10-09 — o clássico é pago: a amostra não mostra o atalho. */}
           {!sample && classicCredits !== null && mode === 'full' ? (
@@ -578,11 +586,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
             </p>
           ) : null}
           {/* KINEO-ADS-LOTE-1310 — o modo lote: vários anúncios de uma vez (a conta sem o Studio Ads vê a oferta do Business lá dentro). */}
-          {mode && mode !== 'batch' ? (
-            <p className="adv2-classic">
-              <a href="/ads/v2?mode=batch"><UiLabel>New: make many ads at once (batch)</UiLabel></a>
-            </p>
-          ) : null}
+          {/* KINEO-ADS-FLUXO-2026-10-13 — o atalho do lote virou a aba "Lote" (AdsFlowTabs, logo acima). */}
           {workspace?.role === 'member' ? (
             <p className="adv2-team" role="status">
               <UiLabel>Working in</UiLabel> <b>{workspace.ownerLabel ?? 'your team'}</b>
@@ -659,6 +663,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
           onPreview={setSimplePreview}
           business={business}
           onSampleGone={() => setSampleGone(true)}
+          rowSlot={rowSlot}
         />
       ) : null}
       </div>
@@ -666,7 +671,11 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
         {mode === 'simple' && simplePreview ? null : <ProductStage name={shell.title} desc={mode === 'full' ? shell.sub : shell.subSimple} items={ADS_HOUSE_STAGE} wide />}
       </div>
       )}
+      {/* KINEO-ADS-FLUXO-2026-10-13 — no modo simples, enquanto a pessoa monta, a fileira da casa vira "Comece deste" (a sessão preenche a vaga). */}
+      {mode === 'simple' && !groupId ? <div ref={setRowSlot} className="adv2f-rowslot" /> : null}
+      {mode === 'simple' && simplePreview && !groupId ? null : (
       <ProductRow title="Made on Kineo" sub="Three looks of the same product, ready to A/B test." items={ADS_HOUSE_STAGE.map((x) => ({ title: x.title, image: x.poster! }))} wide />
+      )}
     </div>
   )
 }
