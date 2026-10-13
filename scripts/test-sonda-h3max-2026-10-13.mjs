@@ -245,5 +245,97 @@ mut('chave fx_zombie some do catálogo', '  fx_zombie: { model: KLING,', '  zomb
 mut('chave fx_witch renomeada (fora da lista fechada fx_*)', '  fx_witch: { model: KLING,', '  fx_bruxa: { model: KLING,', rulesViral)
 mut('zumbi lê valor de fora', "fx_zombie: { model: KLING, input: (image) => ({ effect_scene: 'zombie_transform',", "fx_zombie: { model: KLING, input: (image) => ({ effect_scene: (globalThis as any).scene ?? 'zombie_transform',", rulesClosedCatalog)
 
+// ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+// KINEO-ESTILOS-DIA1-2026-10-13 — fundador (13/10): +10 estilos de anúncio NOVOS por dia (a meta subiu de 5 para 10 no mesmo
+// dia), testados com render real antes de entrar. Lote do dia 1 na MESMA sonda fechada. Prova:
+//   (12) as 10 chaves ad_* executadas devolvem EXATAMENTE a PixVerse v5 (o endpoint dos 15 estilos no ar) e { effect, image_url,
+//        resolution:'720p', duration:'5' }; o effect está no enum conferido no OpenAPI vivo da fal em 13/10; a foto é o único
+//        valor externo; a lista ad_* é fechada e na ordem;
+//   (13) "claramente diferente": nenhum dos 10 é um efeito dos 15 estilos de lib/ads/v2Styles.ts nem um dos já reprovados
+//        (Billboard AD, Truck AD, Microwave);
+//   (14) o commit do lote NÃO tocou lib/ads (o estilo só entra na parte 2, após o render aprovado) nem o pipeline de vídeo;
+//   (15) mutantes vermelhos e aplicados.
+// Fonte do enum: https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=fal-ai/pixverse/v5/effects (154 valores em 13/10).
+const AD_IMG = 'https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/user-footage/x/produto.jpg'
+const PIXVERSE_V5 = 'fal-ai/pixverse/v5/effects'
+const pv5 = (effect) => ({ model: PIXVERSE_V5, input: { effect, image_url: AD_IMG, resolution: '720p', duration: '5' } })
+const ESTILOS_DIA1_EXPECTED = {
+  ad_dolly_zoom: pv5('Hitchcock Dolly Zoom'),
+  ad_liquid_metal: pv5('Liquid Metal'),
+  ad_boom_drop: pv5('BOOM DROP'),
+  ad_mint_in_box: pv5('Mint in Box'),
+  ad_snow_globe: pv5('Snow Globe Maker'),
+  ad_smell_lens: pv5('Smell the Lens'),
+  ad_macaron_machine: pv5('Macaron Machine'),
+  ad_starlight_gift: pv5('Starlight Gift Box'),
+  ad_earth_zoom: pv5('Earth Zoom'),
+  ad_christmas_night: pv5('Christmas Night'),
+}
+const PIXVERSE_V5_ENUM_CHECKED = new Set(['Hitchcock Dolly Zoom', 'Liquid Metal', 'BOOM DROP', 'Mint in Box', 'Snow Globe Maker',
+  'Smell the Lens', 'Macaron Machine', 'Starlight Gift Box', 'Earth Zoom', 'Christmas Night'])
+const ADS_REPROVADOS = new Set(['Billboard AD', 'Truck AD', 'Microwave'])
+function v2StyleEffects() {
+  const s = fs.readFileSync('lib/ads/v2Styles.ts', 'utf8')
+  return new Set([...s.matchAll(/^ {2}\{ key: '[a-z0-9_]+', effect: '([^']+)'/gm)].map((m) => m[1]))
+}
+function rulesEstilosDia1(src) {
+  const P = loadProbes(src)
+  if (!P) return false
+  const ad = Object.keys(P).filter((k) => k.startsWith('ad_'))
+  const other = 'https://other.example/p.jpg'
+  return JSON.stringify(ad) === JSON.stringify(Object.keys(ESTILOS_DIA1_EXPECTED)) &&
+    src.includes("const PIXVERSE = 'fal-ai/pixverse/v5/effects'") &&
+    Object.entries(ESTILOS_DIA1_EXPECTED).every(([k, v]) => {
+      const p = P[k]
+      if (!p || p.model !== v.model || p.input.length !== 1) return false
+      const got = p.input(AD_IMG)
+      return JSON.stringify(got) === JSON.stringify(v.input) && PIXVERSE_V5_ENUM_CHECKED.has(got.effect) &&
+        JSON.stringify(p.input(other)) === JSON.stringify(v.input).split(AD_IMG).join(other)
+    })
+}
+function rulesEstilosDiferentes(src) {
+  const P = loadProbes(src)
+  const ja = v2StyleEffects()
+  if (!P || ja.size !== 15) return false // os 15 estilos no ar (se o arquivo mudar de forma, o guardião acusa em vez de passar mudo)
+  const effects = Object.keys(P).filter((k) => k.startsWith('ad_')).map((k) => P[k].input(AD_IMG).effect)
+  return effects.length === 10 && new Set(effects).size === 10 && effects.every((e) => !ja.has(e) && !ADS_REPROVADOS.has(e))
+}
+function estilosDia1Untouched() {
+  const c = git(['log', '--format=%H', '-S', 'KINEO-ESTILOS-DIA1-2026-10-13', '--', ROUTE]).split('\n').filter(Boolean).pop()
+  const paths = ['lib/ads', 'lib/clips', ...PIPELINE]
+  const changed = c ? git(['diff', '--name-only', `${c}^`, c, '--', ...paths]) : git(['diff', '--name-only', 'HEAD', '--', ...paths])
+  return changed === ''
+}
+check('12 estilos dia 1: as 10 chaves ad_* na PixVerse v5 com effect do enum conferido, 720p, 5 s, só a foto de fora', () => rulesEstilosDia1(SRC))
+check('13 os 10 efeitos são novos: fora dos 15 estilos de lib/ads/v2Styles.ts e fora dos já reprovados (Billboard/Truck/Microwave)', () => rulesEstilosDiferentes(SRC))
+check('14 o commit do lote não tocou lib/ads, lib/clips nem o pipeline de vídeo (diff vazio)', () => estilosDia1Untouched())
+check('14b catálogo fechado, virais e Halloween seguem verdes com as 10 chaves ad_*', () => rulesClosedCatalog(SRC) && rulesViral(SRC) && rulesHalloween(SRC))
+mut('Dolly Zoom com o nome fora do enum (sem "Hitchcock")', "effect: 'Hitchcock Dolly Zoom'", "effect: 'Dolly Zoom'", rulesEstilosDia1)
+mut('BOOM DROP em caixa errada', "effect: 'BOOM DROP'", "effect: 'Boom Drop'", rulesEstilosDia1)
+mut('Snow Globe Maker sem o "Maker"', "effect: 'Snow Globe Maker'", "effect: 'Snow Globe'", rulesEstilosDia1)
+mut('Liquid Metal apontado para a PixVerse v5.5', '  ad_liquid_metal: { model: PIXVERSE,', '  ad_liquid_metal: { model: PIXVERSE_55,', rulesEstilosDia1)
+mut('Mint in Box em 1080p (outro preço)', "effect: 'Mint in Box', image_url: image, resolution: '720p'", "effect: 'Mint in Box', image_url: image, resolution: '1080p'", rulesEstilosDia1)
+mut('Snow Globe com 8 s', "effect: 'Snow Globe Maker', image_url: image, resolution: '720p', duration: '5'", "effect: 'Snow Globe Maker', image_url: image, resolution: '720p', duration: '8'", rulesEstilosDia1)
+mut('chave ad_boom_drop renomeada', '  ad_boom_drop: { model: PIXVERSE,', '  boom_drop: { model: PIXVERSE,', rulesEstilosDia1)
+mut('foto fixa no Dolly Zoom', "effect: 'Hitchcock Dolly Zoom', image_url: image,", "effect: 'Hitchcock Dolly Zoom', image_url: '" + AD_IMG + "',", rulesEstilosDia1)
+mut('lote repete um estilo que já está no ar (Beach AD)', "effect: 'Liquid Metal'", "effect: 'Beach AD'", rulesEstilosDiferentes)
+mut('lote traz um efeito já reprovado (Billboard AD)', "effect: 'Mint in Box'", "effect: 'Billboard AD'", rulesEstilosDiferentes)
+mut('dois estilos do lote iguais', "effect: 'BOOM DROP'", "effect: 'Liquid Metal'", rulesEstilosDiferentes)
+mut('estilo lê valor de fora', "ad_snow_globe: { model: PIXVERSE, input: (image) => ({ effect: 'Snow Globe Maker',", "ad_snow_globe: { model: PIXVERSE, input: (image) => ({ effect: (globalThis as any).fx ?? 'Snow Globe Maker',", rulesClosedCatalog)
+mut('Smell the Lens com o "The" em maiúscula (fora do enum)', "effect: 'Smell the Lens'", "effect: 'Smell The Lens'", rulesEstilosDia1)
+mut('Macaron Machine no plural', "effect: 'Macaron Machine'", "effect: 'Macaron Machines'", rulesEstilosDia1)
+mut('Starlight Gift Box sem o "Box"', "effect: 'Starlight Gift Box'", "effect: 'Starlight Gift'", rulesEstilosDia1)
+mut('Earth Zoom virando "Earth Zoom Out" (fora do enum)', "effect: 'Earth Zoom'", "effect: 'Earth Zoom Out'", rulesEstilosDia1)
+mut('Christmas Night com 8 s', "effect: 'Christmas Night', image_url: image, resolution: '720p', duration: '5'", "effect: 'Christmas Night', image_url: image, resolution: '720p', duration: '8'", rulesEstilosDia1)
+mut('Earth Zoom apontado para a PixVerse v5.5', '  ad_earth_zoom: { model: PIXVERSE,', '  ad_earth_zoom: { model: PIXVERSE_55,', rulesEstilosDia1)
+mut('Macaron Machine em 1080p (outro preço)', "effect: 'Macaron Machine', image_url: image, resolution: '720p'", "effect: 'Macaron Machine', image_url: image, resolution: '1080p'", rulesEstilosDia1)
+mut('chave ad_starlight_gift renomeada', '  ad_starlight_gift: { model: PIXVERSE,', '  starlight_gift: { model: PIXVERSE,', rulesEstilosDia1)
+mut('chave ad_smell_lens some (lote com 9)', "  ad_smell_lens: { model: PIXVERSE, input: (image) => ({ effect: 'Smell the Lens', image_url: image, resolution: '720p', duration: '5' }) },\n", '', rulesEstilosDia1)
+mut('foto fixa no Christmas Night', "effect: 'Christmas Night', image_url: image,", "effect: 'Christmas Night', image_url: '" + AD_IMG + "',", rulesEstilosDia1)
+mut('Christmas Night trocado por um estilo no ar (Dreamlike Cloud)', "effect: 'Christmas Night'", "effect: 'Dreamlike Cloud'", rulesEstilosDiferentes)
+mut('Starlight Gift Box trocado por um já reprovado (Truck AD)', "effect: 'Starlight Gift Box'", "effect: 'Truck AD'", rulesEstilosDiferentes)
+mut('Earth Zoom repete o Dolly Zoom', "effect: 'Earth Zoom'", "effect: 'Hitchcock Dolly Zoom'", rulesEstilosDiferentes)
+mut('Macaron Machine lê valor de fora', "ad_macaron_machine: { model: PIXVERSE, input: (image) => ({ effect: 'Macaron Machine',", "ad_macaron_machine: { model: PIXVERSE, input: (image) => ({ effect: (globalThis as any).fx ?? 'Macaron Machine',", rulesClosedCatalog)
+
 console.log(fails ? `\n${fails} FALHA(S)` : '\nTODOS PASS')
 process.exit(fails ? 1 : 0)

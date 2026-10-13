@@ -9,6 +9,8 @@
 //   GET  ?probe=…&request_id=…                        → { status, video_url }
 //   KINEO-SONDA-EFEITOS-VIRAIS-2026-10-13: POST { probe: 'fx_hug' | 'fx_kiss' | 'fx_vampire' | 'fx_wings' | 'fx_dollar_rain' | 'fx_muscle', image_url }
 //   KINEO-EFEITOS-NOVOS-2026-10-13: POST { probe: 'fx_witch' | 'fx_zombie', image_url } (Halloween sem fogo)
+//   KINEO-ESTILOS-DIA1-2026-10-13: POST { probe: 'ad_dolly_zoom' | 'ad_liquid_metal' | 'ad_boom_drop' | 'ad_mint_in_box' | 'ad_snow_globe' | 'ad_smell_lens' | 'ad_macaron_machine'
+//     | 'ad_starlight_gift' | 'ad_earth_zoom' | 'ad_christmas_night', image_url }
 //   KINEO-SONDA-H3MAX-2026-10-13: POST { probe: 'h3_t2v' | 'h3max_t2v', prompt } · { probe: 'h3_i2v' | 'h3max_i2v', prompt, image_url }
 import { NextRequest, NextResponse } from 'next/server'
 import { fal } from '@fal-ai/client'
@@ -65,6 +67,22 @@ const PROBES: Record<string, { model: string; input: (image: string) => Record<s
   // testa bruxa e zumbi. Os dois valores existem no enum effect_scene do Kling 1.6 STANDARD (OpenAPI da fal salvo em 13/10).
   fx_witch: { model: KLING, input: (image) => ({ effect_scene: 'witch_transform', input_image_urls: [image], duration: '5' }) },
   fx_zombie: { model: KLING, input: (image) => ({ effect_scene: 'zombie_transform', input_image_urls: [image], duration: '5' }) },
+  // KINEO-ESTILOS-DIA1-2026-10-13 — fundador (13/10): +10 estilos de anúncio NOVOS por dia, testados. Lote do dia 1: 10 efeitos
+  // da MESMA PixVerse v5 (mesmo endpoint e preço dos 15 estilos no ar; o sistema de estilos não precisa de motor novo), só
+  // (image), 720p, 5 s. Enum conferido no OpenAPI vivo da fal em 13/10 (154 valores):
+  // https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=fal-ai/pixverse/v5/effects · https://fal.ai/models/fal-ai/pixverse/v5/effects/api
+  // Fora do lote de propósito: Billboard AD, Truck AD e Microwave (já reprovados na sonda de 09-10/10). Só SONDA: lib/ads
+  // (v2Styles e espelhos) NÃO muda — o estilo entra na parte 2, depois do render real aprovado pelo fundador.
+  ad_dolly_zoom: { model: PIXVERSE, input: (image) => ({ effect: 'Hitchcock Dolly Zoom', image_url: image, resolution: '720p', duration: '5' }) },
+  ad_liquid_metal: { model: PIXVERSE, input: (image) => ({ effect: 'Liquid Metal', image_url: image, resolution: '720p', duration: '5' }) },
+  ad_boom_drop: { model: PIXVERSE, input: (image) => ({ effect: 'BOOM DROP', image_url: image, resolution: '720p', duration: '5' }) },
+  ad_mint_in_box: { model: PIXVERSE, input: (image) => ({ effect: 'Mint in Box', image_url: image, resolution: '720p', duration: '5' }) },
+  ad_snow_globe: { model: PIXVERSE, input: (image) => ({ effect: 'Snow Globe Maker', image_url: image, resolution: '720p', duration: '5' }) },
+  ad_smell_lens: { model: PIXVERSE, input: (image) => ({ effect: 'Smell the Lens', image_url: image, resolution: '720p', duration: '5' }) },
+  ad_macaron_machine: { model: PIXVERSE, input: (image) => ({ effect: 'Macaron Machine', image_url: image, resolution: '720p', duration: '5' }) },
+  ad_starlight_gift: { model: PIXVERSE, input: (image) => ({ effect: 'Starlight Gift Box', image_url: image, resolution: '720p', duration: '5' }) },
+  ad_earth_zoom: { model: PIXVERSE, input: (image) => ({ effect: 'Earth Zoom', image_url: image, resolution: '720p', duration: '5' }) },
+  ad_christmas_night: { model: PIXVERSE, input: (image) => ({ effect: 'Christmas Night', image_url: image, resolution: '720p', duration: '5' }) },
 }
 
 // KINEO-SONDA-H3MAX-2026-10-13 — fundador (13/10: "Testar o H3"): o MiniMax H3 Max (versão pós-treinada pela fal) é candidato a
