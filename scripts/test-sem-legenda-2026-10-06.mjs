@@ -24,6 +24,7 @@ import { execFileSync } from 'node:child_process'
 // frases). desfazH3max devolve, em memória, o arquivo sem essa entrada (pares exatos em scripts/test-support/h3max-2026-10-13-trocas.json;
 // par que não casa = texto intocado = vermelho); linhasTrocadasH3max lista as linhas da base trocadas. Fora disso, o byte a byte de sempre.
 import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
+import { desfazEscritorOmni } from './test-support/desfaz-escritor-omni-1310.mjs' // reancorado 13/10 (KINEO-ESCRITOR-MONUMENTO-2026-10-13 · KINEO-OMNI-ETAPA1-2026-10-13, 'tudo sim' do fundador): runway/compose/cinematic sem as mudanças de 13/10, em memória, antes do byte a byte
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -619,7 +620,7 @@ const rdBase = (p) => { try { return git(['show', `${BASE}:${p}`]).replace(/\r\n
 const semMarca = (s) => s.split('\n').filter((l) => !l.includes(MARCA)).join('\n')
 function problemasTrava(rota) {
   if (!BASE) return ['sem base de comparação']
-  return semMarca(desfazH3max(ROTA, rota)) === rdBase(ROTA) ? [] : ['/api/compose: há linha nova ou alterada sem a marca ' + MARCA] // KINEO-H3MAX-2026-10-13 — reancorado (ver o import)
+  return semMarca(desfazEscritorOmni(ROTA, desfazH3max(ROTA, rota))) === rdBase(ROTA) ? [] : ['/api/compose: há linha nova ou alterada sem a marca ' + MARCA] // KINEO-H3MAX-2026-10-13 — reancorado (ver o import)
 }
 
 // ═══ execução ═══════════════════════════════════════════════════════════════════════════════════════════════════════

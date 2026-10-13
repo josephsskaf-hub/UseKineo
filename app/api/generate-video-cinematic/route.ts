@@ -196,6 +196,7 @@ import { closingSceneVariation, deriveStoryCharacter, deriveExplicitCharacter, d
 import { buildClassicVisualPrompt, classicVisualNegativePrompt, isStylizedLook, scrubInventedSetting, visualDescriptionDirection, type VisualPromptPolicy } from '@/lib/cinematic/visualPromptPolicy'
 import { ancoraDoLugar, ancorarLugarNoPrompt, comVocabularioDoLugar, lugarPrincipal, pedidoDeTourNarrado, promptTemOLugar } from '@/lib/cinematic/monumentoReal' // KINEO-MONUMENTO-2026-10-13
 import { cobrirFalaComImagem, SEEDANCE_COBRE_VARIACAO } from '@/lib/cinematic/seedanceCobreAFala' // KINEO-MONUMENTO-2026-10-13 (duração)
+import { faixaDoEscritorNoLugar } from '@/lib/cinematic/escritorNoLugar' // KINEO-MONUMENTO-2026-10-13 (escritor) — KINEO-ESCRITOR-MONUMENTO-2026-10-13
 import { classifyEngineFit } from '@/lib/engineFit'
 import { FalQueueSubmitError, submitFalQueueOnce } from '@/lib/falQueue'
 import {
@@ -3464,6 +3465,12 @@ async function manipularPost(req: NextRequest) {
     // da fal escolhidos para outro texto. Mesma régua (targetWordCount, 3,1
     // pal/s) e a língua do texto; só no caminho clássico (o hollywood tem o seu).
     const classicWriterOptions = { wordsPerScene: wordsPerSceneFor(duration, clipCount, narrationRate.wordsPerSecond), language: narrationLanguage.language } // KINEO-RITMO-POR-VOZ-2026-09-15: a mesma régua do portão e do dry-run
+    // Lugar real no pedido (lugarDoPedido, acima): o escritor mira o ALVO (faixa [piso, piso]) e ouve que nome composto conta palavra // KINEO-MONUMENTO-2026-10-13 (escritor) — KINEO-ESCRITOR-MONUMENTO-2026-10-13
+    // por palavra e que o orçamento vai para fato do lugar, não para enfeite (lib/cinematic/escritorNoLugar.ts). Versailles 35 s, 13/10: // KINEO-MONUMENTO-2026-10-13 (escritor) — KINEO-ESCRITOR-MONUMENTO-2026-10-13
+    // 99-107 palavras para 86 (+15 % a +24 %, a 1 palavra do condensador do compose) com os nomes verdadeiros preservados. Sem lugar // KINEO-MONUMENTO-2026-10-13 (escritor) — KINEO-ESCRITOR-MONUMENTO-2026-10-13
+    // real: null, nada muda (prompt byte a byte). Vale para a estrada clássica inteira (Seedance 1.5, Kling 2.5, Veo, Sora em modo IA). // KINEO-MONUMENTO-2026-10-13 (escritor) — KINEO-ESCRITOR-MONUMENTO-2026-10-13
+    const escritorNoLugar = faixaDoEscritorNoLugar(classicWriterOptions.wordsPerScene, lugarDoPedido) // KINEO-MONUMENTO-2026-10-13 (escritor) — KINEO-ESCRITOR-MONUMENTO-2026-10-13
+    if (escritorNoLugar) Object.assign(classicWriterOptions, escritorNoLugar) // KINEO-MONUMENTO-2026-10-13 (escritor) — KINEO-ESCRITOR-MONUMENTO-2026-10-13
     // KINEO-KLING25-PLANOS-5S-2026-09-28 — no Kling 2.5 o escritor sabe que cada fala enche um plano de ~5 s (e não ~10), e
     // acima de 9 cenas ganha teto de tokens e prazo proporcionais (12 cenas de 9 campos, ~150 tokens cada, não cabem nos
     // 1.800 fixos — o JSON sairia cortado). Seedance/Veo: objeto idêntico, prompt idêntico.
