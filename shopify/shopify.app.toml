@@ -1,0 +1,30 @@
+# KINEO-SHOPIFY-2026-10-13 — modelo da configuração do app "Kineo Ads" (Shopify CLI: `shopify app deploy`).
+# O client_id é PÚBLICO (é o mesmo SHOPIFY_API_KEY); o segredo NUNCA entra aqui — só na Vercel (SHOPIFY_API_SECRET).
+# Os mesmos valores podem ser colados à mão no Dev Dashboard (docs/SHOPIFY-APP-PLANO-2026-10-13.md, seção 5).
+
+client_id = "COLAR_O_CLIENT_ID"
+name = "Kineo Ads"
+application_url = "https://www.usekineo.com/shopify/app"
+embedded = true
+
+[access_scopes]
+scopes = "read_products"
+optional_scopes = ["write_products", "write_files"]
+use_legacy_install_flow = false
+
+[auth]
+redirect_urls = ["https://www.usekineo.com/api/shopify/auth/callback"]
+
+[webhooks]
+api_version = "2026-07"
+
+  [[webhooks.subscriptions]]
+  topics = ["app/uninstalled"]
+  uri = "https://www.usekineo.com/api/shopify/webhooks"
+
+  [[webhooks.subscriptions]]
+  compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]
+  uri = "https://www.usekineo.com/api/shopify/webhooks"
+
+[pos]
+embedded = false

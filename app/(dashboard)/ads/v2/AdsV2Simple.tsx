@@ -508,6 +508,24 @@ export function AdsV2SimpleSession({
   const [linkRead, setLinkRead] = useState<string | null>(null)
   const [linkBusy, setLinkBusy] = useState(false)
   const [linkNote, setLinkNote] = useState<{ warn: boolean; text: string } | null>(null)
+  // KINEO-SHOPIFY-2026-10-13 — /ads/v2?from=shopify&link=… (o botão "Make a 15-second ad" do app da Shopify, via /shopify/open):
+  // o link do produto entra no campo e as fotos são lidas UMA vez, pelo mesmo importLink do botão. Sem from=shopify, nada muda.
+  const shopifyLinkDone = useRef(false)
+  useEffect(() => {
+    if (resume || shopifyLinkDone.current) return
+    shopifyLinkDone.current = true
+    let raw = ''
+    try {
+      const qs = new URLSearchParams(window.location.search)
+      raw = qs.get('from') === 'shopify' ? (qs.get('link') ?? '').trim() : ''
+    } catch {
+      raw = ''
+    }
+    if (!/^https:\/\/\S{4,490}$/.test(raw)) return
+    setLink(raw)
+    void importLink(raw)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [tier, setTier] = useState<AdsV2Tier | null>(sample ? ADS_SAMPLE_TIER : null)
   // KINEO-ESTILOS-PRODUTO-2026-10-09 — null = segue a sugestão do setor; a pessoa escolheu = vale a escolha dela.
   const [styleChoice, setStyleChoice] = useState<AdsV2StyleChoice | null>(null)
