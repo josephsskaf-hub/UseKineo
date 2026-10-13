@@ -94,6 +94,10 @@ const F = {
 }
 for (const p of Object.values(F)) await check(`arquivo existe: ${p}`, existsSync(join(RAIZ, p)))
 const SRC = Object.fromEntries(Object.entries(F).map(([k, p]) => [k, rd(p)]))
+// KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o corpo do /plan e do /start foi EXTRAÍDO, sem mudar uma linha, para os núcleos
+// lib/ads/v2PlanCore.ts e lib/ads/v2StartCore.ts (a rota só lê o cookie e chama o núcleo). Leitura = rota + núcleo, na ordem em que rodam.
+SRC.planRoute = `${SRC.planRoute}\n${rd('lib/ads/v2PlanCore.ts')}`
+SRC.startRoute = `${SRC.startRoute}\n${rd('lib/ads/v2StartCore.ts')}`
 
 const UV = pura(F.userVideo)
 const C = pura(F.contract)

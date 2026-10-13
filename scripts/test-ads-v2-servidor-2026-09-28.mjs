@@ -19,7 +19,11 @@ const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
 const semComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map((l) => l.replace(/(^|[^:'"`\\])\/\/.*$/, '$1')).join('\n')
-const cod = (p) => semComentarios(rd(p))
+// KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o corpo do /plan e do /start foi EXTRAÍDO, sem mudar uma linha, para
+// lib/ads/v2PlanCore.ts e lib/ads/v2StartCore.ts (a rota só lê o cookie e chama o núcleo). A leitura da rota = rota + núcleo,
+// na ordem em que rodam; as travas e a ordem conferidas aqui são as mesmas (prova de equivalência em test-shopify-app-1310).
+const NUCLEO_V2 = { 'app/api/ads/v2/plan/route.ts': 'lib/ads/v2PlanCore.ts', 'app/api/ads/v2/start/route.ts': 'lib/ads/v2StartCore.ts' }
+const cod = (p) => semComentarios(NUCLEO_V2[p] ? `${rd(p)}\n${rd(NUCLEO_V2[p])}` : rd(p))
 let ok = 0
 const falhas = []
 const check = async (nome, condicao) => {

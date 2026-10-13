@@ -190,7 +190,10 @@ const hasLine = (src, line) => lineIndex(src, line) >= 0
 
 async function problems(over = {}) {
   const p = []
-  const src = (rel) => (over[rel] ?? read(rel)).replace(/\r\n/g, '\n')
+  // KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o corpo do /start foi EXTRAÍDO, sem mudar uma linha, para lib/ads/v2StartCore.ts
+  // (a rota só lê o cookie e chama o núcleo). Ler o /start = rota + núcleo, na ordem em que rodam (cada um com o seu `over`).
+  const cru = (rel) => (over[rel] ?? read(rel)).replace(/\r\n/g, '\n')
+  const src = (rel) => (rel === 'app/api/ads/v2/start/route.ts' ? `${cru(rel)}\n${cru('lib/ads/v2StartCore.ts')}` : cru(rel))
   // A chave de serviço que lib/userFootage devolve neste mundo (Error = env ausente: footageAdminClient lança).
   let ADMIN = null
   const userFootage = { footageAdminClient: () => { if (ADMIN instanceof Error) throw ADMIN; return ADMIN } }

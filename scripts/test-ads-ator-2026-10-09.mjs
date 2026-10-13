@@ -23,10 +23,17 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { desfazExtracao, textoOriginalV2 } from './test-support/shopify-extracao-v2-1310.mjs' // KINEO-SHOPIFY-2026-10-13 (etapa 2)
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+const readCru = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+// KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o corpo do /plan e do /start foi EXTRAÍDO, sem mudar uma linha, para
+// lib/ads/v2PlanCore.ts e lib/ads/v2StartCore.ts (a rota só lê o cookie e chama o núcleo). Ler a rota = rota + núcleo, na ordem
+// em que rodam; a impressão digital da base usa o texto de ANTES remontado por test-support/shopify-extracao-v2-1310.mjs.
+const NUCLEO_V2 = { 'app/api/ads/v2/plan/route.ts': 'lib/ads/v2PlanCore.ts', 'app/api/ads/v2/start/route.ts': 'lib/ads/v2StartCore.ts' }
+const read = (rel) => (NUCLEO_V2[rel] ? `${readCru(rel)}\n${readCru(NUCLEO_V2[rel])}` : readCru(rel))
+const leBaseV2 = (rel) => (rel === 'app/api/ads/v2/plan/route.ts' ? textoOriginalV2('plan', ROOT) : rel === 'app/api/ads/v2/start/route.ts' ? textoOriginalV2('start', ROOT) : readCru(rel))
 let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }
@@ -497,7 +504,7 @@ const desfazEquipe = (s) => s.split('\n')
   .filter((l) => !l.includes('KINEO-EQUIPE-BUSINESS-2026-10-10') && !/^\s*if \((access|ws)\.role === 'member'\) await writeServerEvent\(\{ name: 'ads_order_by_member'/.test(l))
   .join('\n').replace(/, \.\.\.\((access|ws)\.role === 'member' \? \{ created_by: user\.id \} : \{\}\)/g, '')
   .split(', { workspace: true })').join(')').split(', ...ws } = await loadAdsAccess(').join(' } = await loadAdsAccess(').replace(/(?<!<)\buid\b/g, 'user.id')
-await check('8b /start: a ÚNICA mudança desde a base é a linha da estimativa em US$ (débito, trava, amostra e envio intocados)', () => sha(trocar(desfazEquipe(read(F.start)), START_NOW, START_OLD)) === START_SHA)
+await check('8b /start: a ÚNICA mudança desde a base é a linha da estimativa em US$ (débito, trava, amostra e envio intocados)', () => sha(trocar(desfazEquipe(leBaseV2(F.start)), START_NOW, START_OLD)) === START_SHA)
 await check('8c o ator nunca chama cobrança/estorno: v2Advance segue com 11 chamadas a failAdsV2Order e nenhuma no código do ator; v2Presenter sem import de valor', () => {
   const s = code(read(F.advance))
   const fn = (name) => (s.match(new RegExp(`async function ${name}\\([\\s\\S]*?\\n}\\n`)) || [''])[0]

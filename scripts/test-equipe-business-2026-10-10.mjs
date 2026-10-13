@@ -436,7 +436,12 @@ const fiacao = (srcOf) => {
   for (const n of ['orders', 'retake', 'variations', 'link-import']) if (!/\.\.\.\((ws|access)\.role === 'member' \? \{ created_by: user\.id \} : \{\}\)/.test(code(srcOf(`app/api/ads/v2/${n}/route.ts`)))) p.push(`${n}: sem created_by`)
   return p
 }
-const P6 = fiacao(read)
+// KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o corpo do /plan e do /start foi EXTRAÍDO, sem mudar uma linha, para os núcleos
+// lib/ads/v2PlanCore.ts e lib/ads/v2StartCore.ts (a rota só lê o cookie e o acesso do workspace e chama o núcleo). A fiação é lida em
+// rota + núcleo, na ordem em que rodam; o mutante do débito mexe no NÚCLEO (a rota real carrega o núcleo trocado).
+const NUCLEO_V2 = { 'app/api/ads/v2/plan/route.ts': 'lib/ads/v2PlanCore.ts', 'app/api/ads/v2/start/route.ts': 'lib/ads/v2StartCore.ts' }
+const srcComOver = (over = {}) => (rel) => (NUCLEO_V2[rel] ? `${over[rel] ?? read(rel)}\n${over[NUCLEO_V2[rel]] ?? read(NUCLEO_V2[rel])}` : over[rel] ?? read(rel))
+const P6 = fiacao(srcComOver())
 ok(P6.length === 0, `6a as 9 rotas (8 do /api/ads/v2 + brand-kit) resolvem o workspace; user.id só no ator; cobrança no dono; created_by e rastro do membro ${P6.slice(0, 3).join(' | ')}`)
 {
   const pg = code(read(F.page))
@@ -504,10 +509,10 @@ await mutante('aceite reaproveitável (sem uso único)', F.teamRoute, "        .
 })
 await mutante('token sem conferir a assinatura', F.invite, "  if (given.length !== expected.length || !timingSafeEqual(given, expected)) return { ok: false, reason: 'bad_signature' }\n", '', async (over) => tokenOk(over[F.invite]) && (await equipeOk(over)).forjado)
 await mutante('token que não vence', F.invite, "  if (expiresAtSeconds <= input.nowSeconds) return { ok: false, reason: 'expired' }\n", '', async (over) => tokenOk(over[F.invite]))
-await mutante('/start cobrando o MEMBRO', F.start, 'chargeAdsV2(admin, { userId: uid, billingRef, cost })', 'chargeAdsV2(admin, { userId: user.id, billingRef, cost })', async (over) => (await startOk(over)).donoPaga && fiacao((rel) => over[rel] ?? read(rel)).length === 0)
+await mutante('/start cobrando o MEMBRO', 'lib/ads/v2StartCore.ts', 'chargeAdsV2(admin, { userId: uid, billingRef, cost })', 'chargeAdsV2(admin, { userId: user.id, billingRef, cost })', async (over) => (await startOk(over)).donoPaga && fiacao(srcComOver(over)).length === 0)
 await mutante('/orders sem created_by', F.orders, "        ...(ws.role === 'member' ? { created_by: user.id } : {}), // KINEO-EQUIPE-BUSINESS-2026-10-10 — quem criou (auditoria; NULL = o dono)\n", '', async (over) => ordersOk(over))
 await mutante('/api/footage resolvendo o workspace fora do purpose ads', F.footage, "    if (body.purpose === 'ads' && (body.action === 'upload-url' || body.action === 'confirm')) {\n      try {\n        const ws =", "    if ((body.action === 'upload-url' || body.action === 'confirm')) {\n      try {\n        const ws =", async (over) => footOk(over[F.footage]))
-await mutante('rota do Ads lendo pedido pelo user.id (membro fora do workspace)', 'app/api/ads/v2/status/route.ts', 'const { order, error } = await loadAdsV2Order(admin, orderId, uid)', 'const { order, error } = await loadAdsV2Order(admin, orderId, user.id)', async (over) => fiacao((rel) => over[rel] ?? read(rel)).length === 0)
+await mutante('rota do Ads lendo pedido pelo user.id (membro fora do workspace)', 'app/api/ads/v2/status/route.ts', 'const { order, error } = await loadAdsV2Order(admin, orderId, uid)', 'const { order, error } = await loadAdsV2Order(admin, orderId, user.id)', async (over) => fiacao(srcComOver(over)).length === 0)
 
 console.log(`\ntest-equipe-business-2026-10-10: ${pass} ok · ${fail} falhas`)
 if (fail) process.exit(1)
