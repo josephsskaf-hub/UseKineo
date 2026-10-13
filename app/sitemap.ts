@@ -35,6 +35,8 @@ import { STATE_HEADLINE } from '@/lib/seo/stateOfAiShortsHeadline'
 import { GEO_RODADA3_ALTERNATIVE_SLUGS, GEO_RODADA3_LAST_MODIFIED_ISO, GEO_RODADA3_STATIC_PATHS } from '@/lib/seo/geoRodada3'
 // KINEO-PAGINAS-LOTE1-2026-10-12 — lote 1 das 10 páginas novas (7 nichos + 3 de intenção). Módulo PURO, sem import.
 import { LOTE1_LANDING_PATH_LIST, LOTE1_NICHE_SLUG_LIST, LOTE1_REVIEWED_ISO } from '@/lib/seo/paginasLote1Paths'
+// KINEO-VS-ALTERNATIVAS-1310 — as 4 páginas /vs "alternativa a X" (Pictory, Synthesia, CapCut, OpusClip). Módulo PURO, sem import.
+import { VS_ALTERNATIVE_LINKS, VS_ALT_REVIEWED_ISO } from '@/lib/seo/vsAlternatives1310'
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -431,6 +433,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...CITATION_ANSWER_LINKS.map(({ path }) => ({
       url: `${BASE}${path}`,
       lastModified: GEO_RODADA3_STATIC_PATHS.includes(path) ? GEO_RODADA3_LAST_MODIFIED : CITATION_REVIEW_DATE, // KINEO-GEO-RODADA3-2026-10-08
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    })),
+    // KINEO-VS-ALTERNATIVAS-1310 — irmãs da resposta do InVideo (mesmo molde, mesma prioridade); data própria = dia em que
+    // os fatos dos 4 concorrentes foram lidos nas páginas oficiais.
+    ...VS_ALTERNATIVE_LINKS.map(({ path }) => ({
+      url: `${BASE}${path}`,
+      lastModified: VS_ALT_REVIEWED_ISO,
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     })),
