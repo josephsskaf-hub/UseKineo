@@ -27,6 +27,11 @@ import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { desfazCobertura15s } from './test-support/desfaz-cobertura-15s.mjs' // reancorado 30/09 (KINEO-COBERTURA-15S): a régua de 15 s é desfeita em memória antes do byte a byte
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: a entrada do MiniMax H3 Max ([TRAVA 8.2 — vai do fundador 13/10 'vai H3 Max'])
+// acrescentou SÓ linhas marcadas às rotas travadas e trocou de propósito linhas da base (o H3 Max ao lado do H3 em listas, ternários e
+// frases). desfazH3max devolve, em memória, o arquivo sem essa entrada (pares exatos em scripts/test-support/h3max-2026-10-13-trocas.json;
+// par que não casa = texto intocado = vermelho); linhasTrocadasH3max lista as linhas da base trocadas. Fora disso, o byte a byte de sempre.
+import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
 // ═══ Reancorado KINEO-DURACOES-CURTAS-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] ═══
 // A entrega das durações curtas (15 s em todo motor de IA, 30 s na estrada hollywood) marca TODA linha que acrescenta à rota do
 // cinematic (e às outras rotas travadas) com KINEO-DURACOES-CURTAS-2026-09-29, e troca de propósito SEIS linhas da base (a frase da
@@ -313,7 +318,7 @@ checa('o plano do modo IA viaja pelo builder da fal do Veo (scene.clipSeconds �
 // ═══ (c) byte a byte ═══
 console.log('== (c) Seedance / Kling 2.5 / Sora / hollywood byte a byte ==')
 for (const p of ['lib/cinematic/klingShots.ts', 'lib/compose.ts', 'lib/cinematic/classicDryRun.ts', 'lib/runway.ts', 'lib/cinematic/sceneWords.ts', 'lib/speechRate.ts', 'lib/narrationFit.ts', 'app/api/compose/route.ts', 'lib/cinematic/speechImageAlign.ts', 'lib/cinematic/sceneDescriptions.ts']) {
-  checa(`${p} byte a byte igual à base${p === 'app/api/compose/route.ts' ? ' (fora o import e o bloco marcados KINEO-VOZ-15S-MESMA-DA-MONTAGEM, só acrescentados)' : ''}`, rdBase(p) !== null && rdBase(p) === semCurtas(semVoz15(p, desfazCobertura15s(p, semLogo(p, rd(p)))))) // reancorado KINEO-DURACOES-CURTAS: lib/narrationFit ganhou só um comentário marcado
+  checa(`${p} byte a byte igual à base${p === 'app/api/compose/route.ts' ? ' (fora o import e o bloco marcados KINEO-VOZ-15S-MESMA-DA-MONTAGEM, só acrescentados)' : ''}`, rdBase(p) !== null && rdBase(p) === semCurtas(semVoz15(p, desfazCobertura15s(p, semLogo(p, desfazH3max(p, rd(p))))))) // reancorado KINEO-DURACOES-CURTAS: lib/narrationFit ganhou só um comentário marcado
 }
 const fatiasIntocadas = [
   ['let kling25Footage = 0', 'clipCount = planos\n    }'],
@@ -330,10 +335,10 @@ const fatiasIntocadas = [
   ['    if (anchorActive) {\n', '(user credits unchanged; kling=${KLING_CREDIT_COST}cr)`,\n      )\n    }\n'],
 ]
 for (const [ini, fim] of fatiasIntocadas) {
-  const a = fatia(semCurtas(rota), ini, fim), b = rotaBase ? fatia(semTrocadas(rotaBase), ini, fim) : null // reancorado KINEO-DURACOES-CURTAS
+  const a = fatia(semCurtas(desfazH3max(ROTA, rota)), ini, fim), b = rotaBase ? fatia(semTrocadas(rotaBase), ini, fim) : null // reancorado KINEO-DURACOES-CURTAS
   checa(`fatia da rota "${ini.slice(0, 44).replace(/\n/g, ' ').trim()}…" idêntica à base`, a !== null && a === b)
 }
-checa('buildFalInput (Seedance, Kling, Sora, Veo t2v/i2v, hollywood) byte a byte igual à base', rotaBase !== null && funcaoDe(rota, 'buildFalInput') === funcaoDe(rotaBase, 'buildFalInput'))
+checa('buildFalInput (Seedance, Kling, Sora, Veo t2v/i2v, hollywood) byte a byte igual à base', rotaBase !== null && funcaoDe(desfazH3max(ROTA, rota), 'buildFalInput') === funcaoDe(rotaBase, 'buildFalInput'))
 if (rotaBase) {
   // TODA linha que mudou na rota mora nos blocos do modo IA do Veo: import, dimensionamento, escritor, planos, ensaio.
   const diff = git(['diff', '--no-color', '-U0', BASE, 'HEAD', '--', ROTA]).replace(/\r/g, '')
@@ -352,9 +357,9 @@ if (rotaBase) {
     fatia(rota, '    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29 — no filme de 15 s do', '      if (vozCurta) return vozCurta\n'), fatia(rota, '    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29 — só no filme de 15 s do', 'response.narration_voice = campoDaVozAssinada(vozCurta)\n'), rota.split('\n').find((l) => l.startsWith('import {') && l.includes("from '@/lib/vozDoFilmeCurto'")),
     // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29 — o ritmo da língua do filme de 15 s do Seedance (a régua do portão e a guarda de roteiro longo da língua) mora em linhas próprias, marcadas, só ACRESCENTADAS, com import em linha própria; este guardião as aceita
     fatia(rota, '    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29 — no filme de 15 s do', 'narrationRate.wordsPerSecond = ritmoDaVozNoIdioma(narrationRate.wordsPerSecond, narrationLanguage.language)\n'), fatia(rota, '    // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29 — a guarda de roteiro longo', '    // ═══ KINEO-SEEDANCE-15S-2026-09-29 [TRAVA 8.2 — "vai" do 15 s] — roteiro longo pedido como filme curto ═══'), rota.split('\n').find((l) => l.startsWith('import {') && l.includes("from '@/lib/durationByEngine'") && l.includes('KINEO-RITMO-POR-IDIOMA-15S-2026-09-29')), ...blocosE4Rota(rota)].filter(Boolean).join('\n')
-  const foraDoLugar = adicionadas.filter((l) => l.trim() && !permitidas.includes(l) && !l.includes(MARCA_CURTAS) && !l.includes(MARCA_ESTRELA) && !l.includes('KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01') && !l.includes(MARCA_S25) && !l.includes('KINEO-S25-ABRE-2026-10-06') && !l.includes(MARCA_JUIZ) && !l.includes(MARCA_SAIDA_REGIAO) && !l.includes(MARCA_PARCEIRO)) // reancorado KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 · KINEO-SAIDA-REGIAO-2026-10-07 ·KINEO-DURACOES-CURTAS · KINEO-ESTRELA-DO-FILME · KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01 · KINEO-S25-NOTA95-2026-10-06 · KINEO-S25-ABRE-2026-10-06 · KINEO-JUIZ-STILL-2026-10-06 (só linhas marcadas: o portão pago do 2.5, a passada de cenas do s25 e o juiz da foto-base)
+  const foraDoLugar = adicionadas.filter((l) => l.trim() && !permitidas.includes(l) && !l.includes('KINEO-H3MAX-2026-10-13') && !l.includes(MARCA_CURTAS) && !l.includes(MARCA_ESTRELA) && !l.includes('KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01') && !l.includes(MARCA_S25) && !l.includes('KINEO-S25-ABRE-2026-10-06') && !l.includes(MARCA_JUIZ) && !l.includes(MARCA_SAIDA_REGIAO) && !l.includes(MARCA_PARCEIRO)) // reancorado KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 · KINEO-SAIDA-REGIAO-2026-10-07 ·KINEO-DURACOES-CURTAS · KINEO-ESTRELA-DO-FILME · KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01 · KINEO-S25-NOTA95-2026-10-06 · KINEO-S25-ABRE-2026-10-06 · KINEO-JUIZ-STILL-2026-10-06 (só linhas marcadas: o portão pago do 2.5, a passada de cenas do s25 e o juiz da foto-base)
   checa(`diff da rota contra a base: ${adicionadas.length} linhas novas, todas dentro dos blocos do modo IA do Veo ou do VEO-MARCADO (${foraDoLugar.length} fora: ${foraDoLugar.slice(0, 2).map((l) => l.trim().slice(0, 60)).join(' | ')})`, adicionadas.length > 0 && foraDoLugar.length === 0)
-  checa(`diff da rota contra a base: NENHUMA linha da base alterada ou apagada fora das 6 trocas marcadas das durações curtas — a rota só ganhou linhas (${removidas.filter((l) => !TROCADAS_CURTAS.includes(l)).length} removida(s))`, removidas.filter((l) => !TROCADAS_CURTAS.includes(l)).length === 0)
+  checa(`diff da rota contra a base: NENHUMA linha da base alterada ou apagada fora das 6 trocas marcadas das durações curtas — a rota só ganhou linhas (${removidas.filter((l) => !TROCADAS_CURTAS.includes(l) && !linhasTrocadasH3max(ROTA).includes(l)).length} removida(s))`, removidas.filter((l) => !TROCADAS_CURTAS.includes(l) && !linhasTrocadasH3max(ROTA).includes(l)).length === 0)
 }
 
 // ═══ (d) custo por filme — a faixa REAL da rota (piso/teto do escritor em cada persona), 35 / 60 / 90 s ═══

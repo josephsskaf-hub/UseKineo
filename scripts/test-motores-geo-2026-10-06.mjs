@@ -113,16 +113,25 @@ async function problemas(rep = {}) {
     const t = reg?.customers?.minutesToFilm ?? reg?.house?.minutesToFilm
     return t ? { m: Number.isInteger(t.median) ? String(t.median) : t.median.toFixed(1), indicativo: !reg.customers, mediana: t.median } : null
   }
-  const visivel = (param) => !launch.enginePaused(param) && (param !== 's25' || launch.S25_PUBLIC)
+  const visivel = (param) => !launch.enginePaused(param) && (param !== 's25' || launch.S25_PUBLIC) && (param !== 'h3max' || launch.H3MAX_PUBLIC) // KINEO-H3MAX-2026-10-13 — reancorado: o interruptor do H3 Max
   const indexaveis = cat.ENGINE_SLUGS.filter((s) => visivel(cat.ENGINES[s].param))
   const fora = cat.ENGINE_SLUGS.filter((s) => !indexaveis.includes(s))
+  // KINEO-H3MAX-2026-10-13 — reancorado com motivo: o MiniMax H3 Max (motor novo, fundador 13/10) entrou SÓ como FILME — o clipe avulso
+  // dele não está à venda (preço de clipe é decisão de preço público do fundador, ainda não tomada), e a camada citável desta revisão
+  // nasce do catálogo de clipes (buildEngineCitation). A página dele é indexável (interruptor H3MAX_PUBLIC) sem essa camada: as provas
+  // (1)(2)(5)(6)(7) da camada citável valem para os motores com clipe (comGeo); o sitemap e o resto valem para todos. Para ele, em troca:
+  // indexável, ENGINE_GEO null, nenhuma linha "Where to use" que prometa preço de clipe, e a novidade datada no llms.txt com o preço da régua.
+  const SO_FILME = new Set(['minimax-h3-max'])
+  const comGeo = indexaveis.filter((slug) => !SO_FILME.has(slug))
+  if (launch.H3MAX_PUBLIC && (!indexaveis.includes('minimax-h3-max') || cat.ENGINE_GEO['minimax-h3-max'] !== null)) p.push('H3 Max: página indexável sem camada citável (ENGINE_GEO null) — não bate')
+  if (!launch.H3MAX_PUBLIC && cat.ENGINE_SLUGS.includes('minimax-h3-max')) p.push('H3 Max: interruptor desligado e a página ainda existe')
   if (JSON.stringify([...cat.INDEXABLE_ENGINE_SLUGS]) !== JSON.stringify(indexaveis)) p.push(`INDEXABLE_ENGINE_SLUGS ≠ régua do interruptor: ${cat.INDEXABLE_ENGINE_SLUGS} vs ${indexaveis}`)
   const reviewedIso = geoLib.ENGINE_GEO_REVIEWED_ISO
   const lastmodGeo = new Date(`${reviewedIso}T12:00:00.000Z`).getTime()
 
   // (1) (2) (6) (7) — página renderizada de cada motor indexável
   const esperado = {}
-  for (const slug of indexaveis) {
+  for (const slug of comGeo) { // KINEO-H3MAX-2026-10-13 — só motores com camada citável
     const e = cat.ENGINES[slug]
     const key = e.param
     const quality = clipPricing.CLIP_COSTS[key].filmQuality
@@ -341,7 +350,7 @@ async function problemas(rep = {}) {
   const ini = llms.indexOf('## Where to use each video engine online')
   const secao = ini >= 0 ? llms.slice(ini, llms.indexOf('\n## ', ini + 5)) : ''
   if (!secao) p.push('llms.txt: sem a seção "Where to use each video engine online"')
-  for (const slug of indexaveis) {
+  for (const slug of comGeo) { // KINEO-H3MAX-2026-10-13 — só motores com camada citável
     const x = esperado[slug]
     const linha = secao.split('\n').find((l) => l.startsWith(`- [Where to use ${x.name} online](${BASE}/ai-video-generator/${slug})`)) ?? ''
     if (!(x.clipeAVenda ? linha.includes(`${x.clipSec}-second clip: ${x.clipCr} credits`) : !/-second clip:/.test(linha)) || (x.soPago && !linha.includes('paid plans only (not in the free trial)')) || !linha.includes(`60-second narrated video: ${x.f60} credits`) || !linha.includes(`35-second narrated video: ${x.f35} credits`)) p.push(`llms.txt: linha do ${x.name} ausente ou ≠ fonte`)
@@ -351,13 +360,15 @@ async function problemas(rep = {}) {
     }
   }
   for (const slug of fora) if (secao.includes(`/ai-video-generator/${slug})`)) p.push(`llms.txt: motor pausado ${slug} na seção de onde usar`)
+  // KINEO-H3MAX-2026-10-13 — o H3 Max não aparece na seção de onde usar (sem clipe à venda) e a novidade datada cita os preços da régua.
+  if (launch.H3MAX_PUBLIC && (secao.includes('/ai-video-generator/minimax-h3-max)') || !llms.includes(`- 2026-10-13: MiniMax H3 Max is live on Kineo`) || !llms.includes(`costs ${cost.creditCostForDuration('cinematic_h3max', true, 35)} credits for 35 seconds or ${cost.creditCostForDuration('cinematic_h3max', true, 60)} for 60 seconds`))) p.push('llms.txt: H3 Max fora da regra (seção de onde usar ou novidade datada)')
   // KINEO-S25-CLIPES-2026-10-06 — a novidade do motor pago com clipe à venda cita "<motor> clips from N credits (paid plans)";
   // sem clipe à venda, a frase não aparece em lugar nenhum do llms.txt.
-  for (const slug of indexaveis) {
+  for (const slug of comGeo) { // KINEO-H3MAX-2026-10-13 — só motores com camada citável
     const x = esperado[slug]
     if (x.fraseDe && !llms.includes(`${x.fraseDe}.`)) p.push(`llms.txt: ${x.name} sem "${x.fraseDe}"`)
   }
-  if (!indexaveis.some((slug) => esperado[slug].fraseDe) && / clips from \d+ credits \(paid plans\)/.test(llms)) p.push('llms.txt: "clips from … (paid plans)" sem clipe pago à venda')
+  if (!comGeo.some((slug) => esperado[slug].fraseDe) && / clips from \d+ credits \(paid plans\)/.test(llms)) p.push('llms.txt: "clips from … (paid plans)" sem clipe pago à venda')
   const arena = llms.split('\n').find((l) => l.startsWith('- [Engine Arena]')) ?? ''
   if (/\bseven\b/i.test(arena)) p.push('llms.txt: Engine Arena ainda fala em "seven"')
   const facts = L('lib/kineoFacts.ts')

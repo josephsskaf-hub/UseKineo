@@ -20,6 +20,11 @@ import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: a entrada do MiniMax H3 Max ([TRAVA 8.2 — vai do fundador 13/10 'vai H3 Max'])
+// acrescentou SÓ linhas marcadas às rotas travadas e trocou de propósito linhas da base (o H3 Max ao lado do H3 em listas, ternários e
+// frases). desfazH3max devolve, em memória, o arquivo sem essa entrada (pares exatos em scripts/test-support/h3max-2026-10-13-trocas.json;
+// par que não casa = texto intocado = vermelho); linhasTrocadasH3max lista as linhas da base trocadas. Fora disso, o byte a byte de sempre.
+import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
@@ -175,7 +180,7 @@ checa(`rótulo "${EN.FREE_SHORT_FILM_LABEL}" só no trial, no Seedance a 15 s e 
   EN.rotuloDoFilmeGratis({ entrada15: true, trialActive: false, balance: CAP, engine: 'seedance', duration: CURTO, custoSeedance: custo }) === null &&
   EN.rotuloDoFilmeGratis({ entrada15: true, trialActive: true, balance: custo(CURTO) - 1, engine: 'seedance', duration: CURTO, custoSeedance: custo }) === null &&
   EN.rotuloDoFilmeGratis({ entrada15: false, trialActive: true, balance: CAP, engine: 'seedance', duration: CURTO, custoSeedance: custo }) === null)
-const STUDIO = rd('app/(dashboard)/studio/StudioClient.tsx')
+const STUDIO = desfazH3max('app/(dashboard)/studio/StudioClient.tsx', rd('app/(dashboard)/studio/StudioClient.tsx')) // KINEO-H3MAX-2026-10-13 — reancorado (ver o import): o filtro do seletor ganhou o H3 Max numa linha marcada
 checa('Studio: card do Kineo 1 e degraus só com kineo1Shown; ?engine=fast sem Kineo 1 vira Seedance; rótulo do filme grátis', STUDIO.includes("{ENGINES.filter((e) => (e.key !== 's25' || internal) && (e.key !== 'fast' || kineo1Shown)).map((e) => { const pausa") && temLinha(STUDIO, "    if (flagsProntas && entrada15 && engine === 'fast' && !kineo1Shown) setEngine('seedance')") && STUDIO.includes('rotuloDoFilmeGratis({ entrada15, trialActive: trialOn, balance, engine, duration, custoSeedance })') && temLinha(STUDIO, '  const kineo1Shown = kineo1NaTela({ entrada15, kineo1: flagsProntas ? kineo1Flag ?? null : kineo1Flag, hasPaid: contaPaga })'))
 checa('/generate: card "Fast Mode" só com kineo1Shown; ?engine= pela régua no deep link e no cinto do one-click', GEN.includes('        {kineo1Shown && <EngineCard') && temLinha(GEN, "    const engine = motorDaUrl(searchParams.get('engine'), kineo1NaMontagem) ?? ''") && temLinha(GEN, "    const uEng = motorDaUrl(searchParams?.get('engine'), kineo1Shown) ?? '' // KINEO-ENTRADA-SEEDANCE15: ?engine=fast sem Kineo 1 = Seedance") && temLinha(GEN, '  const kineo1Shown = kineo1NaTela({ entrada15, kineo1: kineo1Visible, hasPaid })'))
 checa('/generate: parede de crédito oferece o Seedance de 15 s (custo derivado) e a caixa do Kineo 1 exige kineo1Shown', GEN.includes('            credits >= custoSeedance(SEEDANCE_SHORT_SECONDS)') && GEN.includes("credits >= creditCostForDuration('fast', isPaidAccount, duration) && kineo1Shown") && GEN.includes('data-testid="trial-seedance15-offer"'))

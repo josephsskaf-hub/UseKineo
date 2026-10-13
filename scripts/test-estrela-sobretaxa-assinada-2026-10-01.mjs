@@ -7,6 +7,11 @@
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import ts from 'typescript'
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: a entrada do MiniMax H3 Max ([TRAVA 8.2 — vai do fundador 13/10 'vai H3 Max'])
+// acrescentou linhas marcadas às duas rotas e trocou de propósito linhas da base (o H3 Max ao lado do H3 nas listas de qualidade do
+// compose; família, custo, claim e frases na rota do cinematic). desfazH3max devolve, em memória, a rota sem essa entrada (pares exatos
+// em scripts/test-support/h3max-2026-10-13-trocas.json; par que não casa = texto intocado = vermelho). O resto segue byte a byte.
+import { desfazH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
 
 let ok = 0, falhas = 0
 function checa(nome, cond) { if (cond) { ok++; console.log('  ✓', nome) } else { falhas++; console.log('  ✗', nome) } }
@@ -110,7 +115,7 @@ if (BASE) {
   // Reancorado 03/10 (KINEO-GANCHO-1Q-2026-10-03): o /api/compose ganhou depois disto só linhas marcadas com o gancho escrito
   // (3 imports + 2 comentários + 2 chamadas withHookFirstFrame, depois do logo); elas saem em memória junto com as da estrela.
   // Reancorado 06/10 (KINEO-SEM-LEGENDA-2026-10-06): idem — o "sem legenda" entrou só com linhas marcadas (imports, decisão, corte e gravação da versão B).
-  checa('E25 /api/compose sem as linhas marcadas = base, byte a byte', semMarca(compose).split('\n').filter((l) => !l.includes('KINEO-GANCHO-1Q-2026-10-03') && !l.includes('KINEO-SEM-LEGENDA-2026-10-06')).join('\n') === base('app/api/compose/route.ts'))
+  checa('E25 /api/compose sem as linhas marcadas = base, byte a byte', semMarca(desfazH3max('app/api/compose/route.ts', compose)).split('\n').filter((l) => !l.includes('KINEO-GANCHO-1Q-2026-10-03') && !l.includes('KINEO-SEM-LEGENDA-2026-10-06')).join('\n') === base('app/api/compose/route.ts'))
   // Reancorado 06/10 duas vezes: KINEO-S25-ABRE-2026-10-06 (portão pago do 2.5: só linhas marcadas) e KINEO-S25-NOTA95-2026-10-06
   // (passada de cenas do s25: linhas marcadas + as 2 linhas da base trocadas de propósito). Ambas saem em memória dos dois lados.
   // Reancorado 06/10 (KINEO-S25-NOTA95-2026-10-06 [TRAVA 8.2 — vai do fundador 06/10 'vai nota 95']): a rota do cinematic ganhou SÓ linhas
@@ -127,7 +132,7 @@ if (BASE) {
   // portão do 2.5 SÓ com linhas marcadas (import, comentário, leitura do parceiro; a linha do s25AccessFor nasceu no S25-ABRE e segue com as
   // duas marcas) e nenhuma linha da base trocada; elas saem em memória dos dois lados. Prova: scripts/test-parceiro-abre-tudo-2026-10-09.mjs.
   const semS25 = (s) => (s == null ? s : s.split('\n').filter((l) => !l.includes('KINEO-S25-NOTA95-2026-10-06') && !l.includes('KINEO-S25-ABRE-2026-10-06') && !l.includes('KINEO-JUIZ-STILL-2026-10-06') && !l.includes('KINEO-SAIDA-REGIAO-2026-10-07') && !l.includes('KINEO-PARCEIRO-ABRE-TUDO-2026-10-09') && !TROCADAS_S25.includes(l)).join('\n'))
-  checa('E26 /api/generate-video-cinematic sem as linhas marcadas = base, byte a byte', semS25(semMarca(cinematic)) === semS25(base('app/api/generate-video-cinematic/route.ts')))
+  checa('E26 /api/generate-video-cinematic sem as linhas marcadas = base, byte a byte', semS25(semMarca(desfazH3max('app/api/generate-video-cinematic/route.ts', cinematic))) === semS25(base('app/api/generate-video-cinematic/route.ts')))
 }
 checa('E27 a Estrela continua só com a casa (ESTRELA_PUBLIC = false)', /export const ESTRELA_PUBLIC = false\n/.test(launch))
 

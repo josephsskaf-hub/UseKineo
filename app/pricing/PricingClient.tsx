@@ -16,6 +16,7 @@ import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 import { PLAN_SWITCH_EMPTY, fetchPlanSwitchState, planSwitchConfirmText, planSwitchErrorText, planSwitchLabel, switchPlan, type PlanSwitchState, type SwitchableTier } from '@/lib/growth/planSwitch'
 import { confirmAndSwitchBusiness, type PlanSwitchTier } from '@/lib/growth/planSwitch' // KINEO-TROCA-BUSINESS-2026-10-10
 import { S25_PUBLIC, AVATAR_PUBLIC } from '@/lib/engineLaunch' // KINEO-AVATAR-FORA-2026-09-28
+import { H3MAX_PUBLIC } from '@/lib/engineLaunch' // KINEO-H3MAX-2026-10-13
 import Link from 'next/link'
 import React, { useEffect, useRef, useState } from 'react'
 import { trackCheckoutClick } from '@/lib/trackClick'
@@ -2187,6 +2188,16 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                     basic: '✅',
                     pro: '✅',
                   },
+                  // KINEO-H3MAX-2026-10-13 — o MiniMax H3 Max logo abaixo do H3 (interruptor H3MAX_PUBLIC); custo e células pela régua única.
+                  ...(H3MAX_PUBLIC // KINEO-H3MAX-2026-10-13
+                    ? [{ // KINEO-H3MAX-2026-10-13
+                        label: `MiniMax H3 Max — cinematic (${creditsPerReferenceVideo('cinematic_h3max')} cr)`, // KINEO-H3MAX-2026-10-13
+                        free: ft(OFFER, '—', '✅ watermark'), // KINEO-H3MAX-2026-10-13
+                        starter: filmsCell('starter', 'cinematic_h3max', 'film'), // KINEO-H3MAX-2026-10-13
+                        basic: '✅', // KINEO-H3MAX-2026-10-13
+                        pro: '✅', // KINEO-H3MAX-2026-10-13
+                      }] // KINEO-H3MAX-2026-10-13
+                    : []), // KINEO-H3MAX-2026-10-13
                   {
                     label: `Cinematic AI videos (Kling, ${creditsPerReferenceVideo('cinematic_kling')} cr)`,
                     free: ft(OFFER, '—', '✅ watermark'),

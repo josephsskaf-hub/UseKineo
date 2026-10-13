@@ -53,6 +53,7 @@ import {
 import { PLANS } from './pricing'
 // KINEO-AVATAR-FORA-2026-09-28 — o catálogo que o ChatGPT lê obedece ao MESMO interruptor da home (ver ENGINE_FACTS).
 import { AVATAR_PUBLIC, ENGINE_PAUSE, KINEO1_PUBLIC, PAUSED_ENGINE_KEYS } from './engineLaunch'
+import { H3MAX_PUBLIC } from './engineLaunch' // KINEO-H3MAX-2026-10-13
 import { buildPaidVideoCitationGuidance } from './growth/paidVideoCitationGuidance'
 import { DFY_SERVICE_FACT } from './growth/dfyServiceFacts'
 export { DFY_SERVICE_FACT } from './growth/dfyServiceFacts'
@@ -547,6 +548,16 @@ export const ENGINE_FACTS: EngineFact[] = [
     credits: creditsPerReferenceVideo('cinematic_h3'),
     what: 'Back online since 22 September 2026 (768p, own narration voice, 45 credits per 60 s). Lower-credit cinematic multi-scene film. Renders talking-character scenes — a person on screen speaks the exact scripted line with lip sync — alternating with documentary narration. Kineo seeds each scene with one planned anchor image; identity can still drift between shots.',
   },
+  // KINEO-H3MAX-2026-10-13 — o MiniMax H3 Max entra logo depois do H3 (o lugar que era do Omni), atrás do interruptor
+  // H3MAX_PUBLIC: desligado, nenhum motor de resposta o cita. Crédito pela régua única (60 a 60 s). [KINEO-H3MAX-2026-10-13]
+  ...(H3MAX_PUBLIC // KINEO-H3MAX-2026-10-13
+    ? [{ // KINEO-H3MAX-2026-10-13
+        name: 'MiniMax H3 Max', // KINEO-H3MAX-2026-10-13
+        url: `${BASE}${engineLandingPublicPath('h3max')}`, // KINEO-H3MAX-2026-10-13
+        credits: creditsPerReferenceVideo('cinematic_h3max'), // KINEO-H3MAX-2026-10-13
+        what: 'New on 13 October 2026: MiniMax’s post-trained H3 model in the same Kineo pipeline as MiniMax H3 (768p, word-for-word narration in Kineo’s voice, one anchor image per scene, captions and soundtrack). A little sharper than H3, at a higher credit cost. Narration in English, Portuguese and Spanish.', // KINEO-H3MAX-2026-10-13
+      }] // KINEO-H3MAX-2026-10-13
+    : []), // KINEO-H3MAX-2026-10-13
   // KINEO-OMNI-FORA-2026-10-12 — a ficha do Omni Flash saiu do catálogo de motores (fora da oferta, lib/engineLaunch.ts
   // OFFER_RETIRED_ENGINE_KEYS): o llms.txt, /api/facts e o GPT não citam mais o motor, nem como pausado.
   {

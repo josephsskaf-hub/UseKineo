@@ -100,6 +100,7 @@ import {
   normalizeQuality,
 } from '@/lib/credits/engineCost'
 import { enginePaused } from '@/lib/engineLaunch' // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
+import { H3MAX_PUBLIC } from '@/lib/engineLaunch' // KINEO-H3MAX-2026-10-13
 import { S25_PAID_BADGE, S25_PAID_HINT, S25_PAID_CLICK_EVENT, S25_PAID_SHOWN_EVENT } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06 — o 2.5 trancado para quem não paga
 import { SEEDANCE_SHORT_SECONDS, supportedDurationsFor } from '@/lib/durationByEngine' // KINEO-SEEDANCE-15S-2026-09-29
 // sprint-v1v4 #13 — o cardápio de motores passa a saber quanto a pessoa tem
@@ -1555,10 +1556,12 @@ export default function GenerateClient({
   // #402 — which AI engine the user picked: 'seedance' (AI Generated, 30 cr, all
   // plans) or 'kling' (Cinematic AI, 60 cr desde KINEO-KLING25-60CR-2026-09-29; era 50).
   // KINEO-HOLLYWOOD-2026-07-09 — 'hollywood' engine added (per-scene routing).
-  const [aiEngine, setAiEngine] = useState<'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25'>('seedance')
+  const [aiEngine, setAiEngine] = useState<'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'h3max' | 'omni' | 's25'>('seedance') // KINEO-H3MAX-2026-10-13
   // KINEO-S25-LAUNCH-2026-09-01 — o 2.5 so aparece para quem s25Visible()
   // aprova (a casa hoje; todos apos S25_PUBLIC). Vem do /api/me/credits.
   const [s25Ok, setS25Ok] = useState(false)
+  // KINEO-H3MAX-2026-10-13 — o H3 Max aparece com o interruptor H3MAX_PUBLIC (já na montagem) ou, desligado, para a casa (flag `h3max` do /api/me/credits).
+  const [h3maxOk, setH3maxOk] = useState<boolean>(H3MAX_PUBLIC) // KINEO-H3MAX-2026-10-13
   // KINEO-S25-ABRE-2026-10-06 — a conta pode USAR o 2.5? (flag `s25Liberado` do /api/me/credits = a régua do portão do
   // servidor, lib/s25Access.ts). null = não chegou → chip trancado (falha fechada); false → o ?engine=s25 da URL não fica.
   const [s25Liberado, setS25Liberado] = useState<boolean | null>(null)
@@ -1568,7 +1571,7 @@ export default function GenerateClient({
   const [curtasOk, setCurtasOk] = useState(false)
   useEffect(() => {
     let alive = true
-    fetch('/api/me/credits', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive && d?.internal === true) setS25Ok(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && d?.curtas === true) setCurtasOk(true); if (alive && typeof d?.s25Liberado === 'boolean') { setS25Liberado(d.s25Liberado); if (d.s25Liberado === false) setAiEngine((atual) => (atual === 's25' ? 'seedance' : atual)) } }).catch(() => {}) // KINEO-DURACOES-CURTAS-2026-09-29: + curtas · KINEO-S25-ABRE-2026-10-06: + s25Liberado (quem não paga não fica com o 2.5 escolhido pela URL)
+    fetch('/api/me/credits', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive && d?.internal === true) setS25Ok(true); if (alive && d?.h3max === true) setH3maxOk(true); /* KINEO-H3MAX-2026-10-13 */ if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && d?.curtas === true) setCurtasOk(true); if (alive && typeof d?.s25Liberado === 'boolean') { setS25Liberado(d.s25Liberado); if (d.s25Liberado === false) setAiEngine((atual) => (atual === 's25' ? 'seedance' : atual)) } }).catch(() => {}) // KINEO-DURACOES-CURTAS-2026-09-29: + curtas · KINEO-S25-ABRE-2026-10-06: + s25Liberado (quem não paga não fica com o 2.5 escolhido pela URL)
     return () => { alive = false }
   }, [])
 
@@ -1584,11 +1587,11 @@ export default function GenerateClient({
       setMode('fast')
       return
     }
-    if (['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'omni', 's25'].includes(engine)) {
+    if (['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'h3max', 'omni', 's25'].includes(engine)) { // KINEO-H3MAX-2026-10-13
       // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 — motor pausado não entra pela URL: fica no padrão (o card mostra a manutenção).
       if (enginePaused(engine) && searchParams.get('maint') !== '1') return // KINEO-MANUTENCAO-INTERNA: &maint=1 só entra aqui; o servidor recusa quem não é conta interna
       setMode('cinematic_ai')
-      setAiEngine(engine as 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25')
+      setAiEngine(engine as 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'h3max' | 'omni' | 's25') // KINEO-H3MAX-2026-10-13
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -3996,7 +3999,7 @@ export default function GenerateClient({
             // KINEO-ENTRADA-SEEDANCE15-2026-09-29 — o motor da URL passa pela régua (?engine=fast sem Kineo 1 = Seedance).
             const kineo1NoPlano = kineo1NaTela({ entrada15: seedance15Ok, kineo1: kineo1Visible, hasPaid: data.hasPaid === true })
             const urlEnginePick = motorDaUrl(searchParams?.get('engine'), kineo1NoPlano) ?? ''
-            const urlPickedEngine = ['fast', 'seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'omni', 's25'].includes(urlEnginePick) && (!enginePaused(urlEnginePick) || searchParams?.get('maint') === '1') // KINEO-MOTOR-EM-MANUTENCAO
+            const urlPickedEngine = ['fast', 'seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'h3max' /* KINEO-H3MAX-2026-10-13 */, 'omni', 's25'].includes(urlEnginePick) && (!enginePaused(urlEnginePick) || searchParams?.get('maint') === '1') // KINEO-MOTOR-EM-MANUTENCAO
             // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b, B8) — com a entrada nova e sem Kineo 1: Seedance na MAIOR duração
             // que o saldo paga (o trial de 10 cr abre em 15 s), sem ?duration e sem auto-start (que decide a própria).
             const entradaNoPlano = seedance15Ok && !kineo1NoPlano
@@ -6491,7 +6494,7 @@ export default function GenerateClient({
             // KINEO-OMNI-2026-08-25 — omni entra na MESMA condição: sem isto o
             // compose não recebe scene_narrations/engines e o filme sai MUDO
             // (o bug exato do #280 no H3, repetido pelo motor novo).
-            ...(falUsedRef.current && (falQualityRef.current === 'cinematic_hollywood' || falQualityRef.current === 'cinematic_h3' || falQualityRef.current === 'cinematic_omni' || falQualityRef.current === 'cinematic_s25') && sceneEnginesRef.current.length > 0
+            ...(falUsedRef.current && (falQualityRef.current === 'cinematic_hollywood' || falQualityRef.current === 'cinematic_h3' || falQualityRef.current === 'cinematic_h3max' /* KINEO-H3MAX-2026-10-13 */ || falQualityRef.current === 'cinematic_omni' || falQualityRef.current === 'cinematic_s25') && sceneEnginesRef.current.length > 0
               ? {
                   scene_engines: sceneEnginesRef.current,
                   scene_narrations: sceneNarrationsRef.current,
@@ -8409,7 +8412,7 @@ export default function GenerateClient({
     // genérico — o defeito descrito no comentário logo acima, que já custou
     // caro uma vez. O motor novo herda a proteção junto com o resto do
     // Contrato, que é o motivo inteiro de ele entrar por esta estrada.
-    const isHollywoodRaw = mode === 'cinematic_ai' && (aiEngine === 'hollywood' || aiEngine === 'h3' || aiEngine === 'omni' || aiEngine === 's25')
+    const isHollywoodRaw = mode === 'cinematic_ai' && (aiEngine === 'hollywood' || aiEngine === 'h3' || aiEngine === 'h3max' || aiEngine === 'omni' || aiEngine === 's25') // KINEO-H3MAX-2026-10-13
     const needsStructuring = isHollywoodRaw
       ? false
       : (opts?.scriptModeOverride ?? scriptMode) === 'ai' && (opts?.structureFirst === true || !opts?.skipPreview)
@@ -10032,7 +10035,7 @@ export default function GenerateClient({
         // buraco do #279 com o h3): a coerção jogava o omni em 'cinematic_ai',
         // o compose cobrava 20 em vez de 150 e — pior — NÃO ligava o
         // muteClipAudio: o áudio nativo do Omni tocaria por cima da narração.
-        falQualityRef.current = data.quality === 'cinematic_kling' ? 'cinematic_kling' : data.quality === 'cinematic_veo' ? 'cinematic_veo' : data.quality === 'cinematic_sora' ? 'cinematic_sora' : data.quality === 'cinematic_hollywood' ? 'cinematic_hollywood' : data.quality === 'cinematic_h3' ? 'cinematic_h3' : data.quality === 'cinematic_omni' ? 'cinematic_omni' : data.quality === 'cinematic_s25' ? 'cinematic_s25' : 'cinematic_ai'
+        falQualityRef.current = data.quality === 'cinematic_kling' ? 'cinematic_kling' : data.quality === 'cinematic_veo' ? 'cinematic_veo' : data.quality === 'cinematic_sora' ? 'cinematic_sora' : data.quality === 'cinematic_hollywood' ? 'cinematic_hollywood' : data.quality === 'cinematic_h3' ? 'cinematic_h3' : data.quality === 'cinematic_h3max' ? 'cinematic_h3max' /* KINEO-H3MAX-2026-10-13: sem isto o compose cobraria Seedance e não mutaria o áudio nativo */ : data.quality === 'cinematic_omni' ? 'cinematic_omni' : data.quality === 'cinematic_s25' ? 'cinematic_s25' : 'cinematic_ai'
         // KINEO-HOLLYWOOD-2026-07-09 — per-scene metadata (empty arrays for
         // every non-hollywood engine, which keeps the classic behavior).
         falModelsRef.current = Array.isArray(data.fal_models) ? data.fal_models.filter((m: unknown): m is string => typeof m === 'string') : []
@@ -10071,6 +10074,7 @@ export default function GenerateClient({
         const prewarmUsesSingleTrackCache =
           falQualityRef.current !== 'cinematic_hollywood' &&
           falQualityRef.current !== 'cinematic_h3' &&
+          falQualityRef.current !== 'cinematic_h3max' && // KINEO-H3MAX-2026-10-13
           falQualityRef.current !== 'cinematic_omni' &&
           falQualityRef.current !== 'cinematic_s25' && // KINEO-S25: estrada hollywood, cache de trilha unica nao se aplica
           !myVoiceUrl && !useClonedVoice
@@ -12116,6 +12120,8 @@ export default function GenerateClient({
                 ? 'cinematic_hollywood'
                 : aiEngine === 'h3'
                   ? 'cinematic_h3'
+                : aiEngine === 'h3max' // KINEO-H3MAX-2026-10-13
+                  ? 'cinematic_h3max' // KINEO-H3MAX-2026-10-13
                   // KINEO-OMNI-CUSTO-2026-08-25 — sem este caso o omni caía em
                   // cinematic_ai: botão E banner de estorno diziam "20
                   // credits" num filme de 150 (visto no 1º render, 25/08).
@@ -12167,6 +12173,7 @@ export default function GenerateClient({
         : aiEngine === 'sora' ? 'cinematic_sora'
         : aiEngine === 'hollywood' ? 'cinematic_hollywood'
         : aiEngine === 'h3' ? 'cinematic_h3' : aiEngine === 'omni' ? 'cinematic_omni'
+        : aiEngine === 'h3max' ? 'cinematic_h3max' // KINEO-H3MAX-2026-10-13
         : aiEngine === 's25' ? 'cinematic_s25'
         : 'cinematic_ai'
       return creditCostForDuration(q, isPaidAccount, d)
@@ -15336,6 +15343,7 @@ export default function GenerateClient({
             freeAiUsed={freeAiUsed}
             aiEngine={aiEngine}
             s25Ok={s25Ok}
+            h3maxOk={h3maxOk} // KINEO-H3MAX-2026-10-13
             s25Liberado={s25Liberado} // KINEO-S25-ABRE-2026-10-06
             onUpgradeS25={() => openOutOfCreditsModal('studio')} // KINEO-S25-ABRE-2026-10-06: a caixa de planos (os 3 planos pagos abrem o 2.5)
             seedance15Ok={seedance15Ok}
@@ -21150,6 +21158,7 @@ function ModeSelector({
   freeAiUsed,
   aiEngine,
   s25Ok,
+  h3maxOk = false, // KINEO-H3MAX-2026-10-13
   s25Liberado = null, // KINEO-S25-ABRE-2026-10-06
   onUpgradeS25, // KINEO-S25-ABRE-2026-10-06
   seedance15Ok,
@@ -21173,8 +21182,10 @@ function ModeSelector({
   credits: number | null
   freeAiUsed: boolean | null
   // KINEO-HOLLYWOOD-2026-07-09 — 'hollywood' added.
-  aiEngine: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25'
+  aiEngine: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'h3max' | 'omni' | 's25' // KINEO-H3MAX-2026-10-13
   s25Ok: boolean
+  /** KINEO-H3MAX-2026-10-13 — o H3 Max aparece (H3MAX_PUBLIC || casa). */
+  h3maxOk?: boolean // KINEO-H3MAX-2026-10-13
   /** KINEO-S25-ABRE-2026-10-06 — a conta pode USAR o 2.5 (flag do servidor). Diferente de true = chip trancado: selo + upgrade. */
   s25Liberado?: boolean | null
   /** KINEO-S25-ABRE-2026-10-06 — o caminho de upgrade do chip trancado (a caixa de planos). */
@@ -21185,7 +21196,7 @@ function ModeSelector({
   curtasOk?: boolean
   /** KINEO-ENTRADA-SEEDANCE15-2026-09-29 — o card "Fast Mode" (Kineo 1) só aparece para quem o tem (kineo1NaTela). */
   kineo1Shown?: boolean
-  setAiEngine: (e: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25') => void
+  setAiEngine: (e: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'h3max' | 'omni' | 's25') => void // KINEO-H3MAX-2026-10-13
   isStarter: boolean
   isCreator: boolean
   isStudio: boolean
@@ -21277,6 +21288,7 @@ function ModeSelector({
     sora: 'cinematic_sora',
     hollywood: 'cinematic_hollywood',
     h3: 'cinematic_h3',
+    h3max: 'cinematic_h3max', // KINEO-H3MAX-2026-10-13
     omni: 'cinematic_omni',
     s25: 'cinematic_s25',
   }
@@ -21286,13 +21298,13 @@ function ModeSelector({
     creditCostForDuration(CUSTO_POR_MOTOR[m] ?? 'cinematic_ai', true, d)
   const NOME_DO_MOTOR: Record<string, string> = {
     seedance: 'AI Generated', kling: 'Kling', veo: 'Veo 3.1',
-    hollywood: 'Kling 3', h3: 'MiniMax H3', sora: 'Sora', omni: 'Omni', s25: 'Seedance 2.5',
+    hollywood: 'Kling 3', h3: 'MiniMax H3', h3max: 'MiniMax H3 Max' /* KINEO-H3MAX-2026-10-13 */, sora: 'Sora', omni: 'Omni', s25: 'Seedance 2.5',
   }
   // Só entram no resgate os motores que o PLANO já liberou. O cadeado de plano
   // é do Codex e tem precedência: nunca ofereço como saída algo que ele tranca.
   const motoresDisponiveis = [
     ...(seedanceUnlocked ? ['seedance'] : []),
-    ...(cinematicUnlocked ? ['hollywood', 'veo', 'kling', 'h3'] : []),
+    ...(cinematicUnlocked ? ['hollywood', 'veo', 'kling', 'h3', ...(h3maxOk ? ['h3max'] : [])] : []), // KINEO-H3MAX-2026-10-13
   ]
   // KINEO-SEEDANCE-15S-2026-09-29 (B10) — espelho de `duracoesDoResgate` na rota do cinematic: 15 s só no Seedance e só
   // para quem o interruptor SEEDANCE_15S_PUBLIC mostra o botão.
@@ -21415,6 +21427,8 @@ function ModeSelector({
               // nenhum Kling 3 (150cr); a 45cr ele faz dois H3. Se o cliente so
               // enxerga o de 150 ele conclui que filme e coisa de Studio.
               { key: 'h3', label: 'MiniMax H3', sub: 'cinematic film · fits your plan', cr: creditCostForDuration('cinematic_h3', true, duration) },
+              // KINEO-H3MAX-2026-10-13 — MiniMax H3 Max no lugar que era do Omni (logo abaixo do H3), com o interruptor H3MAX_PUBLIC.
+              ...(h3maxOk ? [{ key: 'h3max' as const, label: 'MiniMax H3 Max', sub: 'MiniMax · newest · sharper film', cr: creditCostForDuration('cinematic_h3max', true, duration) }] : []), // KINEO-H3MAX-2026-10-13
               // KINEO-S25-LAUNCH-2026-09-01 — o 2.5 entra com gate (s25Ok).
               // KINEO-OMNI-FORA-2026-10-12 — o botão do Omni Flash saiu deste seletor, como saiu do /studio (motor fora
               // da oferta, lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS). O servidor segue recusando o Omni sem cobrar.
@@ -21422,7 +21436,7 @@ function ModeSelector({
               // KINEO-VEO-CARD-HONESTO-2026-09-29 — 1080p pelo mesmo preço desde 16/08 (KINEO-VEO-1080).
               { key: 'veo', label: 'Veo 3.1', sub: 'Google · best motion · 1080p', cr: creditCostForDuration('cinematic_veo', true, duration) },
               { key: 'kling', label: 'Kling', sub: 'cinematic motion', cr: creditCostForDuration('cinematic_kling', true, duration) }, // KINEO-PRICING-V3B-2026-07-10
-            ] as { key: 'veo' | 'sora' | 'kling' | 'hollywood' | 'h3' | 'omni' | 's25'; label: string; sub: string; cr: number }[]).map((m) => {
+            ] as { key: 'veo' | 'sora' | 'kling' | 'hollywood' | 'h3' | 'h3max' | 'omni' | 's25'; label: string; sub: string; cr: number }[]).map((m) => { // KINEO-H3MAX-2026-10-13
               const active = mode === 'cinematic_ai' && aiEngine === m.key
               // sprint-v1v4 #13 — mesma regra do seletor de duração
               // (KINEO-CUSTO-VISIVEL): quem não alcança vê ANTES de clicar.

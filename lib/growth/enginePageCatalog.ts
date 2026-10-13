@@ -1,6 +1,7 @@
 // Shared data for the engine page, hub and sitemap. Route modules export only Next-supported names.
 // Mechanical extraction for CITACOES-01; existing content and feature gates are preserved.
 import { S25_PUBLIC, AVATAR_PUBLIC, enginePaused } from '@/lib/engineLaunch'
+import { H3MAX_PUBLIC } from '@/lib/engineLaunch' // KINEO-H3MAX-2026-10-13
 import { engineIsPaidPlansOnly } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06
 import { clipS25Visible } from '@/lib/clips/clipLaunch' // KINEO-S25-CLIPES-2026-10-06 — o interruptor único do clipe do 2.5
 import { FREE_FILM_LABEL, getFreeTierOffer, swapFreeTierCopy as ft, trialFilmsForEngine, TRIAL_CREDITS_SHOWN, TRIAL_SEEDANCE15_FILMS, GRANT_COUNTRY_CLAUSE, TRIAL_FREE_FILM_CREDITS } from '@/lib/freeTierOffer'
@@ -25,6 +26,7 @@ const KLING_COST = creditsPerReferenceVideo('cinematic_kling')
 const VEO_COST = creditsPerReferenceVideo('cinematic_veo')
 const KLING3_COST = creditsPerReferenceVideo('cinematic_hollywood')
 const H3_COST = creditsPerReferenceVideo('cinematic_h3')
+const H3MAX_COST = creditsPerReferenceVideo('cinematic_h3max') // KINEO-H3MAX-2026-10-13
 const OMNI_COST = creditsPerReferenceVideo('cinematic_omni')
 const S25_COST = creditsPerReferenceVideo('cinematic_s25')
 // KINEO-S25-ABRE-2026-10-06 — o texto da página do 2.5 (sessão CEO), com os números derivados da fonte.
@@ -41,7 +43,7 @@ const GEO_PLANS: CitationPlan[] = [
 const GEO_TRIAL = { credits: TRIAL_CREDITS_SHOWN, countryClause: GRANT_COUNTRY_CLAUSE, freeFilmLabel: FREE_FILM_LABEL, freeFilmCredits: TRIAL_FREE_FILM_CREDITS }
 /** Página de motor indexável = motor fora de manutenção e liberado pelo interruptor de lançamento (S25 só com S25_PUBLIC). */
 function geoVisible(param: EngineLandingParam): boolean {
-  return !enginePaused(param) && (param !== 's25' || S25_PUBLIC)
+  return !enginePaused(param) && (param !== 's25' || S25_PUBLIC) && (param !== 'h3max' || H3MAX_PUBLIC) // KINEO-H3MAX-2026-10-13
 }
 // KINEO-S25-ABRE-2026-10-06 — quem usa o motor e se o clipe avulso dele está à venda: o 2.5 é só de plano pago (o servidor
 // recusa trial e conta grátis, lib/s25Access.ts). KINEO-S25-CLIPES-2026-10-06 — o clipe do 2.5 está à venda para o público
@@ -62,6 +64,10 @@ const KLING_GEO = geoFor('kling', 'kling')
 const VEO_GEO = geoFor('veo', 'veo')
 const KLING3_GEO = geoFor('kling-3', 'hollywood')
 const H3_GEO = geoFor('minimax-h3', 'h3')
+// KINEO-H3MAX-2026-10-13 — a camada citável nasce do catálogo de CLIPES (buildEngineCitation só fala de motor com clipe avulso);
+// o H3 Max entrou só como FILME (o preço do clipe avulso é decisão de preço público do fundador, ainda não tomada) → null, e a [KINEO-H3MAX-2026-10-13]
+// página usa a FAQ de custo própria, derivada da régua única. [KINEO-H3MAX-2026-10-13]
+const H3MAX_GEO = geoFor('minimax-h3-max', 'h3max') // KINEO-H3MAX-2026-10-13
 const OMNI_GEO = geoFor('gemini-omni-flash', 'omni')
 const S25_GEO = geoFor('seedance-2-5', 's25')
 // KINEO-GEO-RODADA2-2026-10-08 — quem ganha o quê de graça (os mesmos interruptores que concedem) e a comparação com o 2.5.
@@ -306,6 +312,41 @@ export const ENGINES: Record<string, Engine> = {
       },
     ],
   },
+  // ═══ KINEO-H3MAX-2026-10-13 — página do MiniMax H3 Max (fundador 13/10: "vai H3 Max"), atrás do interruptor H3MAX_PUBLIC:
+  // com ele desligado o slug nem é gerado (404 limpo, nada indexado). Sem filme de vitrine ainda (nenhum render do motor na [KINEO-H3MAX-2026-10-13]
+  // casa): a página não pega vídeo de outro motor (selo honesto) e a seção de prova some sozinha (lista vazia). Números [KINEO-H3MAX-2026-10-13]
+  // derivados da régua única (creditsPerReferenceVideo / videosPerMonth); endpoints conferidos na fal em 13/10. [KINEO-H3MAX-2026-10-13]
+  ...(H3MAX_PUBLIC // KINEO-H3MAX-2026-10-13
+    ? { // KINEO-H3MAX-2026-10-13
+        'minimax-h3-max': { // KINEO-H3MAX-2026-10-13
+          param: 'h3max' as EngineLandingParam, // KINEO-H3MAX-2026-10-13
+          qualityMode: 'cinematic_h3max', // KINEO-H3MAX-2026-10-13
+          name: 'MiniMax H3 Max', // KINEO-H3MAX-2026-10-13
+          model: 'minimax/h3-max (text-to-video / image-to-video)', // KINEO-H3MAX-2026-10-13
+          creditCost: H3MAX_COST, // KINEO-H3MAX-2026-10-13
+          tier: tierFor('cinematic_h3max'), // KINEO-H3MAX-2026-10-13
+          h1: 'MiniMax H3 Max AI video generator — the sharpest MiniMax film engine', // KINEO-H3MAX-2026-10-13
+          intro: // KINEO-H3MAX-2026-10-13
+            `MiniMax H3 Max is the post-trained version of MiniMax H3, running in the same Kineo cinematic pipeline: your script is narrated word for word, every scene is planned against the narration and anchored to its own still image, and Kineo adds captions and a soundtrack before delivering a vertical 1080×1920 master. A 60-second finished film costs ${H3MAX_COST} credits (MiniMax H3: ${H3_COST}), so a Creator plan makes ${videosPerMonth('basic', 'cinematic_h3max')} and a Studio plan ${videosPerMonth('pro', 'cinematic_h3max')} — against ${videosPerMonth('pro', 'cinematic_hollywood')} Kling 3 films at ${KLING3_COST} credits each.`, // KINEO-H3MAX-2026-10-13
+          bestFor: pausedLead('h3max') + 'Narrated cinematic films with people and faces when you want a step up from MiniMax H3 without paying Kling 3 prices.', // KINEO-H3MAX-2026-10-13
+          tradeoff: 'Renders at 768p rather than 1080p — plenty for a 9:16 Short, and one-click HD Enhance covers the cases where it is not. Narration languages: English, Portuguese and Spanish.', // KINEO-H3MAX-2026-10-13
+          faq: [ // KINEO-H3MAX-2026-10-13
+            ...(H3MAX_GEO ? geoFaq(H3MAX_GEO) : [{ // KINEO-H3MAX-2026-10-13
+              q: 'How much does a MiniMax H3 Max video cost on Kineo?', // KINEO-H3MAX-2026-10-13
+              a: `${H3MAX_COST} credits per 60-second finished film; shorter and longer films are priced in proportion to their length. The Creator monthly grant fits ${videosPerMonth('basic', 'cinematic_h3max')} films; Studio fits ${videosPerMonth('pro', 'cinematic_h3max')}.`, // KINEO-H3MAX-2026-10-13
+            }]), // KINEO-H3MAX-2026-10-13
+            { // KINEO-H3MAX-2026-10-13
+              q: 'MiniMax H3 Max or MiniMax H3?', // KINEO-H3MAX-2026-10-13
+              a: `Same pipeline, same rules: word-for-word narration, anchored scenes, captions and soundtrack. H3 Max is MiniMax's post-trained model and renders a little sharper; H3 costs ${H3_COST} credits per 60-second film and H3 Max ${H3MAX_COST}. Pick H3 when you publish often on a small plan, H3 Max when the look matters more.`, // KINEO-H3MAX-2026-10-13
+            }, // KINEO-H3MAX-2026-10-13
+            { // KINEO-H3MAX-2026-10-13
+              q: 'Does MiniMax H3 Max generate its own audio?', // KINEO-H3MAX-2026-10-13
+              a: 'The model can, but Kineo keeps it muted on purpose. Your narration is spoken exactly as you wrote it, and letting the model add a second voice on top would break that. The soundtrack you hear is chosen to match the subject of the video.', // KINEO-H3MAX-2026-10-13
+            }, // KINEO-H3MAX-2026-10-13
+          ], // KINEO-H3MAX-2026-10-13
+        }, // KINEO-H3MAX-2026-10-13
+      } // KINEO-H3MAX-2026-10-13
+    : {}), // KINEO-H3MAX-2026-10-13
   // KINEO-OMNI-2026-08-25 — página do motor novo, publicada APÓS a validação
   // real (Flight 19, 72s, auditoria ffmpeg zero-apagão). "gemini omni flash
   // video generator" é a busca que nasce com o ranking de agosto — chegar
@@ -391,6 +432,7 @@ export const ENGINE_GEO: Record<string, EngineCitation | null> = {
   veo: VEO_GEO,
   'kling-3': KLING3_GEO,
   'minimax-h3': H3_GEO,
+  ...(H3MAX_PUBLIC ? { 'minimax-h3-max': H3MAX_GEO } : {}), // KINEO-H3MAX-2026-10-13
   'gemini-omni-flash': OMNI_GEO, // KINEO-OMNI-FORA-2026-10-12 — null enquanto pausado; e o slug está fora de ENGINE_SLUGS (não indexável)
   ...(S25_PUBLIC ? { 'seedance-2-5': S25_GEO } : {}),
 }

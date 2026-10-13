@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 // mostrar o card do Seedance 2.5 SO para contas da casa enquanto o motor
 // esta no periodo de canario (o gate de verdade continua no servidor).
 import { s25Visible, avatarVisible, resolveKineo1Flag, seedance15sVisible } from '@/lib/engineLaunch'
+import { h3maxVisible } from '@/lib/engineLaunch' // KINEO-H3MAX-2026-10-13
 import { duracoesCurtasVisible } from '@/lib/engineLaunch' // KINEO-DURACOES-CURTAS-2026-09-29
 import { estrelaVisible } from '@/lib/engineLaunch' // KINEO-ESTRELA-DO-FILME-2026-09-29
 import { readKineo1Access } from '@/lib/kineo1Access'
@@ -65,5 +66,5 @@ export async function GET() {
   // de leitura = false. `parceiro` vai à tela para o tile "Business ad" do /studio abrir o assistente como para o assinante.
   const parceiro = await isActivePartner(user.id, plan)
   const s25Liberado = s25LiberadoNaTela(user.email, plan, parceiro)
-  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, avatar: avatarVisible(user.email), seedance15: seedance15sVisible(user.email), curtas: duracoesCurtasVisible(user.email), estrela: estrelaVisible(user.email), parceiro, internal: s25Visible(user.email), s25Liberado, hasPaid, kineo1, plan })
+  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, h3max: h3maxVisible(user.email) /* KINEO-H3MAX-2026-10-13: o H3 Max aparece (H3MAX_PUBLIC || casa) */, avatar: avatarVisible(user.email), seedance15: seedance15sVisible(user.email), curtas: duracoesCurtasVisible(user.email), estrela: estrelaVisible(user.email), parceiro, internal: s25Visible(user.email), s25Liberado, hasPaid, kineo1, plan })
 }

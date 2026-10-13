@@ -56,6 +56,11 @@ const ROUTER = {
   KLING3_I2V_MODEL: constDe(router, 'KLING3_I2V_MODEL'), H3_I2V_MODEL: constDe(router, 'H3_I2V_MODEL'), OMNI_I2V_MODEL: constDe(router, 'OMNI_I2V_MODEL'),
   S25_I2V_MODEL: constDe(router, 'S25_I2V_MODEL'), S25_T2V_MODEL: constDe(router, 'S25_T2V_MODEL'),
   H3_MODELS: { dialogue: 'minimax/h3/text-to-video', cinematic: 'minimax/h3/text-to-video', support: 'minimax/h3/text-to-video' }, H3_RESOLUTION: '768P', S25_RESOLUTION: '480p',
+  // KINEO-H3MAX-2026-10-13 — reancorado com motivo: a retomada de cena (app/api/retry-hollywood-scene) passou a importar os
+  // endpoints do MiniMax H3 Max (motor novo, fundador 13/10) e o interruptor de reescrita do H3; o dublê do router os fornece,
+  // com o i2v lido do arquivo real. Nada do que este guardião trava (os 6 clássicos, o ALLOWED hollywood) mudou.
+  H3MAX_I2V_MODEL: constDe(router, 'H3MAX_I2V_MODEL'), H3MAX_RESOLUTION: '768P', H3_PROMPT_EXPANSION: 'disabled',
+  H3MAX_MODELS: { dialogue: 'minimax/h3-max/text-to-video', cinematic: 'minimax/h3-max/text-to-video', support: 'minimax/h3-max/text-to-video' },
 }
 checa('router: constantes hollywood lidas do arquivo real (Kling 3 i2v, H3 i2v, Omni, S25)', Object.values(ROUTER).every(Boolean) && router.includes("dialogue: 'fal-ai/kling-video/v3/pro/text-to-video'"))
 
@@ -72,7 +77,7 @@ const montaAllowed = (bloco) => roda(`${bloco.split('\n').map((l) => l.replace(/
 const A = blocoAllowed ? montaAllowed(blocoAllowed) : {}
 checa('ALLOWED executado contém os 6 clássicos', A.ALLOWED && CLASSICOS.every((n) => A.ALLOWED.has(ID[n])))
 checa('ALLOWED ainda recusa modelo desconhecido e o Sora (sem retomada clássica conferida)', A.ALLOWED && !A.ALLOWED.has('unsupported') && !A.ALLOWED.has('fal-ai/sora-2/text-to-video') && !A.ALLOWED.has('fal-ai/kling-video/ai-avatar/v2/standard'))
-checa('ALLOWED mantém a família hollywood (Kling 3 t2v/i2v, H3, Omni, S25)', A.ALLOWED && [ROUTER.HOLLYWOOD_MODELS.support, ROUTER.KLING3_I2V_MODEL, ROUTER.H3_I2V_MODEL, ROUTER.H3_MODELS.support, ROUTER.OMNI_I2V_MODEL, ROUTER.S25_I2V_MODEL, ROUTER.S25_T2V_MODEL].every((m) => A.ALLOWED.has(m)))
+checa('ALLOWED mantém a família hollywood (Kling 3 t2v/i2v, H3, H3 Max, Omni, S25)', A.ALLOWED && [ROUTER.HOLLYWOOD_MODELS.support, ROUTER.KLING3_I2V_MODEL, ROUTER.H3_I2V_MODEL, ROUTER.H3_MODELS.support, ROUTER.H3MAX_I2V_MODEL, ROUTER.H3MAX_MODELS.support, ROUTER.OMNI_I2V_MODEL, ROUTER.S25_I2V_MODEL, ROUTER.S25_T2V_MODEL].every((m) => A.ALLOWED.has(m))) // KINEO-H3MAX-2026-10-13 — reancorado: + os dois endpoints do H3 Max
 checa('i2v clássicos (lib) = Seedance/Kling/Veo image-to-video; CLASSIC = os 6 e nenhum hollywood', LIB.CLASSIC_I2V && LIB.CLASSIC_I2V.size === 3 && [ID.SEEDANCE_I2V_MODEL, ID.KLING_I2V_MODEL, ID.VEO_I2V_MODEL].every((m) => LIB.CLASSIC_I2V.has(m)) && LIB.CLASSIC.size === 6 && CLASSICOS.every((n) => LIB.CLASSIC.has(ID[n])) && ![ROUTER.HOLLYWOOD_MODELS.support, ROUTER.KLING3_I2V_MODEL, ROUTER.H3_I2V_MODEL, ROUTER.H3_MODELS.support, ROUTER.OMNI_I2V_MODEL, ROUTER.S25_I2V_MODEL, ROUTER.S25_T2V_MODEL].some((m) => LIB.CLASSIC.has(m)))
 
 console.log('== (b) signedClassic, fatia real ==')
@@ -539,8 +544,10 @@ if (respClassica) {
   const tl = loadLib('@/lib/cinematic/timelineContract')
   const alinhado = tl.signedSceneMetadata(respClassica, ['https://x/1.mp4', 'https://x/2.mp4', null], ['https://x/1.mp4', 'https://x/2.mp4'], false)
   checa('compose: signedSceneMetadata (real) só extrai scene_captions do claim clássico — scene_prompts/scene_fal_inputs nunca chegam à montagem', JSON.stringify(Object.keys(alinhado)) === JSON.stringify(['scene_captions']) && JSON.stringify(alinhado.scene_captions) === JSON.stringify(['A', 'B']))
-  checa('compose chama signedSceneMetadata exigindo metadados avançados só nas qualidades hollywood', rd('app/api/compose/route.ts').includes("['cinematic_hollywood', 'cinematic_h3', 'cinematic_omni', 'cinematic_s25'].includes(trustedQuality))"))
-  checa('cliente: scene_* só vai ao compose nas qualidades hollywood', gc.includes("...(falUsedRef.current && (falQualityRef.current === 'cinematic_hollywood' || falQualityRef.current === 'cinematic_h3' || falQualityRef.current === 'cinematic_omni' || falQualityRef.current === 'cinematic_s25') && sceneEnginesRef.current.length > 0"))
+  // KINEO-H3MAX-2026-10-13 — reancorado com motivo: o MiniMax H3 Max (motor novo da estrada hollywood, fundador 13/10) entra nas duas
+  // listas, logo depois do H3. A regra é a mesma: só as qualidades hollywood — nenhum motor clássico entra.
+  checa('compose chama signedSceneMetadata exigindo metadados avançados só nas qualidades hollywood', rd('app/api/compose/route.ts').includes("['cinematic_hollywood', 'cinematic_h3', 'cinematic_h3max', 'cinematic_omni', 'cinematic_s25'].includes(trustedQuality))"))
+  checa('cliente: scene_* só vai ao compose nas qualidades hollywood', gc.includes("...(falUsedRef.current && (falQualityRef.current === 'cinematic_hollywood' || falQualityRef.current === 'cinematic_h3' || falQualityRef.current === 'cinematic_h3max' /* KINEO-H3MAX-2026-10-13 */ || falQualityRef.current === 'cinematic_omni' || falQualityRef.current === 'cinematic_s25') && sceneEnginesRef.current.length > 0"))
   const cron = rd('app/api/cron/finish-stranded-renders/route.ts')
   checa('cron de resgate: scene_* só com scene_engines; a duração vem de response.duration', cron.includes('...(Array.isArray(response.scene_engines) && response.scene_engines.length > 0') && cron.includes("typeof response.duration === 'number' && response.duration > 0") && !cron.includes('scene_fal_inputs') && !cron.includes('scene_prompts'))
 }

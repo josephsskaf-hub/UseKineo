@@ -36,6 +36,11 @@ import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { desfaz3x6KlingShots } from './test-support/desfaz-3x6-klingshots.mjs'
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: a entrada do MiniMax H3 Max ([TRAVA 8.2 — vai do fundador 13/10 'vai H3 Max'])
+// acrescentou SÓ linhas marcadas às rotas travadas e trocou de propósito linhas da base (o H3 Max ao lado do H3 em listas, ternários e
+// frases). desfazH3max devolve, em memória, o arquivo sem essa entrada (pares exatos em scripts/test-support/h3max-2026-10-13-trocas.json;
+// par que não casa = texto intocado = vermelho); linhasTrocadasH3max lista as linhas da base trocadas. Fora disso, o byte a byte de sempre.
+import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ) // o loader offline resolve '@/...' a partir do cwd
@@ -329,7 +334,9 @@ checa('segundos por clipe (bloco real): 40 e 41 palavras → [6,6,6]; 42, 45, "1
 const aspect = loadLib('@/lib/aspect')
 const policy = loadLib('@/lib/cinematic/visualPromptPolicy')
 const router = rd('lib/hollywood/router.ts')
-const routerNames = ['HOLLYWOOD_MODELS', 'KLING3_I2V_MODEL', 'H3_MODELS', 'H3_I2V_MODEL', 'H3_RESOLUTION', 'OMNI_I2V_MODEL', 'S25_I2V_MODEL', 'S25_T2V_MODEL', 'S25_RESOLUTION']
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: o buildFalInput da rota ganhou os ramos do MiniMax H3 Max (motor novo, fundador 13/10);
+// as três constantes dele entram no escopo, lidas do router real. Nenhum payload antigo mudou (as comparações com a base seguem iguais).
+const routerNames = ['HOLLYWOOD_MODELS', 'KLING3_I2V_MODEL', 'H3_MODELS', 'H3_I2V_MODEL', 'H3_RESOLUTION', 'H3MAX_MODELS', 'H3MAX_I2V_MODEL', 'H3MAX_RESOLUTION', 'OMNI_I2V_MODEL', 'S25_I2V_MODEL', 'S25_T2V_MODEL', 'S25_RESOLUTION']
 const R = roda(routerNames.map((n) => `export ${varDe(router, n)}`).join('\n'))
 const modelNames = ['SEEDANCE_MODEL', 'KLING_MODEL', 'KLING_I2V_MODEL', 'SEEDANCE_I2V_MODEL', 'VEO_I2V_MODEL', 'VEO_MODEL', 'SORA_MODEL', 'KLING3_MODEL']
 const montaBuilder = (src) => {
@@ -340,7 +347,9 @@ const montaBuilder = (src) => {
 }
 const B = montaBuilder(ROTA)
 const IMG = 'https://v3.fal.media/files/still-1.png'
-checa('buildFalInput é o da base, byte a byte (o Seedance já honrava `seconds` 4-12; o 3x6 só passa a mandá-los)', funcaoDe(ROTA, 'buildFalInput') === funcaoDe(ROTA_BASE ?? '', 'buildFalInput') && Boolean(B))
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: o buildFalInput ganhou SÓ os ramos marcados do MiniMax H3 Max; sem eles (desfazH3max),
+// a função é a da base, byte a byte, como antes.
+checa('buildFalInput é o da base, byte a byte (o Seedance já honrava `seconds` 4-12; o 3x6 só passa a mandá-los)', funcaoDe(desfazH3max('app/api/generate-video-cinematic/route.ts', ROTA), 'buildFalInput') === funcaoDe(ROTA_BASE ?? '', 'buildFalInput') && Boolean(B))
 checa("builder real: Seedance t2v e i2v com 6/7/8 s mandam duration '6'/'7'/'8'; sem segundos, '10' como sempre", [6, 7, 8].every((s) => B.buildFalInput(B.SEEDANCE_MODEL, 'shot', false, false, s, undefined, 7, false, '9:16', 'documentary_faceless').duration === String(s) && B.buildFalInput(B.SEEDANCE_I2V_MODEL, 'shot', false, false, s, IMG, 7, false, '9:16', 'documentary_faceless').duration === String(s)) && B.buildFalInput(B.SEEDANCE_MODEL, 'shot', false, false, undefined, undefined, 7, false, '9:16', 'documentary_faceless').duration === '10')
 // (4e) o callback real do despacho: i2v e t2v de reserva
 const cb = (src) => { const bloco = fatia(src, 'submit: async (m, promptForAttempt, onPost) => {', '\n        },\n', false); return bloco ? bloco.replace(/^submit: /, '') + '\n        }' : null }
@@ -424,7 +433,9 @@ function soAcrescimos(p) {
     '          const inNarratorWorld = envSig.length > 8 && hs.prompt.toLowerCase().includes(envSig)',
     '          const scenePromptBruto = mouthPrefix + uprightPrefix + hs.prompt + eraSuffix + mouthSuffix + spectacleSuffix',
   ])
-  const tiradas = diff.split(LF).filter((l) => l.startsWith('-') && !l.startsWith('---') && !(p.endsWith('generate-video-cinematic/route.ts') && TROCADAS.has(l.slice(1))))
+  // KINEO-H3MAX-2026-10-13 — reancorado com motivo: + as linhas da base que a entrada do MiniMax H3 Max trocou de propósito nas duas rotas
+  // (lista exata em scripts/test-support/h3max-2026-10-13-trocas.json; cada substituta marcada e provada em test-h3max-motor-2026-10-13).
+  const tiradas = diff.split(LF).filter((l) => l.startsWith('-') && !l.startsWith('---') && !(p.endsWith('generate-video-cinematic/route.ts') && TROCADAS.has(l.slice(1))) && !linhasTrocadasH3max(p).includes(l.slice(1)))
   return { ok: tiradas.length === 0, n: diff.split(LF).filter((l) => l.startsWith('+') && !l.startsWith('+++')).length }
 }
 {

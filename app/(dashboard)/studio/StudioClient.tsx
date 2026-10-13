@@ -23,6 +23,7 @@ import { UiLabel, useUiCopy } from '@/components/InterfaceLanguage'
 // que o servidor soma ao preço) e os textos novos nas 16 línguas.
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { ESTRELA_PUBLIC } from '@/lib/engineLaunch'
+import { H3MAX_PUBLIC } from '@/lib/engineLaunch' // KINEO-H3MAX-2026-10-13
 import { estrelaDisponivelNoMotor, estrelaSobretaxa } from '@/lib/estrelaDoFilme'
 import { estrelaCopy } from '@/lib/estrelaCopy'
 import BrandLogoPicker from '@/components/BrandLogoPicker' // KINEO-LOGO-DA-MARCA-2026-10-01
@@ -90,6 +91,7 @@ const ENGINE_QUALITY: Record<string, Quality> = {
   veo: 'cinematic_veo',
   hollywood: 'cinematic_hollywood',
   h3: 'cinematic_h3',
+  h3max: 'cinematic_h3max', // KINEO-H3MAX-2026-10-13
   omni: 'cinematic_omni', // KINEO-OMNI-2026-08-25
   s25: 'cinematic_s25', // KINEO-S25-2026-09-01
   avatar: 'avatar',
@@ -102,7 +104,7 @@ const ENGINE_QUALITY: Record<string, Quality> = {
 // para a mesma decisão, e é o mesmo defeito estrutural do dia: a mesma verdade
 // morando em dois lugares. Unificar os dois fica no backlog; hoje o conserto é
 // o motor existir nos dois.
-type EngineKey = 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni' | 's25'
+type EngineKey = 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'h3max' | 'omni' | 's25' // KINEO-H3MAX-2026-10-13
 // KINEO-DURACOES-CURTAS-2026-09-29 — as durações do seletor (a curta depende do motor: lib/durationByEngine supportedDurationsFor).
 type StudioDuration = 15 | 30 | 35 | 60 | 90 // 30: estrada hollywood (entrega 3)
 
@@ -152,6 +154,10 @@ const ENGINES: { paused?: boolean; /* KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 */
   // KINEO-OMNI-FORA-2026-10-12 — o card do Omni Flash saiu do seletor (motor fora da oferta, lib/engineLaunch.ts
   // OFFER_RETIRED_ENGINE_KEYS). Sem a linha aqui, ?engine=omni não acha o motor e cai no padrão (linha do
   // KINEO-MOTOR-EM-MANUTENCAO abaixo), e o servidor segue recusando o Omni antes de qualquer débito.
+  // KINEO-H3MAX-2026-10-13 — o MiniMax H3 Max entra no lugar que era do Omni (o cartão premium do MiniMax). Aparece com o
+  // interruptor H3MAX_PUBLIC (ou para a casa: flag `h3max` do /api/me/credits). Sem preview: ainda não há filme dele na [KINEO-H3MAX-2026-10-13]
+  // vitrine (selo honesto — clipe de outro motor não entra). [KINEO-H3MAX-2026-10-13]
+  { key: 'h3max', paused: Boolean(enginePaused('h3max')), icon: 'H3+', name: 'MiniMax H3 Max', tag: 'New', desc: 'MiniMax’s sharpest film engine — natural people and faces', res: '768p', credits: `${creditCostFor('cinematic_h3max', true)} cr`, supportsRef: true }, // KINEO-H3MAX-2026-10-13
   // KINEO-S25-CARD-2026-09-01 — Seedance 2.5, visivel SO para contas internas
   // (flag `internal` do /api/me/credits) ate os 4 carimbos do canario. Nunca
   // mostrar botao que o publico nao pode apertar — a licao do Seedance 2.0.
@@ -210,6 +216,7 @@ const STAGE_TINT: Record<string, [string, string]> = {
   veo: ['#4F46E5', '#06B6D4'],
   hollywood: ['#E11D48', '#7C3AED'],
   h3: ['#EC4899', '#F59E0B'],
+  h3max: ['#F43F5E', '#F97316'], // KINEO-H3MAX-2026-10-13
   omni: ['#8B5CF6', '#22D3EE'],
   s25: ['#14B8A6', '#6366F1'],
 }
@@ -306,6 +313,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
   const [balance, setBalance] = useState<number | null>(null)
   // KINEO-S25-CARD-2026-09-01 — so a casa ve o card do 2.5 durante o canario.
   const [internal, setInternal] = useState(false)
+  const [h3maxOk, setH3maxOk] = useState<boolean>(H3MAX_PUBLIC) // KINEO-H3MAX-2026-10-13 — o card do H3 Max (H3MAX_PUBLIC || casa: flag `h3max`)
   // KINEO-S25-ABRE-2026-10-06 — a conta pode USAR o 2.5? (flag `s25Liberado` do /api/me/credits, a mesma régua do portão do
   // servidor). null = ainda não chegou / leitura falhou → card trancado (falha fechada: o servidor recusaria de qualquer jeito).
   const [s25Liberado, setS25Liberado] = useState<boolean | null>(null)
@@ -355,7 +363,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
     fetch('/api/me/credits', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { if (alive) { setKineo1Flag(d?.kineo1 === true ? true : d?.kineo1 === false ? false : null); if (typeof d?.hasPaid === 'boolean') setContaPaga(d.hasPaid); if (d?.estrela === true) setEstrelaOk(true); if (typeof d?.s25Liberado === 'boolean') setS25Liberado(d.s25Liberado); if (d?.parceiro === true) setParceiro(true) } return d }) // KINEO-ENTRADA-SEEDANCE15 · KINEO-ESTRELA-DO-FILME-2026-09-29 (flag estrela) · KINEO-S25-ABRE-2026-10-06 (flag s25Liberado) · KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 (flag parceiro)
-      .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits); if (alive && d?.internal === true) setInternal(true); if (alive && d?.avatar === true) setAvatarOn(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && d?.curtas === true) setCurtasOk(true); if (alive && typeof d?.plan === 'string') setPlan(d.plan) })
+      .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits); if (alive && d?.internal === true) setInternal(true); if (alive && d?.h3max === true) setH3maxOk(true); /* KINEO-H3MAX-2026-10-13 */ if (alive && d?.avatar === true) setAvatarOn(true); if (alive && d?.seedance15 === true) setSeedance15Ok(true); if (alive && d?.curtas === true) setCurtasOk(true); if (alive && typeof d?.plan === 'string') setPlan(d.plan) })
       .catch(() => {}) // saldo é enfeite: falhou, a tela segue como antes
       .finally(() => { if (alive) setFlagsProntas(true) }) // KINEO-ENTRADA-SEEDANCE15
     return () => { alive = false }
@@ -475,7 +483,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
       })
     }
     const e = sp.get('engine')
-    if (e && ENGINES.some((x) => x.key === e) && (e !== 's25') && !ENGINES.find((x) => x.key === e)?.paused) setEngine(e as EngineKey) // KINEO-MOTOR-EM-MANUTENCAO: ?engine= pausado cai no padrão
+    if (e && ENGINES.some((x) => x.key === e) && (e !== 's25') && (e !== 'h3max' || h3maxOk) && !ENGINES.find((x) => x.key === e)?.paused) setEngine(e as EngineKey) // KINEO-MOTOR-EM-MANUTENCAO: ?engine= pausado cai no padrão · KINEO-H3MAX-2026-10-13: H3 Max escondido também
     const p = sp.get('prompt')
     if (p) setPrompt(p)
     // KINEO-GO-STUDIO-NOVO-2026-10-01 — o link /go (GPT/assistente) traz ?aspect= quando não é 9:16; antes ele caía no
@@ -645,7 +653,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
   // KINEO-DEGRAU-35S: impressão medida no mesmo gatilho do clique (picker aberto), com os degraus oferecidos.
   useEffect(() => {
     if (!pickerOpen || balance === null) return
-    const steps = ENGINES.filter((e) => !e.paused && (e.key !== 'fast' || kineo1Shown) && (e.key !== 's25' || s25Liberado === true) /* KINEO-S25-ABRE-2026-10-06: card trancado não oferece degrau */).map((e) => ({ engine: e.key, step: stepDownFor(e.key) })).filter((s) => s.step).map((s) => ({ engine: s.engine, to: s.step!.seconds, cost: s.step!.cost }))
+    const steps = ENGINES.filter((e) => !e.paused && (e.key !== 'fast' || kineo1Shown) && (e.key !== 'h3max' || h3maxOk) /* KINEO-H3MAX-2026-10-13 */ && (e.key !== 's25' || s25Liberado === true) /* KINEO-S25-ABRE-2026-10-06: card trancado não oferece degrau */).map((e) => ({ engine: e.key, step: stepDownFor(e.key) })).filter((s) => s.step).map((s) => ({ engine: s.engine, to: s.step!.seconds, cost: s.step!.cost }))
     if (steps.length) void trackEvent('studio_shorter_step_shown', { duration, balance, steps })
   }, [pickerOpen]) // eslint-disable-line react-hooks/exhaustive-deps
   // KINEO-S25-ABRE-2026-10-06 — o denominador do selo: quantas pessoas VIRAM o 2.5 trancado (picker aberto), uma vez por
@@ -915,7 +923,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
             </button>
             {pickerOpen && (
               <div className="picker">
-                {ENGINES.filter((e) => (e.key !== 's25' || internal) && (e.key !== 'fast' || kineo1Shown)).map((e) => { const pausa = e.paused ? enginePaused(e.key) : null; const trancado = !pausa && e.key === 's25' && s25Liberado !== true /* KINEO-S25-ABRE-2026-10-06: o 2.5 para quem não paga — selo + upgrade, nunca escolhe o motor */; return trancado ? (
+                {ENGINES.filter((e) => (e.key !== 's25' || internal) && (e.key !== 'h3max' || h3maxOk) /* KINEO-H3MAX-2026-10-13 */ && (e.key !== 'fast' || kineo1Shown)).map((e) => { const pausa = e.paused ? enginePaused(e.key) : null; const trancado = !pausa && e.key === 's25' && s25Liberado !== true /* KINEO-S25-ABRE-2026-10-06: o 2.5 para quem não paga — selo + upgrade, nunca escolhe o motor */; return trancado ? (
                   // KINEO-S25-ABRE-2026-10-06 — card PRÓPRIO do 2.5 trancado: o clique leva aos planos e nunca chama setEngine. O card
                   // normal (abaixo) segue byte a byte o de sempre, com o handler da base.
                   <button key={e.key} type="button" className="pk" data-kineo="s25-trancado"
@@ -1244,7 +1252,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                 ))}
               </select>
               {!isHollywoodLanguage(language) && (
-                <span style={{ fontSize: 11, color: 'var(--muted2)' }}>{kineo1Shown ? 'Kineo 1, ' : ''}Seedance 1.5, Veo 3.1 and Kling 2.5 narrate in this language. Kling 3, H3 and Seedance 2.5: English, Portuguese, Spanish only.{/* KINEO-OMNI-FORA-2026-10-12 */}</span>
+                <span style={{ fontSize: 11, color: 'var(--muted2)' }}>{kineo1Shown ? 'Kineo 1, ' : ''}Seedance 1.5, Veo 3.1 and Kling 2.5 narrate in this language. Kling 3, H3, H3 Max and Seedance 2.5: English, Portuguese, Spanish only.{/* KINEO-H3MAX-2026-10-13 */}{/* KINEO-OMNI-FORA-2026-10-12 */}</span>
               )}
             </div>
             {/* ⚠️ KINEO-RES-HONESTA-2026-08-20 — a tela se contradizia.

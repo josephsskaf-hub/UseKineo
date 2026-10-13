@@ -5,6 +5,7 @@ export const ENGINE_LANDING_PARAMS = [
   'veo',
   'hollywood',
   'h3',
+  'h3max', // KINEO-H3MAX-2026-10-13 — página só existe com H3MAX_PUBLIC (lib/growth/enginePageCatalog.ts)
   'omni',
   's25', // KINEO-S25-LAUNCH-2026-09-01 — pagina so existe com S25_PUBLIC
 ] as const
@@ -18,6 +19,7 @@ export const ENGINE_LANDING_LABELS: Record<EngineLandingParam, string> = {
   veo: 'Veo 3.1',
   hollywood: 'Kling 3',
   h3: 'MiniMax H3',
+  h3max: 'MiniMax H3 Max', // KINEO-H3MAX-2026-10-13
   omni: 'Omni Flash',
   s25: 'Seedance 2.5',
 }
@@ -36,6 +38,7 @@ export const ENGINE_LANDING_PUBLIC_PATHS: Record<EngineLandingParam, string> = {
   veo: '/ai-video-generator/veo',
   hollywood: '/ai-video-generator/kling-3',
   h3: '/ai-video-generator/minimax-h3',
+  h3max: '/ai-video-generator/minimax-h3-max', // KINEO-H3MAX-2026-10-13
   // KINEO-OMNI-FORA-2026-10-12 — a página do Omni Flash virou 301 para a do Kling 3 (next.config.js); o caminho público
   // de 'omni' aponta para o destino final, sem pular por um redirect (mesmo padrão do Kineo 1 acima).
   omni: '/ai-video-generator/kling-3',

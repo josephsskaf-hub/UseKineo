@@ -12,6 +12,11 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: a entrada do MiniMax H3 Max ([TRAVA 8.2 — vai do fundador 13/10 'vai H3 Max'])
+// acrescentou SÓ linhas marcadas às rotas travadas e trocou de propósito linhas da base (o H3 Max ao lado do H3 em listas, ternários e
+// frases). desfazH3max devolve, em memória, o arquivo sem essa entrada (pares exatos em scripts/test-support/h3max-2026-10-13-trocas.json;
+// par que não casa = texto intocado = vermelho); linhasTrocadasH3max lista as linhas da base trocadas. Fora disso, o byte a byte de sempre.
+import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
 const ts = require(join(root, 'node_modules', 'typescript'))
@@ -140,7 +145,9 @@ checa('(L2) filtro do resgate não descarta mais o formato', REC.includes("if (a
 const STR = rd('app/api/cron/finish-stranded-renders/route.ts')
 checa('(L2) resgate de filme de IA manda formato (claim) e língua', STR.includes("...(normalizeAspect(response.aspect) !== '9:16' ? { aspect: normalizeAspect(response.aspect) } : {}),") && STR.includes("resolveNarrationLanguage('en', typeof response.voiceover_script === 'string' ? response.voiceover_script : '').language"))
 const RETRY = rd('app/api/retry-hollywood-scene/route.ts')
-checa('(L2) cena refeita no formato do filme: nenhum 9:16 cravado', !RETRY.includes("aspect_ratio: '9:16'") && (RETRY.match(/aspect_ratio: scene\.aspect/g) || []).length === 4 && RETRY.includes('aspect: normalizeAspect(response?.aspect) }'))
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: o ramo marcado do MiniMax H3 Max na retomada também usa o formato do filme (scene.aspect)
+// — 5 usos na rota atual; sem a entrada dele (desfazH3max), os 4 de antes. Nenhum 9:16 cravado na rota atual.
+checa('(L2) cena refeita no formato do filme: nenhum 9:16 cravado', !RETRY.includes("aspect_ratio: '9:16'") && (desfazH3max('app/api/retry-hollywood-scene/route.ts', RETRY).match(/aspect_ratio: scene\.aspect/g) || []).length === 4 && (RETRY.match(/aspect_ratio: scene\.aspect/g) || []).length === 5 && RETRY.includes('aspect: normalizeAspect(response?.aspect) }'))
 checa('(L2) enquadramento do texto acompanha o formato', RETRY.includes('`${ENQUADRAMENTO[scene.aspect]} composition, camera upright') && !RETRY.includes('`Vertical 9:16 composition'))
 
 // (RESGATE-SEM-DUPLICATA-2026-09-24) um pedido, um filme: pedidos repetidos pela rede não viram N filmes cobrados.

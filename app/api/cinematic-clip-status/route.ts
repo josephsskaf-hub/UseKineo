@@ -60,6 +60,10 @@ const VEO_I2V_MODEL = 'fal-ai/veo3.1/fast/image-to-video'
 const H3_T2V_MODEL = 'minimax/h3/text-to-video'
 const H3_I2V_MODEL = 'minimax/h3/image-to-video'
 // KINEO-OMNI-2026-08-25 — o #1 do ranking entra no allowlist assinado (licao #279).
+// KINEO-H3MAX-2026-10-13 — MiniMax H3 Max entra no allowlist assinado NO MESMO COMMIT do motor (a lição do H3 em 20/08 e do
+// S25 em 15/09: modelo fora desta lista = 503 em toda consulta e filme morto com os clipes pagos). Espelho de lib/hollywood/router. [KINEO-H3MAX-2026-10-13]
+const H3MAX_T2V_MODEL = 'minimax/h3-max/text-to-video' // KINEO-H3MAX-2026-10-13
+const H3MAX_I2V_MODEL = 'minimax/h3-max/image-to-video' // KINEO-H3MAX-2026-10-13
 const OMNI_I2V_MODEL = 'google/gemini-omni-flash/image-to-video'
 // KINEO-S25-STATUS-2026-09-15 — render S25 4328b078: 7/7 aceitos no fal e o cliente girou em 503 ("signed claim contains an
 // unsupported model") — o Seedance 2.5 (família s25, 01/09) nunca entrou nesta lista; o filme morreria no prazo de 50 min
@@ -69,6 +73,8 @@ const S25_T2V_MODEL = 'fal-ai/seedance-2.5/text-to-video'
 const ALLOWED_MODELS = new Set([
   H3_T2V_MODEL,
   H3_I2V_MODEL,
+  H3MAX_T2V_MODEL, // KINEO-H3MAX-2026-10-13
+  H3MAX_I2V_MODEL, // KINEO-H3MAX-2026-10-13
   OMNI_I2V_MODEL,
   SEEDANCE_MODEL,
   KLING_MODEL,

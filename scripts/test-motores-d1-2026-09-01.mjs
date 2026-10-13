@@ -3,6 +3,11 @@
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: a entrada do MiniMax H3 Max ([TRAVA 8.2 — vai do fundador 13/10 'vai H3 Max'])
+// acrescentou SÓ linhas marcadas às rotas travadas e trocou de propósito linhas da base (o H3 Max ao lado do H3 em listas, ternários e
+// frases). desfazH3max devolve, em memória, o arquivo sem essa entrada (pares exatos em scripts/test-support/h3max-2026-10-13-trocas.json;
+// par que não casa = texto intocado = vermelho); linhasTrocadasH3max lista as linhas da base trocadas. Fora disso, o byte a byte de sempre.
+import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
 const R = join(dirname(fileURLToPath(import.meta.url)), '..')
 let ok = 0, bad = 0
 const chk = (n, c, d = '') => { if (c) { ok++; console.log(`  ✓ ${n}`) } else { bad++; console.log(`  ✗ ${n}${d ? ' — ' + d : ''}`) } }
@@ -45,12 +50,12 @@ chk('resolução NÃO enviada → default 1K (o 4K dobraria o custo em silêncio
 chk('débito idempotente com estorno em falha continua', im.includes('debitVideoCredits') && im.includes('refund'))
 
 console.log('\nD) VIDEO — Seedance 2.5 (familia s25, gate interno)')
-const rt = ler('lib/hollywood/router.ts')
+const rt = desfazH3max('lib/hollywood/router.ts', ler('lib/hollywood/router.ts')) // KINEO-H3MAX-2026-10-13 — reancorado (ver o import)
 chk('slugs reais fal-ai/seedance-2.5/* (o do estudo dava 404)', rt.includes("'fal-ai/seedance-2.5/text-to-video'") && rt.includes("'fal-ai/seedance-2.5/image-to-video'"))
 chk("familia 's25' no tipo CinematicFamily", rt.includes("'hollywood' | 'h3' | 'omni' | 's25'"))
 chk('ponto unico de modelo conhece a familia', rt.includes("if (family === 's25') return hasAnchor ? S25_I2V_MODEL : S25_T2V_MODEL"))
 chk('opcao esperta do fundador: 480p ($0.208/s) + Enhance no master', rt.includes('S25_USD_PER_SECOND = 0.208') && rt.includes("S25_RESOLUTION = '480p'"))
-const rc = ler('app/api/generate-video-cinematic/route.ts')
+const rc = desfazH3max('app/api/generate-video-cinematic/route.ts', ler('app/api/generate-video-cinematic/route.ts')) // KINEO-H3MAX-2026-10-13
 chk('s25 entra na MESMA estrada (contrato de cena de graca)', rc.includes('wantsHollywood || wantsH3 || wantsOmni || wantsS25'))
 chk('GATE le o interruptor unico (S25_PUBLIC) + conta interna', rc.includes("wantsS25 && !S25_PUBLIC && !isInternalEmail(user.email)"))
 const lc = ler('lib/engineLaunch.ts')

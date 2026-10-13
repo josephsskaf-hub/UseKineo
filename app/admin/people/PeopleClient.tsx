@@ -134,7 +134,7 @@ interface PersonMedia {
 
 const MEDIA_ENGINE_LABEL: Record<string, string> = {
   fast: 'Kineo 1', cinematic_ai: 'Seedance', cinematic_kling: 'Kling 2.5', cinematic_veo: 'Veo 3.1',
-  cinematic_h3: 'MiniMax H3', cinematic_hollywood: 'Kling 3', cinematic_omni: 'Omni Flash',
+  cinematic_h3: 'MiniMax H3', cinematic_h3max: 'MiniMax H3 Max' /* KINEO-H3MAX-2026-10-13 */, cinematic_hollywood: 'Kling 3', cinematic_omni: 'Omni Flash',
   avatar: 'Avatar', presenter: 'Presenter',
 }
 

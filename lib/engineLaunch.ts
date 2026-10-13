@@ -64,6 +64,20 @@ export function qualityPaused(quality: string | null | undefined): EnginePause |
   return q === 'cinematic_omni' ? ENGINE_PAUSE.omni : null // KINEO-H3-DE-VOLTA-2026-09-22 · KINEO-S25-ABRE-2026-10-06
 }
 
+// ═══ KINEO-H3MAX-2026-10-13 — MiniMax H3 Max (fundador 13/10: "vai H3 Max") ═══
+// Motor novo no lugar que era do Omni (fora da oferta desde 12/10), ao lado do MiniMax H3, que fica como está. Mesmo [KINEO-H3MAX-2026-10-13]
+// desenho do S25_PUBLIC: UM interruptor que todas as superfícies leem — mega-menu, /studio, /generate, /models-pricing, [KINEO-H3MAX-2026-10-13]
+// pricing, FAQ/schema, llms.txt, fatos, página do motor e sitemap — e o portão do servidor (generate-video-cinematic) [KINEO-H3MAX-2026-10-13]
+// lê o MESMO valor. H3MAX_PUBLIC=false → só as contas da casa (isInternalEmail) veem e usam (canário); o resto recebe a [KINEO-H3MAX-2026-10-13]
+// recusa antes de qualquer débito. Desligar o motor se o canário falhar = trocar esta linha para false. [KINEO-H3MAX-2026-10-13]
+// Guardião: scripts/test-h3max-motor-2026-10-13.mjs. [KINEO-H3MAX-2026-10-13]
+export const H3MAX_PUBLIC = true // KINEO-H3MAX-2026-10-13
+// KINEO-H3MAX-2026-10-13
+/** O H3 Max aparece (e o servidor aceita) para este e-mail? Público com H3MAX_PUBLIC; senão, só a casa. [KINEO-H3MAX-2026-10-13] */
+export function h3maxVisible(email?: string | null): boolean { // KINEO-H3MAX-2026-10-13
+  return H3MAX_PUBLIC || isInternalEmail(email) // KINEO-H3MAX-2026-10-13
+} // KINEO-H3MAX-2026-10-13
+// KINEO-H3MAX-2026-10-13
 /** O 2.5 aparece para este e-mail? Publico depois do lancamento; antes, so a casa. */
 export function s25Visible(email?: string | null): boolean {
   return S25_PUBLIC || isInternalEmail(email)
@@ -222,7 +236,9 @@ export function estrelaVisible(email?: string | null): boolean {
 // de que é dos planos pagos, porque é isso que o servidor cobra (lib/s25Access.ts): a lista diz o que existe E o que
 // precisa para apertar. Virar S25_PUBLIC=false (ou pausar o motor) devolve 'Five' sozinho.
 const PUBLIC_VIDEO_ENGINE_NAMES: readonly string[] = [
-  'Veo 3.1', 'Kling 3', 'Kling 2.5', 'MiniMax H3', 'Seedance 1.5',
+  'Veo 3.1', 'Kling 3', 'Kling 2.5', 'MiniMax H3', // KINEO-H3MAX-2026-10-13
+  ...(H3MAX_PUBLIC && enginePaused('h3max') === null ? ['MiniMax H3 Max'] : []), // KINEO-H3MAX-2026-10-13: sete — o H3 Max entra
+  'Seedance 1.5', // KINEO-H3MAX-2026-10-13
   ...(S25_PUBLIC && enginePaused('s25') === null ? ['Seedance 2.5 (paid plans)'] : []),
   ...(KINEO1_PUBLIC ? ['Kineo 1'] : []),
   ...(AVATAR_PUBLIC ? ['Avatar'] : []),

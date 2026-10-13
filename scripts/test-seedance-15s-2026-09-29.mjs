@@ -19,6 +19,11 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
+// KINEO-H3MAX-2026-10-13 — reancorado com motivo: a entrada do MiniMax H3 Max ([TRAVA 8.2 — vai do fundador 13/10 'vai H3 Max'])
+// acrescentou SÓ linhas marcadas às rotas travadas e trocou de propósito linhas da base (o H3 Max ao lado do H3 em listas, ternários e
+// frases). desfazH3max devolve, em memória, o arquivo sem essa entrada (pares exatos em scripts/test-support/h3max-2026-10-13-trocas.json;
+// par que não casa = texto intocado = vermelho); linhasTrocadasH3max lista as linhas da base trocadas. Fora disso, o byte a byte de sempre.
+import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -45,12 +50,12 @@ const COST_SRC = rd('lib/credits/engineCost.ts')
 const TRIAL_SRC = rd('lib/reverseTrial.ts')
 const LAUNCH_SRC = rd('lib/engineLaunch.ts')
 const HANDOFF_SRC = rd('lib/creationHandoff.ts')
-const ROTA = rd('app/api/generate-video-cinematic/route.ts')
+const ROTA = desfazH3max('app/api/generate-video-cinematic/route.ts', rd('app/api/generate-video-cinematic/route.ts')) // KINEO-H3MAX-2026-10-13 — reancorado (ver o import)
 const COMPOSE = rd('app/api/compose/route.ts')
 const UNLOCK = rd('app/api/compose/unlock/route.ts')
-const GEN = rd('app/(dashboard)/generate/GenerateClient.tsx')
-const STUDIO = rd('app/(dashboard)/studio/StudioClient.tsx')
-const ME = rd('app/api/me/credits/route.ts')
+const GEN = desfazH3max('app/(dashboard)/generate/GenerateClient.tsx', rd('app/(dashboard)/generate/GenerateClient.tsx')) // KINEO-H3MAX-2026-10-13
+const STUDIO = desfazH3max('app/(dashboard)/studio/StudioClient.tsx', rd('app/(dashboard)/studio/StudioClient.tsx')) // KINEO-H3MAX-2026-10-13
+const ME = desfazH3max('app/api/me/credits/route.ts', rd('app/api/me/credits/route.ts')) // KINEO-H3MAX-2026-10-13
 
 const D = roda(DUR_SRC)
 const E = roda(COST_SRC)

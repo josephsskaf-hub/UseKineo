@@ -12,7 +12,7 @@ export const SHOWCASE_FILM_IDS = [
 
 const ENGINE_NAMES = {
   fast: 'Kineo 1', cinematic_ai: 'Seedance 1.5', cinematic_kling: 'Kling 2.5',
-  cinematic_veo: 'Veo 3.1', cinematic_hollywood: 'Kling 3', cinematic_h3: 'MiniMax H3',
+  cinematic_veo: 'Veo 3.1', cinematic_hollywood: 'Kling 3', cinematic_h3: 'MiniMax H3', cinematic_h3max: 'MiniMax H3 Max' /* KINEO-H3MAX-2026-10-13 */,
   cinematic_omni: 'AI film', /* KINEO-SELO-OMNI-2026-10-13 */ presenter: 'Avatar',
 } as const
 

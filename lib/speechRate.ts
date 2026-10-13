@@ -26,7 +26,7 @@ export interface SpeechRate {
 /** Motor (quality do produto ou engine da rota) → família de voz. Hollywood = voz própria do modelo; o resto = TTS da casa. */
 export function speechFamilyForQuality(quality: unknown): SpeechFamily {
   const q = typeof quality === 'string' ? quality.toLowerCase() : ''
-  return /^(cinematic_)?(hollywood|h3|omni|s25)$/.test(q) ? 'hollywood' : 'classic'
+  return /^(cinematic_)?(hollywood|h3|h3max|omni|s25)$/.test(q) ? 'hollywood' : 'classic' // KINEO-H3MAX-2026-10-13: o H3 Max fala na régua hollywood (2,3 pal/s), como o H3
 }
 // KINEO-RITMO-POR-VOZ-2026-09-15 — a régua clássica por VOZ da persona (medido, não suposto):
 // Seedance d6e8e8b3 (15/09): 198 palavras a 3,1 pal/s "davam 60 s"; a persona dark-mystery
