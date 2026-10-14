@@ -331,16 +331,18 @@ const ENUMS = {
   naked_eye_3d_ad: '3D Naked-Eye AD', beach_ad: 'Beach AD', lighting_ad: 'Lighting AD', supermarket_ad: 'Supermarket AD', poster_ad: 'Poster AD',
   graffiti_ad: 'Graffiti AD', dreamlike_cloud: 'Dreamlike Cloud', parachute_delivery: 'Parachute Delivery', shoal_surround: 'Shoal Surround', dishes_served: 'Dishes Served',
   // KINEO-ESTILOS-DIA1-2026-10-13 — re-ancorado: +4 do lote do dia 1 (enum EXATO da sonda ad_*).
-  dolly_zoom: 'Hitchcock Dolly Zoom', boom_drop: 'BOOM DROP', macaron_machine: 'Macaron Machine',
+  boom_drop: 'BOOM DROP', macaron_machine: 'Macaron Machine',
   // reancorado KINEO-TIRA-STARLIGHT-1410 — starlight_gift tirado (fundador 14/10).
+  // reancorado KINEO-ADS-RETESTE-1510 — dolly_zoom tirado (reteste 15/10).
 }
 const KEYS = Object.keys(ENUMS)
 // KINEO-ESTILOS-DIA1-2026-10-13 — re-ancorado: 15 → 19 estilos.
 // reancorado KINEO-TIRA-STARLIGHT-1410 — 19 → 18 (starlight_gift tirado).
-const estilosOk = (Sx, C, SL, E) => Sx.ADS_V2_STYLES.length === 18 && KEYS.length === 18 && Sx.ADS_V2_STYLES.every((s, i) => s.key === KEYS[i] && s.effect === ENUMS[s.key]) &&
+// reancorado KINEO-ADS-RETESTE-1510 — 18 → 17 (dolly_zoom tirado).
+const estilosOk = (Sx, C, SL, E) => Sx.ADS_V2_STYLES.length === 17 && KEYS.length === 17 && Sx.ADS_V2_STYLES.every((s, i) => s.key === KEYS[i] && s.effect === ENUMS[s.key]) &&
   [Sx.ADS_V2_STYLE_KEYS, C.ADS_V2_CONTRACT_STYLES, SL.ADS_V2_PLAN_STYLES, Object.keys(E.ADS_V2_EFFECT_BY_STYLE)].every((l) => JSON.stringify(l) === JSON.stringify(KEYS)) &&
   KEYS.every((k) => E.ADS_V2_EFFECT_BY_STYLE[k] === ENUMS[k])
-await check('8a os 18 estilos com o enum EXATO da fal, na ordem; espelhos v2Styles = v2Contract = v2ShotLists = v2Engines; todos no MESMO endpoint testado (sonda)', () => {
+await check('8a os 17 estilos com o enum EXATO da fal, na ordem; espelhos v2Styles = v2Contract = v2ShotLists = v2Engines; todos no MESMO endpoint testado (sonda)', () => {
   const probe = read(F.probe)
   return estilosOk(S, L(F.contract), L(F.shots), L(F.engines)) && S.ADS_V2_STYLE_ENDPOINT === 'fal-ai/pixverse/v5/effects' &&
     KEYS.every((k) => probe.includes(`${k}: { model: PIXVERSE, input: (image) => ({ effect: '${ENUMS[k]}', image_url: image, resolution: '720p', duration: '5' }) }`))
@@ -351,9 +353,9 @@ await check('8b cada estilo tem prévia de verdade: public/ads-styles/<chave>.mp
     const jpg = fs.readFileSync(path.join(ROOT, 'public', s.poster))
     return s.preview === `/ads-styles/${s.key}.mp4` && s.poster === `/ads-styles/${s.key}.jpg` && mp4.length > 20000 && mp4.subarray(4, 8).toString() === 'ftyp' && jpg.length > 3000 && jpg[0] === 0xff && jpg[1] === 0xd8
   }))
-await check('8c categorias: todo estilo em pelo menos 1; cada categoria (Food & drink · Beauty · Tech · Any) tem estilo; "all" = os 18', () => // reancorado KINEO-TIRA-STARLIGHT-1410
+await check('8c categorias: todo estilo em pelo menos 1; cada categoria (Food & drink · Beauty · Tech · Any) tem estilo; "all" = os 17', () => // reancorado KINEO-TIRA-STARLIGHT-1410 · reancorado KINEO-ADS-RETESTE-1510
   KEYS.every((k) => Array.isArray(S.ADS_V2_STYLE_CATEGORIES[k]) && S.ADS_V2_STYLE_CATEGORIES[k].length > 0 && S.ADS_V2_STYLE_CATEGORIES[k].every((c) => S.ADS_V2_STYLE_CATEGORY_IDS.includes(c))) &&
-  S.ADS_V2_STYLE_CATEGORY_IDS.every((c) => S.adsV2StylesIn(c).length > 0) && S.adsV2StylesIn('all').length === 18 &&
+  S.ADS_V2_STYLE_CATEGORY_IDS.every((c) => S.adsV2StylesIn(c).length > 0) && S.adsV2StylesIn('all').length === 17 &&
   S.adsV2StylesIn('food').includes('dishes_served') && S.adsV2StylesIn('tech').includes('mechanical_assembly') && S.adsV2StylesIn('beauty').includes('dreamlike_cloud'))
 await check('8d frases dos 15 estilos nas 16 línguas: nome, para que serve e o que faz (oneLine), escritas; sugestão por setor de antes intacta', () =>
   LANGS.every((l) => KEYS.every((k) => ['label', 'bestFor', 'oneLine'].every((x) => typeof S.ADS_V2_STYLE_COPY[l].styles[k]?.[x] === 'string' && S.ADS_V2_STYLE_COPY[l].styles[k][x].trim()))) &&
@@ -429,7 +431,8 @@ await mutante('língua faltando uma frase', F.ux, "  kit: { chip: 'Kit merek dit
 await mutante('enum de estilo novo com a caixa trocada', F.engines, "  beach_ad: 'Beach AD',", "  beach_ad: 'Beach ad',",
   (over) => { const Lx = pura(over); return estilosOk(Lx(F.styles), Lx(F.contract), Lx(F.shots), Lx(F.engines)) })
 // KINEO-ESTILOS-DIA1-2026-10-13 — re-ancorado: o array do contrato agora segue com os 4 do dia 1 depois de dishes_served.
-await mutante('espelho do contrato sem um estilo novo', F.contract, ", 'shoal_surround', 'dishes_served', 'dolly_zoom'", ", 'shoal_surround', 'dolly_zoom'",
+// reancorado KINEO-ADS-RETESTE-1510 — depois de dishes_served vem o boom_drop (dolly_zoom tirado).
+await mutante('espelho do contrato sem um estilo novo', F.contract, ", 'shoal_surround', 'dishes_served', 'boom_drop'", ", 'shoal_surround', 'boom_drop'",
   (over) => { const Lx = pura(over); return estilosOk(Lx(F.styles), Lx(F.contract), Lx(F.shots), Lx(F.engines)) })
 await mutante('1 caractere a mais no /start', 'app/api/ads/v2/start/route.ts', "export const runtime = 'nodejs'", "export const runtime = 'nodejs' ", (_o, m) => sha(desfazEquipe(desfazConsertos(desfazExtracao('start', m, readCru('lib/ads/v2StartCore.ts'))))) === BASE['app/api/ads/v2/start/route.ts'])
 await mutante('1 caractere a mais no núcleo do /start (o débito)', 'lib/ads/v2StartCore.ts', 'chargeAdsV2(admin, { userId: uid, billingRef, cost })', 'chargeAdsV2(admin, { userId: uid, billingRef, cost: cost })', (_o, m) => sha(desfazEquipe(desfazConsertos(desfazExtracao('start', readCru('app/api/ads/v2/start/route.ts'), m)))) === BASE['app/api/ads/v2/start/route.ts'])

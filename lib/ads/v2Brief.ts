@@ -16,6 +16,7 @@ import { lowerMidSentence, missingNames, simpleCommonNoun, simpleNames, simplePr
 // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — a narração e as frases só afirmam o que veio do cliente (regra no pedido + régua + conserto).
 // KINEO-ATOR-FTC-2026-10-13 — repairTestimonial: com o ator, a narração consertada em código deixa de ser depoimento de cliente.
 import { ADS_V2_HONESTY_RULE, adsV2PlaceRule, honestyIssues, isDemonym, repairHonesty, repairTestimonial, type AdsV2HonestySource } from '@/lib/ads/v2Honesty'
+import { adsV2BusinessFallback, adsV2FinishCopyRaw, adsV2GenericBrandUses, adsV2GenericProduct, adsV2GenericRule, adsV2GenericWhy, adsV2HasNarration, adsV2SpeechMinWords, adsV2SpeechNarrationLine, adsV2VariantFirstOverlay, type AdsV2GenericProduct } from '@/lib/ads/v2CopyFit' // KINEO-ADS-RETESTE-1510 — piso de fala (90% do anúncio na voz MiniMax) e produto genérico que não é marca ("da Perfume")
 
 export const ADS_V2_BRIEF_MODEL = 'gpt-4o-mini'
 /** Teto de planos (chamadas ao GPT) por pessoa em 24 h, contado pelo evento ads_v2_plan_served ANTES do modelo. */
@@ -134,7 +135,7 @@ const DECOR = /[[\]{}#*_]|[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]/u
  * KINEO-ADS-MODO-SIMPLES-2026-09-29 — opts.overlays === false (modo simples, "sem frases na tela"): o pedido manda
  * devolver overlays: [] e some a regra da marca. overlays ausente = o texto de sempre, byte a byte (guardião Z3).
  */
-export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts: { maxWords: number; narration: boolean; overlays?: boolean; simple?: AdsV2SimpleVoice; ad?: AdsV2AdVoice; honesty?: AdsV2HonestySource }): { system: string; user: string } {
+export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts: { maxWords: number; narration: boolean; overlays?: boolean; simple?: AdsV2SimpleVoice; ad?: AdsV2AdVoice; honesty?: AdsV2HonestySource; speechMin?: number; generic?: AdsV2GenericProduct | null }): { system: string; user: string } { // KINEO-ADS-RETESTE-1510 — speechMin/generic opcionais: ausentes = o pedido de sempre, byte a byte (Z3)
   const brand = brandName(brief)
   const noOverlays = opts.overlays === false
   const voice = opts.simple
@@ -142,6 +143,7 @@ export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts:
   const sayName = voice?.commonNoun
     ? `What is advertised ("${voice.commonNoun}") is not a name: in the middle of a sentence write it in lowercase, "${voice.commonNoun}".`
     : 'Say the business name once.'
+  const nameRule = opts.generic ? adsV2GenericRule(opts.generic) : sayName // KINEO-ADS-RETESTE-1510 — produto genérico ("Perfume"): nunca como marca, "este perfume"
   const system = [
     'You write the on-screen phrases and the short voice-over of a vertical video ad for a small business. The video shows the business\'s own real photos in motion.',
     'Use ONLY the facts of the brief. Never invent a price, number, discount, deadline, rating, award, customer count, product, dish, service or place.',
@@ -149,7 +151,7 @@ export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts:
     ...(opts.honesty ? [ADS_V2_HONESTY_RULE] : []),
     `Write everything in ${languageName}.`,
     opts.narration
-      ? `narration: one to three short spoken sentences, ${Math.ceil(opts.maxWords * 0.5)} to ${opts.maxWords} words in total (count them). Warm and natural. ${sayName} No phone number, link or address unless copied exactly from the brief.`
+      ? typeof opts.speechMin === 'number' ? adsV2SpeechNarrationLine(opts.speechMin, opts.maxWords, nameRule) : `narration: one to three short spoken sentences, ${Math.ceil(opts.maxWords * 0.5)} to ${opts.maxWords} words in total (count them). Warm and natural. ${nameRule} No phone number, link or address unless copied exactly from the brief.` // KINEO-ADS-RETESTE-1510 — com o piso de fala, a linha nova; sem ele, a de sempre
       : 'narration: return "" (the customer turned the voice-over off).',
     ...(voice && opts.narration
       ? [
@@ -238,7 +240,7 @@ export function textIssues(text: string, brief: AdsBrief, label: string): string
 }
 
 /** Valida a resposta do modelo. Pura; nunca lança. */
-export function checkV2Copy(raw: string, brief: AdsBrief, opts: { maxWords: number; narration: boolean; overlays?: boolean; simple?: AdsV2SimpleVoice; ad?: AdsV2AdVoice; honesty?: AdsV2HonestySource; minWords?: number }): { ok: true; copy: AdsV2Copy } | { ok: false; why: string[] } {
+export function checkV2Copy(raw: string, brief: AdsBrief, opts: { maxWords: number; narration: boolean; overlays?: boolean; simple?: AdsV2SimpleVoice; ad?: AdsV2AdVoice; honesty?: AdsV2HonestySource; minWords?: number; speechMin?: number; generic?: AdsV2GenericProduct | null }): { ok: true; copy: AdsV2Copy } | { ok: false; why: string[] } { // KINEO-ADS-RETESTE-1510 — speechMin = piso de fala; generic = produto que não é marca
   let p: Record<string, unknown>
   try {
     const j = JSON.parse(raw)
@@ -254,12 +256,14 @@ export function checkV2Copy(raw: string, brief: AdsBrief, opts: { maxWords: numb
     // Modo simples: substantivo comum com maiúscula no meio da frase volta à minúscula ("Conheça o Espaço comercial" →
     // "Conheça o espaço comercial"); e cada nome que a pessoa escreveu tem de estar na narração.
     const voice = opts.simple
+    const genericUses = opts.generic ? adsV2GenericBrandUses(narration, opts.generic) : [] // KINEO-ADS-RETESTE-1510 — lido ANTES da minúscula ("da Perfume" vira "da perfume" e ainda é marca)
+    if (opts.generic && genericUses.length) why.push(adsV2GenericWhy('narration', opts.generic, genericUses)) // KINEO-ADS-RETESTE-1510
     if (voice?.commonNoun) narration = lowerMidSentence(narration, voice.commonNoun, voice.commonNoun)
     const missing = voice ? missingNames(narration, voice.names) : []
     if (missing.length) why.push(`narration: say ${missing.map((n) => `"${n}"`).join(', ')} exactly as the customer wrote ${missing.length > 1 ? 'them' : 'it'} — it is where the ad takes place.`)
     const words = countWords(narration)
     // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — minWords: só o texto CONSERTADO em código (a frase inventada saiu) aceita menos palavras.
-    const min = typeof opts.minWords === 'number' ? opts.minWords : Math.ceil(opts.maxWords * 0.5)
+    const min = typeof opts.minWords === 'number' ? opts.minWords : typeof opts.speechMin === 'number' ? opts.speechMin : Math.ceil(opts.maxWords * 0.5) // KINEO-ADS-RETESTE-1510 — o piso de fala vale quando vem; o conserto em código (minWords) continua mandando
     if (words < min || words > opts.maxWords) why.push(`narration: write ${min} to ${opts.maxWords} words (you wrote ${words}).`)
     if (DECOR.test(narration)) why.push('narration: no brackets, markdown or emojis.')
     // KINEO-ATOR-AJUSTES-2026-10-09 — anúncio de produto não fala como loja ("At LUME, we offer a selection of…").
@@ -281,6 +285,7 @@ export function checkV2Copy(raw: string, brief: AdsBrief, opts: { maxWords: numb
     if (DECOR.test(o) || /["“”]/.test(o)) why.push(`overlays[${i}]: no quotes, brackets, hashtags or emojis.`)
     why.push(...textIssues(o, brief, `overlays[${i}]`))
     if (opts.honesty) why.push(...honestyIssues(o, opts.honesty, `overlays[${i}]`))
+    if (i > 0 && opts.generic && adsV2GenericBrandUses(o, opts.generic).length) why.push(adsV2GenericWhy(`overlays[${i}]`, opts.generic, adsV2GenericBrandUses(o, opts.generic))) // KINEO-ADS-RETESTE-1510 — a 1ª frase é o título (pode ter o nome)
   })
   const brand = brandName(brief)
   if (brand && brand.length <= ADS_V2_OVERLAY_MAX_CHARS && overlays[0] && !overlays[0].toLowerCase().includes(brand.toLowerCase())) {
@@ -459,7 +464,7 @@ async function variantsCall(msgs: { system: string; user: string }, deadline: nu
 }
 
 export type AdsV2BriefResult =
-  | { ok: true; brief: AdsBrief; copy: AdsV2Copy; dropped: string[]; attempts: number; voice?: AdsV2SimpleVoice & { namesMissing: string[] }; ad?: AdsV2AdVoice; honestyFixes?: string[]; timeoutRetries?: number; variants?: AdsV2CopyVariant[]; variantsInfo?: AdsV2VariantsInfo }
+  | { ok: true; brief: AdsBrief; copy: AdsV2Copy; dropped: string[]; attempts: number; voice?: AdsV2SimpleVoice & { namesMissing: string[] }; ad?: AdsV2AdVoice; honestyFixes?: string[]; timeoutRetries?: number; variants?: AdsV2CopyVariant[]; variantsInfo?: AdsV2VariantsInfo; speechShort?: boolean } // KINEO-ADS-RETESTE-1510
   | { ok: false; stage: 'brief' | 'copy' | 'timeout'; why: string[]; attempts: number; timeoutRetries?: number }
 
 /** Fatos públicos escolhidos (modo simples) entram no brief como extra.public_fact_N: o texto os enxerga e a régua
@@ -522,6 +527,9 @@ async function extractWithBudget(args: {
   const briefRaw = await callJson([{ role: 'system', content: briefMsgs.system }, { role: 'user', content: briefMsgs.user }], 0.2, 900, budget)
   const parsed = parseAutoBrief(briefRaw, args.text, args.language)
   let attempts = 1
+  // KINEO-ADS-RETESTE-1510 — frase de PRODUTO claro sem nome ("Perfume", foto marcada como produto): o brief não achou "negócio" e a
+  // KINEO-ADS-RETESTE-1510 — tela dizia "We could not tell which business this is". O "nome" vira o próprio produto (genérico, abaixo).
+  if (parsed.needs.includes('business')) { const fb = adsV2BusinessFallback(args.sentence ?? args.text, args.productPhoto); if (fb) { parsed.brief.business = fb; parsed.needs = parsed.needs.filter((n) => n !== 'business') } } // KINEO-ADS-RETESTE-1510
   if (parsed.needs.includes('business')) return { ok: false, stage: 'brief', why: ['business_name_missing'], attempts }
   // KINEO-ATOR-AJUSTES-2026-10-09 — produto e/ou ator: o pedido de texto ganha as regras de quem fala e do quê.
   const productAd = typeof args.sentence === 'string' && simpleProductAd(args.sentence, args.productPhoto === true)
@@ -543,6 +551,14 @@ async function extractWithBudget(args: {
   // KINEO-ATOR-FTC-2026-10-13 — com o ator, a régua também recusa (e conserta) depoimento de cliente na narração.
   const honesty: AdsV2HonestySource = { source: [args.text, ...(args.facts ?? [])].join('\n'), typed: args.typed ?? args.sentence ?? args.text, product: productAd, places, ...(args.presenter === true ? { presenter: true, brand: brandName(parsed.brief) } : {}) }
   const opts: typeof base1 & { ad?: AdsV2AdVoice; honesty: AdsV2HonestySource } = ad ? { ...base1, ad, honesty } : { ...base1, honesty }
+  // KINEO-ADS-RETESTE-1510 — o piso de fala (90% do anúncio na voz MiniMax do Ads: 27 palavras em 15 s) e o produto genérico
+  // KINEO-ADS-RETESTE-1510 — ("Perfume" sem marca, sem nome próprio na frase e sem página lida) entram no pedido E na régua.
+  const speechMin = args.narration ? adsV2SpeechMinWords(args.maxWords) : 0 // KINEO-ADS-RETESTE-1510
+  const generic = adsV2GenericProduct(brandName(parsed.brief), args.sentence ?? args.text, args.language, { pageRead: /\nFrom the product page:/.test(args.text) }) // KINEO-ADS-RETESTE-1510
+  if (speechMin > 0) Object.assign(opts, { speechMin }) // KINEO-ADS-RETESTE-1510
+  if (generic) Object.assign(opts, { generic }) // KINEO-ADS-RETESTE-1510
+  const fitOpts = { generic, speech: speechMin > 0 ? { min: speechMin, max: args.maxWords, language: args.language } : null } // KINEO-ADS-RETESTE-1510
+  const fitFixes: string[] = [] // KINEO-ADS-RETESTE-1510
   const copyMsgs = buildV2CopyMessages(brief, args.languageName, opts)
   const base = [{ role: 'system' as const, content: copyMsgs.system }, { role: 'user' as const, content: copyMsgs.user }]
   // KINEO-ADS-ROTEIROS-2026-10-13 — as versões saem em paralelo com o texto de sempre (que sai PRIMEIRO), sob o mesmo prazo;
@@ -551,6 +567,7 @@ async function extractWithBudget(args: {
   const wantVariants = args.scripts === true && (args.narration || args.overlays !== false)
   const variantsP = wantVariants ? variantsCall(buildV2VariantMessages(copyMsgs, { overlays: args.overlays, scene: args.scene ?? null }), budget.deadline) : null
   let raw = await rawP
+  const rawFirst = raw // KINEO-ADS-RETESTE-1510 — a 1ª resposta: se a correção piorar (lixo/timeout), ela volta no piso de antes
   attempts += 1
   let checked = checkV2Copy(raw, brief, opts)
   if (!checked.ok) {
@@ -570,6 +587,9 @@ async function extractWithBudget(args: {
       if (!isAdsV2ModelTimeout(e)) throw e
     }
   }
+  // KINEO-ADS-RETESTE-1510 — a resposta corrigida AINDA usa o produto genérico como marca: conserto em código ("da Perfume" → "deste
+  // KINEO-ADS-RETESTE-1510 — perfume") e a régua inteira de novo. A fala curta do texto de sempre é RE-PEDIDA (a correção acima diz o número).
+  if (!checked.ok && generic) { const fin = adsV2FinishCopyRaw(raw, { generic, speech: null }); if (fin) { raw = fin.raw; fitFixes.push(...fin.fixes); checked = checkV2Copy(raw, brief, opts) } } // KINEO-ADS-RETESTE-1510
   // Os nomes são acabamento, não honestidade: se a 2ª resposta só deixou de citar algum nome (e passa em TODO o resto —
   // número, fama, contato, tamanho), ela é aceita e o que faltou vai para o evento. Nunca um 502 por causa de um nome.
   // KINEO-ATOR-AJUSTES-2026-10-09 — a fala de loja num anúncio de produto também é acabamento (o pedido e 1 correção já a
@@ -604,18 +624,31 @@ async function extractWithBudget(args: {
       }
     }
   }
+  // KINEO-ADS-RETESTE-1510 — fala curta nunca vira 502: re-pedida e ainda curta (ou a correção veio pior), o piso de antes (metade do
+  // KINEO-ADS-RETESTE-1510 — teto) decide — a resposta corrigida; a 1ª só se a correção não trouxe narração. O resultado conta (speechShort).
+  let speechShort = false // KINEO-ADS-RETESTE-1510
+  const shortOpts = { ...opts, speechMin: undefined, ...(relaxNames && voice ? { simple: { ...voice, names: [] } } : {}), ...(relaxShop && opts.ad ? { ad: { ...opts.ad, product: false } } : {}) } // KINEO-ADS-RETESTE-1510 — só os afrouxamentos que a régua acima já permite
+  if (!checked.ok && speechMin > 0) { for (const cand of [raw, ...(raw !== rawFirst && !adsV2HasNarration(raw) ? [rawFirst] : [])]) { const old = checkV2Copy(cand, brief, shortOpts); if (old.ok) { checked = old; speechShort = true; namesMissing = voice ? missingNames(old.copy.narration ?? '', voice.names) : []; break } } } // KINEO-ADS-RETESTE-1510
   if (!checked.ok) return { ok: false, stage: 'copy', why: checked.why.slice(0, 6), attempts }
   // KINEO-ADS-ROTEIROS-2026-10-13 — cada versão pela MESMA régua; reprovada sai (nunca derruba o plano).
   let variants: AdsV2CopyVariant[] = []
   let variantsInfo: AdsV2VariantsInfo | null = null
   if (variantsP) {
     const alt = await variantsP
+    // KINEO-ADS-RETESTE-1510 — reteste 15/10 (pt): 2 roteiros em vez de 3, a versão "story" caía calada (scripts_dropped 1 nos 2 planos).
+    // KINEO-ADS-RETESTE-1510 — Agora cada versão ganha o MESMO acabamento em código do texto de sempre (1ª frase de tela com o nome, piso
+    // KINEO-ADS-RETESTE-1510 — de fala, produto genérico) antes da régua inteira, e fala curta não derruba a versão (o piso de antes decide).
+    const dropWhy: string[] = [] // KINEO-ADS-RETESTE-1510 — o motivo de cada versão que caiu vai para o evento (scripts_why)
+    const mainFirst = checked.ok ? checked.copy.overlays[0] ?? null : null // KINEO-ADS-RETESTE-1510
+    const checkVariantFit = (raw0: string) => { const raw1 = adsV2VariantFirstOverlay(raw0, brandName(brief), mainFirst); const fin = adsV2FinishCopyRaw(raw1, fitOpts); const raw2 = fin ? fin.raw : raw1; let r = checkV2Variant(raw2, brief, opts, relaxedOpts, honesty); if (!r.ok && speechMin > 0) { const o = checkV2Variant(raw2, brief, { ...opts, speechMin: undefined }, { ...relaxedOpts, speechMin: undefined }, honesty); if (o.ok) r = o } if (!r.ok) dropWhy.push(String(r.why[0] ?? 'unknown').slice(0, 120)); return r.ok && fin ? { ...r, fixes: [...r.fixes, ...fin.fixes] } : r } // KINEO-ADS-RETESTE-1510
     for (const v of alt.list) {
-      const r = checkV2Variant(v.raw, brief, opts, relaxedOpts, honesty)
+      const r = checkVariantFit(v.raw) // KINEO-ADS-RETESTE-1510 — era checkV2Variant(v.raw, …) direto
       if (r.ok) variants.push({ tone: v.tone, copy: r.copy, ...(r.fixes.length ? { honestyFixes: r.fixes } : {}) })
     }
     variants = variants.slice(0, ADS_V2_ALT_TONES.length)
     variantsInfo = { asked: ADS_V2_ALT_TONES.length, kept: variants.length, dropped: alt.list.length - variants.length, ...(alt.why ? { why: alt.why } : {}) }
+    if (!variantsInfo.why && dropWhy.length) variantsInfo.why = `dropped: ${dropWhy.join(' | ')}`.slice(0, 300) // KINEO-ADS-RETESTE-1510
   }
-  return { ok: true, brief, copy: checked.copy, dropped: parsed.dropped, attempts, ...(voice ? { voice: { ...voice, namesMissing } } : {}), ...(ad ? { ad } : {}), ...(honestyFixes.length ? { honestyFixes } : {}), ...(variantsInfo ? { variants, variantsInfo } : {}) }
+  if (fitFixes.length) honestyFixes = [...honestyFixes, ...fitFixes] // KINEO-ADS-RETESTE-1510 — o acabamento em código vai para o evento (honesty_fixes), como os outros consertos
+  return { ok: true, brief, copy: checked.copy, dropped: parsed.dropped, attempts, ...(voice ? { voice: { ...voice, namesMissing } } : {}), ...(ad ? { ad } : {}), ...(honestyFixes.length ? { honestyFixes } : {}), ...(variantsInfo ? { variants, variantsInfo } : {}), ...(speechShort ? { speechShort } : {}) } // KINEO-ADS-RETESTE-1510 — speechShort: a fala ficou no piso de antes
 }

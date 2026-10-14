@@ -40,8 +40,7 @@ export const ADS_V2_STYLE_TINT: Readonly<Record<AdsV2StyleKey, readonly [string,
   parachute_delivery: ['#3B82F6', '#F97316'],
   shoal_surround: ['#0891B2', '#2DD4BF'],
   dishes_served: ['#EA580C', '#FBBF24'],
-  // KINEO-ESTILOS-DIA1-2026-10-13 (starlight_gift tirado — KINEO-TIRA-STARLIGHT-1410)
-  dolly_zoom: ['#78716C', '#F59E0B'],
+  // KINEO-ESTILOS-DIA1-2026-10-13 (starlight_gift tirado — KINEO-TIRA-STARLIGHT-1410; dolly_zoom tirado — KINEO-ADS-RETESTE-1510)
   boom_drop: ['#DC2626', '#F97316'],
   macaron_machine: ['#F9A8D4', '#5EEAD4'],
 }

@@ -15,6 +15,12 @@ import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
+// reancorado KINEO-LEVA-1410-BASE: a base era 'origin/main' — depois de publicado, origin/main JÁ CONTÉM o conserto e as provas
+// "na base" ficavam vermelhas sem defeito nenhum. Base = pai do 1º commit com a marca (mesma prova, presa ao commit certo).
+const BASE_REF = (() => {
+  const shas = execFileSync('git', ['-C', process.cwd(), 'log', '--format=%H', '--grep=KINEO-MOTOR-15S-1510', 'HEAD'], { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
+  return shas.length ? shas[shas.length - 1] + '^' : 'origin/main'
+})()
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -120,7 +126,7 @@ const r1b = await postar({ body: ordemColada, gpt: ({ n, system }) => (n === 1 |
 ok(r1b.status === 200, `pedido de 222c5ce6 ("crie um vídeo em alta hoje", sem diretiva) → 200 (status ${r1b.status})`)
 {
   // A BASE (origin/main) recusava exatamente esses dois — a prova de que o conserto é o que muda o desfecho.
-  const base = execFileSync('git', ['-C', ROOT, 'show', 'origin/main:' + ROUTE_REL], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).replace(/\r\n/g, '\n')
+  const base = execFileSync('git', ['-C', ROOT, 'show', BASE_REF + ':' + ROUTE_REL], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).replace(/\r\n/g, '\n')
   const rb = await postar({ routeSrc: base, body: temaComum, gpt: recusaDepoisRoteiro })
   ok(rb.status === 422 && rb.body?.reason === 'model_refused_topic' && rb.chamadas.length === 1, `na base, o mesmo pedido de 15 s era 422 sem nova tentativa (status ${rb.status}, ${rb.chamadas.length} chamada)`)
 }
@@ -147,7 +153,7 @@ const pisoEsperado = Math.ceil(CURTO * 0.95 * 2.5 - 1e-9)
 ok(r3.status === 200 && r3.body?.minWords === pisoEsperado && r3.body?.family === 'classic', `"Write the full script" a 15 s sem motor → piso ${pisoEsperado} palavras na régua do 15 s (veio ${r3.body?.minWords}, ${r3.body?.family})`)
 ok(pisoEsperado / 2.5 >= CURTO * 0.95, `${pisoEsperado} palavras na voz do 15 s (2,5 pal/s) = ${(pisoEsperado / 2.5).toFixed(1)} s ≥ 95 % de 15 s — nunca abaixo do alvo`)
 {
-  const base = execFileSync('git', ['-C', ROOT, 'show', 'origin/main:' + ROUTE_REL], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).replace(/\r\n/g, '\n')
+  const base = execFileSync('git', ['-C', ROOT, 'show', BASE_REF + ':' + ROUTE_REL], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).replace(/\r\n/g, '\n')
   const rb = await postar({ routeSrc: base, body: autoria, gpt: () => ROTEIRO_15S })
   ok(rb.body?.minWords < pisoEsperado, `na base, a autoria a 15 s pedia só ${rb.body?.minWords} palavras (régua histórica 2,3 × 0,95)`)
 }
@@ -209,7 +215,7 @@ ok(!/\b\d+\s*cr\b|\$\s*\d/.test(HELPER.replace(/^\s*\/\/.*$/gm, '')), 'o módulo
 console.log('8 — desfeito o conserto, os arquivos são a base (origin/main)')
 for (const [arq, rel, atual] of [['route', ROUTE_REL, ROUTE], ['client', 'app/(dashboard)/generate/GenerateClient.tsx', GEN]]) {
   let base = ''
-  try { base = execFileSync('git', ['-C', ROOT, 'show', 'origin/main:' + rel], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).replace(/\r\n/g, '\n') } catch { base = '' }
+  try { base = execFileSync('git', ['-C', ROOT, 'show', BASE_REF + ':' + rel], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).replace(/\r\n/g, '\n') } catch { base = '' }
   let d = null
   try { d = semMotor15s1510(atual, arq) } catch (e) { d = 'ERRO: ' + e.message }
   ok(base !== '' && d === base, `${rel}: tiradas as linhas KINEO-MOTOR-15S-1510, é byte a byte a base`)

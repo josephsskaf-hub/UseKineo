@@ -253,7 +253,10 @@ await check('N10 honestidade continua dura: 2ª resposta com número inventado =
 await check('N11 modo completo intocado: sem `sentence` a narração de produção passa como sempre, sem customer_names nem voice', async () => {
   const oa = openaiFalsa([BRIEF_PRODUCAO, { narration: FRASES[0].producao, overlays: ['Espaço comercial', 'À venda ou para alugar'], sector: 'real_estate' }])
   const r = await briefLoader(oa).extractAdsV2Brief({ text: FRASES[0].sentence, language: 'pt', languageName: 'Brazilian Portuguese (pt-BR)', maxWords: 30, narration: true })
-  return r.ok && r.attempts === 2 && r.copy.narration === FRASES[0].producao && !('voice' in r) && !('customer_names' in r.brief.extra) && oa.log[1].messages[0].content.includes('Say the business name once.')
+  // reancorado KINEO-ADS-RETESTE-1510 — piso de fala (27 palavras em 15 s): a narração de produção (15 palavras) agora é RE-PEDIDA
+  // (1 correção com o número, attempts 2 → 3); a correção desta simulação não traz narração, então fica a de produção no piso de
+  // antes (speechShort) — o resto do modo completo segue intocado (sem customer_names nem voice, "Say the business name once.").
+  return r.ok && r.attempts === 3 && r.copy.narration === FRASES[0].producao && r.speechShort === true && /write 27 to 30 words \(you wrote 15\)/.test(oa.log[2]?.messages?.at(-1)?.content ?? '') && !('voice' in r) && !('customer_names' in r.brief.extra) && oa.log[1].messages[0].content.includes('Say the business name once.')
 })
 
 const titulos = (M) => FRASES.every((f) => M.simpleTitle(f.sentence) === f.title) &&

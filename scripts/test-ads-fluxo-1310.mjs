@@ -36,6 +36,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semRoteiros } from './test-support/desfaz-roteiros-1310.mjs'
 import { semConsertos1410 } from './test-support/desfaz-consertos-1410.mjs' // reancorado KINEO-ADS-CONSERTOS-1410
 import { semDuracaoSaldo1510 } from './test-support/desfaz-duracao-saldo-1510.mjs' // reancorado KINEO-STUDIO-DURACAO-SALDO-1510
+import { semReteste1510 } from './test-support/desfaz-reteste-1510.mjs' // reancorado KINEO-ADS-RETESTE-1510
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -294,7 +295,10 @@ const STUDIO_BASE = {
 // reancorado KINEO-STUDIO-DURACAO-SALDO-1510 — o Studio de filmes ganhou só a duração que o saldo paga (1 import, 2 blocos ▼▲ e o
 // onClickCapture nos 5 botões de duração, tudo marcado): ele passa por semDuracaoSaldo1510 e a impressão de antes (f14aced0…fc25c)
 // continua valendo — qualquer outro caractere mexido no Studio segue vermelho (M22).
-const DESFAZ = { 'lib/ads/v2PlanCore.ts': (x) => semConsertos1410(semRoteiros(x)), 'app/(dashboard)/studio/StudioClient.tsx': (x) => semDuracaoSaldo1510(x) }
+// reancorado KINEO-ADS-RETESTE-1510 — v2Brief (piso de fala, produto genérico que não é marca, 3 roteiros; toda linha mudada marcada) e
+// v2Styles (dolly_zoom tirado) passam pelo diff REVERSO exato deste conserto (scripts/test-support/desfaz-reteste-1510.mjs): desfeitos,
+// voltam às impressões de antes (82aa07ca…/6e9807b1…), byte a byte; qualquer outra mudança nos dois segue vermelha.
+const DESFAZ = { 'lib/ads/v2PlanCore.ts': (x) => semConsertos1410(semRoteiros(x)), 'app/(dashboard)/studio/StudioClient.tsx': (x) => semDuracaoSaldo1510(x), 'lib/ads/v2Brief.ts': (x) => semReteste1510('lib/ads/v2Brief.ts', x), 'lib/ads/v2Styles.ts': (x) => semReteste1510('lib/ads/v2Styles.ts', x) }
 const iguais = (tab, over = {}) => Object.entries(tab).every(([f, h]) => sha((DESFAZ[f] || ((x) => x))(over[f] !== undefined ? over[f] : read(f))) === h)
 ok(iguais(STUDIO_BASE), 'D4 o Studio de filmes, o kit (STUDIO_KIT_CSS) e o ProductStage byte a byte iguais à base — nada foi extraído de lá')
 
@@ -327,9 +331,12 @@ ok(vagaOk(read(F.simple)), 'E2 "Escolha seu roteiro (A/B/C)": só com `scripts` 
 
 // ═══ F. botão grudado no celular ═══════════════════════════════════════════════════════════════════════════════════
 console.log('\nF. botão grudado no celular')
-const stickyOk = (ux) => /@media\(max-width:900px\)\{\n\s*\.adv2 \.adv2s-bar\{position:sticky;bottom:12px;z-index:40;display:flex/.test(ux) &&
+// reancorado KINEO-ADS-RETESTE-1510 — reteste 15/10 (390 px): a barra sticky aparecia no meio da tela, por cima do cartão do produto.
+// Agora é FIXA no rodapé, com a área segura (e acima da navegação do celular abaixo de 768 px); o resto da regra é o mesmo.
+const stickyOk = (ux) => /@media\(max-width:900px\)\{\n\s*\.adv2 \.adv2s-bar\{position:fixed;left:12px;right:12px;bottom:calc\(12px \+ env\(safe-area-inset-bottom\)\);z-index:40;display:flex/.test(ux) &&
+  /@media\(max-width:767px\)\{\.adv2 \.adv2s-bar\{bottom:calc\(76px \+ env\(safe-area-inset-bottom\)\)\}\}/.test(ux) &&
   /\{go \? \(\s*<button type="button" className="adsw-btn small adv2f-gobtn" data-kineo="ads-mobile-go" aria-disabled=\{go\.disabled\} onClick=\{go\.onClick\}>\{go\.label\}<\/button>/.test(code(ux))
-ok(stickyOk(read(F.ux)), 'F1 a barra do celular gruda embaixo (position:sticky) e leva o botão principal')
+ok(stickyOk(read(F.ux)), 'F1 a barra do celular fica FIXA no rodapé (área segura; acima da navegação < 768 px) e leva o botão principal')
 const repasseOk = (src) => {
   const s = code(src)
   const g = bloco(s, 'function goFromBar()')
@@ -461,7 +468,7 @@ vermelho('M7 palco com a cor fixa (ignora o estilo)', F.comp, "'--stage-a': data
 vermelho('M8 "Gerar · 41 créditos" digitado', F.simple, 'fill(fc.review.go, { c: shownCost })', 'fill(fc.review.go, { c: 41 })', (s) => revisaoOk(s))
 vermelho('M9 frase "Gerar" com número cravado numa língua', F.flow, "go: 'Gerar · {c} créditos'", "go: 'Gerar · 41 créditos'", (_s, o) => linguasOk(libs(o)(F.flow)))
 vermelho('M10 frase copiada do inglês', F.flow, "title: 'Lemos sua página'", "title: 'We read your page'", (_s, o) => linguasOk(libs(o)(F.flow)))
-vermelho('M11 barra do celular sem grudar', F.ux, '.adv2 .adv2s-bar{position:sticky;bottom:12px;', '.adv2 .adv2s-bar{position:static;bottom:12px;', (s) => stickyOk(s))
+vermelho('M11 barra do celular sem grudar', F.ux, '.adv2 .adv2s-bar{position:fixed;left:12px;', '.adv2 .adv2s-bar{position:static;left:12px;', (s) => stickyOk(s)) // reancorado KINEO-ADS-RETESTE-1510 — sticky → fixed
 vermelho('M12 barra chamando makeAd direto (2ª porta de débito)', F.simple, 'if (b && !b.disabled && !goDisabled) b.click()', 'if (b && !b.disabled && !goDisabled) void makeAd()', (s) => repasseOk(s))
 vermelho('M13 "Comece deste" apagando o texto do produto', F.simple, '    setStartNote(fc.start.applied)', "    setStartNote(fc.start.applied)\n    setText('')", (s) => comeceTela(s))
 vermelho('M14 receita levando o link junto', F.flow, 'return it ? { style: it.style, scene: it.scene, presenter: it.presenter } : null', 'return it ? ({ style: it.style, scene: it.scene, presenter: it.presenter, link: it.video } as never) : null', (_s, o) => comeceOk(libs(o)(F.flow)))

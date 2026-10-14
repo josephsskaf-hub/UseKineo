@@ -22,8 +22,9 @@ export const ADS_V2_CONTRACT_PHOTO_KINDS: readonly AdsV2ContractPhotoKind[] = ['
 // KINEO-ADS-UX-MARCA-2026-10-10 — 15 estilos (+10 do mesmo endpoint); espelho de ADS_V2_STYLE_KEYS.
 // KINEO-ESTILOS-DIA1-2026-10-13 — 19 estilos (+4 do lote do dia 1, mesmo endpoint PixVerse v5).
 // KINEO-TIRA-STARLIGHT-1410 — 18: starlight_gift tirado (fundador 14/10).
-export type AdsV2ContractStyle = 'package_explosion' | 'giant_product' | 'product_closeup' | 'ocean_ad' | 'mechanical_assembly' | 'naked_eye_3d_ad' | 'beach_ad' | 'lighting_ad' | 'supermarket_ad' | 'poster_ad' | 'graffiti_ad' | 'dreamlike_cloud' | 'parachute_delivery' | 'shoal_surround' | 'dishes_served' | 'dolly_zoom' | 'boom_drop' | 'macaron_machine'
-export const ADS_V2_CONTRACT_STYLES: readonly AdsV2ContractStyle[] = ['package_explosion', 'giant_product', 'product_closeup', 'ocean_ad', 'mechanical_assembly', 'naked_eye_3d_ad', 'beach_ad', 'lighting_ad', 'supermarket_ad', 'poster_ad', 'graffiti_ad', 'dreamlike_cloud', 'parachute_delivery', 'shoal_surround', 'dishes_served', 'dolly_zoom', 'boom_drop', 'macaron_machine']
+// KINEO-ADS-RETESTE-1510 — 17: dolly_zoom tirado (reteste 15/10: o efeito desenhou um rosto no líquido do perfume em 2 de 2 anúncios).
+export type AdsV2ContractStyle = 'package_explosion' | 'giant_product' | 'product_closeup' | 'ocean_ad' | 'mechanical_assembly' | 'naked_eye_3d_ad' | 'beach_ad' | 'lighting_ad' | 'supermarket_ad' | 'poster_ad' | 'graffiti_ad' | 'dreamlike_cloud' | 'parachute_delivery' | 'shoal_surround' | 'dishes_served' | 'boom_drop' | 'macaron_machine'
+export const ADS_V2_CONTRACT_STYLES: readonly AdsV2ContractStyle[] = ['package_explosion', 'giant_product', 'product_closeup', 'ocean_ad', 'mechanical_assembly', 'naked_eye_3d_ad', 'beach_ad', 'lighting_ad', 'supermarket_ad', 'poster_ad', 'graffiti_ad', 'dreamlike_cloud', 'parachute_delivery', 'shoal_surround', 'dishes_served', 'boom_drop', 'macaron_machine']
 
 export const ADS_V2_SENTENCE_MAX_CHARS = 400
 export const ADS_V2_LINK_MAX_CHARS = 500

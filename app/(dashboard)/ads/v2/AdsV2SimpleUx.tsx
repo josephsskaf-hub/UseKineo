@@ -13,6 +13,7 @@ import { createPortal } from 'react-dom'
 import { clampFocal, focalPosition } from '@/lib/ads/v2Screen'
 import { adsV2CropWindowPct, adsV2MoveCropWindow, type AdsV2UxCopy } from '@/lib/ads/v2SimpleUx'
 import { fill } from '@/lib/ads/v2Simple'
+import { ADS_V2_BOARD_GO_SELECTOR, adsV2MobileBarVisible } from '@/lib/ads/v2AutoPlan' // KINEO-ADS-RETESTE-1510 — a barra some enquanto o botão do quadro está à vista
 
 export const SIMPLE_UX_CSS = `
 .adv2s-slot{position:sticky;top:16px;align-self:start;min-width:0}
@@ -58,7 +59,7 @@ export const SIMPLE_UX_CSS = `
 .adv2 .adv2s-eta{margin:8px 0 0;font-size:12.5px;color:var(--ads-muted)}
 .adv2 .adv2s-bar{display:none}
 @media(max-width:900px){
-  .adv2 .adv2s-bar{position:sticky;bottom:12px;z-index:40;display:flex;align-items:center;gap:10px;margin:8px 0 0;padding:8px 10px;border:1px solid var(--ads-line);border-radius:16px;background:color-mix(in srgb,var(--ads-card) 94%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 12px 30px -14px rgba(0,0,0,.45);min-width:0}
+  .adv2 .adv2s-bar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:40;display:flex;align-items:center;gap:10px;margin:0;padding:8px 10px;border:1px solid var(--ads-line);border-radius:16px;background:color-mix(in srgb,var(--ads-card) 94%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 12px 30px -14px rgba(0,0,0,.45);min-width:0}
   .adv2 .adv2s-bar .th{flex:0 0 34px;height:60px;border-radius:7px;overflow:hidden;background:#05070b}
   .adv2 .adv2s-bar .th img{width:100%;height:100%;object-fit:cover;display:block}
   .adv2 .adv2s-bar .tx{flex:1 1 auto;min-width:0;font-size:12.5px;line-height:1.35;color:var(--ads-text)}
@@ -66,6 +67,10 @@ export const SIMPLE_UX_CSS = `
   .adv2 .adv2s-bar button{flex:0 0 auto}
 }
 @media(max-width:767px){.adv2 .adv2s-bar{bottom:calc(76px + env(safe-area-inset-bottom))}}
+.adv2 .adv2s-bar[data-hidden=true]{display:none}
+@media(max-width:900px){html .stu.adv2:has(.adv2s-bar:not([data-hidden=true])){padding-bottom:calc(104px + env(safe-area-inset-bottom))}}
+@media(max-width:900px){html .stu.adv2 .kps-panel:has(.adv2s-bar){-webkit-backdrop-filter:none;backdrop-filter:none}}
+@media(max-width:767px){html .stu.adv2:has(.adv2s-bar:not([data-hidden=true])){padding-bottom:calc(176px + env(safe-area-inset-bottom))}}
 @media(max-width:360px){.adv2 .adv2s-steps button>span{font-size:10.5px}}
 .adv2s-sheet{position:fixed;inset:0;z-index:90;display:grid;place-items:end center;background:rgba(0,0,0,.6);padding:12px}
 .adv2s-sheet .in{position:relative;width:min(100%,420px);height:min(92svh,760px);border-radius:22px;overflow:hidden}
@@ -395,9 +400,19 @@ export function MobilePreviewBar({ data, copy, go }: { data: LivePreviewData; co
     return () => document.removeEventListener('keydown', onKey)
   }, [open])
   const first = data.photos[0]
+  // KINEO-ADS-RETESTE-1510 — com o botão principal (`go`): a barra some enquanto o botão do próprio quadro (.adv2q-go) está à vista.
+  const [boardGoInView, setBoardGoInView] = useState<boolean | null>(go ? true : null) // KINEO-ADS-RETESTE-1510
+  useEffect(() => { // KINEO-ADS-RETESTE-1510
+    if (!go || typeof IntersectionObserver === 'undefined') { setBoardGoInView(null); return }
+    const el = document.querySelector(ADS_V2_BOARD_GO_SELECTOR)
+    if (!el) { setBoardGoInView(null); return }
+    const io = new IntersectionObserver((entries) => setBoardGoInView(entries.some((e) => e.isIntersecting)))
+    io.observe(el)
+    return () => io.disconnect()
+  }, [!!go]) // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <>
-      <div className="adv2s-bar" data-kineo="ads-mobile-bar">
+      <div className="adv2s-bar" data-kineo="ads-mobile-bar" data-hidden={adsV2MobileBarVisible(boardGoInView) ? undefined : 'true'}>{/* KINEO-ADS-RETESTE-1510 */}
         <span className="th" aria-hidden="true">{first ? <img src={first.srcUrl} alt="" style={{ objectPosition: focalPosition(first.fx, first.fy) }} /> : null}</span>
         <span className="tx" role="status">
           {data.costText}

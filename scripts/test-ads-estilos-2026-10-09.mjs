@@ -82,10 +82,10 @@ const ENUMS = {
   shoal_surround: 'Shoal Surround',
   dishes_served: 'Dishes Served',
   // KINEO-ESTILOS-DIA1-2026-10-13 — re-ancorado: +4 do lote do dia 1 (fundador 13/10 "tudo sim"; enum EXATO da sonda ad_*).
-  dolly_zoom: 'Hitchcock Dolly Zoom',
   boom_drop: 'BOOM DROP',
   macaron_machine: 'Macaron Machine',
   // reancorado KINEO-TIRA-STARLIGHT-1410 — starlight_gift tirado (fundador 14/10): ficam 3 do lote do dia 1.
+  // reancorado KINEO-ADS-RETESTE-1510 — dolly_zoom tirado (reteste 15/10: rosto no líquido do perfume): ficam 2 do lote do dia 1.
 }
 const KEYS = Object.keys(ENUMS)
 const SLUG = 'fal-ai/pixverse/v5/effects'
@@ -192,8 +192,9 @@ const SECONDS = [15, 20, 30]
 // KINEO-ADS-UX-MARCA-2026-10-10 — re-ancorado: 5 → 15 estilos (os 5 de antes na mesma ordem, +10 no fim).
 // KINEO-ESTILOS-DIA1-2026-10-13 — re-ancorado: 15 → 19 estilos (os 15 de antes na mesma ordem, +4 no fim).
 // reancorado KINEO-TIRA-STARLIGHT-1410 — 19 → 18 (starlight_gift tirado; os 15 de antes na mesma ordem, +3 no fim).
-await check('1a os 18 estilos, na ordem, com o enum EXATO da fal (maiúsculas e hífen contam)', () =>
-  S.ADS_V2_STYLES.length === 18 && KEYS.length === 18 && S.ADS_V2_STYLES.every((s, i) => s.key === KEYS[i] && s.effect === ENUMS[s.key]))
+// reancorado KINEO-ADS-RETESTE-1510 — 18 → 17 (dolly_zoom tirado; os 15 de antes na mesma ordem, +2 no fim).
+await check('1a os 17 estilos, na ordem, com o enum EXATO da fal (maiúsculas e hífen contam)', () =>
+  S.ADS_V2_STYLES.length === 17 && KEYS.length === 17 && S.ADS_V2_STYLES.every((s, i) => s.key === KEYS[i] && s.effect === ENUMS[s.key]))
 await check('1b espelhos: chaves de v2Styles = v2Contract = v2ShotLists = v2Engines; enums de v2Engines = v2Styles', () =>
   JSON.stringify(S.ADS_V2_STYLE_KEYS) === JSON.stringify(KEYS) && JSON.stringify(C.ADS_V2_CONTRACT_STYLES) === JSON.stringify(KEYS) &&
   JSON.stringify(SL.ADS_V2_PLAN_STYLES) === JSON.stringify(KEYS) && JSON.stringify(Object.keys(E.ADS_V2_EFFECT_BY_STYLE)) === JSON.stringify(KEYS) &&
