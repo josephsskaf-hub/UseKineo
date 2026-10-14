@@ -274,9 +274,16 @@ const ESTILOS_DIA1_EXPECTED = {
 const PIXVERSE_V5_ENUM_CHECKED = new Set(['Hitchcock Dolly Zoom', 'Liquid Metal', 'BOOM DROP', 'Mint in Box', 'Snow Globe Maker',
   'Smell the Lens', 'Macaron Machine', 'Starlight Gift Box', 'Earth Zoom', 'Christmas Night'])
 const ADS_REPROVADOS = new Set(['Billboard AD', 'Truck AD', 'Microwave'])
+// KINEO-ESTILOS-DIA1-2026-10-13 — reancorado: 4 efeitos DESTE lote viraram estilo (tipo AdsV2Dia1StyleKey em v2Styles). A regra
+// "o lote é novo" compara com os estilos que já estavam no ar ANTES do lote (os 15); os promovidos têm de ser do próprio lote.
 function v2StyleEffects() {
   const s = fs.readFileSync('lib/ads/v2Styles.ts', 'utf8')
-  return new Set([...s.matchAll(/^ {2}\{ key: '[a-z0-9_]+', effect: '([^']+)'/gm)].map((m) => m[1]))
+  const dia1 = new Set((((s.match(/type AdsV2Dia1StyleKey = ([^\n]+)/) || [, ''])[1]).match(/'([a-z0-9_]+)'/g) || []).map((x) => x.slice(1, -1)))
+  const all = [...s.matchAll(/^ {2}\{ key: '([a-z0-9_]+)', effect: '([^']+)'/gm)].map((m) => ({ key: m[1], effect: m[2] }))
+  const set = new Set(all.filter((x) => !dia1.has(x.key)).map((x) => x.effect))
+  set.promoted = all.filter((x) => dia1.has(x.key)).map((x) => x.effect)
+  set.dia1Keys = dia1.size
+  return set
 }
 function rulesEstilosDia1(src) {
   const P = loadProbes(src)
@@ -298,7 +305,8 @@ function rulesEstilosDiferentes(src) {
   const ja = v2StyleEffects()
   if (!P || ja.size !== 15) return false // os 15 estilos no ar (se o arquivo mudar de forma, o guardião acusa em vez de passar mudo)
   const effects = Object.keys(P).filter((k) => k.startsWith('ad_')).map((k) => P[k].input(AD_IMG).effect)
-  return effects.length === 10 && new Set(effects).size === 10 && effects.every((e) => !ja.has(e) && !ADS_REPROVADOS.has(e))
+  return effects.length === 10 && new Set(effects).size === 10 && effects.every((e) => !ja.has(e) && !ADS_REPROVADOS.has(e)) &&
+    ja.dia1Keys === 4 && ja.promoted.length === 4 && ja.promoted.every((e) => effects.includes(e)) // KINEO-ESTILOS-DIA1-2026-10-13
 }
 function estilosDia1Untouched() {
   const c = git(['log', '--format=%H', '-S', 'KINEO-ESTILOS-DIA1-2026-10-13', '--', ROUTE]).split('\n').filter(Boolean).pop()
