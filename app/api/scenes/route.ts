@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { AI_TEXT_MODELS } from '@/lib/aiModels' // KINEO-MIGRACAO-OPENAI-F1-1410
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai'
 
@@ -138,7 +139,7 @@ No markdown, no code fences. Raw JSON array only.`
     try {
       completion = await openai.chat.completions.create(
         {
-          model: 'gpt-4o',
+          model: AI_TEXT_MODELS.writer, // KINEO-MIGRACAO-OPENAI-F1-1410 = gpt-4o
           messages: [
             {
               role: 'system',

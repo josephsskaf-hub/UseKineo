@@ -7,6 +7,7 @@
 // simply don't write it this run — the reader keeps that vertical's last good
 // run (per-vertical latest), so a card is never empty.
 import { NextRequest, NextResponse } from 'next/server'
+import { AI_TEXT_MODELS } from '@/lib/aiModels' // KINEO-MIGRACAO-OPENAI-F1-1410
 import { createClient } from '@supabase/supabase-js'
 import { openai } from '@/lib/openai'
 
@@ -77,7 +78,7 @@ async function topicsForVertical(
   // 2) Reformat into 3 fresh Short topics (not raw headlines).
   const avoidLine = avoid.length > 0 ? `\n\nDo NOT repeat or closely paraphrase any of these already-used topics:\n- ${avoid.join('\n- ')}` : ''
   const completion = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: AI_TEXT_MODELS.utility, // KINEO-MIGRACAO-OPENAI-F1-1410 = gpt-4o-mini
     temperature: 0.8,
     max_tokens: 200,
     messages: [

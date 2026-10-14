@@ -14,6 +14,7 @@
 // exclusão em todos os três caminhos.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { AI_TEXT_MODELS } from '@/lib/aiModels' // KINEO-MIGRACAO-OPENAI-F1-1410
 import { openai } from '@/lib/openai'
 import { buildSeriesContinuationPrompt, normalizeSeriesSeed } from '@/lib/seriesContinuation'
 
@@ -89,7 +90,7 @@ async function fromOpenAi(args: {
       ? `\n\nDo NOT repeat or closely paraphrase any of these already-used topics:\n- ${args.avoid.join('\n- ')}`
       : ''
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: AI_TEXT_MODELS.utility, // KINEO-MIGRACAO-OPENAI-F1-1410 = gpt-4o-mini
       temperature: 0.9,
       max_tokens: 80,
       messages: [

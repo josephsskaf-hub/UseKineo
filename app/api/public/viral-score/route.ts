@@ -7,6 +7,7 @@
 // length cap + best-effort per-IP rate limit + heuristic fallback so it never
 // hard-fails (and never blocks on OpenAI being down or unbilled).
 import { NextRequest, NextResponse } from 'next/server'
+import { AI_TEXT_MODELS } from '@/lib/aiModels' // KINEO-MIGRACAO-OPENAI-F1-1410
 import { openai } from '@/lib/openai'
 
 export const maxDuration = 30
@@ -94,7 +95,7 @@ export async function POST(req: NextRequest) {
 
     try {
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: AI_TEXT_MODELS.utility, // KINEO-MIGRACAO-OPENAI-F1-1410 = gpt-4o-mini
         temperature: 0.3,
         max_tokens: 400,
         response_format: { type: 'json_object' },

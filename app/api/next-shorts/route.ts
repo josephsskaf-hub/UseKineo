@@ -29,6 +29,7 @@
 // it only ever runs for someone who just spent a credit, so the per-IP limiter
 // that guards the public demo routes is unnecessary here.
 import { NextRequest, NextResponse } from 'next/server'
+import { AI_TEXT_MODELS } from '@/lib/aiModels' // KINEO-MIGRACAO-OPENAI-F1-1410
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai'
 
@@ -100,7 +101,7 @@ export async function POST(req: NextRequest) {
 
     const completion = await openai.chat.completions.create(
       {
-        model: 'gpt-4o-mini',
+        model: AI_TEXT_MODELS.utility, // KINEO-MIGRACAO-OPENAI-F1-1410 = gpt-4o-mini
         temperature: 0.85,
         max_tokens: 600,
         response_format: { type: 'json_object' },
