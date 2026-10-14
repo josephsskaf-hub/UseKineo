@@ -2,6 +2,7 @@
 // /free-hook-generator lead-magnet page. Same abuse posture as /api/demo-script:
 // gpt-4o-mini + token cap, topic capped at 200 chars, per-IP 12/day limit.
 import { NextRequest, NextResponse } from 'next/server'
+import { AI_TEXT_MODELS } from '@/lib/aiModels' // KINEO-MIGRACAO-OPENAI-F1-1410
 import { openai } from '@/lib/openai'
 import { looksOpenAiQuotaDead, alertOpenAiExhausted, openAiAlertKind } from '@/lib/openaiAlert'
 import { fallbackDemoHooks } from '@/lib/demoFallback'
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
     try {
       completion = await openai.chat.completions.create(
         {
-          model: 'gpt-4o-mini',
+          model: AI_TEXT_MODELS.utility, // KINEO-MIGRACAO-OPENAI-F1-1410 = gpt-4o-mini
           messages: [
             { role: 'system', content: SYSTEM },
             { role: 'user', content: `Topic: ${topic}` },

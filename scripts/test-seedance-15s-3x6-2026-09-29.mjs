@@ -29,6 +29,7 @@
 // que passava verde. (c) o mutante do escritor passa pelo MESMO predicado da checagem principal (antes: "≠ 40", que o
 // original também cumpria). (d) dinheiro — o resgate de roteiro todo entre colchetes também sai em 3 blocos.
 import { readFileSync } from 'node:fs'
+import { linhasTrocadasAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -445,7 +446,7 @@ function soAcrescimos(p) {
   ])
   // KINEO-H3MAX-2026-10-13 — reancorado com motivo: + as linhas da base que a entrada do MiniMax H3 Max trocou de propósito nas duas rotas
   // (lista exata em scripts/test-support/h3max-2026-10-13-trocas.json; cada substituta marcada e provada em test-h3max-motor-2026-10-13).
-  const tiradas = diff.split(LF).filter((l) => l.startsWith('-') && !l.startsWith('---') && !(p.endsWith('generate-video-cinematic/route.ts') && TROCADAS.has(l.slice(1))) && !linhasTrocadasH3max(p).includes(l.slice(1)) && !linhasTrocadasParceiroEyebible1410(p).includes(l.slice(1)) && !linhasTrocadasParceiroEyebible2_1410(p).includes(l.slice(1))) // reancorado KINEO-PARCEIRO-EYEBIBLE-1410 [TRAVA 8.2 — vai do fundador 14/10]
+  const tiradas = diff.split(LF).filter((l) => l.startsWith('-') && !l.startsWith('---') && !(p.endsWith('generate-video-cinematic/route.ts') && TROCADAS.has(l.slice(1))) && !linhasTrocadasH3max(p).includes(l.slice(1)) && !linhasTrocadasParceiroEyebible1410(p).includes(l.slice(1)) && !linhasTrocadasParceiroEyebible2_1410(p).includes(l.slice(1)) && !linhasTrocadasAncoraLegenda1410(p).includes(l.slice(1)) /* KINEO-ANCORA-LEGENDA-1410 */) // reancorado KINEO-PARCEIRO-EYEBIBLE-1410 [TRAVA 8.2 — vai do fundador 14/10]
   return { ok: tiradas.length === 0, n: diff.split(LF).filter((l) => l.startsWith('+') && !l.startsWith('+++')).length }
 }
 {

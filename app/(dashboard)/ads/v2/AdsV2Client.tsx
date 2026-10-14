@@ -35,6 +35,7 @@ import { ADS_HOUSE_STAGE, ProductRow, ProductStage, ProductStageStyles, useProdu
 // KINEO-ADS-FLUXO-2026-10-13 — as abas "Um anúncio / Lote / Produção" (como Filme/Clipe no Studio) e o CSS do fluxo novo.
 import { ADS_FLOW_CSS, AdsFlowTabs } from '@/components/ads/AdsFlow' // KINEO-ADS-FLUXO-2026-10-13
 import { ADS_QUADRO_STUDIO_CSS, ADS_QUADRO_TINT_CSS } from './AdsV2Quadro' // KINEO-ADS-QUADRO-STUDIO-1510 — o fundo, o cabeçalho e o quadro do Studio
+import { ADS_PALCO_VOLTAR_CSS } from '@/lib/ads/v2PalcoVoltar' // KINEO-ADS-PALCO-VOLTAR-1410 — o quadro nunca fica mais largo que o painel (o palco não cobre mais o formulário)
 import { adsV2FlowCopy, adsV2FlowTabFor } from '@/lib/ads/v2Flow' // KINEO-ADS-FLUXO-2026-10-13
 
 // KINEO-ABAS-PALCO-2026-10-01 — dentro do quadro de engenharia os passos do montador não têm caixa própria, e o quadro
@@ -615,6 +616,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
       {/* KINEO-ADS-QUADRO-STUDIO-1510 — o par de cores do Studio (STAGE_TINT.seedance, em AdsV2Quadro) por cima do par do Ads, e o quadro curto (por último). */}
       <style dangerouslySetInnerHTML={{ __html: ADS_QUADRO_TINT_CSS }} />{/* KINEO-ADS-QUADRO-STUDIO-1510 */}
       <style dangerouslySetInnerHTML={{ __html: ADS_QUADRO_STUDIO_CSS }} />{/* KINEO-ADS-QUADRO-STUDIO-1510 */}
+      <style dangerouslySetInnerHTML={{ __html: ADS_PALCO_VOLTAR_CSS }} />{/* KINEO-ADS-PALCO-VOLTAR-1410 — por último: a coluna do quadro é minmax(0,1fr) */}
       <header className="adsw-header adv2-head">
         <div>
           <h1>{shell.title}</h1>

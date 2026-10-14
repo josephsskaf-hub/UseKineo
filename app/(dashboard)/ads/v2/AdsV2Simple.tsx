@@ -132,6 +132,7 @@ import { adsV2PackshotCopy } from '@/lib/ads/v2Packshot' // KINEO-ADS-MELHORIAS-
 import { adsV2FormatCopy } from '@/lib/ads/v2Formats' // KINEO-ADS-MELHORIAS-1410 — as frases do formato (16 línguas)
 import { ADS_V2_FORMATS, ADS_V2_FORMAT_CROP, adsV2CropRectFor, adsV2FormatBlock, type AdsV2Format } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — 4:5 e 1:1 em "Mais opções"
 import { adsV2RedoCopy, adsV2RedoFill, type AdsV2RedoCopy } from '@/lib/ads/v2Redo' // KINEO-ADS-MELHORIAS-1410 — refazer UMA cena aqui mesmo (frases nas 16 línguas)
+import { adsPalcoVoltarCopy, brandKitConflict, brandKitRetract, type AdsKitFilled } from '@/lib/ads/v2PalcoVoltar' // KINEO-ADS-PALCO-VOLTAR-1410 — "✕ Fechar estilos" e o kit que sai quando o anúncio é de outra marca
 
 // ─── tipos ────────────────────────────────────────────────────────────────────────────────────
 
@@ -720,6 +721,16 @@ export function AdsV2SimpleSession({
   const fix: AdsV2FixCopy = adsV2FixCopy(lang)
   const [kitBusiness, setKitBusiness] = useState<string | null>(null)
   const saveKitTouchedRef = useRef(false)
+  // KINEO-ADS-PALCO-VOLTAR-1410 — o kit deste anúncio: o que ele preencheu, se está fora (pela pessoa ou por conflito de marca),
+  // o logo dele (para devolver) e o que a página do link leu (o nome/preço que voltam quando o kit sai).
+  const pv = adsPalcoVoltarCopy(lang) // KINEO-ADS-PALCO-VOLTAR-1410
+  const [kitOff, setKitOff] = useState<'user' | 'conflict' | null>(null) // KINEO-ADS-PALCO-VOLTAR-1410
+  const kitFilledRef = useRef<AdsKitFilled>({}) // KINEO-ADS-PALCO-VOLTAR-1410
+  const kitLogoUrlRef = useRef<string | null>(null) // KINEO-ADS-PALCO-VOLTAR-1410
+  const kitForcedRef = useRef(false) // KINEO-ADS-PALCO-VOLTAR-1410 — "Usar o kit" depois do aviso: o conflito não tira de novo
+  const [linkPage, setLinkPage] = useState<{ name: string; price: string } | null>(null) // KINEO-ADS-PALCO-VOLTAR-1410
+  const stylesSeeAllRef = useRef<HTMLButtonElement | null>(null) // KINEO-ADS-PALCO-VOLTAR-1410 — o foco volta ao "Ver todos" ao fechar
+  const closeStyles = () => { setStylesOpen(false); window.setTimeout(() => stylesSeeAllRef.current?.focus(), 0) } // KINEO-ADS-PALCO-VOLTAR-1410 — ✕ e Esc: o estilo escolhido fica
   const [photoColor, setPhotoColor] = useState<string | null>(null)
   const linkInputRef = useRef<HTMLInputElement | null>(null)
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -831,6 +842,11 @@ export function AdsV2SimpleSession({
   const cardContact = contactT || linkHost
   const cardCta = contactT ? endCardCtaLabel(simpleCtaKind(contactT), spoken) : linkHost ? endCardCtaLabel('buy', spoken) : ''
   const otherBrand = brandKitIsOtherBrand(kitBusiness, cardTitleFinal, sentence)
+  // KINEO-ADS-PALCO-VOLTAR-1410 — o kit só fica enquanto a frase / o link não indicarem OUTRA marca (regra pura em lib/ads/v2PalcoVoltar).
+  const kitEvidence = { sentence, linkName: linkPage?.name ?? null, linkHost } // KINEO-ADS-PALCO-VOLTAR-1410
+  const kitConflict = brandKitConflict(kitBusiness, kitEvidence) // KINEO-ADS-PALCO-VOLTAR-1410
+  const kitEvidenceRef = useRef(kitEvidence) // KINEO-ADS-PALCO-VOLTAR-1410 — o kit que chega depois (rede) lê a evidência de agora
+  kitEvidenceRef.current = kitEvidence // KINEO-ADS-PALCO-VOLTAR-1410
   const firstPhotoUrl = items.slice(0, ADS_V2_SIMPLE_MAX_IN_AD).find((p) => !p.video)?.srcUrl ?? null
 
   /** Chave do rascunho: mudou texto, preço, contato, frases, voz, língua ou nível = rascunho novo (a pesquisa é copiada). */
@@ -1153,6 +1169,13 @@ export function AdsV2SimpleSession({
         return
       }
       const f = formRef.current
+      // KINEO-ADS-PALCO-VOLTAR-1410 — a frase/o link de agora já são de OUTRA marca: o kit não entra (fica o aviso com "Usar o kit").
+      if (brandKitConflict(kit.business, kitEvidenceRef.current)) {
+        kitLogoUrlRef.current = logoLocal
+        setKitApplied(kit)
+        setKitOff('conflict')
+        return
+      }
       const fillIn = brandKitPrefill(kit, { business: f.cardTitle, price: f.price, contact: f.contact, color: f.cardColor, defaultColor: DEFAULT_COLOR, hasLogo: f.hasLogo }, logoLocal)
       if (fillIn.business) setCardTitle(fillIn.business)
       if (fillIn.price) setPrice(fillIn.price)
@@ -1160,6 +1183,8 @@ export function AdsV2SimpleSession({
       if (fillIn.color) setCardColor(fillIn.color)
       if (fillIn.logo) setLogo({ footageId: fillIn.logo.footageId, localUrl: fillIn.logo.url, busy: false, error: null })
       else dropUrl(logoLocal)
+      kitLogoUrlRef.current = fillIn.logo ? fillIn.logo.url : null // KINEO-ADS-PALCO-VOLTAR-1410
+      kitFilledRef.current = { business: fillIn.business, price: fillIn.price, contact: fillIn.contact, color: fillIn.color, logoFootageId: fillIn.logo?.footageId } // KINEO-ADS-PALCO-VOLTAR-1410
       if (Object.keys(fillIn).length) setKitApplied(kit)
     })()
     return () => {
@@ -1167,6 +1192,43 @@ export function AdsV2SimpleSession({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // KINEO-ADS-PALCO-VOLTAR-1410 — tirar o kit deste anúncio (pela pessoa ou porque a frase/o link são de outra marca): sai SÓ o que
+  // o kit pôs e a pessoa não mexeu; nome e preço voltam ao que a página do link leu. Devolver = preencher de novo o que estiver vazio.
+  const kitRetract = (why: 'user' | 'conflict') => {
+    const f = formRef.current
+    const r = brandKitRetract(kitFilledRef.current, { business: f.cardTitle, price: f.price, contact: f.contact, color: f.cardColor, logoFootageId: logo?.footageId ?? null }, { business: linkPage?.name ?? '', price: linkPage?.price ?? '', defaultColor: DEFAULT_COLOR })
+    setCardTitle(r.business)
+    setPrice(r.price)
+    setContact(r.contact)
+    setCardColor(r.color)
+    if (r.dropLogo) setLogo(null)
+    kitFilledRef.current = {}
+    kitForcedRef.current = false
+    setKitOff(why)
+  }
+  const kitReapply = (forced: boolean) => {
+    if (!kitApplied) return
+    const f = formRef.current
+    // o nome/preço que a página do link pôs quando o kit saiu contam como vazios (a pessoa pediu o kit de volta)
+    const business = linkPage && f.cardTitle === linkPage.name ? '' : f.cardTitle
+    const price = linkPage && f.price === linkPage.price ? '' : f.price
+    const fillIn = brandKitPrefill(kitApplied, { business, price, contact: f.contact, color: f.cardColor, defaultColor: DEFAULT_COLOR, hasLogo: f.hasLogo }, kitLogoUrlRef.current)
+    if (fillIn.business) setCardTitle(fillIn.business)
+    if (fillIn.price) setPrice(fillIn.price)
+    if (fillIn.contact) setContact(fillIn.contact)
+    if (fillIn.color) setCardColor(fillIn.color)
+    if (fillIn.logo) setLogo({ footageId: fillIn.logo.footageId, localUrl: fillIn.logo.url, busy: false, error: null })
+    kitFilledRef.current = { business: fillIn.business, price: fillIn.price, contact: fillIn.contact, color: fillIn.color, logoFootageId: fillIn.logo?.footageId }
+    kitForcedRef.current = forced
+    setKitOff(null)
+  }
+  useEffect(() => {
+    if (!kitApplied) return
+    if (kitConflict && kitOff === null && !kitForcedRef.current) kitRetract('conflict')
+    else if (!kitConflict && kitOff === 'conflict') kitReapply(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kitConflict, kitApplied, kitOff])
 
   // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — "Save as my brand kit" NÃO vem marcado quando já existe um kit com OUTRO nome de marca
   // (prospecção de 12/10: quem anuncia para várias marcas sobrescrevia o próprio kit sem perceber). O clique da pessoa manda.
@@ -1402,6 +1464,7 @@ export function AdsV2SimpleSession({
       const pagePrice = typeof r.data.price === 'string' ? r.data.price.replace(/\s+/g, ' ').trim().slice(0, 60) : '' // KINEO-ADS-FLUXO-2026-10-13
       if (pageName) setCardTitle((cur) => (cur.trim() ? cur : pageName)) // KINEO-ADS-FLUXO-2026-10-13
       if (pagePrice) setPrice((cur) => (cur.trim() ? cur : pagePrice)) // KINEO-ADS-FLUXO-2026-10-13
+      setLinkPage({ name: pageName || '', price: pagePrice }) // KINEO-ADS-PALCO-VOLTAR-1410 — o nome que a página DIZ (é evidência da marca e volta ao cartão se o kit sair)
       setLinkFacts({ host: host || url, priceFound: !!pagePrice }) // KINEO-ADS-FLUXO-2026-10-13
       const added: SimpleItem[] = []
       const list = Array.isArray(r.data.images) ? r.data.images.slice(0, ADS_V2_LINK_IMPORT_MAX_IMAGES) : []
@@ -2095,7 +2158,7 @@ export function AdsV2SimpleSession({
                     maxLength={500}
                     disabled={locked || linkBusy}
                     placeholder={lcopy.linkPlaceholder}
-                    onChange={(e) => { setLink(e.target.value); if (!e.target.value.trim()) { setLinkRead(null); setLinkFacts(null) } }}
+                    onChange={(e) => { setLink(e.target.value); if (!e.target.value.trim()) { setLinkRead(null); setLinkFacts(null); setLinkPage(null) } }} // KINEO-ADS-PALCO-VOLTAR-1410 — link apagado = o nome lido deixa de ser evidência
                     onPaste={(e) => {
                       const pasted = e.clipboardData.getData('text').trim()
                       if (!pasted) return
@@ -2220,12 +2283,19 @@ export function AdsV2SimpleSession({
               </div>
               </div>
               {/* KINEO-ADS-UX-MARCA-2026-10-10 — o kit da marca entrou: mostra o que entrou (cor, logo, nome, preço) e "Editar". */}
-              {kitApplied ? (
+              {kitApplied && !kitOff ? (
                 <p className="adv2s-kit" role="status" data-kineo="ads-brand-kit-chip">
                   {kitApplied.color ? <span className="sw" aria-hidden="true" style={{ background: cardColor }} /> : null}
                   {logo?.localUrl ? <img src={logo.localUrl} alt="" /> : null}
                   <span>{ux.kit.chip}{cardTitle.trim() ? ` · ${cardTitle.trim()}` : ''}{priceT ? ` · ${priceT}` : ''}</span>
                   <button type="button" disabled={locked} onClick={() => { setMoreOpen(true); window.setTimeout(() => goToSection('adv2s-sec2'), 30) }}>{ux.kit.edit}</button>
+                  <button type="button" className="rm" disabled={locked} data-kineo="ads-brand-kit-remove" onClick={() => kitRetract('user')}>✕ {pv.removeKit}</button>{/* KINEO-ADS-PALCO-VOLTAR-1410 */}
+                </p>
+              ) : kitApplied && kitOff ? (
+                // KINEO-ADS-PALCO-VOLTAR-1410 — o kit ficou de fora (outra marca, ou a pessoa tirou): diz isso e deixa devolver com 1 clique.
+                <p className="adv2s-kitoff" role="status" data-kineo="ads-brand-kit-off" data-why={kitOff}>
+                  <span>{kitOff === 'conflict' ? fill(pv.kitOffConflict, { name: kitBusiness ?? '' }) : pv.kitOffUser}</span>
+                  <button type="button" disabled={locked} data-kineo="ads-brand-kit-use" onClick={() => kitReapply(true)}>{pv.useKit}</button>
                 </p>
               ) : null}
               {/* KINEO-ADS-QUADRO-STUDIO-1510 — a caixa de texto do Studio (sem o rótulo grande: a pergunta e a dica ficam para o leitor de
@@ -2275,7 +2345,7 @@ export function AdsV2SimpleSession({
               <div className="adv2q-head">
                 <h2 id="adv2s-s3" className="lab"><span className="n" aria-hidden="true">3</span>{styleCopy.title}</h2>
                 {ADS_V2_STYLES_PUBLIC ? (
-                  <button type="button" className="pill" data-kineo="ads-quadro-see-all" aria-expanded={stylesOpen} aria-controls="adv2q-styles-all" onClick={() => { setStylesOpen(true); window.setTimeout(() => document.getElementById('adv2q-styles-all')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 40) }}>
+                  <button ref={stylesSeeAllRef} type="button" className="pill" data-kineo="ads-quadro-see-all" aria-expanded={stylesOpen} aria-controls="adv2q-styles-all" onClick={() => { setStylesOpen(true); window.setTimeout(() => document.getElementById('adv2q-styles-all')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 40) }}>
                     {fill(qc.seeAll, { n: ADS_V2_STYLES.length })}
                   </button>
                 ) : null}
@@ -2352,7 +2422,7 @@ export function AdsV2SimpleSession({
               ) : null}
             </details>
             {ADS_V2_STYLES_PUBLIC ? (
-              <details id="adv2q-styles-all" className="adv2q-opt" data-kineo="ads-quadro-styles-all" open={stylesOpen}>
+              <details id="adv2q-styles-all" className="adv2q-opt" data-kineo="ads-quadro-styles-all" open={stylesOpen} onKeyDown={(e) => { if (e.key === 'Escape' && stylesOpen) { e.stopPropagation(); closeStyles() } }}>{/* KINEO-ADS-PALCO-VOLTAR-1410 — Esc fecha */}
                 <summary onClick={(e) => { e.preventDefault(); setStylesOpen((v) => !v) }}>
                   {styleCopy.title}<span className="v">· {stageData.name}</span>
                 </summary>
@@ -2366,6 +2436,8 @@ export function AdsV2SimpleSession({
                   note={formatChoice !== '9:16' ? fcopy.blocked.style : photoKind === 'text' ? styleCopy.noProduct : styleCopy.targetSimple} // KINEO-ADS-MELHORIAS-1410
                   carousel={{ labels: { all: ux.styles.all, food: ux.styles.food, beauty: ux.styles.beauty, tech: ux.styles.tech, any: ux.styles.any }, recommended: ux.styles.recommended, prev: ux.styles.prev, next: ux.styles.next }}
                 />
+                {/* KINEO-ADS-PALCO-VOLTAR-1410 — o caminho de volta: fecha a escolha completa; o estilo escolhido continua escolhido. */}
+                <p className="adv2q-close"><button type="button" className="pill" data-kineo="ads-quadro-styles-close" onClick={closeStyles}>✕ {pv.closeStyles}</button></p>
               </details>
             ) : null}
             <details className="adv2s-more" open={moreOpen} onToggle={(e) => setMoreOpen((e.currentTarget as HTMLDetailsElement).open)}>

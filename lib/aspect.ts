@@ -96,6 +96,7 @@ const SPECS: Record<Aspect, AspectSpec> = {
     vertical: true,
     captionBottomY: '78%',
     captionWidth: '78%',
+    captionXAlignment: '50%', // KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10 "3 sim"] — 9:16 também centralizado (a caixa de 78% já é centrada em x 50%: o texto não sai da zona segura)
     captionFontSize: 62,
     hookFontSize: 76,
     letterboxPct: 6,
