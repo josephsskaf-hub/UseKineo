@@ -16,6 +16,11 @@
 //
 // Rodar: node scripts/test-modelos-openai-inventario-1410.mjs
 // Foto nova (só depois de migrar e conferir): node scripts/test-modelos-openai-inventario-1410.mjs --foto
+//
+// Mutantes conferidos em disco em 14/10 (os dois deixam o guardião vermelho, rc=1):
+//   M1  criar lib/__mutante_inventario.ts com  export const MUT = { model: 'gpt-4o-mini' }
+//   M2  em lib/aiModels.ts, trocar  writer: 'gpt-4o',  por  writer: 'gpt-6-luna',
+// As mesmas mutações também rodam em memória na seção 4 (autoteste), a cada execução.
 
 import { readFileSync, readdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
@@ -211,11 +216,12 @@ for (const x of trocas) {
 {
   const fotoMut = { ...FOTO }
   const m1 = comparar({ ...achado, 'lib/__mutante.ts': contar("const r = await openai.chat.completions.create({ model: 'gpt-4o-mini' })") }, fotoMut)
-  checa('autoteste: arquivo novo com string crua fica vermelho', m1.novos.length === 1)
+  checa('autoteste: arquivo novo com string crua fica vermelho', m1.novos.some((x) => x.startsWith('lib/__mutante.ts: gpt-4o-mini')))
   const m2 = comparar({ ...achado, 'app/api/analyze-idea/route.ts': contar(ler('app/api/analyze-idea/route.ts') + "\nmodel: 'gpt-4o-mini',") }, fotoMut)
-  checa('autoteste: ocorrência a mais em arquivo da foto fica vermelha', m2.novos.length === 1)
-  const regMut = reg.replace("writer: 'gpt-4o',", "writer: 'gpt-6-luna',")
-  checa('autoteste: trocar o modelo no registro na fase 1 é pego', regMut !== reg && valorNoRegistro(regMut, 'AI_TEXT_MODELS.writer') === 'gpt-6-luna')
+  checa('autoteste: ocorrência a mais em arquivo da foto fica vermelha', m2.novos.some((x) => x.startsWith('app/api/analyze-idea/route.ts: gpt-4o-mini')))
+  const regFake = ["export const AI_TEXT_MODELS = {", "  writer: 'gpt-4o',", '} as const', "export const AI_TRANSCRIPTION_MODEL = 'whisper-1' as const", ''].join('\n')
+  const regMut = regFake.replace("writer: 'gpt-4o',", "writer: 'gpt-6-luna',")
+  checa('autoteste: o leitor do registro enxerga a troca de valor (gpt-4o → gpt-6-luna)', valorNoRegistro(regFake, 'AI_TEXT_MODELS.writer') === 'gpt-4o' && valorNoRegistro(regMut, 'AI_TEXT_MODELS.writer') === 'gpt-6-luna' && valorNoRegistro(regFake, 'AI_TRANSCRIPTION_MODEL') === 'whisper-1')
   checa("autoteste: \"openai/gpt-4o\" e 'gpt-4o-2024-11-20' contam; palavra solta não", JSON.stringify(contar(`a "openai/gpt-4o" b 'gpt-4o-2024-11-20' c gpt-4o d`)) === '{"gpt-4o":2}')
 }
 
