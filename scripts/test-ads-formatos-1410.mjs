@@ -164,7 +164,7 @@ const f4 = (engSrc) => {
     E.buildSceneImageInput({ ...sc, aspect: '9:16' }).aspect_ratio === '9:16' && E.buildSceneImageInput({ ...sc, aspect: '4:5' }).aspect_ratio === '4:5' && E.buildSceneImageInput({ ...sc, aspect: '1:1' }).aspect_ratio === '1:1' &&
     E.buildSceneImageInput({ ...sc, aspect: '16:9' }).aspect_ratio === '9:16' && seed.aspect_ratio === '9:16' &&
     /if \(engine === 'seedance_20_fast' && adsV2PlanFormat\(order\.plan\) === '1:1'\) input = \{ \.\.\.input, aspect_ratio: adsV2SeedanceAspect\('1:1'\) \}/.test(SRC.advance) &&
-    /submitSceneImage\(\{ prompt, referenceUrls: refs, \.\.\.\(adsV2PlanFormat\(order\.plan\) !== '9:16' \? \{ aspect: adsV2PlanFormat\(order\.plan\) \} : \{\}\) \}/.test(SRC.advance)
+    /submitSceneImage\(\{ prompt: sendPrompt, referenceUrls: sendRefs, \.\.\.\(adsV2PlanFormat\(order\.plan\) !== '9:16' \? \{ aspect: adsV2PlanFormat\(order\.plan\) \} : \{\}\), /.test(SRC.advance) // reancorado KINEO-ADS-FIEL-1510 — prompt/refs viraram sendPrompt/sendRefs (iguais sem a trava do produto); o formato segue no MESMO lugar
 }
 await check('F4 motores: Nano Banana pede o formato (9:16 = o input de sempre, byte a byte; formato desconhecido = 9:16); Seedance do construtor intocado (9:16) e 1:1 só no Premium quadrado, numa linha própria do avanço', () => f4())
 

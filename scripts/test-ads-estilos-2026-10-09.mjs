@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semMelhorias1410 } from './test-support/desfaz-melhorias-1410.mjs' // reancorado KINEO-ADS-MELHORIAS-1410
 import { desfazExtracao, textoOriginalV2 } from './test-support/shopify-extracao-v2-1310.mjs' // KINEO-SHOPIFY-2026-10-13 (etapa 2)
+import { semFiel1510 } from './test-support/desfaz-ads-fiel-1510.mjs' // reancorado KINEO-ADS-FIEL-1510
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -357,8 +358,11 @@ await check('6c efeito que falhou 2 vezes cai na RESERVA H3 (mesma foto, prompt 
   const n = latest(r.tables, 1)
   const ok1 = n.attempt === 3 && n.engine === 'h3' && n.status === 'submitted' && r.fails.length === 0 && r.submits[0].slug === T.ADS_V2_ENGINES.h3.slug &&
     r.submits[0].input.prompt === PROMPT && r.submits[0].input.image_url === url(1) && !('effect' in r.submits[0].input)
-  const r2 = await advance(scenario({ attempt: 3, engine: 'h3' }))
-  return ok1 && r2.fails.length === 1 && /^shot_1_exhausted/.test(r2.fails[0])
+  const r2 = await advance(scenario({ attempt: 3, engine: 'h3' })) // reancorado KINEO-ADS-FIEL-1510 — a 3ª falha vira a FOTO REAL parada (sem cobrar)…
+  const s2 = latest(r2.tables, 1) // reancorado KINEO-ADS-FIEL-1510
+  const t3 = scenario({ attempt: 3, engine: 'h3' }); for (const i of [7, 8]) t3.ads_v2_shots.push({ ...t3.ads_v2_shots[0], id: `st${i}`, idx: i, attempt: 2, kind: 'text', engine: null, status: 'skipped_text', reason: 'still_fallback:test' }) // reancorado KINEO-ADS-FIEL-1510 — …e, com o teto de 2 fotos paradas gasto, o terminal de sempre
+  const r3 = await advance(t3) // reancorado KINEO-ADS-FIEL-1510
+  return ok1 && r2.fails.length === 0 && s2.attempt === 4 && s2.kind === 'text' && s2.status === 'skipped_text' && s2.stored_url === url(1) && r3.fails.length === 1 && /^shot_1_exhausted/.test(r3.fails[0]) // reancorado KINEO-ADS-FIEL-1510
 })
 await check('6d efeito SEM ACESSO (auth_model_access) não mata o anúncio: pula direto para a reserva H3', async () => {
   const r = await advance(scenario({ reasonClass: 'auth_model_access' }))
@@ -496,14 +500,14 @@ await mutante('efeito sem acesso voltando a matar o anúncio', F.advance, ' && !
   async (over) => { const r = await advance(scenario({ reasonClass: 'auth_model_access' }), over); return r.fails.length === 0 })
 await mutante('entrada recusada do efeito voltando a ser terminal', F.advance, "engine === 'pixverse_effect' ? 'invalid_payload' : 'local_policy_gate'", "'local_policy_gate'",
   async (over) => { const r = await advance(scenario({ effect: null, engine: 'pixverse_effect', status: 'pending' }), over); const r2 = await advance(r.tables, over); return r2.fails.length === 0 })
-await mutante('refação automática perdendo o estilo do plano', F.advance, 'routeShot(row.kind, order.tier, attempt, adsV2ShotEffect(order.plan, row.idx) !== null)', 'routeShot(row.kind, order.tier, attempt)',
+await mutante('refação automática perdendo o estilo do plano', F.advance, 'const styled = adsV2ShotEffect(order.plan, row.idx) !== null // KINEO-ADS-FIEL-1510', 'const styled = false // KINEO-ADS-FIEL-1510', // reancorado KINEO-ADS-FIEL-1510 — o estilo da refação mora em `styled` (a régua do prazo e o routeShot leem dali)
   async (over) => { const r = await advance(scenario(), over); return latest(r.tables, 1).engine === 'pixverse_effect' })
 await mutante('envio sem a chave do estilo', F.advance, ', effect: adsV2ShotEffect(order.plan, row.idx) })', ' })',
   async (over) => { const r = await advance(scenario(), over); return r.submits.length === 1 && r.submits[0].input.effect === 'Giant Product' })
 await mutante('frase faltando numa língua', F.styles, "    noProduct: 'Quảng cáo này không có ảnh sản phẩm nên sẽ ra không có hiệu ứng.',\n", '',
   (over) => copyOk(world(over).load(F.styles).ADS_V2_STYLE_COPY))
 await mutante('língua copiada do inglês', F.styles, "    hint: 'Efek untuk adegan produkmu. Sudah termasuk harga.',", "    hint: 'An effect for your product shot. Included in the price.',",
-  (over) => copyOk(world(over).load(F.styles).ADS_V2_STYLE_COPY))
+  (over) => copyOk(world({ ...over, [F.styles]: semFiel1510(F.styles, over[F.styles]) }).load(F.styles).ADS_V2_STYLE_COPY)) // reancorado KINEO-ADS-FIEL-1510 — o aviso honesto no fim do `hint` sai antes (o mutante troca a frase de antes)
 {
   const m = read(F.billing) + ' '
   ok(m !== read(F.billing) && sha(m) !== BILLING_SHA, '9 mutante: 1 caractere a mais em v2Billing.ts fica vermelho (impressão digital)')

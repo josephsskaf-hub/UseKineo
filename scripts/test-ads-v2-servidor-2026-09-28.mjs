@@ -420,6 +420,9 @@ await check('A6 3ª tentativa vai ao H3 de reserva; falhou a 3ª = pedido falha 
   const third = tables.ads_v2_shots.find((r) => r.idx === ai.idx && r.attempt === 3)
   const h3ok = third && third.engine === 'h3' && prov.submits.some((s) => s.model === T.ADS_V2_H3_I2V_SLUG && s.input.prompt_expansion_mode === 'disabled' && s.input.resolution === '768P')
   third.status = 'failed'; third.reason_class = 'unknown'
+  // reancorado KINEO-ADS-FIEL-1510 — com foto parada disponível, a 3ª falha vira a foto parada (sem cobrar; provado em scripts/test-ads-fiel-1510.mjs).
+  // reancorado KINEO-ADS-FIEL-1510 — Para este teste seguir provando o caminho TERMINAL (estorno com vencedor único), o pedido já gastou o teto de 2 fotos paradas.
+  for (const o of tables.ads_v2_shots.filter((r) => r.kind !== 'text' && r.idx !== ai.idx && r.attempt === 1).slice(0, 2)) tables.ads_v2_shots.push({ ...o, id: `still-${o.idx}`, attempt: 2, kind: 'text', engine: null, status: 'skipped_text', stored_url: o.image_url, reason: 'still_fallback:test' }) // reancorado KINEO-ADS-FIEL-1510
   refundHook = () => { tables.credit_debits[0].refunded_at = new Date().toISOString(); return 34 }
   await Promise.all([A.advanceAdsV2Order(db, ORDER, { deadlineMs: DL() }), A.advanceAdsV2Order(db, ORDER, { deadlineMs: DL() })])
   refundHook = null

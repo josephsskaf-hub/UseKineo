@@ -28,6 +28,7 @@ import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semCentroAdsGancho1410 } from './test-support/desfaz-centro-ads-gancho-1410.mjs' // reancorado KINEO-LEVA-1410-BASE: o centro do texto (14/10) entrou depois desta base; sai em memória antes do byte a byte
 import { semRefacaoAtor1410, REFACAO_ATOR_1410_ARQUIVOS, MARCA_REFACAO_ATOR_1410, BASE_REFACAO_ATOR_1410 } from './test-support/desfaz-ads-refacao-ator-1410.mjs'
+import { semFiel1510 } from './test-support/desfaz-ads-fiel-1510.mjs' // reancorado KINEO-ADS-FIEL-1510 — a trava do produto e o prazo (15/10) saem primeiro, em memória
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -310,8 +311,8 @@ const retakeOk = (src) => {
 await check('A6b a rota da refação = a base + SÓ linhas marcadas (desfeitas, a base exata); a linha do preço, a semente e a chamada de débito PAGAS seguem iguais', () => retakeOk(SRC.retake))
 await check('A6c todos os 11 arquivos tocados, desfeitos (scripts/test-support/desfaz-ads-refacao-ator-1410.mjs), são EXATAMENTE a base; toda linha nova traz a marca', () =>
   REFACAO_ATOR_1410_ARQUIVOS.length === 11 && MARCA_REFACAO_ATOR_1410 === MARCA && BASE_REFACAO_ATOR_1410 === BASE &&
-  REFACAO_ATOR_1410_ARQUIVOS.every((f) => semRefacaoAtor1410(f, rd(f)) === base(f)) &&
-  REFACAO_ATOR_1410_ARQUIVOS.filter((f) => f !== F.redo).every((f) => { const b = new Set(base(f).split('\n')); return rd(f).split('\n').filter((l) => !b.has(l)).every((l) => l.includes(MARCA)) }) &&
+  REFACAO_ATOR_1410_ARQUIVOS.every((f) => semRefacaoAtor1410(f, semFiel1510(f, rd(f))) === base(f)) && /* reancorado KINEO-ADS-FIEL-1510 */
+  REFACAO_ATOR_1410_ARQUIVOS.filter((f) => f !== F.redo).every((f) => { const b = new Set(base(f).split('\n')); return semFiel1510(f, rd(f)).split('\n').filter((l) => !b.has(l)).every((l) => l.includes(MARCA)) }) && /* reancorado KINEO-ADS-FIEL-1510 */
   /retake_credits: r\.kind === 'text' \|\| r\.kind === 'user_video' \? 0 : adsV2RetakeCredits\(r\.kind, order\.tier\),/.test(SRC.advance))
 const telaOk = (simple, client) =>
   /expected_credits: adsV2RedoPrice\(shot\.retake_credits, order\.first_redo_free\)/.test(simple) &&
