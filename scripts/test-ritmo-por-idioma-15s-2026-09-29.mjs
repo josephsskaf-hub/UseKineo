@@ -113,7 +113,7 @@ function fatiasDoEscritor(src) {
   const a = src ? src.indexOf(LF + 'function buildSystemPrompt(') : -1
   const b = a < 0 ? -1 : src.indexOf(LF + '}' + LF, a + 1)
   return {
-    regua: linhaCom(src, '    const regua = writerRateFor('), // reancorado KINEO-MOTOR-15S-1510: a linha da régua passou a levar motorDoEscritor(body.engine, …) — com motor, o mesmo motor (executado abaixo)
+    regua: linhaCom(src, '    const regua = '), // reancorado KINEO-REGUA-35-60-90-1410: a linha passou a começar por reguaSemMotorLonga(…) ?? writerRateFor(…) (a base: writerRateFor) · reancorado KINEO-MOTOR-15S-1510: a linha da régua passou a levar motorDoEscritor(body.engine, …) — com motor, o mesmo motor (executado abaixo)
     idioma: linhaCom(src, '    const idiomaDoRitmo = ') ?? '', // ausente na base
     colado: linhaCom(src, '    const colado = detectPastedScript(topic)'),
     alvo: deAte(src, '    const alvoPalavras = colado.pasted', ': minWordsFor(alvoSegundos'),
@@ -173,6 +173,7 @@ function mundo({ rota, gs, D, W }) {
       isClassicShortEngine: D.isClassicShortEngine, maxWordsCurtoDoMotor: D.maxWordsCurtoDoMotor, // KINEO-DURACOES-CURTAS-2026-09-29 (ausentes na base: a linha da base não as usa)
       LANGUAGE_NAMES: TL.LANGUAGE_NAMES, WORDS_PER_SECOND: NF.WORDS_PER_SECOND, MIN_COVERAGE: NF.MIN_COVERAGE,
       motorDoEscritor: L('lib/growth/motor15s.ts').motorDoEscritor, // reancorado KINEO-MOTOR-15S-1510 (ausente na base: a linha da base não a usa)
+      reguaSemMotorLonga: L('lib/growth/reguaSemMotor.ts').reguaSemMotorLonga, // reancorado KINEO-REGUA-35-60-90-1410 (ausente na base: a linha da base não a usa)
     }
     return runRota(`${fe.prompt}\n${fe.regua}\n${fe.idioma}\n${fe.colado}\n${fe.alvo}\n${fe.teto}\n${fe.piso}\n${fe.duro}\n${fe.sistema}\nglobalThis.__o = { regua, alvoPalavras, tetoFilmeCurto, pisoFilmeCurto, tetoDuroFilmeCurto, SYSTEM_PROMPT }`, ctx)
   }
@@ -383,6 +384,11 @@ function provaIntocado(M) {
         // régua do motor do 15 s (o Seedance 1.5 que a rota assume sem motor) — de propósito, provado em scripts/test-motor-15s-1510.mjs. Aqui ele
         // sai da comparação com a base e passa a ter de ser IDÊNTICO ao 'cinematic_ai' (faixa, teto, teto duro e prompt), em toda língua e tema.
         if (alvoSegundos === 15 && engine === '') { for (const topic of ['tema curto', 'k '.repeat(45), 'k '.repeat(80)]) { if (!eqJ(M.faixa({ engine: '', language: lang, topic, alvoSegundos }), M.faixa({ engine: 'cinematic_ai', language: lang, topic, alvoSegundos }))) { erros.push(`escritor ${lang} (sem motor) 15s ≠ cinematic_ai`); break } } continue }
+        // reancorado KINEO-REGUA-35-60-90-1410 [TRAVA 8.2 — vai do fundador 14/10]: o chamador SEM motor a 35/60/90 s (a autoria da tela) deixou a régua
+        // histórica (2,3 × 0,95) e escreve na voz real do motor padrão (persona mais rápida × 0,95) — de propósito, provado em scripts/test-regua-35-60-90-1410.mjs.
+        // Aqui ele sai da comparação crua com a base e passa a ter de ser: régua clássica na persona mais rápida a 0,95, piso = minWordsFor dela, e o prompt
+        // IGUAL ao da base trocando SÓ os quatro números (faixa, ritmo, piso e segundos de fala) — nenhuma outra palavra.
+        if (alvoSegundos !== 15 && engine === '') { for (const topic of ['tema curto', 'k '.repeat(45), 'k '.repeat(80)]) { const a = ANTES.faixa({ engine, language: lang, topic, alvoSegundos }), b = M.faixa({ engine, language: lang, topic, alvoSegundos }); const wps = M.W.fastestClassicPersonaRate(lang).wordsPerSecond; const minB = M.W.minWordsFor(alvoSegundos, wps, NF.MIN_COVERAGE), maxB = M.W.maxWordsFor(alvoSegundos, wps, NF.MIN_COVERAGE); const minA = M.W.minWordsFor(alvoSegundos, a.regua.wordsPerSecond, a.regua.coverage), maxA = M.W.maxWordsFor(alvoSegundos, a.regua.wordsPerSecond, a.regua.coverage); const troca = (t, x, y) => t.split(x).join(y); let pr = b.SYSTEM_PROMPT; pr = troca(pr, `Total script: ${minB}-${maxB} spoken words`, `Total script: ${minA}-${maxA} spoken words`); pr = troca(pr, `rate of ${wps} words per second, ${minB} words is about`, `rate of ${a.regua.wordsPerSecond} words per second, ${minA} words is about`); pr = troca(pr, LF + `  ${Math.round(minB / wps)} seconds of speech`, LF + `  ${Math.round(minA / a.regua.wordsPerSecond)} seconds of speech`); if (!(b.regua.family === 'classic' && b.regua.coverage === NF.MIN_COVERAGE && b.regua.wordsPerSecond === wps && b.alvoPalavras === (a.alvoPalavras === minA ? minB : a.alvoPalavras) && minB > minA && (a.alvoPalavras !== minA || b.alvoPalavras / wps >= alvoSegundos * NF.MIN_COVERAGE) /* roteiro colado: o piso é o da pessoa (sem enchimento), como na base */ && pr === a.SYSTEM_PROMPT && b.SYSTEM_PROMPT !== a.SYSTEM_PROMPT)) { erros.push(`escritor ${lang} (sem motor) ${alvoSegundos}s ≠ régua da voz real`); break } } continue } // reancorado KINEO-REGUA-35-60-90-1410
         for (const topic of ['tema curto', 'k '.repeat(45), 'k '.repeat(80)]) {
           const a = ANTES.faixa({ engine, language: lang, topic, alvoSegundos }), b = M.faixa({ engine, language: lang, topic, alvoSegundos })
           if (!conserto && !eqJ(a, b)) { erros.push(`escritor ${lang} ${engine || '(sem motor)'} ${alvoSegundos}s`); break }

@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { semMotor15s1510 } from './test-support/desfaz-motor-15s-1510.mjs' // reancorado KINEO-MOTOR-15S-1510
+import { semRegua35a90_1410 } from './test-support/desfaz-regua-35-60-90-1410.mjs' // reancorado KINEO-REGUA-35-60-90-1410
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
@@ -66,7 +67,8 @@ console.log('== (e) a rota usa a régua ==')
 const rt = rd('app/api/generate-script/route.ts')
 checa('rota importa a régua da lib (route.ts não exporta função solta — quebraria o build)', rt.includes("import { minWordsFor, maxWordsFor, writerRateFor } from '@/lib/scriptWriterRate'") && !/^export function (minWordsFor|maxWordsFor|writerRateFor)/m.test(rt))
 // reancorado KINEO-MOTOR-15S-1510: a régua passou por motorDoEscritor(body.engine, curto) — com motor, o próprio; sem motor a 15 s, o do 15 s (test-motor-15s-1510)
-checa('alvo de palavras nasce da régua do motor pedido', semMotor15s1510(rt, 'route').includes('const regua = writerRateFor(body.engine, topic, language)') && rt.includes('    const regua = writerRateFor(motorDoEscritor(body.engine, isShortFilmTarget(alvoSegundos)), topic, language)') && rt.includes(': minWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo)') /* KINEO-ROTEIRO-COLADO-2026-09-18: ternário — roteiro colado usa a contagem da pessoa */)
+// reancorado KINEO-REGUA-35-60-90-1410: sem motor a 35/60/90 s, a régua da voz real vem antes (reguaSemMotorLonga ?? …) — guardião próprio: test-regua-35-60-90-1410
+checa('alvo de palavras nasce da régua do motor pedido', semMotor15s1510(semRegua35a90_1410(rt), 'route').includes('const regua = writerRateFor(body.engine, topic, language)') && semRegua35a90_1410(rt).includes('    const regua = writerRateFor(motorDoEscritor(body.engine, isShortFilmTarget(alvoSegundos)), topic, language)') && rt.includes('    const regua = reguaSemMotorLonga(body.engine, isShortFilmTarget(alvoSegundos), language) ?? writerRateFor(motorDoEscritor(body.engine, isShortFilmTarget(alvoSegundos)), topic, language)') && rt.includes(': minWordsFor(alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo)') /* KINEO-ROTEIRO-COLADO-2026-09-18: ternário — roteiro colado usa a contagem da pessoa */)
 checa('o prompt fala na régua certa (palavras/s e piso) e não mais em 2,3 fixo', rt.includes('const SYSTEM_PROMPT = buildSystemPrompt(language, alvoSegundos, regua.wordsPerSecond, regua.coverage, idiomaDoRitmo)') && rt.includes('at the measured narration rate of ${wordsPerSecond} words per second') && !rt.includes('at the measured narration rate of ${WORDS_PER_SECOND}'))
 checa('rastro script_written com AWAIT (void antes do return morre na Vercel), com régua, alvo e fits', rt.includes("await writeServerEvent({ // await: `void` antes do return morre na Vercel (memória da casa)\n      name: 'script_written',") && rt.includes('fits: scriptWordCount(script) >= alvoPalavras'))
 checa('resposta devolve wordsPerSecond/family/minWords/words (medição no cliente e no dry-run)', rt.includes("return NextResponse.json({ script, alreadyStructured: false, wordsPerSecond: regua.wordsPerSecond, family: regua.family, targetSeconds: alvoSegundos, minWords: alvoPalavras, words: scriptWordCount(script), pastedScript: colado.pasted, pastedReason: colado.reason })")) /* KINEO-ROTEIRO-COLADO-2026-09-18: +pastedScript */

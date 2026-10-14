@@ -24,6 +24,7 @@ import { decidirNovaTentativaDoRoteiro, SCRIPT_DECLINED_RETRY_EVENT } from '@/li
 import { moderateContent } from '@/lib/safety/contentModeration' // KINEO-PRIMEIRO-FILME-2026-10-13
 import { resgateDaRecusa, instrucaoDoResgate, motorDoEscritor } from '@/lib/growth/motor15s' // KINEO-MOTOR-15S-1510 [TRAVA 8.2 — vai do fundador 15/10] — recusa sem diretiva ganha a nova tentativa; 15 s sem motor na régua do 15 s
 import { moderationRefusalMessage } from '@/lib/safety/moderationPolicy' // KINEO-MOTOR-15S-1510 — a frase da moderação quando ela barra de verdade
+import { reguaSemMotorLonga } from '@/lib/growth/reguaSemMotor' // KINEO-REGUA-35-60-90-1410 [TRAVA 8.2 — vai do fundador 14/10] — 35/60/90 s sem motor na régua da voz real (persona mais rápida × 0,95), não na histórica
 // KINEO-ROTEIRO-CURTO-15S-2026-09-29 [TRAVA 8.2 — "vai" do 15 s] — o roteiro de ≤ 20 s nunca sai acima do teto que a guarda
 // do filme curto da rota do cinematic aceita (lib/durationByEngine.ts), contado na MESMA régua dela (parseUserScript).
 import { parseUserScript } from '@/lib/scriptParser'
@@ -347,7 +348,7 @@ export async function POST(req: NextRequest) {
     if (sexual.refuse) {
       return await recusar(400, { error: sexualContentRefusalMessage(sexual.namedPerson), reason: sexual.reason }, user.id, { reason: sexual.reason, named_person: sexual.namedPerson, version: sexual.version })
     }
-    const regua = writerRateFor(motorDoEscritor(body.engine, isShortFilmTarget(alvoSegundos)), topic, language) // KINEO-MOTOR-15S-1510 — sem motor (o "Write the full script") e alvo curto: a régua do 15 s (36–41 palavras), não a histórica (33)
+    const regua = reguaSemMotorLonga(body.engine, isShortFilmTarget(alvoSegundos), language) ?? writerRateFor(motorDoEscritor(body.engine, isShortFilmTarget(alvoSegundos)), topic, language) // KINEO-REGUA-35-60-90-1410 — sem motor a 35/60/90 s: a voz real do motor padrão (Seedance 1.5, persona mais rápida × 0,95), não a histórica (81/132/197 palavras); com motor ou a 15 s, como antes (o conserto do 15 s de 15/10)
     // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29 — a língua entra na régua do escritor
     // SÓ no filme curto do Seedance 1.5 (o motor que a rota do cinematic trata como Seedance, inclusive sem `engine` — o mesmo
     // predicado do teto duro abaixo): faixa, teto duro e prompt no ritmo dela (lib/durationByEngine ritmoDoFilmeCurto: tr 29–34

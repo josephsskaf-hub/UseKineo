@@ -28,6 +28,7 @@ const require = createRequire(import.meta.url)
 const ts = require(path.join(ROOT, 'node_modules', 'typescript'))
 const { createOfflineLoader } = await import(pathToFileURL(path.join(ROOT, 'scripts/test-support/offline-ts-loader.mjs')).href)
 const { semMotor15s1510, FORMA_MOTOR_15S_1510 } = await import(pathToFileURL(path.join(ROOT, 'scripts/test-support/desfaz-motor-15s-1510.mjs')).href)
+const { semRegua35a90_1410 } = await import(pathToFileURL(path.join(ROOT, 'scripts/test-support/desfaz-regua-35-60-90-1410.mjs')).href) // reancorado KINEO-REGUA-35-60-90-1410: o conserto seguinte reescreveu a linha da régua; desfeito ANTES do desfaz do 15 s
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
 let pass = 0
 let fail = 0
@@ -157,8 +158,13 @@ ok(pisoEsperado / 2.5 >= CURTO * 0.95, `${pisoEsperado} palavras na voz do 15 s 
   const rb = await postar({ routeSrc: base, body: autoria, gpt: () => ROTEIRO_15S })
   ok(rb.body?.minWords < pisoEsperado, `na base, a autoria a 15 s pedia só ${rb.body?.minWords} palavras (régua histórica 2,3 × 0,95)`)
 }
-const r3b = await postar({ body: { ...autoria, targetSeconds: 60 }, gpt: () => ROTEIRO_15S })
+// reancorado KINEO-REGUA-35-60-90-1410: a autoria a 60 s sem motor ganhou a régua da voz real (guardião próprio: scripts/test-regua-35-60-90-1410.mjs).
+// O que ESTE conserto prova continua de pé: fora do 15 s ele não muda nada — com a rota sem o conserto seguinte, 60 s sem motor é a régua de antes,
+// e com ele, 60 s sem motor nunca cai na régua do 15 s.
+const r3b = await postar({ routeSrc: semRegua35a90_1410(ROUTE), body: { ...autoria, targetSeconds: 60 }, gpt: () => ROTEIRO_15S }) // reancorado KINEO-REGUA-35-60-90-1410
 ok(r3b.body?.minWords === Math.ceil(60 * 0.95 * 2.3) && r3b.body?.family === 'legacy', 'autoria a 60 s sem motor: régua de antes, intacta (fora do 15 s nada muda)')
+const r3bAgora = await postar({ body: { ...autoria, targetSeconds: 60 }, gpt: () => ROTEIRO_15S }) // reancorado KINEO-REGUA-35-60-90-1410
+ok(r3bAgora.body?.minWords > pisoEsperado && r3bAgora.body?.minWords >= Math.ceil(60 * 0.95 * 2.3), `autoria a 60 s sem motor, com o conserto seguinte: nunca a régua do 15 s (${r3bAgora.body?.minWords} palavras)`) // reancorado KINEO-REGUA-35-60-90-1410
 const r3c = await postar({ body: { ...temaComum, engine: 'fast' }, gpt: () => ROTEIRO_15S })
 ok(r3c.status === 200 && r3c.chamadas.length >= 1, 'com motor (Kineo 1) o escritor segue na régua do motor')
 const r3d = await postar({ body: temaComum, gpt: recusaDepoisRoteiro })
@@ -217,10 +223,10 @@ for (const [arq, rel, atual] of [['route', ROUTE_REL, ROUTE], ['client', 'app/(d
   let base = ''
   try { base = execFileSync('git', ['-C', ROOT, 'show', BASE_REF + ':' + rel], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).replace(/\r\n/g, '\n') } catch { base = '' }
   let d = null
-  try { d = semMotor15s1510(atual, arq) } catch (e) { d = 'ERRO: ' + e.message }
+  try { d = semMotor15s1510(arq === 'route' ? semRegua35a90_1410(atual) : atual, arq) } catch (e) { d = 'ERRO: ' + e.message } // reancorado KINEO-REGUA-35-60-90-1410
   ok(base !== '' && d === base, `${rel}: tiradas as linhas KINEO-MOTOR-15S-1510, é byte a byte a base`)
   ok(semMotor15s1510(base, arq) === base, `${rel}: o desfaz é idempotente sobre a base`)
-  const marcadas = atual.split('\n').filter((l) => l.includes('KINEO-MOTOR-15S-1510')).length
+  const marcadas = (arq === 'route' ? semRegua35a90_1410(atual) : atual).split('\n').filter((l) => l.includes('KINEO-MOTOR-15S-1510')).length // reancorado KINEO-REGUA-35-60-90-1410
   ok(marcadas === FORMA_MOTOR_15S_1510[arq].trocas + FORMA_MOTOR_15S_1510[arq].acrescimos, `${rel}: ${marcadas} linhas marcadas = a forma do desfaz`)
 }
 {
