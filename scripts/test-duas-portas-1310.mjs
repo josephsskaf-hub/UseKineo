@@ -171,7 +171,9 @@ function homeProblems(src) {
   if (!/<section className="home-more-tools" aria-label="More tools">/.test(src) || !/<h2><UiLabel>More tools<\/UiLabel><\/h2>/.test(src)) probs.push('fileira sem o rótulo "More tools"')
   if (!src.includes("import HomeTwoDoors, { type HomeDoorOffer } from '@/components/home/HomeTwoDoors'")) probs.push('import das portas ausente')
   // Curadoria intacta: o hero de filmes e a vitrine de motores seguem na página; o braço clips_first do A/B segue vivo.
-  for (const keep of ['<HomeFeaturedFilms />', 'engineWall', '{clipsFirst && <HomeClipsStrip signedIn={isSignedIn} />}', '{!clipsFirst && businessShowcase}']) if (!src.includes(keep)) probs.push(`curadoria mexida: sumiu ${keep}`)
+  // reancorado KINEO-HOME-LIMPA-1410 — o fundador tirou "Videos for your business." da home (14/10): businessShowcase tem de estar AUSENTE.
+  for (const keep of ['<HomeFeaturedFilms />', 'engineWall', '{clipsFirst && <HomeClipsStrip signedIn={isSignedIn} />}']) if (!src.includes(keep)) probs.push(`curadoria mexida: sumiu ${keep}`)
+  if (src.includes('businessShowcase') || src.includes('Videos for your business.')) probs.push('seção "Videos for your business." voltou para a home (KINEO-HOME-LIMPA-1410)')
   return probs
 }
 

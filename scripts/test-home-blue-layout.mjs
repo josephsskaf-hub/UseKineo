@@ -15,11 +15,11 @@ for(const signedIn of [false,true])for(const source of [null,'chatgpt','taaft'])
  check((hero.match(/<h1 /g)||[]).length===1,'one semantic heading')
  check(!hero.includes('class="home-intro"'),'title block removed (founder 30/09)')
  check(!hero.includes('sora-alternative')&&!hero.includes('paying subscriber'),'promotions and proof do not interrupt hero')
- check(html.includes('class="home-start"'),'creation available even when media list is empty')
- const creation=html.match(/<div class="home-create-grid">([\s\S]*?)<\/section>/)?.[1]??''
- // 27/09 (sprint MRR): a porta de Empresas é /ads — pública, 200 para todos; /ads/new mandava o visitante ao /login.
- for(const href of ['/studio','/images','/ads'])check(creation.includes(`href="${href}"`),'creation tool keeps real destination '+href)
- check(html.indexOf('class="home-create"')<html.indexOf('class="home-proof"'),'creation precedes grouped proof')
+ // reancorado KINEO-HOME-LIMPA-1410 — o fundador tirou "Start with the full toolkit" + os 3 cards (14/10): AUSENTES no render.
+ // As portas reais seguem: o menu (acima) e a galeria de More tools, que leva a /images.
+ check(!html.includes('class="home-start"')&&!html.includes('class="home-create')&&!html.includes('Start with the full toolkit'),'full toolkit block removed (KINEO-HOME-LIMPA-1410)')
+ check(html.includes('href="/images"'),'home keeps real destination /images')
+ check(html.indexOf('class="home-more-tools"')>0&&html.indexOf('class="home-more-tools"')<html.indexOf('class="home-proof"'),'More tools precedes grouped proof')
  check(html.includes('class="kineo-bolt mk"') && html.includes('>ϟ</span>'),'brand mark uses the approved shared lightning')
 }
 console.log(`Home blue: ${checks} rendered session, referral and language checks passed; offline.`)
