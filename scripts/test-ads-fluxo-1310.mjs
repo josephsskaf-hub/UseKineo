@@ -267,7 +267,10 @@ const BASE = {
   'app/api/ads/v2/orders/route.ts': '6815d9ff91cc40888ef5d0e9b1ae12af1fd67f78309c0c40c5b88d94a5377c63',
   'lib/ads/v2Billing.ts': 'b1ba33894c315fbc017b7d5053fa6db78b9098aa8e79aca94a3c72031943d4b9',
   'lib/ads/v2Tiers.ts': '18678aa1573651bc61ee6ff55508187393ae56c093dbc09f8737e65d344219a0',
-  'lib/ads/v2Styles.ts': 'e9f8cf14c59beac986ace6b09ed5f1654970c464c23e6ed0fc3f82c985407123',
+  // reancorado KINEO-ESTILOS-DIA1-2026-10-13 — v2Styles com os 4 estilos do lote do dia 1 (catálogo, categorias, frases nas 16
+  // línguas e o selo de época `season`/`seasonTag`); nenhuma função de preço, plano ou débito mudou. A impressão é a do arquivo
+  // EXATO desta leva (antes: e9f8cf14…407123, base 5d15badd), byte a byte; o resto do caminho do dinheiro segue com a de antes.
+  'lib/ads/v2Styles.ts': '4f6891ce762f3551da1034795f105c384d0e1b963c0334e0c5437a2fce3dfcf2',
 }
 const STUDIO_BASE = {
   'app/(dashboard)/studio/StudioClient.tsx': 'f14aced01385418c88fd1a3fc7218c7a6ca83a805d36d776f14c7d2a371fc25c',

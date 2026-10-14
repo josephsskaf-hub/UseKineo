@@ -45,6 +45,7 @@ const CSS = `
 .kst-auto b{display:block;font-size:22px;line-height:1;margin:0 0 6px;color:var(--ads-text,var(--text))}
 .kst-card .kst-name{font-size:13px;font-weight:700;line-height:1.25}
 .kst-card .kst-for{font-size:11.5px;line-height:1.35;color:var(--ads-muted,var(--muted))}
+.kst-season{position:absolute;top:10px;right:10px;z-index:1;padding:2px 7px;border-radius:999px;background:var(--ads-text,var(--text));color:var(--ads-card,var(--card));font-size:10.5px;font-weight:750;line-height:1.4}
 .kst-tag{position:absolute;top:10px;left:10px;z-index:1;padding:2px 7px;border-radius:999px;background:var(--ads-action,var(--accent));color:var(--on-accent,#fff);font-size:10.5px;font-weight:750}
 .kst-strip{margin:0;padding:2px 2px 10px;list-style:none;display:flex;gap:12px;min-width:0;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
 .kst-strip li{flex:0 0 150px;scroll-snap-align:start;display:grid;gap:6px;min-width:0;border:1px solid var(--border);background:var(--card);border-radius:16px;padding:8px 8px 12px}
@@ -153,10 +154,12 @@ export function AdsStylePicker({
     try { reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches } catch { reduce = false }
     el.scrollBy({ left: dir * Math.max(140, el.clientWidth * 0.8), behavior: reduce ? 'auto' : 'smooth' })
   }
-  const card = (key: AdsV2StyleChoice, media: ReactNode, label: string, bestFor: string) => (
+  // KINEO-ESTILOS-DIA1-2026-10-13 — `season`: o selo do estilo de época ("Holiday" na língua da tela), no canto direito.
+  const card = (key: AdsV2StyleChoice, media: ReactNode, label: string, bestFor: string, season: string | null = null) => (
     <label key={key} className="kst-card" data-on={value === key} data-off={!!disabled}>
       <input className="kst-sr" type="radio" name={name} value={key} checked={value === key} disabled={disabled} onChange={() => onChange(key)} />
       {suggested === key && key !== 'none' ? <span className="kst-tag">{carousel ? carousel.recommended : copy.suggested}</span> : null}
+      {season ? <span className="kst-season" data-season="holiday">{season}</span> : null}
       <span className="kst-media">{media}</span>
       <span className="kst-name">{label}</span>
       <span className="kst-for">{bestFor}</span>
@@ -165,7 +168,7 @@ export function AdsStylePicker({
   const row = (
     <fieldset ref={rowRef} className="kst-row" aria-labelledby={titleId} onScroll={carousel ? syncEdges : undefined}>
       {card('none', <span className="kst-auto" aria-hidden="true"><span><b>∅</b>{copy.autoLabel}</span></span>, copy.autoLabel, copy.autoBestFor)}
-      {ADS_V2_STYLES.filter((s) => shown.includes(s.key)).map((s) => card(s.key, <StyleLoop src={s.preview} poster={s.poster} />, copy.styles[s.key as AdsV2StyleKey].label, copy.styles[s.key as AdsV2StyleKey].bestFor))}
+      {ADS_V2_STYLES.filter((s) => shown.includes(s.key)).map((s) => card(s.key, <StyleLoop src={s.preview} poster={s.poster} />, copy.styles[s.key as AdsV2StyleKey].label, copy.styles[s.key as AdsV2StyleKey].bestFor, s.season === 'holiday' ? copy.seasonTag : null))}
     </fieldset>
   )
   return (
@@ -255,7 +258,7 @@ export function AdsStyleStrip() {
         ) : null}
         {ADS_V2_STYLES.map((s) => (
           <li key={s.key}>
-            <span className="kst-media"><StyleLoop src={s.preview} poster={s.poster} /></span>
+            <span className="kst-media"><StyleLoop src={s.preview} poster={s.poster} />{s.season === 'holiday' ? <span className="kst-season" data-season="holiday">Holiday</span> : null}</span>
             <b>{s.label}</b>
             <span>{s.oneLine}</span>
             <span>Best for: {s.bestFor}</span>

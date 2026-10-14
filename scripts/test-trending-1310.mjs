@@ -283,12 +283,15 @@ function honestyProblems(B, ctx) {
   }
   // Datas do selo New = o marcador do lote no arquivo-fonte.
   const baseKeys = ((ctx.styles.match(/type AdsV2BaseStyleKey = ([^\n]+)/) || [, ''])[1].match(/'([a-z_0-9]+)'/g) || []).map((s) => s.slice(1, -1))
+  // KINEO-ESTILOS-DIA1-2026-10-13 — reancorado: o lote do dia 1 (tipo AdsV2Dia1StyleKey, marcador no arquivo-fonte) é de 13/10.
+  const dia1Keys = ((ctx.styles.match(/type AdsV2Dia1StyleKey = ([^\n]+)/) || [, ''])[1].match(/'([a-z_0-9]+)'/g) || []).map((s) => s.slice(1, -1))
   const S = B.L('lib/ads/v2Styles.ts')
   for (const s of S.ADS_V2_STYLES) {
-    const want = baseKeys.includes(s.key) ? '2026-10-09' : '2026-10-10'
+    const want = baseKeys.includes(s.key) ? '2026-10-09' : dia1Keys.includes(s.key) ? '2026-10-13' : '2026-10-10'
     if (T.ADS_STYLE_RELEASED[s.key] !== want) probs.push(`estilo ${s.key}: data ${T.ADS_STYLE_RELEASED[s.key]} ≠ ${want}`)
   }
   if (baseKeys.length !== 5 || !ctx.styles.includes('KINEO-ADS-UX-MARCA-2026-10-10 — os 10 novos')) probs.push('marcadores dos lotes de estilo não encontrados')
+  if (dia1Keys.length !== 4 || !/type AdsV2Dia1StyleKey = [^\n]+\/\/ KINEO-ESTILOS-DIA1-2026-10-13/.test(ctx.styles)) probs.push('marcador do lote de estilos do dia 1 não encontrado')
   const union = (ctx.effects.match(/export type ClipEffectKey =([\s\S]*?)\n\n/) || [, ''])[1]
   for (const e of B.L('lib/clips/clipEffectPages.ts').publicEffectPages()) {
     const line = union.split('\n').find((l) => l.includes(`'${e.key}'`)) || ''

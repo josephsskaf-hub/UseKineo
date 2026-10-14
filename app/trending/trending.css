@@ -29,6 +29,8 @@
 .tr-badge-new{background:#ff5a1f;color:#fff}
 .tr-badge-pick{background:#ffd23f;color:#20252b}
 .tr-badge-script{top:auto;bottom:8px;background:#ffffffe6;color:#20252b}
+/* KINEO-ESTILOS-DIA1-2026-10-13 — selo do estilo de época (Holiday) */
+.tr-badge-season{top:auto;bottom:8px;background:#0f3d2e;color:#fff}
 .tr-body{display:flex;flex-direction:column;gap:6px;padding:10px 10px 12px;flex:1}
 .tr-engine{font-size:11px;color:var(--muted,#586c83);line-height:1.4}
 .tr-body h3{font-size:14px;line-height:1.35;margin:0;overflow-wrap:anywhere}

@@ -49,7 +49,8 @@ export const TRENDING_TOPIC_DURATION = '60'
 /**
  * Data de lançamento de cada lote (é a data do marcador do commit que trouxe o lote — o catálogo não guarda data):
  *   estilos de anúncio — KINEO-ESTILOS-PRODUTO-2026-10-09 (os 5 primeiros, tipo AdsV2BaseStyleKey em v2Styles.ts) e
- *   KINEO-ADS-UX-MARCA-2026-10-10 (os 10 seguintes); efeitos de clipe — KINEO-CLIPS-PRIMEIRO-2026-10-05 (a galeria) e
+ *   KINEO-ADS-UX-MARCA-2026-10-10 (os 10 seguintes) e KINEO-ESTILOS-DIA1-2026-10-13 (os 4 do lote do dia 1, tipo
+ *   AdsV2Dia1StyleKey); efeitos de clipe — KINEO-CLIPS-PRIMEIRO-2026-10-05 (a galeria) e
  *   KINEO-EFEITOS-NOVOS-2026-10-13 (wings, dollar_rain, muscle_surge). O guardião confere cada chave contra o marcador
  *   no arquivo-fonte; estilo/efeito novo sem data aqui = sem selo New (nunca inventado).
  */
@@ -57,6 +58,7 @@ export const ADS_STYLE_RELEASED: Readonly<Partial<Record<AdsV2StyleKey, string>>
   package_explosion: '2026-10-09', giant_product: '2026-10-09', product_closeup: '2026-10-09', ocean_ad: '2026-10-09', mechanical_assembly: '2026-10-09',
   naked_eye_3d_ad: '2026-10-10', beach_ad: '2026-10-10', lighting_ad: '2026-10-10', supermarket_ad: '2026-10-10', poster_ad: '2026-10-10',
   graffiti_ad: '2026-10-10', dreamlike_cloud: '2026-10-10', parachute_delivery: '2026-10-10', shoal_surround: '2026-10-10', dishes_served: '2026-10-10',
+  dolly_zoom: '2026-10-13', boom_drop: '2026-10-13', macaron_machine: '2026-10-13', starlight_gift: '2026-10-13', // KINEO-ESTILOS-DIA1-2026-10-13
 }
 export const CLIP_EFFECT_RELEASED: Readonly<Partial<Record<ClipEffectKey, string>>> = {
   bring_to_life: '2026-10-05', product_360: '2026-10-05', zoom_out_earth: '2026-10-05', cinematic_slowmo: '2026-10-05', restore_old_photo: '2026-10-05',

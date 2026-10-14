@@ -40,6 +40,11 @@ export const ADS_V2_STYLE_TINT: Readonly<Record<AdsV2StyleKey, readonly [string,
   parachute_delivery: ['#3B82F6', '#F97316'],
   shoal_surround: ['#0891B2', '#2DD4BF'],
   dishes_served: ['#EA580C', '#FBBF24'],
+  // KINEO-ESTILOS-DIA1-2026-10-13
+  dolly_zoom: ['#78716C', '#F59E0B'],
+  boom_drop: ['#DC2626', '#F97316'],
+  macaron_machine: ['#F9A8D4', '#5EEAD4'],
+  starlight_gift: ['#1D4ED8', '#FDE68A'],
 }
 export function adsV2StyleTint(style: AdsV2StyleChoice | string | null | undefined): readonly [string, string] {
   return style && style !== 'none' && Object.prototype.hasOwnProperty.call(ADS_V2_STYLE_TINT, style) ? ADS_V2_STYLE_TINT[style as AdsV2StyleKey] : ADS_V2_FLOW_AUTO_TINT

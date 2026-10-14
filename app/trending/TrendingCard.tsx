@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
-import { adsV2StyleCopy, isAdsV2Style } from '@/lib/ads/v2Styles'
+import { adsV2Style, adsV2StyleCopy, isAdsV2Style } from '@/lib/ads/v2Styles'
 import type { TrendingBlock, TrendingCardData } from '@/lib/trending/trendingNow'
 
 function TrendingVideo({ video, poster, label }: { video: string; poster: string; label: string }) {
@@ -39,6 +39,8 @@ export default function TrendingCard({ block, card }: { block: TrendingBlock['id
   const translatable = block === 'ad-styles' || block === 'clip-effects'
   const title = styleCopy ? styleCopy.label : card.title
   const sub = styleCopy ? styleCopy.oneLine : card.sub
+  // KINEO-ESTILOS-DIA1-2026-10-13 — estilo de época (season 'holiday' no catálogo): selo "Holiday" na língua da interface.
+  const seasonTag = styleCopy && isAdsV2Style(card.key) && adsV2Style(card.key).season === 'holiday' ? adsV2StyleCopy(language).seasonTag : null
   return (
     <article className="tr-card" data-trending-card={card.key}>
       <div className="tr-media">
@@ -47,6 +49,7 @@ export default function TrendingCard({ block, card }: { block: TrendingBlock['id
           : <div className="tr-script"><span className="tr-script-mark" aria-hidden="true">“</span><p>{card.sub}</p></div>}
         {card.badge === 'new' ? <span className="tr-badge tr-badge-new"><UiLabel>New</UiLabel></span> : null}
         {card.badge === 'pick' ? <span className="tr-badge tr-badge-pick"><UiLabel>Today’s pick</UiLabel></span> : null}
+        {seasonTag ? <span className="tr-badge tr-badge-season" data-season="holiday">{seasonTag}</span> : null}
         {card.scriptReady ? <span className="tr-badge tr-badge-script"><UiLabel>Script ready</UiLabel></span> : null}
       </div>
       <div className="tr-body">

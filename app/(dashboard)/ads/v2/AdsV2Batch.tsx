@@ -728,7 +728,8 @@ export function AdsV2BatchSession({ balance, onBalance, sample = false, business
                     Style
                     <select value={r.style} disabled={busy !== null} onChange={(e) => updateRow(r.key, { style: e.target.value as AdsV2StyleChoice })}>
                       <option value="none">No special effect</option>
-                      {ADS_V2_STYLES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+                      {/* KINEO-ESTILOS-DIA1-2026-10-13 — o estilo de época leva o selo no nome da opção. */}
+                      {ADS_V2_STYLES.map((s) => <option key={s.key} value={s.key}>{s.season === 'holiday' ? `${s.label} · Holiday` : s.label}</option>)}
                     </select>
                   </label>
                 ) : null}
