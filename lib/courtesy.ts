@@ -33,6 +33,22 @@ export type CourtesyLeftoverRule = 'keep' | 'remove_courtesy_leftover'
 /** ⚠ DECISÃO DO FUNDADOR — ver o topo. Recomendação: 'remove_courtesy_leftover'. */
 export const COURTESY_LEFTOVER_RULE: CourtesyLeftoverRule = 'remove_courtesy_leftover' // fundador aprovou 05/10 (decisão I)
 
+// KINEO-CORTESIA-METRICA-1410 — CORTESIA FECHA O TESTE GRÁTIS ABERTO (fundador 14/10, "6 sim").
+// O furo: a cortesia trocava plano e saldo e deixava trial_status 'active'. O cron trial-downgrade via o plano
+// *_trial como "pagante" (isPayingProfile) e carimbava 'converted' em quem nunca pagou (alanhlm90 08/10,
+// robertoberto2343 14/10); e todo débito da cortesia seguia somando no teto do teste e disparava trial_expired
+// credit_cap. Agora a concessão fecha o teste na MESMA escrita do plano, com status próprio e terminal 'courtesy'
+// (o mesmo que o Logan recebeu à mão em 05/10). Não revoga crédito: o saldo do teste fica com a pessoa.
+// Só fecha os status ABERTOS do teste reverso (os mesmos de TRIAL_OPEN_STATUSES em lib/reverseTrial.ts — o tsc
+// prova a igualdade em lib/courtesyStore.ts). 'downgraded'/'converted'/'region_paid_only'/'card_required' não mudam.
+export const COURTESY_TRIAL_STATUS = 'courtesy' as const
+export const COURTESY_CLOSES_TRIAL_FROM = ['active', 'expired'] as const
+
+/** Status do teste depois da concessão: 'courtesy' se o teste estava aberto; null = não mexe. */
+export function trialStatusAfterCourtesy(current: unknown): typeof COURTESY_TRIAL_STATUS | null {
+  return typeof current === 'string' && (COURTESY_CLOSES_TRIAL_FROM as readonly string[]).includes(current) ? COURTESY_TRIAL_STATUS : null
+}
+
 export type CourtesySource = 'admin' | 'partner_pack'
 export type CourtesyStatus = 'active' | 'expired' | 'superseded' | 'revoked'
 

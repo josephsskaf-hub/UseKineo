@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { AI_SPEECH_MODELS } from '@/lib/aiModels' // KINEO-MIGRACAO-OPENAI-F1-1410
 import { createClient } from '@/lib/supabase/server'
 import { openai, OPENAI_TTS_TIMEOUT_MS } from '@/lib/openai'
 import { stripScriptMarkers } from '@/lib/scriptParser'
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
       // so it overrides the 20s client default instead of inheriting it.
       speech = await openai.audio.speech.create(
         {
-          model: 'tts-1',
+          model: AI_SPEECH_MODELS.ttsLegacy, // KINEO-MIGRACAO-OPENAI-F1-1410 = tts-1
           voice: 'onyx',
           input,
         },

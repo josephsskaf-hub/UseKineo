@@ -15,6 +15,7 @@
 //   (g) mutantes: '8s' fixo de volta no builder → (b) vermelho; passo sem caber a fala → (a) vermelho; compose sem o
 //       alinhador do Veo → (d) vermelho.
 import { readFileSync } from 'node:fs'
+import { desfazAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -58,7 +59,7 @@ const rdBase = (p) => { if (!BASE) return null; try { return git(['show', `${BAS
 checa('a base (o Veo a 8 s fixos) está disponível para as comparações byte a byte', Boolean(BASE))
 
 const ROTA = 'app/api/generate-video-cinematic/route.ts'
-const rota = rd(ROTA)
+const rota = desfazAncoraLegenda1410(ROTA, rd(ROTA)) // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 const rotaBase = rdBase(ROTA)
 const routeAst = (src) => ts.createSourceFile('route.ts', src, ts.ScriptTarget.Latest, true)
 function acha(ast, pred) { let f; const v = (n) => { if (!f && pred(n)) f = n; if (!f) ts.forEachChild(n, v) }; v(ast); return f }
