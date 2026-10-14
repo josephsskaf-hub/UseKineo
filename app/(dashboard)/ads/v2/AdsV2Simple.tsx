@@ -2579,7 +2579,7 @@ export function AdsV2SimpleSession({
                 />
                 </>
               )}
-              {/* KINEO-ADS-UX-MARCA-2026-10-10 — quanto demora e "Salvar como meu kit da marca" (ligado; grava só depois que o anúncio começou). */}
+              {/* KINEO-ADS-UX-MARCA-2026-10-10 — quanto demora e "Salvar como meu kit da marca" (desmarcado por padrão desde KINEO-ADS-DEMO-UNIVERSO-1410; grava só depois que o anúncio começou). */}
               <p className="adv2s-eta">⏱ {ux.preview.delivery}</p>
               <label className="adv2s-save" data-kineo="ads-brand-kit-save">
                 <input type="checkbox" checked={saveKit} disabled={locked} onChange={(e) => { saveKitTouchedRef.current = true; setSaveKit(e.target.checked) }} />

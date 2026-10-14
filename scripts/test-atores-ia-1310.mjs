@@ -19,6 +19,7 @@
 //   8. Mutantes: cada peça quebrada fica vermelha, e cada mutante prova que aplicou.
 import fs from 'node:fs'
 import { semMelhorias1410 } from './test-support/desfaz-melhorias-1410.mjs' // reancorado KINEO-ADS-MELHORIAS-1410
+import { semDemoUniverso1410 } from './test-support/desfaz-ads-demo-universo-1410.mjs' // reancorado KINEO-ADS-DEMO-UNIVERSO-1410
 import path from 'node:path'
 import { execFileSync, spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
@@ -257,7 +258,7 @@ const vozOk = async (advanceSrc) => {
   calls.length = 0
   const buf = await g(order('kenji'), 'texto', true)
   const reserva = buf.toString() === 'mm' && calls.map((c) => c[0]).join() === 'eleven,minimax'
-  const s = code(advanceSrc)
+  const s = code(semDemoUniverso1410('lib/ads/v2Advance.ts', advanceSrc)) // reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — a pronúncia da marca (14/10) sai antes; as 2 sínteses com ela são provadas em test-ads-demo-universo-1410 (5b)
   const ligado = /const buf = await adsV2NarrationVoice\(order, speakableForTts\(narration, language\), false\)/.test(fatia(s, /async function ensureAdsV2Voice\([\s\S]*?\n}\n/)) &&
     /const buf = await adsV2NarrationVoice\(order, speakableForTts\(narration, language\), true\)/.test(fatia(s, /async function prepareAndSubmit\([\s\S]*?\n}\n/)) &&
     (s.match(/synthesizeTtsFallback\(/g) || []).length === 2 // só as 2 dentro de adsV2NarrationVoice
