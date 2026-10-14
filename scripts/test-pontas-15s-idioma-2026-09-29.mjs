@@ -142,7 +142,7 @@ const cinematicAceita = (a) => portao(a).fit.ok && guarda(a)
 function escritor(gs) {
   const f = {
     helpers: [funcao(gs, 'missingElements'), funcao(gs, 'scriptWordCount'), funcao(gs, 'payoffIsEmpty')],
-    regua: linhaCom(gs, '    const regua = writerRateFor('), // reancorado KINEO-MOTOR-15S-1510: a linha da régua passou a levar motorDoEscritor(body.engine, …) — com motor, o mesmo motor (executado abaixo)
+    regua: linhaCom(gs, '    const regua = '), // reancorado KINEO-REGUA-35-60-90-1410: a linha passou a começar por reguaSemMotorLonga(…) ?? writerRateFor(…) (a base: writerRateFor) · reancorado KINEO-MOTOR-15S-1510: a linha da régua passou a levar motorDoEscritor(body.engine, …) — com motor, o mesmo motor (executado abaixo)
     idioma: linhaCom(gs, '    const idiomaDoRitmo = '),
     colado: linhaCom(gs, '    const colado = detectPastedScript(topic)'),
     alvo: deAte(gs, '    const alvoPalavras = colado.pasted', ': minWordsFor(alvoSegundos'),
@@ -182,6 +182,7 @@ function escritor(gs) {
       isClassicShortEngine: D.isClassicShortEngine, maxWordsCurtoDoMotor: D.maxWordsCurtoDoMotor, faixaAceitaNoFilmeCurtoDoMotor: D.faixaAceitaNoFilmeCurtoDoMotor, // KINEO-DURACOES-CURTAS-2026-09-29
       finishShortFilmScript: SF.finishShortFilmScript, parseUserScript: SP.parseUserScript, MIN_COVERAGE: NF.MIN_COVERAGE, idiomaDoRitmo: undefined,
       motorDoEscritor: L('lib/growth/motor15s.ts').motorDoEscritor, // reancorado KINEO-MOTOR-15S-1510 (ausente na base: a linha da base não a usa)
+      reguaSemMotorLonga: L('lib/growth/reguaSemMotor.ts').reguaSemMotorLonga, // reancorado KINEO-REGUA-35-60-90-1410 (ausente na base: a linha da base não a usa)
     }
     const o = roda(codigo, ctx)
     return { ...o, fica: o.segunda ? o.b : o.a, ficaPalavras: o.segunda ? o.pb : o.pa, logs }
