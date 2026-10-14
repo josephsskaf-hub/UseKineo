@@ -26,6 +26,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semCentroAdsGancho1410 } from './test-support/desfaz-centro-ads-gancho-1410.mjs' // reancorado KINEO-LEVA-1410-BASE: o centro do texto (14/10) entrou depois desta base; sai em memória antes do byte a byte
 import { semRefacaoAtor1410, REFACAO_ATOR_1410_ARQUIVOS, MARCA_REFACAO_ATOR_1410, BASE_REFACAO_ATOR_1410 } from './test-support/desfaz-ads-refacao-ator-1410.mjs'
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -297,7 +298,7 @@ await check('A5 /status (EXECUTADO): first_redo_free só no anúncio ORIGINAL en
 
 // ═══ A6. caminhos de preço intocados + a tela ══════════════════════════════════════════════════════════════════════
 const INTOCADOS = ['lib/ads/v2Tiers.ts', 'lib/ads/v2Billing.ts', 'lib/ads/v2StartCore.ts', 'app/api/ads/v2/start/route.ts', 'app/api/ads/v2/variations/route.ts', 'lib/ads/v2Batch.ts', 'lib/credits/refund.ts', 'lib/credits/debit.ts', 'lib/ads/sample.ts', 'lib/ads/adV2Montage.ts', 'lib/engineWall.ts', 'lib/homeVideoCuration.ts']
-await check('A6 v2Tiers, v2Billing, v2StartCore, /start, /variations, v2Batch, refund, debit, sample e montagem byte a byte iguais à base (nenhum preço, débito ou estorno novo; vitrine da home intocada)', () => INTOCADOS.every((f) => rd(f) === base(f)))
+await check('A6 v2Tiers, v2Billing, v2StartCore, /start, /variations, v2Batch, refund, debit, sample e montagem byte a byte iguais à base (nenhum preço, débito ou estorno novo; vitrine da home intocada)', () => INTOCADOS.every((f) => semCentroAdsGancho1410(f, rd(f)) === base(f))) /* reancorado KINEO-LEVA-1410-BASE */
 const retakeOk = (src) => {
   const linhasNovas = src.split('\n').filter((l) => !base(F.retake).split('\n').includes(l))
   return semRefacaoAtor1410(F.retake, src) === base(F.retake) && linhasNovas.length > 0 && linhasNovas.every((l) => l.includes(MARCA)) &&
