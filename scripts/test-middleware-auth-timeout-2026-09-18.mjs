@@ -45,7 +45,9 @@ try {
   const dt = Date.now() - t0
   checa('auth lenta: página pública responde em ~4 s como visitante (não 25 s)', r2.kind === 'next' && dt < rapido.AUTH_TIMEOUT_MS + 250)
   const r3 = await lento.updateSession(req('/history'))
-  checa('auth lenta em rota protegida: manda para o login em vez de cair', r3.kind === 'redirect' && r3.url.includes('/login'))
+  // REANCORADO 14/10 (KINEO-LOGIN-MODAL-1410, fundador "vai"): o login agora é o modal da home — a rota protegida manda
+  // para `/?auth=login&redirect=<rota>` em vez de `/login?redirect=<rota>`. A intenção desta checagem não muda.
+  checa('auth lenta em rota protegida: manda para o login (modal da home) em vez de cair', r3.kind === 'redirect' && r3.url.startsWith('/?') && r3.url.includes('auth=login') && r3.url.includes('redirect=%2Fhistory'))
   const quebrado = carregar(5, true)
   const r4 = await quebrado.updateSession(req('/studio'))
   checa('auth com erro: página pública responde como visitante', r4.kind === 'next')

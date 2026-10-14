@@ -24,6 +24,8 @@ import {
 } from '@/lib/growth/bulkCheckoutAuthContext'
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import AuthReel from '@/components/AuthReel'
+// KINEO-LOGIN-MODAL-1410 — a MESMA tela, dentro do modal da home (components/auth/HomeAuthModal.tsx): só o layout muda.
+import { useAuthSurface } from '@/components/auth/AuthSurfaceContext'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { carryCreationHandoff } from '@/lib/creationHandoff'
 import { narrationLanguage } from '@/lib/textLanguage'
@@ -141,6 +143,8 @@ export default function SignupPage() {
   // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
   const OFFER = useFreeTierOffer()
   const supabase = createClient()
+  // KINEO-LOGIN-MODAL-1410 — fora do modal é sempre false: a página /signup fica exatamente como antes.
+  const { inModal } = useAuthSurface()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -504,8 +508,9 @@ export default function SignupPage() {
           no modelo novo') — signup ganha o MESMO split-screen do login:
           vitrine AuthReel a esquerda (Maracaibo HD + avalanche + Tunguska +
           Lituya), formulario em coluna fixa a direita, azul Kineo. */}
-      <div className="min-h-screen flex relative" style={{ background: 'var(--bg)' }}>
-        <div className="hidden md:flex flex-1 flex-col items-center justify-center relative overflow-hidden px-10 py-12 gap-8">
+      <div className={inModal ? 'flex relative' : 'min-h-screen flex relative'} style={{ background: inModal ? 'var(--card)' : 'var(--bg)' }}>
+        {/* KINEO-LOGIN-MODAL-1410 — no modal a vitrine da esquerda fica de fora (a home atrás é a vitrine). */}
+        {!inModal && <div className="hidden md:flex flex-1 flex-col items-center justify-center relative overflow-hidden px-10 py-12 gap-8">
           <div
             className="absolute rounded-full pointer-events-none"
             style={{ width: 700, height: 700, background: 'var(--indigo)', top: -260, left: -180, opacity: 0.10, filter: 'blur(100px)' }}
@@ -547,14 +552,14 @@ export default function SignupPage() {
               </li>
             ))}
           </ul>
-        </div>
+        </div>}
 
         {/* RIGHT — form panel */}
         <div
-          className="w-full md:w-[440px] flex-shrink-0 flex flex-col justify-center p-8 md:p-10 animate-fade-in-up relative z-10 min-h-screen"
-          style={{ background: 'var(--card)', borderLeft: '1px solid var(--border)' }}
+          className={inModal ? 'w-full flex flex-col justify-center p-6 sm:p-8 relative z-10' : 'w-full md:w-[440px] flex-shrink-0 flex flex-col justify-center p-8 md:p-10 animate-fade-in-up relative z-10 min-h-screen'}
+          style={inModal ? { background: 'var(--card)' } : { background: 'var(--card)', borderLeft: '1px solid var(--border)' }}
         >
-            <Link
+            {!inModal && <Link
               href="/"
               className="inline-block text-xs font-bold mb-4"
               style={{
@@ -564,7 +569,7 @@ export default function SignupPage() {
               }}
             >
               ← Back to Home
-            </Link>
+            </Link>}
 
             {/* Mobile-only logo */}
             <Link

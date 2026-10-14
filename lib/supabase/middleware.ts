@@ -79,7 +79,11 @@ export async function updateSession(request: NextRequest) {
 
   if (isProtected && !user) {
     const url = request.nextUrl.clone()
-    url.pathname = '/login'
+    // KINEO-LOGIN-MODAL-1410 — fundador 14/10: o login abre num modal por cima da home. A rota protegida manda para
+    // `/?auth=login&redirect=<rota>` (lib/authModal.ts, AUTH_MODAL_PARAM); o modal renderiza a MESMA tela do /login,
+    // que lê o mesmo ?redirect. A página /login continua existindo para links antigos, e-mails e o retorno do OAuth.
+    url.pathname = '/'
+    url.searchParams.set('auth', 'login')
     // KINEO-AUDIT-REDIRECT-2026-08-18: destino preservado (login le ?redirect=)
     url.searchParams.set('redirect', request.nextUrl.pathname)
     return NextResponse.redirect(url)

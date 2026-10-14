@@ -22,6 +22,8 @@ import {
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import AuthReel from '@/components/AuthReel'
+// KINEO-LOGIN-MODAL-1410 — a MESMA tela, dentro do modal da home (components/auth/HomeAuthModal.tsx): só o layout muda.
+import { useAuthSurface } from '@/components/auth/AuthSurfaceContext'
 import AuthSavedCreationCard from '@/components/AuthSavedCreationCard'
 import {
   buildLoginCreationPreviewFromAuthParams,
@@ -56,6 +58,8 @@ export default function LoginPage() {
   // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
   const OFFER = useFreeTierOffer()
   const supabase = createClient()
+  // KINEO-LOGIN-MODAL-1410 — fora do modal é sempre false: a página /login fica exatamente como antes.
+  const { inModal } = useAuthSurface()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -154,8 +158,8 @@ export default function LoginPage() {
   if (checkingSession) {
     return (
       <div
-        className="min-h-screen flex items-center justify-center p-4"
-        style={{ background: 'var(--bg)' }}
+        className={inModal ? 'flex items-center justify-center p-4' : 'min-h-screen flex items-center justify-center p-4'}
+        style={inModal ? { background: 'var(--card)', minHeight: 420 } : { background: 'var(--bg)' }}
         aria-busy="true"
       />
     )
@@ -163,9 +167,9 @@ export default function LoginPage() {
 
   return (
     <>
-      <div className="min-h-screen flex relative" style={{ background: 'var(--bg)' }}>
-        {/* LEFT — vitrine de renders (desktop) */}
-        <div className="hidden md:flex flex-1 flex-col items-center justify-center relative overflow-hidden px-10 py-12 gap-8">
+      <div className={inModal ? 'flex relative' : 'min-h-screen flex relative'} style={{ background: inModal ? 'var(--card)' : 'var(--bg)' }}>
+        {/* LEFT — vitrine de renders (desktop). KINEO-LOGIN-MODAL-1410: no modal ela fica de fora (a home atrás é a vitrine). */}
+        {!inModal && <div className="hidden md:flex flex-1 flex-col items-center justify-center relative overflow-hidden px-10 py-12 gap-8">
           <div
             className="absolute rounded-full pointer-events-none"
             style={{ width: 700, height: 700, background: 'var(--indigo)', top: -260, left: -180, opacity: 0.10, filter: 'blur(100px)' }}
@@ -207,14 +211,14 @@ export default function LoginPage() {
               </li>
             ))}
           </ul>
-        </div>
+        </div>}
 
         {/* RIGHT — form panel (fundador: "a nossa e do lado direito") */}
         <div
-          className="w-full md:w-[440px] flex-shrink-0 flex flex-col justify-center p-8 md:p-10 animate-fade-in-up relative z-10 min-h-screen"
-          style={{ background: 'var(--card)', borderLeft: '1px solid var(--border)' }}
+          className={inModal ? 'w-full flex flex-col justify-center p-6 sm:p-8 relative z-10' : 'w-full md:w-[440px] flex-shrink-0 flex flex-col justify-center p-8 md:p-10 animate-fade-in-up relative z-10 min-h-screen'}
+          style={inModal ? { background: 'var(--card)' } : { background: 'var(--card)', borderLeft: '1px solid var(--border)' }}
         >
-            <Link
+            {!inModal && <Link
               href="/"
               className="inline-block text-xs font-bold mb-4"
               style={{
@@ -224,7 +228,7 @@ export default function LoginPage() {
               }}
             >
               ← Back to Home
-            </Link>
+            </Link>}
 
             {/* Logo — o painel esquerdo agora e vitrine pura, o logo mora aqui */}
             <Link
