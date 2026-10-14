@@ -69,6 +69,7 @@ import { ENGINE_GATE_ACTIVE, STUDIO_ONLY_ENGINE_KEYS } from '@/lib/enginePlanGat
 import { SEEDANCE_SHORT_SECONDS, MIN_DURATION_ALL_ENGINES } from '@/lib/durationByEngine' // KINEO-SEEDANCE-15S-2026-09-29
 import { supportedDurationsFor } from '@/lib/durationByEngine' // KINEO-DURACOES-CURTAS-2026-09-29 — a tabela motor × durações (fonte única do servidor)
 import { decidirDescidaFilmeGratis, DESCIDA_FILME_GRATIS_EVENT, DESCIDA_FILME_GRATIS_PARAM, DESCIDA_FILME_GRATIS_VERSION } from '@/lib/growth/descidaFilmeGratis' // KINEO-PRIMEIRO-FILME-2026-10-13
+import { duracaoQueOSaldoPaga, notaDaDuracaoPeloSaldo, DURACAO_PELO_SALDO_EVENT, DURACAO_PELO_SALDO_VERSION } from '@/lib/growth/duracaoPeloSaldo' // KINEO-STUDIO-DURACAO-SALDO-1510
 import DiretorKineo from '@/components/DiretorKineo' // DIRETOR-KINEO-20260923
 import DfyOfferCard from '@/components/DfyOfferCard' // KINEO-EMPRESAS-COCKPIT-2026-09-24
 // KINEO-STUDIO-TILE-ADS-2026-09-27 — tile "Business ad" na fileira de miniaturas. Fato: 0 dos 10 assinantes tocaram /ads em
@@ -677,6 +678,33 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
     if (engine !== 'seedance' && duration < MIN_DURATION_ALL_ENGINES && !curtasDoMotor(engine).includes(duration)) setDuration(MIN_DURATION_ALL_ENGINES as 35)
   }, [engine]) // eslint-disable-line react-hooks/exhaustive-deps
   const shortestDuration = engine === 'seedance' && seedance15Ok ? SEEDANCE_SHORT_SECONDS : Math.min(MIN_DURATION_ALL_ENGINES, ...curtasDoMotor(engine)) // KINEO-DURACOES-CURTAS-2026-09-29
+  // KINEO-STUDIO-DURACAO-SALDO-1510 ▼ — a duração que o saldo PAGA, antes do clique (regra pura em lib/growth/duracaoPeloSaldo.ts).
+  // A régua de entrada acima roda uma vez; esta roda sempre que saldo, motor, conta ou a própria duração mudam (a ?duration= de
+  // um router.push — o atalho do ChatGPT manda 60/35 — chegava DEPOIS dela e a pessoa só via a parede no clique). Só desce,
+  // só para conta que comprovadamente não paga, e nunca por cima de uma escolha feita com a mão NESTE motor (os botões de
+  // duração marcam a escolha no onClickCapture; o onClick deles segue o de sempre).
+  const duracaoExplicitaRef = useRef<string | null>(null) // o motor em que a pessoa escolheu a duração com a mão
+  const [duracaoAjustada, setDuracaoAjustada] = useState<{ engine: string; de: number; para: number } | null>(null)
+  const marcarEscolhaDeDuracao = () => { duracaoExplicitaRef.current = engine; setDuracaoAjustada(null) }
+  useEffect(() => {
+    if (!flagsProntas || scriptMode === 'clip' || estrelaLigada) return
+    const r = duracaoQueOSaldoPaga({
+      atual: duration,
+      opcoes: [...curtasDoMotor(engine), MIN_DURATION_ALL_ENGINES, 60, 90],
+      saldo: balance,
+      paga: contaPaga,
+      escolhaExplicita: duracaoExplicitaRef.current === engine,
+      custo: (s) => creditCostForDuration(ENGINE_QUALITY[engine] ?? 'cinematic_ai', true, s),
+    })
+    if (!r.mudou) return
+    setDuration(r.duracao as StudioDuration)
+    setDuracaoAjustada({ engine, de: r.de, para: r.duracao })
+    void trackEvent(DURACAO_PELO_SALDO_EVENT, { engine, from: r.de, to: r.duracao, balance, from_cost: r.custoDe, to_cost: r.custoPara, version: DURACAO_PELO_SALDO_VERSION })
+  }, [flagsProntas, balance, engine, duration, contaPaga, seedance15Ok, curtasOk, scriptMode, estrelaLigada]) // eslint-disable-line react-hooks/exhaustive-deps
+  const notaDuracaoAjustada = duracaoAjustada && duracaoAjustada.engine === engine && duracaoAjustada.para === duration && balance !== null && scriptMode !== 'clip'
+    ? notaDaDuracaoPeloSaldo({ engine, para: duration, saldo: balance, segundosDoFilmeGratis: SEEDANCE_SHORT_SECONDS })
+    : null
+  // KINEO-STUDIO-DURACAO-SALDO-1510 ▲
 
   // KINEO-DEGRAU-35S: impressão medida no mesmo gatilho do clique (picker aberto), com os degraus oferecidos.
   useEffect(() => {
@@ -1230,17 +1258,25 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                   90s é o tier de alcance. */}
               {/* KINEO-SEEDANCE-15S-2026-09-29 — 15 s só no Seedance 1.5 e só com o interruptor (ou quando já veio em 15 pela URL). */}
               {engine === 'seedance' && (seedance15Ok || duration === SEEDANCE_SHORT_SECONDS) && (
-                <button type="button" className={`pill${duration === SEEDANCE_SHORT_SECONDS ? ' on' : ''}`} onClick={() => setDuration(SEEDANCE_SHORT_SECONDS)} title="Seedance 1.5 only — a short AI film">{SEEDANCE_SHORT_SECONDS}s</button>
+                <button type="button" className={`pill${duration === SEEDANCE_SHORT_SECONDS ? ' on' : ''}`} onClick={() => setDuration(SEEDANCE_SHORT_SECONDS)} onClickCapture={marcarEscolhaDeDuracao} title="Seedance 1.5 only — a short AI film">{SEEDANCE_SHORT_SECONDS}s</button>
               )}
               {/* KINEO-DURACOES-CURTAS-2026-09-29 — as curtas dos outros motores (Kling 2.5/Veo 15 s; hollywood 15/30 s), da tabela do servidor,
                   com o interruptor DURACOES_CURTAS_PUBLIC (ou quando já veio numa curta que o motor oferece). */}
               {engine !== 'seedance' && [...new Set([...curtasDoMotor(engine), ...(duration < MIN_DURATION_ALL_ENGINES && supportedDurationsFor(engine).includes(duration) ? [duration] : [])])].sort((a, b) => a - b).map((d) => (
-                <button key={`curta-${d}`} type="button" className={`pill${duration === d ? ' on' : ''}`} onClick={() => setDuration(d as StudioDuration)} title="A short film on this engine">{d}s</button>
+                <button key={`curta-${d}`} type="button" className={`pill${duration === d ? ' on' : ''}`} onClick={() => setDuration(d as StudioDuration)} onClickCapture={marcarEscolhaDeDuracao} title="A short film on this engine">{d}s</button>
               ))}
-              <button type="button" className={`pill${duration === 35 ? ' on' : ''}`} onClick={() => setDuration(35)}>35s</button>
-              <button type="button" className={`pill${duration === 60 ? ' on' : ''}`} onClick={() => setDuration(60)}>60s ⭐</button>
-              <button type="button" className={`pill${duration === 90 ? ' on' : ''}`} onClick={() => setDuration(90)} title="Mais alcance: no TikTok, 90s rende ~4x as views de um vídeo de 60s">90s 📈</button>
+              <button type="button" className={`pill${duration === 35 ? ' on' : ''}`} onClick={() => setDuration(35)} onClickCapture={marcarEscolhaDeDuracao}>35s</button>
+              <button type="button" className={`pill${duration === 60 ? ' on' : ''}`} onClick={() => setDuration(60)} onClickCapture={marcarEscolhaDeDuracao}>60s ⭐</button>
+              <button type="button" className={`pill${duration === 90 ? ' on' : ''}`} onClick={() => setDuration(90)} onClickCapture={marcarEscolhaDeDuracao} title="Mais alcance: no TikTok, 90s rende ~4x as views de um vídeo de 60s">90s 📈</button>
             </div>
+            {/* KINEO-STUDIO-DURACAO-SALDO-1510 ▼ — a nota honesta da descida pelo saldo; o caminho do plano continua na tela. */}
+            {notaDuracaoAjustada && (
+              <p data-kineo="duracao-pelo-saldo" role="status" style={{ margin: '6px 0 10px', fontSize: 12, lineHeight: 1.45, opacity: 0.85 }}>
+                {notaDuracaoAjustada}{' '}
+                <a href="/pricing?intent_campaign=studio_duration_fit" onClick={() => { void trackEvent('studio_duration_fit_plans_clicked', { engine, from: duracaoAjustada?.de ?? null, to: duration, balance }) }} style={{ color: 'var(--accent)', fontWeight: 600, whiteSpace: 'nowrap' }}>See plans →</a>
+              </p>
+            )}
+            {/* KINEO-STUDIO-DURACAO-SALDO-1510 ▲ */}
             {/* ═══ KINEO-MULTIFORMATO-2026-09-02 — O 16:9 SAI DO "SOON" ══════
                 O botão 16:9 esteve marcado "SOON" desde que a tela existe, e
                 o estado `aspect` morria aqui: nunca viajava para o servidor.

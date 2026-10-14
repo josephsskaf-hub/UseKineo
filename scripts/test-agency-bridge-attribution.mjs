@@ -89,9 +89,10 @@ const callers = {
   home: read('app/KineoLanding.tsx'),
   state_report: read('app/state-of-ai-shorts-2026/page.tsx'),
   cost_page: read('app/cheapest-ai-shorts-maker/page.tsx'),
-  pricing: read('app/pricing/PricingClient.tsx'),
   text_to_video: read('app/text-to-video-shorts/page.tsx'),
 }
+// reancorado KINEO-PRECOS-LIMPEZA-1510 — o fundador tirou a faixa do Business do /pricing (15/10): lá ela tem de estar AUSENTE.
+equal((read('app/pricing/PricingClient.tsx').match(/<AgencyVolumeBridge/g) ?? []).length, 0, 'pricing: bridge removed by the founder (KINEO-PRECOS-LIMPEZA-1510)')
 for (const [entry, source] of Object.entries(callers)) {
   equal((source.match(new RegExp(`<AgencyVolumeBridge entry="${entry}" \\/>`, 'g')) ?? []).length, 1, `${entry}: existing live caller remains singular`)
 }

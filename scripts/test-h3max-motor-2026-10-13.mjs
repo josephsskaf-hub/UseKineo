@@ -258,7 +258,8 @@ function rulesSurfaces(s) {
     s.generate.includes("data.quality === 'cinematic_h3max' ? 'cinematic_h3max'") &&
     s.landing.includes("{h3maxVisible(initialEmail) && !enginePaused('h3max') && <NavEngineItem href=\"/studio?engine=h3max&intent_campaign=nav_mega\" name=\"MiniMax H3 Max\"") &&
     s.models.includes("...(H3MAX_PUBLIC ? [{ key: 'h3max', name: 'MiniMax H3 Max', quality: 'cinematic_h3max' as Quality,") &&
-    s.pricing.includes("label: `MiniMax H3 Max — cinematic (${creditsPerReferenceVideo('cinematic_h3max')} cr)`") &&
+    // reancorado KINEO-PRECOS-LIMPEZA-1510 — a linha do H3 Max vivia na tabela "Compare plans", que o fundador tirou do /pricing (15/10).
+    !s.pricing.includes('MiniMax H3 Max — cinematic') && !s.pricing.includes('What you get at each tier') &&
     s.intent.includes("  h3max: '/ai-video-generator/minimax-h3-max', // KINEO-H3MAX-2026-10-13") &&
     desmarca(s.catalog).includes("        'minimax-h3-max': {\n          param: 'h3max' as EngineLandingParam,\n          qualityMode: 'cinematic_h3max',") &&
     s.catalog.includes("  return !enginePaused(param) && (param !== 's25' || S25_PUBLIC) && (param !== 'h3max' || H3MAX_PUBLIC) // KINEO-H3MAX-2026-10-13") &&
