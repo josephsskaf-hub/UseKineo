@@ -282,7 +282,8 @@ ok((() => {
 ok((() => {
   const s = code(SRC.simple)
   const e = code(SRC.endCard)
-  return (s.match(/ctaLabel: cardCta, contact: cardContact, accent: cardAccent, brandBg: true \}\)/g) || []).length === 3 &&
+  // reancorado KINEO-ADS-CONSERTOS-TELA-1410 — os 3 desenhos do cartão ganharam, no fim, a foto real do produto (productImage).
+  return (s.match(/ctaLabel: cardCta, contact: cardContact, accent: cardAccent, brandBg: true, productImage \}\)/g) || []).length === 3 &&
     /const cardAccent = cardColor !== DEFAULT_COLOR \? cardColor : photoColor \?\? DEFAULT_COLOR/.test(s) && /const cardContact = contactT \|\| linkHost/.test(s) &&
     /const cardCta = contactT \? endCardCtaLabel\(simpleCtaKind\(contactT\), spoken\) : linkHost \? endCardCtaLabel\('buy', spoken\) : ''/.test(s) &&
     /cardSig = JSON\.stringify\(\{ title: cardTitleFinal, price: priceT, contact: cardContact, cta: cardCta, color: cardAccent/.test(s) &&

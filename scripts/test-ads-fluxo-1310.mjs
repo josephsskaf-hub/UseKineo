@@ -273,7 +273,11 @@ const BASE = {
   // reancorado KINEO-TIRA-STARLIGHT-1410 — v2Styles sem o starlight_gift (fundador 14/10): saem a linha do catálogo, a categoria,
   // a chave do tipo do lote do dia 1 e as 16 frases; o mecanismo de época (`season`/`seasonTag`) fica. Nenhuma função de preço,
   // plano ou débito mudou. Impressão do arquivo EXATO desta leva (antes: 4f6891ce…dfcf2, base aa78989c); o resto da tabela intacto.
-  'lib/ads/v2Styles.ts': 'ac0b9f5eda0d131004053558b8739fe66d376fbc82a287d2a0908ac2421bff3d',
+  // reancorado KINEO-ADS-CONSERTOS-TELA-1410 — v2Styles ganhou só a sugestão de estilo pela PALAVRA do produto (perfume →
+  // close-up): o 2º parâmetro opcional de adsV2SuggestedStyle e a nova adsV2StyleByProductWord. Nenhuma função de preço, plano
+  // ou débito mudou — scripts/test-ads-consertos-tela-1410.mjs prova que, tirando os trechos marcados, o arquivo volta a ser
+  // EXATAMENTE o de antes (ac0b9f5e…1bff3d, base 99bc0edc). Impressão do arquivo EXATO desta leva; o resto da tabela intacto.
+  'lib/ads/v2Styles.ts': '6e9807b19dc0e24b50714ec513038b8ca4ef41b5731d63a8de3d58811b20759a',
 }
 const STUDIO_BASE = {
   'app/(dashboard)/studio/StudioClient.tsx': 'f14aced01385418c88fd1a3fc7218c7a6ca83a805d36d776f14c7d2a371fc25c',

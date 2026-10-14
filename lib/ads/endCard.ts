@@ -27,6 +27,12 @@ export interface EndCardInput {
    * Prospecção de 12/10: "o cartão final é um fundo azul genérico com o nome em branco". Ausente = o fundo de sempre.
    */
   brandBg?: boolean
+  /**
+   * KINEO-ADS-CONSERTOS-TELA-1410 — a FOTO REAL do produto (a 1ª foto da pessoa) no cartão, inteira (contain), centralizada,
+   * acima do nome. QA de 14/10: o cartão saía só "Perfume" no fundo marrom. Fundador escolheu a opção A (US$ 0). Ausente =
+   * o desenho de sempre, chamada por chamada. Carregar com loadLogoImage (blob local, ou crossOrigin antes do src).
+   */
+  productImage?: HTMLImageElement | ImageBitmap | null
 }
 
 const FONT_STACK = 'system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, sans-serif'
@@ -143,6 +149,8 @@ function logoNeedsPlate(src: HTMLImageElement | ImageBitmap): boolean {
 interface Layout {
   scale: number
   logoBox: { w: number; h: number } | null
+  /** KINEO-ADS-CONSERTOS-TELA-1410 — a caixa da foto do produto (null sem foto = layout de sempre). */
+  productBox?: { w: number; h: number } | null
   nameLines: string[]
   offerLines: string[]
   ctaLines: string[]
@@ -184,13 +192,23 @@ function measureLayout(ctx: CanvasRenderingContext2D, input: EndCardInput, scale
   const contactW = Math.max(0, ...contactLines.map((l) => ctx.measureText(l).width))
   const pillW = Math.min(boxW, Math.max(ctaW, contactW) + 2 * 64 * scale)
   const hasPill = ctaLines.length + contactLines.length > 0
+  // KINEO-ADS-CONSERTOS-TELA-1410 — a foto do produto, inteira, até 84 % da largura segura × 780 px (na escala).
+  let productBox: Layout['productBox'] = null
+  if (input.productImage) {
+    const { w, h } = sourceSize(input.productImage)
+    if (w > 0 && h > 0) {
+      const k = Math.min((boxW * 0.84) / w, (780 * scale) / h)
+      productBox = { w: w * k, h: h * k }
+    }
+  }
 
   let height = 0
-  if (logoBox) height += logoBox.h + (logoBox && (nameLines.length || offerLines.length || hasPill) ? gaps.afterLogo : 0)
+  if (logoBox) height += logoBox.h + (logoBox && (nameLines.length || offerLines.length || hasPill || productBox) ? gaps.afterLogo : 0)
+  if (productBox) height += productBox.h + (nameLines.length || offerLines.length || hasPill ? gaps.afterLogo : 0) // KINEO-ADS-CONSERTOS-TELA-1410
   if (nameLines.length) height += nameLines.length * lh(sizes.name) + (offerLines.length || hasPill ? gaps.afterName : 0)
   if (offerLines.length) height += offerLines.length * lh(sizes.offer) + (hasPill ? gaps.afterOffer : 0)
   if (hasPill) height += pillH
-  return { scale, logoBox, nameLines, offerLines, ctaLines, contactLines, sizes, gaps, pill: { w: pillW, h: hasPill ? pillH : 0, padY }, height }
+  return { scale, logoBox, ...(productBox ? { productBox } : {}), nameLines, offerLines, ctaLines, contactLines, sizes, gaps, pill: { w: pillW, h: hasPill ? pillH : 0, padY }, height }
 }
 
 /** Desenha o cartão final no canvas (redimensiona para 1080×1920). */
@@ -253,6 +271,25 @@ export function drawEndCard(canvas: HTMLCanvasElement, input: EndCardInput): voi
     roundRect(ctx, lx, y, w, h, 18 * layout.scale)
     ctx.clip()
     ctx.drawImage(input.logo, lx, y, w, h)
+    ctx.restore()
+    y += h + (hasText || layout.productBox ? layout.gaps.afterLogo : 0)
+  }
+
+  // KINEO-ADS-CONSERTOS-TELA-1410 — a foto real do produto, acima do nome (cantos arredondados + sombra suave na cor da marca).
+  if (input.productImage && layout.productBox) {
+    const { w, h } = layout.productBox
+    const px = cx - w / 2
+    ctx.save()
+    ctx.shadowColor = 'rgba(0,0,0,0.45)'
+    ctx.shadowBlur = 48
+    ctx.fillStyle = 'rgba(0,0,0,0.25)'
+    roundRect(ctx, px, y, w, h, 28 * layout.scale)
+    ctx.fill()
+    ctx.restore()
+    ctx.save()
+    roundRect(ctx, px, y, w, h, 28 * layout.scale)
+    ctx.clip()
+    ctx.drawImage(input.productImage, px, y, w, h)
     ctx.restore()
     y += h + (hasText ? layout.gaps.afterLogo : 0)
   }

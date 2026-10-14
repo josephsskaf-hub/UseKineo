@@ -69,6 +69,8 @@ import {
 import { VideoFramesError, grabVideoFrames, pageHidden, readUserVideo } from '@/lib/ads/v2VideoFrames'
 import { ADS_V2_MAX_USER_VIDEOS, ADS_V2_USER_VIDEO_MIN_SECONDS, pickLivelyStart, userVideoSampleTimes, userVideoVerdict, type AdsV2UserVideoVerdict } from '@/lib/ads/v2UserVideo'
 import { NARRATION_LANGUAGES, detectNarrationLanguage, narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage'
+import { detectShortTextLanguage } from '@/lib/shortTextLanguage' // KINEO-ADS-CONSERTOS-TELA-1410
+import { adsV2TelaConsertosCopy } from '@/lib/ads/v2TelaConsertos' // KINEO-ADS-CONSERTOS-TELA-1410
 import { pickInterfaceCopy, type InterfaceLanguage } from '@/lib/ui/interfaceLanguage'
 import { VariationToggle, variationsCopy, variationsPrice } from './AdsV2Variations'
 import { ADS_SAMPLE_TIER, adsSampleCopy, type AdsSampleCopy } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
@@ -294,6 +296,15 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality?: number)
 }
 
 /** Recorte 9:16 no navegador: a janela do ponto focal, desenhada em 1080×1920 e codificada em JPEG q0.9. */
+/**
+ * KINEO-ADS-CONSERTOS-TELA-1410 — a 1ª foto do produto para o cartão final (a MESMA URL local da prévia: blob:). Pelo
+ * loadLogoImage (crossOrigin antes do src quando não é blob/data). Não carregou = null: o cartão sai sem a foto, nunca quebra.
+ */
+async function loadCardProductPhoto(url: string | null): Promise<HTMLImageElement | null> {
+  if (!url) return null
+  try { return await loadLogoImage(url) } catch { return null }
+}
+
 async function cropToVertical(p: Pick<SimpleItem, 'srcUrl' | 'fx' | 'fy' | 'name'>): Promise<File> {
   const img = await loadImage(p.srcUrl)
   const r = cropRect(img.naturalWidth, img.naturalHeight, p.fx, p.fy)
@@ -403,6 +414,21 @@ const SIMPLE_CSS = `
 .adv2 .adv2s-link{margin-top:16px}
 .adv2 .adv2s-linkrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .adv2 .adv2s-linkrow input{flex:1 1 220px;min-width:0}
+`
+
+// ─── KINEO-ADS-CONSERTOS-TELA-1410 — QA de 14/10 no celular (390 px) ───────────────────────────────────────────────────
+// O palco/prévia vinha ANTES do formulário (order:-1 do ProductStage e do AdsFlow): o formulário começava a 1,4 tela e o
+// "Gerar" a 6,7. Só nesta tela (o ProductStage é compartilhado e fica intocado): no celular o formulário vem primeiro.
+// Também: a seção do resultado para abaixo da barra do topo ao rolar, o seletor de voz em destaque quando a língua não é
+// clara, o aviso do cartão sem chamada e os botões Baixar/Abrir acima do player (player limitado a 60svh no celular).
+const TELA_CONSERTOS_CSS = `
+@media(max-width:900px){.adv2.kps-page .kps-grid>.kps-stage,.adv2.kps-page .kps-grid>.adv2s-slot,.adv2.kps-page .kps-grid>.adv2s-slot:not(:empty){order:1}}
+.adv2 .adv2s-result{scroll-margin-top:76px}
+.adv2 .adv2s-done-actions{margin:6px 0 14px}
+@media(max-width:900px){.adv2 .adv2s-result .adv2-player{max-height:60svh}}
+.adv2 .adv2s-lang:has(+ .adv2s-voiceask) select{outline:2px solid var(--ads-accent,#2997ff);outline-offset:2px}
+.adv2 .adv2s-voiceask{margin:6px 0 0}
+.adv2 .adv2s-nocta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 0}
 `
 
 // ─── KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a oferta do Business depois da amostra ───────────────────────────────────
@@ -582,6 +608,12 @@ export function AdsV2SimpleSession({
   const [overlaysOn, setOverlaysOn] = useState(true)
   const [narrationOn, setNarrationOn] = useState(true)
   const [voiceLang, setVoiceLang] = useState<NarrationLanguage | null>(null)
+  // KINEO-ADS-CONSERTOS-TELA-1410 — a língua do navegador é só uma PISTA (lida depois de montar, sem divergir do servidor).
+  const [browserLang, setBrowserLang] = useState<NarrationLanguage | null>(null)
+  useEffect(() => {
+    try { setBrowserLang(narrationLanguage(String(navigator.language || '').slice(0, 2))) } catch { /* sem navigator */ }
+  }, [])
+  const contactInputRef = useRef<HTMLInputElement | null>(null) // KINEO-ADS-CONSERTOS-TELA-1410 — o aviso "sem chamada" leva ao campo
   const [cardTitle, setCardTitle] = useState('')
   const [cardColor, setCardColor] = useState(DEFAULT_COLOR)
   const [logo, setLogo] = useState<LogoItem | null>(null)
@@ -681,7 +713,8 @@ export function AdsV2SimpleSession({
   // Com estilo, a 1ª FOTO vai como 'product' (o modo simples marca todas iguais e o estilo só pega plano de produto); foto
   // de tela de app ('text') nunca vira produto — texto não passa por IA de vídeo.
   const styleCopy: AdsV2StyleCopy = adsV2StyleCopy(lang)
-  const styleSuggested: AdsV2StyleChoice = sentence && sector !== 'other' ? adsV2SuggestedStyle(sector) : 'none'
+  // KINEO-ADS-CONSERTOS-TELA-1410 — a frase também vai: a palavra do produto refina a sugestão do setor (perfume → close-up).
+  const styleSuggested: AdsV2StyleChoice = sentence && sector !== 'other' ? adsV2SuggestedStyle(sector, sentence) : 'none'
   const style: AdsV2StyleChoice = ADS_V2_STYLES_PUBLIC ? styleChoice ?? styleSuggested : 'none'
   // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator fala a narração e segura O produto: sem voz ou com fotos de tela ('text'), o
   // cartão fica desligado com o motivo. Ligado, a 1ª foto também vai como produto (é ela que o ator segura).
@@ -690,7 +723,14 @@ export function AdsV2SimpleSession({
   const presenterOn = ADS_V2_PRESENTER_PUBLIC && presenterChoice && presenterWhy === null
   const firstAsProduct = style !== 'none' && photoKind !== 'text' || presenterOn
   const detected = detectNarrationLanguage(sentence).language
-  const spoken: NarrationLanguage = voiceLang ?? narrationLanguage(detected) ?? narrationLanguage(lang) ?? 'en'
+  // KINEO-ADS-CONSERTOS-TELA-1410 — QA 14/10: "perfume num hotel com chuva" (5 palavras) saía com voz em inglês. Depois do
+  // detector de sempre (null abaixo de 8 palavras — régua dos filmes, intocada), o da FRASE CURTA; só então a interface.
+  // A CENA conta junto: depois de "Mover para o campo de cena" a frase vira só "Perfume" e a língua ("num hotel com chuva") mora na cena.
+  const shortLang = detected ? null : detectShortTextLanguage(`${sentence} ${scene}`)
+  const spoken: NarrationLanguage = voiceLang ?? narrationLanguage(detected) ?? shortLang ?? narrationLanguage(lang) ?? 'en'
+  /** Ninguém tem certeza da língua da frase: a linha ao lado do seletor "Voz em" diz em que língua a voz vai sair. */
+  const voiceUnsure = !!sentence && narrationOn && voiceLang === null && !detected && !shortLang && browserLang !== spoken
+  const tc = adsV2TelaConsertosCopy(lang) // KINEO-ADS-CONSERTOS-TELA-1410
   // KINEO-ADS-CENA-2026-10-13 — produto x lugar (a pergunta, o exemplo e a pesquisa mudam) e a CENA: o campo, ou a parte da
   // frase que pede cena ("…num hotel com uma chuva"), só em Comercial/Premium. A frase que pede cena nunca vira o título.
   const sc: AdsV2SceneCopy = adsV2SceneCopy(lang)
@@ -738,7 +778,8 @@ export function AdsV2SimpleSession({
   const acopy = adsAfterSampleCopy(lang)
   const factsNow = research && draft && research.orderId === draft.id ? research.facts : []
   const planSig = JSON.stringify({ base: baseSig, facts: factsNow.filter((f) => isFactOn(f)).map((f) => f.id) })
-  const cardSig = JSON.stringify({ title: cardTitleFinal, price: priceT, contact: cardContact, cta: cardCta, color: cardAccent, logo: logo?.footageId ?? null, lang: spoken })
+  // KINEO-ADS-CONSERTOS-TELA-1410 — a 1ª foto entra no cartão final: trocou a foto = cartão novo.
+  const cardSig = JSON.stringify({ title: cardTitleFinal, price: priceT, contact: cardContact, cta: cardCta, color: cardAccent, logo: logo?.footageId ?? null, lang: spoken, photo: firstPhotoUrl })
   const planFresh = !!plan && plan.sig === planSig
 
   const missing: string[] = []
@@ -881,6 +922,14 @@ export function AdsV2SimpleSession({
   useEffect(() => {
     if (phase === 'progress' || phase === 'delivered' || phase === 'failed') headingRef.current?.focus()
   }, [phase])
+  // KINEO-ADS-CONSERTOS-TELA-1410 — pronto ou falhou: a seção do resultado sobe para o topo da tela (no celular ficava abaixo da dobra).
+  useEffect(() => {
+    if (phase !== 'delivered' && phase !== 'failed') return
+    const t = window.setTimeout(() => {
+      try { headingRef.current?.closest('section')?.scrollIntoView({ block: 'start', behavior: 'smooth' }) } catch { /* navegador antigo */ }
+    }, 60)
+    return () => window.clearTimeout(t)
+  }, [phase])
 
   // Aba oculta enquanto um vídeo é lido: o aviso vira "Volte para esta aba…" — na tela e no título da aba (o único lugar
   // que a pessoa vê com a aba em segundo plano). Voltou ou terminou = título de antes.
@@ -907,9 +956,10 @@ export function AdsV2SimpleSession({
       if (logo?.localUrl) {
         try { img = await loadLogoImage(logo.localUrl) } catch { img = null }
       }
+      const productImage = await loadCardProductPhoto(firstPhotoUrl) // KINEO-ADS-CONSERTOS-TELA-1410
       if (stop) return
       try {
-        drawEndCard(canvas, { logo: img, business: cardTitleFinal, offer: priceT, ctaLabel: cardCta, contact: cardContact, accent: cardAccent, brandBg: true })
+        drawEndCard(canvas, { logo: img, business: cardTitleFinal, offer: priceT, ctaLabel: cardCta, contact: cardContact, accent: cardAccent, brandBg: true, productImage })
       } catch {
         /* navegador sem canvas: a prévia fica vazia */
       }
@@ -917,7 +967,7 @@ export function AdsV2SimpleSession({
     return () => {
       stop = true
     }
-  }, [phase, moreOpen, logo?.localUrl, cardTitleFinal, priceT, cardContact, cardCta, cardAccent, spoken])
+  }, [phase, moreOpen, logo?.localUrl, cardTitleFinal, priceT, cardContact, cardCta, cardAccent, spoken, firstPhotoUrl])
 
   // KINEO-ADS-UX-MARCA-2026-10-10 — a imagem do cartão final para a PRÉVIA AO VIVO: o MESMO desenho (drawEndCard) que sobe
   // no planejar, refeito 160 ms depois da última tecla. Só imagem local (blob); nada sobe daqui.
@@ -930,10 +980,11 @@ export function AdsV2SimpleSession({
         if (logo?.localUrl) {
           try { img = await loadLogoImage(logo.localUrl) } catch { img = null }
         }
+        const productImage = await loadCardProductPhoto(firstPhotoUrl) // KINEO-ADS-CONSERTOS-TELA-1410
         if (stop) return
         try {
           const canvas = document.createElement('canvas')
-          drawEndCard(canvas, { logo: img, business: cardTitleFinal, offer: priceT, ctaLabel: cardCta, contact: cardContact, accent: cardAccent, brandBg: true })
+          drawEndCard(canvas, { logo: img, business: cardTitleFinal, offer: priceT, ctaLabel: cardCta, contact: cardContact, accent: cardAccent, brandBg: true, productImage })
           canvas.toBlob((b) => {
             if (stop || !b || !aliveRef.current) return
             const u = trackUrl(URL.createObjectURL(b))
@@ -952,7 +1003,7 @@ export function AdsV2SimpleSession({
       window.clearTimeout(t)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, logo?.localUrl, cardTitleFinal, priceT, cardContact, cardCta, cardAccent, spoken])
+  }, [phase, logo?.localUrl, cardTitleFinal, priceT, cardContact, cardCta, cardAccent, spoken, firstPhotoUrl])
 
   // KINEO-ADS-UX-MARCA-2026-10-10 — nível já marcado pelo saldo (uma vez, quando o saldo chega; a escolha da pessoa manda
   // sempre). Na amostra o nível é o dela. Marcar não cobra: o débito segue só no botão "Make my ad".
@@ -1478,8 +1529,9 @@ export function AdsV2SimpleSession({
       if (logo?.localUrl) {
         try { img = await loadLogoImage(logo.localUrl) } catch { img = null }
       }
+      const productImage = await loadCardProductPhoto(firstPhotoUrl) // KINEO-ADS-CONSERTOS-TELA-1410 — a foto real no cartão
       const canvas = document.createElement('canvas')
-      drawEndCard(canvas, { logo: img, business: cardTitleFinal, offer: priceT, ctaLabel: cardCta, contact: cardContact, accent: cardAccent, brandBg: true })
+      drawEndCard(canvas, { logo: img, business: cardTitleFinal, offer: priceT, ctaLabel: cardCta, contact: cardContact, accent: cardAccent, brandBg: true, productImage })
       const file = await toPngFile(canvas)
       const up = await uploadFootage(file)
       if (!aliveRef.current) return null
@@ -1895,6 +1947,7 @@ export function AdsV2SimpleSession({
   return (
     <div className="adv2-layout">
       <style dangerouslySetInnerHTML={{ __html: SIMPLE_CSS + SIMPLE_UX_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: TELA_CONSERTOS_CSS }} />{/* KINEO-ADS-CONSERTOS-TELA-1410 */}
       <div className="adv2-main">
         {notReady ? <p className="adv2-note" role="status">{copy.notReady}</p> : null}
 
@@ -2063,7 +2116,10 @@ export function AdsV2SimpleSession({
               {adKind === 'product' && sceneSplit.scene && !sceneTyped ? (
                 <p className="adsw-hint adv2s-movescene" role="status" data-kineo="ads-scene-from-text">
                   {fill(sc.scene.moveNote, { scene: sceneSplit.scene })}{' '}
-                  <button type="button" className="adsw-btn ghost small" disabled={locked} onClick={() => { setScene(sceneSplit.scene ?? ''); if (sceneSplit.product) setText(sceneSplit.product) }}>{sc.scene.move}</button>
+                  {/* KINEO-ADS-CONSERTOS-TELA-1410 — sem disabled={locked}: o roteiro automático (1,2 s depois de cada mudança) deixava
+                      o botão morto. Só mexe no estado local; o plano em voo nasce com a assinatura velha (baseAtStart) e o roteiro
+                      automático replaneja com a nova. */}
+                  <button type="button" className="adsw-btn ghost small" data-kineo="ads-scene-move" onClick={() => { setScene(sceneSplit.scene ?? ''); if (sceneSplit.product) setText(sceneSplit.product) }}>{sc.scene.move}</button>
                 </p>
               ) : null}
               {/* KINEO-ADS-CENA-2026-10-13 — "Where does your product appear?" (opcional) + 4 climas prontos. Só cria cena em
@@ -2092,6 +2148,12 @@ export function AdsV2SimpleSession({
                   {NARRATION_LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.native}</option>)}
                 </select>
               </label>
+              {/* KINEO-ADS-CONSERTOS-TELA-1410 — a língua da frase não ficou clara: dizemos em que língua a voz sai, ao lado do seletor. */}
+              {voiceUnsure ? (
+                <p className="adsw-hint adv2s-voiceask" role="status" data-kineo="ads-voice-ask">
+                  {fill(tc.voiceCheck, { lang: NARRATION_LANGUAGES.find((l) => l.code === spoken)?.native ?? spoken })}
+                </p>
+              ) : null}
               <details className="adv2s-more" open={moreOpen} onToggle={(e) => setMoreOpen((e.currentTarget as HTMLDetailsElement).open)}>
                 <summary>{copy.text.more}</summary>
                 <div className="adv2s-toggles">
@@ -2110,7 +2172,7 @@ export function AdsV2SimpleSession({
                 </label>
                 <label className="adsw-f">
                   <span>{copy.text.contact}</span>
-                  <input type="text" value={contact} maxLength={80} disabled={locked} onChange={(e) => setContact(e.target.value)} placeholder={copy.text.contactPlaceholder} />
+                  <input ref={contactInputRef} type="text" value={contact} maxLength={80} disabled={locked} onChange={(e) => setContact(e.target.value)} placeholder={copy.text.contactPlaceholder} />
                 </label>
                 <div className="adv2-cardwrap" style={{ marginTop: 12 }}>
                   <canvas ref={cardCanvasRef} className="adv2-cardprev" width={1080} height={1920} role="img" aria-label={copy.text.cardPreview} />
@@ -2215,6 +2277,14 @@ export function AdsV2SimpleSession({
                 <div><dt>{fc.review.level}</dt><dd className={tierName ? undefined : 'muted'}>{tierName ?? fc.review.none}</dd></div>
                 <div><dt>{copy.plan.voice}</dt><dd className={narrationOn ? undefined : 'muted'}>{liveData.voice}</dd></div>
               </dl>
+              {/* KINEO-ADS-CONSERTOS-TELA-1410 — sem contato e sem link, o cartão final saía só com o nome (QA 14/10: "Perfume" no
+                  marrom, sem botão). O aviso abre "Mais" e põe o cursor no campo de contato. */}
+              {cardCta === '' && sentence ? (
+                <p className="adsw-warn adv2s-nocta" role="status" data-kineo="ads-no-cta">
+                  {tc.noCta}{' '}
+                  <button type="button" className="adsw-btn ghost small" onClick={() => { setMoreOpen(true); window.setTimeout(() => { contactInputRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }); contactInputRef.current?.focus({ preventScroll: true }) }, 40) }}>{tc.noCtaAdd}</button>
+                </p>
+              ) : null}
               {factsNow.length ? (
                 <>
                   <h3>{adKind === 'product' ? sc.research.factsTitle : copy.plan.factsTitle}</h3>
@@ -2347,14 +2417,10 @@ export function AdsV2SimpleSession({
         ) : null}
 
         {phase === 'delivered' && order ? (
-          <section className="adv2-card" aria-labelledby="adv2s-done">
+          <section className="adv2-card adv2s-result" aria-labelledby="adv2s-done">
             <h2 id="adv2s-done" ref={headingRef} tabIndex={-1}>{copy.done.title}</h2>
-            {video?.video_url ? (
-              <video className="adv2-player" src={video.video_url} controls playsInline preload="metadata" />
-            ) : (
-              <p className="adsw-lead">{copy.done.inMyVideos} <Link className="adsw-link" href="/history">{copy.progress.myVideos}</Link>.</p>
-            )}
-            <div className="adv2-actions">
+            {/* KINEO-ADS-CONSERTOS-TELA-1410 — Baixar/Abrir ACIMA do player: no celular (390 px) ficavam 2 telas abaixo do anúncio pronto. */}
+            <div className="adv2-actions adv2s-done-actions" data-kineo="ads-done-actions">
               {video?.video_url ? (
                 <button type="button" className="adsw-btn" disabled={downloading} onClick={() => void download()}>
                   {downloading ? copy.done.downloading : copy.done.download}
@@ -2364,6 +2430,11 @@ export function AdsV2SimpleSession({
             </div>
             {downloadNote ? <p className="adsw-warn" role="status">{downloadNote}</p> : null}
             <p className="adv2-note" role="note">{adsV2AiLabelNotice(lang)}</p>
+            {video?.video_url ? (
+              <video className="adv2-player" src={video.video_url} controls playsInline preload="metadata" />
+            ) : (
+              <p className="adsw-lead">{copy.done.inMyVideos} <Link className="adsw-link" href="/history">{copy.progress.myVideos}</Link>.</p>
+            )}
             {/* KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a amostra acabou de ser entregue (o pico da alegria): a oferta do Business logo abaixo. */}
             {scopy && business ? <AdsAfterSampleOffer lang={lang} business={business} compact /> : null}
             {/* KINEO-ADS-AMOSTRA-2026-10-09 — a amostra não tem refação (a rota segue fechada para free/trial). */}
@@ -2376,7 +2447,7 @@ export function AdsV2SimpleSession({
         ) : null}
 
         {phase === 'failed' && order ? (
-          <section className="adv2-card" aria-labelledby="adv2s-fail">
+          <section className="adv2-card adv2s-result" aria-labelledby="adv2s-fail">
             <h2 id="adv2s-fail" ref={headingRef} tabIndex={-1}>{order.status === 'cancelled' ? copy.failed.cancelled : order.parent_order_id ? copy.failed.redoTitle : copy.failed.title}</h2>
             <p className="adsw-lead">{order.status === 'cancelled' ? copy.failed.nothing : simpleLabel(copy, failedOrderMessage(order.error, !!order.parent_order_id))}</p>
             <div className="adv2-actions">

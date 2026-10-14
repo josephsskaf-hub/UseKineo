@@ -432,7 +432,9 @@ await check('8d componente: vídeo mudo em laço com pôster, playsInline, prelo
 await check('8e modo simples: escolha perto do nível, sugestão só com setor reconhecido, 1ª foto vira produto (nunca tela), estilo no corpo e na assinatura', () => {
   const s = code(read(F.simple))
   return ordem(s, 'name="adv2s-tier"', '<AdsStylePicker', 'name="adv2s-style"', 'aria-labelledby="adv2s-s4"') &&
-    /const styleSuggested: AdsV2StyleChoice = sentence && sector !== 'other' \? adsV2SuggestedStyle\(sector\) : 'none'/.test(s) &&
+    // reancorado KINEO-ADS-CONSERTOS-TELA-1410 — a frase também vai (a palavra do produto refina a sugestão do setor); a regra
+    // "sugestão só com setor reconhecido" continua: 'other' segue dando 'none'.
+    /const styleSuggested: AdsV2StyleChoice = sentence && sector !== 'other' \? adsV2SuggestedStyle\(sector, sentence\) : 'none'/.test(s) &&
     // KINEO-ADS-1FOTO-LINK-2026-10-10 — re-ancorado: a 1ª foto segue virando produto com estilo; agora a foto que veio do link
     // do produto também vira produto quando o texto não reconheceu setor ('other'). A regra do estilo não mudou.
     /const firstAsProduct = style !== 'none' && photoKind !== 'text'/.test(s) && /kind: \(firstAsProduct && out\.length === 0\) \|\| \(p\.fromLink === true && sector === 'other'\) \? 'product' : photoKind/.test(s) &&

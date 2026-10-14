@@ -571,6 +571,8 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
     // KINEO-EQUIPE-BUSINESS-2026-10-10 — membro: o saldo que vale é o do DONO (o /api/credits é o da própria conta).
     const r = await api<{ credits?: unknown }>(workspace?.role === 'member' ? '/api/ads/team' : '/api/credits')
     if (r.ok && typeof r.data.credits === 'number' && Number.isFinite(r.data.credits)) setBalance(r.data.credits)
+    // KINEO-ADS-CONSERTOS-TELA-1410 — o contador da barra de cima (TopBar) só relê o saldo com este evento; sem ele ficava parado depois do débito.
+    try { window.dispatchEvent(new Event('creditsChanged')) } catch {}
   }, [workspace?.role])
 
   useEffect(() => {

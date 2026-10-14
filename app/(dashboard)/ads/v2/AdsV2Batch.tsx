@@ -16,7 +16,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { downloadVideoFile } from '@/lib/videoDownload'
 import { AdsUploadError, uploadFootage } from '@/lib/ads/uploadFootage'
-import { drawEndCard, endCardCtaLabel, toPngFile } from '@/lib/ads/endCard'
+import { drawEndCard, endCardCtaLabel, loadLogoImage, toPngFile } from '@/lib/ads/endCard'
 import { ADS_V2_TIER_IDS, adsV2Credits, type AdsV2Tier } from '@/lib/ads/v2Tiers'
 import { ADS_V2_CROP, ADS_V2_SCREEN_SECONDS, adFileSlug, adsV2ErrorMessage, cropRect, failedOrderMessage } from '@/lib/ads/v2Screen'
 import { ADS_V2_SIMPLE_COPY, defaultPhotoKind, inferSector, simpleTitle } from '@/lib/ads/v2Simple'
@@ -423,8 +423,11 @@ export function AdsV2BatchSession({ balance, onBalance, sample = false, business
       setRows((prev) => prev.map((r) => ({ ...r, photos: r.photos.map((p) => photos.find((x) => x.key === p.key) ?? p) })))
       const language = narrationLanguage(detectNarrationLanguage(sentence).language) ?? 'en'
       const host = adsV2LinkHost(row.linkRead)
+      // KINEO-ADS-CONSERTOS-TELA-1410 — a 1ª foto da linha (URL local blob:) entra no cartão final; não carregou = cartão sem a foto.
+      let productImage: HTMLImageElement | null = null
+      try { productImage = row.photos[0] ? await loadLogoImage(row.photos[0].srcUrl) : null } catch { productImage = null }
       const canvas = document.createElement('canvas')
-      drawEndCard(canvas, { logo: null, business: rowTitle(sentence || host), offer: '', ctaLabel: host ? endCardCtaLabel('buy', language) : '', contact: host, brandBg: true })
+      drawEndCard(canvas, { logo: null, business: rowTitle(sentence || host), offer: '', ctaLabel: host ? endCardCtaLabel('buy', language) : '', contact: host, brandBg: true, productImage })
       const card = await uploadFootage(await toPngFile(canvas))
       const sector = inferSector(sentence)
       const d = await api<{ order_id: string }>('/api/ads/v2/orders', {

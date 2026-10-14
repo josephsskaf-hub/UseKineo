@@ -137,7 +137,14 @@ export function adsV2Style(key: AdsV2StyleKey): AdsV2StyleSpec {
  *   passa por IA de vídeo; a montagem mecânica fica para quem escolhe (eletrônicos numa loja).
  * - setor desconhecido (null) → nenhum.
  */
-export function adsV2SuggestedStyle(sector: AdsV2StyleSector | string | null | undefined): AdsV2StyleChoice {
+export function adsV2SuggestedStyle(sector: AdsV2StyleSector | string | null | undefined, sentence?: string | null): AdsV2StyleChoice {
+  // KINEO-ADS-CONSERTOS-TELA-1410 — QA 14/10 (foto de perfume + "perfume num hotel com chuva"): o setor deu 'store' e a sugestão
+  // foi "Giant product". A PALAVRA do produto refina a sugestão (perfume → close-up; bebida → explosão; fone → montagem). Imóvel
+  // e app nunca mudam (sem produto / telas). Sem palavra reconhecida = a sugestão de sempre, pelo setor.
+  if (sentence && sector !== 'real_estate' && sector !== 'app_service') {
+    const byWord = adsV2StyleByProductWord(sentence)
+    if (byWord) return byWord
+  }
   switch (sector) {
     case 'restaurant':
       return 'package_explosion'
@@ -151,6 +158,24 @@ export function adsV2SuggestedStyle(sector: AdsV2StyleSector | string | null | u
     default:
       return 'none'
   }
+}
+
+// KINEO-ADS-CONSERTOS-TELA-1410 — a palavra do PRODUTO na frase decide o estilo sugerido (16 línguas onde a palavra é comum;
+// fronteira de palavra Unicode por lookaround, porque \b não vê letra acentuada nem cirílico). Ordem: eletrônico primeiro
+// ("smartwatch" é eletrônico, não joia), depois cosmético/joia/relógio, depois comida/bebida. "watch" depois de
+// "to/come/and" é verbo ("come watch the game"), como em ADS_V2_PRODUCT_WORDS.
+const ADS_V2_STYLE_WORDS: readonly [AdsV2StyleKey, RegExp][] = [
+  ['mechanical_assembly', /(?<![\p{L}\p{N}])(electronics?|eletr[oô]nicos?|electr[oó]nicos?|[ée]lectroniques?|elektronik|elettronica|elektronica|elektronika|headphones?|earbuds?|headsets?|fones?( de ouvido)?|auriculares?|aud[ií]fonos?|[ée]couteurs?|kopfh[oö]rer|cuffie|koptelefoons?|s[łl]uchawki|kulakl[ıi]k|tai nghe|smartphones?|phones?|celulares?|telem[oó]veis|tel[ée]fonos? m[oó]vil(es)?|m[oó]viles?|t[ée]l[ée]phones?|handys?|telefon(o|ino)?|ponsel|smartwatch(es)?|gadgets?|laptops?|tablets?|consoles?|caixas? de som|altavoces?|наушники|навушники|смартфоны?|телефоны?|سماعات|هاتف|ہیڈفون|फ़ोन|फोन|हेडफ़ोन|điện thoại)(?![\p{L}\p{N}])/iu],
+  ['product_closeup', /(?<![\p{L}\p{N}])(perfumes?|parfums?|perfumy|parf[uü]m|profum[oi]|eau de (parfum|toilette|cologne)|colognes?|fragrances?|fragr[aâ]ncias?|fragancias?|fragranz[ae]|col[oô]nias?|cosmetics?|cosm[eé]ticos?|cosm[ée]tiques?|kosmetik|cosmetici|cosmetica|kosmetyki|kozmetik|mỹ phẩm|skin ?care|s[eé]runs?|serums?|cremes?|creams?|cremas?|lipsticks?|batons?|makeup|maquiagem|maquillaje|maquillage|jewel(le)?ry|joias?|j[oó]ias?|joyas?|bijoux|schmuck|gioielli|sieraden|bi[żz]uteria|tak[ıi]|perhiasan|trang sức|an[eé]is|anillos?|necklaces?|colares?|collares?|earrings?|brincos?|(?<!(?:to|come|and|can|let's|we) )watch(es)?|wristwatch(es)?|rel[oó]gios?|montres?|uhren?|orologi(o)?|horloges?|zegarki?|jam tangan|đồng hồ|nước hoa|духи|парфюм|парфуми|косметика|годинник|часы|عطر|عطور|ساعة|इत्र|परफ्यूम|घड़ी)(?![\p{L}\p{N}])/iu],
+  ['package_explosion', /(?<![\p{L}\p{N}])(drinks?|beverages?|bebidas?|boissons?|getr[aä]nke?|bevande|drankjes?|napoje?|i[cç]ecek|minuman|đồ uống|snacks?|salgadinhos?|aperitivos?|food|comida|alimentos?|nourriture|cibo|jedzenie|yiyecek|makanan|chocolates?|chocolat|schokolade|cioccolat[oi]|chocolade|czekolada|[cç]ikolata|cokelat|candy|candies|doces?|dulces?|bonbons?|s[üu](ß|ss)igkeiten|caramelle|snoep|cukierki|[şs]eker|permen|kẹo|sucos?|juices?|jugos?|coffee|kaffee|caff[eè]|koffie|kawa|kahve|kopi|cookies?|biscoitos?|galletas?|напитки|напої|шоколад|цукерки|конфеты|مشروبات|شوكولاتة|حلويات|مٹھائی|चॉकलेट|मिठाई|पेय)(?![\p{L}\p{N}])/iu],
+]
+
+/** KINEO-ADS-CONSERTOS-TELA-1410 — o estilo pela palavra do produto na frase; null = nenhuma palavra reconhecida (fica o setor). */
+export function adsV2StyleByProductWord(sentence: string | null | undefined): AdsV2StyleKey | null {
+  const t = String(sentence ?? '')
+  if (!t.trim()) return null
+  for (const [key, re] of ADS_V2_STYLE_WORDS) if (re.test(t)) return key
+  return null
 }
 
 /**
