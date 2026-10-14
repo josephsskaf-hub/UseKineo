@@ -158,7 +158,7 @@ export interface NanoBananaProEditInput {
   aspect_ratio: '9:16' | '4:5' | '1:1' // KINEO-ADS-MELHORIAS-1410 — o schema da fal aceita os três
   num_images: 1
   resolution: '2K'
-  output_format: 'jpeg'
+  output_format: 'jpeg' | 'png' // KINEO-ADS-FIEL-1510 — 'png' só na cena com a trava do produto (o servidor cola o recorte real sem perda)
 }
 
 /**
@@ -174,7 +174,7 @@ export const ADS_V2_SCENE_MAX_REFERENCES = 14
  * (US$ 0,15; só o 4K cobra o dobro) — é a mais barata que serve. JPEG em vez do PNG padrão: arquivo menor para o
  * image-to-video seguinte (Kling aceita até 50 MB), sem custo.
  */
-export function buildSceneImageInput(scene: { prompt: string; referenceUrls: readonly string[]; aspect?: '9:16' | '4:5' | '1:1' | null }): NanoBananaProEditInput { // KINEO-ADS-MELHORIAS-1410
+export function buildSceneImageInput(scene: { prompt: string; referenceUrls: readonly string[]; aspect?: '9:16' | '4:5' | '1:1' | null; outputFormat?: 'png' | null }): NanoBananaProEditInput { // KINEO-ADS-MELHORIAS-1410 · KINEO-ADS-FIEL-1510 — outputFormat 'png' (trava do produto); ausente = 'jpeg' de sempre
   const prompt = typeof scene?.prompt === 'string' ? scene.prompt.trim() : ''
   if (prompt.length < 3) throw new Error('ads_v2_bad_prompt')
   if (prompt.length > 50000) throw new Error('ads_v2_prompt_too_long')
@@ -182,5 +182,5 @@ export function buildSceneImageInput(scene: { prompt: string; referenceUrls: rea
   if (refs.length < 1) throw new Error('ads_v2_scene_needs_reference')
   if (refs.length > ADS_V2_SCENE_MAX_REFERENCES) throw new Error('ads_v2_scene_too_many_references')
   const image_urls = refs.map((u) => requireHttpsUrl(u, 'reference_url'))
-  return { prompt, image_urls, aspect_ratio: scene?.aspect === '4:5' || scene?.aspect === '1:1' ? scene.aspect : '9:16', num_images: 1, resolution: '2K', output_format: 'jpeg' } // KINEO-ADS-MELHORIAS-1410
+  return { prompt, image_urls, aspect_ratio: scene?.aspect === '4:5' || scene?.aspect === '1:1' ? scene.aspect : '9:16', num_images: 1, resolution: '2K', output_format: scene?.outputFormat === 'png' ? 'png' : 'jpeg' } // KINEO-ADS-MELHORIAS-1410 · KINEO-ADS-FIEL-1510
 }

@@ -39,6 +39,8 @@ import { ADS_V2_CARD_SECONDS, isAdsV2PlanStyle, type AdsV2ShotPlan } from '@/lib
 import { adsV2IsPackshot } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — o packshot (a foto real do produto)
 import { adsV2IsPresenterHolds } from '@/lib/ads/v2PresenterHolds' // KINEO-ADS-REFACAO-ATOR-1410 — o ator segurando o produto (insert e rótulo de IA)
 import { adsV2PlanFormat, adsV2SeedanceAspect } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — o formato gravado no plano (9:16 sem a chave)
+import { ADS_V2_SCENE_IMAGE_SLUG } from '@/lib/ads/v2Tiers' // KINEO-ADS-FIEL-1510 — cancelar a imagem abandonada pelo prazo
+import { ADS_V2_LOCK_DISPATCH_MIN_MS, ADS_V2_FAST_IMAGE_STUCK_MS, ADS_V2_FAST_VIDEO_STUCK_MS, ADS_V2_PRESENTER_BUDGET_MS, ADS_V2_STILL_REASON, adsV2FallbackStep, adsV2IsLockedImage, adsV2OverdueToStills, adsV2ProductLockFor, adsV2ProductLockMotion, adsV2ProductLockScenePrompt, adsV2StillSource, motionPrompt, type AdsV2ProductLock } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-1510 — trava do produto (o recorte real no quadro) e o prazo de ~8 min por anúncio (lib pura)
 import { buildAdV2Source, ADS_V2_VOICE_START, adsV2ProductOverlays, type AdV2MontageShot } from '@/lib/ads/adV2Montage'
 import { adsV2FallbackTrack, adsV2MusicTrimStart, adsV2MusicUsable, adsV2SwapLibraryTrack } from '@/lib/ads/v2Music'
 import { ADS_V2_QUALITY, confirmAdsV2Debit, failAdsV2Order } from '@/lib/ads/v2Billing'
@@ -292,6 +294,86 @@ export function adsV2ShotEffect(plan: Pick<AdsV2ShotPlan, 'shots'> | null | unde
   return s && isAdsV2PlanStyle(s.effect) ? s.effect : null
 }
 
+// ── KINEO-ADS-FIEL-1510 — trava do produto e prazo por plano (as decisões puras moram em lib/ads/v2ShotLists.ts) ──────────────
+/** KINEO-ADS-FIEL-1510 — a trava deste plano (null = plano sem produto: o caminho de antes). brief.kind 'place' nunca trava. */
+export function adsV2LockOf(order: Pick<AdsV2OrderRow, 'brief' | 'plan' | 'photos' | 'sector'>, row: Pick<AdsV2ShotRow, 'idx' | 'kind'>): AdsV2ProductLock | null {
+  const kind = order.brief && typeof order.brief.kind === 'string' ? order.brief.kind : null
+  const isActor = row.kind === ADS_V2_PRESENTER_KIND
+  const actor = isActor ? adsV2PresenterPlanOf(order.plan) : null
+  if (isActor && !actor) return null
+  const shot = Array.isArray(order.plan?.shots) ? order.plan!.shots.find((s) => s.idx === row.idx) ?? null : null
+  return adsV2ProductLockFor({ shot: isActor ? null : shot, photos: order.photos, productOrder: kind === 'product', sector: kind === 'place' ? null : order.sector, actor })
+}
+/** KINEO-ADS-FIEL-1510 — o lado servidor da trava, carregado só quando há produto a travar (import dinâmico; falha = sem trava). */
+function lockServer() {
+  return import('@/lib/ads/v2ProductLockServer').catch(() => null)
+}
+/** KINEO-ADS-FIEL-1510 — evento de toda troca de caminho de um plano (motor de reserva, foto parada, foto real do produto). */
+function shotFallbackEvent(order: AdsV2OrderRow, row: AdsV2ShotRow, metadata: Record<string, unknown>): Promise<unknown> {
+  return writeServerEvent({ name: 'ads_v2_shot_fallback', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, idx: row.idx, attempt: row.attempt, kind: row.kind, from_engine: row.engine, previous_reason: row.reason, elapsed_s: Math.round(ageMs(order.started_at) / 1000), charged: false, ...metadata } }).catch(() => null)
+}
+/** KINEO-ADS-FIEL-1510 — a foto real que a vaga mostra se virar foto parada (null = não há). */
+function stillSourceOf(order: AdsV2OrderRow, row: AdsV2ShotRow): string | null {
+  const planned = order.plan?.shots?.find((s) => s.idx === row.idx)
+  return adsV2StillSource({ imageUrl: row.image_url, lockUrl: adsV2LockOf(order, row)?.url ?? null, referenceUrls: planned?.referenceUrls ?? null, presenterHolds: planned?.presenterHolds })
+}
+/** KINEO-ADS-FIEL-1510 — quantos planos do pedido já viraram foto parada. */
+function stillsUsedOf(rows: readonly AdsV2ShotRow[]): number {
+  return latestShots(rows).filter((r) => typeof r.reason === 'string' && r.reason.startsWith(ADS_V2_STILL_REASON)).length
+}
+/**
+ * KINEO-ADS-FIEL-1510 — a vaga vira a FOTO parada com o zoom do montador (o caminho do plano `text`: sem motor, sem fal, sem
+ * custo, sem cobrança): nova tentativa 'skipped_text' com a foto como stored_url. Só um vence (upsert sem duplicar).
+ */
+async function stillFallback(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow, url: string, why: string): Promise<boolean> {
+  const next = {
+    order_id: order.id, idx: row.idx, attempt: row.attempt + 1, role: row.role, kind: 'text', source: row.source, source_footage_id: row.source_footage_id,
+    image_url: url, engine: null, prompt: null, gen_seconds: null, cut_start: 0, cut_seconds: row.cut_seconds, movement_variant: row.movement_variant,
+    status: 'skipped_text', stored_url: url, reason: `${ADS_V2_STILL_REASON}:${why}`.slice(0, 200),
+  }
+  const ins = await admin.from('ads_v2_shots').upsert(next, { onConflict: 'order_id,idx,attempt', ignoreDuplicates: true }).select('id')
+  const won = !ins.error && Array.isArray(ins.data) && ins.data.length > 0
+  if (won) await shotFallbackEvent(order, row, { to: 'still', reason: why.slice(0, 160), next_attempt: next.attempt })
+  return won
+}
+/** KINEO-ADS-FIEL-1510 — o prompt de movimento do vídeo: quadro travado = o produto parado; foto real do produto = movimento de produto. */
+function videoPromptOf(order: AdsV2OrderRow, row: AdsV2ShotRow): string {
+  if (row.engine === 'kling_avatar' || row.engine === 'pixverse_effect') return row.prompt ?? ''
+  const lock = adsV2LockOf(order, row)
+  if (!lock) return row.prompt ?? ''
+  if (adsV2IsLockedImage(row.image_url)) return adsV2ProductLockMotion(lock.mode, row.movement_variant)
+  if (row.image_url === lock.url) return motionPrompt('product', row.movement_variant)
+  return row.prompt ?? ''
+}
+/**
+ * KINEO-ADS-FIEL-1510 — a cena PNG do Nano Banana com o recorte REAL colado. 'skip' = sem trava (desligada para esta conta, ou o
+ * servidor não carregou): o caminho de antes. 'done' = o plano já foi marcado (quadro travado, ou — falhou — a foto real do produto;
+ * no ator, que precisa do rosto, a falha volta ao caminho de antes).
+ */
+async function finishLockedImage(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow, lock: AdsV2ProductLock, sceneUrl: string): Promise<'skip' | 'done'> {
+  const srv = await lockServer()
+  if (!srv || !(await srv.adsV2ProductLockEnabled(order.user_id).catch(() => false))) return 'skip'
+  try {
+    const out = await srv.adsV2FinishLockedScene({ userId: order.user_id, orderId: order.id, idx: row.idx, attempt: row.attempt, lock, format: adsV2PlanFormat(order.plan), sceneUrl })
+    if (await markShot(admin, row, ['image_submitted'], { status: 'image_done', image_url: out.url })) {
+      await writeServerEvent({ name: 'ads_v2_product_locked', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, idx: row.idx, attempt: row.attempt, mode: lock.mode, rect: out.rect } }).catch(() => null)
+    }
+    return 'done'
+  } catch (e) {
+    const why = e instanceof Error ? e.message : String(e)
+    if (lock.mode === 'actor') { await shotFallbackEvent(order, row, { to: 'unlocked', reason: `lock_finish:${why}`.slice(0, 160) }); return 'skip' }
+    if (await markShot(admin, row, ['image_submitted'], { status: 'image_done', image_url: lock.url })) await shotFallbackEvent(order, row, { to: 'product_photo', reason: `lock_finish:${why}`.slice(0, 160) })
+    return 'done'
+  }
+}
+/** KINEO-ADS-FIEL-1510 — cancela (melhor esforço) o job abandonado pelo prazo: na fila, a fal não cobra. */
+function cancelAbandoned(row: AdsV2ShotRow, kind: 'video' | 'image'): void {
+  const model = kind === 'image' ? ADS_V2_SCENE_IMAGE_SLUG : row.engine ? ADS_V2_ENGINES[row.engine].slug : null
+  const id = kind === 'image' ? row.image_request_id : row.request_id
+  if (!model || !id) return
+  void lockServer().then((srv) => srv?.adsV2CancelFalJob(model, id)).catch(() => null)
+}
+
 // ── transições de um plano (todas condicionais ao status de origem) ──────────────────────────────────────────────
 async function markShot(admin: SupabaseClient, row: AdsV2ShotRow, from: readonly string[], patch: Record<string, unknown>, stillNull?: 'submit_claimed_at' | 'image_submit_claimed_at'): Promise<boolean> {
   let q = admin.from('ads_v2_shots').update(patch).eq('id', row.id).in('status', from as string[])
@@ -362,9 +444,27 @@ async function submitImageFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
     await failShot(admin, row, ['pending'], 'scene_without_prompt_or_reference', 'local_policy_gate')
     return
   }
+  // KINEO-ADS-FIEL-1510 — TRAVA DO PRODUTO: o ESBOÇO (recorte real no lugar, sobre cinza) vira a 1ª referência e a cena volta em PNG
+  // KINEO-ADS-FIEL-1510 — para o recorte ser colado de novo sem perda. Falhou o recorte/esboço = o plano anima a FOTO REAL do produto
+  // KINEO-ADS-FIEL-1510 — (no ator, que precisa do rosto, o caminho de antes). Sem trava (ou desligada para a conta) = nada muda.
+  let sendPrompt = prompt // KINEO-ADS-FIEL-1510
+  let sendRefs = refs // KINEO-ADS-FIEL-1510
+  const lock = adsV2LockOf(order, row) // KINEO-ADS-FIEL-1510
+  const srv = lock ? await lockServer() : null // KINEO-ADS-FIEL-1510
+  if (lock && srv && (await srv.adsV2ProductLockEnabled(order.user_id).catch(() => false))) { // KINEO-ADS-FIEL-1510
+    try { // KINEO-ADS-FIEL-1510
+      const layout = await srv.adsV2PrepareLockedScene({ userId: order.user_id, orderId: order.id, idx: row.idx, attempt: row.attempt, lock, format: adsV2PlanFormat(order.plan) }) // KINEO-ADS-FIEL-1510
+      sendPrompt = adsV2ProductLockScenePrompt(prompt, lock.mode) // KINEO-ADS-FIEL-1510
+      sendRefs = [layout, ...refs] // KINEO-ADS-FIEL-1510
+    } catch (e) { // KINEO-ADS-FIEL-1510
+      const why = `lock_prepare:${e instanceof Error ? e.message : String(e)}`.slice(0, 160) // KINEO-ADS-FIEL-1510
+      if (lock.mode === 'actor') await shotFallbackEvent(order, row, { to: 'unlocked', reason: why }) // KINEO-ADS-FIEL-1510
+      else { if (await markShot(admin, row, ['pending'], { status: 'image_done', image_url: lock.url })) await shotFallbackEvent(order, row, { to: 'product_photo', reason: why }); return } // KINEO-ADS-FIEL-1510
+    } // KINEO-ADS-FIEL-1510
+  } // KINEO-ADS-FIEL-1510
   let outcome
   try {
-    outcome = await submitSceneImage({ prompt, referenceUrls: refs, ...(adsV2PlanFormat(order.plan) !== '9:16' ? { aspect: adsV2PlanFormat(order.plan) } : {}) }, { userId: order.user_id, orderId: order.id }) // KINEO-ADS-MELHORIAS-1410 — a cena criada no formato do anúncio
+    outcome = await submitSceneImage({ prompt: sendPrompt, referenceUrls: sendRefs, ...(adsV2PlanFormat(order.plan) !== '9:16' ? { aspect: adsV2PlanFormat(order.plan) } : {}), ...(sendRefs !== refs ? { outputFormat: 'png' as const } : {}) }, { userId: order.user_id, orderId: order.id }) // KINEO-ADS-MELHORIAS-1410 — a cena criada no formato do anúncio · KINEO-ADS-FIEL-1510 — com a trava: o esboço + PNG
   } catch (e) {
     // buildSceneImageInput recusou (nada saiu daqui): recusa NOSSA, não refazer.
     await failShot(admin, row, ['pending'], `scene_input_invalid:${e instanceof Error ? e.message : String(e)}`, 'local_policy_gate')
@@ -393,7 +493,7 @@ async function submitVideoFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
   try {
     // KINEO-ESTILOS-PRODUTO-2026-10-09 — o efeito sai da chave gravada no plano do pedido (só o 'pixverse_effect' a usa).
     // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator leva a voz do anúncio (só ele usa audioUrl; sem voz https, recusa local).
-    input = buildShotInput(engine, { imageUrl: row.image_url ?? '', prompt: row.prompt ?? '', audioUrl: order.voice_url ?? '', effect: adsV2ShotEffect(order.plan, row.idx) }) as unknown as Record<string, unknown>
+    input = buildShotInput(engine, { imageUrl: row.image_url ?? '', prompt: videoPromptOf(order, row), audioUrl: order.voice_url ?? '', effect: adsV2ShotEffect(order.plan, row.idx) }) as unknown as Record<string, unknown> // KINEO-ADS-FIEL-1510 — videoPromptOf: sem trava = row.prompt ?? '' (o de sempre)
     if (engine === 'seedance_20_fast' && adsV2PlanFormat(order.plan) === '1:1') input = { ...input, aspect_ratio: adsV2SeedanceAspect('1:1') } // KINEO-ADS-MELHORIAS-1410 — o herói do Premium QUADRADO sai em 1:1 (o schema da fal aceita; 4:5 não existe lá e o /plan recusa antes)
   } catch (e) {
     // O efeito recusado AQUI não mata o anúncio: 'invalid_payload' entra na refação automática e, na 3ª tentativa, a
@@ -436,6 +536,7 @@ export async function dispatchAdsV2Shots(admin: SupabaseClient, order: AdsV2Orde
   // KINEO-ATOR-ANUNCIO-2026-10-09 — a foto do ator só sai com a narração ligada; o vídeo dele, só com a voz pronta e
   // dentro do teto (adsV2PresenterVoiceReady). Os planos do anúncio não mudam.
   const images = latest.filter(needsImage).filter((r) => r.kind !== ADS_V2_PRESENTER_KIND || order.narration === true)
+    .filter((r) => !adsV2LockOf(order, r) || deadlineMs - Date.now() >= ADS_V2_LOCK_DISPATCH_MIN_MS) // KINEO-ADS-FIEL-1510 — cena com trava (recorte até 45 s) só sai de quem tem fôlego: o /start (60 s) deixa para a tela/cron
   const videos = latest.filter(needsVideo).filter((r) => r.kind !== ADS_V2_PRESENTER_KIND || adsV2PresenterVoiceReady(order))
   const kling = videos.filter((r) => r.engine === 'kling_o3')
   const others = videos.filter((r) => r.engine !== 'kling_o3')
@@ -478,13 +579,15 @@ async function pollOne(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2Sh
       if (!row.image_request_id) return
       const p = await pollSceneImage(row.image_request_id, ctx)
       if (p.state === 'done' && p.url) {
+        const lock = adsV2LockOf(order, row) // KINEO-ADS-FIEL-1510 — cena de produto: o recorte REAL colado antes de virar vídeo
+        if (lock && (await finishLockedImage(admin, order, row, lock, p.url)) === 'done') return // KINEO-ADS-FIEL-1510
         const stored = await persistSceneImage({ userId: order.user_id, orderId: order.id, idx: row.idx, attempt: row.attempt, falUrl: p.url })
         if (stored) await markShot(admin, row, ['image_submitted'], { status: 'image_done', image_url: stored })
         else if (ageMs(row.updated_at) > ADS_V2_COPY_MAX_MS) await failShot(admin, row, ['image_submitted'], 'image_copy_failed', 'unknown')
       } else if (p.state === 'failed') {
         await failShot(admin, row, ['image_submitted'], 'image_provider_failed', 'unknown')
-      } else if (ageMs(row.image_submit_claimed_at ?? row.updated_at) > ADS_V2_SHOT_STUCK_MS) {
-        await markShot(admin, row, ['image_submitted'], { status: 'stuck', reason: 'image_stuck', reason_class: 'unknown' })
+      } else if (ageMs(row.image_submit_claimed_at ?? row.updated_at) > (row.kind === ADS_V2_PRESENTER_KIND ? ADS_V2_SHOT_STUCK_MS : ADS_V2_FAST_IMAGE_STUCK_MS)) { // KINEO-ADS-FIEL-1510 — prazo curto da imagem (o ator mantém o de antes)
+        if (await markShot(admin, row, ['image_submitted'], { status: 'stuck', reason: 'image_stuck', reason_class: 'unknown' })) cancelAbandoned(row, 'image') // KINEO-ADS-FIEL-1510 — na fila, a fal não cobra
       }
       return
     }
@@ -495,7 +598,7 @@ async function pollOne(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2Sh
         const p = await pollFalJob(ADS_V2_ENGINES[row.engine].slug, row.request_id, 'video', ctx)
         if (p.state === 'failed') { await failShot(admin, row, ['submitted'], 'provider_failed', 'unknown'); return }
         if (p.state !== 'done' || !p.url) {
-          if (ageMs(row.submitted_at ?? row.updated_at) > ADS_V2_SHOT_STUCK_MS) await markShot(admin, row, ['submitted'], { status: 'stuck', reason: 'shot_stuck', reason_class: 'unknown' })
+          if (ageMs(row.submitted_at ?? row.updated_at) > (row.kind === ADS_V2_PRESENTER_KIND ? ADS_V2_SHOT_STUCK_MS : ADS_V2_FAST_VIDEO_STUCK_MS) && (await markShot(admin, row, ['submitted'], { status: 'stuck', reason: 'shot_stuck', reason_class: 'unknown' }))) cancelAbandoned(row, 'video') // KINEO-ADS-FIEL-1510 — prazo curto por tentativa (o ator mantém o de antes); job na fila é cancelado
           return
         }
         falUrl = p.url
@@ -524,7 +627,7 @@ async function pollOne(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2Sh
  * Plano que falhou por culpa do fornecedor ganha nova tentativa SEM cobrar (2ª no principal, 3ª no H3). Devolve o
  * motivo terminal quando não há mais tentativa (o pedido inteiro falha e estorna).
  */
-async function retryOrTerminal(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow): Promise<string | null> {
+async function retryOrTerminal(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow, stills: { used: number } = { used: 0 }): Promise<string | null> { // KINEO-ADS-FIEL-1510 — stills: fotos paradas já usadas no pedido
   // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator NUNCA é terminal: 2ª tentativa sem cobrar, depois desiste e o anúncio normal sai.
   if (row.kind === ADS_V2_PRESENTER_KIND) return retryPresenter(admin, order, row)
   if (row.kind === 'text') return `text_shot_${row.idx}_${row.status}` // nunca acontece: text nasce skipped_text
@@ -534,10 +637,19 @@ async function retryOrTerminal(admin: SupabaseClient, order: AdsV2OrderRow, row:
   // continua terminal (a conta é a mesma para todos os motores).
   const effectAccess = row.engine === 'pixverse_effect' && row.reason_class === 'auth_model_access'
   if (row.reason_class && ADS_V2_NON_RETRY_CLASSES.includes(row.reason_class) && !effectAccess) return `shot_${row.idx}_${row.reason_class}`
-  if (row.attempt >= ADS_V2_MAX_AUTO_ATTEMPTS) return `shot_${row.idx}_exhausted:${row.reason ?? row.status}`
   // Efeito sem acesso: pula direto para a reserva (repetir o mesmo modelo fechado só queima tempo).
-  const attempt = effectAccess ? Math.max(row.attempt + 1, ADS_V2_FALLBACK_FROM_ATTEMPT) : row.attempt + 1
-  const engine = routeShot(row.kind, order.tier, attempt, adsV2ShotEffect(order.plan, row.idx) !== null)
+  const nextAttempt = effectAccess ? Math.max(row.attempt + 1, ADS_V2_FALLBACK_FROM_ATTEMPT) : row.attempt + 1 // KINEO-ADS-FIEL-1510 — era `attempt`
+  // KINEO-ADS-FIEL-1510 — PRAZO: a régua de antes enquanto couber em ~6,5 min desde o início; não cabendo, pula para a reserva H3;
+  // KINEO-ADS-FIEL-1510 — nem ela cabendo (ou esgotada), a FOTO parada (até 2 por pedido). Sem foto parada: a régua de antes, e
+  // KINEO-ADS-FIEL-1510 — esgotada = terminal com estorno, a MESMA frase de antes. Nada disto cobra o cliente.
+  const styled = adsV2ShotEffect(order.plan, row.idx) !== null // KINEO-ADS-FIEL-1510
+  const shotKind = row.kind // KINEO-ADS-FIEL-1510 — o tipo já sem o ator (o callback abaixo perde o estreitamento)
+  const stillUrl = stillSourceOf(order, row) // KINEO-ADS-FIEL-1510
+  const step = adsV2FallbackStep({ nextAttempt, maxAttempts: ADS_V2_MAX_AUTO_ATTEMPTS, fallbackFrom: ADS_V2_FALLBACK_FROM_ATTEMPT, elapsedMs: ageMs(order.started_at), needsImage: row.source === 'generated_scene' && !row.image_url, stillsUsed: stills.used, canStill: !!stillUrl, route: (a) => routeShot(shotKind, order.tier, a, styled) }) // KINEO-ADS-FIEL-1510
+  if (step.step === 'terminal') return `shot_${row.idx}_exhausted:${row.reason ?? row.status}` // KINEO-ADS-FIEL-1510 — a frase de antes
+  if (step.step === 'still') { if (stillUrl && (await stillFallback(admin, order, row, stillUrl, `${row.status}:${row.reason ?? ''}`))) stills.used += 1; return null } // KINEO-ADS-FIEL-1510
+  const attempt = step.attempt // KINEO-ADS-FIEL-1510
+  const engine = routeShot(row.kind, order.tier, attempt, styled) // KINEO-ADS-FIEL-1510 — o mesmo routeShot de antes
   if (!engine) return `shot_${row.idx}_no_engine`
   // Cena criada cuja IMAGEM já saiu reaproveita a imagem (só o vídeo falhou); falha na imagem recomeça pela imagem.
   const keepImage = row.source === 'client_photo' || !!row.image_url
@@ -566,6 +678,7 @@ async function retryOrTerminal(admin: SupabaseClient, order: AdsV2OrderRow, row:
       path: '/lib/ads/v2Advance',
       metadata: { order_id: order.id, idx: row.idx, attempt, engine, previous_reason: row.reason, previous_class: row.reason_class, charged: false },
     })
+    if (engine !== row.engine || step.skipped) await shotFallbackEvent(order, row, { to: engine, reason: step.skipped ? 'time_budget' : 'engine_fallback', next_attempt: attempt }) // KINEO-ADS-FIEL-1510
   }
   return null
 }
@@ -669,7 +782,7 @@ async function stepPresenter(admin: SupabaseClient, order: AdsV2OrderRow, row: A
     await failShot(admin, row, [row.status], 'presenter_no_voice', 'local_policy_gate')
     return order
   }
-  if (ageMs(order.started_at) > ADS_V2_PRESENTER_GIVEUP_MS) {
+  if (ageMs(order.started_at) > Math.min(ADS_V2_PRESENTER_GIVEUP_MS, ADS_V2_PRESENTER_BUDGET_MS)) { // KINEO-ADS-FIEL-1510 — o ator desiste em 10 min (era 45): o anúncio sai sem ele
     await failShot(admin, row, [row.status], 'presenter_deadline', 'local_policy_gate')
     return order
   }
@@ -1092,13 +1205,21 @@ async function stepGenerating(admin: SupabaseClient, order: AdsV2OrderRow, deadl
   }
   // 2. Falhas: nova tentativa sem cobrar, ou falha terminal do pedido (estorno pelo vencedor).
   rows = (await loadAdsV2Shots(admin, order.id)) ?? rows
+  const stills = { used: stillsUsedOf(rows) } // KINEO-ADS-FIEL-1510
   for (const r of latestShots(rows).filter((x) => x.status === 'failed' || x.status === 'stuck')) {
-    const terminal = await retryOrTerminal(admin, order, r)
+    const terminal = await retryOrTerminal(admin, order, r, stills) // KINEO-ADS-FIEL-1510
     if (terminal) {
       await failAdsV2Order(admin, order, terminal, '/lib/ads/v2Advance')
       return
     }
   }
+  // KINEO-ADS-FIEL-1510 — PRAZO DO ANÚNCIO: passados ~6,5 min, os planos ainda trabalhando viram a foto parada — só se TODOS couberem
+  // KINEO-ADS-FIEL-1510 — no teto de 2 por pedido e todos tiverem foto (senão esperam, como antes). O job abandonado é cancelado.
+  rows = (await loadAdsV2Shots(admin, order.id)) ?? rows // KINEO-ADS-FIEL-1510
+  const overdue = latestShots(rows).filter(isAdsV2PlanShotRow).filter((r) => !READY.has(r.status) && !neverAi(r)).map((r) => ({ r, url: stillSourceOf(order, r) })) // KINEO-ADS-FIEL-1510
+  if (overdue.every((x) => !!x.url) && adsV2OverdueToStills({ elapsedMs: ageMs(order.started_at), working: overdue.length, stillsUsed: stillsUsedOf(rows) })) { // KINEO-ADS-FIEL-1510
+    for (const x of overdue) { if (await stillFallback(admin, order, x.r, x.url as string, `overdue:${x.r.status}`)) cancelAbandoned(x.r, x.r.status === 'image_submitted' ? 'image' : 'video') } // KINEO-ADS-FIEL-1510
+  } // KINEO-ADS-FIEL-1510
   // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator: sem voz/prazo = desiste; senão garante a voz (o despacho manda o vídeo falado).
   rows = (await loadAdsV2Shots(admin, order.id)) ?? rows
   const withVoice = await stepPresenter(admin, order, latestShots(rows).find(isAdsV2PresenterRow) ?? null)

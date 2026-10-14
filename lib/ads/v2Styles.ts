@@ -216,6 +216,8 @@ export interface AdsV2StyleCopy {
   styles: Record<AdsV2StyleKey, { label: string; bestFor: string; oneLine: string }>
   /** KINEO-ESTILOS-DIA1-2026-10-13 — o selo do estilo de época (season 'holiday'), nas 16 línguas. */
   seasonTag: string
+  /** KINEO-ADS-FIEL-1510 — o aviso honesto dos estilos (o efeito redesenha o produto; a foto real fecha o anúncio). Também vai no fim de `hint`. */
+  fidelity?: string // KINEO-ADS-FIEL-1510
 }
 
 type AdsV2BaseStyleKey = 'package_explosion' | 'giant_product' | 'product_closeup' | 'ocean_ad' | 'mechanical_assembly'
@@ -786,6 +788,27 @@ const DIA1_STYLE_COPY: Record<InterfaceLanguage, Record<AdsV2Dia1StyleKey, L3>> 
   },
 }
 // KINEO-ESTILOS-DIA1-2026-10-13 — o selo do estilo de época (season 'holiday') nas 16 línguas.
+// KINEO-ADS-FIEL-1510 — QA 15/10: o efeito da PixVerse refaz o quadro inteiro e REDESENHA o produto. Mantido (é a escolha da pessoa), com
+// KINEO-ADS-FIEL-1510 — o aviso honesto nas 16 línguas: o anúncio fecha com a foto real (packshot) e o cartão final com a foto real.
+export const ADS_V2_STYLE_FIDELITY: Record<InterfaceLanguage, string> = {
+  en: 'Effect styles reinterpret the product — the real photo closes the ad.',
+  pt: 'Os estilos com efeito reinterpretam o produto — a foto real fecha o anúncio.',
+  es: 'Los estilos con efecto reinterpretan el producto: la foto real cierra el anuncio.',
+  fr: 'Les styles à effet réinterprètent le produit — la vraie photo clôt la publicité.',
+  de: 'Effekt-Stile interpretieren das Produkt neu – das echte Foto schließt die Anzeige ab.',
+  it: 'Gli stili con effetto reinterpretano il prodotto: la foto reale chiude l’annuncio.',
+  nl: 'Effectstijlen interpreteren het product opnieuw — de echte foto sluit de advertentie af.',
+  pl: 'Style z efektem interpretują produkt na nowo — prawdziwe zdjęcie zamyka reklamę.',
+  tr: 'Efektli stiller ürünü yeniden yorumlar; reklamı gerçek fotoğraf kapatır.',
+  ru: 'Стили с эффектом переосмысливают товар — реклама заканчивается настоящим фото.',
+  uk: 'Стилі з ефектом переосмислюють товар — реклама закінчується справжнім фото.',
+  ar: 'أنماط المؤثرات تعيد تصوّر المنتج — والإعلان يُختتم بالصورة الحقيقية.',
+  ur: 'ایفیکٹ والے اسٹائل پروڈکٹ کو نئے انداز میں دکھاتے ہیں — اشتہار اصل تصویر پر ختم ہوتا ہے۔',
+  hi: 'इफ़ेक्ट वाले स्टाइल प्रोडक्ट को नए अंदाज़ में दिखाते हैं — विज्ञापन असली फ़ोटो पर खत्म होता है।',
+  id: 'Gaya efek menafsirkan ulang produk — foto aslinya menutup iklan.',
+  vi: 'Các phong cách hiệu ứng diễn giải lại sản phẩm — ảnh thật sẽ khép lại quảng cáo.',
+} // KINEO-ADS-FIEL-1510
+
 const SEASON_TAG: Record<InterfaceLanguage, string> = {
   en: 'Holiday', pt: 'Fim de ano', es: 'Fiestas', fr: 'Fêtes', de: 'Feiertage', it: 'Feste', nl: 'Feestdagen', pl: 'Święta',
   tr: 'Yılbaşı', ru: 'Праздники', uk: 'Свята', ar: 'الأعياد', ur: 'تہوار', hi: 'त्योहार', id: 'Liburan', vi: 'Mùa lễ',
@@ -803,7 +826,7 @@ export const ADS_V2_STYLE_COPY: Record<InterfaceLanguage, AdsV2StyleCopy> = Obje
     for (const k of Object.keys(base.styles) as AdsV2BaseStyleKey[]) styles[k] = { ...base.styles[k], oneLine: BASE_ONE_LINES[l][k] }
     for (const k of Object.keys(NEW_STYLE_COPY[l]) as AdsV2NewStyleKey[]) styles[k] = NEW_STYLE_COPY[l][k]
     for (const k of Object.keys(DIA1_STYLE_COPY[l]) as AdsV2Dia1StyleKey[]) styles[k] = DIA1_STYLE_COPY[l][k] // KINEO-ESTILOS-DIA1-2026-10-13
-    return [l, { ...base, styles, seasonTag: SEASON_TAG[l] }]
+    return [l, { ...base, hint: `${base.hint} ${ADS_V2_STYLE_FIDELITY[l]}`, styles, seasonTag: SEASON_TAG[l], fidelity: ADS_V2_STYLE_FIDELITY[l] }] // KINEO-ADS-FIEL-1510 — o aviso honesto no fim da linha de baixo do título (a escolha de estilo já mostra `hint`)
   }),
 ) as Record<InterfaceLanguage, AdsV2StyleCopy>
 

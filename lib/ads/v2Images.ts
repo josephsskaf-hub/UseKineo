@@ -14,7 +14,7 @@ const RENDER_BUCKET = 'renders'
 const IMAGE_MAX_BYTES = 30 * 1024 * 1024
 
 export async function submitSceneImage(
-  scene: { prompt: string; referenceUrls: readonly string[]; aspect?: '9:16' | '4:5' | '1:1' | null }, // KINEO-ADS-MELHORIAS-1410 — o formato do anúncio
+  scene: { prompt: string; referenceUrls: readonly string[]; aspect?: '9:16' | '4:5' | '1:1' | null; outputFormat?: 'png' | null }, // KINEO-ADS-MELHORIAS-1410 — o formato do anúncio · KINEO-ADS-FIEL-1510 — 'png' na cena com a trava do produto
   ctx: { userId: string; orderId: string },
 ): Promise<AdsV2SubmitOutcome> {
   const input = buildSceneImageInput(scene)

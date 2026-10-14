@@ -844,3 +844,152 @@ export function adsV2CropRectFor(imgW: number, imgH: number, fx: number, fy: num
   const f = (v: number) => (Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.5)
   return { sx: (imgW - sw) * f(fx), sy: (imgH - sh) * f(fy), sw, sh }
 }
+
+// ── KINEO-ADS-FIEL-1510 — PRODUTO FIEL EM TODO QUADRO + PRAZO CURTO POR PLANO (Studio Ads v2, fundador 15/10) ──────────────────
+// KINEO-ADS-FIEL-1510 — QA 15/10: o efeito da PixVerse e a cena do Nano Banana REDESENHAM o produto (rostinho no líquido, frasco
+// KINEO-ADS-FIEL-1510 — mais claro e de outra proporção, texto fantasma, tampa simplificada na mão). Os planos que partem da foto
+// KINEO-ADS-FIEL-1510 — original saem exatos. Agência recusa anúncio com produto diferente do real. A TRAVA DO PRODUTO:
+// KINEO-ADS-FIEL-1510 —   1. o produto é recortado UMA vez por foto (fal-ai/birefnet/v2, PNG com transparência, cache no bucket);
+// KINEO-ADS-FIEL-1510 —   2. a cena criada nasce de um ESBOÇO: o recorte real já posto no quadro, sobre cinza (a 1ª referência do
+// KINEO-ADS-FIEL-1510 —      Nano Banana), com a ordem de construir a cena em volta sem mexer no produto;
+// KINEO-ADS-FIEL-1510 —   3. a imagem que volta ganha o recorte REAL colado de novo no MESMO lugar (pixel da foto do cliente);
+// KINEO-ADS-FIEL-1510 —   4. o Kling O3 anima um quadro que já tem o produto verdadeiro (o mesmo caso dos planos de foto, que saem exatos).
+// KINEO-ADS-FIEL-1510 — Qualquer passo que falhe = o plano anima a FOTO REAL do produto (nunca a cena com o produto redesenhado).
+// KINEO-ADS-FIEL-1510 — Só funções puras aqui; o lado servidor mora em lib/ads/v2ProductLockServer.ts e lib/ads/v2Png.ts.
+/** KINEO-ADS-FIEL-1510 — interruptor: 'internal' = só as contas da casa (canário); 'all' = todo pedido; 'off' = o caminho de antes. */
+export const ADS_V2_PRODUCT_LOCK_MODE: 'off' | 'internal' | 'all' = 'internal' // KINEO-ADS-FIEL-1510
+/** KINEO-ADS-FIEL-1510 — setores em que "the product from the photos" é um produto embalado (prato, cabelo e aparelho de academia ficam de fora). */
+export const ADS_V2_PRODUCT_LOCK_SECTORS: readonly AdsV2Sector[] = ['store', 'other'] // KINEO-ADS-FIEL-1510
+/** KINEO-ADS-FIEL-1510 — endpoint do recorte (catálogo público da fal; OpenAPI lido em 15/10: image_url, model, output_format 'png'). */
+export const ADS_V2_CUTOUT_SLUG = 'fal-ai/birefnet/v2' // KINEO-ADS-FIEL-1510
+/** KINEO-ADS-FIEL-1510 — preço público da fal em 15/10: US$ 0 por segundo de computação; teto conservador por recorte. */
+export const ADS_V2_CUTOUT_USD_MAX = 0.01 // KINEO-ADS-FIEL-1510
+export type AdsV2ProductLockMode = 'scene' | 'holds' | 'actor' // KINEO-ADS-FIEL-1510
+export interface AdsV2ProductLock { footageId: string; url: string; mode: AdsV2ProductLockMode } // KINEO-ADS-FIEL-1510
+/** KINEO-ADS-FIEL-1510 — onde o produto fica no quadro (frações): cena = centro, acima das frases do terço de baixo; pessoa = no peito. */
+export const ADS_V2_PRODUCT_LOCK_BOX: Readonly<Record<AdsV2ProductLockMode, { x0: number; x1: number; y0: number; y1: number }>> = { scene: { x0: 0.24, x1: 0.76, y0: 0.3, y1: 0.68 }, holds: { x0: 0.31, x1: 0.69, y0: 0.44, y1: 0.74 }, actor: { x0: 0.31, x1: 0.69, y0: 0.44, y1: 0.74 } } // KINEO-ADS-FIEL-1510
+/** KINEO-ADS-FIEL-1510 — recorte que não é produto: área do contorno fora disto (quase nada, ou a foto inteira) = sem trava. */
+export const ADS_V2_CUTOUT_AREA_MIN = 0.02 // KINEO-ADS-FIEL-1510
+export const ADS_V2_CUTOUT_AREA_MAX = 0.92 // KINEO-ADS-FIEL-1510
+/** KINEO-ADS-FIEL-1510 — fôlego mínimo do chamador para mandar uma cena com trava (recorte até 45 s + POST de 25 s). */
+export const ADS_V2_LOCK_DISPATCH_MIN_MS = 45_000 // KINEO-ADS-FIEL-1510
+
+/**
+ * KINEO-ADS-FIEL-1510 — a TRAVA de um plano (pura): qual foto real do produto entra nele, ou null (plano sem produto: o caminho
+ * de antes). Cena criada de pedido de produto (ou setor loja/outro) com foto 'product' entre as referências = 'scene'; o plano
+ * "pessoa de IA segurando o produto" (ADS_V2_PRESENTER_HOLDS, desligado hoje) = 'holds'; a linha do ator (`actor`) = 'actor'.
+ */
+export function adsV2ProductLockFor(input: {
+  shot: { source?: string | null; referenceFootageIds?: readonly string[] | null; referenceUrls?: readonly string[] | null; presenterHolds?: unknown } | null | undefined
+  photos: readonly { footage_id?: string | null; kind?: string | null; url?: string | null }[] | null | undefined
+  productOrder: boolean
+  sector: string | null | undefined
+  actor?: { productFootageId?: string | null; productUrl?: string | null } | null
+}): AdsV2ProductLock | null { // KINEO-ADS-FIEL-1510
+  const https = (u: unknown): u is string => typeof u === 'string' && /^https:\/\/\S+$/i.test(u.trim())
+  if (input.actor) return input.actor.productFootageId && https(input.actor.productUrl) ? { footageId: input.actor.productFootageId, url: input.actor.productUrl.trim(), mode: 'actor' } : null
+  const shot = input.shot
+  if (!shot || shot.source !== 'generated_scene') return null
+  const ids = Array.isArray(shot.referenceFootageIds) ? shot.referenceFootageIds : []
+  if (shot.presenterHolds === true) {
+    const url = Array.isArray(shot.referenceUrls) ? shot.referenceUrls[1] : null
+    return ids[0] && https(url) ? { footageId: ids[0], url: url.trim(), mode: 'holds' } : null
+  }
+  if (!input.productOrder && !(ADS_V2_PRODUCT_LOCK_SECTORS as readonly string[]).includes(String(input.sector ?? ''))) return null
+  const photos = Array.isArray(input.photos) ? input.photos : []
+  const product = ids.map((id) => photos.find((p) => p && p.footage_id === id)).find((p) => !!p && p.kind === 'product' && https(p.url))
+  return product && product.footage_id && product.url ? { footageId: product.footage_id, url: product.url.trim(), mode: 'scene' } : null
+}
+
+/** KINEO-ADS-FIEL-1510 — o retângulo do produto (px inteiros) no quadro W×H: cabe na caixa do modo, centrado, com a BASE no fundo da caixa. */
+export function adsV2ProductLockRect(frameW: number, frameH: number, cutW: number, cutH: number, mode: AdsV2ProductLockMode): { x: number; y: number; w: number; h: number } { // KINEO-ADS-FIEL-1510
+  if (!(frameW > 0 && frameH > 0 && cutW > 0 && cutH > 0)) throw new Error('ads_v2_lock_bad_size')
+  const b = ADS_V2_PRODUCT_LOCK_BOX[mode] ?? ADS_V2_PRODUCT_LOCK_BOX.scene
+  const bw = (b.x1 - b.x0) * frameW
+  const bh = (b.y1 - b.y0) * frameH
+  const k = Math.min(bw / cutW, bh / cutH)
+  const w = Math.max(1, Math.round(cutW * k))
+  const h = Math.max(1, Math.round(cutH * k))
+  return { x: Math.round(((b.x0 + b.x1) / 2) * frameW - w / 2), y: Math.round(b.y1 * frameH - h), w, h }
+}
+
+const LOCK_LAYOUT_LINE = 'The FIRST attached image is the layout of this frame: the real product is already placed on a plain grey background. Keep the product exactly where it is, at the same size and in the same position, completely unchanged: same shape, colors, label, text and proportions. Replace the grey background completely and build the scene around the product. Nothing covers the front of the product; hands may touch it only from the sides, from below or from behind.' // KINEO-ADS-FIEL-1510
+/**
+ * KINEO-ADS-FIEL-1510 — o pedido do Nano Banana com o ESBOÇO como 1ª referência: a linha do esboço na frente do pedido de sempre.
+ * No 'holds' as referências andam uma casa (o retrato vira a 2ª, o produto a 3ª): FIRST/SECOND reference viram SECOND/THIRD.
+ */
+export function adsV2ProductLockScenePrompt(scenePrompt: string, mode: AdsV2ProductLockMode): string { // KINEO-ADS-FIEL-1510
+  const base = String(scenePrompt ?? '').trim()
+  const shifted = mode === 'holds' ? base.split('SECOND reference photo').join('THIRD reference photo').split('FIRST reference photo').join('SECOND reference photo') : base
+  const held = mode === 'scene' ? '' : ' The hand holds the product from below or from the side, exactly where it is in the layout.'
+  return `${LOCK_LAYOUT_LINE}${held} ${shifted}`
+}
+
+/** KINEO-ADS-FIEL-1510 — o movimento do plano com a trava: o produto parado onde está; o resto vive. Termina em ADS_V2_KEEP_PHRASE. */
+export const ADS_V2_PRODUCT_LOCK_MOTIONS: readonly string[] = [
+  'Slow gentle push-in; the people around move naturally; the product stays still exactly where it is, with exactly the same shape, colors, label and proportions; nothing passes in front of it',
+  'Slow lateral slide; the light shifts softly and the people around move naturally; the product stays still exactly where it is, with exactly the same shape, colors, label and proportions; nothing passes in front of it',
+] // KINEO-ADS-FIEL-1510
+export const ADS_V2_PRODUCT_LOCK_HELD_MOTION = 'Handheld smartphone framing; the person smiles with the mouth closed and moves naturally while holding the product steady; the product keeps exactly its shape, colors, label and proportions; no other hands or objects enter the frame' // KINEO-ADS-FIEL-1510
+export function adsV2ProductLockMotion(mode: AdsV2ProductLockMode, variant: number): string { // KINEO-ADS-FIEL-1510
+  if (mode !== 'scene') return `${ADS_V2_PRODUCT_LOCK_HELD_MOTION}. ${ADS_V2_KEEP_PHRASE}`
+  const list = ADS_V2_PRODUCT_LOCK_MOTIONS
+  return `${list[((variant % list.length) + list.length) % list.length]}. ${ADS_V2_KEEP_PHRASE}`
+}
+
+/** KINEO-ADS-FIEL-1510 — caminhos no bucket renders: o recorte (por foto, reaproveitado) e o quadro travado (por tentativa). */
+export function adsV2CutoutPath(userId: string, footageId: string): string { return `${userId}/adsv2-cutout-${String(footageId).replace(/[^A-Za-z0-9_-]/g, '')}.png` } // KINEO-ADS-FIEL-1510
+/** KINEO-ADS-FIEL-1510 — a imagem do plano é um quadro travado (o produto real colado)? Pelo nome do arquivo que só o servidor grava. */
+export function adsV2IsLockedImage(url: unknown): boolean { return typeof url === 'string' && /\/adsv2-[^/]+-p\d+-a\d+-lock\.png$/i.test(url.trim()) } // KINEO-ADS-FIEL-1510
+
+// ── KINEO-ADS-FIEL-1510 — PRAZO: um anúncio não passa de ~8 min (QA 15/10: Kling O3 provider_failed + H3 = 16,5 min) ─────────────
+/** KINEO-ADS-FIEL-1510 — a partir daqui (desde o início do pedido) plano que não ficou pronto vira a FOTO parada com zoom (sem IA). */
+export const ADS_V2_STILL_AT_MS = 6.5 * 60 * 1000 // KINEO-ADS-FIEL-1510
+/** KINEO-ADS-FIEL-1510 — no máximo isto de planos por pedido viram foto parada; mais que isso = o anúncio espera como antes. */
+export const ADS_V2_STILLS_MAX = 2 // KINEO-ADS-FIEL-1510
+/** KINEO-ADS-FIEL-1510 — UMA tentativa aceita que não volta nisto vira 'stuck' (era 20 min): o vídeo e a imagem da cena. */
+export const ADS_V2_FAST_VIDEO_STUCK_MS = 3.5 * 60 * 1000 // KINEO-ADS-FIEL-1510
+export const ADS_V2_FAST_IMAGE_STUCK_MS = 2.5 * 60 * 1000 // KINEO-ADS-FIEL-1510
+/** KINEO-ADS-FIEL-1510 — o ator (vídeo falado, mais lento) desiste depois disto e o anúncio sai sem ele (era 45 min). */
+export const ADS_V2_PRESENTER_BUDGET_MS = 10 * 60 * 1000 // KINEO-ADS-FIEL-1510
+/** KINEO-ADS-FIEL-1510 — tempo típico de UMA tentativa por motor (fila + geração), para decidir se a próxima ainda cabe no prazo. */
+export const ADS_V2_ENGINE_TYPICAL_MS: Readonly<Record<string, number>> = { kling_o3: 150_000, seedance_20_fast: 150_000, h3: 210_000, pixverse_effect: 120_000, image: 75_000 } // KINEO-ADS-FIEL-1510
+export const ADS_V2_STILL_REASON = 'still_fallback' // KINEO-ADS-FIEL-1510
+
+export type AdsV2FallbackStep = { step: 'retry'; attempt: number; skipped: boolean } | { step: 'still' } | { step: 'terminal' } // KINEO-ADS-FIEL-1510
+/**
+ * KINEO-ADS-FIEL-1510 — o próximo passo de um plano que falhou (puro). A régua de antes (2ª no principal, 3ª na reserva H3)
+ * continua quando cabe no prazo; não cabendo, pula para a reserva; nem ela cabendo, a FOTO parada (até ADS_V2_STILLS_MAX por
+ * pedido). Sem foto parada possível: a tentativa de antes (o prazo de 90 min decide) ou, esgotada, terminal (estorno, como antes).
+ * Nada aqui cobra: refação automática e foto parada são de graça para o cliente.
+ */
+export function adsV2FallbackStep(i: { nextAttempt: number; maxAttempts: number; fallbackFrom: number; elapsedMs: number; needsImage: boolean; stillsUsed: number; canStill: boolean; route: (attempt: number) => string | null }): AdsV2FallbackStep { // KINEO-ADS-FIEL-1510
+  const remaining = ADS_V2_STILL_AT_MS - Math.max(0, i.elapsedMs)
+  for (let a = i.nextAttempt; a <= i.maxAttempts; a = a < i.fallbackFrom ? i.fallbackFrom : a + 1) {
+    const engine = i.route(a)
+    if (!engine) continue
+    const need = (ADS_V2_ENGINE_TYPICAL_MS[engine] ?? 180_000) + (i.needsImage ? ADS_V2_ENGINE_TYPICAL_MS.image : 0)
+    if (need <= remaining) return { step: 'retry', attempt: a, skipped: a !== i.nextAttempt }
+  }
+  if (i.canStill && i.stillsUsed < ADS_V2_STILLS_MAX) return { step: 'still' }
+  if (i.nextAttempt <= i.maxAttempts) return { step: 'retry', attempt: i.nextAttempt, skipped: false }
+  return { step: 'terminal' }
+}
+
+/** KINEO-ADS-FIEL-1510 — passado o prazo, os planos ainda trabalhando viram foto parada SÓ se todos couberem no teto (senão esperam). */
+export function adsV2OverdueToStills(i: { elapsedMs: number; working: number; stillsUsed: number }): boolean { // KINEO-ADS-FIEL-1510
+  return i.elapsedMs >= ADS_V2_STILL_AT_MS && i.working > 0 && i.stillsUsed + i.working <= ADS_V2_STILLS_MAX
+}
+
+/**
+ * KINEO-ADS-FIEL-1510 — a FOTO REAL da vaga (pura): a imagem do plano (foto do cliente ou o quadro da cena no NOSSO bucket, já
+ * travado); sem ela, a foto do produto da trava; sem trava, a 1ª referência que é foto do cliente (no 'holds' a 1ª é o retrato).
+ */
+export function adsV2StillSource(i: { imageUrl?: string | null; lockUrl?: string | null; referenceUrls?: readonly string[] | null; presenterHolds?: unknown }): string | null { // KINEO-ADS-FIEL-1510
+  const https = (u: unknown): u is string => typeof u === 'string' && /^https:\/\/\S+$/i.test(u.trim())
+  if (https(i.imageUrl)) return i.imageUrl.trim()
+  if (https(i.lockUrl)) return i.lockUrl.trim()
+  const refs = Array.isArray(i.referenceUrls) ? i.referenceUrls : []
+  const ref = i.presenterHolds === true ? refs[1] : refs[0]
+  return https(ref) ? ref.trim() : null
+}

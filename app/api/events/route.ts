@@ -142,6 +142,8 @@ const SERVER_ONLY_EVENTS = new Set([
   'ads_v2_started',
   'ads_v2_retake_started',
   'ads_v2_shot_retried',
+  'ads_v2_shot_fallback', // KINEO-ADS-FIEL-1510 — o plano trocou de caminho (reserva, foto parada, foto real do produto); fato do servidor
+  'ads_v2_product_locked', // KINEO-ADS-FIEL-1510 — o recorte real do produto foi colado no quadro da cena; fato do servidor
   'ads_v2_assembling',
   'ads_v2_delivered',
   'ads_v2_failed',
