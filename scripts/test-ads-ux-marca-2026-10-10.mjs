@@ -28,6 +28,7 @@ import { desfazExtracao, textoOriginalV2 } from './test-support/shopify-extracao
 import { desfazAtoresIa } from './test-support/desfaz-atores-ia-1310.mjs' // KINEO-ATORES-IA-2026-10-13
 import { semCena } from './test-support/shopify-extracao-v2-1310.mjs' // KINEO-ADS-CENA-2026-10-13
 import { semDemoUniverso1410 } from './test-support/desfaz-ads-demo-universo-1410.mjs' // reancorado KINEO-ADS-DEMO-UNIVERSO-1410
+import { semRefacaoAtor1410 } from './test-support/desfaz-ads-refacao-ator-1410.mjs' // reancorado KINEO-ADS-REFACAO-ATOR-1410 — a 1ª refação grátis na rota /retake (linhas marcadas)
 import { semModeracao1410 } from './test-support/desfaz-moderacao-1410.mjs' // reancorado KINEO-MODERACAO-1410 — a régua completa no /orders (só acréscimos marcados)
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -42,7 +43,7 @@ const read = (rel) => (NUCLEO_V2[rel] ? `${readCru(rel)}\n${readCru(NUCLEO_V2[re
 // marcadas da biblioteca de apresentadores (evento e presenter_id na resposta); a impressão digital da base segue igual.
 // KINEO-ADS-CENA-2026-10-13 — re-ancorado: a cena entrou no /orders e no /research só por linhas inteiras marcadas; semCena as tira.
 // reancorado KINEO-LEVA6-1310 — as duas pistas juntas: /plan sem os atores IA, demais arquivos sem a cena.
-const leBaseV2 = (rel) => (rel === 'app/api/ads/v2/plan/route.ts' ? desfazAtoresIa(textoOriginalV2('plan', ROOT)) : rel === 'app/api/ads/v2/start/route.ts' ? textoOriginalV2('start', ROOT) : semCena(semModeracao1410(semDemoUniverso1410(rel, readCru(rel))))) // reancorado KINEO-MODERACAO-1410 · reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — a pronúncia da marca no /orders sai antes
+const leBaseV2 = (rel) => (rel === 'app/api/ads/v2/plan/route.ts' ? desfazAtoresIa(textoOriginalV2('plan', ROOT)) : rel === 'app/api/ads/v2/start/route.ts' ? textoOriginalV2('start', ROOT) : semCena(semModeracao1410(semDemoUniverso1410(rel, semRefacaoAtor1410(rel, readCru(rel)))))) // reancorado KINEO-ADS-REFACAO-ATOR-1410 — a 1ª refação grátis sai primeiro · reancorado KINEO-MODERACAO-1410 · reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — a pronúncia da marca no /orders sai antes
 let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }

@@ -17,11 +17,13 @@
 
 import { readFileSync } from 'node:fs'
 import { desfazAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
+import { desfazJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semParceiroEyebible2_1410, ARQUIVOS_PARCEIRO_EYEBIBLE_2_1410, FORMA_PARCEIRO_EYEBIBLE_2_1410, MARCA_PARCEIRO_EYEBIBLE_2_1410 } from './test-support/desfaz-parceiro-eyebible-2-1410.mjs'
+const desfazAncoraEJuizStill1410 = (p, s) => desfazAncoraLegenda1410(p, desfazJuizStill1410(p, s)) // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const BASE = '3476f1a80a2ec69524fb7bc442f970830127fb40' // pai do primeiro commit marcado (origin/main de 14/10, 1ª leva do Robert)
@@ -172,7 +174,7 @@ for (const p of ARQUIVOS_PARCEIRO_EYEBIBLE_2_1410) {
   const atual = lerDisco(p)
   const base = lf(execFileSync('git', ['show', `${BASE}:${p}`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }))
   let desfeito = null
-  try { desfeito = semParceiroEyebible2_1410(p, desfazAncoraLegenda1410(p, atual)) /* KINEO-ANCORA-LEGENDA-1410 */ } catch (e) { desfeito = `ERRO ${e.message}` }
+  try { desfeito = semParceiroEyebible2_1410(p, desfazAncoraEJuizStill1410(p, atual)) /* KINEO-ANCORA-LEGENDA-1410 */ } catch (e) { desfeito = `ERRO ${e.message}` }
   checa(`${p}: desfeito = base ${BASE.slice(0, 8)}`, desfeito === base, typeof desfeito === 'string' && desfeito.startsWith('ERRO') ? desfeito : '')
   const marcadas = atual.split('\n').filter((l) => l.includes(MARCA_PARCEIRO_EYEBIBLE_2_1410)).length
   const f = FORMA_PARCEIRO_EYEBIBLE_2_1410[p]

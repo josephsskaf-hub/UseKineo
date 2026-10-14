@@ -18,6 +18,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
+import { desfazJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -266,7 +267,7 @@ async function verificacoes(over = {}) {
   }
 
   // ═══ a rota: as fatias reais ═══
-  const R = src(ROTA)
+  const R = desfazJuizStill1410(ROTA, src(ROTA)) // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
   v('rota: import da lib do juiz, marcado', R.includes("import { juizStillLigado, novoFilmeDoJuiz, julgarFotoBase, anterioresDoJuiz, resumoDoJuizStill, JUIZ_STILL_EVENTO, JUIZ_STILL_RESUMO_EVENTO } from '@/lib/hollywood/juizStill' // KINEO-JUIZ-STILL-2026-10-06"))
   // ordem: o fecho antes do laço; o juiz do still depois do still do S25, antes do Omni, da âncora e do POST; o da foto de
   // ambiente entre inNarratorWorld e anchorUrl; o resumo depois do laço e antes do acolchoamento

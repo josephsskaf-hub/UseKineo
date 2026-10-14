@@ -29,6 +29,7 @@
 //       aqui dentro, pelos mutantes que devolvem o comportamento antigo).
 import { readFileSync } from 'node:fs'
 import { desfazAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
+import { desfazJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -37,6 +38,7 @@ import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { desfazParceiroEyebible1410 } from './test-support/desfaz-parceiro-eyebible-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-1410 [TRAVA 8.2 — vai do fundador 14/10]: os arquivos do conserto do Robert/EyeBible saem em memória antes do byte a byte
 import { semContratoClassicos1410 } from "./test-support/desfaz-contrato-classicos-1410.mjs" // reancorado KINEO-CONTRATO-CLASSICOS-1410
+const desfazAncoraEJuizStill1410 = (p, s) => desfazAncoraLegenda1410(p, desfazJuizStill1410(p, s)) // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ) // o loader offline resolve '@/...' a partir do cwd
@@ -74,7 +76,7 @@ const rdBase = (p) => { if (!BASE) return null; try { return execFileSync('git',
 checa('a base (pai do commit, com o Kling a 10 s) está disponível para as comparações byte a byte', Boolean(BASE))
 
 const ROTA = 'app/api/generate-video-cinematic/route.ts'
-const rota = desfazAncoraLegenda1410(ROTA, rd(ROTA)) // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
+const rota = desfazAncoraEJuizStill1410(ROTA, rd(ROTA)) // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 const rotaBase = rdBase(ROTA)
 const routeAst = (src) => ts.createSourceFile('route.ts', src, ts.ScriptTarget.Latest, true)
 function acha(ast, pred) { let f; const v = (n) => { if (!f && pred(n)) f = n; if (!f) ts.forEachChild(n, v) }; v(ast); return f }
@@ -204,7 +206,7 @@ if (rotaBase) {
 }
 
 // (c2) builder real da fal
-const loadLib = createOfflineLoader({ source: (p, s) => desfazAncoraLegenda1410(p, s) }) // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
+const loadLib = createOfflineLoader({ source: (p, s) => desfazAncoraEJuizStill1410(p, s) }) // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 const aspect = loadLib('@/lib/aspect')
 const policy = loadLib('@/lib/cinematic/visualPromptPolicy')
 const router = rd('lib/hollywood/router.ts')

@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url'
 import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { FILMES, ESTILO } from './s25-nota95-filmes-2026-10-06.mjs'
+import { desfazJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -134,7 +135,7 @@ async function problems(over = {}) {
   let S, F, ST, VMO, SS
   try { S = carrega(src(LIB)); F = carrega(src(FID)); ST = carrega(src(TRUTH)); VMO = carrega(src(VMODE)); SS = carrega(src(STYLE)) } catch (e) { return [`módulo não carrega: ${e.message}`] }
   try { for (const [rotulo, prova] of unidades(S)) if (!prova) P.push(`unidade: ${rotulo}`) } catch (e) { P.push(`unidade lançou: ${e.message}`) }
-  const R = src(ROTA)
+  const R = desfazJuizStill1410(ROTA, src(ROTA)) // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
   const router = src(ROUTER)
 
   // ── a rota: import, ordem, âncora com época, ensaio ──

@@ -84,6 +84,7 @@ import { decidirFormato, permiteApresentador, TAG_FACELESS, proibidosPorModo, ty
 import { garantirAcaoCentral, silenciarFalaNoPrompt, apararComFolga, removerDatasInventadas } from '@/lib/hollywood/fidelidade'
 import { planejarCenasS25, montarPromptS25, ambienteComEpoca, epocaDoFilmeS25, S25_CENA_EVENTO } from '@/lib/hollywood/s25Cena' // KINEO-S25-NOTA95-2026-10-06
 import { juizStillLigado, novoFilmeDoJuiz, julgarFotoBase, anterioresDoJuiz, resumoDoJuizStill, JUIZ_STILL_EVENTO, JUIZ_STILL_RESUMO_EVENTO } from '@/lib/hollywood/juizStill' // KINEO-JUIZ-STILL-2026-10-06
+import { modoDoCriticoDoStill, criticoNaFamiliaHollywood, novoFilmeDoCritico, criticarStill, esperarCriticos, esperaMaximaDoCritico, STILL_CRITIC_EVENTO, STILL_CRITIC_ORCAMENTO_SERIAL_MS, type RelatoCriticoStill } from '@/lib/cinematic/criticoStill' // KINEO-JUIZ-STILL-1410
 // KINEO-MULTIFORMATO-2026-09-02 — enquadramento pedido (9:16 · 16:9 · 1:1 · 4:5).
 import { aspectSpec, normalizeAspect } from '@/lib/aspect'
 import { montarContrato, aplicarContrato, severidadeDe } from '@/lib/cinematic/sceneTruth'
@@ -5625,6 +5626,30 @@ async function manipularPost(req: NextRequest) {
           } // KINEO-JUIZ-STILL-2026-10-06
         } // KINEO-JUIZ-STILL-2026-10-06
         : null // KINEO-JUIZ-STILL-2026-10-06
+      // ═══ KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10 "tudo sim", melhoria nº 8] — o crítico do still no hollywood ═══
+      // O mesmo crítico do caminho clássico (lib/cinematic/criticoStill) no still FLUX por cena do Kling 3 / H3 / H3 Max / Omni — NUNCA // KINEO-JUIZ-STILL-1410
+      // no s25, que já tem o juiz da foto-base acima. O laço é serial: em log_only (PADRÃO) o crítico corre ao lado das cenas // KINEO-JUIZ-STILL-1410
+      // seguintes e a foto original segue sempre (o laço não espera); em enforce a cena espera o veredito (6 s por chamada, 20 s // KINEO-JUIZ-STILL-1410
+      // por cena, 45 s por filme) e um FAIL refaz o still UMA vez. off = nada roda. // KINEO-JUIZ-STILL-1410
+      const criticoHModo = criticoNaFamiliaHollywood(family) ? modoDoCriticoDoStill() : 'off' // KINEO-JUIZ-STILL-1410
+      const criticoHFilme = criticoHModo === 'off' ? null : novoFilmeDoCritico(criticoHModo, { orcamentoMs: STILL_CRITIC_ORCAMENTO_SERIAL_MS }) // KINEO-JUIZ-STILL-1410
+      const criticoHTarefas: Promise<string>[] = [] // KINEO-JUIZ-STILL-1410
+      const criticoHEventos: Promise<boolean>[] = [] // KINEO-JUIZ-STILL-1410
+      const criticoHCena = criticoHFilme // KINEO-JUIZ-STILL-1410
+        ? async (idx: number, url: string, hsC: { prompt: string; voiceover?: string | null }): Promise<string> => { // KINEO-JUIZ-STILL-1410
+          const tarefa = criticarStill({ indice: idx, url, mostra: hsC.prompt, fala: hsC.voiceover ?? '', prompt: hsC.prompt, seed: generationSeed }, { // KINEO-JUIZ-STILL-1410
+            filme: criticoHFilme, // KINEO-JUIZ-STILL-1410
+            gerarStill: (scenePrompt, seed, pollWindowMs) => generateCinematicSceneStill({ scenePrompt, styleSuffix: plan.styleSheet ?? '', seed, pollWindowMs }), // KINEO-JUIZ-STILL-1410
+          }).then((julgado) => { // KINEO-JUIZ-STILL-1410
+            const rh: RelatoCriticoStill = julgado.relato // KINEO-JUIZ-STILL-1410
+            console.log(`[still-critic] cena ${rh.cena} (${family}, ${rh.modo}): ${rh.veredito}${rh.problemas.length ? ` ${rh.problemas.join('+')}` : ''}${rh.motivo ? ` — ${rh.motivo}` : ''}${rh.regerou ? ` → foto nova ${rh.regeracao_ok ? (rh.veredito_regerada ?? 'sem 2º julgamento') : 'falhou'}, segue a ${rh.escolhida}` : ''} · US$ ${rh.custo_usd.toFixed(4)} · ${rh.ms} ms`) // KINEO-JUIZ-STILL-1410
+            criticoHEventos.push(writeServerEvent({ name: STILL_CRITIC_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, engine: family, path_kind: 'hollywood', ...rh } })) // KINEO-JUIZ-STILL-1410
+            return julgado.url // KINEO-JUIZ-STILL-1410
+          }, () => url) // KINEO-JUIZ-STILL-1410
+          if (criticoHFilme.modo !== 'enforce') { criticoHTarefas.push(tarefa); return url } // KINEO-JUIZ-STILL-1410 — log_only: o laço não espera
+          return tarefa // KINEO-JUIZ-STILL-1410 — enforce: a cena espera o veredito (com tetos)
+        } // KINEO-JUIZ-STILL-1410
+        : null // KINEO-JUIZ-STILL-1410
       // Veredito do Contrato Cena Verdadeira, cena a cena. Vai para o claim
       // junto com o resto — sem isso o gate corrige no escuro e ninguem
       // consegue auditar depois se ele acertou ou estragou.
@@ -5879,6 +5904,7 @@ async function manipularPost(req: NextRequest) {
           // KINEO-JUIZ-STILL-2026-10-06 — o still FLUX desta cena passa pelo juiz da foto-base ANTES do POST do vídeo (só JUIZ_STILL_FAMILIAS): [KINEO-JUIZ-STILL-2026-10-06]
           // OK segue; REJECT = uma foto nova; o juiz devolve sempre uma foto (no pior caso a mesma) — nunca segura a cena. [KINEO-JUIZ-STILL-2026-10-06]
           if (juizStillCena && sceneStillUrl) sceneStillUrl = await juizStillCena({ idx, url: sceneStillUrl, origem: 'still', cenas: s25Plano?.cenas ?? null }) // KINEO-JUIZ-STILL-2026-10-06
+          if (criticoHCena && sceneStillUrl) sceneStillUrl = await criticoHCena(idx, sceneStillUrl, hs) // KINEO-JUIZ-STILL-1410 — devolve sempre uma foto (no pior caso a mesma)
           // ═══ KINEO-OMNI-ANCORA-2026-09-28 — cena Omni sem imagem não vira Kling em silêncio ═══
           // O fal só tem Omni em image-to-video (o t2v responde 404, conferido em 27/09); sem imagem a cena ia para o Kling
           // v3 t2v (cinematicSceneModel) — US$ 0,168/s contra 0,13/s, outro look dentro de um filme vendido como Omni, e
@@ -6083,6 +6109,10 @@ async function manipularPost(req: NextRequest) {
         }
         await new Promise((r) => setTimeout(r, 450))
       }
+      if (criticoHFilme) { // KINEO-JUIZ-STILL-1410 — log_only: espera as críticas que ainda correm (teto de uma cena) só para gravar o evento
+        await esperarCriticos(criticoHTarefas, esperaMaximaDoCritico(criticoHFilme, Date.now())) // KINEO-JUIZ-STILL-1410
+        await esperarCriticos(criticoHEventos, 1_500) // KINEO-JUIZ-STILL-1410
+      } // KINEO-JUIZ-STILL-1410
       // KINEO-JUIZ-STILL-2026-10-06 — o resumo do juiz da foto-base por filme (fotos julgadas, recusadas, refeitas, motivos, custo, tempo): [KINEO-JUIZ-STILL-2026-10-06]
       // é o que a aba /admin/coerencia mostra ao lado da nota. Gravado também quando nenhuma cena teve foto (tudo t2v): "0 fotos" é um fato. [KINEO-JUIZ-STILL-2026-10-06]
       if (juizStillFilme) { // KINEO-JUIZ-STILL-2026-10-06
@@ -6777,6 +6807,29 @@ async function manipularPost(req: NextRequest) {
       const anchorCount = Math.min(scenes.length, MAX_ANCHORED_SCENES)
       const stillDeadline = Date.now() + STILL_BUDGET_MS
       let stillsMade = 0
+      // ═══ KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10 "tudo sim", melhoria nº 8] — o crítico do still antes do clipe pago ═══
+      // Cada still que volta do FLUX vai a UMA chamada de visão (lib/cinematic/criticoStill: anatomia deformada, texto embaralhado, // KINEO-JUIZ-STILL-1410
+      // sujeito errado para a fala, artefato) que corre em PARALELO ao lote seguinte — o pool de 3 stills não espera o crítico. // KINEO-JUIZ-STILL-1410
+      // Tudo dentro do prazo dos stills (stillDeadline, 60 s): chamada sem folga é pulada e a foto segue; timeout = a foto segue. // KINEO-JUIZ-STILL-1410
+      // STILL_CRITIC_MODE: off = nada roda (byte a byte o de antes) · log_only (PADRÃO) = só o evento cinematic_still_critic, nunca // KINEO-JUIZ-STILL-1410
+      // regera · enforce = FAIL refaz o still UMA vez (máx. 3 por filme) e segue o melhor. A escolha só entra em sceneStills depois // KINEO-JUIZ-STILL-1410
+      // do laço, antes de qualquer POST de clipe. Crédito e preço do cliente inalterados. // KINEO-JUIZ-STILL-1410
+      const criticoModo = modoDoCriticoDoStill() // KINEO-JUIZ-STILL-1410
+      const criticoFilme = criticoModo === 'off' ? null : novoFilmeDoCritico(criticoModo, { prazo: stillDeadline }) // KINEO-JUIZ-STILL-1410
+      const criticoTarefas: Promise<{ idx: number; url: string }>[] = [] // KINEO-JUIZ-STILL-1410
+      const criticoEventos: Promise<boolean>[] = [] // KINEO-JUIZ-STILL-1410
+      const criticarStillClassico = async (idx: number, url: string): Promise<{ idx: number; url: string }> => { // KINEO-JUIZ-STILL-1410
+        if (!criticoFilme) return { idx, url } // KINEO-JUIZ-STILL-1410
+        const cenaC = scenes[idx] // KINEO-JUIZ-STILL-1410
+        const julgado = await criticarStill({ indice: idx, url, mostra: cenaC.aiPrompt || cenaC.stockSearchQuery || cenaC.description, fala: cenaC.voiceover ?? '', prompt: classicScenePrompts[idx], seed: generationSeed }, { // KINEO-JUIZ-STILL-1410
+          filme: criticoFilme, // KINEO-JUIZ-STILL-1410
+          gerarStill: (scenePrompt, seed, pollWindowMs) => generateCinematicSceneStill({ scenePrompt, styleSuffix: '', ...(romanceAdulto.ativo ? { adultSuffix: ROMANCE_ADULT_SUFFIX } : {}), seed, pollWindowMs, aspect: aspectRequested }), // KINEO-JUIZ-STILL-1410
+        }) // KINEO-JUIZ-STILL-1410
+        const rc: RelatoCriticoStill = julgado.relato // KINEO-JUIZ-STILL-1410
+        console.log(`[still-critic] cena ${rc.cena} (${anchorEngine}, ${rc.modo}): ${rc.veredito}${rc.problemas.length ? ` ${rc.problemas.join('+')}` : ''}${rc.motivo ? ` — ${rc.motivo}` : ''}${rc.regerou ? ` → foto nova ${rc.regeracao_ok ? (rc.veredito_regerada ?? 'sem 2º julgamento') : 'falhou'}, segue a ${rc.escolhida}` : ''} · US$ ${rc.custo_usd.toFixed(4)} · ${rc.ms} ms`) // KINEO-JUIZ-STILL-1410
+        criticoEventos.push(writeServerEvent({ name: STILL_CRITIC_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, engine: anchorEngine, path_kind: 'classico', ...rc } })) // KINEO-JUIZ-STILL-1410
+        return { idx, url: julgado.url } // KINEO-JUIZ-STILL-1410
+      } // KINEO-JUIZ-STILL-1410
       for (let start = 0; start < anchorCount && Date.now() < stillDeadline; start += STILL_POOL) {
         const batch: number[] = []
         for (let i = start; i < Math.min(start + STILL_POOL, anchorCount); i++) batch.push(i)
@@ -6791,6 +6844,7 @@ async function manipularPost(req: NextRequest) {
               pollWindowMs: STILL_POLL_WINDOW_MS,
               aspect: aspectRequested,
             })
+            if (criticoFilme && url) criticoTarefas.push(criticarStillClassico(idx, url)) // KINEO-JUIZ-STILL-1410 — não espera: o crítico corre ao lado do lote seguinte
             return { idx, url }
           }),
         )
@@ -6799,6 +6853,10 @@ async function manipularPost(req: NextRequest) {
           if (url) stillsMade++
         }
       }
+      if (criticoFilme) { // KINEO-JUIZ-STILL-1410 — espera o crítico só até o prazo dos stills; quem não terminou fica com a foto original
+        for (const c of await esperarCriticos(criticoTarefas, esperaMaximaDoCritico(criticoFilme, Date.now()))) sceneStills[c.idx] = c.url // KINEO-JUIZ-STILL-1410 — log_only devolve sempre a original
+        await esperarCriticos(criticoEventos, 1_500) // KINEO-JUIZ-STILL-1410 — os eventos já gravados em paralelo; teto de 1,5 s para não segurar o despacho
+      } // KINEO-JUIZ-STILL-1410
       // Cost logging only — the USER credit price is unchanged (kling stays 50cr).
       // Account the extra provider cost the same conservative way Hollywood does
       // (ANCHORS_USD per generated still).

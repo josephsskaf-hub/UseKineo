@@ -24,6 +24,7 @@
 // ATENÇÃO (pista paralela KINEO-ADS-ROTEIROS, branch codex/ads-roteiros-1310): ela muda lib/ads/v2PlanCore.ts e lib/ads/v2Brief.ts
 // de propósito. Ao juntar as duas, reancorar SÓ as impressões digitais desses dois arquivos (I1) com o texto novo conferido.
 import fs from 'node:fs'
+import { semRefacaoAtor1410 } from './test-support/desfaz-ads-refacao-ator-1410.mjs' // reancorado KINEO-ADS-REFACAO-ATOR-1410
 import path from 'node:path'
 import vm from 'node:vm'
 import crypto from 'node:crypto'
@@ -303,7 +304,7 @@ const STUDIO_BASE = {
 // voltam às impressões de antes (82aa07ca…/6e9807b1…), byte a byte; qualquer outra mudança nos dois segue vermelha.
 // reancorado KINEO-ADS-MELHORIAS-1410 — o núcleo do /plan ganhou só linhas INTEIRAS marcadas (packshot e formato; nenhuma de crédito, débito
 // ou preço — conferido nos guardiões das melhorias): semMelhorias1410 as tira e a impressão de antes (3fd1819e…8eb2) continua valendo.
-const DESFAZ = { 'lib/ads/v2PlanCore.ts': (x) => semMelhorias1410(semConsertos1410(semRoteiros(x))), 'app/(dashboard)/studio/StudioClient.tsx': (x) => semDuracaoSaldo1510(x), 'lib/ads/v2Brief.ts': (x) => semReteste1510('lib/ads/v2Brief.ts', semDemoUniverso1410('lib/ads/v2Brief.ts', x)) /* reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — o piso de fala nos 3 roteiros sai antes */, 'lib/ads/v2Styles.ts': (x) => semReteste1510('lib/ads/v2Styles.ts', semDemoUniverso1410('lib/ads/v2Styles.ts', x)) } // reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — v2Styles: a demo de 14/10 sai antes (só 2 listas de palavras de moda na sugestão de estilo)
+const DESFAZ = { 'lib/ads/v2PlanCore.ts': (x) => semMelhorias1410(semConsertos1410(semRoteiros(semRefacaoAtor1410('lib/ads/v2PlanCore.ts', x)))) /* reancorado KINEO-ADS-REFACAO-ATOR-1410 — o ator segurando o produto (3 linhas marcadas) sai primeiro */, 'app/(dashboard)/studio/StudioClient.tsx': (x) => semDuracaoSaldo1510(x), 'lib/ads/v2Brief.ts': (x) => semReteste1510('lib/ads/v2Brief.ts', semDemoUniverso1410('lib/ads/v2Brief.ts', x)) /* reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — o piso de fala nos 3 roteiros sai antes */, 'lib/ads/v2Styles.ts': (x) => semReteste1510('lib/ads/v2Styles.ts', semDemoUniverso1410('lib/ads/v2Styles.ts', x)) } // reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — v2Styles: a demo de 14/10 sai antes (só 2 listas de palavras de moda na sugestão de estilo)
 DESFAZ['app/api/ads/v2/orders/route.ts'] = (x) => semModeracao1410(semDemoUniverso1410('app/api/ads/v2/orders/route.ts', x), 'ads') // reancorado KINEO-MODERACAO-1410 · reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — a pronúncia da marca (brief.pronounce + a moderação da fala) sai antes
 const iguais = (tab, over = {}) => Object.entries(tab).every(([f, h]) => sha((DESFAZ[f] || ((x) => x))(over[f] !== undefined ? over[f] : read(f))) === h)
 ok(iguais(STUDIO_BASE), 'D4 o Studio de filmes, o kit (STUDIO_KIT_CSS) e o ProductStage byte a byte iguais à base — nada foi extraído de lá')

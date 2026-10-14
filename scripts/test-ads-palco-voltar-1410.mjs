@@ -18,6 +18,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semPalcoVoltar1410, PALCO_VOLTAR_1410_BASE, PALCO_VOLTAR_1410_ARQUIVOS } from './test-support/desfaz-ads-palco-voltar-1410.mjs'
+import { semRefacaoAtor1410 } from './test-support/desfaz-ads-refacao-ator-1410.mjs' // reancorado KINEO-ADS-REFACAO-ATOR-1410 — a 1ª refação grátis e o rótulo de IA (linhas marcadas, provadas em test-ads-refacao-ator-1410) saem antes
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -177,11 +178,11 @@ ok(tenta(() => puraOk(SRC)), 'C5 lib/ads/v2PalcoVoltar.ts é PURA: um único imp
 // ═══ D. dinheiro intocado ═══════════════════════════════════════════════════════════════════════════════════════════
 console.log('\nD. dinheiro intocado')
 const base = (rel) => execFileSync('git', ['show', `${PALCO_VOLTAR_1410_BASE}:${rel}`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 26 }).replace(/\r\n/g, '\n')
-const desfeitoOk = (S) => PALCO_VOLTAR_1410_ARQUIVOS.length === 2 && semPalcoVoltar1410(F.simple, S.simple) === base(F.simple) && semPalcoVoltar1410(F.client, S.client) === base(F.client)
+const desfeitoOk = (S) => PALCO_VOLTAR_1410_ARQUIVOS.length === 2 && semPalcoVoltar1410(F.simple, semRefacaoAtor1410(F.simple, S.simple)) === base(F.simple) && semPalcoVoltar1410(F.client, semRefacaoAtor1410(F.client, S.client)) === base(F.client) // reancorado KINEO-ADS-REFACAO-ATOR-1410
 ok(tenta(() => desfeitoOk(SRC)), `D1 desfeito este conserto, AdsV2Simple.tsx e AdsV2Client.tsx são EXATAMENTE os da base (${PALCO_VOLTAR_1410_BASE}, pai do 1º commit com a marca)`)
 const semDinheiroOk = (S) => {
   const novo = (rel, s) => { const a = base(rel).split('\n'); const conta = new Map(); for (const l of a) conta.set(l, (conta.get(l) || 0) + 1); return s.split('\n').filter((l) => { const n = conta.get(l) || 0; if (n) { conta.set(l, n - 1); return false } return true }) }
-  const linhas = [...novo(F.simple, S.simple), ...novo(F.client, S.client), ...S.lib.split('\n')]
+  const linhas = [...novo(F.simple, semRefacaoAtor1410(F.simple, S.simple)), ...novo(F.client, semRefacaoAtor1410(F.client, S.client)), ...S.lib.split('\n')] // reancorado KINEO-ADS-REFACAO-ATOR-1410 — as linhas da 1ª refação grátis (expected_credits) saem antes; o dinheiro delas é provado em test-ads-refacao-ator-1410
   return linhas.length > 20 && !linhas.some((l) => /\bapi\(|fetch\(|\/api\/|[Cc]redit|debit|adsV2Credits|checkout|stripe|price_id|engineCost/.test(l))
 }
 ok(tenta(() => semDinheiroOk(SRC)), 'D2 nenhuma linha nova (tela, invólucro e lib) chama rota/fetch nem mexe em crédito, débito, preço de plano ou checkout')
