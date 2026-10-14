@@ -34,6 +34,7 @@ import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semContratoClassicos1410 } from "./test-support/desfaz-contrato-classicos-1410.mjs" // reancorado KINEO-CONTRATO-CLASSICOS-1410
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ) // o loader offline resolve '@/...' a partir do cwd
@@ -384,9 +385,9 @@ if (rotaBase && Bb) {
 
 // (c5) o objeto de resposta assinado
 const objResp = (src) => fatia(src, "\n    const response: Record<string, unknown> = {\n      mode: 'cinematic_ai',", '\n    }\n')
-const VARS = ['generationId', 'prompt', 'duration', 'requestedDuration', 'aspectRequested', 'degrau', 'scenes', 'voiceoverScript', 'falRequestIds', 'usedModel', 'usedModels', 'claimQuality', 'verbatim', 'parsedScript', 'contratoRelatoClassico', 'formatoVisual', 'classicSceneInputs', 'anchorActive']
+const VARS = ['generationId', 'prompt', 'duration', 'requestedDuration', 'aspectRequested', 'degrau', 'scenes', 'voiceoverScript', 'falRequestIds', 'usedModel', 'usedModels', 'claimQuality', 'verbatim', 'parsedScript', 'contratoRelatoClassico', 'formatoVisual', 'classicSceneInputs', 'anchorActive', 'classicVisualMode' /* reancorado KINEO-CONTRATO-CLASSICOS-1410: o claim clássico grava a régua do gate */]
 const montaResp = (src, libK = K) => roda(`export function montar(ctx: any) {\n  const { ${VARS.join(', ')} } = ctx\n${src}\n  return response\n}`, { kling25SceneWordStarts: libK.kling25SceneWordStarts }).montar
-const ctxResp = (cenas, voz = cenas.map((c) => c.voiceover ?? '').join(' ')) => ({ generationId: 'g', prompt: 'p', duration: 35, requestedDuration: 35, aspectRequested: '9:16', degrau: null, scenes: cenas, voiceoverScript: voz, falRequestIds: cenas.map((_, i) => 'r' + i), usedModel: 'm', usedModels: cenas.map(() => 'm'), claimQuality: 'cinematic_kling', verbatim: true, parsedScript: { speed: null }, contratoRelatoClassico: [], formatoVisual: { modo: 'documentary_faceless' }, classicSceneInputs: cenas.map(() => null), anchorActive: false })
+const ctxResp = (cenas, voz = cenas.map((c) => c.voiceover ?? '').join(' ')) => ({ generationId: 'g', prompt: 'p', duration: 35, requestedDuration: 35, aspectRequested: '9:16', degrau: null, scenes: cenas, voiceoverScript: voz, falRequestIds: cenas.map((_, i) => 'r' + i), usedModel: 'm', usedModels: cenas.map(() => 'm'), claimQuality: 'cinematic_kling', verbatim: true, parsedScript: { speed: null }, contratoRelatoClassico: [], formatoVisual: { modo: 'documentary_faceless' }, classicVisualMode: 'documentary_faceless' /* reancorado KINEO-CONTRATO-CLASSICOS-1410 */, classicSceneInputs: cenas.map(() => null), anchorActive: false })
 const respostaOk = (src) => {
   const o = objResp(src)
   if (!o) return false
@@ -396,7 +397,7 @@ const respostaOk = (src) => {
 }
 checa('resposta assinada: clip_seconds e clip_word_starts (início da fala de cada cena em voiceover_script) no Kling 2.5; ausentes quando a cena não tem segundos (Seedance/Veo/Sora)', respostaOk(rota))
 if (rotaBase) {
-  const o = objResp(rota), ob = objResp(rotaBase)
+  const o = objResp(semContratoClassicos1410(rota, ROTA)), ob = objResp(rotaBase) // reancorado KINEO-CONTRATO-CLASSICOS-1410: contrato_modo/contrato_palavra_inteira (acrescentados de propósito ao claim clássico) saem antes da igualdade
   const cenas = [{ description: 'a', caption: 'A', voiceover: 'x' }, { description: 'b', caption: 'B', voiceover: 'y' }]
   // Re-âncora (28/09, merge da pilha [TRAVA 8.2]): a CENA-CLASSICA parte 2 (KINEO-CENA-CLASSICA-2026-09-28) acrescenta DE
   // PROPÓSITO fal_models/scene_prompts/scene_fal_inputs à resposta clássica de TODOS os motores. A base deste guardião
