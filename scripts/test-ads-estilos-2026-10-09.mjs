@@ -20,6 +20,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semMelhorias1410 } from './test-support/desfaz-melhorias-1410.mjs' // reancorado KINEO-ADS-MELHORIAS-1410
 import { desfazExtracao, textoOriginalV2 } from './test-support/shopify-extracao-v2-1310.mjs' // KINEO-SHOPIFY-2026-10-13 (etapa 2)
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -430,8 +431,11 @@ await check('8d componente: vídeo mudo em laço com pôster, playsInline, prelo
     /\.kst-row\{[^}]*min-width:0[^}]*overflow-x:auto[^}]*scroll-snap-type:x mandatory/.test(s) && /\.kst-strip\{[^}]*min-width:0[^}]*overflow-x:auto/.test(s) &&
     /prefers-reduced-motion: reduce/.test(s) && /type="radio"/.test(s) && /<style dangerouslySetInnerHTML=\{\{ __html: CSS \}\} \/>/.test(s) && !/#[0-9a-f]{6}/i.test(s.replace('#fff', ''))
 })
+// reancorado KINEO-ADS-MELHORIAS-1410 — a tela simples ganhou o formato (4:5/1:1): o corpo do /plan, a assinatura do plano, o estilo
+// efetivo e o recorte/upload mudaram em linhas MARCADAS. semMelhorias1410 (scripts/test-support/desfaz-melhorias-1410.mjs) as devolve ao
+// texto EXATO de antes, e a regra de sempre vale sobre ele; as linhas novas são provadas em scripts/test-ads-formatos-1410.mjs.
 await check('8e modo simples: escolha perto do nível, sugestão só com setor reconhecido, 1ª foto vira produto (nunca tela), estilo no corpo e na assinatura', () => {
-  const s = code(read(F.simple))
+  const s = code(semMelhorias1410(read(F.simple)))
   return ordem(s, 'name="adv2s-tier"', '<AdsStylePicker', 'name="adv2s-style"', 'aria-labelledby="adv2s-s4"') &&
     // reancorado KINEO-ADS-CONSERTOS-TELA-1410 — a frase também vai (a palavra do produto refina a sugestão do setor); a regra
     // "sugestão só com setor reconhecido" continua: 'other' segue dando 'none'.

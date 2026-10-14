@@ -412,7 +412,9 @@ const FN_BASE = {
   'async function ensureCard()': 'b903d1463b135d361008438002000624c7173df713da31c6f9093f11ec732def',
   'async function saveCopyEdit()': '95ff92d53d970a2b8fc1a5a29c648f21a633c57a7636bf6d9938fb98c713cc07',
 }
-const telaDinheiro = (src) => Object.entries(FN_BASE).every(([f, h]) => sha(bloco(src, f)) === h)
+// reancorado KINEO-ADS-MELHORIAS-1410 — planAd ganhou SÓ o formato no corpo do /plan (1 linha mudada, marcada): semMelhorias1410 a devolve ao
+// texto EXATO de antes (scripts/test-support/desfaz-melhorias-1410.mjs) e as impressões abaixo continuam as de sempre; o resto segue vermelho.
+const telaDinheiro = (src) => Object.entries(FN_BASE).every(([f, h]) => sha(bloco(semMelhorias1410(src), f)) === h)
 ok(telaDinheiro(read(F.simple)), 'I2 na tela, makeAd, makeVariations, planAd, ensureDraft, syncCard, ensureCard e saveCopyEdit byte a byte iguais à base')
 
 // ═══ J. rótulo de IA ═══════════════════════════════════════════════════════════════════════════════════════════════

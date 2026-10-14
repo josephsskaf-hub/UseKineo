@@ -18,6 +18,7 @@
 //   7. Medição: evento ads_presenter_selected só de servidor, gravado pelo /plan com o id; o id fica no plano do pedido.
 //   8. Mutantes: cada peça quebrada fica vermelha, e cada mutante prova que aplicou.
 import fs from 'node:fs'
+import { semMelhorias1410 } from './test-support/desfaz-melhorias-1410.mjs' // reancorado KINEO-ADS-MELHORIAS-1410
 import path from 'node:path'
 import { execFileSync, spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
@@ -182,9 +183,11 @@ await check('3b o plano gravado só aceita id da lista (isAdsV2PresenterPlan rec
   return P.isAdsV2PresenterPlan(p) && !P.isAdsV2PresenterPlan(fake) && !P.isAdsV2PresenterPlan({ ...p, presenterId: 7 }) &&
     JSON.stringify(P.planAdsV2Presenter({ sector: 'store', photos: FOTOS, seedKey: ORDERS[0], presenterId: 'https://evil.test/a.webp' })) === JSON.stringify(semId)
 })
+// reancorado KINEO-ADS-MELHORIAS-1410 — o corpo do /plan e a assinatura da tela simples ganharam o formato no fim (linhas marcadas):
+// semMelhorias1410 as devolve ao texto EXATO de antes; a regra (só o id do apresentador, nunca imagem/texto) vale sobre ele.
 await check('3c a rota /plan passa SÓ o id já validado pelo contrato (input.presenter_id) e a tela manda só o id (nunca imagem/texto)', () => {
   const plan = code(SRC.plan)
-  const s = code(SRC.simple)
+  const s = code(semMelhorias1410(SRC.simple))
   const f = code(SRC.full)
   return /planAdsV2Presenter\(\{ sector, photos, seedKey: order\.id, presenterId: input\.presenter_id \?\? null \}\)/.test(plan) &&
     /\.\.\.\(presenterOn && presenterPick \? \{ presenter_id: presenterPick \} : \{\}\) \}/.test(s) && /\.\.\.\(presenterOn && presenterPick \? \{ presenter_id: presenterPick \} : \{\}\) \}/.test(f) &&
@@ -210,7 +213,7 @@ await check('4c homem: "He holds … his face", a descrição dele, nada de "She
       /mouth closed/.test(pr) && /EXACTLY as in the reference photo/.test(pr) && /No text, no captions, no logos or watermarks added/.test(pr) && /only one person/.test(pr) && /a bright, modern gym/.test(pr)
   }))
 await check('4d a tela começa SEM escolha ("Surprise me" = null) nos dois modos, e o seletor só aparece com o ator ligado', () => {
-  const s = code(SRC.simple)
+  const s = code(semMelhorias1410(SRC.simple)) // reancorado KINEO-ADS-MELHORIAS-1410
   const f = code(SRC.full)
   return [s, f].every((x) => /const \[presenterPick, setPresenterPick\] = useState<string \| null>\(null\)/.test(x) && /\{presenterOn \? <AdsPresenterPicker /.test(x)) &&
     /const planSig = presenterOn && presenterPick \? `\$\{planSigBase\}\|presenter:\$\{presenterPick\}` : planSigBase/.test(f) &&

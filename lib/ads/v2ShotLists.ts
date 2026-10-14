@@ -771,3 +771,74 @@ export function adsV2PackshotShots(shots: AdsV2PlannedShot[], opts: { photos: re
 export function adsV2IsPackshot(plan: { shots?: readonly { idx: number; packshot?: unknown }[] } | null | undefined, idx: number): boolean {
   return !!plan && Array.isArray(plan.shots) && plan.shots.some((s) => s && s.idx === idx && s.packshot === true)
 }
+
+// ── KINEO-ADS-MELHORIAS-1410 — FORMATOS do anúncio (9:16 · 4:5 · 1:1): o porquê e as frases estão em lib/ads/v2Formats.ts ──────
+export type AdsV2Format = '9:16' | '4:5' | '1:1'
+export const ADS_V2_FORMATS: readonly AdsV2Format[] = ['9:16', '4:5', '1:1']
+export const ADS_V2_DEFAULT_FORMAT: AdsV2Format = '9:16'
+/** Recorte no navegador (JPEG q0,9, como o 9:16 de sempre). Largura 1080 nos três. */
+export const ADS_V2_FORMAT_CROP: Readonly<Record<AdsV2Format, { width: number; height: number }>> = {
+  '9:16': { width: 1080, height: 1920 },
+  '4:5': { width: 1080, height: 1350 },
+  '1:1': { width: 1080, height: 1080 },
+}
+
+export function isAdsV2Format(raw: unknown): raw is AdsV2Format {
+  return typeof raw === 'string' && (ADS_V2_FORMATS as readonly string[]).includes(raw)
+}
+/** Qualquer coisa que não é formato conhecido = 9:16 (o de sempre). */
+export function normalizeAdsV2Format(raw: unknown): AdsV2Format {
+  return isAdsV2Format(raw) ? raw : ADS_V2_DEFAULT_FORMAT
+}
+/** O formato gravado no plano do pedido (plano sem a chave = 9:16). */
+export function adsV2PlanFormat(plan: unknown): AdsV2Format {
+  return normalizeAdsV2Format(plan && typeof plan === 'object' ? (plan as { format?: unknown }).format : undefined)
+}
+
+export type AdsV2FormatBlock = 'style' | 'presenter' | 'premium_45'
+/**
+ * Por que este formato não sai com estas escolhas (null = sai). 9:16 nunca bloqueia. Ordem: estilo, ator, nível — a tela
+ * mostra a 1ª razão.
+ */
+export function adsV2FormatBlock(input: { format: AdsV2Format; tier?: string | null; style?: string | null; presenter?: boolean }): AdsV2FormatBlock | null {
+  if (input.format === '9:16') return null
+  if (typeof input.style === 'string' && input.style && input.style !== 'none') return 'style'
+  if (input.presenter === true) return 'presenter'
+  if (input.format === '4:5' && input.tier === 'cinema') return 'premium_45'
+  return null
+}
+
+/** aspect_ratio do Seedance 2.0 (herói do Premium): '9:16' de sempre, '1:1' no quadrado. 4:5 não existe lá (bloqueado antes). */
+export function adsV2SeedanceAspect(format: AdsV2Format): '9:16' | '1:1' {
+  if (format === '4:5') throw new Error('ads_v2_seedance_no_4_5')
+  return format === '1:1' ? '1:1' : '9:16'
+}
+
+/** A abertura do pedido de cena criada (lib/ads/v2ShotLists.ts e lib/ads/v2Scene.ts) em cada formato — SEM números (a régua
+ *  anti-invenção, lib/ads/v2Brief.ts checkV2Prompts, só tolera o "9:16"). */
+export const ADS_V2_SCENE_FRAME_OPENING = 'Photorealistic vertical 9:16 frame'
+const SCENE_FRAME: Readonly<Record<AdsV2Format, string>> = {
+  '9:16': ADS_V2_SCENE_FRAME_OPENING,
+  '4:5': 'Photorealistic portrait frame',
+  '1:1': 'Photorealistic square frame',
+}
+/** Planos com o pedido de cena no formato (pura). 9:16 = o MESMO array. */
+export function adsV2FormatShots<S extends { scenePrompt: string | null }>(shots: S[], format: AdsV2Format): S[] {
+  if (format === '9:16') return shots
+  return shots.map((s) => (typeof s.scenePrompt === 'string' && s.scenePrompt.includes(ADS_V2_SCENE_FRAME_OPENING) ? { ...s, scenePrompt: s.scenePrompt.split(ADS_V2_SCENE_FRAME_OPENING).join(SCENE_FRAME[format]) } : s))
+}
+
+/** A maior janela no formato que cabe na foto, deslizada pelo ponto focal — a MESMA conta de cropRect (lib/ads/v2Screen.ts). */
+export function adsV2CropRectFor(imgW: number, imgH: number, fx: number, fy: number, format: AdsV2Format): { sx: number; sy: number; sw: number; sh: number } {
+  if (!(imgW > 0) || !(imgH > 0)) throw new Error('ads_v2_bad_image_size')
+  const c = ADS_V2_FORMAT_CROP[format]
+  const ratio = c.width / c.height
+  let sw = imgW
+  let sh = imgW / ratio
+  if (sh > imgH) {
+    sh = imgH
+    sw = imgH * ratio
+  }
+  const f = (v: number) => (Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.5)
+  return { sx: (imgW - sw) * f(fx), sy: (imgH - sh) * f(fy), sw, sh }
+}

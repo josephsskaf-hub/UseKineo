@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { createHash } from 'node:crypto'
 import ts from 'typescript'
+import { semMelhorias1410 } from './test-support/desfaz-melhorias-1410.mjs' // reancorado KINEO-ADS-MELHORIAS-1410
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
@@ -655,8 +656,11 @@ await check('V1-mutante: frações 0,2/0,5/0,8 trocadas fica vermelho', () => !t
 // REANCORADO 29/09 (KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29): o V2 dizia "o VÍDEO nunca sobe" — o pedido do fundador é o
 // contrário: o vídeo entra no anúncio COMO VÍDEO. Agora: até 2 vídeos que cabem sobem ORIGINAIS (uploadFootage, sem
 // recorte) e o resto cai no plano B de antes (grabVideoFrames + videoFrameTimes). O add continua sem subir nada.
+// reancorado KINEO-ADS-MELHORIAS-1410 — a tela simples ganhou o formato (4:5/1:1): o corpo do /plan, a assinatura do plano, o estilo
+// efetivo e o recorte/upload mudaram em linhas MARCADAS. semMelhorias1410 (scripts/test-support/desfaz-melhorias-1410.mjs) as devolve ao
+// texto EXATO de antes, e a regra de sempre vale sobre ele; as linhas novas são provadas em scripts/test-ads-formatos-1410.mjs.
 await check('V2 a tela aceita vídeo: o que cabe entra como vídeo (sobe o original, uma vez); o que não cabe vira quadros (grabVideoFrames + videoFrameTimes); o add não sobe nada', () => {
-  const s = semComentarios(SRC.simple)
+  const s = semComentarios(semMelhorias1410(SRC.simple))
   // REANCORADO 29/09 (revisão do vídeo do cliente): addFiles virou a trava de "uma seleção por vez" e o corpo mudou para
   // addFilesNow — o bloco conferido é o que lê os arquivos; addFiles tem de delegar a ele.
   const add = bloco(s, 'async function addFilesNow(')
@@ -769,7 +773,7 @@ await check('E2 CONTACTISH da pesquisa = o da régua do texto (v2Brief)', () => 
 // palco do estilo, "Lemos sua página" e "Comece deste"; só react e libs puras — provado em scripts/test-ads-fluxo-1310.mjs).
 const IMPORTS_OK = ['@/lib/ads/v2Flow', '@/components/ads/AdsFlow', '@/lib/ads/v2Scene', '@/components/ads/AdsPresenterPicker', '@/lib/ads/v2PresenterLibrary', '@/lib/ads/v2AiLabel', '@/lib/ads/afterSample', '@/lib/ads/v2SimpleUx', './AdsV2SimpleUx', '@/lib/ads/v2LinkImport', '@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', './AdsV2Variations', '@/components/AdsPlanChanges', 'react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/ads/v2UserVideo', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage', '@/lib/shortTextLanguage', '@/lib/ads/v2TelaConsertos', './AdsV2Quadro', '@/lib/ads/v2QuadroCopy', '@/lib/ads/v2AutoPlan'] // reancorado KINEO-ADS-CONSERTOS-TELA-1410 — +2 módulos puros (provados puros no E3)
 // reancorado KINEO-ADS-MELHORIAS-1410 — + as libs PURAS das melhorias de 14/10 (só import type; provadas puras abaixo): o rótulo do packshot.
-IMPORTS_OK.push('@/lib/ads/v2Packshot', '@/lib/ads/v2Redo') // + o refazer UMA cena (frases nas 16 línguas)
+IMPORTS_OK.push('@/lib/ads/v2Packshot', '@/lib/ads/v2Redo', '@/lib/ads/v2Formats', '@/lib/ads/v2ShotLists') // + o refazer UMA cena e o formato (frases nas 16 línguas; a lógica do formato mora na lib PURA, SEM import, dos planos)
 // reancorado KINEO-ADS-RETESTE-1510 — + '@/lib/ads/v2AutoPlan' (lib PURA, SEM import: frase pronta para planejar, pausa por assinatura e a
 // regra da barra do celular — provada pura abaixo e em scripts/test-ads-reteste-1510.mjs). Nenhum módulo de servidor entrou.
 // reancorado KINEO-ADS-QUADRO-STUDIO-1510 — + './AdsV2Quadro' (componente de navegador do quadro curto: só importa a lib pura v2Styles) e
@@ -777,7 +781,7 @@ IMPORTS_OK.push('@/lib/ads/v2Packshot', '@/lib/ads/v2Redo') // + o refazer UMA c
 await check('E3 a tela simples é cliente e só importa módulos de navegador/puros; v2Simple, v2Research e v2VideoFrames não têm import; textLanguage é pura', () => {
   const imps = [...SRC.simple.matchAll(/^import[\s\S]*?from '([^']+)'/gm)].map((m) => m[1])
   return /^'use client'/.test(SRC.simple) && imps.length >= 8 && imps.every((m) => IMPORTS_OK.includes(m)) &&
-    [SRC.simpleLib, SRC.research, SRC.frames, rd('lib/ads/v2UserVideo.ts'), rd('lib/textLanguage.ts'), rd('lib/ui/interfaceLanguage.ts'), rd('lib/ads/sample.ts'), rd('lib/ads/v2Styles.ts'), rd('lib/ads/v2Presenter.ts'), rd('lib/ads/v2LinkImport.ts'), rd('lib/ads/afterSample.ts'), rd('lib/ads/v2PresenterLibrary.ts'), rd('lib/ads/v2Flow.ts'), rd('lib/shortTextLanguage.ts'), rd('lib/ads/v2TelaConsertos.ts'), rd('lib/ads/v2QuadroCopy.ts'), rd('lib/ads/v2AutoPlan.ts'), rd('lib/ads/v2Packshot.ts'), rd('lib/ads/v2Redo.ts')].every((s) => !/^\s*import\s(?!type)/m.test(s)) && !/trackEvent\(/.test(SRC.simple)
+    [SRC.simpleLib, SRC.research, SRC.frames, rd('lib/ads/v2UserVideo.ts'), rd('lib/textLanguage.ts'), rd('lib/ui/interfaceLanguage.ts'), rd('lib/ads/sample.ts'), rd('lib/ads/v2Styles.ts'), rd('lib/ads/v2Presenter.ts'), rd('lib/ads/v2LinkImport.ts'), rd('lib/ads/afterSample.ts'), rd('lib/ads/v2PresenterLibrary.ts'), rd('lib/ads/v2Flow.ts'), rd('lib/shortTextLanguage.ts'), rd('lib/ads/v2TelaConsertos.ts'), rd('lib/ads/v2QuadroCopy.ts'), rd('lib/ads/v2AutoPlan.ts'), rd('lib/ads/v2Packshot.ts'), rd('lib/ads/v2Redo.ts'), rd('lib/ads/v2Formats.ts'), rd('lib/ads/v2ShotLists.ts')].every((s) => !/^\s*import\s(?!type)/m.test(s)) && !/trackEvent\(/.test(SRC.simple)
 })
 await check('E4 trava 8.2: nenhum arquivo do modo simples mora em caminho travado', () => {
   const novos = [F.simple, F.simpleLib, F.research, F.frames, F.researchRoute, F.contract, F.brief, F.planRoute, F.ordersRoute, F.client]
@@ -794,8 +798,11 @@ await check('E5-mutante: fatos marcados por padrão fica vermelho', () => !padra
 await check('E5-mutante: marca presa ao id f1..f6 fica vermelho', () => !padraoFatos(S, trocar(SRC.simple, 'const factKey = (f: Fact) => JSON.stringify([f.url, f.text])', 'const factKey = (f: Fact) => f.id')))
 // Revisão da tela 29/09, mutante A (sobrevivia com 89/0): o /plan tem de receber SÓ os fatos que a pessoa deixou marcados,
 // e a assinatura do plano tem de usar a MESMA escolha (senão a tela diz "plano atual" com outra lista de fatos).
+// reancorado KINEO-ADS-MELHORIAS-1410 — a tela simples ganhou o formato (4:5/1:1): o corpo do /plan, a assinatura do plano, o estilo
+// efetivo e o recorte/upload mudaram em linhas MARCADAS. semMelhorias1410 (scripts/test-support/desfaz-melhorias-1410.mjs) as devolve ao
+// texto EXATO de antes, e a regra de sempre vale sobre ele; as linhas novas são provadas em scripts/test-ads-formatos-1410.mjs.
 const soOsMarcadosNaTela = (src) => {
-  const s = semComentarios(src)
+  const s = semComentarios(semMelhorias1410(src))
   const plan = bloco(s, 'async function planAd()')
   return /const chosen = facts\.filter\(\(f\) => isFactOn\(f\)\)\.map\(\(f\) => f\.id\)/.test(plan) &&
     // REANCORADO 29/09 (KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29): o corpo ganhou `videos` (vídeos que entram como vídeo); fatos iguais.

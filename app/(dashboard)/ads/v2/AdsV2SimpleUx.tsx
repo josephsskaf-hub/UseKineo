@@ -185,17 +185,20 @@ export function CropEditor({
   label,
   onFocal,
   onDone,
+  ratio,
 }: {
   item: { srcUrl: string; w: number; h: number; fx: number; fy: number }
   copy: AdsV2UxCopy
   label: string
   onFocal: (fx: number, fy: number) => void
   onDone: () => void
+  /** KINEO-ADS-MELHORIAS-1410 — a janela no formato do anúncio (largura/altura); ausente = 9:16. */
+  ratio?: number
 }) {
   const picRef = useRef<HTMLDivElement | null>(null)
   const winRef = useRef<HTMLDivElement | null>(null)
   const drag = useRef<{ x: number; y: number; fx: number; fy: number; id: number } | null>(null)
-  const win = adsV2CropWindowPct({ w: item.w, h: item.h }, item.fx, item.fy)
+  const win = adsV2CropWindowPct({ w: item.w, h: item.h }, item.fx, item.fy, ratio) // KINEO-ADS-MELHORIAS-1410
   useEffect(() => { winRef.current?.focus({ preventScroll: true }) }, [])
   function down(e: ReactPointerEvent<HTMLDivElement>) {
     drag.current = { x: e.clientX, y: e.clientY, fx: item.fx, fy: item.fy, id: e.pointerId }
@@ -205,7 +208,7 @@ export function CropEditor({
     const d = drag.current
     const box = picRef.current?.getBoundingClientRect()
     if (!d || !box || d.id !== e.pointerId) return
-    const next = adsV2MoveCropWindow({ fx: d.fx, fy: d.fy }, { dx: e.clientX - d.x, dy: e.clientY - d.y }, { w: box.width, h: box.height }, { w: item.w, h: item.h })
+    const next = adsV2MoveCropWindow({ fx: d.fx, fy: d.fy }, { dx: e.clientX - d.x, dy: e.clientY - d.y }, { w: box.width, h: box.height }, { w: item.w, h: item.h }, ratio) // KINEO-ADS-MELHORIAS-1410
     onFocal(next.fx, next.fy)
   }
   function up(e: ReactPointerEvent<HTMLDivElement>) {

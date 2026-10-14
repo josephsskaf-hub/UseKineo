@@ -127,6 +127,8 @@ import { ADS_V2_AUTO_PLAN_MS, ADS_V2_SCRIPT_CHOOSE_ROUTE, adsV2FlowCopy, adsV2Fl
 import { AdsReadCard, AdsStartFromRow, AdsStyleStage, type AdsStyleStageData } from '@/components/ads/AdsFlow' // KINEO-ADS-FLUXO-2026-10-13
 import { ADS_V2_SCENE_MAX_CHARS, ADS_V2_SCENE_PRESETS, adsV2AdKind, adsV2ApplyScenePreset, adsV2ProductTitle, adsV2SceneAllowed, adsV2SceneCopy, adsV2SceneErrorText, adsV2SceneIssues, adsV2SceneRow, adsV2SplitSceneRequest, sanitizeAdsV2Scene, type AdsV2AdKind, type AdsV2SceneCopy } from '@/lib/ads/v2Scene'
 import { adsV2PackshotCopy } from '@/lib/ads/v2Packshot' // KINEO-ADS-MELHORIAS-1410 — o rótulo do plano com a foto real do produto
+import { adsV2FormatCopy } from '@/lib/ads/v2Formats' // KINEO-ADS-MELHORIAS-1410 — as frases do formato (16 línguas)
+import { ADS_V2_FORMATS, ADS_V2_FORMAT_CROP, adsV2CropRectFor, adsV2FormatBlock, type AdsV2Format } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — 4:5 e 1:1 em "Mais opções"
 import { adsV2RedoCopy, adsV2RedoFill, type AdsV2RedoCopy } from '@/lib/ads/v2Redo' // KINEO-ADS-MELHORIAS-1410 — refazer UMA cena aqui mesmo (frases nas 16 línguas)
 
 // ─── tipos ────────────────────────────────────────────────────────────────────────────────────
@@ -333,6 +335,25 @@ async function cropToVertical(p: Pick<SimpleItem, 'srcUrl' | 'fx' | 'fy' | 'name
 const focalSig = (p: Pick<SimpleItem, 'fx' | 'fy'>) => `${p.fx.toFixed(3)},${p.fy.toFixed(3)}`
 /** O vídeo sobe UMA vez (o enquadramento vai no pedido, não no arquivo): a assinatura do envio não muda com o foco. */
 const uploadSig = (p: Pick<SimpleItem, 'fx' | 'fy' | 'video'>) => (p.video ? 'video' : focalSig(p))
+/** KINEO-ADS-MELHORIAS-1410 — recorte no FORMATO do anúncio (4:5 = 1080×1350, 1:1 = 1080×1080), com o mesmo ponto focal; 9:16 = cropToVertical. */
+async function cropToFormat(p: Pick<SimpleItem, 'srcUrl' | 'fx' | 'fy' | 'name'>, format: AdsV2Format): Promise<File> {
+  if (format === '9:16') return cropToVertical(p)
+  const img = await loadImage(p.srcUrl)
+  const r = adsV2CropRectFor(img.naturalWidth, img.naturalHeight, p.fx, p.fy, format)
+  const { width, height } = ADS_V2_FORMAT_CROP[format]
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('canvas_unsupported')
+  ctx.fillStyle = '#fff' // KINEO-ADS-MELHORIAS-1410 — o mesmo branco do cropToVertical
+  ctx.fillRect(0, 0, width, height)
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(img, r.sx, r.sy, r.sw, r.sh, 0, 0, width, height)
+  const blob = await canvasToBlob(canvas, ADS_V2_CROP.type, ADS_V2_CROP.quality)
+  const base = (p.name || 'photo').replace(/\.[a-z0-9]{2,5}$/i, '').replace(/[^\w-]+/g, '-').slice(0, 40) || 'photo'
+  return new File([blob], `${base}-${format.replace(':', 'x')}.jpg`, { type: ADS_V2_CROP.type })
+}
 const numOr = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) ? v : undefined)
 const newKey = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
@@ -412,6 +433,21 @@ const SIMPLE_CSS = `
 .adv2 .adv2s-more{margin-top:14px;border:1px solid var(--ads-line);border-radius:14px;padding:4px 14px 14px;background:var(--ads-bg)}
 .adv2 .adv2s-more summary{cursor:pointer;font-weight:650;padding:10px 0;color:var(--ads-text)}
 .adv2 .adv2s-toggles{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}
+/* KINEO-ADS-MELHORIAS-1410 — seletor de formato */
+.adv2 .adv2s-format{border:0;padding:0;margin:4px 0 12px;min-width:0}
+.adv2 .adv2s-format legend{font-weight:650;font-size:13.5px;color:var(--ads-text);padding:0;margin:0 0 8px}
+.adv2 .adv2s-format .opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.adv2 .adv2s-format .opt{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--ads-line);border-radius:12px;background:var(--ads-card);cursor:pointer;min-width:0}
+.adv2 .adv2s-format .opt[data-on]{border-color:var(--ads-accent,#2997ff);box-shadow:0 0 0 1px var(--ads-accent,#2997ff) inset}
+.adv2 .adv2s-format .opt[data-off]{opacity:.5;cursor:not-allowed}
+.adv2 .adv2s-format .opt input{position:absolute;opacity:0;pointer-events:none}
+.adv2 .adv2s-format .opt:has(input:focus-visible){outline:2px solid var(--ads-accent,#2997ff);outline-offset:2px}
+.adv2 .adv2s-format .shape{flex:none;box-sizing:border-box;border:2px solid currentColor;border-radius:4px;color:var(--ads-muted,#8a8f98)}
+.adv2 .adv2s-format .opt[data-on] .shape{color:var(--ads-accent,#2997ff)}
+.adv2 .adv2s-format .txt{display:grid;gap:2px;min-width:0}
+.adv2 .adv2s-format .txt b{font-size:13px}
+.adv2 .adv2s-format .txt small{font-size:11.5px;color:var(--ads-muted,#8a8f98);line-height:1.3}
+@media (max-width:520px){.adv2 .adv2s-format .opts{grid-template-columns:1fr}}
 .adv2 .adv2s-facts{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:8px}
 .adv2 .adv2s-facts li{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--ads-line);border-radius:12px;background:var(--ads-bg);font-size:13.5px;line-height:1.5;min-width:0}
 .adv2 .adv2s-facts input{margin-top:3px;accent-color:var(--ads-action);flex-shrink:0}
@@ -607,6 +643,17 @@ export function AdsV2SimpleSession({
   }, [])
   // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator começa desligado (a pessoa liga; nada muda para quem não liga).
   const [presenterChoice, setPresenterChoice] = useState(false)
+  // KINEO-ADS-MELHORIAS-1410 — o formato escolhido em "Mais opções" (9:16 = o de sempre). Fora do 9:16 o estilo e o ator ficam de fora (só verticais).
+  const [formatChoice, setFormatChoice] = useState<AdsV2Format>('9:16')
+  // KINEO-ADS-MELHORIAS-1410 — estilo e ator são só verticais: escolher um estilo (seletor completo ou a fileira do quadro) ou ligar o ator volta o
+  // KINEO-ADS-MELHORIAS-1410 — formato ao 9:16; escolher 4:5/1:1 tira o estilo e desliga o ator (o seletor de formato faz isso no clique).
+  const formatSeenRef = useRef<{ style: AdsV2StyleChoice | null; presenter: boolean }>({ style: null, presenter: false }) // KINEO-ADS-MELHORIAS-1410
+  useEffect(() => { // KINEO-ADS-MELHORIAS-1410
+    const seen = formatSeenRef.current // KINEO-ADS-MELHORIAS-1410
+    const picked = (styleChoice !== seen.style && !!styleChoice && styleChoice !== 'none') || (presenterChoice && !seen.presenter) // KINEO-ADS-MELHORIAS-1410
+    formatSeenRef.current = { style: styleChoice, presenter: presenterChoice } // KINEO-ADS-MELHORIAS-1410
+    if (picked) setFormatChoice('9:16') // KINEO-ADS-MELHORIAS-1410
+  }, [styleChoice, presenterChoice]) // KINEO-ADS-MELHORIAS-1410
   // KINEO-ATORES-IA-2026-10-13 — o apresentador escolhido na biblioteca (null = "Surprise me", o sorteio de sempre).
   const [presenterPick, setPresenterPick] = useState<string | null>(null)
   const [price, setPrice] = useState('')
@@ -733,13 +780,16 @@ export function AdsV2SimpleSession({
   const styleCopy: AdsV2StyleCopy = adsV2StyleCopy(lang)
   // KINEO-ADS-CONSERTOS-TELA-1410 — a frase também vai: a palavra do produto refina a sugestão do setor (perfume → close-up).
   const styleSuggested: AdsV2StyleChoice = sentence && sector !== 'other' ? adsV2SuggestedStyle(sector, sentence) : 'none'
-  const style: AdsV2StyleChoice = ADS_V2_STYLES_PUBLIC ? styleChoice ?? styleSuggested : 'none'
+  const style: AdsV2StyleChoice = ADS_V2_STYLES_PUBLIC && formatChoice === '9:16' ? styleChoice ?? styleSuggested : 'none' // KINEO-ADS-MELHORIAS-1410 — estilo só em 9:16 (o efeito não tem outro formato)
   // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator fala a narração e segura O produto: sem voz ou com fotos de tela ('text'), o
   // cartão fica desligado com o motivo. Ligado, a 1ª foto também vai como produto (é ela que o ator segura).
   const presenterCopy: AdsV2PresenterCopy = adsV2PresenterCopy(lang)
+  const fcopy = adsV2FormatCopy(lang) // KINEO-ADS-MELHORIAS-1410
   const presenterWhy: string | null = !narrationOn ? presenterCopy.needsVoice : photoKind === 'text' ? presenterCopy.needsProduct : null
   const presenterOn = ADS_V2_PRESENTER_PUBLIC && presenterChoice && presenterWhy === null
   const firstAsProduct = style !== 'none' && photoKind !== 'text' || presenterOn
+  // KINEO-ADS-MELHORIAS-1410 — o formato que vai ao /plan: o escolhido, menos o 4:5 no Premium (o close-herói do Seedance não tem 4:5 — a tela diz).
+  const format: AdsV2Format = adsV2FormatBlock({ format: formatChoice, tier, style: null, presenter: false }) ? '9:16' : formatChoice
   const detected = detectNarrationLanguage(sentence).language
   // KINEO-ADS-CONSERTOS-TELA-1410 — QA 14/10: "perfume num hotel com chuva" (5 palavras) saía com voz em inglês. Depois do
   // detector de sempre (null abaixo de 8 palavras — régua dos filmes, intocada), o da FRASE CURTA; só então a interface.
@@ -776,7 +826,7 @@ export function AdsV2SimpleSession({
 
   /** Chave do rascunho: mudou texto, preço, contato, frases, voz, língua ou nível = rascunho novo (a pesquisa é copiada). */
   const draftKey = JSON.stringify({ text: sentence, scene: sceneFinal, kind: adKind, price: priceT, contact: contactT, overlays: overlaysOn, voice: narrationOn, lang: spoken, tier, link: linkRead })
-  const baseSig = JSON.stringify({ draftKey, sector, presenter: presenterOn, items: inAd.map((p) => [p.key, focalSig(p)]), style, ...(presenterOn && presenterPick ? { presenterPick } : {}) })
+  const baseSig = JSON.stringify({ draftKey, sector, presenter: presenterOn, items: inAd.map((p) => [p.key, focalSig(p)]), style, ...(presenterOn && presenterPick ? { presenterPick } : {}), ...(format !== '9:16' ? { format } : {}) }) // KINEO-ADS-MELHORIAS-1410 — outro formato = planejar de novo
   // A marca de um fato é presa ao CONTEÚDO (fonte + texto), nunca ao id f1..f6: uma pesquisa nova tem outro f1 e não herda
   // a marca do anterior; a mesma pesquisa copiada para um rascunho novo (troca de nível) mantém a marca.
   const factKey = (f: Fact) => JSON.stringify([f.url, f.text])
@@ -1514,7 +1564,7 @@ export function AdsV2SimpleSession({
     let n = 0
     for (const p of inAd) {
       n += 1
-      const sig = uploadSig(p)
+      const sig = uploadSig(p) + (format !== '9:16' && !p.video ? `@${format}` : '') // KINEO-ADS-MELHORIAS-1410 — outro formato = recortar e subir de novo
       if (p.uploaded && p.uploaded.sig === sig) {
         push(p, p.uploaded.footageId)
         continue
@@ -1522,7 +1572,7 @@ export function AdsV2SimpleSession({
       setBusyNote(fill(copy.plan.noteUpload, { i: n, n: inAd.length }))
       updateItem(p.key, { busy: true, error: null })
       try {
-        const file = p.video ? p.video.file : await cropToVertical(p)
+        const file = p.video ? p.video.file : await cropToFormat(p, format) // KINEO-ADS-MELHORIAS-1410 — 9:16 = cropToVertical (o de sempre)
         const up = await uploadFootage(file)
         if (!aliveRef.current) return null
         updateItem(p.key, { busy: false, uploaded: { sig, footageId: up.footageId } })
@@ -1680,7 +1730,7 @@ export function AdsV2SimpleSession({
       setBusyNote(copy.plan.notePlan)
       const r = await api<PlanResponse>('/api/ads/v2/plan', {
         method: 'POST',
-        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}) },
+        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}), ...(format !== '9:16' ? { format } : {}) }, // KINEO-ADS-MELHORIAS-1410 — o formato só fora do 9:16
       })
       if (!aliveRef.current) return
       if (!r.ok) {
@@ -2100,6 +2150,7 @@ export function AdsV2SimpleSession({
                   </ol>
                   {editing ? (
                     <CropEditor
+                      ratio={format !== '9:16' ? ADS_V2_FORMAT_CROP[format].width / ADS_V2_FORMAT_CROP[format].height : undefined} // KINEO-ADS-MELHORIAS-1410 — a janela clara no formato do anúncio
                       key={editing.key}
                       item={editing}
                       copy={ux}
@@ -2301,13 +2352,36 @@ export function AdsV2SimpleSession({
                   onChange={setStyleChoice}
                   disabled={locked}
                   copy={styleCopy}
-                  note={photoKind === 'text' ? styleCopy.noProduct : styleCopy.targetSimple}
+                  note={formatChoice !== '9:16' ? fcopy.blocked.style : photoKind === 'text' ? styleCopy.noProduct : styleCopy.targetSimple} // KINEO-ADS-MELHORIAS-1410
                   carousel={{ labels: { all: ux.styles.all, food: ux.styles.food, beauty: ux.styles.beauty, tech: ux.styles.tech, any: ux.styles.any }, recommended: ux.styles.recommended, prev: ux.styles.prev, next: ux.styles.next }}
                 />
               </details>
             ) : null}
             <details className="adv2s-more" open={moreOpen} onToggle={(e) => setMoreOpen((e.currentTarget as HTMLDetailsElement).open)}>
               <summary>{copy.text.more}<span className="o">· {qc.optional}</span></summary>
+              {/* KINEO-ADS-MELHORIAS-1410 — o formato: 9:16 (padrão), 4:5 e 1:1 para o feed. Mesmos créditos. Estilo e ator só em 9:16; Premium sem 4:5. */}
+              <fieldset className="adv2s-format" data-kineo="ads-format" disabled={locked}>
+                <legend>{fcopy.label}</legend>
+                <div className="opts" role="radiogroup" aria-label={fcopy.label}>
+                  {ADS_V2_FORMATS.map((fm) => {
+                    const why = adsV2FormatBlock({ format: fm, tier, style: null, presenter: false })
+                    const { width, height } = ADS_V2_FORMAT_CROP[fm]
+                    return (
+                      <label key={fm} className="opt" data-on={format === fm ? 'true' : undefined} data-off={why ? 'true' : undefined}>
+                        <input type="radio" name="adv2s-format" value={fm} checked={format === fm} disabled={!!why} onChange={() => { setFormatChoice(fm); if (fm !== '9:16') { setPresenterChoice(false); if (styleChoice !== null) setStyleChoice(null) } }} />
+                        <span className="shape" aria-hidden="true" style={{ width: Math.round((28 * width) / height), height: 28 }} />
+                        <span className="txt"><b>{fcopy.options[fm].name}</b><small>{fcopy.options[fm].where}</small></span>
+                      </label>
+                    )
+                  })}
+                </div>
+                <p className="adsw-hint" style={{ margin: '6px 0 0' }}>
+                  {fcopy.sameCredits}
+                  {formatChoice !== format ? <> {fcopy.blocked.premium_45}</> : null}
+                  {format !== '9:16' && ADS_V2_STYLES_PUBLIC ? <> {fcopy.blocked.style}</> : null}
+                  {format !== '9:16' && ADS_V2_PRESENTER_PUBLIC ? <> {fcopy.blocked.presenter}</> : null}
+                </p>
+              </fieldset>
               <div className="adv2s-toggles">
                 <button type="button" className="adv2-switch" role="switch" aria-checked={overlaysOn} disabled={locked} onClick={() => setOverlaysOn((v) => !v)}>
                   <i aria-hidden="true" /> {copy.text.overlays}: {overlaysOn ? copy.text.onMany : copy.text.offMany}
@@ -2451,6 +2525,7 @@ export function AdsV2SimpleSession({
                 {/* KINEO-ADS-FLUXO-2026-10-13 — "Atualizar roteiros": o link manual (o automático nunca refaz sem mudança). */}
                 <button type="button" className="adsw-link adv2f-refresh" data-kineo="ads-refresh-scripts" disabled={busy !== null || copyBusy || !!copyEdit || missing.length > 0} onClick={() => void planAd()} onClickCapture={manualPlan}>↻ {fc.auto.refresh}</button>
                 <SimplePlanPreview
+                  formatName={format !== '9:16' ? fcopy.options[format].name : null} // KINEO-ADS-MELHORIAS-1410
                   plan={plan as Plan}
                   copy={copy}
                   cost={cost}
@@ -2765,7 +2840,10 @@ function SimplePlanPreview({
   scenes = null,
   makeLabel = null,
   makeRef,
+  formatName = null,
 }: {
+  /** KINEO-ADS-MELHORIAS-1410 — o nome do formato fora do 9:16 ("Portrait 4:5"); null = "vertical 9:16" de sempre. */
+  formatName?: string | null
   /** KINEO-ADS-FLUXO-2026-10-13 — o rótulo do cartão de revisão ("Gerar · N créditos", do mesmo `cost`) e o ref do botão (a barra do celular repassa o clique). */
   makeLabel?: string | null
   makeRef?: Ref<HTMLButtonElement>
@@ -2902,7 +2980,7 @@ function SimplePlanPreview({
         </>
       )}
       {editor?.note ? <p className={editor.note.warn ? 'adsw-warn' : 'adsw-hint'} role="status">{editor.note.text}</p> : null}
-      <p className="adv2-total">{fill(copy.plan.total, { s: Math.round(plan.total_seconds * 10) / 10, c: sample ? 0 : cost ?? '' })}</p>
+      <p className="adv2-total">{fill(copy.plan.total, { s: Math.round(plan.total_seconds * 10) / 10, c: sample ? 0 : cost ?? '' }).split('vertical 9:16').join(formatName ?? 'vertical 9:16')}</p>{/* KINEO-ADS-MELHORIAS-1410 — o formato do plano */}
       {sample ? <p className="adsw-hint">{sample.note}</p> : null}
       {short > 0 ? (
         <p className="adsw-warn">{fill(copy.tiers.needMore, { n: short })} <Link className="adsw-link" href="/pricing" target="_blank" rel="noopener">{copy.tiers.getCredits}</Link></p>

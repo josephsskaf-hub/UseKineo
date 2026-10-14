@@ -75,6 +75,27 @@ export function adsV2PackshotElements(url: string, track: number, time: number, 
 }
 
 /**
+ * KINEO-ADS-MELHORIAS-1410 — o cartão final é um PNG 1080×1920 (lib/ads/endCard.ts, desenhado no navegador). Num quadro de outra
+ * proporção (4:5, 1:1) ele entra com a largura inteira e é DESLOCADO para que a caixa do conteúdo (logo, nome, oferta, chamada e
+ * contato: de 12% a 64% da altura do cartão, END_CARD_SAFE) fique dentro do quadro — o fundo do cartão cobre a tela inteira, então
+ * o que sai do quadro é só fundo. Mesma técnica (e as mesmas propriedades) do vídeo do cliente: o elemento na proporção do
+ * próprio conteúdo, deslocado por x/y. Quadro 9:16 (ou mais alto) = o cartão de sempre, 100% × 100%.
+ */
+export const ADS_V2_CARD_ASPECT = 1080 / 1920
+export const ADS_V2_CARD_CONTENT = { top: 0.12, bottom: 0.64 } as const
+export function adsV2CardFrame(frameW: number, frameH: number): { x: string; y: string; width: string; height: string } {
+  const full = { x: '50%', y: '50%', width: '100%', height: '100%' }
+  if (!finitePos(frameW) || !finitePos(frameH)) return full
+  const F = frameW / frameH
+  if (F <= ADS_V2_CARD_ASPECT * (1 + ADS_V2_USER_VIDEO_ASPECT_TOLERANCE)) return full
+  const eh = F / ADS_V2_CARD_ASPECT // altura do cartão em frações da altura do quadro (> 1)
+  const win = 1 / eh // fração da altura do cartão que aparece
+  const mid = (ADS_V2_CARD_CONTENT.top + ADS_V2_CARD_CONTENT.bottom) / 2
+  const top = Math.min(1 - win, Math.max(0, mid - win / 2)) // topo da janela, em frações do cartão
+  return { x: '50%', y: pct(eh / 2 - top * eh), width: '100%', height: pct(eh) }
+}
+
+/**
  * KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — o vídeo do próprio cliente entra com um zoom lento (o mesmo movimento suave que
  * o montador já dá à foto de texto, e a MESMA propriedade `animations: scale` que lib/compose.ts usa em elemento de vídeo
  * em produção), mudo (o som do anúncio é voz + música), sem loop e só com o trecho escolhido.
@@ -261,7 +282,7 @@ export function buildAdV2Source(input: AdV2MontageInput): Record<string, unknown
   elements.push({
     type: 'image', track: 3, time: shotsSeconds, duration: r3(cardSeconds),
     source: input.cardUrl.trim(), fit: 'cover',
-    x: '50%', y: '50%', width: '100%', height: '100%',
+    ...adsV2CardFrame(width, height), // KINEO-ADS-MELHORIAS-1410 — 9:16 = 100% × 100% (o de sempre); 4:5 e 1:1 = o conteúdo do cartão inteiro no quadro
     enter_transition: { type: 'fade', duration: ADS_V2_MONTAGE_FADE },
   })
 
