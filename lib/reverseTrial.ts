@@ -463,8 +463,15 @@ export const TRIAL_OPEN_STATUSES = ['active', 'expired'] as const
  * quatro guardas de lá passam). Nada mudou para o cron — uma linha revivida
  * volta a 'active' e é reavaliada normalmente por `trialNeedsDowngrade`.
  * 'converted' segue terminal em TODOS os caminhos, sem exceção.
+ *
+ * KINEO-CORTESIA-METRICA-1410 — 'courtesy' entrou como terminal: o teste foi
+ * fechado por uma CORTESIA (lib/courtesyStore.ts grantCourtesy, ou este cron
+ * quando acha cortesia ativa). Não é conversão (ninguém pagou) nem downgrade
+ * (o saldo fica). Nenhum caminho reabre 'courtesy' — o estorno só revive
+ * 'active'/'expired'/'downgraded'.
  */
-export const TRIAL_TERMINAL_STATUSES = ['downgraded', 'converted'] as const
+export const TRIAL_COURTESY_STATUS = 'courtesy' as const
+export const TRIAL_TERMINAL_STATUSES = ['downgraded', 'converted', TRIAL_COURTESY_STATUS] as const
 
 /**
  * Por que uma linha do banco NÃO foi processada. Só descritivo — quem decide
@@ -1972,6 +1979,7 @@ export type TrialDowngradeOutcome =
   | { action: 'skipped'; reason: string; creditsRevoked: 0 }
   | { action: 'converted'; reason: 'paid'; creditsRevoked: 0 }
   | { action: 'downgraded'; reason: 'credit_cap' | 'clock'; creditsRevoked: number }
+  | { action: 'courtesy'; reason: 'courtesy_active'; creditsRevoked: 0 } // KINEO-CORTESIA-METRICA-1410
 
 /** Colunas exigidas pelo downgrade — uma constante para o cron e os testes não divergirem. */
 export const TRIAL_DOWNGRADE_SELECT =
@@ -2026,6 +2034,26 @@ export async function downgradeExpiredTrial(
       const used = trialCreditsUsed(row)
 
       const paying = isPayingProfile(row)
+      // KINEO-CORTESIA-METRICA-1410 — "parece pagante" SEM pagamento real (has_paid) pode ser CORTESIA: o plano
+      // creator_trial/studio_trial que a cortesia grava passa em isPayingProfile, e este cron carimbava 'converted'
+      // em quem nunca pagou (alanhlm90 08/10, robertoberto2343 14/10 — 2 de 9 cortesias em 30 dias). A pergunta à
+      // tabela courtesy_grants só acontece nesse caso ambíguo: has_paid=true e não-pagante seguem byte a byte iguais.
+      // Sem cortesia ativa = 'converted' como antes. Leitura falhou = adia para a próxima rodada (não carimba um
+      // terminal no escuro; o entitlement já está certo, isTrialActive é passivo). Créditos: nada muda (revoke 0).
+      let courtesy = false
+      if (paying && row.has_paid !== true) {
+        const { data: grants, error: gErr } = await db
+          .from('courtesy_grants')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('status', 'active')
+          .limit(1)
+        if (gErr) {
+          console.error('[reverse-trial] downgrade courtesy read failed:', gErr.message)
+          return { action: 'skipped', reason: 'courtesy_read_error', creditsRevoked: 0 }
+        }
+        courtesy = Array.isArray(grants) && grants.length > 0
+      }
       // Não gastou do grant = pode ser revogado; limitado pelo saldo real, que
       // pode ser menor (o /api/credits/deduct decrementa fora do RPC) — e nunca
       // negativo, porque `used` pode ULTRAPASSAR `granted` (o último débito
@@ -2055,7 +2083,7 @@ export async function downgradeExpiredTrial(
         // 'converted' é rede de segurança, NÃO substitui o webhook da Stripe
         // (item 8): quem comprou durante o trial e nunca teve o status atualizado
         // sairia daqui contado como churn no A/B.
-        trial_status: paying ? 'converted' : 'downgraded',
+        trial_status: courtesy ? TRIAL_COURTESY_STATUS : paying ? 'converted' : 'downgraded', // KINEO-CORTESIA-METRICA-1410
         // ⚠️ COORTE DOS E-MAILS D3+ (item 4) = trial_status = 'downgraded' E
         // trial_downgraded_at na janela. NUNCA só `trial_downgraded_at is not
         // null`: esta coluna também é carimbada em quem CONVERTEU, e mandar
@@ -2079,7 +2107,9 @@ export async function downgradeExpiredTrial(
       }
       if (!updated || updated.length === 0) continue // perdeu a corrida — relê
 
-      const outcome: TrialDowngradeOutcome = paying
+      const outcome: TrialDowngradeOutcome = courtesy // KINEO-CORTESIA-METRICA-1410
+        ? { action: 'courtesy', reason: 'courtesy_active', creditsRevoked: 0 }
+        : paying
         ? { action: 'converted', reason: 'paid', creditsRevoked: 0 }
         : { action: 'downgraded', reason, creditsRevoked: revoke }
       console.log(
