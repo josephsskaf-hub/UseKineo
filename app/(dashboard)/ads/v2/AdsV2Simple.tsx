@@ -136,6 +136,7 @@ import { adsV2RedoFreeCopy, type AdsV2RedoFreeCopy } from '@/lib/ads/v2Redo' // 
 import { adsV2RedoPrice } from '@/lib/ads/v2FreeRedo' // KINEO-ADS-REFACAO-ATOR-1410 — 0 na 1ª refação, o preço do plano depois
 import { adsV2AiPersonLabel } from '@/lib/ads/v2PresenterHolds' // KINEO-ADS-REFACAO-ATOR-1410 — o plano "pessoa de IA segurando o produto" leva o rótulo de IA
 import { adsPalcoVoltarCopy, brandKitConflict, brandKitRetract, type AdsKitFilled } from '@/lib/ads/v2PalcoVoltar' // KINEO-ADS-PALCO-VOLTAR-1410 — "✕ Fechar estilos" e o kit que sai quando o anúncio é de outra marca
+import AdsV2AfterDelivery from './AdsV2AfterDelivery' // KINEO-ADS-POS-ENTREGA-1510 — editar, aprovação do cliente e 3 formatos depois da entrega
 
 // ─── tipos ────────────────────────────────────────────────────────────────────────────────────
 
@@ -2735,6 +2736,7 @@ export function AdsV2SimpleSession({
               />
             )}
             {redoError ? <p className="adsw-err" role="alert">{redoError}</p> : null}{/* KINEO-ADS-MELHORIAS-1410 */}
+            {scopy ? null : <AdsV2AfterDelivery orderId={order.order_id} lang={lang} />}{/* KINEO-ADS-POS-ENTREGA-1510 — editar sem gerar de novo · aprovação do cliente · 9:16 + 4:5 + 1:1 (a amostra grátis fica de fora) */}
             <div className="adv2-actions" style={{ marginTop: 0 }}>
               <button type="button" className="adsw-btn ghost" onClick={onAskStartOver}>{copy.done.another}</button>
             </div>

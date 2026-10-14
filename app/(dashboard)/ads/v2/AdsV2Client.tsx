@@ -104,6 +104,7 @@ import {
 } from '@/lib/ads/v2Screen'
 import { adsV2RedoPrice } from '@/lib/ads/v2FreeRedo' // KINEO-ADS-REFACAO-ATOR-1410 — 0 na 1ª refação, o preço do plano depois
 import { adsV2AiPersonLabel } from '@/lib/ads/v2PresenterHolds' // KINEO-ADS-REFACAO-ATOR-1410 — o plano "pessoa de IA segurando o produto" leva o rótulo de IA
+import AdsV2AfterDelivery from './AdsV2AfterDelivery' // KINEO-ADS-POS-ENTREGA-1510 — editar, aprovação do cliente e 3 formatos depois da entrega
 
 // ─── tipos ────────────────────────────────────────────────────────────────────────────────────
 
@@ -1839,6 +1840,7 @@ function AdsV2Session({
               }}
             />
             {redoError ? <p className="adsw-err" role="alert">{redoError}</p> : null}
+            {scopy ? null : <AdsV2AfterDelivery orderId={order.order_id} lang="en" />}{/* KINEO-ADS-POS-ENTREGA-1510 — editar sem gerar de novo · aprovação do cliente · 9:16 + 4:5 + 1:1 (a amostra grátis fica de fora) */}
             <div className="adv2-actions">
               <button type="button" className="adsw-btn ghost" onClick={onAskStartOver}>Make another ad</button>
             </div>

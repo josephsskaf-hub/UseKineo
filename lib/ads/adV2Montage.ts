@@ -52,6 +52,7 @@ export interface AdV2MontageShot {
   videoHeight?: number | null
   /** KINEO-ADS-MELHORIAS-1410 — só no plano `text` que é o PACKSHOT (a foto real do produto): fundo suave + foto inteira com zoom. */
   packshot?: boolean
+  fill?: boolean // KINEO-ADS-POS-ENTREGA-1510 — clipe que só existe em 9:16 (efeito) num quadro de outra proporção: fundo suave + o clipe INTEIRO (sem corte duro)
 }
 
 // ── KINEO-ADS-MELHORIAS-1410 — o PACKSHOT (a foto real do produto, sem IA) ─────────────────────────────────────────────────
@@ -73,6 +74,23 @@ export function adsV2PackshotElements(url: string, track: number, time: number, 
     { type: 'image', track, time, duration, source, fit: 'contain', x: '50%', y: '50%', width: '100%', height: '100%', ...extra, animations: [{ type: 'scale', fade: false, start_scale: '100%', end_scale: ADS_V2_PACKSHOT_ZOOM_END, easing: 'linear' }] },
   ]
 }
+// ▼ KINEO-ADS-POS-ENTREGA-1510 — o PREENCHIMENTO do "baixar 9:16 + 4:5 + 1:1" (a mesma montagem, os MESMOS clipes, outro quadro).
+// Clipe que só existe em 9:16 (plano do estilo/efeito, o ator) não leva corte duro num quadro mais largo: a MESMA técnica do
+// packshot, agora com vídeo — (1) o clipe em `cover`, ampliado e mudo, sob (2) o véu escuro, e (3) o clipe INTEIRO em `contain`
+// (nada do efeito nem do rosto sai do quadro). Mesmas propriedades que a casa já usa (video cover/contain, shape rgba, trim_start).
+// blur_radius fica DESLIGADO (ADS_V2_FILL_BLUR = 0): regra da casa, propriedade nova só depois de UM render de validação (~US$ 0,13);
+// ligar = trocar o número aqui. `volume` = o som do clipe da frente (o ator fala; plano comum é mudo); o de trás é sempre mudo.
+export const ADS_V2_FILL_BLUR = 0
+export function adsV2FillVideoElements(url: string, track: number, time: number, duration: number, trimStart: number, extra: Record<string, unknown> = {}, volume = '0%'): Record<string, unknown>[] {
+  const source = url.trim()
+  const clip = { type: 'video', track, time, duration, source, loop: false, trim_start: Math.round(Math.max(0, trimStart) * 1000) / 1000 }
+  return [
+    { ...clip, fit: 'cover', x: '50%', y: '50%', width: ADS_V2_PACKSHOT_BG_SCALE, height: ADS_V2_PACKSHOT_BG_SCALE, volume: '0%', ...(ADS_V2_FILL_BLUR > 0 ? { blur_radius: ADS_V2_FILL_BLUR } : {}), ...extra },
+    { type: 'shape', track, time, duration, x: '50%', y: '50%', width: '100%', height: '100%', path: ADS_V2_RECT_PATH, fill_color: ADS_V2_PACKSHOT_VEIL, ...extra },
+    { ...clip, fit: 'contain', x: '50%', y: '50%', width: '100%', height: '100%', volume, ...extra },
+  ]
+}
+// ▲ KINEO-ADS-POS-ENTREGA-1510
 
 /**
  * KINEO-ADS-MELHORIAS-1410 — o cartão final é um PNG 1080×1920 (lib/ads/endCard.ts, desenhado no navegador). Num quadro de outra
@@ -179,6 +197,7 @@ export interface AdV2PresenterInput {
   measuredSeconds: number
   /** Posições em `shots` na ordem de preferência dos inserts (estilo → herói → produto → lugar → gente → vídeo). */
   insertOrder: readonly number[]
+  fill?: boolean // KINEO-ADS-POS-ENTREGA-1510 — quadro que não é 9:16: o ator INTEIRO sobre fundo suave e o cartão no quadro (adsV2CardFrame)
 }
 
 /** Véu aceito: rgba com alfa entre 0,05 e 0,3 (mais que isso lava a foto). */
@@ -255,6 +274,7 @@ export function buildAdV2Source(input: AdV2MontageInput): Record<string, unknown
     if (r3(cutStart + duration) > r3(shot.measuredSeconds)) {
       throw new Error(`ads_v2_montage_trim_past_clip:${i}:${r3(cutStart + duration)}>${r3(shot.measuredSeconds)}`)
     }
+    if (shot.fill === true && shot.kind !== 'user_video') { elements.push(...adsV2FillVideoElements(shot.url, 2, starts[i], duration, cutStart, transition)); return } // KINEO-ADS-POS-ENTREGA-1510 — efeito só 9:16 noutro quadro: fundo suave + o clipe inteiro
     if (shot.kind === 'user_video') {
       // KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — o vídeo do cliente: SEMPRE mudo (o áudio dele não entra; voz e música
       // seguem), sem loop, só o trecho [trim_start, trim_start + duração], recortado em 9:16 no ponto focal.
@@ -479,10 +499,12 @@ function buildAdV2PresenterSource(input: AdV2MontageInput, presenter: AdV2Presen
     volume: '100%',
   })
   // Inserts por cima, MUDOS (a fala do ator continua por baixo), corte seco como num vídeo de criador.
+  if (presenter.fill === true) elements.splice(elements.length - 1, 1, ...adsV2FillVideoElements(presenter.url, ADS_V2_PRESENTER_TRACK, 0, clip, 0, {}, '100%')) // KINEO-ADS-POS-ENTREGA-1510 — o ator inteiro (com a voz) sobre fundo suave mudo
   for (const ins of adsV2PresenterInserts(main, shots, presenter.insertOrder)) {
     const shot = shots[ins.shot]
     if (shot.kind === 'text' && shot.packshot === true) { elements.push(...adsV2PackshotElements(shot.url, ADS_V2_PRESENTER_INSERT_TRACK, ins.time, ins.seconds)); continue } // KINEO-ADS-MELHORIAS-1410 — a foto real do produto, corte seco como os outros inserts
     const start = typeof shot.cutStart === 'number' && Number.isFinite(shot.cutStart) && shot.cutStart >= 0 ? shot.cutStart : 0
+    if (shot.fill === true && shot.kind !== 'user_video') { elements.push(...adsV2FillVideoElements(shot.url, ADS_V2_PRESENTER_INSERT_TRACK, ins.time, ins.seconds, start)); continue } // KINEO-ADS-POS-ENTREGA-1510 — insert de efeito noutro quadro: fundo suave + o clipe inteiro
     const frame = shot.kind === 'user_video'
       ? userVideoFrame(width, height, shot.videoWidth, shot.videoHeight, shot.focusX, shot.focusY)
       : { x: '50%', y: '50%', width: '100%', height: '100%' }
@@ -504,6 +526,7 @@ function buildAdV2PresenterSource(input: AdV2MontageInput, presenter: AdV2Presen
     x: '50%', y: '50%', width: '100%', height: '100%',
     enter_transition: { type: 'fade', duration: ADS_V2_MONTAGE_FADE },
   })
+  if (presenter.fill === true) Object.assign(elements[elements.length - 1], adsV2CardFrame(width, height)) // KINEO-ADS-POS-ENTREGA-1510 — 4:5/1:1: o conteúdo do cartão inteiro no quadro
   const tint = input.tint ?? null
   if (tint !== null) {
     if (typeof tint !== 'string' || !ADS_V2_TINT_RE.test(tint)) throw new Error('ads_v2_montage_bad_tint')
