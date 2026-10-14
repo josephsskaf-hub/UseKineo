@@ -50,9 +50,10 @@ const sources = {
   home: read('app/KineoLanding.tsx'),
   state_report: read('app/state-of-ai-shorts-2026/page.tsx'),
   cost_page: read('app/cheapest-ai-shorts-maker/page.tsx'),
-  pricing: read('app/pricing/PricingClient.tsx'),
   text_to_video: read('app/text-to-video-shorts/page.tsx'),
 }
+// reancorado KINEO-PRECOS-LIMPEZA-1510 — o fundador tirou a faixa do Business do /pricing (15/10): lá ela tem de estar AUSENTE.
+check(!read('app/pricing/PricingClient.tsx').includes('AgencyVolumeBridge'), 'pricing no longer renders the bridge (KINEO-PRECOS-LIMPEZA-1510)')
 for (const [entry, source] of Object.entries(sources)) {
   check(source.includes(`AgencyVolumeBridge entry="${entry}"`), `${entry} renders its measured bridge`)
 }

@@ -189,7 +189,8 @@ function problems(replacements = {}) {
   if (/twoProductsModelForPage|planValueFor\(|IMG_NANOBANANA_CR/.test(client.replace(/^\s*\/\/.*$/gm, ''))) p.push('PricingClient faz conta de modelo (o harness troca todo import de @/components por stub e a página quebra no teste)')
   if (!client.includes('{valueCards ? null : <MrrPricingProof />}') || !client.includes('{valueCards ? <MrrPricingProof /> : null}')) p.push('a caixa dos filmes desce para baixo dos planos só com o cartão novo')
   if (!client.includes("{valueCards ? null : (\n        <div className=\"mx-auto mt-8 max-w-3xl rounded-2xl border border-[var(--border)] bg-[var(--card)] px-5 py-4\">\n          <p className=\"mb-2.5 text-center text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--accent)]\">What one credit buys</p>")) p.push('"What one credit buys" sai com o cartão novo')
-  if (!client.includes('{valueCards ? null : agencyPath}') || !client.includes('{valueCards ? agencyPath : null}')) p.push('o bloco das agências desce com o cartão novo')
+  // reancorado KINEO-PRECOS-LIMPEZA-1510 — o fundador tirou o bloco das agências (cartão do Business) do /pricing (15/10): ausente nos dois modos.
+  if (/\bagencyPath\b|<AgencyVolumeBridge\b/.test(client)) p.push('o bloco das agências (cartão do Business) saiu do /pricing em qualquer modo')
 
   // 5b. o recorte do cartão (Creator/Studio, mensal) é EXATAMENTE o que o servidor aceita para o WELCOME20
   try {

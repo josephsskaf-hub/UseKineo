@@ -42,8 +42,10 @@ const charactersRoute = rd('app/api/characters/route.ts')
 // de âncora porque os comentários deste mesmo item citam o nome da tabela.
 const tIni = client.indexOf('<table className="w-full min-w-[700px]')
 const tFim = client.indexOf('</table>', tIni)
-ok(tIni > 0 && tFim > tIni && conta(client, '<table ') === 1, 'tabela "Compare plans" localizada no PricingClient (uma só <table>)')
-const tabela = client.slice(tIni, tFim)
+// reancorado KINEO-PRECOS-LIMPEZA-1510 — o fundador tirou a tabela "Compare plans" do /pricing (15/10: "não faz sentido nenhum
+// mais estar na tela"). As travas das CÉLULAS viraram travas de AUSÊNCIA; fontes, FAQ, /terms, prova social e TIER_CREDITS seguem iguais.
+ok(tIni === -1 && conta(client, '<table') === 0 && conta(client, 'What you get at each tier') === 0, 'reancorado KINEO-PRECOS-LIMPEZA-1510: a tabela "Compare plans" saiu do PricingClient (nenhuma <table>)')
+const tabela = tIni >= 0 && tFim > tIni ? client.slice(tIni, tFim) : ''
 
 // ─── 1. Os números da fonte (lidos, não digitados) ──────────────────────────
 const tierBlock = (pricingLib.match(/export const TIER_CREDITS[^{]*\{([\s\S]*?)\n\}/) ?? [])[1] ?? ''
@@ -78,15 +80,9 @@ ok(conta(client, 'about 3–5 minutes') === 0, 'FAQ não promete mais "about 3�
 ok(conta(terms, 'introductory') === 0, '/terms não fala mais em preço introdutório (não existe intro)')
 
 // ─── 3. Os novos vêm de TIER_CREDITS / creditCostForDuration / characterLimitFor ─
-ok(/import \{ creditCostForDuration, type Quality \} from '@\/lib\/credits\/engineCost'/.test(client), 'PricingClient importa creditCostForDuration (a régua do caixa)')
-ok(/MARKETING_REFERENCE_SECONDS,\n\s*videosPerMonth,\n\} from '@\/lib\/marketingPrice'/.test(client), 'PricingClient importa MARKETING_REFERENCE_SECONDS (60 s de referência, não digitado)')
-ok(/const filmCreditsAt60s = \(quality: Quality\): number => creditCostForDuration\(quality, true, MARKETING_REFERENCE_SECONDS\)/.test(client), 'custo do filme = creditCostForDuration(quality, true, 60 s)')
-ok(/const filmsPerMonthFor = \(tier: PaidTier, quality: Quality\): number => Math\.floor\(TIER_CREDITS\[tier\] \/ filmCreditsAt60s\(quality\)\)/.test(client), 'filmes/mês = Math.floor(TIER_CREDITS ÷ custo) — grant vem de TIER_CREDITS, nunca da tabela intro')
+// reancorado KINEO-PRECOS-LIMPEZA-1510 — sem a tabela, os helpers que pintavam as células saíram juntos (nada morto no client).
+ok(!/creditCostForDuration/.test(client) && !/\bfilmCreditsAt60s\b|\bfilmsPerMonthFor\b|\bfilmsCell\b/.test(client), 'reancorado KINEO-PRECOS-LIMPEZA-1510: filmCreditsAt60s / filmsPerMonthFor / filmsCell e o import de creditCostForDuration saíram do PricingClient')
 ok(!/INTRO_CREDITS\[tier\] \/ filmCreditsAt60s/.test(client), 'a contagem NÃO usa INTRO_CREDITS')
-ok(/starter: filmsCell\('starter', 'cinematic_h3', 'film'\)/.test(tabela), 'H3 no Starter = filmsCell(starter, cinematic_h3)')
-ok(/starter: filmsCell\('starter', 'cinematic_kling', 'film'\)/.test(tabela), 'Kling 2.5 no Starter = filmsCell(starter, cinematic_kling)')
-ok(/basic: filmsCell\('basic', 'cinematic_hollywood', 'mo'\),\n\s*pro: filmsCell\('pro', 'cinematic_hollywood', 'mo'\)/.test(tabela), 'Kling 3 no Creator e no Studio = filmsCell(tier, cinematic_hollywood)')
-ok(/cinematic_kling'\)\} cr\)`,\n\s*free: [^\n]*\n\s*starter: filmsCell\([^\n]*\n\s*basic: '✅',\n(?:\s*\/\/[^\n]*\n)*\s*pro: '✅',/.test(tabela), "Kling 2.5 no Studio = '✅' seco (sem resolução prometida)")
 
 // O que a página vai PINTAR com os números de hoje (calculado com a mesma fórmula que o código usa):
 const filmsCell = (grantCr, custoCr, style) => {
@@ -94,7 +90,6 @@ const filmsCell = (grantCr, custoCr, style) => {
   if (films < 1) return '—'
   return style === 'mo' ? `✅ ${films}/mo` : `✅ ${films} ${films === 1 ? 'film' : 'films'}`
 }
-ok(/if \(films < 1\) return '—'\n\s*return style === 'mo' \? `✅ \$\{films\}\/mo` : `✅ \$\{films\} \$\{films === 1 \? 'film' : 'films'\}`/.test(client), 'a fórmula do guardião é a fórmula do código (filmsCell)')
 ok(filmsCell(starter, h3, 'film') === '✅ 1 film', `Starter × H3 pinta "✅ 1 film" (${starter} ≥ ${h3})`)
 ok(filmsCell(starter, kling, 'film') === '✅ 1 film', `Starter × Kling 2.5 pinta "✅ 1 film" (${starter} ≥ ${kling})`)
 ok(filmsCell(pro, kling3, 'mo') === '✅ 2/mo', `Studio × Kling 3 pinta "✅ 2/mo" (${pro} ÷ ${kling3})`)
@@ -105,8 +100,8 @@ ok(filmsCell(starter, kling3, 'mo') === '—', `Starter × Kling 3 continua "—
 ok(/import \{ characterLimitFor \} from '@\/lib\/characters'/.test(page), 'page.tsx importa characterLimitFor de lib/characters.ts')
 ok(/free: characterLimitFor\('free', false\),\n\s*trial: characterLimitFor\('basic_trial', false\),\n\s*starter: characterLimitFor\('starter', true\),\n\s*basic: characterLimitFor\('basic', true\),\n\s*pro: characterLimitFor\('pro', true\),/.test(page), 'page.tsx deriva free/trial/starter/basic/pro de characterLimitFor')
 ok(/<PricingClient key=\{handoff\.key\} initialBilling=\{handoff\.initialBilling\} characterLimits=\{characterLimits\} \/>/.test(page), 'page.tsx entrega characterLimits ao PricingClient')
-ok(/starter: charCell\(characterLimits\?\.starter\),\n\s*basic: charCell\(characterLimits\?\.basic\),\n\s*pro: charCell\(characterLimits\?\.pro\),/.test(tabela), 'linha de personagens lê a prop (starter/basic/pro)')
-ok(/free: ft\(OFFER, charCell\(characterLimits\?\.free\), characterLimits \? `\$\{characterLimits\.trial\} during trial` : '—'\)/.test(tabela), 'coluna Free = cota do trial com a nota "during trial" (via ft, como as outras células Free)')
+// reancorado KINEO-PRECOS-LIMPEZA-1510 — a linha de personagens morava na tabela; a prop segue aceita, mas nada a pinta.
+ok(!/\bcharCell\b/.test(client) && conta(client, 'Saved characters (same face every video)') === 0, 'reancorado KINEO-PRECOS-LIMPEZA-1510: a linha "Saved characters" e o charCell saíram com a tabela')
 const charCell = (n) => (typeof n === 'number' && n > 0 ? String(n) : '—')
 ok(charCell(charFree) === '—' && charCell(charPaid) === '3' && charCell(charPro) === '10' && `${trialLimit} during trial` === '3 during trial', `pinta —(free) / 3 during trial / 3 / 3 / 10 com os números de hoje`)
 ok(!/from '@\/lib\/characters'/.test(client), "PricingClient ('use client') NÃO importa lib/characters (node:crypto não entra no bundle do navegador)")
@@ -116,10 +111,8 @@ ok(!/from '@\/lib\/characters'/.test(client), "PricingClient ('use client') NÃO
 // trava (j) da E1). O tempo honesto dos motores de IA (8–20 min) segue o mesmo, numa fonte só.
 ok(/const RENDER_TIME_COPY = 'AI engines 8–20 min'/.test(client) && !/Kineo 1/.test(client), 'RENDER_TIME_COPY = "AI engines 8–20 min" (sem Kineo 1)')
 ok(/a: `\$\{RENDER_TIME_COPY\}\. We use AI to write, voice, and edit everything automatically\.`/.test(client), 'FAQ "How fast" usa RENDER_TIME_COPY')
-ok(/label: 'Render time',\n(?:\s*\/\/[^\n]*\n)*\s*free: RENDER_TIME_COPY,\n\s*starter: RENDER_TIME_COPY,\n\s*basic: RENDER_TIME_COPY,\n\s*pro: RENDER_TIME_COPY,/.test(tabela), 'as 4 células de Render time usam RENDER_TIME_COPY')
-
-// Suporte: e-mail para todo mundo.
-ok(/label: 'Support',\n\s*free: 'Email support',\n\s*starter: 'Email support',\n\s*basic: 'Email support',\n\s*pro: 'Email support',/.test(tabela), "linha de suporte = 'Support' com 'Email support' nas 4 colunas")
+// reancorado KINEO-PRECOS-LIMPEZA-1510 — as linhas "Render time" e "Support" eram da tabela, que saiu; o "Priority" segue travado em 0 acima.
+ok(conta(client, "label: 'Render time',") === 0 && conta(client, "label: 'Support',") === 0, 'reancorado KINEO-PRECOS-LIMPEZA-1510: linhas Render time e Support saíram com a tabela')
 
 // Prova social com o placar de 27/09 e o comentário de origem.
 ok(conta(client, '2,100+ creators · 1,500+ films · featured on There&apos;s An AI For That') === 1, "prova social = '2,100+ creators · 1,500+ films'")

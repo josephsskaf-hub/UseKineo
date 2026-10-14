@@ -32,54 +32,35 @@ const REVERSE = rd('lib/reverseTrial.ts')
 const CP = rd('lib/checkoutPricing.ts') // só leitura
 const CHECKOUT = rd('app/api/stripe/checkout/route.ts') // só leitura
 
-// ── (a) /pricing: linha Studio Ads derivada de ADS_SUBSCRIBER_PLANS ──────────────────────────────────────────────────
-const ROW_LABEL = "label: 'Studio Ads (business video ads)',"
-const HELPER_RE = /const adsCell = \(plan: string\): string => \((.+)\)\n/
-const TABLE_START = PRICING.indexOf('Compare plans')
-const TABLE_END = PRICING.indexOf('].map((row) => (', TABLE_START)
-const tabela = PRICING.slice(TABLE_START, TABLE_END)
-
-function provasPricing(src, tab) {
-  const m = src.match(HELPER_RE)
-  const helperExpr = m ? m[1] : ''
-  const rowIdx = tab.indexOf(ROW_LABEL)
-  const charsIdx = tab.indexOf("label: '🎭 Saved characters (same face every video)',")
-  const creditsIdx = tab.indexOf("label: 'Monthly credits',")
-  const rowBlock = rowIdx >= 0 ? tab.slice(rowIdx, tab.indexOf('},', rowIdx)) : ''
+// ── (a) /pricing: a tabela "Compare plans" saiu ─────────────────────────────────────────────────────────────────────
+// reancorado KINEO-PRECOS-LIMPEZA-1510 — o fundador tirou do /pricing a tabela "Compare plans" inteira (15/10: "não faz sentido
+// nenhum mais estar na tela"). A linha "Studio Ads (business video ads)" e o helper adsCell foram junto; a seção (a) agora
+// prova a AUSÊNCIA. Os fatos de lib/ads (1g, 1h, 1k–1n) seguem travados como antes — guardam o portão do Ads, não a tabela.
+function provasPricing(src) {
   return {
-    importOnce: count(src, "import { ADS_SUBSCRIBER_PLANS } from '@/lib/ads/access'") === 1 && count(src, "from '@/lib/ads/offer'") === 0,
-    helperDerives: /ADS_SUBSCRIBER_PLANS\.includes\(plan\)/.test(helperExpr),
-    helperExpr,
-    rowOnce: count(tab, ROW_LABEL) === 1,
-    rowAfterCharsBeforeCredits: charsIdx >= 0 && rowIdx > charsIdx && creditsIdx > rowIdx,
-    cellsDerived: ["free: adsCell('free'),", "starter: adsCell('starter'),", "basic: adsCell('basic'),", "pro: adsCell('pro'),"].every((c) => count(rowBlock, c) === 1),
-    noTypedIncludedInRow: count(rowBlock, 'included') === 0 && count(rowBlock, '✅') === 0 && count(rowBlock, '—') === 0,
-    includedLiteralOnlyInHelper: count(src, "'✅ included'") === 1,
+    semImportOffer: count(src, "from '@/lib/ads/offer'") === 0,
+    semImportAccess: count(src, "import { ADS_SUBSCRIBER_PLANS } from '@/lib/ads/access'") === 0,
+    semHelper: !/const adsCell\b/.test(src) && count(src, 'adsCell(') === 0,
+    semLinha: count(src, "label: 'Studio Ads (business video ads)',") === 0,
+    semTabela: count(src, 'What you get at each tier') === 0 && count(src, '<table') === 0,
   }
 }
-const pa = provasPricing(PRICING, tabela)
-checa('1a. PricingClient importa ADS_SUBSCRIBER_PLANS de lib/ads/access (1x) e NÃO importa lib/ads/offer.ts (pinado)', pa.importOnce)
-checa('1b. adsCell deriva de ADS_SUBSCRIBER_PLANS.includes(plan) — nada decidido por coluna', pa.helperDerives)
-checa('1c. a linha "Studio Ads (business video ads)" existe uma vez na tabela Compare plans', pa.rowOnce)
-checa('1d. a linha entra depois de "Saved characters" e antes de "Monthly credits"', pa.rowAfterCharsBeforeCredits)
-checa('1e. as 4 células chamam adsCell(free|starter|basic|pro); nenhuma digitada (sem check/traço/included na linha)', pa.cellsDerived && pa.noTypedIncludedInRow)
-checa("1f. o literal '✅ included' existe só no helper (1x no arquivo)", pa.includedLiteralOnlyInHelper)
+const pa = provasPricing(PRICING)
+checa('1a. PricingClient NÃO importa lib/ads/offer.ts (pinado) nem, sem a tabela, ADS_SUBSCRIBER_PLANS', pa.semImportOffer && pa.semImportAccess)
+checa('1b. o helper adsCell saiu junto com a tabela (0 definições, 0 chamadas)', pa.semHelper)
+checa('1c. a linha "Studio Ads (business video ads)" não existe mais no /pricing', pa.semLinha)
+checa('1d. a tabela "Compare plans" ("What you get at each tier") saiu do /pricing — nenhuma <table> no arquivo', pa.semTabela)
 checa('1g. lib/ads/access.ts é puro: sem server-only e sem supabase (pode entrar no client component)', count(ACCESS, 'server-only') === 0 && count(ACCESS, 'supabase') === 0)
 
 // derivação executada: o helper real com o array real
 const access = load('lib/ads/access.ts')
 const PLANS = access.ADS_SUBSCRIBER_PLANS
-const cellFn = new Function('ADS_SUBSCRIBER_PLANS', 'plan', 'return (' + pa.helperExpr + ')')
-const cell = (plans, plan) => cellFn(plans, plan)
 checa('1h. ADS_SUBSCRIBER_PLANS real contém starter, basic e pro (as 3 colunas pagas) e não contém free', ['starter', 'basic', 'pro'].every((p) => PLANS.includes(p)) && !PLANS.includes('free'))
-checa("1i. célula real: starter/basic/pro = '✅ included'", ['starter', 'basic', 'pro'].every((p) => cell(PLANS, p) === '✅ included'))
-checa("1j. célula real: free = '—' e um plano *_trial = '—' (trial e free não entram)", cell(PLANS, 'free') === '—' && cell(PLANS, 'creator_trial') === '—')
 checa("1k. adsAccessReason real: plan 'starter' → 'subscriber'; 'free' → 'none'; 'creator_trial' → 'none'", access.adsAccessReason({ plan: 'starter', ads_access_until: null }, 'x@example.com') === 'subscriber' && access.adsAccessReason({ plan: 'free', ads_access_until: null }, 'x@example.com') === 'none' && access.adsAccessReason({ plan: 'creator_trial', ads_access_until: null }, 'x@example.com') === 'none')
 // o fato que "included" cumpre: assinante passa no portão e o passe está ligado em código
 checa("1l. lib/ads/access.ts: if (ADS_SUBSCRIBER_PLANS.includes(plan)) return 'subscriber'", count(ACCESS, "if (ADS_SUBSCRIBER_PLANS.includes(plan)) return 'subscriber'") === 1)
 checa("1m. lib/ads/serverAccess.ts adsGate: só 'none' vira no_access; ligado, o resto é 'ok'", count(SERVER_ACCESS, "if (reason === 'none') return 'no_access'") === 1 && count(SERVER_ACCESS, "if (!adsPassLive() && reason !== 'internal') return 'closed'") === 1 && count(SERVER_ACCESS, "return 'ok'") === 1)
 checa('1n. lib/ads/offer.ts: ADS_PASS_LIVE_IN_CODE = true (se desligar, esta linha da tabela mente e este guardião fica vermelho de propósito)', count(OFFER, 'export const ADS_PASS_LIVE_IN_CODE = true') === 1)
-checa('1o. nenhuma outra célula mudou: linhas Saved characters e Monthly credits intactas', /pro: charCell\(characterLimits\?\.pro\),\n\s*\},\n\s*\{\n\s*\/\/ KINEO-COPY-HONESTA-C-2026-09-27[^\n]*\n\s*label: 'Studio Ads \(business video ads\)',/.test(tabela) && /label: 'Monthly credits',\n\s*free: ft\(OFFER, '0', `\$\{TRIAL_GRANT_CREDITS_COPY\} free, once`\),\n\s*starter: String\(TIER_CREDITS\.starter\),/.test(tabela))
 
 // ── (b) TrialActiveBanner: "Creator trial" = 0 ────────────────────────────────────────────────────────────────────────
 function provasBanner(src) {
@@ -123,16 +104,9 @@ checa('3e. fato: o checkout GET só manda para /login quem não tem sessão (red
 checa('3f. a porta do plano continua condicionada a planOffer (gate !== ok) — o logado sem acesso VÊ este gnote', count(DOOR, "const planOffer = live && viewer.gate !== 'ok'") === 1 && count(DOOR, '{planOffer ? (') === 1)
 
 // ── 4. mutantes em memória ───────────────────────────────────────────────────────────────────────────────────────────
-// M1: array sem 'starter' → a célula do Starter muda para '—' (a copy segue o código, não o contrário)
-checa("M1. array sem 'starter' → adsCell('starter') = '—' (a célula muda com o array)", cell(PLANS.filter((p) => p !== 'starter'), 'starter') === '—' && cell(PLANS.filter((p) => p !== 'starter'), 'basic') === '✅ included')
-// M2: array com 'free' → a coluna Free viraria '✅ included' (prova que a célula Free também é derivada)
-checa("M2. array com 'free' → adsCell('free') = '✅ included' (a coluna Free não é digitada)", cell([...PLANS, 'free'], 'free') === '✅ included')
-// M3: célula do Starter digitada à mão na linha → 1e cai
-const m3 = provasPricing(PRICING, tabela.replace("starter: adsCell('starter'),", "starter: '✅ included',"))
-checa('M3. linha com starter digitado à mão ("✅ included") reprova em 1e', !(m3.cellsDerived && m3.noTypedIncludedInRow))
-// M4: helper sem derivação (sempre '✅ included') → 1b cai
-const m4 = provasPricing(PRICING.replace(HELPER_RE, "const adsCell = (plan: string): string => ('✅ included')\n"), tabela)
-checa('M4. helper que devolve "✅ included" para todo plano reprova em 1b', !m4.helperDerives)
+// M1–M4 (célula/helper da tabela) saíram com a tabela — reancorado KINEO-PRECOS-LIMPEZA-1510. Mutante novo da ausência:
+const m1 = provasPricing(PRICING + "\n<h2>What you get at each tier</h2><table></table>\n")
+checa('M1. a tabela de volta ao /pricing reprova em 1d', !m1.semTabela)
 // M5: banner com "Creator trial" de volta → 2a cai
 const m5 = provasBanner(BANNER.replace("You&apos;re on your free trial — ends {timeLeft}", "You&apos;re on the Creator trial — ends {timeLeft}"))
 checa('M5. banner com "Creator trial" de volta reprova em 2a e 2c', !m5.creatorZero && !m5.headlineFree)
