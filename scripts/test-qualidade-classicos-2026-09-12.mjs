@@ -9,6 +9,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 import ts from 'typescript'
+import { semRetentarCena1410, ARQUIVO_CRON_1410 } from './test-support/desfaz-retentar-cena-1410.mjs' // KINEO-RETENTAR-CENA-1410
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
@@ -70,6 +71,10 @@ checa('fast: verbatim viaja com speed padrão 1 (o cliente só encaminha speed n
 
 console.log('== (5) cron enxerga cena morta — função executada com fal falso ==')
 const cron = rd('app/api/cron/finish-stranded-renders/route.ts')
+// KINEO-RETENTAR-CENA-1410 — reancorado: a chamada da coleta ganhou o 4º argumento (rastro da retentativa de cena). A âncora
+// KINEO-RETENTAR-CENA-1410 — de 12/09 é conferida no texto DESFEITO (a idade do claim continua indo ao coletor; o argumento
+// KINEO-RETENTAR-CENA-1410 — novo é provado em scripts/test-retentar-cena-1410.mjs). A função segue executada no texto REAL.
+const cronBase1410 = semRetentarCena1410(cron, ARQUIVO_CRON_1410) // KINEO-RETENTAR-CENA-1410
 {
   const iF = cron.indexOf('async function collectFinishedClips(')
   const iEnd = cron.indexOf('\n}\n', iF) + 3
@@ -99,7 +104,7 @@ const cron = rd('app/api/cron/finish-stranded-renders/route.ts')
   }
   await run()
 }
-checa('chamador passa a idade do claim e pending velho vira rastro', /collectFinishedClips\(requestIds, models, claimAgeMin\)/.test(cron) && /outcome: `pending_stale:\$\{collected\.done\}\/\$\{collected\.total\}`/.test(cron) && /SILENT_TERMINAL = \/\^\([^\n]*\|pending_stale[|)]/.test(cron) && /const PENDING_STALE_MINUTES = 45/.test(cron))
+checa('chamador passa a idade do claim e pending velho vira rastro', /collectFinishedClips\(requestIds, models, claimAgeMin\)/.test(cronBase1410) && /outcome: `pending_stale:\$\{collected\.done\}\/\$\{collected\.total\}`/.test(cron) && /SILENT_TERMINAL = \/\^\([^\n]*\|pending_stale[|)]/.test(cron) && /const PENDING_STALE_MINUTES = 45/.test(cron))
 
 console.log('== "Tomás" não vira "ás" (filtro de cenário com Unicode) ==')
 const vpp = rd('lib/cinematic/visualPromptPolicy.ts')
