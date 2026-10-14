@@ -103,6 +103,26 @@ const VERTICAL_TO_NICHE: Record<string, ContentNiche> = {
   travel:     'travel',
 }
 
+// ═══ KINEO-PARCEIRO-EYEBIBLE-2-1410 — palavra-chave casa a PALAVRA (e as flexões dela), nunca um prefixo solto ═══
+// Robert/EyeBible (14/10, filme de guerra c9844e94): "broken stone wall" casou 'broke' → nicho money → voz finance-authority // KINEO-PARCEIRO-EYEBIBLE-2-1410
+// e trilha hustle (808). O #282 trocou substring por "\b + prefixo" para manter plural ('fact'→'facts'); o prefixo solto // KINEO-PARCEIRO-EYEBIBLE-2-1410
+// também casava 'invest'→investigation, 'app'→appeared/approach/apple, 'ai'→air/aid/aim, 'roman'→romance, 'fact'→factory, // KINEO-PARCEIRO-EYEBIBLE-2-1410
+// 'rich'→Richard. Agora: palavra inteira + só sufixos de flexão do inglês (todos EXTENSÕES do prefixo: o conjunto novo é // KINEO-PARCEIRO-EYEBIBLE-2-1410
+// SUBCONJUNTO do antigo — nenhum roteiro ganha acerto novo, só perde o falso). Radicais declarados seguem prefixo puro. // KINEO-PARCEIRO-EYEBIBLE-2-1410
+const RADICAIS_DE_PREFIXO = new Set(['archaeolog', 'tech', 'crypto', 'government hid']) // KINEO-PARCEIRO-EYEBIBLE-2-1410 — archaeologist/technology/cryptocurrency/hidden
+const FLEXOES = '(?:s|es|ed|ing|er|ers|est|ier|iest|or|ors|ist|ists|ment|ments|y|ic|ics|ical|al|ally|ly|ity|ance|ances|able|ous|ary|aries)' // KINEO-PARCEIRO-EYEBIBLE-2-1410
+const padroesDaPalavraChave = new Map<string, RegExp>() // KINEO-PARCEIRO-EYEBIBLE-2-1410
+/** Regex da palavra-chave do nicho: palavra inteira + flexão. Termina em 'e' → s/d/r/rs/st/ly (explore→explored, broke→broker, nunca broken). Curta (<4) → só plural ('app'≠apple, 'ai'≠air). */ // KINEO-PARCEIRO-EYEBIBLE-2-1410
+export function padraoDaPalavraChave(kw: string): RegExp { // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  const k = kw.trim() // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  const pronto = padroesDaPalavraChave.get(k) // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  if (pronto) return pronto // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  const e = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  const fim = RADICAIS_DE_PREFIXO.has(k) ? '' : /e$/.test(k) ? '(?:s|d|r|rs|st|ly)?\\b' : k.length < 4 ? 's?\\b' : FLEXOES + '?\\b' // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  const re = new RegExp('\\b' + e + fim) // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  padroesDaPalavraChave.set(k, re) // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  return re // KINEO-PARCEIRO-EYEBIBLE-2-1410
+} // KINEO-PARCEIRO-EYEBIBLE-2-1410
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
@@ -125,7 +145,7 @@ export function detectNiche(script: string, vertical?: string): ContentNiche {
   // "scientists" — dois falsos positivos MEDIDOS neste mesmo roteiro. Prefixo
   // preserva plurais ('fact'→'facts', 'archaeolog'→'archaeologists').
   const hasKw = (kw: string): boolean =>
-    new RegExp('\\b' + kw.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(lower)
+    padraoDaPalavraChave(kw).test(lower) // KINEO-PARCEIRO-EYEBIBLE-2-1410 — era new RegExp('\\b' + kw…) (só prefixo): "broke" casava "broken"
   let best: ContentNiche | null = null
   let bestScore = 0
   for (const { niche, keywords } of NICHE_KEYWORDS) {

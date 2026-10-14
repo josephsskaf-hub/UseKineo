@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { desfazRomanceAdulto } from './test-support/desfaz-romance-adulto-1310.mjs' // reancorado KINEO-LEVA7-1310: o conserto do romance (13/10) também sai, em memória, antes do byte a byte
 import { semContratoClassicos1410 } from "./test-support/desfaz-contrato-classicos-1410.mjs" // reancorado KINEO-CONTRATO-CLASSICOS-1410: o contrato clássico (14/10) sai, em memória, antes do byte a byte
+import { desfazParceiroEyebible2_1410 } from './test-support/desfaz-parceiro-eyebible-2-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410 [TRAVA 8.2 — vai do fundador 14/10]: a 2ª leva do Robert/EyeBible sai em memória antes do byte a byte
 
 const MARCA = 'KINEO-RECONEXAO-MESMO-FILME-2026-10-13'
 const CAMINHO = 'app/api/generate-video-cinematic/route.ts'
@@ -54,7 +55,7 @@ if (!process.env.ROTA_ALVO) {
     base = git(['show', `${ref}:${CAMINHO}`]).replace(/\r\n/g, '\n')
   } catch { base = null }
   const semMarca = (s) => s.split('\n').filter((l) => !l.includes(MARCA)).join('\n')
-  checa('sem as linhas marcadas, a rota = base byte a byte', base !== null && desfazRomanceAdulto(CAMINHO, semMarca(semContratoClassicos1410(rota, CAMINHO))) === base) /* reancorado KINEO-CONTRATO-CLASSICOS-1410 */ // reancorado KINEO-LEVA7-1310
+  checa('sem as linhas marcadas, a rota = base byte a byte', base !== null && desfazRomanceAdulto(CAMINHO, semMarca(semContratoClassicos1410(desfazParceiroEyebible2_1410(CAMINHO, rota), CAMINHO))) === base) /* reancorado KINEO-CONTRATO-CLASSICOS-1410 */ // reancorado KINEO-LEVA7-1310
 }
 
 console.log(`\ntest-reconexao-mesmo-filme-2026-10-13: ${ok} ok · ${falhas} falhas`)

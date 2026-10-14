@@ -469,6 +469,17 @@ export function dialogueSpeech(line: string, cenaDeDialogo: boolean): string | n
 export function contaFalasDePersonagem(raw: string): number { // KINEO-PARCEIRO-EYEBIBLE-1410
   return (raw ?? '').toString().split(/\r?\n/).filter((l) => dialogueSpeech(l, true) !== null).length // KINEO-PARCEIRO-EYEBIBLE-1410
 } // KINEO-PARCEIRO-EYEBIBLE-1410
+/** KINEO-PARCEIRO-EYEBIBLE-2-1410 — os papéis que FALAM no roteiro (a mesma regra da voz: CAIXA ALTA + fala), na ordem da 1ª fala, sem repetir. */ // KINEO-PARCEIRO-EYEBIBLE-2-1410
+export function papeisQueFalam(raw: string): string[] { // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  const cenaDeDialogo = contaFalasDePersonagem(raw) >= 2 // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  const papeis: string[] = [] // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  for (const linha of (raw ?? '').toString().split(/\r?\n/)) { // KINEO-PARCEIRO-EYEBIBLE-2-1410
+    if (dialogueSpeech(linha, cenaDeDialogo) === null) continue // KINEO-PARCEIRO-EYEBIBLE-2-1410
+    const papel = dialogueParts(linha)?.role.replace(/\s+/g, ' ').trim() // KINEO-PARCEIRO-EYEBIBLE-2-1410
+    if (papel && !papeis.includes(papel)) papeis.push(papel) // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  } // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  return papeis // KINEO-PARCEIRO-EYEBIBLE-2-1410
+} // KINEO-PARCEIRO-EYEBIBLE-2-1410
 /** Texto que é um BRIEFING (ficha + instruções) e não uma narração: ≥2 linhas de ficha/instrução e nenhum rótulo de fala. */
 export function looksLikeBrief(raw: string): boolean {
   const lines = (raw ?? '').toString().split(/\r?\n/).map((l) => unwrapLabelHead(l)).filter(Boolean)
