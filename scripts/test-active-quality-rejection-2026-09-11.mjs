@@ -30,6 +30,7 @@ async function run(options = {}) {
       order(key, { ascending }) { order = { key, ascending }; return query },
       limit(value) { limit = value; return query },
       maybeSingle() { single = true; return query },
+      or(expr) { const terms = String(expr).match(/(?:[^,"]|"[^"]*")+/g).map(t => { const [k, op, ...rest] = t.split('.'); const raw = rest.join('.'); const v = raw.replace(/^"|"$/g, ''); return row => { const x = row[k] ?? null; if (op === 'is') return v === 'null' ? x === null : String(x) === v; if (op === 'eq') return x !== null && String(x) === v; if (op === 'neq') return x !== null && String(x) !== v; throw Error('or op ' + op) } }); filters.push(row => terms.some(t => t(row))); return query }, // reancorado KINEO-ADS-CONSERTOS-1410 — compose/active passou a filtrar platform com .or (Studio Ads fora, nulo dentro)
       insert: forbidden, update: forbidden, delete: forbidden, upsert: forbidden,
       then(resolve, reject) {
         operations.push(reads)

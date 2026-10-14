@@ -35,6 +35,7 @@ import { measureFootageVideo, ownedFootage, v2Fail, v2Json } from '@/lib/ads/v2S
 import { adsSampleLevelOk, adsSampleOpen } from '@/lib/ads/serverAccess'
 import { adsV2IsProductOrder, adsV2SceneSetting, adsV2SceneShots } from '@/lib/ads/v2Scene' // KINEO-ADS-CENA-2026-10-13 — a cena da pessoa no prompt das cenas criadas (só Comercial/Premium)
 import { ADS_V2_BRIEF_TIMEOUT_WHY, ADS_V2_PLAN_MODEL_DEADLINE_MS } from '@/lib/ads/v2Brief' // KINEO-ADS-CENA-2026-10-13 — prazo do modelo amarrado ao maxDuration e timeout que não vira 502 cru
+import { adsV2SentenceForCopy } from '@/lib/ads/v2Scene' // KINEO-ADS-CONSERTOS-1410 — produto sem a cena da frase
 import { adsV2BuildScripts } from '@/lib/ads/v2Scripts' // KINEO-ADS-ROTEIROS-2026-10-13 — 2 a 3 roteiros para escolher (o 1º = o texto de sempre); troca em /api/ads/v2/plan/choose
 
 /** Quem age: o id do auth (moderação e rastro) e o e-mail VERIFICADO dele (adsV2Visible). */
@@ -123,7 +124,11 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
 
     // O texto do negócio: a frase, ou o que o link diz (só a página; as fotos vêm recortadas do navegador).
     // Modo simples: a frase + o preço e o contato que a PESSOA escreveu nos campos próprios.
-    let text = typeof brief0.sentence === 'string' ? brief0.sentence.trim() : ''
+    // KINEO-ADS-CONSERTOS-1410 — QA 14/10: "perfume num hotel com chuva" virava a MARCA (brief, 1ª frase de tela e narração).
+    // KINEO-ADS-CONSERTOS-1410 — pedido de produto com cena na frase: o texto do negócio é só o produto (a cena vai pelo brief.scene).
+    const sentenceFull = typeof brief0.sentence === 'string' ? brief0.sentence.trim() : '' // KINEO-ADS-CONSERTOS-1410 — a frase INTEIRA (moderação)
+    const sentenceCopy = adsV2SentenceForCopy(brief0, input.sector) // KINEO-ADS-CONSERTOS-1410 — a frase que vira brief, frases de tela e narração
+    let text = sentenceCopy // KINEO-ADS-CONSERTOS-1410
     if (simple && text) {
       const price = typeof brief0.price === 'string' ? brief0.price.trim() : ''
       const contact = typeof brief0.contact === 'string' ? brief0.contact.trim() : ''
@@ -151,12 +156,12 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     }
     if (!text) return v2Fail('sentence_or_link_required', 400)
 
-    const safety = await moderateContent({ surface: 'ads_brief', stage: 'input', userId: user.id, text: [text, ...factTexts].join('\n'), meta: { order_id: order.id, v2: true } })
+    const safety = await moderateContent({ surface: 'ads_brief', stage: 'input', userId: user.id, text: [text, ...(sentenceFull !== sentenceCopy ? [sentenceFull] : []), ...factTexts].join('\n'), meta: { order_id: order.id, v2: true } }) // KINEO-ADS-CONSERTOS-1410 — a frase inteira (com a cena) continua moderada
     if (!safety.ok) {
       return v2Fail(safety.reason === 'blocked' ? 'moderation' : `moderation_${safety.reason}`, moderationRefusalStatus(safety.reason), { message: moderationRefusalMessage(safety.reason) })
     }
 
-    const language = narrationLanguage(order.language) ?? narrationLanguage(pageLang) ?? resolveNarrationLanguage(undefined, text).language
+    const language = narrationLanguage(order.language) ?? narrationLanguage(pageLang) ?? resolveNarrationLanguage(undefined, sentenceFull !== sentenceCopy ? `${text}\n${sentenceFull}` : text).language // KINEO-ADS-CONSERTOS-1410 — "perfume" sozinho não diz a língua; a frase inteira diz
     const maxWords = adsV2NarrationMaxWords(order.seconds)
     const overlaysOn = brief0.overlays !== false
     const extracted = await extractAdsV2Brief({
@@ -166,7 +171,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
       maxWords,
       narration: order.narration,
       // KINEO-ADS-SIMPLES-ACABAMENTO-2026-09-29 — a frase exata (sem preço/contato): dela saem os nomes que a narração cita.
-      ...(simple ? { overlays: overlaysOn, facts: factTexts, sentence: typeof brief0.sentence === 'string' ? brief0.sentence.trim() : '' } : {}),
+      ...(simple ? { overlays: overlaysOn, facts: factTexts, sentence: sentenceCopy } : {}), // KINEO-ADS-CONSERTOS-1410 — sem a cena: os nomes citados e o 'nome comum' saem só do produto
       // KINEO-ATOR-AJUSTES-2026-10-09 — canário 7112d56c ("LUME eau de parfum…", ator ligado) saiu com voz de LOJA ("At LUME,
       // we offer a captivating selection…"). Modo simples: há foto marcada como produto? (a extração decide se é anúncio de
       // produto pela frase — simpleProductAd). Ator pedido = a narração é a fala dele, em 1ª pessoa. Ausentes = como sempre.

@@ -350,8 +350,10 @@ const rotaNomes = async (routeSrc) => {
     ev && ev.metadata.names_required === 2 && ev.metadata.names_missing === 0 && ev.metadata.common_noun === true && !JSON.stringify(ev.metadata).includes('Aurora')
 }
 await check('N13 /plan EXECUTADA: a frase EXATA (sem "Price:"/"Contact:") vai à extração; a narração gravada e devolvida cita os nomes com "loja" minúsculo; o evento leva só contagens (nenhum nome)', rotaNomes())
-await check('N13-mutante: rota sem mandar a frase fica vermelho', async () => !(await rotaNomes(trocar(SRC.planRoute, ", sentence: typeof brief0.sentence === 'string' ? brief0.sentence.trim() : ''", ''))))
-await check('N13-mutante: rota mandando o texto com preço/contato no lugar da frase fica vermelho', async () => !(await rotaNomes(trocar(SRC.planRoute, "sentence: typeof brief0.sentence === 'string' ? brief0.sentence.trim() : ''", 'sentence: text'))))
+// reancorado KINEO-ADS-CONSERTOS-1410 — a frase que vai à extração passou a ser `sentenceCopy` (adsV2SentenceForCopy: a frase EXATA,
+// ou só o produto quando a frase de produto pede cena); os 2 mutantes seguem tirando/trocando a MESMA chave.
+await check('N13-mutante: rota sem mandar a frase fica vermelho', async () => !(await rotaNomes(trocar(SRC.planRoute, ', sentence: sentenceCopy', ''))))
+await check('N13-mutante: rota mandando o texto com preço/contato no lugar da frase fica vermelho', async () => !(await rotaNomes(trocar(SRC.planRoute, 'sentence: sentenceCopy', 'sentence: text'))))
 
 // ═══ F. FRASES NA TELA: PADRÃO LIGADO, TEXTO CLARO, DESLIGADAS = NENHUMA FRASE NA MONTAGEM ═══════════════════════════
 const C = pura(F.contract)

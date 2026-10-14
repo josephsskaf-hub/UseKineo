@@ -98,9 +98,9 @@ await check('2b nível padrão: recomendado (Commercial) se o saldo paga; senão
   U.adsV2DefaultTier(T.adsV2Credits('commercial', 15)) === 'commercial' && U.adsV2DefaultTier(10_000) === 'commercial' &&
   U.adsV2DefaultTier(T.adsV2Credits('commercial', 15) - 1) === 'photo_motion' && U.adsV2DefaultTier(0) === 'photo_motion' &&
   [0, 5, 34, 40, 41, 51, 99999].every((b) => U.adsV2DefaultTier(b) !== 'cinema'))
-await check('2c o que cada nível inclui vem de ADS_V2_TIERS (nada digitado); entrega estimada 10–15 min', () =>
+await check('2c o que cada nível inclui vem de ADS_V2_TIERS (nada digitado); entrega estimada 5–8 min', () => // reancorado KINEO-ADS-CONSERTOS-1410 — era 10–15; o QA de 14/10 mediu p50 4,0 e p90 6,5 min
   TIERS.every((t) => { const i = U.adsV2TierIncludes(t); const s = T.ADS_V2_TIERS[t]; return i.shots === s.shots && i.scenes === s.generatedScenes && i.closeups === s.heroCloseups }) &&
-  U.ADS_V2_DELIVERY_MINUTES.min === 10 && U.ADS_V2_DELIVERY_MINUTES.max === 15)
+  U.ADS_V2_DELIVERY_MINUTES.min === 5 && U.ADS_V2_DELIVERY_MINUTES.max === 8)
 
 // ═══ 3. enquadramento e ordem ════════════════════════════════════════════════════════════════════════════════════════
 await check('3a a janela 9:16 anda COM o dedo dentro do cropRect de sempre (largo: só x; alto: só y; 9:16: não mexe); sem zoom', () => {

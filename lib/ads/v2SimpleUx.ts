@@ -62,7 +62,8 @@ export function adsV2TierIncludes(tier: AdsV2Tier): { shots: number; scenes: num
 }
 
 /** Entrega estimada (minutos), a mesma faixa que a tela de progresso vive na prática. */
-export const ADS_V2_DELIVERY_MINUTES = { min: 10, max: 15 } as const
+// KINEO-ADS-CONSERTOS-1410 — era 10–15; medido no QA de 14/10: p50 4,0 min e p90 6,5 min. "Cerca de 5–8" promete o que entrega.
+export const ADS_V2_DELIVERY_MINUTES = { min: 5, max: 8 } as const
 
 // ─── enquadramento: a janela 9:16 desenhada SOBRE a foto inteira ───────────────────────────────────────────────────────
 
@@ -255,7 +256,7 @@ const EN: AdsV2UxCopy = {
     noStyle: 'No effect: your photo moves with a slow camera',
     presenter: 'AI presenter on',
     voice: 'Voice: {lang}',
-    delivery: 'Ready in about 10–15 minutes',
+    delivery: 'Ready in about 5–8 minutes', // KINEO-ADS-CONSERTOS-1410
     cost: '{s} s · {tier} · {c} credits · you have {n}',
     costUnknown: '{s} s · {tier} · {c} credits',
     costFree: '{s} s · {tier} · free sample',
@@ -291,7 +292,7 @@ const PT: AdsV2UxCopy = {
     noStyle: 'Sem efeito: sua foto ganha um movimento lento de câmera',
     presenter: 'Apresentador de IA ligado',
     voice: 'Voz: {lang}',
-    delivery: 'Pronto em cerca de 10–15 minutos',
+    delivery: 'Pronto em cerca de 5 a 8 minutos', // KINEO-ADS-CONSERTOS-1410
     cost: '{s} s · {tier} · {c} créditos · você tem {n}',
     costUnknown: '{s} s · {tier} · {c} créditos',
     costFree: '{s} s · {tier} · amostra grátis',
@@ -327,7 +328,7 @@ const ES: AdsV2UxCopy = {
     noStyle: 'Sin efecto: tu foto se mueve con una cámara lenta',
     presenter: 'Presentador de IA activado',
     voice: 'Voz: {lang}',
-    delivery: 'Listo en unos 10–15 minutos',
+    delivery: 'Listo en unos 5 a 8 minutos', // KINEO-ADS-CONSERTOS-1410
     cost: '{s} s · {tier} · {c} créditos · tienes {n}',
     costUnknown: '{s} s · {tier} · {c} créditos',
     costFree: '{s} s · {tier} · muestra gratis',
@@ -363,7 +364,7 @@ const FR: AdsV2UxCopy = {
     noStyle: 'Sans effet : votre photo bouge avec une caméra lente',
     presenter: 'Présentateur IA activé',
     voice: 'Voix : {lang}',
-    delivery: 'Prête en 10 à 15 minutes environ',
+    delivery: 'Prête en 5 à 8 minutes environ', // KINEO-ADS-CONSERTOS-1410
     cost: '{s} s · {tier} · {c} crédits · vous avez {n}',
     costUnknown: '{s} s · {tier} · {c} crédits',
     costFree: '{s} s · {tier} · échantillon gratuit',
@@ -399,7 +400,7 @@ const DE: AdsV2UxCopy = {
     noStyle: 'Kein Effekt: dein Foto bewegt sich mit langsamer Kamera',
     presenter: 'KI-Sprecher an',
     voice: 'Stimme: {lang}',
-    delivery: 'Fertig in etwa 10–15 Minuten',
+    delivery: 'Fertig in etwa 5–8 Minuten', // KINEO-ADS-CONSERTOS-1410
     cost: '{s} s · {tier} · {c} Credits · du hast {n}',
     costUnknown: '{s} s · {tier} · {c} Credits',
     costFree: '{s} s · {tier} · kostenlose Probe',
@@ -435,7 +436,7 @@ const IT: AdsV2UxCopy = {
     noStyle: 'Nessun effetto: la tua foto si muove con una camera lenta',
     presenter: 'Presentatore IA attivo',
     voice: 'Voce: {lang}',
-    delivery: 'Pronto in circa 10–15 minuti',
+    delivery: 'Pronto in circa 5–8 minuti', // KINEO-ADS-CONSERTOS-1410
     cost: '{s} s · {tier} · {c} crediti · ne hai {n}',
     costUnknown: '{s} s · {tier} · {c} crediti',
     costFree: '{s} s · {tier} · prova gratuita',
@@ -471,7 +472,7 @@ const NL: AdsV2UxCopy = {
     noStyle: 'Geen effect: je foto beweegt met een trage camera',
     presenter: 'AI-presentator aan',
     voice: 'Stem: {lang}',
-    delivery: 'Klaar in ongeveer 10–15 minuten',
+    delivery: 'Klaar in ongeveer 5 à 8 minuten', // KINEO-ADS-CONSERTOS-1410
     cost: '{s} s · {tier} · {c} credits · je hebt {n}',
     costUnknown: '{s} s · {tier} · {c} credits',
     costFree: '{s} s · {tier} · gratis proef',
@@ -507,7 +508,7 @@ const PL: AdsV2UxCopy = {
     noStyle: 'Bez efektu: zdjęcie porusza się z wolną kamerą',
     presenter: 'Prezenter AI włączony',
     voice: 'Głos: {lang}',
-    delivery: 'Gotowe w około 10–15 minut',
+    delivery: 'Gotowe w około 5–8 minut', // KINEO-ADS-CONSERTOS-1410
     cost: '{s} s · {tier} · {c} kredytów · masz {n}',
     costUnknown: '{s} s · {tier} · {c} kredytów',
     costFree: '{s} s · {tier} · darmowa próbka',
@@ -543,7 +544,7 @@ const TR: AdsV2UxCopy = {
     noStyle: 'Efekt yok: fotoğrafın yavaş bir kamerayla hareket eder',
     presenter: 'Yapay zekâ sunucu açık',
     voice: 'Ses: {lang}',
-    delivery: 'Yaklaşık 10–15 dakikada hazır',
+    delivery: 'Yaklaşık 5–8 dakikada hazır', // KINEO-ADS-CONSERTOS-1410
     cost: '{s} sn · {tier} · {c} kredi · sende {n} var',
     costUnknown: '{s} sn · {tier} · {c} kredi',
     costFree: '{s} sn · {tier} · ücretsiz deneme',
@@ -579,7 +580,7 @@ const RU: AdsV2UxCopy = {
     noStyle: 'Без эффекта: фото оживает с медленной камерой',
     presenter: 'ИИ-ведущий включён',
     voice: 'Голос: {lang}',
-    delivery: 'Готово примерно за 10–15 минут',
+    delivery: 'Готово примерно за 5–8 минут', // KINEO-ADS-CONSERTOS-1410
     cost: '{s} с · {tier} · {c} кредитов · у вас {n}',
     costUnknown: '{s} с · {tier} · {c} кредитов',
     costFree: '{s} с · {tier} · бесплатный пример',
@@ -615,7 +616,7 @@ const UK: AdsV2UxCopy = {
     noStyle: 'Без ефекту: фото оживає з повільною камерою',
     presenter: 'ШІ-ведучий увімкнений',
     voice: 'Голос: {lang}',
-    delivery: 'Готово приблизно за 10–15 хвилин',
+    delivery: 'Готово приблизно за 5–8 хвилин', // KINEO-ADS-CONSERTOS-1410
     cost: '{s} с · {tier} · {c} кредитів · у вас {n}',
     costUnknown: '{s} с · {tier} · {c} кредитів',
     costFree: '{s} с · {tier} · безкоштовний зразок',
@@ -651,7 +652,7 @@ const AR: AdsV2UxCopy = {
     noStyle: 'بدون تأثير: صورتك تتحرك بكاميرا بطيئة',
     presenter: 'مقدّم الذكاء الاصطناعي مفعّل',
     voice: 'الصوت: {lang}',
-    delivery: 'جاهز خلال 10–15 دقيقة تقريبًا',
+    delivery: 'جاهز خلال 5–8 دقائق تقريبًا', // KINEO-ADS-CONSERTOS-1410
     cost: '{s} ث · {tier} · {c} رصيد · لديك {n}',
     costUnknown: '{s} ث · {tier} · {c} رصيد',
     costFree: '{s} ث · {tier} · عيّنة مجانية',
@@ -687,7 +688,7 @@ const UR: AdsV2UxCopy = {
     noStyle: 'کوئی ایفیکٹ نہیں: آپ کی تصویر سست کیمرے سے حرکت کرتی ہے',
     presenter: 'AI پیش کار آن',
     voice: 'آواز: {lang}',
-    delivery: 'تقریباً 10–15 منٹ میں تیار',
+    delivery: 'تقریباً 5–8 منٹ میں تیار', // KINEO-ADS-CONSERTOS-1410
     cost: '{s} سیکنڈ · {tier} · {c} کریڈٹ · آپ کے پاس {n}',
     costUnknown: '{s} سیکنڈ · {tier} · {c} کریڈٹ',
     costFree: '{s} سیکنڈ · {tier} · مفت نمونہ',
@@ -723,7 +724,7 @@ const HI: AdsV2UxCopy = {
     noStyle: 'कोई इफ़ेक्ट नहीं: आपकी फ़ोटो धीमे कैमरे से चलती है',
     presenter: 'AI प्रेज़ेंटर चालू',
     voice: 'आवाज़: {lang}',
-    delivery: 'लगभग 10–15 मिनट में तैयार',
+    delivery: 'लगभग 5–8 मिनट में तैयार', // KINEO-ADS-CONSERTOS-1410
     cost: '{s} से · {tier} · {c} क्रेडिट · आपके पास {n}',
     costUnknown: '{s} से · {tier} · {c} क्रेडिट',
     costFree: '{s} से · {tier} · मुफ़्त सैंपल',
@@ -759,7 +760,7 @@ const ID: AdsV2UxCopy = {
     noStyle: 'Tanpa efek: fotomu bergerak dengan kamera pelan',
     presenter: 'Presenter AI aktif',
     voice: 'Suara: {lang}',
-    delivery: 'Siap dalam sekitar 10–15 menit',
+    delivery: 'Siap dalam sekitar 5–8 menit', // KINEO-ADS-CONSERTOS-1410
     cost: '{s} dtk · {tier} · {c} kredit · kamu punya {n}',
     costUnknown: '{s} dtk · {tier} · {c} kredit',
     costFree: '{s} dtk · {tier} · sampel gratis',
@@ -795,7 +796,7 @@ const VI: AdsV2UxCopy = {
     noStyle: 'Không hiệu ứng: ảnh của bạn chuyển động với máy quay chậm',
     presenter: 'Người dẫn AI đang bật',
     voice: 'Giọng: {lang}',
-    delivery: 'Xong trong khoảng 10–15 phút',
+    delivery: 'Xong trong khoảng 5–8 phút', // KINEO-ADS-CONSERTOS-1410
     cost: '{s} giây · {tier} · {c} tín dụng · bạn có {n}',
     costUnknown: '{s} giây · {tier} · {c} tín dụng',
     costFree: '{s} giây · {tier} · mẫu miễn phí',

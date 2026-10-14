@@ -21,6 +21,9 @@ import { desfazAtoresIa } from './desfaz-atores-ia-1310.mjs'
 // reancorado KINEO-ADS-ROTEIROS-2026-10-13 — os 2 a 3 roteiros entraram no núcleo do /plan só por linhas inteiras marcadas;
 // semRoteiros as tira (terceira leva, depois da cena e dos atores IA).
 import { semRoteiros } from './desfaz-roteiros-1310.mjs'
+// reancorado KINEO-ADS-CONSERTOS-1410 — a frase de produto sem a cena ("perfume num hotel com chuva" → "perfume") entrou no núcleo do
+// /plan com linhas marcadas; semConsertos1410 tira as novas e devolve as 4 mudadas ao texto exato de antes (quarta leva).
+import { semConsertos1410 } from './desfaz-consertos-1410.mjs'
 
 const linhas = (s) => s.replace(/\r\n/g, '\n').split('\n')
 const achar = (arr, pred, desc) => {
@@ -38,7 +41,7 @@ export const semCena = (s) => String(s).replace(/\r\n/g, '\n').split('\n').filte
 /** O texto da rota de ANTES (LF), remontado de route.ts + núcleo. kind = 'plan' | 'start'. Lança se faltar uma costura. */
 export function desfazExtracao(kind, routeText, coreText) {
   const R = linhas(semCena(routeText))
-  const C = linhas(semRoteiros(desfazAtoresIa(semCena(coreText)))) // reancorado KINEO-LEVA6-1310 — as duas levas marcadas · reancorado KINEO-ADS-ROTEIROS-2026-10-13 — + os roteiros
+  const C = linhas(semConsertos1410(semRoteiros(desfazAtoresIa(semCena(coreText))))) // reancorado KINEO-LEVA6-1310 — as duas levas marcadas · reancorado KINEO-ADS-ROTEIROS-2026-10-13 — + os roteiros · reancorado KINEO-ADS-CONSERTOS-1410 — + a frase sem a cena
   const marca = achar(R, (l) => l.startsWith('// KINEO-SHOPIFY-2026-10-13 (etapa 2) — o corpo foi EXTRAÍDO'), 'marca da rota')
   if (R[marca - 1] !== '//') throw new Error('desfazExtracao: linha // antes da marca')
   const header = R.slice(0, marca - 1)

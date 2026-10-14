@@ -123,6 +123,10 @@ export async function GET() {
         .select('id, video_url, thumbnail_url, title, topic, render_id, created_at')
         .eq('user_id', user.id)
         .eq('status', 'completed')
+        // KINEO-ADS-CONSERTOS-1410 — o anúncio do Studio Ads (videos.platform = 'Studio Ads') não é episódio: a pílula
+        // KINEO-ADS-CONSERTOS-1410 — "Your video is ready / Next episode →" nunca nasce dele. Um .neq sozinho jogaria fora as
+        // KINEO-ADS-CONSERTOS-1410 — linhas com platform nulo (NULL <> x é nulo no SQL); por isso o OR com is.null.
+        .or('platform.is.null,platform.neq."Studio Ads"') // KINEO-ADS-CONSERTOS-1410
         .gte('created_at', since)
         .order('created_at', { ascending: false })
         .limit(1)
