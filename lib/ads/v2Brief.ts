@@ -69,7 +69,7 @@ export interface AdsV2Copy {
 
 /** Nome da marca = a parte antes do travessão em "<nome> — <o que vende>" (formato do buildAutoBriefMessages). */
 export function brandName(brief: Pick<AdsBrief, 'business'>): string {
-  return (brief.business ?? '').split(/\s+[—–-]\s+/)[0].trim()
+  return (brief.business ?? '').split(/\s+[—–-]\s+/)[0].trim().replace(/\s*[—–-]\s*$/, '') // KINEO-ADS-CONSERTOS-1410 — "perfume —" (travessão sem nada depois) não vira "perfume —" na tela
 }
 
 /**

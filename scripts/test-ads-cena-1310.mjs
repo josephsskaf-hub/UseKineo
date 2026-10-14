@@ -102,7 +102,7 @@ await check('B1 a cena vai à MESMA moderação do texto do produto (moderateCon
   const core = rd(F.core)
   return r.ok && r.fields.scene === HOTEL && r.fields.kind === 'product' && w.log.moderation.length === 1 &&
     w.log.moderation[0].surface === 'ads_brief' && w.log.moderation[0].stage === 'input' && w.log.moderation[0].userId === 'u-1' && w.log.moderation[0].text === HOTEL &&
-    /moderateContent\(\{ surface: 'ads_brief', stage: 'input', userId: user\.id, text: \[text, \.\.\.factTexts\]/.test(core)
+    /moderateContent\(\{ surface: 'ads_brief', stage: 'input', userId: user\.id, text: \[text, \.\.\.\(sentenceFull !== sentenceCopy \? \[sentenceFull\] : \[\]\), \.\.\.factTexts\]/.test(core) // reancorado KINEO-ADS-CONSERTOS-1410 — a MESMA moderação, agora com a frase inteira (com a cena) junto
 })
 await check('B2 moderação recusou = recusa com o status da política e NADA gravado; sem cena = nenhuma chamada à moderação', async () => {
   const w = mundoServidor({ ok: false, reason: 'blocked' })

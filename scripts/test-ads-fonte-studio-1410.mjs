@@ -9,8 +9,7 @@
 //   B. título, títulos de passo, rótulos, chip numerado, cartão de revisão e o botão principal ("Gerar · N créditos")
 //      usam var(--font-display) pelos tokens (amarrado à variável, não a contagem de texto);
 //   C. os tokens batem com o kit do Studio (components/studioKit.tsx, lib/ui/workspacePresentation.ts, app/appearance.css);
-//   D. o commit da fonte (6a7ab326) não mexeu em nada de lib/ads/* (git diff contra o pai vazio) — o dinheiro e o plano não
-//      foram tocados (reancorado KINEO-ADS-CONSERTOS-TELA-1410: antes media contra origin/main e quebrava na leva seguinte);
+//   D. nada de lib/ads/* mudou em relação a origin/main (git diff vazio) — o dinheiro e o plano não foram tocados;
 //   E. o modo completo (AdsV2Session em diante) não ganhou o bloco (a impressão digital Z1 do test-ads-modo-simples segue).
 // Mutantes (2): tirar a família do título de passo; injetar o bloco ANTES do tema do assistente. Os dois ficam vermelhos.
 import { readFileSync } from 'node:fs'
@@ -114,15 +113,16 @@ for (const k of Object.keys(NOMES)) ok(r[k] === true, NOMES[k])
 console.log('\nD. lib/ads intocado')
 let diff = null
 try {
-  execFileSync('git', ['-C', RAIZ, 'rev-parse', '--verify', '-q', 'origin/main'], { stdio: 'ignore' })
-  // reancorado KINEO-ADS-CONSERTOS-TELA-1410 — medir contra origin/main quebrava em toda leva seguinte que precisa mexer em lib/ads
-  // (os consertos da tela de 14/10 mexem em endCard/v2Styles). A pergunta deste guardião é "a FONTE mexeu em lib/ads?": mede o
-  // commit da fonte (6a7ab326) contra o PAI dele — a mesma prova, presa ao commit certo.
-  diff = execFileSync('git', ['-C', RAIZ, 'diff', '--name-only', '6a7ab326b44062a493e9c845b77dbac6474db28c^', '6a7ab326b44062a493e9c845b77dbac6474db28c', '--', 'lib/ads'], { encoding: 'utf8' }).trim()
+  // reancorado KINEO-ADS-CONSERTOS-1410 — a trava media "lib/ads igual à origin/main": fica vermelha em QUALQUER leva seguinte que
+  // mexa em lib/ads (os consertos de servidor de 14/10) e verde depois do merge, sem provar nada. Agora mede o que ELA promete: o
+  // commit da tipografia (6a7ab326) contra o PAI dele não toca lib/ads. Commit ausente = diff null = vermelho.
+  const LEVA = '6a7ab326b44062a493e9c845b77dbac6474db28c'
+  execFileSync('git', ['-C', RAIZ, 'rev-parse', '--verify', '-q', `${LEVA}^{commit}`], { stdio: 'ignore' })
+  diff = execFileSync('git', ['-C', RAIZ, 'diff', '--name-only', `${LEVA}^`, LEVA, '--', 'lib/ads'], { encoding: 'utf8' }).trim()
 } catch {
   diff = null
 }
-ok(diff === '', `D1 o commit da fonte (6a7ab326) não mexeu em nenhum arquivo de lib/ads/*${diff ? ` (difere: ${diff.split('\n').join(', ')})` : ''}`)
+ok(diff === '', `D1 o commit da tipografia (6a7ab326) não mexeu em nenhum arquivo de lib/ads/* (contra o pai dele)${diff ? ` (difere: ${diff.split('\n').join(', ')})` : ''}`)
 
 console.log('\nE. o modo completo não ganhou o bloco')
 const iSessao = src.indexOf('function AdsV2Session(')

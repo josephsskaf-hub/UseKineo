@@ -34,6 +34,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 // reancorado KINEO-LEVA8-1310 — a pista dos roteiros (655a9cb5) entrou junto: no núcleo do /plan ela só pôs linhas inteiras marcadas
 // KINEO-ADS-ROTEIROS-2026-10-13, que semRoteiros tira em memória antes da impressão digital (a de antes segue valendo, byte a byte).
 import { semRoteiros } from './test-support/desfaz-roteiros-1310.mjs'
+import { semConsertos1410 } from './test-support/desfaz-consertos-1410.mjs' // reancorado KINEO-ADS-CONSERTOS-1410
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -260,7 +261,9 @@ const BASE = {
   'lib/ads/v2PlanCore.ts': '3fd1819ef2109e36673ea80a890e20914f2b74114c6bff52ad54e9393e7e8eb2',
   // reancorado KINEO-LEVA8-1310 — v2Brief com os 2 roteiros a mais (versões bold/story) da pista KINEO-ADS-ROTEIROS-2026-10-13: o texto
   // dela não tem linhas marcadas para tirar, então a impressão é a do arquivo EXATO do commit 655a9cb5 (conferida, segue byte a byte).
-  'lib/ads/v2Brief.ts': '99678c0ef6e681544a984c307ff1524318ac6bb71016133ad8e5a7e38ce5d193',
+  // reancorado KINEO-ADS-CONSERTOS-1410 — v2Brief com brandName tirando o travessão solto do fim ("perfume —" → "perfume"). Única
+  // linha mudada; scripts/test-ads-consertos-1410.mjs prova que, desfeita ela, o arquivo volta à impressão de antes (99678c0e…5d193).
+  'lib/ads/v2Brief.ts': '82aa07cae671353cd9f8441047323d3f33a67a83cf9c16dc24b4029440264fe4',
   'app/api/ads/v2/start/route.ts': 'a8b490a3ab2b297f16c612057763bb4124d4a0acc669816a363449a2ec615f29',
   'app/api/ads/v2/plan/route.ts': 'f9f90f41060eccd96cdfbb07a115b35dd56478ed7f2b70d702fac4c7261fcbfb',
   'app/api/ads/v2/link-import/route.ts': '58e5c3ed1141c2b65fe773fbede9d300973a0eb6ff38fac98290b030e4177810',
@@ -285,7 +288,9 @@ const STUDIO_BASE = {
   'components/ProductStage.tsx': '87f17f599dbb14ff5e7921007304fd0728e26e6b611112def8a55246ac441bd3',
 }
 // reancorado KINEO-LEVA8-1310 — só o núcleo do /plan passa por semRoteiros (as linhas marcadas dos roteiros saem); o resto, como sempre.
-const DESFAZ = { 'lib/ads/v2PlanCore.ts': semRoteiros }
+// reancorado KINEO-ADS-CONSERTOS-1410 — o núcleo do /plan também passa por semConsertos1410 (a frase de produto sem a cena): a
+// impressão de antes (3fd1819e…8eb2) continua valendo, e qualquer outra mudança no núcleo segue vermelha.
+const DESFAZ = { 'lib/ads/v2PlanCore.ts': (x) => semConsertos1410(semRoteiros(x)) }
 const iguais = (tab, over = {}) => Object.entries(tab).every(([f, h]) => sha((DESFAZ[f] || ((x) => x))(over[f] !== undefined ? over[f] : read(f))) === h)
 ok(iguais(STUDIO_BASE), 'D4 o Studio de filmes, o kit (STUDIO_KIT_CSS) e o ProductStage byte a byte iguais à base — nada foi extraído de lá')
 

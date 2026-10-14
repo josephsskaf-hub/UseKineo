@@ -97,8 +97,11 @@ export default function ActiveRenderPill() {
   // KINEO-STUDIO-PORTA-UNICA-2026-08-25: o GenerateClient mora agora em
   // /studio/create (o /generate virou porteiro) — a supressão acompanha a
   // mudança, senão o card de resume e a pílula aparecem JUNTOS na mesma tela.
+  // KINEO-ADS-CONSERTOS-1410 — QA 14/10: no /ads a pílula "Your video is ready / Next episode →" cobria os cartões e o
+  // KINEO-ADS-CONSERTOS-1410 — player do anúncio. O Studio Ads tem a própria tela de progresso e entrega: lá ela não aparece.
   const suppressed =
-    (pathname ?? '').startsWith('/generate') || (pathname ?? '').startsWith('/studio/create')
+    (pathname ?? '').startsWith('/generate') || (pathname ?? '').startsWith('/studio/create') ||
+    (pathname ?? '').startsWith('/ads') // KINEO-ADS-CONSERTOS-1410
 
   const [probe, setProbe] = useState<Probe>(null)
   const [tick, setTick] = useState(() => Date.now())
