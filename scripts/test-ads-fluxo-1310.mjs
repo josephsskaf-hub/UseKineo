@@ -270,7 +270,10 @@ const BASE = {
   // reancorado KINEO-ESTILOS-DIA1-2026-10-13 — v2Styles com os 4 estilos do lote do dia 1 (catálogo, categorias, frases nas 16
   // línguas e o selo de época `season`/`seasonTag`); nenhuma função de preço, plano ou débito mudou. A impressão é a do arquivo
   // EXATO desta leva (antes: e9f8cf14…407123, base 5d15badd), byte a byte; o resto do caminho do dinheiro segue com a de antes.
-  'lib/ads/v2Styles.ts': '4f6891ce762f3551da1034795f105c384d0e1b963c0334e0c5437a2fce3dfcf2',
+  // reancorado KINEO-TIRA-STARLIGHT-1410 — v2Styles sem o starlight_gift (fundador 14/10): saem a linha do catálogo, a categoria,
+  // a chave do tipo do lote do dia 1 e as 16 frases; o mecanismo de época (`season`/`seasonTag`) fica. Nenhuma função de preço,
+  // plano ou débito mudou. Impressão do arquivo EXATO desta leva (antes: 4f6891ce…dfcf2, base aa78989c); o resto da tabela intacto.
+  'lib/ads/v2Styles.ts': 'ac0b9f5eda0d131004053558b8739fe66d376fbc82a287d2a0908ac2421bff3d',
 }
 const STUDIO_BASE = {
   'app/(dashboard)/studio/StudioClient.tsx': 'f14aced01385418c88fd1a3fc7218c7a6ca83a805d36d776f14c7d2a371fc25c',

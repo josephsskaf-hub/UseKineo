@@ -30,7 +30,7 @@ export type AdsV2StyleKey =
   | 'package_explosion' | 'giant_product' | 'product_closeup' | 'ocean_ad' | 'mechanical_assembly'
   | 'naked_eye_3d_ad' | 'beach_ad' | 'lighting_ad' | 'supermarket_ad' | 'poster_ad'
   | 'graffiti_ad' | 'dreamlike_cloud' | 'parachute_delivery' | 'shoal_surround' | 'dishes_served'
-  | 'dolly_zoom' | 'boom_drop' | 'macaron_machine' | 'starlight_gift' // KINEO-ESTILOS-DIA1-2026-10-13
+  | 'dolly_zoom' | 'boom_drop' | 'macaron_machine' // KINEO-ESTILOS-DIA1-2026-10-13 · starlight_gift tirado (fundador 14/10) — KINEO-TIRA-STARLIGHT-1410
 /** O que a pessoa escolhe na tela: um estilo, ou 'none' (Auto, sem efeito — o anúncio de antes). */
 export type AdsV2StyleChoice = AdsV2StyleKey | 'none'
 /** Cópia do setor de lib/ads/v2ShotLists.ts (AdsV2Sector) — o guardião confere. */
@@ -50,6 +50,9 @@ export interface AdsV2StyleSpec {
   /**
    * KINEO-ESTILOS-DIA1-2026-10-13 — estilo de ÉPOCA. 'holiday' = cena de festas de fim de ano / época de presentes: o cartão
    * mostra o selo ADS_V2_STYLE_COPY[l].seasonTag. Ausente = estilo de ano inteiro.
+   * KINEO-TIRA-STARLIGHT-1410 — o único estilo de época (starlight_gift) saiu em 14/10 (fundador: criança e rena em cena, produto pequeno na
+   * mão da criança = ruim para produto adulto). Nenhum estilo usa o campo hoje; o mecanismo (campo, selo nas 16 línguas e
+   * as telas) fica pronto para o próximo estilo de época.
    */
   season?: 'holiday'
 }
@@ -73,12 +76,11 @@ export const ADS_V2_STYLES: readonly AdsV2StyleSpec[] = [
   { key: 'parachute_delivery', effect: 'Parachute Delivery', label: 'Parachute delivery', oneLine: 'Your product lands from the sky on a parachute.', bestFor: 'Online shops, launches, snacks', ...asset('parachute_delivery') },
   { key: 'shoal_surround', effect: 'Shoal Surround', label: 'Fish shoal', oneLine: 'A shoal of fish swirls around your product.', bestFor: 'Perfume, drinks, ocean freshness', ...asset('shoal_surround') },
   { key: 'dishes_served', effect: 'Dishes Served', label: 'Dishes served', oneLine: 'Your food is served and people enjoy it.', bestFor: 'Food and snacks', ...asset('dishes_served') },
-  // KINEO-ESTILOS-DIA1-2026-10-13 — fundador 13/10 ("tudo sim"): 4 do lote do dia 1, cada um com render real aprovado (sonda
+  // KINEO-ESTILOS-DIA1-2026-10-13 — fundador 13/10 ("tudo sim"): 4 do lote do dia 1 (3 hoje — starlight_gift tirado em 14/10, KINEO-TIRA-STARLIGHT-1410), cada um com render real aprovado (sonda
   // app/api/admin/effect-probe/route.ts, chaves ad_*). MESMO endpoint PixVerse v5, enum EXATO da sonda; prévia cortada do render.
   { key: 'dolly_zoom', effect: 'Hitchcock Dolly Zoom', label: 'Dolly zoom', oneLine: 'The background stretches behind your product, like the classic Hitchcock shot.', bestFor: 'Any product, premium', ...asset('dolly_zoom') },
   { key: 'boom_drop', effect: 'BOOM DROP', label: 'Boom drop', oneLine: 'A fiery explosion bursts behind your product.', bestFor: 'Launches, drinks, bold brands', ...asset('boom_drop') },
   { key: 'macaron_machine', effect: 'Macaron Machine', label: 'Candy machine', oneLine: 'Your product fills a pastel candy machine that bursts open.', bestFor: 'Food, sweets, snacks', ...asset('macaron_machine') },
-  { key: 'starlight_gift', effect: 'Starlight Gift Box', label: 'Starlit gift', oneLine: 'A snowy holiday scene with lights and a reindeer, with your product as the gift.', bestFor: 'Holiday and gift season', season: 'holiday', ...asset('starlight_gift') },
 ]
 
 /**
@@ -107,7 +109,6 @@ export const ADS_V2_STYLE_CATEGORIES: Readonly<Record<AdsV2StyleKey, readonly Ad
   dolly_zoom: ['any', 'beauty'],
   boom_drop: ['any', 'tech'],
   macaron_machine: ['food'],
-  starlight_gift: ['any', 'beauty'],
 }
 /** Os estilos de uma categoria, na ordem de ADS_V2_STYLES ('all' = todos). Puro. */
 export function adsV2StylesIn(category: AdsV2StyleCategory | 'all'): AdsV2StyleKey[] {
@@ -188,7 +189,7 @@ export interface AdsV2StyleCopy {
 }
 
 type AdsV2BaseStyleKey = 'package_explosion' | 'giant_product' | 'product_closeup' | 'ocean_ad' | 'mechanical_assembly'
-type AdsV2Dia1StyleKey = 'dolly_zoom' | 'boom_drop' | 'macaron_machine' | 'starlight_gift' // KINEO-ESTILOS-DIA1-2026-10-13
+type AdsV2Dia1StyleKey = 'dolly_zoom' | 'boom_drop' | 'macaron_machine' // KINEO-ESTILOS-DIA1-2026-10-13 · KINEO-TIRA-STARLIGHT-1410
 type AdsV2NewStyleKey = Exclude<AdsV2StyleKey, AdsV2BaseStyleKey | AdsV2Dia1StyleKey>
 type AdsV2BaseStyleCopy = Omit<AdsV2StyleCopy, 'styles' | 'seasonTag'> & { styles: Record<AdsV2BaseStyleKey, { label: string; bestFor: string }> }
 
@@ -684,105 +685,89 @@ const NEW_STYLE_COPY: Record<InterfaceLanguage, Record<AdsV2NewStyleKey, L3>> = 
   },
 }
 
-// KINEO-ESTILOS-DIA1-2026-10-13 — os 4 estilos do lote do dia 1 nas 16 línguas (nome, para que serve, o que faz). As frases
-// descrevem o que o render real de 13/10 mostra (fundo que estica; explosão de fogo; máquina de doces que estoura; cena de
-// festas com neve, luzes e rena). O starlight_gift é de ÉPOCA: o "para que serve" diz festas/presentes e o cartão leva o selo.
+// KINEO-ESTILOS-DIA1-2026-10-13 — os estilos do lote do dia 1 nas 16 línguas (nome, para que serve, o que faz). As frases
+// descrevem o que o render real de 13/10 mostra (fundo que estica; explosão de fogo; máquina de doces que estoura).
+// KINEO-TIRA-STARLIGHT-1410 — eram 4; o starlight_gift saiu em 14/10 (fundador).
 const DIA1_STYLE_COPY: Record<InterfaceLanguage, Record<AdsV2Dia1StyleKey, L3>> = {
   en: {
     dolly_zoom: { label: 'Dolly zoom', bestFor: 'Any product, premium', oneLine: 'The background stretches behind your product, like the classic Hitchcock shot.' },
     boom_drop: { label: 'Boom drop', bestFor: 'Launches, drinks, bold brands', oneLine: 'A fiery explosion bursts behind your product.' },
     macaron_machine: { label: 'Candy machine', bestFor: 'Food, sweets, snacks', oneLine: 'Your product fills a pastel candy machine that bursts open.' },
-    starlight_gift: { label: 'Starlit gift', bestFor: 'Holiday and gift season', oneLine: 'A snowy holiday scene with lights and a reindeer, with your product as the gift.' },
   },
   pt: {
     dolly_zoom: { label: 'Zoom Hitchcock', bestFor: 'Qualquer produto, premium', oneLine: 'O fundo se estica atrás do seu produto, como no clássico plano de Hitchcock.' },
     boom_drop: { label: 'Explosão', bestFor: 'Lançamentos, bebidas, marcas ousadas', oneLine: 'Uma explosão de fogo estoura atrás do seu produto.' },
     macaron_machine: { label: 'Máquina de doces', bestFor: 'Comida, doces, snacks', oneLine: 'Seu produto enche uma máquina de doces em tons pastel que estoura.' },
-    starlight_gift: { label: 'Presente estrelado', bestFor: 'Fim de ano e época de presentes', oneLine: 'Uma cena de fim de ano com neve, luzes e uma rena, com seu produto como presente.' },
   },
   es: {
     dolly_zoom: { label: 'Zoom Hitchcock', bestFor: 'Cualquier producto, premium', oneLine: 'El fondo se estira detrás de tu producto, como en el clásico plano de Hitchcock.' },
     boom_drop: { label: 'Explosión', bestFor: 'Lanzamientos, bebidas, marcas audaces', oneLine: 'Una explosión de fuego estalla detrás de tu producto.' },
     macaron_machine: { label: 'Máquina de dulces', bestFor: 'Comida, dulces, snacks', oneLine: 'Tu producto llena una máquina de dulces pastel que estalla.' },
-    starlight_gift: { label: 'Regalo estrellado', bestFor: 'Fiestas y temporada de regalos', oneLine: 'Una escena navideña con nieve, luces y un reno, con tu producto como regalo.' },
   },
   fr: {
     dolly_zoom: { label: 'Zoom Hitchcock', bestFor: 'Tout produit, premium', oneLine: 'L’arrière-plan s’étire derrière votre produit, comme dans le plan culte d’Hitchcock.' },
     boom_drop: { label: 'Explosion', bestFor: 'Lancements, boissons, marques audacieuses', oneLine: 'Une explosion de flammes éclate derrière votre produit.' },
     macaron_machine: { label: 'Distributeur de bonbons', bestFor: 'Food, confiseries, snacks', oneLine: 'Votre produit remplit un distributeur de bonbons pastel qui éclate.' },
-    starlight_gift: { label: 'Cadeau étoilé', bestFor: 'Fêtes et saison des cadeaux', oneLine: 'Une scène de fêtes enneigée, avec des lumières et un renne, et votre produit en cadeau.' },
   },
   de: {
     dolly_zoom: { label: 'Hitchcock-Zoom', bestFor: 'Jedes Produkt, premium', oneLine: 'Der Hintergrund dehnt sich hinter deinem Produkt, wie in der klassischen Hitchcock-Einstellung.' },
     boom_drop: { label: 'Explosion', bestFor: 'Launches, Getränke, mutige Marken', oneLine: 'Hinter deinem Produkt bricht eine feurige Explosion los.' },
     macaron_machine: { label: 'Süßigkeitenautomat', bestFor: 'Essen, Süßes, Snacks', oneLine: 'Dein Produkt füllt einen Süßigkeitenautomaten in Pastell, der aufplatzt.' },
-    starlight_gift: { label: 'Sternengeschenk', bestFor: 'Feiertage und Geschenkzeit', oneLine: 'Eine verschneite Festtagsszene mit Lichtern und einem Rentier, dein Produkt als Geschenk.' },
   },
   it: {
     dolly_zoom: { label: 'Zoom Hitchcock', bestFor: 'Qualsiasi prodotto, premium', oneLine: 'Lo sfondo si allunga dietro il tuo prodotto, come nella classica inquadratura di Hitchcock.' },
     boom_drop: { label: 'Esplosione', bestFor: 'Lanci, bevande, marchi audaci', oneLine: 'Un’esplosione di fuoco scoppia dietro il tuo prodotto.' },
     macaron_machine: { label: 'Distributore di dolci', bestFor: 'Cibo, dolci, snack', oneLine: 'Il tuo prodotto riempie un distributore di dolci pastello che esplode.' },
-    starlight_gift: { label: 'Regalo stellato', bestFor: 'Feste e stagione dei regali', oneLine: 'Una scena delle feste con neve, luci e una renna, con il tuo prodotto come regalo.' },
   },
   nl: {
     dolly_zoom: { label: 'Hitchcock-zoom', bestFor: 'Elk product, premium', oneLine: 'De achtergrond rekt uit achter je product, zoals in het klassieke Hitchcock-shot.' },
     boom_drop: { label: 'Explosie', bestFor: 'Lanceringen, drankjes, gedurfde merken', oneLine: 'Achter je product barst een vurige explosie los.' },
     macaron_machine: { label: 'Snoepautomaat', bestFor: 'Eten, snoep, snacks', oneLine: 'Je product vult een pastelkleurige snoepautomaat die openbarst.' },
-    starlight_gift: { label: 'Sterrencadeau', bestFor: 'Feestdagen en cadeauseizoen', oneLine: 'Een besneeuwde feestscène met lichtjes en een rendier, met je product als cadeau.' },
   },
   pl: {
     dolly_zoom: { label: 'Zoom Hitchcocka', bestFor: 'Każdy produkt, premium', oneLine: 'Tło rozciąga się za Twoim produktem, jak w klasycznym ujęciu Hitchcocka.' },
     boom_drop: { label: 'Eksplozja', bestFor: 'Premiery, napoje, odważne marki', oneLine: 'Za Twoim produktem wybucha ognista eksplozja.' },
     macaron_machine: { label: 'Automat ze słodyczami', bestFor: 'Jedzenie, słodycze, przekąski', oneLine: 'Twój produkt wypełnia pastelowy automat ze słodyczami, który pęka.' },
-    starlight_gift: { label: 'Gwiezdny prezent', bestFor: 'Święta i sezon prezentów', oneLine: 'Świąteczna scena ze śniegiem, światełkami i reniferem, a Twój produkt jest prezentem.' },
   },
   tr: {
     dolly_zoom: { label: 'Hitchcock zoom', bestFor: 'Her ürün, premium', oneLine: 'Arka plan ürününün arkasında uzar, klasik Hitchcock çekimi gibi.' },
     boom_drop: { label: 'Patlama', bestFor: 'Lansmanlar, içecekler, cesur markalar', oneLine: 'Ürününün arkasında alevli bir patlama olur.' },
     macaron_machine: { label: 'Şeker makinesi', bestFor: 'Yiyecek, tatlı, atıştırmalık', oneLine: 'Ürünün pastel bir şeker makinesini doldurur ve makine patlar.' },
-    starlight_gift: { label: 'Yıldızlı hediye', bestFor: 'Yılbaşı ve hediye sezonu', oneLine: 'Kar, ışıklar ve bir ren geyiğiyle bir yılbaşı sahnesi; ürünün hediye olur.' },
   },
   ru: {
     dolly_zoom: { label: 'Зум Хичкока', bestFor: 'Любой товар, премиум', oneLine: 'Фон растягивается за вашим товаром, как в классическом кадре Хичкока.' },
     boom_drop: { label: 'Взрыв', bestFor: 'Запуски, напитки, смелые бренды', oneLine: 'За вашим товаром вспыхивает огненный взрыв.' },
     macaron_machine: { label: 'Автомат со сладостями', bestFor: 'Еда, сладости, снеки', oneLine: 'Ваш товар наполняет пастельный автомат со сладостями, и тот лопается.' },
-    starlight_gift: { label: 'Звёздный подарок', bestFor: 'Праздники и сезон подарков', oneLine: 'Снежная праздничная сцена с огнями и северным оленем, а ваш товар — подарок.' },
   },
   uk: {
     dolly_zoom: { label: 'Зум Гічкока', bestFor: 'Будь-який товар, преміум', oneLine: 'Фон розтягується за вашим товаром, як у класичному кадрі Гічкока.' },
     boom_drop: { label: 'Вибух', bestFor: 'Запуски, напої, сміливі бренди', oneLine: 'За вашим товаром спалахує вогняний вибух.' },
     macaron_machine: { label: 'Автомат із солодощами', bestFor: 'Їжа, солодощі, снеки', oneLine: 'Ваш товар наповнює пастельний автомат із солодощами, і той лопається.' },
-    starlight_gift: { label: 'Зоряний подарунок', bestFor: 'Свята і сезон подарунків', oneLine: 'Сніжна святкова сцена з вогниками й північним оленем, а ваш товар — подарунок.' },
   },
   ar: {
     dolly_zoom: { label: 'زوم هيتشكوك', bestFor: 'أي منتج، فاخر', oneLine: 'تتمدد الخلفية خلف منتجك، مثل لقطة هيتشكوك الشهيرة.' },
     boom_drop: { label: 'انفجار', bestFor: 'إطلاقات، مشروبات، علامات جريئة', oneLine: 'ينفجر لهب ناري خلف منتجك.' },
     macaron_machine: { label: 'آلة الحلوى', bestFor: 'طعام، حلويات، وجبات خفيفة', oneLine: 'يملأ منتجك آلة حلوى بألوان الباستيل ثم تنفجر.' },
-    starlight_gift: { label: 'هدية النجوم', bestFor: 'موسم الأعياد والهدايا', oneLine: 'مشهد احتفالي مثلج بالأضواء وغزال الرنة، ومنتجك هو الهدية.' },
   },
   ur: {
     dolly_zoom: { label: 'ہچکاک زوم', bestFor: 'ہر پروڈکٹ، پریمیم', oneLine: 'آپ کی پروڈکٹ کے پیچھے پس منظر کھنچتا ہے، ہچکاک کے مشہور شاٹ کی طرح۔' },
     boom_drop: { label: 'دھماکا', bestFor: 'لانچ، مشروبات، دلیر برانڈز', oneLine: 'آپ کی پروڈکٹ کے پیچھے آگ کا دھماکا ہوتا ہے۔' },
     macaron_machine: { label: 'کینڈی مشین', bestFor: 'کھانا، مٹھائیاں، اسنیکس', oneLine: 'آپ کی پروڈکٹ ایک پیسٹل کینڈی مشین بھر دیتی ہے جو پھٹ کر کھل جاتی ہے۔' },
-    starlight_gift: { label: 'ستاروں بھرا تحفہ', bestFor: 'تہوار اور تحفوں کا موسم', oneLine: 'برف، روشنیوں اور رینڈیئر والا تہوار کا منظر، اور آپ کی پروڈکٹ تحفہ۔' },
   },
   hi: {
     dolly_zoom: { label: 'हिचकॉक ज़ूम', bestFor: 'कोई भी प्रोडक्ट, प्रीमियम', oneLine: 'आपके प्रोडक्ट के पीछे बैकग्राउंड खिंचता है, हिचकॉक के मशहूर शॉट की तरह।' },
     boom_drop: { label: 'धमाका', bestFor: 'लॉन्च, ड्रिंक, बोल्ड ब्रांड', oneLine: 'आपके प्रोडक्ट के पीछे आग का धमाका होता है।' },
     macaron_machine: { label: 'कैंडी मशीन', bestFor: 'खाना, मिठाई, स्नैक्स', oneLine: 'आपका प्रोडक्ट एक पेस्टल कैंडी मशीन भर देता है जो फट कर खुल जाती है।' },
-    starlight_gift: { label: 'सितारों वाला तोहफ़ा', bestFor: 'त्योहार और तोहफ़ों का मौसम', oneLine: 'बर्फ़, रोशनी और रेनडियर वाला त्योहार का सीन, और आपका प्रोडक्ट तोहफ़ा।' },
   },
   id: {
     dolly_zoom: { label: 'Zoom Hitchcock', bestFor: 'Produk apa saja, premium', oneLine: 'Latar di belakang produkmu meregang, seperti bidikan klasik Hitchcock.' },
     boom_drop: { label: 'Ledakan', bestFor: 'Peluncuran, minuman, merek berani', oneLine: 'Ledakan api meletus di belakang produkmu.' },
     macaron_machine: { label: 'Mesin permen', bestFor: 'Makanan, manisan, camilan', oneLine: 'Produkmu memenuhi mesin permen pastel yang lalu pecah terbuka.' },
-    starlight_gift: { label: 'Hadiah berbintang', bestFor: 'Musim liburan dan hadiah', oneLine: 'Adegan liburan bersalju dengan lampu dan rusa kutub, dengan produkmu sebagai hadiahnya.' },
   },
   vi: {
     dolly_zoom: { label: 'Zoom Hitchcock', bestFor: 'Mọi sản phẩm, cao cấp', oneLine: 'Phông nền giãn ra phía sau sản phẩm, như cảnh quay kinh điển của Hitchcock.' },
     boom_drop: { label: 'Vụ nổ', bestFor: 'Ra mắt, đồ uống, thương hiệu táo bạo', oneLine: 'Một vụ nổ rực lửa bùng lên phía sau sản phẩm.' },
     macaron_machine: { label: 'Máy kẹo', bestFor: 'Đồ ăn, đồ ngọt, đồ ăn vặt', oneLine: 'Sản phẩm của bạn lấp đầy một máy kẹo màu pastel rồi bung vỡ.' },
-    starlight_gift: { label: 'Quà dưới sao', bestFor: 'Mùa lễ và mùa quà tặng', oneLine: 'Cảnh lễ hội đầy tuyết với đèn và tuần lộc, sản phẩm của bạn là món quà.' },
   },
 }
 // KINEO-ESTILOS-DIA1-2026-10-13 — o selo do estilo de época (season 'holiday') nas 16 línguas.
@@ -793,7 +778,7 @@ const SEASON_TAG: Record<InterfaceLanguage, string> = {
 
 /**
  * KINEO-ADS-UX-MARCA-2026-10-10 — a tabela final das 16 línguas: as frases de antes (BASE_STYLE_COPY, intactas) + a frase
- * de cada um dos 5 estilos de antes + os 10 estilos novos (+ os 4 do dia 1 e o selo de época — KINEO-ESTILOS-DIA1-2026-10-13).
+ * de cada um dos 5 estilos de antes + os 10 estilos novos (+ os 3 do dia 1 e o selo de época — KINEO-ESTILOS-DIA1-2026-10-13; KINEO-TIRA-STARLIGHT-1410).
  * Uma língua só = uma linha de cada fonte; nada cai no inglês.
  */
 export const ADS_V2_STYLE_COPY: Record<InterfaceLanguage, AdsV2StyleCopy> = Object.fromEntries(

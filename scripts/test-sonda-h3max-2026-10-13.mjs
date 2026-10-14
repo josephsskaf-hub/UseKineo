@@ -306,7 +306,8 @@ function rulesEstilosDiferentes(src) {
   if (!P || ja.size !== 15) return false // os 15 estilos no ar (se o arquivo mudar de forma, o guardião acusa em vez de passar mudo)
   const effects = Object.keys(P).filter((k) => k.startsWith('ad_')).map((k) => P[k].input(AD_IMG).effect)
   return effects.length === 10 && new Set(effects).size === 10 && effects.every((e) => !ja.has(e) && !ADS_REPROVADOS.has(e)) &&
-    ja.dia1Keys === 4 && ja.promoted.length === 4 && ja.promoted.every((e) => effects.includes(e)) // KINEO-ESTILOS-DIA1-2026-10-13
+    // reancorado KINEO-TIRA-STARLIGHT-1410 — 3 promovidos (o starlight_gift saiu do catálogo em 14/10; a sonda ad_starlight_gift segue no lote de 10).
+    ja.dia1Keys === 3 && ja.promoted.length === 3 && ja.promoted.every((e) => effects.includes(e)) // KINEO-ESTILOS-DIA1-2026-10-13
 }
 function estilosDia1Untouched() {
   const c = git(['log', '--format=%H', '-S', 'KINEO-ESTILOS-DIA1-2026-10-13', '--', ROUTE]).split('\n').filter(Boolean).pop()
