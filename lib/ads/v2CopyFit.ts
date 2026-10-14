@@ -56,6 +56,30 @@ export const ADS_V2_SPEECH_PADS: Readonly<Record<string, readonly string[]>> = {
 
 const sentencesOf = (t: string): string[] => t.split(/(?<=[.!?…])\s+/u).map((s) => s.trim()).filter(Boolean)
 
+// KINEO-ADS-MELHORIAS-1410 — CHAMADA REPETIDA. Reteste de 14/10 (roteiro B, pt): a fala terminou "Veja com seus próprios olhos. Confira de perto." —
+// o enchimento de fala colou uma chamada atrás de outra que já dizia o mesmo. Regra: nunca duas frases de chamada seguidas; um
+// enchimento que repete palavras da última frase é pulado e vale o próximo que não repete. "Chamada" = frase com uma das palavras
+// de chamada da língua (ver/olhar/conferir/escolher…), comparadas sem acento e sem pontuação.
+export const ADS_V2_CTA_WORDS: Readonly<Record<string, readonly string[]>> = {
+  en: ['see', 'look', 'check', 'closer', 'yourself', 'choice', 'choose', 'discover', 'try', 'shop', 'order', 'visit', 'grab'],
+  pt: ['veja', 'ver', 'confira', 'conferir', 'olhe', 'olhos', 'perto', 'escolha', 'descubra', 'conheca', 'experimente', 'garanta', 'compre', 'peca', 'venha'],
+  es: ['mira', 'ven', 'venga', 'descubre', 'comprueba', 'compruebalo', 'ojos', 'cerca', 'eleccion', 'elige', 'prueba', 'pruebalo', 'conoce', 'compra', 'pide'],
+  fr: ['voyez', 'voir', 'decouvrir', 'decouvrez', 'pres', 'choix', 'choisissez', 'essayez', 'commandez'],
+  it: ['guarda', 'scoprire', 'scopri', 'vicino', 'occhi', 'scelta', 'scegli', 'prova', 'ordina'],
+  de: ['schau', 'genauer', 'uberzeug', 'selbst', 'wahl', 'entdecke', 'probier', 'bestell'],
+}
+const normWords = (t: string): string[] => String(t ?? '').toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(Boolean)
+/** A frase é uma chamada (tem palavra de chamada da língua)? Língua sem lista = nunca. Pura. */
+export function adsV2CtaLike(sentence: string, language: string): boolean {
+  const list = ADS_V2_CTA_WORDS[String(language ?? '').toLowerCase().slice(0, 2)] ?? []
+  return normWords(sentence).some((w) => list.includes(w))
+}
+/** O enchimento repete a última frase (alguma palavra de 3+ letras em comum, sem acento)? Pura. */
+export function adsV2PadOverlaps(pad: string, last: string, language: string): boolean {
+  const a = new Set(normWords(last).filter((w) => w.length >= 3))
+  return normWords(pad).some((w) => w.length >= 3 && a.has(w))
+}
+
 /**
  * Encaixa a narração entre min e max palavras, em código: passou do teto por UMA frase = sai a última (nunca a única);
  * abaixo do piso = até 3 frases de chamada (distintas) sem fato da língua, sem passar do teto (a que encaixa no intervalo, a menor
@@ -76,7 +100,9 @@ export function adsV2FitNarration(text: string, opts: { min: number; max: number
   for (let round = 0; round < 3 && countWords(t) < opts.min; round++) {
     const w = countWords(t)
     const low = t.toLowerCase()
-    const usable = pads.filter((p) => !low.includes(p.toLowerCase().replace(/[.!?]$/, '')) && w + countWords(p) <= opts.max)
+    const last = sentencesOf(t).slice(-1)[0] ?? '' // KINEO-ADS-MELHORIAS-1410
+    if (adsV2CtaLike(last, opts.language)) break // KINEO-ADS-MELHORIAS-1410 — a fala já termina numa chamada (ou acabamos de pôr uma): nunca duas seguidas
+    const usable = pads.filter((p) => !low.includes(p.toLowerCase().replace(/[.!?]$/, '')) && !adsV2PadOverlaps(p, last, opts.language) && w + countWords(p) <= opts.max) // KINEO-ADS-MELHORIAS-1410 — pula o que repete a última frase; vale o próximo
     if (!usable.length) break
     const fits = usable.filter((p) => w + countWords(p) >= opts.min).sort((a, b) => countWords(a) - countWords(b))
     const pick = fits[0] ?? usable.sort((a, b) => countWords(b) - countWords(a))[0]
