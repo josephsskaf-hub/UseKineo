@@ -37,6 +37,7 @@ import { semRoteiros } from './test-support/desfaz-roteiros-1310.mjs'
 import { semConsertos1410 } from './test-support/desfaz-consertos-1410.mjs' // reancorado KINEO-ADS-CONSERTOS-1410
 import { semDuracaoSaldo1510 } from './test-support/desfaz-duracao-saldo-1510.mjs' // reancorado KINEO-STUDIO-DURACAO-SALDO-1510
 import { semReteste1510 } from './test-support/desfaz-reteste-1510.mjs' // reancorado KINEO-ADS-RETESTE-1510
+import { semModeracao1410 } from './test-support/desfaz-moderacao-1410.mjs' // reancorado KINEO-MODERACAO-1410 — a régua completa na frase/cena do rascunho (2 linhas + o import no /orders, só acréscimos)
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -299,6 +300,7 @@ const STUDIO_BASE = {
 // v2Styles (dolly_zoom tirado) passam pelo diff REVERSO exato deste conserto (scripts/test-support/desfaz-reteste-1510.mjs): desfeitos,
 // voltam às impressões de antes (82aa07ca…/6e9807b1…), byte a byte; qualquer outra mudança nos dois segue vermelha.
 const DESFAZ = { 'lib/ads/v2PlanCore.ts': (x) => semConsertos1410(semRoteiros(x)), 'app/(dashboard)/studio/StudioClient.tsx': (x) => semDuracaoSaldo1510(x), 'lib/ads/v2Brief.ts': (x) => semReteste1510('lib/ads/v2Brief.ts', x), 'lib/ads/v2Styles.ts': (x) => semReteste1510('lib/ads/v2Styles.ts', x) }
+DESFAZ['app/api/ads/v2/orders/route.ts'] = (x) => semModeracao1410(x, 'ads') // reancorado KINEO-MODERACAO-1410
 const iguais = (tab, over = {}) => Object.entries(tab).every(([f, h]) => sha((DESFAZ[f] || ((x) => x))(over[f] !== undefined ? over[f] : read(f))) === h)
 ok(iguais(STUDIO_BASE), 'D4 o Studio de filmes, o kit (STUDIO_KIT_CSS) e o ProductStage byte a byte iguais à base — nada foi extraído de lá')
 

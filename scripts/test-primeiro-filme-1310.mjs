@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { semMotor15s1510 } from './test-support/desfaz-motor-15s-1510.mjs' // reancorado KINEO-MOTOR-15S-1510
 import { semRegua35a90_1410 } from './test-support/desfaz-regua-35-60-90-1410.mjs' // reancorado KINEO-REGUA-35-60-90-1410
+import { semModeracao1410 } from './test-support/desfaz-moderacao-1410.mjs' // reancorado KINEO-MODERACAO-1410
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -138,7 +139,7 @@ ok(ordem(SCRIPT, 'if (!tentativaDaHistoria) { // KINEO-PRIMEIRO-FILME-2026-10-13
   // tiradas as linhas marcadas, a rota volta à base byte a byte (o padrão das levas de hoje)
   let base = ''
   try { base = (await import('node:child_process')).execFileSync('git', ['-C', ROOT, 'show', 'origin/main:app/api/generate-script/route.ts'], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).replace(/\r\n/g, '\n') } catch { base = '' }
-  const desfaz = (t) => semMotor15s1510(semRegua35a90_1410(t), 'route').split('\n').filter((l) => !l.includes('KINEO-PRIMEIRO-FILME-2026-10-13')).join('\n') // reancorado KINEO-MOTOR-15S-1510: o resgate de 15/10 sai antes (guardião próprio) · reancorado KINEO-REGUA-35-60-90-1410: a régua de 35/60/90 s sai antes
+  const desfaz = (t) => semMotor15s1510(semRegua35a90_1410(semModeracao1410(t, 'script')), 'route').split('\n').filter((l) => !l.includes('KINEO-PRIMEIRO-FILME-2026-10-13')).join('\n') // reancorado KINEO-MOTOR-15S-1510: o resgate de 15/10 sai antes (guardião próprio) · reancorado KINEO-REGUA-35-60-90-1410: a régua de 35/60/90 s sai antes · reancorado KINEO-MODERACAO-1410: a régua completa do texto sai primeiro
   ok(base !== '' && desfaz(SCRIPT) === desfaz(base), '/api/generate-script: tiradas as linhas marcadas, a rota é byte a byte a da base')
 }
 ok(/name: SCRIPT_DECLINED_RETRY_EVENT, userId: user\.id/.test(SCRIPT) && /rastroDaTentativa\(historiaAceita \? 'ok' : 'failed'/.test(SCRIPT), 'evento de servidor com ok/failed')

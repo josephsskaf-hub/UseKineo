@@ -13,6 +13,7 @@ import {
 } from '@/lib/analyzeRefusalCopy'
 import { LANGUAGE_NAMES, narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
 import { decideSexualContentRefusal, sexualContentRefusalMessage } from '@/lib/contentPolicy/sexualContent' // KINEO-RECUSA-ANTES-DE-COBRAR-2026-09-18
+import { moderateTopic } from '@/lib/safety/topicModeration' // KINEO-MODERACAO-1410 [TRAVA 8.2 — vai do fundador 14/10] — a régua completa do texto; todo filme do /generate e do /studio passa aqui antes do /api/generate-video-cinematic
 
 export const maxDuration = 60
 
@@ -757,6 +758,8 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    const temaModerado = await moderateTopic({ entry: 'analyze-idea', userId: user.id, text: prompt, language, meta: { script_mode: body.scriptMode ?? null } }) // KINEO-MODERACAO-1410 — antes do GPT e de qualquer débito; fora do ar = segue (falha aberta)
+    if (!temaModerado.ok) return await recusarAnalise(temaModerado.status, { error: temaModerado.message, reason: temaModerado.reason, category: temaModerado.category }, user.id, { reason: temaModerado.reason, categories: temaModerado.categories, prompt_length: prompt.length }) // KINEO-MODERACAO-1410
     // Push #064 — duration shapes word count + scene count. Defaults to 45s
     // when missing or invalid so existing clients keep working.
     // Push #208 — added 90s; removed 30s (replaced by 45s minimum).

@@ -17,6 +17,7 @@ import { debitVideoCredits } from '@/lib/credits/debit'
 import { refundRenderCredits } from '@/lib/credits/refund'
 import { moderateContent } from '@/lib/safety/contentModeration'
 import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/moderationPolicy'
+import { moderateTopic } from '@/lib/safety/topicModeration' // KINEO-MODERACAO-1410 [TRAVA 8.2 — vai do fundador 14/10] — a régua completa no pedido dos Clipes
 import { enginePaused } from '@/lib/engineLaunch' // KINEO-S25-CLIPES-2026-10-06: o clipe do 2.5 lê clipS25Visible (lib/clips/clipLaunch.ts)
 import { decideEngineGate } from '@/lib/enginePlanGate'
 import { downloadPublicAnimateImage } from '@/lib/animate/remoteImage'
@@ -456,6 +457,7 @@ export function submitDepsFor(args: {
     verifyImage: async (url) => { await downloadPublicAnimateImage(url) },
     moderate: async ({ text, imageUrls }) => {
       const verdict = await moderateContent({ surface: 'clip', stage: 'input', userId: account.userId, text, imageUrls })
+      if (verdict.ok) { const tema = await moderateTopic({ entry: 'clips', userId: account.userId, text }); if (!tema.ok) return { ok: false, reason: 'blocked', status: tema.status, message: tema.message } } // KINEO-MODERACAO-1410
       if (verdict.ok) return { ok: true }
       return { ok: false, reason: verdict.reason, status: moderationRefusalStatus(verdict.reason), message: moderationRefusalMessage(verdict.reason) }
     },
