@@ -406,7 +406,10 @@ try {
   // Reancorado 29/09 (CEO): o diff contra a base pegava a trava 8.2 ALHEIA assim que a entrega das durações curtas
   // (vai nominal do fundador) entrou na mesma fila. A prova passa a ser dos COMMITS DO CLIPE: os que tocam lib/clips/,
   // sem merges, cada um contra o próprio pai.
-  const shas = execSync('git log --no-merges --format=%H -- lib/clips', { cwd: root, encoding: 'utf8' }).split('\n').filter(Boolean)
+  // reancorado KINEO-MODERACAO-1410 — a régua completa do texto (trava 8.2 com o vai NOMINAL do fundador de 14/10) tocou lib/clips E as rotas do
+  // roteirista/análise no MESMO commit; ele sai desta conta (scripts/test-moderacao-1410.mjs prova que ele só acrescenta linhas marcadas).
+  const moderacao1410 = new Set(execSync('git log --no-merges --format=%H --grep=KINEO-MODERACAO-1410 -- lib/clips', { cwd: root, encoding: 'utf8' }).split('\n').filter(Boolean)) // reancorado KINEO-MODERACAO-1410
+  const shas = execSync('git log --no-merges --format=%H -- lib/clips', { cwd: root, encoding: 'utf8' }).split('\n').filter(Boolean).filter((h) => !moderacao1410.has(h)) // reancorado KINEO-MODERACAO-1410
   changed = shas.flatMap((h) => execSync(`git diff-tree --no-commit-id --name-only -r ${h}`, { cwd: root, encoding: 'utf8' }).split('\n'))
     .concat(execSync('git ls-files --others --exclude-standard', { cwd: root, encoding: 'utf8' }).split('\n'))
     .map((s) => s.trim()).filter(Boolean)

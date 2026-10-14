@@ -25,6 +25,7 @@ import { createHash } from 'node:crypto'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semModeracao1410 } from './test-support/desfaz-moderacao-1410.mjs' // reancorado KINEO-MODERACAO-1410
 import { semRetentarCena1410, MARCA_RETENTAR_CENA_1410, ARQUIVO_RETOMADA_1410, ARQUIVO_CRON_1410, ARQUIVO_LIB_NOVA_1410, FORMA_RETENTAR_CENA_1410 } from './test-support/desfaz-retentar-cena-1410.mjs'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -374,7 +375,11 @@ checa('lib nova não existe na base (desfeita = ausente)', git('cat-file', '-e',
 }
 const marcadas = [RETOMADA, CRON].flatMap((s) => s.split('\n').filter((l) => l.includes(MARCA_RETENTAR_CENA_1410)))
 checa('dinheiro: nenhuma linha marcada nem a lib chamam estorno/débito/saldo de crédito', ![...marcadas, ...LIB.split('\n')].some((l) => /refundRenderCredits|credit_debits|debitCredits|video_credits|creditCost|credit_cost|releaseCinematicClaim/.test(l)))
-checa('nenhum preço/motor: lib/engineWall, lib/homeVideoCuration e ads intocados', git('diff', '--name-only', base, '--', 'lib/engineWall.ts', 'lib/homeVideoCuration.ts', 'lib/ads', 'app/api/ads') === '')
+// reancorado KINEO-MODERACAO-1410 — a régua completa do texto (outra entrega, vai do fundador 14/10) acrescentou 3 linhas marcadas ao /orders do Studio Ads;
+// desfeitas elas (scripts/test-support/desfaz-moderacao-1410.mjs), o arquivo tem de ser o da base deste conserto — preço/motor/ads seguem intocados AQUI.
+const ORDERS_MOD_1410 = 'app/api/ads/v2/orders/route.ts' // reancorado KINEO-MODERACAO-1410
+const soModeracao1410 = (f) => { try { return f === ORDERS_MOD_1410 && semModeracao1410(rd(f), 'ads') === gitBruto('show', `${base}:${f}`).replace(/\r\n/g, '\n') } catch { return false } } // reancorado KINEO-MODERACAO-1410
+checa('nenhum preço/motor: lib/engineWall, lib/homeVideoCuration e ads intocados', git('diff', '--name-only', base, '--', 'lib/engineWall.ts', 'lib/homeVideoCuration.ts', 'lib/ads', 'app/api/ads').split('\n').filter(Boolean).filter((f) => !soModeracao1410(f)).length === 0) // reancorado KINEO-MODERACAO-1410
 {
   const iDesvio = CRON.indexOf('    if (rastroDaColeta.falhas.length > 0) { // KINEO-RETENTAR-CENA-1410')
   const iTooFew = CRON.indexOf("    if (collected.state === 'too_few') {")
