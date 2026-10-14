@@ -394,6 +394,7 @@ export function buildProducaoMontageSource(input: ProducaoMontageInput): Record<
     elements.push({
       type: 'text', track: 8 + i, time: r3(cardStart + 0.2), duration: r3(PRODUCAO_END_CARD_SECONDS - 0.2), text: l.text,
       x: '50%', y: `${y}%`, x_anchor: '50%', y_anchor: '50%', width: '86%', height: i === 0 ? '8%' : '7%',
+      x_alignment: '50%', // KINEO-CENTRO-ADS-GANCHO-1410 [TRAVA 8.2 — vai do fundador 14/10] — slogan e apoio do cartão final no MEIO da caixa de 86%
       font_family: font, font_size: l.size, font_weight: l.weight, fill_color: fg,
       enter_transition: { type: 'fade', duration: 0.3 },
     })

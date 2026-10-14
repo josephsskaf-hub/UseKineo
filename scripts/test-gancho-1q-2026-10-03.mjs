@@ -52,6 +52,9 @@ const ADS_V2 = read('lib/ads/adV2Montage.ts')
 
 // Propriedades de texto que lib/compose.ts (legenda/marca d'água) e lib/ads/adV2Montage.ts já mandam ao Creatomate.
 const EXERCITADAS = ['type', 'track', 'time', 'duration', 'text', 'x', 'y', 'x_anchor', 'y_anchor', 'width', 'font_family', 'font_size', 'font_weight', 'line_height', 'fill_color', 'background_color', 'background_x_padding', 'background_y_padding', 'border_radius']
+// reancorado KINEO-CENTRO-ADS-GANCHO-1410 [TRAVA 8.2 — vai do fundador 14/10]: x_alignment '50%' já é exercitado em produção pela legenda do
+// compose (lib/compose.ts captionXAlignment, legenda centralizada em 14/10, com a MESMA pílula de fundo).
+EXERCITADAS.push('x_alignment')
 
 // Um source montado como o do compose em 9:16: clipe, letterbox do Kineo 1 (6), legenda do gancho (5), marca d'água (9).
 function source916({ logo = false, captionY = '78%', duration = 40, watermark = true, letterbox = true, W = 1080, H = 1920 } = {}) {

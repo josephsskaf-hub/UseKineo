@@ -271,6 +271,7 @@ export function hookFirstFrameElement(
     x: '50%',
     y,
     x_anchor: '50%',
+    x_alignment: '50%', // KINEO-CENTRO-ADS-GANCHO-1410 [TRAVA 8.2 — vai do fundador 14/10] — o título do gancho no MEIO da caixa (o padrão do Creatomate é a esquerda)
     y_anchor: '0%',
     width: `${r2((widthPx / W) * 100)}%`,
     font_family: typeof font === 'string' && font.trim() ? font.trim() : 'Montserrat',

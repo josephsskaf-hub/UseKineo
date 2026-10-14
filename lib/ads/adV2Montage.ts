@@ -313,6 +313,7 @@ export function buildAdV2Source(input: AdV2MontageInput): Record<string, unknown
       text,
       // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — produto sem ator: terço de baixo (o rótulo mora no centro). Sem a opção, o centro.
       x: '50%', y: pct(input.overlayPlacement === 'lower_third' ? ADS_V2_PRESENTER_OVERLAY_Y : ADS_V2_OVERLAY_Y), x_anchor: '50%', y_anchor: '50%',
+      x_alignment: '50%', // KINEO-CENTRO-ADS-GANCHO-1410 [TRAVA 8.2 — vai do fundador 14/10] — a frase de tela no MEIO da caixa de 84% (o padrão do Creatomate é a esquerda)
       width: '84%', height: pct(ADS_V2_OVERLAY_H),
       font_family: fontFamily, font_size: 64, font_weight: '800', line_height: '110%',
       fill_color: '#ffffff', stroke_color: 'rgba(0,0,0,0.55)', stroke_width: 2,
@@ -531,6 +532,7 @@ function buildAdV2PresenterSource(input: AdV2MontageInput, presenter: AdV2Presen
       text,
       // KINEO-ATOR-AJUSTES-2026-10-09 — terço de baixo (o rosto do ator mora no terço do meio).
       x: '50%', y: pct(ADS_V2_PRESENTER_OVERLAY_Y), x_anchor: '50%', y_anchor: '50%',
+      x_alignment: '50%', // KINEO-CENTRO-ADS-GANCHO-1410 [TRAVA 8.2 — vai do fundador 14/10] — a frase de tela no MEIO da caixa de 84% (o padrão do Creatomate é a esquerda)
       width: '84%', height: pct(ADS_V2_OVERLAY_H),
       font_family: fontFamily, font_size: 64, font_weight: '800', line_height: '110%',
       fill_color: '#ffffff', stroke_color: 'rgba(0,0,0,0.55)', stroke_width: 2,

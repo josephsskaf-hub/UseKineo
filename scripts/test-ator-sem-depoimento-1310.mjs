@@ -17,6 +17,7 @@
 //   5. Mutantes: cada peça quebrada fica vermelha, e cada mutante prova que aplicou.
 import fs from 'node:fs'
 import { semMelhorias1410Arquivo, linhasMelhorias1410 } from './test-support/desfaz-melhorias-1410.mjs' // reancorado KINEO-ADS-MELHORIAS-1410
+import { desfazCentroAdsGancho1410 } from './test-support/desfaz-centro-ads-gancho-1410.mjs' // reancorado KINEO-CENTRO-ADS-GANCHO-1410 [TRAVA 8.2 — vai do fundador 14/10]: o x_alignment '50%' das frases/cartão/gancho sai em memória antes do byte a byte
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
@@ -174,7 +175,7 @@ ok(/\{group\.members\.some\(\(m\) => \(status\[m\.order_id\]\?\.status \?\? m\.s
 // reancorado KINEO-ADS-MELHORIAS-1410 — a montagem ganhou o packshot (foto real do produto: fundo + véu + foto inteira) e o cartão final
 // reposicionado para 4:5/1:1. Desfeito o diff EXATO dessas melhorias (semMelhorias1410Arquivo: qualquer outra mudança lança), o arquivo é
 // byte a byte o da base; e nenhuma linha acrescentada fala de marca d'água/watermark/logo da Kineo.
-ok((() => { try { return semMelhorias1410Arquivo(F.montage, SRC.montage) === atBase(F.montage) && !/watermark|marca d.água|kineo/i.test(linhasMelhorias1410(F.montage).join('\n').split('KINEO-ADS-MELHORIAS-1410').join('')) } catch { return false } })(), '4g a montagem (adV2Montage.ts) é byte a byte a da base — nenhuma marca d\'água nova no vídeo')
+ok((() => { try { return semMelhorias1410Arquivo(F.montage, desfazCentroAdsGancho1410(F.montage, SRC.montage)) === atBase(F.montage) && !/watermark|marca d.água|kineo/i.test(linhasMelhorias1410(F.montage).join('\n').split('KINEO-ADS-MELHORIAS-1410').join('')) } catch { return false } })(), '4g a montagem (adV2Montage.ts) é byte a byte a da base — nenhuma marca d\'água nova no vídeo')
 ok(!/aiLabel/.test(SRC.simpleLib), '4h o aviso antigo (en/pt/es) saiu da tabela do modo simples — uma fonte só para o texto')
 
 // ═══ 5. Mutantes ═════════════════════════════════════════════════════════════════════════════════════════════════

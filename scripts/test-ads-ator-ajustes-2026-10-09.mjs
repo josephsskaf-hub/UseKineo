@@ -20,6 +20,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { desfazExtracao, textoOriginalV2 } from './test-support/shopify-extracao-v2-1310.mjs' // KINEO-SHOPIFY-2026-10-13 (etapa 2)
+import { desfazCentroAdsGancho1410 } from './test-support/desfaz-centro-ads-gancho-1410.mjs' // reancorado KINEO-CENTRO-ADS-GANCHO-1410 [TRAVA 8.2 — vai do fundador 14/10]: o x_alignment '50%' das frases/cartão/gancho sai em memória antes do byte a byte
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -107,14 +108,17 @@ await check('1b com ator, MESMO estilo da frase de sempre (fonte, tamanho, pílu
 })
 const BASE_MONTAGE = atBase(F.montage)
 const MB = world({ [F.montage]: BASE_MONTAGE })(F.montage)
+// reancorado KINEO-CENTRO-ADS-GANCHO-1410: a montagem de agora SEM a centralização das frases (desfeita em memória) contra a base;
+// o x_alignment '50%' em si é provado por scripts/test-centro-ads-gancho-1410.mjs.
+const MD = world({ [F.montage]: desfazCentroAdsGancho1410(F.montage, readCru(F.montage)) })(F.montage)
 const VARIANTES = [baseIn, { ...baseIn, tint: 'rgba(10,20,30,0.12)' }, { ...baseIn, voiceUrl: null, voiceSeconds: null }, { ...baseIn, cardSeconds: 4.2, voiceSeconds: 14 }, { ...baseIn, overlays: [] }, { ...baseIn, musicUrl: null }]
 await check('1c SEM ator o anúncio é byte a byte o da base 88f3eac9 (6 variações: véu, sem voz, cartão esticado, sem frases, sem música) — frases no centro 45%', () =>
-  BASE_MONTAGE.includes('export const ADS_V2_OVERLAY_Y = 0.45') && VARIANTES.every((v) => JSON.stringify(M.buildAdV2Source(v)) === JSON.stringify(MB.buildAdV2Source(v))) &&
+  BASE_MONTAGE.includes('export const ADS_V2_OVERLAY_Y = 0.45') && VARIANTES.every((v) => JSON.stringify(MD.buildAdV2Source(v)) === JSON.stringify(MB.buildAdV2Source(v))) &&
   texts(M.buildAdV2Source(baseIn)).every((e) => e.y === '45%'))
 await check('1d com ator, o que NÃO é frase segue byte a byte o da base (ator, inserts, cartão, véu, música, duração)', () =>
   PRES_LENGTHS.every((m) => {
     const semFrase = (s) => JSON.stringify({ ...s, elements: s.elements.filter((e) => e.type !== 'text') })
-    const ya = texts(pres(M, m)).map((e) => ({ ...e, y: null }))
+    const ya = texts(pres(MD, m)).map((e) => ({ ...e, y: null })) // reancorado KINEO-CENTRO-ADS-GANCHO-1410
     const yb = texts(pres(MB, m)).map((e) => ({ ...e, y: null }))
     return semFrase(pres(M, m, { tint: 'rgba(10,20,30,0.12)' })) === semFrase(pres(MB, m, { tint: 'rgba(10,20,30,0.12)' })) && JSON.stringify(ya) === JSON.stringify(yb)
   }))
