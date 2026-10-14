@@ -31,7 +31,6 @@ const PROVENANCE = {
   'lighthouse.webp': '2dfe9ac8-2d30-4522-9c76-2bc9746c35fc',
   'clock-blue.webp': 'a1cf8237-1346-4f62-8f9f-1bf9fb3b4856',
   'coffee.webp': 'bd12eb15-4c0c-4f9b-9e37-12a754ead4f7',
-  'perfume.webp': '21f6d198-fa61-40fb-8c99-9aeb2c4eb1e8',
   'sneaker-white.webp': '83bbefdc-37a6-405a-a543-abbe1ebb6cc3',
   'raincoat.webp': '52fb63b4-233c-4044-85e2-ac9c22912c0d',
   'boutique.webp': '81678690-3d40-4f2b-9cbf-a8a9ca38c151',
