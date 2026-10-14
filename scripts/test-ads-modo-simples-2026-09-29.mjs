@@ -21,6 +21,7 @@ import ts from 'typescript'
 import { semMelhorias1410 } from './test-support/desfaz-melhorias-1410.mjs' // reancorado KINEO-ADS-MELHORIAS-1410
 import { semDemoUniverso1410 } from './test-support/desfaz-ads-demo-universo-1410.mjs' // reancorado KINEO-ADS-DEMO-UNIVERSO-1410
 import { semRefacaoAtor1410 } from './test-support/desfaz-ads-refacao-ator-1410.mjs' // reancorado KINEO-ADS-REFACAO-ATOR-1410
+import { desfazPosEntrega1510 } from './test-support/desfaz-ads-pos-entrega-1510.mjs' // reancorado KINEO-ADS-POS-ENTREGA-1510 — o preenchimento dos formatos (montagem) e o painel depois da entrega (telas) saem em memória ANTES de todo desfaz mais antigo
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
@@ -202,7 +203,7 @@ const Z1_BASE = "235bfb6dfef9d097b8a9f4258c8a350200057f4f588fea9f6f97c3ac3094da1
 // ANTES de tirar os comentários; o resto do completo tem de bater com a mesma impressão digital.
 // reancorado KINEO-LEVA6-1310 — as duas pistas juntas: a base é a dos atores IA (235bf…) e a cena sai antes, pelo desfazCenaCompleto.
 const desfazCenaCompleto = (s) => s.split('/* KINEO-ADS-CENA-2026-10-13 */ ...cenaBody, ').join('').split('\n').filter((l) => !l.includes('KINEO-ADS-CENA-2026-10-13')).join('\n')
-const trechoCompleto = (src) => { const s = desfazCenaCompleto(semRefacaoAtor1410(F.client, src)); /* reancorado KINEO-ADS-REFACAO-ATOR-1410 — a 1ª refação grátis e o rótulo de IA (linhas marcadas) saem antes da impressão */ const i = s.indexOf('function AdsV2Session('); return i < 0 ? '' : semComentarios(s.slice(i)) }
+const trechoCompleto = (src) => { const s = desfazCenaCompleto(semRefacaoAtor1410(F.client, desfazPosEntrega1510(F.client, src))); /* reancorado KINEO-ADS-POS-ENTREGA-1510 — o painel depois da entrega (2 linhas marcadas) sai antes da impressão */ /* reancorado KINEO-ADS-REFACAO-ATOR-1410 — a 1ª refação grátis e o rótulo de IA (linhas marcadas) saem antes da impressão */ const i = s.indexOf('function AdsV2Session('); return i < 0 ? '' : semComentarios(s.slice(i)) }
 await check('Z1 impressão digital do modo completo (AdsV2Session, PhotoRow, PlanPreview, ShotGrid) = a do vídeo do cliente (29/09)', sha(trechoCompleto(SRC.client)) === Z1_BASE)
 await check('Z1-mutante: 1 caractere trocado no modo completo fica vermelho', () => sha(trechoCompleto(trocar(SRC.client, "const POLL_RETRY_MS = 20_000", "const POLL_RETRY_MS = 20_001").replace('Plan my ad (free)', 'Plan my ad (freE)'))) !== Z1_BASE)
 
@@ -782,6 +783,7 @@ IMPORTS_OK.push('@/lib/ads/v2Packshot', '@/lib/ads/v2Redo', '@/lib/ads/v2Formats
 // regra da barra do celular — provada pura abaixo e em scripts/test-ads-reteste-1510.mjs). Nenhum módulo de servidor entrou.
 // reancorado KINEO-ADS-QUADRO-STUDIO-1510 — + './AdsV2Quadro' (componente de navegador do quadro curto: só importa a lib pura v2Styles) e
 // '@/lib/ads/v2QuadroCopy' (lib PURA das 3 frases novas, provada pura abaixo). Nenhum módulo de servidor entrou.
+IMPORTS_OK.push('./AdsV2AfterDelivery') // reancorado KINEO-ADS-POS-ENTREGA-1510 — o painel depois da entrega ('use client'; só importa módulos de navegador/puros — provado em scripts/test-ads-pos-entrega-1510.mjs F1)
 IMPORTS_OK.push('@/lib/ads/v2PalcoVoltar') // reancorado KINEO-ADS-PALCO-VOLTAR-1410 — lib PURA (só import type; provada pura em scripts/test-ads-palco-voltar-1410.mjs C5): o kit fora em conflito e o Fechar estilos
 await check('E3 a tela simples é cliente e só importa módulos de navegador/puros; v2Simple, v2Research e v2VideoFrames não têm import; textLanguage é pura', () => {
   const imps = [...SRC.simple.matchAll(/^import[\s\S]*?from '([^']+)'/gm)].map((m) => m[1])

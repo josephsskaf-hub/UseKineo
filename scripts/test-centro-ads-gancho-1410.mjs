@@ -24,6 +24,7 @@ import {
   MARCA_CENTRO_ADS_GANCHO_1410 as MARCA, ARQUIVOS_CENTRO_ADS_GANCHO_1410, semCentroAdsGancho1410,
   LINHA_FRASE_ADS_1410, LINHA_CARTAO_PRODUCAO_1410, LINHA_GANCHO_1410,
 } from './test-support/desfaz-centro-ads-gancho-1410.mjs'
+import { desfazPosEntrega1510 } from './test-support/desfaz-ads-pos-entrega-1510.mjs' // reancorado KINEO-ADS-POS-ENTREGA-1510 — o preenchimento dos formatos (montagem) e o painel depois da entrega (telas) saem em memória ANTES de todo desfaz mais antigo
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
@@ -140,7 +141,7 @@ function provas(fontes) {
     return ads && prod && hook
   })
   p('P6 byte a byte: desfeito o ajuste, os 3 arquivos são EXATAMENTE o pai do primeiro commit marcado', () =>
-    ARQUIVOS_CENTRO_ADS_GANCHO_1410.every((k) => { const b = rdBase(k); return b !== null && semCentroAdsGancho1410(k, fontes[k]) === b }))
+    ARQUIVOS_CENTRO_ADS_GANCHO_1410.every((k) => { const b = rdBase(k); return b !== null && semCentroAdsGancho1410(k, desfazPosEntrega1510(k, fontes[k])) === b })) /* reancorado KINEO-ADS-POS-ENTREGA-1510 */
   return out
 }
 

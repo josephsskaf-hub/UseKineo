@@ -479,6 +479,7 @@ const PERMITIDOS_WS = new Set([...WS_ROUTES, F.footage, F.page, F.door, F.teamRo
 // o membro troca o roteiro do pedido do DONO (lib/ads/v2ChooseCore.ts lê o pedido por ws.ownerId ?? user.id, como o /plan);
 // scripts/test-ads-roteiros-1310.mjs confere dono, status e que o UPDATE só troca o plano.
 PERMITIDOS_WS.add('app/api/ads/v2/plan/choose/route.ts') // KINEO-ADS-ROTEIROS-2026-10-13
+PERMITIDOS_WS.add('lib/ads/v2PostDeliveryAuth.ts') // reancorado KINEO-ADS-POS-ENTREGA-1510 — a porta única das rotas depois da entrega (editar/versões/formatos/aprovação): o membro age no anúncio do DONO (ws.ownerId ?? user.id), como as rotas do v2
 const pedem = files.filter((f) => /workspace: true \}\)/.test(code(read(f))))
 const importam = files.filter((f) => /from '@\/lib\/ads\/workspace'/.test(read(f)))
 ok(pedem.every((f) => PERMITIDOS_WS.has(f)) && [...PERMITIDOS_WS].every((f) => pedem.includes(f)),

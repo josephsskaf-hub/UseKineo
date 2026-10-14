@@ -18,6 +18,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semPalcoVoltar1410, PALCO_VOLTAR_1410_BASE, PALCO_VOLTAR_1410_ARQUIVOS } from './test-support/desfaz-ads-palco-voltar-1410.mjs'
+import { desfazPosEntrega1510 } from './test-support/desfaz-ads-pos-entrega-1510.mjs' // reancorado KINEO-ADS-POS-ENTREGA-1510 — o preenchimento dos formatos (montagem) e o painel depois da entrega (telas) saem em memória ANTES de todo desfaz mais antigo
 import { semRefacaoAtor1410 } from './test-support/desfaz-ads-refacao-ator-1410.mjs' // reancorado KINEO-ADS-REFACAO-ATOR-1410 — a 1ª refação grátis e o rótulo de IA (linhas marcadas, provadas em test-ads-refacao-ator-1410) saem antes
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -178,7 +179,7 @@ ok(tenta(() => puraOk(SRC)), 'C5 lib/ads/v2PalcoVoltar.ts é PURA: um único imp
 // ═══ D. dinheiro intocado ═══════════════════════════════════════════════════════════════════════════════════════════
 console.log('\nD. dinheiro intocado')
 const base = (rel) => execFileSync('git', ['show', `${PALCO_VOLTAR_1410_BASE}:${rel}`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 26 }).replace(/\r\n/g, '\n')
-const desfeitoOk = (S) => PALCO_VOLTAR_1410_ARQUIVOS.length === 2 && semPalcoVoltar1410(F.simple, semRefacaoAtor1410(F.simple, S.simple)) === base(F.simple) && semPalcoVoltar1410(F.client, semRefacaoAtor1410(F.client, S.client)) === base(F.client) // reancorado KINEO-ADS-REFACAO-ATOR-1410
+const desfeitoOk = (S) => PALCO_VOLTAR_1410_ARQUIVOS.length === 2 && semPalcoVoltar1410(F.simple, semRefacaoAtor1410(F.simple, desfazPosEntrega1510(F.simple, S.simple))) === base(F.simple) && semPalcoVoltar1410(F.client, semRefacaoAtor1410(F.client, desfazPosEntrega1510(F.client, S.client))) === base(F.client) // reancorado KINEO-ADS-REFACAO-ATOR-1410 · reancorado KINEO-ADS-POS-ENTREGA-1510
 ok(tenta(() => desfeitoOk(SRC)), `D1 desfeito este conserto, AdsV2Simple.tsx e AdsV2Client.tsx são EXATAMENTE os da base (${PALCO_VOLTAR_1410_BASE}, pai do 1º commit com a marca)`)
 const semDinheiroOk = (S) => {
   const novo = (rel, s) => { const a = base(rel).split('\n'); const conta = new Map(); for (const l of a) conta.set(l, (conta.get(l) || 0) + 1); return s.split('\n').filter((l) => { const n = conta.get(l) || 0; if (n) { conta.set(l, n - 1); return false } return true }) }
