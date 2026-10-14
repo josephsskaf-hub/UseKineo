@@ -30,7 +30,7 @@ const FILES = { courtesy: 'lib/courtesy.ts', store: 'lib/courtesyStore.ts', rt: 
 function baseRef() {
   try {
     const shas = execSync(`git log --format=%H --grep=${MARK} --reverse`, { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
-    return shas.length ? `${shas[0]}^` : 'HEAD'
+    return shas.length ? `${shas[0]}~1` : 'HEAD' // ~1, não ^: no Windows o execSync passa pelo cmd.exe, que come o ^
   } catch { return 'HEAD' }
 }
 const BASE = baseRef()
