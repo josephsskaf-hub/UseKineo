@@ -37,6 +37,8 @@ import { ADS_FLOW_CSS, AdsFlowTabs } from '@/components/ads/AdsFlow' // KINEO-AD
 import { ADS_QUADRO_STUDIO_CSS, ADS_QUADRO_TINT_CSS } from './AdsV2Quadro' // KINEO-ADS-QUADRO-STUDIO-1510 — o fundo, o cabeçalho e o quadro do Studio
 import { ADS_PALCO_VOLTAR_CSS } from '@/lib/ads/v2PalcoVoltar' // KINEO-ADS-PALCO-VOLTAR-1410 — o quadro nunca fica mais largo que o painel (o palco não cobre mais o formulário)
 import { adsV2FlowCopy, adsV2FlowTabFor } from '@/lib/ads/v2Flow' // KINEO-ADS-FLUXO-2026-10-13
+import { AdsBrandDialog, AdsBrandOrders, AdsBrandSwitcher, useAdsBrands } from './AdsV2Brands' // KINEO-ADS-MARCAS-1510 — "Marca: X ▾", a janela da marca e "Seus anúncios" por marca
+import type { AdBrandView } from '@/lib/ads/brands' // KINEO-ADS-MARCAS-1510
 
 // KINEO-ABAS-PALCO-2026-10-01 — dentro do quadro de engenharia os passos do montador não têm caixa própria, e o quadro
 // "como funciona"/prévia desce para baixo dos passos (a direita é do palco).
@@ -516,6 +518,10 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
   // KINEO-ADS-FLUXO-2026-10-13 — a vaga da fileira "Comece deste" (embaixo do quadro), preenchida pela sessão do modo simples.
   const [rowSlot, setRowSlot] = useState<HTMLDivElement | null>(null)
   const lang = useInterfaceLanguage()
+  // KINEO-ADS-MARCAS-1510 — as marcas (clientes) do workspace: sem a migration (ready:false) = 'legacy' e a tela de sempre (kit único).
+  const marcas = useAdsBrands() // KINEO-ADS-MARCAS-1510
+  const [brandDlg, setBrandDlg] = useState<{ brand: AdBrandView | null } | null>(null) // KINEO-ADS-MARCAS-1510 — a janela "Nova marca"/"Editar marca"
+  const marcasOn = marcas.state.status === 'ready' && (mode === 'simple' || mode === 'batch') && !(sampleGone && sample) // KINEO-ADS-MARCAS-1510
   // Foco na opção SEGURA ("Keep working"): Enter segurado no "Start over" não apaga tudo por repetição de tecla.
   const confirmRef = useRef<HTMLButtonElement | null>(null)
   const resetBtnRef = useRef<HTMLButtonElement | null>(null)
@@ -683,6 +689,8 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
       // KINEO-ABAS-PALCO-2026-10-01 — o formato do Studio: o montador é o quadro de engenharia; o palco mostra anúncios da casa.
       <div className="kps-grid">
       <div className="kps-panel">
+      {/* KINEO-ADS-MARCAS-1510 — "Marca: X ▾" no topo do formulário (a caixa do motor do "Make a film"): escolher a marca preenche o kit do anúncio novo. */}
+      {marcasOn && marcas.state.status === 'ready' ? <AdsBrandSwitcher lang={lang} state={marcas.state} selected={marcas.selected} onSelect={marcas.select} onNew={() => setBrandDlg({ brand: null })} onEdit={(b) => setBrandDlg({ brand: b })} /> : null}{/* KINEO-ADS-MARCAS-1510 */}
       {/* KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a amostra já foi usada: a oferta do Business no lugar da sessão (e do erro genérico). */}
       {sampleGone && sample && business && mode ? (
         <AdsAfterSampleOffer lang={mode === 'full' ? 'en' : lang} business={business} />
@@ -701,7 +709,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
           onSampleGone={() => setSampleGone(true)}
         />
       ) : mode === 'batch' ? (
-        <AdsV2BatchSession key={session} balance={balance} onBalance={refreshBalance} sample={sample} business={business} />
+        <AdsV2BatchSession key={session} balance={balance} onBalance={refreshBalance} sample={sample} business={business} brandId={marcasOn ? marcas.selectedId : null} />/* KINEO-ADS-MARCAS-1510 — o lote inteiro sai na marca escolhida */
       ) : mode === 'simple' ? (
         <AdsV2SimpleSession
           key={session}
@@ -719,6 +727,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
           business={business}
           onSampleGone={() => setSampleGone(true)}
           rowSlot={rowSlot}
+          marcas={{ mode: marcas.state.status === 'ready' ? (marcasOn ? 'ready' : 'legacy') : marcas.state.status, list: marcas.brands, selected: marcasOn ? marcas.selected : null, onPick: marcas.select, onSave: marcas.save }} // KINEO-ADS-MARCAS-1510 — 'legacy' = o kit único de sempre
         />
       ) : null}
       </div>
@@ -728,6 +737,9 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
       )}
       {/* KINEO-ADS-FLUXO-2026-10-13 — no modo simples, enquanto a pessoa monta, a fileira da casa vira "Comece deste" (a sessão preenche a vaga). */}
       {mode === 'simple' && !groupId ? <div ref={setRowSlot} className="adv2f-rowslot" /> : null}
+      {/* KINEO-ADS-MARCAS-1510 — "Seus anúncios": os que começaram, filtráveis por marca (cada pedido grava brand_id). */}
+      {(mode === 'simple' || mode === 'batch') && !groupId && marcas.state.status !== 'loading' && !(sampleGone && sample) ? <AdsBrandOrders lang={lang} brands={marcas.brands} brandsOn={marcasOn} refreshKey={activeWork ? 1 : 0} /> : null}{/* KINEO-ADS-MARCAS-1510 */}
+      {brandDlg && marcas.state.status === 'ready' ? <AdsBrandDialog lang={lang} brand={brandDlg.brand} canArchive={marcas.state.role === 'owner'} limit={marcas.state.limit} onSave={marcas.save} onArchive={marcas.archive} onClose={() => setBrandDlg(null)} /> : null}{/* KINEO-ADS-MARCAS-1510 */}
       {mode === 'simple' && simplePreview && !groupId ? null : (
       <ProductRow title="Made on Kineo" sub="Three looks of the same product, ready to A/B test." items={ADS_HOUSE_STAGE.map((x) => ({ title: x.title, image: x.poster! }))} wide />
       )}

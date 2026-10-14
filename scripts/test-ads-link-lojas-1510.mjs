@@ -24,6 +24,7 @@ import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semLinkLojas1510, LINK_LOJAS_1510_ARQUIVOS, MARCA_LINK_LOJAS_1510 } from './test-support/desfaz-ads-link-lojas-1510.mjs'
 import { desfazPosEntrega1510 } from './test-support/desfaz-ads-pos-entrega-1510.mjs' // reancorado KINEO-LEVA-ADS-AGENCIA-1510 — o painel depois da entrega (pos-entrega, mais nova) sai da tela em memória antes do byte a byte
+import { semMarcas1510 } from './test-support/desfaz-ads-marcas-1510.mjs' // reancorado KINEO-LEVA-ADS-AGENCIA-1510 — as marcas (a mais nova da leva) saem primeiro
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -211,7 +212,7 @@ await check('5g anti-SSRF intacto: a busca VTEX e o .js do Shopify só na MESMA 
 console.log('\n6. a rota devolve a confiança; a tela ficou como estava')
 const rotaOk = (s) => { const c = code(s); return /platform: read\.platform \?\? null,/.test(c) && /currency: read\.currency \?\? null,/.test(c) && /confidence: read\.confidence \?\? null,/.test(c) && /reasons: read\.reasons \?\? \[\],/.test(c) && /\.\.\.\(failWhy\.message \? \{ message: failWhy\.message \} : \{\}\)/.test(c) && /why: failWhy\.value \?\? 'unreachable'/.test(c) }
 ok(tenta(() => rotaOk(SRC.route)), '6a /api/ads/v2/link-import devolve platform/currency/brand/confidence/reasons; o 422 leva why (de sempre) + detail/platform/message')
-ok(tenta(() => [F.simple, F.flow, F.batch, F.linkImport].every((f) => desfazPosEntrega1510(f, read(f)) === base(f))) /* reancorado KINEO-LEVA-ADS-AGENCIA-1510 — as camadas mais novas da tela saem antes */, '6b a tela (AdsV2Simple, AdsFlow, AdsV2Batch) e as frases (v2LinkImport) intocadas: outra pista cuida da tela')
+ok(tenta(() => [F.simple, F.flow, F.batch, F.linkImport].every((f) => desfazPosEntrega1510(f, semMarcas1510(f, read(f))) === base(f))) /* reancorado KINEO-LEVA-ADS-AGENCIA-1510 — as camadas mais novas da tela saem antes */, '6b a tela (AdsV2Simple, AdsFlow, AdsV2Batch) e as frases (v2LinkImport) intocadas: outra pista cuida da tela')
 ok(tenta(() => !/^\s*import\s(?!type)/m.test(SRC.reader)), '6c linkReader.ts segue PURO (só import type): vai ao cliente')
 
 // ═══ 7. o desfaz ═════════════════════════════════════════════════════════════════════════════════════════════════════

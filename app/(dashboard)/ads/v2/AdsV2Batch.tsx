@@ -237,7 +237,7 @@ export function AdsBatchUpsell({ business }: { business: AdsBusinessOffer | null
 
 // ─── a sessão do lote ─────────────────────────────────────────────────────────────────────────
 
-export function AdsV2BatchSession({ balance, onBalance, sample = false, business = null }: { balance: number | null; onBalance: () => void | Promise<void>; sample?: boolean; business?: AdsBusinessOffer | null }) {
+export function AdsV2BatchSession({ balance, onBalance, sample = false, business = null, brandId = null }: { balance: number | null; onBalance: () => void | Promise<void>; sample?: boolean; business?: AdsBusinessOffer | null; brandId?: string | null }) { // KINEO-ADS-MARCAS-1510 — brandId: a marca escolhida no topo (todas as linhas do lote)
   const [phase, setPhase] = useState<'loading' | 'build' | 'progress'>('loading')
   const [rows, setRows] = useState<BatchRow[]>(() => [emptyRow()])
   const [busy, setBusy] = useState<null | 'plan' | 'start'>(null)
@@ -432,7 +432,7 @@ export function AdsV2BatchSession({ balance, onBalance, sample = false, business
       const sector = inferSector(sentence)
       const d = await api<{ order_id: string }>('/api/ads/v2/orders', {
         method: 'POST',
-        body: { mode: 'simple', tier: row.tier, seconds: ADS_V2_SCREEN_SECONDS, sector, sentence: sentence || null, language, narration: true, overlays: true, price: null, contact: null, link: row.linkRead },
+        body: { mode: 'simple', tier: row.tier, seconds: ADS_V2_SCREEN_SECONDS, sector, sentence: sentence || null, language, narration: true, overlays: true, price: null, contact: null, link: row.linkRead, ...(brandId ? { brand_id: brandId } : {}) }, // KINEO-ADS-MARCAS-1510 — o pedido grava a marca (o servidor confere a posse)
       })
       if (!d.ok) {
         updateRow(row.key, { error: errText(d) })
