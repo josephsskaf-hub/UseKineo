@@ -19,6 +19,7 @@ import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import vm from 'node:vm'
 import crypto from 'node:crypto'
+import { semMotor15s1510 } from './test-support/desfaz-motor-15s-1510.mjs' // reancorado KINEO-MOTOR-15S-1510
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -132,7 +133,8 @@ console.log('D) /generate: a duração decidida viaja; roteiro longo a 15 s vira
   const L_ESC = "          body: JSON.stringify({ topic: rawSource, language, targetSeconds: duracaoPedida, engine: mode === 'fast' || mode === 'creator' ? 'fast' : quality }),"
   checa('handleAnalyze: duracaoPedida = override ?? estado; alvo da análise e do escritor usam ela', temLinha(GEN, '    const duracaoPedida: Duration = opts?.targetSeconds ?? duration') && temLinha(GEN, '    let alvoAnalise: Duration = duracaoPedida') && temLinha(GEN, L_ESC))
   checa('mutante (escritor volta a ler o estado velho) → vermelho', !temLinha(GEN.replace(L_ESC, L_ESC.replace('targetSeconds: duracaoPedida', 'targetSeconds: duration')), L_ESC))
-  checa('scriptModeOverride estrutura mesmo com a tela em verbatim', temLinha(GEN, "      : (opts?.scriptModeOverride ?? scriptMode) === 'ai' && (opts?.structureFirst === true || !opts?.skipPreview)"))
+  // reancorado KINEO-MOTOR-15S-1510: o override continua na frente (o modo do 15 s de quem não paga a subida entra depois dele) — test-motor-15s-1510
+  checa('scriptModeOverride estrutura mesmo com a tela em verbatim', temLinha(semMotor15s1510(GEN, 'client'), "      : (opts?.scriptModeOverride ?? scriptMode) === 'ai' && (opts?.structureFirst === true || !opts?.skipPreview)") && GEN.includes("(opts?.scriptModeOverride ?? modoDoTextoNoCurto ?? scriptMode) === 'ai'"))
   checa('onboarding de nicho: a duração que o clique fixa vai junto (achado 1)', temLinha(GEN, '    void handleAnalyze(goal.topic, { fromTopic: true, skipPreview: true, structureFirst: true, targetSeconds: duracaoDoOnboarding })') && GEN.includes('      : !kineo1Shown ? SEEDANCE_SHORT_SECONDS : undefined'))
   // Reancorados 29/09 (KINEO-PONTAS-15S-IDIOMA-2026-09-29, [TRAVA 8.2 — "vai conserta" do fundador]): as 3 chamadas de roteiroCabeNoFilmeCurto
   // passaram a levar a língua da tela (o teto da guarda na língua: tr 45, de 47, en/pt/es 56); o que as linhas protegem não muda.

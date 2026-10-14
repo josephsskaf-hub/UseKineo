@@ -13,6 +13,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
+import { semMotor15s1510 } from './test-support/desfaz-motor-15s-1510.mjs' // reancorado KINEO-MOTOR-15S-1510
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -136,7 +137,7 @@ ok(ordem(SCRIPT, 'if (!tentativaDaHistoria) { // KINEO-PRIMEIRO-FILME-2026-10-13
   // tiradas as linhas marcadas, a rota volta à base byte a byte (o padrão das levas de hoje)
   let base = ''
   try { base = (await import('node:child_process')).execFileSync('git', ['-C', ROOT, 'show', 'origin/main:app/api/generate-script/route.ts'], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).replace(/\r\n/g, '\n') } catch { base = '' }
-  const desfaz = (t) => t.split('\n').filter((l) => !l.includes('KINEO-PRIMEIRO-FILME-2026-10-13')).join('\n')
+  const desfaz = (t) => semMotor15s1510(t, 'route').split('\n').filter((l) => !l.includes('KINEO-PRIMEIRO-FILME-2026-10-13')).join('\n') // reancorado KINEO-MOTOR-15S-1510: o resgate de 15/10 sai antes (guardião próprio)
   ok(base !== '' && desfaz(SCRIPT) === desfaz(base), '/api/generate-script: tiradas as linhas marcadas, a rota é byte a byte a da base')
 }
 ok(/name: SCRIPT_DECLINED_RETRY_EVENT, userId: user\.id/.test(SCRIPT) && /rastroDaTentativa\(historiaAceita \? 'ok' : 'failed'/.test(SCRIPT), 'evento de servidor com ok/failed')

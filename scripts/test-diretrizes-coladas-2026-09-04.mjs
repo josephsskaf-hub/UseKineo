@@ -168,8 +168,9 @@ check('11.2 a chamada existe', iUso > 0)
 check('11.3 a chamada está DENTRO de handleAnalyze', iUso > iAnalyze && iAnalyze > 0)
 const trecho = client.slice(iAnalyze, iAnalyze + 9000)
 check('11.4 emite pasted_directives_detected', /pasted_directives_detected/.test(trecho))
+// reancorado KINEO-MOTOR-15S-1510: a sugestão passa pela regra do saldo (subidaQueOSaldoPaga) e o resultado vai ao setDuration — test-motor-15s-1510
 check('11.5 a sugestão de duração passa por setDuration',
-  /setDuration\(leituraColada\.suggestedDuration(?:\s+as\s+Duration)?\)/.test(trecho))
+  /setDuration\(leituraColada\.suggestedDuration(?:\s+as\s+Duration)?\)/.test(trecho) || (/subidaQueOSaldoPaga\(\{ atual: duration, alvo: leituraColada\.suggestedDuration,/.test(trecho) && /setDuration\(duracaoColada as Duration\)/.test(trecho)))
 // A troca de botão só pode acontecer quando há botão que COBRE o pedido —
 // nunca com `suggestedDuration === null`, que é justamente o caso "2–4
 // minutos": ali o certo é avisar, não silenciosamente escolher 90.

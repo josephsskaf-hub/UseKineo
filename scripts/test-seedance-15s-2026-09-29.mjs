@@ -263,7 +263,8 @@ const ANCORAS_GEN = [
   ['/generate: chip "última configuração" não oferece 15 onde o seletor não tem 15 (revisão E2a)', '    if (lastSetup.duration === SEEDANCE_SHORT_SECONDS && !opcoesDeDuracao.some((o) => o.value === SEEDANCE_SHORT_SECONDS)) return null'],
   // B3 reaplicado sobre o STUDIO-CONTADOR-VOZ (merge de 29/09): a subida a partir de 15 só acontece se o saldo pagar.
   ['/generate: ajuste automático em verbatim a partir de 15 s só sobe se o saldo pagar (B3)', '        const sobeCabeNoSaldo = sobeParaBruto === undefined || duration !== SEEDANCE_SHORT_SECONDS || credits === null || costForDurationOption(sobeParaBruto) <= credits'],
-  ['/generate: a subida usa o veredito já filtrado pelo saldo', '        const sobePara = sobeCabeNoSaldo ? sobeParaBruto : undefined'],
+  // reancorado KINEO-MOTOR-15S-1510: o veredito filtrado pelo saldo passa também pela regra da conta que não paga (subidaDoAutofit) — test-motor-15s-1510
+  ['/generate: a subida usa o veredito já filtrado pelo saldo', '        const sobePara = sobeCabeNoSaldo ? (subidaDoAutofit ? (subidaDoAutofit.para > duration ? subidaDoAutofit.para as Duration : undefined) : sobeParaBruto) : undefined // KINEO-MOTOR-15S-1510'],
 ]
 for (const [nome, l] of ANCORAS_GEN) checa(nome, temLinha(GEN, l))
 checa('/generate: o 15 bloqueado pelo saldo fica registrado (script_duration_autofit_unaffordable)', GEN.includes("void trackEvent('script_duration_autofit_unaffordable', {"))
