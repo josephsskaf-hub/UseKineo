@@ -444,6 +444,11 @@ export interface AdsV2PlannedShot {
    * plano sai pelo efeito da PixVerse (routeShot com styled) e o `prompt` continua o de movimento (é o da reserva H3).
    */
   effect?: AdsV2PlanStyle
+  /**
+   * KINEO-ADS-MELHORIAS-1410 — o PACKSHOT: a foto REAL do produto, intocada (kind 'text' = foto parada com zoom lento do
+   * montador, nenhuma IA). Só existe quando adsV2PackshotShots trocou um plano de IA por ela. Ausente = plano de sempre.
+   */
+  packshot?: true
   /** Só no plano 'user_video': o arquivo do cliente no bucket, a duração MEDIDA e o enquadramento (foco 0..1). */
   videoUrl?: string
   videoSeconds?: number
@@ -702,4 +707,138 @@ export function planShots(input: { sector: AdsV2Sector; tier: AdsV2PlanTier; pho
     photoRequests: spec.photoRequests,
     ...(style && target !== null ? { style } : {}),
   }
+}
+
+// ── KINEO-ADS-MELHORIAS-1410 — PACKSHOT: um plano com a foto REAL do produto (fidelidade do produto) ─────────────────────
+// QA de 14/10: a IA redesenhou o produto (um rostinho apareceu dentro do líquido do perfume). Kling O3, o still do Nano Banana
+// e os efeitos da PixVerse REGERAM o produto; nenhum plano mostrava a foto da pessoa como ela é. Agora todo anúncio com foto
+// marcada como PRODUTO troca UM plano de IA pela foto real do produto, parada, com o zoom lento do montador (o caminho do plano
+// `text`, que nunca vai à fal) e um fundo suave por baixo (lib/ads/adV2Montage.ts) para foto que não encha o quadro.
+// TROCA, não soma: o número de planos, os cortes e a duração ficam iguais, e os CRÉDITOS também (adsV2Credits depende só do
+// nível e da duração). O custo de fal cai um plano de Kling O3 (US$ 0,336).
+// ONDE: o ÚLTIMO plano (o fecho LUGAR/PRODUTO, logo antes do cartão final que já mostra a foto real desde 14/10) — o packshot
+// clássico de comercial: o produto parado, nítido, e em seguida a marca. O gancho precisa de movimento para segurar o dedo,
+// então o packshot nunca abre o anúncio. Se o último plano não pode ceder (vídeo do cliente, plano de estilo, herói, cena
+// criada), o 2º (o primeiro depois do gancho). Nenhum dos dois pode = sem packshot (o anúncio de sempre).
+// Nunca cede: o plano-herói do Premium (Seedance, a promessa do nível), as cenas criadas do Comercial/Premium (a promessa do
+// nível), o plano do estilo escolhido (a escolha da pessoa), o vídeo do cliente e o plano `text`. Com o ATOR ligado o packshot
+// também entra: é um dos inserts por cima da fala (lib/ads/adV2Montage.ts adsV2PresenterInserts), logo depois do estilo.
+// A FOTO: a 1ª marcada como produto; sem nenhuma, e o pedido é de PRODUTO (adsV2IsProductOrder, lib/ads/v2Scene.ts — no modo
+// simples a foto nasce 'place' fora do setor loja), a 1ª foto que não é de texto.
+/** Os tipos de plano que podem ceder a vaga ao packshot: animação de IA de UMA foto do cliente (Kling O3), sem estilo. */
+export const ADS_V2_PACKSHOT_YIELD_KINDS: readonly AdsV2PlanShotKind[] = ['people', 'place', 'product']
+
+function packshotCanYield(s: AdsV2PlannedShot | undefined): boolean {
+  return !!s && s.source === 'client_photo' && (ADS_V2_PACKSHOT_YIELD_KINDS as readonly string[]).includes(s.kind) && !s.effect && !s.packshot
+}
+
+/** A vaga do packshot (pura): o último plano; senão o 2º; senão null. */
+export function adsV2PackshotTarget(shots: readonly AdsV2PlannedShot[]): number | null {
+  if (!Array.isArray(shots) || shots.length < 2) return null
+  const last = shots[shots.length - 1]
+  if (packshotCanYield(last)) return last.idx
+  if (packshotCanYield(shots[1])) return shots[1].idx
+  return null
+}
+
+/**
+ * Troca UM plano de IA pela foto real do produto (pura; devolve outro array, nunca muta). Sem foto de produto (nem pedido de
+ * produto com foto que não é de texto) ou sem vaga = o MESMO array (o plano de antes, objeto por objeto).
+ */
+export function adsV2PackshotShots(shots: AdsV2PlannedShot[], opts: { photos: readonly AdsV2Photo[]; productOrder?: boolean }): AdsV2PlannedShot[] {
+  const usable = (Array.isArray(opts?.photos) ? opts.photos : []).filter((p) => p && typeof p.id === 'string' && p.id && typeof p.url === 'string' && /^https:\/\//i.test(p.url))
+  const product = usable.find((p) => p.kind === 'product') ?? (opts?.productOrder === true ? usable.find((p) => p.kind !== 'text') : undefined)
+  if (!product) return shots
+  const at = adsV2PackshotTarget(shots)
+  if (at === null) return shots
+  return shots.map((s) => s.idx !== at ? s : {
+    ...s,
+    kind: 'text',
+    source: 'client_photo',
+    sourceFootageId: product.id,
+    imageUrl: product.url,
+    referenceFootageIds: [],
+    referenceUrls: [],
+    scenePrompt: null,
+    prompt: null,
+    movementVariant: 0,
+    cutStart: 0,
+    packshot: true,
+  })
+}
+
+/** O plano gravado tem packshot neste índice? (pura; para a montagem e a tela). */
+export function adsV2IsPackshot(plan: { shots?: readonly { idx: number; packshot?: unknown }[] } | null | undefined, idx: number): boolean {
+  return !!plan && Array.isArray(plan.shots) && plan.shots.some((s) => s && s.idx === idx && s.packshot === true)
+}
+
+// ── KINEO-ADS-MELHORIAS-1410 — FORMATOS do anúncio (9:16 · 4:5 · 1:1): o porquê e as frases estão em lib/ads/v2Formats.ts ──────
+export type AdsV2Format = '9:16' | '4:5' | '1:1'
+export const ADS_V2_FORMATS: readonly AdsV2Format[] = ['9:16', '4:5', '1:1']
+export const ADS_V2_DEFAULT_FORMAT: AdsV2Format = '9:16'
+/** Recorte no navegador (JPEG q0,9, como o 9:16 de sempre). Largura 1080 nos três. */
+export const ADS_V2_FORMAT_CROP: Readonly<Record<AdsV2Format, { width: number; height: number }>> = {
+  '9:16': { width: 1080, height: 1920 },
+  '4:5': { width: 1080, height: 1350 },
+  '1:1': { width: 1080, height: 1080 },
+}
+
+export function isAdsV2Format(raw: unknown): raw is AdsV2Format {
+  return typeof raw === 'string' && (ADS_V2_FORMATS as readonly string[]).includes(raw)
+}
+/** Qualquer coisa que não é formato conhecido = 9:16 (o de sempre). */
+export function normalizeAdsV2Format(raw: unknown): AdsV2Format {
+  return isAdsV2Format(raw) ? raw : ADS_V2_DEFAULT_FORMAT
+}
+/** O formato gravado no plano do pedido (plano sem a chave = 9:16). */
+export function adsV2PlanFormat(plan: unknown): AdsV2Format {
+  return normalizeAdsV2Format(plan && typeof plan === 'object' ? (plan as { format?: unknown }).format : undefined)
+}
+
+export type AdsV2FormatBlock = 'style' | 'presenter' | 'premium_45'
+/**
+ * Por que este formato não sai com estas escolhas (null = sai). 9:16 nunca bloqueia. Ordem: estilo, ator, nível — a tela
+ * mostra a 1ª razão.
+ */
+export function adsV2FormatBlock(input: { format: AdsV2Format; tier?: string | null; style?: string | null; presenter?: boolean }): AdsV2FormatBlock | null {
+  if (input.format === '9:16') return null
+  if (typeof input.style === 'string' && input.style && input.style !== 'none') return 'style'
+  if (input.presenter === true) return 'presenter'
+  if (input.format === '4:5' && input.tier === 'cinema') return 'premium_45'
+  return null
+}
+
+/** aspect_ratio do Seedance 2.0 (herói do Premium): '9:16' de sempre, '1:1' no quadrado. 4:5 não existe lá (bloqueado antes). */
+export function adsV2SeedanceAspect(format: AdsV2Format): '9:16' | '1:1' {
+  if (format === '4:5') throw new Error('ads_v2_seedance_no_4_5')
+  return format === '1:1' ? '1:1' : '9:16'
+}
+
+/** A abertura do pedido de cena criada (lib/ads/v2ShotLists.ts e lib/ads/v2Scene.ts) em cada formato — SEM números (a régua
+ *  anti-invenção, lib/ads/v2Brief.ts checkV2Prompts, só tolera o "9:16"). */
+export const ADS_V2_SCENE_FRAME_OPENING = 'Photorealistic vertical 9:16 frame'
+const SCENE_FRAME: Readonly<Record<AdsV2Format, string>> = {
+  '9:16': ADS_V2_SCENE_FRAME_OPENING,
+  '4:5': 'Photorealistic portrait frame',
+  '1:1': 'Photorealistic square frame',
+}
+/** Planos com o pedido de cena no formato (pura). 9:16 = o MESMO array. */
+export function adsV2FormatShots<S extends { scenePrompt: string | null }>(shots: S[], format: AdsV2Format): S[] {
+  if (format === '9:16') return shots
+  return shots.map((s) => (typeof s.scenePrompt === 'string' && s.scenePrompt.includes(ADS_V2_SCENE_FRAME_OPENING) ? { ...s, scenePrompt: s.scenePrompt.split(ADS_V2_SCENE_FRAME_OPENING).join(SCENE_FRAME[format]) } : s))
+}
+
+/** A maior janela no formato que cabe na foto, deslizada pelo ponto focal — a MESMA conta de cropRect (lib/ads/v2Screen.ts). */
+export function adsV2CropRectFor(imgW: number, imgH: number, fx: number, fy: number, format: AdsV2Format): { sx: number; sy: number; sw: number; sh: number } {
+  if (!(imgW > 0) || !(imgH > 0)) throw new Error('ads_v2_bad_image_size')
+  const c = ADS_V2_FORMAT_CROP[format]
+  const ratio = c.width / c.height
+  let sw = imgW
+  let sh = imgW / ratio
+  if (sh > imgH) {
+    sh = imgH
+    sw = imgH * ratio
+  }
+  const f = (v: number) => (Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.5)
+  return { sx: (imgW - sw) * f(fx), sy: (imgH - sh) * f(fy), sw, sh }
 }

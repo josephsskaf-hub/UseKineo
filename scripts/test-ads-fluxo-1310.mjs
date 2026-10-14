@@ -37,6 +37,8 @@ import { semRoteiros } from './test-support/desfaz-roteiros-1310.mjs'
 import { semConsertos1410 } from './test-support/desfaz-consertos-1410.mjs' // reancorado KINEO-ADS-CONSERTOS-1410
 import { semDuracaoSaldo1510 } from './test-support/desfaz-duracao-saldo-1510.mjs' // reancorado KINEO-STUDIO-DURACAO-SALDO-1510
 import { semReteste1510 } from './test-support/desfaz-reteste-1510.mjs' // reancorado KINEO-ADS-RETESTE-1510
+import { semModeracao1410 } from './test-support/desfaz-moderacao-1410.mjs' // reancorado KINEO-MODERACAO-1410 — a régua completa na frase/cena do rascunho (2 linhas + o import no /orders, só acréscimos)
+import { semMelhorias1410 } from './test-support/desfaz-melhorias-1410.mjs' // reancorado KINEO-ADS-MELHORIAS-1410
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -298,7 +300,10 @@ const STUDIO_BASE = {
 // reancorado KINEO-ADS-RETESTE-1510 — v2Brief (piso de fala, produto genérico que não é marca, 3 roteiros; toda linha mudada marcada) e
 // v2Styles (dolly_zoom tirado) passam pelo diff REVERSO exato deste conserto (scripts/test-support/desfaz-reteste-1510.mjs): desfeitos,
 // voltam às impressões de antes (82aa07ca…/6e9807b1…), byte a byte; qualquer outra mudança nos dois segue vermelha.
-const DESFAZ = { 'lib/ads/v2PlanCore.ts': (x) => semConsertos1410(semRoteiros(x)), 'app/(dashboard)/studio/StudioClient.tsx': (x) => semDuracaoSaldo1510(x), 'lib/ads/v2Brief.ts': (x) => semReteste1510('lib/ads/v2Brief.ts', x), 'lib/ads/v2Styles.ts': (x) => semReteste1510('lib/ads/v2Styles.ts', x) }
+// reancorado KINEO-ADS-MELHORIAS-1410 — o núcleo do /plan ganhou só linhas INTEIRAS marcadas (packshot e formato; nenhuma de crédito, débito
+// ou preço — conferido nos guardiões das melhorias): semMelhorias1410 as tira e a impressão de antes (3fd1819e…8eb2) continua valendo.
+const DESFAZ = { 'lib/ads/v2PlanCore.ts': (x) => semMelhorias1410(semConsertos1410(semRoteiros(x))), 'app/(dashboard)/studio/StudioClient.tsx': (x) => semDuracaoSaldo1510(x), 'lib/ads/v2Brief.ts': (x) => semReteste1510('lib/ads/v2Brief.ts', x), 'lib/ads/v2Styles.ts': (x) => semReteste1510('lib/ads/v2Styles.ts', x) }
+DESFAZ['app/api/ads/v2/orders/route.ts'] = (x) => semModeracao1410(x, 'ads') // reancorado KINEO-MODERACAO-1410
 const iguais = (tab, over = {}) => Object.entries(tab).every(([f, h]) => sha((DESFAZ[f] || ((x) => x))(over[f] !== undefined ? over[f] : read(f))) === h)
 ok(iguais(STUDIO_BASE), 'D4 o Studio de filmes, o kit (STUDIO_KIT_CSS) e o ProductStage byte a byte iguais à base — nada foi extraído de lá')
 
@@ -409,7 +414,9 @@ const FN_BASE = {
   'async function ensureCard()': 'b903d1463b135d361008438002000624c7173df713da31c6f9093f11ec732def',
   'async function saveCopyEdit()': '95ff92d53d970a2b8fc1a5a29c648f21a633c57a7636bf6d9938fb98c713cc07',
 }
-const telaDinheiro = (src) => Object.entries(FN_BASE).every(([f, h]) => sha(bloco(src, f)) === h)
+// reancorado KINEO-ADS-MELHORIAS-1410 — planAd ganhou SÓ o formato no corpo do /plan (1 linha mudada, marcada): semMelhorias1410 a devolve ao
+// texto EXATO de antes (scripts/test-support/desfaz-melhorias-1410.mjs) e as impressões abaixo continuam as de sempre; o resto segue vermelho.
+const telaDinheiro = (src) => Object.entries(FN_BASE).every(([f, h]) => sha(bloco(semMelhorias1410(src), f)) === h)
 ok(telaDinheiro(read(F.simple)), 'I2 na tela, makeAd, makeVariations, planAd, ensureDraft, syncCard, ensureCard e saveCopyEdit byte a byte iguais à base')
 
 // ═══ J. rótulo de IA ═══════════════════════════════════════════════════════════════════════════════════════════════

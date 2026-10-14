@@ -35,6 +35,8 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { buildShotInput } from '@/lib/ads/v2Engines'
 import { ADS_V2_ENGINES, ADS_V2_FALLBACK_FROM_ATTEMPT, adsV2RetakeCredits, routeShot, type AdsV2Engine, type AdsV2ShotKind, type AdsV2Tier } from '@/lib/ads/v2Tiers'
 import { ADS_V2_CARD_SECONDS, isAdsV2PlanStyle, type AdsV2ShotPlan } from '@/lib/ads/v2ShotLists'
+import { adsV2IsPackshot } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — o packshot (a foto real do produto)
+import { adsV2PlanFormat, adsV2SeedanceAspect } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — o formato gravado no plano (9:16 sem a chave)
 import { buildAdV2Source, ADS_V2_VOICE_START, adsV2ProductOverlays, type AdV2MontageShot } from '@/lib/ads/adV2Montage'
 import { adsV2FallbackTrack, adsV2MusicTrimStart, adsV2MusicUsable, adsV2SwapLibraryTrack } from '@/lib/ads/v2Music'
 import { ADS_V2_QUALITY, confirmAdsV2Debit, failAdsV2Order } from '@/lib/ads/v2Billing'
@@ -360,7 +362,7 @@ async function submitImageFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
   }
   let outcome
   try {
-    outcome = await submitSceneImage({ prompt, referenceUrls: refs }, { userId: order.user_id, orderId: order.id })
+    outcome = await submitSceneImage({ prompt, referenceUrls: refs, ...(adsV2PlanFormat(order.plan) !== '9:16' ? { aspect: adsV2PlanFormat(order.plan) } : {}) }, { userId: order.user_id, orderId: order.id }) // KINEO-ADS-MELHORIAS-1410 — a cena criada no formato do anúncio
   } catch (e) {
     // buildSceneImageInput recusou (nada saiu daqui): recusa NOSSA, não refazer.
     await failShot(admin, row, ['pending'], `scene_input_invalid:${e instanceof Error ? e.message : String(e)}`, 'local_policy_gate')
@@ -390,6 +392,7 @@ async function submitVideoFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
     // KINEO-ESTILOS-PRODUTO-2026-10-09 — o efeito sai da chave gravada no plano do pedido (só o 'pixverse_effect' a usa).
     // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator leva a voz do anúncio (só ele usa audioUrl; sem voz https, recusa local).
     input = buildShotInput(engine, { imageUrl: row.image_url ?? '', prompt: row.prompt ?? '', audioUrl: order.voice_url ?? '', effect: adsV2ShotEffect(order.plan, row.idx) }) as unknown as Record<string, unknown>
+    if (engine === 'seedance_20_fast' && adsV2PlanFormat(order.plan) === '1:1') input = { ...input, aspect_ratio: adsV2SeedanceAspect('1:1') } // KINEO-ADS-MELHORIAS-1410 — o herói do Premium QUADRADO sai em 1:1 (o schema da fal aceita; 4:5 não existe lá e o /plan recusa antes)
   } catch (e) {
     // O efeito recusado AQUI não mata o anúncio: 'invalid_payload' entra na refação automática e, na 3ª tentativa, a
     // reserva H3 anima a mesma foto com o prompt de movimento normal. Nos motores de antes, a recusa local segue terminal.
@@ -733,6 +736,7 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
       cutSeconds: num(r.cut_seconds) ?? 0,
       measuredSeconds: r.kind === 'text' ? null : num(r.measured_seconds),
     }
+    if (r.kind === 'text' && adsV2IsPackshot(plan, r.idx)) return { ...base, packshot: true } // KINEO-ADS-MELHORIAS-1410 — a foto real do produto: fundo suave + foto inteira
     if (r.kind !== 'user_video') return base
     // Vídeo do cliente: o enquadramento (foco e dimensões) mora no plano gravado.
     const p = plan.shots?.find((s) => s.idx === r.idx)
@@ -750,7 +754,7 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
       const lines = (plan.overlays ?? []).filter((o) => o && typeof o.text === 'string' && o.text.trim()).map((o) => ({ text: o.text, start: o.start, end: o.end }))
       // Os inserts: posições em montageShots (a mesma ordem de `latest`) na ordem de preferência do ator.
       const byIdx = new Map(latest.map((r, i) => [r.idx, i] as const))
-      const planShots = latest.map((r) => ({ idx: r.idx, kind: r.kind as string, source: r.source as string, effect: plan.shots?.find((s) => s.idx === r.idx)?.effect }))
+      const planShots = latest.map((r) => ({ idx: r.idx, kind: r.kind as string, source: r.source as string, effect: plan.shots?.find((s) => s.idx === r.idx)?.effect, ...(r.kind === 'text' && adsV2IsPackshot(plan, r.idx) ? { packshot: true } : {}) })) // KINEO-ADS-MELHORIAS-1410 — o packshot também é insert do ator
       const insertOrder = adsV2PresenterInsertOrder(planShots).map((idx) => byIdx.get(idx)).filter((i): i is number => typeof i === 'number')
       presenterSource = buildAdV2Source({
         width: frame.width,
@@ -782,7 +786,7 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
       return
     }
   }
-  const out = renderOutputSpecFor('9:16')
+  const out = renderOutputSpecFor(adsV2PlanFormat(plan)) // KINEO-ADS-MELHORIAS-1410 — o quadro do formato (9:16 = o de sempre, com o perfil de custo)
   let source: Record<string, unknown>
   try {
     // KINEO-ATOR-ANUNCIO-2026-10-09 — com o ator pronto, a montagem dele; senão, a de sempre (abaixo, intocada).
@@ -965,6 +969,8 @@ export interface AdsV2ShotView {
   status: string
   url: string | null
   retake_credits: number
+  /** KINEO-ADS-MELHORIAS-1410 — o plano é a foto REAL do produto (sem IA). Ausente = plano de sempre. */
+  packshot?: true
 }
 export interface AdsV2OrderView {
   order_id: string
@@ -1000,6 +1006,7 @@ export function adsV2View(order: AdsV2OrderRow, shots: readonly AdsV2ShotRow[]):
       status: r.status,
       url: READY.has(r.status) ? r.stored_url : null,
       retake_credits: r.kind === 'text' || r.kind === 'user_video' ? 0 : adsV2RetakeCredits(r.kind, order.tier),
+      ...(r.kind === 'text' && adsV2IsPackshot(order.plan, r.idx) ? { packshot: true as const } : {}), // KINEO-ADS-MELHORIAS-1410 — a tela diz "Sua foto real"
     })),
   }
 }

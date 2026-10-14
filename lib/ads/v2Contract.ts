@@ -210,6 +210,9 @@ export interface AdsV2PlanBody {
    * = 400 bad_presenter_id. Nunca URL de imagem nem texto livre.
    */
   presenter_id?: string
+  /** KINEO-ADS-MELHORIAS-1410 — formato do anúncio (lib/ads/v2Formats.ts): só aparece fora do 9:16 ('4:5' | '1:1'); ausente/null/'9:16' = sem a chave
+   * (o corpo de antes); qualquer outra coisa = 400 bad_format. Se o pipeline aceita o formato com estas escolhas, quem decide é o /plan. */
+  format?: '4:5' | '1:1'
 }
 
 /**
@@ -297,6 +300,12 @@ export function sanitizePlanBody(raw: unknown): AdsV2Sanitized<AdsV2PlanBody> {
     if (!presenter || typeof b.presenter_id !== 'string' || !(ADS_V2_CONTRACT_PRESENTER_IDS as readonly string[]).includes(b.presenter_id)) return fail('bad_presenter_id')
     presenterId = b.presenter_id
   }
+  // KINEO-ADS-MELHORIAS-1410 — formato: '9:16' (ou ausente) = o de sempre; '4:5' e '1:1' = feed; qualquer outra coisa = 400.
+  let format: '4:5' | '1:1' | null = null
+  if (b.format !== undefined && b.format !== null && b.format !== '9:16') {
+    if (b.format !== '4:5' && b.format !== '1:1') return fail('bad_format')
+    format = b.format
+  }
   if (!Array.isArray(b.photos)) return fail('bad_photos')
   const vids = readVideos(b.videos)
   if (!vids.ok) return vids
@@ -331,6 +340,7 @@ export function sanitizePlanBody(raw: unknown): AdsV2Sanitized<AdsV2PlanBody> {
     ...(style ? { style } : {}),
     ...(presenter ? { presenter: true as const } : {}),
     ...(presenter && presenterId ? { presenter_id: presenterId } : {}),
+    ...(format ? { format } : {}), // KINEO-ADS-MELHORIAS-1410
   }
   return { ok: true, value: simple ? { ...value, mode: 'simple', facts } : value }
 }

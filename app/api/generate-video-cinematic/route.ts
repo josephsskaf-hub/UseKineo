@@ -6577,9 +6577,11 @@ async function manipularPost(req: NextRequest) {
           falaFinal: scene.voiceover ?? '',
           promptFinal: cinematicBruto,
           elementosProibidos: proibidosPorModo(classicVisualMode),
+          palavraInteira: true, // KINEO-CONTRATO-CLASSICOS-1410 — proibido só casa palavra inteira: "ghostly"/"anchored" não perdem "host"/"anchor" (5 de 6 remoções em 30 d mutilaram o prompt)
         })
         const r = aplicarContrato(contrato)
         if (severidadeDe(r.antes.veredicto) !== 'ok') {
+          console.log(`[contrato-cena/classico] cena ${sceneIndex + 1} ${r.antes.veredicto} (cobertura=${r.antes.cobertura}) — ${r.antes.motivo}${r.acoes.length ? ` | acoes: ${r.acoes.join('; ')}` : ''}`) // KINEO-CONTRATO-CLASSICOS-1410
           contratoRelatoClassico.push({
             cena: sceneIndex + 1, antes: r.antes.veredicto, depois: r.depois.veredicto,
             cobertura: r.antes.cobertura, acoes: r.acoes, motivo: r.antes.motivo,
@@ -6674,6 +6676,7 @@ async function manipularPost(req: NextRequest) {
         visual_mode: classicVisualMode,
         visual_mode_reason: formatoVisual.motivo,
         contrato_cena: contratoRelatoClassico,
+        contrato_modo: classicVisualMode, contrato_palavra_inteira: true, // KINEO-CONTRATO-CLASSICOS-1410 — a régua que o gate clássico aplicou (visual_mode do claim é a do Diretor de Formato)
         fala_x_imagem: alinhamentoFalaImagem, // KINEO-FALA-X-IMAGEM — o que o supervisor reescreveu, a $0
         ...(monumentoRelato ? { monumento: monumentoRelato } : {}), // KINEO-MONUMENTO-2026-10-13
         ...(romanceAdulto.ativo ? { romance_adulto: { motivo: romanceAdulto.motivo, elenco: romanceAdulto.elencoFrase, look: styleAnchor.look, cenas_com_sufixo: classicScenePrompts.filter((p) => p.includes(ROMANCE_ADULT_SUFFIX)).length } } : {}), // KINEO-ROMANCE-ADULTO-2026-10-13
@@ -7230,6 +7233,7 @@ async function manipularPost(req: NextRequest) {
       // render passou.
       contrato_cena: contratoRelatoClassico,
       visual_mode: formatoVisual.modo,
+      contrato_modo: classicVisualMode, contrato_palavra_inteira: true, // KINEO-CONTRATO-CLASSICOS-1410 — a régua que o gate clássico aplicou (pode diferir do visual_mode: look desenhado vira character_story)
     }
     // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29 — só no filme de 15 s do
     // Seedance 1.5: vão assinados no claim o `vertical` e o fator de velocidade da voz que o portão mediu (voz, velocidade e

@@ -28,6 +28,7 @@ const require = createRequire(import.meta.url)
 const ts = require(path.join(ROOT, 'node_modules', 'typescript'))
 const { createOfflineLoader } = await import(pathToFileURL(path.join(ROOT, 'scripts/test-support/offline-ts-loader.mjs')).href)
 const { semMotor15s1510, FORMA_MOTOR_15S_1510 } = await import(pathToFileURL(path.join(ROOT, 'scripts/test-support/desfaz-motor-15s-1510.mjs')).href)
+const { semModeracao1410 } = await import(pathToFileURL(path.join(ROOT, 'scripts/test-support/desfaz-moderacao-1410.mjs')).href) // reancorado KINEO-MODERACAO-1410: a régua completa do texto (acréscimos) sai PRIMEIRO
 const { semRegua35a90_1410 } = await import(pathToFileURL(path.join(ROOT, 'scripts/test-support/desfaz-regua-35-60-90-1410.mjs')).href) // reancorado KINEO-REGUA-35-60-90-1410: o conserto seguinte reescreveu a linha da régua; desfeito ANTES do desfaz do 15 s
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
 let pass = 0
@@ -223,7 +224,7 @@ for (const [arq, rel, atual] of [['route', ROUTE_REL, ROUTE], ['client', 'app/(d
   let base = ''
   try { base = execFileSync('git', ['-C', ROOT, 'show', BASE_REF + ':' + rel], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).replace(/\r\n/g, '\n') } catch { base = '' }
   let d = null
-  try { d = semMotor15s1510(arq === 'route' ? semRegua35a90_1410(atual) : atual, arq) } catch (e) { d = 'ERRO: ' + e.message } // reancorado KINEO-REGUA-35-60-90-1410
+  try { d = semMotor15s1510(arq === 'route' ? semRegua35a90_1410(semModeracao1410(atual, 'script')) : atual, arq) } catch (e) { d = 'ERRO: ' + e.message } // reancorado KINEO-REGUA-35-60-90-1410 · reancorado KINEO-MODERACAO-1410
   ok(base !== '' && d === base, `${rel}: tiradas as linhas KINEO-MOTOR-15S-1510, é byte a byte a base`)
   ok(semMotor15s1510(base, arq) === base, `${rel}: o desfaz é idempotente sobre a base`)
   const marcadas = (arq === 'route' ? semRegua35a90_1410(atual) : atual).split('\n').filter((l) => l.includes('KINEO-MOTOR-15S-1510')).length // reancorado KINEO-REGUA-35-60-90-1410

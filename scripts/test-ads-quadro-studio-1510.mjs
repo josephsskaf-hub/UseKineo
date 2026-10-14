@@ -14,6 +14,7 @@
 //   F. <style> por dangerouslySetInnerHTML; as 3 frases novas nas 16 línguas, lib pura;
 //   M. mutantes: cada regra quebrada fica vermelha (e cada mutante prova que aplicou).
 import fs from 'node:fs'
+import { semMelhorias1410 } from './test-support/desfaz-melhorias-1410.mjs' // reancorado KINEO-ADS-MELHORIAS-1410
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
@@ -155,7 +156,10 @@ const FN_BASE = {
   'function goFromBar()': 'd3eb048cecde0cd478dbef168198f4cd29496b0c2697f1b755687ce2dd5682d5',
   'function manualPlan()': '39121993314224998061bfddcc375510f09c6740f93bc09bf06ceb0085cec8c7',
 }
-const pedidoOk = (s) => Object.entries(FN_BASE).every(([f, h]) => sha(bloco(s, f)) === h) &&
+// reancorado KINEO-ADS-MELHORIAS-1410 — a tela simples ganhou o formato (4:5/1:1): o corpo do /plan, a assinatura do plano, o estilo
+// efetivo e o recorte/upload mudaram em linhas MARCADAS. semMelhorias1410 (scripts/test-support/desfaz-melhorias-1410.mjs) as devolve ao
+// texto EXATO de antes, e a regra de sempre vale sobre ele; as linhas novas são provadas em scripts/test-ads-formatos-1410.mjs.
+const pedidoOk = (s0, s = semMelhorias1410(s0)) => Object.entries(FN_BASE).every(([f, h]) => sha(bloco(s, f)) === h) &&
   // as entradas do pedido: a chave do rascunho, a assinatura do plano e o nível/estilo/voz que vão no corpo, como na base
   s.includes("const draftKey = JSON.stringify({ text: sentence, scene: sceneFinal, kind: adKind, price: priceT, contact: contactT, overlays: overlaysOn, voice: narrationOn, lang: spoken, tier, link: linkRead })") &&
   s.includes("const style: AdsV2StyleChoice = ADS_V2_STYLES_PUBLIC ? styleChoice ?? styleSuggested : 'none'") &&

@@ -72,14 +72,27 @@ export const ADS_V2_DELIVERY_MINUTES = { min: 5, max: 8 } as const
  * recorte de sempre (cropRect: a maior janela 9:16, deslizada pelo ponto focal fx/fy) — sem zoom, porque zoom mudaria o
  * contrato do recorte (cropToVertical) e o foco do vídeo no /plan. `display` = tamanho da foto na tela. Pura.
  */
+/** KINEO-ADS-MELHORIAS-1410 — a janela no FORMATO do anúncio (largura/altura: 4:5 = 0,8, 1:1 = 1). Ausente = a janela 9:16 de sempre (cropRect). */
+function cropRectFor(w: number, h: number, fx: number, fy: number, ratio?: number): { sx: number; sy: number; sw: number; sh: number } {
+  if (!(typeof ratio === 'number' && Number.isFinite(ratio) && ratio > 0)) return cropRect(w, h, fx, fy)
+  let sw = w
+  let sh = w / ratio
+  if (sh > h) {
+    sh = h
+    sw = h * ratio
+  }
+  return { sx: (w - sw) * clampFocal(fx), sy: (h - sh) * clampFocal(fy), sw, sh }
+}
+
 export function adsV2MoveCropWindow(
   focal: { fx: number; fy: number },
   delta: { dx: number; dy: number },
   display: { w: number; h: number },
   image: { w: number; h: number },
+  ratio?: number, // KINEO-ADS-MELHORIAS-1410 — o formato do anúncio (ausente = 9:16)
 ): { fx: number; fy: number } {
   if (!(display.w > 0) || !(display.h > 0) || !(image.w > 0) || !(image.h > 0)) return { fx: clampFocal(focal.fx), fy: clampFocal(focal.fy) }
-  const r = cropRect(image.w, image.h, focal.fx, focal.fy)
+  const r = cropRectFor(image.w, image.h, focal.fx, focal.fy, ratio) // KINEO-ADS-MELHORIAS-1410
   const spareX = (image.w - r.sw) * (display.w / image.w)
   const spareY = (image.h - r.sh) * (display.h / image.h)
   return {
@@ -89,8 +102,8 @@ export function adsV2MoveCropWindow(
 }
 
 /** A janela em porcentagem da foto (para desenhar o quadro claro por cima). Pura. */
-export function adsV2CropWindowPct(image: { w: number; h: number }, fx: number, fy: number): { left: number; top: number; width: number; height: number } {
-  const r = cropRect(image.w, image.h, fx, fy)
+export function adsV2CropWindowPct(image: { w: number; h: number }, fx: number, fy: number, ratio?: number): { left: number; top: number; width: number; height: number } { // KINEO-ADS-MELHORIAS-1410 — ratio = o formato (ausente = 9:16)
+  const r = cropRectFor(image.w, image.h, fx, fy, ratio) // KINEO-ADS-MELHORIAS-1410
   const pct = (v: number, of: number) => Math.round((v / of) * 10000) / 100
   return { left: pct(r.sx, image.w), top: pct(r.sy, image.h), width: pct(r.sw, image.w), height: pct(r.sh, image.h) }
 }

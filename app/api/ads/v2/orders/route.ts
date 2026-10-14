@@ -18,6 +18,7 @@ import { ownedFootage, v2Fail, v2Json } from '@/lib/ads/v2Server'
 // o rascunho da amostra só nasce no nível e na duração da amostra (o /start confere de novo antes de qualquer custo).
 import { adsSampleLevelOk, adsSampleOpen } from '@/lib/ads/serverAccess'
 import { adsV2SameKind, adsV2SceneForDraft } from '@/lib/ads/v2SceneServer' // KINEO-ADS-CENA-2026-10-13
+import { moderateTopic } from '@/lib/safety/topicModeration' // KINEO-MODERACAO-1410 [TRAVA 8.2 — vai do fundador 14/10] — a régua completa na frase e na cena do anúncio
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -77,6 +78,8 @@ export async function POST(req: NextRequest) {
     const o = parsed.value
     const a = assets.value
     const cena = await adsV2SceneForDraft(body, o.tier, user.id); if (!cena.ok) return cena.fail // KINEO-ADS-CENA-2026-10-13 — cena + produto/lugar: limpa, régua de honestidade e a MESMA moderação do texto
+    const temaDoAnuncio = await moderateTopic({ entry: 'ads-v2-orders', userId: user.id, text: [o.sentence, typeof cena.fields.scene === 'string' ? cena.fields.scene : null].filter((t): t is string => typeof t === 'string' && t.trim().length > 0).join('\n'), language: o.language }) // KINEO-MODERACAO-1410 — fora do ar = segue (falha aberta)
+    if (!temaDoAnuncio.ok) return v2Fail('moderation', temaDoAnuncio.status, { message: temaDoAnuncio.message, category: temaDoAnuncio.category }) // KINEO-MODERACAO-1410
     // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra só existe em um nível e uma duração.
     if (gate !== 'ok' && sample && !adsSampleLevelOk(o.tier, o.seconds)) return v2Fail('sample_level_only', 403)
 
