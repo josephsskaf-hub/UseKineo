@@ -31,12 +31,13 @@ import { semRefacaoAtor1410, REFACAO_ATOR_1410_ARQUIVOS, MARCA_REFACAO_ATOR_1410
 import { semFiel1510 } from './test-support/desfaz-ads-fiel-1510.mjs' // reancorado KINEO-ADS-FIEL-1510 — a trava do produto e o prazo (15/10) saem primeiro, em memória
 import { desfazPosEntrega1510 } from './test-support/desfaz-ads-pos-entrega-1510.mjs' // reancorado KINEO-ADS-POS-ENTREGA-1510 — o preenchimento dos formatos (montagem) e o painel depois da entrega (telas) saem em memória ANTES de todo desfaz mais antigo
 import { semMarcas1510 } from './test-support/desfaz-ads-marcas-1510.mjs' // reancorado KINEO-ADS-MARCAS-1510
+import { semLinkTela1510 } from './test-support/desfaz-ads-link-tela-1510.mjs' // reancorado KINEO-ADS-LINK-TELA-1510
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const MARCA = 'KINEO-ADS-REFACAO-ATOR-1410'
 const BASE = '4d8da757aafbce9c74d231c0718f1f35aebf12f1' // reancorado KINEO-ADS-REFACAO-ATOR-1410 — merge com a origin/main (palco-voltar, demo-universo, cortesia, home): a base é o pai do lado da main
-const rd = (rel) => semMarcas1510(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510)
+const rd = (rel) => semMarcas1510(rel, semLinkTela1510(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n'))) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-LINK-TELA-1510 — a tela do leitor de link (a mais nova) sai antes das marcas
 const git = (...a) => execFileSync('git', a, { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 28 })
 const base = (rel) => git('show', `${BASE}:${rel}`).replace(/\r\n/g, '\n')
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex')

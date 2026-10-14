@@ -24,6 +24,7 @@ import { ADS_V2_STYLES, ADS_V2_STYLES_PUBLIC, type AdsV2StyleChoice } from '@/li
 import { ADS_V2_PRESENTER_COPY, ADS_V2_PRESENTER_PUBLIC } from '@/lib/ads/v2Presenter'
 import { adsV2AiLabelNotice } from '@/lib/ads/v2AiLabel'
 import { adsV2LinkImportError, adsV2LinkImportCopy, ADS_V2_LINK_IMPORT_MAX_IMAGES } from '@/lib/ads/v2LinkImport'
+import { adsV2LinkBlockedText, adsV2LinkTelaCopy } from '@/lib/ads/v2LinkTela' // KINEO-ADS-LINK-TELA-1510
 import { adsV2LinkHost } from '@/lib/ads/v2SimpleUx'
 import { detectNarrationLanguage, narrationLanguage } from '@/lib/textLanguage'
 import { ADS_V2_BATCH_MAX_ROWS } from '@/lib/ads/v2BatchRules'
@@ -58,6 +59,7 @@ interface BatchRow {
   linkRead: string | null
   linkBusy: boolean
   linkNote: string | null
+  linkUpload?: boolean // KINEO-ADS-LINK-TELA-1510 — o 422 do link: mostra "Upload the photo instead"
   photos: BatchPhoto[]
   tier: AdsV2Tier
   style: AdsV2StyleChoice
@@ -109,6 +111,7 @@ const DEFAULT_TIER: AdsV2Tier = 'commercial'
 const TIER_NAMES = ADS_V2_SIMPLE_COPY.en.tiers
 const PRESENTER = ADS_V2_PRESENTER_COPY.en
 const LINK_COPY = adsV2LinkImportCopy('en')
+const LINK_TELA = adsV2LinkTelaCopy('en') // KINEO-ADS-LINK-TELA-1510
 const BATCH_CSS = `
 .adv2 .adv2b-rows{list-style:none;margin:0;padding:0;display:grid;gap:14px}
 .adv2 .adv2b-row{border:1px solid var(--ads-line);border-radius:14px;padding:14px;background:var(--ads-bg);display:grid;gap:10px;min-width:0}
@@ -359,6 +362,7 @@ export function AdsV2BatchSession({ balance, onBalance, sample = false, business
     const row = rowsRef.current.find((r) => r.key === key)
     if (!row || row.linkBusy) return
     const url = row.link.trim()
+    if (row.linkUpload) updateRow(key, { linkUpload: false }) // KINEO-ADS-LINK-TELA-1510
     if (!url) {
       updateRow(key, { linkNote: 'Paste the product page link first.' })
       return
@@ -367,6 +371,7 @@ export function AdsV2BatchSession({ balance, onBalance, sample = false, business
     const r = await api<{ link?: string; host?: string; sentence?: string; images?: { footage_id: string; url: string }[] }>('/api/ads/v2/link-import', { method: 'POST', body: { url } })
     if (!aliveRef.current) return
     if (!r.ok) {
+      if (r.code === 'link_unreachable') { updateRow(key, { linkBusy: false, linkUpload: true, linkNote: adsV2LinkBlockedText(r.body, LINK_TELA, 'en') ?? adsV2LinkImportError(r.code, LINK_COPY) }); return } // KINEO-ADS-LINK-TELA-1510 — a frase honesta do servidor (Amazon, login, só-JS…) + "Upload the photo instead"
       updateRow(key, { linkBusy: false, linkNote: r.code.startsWith('moderation') || r.code === 'no_access' || r.code === 'closed' ? errText(r) : adsV2LinkImportError(r.code, LINK_COPY) })
       return
     }
@@ -705,6 +710,7 @@ export function AdsV2BatchSession({ balance, onBalance, sample = false, business
                 <button type="button" className="adsw-btn small ghost" disabled={busy !== null || r.linkBusy || r.photos.length >= MAX_PHOTOS_PER_ROW} onClick={() => void importLink(r.key)}>{r.linkBusy ? 'Reading…' : 'Get photos'}</button>
               </div>
               {r.linkNote ? <span className="adsw-hint" style={{ margin: 0 }}>{r.linkNote}</span> : null}
+              {r.linkNote && r.linkUpload && r.photos.length < MAX_PHOTOS_PER_ROW ? <button type="button" className="adsw-btn small ghost" data-kineo="ads-batch-upload-instead" style={{ justifySelf: 'start' }} disabled={busy !== null} onClick={(e) => e.currentTarget.closest('li')?.querySelector<HTMLInputElement>('input[type=file]')?.click()}>{LINK_TELA.upload}</button> : null}{/* KINEO-ADS-LINK-TELA-1510 — abre o seletor de fotos DESTA linha */}
               <div className="adv2b-photos">
                 {r.photos.map((p) => (
                   <span key={p.key} className="adv2b-photo">

@@ -14,6 +14,7 @@ import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { semLinkTela1510 } from './test-support/desfaz-ads-link-tela-1510.mjs' // reancorado KINEO-ADS-LINK-TELA-1510
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').split('\r\n').join('\n')
@@ -171,7 +172,7 @@ const sessaoOk = (s, erro) => /const sampleGone = \(code: string \| null \| unde
   (s.match(/if \(uploadGone\(e\)\) return/g) || []).length === 3 && (s.match(/setPlanError\(failText\(r\)\)/g) || []).length >= 3 &&
   /scopy && r\.code === 'sample_level_only' \? scopy\.note : failText\(r\)\)/.test(s)
 ok(sessaoOk(cli, 'apiError\\(r\\)'), '1j modo completo: 403 no_access / 402 do envio viram oferta SÓ com sample=true; o resto dos erros segue igual')
-ok(sessaoOk(sim, 'errorText\\(lang, r\\)') && /if \(sampleGone\(r\.code\)\) return \/\/ KINEO-BUSINESS-POS-AMOSTRA-2026-10-12\n\s+setLinkNote/.test(rd(F.simple)), '1k modo simples: as mesmas regras (e o link do produto também)')
+ok(sessaoOk(sim, 'errorText\\(lang, r\\)') && /if \(sampleGone\(r\.code\)\) return \/\/ KINEO-BUSINESS-POS-AMOSTRA-2026-10-12\n\s+setLinkNote/.test(semLinkTela1510(F.simple, rd(F.simple))) /* reancorado KINEO-ADS-LINK-TELA-1510 — o 422 do link ganhou 2 linhas entre o sampleGone e o setLinkNote; desfeitas em memória */, '1k modo simples: as mesmas regras (e o link do produto também)')
 ok(/\{sampleGone && sample && business && mode \? \(\n\s+<AdsAfterSampleOffer lang=\{mode === 'full' \? 'en' : lang\} business=\{business\} \/>\n\s+\) : mode === 'full' \? \(/.test(cli) &&
   (cli.match(/onSampleGone=\{\(\) => setSampleGone\(true\)\}/g) || []).length === 2,
   '1l o invólucro troca a sessão pela oferta (no modo completo em inglês; no simples na língua da tela)')

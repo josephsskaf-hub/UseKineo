@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semPosEntrega1510, ARQUIVOS_POS_ENTREGA_1510, ACRESCIMOS_POS_ENTREGA_1510, MARCA_POS_ENTREGA_1510 } from './test-support/desfaz-ads-pos-entrega-1510.mjs'
+import { semLinkTela1510 } from './test-support/desfaz-ads-link-tela-1510.mjs' // reancorado KINEO-ADS-LINK-TELA-1510 — a tela do leitor de link (a mais nova) sai antes das marcas
 import { semMarcas1510 } from './test-support/desfaz-ads-marcas-1510.mjs' // reancorado KINEO-LEVA-ADS-AGENCIA-1510 — as marcas (clientes) entraram na mesma leva DEPOIS desta pista: saem em memória antes do byte a byte
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -411,7 +412,7 @@ async function provas(over = {}) {
     try { tocados = [...(PROPRIO ? [...git(['diff', '--name-only', BASE, PROPRIO]).split('\n'), ...git(['diff', '--name-only', 'HEAD']).split('\n')] : git(['diff', '--name-only', BASE]).split('\n')), ...git(['ls-files', '--others', '--exclude-standard']).split('\n')].filter(Boolean) } catch { return false } // reancorado KINEO-LEVA-ADS-AGENCIA-1510 — mede o PRÓPRIO commit (BASE→1º marcado) + o não commitado; antes do commit existir, a árvore contra a base
     const novos = new Set(Object.values(F).filter((f) => ![F.montage, F.simple, F.full].includes(f)))
     const fora = tocados.filter((f) => !f.startsWith('scripts/') && !novos.has(f))
-    const telasOk = [F.simple, F.full].every((f) => { const pai = rdBase(f); return pai !== null && lf(semPosEntrega1510(f, semMarcas1510(f, Object.hasOwn(over, f) ? over[f] : SRC[f === F.simple ? 'simple' : 'full']))) === pai }) // reancorado KINEO-LEVA-ADS-AGENCIA-1510 — as marcas (mais novas na leva) saem antes
+    const telasOk = [F.simple, F.full].every((f) => { const pai = rdBase(f); return pai !== null && lf(semPosEntrega1510(f, semMarcas1510(f, semLinkTela1510(f, Object.hasOwn(over, f) ? over[f] : SRC[f === F.simple ? 'simple' : 'full'])))) === pai }) // reancorado KINEO-LEVA-ADS-AGENCIA-1510 — as marcas (mais novas na leva) saem antes · reancorado KINEO-ADS-LINK-TELA-1510
     return fora.every((f) => [F.montage, F.simple, F.full].includes(f)) && !tocados.some((f) => /v2Billing|v2Tiers|v2StartCore|v2Advance|ads\/v2\/(start|retake|variations|batch)\/|v2Batch|credits\/|lib\/compose|stripe|engineCost|pricing|v2Shots|v2Images|v2Engines/i.test(f)) && telasOk &&
       ACRESCIMOS_POS_ENTREGA_1510[F.simple].length === 2 && ACRESCIMOS_POS_ENTREGA_1510[F.full].length === 2
   })
@@ -448,7 +449,7 @@ for (const [n, v] of AGORA) ok(v, n)
 
 console.log('\n── a forma do ajuste')
 ok(JSON.stringify(ARQUIVOS_POS_ENTREGA_1510.sort()) === JSON.stringify([F.montage, F.simple, F.full].sort()), 'o desfaz cobre exatamente montagem + as 2 telas')
-ok(ARQUIVOS_POS_ENTREGA_1510.every((f) => { const pai = rdBase(f); return pai !== null && lf(semPosEntrega1510(f, semMarcas1510(f, rd(f)))) === pai }) /* reancorado KINEO-LEVA-ADS-AGENCIA-1510 — as marcas (mais novas na leva) saem antes */, 'byte a byte: desfeitas as linhas marcadas, cada arquivo é EXATAMENTE o pai do 1º commit marcado')
+ok(ARQUIVOS_POS_ENTREGA_1510.every((f) => { const pai = rdBase(f); return pai !== null && lf(semPosEntrega1510(f, semMarcas1510(f, semLinkTela1510(f, rd(f))))) === pai }) /* reancorado KINEO-ADS-LINK-TELA-1510 */ /* reancorado KINEO-LEVA-ADS-AGENCIA-1510 — as marcas (mais novas na leva) saem antes */, 'byte a byte: desfeitas as linhas marcadas, cada arquivo é EXATAMENTE o pai do 1º commit marcado')
 ok(ACRESCIMOS_POS_ENTREGA_1510[F.montage].length > 0 && ACRESCIMOS_POS_ENTREGA_1510[F.montage].every((l) => !/x_alignment|font_size|ADS_V2_OVERLAY_Y|ADS_V2_MUSIC_VOLUME|voiceUrl|musicUrl|cardSeconds|credits|watermark/i.test(l)), "na montagem, nenhuma linha acrescentada mexe em frase, fonte, voz, música, duração do cartão ou marca d'água (só o preenchimento com fill)")
 
 console.log('\n── mutantes (cada um provado aplicado; cada um deixa ao menos uma prova vermelha)')

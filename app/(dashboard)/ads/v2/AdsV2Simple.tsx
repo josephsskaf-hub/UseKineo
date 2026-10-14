@@ -127,6 +127,7 @@ import { adsV2QuadroCopy } from '@/lib/ads/v2QuadroCopy' // KINEO-ADS-QUADRO-STU
 // revisão com "Gerar · N créditos", "Comece deste" e a vaga dos 2–3 roteiros (frases nas 16 línguas, lib pura).
 import { ADS_V2_AUTO_PLAN_MS, ADS_V2_SCRIPT_CHOOSE_ROUTE, adsV2FlowCopy, adsV2FlowName, adsV2ScriptOptions, adsV2StartFromRecipe, adsV2StyleTint, type AdsV2FlowCopy, type AdsV2ScriptOption } from '@/lib/ads/v2Flow' // KINEO-ADS-FLUXO-2026-10-13
 import { AdsReadCard, AdsStartFromRow, AdsStyleStage, type AdsStyleStageData } from '@/components/ads/AdsFlow' // KINEO-ADS-FLUXO-2026-10-13
+import { adsV2LinkBlockedText, adsV2LinkCurrency, adsV2LinkNeedsCheck, adsV2LinkPriceState, adsV2LinkTelaCopy, type AdsV2LinkPriceState, type AdsV2LinkTelaCopy } from '@/lib/ads/v2LinkTela' // KINEO-ADS-LINK-TELA-1510 — confiança, preço incerto, moeda e o 422 honesto (16 línguas)
 import { ADS_V2_SCENE_MAX_CHARS, ADS_V2_SCENE_PRESETS, adsV2AdKind, adsV2ApplyScenePreset, adsV2ProductTitle, adsV2SceneAllowed, adsV2SceneCopy, adsV2SceneErrorText, adsV2SceneIssues, adsV2SceneRow, adsV2SplitSceneRequest, sanitizeAdsV2Scene, type AdsV2AdKind, type AdsV2SceneCopy } from '@/lib/ads/v2Scene'
 import { adsV2PackshotCopy } from '@/lib/ads/v2Packshot' // KINEO-ADS-MELHORIAS-1410 — o rótulo do plano com a foto real do produto
 import { adsV2FormatCopy } from '@/lib/ads/v2Formats' // KINEO-ADS-MELHORIAS-1410 — as frases do formato (16 línguas)
@@ -597,6 +598,7 @@ export function AdsV2SimpleSession({
 }) {
   const copy: AdsV2SimpleCopy = pickInterfaceCopy(ADS_V2_SIMPLE_COPY, lang)
   const lcopy: AdsV2LinkImportCopy = adsV2LinkImportCopy(lang) // KINEO-ADS-1FOTO-LINK-2026-10-10 — 16 línguas
+  const ltc: AdsV2LinkTelaCopy = adsV2LinkTelaCopy(lang) // KINEO-ADS-LINK-TELA-1510
   const vcopy = variationsCopy(lang)
   const scopy: AdsSampleCopy | null = sample ? adsSampleCopy(lang) : null
   const [sampleCap, setSampleCap] = useState(false)
@@ -623,7 +625,7 @@ export function AdsV2SimpleSession({
   const [pronWord, setPronWord] = useState('') // KINEO-ADS-DEMO-UNIVERSO-1410 — o nome da marca como está escrito (vazio = o título do cartão até o travessão)
   const [pronSay, setPronSay] = useState('') // KINEO-ADS-DEMO-UNIVERSO-1410 — como a voz fala (vazio = sem troca)
   const [linkBusy, setLinkBusy] = useState(false)
-  const [linkNote, setLinkNote] = useState<{ warn: boolean; text: string } | null>(null)
+  const [linkNote, setLinkNote] = useState<{ warn: boolean; text: string; upload?: boolean } | null>(null) // KINEO-ADS-LINK-TELA-1510 — upload: o 422 oferece "Enviar a foto"
   // KINEO-SHOPIFY-2026-10-13 — /ads/v2?from=shopify&link=… (o botão "Make a 15-second ad" do app da Shopify, via /shopify/open):
   // o link do produto entra no campo e as fotos são lidas UMA vez, pelo mesmo importLink do botão. Sem from=shopify, nada muda.
   const shopifyLinkDone = useRef(false)
@@ -752,6 +754,8 @@ export function AdsV2SimpleSession({
   const [brandTick, setBrandTick] = useState(0) // KINEO-ADS-MARCAS-1510
   const [photoColor, setPhotoColor] = useState<string | null>(null)
   const linkInputRef = useRef<HTMLInputElement | null>(null)
+  const dropRef = useRef<HTMLDivElement | null>(null) // KINEO-ADS-LINK-TELA-1510 — "Enviar a foto" leva o foco para a área de soltar
+  const [dropPulse, setDropPulse] = useState(false) // KINEO-ADS-LINK-TELA-1510
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
   const [copyEdit, setCopyEdit] = useState<{ narration: string; overlays: string[] } | null>(null)
   const [copyBusy, setCopyBusy] = useState(false)
@@ -760,7 +764,7 @@ export function AdsV2SimpleSession({
   // o aviso do "Comece deste", o roteiro escolhido (quando o /plan trouxer 2–3) e o botão principal do cartão de revisão
   // (a barra do celular só repassa o clique a ele: o débito continua tendo uma porta só).
   const fc: AdsV2FlowCopy = adsV2FlowCopy(lang)
-  const [linkFacts, setLinkFacts] = useState<{ host: string; priceFound: boolean } | null>(null)
+  const [linkFacts, setLinkFacts] = useState<{ host: string; priceFound: boolean; check?: boolean; confirmed?: boolean; priceState?: AdsV2LinkPriceState; currency?: string | null } | null>(null) // KINEO-ADS-LINK-TELA-1510 — check = confiança não-high esperando "Looks right"
   const [startNote, setStartNote] = useState<string | null>(null)
   const [scriptPick, setScriptPick] = useState<string | null>(null)
   const goBtnRef = useRef<HTMLButtonElement | null>(null)
@@ -899,6 +903,7 @@ export function AdsV2SimpleSession({
   // KINEO-ADS-1FOTO-LINK-2026-10-10 — 1 foto basta; link sem foto NÃO planeja (a frase pede a foto nas 16 línguas).
   if (inAd.length < ADS_V2_SIMPLE_MIN_IN_AD) missing.push(fill(lcopy.needPhoto, { n: ADS_V2_SIMPLE_MIN_IN_AD - inAd.length, min: ADS_V2_SIMPLE_MIN_IN_AD, max: ADS_V2_SIMPLE_MAX_IN_AD }))
   if (linkBusy) missing.push(lcopy.linkReading)
+  if (linkFacts?.check) missing.push(ltc.pending) // KINEO-ADS-LINK-TELA-1510 — confiança média/baixa: o roteiro (automático ou manual) espera "Looks right" ou um campo editado
   // O vídeo ocupa vaga de foto, mas o plano precisa de pelo menos 1 foto (referência das cenas criadas).
   if (inAd.length > 0 && inAd.every((p) => p.video)) missing.push(copy.plan.needPhoto)
   if (!adsV2SentenceReady(sentence)) missing.push(copy.plan.needText) // KINEO-ADS-RETESTE-1510 — era `!sentence`: "a" planejava e voltava "We could not tell which business this is"
@@ -1536,6 +1541,18 @@ export function AdsV2SimpleSession({
    * Frase vazia ganha a sugestão da página. Nenhuma foto = o aviso pedido ("add at least one photo"); o link lido fica
    * para o roteiro. Nada aqui cria pedido.
    */
+  /** KINEO-ADS-LINK-TELA-1510 — "Looks right" (ou editar nome/preço) libera os dados lidos para o roteiro. */
+  const confirmLink = () => setLinkFacts((f) => (f && f.check ? { ...f, check: false, confirmed: true } : f)) // KINEO-ADS-LINK-TELA-1510
+  /** KINEO-ADS-LINK-TELA-1510 — "Enviar a foto": leva a pessoa à área de soltar (rola, foca o botão e pisca a borda). */
+  function focusDrop() {
+    const el = dropRef.current
+    if (!el) return
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    el.querySelector<HTMLButtonElement>('button.adv2-add')?.focus({ preventScroll: true })
+    setDropPulse(true)
+    window.setTimeout(() => { if (aliveRef.current) setDropPulse(false) }, 1800)
+  }
+
   async function importLink(raw?: string) {
     const url = (raw ?? link).trim()
     // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — "Get photos" com o campo vazio avisava nada; agora diz o que fazer.
@@ -1553,6 +1570,8 @@ export function AdsV2SimpleSession({
       if (!aliveRef.current) return
       if (!r.ok) {
         if (sampleGone(r.code)) return // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
+        const blockedText = r.code === 'link_unreachable' ? adsV2LinkBlockedText(r.body, ltc, lang) : null // KINEO-ADS-LINK-TELA-1510 — a frase honesta do servidor (Amazon, login, só-JS…)
+        if (r.code === 'link_unreachable') { setLinkNote({ warn: true, upload: true, text: blockedText ?? (r.body.why === 'blocked' ? fix.linkBlocked : r.body.why === 'not_found' ? fix.linkNotFound : adsV2LinkImportError(r.code, lcopy)) }); return } // KINEO-ADS-LINK-TELA-1510 — + o botão "Enviar a foto"
         setLinkNote({ warn: true, text: r.code.startsWith('moderation') || r.code === 'no_access' || r.code === 'closed' ? errorText(lang, r) : r.code === 'link_unreachable' && r.body.why === 'blocked' ? fix.linkBlocked : r.code === 'link_unreachable' && r.body.why === 'not_found' ? fix.linkNotFound : adsV2LinkImportError(r.code, lcopy) }) // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o porquê da página que não abriu (bloqueou / não existe)
         return
       }
@@ -1567,7 +1586,8 @@ export function AdsV2SimpleSession({
       if (pageName) setCardTitle((cur) => (cur.trim() ? cur : pageName)) // KINEO-ADS-FLUXO-2026-10-13
       if (pagePrice) setPrice((cur) => (cur.trim() ? cur : pagePrice)) // KINEO-ADS-FLUXO-2026-10-13
       setLinkPage({ name: pageName || '', price: pagePrice }) // KINEO-ADS-PALCO-VOLTAR-1410 — o nome que a página DIZ (é evidência da marca e volta ao cartão se o kit sair)
-      setLinkFacts({ host: host || url, priceFound: !!pagePrice }) // KINEO-ADS-FLUXO-2026-10-13
+      const extra = r.data as Record<string, unknown> // KINEO-ADS-LINK-TELA-1510
+      setLinkFacts({ host: host || url, priceFound: !!pagePrice, check: adsV2LinkNeedsCheck(extra.confidence), confirmed: false, priceState: adsV2LinkPriceState(r.data.price, extra.reasons), currency: adsV2LinkCurrency(extra.currency) }) // KINEO-ADS-FLUXO-2026-10-13 · KINEO-ADS-LINK-TELA-1510 — confiança, preço incerto e moeda
       const added: SimpleItem[] = []
       const list = Array.isArray(r.data.images) ? r.data.images.slice(0, ADS_V2_LINK_IMPORT_MAX_IMAGES) : []
       for (const [i, im] of list.entries()) {
@@ -2283,6 +2303,7 @@ export function AdsV2SimpleSession({
                 </div>
                 <small>{lcopy.linkHint}</small>
                 {linkNote ? <p className={linkNote.warn ? 'adsw-warn' : 'adsw-hint'} role="status">{linkNote.text}</p> : null}
+                {linkNote?.upload ? <button type="button" className="adsw-btn small ghost" data-kineo="ads-link-upload-instead" style={{ justifySelf: 'start' }} disabled={locked} onClick={focusDrop}>{ltc.upload}</button> : null}{/* KINEO-ADS-LINK-TELA-1510 */}
               </div>
               {linkFacts ? (
                 <AdsReadCard
@@ -2291,11 +2312,12 @@ export function AdsV2SimpleSession({
                   photos={items.filter((p) => p.fromLink).map((p) => p.srcUrl)}
                   name={cardTitle}
                   namePlaceholder={adsV2ProductTitle(sentence, adKind)}
-                  onName={setCardTitle}
+                  onName={(v) => { setCardTitle(v); confirmLink() }} // KINEO-ADS-LINK-TELA-1510 — editar = confirmar
                   price={price}
-                  onPrice={setPrice}
+                  onPrice={(v) => { setPrice(v); confirmLink() }} // KINEO-ADS-LINK-TELA-1510
                   pricePlaceholder={copy.text.pricePlaceholder}
                   priceFound={linkFacts.priceFound}
+                  check={linkFacts.priceState ? { copy: ltc, pending: !!linkFacts.check, confirmed: !!linkFacts.confirmed, onConfirm: confirmLink, priceState: linkFacts.priceState, currency: linkFacts.currency ?? null } : undefined} // KINEO-ADS-LINK-TELA-1510
                   disabled={locked}
                 />
               ) : null}
@@ -2354,7 +2376,7 @@ export function AdsV2SimpleSession({
               ) : null}
               <input ref={fileInputRef} className="adv2-sr" type="file" accept={ADS_V2_SIMPLE_ACCEPT} multiple tabIndex={-1} aria-hidden="true" onChange={(e) => { void addFiles(e.target.files); e.target.value = '' }} />
               {/* KINEO-ADS-UX-MARCA-2026-10-10 — soltar arquivos aqui OU o botão de sempre (mesmo addFiles, mesmas regras). */}
-              <div className="adv2q-drop">{/* KINEO-ADS-QUADRO-STUDIO-1510 — a área de soltar compacta (uma linha) */}
+              <div className="adv2q-drop" ref={dropRef} data-kineo="ads-photo-drop" style={dropPulse ? { outline: '2px solid #F59E0B', outlineOffset: 4, borderRadius: 14 } : undefined}>{/* KINEO-ADS-QUADRO-STUDIO-1510 — a área de soltar compacta (uma linha) */}{/* KINEO-ADS-LINK-TELA-1510 — ref/pulse do "Enviar a foto" */}
                 <DropZone
                   copy={ux}
                   disabled={locked || items.length >= ADS_V2_SIMPLE_MAX_ITEMS}

@@ -18,6 +18,7 @@ import { fill } from '@/lib/ads/v2Simple'
 import { ADS_V2_FLOW_TABS, ADS_V2_START_FROM, type AdsV2FlowCopy, type AdsV2FlowTab } from '@/lib/ads/v2Flow'
 import type { AdsV2StyleChoice } from '@/lib/ads/v2Styles'
 import { ADS_HOUSE_STAGE } from '@/components/ProductStage'
+import type { AdsV2LinkPriceState, AdsV2LinkTelaCopy } from '@/lib/ads/v2LinkTela' // KINEO-ADS-LINK-TELA-1510
 
 export const ADS_FLOW_CSS = `
 @property --stage-a{syntax:'<color>';inherits:true;initial-value:#2563EB}
@@ -72,6 +73,13 @@ export const ADS_FLOW_CSS = `
 .adv2 .adv2f-read .pics img{width:54px;height:96px;object-fit:cover;border-radius:9px;border:1px solid var(--ads-line);background:var(--ads-card)}
 .adv2 .adv2f-read small{font-size:12px;color:var(--ads-muted);line-height:1.45}
 @media(max-width:520px){.adv2 .adv2f-read .row{grid-template-columns:minmax(0,1fr)}}
+.adv2 .adv2f-read[data-check=true]{border-color:color-mix(in srgb,#F59E0B 70%,var(--ads-line));background:color-mix(in srgb,#F59E0B 7%,var(--ads-bg))} /* KINEO-ADS-LINK-TELA-1510 */
+.adv2 .adv2f-read[data-check=true] h3 i{background:#F59E0B;color:#1f1300} /* KINEO-ADS-LINK-TELA-1510 */
+.adv2 .adv2f-read[data-check=true] input{border-color:#F59E0B;box-shadow:0 0 0 3px color-mix(in srgb,#F59E0B 22%,transparent)} /* KINEO-ADS-LINK-TELA-1510 */
+.adv2 .adv2f-read[data-check=true] .pics img{outline:2px solid #F59E0B;outline-offset:2px} /* KINEO-ADS-LINK-TELA-1510 */
+.adv2 .adv2f-read .chk{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px} /* KINEO-ADS-LINK-TELA-1510 */
+.adv2 .adv2f-read .chk small{flex:1 1 220px;color:var(--ads-text)} /* KINEO-ADS-LINK-TELA-1510 */
+.adv2 .adv2f-read .cur{margin-inline-start:6px;padding:1px 6px;border-radius:6px;border:1px solid var(--ads-line);font-size:10.5px;font-weight:750;letter-spacing:.06em;color:var(--ads-muted)} /* KINEO-ADS-LINK-TELA-1510 */
 .adv2 .adv2f-sum{margin:0 0 14px;padding:12px;border-radius:14px;border:1px solid color-mix(in srgb,var(--stage-a) 28%,var(--ads-line));background:color-mix(in srgb,var(--stage-a) 5%,var(--ads-bg));display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 12px}
 .adv2 .adv2f-sum div{min-width:0}
 .adv2 .adv2f-sum dt{font-size:10.5px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;color:var(--ads-muted)}
@@ -256,6 +264,7 @@ export function AdsReadCard({
   pricePlaceholder,
   priceFound,
   disabled,
+  check, // KINEO-ADS-LINK-TELA-1510
 }: {
   copy: AdsV2FlowCopy
   host: string
@@ -268,11 +277,20 @@ export function AdsReadCard({
   pricePlaceholder: string
   priceFound: boolean
   disabled: boolean
+  /** KINEO-ADS-LINK-TELA-1510 — a confiança do leitor: pending = pede "Looks right" (ou editar um campo) antes do roteiro; o estado do preço; a moeda. Sem = o cartão de antes. */
+  check?: { copy: AdsV2LinkTelaCopy; pending: boolean; confirmed: boolean; onConfirm: () => void; priceState: AdsV2LinkPriceState; currency: string | null }
 }) {
+  const pending = !!check?.pending // KINEO-ADS-LINK-TELA-1510
   return (
-    <div className="adv2f-read" role="group" aria-labelledby="adv2f-read-h" data-kineo="ads-link-read">
-      <h3 id="adv2f-read-h"><i aria-hidden="true">✓</i>{copy.read.title}</h3>
+    <div className="adv2f-read" role="group" aria-labelledby="adv2f-read-h" data-kineo="ads-link-read" data-check={pending ? 'true' : undefined}>{/* KINEO-ADS-LINK-TELA-1510 — data-check */}
+      <h3 id="adv2f-read-h"><i aria-hidden="true">{pending ? '!' : '✓'}</i>{pending && check ? check.copy.title : copy.read.title}</h3>{/* KINEO-ADS-LINK-TELA-1510 */}
       <small>{fill(copy.read.from, { host, n: photos.length })} · {copy.read.fix}</small>
+      {pending && check ? ( /* KINEO-ADS-LINK-TELA-1510 — confiança média/baixa: confere e confirma (sem modal) */
+        <div className="chk" data-kineo="ads-link-check">
+          <small>{check.copy.why}</small>
+          <button type="button" className="adsw-btn small" data-kineo="ads-link-looks-right" disabled={disabled} onClick={check.onConfirm}>{check.copy.ok}</button>
+        </div>
+      ) : check?.confirmed ? <small data-kineo="ads-link-confirmed">✓ {check.copy.done}</small> : null}{/* KINEO-ADS-LINK-TELA-1510 */}
       {photos.length ? (
         <div className="pics">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -285,11 +303,11 @@ export function AdsReadCard({
           <input type="text" value={name} maxLength={60} disabled={disabled} placeholder={namePlaceholder} onChange={(e) => onName(e.target.value)} />
         </label>
         <label className="adsw-f" style={{ margin: 0 }}>
-          <span>{copy.read.price}</span>
+          <span>{copy.read.price}{check?.currency ? <span className="cur" data-kineo="ads-link-currency">{check.currency}</span> : null}</span>{/* KINEO-ADS-LINK-TELA-1510 — a moeda que a página disse */}
           <input type="text" value={price} maxLength={60} disabled={disabled} placeholder={pricePlaceholder} onChange={(e) => onPrice(e.target.value)} />
         </label>
       </div>
-      {!priceFound && !price.trim() ? <small>{copy.read.priceNone}</small> : null}
+      {!priceFound && !price.trim() ? <small data-kineo="ads-link-price-note" data-price={check?.priceState ?? 'none'}>{check?.priceState === 'unsure' ? check.copy.priceUnsure : copy.read.priceNone}</small> : null}{/* KINEO-ADS-LINK-TELA-1510 — "não tivemos certeza" ≠ "a página não tem" */}
     </div>
   )
 }

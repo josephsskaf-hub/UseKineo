@@ -21,10 +21,11 @@ import { semPalcoVoltar1410, PALCO_VOLTAR_1410_BASE, PALCO_VOLTAR_1410_ARQUIVOS 
 import { desfazPosEntrega1510 } from './test-support/desfaz-ads-pos-entrega-1510.mjs' // reancorado KINEO-ADS-POS-ENTREGA-1510 — o preenchimento dos formatos (montagem) e o painel depois da entrega (telas) saem em memória ANTES de todo desfaz mais antigo
 import { semRefacaoAtor1410 } from './test-support/desfaz-ads-refacao-ator-1410.mjs' // reancorado KINEO-ADS-REFACAO-ATOR-1410 — a 1ª refação grátis e o rótulo de IA (linhas marcadas, provadas em test-ads-refacao-ator-1410) saem antes
 import { semMarcas1510 } from './test-support/desfaz-ads-marcas-1510.mjs' // reancorado KINEO-ADS-MARCAS-1510
+import { semLinkTela1510 } from './test-support/desfaz-ads-link-tela-1510.mjs' // reancorado KINEO-ADS-LINK-TELA-1510
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
-const read = (rel) => semMarcas1510(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510)
+const read = (rel) => semMarcas1510(rel, semLinkTela1510(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n'))) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-LINK-TELA-1510 — a tela do leitor de link (a mais nova) sai antes das marcas
 let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }
