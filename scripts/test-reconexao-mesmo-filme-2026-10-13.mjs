@@ -7,6 +7,7 @@
 //   3. TRAVA 8.2: só linhas marcadas — retiradas, a rota volta à base byte a byte (base = pai do 1º commit com a marca).
 // Mutantes: ROTA_ALVO=<arquivo> roda contra uma cópia mutada (scripts/test-reconexao-mesmo-filme-2026-10-13.mutantes.sh).
 import { readFileSync } from 'node:fs'
+import { desfazAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 import { execFileSync } from 'node:child_process'
 import { desfazRomanceAdulto } from './test-support/desfaz-romance-adulto-1310.mjs' // reancorado KINEO-LEVA7-1310: o conserto do romance (13/10) também sai, em memória, antes do byte a byte
 import { semContratoClassicos1410 } from "./test-support/desfaz-contrato-classicos-1410.mjs" // reancorado KINEO-CONTRATO-CLASSICOS-1410: o contrato clássico (14/10) sai, em memória, antes do byte a byte
@@ -55,7 +56,7 @@ if (!process.env.ROTA_ALVO) {
     base = git(['show', `${ref}:${CAMINHO}`]).replace(/\r\n/g, '\n')
   } catch { base = null }
   const semMarca = (s) => s.split('\n').filter((l) => !l.includes(MARCA)).join('\n')
-  checa('sem as linhas marcadas, a rota = base byte a byte', base !== null && desfazRomanceAdulto(CAMINHO, semMarca(semContratoClassicos1410(desfazParceiroEyebible2_1410(CAMINHO, rota), CAMINHO))) === base) /* reancorado KINEO-CONTRATO-CLASSICOS-1410 */ // reancorado KINEO-LEVA7-1310
+  checa('sem as linhas marcadas, a rota = base byte a byte', base !== null && desfazRomanceAdulto(CAMINHO, semMarca(semContratoClassicos1410(desfazParceiroEyebible2_1410(CAMINHO, desfazAncoraLegenda1410(CAMINHO, rota) /* KINEO-ANCORA-LEGENDA-1410 */), CAMINHO))) === base) /* reancorado KINEO-CONTRATO-CLASSICOS-1410 */ // reancorado KINEO-LEVA7-1310
 }
 
 console.log(`\ntest-reconexao-mesmo-filme-2026-10-13: ${ok} ok · ${falhas} falhas`)
