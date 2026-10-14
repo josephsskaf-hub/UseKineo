@@ -26,6 +26,20 @@ import { FREE_CLIP_APPLY_EVENT, FREE_CLIP_IDEA, FREE_CLIP_NOTICE_PARAM } from '@
 import { clipEngineShowcase, type ClipEngineShowcase } from '@/lib/clips/clipEngineShowcase' // KINEO-FAROL-VITRINE-2026-10-06
 import { CLIP_ENGINE_TAGLINE, clipSecondsLabel } from '@/lib/clips/clipEngineCard' // KINEO-CLIPES-CARTAO-MOTOR-2026-10-09
 import { FREE_CLIP_MARK_TEST_KEY_PREFIX, FREE_CLIP_MARK_TEST_PARAM } from '@/lib/clips/freeClipWatermark' // KINEO-MARCA-TESTE-INTERNO-2026-10-06
+import { CLIP_EFFECT_MEMORY_KEY, CLIP_ROTATE_EFFECT_KEY, clipRotateHint, restoredClipEffect } from '@/lib/clips/clipRotateHint' // KINEO-CLIPE360-AMOSTRA-1410
+
+// KINEO-CLIPE360-AMOSTRA-1410 — a escolha de efeito sobrevive à ida e volta pela barra lateral (sessionStorage desta aba).
+// Antes, ela morava só na memória da tela: o Pedro (14/10) escolheu "Produto 360°", foi ao /spaces, voltou ao /clips e o
+// efeito tinha sumido — o clipe saiu livre. Armazenamento bloqueado (aba anônima) = a tela segue como antes, sem lembrar.
+function rememberClipEffect(key: string | null) {
+  try {
+    if (key) window.sessionStorage.setItem(CLIP_EFFECT_MEMORY_KEY, key)
+    else window.sessionStorage.removeItem(CLIP_EFFECT_MEMORY_KEY)
+  } catch { /* sem armazenamento: nada a lembrar */ }
+}
+function rememberedClipEffect(): string | null {
+  try { return window.sessionStorage.getItem(CLIP_EFFECT_MEMORY_KEY) } catch { return null }
+}
 
 type Engine = {
   key: string
@@ -183,7 +197,9 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
     if (effectFromUrlRef.current || effects.length === 0) return
     effectFromUrlRef.current = true
     const wanted = new URLSearchParams(window.location.search).get('effect')
-    if (wanted && effects.some((fx) => fx.key === wanted)) setEffectKey(wanted)
+    // KINEO-CLIPE360-AMOSTRA-1410 — ?effect= vence; senão volta o efeito que a pessoa escolheu nesta aba (só se a galeria o trouxe).
+    const restored = restoredClipEffect({ fromUrl: wanted, remembered: rememberedClipEffect(), effectKeys: effects.map((fx) => fx.key) })
+    if (restored) setEffectKey(restored)
   }, [effects])
 
   // KINEO-AVISO-CLIPE-GRATIS-2026-10-06 — a ideia pronta do aviso "Você tem 1 clipe grátis" (lib/clips/freeClipNotice.ts):
@@ -208,6 +224,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
     const target = engines.find((e) => e.key === FREE_CLIP_IDEA.engine && fits(e)) ?? engines.find(fits)
     if (!target) return
     setEffectKey(null)
+    rememberClipEffect(null) // KINEO-CLIPE360-AMOSTRA-1410
     setPhotoUrl(null)
     setEngineKey(target.key)
     setSeconds(FREE_CLIP_IDEA.seconds)
@@ -242,6 +259,8 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
   const alternatives = engines.filter((e) => e.key !== engineKey && e.seconds.includes(seconds) && (withPhoto ? e.photo : e.text))
   const textOk = withPhoto ? prompt.trim().length === 0 || prompt.trim().length >= 3 : prompt.trim().length >= 3
   const canGenerate = !!engine && lengthOk && !modeProblem && textOk && !busy && !uploading && cost !== null
+  // KINEO-CLIPE360-AMOSTRA-1410 — a nota do giro (lib/clips/clipRotateHint.ts). Fora do canGenerate de propósito: nunca bloqueia.
+  const rotateHint = clipRotateHint({ prompt, withPhoto, effectChosen: !!effect, effectKeys: effects.map((fx) => fx.key) })
 
   // KINEO-AVISO-CLIPE-GRATIS-2026-10-06 — ideia pronta aplicada: assim que o botão de gerar acende, ele vem para o centro e
   // ganha o foco (a pessoa só aperta).
@@ -285,7 +304,19 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
   }
 
   function chooseEffect(key: string) {
-    setEffectKey((current) => (current === key ? null : key))
+    const next = effectKey === key ? null : key // KINEO-CLIPE360-AMOSTRA-1410 — o mesmo vai-e-volta do cartão, agora lembrado
+    setEffectKey(next)
+    rememberClipEffect(next)
+    setError(null)
+    window.requestAnimationFrame(() => document.getElementById('clip-effect-panel')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }))
+  }
+
+  // KINEO-CLIPE360-AMOSTRA-1410 — a troca de 1 clique da nota do giro: o efeito Produto 360° com a MESMA foto (o texto fica
+  // guardado se a pessoa voltar ao clipe livre). Nada é gerado aqui — a pessoa ainda aperta o botão do efeito.
+  function switchToRotateEffect() {
+    if (!effects.some((fx) => fx.key === CLIP_ROTATE_EFFECT_KEY)) return
+    setEffectKey(CLIP_ROTATE_EFFECT_KEY)
+    rememberClipEffect(CLIP_ROTATE_EFFECT_KEY)
     setError(null)
     window.requestAnimationFrame(() => document.getElementById('clip-effect-panel')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }))
   }
@@ -617,7 +648,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
               {effect.person && <p className="notice" role="note">{t('effectPersonHint')}</p>}
               {errorBlock}
               <div className="row" style={{ marginTop: 14 }}>
-                <button type="button" className="pill" onClick={() => { setEffectKey(null); setError(null) }}>← {t('effectBack')}</button>
+                <button type="button" className="pill" onClick={() => { setEffectKey(null); rememberClipEffect(null); setError(null) }}>← {t('effectBack')}</button>
               </div>
             </div>
             <div className="rail creation-settings">
@@ -638,6 +669,20 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
           <textarea aria-label={t('yourClip')} value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={5} maxLength={1000}
             placeholder={withPhoto ? t('placeholderMotion') : t('placeholder')} />
           {photoRow}
+          {/* KINEO-CLIPE360-AMOSTRA-1410 — pedido de giro com UMA foto: nota honesta + troca de 1 clique para o Produto 360° (ou,
+              sem o efeito na galeria desta conta, a sugestão de órbita/aproximação). Não bloqueia: gerar segue igual. */}
+          {rotateHint && (
+            <div className="notice" role="note" data-clip-rotate-hint={rotateHint.kind}>
+              {rotateHint.kind === 'switch' ? t('rotateNote') : t('rotateOrbit')}
+              {rotateHint.kind === 'switch' && (
+                <div className="row">
+                  <button type="button" className="pill on" data-clip-action="use_effect" data-clip-effect={CLIP_ROTATE_EFFECT_KEY} onClick={switchToRotateEffect}>
+                    ↻ {t('rotateSwitch')}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
           {engine && modeProblem && <p className="notice" role="status">{t(modeProblem, { engine: engine.label })}</p>}
           {errorBlock}
         </div>

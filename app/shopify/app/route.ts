@@ -103,7 +103,7 @@ function page(apiKey: string, shop: string): string {
   var TIER_NAMES = { photo_motion: 'Photo motion', commercial: 'Commercial', cinema: 'Cinema' };
   var ERRORS = {
     plan_required: 'Your free ad was already used. Pick a plan to make more ads.',
-    sample_level_only: 'The free ad uses the Photo motion level. Pick a plan for the other levels.',
+    sample_level_only: 'The free ad uses the Commercial level. Pick a plan for the other levels.', // KINEO-CLIPE360-AMOSTRA-1410
     out_of_credits: 'Not enough credits for this ad.',
     daily_cap: 'You reached today\\'s limit of extra ads. Try again tomorrow or upgrade your plan.',
     monthly_cap: 'You reached this month\\'s limit of extra ads. Upgrade your plan for more ads.',
@@ -146,7 +146,7 @@ function page(apiKey: string, shop: string): string {
     $('k-plan').textContent = 'Plan: ' + (names[account.plan] || 'Free') + ((account.pitch && account.pitch[account.plan]) ? ' — ' + account.pitch[account.plan] : '');
     $('k-weekly').hidden = !account.weekly_ready;
     $('k-credits').textContent = '· ' + account.credits + ' credits';
-    var note = account.sample_available ? 'Your first ad is free (Photo motion level, 15 s).' : (account.access === 'ok' ? '' : 'Pick a plan to make ads.');
+    var note = account.sample_available ? 'Your first ad is free (' + (TIER_NAMES[account.sample_tier] || 'Commercial') + ' level, 15 s).' : (account.access === 'ok' ? '' : 'Pick a plan to make ads.');
     if (account.granted_now) note = account.granted_now + ' credits were added for this billing cycle. ' + note;
     say($('k-planmsg'), note);
     var sel = $('k-style');

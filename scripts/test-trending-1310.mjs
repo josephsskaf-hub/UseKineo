@@ -209,7 +209,9 @@ function hrefProblems(B, ctx) {
   for (const r of ['app/(dashboard)/ads/v2/page.tsx', 'app/(dashboard)/clips/page.tsx', 'app/(dashboard)/studio/page.tsx', 'app/(auth)/signup/page.tsx']) if (!exists(r)) probs.push(`rota ${r} sumiu`)
   const ads = semComentarios(ctx.ads)
   if (!/wanted = new URLSearchParams\(window\.location\.search\)\.get\('style'\)/.test(ads) || !/if \(isAdsV2Style\(wanted\)\) setStyleChoice\(wanted\)/.test(ads)) probs.push('AdsV2Simple não lê ?style= (só chave do catálogo)')
-  if (!/\.get\('effect'\)/.test(ctx.clips) || !/effects\.some\(\(fx\) => fx\.key === wanted\)/.test(ctx.clips)) probs.push('ClipsClient não lê ?effect=')
+  // reancorado KINEO-CLIPE360-AMOSTRA-1410 — o /clips passou a validar o ?effect= por restoredClipEffect (lib/clips/clipRotateHint.ts), que só
+  // devolve chave da galeria (provado em scripts/test-clipe360-amostra-1410.mjs); a forma antiga (effects.some) segue aceita.
+  if (!/\.get\('effect'\)/.test(ctx.clips) || !(/effects\.some\(\(fx\) => fx\.key === wanted\)/.test(ctx.clips) || /restoredClipEffect\(\{ fromUrl: wanted, remembered: rememberedClipEffect\(\), effectKeys: effects\.map\(\(fx\) => fx\.key\) \}\)/.test(ctx.clips))) probs.push('ClipsClient não lê ?effect=')
   for (const k of ['prompt', 'engine', 'script_mode', 'intent_campaign']) if (!ctx.studio.includes(`sp.get('${k}')`)) probs.push(`Studio não lê ?${k}=`)
   if (!ctx.studio.includes("Number(sp.get('duration'))")) probs.push('Studio não lê ?duration=')
   return probs

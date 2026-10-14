@@ -16,6 +16,7 @@
 //   (9) mutantes: cada regra quebrada fica vermelha, e cada mutante prova que aplicou.
 // Estilo readFileSync + ts.transpileModule (via offline-ts-loader). Nenhum import com alias @/.
 import fs from 'node:fs'
+import { semAmostra1410 } from './test-support/desfaz-clipe360-amostra-1410.mjs' // reancorado KINEO-CLIPE360-AMOSTRA-1410
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
@@ -397,8 +398,10 @@ const START_SHA = 'a6de2e638d0fcaee810d6e41bdfea94d6f79607eda14375c2b465cf289ae5
 // do /start segue byte a byte igual à base (mesma impressão digital START_SHA).
 const START_NEW = 'shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds, presenter: !!plan.presenter }) // KINEO-ESTILOS-PRODUTO-2026-10-09 — o plano com estilo custa o efeito · KINEO-ATOR-ANUNCIO-2026-10-09 — o ator custa a foto e o vídeo falado'
 const START_OLD = 'shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source })), seconds: plan.totalSeconds })'
+// reancorado KINEO-CLIPE360-AMOSTRA-1410 — a amostra passou para o nível Commercial (lib/ads/sample.ts, fundador 14/10). semAmostra1410
+// (scripts/test-support/desfaz-clipe360-amostra-1410.mjs) devolve sample.ts ao texto EXATO de antes, e a impressão digital vale sobre ele.
 await check('7a v2Billing.ts e sample.ts byte a byte iguais à base c17771fe (cobrança, estorno, amostra "adssample-")', () =>
-  sha(read(F.billing)) === BILLING_SHA && sha(read(F.sample)) === SAMPLE_SHA)
+  sha(read(F.billing)) === BILLING_SHA && sha(semAmostra1410(read(F.sample))) === SAMPLE_SHA)
 // KINEO-EQUIPE-BUSINESS-2026-10-10 — re-ancorado: a equipe do Business trocou user.id → uid (o dono do workspace) no /start,
 // pediu loadAdsAccess com { workspace: true } e somou o rastro ads_order_by_member. desfazEquipe tira EXATAMENTE isso (linhas
 // marcadas, o if do rastro, a opção e o uid) e a impressão digital da base tem de bater igual: débito, trava, amostra e envio intocados.
