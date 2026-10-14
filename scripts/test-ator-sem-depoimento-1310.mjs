@@ -16,6 +16,7 @@
 //      tocar a montagem (adV2Montage.ts byte a byte o da base).
 //   5. Mutantes: cada peça quebrada fica vermelha, e cada mutante prova que aplicou.
 import fs from 'node:fs'
+import { semMelhorias1410Arquivo, linhasMelhorias1410 } from './test-support/desfaz-melhorias-1410.mjs' // reancorado KINEO-ADS-MELHORIAS-1410
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
@@ -170,7 +171,10 @@ const telaSimples = (src) => /import \{ adsV2AiLabelNotice \} from '@\/lib\/ads\
 ok(telaSimples(SRC.simple), '4d tela de resultado do modo SIMPLES: o aviso logo abaixo do download, na língua da interface')
 ok(/\{downloadNote \? [^\n]*\n\s*<p className="adv2-note" role="note">\{adsV2AiLabelNotice\('en'\)\}<\/p>/.test(SRC.full) && !/Turn on the AI-generated label when you post on TikTok/.test(SRC.full), '4e tela de resultado do modo COMPLETO (inglês): o mesmo aviso abaixo do download')
 ok(/\{group\.members\.some\(\(m\) => \(status\[m\.order_id\]\?\.status \?\? m\.status\) === 'delivered'\) \? <p className="adv2-note" role="note">\{adsV2AiLabelNotice\(lang\)\}<\/p> : null\}/.test(SRC.variations), '4f quadro das VARIAÇÕES (onde se baixa cada uma): o aviso aparece quando alguma está pronta')
-ok(SRC.montage === atBase(F.montage), '4g a montagem (adV2Montage.ts) é byte a byte a da base — nenhuma marca d\'água nova no vídeo')
+// reancorado KINEO-ADS-MELHORIAS-1410 — a montagem ganhou o packshot (foto real do produto: fundo + véu + foto inteira) e o cartão final
+// reposicionado para 4:5/1:1. Desfeito o diff EXATO dessas melhorias (semMelhorias1410Arquivo: qualquer outra mudança lança), o arquivo é
+// byte a byte o da base; e nenhuma linha acrescentada fala de marca d'água/watermark/logo da Kineo.
+ok((() => { try { return semMelhorias1410Arquivo(F.montage, SRC.montage) === atBase(F.montage) && !/watermark|marca d.água|kineo/i.test(linhasMelhorias1410(F.montage).join('\n').split('KINEO-ADS-MELHORIAS-1410').join('')) } catch { return false } })(), '4g a montagem (adV2Montage.ts) é byte a byte a da base — nenhuma marca d\'água nova no vídeo')
 ok(!/aiLabel/.test(SRC.simpleLib), '4h o aviso antigo (en/pt/es) saiu da tabela do modo simples — uma fonte só para o texto')
 
 // ═══ 5. Mutantes ═════════════════════════════════════════════════════════════════════════════════════════════════

@@ -125,6 +125,7 @@ import { adsV2QuadroCopy } from '@/lib/ads/v2QuadroCopy' // KINEO-ADS-QUADRO-STU
 import { ADS_V2_AUTO_PLAN_MS, ADS_V2_SCRIPT_CHOOSE_ROUTE, adsV2FlowCopy, adsV2FlowName, adsV2ScriptOptions, adsV2StartFromRecipe, adsV2StyleTint, type AdsV2FlowCopy, type AdsV2ScriptOption } from '@/lib/ads/v2Flow' // KINEO-ADS-FLUXO-2026-10-13
 import { AdsReadCard, AdsStartFromRow, AdsStyleStage, type AdsStyleStageData } from '@/components/ads/AdsFlow' // KINEO-ADS-FLUXO-2026-10-13
 import { ADS_V2_SCENE_MAX_CHARS, ADS_V2_SCENE_PRESETS, adsV2AdKind, adsV2ApplyScenePreset, adsV2ProductTitle, adsV2SceneAllowed, adsV2SceneCopy, adsV2SceneErrorText, adsV2SceneIssues, adsV2SceneRow, adsV2SplitSceneRequest, sanitizeAdsV2Scene, type AdsV2AdKind, type AdsV2SceneCopy } from '@/lib/ads/v2Scene'
+import { adsV2PackshotCopy } from '@/lib/ads/v2Packshot' // KINEO-ADS-MELHORIAS-1410 — o rótulo do plano com a foto real do produto
 
 // ─── tipos ────────────────────────────────────────────────────────────────────────────────────
 
@@ -2481,7 +2482,7 @@ export function AdsV2SimpleSession({
               {order.status === 'assembling' ? copy.progress.assembling : copy.progress.animating}{' '}
               {copy.progress.leave} <Link className="adsw-link" href="/history">{copy.progress.myVideos}</Link>.
             </p>
-            <SimpleShotGrid shots={order.shots} orderStatus={order.status} copy={copy} />
+            <SimpleShotGrid shots={order.shots} orderStatus={order.status} copy={copy} packshotLabel={adsV2PackshotCopy(lang).label} />
             {pollNote ? <p className="adsw-warn" role="status">{pollNote}</p> : null}
           </section>
         ) : null}
@@ -2871,12 +2872,12 @@ function SimplePlanPreview({
 
 // ─── grade das cenas (progresso) ─────────────────────────────────────────────────────────────
 
-function SimpleShotGrid({ shots, orderStatus, copy }: { shots: AdsV2ScreenShot[]; orderStatus: string; copy: AdsV2SimpleCopy }) {
+function SimpleShotGrid({ shots, orderStatus, copy, packshotLabel }: { shots: AdsV2ScreenShot[]; orderStatus: string; copy: AdsV2SimpleCopy; packshotLabel?: string }) {
   if (!shots.length) return <p className="adsw-hint" role="status">{copy.progress.preparing}</p>
   return (
     <ol className="adv2-grid" aria-label={copy.plan.shots}>
       {shots.map((s, i) => {
-        const label = simpleLabel(copy, shotStateLabel(s, orderStatus))
+        const label = s.packshot && packshotLabel ? packshotLabel : simpleLabel(copy, shotStateLabel(s, orderStatus)) // KINEO-ADS-MELHORIAS-1410 — "Sua foto real" na língua da tela
         const isText = s.kind === 'text'
         const name = fill(copy.progress.shot, { n: i + 1 })
         return (

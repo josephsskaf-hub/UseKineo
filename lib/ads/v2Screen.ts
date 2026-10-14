@@ -182,6 +182,8 @@ export interface AdsV2ScreenShot {
   status: string
   url: string | null
   retake_credits: number
+  /** KINEO-ADS-MELHORIAS-1410 — o plano é a foto REAL do produto (sem IA): rótulo próprio, sem "Refazer". */
+  packshot?: true
 }
 
 export const ADS_V2_ACTIVE_STATUSES: readonly AdsV2ScreenOrderStatus[] = ['generating', 'assembling']
@@ -190,7 +192,8 @@ export function isActiveOrderStatus(status: unknown): boolean {
 }
 
 /** Rótulo de um plano na grade. Nenhum rótulo promete tempo. */
-export function shotStateLabel(shot: Pick<AdsV2ScreenShot, 'kind' | 'source' | 'status' | 'state'>, orderStatus: string): string {
+export function shotStateLabel(shot: Pick<AdsV2ScreenShot, 'kind' | 'source' | 'status' | 'state' | 'packshot'>, orderStatus: string): string {
+  if (shot.packshot === true) return 'Your real photo' // KINEO-ADS-MELHORIAS-1410 — o packshot (a foto do produto, intocada)
   if (shot.kind === 'text' || shot.status === 'skipped_text') return 'Still with zoom'
   // KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — o vídeo do cliente não passa por IA: entra pronto, como foi gravado.
   if (shot.kind === 'user_video') return 'Your video'

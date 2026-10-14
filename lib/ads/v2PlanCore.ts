@@ -36,6 +36,7 @@ import { adsSampleLevelOk, adsSampleOpen } from '@/lib/ads/serverAccess'
 import { adsV2IsProductOrder, adsV2SceneSetting, adsV2SceneShots } from '@/lib/ads/v2Scene' // KINEO-ADS-CENA-2026-10-13 — a cena da pessoa no prompt das cenas criadas (só Comercial/Premium)
 import { ADS_V2_BRIEF_TIMEOUT_WHY, ADS_V2_PLAN_MODEL_DEADLINE_MS } from '@/lib/ads/v2Brief' // KINEO-ADS-CENA-2026-10-13 — prazo do modelo amarrado ao maxDuration e timeout que não vira 502 cru
 import { adsV2SentenceForCopy } from '@/lib/ads/v2Scene' // KINEO-ADS-CONSERTOS-1410 — produto sem a cena da frase
+import { adsV2PackshotShots } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — o packshot: um plano de IA vira a foto REAL do produto (mesmos créditos)
 import { adsV2BuildScripts } from '@/lib/ads/v2Scripts' // KINEO-ADS-ROTEIROS-2026-10-13 — 2 a 3 roteiros para escolher (o 1º = o texto de sempre); troca em /api/ads/v2/plan/choose
 
 /** Quem age: o id do auth (moderação e rastro) e o e-mail VERIFICADO dele (adsV2Visible). */
@@ -206,6 +207,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     const plan = planShots({ sector, tier: order.tier, photos: photos.map((p) => ({ id: p.footage_id, url: p.url, kind: p.kind })), seconds: order.seconds, ...(videos.length ? { videos } : {}), ...(styleAsked ? { style: styleAsked } : {}) })
     const sceneSetting = adsV2SceneSetting(brief0, order.tier) // KINEO-ADS-CENA-2026-10-13 — brief.scene limpa de novo; null no Normal ou sem cena
     plan.shots = adsV2SceneShots(plan.shots, { setting: sceneSetting, sector, product: adsV2IsProductOrder(brief0, sector), photos }) // KINEO-ADS-CENA-2026-10-13 — só o scenePrompt das cenas criadas muda ("Setting: …"); sem cena = o mesmo array
+    plan.shots = adsV2PackshotShots(plan.shots, { photos: photos.map((p) => ({ id: p.footage_id, url: p.url, kind: p.kind })), productOrder: adsV2IsProductOrder(brief0, sector) }) // KINEO-ADS-MELHORIAS-1410 — troca UM plano de IA (o fecho; senão o 2º) pela foto real do produto: nº de planos, duração e créditos iguais
     const promptIssues = checkV2Prompts(plan.shots.flatMap((s) => [s.prompt, s.scenePrompt].filter((x): x is string => !!x)), extracted.brief)
     if (promptIssues.length) {
       await served(false, { stage: 'prompts', why: promptIssues.slice(0, 4) })

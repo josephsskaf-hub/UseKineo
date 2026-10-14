@@ -444,6 +444,11 @@ export interface AdsV2PlannedShot {
    * plano sai pelo efeito da PixVerse (routeShot com styled) e o `prompt` continua o de movimento (é o da reserva H3).
    */
   effect?: AdsV2PlanStyle
+  /**
+   * KINEO-ADS-MELHORIAS-1410 — o PACKSHOT: a foto REAL do produto, intocada (kind 'text' = foto parada com zoom lento do
+   * montador, nenhuma IA). Só existe quando adsV2PackshotShots trocou um plano de IA por ela. Ausente = plano de sempre.
+   */
+  packshot?: true
   /** Só no plano 'user_video': o arquivo do cliente no bucket, a duração MEDIDA e o enquadramento (foco 0..1). */
   videoUrl?: string
   videoSeconds?: number
@@ -702,4 +707,67 @@ export function planShots(input: { sector: AdsV2Sector; tier: AdsV2PlanTier; pho
     photoRequests: spec.photoRequests,
     ...(style && target !== null ? { style } : {}),
   }
+}
+
+// ── KINEO-ADS-MELHORIAS-1410 — PACKSHOT: um plano com a foto REAL do produto (fidelidade do produto) ─────────────────────
+// QA de 14/10: a IA redesenhou o produto (um rostinho apareceu dentro do líquido do perfume). Kling O3, o still do Nano Banana
+// e os efeitos da PixVerse REGERAM o produto; nenhum plano mostrava a foto da pessoa como ela é. Agora todo anúncio com foto
+// marcada como PRODUTO troca UM plano de IA pela foto real do produto, parada, com o zoom lento do montador (o caminho do plano
+// `text`, que nunca vai à fal) e um fundo suave por baixo (lib/ads/adV2Montage.ts) para foto que não encha o quadro.
+// TROCA, não soma: o número de planos, os cortes e a duração ficam iguais, e os CRÉDITOS também (adsV2Credits depende só do
+// nível e da duração). O custo de fal cai um plano de Kling O3 (US$ 0,336).
+// ONDE: o ÚLTIMO plano (o fecho LUGAR/PRODUTO, logo antes do cartão final que já mostra a foto real desde 14/10) — o packshot
+// clássico de comercial: o produto parado, nítido, e em seguida a marca. O gancho precisa de movimento para segurar o dedo,
+// então o packshot nunca abre o anúncio. Se o último plano não pode ceder (vídeo do cliente, plano de estilo, herói, cena
+// criada), o 2º (o primeiro depois do gancho). Nenhum dos dois pode = sem packshot (o anúncio de sempre).
+// Nunca cede: o plano-herói do Premium (Seedance, a promessa do nível), as cenas criadas do Comercial/Premium (a promessa do
+// nível), o plano do estilo escolhido (a escolha da pessoa), o vídeo do cliente e o plano `text`. Com o ATOR ligado o packshot
+// também entra: é um dos inserts por cima da fala (lib/ads/adV2Montage.ts adsV2PresenterInserts), logo depois do estilo.
+// A FOTO: a 1ª marcada como produto; sem nenhuma, e o pedido é de PRODUTO (adsV2IsProductOrder, lib/ads/v2Scene.ts — no modo
+// simples a foto nasce 'place' fora do setor loja), a 1ª foto que não é de texto.
+/** Os tipos de plano que podem ceder a vaga ao packshot: animação de IA de UMA foto do cliente (Kling O3), sem estilo. */
+export const ADS_V2_PACKSHOT_YIELD_KINDS: readonly AdsV2PlanShotKind[] = ['people', 'place', 'product']
+
+function packshotCanYield(s: AdsV2PlannedShot | undefined): boolean {
+  return !!s && s.source === 'client_photo' && (ADS_V2_PACKSHOT_YIELD_KINDS as readonly string[]).includes(s.kind) && !s.effect && !s.packshot
+}
+
+/** A vaga do packshot (pura): o último plano; senão o 2º; senão null. */
+export function adsV2PackshotTarget(shots: readonly AdsV2PlannedShot[]): number | null {
+  if (!Array.isArray(shots) || shots.length < 2) return null
+  const last = shots[shots.length - 1]
+  if (packshotCanYield(last)) return last.idx
+  if (packshotCanYield(shots[1])) return shots[1].idx
+  return null
+}
+
+/**
+ * Troca UM plano de IA pela foto real do produto (pura; devolve outro array, nunca muta). Sem foto de produto (nem pedido de
+ * produto com foto que não é de texto) ou sem vaga = o MESMO array (o plano de antes, objeto por objeto).
+ */
+export function adsV2PackshotShots(shots: AdsV2PlannedShot[], opts: { photos: readonly AdsV2Photo[]; productOrder?: boolean }): AdsV2PlannedShot[] {
+  const usable = (Array.isArray(opts?.photos) ? opts.photos : []).filter((p) => p && typeof p.id === 'string' && p.id && typeof p.url === 'string' && /^https:\/\//i.test(p.url))
+  const product = usable.find((p) => p.kind === 'product') ?? (opts?.productOrder === true ? usable.find((p) => p.kind !== 'text') : undefined)
+  if (!product) return shots
+  const at = adsV2PackshotTarget(shots)
+  if (at === null) return shots
+  return shots.map((s) => s.idx !== at ? s : {
+    ...s,
+    kind: 'text',
+    source: 'client_photo',
+    sourceFootageId: product.id,
+    imageUrl: product.url,
+    referenceFootageIds: [],
+    referenceUrls: [],
+    scenePrompt: null,
+    prompt: null,
+    movementVariant: 0,
+    cutStart: 0,
+    packshot: true,
+  })
+}
+
+/** O plano gravado tem packshot neste índice? (pura; para a montagem e a tela). */
+export function adsV2IsPackshot(plan: { shots?: readonly { idx: number; packshot?: unknown }[] } | null | undefined, idx: number): boolean {
+  return !!plan && Array.isArray(plan.shots) && plan.shots.some((s) => s && s.idx === idx && s.packshot === true)
 }

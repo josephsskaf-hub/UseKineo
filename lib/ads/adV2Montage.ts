@@ -50,6 +50,28 @@ export interface AdV2MontageShot {
   focusY?: number
   videoWidth?: number | null
   videoHeight?: number | null
+  /** KINEO-ADS-MELHORIAS-1410 — só no plano `text` que é o PACKSHOT (a foto real do produto): fundo suave + foto inteira com zoom. */
+  packshot?: boolean
+}
+
+// ── KINEO-ADS-MELHORIAS-1410 — o PACKSHOT (a foto real do produto, sem IA) ─────────────────────────────────────────────────
+// Três elementos na trilha dos planos, só com propriedades que a casa JÁ usa em produção (image + fit cover/contain — contain no
+// logo de lib/brandLogo.ts e no cartão de lib/ads/producao.ts — + largura acima de 100% como no vídeo do cliente + animations scale
+// + shape rgba): (1) a MESMA foto em `cover`, ampliada, sob (2) um véu escuro — o fundo suave que enche o quadro
+// quando a foto não tem a proporção dele; (3) a foto INTEIRA em `contain` (nada do produto é cortado) com um zoom lento.
+// Foto já na proporção do quadro (o caso de hoje: o navegador recorta no formato do anúncio) = a camada 2 cobre a 1 inteira.
+// blur_radius NÃO entra: nunca foi exercitado num render nosso (regra da casa: propriedade nova só com render de validação).
+export const ADS_V2_PACKSHOT_ZOOM_END = '106%'
+export const ADS_V2_PACKSHOT_BG_SCALE = '118%'
+export const ADS_V2_PACKSHOT_VEIL = 'rgba(0,0,0,0.45)'
+/** Os 3 elementos do packshot (fundo cover ampliado · véu · foto inteira em contain com zoom). `extra` = transição de entrada. */
+export function adsV2PackshotElements(url: string, track: number, time: number, duration: number, extra: Record<string, unknown> = {}): Record<string, unknown>[] {
+  const source = url.trim()
+  return [
+    { type: 'image', track, time, duration, source, fit: 'cover', x: '50%', y: '50%', width: ADS_V2_PACKSHOT_BG_SCALE, height: ADS_V2_PACKSHOT_BG_SCALE, ...extra },
+    { type: 'shape', track, time, duration, x: '50%', y: '50%', width: '100%', height: '100%', path: ADS_V2_RECT_PATH, fill_color: ADS_V2_PACKSHOT_VEIL, ...extra },
+    { type: 'image', track, time, duration, source, fit: 'contain', x: '50%', y: '50%', width: '100%', height: '100%', ...extra, animations: [{ type: 'scale', fade: false, start_scale: '100%', end_scale: ADS_V2_PACKSHOT_ZOOM_END, easing: 'linear' }] },
+  ]
 }
 
 /**
@@ -189,6 +211,11 @@ export function buildAdV2Source(input: AdV2MontageInput): Record<string, unknown
     // Cada plano fica ADS_V2_MONTAGE_FADE a mais por baixo do seguinte (ou do cartão), que entra com fade: dissolve.
     const duration = r3(shot.cutSeconds + ADS_V2_MONTAGE_FADE)
     const transition = i > 0 ? { enter_transition: { type: 'fade', duration: ADS_V2_MONTAGE_FADE } } : {}
+    if (shot.kind === 'text' && shot.packshot === true) {
+      // KINEO-ADS-MELHORIAS-1410 — o packshot: fundo suave (a mesma foto, ampliada, sob véu) + a foto inteira com zoom lento.
+      elements.push(...adsV2PackshotElements(shot.url, 2, starts[i], duration, transition))
+      return
+    }
     if (shot.kind === 'text') {
       // Texto nunca passa por IA: a foto entra parada e o montador faz um zoom lento de ~1,08x.
       elements.push({
@@ -385,9 +412,10 @@ export function adsV2PresenterInserts(mainSeconds: number, shots: readonly AdV2M
     if (!Number.isInteger(i) || i < 0 || i >= shots.length || seen.has(i)) continue
     seen.add(i)
     const s = shots[i]
-    if (!s || s.kind === 'text' || !isHttps(s.url) || !finitePos(s.measuredSeconds) || !finitePos(s.cutSeconds)) continue
+    const still = !!s && s.kind === 'text' && s.packshot === true // KINEO-ADS-MELHORIAS-1410 — o packshot entra como insert (foto parada: sem clipe medido)
+    if (!s || (s.kind === 'text' && !still) || !isHttps(s.url) || (!still && !finitePos(s.measuredSeconds)) || !finitePos(s.cutSeconds)) continue
     const start = typeof s.cutStart === 'number' && Number.isFinite(s.cutStart) && s.cutStart >= 0 ? s.cutStart : 0
-    const seconds = r3(Math.min(ADS_V2_PRESENTER_INSERT_SECONDS, ADS_V2_PRESENTER_INSERT_MAX, s.cutSeconds, s.measuredSeconds - start))
+    const seconds = still ? r3(Math.min(ADS_V2_PRESENTER_INSERT_SECONDS, ADS_V2_PRESENTER_INSERT_MAX, s.cutSeconds)) : r3(Math.min(ADS_V2_PRESENTER_INSERT_SECONDS, ADS_V2_PRESENTER_INSERT_MAX, s.cutSeconds, (s.measuredSeconds as number) - start)) // KINEO-ADS-MELHORIAS-1410
     if (!(seconds >= ADS_V2_PRESENTER_INSERT_MIN)) continue
     if (r3(t + seconds) > r3(mainSeconds - ADS_V2_PRESENTER_TAIL)) break
     out.push({ shot: i, time: r3(t), seconds })
@@ -431,6 +459,7 @@ function buildAdV2PresenterSource(input: AdV2MontageInput, presenter: AdV2Presen
   // Inserts por cima, MUDOS (a fala do ator continua por baixo), corte seco como num vídeo de criador.
   for (const ins of adsV2PresenterInserts(main, shots, presenter.insertOrder)) {
     const shot = shots[ins.shot]
+    if (shot.kind === 'text' && shot.packshot === true) { elements.push(...adsV2PackshotElements(shot.url, ADS_V2_PRESENTER_INSERT_TRACK, ins.time, ins.seconds)); continue } // KINEO-ADS-MELHORIAS-1410 — a foto real do produto, corte seco como os outros inserts
     const start = typeof shot.cutStart === 'number' && Number.isFinite(shot.cutStart) && shot.cutStart >= 0 ? shot.cutStart : 0
     const frame = shot.kind === 'user_video'
       ? userVideoFrame(width, height, shot.videoWidth, shot.videoHeight, shot.focusX, shot.focusY)
