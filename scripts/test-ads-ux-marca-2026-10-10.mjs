@@ -19,6 +19,7 @@
 // Estilo da casa: readFileSync + ts.transpileModule (offline-ts-loader). Nenhum import com alias @/ no guardião.
 import fs from 'node:fs'
 import { semMelhorias1410 } from './test-support/desfaz-melhorias-1410.mjs' // reancorado KINEO-ADS-MELHORIAS-1410
+import { semAmostra1410 } from './test-support/desfaz-clipe360-amostra-1410.mjs' // reancorado KINEO-CLIPE360-AMOSTRA-1410
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
@@ -288,7 +289,7 @@ const desfazConsertos = (s) => s.split('\n').filter((l) => !l.includes('KINEO-AN
   .split(", 422, { why: failWhy.value ?? 'unreachable' })").join(', 422)')
   .split('footage_id: string | null; url: string }[] = []').join('footage_id: string; url: string }[] = []')
 await check('6a /start, /orders, /plan, /research, /variations, /retake, /link-import, v2Billing, sample e v2Tiers byte a byte iguais à base aeef024f', () =>
-  Object.entries(BASE).every(([f, h]) => sha(f.startsWith('app/api/ads/v2/') ? desfazEquipe(desfazConsertos(leBaseV2(f))) : read(f)) === h))
+  Object.entries(BASE).every(([f, h]) => sha(f.startsWith('app/api/ads/v2/') ? desfazEquipe(desfazConsertos(leBaseV2(f))) : f === 'lib/ads/sample.ts' ? semAmostra1410(read(f)) : read(f)) === h)) // reancorado KINEO-CLIPE360-AMOSTRA-1410 — só sample.ts passa pela volta
 // reancorado KINEO-ADS-MELHORIAS-1410 — a tela simples ganhou o formato (4:5/1:1): o corpo do /plan, a assinatura do plano, o estilo
 // efetivo e o recorte/upload mudaram em linhas MARCADAS. semMelhorias1410 (scripts/test-support/desfaz-melhorias-1410.mjs) as devolve ao
 // texto EXATO de antes, e a regra de sempre vale sobre ele; as linhas novas são provadas em scripts/test-ads-formatos-1410.mjs.

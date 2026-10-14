@@ -126,7 +126,7 @@ function loaderWith({ db = null, over = {}, env = { NEXT_PUBLIC_ADS_PASS_LIVE: '
 
 // ═══ 1. o interruptor, o teto, o nível, a chave ══════════════════════════════════════════════════════════════════════
 const S = loaderWith()(F.sample)
-ok(S.ADS_SAMPLE_LIVE === true && S.ADS_SAMPLE_DAILY_CAP === 10 && S.ADS_SAMPLE_TIER === 'photo_motion' && S.ADS_SAMPLE_PREFIX === 'adssample-', '1a interruptor ligado, teto 10/dia, nível photo_motion, prefixo adssample-')
+ok(S.ADS_SAMPLE_LIVE === true && S.ADS_SAMPLE_DAILY_CAP === 10 && S.ADS_SAMPLE_TIER === 'commercial' && S.ADS_SAMPLE_PREFIX === 'adssample-', '1a interruptor ligado, teto 10/dia, nível commercial, prefixo adssample-') // reancorado KINEO-CLIPE360-AMOSTRA-1410 — o fundador (14/10) passou a amostra para o nível commercial; o outro nível tem de ser recusado
 ok(S.adsSampleRef(ORDER.toUpperCase(), GEN) === `adssample-${ORDER}-${GEN}` && S.isAdsSampleRef(S.adsSampleRef(ORDER, GEN)), '1b chave = adssample-<order>-<generation> (minúscula) e é reconhecida')
 ok((() => { try { S.adsSampleRef('x', GEN); return false } catch { return true } })() && (() => { try { S.adsSampleRef(ORDER, 'nao-uuid'); return false } catch { return true } })(), '1c ids que não são UUID: a chave recusa (mesma régua de adsV2BillingRef)')
 ok(!S.isAdsSampleRef(`adsv2-${ORDER}-${GEN}`) && !S.isAdsSampleRef(null) && !S.isAdsSampleRef(undefined) && !S.isAdsSampleRef(`adsv2redo-${ORDER}`), '1d chave paga (adsv2-/adsv2redo-) e vazia NÃO são amostra')
@@ -165,7 +165,7 @@ await check('3a 9 amostras hoje → abre; 10 → teto', async () => (await capRe
 await check('3b só conta amostra (adssample-%) de HOJE (UTC): pagos e as de ontem não entram', async () => (await capReached([...sampleStarted(9), ...sampleStarted(5, yesterday), { id: 'p', billing_ref: `adsv2-${U(1)}-${U(2)}`, status: 'delivered', started_at: TODAY }])) === false)
 await check('3c leitura que falha = teto atingido (fechado)', async () => (await capReached([], { failWhen: (n) => n === 'ads_v2_orders' })) === true)
 await check('3d o dia começa 00:00 UTC', () => { const A = loaderWith()(F.access); return A.adsSampleDayStartIso(new Date('2026-10-09T23:59:00-03:00')) === '2026-10-10T00:00:00.000Z' && A.adsSampleDayStartIso(new Date('2026-10-09T12:00:00Z')) === '2026-10-09T00:00:00.000Z' })
-await check('3e nível da amostra = photo_motion + 15 s, nada mais', () => { const A = loaderWith()(F.access); return A.adsSampleLevelOk('photo_motion', 15) && !A.adsSampleLevelOk('commercial', 15) && !A.adsSampleLevelOk('cinema', 15) && !A.adsSampleLevelOk('photo_motion', 30) && !A.adsSampleLevelOk(undefined, undefined) })
+await check('3e nível da amostra = commercial + 15 s, nada mais', () => { const A = loaderWith()(F.access); return A.adsSampleLevelOk('commercial', 15) && !A.adsSampleLevelOk('photo_motion', 15) && !A.adsSampleLevelOk('cinema', 15) && !A.adsSampleLevelOk('commercial', 30) && !A.adsSampleLevelOk(undefined, undefined) }) // reancorado KINEO-CLIPE360-AMOSTRA-1410 — o fundador (14/10) passou a amostra para o nível commercial; o outro nível tem de ser recusado
 
 // ═══ 4. a rota /start EXECUTADA ══════════════════════════════════════════════════════════════════════════════════════
 const PLAN = {
@@ -178,7 +178,7 @@ const PLAN = {
   overlays: [{ role: 'hook', text: 'Fresh bread', start: 0 }],
   totalSeconds: 15,
 }
-function world({ plan = 'free', balance = 0, tier = 'photo_motion', seconds = 15, extraOrders = [], failWhen = null } = {}) {
+function world({ plan = 'free', balance = 0, tier = 'commercial', seconds = 15, extraOrders = [], failWhen = null } = {}) { // reancorado KINEO-CLIPE360-AMOSTRA-1410
   return {
     profiles: [{ id: USER, plan, ads_access_until: null, video_credits: balance }],
     ads_v2_orders: [{ id: ORDER, user_id: USER, status: 'planned', tier, seconds, plan: JSON.parse(JSON.stringify(PLAN)), card_url: 'https://sb/card.png', billing_ref: null, credits_charged: 0, started_at: null }, ...extraOrders],
@@ -230,8 +230,8 @@ const amostraOk = (r) => r.res.status === 202 && r.order.status === 'generating'
   evNames(r).includes('ads_sample_started') && !evNames(r).includes('ads_access_denied') &&
   r.events.find((e) => e.name === 'ads_v2_started')?.metadata?.credits === 0 && r.events.find((e) => e.name === 'ads_v2_started')?.metadata?.sample === true
 await check('4a conta free com 0 crédito: a amostra trava com adssample-…, credits_charged 0, sem intenção/débito/saldo, planos e envio como o pago, evento ads_sample_started', async () => amostraOk(await runStart(world())))
-await check('4b nível errado (commercial) ou duração errada → 403 sample_level_only, pedido intocado', async () => {
-  const a = await runStart(world({ tier: 'commercial' }))
+await check('4b nível errado (photo_motion) ou duração errada → 403 sample_level_only, pedido intocado', async () => {
+  const a = await runStart(world({ tier: 'photo_motion' })) // reancorado KINEO-CLIPE360-AMOSTRA-1410 — o fundador (14/10) passou a amostra para o nível commercial; o outro nível tem de ser recusado
   const b = await runStart(world({ seconds: 30 }))
   return [a, b].every((r) => r.res.status === 403 && r.res.body.error === 'sample_level_only' && r.order.status === 'planned' && r.order.billing_ref === null && r.dispatched.length === 0)
 })
@@ -324,7 +324,7 @@ const KEYS = ['badge', 'make', 'note', 'paidOnly', 'cap']
 const copyOk = (C) => LANGS.length === 16 && Object.keys(C).length === 16 && LANGS.every((l) => C[l] && KEYS.every((k) => typeof C[l][k] === 'string' && C[l][k].trim().length > 0)) &&
   LANGS.filter((l) => l !== 'en').every((l) => KEYS.filter((k) => C[l][k] === C.en[k]).length === 0)
 ok(copyOk(S.ADS_SAMPLE_COPY), '7a as 5 frases existem nas 16 línguas da interface, escritas (nenhuma cópia do inglês)')
-ok(S.ADS_SAMPLE_COPY.en.badge === 'Your first ad is free' && S.ADS_SAMPLE_COPY.en.make === 'Make my free ad' && /1 per account, Photo motion level, 15 s/.test(S.ADS_SAMPLE_COPY.en.note) && S.adsSampleCopy('xx') === S.ADS_SAMPLE_COPY.en && S.adsSampleCopy('pt') === S.ADS_SAMPLE_COPY.pt,
+ok(S.ADS_SAMPLE_COPY.en.badge === 'Your first ad is free' && S.ADS_SAMPLE_COPY.en.make === 'Make my free ad' && /1 per account, Commercial level, 15 s/.test(S.ADS_SAMPLE_COPY.en.note) && S.adsSampleCopy('xx') === S.ADS_SAMPLE_COPY.en && S.adsSampleCopy('pt') === S.ADS_SAMPLE_COPY.pt, // reancorado KINEO-CLIPE360-AMOSTRA-1410
   '7b o inglês é o da decisão; língua desconhecida cai no inglês')
 
 // ═══ 8. tela, porta e eventos (leitura) ══════════════════════════════════════════════════════════════════════════════
