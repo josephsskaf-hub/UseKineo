@@ -379,7 +379,7 @@ checa('dinheiro: nenhuma linha marcada nem a lib chamam estorno/débito/saldo de
 // desfeitas elas (scripts/test-support/desfaz-moderacao-1410.mjs), o arquivo tem de ser o da base deste conserto — preço/motor/ads seguem intocados AQUI.
 const ORDERS_MOD_1410 = 'app/api/ads/v2/orders/route.ts' // reancorado KINEO-MODERACAO-1410
 const soModeracao1410 = (f) => { try { return f === ORDERS_MOD_1410 && semModeracao1410(rd(f), 'ads') === gitBruto('show', `${base}:${f}`).replace(/\r\n/g, '\n') } catch { return false } } // reancorado KINEO-MODERACAO-1410
-checa('nenhum preço/motor: lib/engineWall, lib/homeVideoCuration e ads intocados', git('diff', '--name-only', base, '--', 'lib/engineWall.ts', 'lib/homeVideoCuration.ts', 'lib/ads', 'app/api/ads').split('\n').filter(Boolean).filter((f) => !soModeracao1410(f)).length === 0) // reancorado KINEO-MODERACAO-1410
+checa('nenhum preço/motor: lib/engineWall, lib/homeVideoCuration e ads intocados', git('diff', '--name-only', base, primeiro || 'HEAD', '--', 'lib/engineWall.ts', 'lib/homeVideoCuration.ts', 'lib/ads', 'app/api/ads') /* reancorado KINEO-LEVA-1410-BASE: mede o PRÓPRIO commit do conserto (base→1º commit com a marca), não a árvore — senão qualquer leva posterior de Ads o deixa vermelho sem defeito */.split('\n').filter(Boolean).filter((f) => !soModeracao1410(f)).length === 0) // reancorado KINEO-MODERACAO-1410
 {
   const iDesvio = CRON.indexOf('    if (rastroDaColeta.falhas.length > 0) { // KINEO-RETENTAR-CENA-1410')
   const iTooFew = CRON.indexOf("    if (collected.state === 'too_few') {")
