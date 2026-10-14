@@ -31,6 +31,7 @@ import crypto from 'node:crypto'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
+import { semLinkLojas1510 } from './test-support/desfaz-ads-link-lojas-1510.mjs' // reancorado KINEO-ADS-LINK-LOJAS-1510
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 // reancorado KINEO-LEVA8-1310 — a pista dos roteiros (655a9cb5) entrou junto: no núcleo do /plan ela só pôs linhas inteiras marcadas
 // KINEO-ADS-ROTEIROS-2026-10-13, que semRoteiros tira em memória antes da impressão digital (a de antes segue valendo, byte a byte).
@@ -306,6 +307,7 @@ const STUDIO_BASE = {
 // ou preço — conferido nos guardiões das melhorias): semMelhorias1410 as tira e a impressão de antes (3fd1819e…8eb2) continua valendo.
 const DESFAZ = { 'lib/ads/v2PlanCore.ts': (x) => semMelhorias1410(semConsertos1410(semRoteiros(semRefacaoAtor1410('lib/ads/v2PlanCore.ts', x)))) /* reancorado KINEO-ADS-REFACAO-ATOR-1410 — o ator segurando o produto (3 linhas marcadas) sai primeiro */, 'app/(dashboard)/studio/StudioClient.tsx': (x) => semDuracaoSaldo1510(x), 'lib/ads/v2Brief.ts': (x) => semReteste1510('lib/ads/v2Brief.ts', semDemoUniverso1410('lib/ads/v2Brief.ts', x)) /* reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — o piso de fala nos 3 roteiros sai antes */, 'lib/ads/v2Styles.ts': (x) => semReteste1510('lib/ads/v2Styles.ts', semDemoUniverso1410('lib/ads/v2Styles.ts', x)) } // reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — v2Styles: a demo de 14/10 sai antes (só 2 listas de palavras de moda na sugestão de estilo)
 DESFAZ['app/api/ads/v2/orders/route.ts'] = (x) => semModeracao1410(semDemoUniverso1410('app/api/ads/v2/orders/route.ts', x), 'ads') // reancorado KINEO-MODERACAO-1410 · reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — a pronúncia da marca (brief.pronounce + a moderação da fala) sai antes
+DESFAZ['app/api/ads/v2/link-import/route.ts'] = (x) => semLinkLojas1510('app/api/ads/v2/link-import/route.ts', x) // reancorado KINEO-ADS-LINK-LOJAS-1510 — a plataforma/confiança/aviso do leitor sai antes
 const iguais = (tab, over = {}) => Object.entries(tab).every(([f, h]) => sha((DESFAZ[f] || ((x) => x))(over[f] !== undefined ? over[f] : read(f))) === h)
 ok(iguais(STUDIO_BASE), 'D4 o Studio de filmes, o kit (STUDIO_KIT_CSS) e o ProductStage byte a byte iguais à base — nada foi extraído de lá')
 
