@@ -115,7 +115,9 @@ import {
   brandKitIsOtherBrand,
   type AdsV2FixCopy,
 } from '@/lib/ads/v2SimpleUx'
-import { CropEditor, DropZone, MobilePreviewBar, SIMPLE_UX_CSS, SimpleStepper, TierIncludes, goToSection, type LivePreviewData } from './AdsV2SimpleUx'
+import { CropEditor, DropZone, MobilePreviewBar, SIMPLE_UX_CSS, TierIncludes, goToSection, type LivePreviewData } from './AdsV2SimpleUx' // KINEO-ADS-QUADRO-STUDIO-1510 — sem o SimpleStepper (o quadro curto cabe na tela)
+import { QuadroStyleRow } from './AdsV2Quadro' // KINEO-ADS-QUADRO-STUDIO-1510
+import { adsV2QuadroCopy } from '@/lib/ads/v2QuadroCopy' // KINEO-ADS-QUADRO-STUDIO-1510
 // KINEO-ADS-CENA-2026-10-13 — o campo da cena, os 4 climas prontos, produto x lugar e a frase que pede cena (16 línguas).
 // KINEO-ADS-FLUXO-2026-10-13 — o fluxo novo no formato do Studio: link primeiro + "Lemos sua página", palco do estilo, cartão de
 // revisão com "Gerar · N créditos", "Comece deste" e a vaga dos 2–3 roteiros (frases nas 16 línguas, lib pura).
@@ -618,6 +620,10 @@ export function AdsV2SimpleSession({
   const [cardColor, setCardColor] = useState(DEFAULT_COLOR)
   const [logo, setLogo] = useState<LogoItem | null>(null)
   const [moreOpen, setMoreOpen] = useState(false)
+  // KINEO-ADS-QUADRO-STUDIO-1510 — os cartões recolhidos do quadro (todos os estilos, nível, voz). Só tela: nada disso entra em pedido.
+  const [stylesOpen, setStylesOpen] = useState(false) // KINEO-ADS-QUADRO-STUDIO-1510 — "Ver todos os N"
+  const [levelOpen, setLevelOpen] = useState<boolean | null>(null) // KINEO-ADS-QUADRO-STUDIO-1510 — null = abre sozinho só sem nível marcado
+  const [voiceOpen, setVoiceOpen] = useState<boolean | null>(null) // KINEO-ADS-QUADRO-STUDIO-1510 — null = abre sozinho só com a língua incerta
   const [cardUpload, setCardUpload] = useState<{ sig: string; footageId: string } | null>(null)
   const [draft, setDraft] = useState<{ id: string; key: string } | null>(null)
   const [research, setResearch] = useState<Research | null>(null)
@@ -637,6 +643,7 @@ export function AdsV2SimpleSession({
   // KINEO-ADS-UX-MARCA-2026-10-10 — frases novas (16 línguas), reordenar por arrasto, editor de enquadramento, a imagem do
   // cartão final para a prévia ao vivo e o kit da marca (aplicado na abertura; salvo depois que o anúncio começou).
   const ux: AdsV2UxCopy = adsV2UxCopy(lang)
+  const qc = adsV2QuadroCopy(lang) // KINEO-ADS-QUADRO-STUDIO-1510
   const [dragKey, setDragKey] = useState<string | null>(null)
   const [dropKey, setDropKey] = useState<string | null>(null)
   const [editKey, setEditKey] = useState<string | null>(null)
@@ -1960,11 +1967,16 @@ export function AdsV2SimpleSession({
 
         {phase === 'build' ? (
           <>
-            {/* KINEO-ADS-UX-MARCA-2026-10-10 — o passo a passo (gruda no topo do quadro; ✓ em cada passo pronto). */}
-            <SimpleStepper copy={ux} steps={steps} />
+            {/* KINEO-ADS-QUADRO-STUDIO-1510 — o QUADRO CURTO no formato do Studio de filmes (fundador 15/10: "o formulário longo"):
+                1 Produto → 2 Seu anúncio → 3 Estilo → o botão principal, tudo na primeira tela; o resto (nível, todos os estilos,
+                voz, frases, preço, contato, cartão final, logo, pessoa de IA) em cartões recolhidos embaixo do botão. O passo a passo
+                de 4 botões saiu (o quadro inteiro cabe na tela; o ✓ de cada passo pronto mora no chip .n do rótulo). Só
+                recomposição: os campos, os estados e as funções são os de sempre. */}
+            <div className="adv2q-board" data-kineo="ads-quadro-studio">
             {/* 1. Arquivos */}
-            <section id="adv2s-sec1" className="adv2-card" aria-labelledby="adv2s-s1">
-              <h2 id="adv2s-s1"><span className="adv2-num" aria-hidden="true">1</span>{ux.steps.product}</h2>
+            <section id="adv2s-sec1" className="adv2q-step" aria-labelledby="adv2s-s1">
+              <h2 id="adv2s-s1" className="lab"><span className="n" aria-hidden="true">{steps[0].done ? '✓' : 1}</span>{ux.steps.product}</h2>
+              <div className="mdlbtn adv2q-box">{/* KINEO-ADS-QUADRO-STUDIO-1510 — a caixa do motor do Studio (.mdlbtn) guarda link + fotos */}
               {/* KINEO-ADS-FLUXO-2026-10-13 — LINK PRIMEIRO (Topview/Creatify): a caixa grande com "Colar"; colar já busca; Enter ou o
                   botão também (o MESMO importLink de sempre). Depois, "Lemos sua página" para corrigir; a foto vira a 2ª opção. */}
               <div className="adsw-f adv2s-link adv2f-link" data-kineo="ads-link-import">
@@ -2073,7 +2085,7 @@ export function AdsV2SimpleSession({
               ) : null}
               <input ref={fileInputRef} className="adv2-sr" type="file" accept={ADS_V2_SIMPLE_ACCEPT} multiple tabIndex={-1} aria-hidden="true" onChange={(e) => { void addFiles(e.target.files); e.target.value = '' }} />
               {/* KINEO-ADS-UX-MARCA-2026-10-10 — soltar arquivos aqui OU o botão de sempre (mesmo addFiles, mesmas regras). */}
-              <div style={{ marginTop: 14 }}>
+              <div className="adv2q-drop">{/* KINEO-ADS-QUADRO-STUDIO-1510 — a área de soltar compacta (uma linha) */}
                 <DropZone
                   copy={ux}
                   disabled={locked || items.length >= ADS_V2_SIMPLE_MAX_ITEMS}
@@ -2087,11 +2099,23 @@ export function AdsV2SimpleSession({
               </div>
               {videoBusy > 0 ? <p className="adsw-hint" role="status">{tabHidden ? copy.files.videoHidden : copy.files.readingVideo}</p> : null}
               {fileNote ? <p className="adsw-warn" role="status">{fileNote}</p> : null}
+              </div>
             </section>
 
             {/* 2. O texto */}
-            <section id="adv2s-sec2" className="adv2-card" aria-labelledby="adv2s-s2">
-              <h2 id="adv2s-s2"><span className="adv2-num" aria-hidden="true">2</span>{textAsk.title}</h2>
+            <section id="adv2s-sec2" className="adv2q-step" aria-labelledby="adv2s-s2">
+              {/* KINEO-ADS-QUADRO-STUDIO-1510 — "2 Seu anúncio" com as pílulas do tipo (produto/lugar: a única escolha de TIPO que o
+                  /orders aceita, `kind`) na mesma linha, como "2 Your idea" + "Surprise me" no Studio. */}
+              <div className="adv2q-head">
+              <h2 id="adv2s-s2" className="lab"><span className="n" aria-hidden="true">{steps[1].done ? '✓' : 2}</span>{qc.yourAd}</h2>
+              {/* KINEO-ADS-CENA-2026-10-13 — produto ou lugar: detectado pela frase; a pessoa troca com um toque. */}
+              {/* KINEO-ADS-QUADRO-STUDIO-1510 — as pílulas do Studio (.pill / .pill.on), na linha do rótulo. */}
+              <div className="adv2s-kind row" role="group" aria-label={sc.kindLabel} data-kineo="ads-kind">
+                <span>{sc.kindLabel}</span>
+                <button type="button" className={`pill${adKind === 'product' ? ' on' : ''}`} aria-pressed={adKind === 'product'} disabled={locked} onClick={() => setKindChoice('product')}>{sc.kindProduct}</button>
+                <button type="button" className={`pill${adKind === 'place' ? ' on' : ''}`} aria-pressed={adKind === 'place'} disabled={locked} onClick={() => setKindChoice('place')}>{sc.kindPlace}</button>
+              </div>
+              </div>
               {/* KINEO-ADS-UX-MARCA-2026-10-10 — o kit da marca entrou: mostra o que entrou (cor, logo, nome, preço) e "Editar". */}
               {kitApplied ? (
                 <p className="adv2s-kit" role="status" data-kineo="ads-brand-kit-chip">
@@ -2101,16 +2125,12 @@ export function AdsV2SimpleSession({
                   <button type="button" disabled={locked} onClick={() => { setMoreOpen(true); window.setTimeout(() => goToSection('adv2s-sec2'), 30) }}>{ux.kit.edit}</button>
                 </p>
               ) : null}
-              {/* KINEO-ADS-CENA-2026-10-13 — produto ou lugar: detectado pela frase; a pessoa troca com um toque. */}
-              <div className="adv2s-kind" role="group" aria-label={sc.kindLabel} data-kineo="ads-kind">
-                <span>{sc.kindLabel}</span>
-                <button type="button" aria-pressed={adKind === 'product'} disabled={locked} onClick={() => setKindChoice('product')}>{sc.kindProduct}</button>
-                <button type="button" aria-pressed={adKind === 'place'} disabled={locked} onClick={() => setKindChoice('place')}>{sc.kindPlace}</button>
-              </div>
-              <label className="adsw-f">
+              {/* KINEO-ADS-QUADRO-STUDIO-1510 — a caixa de texto do Studio (sem o rótulo grande: a pergunta e a dica ficam para o leitor de
+                  tela; o exemplo segue no placeholder). Mesmo estado, mesmo limite, mesma ref. */}
+              <label className="adsw-f adv2q-text">
                 <span>{textAsk.question}</span>
                 <small>{textAsk.hint}</small>
-                <textarea ref={textAreaRef} className="adsw-ta" rows={3} maxLength={ADS_V2_SCREEN_SENTENCE_MAX} value={text} disabled={locked} onChange={(e) => setText(e.target.value)} placeholder={textAsk.placeholder} />
+                <textarea ref={textAreaRef} className="adv2q-prompt" rows={3} maxLength={ADS_V2_SCREEN_SENTENCE_MAX} value={text} disabled={locked} onChange={(e) => setText(e.target.value)} placeholder={textAsk.placeholder} />
               </label>
               {/* KINEO-ADS-CENA-2026-10-13 — a frase pede cena ("…num hotel com uma chuva"): dizemos o que lemos e oferecemos mover. */}
               {adKind === 'product' && sceneSplit.scene && !sceneTyped ? (
@@ -2142,72 +2162,42 @@ export function AdsV2SimpleSession({
                   {sceneProblem ? <p className="adsw-warn" role="alert">{adsV2SceneErrorText(sceneProblem, lang)}</p> : null}
                 </div>
               ) : null}
-              <label className="adv2s-lang">
-                {copy.text.voiceIn}
-                <select value={spoken} disabled={locked} onChange={(e) => setVoiceLang(narrationLanguage(e.target.value))}>
-                  {NARRATION_LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.native}</option>)}
-                </select>
-              </label>
-              {/* KINEO-ADS-CONSERTOS-TELA-1410 — a língua da frase não ficou clara: dizemos em que língua a voz sai, ao lado do seletor. */}
-              {voiceUnsure ? (
-                <p className="adsw-hint adv2s-voiceask" role="status" data-kineo="ads-voice-ask">
-                  {fill(tc.voiceCheck, { lang: NARRATION_LANGUAGES.find((l) => l.code === spoken)?.native ?? spoken })}
-                </p>
-              ) : null}
-              <details className="adv2s-more" open={moreOpen} onToggle={(e) => setMoreOpen((e.currentTarget as HTMLDetailsElement).open)}>
-                <summary>{copy.text.more}</summary>
-                <div className="adv2s-toggles">
-                  <button type="button" className="adv2-switch" role="switch" aria-checked={overlaysOn} disabled={locked} onClick={() => setOverlaysOn((v) => !v)}>
-                    <i aria-hidden="true" /> {copy.text.overlays}: {overlaysOn ? copy.text.onMany : copy.text.offMany}
-                  </button>
-                  <button type="button" className="adv2-switch" role="switch" aria-checked={narrationOn} disabled={locked} onClick={() => setNarrationOn((v) => !v)}>
-                    <i aria-hidden="true" /> {copy.text.narration}: {narrationOn ? copy.text.on : copy.text.off}
-                  </button>
-                </div>
-                {/* KINEO-ADS-SIMPLES-ACABAMENTO-2026-09-29 — "sem legenda" (fundador): as frases são 2-3 frases curtas, não legenda. */}
-                <p className="adsw-hint">{copy.text.overlaysHint}</p>
-                <label className="adsw-f">
-                  <span>{copy.text.price}</span>
-                  <input type="text" value={price} maxLength={60} disabled={locked} onChange={(e) => setPrice(e.target.value)} placeholder={copy.text.pricePlaceholder} />
-                </label>
-                <label className="adsw-f">
-                  <span>{copy.text.contact}</span>
-                  <input ref={contactInputRef} type="text" value={contact} maxLength={80} disabled={locked} onChange={(e) => setContact(e.target.value)} placeholder={copy.text.contactPlaceholder} />
-                </label>
-                <div className="adv2-cardwrap" style={{ marginTop: 12 }}>
-                  <canvas ref={cardCanvasRef} className="adv2-cardprev" width={1080} height={1920} role="img" aria-label={copy.text.cardPreview} />
-                  <div className="fields">
-                    <label className="adsw-f">
-                      <span>{copy.text.cardTitle}</span>
-                      <small>{copy.text.cardTitleHint}</small>
-                      <input type="text" value={cardTitle} maxLength={60} disabled={locked} onChange={(e) => setCardTitle(e.target.value)} placeholder={adsV2ProductTitle(sentence, adKind)} />
-                    </label>
-                    <div className="adsw-f">
-                      <span>{copy.text.logo}</span>
-                      <div className="adv2-logo">
-                        {logo?.localUrl ? <div className="tile"><img src={logo.localUrl} alt="" /></div> : null}
-                        <input ref={logoInputRef} className="adv2-sr" type="file" accept={ADS_UPLOAD_ACCEPT_LOGO} tabIndex={-1} aria-hidden="true" onChange={(e) => { void chooseLogo(e.target.files?.[0]); e.target.value = '' }} />
-                        <button type="button" className="adsw-btn ghost small" disabled={locked || !!logo?.busy} onClick={() => logoInputRef.current?.click()}>
-                          {logo?.busy ? copy.files.uploading : logo?.footageId ? copy.text.changeLogo : copy.text.addLogo}
-                        </button>
-                        {logo?.footageId ? (
-                          <button type="button" className="adsw-btn ghost small" disabled={locked} onClick={() => { dropUrl(logo.localUrl); setLogo(null) }}>{copy.text.removeLogo}</button>
-                        ) : null}
-                      </div>
-                      {logo?.error ? <p className="adsw-err" role="alert">{logo.error}</p> : null}
-                    </div>
-                    <label className="adsw-f adv2-color">
-                      <input type="color" value={cardColor} disabled={locked} onChange={(e) => setCardColor(e.target.value)} />
-                      <span style={{ margin: 0 }}>{copy.text.color}</span>
-                    </label>
-                  </div>
-                </div>
-              </details>
             </section>
 
-            {/* 3. Nível */}
-            <section id="adv2s-sec3" className="adv2-card" aria-labelledby="adv2s-s3">
-              <h2 id="adv2s-s3"><span className="adv2-num" aria-hidden="true">3</span>{copy.tiers.title}</h2>
+            {/* 3. Estilo — KINEO-ADS-QUADRO-STUDIO-1510: uma fileira de 5 miniaturas (a sugerida primeiro) e "Ver todos os N", que abre a
+                escolha completa de sempre (AdsStylePicker, no cartão recolhido abaixo). Os dois mexem no MESMO setStyleChoice. */}
+            <section id="adv2s-sec3" className="adv2q-step" aria-labelledby="adv2s-s3">
+              <div className="adv2q-head">
+                <h2 id="adv2s-s3" className="lab"><span className="n" aria-hidden="true">3</span>{styleCopy.title}</h2>
+                {ADS_V2_STYLES_PUBLIC ? (
+                  <button type="button" className="pill" data-kineo="ads-quadro-see-all" aria-expanded={stylesOpen} aria-controls="adv2q-styles-all" onClick={() => { setStylesOpen(true); window.setTimeout(() => document.getElementById('adv2q-styles-all')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 40) }}>
+                    {fill(qc.seeAll, { n: ADS_V2_STYLES.length })}
+                  </button>
+                ) : null}
+              </div>
+              {ADS_V2_STYLES_PUBLIC ? (
+                <QuadroStyleRow value={style} suggested={styleSuggested} onChange={setStyleChoice} disabled={locked} copy={styleCopy} labelledBy="adv2s-s3" />
+              ) : null}
+              {startNote ? <p className="adsw-hint" role="status" data-kineo="ads-start-from-note">✓ {startNote}</p> : null}
+            </section>
+
+            {/* KINEO-ADS-QUADRO-STUDIO-1510 — o BOTÃO PRINCIPAL na primeira tela, no estilo .go do Studio. É o MESMO botão da barra do
+                celular (goFromBar → o botão do cartão de revisão): sem roteiro = "Roteiro (grátis)", que roda o MESMO planAd; com o
+                roteiro em dia = "Gerar · N créditos", o MESMO makeAd. Sem poder clicar, leva ao cartão de revisão (mostra o que falta). */}
+            <div className="adv2q-go" data-kineo="ads-quadro-go">
+              <button type="button" className={`go ${goDisabled ? 'no' : 'ok'}`} aria-disabled={goDisabled} onClick={goFromBar}>
+                {planFresh ? goLabel : busy === 'plan' ? copy.plan.planning : fc.review.planShort}
+              </button>
+              <p className="gnote" role="status">{busy === 'plan' ? copy.plan.planning : !planFresh && missing.length ? missing[0] : !planFresh ? fill(fc.review.then, { go: goLabel }) : ux.preview.delivery}</p>
+            </div>
+            </div>
+
+            {/* KINEO-ADS-QUADRO-STUDIO-1510 — os cartões recolhidos (o "Your logo · optional" do Studio): nível, todos os estilos e "Mais
+                opções". O nível abre sozinho só enquanto nenhum está marcado (o saldo ainda não chegou). */}
+            <details className="adv2q-opt" data-kineo="ads-quadro-level" open={levelOpen ?? tier === null}>
+              <summary onClick={(e) => { e.preventDefault(); setLevelOpen(!(levelOpen ?? tier === null)) }}>
+                {copy.tiers.title}<span className="v">· {tierName ?? fc.review.none}{cost !== null && !scopy ? ` · ${fill(copy.tiers.credits, { n: cost })}` : ''}</span>
+              </summary>
               <fieldset className="adv2-tiers">
                 <legend className="adv2-sr">{copy.tiers.title}</legend>
                 {ADS_V2_TIER_IDS.map((t) => {
@@ -2231,7 +2221,36 @@ export function AdsV2SimpleSession({
                 })}
               </fieldset>
               {tier && tier !== 'photo_motion' ? <p className="adsw-hint">{copy.tiers.aiPeople}</p> : null}
-              {ADS_V2_STYLES_PUBLIC ? (
+              {scopy ? <p className="adsw-hint">{scopy.note}</p> : null}
+              <p className="adv2-balance" role="status">
+                {balance === null ? copy.tiers.balanceUnknown : fill(copy.tiers.balance, { n: balance })}{' '}
+                {short > 0 ? <Link className="adsw-link" href="/pricing" target="_blank" rel="noopener">{copy.tiers.getCredits}</Link> : null}
+              </p>
+            </details>
+            {/* KINEO-ADS-QUADRO-STUDIO-1510 — a língua da voz num cartão recolhido que já MOSTRA a língua no título; abre sozinho quando
+                ninguém tem certeza da língua da frase (o aviso de 14/10 continua ao lado do seletor). */}
+            <details className="adv2q-opt" data-kineo="ads-quadro-voice" open={voiceOpen ?? voiceUnsure}>
+              <summary onClick={(e) => { e.preventDefault(); setVoiceOpen(!(voiceOpen ?? voiceUnsure)) }}>
+                {copy.text.voiceIn}<span className="v">· {liveData.voice}</span>
+              </summary>
+              <label className="adv2s-lang">
+                {copy.text.voiceIn}
+                <select value={spoken} disabled={locked} onChange={(e) => setVoiceLang(narrationLanguage(e.target.value))}>
+                  {NARRATION_LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.native}</option>)}
+                </select>
+              </label>
+              {/* KINEO-ADS-CONSERTOS-TELA-1410 — a língua da frase não ficou clara: dizemos em que língua a voz sai, ao lado do seletor. */}
+              {voiceUnsure ? (
+                <p className="adsw-hint adv2s-voiceask" role="status" data-kineo="ads-voice-ask">
+                  {fill(tc.voiceCheck, { lang: NARRATION_LANGUAGES.find((l) => l.code === spoken)?.native ?? spoken })}
+                </p>
+              ) : null}
+            </details>
+            {ADS_V2_STYLES_PUBLIC ? (
+              <details id="adv2q-styles-all" className="adv2q-opt" data-kineo="ads-quadro-styles-all" open={stylesOpen}>
+                <summary onClick={(e) => { e.preventDefault(); setStylesOpen((v) => !v) }}>
+                  {styleCopy.title}<span className="v">· {stageData.name}</span>
+                </summary>
                 <AdsStylePicker
                   name="adv2s-style"
                   value={style}
@@ -2242,7 +2261,56 @@ export function AdsV2SimpleSession({
                   note={photoKind === 'text' ? styleCopy.noProduct : styleCopy.targetSimple}
                   carousel={{ labels: { all: ux.styles.all, food: ux.styles.food, beauty: ux.styles.beauty, tech: ux.styles.tech, any: ux.styles.any }, recommended: ux.styles.recommended, prev: ux.styles.prev, next: ux.styles.next }}
                 />
-              ) : null}
+              </details>
+            ) : null}
+            <details className="adv2s-more" open={moreOpen} onToggle={(e) => setMoreOpen((e.currentTarget as HTMLDetailsElement).open)}>
+              <summary>{copy.text.more}<span className="o">· {qc.optional}</span></summary>
+              <div className="adv2s-toggles">
+                <button type="button" className="adv2-switch" role="switch" aria-checked={overlaysOn} disabled={locked} onClick={() => setOverlaysOn((v) => !v)}>
+                  <i aria-hidden="true" /> {copy.text.overlays}: {overlaysOn ? copy.text.onMany : copy.text.offMany}
+                </button>
+                <button type="button" className="adv2-switch" role="switch" aria-checked={narrationOn} disabled={locked} onClick={() => setNarrationOn((v) => !v)}>
+                  <i aria-hidden="true" /> {copy.text.narration}: {narrationOn ? copy.text.on : copy.text.off}
+                </button>
+              </div>
+              {/* KINEO-ADS-SIMPLES-ACABAMENTO-2026-09-29 — "sem legenda" (fundador): as frases são 2-3 frases curtas, não legenda. */}
+              <p className="adsw-hint">{copy.text.overlaysHint}</p>
+              <label className="adsw-f">
+                <span>{copy.text.price}</span>
+                <input type="text" value={price} maxLength={60} disabled={locked} onChange={(e) => setPrice(e.target.value)} placeholder={copy.text.pricePlaceholder} />
+              </label>
+              <label className="adsw-f">
+                <span>{copy.text.contact}</span>
+                <input ref={contactInputRef} type="text" value={contact} maxLength={80} disabled={locked} onChange={(e) => setContact(e.target.value)} placeholder={copy.text.contactPlaceholder} />
+              </label>
+              <div className="adv2-cardwrap" style={{ marginTop: 12 }}>
+                <canvas ref={cardCanvasRef} className="adv2-cardprev" width={1080} height={1920} role="img" aria-label={copy.text.cardPreview} />
+                <div className="fields">
+                  <label className="adsw-f">
+                    <span>{copy.text.cardTitle}</span>
+                    <small>{copy.text.cardTitleHint}</small>
+                    <input type="text" value={cardTitle} maxLength={60} disabled={locked} onChange={(e) => setCardTitle(e.target.value)} placeholder={adsV2ProductTitle(sentence, adKind)} />
+                  </label>
+                  <div className="adsw-f">
+                    <span>{copy.text.logo}</span>
+                    <div className="adv2-logo">
+                      {logo?.localUrl ? <div className="tile"><img src={logo.localUrl} alt="" /></div> : null}
+                      <input ref={logoInputRef} className="adv2-sr" type="file" accept={ADS_UPLOAD_ACCEPT_LOGO} tabIndex={-1} aria-hidden="true" onChange={(e) => { void chooseLogo(e.target.files?.[0]); e.target.value = '' }} />
+                      <button type="button" className="adsw-btn ghost small" disabled={locked || !!logo?.busy} onClick={() => logoInputRef.current?.click()}>
+                        {logo?.busy ? copy.files.uploading : logo?.footageId ? copy.text.changeLogo : copy.text.addLogo}
+                      </button>
+                      {logo?.footageId ? (
+                        <button type="button" className="adsw-btn ghost small" disabled={locked} onClick={() => { dropUrl(logo.localUrl); setLogo(null) }}>{copy.text.removeLogo}</button>
+                      ) : null}
+                    </div>
+                    {logo?.error ? <p className="adsw-err" role="alert">{logo.error}</p> : null}
+                  </div>
+                  <label className="adsw-f adv2-color">
+                    <input type="color" value={cardColor} disabled={locked} onChange={(e) => setCardColor(e.target.value)} />
+                    <span style={{ margin: 0 }}>{copy.text.color}</span>
+                  </label>
+                </div>
+              </div>
               {ADS_V2_PRESENTER_PUBLIC ? (
                 <AdsPresenterToggle
                   name="adv2s-presenter"
@@ -2256,13 +2324,7 @@ export function AdsV2SimpleSession({
               ) : null}
               {/* KINEO-ATORES-IA-2026-10-13 — com o ator ligado, a escolha do apresentador (padrão = o sorteio de sempre). */}
               {presenterOn ? <AdsPresenterPicker name="adv2s-presenter-pick" value={presenterPick} onChange={setPresenterPick} copy={adsV2PresenterPickerCopy(lang)} disabled={locked} /> : null}
-              {startNote ? <p className="adsw-hint" role="status" data-kineo="ads-start-from-note">✓ {startNote}</p> : null}
-              {scopy ? <p className="adsw-hint">{scopy.note}</p> : null}
-              <p className="adv2-balance" role="status">
-                {balance === null ? copy.tiers.balanceUnknown : fill(copy.tiers.balance, { n: balance })}{' '}
-                {short > 0 ? <Link className="adsw-link" href="/pricing" target="_blank" rel="noopener">{copy.tiers.getCredits}</Link> : null}
-              </p>
-            </section>
+            </details>
 
             {/* 4. Descobrir, planejar e fazer */}
             <section id="adv2s-sec4" className="adv2-card" aria-labelledby="adv2s-s4">
