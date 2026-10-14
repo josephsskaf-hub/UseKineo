@@ -249,7 +249,9 @@ ok(homeKeys.length === 4 && new Set(homeKeys).size === 4 && homeKeys.every((k) =
 const theme = read('app/kineoLandingTheme.ts')
 const filmRule = theme.match(/\.klp #samples \.\$\{gallery\.featuredFour\} \{ (--film-height:clamp\([^)]*\)); (grid-template-columns:repeat\(4,minmax\(0,1fr\)\)); height:var\(--film-height\); gap:(\d+px); \}/)
 ok(Boolean(filmRule) && strip.includes(`${filmRule[1]};display:grid;${filmRule[2]};height:var(--film-height);gap:${filmRule[3]}`), '(8o) os 4 clipes usam a MESMA grade dos 4 filmes narrados (altura, 4 colunas e espaço iguais), para as duas metades baterem')
-ok(/\n      \{clipsFirst && businessShowcase\}\n\n      \{\/\* KINEO-DUAS-PORTAS-2026-10-13 — "More tools"/.test(landing) /* reancorado 13/10: entre ela e o layout aprovado entra a fileira More tools */ && /\n      \{!clipsFirst && businessShowcase\}\n/.test(landing) && landing.indexOf('{clipsFirst && businessShowcase}') > landing.indexOf('</header>'), '(8p) no clips_first, depois dos filmes vem direto "Videos for your business."; no controle a ordem é a de sempre')
+// reancorado KINEO-HOME-LIMPA-1410 — o fundador tirou "Videos for your business." da home (14/10, "o topo já cobre"): nos dois
+// braços a seção tem de estar AUSENTE, e depois dos filmes vem a fileira "More tools".
+ok(!landing.includes('businessShowcase') && !landing.includes('Videos for your business.') && !landing.includes('<BusinessVisualReferences') && landing.indexOf('<section className="home-more-tools" aria-label="More tools">') > landing.indexOf('</header>'), '(8p) "Videos for your business." saiu da home nos dois braços; depois dos filmes vem More tools')
 ok(!/Turn any photo into a video/.test(strip) && !/Turn any photo into a video/.test(landing), '(8l) o bloco "Turn any photo into a video in one click" não volta para a home')
 // 05/10 (4ª rodada, fundador + pesquisa de mercado): cartão de clipe na home sem preço e sem segundos — só o motor.
 const stripCode = strip.replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/\/\/.*$/gm, '')

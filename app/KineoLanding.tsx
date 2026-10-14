@@ -33,7 +33,7 @@ import type { WallVideo } from '@/lib/engineWall'
 import { creditCostFor } from '@/lib/credits/engineCost'
 import WallMedia from '@/components/WallMedia'
 import LiveStatsBadge from '@/components/LiveStatsBadge'
-import BusinessVisualReferences from '@/components/BusinessVisualReferences'
+import HomeImageGallery from '@/components/home/HomeImageGallery' // KINEO-HOME-LIMPA-1410 — galeria Nano Banana dentro de "More tools"
 import HomeFeaturedFilms from '@/components/HomeFeaturedFilms'
 import TrendingRow from '@/components/TrendingRow'
 // KINEO-PROMO-CARDS-2026-09-30 — fileira de cards grandes logo abaixo do menu (Kineo for Claude + Clips).
@@ -92,7 +92,6 @@ import WelcomeOfferModal from '@/components/WelcomeOfferModal' // KINEO-WELCOME2
 import SignupConversionTracker from '@/components/SignupConversionTracker' // KINEO-POUSO-VITRINE-2026-08-25
 import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, GRANT_COUNTRY_CLAUSE, TRIAL_FIRST_FILM_PHRASE, TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
 import HomeTopicForm from './HomeTopicForm'
-import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
 import HomeWelcomeGoalRouter from '@/components/HomeWelcomeGoalRouter'
 import {
   HOME_REFERRAL_BRIDGE_COPY,
@@ -802,8 +801,8 @@ export default function KineoLanding({
   const showAvatar = avatarVisible(initialEmail)
   // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 — Clips no menu (desktop e celular) segue o interruptor de sempre do /clips.
   const showClips = clipsVisible(initialEmail)
-  // A seção de empresas é a mesma nos dois braços; só muda de lugar (logo depois dos filmes no braço clips_first).
-  const businessShowcase = <section className="home-business-showcase"><div className="wrap"><div className="home-business-heading"><h2><UiLabel>Videos for your business.</UiLabel></h2><Link href="/ads" className="btn btn-ghost"><UiLabel>For businesses</UiLabel> ↗</Link></div><BusinessVisualReferences /></div></section>
+  // KINEO-HOME-LIMPA-1410 — fundador 14/10: a seção de empresas (cards Restaurant/Product) saiu da home; o topo
+  // (porta de anúncios em HomeTwoDoors) já cobre. BusinessVisualReferences segue vivo nas outras páginas.
   // KINEO-KINEO1-FORA-2026-09-29 — fundador (29/09): "quero tirar o kineo 1 do jogo, ele estraga a entrada". Mesmo
   // desenho do showAvatar: um booleano decide as 3 portas do Kineo 1 nesta página (mega-menu, tile do bento, chip
   // final). A vitrine é pública — aqui só a casa (isInternalEmail) continua vendo; o legado de quem já paga e usa é
@@ -1016,7 +1015,7 @@ export default function KineoLanding({
           O card do Clips segue o mesmo interruptor do mega-menu (clipsVisible). */}
       {/* KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 (2ª rodada, fundador): a fileira de cards fica no TOPO nos dois braços, com os
           4 (Claude · Ads · Clips · Nano Banana Pro); no braço clips_first vem logo abaixo a vitrine dividida — 4 clipes
-          (HomeClipsStrip) + os 4 filmes narrados do hero — e daí direto "Videos for your business". */}
+          (HomeClipsStrip) + os 4 filmes narrados do hero — e daí direto a seção de empresas (que saiu em 14/10, KINEO-HOME-LIMPA-1410). */}
       {/* KINEO-DUAS-PORTAS-2026-10-13 — fundador 13/10 ("tudo sim", ação B): a primeira dobra abre com as 2 PORTAS, filme
           narrado (11 dos 12 pagantes) e anúncio de produto (Business). A fileira de 4 cards desceu para "More tools", logo
           depois dos filmes da casa; o hero de filmes (curadoria do fundador) segue intacto e na mesma ordem. No braço
@@ -1076,50 +1075,17 @@ export default function KineoLanding({
       ) : null}
 
 
-      {/* KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 (2ª rodada) — fundador: depois dos clipes e filmes "já vai para a tela Videos
-          for Business"; no braço clips_first a fileira "Start with the full toolkit" desce para depois dela. */}
-      {clipsFirst && businessShowcase}
 
       {/* KINEO-DUAS-PORTAS-2026-10-13 — "More tools": a fileira de 4 cards (Claude · Ads · Clips · Nano Banana Pro) que abria a
           página, agora DEPOIS dos filmes. Os 4 ficam (grade sempre cheia, regra do fundador), mesmo o de Ads repetindo a porta. */}
       <section className="home-more-tools" aria-label="More tools">
         <div className="wrap"><div className="home-business-heading" style={{ margin: '34px 0 0' }}><h2><UiLabel>More tools</UiLabel></h2></div></div>
         <PromoCards cards={promoCardsFor({ clips: clipsVisible(initialEmail) })} />
+        <HomeImageGallery />{/* KINEO-HOME-LIMPA-1410 */}
       </section>
 
-      {/* Approved home layout: creation first, proof together, engine catalog retained below. */}
-      <section className="home-create" aria-label="Create with Kineo">
-        <div className="wrap">
-              <div className="home-start">
-                <div className="home-start-copy"><h2><UiLabel>Start with the full toolkit</UiLabel></h2>
-                {/* KINEO-DUAS-PORTAS-2026-10-13 — coerência: "3 Fast videos every 24h" não é mais verdade (o Kineo 1 saiu da entrada em
-                    29/09). Mesma frase verdadeira que o FAQ já usa: o grant do cadastro paga o 1º filme de 15 s. */}
-                <p><UiLabel>{ft(OFFER, `Every new account${GRANT_COUNTRY_CLAUSE} starts free with ${TRIAL_CREDITS_SHOWN} credits — ${TRIAL_FIRST_FILM_PHRASE}, no card.`, `Every new account${GRANT_COUNTRY_CLAUSE} starts free with ${TRIAL_CREDITS_SHOWN} credits — ${TRIAL_FIRST_FILM_PHRASE}, no card.`)}</UiLabel></p>
-                </div>
-                {/* Opening the editor goes straight to Studio; /studio/create owns submitted jobs. */}
-                <Link className="btn btn-blue" data-auth-modal="signup" href={isSignedIn ? '/studio?src=engine_bento' : referralBridge ? '#try-kineo' : '/signup?utm_source=engine_bento'}>{isSignedIn ? 'Open the generator' : CARD_ENTRY_COPY.ctaShort}</Link>
-              </div>
-          <div className="home-create-grid">
-            <Link href="/studio" className="home-create-card">
-              <span className="home-create-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="6" width="12" height="12" rx="3"/><path d="m15 9 6-3v12l-6-3"/></svg></span>
-              <h3><UiLabel>Video</UiLabel></h3><span className="home-create-arrow" aria-hidden="true">↗</span>
-              <p><UiLabel>Create a video</UiLabel></p>
-            </Link>
-            <Link href="/images" className="home-create-card">
-              <span className="home-create-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 5-5 4 4 4-6 5 7"/></svg></span>
-              <h3><UiLabel>Image</UiLabel></h3><span className="home-create-arrow" aria-hidden="true">↗</span>
-              <p><UiLabel>Create image</UiLabel></p>
-            </Link>
-            <Link href="/ads" className="home-create-card">
-              <span className="home-create-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="7" width="18" height="14" rx="3"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12c6 3 12 3 18 0M12 12v4"/></svg></span>
-              <h3><UiLabel>For businesses</UiLabel></h3><span className="home-create-arrow" aria-hidden="true">↗</span>
-              <p><UiLabel>Videos for your business.</UiLabel></p>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {!clipsFirst && businessShowcase}
+      {/* KINEO-HOME-LIMPA-1410 — fundador 14/10 ("coisas velhas"): sairam daqui o bloco do kit de ferramentas (texto do
+          grant + botão + 3 cards Video/Image/For businesses) e a seção de empresas. A oferta grátis segue dita no Pricing e no FAQ. */}
 
       <section className="home-proof" aria-label="Kineo reviews and recognition">
         <div className="wrap">
@@ -1209,14 +1175,8 @@ export default function KineoLanding({
         </div>
       </section>
 
-      {/* KINEO-GROWTH-HOME-B2B-2026-08-28 — the B2B offer existed, but the
-          highest-level public surface only exposed it in the footer and an
-          unlinked FAQ. Reuse the measured, allow-listed bridge after visitors
-          understand the workflow. This does not touch the approved video wall
-          above or overwrite the visitor's original acquisition attribution. */}
-      <div className="wrap" data-growth-surface="home_b2b_bridge">
-        <AgencyVolumeBridge entry="home" />
-      </div>
+      {/* KINEO-HOME-LIMPA-1410 — fundador 14/10: o banner Business (sobretítulo de agências, preço mensal,
+          botão verde do plano) saiu SÓ da home; as outras páginas que a usam seguem com a faixa de agências. */}
 
       <section id="compare">
         <div className="wrap">

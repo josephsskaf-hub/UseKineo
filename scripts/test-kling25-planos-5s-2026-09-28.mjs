@@ -28,6 +28,7 @@
 //       a mais escondido. Cada verificação da seção (h) fica vermelha na 1ª versão (provado na sessão contra 2a28b39d e,
 //       aqui dentro, pelos mutantes que devolvem o comportamento antigo).
 import { readFileSync } from 'node:fs'
+import { desfazAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -73,7 +74,7 @@ const rdBase = (p) => { if (!BASE) return null; try { return execFileSync('git',
 checa('a base (pai do commit, com o Kling a 10 s) está disponível para as comparações byte a byte', Boolean(BASE))
 
 const ROTA = 'app/api/generate-video-cinematic/route.ts'
-const rota = rd(ROTA)
+const rota = desfazAncoraLegenda1410(ROTA, rd(ROTA)) // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 const rotaBase = rdBase(ROTA)
 const routeAst = (src) => ts.createSourceFile('route.ts', src, ts.ScriptTarget.Latest, true)
 function acha(ast, pred) { let f; const v = (n) => { if (!f && pred(n)) f = n; if (!f) ts.forEachChild(n, v) }; v(ast); return f }
@@ -203,7 +204,7 @@ if (rotaBase) {
 }
 
 // (c2) builder real da fal
-const loadLib = createOfflineLoader({})
+const loadLib = createOfflineLoader({ source: (p, s) => desfazAncoraLegenda1410(p, s) }) // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 const aspect = loadLib('@/lib/aspect')
 const policy = loadLib('@/lib/cinematic/visualPromptPolicy')
 const router = rd('lib/hollywood/router.ts')

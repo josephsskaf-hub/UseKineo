@@ -5,6 +5,7 @@
 // Só readFileSync + transpile local (guardião com alias @/ não roda). As condições do compose são EXTRAÍDAS da rota e
 // EXECUTADAS com o caso real — e com a base (linhas marcadas retiradas) para provar que o caso reproduz o defeito.
 import { readFileSync } from 'node:fs'
+import { desfazAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 import { execFileSync } from 'node:child_process'
 import ts from 'typescript'
 // KINEO-H3MAX-2026-10-13 — reancorado com motivo: a entrada do MiniMax H3 Max ([TRAVA 8.2 — vai do fundador 13/10 'vai H3 Max'])
@@ -143,7 +144,7 @@ if (BASE) {
   // Reancorado 13/10 (KINEO-MONUMENTO-2026-10-13 — o fundador autorizou o conserto do monumento no pipeline): linhas novas marcadas + 5 linhas da
   // base trocadas de propósito (contexto dos filtros anti-invenção via comVocabularioDoLugar); semMonumento tira só essas, dos dois lados.
   // Prova: scripts/test-monumento-real-1310.mjs.
-  checa('E26 /api/generate-video-cinematic sem as linhas marcadas = base, byte a byte', semMonumento(semS25(semMarca(desfazH3max('app/api/generate-video-cinematic/route.ts', desfazRomanceAdulto('app/api/generate-video-cinematic/route.ts', semContratoClassicos1410(desfazParceiroEyebible2_1410('app/api/generate-video-cinematic/route.ts', cinematic), 'app/api/generate-video-cinematic/route.ts')))))) /* reancorado KINEO-CONTRATO-CLASSICOS-1410 */ === semMonumento(semS25(base('app/api/generate-video-cinematic/route.ts'))))
+  checa('E26 /api/generate-video-cinematic sem as linhas marcadas = base, byte a byte', semMonumento(semS25(semMarca(desfazH3max('app/api/generate-video-cinematic/route.ts', desfazRomanceAdulto('app/api/generate-video-cinematic/route.ts', semContratoClassicos1410(desfazParceiroEyebible2_1410('app/api/generate-video-cinematic/route.ts', desfazAncoraLegenda1410('app/api/generate-video-cinematic/route.ts', cinematic) /* KINEO-ANCORA-LEGENDA-1410 */), 'app/api/generate-video-cinematic/route.ts')))))) /* reancorado KINEO-CONTRATO-CLASSICOS-1410 */ === semMonumento(semS25(base('app/api/generate-video-cinematic/route.ts'))))
 }
 checa('E27 a Estrela continua só com a casa (ESTRELA_PUBLIC = false)', /export const ESTRELA_PUBLIC = false\n/.test(launch))
 

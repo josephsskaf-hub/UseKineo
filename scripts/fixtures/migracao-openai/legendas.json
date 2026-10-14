@@ -1,0 +1,135 @@
+{
+  "marca": "KINEO-MIGRACAO-OPENAI-F1-1410",
+  "o_que_e": "Casos de legenda (whisper-1 com timestamp por palavra em lib/compose.ts) congelados em 14/10/2026: a narração exata + a duração e a ref do vídeo entregue. Nenhuma mídia foi baixada; quem rodar o A/B de legenda sintetiza o áudio de novo a partir do texto (ou baixa pelo ref, com autorização).",
+  "fonte": "subconjunto de narracoes.json (mesma origem: compose_submission_claim + render_delivered_measured). Ver README.md.",
+  "campos": {
+    "narracao_id": "id em narracoes.json",
+    "segundos_mp4": "duração do vídeo entregue",
+    "ref": "12 hex de md5(video_id)",
+    "exercita": "o que o caso testa na legenda",
+    "texto": "a fala exata que a legenda precisa reproduzir com a grafia do roteiro"
+  },
+  "casos": [
+    {
+      "id": "leg-k1-35-06",
+      "narracao_id": "n-k1-35-06",
+      "motor": "kineo1",
+      "idioma": "en",
+      "segundos_mp4": 39.5,
+      "ref": "4a964a58f638",
+      "palavras": 113,
+      "exercita": "en: números (1977, 72) e aspas simples com pontuação dentro ('Wow!')",
+      "texto": "In the year 1977, Ohio's Big Ear radio telescope detected an enigmatic signal emanating from the depths of space, igniting curiosity and fascination among scientists and the public worldwide. The remarkable signal persisted for a brief duration of just 72 seconds, leaving astronomer Jerry Ehman utterly astounded by its remarkable intensity and crystal-clear clarity that defied explanation. Overwhelmed by the extraordinary anomaly, Ehman hastily scribbled the word 'Wow!' on the printout, which ultimately bestowed the signal with its now-iconic and memorable name in scientific history. Despite extensive and exhaustive searches conducted by astronomers and scientists, the mysterious signal never reappeared, leaving its origin shrouded in a tantalizing mystery that continues to baffle researchers."
+    },
+    {
+      "id": "leg-k1-35-05",
+      "narracao_id": "n-k1-35-05",
+      "motor": "kineo1",
+      "idioma": "es",
+      "segundos_mp4": 35.417,
+      "ref": "0df43bd9095e",
+      "palavras": 113,
+      "exercita": "es: números com separador de milhar e decimal (4,500 / 2.3)",
+      "texto": "El águila real tiene la impresionante capacidad de volar a alturas que alcanzan hasta 4,500 metros, lo que le permite dominar y observar el paisaje desde las alturas. El ojo del águila es extraordinariamente agudo, permitiéndole ver a su presa desde más de 1,000 metros de distancia, lo que le otorga una ventaja significativa al cazar. En un picado, el águila real puede alcanzar velocidades asombrosas de hasta 240 kilómetros por hora, lo que la convierte en una de las aves más rápidas del planeta. Con una impresionante envergadura que puede llegar hasta 2.3 metros, el águila real despliega sus garras con una precisión letal, asegurando que su caza sea efectiva y exitosa."
+    },
+    {
+      "id": "leg-s15-15-01",
+      "narracao_id": "n-s15-15-01",
+      "motor": "seedance15",
+      "idioma": "pt",
+      "segundos_mp4": 15.792,
+      "ref": "e26d2b3239d5",
+      "palavras": 40,
+      "exercita": "pt: reticências no meio da frase",
+      "texto": "Um bebê esperto se levanta para uma aventura noturna. Ele se esgueira para a cozinha enquanto os pais dormem. Farinha voa por toda parte e ovos se quebram desajeitadamente. Os pais entram e encontram o bebê... segurando uma panqueca perfeita."
+    },
+    {
+      "id": "leg-s15-15-03",
+      "narracao_id": "n-s15-15-03",
+      "motor": "seedance15",
+      "idioma": "de",
+      "segundos_mp4": 15.792,
+      "ref": "1ae88a2c300c",
+      "palavras": 35,
+      "exercita": "de: horário 03:17 e aspas „…“",
+      "texto": "Um 03:17 Uhr filmte meine Überwachungskamera etwas, das direkt hinter mir stand. Drei langsame Schläge aus dem Kleiderschrank... aber niemand war da. Dann das Flüstern direkt am Ohr... „Du hättest dir das niemals ansehen dürfen.“"
+    },
+    {
+      "id": "leg-s15-15-04",
+      "narracao_id": "n-s15-15-04",
+      "motor": "seedance15",
+      "idioma": "ru",
+      "segundos_mp4": 16.209,
+      "ref": "f00c74162f6d",
+      "palavras": 35,
+      "exercita": "ru: cirílico",
+      "texto": "Принцесса Ляля обожает пони, и у нее есть секрет... В королевских конюшнях живут 15 великолепных пони. Один из них носит тиару, украшенную бриллиантами. Но только один пони... может танцевать под звездами — ее истинный любимец."
+    },
+    {
+      "id": "leg-s15-15-02",
+      "narracao_id": "n-s15-15-02",
+      "motor": "seedance15",
+      "idioma": "hi",
+      "segundos_mp4": 15.917,
+      "ref": "08b81f92ea60",
+      "palavras": 35,
+      "exercita": "hi: devanágari com número 6,400",
+      "texto": "अमेज़न नदी का रहस्य 6,400 किलोमीटर लंबा है, अब तक अनसुलझा। इन पत्थरों पर प्राचीन चित्रलिपि साल पुरानी हो सकती है। शोधकर्ता अमेज़न के रहस्यों को उजागर करने के लिए नक्शे का अध्ययन करते हैं।"
+    },
+    {
+      "id": "leg-s15-15-08",
+      "narracao_id": "n-s15-15-08",
+      "motor": "seedance15",
+      "idioma": "ur",
+      "segundos_mp4": 15.417,
+      "ref": "23d6758f9817",
+      "palavras": 35,
+      "exercita": "ur: escrita da direita para a esquerda",
+      "texto": "ایک بات بتاؤں؟ خوبصورت تو میں ہوں ہی! لیکن میرا بینک بیلنس مجھ سے بالکل متاثر نہیں ہے! وہ بھی تو ضروری ہے، ہے نا؟ اسی لیے خوبصورتی کے ساتھ کمائی بھی ضروری ہے، جناب!"
+    },
+    {
+      "id": "leg-s15-15-09",
+      "narracao_id": "n-s15-15-09",
+      "motor": "seedance15",
+      "idioma": "fr",
+      "segundos_mp4": 17.292,
+      "ref": "b346b71de3d3",
+      "palavras": 40,
+      "exercita": "fr: espaço antes de ? e apóstrofos",
+      "texto": "Une disparition non résolue depuis 70 ans. En 1950, un avion a disparu au-dessus des Andes. Aucune trace, ni débris, n'a jamais été retrouvée. La théorie la plus acceptée ?... L'avion a été enseveli sous une avalanche, perdue à jamais."
+    },
+    {
+      "id": "leg-s15-90-01",
+      "narracao_id": "n-s15-90-01",
+      "motor": "seedance15",
+      "idioma": "en",
+      "segundos_mp4": 90,
+      "ref": "05ccc0938b91",
+      "palavras": 218,
+      "exercita": "en: 90 s, frases inteiras entre aspas curvas, nomes próprios",
+      "texto": "“The ship was still afloat. Its cargo was still aboard. But every person was gone.” “In December 1872, sailors aboard the Dei Gratia spotted a vessel drifting near the Azores. Nobody answered their calls. Two men went across to investigate.” “It was the Mary Celeste. She had sailed from New York for Genoa with Captain Benjamin Briggs, his wife Sarah, their two-year-old daughter Sophia, and seven crewmen. Ten people. All missing.” “More than seventeen hundred barrels of industrial alcohol remained largely intact. Food and water were still aboard. Personal belongings remained in the cabins.” “But the ship’s boat was missing. One pump had been partly dismantled. Water had collected in the bottom of the vessel.” “The last recorded log entry was November twenty-fifth. The missing boat and navigation equipment suggested a deliberate departure. But why abandon a ship that could still sail?” “The salvagers brought her to Gibraltar. An investigation found no evidence of foul play.” “One possible explanation is that pump trouble and rough weather convinced Briggs the vessel was in danger. He may have ordered everyone into the boat.” “But that is a theory—not a solved case. None of the ten people was ever seen again.” “What could make an experienced captain trade a seaworthy ship for a small boat in the Atlantic? History hides here.”"
+    },
+    {
+      "id": "leg-k1-90-02",
+      "narracao_id": "n-k1-90-02",
+      "motor": "kineo1",
+      "idioma": "en",
+      "segundos_mp4": 89.792,
+      "ref": "9d4d37ba706f",
+      "palavras": 273,
+      "exercita": "en + caracteres chineses no meio (o Whisper tende a traduzir ou pular)",
+      "texto": "On 重阳佳节, the stone-paved streets are beautifully adorned with vibrant chrysanthemums and delicate dogwood, creating a festive yet tranquil atmosphere that invites everyone to celebrate this cherished occasion together. A young scholar walks alone on the stone street, his footsteps echoing softly as he reflects on the significance of this day and the memories that it brings to his heart. His heart feels heavy with thoughts of home during this festive time, where family gatherings and joyful celebrations remind him of the warmth and love he is currently missing. Chrysanthemums and dogwood serve as traditional symbols of 重阳佳节, embodying longevity and protection, which are deeply embedded in cultural significance and are cherished by families celebrating this vital festival throughout generations. As the evening breeze gently blows, he imagines his brothers climbing the hills back home, celebrating together, sharing laughter and stories that create lasting memories of their time spent together. In his mind, he sees an empty chair on the hilltop, a poignant reminder of his absence from the family gathering, emphasizing the emotional distance he feels during this festive occasion. A lone autumn leaf rolls across the stone street, mirroring his solitary journey far from home, embodying the bittersweet feelings of longing and nostalgia that accompany him on this special day. Thousands of miles apart, they all gaze at the same full moon, united in spirit despite the distance, sharing a connection that transcends physical separation and brings them closer together. Though separated by thousands of miles, people across the world gaze at the same full moon, creating a sense of unity and shared spirit, despite the vast distances that separate them."
+    },
+    {
+      "id": "leg-k3-30-01",
+      "narracao_id": "n-k3-30-01",
+      "motor": "kling3_o3",
+      "idioma": "en",
+      "segundos_mp4": 33.917,
+      "ref": "d3c9371a8781",
+      "palavras": 72,
+      "exercita": "hollywood: fala de personagem entre aspas simples no fim",
+      "texto": "The abandoned research station, once a hub of innovation and discovery, now lies entombed in snow and silence. The astronaut's visor reflects a forgotten world, untouched for decades, echoing with memories of past missions. Inside, shadowy corridors extend endlessly, murmuring stories of a swift evacuation and abandoned scientific pursuits. The two astronauts, stranded and wary, exchange words that cut through the silence: 'You shouldn't be here.' The stranger replies: 'Neither should you.'"
+    }
+  ]
+}

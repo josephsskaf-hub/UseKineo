@@ -1,0 +1,29 @@
+{
+  "marca": "KINEO-MIGRACAO-OPENAI-F1-1410",
+  "o_que_e": "Briefs reais do Studio Ads v2 (/api/ads/v2/plan, gpt-4o-mini via lib/ads/v2Brief.ts) congelados em 14/10/2026, com a narração que o plano devolveu (linha de base).",
+  "fonte": "public.ads_v2_orders (brief, tier, language, seconds, sector, narration, plan.narration, voice_seconds) de contas externas. Ver README.md.",
+  "falta_de_amostra": "Pediram ~15. Na história inteira só existem 7 pedidos v2 de conta externa: todos da mesma conta, em 14/10, com 4 frases distintas (o cliente repetiu o pedido variando o estilo). Os outros 50 pedidos v2 e os 18 do Ads clássico (ads_orders) são de contas internas e ficaram fora pela regra. Os 7 entram todos: as repetições da mesma frase mostram a VARIÂNCIA do planejador para a mesma entrada, que é exatamente o que o A/B precisa medir.",
+  "campos": {
+    "frase": "brief.sentence (o que o cliente escreveu)",
+    "cena": "brief.scene (null em todos: o campo só existe em pedidos internos)",
+    "tier": "photo_motion | ...",
+    "idioma": "ads_v2_orders.language",
+    "segundos": "duração do anúncio",
+    "setor": "ads_v2_orders.sector",
+    "modo": "brief.mode",
+    "tipo": "brief.kind",
+    "com_narracao": "ads_v2_orders.narration",
+    "narracao_do_plano": "plan.narration devolvida pelo gpt-4o-mini (saída atual). O 'Product' e o '—' vêm do próprio planejador: são defeitos reais a comparar, não anonimização",
+    "segundos_voz": "voice_seconds medido (só o pedido entregue)",
+    "status": "planned | delivered"
+  },
+  "casos": [
+    {"id": "ads-pt-15-01", "data": "2026-10-14", "frase": "Meu produto é uma boneca colecionável.", "cena": null, "tier": "photo_motion", "idioma": "pt", "segundos": 15, "setor": "store", "modo": "simple", "tipo": "place", "com_narracao": true, "status": "planned", "narracao_do_plano": "Descubra a — boneca colecionável, um lugar especial para os amantes de bonecas. Venha conhecer nossa coleção e se encantar com cada detalhe das nossas peças!", "segundos_voz": null},
+    {"id": "ads-pt-15-02", "data": "2026-10-14", "frase": "Meu produto é uma boneca colecionável. Quero que faça um vídeo no estilo Product close", "cena": null, "tier": "photo_motion", "idioma": "pt", "segundos": 15, "setor": "store", "modo": "simple", "tipo": "place", "com_narracao": true, "status": "planned", "narracao_do_plano": "Conheça a boneca colecionável. Visite a Product e descubra a variedade de bonecas que temos. Venha se apaixonar por cada detalhe que oferecemos para você!", "segundos_voz": null},
+    {"id": "ads-pt-15-03", "data": "2026-10-14", "frase": "Meu produto é uma boneca colecionável. Quero que faça um vídeo no estilo Product close-up, mas colocando o produto em cima de uma mesa, em pé", "cena": null, "tier": "photo_motion", "idioma": "pt", "segundos": 15, "setor": "store", "modo": "simple", "tipo": "place", "com_narracao": true, "status": "planned", "narracao_do_plano": "Descubra a — boneca colecionável. Temos uma incrível seleção de Product para você. Venha nos visitar e conheça tudo que preparamos com carinho para os colecionadores!", "segundos_voz": null},
+    {"id": "ads-pt-15-04", "data": "2026-10-14", "frase": "Meu produto é um boneco colecionável. Quero que faça um vídeo no estilo Product close-up, mas colocando o produto em cima de uma mesa, em pé", "cena": null, "tier": "photo_motion", "idioma": "pt", "segundos": 15, "setor": "store", "modo": "simple", "tipo": "place", "com_narracao": true, "status": "planned", "narracao_do_plano": "Descubra a — boneco colecionável. Aqui você encontra o Product. Venha conferir os detalhes nítidos e a apresentação impecável dos bonecos que vão enriquecer sua coleção!", "segundos_voz": null},
+    {"id": "ads-pt-15-05", "data": "2026-10-14", "frase": "Meu produto é um boneco colecionável. Quero que faça um vídeo no estilo Product close-up, mas colocando o produto em cima de uma mesa, em pé", "cena": null, "tier": "photo_motion", "idioma": "pt", "segundos": 15, "setor": "store", "modo": "simple", "tipo": "place", "com_narracao": true, "status": "planned", "narracao_do_plano": "Descubra a — boneco colecionável. Temos uma seleção incrível de Product. Venha nos visitar e explore o que oferecemos para os apaixonados por colecionáveis!", "segundos_voz": null, "nota": "mesma frase do ads-pt-15-04 (variância)"},
+    {"id": "ads-pt-15-06", "data": "2026-10-14", "frase": "Meu produto é um boneco colecionável. Quero que faça um vídeo no estilo Product close-up, mas colocando o produto em cima de uma mesa, em pé", "cena": null, "tier": "photo_motion", "idioma": "pt", "segundos": 15, "setor": "store", "modo": "simple", "tipo": "place", "com_narracao": true, "status": "planned", "narracao_do_plano": "Conheça a — boneco colecionável, um lugar incrível para encontrar Product. Venha nos visitar e descubra um mundo de colecionáveis fascinantes. Estamos prontos para ajudar você!", "segundos_voz": null, "nota": "mesma frase do ads-pt-15-04 (variância)"},
+    {"id": "ads-pt-15-07", "data": "2026-10-14", "frase": "Meu produto é uma estátua colecionável. Quero que faça um vídeo no estilo Product close-up, mas colocando o produto em cima de uma mesa, em pé", "cena": null, "tier": "photo_motion", "idioma": "pt", "segundos": 15, "setor": "store", "modo": "simple", "tipo": "place", "com_narracao": true, "status": "delivered", "narracao_do_plano": "Descubra a — estátua colecionável, localizada em São Paulo. Temos uma incrível coleção de Product para você. Venha nos visitar e conheça nossas novidades!", "segundos_voz": 10.404, "nota": "único entregue; tratou PRODUTO como LOJA ('localizada em São Paulo', 'venha nos visitar')"}
+  ]
+}

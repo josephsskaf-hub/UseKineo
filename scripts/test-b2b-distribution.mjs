@@ -46,8 +46,9 @@ check(bridge.includes('agencyPacksHref(entry)'), 'bridge destination is built by
 check(bridge.includes('commercial-use MP4s'), 'bridge states the approved commercial-use outcome')
 check(bridge.includes('Self-service · one account · no recurring contract'), 'bridge states the offer boundaries')
 
+// reancorado KINEO-HOME-LIMPA-1410 — o fundador tirou o banner Business da HOME (14/10): lá ele tem de estar AUSENTE.
+check(!/<AgencyVolumeBridge|from '@\/components\/AgencyVolumeBridge'/.test(read('app/KineoLanding.tsx')), 'home no longer imports nor renders the bridge (KINEO-HOME-LIMPA-1410)')
 const sources = {
-  home: read('app/KineoLanding.tsx'),
   state_report: read('app/state-of-ai-shorts-2026/page.tsx'),
   cost_page: read('app/cheapest-ai-shorts-maker/page.tsx'),
   text_to_video: read('app/text-to-video-shorts/page.tsx'),

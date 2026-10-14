@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { AI_TEXT_MODELS } from '@/lib/aiModels' // KINEO-MIGRACAO-OPENAI-F1-1410
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai'
 import { brollEngine } from '@/lib/broll/broll-engine'
@@ -54,7 +55,7 @@ Return JSON with:
   try {
     const completion = await openai.chat.completions.create(
       {
-        model: 'gpt-4o-mini',
+        model: AI_TEXT_MODELS.scenePlannerLight, // KINEO-MIGRACAO-OPENAI-F1-1410 = gpt-4o-mini
         messages: [
           { role: 'system', content: VISUAL_DIRECTOR_SYSTEM_PROMPT },
           { role: 'user', content: userMsg },

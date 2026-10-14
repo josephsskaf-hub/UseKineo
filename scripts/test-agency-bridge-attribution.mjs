@@ -85,8 +85,9 @@ for (const forbidden of ['email', 'prompt', 'script', 'topic', 'user_id', 'sessi
   ok(!telemetry.includes(forbidden), `telemetry excludes ${forbidden}`)
 }
 
+// reancorado KINEO-HOME-LIMPA-1410 — o fundador tirou o banner Business da HOME (14/10): lá ele tem de estar AUSENTE.
+equal((read('app/KineoLanding.tsx').match(/<AgencyVolumeBridge/g) ?? []).length, 0, 'home: bridge removed by the founder (KINEO-HOME-LIMPA-1410)')
 const callers = {
-  home: read('app/KineoLanding.tsx'),
   state_report: read('app/state-of-ai-shorts-2026/page.tsx'),
   cost_page: read('app/cheapest-ai-shorts-maker/page.tsx'),
   text_to_video: read('app/text-to-video-shorts/page.tsx'),

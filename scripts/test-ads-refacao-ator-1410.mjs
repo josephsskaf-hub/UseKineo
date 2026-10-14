@@ -1,7 +1,7 @@
 // KINEO-ADS-REFACAO-ATOR-1410 — guardião dos 2 itens do Studio Ads v2 aprovados pelo fundador em 14/10:
 //   A) a 1ª refação ("Refazer esta cena") de cada anúncio entregue é GRÁTIS; as seguintes cobram o preço de sempre;
 //   B) o plano "pessoa de IA SEGURANDO o produto" (UGC), atrás do interruptor ADS_V2_PRESENTER_HOLDS (desligado).
-// Roda com `node scripts/test-ads-refacao-ator-1410.mjs`, sem rede e sem banco. Base = 9b347413 (o pai do 1º commit marcado).
+// Roda com `node scripts/test-ads-refacao-ator-1410.mjs`, sem rede e sem banco. Base = 4d8da757 (a origin/main do merge de 14/10; o 1º commit marcado nasceu sobre 9b347413 e o desfaz foi regerado contra a main nova).
 //
 // Prova, EXECUTANDO a rota /api/ads/v2/retake de verdade (transpilada) contra um banco falso em memória com a chave primária
 // de ads_v2_orders e o índice ads_v2_orders_one_active_per_user_slot:
@@ -31,7 +31,7 @@ import { semRefacaoAtor1410, REFACAO_ATOR_1410_ARQUIVOS, MARCA_REFACAO_ATOR_1410
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const MARCA = 'KINEO-ADS-REFACAO-ATOR-1410'
-const BASE = '9b347413d47959e847556dffcdd9a07e25666a75'
+const BASE = '4d8da757aafbce9c74d231c0718f1f35aebf12f1' // reancorado KINEO-ADS-REFACAO-ATOR-1410 — merge com a origin/main (palco-voltar, demo-universo, cortesia, home): a base é o pai do lado da main
 const rd = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
 const git = (...a) => execFileSync('git', a, { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 28 })
 const base = (rel) => git('show', `${BASE}:${rel}`).replace(/\r\n/g, '\n')

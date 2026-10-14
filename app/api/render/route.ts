@@ -264,6 +264,7 @@ export async function POST(req: NextRequest) {
             x: '50%',
             y: '68%',
             width: '86%',
+            x_alignment: '50%', // KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10 "3 sim"] — legenda do render legado (/create, /video) centralizada como a dos filmes
             font_family: 'Montserrat',
             font_size: 58,
             font_weight: '800',
