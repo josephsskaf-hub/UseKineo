@@ -407,6 +407,47 @@ const ADS_V2_CSS = `
 @media(max-width:360px){.adv2 .adv2-kinds{grid-template-columns:minmax(0,1fr)}}
 `
 
+// KINEO-ADS-FONTE-STUDIO-1410 — fundador 14/10 ("vai"): o Studio Ads com a MESMA tipografia e a mesma linguagem visual do
+// Studio de filmes (/studio, "Make a film": StudioClient + components/studioKit + lib/ui/workspacePresentation + appearance.css).
+// Medido no navegador (estilo computado do /studio): a família de títulos é var(--font-display) (Manrope) e o que muda é
+// peso, tracking, raio e cartão — título 500/-.035em; rótulo de passo 650/+.01em com o chip quadrado (.lab .n); nome em
+// destaque 700/-.01em; caixa 16px de raio com borda fina (.mdlbtn); revisão em var(--card2) com raio 14 (.studio-generation-
+// review); botão principal 15px/700/-.01em, raio 12, 48px, sombra --sh-cta (.go). Só apresentação: nada de rota, preço ou
+// fluxo. Tudo sob .stu.adv2 (especificidade 0,3,x vence o tema do assistente e o appearance.css sem !important) e por tokens
+// --adv2-* — mexeu no Studio, muda aqui. Este <style> entra por dangerouslySetInnerHTML (">" no seletor quebra a hidratação).
+const ADS_FONTE_STUDIO_CSS = `
+.stu.adv2{--adv2-display:var(--font-display),var(--font-inter),sans-serif;--adv2-title-w:var(--type-title-weight,500);--adv2-title-ls:-.035em;--adv2-step-w:650;--adv2-step-ls:-.01em;--adv2-label-w:650;--adv2-label-ls:.01em;--adv2-name-w:700;--adv2-name-ls:-.01em;--adv2-r-card:16px;--adv2-r-box:14px;--adv2-r-ctl:12px;--adv2-r-pill:10px}
+.stu.adv2 .adsw-header h1{font-family:var(--adv2-display);font-weight:var(--adv2-title-w);letter-spacing:var(--adv2-title-ls);font-size:clamp(28px,2.5vw,34px);line-height:1.2;margin-bottom:8px}
+.stu.adv2 .adsw-header .sub{font-size:15px;line-height:1.6}
+.stu.adv2 :is(.adv2-card,.adv2-confirm,.adv2b-upsell) h2{display:flex;align-items:center;gap:10px;font-family:var(--adv2-display);font-size:17px;font-weight:var(--adv2-step-w);letter-spacing:var(--adv2-step-ls);line-height:1.35;margin:0 0 6px}
+.stu.adv2 .adv2-aside h2{font-family:var(--adv2-display);font-size:15px;font-weight:var(--adv2-step-w);letter-spacing:var(--adv2-step-ls)}
+.stu.adv2 :is(.adv2-card h3,.kst-pick h3,.adv2f-read h3,.adv2b-row h3,.adv2s-after h3,.adv2f-scripts legend,.adv2f-link label,.adv2s-more summary,.adv2-guide>summary){font-family:var(--adv2-display);font-weight:var(--adv2-label-w);letter-spacing:var(--adv2-label-ls)}
+.stu.adv2 :is(.adv2-card h3,.kst-pick h3,.adv2b-row h3){font-size:14px}
+.stu.adv2 .adv2-num{width:20px;height:20px;margin-right:0;border-radius:6px;background:var(--ads-soft);color:var(--ads-secondary);border:1px solid var(--ads-line);font-family:var(--adv2-display);font-size:10.5px;font-weight:900;letter-spacing:0;box-shadow:none}
+.stu.adv2 .adv2-card:not(.kps-panel .adv2-card){border-radius:var(--adv2-r-card);padding:clamp(16px,1.6vw,22px)}
+.stu.adv2 .adv2s-steps button{border-radius:var(--adv2-r-pill);font-family:var(--adv2-display);font-weight:var(--adv2-label-w);letter-spacing:var(--adv2-label-ls)}
+.stu.adv2 .adv2s-steps i{border-radius:6px;font-family:var(--adv2-display);font-weight:900;font-size:10.5px}
+.stu.adv2 .adv2f-tabs a{font-family:var(--adv2-display);font-weight:600;letter-spacing:var(--adv2-label-ls)}
+.stu.adv2 .adv2f-sum{border-radius:var(--adv2-r-box);padding:20px;gap:14px;background:var(--ads-soft);border-color:var(--ads-line)}
+.stu.adv2 .adv2f-sum dt{font-family:var(--adv2-display);font-size:12px;font-weight:500;letter-spacing:var(--adv2-label-ls);text-transform:none;color:var(--ads-muted)}
+.stu.adv2 .adv2f-sum dd{margin-top:3px;font-family:var(--adv2-display);font-weight:var(--adv2-label-w);letter-spacing:var(--adv2-name-ls)}
+.stu.adv2 .adv2f-sum dd.muted{font-weight:500}
+.stu.adv2 .adsw-btn{font-family:var(--adv2-display);font-weight:var(--adv2-name-w);letter-spacing:var(--adv2-name-ls);border-radius:var(--adv2-r-ctl)}
+.stu.adv2 .adsw-btn:not(.ghost):not(.small){min-height:48px;font-size:15px;box-shadow:var(--sh-cta)}
+.stu.adv2 .adsw-btn:not(.ghost):not(.small):disabled{box-shadow:none}
+.stu.adv2 :is(.adv2-tier>b,.adv2-tier b,.kst-card .kst-name,.adv2s-drop b){font-family:var(--adv2-display);font-weight:var(--adv2-name-w);letter-spacing:var(--adv2-name-ls)}
+.stu.adv2 .adv2-tier>b{font-size:17px}
+.stu.adv2 .adv2-tier .cr{font-family:var(--adv2-display);letter-spacing:-.02em}
+.stu.adv2 .adv2-tier{border-radius:var(--adv2-r-card)}
+.stu.adv2 :is(.adv2-total,.adv2b-total b){font-family:var(--adv2-display);letter-spacing:var(--adv2-name-ls)}
+.stu.adv2 :is(.adv2s-kind button,.adv2s-chips button,.kst-cat){border-radius:var(--adv2-r-pill);font-family:var(--adv2-display);font-weight:500;letter-spacing:var(--adv2-label-ls)}
+.stu.adv2 .adv2s-kind button[aria-pressed=true],.stu.adv2 .kst-cat[aria-pressed=true]{font-weight:var(--adv2-label-w)}
+.stu.adv2 :is(.adv2f-link,.adv2f-read,.adv2s-more,.adv2s-drop,.adv2s-crop,.adv2-voice,.adv2-photo,.adv2b-row){border-radius:var(--adv2-r-box)}
+.stu.adv2 :is(input[type=text],input[type=url],select,textarea.adsw-ta){border-radius:var(--adv2-r-ctl)}
+@media(max-width:900px){.stu.adv2 .adsw-btn:not(.ghost):not(.small){font-size:16px}.stu.adv2 .adv2f-sum{padding:16px}}
+@media(max-width:640px){.stu.adv2 .adv2-card:not(.kps-panel .adv2-card){border-radius:14px;padding:16px}.stu.adv2 :is(.adv2-card,.adv2-confirm,.adv2b-upsell) h2{font-size:16px}}
+`
+
 // ─── a página: cabeçalho com "Start over" + a sessão (remontada a cada Start over) ────────────
 
 // KINEO-ADS-MODO-SIMPLES-2026-09-29 — o invólucro escolhe o MODO. Entrada padrão = SIMPLES (AdsV2Simple.tsx: arquivos,
@@ -567,6 +608,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
       <style dangerouslySetInnerHTML={{ __html: ADS_PANEL_CSS }} />
       <style dangerouslySetInnerHTML={{ __html: ADS_TEAM_CSS }} />
       <style dangerouslySetInnerHTML={{ __html: ADS_FLOW_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: ADS_FONTE_STUDIO_CSS }} />{/* KINEO-ADS-FONTE-STUDIO-1410 — a tipografia do Studio de filmes, por último */}
       <header className="adsw-header adv2-head">
         <div>
           <h1>{shell.title}</h1>
