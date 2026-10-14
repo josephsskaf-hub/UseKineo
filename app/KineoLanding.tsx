@@ -25,6 +25,8 @@ import CostCalculatorLink from '@/components/CostCalculatorLink'
 import HomePricingCheckoutLink, { HomePricingCheckoutGroup } from '@/components/HomePricingCheckoutLink'
 import LandingViewTracker from '@/components/LandingViewTracker'
 import ResumeStrip from '@/components/ResumeStrip' // KINEO-FAIXA-CONTINUAR-2026-09-01
+// KINEO-LOGIN-MODAL-1410 — fundador 14/10: "Log in" e "Start free" abrem o login/cadastro num modal por cima da home.
+import HomeAuthModal from '@/components/auth/HomeAuthModal'
 import RevealOnScroll from './RevealOnScroll'
 import LiveStatsBand from '@/components/LiveStatsBand'
 import type { WallVideo } from '@/lib/engineWall'
@@ -971,10 +973,10 @@ export default function KineoLanding({
           <InterfaceLanguageSelect />
           {/* KINEO-NAV-4-ITENS-2026-09-25 — "Log in" em texto ao lado do CTA de
               cadastro, so para visitante; no celular ele mora no menu. */}
-          {initialUser ? null : <Link className="nav-login" href="/login" data-nav-item="login"><UiLabel>Log in</UiLabel></Link>}
+          {initialUser ? null : <Link className="nav-login" href="/login" data-nav-item="login" data-auth-modal="login"><UiLabel>Log in</UiLabel></Link>}
           {initialUser
             ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w nav-dashboard" style={{ padding: '12px 20px', fontSize: '14px' }} href="/studio"><UiLabel>Dashboard</UiLabel></Link></div>
-            : <Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav'}><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>}
+            : <Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} data-auth-modal="signup" href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav'}><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>}
           <div className="nav-toggle-wrap">
             <input type="checkbox" id="nav-toggle" className="nav-toggle-input" aria-label="Menu" aria-controls="mobile-nav-menu" />
             <span className="nav-toggle-btn" aria-hidden="true"><span className="bar" /><span className="bar" /><span className="bar" /></span>
@@ -990,7 +992,7 @@ export default function KineoLanding({
               <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
               {initialUser
                 ? <Link className="btn btn-w" href="/studio"><UiLabel>Dashboard</UiLabel></Link>
-                : <Link href="/login" data-nav-item="login"><UiLabel>Log in</UiLabel></Link>}
+                : <Link href="/login" data-nav-item="login" data-auth-modal="login"><UiLabel>Log in</UiLabel></Link>}
               <span className="nav-mobile-kicker"><UiLabel>More tools</UiLabel></span>
               <Link href="/images" data-nav-item="image"><UiLabel>Images</UiLabel></Link>
               <span className="nav-mobile-engines">
@@ -1003,7 +1005,7 @@ export default function KineoLanding({
               <Link className="nav-mobile-more" href="/examples" data-nav-item="examples"><UiLabel>Examples</UiLabel></Link>
               {initialUser
                 ? null
-                : <Link className="btn btn-w" href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav-mobile'}><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>}
+                : <Link className="btn btn-w" data-auth-modal="signup" href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav-mobile'}><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>}
             </label>
           </div>
         </div>
@@ -1095,7 +1097,7 @@ export default function KineoLanding({
                 <p><UiLabel>{ft(OFFER, `Every new account${GRANT_COUNTRY_CLAUSE} starts free with ${TRIAL_CREDITS_SHOWN} credits — ${TRIAL_FIRST_FILM_PHRASE}, no card.`, `Every new account${GRANT_COUNTRY_CLAUSE} starts free with ${TRIAL_CREDITS_SHOWN} credits — ${TRIAL_FIRST_FILM_PHRASE}, no card.`)}</UiLabel></p>
                 </div>
                 {/* Opening the editor goes straight to Studio; /studio/create owns submitted jobs. */}
-                <Link className="btn btn-blue" href={isSignedIn ? '/studio?src=engine_bento' : referralBridge ? '#try-kineo' : '/signup?utm_source=engine_bento'}>{isSignedIn ? 'Open the generator' : CARD_ENTRY_COPY.ctaShort}</Link>
+                <Link className="btn btn-blue" data-auth-modal="signup" href={isSignedIn ? '/studio?src=engine_bento' : referralBridge ? '#try-kineo' : '/signup?utm_source=engine_bento'}>{isSignedIn ? 'Open the generator' : CARD_ENTRY_COPY.ctaShort}</Link>
               </div>
           <div className="home-create-grid">
             <Link href="/studio" className="home-create-card">
@@ -1475,7 +1477,7 @@ export default function KineoLanding({
                   o caminho vive dentro de um ternário. Lição registrada: para
                   achar link nesta base não basta procurar `href=`, tem que
                   procurar a STRING do caminho. */}
-              <div className="fcta"><Link className="btn btn-w" href={isSignedIn ? '/studio' : referralBridge ? '#try-kineo' : '/signup?utm_source=final_cta'}>{isSignedIn ? 'Create a video' : CARD_ENTRY_COPY.ctaShort}</Link></div>
+              <div className="fcta"><Link className="btn btn-w" data-auth-modal="signup" href={isSignedIn ? '/studio' : referralBridge ? '#try-kineo' : '/signup?utm_source=final_cta'}>{isSignedIn ? 'Create a video' : CARD_ENTRY_COPY.ctaShort}</Link></div>
               {/* ONDA6 #1 (14/08) — o fechamento ganha a linha de reversao de
                   risco do hero: fecha a pagina com a mesma forca que abre.
                   KINEO-TRIAL-SWAP-LEAK-2026-08-15 — esta linha NASCEU fora da
@@ -1526,6 +1528,8 @@ export default function KineoLanding({
           (cadastro), não deals: visitante que nunca gerou vídeo não deve levar
           tabela de preço como última impressão. Deals seguem no /pricing. */}
       {!isSignedIn && <ExitIntentOffer variant="free" />}
+      {/* KINEO-LOGIN-MODAL-1410 — o modal de entrar/criar conta (abre pelos links marcados com data-auth-modal e por /?auth=…). */}
+      <HomeAuthModal signedIn={isSignedIn} />
     </main>
     <Footer showStats={false} />
     </>
