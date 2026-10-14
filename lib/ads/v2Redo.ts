@@ -60,3 +60,37 @@ export function adsV2RedoCopy(lang: InterfaceLanguage | string | null | undefine
 export function adsV2RedoFill(template: string, vars: { n?: number; c?: number }): string {
   return String(template).split('{n}').join(String(vars.n ?? '')).split('{c}').join(String(vars.c ?? ''))
 }
+
+// ── KINEO-ADS-REFACAO-ATOR-1410 — a 1ª refação de cada anúncio entregue é GRÁTIS (lib/ads/v2FreeRedo.ts). As frases do
+// botão e da confirmação nesse caso, nas 16 línguas (as de cima, com {c} créditos, continuam para as refações seguintes).
+export interface AdsV2RedoFreeCopy {
+  /** Botão da 1ª refação ("Refazer esta cena · grátis"). */
+  button: string
+  /** Confirmação: {n} = nº da cena. */
+  ask: string
+}
+
+export const ADS_V2_REDO_FREE_COPY: Record<InterfaceLanguage, AdsV2RedoFreeCopy> = {
+  en: { button: 'Redo this scene · free', ask: 'Redo scene {n} for free? Your first redo on this ad is on us.' },
+  pt: { button: 'Refazer esta cena · grátis', ask: 'Refazer a cena {n} de graça? A primeira refação deste anúncio é por nossa conta.' },
+  es: { button: 'Rehacer esta escena · gratis', ask: '¿Rehacer la escena {n} gratis? La primera vez que rehaces este anuncio corre por nuestra cuenta.' },
+  fr: { button: 'Refaire cette scène · gratuit', ask: 'Refaire la scène {n} gratuitement ? La première refonte de cette pub est offerte.' },
+  de: { button: 'Diese Szene neu machen · kostenlos', ask: 'Szene {n} kostenlos neu machen? Das erste Neumachen dieser Anzeige geht auf uns.' },
+  it: { button: 'Rifai questa scena · gratis', ask: 'Rifare la scena {n} gratis? Il primo rifacimento di questo annuncio è offerto da noi.' },
+  nl: { button: 'Deze scène opnieuw · gratis', ask: 'Scène {n} gratis opnieuw maken? De eerste keer opnieuw maken in deze advertentie is van ons.' },
+  pl: { button: 'Zrób tę scenę ponownie · za darmo', ask: 'Zrobić ponownie scenę {n} za darmo? Pierwsza poprawka tej reklamy jest na nasz koszt.' },
+  tr: { button: 'Bu sahneyi yeniden yap · ücretsiz', ask: 'Sahne {n} ücretsiz yeniden yapılsın mı? Bu reklamdaki ilk yeniden yapım bizden.' },
+  ru: { button: 'Переделать сцену · бесплатно', ask: 'Переделать сцену {n} бесплатно? Первая переделка этой рекламы — за наш счёт.' },
+  uk: { button: 'Переробити сцену · безкоштовно', ask: 'Переробити сцену {n} безкоштовно? Перша переробка цієї реклами — за наш рахунок.' },
+  ar: { button: 'إعادة هذا المشهد · مجانًا', ask: 'إعادة المشهد {n} مجانًا؟ أول إعادة في هذا الإعلان على حسابنا.' },
+  ur: { button: 'یہ منظر دوبارہ بنائیں · مفت', ask: 'منظر {n} مفت دوبارہ بنائیں؟ اس اشتہار کی پہلی دوبارہ تیاری ہماری طرف سے ہے۔' },
+  hi: { button: 'यह सीन दोबारा बनाएँ · मुफ़्त', ask: 'सीन {n} मुफ़्त में दोबारा बनाएँ? इस विज्ञापन का पहला रीडू हमारी तरफ़ से है।' },
+  id: { button: 'Buat ulang adegan ini · gratis', ask: 'Buat ulang adegan {n} gratis? Pembuatan ulang pertama di iklan ini kami tanggung.' },
+  vi: { button: 'Làm lại cảnh này · miễn phí', ask: 'Làm lại cảnh {n} miễn phí? Lần làm lại đầu tiên của quảng cáo này do chúng tôi tặng.' },
+}
+
+/** As frases da refação grátis na língua da tela (língua desconhecida = inglês). */
+export function adsV2RedoFreeCopy(lang: InterfaceLanguage | string | null | undefined): AdsV2RedoFreeCopy {
+  const k = typeof lang === 'string' ? (lang as InterfaceLanguage) : 'en'
+  return ADS_V2_REDO_FREE_COPY[k] ?? ADS_V2_REDO_FREE_COPY.en
+}

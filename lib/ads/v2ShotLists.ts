@@ -449,6 +449,8 @@ export interface AdsV2PlannedShot {
    * montador, nenhuma IA). Só existe quando adsV2PackshotShots trocou um plano de IA por ela. Ausente = plano de sempre.
    */
   packshot?: true
+  /** KINEO-ADS-REFACAO-ATOR-1410 — cena criada "pessoa de IA segurando o produto" (lib/ads/v2PresenterHolds.ts). Ausente = plano de sempre. */
+  presenterHolds?: true
   /** Só no plano 'user_video': o arquivo do cliente no bucket, a duração MEDIDA e o enquadramento (foco 0..1). */
   videoUrl?: string
   videoSeconds?: number

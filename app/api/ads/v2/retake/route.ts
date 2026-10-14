@@ -19,6 +19,7 @@ import { adsV2RetakeRef, chargeAdsV2, deterministicUuid, failAdsV2Order } from '
 import { adsV2ShotEffect, adsV2View, dispatchAdsV2Shots, latestShots, loadAdsV2Order, loadAdsV2Shots } from '@/lib/ads/v2Advance'
 import { v2Fail, v2Json } from '@/lib/ads/v2Server'
 import { adsV2RetakePrompt, variationTagOf } from '@/lib/ads/v2Variations'
+import { adsV2FirstRedoFor, adsV2FreeRedoSeed } from '@/lib/ads/v2FreeRedo' // KINEO-ADS-REFACAO-ATOR-1410 — a 1ª refação de cada anúncio entregue é grátis
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -68,7 +69,10 @@ export async function POST(req: NextRequest) {
     if (target.kind === 'presenter') return v2Fail('presenter_not_retakable', 400)
     if (target.status !== 'done' || !target.image_url) return v2Fail('shot_not_ready', 409)
     const price = adsV2RetakeCredits(target.kind, parent.tier)
-    if (price !== expected) return v2Fail('price_changed', 409, { credits: price })
+    const firstRedo = await adsV2FirstRedoFor(admin, parent, uid) // KINEO-ADS-REFACAO-ATOR-1410 — 1ª refação do anúncio original = grátis (lib/ads/v2FreeRedo.ts)
+    if (!firstRedo) return v2Fail('retake_failed', 502) // KINEO-ADS-REFACAO-ATOR-1410 — leitura das refações falhou: nada cobrado, nada começou
+    const cost = firstRedo.free ? 0 : price // KINEO-ADS-REFACAO-ATOR-1410 — o que esta refação cobra: 0 na 1ª; depois, o preço do plano (price, intocado)
+    if (cost !== expected) return v2Fail('price_changed', 409, { credits: cost }) // KINEO-ADS-REFACAO-ATOR-1410 — a tela mostrou outro valor = nada cobrado (era price)
 
     // Id determinístico gravado ANTES do débito e do POST. REVISÃO 28/09: a semente leva quantas refações DESTE plano
     // já FECHARAM (entregue/falhou/cancelada). Sem isso, a refação recusada por saldo (cancelled) ou que falhou com
@@ -82,7 +86,7 @@ export async function POST(req: NextRequest) {
       .eq('user_id', uid)
     if (prior.error) return isMissingAdsTable(prior.error.code) ? v2Fail('not_ready', 503) : v2Fail('retake_failed', 502)
     const closed = ((prior.data ?? []) as { status: string }[]).filter((r) => r.status === 'delivered' || r.status === 'failed' || r.status === 'cancelled').length
-    const retakeId = deterministicUuid(`adsv2redo:${parent.id}:${idx}:${target.id}:${closed}`)
+    const retakeId = deterministicUuid(cost === 0 ? adsV2FreeRedoSeed(parent.id, firstRedo.seed) : `adsv2redo:${parent.id}:${idx}:${target.id}:${closed}`) // KINEO-ADS-REFACAO-ATOR-1410 — a grátis tem id POR ANÚNCIO (sem a cena): 2 cliques juntos = a mesma chave primária = uma grátis só
     const billingRef = adsV2RetakeRef(retakeId)
     const ins = await admin
       .from('ads_v2_orders')
@@ -106,7 +110,7 @@ export async function POST(req: NextRequest) {
         voice_url: parent.voice_url,
         voice_seconds: parent.voice_seconds,
         billing_ref: billingRef,
-        credits_charged: price,
+        credits_charged: cost, // KINEO-ADS-REFACAO-ATOR-1410 — 0 na refação grátis (era price)
         generation_id: retakeId,
         started_at: new Date().toISOString(),
         parent_order_id: parent.id,
@@ -121,13 +125,14 @@ export async function POST(req: NextRequest) {
         if (again && again.parent_order_id === parent.id && again.retake_idx === idx) {
           return v2Json({ ...adsV2View(again, (await loadAdsV2Shots(admin, retakeId)) ?? []), already_started: true }, 202)
         }
+        if (cost === 0 && again && again.parent_order_id === parent.id) return v2Fail('price_changed', 409, { credits: price }) // KINEO-ADS-REFACAO-ATOR-1410 — a grátis deste anúncio já saiu em OUTRA cena (corrida): esta custa o preço do plano
         return v2Fail('another_active', 409)
       }
       return isMissingAdsTable(ins.error.code) ? v2Fail('not_ready', 503) : v2Fail('retake_failed', 502)
     }
     const retake = { id: retakeId, user_id: uid, billing_ref: billingRef, parent_order_id: parent.id }
 
-    const charge = await chargeAdsV2(admin, { userId: uid, billingRef, cost: price })
+    const charge = cost === 0 ? ({ ok: true } as const) : await chargeAdsV2(admin, { userId: uid, billingRef, cost: price }) // KINEO-ADS-REFACAO-ATOR-1410 — a grátis não debita (chargeAdsV2 recusa custo 0); a paga, a chamada de sempre
     if (!charge.ok) {
       if (!charge.debitPossible) {
         await admin.from('ads_v2_orders').update({ status: 'cancelled', error: `charge_${charge.code}` }).eq('id', retakeId).eq('status', 'generating')
@@ -176,10 +181,10 @@ export async function POST(req: NextRequest) {
       name: 'ads_v2_retake_started',
       userId: uid,
       path: '/api/ads/v2/retake',
-      metadata: { order_id: retakeId, parent_order_id: parent.id, idx, kind: target.kind, engine, credits: price, billing_ref: billingRef, submitted_now: sent },
+      metadata: { order_id: retakeId, parent_order_id: parent.id, idx, kind: target.kind, engine, credits: cost, billing_ref: billingRef, submitted_now: sent, ...(cost === 0 ? { free_first_redo: true } : {}) }, // KINEO-ADS-REFACAO-ATOR-1410 — credits = o cobrado (0 na grátis)
     })
     // KINEO-EQUIPE-BUSINESS-2026-10-10 — rastro de auditoria: o MEMBRO agiu no workspace do dono (o pedido e a cobrança são do dono).
-    if (ws.role === 'member') await writeServerEvent({ name: 'ads_order_by_member', userId: user.id, path: '/api/ads/v2/retake', metadata: { owner_id: uid, action: 'retake', order_id: retakeId, parent_order_id: parent.id, billing_ref: billingRef, credits: price } })
+    if (ws.role === 'member') await writeServerEvent({ name: 'ads_order_by_member', userId: user.id, path: '/api/ads/v2/retake', metadata: { owner_id: uid, action: 'retake', order_id: retakeId, parent_order_id: parent.id, billing_ref: billingRef, credits: cost } }) // KINEO-ADS-REFACAO-ATOR-1410 — o cobrado (0 na grátis)
     return v2Json(fresh ? adsV2View(fresh, (await loadAdsV2Shots(admin, retakeId)) ?? []) : { order_id: retakeId, status: 'generating' }, 202)
   } catch (e) {
     console.warn('[ads/v2/retake] falhou:', e instanceof Error ? e.message : String(e))

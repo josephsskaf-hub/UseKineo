@@ -7,6 +7,7 @@ import { isMissingAdsTable, loadAdsAccess } from '@/lib/ads/serverAccess'
 import { isUuid } from '@/lib/ads/v2Contract'
 import { adsV2View, advanceAdsV2Order, loadAdsV2Order, loadAdsV2Shots } from '@/lib/ads/v2Advance'
 import { v2Fail, v2Json } from '@/lib/ads/v2Server'
+import { adsV2FirstRedoFor } from '@/lib/ads/v2FreeRedo' // KINEO-ADS-REFACAO-ATOR-1410 — a tela mostra "Refazer esta cena · grátis" na 1ª refação
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -37,7 +38,9 @@ export async function GET(req: NextRequest) {
       const v = await admin.from('videos').select('id, video_url, thumbnail_url').eq('id', view.video_id).eq('user_id', uid).maybeSingle()
       video = (v.data as typeof video) ?? null
     }
-    return v2Json({ ...view, video })
+    // KINEO-ADS-REFACAO-ATOR-1410 — só no anúncio entregue: a MESMA regra que a rota /retake usa para cobrar (leitura falhou = sem "grátis").
+    const firstRedoFree = view.status === 'delivered' ? (await adsV2FirstRedoFor(admin, order, uid))?.free === true : false
+    return v2Json({ ...view, video, ...(firstRedoFree ? { first_redo_free: true } : {}) }) // KINEO-ADS-REFACAO-ATOR-1410 — sem a chave = a vista de antes
   } catch (e) {
     console.warn('[ads/v2/status] falhou:', e instanceof Error ? e.message : String(e))
     return v2Fail('status_failed', 502)

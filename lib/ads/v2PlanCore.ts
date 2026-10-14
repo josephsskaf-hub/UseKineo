@@ -29,6 +29,8 @@ import { researchState, storedResearchFacts } from '@/lib/ads/v2Research'
 import { ADS_V2_STYLES_PUBLIC } from '@/lib/ads/v2Styles'
 // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator de IA (interruptor único + o plano dele: foto do produto, pessoa e prompt).
 import { ADS_V2_PRESENTER_PUBLIC, planAdsV2Presenter } from '@/lib/ads/v2Presenter'
+import { adsV2PresenterById } from '@/lib/ads/v2Presenter' // KINEO-ADS-REFACAO-ATOR-1410 — a entrada da biblioteca (retrato, descrição, pronome)
+import { ADS_V2_PRESENTER_HOLDS, adsV2PresenterHoldsShots } from '@/lib/ads/v2PresenterHolds' // KINEO-ADS-REFACAO-ATOR-1410 — pessoa de IA segurando o produto (interruptor desligado)
 import { loadAdsV2Order, type AdsV2StoredPlan } from '@/lib/ads/v2Advance'
 import { measureFootageVideo, ownedFootage, v2Fail, v2Json } from '@/lib/ads/v2Server'
 // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra grátis abre o plano (sem custo de fal) para a conta free/trial que ainda não usou a dela.
@@ -227,7 +229,8 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator: a 1ª foto marcada como produto, a pessoa pela semente do pedido. Sem texto de
     // narração (o modelo não escreveu) não há o que falar: o plano sai sem ator e a tela diz por quê (presenter_asked).
     const presenter = presenterAsked && extracted.copy.narration ? planAdsV2Presenter({ sector, photos, seedKey: order.id, presenterId: input.presenter_id ?? null }) : null
-    const scripts = adsV2BuildScripts([{ tone: 'benefit', narration: extracted.copy.narration, overlays: extracted.copy.overlays }, ...(extracted.variants ?? []).map((v) => ({ tone: v.tone, narration: v.copy.narration, overlays: v.copy.overlays }))], plan.overlays, overlaysOn) // KINEO-ADS-ROTEIROS-2026-10-13 — o 1º é o texto de sempre (= narration/overlays abaixo)
+    plan.shots = adsV2PresenterHoldsShots(plan.shots, { on: ADS_V2_PRESENTER_HOLDS, actor: presenter, entry: adsV2PresenterById(presenter?.presenterId), sector }) // KINEO-ADS-REFACAO-ATOR-1410 — desligado por padrão; ligado: o apresentador ESCOLHIDO segura o produto em UMA vaga trocada (créditos iguais)
+    const scripts =adsV2BuildScripts([{ tone: 'benefit', narration: extracted.copy.narration, overlays: extracted.copy.overlays }, ...(extracted.variants ?? []).map((v) => ({ tone: v.tone, narration: v.copy.narration, overlays: v.copy.overlays }))], plan.overlays, overlaysOn) // KINEO-ADS-ROTEIROS-2026-10-13 — o 1º é o texto de sempre (= narration/overlays abaixo)
     const stored: AdsV2StoredPlan = { ...plan, overlays, narration: extracted.copy.narration, ...(presenter ? { presenter } : {}) }
     Object.assign(stored, { scripts, script_id: scripts[0]?.id ?? 'a' }) // KINEO-ADS-ROTEIROS-2026-10-13 — os roteiros ficam NO plano do pedido; o /choose só copia daqui (preço intocado)
     if (format !== '9:16') Object.assign(stored, { format }) // KINEO-ADS-MELHORIAS-1410 — o formato mora no plano gravado (montagem, motores, refação e variações o leem dali); 9:16 = sem a chave

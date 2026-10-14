@@ -132,6 +132,9 @@ import { adsV2PackshotCopy } from '@/lib/ads/v2Packshot' // KINEO-ADS-MELHORIAS-
 import { adsV2FormatCopy } from '@/lib/ads/v2Formats' // KINEO-ADS-MELHORIAS-1410 — as frases do formato (16 línguas)
 import { ADS_V2_FORMATS, ADS_V2_FORMAT_CROP, adsV2CropRectFor, adsV2FormatBlock, type AdsV2Format } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — 4:5 e 1:1 em "Mais opções"
 import { adsV2RedoCopy, adsV2RedoFill, type AdsV2RedoCopy } from '@/lib/ads/v2Redo' // KINEO-ADS-MELHORIAS-1410 — refazer UMA cena aqui mesmo (frases nas 16 línguas)
+import { adsV2RedoFreeCopy, type AdsV2RedoFreeCopy } from '@/lib/ads/v2Redo' // KINEO-ADS-REFACAO-ATOR-1410 — "Refazer esta cena · grátis" (16 línguas)
+import { adsV2RedoPrice } from '@/lib/ads/v2FreeRedo' // KINEO-ADS-REFACAO-ATOR-1410 — 0 na 1ª refação, o preço do plano depois
+import { adsV2AiPersonLabel } from '@/lib/ads/v2PresenterHolds' // KINEO-ADS-REFACAO-ATOR-1410 — o plano "pessoa de IA segurando o produto" leva o rótulo de IA
 
 // ─── tipos ────────────────────────────────────────────────────────────────────────────────────
 
@@ -145,6 +148,8 @@ interface OrderView {
   error: string | null
   parent_order_id: string | null
   shots: AdsV2ScreenShot[]
+  /** KINEO-ADS-REFACAO-ATOR-1410 — o /status diz que a próxima refação deste anúncio é grátis (ausente = paga). */
+  first_redo_free?: boolean
 }
 interface VideoInfo {
   id: string
@@ -950,7 +955,7 @@ export function AdsV2SimpleSession({
     setRedoError(null)
     const parent = order.order_id
     onActive(true)
-    const r = await api<StatusView>('/api/ads/v2/retake', { method: 'POST', body: { order_id: parent, idx: shot.idx, expected_credits: shot.retake_credits } })
+    const r = await api<StatusView>('/api/ads/v2/retake', { method: 'POST', body: { order_id: parent, idx: shot.idx, expected_credits: adsV2RedoPrice(shot.retake_credits, order.first_redo_free) } }) // KINEO-ADS-REFACAO-ATOR-1410 — o valor que a tela mostrou (0 na 1ª)
     if (!aliveRef.current) return
     setRedoBusy(false)
     if (!r.ok) {
@@ -2616,7 +2621,7 @@ export function AdsV2SimpleSession({
               {copy.progress.leave} <Link className="adsw-link" href="/history">{copy.progress.myVideos}</Link>.
             </p>
             {redoNote ? <p className="adv2-note" role="status" style={{ marginTop: 0, marginBottom: 16 }}>{redoNote}</p> : null}{/* KINEO-ADS-MELHORIAS-1410 */}
-            <SimpleShotGrid shots={order.shots} orderStatus={order.status} copy={copy} packshotLabel={adsV2PackshotCopy(lang).label} />
+            <SimpleShotGrid shots={order.shots} orderStatus={order.status} copy={copy} packshotLabel={adsV2PackshotCopy(lang).label} aiPersonLabel={adsV2AiPersonLabel(lang)} />{/* KINEO-ADS-REFACAO-ATOR-1410 — pessoa de IA: rótulo de IA também no progresso */}
             {pollNote ? <p className="adsw-warn" role="status">{pollNote}</p> : null}
           </section>
         ) : null}
@@ -2652,7 +2657,8 @@ export function AdsV2SimpleSession({
                 orderStatus={order.status}
                 copy={copy}
                 packshotLabel={adsV2PackshotCopy(lang).label}
-                redo={{ copy: rcopy, ask: redoAsk, busy: redoBusy, onAsk: (idx) => { setRedoAsk(idx); setRedoError(null) }, onCancel: () => setRedoAsk(null), onConfirm: (shot) => void redoShot(shot) }}
+                redo={{ copy: rcopy, ask: redoAsk, busy: redoBusy, onAsk: (idx) => { setRedoAsk(idx); setRedoError(null) }, onCancel: () => setRedoAsk(null), onConfirm: (shot) => void redoShot(shot), free: order.first_redo_free === true, freeCopy: adsV2RedoFreeCopy(lang) }} // KINEO-ADS-REFACAO-ATOR-1410 — a 1ª refação grátis
+                aiPersonLabel={adsV2AiPersonLabel(lang)} // KINEO-ADS-REFACAO-ATOR-1410
               />
             )}
             {redoError ? <p className="adsw-err" role="alert">{redoError}</p> : null}{/* KINEO-ADS-MELHORIAS-1410 */}
@@ -3026,19 +3032,23 @@ function SimpleShotGrid({
   copy,
   packshotLabel,
   redo,
+  aiPersonLabel, // KINEO-ADS-REFACAO-ATOR-1410
 }: {
   shots: AdsV2ScreenShot[]
   orderStatus: string
   copy: AdsV2SimpleCopy
   packshotLabel?: string
   /** KINEO-ADS-MELHORIAS-1410 — só na entrega: "Refazer esta cena" por cena (a regra é canRedoShot, a mesma do modo completo). */
-  redo?: { copy: AdsV2RedoCopy; ask: number | null; busy: boolean; onAsk: (idx: number) => void; onCancel: () => void; onConfirm: (shot: AdsV2ScreenShot) => void }
+  redo?: { copy: AdsV2RedoCopy; ask: number | null; busy: boolean; onAsk: (idx: number) => void; onCancel: () => void; onConfirm: (shot: AdsV2ScreenShot) => void; free?: boolean; freeCopy?: AdsV2RedoFreeCopy } // KINEO-ADS-REFACAO-ATOR-1410 — free/freeCopy: a 1ª refação grátis
+  /** KINEO-ADS-REFACAO-ATOR-1410 — rótulo do plano "pessoa de IA segurando o produto" (sempre diz que é IA). */
+  aiPersonLabel?: string
 }) {
   if (!shots.length) return <p className="adsw-hint" role="status">{copy.progress.preparing}</p>
   return (
     <ol className="adv2-grid" aria-label={copy.plan.shots}>
       {shots.map((s, i) => {
-        const label = s.packshot && packshotLabel ? packshotLabel : simpleLabel(copy, shotStateLabel(s, orderStatus)) // KINEO-ADS-MELHORIAS-1410 — "Sua foto real" na língua da tela
+        const label0 = s.packshot && packshotLabel ? packshotLabel : simpleLabel(copy, shotStateLabel(s, orderStatus)) // KINEO-ADS-MELHORIAS-1410 — "Sua foto real" na língua da tela
+        const label = s.ai_person === true && aiPersonLabel ? `${aiPersonLabel} · ${label0}` : label0 // KINEO-ADS-REFACAO-ATOR-1410 — pessoa de IA: o rótulo diz IA, sempre
         const isText = s.kind === 'text'
         const name = fill(copy.progress.shot, { n: i + 1 })
         return (
@@ -3055,14 +3065,14 @@ function SimpleShotGrid({
             <span className="st" data-state={s.state}>{i + 1}. {label}</span>
             {redo && canRedoShot(s, orderStatus) ? (
               redo.ask === s.idx ? (
-                <div role="group" aria-label={adsV2RedoFill(redo.copy.ask, { n: i + 1, c: s.retake_credits })} style={{ display: 'grid', gap: 6 }} data-kineo="ads-redo-confirm">
-                  <span className="adsw-hint" style={{ margin: 0 }}>{adsV2RedoFill(redo.copy.ask, { n: i + 1, c: s.retake_credits })}</span>
+                <div role="group" aria-label={adsV2RedoFill(redo.free && redo.freeCopy ? redo.freeCopy.ask : redo.copy.ask, { n: i + 1, c: s.retake_credits })} style={{ display: 'grid', gap: 6 }} data-kineo="ads-redo-confirm">{/* KINEO-ADS-REFACAO-ATOR-1410 — a 1ª é grátis */}
+                  <span className="adsw-hint" style={{ margin: 0 }}>{adsV2RedoFill(redo.free && redo.freeCopy ? redo.freeCopy.ask : redo.copy.ask, { n: i + 1, c: s.retake_credits })}</span>{/* KINEO-ADS-REFACAO-ATOR-1410 */}
                   <button type="button" className="adsw-btn small" disabled={redo.busy} onClick={() => redo.onConfirm(s)}>{redo.busy ? redo.copy.starting : redo.copy.yes}</button>
                   <button type="button" className="adsw-btn ghost small" disabled={redo.busy} onClick={redo.onCancel}>{redo.copy.cancel}</button>
                 </div>
               ) : (
                 <button type="button" className="adsw-btn ghost small" disabled={redo.busy} onClick={() => redo.onAsk(s.idx)} data-kineo="ads-redo-scene">
-                  {adsV2RedoFill(redo.copy.button, { c: s.retake_credits })}
+                  {redo.free && redo.freeCopy ? redo.freeCopy.button : adsV2RedoFill(redo.copy.button, { c: s.retake_credits })}{/* KINEO-ADS-REFACAO-ATOR-1410 — "Refazer esta cena · grátis" na 1ª */}
                 </button>
               )
             ) : null}
