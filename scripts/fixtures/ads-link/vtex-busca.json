@@ -1,0 +1,97 @@
+[
+ {
+  "productId": "20127851",
+  "productName": "Geladeira Brastemp Frost Free 385 Litros Duplex cor Inox - BRM46MK",
+  "brand": "Brastemp",
+  "linkText": "geladeira-brastemp-frost-free-inox-385l",
+  "productReference": "BRM46MK",
+  "productTitle": "Geladeira Brastemp Frost Free Inox 385L: Capacidade e Eficiência",
+  "metaTagDescription": "Economize até 33% de energia com a Geladeira Brastemp Frost Free Inox 385l. Preservação inteligente e resfriamento rápido com Turbo Freezer.",
+  "description": "A Geladeira Brastemp Frost Free Duplex de 385 Litros na cor Inox oferece organização e praticidade de ponta a ponta. Conta com a espaçosa Gaveta de Legumes Fresh Zone, perfeita para preservar frutas e verduras frescas por mais tempo. O inovador compartimento Extra Frio gela rapidamente bebidas e laticínios sem congelar. Tudo organizado com o flexível sistema de prateleiras na porta. Sem a necessidade de descongelar e com acabamento elegante em inox, é ideal para o dia a dia de famílias e casais modernos.",
+  "link": "https://www.loja-exemplo.com.br/geladeira-brastemp-frost-free-inox-385l/p",
+  "items": [
+   {
+    "itemId": "326199062",
+    "name": "110V",
+    "nameComplete": "Geladeira Brastemp Frost Free 385 Litros Duplex cor Inox - BRM46MK 110V",
+    "images": [
+     {
+      "imageId": "282427",
+      "imageLabel": "",
+      "imageUrl": "https://lojaexemplo.vteximg.com.br/arquivos/ids/282427/01_Brastemp_Geladeira_BRM46MK_Imagem_Frontal.jpg?v=639102205310630000"
+     },
+     {
+      "imageId": "282428",
+      "imageLabel": "",
+      "imageUrl": "https://lojaexemplo.vteximg.com.br/arquivos/ids/282428/03_Brastemp_Geladeira_BRM46MK_Imagem_3_4.jpg?v=639102205310970000"
+     },
+     {
+      "imageId": "282429",
+      "imageLabel": "",
+      "imageUrl": "https://lojaexemplo.vteximg.com.br/arquivos/ids/282429/02_Brastemp_Geladeira_BRM46MK_Imagem_Frontal_Aberta_Vazia.jpg?v=639102205311170000"
+     },
+     {
+      "imageId": "282430",
+      "imageLabel": "",
+      "imageUrl": "https://lojaexemplo.vteximg.com.br/arquivos/ids/282430/04_Brastemp_Geladeira_BRM46MK_Imagem_Frontal_Aberta_Cheia.jpg?v=639102205311230000"
+     }
+    ],
+    "sellers": [
+     {
+      "sellerId": "1",
+      "sellerName": "Loja Exemplo",
+      "sellerDefault": true,
+      "commertialOffer": {
+       "Price": 2829,
+       "ListPrice": 3299,
+       "PriceWithoutDiscount": 2829,
+       "AvailableQuantity": 2686,
+       "IsAvailable": true
+      }
+     }
+    ]
+   },
+   {
+    "itemId": "326199063",
+    "name": "220V",
+    "nameComplete": "Geladeira Brastemp Frost Free 385 Litros Duplex cor Inox - BRM46MK 220V",
+    "images": [
+     {
+      "imageId": "282447",
+      "imageLabel": "",
+      "imageUrl": "https://lojaexemplo.vteximg.com.br/arquivos/ids/282447/01_Brastemp_Geladeira_BRM46MK_Imagem_Frontal.jpg?v=639102205313370000"
+     },
+     {
+      "imageId": "282448",
+      "imageLabel": "",
+      "imageUrl": "https://lojaexemplo.vteximg.com.br/arquivos/ids/282448/03_Brastemp_Geladeira_BRM46MK_Imagem_3_4.jpg?v=639102205313430000"
+     },
+     {
+      "imageId": "282449",
+      "imageLabel": "",
+      "imageUrl": "https://lojaexemplo.vteximg.com.br/arquivos/ids/282449/02_Brastemp_Geladeira_BRM46MK_Imagem_Frontal_Aberta_Vazia.jpg?v=639102205313470000"
+     },
+     {
+      "imageId": "282450",
+      "imageLabel": "",
+      "imageUrl": "https://lojaexemplo.vteximg.com.br/arquivos/ids/282450/04_Brastemp_Geladeira_BRM46MK_Imagem_Frontal_Aberta_Cheia.jpg?v=639102205313500000"
+     }
+    ],
+    "sellers": [
+     {
+      "sellerId": "1",
+      "sellerName": "Loja Exemplo",
+      "sellerDefault": true,
+      "commertialOffer": {
+       "Price": 2829,
+       "ListPrice": 3299,
+       "PriceWithoutDiscount": 2829,
+       "AvailableQuantity": 3496,
+       "IsAvailable": true
+      }
+     }
+    ]
+   }
+  ]
+ }
+]

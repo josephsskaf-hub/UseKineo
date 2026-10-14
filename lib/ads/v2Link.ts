@@ -13,6 +13,8 @@ import { lookup } from 'node:dns/promises'
 import { isPrivateHost, linkSentence, productImageCandidates, readLinkFacts, safeLinkUrl } from '@/lib/ads/linkReader'
 // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — a foto DO PRODUTO primeiro (JSON-LD/og:type product/Shopify), WebP aceito e o porquê da falha.
 import { imageFileKey, isShopifyHtml, preferJpegUrl, productPageImages, shopifyProductFromJson, shopifyProductJsonUrl, type LinkFacts, type ShopifyProduct } from '@/lib/ads/linkReader'
+// KINEO-ADS-LINK-LOJAS-1510 — o leitor de todas as plataformas: charset da página, .js do Shopify, busca da VTEX, página de robô/login/só-JS.
+import { decodeHtmlBytes, detectLinkBlock, detectLinkPlatform, linkBlockMessage, shopifyProductFromJs, vtexProductFromSearch, type LinkBlockKind, type LinkConfidence, type LinkPlatform } from '@/lib/ads/linkReader'
 import {
   ADS_V2_LINK_FETCH_TIMEOUT_MS,
   ADS_V2_LINK_IMAGE_MAX_BYTES,
@@ -95,12 +97,28 @@ async function shopifyProduct(pageUrl: string): Promise<ShopifyProduct | null> {
   const u = j ? safeLinkUrl(j) : null
   if (!u) return null
   const got = await safeGet(u, 'application/json', 1_000_000, false).catch(() => null)
-  return got ? shopifyProductFromJson(new TextDecoder('utf-8').decode(got.body)) : null
+  const fromJson = got ? shopifyProductFromJson(new TextDecoder('utf-8').decode(got.body)) : null // KINEO-ADS-LINK-LOJAS-1510
+  if (fromJson || !j) return fromJson // KINEO-ADS-LINK-LOJAS-1510
+  const js = safeLinkUrl(j.replace(/\.json$/, '.js')) // KINEO-ADS-LINK-LOJAS-1510 — loja que fecha o .json ainda abre o .js (o do tema)
+  const got2 = js ? await safeGet(js, 'application/json,text/javascript', 1_000_000, false).catch(() => null) : null // KINEO-ADS-LINK-LOJAS-1510
+  return got2 ? shopifyProductFromJs(new TextDecoder('utf-8').decode(got2.body)) : null // KINEO-ADS-LINK-LOJAS-1510
 }
 
 /** Os fatos de uma página que não abriu, tirados do JSON do Shopify (só o que ele diz; nunca contato). */
 function factsFromShopify(p: ShopifyProduct, url: URL): LinkFacts {
-  return { title: p.title, siteName: p.vendor, description: p.description, price: p.price, images: p.images, logo: null, host: url.hostname.replace(/^www\./, ''), lang: null, shareOnly: false }
+  return { title: p.title, siteName: p.vendor, description: p.description, price: p.price, images: p.images, logo: null, host: url.hostname.replace(/^www\./, ''), lang: null, shareOnly: false, platform: 'shopify', currency: null, brand: p.vendor, confidence: 'medium', reasons: ['shopify_json'], blocked: null } // KINEO-ADS-LINK-LOJAS-1510 — a página não foi lida: confiança média
+}
+
+/**
+ * KINEO-ADS-LINK-LOJAS-1510 — VTEX: a busca pública do catálogo (/api/catalog_system/pub/products/search/<slug>/p), pelo MESMO
+ * safeGet, quando a página não deu preço ou foto. null = não é página de produto VTEX (/<slug>/p) ou a busca não respondeu.
+ */
+async function vtexSearch(pageUrl: URL): Promise<ReturnType<typeof vtexProductFromSearch>> {
+  const m = /^\/([^/]+)\/p\/?$/.exec(pageUrl.pathname)
+  const u = m ? safeLinkUrl(`${pageUrl.origin}/api/catalog_system/pub/products/search/${m[1]}/p`) : null
+  if (!u) return null
+  const got = await safeGet(u, 'application/json', 1_000_000, false).catch(() => null)
+  return got ? vtexProductFromSearch(new TextDecoder('utf-8').decode(got.body)) : null
 }
 
 /** A frase do negócio lida do link (null = página inacessível ou não-HTML). */
@@ -116,7 +134,8 @@ export async function adsV2LinkText(raw: string): Promise<{ text: string; lang: 
     const t = linkSentence(f)
     return t ? { text: t, lang: null, host: f.host } : null
   }
-  const facts = readLinkFacts(new TextDecoder('utf-8').decode(page.body), page.url.toString())
+  const facts = readLinkFacts(decodeHtmlBytes(page.body, page.type), page.url.toString()) // KINEO-ADS-LINK-LOJAS-1510 — no charset da página (a Tray é ISO-8859-1)
+  if (facts.blocked) return null // KINEO-ADS-LINK-LOJAS-1510 — página de robô/login/só-JS: nada a ler
   const text = linkSentence(facts)
   return text ? { text, lang: facts.lang, host: facts.host } : null
 }
@@ -144,14 +163,22 @@ export interface AdsV2LinkImportResult {
   images: AdsV2LinkImage[]
   /** Candidatas tentadas e puladas (quebrada, pequena, grande demais, WebP/GIF, host interno). */
   skipped: number
+  /** KINEO-ADS-LINK-LOJAS-1510 — a plataforma, a moeda do preço, a marca, a confiança do leitor e os porquês. */
+  platform?: LinkPlatform
+  currency?: string | null
+  brand?: string
+  confidence?: LinkConfidence
+  reasons?: string[]
 }
+/** KINEO-ADS-LINK-LOJAS-1510 — o porquê da falha: `value` (o de sempre, a tela traduz) + o detalhe, a plataforma e o aviso honesto. */
+export interface AdsV2LinkFail { value?: AdsV2LinkFailWhy; detail?: LinkBlockKind; platform?: LinkPlatform; message?: string }
 
 /**
  * KINEO-ADS-1FOTO-LINK-2026-10-10 — lê a página do produto e baixa até `max` fotos (JPG/PNG pelos bytes, entre
  * ADS_V2_LINK_IMAGE_MIN_BYTES e o teto, que é o menor entre ADS_V2_LINK_IMAGE_MAX_BYTES e `roomBytes`). null = link
  * recusado (interno, porta estranha, credencial) ou página que não abre/não é HTML. Nada é gravado aqui.
  */
-export async function adsV2LinkImport(raw: string, opts: { max?: number; roomBytes?: number; why?: { value?: AdsV2LinkFailWhy } } = {}): Promise<AdsV2LinkImportResult | null> {
+export async function adsV2LinkImport(raw: string, opts: { max?: number; roomBytes?: number; why?: AdsV2LinkFail } = {}): Promise<AdsV2LinkImportResult | null> { // KINEO-ADS-LINK-LOJAS-1510 — why ganhou detalhe/plataforma/aviso
   const target = safeLinkUrl(raw)
   if (!target) return null
   const seen = { status: null as number | null }
@@ -160,21 +187,30 @@ export async function adsV2LinkImport(raw: string, opts: { max?: number; roomByt
   // barrou a leitura, pelo caminho /products/<handle>) → o JSON do produto completa as FOTOS DESTE produto. Nada abriu =
   // null com o porquê (bloqueou / não existe / não é página) para a tela dizer a coisa certa.
   const pageOk = !!page && /html|xml/.test(page.type)
-  const html = pageOk && page ? new TextDecoder('utf-8').decode(page.body) : ''
+  const html = pageOk && page ? decodeHtmlBytes(page.body, page.type) : '' // KINEO-ADS-LINK-LOJAS-1510 — no charset da página (a Tray é ISO-8859-1)
   const finalUrl = pageOk && page ? page.url : target
-  const sp = (!pageOk || isShopifyHtml(html)) ? await shopifyProduct(finalUrl.toString()) : null
-  const facts: LinkFacts | null = pageOk ? readLinkFacts(html, finalUrl.toString()) : sp ? factsFromShopify(sp, finalUrl) : null
+  const sp = (!pageOk || isShopifyHtml(html) || (!!shopifyProductJsonUrl(finalUrl.toString()) && !!detectLinkBlock(html, finalUrl.toString(), false))) ? await shopifyProduct(finalUrl.toString()) : null // KINEO-ADS-LINK-LOJAS-1510 — + a página de robô num endereço /products/<handle>: o JSON do Shopify ainda pode falar
+  let facts: LinkFacts | null = pageOk ? readLinkFacts(html, finalUrl.toString()) : sp ? factsFromShopify(sp, finalUrl) : null // KINEO-ADS-LINK-LOJAS-1510 — let: a página de robô do Shopify cede ao JSON
+  if (facts?.blocked && sp) facts = factsFromShopify(sp, finalUrl) // KINEO-ADS-LINK-LOJAS-1510
+  if (facts?.blocked) { // KINEO-ADS-LINK-LOJAS-1510 — página de robô/login/só-JS: o porquê honesto, nada inventado
+    if (opts.why) Object.assign(opts.why, { value: facts.blocked === 'js_only' ? 'not_html' : 'blocked', detail: facts.blocked, platform: facts.platform, message: linkBlockMessage(facts.platform, facts.blocked) }) // KINEO-ADS-LINK-LOJAS-1510
+    return null // KINEO-ADS-LINK-LOJAS-1510
+  } // KINEO-ADS-LINK-LOJAS-1510
   if (!facts) {
     if (opts.why) opts.why.value = adsV2LinkFailWhy(seen.status, !!page)
+    if (opts.why?.value === 'blocked') { const pf = detectLinkPlatform('', target.toString()); Object.assign(opts.why, { platform: pf, message: linkBlockMessage(pf, 'captcha') }) } // KINEO-ADS-LINK-LOJAS-1510 — a Amazon/Etsy que barram ganham o aviso com o nome
     return null
   }
+  // KINEO-ADS-LINK-LOJAS-1510 — VTEX sem preço ou sem foto na página: a busca pública do catálogo completa (o preço de VENDA do vendedor com estoque).
+  const vtex = facts.platform === 'vtex' && (!facts.price || !productPageImages(html, finalUrl.toString()).length) ? await vtexSearch(finalUrl) : null // KINEO-ADS-LINK-LOJAS-1510
+  if (vtex && !facts.price && vtex.price && !(facts.reasons ?? []).some((r) => /price_(conflict|varies|range)/.test(r))) facts = { ...facts, price: `${facts.currency ?? ''} ${vtex.price}`.trim(), reasons: [...(facts.reasons ?? []), 'vtex_search'] } // KINEO-ADS-LINK-LOJAS-1510
   const max = Math.max(0, Math.min(ADS_V2_LINK_IMPORT_MAX_IMAGES, Math.floor(opts.max ?? ADS_V2_LINK_IMPORT_MAX_IMAGES)))
   let room = typeof opts.roomBytes === 'number' && Number.isFinite(opts.roomBytes) ? Math.max(0, opts.roomBytes) : Number.POSITIVE_INFINITY
   // As fotos que a página DECLARA do produto (+ as do JSON do Shopify), sem o logo e sem repetir o arquivo; as <img> soltas
   // da página (relacionados, banners, equipe — a pessoa e o "outro pote" da Black Chicken) só quando nenhuma declarada baixou.
   const logoKey = facts.logo ? imageFileKey(facts.logo) : null
   const byFile = new Set<string>()
-  const declared = [...productPageImages(html, finalUrl.toString()), ...(sp?.images ?? [])].filter((u) => {
+  const declared = [...productPageImages(html, finalUrl.toString()), ...(sp?.images ?? []), ...(vtex?.images ?? [])].filter((u) => { // KINEO-ADS-LINK-LOJAS-1510 — + as fotos da busca VTEX
     const k = imageFileKey(u)
     if (!k || k === logoKey || byFile.has(k)) return false
     byFile.add(k)
@@ -213,6 +249,11 @@ export async function adsV2LinkImport(raw: string, opts: { max?: number; roomByt
     candidates: primary.length || general.length,
     images,
     skipped,
+    platform: facts.platform, // KINEO-ADS-LINK-LOJAS-1510
+    currency: facts.currency ?? null, // KINEO-ADS-LINK-LOJAS-1510
+    brand: facts.brand, // KINEO-ADS-LINK-LOJAS-1510
+    confidence: facts.confidence, // KINEO-ADS-LINK-LOJAS-1510
+    reasons: facts.reasons, // KINEO-ADS-LINK-LOJAS-1510
   }
 }
 

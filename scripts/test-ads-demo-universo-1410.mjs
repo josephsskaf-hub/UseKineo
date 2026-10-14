@@ -23,6 +23,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { semLinkLojas1510 } from './test-support/desfaz-ads-link-lojas-1510.mjs' // reancorado KINEO-ADS-LINK-LOJAS-1510
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semDemoUniverso1410, DEMO_UNIVERSO_1410_ARQUIVOS, MARCA_DEMO_UNIVERSO_1410 } from './test-support/desfaz-ads-demo-universo-1410.mjs'
 import { semRefacaoAtor1410 } from './test-support/desfaz-ads-refacao-ator-1410.mjs' // reancorado KINEO-ADS-REFACAO-ATOR-1410
@@ -208,13 +209,13 @@ ok(tenta(() => { const S = ST(); return /apparel/i.test(S.adsV2Style('graffiti_a
 // ═══ 7. dinheiro intocado e a volta exata ═══════════════════════════════════════════════════════════════════════════
 console.log('\n7. dinheiro intocado e o desfaz')
 const DINHEIRO = ['lib/ads/v2Billing.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2StartCore.ts', 'app/api/ads/v2/start/route.ts', 'app/api/ads/v2/plan/route.ts', 'lib/ads/v2PlanCore.ts', 'lib/ads/v2Link.ts', 'app/api/ads/v2/link-import/route.ts']
-ok(DINHEIRO.every((f) => tenta(() => semRefacaoAtor1410(f, read(f)) === base(f))), /* reancorado KINEO-ADS-REFACAO-ATOR-1410 — o núcleo do /plan ganhou 3 linhas marcadas (o ator segurando o produto); desfeitas, a base exata */ '7a v2Billing, v2Tiers, v2StartCore, /start, /plan, v2PlanCore, v2Link e /link-import byte a byte iguais à base')
-ok(DEMO_UNIVERSO_1410_ARQUIVOS.length === 7 && DEMO_UNIVERSO_1410_ARQUIVOS.every((f) => tenta(() => semDemoUniverso1410(f, semPalcoVoltar1410(f, semRefacaoAtor1410(f, semFiel1510(f, read(f))))) === base(f) /* reancorado KINEO-ADS-FIEL-1510 */)) /* reancorado KINEO-ADS-REFACAO-ATOR-1410 — a leva mais nova sai primeiro · reancorado KINEO-ADS-PALCO-VOLTAR-1410 — o palco/kit sai antes */, '7b desfeito (scripts/test-support/desfaz-ads-demo-universo-1410.mjs), cada um dos 7 arquivos tocados é EXATAMENTE a base')
+ok(DINHEIRO.every((f) => tenta(() => semRefacaoAtor1410(f, semLinkLojas1510(f, read(f))) === base(f))), /* reancorado KINEO-ADS-LINK-LOJAS-1510 — o leitor de todas as plataformas (v2Link, /link-import) sai primeiro */ /* reancorado KINEO-ADS-REFACAO-ATOR-1410 — o núcleo do /plan ganhou 3 linhas marcadas (o ator segurando o produto); desfeitas, a base exata */ '7a v2Billing, v2Tiers, v2StartCore, /start, /plan, v2PlanCore, v2Link e /link-import byte a byte iguais à base')
+ok(DEMO_UNIVERSO_1410_ARQUIVOS.length === 7 && DEMO_UNIVERSO_1410_ARQUIVOS.every((f) => tenta(() => semDemoUniverso1410(f, semPalcoVoltar1410(f, semRefacaoAtor1410(f, semFiel1510(f, semLinkLojas1510(f, read(f)))))) === base(f))) /* reancorado KINEO-ADS-FIEL-1510 */ /* reancorado KINEO-ADS-LINK-LOJAS-1510 */ /* reancorado KINEO-LEVA-ADS-AGENCIA-1510 — o leitor de link (mais novo) sai antes da trava do produto */ /* reancorado KINEO-ADS-REFACAO-ATOR-1410 — a leva mais nova sai primeiro · reancorado KINEO-ADS-PALCO-VOLTAR-1410 — o palco/kit sai antes */, '7b desfeito (scripts/test-support/desfaz-ads-demo-universo-1410.mjs), cada um dos 7 arquivos tocados é EXATAMENTE a base')
 ok(['lib/engineWall.ts', 'lib/homeVideoCuration.ts'].every((f) => read(f) === base(f)), '7c vitrine da home (engineWall, homeVideoCuration) intocada')
 
 // ═══ M. mutantes ════════════════════════════════════════════════════════════════════════════════════════════════════
 console.log('\nM. mutantes (precisam ficar vermelhos)')
-const SRC = { reader: read(F.reader), hint: read(F.hint), pron: read(F.pron), styles: read(F.styles), simple: read(F.simple), advance: read(F.advance), orders: read(F.orders) }
+const SRC = { reader: semLinkLojas1510(F.reader, read(F.reader)) /* reancorado KINEO-ADS-LINK-LOJAS-1510 — os mutantes M1–M4 mutam o leitor de antes das plataformas */, hint: read(F.hint), pron: read(F.pron), styles: read(F.styles), simple: read(F.simple), advance: read(F.advance), orders: read(F.orders) }
 const comLeitor = (t) => loader({ [F.reader]: t })(F.reader)
 const m1 = trocar(SRC.reader, '  const pick = found.find((c) => productUrls(c.node).some(isSelf))\n', '  const pick = found.find((c) => !c.main)\n')
 ok(vermelho(() => prioridadeOk(comLeitor(m1))), 'M1 o 1º Product "solto" volta a vencer (o carrossel) → 1c vermelho')

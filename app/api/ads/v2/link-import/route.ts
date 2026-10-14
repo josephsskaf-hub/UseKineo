@@ -25,7 +25,7 @@ import { quarantineObject } from '@/lib/safety/quarantine'
 import { adsGate, adsSampleOpen, loadAdsAccess } from '@/lib/ads/serverAccess'
 import { adsV2Visible } from '@/lib/ads/v2Access'
 import { ADS_V2_LINK_MAX_CHARS, sanitizeLinkImportBody } from '@/lib/ads/v2Contract'
-import { adsV2LinkImport } from '@/lib/ads/v2Link'
+import { adsV2LinkImport, type AdsV2LinkFail } from '@/lib/ads/v2Link' // KINEO-ADS-LINK-LOJAS-1510 — + o tipo do porquê
 import { ADS_V2_LINK_EVENT, adsV2LinkDailyCap } from '@/lib/ads/v2LinkImport'
 import { ADS_V2_LINK_WEBP_INLINE_MAX_BYTES, ADS_V2_LINK_WEBP_INLINE_TOTAL_BYTES, type AdsV2LinkFailWhy } from '@/lib/ads/v2LinkImport' // KINEO-ANUNCIO-CONSERTOS-2026-10-12
 import { ADS_SAMPLE_FOOTAGE_MAX_BYTES } from '@/lib/ads/sample'
@@ -69,11 +69,11 @@ export async function POST(req: NextRequest) {
     const quota = gate === 'ok' ? FOOTAGE_QUOTA_PAID : ADS_SAMPLE_FOOTAGE_MAX_BYTES
     const room = Math.max(0, quota - (await totalFootageBytes(uid)))
 
-    const failWhy: { value?: AdsV2LinkFailWhy } = {} // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o porquê (bloqueou / não existe / não é página) volta no 422
+    const failWhy: AdsV2LinkFail & { value?: AdsV2LinkFailWhy } = {} // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o porquê (bloqueou / não existe / não é página) volta no 422 · KINEO-ADS-LINK-LOJAS-1510 — + detalhe/plataforma/aviso
     const read = await adsV2LinkImport(parsed.value.url, { roomBytes: room, why: failWhy }).catch(() => null)
     if (!read) {
-      await logRead({ ok: false, why: 'page_unreachable', reason: failWhy.value ?? 'unreachable' })
-      return v2Fail('link_unreachable', 422, { why: failWhy.value ?? 'unreachable' })
+      await logRead({ ok: false, why: 'page_unreachable', reason: failWhy.value ?? 'unreachable', ...(failWhy.detail ? { detail: failWhy.detail } : {}), ...(failWhy.platform ? { platform: failWhy.platform } : {}) }) // KINEO-ADS-LINK-LOJAS-1510
+      return v2Fail('link_unreachable', 422, { why: failWhy.value ?? 'unreachable', ...(failWhy.detail ? { detail: failWhy.detail } : {}), ...(failWhy.platform ? { platform: failWhy.platform } : {}), ...(failWhy.message ? { message: failWhy.message } : {}) }) // KINEO-ADS-LINK-LOJAS-1510 — a Amazon/robô/login/só-JS dizem o que é
     }
 
     const safety = await moderateContent({ surface: 'ads_brief', stage: 'input', userId: user.id, text: read.text, meta: { mode: 'link_import', host: read.host } })
@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
       images.push({ footage_id: String((row.data as { id: string }).id), url: String((row.data as { url: string }).url) })
     }
 
-    await logRead({ ok: true, host: read.host, candidates: read.candidates, images_saved: images.length, skipped, blocked, price: Boolean(read.price) })
+    await logRead({ ok: true, host: read.host, candidates: read.candidates, images_saved: images.length, skipped, blocked, price: Boolean(read.price), platform: read.platform ?? null, confidence: read.confidence ?? null }) // KINEO-ADS-LINK-LOJAS-1510
     return v2Json({
       link: read.link.length <= ADS_V2_LINK_MAX_CHARS ? read.link : parsed.value.url,
       host: read.host,
@@ -122,6 +122,11 @@ export async function POST(req: NextRequest) {
       images,
       candidates: read.candidates,
       skipped,
+      platform: read.platform ?? null, // KINEO-ADS-LINK-LOJAS-1510 — a plataforma lida
+      currency: read.currency ?? null, // KINEO-ADS-LINK-LOJAS-1510 — a moeda do preço (null quando a página não diz)
+      brand: read.brand ?? '', // KINEO-ADS-LINK-LOJAS-1510
+      confidence: read.confidence ?? null, // KINEO-ADS-LINK-LOJAS-1510 — high/medium/low: a tela pede confirmação quando não é high
+      reasons: read.reasons ?? [], // KINEO-ADS-LINK-LOJAS-1510 — os porquês (price_conflict, name_from_title…)
     })
   } catch (e) {
     console.warn('[ads/v2/link-import] falhou:', e instanceof Error ? e.message : String(e))

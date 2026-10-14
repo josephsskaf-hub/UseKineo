@@ -1,0 +1,73 @@
+{
+ "id": 9376997376219,
+ "title": "XL Handmade Ceramic Mug: Plum, Nutmeg and Cinnamon",
+ "handle": "xl-handmade-ceramic-mug-plum-nutmeg-and-cinnamon",
+ "description": "<p>This beautiful stoneware mug was handcrafted by Amrita Lash in Williamstown, MA.</p>\n<p>Glazed in a deep purple on the top half and a beautifully rich cinnamon brown on the bottom, divided by a narrow stripe of light nutmeg brown, this masterfully thrown vessel feels exquisite and functions beautifully. A gorgeous bluish purple glaze covers the inside. As each piece is individually handcrafted, slight variations will occur. The wide mouth makes this mug perfect for soup as well as beverages.</p>\n<p>Measures approximately: 4.5\" x 6\" x 3.5\" and 18oz</p>",
+ "vendor": "AMRITA LASH",
+ "type": "Home",
+ "price": 6000,
+ "price_min": 6000,
+ "price_max": 6000,
+ "available": false,
+ "price_varies": false,
+ "compare_at_price": null,
+ "compare_at_price_min": 0,
+ "compare_at_price_max": 0,
+ "compare_at_price_varies": false,
+ "images": [
+  "//cdn.shopify.com/s/files/1/0615/0341/files/IMG_1600_fab630ff-b5dd-4aca-9227-e9014730a4d5.jpg?v=1786547418",
+  "//cdn.shopify.com/s/files/1/0615/0341/files/IMG_1603_ba400442-61ed-4634-b28b-1602d1290470.jpg?v=1786547419",
+  "//cdn.shopify.com/s/files/1/0615/0341/files/IMG_1601_2ebc568b-6812-493b-8ffc-a59f90eb32fb.jpg?v=1786547419",
+  "//cdn.shopify.com/s/files/1/0615/0341/files/IMG_1602_a75853f1-5d1c-46ea-8978-14af637ced58.jpg?v=1786547419"
+ ],
+ "featured_image": "//cdn.shopify.com/s/files/1/0615/0341/files/IMG_1600_fab630ff-b5dd-4aca-9227-e9014730a4d5.jpg?v=1786547418",
+ "url": "/products/xl-handmade-ceramic-mug-plum-nutmeg-and-cinnamon",
+ "variants": [
+  {
+   "id": 48889502466267,
+   "title": "Default Title",
+   "price": 6000,
+   "compare_at_price": null,
+   "available": false,
+   "featured_image": null
+  }
+ ],
+ "media": [
+  {
+   "id": 44905214607579,
+   "position": 1,
+   "media_type": "image",
+   "src": "https://cdn.shopify.com/s/files/1/0615/0341/files/IMG_1600_fab630ff-b5dd-4aca-9227-e9014730a4d5.jpg?v=1786547418",
+   "width": 3888,
+   "height": 3888,
+   "alt": null
+  },
+  {
+   "id": 44905214705883,
+   "position": 2,
+   "media_type": "image",
+   "src": "https://cdn.shopify.com/s/files/1/0615/0341/files/IMG_1603_ba400442-61ed-4634-b28b-1602d1290470.jpg?v=1786547419",
+   "width": 3888,
+   "height": 3888,
+   "alt": null
+  },
+  {
+   "id": 44905214640347,
+   "position": 3,
+   "media_type": "image",
+   "src": "https://cdn.shopify.com/s/files/1/0615/0341/files/IMG_1601_2ebc568b-6812-493b-8ffc-a59f90eb32fb.jpg?v=1786547419",
+   "width": 3888,
+   "height": 3888,
+   "alt": null
+  },
+  {
+   "id": 44905214673115,
+   "position": 4,
+   "media_type": "image",
+   "src": "https://cdn.shopify.com/s/files/1/0615/0341/files/IMG_1602_a75853f1-5d1c-46ea-8978-14af637ced58.jpg?v=1786547419",
+   "width": 3888,
+   "height": 3888,
+   "alt": null
+  }
+ ]
+}

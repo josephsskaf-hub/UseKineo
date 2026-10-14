@@ -19,6 +19,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semLinkLojas1510 } from './test-support/desfaz-ads-link-lojas-1510.mjs' // reancorado KINEO-ADS-LINK-LOJAS-1510
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -252,7 +253,7 @@ await check('3g página que DECLARA o produto: o logo (mesmo arquivo do ícone d
   return r && r.images.length === 1 && r.images[0].src === 'https://cdn.x.example.com/p/harbour.jpg' && !net.calls.includes('https://cdn.x.example.com/brand/mark.jpg')
 })
 ok((() => {
-  const s = code(SRC.linkRoute)
+  const s = code(semLinkLojas1510(F.linkRoute, SRC.linkRoute)) // reancorado KINEO-ADS-LINK-LOJAS-1510 — o 422 ganhou detail/platform/message
   return /if \(im\.ext === 'webp'\) \{ if \(im\.bytes\.byteLength > ADS_V2_LINK_WEBP_INLINE_MAX_BYTES \|\| inlineBytes \+ im\.bytes\.byteLength > ADS_V2_LINK_WEBP_INLINE_TOTAL_BYTES\) \{ skipped\+\+; continue \}/.test(s) &&
     /url: `data:image\/webp;base64,\$\{Buffer\.from\(im\.bytes\)\.toString\('base64'\)\}`/.test(s) && /return v2Fail\('link_unreachable', 422, \{ why: failWhy\.value \?\? 'unreachable' \}\)/.test(s) &&
     ordem(s, "if (im.ext === 'webp')", 'continue }', 'const path = `${uid}/clip-', 'await moderateContent({ surface: \'footage\'')
