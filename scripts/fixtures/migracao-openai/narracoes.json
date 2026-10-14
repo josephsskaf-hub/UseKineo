@@ -1,0 +1,825 @@
+{
+  "marca": "KINEO-MIGRACAO-OPENAI-F1-1410",
+  "o_que_e": "Narrações reais (texto falado) com a duração medida do MP4, congeladas em 14/10/2026. É a linha de base de RITMO da voz tts-1-hd para refazer as réguas (seção 2.2 do plano) quando a voz trocar.",
+  "fonte": "events.compose_submission_claim.narration (texto exato mandado ao TTS) unido por render_id a events.render_delivered_measured (narration_words, measured_seconds, engine). Contas externas. Ver README.md.",
+  "limites": [
+    "A persona de voz NÃO é registrada em lugar nenhum (render_delivered_measured.voice e .speed vêm nulos em 100% das linhas). 'persona_estimada' foi calculada offline com selectPersonaForScript(narração, vertical=undefined, tier do motor, idioma) do próprio código de 14/10; o vertical real vem do analyze-idea e não é gravado, então a estimativa pode errar quando o cliente veio por um vertical explícito.",
+    "segundos_mp4 = duração do vídeo, não da fala: inclui respiro final e é cortado nos tetos (61,5 s / 90 s). pal/s calculado aqui é um PISO do ritmo real da voz.",
+    "Hollywood só tem 1 filme externo medido; Kling 2.5 e Veo têm 2 cada."
+  ],
+  "campos": {
+    "motor": "kineo1 | seedance15 | kling25 | veo31 | kling3_o3",
+    "duracao_pedida_s": "requested_seconds",
+    "idioma": "idioma registrado; quando nulo, 'idioma_inferido' foi lido do texto",
+    "texto": "narração exata (anonimizada)",
+    "palavras": "narration_words do evento",
+    "segundos_mp4": "measured_seconds (mvhd)",
+    "pal_por_s": "palavras / segundos_mp4, 2 casas",
+    "persona_estimada": "id da persona em lib/narration/personas.ts + voz OpenAI + speed (estimativa, ver limites)",
+    "ref": "12 hex de md5(video_id)"
+  },
+  "casos": [
+    {
+      "id": "n-k1-35-01",
+      "motor": "kineo1",
+      "duracao_pedida_s": 35,
+      "idioma": null,
+      "idioma_inferido": "en",
+      "data": "2026-09-21",
+      "palavras": 84,
+      "segundos_mp4": 38.292,
+      "ref": "e2eb199a46f6",
+      "texto": "How did Singapore become a global financial powerhouse so quickly? It started with the Port of Singapore — the world's busiest by 1982. In 1965, Singapore adopted aggressive free-market policies, attracting foreign investment. Surprisingly, strict regulations and anti-corruption laws fueled its economic stability. But one pivotal decision accelerated its rise to wealth and global stature... Vision. Strategy. Impact. Changi Airport's opening in 1981 was the catalyst... making Singapore a major trade hub and cementing its status as an economic giant. Follow for more insights!",
+      "pal_por_s": 2.19,
+      "persona_estimada": {
+        "id": "finance-authority",
+        "voz": "onyx",
+        "speed": 1
+      }
+    },
+    {
+      "id": "n-k1-35-02",
+      "motor": "kineo1",
+      "duracao_pedida_s": 35,
+      "idioma": null,
+      "idioma_inferido": "en",
+      "data": "2026-09-26",
+      "palavras": 100,
+      "segundos_mp4": 35.084,
+      "ref": "cd056f1b352f",
+      "texto": "On his very first day at Lincoln High School, the hallway was eerily silent, as if time itself had completely stopped for everyone present. As he walked into the crowded school, every student abruptly stopped talking, their eyes locked onto him, creating a palpable atmosphere of suspense and tension. The wealthiest student in the school, wearing an extravagant $10,000 Rolex watch, confidently approached him and asked, 'Do you even know who you really are?' The principal, flanked by two intimidating security guards, declared that the boy had officially inherited the school, leaving all the students in utter disbelief and shock.",
+      "pal_por_s": 2.85,
+      "persona_estimada": {
+        "id": "finance-authority",
+        "voz": "onyx",
+        "speed": 1
+      }
+    },
+    {
+      "id": "n-k1-35-03",
+      "motor": "kineo1",
+      "duracao_pedida_s": 35,
+      "idioma": null,
+      "idioma_inferido": "en",
+      "data": "2026-09-17",
+      "palavras": 118,
+      "segundos_mp4": 44.209,
+      "ref": "5751ccfd8c3e",
+      "texto": "You won't believe how this bartender caught his thieves! In 2022, bartender Chris noticed a shocking 30% drop in stock. This was unusual for his normally efficient bar. Hidden surveillance revealed management stealing thousands over six months. They were taking advantage of busy nights to cover their tracks. They were cleverly hiding bottles right in plain sight—unbelievable! It seemed like a perfect crime until Chris stepped in. Chris realized the theft was more elaborate than he ever imagined. The thieves even altered inventory logs to avoid suspicion. So, Chris devised a clever trap... and caught them red-handed! He rigged the bar with extra cameras and marked bottles... exposing their scheme. Follow for more wild stories on [canal] channel",
+      "pal_por_s": 2.67,
+      "persona_estimada": {
+        "id": "energetic-facts",
+        "voz": "fable",
+        "speed": 1.1
+      }
+    },
+    {
+      "id": "n-k1-35-04",
+      "motor": "kineo1",
+      "duracao_pedida_s": 35,
+      "idioma": null,
+      "idioma_inferido": "en",
+      "data": "2026-09-20",
+      "palavras": 112,
+      "segundos_mp4": 46.417,
+      "ref": "9d0d114f5e91",
+      "texto": "Ever wondered how modern education looks in Iran? Iran has over 14 million students enrolled in schools as of 2023. This number reflects a significant investment in education by the government. The country boasts a literacy rate of 85% among young adults. This achievement is largely due to comprehensive educational reforms over the past few decades. Iran is home to one of the world's oldest universities, founded in 859 AD. Known as the University of Al Quaraouiyine, it has been a center of learning for centuries. Bright. Eager. Engaged. Iranian students are increasingly participating in global academic competitions. This is the vibrant, innovative classroom experience in contemporary Iran... Follow for more insights.",
+      "pal_por_s": 2.41,
+      "persona_estimada": {
+        "id": "finance-authority",
+        "voz": "onyx",
+        "speed": 1
+      }
+    },
+    {
+      "id": "n-k1-35-05",
+      "motor": "kineo1",
+      "duracao_pedida_s": 35,
+      "idioma": null,
+      "idioma_inferido": "es",
+      "data": "2026-09-23",
+      "palavras": 113,
+      "segundos_mp4": 35.417,
+      "ref": "0df43bd9095e",
+      "texto": "El águila real tiene la impresionante capacidad de volar a alturas que alcanzan hasta 4,500 metros, lo que le permite dominar y observar el paisaje desde las alturas. El ojo del águila es extraordinariamente agudo, permitiéndole ver a su presa desde más de 1,000 metros de distancia, lo que le otorga una ventaja significativa al cazar. En un picado, el águila real puede alcanzar velocidades asombrosas de hasta 240 kilómetros por hora, lo que la convierte en una de las aves más rápidas del planeta. Con una impresionante envergadura que puede llegar hasta 2.3 metros, el águila real despliega sus garras con una precisión letal, asegurando que su caza sea efectiva y exitosa.",
+      "pal_por_s": 3.19,
+      "persona_estimada": {
+        "id": "energetic-facts",
+        "voz": "nova",
+        "speed": 1.1
+      }
+    },
+    {
+      "id": "n-k1-35-06",
+      "motor": "kineo1",
+      "duracao_pedida_s": 35,
+      "idioma": null,
+      "idioma_inferido": "en",
+      "data": "2026-09-28",
+      "palavras": 113,
+      "segundos_mp4": 39.5,
+      "ref": "4a964a58f638",
+      "texto": "In the year 1977, Ohio's Big Ear radio telescope detected an enigmatic signal emanating from the depths of space, igniting curiosity and fascination among scientists and the public worldwide. The remarkable signal persisted for a brief duration of just 72 seconds, leaving astronomer Jerry Ehman utterly astounded by its remarkable intensity and crystal-clear clarity that defied explanation. Overwhelmed by the extraordinary anomaly, Ehman hastily scribbled the word 'Wow!' on the printout, which ultimately bestowed the signal with its now-iconic and memorable name in scientific history. Despite extensive and exhaustive searches conducted by astronomers and scientists, the mysterious signal never reappeared, leaving its origin shrouded in a tantalizing mystery that continues to baffle researchers.",
+      "pal_por_s": 2.86,
+      "persona_estimada": {
+        "id": "storyteller",
+        "voz": "fable",
+        "speed": 1.03
+      }
+    },
+    {
+      "id": "n-k1-35-07",
+      "motor": "kineo1",
+      "duracao_pedida_s": 35,
+      "idioma": null,
+      "idioma_inferido": "en",
+      "data": "2026-09-28",
+      "palavras": 110,
+      "segundos_mp4": 35.084,
+      "ref": "3080d90201f9",
+      "texto": "In a vibrant playground filled with laughter and excitement, three curious babies eagerly explore a colorful world, igniting their natural curiosity and pure joy with every discovery they make. This bright red ball stands out vividly against the lush green grass, creating a striking contrast. Now, can you say the color 'red' out loud with enthusiasm? Near the colorful slide, a cheerful blue ball beckons children to come play and learn together. Now, can you say the color 'blue' with a smile? A playful green ball rolls into the sandy sandbox, capturing the children's excitement and attention. Now, can you say the color 'green'? Bravo, you really know your colors!",
+      "pal_por_s": 3.14,
+      "persona_estimada": {
+        "id": "storyteller",
+        "voz": "fable",
+        "speed": 1.03
+      }
+    },
+    {
+      "id": "n-k1-35-08",
+      "motor": "kineo1",
+      "duracao_pedida_s": 35,
+      "idioma": null,
+      "idioma_inferido": "en",
+      "data": "2026-09-15",
+      "palavras": 120,
+      "segundos_mp4": 43.5,
+      "ref": "d751df4ab151",
+      "texto": "What if a single feather could change your life forever? In 2022, [nome] stumbles upon a vibrant feather—igniting his imagination. It was a peacock feather, known for its vibrant colors. That feather leads him to a newfound passion... the art of flight. He begins studying aerodynamics and bird flight patterns. [nome] discovers a deeper truth... wings aren't just for flying. They also represent balance and adaptation in nature. As he delves deeper, he learns... wings symbolize freedom, dreams, and potential. They have inspired countless innovations in human history. Higher. Further. Limitless. [nome] realizes... we all have wings to soar beyond our limits. Each of us holds the key to transformation and flight in our hearts. Follow for more inspiring stories.",
+      "pal_por_s": 2.76,
+      "persona_estimada": {
+        "id": "energetic-facts",
+        "voz": "fable",
+        "speed": 1.1
+      }
+    },
+    {
+      "id": "n-k1-35-09",
+      "motor": "kineo1",
+      "duracao_pedida_s": 35,
+      "idioma": null,
+      "idioma_inferido": "es",
+      "data": "2026-09-21",
+      "palavras": 100,
+      "segundos_mp4": 33.584,
+      "ref": "b1bb97d8de74",
+      "texto": "Con cada golpe que recibe la pelota, el fieltro se desgasta, lo que cambia drásticamente su movimiento y el bote que realiza en la cancha. En torneos profesionales de tenis, las pelotas se cambian después de los primeros siete juegos y luego se reemplazan cada nueve juegos durante el partido. Cuando escuchas al juez gritar «¡pelotas nuevas!», ya puedes suponer que es una medida para mantener la calidad y el nivel del juego en la competición. Presta atención a esto, porque hay información que quizás no conocías sobre el uso y la importancia de las pelotas en el tenis profesional.",
+      "pal_por_s": 2.98,
+      "persona_estimada": {
+        "id": "energetic-facts",
+        "voz": "nova",
+        "speed": 1.1
+      }
+    },
+    {
+      "id": "n-k1-35-10",
+      "motor": "kineo1",
+      "duracao_pedida_s": 35,
+      "idioma": null,
+      "idioma_inferido": "pt",
+      "data": "2026-09-22",
+      "palavras": 108,
+      "segundos_mp4": 35,
+      "ref": "3c8277f72cf0",
+      "texto": "Durante cada noite de sono, o seu cérebro é capaz de criar até dois mil sonhos complexos, tudo isso sem que você tenha consciência ou perceba o que está acontecendo. Em apenas milissegundos, o cérebro humano reage a estímulos de forma automática, antes mesmo que você tenha a chance de pensar ou processar a informação recebida. O seu cérebro filtra bilhões de bits de informação a cada segundo, um processo essencial para evitar a sobrecarga de dados e manter o funcionamento adequado. Sem que você perceba, o seu cérebro consome cerca de 20% da energia total do seu corpo, mesmo quando você está em estado de repouso absoluto.",
+      "pal_por_s": 3.09,
+      "persona_estimada": {
+        "id": "energetic-facts",
+        "voz": "nova",
+        "speed": 1.1
+      }
+    },
+    {
+      "id": "n-k1-60-01",
+      "motor": "kineo1",
+      "duracao_pedida_s": 60,
+      "idioma": null,
+      "idioma_inferido": "en",
+      "data": "2026-09-27",
+      "palavras": 208,
+      "segundos_mp4": 61.5,
+      "ref": "f4e8e27cff43",
+      "texto": "Did you know that time does not flow uniformly everywhere in the universe? Here are three astonishing facts about the relationship between gravity and the passage of time that you might find intriguing! First: TIME FLOWS DIFFERENTLY. The stronger the gravitational field, the slower the clock ticks! Interestingly, your feet age just a tiny bit slower than your head due to the effects of gravity on time. Second: TIME STANDS STILL. At the edges of black holes, where gravity reaches extreme levels, time nearly comes to a complete halt, creating fascinating implications for our understanding of the universe and its mechanics. The immense mass of galaxies can warp spacetime and light so dramatically that it acts like a gigantic magnifying glass, allowing us to observe distant objects that are incredibly far away in the universe. This remarkable phenomenon allows us to observe objects that trace back to the very origins of the Universe, granting us invaluable insights into its complex formation and gradual evolution over the span of billions of years. Are you eager to delve deeper into the secrets of spacetime and explore its many mysteries? Subscribe to the [canal] channel today and stay informed with the latest discoveries and captivating content related to this fascinating subject!",
+      "pal_por_s": 3.38,
+      "persona_estimada": {
+        "id": "storyteller",
+        "voz": "fable",
+        "speed": 1.03
+      }
+    },
+    {
+      "id": "n-k1-60-02",
+      "motor": "kineo1",
+      "duracao_pedida_s": 60,
+      "idioma": null,
+      "idioma_inferido": "en",
+      "data": "2026-09-26",
+      "palavras": 171,
+      "segundos_mp4": 61.5,
+      "ref": "43a946a7ccd2",
+      "texto": "Milo and Mimi begin their enchanting adventure in a stunning forest, where the sunlight playfully dances through the leaves, creating an atmosphere that feels truly magical and full of wonder. Suddenly, Milo and Mimi observe something quite peculiar: the vibrant colors of the forest are vanishing rapidly right before their astonished eyes, leaving a dull and lifeless landscape behind. Mimi discovers a strikingly vibrant red apple resting on the forest floor, serving as a brilliant beacon of color amidst the fading hues of the surrounding landscape. Milo excitedly points out a stunning blue butterfly, its delicate wings shimmering beautifully in the sunlight, adding yet another captivating color to their growing collection of vibrant finds. Mimi joyfully finds a radiant yellow flower, its bright petals glowing warmly in the sunlight, successfully completing their quest for the missing colors in this enchanting forest. With the vibrant colors beautifully restored, a magnificent rainbow arches gracefully over the lush forest, symbolizing the triumphant success achieved by Milo and Mimi during their extraordinary magical adventure together.",
+      "pal_por_s": 2.78,
+      "persona_estimada": {
+        "id": "storyteller",
+        "voz": "fable",
+        "speed": 1.03
+      }
+    },
+    {
+      "id": "n-k1-60-03",
+      "motor": "kineo1",
+      "duracao_pedida_s": 60,
+      "idioma": null,
+      "idioma_inferido": "en",
+      "data": "2026-09-20",
+      "palavras": 148,
+      "segundos_mp4": 61.5,
+      "ref": "0f95831198fb",
+      "texto": "Billionaires don't spend their own money — they borrow it. Here's the legal trick making them richer every year. The buy-borrow-die method: Elon Musk used $100B in Tesla stock as collateral for personal loans — paying 2% interest instead of 37% income tax. When you sell stock you trigger capital gains tax. When you borrow against it, you pay nothing. The loan isn't income. That's the entire strategy. Jeff Bezos borrowed against Amazon shares to fund Blue Origin. Larry Ellison used Oracle stock as collateral for a $10B loan to buy 98% of Lanai island. The triple compounding: assets keep growing, loans stay cheap, and taxes are deferred until death — where a stepped-up basis resets capital gains to zero. Faster. Cheaper. Untaxed. The rich don't earn their way to wealth. They engineer it. The debt isn't a burden — it's the weapon. Save this before it disappears.",
+      "pal_por_s": 2.41,
+      "persona_estimada": {
+        "id": "finance-authority",
+        "voz": "onyx",
+        "speed": 1
+      }
+    },
+    {
+      "id": "n-k1-60-04",
+      "motor": "kineo1",
+      "duracao_pedida_s": 60,
+      "idioma": null,
+      "idioma_inferido": "en",
+      "data": "2026-09-17",
+      "palavras": 173,
+      "segundos_mp4": 61.5,
+      "ref": "5519f6973905",
+      "texto": "Hunted Island, enveloped in a thick veil of fog and steeped in deep mystery, has remained uninhabited ever since the puzzling disappearance of its last known settlers in the year 1923. This ancient map, which dates back to the year 1850, is one of the very few surviving documents that meticulously detail the unique geography of the enigmatic Hunted Island. The village, which was once home to more than 200 residents, now stands in eerie silence, completely overtaken by nature since the sudden and unexplained disappearance of its inhabitants. A journal discovered on the island contains cryptic and mysterious entries that hint at strange occurrences and unsettling events that transpired just before the settlers vanished without a trace. Explorers who brave the dense, tangled forests report an unnerving sensation of being watched, which only adds to the island's already ominous and chilling reputation among adventurers. Despite its undeniable beauty, Hunted Island continues to be a place filled with unsolved mysteries, with its many secrets lying hidden beneath the ever-stormy and turbulent skies above.",
+      "pal_por_s": 2.81,
+      "persona_estimada": {
+        "id": "storyteller",
+        "voz": "fable",
+        "speed": 1.03
+      }
+    },
+    {
+      "id": "n-k1-60-05",
+      "motor": "kineo1",
+      "duracao_pedida_s": 60,
+      "idioma": null,
+      "idioma_inferido": "en",
+      "data": "2026-09-22",
+      "palavras": 144,
+      "segundos_mp4": 61.5,
+      "ref": "6d20d28a0a8f",
+      "texto": "How deep have humans truly dug into Earth? Let's dive in! In the icy wilderness of Russia, lies the Kola Superdeep Borehole, reaching an incredible depth of 40,230 feet — the deepest hole ever drilled by humans. During their descent, scientists unearthed microscopic fossils at depths of over 4 miles, dating back an astonishing 2 billion years — offering a glimpse into ancient Earth. But as they drilled deeper, temperatures soared to a staggering 356 degrees Fahrenheit — far hotter than anticipated, challenging all expectations. The extreme heat and pressure created an environment so intense, it threatened the very integrity of their drilling equipment — pushing technology to its limits. Heat. Pressure. Limits. Despite these challenges, the Kola Superdeep Borehole stands as a testament to human curiosity and perseverance... revealing Earth's hidden depths and mysteries still to be explored. Follow for more incredible discoveries!",
+      "pal_por_s": 2.34,
+      "persona_estimada": {
+        "id": "energetic-facts",
+        "voz": "fable",
+        "speed": 1.1
+      }
+    },
+    {
+      "id": "n-k1-60-06",
+      "motor": "kineo1",
+      "duracao_pedida_s": 60,
+      "idioma": null,
+      "idioma_inferido": "en",
+      "data": "2026-09-22",
+      "palavras": 93,
+      "segundos_mp4": 61.5,
+      "ref": "16abdd56724d",
+      "texto": "Meet the silent killers... you never think about. Freshwater snails: transmitting schistosomiasis, causing 200,000 deaths yearly across Africa and Asia. Cone snails: their venom can paralyze instantly, with no known antidote. Box jellyfish: their sting, virtually invisible, can stop a human heart in three minutes. These creatures lurk in shadows, striking without warning, more lethal than sharks. Silent. Swift. Deadly. Yet, the most dangerous of all... is the mosquito. Spreading malaria, dengue, and Zika, they cause over a million deaths annually. More deadly than any predator you fear. Follow for more surprising facts.",
+      "nota": "93 palavras num filme de 61,5 s: fala curta esticada (pal/s baixo não é a voz)",
+      "pal_por_s": 1.51,
+      "persona_estimada": {
+        "id": "energetic-facts",
+        "voz": "fable",
+        "speed": 1.1
+      }
+    },
+    {
+      "id": "n-k1-60-07",
+      "motor": "kineo1",
+      "duracao_pedida_s": 60,
+      "idioma": null,
+      "idioma_inferido": "en",
+      "data": "2026-09-16",
+      "palavras": 233,
+      "segundos_mp4": 90,
+      "ref": "6d4762b9eb23",
+      "texto": "Imagine spending 2 million euros in one night! In 2015, a millionaire threw a €2 million party in Ibiza. The island, known for its vibrant nightlife, was the perfect backdrop for such an opulent affair. Ibiza has long been a playground for the wealthy, with its stunning beaches and world-renowned clubs. The event featured top DJs, luxury amenities, and exclusive guest lists. Renowned artists like David Guetta and Calvin Harris were rumored to have performed, adding to the event's allure. The music scene in Ibiza is legendary, attracting top talent from around the globe. Guests enjoyed private jet rides, waterfront villas, and gourmet dining. The culinary experience was curated by Michelin-starred chefs, ensuring every bite was a taste of luxury. Such experiences are often reserved for the elite, making this party a once-in-a-lifetime event. The kicker? He claimed he didn’t recall a single detail the next day! Despite the opulence, the night was a blur, leaving him with only a hefty bill. The fleeting nature of such extravagance highlights the ephemeral joys of luxury. Extravagant. Epic. Gone. The party was the talk of the island, but its host had only fleeting memories. This tale of excess became a legendary story among Ibiza's elite circles. So, what did he spend it on? A wild night of extravagance... with champagne showers, private concerts, and endless caviar—an unforgettable spectacle lost to his memory. Follow for more!",
+      "nota": "pediu 60 e saiu 90",
+      "pal_por_s": 2.59,
+      "persona_estimada": {
+        "id": "finance-authority",
+        "voz": "onyx",
+        "speed": 1
+      }
+    },
+    {
+      "id": "n-k1-90-01",
+      "motor": "kineo1",
+      "duracao_pedida_s": 90,
+      "idioma": null,
+      "idioma_inferido": "en",
+      "data": "2026-09-16",
+      "palavras": 267,
+      "segundos_mp4": 89.917,
+      "ref": "80c2801de6f4",
+      "texto": "In a quiet suburban house, surrounded by similar homes, life unfolds in a seemingly ordinary manner, yet beneath the surface, extraordinary events are poised to unfold in remarkable ways. A little boy, dressed in bright dinosaur pajamas, drifts into a deep sleep as the clock strikes midnight, marking the beginning of a night filled with unimaginable, transformative experiences. At exactly midnight, the house is enveloped in an unsettling silence, as if time itself holds its breath, creating an atmosphere thick with anticipation and mystery, waiting for something to happen. The room seems to shift subtly, the air thick with an unseen force, as if the very fabric of reality is bending and reshaping itself around the sleeping child. As the boy's form begins to change, the transformation unfolds in a way that is both strange and captivating, hinting at the profound journey he is about to undertake. His vision blurs, colors swirl vividly around him, and the room bends in a surreal way, as if reality itself is unraveling, revealing the extraordinary hidden beneath the ordinary facade. His small frame stretches and shifts, bones rearranging themselves, as he undergoes a transformation into a grown woman, a process that is both mesmerizing and terrifying, defying all known laws of nature. Above the house, the night sky swirls with an ethereal energy, vibrant and alive, marking the climax of this otherworldly transformation that transcends the boundaries of time and space. Now a grown woman, she stands in the moonlit room, a living mystery wrapped in wonder and fear, embodying the essence of transformation and the unknown that lies ahead.",
+      "pal_por_s": 2.97,
+      "persona_estimada": {
+        "id": "storyteller",
+        "voz": "fable",
+        "speed": 1.03
+      }
+    },
+    {
+      "id": "n-k1-90-02",
+      "motor": "kineo1",
+      "duracao_pedida_s": 90,
+      "idioma": null,
+      "idioma_inferido": "en",
+      "data": "2026-09-20",
+      "palavras": 273,
+      "segundos_mp4": 89.792,
+      "ref": "9d4d37ba706f",
+      "texto": "On 重阳佳节, the stone-paved streets are beautifully adorned with vibrant chrysanthemums and delicate dogwood, creating a festive yet tranquil atmosphere that invites everyone to celebrate this cherished occasion together. A young scholar walks alone on the stone street, his footsteps echoing softly as he reflects on the significance of this day and the memories that it brings to his heart. His heart feels heavy with thoughts of home during this festive time, where family gatherings and joyful celebrations remind him of the warmth and love he is currently missing. Chrysanthemums and dogwood serve as traditional symbols of 重阳佳节, embodying longevity and protection, which are deeply embedded in cultural significance and are cherished by families celebrating this vital festival throughout generations. As the evening breeze gently blows, he imagines his brothers climbing the hills back home, celebrating together, sharing laughter and stories that create lasting memories of their time spent together. In his mind, he sees an empty chair on the hilltop, a poignant reminder of his absence from the family gathering, emphasizing the emotional distance he feels during this festive occasion. A lone autumn leaf rolls across the stone street, mirroring his solitary journey far from home, embodying the bittersweet feelings of longing and nostalgia that accompany him on this special day. Thousands of miles apart, they all gaze at the same full moon, united in spirit despite the distance, sharing a connection that transcends physical separation and brings them closer together. Though separated by thousands of miles, people across the world gaze at the same full moon, creating a sense of unity and shared spirit, despite the vast distances that separate them.",
+      "nota": "mistura inglês com caracteres chineses (entrada verbatim em chinês, ver analyze-idea vb-zh-90-01)",
+      "pal_por_s": 3.04,
+      "persona_estimada": {
+        "id": "energetic-facts",
+        "voz": "fable",
+        "speed": 1.1
+      }
+    },
+    {
+      "id": "n-k1-90-03",
+      "motor": "kineo1",
+      "duracao_pedida_s": 90,
+      "idioma": null,
+      "idioma_inferido": "en",
+      "data": "2026-09-22",
+      "palavras": 107,
+      "segundos_mp4": 61.5,
+      "ref": "9539a62df998",
+      "texto": "Every night at 3:17 AM, an abandoned house door opens by itself. Nobody lives there. For years, people ignored it. Then one man recorded it. The first night, nothing. The second night, at 3:17, the door opened... revealing darkness. He zoomed in, saw movement inside. Signal lost. Door closed. A note: “You weren’t supposed to see me.” He checked the recording. At 3:17, a figure was in the window... behind him. Footsteps. Knocks. Basement. In the basement, a photograph from thirty years ago... showed the house. One person looked like him. On the back, a date... Tomorrow. \"3:17 AM. Don’t open your door.\" Follow for more mysteries.",
+      "pal_por_s": 1.74,
+      "persona_estimada": {
+        "id": "energetic-facts",
+        "voz": "fable",
+        "speed": 1.1
+      }
+    },
+    {
+      "id": "n-s15-15-01",
+      "motor": "seedance15",
+      "duracao_pedida_s": 15,
+      "idioma": "pt",
+      "data": "2026-10-05",
+      "palavras": 40,
+      "segundos_mp4": 15.792,
+      "ref": "e26d2b3239d5",
+      "texto": "Um bebê esperto se levanta para uma aventura noturna. Ele se esgueira para a cozinha enquanto os pais dormem. Farinha voa por toda parte e ovos se quebram desajeitadamente. Os pais entram e encontram o bebê... segurando uma panqueca perfeita.",
+      "pal_por_s": 2.53,
+      "persona_estimada": {
+        "id": "documentary",
+        "voz": "echo",
+        "speed": 0.96
+      }
+    },
+    {
+      "id": "n-s15-15-02",
+      "motor": "seedance15",
+      "duracao_pedida_s": 15,
+      "idioma": "hi",
+      "data": "2026-10-13",
+      "palavras": 35,
+      "segundos_mp4": 15.917,
+      "ref": "08b81f92ea60",
+      "texto": "अमेज़न नदी का रहस्य 6,400 किलोमीटर लंबा है, अब तक अनसुलझा। इन पत्थरों पर प्राचीन चित्रलिपि साल पुरानी हो सकती है। शोधकर्ता अमेज़न के रहस्यों को उजागर करने के लिए नक्शे का अध्ययन करते हैं।",
+      "pal_por_s": 2.2,
+      "persona_estimada": {
+        "id": "documentary",
+        "voz": "echo",
+        "speed": 0.96
+      }
+    },
+    {
+      "id": "n-s15-15-03",
+      "motor": "seedance15",
+      "duracao_pedida_s": 15,
+      "idioma": "de",
+      "data": "2026-10-09",
+      "palavras": 35,
+      "segundos_mp4": 15.792,
+      "ref": "1ae88a2c300c",
+      "texto": "Um 03:17 Uhr filmte meine Überwachungskamera etwas, das direkt hinter mir stand. Drei langsame Schläge aus dem Kleiderschrank... aber niemand war da. Dann das Flüstern direkt am Ohr... „Du hättest dir das niemals ansehen dürfen.“",
+      "pal_por_s": 2.22,
+      "persona_estimada": {
+        "id": "documentary",
+        "voz": "echo",
+        "speed": 0.96
+      }
+    },
+    {
+      "id": "n-s15-15-04",
+      "motor": "seedance15",
+      "duracao_pedida_s": 15,
+      "idioma": "ru",
+      "data": "2026-10-03",
+      "palavras": 35,
+      "segundos_mp4": 16.209,
+      "ref": "f00c74162f6d",
+      "texto": "Принцесса Ляля обожает пони, и у нее есть секрет... В королевских конюшнях живут 15 великолепных пони. Один из них носит тиару, украшенную бриллиантами. Но только один пони... может танцевать под звездами — ее истинный любимец.",
+      "pal_por_s": 2.16,
+      "persona_estimada": {
+        "id": "documentary",
+        "voz": "echo",
+        "speed": 0.96
+      }
+    },
+    {
+      "id": "n-s15-15-05",
+      "motor": "seedance15",
+      "duracao_pedida_s": 15,
+      "idioma": "pt",
+      "data": "2026-10-11",
+      "palavras": 45,
+      "segundos_mp4": 19.292,
+      "ref": "c47ee5843c5c",
+      "texto": "Uma mensagem... de um número desconhecido. O garoto vê a primeira mensagem: \"Cuidado... algo vai acontecer.\" Mais mensagens chegam, cada vez mais específicas... detalhando eventos futuros. Ele lê a última mensagem... \"Estou te vendo agora.\" O garoto treme de medo... enquanto a porta range lentamente.",
+      "pal_por_s": 2.33,
+      "persona_estimada": {
+        "id": "documentary",
+        "voz": "echo",
+        "speed": 0.96
+      }
+    },
+    {
+      "id": "n-s15-15-06",
+      "motor": "seedance15",
+      "duracao_pedida_s": 15,
+      "idioma": "pt",
+      "data": "2026-10-05",
+      "palavras": 40,
+      "segundos_mp4": 17.584,
+      "ref": "66d4da8efbcc",
+      "texto": "Mensagens misteriosas às 3:03 da manhã... Quem estaria enviando? Frases estranhas e sem sentido... a princípio, ela não se importou. Logo, as mensagens descreviam suas ações... em detalhes assustadores. A última mensagem dizia... \"Não olhe para trás. Eu estou aí.\"",
+      "pal_por_s": 2.27,
+      "persona_estimada": {
+        "id": "documentary",
+        "voz": "echo",
+        "speed": 0.96
+      }
+    },
+    {
+      "id": "n-s15-15-07",
+      "motor": "seedance15",
+      "duracao_pedida_s": 15,
+      "idioma": "ur",
+      "data": "2026-10-11",
+      "palavras": 43,
+      "segundos_mp4": 18.917,
+      "ref": "0d6ed09985d8",
+      "texto": "ڈاکٹر: \"یہ اموکسیسلن دن میں دو بار لینی ہے۔\" ڈاکٹر: \"ویسے آپ کو پینسلین یا کسی دوا سے الرجی تو نہیں؟\" ڈاکٹر: \"پھر یہ دوا آپ بالکل نہیں لے سکتے... گردے کے مسائل یا دوسری اینٹی بائیوٹکس کے ساتھ بھی یہ منع ہے۔\"",
+      "nota": "ideia era Mohenjo-daro (roteirista.json s15-ur-01) e a fala saiu sobre amoxicilina: claim de outro pedido da mesma conta ou desvio do escritor — conferir na fase 2",
+      "pal_por_s": 2.27,
+      "persona_estimada": {
+        "id": "documentary",
+        "voz": "echo",
+        "speed": 0.96
+      }
+    },
+    {
+      "id": "n-s15-15-08",
+      "motor": "seedance15",
+      "duracao_pedida_s": 15,
+      "idioma": "ur",
+      "data": "2026-10-13",
+      "palavras": 35,
+      "segundos_mp4": 15.417,
+      "ref": "23d6758f9817",
+      "texto": "ایک بات بتاؤں؟ خوبصورت تو میں ہوں ہی! لیکن میرا بینک بیلنس مجھ سے بالکل متاثر نہیں ہے! وہ بھی تو ضروری ہے، ہے نا؟ اسی لیے خوبصورتی کے ساتھ کمائی بھی ضروری ہے، جناب!",
+      "pal_por_s": 2.27,
+      "persona_estimada": {
+        "id": "documentary",
+        "voz": "echo",
+        "speed": 0.96
+      }
+    },
+    {
+      "id": "n-s15-15-09",
+      "motor": "seedance15",
+      "duracao_pedida_s": 15,
+      "idioma": "fr",
+      "data": "2026-10-06",
+      "palavras": 40,
+      "segundos_mp4": 17.292,
+      "ref": "b346b71de3d3",
+      "texto": "Une disparition non résolue depuis 70 ans. En 1950, un avion a disparu au-dessus des Andes. Aucune trace, ni débris, n'a jamais été retrouvée. La théorie la plus acceptée ?... L'avion a été enseveli sous une avalanche, perdue à jamais.",
+      "pal_por_s": 2.31,
+      "persona_estimada": {
+        "id": "documentary",
+        "voz": "echo",
+        "speed": 0.96
+      }
+    },
+    {
+      "id": "n-s15-15-10",
+      "motor": "seedance15",
+      "duracao_pedida_s": 15,
+      "idioma": "es",
+      "data": "2026-10-14",
+      "palavras": 42,
+      "segundos_mp4": 17.792,
+      "ref": "7300b35c1042",
+      "texto": "En 2016, Cristiano conoció a Georgina en una tienda Gucci de Madrid. Lo que comenzó con una mirada se convirtió en una familia. En 2025 se comprometieron. Y en agosto de 2026... ¡se casaron! Diez años después, su historia llegó al altar.",
+      "pal_por_s": 2.36,
+      "persona_estimada": {
+        "id": "documentary",
+        "voz": "echo",
+        "speed": 0.96
+      }
+    },
+    {
+      "id": "n-s15-35-01",
+      "motor": "seedance15",
+      "duracao_pedida_s": 35,
+      "idioma": "en",
+      "data": "2026-10-13",
+      "palavras": 86,
+      "segundos_mp4": 34.209,
+      "ref": "2a4bed070b03",
+      "texto": "At exactly 3:17 AM, Leon woke up to a strange notification. Someone had just sent him a message from his own phone number. His blood ran cold as he read the words: ‘Whatever happens tonight, do not open the front door.’ But who had sent it? Suddenly, the doorbell rang three times. Leon crept toward the door and looked through the peephole. The hallway outside was completely empty. Then his phone vibrated again. A second message appeared: ‘Leon, listen carefully. Whatever you do, don't turn around.’",
+      "pal_por_s": 2.51,
+      "persona_estimada": {
+        "id": "dark-mystery",
+        "voz": "onyx",
+        "speed": 0.92
+      }
+    },
+    {
+      "id": "n-s15-35-02",
+      "motor": "seedance15",
+      "duracao_pedida_s": 35,
+      "idioma": "en",
+      "data": "2026-10-13",
+      "palavras": 95,
+      "segundos_mp4": 35.417,
+      "ref": "36ed9b555433",
+      "texto": "Some people are good for your peace of mind. And then there's that one person who makes your heart race just by walking into the room. The person who playfully teases you, constantly challenges your thoughts, and somehow manages to bring a genuine smile to your face every single time. Deep down, you know that they are trouble, but despite that, you find yourself smiling and enjoying every moment spent with them. Make sure to send this message to that special person who embodies your favorite kind of trouble and brings joy into your life.",
+      "pal_por_s": 2.68,
+      "persona_estimada": {
+        "id": "documentary",
+        "voz": "echo",
+        "speed": 0.96
+      }
+    },
+    {
+      "id": "n-s15-35-03",
+      "motor": "seedance15",
+      "duracao_pedida_s": 35,
+      "idioma": "en",
+      "data": "2026-10-13",
+      "palavras": 107,
+      "segundos_mp4": 35.209,
+      "ref": "6e3993accec5",
+      "texto": "Three subtle signs that someone might be secretly attracted to you. Let’s explore these intriguing clues that can reveal their hidden feelings and emotions towards you. First, they frequently find themselves looking at you, but often look away quickly when you catch them staring. This behavior could indicate a sign of genuine interest. Second, they tend to remember small details about things you’ve shared with them in conversations. This may show that they are genuinely paying attention to you. However, it’s important to remember that one sign alone does not definitively prove attraction. What truly matters most is the mutual interest and genuine connection between both individuals.",
+      "pal_por_s": 3.04,
+      "persona_estimada": {
+        "id": "luxury-narrator",
+        "voz": "alloy",
+        "speed": 0.9
+      }
+    },
+    {
+      "id": "n-s15-35-04",
+      "motor": "seedance15",
+      "duracao_pedida_s": 35,
+      "idioma": null,
+      "idioma_inferido": "pt",
+      "data": "2026-09-15",
+      "palavras": 109,
+      "segundos_mp4": 46.292,
+      "ref": "4fa53bcbfbb6",
+      "texto": "Quando você observa a tela do celular enquanto o carro se desloca, seus olhos enviam ao cérebro a mensagem de que você está em uma posição estática e imóvel. Enquanto isso, o ouvido interno, responsável pelo equilíbrio, percebe as acelerações e desacelerações do veículo, gerando um conflito de informações que afeta o funcionamento do cérebro. O ouvido interno é capaz de detectar movimentos, como acelerações e curvas, enviando sinais que são diferentes da percepção visual que os olhos estão captando naquele momento. Essa discrepância entre os sinais recebidos pelos olhos e pelo ouvido interno pode resultar em sintomas de enjoo, que incluem náusea intensa e sensação de tontura desconfortável.",
+      "pal_por_s": 2.35,
+      "persona_estimada": {
+        "id": "documentary",
+        "voz": "echo",
+        "speed": 0.96
+      }
+    },
+    {
+      "id": "n-s15-60-01",
+      "motor": "seedance15",
+      "duracao_pedida_s": 60,
+      "idioma": "en",
+      "data": "2026-10-11",
+      "palavras": 134,
+      "segundos_mp4": 61.5,
+      "ref": "3c4b40aa55b6",
+      "texto": "The Palace of Versailles, completed, stands as a symbol of opulence and the absolute monarchy of XIV. With its 357 mirrors, was the site of the of Versailles, ending I. Louis XIV's were meticulously designed to impress visitors, with each individual room dedicated to a different deity, showcasing opulence and grandeur. The feature exquisite tapestries that were intricately handwoven during the 17th century, showcasing the remarkable artistic mastery of that historical period. Inspired by the revered Sun God, reflects XIV's persona as the 'Sun' and symbolizes the grandeur of his reign. Boasting an impressive collection of 1,055 trees, stands as a testament to the horticultural prowess of Versailles, providing exotic fruits throughout the year. Stretching an impressive 1,670 meters, served as the centerpiece of Versailles' gardens, beautifully reflecting the palace's symmetry and overall elegance.",
+      "nota": "fala com nomes e números APAGADOS ('completed,' 'the of Versailles, ending I.'): defeito real do escritor a não repetir",
+      "pal_por_s": 2.18,
+      "persona_estimada": {
+        "id": "documentary",
+        "voz": "echo",
+        "speed": 0.96
+      }
+    },
+    {
+      "id": "n-s15-60-02",
+      "motor": "seedance15",
+      "duracao_pedida_s": 60,
+      "idioma": null,
+      "idioma_inferido": "en",
+      "data": "2026-09-23",
+      "palavras": 176,
+      "segundos_mp4": 72.709,
+      "ref": "3d91f58a6e69",
+      "texto": "This ant is alive. But something growing inside its body is changing what it does. In tropical forests, carpenter ants can become infected by a parasitic fungus called Ophiocordyceps. The infected ant begins behaving strangely. It leaves its normal path and climbs onto vegetation above the forest floor. Then comes the disturbing part. The ant bites tightly onto a leaf or twig and locks its jaws in place. Scientists call this the death grip. Soon afterwards, the ant dies — still attached to the vegetation. But the fungus isn't finished. Over the following days, a thin fungal stalk grows from the dead ant's body. Eventually, that stalk produces spores which can fall toward the forest floor, giving the fungus another chance to infect ants below. And scientists discovered something even stranger. The fungus can manipulate the ant's behaviour without simply taking over its brain. Fungal cells spread throughout its body and interact extensively with its muscles. This isn't a zombie movie. It's a real parasite — using an ant's body to complete its own life cycle.",
+      "pal_por_s": 2.42,
+      "persona_estimada": {
+        "id": "dark-mystery",
+        "voz": "onyx",
+        "speed": 0.92
+      }
+    },
+    {
+      "id": "n-s15-60-03",
+      "motor": "seedance15",
+      "duracao_pedida_s": 60,
+      "idioma": null,
+      "idioma_inferido": "en",
+      "data": "2026-09-16",
+      "palavras": 169,
+      "segundos_mp4": 62.084,
+      "ref": "081ef13a4e48",
+      "texto": "In 2024, more than 10 million educated young Indians entered the competitive job market, facing a significant mismatch between their qualifications and the available job opportunities. Mumbai, often referred to as the city of dreams, presents a challenging landscape where many young professionals struggle to secure jobs that truly match their education. At University, ongoing discussions about career prospects reveal a stark gap between impressive academic achievements and the harsh realities of the current job market. Despite numerous signs displayed prominently, many corporate offices remain significantly understaffed, highlighting a troubling disconnect between job postings and actual hiring practices. For countless individuals, the job search transforms into a daily routine filled with applications and waiting, yielding few responses despite their impressive qualifications and skills. Interviews often evolve into high-pressure situations, where candidates feel the immense weight of their aspirations coupled with the scarcity of available job positions. The 2024 job fair attracted over 50,000 attendees, underscoring the vast number of educated Indians actively seeking suitable employment opportunities in the market.",
+      "pal_por_s": 2.72,
+      "persona_estimada": {
+        "id": "luxury-narrator",
+        "voz": "alloy",
+        "speed": 0.9
+      }
+    },
+    {
+      "id": "n-s15-60-04",
+      "motor": "seedance15",
+      "duracao_pedida_s": 60,
+      "idioma": null,
+      "idioma_inferido": "en",
+      "data": "2026-09-15",
+      "palavras": 198,
+      "segundos_mp4": 61.5,
+      "ref": "75beb4e609ce",
+      "texto": "In the enchanting forest, a small dragon named Spark attempts to breathe fire, but instead, he unexpectedly produces a stream of vibrant and colorful bubbles that float around him. Spark is bewildered by his bubbly breath, as the surrounding forest fills with the joyful sounds of laughter and amazement at his surprising and unique talent for creating bubbles. Nearby, a group of baby birds chirp and giggle as the bubbles gently drift by, transforming Spark's unintentional mishap into a delightful and entertaining game for everyone involved. Determined to achieve his goal, Spark tries once more, hoping to finally breathe fire just like the other dragons who soar majestically through the skies above the forest. But once again, Spark's breath results in a cascading flow of bubbles, each one more exquisite and captivating than the last, creating a mesmerizing spectacle for all to see. Spark comes to understand that being different is actually his unique superpower, as he and the playful baby birds revel in their newfound bubbly world filled with joy. With one final sneeze, Spark sends a dazzling rainbow of bubbles soaring into the sky, bringing his day to a joyful conclusion filled with laughter and happiness.",
+      "pal_por_s": 3.22,
+      "persona_estimada": {
+        "id": "emotional-storyteller",
+        "voz": "nova",
+        "speed": 0.97
+      }
+    },
+    {
+      "id": "n-s15-90-01",
+      "motor": "seedance15",
+      "duracao_pedida_s": 90,
+      "idioma": "en",
+      "data": "2026-10-11",
+      "palavras": 218,
+      "segundos_mp4": 90,
+      "ref": "05ccc0938b91",
+      "texto": "“The ship was still afloat. Its cargo was still aboard. But every person was gone.” “In December 1872, sailors aboard the Dei Gratia spotted a vessel drifting near the Azores. Nobody answered their calls. Two men went across to investigate.” “It was the Mary Celeste. She had sailed from New York for Genoa with Captain Benjamin Briggs, his wife Sarah, their two-year-old daughter Sophia, and seven crewmen. Ten people. All missing.” “More than seventeen hundred barrels of industrial alcohol remained largely intact. Food and water were still aboard. Personal belongings remained in the cabins.” “But the ship’s boat was missing. One pump had been partly dismantled. Water had collected in the bottom of the vessel.” “The last recorded log entry was November twenty-fifth. The missing boat and navigation equipment suggested a deliberate departure. But why abandon a ship that could still sail?” “The salvagers brought her to Gibraltar. An investigation found no evidence of foul play.” “One possible explanation is that pump trouble and rough weather convinced Briggs the vessel was in danger. He may have ordered everyone into the boat.” “But that is a theory—not a solved case. None of the ten people was ever seen again.” “What could make an experienced captain trade a seaworthy ship for a small boat in the Atlantic? History hides here.”",
+      "pal_por_s": 2.42,
+      "persona_estimada": {
+        "id": "documentary",
+        "voz": "echo",
+        "speed": 0.96
+      }
+    },
+    {
+      "id": "n-s15-90-02",
+      "motor": "seedance15",
+      "duracao_pedida_s": 90,
+      "idioma": null,
+      "idioma_inferido": "en",
+      "data": "2026-09-16",
+      "palavras": 362,
+      "segundos_mp4": 90,
+      "ref": "07dea8a469f0",
+      "texto": "My dad died almost three years ago. So when I got a letter saying his storage unit was about to be auctioned for nonpayment, I assumed somebody had made a mistake. The notice said final notice, Unit 214, balance due $187. I had handled most of his estate, and I had never heard of Unit 214. My dad wasn’t even a storage-unit person. He was the kind of man who threw away the box while you were still taking the thing out of it. I called the facility and explained that he was deceased. The manager told me he had rented the unit in 2012, eleven years before he died. Then she told me something stranger. He had always paid in cash. And the account had not gone delinquent when he died. Someone continued making cash payments on it for almost two years afterward. Whoever it was knew the unit number and my dad’s PIN. The last payment had covered six months. The next morning, I brought his death certificate and estate paperwork to the facility. The manager cut the lock. I expected old tools, fishing equipment, maybe boxes my mom didn’t want at home. Instead, the door rolled up and revealed an entire wall of plastic bins. Every one was labeled with a year. Sitting directly in front of them was a cardboard box marked, “Emily and Noah — Do Not Throw Away.” I’m an only child. I had never heard either name. Inside were school pictures, Christmas lists, birthday cards, a tiny soccer jersey, and a Father’s Day card. On the front, in a child’s handwriting, it said, “For Dad.” Underneath it was my father’s name. At that point, I was convinced my dad had another family. Then I found an envelope with Emily’s full name on it. I searched her online. She was thirty-one and lived forty minutes away. And when I found an old family photo, I recognized the man standing beside her immediately. It wasn’t my father. It was his younger brother. The uncle my family hadn’t spoken about since I was six. And according to my mother, there was a reason we never said his name.",
+      "nota": "362 palavras em 90 s = fala mais rápida que a régua ou cortada no teto; ficção (nomes do conto)",
+      "pal_por_s": 4.02,
+      "persona_estimada": {
+        "id": "dark-mystery",
+        "voz": "onyx",
+        "speed": 0.92
+      }
+    },
+    {
+      "id": "n-k25-35-01",
+      "motor": "kling25",
+      "duracao_pedida_s": 35,
+      "idioma": null,
+      "idioma_inferido": "en",
+      "data": "2026-09-14",
+      "palavras": 111,
+      "segundos_mp4": 49.5,
+      "ref": "afd0e55fb03e",
+      "texto": "In the depths of the Amazon rainforest, certain trees emit a ghostly blue glow at night, a phenomenon that seems straight out of a fantasy. This remarkable 100-million-year-old insect, encased in amber, provides an extraordinary window into a prehistoric world, showcasing details that have been perfectly preserved through the passage of time. On a remote and secluded island in the Philippines, a perfectly circular lake continues to baffle scientists, as it defies the natural geological formations typically found in such environments. Once filled with laughter and joy, this now-abandoned amusement park in Japan stands eerily silent, serving as a haunting reminder of its past glory and the joy it once provided.",
+      "pal_por_s": 2.24,
+      "persona_estimada": {
+        "id": "dark-mystery",
+        "voz": "onyx",
+        "speed": 0.92
+      }
+    },
+    {
+      "id": "n-k25-60-01",
+      "motor": "kling25",
+      "duracao_pedida_s": 60,
+      "idioma": "en",
+      "data": "2026-10-04",
+      "palavras": 177,
+      "segundos_mp4": 75.917,
+      "ref": "9ae8ed89eb13",
+      "texto": "You think popping a pimple pushes everything OUT. But watch what actually happens underneath your skin. Imagine we could shrink down and travel beneath the surface. Inside the skin is a tiny hair follicle clogged with sticky oil and dead skin cells, forming a swollen pimple above it. Now two fingers squeeze the pimple from both sides. Look underneath. The pressure crushes the clogged follicle from both directions. Some of the trapped material is forced upward through the opening and bursts out onto the surface. But that's only the part you can see. Deeper underneath, that same pressure can force material further into the surrounding tissue. Now your immune system reacts. Blood vessels expand. The surrounding tissue becomes red, swollen and inflamed. What looked like an empty pimple from the outside can actually be more irritated underneath. And repeatedly squeezing and damaging that tissue can increase your chance of infection and permanent acne scarring. So next time you see that satisfying POP… remember: you're watching what came OUT. You can't see what you may have pushed IN.",
+      "pal_por_s": 2.33,
+      "persona_estimada": {
+        "id": "luxury-narrator",
+        "voz": "alloy",
+        "speed": 0.9
+      }
+    },
+    {
+      "id": "n-veo-35-01",
+      "motor": "veo31",
+      "duracao_pedida_s": 35,
+      "idioma": null,
+      "idioma_inferido": "fr",
+      "data": "2026-09-19",
+      "palavras": 112,
+      "segundos_mp4": 44.917,
+      "ref": "b2c26213a216",
+      "texto": "Dans un salon chaleureux, avec tapis moelleux, table basse, plante apaisante et lumière douce, la petite chaussette rouge entre par la gauche et dit : 'Je me sens bizarre'. La grande chaussette, d’abord blanche, écoute, petite chaussette qui doit \"la maîtresse n'était pas contente sur mon devoir\" et devient bleue en signe d’empathie. Elle guide la respiration : inspirer par le nez, expirer par la bouche, respirer par le ventre. La petite chaussette respire et redevient blanche après 3 secondes de respiration. En voyant cela, la grande chaussette bleue redevient blanche aussi. Les deux chaussettes finissent blancheset se prennent dans les bras, toutes deux apaisées. Juste l'histoire, pas de description de scène",
+      "nota": "a instrução 'Juste l'histoire, pas de description de scène' foi NARRADA",
+      "pal_por_s": 2.49,
+      "persona_estimada": {
+        "id": "documentary",
+        "voz": "echo",
+        "speed": 0.96
+      }
+    },
+    {
+      "id": "n-veo-35-02",
+      "motor": "veo31",
+      "duracao_pedida_s": 35,
+      "idioma": null,
+      "idioma_inferido": "fr",
+      "data": "2026-09-19",
+      "palavras": 83,
+      "segundos_mp4": 34.292,
+      "ref": "3ec83e3db0c2",
+      "texto": "Dans un salon chaleureux, avec tapis moelleux, table basse, plante apaisante et lumière douce, la petite chaussette rouge entre par la gauche et dit : 'Je me sens bizarre'. La grande chaussette, d’abord blanche, écoute et devient bleue en signe d’empathie. Elle guide la respiration : inspirer par le nez, expirer par la bouche, respirer par le ventre. La petite chaussette respire et redevient blanche. En voyant cela, la grande chaussette bleue redevient blanche aussi. Les deux chaussettes finissent blanches, toutes deux apaisées.",
+      "pal_por_s": 2.42,
+      "persona_estimada": {
+        "id": "documentary",
+        "voz": "echo",
+        "speed": 0.96
+      }
+    },
+    {
+      "id": "n-k3-30-01",
+      "motor": "kling3_o3",
+      "duracao_pedida_s": 30,
+      "idioma": "en",
+      "data": "2026-10-13",
+      "palavras": 72,
+      "segundos_mp4": 33.917,
+      "ref": "d3c9371a8781",
+      "voz_pinada": {
+        "voice": "onyx",
+        "speed": 1,
+        "persona_id": "character:male:adult"
+      },
+      "texto": "The abandoned research station, once a hub of innovation and discovery, now lies entombed in snow and silence. The astronaut's visor reflects a forgotten world, untouched for decades, echoing with memories of past missions. Inside, shadowy corridors extend endlessly, murmuring stories of a swift evacuation and abandoned scientific pursuits. The two astronauts, stranded and wary, exchange words that cut through the silence: 'You shouldn't be here.' The stranger replies: 'Neither should you.'",
+      "nota": "hollywood: voz pinada no claim (hostVoice), não por persona",
+      "pal_por_s": 2.12,
+      "persona_estimada": null
+    }
+  ]
+}
