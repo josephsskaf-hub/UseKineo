@@ -2,7 +2,7 @@ import { detectNiche } from '@/lib/narration/niche-mapping'
 import { resolveMusicMood, type MusicMood } from '@/lib/pixabayMusic'
 
 /** Music has its own intent. Never change the shared niche/voice classifier. */
-export type MusicEmotion = 'grief' | 'celebration' | 'tension' | 'calm' | 'neutral'
+export type MusicEmotion = 'grief' | 'celebration' | 'tension' | 'calm' | 'neutral' | 'conflict' // KINEO-PARCEIRO-EYEBIBLE-1410 — guerra/batalha/horror: grave e tenso, nunca alegre
 export type MusicDirection = {
   enabled: boolean
   mood: MusicMood
@@ -32,6 +32,7 @@ const TERMS: Record<Exclude<MusicEmotion, 'neutral'>, string[]> = {
   grief: ['grief', 'grieving', 'mourn', 'mourned', 'mourning', 'funeral', 'buried', 'bereaved', 'wept', 'weeping', 'heartbroken', 'tragic', 'tragedy', 'sad', 'sorrow', 'somber', 'sombre', 'died', 'death', 'llora', 'lloraba', 'llorando', 'luto', 'duelo', 'triste', 'tristeza', 'funeral', 'entierro', 'murio', 'perdio la vida', 'morreu', 'morreram', 'chorou', 'chorando', 'velorio', 'enterro', 'lagrimas', 'शोक', 'दुख', 'दुःख', 'दुखी', 'उदास', 'मृत्यु', 'मौत', 'अंतिम संस्कार', 'रोती', 'रोया', 'दर्दनाक'],
   celebration: ['joy', 'joyful', 'happy', 'happiness', 'celebration', 'celebrate', 'celebrated', 'reunited', 'reunion', 'delighted', 'cheerful', 'uplifting', 'alegre', 'alegria', 'feliz', 'felices', 'celebracion', 'celebrar', 'celebraron', 'reencuentro', 'celebraram', 'reencontro', 'felicidade', 'खुश', 'खुशी', 'खुशियां', 'जश्न', 'उत्सव', 'आनंद', 'मिलन'],
   tension: ['mystery', 'mysterious', 'unsolved', 'suspense', 'tension', 'unease', 'ominous', 'unexplained', 'disappeared', 'misterio', 'misterioso', 'suspenso', 'tension', 'inquietante', 'desaparecio', 'desapareceu', 'inexplicavel', 'रहस्य', 'रहस्यमय', 'तनाव', 'सस्पेंस', 'लापता'],
+  conflict: ['war', 'wars', 'warfare', 'battle', 'battles', 'battlefield', 'battlefields', 'soldier', 'soldiers', 'army', 'armies', 'troops', 'enemy', 'enemies', 'wounded', 'combat', 'siege', 'invasion', 'invaded', 'bombing', 'bombs', 'bombardment', 'gunfire', 'trench', 'trenches', 'killed', 'massacre', 'genocide', 'slaughter', 'murder', 'murdered', 'horror', 'terror', 'terrifying', 'nightmare', 'haunted', 'corpse', 'corpses', 'hostage', 'hostages', 'casualties', 'guerra', 'guerras', 'batalha', 'batalhas', 'soldado', 'soldados', 'exercito', 'inimigo', 'inimigos', 'ferido', 'feridos', 'combate', 'cerco', 'invasao', 'bombardeio', 'tiroteio', 'trincheira', 'trincheiras', 'genocidio', 'assassinato', 'assassinado', 'pesadelo', 'cadaver', 'refem', 'refens', 'batalla', 'batallas', 'ejercito', 'enemigo', 'enemigos', 'herido', 'heridos', 'asedio', 'bombardeo', 'tiroteo', 'trinchera', 'masacre', 'asesinato', 'asesinado', 'pesadilla', 'rehen', 'युद्ध', 'जंग', 'सैनिक', 'सेना', 'दुश्मन', 'घायल', 'लड़ाई', 'आतंक', 'नरसंहार'], // KINEO-PARCEIRO-EYEBIBLE-1410
   calm: ['peaceful', 'tranquil', 'calming', 'gentle', 'meditative', 'serene', 'calm', 'tranquilo', 'tranquila', 'sereno', 'relajante', 'paz', 'calmo', 'calma', 'serena', 'tranquilidade', 'शांत', 'शांति', 'सुकून', 'सुकूनभरा'],
 }
 
@@ -62,18 +63,21 @@ function scoreEmotion(text: string, emotion: Exclude<MusicEmotion, 'neutral'>): 
 }
 
 function emotionOf(text: string): MusicEmotion | null {
-  const scores = (['grief', 'celebration', 'tension', 'calm'] as const)
+  const scores = (['grief', 'celebration', 'tension', 'calm', 'conflict'] as const) // KINEO-PARCEIRO-EYEBIBLE-1410
     .map(emotion => ({ emotion, score: scoreEmotion(text, emotion) }))
   // Do not let a stray "happy memory" turn a funeral into a celebration.
   // Mixed grief/joy is deliberately restrained unless the author directs otherwise.
   if (scores[0].score > 0) return 'grief'
-  return scores.filter(x => x.score > 0).sort((a, b) => b.score - a.score)[0]?.emotion ?? null
+  // KINEO-PARCEIRO-EYEBIBLE-1410 — guerra/batalha/horror com 2+ sinais vence alegria e calma: trilha alegre sob morte é o defeito do Robert (14/10)
+  if (scores[4].score >= 2) return 'conflict' // KINEO-PARCEIRO-EYEBIBLE-1410
+  const semConflito = scores.slice(0, 4) // KINEO-PARCEIRO-EYEBIBLE-1410 — um sinal solto ("sugar is your enemy") não escolhe trilha de guerra
+  return semConflito.filter(x => x.score > 0).sort((a, b) => b.score - a.score)[0]?.emotion ?? null // KINEO-PARCEIRO-EYEBIBLE-1410
 }
 
 function direction(emotion: MusicEmotion, source: MusicDirection['source'], mood?: MusicMood): MusicDirection {
   return {
     enabled: true, source, emotion,
-    mood: mood ?? ({ grief: 'emotional', celebration: 'emotional', tension: 'suspense', calm: 'nature', neutral: 'suspense' } as const)[emotion],
+    mood: mood ?? ({ grief: 'emotional', celebration: 'emotional', tension: 'suspense', calm: 'nature', neutral: 'suspense', conflict: 'suspense' } as const)[emotion], // KINEO-PARCEIRO-EYEBIBLE-1410
     curatedFallback: emotion !== 'grief' && emotion !== 'celebration',
   }
 }
@@ -123,6 +127,7 @@ export function musicEmotionPrompt(value: MusicDirection): string {
     case 'grief': return 'Solemn restrained lament, sparse felt piano, soft low strings, slow minor-key phrasing, quiet respectful sorrow. No upbeat rhythm, no celebration, no triumphant brass, no dramatic trailer climax.'
     case 'celebration': return 'Warm hopeful reunion, gentle major-key piano, light acoustic textures, quietly joyful resolution. No mournful lament, no ominous tension, no aggressive drums.'
     case 'tension': return 'Subtle unresolved mystery, low sustained textures and sparse pulses. No triumphant climax, no cheerful dance beat, no jump scares.'
+    case 'conflict': return 'Somber tense war-drama underscore, low sustained strings, slow distant war drums, minor key, grave and restrained. No upbeat rhythm, no hip-hop beat, no cheerful melody, no triumphant celebration.' // KINEO-PARCEIRO-EYEBIBLE-1410
     case 'calm': return 'Peaceful spacious ambient texture, soft sustained notes and gentle movement. No ominous pulse, no aggressive percussion or dramatic crescendo.'
     default: return ''
   }
