@@ -35,6 +35,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 // KINEO-ADS-ROTEIROS-2026-10-13, que semRoteiros tira em memória antes da impressão digital (a de antes segue valendo, byte a byte).
 import { semRoteiros } from './test-support/desfaz-roteiros-1310.mjs'
 import { semConsertos1410 } from './test-support/desfaz-consertos-1410.mjs' // reancorado KINEO-ADS-CONSERTOS-1410
+import { semDuracaoSaldo1510 } from './test-support/desfaz-duracao-saldo-1510.mjs' // reancorado KINEO-STUDIO-DURACAO-SALDO-1510
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -290,7 +291,10 @@ const STUDIO_BASE = {
 // reancorado KINEO-LEVA8-1310 — só o núcleo do /plan passa por semRoteiros (as linhas marcadas dos roteiros saem); o resto, como sempre.
 // reancorado KINEO-ADS-CONSERTOS-1410 — o núcleo do /plan também passa por semConsertos1410 (a frase de produto sem a cena): a
 // impressão de antes (3fd1819e…8eb2) continua valendo, e qualquer outra mudança no núcleo segue vermelha.
-const DESFAZ = { 'lib/ads/v2PlanCore.ts': (x) => semConsertos1410(semRoteiros(x)) }
+// reancorado KINEO-STUDIO-DURACAO-SALDO-1510 — o Studio de filmes ganhou só a duração que o saldo paga (1 import, 2 blocos ▼▲ e o
+// onClickCapture nos 5 botões de duração, tudo marcado): ele passa por semDuracaoSaldo1510 e a impressão de antes (f14aced0…fc25c)
+// continua valendo — qualquer outro caractere mexido no Studio segue vermelho (M22).
+const DESFAZ = { 'lib/ads/v2PlanCore.ts': (x) => semConsertos1410(semRoteiros(x)), 'app/(dashboard)/studio/StudioClient.tsx': (x) => semDuracaoSaldo1510(x) }
 const iguais = (tab, over = {}) => Object.entries(tab).every(([f, h]) => sha((DESFAZ[f] || ((x) => x))(over[f] !== undefined ? over[f] : read(f))) === h)
 ok(iguais(STUDIO_BASE), 'D4 o Studio de filmes, o kit (STUDIO_KIT_CSS) e o ProductStage byte a byte iguais à base — nada foi extraído de lá')
 
