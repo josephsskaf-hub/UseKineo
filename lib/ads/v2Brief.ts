@@ -17,6 +17,7 @@ import { lowerMidSentence, missingNames, simpleCommonNoun, simpleNames, simplePr
 // KINEO-ATOR-FTC-2026-10-13 — repairTestimonial: com o ator, a narração consertada em código deixa de ser depoimento de cliente.
 import { ADS_V2_HONESTY_RULE, adsV2PlaceRule, honestyIssues, isDemonym, repairHonesty, repairTestimonial, type AdsV2HonestySource } from '@/lib/ads/v2Honesty'
 import { adsV2BusinessFallback, adsV2FinishCopyRaw, adsV2GenericBrandUses, adsV2GenericProduct, adsV2GenericRule, adsV2GenericWhy, adsV2HasNarration, adsV2SpeechMinWords, adsV2SpeechNarrationLine, adsV2VariantFirstOverlay, type AdsV2GenericProduct } from '@/lib/ads/v2CopyFit' // KINEO-ADS-RETESTE-1510 — piso de fala (90% do anúncio na voz MiniMax) e produto genérico que não é marca ("da Perfume")
+import { adsV2GenericThis, adsV2NarrationBelow } from '@/lib/ads/v2CopyFit' // KINEO-ADS-DEMO-UNIVERSO-1410 — o nome dos fechos de fala no produto genérico ("este perfume") e "a fala ficou abaixo do piso"
 
 export const ADS_V2_BRIEF_MODEL = 'gpt-4o-mini'
 /** Teto de planos (chamadas ao GPT) por pessoa em 24 h, contado pelo evento ads_v2_plan_served ANTES do modelo. */
@@ -559,6 +560,10 @@ async function extractWithBudget(args: {
   if (generic) Object.assign(opts, { generic }) // KINEO-ADS-RETESTE-1510
   const fitOpts = { generic, speech: speechMin > 0 ? { min: speechMin, max: args.maxWords, language: args.language } : null } // KINEO-ADS-RETESTE-1510
   const fitFixes: string[] = [] // KINEO-ADS-RETESTE-1510
+  // KINEO-ADS-DEMO-UNIVERSO-1410 — o piso de fala em TODOS os roteiros: os fechos sem fato usam o nome que o brief já tem (marca, ou
+  // KINEO-ADS-DEMO-UNIVERSO-1410 — "este perfume" no produto genérico) e um conjunto `used` dividido entre o principal e as versões.
+  const speechClose = { name: generic ? adsV2GenericThis(generic) : brandName(brief), brand: !generic, used: new Set<string>() } // KINEO-ADS-DEMO-UNIVERSO-1410
+  if (fitOpts.speech) Object.assign(fitOpts.speech, { close: speechClose }) // KINEO-ADS-DEMO-UNIVERSO-1410
   const copyMsgs = buildV2CopyMessages(brief, args.languageName, opts)
   const base = [{ role: 'system' as const, content: copyMsgs.system }, { role: 'user' as const, content: copyMsgs.user }]
   // KINEO-ADS-ROTEIROS-2026-10-13 — as versões saem em paralelo com o texto de sempre (que sai PRIMEIRO), sob o mesmo prazo;
@@ -590,6 +595,10 @@ async function extractWithBudget(args: {
   // KINEO-ADS-RETESTE-1510 — a resposta corrigida AINDA usa o produto genérico como marca: conserto em código ("da Perfume" → "deste
   // KINEO-ADS-RETESTE-1510 — perfume") e a régua inteira de novo. A fala curta do texto de sempre é RE-PEDIDA (a correção acima diz o número).
   if (!checked.ok && generic) { const fin = adsV2FinishCopyRaw(raw, { generic, speech: null }); if (fin) { raw = fin.raw; fitFixes.push(...fin.fixes); checked = checkV2Copy(raw, brief, opts) } } // KINEO-ADS-RETESTE-1510
+  // KINEO-ADS-DEMO-UNIVERSO-1410 — demo de 14/10: o roteiro A, re-pedido e AINDA curto, era aceito como veio (voz até 10,7 s num anúncio de 15 s).
+  // KINEO-ADS-DEMO-UNIVERSO-1410 — Agora, SÓ quando a fala está abaixo do piso, ele é completado em código do mesmo jeito que as versões, antes de qualquer
+  // KINEO-ADS-DEMO-UNIVERSO-1410 — afrouxamento; o completado só vale se passar pela régua INTEIRA (outro defeito = o caminho de sempre, com o texto de antes).
+  if (!checked.ok && fitOpts.speech && adsV2NarrationBelow(raw, fitOpts.speech.min)) { const fin = adsV2FinishCopyRaw(raw, { generic, speech: fitOpts.speech }); const again = fin ? checkV2Copy(fin.raw, brief, opts) : null; if (fin && again && again.ok) { raw = fin.raw; fitFixes.push(...fin.fixes); checked = again } } // KINEO-ADS-DEMO-UNIVERSO-1410
   // Os nomes são acabamento, não honestidade: se a 2ª resposta só deixou de citar algum nome (e passa em TODO o resto —
   // número, fama, contato, tamanho), ela é aceita e o que faltou vai para o evento. Nunca um 502 por causa de um nome.
   // KINEO-ATOR-AJUSTES-2026-10-09 — a fala de loja num anúncio de produto também é acabamento (o pedido e 1 correção já a

@@ -18,6 +18,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semRoteiros } from './test-support/desfaz-roteiros-1310.mjs'
 import { MARCA_CONSERTOS_1410, CONSERTOS_1410_LINHAS_CORE, semConsertos1410 } from './test-support/desfaz-consertos-1410.mjs'
 import { semReteste1510 } from './test-support/desfaz-reteste-1510.mjs' // reancorado KINEO-ADS-RETESTE-1510
+import { semDemoUniverso1410 } from './test-support/desfaz-ads-demo-universo-1410.mjs' // reancorado KINEO-ADS-DEMO-UNIVERSO-1410
 import { semMelhorias1410 } from './test-support/desfaz-melhorias-1410.mjs' // reancorado KINEO-ADS-MELHORIAS-1410 — o núcleo ganhou linhas INTEIRAS marcadas (packshot/formato), tiradas antes da impressão
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -284,7 +285,7 @@ await check('$1 o núcleo do /plan, desfeitas as linhas marcadas deste conserto,
     !/credit|debit|charge|refund|adsV2Credits|estimateAdUsd|cost/i.test(marcadas.join('\n').replace(/\/\/.*$/gm, ''))
 })
 await check('$2 o v2Brief só mudou a linha do brandName: desfeita ela, volta à impressão de antes (99678c0e…); nenhuma outra linha marcada', () =>
-  SRC.brief.split('\n').filter((l) => l.includes(MARCA_CONSERTOS_1410)).length === 1 && sha(trocar(semReteste1510(F.brief, SRC.brief), BRAND_NOVA, BRAND_VELHA)) === BRIEF_BASE) // reancorado KINEO-ADS-RETESTE-1510 — o reteste mexeu no v2Brief (linhas marcadas): desfeito ele (diff reverso exato), vale a prova de sempre
+  SRC.brief.split('\n').filter((l) => l.includes(MARCA_CONSERTOS_1410)).length === 1 && sha(trocar(semReteste1510(F.brief, semDemoUniverso1410(F.brief, SRC.brief)), BRAND_NOVA, BRAND_VELHA)) === BRIEF_BASE) /* reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — o piso de fala nos 3 roteiros (linhas marcadas) sai antes */ // reancorado KINEO-ADS-RETESTE-1510 — o reteste mexeu no v2Brief (linhas marcadas): desfeito ele (diff reverso exato), vale a prova de sempre
 await check('$3 a lib da cena e a da tela seguem PURAS (sem fornecedor, banco ou fetch) e sem preço/débito nas linhas marcadas', () =>
   !/from '@\/lib\/(openai|supabase|serverEvents|safety)|fetch\(|createClient|chargeAdsV2|adsV2Credits/.test(SRC.scene) &&
   !/chargeAdsV2|refund|debit/i.test([SRC.scene, SRC.ux].join('\n').split('\n').filter((l) => l.includes(MARCA_CONSERTOS_1410)).join('\n').replace(/\/\/.*$/gm, '')))

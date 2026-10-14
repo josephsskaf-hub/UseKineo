@@ -233,7 +233,7 @@ const extrai = async (respostas, extra = {}, over = {}) => {
 const extracaoCerta = async (over) => {
   const a = await extrai([BRIEF_PRODUCAO, { narration: FRASES[0].producao, overlays: [], sector: 'real_estate' }, { narration: FRASES[0].boa, overlays: [], sector: 'real_estate' }], {}, over)
   const correcao = a.log[2]?.messages?.at(-1)?.content ?? ''
-  return a.r.ok && a.r.attempts === 3 && a.r.copy.narration === FRASES[0].boaDepois && a.r.brief.extra.customer_names === 'Edifício Villa Versace; Moema; São Paulo' &&
+  return a.r.ok && a.r.attempts === 3 && a.r.copy.narration.startsWith(FRASES[0].boaDepois + ' ') && a.r.copy.narration.split(/\s+/).length >= 27 && !a.r.speechShort /* reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — a corrigida AINDA curta (abaixo do piso de 27) não é mais aceita como veio: sai ELA, inteira, + fechos sem fato até o piso */ && a.r.brief.extra.customer_names === 'Edifício Villa Versace; Moema; São Paulo' &&
     JSON.stringify(a.r.voice) === JSON.stringify({ names: FRASES[0].names, commonNoun: 'espaço comercial', namesMissing: [] }) &&
     /"Edifício Villa Versace", "São Paulo" exactly as the customer wrote them/.test(correcao) && a.log[1].messages[0].content.includes('"Edifício Villa Versace", "Moema", "São Paulo"')
 }

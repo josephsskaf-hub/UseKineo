@@ -291,7 +291,7 @@ export function adsV2BusinessFallback(sentence: string | undefined, productPhoto
  * (narração e frases de tela da 2ª em diante — a 1ª é o título e pode ter o nome) e a narração é encaixada no piso/teto de
  * fala. null = nada mudou (ou JSON ilegível). Pura.
  */
-export function adsV2FinishCopyRaw(raw: string, opts: { generic?: AdsV2GenericProduct | null; speech?: { min: number; max: number; language: string } | null }): { raw: string; fixes: string[] } | null {
+export function adsV2FinishCopyRaw(raw: string, opts: { generic?: AdsV2GenericProduct | null; speech?: { min: number; max: number; language: string; close?: AdsV2SpeechClose | null } | null }): { raw: string; fixes: string[] } | null { // KINEO-ADS-DEMO-UNIVERSO-1410 — + close (opcional): ausente = o acabamento de sempre, byte a byte
   let p: Record<string, unknown>
   try {
     const j = JSON.parse(raw)
@@ -310,9 +310,10 @@ export function adsV2FinishCopyRaw(raw: string, opts: { generic?: AdsV2GenericPr
       fixes.push(...r.fixes)
     }
     if (opts.speech) {
-      const f = adsV2FitNarration(n, opts.speech)
+      const f = adsV2FitNarration(n, opts.speech.close ? { ...opts.speech, min: 0 } : opts.speech) // KINEO-ADS-DEMO-UNIVERSO-1410 — com close, aqui só a apara do teto; o piso vem abaixo
       n = f.text
       fixes.push(...f.fixes)
+      if (opts.speech.close) { const c = adsV2CompleteSpeech(n, opts.speech); n = c.text; fixes.push(...c.fixes) } // KINEO-ADS-DEMO-UNIVERSO-1410 — o piso por fechos sem fato (chamada ↔ nome, sem repetir no conjunto A/B/C)
     }
     out.narration = n
   }
@@ -349,6 +350,110 @@ export function adsV2HasNarration(raw: string): boolean {
   try {
     const j = JSON.parse(raw) as { narration?: unknown } | null
     return !!j && typeof j === 'object' && typeof j.narration === 'string' && j.narration.trim().length > 0
+  } catch {
+    return false
+  }
+}
+
+// ═══ 4. KINEO-ADS-DEMO-UNIVERSO-1410 — a fala chega ao piso em TODOS os roteiros (A/B/C) ════════════════════════════
+// Demo de 14/10 (Comercial, 15 s, pt): o roteiro A escolhido acabou a voz aos 10,7 s (~4 s só de música). O piso de 27 palavras
+// (KINEO-ADS-RETESTE-1510) era RE-PEDIDO uma vez ao modelo e, ainda curto, ACEITO como veio (speechShort); as versões B/C só
+// recebiam as 3 chamadas genéricas, e a regra "nunca duas chamadas seguidas" (KINEO-ADS-MELHORIAS-1410) parava o enchimento
+// assim que a fala terminava numa chamada ("Garanta o seu.") — a versão saía curta do mesmo jeito. Agora o roteiro principal,
+// curto depois da correção, e cada versão são COMPLETADOS em código do mesmo jeito: frases de fecho SEM fato (as chamadas
+// genéricas de sempre + o NOME do produto/marca que o brief já tem, numa frase neutra "Atheeri, para você." ou numa chamada
+// "Conheça Atheeri hoje."), alternando para nunca pôr duas chamadas seguidas, nunca a mesma frase duas vezes (nem entre A, B e
+// C: o conjunto `used` é dividido), no máximo 2 frases com o nome, e sem passar do teto de palavras NEM do teto da voz
+// (voice_too_long: o cartão cresce até +4 s → a voz cabe em segundos + 3,5 s = 18,5 s em 15 s, medida aqui pela voz MAIS LENTA
+// medida, 1,6 pal/s). Línguas sem lista de chamadas (só en/pt/es/fr/it/de têm) = nada é completado (o piso de antes decide).
+
+/** A voz mais lenta medida no Ads (pior caso de 28 anúncios): o teto da voz é conferido nela. */
+export const ADS_V2_VOICE_WPS_SLOW = 1.6
+/** O cartão final cresce até +4 s; a voz começa em 0,3 s e precisa de 0,2 s de folga: sobra segundos + 3,5 s para a fala. */
+export const ADS_V2_VOICE_CEILING_EXTRA_SECONDS = 3.5
+/** O teto da voz (s) de um anúncio cujo teto de palavras é `maxWords` (2 pal/s × segundos): 15 s → 18,5 s. Pura. */
+export function adsV2VoiceCeilingSeconds(maxWords: number): number {
+  return Math.max(0, maxWords / 2) + ADS_V2_VOICE_CEILING_EXTRA_SECONDS
+}
+/** Quantas palavras cabem na voz mais lenta sem passar do teto da voz e sem passar do teto de palavras. Pura. */
+export function adsV2SpeechCap(maxWords: number): number {
+  return Math.min(maxWords, Math.floor(adsV2VoiceCeilingSeconds(maxWords) * ADS_V2_VOICE_WPS_SLOW))
+}
+
+/** Frases de fecho com o NOME (sem fato): `cta` = é chamada; `brand` = só com nome de marca (não com "este perfume"). */
+export const ADS_V2_NAME_CLOSES: Readonly<Record<string, readonly { t: string; cta: boolean; brand?: boolean }[]>> = {
+  en: [{ t: '{name}, for you.', cta: false }, { t: 'This is {name}.', cta: false, brand: true }, { t: '{name}, your way.', cta: false }, { t: 'Now, {name}.', cta: false }, { t: 'Discover {name} today.', cta: true }, { t: 'Try {name}.', cta: true }, { t: 'Choose {name}.', cta: true }],
+  pt: [{ t: '{name}, para você.', cta: false }, { t: 'Isto é {name}.', cta: false, brand: true }, { t: '{name}, do seu jeito.', cta: false }, { t: 'Agora, {name}.', cta: false }, { t: 'Conheça {name} hoje.', cta: true }, { t: 'Experimente {name}.', cta: true }, { t: 'Escolha {name}.', cta: true }],
+  es: [{ t: '{name}, para ti.', cta: false }, { t: 'Esto es {name}.', cta: false, brand: true }, { t: '{name}, a tu manera.', cta: false }, { t: 'Ahora, {name}.', cta: false }, { t: 'Descubre {name} hoy.', cta: true }, { t: 'Prueba {name}.', cta: true }, { t: 'Elige {name}.', cta: true }],
+  fr: [{ t: '{name}, pour vous.', cta: false }, { t: 'Voici {name}.', cta: false, brand: true }, { t: '{name}, à votre façon.', cta: false }, { t: 'Maintenant, {name}.', cta: false }, { t: 'Découvrez {name} dès aujourd’hui.', cta: true }, { t: 'Essayez {name}.', cta: true }, { t: 'Choisissez {name}.', cta: true }],
+  it: [{ t: '{name}, per te.', cta: false }, { t: 'Questo è {name}.', cta: false, brand: true }, { t: '{name}, a modo tuo.', cta: false }, { t: 'Adesso, {name}.', cta: false }, { t: 'Scopri {name} oggi.', cta: true }, { t: 'Prova {name}.', cta: true }, { t: 'Scegli {name}.', cta: true }],
+  de: [{ t: '{name}, für dich.', cta: false }, { t: 'Das ist {name}.', cta: false, brand: true }, { t: '{name}, ganz nach deinem Stil.', cta: false }, { t: 'Jetzt: {name}.', cta: false }, { t: 'Entdecke {name} noch heute.', cta: true }, { t: 'Probier {name}.', cta: true }, { t: 'Wähl {name}.', cta: true }],
+}
+
+export interface AdsV2SpeechClose {
+  /** O nome que o brief já tem (marca) ou a forma do produto genérico ("este perfume"); vazio = só as chamadas genéricas. */
+  name?: string | null
+  /** true = o nome é a marca (vale "Isto é Atheeri."); false = produto genérico ("este perfume"). */
+  brand?: boolean
+  /** As frases de fecho já usadas no CONJUNTO (A, B e C dividem o mesmo): nunca a mesma duas vezes. */
+  used?: Set<string>
+}
+
+const closeKey = (s: string) => normWords(s).join(' ')
+
+/**
+ * Completa a fala até o piso com frases de fecho sem fato (as chamadas genéricas + as do NOME), alternando chamada e frase
+ * neutra (nunca duas chamadas seguidas), sem repetir frase (no texto e no conjunto `used`), no máximo 2 com o nome (nunca logo
+ * depois de uma frase que já diz o nome), sem passar
+ * de adsV2SpeechCap(max). Não dá para chegar ao piso = o melhor que coube (a régua decide). Pura (só escreve em `close.used`).
+ */
+export function adsV2CompleteSpeech(text: string, opts: { min: number; max: number; language: string; close?: AdsV2SpeechClose | null }): { text: string; fixes: string[] } {
+  let t = String(text ?? '').replace(/\s+/g, ' ').trim()
+  const fixes: string[] = []
+  if (!t) return { text: t, fixes }
+  const lang = String(opts.language ?? '').toLowerCase().slice(0, 2)
+  const cap = adsV2SpeechCap(opts.max)
+  const used = opts.close?.used ?? new Set<string>()
+  const name = String(opts.close?.name ?? '').replace(/\s+/g, ' ').trim()
+  const nameWords = new Set(normWords(name))
+  const cands: { s: string; cta: boolean; named: boolean }[] = [
+    ...(ADS_V2_SPEECH_PADS[lang] ?? []).map((s) => ({ s, cta: true, named: false })),
+    ...(name ? (ADS_V2_NAME_CLOSES[lang] ?? []).filter((c) => !c.brand || opts.close?.brand !== false).map((c) => {
+      const s = c.t.split('{name}').join(name)
+      return { s: /^\p{Ll}/u.test(s) ? s.charAt(0).toLocaleUpperCase(lang) + s.slice(1) : s, cta: c.cta, named: true }
+    }) : []),
+  ]
+  if (!cands.length) return { text: t, fixes }
+  let named = 0
+  for (let round = 0; round < 6 && countWords(t) < opts.min; round++) {
+    const w = countWords(t)
+    const last = sentencesOf(t).slice(-1)[0] ?? ''
+    const lastCta = adsV2CtaLike(last, lang)
+    const lastKey = new Set(normWords(last).filter((x) => x.length >= 3 && !nameWords.has(x)))
+    const textKey = closeKey(t)
+    const lastNamed = nameWords.size > 0 && [...nameWords].every((x) => normWords(last).includes(x))
+    // Regras DURAS (nunca afrouxam): sem repetir frase (texto e conjunto), nunca chamada depois de chamada, nunca acima do teto.
+    const hard = cands.filter((c) => !used.has(closeKey(c.s)) && !textKey.includes(closeKey(c.s)) && !(lastCta && c.cta) && w + countWords(c.s) <= cap)
+    // Regras de naturalidade: até 2 frases com o nome, nunca logo depois de outra que já diz o nome, sem repetir palavra da última.
+    const soft = hard.filter((c) => !(c.named && (named >= 2 || lastNamed)) && !normWords(c.s).some((x) => x.length >= 3 && !nameWords.has(x) && lastKey.has(x)))
+    const ok = soft.length ? soft : hard
+    if (!ok.length) break
+    const reach = ok.filter((c) => w + countWords(c.s) >= opts.min).sort((a, b) => Number(b.cta) - Number(a.cta) || countWords(a.s) - countWords(b.s))
+    // Não chega ainda: o tipo OPOSTO ao da última frase (alterna chamada ↔ neutra), a mais longa; sem ele, a mais longa que houver.
+    const pick = reach[0] ?? ok.slice().sort((a, b) => Number(a.cta === lastCta) - Number(b.cta === lastCta) || countWords(b.s) - countWords(a.s))[0]
+    t = `${/[.!?…]$/u.test(t) ? t : `${t}.`} ${pick.s}`
+    used.add(closeKey(pick.s))
+    if (pick.named) named++
+    fixes.push(pick.named ? 'speech_close_name' : 'speech_close')
+  }
+  return { text: t, fixes }
+}
+
+/** KINEO-ADS-DEMO-UNIVERSO-1410 — a resposta JSON traz narração MAIS CURTA que o piso? (só aí o roteiro é completado). Pura. */
+export function adsV2NarrationBelow(raw: string, min: number): boolean {
+  try {
+    const j = JSON.parse(raw) as { narration?: unknown } | null
+    return !!j && typeof j === 'object' && typeof j.narration === 'string' && j.narration.trim().length > 0 && countWords(j.narration) < min
   } catch {
     return false
   }

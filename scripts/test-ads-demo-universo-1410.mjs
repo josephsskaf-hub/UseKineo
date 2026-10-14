@@ -15,8 +15,10 @@
 //     grafia real; o /orders guarda brief.pronounce limpo e moderado; o campo mora em "Mais opções" nas 16 línguas;
 //   6 tênis → graffiti_ad (moda de rua), sapato/roupa → poster_ad (o estilo de moda do catálogo); palavra desconhecida = de sempre;
 //   7 dinheiro intocado (v2Billing, v2Tiers, v2StartCore, /start, /plan, v2PlanCore byte a byte) e o desfaz deste conserto devolve
-//     os 5 arquivos tocados EXATAMENTE à base;
-//   M mutantes (10): cada regra quebrada fica vermelha, e cada mutante prova que aplicou (âncora única, texto mudou).
+//     os 7 arquivos tocados EXATAMENTE à base;
+//   8 (2º commit, pedido do coordenador) o roteiro principal curto DUAS vezes é completado até o piso como as versões (fechos sem
+//     fato com o nome do brief), sem passar do teto da voz (18,5 s em 15 s), sem repetir fecho entre A/B/C nem chamada dupla;
+//   M mutantes (13): cada regra quebrada fica vermelha, e cada mutante prova que aplicou (âncora única, texto mudou).
 import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
@@ -204,7 +206,7 @@ ok(tenta(() => { const S = ST(); return /apparel/i.test(S.adsV2Style('graffiti_a
 console.log('\n7. dinheiro intocado e o desfaz')
 const DINHEIRO = ['lib/ads/v2Billing.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2StartCore.ts', 'app/api/ads/v2/start/route.ts', 'app/api/ads/v2/plan/route.ts', 'lib/ads/v2PlanCore.ts', 'lib/ads/v2Link.ts', 'app/api/ads/v2/link-import/route.ts']
 ok(DINHEIRO.every((f) => read(f) === base(f)), '7a v2Billing, v2Tiers, v2StartCore, /start, /plan, v2PlanCore, v2Link e /link-import byte a byte iguais à base')
-ok(DEMO_UNIVERSO_1410_ARQUIVOS.length === 5 && DEMO_UNIVERSO_1410_ARQUIVOS.every((f) => tenta(() => semDemoUniverso1410(f, read(f)) === base(f))), '7b desfeito (scripts/test-support/desfaz-ads-demo-universo-1410.mjs), cada um dos 5 arquivos tocados é EXATAMENTE a base')
+ok(DEMO_UNIVERSO_1410_ARQUIVOS.length === 7 && DEMO_UNIVERSO_1410_ARQUIVOS.every((f) => tenta(() => semDemoUniverso1410(f, read(f)) === base(f))), '7b desfeito (scripts/test-support/desfaz-ads-demo-universo-1410.mjs), cada um dos 7 arquivos tocados é EXATAMENTE a base')
 ok(['lib/engineWall.ts', 'lib/homeVideoCuration.ts'].every((f) => read(f) === base(f)), '7c vitrine da home (engineWall, homeVideoCuration) intocada')
 
 // ═══ M. mutantes ════════════════════════════════════════════════════════════════════════════════════════════════════
@@ -235,6 +237,59 @@ const m11 = trocar(SRC.styles, "  ['graffiti_ad', /", "  ['giant_product', /")
 ok(vermelho(() => estiloOk(loader({ [F.styles]: m11 })(F.styles))), 'M11 tênis de volta ao "Giant product" → 6a vermelho')
 const m12 = trocar(SRC.orders, "      brief.pronounce = pronounce // ", "      brief.pronounce = (body as Record<string, unknown>).pronounce // ")
 ok(vermelho(() => ordersOk(m12)), 'M12 o /orders gravando a pronúncia crua (sem limpar) → 5c vermelho')
+
+// ═══ 8. o piso de fala em TODOS os roteiros (A/B/C) ═════════════════════════════════════════════════════════════════
+// Demo de 14/10 (Comercial, 15 s, pt): o roteiro A escolhido acabou a voz aos 10,7 s. EXECUTADO: lib/ads/v2Brief.ts de verdade com
+// uma OpenAI falsa (responde pelo max_tokens: 900 = brief, 700 = texto/correção em fila, 1100 = versões). O principal vem CURTO
+// duas vezes (17 palavras, a 2ª é a correção) e as duas versões também vêm curtas.
+console.log('\n8. piso de fala nos 3 roteiros')
+const BRIEF_FALA = 'lib/ads/v2Brief.ts'
+const FIT = 'lib/ads/v2CopyFit.ts'
+function openaiFalsa({ brief, copies = [], variants = null }) {
+  const fila = copies.slice()
+  const create = async (params) => {
+    const mt = params.max_tokens
+    const r = mt === 900 ? brief : mt === 1100 ? variants : fila.shift()
+    return { choices: [{ message: { content: typeof r === 'string' ? r : JSON.stringify(r ?? {}) } }] }
+  }
+  return { openai: { chat: { completions: { create } } } }
+}
+const JSONS = { '@/lib/ui/refinementCopy.json': JSON.parse(read('lib/ui/refinementCopy.json')) }
+const FRASE_FALA = 'Perfume árabe Atheeri, frasco dourado, luz quente deslizando pelo vidro'
+const BRIEF_ATHEERI = { business: 'Atheeri — perfume árabe', offer: '', cta: 'visit', contact: '', audience: '', tone: 'warm', extra: {}, model_hint: '' }
+const CURTO = { narration: 'O perfume árabe Atheeri brilha no frasco dourado. Uma luz quente desliza pelo vidro. Garanta o seu.', overlays: ['Atheeri — perfume árabe', 'Frasco dourado'], sector: 'store' }
+const V_BOLD = { tone: 'bold', narration: 'Atheeri tem um frasco dourado que chama a atenção. A luz quente desliza pelo vidro e revela cada detalhe.', overlays: ['Atheeri', 'Frasco dourado'] }
+const V_STORY = { tone: 'story', narration: 'No fim da tarde, a luz quente toca o frasco dourado de Atheeri. O vidro brilha e o momento fica só seu.', overlays: ['Atheeri', 'Luz quente'] }
+const palavras = (t) => String(t ?? '').trim().split(/\s+/).filter(Boolean).length
+async function falaCurtaDuasVezes(over = {}) {
+  const oa = openaiFalsa({ brief: BRIEF_ATHEERI, copies: [CURTO, CURTO], variants: { variants: [V_BOLD, V_STORY] } })
+  const L = createOfflineLoader({ mocks: { '@/lib/openai': { openai: oa.openai }, ...JSONS }, source: (rel, text) => (over[rel] !== undefined ? over[rel] : text) })
+  const r = await L(BRIEF_FALA).extractAdsV2Brief({ text: FRASE_FALA, language: 'pt', languageName: 'Brazilian Portuguese (pt-BR)', maxWords: 30, narration: true, overlays: true, facts: [], sentence: FRASE_FALA, productPhoto: true, scripts: true })
+  return { r, C: L(FIT) }
+}
+const FLOOR = 27
+const pisoOk = ({ r }) => {
+  if (!r.ok || r.speechShort) return false
+  const textos = [r.copy.narration, ...(r.variants ?? []).map((v) => v.copy.narration)]
+  return textos.length === 3 && textos.every((t) => palavras(t) >= FLOOR) && palavras(r.copy.narration) > palavras(CURTO.narration) && r.copy.narration.startsWith(CURTO.narration)
+}
+const tetoOk = ({ r, C }) => {
+  if (!r.ok) return false
+  const textos = [r.copy.narration, ...(r.variants ?? []).map((v) => v.copy.narration)]
+  const frases = (t) => t.split(/(?<=[.!?…])\s+/u).map((s) => s.trim()).filter(Boolean)
+  const fechos = textos.flatMap((t, i) => frases(t).slice(frases([CURTO, V_BOLD, V_STORY][i].narration).length))
+  const semChamadaDupla = textos.every((t) => frases(t).every((s, i, a) => i === 0 || !(C.adsV2CtaLike(s, 'pt') && C.adsV2CtaLike(a[i - 1], 'pt'))))
+  return C.adsV2VoiceCeilingSeconds(30) === 18.5 && C.adsV2SpeechCap(30) === 29 &&
+    textos.every((t) => palavras(t) <= C.adsV2SpeechCap(30) && palavras(t) / C.ADS_V2_VOICE_WPS_SLOW <= 18.5) &&
+    fechos.length >= 3 && new Set(fechos.map((f) => f.toLowerCase())).size === fechos.length && semChamadaDupla &&
+    !/\d|R\$|%|grátis|desconto/i.test(fechos.join(' ')) // nada de fato inventado (número, preço, oferta) nos fechos
+}
+let FALA = null
+try { FALA = await falaCurtaDuasVezes() } catch (e) { console.log('       (lançou: ' + (e && e.message) + ')') }
+ok(!!FALA && tenta(() => pisoOk(FALA)), '8a principal CURTO duas vezes (17 palavras, re-pedido) → completado até o piso (≥ 27), sem speechShort; as versões B e C também ≥ 27')
+ok(!!FALA && tenta(() => tetoOk(FALA)), '8b ≤ teto: no máximo 29 palavras = 18,5 s na voz mais lenta (1,6 pal/s; voice_too_long); fechos sem número/preço, NUNCA repetidos entre A/B/C e nunca duas chamadas seguidas')
+const m13 = trocar(read(BRIEF_FALA), '  if (!checked.ok && fitOpts.speech && adsV2NarrationBelow(raw, fitOpts.speech.min)) {', '  if (false && !checked.ok && fitOpts.speech && adsV2NarrationBelow(raw, fitOpts.speech.min)) {')
+ok(await (async () => { try { return !pisoOk(await falaCurtaDuasVezes({ [BRIEF_FALA]: m13 })) } catch { return true } })(), 'M13 o principal re-pedido e ainda curto volta a ser aceito como veio (speechShort) → 8a vermelho')
 
 console.log(`\n${pass} ok · ${fail} falha(s)`)
 process.exit(fail ? 1 : 0)

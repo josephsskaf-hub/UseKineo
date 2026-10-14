@@ -229,7 +229,7 @@ const canarioCorrigido = async (over) => {
   const a = await extrai([copia(CANARIO), copia(UGC)], { productPhoto: true, presenter: true }, over)
   const sys = a.log[1]?.messages?.[0]?.content ?? ''
   const correcao = a.log[2]?.messages?.at(-1)?.content ?? ''
-  return a.r.ok && a.r.attempts === 3 && a.r.copy.narration === UGC && JSON.stringify(a.r.ad) === '{"product":true,"presenter":true}' &&
+  return a.r.ok && a.r.attempts === 3 && a.r.copy.narration.startsWith(UGC + ' ') && a.r.copy.narration.split(/\s+/).length >= 27 && !a.r.speechShort /* reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — a corrigida AINDA curta (abaixo do piso de 27) não é mais aceita como veio: sai ELA, inteira, + fechos sem fato até o piso */ && JSON.stringify(a.r.ad) === '{"product":true,"presenter":true}' &&
     sys.includes(BR.ADS_V2_PRODUCT_NARRATION_RULE) && sys.includes(BR.ADS_V2_PRESENTER_NARRATION_RULE) && correcao.includes(BR.ADS_V2_SHOP_TALK_WHY)
 }
 await check('3g extração EXECUTADA com o caso do canário: o pedido leva as regras de produto e de ator; a fala de loja volta com o motivo; a corrigida (voz de apresentador) é a gravada', () => canarioCorrigido())
