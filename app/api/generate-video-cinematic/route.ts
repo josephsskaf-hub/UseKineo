@@ -6760,13 +6760,20 @@ async function manipularPost(req: NextRequest) {
       // mais — 60 s = +US$ 0,30 (3 stills), 35 s (≤6 cenas) = +US$ 0,00; crédito inalterado (59/100 cr). O aspecto do i2v e
       // do t2v do Veo já vai EXPLÍCITO em buildFalInput (aspect_ratio '9:16' + resolution '1080p', desde f9652753 de 16/09);
       // o payload cena a cena agora fica em classicSceneInputs (KINEO-CENA-CLASSICA), então a próxima cena 16:9 terá prova.
-      const STILL_BUDGET_MS = anchorEngine === 'kling' || anchorEngine === 'veo' ? 60_000 : 30_000 // leave the rest of the route budget for scene submits
+      const STILL_BUDGET_MS = 60_000 // leave the rest of the route budget for scene submits — KINEO-ANCORA-LEGENDA-1410: Seedance também 60 s
       const STILL_POLL_WINDOW_MS = 12_000 // per-image cap (schnell @4 steps is fast)
       // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — o Veo 3.1 ganha o mesmo padrão do Kling (still em TODAS as cenas, 60 s de
       // orçamento): com planos de 4/6/8 s um filme de 60 s tem 12-14 planos e o teto de 6 deixava a segunda metade em t2v
       // (outro mundo, outra paleta — e a cena 16:9 do ep. 2 nasceu fora do still 9:16). CUSTO: +US$ 0,10 por still a mais.
       // As duas linhas acima ficam literais (guardiões do Kling); Seedance 1.5 segue em 6 cenas e 30 s, exatamente como antes.
-      const MAX_ANCHORED_SCENES = anchorEngine === 'kling' || anchorEngine === 'veo' ? scenes.length : 6
+      // ═══ KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10 "1 sim"] — still em TODAS as cenas do Seedance 1.5 ═══
+      // O teto de 6 era só margem (nenhum motivo de segurança escrito): um Seedance de 7-9 cenas saía com as cenas 7+ [KINEO-ANCORA-LEGENDA-1410]
+      // em t2v, sem still — medido em 30 dias, 61 de 185 filmes Seedance mistos i2v/t2v (122 cenas t2v, 29 de clientes). [KINEO-ANCORA-LEGENDA-1410]
+      // Agora os 3 motores clássicos (Kling 2.5, Veo 3.1, Seedance 1.5) ancoram todas as cenas, no MESMO pool de 3 [KINEO-ANCORA-LEGENDA-1410]
+      // (STILL_POOL, já limitado) e no mesmo orçamento de 60 s (pior caso 12 s por lote: 5 lotes = 15 cenas; o maior [KINEO-ANCORA-LEGENDA-1410]
+      // Seedance de 30 dias tem 9). CUSTO: +US$ 0,10 (ANCHORS_USD) por cena além da 6ª — 7 cenas +0,10, 8 +0,20, 9 +0,30; [KINEO-ANCORA-LEGENDA-1410]
+      // ≈ US$ 12/mês. Crédito e preço do cliente inalterados. LATÊNCIA: +1 lote de stills (≈ 5-6 s típico, 12 s no teto). [KINEO-ANCORA-LEGENDA-1410]
+      const MAX_ANCHORED_SCENES = scenes.length // KINEO-ANCORA-LEGENDA-1410 — Kling, Veo e agora Seedance: still em TODAS as cenas
       const anchorCount = Math.min(scenes.length, MAX_ANCHORED_SCENES)
       const stillDeadline = Date.now() + STILL_BUDGET_MS
       let stillsMade = 0

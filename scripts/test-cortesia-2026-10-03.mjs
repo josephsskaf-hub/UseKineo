@@ -194,7 +194,8 @@ async function problems(S) {
   if (!/export const fetchCache = 'force-no-store'/.test(S.cron)) p.push('cron sem force-no-store')
   if (!S.vercel.includes('/api/cron/courtesy-expire?confirm=APPLY')) p.push('cron de validade da cortesia fora do vercel.json (decisão I do fundador, 05/10: a cortesia vence)')
   if (!/grantCourtesy\(admin,/.test(S.adminRoute) || !/isAdminEmail\(user\.email\)/.test(S.adminRoute)) p.push('rota do admin sem trava de admin ou sem a store')
-  if (!/update\(\{ plan: v\.value\.level/.test(S.store)) p.push('store não grava o nível validado no plano')
+  // reancorado KINEO-CORTESIA-METRICA-1410: o objeto do update virou `const patch = { plan: v.value.level, video_credits: after }` (+ fecho do teste); mesma prova, âncora no objeto
+  if (!/\{ plan: v\.value\.level, video_credits: after \}/.test(S.store) || !/update\(patch\)/.test(S.store)) p.push('store não grava o nível validado no plano')
   const mig = MIGRATIONS.map((f) => [f, read('supabase/migrations/' + f)])
   if (!mig.length) p.push('migration courtesy_grants ausente')
   for (const [f, sql] of mig) {
@@ -215,7 +216,7 @@ const mutants = [
   ['máscara do placar desligada', { courtesy: REAL.courtesy.replace("if (!activeGrants.length) return profiles", "return profiles") }],
   ['tela /admin/paying sem máscara', { payingPage: REAL.payingPage.replace('maskCourtesyPlans(profilesRaw, courtesy)', 'profilesRaw') }],
   ['cron aplica sem confirm', { cron: REAL.cron.replace("searchParams.get('confirm') === 'APPLY'", "searchParams.get('confirm') !== 'NOPE'") }],
-  ['store grava plano cheio', { store: REAL.store.replace('update({ plan: v.value.level, video_credits: after })', "update({ plan: 'creator', video_credits: after })") }],
+  ['store grava plano cheio', { store: REAL.store.replace('{ plan: v.value.level, video_credits: after }', "{ plan: 'creator', video_credits: after }") }], // reancorado KINEO-CORTESIA-METRICA-1410
   ['sobra tira tudo', { courtesy: REAL.courtesy.replace('creditsRemoved = Math.max(0, Math.min(grant.credits_granted ?? 0, leftover))', 'creditsRemoved = balance') }],
   ['dry-run escreve', { store: REAL.store.replace('    if (!opts.apply) {\n      rows.push', '    if (false) {\n      rows.push') }],
   ['motor deixa de aceitar *_trial', { cinematic: REAL.cinematic.replace("'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial',", "'pro', 'creator', 'studio',") }],

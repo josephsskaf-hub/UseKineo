@@ -16,6 +16,7 @@
 // Rodar: node scripts/test-parceiro-eyebible-2-1410.mjs
 
 import { readFileSync } from 'node:fs'
+import { desfazAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -171,7 +172,7 @@ for (const p of ARQUIVOS_PARCEIRO_EYEBIBLE_2_1410) {
   const atual = lerDisco(p)
   const base = lf(execFileSync('git', ['show', `${BASE}:${p}`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }))
   let desfeito = null
-  try { desfeito = semParceiroEyebible2_1410(p, atual) } catch (e) { desfeito = `ERRO ${e.message}` }
+  try { desfeito = semParceiroEyebible2_1410(p, desfazAncoraLegenda1410(p, atual)) /* KINEO-ANCORA-LEGENDA-1410 */ } catch (e) { desfeito = `ERRO ${e.message}` }
   checa(`${p}: desfeito = base ${BASE.slice(0, 8)}`, desfeito === base, typeof desfeito === 'string' && desfeito.startsWith('ERRO') ? desfeito : '')
   const marcadas = atual.split('\n').filter((l) => l.includes(MARCA_PARCEIRO_EYEBIBLE_2_1410)).length
   const f = FORMA_PARCEIRO_EYEBIBLE_2_1410[p]
