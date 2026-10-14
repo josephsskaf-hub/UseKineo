@@ -28,6 +28,7 @@ import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { desfazJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(RAIZ) // o loader offline resolve '@/...' a partir do cwd
@@ -461,7 +462,7 @@ if (gate && fill.every(Boolean) && linhaModelo) {
 }
 
 console.log('== (f) rota de geração [TRAVA 8.2]: o payload aceito cena a cena, pela despachante REAL ==')
-const rc = rd('app/api/generate-video-cinematic/route.ts')
+const rc = desfazJuizStill1410('app/api/generate-video-cinematic/route.ts', rd('app/api/generate-video-cinematic/route.ts')) // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 const loadLib = createOfflineLoader({})
 const despacho = loadLib('@/lib/cinematic/dispatchScenes')
 const cbSubmit = fatia(rc, 'submit: async (m, promptForAttempt, onPost) => {', '\n        },\n', false)

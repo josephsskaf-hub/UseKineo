@@ -18,12 +18,14 @@
 
 import { readFileSync } from 'node:fs'
 import { desfazAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
+import { desfazJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semParceiroEyebible1410, desfazParceiroEyebible1410, ARQUIVOS_PARCEIRO_EYEBIBLE_1410, FORMA_PARCEIRO_EYEBIBLE_1410, MARCA_PARCEIRO_EYEBIBLE_1410 } from './test-support/desfaz-parceiro-eyebible-1410.mjs'
 import { desfazParceiroEyebible2_1410 } from './test-support/desfaz-parceiro-eyebible-2-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410 [TRAVA 8.2 — vai do fundador 14/10]: a 2ª leva do Robert/EyeBible sai em memória antes do byte a byte
+const desfazAncoraEJuizStill1410 = (p, s) => desfazAncoraLegenda1410(p, desfazJuizStill1410(p, s)) // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const BASE = '5ead67407740b5d6d48b8db2fe6bf2fed0db852c' // pai do primeiro commit marcado (origin/main de 14/10)
@@ -57,7 +59,7 @@ const ROBERT = [
   'CAPTAIN: “It worked.”',
 ].join('\n')
 
-const load = createOfflineLoader({ env: { OPENAI_API_KEY: 'offline' }, source: (p, s) => desfazAncoraLegenda1410(p, s) }) // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
+const load = createOfflineLoader({ env: { OPENAI_API_KEY: 'offline' }, source: (p, s) => desfazAncoraEJuizStill1410(p, s) }) // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 const parser = load('lib/scriptParser.ts')
 const musica = load('lib/musicDirection.ts')
 const formato = load('lib/cinematic/visualMode.ts')
@@ -65,7 +67,7 @@ const beats = load('lib/cinematic/verbatimBeats.ts')
 const filme = load('lib/cinematic/duracaoDoFilme.ts')
 const compose = load('lib/compose.ts')
 // A versão de ANTES do conserto, pelo desfaz (mesma árvore, sem as linhas marcadas): o 9:16 tem de sair idêntico.
-const composeAntes = createOfflineLoader({ env: { OPENAI_API_KEY: 'offline' }, source: (p, s) => desfazParceiroEyebible1410(p, desfazAncoraLegenda1410(p, s)) })('lib/compose.ts') /* KINEO-ANCORA-LEGENDA-1410 */
+const composeAntes = createOfflineLoader({ env: { OPENAI_API_KEY: 'offline' }, source: (p, s) => desfazParceiroEyebible1410(p, desfazAncoraEJuizStill1410(p, s)) })('lib/compose.ts') /* KINEO-ANCORA-LEGENDA-1410 */
 
 secao('1 · a fala do personagem é lida SEM o nome do papel (ponto 4)')
 const narr = parser.parseUserScript(ROBERT).narration
@@ -160,7 +162,7 @@ for (const p of ARQUIVOS_PARCEIRO_EYEBIBLE_1410) {
   const atual = ler(p)
   const base = lf(execFileSync('git', ['show', `${BASE}:${p}`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }))
   let desfeito = null
-  try { desfeito = semParceiroEyebible1410(p, desfazParceiroEyebible2_1410(p, desfazAncoraLegenda1410(p, atual))) /* KINEO-ANCORA-LEGENDA-1410 */ } catch (e) { desfeito = `ERRO ${e.message}` }
+  try { desfeito = semParceiroEyebible1410(p, desfazParceiroEyebible2_1410(p, desfazAncoraEJuizStill1410(p, atual))) /* KINEO-ANCORA-LEGENDA-1410 */ } catch (e) { desfeito = `ERRO ${e.message}` }
   checa(`${p}: desfeito = base ${BASE.slice(0, 8)}`, desfeito === base, typeof desfeito === 'string' && desfeito.startsWith('ERRO') ? desfeito : '')
   const marcadas = atual.split('\n').filter((l) => l.includes(MARCA_PARCEIRO_EYEBIBLE_1410)).length
   const f = FORMA_PARCEIRO_EYEBIBLE_1410[p]

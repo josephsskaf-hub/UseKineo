@@ -14,11 +14,13 @@
 //   E. mutantes (dono, autorização, sobretaxa depois do débito, regra REAL PEOPLE aberta, interruptor aberto) ficam vermelhos.
 import { readFileSync } from 'node:fs'
 import { desfazAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
+import { desfazJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 import { execFileSync } from 'node:child_process'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { desfazRomanceAdulto } from './test-support/desfaz-romance-adulto-1310.mjs' // KINEO-ROMANCE-ADULTO-2026-10-13 — reancorado: a única linha da leva dentro do bloco FLUX (adultSuffix no still) sai em memória no C1
+const desfazAncoraEJuizStill1410 = (p, s) => desfazAncoraLegenda1410(p, desfazJuizStill1410(p, s)) // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -190,7 +192,7 @@ const ROTA_BASE = rdBase('app/api/generate-video-cinematic/route.ts')
 const INI_BLOCO = '    if (anchorActive) {\n'
 const FIM_BLOCO = '(user credits unchanged; kling=${KLING_CREDIT_COST}cr)`,\n      )\n    }\n'
 const fatia = (s, a, b) => { const i = s.indexOf(a); if (i < 0) return null; const j = s.indexOf(b, i); return j < 0 ? null : s.slice(i, j + b.length) }
-const blocoHead = fatia(desfazRomanceAdulto('app/api/generate-video-cinematic/route.ts', desfazAncoraLegenda1410('app/api/generate-video-cinematic/route.ts', SRC.rota) /* KINEO-ANCORA-LEGENDA-1410 */), INI_BLOCO, FIM_BLOCO) // KINEO-ROMANCE-ADULTO-2026-10-13 — reancorado (ver o import)
+const blocoHead = fatia(desfazRomanceAdulto('app/api/generate-video-cinematic/route.ts', desfazAncoraEJuizStill1410('app/api/generate-video-cinematic/route.ts', SRC.rota) /* KINEO-ANCORA-LEGENDA-1410 */), INI_BLOCO, FIM_BLOCO) // KINEO-ROMANCE-ADULTO-2026-10-13 — reancorado (ver o import)
 const blocoBase = ROTA_BASE ? fatia(ROTA_BASE, INI_BLOCO, FIM_BLOCO) : null
 checa('C1 o bloco de âncoras FLUX clássico é BYTE A BYTE o da base ' + BASE + ' (a estrela corre ao lado, não dentro)', Boolean(blocoHead) && blocoHead === blocoBase)
 
