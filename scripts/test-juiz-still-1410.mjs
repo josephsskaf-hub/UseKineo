@@ -310,9 +310,9 @@ async function verificacoes(over = {}) {
     v(`desfaz: a rota tem exatamente ${forma.acrescimos} linhas marcadas, todas acréscimos (nenhuma troca)`, rota.split('\n').filter((l) => l.includes(MARCA)).length === forma.acrescimos && forma.trocas === 0)
     v('desfaz: idempotente e recusa ajuste pela metade', semJuizStill1410(ROTA, 'a\nb') === 'a\nb' && (() => { try { semJuizStill1410(ROTA, `x // ${MARCA}`); return false } catch { return true } })())
     if (rotaBase) v(`byte a byte: desfeito o ajuste, a rota é EXATAMENTE a base (${BASE})`, desfazJuizStill1410(ROTA, rota) === rotaBase)
-    const sujos = git(['diff', '--name-only', BASE, '--', 'app', 'lib', 'components']).trim().split('\n').filter(Boolean)
+    const sujos = git(['diff', '--name-only', BASE, (BASE && BASE.endsWith('^') ? BASE.slice(0, -1) : 'HEAD'), '--', 'app', 'lib', 'components']) /* reancorado KINEO-LEVA-1410-BASE: mede o PRÓPRIO commit do conserto, não a árvore (levas posteriores o deixavam vermelho) */.trim().split('\n').filter(Boolean)
     v(`só a rota e a lib nova mudaram em app/lib/components contra a base (${sujos.join(', ')})`, sujos.every((p) => p === ROTA || p === LIB))
-    const proibidos = git(['diff', '--name-only', BASE, '--', 'lib/engineWall.ts', 'lib/homeVideoCuration.ts', 'lib/ads', 'app/api/ads', 'lib/engineCost.ts', 'lib/hollywood/anchors.ts']).trim()
+    const proibidos = git(['diff', '--name-only', BASE, (BASE && BASE.endsWith('^') ? BASE.slice(0, -1) : 'HEAD'), '--', 'lib/engineWall.ts', 'lib/homeVideoCuration.ts', 'lib/ads', 'app/api/ads', 'lib/engineCost.ts', 'lib/hollywood/anchors.ts']) /* reancorado KINEO-LEVA-1410-BASE */.trim()
     v('intocados: engineWall, homeVideoCuration, Ads, engineCost e anchors', proibidos === '')
   }
   return V
