@@ -17,6 +17,10 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import * as nodeCrypto from 'node:crypto'
 import { compileOffline, memoryDb } from './test-support/truncamento-dedupe-offline.mjs'
+// reancorado KINEO-JOGADAS-VENDA-1510 — a rota passou a importar a carta (lib/lifecycle/cartaQuente.ts, módulo puro): o dublê é o
+// módulo REAL, carregado pelo loader offline (resolve os imports relativos de verdade). Nenhuma verificação mudou.
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+const cartaQuenteReal = createOfflineLoader()('lib/lifecycle/cartaQuente.ts')
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 const lf = (s) => s.replace(/\r\n/g, '\n')
@@ -141,6 +145,7 @@ async function rodar({ fonte = ROTA, confirm = true, tables = montarBanco(), pro
     '@/lib/growth/publicPromoTruth': promoTruth,
     '@/lib/growth/guestCheckout': growthGuest,
     '@/lib/stripe/guestCheckout': stripeGuest,
+    '@/lib/lifecycle/cartaQuente': cartaQuenteReal, // reancorado KINEO-JOGADAS-VENDA-1510
   }, {
     Date: Clock,
     process: { env: { RESEND_API_KEY: 'OFFLINE', STRIPE_SECRET_KEY: 'OFFLINE', NEXT_PUBLIC_SUPABASE_URL: 'https://fixture.invalid', SUPABASE_SERVICE_ROLE_KEY: 'OFFLINE' } },

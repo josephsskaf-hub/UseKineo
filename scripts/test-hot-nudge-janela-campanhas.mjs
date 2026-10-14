@@ -19,6 +19,10 @@ import { dirname, join } from 'node:path'
 import { createHash } from 'node:crypto'
 import ts from 'typescript'
 import { compileOffline, memoryDb } from './test-support/truncamento-dedupe-offline.mjs'
+// reancorado KINEO-JOGADAS-VENDA-1510 — a rota passou a importar a carta (lib/lifecycle/cartaQuente.ts, módulo puro): o dublê é o
+// módulo REAL, carregado pelo loader offline (resolve os imports relativos de verdade). Nenhuma verificação mudou.
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+const cartaQuenteReal = createOfflineLoader()('lib/lifecycle/cartaQuente.ts')
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 const ROTA = join(raiz, 'app/api/admin/send-checkout-hot-nudge/route.ts')
@@ -156,6 +160,7 @@ async function executeRoute(source, dbOptions = {}) {
     // achei o código" — a sessão destes cenários nem é assinatura, então a oferta não entra no que este guardião mede.
     '@/lib/growth/publicPromoTruth': compileOffline(readFileSync(join(raiz, 'lib/growth/publicPromoTruth.ts'), 'utf8')),
     '@/lib/growth/guestCheckout': compileOffline(readFileSync(join(raiz, 'lib/growth/guestCheckout.ts'), 'utf8')),
+    '@/lib/lifecycle/cartaQuente': cartaQuenteReal, // reancorado KINEO-JOGADAS-VENDA-1510
     '@/lib/stripe/guestCheckout': {
       deterministicEventUuid: (name, key) => {
         const hex = createHash('sha256').update(`${name}:${key}`).digest('hex').slice(0, 32)

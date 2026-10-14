@@ -90,6 +90,25 @@ import { pickMomentumTopic } from '@/lib/momentumTopic'
 import { WELCOME20_PERCENT_OFF, WELCOME20_PROMOTION_CODE, publicPromoVerificationFailure } from '@/lib/growth/publicPromoTruth'
 import { guestWelcomePromoShapeOk } from '@/lib/growth/guestCheckout'
 import { deterministicEventUuid, loadGuestWelcomePromoCandidate } from '@/lib/stripe/guestCheckout'
+// KINEO-JOGADAS-VENDA-1510 — o filme PRÓPRIO na carta (capa + biblioteca), o passe a quem é da região, e a língua do perfil.
+import {
+  CARTA_QUENTE_COPY_VERSION,
+  SEM_EXTRAS,
+  assuntoTraduzido,
+  blocoDoFilmeHtml,
+  blocoDoFilmeTexto,
+  cartaTraduzida,
+  filmeProprioDe,
+  paisELingua,
+  passeHtml,
+  passeParaCarta,
+  passeTexto,
+  ultimaEntrega,
+  umaEntrega,
+  type CartaLang,
+  type ExtrasDaCarta,
+  type FilmeProprio,
+} from '@/lib/lifecycle/cartaQuente'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -361,12 +380,18 @@ async function gravarPulos(
   }
 }
 
-function assunto(filme: string | null): string {
+function assunto(filme: string | null, lang: CartaLang = 'en'): string {
+  if (lang !== 'en') return assuntoTraduzido(lang, filme) // KINEO-JOGADAS-VENDA-1510
   // Sem urgência falsa, sem contador inventado: é literalmente o estado da
   // sessão que a Stripe acabou de confirmar como `open`.
   return filme
     ? `Your payment page for "${filme}" is still open`
     : 'Your Kineo payment page is still open'
+}
+
+/** KINEO-JOGADAS-VENDA-1510 — a decisão da oferta, no formato que a carta traduzida usa (o link é o mesmo da inglesa). */
+function ofertaNaCarta(oferta: DecisaoBoasVindas): { oferecer: true; plano: string; link: string } | { oferecer: false } {
+  return oferta.oferecer ? { oferecer: true, plano: oferta.plano, link: linkBoasVindas(oferta.tier) } : { oferecer: false }
 }
 
 /** ⚠️ Cada frase desta carta tem de ser verdadeira NO INSTANTE DO ENVIO:
@@ -376,11 +401,13 @@ function assunto(filme: string | null): string {
  *   · a oferta de boas-vindas só aparece com `oferta.oferecer` — direito provado por `decidirBoasVindas` e código
  *     conferido na Stripe nesta execução; o percentual vem de WELCOME20_PERCENT_OFF, nunca digitado;
  *   · nenhum crédito, preço, cupom novo ou trial é prometido em lugar nenhum. */
-function corpoTexto(filme: string | null, liveUrl: string, userId: string, temFilme: boolean, oferta: DecisaoBoasVindas): string {
+function corpoTexto(filme: string | null, liveUrl: string, userId: string, temFilme: boolean, oferta: DecisaoBoasVindas, extra: ExtrasDaCarta = SEM_EXTRAS): string {
+  // KINEO-JOGADAS-VENDA-1510 — português/espanhol pelo país do perfil: a mesma carta, da fonte única de texto.
+  if (extra.lang !== 'en') return cartaTraduzida({ lang: extra.lang, filme, temFilme, liveUrl, oferta: ofertaNaCarta(oferta), extra, rodape: { text: emailFooterText(userId), html: emailFooterHtml(userId) } }).text
   const feito = temFilme
     ? (filme
       ? `You already made "${filme}" with Kineo, so you know what comes out the other side.`
-      : `You already made a short with Kineo, so you know what comes out the other side.`)
+      : `You already made ${umaEntrega('en', extra.proprio?.tipo)} with Kineo, so you know what comes out the other side.`)
     : `You got as far as the payment page, so something about this was worth your time.`
   const boasVindas = oferta.oferecer
     ? `If it was the price: your first month of ${oferta.plano} is ${WELCOME20_PERCENT_OFF}% off with our welcome offer. Same plan, applied automatically, no code to type:
@@ -393,12 +420,12 @@ ${linkBoasVindas(oferta.tier)}
 
 You opened the payment page a little while ago and it is still sitting there, open. No charge was made.
 
-${feito}
+${feito}${blocoDoFilmeTexto(extra)}
 
 ${boasVindas}If life just got in the way, this is the same page you left — same plan, same price, nothing to pick again:
 
 ${liveUrl}
-
+${passeTexto(extra)}
 And if something on that page did not add up, hit reply and tell me in one sentence. It comes straight to me, and I would rather know than guess.
 
 — Joseph, founder
@@ -406,11 +433,12 @@ Kineo · usekineo.com
 ${emailFooterText(userId)}`
 }
 
-function corpoHtml(filme: string | null, liveUrl: string, userId: string, temFilme: boolean, oferta: DecisaoBoasVindas): string {
+function corpoHtml(filme: string | null, liveUrl: string, userId: string, temFilme: boolean, oferta: DecisaoBoasVindas, extra: ExtrasDaCarta = SEM_EXTRAS): string {
+  if (extra.lang !== 'en') return cartaTraduzida({ lang: extra.lang, filme, temFilme, liveUrl, oferta: ofertaNaCarta(oferta), extra, rodape: { text: emailFooterText(userId), html: emailFooterHtml(userId) } }).html // KINEO-JOGADAS-VENDA-1510
   const feito = temFilme
     ? (filme
       ? `You already made <strong>&ldquo;${escaparHtml(filme)}&rdquo;</strong> with Kineo, so you know what comes out the other side.`
-      : `You already made a short with Kineo, so you know what comes out the other side.`)
+      : `You already made ${umaEntrega('en', extra.proprio?.tipo)} with Kineo, so you know what comes out the other side.`)
     : `You got as far as the payment page, so something about this was worth your time.`
   const botao = (href: string, rotulo: string) =>
     `<p style="margin:26px 0">
@@ -426,8 +454,8 @@ ${botao(liveUrl, 'Finish where you left off')}`
 <p>Hey &mdash; Joseph here, founder of <strong>Kineo</strong> 🎬</p>
 <p>You opened the payment page a little while ago and it is <strong>still sitting there, open</strong>. No charge was made.</p>
 <p>${feito}</p>
-${meio}
-<p>And if something on that page did not add up, hit reply and tell me in one sentence. It comes straight to me, and I would rather know than guess.</p>
+${blocoDoFilmeHtml(extra)}${meio}
+${passeHtml(extra)}<p>And if something on that page did not add up, hit reply and tell me in one sentence. It comes straight to me, and I would rather know than guess.</p>
 <p>&mdash; Joseph, founder<br/>Kineo &middot; <a href="https://usekineo.com" style="color:#2997ff">usekineo.com</a></p>
 ${emailFooterHtml(userId)}</div>`
 }
@@ -442,6 +470,10 @@ type Candidato = {
   temFilme: boolean
   clicouEm: string
   hasPaid: boolean | null
+  // KINEO-JOGADAS-VENDA-1510 — a língua (país do perfil), o filme ENTREGUE mais recente e a régua do passe.
+  lang: CartaLang
+  proprio: FilmeProprio | null
+  perfilDoPasse: { trial_status: string | null; has_paid: boolean | null; plan: string | null }
 }
 
 /** A DECISÃO, isolada da rede de propósito: dada a sessão que a Stripe
@@ -588,7 +620,7 @@ export async function GET(req: NextRequest) {
     // ── 2. quem sai da lista, e por quê ─────────────────────────────────────
     const { data: perfis, error: perfErr } = await readAll(() => admin
       .from('profiles')
-      .select('id, email, email_opted_out, has_paid')
+      .select('id, email, email_opted_out, has_paid, trial_status, plan, signup_country, last_country') // KINEO-JOGADAS-VENDA-1510
       .in('id', ids.slice(0, 1000)), { route: '/api/admin/send-checkout-hot-nudge', table: 'profiles' })
     if (perfErr) return NextResponse.json({ error: perfErr.message }, { status: 500 })
 
@@ -621,16 +653,25 @@ export async function GET(req: NextRequest) {
 
     // Filmes entregues — a carta muda de frase conforme a pessoa já tenha
     // recebido filme ou não, e nomear um filme que não existe é mentira.
-    const filmes = new Map<string, { title: string | null; topic: string | null }>()
+    // KINEO-JOGADAS-VENDA-1510 — "entregue" passa a ser status 'completed' (antes, o vídeo mais novo de QUALQUER status: um
+    // render falho virava "You already made"), e a linha traz o tipo (filme/anúncio/clipe) e a capa para a carta.
+    const linhasPorPessoa = new Map<string, Array<{ title: string | null; topic: string | null; status: unknown; quality_mode: unknown; thumb_url: unknown; thumbnail_url: unknown }>>()
     for (let i = 0; i < baseIds.length; i += 200) {
       const slice = baseIds.slice(i, i + 200)
       const { data: vids } = await readAll(() => admin
-        .from('videos').select('user_id, title, topic, created_at')
+        .from('videos').select('user_id, title, topic, created_at, status, quality_mode, thumb_url, thumbnail_url')
         .in('user_id', slice).order('created_at', { ascending: false }), { route: '/api/admin/send-checkout-hot-nudge', table: 'videos' })
       for (const v of vids ?? []) {
         const uid = v.user_id as string
-        if (!filmes.has(uid)) filmes.set(uid, { title: v.title as string | null, topic: v.topic as string | null })
+        const lista = linhasPorPessoa.get(uid) ?? []
+        lista.push({ title: v.title as string | null, topic: v.topic as string | null, status: v.status, quality_mode: v.quality_mode, thumb_url: v.thumb_url, thumbnail_url: v.thumbnail_url })
+        linhasPorPessoa.set(uid, lista)
       }
+    }
+    const filmes = new Map<string, { title: string | null; topic: string | null; proprio: FilmeProprio | null }>()
+    for (const [uid, lista] of linhasPorPessoa) {
+      const entregue = ultimaEntrega(lista)
+      if (entregue) filmes.set(uid, { title: entregue.title, topic: entregue.topic, proprio: filmeProprioDe(entregue) })
     }
 
     const candidatos: Candidato[] = []
@@ -642,16 +683,25 @@ export async function GET(req: NextRequest) {
       const sess = ultimaSessao.get(id)
       if (!sess) continue
       const f = filmes.get(id)
+      // KINEO-JOGADAS-VENDA-1510 — o checkout_started não traz o país (57/57 vazios em 30 dias): o perfil decide país e língua.
+      const pl = paisELingua(p as { signup_country?: unknown; last_country?: unknown }, sess.pais)
       candidatos.push({
         id,
         email: p.email as string,
         sessionId: sess.sessionId,
         tier: sess.tier,
-        pais: sess.pais,
+        pais: pl.pais ?? '',
         filme: f ? tituloDoFilme(f.title, f.topic) : null,
         temFilme: Boolean(f),
         clicouEm: sess.quando,
         hasPaid: typeof p.has_paid === 'boolean' ? p.has_paid : null,
+        lang: pl.lang,
+        proprio: f?.proprio ?? null,
+        perfilDoPasse: {
+          trial_status: typeof (p as { trial_status?: unknown }).trial_status === 'string' ? (p as { trial_status: string }).trial_status : null,
+          has_paid: typeof p.has_paid === 'boolean' ? p.has_paid : null,
+          plan: typeof (p as { plan?: unknown }).plan === 'string' ? (p as { plan: string }).plan : null,
+        },
       })
     }
 
@@ -687,13 +737,15 @@ export async function GET(req: NextRequest) {
 
     // ── 4. a página viva, na Stripe, uma por pessoa ─────────────────────────
     const alvo = naoSuprimidos.slice(0, lote)
-    const comPagina: Array<Candidato & { liveUrl: string; oferta: DecisaoBoasVindas }> = []
+    const comPagina: Array<Candidato & { liveUrl: string; oferta: DecisaoBoasVindas; extra: ExtrasDaCarta }> = []
     let semPagina = 0
     for (const c of alvo) {
       const pagina = await paginaViva(c.sessionId)
       if (!pagina) { semPagina++; pulos.push(pulo(c.id, 'sem_pagina_viva')); continue }
       const oferta = await ofertaPara(c.hasPaid, pagina.sessao)
-      comPagina.push({ ...c, liveUrl: pagina.url, oferta })
+      // KINEO-JOGADAS-VENDA-1510 — o passe só para quem é da régua e abandonou uma ASSINATURA (o modo vem da sessão viva).
+      const passe = passeParaCarta({ perfil: c.perfilDoPasse, modoDaSessao: pagina.sessao?.mode, pais: c.pais || null })
+      comPagina.push({ ...c, liveUrl: pagina.url, oferta, extra: { lang: c.lang, proprio: c.proprio, passe } })
     }
     const semOferta = comPagina.flatMap((c) => (c.oferta.oferecer ? [] : [{ motivo: c.oferta.motivo }]))
 
@@ -715,8 +767,13 @@ export async function GET(req: NextRequest) {
         sem_oferta_por_motivo: contarMotivos(semOferta),
         pulos_por_motivo: contarMotivos(pulos),
         pulos_gravados: 0,
-        assunto_exemplo: assunto(comPagina[0]?.filme ?? null),
-        lista: comPagina.map((c) => `${c.email} · ${c.pais || '??'} · ${c.tier ?? '?'} · ${c.temFilme ? 'com filme' : 'SEM filme'} · ${c.filme ?? '(sem título)'} · clicou ${c.clicouEm} · ${c.oferta.oferecer ? `${WELCOME20_PERCENT_OFF}% ${c.oferta.plano}` : `sem oferta (${c.oferta.motivo})`}`),
+        assunto_exemplo: assunto(comPagina[0]?.filme ?? null, comPagina[0]?.lang ?? 'en'),
+        // KINEO-JOGADAS-VENDA-1510 — o que a carta nova leva, para o fundador ver antes do cron.
+        com_filme_proprio: comPagina.filter((c) => c.extra.proprio !== null).length,
+        com_capa: comPagina.filter((c) => Boolean(c.extra.proprio?.capa)).length,
+        com_passe: comPagina.filter((c) => c.extra.passe !== null).length,
+        por_lingua: contarMotivos(comPagina.map((c) => ({ motivo: c.lang }))),
+        lista: comPagina.map((c) => `${c.email} · ${c.pais || '??'} · ${c.lang} · ${c.tier ?? '?'} · ${c.temFilme ? `com ${c.extra.proprio?.tipo ?? 'filme'}${c.extra.proprio?.capa ? ' + capa' : ''}` : 'SEM filme'} · ${c.filme ?? '(sem título)'} · clicou ${c.clicouEm} · ${c.oferta.oferecer ? `${WELCOME20_PERCENT_OFF}% ${c.oferta.plano}` : `sem oferta (${c.oferta.motivo})`}${c.extra.passe ? ` · passe ${c.extra.passe.preco.label}` : ''}`),
         from: FROM_EMAIL,
         hint: 'Acrescente &confirm=SEND (e opcionalmente &limit=N) para enviar.',
       })
@@ -734,9 +791,9 @@ export async function GET(req: NextRequest) {
             from: FROM_EMAIL,
             to: c.email,
             reply_to: REPLY_TO,
-            subject: assunto(c.filme),
-            text: corpoTexto(c.filme, c.liveUrl, c.id, c.temFilme, c.oferta),
-            html: corpoHtml(c.filme, c.liveUrl, c.id, c.temFilme, c.oferta),
+            subject: assunto(c.filme, c.lang),
+            text: corpoTexto(c.filme, c.liveUrl, c.id, c.temFilme, c.oferta, c.extra),
+            html: corpoHtml(c.filme, c.liveUrl, c.id, c.temFilme, c.oferta, c.extra),
             headers: unsubscribeHeaders(c.id),
           }),
         })
@@ -758,6 +815,13 @@ export async function GET(req: NextRequest) {
             welcome20_offered: c.oferta.oferecer,
             welcome20_tier: c.oferta.oferecer ? c.oferta.tier : null,
             welcome20_reason: c.oferta.oferecer ? null : c.oferta.motivo,
+            // KINEO-JOGADAS-VENDA-1510 — o que a carta levou (a capa entra como booleano; a URL não é gravada).
+            copy_version: CARTA_QUENTE_COPY_VERSION,
+            lang: c.lang,
+            own_film_kind: c.extra.proprio?.tipo ?? null,
+            own_film_thumb: Boolean(c.extra.proprio?.capa),
+            region_pass_offered: c.extra.passe !== null,
+            region_pass_currency: c.extra.passe?.preco.currency ?? null,
           },
         })
         enviados++
