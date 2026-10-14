@@ -27,6 +27,9 @@ import { semConsertos1410 } from './desfaz-consertos-1410.mjs'
 // reancorado KINEO-ADS-MELHORIAS-1410 — o packshot e os formatos entraram no núcleo do /plan só como linhas INTEIRAS marcadas
 // (nenhuma de crédito/débito/preço; conferido em scripts/test-ads-packshot-1410.mjs e test-ads-formatos-1410.mjs): semMelhorias1410 as tira.
 import { semMelhorias1410 } from './desfaz-melhorias-1410.mjs'
+// reancorado KINEO-ADS-REFACAO-ATOR-1410 — o plano 'pessoa de IA segurando o produto' (desligado) entrou no núcleo do /plan só por
+// linhas inteiras marcadas (2 imports + 1 chamada); semRefacaoAtor1410 as tira PRIMEIRO, do texto cru (é a leva mais nova).
+import { semRefacaoAtor1410 } from './desfaz-ads-refacao-ator-1410.mjs'
 
 const linhas = (s) => s.replace(/\r\n/g, '\n').split('\n')
 const achar = (arr, pred, desc) => {
@@ -44,7 +47,7 @@ export const semCena = (s) => String(s).replace(/\r\n/g, '\n').split('\n').filte
 /** O texto da rota de ANTES (LF), remontado de route.ts + núcleo. kind = 'plan' | 'start'. Lança se faltar uma costura. */
 export function desfazExtracao(kind, routeText, coreText) {
   const R = linhas(semCena(routeText))
-  const C = linhas(semMelhorias1410(semConsertos1410(semRoteiros(desfazAtoresIa(semCena(coreText)))))) // reancorado KINEO-LEVA6-1310 — as duas levas marcadas · reancorado KINEO-ADS-ROTEIROS-2026-10-13 — + os roteiros · reancorado KINEO-ADS-CONSERTOS-1410 — + a frase sem a cena
+  const C = linhas(semMelhorias1410(semConsertos1410(semRoteiros(desfazAtoresIa(semCena(semRefacaoAtor1410(kind === 'plan' ? 'lib/ads/v2PlanCore.ts' : 'lib/ads/v2StartCore.ts', coreText))))))) // reancorado KINEO-LEVA6-1310 — as duas levas marcadas · reancorado KINEO-ADS-ROTEIROS-2026-10-13 — + os roteiros · reancorado KINEO-ADS-CONSERTOS-1410 — + a frase sem a cena
   const marca = achar(R, (l) => l.startsWith('// KINEO-SHOPIFY-2026-10-13 (etapa 2) — o corpo foi EXTRAÍDO'), 'marca da rota')
   if (R[marca - 1] !== '//') throw new Error('desfazExtracao: linha // antes da marca')
   const header = R.slice(0, marca - 1)

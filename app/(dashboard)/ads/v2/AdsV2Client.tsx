@@ -117,7 +117,7 @@ interface OrderView {
   parent_order_id: string | null
   shots: AdsV2ScreenShot[]
   /** KINEO-ADS-REFACAO-ATOR-1410 — o /status diz que a próxima refação deste anúncio é grátis (ausente = paga). */
-  first_redo_free?: boolean
+  first_redo_free?: boolean // KINEO-ADS-REFACAO-ATOR-1410
 }
 interface VideoInfo {
   id: string
@@ -2113,7 +2113,7 @@ function ShotGrid({
     onCancel: () => void
     onConfirm: (shot: AdsV2ScreenShot) => void
     /** KINEO-ADS-REFACAO-ATOR-1410 — a 1ª refação deste anúncio é grátis. */
-    free?: boolean
+    free?: boolean // KINEO-ADS-REFACAO-ATOR-1410
   }
 }) {
   if (!shots.length) return <p className="adsw-hint" role="status">Preparing the shots…</p>

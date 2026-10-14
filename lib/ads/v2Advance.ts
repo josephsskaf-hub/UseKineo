@@ -974,7 +974,7 @@ export interface AdsV2ShotView {
   /** KINEO-ADS-MELHORIAS-1410 — o plano é a foto REAL do produto (sem IA). Ausente = plano de sempre. */
   packshot?: true
   /** KINEO-ADS-REFACAO-ATOR-1410 — o plano é uma PESSOA DE IA segurando o produto (a tela diz "Pessoa de IA"). Ausente = plano de sempre. */
-  ai_person?: true
+  ai_person?: true // KINEO-ADS-REFACAO-ATOR-1410
 }
 export interface AdsV2OrderView {
   order_id: string

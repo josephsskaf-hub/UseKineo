@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
       video = (v.data as typeof video) ?? null
     }
     // KINEO-ADS-REFACAO-ATOR-1410 — só no anúncio entregue: a MESMA regra que a rota /retake usa para cobrar (leitura falhou = sem "grátis").
-    const firstRedoFree = view.status === 'delivered' ? (await adsV2FirstRedoFor(admin, order, uid))?.free === true : false
+    const firstRedoFree = view.status === 'delivered' ? (await adsV2FirstRedoFor(admin, order, uid))?.free === true : false // KINEO-ADS-REFACAO-ATOR-1410
     return v2Json({ ...view, video, ...(firstRedoFree ? { first_redo_free: true } : {}) }) // KINEO-ADS-REFACAO-ATOR-1410 — sem a chave = a vista de antes
   } catch (e) {
     console.warn('[ads/v2/status] falhou:', e instanceof Error ? e.message : String(e))

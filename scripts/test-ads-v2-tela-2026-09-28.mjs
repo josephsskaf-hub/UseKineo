@@ -16,6 +16,7 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { semRefacaoAtor1410 } from './test-support/desfaz-ads-refacao-ator-1410.mjs' // reancorado KINEO-ADS-REFACAO-ATOR-1410
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
@@ -117,6 +118,7 @@ const importsClient = [...rd(F.client).matchAll(/^import[\s\S]*?from '([^']+)'/g
 // importa a lib pura v2Styles — provado em scripts/test-ads-quadro-studio-1510.mjs). Nenhum módulo de servidor entrou no cliente.
 const PERMITIDOS = ['./AdsV2Quadro', '@/components/ads/AdsFlow', '@/lib/ads/v2Flow','@/lib/ads/v2Scene', './AdsV2SceneField', './AdsV2Batch', '@/components/ads/AdsPresenterPicker', '@/lib/ads/v2PresenterLibrary', '@/lib/ads/v2AiLabel', '@/lib/ads/afterSample', '@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', '@/components/ProductStage', './AdsV2Variations','@/components/AdsPlanChanges', 'react', 'next/link', '@/components/studioKit', '../new/adsWizardTheme', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2ShotLists', '@/lib/ads/v2Screen',
   '@/components/BusinessVisualReferences', '@/components/InterfaceLanguage', './AdsV2Simple', '@/lib/ads/v2Simple', '@/lib/ui/interfaceLanguage']
+PERMITIDOS.push('@/lib/ads/v2FreeRedo', '@/lib/ads/v2PresenterHolds') // reancorado KINEO-ADS-REFACAO-ATOR-1410 — 2 libs PURAS (só import type; provadas puras em scripts/test-ads-refacao-ator-1410.mjs)
 check("I1 o cliente começa com 'use client' e só importa módulos de navegador/puros (nada de v2Advance, v2Billing, serverAccess…)", /^'use client'/.test(rd(F.client)) && importsClient.length >= 8 && importsClient.every((m) => PERMITIDOS.includes(m)))
 check('I2 lib/ads/v2Screen.ts é puro (nenhum import/require) e fora da trava 8.2', !/^\s*import\s/m.test(screenSrc) && !/\brequire\(/.test(semComentarios(screenSrc)))
 check('I3 o cliente não grava evento de cliente (eventos do v2 são só-servidor)', !/trackEvent\(/.test(client))
@@ -193,7 +195,8 @@ check('C2 cartão de nível mostra adsV2Credits(t, ADS_V2_SCREEN_SECONDS) e o qu
 check('C3 "Make my ad · N credits": N = cost = adsV2Credits(tier, ADS_V2_SCREEN_SECONDS) — o MESMO do débito do /start', /const cost = tier \? adsV2Credits\(tier, ADS_V2_SCREEN_SECONDS\) : null/.test(sessionBody) && /`Make my ad · \$\{cost\} credits`/.test(client) && /cost=\{cost\}/.test(sessionBody))
 check('C4 preço do servidor diferente do mostrado = não começa (pede plano novo)', /if \(plan\.credits !== cost\) \{/.test(bloco(sessionBody, 'async function makeAd()')))
 check('C5 nenhum preço cravado na tela: 34/41/51 não aparecem no cliente nem nas regras da tela', !/\b(34|41|51)\b/.test(client.replace(/ADS_V2_CSS = `[\s\S]*?`/, '')) && !/\b(34|41|51)\b/.test(semComentarios(screenSrc)))
-check('C6 refação: o preço mostrado é o do servidor e vai de volta como expected_credits', /expected_credits: shot\.retake_credits/.test(client) && /Redo this shot · \{s\.retake_credits\} credits/.test(client))
+const client0 = semComentarios(semRefacaoAtor1410(F.client, rd(F.client))) // reancorado KINEO-ADS-REFACAO-ATOR-1410 — C6/X3 sobre o texto sem a 1ª refação grátis (o "· free" e o preço 0 são provados em scripts/test-ads-refacao-ator-1410.mjs)
+check('C6 refação: o preço mostrado é o do servidor e vai de volta como expected_credits', /expected_credits: shot\.retake_credits/.test(client0) && /Redo this shot · \{s\.retake_credits\} credits/.test(client0))
 
 // ── X. "Screen or text" nunca oferece "Redo" por IA ─────────────────────────────────────────────
 const shot = (o) => ({ idx: 0, kind: 'place', source: 'client_photo', attempt: 1, state: 'ready', status: 'done', url: 'x', retake_credits: 5, ...o })
@@ -202,7 +205,7 @@ check('X2 canRedoShot: plano com IA pronto de anúncio entregue = sim; em andame
   SC.canRedoShot(shot({}), 'delivered') === true && SC.canRedoShot(shot({ kind: 'product_hero', retake_credits: 12 }), 'delivered') === true &&
   SC.canRedoShot(shot({ state: 'working', status: 'submitted' }), 'delivered') === false && SC.canRedoShot(shot({ state: 'failed', status: 'failed' }), 'delivered') === false &&
   SC.canRedoShot(shot({ retake_credits: 0 }), 'delivered') === false && SC.canRedoShot(shot({}), 'assembling') === false && SC.canRedoShot(shot({}), 'failed') === false)
-check('X3 o botão "Redo this shot" existe UMA vez e só é desenhado sob canRedoShot', (client.match(/Redo this shot/g) || []).length === 1 && /\{redo && canRedoShot\(s, orderStatus\) \? \(/.test(client))
+check('X3 o botão "Redo this shot" existe UMA vez e só é desenhado sob canRedoShot', (client0.match(/Redo this shot/g) || []).length === 1 && /\{redo && canRedoShot\(s, orderStatus\) \? \(/.test(client0)) // reancorado KINEO-ADS-REFACAO-ATOR-1410
 check('X4 o clique de refazer confere canRedoShot de novo antes de chamar /api/ads/v2/retake', ordem(bloco(sessionBody, 'async function redoShot('), 'canRedoShot(shot, order.status)) return', "'/api/ads/v2/retake'"))
 check('X5 "Screen or text" explica a regra: "shown as a still with a slow zoom, so every word stays exactly right"', () => {
   const o = SC.ADS_V2_PHOTO_KIND_OPTIONS.find((x) => x.id === 'text')

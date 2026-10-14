@@ -149,7 +149,7 @@ interface OrderView {
   parent_order_id: string | null
   shots: AdsV2ScreenShot[]
   /** KINEO-ADS-REFACAO-ATOR-1410 — o /status diz que a próxima refação deste anúncio é grátis (ausente = paga). */
-  first_redo_free?: boolean
+  first_redo_free?: boolean // KINEO-ADS-REFACAO-ATOR-1410
 }
 interface VideoInfo {
   id: string
@@ -3041,13 +3041,13 @@ function SimpleShotGrid({
   /** KINEO-ADS-MELHORIAS-1410 — só na entrega: "Refazer esta cena" por cena (a regra é canRedoShot, a mesma do modo completo). */
   redo?: { copy: AdsV2RedoCopy; ask: number | null; busy: boolean; onAsk: (idx: number) => void; onCancel: () => void; onConfirm: (shot: AdsV2ScreenShot) => void; free?: boolean; freeCopy?: AdsV2RedoFreeCopy } // KINEO-ADS-REFACAO-ATOR-1410 — free/freeCopy: a 1ª refação grátis
   /** KINEO-ADS-REFACAO-ATOR-1410 — rótulo do plano "pessoa de IA segurando o produto" (sempre diz que é IA). */
-  aiPersonLabel?: string
+  aiPersonLabel?: string // KINEO-ADS-REFACAO-ATOR-1410
 }) {
   if (!shots.length) return <p className="adsw-hint" role="status">{copy.progress.preparing}</p>
   return (
     <ol className="adv2-grid" aria-label={copy.plan.shots}>
       {shots.map((s, i) => {
-        const label0 = s.packshot && packshotLabel ? packshotLabel : simpleLabel(copy, shotStateLabel(s, orderStatus)) // KINEO-ADS-MELHORIAS-1410 — "Sua foto real" na língua da tela
+        const label0 = s.packshot && packshotLabel ? packshotLabel : simpleLabel(copy, shotStateLabel(s, orderStatus)) // KINEO-ADS-MELHORIAS-1410 — "Sua foto real" na língua da tela · KINEO-ADS-REFACAO-ATOR-1410 — label0 (o rótulo de IA entra na linha de baixo)
         const label = s.ai_person === true && aiPersonLabel ? `${aiPersonLabel} · ${label0}` : label0 // KINEO-ADS-REFACAO-ATOR-1410 — pessoa de IA: o rótulo diz IA, sempre
         const isText = s.kind === 'text'
         const name = fill(copy.progress.shot, { n: i + 1 })

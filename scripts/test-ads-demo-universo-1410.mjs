@@ -25,6 +25,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semDemoUniverso1410, DEMO_UNIVERSO_1410_ARQUIVOS, MARCA_DEMO_UNIVERSO_1410 } from './test-support/desfaz-ads-demo-universo-1410.mjs'
+import { semRefacaoAtor1410 } from './test-support/desfaz-ads-refacao-ator-1410.mjs' // reancorado KINEO-ADS-REFACAO-ATOR-1410
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -205,8 +206,8 @@ ok(tenta(() => { const S = ST(); return /apparel/i.test(S.adsV2Style('graffiti_a
 // ═══ 7. dinheiro intocado e a volta exata ═══════════════════════════════════════════════════════════════════════════
 console.log('\n7. dinheiro intocado e o desfaz')
 const DINHEIRO = ['lib/ads/v2Billing.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2StartCore.ts', 'app/api/ads/v2/start/route.ts', 'app/api/ads/v2/plan/route.ts', 'lib/ads/v2PlanCore.ts', 'lib/ads/v2Link.ts', 'app/api/ads/v2/link-import/route.ts']
-ok(DINHEIRO.every((f) => read(f) === base(f)), '7a v2Billing, v2Tiers, v2StartCore, /start, /plan, v2PlanCore, v2Link e /link-import byte a byte iguais à base')
-ok(DEMO_UNIVERSO_1410_ARQUIVOS.length === 7 && DEMO_UNIVERSO_1410_ARQUIVOS.every((f) => tenta(() => semDemoUniverso1410(f, read(f)) === base(f))), '7b desfeito (scripts/test-support/desfaz-ads-demo-universo-1410.mjs), cada um dos 7 arquivos tocados é EXATAMENTE a base')
+ok(DINHEIRO.every((f) => tenta(() => semRefacaoAtor1410(f, read(f)) === base(f))), /* reancorado KINEO-ADS-REFACAO-ATOR-1410 — o núcleo do /plan ganhou 3 linhas marcadas (o ator segurando o produto); desfeitas, a base exata */ '7a v2Billing, v2Tiers, v2StartCore, /start, /plan, v2PlanCore, v2Link e /link-import byte a byte iguais à base')
+ok(DEMO_UNIVERSO_1410_ARQUIVOS.length === 7 && DEMO_UNIVERSO_1410_ARQUIVOS.every((f) => tenta(() => semDemoUniverso1410(f, semRefacaoAtor1410(f, read(f))) === base(f))) /* reancorado KINEO-ADS-REFACAO-ATOR-1410 — a leva mais nova sai primeiro */, '7b desfeito (scripts/test-support/desfaz-ads-demo-universo-1410.mjs), cada um dos 7 arquivos tocados é EXATAMENTE a base')
 ok(['lib/engineWall.ts', 'lib/homeVideoCuration.ts'].every((f) => read(f) === base(f)), '7c vitrine da home (engineWall, homeVideoCuration) intocada')
 
 // ═══ M. mutantes ════════════════════════════════════════════════════════════════════════════════════════════════════

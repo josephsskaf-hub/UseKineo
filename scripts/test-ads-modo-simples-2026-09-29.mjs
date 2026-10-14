@@ -20,6 +20,7 @@ import { createHash } from 'node:crypto'
 import ts from 'typescript'
 import { semMelhorias1410 } from './test-support/desfaz-melhorias-1410.mjs' // reancorado KINEO-ADS-MELHORIAS-1410
 import { semDemoUniverso1410 } from './test-support/desfaz-ads-demo-universo-1410.mjs' // reancorado KINEO-ADS-DEMO-UNIVERSO-1410
+import { semRefacaoAtor1410 } from './test-support/desfaz-ads-refacao-ator-1410.mjs' // reancorado KINEO-ADS-REFACAO-ATOR-1410
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
@@ -65,7 +66,7 @@ const trocar = (src, de, para) => {
 // ── carregador: transpila TS → CJS e resolve '@/' e './' com stubs; `over` troca a fonte (mutantes) ─────────────────
 function makeLoader(stubs, opts = {}) {
   const cache = new Map()
-  const real = new Set(opts.real ?? [])
+  const real = new Set([...(opts.real ?? []), 'lib/ads/v2PresenterHolds.ts', 'lib/ads/v2FreeRedo.ts']) // reancorado KINEO-ADS-REFACAO-ATOR-1410 — as 2 libs novas são PURAS (só import type): carregadas de verdade, nunca stub
   const over = opts.over ?? {}
   const load = (rel) => {
     if (cache.has(rel)) return cache.get(rel)
@@ -201,7 +202,7 @@ const Z1_BASE = "235bfb6dfef9d097b8a9f4258c8a350200057f4f588fea9f6f97c3ac3094da1
 // ANTES de tirar os comentários; o resto do completo tem de bater com a mesma impressão digital.
 // reancorado KINEO-LEVA6-1310 — as duas pistas juntas: a base é a dos atores IA (235bf…) e a cena sai antes, pelo desfazCenaCompleto.
 const desfazCenaCompleto = (s) => s.split('/* KINEO-ADS-CENA-2026-10-13 */ ...cenaBody, ').join('').split('\n').filter((l) => !l.includes('KINEO-ADS-CENA-2026-10-13')).join('\n')
-const trechoCompleto = (src) => { const s = desfazCenaCompleto(src.replace(/\r\n/g, '\n')); const i = s.indexOf('function AdsV2Session('); return i < 0 ? '' : semComentarios(s.slice(i)) }
+const trechoCompleto = (src) => { const s = desfazCenaCompleto(semRefacaoAtor1410(F.client, src)); /* reancorado KINEO-ADS-REFACAO-ATOR-1410 — a 1ª refação grátis e o rótulo de IA (linhas marcadas) saem antes da impressão */ const i = s.indexOf('function AdsV2Session('); return i < 0 ? '' : semComentarios(s.slice(i)) }
 await check('Z1 impressão digital do modo completo (AdsV2Session, PhotoRow, PlanPreview, ShotGrid) = a do vídeo do cliente (29/09)', sha(trechoCompleto(SRC.client)) === Z1_BASE)
 await check('Z1-mutante: 1 caractere trocado no modo completo fica vermelho', () => sha(trechoCompleto(trocar(SRC.client, "const POLL_RETRY_MS = 20_000", "const POLL_RETRY_MS = 20_001").replace('Plan my ad (free)', 'Plan my ad (freE)'))) !== Z1_BASE)
 
@@ -775,6 +776,7 @@ await check('E2 CONTACTISH da pesquisa = o da régua do texto (v2Brief)', () => 
 // palco do estilo, "Lemos sua página" e "Comece deste"; só react e libs puras — provado em scripts/test-ads-fluxo-1310.mjs).
 const IMPORTS_OK = ['@/lib/ads/v2Flow', '@/components/ads/AdsFlow', '@/lib/ads/v2Scene', '@/components/ads/AdsPresenterPicker', '@/lib/ads/v2PresenterLibrary', '@/lib/ads/v2AiLabel', '@/lib/ads/afterSample', '@/lib/ads/v2SimpleUx', './AdsV2SimpleUx', '@/lib/ads/v2LinkImport', '@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', './AdsV2Variations', '@/components/AdsPlanChanges', 'react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/ads/v2UserVideo', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage', '@/lib/shortTextLanguage', '@/lib/ads/v2TelaConsertos', './AdsV2Quadro', '@/lib/ads/v2QuadroCopy', '@/lib/ads/v2AutoPlan', '@/lib/ads/v2VoiceHint', '@/lib/ads/v2Pronounce'] // reancorado KINEO-ADS-CONSERTOS-TELA-1410 — +2 módulos puros (provados puros no E3) · reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — +2 puros (v2VoiceHint, v2Pronounce; provados puros no E3)
 // reancorado KINEO-ADS-MELHORIAS-1410 — + as libs PURAS das melhorias de 14/10 (só import type; provadas puras abaixo): o rótulo do packshot.
+IMPORTS_OK.push('@/lib/ads/v2FreeRedo', '@/lib/ads/v2PresenterHolds') // reancorado KINEO-ADS-REFACAO-ATOR-1410 — 2 libs PURAS (só import type; provadas puras no E3): o preço da 1ª refação grátis e o rótulo "Pessoa de IA"
 IMPORTS_OK.push('@/lib/ads/v2Packshot', '@/lib/ads/v2Redo', '@/lib/ads/v2Formats', '@/lib/ads/v2ShotLists') // + o refazer UMA cena e o formato (frases nas 16 línguas; a lógica do formato mora na lib PURA, SEM import, dos planos)
 // reancorado KINEO-ADS-RETESTE-1510 — + '@/lib/ads/v2AutoPlan' (lib PURA, SEM import: frase pronta para planejar, pausa por assinatura e a
 // regra da barra do celular — provada pura abaixo e em scripts/test-ads-reteste-1510.mjs). Nenhum módulo de servidor entrou.
@@ -783,7 +785,7 @@ IMPORTS_OK.push('@/lib/ads/v2Packshot', '@/lib/ads/v2Redo', '@/lib/ads/v2Formats
 await check('E3 a tela simples é cliente e só importa módulos de navegador/puros; v2Simple, v2Research e v2VideoFrames não têm import; textLanguage é pura', () => {
   const imps = [...SRC.simple.matchAll(/^import[\s\S]*?from '([^']+)'/gm)].map((m) => m[1])
   return /^'use client'/.test(SRC.simple) && imps.length >= 8 && imps.every((m) => IMPORTS_OK.includes(m)) &&
-    [SRC.simpleLib, SRC.research, SRC.frames, rd('lib/ads/v2UserVideo.ts'), rd('lib/textLanguage.ts'), rd('lib/ui/interfaceLanguage.ts'), rd('lib/ads/sample.ts'), rd('lib/ads/v2Styles.ts'), rd('lib/ads/v2Presenter.ts'), rd('lib/ads/v2LinkImport.ts'), rd('lib/ads/afterSample.ts'), rd('lib/ads/v2PresenterLibrary.ts'), rd('lib/ads/v2Flow.ts'), rd('lib/shortTextLanguage.ts'), rd('lib/ads/v2TelaConsertos.ts'), rd('lib/ads/v2QuadroCopy.ts'), rd('lib/ads/v2AutoPlan.ts'), rd('lib/ads/v2Packshot.ts'), rd('lib/ads/v2Redo.ts'), rd('lib/ads/v2Formats.ts'), rd('lib/ads/v2ShotLists.ts'), rd('lib/ads/v2VoiceHint.ts'), rd('lib/ads/v2Pronounce.ts')].every((s) => !/^\s*import\s(?!type)/m.test(s)) && !/trackEvent\(/.test(SRC.simple)
+    [SRC.simpleLib, SRC.research, SRC.frames, rd('lib/ads/v2UserVideo.ts'), rd('lib/textLanguage.ts'), rd('lib/ui/interfaceLanguage.ts'), rd('lib/ads/sample.ts'), rd('lib/ads/v2Styles.ts'), rd('lib/ads/v2Presenter.ts'), rd('lib/ads/v2LinkImport.ts'), rd('lib/ads/afterSample.ts'), rd('lib/ads/v2PresenterLibrary.ts'), rd('lib/ads/v2Flow.ts'), rd('lib/shortTextLanguage.ts'), rd('lib/ads/v2TelaConsertos.ts'), rd('lib/ads/v2QuadroCopy.ts'), rd('lib/ads/v2AutoPlan.ts'), rd('lib/ads/v2Packshot.ts'), rd('lib/ads/v2Redo.ts'), rd('lib/ads/v2Formats.ts'), rd('lib/ads/v2ShotLists.ts'), rd('lib/ads/v2VoiceHint.ts'), rd('lib/ads/v2Pronounce.ts'), rd('lib/ads/v2FreeRedo.ts'), rd('lib/ads/v2PresenterHolds.ts') /* reancorado KINEO-ADS-REFACAO-ATOR-1410 */].every((s) => !/^\s*import\s(?!type)/m.test(s)) && !/trackEvent\(/.test(SRC.simple)
 })
 await check('E4 trava 8.2: nenhum arquivo do modo simples mora em caminho travado', () => {
   const novos = [F.simple, F.simpleLib, F.research, F.frames, F.researchRoute, F.contract, F.brief, F.planRoute, F.ordersRoute, F.client]

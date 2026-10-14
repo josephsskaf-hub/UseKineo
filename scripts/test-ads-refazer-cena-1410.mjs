@@ -19,6 +19,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semRefacaoAtor1410 } from './test-support/desfaz-ads-refacao-ator-1410.mjs' // reancorado KINEO-ADS-REFACAO-ATOR-1410
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -40,7 +41,7 @@ const F = {
   start: 'lib/ads/v2StartCore.ts',
   advance: 'lib/ads/v2Advance.ts',
 }
-const SRC = Object.fromEntries(Object.entries(F).map(([k, v]) => [k, rd(v)]))
+const SRC = Object.fromEntries(Object.entries(F).map(([k, v]) => [k, semRefacaoAtor1410(v, rd(v))])) // reancorado KINEO-ADS-REFACAO-ATOR-1410 — a 1ª refação grátis sai antes (provada em scripts/test-ads-refacao-ator-1410.mjs); o resto do texto é o de agora
 const carregar = (over = {}) => createOfflineLoader({ source: (rel, text) => (Object.hasOwn(over, rel) ? over[rel] : text) })
 const mod = (rel, over = {}) => carregar(over)(rel)
 const LANGS = ['en', 'es', 'hi', 'pt', 'fr', 'de', 'it', 'nl', 'pl', 'tr', 'ru', 'uk', 'ar', 'ur', 'id', 'vi']
@@ -120,7 +121,7 @@ const BASE = {
   'lib/ads/v2Tiers.ts': '18678aa1573651bc61ee6ff55508187393ae56c093dbc09f8737e65d344219a0',
   'lib/ads/v2StartCore.ts': '4393d6ccf8d02426eecded99df5b3be56c0ee9072d5a74221bef566b474dbbde',
 }
-await check('R6 rota da refação, v2Billing, v2Tiers e v2StartCore byte a byte iguais à base a1f3dbff (nenhum preço nem débito novo)', () => Object.entries(BASE).every(([f, h]) => sha(rd(f)) === h))
+await check('R6 rota da refação, v2Billing, v2Tiers e v2StartCore byte a byte iguais à base a1f3dbff (nenhum preço nem débito novo)', () => Object.entries(BASE).every(([f, h]) => sha(semRefacaoAtor1410(f, rd(f))) === h)) /* reancorado KINEO-ADS-REFACAO-ATOR-1410 — a rota da refação ganhou SÓ as linhas marcadas da 1ª grátis */
 
 // ═══ M. mutantes ══════════════════════════════════════════════════════════════════════════════════════════════════════
 const vermelho = async (nome, src, de, para, prova) => {

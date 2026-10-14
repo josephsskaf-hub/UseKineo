@@ -185,7 +185,7 @@ export interface AdsV2ScreenShot {
   /** KINEO-ADS-MELHORIAS-1410 — o plano é a foto REAL do produto (sem IA): rótulo próprio, sem "Refazer". */
   packshot?: true
   /** KINEO-ADS-REFACAO-ATOR-1410 — o plano é uma PESSOA DE IA segurando o produto: a grade diz "Pessoa de IA" (lib/ads/v2PresenterHolds.ts). */
-  ai_person?: true
+  ai_person?: true // KINEO-ADS-REFACAO-ATOR-1410
 }
 
 export const ADS_V2_ACTIVE_STATUSES: readonly AdsV2ScreenOrderStatus[] = ['generating', 'assembling']

@@ -51,7 +51,7 @@ const bloco = (src, marcador) => {
 // ── carregador: transpila TS → CJS e resolve '@/' e './'; `over` troca a fonte (mutantes) ─────────────────────────────
 function makeLoader(stubs, opts = {}) {
   const cache = new Map()
-  const real = new Set(opts.real ?? [])
+  const real = new Set([...(opts.real ?? []), 'lib/ads/v2PresenterHolds.ts', 'lib/ads/v2FreeRedo.ts']) // reancorado KINEO-ADS-REFACAO-ATOR-1410 — as 2 libs novas são PURAS (só import type): carregadas de verdade, nunca stub
   const over = opts.over ?? {}
   const load = (rel) => {
     if (cache.has(rel)) return cache.get(rel)
