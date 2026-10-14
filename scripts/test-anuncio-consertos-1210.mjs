@@ -302,7 +302,7 @@ ok((() => {
   const s = code(SRC.simple)
   return ordem(s, 'if (tierAutoRef.current || sample || tier !== null) return', 'const remembered = adsV2RememberedTier(() => window.localStorage.getItem(ADS_V2_TIER_MEMORY_KEY))', 'const d = adsV2DefaultTier(balance)') &&
     /onChange=\{\(\) => \{ setTier\(t\); if \(!scopy\) adsV2RememberTier\(\(v\) => window\.localStorage\.setItem\(ADS_V2_TIER_MEMORY_KEY, v\), t\) \}\}/.test(s) &&
-    /const \[saveKit, setSaveKit\] = useState\(true\)/.test(s) && /if \(saveKitTouchedRef\.current\) return\s*setSaveKit\(!otherBrand\)/.test(s) && /saveKitTouchedRef\.current = true; setSaveKit\(e\.target\.checked\)/.test(s) &&
+    /const \[saveKit, setSaveKit\] = useState\(false\)/.test(s) && /if \(saveKitTouchedRef\.current\) return\s*if \(otherBrand\) setSaveKit\(false\)/.test(s) /* reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — fundador 14/10: o kit vem DESMARCADO e nunca marca sozinho (outra marca continua desmarcando; o clique da pessoa manda) */ && /saveKitTouchedRef\.current = true; setSaveKit\(e\.target\.checked\)/.test(s) &&
     /setKitBusiness\(typeof kit\.business === 'string'/.test(s)
 })(), '6c tela: o nível lembrado vem antes do saldo (amostra não grava); "Save as my brand kit" desmarca sozinho para outra marca e o clique da pessoa manda')
 ok(!/building or the area|prédio ou o bairro|edificio o la zona/.test(code(SRC.simpleLib)) && /true about your product, business or place/.test(SRC.simpleLib),

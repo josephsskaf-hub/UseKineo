@@ -19,6 +19,7 @@ import { createRequire } from 'node:module'
 import { createHash } from 'node:crypto'
 import ts from 'typescript'
 import { semMelhorias1410 } from './test-support/desfaz-melhorias-1410.mjs' // reancorado KINEO-ADS-MELHORIAS-1410
+import { semDemoUniverso1410 } from './test-support/desfaz-ads-demo-universo-1410.mjs' // reancorado KINEO-ADS-DEMO-UNIVERSO-1410
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
@@ -333,7 +334,7 @@ function mundo(order, extra = {}) {
 // KINEO-ADS-CENA-2026-10-13 — re-ancorado: o /plan, o /orders e o /research importam a cena (lib/ads/v2Scene.ts, pura, e
 // lib/ads/v2SceneServer.ts, que usa os MESMOS stubs de eventos/moderação/link deste mundo) e as libs puras que ela lê.
 // KINEO-ADS-ROTEIROS-2026-10-13 — re-ancorado: o núcleo do /plan importa a lib PURA dos roteiros (lib/ads/v2Scripts.ts, só import type).
-const loadRoute = (rel, stubs, src) => makeLoader(stubs, { real: ['lib/textLanguage.ts', 'lib/ads/v2Contract.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/v2Research.ts', 'lib/ads/v2Styles.ts', 'lib/ads/v2Presenter.ts', PLAN_CORE, 'lib/ads/v2Scene.ts', 'lib/ads/v2SceneServer.ts', 'lib/ads/v2Honesty.ts', 'lib/ads/scriptPrompt.ts', 'lib/ads/v2Simple.ts', 'lib/ads/v2Scripts.ts'], over: src === undefined ? {} : { [rel === F.planRoute ? PLAN_CORE : rel]: src } })(rel) // KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o núcleo do /plan
+const loadRoute = (rel, stubs, src) => makeLoader(stubs, { real: ['lib/textLanguage.ts', 'lib/ads/v2Contract.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/v2Research.ts', 'lib/ads/v2Styles.ts', 'lib/ads/v2Presenter.ts', PLAN_CORE, 'lib/ads/v2Scene.ts', 'lib/ads/v2SceneServer.ts', 'lib/ads/v2Honesty.ts', 'lib/ads/scriptPrompt.ts', 'lib/ads/v2Simple.ts', 'lib/ads/v2Scripts.ts', 'lib/ads/v2Pronounce.ts' /* reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — pura, lida pelo /orders */], over: src === undefined ? {} : { [rel === F.planRoute ? PLAN_CORE : rel]: src } })(rel) // KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o núcleo do /plan
 const req = (body) => ({ json: async () => body, nextUrl: { searchParams: new URLSearchParams() } })
 const PHOTOS = [0, 1, 2].map((i) => ({ footage_id: U(20 + i), kind: 'place' }))
 const FATOS = [
@@ -721,7 +722,7 @@ await check('T5 invólucro: no simples o cabeçalho e a confirmação vêm na l�
     en.confirmBody === 'Everything on this page (level, text, logo, photos and plan) will be cleared.' && /\{mode === 'full' \? shell\.sub : shell\.subSimple\}/.test(w)
 })
 await check('T6 "Fala em Português ▾" sempre à vista (fora de "Mais opções") e a língua escolhida vai ao pedido (language)', () => {
-  const s = semComentarios(SRC.simple)
+  const s = semComentarios(semDemoUniverso1410(F.simple, SRC.simple)) // reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — a ordem de antes da demo de 14/10 (a língua do LINK entra antes da interface; prova em test-ads-demo-universo-1410)
   return ordem(s, '<label className="adv2s-lang">', '<details className="adv2s-more"') && /NARRATION_LANGUAGES\.map\(\(l\) => <option key=\{l\.code\} value=\{l\.code\}>\{l\.native\}<\/option>\)/.test(s) &&
     /language: spoken,/.test(bloco(s, 'async function ensureDraft(')) && /const spoken: NarrationLanguage = voiceLang \?\? narrationLanguage\(detected\) \?\? shortLang \?\? narrationLanguage\(lang\) \?\? 'en'/.test(s) && /const shortLang = detected \? null : detectShortTextLanguage\(`\$\{sentence\} \$\{scene\}`\)/.test(s) // reancorado KINEO-ADS-CONSERTOS-TELA-1410 — a frase curta (lib/shortTextLanguage.ts) entra DEPOIS do detector de sempre e ANTES da interface
 })
@@ -772,7 +773,7 @@ await check('E2 CONTACTISH da pesquisa = o da régua do texto (v2Brief)', () => 
 // KINEO-ADS-FLUXO-2026-10-13 — re-ancorado: + '@/lib/ads/v2Flow' (lib PURA do fluxo novo: abas, cor do estilo, "Comece deste", vaga
 // dos roteiros e frases nas 16 línguas; só import type — conferida abaixo) e '@/components/ads/AdsFlow' (componente de navegador do
 // palco do estilo, "Lemos sua página" e "Comece deste"; só react e libs puras — provado em scripts/test-ads-fluxo-1310.mjs).
-const IMPORTS_OK = ['@/lib/ads/v2Flow', '@/components/ads/AdsFlow', '@/lib/ads/v2Scene', '@/components/ads/AdsPresenterPicker', '@/lib/ads/v2PresenterLibrary', '@/lib/ads/v2AiLabel', '@/lib/ads/afterSample', '@/lib/ads/v2SimpleUx', './AdsV2SimpleUx', '@/lib/ads/v2LinkImport', '@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', './AdsV2Variations', '@/components/AdsPlanChanges', 'react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/ads/v2UserVideo', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage', '@/lib/shortTextLanguage', '@/lib/ads/v2TelaConsertos', './AdsV2Quadro', '@/lib/ads/v2QuadroCopy', '@/lib/ads/v2AutoPlan'] // reancorado KINEO-ADS-CONSERTOS-TELA-1410 — +2 módulos puros (provados puros no E3)
+const IMPORTS_OK = ['@/lib/ads/v2Flow', '@/components/ads/AdsFlow', '@/lib/ads/v2Scene', '@/components/ads/AdsPresenterPicker', '@/lib/ads/v2PresenterLibrary', '@/lib/ads/v2AiLabel', '@/lib/ads/afterSample', '@/lib/ads/v2SimpleUx', './AdsV2SimpleUx', '@/lib/ads/v2LinkImport', '@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', './AdsV2Variations', '@/components/AdsPlanChanges', 'react', 'next/link', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2Screen', '@/lib/ads/v2Simple', '@/lib/ads/v2VideoFrames', '@/lib/ads/v2UserVideo', '@/lib/textLanguage', '@/lib/ui/interfaceLanguage', '@/lib/shortTextLanguage', '@/lib/ads/v2TelaConsertos', './AdsV2Quadro', '@/lib/ads/v2QuadroCopy', '@/lib/ads/v2AutoPlan', '@/lib/ads/v2VoiceHint', '@/lib/ads/v2Pronounce'] // reancorado KINEO-ADS-CONSERTOS-TELA-1410 — +2 módulos puros (provados puros no E3) · reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — +2 puros (v2VoiceHint, v2Pronounce; provados puros no E3)
 // reancorado KINEO-ADS-MELHORIAS-1410 — + as libs PURAS das melhorias de 14/10 (só import type; provadas puras abaixo): o rótulo do packshot.
 IMPORTS_OK.push('@/lib/ads/v2Packshot', '@/lib/ads/v2Redo', '@/lib/ads/v2Formats', '@/lib/ads/v2ShotLists') // + o refazer UMA cena e o formato (frases nas 16 línguas; a lógica do formato mora na lib PURA, SEM import, dos planos)
 // reancorado KINEO-ADS-RETESTE-1510 — + '@/lib/ads/v2AutoPlan' (lib PURA, SEM import: frase pronta para planejar, pausa por assinatura e a
@@ -782,7 +783,7 @@ IMPORTS_OK.push('@/lib/ads/v2Packshot', '@/lib/ads/v2Redo', '@/lib/ads/v2Formats
 await check('E3 a tela simples é cliente e só importa módulos de navegador/puros; v2Simple, v2Research e v2VideoFrames não têm import; textLanguage é pura', () => {
   const imps = [...SRC.simple.matchAll(/^import[\s\S]*?from '([^']+)'/gm)].map((m) => m[1])
   return /^'use client'/.test(SRC.simple) && imps.length >= 8 && imps.every((m) => IMPORTS_OK.includes(m)) &&
-    [SRC.simpleLib, SRC.research, SRC.frames, rd('lib/ads/v2UserVideo.ts'), rd('lib/textLanguage.ts'), rd('lib/ui/interfaceLanguage.ts'), rd('lib/ads/sample.ts'), rd('lib/ads/v2Styles.ts'), rd('lib/ads/v2Presenter.ts'), rd('lib/ads/v2LinkImport.ts'), rd('lib/ads/afterSample.ts'), rd('lib/ads/v2PresenterLibrary.ts'), rd('lib/ads/v2Flow.ts'), rd('lib/shortTextLanguage.ts'), rd('lib/ads/v2TelaConsertos.ts'), rd('lib/ads/v2QuadroCopy.ts'), rd('lib/ads/v2AutoPlan.ts'), rd('lib/ads/v2Packshot.ts'), rd('lib/ads/v2Redo.ts'), rd('lib/ads/v2Formats.ts'), rd('lib/ads/v2ShotLists.ts')].every((s) => !/^\s*import\s(?!type)/m.test(s)) && !/trackEvent\(/.test(SRC.simple)
+    [SRC.simpleLib, SRC.research, SRC.frames, rd('lib/ads/v2UserVideo.ts'), rd('lib/textLanguage.ts'), rd('lib/ui/interfaceLanguage.ts'), rd('lib/ads/sample.ts'), rd('lib/ads/v2Styles.ts'), rd('lib/ads/v2Presenter.ts'), rd('lib/ads/v2LinkImport.ts'), rd('lib/ads/afterSample.ts'), rd('lib/ads/v2PresenterLibrary.ts'), rd('lib/ads/v2Flow.ts'), rd('lib/shortTextLanguage.ts'), rd('lib/ads/v2TelaConsertos.ts'), rd('lib/ads/v2QuadroCopy.ts'), rd('lib/ads/v2AutoPlan.ts'), rd('lib/ads/v2Packshot.ts'), rd('lib/ads/v2Redo.ts'), rd('lib/ads/v2Formats.ts'), rd('lib/ads/v2ShotLists.ts'), rd('lib/ads/v2VoiceHint.ts'), rd('lib/ads/v2Pronounce.ts')].every((s) => !/^\s*import\s(?!type)/m.test(s)) && !/trackEvent\(/.test(SRC.simple)
 })
 await check('E4 trava 8.2: nenhum arquivo do modo simples mora em caminho travado', () => {
   const novos = [F.simple, F.simpleLib, F.research, F.frames, F.researchRoute, F.contract, F.brief, F.planRoute, F.ordersRoute, F.client]

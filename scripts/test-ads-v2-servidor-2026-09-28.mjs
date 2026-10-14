@@ -334,7 +334,7 @@ const advStubs = {
 // carregada de verdade, não stub — chave 'adsv2-…' segue o caminho de sempre em tudo que este guardião prova.
 // KINEO-ATOR-ANUNCIO-2026-10-09 — re-ancorado: o v2Advance importa a lib PURA lib/ads/v2Presenter.ts (o ator de IA: linha extra,
 // desistência, voz que cabe, ordem dos inserts); carregada de verdade — pedido sem plan.presenter segue o caminho de sempre.
-const A = makeLoader(advStubs, { timers: fastTimers, real: ['lib/ads/v2Engines.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/adV2Montage.ts', 'lib/ads/v2Music.ts', 'lib/ads/v2Variations.ts', 'lib/ads/sample.ts', 'lib/ads/v2Presenter.ts'] })('lib/ads/v2Advance.ts')
+const A = makeLoader(advStubs, { timers: fastTimers, real: ['lib/ads/v2Engines.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/adV2Montage.ts', 'lib/ads/v2Music.ts', 'lib/ads/v2Variations.ts', 'lib/ads/sample.ts', 'lib/ads/v2Presenter.ts', 'lib/ads/v2Pronounce.ts'] })('lib/ads/v2Advance.ts') // reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — o v2Advance importa a lib PURA lib/ads/v2Pronounce.ts (a marca dita como a pessoa ensinou, só na voz); carregada de verdade — pedido sem brief.pronounce = a narração de sempre
 
 const PH = 'https://x.supabase.co/storage/v1/object/public/user-footage/u/'
 const photos = [

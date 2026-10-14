@@ -16,6 +16,7 @@ import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { semModeracao1410, ARQUIVOS_MODERACAO_1410, FORMA_MODERACAO_1410, MARCA_MODERACAO_1410 } from './test-support/desfaz-moderacao-1410.mjs'
+import { semDemoUniverso1410 } from './test-support/desfaz-ads-demo-universo-1410.mjs' // reancorado KINEO-ADS-DEMO-UNIVERSO-1410
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
@@ -190,7 +191,7 @@ for (const [k, f] of Object.entries(ARQUIVOS_MODERACAO_1410)) {
   const atual = rd(f)
   const marcadas = atual.split('\n').filter((l) => l.includes(MARCA_MODERACAO_1410)).length
   let desfeito = null
-  try { desfeito = semModeracao1410(atual, k) } catch (e) { desfeito = 'ERRO ' + e.message }
+  try { desfeito = semModeracao1410(semDemoUniverso1410(f, atual), k) } catch (e) { desfeito = 'ERRO ' + e.message } // reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — no /orders a pronúncia da marca (14/10, depois desta) sai antes; os outros 4 arquivos não têm bloco dela
   const naBase = git('show', `${base}:${f}`).replace(/\r\n/g, '\n')
   ok(marcadas === FORMA_MODERACAO_1410[k].acrescimos && desfeito === naBase, `4a. ${f}: ${marcadas} linhas marcadas (esperado ${FORMA_MODERACAO_1410[k].acrescimos}) e, desfeito, é EXATAMENTE a base ${base.slice(0, 9)}`)
 }

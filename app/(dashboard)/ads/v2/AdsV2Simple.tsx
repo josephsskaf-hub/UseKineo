@@ -73,6 +73,8 @@ import { ADS_V2_MAX_USER_VIDEOS, ADS_V2_USER_VIDEO_MIN_SECONDS, pickLivelyStart,
 import { NARRATION_LANGUAGES, detectNarrationLanguage, narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage'
 import { detectShortTextLanguage } from '@/lib/shortTextLanguage' // KINEO-ADS-CONSERTOS-TELA-1410
 import { adsV2TelaConsertosCopy } from '@/lib/ads/v2TelaConsertos' // KINEO-ADS-CONSERTOS-TELA-1410
+import { adsV2LinkLanguageHint, adsV2SpokenLanguage } from '@/lib/ads/v2VoiceHint' // KINEO-ADS-DEMO-UNIVERSO-1410 — a língua que o link declara (página/domínio) quando a frase não decide
+import { adsV2PronounceCopy, adsV2PronounceDefaultWord, sanitizeAdsV2Pronounce } from '@/lib/ads/v2Pronounce' // KINEO-ADS-DEMO-UNIVERSO-1410 — "como pronunciar a marca" (só a voz)
 import { pickInterfaceCopy, type InterfaceLanguage } from '@/lib/ui/interfaceLanguage'
 import { VariationToggle, variationsCopy, variationsPrice } from './AdsV2Variations'
 import { ADS_SAMPLE_TIER, adsSampleCopy, type AdsSampleCopy } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
@@ -606,6 +608,9 @@ export function AdsV2SimpleSession({
   // fonte do roteiro) e o aviso da leitura. Link sem foto não planeja: a regra de "pelo menos 1 foto" fica em `missing`.
   const [link, setLink] = useState(() => (resume ? typedMemory.link : ''))
   const [linkRead, setLinkRead] = useState<string | null>(null)
+  const [linkLang, setLinkLang] = useState<string | null>(null) // KINEO-ADS-DEMO-UNIVERSO-1410 — o <html lang> da página lida (a rota /link-import já devolvia; a tela ignorava)
+  const [pronWord, setPronWord] = useState('') // KINEO-ADS-DEMO-UNIVERSO-1410 — o nome da marca como está escrito (vazio = o título do cartão até o travessão)
+  const [pronSay, setPronSay] = useState('') // KINEO-ADS-DEMO-UNIVERSO-1410 — como a voz fala (vazio = sem troca)
   const [linkBusy, setLinkBusy] = useState(false)
   const [linkNote, setLinkNote] = useState<{ warn: boolean; text: string } | null>(null)
   // KINEO-SHOPIFY-2026-10-13 — /ads/v2?from=shopify&link=… (o botão "Make a 15-second ad" do app da Shopify, via /shopify/open):
@@ -707,7 +712,7 @@ export function AdsV2SimpleSession({
   const [editKey, setEditKey] = useState<string | null>(null)
   const [cardPreviewUrl, setCardPreviewUrl] = useState<string | null>(null)
   const [kitApplied, setKitApplied] = useState<AdsBrandKit | null>(null)
-  const [saveKit, setSaveKit] = useState(true)
+  const [saveKit, setSaveKit] = useState(false) // KINEO-ADS-DEMO-UNIVERSO-1410 — era true: o kit salvo sem querer contaminava o anúncio seguinte (demo de 14/10). Só o clique da pessoa marca.
   const tierAutoRef = useRef(false)
   // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — os consertos dos anúncios de amostra (12/10): frases novas, o nome do kit salvo (o
   // "Save as my brand kit" desmarca sozinho para OUTRA marca; o clique da pessoa manda), a cor da foto do produto para o
@@ -795,7 +800,8 @@ export function AdsV2SimpleSession({
   // detector de sempre (null abaixo de 8 palavras — régua dos filmes, intocada), o da FRASE CURTA; só então a interface.
   // A CENA conta junto: depois de "Mover para o campo de cena" a frase vira só "Perfume" e a língua ("num hotel com chuva") mora na cena.
   const shortLang = detected ? null : detectShortTextLanguage(`${sentence} ${scene}`)
-  const spoken: NarrationLanguage = voiceLang ?? narrationLanguage(detected) ?? shortLang ?? narrationLanguage(lang) ?? 'en'
+  const linkLangHint = adsV2LinkLanguageHint(linkLang, linkRead ?? (link.trim() || null)) // KINEO-ADS-DEMO-UNIVERSO-1410 — <html lang> da página lida, senão o domínio (.br → pt)
+  const spoken: NarrationLanguage = adsV2SpokenLanguage({ chosen: voiceLang, detected, short: shortLang, text: `${sentence} ${scene}`, hint: linkLangHint, ui: lang }) // KINEO-ADS-DEMO-UNIVERSO-1410 — escolha → detector de sempre → frase curta → desempate pt×es → o LINK → interface → inglês
   /** Ninguém tem certeza da língua da frase: a linha ao lado do seletor "Voz em" diz em que língua a voz vai sair. */
   const voiceUnsure = !!sentence && narrationOn && voiceLang === null && !detected && !shortLang && browserLang !== spoken
   const tc = adsV2TelaConsertosCopy(lang) // KINEO-ADS-CONSERTOS-TELA-1410
@@ -810,6 +816,9 @@ export function AdsV2SimpleSession({
   const sceneFinal = adKind === 'product' && tier !== null && adsV2SceneAllowed(tier) ? sceneTyped || sceneSplit.scene || '' : ''
   const sceneProblem = adKind === 'product' && sceneTierOk ? adsV2SceneIssues(sceneTyped || sceneSplit.scene || '')[0] ?? null : null
   const cardTitleFinal = cardTitle.trim() || adsV2ProductTitle(sentence, adKind)
+  const pcopy = adsV2PronounceCopy(lang) // KINEO-ADS-DEMO-UNIVERSO-1410
+  const pronWordDefault = adsV2PronounceDefaultWord(cardTitleFinal) // KINEO-ADS-DEMO-UNIVERSO-1410
+  const pronounce = narrationOn ? sanitizeAdsV2Pronounce({ word: pronWord.trim() || pronWordDefault, say: pronSay }) : null // KINEO-ADS-DEMO-UNIVERSO-1410 — só com voz; null = narração de sempre
   const cost = tier ? adsV2Credits(tier, ADS_V2_SCREEN_SECONDS) : null
   const inAd = items.slice(0, ADS_V2_SIMPLE_MAX_IN_AD)
   const priceT = price.replace(/\s+/g, ' ').trim()
@@ -825,7 +834,7 @@ export function AdsV2SimpleSession({
   const firstPhotoUrl = items.slice(0, ADS_V2_SIMPLE_MAX_IN_AD).find((p) => !p.video)?.srcUrl ?? null
 
   /** Chave do rascunho: mudou texto, preço, contato, frases, voz, língua ou nível = rascunho novo (a pesquisa é copiada). */
-  const draftKey = JSON.stringify({ text: sentence, scene: sceneFinal, kind: adKind, price: priceT, contact: contactT, overlays: overlaysOn, voice: narrationOn, lang: spoken, tier, link: linkRead })
+  const draftKey = JSON.stringify({ text: sentence, scene: sceneFinal, kind: adKind, price: priceT, contact: contactT, overlays: overlaysOn, voice: narrationOn, lang: spoken, tier, link: linkRead, ...(pronounce ? { pronounce } : {}) }) // KINEO-ADS-DEMO-UNIVERSO-1410 — mudou a pronúncia = rascunho novo
   const baseSig = JSON.stringify({ draftKey, sector, presenter: presenterOn, items: inAd.map((p) => [p.key, focalSig(p)]), style, ...(presenterOn && presenterPick ? { presenterPick } : {}), ...(format !== '9:16' ? { format } : {}) }) // KINEO-ADS-MELHORIAS-1410 — outro formato = planejar de novo
   // A marca de um fato é presa ao CONTEÚDO (fonte + texto), nunca ao id f1..f6: uma pesquisa nova tem outro f1 e não herda
   // a marca do anterior; a mesma pesquisa copiada para um rascunho novo (troca de nível) mantém a marca.
@@ -1163,7 +1172,7 @@ export function AdsV2SimpleSession({
   // (prospecção de 12/10: quem anuncia para várias marcas sobrescrevia o próprio kit sem perceber). O clique da pessoa manda.
   useEffect(() => {
     if (saveKitTouchedRef.current) return
-    setSaveKit(!otherBrand)
+    if (otherBrand) setSaveKit(false) // KINEO-ADS-DEMO-UNIVERSO-1410 — nunca marca sozinho (era setSaveKit(!otherBrand))
   }, [otherBrand])
 
   // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — a cor dominante da 1ª foto (o produto), para o cartão final sem kit. Foto local
@@ -1385,6 +1394,7 @@ export function AdsV2SimpleSession({
       }
       const host = typeof r.data.host === 'string' ? r.data.host : ''
       setLinkRead(typeof r.data.link === 'string' && r.data.link ? r.data.link : null)
+      setLinkLang(typeof (r.data as { lang?: unknown }).lang === 'string' ? String((r.data as { lang?: unknown }).lang) : null) // KINEO-ADS-DEMO-UNIVERSO-1410
       const suggested = typeof r.data.sentence === 'string' ? r.data.sentence.trim() : ''
       if (suggested) setText((cur) => (cur.trim() ? cur : suggested))
       // KINEO-ADS-FLUXO-2026-10-13 — "Lemos sua página": o nome e o preço que a página DIZ entram só no campo vazio (o cartão deixa corrigir).
@@ -1664,6 +1674,7 @@ export function AdsV2SimpleSession({
         // KINEO-ADS-CENA-2026-10-13 — a cena (só Comercial/Premium; o servidor limpa, confere e modera de novo) e produto/lugar.
         scene: sceneFinal || null,
         kind: adKind,
+        ...(pronounce ? { pronounce } : {}), // KINEO-ADS-DEMO-UNIVERSO-1410 — vai para brief.pronounce; o servidor limpa e confere de novo
       },
     })
     if (!aliveRef.current) return null
@@ -2400,6 +2411,17 @@ export function AdsV2SimpleSession({
                 <span>{copy.text.contact}</span>
                 <input ref={contactInputRef} type="text" value={contact} maxLength={80} disabled={locked} onChange={(e) => setContact(e.target.value)} placeholder={copy.text.contactPlaceholder} />
               </label>
+              {/* KINEO-ADS-DEMO-UNIVERSO-1410 — "como pronunciar a marca": só a VOZ muda; tela, frases e cartão ficam com a grafia real. Sem voz, escondido. */}
+              {narrationOn ? (
+                <div className="adsw-f" data-kineo="ads-pronounce">
+                  <span>{pcopy.label}</span>
+                  <small>{pcopy.hint}</small>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <input type="text" aria-label={pcopy.word} value={pronWord} maxLength={40} disabled={locked} onChange={(e) => setPronWord(e.target.value)} placeholder={pronWordDefault || pcopy.word} style={{ flex: '1 1 140px', minWidth: 0 }} />
+                    <input type="text" aria-label={pcopy.say} value={pronSay} maxLength={40} disabled={locked} onChange={(e) => setPronSay(e.target.value)} placeholder={pcopy.sayPlaceholder} style={{ flex: '1 1 140px', minWidth: 0 }} />
+                  </div>
+                </div>
+              ) : null}
               <div className="adv2-cardwrap" style={{ marginTop: 12 }}>
                 <canvas ref={cardCanvasRef} className="adv2-cardprev" width={1080} height={1920} role="img" aria-label={copy.text.cardPreview} />
                 <div className="fields">

@@ -19,6 +19,7 @@ import { ownedFootage, v2Fail, v2Json } from '@/lib/ads/v2Server'
 import { adsSampleLevelOk, adsSampleOpen } from '@/lib/ads/serverAccess'
 import { adsV2SameKind, adsV2SceneForDraft } from '@/lib/ads/v2SceneServer' // KINEO-ADS-CENA-2026-10-13
 import { moderateTopic } from '@/lib/safety/topicModeration' // KINEO-MODERACAO-1410 [TRAVA 8.2 — vai do fundador 14/10] — a régua completa na frase e na cena do anúncio
+import { sanitizeAdsV2Pronounce } from '@/lib/ads/v2Pronounce' // KINEO-ADS-DEMO-UNIVERSO-1410 — "como pronunciar a marca" (só a voz)
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -96,6 +97,12 @@ export async function POST(req: NextRequest) {
     // gravada (ok, ou "nada achado") é copiada — trocar voz, frases, preço, contato ou nível não paga outra pesquisa.
     const brief: Record<string, unknown> = { sentence: o.sentence, link: o.link }
     Object.assign(brief, cena.fields) // KINEO-ADS-CENA-2026-10-13 — brief.scene (só Comercial/Premium) e brief.kind; sem eles, o brief de antes
+    const pronounce = sanitizeAdsV2Pronounce((body as Record<string, unknown> | null)?.pronounce) // KINEO-ADS-DEMO-UNIVERSO-1410 — limpo de novo; inválido = ignorado (o anúncio sai com a voz de sempre)
+    if (pronounce) { // KINEO-ADS-DEMO-UNIVERSO-1410 — a fala vai à voz: a MESMA moderação do texto do anúncio
+      const fala = await moderateTopic({ entry: 'ads-v2-orders', userId: user.id, text: pronounce.say, language: o.language }) // KINEO-ADS-DEMO-UNIVERSO-1410
+      if (!fala.ok) return v2Fail('moderation', fala.status, { message: fala.message, category: fala.category }) // KINEO-ADS-DEMO-UNIVERSO-1410
+      brief.pronounce = pronounce // KINEO-ADS-DEMO-UNIVERSO-1410
+    } // KINEO-ADS-DEMO-UNIVERSO-1410
     if (o.mode === 'simple') {
       brief.mode = 'simple'
       brief.overlays = o.overlays !== false

@@ -464,8 +464,8 @@ await check('5i corpo ruim: 400 link_invalid antes do teto e da rede', async () 
   ok(/onPaste=\{\(e\) => \{[\s\S]*?void importLink\(pasted\)/.test(s) && /data-kineo="ads-link-import"/.test(s) && /<label htmlFor="adv2s-link">\{fc\.link\.title\}<\/label>/.test(s) && /placeholder=\{lcopy\.linkPlaceholder\}/.test(s) &&
     ordem(s, 'aria-labelledby="adv2s-s1"', 'data-kineo="ads-link-import"', 'aria-labelledby="adv2s-s2"') && /<p className="adsw-lead">\{lcopy\.lead\}<\/p>/.test(s),
   '6c tela: o campo "Or paste your product link" mora na seção das fotos; colar já busca; a linha de cima é a nova (16 línguas)')
-  ok(/link: linkRead,/.test(bloco(s, 'async function ensureDraft(')) && /lang: spoken, tier, link: linkRead \}\)/.test(s) && /\(p\.fromLink === true && sector === 'other'\) \? 'product' : photoKind/.test(s),
-    '6d o link LIDO vai no rascunho (fonte do roteiro) e entra na chave do rascunho; foto do link é produto quando o texto não reconheceu setor')
+  ok(/link: linkRead,/.test(bloco(s, 'async function ensureDraft(')) && /lang: spoken, tier, link: linkRead(, \.\.\.\(pronounce \? \{ pronounce \} : \{\}\))? \}\)/.test(s) && /\(p\.fromLink === true && sector === 'other'\) \? 'product' : photoKind/.test(s),
+    '6d o link LIDO vai no rascunho (fonte do roteiro) e entra na chave do rascunho; foto do link é produto quando o texto não reconheceu setor') // reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — a chave do rascunho ganhou a pronúncia da marca DEPOIS do link (o link continua nela)
 }
 
 // ═══ 7. as frases ════════════════════════════════════════════════════════════════════════════════════════════════════

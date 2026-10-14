@@ -97,21 +97,22 @@ export function readLinkFacts(html: string, pageUrl: string): LinkFacts {
   const metas = tags(head, 'meta')
   const links = tags(head, 'link')
   const ld = jsonLdNodes(head)
-  const product = ld.find((n) => typeIs(n, 'Product'))
+  const titleTag = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(head)?.[1] ?? '' // KINEO-ADS-DEMO-UNIVERSO-1410 — lido antes: a conferência do nome usa o título
+  const product = pageProduct(pageUrl, ld, metas, links, titleTag) // KINEO-ADS-DEMO-UNIVERSO-1410 — o produto DESTA página (nunca o 1º do carrossel de recomendados)
+  const nuvem = nuvemshopProduct(head) // KINEO-ADS-DEMO-UNIVERSO-1410 — LS.product/LS.variants da Nuvemshop
   const org = ld.find((n) => typeIs(n, 'Organization') || typeIs(n, 'LocalBusiness') || typeIs(n, 'Restaurant') || typeIs(n, 'Store'))
   let host = ''
   try { host = new URL(pageUrl).hostname.replace(/^www\./, '') } catch { /* fica vazio */ }
 
-  const titleTag = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(head)?.[1] ?? ''
-  const title = clean((product?.name as string) || metaContent(metas, 'og:title', 'twitter:title')[0] || titleTag, 160)
+  const title = clean((product?.name as string) || metaContent(metas, 'og:title', 'twitter:title')[0] || nuvem?.name || titleTag, 160) // KINEO-ADS-DEMO-UNIVERSO-1410 — + o nome da Nuvemshop antes do <title>
   const siteName = clean(metaContent(metas, 'og:site_name', 'application-name')[0] || (org?.name as string) || '', 80)
   const description = clean((product?.description as string) || metaContent(metas, 'og:description', 'description', 'twitter:description')[0] || '', 400)
 
   let price: string | null = null
   const offers = product?.offers
   const offer = (Array.isArray(offers) ? offers[0] : offers) as Json | undefined
-  const p = offer?.price ?? offer?.lowPrice ?? metaContent(metas, 'product:price:amount', 'og:price:amount')[0]
-  const cur = offer?.priceCurrency ?? metaContent(metas, 'product:price:currency', 'og:price:currency')[0]
+  const p = nuvem?.price ?? offer?.price ?? offer?.lowPrice ?? metaContent(metas, 'product:price:amount', 'og:price:amount')[0] // KINEO-ADS-DEMO-UNIVERSO-1410 — Nuvemshop: o preço de VENDA (o JSON-LD dela traz o "de")
+  const cur = (nuvem?.price ? nuvem.currency : null) ?? offer?.priceCurrency ?? metaContent(metas, 'product:price:currency', 'og:price:currency')[0] // KINEO-ADS-DEMO-UNIVERSO-1410
   if (p !== undefined && p !== null && String(p).trim() && /\d/.test(String(p))) price = `${String(cur ?? '').trim()} ${String(p).trim()}`.trim()
 
   // KINEO-ADS-TESTE1-2026-09-26 — relatório do Cowork: as "2 fotos" da Allbirds eram a MESMA imagem de compartilhamento
@@ -129,7 +130,8 @@ export function readLinkFacts(html: string, pageUrl: string): LinkFacts {
     seen.add(key)
     images.push(a)
   }
-  for (const c of imagesOf(product?.image)) push(c)
+  for (const c of imagesOf(product?.image)) push(largestImageVariant(c, head, pageUrl)) // KINEO-ADS-DEMO-UNIVERSO-1410 — a MAIOR versão que a página oferece
+  for (const c of nuvem?.images ?? []) push(c) // KINEO-ADS-DEMO-UNIVERSO-1410
   for (const c of pageImages) push(c)
   const beforeShare = images.length
   if (beforeShare === 0) for (const c of shareImages) push(c)
@@ -247,12 +249,13 @@ export function productImageCandidates(images: readonly unknown[], max = MAX_IMA
 /** As fotos que a página diz serem DO PRODUTO: JSON-LD Product.image; sem ela, og:image só se og:type = product. */
 export function productPageImages(html: string, pageUrl: string): string[] {
   const head = String(html ?? '').slice(0, 600_000)
-  const product = jsonLdNodes(head).find((n) => typeIs(n, 'Product'))
-  const fromLd = imagesOf(product?.image).map((u) => absolute(u, pageUrl)).filter((u): u is string => !!u)
+  const metas = tags(head, 'meta') // KINEO-ADS-DEMO-UNIVERSO-1410 — lido antes: a escolha do produto confere o nome com og:title
+  const product = pageProduct(pageUrl, jsonLdNodes(head), metas, tags(head, 'link'), /<title[^>]*>([\s\S]*?)<\/title>/i.exec(head)?.[1] ?? '') // KINEO-ADS-DEMO-UNIVERSO-1410 — o produto DESTA página
+  const nuvem = nuvemshopProduct(head) // KINEO-ADS-DEMO-UNIVERSO-1410
+  const fromLd = [...imagesOf(product?.image), ...(nuvem?.images ?? [])].map((u) => absolute(largestImageVariant(u, head, pageUrl), pageUrl)).filter((u): u is string => !!u) // KINEO-ADS-DEMO-UNIVERSO-1410 — a maior versão; + a foto da Nuvemshop
   if (fromLd.length) return fromLd
-  const metas = tags(head, 'meta')
   if (!metaContent(metas, 'og:type').some((t) => /product/i.test(t))) return []
-  return metaContent(metas, 'og:image', 'og:image:secure_url', 'og:image:url').map((u) => absolute(u, pageUrl)).filter((u): u is string => !!u)
+  return metaContent(metas, 'og:image', 'og:image:secure_url', 'og:image:url').map((u) => absolute(largestImageVariant(u, head, pageUrl), pageUrl)).filter((u): u is string => !!u) // KINEO-ADS-DEMO-UNIVERSO-1410 — a maior versão
 }
 
 /** A página é de uma loja Shopify (marcas do tema/CDN no HTML). */
@@ -310,4 +313,166 @@ export function preferJpegUrl(u: string): string {
   } catch {
     return u
   }
+}
+
+// ── KINEO-ADS-DEMO-UNIVERSO-1410 — O PRODUTO DESTA PÁGINA, nunca o do carrossel de recomendados ───────────────────────────
+// Demo de 14/10 para uma agência: o link de uma loja Nuvemshop (página do perfume Atheeri) virou "Delina – Parfums de Marly,
+// R$ 2.750" com foto de 480 px. Causa: o produto da página mora DENTRO do WebPage (mainEntity), que jsonLdNodes não abre, e o
+// 1º Product "solto" era o 1º do carrossel de recomendados (cada um declara a página DELE em mainEntityOfPage/offers.url).
+// Ordem nova: (1) Product cujo url/@id/offers.url/mainEntityOfPage é ESTA página (o endereço, og:url ou canonical; o mesmo
+// último trecho do caminho também vale: /collections/x/products/y = /products/y); (2) o mainEntity de um WebPage; (3) um
+// Product que não aponta para página nenhuma. Product que aponta para OUTRA página nunca entra. E o nome escolhido precisa
+// dividir uma palavra significativa com og:title/<title>/o slug do endereço; senão é descartado (fica og:title/título).
+// Foto: a MAIOR versão que a própria página cita (srcset/imagesrcset, ou o mesmo arquivo da Nuvemshop "-W-H.webp" em outro
+// tamanho). Nada é inventado: só endereço citado na página. Nuvemshop: LS.product (nome) e LS.variants (preço de venda, foto).
+
+/** KINEO-ADS-DEMO-UNIVERSO-1410 — "host/caminho" sem www, sem barra final, sem query/âncora; e o último trecho do caminho. */
+function pageKey(u: string, base: string): { full: string; last: string } | null {
+  try {
+    const x = new URL(decodeEntities(String(u).trim()), base)
+    const path = x.pathname.replace(/\/+$/, '').toLowerCase()
+    return { full: x.hostname.replace(/^www\./, '').toLowerCase() + path, last: path.split('/').pop() ?? '' }
+  } catch {
+    return null
+  }
+}
+
+/** KINEO-ADS-DEMO-UNIVERSO-1410 — os endereços que um Product DECLARA (url, @id, mainEntityOfPage, offers.url). */
+function productUrls(n: Json): string[] {
+  const out: string[] = []
+  const add = (v: unknown) => { if (typeof v === 'string' && v.trim() && !/^_:/.test(v) && !/^#/.test(v.trim())) out.push(v.split('#')[0]) }
+  add(n.url)
+  add(n['@id'])
+  const mep = n.mainEntityOfPage
+  if (typeof mep === 'string') add(mep)
+  else if (mep && typeof mep === 'object') { add((mep as Json)['@id']); add((mep as Json).url) }
+  for (const o of Array.isArray(n.offers) ? n.offers : [n.offers]) if (o && typeof o === 'object') add((o as Json).url)
+  return out.filter((u) => u.trim())
+}
+
+/** KINEO-ADS-DEMO-UNIVERSO-1410 — palavras que não identificam produto nenhum (ligação, "perfume", "feminino", "loja", "oficial"…). */
+const GENERIC_WORDS = new Set(['the', 'and', 'for', 'with', 'from', 'new', 'para', 'com', 'por', 'del', 'los', 'las', 'des', 'les', 'une', 'und', 'der', 'die', 'das', 'mit', 'von', 'kit', 'set', 'original', 'novo', 'nova', 'nuevo', 'nueva', 'nouveau', 'perfume', 'perfumes', 'parfum', 'parfums', 'eau', 'toilette', 'cologne', 'feminino', 'masculino', 'femenino', 'women', 'woman', 'men', 'man', 'unisex', 'produto', 'producto', 'product', 'produtos', 'productos', 'products', 'shop', 'store', 'loja', 'tienda', 'oficial', 'official', 'lacrado', 'html', 'php', 'www', 'net'])
+/** KINEO-ADS-DEMO-UNIVERSO-1410 — palavras significativas: sem acento, minúsculas, 3+ letras, sem número (nem número+unidade: 100ml, 2025) nem palavra genérica. */
+function significantWords(s: string): string[] {
+  return String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().split(/[^\p{L}\p{N}]+/u)
+    .filter((w) => w.length >= 3 && !/^\d+[a-z]{0,3}$/.test(w) && !GENERIC_WORDS.has(w))
+}
+
+/**
+ * KINEO-ADS-DEMO-UNIVERSO-1410 — o nome do produto confere com a página? true = divide pelo menos uma palavra significativa com
+ * um dos títulos (og:title, <title>) ou com o slug do endereço (plural/singular: prefixo comum de 5+ letras vale). Página sem
+ * título nem slug, ou nome só de palavras genéricas = nada a conferir (true). Puro.
+ */
+export function productNameMatchesPage(name: string | null | undefined, refs: { titles?: readonly (string | null | undefined)[]; url?: string | null }): boolean {
+  const mine = significantWords(decodeEntities(String(name ?? '')))
+  if (!mine.length) return true
+  let slug = ''
+  try { slug = decodeURIComponent(new URL(String(refs.url ?? '')).pathname) } catch { slug = '' }
+  const theirs = new Set([...(refs.titles ?? []).flatMap((t) => significantWords(decodeEntities(String(t ?? '')))), ...significantWords(slug.replace(/[-_/.]+/g, ' '))])
+  if (!theirs.size) return true
+  const same = (a: string, b: string) => a === b || (a.length >= 5 && b.length >= 5 && (a.startsWith(b) || b.startsWith(a)))
+  return mine.some((w) => [...theirs].some((t) => same(w, t)))
+}
+
+/**
+ * KINEO-ADS-DEMO-UNIVERSO-1410 — o JSON-LD Product DESTA página (endereço igual → mainEntity de um WebPage → Product que não
+ * aponta para página nenhuma), já conferido contra og:title/<title>/slug. undefined = nenhum confiável (fica og/título).
+ */
+function pageProduct(pageUrl: string, ld: Json[], metas: Record<string, string>[], links: Record<string, string>[], titleTag: string): Json | undefined {
+  const selves = [pageUrl, ...metaContent(metas, 'og:url'), ...links.filter((l) => /(^|\s)canonical(\s|$)/i.test(l.rel ?? '') && l.href).map((l) => l.href)]
+    .map((u) => pageKey(u, pageUrl)).filter((k): k is { full: string; last: string } => !!k)
+  const isSelf = (u: string) => { const k = pageKey(u, pageUrl); return !!k && selves.some((s) => s.full === k.full || (!!k.last && k.last === s.last)) }
+  const found: { node: Json; main: boolean }[] = []
+  for (const n of ld) {
+    if (typeIs(n, 'Product')) found.push({ node: n, main: false })
+    for (const k of ['mainEntity', 'mainEntityOfPage']) {
+      const v = n[k]
+      for (const x of Array.isArray(v) ? v : [v]) if (x && typeof x === 'object' && typeIs(x as Json, 'Product')) found.push({ node: x as Json, main: true })
+    }
+  }
+  const pick = found.find((c) => productUrls(c.node).some(isSelf))
+    ?? found.find((c) => c.main && productUrls(c.node).every(isSelf))
+    ?? found.find((c) => !productUrls(c.node).length)
+  if (!pick) return undefined
+  const ok = productNameMatchesPage(pick.node.name as string, { titles: [...metaContent(metas, 'og:title', 'twitter:title'), titleTag], url: pageUrl })
+  return ok ? pick.node : undefined
+}
+
+/** KINEO-ADS-DEMO-UNIVERSO-1410 — texto de string JS ('Atheeri – Lattafa' → "Atheeri – Lattafa"). */
+function decodeJsString(s: string): string {
+  return s.replace(/\\u([0-9a-fA-F]{4})/g, (_, h: string) => String.fromCharCode(parseInt(h, 16))).replace(/\\(["'\\/])/g, '$1')
+}
+
+/**
+ * KINEO-ADS-DEMO-UNIVERSO-1410 — Nuvemshop (Tiendanube): o tema escreve o produto da página em `LS.product = { …name : '…' }` e as
+ * variantes em `LS.variants = [ … ]` (JSON: price_number = preço de VENDA, image_url = a foto 1024). null = não é Nuvemshop.
+ */
+export function nuvemshopProduct(html: string | null | undefined): { name: string; price: string | null; currency: string | null; images: string[] } | null {
+  const h = String(html ?? '').slice(0, 600_000)
+  const pm = /LS\.product\s*=\s*\{([^;]*?)\}\s*;/.exec(h)
+  if (!pm) return null
+  const nm = /\bname\s*:\s*(?:'((?:[^'\\]|\\.)*)'|"((?:[^"\\]|\\.)*)")/.exec(pm[1])
+  const name = clean(decodeJsString(nm?.[1] ?? nm?.[2] ?? ''), 160)
+  const id = /\bid\s*:\s*(\d+)/.exec(pm[1])?.[1] ?? null
+  let price: string | null = null
+  const images: string[] = []
+  const vm = /LS\.variants\s*=\s*(\[[\s\S]*?\])\s*;/.exec(h)
+  if (vm) {
+    try {
+      const vs = (JSON.parse(vm[1]) as unknown[]).filter((v): v is Json => !!v && typeof v === 'object' && (!id || String((v as Json).product_id) === id))
+      const v = vs.find((x) => x.available !== false) ?? vs[0]
+      if (v && v.price_number !== undefined && v.price_number !== null && /\d/.test(String(v.price_number))) price = String(v.price_number).trim()
+      for (const x of vs) if (typeof x.image_url === 'string' && x.image_url.trim()) images.push(x.image_url.trim())
+    } catch { /* JSON quebrado: sem preço/foto da Nuvemshop */ }
+  }
+  const currency = /LS\.currency\s*=\s*\{[^}]*?\bcode\s*:\s*["']([A-Z]{3})["']/.exec(h)?.[1] ?? null
+  if (!name && !price && !images.length) return null
+  return { name, price, currency, images: [...new Set(images)] }
+}
+
+/**
+ * KINEO-ADS-DEMO-UNIVERSO-1410 — a MAIOR versão da mesma foto que a página cita: (a) num srcset/imagesrcset/data-srcset que contém o
+ * arquivo, a entrada de maior largura; (b) Nuvemshop "<arquivo>-W-H.ext" citado em outro tamanho (também escapado em JSON), o de
+ * maior W. Nada citado maior = o endereço de entrada (absoluto). Puro.
+ */
+export function largestImageVariant(u: string, html: string, base: string): string {
+  const abs = absolute(u, base)
+  if (!abs) return u
+  let file = ''
+  try { file = new URL(abs).pathname.split('/').pop() ?? '' } catch { return u }
+  if (!file) return abs
+  let best = abs
+  let bestW = 0
+  const sets = /\b(?:srcset|imagesrcset|data-srcset)\s*=\s*("([^"]*)"|'([^']*)')/gi
+  let m: RegExpExecArray | null
+  let guard = 0
+  while ((m = sets.exec(html)) && guard++ < 400) {
+    const set = decodeEntities(m[2] ?? m[3] ?? '')
+    if (!set.includes(file)) continue
+    for (const part of set.split(',')) {
+      const [src, d] = part.trim().split(/\s+/)
+      const w = /^\d+w$/.test(d ?? '') ? parseInt(d, 10) : 0
+      const a = src ? absolute(src, base) : null
+      if (a && w > bestW) { best = a; bestW = w }
+    }
+  }
+  const nv = /^(.+)-(\d+)-(\d+)\.(webp|jpe?g|png)$/i.exec(file)
+  if (nv) {
+    const esc = nv[1].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const re = new RegExp(`${esc}-(\\d+)-(\\d+)\\.${nv[4]}`, 'gi')
+    let top = Math.max(bestW, parseInt(nv[2], 10) || 0)
+    let k: RegExpExecArray | null
+    let n = 0
+    while ((k = re.exec(html)) && n++ < 200) {
+      const w = parseInt(k[1], 10) || 0
+      if (w <= top) continue
+      try {
+        const x = new URL(abs)
+        x.pathname = x.pathname.replace(/[^/]+$/, `${nv[1]}-${k[1]}-${k[2]}.${nv[4]}`)
+        best = x.toString()
+        top = w
+      } catch { /* fica o melhor até aqui */ }
+    }
+  }
+  return best
 }

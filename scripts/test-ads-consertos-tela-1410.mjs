@@ -27,6 +27,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semReteste1510 } from './test-support/desfaz-reteste-1510.mjs' // reancorado KINEO-ADS-RETESTE-1510
+import { semDemoUniverso1410 } from './test-support/desfaz-ads-demo-universo-1410.mjs' // reancorado KINEO-ADS-DEMO-UNIVERSO-1410
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -106,7 +107,7 @@ const semConsertoEstilo = (s) => {
   return t.replace('export function adsV2SuggestedStyle(sector: AdsV2StyleSector | string | null | undefined, sentence?: string | null): AdsV2StyleChoice {', 'export function adsV2SuggestedStyle(sector: AdsV2StyleSector | string | null | undefined): AdsV2StyleChoice {')
 }
 // reancorado KINEO-ADS-RETESTE-1510 — o v2Styles perdeu o dolly_zoom (reteste 15/10): desfeito esse corte (diff reverso exato), vale a prova de sempre.
-ok(sha(semConsertoEstilo(semReteste1510(F.styles, read(F.styles))) ?? '') === ESTILOS_BASE_SHA, '3b v2Styles sem os 2 trechos marcados = o arquivo da base byte a byte (nada de preço/plano/débito mexido)')
+ok(sha(semConsertoEstilo(semReteste1510(F.styles, semDemoUniverso1410(F.styles, read(F.styles)))) ?? '') === ESTILOS_BASE_SHA, '3b v2Styles sem os 2 trechos marcados = o arquivo da base byte a byte (nada de preço/plano/débito mexido)')
 const chamadaOk = (s) => /const styleSuggested: AdsV2StyleChoice = sentence && sector !== 'other' \? adsV2SuggestedStyle\(sector, sentence\) : 'none'/.test(s)
 ok(chamadaOk(read(F.simple)), '3c a tela passa a frase à sugestão (só com setor reconhecido, como antes)')
 
@@ -128,7 +129,7 @@ const vozTelaOk = (s) => /const shortLang = detected \? null : detectShortTextLa
   /const spoken: NarrationLanguage = voiceLang \?\? narrationLanguage\(detected\) \?\? shortLang \?\? narrationLanguage\(lang\) \?\? 'en'/.test(s) &&
   /\{voiceUnsure \? \(\s*<p className="adsw-hint adv2s-voiceask" role="status" data-kineo="ads-voice-ask">/.test(s) &&
   s.indexOf('data-kineo="ads-voice-ask"') > s.indexOf('<label className="adv2s-lang">') && s.indexOf('data-kineo="ads-voice-ask"') < s.indexOf('<details className="adv2s-more"')
-ok(vozTelaOk(read(F.simple)), '4d a tela: escolha da pessoa → detector de sempre → frase curta → interface; sem certeza, o aviso ao lado do seletor "Voz em" (fora de "Mais")')
+ok(vozTelaOk(semDemoUniverso1410(F.simple, read(F.simple))), '4d a tela: escolha da pessoa → detector de sempre → frase curta → interface; sem certeza, o aviso ao lado do seletor "Voz em" (fora de "Mais")') // reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — 3b e 4d leem o texto de ANTES da demo de 14/10 (a língua do LINK entra entre a frase curta e a interface; prova nova em scripts/test-ads-demo-universo-1410.mjs)
 
 // ═══ 5. cartão sem chamada (#6) ════════════════════════════════════════════════════════════════════════════════════
 console.log('\n5. aviso do cartão final sem chamada')

@@ -31,6 +31,7 @@ import { persistRenderAssets } from '@/lib/renderAssets'
 import { renderOutputSpecFor } from '@/lib/renderProfile'
 import { captionFontFor, narrationLanguage } from '@/lib/textLanguage'
 import { speakableForTts } from '@/lib/ads/speakable'
+import { adsV2NarrationForTts, adsV2PronounceOf } from '@/lib/ads/v2Pronounce' // KINEO-ADS-DEMO-UNIVERSO-1410 — a marca dita como a pessoa ensinou (só na voz)
 import { writeServerEvent } from '@/lib/serverEvents'
 import { buildShotInput } from '@/lib/ads/v2Engines'
 import { ADS_V2_ENGINES, ADS_V2_FALLBACK_FROM_ATTEMPT, adsV2RetakeCredits, routeShot, type AdsV2Engine, type AdsV2ShotKind, type AdsV2Tier } from '@/lib/ads/v2Tiers'
@@ -641,7 +642,7 @@ async function ensureAdsV2Voice(admin: SupabaseClient, order: AdsV2OrderRow): Pr
   try {
     // KINEO-ATORES-IA-2026-10-13 — apresentador escolhido = a voz DELE (sem cair na voz de sempre: boca e voz casadas);
     // sem escolha, a chamada de sempre.
-    const buf = await adsV2NarrationVoice(order, speakableForTts(narration, language), false)
+    const buf = await adsV2NarrationVoice(order, speakableForTts(adsV2NarrationForTts(narration, adsV2PronounceOf(order.brief)), language), false) // KINEO-ADS-DEMO-UNIVERSO-1410 — sem pronúncia = o texto de sempre
     const voiceSeconds = Math.round(estimateMp3DurationSeconds(buf) * 1000) / 1000
     const voiceUrl = await uploadVoiceoverToSupabase(order.user_id, buf)
     const w = await admin.from('ads_v2_orders').update({ voice_url: voiceUrl, voice_seconds: voiceSeconds }).eq('id', order.id).is('voice_url', null).select('id').maybeSingle()
@@ -718,7 +719,7 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
   if (narration && (!voiceUrl || !voiceSeconds)) {
     // KINEO-ATORES-IA-2026-10-13 — aqui o ator já desistiu (senão a voz estaria gravada): a voz do apresentador escolhido,
     // e se ela falhar, a de sempre (o pedido nunca trava por isso). Sem escolha, a chamada de sempre.
-    const buf = await adsV2NarrationVoice(order, speakableForTts(narration, language), true)
+    const buf = await adsV2NarrationVoice(order, speakableForTts(adsV2NarrationForTts(narration, adsV2PronounceOf(order.brief)), language), true) // KINEO-ADS-DEMO-UNIVERSO-1410 — sem pronúncia = o texto de sempre
     voiceSeconds = Math.round(estimateMp3DurationSeconds(buf) * 1000) / 1000
     voiceUrl = await uploadVoiceoverToSupabase(order.user_id, buf)
     await admin.from('ads_v2_orders').update({ voice_url: voiceUrl, voice_seconds: voiceSeconds }).eq('id', order.id)

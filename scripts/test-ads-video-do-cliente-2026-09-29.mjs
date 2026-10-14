@@ -369,7 +369,7 @@ const advStubs = {
 // carregada de verdade, não stub — chave 'adsv2-…' segue o caminho de sempre em tudo que este guardião prova.
 // KINEO-ATOR-ANUNCIO-2026-10-09 — re-ancorado: o v2Advance importa a lib PURA lib/ads/v2Presenter.ts (o ator de IA); carregada de
 // verdade — pedido sem plan.presenter (todos os daqui) segue o caminho de sempre.
-const REAL = ['lib/ads/v2Engines.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/adV2Montage.ts', 'lib/ads/v2Music.ts', 'lib/ads/v2Variations.ts', 'lib/ads/sample.ts', 'lib/ads/v2Presenter.ts']
+const REAL = ['lib/ads/v2Engines.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2ShotLists.ts', 'lib/ads/adV2Montage.ts', 'lib/ads/v2Music.ts', 'lib/ads/v2Variations.ts', 'lib/ads/sample.ts', 'lib/ads/v2Presenter.ts', 'lib/ads/v2Pronounce.ts'] // reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — o v2Advance importa a lib PURA lib/ads/v2Pronounce.ts (a marca dita como a pessoa ensinou, só na voz); carregada de verdade — pedido sem brief.pronounce = a narração de sempre
 const avanco = (src) => makeLoader(advStubs, { real: REAL, over: src === undefined ? {} : { [F.advance]: src } })(F.advance)
 const A = avanco()
 const ORDER = U(1), USER = U(9)
