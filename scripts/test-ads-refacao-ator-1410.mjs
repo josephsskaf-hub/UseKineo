@@ -320,7 +320,8 @@ const telaOk = (simple, client) =>
   /expected_credits: adsV2RedoPrice\(shot\.retake_credits, order\.first_redo_free\)/.test(client) &&
   /\{redo\.free \? 'Redo this shot · free' : `Redo this shot · \$\{s\.retake_credits\} credits`\}/.test(client) &&
   /free: order\.first_redo_free === true,/.test(client) &&
-  (simple.match(/'\/api\/ads\/v2\/retake'/g) ?? []).length === 1 && (client.match(/'\/api\/ads\/v2\/retake'/g) ?? []).length === 1
+  (simple.match(/'\/api\/ads\/v2\/retake'/g) ?? []).length === 1 && (client.match(/'\/api\/ads\/v2\/retake'/g) ?? []).length === 1 &&
+  [simple, client].every((s) => { const i = s.indexOf('function applyView(v: StatusView)'); return i >= 0 && s.slice(i, s.indexOf("if ('video' in v)", i)).includes('...(v.first_redo_free === true ? { first_redo_free: true } : {})') }) // a vista do /status chega ao estado da tela
 await check('A6d a tela (modo simples e completo): manda 0 só quando o /status disse first_redo_free; botão "Refazer esta cena · grátis" e a confirmação "de graça" só aí; senão o preço de sempre', () => telaOk(SRC.simple, SRC.client))
 const copyOk = (src) => {
   const R = puro(src ? { [F.redo]: src } : {})(F.redo)
@@ -465,6 +466,7 @@ await vermelho('M9 sem o rótulo de IA na vista → B4', () => rotuloOk(trocar(S
 await vermelho('M10 a tela simples manda o preço cheio mesmo na grátis → A6d', () => telaOk(trocar(SRC.simple, 'expected_credits: adsV2RedoPrice(shot.retake_credits, order.first_redo_free)', 'expected_credits: shot.retake_credits'), SRC.client))
 await vermelho('M11 o /status anuncia grátis em anúncio em andamento → A5', () => a5(mut(F.status, "view.status === 'delivered' ? (await adsV2FirstRedoFor(admin, order, uid))?.free === true : false", '(await adsV2FirstRedoFor(admin, order, uid))?.free === true')))
 await vermelho('M12 amostra ganha a grátis (sem a trava da chave adssample-) → A4', () => a4(mut(F.free, '  if (typeof parent.billing_ref === \'string\' && parent.billing_ref.startsWith(ADS_V2_FREE_REDO_SAMPLE_PREFIX)) return { free: false, seed }\n', '')))
+await vermelho('M14 a tela joga fora o first_redo_free do /status (applyView) → A6d', () => telaOk(trocar(SRC.simple, '      ...(v.first_redo_free === true ? { first_redo_free: true } : {}),', ''), SRC.client))
 await vermelho('M13 português da refação grátis copiado do inglês → A6e', () => copyOk(trocar(SRC.redo, "pt: { button: 'Refazer esta cena · grátis'", "pt: { button: 'Redo this scene · free'")))
 
 console.log(`\ntest-ads-refacao-ator-1410: ${pass} verdes, ${fail} vermelhos`)

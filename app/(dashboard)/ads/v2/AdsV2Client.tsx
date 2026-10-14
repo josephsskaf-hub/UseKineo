@@ -919,6 +919,7 @@ function AdsV2Session({
       error: v.error,
       parent_order_id: v.parent_order_id,
       shots: Array.isArray(v.shots) ? v.shots : [],
+      ...(v.first_redo_free === true ? { first_redo_free: true } : {}), // KINEO-ADS-REFACAO-ATOR-1410 — o /status disse que a próxima refação é grátis
     })
     if ('video' in v) setVideo(v.video ?? null)
     if (isActiveOrderStatus(v.status)) {
