@@ -27,6 +27,7 @@ import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
 import ts from 'typescript'
+import { desfazParceiroEyebible1410 } from './test-support/desfaz-parceiro-eyebible-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-1410 [TRAVA 8.2 — vai do fundador 14/10]
 import { semContratoClassicos1410, MARCA_CONTRATO_CLASSICOS_1410 as MARCA } from './test-support/desfaz-contrato-classicos-1410.mjs'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -182,7 +183,10 @@ try { rotaDesfeita = semContratoClassicos1410(atual.rota, ROTA); libDesfeita = s
 checa('a base existe e NÃO tem a marca', Boolean(baseRota) && !baseRota.includes(MARCA) && Boolean(baseLib) && !baseLib.includes(MARCA))
 checa('rota: desfeito o conserto, byte a byte igual à base', rotaDesfeita !== null && rotaDesfeita === baseRota)
 checa('sceneTruth: desfeito o conserto, byte a byte igual à base', libDesfeita !== null && libDesfeita === baseLib)
-checa('visualMode intocado (proibidosPorModo é a régua dos dois caminhos)', rdBase(MODO) === atual.modo)
+// reancorado KINEO-PARCEIRO-EYEBIBLE-1410 [TRAVA 8.2 — vai do fundador 14/10]: o decidirFormato ganhou a regra "2+ falas de personagem → character_story"
+// (Robert/EyeBible), só em linhas marcadas; desfeitas, o arquivo é a base. A régua dos dois caminhos (proibidosPorModo em diante) segue byte a byte.
+checa('visualMode intocado (proibidosPorModo é a régua dos dois caminhos)', rdBase(MODO) === desfazParceiroEyebible1410(MODO, atual.modo)) // KINEO-PARCEIRO-EYEBIBLE-1410
+checa('proibidosPorModo em diante: byte a byte a base, sem desfazer nada', Boolean(rdBase(MODO)) && atual.modo.slice(atual.modo.indexOf('export function proibidosPorModo')) === rdBase(MODO).slice(rdBase(MODO).indexOf('export function proibidosPorModo')) && atual.modo.includes('export function proibidosPorModo')) // KINEO-PARCEIRO-EYEBIBLE-1410
 checa('toda linha nova/trocada da rota e do sceneTruth leva a marca (o diff não tem linha sem marca)', (() => {
   if (!BASE) return false
   const d = git(['diff', BASE, '--', ROTA, LIB]).replace(/\r/g, '')

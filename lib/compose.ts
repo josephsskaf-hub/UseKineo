@@ -1783,6 +1783,7 @@ export function buildCaptionElements({
     y: ACTIVE_ASPECT.captionBottomY,
     y_anchor: '100%',
     width: ACTIVE_ASPECT.captionWidth,
+    ...(ACTIVE_ASPECT.captionXAlignment ? { x_alignment: ACTIVE_ASPECT.captionXAlignment } : {}), // KINEO-PARCEIRO-EYEBIBLE-1410 — 16:9/1:1/4:5 centralizados; 9:16 sem a chave (byte a byte igual)
     font_family: ACTIVE_CAPTION_FONT, // KINEO-IDIOMAS-15: por idioma
     // PUSH #93 (FIX 4) — the opening chunk is rendered larger so the hook lands
     // with weight. Still bottom-anchored, so the extra height grows upward and

@@ -29,6 +29,7 @@ import { CLIP_PROMPT_MAX_CHARS } from '@/lib/analyzeLimits'
 // bucket; a rota não passava pela régua. Agora o texto é conferido ANTES do débito e do fal. Falha fechada.
 import { moderateContent } from '@/lib/safety/contentModeration'
 import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/moderationPolicy'
+import { moderateTopic } from '@/lib/safety/topicModeration' // KINEO-MODERACAO-1410 [TRAVA 8.2 — vai do fundador 14/10] — a régua completa no texto do clipe
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -69,6 +70,8 @@ export async function POST(req: NextRequest) {
       { status: moderationRefusalStatus(safety.reason) },
     )
   }
+  const temaDoClipe = await moderateTopic({ entry: 'generate-clip', userId: user.id, text: prompt, meta: { seconds, aspect } }) // KINEO-MODERACAO-1410 — antes do débito; fora do ar = segue (falha aberta)
+  if (!temaDoClipe.ok) return NextResponse.json({ error: temaDoClipe.message, code: 'moderation', category: temaDoClipe.category }, { status: temaDoClipe.status }) // KINEO-MODERACAO-1410
 
   const renderId = `clip-${randomUUID()}`
 

@@ -435,8 +435,40 @@ export function isCharacterSheetLine(line: string): boolean {
   const body = m[1]
   // fala de personagem tem aspas ou é curta; ficha é descrição com vocabulário de ficha
   if (/^["“'‘]/.test(body)) return false
+  if (DIALOGUE_SPEECH_CUE.test(body)) return false // KINEO-PARCEIRO-EYEBIBLE-1410 — "Captain: Look at his eyes!" é FALA (exclamação/eu/você), não ficha: nunca apagar
   return SHEET_VOCAB.test(body)
 }
+// ═══ KINEO-PARCEIRO-EYEBIBLE-1410 — FALA DE PERSONAGEM EM ROTEIRO ("CAPTAIN: “Help me carry him.”") ═══
+// Robert (EyeBible, Seedance 60 s, 14/10): o narrador leu "Young soldier… Captain…" em voz alta — o rótulo do personagem [KINEO-PARCEIRO-EYEBIBLE-1410]
+// passava inteiro para a voz. Convenção de roteiro: nome do papel em CAIXA ALTA + dois-pontos + a fala. Lemos a FALA, [KINEO-PARCEIRO-EYEBIBLE-1410]
+// sem o nome (a voz é uma só; um narrador dizendo "Capitão:" antes de cada fala não é personagem, é leitura de ficha). [KINEO-PARCEIRO-EYEBIBLE-1410]
+// Ficha ("LUMI: a small robot with big eyes… childlike voice") NÃO é fala: sem aspas, sem exclamação/pergunta e sem eu/você [KINEO-PARCEIRO-EYEBIBLE-1410]
+// ela continua saindo pelo isCharacterSheetLine. Papel com número ("TIP 1:") só com aspas — listicle não perde a numeração. [KINEO-PARCEIRO-EYEBIBLE-1410]
+const DIALOGUE_ROLE_HEAD = /^(\p{Lu}[\p{L}\p{N}'’.-]{0,24}(?:\s+(?:#?\d{1,2}|\p{Lu}[\p{L}\p{N}'’.-]{0,24})){0,3})\s*(?:\([^)]{1,40}\))?\s*[:：]\s*(\S.*)$/u // KINEO-PARCEIRO-EYEBIBLE-1410
+const DIALOGUE_QUOTE_OPEN = /^["“„«‘']/ // KINEO-PARCEIRO-EYEBIBLE-1410
+const DIALOGUE_SPEECH_CUE = /[!?]["”»’']?\s*$|(?<![\p{L}\p{N}'’])(?:i|me|my|we|us|our|you|your|let|eu|nós|você|vocês|yo|nosotros|usted)(?![\p{L}\p{N}])/iu // KINEO-PARCEIRO-EYEBIBLE-1410
+function dialogueParts(line: string): { role: string; fala: string; caixaAlta: boolean } | null { // KINEO-PARCEIRO-EYEBIBLE-1410
+  const u = unwrapLabelHead(line) // KINEO-PARCEIRO-EYEBIBLE-1410
+  if (!u || u.length > 600) return null // KINEO-PARCEIRO-EYEBIBLE-1410
+  if (SPEECH_LABEL_LINE.test(u) || STAGE_LABEL_LINE.test(u) || BEAT_LABEL_HEAD.test(u) || SCENE_HEADER_LINE.test(u) || TIMECODE_LINE.test(u) || DIRECTIVE_LINE.test(u)) return null // KINEO-PARCEIRO-EYEBIBLE-1410
+  const m = u.match(DIALOGUE_ROLE_HEAD) // KINEO-PARCEIRO-EYEBIBLE-1410
+  if (!m) return null // KINEO-PARCEIRO-EYEBIBLE-1410
+  const role = m[1].trim() // KINEO-PARCEIRO-EYEBIBLE-1410
+  return { role, fala: m[2].trim(), caixaAlta: !/\p{Ll}/u.test(role) && (role.match(/\p{Lu}/gu) ?? []).length >= 2 } // KINEO-PARCEIRO-EYEBIBLE-1410
+} // KINEO-PARCEIRO-EYEBIBLE-1410
+/** KINEO-PARCEIRO-EYEBIBLE-1410 — a fala sem o nome do papel, ou null quando a linha não é fala de personagem. */
+export function dialogueSpeech(line: string, cenaDeDialogo: boolean): string | null { // KINEO-PARCEIRO-EYEBIBLE-1410
+  const d = dialogueParts(line) // KINEO-PARCEIRO-EYEBIBLE-1410
+  if (!d || !d.caixaAlta) return null // KINEO-PARCEIRO-EYEBIBLE-1410 — papel em caixa mista ("Einstein: “…”") segue como sempre: atribuição é conteúdo
+  if (DIALOGUE_QUOTE_OPEN.test(d.fala)) return d.fala // KINEO-PARCEIRO-EYEBIBLE-1410 — CAIXA ALTA + fala entre aspas: convenção de roteiro
+  if (/\d/.test(d.role) || !cenaDeDialogo) return null // KINEO-PARCEIRO-EYEBIBLE-1410
+  if (!DIALOGUE_SPEECH_CUE.test(d.fala) || isInstructionLine(d.fala)) return null // KINEO-PARCEIRO-EYEBIBLE-1410 — sem ato de fala, pode ser ficha: não mexe
+  return d.fala // KINEO-PARCEIRO-EYEBIBLE-1410
+} // KINEO-PARCEIRO-EYEBIBLE-1410
+/** KINEO-PARCEIRO-EYEBIBLE-1410 — quantas linhas do texto são fala de personagem com papel em CAIXA ALTA (aspas ou ato de fala). */
+export function contaFalasDePersonagem(raw: string): number { // KINEO-PARCEIRO-EYEBIBLE-1410
+  return (raw ?? '').toString().split(/\r?\n/).filter((l) => dialogueSpeech(l, true) !== null).length // KINEO-PARCEIRO-EYEBIBLE-1410
+} // KINEO-PARCEIRO-EYEBIBLE-1410
 /** Texto que é um BRIEFING (ficha + instruções) e não uma narração: ≥2 linhas de ficha/instrução e nenhum rótulo de fala. */
 export function looksLikeBrief(raw: string): boolean {
   const lines = (raw ?? '').toString().split(/\r?\n/).map((l) => unwrapLabelHead(l)).filter(Boolean)
@@ -513,6 +545,7 @@ export function screenplaySpeechOnly(raw: string): string | null {
     return Boolean(u) && SPEECH_LABEL_LINE.test(u) && !isVoiceSpecLine(u)
   }).length
   if (rotulos < 2) return null
+  const cenaDeDialogo = contaFalasDePersonagem(raw) >= 2 // KINEO-PARCEIRO-EYEBIBLE-1410
 
   const guardadas: string[] = []
   let dentro = false
@@ -525,6 +558,7 @@ export function screenplaySpeechOnly(raw: string): string | null {
       if (resto) guardadas.push(resto)
       continue
     }
+    if (dialogueSpeech(u, cenaDeDialogo) !== null) { guardadas.push(u); continue } // KINEO-PARCEIRO-EYEBIBLE-1410 — fala de personagem nunca cai fora do roteiro de cinema
     if (isStageDirectionLine(line) || sectionHeaderName(line) !== null) {
       dentro = false
       continue
@@ -535,7 +569,7 @@ export function screenplaySpeechOnly(raw: string): string | null {
   return junto ? junto : null
 }
 
-function cleanNarration(raw: string, lenient = false, roteiroDeCinema = true): string {
+function cleanNarration(raw: string, lenient = false, roteiroDeCinema = true, cenaDeDialogo = contaFalasDePersonagem(raw) >= 2): string { // KINEO-PARCEIRO-EYEBIBLE-1410
   // KINEO-ROTEIRO-DE-CINEMA-2026-09-03: regra 5 primeiro (fala rotulada manda
   // em tudo); sem rotulo de fala, so o preambulo do assistente sai do topo.
   const base = roteiroDeCinema
@@ -568,6 +602,8 @@ function cleanNarration(raw: string, lenient = false, roteiroDeCinema = true): s
     // Regras 1-3: rotulo de producao, marcacao de tempo e cabecalho de cena
     // nunca sao fala - nem no modo tolerante, onde salvar palavras jamais
     // pode virar o narrador lendo "Visual dois pontos".
+    const falaDePersonagem = roteiroDeCinema ? dialogueSpeech(linha, cenaDeDialogo) : null // KINEO-PARCEIRO-EYEBIBLE-1410
+    if (falaDePersonagem) { kept.push(falaDePersonagem); continue } // KINEO-PARCEIRO-EYEBIBLE-1410 — "CAPTAIN: “Hold!”" → a voz lê "“Hold!”"
     if (roteiroDeCinema && isStageDirectionLine(linha)) continue
     // KINEO-BRIEF-NAO-E-FALA-2026-09-12 — instrução ao modelo e ficha de personagem nunca são fala.
     if (roteiroDeCinema && ((isInstructionLine(linha) && !instructionOnlyByAmbiguousNoun(linha)) || isCharacterSheetLine(linha))) continue // KINEO-PARSER-VOICE-1510
@@ -692,7 +728,7 @@ export function parseUserScript(raw: string): ParsedScript {
     const { end, query } = markers[i]
     if (!query) continue
     const followEnd = i + 1 < markers.length ? markers[i + 1].start : text.length
-    const voiceover = cleanNarration(text.slice(end, followEnd))
+    const voiceover = cleanNarration(text.slice(end, followEnd), false, true, contaFalasDePersonagem(text) >= 2) // KINEO-PARCEIRO-EYEBIBLE-1410 — o trecho herda o contexto de diálogo do roteiro inteiro
     segments.push({ voiceover, pexelsQuery: query })
   }
 

@@ -77,6 +77,7 @@ import { alertCreatomateDown } from '@/lib/creatomateAlert'
 import { checkCreatomateQuota } from '@/lib/creatomateQuota'
 import { inspectActiveComposeCreditHolds } from '@/lib/credits/composeHold'
 import { loadVerifiedCinematicClaim, cinematicJobsAreTerminal, type CinematicClaim } from '@/lib/cinematic/claim'
+import { duracaoDoFilmeAssinada } from '@/lib/cinematic/duracaoDoFilme' // KINEO-PARCEIRO-EYEBIBLE-1410
 import { sobretaxaAssinadaDaEstrela } from '@/lib/estrelaDoFilme' // KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01
 import { readVerifiedSceneRetryHold, releaseSceneRetryMutex, type SceneRetryMutex } from '@/lib/cinematic/sceneRetry'
 import { classicSceneRetryHoldResolvable } from '@/lib/classicSceneRetry' // KINEO-CENA-CLASSICA-2026-09-28
@@ -3442,7 +3443,7 @@ export async function POST(req: NextRequest) {
         voiceoverUrl,
         voiceoverScript: scaledScript,
         sceneCaptions,
-        duration,
+        duration: duracaoDoFilmeAssinada({ pedida: duration, quality, claimResponse: cinematicBirthClaim?.response }), // KINEO-PARCEIRO-EYEBIBLE-1410 — verbatim clássico que o servidor desceu (35 s assinados) não estica para 61,5 s
         aspect: aspectRequested, // KINEO-MULTIFORMATO-2026-09-02
         quality,
         realAudioDuration,

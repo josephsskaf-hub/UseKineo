@@ -416,6 +416,7 @@ ok(await ordersOk(), '5f /orders do MEMBRO: o pedido nasce do DONO (user_id) com
 
 // ═══ 6. fiação: todas as rotas do Ads v2 pedem o workspace; user.id só sobra onde é do ATOR ══════════════════════════
 const ATOR_OK = [
+  /moderateTopic\(\{ entry: 'ads-v2-orders', userId: user\.id, /, // reancorado KINEO-MODERACAO-1410 — a régua completa da frase/cena registra o ATOR (como a moderação da cena logo acima)
   /loadAdsAccess\(user\.id, user\.email, \{ workspace: true \}\)/,
   /const uid: string = (ws|access)\.ownerId \?\? user\.id/,
   /name: 'ads_access_denied', userId: user\.id/,

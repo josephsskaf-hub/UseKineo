@@ -306,6 +306,7 @@ function mundo(order, extra = {}) {
   const stubs = {
     '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: { id: USER, email: 'teste@exemplo.com' } } }) } }) },
     '@/lib/serverEvents': { writeServerEvent: async (e) => { log.events.push(e); tables.events.push({ id: `ev-${tables.events.length + 1}`, user_id: e.userId, name: e.name, created_at: new Date().toISOString() }) } },
+    '@/lib/safety/topicModeration': { moderateTopic: async () => ({ ok: true, mode: 'enforce', wouldBlock: [], unavailable: false }) }, // reancorado KINEO-MODERACAO-1410 — a régua completa do /orders (rede) passa neste mundo
     '@/lib/safety/contentModeration': { moderateContent: async (a) => { log.moderation.push({ text: a.text, lockState: tables.ads_v2_orders[0]?.brief?.research?.status ?? null }); return { ok: true } } },
     '@/lib/safety/moderationPolicy': { moderationRefusalMessage: () => 'blocked', moderationRefusalStatus: () => 422 },
     '@/lib/ads/serverAccess': { adsGate: () => 'ok', isMissingAdsTable: () => false, loadAdsAccess: async () => ({ admin, reason: 'internal' }) },

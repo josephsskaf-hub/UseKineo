@@ -74,6 +74,15 @@ function pedidoInteiro(r: string, p: string): boolean {
   return new RegExp('(?:^|[^a-z0-9])' + alvo + '(?:[^a-z0-9]|$)').test(r)
 }
 
+// ═══ KINEO-PARCEIRO-EYEBIBLE-1410 — ROTEIRO COM FALA DE PERSONAGEM É HISTÓRIA COM PERSONAGEM, NÃO DOCUMENTÁRIO SEM ROSTO ═══
+// Robert (EyeBible, Seedance 60 s, 14/10): "CAPTAIN: “Help me carry him.”" / "YOUNG SOLDIER: “He’s still alive!”" caiu no padrão [KINEO-PARCEIRO-EYEBIBLE-1410]
+// documentary_faceless: as cenas pediam "close-up… their faces" e o sufixo dizia "no foreground human faces"; o capitão mudava de [KINEO-PARCEIRO-EYEBIBLE-1410]
+// cena em cena. Duas ou mais falas de papel em CAIXA ALTA (aspas, ou ! / ?) = gente na cena, muda, narrador por cima. [KINEO-PARCEIRO-EYEBIBLE-1410]
+const FALA_DE_PERSONAGEM_RE = /^[\s>*_#•\-–—]*(?!(?:HOOK|GANCHO|INTRO|OUTRO|CTA|PAYOFF|PAGAMENTO|ESCALATION|ESCALADA|RHYTHM|RITMO|MICRO|BEAT|SCENE|CENA|FACT|FATO|PART|STEP|NARRATOR|NARRATION|NARRADOR|NARRADORA|VOICEOVER|VOICE|VO|TITLE|VISUAL|VISUALS|CAMERA|SFX|MUSIC|NOTE|NOTES|TEXT|ON-SCREEN)(?![\p{L}]))(\p{Lu}[\p{Lu}'’.-]+(?:\s+\p{Lu}[\p{Lu}'’.-]+){0,3})\s*(?:\([^)]{1,40}\))?\s*[:：]\s*(?:["“„«].{1,400}|.{1,400}[!?]["”»’']?\s*)$/u // KINEO-PARCEIRO-EYEBIBLE-1410
+/** KINEO-PARCEIRO-EYEBIBLE-1410 — quantas linhas do roteiro são fala de personagem ("CAPTAIN: “Hold the line!”"). Puro e determinístico. */
+export function falasDePersonagem(roteiro: string): number { // KINEO-PARCEIRO-EYEBIBLE-1410
+  return (roteiro ?? '').toString().split(/\r?\n/).filter((l) => FALA_DE_PERSONAGEM_RE.test(l.trim())).length // KINEO-PARCEIRO-EYEBIBLE-1410
+} // KINEO-PARCEIRO-EYEBIBLE-1410
 /** A tag antiga continua valendo: quem ja usa nao pode ser quebrado. */
 export const TAG_FACELESS = /\[faceless\]/i
 
@@ -160,6 +169,11 @@ export function decidirFormato(roteiro: string, tagFacelessPresente: boolean): D
   if (avatarRequested) {
     return { modo: 'presenter', motivo: 'o roteiro pede avatar explicitamente', apresentadorPedido: true }
   }
+  // KINEO-PARCEIRO-EYEBIBLE-1410 — fala de personagem (2+ linhas): pessoas na cena, mudas, narrador por cima; antes da negação (que cairia no
+  // faceless) e da primeira pessoa (o "I can’t walk" é do soldado, não de quem narra). Pedido explícito de apresentador continua vencendo. [KINEO-PARCEIRO-EYEBIBLE-1410]
+  if (falasDePersonagem(roteiro) >= 2 && !PEDIDOS_DE_APRESENTADOR.some((p) => pedidoInteiro(r, p))) { // KINEO-PARCEIRO-EYEBIBLE-1410
+    return { modo: 'character_story', motivo: `o roteiro tem falas de personagem (${falasDePersonagem(roteiro)} linhas "PAPEL: fala"): pessoas mudas, narrador por cima`, apresentadorPedido: false } // KINEO-PARCEIRO-EYEBIBLE-1410
+  } // KINEO-PARCEIRO-EYEBIBLE-1410
   if (NEGACAO_DE_APRESENTADOR.test(r)) {
     // KINEO-PERSONAGEM-SEM-APRESENTADOR-2026-09-15: "sem apresentador" + ficha/sinal
     // de personagem = historia com personagem MUDO (nunca falando para a lente).

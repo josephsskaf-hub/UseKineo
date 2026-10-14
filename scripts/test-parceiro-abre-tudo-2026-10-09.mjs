@@ -178,6 +178,7 @@ const CLIP_MOCKS = {
   '@/lib/credits/debit': { debitVideoCredits: forbidden('débito real') },
   '@/lib/credits/refund': { refundRenderCredits: forbidden('estorno real') },
   '@/lib/safety/contentModeration': { moderateContent: forbidden('moderação real') },
+  '@/lib/safety/topicModeration': { moderateTopic: forbidden('moderação real') }, // reancorado KINEO-MODERACAO-1410 — a régua completa dos Clipes (clipServer) também é rede
   '@/lib/safety/moderationPolicy': { moderationRefusalMessage: () => 'blocked', moderationRefusalStatus: () => 422 },
   '@/lib/animate/remoteImage': { downloadPublicAnimateImage: forbidden('download') },
   '@/lib/serverEvents': { writeServerEvent: forbidden('evento real') },

@@ -26,6 +26,7 @@ import { execFileSync } from 'node:child_process'
 import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
 import { desfazEscritorOmni } from './test-support/desfaz-escritor-omni-1310.mjs' // reancorado 13/10 (KINEO-ESCRITOR-MONUMENTO-2026-10-13 · KINEO-OMNI-ETAPA1-2026-10-13, 'tudo sim' do fundador): runway/compose/cinematic sem as mudanças de 13/10, em memória, antes do byte a byte
 import { desfazEstornoNarracao } from './test-support/desfaz-escritor-omni-1310.mjs' // reancorado KINEO-LEVA3-1310 [TRAVA 8.2 — vai do fundador 13/10 'tudo sim nos 3 consertos']: lib/compose.ts sem o conserto da narração (KINEO-ESTORNO-NARRACAO-2026-10-13), em memória, antes do byte a byte
+import { desfazParceiroEyebible1410 } from './test-support/desfaz-parceiro-eyebible-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-1410 [TRAVA 8.2 — vai do fundador 14/10]: os arquivos do conserto do Robert/EyeBible saem em memória antes do byte a byte
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -621,7 +622,7 @@ const rdBase = (p) => { try { return git(['show', `${BASE}:${p}`]).replace(/\r\n
 const semMarca = (s) => s.split('\n').filter((l) => !l.includes(MARCA)).join('\n')
 function problemasTrava(rota) {
   if (!BASE) return ['sem base de comparação']
-  return semMarca(desfazEscritorOmni(ROTA, desfazH3max(ROTA, rota))) === rdBase(ROTA) ? [] : ['/api/compose: há linha nova ou alterada sem a marca ' + MARCA] // KINEO-H3MAX-2026-10-13 — reancorado (ver o import)
+  return semMarca(desfazEscritorOmni(ROTA, desfazH3max(ROTA, desfazParceiroEyebible1410(ROTA, rota)))) === rdBase(ROTA) ? [] : ['/api/compose: há linha nova ou alterada sem a marca ' + MARCA] // KINEO-H3MAX-2026-10-13 — reancorado (ver o import)
 }
 
 // ═══ execução ═══════════════════════════════════════════════════════════════════════════════════════════════════════
@@ -639,7 +640,7 @@ console.log('5) Trava 8.2')
 console.log(`   base de comparação: ${BASE ?? '(nenhuma)'}`)
 ok(Boolean(BASE), 'a base (antes desta entrega) está disponível')
 if (BASE) {
-  ok(desfazEstornoNarracao('lib/compose.ts', read('lib/compose.ts')) === rdBase('lib/compose.ts'), // reancorado KINEO-LEVA3-1310
+  ok(desfazEstornoNarracao('lib/compose.ts', desfazParceiroEyebible1410('lib/compose.ts', read('lib/compose.ts'))) === rdBase('lib/compose.ts'), // reancorado KINEO-LEVA3-1310 · KINEO-PARCEIRO-EYEBIBLE-1410
     'lib/compose.ts byte a byte a base (o montador não muda)')
   const pt = problemasTrava(SRC_ROTA)
   ok(pt.length === 0, '/api/compose: fora das linhas marcadas, byte a byte a base (só linhas novas, todas marcadas)')

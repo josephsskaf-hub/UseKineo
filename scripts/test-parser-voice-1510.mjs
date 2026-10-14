@@ -25,6 +25,7 @@ import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
 import ts from 'typescript'
 import { semParserVoice1510, desfazParserVoice1510, FORMA_PARSER_VOICE_1510, MARCA_PARSER_VOICE_1510 } from './test-support/desfaz-parser-voice-1510.mjs'
+import { desfazParceiroEyebible1410 } from './test-support/desfaz-parceiro-eyebible-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-1410 [TRAVA 8.2 — vai do fundador 14/10]
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const BASE = '5980f2189e429ded5f89b4a808f17efd1606925f' // origin/main do dia, antes do conserto
@@ -153,7 +154,7 @@ secao('(e) só linhas marcadas mudaram: desfeitas, o arquivo é a base byte a by
   const marcadas = lf(fonte).split('\n').filter((l) => l.includes(MARCA_PARSER_VOICE_1510)).length
   checa(`${marcadas} linhas marcadas = ${FORMA_PARSER_VOICE_1510.trocas} troca + ${FORMA_PARSER_VOICE_1510.acrescimos} acréscimos`, marcadas === FORMA_PARSER_VOICE_1510.trocas + FORMA_PARSER_VOICE_1510.acrescimos)
   let desfeito = null
-  try { desfeito = semParserVoice1510(lf(fonte)) } catch (e) { desfeito = 'ERRO: ' + e.message }
+  try { desfeito = semParserVoice1510(desfazParceiroEyebible1410('lib/scriptParser.ts', lf(fonte))) } catch (e) { desfeito = 'ERRO: ' + e.message } // reancorado KINEO-PARCEIRO-EYEBIBLE-1410 [TRAVA 8.2 — vai do fundador 14/10]: a fala de personagem sai em memória antes
   checa('desfeito o conserto, lib/scriptParser.ts == base 5980f218 (LF)', fonteBase !== null && desfeito === lf(fonteBase), typeof desfeito === 'string' && desfeito.startsWith('ERRO') ? desfeito : '')
   checa('a forma (caminho, texto) só toca lib/scriptParser.ts', desfazParserVoice1510('lib/compose.ts', 'x // KINEO-PARSER-VOICE-1510') === 'x // KINEO-PARSER-VOICE-1510')
   let lancou = false

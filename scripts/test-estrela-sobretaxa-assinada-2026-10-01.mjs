@@ -12,6 +12,7 @@ import ts from 'typescript'
 // compose; família, custo, claim e frases na rota do cinematic). desfazH3max devolve, em memória, a rota sem essa entrada (pares exatos
 // em scripts/test-support/h3max-2026-10-13-trocas.json; par que não casa = texto intocado = vermelho). O resto segue byte a byte.
 import { desfazH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
+import { desfazParceiroEyebible1410 } from './test-support/desfaz-parceiro-eyebible-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-1410 [TRAVA 8.2 — vai do fundador 14/10]: os arquivos do conserto do Robert/EyeBible saem em memória antes do byte a byte
 import { desfazEscritorOmni } from './test-support/desfaz-escritor-omni-1310.mjs' // reancorado 13/10 (KINEO-ESCRITOR-MONUMENTO-2026-10-13 · KINEO-OMNI-ETAPA1-2026-10-13, 'tudo sim' do fundador): runway/compose/cinematic sem as mudanças de 13/10, em memória, antes do byte a byte
 import { desfazRomanceAdulto } from './test-support/desfaz-romance-adulto-1310.mjs' // KINEO-ROMANCE-ADULTO-2026-10-13 — reancorado: a leva do romance adulto sai em memória antes do byte a byte da rota (E26)
 import { semMonumento } from './test-support/desfaz-monumento-1310.mjs' // KINEO-MONUMENTO-2026-10-13
@@ -119,7 +120,7 @@ if (BASE) {
   // Reancorado 03/10 (KINEO-GANCHO-1Q-2026-10-03): o /api/compose ganhou depois disto só linhas marcadas com o gancho escrito
   // (3 imports + 2 comentários + 2 chamadas withHookFirstFrame, depois do logo); elas saem em memória junto com as da estrela.
   // Reancorado 06/10 (KINEO-SEM-LEGENDA-2026-10-06): idem — o "sem legenda" entrou só com linhas marcadas (imports, decisão, corte e gravação da versão B).
-  checa('E25 /api/compose sem as linhas marcadas = base, byte a byte', semMarca(desfazEscritorOmni('app/api/compose/route.ts', desfazH3max('app/api/compose/route.ts', compose))).split('\n').filter((l) => !l.includes('KINEO-GANCHO-1Q-2026-10-03') && !l.includes('KINEO-SEM-LEGENDA-2026-10-06')).join('\n') === base('app/api/compose/route.ts'))
+  checa('E25 /api/compose sem as linhas marcadas = base, byte a byte', semMarca(desfazEscritorOmni('app/api/compose/route.ts', desfazH3max('app/api/compose/route.ts', desfazParceiroEyebible1410('app/api/compose/route.ts', compose)))).split('\n').filter((l) => !l.includes('KINEO-GANCHO-1Q-2026-10-03') && !l.includes('KINEO-SEM-LEGENDA-2026-10-06')).join('\n') === base('app/api/compose/route.ts'))
   // Reancorado 06/10 duas vezes: KINEO-S25-ABRE-2026-10-06 (portão pago do 2.5: só linhas marcadas) e KINEO-S25-NOTA95-2026-10-06
   // (passada de cenas do s25: linhas marcadas + as 2 linhas da base trocadas de propósito). Ambas saem em memória dos dois lados.
   // Reancorado 06/10 (KINEO-S25-NOTA95-2026-10-06 [TRAVA 8.2 — vai do fundador 06/10 'vai nota 95']): a rota do cinematic ganhou SÓ linhas

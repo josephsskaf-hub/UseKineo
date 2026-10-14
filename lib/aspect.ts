@@ -65,6 +65,8 @@ export interface AspectSpec {
   /** Tamanho da fonte da legenda e do hook, calibrados por quadro. */
   captionFontSize: number
   hookFontSize: number
+  /** KINEO-PARCEIRO-EYEBIBLE-1410 — alinhamento horizontal do texto DENTRO da caixa da legenda. O texto do Creatomate nasce com x_alignment '0%' (esquerda): em 16:9 a caixa tem 1613 px e a legenda saía no canto inferior esquerdo (Robert/EyeBible, 14/10). Ausente = como sempre — 9:16 sai byte a byte igual. */
+  captionXAlignment?: string // KINEO-PARCEIRO-EYEBIBLE-1410
   /**
    * Barras de cinema, em % de cada lado. SÓ faz sentido em vertical: em 16:9
    * o quadro JÁ é cinema e a barra viraria moldura boba. Ver
@@ -113,6 +115,7 @@ const SPECS: Record<Aspect, AspectSpec> = {
     vertical: false,
     captionBottomY: '88%',
     captionWidth: '84%',
+    captionXAlignment: '50%', // KINEO-PARCEIRO-EYEBIBLE-1410 — 16:9: legenda centralizada
     captionFontSize: 46,
     hookFontSize: 58,
     letterboxPct: 0,
@@ -131,6 +134,7 @@ const SPECS: Record<Aspect, AspectSpec> = {
     vertical: false,
     captionBottomY: '84%',
     captionWidth: '82%',
+    captionXAlignment: '50%', // KINEO-PARCEIRO-EYEBIBLE-1410 — 1:1: legenda centralizada
     captionFontSize: 52,
     hookFontSize: 64,
     letterboxPct: 0,
@@ -150,6 +154,7 @@ const SPECS: Record<Aspect, AspectSpec> = {
     vertical: true,
     captionBottomY: '82%',
     captionWidth: '80%',
+    captionXAlignment: '50%', // KINEO-PARCEIRO-EYEBIBLE-1410 — 4:5: legenda centralizada
     captionFontSize: 56,
     hookFontSize: 68,
     letterboxPct: 0,
