@@ -232,6 +232,9 @@ function splitSceneRaw(s: string): { product: string; scene: string } | null {
   return { product: product.trim(), scene }
 }
 
+/** KINEO-ADS-CONSERTOS-1410 — a cena para comparar: minúscula, sem acento, só letras/números separados por 1 espaço. */
+const sceneKey = (s: string): string => s.toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
+
 /**
  * KINEO-ADS-CONSERTOS-1410 — QA 14/10 (foto de perfume + "perfume num hotel com chuva"): a tela separava produto e cena só na
  * prévia, mas o pedido mandava a frase CRUA para o plano — o brief virou "perfume num hotel com chuva —", a 1ª frase de tela
@@ -239,14 +242,21 @@ function splitSceneRaw(s: string): { product: string; scene: string } | null {
  * negócio: num pedido de PRODUTO (adsV2IsProductOrder) cuja frase pede cena, só a parte do produto ("perfume") — a cena segue
  * pelo brief.scene. Parte do produto vazia ("num hotel com chuva" sozinho) = a palavra de produto da frase; nem ela = a frase
  * de sempre. Lugar, ou frase sem cena = a frase de sempre, intocada. A moderação continua lendo a frase INTEIRA (v2PlanCore).
- * Pura.
+ * Revisão (coordenação 14/10): título de produto NUNCA perde palavra ("Body lotion with sea salt" no Standard ou na Shopify
+ * seguiria "Body lotion"). Só corta quando o PEDIDO traz a cena (brief.scene, o que a tela mandou) e ela é a MESMA cena tirada
+ * da frase (normalizadas: igual ou uma contém a outra). Pedido da Shopify (brief.source 'shopify') nunca corta. Pura.
  */
 export function adsV2SentenceForCopy(brief: unknown, sector: string | null | undefined): string {
   const b = brief && typeof brief === 'object' ? (brief as Record<string, unknown>) : {}
   const sentence = typeof b.sentence === 'string' ? b.sentence.trim() : ''
   if (!sentence || !adsV2IsProductOrder(brief, sector)) return sentence
+  if (b.source === 'shopify') return sentence // KINEO-ADS-CONSERTOS-1410 — título da loja: nunca corta
+  const orderScene = sceneKey(sanitizeAdsV2Scene(b.scene)) // KINEO-ADS-CONSERTOS-1410 — sem cena no pedido = a frase inteira
+  if (!orderScene) return sentence
   const raw = splitSceneRaw(sentence.replace(/\s+/g, ' ').trim())
   if (!raw) return sentence
+  const fromSentence = sceneKey(raw.scene) // KINEO-ADS-CONSERTOS-1410 — a cena da frase tem de ser a cena do pedido
+  if (!fromSentence || !(orderScene === fromSentence || orderScene.includes(fromSentence) || fromSentence.includes(orderScene))) return sentence
   if (raw.product) return raw.product
   const w = ADS_V2_PRODUCT_WORDS.exec(sentence)
   return w ? w[0] : sentence

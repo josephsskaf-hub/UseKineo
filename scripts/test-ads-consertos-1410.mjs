@@ -106,22 +106,47 @@ const marcaOk = async (opts) => {
     S.adsV2SentenceForCopy(pedido().brief, 'store') === 'perfume'
 }
 await check('#2a "perfume num hotel com chuva" (produto, Comercial): o NÚCLEO REAL do /plan manda à extração text/sentence/typed = "perfume" (nada de "num hotel"), o pedido ao modelo do brief não tem "hotel", a cena "num hotel com chuva" segue intacta e a moderação lê a frase INTEIRA', () => marcaOk())
-const casos = () => {
-  const S = carregar()(F.scene)
+await check('#2g NÚCLEO REAL do /plan: pedido da Shopify "Body lotion with sea salt" (sem cena) e pedido Standard sem brief.scene mandam à extração o título INTEIRO', async () => {
+  const shop = await rodaNucleo(pedido({ sentence: 'Body lotion with sea salt', source: 'shopify', kind: null, scene: null }))
+  const std = await rodaNucleo(pedido({ sentence: FRASE, scene: null }, { tier: 'photo_motion' }))
+  const a = shop.log.extract[0], b = std.log.extract[0]
+  return a && b && a.text === 'Body lotion with sea salt' && a.sentence === 'Body lotion with sea salt' && b.sentence === FRASE && b.text === FRASE
+})
+// reancorado KINEO-ADS-CONSERTOS-1410 (revisão da coordenação 14/10) — só corta com a cena NO PEDIDO (brief.scene) e igual à da frase.
+const casos = (sceneSrc) => {
+  const S = carregar(sceneSrc ? { [F.scene]: sceneSrc } : {})(F.scene)
   const p = (sentence, b = {}) => ({ sentence, kind: 'product', ...b })
-  return S.adsV2SentenceForCopy(p('quero que o perfume esteja num hotel com uma chuva'), 'store') === 'perfume' &&
-    S.adsV2SentenceForCopy(p('Amber Perfume 50ml, warm floral fragrance in a hotel room on a rainy night'), 'store') === 'Amber Perfume 50ml, warm floral fragrance' && // nada de corte de título: a descrição fica
-    S.adsV2SentenceForCopy(p('um perfume num hotel'), 'store') === 'perfume' && // artigo do começo sai (LEAD_DET)
-    S.adsV2SentenceForCopy(p('num hotel com chuva'), 'store') === 'num hotel com chuva' && // sem produto nem palavra de produto = a frase de sempre (nada a separar)
-    S.adsV2SentenceForCopy(p('perfume num hotel', { kind: 'place' }), 'store') === 'perfume num hotel' && // lugar = intocado
-    S.adsV2SentenceForCopy(p('Amber Perfume 50ml'), 'store') === 'Amber Perfume 50ml' && // sem cena = intocado
+  return S.adsV2SentenceForCopy(p('quero que o perfume esteja num hotel com uma chuva', { scene: 'num hotel com uma chuva' }), 'store') === 'perfume' &&
+    S.adsV2SentenceForCopy(p('Amber Perfume 50ml, warm floral fragrance in a hotel room on a rainy night', { scene: 'in a hotel room on a rainy night' }), 'store') === 'Amber Perfume 50ml, warm floral fragrance' && // nada de corte de título: a descrição fica
+    S.adsV2SentenceForCopy(p('um perfume num hotel', { scene: 'Num Hotel' }), 'store') === 'perfume' && // normalizada: maiúscula não importa
+    S.adsV2SentenceForCopy(p('perfume num hotel com chuva', { scene: 'num hotel com chuva, com reflexos molhados' }), 'store') === 'perfume' && // a cena do pedido CONTÉM a da frase (preset acrescentado)
+    S.adsV2SentenceForCopy(p('num hotel com chuva', { scene: 'num hotel com chuva' }), 'store') === 'num hotel com chuva' && // sem produto nem palavra de produto = a frase de sempre (nada a separar)
+    S.adsV2SentenceForCopy(p('perfume num hotel', { kind: 'place', scene: 'num hotel' }), 'store') === 'perfume num hotel' && // lugar = intocado
+    S.adsV2SentenceForCopy(p('Amber Perfume 50ml', { scene: 'on a beach' }), 'store') === 'Amber Perfume 50ml' && // sem cena na frase = intocado
     S.adsV2SentenceForCopy({ sentence: '  Loja à venda no Edifício Aurora  ', kind: 'place' }, 'real_estate') === 'Loja à venda no Edifício Aurora' &&
     S.adsV2SentenceForCopy({}, 'store') === '' && S.adsV2SentenceForCopy(null, null) === '' &&
     // a prévia da tela (adsV2SplitSceneRequest, usada pelo AdsV2Simple) segue com o MESMO resultado de antes
     JSON.stringify(S.adsV2SplitSceneRequest('quero que o perfume esteja num hotel com uma chuva')) === JSON.stringify({ product: 'Perfume', scene: 'num hotel com uma chuva' }) &&
     JSON.stringify(S.adsV2SplitSceneRequest('Amber Perfume 50ml')) === JSON.stringify({ product: '', scene: null })
 }
-await check('#2b adsV2SentenceForCopy: só pedido de PRODUTO com cena na frase perde a cena (descrição antes da cena fica inteira); lugar, frase sem cena e frase vazia = a frase de sempre; a prévia (adsV2SplitSceneRequest) não mudou', casos)
+await check('#2b adsV2SentenceForCopy: só pedido de PRODUTO com a cena no pedido (brief.scene) igual à da frase perde a cena (descrição antes dela fica inteira); lugar, frase sem cena e frase vazia = a frase de sempre; a prévia (adsV2SplitSceneRequest) não mudou', () => casos())
+// Título que tem palavra de cena mas o pedido NÃO traz cena (Standard, ou a pessoa nunca pediu cena) = a frase INTEIRA.
+const semCenaNoPedido = (sceneSrc) => {
+  const S = carregar(sceneSrc ? { [F.scene]: sceneSrc } : {})(F.scene)
+  return S.adsV2SentenceForCopy({ sentence: 'Body lotion with sea salt', kind: 'product' }, 'store') === 'Body lotion with sea salt' &&
+    S.adsV2SentenceForCopy({ sentence: 'Body lotion with sea salt', kind: 'product', scene: '' }, 'store') === 'Body lotion with sea salt' &&
+    S.adsV2SentenceForCopy({ sentence: 'perfume num hotel com chuva', kind: 'product' }, 'store') === 'perfume num hotel com chuva' &&
+    S.adsV2SentenceForCopy({ sentence: 'Body lotion with sea salt', kind: 'product', scene: 'at golden sunset, warm low light' }, 'store') === 'Body lotion with sea salt' // cena do pedido diferente da frase
+}
+await check('#2e "Body lotion with sea salt" sem cena no pedido (ou com OUTRA cena) = a frase inteira, nenhuma palavra perdida', () => semCenaNoPedido())
+// Pedido da Shopify (lib/shopify/adFlow.ts grava brief.source = 'shopify'): título da loja nunca perde palavra, nem com cena casando.
+const shopifyIntacto = (sceneSrc) => {
+  const S = carregar(sceneSrc ? { [F.scene]: sceneSrc } : {})(F.scene)
+  return /source: 'shopify' \}/.test(rd('lib/shopify/adFlow.ts')) &&
+    S.adsV2SentenceForCopy({ sentence: 'Amber Perfume in a hotel room', source: 'shopify', scene: 'in a hotel room', kind: 'product' }, 'store') === 'Amber Perfume in a hotel room' &&
+    S.adsV2SentenceForCopy({ sentence: 'Scented Candle with ocean breeze', source: 'shopify', mode: 'simple' }, 'store') === 'Scented Candle with ocean breeze'
+}
+await check('#2f pedido da Shopify (brief.source "shopify") com palavra de cena no título = título inteiro, mesmo com cena igual no pedido', () => shopifyIntacto())
 const nucleoLigado = (src) =>
   /^ {4}const sentenceFull = typeof brief0\.sentence === 'string' \? brief0\.sentence\.trim\(\) : '' \/\//m.test(src) &&
   /^ {4}const sentenceCopy = adsV2SentenceForCopy\(brief0, input\.sector\) \/\//m.test(src) &&
@@ -284,6 +309,8 @@ await vermelho('M8 entrega em alemão de volta a 10–15', SRC.ux, "delivery: 'F
 await vermelho('M9 constante de entrega de volta a 10/15', SRC.ux, 'export const ADS_V2_DELIVERY_MINUTES = { min: 5, max: 8 } as const', 'export const ADS_V2_DELIVERY_MINUTES = { min: 10, max: 15 } as const', (m) => entregaOk(m))
 await vermelho('M10 dica em inglês prometendo "exactly as in your photo" de novo', SRC.scene, 'the AI recreates your product from your photo, so small details can change.', 'your product stays exactly as in your photo.', (m) => dicaOk(m))
 await vermelho('M11 dica em vietnamita prometendo "giữ nguyên"', SRC.scene, 'AI tái tạo sản phẩm từ ảnh của bạn, nên một vài chi tiết nhỏ có thể thay đổi.', 'sản phẩm vẫn giữ nguyên như trong ảnh.', (m) => dicaOk(m))
+await vermelho('M12 corte sem exigir a cena no pedido (Body lotion perde "with sea salt")', SRC.scene, '  if (!orderScene) return sentence\n', '', (m) => semCenaNoPedido(m))
+await vermelho('M13 pedido da Shopify sem a exclusão (título da loja perde palavra)', SRC.scene, "  if (b.source === 'shopify') return sentence // KINEO-ADS-CONSERTOS-1410 — título da loja: nunca corta\n", '', (m) => shopifyIntacto(m))
 
 console.log(`\ntest-ads-consertos-1410: ${pass} verdes, ${fail} vermelhos`)
 process.exit(fail ? 1 : 0)

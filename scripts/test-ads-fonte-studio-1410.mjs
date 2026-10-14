@@ -113,14 +113,16 @@ for (const k of Object.keys(NOMES)) ok(r[k] === true, NOMES[k])
 console.log('\nD. lib/ads intocado')
 let diff = null
 try {
-  execFileSync('git', ['-C', RAIZ, 'rev-parse', '--verify', '-q', 'origin/main'], { stdio: 'ignore' })
-  diff = execFileSync('git', ['-C', RAIZ, 'diff', '--name-only', 'origin/main', '--', 'lib/ads'], { encoding: 'utf8' }).trim()
-  // e o que ainda não foi commitado
-  diff += execFileSync('git', ['-C', RAIZ, 'status', '--porcelain', '--', 'lib/ads'], { encoding: 'utf8' }).trim()
+  // reancorado KINEO-ADS-CONSERTOS-1410 — a trava media "lib/ads igual à origin/main": fica vermelha em QUALQUER leva seguinte que
+  // mexa em lib/ads (os consertos de servidor de 14/10) e verde depois do merge, sem provar nada. Agora mede o que ELA promete: o
+  // commit da tipografia (6a7ab326) contra o PAI dele não toca lib/ads. Commit ausente = diff null = vermelho.
+  const LEVA = '6a7ab326b44062a493e9c845b77dbac6474db28c'
+  execFileSync('git', ['-C', RAIZ, 'rev-parse', '--verify', '-q', `${LEVA}^{commit}`], { stdio: 'ignore' })
+  diff = execFileSync('git', ['-C', RAIZ, 'diff', '--name-only', `${LEVA}^`, LEVA, '--', 'lib/ads'], { encoding: 'utf8' }).trim()
 } catch {
   diff = null
 }
-ok(diff === '', `D1 nenhum arquivo de lib/ads/* difere de origin/main${diff ? ` (difere: ${diff.split('\n').join(', ')})` : ''}`)
+ok(diff === '', `D1 o commit da tipografia (6a7ab326) não mexeu em nenhum arquivo de lib/ads/* (contra o pai dele)${diff ? ` (difere: ${diff.split('\n').join(', ')})` : ''}`)
 
 console.log('\nE. o modo completo não ganhou o bloco')
 const iSessao = src.indexOf('function AdsV2Session(')
