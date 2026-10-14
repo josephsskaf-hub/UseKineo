@@ -17,9 +17,10 @@ import vm from 'node:vm'
 import ts from 'typescript'
 import { semModeracao1410, ARQUIVOS_MODERACAO_1410, FORMA_MODERACAO_1410, MARCA_MODERACAO_1410 } from './test-support/desfaz-moderacao-1410.mjs'
 import { semDemoUniverso1410 } from './test-support/desfaz-ads-demo-universo-1410.mjs' // reancorado KINEO-ADS-DEMO-UNIVERSO-1410
+import { semMarcas1510 } from './test-support/desfaz-ads-marcas-1510.mjs' // reancorado KINEO-ADS-MARCAS-1510
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semMarcas1510(p, readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510)
 let passou = 0
 const falhas = []
 const ok = (cond, nome) => { if (cond) passou++; else falhas.push(nome) }
