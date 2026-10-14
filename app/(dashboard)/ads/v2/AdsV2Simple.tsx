@@ -42,6 +42,7 @@ import {
   isSmallCrop,
   panFocal,
   shotStateLabel,
+  canRedoShot, // KINEO-ADS-MELHORIAS-1410 — a MESMA regra do botão do modo completo
   type AdsV2ScreenOrderStatus,
   type AdsV2ScreenShot,
 } from '@/lib/ads/v2Screen'
@@ -126,6 +127,7 @@ import { ADS_V2_AUTO_PLAN_MS, ADS_V2_SCRIPT_CHOOSE_ROUTE, adsV2FlowCopy, adsV2Fl
 import { AdsReadCard, AdsStartFromRow, AdsStyleStage, type AdsStyleStageData } from '@/components/ads/AdsFlow' // KINEO-ADS-FLUXO-2026-10-13
 import { ADS_V2_SCENE_MAX_CHARS, ADS_V2_SCENE_PRESETS, adsV2AdKind, adsV2ApplyScenePreset, adsV2ProductTitle, adsV2SceneAllowed, adsV2SceneCopy, adsV2SceneErrorText, adsV2SceneIssues, adsV2SceneRow, adsV2SplitSceneRequest, sanitizeAdsV2Scene, type AdsV2AdKind, type AdsV2SceneCopy } from '@/lib/ads/v2Scene'
 import { adsV2PackshotCopy } from '@/lib/ads/v2Packshot' // KINEO-ADS-MELHORIAS-1410 — o rótulo do plano com a foto real do produto
+import { adsV2RedoCopy, adsV2RedoFill, type AdsV2RedoCopy } from '@/lib/ads/v2Redo' // KINEO-ADS-MELHORIAS-1410 — refazer UMA cena aqui mesmo (frases nas 16 línguas)
 
 // ─── tipos ────────────────────────────────────────────────────────────────────────────────────
 
@@ -639,6 +641,13 @@ export function AdsV2SimpleSession({
   const [order, setOrder] = useState<OrderView | null>(null)
   const [video, setVideo] = useState<VideoInfo | null>(null)
   const [pollNote, setPollNote] = useState<string | null>(null)
+  // KINEO-ADS-MELHORIAS-1410 — refazer UMA cena no modo simples (a rota /api/ads/v2/retake de sempre: preço mostrado antes, débito
+  // idempotente, estorno se falhar, um pedido ativo por conta). Estado próprio: não passa pelo `busy` do plano/início.
+  const [redoAsk, setRedoAsk] = useState<number | null>(null)
+  const [redoBusy, setRedoBusy] = useState(false)
+  const [redoError, setRedoError] = useState<string | null>(null)
+  const [redoNote, setRedoNote] = useState<string | null>(null)
+  const rcopy = adsV2RedoCopy(lang)
   const [downloading, setDownloading] = useState(false)
   const [downloadNote, setDownloadNote] = useState<string | null>(null)
   const [notReady, setNotReady] = useState(false)
@@ -874,11 +883,38 @@ export function AdsV2SimpleSession({
     applyView(r.data)
   }
 
+  // KINEO-ADS-MELHORIAS-1410 — "Refazer esta cena": manda o preço que a tela MOSTROU (expected_credits); preço mudou = 409 e a
+  // grade relê o pedido (o botão passa a mostrar o novo). Aceita = a refação vira o pedido da tela (progresso → anúncio novo).
+  async function redoShot(shot: AdsV2ScreenShot) {
+    if (!order || redoBusy || !canRedoShot(shot, order.status)) return
+    setRedoBusy(true)
+    setRedoError(null)
+    const parent = order.order_id
+    onActive(true)
+    const r = await api<StatusView>('/api/ads/v2/retake', { method: 'POST', body: { order_id: parent, idx: shot.idx, expected_credits: shot.retake_credits } })
+    if (!aliveRef.current) return
+    setRedoBusy(false)
+    if (!r.ok) {
+      onActive(false)
+      setRedoError(failText(r))
+      if (r.code === 'price_changed') void pollOnce(parent)
+      void onBalance()
+      return
+    }
+    setRedoAsk(null)
+    setVideo(null)
+    setRedoNote(adsV2RedoFill(rcopy.note, { n: order.shots.findIndex((x) => x.idx === shot.idx) + 1 }))
+    void onBalance()
+    adoptOrder({ ...r.data, shots: Array.isArray(r.data.shots) ? r.data.shots : [] })
+  }
+
   function openOrder(id: string) {
     if (!aliveRef.current) return
     currentOrderRef.current = id
     setOrderParam(id)
     setPollNote(null)
+    setRedoNote(null) // KINEO-ADS-MELHORIAS-1410
+    setRedoError(null) // KINEO-ADS-MELHORIAS-1410
     setPhase('loading')
     void pollOnce(id)
   }
@@ -2482,6 +2518,7 @@ export function AdsV2SimpleSession({
               {order.status === 'assembling' ? copy.progress.assembling : copy.progress.animating}{' '}
               {copy.progress.leave} <Link className="adsw-link" href="/history">{copy.progress.myVideos}</Link>.
             </p>
+            {redoNote ? <p className="adv2-note" role="status" style={{ marginTop: 0, marginBottom: 16 }}>{redoNote}</p> : null}{/* KINEO-ADS-MELHORIAS-1410 */}
             <SimpleShotGrid shots={order.shots} orderStatus={order.status} copy={copy} packshotLabel={adsV2PackshotCopy(lang).label} />
             {pollNote ? <p className="adsw-warn" role="status">{pollNote}</p> : null}
           </section>
@@ -2509,9 +2546,20 @@ export function AdsV2SimpleSession({
             {/* KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a amostra acabou de ser entregue (o pico da alegria): a oferta do Business logo abaixo. */}
             {scopy && business ? <AdsAfterSampleOffer lang={lang} business={business} compact /> : null}
             {/* KINEO-ADS-AMOSTRA-2026-10-09 — a amostra não tem refação (a rota segue fechada para free/trial). */}
-            {scopy ? null : <h3 style={{ margin: '24px 0 6px' }}>{copy.done.redoTitle}</h3>}
+            {/* KINEO-ADS-MELHORIAS-1410 — as cenas com miniatura e "Refazer esta cena · N créditos" AQUI (era um link para o modo completo). */}
+            {scopy ? null : <h3 style={{ margin: '24px 0 6px' }}>{rcopy.title}</h3>}
+            {scopy ? null : <p className="adsw-hint" style={{ margin: '0 0 12px' }}>{rcopy.hint}</p>}
+            {scopy ? null : (
+              <SimpleShotGrid
+                shots={order.shots}
+                orderStatus={order.status}
+                copy={copy}
+                packshotLabel={adsV2PackshotCopy(lang).label}
+                redo={{ copy: rcopy, ask: redoAsk, busy: redoBusy, onAsk: (idx) => { setRedoAsk(idx); setRedoError(null) }, onCancel: () => setRedoAsk(null), onConfirm: (shot) => void redoShot(shot) }}
+              />
+            )}
+            {redoError ? <p className="adsw-err" role="alert">{redoError}</p> : null}{/* KINEO-ADS-MELHORIAS-1410 */}
             <div className="adv2-actions" style={{ marginTop: 0 }}>
-              {scopy ? null : <a className="adsw-btn ghost small" href={`/ads/v2?mode=full&order=${encodeURIComponent(order.order_id)}`}>{copy.done.redo}</a>}
               <button type="button" className="adsw-btn ghost" onClick={onAskStartOver}>{copy.done.another}</button>
             </div>
           </section>
@@ -2872,7 +2920,20 @@ function SimplePlanPreview({
 
 // ─── grade das cenas (progresso) ─────────────────────────────────────────────────────────────
 
-function SimpleShotGrid({ shots, orderStatus, copy, packshotLabel }: { shots: AdsV2ScreenShot[]; orderStatus: string; copy: AdsV2SimpleCopy; packshotLabel?: string }) {
+function SimpleShotGrid({
+  shots,
+  orderStatus,
+  copy,
+  packshotLabel,
+  redo,
+}: {
+  shots: AdsV2ScreenShot[]
+  orderStatus: string
+  copy: AdsV2SimpleCopy
+  packshotLabel?: string
+  /** KINEO-ADS-MELHORIAS-1410 — só na entrega: "Refazer esta cena" por cena (a regra é canRedoShot, a mesma do modo completo). */
+  redo?: { copy: AdsV2RedoCopy; ask: number | null; busy: boolean; onAsk: (idx: number) => void; onCancel: () => void; onConfirm: (shot: AdsV2ScreenShot) => void }
+}) {
   if (!shots.length) return <p className="adsw-hint" role="status">{copy.progress.preparing}</p>
   return (
     <ol className="adv2-grid" aria-label={copy.plan.shots}>
@@ -2892,6 +2953,19 @@ function SimpleShotGrid({ shots, orderStatus, copy, packshotLabel }: { shots: Ad
               )}
             </div>
             <span className="st" data-state={s.state}>{i + 1}. {label}</span>
+            {redo && canRedoShot(s, orderStatus) ? (
+              redo.ask === s.idx ? (
+                <div role="group" aria-label={adsV2RedoFill(redo.copy.ask, { n: i + 1, c: s.retake_credits })} style={{ display: 'grid', gap: 6 }} data-kineo="ads-redo-confirm">
+                  <span className="adsw-hint" style={{ margin: 0 }}>{adsV2RedoFill(redo.copy.ask, { n: i + 1, c: s.retake_credits })}</span>
+                  <button type="button" className="adsw-btn small" disabled={redo.busy} onClick={() => redo.onConfirm(s)}>{redo.busy ? redo.copy.starting : redo.copy.yes}</button>
+                  <button type="button" className="adsw-btn ghost small" disabled={redo.busy} onClick={redo.onCancel}>{redo.copy.cancel}</button>
+                </div>
+              ) : (
+                <button type="button" className="adsw-btn ghost small" disabled={redo.busy} onClick={() => redo.onAsk(s.idx)} data-kineo="ads-redo-scene">
+                  {adsV2RedoFill(redo.copy.button, { c: s.retake_credits })}
+                </button>
+              )
+            ) : null}
           </li>
         )
       })}
