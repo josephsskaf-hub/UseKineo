@@ -74,6 +74,12 @@ checa('teto 2, esperas [60 s, 5 min], idade 70 min, 4 por rodada', P.RETENTAR_CE
   const r2 = await P.executarRetentativas({ falhas: [f(2)], anteriores: [], prontas: 3, agora: T0 + 600_000, inicioMs: T0, idadeMin: 10,
     deps: { marcar: async () => 'nova', provar: async () => false, reenviar: async () => { throw Error('não deveria postar') }, registrar: async () => {} } })
   checa('prova no claim falhou → nenhum POST, segurar=false (cai no caminho de sempre)', r2.reenviadas === 0 && r2.segurar === false)
+  for (const marca of ['repetida', 'erro']) {
+    let postou = 0
+    const r3 = await P.executarRetentativas({ falhas: [f(2)], anteriores: [], prontas: 3, agora: T0 + 600_000, inicioMs: T0, idadeMin: 10,
+      deps: { marcar: async (t) => (t === 'tentativa' ? marca : 'nova'), provar: async () => true, reenviar: async () => { postou++; return { status: 200, requestId: 'n' } }, registrar: async () => {} } })
+    checa(`trava da tentativa '${marca}' → nenhum POST (desfecho ${r3.resultados[0]?.desfecho})`, postou === 0 && r3.reenviadas === 0 && r3.resultados[0]?.desfecho === (marca === 'repetida' ? 'ja_tentada' : 'trava_indisponivel'))
+  }
 }
 
 // ─── (b) a rodada do cron contra uma fal falsa, com a retomada e o claim REAIS ────────────────────────────────────────
