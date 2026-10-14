@@ -29,6 +29,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 import { desfazParceiroEyebible1410 } from './test-support/desfaz-parceiro-eyebible-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-1410 [TRAVA 8.2 — vai do fundador 14/10]
 import { semContratoClassicos1410, MARCA_CONTRATO_CLASSICOS_1410 as MARCA } from './test-support/desfaz-contrato-classicos-1410.mjs'
+import { desfazParceiroEyebible2_1410, linhaDoParceiroEyebible2_1410 } from './test-support/desfaz-parceiro-eyebible-2-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410 [TRAVA 8.2 — vai do fundador 14/10]: a 2ª leva do Robert/EyeBible sai em memória antes do byte a byte
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const ROTA = 'app/api/generate-video-cinematic/route.ts'
@@ -179,7 +180,7 @@ const baseRota = rdBase(ROTA)
 const baseLib = rdBase(LIB)
 let rotaDesfeita = null
 let libDesfeita = null
-try { rotaDesfeita = semContratoClassicos1410(atual.rota, ROTA); libDesfeita = semContratoClassicos1410(atual.lib, LIB) } catch (e) { console.log('   desfaz lançou: ' + e.message) }
+try { rotaDesfeita = semContratoClassicos1410(desfazParceiroEyebible2_1410(ROTA, atual.rota), ROTA); libDesfeita = semContratoClassicos1410(atual.lib, LIB) } catch (e) { console.log('   desfaz lançou: ' + e.message) }
 checa('a base existe e NÃO tem a marca', Boolean(baseRota) && !baseRota.includes(MARCA) && Boolean(baseLib) && !baseLib.includes(MARCA))
 checa('rota: desfeito o conserto, byte a byte igual à base', rotaDesfeita !== null && rotaDesfeita === baseRota)
 checa('sceneTruth: desfeito o conserto, byte a byte igual à base', libDesfeita !== null && libDesfeita === baseLib)
@@ -191,7 +192,7 @@ checa('toda linha nova/trocada da rota e do sceneTruth leva a marca (o diff não
   if (!BASE) return false
   const d = git(['diff', BASE, '--', ROTA, LIB]).replace(/\r/g, '')
   const add = d.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))
-  return add.length > 0 && add.every((l) => l.includes(MARCA))
+  return add.length > 0 && add.every((l) => l.includes(MARCA) || linhaDoParceiroEyebible2_1410(l)) // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410: as linhas da 2ª leva levam a marca DELA
 })())
 let lancouMarcadaEstranha = false
 try { semContratoClassicos1410(atual.rota + '\n// linha estranha ' + MARCA + '\n', ROTA) } catch { lancouMarcadaEstranha = true }

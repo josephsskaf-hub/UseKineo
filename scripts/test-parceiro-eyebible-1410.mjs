@@ -22,6 +22,7 @@ import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semParceiroEyebible1410, desfazParceiroEyebible1410, ARQUIVOS_PARCEIRO_EYEBIBLE_1410, FORMA_PARCEIRO_EYEBIBLE_1410, MARCA_PARCEIRO_EYEBIBLE_1410 } from './test-support/desfaz-parceiro-eyebible-1410.mjs'
+import { desfazParceiroEyebible2_1410 } from './test-support/desfaz-parceiro-eyebible-2-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410 [TRAVA 8.2 — vai do fundador 14/10]: a 2ª leva do Robert/EyeBible sai em memória antes do byte a byte
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const BASE = '5ead67407740b5d6d48b8db2fe6bf2fed0db852c' // pai do primeiro commit marcado (origin/main de 14/10)
@@ -158,7 +159,7 @@ for (const p of ARQUIVOS_PARCEIRO_EYEBIBLE_1410) {
   const atual = ler(p)
   const base = lf(execFileSync('git', ['show', `${BASE}:${p}`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }))
   let desfeito = null
-  try { desfeito = semParceiroEyebible1410(p, atual) } catch (e) { desfeito = `ERRO ${e.message}` }
+  try { desfeito = semParceiroEyebible1410(p, desfazParceiroEyebible2_1410(p, atual)) } catch (e) { desfeito = `ERRO ${e.message}` }
   checa(`${p}: desfeito = base ${BASE.slice(0, 8)}`, desfeito === base, typeof desfeito === 'string' && desfeito.startsWith('ERRO') ? desfeito : '')
   const marcadas = atual.split('\n').filter((l) => l.includes(MARCA_PARCEIRO_EYEBIBLE_1410)).length
   const f = FORMA_PARCEIRO_EYEBIBLE_1410[p]

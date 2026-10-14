@@ -824,6 +824,7 @@ interface FastRenderInputs {
   language: string
   vertical?: string
   speed?: number
+  generation_id?: string // KINEO-PARCEIRO-EYEBIBLE-2-1410 — o export limpo lê a duração do claim ASSINADO
   // KINEO-TRIAL-WATERMARK-2026-09-07 — o motor que montou o filme. Sem ele o
   // /api/compose/unlock remontava TUDO como 'fast' (cortes de 6/9s, clipe
   // reciclado) e o "export limpo" de um Seedance voltava com outra montagem.
@@ -831,7 +832,6 @@ interface FastRenderInputs {
   verbatim?: boolean // KINEO-SEEDANCE-15S-2026-09-29: filme de IA em verbatim — o unlock espelha o claimVerbatim do compose
   // LOTE2-EXPORT-LIMPO-FIEL-2026-09-23 — o formato do filme. Sem ele o export limpo PAGO de um 16:9/1:1/4:5 voltava 9:16.
   aspect?: string
-  generation_id?: string // KINEO-PARCEIRO-EYEBIBLE-2-1410 — o filme de IA: o export limpo lê a duração do claim ASSINADO dele
 }
 
 interface ActiveRenderSnapshot {

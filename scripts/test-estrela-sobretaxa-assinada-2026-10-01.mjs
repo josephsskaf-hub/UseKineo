@@ -17,6 +17,7 @@ import { desfazEscritorOmni } from './test-support/desfaz-escritor-omni-1310.mjs
 import { desfazRomanceAdulto } from './test-support/desfaz-romance-adulto-1310.mjs' // KINEO-ROMANCE-ADULTO-2026-10-13 — reancorado: a leva do romance adulto sai em memória antes do byte a byte da rota (E26)
 import { semMonumento } from './test-support/desfaz-monumento-1310.mjs' // KINEO-MONUMENTO-2026-10-13
 import { semContratoClassicos1410 } from "./test-support/desfaz-contrato-classicos-1410.mjs" // reancorado KINEO-CONTRATO-CLASSICOS-1410: a leva do contrato clássico sai em memória antes do byte a byte da rota (E26)
+import { desfazParceiroEyebible2_1410 } from './test-support/desfaz-parceiro-eyebible-2-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410 [TRAVA 8.2 — vai do fundador 14/10]: a 2ª leva do Robert/EyeBible sai em memória antes do byte a byte
 
 let ok = 0, falhas = 0
 function checa(nome, cond) { if (cond) { ok++; console.log('  ✓', nome) } else { falhas++; console.log('  ✗', nome) } }
@@ -142,7 +143,7 @@ if (BASE) {
   // Reancorado 13/10 (KINEO-MONUMENTO-2026-10-13 — o fundador autorizou o conserto do monumento no pipeline): linhas novas marcadas + 5 linhas da
   // base trocadas de propósito (contexto dos filtros anti-invenção via comVocabularioDoLugar); semMonumento tira só essas, dos dois lados.
   // Prova: scripts/test-monumento-real-1310.mjs.
-  checa('E26 /api/generate-video-cinematic sem as linhas marcadas = base, byte a byte', semMonumento(semS25(semMarca(desfazH3max('app/api/generate-video-cinematic/route.ts', desfazRomanceAdulto('app/api/generate-video-cinematic/route.ts', semContratoClassicos1410(cinematic, 'app/api/generate-video-cinematic/route.ts')))))) /* reancorado KINEO-CONTRATO-CLASSICOS-1410 */ === semMonumento(semS25(base('app/api/generate-video-cinematic/route.ts'))))
+  checa('E26 /api/generate-video-cinematic sem as linhas marcadas = base, byte a byte', semMonumento(semS25(semMarca(desfazH3max('app/api/generate-video-cinematic/route.ts', desfazRomanceAdulto('app/api/generate-video-cinematic/route.ts', semContratoClassicos1410(desfazParceiroEyebible2_1410('app/api/generate-video-cinematic/route.ts', cinematic), 'app/api/generate-video-cinematic/route.ts')))))) /* reancorado KINEO-CONTRATO-CLASSICOS-1410 */ === semMonumento(semS25(base('app/api/generate-video-cinematic/route.ts'))))
 }
 checa('E27 a Estrela continua só com a casa (ESTRELA_PUBLIC = false)', /export const ESTRELA_PUBLIC = false\n/.test(launch))
 

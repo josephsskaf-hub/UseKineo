@@ -15,6 +15,7 @@ import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
+import { desfazParceiroEyebible2_1410 } from './test-support/desfaz-parceiro-eyebible-2-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410 [TRAVA 8.2 — vai do fundador 14/10]: a 2ª leva do Robert/EyeBible sai em memória antes do byte a byte
 // reancorado KINEO-LEVA-1410-BASE: a base era 'origin/main' — depois de publicado, origin/main JÁ CONTÉM o conserto e as provas
 // "na base" ficavam vermelhas sem defeito nenhum. Base = pai do 1º commit com a marca (mesma prova, presa ao commit certo).
 const BASE_REF = (() => {
@@ -224,7 +225,7 @@ for (const [arq, rel, atual] of [['route', ROUTE_REL, ROUTE], ['client', 'app/(d
   let base = ''
   try { base = execFileSync('git', ['-C', ROOT, 'show', BASE_REF + ':' + rel], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).replace(/\r\n/g, '\n') } catch { base = '' }
   let d = null
-  try { d = semMotor15s1510(arq === 'route' ? semRegua35a90_1410(semModeracao1410(atual, 'script')) : atual, arq) } catch (e) { d = 'ERRO: ' + e.message } // reancorado KINEO-REGUA-35-60-90-1410 · reancorado KINEO-MODERACAO-1410
+  try { d = semMotor15s1510(arq === 'route' ? semRegua35a90_1410(semModeracao1410(atual, 'script')) : desfazParceiroEyebible2_1410(rel, atual), arq) } catch (e) { d = 'ERRO: ' + e.message } // reancorado KINEO-REGUA-35-60-90-1410 · reancorado KINEO-MODERACAO-1410
   ok(base !== '' && d === base, `${rel}: tiradas as linhas KINEO-MOTOR-15S-1510, é byte a byte a base`)
   ok(semMotor15s1510(base, arq) === base, `${rel}: o desfaz é idempotente sobre a base`)
   const marcadas = (arq === 'route' ? semRegua35a90_1410(atual) : atual).split('\n').filter((l) => l.includes('KINEO-MOTOR-15S-1510')).length // reancorado KINEO-REGUA-35-60-90-1410
