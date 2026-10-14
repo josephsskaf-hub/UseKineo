@@ -28,12 +28,13 @@ import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semCentroAdsGancho1410 } from './test-support/desfaz-centro-ads-gancho-1410.mjs' // reancorado KINEO-LEVA-1410-BASE: o centro do texto (14/10) entrou depois desta base; sai em memória antes do byte a byte
 import { semRefacaoAtor1410, REFACAO_ATOR_1410_ARQUIVOS, MARCA_REFACAO_ATOR_1410, BASE_REFACAO_ATOR_1410 } from './test-support/desfaz-ads-refacao-ator-1410.mjs'
+import { semMarcas1510 } from './test-support/desfaz-ads-marcas-1510.mjs' // reancorado KINEO-ADS-MARCAS-1510
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const MARCA = 'KINEO-ADS-REFACAO-ATOR-1410'
 const BASE = '4d8da757aafbce9c74d231c0718f1f35aebf12f1' // reancorado KINEO-ADS-REFACAO-ATOR-1410 — merge com a origin/main (palco-voltar, demo-universo, cortesia, home): a base é o pai do lado da main
-const rd = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+const rd = (rel) => semMarcas1510(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510)
 const git = (...a) => execFileSync('git', a, { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 28 })
 const base = (rel) => git('show', `${BASE}:${rel}`).replace(/\r\n/g, '\n')
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex')

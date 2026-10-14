@@ -21,10 +21,11 @@ import ts from 'typescript'
 import { semMelhorias1410 } from './test-support/desfaz-melhorias-1410.mjs' // reancorado KINEO-ADS-MELHORIAS-1410
 import { semDemoUniverso1410 } from './test-support/desfaz-ads-demo-universo-1410.mjs' // reancorado KINEO-ADS-DEMO-UNIVERSO-1410
 import { semRefacaoAtor1410 } from './test-support/desfaz-ads-refacao-ator-1410.mjs' // reancorado KINEO-ADS-REFACAO-ATOR-1410
+import { semMarcas1510 } from './test-support/desfaz-ads-marcas-1510.mjs' // reancorado KINEO-ADS-MARCAS-1510
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semMarcas1510(p, readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510)
 const semComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map((l) => l.replace(/(^|[^:'"`\\])\/\/.*$/, '$1')).join('\n')
 const sha = (s) => createHash('sha256').update(s).digest('hex')
 let ok = 0

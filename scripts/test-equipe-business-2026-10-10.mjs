@@ -22,10 +22,11 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semMarcas1510 } from './test-support/desfaz-ads-marcas-1510.mjs' // reancorado KINEO-ADS-MARCAS-1510
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+const read = (rel) => semMarcas1510(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510)
 const clone = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)))
 let pass = 0
 let fail = 0
@@ -479,6 +480,7 @@ const PERMITIDOS_WS = new Set([...WS_ROUTES, F.footage, F.page, F.door, F.teamRo
 // o membro troca o roteiro do pedido do DONO (lib/ads/v2ChooseCore.ts lê o pedido por ws.ownerId ?? user.id, como o /plan);
 // scripts/test-ads-roteiros-1310.mjs confere dono, status e que o UPDATE só troca o plano.
 PERMITIDOS_WS.add('app/api/ads/v2/plan/choose/route.ts') // KINEO-ADS-ROTEIROS-2026-10-13
+PERMITIDOS_WS.add('app/api/ads/brands/route.ts') // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) são do DONO do workspace: as vagas do Business veem as mesmas (scripts/test-ads-marcas-1510.mjs)
 const pedem = files.filter((f) => /workspace: true \}\)/.test(code(read(f))))
 const importam = files.filter((f) => /from '@\/lib\/ads\/workspace'/.test(read(f)))
 ok(pedem.every((f) => PERMITIDOS_WS.has(f)) && [...PERMITIDOS_WS].every((f) => pedem.includes(f)),

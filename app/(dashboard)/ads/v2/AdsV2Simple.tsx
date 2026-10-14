@@ -136,6 +136,7 @@ import { adsV2RedoFreeCopy, type AdsV2RedoFreeCopy } from '@/lib/ads/v2Redo' // 
 import { adsV2RedoPrice } from '@/lib/ads/v2FreeRedo' // KINEO-ADS-REFACAO-ATOR-1410 — 0 na 1ª refação, o preço do plano depois
 import { adsV2AiPersonLabel } from '@/lib/ads/v2PresenterHolds' // KINEO-ADS-REFACAO-ATOR-1410 — o plano "pessoa de IA segurando o produto" leva o rótulo de IA
 import { adsPalcoVoltarCopy, brandKitConflict, brandKitRetract, type AdsKitFilled } from '@/lib/ads/v2PalcoVoltar' // KINEO-ADS-PALCO-VOLTAR-1410 — "✕ Fechar estilos" e o kit que sai quando o anúncio é de outra marca
+import { adBrandConflict, adBrandCopy, adBrandFill, adBrandForEvidence, adBrandFromScreen, adBrandToKit, adBrandVoice, type AdBrandFields, type AdBrandView } from '@/lib/ads/brands' // KINEO-ADS-MARCAS-1510 — a marca escolhida no topo preenche o kit (mesma regra de conflito)
 
 // ─── tipos ────────────────────────────────────────────────────────────────────────────────────
 
@@ -567,6 +568,7 @@ export function AdsV2SimpleSession({
   business = null,
   onSampleGone,
   rowSlot = null, // KINEO-ADS-FLUXO-2026-10-13
+  marcas, // KINEO-ADS-MARCAS-1510
 }: {
   resume: boolean
   lang: InterfaceLanguage
@@ -589,6 +591,8 @@ export function AdsV2SimpleSession({
   onSampleGone?: () => void
   /** KINEO-ADS-FLUXO-2026-10-13 — a vaga embaixo do quadro (AdsV2Client) para a fileira "Comece deste"; null = sem fileira. */
   rowSlot?: HTMLElement | null
+  /** KINEO-ADS-MARCAS-1510 — as marcas do workspace (AdsV2Client). Ausente ou mode 'legacy' = o kit único de sempre; 'loading' = espera. */
+  marcas?: { mode: 'loading' | 'legacy' | 'ready'; list: readonly AdBrandView[]; selected: AdBrandView | null; onPick: (id: string | null) => void; onSave: (fields: Partial<AdBrandFields>, id?: string | null) => Promise<unknown> }
 }) {
   const copy: AdsV2SimpleCopy = pickInterfaceCopy(ADS_V2_SIMPLE_COPY, lang)
   const lcopy: AdsV2LinkImportCopy = adsV2LinkImportCopy(lang) // KINEO-ADS-1FOTO-LINK-2026-10-10 — 16 línguas
@@ -736,6 +740,15 @@ export function AdsV2SimpleSession({
   const [linkPage, setLinkPage] = useState<{ name: string; price: string } | null>(null) // KINEO-ADS-PALCO-VOLTAR-1410
   const stylesSeeAllRef = useRef<HTMLButtonElement | null>(null) // KINEO-ADS-PALCO-VOLTAR-1410 — o foco volta ao "Ver todos" ao fechar
   const closeStyles = () => { setStylesOpen(false); window.setTimeout(() => stylesSeeAllRef.current?.focus(), 0) } // KINEO-ADS-PALCO-VOLTAR-1410 — ✕ e Esc: o estilo escolhido fica
+  // KINEO-ADS-MARCAS-1510 — com marcas, quem preenche o kit é a MARCA escolhida no topo (não mais o kit único); a regra de conflito é a mesma.
+  const bc = adBrandCopy(lang) // KINEO-ADS-MARCAS-1510
+  const marcasMode = marcas?.mode ?? 'legacy' // KINEO-ADS-MARCAS-1510 — sem a prop = o kit único de sempre
+  const brandsOn = marcasMode === 'ready' // KINEO-ADS-MARCAS-1510
+  const brand: AdBrandView | null = brandsOn ? marcas?.selected ?? null : null // KINEO-ADS-MARCAS-1510
+  const brandSig = brand ? JSON.stringify(brand) : '' // KINEO-ADS-MARCAS-1510 — editar a marca (mesmo id) também reaplica
+  const brandSetRef = useRef<{ voice: string | null; say: string; word: string }>({ voice: null, say: '', word: '' }) // KINEO-ADS-MARCAS-1510 — o que a marca pôs na voz/pronúncia (a escolha da pessoa fica)
+  const brandPendingRef = useRef<AdBrandView | null>(null) // KINEO-ADS-MARCAS-1510
+  const [brandTick, setBrandTick] = useState(0) // KINEO-ADS-MARCAS-1510
   const [photoColor, setPhotoColor] = useState<string | null>(null)
   const linkInputRef = useRef<HTMLInputElement | null>(null)
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -849,13 +862,14 @@ export function AdsV2SimpleSession({
   const otherBrand = brandKitIsOtherBrand(kitBusiness, cardTitleFinal, sentence)
   // KINEO-ADS-PALCO-VOLTAR-1410 — o kit só fica enquanto a frase / o link não indicarem OUTRA marca (regra pura em lib/ads/v2PalcoVoltar).
   const kitEvidence = { sentence, linkName: linkPage?.name ?? null, linkHost } // KINEO-ADS-PALCO-VOLTAR-1410
-  const kitConflict = brandKitConflict(kitBusiness, kitEvidence) // KINEO-ADS-PALCO-VOLTAR-1410
+  const kitConflict = brandsOn && brand ? adBrandConflict(brand, kitEvidence) : brandKitConflict(kitBusiness, kitEvidence) // KINEO-ADS-PALCO-VOLTAR-1410 · KINEO-ADS-MARCAS-1510 — a MESMA regra (brandKitConflict pelo nome); o link do site da própria marca não conflita
+  const brandSuggest = brandsOn && kitOff === 'conflict' ? adBrandForEvidence(marcas?.list ?? [], kitEvidence, brand?.id) : null // KINEO-ADS-MARCAS-1510 — "Trocar para X" (nunca troca sozinho)
   const kitEvidenceRef = useRef(kitEvidence) // KINEO-ADS-PALCO-VOLTAR-1410 — o kit que chega depois (rede) lê a evidência de agora
   kitEvidenceRef.current = kitEvidence // KINEO-ADS-PALCO-VOLTAR-1410
   const firstPhotoUrl = items.slice(0, ADS_V2_SIMPLE_MAX_IN_AD).find((p) => !p.video)?.srcUrl ?? null
 
   /** Chave do rascunho: mudou texto, preço, contato, frases, voz, língua ou nível = rascunho novo (a pesquisa é copiada). */
-  const draftKey = JSON.stringify({ text: sentence, scene: sceneFinal, kind: adKind, price: priceT, contact: contactT, overlays: overlaysOn, voice: narrationOn, lang: spoken, tier, link: linkRead, ...(pronounce ? { pronounce } : {}) }) // KINEO-ADS-DEMO-UNIVERSO-1410 — mudou a pronúncia = rascunho novo
+  const draftKey = JSON.stringify({ text: sentence, scene: sceneFinal, kind: adKind, price: priceT, contact: contactT, overlays: overlaysOn, voice: narrationOn, lang: spoken, tier, link: linkRead, ...(pronounce ? { pronounce } : {}), ...(brand ? { brand: brand.id } : {}) }) // KINEO-ADS-DEMO-UNIVERSO-1410 — mudou a pronúncia = rascunho novo · KINEO-ADS-MARCAS-1510 — outra marca = rascunho novo
   const baseSig = JSON.stringify({ draftKey, sector, presenter: presenterOn, items: inAd.map((p) => [p.key, focalSig(p)]), style, ...(presenterOn && presenterPick ? { presenterPick } : {}), ...(format !== '9:16' ? { format } : {}) }) // KINEO-ADS-MELHORIAS-1410 — outro formato = planejar de novo
   // A marca de um fato é presa ao CONTEÚDO (fonte + texto), nunca ao id f1..f6: uma pesquisa nova tem outro f1 e não herda
   // a marca do anterior; a mesma pesquisa copiada para um rascunho novo (troca de nível) mantém a marca.
@@ -1155,6 +1169,7 @@ export function AdsV2SimpleSession({
   const formRef = useRef({ cardTitle: '', price: '', contact: '', cardColor: DEFAULT_COLOR, hasLogo: false })
   formRef.current = { cardTitle, price, contact, cardColor, hasLogo: !!logo }
   useEffect(() => {
+    if (marcasMode !== 'legacy') return // KINEO-ADS-MARCAS-1510 — com marcas (ou ainda lendo as marcas) o kit único não entra
     let cancelled = false
     void (async () => {
       const r = await api<{ kit?: AdsBrandKit | null; logo_url?: string | null }>('/api/ads/brand-kit')
@@ -1197,7 +1212,7 @@ export function AdsV2SimpleSession({
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [marcasMode]) // KINEO-ADS-MARCAS-1510 — era []: espera saber se há marcas
 
   // KINEO-ADS-PALCO-VOLTAR-1410 — tirar o kit deste anúncio (pela pessoa ou porque a frase/o link são de outra marca): sai SÓ o que
   // o kit pôs e a pessoa não mexeu; nome e preço voltam ao que a página do link leu. Devolver = preencher de novo o que estiver vazio.
@@ -1235,6 +1250,81 @@ export function AdsV2SimpleSession({
     else if (!kitConflict && kitOff === 'conflict') kitReapply(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kitConflict, kitApplied, kitOff])
+
+  // KINEO-ADS-MARCAS-1510 — TROCAR DE MARCA: sai o que a marca anterior preencheu (só o que a pessoa não mexeu — brandKitRetract), entra a nova
+  // (brandKitPrefill: só campo vazio) — e com a frase/o link de OUTRA marca ela não entra (a regra do KINEO-ADS-PALCO-VOLTAR-1410).
+  // A língua da voz e a pronúncia seguem a marca, salvo o que a pessoa escolheu à mão.
+  useEffect(() => {
+    if (!brandsOn) return
+    const f = formRef.current
+    if (kitApplied && kitOff === null) {
+      const r = brandKitRetract(kitFilledRef.current, { business: f.cardTitle, price: f.price, contact: f.contact, color: f.cardColor, logoFootageId: logo?.footageId ?? null }, { business: linkPage?.name ?? '', price: linkPage?.price ?? '', defaultColor: DEFAULT_COLOR })
+      setCardTitle(r.business)
+      setPrice(r.price)
+      setContact(r.contact)
+      setCardColor(r.color)
+      if (r.dropLogo) setLogo(null)
+    }
+    kitFilledRef.current = {}
+    kitForcedRef.current = false
+    kitLogoUrlRef.current = null
+    setKitOff(null)
+    setKitApplied(null)
+    setKitBusiness(brand ? brand.name : null)
+    const was = brandSetRef.current
+    const voice = adBrandVoice(brand, NARRATION_LANGUAGES.map((l) => l.code))
+    if (voiceLang === was.voice) setVoiceLang(voice as NarrationLanguage | null)
+    const say = brand?.pronounce_say ?? ''
+    const word = brand?.pronounce_word ?? ''
+    if (pronSay === was.say) setPronSay(say)
+    if (pronWord === was.word) setPronWord(word)
+    brandSetRef.current = { voice: voiceLang === was.voice ? voice : was.voice, say: pronSay === was.say ? say : was.say, word: pronWord === was.word ? word : was.word }
+    brandPendingRef.current = brand
+    setBrandTick((t) => t + 1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brandsOn, brandSig])
+  useEffect(() => { // KINEO-ADS-MARCAS-1510 — depois que o que saiu já está na tela: o logo do NOSSO bucket vira arquivo local e o kit da marca entra
+    const b = brandPendingRef.current
+    if (!brandsOn || !brandTick || !b) return
+    let cancelled = false
+    void (async () => {
+      let logoLocal: string | null = null
+      if (b.logo_footage_id && b.logo_url) {
+        try {
+          const res = await fetch(b.logo_url, { cache: 'no-store' })
+          if (res.ok) logoLocal = trackUrl(URL.createObjectURL(await res.blob()))
+        } catch {
+          logoLocal = null
+        }
+      }
+      if (cancelled || !aliveRef.current || brandPendingRef.current !== b) {
+        dropUrl(logoLocal)
+        return
+      }
+      const kit = adBrandToKit(b)
+      if (adBrandConflict(b, kitEvidenceRef.current)) {
+        kitLogoUrlRef.current = logoLocal
+        setKitApplied(kit)
+        setKitOff('conflict')
+        return
+      }
+      const f = formRef.current
+      const fillIn = brandKitPrefill(kit, { business: f.cardTitle, price: f.price, contact: f.contact, color: f.cardColor, defaultColor: DEFAULT_COLOR, hasLogo: f.hasLogo }, logoLocal)
+      if (fillIn.business) setCardTitle(fillIn.business)
+      if (fillIn.price) setPrice(fillIn.price)
+      if (fillIn.contact) setContact(fillIn.contact)
+      if (fillIn.color) setCardColor(fillIn.color)
+      if (fillIn.logo) setLogo({ footageId: fillIn.logo.footageId, localUrl: fillIn.logo.url, busy: false, error: null })
+      else dropUrl(logoLocal)
+      kitLogoUrlRef.current = fillIn.logo ? fillIn.logo.url : null
+      kitFilledRef.current = { business: fillIn.business, price: fillIn.price, contact: fillIn.contact, color: fillIn.color, logoFootageId: fillIn.logo?.footageId }
+      if (Object.keys(fillIn).length) setKitApplied(kit)
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brandTick])
 
   // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — "Save as my brand kit" NÃO vem marcado quando já existe um kit com OUTRO nome de marca
   // (prospecção de 12/10: quem anuncia para várias marcas sobrescrevia o próprio kit sem perceber). O clique da pessoa manda.
@@ -1290,6 +1380,11 @@ export function AdsV2SimpleSession({
   /** Grava o kit da marca DEPOIS que o anúncio começou (nunca antes, nunca no caminho do débito). Falha = silêncio. */
   function saveBrandKit() {
     const body = brandKitFromScreen({ business: cardTitle, price: priceT, contact: contactT, color: cardColor, logoFootageId: logo?.footageId ?? null })
+    if (brandsOn && marcas) { // KINEO-ADS-MARCAS-1510 — com marcas: atualiza a marca escolhida (ou cria uma nova, se houver nome); o kit único não é mais tocado
+      const fields = adBrandFromScreen(body, brand)
+      if (fields) void marcas.onSave(fields, brand?.id ?? null)
+      return
+    }
     void api('/api/ads/brand-kit', { method: 'PUT', body })
   }
 
@@ -1744,6 +1839,7 @@ export function AdsV2SimpleSession({
         scene: sceneFinal || null,
         kind: adKind,
         ...(pronounce ? { pronounce } : {}), // KINEO-ADS-DEMO-UNIVERSO-1410 — vai para brief.pronounce; o servidor limpa e confere de novo
+        ...(brand ? { brand_id: brand.id } : {}), // KINEO-ADS-MARCAS-1510 — o pedido grava a marca (o servidor confere que é do workspace)
       },
     })
     if (!aliveRef.current) return null
@@ -2302,6 +2398,7 @@ export function AdsV2SimpleSession({
                 <p className="adv2s-kitoff" role="status" data-kineo="ads-brand-kit-off" data-why={kitOff}>
                   <span>{kitOff === 'conflict' ? fill(pv.kitOffConflict, { name: kitBusiness ?? '' }) : pv.kitOffUser}</span>
                   <button type="button" disabled={locked} data-kineo="ads-brand-kit-use" onClick={() => kitReapply(true)}>{pv.useKit}</button>
+                  {brandSuggest ? <button type="button" disabled={locked} data-kineo="ads-brand-switch" onClick={() => marcas?.onPick(brandSuggest.id)}>{adBrandFill(bc.switchTo, { name: brandSuggest.name })}</button> : null}{/* KINEO-ADS-MARCAS-1510 */}
                 </p>
               ) : null}
               {/* KINEO-ADS-QUADRO-STUDIO-1510 — a caixa de texto do Studio (sem o rótulo grande: a pergunta e a dica ficam para o leitor de
@@ -2661,7 +2758,7 @@ export function AdsV2SimpleSession({
               <p className="adv2s-eta">⏱ {ux.preview.delivery}</p>
               <label className="adv2s-save" data-kineo="ads-brand-kit-save">
                 <input type="checkbox" checked={saveKit} disabled={locked} onChange={(e) => { saveKitTouchedRef.current = true; setSaveKit(e.target.checked) }} />
-                <span>{ux.kit.save}<small>{ux.kit.saveHint}</small></span>
+                <span>{brandsOn ? (brand ? adBrandFill(bc.saveToBrand, { name: brand.name }) : bc.saveAsNew) : ux.kit.save}<small>{ux.kit.saveHint}</small></span>{/* KINEO-ADS-MARCAS-1510 */}
               </label>
               {busyNote ? <p className="adsw-hint" role="status">{busyNote}</p> : null}
               {planError ? <p className="adsw-err" role="alert">{planError}</p> : null}

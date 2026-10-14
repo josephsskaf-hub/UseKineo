@@ -28,10 +28,11 @@ import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semReteste1510 } from './test-support/desfaz-reteste-1510.mjs' // reancorado KINEO-ADS-RETESTE-1510
 import { semDemoUniverso1410 } from './test-support/desfaz-ads-demo-universo-1410.mjs' // reancorado KINEO-ADS-DEMO-UNIVERSO-1410
+import { semMarcas1510 } from './test-support/desfaz-ads-marcas-1510.mjs' // reancorado KINEO-ADS-MARCAS-1510
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+const read = (rel) => semMarcas1510(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510)
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex')
 const BASE = '99bc0edcb4041403217d146e0a56da4ca3e52804'
 const base = (rel) => execFileSync('git', ['-C', ROOT, 'show', `${BASE}:${rel}`], { encoding: 'utf8', maxBuffer: 64 << 20 }).replace(/\r\n/g, '\n')

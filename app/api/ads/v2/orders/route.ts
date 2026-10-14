@@ -20,6 +20,8 @@ import { adsSampleLevelOk, adsSampleOpen } from '@/lib/ads/serverAccess'
 import { adsV2SameKind, adsV2SceneForDraft } from '@/lib/ads/v2SceneServer' // KINEO-ADS-CENA-2026-10-13
 import { moderateTopic } from '@/lib/safety/topicModeration' // KINEO-MODERACAO-1410 [TRAVA 8.2 — vai do fundador 14/10] — a régua completa na frase e na cena do anúncio
 import { sanitizeAdsV2Pronounce } from '@/lib/ads/v2Pronounce' // KINEO-ADS-DEMO-UNIVERSO-1410 — "como pronunciar a marca" (só a voz)
+import { AD_BRAND_LIST_STATUSES, adBrandFilter } from '@/lib/ads/brands' // KINEO-ADS-MARCAS-1510 — a lista "Seus anúncios" filtrada por marca
+import { isMissingBrandSchema, orderBrandId } from '@/lib/ads/brandsServer' // KINEO-ADS-MARCAS-1510 — o pedido grava a marca (só uma marca viva DO DONO; sem a tabela = como sempre)
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -42,6 +44,20 @@ export async function GET(req: NextRequest) {
       const shots = (await loadAdsV2Shots(admin, order.id)) ?? []
       return v2Json({ order: adsV2View(order, shots), plan: order.plan, brief: order.brief, card_url: order.card_url, photos: order.photos })
     }
+    if (req.nextUrl.searchParams.get('list') === 'brands') { // KINEO-ADS-MARCAS-1510 — "Seus anúncios": só os que começaram, com a marca; ?brand=<id>|none filtra
+      const f = adBrandFilter(req.nextUrl.searchParams.get('brand')) // KINEO-ADS-MARCAS-1510
+      let q = admin.from('ads_v2_orders').select('id, status, tier, seconds, video_id, created_at, brand_id, sentence:brief->>sentence, link:brief->>link').eq('user_id', uid).in('status', [...AD_BRAND_LIST_STATUSES]) // KINEO-ADS-MARCAS-1510
+      if (f.kind === 'one') q = q.eq('brand_id', f.id) // KINEO-ADS-MARCAS-1510
+      if (f.kind === 'none') q = q.is('brand_id', null) // KINEO-ADS-MARCAS-1510
+      const l = await q.order('created_at', { ascending: false }).limit(40) // KINEO-ADS-MARCAS-1510
+      if (l.error && isMissingBrandSchema(l.error.code) && !isMissingAdsTable(l.error.code)) { // KINEO-ADS-MARCAS-1510 — a coluna brand_id ainda não existe: a lista sem marca (o filtro não se aplica)
+        const o = await admin.from('ads_v2_orders').select('id, status, tier, seconds, video_id, created_at, sentence:brief->>sentence, link:brief->>link').eq('user_id', uid).in('status', [...AD_BRAND_LIST_STATUSES]).order('created_at', { ascending: false }).limit(40) // KINEO-ADS-MARCAS-1510
+        if (o.error) return isMissingAdsTable(o.error.code) ? v2Fail('not_ready', 503) : v2Fail('orders_failed', 502) // KINEO-ADS-MARCAS-1510
+        return v2Json({ orders: o.data ?? [], brands_ready: false }) // KINEO-ADS-MARCAS-1510
+      } // KINEO-ADS-MARCAS-1510
+      if (l.error) return isMissingAdsTable(l.error.code) ? v2Fail('not_ready', 503) : v2Fail('orders_failed', 502) // KINEO-ADS-MARCAS-1510
+      return v2Json({ orders: l.data ?? [], brands_ready: true }) // KINEO-ADS-MARCAS-1510
+    } // KINEO-ADS-MARCAS-1510
     const { data, error } = await admin
       .from('ads_v2_orders')
       .select('id, status, tier, seconds, sector, credits_charged, video_id, parent_order_id, retake_idx, error, created_at, updated_at')
@@ -120,10 +136,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const brandId = await orderBrandId(admin, uid, (body as Record<string, unknown> | null)?.brand_id) // KINEO-ADS-MARCAS-1510 — marca viva DO DONO ou null (nunca recusa o anúncio)
     const ins = await admin
       .from('ads_v2_orders')
       .insert({
         user_id: uid,
+        ...(brandId ? { brand_id: brandId } : {}), // KINEO-ADS-MARCAS-1510 — sem marca (ou sem a tabela) = o insert de sempre
         ...(ws.role === 'member' ? { created_by: user.id } : {}), // KINEO-EQUIPE-BUSINESS-2026-10-10 — quem criou (auditoria; NULL = o dono)
         status: 'draft',
         tier: o.tier,
@@ -149,6 +167,7 @@ export async function POST(req: NextRequest) {
       metadata: {
         order_id: orderId, tier: o.tier, seconds: o.seconds, sector: o.sector, has_link: Boolean(o.link), has_sentence: Boolean(o.sentence), narration: o.narration, photos: photos.length, credits,
         mode: o.mode === 'simple' ? 'simple' : 'full', overlays: o.overlays !== false, has_price: Boolean(o.price), has_contact: Boolean(o.contact), research_copied: Boolean(brief.research),
+        ...(brandId ? { brand_id: brandId } : {}), // KINEO-ADS-MARCAS-1510
       },
     })
     // KINEO-EQUIPE-BUSINESS-2026-10-10 — rastro de auditoria: o MEMBRO agiu no workspace do dono (o pedido e a cobrança são do dono).
