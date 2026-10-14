@@ -780,6 +780,7 @@ IMPORTS_OK.push('@/lib/ads/v2Packshot', '@/lib/ads/v2Redo', '@/lib/ads/v2Formats
 // regra da barra do celular — provada pura abaixo e em scripts/test-ads-reteste-1510.mjs). Nenhum módulo de servidor entrou.
 // reancorado KINEO-ADS-QUADRO-STUDIO-1510 — + './AdsV2Quadro' (componente de navegador do quadro curto: só importa a lib pura v2Styles) e
 // '@/lib/ads/v2QuadroCopy' (lib PURA das 3 frases novas, provada pura abaixo). Nenhum módulo de servidor entrou.
+IMPORTS_OK.push('@/lib/ads/v2PalcoVoltar') // reancorado KINEO-ADS-PALCO-VOLTAR-1410 — lib PURA (só import type; provada pura em scripts/test-ads-palco-voltar-1410.mjs C5): o kit fora em conflito e o Fechar estilos
 await check('E3 a tela simples é cliente e só importa módulos de navegador/puros; v2Simple, v2Research e v2VideoFrames não têm import; textLanguage é pura', () => {
   const imps = [...SRC.simple.matchAll(/^import[\s\S]*?from '([^']+)'/gm)].map((m) => m[1])
   return /^'use client'/.test(SRC.simple) && imps.length >= 8 && imps.every((m) => IMPORTS_OK.includes(m)) &&
