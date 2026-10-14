@@ -103,7 +103,8 @@ console.log('4 — só isto mudou no Studio (desfeito, é a base byte a byte)')
 const { semDuracaoSaldo1510 } = await import('./test-support/desfaz-duracao-saldo-1510.mjs')
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex')
 // A impressão do Studio de antes deste conserto (a mesma do D4 de scripts/test-ads-fluxo-1310.mjs).
-ok(sha(semDuracaoSaldo1510(ST)) === 'f14aced01385418c88fd1a3fc7218c7a6ca83a805d36d776f14c7d2a371fc25c', 'desfeitos import + 2 blocos ▼▲ + 5 onClickCapture, o StudioClient é EXATAMENTE a base')
+const desfeito = (() => { try { return semDuracaoSaldo1510(ST) } catch (e) { console.log('  (desfaz lançou: ' + e.message + ')'); return null } })()
+ok(desfeito !== null && sha(desfeito) === 'f14aced01385418c88fd1a3fc7218c7a6ca83a805d36d776f14c7d2a371fc25c','desfeitos import + 2 blocos ▼▲ + 5 onClickCapture, o StudioClient é EXATAMENTE a base')
 let lancou = false
 try { semDuracaoSaldo1510(ST.replace('  const shortestDuration = ', '  const x = 1 // KINEO-STUDIO-DURACAO-SALDO-1510\n  const shortestDuration = ')) } catch { lancou = true }
 ok(lancou, 'uma linha marcada a mais fora dos blocos faz o desfaz LANÇAR (não engole mudança nova)')

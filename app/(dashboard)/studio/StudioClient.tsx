@@ -1271,7 +1271,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
             </div>
             {/* KINEO-STUDIO-DURACAO-SALDO-1510 ▼ — a nota honesta da descida pelo saldo; o caminho do plano continua na tela. */}
             {notaDuracaoAjustada && (
-              <p data-kineo="duracao-pelo-saldo" role="status" style={{ margin: '6px 0 0', fontSize: 12, lineHeight: 1.45, opacity: 0.85 }}>
+              <p data-kineo="duracao-pelo-saldo" role="status" style={{ margin: '6px 0 10px', fontSize: 12, lineHeight: 1.45, opacity: 0.85 }}>
                 {notaDuracaoAjustada}{' '}
                 <a href="/pricing?intent_campaign=studio_duration_fit" onClick={() => { void trackEvent('studio_duration_fit_plans_clicked', { engine, from: duracaoAjustada?.de ?? null, to: duration, balance }) }} style={{ color: 'var(--accent)', fontWeight: 600, whiteSpace: 'nowrap' }}>See plans →</a>
               </p>
