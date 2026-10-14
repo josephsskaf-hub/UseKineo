@@ -831,6 +831,7 @@ interface FastRenderInputs {
   verbatim?: boolean // KINEO-SEEDANCE-15S-2026-09-29: filme de IA em verbatim — o unlock espelha o claimVerbatim do compose
   // LOTE2-EXPORT-LIMPO-FIEL-2026-09-23 — o formato do filme. Sem ele o export limpo PAGO de um 16:9/1:1/4:5 voltava 9:16.
   aspect?: string
+  generation_id?: string // KINEO-PARCEIRO-EYEBIBLE-2-1410 — o filme de IA: o export limpo lê a duração do claim ASSINADO dele
 }
 
 interface ActiveRenderSnapshot {
@@ -996,6 +997,7 @@ function normalizeFastRenderInputs(value: unknown): FastRenderInputs | undefined
     ...(input.quality === 'fast' || input.quality === 'cinematic_ai' ? { quality: input.quality } : {}),
     ...(typeof input.aspect === 'string' && input.aspect !== '9:16' && normalizeAspect(input.aspect) === input.aspect ? { aspect: input.aspect } : {}), // LOTE2-EXPORT-LIMPO-FIEL-2026-09-23
     ...(input.verbatim === true ? { verbatim: true } : {}), // KINEO-SEEDANCE-15S-2026-09-29 (revisão E2a)
+    ...(typeof input.generation_id === 'string' && /^[A-Za-z0-9_-]{8,128}$/.test(input.generation_id) ? { generation_id: input.generation_id } : {}), // KINEO-PARCEIRO-EYEBIBLE-2-1410
   }
 }
 
@@ -6489,6 +6491,7 @@ export default function GenerateClient({
 
         const composeGenerationId = generationId ?? generationAttemptRef.current ?? newGenerationAttemptId()
         if (!generationAttemptRef.current) generationAttemptRef.current = composeGenerationId
+        if (!avatarComposeRef.current?.avatarVideoUrl && lastFastRenderRef.current && falUsedRef.current) lastFastRenderRef.current = { ...lastFastRenderRef.current, generation_id: composeGenerationId } // KINEO-PARCEIRO-EYEBIBLE-2-1410
         const composePayload = {
             generationId: composeGenerationId,
             clip_urls: clipUrls,

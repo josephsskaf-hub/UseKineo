@@ -2,12 +2,15 @@
 // Pure/deterministic: no provider calls, narration rewriting or new model cost.
 import { aspectSpec } from '../aspect'
 import { applyStyleAnchor, buildStoryScenePrompt, textSafetySuffix, NO_READABLE_TEXT_SUFFIX, type StyleAnchor } from './sceneStyle'
+import { comElencoNaCena, type PapelDoElenco } from './sceneStyle' // KINEO-PARCEIRO-EYEBIBLE-2-1410
 import type { VisualMode } from './visualMode'
 
 export interface VisualPromptPolicy {
   mode: VisualMode
   style: StyleAnchor
   character?: string | null
+  /** KINEO-PARCEIRO-EYEBIBLE-2-1410 — o elenco fixo dos papéis que falam (drama com vários personagens); ausente = como sempre. */ // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  elenco?: ReadonlyArray<PapelDoElenco> | null // KINEO-PARCEIRO-EYEBIBLE-2-1410
   aspect?: string | null
   eraSuffix?: string
   opening?: boolean
@@ -182,6 +185,7 @@ export function buildClassicVisualPrompt(visual: string, policy: VisualPromptPol
   let prompt: string
   if (policy.mode !== 'documentary_faceless') {
     prompt = buildStoryScenePrompt(visual, policy.style, policy.character ?? null)
+    if (policy.elenco && policy.elenco.length > 0) prompt = comElencoNaCena(prompt, visual, policy.elenco) // KINEO-PARCEIRO-EYEBIBLE-2-1410 — o capitão é o mesmo homem em toda cena que o cita
   } else {
     const subject = semPessoaSemFragmento((visual || '') // KINEO-ROMANCE-ADULTO-2026-10-13 — o apagão de pessoa não deixa "of and"
       .replace(NAMED_FIGURE_RE, 'a distant silhouetted figure seen from behind')

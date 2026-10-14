@@ -39,6 +39,8 @@ import {
 } from '@/lib/composeClaim'
 import { createHash } from 'node:crypto'
 import { RENDER_REJECTED_MESSAGE } from '@/lib/render/rejectionMessage'
+import { loadVerifiedCinematicClaim } from '@/lib/cinematic/claim' // KINEO-PARCEIRO-EYEBIBLE-2-1410
+import { duracaoDoFilmeAssinada } from '@/lib/cinematic/duracaoDoFilme' // KINEO-PARCEIRO-EYEBIBLE-2-1410
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -119,6 +121,8 @@ interface UnlockBody {
   // MESMO campo que o /api/compose lê no claim assinado como claimVerbatim). Governa só se a narração é reescalada — o
   // texto já vem do cliente em voiceover_script, então o campo não abre nada que o corpo já não abrisse.
   verbatim?: boolean
+  /** KINEO-PARCEIRO-EYEBIBLE-2-1410 — o generationId do filme de IA: a duração vem do claim ASSINADO dele (nunca do corpo), como no /api/compose. */ // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  generation_id?: string // KINEO-PARCEIRO-EYEBIBLE-2-1410
 }
 
 // Keep the clean re-render identical to the just-created Fast preview.
@@ -501,7 +505,7 @@ export async function POST(req: NextRequest) {
 
     // ── 3) Rebuild the SAME Fast video, clean (watermark:false) ──────────────
     const requestedDuration = Number(body.duration) || 45
-    const duration = (SUPPORTED_DURATIONS as readonly number[]).includes(requestedDuration)
+    let duration = (SUPPORTED_DURATIONS as readonly number[]).includes(requestedDuration) // KINEO-PARCEIRO-EYEBIBLE-2-1410 — era const: o claim assinado pode encurtar (abaixo)
       ? requestedDuration
       : 45
     // ═══ LOTE2-EXPORT-LIMPO-FIEL-2026-09-23 — o export limpo PAGO é o MESMO filme ═══
@@ -509,6 +513,16 @@ export async function POST(req: NextRequest) {
     // árabe… voltavam narrados em inglês), não recebia o formato (16:9/1:1/4:5 voltavam 9:16 com os clipes cortados) e não
     // ajustava a fonte da legenda (devanágari/árabe podiam sair como caixinhas). Agora espelha o /api/compose: catálogo de
     // 16 línguas, formato do filme e a fonte da língua.
+    // KINEO-PARCEIRO-EYEBIBLE-2-1410 — o export limpo é o MESMO filme: no roteiro próprio de um motor clássico, a duração // KINEO-PARCEIRO-EYEBIBLE-2-1410
+    // ASSINADA no claim do nascimento (o filme que a rota desceu para a fala e cobrou) vence a do seletor que o navegador // KINEO-PARCEIRO-EYEBIBLE-2-1410
+    // guardou. Só leitura do claim verificado (dono + assinatura); só encurta; qualquer falha = a duração de antes. // KINEO-PARCEIRO-EYEBIBLE-2-1410
+    const geracaoDoFilme = typeof body.generation_id === 'string' ? body.generation_id.trim().slice(0, 128) : '' // KINEO-PARCEIRO-EYEBIBLE-2-1410
+    if (geracaoDoFilme && rebuildQualityOf(body.quality) === 'cinematic_ai') { // KINEO-PARCEIRO-EYEBIBLE-2-1410
+      const nascimento = await loadVerifiedCinematicClaim({ db: admin, secret: serviceRoleKey, userId: user.id, generationId: geracaoDoFilme }).catch(() => null) // KINEO-PARCEIRO-EYEBIBLE-2-1410
+      if (nascimento?.ok && nascimento.claim && nascimento.claim.status === 'settled') { // KINEO-PARCEIRO-EYEBIBLE-2-1410
+        duration = duracaoDoFilmeAssinada({ pedida: duration, quality: nascimento.claim.quality, claimResponse: nascimento.claim.response }) // KINEO-PARCEIRO-EYEBIBLE-2-1410
+      } // KINEO-PARCEIRO-EYEBIBLE-2-1410
+    } // KINEO-PARCEIRO-EYEBIBLE-2-1410
     const language = narrationLanguage(body.language) ?? 'en'
     const aspect = normalizeAspect(body.aspect)
     // KINEO-TRIAL-WATERMARK-2026-09-07 — ver REBUILD_QUALITIES.

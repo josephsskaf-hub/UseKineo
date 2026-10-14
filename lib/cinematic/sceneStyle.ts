@@ -313,3 +313,29 @@ export function buildStoryScenePrompt(visual: string, anchor: StyleAnchor, chara
     anchor.suffix
   )
 }
+// ═══ KINEO-PARCEIRO-EYEBIBLE-2-1410 — ELENCO de vários papéis (lib/cinematic/elencoDaHistoria.ts deriva; aqui só se aplica) ═══ // KINEO-PARCEIRO-EYEBIBLE-2-1410
+// A ficha de UM protagonista acima não cobre drama com três papéis que falam (Robert/EyeBible, 14/10: o capitão mudava de // KINEO-PARCEIRO-EYEBIBLE-2-1410
+// rosto a cada cena). Cada papel entra SÓ na cena que o cita pelo nome do papel inteiro ("the captain", "the wounded // KINEO-PARCEIRO-EYEBIBLE-2-1410
+// soldier"); o substantivo sozinho ("the soldier") só vale quando um papel só o usa. Plural ("soldiers") não é o papel. // KINEO-PARCEIRO-EYEBIBLE-2-1410
+export interface PapelDoElenco { papel: string; ficha: string } // KINEO-PARCEIRO-EYEBIBLE-2-1410
+const escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') // KINEO-PARCEIRO-EYEBIBLE-2-1410
+/** Os papéis do elenco que a descrição da cena cita, na ordem do elenco. */ // KINEO-PARCEIRO-EYEBIBLE-2-1410
+export function papeisNaCena(visual: string, elenco: ReadonlyArray<PapelDoElenco> | null | undefined): PapelDoElenco[] { // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  const v = ` ${(visual || '').toLowerCase().replace(/[’‘]/g, "'").replace(/\s+/g, ' ')} ` // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  const lista = elenco ?? [] // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  const nucleo = (p: PapelDoElenco) => p.papel.split(' ').pop() ?? p.papel // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  return lista.filter((p) => { // KINEO-PARCEIRO-EYEBIBLE-2-1410
+    if (new RegExp(String.raw`(?<![\p{L}\p{N}])${escapaRe(p.papel)}(?![\p{L}\p{N}])`, 'u').test(v)) return true // KINEO-PARCEIRO-EYEBIBLE-2-1410 — "captains" não é "captain"; "captain's" é
+    const n = nucleo(p) // KINEO-PARCEIRO-EYEBIBLE-2-1410
+    if (n === p.papel || lista.filter((o) => nucleo(o) === n).length !== 1) return false // KINEO-PARCEIRO-EYEBIBLE-2-1410
+    return new RegExp(String.raw`(?<![\p{L}\p{N}])the ${escapaRe(n)}(?![\p{L}\p{N}])`, 'u').test(v) // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  }) // KINEO-PARCEIRO-EYEBIBLE-2-1410
+} // KINEO-PARCEIRO-EYEBIBLE-2-1410
+/** Cola no prompt de HISTÓRIA a ficha de cada papel que a cena cita (antes da moldura); cena sem papel: o MESMO prompt. */ // KINEO-PARCEIRO-EYEBIBLE-2-1410
+export function comElencoNaCena(prompt: string, visual: string, elenco: ReadonlyArray<PapelDoElenco> | null | undefined): string { // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  const naCena = papeisNaCena(visual, elenco) // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  if (naCena.length === 0) return prompt // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  const frase = ` Recurring characters, identical face, hair and costume in every scene where they appear: ${naCena.map((p) => `the ${p.papel} is ${p.ficha}`).join('; ')}.` // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  const ancora = prompt.indexOf(' 9:16 vertical, subject framed') // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  return ancora >= 0 ? prompt.slice(0, ancora) + frase + prompt.slice(ancora) : prompt + frase // KINEO-PARCEIRO-EYEBIBLE-2-1410
+} // KINEO-PARCEIRO-EYEBIBLE-2-1410

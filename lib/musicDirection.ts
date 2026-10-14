@@ -88,6 +88,12 @@ function musicDisabled(instruction: string): boolean {
     || /^(?:(?:no|without) (?:background )?(?:music|soundtrack)|sin musica(?: de fondo)?|sem (?:musica|trilha)(?: sonora)?(?: de fundo)?)[.!\s]*$/.test(instruction)
 }
 
+/** KINEO-PARCEIRO-EYEBIBLE-2-1410 — o TOM do texto narrado (o MESMO classificador da trilha: luto, guerra, mistério…), sem as linhas de diretiva de música/tom. */ // KINEO-PARCEIRO-EYEBIBLE-2-1410
+export function tomDoRoteiro(script: string): MusicEmotion | null { // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  const texto = normalized(String(script ?? '').slice(0, 32_000)) // KINEO-PARCEIRO-EYEBIBLE-2-1410
+    .split(/\r?\n/).filter(line => !/^\s*\[?(?:music|music_mood|soundtrack|musica|trilha|trilha sonora|संगीत|tone|mood|tono|भाव)\s*:/.test(line)).join('\n') // KINEO-PARCEIRO-EYEBIBLE-2-1410
+  return emotionOf(texto) // KINEO-PARCEIRO-EYEBIBLE-2-1410
+} // KINEO-PARCEIRO-EYEBIBLE-2-1410
 export function resolveMusicDirection(input: MusicDirectionInput): MusicDirection {
   const raw = normalized((input.rawScript || input.script).slice(0, 32_000))
   const directives: string[] = []

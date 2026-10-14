@@ -197,6 +197,9 @@ import { buildClassicVisualPrompt, classicVisualNegativePrompt, isStylizedLook, 
 import { ancoraDoLugar, ancorarLugarNoPrompt, comVocabularioDoLugar, lugarPrincipal, pedidoDeTourNarrado, promptTemOLugar } from '@/lib/cinematic/monumentoReal' // KINEO-MONUMENTO-2026-10-13
 import { aplicarRomanceAdulto, decidirRomanceAdulto, negativoRomanceAdulto, textoParaModeracao, ROMANCE_ADULT_SUFFIX, ROMANCE_ADULTO_VERSAO } from '@/lib/cinematic/romanceGuard' // KINEO-ROMANCE-ADULTO-2026-10-13
 import { forcePhotorealAnchor } from '@/lib/cinematic/sceneStyle' // KINEO-ROMANCE-ADULTO-2026-10-13
+import { derivarElenco } from '@/lib/cinematic/elencoDaHistoria' // KINEO-PARCEIRO-EYEBIBLE-2-1410
+import { moodDoTom } from '@/lib/cinematic/tomDaCena' // KINEO-PARCEIRO-EYEBIBLE-2-1410
+import { tomDoRoteiro } from '@/lib/musicDirection' // KINEO-PARCEIRO-EYEBIBLE-2-1410
 import { moderateContent } from '@/lib/safety/contentModeration' // KINEO-ROMANCE-ADULTO-2026-10-13
 import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/moderationPolicy' // KINEO-ROMANCE-ADULTO-2026-10-13
 import { cobrirFalaComImagem, SEEDANCE_COBRE_VARIACAO } from '@/lib/cinematic/seedanceCobreAFala' // KINEO-MONUMENTO-2026-10-13 (duração)
@@ -1581,7 +1584,8 @@ async function manipularPost(req: NextRequest) {
       lighting: styleString(styleRecord.lighting),
       cameraStyle: styleString(styleRecord.cameraStyle),
     }
-    const styleSuffix = gStyle && (gStyle.mood || gStyle.lighting || gStyle.cameraStyle) ? `, ${[gStyle.mood, gStyle.lighting, gStyle.cameraStyle].filter(Boolean).join(', ')}, consistent color grade across all scenes` : ''
+    const moodDaCena = moodDoTom(gStyle?.mood, tomDoRoteiro(prompt)) // KINEO-PARCEIRO-EYEBIBLE-2-1410 — guerra/luto/mistério: o 'energetic' fixo do plano de b-roll não vai para a cena
+    const styleSuffix = gStyle && (moodDaCena || gStyle.lighting || gStyle.cameraStyle) ? `, ${[moodDaCena, gStyle.lighting, gStyle.cameraStyle].filter(Boolean).join(', ')}, consistent color grade across all scenes` : '' // KINEO-PARCEIRO-EYEBIBLE-2-1410
     // Push #402 — explicit engine choice from the UI. 'kling' = Cinematic AI
     // (50 cr); anything else = AI Generated (Seedance, 20 cr).
     // Board 14/09 (ajuste 1): dry_run:true de conta NÃO autorizada é rejeitado aqui,
@@ -3543,6 +3547,7 @@ async function manipularPost(req: NextRequest) {
     const estrelaFicha: string | null = estrelaAtiva ? fichaDaEstrela(prompt, storyCharacter) : null // KINEO-ESTRELA-DO-FILME-2026-09-29
     // A política da estrada clássica passa a carregar a ficha da estrela (o escritor de cenas e o prompt de cada cena a repetem). [KINEO-ESTRELA-DO-FILME-2026-09-29]
     if (estrelaFicha) classicVisualPolicy.character = estrelaFicha // KINEO-ESTRELA-DO-FILME-2026-09-29
+    if (!estrelaFicha && storyMode && !storyCharacter) { const elenco = derivarElenco(prompt); if (elenco.length > 0) classicVisualPolicy.elenco = elenco } // KINEO-PARCEIRO-EYEBIBLE-2-1410 — drama com papéis que falam e sem ficha do autor: cada papel ganha UMA aparência fixa (zero custo)
     let scenes: { description: string; voiceover: string; caption: string; stockSearchQuery?: string; aiPrompt?: string; clipSeconds?: number }[] // clipSeconds: KINEO-KLING25-PLANOS-5S-2026-09-28 (só Kling 2.5)
 
     if (verbatim) {
