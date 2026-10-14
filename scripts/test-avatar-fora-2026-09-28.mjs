@@ -159,9 +159,10 @@ const PORTAS = /href="\/avatar"|Talking Avatar|AI Presenter|Character Lock|Trans
   // A FAQ do Autopilot hoje nem renderiza (PRICING_SHOW_AUTOPILOT=false filtra a pergunta); a frase é conferida no fonte
   // para não voltar a vender o AI Presenter no dia em que o Autopilot reaparecer.
   const pcSrc = rd('app/pricing/PricingClient.tsx')
-  checa('pricing (fonte): FAQ do Autopilot, calculadora, tabela e Character Lock só com AVATAR_PUBLIC', pcSrc.includes("any engine — Seedance, Kling, Hollywood${AVATAR_PUBLIC ? ', AI Presenter' : ''} — completely separately") && pcSrc.includes("...(AVATAR_PUBLIC ? [{ ic: '🧑‍🎤', name: 'AI Presenter videos', cost: costPres }] : []),") && pcSrc.includes('{AVATAR_PUBLIC && <span>✓ Character Lock — same face in every video</span>}') && conta(pcSrc, 'AI Presenter — talking avatar') === 1 && /\.\.\.\(AVATAR_PUBLIC\s+\? \[\{\s+label: `🎬 AI Presenter — talking avatar/.test(pcSrc))
+  checa('pricing (fonte): FAQ do Autopilot, calculadora, tabela e Character Lock só com AVATAR_PUBLIC', pcSrc.includes("any engine — Seedance, Kling, Hollywood${AVATAR_PUBLIC ? ', AI Presenter' : ''} — completely separately") && pcSrc.includes("...(AVATAR_PUBLIC ? [{ ic: '🧑‍🎤', name: 'AI Presenter videos', cost: costPres }] : []),") && pcSrc.includes('{AVATAR_PUBLIC && <span>✓ Character Lock — same face in every video</span>}') && conta(pcSrc, 'AI Presenter — talking avatar') === 0 && !pcSrc.includes('What you get at each tier'))
+  // reancorado KINEO-PRECOS-LIMPEZA-1510 — a linha "AI Presenter — talking avatar" vivia na tabela Compare plans, que o fundador tirou do /pricing (15/10).
   // Reancorado 09/10 (KINEO-PRECOS-REFINO): a lista "Kling 3 films · native voice & lip sync" era do cartão antigo; no novo, a tabela por motor.
-  checa('pricing: a calculadora e a tabela seguem com os motores vendidos (Kling 3 e Seedance)', html.includes('<td>Kling 3</td>') && html.includes('<td>Seedance 1.5</td>') && html.includes('Kling 3 — top cinematic'))
+  checa('pricing: a calculadora e a tabela seguem com os motores vendidos (Kling 3 e Seedance)', html.includes('<td>Kling 3</td>') && html.includes('<td>Seedance 1.5</td>') && !html.includes('Kling 3 — top cinematic')) // reancorado KINEO-PRECOS-LIMPEZA-1510 — "Kling 3 — top cinematic" era linha da tabela Compare plans, que saiu
 }
 {
   const ft = renderPage('components/Footer.tsx', false, {}, {})

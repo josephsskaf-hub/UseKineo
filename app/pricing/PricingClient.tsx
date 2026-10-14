@@ -16,7 +16,6 @@ import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 import { PLAN_SWITCH_EMPTY, fetchPlanSwitchState, planSwitchConfirmText, planSwitchErrorText, planSwitchLabel, switchPlan, type PlanSwitchState, type SwitchableTier } from '@/lib/growth/planSwitch'
 import { confirmAndSwitchBusiness, type PlanSwitchTier } from '@/lib/growth/planSwitch' // KINEO-TROCA-BUSINESS-2026-10-10
 import { S25_PUBLIC, AVATAR_PUBLIC } from '@/lib/engineLaunch' // KINEO-AVATAR-FORA-2026-09-28
-import { H3MAX_PUBLIC } from '@/lib/engineLaunch' // KINEO-H3MAX-2026-10-13
 import Link from 'next/link'
 import React, { useEffect, useRef, useState } from 'react'
 import { trackCheckoutClick } from '@/lib/trackClick'
@@ -35,15 +34,9 @@ import {
   CHECKOUT_CURRENCY_DISCLOSURE,
   filmsAndScenes,
   formatResultCount,
-  MARKETING_REFERENCE_SECONDS,
   videosPerMonth,
 } from '@/lib/marketingPrice'
-// KINEO-PRICING-VERDADE-2026-09-27 — a tabela "Compare plans" passa a contar filmes com a MESMA função que o caixa
-// cobra (creditCostForDuration a 60 s); nenhum "1/mo" digitado à mão sobrevive a uma mudança de grant.
-import { creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
-import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
-import PricingBusinessPathTelemetry from '@/components/PricingBusinessPathTelemetry'
 import PricingAdsBlock from '@/components/pricing/PricingAdsBlock' // KINEO-FLUXO-NOVO-2026-09-25 — blocos de compra única abaixo dos planos (peça D)
 import PricingCreditsBlock from '@/components/pricing/PricingCreditsBlock' // KINEO-FLUXO-NOVO-2026-09-25
 import TwoProductsPricing from '@/components/pricing/TwoProductsPricing' // KINEO-PRECOS-DOIS-PRODUTOS-2026-10-05
@@ -54,7 +47,6 @@ import { AUTOPILOT_PUBLIC } from '@/lib/autopilotPublic' // KINEO-AUTOPILOT-FORA
 // stub e a conta não pode morar aqui); a página só escolhe a paleta.
 import { PLAN_VALUE_STAGE_CSS, PlanValueCard, isPlanValuePalette, type PlanValuePalette, type PlanValueTier } from '@/components/pricing/PlanValueStage'
 import { PRECOS_DOIS_PRODUTOS_PUBLIC } from '@/lib/pricingTwoProducts' // KINEO-PRECOS-DOIS-PRODUTOS-2026-10-05 (desligado)
-import { PRICING_BUSINESS_PATH_TARGET_ID } from '@/lib/growth/pricingBusinessPath'
 import PricingSavedCheckout from '@/components/PricingSavedCheckout'
 import MrrPricingProof from '@/components/growth/MrrPricingProof'
 import PricingJourneyProof from '@/components/growth/PricingJourneyProof'
@@ -118,7 +110,7 @@ import {
 } from '@/lib/checkoutPricing'
 import { formatSettlementMoney, planSettlementAmountMinor, settlementNote, type SettlementCurrency } from '@/lib/settlementCurrency'
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
-import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, type FreeTierOffer } from '@/lib/freeTierOffer'
+import { swapFreeTierCopy as ft, type FreeTierOffer } from '@/lib/freeTierOffer'
 import { CHECKOUT_PAYMENT_GUIDANCE_COMPACT } from '@/lib/growth/checkoutPaymentGuidance'
 import { GUEST_CHECKOUT_LIVE, guestCheckoutCoversPlanClick } from '@/lib/growth/guestCheckout' // KINEO-COMPRA-SEM-LOGIN-2026-10-06
 import PricingDealBar from '@/components/pricing/PricingDealBar' // KINEO-WELCOME20-FAIXA-2026-10-09
@@ -159,7 +151,6 @@ import {
   type CheckoutErrorSignal,
 } from '@/lib/growth/checkoutErrorSignal'
 import { CARD_TRIAL_LIVE, CARD_TRIAL_SECONDARY_LABEL } from '@/lib/checkoutPricing'
-import { ADS_SUBSCRIBER_PLANS } from '@/lib/ads/access' // KINEO-COPY-HONESTA-C-2026-09-27 — módulo puro (sem server-only/supabase); lib/ads/offer.ts fica pinado, só chega por ele
 import Studio50OfferBanner from '@/components/Studio50OfferBanner'
 
 // PAYPAL-DISABLED-2026-07-06 — PayPal checkout is hidden on pricing until it's
@@ -368,28 +359,14 @@ function trackPricingEvent(name: string, metadata?: Record<string, unknown>): vo
  */
 export type PricingCharacterLimits = { free: number; trial: number; starter: number; basic: number; pro: number }
 
-export default function PricingClient({ initialBilling = 'annual', characterLimits }: {
+export default function PricingClient({ initialBilling = 'annual' }: {
   initialBilling?: PricingPlanChoiceBilling
+  // KINEO-PRECOS-LIMPEZA-1510 — a tabela "Compare plans" saiu da página (fundador 15/10); a prop segue aceita para não mexer no servidor.
   characterLimits?: PricingCharacterLimits
 } = {}) {
   // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
   const OFFER = useFreeTierOffer()
 
-  // KINEO-PRICING-VERDADE-2026-09-27 — a tabela "Compare plans" dizia "—" para H3 e Kling 2.5 no Starter (60 cr
-  // compram um filme de 45/50), "1/mo" de Kling 3 no Studio (300 cr compram 2) e "—" no Creator (150 cr compram 1).
-  // Nada digitado: custo do filme de 60 s = creditCostForDuration (a régua do caixa), grant = TIER_CREDITS.
-  const filmCreditsAt60s = (quality: Quality): number => creditCostForDuration(quality, true, MARKETING_REFERENCE_SECONDS)
-  const filmsPerMonthFor = (tier: PaidTier, quality: Quality): number => Math.floor(TIER_CREDITS[tier] / filmCreditsAt60s(quality))
-  const filmsCell = (tier: PaidTier, quality: Quality, style: 'film' | 'mo'): string => {
-    const films = filmsPerMonthFor(tier, quality)
-    if (films < 1) return '—'
-    return style === 'mo' ? `✅ ${films}/mo` : `✅ ${films} ${films === 1 ? 'film' : 'films'}`
-  }
-  const charCell = (n: number | undefined): string => (typeof n === 'number' && n > 0 ? String(n) : '—')
-  // KINEO-COPY-HONESTA-C-2026-09-27 — linha "Studio Ads" da tabela: cada célula nasce de ADS_SUBSCRIBER_PLANS (lib/ads/access.ts,
-  // adsAccessReason devolve 'subscriber' para esses planos; lib/ads/serverAccess.ts adsGate → 'ok' com o passe ligado em
-  // lib/ads/offer.ts ADS_PASS_LIVE_IN_CODE). 'free' e o trial (*_trial) não estão no array → '—'. Nenhuma célula digitada por coluna.
-  const adsCell = (plan: string): string => (ADS_SUBSCRIBER_PLANS.includes(plan) ? '✅ included' : '—')
   const FAQS = buildFaqs(OFFER).filter((f) => PRICING_SHOW_AUTOPILOT || !/Autopilot/.test(f.q))
 
   // Push #099 — open FAQ index for the accordion (null = all collapsed). First
@@ -982,14 +959,6 @@ export default function PricingClient({ initialBilling = 'annual', characterLimi
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
-
-  // KINEO-PRECOS-REFINO-2026-10-09 — o caminho das agências, montado uma vez e posto num de dois lugares (ver abaixo).
-  const agencyPath = (
-    <div id={PRICING_BUSINESS_PATH_TARGET_ID} className="mx-auto max-w-3xl">
-      <PricingBusinessPathTelemetry />
-      <AgencyVolumeBridge entry="pricing" />
-    </div>
-  )
 
   return (
     <div className="pricing-blue min-h-screen bg-[var(--bg)] text-[var(--text)] font-sans">
@@ -1735,8 +1704,6 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         </p>
         )}
 
-        {valueCards ? null : agencyPath}
-
         {/* KINEO-PRICING-CLARITY-2026-08-03 — TODA a letra miúda que saiu dos
             cards vive aqui, uma vez só, abaixo da grade. Mantém a divulgação
             obrigatória (renovação + grant menor no 1º mês, proteção contra
@@ -1775,10 +1742,6 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         {PRICING_SHOW_ADS_BLOCK ? <PricingAdsBlock /> : null}
         <PricingCreditsBlock />
         {PRECOS_DOIS_PRODUTOS_PUBLIC ? <TwoProductsPricing /> : null}
-        {/* KINEO-PRECOS-REFINO-2026-10-09 — com o cartão novo, o bloco das agências sai do meio da decisão e vem depois das
-            tabelas: quem compra para cliente acha; quem escolhe plano não tropeça nele. */}
-        {valueCards ? agencyPath : null}
-
         {/* ══════════════════════════════════════════════════════════════
             KINEO-AUTOPILOT-299-2026-07-26 — DONE-FOR-YOU TIER.
 
@@ -2115,236 +2078,6 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
               </p>
             </div>
           ))}
-        </div>
-
-        {/* Push #087 — feature comparison table. Makes the Fast vs.
-            Cinematic split explicit so users understand exactly what
-            they're paying for at each tier. Scrolls horizontally on
-            small viewports so the table never breaks layout. */}
-        <div className="mt-16">
-          <div className="mb-6 text-center">
-            <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[.16em] text-[var(--accent)]">
-              Compare plans
-            </div>
-            <h2 className="text-balance text-2xl font-black tracking-tight sm:text-3xl text-[var(--text)]">
-              What you get at each tier
-            </h2>
-          </div>
-
-          <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--card)]">
-            <table className="w-full min-w-[700px] text-left text-[13.5px]">
-              <thead>
-                <tr className="border-b border-[var(--border)]">
-                  <th className="px-5 py-4 text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">
-                    Feature
-                  </th>
-                  <th className="px-5 py-4 text-center text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">
-                    Free
-                  </th>
-                  {/* KINEO-SPRINT-OFFER-2026-07-14 — column emphasis moved
-                      Studio → Creator so the table agrees with the cards
-                      ("Most Popular" = Creator is the primary CTA). */}
-                  <th className="px-5 py-4 text-center text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">
-                    Starter
-                  </th>
-                  <th className="px-5 py-4 text-center text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--accent)]">
-                    Creator
-                  </th>
-                  <th className="px-5 py-4 text-center text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">
-                    Studio
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  // #409 — table rebuilt for the 3-tier ladder (was still 2-plan).
-                  // KINEO-SHOWCASE-2026-07-10 — synced to the V3C economy
-                  // (rebase 2:1 + universal engines): credits 25/150/200, AI Gen
-                  // 20cr, Kling 50cr, Presenter 70cr, Hollywood 150cr. Engines
-                  // unlock for ANY paid plan (balance permitting).
-                  // ⚠️ KINEO-TABELA-2026-08-20 — ESTA TABELA ESTAVA DUAS VERSÕES
-                  // ATRÁS e foi pega no teste do fluxo: dizia "Fast 1 cr"
-                  // (custa 5 desde hoje) e "Monthly credits 25/150/200" (é
-                  // 40/90/180 desde a V6, ontem). Ou seja: a página que mais
-                  // vende era a que mais mentia. Agora TODO número aqui deriva
-                  // — creditCostFor para motor, TIER_CREDITS para grant. Se um
-                  // preço mudar amanhã, esta tabela acompanha sozinha.
-                  // A coluna FREE também mudou de significado: o trial agora
-                  // abre TODOS os motores (KINEO-TETO), então ela deixa de ser
-                  // uma coluna de "—" e passa a dizer o que de fato acontece —
-                  // roda tudo, sai com marca d'água.
-                  // KINEO-FILME-GRATIS-15S-2026-09-29 — a linha "Fast mode (smart stock)" saiu: motor fora do catálogo público.
-                  {
-                    label: `AI Generated videos (Seedance, ${creditsPerReferenceVideo('cinematic_ai')} cr)`,
-                    free: ft(OFFER, '— Paid only', '✅ watermark'),
-                    starter: '✅',
-                    basic: '✅',
-                    pro: '✅',
-                  },
-                  {
-                    label: `MiniMax H3 — cinematic (${creditsPerReferenceVideo('cinematic_h3')} cr)`,
-                    free: ft(OFFER, '—', '✅ watermark'),
-                    starter: filmsCell('starter', 'cinematic_h3', 'film'), // KINEO-PRICING-VERDADE-2026-09-27: 60 cr ≥ 45
-                    basic: '✅',
-                    pro: '✅',
-                  },
-                  // KINEO-H3MAX-2026-10-13 — o MiniMax H3 Max logo abaixo do H3 (interruptor H3MAX_PUBLIC); custo e células pela régua única.
-                  ...(H3MAX_PUBLIC // KINEO-H3MAX-2026-10-13
-                    ? [{ // KINEO-H3MAX-2026-10-13
-                        label: `MiniMax H3 Max — cinematic (${creditsPerReferenceVideo('cinematic_h3max')} cr)`, // KINEO-H3MAX-2026-10-13
-                        free: ft(OFFER, '—', '✅ watermark'), // KINEO-H3MAX-2026-10-13
-                        starter: filmsCell('starter', 'cinematic_h3max', 'film'), // KINEO-H3MAX-2026-10-13
-                        basic: '✅', // KINEO-H3MAX-2026-10-13
-                        pro: '✅', // KINEO-H3MAX-2026-10-13
-                      }] // KINEO-H3MAX-2026-10-13
-                    : []), // KINEO-H3MAX-2026-10-13
-                  {
-                    label: `Cinematic AI videos (Kling, ${creditsPerReferenceVideo('cinematic_kling')} cr)`,
-                    free: ft(OFFER, '—', '✅ watermark'),
-                    starter: filmsCell('starter', 'cinematic_kling', 'film'), // KINEO-PRICING-VERDADE-2026-09-27: 60 cr ≥ 50
-                    basic: '✅',
-                    // KINEO-PRICING-VERDADE-2026-09-27 — "1080p" saiu: o motor roda em 720p nativo em TODO plano e o
-                    // master 1080×1920 é de todo mundo; o Studio não compra resolução, compra créditos.
-                    pro: '✅',
-                  },
-                  // KINEO-AVATAR-FORA-2026-09-28 — linha do AI Presenter só com AVATAR_PUBLIC=true (Avatar fora do catálogo).
-                  ...(AVATAR_PUBLIC
-                    ? [{
-                        label: `🎬 AI Presenter — talking avatar (${creditsPerReferenceVideo('presenter')} cr)`,
-                        free: ft(OFFER, '—', '✅ watermark'),
-                        starter: '—',
-                        basic: '✅',
-                        pro: '✅',
-                      }]
-                    : []),
-                  {
-                    label: `🎥 Kling 3 — top cinematic (${creditsPerReferenceVideo('cinematic_hollywood')} cr)`,
-                    free: ft(OFFER, '—', 'Unlocked · needs credits'),
-                    starter: filmsCell('starter', 'cinematic_hollywood', 'mo'),
-                    // KINEO-PRICING-VERDADE-2026-09-27 — Math.floor(TIER_CREDITS ÷ custo a 60 s): Creator 1, Studio 2.
-                    // O "1/mo" antigo era da V6 (Studio 180 cr) e ficou para trás quando a V7 subiu o Studio para 300.
-                    basic: filmsCell('basic', 'cinematic_hollywood', 'mo'),
-                    pro: filmsCell('pro', 'cinematic_hollywood', 'mo'),
-                  },
-                  {
-                    label: '🎭 Saved characters (same face every video)',
-                    // KINEO-PRICING-VERDADE-2026-09-27 — dizia 1/12/12/12; o servidor (characterLimitFor) dá 0/3/3/10
-                    // e o trial recebe a cota de Creator. Valores chegam por prop de app/pricing/page.tsx.
-                    free: ft(OFFER, charCell(characterLimits?.free), characterLimits ? `${characterLimits.trial} during trial` : '—'),
-                    starter: charCell(characterLimits?.starter),
-                    basic: charCell(characterLimits?.basic),
-                    pro: charCell(characterLimits?.pro),
-                  },
-                  {
-                    // KINEO-COPY-HONESTA-C-2026-09-27 — Studio Ads entra na tabela; 'included' só onde lib/ads/access.ts abre a porta.
-                    label: 'Studio Ads (business video ads)',
-                    free: adsCell('free'),
-                    starter: adsCell('starter'),
-                    basic: adsCell('basic'),
-                    pro: adsCell('pro'),
-                  },
-                  {
-                    label: 'Monthly credits',
-                    free: ft(OFFER, '0', `${TRIAL_GRANT_CREDITS_COPY} free, once`),
-                    starter: String(TIER_CREDITS.starter),
-                    basic: String(TIER_CREDITS.basic),
-                    pro: String(TIER_CREDITS.pro),
-                  },
-                  {
-                    label: 'Render time',
-                    // KINEO-PRICING-VERDADE-2026-09-27 — "~3-5 min" era só o motor de stock; os motores de IA levam 8–20 min.
-                    free: RENDER_TIME_COPY,
-                    starter: RENDER_TIME_COPY,
-                    basic: RENDER_TIME_COPY,
-                    pro: RENDER_TIME_COPY,
-                  },
-                  {
-                    label: 'Watermark-free MP4',
-                    free: '— Watermarked MP4',
-                    starter: '✅',
-                    basic: '✅',
-                    pro: '✅',
-                  },
-                  {
-                    // KINEO-PRICING-VERDADE-2026-09-27 — "Priority" não existe em lugar nenhum do código (nem fila, nem
-                    // SLA); o que existe é support@usekineo.com para qualquer conta. Copy só com fato que o código cumpre.
-                    label: 'Support',
-                    free: 'Email support',
-                    starter: 'Email support',
-                    basic: 'Email support',
-                    pro: 'Email support',
-                  },
-                ].map((row) => (
-                  <tr key={row.label} className="border-b border-[var(--border)] last:border-0">
-                    <td className="px-5 py-3.5 font-semibold text-[var(--text)]">{row.label}</td>
-                    <td className="px-5 py-3.5 text-center text-[var(--muted)]">{row.free}</td>
-                    <td className="px-5 py-3.5 text-center text-[var(--muted)]">{row.starter}</td>
-                    <td className="px-5 py-3.5 text-center font-bold text-[var(--accent)]">{row.basic}</td>
-                    <td className="px-5 py-3.5 text-center text-[var(--muted)]">{row.pro}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <p className="mt-4 text-center text-[12px] text-[var(--muted)]">
-            {ft(OFFER, 'Free access lets you create, watch, download and share up to 3 watermarked Fast videos per 24h; it includes no credits or premium AI Generated videos.', OFFER.copy.planCardBody)} Every paid plan unlocks clean, watermark-free MP4s and can access every engine when its balance covers the full credit cost.
-          </p>
-        </div>
-
-        {/* ═══ #288 — KINEO-PROVA-NO-PRECO-2026-08-23 ══════════════════════
-            A vitrine de filmes reais existia na home, no /examples e em todo
-            modal de venda — em TODA superfície menos a página onde a pessoa
-            decide pagar. Quem chega aqui por link direto (e-mail, diretório,
-            afiliado) vê uma tabela de preços sem nunca ter visto o produto
-            funcionando: é pedir dinheiro por uma promessa em texto.
-            Dois filmes reais, com o selo do motor que os fez (regra do selo
-            honesto), logo antes do FAQ — o último quadro antes da decisão.
-            Clipes leves da curadoria (104-244KB), muted/loop/playsInline,
-            preload=metadata; some no celular (`hidden md:grid`) porque não se
-            paga 2 vídeos de banda numa tela de 380px. */}
-        <div className="mt-16">
-          <div className="mb-6 text-center">
-            <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[.16em] text-[var(--accent)]">
-              MADE WITH KINEO
-            </div>
-            <h2 className="text-balance text-2xl font-black tracking-tight sm:text-3xl text-[var(--text)]">
-              This is what a plan buys
-            </h2>
-            <p className="mt-2 text-[13px] text-[var(--muted)]">
-              Both films below were made on Kineo, start to finish, and are labelled with the engine that rendered them.
-            </p>
-          </div>
-          <div className="mx-auto hidden max-w-3xl grid-cols-2 gap-4 md:grid">
-            {[
-              // IDs conferidos em disco (public/previews) — os MESMOS clipes
-              // leves que os modais de venda usam. Arquivo inexistente aqui =
-              // quadro preto na página de preço, então nada de id de memória.
-              { id: '9bbd5d98-33e5-423f-b9cb-82f7af6c67ba', engine: 'VEO 3.1', cap: 'Made with Kineo' },
-              { id: '26d25419-6719-47ab-b24b-df214e007fbd', engine: 'KLING 2.5', cap: 'Made with Kineo' },
-            ].map((f) => (
-              <div key={f.id} className="relative overflow-hidden rounded-xl border border-[var(--border)] bg-[#111]" style={{ aspectRatio: '16 / 10' }}>
-                <video
-                  src={`/previews/${f.id}.mp4`}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="metadata"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                />
-                <span className="absolute left-2 top-2 rounded bg-black/70 px-2 py-[3px] text-[9px] font-black tracking-[.1em] text-white">
-                  {f.engine}
-                </span>
-                <span className="absolute bottom-2 left-2 right-2 text-[11px] font-semibold text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,.9)' }}>
-                  {f.cap}
-                </span>
-              </div>
-            ))}
-          </div>
-          <p className="mx-auto mt-3 max-w-2xl text-center text-[12px] text-[var(--muted)]">
-            On Kling 3, characters on screen speak their own lines with lip sync while a narrator carries the story.
-          </p>
         </div>
 
         {/* Push #099 — FAQ accordion. Five evergreen objections lifted from
