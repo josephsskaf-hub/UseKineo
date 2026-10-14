@@ -196,6 +196,37 @@ checa('o desfaz LANÇA em linha marcada inesperada (nunca apaga em silêncio)', 
 console.log('B–D) comportamento real (laço clássico, claim, ensaio, hollywood)')
 const errosReais = avaliar(atual, true)
 
+// ── (F) CASO REAL — parceiro Robert (EyeBible), render c9844e94 de 14/10, Seedance 1.5, 16:9, "Use my script as is" ──
+// Queixa: "algumas cenas não batem com a narração". Fala de CADA cena = `scenes[i]` do claim ae790777 (o corte por palavras
+// que a rota fez) e prompt = `scene_prompts[i]` (o que foi à fal), lidos do banco em 14/10 — conferidos aqui por md5.
+// O que este caso prova (e o que NÃO prova): no TEXTO a fala e o prompt concordam nas 7 cenas (soldados, muro, escudo,
+// capitão, flecha) — o contrato aprova todas e não muda um byte, como em produção (contrato_cena = []). Ou seja: o
+// descompasso que o Robert viu NÃO é pego por um contrato de texto; mora fora dele (modo faceless num drama com
+// personagens, fala cortada no meio da frase entre cenas, e a imagem que o motor desenhou). Fica como controle: o
+// contrato não pode estragar um filme coerente.
+console.log('F) caso real do Robert (c9844e94, Seedance 1.5): controle — texto coerente, o contrato não mexe')
+{
+  const { createHash } = await import('node:crypto')
+  const SUF = ', faceless cinematic b-roll, focus on the described subject and its environment, no foreground human faces, photorealistic, ultra-detailed, dramatic cinematic lighting, smooth camera motion, subject clearly framed with the lower third clear for captions, no watermark, no logo, no readable text, letters, numbers, labels or signage anywhere in the frame, same photorealistic look in every scene, one consistent color grade and lighting, same lens and film grain, energetic, natural, documentary, consistent color grade across all scenes, 16:9 widescreen cinematic framing'
+  const ROBERT = [
+    ['Two soldiers hide behind a broken stone wall Arrows strike the ground around them Across the', 'Opening shot: show the described subject and action immediately in the first frame, clearly readable; no unrelated establishing landscape or slow fade-in. A close-up shot of two soldiers crouched behind a crumbling stone wall, their faces showing determination and fear as they peer over the edge, scanning the battlefield for danger.', '83fdd008d17f7306520100e3d5386812'],
+    ['battlefield their wounded friend lies beside a fallen shield YOUNG SOLDIER He s still alive The captain', 'A medium shot shows the wounded soldier lying beside a fallen shield on the battlefield, arrows striking the ground nearby, evoking urgency and chaos.', '34a92ab0f00e634db71fc2c273c98d69'],
+    ['looks over the wall Enemy soldiers are getting closer CAPTAIN Help me carry him They run', 'A close-up shot of the captain looking over the broken stone wall, his expression tense as enemy soldiers advance in the background.', '2d820ed48c4694ebabe0a72df76e5bcf'],
+    ['to their friend and lift him between them WOUNDED SOLDIER I can t walk CAPTAIN We ve', 'A medium shot shows the young soldier and captain running towards the wounded soldier, lifting him between them as they struggle to move.', '2166d39fa68d55a901af44faeade6a67'],
+    ['got you An arrow strikes the captain s shield They keep moving Their men pull them', "A close-up shot of the captain's shield as an arrow strikes it, the captain and young soldier visible in the background, continuing to move.", '8a208271e81d39ed00b79a81a3109e6e'],
+    ['behind the wall All three fall to the ground breathing hard YOUNG SOLDIER That was', 'A medium shot shows all three soldiers collapsing behind the broken stone wall, breathing hard, with expressions of exhaustion and relief.', 'a8f726af8437298f7266d42d3514b901'],
+    ['a terrible plan The captain looks at their friend safe beside them CAPTAIN It worked', 'A medium shot captures the captain looking at the wounded soldier beside them, both safe behind the wall, as the young soldier expresses concern.', 'eeef3362108189e3123fd73295b994ab'],
+  ]
+  const md5 = (t) => createHash('md5').update(t, 'utf8').digest('hex')
+  checa('Robert: os 7 prompts embutidos são os da fal, byte a byte (md5 = o do banco)', ROBERT.every(([, cabeca, h]) => md5(cabeca + SUF) === h))
+  let L = null
+  let V = null
+  try { L = roda(atual.lib); V = roda(atual.modo) } catch { L = null }
+  const rs = L ? ROBERT.map(([fala, cabeca], i) => L.aplicarContrato(L.montarContrato({ indice: i + 1, falaFinal: fala, promptFinal: cabeca + SUF, elementosProibidos: V.proibidosPorModo('documentary_faceless'), palavraInteira: true }))) : []
+  checa('Robert: as 7 cenas aprovadas pelo contrato clássico, cobertura genérica (fala e imagem partilham substantivo)', rs.length === 7 && rs.every((r) => r.antes.veredicto === 'aprovada' && r.antes.cobertura === 'generica'))
+  checa('Robert: nenhum byte mudou (o contrato não estraga filme coerente) — o descompasso dele não é de texto', rs.length === 7 && rs.every((r, i) => r.promptCorrigido === ROBERT[i][1] + SUF && r.acoes.length === 0))
+}
+
 console.log('E) mutantes (cada um provado aplicado; cada um tem de ficar VERMELHO)')
 const LINHA_FLAG = '          palavraInteira: true, // KINEO-CONTRATO-CLASSICOS-1410'
 const MUTANTES = [
