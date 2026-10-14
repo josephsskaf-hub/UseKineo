@@ -22,7 +22,9 @@ eq(studioEntryView({ ...base, resumed: true }), 'render')
 eq(studioEntryView({ ...base, hasBlockingUi: true }), 'render')
 for (const phase of ['analyzing','scripting','options','generating','composing','done','failed']) eq(studioEntryView({ ...base, phase }), 'render')
 const html = renderPage('app/KineoLanding.tsx', false, {}, { initialUser: { id: 'fixture' } })
-eq(html.includes('href="/studio?src=engine_bento"'), true)
+// reancorado KINEO-HOME-LIMPA-1410 — o botão "Open the generator" (src=engine_bento) saiu com o bloco "full toolkit" (14/10):
+// AUSENTE; a trava que importa (nenhum link da home para o editor aposentado) segue logo abaixo.
+eq(html.includes('src=engine_bento'), false)
 eq(html.includes('href="/studio/create?src=engine_bento"'), false)
 const source = fs.readFileSync(new URL('../app/(dashboard)/generate/GenerateClient.tsx', import.meta.url), 'utf8')
 eq(source.indexOf("if (entryView !== 'render')") < source.indexOf('className={`px-4 sm:px-6 lg:px-10'), true)

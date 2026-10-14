@@ -29,15 +29,12 @@ equal(distribution.readAgencyDistributionEntry('?entry=homepage'), null, 'nearby
 check(!distribution.agencyPacksHref('home').includes('utm_'), 'bridge preserves original acquisition attribution')
 
 const landing = read('app/KineoLanding.tsx')
-check(landing.includes("import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'"), 'home imports the existing canonical bridge')
-check(landing.includes('<AgencyVolumeBridge entry="home" />'), 'home renders its allow-listed entry')
-check(landing.includes('data-growth-surface="home_b2b_bridge"'), 'home bridge has an inspectable surface marker')
-
-const howEnd = landing.indexOf('</section>', landing.indexOf('<section id="how">'))
-const bridgeIndex = landing.indexOf('<AgencyVolumeBridge entry="home" />')
-const compareIndex = landing.indexOf('<section id="compare">')
-check(howEnd >= 0 && bridgeIndex > howEnd, 'bridge appears only after the workflow is explained')
-check(compareIndex > bridgeIndex, 'bridge appears before the generic competitor comparison')
+// reancorado KINEO-HOME-LIMPA-1410 — o fundador tirou o banner Business da HOME (14/10, "coisas velhas"). A home tem de
+// provar a AUSÊNCIA (import, render e marcador); a ponte em si (componente, rota, destino) segue guardada abaixo.
+check(!landing.includes("import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'"), 'home no longer imports the bridge (KINEO-HOME-LIMPA-1410)')
+check(!landing.includes('<AgencyVolumeBridge'), 'home no longer renders the bridge (KINEO-HOME-LIMPA-1410)')
+check(!landing.includes('data-growth-surface="home_b2b_bridge"'), 'home bridge surface marker is gone (KINEO-HOME-LIMPA-1410)')
+check(landing.includes('<section id="how">') && landing.includes('<section id="compare">'), 'workflow and comparison sections remain on the home')
 
 const bridge = read('components/AgencyVolumeBridge.tsx')
 check(bridge.includes("home: 'Making Shorts for your company or for paying clients?'"), 'home copy names both B2B audiences')

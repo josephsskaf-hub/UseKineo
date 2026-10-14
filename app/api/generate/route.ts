@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { AI_TEXT_MODELS } from '@/lib/aiModels' // KINEO-MIGRACAO-OPENAI-F1-1410
 import { createClient } from '@/lib/supabase/server'
 import { openai, buildGenerationPrompt, buildSingleVideoPrompt, ShortVideo } from '@/lib/openai'
 // KINEO-PRICING-V6-2026-08-19 — a mensagem de recusa por limite grátis citava
@@ -132,7 +133,7 @@ export async function POST(req: NextRequest) {
     try {
       completion = await openai.chat.completions.create(
         {
-          model: 'gpt-4o-mini',
+          model: AI_TEXT_MODELS.utility, // KINEO-MIGRACAO-OPENAI-F1-1410 = gpt-4o-mini
           messages: [
             {
               role: 'system',

@@ -252,12 +252,58 @@ function seoProblems(ctx) {
 }
 
 // ─── (7) nenhuma métrica falsa ────────────────────────────────────────────────
-const METRIC = /\b\d[\d,.]*\s*[kKmM]?\+?\s*(views|likes|plays|uses|users|people|creators|shares|downloads)\b|★|\b\d(\.\d)?\s*\/\s*5\b|\b\d+%\s*(match|viral)/i
+// reancorado KINEO-TRENDING-REGRA7-1410 — a régua antiga tinha "people" solto: "3 people vanished without a trace" (o gancho
+// do tema mys-01, uma HISTÓRIA) virava métrica. E só olhava os 8 temas do bloco de 4 h do relógio real (getViralNowTopics usa
+// new Date()), então ficava vermelha ou verde conforme a hora. Agora:
+//   · métrica = número PRESO a palavra de audiência/popularidade. Substantivos que já são contagem de audiência (views, likes,
+//     users, creators, plays, downloads, followers, reviews…) contam sozinhos; "people/others/viewers" só contam com verbo
+//     de audiência ("10,000 people are watching", "people loved"); "loved/used/trusted by N", "watched N times"; "%" só com
+//     palavra de aprovação/audiência ("98% loved", "% of users", "% match"); ★, "N/5", "4.8 stars", "5-star reviews", "rated N"; "#1 trending",
+//     "trending #1". Número de história ("3 people vanished", "7 ships disappeared", "99% of CEOs", "1% death rate") não é métrica.
+//     Não há isenção genérica para número: qualquer número colado nessas palavras continua vermelho.
+//   · determinístico: os temas de filme são avaliados no POOL INTEIRO (VIRAL_TOPICS_POOL — a única fonte do Viral Now, de
+//     /api/viral-now, do cron e do today.json via getViralTopicById), cada um pelo construtor real do cartão (filmTopicCards([id])).
+const N = String.raw`\d[\d,.]*\s*(?:[kKmMbB]\b|thousand|million|billion)?\s*\+?`
+const AUDIENCE_NOUNS = 'views|viewers|likes|plays|uses|users|creators|shares|downloads|installs|followers|subscribers|reviews|ratings|sign-?ups|remixes|(?:videos|films|clips|ads) (?:made|created|generated)'
+const AUDIENCE_VERBS = 'watching|watched|watch|use|used|using|love|loved|loving|tried|try|trying|made|making|signed up|joined|join|follow|following|followed|bought|buy|shared|liked|rated|chose|picked|downloaded|subscribed|trust|trusted|recommend|recommended'
+const METRIC = new RegExp([
+  `\\b${N}\\s*(?:${AUDIENCE_NOUNS})\\b`,
+  `\\b${N}\\s*(?:people|persons|others|folks|viewers|customers|brands|businesses|teams|marketers)\\s+(?:(?:are|have|already|now|who|that)\\s+)*(?:${AUDIENCE_VERBS})\\b`,
+  `\\b(?:loved|used|trusted|chosen|watched|played|viewed|liked|shared|downloaded|rated|followed)\\s+by\\s+(?:over\\s+|more than\\s+)?${N}`,
+  `\\b(?:watched|viewed|played|used|shared|downloaded|remixed|made)\\s+${N}\\s*times\\b`,
+  `\\b\\d[\\d.]*\\s*%\\s*(?:match|viral|loved|love|liked|positive|satisfaction|satisfied|approval|retention|completion|rating|recommend|of (?:users|creators|viewers|people who|customers|fans|our))`,
+  '★',
+  `\\b\\d(?:\\.\\d)?\\s*\\/\\s*5\\b`,
+  `\\b\\d\\.\\d\\s*stars?\\b`,
+  `\\b[1-5]\\s*-?\\s*stars?\\s+(?:rating|ratings|reviews?)\\b`,
+  `\\brated\\s+\\d`,
+  `#\\s*\\d+\\s*(?:trending|on (?:tiktok|youtube|instagram|kineo)|most|ranked)`,
+  `\\b(?:trending|ranked)\\s*#\\s*\\d`,
+].join('|'), 'i')
+// A régua tem de pegar popularidade inventada e deixar passar número de história (tabela fixa, nada de relógio).
+const METRIC_MUST_FLAG = ['1.2M views', 'Over 10,000 creators use this', '10k creators', '50,000 people are watching', '3,000 people already tried it', 'Loved by 2M', 'watched 4 million times', 'trending #1', '#1 trending on TikTok', '98% loved it', '87% of users', '94% match', '4.9/5', '★★★★★', '4.8 stars', '5-star reviews', 'rated 5', '12K+ downloads']
+const METRIC_MUST_PASS = ['3 people vanished without a trace — and the evidence left behind is more disturbing than the disappearance.', '7 ships disappeared in the same stretch of sea', '9 experienced hikers died in the Soviet mountains in 1959.', 'Jeff Bezos does one thing every morning that 99% of CEOs refuse to do', 'Everest has a 1% death rate. K2 has 25%.', 'millions of people are still training for them', 'The 3 rules billionaires never break', '100 billion stars in our galaxy', '9 members of the expedition never came back','One photo, one tap, a 5-second clip.']
+function metricRulerProblems() {
+  return [
+    ...METRIC_MUST_FLAG.filter((s) => !METRIC.test(s)).map((s) => `não pega "${s}"`),
+    ...METRIC_MUST_PASS.filter((s) => METRIC.test(s)).map((s) => `pega número de história "${s.slice(0, 50)}"`),
+  ]
+}
 function metricProblems(B, ctx) {
   const probs = []
   const code = semComentarios(ctx.lib) + semComentarios(ctx.page) + semComentarios(ctx.card)
   for (const bad of ['viralScore', '.badge ===', 't.badge', 'topic.badge', 'Math.random']) if (bad === '.badge ===' ? /\bt\.badge\b|topic\.badge/.test(code) : code.includes(bad)) probs.push(`código lê ${bad}`)
-  for (const b of B.signed) for (const c of b.cards) for (const f of [c.title, c.sub, c.engine || '']) if (METRIC.test(f)) probs.push(`${b.id}/${c.key}: métrica "${f.slice(0, 60)}"`)
+  const check = (where, c) => { for (const f of [c.title, c.sub, c.engine || '']) if (METRIC.test(f)) probs.push(`${where}/${c.key}: métrica "${f.slice(0, 60)}"`) }
+  // Blocos que não dependem do relógio: os cartões como a página os monta.
+  for (const b of B.signed) if (b.id !== 'film-topics') for (const c of b.cards) check(b.id, c)
+  // Temas: o pool inteiro, cada tema pelo construtor real do cartão (a escolha do relógio não muda o resultado).
+  const pool = B.L('lib/viralTopics.ts').VIRAL_TOPICS_POOL
+  if (!Array.isArray(pool) || pool.length < 8) probs.push(`pool de temas ilegível (${pool?.length})`)
+  for (const t of pool || []) {
+    const card = B.T.filmTopicCards([t.id])[0]
+    if (!card || card.key !== t.id) { probs.push(`tema ${t.id} sem cartão próprio`); continue }
+    check('film-topics', card)
+  }
   for (const k of B.T.TRENDING_COPY) if (METRIC.test(k)) probs.push(`frase com métrica: ${k}`)
   return probs
 }
@@ -374,6 +420,7 @@ report('(4) "Make mine" válidos e lidos pelas telas', run(hrefProblems, REAL, S
 report('(5) 🔥 Trending em todos os pares do menu', run(navProblems, SRC))
 report('(6) sitemap e llms.txt', run(seoProblems, SRC))
 report('(7) nenhuma métrica falsa', run(metricProblems, REAL, SRC))
+report('(7a) régua da métrica: pega popularidade inventada, deixa passar número de história', run(metricRulerProblems))
 report('(8) honestidade: filme do tema, oferta, datas do New, today.json', run(honestyProblems, REAL, SRC))
 report('(9) cartão de vídeo seguro, sem layout shift', run(cardProblems, SRC))
 report('(10) frases nas 16 línguas', run(copyProblems, SRC.dict, REAL.T))
@@ -414,6 +461,9 @@ mutSrc('mob', '  ...(TRENDING_LINK ? [{ href: TRENDING_LINK.href, label: TRENDIN
 mutSrc('navcfg', "  { href: '/trending', label: '🔥 Trending', icon: 'trending' },\n", '', navProblems, '(M11) 🔥 Trending sai da lateral (WORKSPACE_NAV) → vermelho')
 mutSrc('sitemap', "    { path: '/trending', priority: 0.8, freq: 'daily' },", '', seoProblems, '(M12) /trending sai do sitemap → vermelho')
 mutLib(LIB_REL, '      sub: t.hook,\n', '      sub: `${t.viralScore}K views · ${t.hook}`,\n', metricProblems, '(M13) "94K views" do viralScore no cartão → vermelho')
+// reancorado KINEO-TRENDING-REGRA7-1410 — métrica inventada na cópia de um tema do pool: vermelho em qualquer hora do relógio.
+mutLib('lib/viralTopics.ts', 'hook: "A 60-second cold shower triggers', 'hook: "1.2M views. A 60-second cold shower triggers', metricProblems, '(M13b) "1.2M views" no gancho de um tema → vermelho')
+mutLib('lib/viralTopics.ts', "    title: 'The 3 rules billionaires never break',", "    title: 'Over 10,000 creators use this: the 3 rules billionaires never break',", metricProblems, '(M13c) "Over 10,000 creators use this" no título de um tema → vermelho')
 mutLib(LIB_REL, "  { topic: 'mys-02', film: 'f3de57b0-3486-4400-ba72-c9390774d426', subject: 'Dyatlov' },", "  { topic: 'mys-02', film: '33249fbf-57b6-47cf-8486-88bfb2a02db1', subject: 'Dyatlov' },", honestyProblems, '(M14) tema com filme de outro assunto (e do Omni) → vermelho')
 mutLib(LIB_REL, "  bring_to_life: '2026-10-05',", "  bring_to_life: '2026-10-13',", honestyProblems, '(M15) selo New num efeito antigo → vermelho')
 mutLib(LIB_REL, 'export const TRENDING_TODAY_MAX_AGE_HOURS = 36', 'export const TRENDING_TODAY_MAX_AGE_HOURS = 3600', honestyProblems, '(M16) pesquisa vencida vale como "de hoje" → vermelho')

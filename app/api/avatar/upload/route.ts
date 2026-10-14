@@ -9,6 +9,7 @@
 //     call itself errors (an OpenAI hiccup must not block a legit upload;
 //     VEED would reject a faceless photo downstream anyway).
 import { NextRequest, NextResponse } from 'next/server'
+import { AI_TEXT_MODELS } from '@/lib/aiModels' // KINEO-MIGRACAO-OPENAI-F1-1410
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai'
 import { uploadAvatarPhoto, saveAvatarToLibrary } from '@/lib/avatar/storage'
@@ -33,7 +34,7 @@ async function faceVisible(buffer: Buffer, mime: string): Promise<boolean | null
     const dataUrl = `data:${mime};base64,${buffer.toString('base64')}`
     const completion = await openai.chat.completions.create(
       {
-        model: 'gpt-4o-mini',
+        model: AI_TEXT_MODELS.vision, // KINEO-MIGRACAO-OPENAI-F1-1410 = gpt-4o-mini
         messages: [
           {
             role: 'user',

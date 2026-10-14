@@ -7,8 +7,14 @@
 // O guardião executa este arquivo com banco em memória e stub explícito de leitura.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { readAll } from './supabase/readAll'
+// KINEO-CORTESIA-METRICA-1410 — import SÓ DE TIPO (apagado na compilação): o tsc prova que a lista de status que a
+// cortesia fecha é a MESMA lista aberta do teste reverso. Se uma mudar sem a outra, o build quebra.
+import type { TRIAL_OPEN_STATUSES, TRIAL_COURTESY_STATUS } from '@/lib/reverseTrial'
 import {
   courtesyEndsAt,
+  trialStatusAfterCourtesy,
+  type COURTESY_CLOSES_TRIAL_FROM,
+  type COURTESY_TRIAL_STATUS,
   planCourtesyExpiry,
   validateCourtesyRequest,
   COURTESY_LEFTOVER_RULE,
@@ -18,6 +24,12 @@ import {
   type CourtesyProfile,
   type CourtesySource,
 } from '@/lib/courtesy'
+
+type MesmaLista<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false
+const _cortesiaFechaOsAbertos: MesmaLista<(typeof TRIAL_OPEN_STATUSES)[number], (typeof COURTESY_CLOSES_TRIAL_FROM)[number]> = true // KINEO-CORTESIA-METRICA-1410
+void _cortesiaFechaOsAbertos
+const _mesmoStatusCortesia: MesmaLista<typeof TRIAL_COURTESY_STATUS, typeof COURTESY_TRIAL_STATUS> = true // KINEO-CORTESIA-METRICA-1410
+void _mesmoStatusCortesia
 
 const GRANT_COLUMNS = 'id, user_id, level, previous_plan, credits_granted, credits_before, had_paid_before, ends_at, status'
 
@@ -32,7 +44,7 @@ export async function grantCourtesy(
   const nowMs = input.nowMs ?? Date.now()
   const { data: profile, error: pErr } = await admin
     .from('profiles')
-    .select('id, plan, video_credits, has_paid')
+    .select('id, plan, video_credits, has_paid, trial_status') // KINEO-CORTESIA-METRICA-1410: + trial_status
     .eq('id', input.userId)
     .maybeSingle()
   if (pErr) return { ok: false, status: 500, error: 'Falhou ao ler a conta.' }
@@ -46,7 +58,7 @@ export async function grantCourtesy(
 
   const v = validateCourtesyRequest(input, (profile as CourtesyProfile | null) ?? null, Boolean(active?.id))
   if (!v.ok) return { ok: false, status: 400, error: v.error }
-  const prof = profile as CourtesyProfile & { has_paid?: boolean | null }
+  const prof = profile as CourtesyProfile & { has_paid?: boolean | null; trial_status?: string | null }
   const before = typeof prof.video_credits === 'number' ? prof.video_credits : 0
   const endsAt = courtesyEndsAt(nowMs, v.value.days)
 
@@ -75,9 +87,15 @@ export async function grantCourtesy(
   }
 
   const after = before + v.value.credits
-  let upd = admin.from('profiles').update({ plan: v.value.level, video_credits: after }).eq('id', prof.id)
+  // KINEO-CORTESIA-METRICA-1410 — teste reverso aberto ('active'/'expired') fecha NA MESMA escrita do plano, com CAS
+  // no status lido: ou plano + saldo + fim do teste mudam juntos, ou nada muda. Sem teste aberto, o patch é o de antes.
+  const trialClose = trialStatusAfterCourtesy(prof.trial_status)
+  const patch: Record<string, unknown> = { plan: v.value.level, video_credits: after }
+  if (trialClose) patch.trial_status = trialClose
+  let upd = admin.from('profiles').update(patch).eq('id', prof.id)
   upd = prof.plan == null ? upd.is('plan', null) : upd.eq('plan', prof.plan)
   upd = prof.video_credits == null ? upd.is('video_credits', null) : upd.eq('video_credits', prof.video_credits)
+  if (trialClose) upd = upd.eq('trial_status', prof.trial_status as string)
   const { data: changed, error: uErr } = await upd.select('id').maybeSingle()
   if (uErr || !changed?.id) {
     await admin.from('courtesy_grants').update({ status: 'revoked', ended_at: new Date(nowMs).toISOString() }).eq('id', grant.id)
@@ -99,6 +117,7 @@ export async function grantCourtesy(
       reason: v.value.reason,
       granted_by: input.grantedBy,
       source: input.source,
+      ...(trialClose ? { trial_closed_from: prof.trial_status } : {}), // KINEO-CORTESIA-METRICA-1410
     },
   }).then(() => undefined, () => undefined)
 

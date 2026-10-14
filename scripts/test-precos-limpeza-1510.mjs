@@ -48,7 +48,8 @@ for (const [bloco, frases] of SUMIDOS) {
 checa('(a) fonte: sem <AgencyVolumeBridge, sem import da faixa nem do rastreador do caminho Business', !/<AgencyVolumeBridge\b/.test(src) && !src.includes("from '@/components/AgencyVolumeBridge'") && !src.includes('PricingBusinessPathTelemetry'))
 checa('(a) fonte: sem <table> e sem os títulos "This is what a plan buys" / "What you get at each tier"', conta(src, '<table') === 0 && conta(src, 'This is what a plan buys') === 0 && conta(src, 'What you get at each tier') === 0)
 checa('(a) fonte: os 2 filmes da vitrine (9bbd5d98 / 26d25419) saíram do PricingClient', conta(src, '9bbd5d98-33e5-423f-b9cb-82f7af6c67ba') === 0 && conta(src, '26d25419-6719-47ab-b24b-df214e007fbd') === 0)
-checa('(a) a faixa compartilhada segue viva nas outras páginas (só o /pricing perdeu)', existsSync(join(RAIZ, 'components/AgencyVolumeBridge.tsx')) && rd('app/KineoLanding.tsx').includes('<AgencyVolumeBridge entry="home" />'))
+// reancorado KINEO-HOME-LIMPA-1410 — a home também perdeu a faixa (fundador 14/10); a prova de "segue viva" passa a ser outra página real.
+checa('(a) a faixa compartilhada segue viva nas outras páginas (o /pricing e a home perderam)', existsSync(join(RAIZ, 'components/AgencyVolumeBridge.tsx')) && rd('app/text-to-video-shorts/page.tsx').includes('<AgencyVolumeBridge entry="text_to_video" />') && !rd('app/KineoLanding.tsx').includes('<AgencyVolumeBridge'))
 
 // ── (b) planos e botões de compra continuam ────────────────────────────────────────────────────────────────────────
 const ctas = (html.match(/<button[^>]*class="pv-cta[^"]*"[^>]*>([^<]*)<\/button>/g) || []).map((b) => b.replace(/<[^>]+>/g, ''))

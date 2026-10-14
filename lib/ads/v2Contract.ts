@@ -389,7 +389,7 @@ export function sanitizeRetakeBody(raw: unknown): AdsV2Sanitized<AdsV2RetakeBody
   if (!isUuid(b.order_id)) return fail('bad_order_id')
   if (typeof b.idx !== 'number' || !Number.isInteger(b.idx) || b.idx < 0 || b.idx > ADS_V2_MAX_SHOT_IDX) return fail('bad_idx')
   const c = b.expected_credits
-  if (typeof c !== 'number' || !Number.isInteger(c) || c < 1 || c > ADS_V2_MAX_RETAKE_CREDITS) return fail('bad_expected_credits')
+  if (typeof c !== 'number' || !Number.isInteger(c) || c < 0 || c > ADS_V2_MAX_RETAKE_CREDITS) return fail('bad_expected_credits') // KINEO-ADS-REFACAO-ATOR-1410 — 0 = a 1ª refação grátis (era c < 1); o servidor recalcula e recusa preço diferente
   return { ok: true, value: { order_id: (b.order_id as string).toLowerCase(), idx: b.idx, expected_credits: c } }
 }
 
