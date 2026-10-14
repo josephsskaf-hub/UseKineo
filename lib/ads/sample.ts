@@ -18,7 +18,12 @@ export const ADS_SAMPLE_LIVE = true
 /** Teto global de amostras INICIADAS por dia UTC (cada uma custa ~US$ 2,20 na fal). */
 export const ADS_SAMPLE_DAILY_CAP = 10
 /** O único nível da amostra. */
-export const ADS_SAMPLE_TIER: AdsV2Tier = 'photo_motion'
+// KINEO-CLIPE360-AMOSTRA-1410 — fundador (14/10, "tudo sim"): a amostra sai no nível COMMERCIAL (o melhor trabalho padrão
+// KINEO-CLIPE360-AMOSTRA-1410   da casa), não mais no photo_motion. Caso real: o Pedro (agência, prospecção de 13/10) recebeu
+// KINEO-CLIPE360-AMOSTRA-1410   a amostra no nível mais baixo. Custo fal estimado (estimateAdUsd) por amostra: photo_motion
+// KINEO-CLIPE360-AMOSTRA-1410   ≈ US$ 2,13 → commercial ≈ US$ 2,58 (+3 cenas Nano Banana Pro a US$ 0,15 = +US$ 0,45).
+// KINEO-CLIPE360-AMOSTRA-1410   Crédito do cliente: continua ZERO (chave adssample-, credits_charged 0); teto de 10/dia intocado.
+export const ADS_SAMPLE_TIER: AdsV2Tier = 'commercial'
 /** Teto de bytes de foto que a conta free sobe pela amostra (/api/footage, purpose 'ads'): sobra para 7 fotos e o logo. */
 export const ADS_SAMPLE_FOOTAGE_MAX_BYTES = 60 * 1024 * 1024
 /** Prefixo da chave da amostra — NÃO começa com 'adsv2' (não há débito; as redes de estorno não têm o que olhar). */
@@ -57,112 +62,112 @@ export const ADS_SAMPLE_COPY: Record<InterfaceLanguage, AdsSampleCopy> = {
   en: {
     badge: 'Your first ad is free',
     make: 'Make my free ad',
-    note: 'Free sample: 1 per account, Photo motion level, 15 s. More levels and ads on paid plans.',
+    note: 'Free sample: 1 per account, Commercial level, 15 s. More levels and ads on paid plans.',
     paidOnly: 'Paid plans',
     cap: "Today's free samples are taken. Come back tomorrow or pick a plan.",
   },
   pt: {
     badge: 'Seu primeiro anúncio é grátis',
     make: 'Fazer meu anúncio grátis',
-    note: 'Amostra grátis: 1 por conta, nível Photo motion, 15 s. Mais níveis e anúncios nos planos pagos.',
+    note: 'Amostra grátis: 1 por conta, nível Comercial, 15 s. Mais níveis e anúncios nos planos pagos.',
     paidOnly: 'Planos pagos',
     cap: 'As amostras grátis de hoje acabaram. Volte amanhã ou escolha um plano.',
   },
   es: {
     badge: 'Tu primer anuncio es gratis',
     make: 'Hacer mi anuncio gratis',
-    note: 'Muestra gratis: 1 por cuenta, nivel Photo motion, 15 s. Más niveles y anuncios en los planes de pago.',
+    note: 'Muestra gratis: 1 por cuenta, nivel Comercial, 15 s. Más niveles y anuncios en los planes de pago.',
     paidOnly: 'Planes de pago',
     cap: 'Las muestras gratis de hoy ya se agotaron. Vuelve mañana o elige un plan.',
   },
   fr: {
     badge: 'Votre première pub est offerte',
     make: 'Créer ma pub gratuite',
-    note: 'Essai gratuit : 1 par compte, niveau Photo motion, 15 s. Plus de niveaux et de pubs avec les offres payantes.',
+    note: 'Essai gratuit : 1 par compte, niveau Commercial, 15 s. Plus de niveaux et de pubs avec les offres payantes.',
     paidOnly: 'Offres payantes',
     cap: "Les essais gratuits du jour sont épuisés. Revenez demain ou choisissez une offre.",
   },
   de: {
     badge: 'Deine erste Anzeige ist kostenlos',
     make: 'Meine kostenlose Anzeige erstellen',
-    note: 'Gratis-Probe: 1 pro Konto, Stufe Photo motion, 15 s. Mehr Stufen und Anzeigen in den bezahlten Plänen.',
+    note: 'Gratis-Probe: 1 pro Konto, Stufe Commercial, 15 s. Mehr Stufen und Anzeigen in den bezahlten Plänen.',
     paidOnly: 'Bezahlte Pläne',
     cap: 'Die Gratis-Proben für heute sind vergeben. Komm morgen wieder oder wähle einen Plan.',
   },
   it: {
     badge: 'Il tuo primo annuncio è gratis',
     make: 'Crea il mio annuncio gratis',
-    note: 'Prova gratuita: 1 per account, livello Photo motion, 15 s. Più livelli e annunci con i piani a pagamento.',
+    note: 'Prova gratuita: 1 per account, livello Commercial, 15 s. Più livelli e annunci con i piani a pagamento.',
     paidOnly: 'Piani a pagamento',
     cap: 'Le prove gratuite di oggi sono esaurite. Torna domani o scegli un piano.',
   },
   nl: {
     badge: 'Je eerste advertentie is gratis',
     make: 'Maak mijn gratis advertentie',
-    note: 'Gratis proef: 1 per account, niveau Photo motion, 15 s. Meer niveaus en advertenties met een betaald abonnement.',
+    note: 'Gratis proef: 1 per account, niveau Commercial, 15 s. Meer niveaus en advertenties met een betaald abonnement.',
     paidOnly: 'Betaalde abonnementen',
     cap: 'De gratis proeven van vandaag zijn op. Kom morgen terug of kies een abonnement.',
   },
   pl: {
     badge: 'Twoja pierwsza reklama jest za darmo',
     make: 'Zrób moją darmową reklamę',
-    note: 'Darmowa próbka: 1 na konto, poziom Photo motion, 15 s. Więcej poziomów i reklam w płatnych planach.',
+    note: 'Darmowa próbka: 1 na konto, poziom Commercial, 15 s. Więcej poziomów i reklam w płatnych planach.',
     paidOnly: 'Płatne plany',
     cap: 'Dzisiejsze darmowe próbki już się skończyły. Wróć jutro albo wybierz plan.',
   },
   tr: {
     badge: 'İlk reklamın ücretsiz',
     make: 'Ücretsiz reklamımı yap',
-    note: 'Ücretsiz deneme: hesap başına 1, Photo motion seviyesi, 15 sn. Daha fazla seviye ve reklam ücretli planlarda.',
+    note: 'Ücretsiz deneme: hesap başına 1, Commercial seviyesi, 15 sn. Daha fazla seviye ve reklam ücretli planlarda.',
     paidOnly: 'Ücretli planlar',
     cap: 'Bugünün ücretsiz denemeleri bitti. Yarın tekrar gel ya da bir plan seç.',
   },
   ru: {
     badge: 'Первая реклама — бесплатно',
     make: 'Сделать бесплатную рекламу',
-    note: 'Бесплатный пример: 1 на аккаунт, уровень Photo motion, 15 с. Больше уровней и роликов — в платных тарифах.',
+    note: 'Бесплатный пример: 1 на аккаунт, уровень Commercial, 15 с. Больше уровней и роликов — в платных тарифах.',
     paidOnly: 'Платные тарифы',
     cap: 'Бесплатные примеры на сегодня закончились. Возвращайтесь завтра или выберите тариф.',
   },
   uk: {
     badge: 'Перша реклама — безкоштовно',
     make: 'Зробити безкоштовну рекламу',
-    note: 'Безкоштовний приклад: 1 на акаунт, рівень Photo motion, 15 с. Більше рівнів і роликів — у платних тарифах.',
+    note: 'Безкоштовний приклад: 1 на акаунт, рівень Commercial, 15 с. Більше рівнів і роликів — у платних тарифах.',
     paidOnly: 'Платні тарифи',
     cap: 'Безкоштовні приклади на сьогодні закінчилися. Поверніться завтра або оберіть тариф.',
   },
   ar: {
     badge: 'إعلانك الأول مجاني',
     make: 'اصنع إعلاني المجاني',
-    note: 'عينة مجانية: واحدة لكل حساب، مستوى Photo motion، مدة 15 ثانية. مستويات وإعلانات أكثر في الخطط المدفوعة.',
+    note: 'عينة مجانية: واحدة لكل حساب، مستوى Commercial، مدة 15 ثانية. مستويات وإعلانات أكثر في الخطط المدفوعة.',
     paidOnly: 'الخطط المدفوعة',
     cap: 'نفدت العينات المجانية لليوم. عد غدًا أو اختر خطة.',
   },
   ur: {
     badge: 'آپ کا پہلا اشتہار مفت ہے',
     make: 'میرا مفت اشتہار بنائیں',
-    note: 'مفت نمونہ: ہر اکاؤنٹ کے لیے 1، Photo motion لیول، 15 سیکنڈ۔ مزید لیولز اور اشتہارات ادا شدہ پلانز میں۔',
+    note: 'مفت نمونہ: ہر اکاؤنٹ کے لیے 1، Commercial لیول، 15 سیکنڈ۔ مزید لیولز اور اشتہارات ادا شدہ پلانز میں۔',
     paidOnly: 'ادا شدہ پلانز',
     cap: 'آج کے مفت نمونے ختم ہو گئے۔ کل دوبارہ آئیں یا کوئی پلان چنیں۔',
   },
   hi: {
     badge: 'आपका पहला विज्ञापन मुफ़्त है',
     make: 'मेरा मुफ़्त विज्ञापन बनाएँ',
-    note: 'मुफ़्त नमूना: हर अकाउंट के लिए 1, Photo motion लेवल, 15 सेकंड। ज़्यादा लेवल और विज्ञापन पेड प्लान में।',
+    note: 'मुफ़्त नमूना: हर अकाउंट के लिए 1, Commercial लेवल, 15 सेकंड। ज़्यादा लेवल और विज्ञापन पेड प्लान में।',
     paidOnly: 'पेड प्लान',
     cap: 'आज के मुफ़्त नमूने खत्म हो गए। कल फिर आएँ या कोई प्लान चुनें।',
   },
   id: {
     badge: 'Iklan pertamamu gratis',
     make: 'Buat iklan gratisku',
-    note: 'Contoh gratis: 1 per akun, level Photo motion, 15 dtk. Lebih banyak level dan iklan di paket berbayar.',
+    note: 'Contoh gratis: 1 per akun, level Commercial, 15 dtk. Lebih banyak level dan iklan di paket berbayar.',
     paidOnly: 'Paket berbayar',
     cap: 'Contoh gratis hari ini sudah habis. Kembali besok atau pilih paket.',
   },
   vi: {
     badge: 'Quảng cáo đầu tiên của bạn miễn phí',
     make: 'Tạo quảng cáo miễn phí của tôi',
-    note: 'Bản mẫu miễn phí: 1 cho mỗi tài khoản, mức Photo motion, 15 giây. Thêm mức và quảng cáo ở các gói trả phí.',
+    note: 'Bản mẫu miễn phí: 1 cho mỗi tài khoản, mức Commercial, 15 giây. Thêm mức và quảng cáo ở các gói trả phí.',
     paidOnly: 'Gói trả phí',
     cap: 'Bản mẫu miễn phí hôm nay đã hết. Hãy quay lại vào ngày mai hoặc chọn một gói.',
   },

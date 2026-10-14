@@ -62,6 +62,11 @@ export const CLIP_COPY_EN = {
   freeClipTitle: 'You have 1 free clip',
   freeClipBody: 'A {s}-second video clip from one line of text. We’ve already written an idea for you — just press “Generate clip”.',
   freeClipCta: 'Make my free clip',
+  // KINEO-CLIPE360-AMOSTRA-1410 — nota do giro/360° no clipe livre com foto (lib/clips/clipRotateHint.ts): troca em 1 clique para o
+  // efeito Produto 360°, ou (sem o efeito na galeria) a sugestão honesta de órbita lenta / aproximação.
+  rotateNote: 'A single photo can’t show the back of your product — to turn it, use the Product 360° effect.',
+  rotateSwitch: 'Switch to Product 360°',
+  rotateOrbit: 'A single photo can’t show the back of your product, so a full spin usually comes out barely moving. Ask instead for a slow camera orbit or a slow push-in.',
 } as const
 
 export type ClipCopyKey = keyof typeof CLIP_COPY_EN
@@ -122,6 +127,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     freeClipTitle: 'Você tem 1 clipe grátis',
     freeClipBody: 'Um clipe de vídeo de {s} segundos a partir de uma linha de texto. Já escrevemos uma ideia para você — é só apertar “Gerar clipe”.',
     freeClipCta: 'Fazer meu clipe grátis',
+    rotateNote: 'Uma foto só não mostra a parte de trás do produto — para girar o produto, use o efeito Produto 360°.', // KINEO-CLIPE360-AMOSTRA-1410
+    rotateSwitch: 'Trocar para Produto 360°',
+    rotateOrbit: 'Uma foto só não mostra a parte de trás do produto, então um giro completo costuma sair quase parado. Peça uma órbita lenta da câmera ou uma aproximação lenta.',
   },
   es: {
     title: 'Clips',
@@ -177,6 +185,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     freeClipTitle: 'Tienes 1 clip gratis',
     freeClipBody: 'Un clip de vídeo de {s} segundos a partir de una línea de texto. Ya escribimos una idea para ti — solo pulsa «Generar clip».',
     freeClipCta: 'Hacer mi clip gratis',
+    rotateNote: 'Una sola foto no muestra la parte de atrás del producto — para girarlo, usa el efecto Producto 360°.', // KINEO-CLIPE360-AMOSTRA-1410
+    rotateSwitch: 'Cambiar a Producto 360°',
+    rotateOrbit: 'Una sola foto no muestra la parte de atrás del producto, así que un giro completo suele salir casi quieto. Pide mejor una órbita lenta de la cámara o un acercamiento lento.',
   },
   fr: {
     title: 'Clips',
@@ -232,6 +243,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     freeClipTitle: 'Vous avez 1 clip gratuit',
     freeClipBody: 'Un clip vidéo de {s} secondes à partir d’une ligne de texte. Nous avons déjà écrit une idée pour vous — il suffit d’appuyer sur « Générer le clip ».',
     freeClipCta: 'Créer mon clip gratuit',
+    rotateNote: 'Une seule photo ne montre pas l’arrière du produit — pour le faire tourner, utilisez l’effet Produit 360°.', // KINEO-CLIPE360-AMOSTRA-1410
+    rotateSwitch: 'Passer à Produit 360°',
+    rotateOrbit: 'Une seule photo ne montre pas l’arrière du produit : un tour complet ressort souvent presque immobile. Demandez plutôt un lent mouvement de caméra autour du produit ou un lent zoom avant.',
   },
   de: {
     title: 'Clips',
@@ -287,6 +301,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     freeClipTitle: 'Du hast 1 Gratis-Clip',
     freeClipBody: 'Ein {s}-Sekunden-Videoclip aus einer Zeile Text. Wir haben schon eine Idee für dich geschrieben — tippe einfach auf „Clip erstellen“.',
     freeClipCta: 'Meinen Gratis-Clip erstellen',
+    rotateNote: 'Ein einzelnes Foto zeigt die Rückseite des Produkts nicht — zum Drehen nutze den Effekt Produkt 360°.', // KINEO-CLIPE360-AMOSTRA-1410
+    rotateSwitch: 'Zu Produkt 360° wechseln',
+    rotateOrbit: 'Ein einzelnes Foto zeigt die Rückseite des Produkts nicht, daher wirkt eine volle Drehung meist fast starr. Bitte lieber um eine langsame Kamerafahrt um das Produkt oder ein langsames Heranfahren.',
   },
   it: {
     title: 'Clip',
@@ -342,6 +359,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     freeClipTitle: 'Hai 1 clip gratis',
     freeClipBody: 'Un clip video di {s} secondi da una riga di testo. Abbiamo già scritto un’idea per te — basta premere «Genera clip».',
     freeClipCta: 'Crea il mio clip gratis',
+    rotateNote: 'Una sola foto non mostra il retro del prodotto — per farlo ruotare usa l’effetto Prodotto 360°.', // KINEO-CLIPE360-AMOSTRA-1410
+    rotateSwitch: 'Passa a Prodotto 360°',
+    rotateOrbit: 'Una sola foto non mostra il retro del prodotto, quindi una rotazione completa di solito resta quasi ferma. Chiedi piuttosto una lenta orbita della camera o un lento avvicinamento.',
   },
   nl: {
     title: 'Clips',
@@ -397,6 +417,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     freeClipTitle: 'Je hebt 1 gratis clip',
     freeClipBody: 'Een videoclip van {s} seconden uit één regel tekst. We hebben al een idee voor je geschreven — druk gewoon op ‘Clip maken’.',
     freeClipCta: 'Maak mijn gratis clip',
+    rotateNote: 'Eén foto laat de achterkant van het product niet zien — gebruik het effect Product 360° om het te laten draaien.', // KINEO-CLIPE360-AMOSTRA-1410
+    rotateSwitch: 'Overschakelen naar Product 360°',
+    rotateOrbit: 'Eén foto laat de achterkant van het product niet zien, dus een volledige draai beweegt meestal nauwelijks. Vraag liever om een langzame camerabeweging rond het product of een langzame inzoom.',
   },
   pl: {
     title: 'Klipy',
@@ -452,6 +475,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     freeClipTitle: 'Masz 1 darmowy klip',
     freeClipBody: '{s}-sekundowy klip wideo z jednej linijki tekstu. Pomysł już dla Ciebie napisaliśmy — wystarczy nacisnąć „Generuj klip”.',
     freeClipCta: 'Zrób mój darmowy klip',
+    rotateNote: 'Jedno zdjęcie nie pokazuje tyłu produktu — aby go obrócić, użyj efektu Produkt 360°.', // KINEO-CLIPE360-AMOSTRA-1410
+    rotateSwitch: 'Przełącz na Produkt 360°',
+    rotateOrbit: 'Jedno zdjęcie nie pokazuje tyłu produktu, więc pełny obrót zwykle wychodzi prawie nieruchomo. Poproś raczej o powolny ruch kamery wokół produktu albo powolne zbliżenie.',
   },
   tr: {
     title: 'Klipler',
@@ -507,6 +533,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     freeClipTitle: '1 ücretsiz klibiniz var',
     freeClipBody: 'Tek satır metinden {s} saniyelik bir video klip. Sizin için bir fikir bile yazdık — sadece “Klip oluştur”a basın.',
     freeClipCta: 'Ücretsiz klibimi yap',
+    rotateNote: 'Tek bir fotoğraf ürünün arkasını göstermez — ürünü döndürmek için Ürün 360° efektini kullanın.', // KINEO-CLIPE360-AMOSTRA-1410
+    rotateSwitch: 'Ürün 360° efektine geç',
+    rotateOrbit: 'Tek bir fotoğraf ürünün arkasını göstermez, bu yüzden tam bir dönüş genelde neredeyse hareketsiz çıkar. Bunun yerine kameranın ürün etrafında yavaşça dönmesini ya da yavaş bir yaklaşmayı isteyin.',
   },
   ru: {
     title: 'Клипы',
@@ -562,6 +591,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     freeClipTitle: 'У вас есть 1 бесплатный клип',
     freeClipBody: 'Видеоклип на {s} секунд из одной строки текста. Мы уже написали для вас идею — просто нажмите «Создать клип».',
     freeClipCta: 'Сделать бесплатный клип',
+    rotateNote: 'Одно фото не показывает обратную сторону товара — чтобы повернуть его, используйте эффект «Товар 360°».', // KINEO-CLIPE360-AMOSTRA-1410
+    rotateSwitch: 'Перейти на «Товар 360°»',
+    rotateOrbit: 'Одно фото не показывает обратную сторону товара, поэтому полный оборот обычно выходит почти неподвижным. Лучше попросите медленный облёт камерой или медленный наезд.',
   },
   uk: {
     title: 'Кліпи',
@@ -617,6 +649,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     freeClipTitle: 'У вас є 1 безкоштовний кліп',
     freeClipBody: 'Відеокліп на {s} секунд з одного рядка тексту. Ми вже написали для вас ідею — просто натисніть «Створити кліп».',
     freeClipCta: 'Зробити безкоштовний кліп',
+    rotateNote: 'Одне фото не показує зворотний бік товару — щоб повернути його, скористайтеся ефектом «Товар 360°».', // KINEO-CLIPE360-AMOSTRA-1410
+    rotateSwitch: 'Перейти на «Товар 360°»',
+    rotateOrbit: 'Одне фото не показує зворотний бік товару, тому повний оберт зазвичай виходить майже нерухомим. Краще попросіть повільний обліт камерою або повільний наїзд.',
   },
   ar: {
     title: 'مقاطع',
@@ -672,6 +707,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     freeClipTitle: 'لديك مقطع واحد مجاني',
     freeClipBody: 'مقطع فيديو مدته {s} ثوانٍ من سطر نصي واحد. كتبنا لك فكرة جاهزة — فقط اضغط «أنشئ المقطع».',
     freeClipCta: 'أنشئ مقطعي المجاني',
+    rotateNote: 'صورة واحدة لا تُظهر الجهة الخلفية للمنتج — لتدويره استخدم تأثير «المنتج 360°».', // KINEO-CLIPE360-AMOSTRA-1410
+    rotateSwitch: 'التبديل إلى «المنتج 360°»',
+    rotateOrbit: 'صورة واحدة لا تُظهر الجهة الخلفية للمنتج، لذلك يخرج الدوران الكامل غالبًا شبه ثابت. اطلب بدلًا من ذلك دورانًا بطيئًا للكاميرا حول المنتج أو اقترابًا بطيئًا.',
   },
   ur: {
     title: 'کلپس',
@@ -727,6 +765,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     freeClipTitle: 'آپ کے پاس 1 مفت کلپ ہے',
     freeClipBody: 'متن کی ایک سطر سے {s} سیکنڈ کا ویڈیو کلپ۔ ہم نے آپ کے لیے ایک آئیڈیا پہلے ہی لکھ دیا ہے — بس "کلپ بنائیں" دبائیں۔',
     freeClipCta: 'میرا مفت کلپ بنائیں',
+    rotateNote: 'ایک تصویر پروڈکٹ کا پچھلا حصہ نہیں دکھاتی — اسے گھمانے کے لیے «پروڈکٹ 360°» ایفیکٹ استعمال کریں۔', // KINEO-CLIPE360-AMOSTRA-1410
+    rotateSwitch: '«پروڈکٹ 360°» پر جائیں',
+    rotateOrbit: 'ایک تصویر پروڈکٹ کا پچھلا حصہ نہیں دکھاتی، اس لیے پورا چکر عموماً تقریباً ساکن نکلتا ہے۔ اس کے بجائے کیمرے کا آہستہ چکر یا آہستہ قریب آنا مانگیں۔',
   },
   hi: {
     title: 'क्लिप्स',
@@ -782,6 +823,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     freeClipTitle: 'आपके पास 1 मुफ़्त क्लिप है',
     freeClipBody: 'टेक्स्ट की एक लाइन से {s} सेकंड की वीडियो क्लिप। हमने आपके लिए एक आइडिया पहले ही लिख दिया है — बस "क्लिप बनाएँ" दबाएँ।',
     freeClipCta: 'मेरी मुफ़्त क्लिप बनाएँ',
+    rotateNote: 'एक फ़ोटो से प्रोडक्ट का पिछला हिस्सा नहीं दिखता — उसे घुमाने के लिए «प्रोडक्ट 360°» इफ़ेक्ट इस्तेमाल करें।', // KINEO-CLIPE360-AMOSTRA-1410
+    rotateSwitch: '«प्रोडक्ट 360°» पर जाएँ',
+    rotateOrbit: 'एक फ़ोटो से प्रोडक्ट का पिछला हिस्सा नहीं दिखता, इसलिए पूरा घुमाव अक्सर लगभग स्थिर निकलता है। इसकी जगह कैमरे का धीमा चक्कर या धीमा ज़ूम-इन माँगें।',
   },
   id: {
     title: 'Klip',
@@ -837,6 +881,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     freeClipTitle: 'Anda punya 1 klip gratis',
     freeClipBody: 'Klip video {s} detik dari satu baris teks. Kami sudah menuliskan ide untuk Anda — tinggal tekan “Buat klip”.',
     freeClipCta: 'Buat klip gratis saya',
+    rotateNote: 'Satu foto tidak menunjukkan bagian belakang produk — untuk memutarnya, gunakan efek Produk 360°.', // KINEO-CLIPE360-AMOSTRA-1410
+    rotateSwitch: 'Ganti ke Produk 360°',
+    rotateOrbit: 'Satu foto tidak menunjukkan bagian belakang produk, jadi putaran penuh biasanya hampir tidak bergerak. Mintalah kamera mengitari produk perlahan atau mendekat perlahan.',
   },
   vi: {
     title: 'Clip',
@@ -892,6 +939,9 @@ export const CLIP_COPY: Record<Exclude<InterfaceLanguage, 'en'>, Dict> = {
     freeClipTitle: 'Bạn có 1 clip miễn phí',
     freeClipBody: 'Một clip video {s} giây từ một dòng chữ. Chúng tôi đã viết sẵn một ý tưởng cho bạn — chỉ cần bấm “Tạo clip”.',
     freeClipCta: 'Tạo clip miễn phí',
+    rotateNote: 'Một ảnh không cho thấy mặt sau của sản phẩm — để xoay sản phẩm, hãy dùng hiệu ứng Sản phẩm 360°.', // KINEO-CLIPE360-AMOSTRA-1410
+    rotateSwitch: 'Chuyển sang Sản phẩm 360°',
+    rotateOrbit: 'Một ảnh không cho thấy mặt sau của sản phẩm, nên xoay trọn vòng thường gần như đứng yên. Hãy yêu cầu camera bay vòng quanh chậm hoặc tiến lại gần chậm.',
   },
 }
 
