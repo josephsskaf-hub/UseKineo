@@ -512,14 +512,14 @@ console.log('== (g) a resposta clássica assinada: scene_prompts, scene_fal_inpu
 const objResp = fatia(rc, "\n    const response: Record<string, unknown> = {\n      mode: 'cinematic_ai',", '\n    }\n')
 checa('fatia do objeto de resposta clássico existe', Boolean(objResp))
 checa('fal_models incondicional (o spread "anchorActive ? { fal_models" saiu)', Boolean(objResp) && objResp.includes('      fal_models: usedModels,\n') && !objResp.includes('anchorActive ? { fal_models'))
-const VARS = ['generationId', 'prompt', 'duration', 'requestedDuration', 'aspectRequested', 'degrau', 'scenes', 'voiceoverScript', 'falRequestIds', 'usedModel', 'usedModels', 'claimQuality', 'verbatim', 'parsedScript', 'contratoRelatoClassico', 'formatoVisual', 'classicSceneInputs', 'anchorActive']
+const VARS = ['generationId', 'prompt', 'duration', 'requestedDuration', 'aspectRequested', 'degrau', 'scenes', 'voiceoverScript', 'falRequestIds', 'usedModel', 'usedModels', 'claimQuality', 'verbatim', 'parsedScript', 'contratoRelatoClassico', 'formatoVisual', 'classicVisualMode' /* reancorado KINEO-CONTRATO-CLASSICOS-1410: o claim clássico grava a régua do gate */, 'classicSceneInputs', 'anchorActive']
 const montaResp = (src) => roda(`export function montar(ctx: any) {\n  const { ${VARS.join(', ')} } = ctx\n${src}\n  return response\n}`).montar
 const i2vAceito = { image_url: 'https://v3.fal.media/files/still-1.png', prompt: PROMPT + 'Scene one, the crater.', aspect_ratio: '9:16', resolution: '720p', duration: '8', generate_audio: false, seed: 4242 }
 const t2vAceito = { prompt: PROMPT + 'Scene two, the coastline.', aspect_ratio: '9:16', resolution: '720p', duration: '8', generate_audio: false, seed: 4242 }
 const ctxResp = (extra = {}) => ({ generationId: 'classic-generation-2809', prompt: 'basalt', duration: 35, requestedDuration: 35, aspectRequested: '9:16', degrau: null,
   scenes: [{ description: 'a', caption: 'A' }, { description: 'b', caption: 'B' }, { description: 'c', caption: 'C' }], voiceoverScript: 'v',
   falRequestIds: ['old-request-id', 'ready-request-id', null], usedModel: ID.SEEDANCE_MODEL, usedModels: [ID.SEEDANCE_I2V_MODEL, ID.SEEDANCE_MODEL, ID.SEEDANCE_MODEL],
-  claimQuality: 'cinematic_ai', verbatim: true, parsedScript: { speed: 1 }, contratoRelatoClassico: [], formatoVisual: { modo: 'documentary_faceless' },
+  claimQuality: 'cinematic_ai', verbatim: true, parsedScript: { speed: 1 }, contratoRelatoClassico: [], formatoVisual: { modo: 'documentary_faceless' }, classicVisualMode: 'documentary_faceless', /* reancorado KINEO-CONTRATO-CLASSICOS-1410 */
   classicSceneInputs: [i2vAceito, t2vAceito, null], anchorActive: false, ...extra })
 let respClassica = null
 if (objResp) {

@@ -18,6 +18,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semRoteiros } from './test-support/desfaz-roteiros-1310.mjs'
 import { MARCA_CONSERTOS_1410, CONSERTOS_1410_LINHAS_CORE, semConsertos1410 } from './test-support/desfaz-consertos-1410.mjs'
 import { semReteste1510 } from './test-support/desfaz-reteste-1510.mjs' // reancorado KINEO-ADS-RETESTE-1510
+import { semMelhorias1410 } from './test-support/desfaz-melhorias-1410.mjs' // reancorado KINEO-ADS-MELHORIAS-1410 — o núcleo ganhou linhas INTEIRAS marcadas (packshot/formato), tiradas antes da impressão
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -279,7 +280,7 @@ const BRAND_NOVA = "  return (brief.business ?? '').split(/\\s+[—–-]\\s+/)[0
 const BRAND_VELHA = "  return (brief.business ?? '').split(/\\s+[—–-]\\s+/)[0].trim()"
 await check('$1 o núcleo do /plan, desfeitas as linhas marcadas deste conserto, volta à impressão digital de antes (3fd1819e…); linhas marcadas = as 9 esperadas, nenhuma de crédito/débito/preço', () => {
   const marcadas = SRC.core.split('\n').filter((l) => l.includes(MARCA_CONSERTOS_1410))
-  return sha(semConsertos1410(semRoteiros(SRC.core))) === CORE_BASE && marcadas.length === CONSERTOS_1410_LINHAS_CORE &&
+  return sha(semMelhorias1410(semConsertos1410(semRoteiros(SRC.core)))) === CORE_BASE && marcadas.length === CONSERTOS_1410_LINHAS_CORE && // reancorado KINEO-ADS-MELHORIAS-1410
     !/credit|debit|charge|refund|adsV2Credits|estimateAdUsd|cost/i.test(marcadas.join('\n').replace(/\/\/.*$/gm, ''))
 })
 await check('$2 o v2Brief só mudou a linha do brandName: desfeita ela, volta à impressão de antes (99678c0e…); nenhuma outra linha marcada', () =>

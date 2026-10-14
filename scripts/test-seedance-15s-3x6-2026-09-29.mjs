@@ -384,12 +384,12 @@ checa("callback real do despacho: o clipe de 6/7/8 s vai com duration explícita
 }
 // (4f) o claim assinado
 const objResp = (src) => fatia(src, "\n    const response: Record<string, unknown> = {\n      mode: 'cinematic_ai',", '\n    }\n')
-const VARS = ['generationId', 'prompt', 'duration', 'requestedDuration', 'aspectRequested', 'degrau', 'scenes', 'voiceoverScript', 'falRequestIds', 'usedModel', 'usedModels', 'claimQuality', 'verbatim', 'parsedScript', 'contratoRelatoClassico', 'formatoVisual', 'classicSceneInputs', 'anchorActive']
+const VARS = ['generationId', 'prompt', 'duration', 'requestedDuration', 'aspectRequested', 'degrau', 'scenes', 'voiceoverScript', 'falRequestIds', 'usedModel', 'usedModels', 'claimQuality', 'verbatim', 'parsedScript', 'contratoRelatoClassico', 'formatoVisual', 'classicSceneInputs', 'anchorActive', 'classicVisualMode' /* reancorado KINEO-CONTRATO-CLASSICOS-1410: o claim clássico grava a régua do gate */]
 const montaResp = (src) => roda(`export function montar(ctx: any) {\n  const { ${VARS.join(', ')} } = ctx\n${src}\n  return response\n}`, { kling25SceneWordStarts: K.kling25SceneWordStarts }).montar
 const T45 = textoN(45)
 {
   const cenas = tres(T45).map((s) => ({ ...s, clipSeconds: 7 }))
-  const ctx = { generationId: 'g', prompt: 'p', duration: 15, requestedDuration: 15, aspectRequested: '9:16', degrau: null, scenes: cenas, voiceoverScript: T45, falRequestIds: ['r0', 'r1', 'r2'], usedModel: SEED_T2V, usedModels: [SEED_I2V, SEED_T2V, SEED_I2V], claimQuality: 'cinematic_ai', verbatim: true, parsedScript: { speed: null }, contratoRelatoClassico: [], formatoVisual: { modo: 'documentary_faceless' }, classicSceneInputs: [null, null, null], anchorActive: true }
+  const ctx = { generationId: 'g', prompt: 'p', duration: 15, requestedDuration: 15, aspectRequested: '9:16', degrau: null, scenes: cenas, voiceoverScript: T45, falRequestIds: ['r0', 'r1', 'r2'], usedModel: SEED_T2V, usedModels: [SEED_I2V, SEED_T2V, SEED_I2V], claimQuality: 'cinematic_ai', verbatim: true, parsedScript: { speed: null }, contratoRelatoClassico: [], formatoVisual: { modo: 'documentary_faceless' }, classicSceneInputs: [null, null, null], anchorActive: true, classicVisualMode: 'documentary_faceless' /* reancorado KINEO-CONTRATO-CLASSICOS-1410 */ }
   const o = objResp(ROTA)
   const resp = o ? montaResp(o)(ctx) : null
   const urls = ['https://f/1.mp4', 'https://f/2.mp4', 'https://f/3.mp4']

@@ -91,6 +91,8 @@ export interface ContratoCena {
   elementosProibidos: string[]
   /** O prompt que sera enviado ao motor. */
   promptFinal: string
+  /** Proibido/traicao so casa PALAVRA INTEIRA ("host" nao casa em "ghost"). Ausente = substring, o comportamento de 27/08. */ // KINEO-CONTRATO-CLASSICOS-1410
+  palavraInteira?: boolean // KINEO-CONTRATO-CLASSICOS-1410
 }
 
 export interface ResultadoContrato {
@@ -296,6 +298,14 @@ export function extrairAncoras(fala: string): string[] {
   return [...vistas]
 }
 
+// KINEO-CONTRATO-CLASSICOS-1410 — palavra inteira (+ plural com s): a substring solta tirava "host" de "ghostly" e "anchor" de "anchored"
+// e mandava "container ships ed in a port" ao motor (Kling 29/09). So o caminho classico liga isto; o hollywood segue igual. // KINEO-CONTRATO-CLASSICOS-1410
+function regexPalavraInteira(termo: string, flags: string): RegExp { // KINEO-CONTRATO-CLASSICOS-1410
+  return new RegExp(`(?<![a-z0-9])${termo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}s?(?![a-z0-9])`, flags) // KINEO-CONTRATO-CLASSICOS-1410
+} // KINEO-CONTRATO-CLASSICOS-1410
+function contemTermo(textoNormalizado: string, termo: string, palavraInteira: boolean): boolean { // KINEO-CONTRATO-CLASSICOS-1410
+  return palavraInteira ? regexPalavraInteira(termo, '').test(textoNormalizado) : textoNormalizado.includes(termo) // KINEO-CONTRATO-CLASSICOS-1410
+} // KINEO-CONTRATO-CLASSICOS-1410
 function entradaDe(sujeito: string): EntradaLexico | undefined {
   const s = normalizar(sujeito)
   return LEXICO_VISUAL.find((e) => e.termos.some((t) => normalizar(t) === s))
@@ -355,11 +365,11 @@ export function verificarContrato(contrato: ContratoCena): ResultadoContrato {
   for (const s of contrato.sujeitoObrigatorio) {
     for (const t of entradaDe(s)?.traem ?? []) proibidos.add(normalizar(t))
   }
-  const proibidosEncontrados = [...proibidos].filter((x) => x && p.includes(x))
+  const proibidosEncontrados = [...proibidos].filter((x) => x && contemTermo(p, x, contrato.palavraInteira === true)) // KINEO-CONTRATO-CLASSICOS-1410
 
   // 2. Contradicoes da acao (D2).
   const contradicoesDeAcao = contrato.acaoObrigatoria
-    ? (entradaAcaoDe(contrato.acaoObrigatoria)?.traem ?? []).filter((t) => p.includes(normalizar(t)))
+    ? (entradaAcaoDe(contrato.acaoObrigatoria)?.traem ?? []).filter((t) => contemTermo(p, normalizar(t), contrato.palavraInteira === true)) // KINEO-CONTRATO-CLASSICOS-1410
     : []
 
   // 3. Cada sujeito do lexico precisa de ao menos UMA representacao visual.
@@ -421,6 +431,7 @@ export function montarContrato(args: {
   falaFinal: string
   promptFinal: string
   elementosProibidos?: string[]
+  palavraInteira?: boolean // KINEO-CONTRATO-CLASSICOS-1410
 }): ContratoCena {
   return {
     indice: args.indice,
@@ -431,6 +442,7 @@ export function montarContrato(args: {
     ancoras: extrairAncoras(args.falaFinal),
     elementosProibidos: args.elementosProibidos ?? [],
     promptFinal: args.promptFinal,
+    ...(args.palavraInteira ? { palavraInteira: true } : {}), // KINEO-CONTRATO-CLASSICOS-1410
   }
 }
 
@@ -464,7 +476,7 @@ export function aplicarContrato(contrato: ContratoCena): CorrecaoContrato {
 
   if (severidadeDe(antes.veredicto) === 'corrigir') {
     for (const ruim of [...antes.proibidosEncontrados, ...antes.contradicoesDeAcao]) {
-      const re = new RegExp(ruim.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+      const re = contrato.palavraInteira ? regexPalavraInteira(ruim, 'gi') : new RegExp(ruim.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi') // KINEO-CONTRATO-CLASSICOS-1410
       if (re.test(prompt)) {
         prompt = prompt.replace(re, '').replace(/\s{2,}/g, ' ').replace(/\s+([,.])/g, '$1').trim()
         acoes.push(`removido: ${ruim}`)

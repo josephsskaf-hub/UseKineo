@@ -209,7 +209,13 @@ async function pisoDeFala(over = {}) {
   // a versão curta (sem correção própria) é completada em código, sem fato, até o piso
   const v = await extrair(over, { copies: [MAIN_PT], variants: { variants: [{ tone: 'bold', narration: CURTA.narration, overlays: ['Perfume', 'Essência única'] }, STORY_PT] } })
   const bold = (v.r.variants ?? []).find((y) => y.tone === 'bold')
-  const pad = !!bold && words(bold.copy.narration) >= 27 && words(bold.copy.narration) <= 30 && bold.copy.narration.startsWith(CURTA.narration) && !/\d/.test(bold.copy.narration)
+  // reancorado KINEO-ADS-MELHORIAS-1410 — o reteste de 14/10 achou "Veja com seus próprios olhos. Confira de perto.": o enchimento colava
+  // chamada atrás de chamada até o piso. Regra nova (coordenação 14/10): NUNCA duas chamadas seguidas. Esta versão curta já termina numa
+  // chamada ("Venha sentir a diferença!"), então não ganha enchimento: fica como veio e o piso de antes (metade do teto) decide — a
+  // versão continua na lista, sem fato, sem número e sem chamada repetida. O piso de 27 segue provado acima (pedido, régua e re-pedido).
+  const sents = bold ? bold.copy.narration.split(/(?<=[.!?…])\s+/u) : []
+  const pad = !!bold && words(bold.copy.narration) >= 15 && words(bold.copy.narration) <= 30 && bold.copy.narration.startsWith(CURTA.narration) && !/\d/.test(bold.copy.narration) &&
+    !sents.some((x, i) => i > 0 && FIT.adsV2CtaLike(x, 'pt') && FIT.adsV2CtaLike(sents[i - 1], 'pt'))
   return regua && pedido && recusa && reask && pad
 }
 ok(await tenta(() => pisoDeFala()), '(D1) piso de fala: 15 s = 27 · 20 s = 36 · 30 s = 54 palavras (≥ 90% do anúncio a 2,0 pal/s, teto de sempre); a curta volta com o número e a versão curta é completada sem fato')

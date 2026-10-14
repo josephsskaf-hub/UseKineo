@@ -332,7 +332,10 @@ const SIMPLE = code(read(F.simple))
 const CLIENT = code(read(F.client))
 const telaOk = (src, nome) => /const sampleOff = !!scopy && t !== ADS_SAMPLE_TIER/.test(src) && /disabled=\{locked \|\| sampleOff\}/.test(src) && /scopy \? \(sampleOff \? scopy\.paidOnly : scopy\.badge\)/.test(src) &&
   /r\.code === 'sample_cap'/.test(src) && /scopy && sampleCap \?/.test(src) && /href="\/pricing"/.test(src) && /sample \? sample\.make :/.test(src) && (nome === 'client' ? /const short = scopy \? 0 :/.test(src) : /const need = scopy \? 0 :/.test(src) && /const short = scopy \? 0 :/.test(src))
-ok(telaOk(SIMPLE, 'simple') && /sample=\{scopy\}/.test(SIMPLE) && /useState<AdsV2Tier \| null>\(sample \? ADS_SAMPLE_TIER : null\)/.test(SIMPLE) && /\{scopy \? null : <a className="adsw-btn ghost small" href=/.test(SIMPLE),
+ok(telaOk(SIMPLE, 'simple') && /sample=\{scopy\}/.test(SIMPLE) && /useState<AdsV2Tier \| null>\(sample \? ADS_SAMPLE_TIER : null\)/.test(SIMPLE) &&
+  // reancorado KINEO-ADS-MELHORIAS-1410 — "Refazer esta cena" saiu do link para o modo completo e virou a grade da entrega com o botão por
+  // cena: continua SÓ fora da amostra (a grade com redo vem atrás de `scopy ? null :`, e não existe outra grade com redo na tela).
+  /\{scopy \? null : \(\s*<SimpleShotGrid[^>]*?redo=\{\{/.test(SIMPLE) && (SIMPLE.match(/<SimpleShotGrid[^>]*?redo=\{\{/g) ?? []).length === 1,
   '8a modo simples: só o nível da amostra, selo no lugar do preço, nada de "faltam créditos", botão grátis, aviso do teto com /pricing, sem refação')
 ok(telaOk(CLIENT, 'client') && /redo=\{scopy \? undefined :/.test(CLIENT) && /sample=\{sample\}/.test(CLIENT) && /!sample && classicCredits !== null && mode === 'full' \?/.test(CLIENT),
   '8b modo completo: as mesmas regras, sem refação e sem o atalho do clássico pago')

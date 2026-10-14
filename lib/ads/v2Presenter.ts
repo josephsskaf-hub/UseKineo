@@ -285,9 +285,10 @@ export function adsV2PresenterInitialRow(orderId: string, p: AdsV2PresenterPlan)
  * lugar, gente e o vídeo do cliente. Só material DO CLIENTE (foto animada ou vídeo dele): cena criada (gente de IA) não
  * entra — outra pessoa de IA ao lado do ator confunde — e foto de texto (tela/cardápio) também não. Devolve os idx.
  */
-export function adsV2PresenterInsertOrder(shots: readonly { idx: number; kind: string; source: string; effect?: unknown }[]): number[] {
-  const rank = (s: { kind: string; effect?: unknown }): number => {
+export function adsV2PresenterInsertOrder(shots: readonly { idx: number; kind: string; source: string; effect?: unknown; packshot?: unknown }[]): number[] {
+  const rank = (s: { kind: string; effect?: unknown; packshot?: unknown }): number => {
     if (typeof s.effect === 'string' && s.effect) return 0
+    if (s.kind === 'text' && s.packshot === true) return 0.5 // KINEO-ADS-MELHORIAS-1410 — a foto REAL do produto logo depois do estilo (o ator segura um produto redesenhado pela IA)
     switch (s.kind) {
       case 'product_hero': return 1
       case 'product': return 2
@@ -298,7 +299,7 @@ export function adsV2PresenterInsertOrder(shots: readonly { idx: number; kind: s
     }
   }
   return shots
-    .filter((s) => s.source === 'client_photo' && s.kind !== 'text' && rank(s) < 99)
+    .filter((s) => s.source === 'client_photo' && (s.kind !== 'text' || s.packshot === true) && rank(s) < 99) // KINEO-ADS-MELHORIAS-1410 — texto continua fora; o packshot entra
     .slice()
     .sort((a, b) => rank(a) - rank(b) || a.idx - b.idx)
     .map((s) => s.idx)

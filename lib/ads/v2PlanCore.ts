@@ -36,6 +36,8 @@ import { adsSampleLevelOk, adsSampleOpen } from '@/lib/ads/serverAccess'
 import { adsV2IsProductOrder, adsV2SceneSetting, adsV2SceneShots } from '@/lib/ads/v2Scene' // KINEO-ADS-CENA-2026-10-13 — a cena da pessoa no prompt das cenas criadas (só Comercial/Premium)
 import { ADS_V2_BRIEF_TIMEOUT_WHY, ADS_V2_PLAN_MODEL_DEADLINE_MS } from '@/lib/ads/v2Brief' // KINEO-ADS-CENA-2026-10-13 — prazo do modelo amarrado ao maxDuration e timeout que não vira 502 cru
 import { adsV2SentenceForCopy } from '@/lib/ads/v2Scene' // KINEO-ADS-CONSERTOS-1410 — produto sem a cena da frase
+import { adsV2PackshotShots } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — o packshot: um plano de IA vira a foto REAL do produto (mesmos créditos)
+import { adsV2FormatBlock, adsV2FormatShots, normalizeAdsV2Format } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — formatos 4:5 e 1:1 (só onde o pipeline inteiro aceita)
 import { adsV2BuildScripts } from '@/lib/ads/v2Scripts' // KINEO-ADS-ROTEIROS-2026-10-13 — 2 a 3 roteiros para escolher (o 1º = o texto de sempre); troca em /api/ads/v2/plan/choose
 
 /** Quem age: o id do auth (moderação e rastro) e o e-mail VERIFICADO dele (adsV2Visible). */
@@ -82,6 +84,9 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     // contrato já conferiu). Interruptor desligado = o campo é ignorado (o anúncio sai como antes).
     const presenterAsked = ADS_V2_PRESENTER_PUBLIC && input.presenter === true
     if (presenterAsked && order.narration !== true) return v2Fail('presenter_needs_voice_and_product', 400)
+    const format = normalizeAdsV2Format(input.format) // KINEO-ADS-MELHORIAS-1410 — '9:16' quando ausente (o pedido de sempre)
+    const formatBlock = adsV2FormatBlock({ format, tier: order.tier, style: ADS_V2_STYLES_PUBLIC ? input.style ?? null : null, presenter: presenterAsked }) // KINEO-ADS-MELHORIAS-1410 — estilo e ator só em 9:16; Premium sem 4:5 (o Seedance não tem)
+    if (formatBlock) return v2Fail('format_unsupported', 400, { why: formatBlock }) // KINEO-ADS-MELHORIAS-1410 — ANTES do modelo e de qualquer gravação (nada cobrado)
     // Fatos escolhidos: resolvidos pelos ids contra o que o SERVIDOR gravou. Texto de fato vindo do cliente não existe.
     const known = simple ? storedResearchFacts(brief0.research) : []
     const chosenFacts = (input.facts ?? []).map((id) => known.find((f) => f.id === id))
@@ -206,6 +211,8 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     const plan = planShots({ sector, tier: order.tier, photos: photos.map((p) => ({ id: p.footage_id, url: p.url, kind: p.kind })), seconds: order.seconds, ...(videos.length ? { videos } : {}), ...(styleAsked ? { style: styleAsked } : {}) })
     const sceneSetting = adsV2SceneSetting(brief0, order.tier) // KINEO-ADS-CENA-2026-10-13 — brief.scene limpa de novo; null no Normal ou sem cena
     plan.shots = adsV2SceneShots(plan.shots, { setting: sceneSetting, sector, product: adsV2IsProductOrder(brief0, sector), photos }) // KINEO-ADS-CENA-2026-10-13 — só o scenePrompt das cenas criadas muda ("Setting: …"); sem cena = o mesmo array
+    plan.shots = adsV2PackshotShots(plan.shots, { photos: photos.map((p) => ({ id: p.footage_id, url: p.url, kind: p.kind })), productOrder: adsV2IsProductOrder(brief0, sector) }) // KINEO-ADS-MELHORIAS-1410 — troca UM plano de IA (o fecho; senão o 2º) pela foto real do produto: nº de planos, duração e créditos iguais
+    plan.shots = adsV2FormatShots(plan.shots, format) // KINEO-ADS-MELHORIAS-1410 — a cena criada pedida no formato ("portrait"/"square", sem números); 9:16 = o mesmo array
     const promptIssues = checkV2Prompts(plan.shots.flatMap((s) => [s.prompt, s.scenePrompt].filter((x): x is string => !!x)), extracted.brief)
     if (promptIssues.length) {
       await served(false, { stage: 'prompts', why: promptIssues.slice(0, 4) })
@@ -223,6 +230,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     const scripts = adsV2BuildScripts([{ tone: 'benefit', narration: extracted.copy.narration, overlays: extracted.copy.overlays }, ...(extracted.variants ?? []).map((v) => ({ tone: v.tone, narration: v.copy.narration, overlays: v.copy.overlays }))], plan.overlays, overlaysOn) // KINEO-ADS-ROTEIROS-2026-10-13 — o 1º é o texto de sempre (= narration/overlays abaixo)
     const stored: AdsV2StoredPlan = { ...plan, overlays, narration: extracted.copy.narration, ...(presenter ? { presenter } : {}) }
     Object.assign(stored, { scripts, script_id: scripts[0]?.id ?? 'a' }) // KINEO-ADS-ROTEIROS-2026-10-13 — os roteiros ficam NO plano do pedido; o /choose só copia daqui (preço intocado)
+    if (format !== '9:16') Object.assign(stored, { format }) // KINEO-ADS-MELHORIAS-1410 — o formato mora no plano gravado (montagem, motores, refação e variações o leem dali); 9:16 = sem a chave
     const credits = adsV2Credits(order.tier, order.seconds)
     const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds, presenter: !!presenter })
 

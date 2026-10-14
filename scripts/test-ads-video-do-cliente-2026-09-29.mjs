@@ -17,6 +17,7 @@ import { join, dirname, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import ts from 'typescript'
+import { semMelhorias1410 } from './test-support/desfaz-melhorias-1410.mjs' // reancorado KINEO-ADS-MELHORIAS-1410
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
@@ -465,7 +466,10 @@ await check('R3 migration irmã: tipo user_video aceito e a trava "nunca IA" no 
 })
 
 // ═══ T. TELAS (leitura) ═══════════════════════════════════════════════════════════════════════════════════════════════
-const SIMPLE = semComentarios(SRC.simple)
+// reancorado KINEO-ADS-MELHORIAS-1410 — a tela simples ganhou o formato (4:5/1:1): o corpo do /plan, a assinatura do plano, o estilo
+// efetivo e o recorte/upload mudaram em linhas MARCADAS. semMelhorias1410 (scripts/test-support/desfaz-melhorias-1410.mjs) as devolve ao
+// texto EXATO de antes, e a regra de sempre vale sobre ele; as linhas novas são provadas em scripts/test-ads-formatos-1410.mjs.
+const SIMPLE = semComentarios(semMelhorias1410(SRC.simple))
 const CLIENT = semComentarios(SRC.client)
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — re-ancorado: o corpo do /plan (simples e completo) ganhou o estilo, só quando escolhido (T1 e T3).
 await check('T1 simples: o vídeo que cabe sobe ORIGINAL (uma vez, sem recorte) e vai em `videos` com trecho e foco; o que não cabe vira fotos com o motivo', () =>
