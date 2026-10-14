@@ -397,6 +397,7 @@ import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 // estava VISÍVEL dentro do modal e perdeu para a grade de planos da mesma caixa.
 import CardEntryDoor from '@/components/CardEntryDoor'
 import { estrelaDisponivelNoMotor } from '@/lib/estrelaDoFilme' // KINEO-ESTRELA-DO-FILME-2026-09-29
+import { subidaQueOSaldoPaga, notaDaSubidaSegura, SUBIDA_SEGURA_PELO_SALDO_EVENT, MOTOR_15S_VERSION } from '@/lib/growth/motor15s' // KINEO-MOTOR-15S-1510 [TRAVA 8.2 — vai do fundador 15/10] — diretiva colada e autofit sobem só até onde o saldo paga
 // KINEO-LOWCREDITS-UPSELL import removed 09/07 — banner retired (see note at
 // the old render site; 0 credits is the normal free state now).
 
@@ -2491,6 +2492,7 @@ export default function GenerateClient({
       ? lerDescidaDaUrl(searchParams?.get(DESCIDA_FILME_GRATIS_PARAM), SEEDANCE_SHORT_SECONDS)
       : null) // KINEO-PRIMEIRO-FILME-2026-10-13
   const freeFilmDownshiftRef = useRef(false) // KINEO-PRIMEIRO-FILME-2026-10-13 — a guarda do autoanalyze desceu nesta montagem
+  const [notaSubidaSegura, setNotaSubidaSegura] = useState<{ texto: string; para: number } | null>(null) // KINEO-MOTOR-15S-1510 — a nota do Studio quando o saldo segurou a duração colada/autofit
 
   // sprint-v1v4 #43 — desarme (a). No instante em que existe saldo, a memoria
   // do muro deixa de ser verdade: quem comprou, ganhou credito do /admin ou
@@ -7921,9 +7923,9 @@ export default function GenerateClient({
           kind: 'transient_failure',
           canRetry: true,
           retryOp: 'authoring',
-          message: 'The writer could not finish right now. Try again in a moment.',
+          message: res.status === 422 && typeof data?.error === 'string' && data.error.trim() ? data.error.trim() : 'The writer could not finish right now. Try again in a moment.', // KINEO-MOTOR-15S-1510 — recusa do roteirista: a frase do servidor (o que fazer), não "tente de novo"
         })
-        void trackEvent('script_authoring_failed', { http: res.status })
+        void trackEvent('script_authoring_failed', { http: res.status, reason: typeof data?.reason === 'string' ? data.reason : null }) // KINEO-MOTOR-15S-1510
         return
       }
       // KINEO-351 — o servidor diz se o roteiro escrito ATINGIU a duração.
@@ -8115,6 +8117,10 @@ export default function GenerateClient({
     expandBaseRef.current = (overridePrompt ?? prompt ?? '').trim()
     setExpandState(null)
     setAuthoredScript(null)
+    setNotaSubidaSegura(null) // KINEO-MOTOR-15S-1510 — análise nova, nota nova
+    const contaPagaNaSubida = planTier === null ? null : hasPaid || isStarter || isCreator || isStudio // KINEO-MOTOR-15S-1510 — o mesmo predicado da descida do filme grátis (null = ainda não sabemos)
+    const custoDaOpcao = (segundos: number): number => costForDurationOption(segundos as Duration) // KINEO-MOTOR-15S-1510 — a função que cobra, na qualidade da tela
+    const avisarSubidaSegura = (sub: ReturnType<typeof subidaQueOSaldoPaga>, origem: 'pasted_directive' | 'autofit'): void => { if (!sub.segurou) return; if (sub.custoPara !== null) setNotaSubidaSegura({ texto: notaDaSubidaSegura({ engine: mode === 'cinematic_ai' ? aiEngine : mode, para: sub.para, saldo: credits ?? 0, segundosDoFilmeGratis: SEEDANCE_SHORT_SECONDS }), para: sub.para }); void trackEvent(SUBIDA_SEGURA_PELO_SALDO_EVENT, { origem, pedida: sub.pedida, para: sub.para, saldo: credits, custo_pedida: sub.custoPedida, custo_para: sub.custoPara, motivo: sub.motivo, version: MOTOR_15S_VERSION }) } // KINEO-MOTOR-15S-1510
 
     // KINEO-FIRST-CLICK-AUTOFIT-2026-09-03 — o cliente não recusa mais um
     // roteiro curto antes de o servidor aplicar o degrau de duração. Desde o
@@ -8124,6 +8130,7 @@ export default function GenerateClient({
     // conserva apenas o espelho de roteiro longo abaixo, que ajusta o alvo da
     // análise sem bloquear a viagem.
     let alvoAnalise: Duration = duracaoPedida
+    let modoDoTextoNoCurto: 'ai' | null = null // KINEO-MOTOR-15S-1510 — roteiro longo de quem não paga a subida: vira o filme de 15 s em modo IA (como no autoanalyze)
 
     // ═══ sprint-retencao #9 — O TEXTO COLADO PEDIA, E NINGUEM LIA ══════════
     //
@@ -8157,16 +8164,20 @@ export default function GenerateClient({
     // duracao — o mesmo que o autofit logo abaixo ja movia — e um aviso.
     const leituraColada = readPastedDirectives(expandBaseRef.current, opcoesDeDuracao.map((o) => o.value)) // KINEO-SEEDANCE-15S-2026-09-29: "15-second" fica em 15 no Seedance
     if (leituraColada.directives.length > 0) {
-      const aplicou = leituraColada.suggestedDuration !== null && leituraColada.suggestedDuration !== duration
-      if (leituraColada.suggestedDuration !== null && aplicou) {
-        setDuration(leituraColada.suggestedDuration as Duration)
-        alvoAnalise = leituraColada.suggestedDuration as Duration
+      const subidaColada = leituraColada.suggestedDuration !== null ? subidaQueOSaldoPaga({ atual: duration, alvo: leituraColada.suggestedDuration, opcoes: opcoesDeDuracao.map((o) => o.value), saldo: credits, paga: contaPagaNaSubida, custo: custoDaOpcao }) : null // KINEO-MOTOR-15S-1510 — "60-second" colado sobe só até onde o saldo paga (conta que não paga)
+      const duracaoColada = subidaColada ? subidaColada.para : null // KINEO-MOTOR-15S-1510
+      const aplicou = duracaoColada !== null && duracaoColada !== duration // KINEO-MOTOR-15S-1510
+      if (duracaoColada !== null && aplicou) { // KINEO-MOTOR-15S-1510
+        setDuration(duracaoColada as Duration) // KINEO-MOTOR-15S-1510
+        alvoAnalise = duracaoColada as Duration // KINEO-MOTOR-15S-1510
       }
+      if (subidaColada) avisarSubidaSegura(subidaColada, 'pasted_directive') // KINEO-MOTOR-15S-1510
       void trackEvent('pasted_directives_detected', {
         looks_pasted: leituraColada.looksPasted,
         kinds: leituraColada.directives.map((d) => d.kind).join(','),
         asked_seconds: leituraColada.directives.find((d) => d.kind === 'duration')?.askedSeconds ?? null,
-        applied_seconds: leituraColada.suggestedDuration,
+        applied_seconds: duracaoColada, // KINEO-MOTOR-15S-1510 — o que a tela APLICOU (antes: o que o texto pedia, mesmo quando o saldo não pagava)
+        held_by_balance: subidaColada?.segurou === true, // KINEO-MOTOR-15S-1510
         duration_changed: aplicou,
         unsupported: leituraColada.unsupported.map((d) => d.kind).join(',') || null,
         from_topic: opts?.fromTopic === true,
@@ -8253,7 +8264,10 @@ export default function GenerateClient({
         // débito (checarFalaDoFilmeCurto). SÓ no 15: em 35/60/90 a subida continua como na main — manter 35 com fala de 60 s
         // renderia o filme longo pelo preço de 35 (o compose deixa o áudio ir a 90), e lá não há guarda de fala curta.
         const sobeCabeNoSaldo = sobeParaBruto === undefined || duration !== SEEDANCE_SHORT_SECONDS || credits === null || costForDurationOption(sobeParaBruto) <= credits
-        const sobePara = sobeCabeNoSaldo ? sobeParaBruto : undefined
+        const subidaDoAutofit = sobeCabeNoSaldo && sobeParaBruto !== undefined ? subidaQueOSaldoPaga({ atual: duration, alvo: sobeParaBruto, opcoes: opcoesDeDuracao.map((o) => o.value), saldo: credits, paga: contaPagaNaSubida, custo: custoDaOpcao }) : null // KINEO-MOTOR-15S-1510 — o autofit não sobe além do que o saldo paga (conta que não paga), em qualquer duração
+        const sobePara = sobeCabeNoSaldo ? (subidaDoAutofit ? (subidaDoAutofit.para > duration ? subidaDoAutofit.para as Duration : undefined) : sobeParaBruto) : undefined // KINEO-MOTOR-15S-1510
+        if (subidaDoAutofit) avisarSubidaSegura(subidaDoAutofit, 'autofit') // KINEO-MOTOR-15S-1510
+        if (sobeParaBruto !== undefined && sobePara === undefined && contaPagaNaSubida === false && duration === SEEDANCE_SHORT_SECONDS && mode === 'cinematic_ai' && aiEngine === 'seedance' && !roteiroCabeNoFilmeCurto(baseChecagem, SEEDANCE_SHORT_SECONDS, language)) modoDoTextoNoCurto = 'ai' // KINEO-MOTOR-15S-1510 — fica em 15 s e o roteiro cabe nele (o escritor do 15 s), em vez de 422 "pick 35 s"
         if (sobePara !== undefined) {
           setDuration(sobePara)
           alvoAnalise = sobePara
@@ -8428,7 +8442,7 @@ export default function GenerateClient({
     const isHollywoodRaw = mode === 'cinematic_ai' && (aiEngine === 'hollywood' || aiEngine === 'h3' || aiEngine === 'h3max' || aiEngine === 'omni' || aiEngine === 's25') // KINEO-H3MAX-2026-10-13
     const needsStructuring = isHollywoodRaw
       ? false
-      : (opts?.scriptModeOverride ?? scriptMode) === 'ai' && (opts?.structureFirst === true || !opts?.skipPreview)
+      : (opts?.scriptModeOverride ?? modoDoTextoNoCurto ?? scriptMode) === 'ai' && (opts?.structureFirst === true || modoDoTextoNoCurto !== null || !opts?.skipPreview) // KINEO-MOTOR-15S-1510
 
     if (isHollywoodRaw) {
       // Keep the raw idea as the submission source; do NOT rewrite the textarea.
@@ -13990,6 +14004,7 @@ export default function GenerateClient({
                 {notaDaDescida({ language, shortSeconds: SEEDANCE_SHORT_SECONDS, fullSeconds: BUY_CREATOR_FILM_SECONDS, price: buyCreatorPrice() })}
               </p>
             )}
+            {notaSubidaSegura !== null && duration === notaSubidaSegura.para && freeFilmFrom === null && phase !== 'done' && phase !== 'failed' && (<p data-kineo="subida-segura-saldo" className="text-xs mt-1" style={{ color: 'var(--muted2)' }}>{notaSubidaSegura.texto}</p>)}{/* KINEO-MOTOR-15S-1510 — "Your free film is 15 s — longer films need a plan." */}
           </div>
           <CreditsChip
             credits={credits}

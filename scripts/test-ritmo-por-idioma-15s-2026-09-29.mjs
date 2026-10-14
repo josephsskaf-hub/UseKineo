@@ -113,7 +113,7 @@ function fatiasDoEscritor(src) {
   const a = src ? src.indexOf(LF + 'function buildSystemPrompt(') : -1
   const b = a < 0 ? -1 : src.indexOf(LF + '}' + LF, a + 1)
   return {
-    regua: linhaCom(src, '    const regua = writerRateFor(body.engine, topic, language)'),
+    regua: linhaCom(src, '    const regua = writerRateFor('), // reancorado KINEO-MOTOR-15S-1510: a linha da régua passou a levar motorDoEscritor(body.engine, …) — com motor, o mesmo motor (executado abaixo)
     idioma: linhaCom(src, '    const idiomaDoRitmo = ') ?? '', // ausente na base
     colado: linhaCom(src, '    const colado = detectPastedScript(topic)'),
     alvo: deAte(src, '    const alvoPalavras = colado.pasted', ': minWordsFor(alvoSegundos'),
@@ -172,6 +172,7 @@ function mundo({ rota, gs, D, W }) {
       maxWordsForShortFilm: D.maxWordsForShortFilm, isSeedance15: D.isSeedance15, isShortFilmTarget: SF.isShortFilmTarget,
       isClassicShortEngine: D.isClassicShortEngine, maxWordsCurtoDoMotor: D.maxWordsCurtoDoMotor, // KINEO-DURACOES-CURTAS-2026-09-29 (ausentes na base: a linha da base não as usa)
       LANGUAGE_NAMES: TL.LANGUAGE_NAMES, WORDS_PER_SECOND: NF.WORDS_PER_SECOND, MIN_COVERAGE: NF.MIN_COVERAGE,
+      motorDoEscritor: L('lib/growth/motor15s.ts').motorDoEscritor, // reancorado KINEO-MOTOR-15S-1510 (ausente na base: a linha da base não a usa)
     }
     return runRota(`${fe.prompt}\n${fe.regua}\n${fe.idioma}\n${fe.colado}\n${fe.alvo}\n${fe.teto}\n${fe.piso}\n${fe.duro}\n${fe.sistema}\nglobalThis.__o = { regua, alvoPalavras, tetoFilmeCurto, pisoFilmeCurto, tetoDuroFilmeCurto, SYSTEM_PROMPT }`, ctx)
   }
@@ -378,6 +379,10 @@ function provaIntocado(M) {
         // reancorado KINEO-DURACOES-CURTAS-2026-09-29: Kling 2.5 e Veo a 15 s entram no regime do 15 s (faixa na língua e teto duro da guarda
         // DO MOTOR, 46 em en) — fora desta comparação, provados em scripts/test-duracoes-curtas-todos-motores-2026-09-29.mjs
         if (alvoSegundos === 15 && ['cinematic_kling', 'cinematic_veo'].includes(engine)) continue
+        // reancorado KINEO-MOTOR-15S-1510 [TRAVA 8.2 — vai do fundador 15/10]: o chamador SEM motor a 15 s (a autoria da tela) passou a escrever na
+        // régua do motor do 15 s (o Seedance 1.5 que a rota assume sem motor) — de propósito, provado em scripts/test-motor-15s-1510.mjs. Aqui ele
+        // sai da comparação com a base e passa a ter de ser IDÊNTICO ao 'cinematic_ai' (faixa, teto, teto duro e prompt), em toda língua e tema.
+        if (alvoSegundos === 15 && engine === '') { for (const topic of ['tema curto', 'k '.repeat(45), 'k '.repeat(80)]) { if (!eqJ(M.faixa({ engine: '', language: lang, topic, alvoSegundos }), M.faixa({ engine: 'cinematic_ai', language: lang, topic, alvoSegundos }))) { erros.push(`escritor ${lang} (sem motor) 15s ≠ cinematic_ai`); break } } continue }
         for (const topic of ['tema curto', 'k '.repeat(45), 'k '.repeat(80)]) {
           const a = ANTES.faixa({ engine, language: lang, topic, alvoSegundos }), b = M.faixa({ engine, language: lang, topic, alvoSegundos })
           if (!conserto && !eqJ(a, b)) { erros.push(`escritor ${lang} ${engine || '(sem motor)'} ${alvoSegundos}s`); break }
@@ -401,8 +406,11 @@ function provaPrompt(M) {
   checa(`portão, guarda, mensagem e plano (en/pt/es a 15 s, palavra a palavra de 1 a 70; en/pt/es/tr/de a 35/60/90 no Seedance, Kling 2.5, Veo e hollywood) e escritor + prompt (16 línguas × 15/35/60/90 × 8 motores, fora o 15 s das línguas de palavra longa) idênticos à base${erros.length ? ' — ' + erros.slice(0, 4).join('; ') : ''}`, erros.length === 0)
   checa('o prompt do Seedance a 15 s em turco muda SÓ nos números da faixa (29-34 no lugar de 36-41) — nenhuma outra palavra', provaPrompt(AGORA))
   const sem = AGORA.faixa({ engine: '', language: 'tr' }), semB = ANTES.faixa({ engine: '', language: 'tr' })
-  checa(`a autoria da tela (sem motor, régua de sempre ${sem.regua.wordsPerSecond} pal/s) a 15 s em turco: faixa e prompt iguais; o teto duro espelha a guarda (${semB.tetoDuroFilmeCurto} → ${sem.tetoDuroFilmeCurto})`,
-    sem.tetoDuroFilmeCurto === 45 && semB.tetoDuroFilmeCurto === 56 && sem.SYSTEM_PROMPT === semB.SYSTEM_PROMPT && sem.pisoFilmeCurto === semB.pisoFilmeCurto)
+  // reancorado KINEO-MOTOR-15S-1510: a autoria sem motor a 15 s deixou a régua histórica e escreve na do motor do 15 s — o prompt e o piso agora são
+  // os do Seedance em turco (29-34), e o teto duro continua espelhando a guarda (56 → 45). Antes: faixa e prompt iguais à base sem motor.
+  const seed = AGORA.faixa({ engine: 'cinematic_ai', language: 'tr' }) // reancorado KINEO-MOTOR-15S-1510
+  checa(`a autoria da tela (sem motor) a 15 s em turco: escreve na régua do 15 s (${sem.regua.wordsPerSecond} pal/s, piso ${sem.pisoFilmeCurto}); o teto duro espelha a guarda (${semB.tetoDuroFilmeCurto} → ${sem.tetoDuroFilmeCurto})`, // reancorado KINEO-MOTOR-15S-1510
+    sem.tetoDuroFilmeCurto === 45 && semB.tetoDuroFilmeCurto === 56 && sem.SYSTEM_PROMPT === seed.SYSTEM_PROMPT && sem.pisoFilmeCurto === seed.pisoFilmeCurto && sem.pisoFilmeCurto === 29) // reancorado KINEO-MOTOR-15S-1510
 }
 
 // ═══ 5. a calibração ═══

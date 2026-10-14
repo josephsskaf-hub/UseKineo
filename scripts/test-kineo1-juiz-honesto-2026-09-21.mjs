@@ -6,6 +6,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 import ts from 'typescript'
+import { semMotor15s1510 } from './test-support/desfaz-motor-15s-1510.mjs' // reancorado KINEO-MOTOR-15S-1510
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
@@ -58,7 +59,8 @@ const gs = rd('app/api/generate-script/route.ts')
 // Reancorado 13/10 (KINEO-PRIMEIRO-FILME-2026-10-13, CONSERTO 3 aprovado pelo fundador): antes da recusa, a rota tenta UMA vez só
 // com a história do texto colado (guardião próprio: scripts/test-primeiro-filme-1310.mjs). Tiradas as linhas marcadas, a recusa 422
 // volta a ser a primeira coisa do bloco — byte a byte a de antes.
-const gsBase = gs.split('\n').filter((l) => !l.includes('KINEO-PRIMEIRO-FILME-2026-10-13')).join('\n')
+// reancorado KINEO-MOTOR-15S-1510: o resgate da recusa (15/10) também é desfeito antes da comparação — guardião próprio: scripts/test-motor-15s-1510.mjs
+const gsBase = semMotor15s1510(gs, 'route').split('\n').filter((l) => !l.includes('KINEO-PRIMEIRO-FILME-2026-10-13')).join('\n')
 checa('o ESCRITOR recusa a recusa (422 model_refused_topic) antes de qualquer gasto, pela mesma fonte única', gs.includes("import { looksLikeModelRefusal, MODEL_REFUSAL_MESSAGE } from '@/lib/modelRefusal'") && gsBase.includes("if (looksLikeModelRefusal(script)) {\n      return await recusar(422, { error: MODEL_REFUSAL_MESSAGE, reason: 'model_refused_topic', retryable: false }"))
 
 console.log(`\n${ok} ok · ${falhas.length} falhas`)

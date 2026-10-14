@@ -22,6 +22,8 @@ import { getEffectiveEntitlement, TRIAL_ENTITLEMENT_COLUMNS } from '@/lib/revers
 import { looksLikeModelRefusal, MODEL_REFUSAL_MESSAGE } from '@/lib/modelRefusal' // KINEO1-JUIZ-HONESTO-2026-09-21
 import { decidirNovaTentativaDoRoteiro, SCRIPT_DECLINED_RETRY_EVENT } from '@/lib/storyFromDirectives' // KINEO-PRIMEIRO-FILME-2026-10-13
 import { moderateContent } from '@/lib/safety/contentModeration' // KINEO-PRIMEIRO-FILME-2026-10-13
+import { resgateDaRecusa, instrucaoDoResgate, motorDoEscritor } from '@/lib/growth/motor15s' // KINEO-MOTOR-15S-1510 [TRAVA 8.2 — vai do fundador 15/10] — recusa sem diretiva ganha a nova tentativa; 15 s sem motor na régua do 15 s
+import { moderationRefusalMessage } from '@/lib/safety/moderationPolicy' // KINEO-MOTOR-15S-1510 — a frase da moderação quando ela barra de verdade
 // KINEO-ROTEIRO-CURTO-15S-2026-09-29 [TRAVA 8.2 — "vai" do 15 s] — o roteiro de ≤ 20 s nunca sai acima do teto que a guarda
 // do filme curto da rota do cinematic aceita (lib/durationByEngine.ts), contado na MESMA régua dela (parseUserScript).
 import { parseUserScript } from '@/lib/scriptParser'
@@ -345,7 +347,7 @@ export async function POST(req: NextRequest) {
     if (sexual.refuse) {
       return await recusar(400, { error: sexualContentRefusalMessage(sexual.namedPerson), reason: sexual.reason }, user.id, { reason: sexual.reason, named_person: sexual.namedPerson, version: sexual.version })
     }
-    const regua = writerRateFor(body.engine, topic, language)
+    const regua = writerRateFor(motorDoEscritor(body.engine, isShortFilmTarget(alvoSegundos)), topic, language) // KINEO-MOTOR-15S-1510 — sem motor (o "Write the full script") e alvo curto: a régua do 15 s (36–41 palavras), não a histórica (33)
     // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-RITMO-POR-IDIOMA-15S-2026-09-29 — a língua entra na régua do escritor
     // SÓ no filme curto do Seedance 1.5 (o motor que a rota do cinematic trata como Seedance, inclusive sem `engine` — o mesmo
     // predicado do teto duro abaixo): faixa, teto duro e prompt no ritmo dela (lib/durationByEngine ritmoDoFilmeCurto: tr 29–34
@@ -459,8 +461,9 @@ export async function POST(req: NextRequest) {
     // nunca se a moderação aponta conteúdo proibido de verdade (ou não responde) e nunca sem diretiva para tirar. Esta rota não // KINEO-PRIMEIRO-FILME-2026-10-13
     // cobra: a tentativa não gasta crédito. Rastro: script_declined_retry (ok | failed | skipped). // KINEO-PRIMEIRO-FILME-2026-10-13
     let tentativaDaHistoria = false // KINEO-PRIMEIRO-FILME-2026-10-13
+    let conteudoBarrado = false // KINEO-MOTOR-15S-1510 — a moderação barrou: recusa com a frase dela, sem nova chamada
     if (looksLikeModelRefusal(script)) {
-      const novaTentativa = decidirNovaTentativaDoRoteiro(topic) // KINEO-PRIMEIRO-FILME-2026-10-13
+      const novaTentativa = resgateDaRecusa(decidirNovaTentativaDoRoteiro(topic), topic) // KINEO-PRIMEIRO-FILME-2026-10-13 · KINEO-MOTOR-15S-1510: sem diretiva, o texto inteiro reenquadrado (antes: recusa direta)
       const rastroDaTentativa = async (outcome: 'ok' | 'failed' | 'skipped', reason: string, extra: Record<string, unknown> = {}) => // KINEO-PRIMEIRO-FILME-2026-10-13
         writeServerEvent({ name: SCRIPT_DECLINED_RETRY_EVENT, userId: user.id, path: '/api/generate-script', metadata: { outcome, reason, removed_lines: novaTentativa.removedLines, story_words: novaTentativa.words, topic_words: scriptWordCount(topic), target_seconds: alvoSegundos, engine: typeof body.engine === 'string' ? body.engine : null, ...extra } }).catch(() => false) // KINEO-PRIMEIRO-FILME-2026-10-13
       let historiaAceita: string | null = null // KINEO-PRIMEIRO-FILME-2026-10-13
@@ -470,18 +473,20 @@ export async function POST(req: NextRequest) {
         const moderacao = await moderateContent({ surface: 'script', stage: 'input', userId: user.id, text: topic }) // KINEO-PRIMEIRO-FILME-2026-10-13
         if (!moderacao.ok) { // KINEO-PRIMEIRO-FILME-2026-10-13 — conteúdo proibido (ou moderação fora do ar): respeita a recusa
           await rastroDaTentativa('skipped', moderacao.reason === 'blocked' ? 'moderation_blocked' : 'moderation_unavailable') // KINEO-PRIMEIRO-FILME-2026-10-13
+          conteudoBarrado = moderacao.reason === 'blocked' // KINEO-MOTOR-15S-1510
         } else { // KINEO-PRIMEIRO-FILME-2026-10-13
           try { // KINEO-PRIMEIRO-FILME-2026-10-13
-            const deNovo = await openai.chat.completions.create({ model: 'gpt-4o', temperature: 0.7, max_tokens: 700, messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: 'Write a viral YouTube Short script about this topic:\n\n' + novaTentativa.story }] }, { timeout: OPENAI_SCRIPT_TIMEOUT_MS, maxRetries: 0 }) // KINEO-PRIMEIRO-FILME-2026-10-13
+            const deNovo = await openai.chat.completions.create({ model: 'gpt-4o', temperature: 0.7, max_tokens: 700, messages: [{ role: 'system', content: SYSTEM_PROMPT + instrucaoDoResgate({ alvoSegundos, piso: filmeCurto ? pisoFilmeCurto : null, teto: filmeCurto ? tetoFilmeCurto : null }) }, { role: 'user', content: 'Write a viral YouTube Short script about this topic:\n\n' + novaTentativa.story }] }, { timeout: OPENAI_SCRIPT_TIMEOUT_MS, maxRetries: 0 }) // KINEO-PRIMEIRO-FILME-2026-10-13 · KINEO-MOTOR-15S-1510: o texto é o ASSUNTO; no curto, a faixa de palavras
             const roteiroDeNovo = deNovo.choices[0]?.message?.content?.trim() ?? '' // KINEO-PRIMEIRO-FILME-2026-10-13
             if (roteiroDeNovo && !looksLikeModelRefusal(roteiroDeNovo)) historiaAceita = roteiroDeNovo // KINEO-PRIMEIRO-FILME-2026-10-13
-            await rastroDaTentativa(historiaAceita ? 'ok' : 'failed', historiaAceita ? 'story_only_accepted' : roteiroDeNovo ? 'declined_again' : 'empty_completion') // KINEO-PRIMEIRO-FILME-2026-10-13
+            await rastroDaTentativa(historiaAceita ? 'ok' : 'failed', historiaAceita ? 'story_only_accepted' : roteiroDeNovo ? 'declined_again' : 'empty_completion', { modo: novaTentativa.modo }) // KINEO-PRIMEIRO-FILME-2026-10-13 · KINEO-MOTOR-15S-1510: modo story_only | reframe
           } catch (erroDaTentativa) { // KINEO-PRIMEIRO-FILME-2026-10-13
             await rastroDaTentativa('failed', 'retry_error', { error_name: erroDaTentativa instanceof Error ? erroDaTentativa.name : 'unknown' }) // KINEO-PRIMEIRO-FILME-2026-10-13
           } // KINEO-PRIMEIRO-FILME-2026-10-13
         } // KINEO-PRIMEIRO-FILME-2026-10-13
       } // KINEO-PRIMEIRO-FILME-2026-10-13
       if (historiaAceita === null) { // KINEO-PRIMEIRO-FILME-2026-10-13
+      if (conteudoBarrado) return await recusar(422, { error: moderationRefusalMessage('blocked'), reason: 'content_not_allowed', retryable: false }, user.id, { reason: 'content_not_allowed', head: script.slice(0, 120) }) // KINEO-MOTOR-15S-1510
       return await recusar(422, { error: MODEL_REFUSAL_MESSAGE, reason: 'model_refused_topic', retryable: false }, user.id, { reason: 'model_refused_topic', head: script.slice(0, 120) })
       } // KINEO-PRIMEIRO-FILME-2026-10-13
       script = historiaAceita // KINEO-PRIMEIRO-FILME-2026-10-13
