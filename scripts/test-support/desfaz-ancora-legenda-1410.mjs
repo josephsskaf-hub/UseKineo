@@ -85,3 +85,10 @@ export function desfazAncoraLegenda1410Texto(s) {
 export function linhaDaAncoraLegenda1410(linha) {
   return String(linha ?? '').includes(MARCA_ANCORA_LEGENDA_1410)
 }
+
+/** As linhas da BASE que o ajuste trocou de propósito no arquivo `p` (para guardiões que leem o `git diff` e só aceitam
+ *  acréscimos): na rota do cinematic, as duas linhas do teto (STILL_BUDGET_MS e MAX_ANCHORED_SCENES). */
+export function linhasTrocadasAncoraLegenda1410(p) {
+  const spec = ARQUIVOS[p]
+  return spec ? spec.trocas.flatMap(([, antes]) => antes.split('\n')) : []
+}

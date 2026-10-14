@@ -17,6 +17,7 @@
 //   (f) mutantes: cada peça central fica vermelha quando desfeita (Veo fora do teto; orçamento de 30 s de volta; i2v com
 //       aspect_ratio 'auto'; resolution '720p'; a regra apontada para o Seedance).
 import { readFileSync } from 'node:fs'
+import { desfazAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -61,7 +62,7 @@ const rdCand = (p) => { if (!SHA) return rd(p); try { return git(['show', `${SHA
 checa('a base (o "antes", Veo com teto de 6 cenas ancoradas) está disponível', Boolean(BASE))
 
 const ROTA = 'app/api/generate-video-cinematic/route.ts'
-const rota = rd(ROTA)
+const rota = desfazAncoraLegenda1410(ROTA, rd(ROTA)) // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 const rotaBase = rdBase(ROTA) ?? ''
 const rotaCand = rdCand(ROTA) ?? ''
 checa('o route.ts de HEAD carrega o marcador ' + MARCA, rota.includes(MARCA))
