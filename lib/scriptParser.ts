@@ -366,12 +366,14 @@ const SPEECH_LABEL_LINE =
 // 5 narrava a ficha de voz como se fosse a primeira frase.
 const VOICE_SPEC_VOCAB =
   /\b(natural|male|female|man|woman|american|british|australian|neutral|energetic|conversational|calm|serious|warm|deep|soft|accent|tone|narrator|voice|years?\s+old|\d0s|adult|young|elderly|child|kid|pt-br|es-419|english|portuguese|spanish)\b/i
+const NARRATIVE_SENTENCE_CUE = /\b(was|were|had|did|said|never|became|remained|gone|died|lost|vanished|disappeared)\b/i // KINEO-PARSER-VOICE-1510 — verbo de narrativa: ficha de voz não tem ("deep male, calm"); frase falada tem ("Her voice was gone.")
 export function isVoiceSpecLine(line: string): boolean {
   const u = unwrapLabelHead(line)
   if (!u || !SPEECH_LABEL_LINE.test(u)) return false
   const resto = u.replace(SPEECH_LABEL_LINE, '').trim()
   if (!resto || /^["“'‘]/.test(resto)) return false
   const palavras = resto.split(/\s+/).filter(Boolean).length
+  if (NARRATIVE_SENTENCE_CUE.test(resto)) return false // KINEO-PARSER-VOICE-1510 — "Narration: Her voice was gone." é FALA com a palavra voice, não ficha de voz
   return palavras <= 16 && VOICE_SPEC_VOCAB.test(resto)
 }
 
@@ -415,10 +417,19 @@ export function isInstructionLine(line: string): boolean {
 const SHEET_VOCAB =
   /\b(voz|voice|vozes|voices|design|criatura|creature|olhos|eyes|anteninhas|antenas|antennae|orelhas|ears|mochila|backpack|roupa|roupas|wearing|outfit|cabelo|hair|express[ãa]o|expression|personalidade|personality|cor|cores|color|colour|anos de idade|years old|altura|tall|sotaque|accent|timbre|ton de voz|tone of voice|aparência|appearance|traços|features)\b/i
 const SHEET_NAME_HEAD = /^\p{Lu}[\p{L}'’-]{1,24}(?:\s\p{Lu}[\p{L}'’-]{1,24})?\s*[:：]\s*(.{12,})$/u
+const BEAT_LABEL_HEAD = /^(?:HOOK|GANCHO|INTRO|OUTRO|CTA|PAYOFF|PAGAMENTO|ESCALATION|ESCALADA|RHYTHM|RITMO|MICRO\s+(?:REWARD|RECOMPENSA)(?:\s*\d+)?|BEAT(?:\s*\d+)?|SCENE(?:\s*\d+)?|CENA(?:\s*\d+)?|FACT(?:\s*\d+)?|FATO(?:\s*\d+)?|PART(?:\s*\d+)?|STEP(?:\s*\d+)?)\s*(?:\([^)]*\))?\s*[:：]/i // KINEO-PARSER-VOICE-1510 — o mesmo vocabulário do INLINE_STAGE_PREFIX: rótulo de beat nunca é nome de personagem
+const AMBIGUOUS_DELIVERABLE_NOUN = /\b(voz|voice|ses|cenas?|scenes?|sahne)\b/gi // KINEO-PARSER-VOICE-1510 — palavras que a NARRAÇÃO usa ("Make no mistake, this voice…"); sozinhas não fazem a linha virar instrução
+/** KINEO-PARSER-VOICE-1510 — a linha só é "instrução" porque fala de voz/cena: sem essas palavras, nenhum entregável sobra. */
+function instructionOnlyByAmbiguousNoun(line: string): boolean { // KINEO-PARSER-VOICE-1510
+  const u = unwrapLabelHead(line) // KINEO-PARSER-VOICE-1510
+  if (!u || MIDLINE_STAGE_LABEL.test(u)) return false // KINEO-PARSER-VOICE-1510
+  return !DELIVERABLE_NOUN.test(u.replace(AMBIGUOUS_DELIVERABLE_NOUN, ' ')) // KINEO-PARSER-VOICE-1510
+} // KINEO-PARSER-VOICE-1510
 export function isCharacterSheetLine(line: string): boolean {
   const u = unwrapLabelHead(line)
   if (!u) return false
   if (SPEECH_LABEL_LINE.test(u) || STAGE_LABEL_LINE.test(u)) return false
+  if (BEAT_LABEL_HEAD.test(u)) return false // KINEO-PARSER-VOICE-1510 — "PAYOFF: [Pexels: x] Her voice was gone." é rótulo de BEAT + fala, não "Nome: ficha"
   const m = u.match(SHEET_NAME_HEAD)
   if (!m) return false
   const body = m[1]
@@ -559,7 +570,7 @@ function cleanNarration(raw: string, lenient = false, roteiroDeCinema = true): s
     // pode virar o narrador lendo "Visual dois pontos".
     if (roteiroDeCinema && isStageDirectionLine(linha)) continue
     // KINEO-BRIEF-NAO-E-FALA-2026-09-12 — instrução ao modelo e ficha de personagem nunca são fala.
-    if (roteiroDeCinema && (isInstructionLine(linha) || isCharacterSheetLine(linha))) continue
+    if (roteiroDeCinema && ((isInstructionLine(linha) && !instructionOnlyByAmbiguousNoun(linha)) || isCharacterSheetLine(linha))) continue // KINEO-PARSER-VOICE-1510
     if (lenient ? isNeverSpeechLine(linha) : isDroppableLine(linha)) continue
     // Inline stage prefix ("HOOK: ...") — strip the label, keep the speech.
     const stripped = (lenient ? unwrapLineDecoration(linha) : linha).replace(INLINE_STAGE_PREFIX, '')
