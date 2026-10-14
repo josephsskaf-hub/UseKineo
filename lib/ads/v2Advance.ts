@@ -645,7 +645,7 @@ async function retryOrTerminal(admin: SupabaseClient, order: AdsV2OrderRow, row:
   const styled = adsV2ShotEffect(order.plan, row.idx) !== null // KINEO-ADS-FIEL-1510
   const shotKind = row.kind // KINEO-ADS-FIEL-1510 — o tipo já sem o ator (o callback abaixo perde o estreitamento)
   const stillUrl = stillSourceOf(order, row) // KINEO-ADS-FIEL-1510
-  const step = adsV2FallbackStep({ nextAttempt, maxAttempts: ADS_V2_MAX_AUTO_ATTEMPTS, fallbackFrom: ADS_V2_FALLBACK_FROM_ATTEMPT, elapsedMs: ageMs(order.started_at), needsImage: row.source === 'generated_scene' && !row.image_url, stillsUsed: stills.used, canStill: !!stillUrl, route: (a) => routeShot(shotKind, order.tier, a, styled) }) // KINEO-ADS-FIEL-1510
+  const step = adsV2FallbackStep({ nextAttempt, maxAttempts: ADS_V2_MAX_AUTO_ATTEMPTS, fallbackFrom: ADS_V2_FALLBACK_FROM_ATTEMPT, elapsedMs: ageMs(order.started_at), needsImage: row.source === 'generated_scene' && !row.image_url, stillsUsed: stills.used, canStill: !!stillUrl, skipPrincipal: row.status === 'stuck' && row.reason === 'shot_stuck', route: (a) => routeShot(shotKind, order.tier, a, styled) }) // KINEO-ADS-FIEL-1510 — vídeo preso no principal = direto à reserva
   if (step.step === 'terminal') return `shot_${row.idx}_exhausted:${row.reason ?? row.status}` // KINEO-ADS-FIEL-1510 — a frase de antes
   if (step.step === 'still') { if (stillUrl && (await stillFallback(admin, order, row, stillUrl, `${row.status}:${row.reason ?? ''}`))) stills.used += 1; return null } // KINEO-ADS-FIEL-1510
   const attempt = step.attempt // KINEO-ADS-FIEL-1510

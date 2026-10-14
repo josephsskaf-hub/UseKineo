@@ -953,7 +953,7 @@ export const ADS_V2_FAST_IMAGE_STUCK_MS = 2.5 * 60 * 1000 // KINEO-ADS-FIEL-1510
 /** KINEO-ADS-FIEL-1510 — o ator (vídeo falado, mais lento) desiste depois disto e o anúncio sai sem ele (era 45 min). */
 export const ADS_V2_PRESENTER_BUDGET_MS = 10 * 60 * 1000 // KINEO-ADS-FIEL-1510
 /** KINEO-ADS-FIEL-1510 — tempo típico de UMA tentativa por motor (fila + geração), para decidir se a próxima ainda cabe no prazo. */
-export const ADS_V2_ENGINE_TYPICAL_MS: Readonly<Record<string, number>> = { kling_o3: 150_000, seedance_20_fast: 150_000, h3: 210_000, pixverse_effect: 120_000, image: 75_000 } // KINEO-ADS-FIEL-1510
+export const ADS_V2_ENGINE_TYPICAL_MS: Readonly<Record<string, number>> = { kling_o3: 120_000, seedance_20_fast: 120_000, h3: 150_000, pixverse_effect: 90_000, image: 60_000 } // KINEO-ADS-FIEL-1510
 export const ADS_V2_STILL_REASON = 'still_fallback' // KINEO-ADS-FIEL-1510
 
 export type AdsV2FallbackStep = { step: 'retry'; attempt: number; skipped: boolean } | { step: 'still' } | { step: 'terminal' } // KINEO-ADS-FIEL-1510
@@ -961,11 +961,12 @@ export type AdsV2FallbackStep = { step: 'retry'; attempt: number; skipped: boole
  * KINEO-ADS-FIEL-1510 — o próximo passo de um plano que falhou (puro). A régua de antes (2ª no principal, 3ª na reserva H3)
  * continua quando cabe no prazo; não cabendo, pula para a reserva; nem ela cabendo, a FOTO parada (até ADS_V2_STILLS_MAX por
  * pedido). Sem foto parada possível: a tentativa de antes (o prazo de 90 min decide) ou, esgotada, terminal (estorno, como antes).
+ * `skipPrincipal` (o vídeo ficou PRESO no principal): fornecedor lento costuma seguir lento — vai direto à reserva, se couber.
  * Nada aqui cobra: refação automática e foto parada são de graça para o cliente.
  */
-export function adsV2FallbackStep(i: { nextAttempt: number; maxAttempts: number; fallbackFrom: number; elapsedMs: number; needsImage: boolean; stillsUsed: number; canStill: boolean; route: (attempt: number) => string | null }): AdsV2FallbackStep { // KINEO-ADS-FIEL-1510
+export function adsV2FallbackStep(i: { nextAttempt: number; maxAttempts: number; fallbackFrom: number; elapsedMs: number; needsImage: boolean; stillsUsed: number; canStill: boolean; skipPrincipal?: boolean; route: (attempt: number) => string | null }): AdsV2FallbackStep { // KINEO-ADS-FIEL-1510
   const remaining = ADS_V2_STILL_AT_MS - Math.max(0, i.elapsedMs)
-  for (let a = i.nextAttempt; a <= i.maxAttempts; a = a < i.fallbackFrom ? i.fallbackFrom : a + 1) {
+  for (let a = i.skipPrincipal === true ? Math.max(i.nextAttempt, i.fallbackFrom) : i.nextAttempt; a <= i.maxAttempts; a = a < i.fallbackFrom ? i.fallbackFrom : a + 1) {
     const engine = i.route(a)
     if (!engine) continue
     const need = (ADS_V2_ENGINE_TYPICAL_MS[engine] ?? 180_000) + (i.needsImage ? ADS_V2_ENGINE_TYPICAL_MS.image : 0)
