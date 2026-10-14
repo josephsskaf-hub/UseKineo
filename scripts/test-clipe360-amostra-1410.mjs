@@ -22,6 +22,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { semAmostra1410 } from './test-support/desfaz-clipe360-amostra-1410.mjs'
+import { semModeracao1410 } from './test-support/desfaz-moderacao-1410.mjs' // reancorado KINEO-LEVA-1410-BASE: a moderação (14/10) entrou no /orders depois desta base; sai em memória antes do byte a byte
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -167,7 +168,7 @@ function adsRules(srcOf) {
   const marked = sampleSrc.split('\n').filter((l) => l.includes('KINEO-CLIPE360-AMOSTRA-1410'))
   out.push([marked.length === 5 && marked.every((l) => l.startsWith('// KINEO-CLIPE360-AMOSTRA-1410')), '7 sample.ts: as linhas marcadas são EXATAMENTE 5 de comentário (nada de dinheiro escondido)'])
   out.push([semAmostra1410(sampleSrc) === gitShow(F.sample), '7 sample.ts menos a troca (tier + nome do nível + comentários) = base byte a byte'])
-  out.push([[F.billing, F.tiers, F.startCore, F.start, F.orders, F.access].every((f) => srcOf(f) === gitShow(f)), '7 v2Billing, v2Tiers, v2StartCore, /start, /orders e serverAccess byte a byte iguais à base (preço, débito e régua do nível intocados)'])
+  out.push([[F.billing, F.tiers, F.startCore, F.start, F.orders, F.access].every((f) => (f === F.orders ? semModeracao1410(srcOf(f), 'ads') : srcOf(f)) === gitShow(f)) /* reancorado KINEO-LEVA-1410-BASE */, '7 v2Billing, v2Tiers, v2StartCore, /start, /orders e serverAccess byte a byte iguais à base (preço, débito e régua do nível intocados)'])
   const core = srcOf(F.startCore)
   out.push([core.includes("credits_charged: sampleRun ? 0 : cost") && core.includes("const charge: AdsV2ChargeResult = sampleRun ? { ok: true, balance: null } : await chargeAdsV2(") &&
     /if \(sampleRun && !adsSampleLevelOk\(order\.tier, order\.seconds\)\) return v2Fail\('sample_level_only', 403\)/.test(core), '7 a amostra trava com 0 crédito, sem débito, e só no nível/duração da amostra'])
