@@ -292,7 +292,8 @@ function honestyProblems(B, ctx) {
   }
   if (baseKeys.length !== 5 || !ctx.styles.includes('KINEO-ADS-UX-MARCA-2026-10-10 — os 10 novos')) probs.push('marcadores dos lotes de estilo não encontrados')
   // reancorado KINEO-TIRA-STARLIGHT-1410 — o lote do dia 1 tem 3 chaves (starlight_gift tirado em 14/10).
-  if (dia1Keys.length !== 3 || !/type AdsV2Dia1StyleKey = [^\n]+\/\/ KINEO-ESTILOS-DIA1-2026-10-13/.test(ctx.styles)) probs.push('marcador do lote de estilos do dia 1 não encontrado')
+  // reancorado KINEO-ADS-RETESTE-1510 — 2 chaves (dolly_zoom tirado em 15/10).
+  if (dia1Keys.length !== 2 || !/type AdsV2Dia1StyleKey = [^\n]+\/\/ KINEO-ESTILOS-DIA1-2026-10-13/.test(ctx.styles)) probs.push('marcador do lote de estilos do dia 1 não encontrado')
   const union = (ctx.effects.match(/export type ClipEffectKey =([\s\S]*?)\n\n/) || [, ''])[1]
   for (const e of B.L('lib/clips/clipEffectPages.ts').publicEffectPages()) {
     const line = union.split('\n').find((l) => l.includes(`'${e.key}'`)) || ''

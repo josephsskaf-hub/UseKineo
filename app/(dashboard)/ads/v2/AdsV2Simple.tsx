@@ -66,6 +66,7 @@ import {
   videoFrameTimes,
   type AdsV2SimpleCopy,
 } from '@/lib/ads/v2Simple'
+import { adsV2AutoPauseLifts, adsV2SentenceReady } from '@/lib/ads/v2AutoPlan' // KINEO-ADS-RETESTE-1510 — "a" não é frase: não planeja (nem sozinho)
 import { VideoFramesError, grabVideoFrames, pageHidden, readUserVideo } from '@/lib/ads/v2VideoFrames'
 import { ADS_V2_MAX_USER_VIDEOS, ADS_V2_USER_VIDEO_MIN_SECONDS, pickLivelyStart, userVideoSampleTimes, userVideoVerdict, type AdsV2UserVideoVerdict } from '@/lib/ads/v2UserVideo'
 import { NARRATION_LANGUAGES, detectNarrationLanguage, narrationLanguage, type NarrationLanguage } from '@/lib/textLanguage'
@@ -795,7 +796,7 @@ export function AdsV2SimpleSession({
   if (linkBusy) missing.push(lcopy.linkReading)
   // O vídeo ocupa vaga de foto, mas o plano precisa de pelo menos 1 foto (referência das cenas criadas).
   if (inAd.length > 0 && inAd.every((p) => p.video)) missing.push(copy.plan.needPhoto)
-  if (!sentence) missing.push(copy.plan.needText)
+  if (!adsV2SentenceReady(sentence)) missing.push(copy.plan.needText) // KINEO-ADS-RETESTE-1510 — era `!sentence`: "a" planejava e voltava "We could not tell which business this is"
   if (sceneProblem) missing.push(adsV2SceneErrorText(sceneProblem, lang) ?? sc.errors.bad_scene) // KINEO-ADS-CENA-2026-10-13 — cena com alegação/depoimento não planeja
   if (sentence.length > ADS_V2_SCREEN_SENTENCE_MAX) missing.push(copy.plan.textTooLong)
   if (!tier) missing.push(copy.plan.needTier)
@@ -1939,6 +1940,9 @@ export function AdsV2SimpleSession({
     autoRef.current.running = false
     if (planError) setAutoPaused(true)
   }, [busy, planError])
+  // KINEO-ADS-RETESTE-1510 — a pausa vale só para a assinatura que falhou: a pessoa mudou o texto/foto/estilo depois da falha = o
+  // automático volta sozinho (reteste 15/10: falhou com "a", ela escreveu a frase inteira e continuou "pausado").
+  useEffect(() => { if (autoPaused && adsV2AutoPauseLifts(autoRef.current.sig, planSig)) setAutoPaused(false) }, [autoPaused, planSig]) // KINEO-ADS-RETESTE-1510
   /** O clique manual ("Atualizar roteiros"/"Escrever agora") tira a pausa e conta como a tentativa desta assinatura. */
   function manualPlan() {
     autoRef.current = { sig: planSig, running: false }
@@ -2130,7 +2134,9 @@ export function AdsV2SimpleSession({
               <label className="adsw-f adv2q-text">
                 <span>{textAsk.question}</span>
                 <small>{textAsk.hint}</small>
-                <textarea ref={textAreaRef} className="adv2q-prompt" rows={3} maxLength={ADS_V2_SCREEN_SENTENCE_MAX} value={text} disabled={locked} onChange={(e) => setText(e.target.value)} placeholder={textAsk.placeholder} />
+                {/* KINEO-ADS-RETESTE-1510 — era disabled={locked}: o roteiro automático (busy 'plan', 1,2 s depois da 1ª letra) DESABILITAVA a
+                    caixa e o navegador tirava o foco no meio da digitação (reteste 15/10: ficou só "a"). Só o débito ('start') trava. */}
+                <textarea ref={textAreaRef} className="adv2q-prompt" rows={3} maxLength={ADS_V2_SCREEN_SENTENCE_MAX} value={text} disabled={busy === 'start'} onChange={(e) => setText(e.target.value)} placeholder={textAsk.placeholder} />
               </label>
               {/* KINEO-ADS-CENA-2026-10-13 — a frase pede cena ("…num hotel com uma chuva"): dizemos o que lemos e oferecemos mover. */}
               {adKind === 'product' && sceneSplit.scene && !sceneTyped ? (
@@ -2148,7 +2154,7 @@ export function AdsV2SimpleSession({
                 <div className="adsw-f adv2s-scene" data-kineo="ads-scene">
                   <label htmlFor="adv2s-scene">{sc.scene.label}</label>
                   <small>{sceneTierOk ? sc.scene.hint : sc.scene.standard}</small>
-                  <input id="adv2s-scene" type="text" value={scene} maxLength={ADS_V2_SCENE_MAX_CHARS} disabled={locked || !sceneTierOk} onChange={(e) => setScene(e.target.value)} placeholder={sc.scene.placeholder} />
+                  <input id="adv2s-scene" type="text" value={scene} maxLength={ADS_V2_SCENE_MAX_CHARS} disabled={busy === 'start' || !sceneTierOk} onChange={(e) => setScene(e.target.value)} placeholder={sc.scene.placeholder} />{/* KINEO-ADS-RETESTE-1510 — o plano grátis não trava a digitação (era locked) */}
                   {sceneTierOk ? (
                     <p className="adv2s-chips">
                       <span>{sc.scene.tryLabel}</span>
@@ -2328,7 +2334,9 @@ export function AdsV2SimpleSession({
 
             {/* 4. Descobrir, planejar e fazer */}
             <section id="adv2s-sec4" className="adv2-card" aria-labelledby="adv2s-s4">
-              <h2 id="adv2s-s4" ref={planHeadingRef} tabIndex={-1}><span className="adv2-num" aria-hidden="true">4</span>{fc.review.title}</h2>
+              {/* KINEO-ADS-RETESTE-1510 — o plano que chega (planAd foca este título) não rouba o foco de quem está digitando: o título só é
+                  focável por código (tabIndex -1), então foco vindo de uma caixa de texto/campo volta para ela. */}
+              <h2 id="adv2s-s4" ref={planHeadingRef} tabIndex={-1} onFocus={(e) => { const prev = e.relatedTarget; if (prev instanceof HTMLTextAreaElement || prev instanceof HTMLInputElement) prev.focus() }}><span className="adv2-num" aria-hidden="true">4</span>{fc.review.title}</h2>
               {/* KINEO-ADS-FLUXO-2026-10-13 — o cartão de revisão do Studio: produto, estilo, cena, pessoa, nível e voz num bloco só,
                   sempre à vista; o botão embaixo diz "Gerar · N créditos" (o número é o `cost` de sempre, de adsV2Credits). */}
               <dl className="adv2f-sum" data-kineo="ads-review-summary">

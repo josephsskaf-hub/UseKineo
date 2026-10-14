@@ -1,5 +1,9 @@
 // KINEO-ESTILOS-DIA1-2026-10-13 — guardião dos estilos de anúncio do lote do dia 1 (fundador 13/10: "tudo sim").
 // dolly_zoom · boom_drop · macaron_machine ("Candy machine").
+// reancorado KINEO-ADS-RETESTE-1510 — reteste de 15/10 (foto de perfume + "perfume num hotel com chuva"): o dolly_zoom ("Hitchcock
+// Dolly Zoom" da PixVerse) DESENHOU UM ROSTO SORRIDENTE dentro do líquido do perfume em 2 de 2 anúncios reais — o produto foi
+// alterado. Ele SAIU do produto como o starlight_gift: ficam 2 do lote (boom_drop, macaron_machine), o catálogo vai de 18 para 17.
+// A sonda admin ad_dolly_zoom fica. A regra (5) agora prova a AUSÊNCIA dos dois (starlight_gift e dolly_zoom).
 // reancorado KINEO-TIRA-STARLIGHT-1410 — fundador 14/10 ("tudo sim"): o starlight_gift ("Starlit gift", Holiday) SAIU do produto
 // (o efeito põe criança e rena em cena e o produto fica pequeno na mão da criança — ruim para produto adulto). Eram 4, ficam 3;
 // o catálogo vai de 19 para 18. A sonda admin ad_starlight_gift (app/api/admin/effect-probe/route.ts) fica: é teste de admin.
@@ -39,9 +43,13 @@ const F = {
   batch: 'app/(dashboard)/ads/v2/AdsV2Batch.tsx',
 }
 // reancorado KINEO-TIRA-STARLIGHT-1410 — 4 → 3 (starlight_gift tirado); TOTAL 19 → 18.
-const NEW = ['dolly_zoom', 'boom_drop', 'macaron_machine']
-const GONE = 'starlight_gift'
-const TOTAL = 18
+// reancorado KINEO-ADS-RETESTE-1510 — 3 → 2 (dolly_zoom tirado); TOTAL 18 → 17; os tirados viram uma lista.
+const NEW = ['boom_drop', 'macaron_machine']
+const GONE_LIST = [
+  { key: 'starlight_gift', effect: 'Starlight Gift Box', label: 'Starlit gift' }, // KINEO-TIRA-STARLIGHT-1410
+  { key: 'dolly_zoom', effect: 'Hitchcock Dolly Zoom', label: 'Dolly zoom' }, // KINEO-ADS-RETESTE-1510
+]
+const TOTAL = 17
 const LANGS = ['en', 'pt', 'es', 'fr', 'de', 'it', 'nl', 'pl', 'tr', 'ru', 'uk', 'ar', 'ur', 'hi', 'id', 'vi']
 const NOW = new Date('2026-10-13T22:00:00Z')
 const U = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
@@ -136,7 +144,11 @@ function previas({ L }) {
 
 // ─── (5) starlight_gift ausente — catálogo, espelhos, telas e servidor ────────
 // reancorado KINEO-TIRA-STARLIGHT-1410 — antes esta regra provava o selo de época do starlight_gift; agora prova que ele saiu.
-function starlightAusente({ L }) {
+// reancorado KINEO-ADS-RETESTE-1510 — a MESMA prova, para cada estilo tirado (starlight_gift e dolly_zoom).
+function starlightAusente(w) {
+  return GONE_LIST.every((g) => tiradoAusente(w, g))
+}
+function tiradoAusente({ L }, { key: GONE, effect: EFFECT, label: LABEL }) {
   const S = L(F.styles)
   const C = L(F.contract)
   const SL = L(F.shots)
@@ -144,11 +156,11 @@ function starlightAusente({ L }) {
   const FL = L(F.flow)
   const T = L(F.trending)
   const has = (o) => Object.prototype.hasOwnProperty.call(o, GONE)
-  const catalogo = !S.ADS_V2_STYLES.some((s) => s.key === GONE || s.effect === 'Starlight Gift Box') && !S.isAdsV2Style(GONE) &&
+  const catalogo = !S.ADS_V2_STYLES.some((s) => s.key === GONE || s.effect === EFFECT) && !S.isAdsV2Style(GONE) &&
     ![S.ADS_V2_STYLE_KEYS, C.ADS_V2_CONTRACT_STYLES, SL.ADS_V2_PLAN_STYLES, Object.keys(E.ADS_V2_EFFECT_BY_STYLE), Object.keys(FL.ADS_V2_STYLE_TINT)].some((l) => l.includes(GONE)) &&
-    !Object.values(E.ADS_V2_EFFECT_BY_STYLE).includes('Starlight Gift Box') &&
+    !Object.values(E.ADS_V2_EFFECT_BY_STYLE).includes(EFFECT) &&
     !has(S.ADS_V2_STYLE_CATEGORIES) && !S.adsV2StylesIn('all').includes(GONE) &&
-    LANGS.every((l) => !has(S.ADS_V2_STYLE_COPY[l].styles) && !Object.values(S.ADS_V2_STYLE_COPY[l].styles).some((x) => x.label === 'Starlit gift')) &&
+    LANGS.every((l) => !has(S.ADS_V2_STYLE_COPY[l].styles) && !Object.values(S.ADS_V2_STYLE_COPY[l].styles).some((x) => x.label === LABEL)) &&
     !has(T.ADS_STYLE_RELEASED) && !T.adStyleCards(NOW, true).some((c) => c.key === GONE) &&
     JSON.stringify(FL.adsV2StyleTint(GONE)) === JSON.stringify(FL.ADS_V2_FLOW_AUTO_TINT)
   // o servidor recusa: contrato do /plan = bad_style; o plano não ganha efeito; o builder da fal lança antes de qualquer POST
@@ -193,15 +205,15 @@ function frasesETrending({ L }) {
 }
 
 const REGRAS = [
-  ['(1) as 3 chaves no catálogo, com prévia, nos 4 espelhos; a lista real tem 18 estilos', catalogo],
+  ['(1) as 2 chaves no catálogo, com prévia, nos 4 espelhos; a lista real tem 17 estilos', catalogo], // reancorado KINEO-ADS-RETESTE-1510
   ['(2) o enum mandado à fal (catálogo, v2Engines e buildShotInput) = o da sonda ad_* que renderizou, no mesmo endpoint', enumDaSonda],
-  ['(3) o servidor aceita os 3 (contrato do /plan, isAdsV2PlanStyle e planShots); chave inventada = bad_style', servidorAceita],
+  ['(3) o servidor aceita os 2 (contrato do /plan, isAdsV2PlanStyle e planShots); chave inventada = bad_style', servidorAceita],
   ['(4) prévias .mp4 (MP4, faststart) e .jpg (JPEG) existem, não vazias, no peso das prévias de antes', previas],
-  ['(5) starlight_gift ausente: catálogo, espelhos, categorias, cores, 16 línguas, /trending; servidor recusa; prévias fora do repo', starlightAusente],
+  ['(5) starlight_gift E dolly_zoom ausentes: catálogo, espelhos, categorias, cores, 16 línguas, /trending; servidor recusa; prévias fora do repo', starlightAusente],
   ['(6) mecanismo de época dormente: nenhum estilo é de época; selo nas 16 línguas e as 4 telas seguem condicionadas a `season`', epocaDormente],
-  ['(7) frases dos 3 nas 16 línguas (escritas, não copiadas); no /trending os 3 abrem a fila de estilos com o selo New', frasesETrending],
+  ['(7) frases dos 2 nas 16 línguas (escritas, não copiadas); no /trending os 2 abrem a fila de estilos com o selo New', frasesETrending],
 ]
-console.log('KINEO-ESTILOS-DIA1-2026-10-13 · KINEO-TIRA-STARLIGHT-1410')
+console.log('KINEO-ESTILOS-DIA1-2026-10-13 · KINEO-TIRA-STARLIGHT-1410 · KINEO-ADS-RETESTE-1510')
 const real = mundo()
 for (const [nome, regra] of REGRAS) ok(tenta(() => regra(real)), nome)
 
@@ -219,13 +231,20 @@ const STARLIGHT_DE_VOLTA = "  { key: 'starlight_gift', effect: 'Starlight Gift B
 mutante('enum do boom_drop com a caixa trocada no espelho de v2Engines', F.engines, "  boom_drop: 'BOOM DROP',", "  boom_drop: 'Boom Drop',", enumDaSonda)
 mutante('contrato do /plan sem o macaron_machine', F.contract, ", 'boom_drop', 'macaron_machine']", ", 'boom_drop']", servidorAceita)
 mutante('prévia do macaron_machine apontando para outro arquivo', F.styles, "const asset = (key: AdsV2StyleKey) => ({ preview: `/ads-styles/${key}.mp4`", "const asset = (key: AdsV2StyleKey) => ({ preview: `/ads-styles/${key === 'macaron_machine' ? 'macaron' : key}.mp4`", catalogo)
-mutante('/trending sem a data de lançamento do dolly_zoom', F.trending, "  dolly_zoom: '2026-10-13', ", '  ', frasesETrending)
+mutante('/trending sem a data de lançamento do boom_drop', F.trending, "  boom_drop: '2026-10-13', ", '  ', frasesETrending) // reancorado KINEO-ADS-RETESTE-1510 — era o dolly_zoom (tirado)
 // reancorado KINEO-TIRA-STARLIGHT-1410 — a ausência fica vermelha se o starlight_gift voltar por qualquer porta
 mutante('starlight_gift de volta ao catálogo', F.styles, MACARON, MACARON + STARLIGHT_DE_VOLTA, starlightAusente)
 mutante('starlight_gift de volta ao contrato do /plan (validação do servidor)', F.contract, ", 'boom_drop', 'macaron_machine']", ", 'boom_drop', 'macaron_machine', 'starlight_gift']", starlightAusente)
 mutante('starlight_gift de volta ao espelho de v2Engines (enum para a fal)', F.engines, "  macaron_machine: 'Macaron Machine',\n", "  macaron_machine: 'Macaron Machine',\n  starlight_gift: 'Starlight Gift Box',\n", starlightAusente)
 mutante('starlight_gift de volta ao /trending', F.trending, " macaron_machine: '2026-10-13',", " macaron_machine: '2026-10-13', starlight_gift: '2026-10-13',", starlightAusente)
-mutante('estilo de época de volta (selo em um dos 3)', F.styles, "bestFor: 'Food, sweets, snacks', ...asset('macaron_machine')", "bestFor: 'Food, sweets, snacks', season: 'holiday', ...asset('macaron_machine')", epocaDormente)
+// KINEO-ADS-RETESTE-1510 — a ausência fica vermelha se o dolly_zoom voltar por qualquer porta
+const DOLLY_DE_VOLTA = "  { key: 'dolly_zoom', effect: 'Hitchcock Dolly Zoom', label: 'Dolly zoom', oneLine: 'The background stretches behind your product, like the classic Hitchcock shot.', bestFor: 'Any product, premium', ...asset('dolly_zoom') },\n"
+mutante('dolly_zoom de volta ao catálogo', F.styles, MACARON, MACARON + DOLLY_DE_VOLTA, starlightAusente)
+mutante('dolly_zoom de volta ao contrato do /plan (validação do servidor)', F.contract, ", 'boom_drop', 'macaron_machine']", ", 'dolly_zoom', 'boom_drop', 'macaron_machine']", starlightAusente)
+mutante('dolly_zoom de volta ao espelho de v2Engines (enum para a fal)', F.engines, "  macaron_machine: 'Macaron Machine',\n", "  macaron_machine: 'Macaron Machine',\n  dolly_zoom: 'Hitchcock Dolly Zoom',\n", starlightAusente)
+mutante('dolly_zoom de volta às cores do palco', F.flow, "  boom_drop: ['#DC2626', '#F97316'],", "  dolly_zoom: ['#78716C', '#F59E0B'],\n  boom_drop: ['#DC2626', '#F97316'],", starlightAusente)
+mutante('dolly_zoom de volta ao /trending', F.trending, " macaron_machine: '2026-10-13',", " macaron_machine: '2026-10-13', dolly_zoom: '2026-10-13',", starlightAusente)
+mutante('estilo de época de volta (selo em um dos 2)', F.styles, "bestFor: 'Food, sweets, snacks', ...asset('macaron_machine')", "bestFor: 'Food, sweets, snacks', season: 'holiday', ...asset('macaron_machine')", epocaDormente)
 
 console.log(`\ntest-estilos-dia1-1310: ${pass} ok · ${fail} falhas`)
 process.exit(fail ? 1 : 0)

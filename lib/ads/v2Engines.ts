@@ -47,7 +47,7 @@ export const ADS_V2_EFFECT_BY_STYLE: Readonly<Record<string, string>> = {
   dishes_served: 'Dishes Served',
   // KINEO-ESTILOS-DIA1-2026-10-13 — +4 do lote do dia 1 (enum EXATO da sonda ad_* testada com render real em 13/10).
   // KINEO-TIRA-STARLIGHT-1410 — 3: starlight_gift tirado (fundador 14/10).
-  dolly_zoom: 'Hitchcock Dolly Zoom',
+  // KINEO-ADS-RETESTE-1510 — 2: dolly_zoom tirado (o efeito alterava o produto: rosto desenhado no líquido do perfume). A sonda admin ad_dolly_zoom fica.
   boom_drop: 'BOOM DROP',
   macaron_machine: 'Macaron Machine',
 }

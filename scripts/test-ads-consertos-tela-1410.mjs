@@ -26,6 +26,7 @@ import crypto from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semReteste1510 } from './test-support/desfaz-reteste-1510.mjs' // reancorado KINEO-ADS-RETESTE-1510
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -104,7 +105,8 @@ const semConsertoEstilo = (s) => {
   t = t.replace(ref[0], '')
   return t.replace('export function adsV2SuggestedStyle(sector: AdsV2StyleSector | string | null | undefined, sentence?: string | null): AdsV2StyleChoice {', 'export function adsV2SuggestedStyle(sector: AdsV2StyleSector | string | null | undefined): AdsV2StyleChoice {')
 }
-ok(sha(semConsertoEstilo(read(F.styles)) ?? '') === ESTILOS_BASE_SHA, '3b v2Styles sem os 2 trechos marcados = o arquivo da base byte a byte (nada de preço/plano/débito mexido)')
+// reancorado KINEO-ADS-RETESTE-1510 — o v2Styles perdeu o dolly_zoom (reteste 15/10): desfeito esse corte (diff reverso exato), vale a prova de sempre.
+ok(sha(semConsertoEstilo(semReteste1510(F.styles, read(F.styles))) ?? '') === ESTILOS_BASE_SHA, '3b v2Styles sem os 2 trechos marcados = o arquivo da base byte a byte (nada de preço/plano/débito mexido)')
 const chamadaOk = (s) => /const styleSuggested: AdsV2StyleChoice = sentence && sector !== 'other' \? adsV2SuggestedStyle\(sector, sentence\) : 'none'/.test(s)
 ok(chamadaOk(read(F.simple)), '3c a tela passa a frase à sugestão (só com setor reconhecido, como antes)')
 
