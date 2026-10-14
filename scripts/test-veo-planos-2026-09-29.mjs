@@ -23,6 +23,7 @@ import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { desfaz3x6KlingShots } from './test-support/desfaz-3x6-klingshots.mjs' // reancoragem de 29/09 ([TRAVA 8.2 — "vai" do 3x6])
 import { desfazEstornoNarracao } from './test-support/desfaz-escritor-omni-1310.mjs' // reancorado KINEO-LEVA3-1310 [TRAVA 8.2 — vai do fundador 13/10 'tudo sim nos 3 consertos']: lib/compose.ts sem o conserto da narração (KINEO-ESTORNO-NARRACAO-2026-10-13), em memória, antes do byte a byte
+import { desfazParceiroEyebible1410 } from './test-support/desfaz-parceiro-eyebible-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-1410 [TRAVA 8.2 — vai do fundador 14/10]: os arquivos do conserto do Robert/EyeBible saem em memória antes do byte a byte
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
@@ -164,7 +165,7 @@ if (Bb) {
 // byte continua — contra o arquivo com ESSA mudança desfeita (scripts/test-support/desfaz-3x6-klingshots.mjs, cada troca
 // exatamente uma vez); qualquer outra alteração no arquivo continua vermelha.
 checa('lib/cinematic/klingShots.ts byte a byte igual à base (fora a generalização do alinhador feita pelo 3x6)', rdBase('lib/cinematic/klingShots.ts') === desfaz3x6KlingShots(rd('lib/cinematic/klingShots.ts')))
-checa('lib/compose.ts byte a byte igual à base', rdBase('lib/compose.ts') === desfazEstornoNarracao('lib/compose.ts', rd('lib/compose.ts'))) // reancorado KINEO-LEVA3-1310
+checa('lib/compose.ts byte a byte igual à base', rdBase('lib/compose.ts') === desfazEstornoNarracao('lib/compose.ts', desfazParceiroEyebible1410('lib/compose.ts', rd('lib/compose.ts')))) // reancorado KINEO-LEVA3-1310
 checa('lib/cinematic/classicDryRun.ts byte a byte igual à base', rdBase('lib/cinematic/classicDryRun.ts') === rd('lib/cinematic/classicDryRun.ts'))
 const fatiasKling = [
   ['let kling25Footage = 0', 'clipCount = planos\n    }'],

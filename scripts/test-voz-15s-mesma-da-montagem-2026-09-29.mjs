@@ -34,6 +34,7 @@ import { reguaDe95No15s } from './test-support/desfaz-cobertura-15s.mjs'
 // frases). desfazH3max devolve, em memória, o arquivo sem essa entrada (pares exatos em scripts/test-support/h3max-2026-10-13-trocas.json;
 // par que não casa = texto intocado = vermelho); linhasTrocadasH3max lista as linhas da base trocadas. Fora disso, o byte a byte de sempre.
 import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
+import { desfazParceiroEyebible1410, linhasTrocadasParceiroEyebible1410 } from './test-support/desfaz-parceiro-eyebible-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-1410 [TRAVA 8.2 — vai do fundador 14/10]: os arquivos do conserto do Robert/EyeBible saem em memória antes do byte a byte
 import { TROCADAS_MONUMENTO } from './test-support/desfaz-monumento-1310.mjs' // KINEO-MONUMENTO-2026-10-13
 import { MARCA_ROMANCE_ADULTO, TROCADAS_ROMANCE_ADULTO } from './test-support/desfaz-romance-adulto-1310.mjs' // KINEO-ROMANCE-ADULTO-2026-10-13 — reancorado: as linhas novas marcadas e as 4 linhas da base da rota que a leva trocou ('tudo sim' do fundador 13/10)
 // ═══ Reancorado KINEO-DURACOES-CURTAS-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] ═══
@@ -135,7 +136,7 @@ const semEstornoNarracao = (t) => (t == null ? t : t.split(LF).flatMap((l) => {
   if (l.startsWith('  const cleaned = stripScriptMarkers(script) || salvageScriptNarration(script) //')) return ['  const cleaned = stripScriptMarkers(script)']
   return []
 }).join(LF))
-const SRC = { rota: rd(ROTA_P), compose: rd(COMPOSE_P), lib: semEstornoNarracao(rd(LIB_P)), voz: rd(VOZ_P) } // reancorado KINEO-ESTORNO-NARRACAO-2026-10-13
+const SRC = { rota: rd(ROTA_P), compose: rd(COMPOSE_P), lib: semEstornoNarracao(desfazParceiroEyebible1410(LIB_P, rd(LIB_P))), voz: rd(VOZ_P) } // reancorado KINEO-ESTORNO-NARRACAO-2026-10-13
 const SRC_BASE = { rota: rdBase(ROTA_P), compose: rdBase(COMPOSE_P), lib: rdBase(LIB_P), voz: null }
 checa('a base (rota, compose e lib/compose sem o conserto) está disponível e não tem o marcador',
   Boolean(SRC_BASE.rota && SRC_BASE.compose && SRC_BASE.lib) && ![SRC_BASE.rota, SRC_BASE.compose, SRC_BASE.lib].some((s) => s.includes(MARCA)))
@@ -400,7 +401,7 @@ console.log('4) 35/60/90 e os outros motores (e o 15 s fora do Seedance): rota e
   checa('campo narration_voice inválido (vertical não-texto ou longo, fator fora de (0, 1], tipo errado): ignorado — o corpo do cliente intacto', todosIguais.every(Boolean))
   checa('sem claim (Kineo 1 / fast): nenhuma voz assinada, TTS igual à base', await (async () => { const g = await AGORA.compose({ response: null, bodyVertical: 'History', quality: 'fast' }); const a = await ANTES.compose({ response: null, bodyVertical: 'History', quality: 'fast' }); return g.vozAssinada === null && eqJ(g.tts, a.tts) && eqJ(g.bodyDepois, a.bodyDepois) })())
   // as duas rotas só GANHARAM linhas (a trava do 3x6 exige; e nenhuma chamada de TTS do compose mudou)
-  const soAcrescimos = (p) => { try { const d = semCR(execFileSync('git', ['diff', '--unified=0', '--no-color', BASE, '--', p], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024 }).toString()); return d.split(LF).filter((l) => l.startsWith('-') && !l.startsWith('---') && !TROCADAS_CURTAS.includes(l.slice(1)) && !linhasTrocadasH3max(p).includes(l.slice(1))).length === 0 } /* reancorado KINEO-DURACOES-CURTAS: as 6 trocas marcadas · KINEO-H3MAX-2026-10-13: + as linhas da base trocadas pela entrada do H3 Max (lista exata) */ catch { return false } }
+  const soAcrescimos = (p) => { try { const d = semCR(execFileSync('git', ['diff', '--unified=0', '--no-color', BASE, '--', p], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024 }).toString()); return d.split(LF).filter((l) => l.startsWith('-') && !l.startsWith('---') && !TROCADAS_CURTAS.includes(l.slice(1)) && !linhasTrocadasH3max(p).includes(l.slice(1)) && !linhasTrocadasParceiroEyebible1410(p).includes(l.slice(1))).length === 0 } /* reancorado KINEO-DURACOES-CURTAS: as 6 trocas marcadas · KINEO-H3MAX-2026-10-13: + as linhas da base trocadas pela entrada do H3 Max (lista exata) */ catch { return false } }
   checa('rota do cinematic e /api/compose: nenhuma linha da base alterada ou apagada — só acréscimos', Boolean(BASE) && soAcrescimos(ROTA_P) && soAcrescimos(COMPOSE_P))
 }
 

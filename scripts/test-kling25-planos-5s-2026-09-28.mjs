@@ -34,6 +34,7 @@ import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { desfazParceiroEyebible1410 } from './test-support/desfaz-parceiro-eyebible-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-1410 [TRAVA 8.2 — vai do fundador 14/10]: os arquivos do conserto do Robert/EyeBible saem em memória antes do byte a byte
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ) // o loader offline resolve '@/...' a partir do cwd
@@ -249,7 +250,7 @@ checa('a regra do builder espelha kling25FalDuration (mesmo limiar: ≤ 5 → "5
 const vb = roda(rd('lib/cinematic/verbatimBeats.ts'))
 const vbBaseSrc = rdBase('lib/cinematic/verbatimBeats.ts')
 const vbBase = vbBaseSrc ? roda(vbBaseSrc) : null
-checa('lib/cinematic/verbatimBeats.ts é o da base, byte a byte: o divisor de Seedance/Veo/Sora não mudou (o plano do Kling mora em klingShots)', Boolean(vbBaseSrc) && rd('lib/cinematic/verbatimBeats.ts') === vbBaseSrc)
+checa('lib/cinematic/verbatimBeats.ts é o da base, byte a byte: o divisor de Seedance/Veo/Sora não mudou (o plano do Kling mora em klingShots)', Boolean(vbBaseSrc) && desfazParceiroEyebible1410('lib/cinematic/verbatimBeats.ts', rd('lib/cinematic/verbatimBeats.ts')) === vbBaseSrc) // reancorado KINEO-PARCEIRO-EYEBIBLE-1410: o corte no fim da frase sai em memória
 const blocoDivisao = (src) => fatia(src, '    if (wantsKling && verbatim && parsedScript.segments.length === 0 && scenes.length > 0) {\n', '\n    }\n\n    // ═══ KINEO-ZERO-SCENES-FALLBACK-2026-09-04', false)
 const blocoSegundos = (src) => fatia(src, '    let kling25ClipSeconds: number[] | null = null\n', 'de clipe (necessário ${kling25Footage}s)`)\n    }\n', true)
 const shortCaption = (t) => palavras(t).slice(0, 8).join(' ')
@@ -300,7 +301,7 @@ checa('canário no Kling (blocos reais da rota): 8 a 12 planos que somam o rotei
   console.log('   planos do canário: ' + (r?.scenes ?? []).map((c, i) => `${i + 1}) [${c.clipSeconds}s] ${c.voiceover}`).join(' | '))
   checa('as fronteiras do canário: nenhum plano acaba no meio de "Behind them," nem de "Then scientists" (as palavras que o claim antigo perdia ficam com a sua frase)', Boolean(r) && !r.scenes.some((c) => /\b(Behind|Then)$/.test(c.voiceover)) && r.scenes.some((c) => c.voiceover.includes('Behind them, long trails')) && r.scenes.some((c) => c.voiceover.includes('Then scientists fitted rocks')))
   const s = planejaCenas(rota, { engine: 'seedance', narration: CANARIO, clipCount: 4, footage: 0 })
-  const sBase = vbBase ? vbBase.resolveVerbatimSegments({ segments: [], narration: CANARIO }, 4) : null
+  const sBase = vb ? vb.resolveVerbatimSegments({ segments: [], narration: CANARIO }, 4) : null // reancorado KINEO-PARCEIRO-EYEBIBLE-1410: "divisor de sempre" = o divisor da lib de hoje (corte no fim da frase), não o da base
   checa('Seedance: os dois blocos novos não rodam — cenas = divisor de sempre, sem clipSeconds, kling25ClipSeconds null', Boolean(s) && s.kling25ClipSeconds === null && s.scenes.every((c) => !('clipSeconds' in c)) && (!sBase || eqJ(s.scenes.map((c) => [c.voiceover, c.description]), sBase.map((x) => [x.voiceover, x.pexelsQuery]))))
 }
 // o defeito de produção reproduzido na base

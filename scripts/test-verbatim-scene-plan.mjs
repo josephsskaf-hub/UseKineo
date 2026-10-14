@@ -48,7 +48,11 @@ const beatSizes = beats.map((beat) => beat.voiceover.split(/\s+/u).length)
 check('prosa limpa de 35s vira quatro cenas', beats.length === 4)
 check('nenhuma cena vazia', beats.every((beat) => beat.voiceover.length > 0))
 check('nenhuma palavra falada é inventada, removida ou reordenada', beats.map((beat) => beat.voiceover).join(' ') === normalized)
-check('beats são equilibrados', Math.max(...beatSizes) - Math.min(...beatSizes) <= 1)
+// reancorado KINEO-PARCEIRO-EYEBIBLE-1410 [TRAVA 8.2 — vai do fundador 14/10]: o corte escorrega até meia cena para o fim da frase
+// (Robert/EyeBible: cena cortada no meio da frase desenhava meia ação). Equilíbrio continua: cada cena dentro de ±meia cena do ideal.
+const tamanhoIdeal = normalized.split(' ').length / 4 // KINEO-PARCEIRO-EYEBIBLE-1410
+check('beats são equilibrados (±meia cena do ideal)', beatSizes.every((n) => Math.abs(n - tamanhoIdeal) <= Math.floor(tamanhoIdeal / 2) + 1)) // KINEO-PARCEIRO-EYEBIBLE-1410
+check('cada beat termina no fim de uma frase', beats.every((beat) => /[.!?]$/.test(beat.voiceover))) // KINEO-PARCEIRO-EYEBIBLE-1410
 check('cada beat fornece pista visual curta', beats.every((beat) => beat.pexelsQuery.length > 0 && beat.pexelsQuery.split(/\s+/u).length <= 24))
 check('primeira palavra preservada', beats[0].voiceover.startsWith('At night,'))
 check('payoff preservado no último beat', beats.at(-1).voiceover.endsWith('the next.'))

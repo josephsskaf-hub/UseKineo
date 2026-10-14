@@ -95,6 +95,13 @@ export function desfazParceiroEyebible1410(p, s) {
   return semParceiroEyebible1410(p, s)
 }
 
+/** As linhas da BASE que o conserto trocou de propósito no arquivo `p` (para guardiões que leem o `git diff` e só aceitam
+ *  acréscimos): no /api/compose, só `        duration,` (vira a duração assinada). */
+export function linhasTrocadasParceiroEyebible1410(p) {
+  const spec = ARQUIVOS[p]
+  return spec ? spec.trocas.flatMap(([, antes]) => antes.split('\n')) : []
+}
+
 /** Linha do diff que pertence a este conserto (para guardiões que leem o `git diff` e só aceitam acréscimos). */
 export function linhaDoParceiroEyebible1410(linha) {
   return String(linha ?? '').includes(MARCA_PARCEIRO_EYEBIBLE_1410)

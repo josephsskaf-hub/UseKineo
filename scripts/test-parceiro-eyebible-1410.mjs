@@ -166,8 +166,15 @@ for (const p of ARQUIVOS_PARCEIRO_EYEBIBLE_1410) {
 }
 checa('o desfaz é idempotente (sem linha marcada, devolve igual)', semParceiroEyebible1410('lib/aspect.ts', 'x\ny') === 'x\ny')
 checa('o desfaz recusa conserto pela metade', (() => { try { semParceiroEyebible1410('lib/aspect.ts', `a // ${MARCA_PARCEIRO_EYEBIBLE_1410}`); return false } catch { return true } })())
+// A trava mede os COMMITS do conserto (não-merge, com a marca no assunto) — nunca a árvore contra a base: depois de um merge da main
+// a árvore traz o trabalho dos outros, e a trava ficaria vermelha (ou verde) por motivo alheio.
 let tocados = []
-try { tocados = execFileSync('git', ['diff', '--name-only', BASE], { encoding: 'utf8' }).split('\n').filter(Boolean) } catch { /* sem git: a seção acima já cobre */ }
+try {
+  const shas = execFileSync('git', ['log', '--no-merges', '--format=%H', `--grep=${MARCA_PARCEIRO_EYEBIBLE_1410}`, `${BASE}..HEAD`], { encoding: 'utf8' }).split('\n').filter(Boolean)
+  checa('existe ao menos um commit do conserto depois da base', shas.length > 0 || execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' }).trim().length > 0)
+  tocados = [...new Set(shas.flatMap((h) => execFileSync('git', ['diff-tree', '--no-commit-id', '--name-only', '-r', h], { encoding: 'utf8' }).split('\n').filter(Boolean)))]
+  tocados.push(...execFileSync('git', ['diff', '--name-only', 'HEAD'], { encoding: 'utf8' }).split('\n').filter(Boolean)) // + o que ainda não foi commitado
+} catch { /* sem git: a seção acima já cobre */ }
 const permitidos = new Set([...ARQUIVOS_PARCEIRO_EYEBIBLE_1410, 'lib/cinematic/duracaoDoFilme.ts', 'scripts/test-parceiro-eyebible-1410.mjs', 'scripts/test-support/desfaz-parceiro-eyebible-1410.mjs'])
 const fora = tocados.filter((p) => !permitidos.has(p) && !p.startsWith('scripts/'))
 checa('o conserto não toca generate-video-cinematic, generate-script, ads, preços nem motores', !tocados.some((p) => p === 'app/api/generate-video-cinematic/route.ts' || p.startsWith('app/api/generate-script') || p.startsWith('lib/ads/') || p === 'lib/engineWall.ts' || p === 'lib/homeVideoCuration.ts'), tocados.join(', '))

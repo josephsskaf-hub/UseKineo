@@ -41,6 +41,7 @@ import { desfaz3x6KlingShots } from './test-support/desfaz-3x6-klingshots.mjs'
 // frases). desfazH3max devolve, em memória, o arquivo sem essa entrada (pares exatos em scripts/test-support/h3max-2026-10-13-trocas.json;
 // par que não casa = texto intocado = vermelho); linhasTrocadasH3max lista as linhas da base trocadas. Fora disso, o byte a byte de sempre.
 import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
+import { desfazParceiroEyebible1410, linhasTrocadasParceiroEyebible1410 } from './test-support/desfaz-parceiro-eyebible-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-1410 [TRAVA 8.2 — vai do fundador 14/10]: os arquivos do conserto do Robert/EyeBible saem em memória antes do byte a byte
 import { TROCADAS_MONUMENTO } from './test-support/desfaz-monumento-1310.mjs' // KINEO-MONUMENTO-2026-10-13
 import { TROCADAS_ROMANCE_ADULTO } from './test-support/desfaz-romance-adulto-1310.mjs' // KINEO-ROMANCE-ADULTO-2026-10-13
 import { desfazEstornoNarracao } from './test-support/desfaz-escritor-omni-1310.mjs' // reancorado KINEO-LEVA3-1310 [TRAVA 8.2 — vai do fundador 13/10 'tudo sim nos 3 consertos']: lib/compose.ts sem o conserto da narração (KINEO-ESTORNO-NARRACAO-2026-10-13), em memória, antes do byte a byte
@@ -443,7 +444,7 @@ function soAcrescimos(p) {
   ])
   // KINEO-H3MAX-2026-10-13 — reancorado com motivo: + as linhas da base que a entrada do MiniMax H3 Max trocou de propósito nas duas rotas
   // (lista exata em scripts/test-support/h3max-2026-10-13-trocas.json; cada substituta marcada e provada em test-h3max-motor-2026-10-13).
-  const tiradas = diff.split(LF).filter((l) => l.startsWith('-') && !l.startsWith('---') && !(p.endsWith('generate-video-cinematic/route.ts') && TROCADAS.has(l.slice(1))) && !linhasTrocadasH3max(p).includes(l.slice(1)))
+  const tiradas = diff.split(LF).filter((l) => l.startsWith('-') && !l.startsWith('---') && !(p.endsWith('generate-video-cinematic/route.ts') && TROCADAS.has(l.slice(1))) && !linhasTrocadasH3max(p).includes(l.slice(1)) && !linhasTrocadasParceiroEyebible1410(p).includes(l.slice(1))) // reancorado KINEO-PARCEIRO-EYEBIBLE-1410 [TRAVA 8.2 — vai do fundador 14/10]
   return { ok: tiradas.length === 0, n: diff.split(LF).filter((l) => l.startsWith('+') && !l.startsWith('+++')).length }
 }
 {
@@ -471,7 +472,7 @@ const compoe = (src) => {
   return exports
 }
 const C = compoe(COMPOSE_LIB)
-checa('lib/compose.ts é o da base (o conserto é o plano assinado chegar; o ramo assinado já existia)', desfazEstornoNarracao('lib/compose.ts', COMPOSE_LIB) === rdBase('lib/compose.ts')) // reancorado KINEO-LEVA3-1310
+checa('lib/compose.ts é o da base (o conserto é o plano assinado chegar; o ramo assinado já existia)', desfazEstornoNarracao('lib/compose.ts', desfazParceiroEyebible1410('lib/compose.ts', COMPOSE_LIB)) === rdBase('lib/compose.ts')) // reancorado KINEO-LEVA3-1310
 const FIM_FRASE = /[.!?…]["'”’)\]]*$/u
 const falaDe = (texto, total) => { const ws = palavras(texto); const passo = (total - 0.5) / ws.length; return ws.map((w, i) => ({ word: w.replace(/[^\p{L}\p{N}'-]/gu, ''), start: Math.round(i * passo * 1000) / 1000, end: Math.round((i * passo + passo * 0.85) * 1000) / 1000, sentenceEnd: FIM_FRASE.test(w) })) }
 const urlsDe = (n) => Array.from({ length: n }, (_, i) => `https://v3b.fal.media/files/b/seedance/clip-${i + 1}.mp4`)
