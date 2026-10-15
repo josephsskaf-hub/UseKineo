@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { createClient } from '@/lib/supabase/client'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
@@ -16,6 +16,16 @@ import {
 // é da régua recebe o cartão de sempre como `fallback`). Desligado (REGION_PASS_OFFER_LIVE): esta tela é a de hoje.
 import { REGION_PASS_OFFER_LIVE } from '@/lib/freeFilmPolicy'
 import RegionPassOffer from '@/components/RegionPassOffer'
+// KINEO-PAYWALL-FILME-PRIMEIRO-1510 — quem ainda não viu o próprio filme recebe a caixa com o filme grátis (ou, na região sem
+// filme grátis, o passe) no topo. Planos inteiros logo abaixo. A régua é pura: lib/growth/paywallFilmePrimeiro.ts.
+import { REGION_FREE_FILM_SECONDS, regionFreeFilmAvailable } from '@/lib/freeFilmPolicy'
+import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
+import { interfaceLanguageIsRtl } from '@/lib/ui/interfaceLanguage'
+import { useOwnRegionProfile } from '@/components/offers/useOwnRegionProfile'
+import {
+  FREE_FILM_CLICKED_EVENT, FREE_FILM_OFFERED_EVENT, PASS_FIRST_OFFERED_EVENT, PAYWALL_FILME_PRIMEIRO_VERSION,
+  copyDoFilmePrimeiro, decidirFilmePrimeiro, type FilmeGratisVariante,
+} from '@/lib/growth/paywallFilmePrimeiro'
 
 const SAMPLE: { videoPath: string; arenaPosterPath?: string } | undefined = PUBLIC_ENGINE_EXAMPLES.find(v => v.engine === 'cinematic_ai' && 'arenaPosterPath' in v)
 const panel = { border: '1px solid var(--border)', borderRadius: 14, padding: 16, background: 'var(--card2)' }
@@ -95,14 +105,89 @@ export function ConversionPassCard({ surface, onBuy, disabled = false }: { surfa
   </div>
 }
 
-export default function ConversionUpgrade({ currency, region, onClose, onUpgrade, onFilmPass, loading, error, freeAction, regionPass = null }: {
+/** KINEO-PAYWALL-FILME-PRIMEIRO-1510 — o que o pai sabe da conta para a caixa abrir com o filme na frente. */
+export interface ConversionFilmFirst {
+  /** Filmes ENTREGUES (status completed). null = não sei → a caixa de hoje. */
+  filmsDelivered: number | null
+  /** A última ideia digitada, já curta (ideiaDoCartao). null = o cartão convida a escrever uma. */
+  idea: string | null
+  /** O filme grátis que o servidor entrega agora (o saldo do teste paga), ou null. A região é lida aqui. */
+  freeFilm: { variant: FilmeGratisVariante; seconds: number } | null
+  /** Fecha a caixa e deixa o Studio no motor/duração do filme grátis. Não gera nada. */
+  onStart: (variant: FilmeGratisVariante) => void
+}
+
+/** KINEO-PAYWALL-FILME-PRIMEIRO-1510 — o cartão grande do filme grátis, no topo da caixa (16 línguas). */
+function FreeFilmFirstCard({ variant, seconds, idea, onStart }: { variant: FilmeGratisVariante; seconds: number; idea: string | null; onStart: (variant: FilmeGratisVariante) => void }) {
+  const language = useInterfaceLanguage()
+  const copy = copyDoFilmePrimeiro(language)
+  const shown = useRef(false)
+  const meta = { ...conversionMetadata('upgrade', 'free_film'), version: PAYWALL_FILME_PRIMEIRO_VERSION, variant, seconds, has_idea: idea !== null, language, surface: 'generate_upgrade_modal' }
+  useEffect(() => {
+    if (shown.current) return
+    shown.current = true
+    void trackEvent(FREE_FILM_OFFERED_EVENT, meta)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  return <div data-filme-primeiro="free_film" data-variant={variant} dir={interfaceLanguageIsRtl(language) ? 'rtl' : undefined}
+    style={{ ...panel, border: '2px solid var(--accent)', padding: 20, margin: '6px 0 18px', clear: 'both' }}>
+    <p style={{ margin: '0 0 6px', fontSize: 12, color: 'var(--accent)', fontWeight: 800, letterSpacing: 0.4 }}>{copy.kicker}</p>
+    <strong style={{ display: 'block', fontSize: 24, lineHeight: 1.2 }}>{copy.title(seconds)}</strong>
+    {idea
+      ? <p style={{ margin: '12px 0 0', padding: '10px 12px', borderRadius: 10, background: 'var(--card)', border: '1px solid var(--border)', lineHeight: 1.45, overflowWrap: 'anywhere' }}>
+          <span style={{ display: 'block', fontSize: 11, fontWeight: 800, color: 'var(--muted)', marginBottom: 3 }}>{copy.ideaLabel}</span>
+          “{idea}”
+        </p>
+      : null}
+    <p style={{ margin: '12px 0 14px', lineHeight: 1.5 }}>{idea ? copy.body : copy.bodyNoIdea}</p>
+    <button type="button" data-testid="free-film-first" style={{ ...button, width: '100%', fontSize: 17, padding: '15px 16px', background: 'var(--accent)', color: 'var(--on-accent)', border: 'none' }}
+      onClick={() => { void trackEvent(FREE_FILM_CLICKED_EVENT, meta); onStart(variant) }}>
+      {copy.cta}
+    </button>
+  </div>
+}
+
+/** KINEO-PAYWALL-FILME-PRIMEIRO-1510 — o passe da região no topo: marca a impressão do "passe primeiro" e embrulha o cartão. */
+function PassFirstLead({ children }: { children: ReactNode }) {
+  const shown = useRef(false)
+  useEffect(() => {
+    if (shown.current) return
+    shown.current = true
+    void trackEvent(PASS_FIRST_OFFERED_EVENT, { ...conversionMetadata('upgrade', 'pass'), version: PAYWALL_FILME_PRIMEIRO_VERSION, surface: 'generate_upgrade_modal' })
+  }, [])
+  return <div data-filme-primeiro="region_pass" style={{ clear: 'both', marginTop: 6 }}>{children}</div>
+}
+
+export default function ConversionUpgrade({ currency, region, onClose, onUpgrade, onFilmPass: onFilmPassProp, loading, error, freeAction, regionPass: regionPassProp = null, filmFirst = null }: {
   currency: CheckoutCurrency | null; region: PriceRegion; onClose: () => void
   onUpgrade: (tier: ConversionTier, billing?: ConversionBilling) => void
   onFilmPass: (() => void) | null; loading: boolean; error: string | null
   freeAction?: { label: string; onClick: () => void } | null
   /** KINEO-SAIDA-REGIAO-2026-10-07 — a parede pede o passe da região (o pai só passa isto para quem não assina). */
   regionPass?: { beforeBuy?: () => void } | null
+  /** KINEO-PAYWALL-FILME-PRIMEIRO-1510 — ausente = a caixa de hoje, byte a byte. */
+  filmFirst?: ConversionFilmFirst | null
 }) {
+  // KINEO-PAYWALL-FILME-PRIMEIRO-1510 — a região só é lida para quem tem 0 filmes e nenhum filme grátis provado pelo pai.
+  const readRegion = Boolean(filmFirst && !filmFirst.freeFilm && filmFirst.filmsDelivered === 0)
+  const regionProfile = useOwnRegionProfile(readRegion)
+  const regionPending = readRegion && regionProfile === undefined
+  const lead = filmFirst ? decidirFilmePrimeiro({
+    filmsDelivered: filmFirst.filmsDelivered,
+    isSubscriber: false, // o pai só monta esta caixa para quem não assina (MRR_CONVERSION_ENABLED && notPaidProven && !isSubscriber)
+    notPaidProven: true,
+    freeFilm: filmFirst.freeFilm !== null,
+    regionFreeFilm: readRegion && regionProfile ? regionFreeFilmAvailable(regionProfile, filmFirst.filmsDelivered) : false,
+    regionPaidOnly: !readRegion ? false : regionProfile === undefined ? null : paidOnlyEntry(regionProfile ?? null),
+  }) : null
+  const leadFree = lead === 'free_film' && filmFirst
+    ? (filmFirst.freeFilm ?? { variant: 'region_free_film' as const, seconds: REGION_FREE_FILM_SECONDS })
+    : null
+  // Com o passe no topo (ou enquanto a região ainda está sendo lida), o lugar de sempre do passe fica vazio: um passe só,
+  // montado uma vez (a oferta de região grava evento de servidor a cada montagem).
+  const passMovedOrPending = lead === 'region_pass' || regionPending
+  const regionPass = passMovedOrPending ? null : regionPassProp
+  const onFilmPass = passMovedOrPending ? null : onFilmPassProp
   const [billing, setBilling] = useState<ConversionBilling>('annual')
   const observation = useOfferObservation('upgrade', 'menu')
   const close = useRef<HTMLButtonElement>(null)
@@ -128,9 +213,13 @@ export default function ConversionUpgrade({ currency, region, onClose, onUpgrade
       onClick={e => e.stopPropagation()} onClickCapture={e => { const control = (e.target as HTMLElement).closest('button,video'); if (control && control !== close.current) observation.gesture(control.tagName === 'VIDEO' ? 'play_proof' : 'choose_offer') }}
       style={{ width: '100%', maxWidth: 570, maxHeight: '92dvh', overflowY: 'auto', borderRadius: 20, padding: 22, background: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border)' }}>
       <button ref={close} type="button" aria-label="Close upgrade" onClick={onClose} style={{ ...button, float: 'right', padding: '6px 10px' }}>×</button>
+      {leadFree && filmFirst && <FreeFilmFirstCard variant={leadFree.variant} seconds={leadFree.seconds} idea={filmFirst.idea} onStart={filmFirst.onStart} /> /* KINEO-PAYWALL-FILME-PRIMEIRO-1510 */}
+      {lead === 'region_pass' && <PassFirstLead>{REGION_PASS_OFFER_LIVE && regionPassProp
+        ? <RegionPassOffer surface="wall" beforeBuy={regionPassProp.beforeBuy} fallback={onFilmPassProp ? <ConversionPassCard surface="upgrade" onBuy={onFilmPassProp} disabled={loading} /> : null} />
+        : onFilmPassProp && <ConversionPassCard surface="upgrade" onBuy={onFilmPassProp} disabled={loading} />}</PassFirstLead> /* KINEO-PAYWALL-FILME-PRIMEIRO-1510 */}
       <h2 id="conversion-upgrade-title" style={{ fontSize: 25, lineHeight: 1.2, margin: '6px 40px 10px 0' }}>Your idea. Your next film.</h2>
-      <ConversionProof />
-      {freeAction && <div style={{ ...panel, marginBottom: 14 }}><p style={{ marginTop: 0 }}>You still have a film available before you buy.</p><button style={button} type="button" onClick={freeAction.onClick}>{freeAction.label}</button></div>}
+      {lead === null && !regionPending && <ConversionProof /> /* KINEO-PAYWALL-FILME-PRIMEIRO-1510: com o filme dela (ou o passe) na frente, a amostra da casa sai */}
+      {freeAction && !leadFree && <div style={{ ...panel, marginBottom: 14 }}><p style={{ marginTop: 0 }}>You still have a film available before you buy.</p><button style={button} type="button" onClick={freeAction.onClick}>{freeAction.label}</button></div>}
       {REGION_PASS_OFFER_LIVE && regionPass
         ? <RegionPassOffer surface="wall" beforeBuy={regionPass.beforeBuy} fallback={onFilmPass ? <ConversionPassCard surface="upgrade" onBuy={onFilmPass} disabled={loading} /> : null} />
         : onFilmPass && <ConversionPassCard surface="upgrade" onBuy={onFilmPass} disabled={loading} />}
