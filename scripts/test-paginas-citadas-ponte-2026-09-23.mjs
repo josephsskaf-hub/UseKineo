@@ -14,6 +14,7 @@
 import fs from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semBingSeo1510 } from './test-support/desfaz-bing-seo-1510.mjs'
 
 const BASE_SHA = '2d6d7940'
 let passed = 0
@@ -27,7 +28,11 @@ function check(condition, label) {
   passed += 1
   console.log(`✓ ${label}`)
 }
-const read = (f) => fs.readFileSync(f, 'utf8').replace(/\r\n/g, '\n')
+// KINEO-BING-SEO-1510 — reancorado com desfaz byte a byte: a rodada do Bing reescreveu título, description, a resposta do topo
+// e uma pergunta do FAQ do /text-to-video-shorts (aprovada pelo fundador em 15/10). As travas contra a base continuam exatas
+// sobre a árvore SEM essa rodada (scripts/test-support/desfaz-bing-seo-1510.mjs: bloco ausente ou repetido lança); o conteúdo
+// novo é provado por scripts/test-bing-seo-1510.mjs.
+const read = (f) => semBingSeo1510(f, fs.readFileSync(f, 'utf8').replace(/\r\n/g, '\n'))
 const atBase = (f) => execFileSync('git', ['show', `${BASE_SHA}:${f}`], { encoding: 'utf8' }).replace(/\r\n/g, '\n')
 const PAUSE_GUARD = '!enginePaused(ENGINES.seedance.param)'
 

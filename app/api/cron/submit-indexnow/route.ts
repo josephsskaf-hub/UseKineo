@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import {
   INDEXNOW_HOST,
   INDEXNOW_KEY_LOCATION,
+  INDEXNOW_ORIGIN,
+  INDEXNOW_SNAPSHOT_EVENT,
+  INDEXNOW_SUBMITTED_EVENT,
+  changedSinceSnapshot,
+  nextSnapshot,
+  parseSitemapXml,
+  remainingDailyBudget,
   submitToIndexNow,
+  type IndexNowEntry,
+  type IndexNowSnapshot,
 } from '@/lib/indexnow'
 import { listIndexablePublicVideos, PUBLIC_BASE_URL } from '@/lib/publicVideos'
 
@@ -57,9 +67,8 @@ export const fetchCache = 'force-no-store'
 export const maxDuration = 60
 
 /**
- * Janela de submissão. O cron roda 1×/dia; 3 dias de folga garantem que uma
- * execução perdida (deploy, incidente da Vercel) não deixe um dia de vídeos
- * fora do fluxo para sempre. O custo de re-submeter uma URL já enviada é zero.
+ * Janela dos VÍDEOS. O cron rodava 1×/dia; hoje roda de hora em hora e o retrato evita reenvio, mas a janela continua:
+ * só vídeo publicado nos últimos dias é candidato (o protocolo pede que se submeta o que MUDOU).
  */
 const LOOKBACK_DAYS = 3
 
@@ -80,78 +89,208 @@ function isAuthorized(req: NextRequest): boolean {
   return req.headers.get('authorization') === `Bearer ${cronSecret}`
 }
 
+// ═══ KINEO-BING-SEO-1510 ═══════════════════════════════════════════════════
+// O Bing mostrou o último envio em 13/10 e nada depois (causa em lib/indexnow.ts, bloco KINEO-BING-SEO-1510): este cron
+// só enviava páginas de VÍDEO publicadas nos últimos 3 dias — e não há nenhuma desde 30/09 — enquanto as páginas de SEO
+// só iam ao Bing por ping manual. Agora:
+//   · ENSAIO POR PADRÃO: sem `?confirm=SEND` nada é enviado nem gravado (o vercel.json agenda COM o token; o guardião
+//     scripts/test-cron-dryrun-eterno.mjs confere). `?dry=1` e KINEO_INDEXNOW_DISABLED=true continuam forçando o ensaio;
+//   · roda de hora em hora e envia o que MUDOU desde o último envio real: <lastmod> do /sitemap.xml publicado + vídeos
+//     consentidos, comparados com o retrato gravado em `events` (INDEXNOW_SNAPSHOT_EVENT). Um deploy de produção que muda o
+//     lastmod de uma página chega ao Bing na primeira execução depois dele;
+//   · teto de 24 h (INDEXNOW_DAILY_URL_CAP) somando os envios reais registrados (INDEXNOW_SUBMITTED_EVENT); o que não coube
+//     fica fora do retrato e sai na execução seguinte;
+//   · banco ou sitemap fora do ar ⇒ a execução segue com o que tem e nunca derruba nada (200 com o motivo).
+
+function adminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) return null
+  return createAdminClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
+}
+type Admin = NonNullable<ReturnType<typeof adminClient>>
+
+async function readSnapshot(admin: Admin | null): Promise<IndexNowSnapshot | null> {
+  if (!admin) return null
+  try {
+    const { data, error } = await admin
+      .from('events')
+      .select('metadata, created_at')
+      .eq('name', INDEXNOW_SNAPSHOT_EVENT)
+      .order('created_at', { ascending: false })
+      .limit(1)
+    if (error || !data || data.length === 0) return null
+    const snap = (data[0] as { metadata?: { snapshot?: unknown } }).metadata?.snapshot
+    return snap && typeof snap === 'object' ? (snap as IndexNowSnapshot) : null
+  } catch {
+    return null
+  }
+}
+
+async function readSentLast24h(admin: Admin | null): Promise<number> {
+  if (!admin) return 0
+  try {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const { data, error } = await admin
+      .from('events')
+      .select('metadata, created_at')
+      .eq('name', INDEXNOW_SUBMITTED_EVENT)
+      .gte('created_at', since)
+      .order('created_at', { ascending: false })
+      .limit(200)
+    if (error || !data) return 0
+    return (data as { metadata?: { submitted?: unknown } }[]).reduce((n, r) => n + (Number(r.metadata?.submitted) || 0), 0)
+  } catch {
+    return 0
+  }
+}
+
+async function fetchPublishedSitemap(): Promise<{ entries: IndexNowEntry[]; error: string | null }> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 15_000)
+  try {
+    const res = await fetch(`${INDEXNOW_ORIGIN}/sitemap.xml`, { cache: 'no-store', signal: controller.signal, headers: { 'user-agent': 'Kineo-IndexNow/1.0' } })
+    if (!res.ok) return { entries: [], error: `sitemap HTTP ${res.status}` }
+    return { entries: parseSitemapXml(await res.text()), error: null }
+  } catch (err) {
+    return { entries: [], error: err instanceof Error ? err.message : 'sitemap fetch failed' }
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 export async function GET(req: NextRequest) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 })
   }
 
+  // KINEO-BING-SEO-1510 — escrita só com o token; sem ele, ensaio (nada enviado, nada gravado).
+  const confirmed = req.nextUrl.searchParams.get('confirm') === 'SEND'
   const dryRun =
+    !confirmed ||
     req.nextUrl.searchParams.get('dry') === '1' ||
     process.env.KINEO_INDEXNOW_DISABLED === 'true'
 
-  const cutoff = Date.now() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000
+  const now = Date.now()
+  const cutoff = now - LOOKBACK_DAYS * 24 * 60 * 60 * 1000
 
   // `listIndexablePublicVideos()` é a MESMA função que alimenta o
   // video-sitemap: portão de qualidade, deduplicação por transcrição e por
   // título, tudo já aplicado. Ela nunca lança — sem Supabase devolve [].
-  let recent: string[] = []
+  let videoEntries: IndexNowEntry[] = []
   let scanned = 0
   try {
     const videos = await listIndexablePublicVideos(MAX_URLS_PER_RUN * 4)
     scanned = videos.length
-    recent = videos
+    videoEntries = videos
       .filter((v) => {
         const t = Date.parse(v.publishedAt)
         return Number.isFinite(t) && t >= cutoff
       })
-      .map((v) => v.pageUrl)
       .slice(0, MAX_URLS_PER_RUN)
+      .map((v) => ({ loc: v.pageUrl, lastmod: v.publishedAt }))
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('[submit-indexnow] could not list public videos:', err)
-    recent = []
+    videoEntries = []
   }
 
-  // Sem vídeo novo na janela não há o que anunciar. Submeter só os hubs todo
-  // dia seria ruído, então a execução termina em no-op explícito.
-  if (recent.length === 0) {
+  const sitemap = await fetchPublishedSitemap()
+  if (sitemap.error) {
+    // eslint-disable-next-line no-console
+    console.error('[submit-indexnow] could not read the published sitemap:', sitemap.error)
+  }
+
+  const admin = adminClient()
+  const [previous, sentLast24h] = await Promise.all([readSnapshot(admin), readSentLast24h(admin)])
+  // Sitemap ANTES dos vídeos: com o teto mordendo, a página de SEO alterada no deploy tem a vez.
+  const current: IndexNowEntry[] = [...sitemap.entries, ...videoEntries]
+  const changed = changedSinceSnapshot(current, previous, now)
+  const budget = Math.min(MAX_URLS_PER_RUN, remainingDailyBudget(sentLast24h))
+  const videoSet = new Set(videoEntries.map((v) => v.loc))
+  const changedVideos = changed.filter((u) => videoSet.has(u))
+  const hubs = changedVideos.length > 0 ? HUB_PATHS.map((p) => `${PUBLIC_BASE_URL}${p}`) : []
+  const toSend = [...changed, ...hubs].slice(0, budget)
+
+  // Sem vídeo novo e sem lastmod alterado não há o que anunciar: no-op explícito.
+  if (toSend.length === 0) {
     return NextResponse.json({
       ok: true,
       skipped: 'no new indexable videos in window',
+      sitemap: sitemap.error ? `unreadable: ${sitemap.error}` : 'no lastmod changed since the last submission',
+      changed: changed.length,
+      budgetLeft24h: budget,
+      firstRun: previous === null,
+      dryRun,
       lookbackDays: LOOKBACK_DAYS,
       scanned,
       host: INDEXNOW_HOST,
     })
   }
 
-  const urls = [...recent, ...HUB_PATHS.map((p) => `${PUBLIC_BASE_URL}${p}`)]
-  const result = await submitToIndexNow(urls, { dryRun })
+  const result = await submitToIndexNow(toSend, { dryRun })
 
   if (!result.ok) {
     // eslint-disable-next-line no-console
     console.error('[submit-indexnow] submission failed:', result.reason)
     // 200 de propósito: a Vercel marca o cron como falho em não-2xx e passa a
     // alertar, e uma indisponibilidade momentânea da API do IndexNow não é um
-    // incidente — a próxima execução re-submete (a janela é de 3 dias).
+    // incidente — o retrato não avança, então a próxima execução reenvia.
     return NextResponse.json({
       ok: false,
       error: result.reason,
-      attempted: urls.length,
+      attempted: toSend.length,
       dryRun,
     })
+  }
+
+  // Só um envio REAL avança o retrato e conta no teto de 24 h.
+  let recorded = false
+  if (!dryRun && admin) {
+    const sent = new Set(toSend)
+    const snapshot = nextSnapshot(current, previous, changed, sent)
+    try {
+      const { error } = await admin.from('events').insert([
+        {
+          name: INDEXNOW_SUBMITTED_EVENT,
+          path: '/api/cron/submit-indexnow',
+          metadata: {
+            submitted: result.submitted,
+            http: result.httpStatus,
+            sitemap_urls: toSend.filter((u) => !videoSet.has(u) && !hubs.includes(u)).length,
+            video_urls: changedVideos.filter((u) => sent.has(u)).length,
+            hubs: hubs.filter((u) => sent.has(u)).length,
+            first_run: previous === null,
+            urls: toSend.slice(0, 50),
+          },
+        },
+        { name: INDEXNOW_SNAPSHOT_EVENT, path: '/api/cron/submit-indexnow', metadata: { snapshot, urls: Object.keys(snapshot).length } },
+      ])
+      recorded = !error
+      // eslint-disable-next-line no-console
+      if (error) console.error('[submit-indexnow] could not record the submission:', error.message)
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('[submit-indexnow] could not record the submission:', err)
+    }
   }
 
   return NextResponse.json({
     ok: true,
     dryRun,
     submitted: result.submitted,
-    videoPages: recent.length,
-    hubs: HUB_PATHS.length,
+    sitemapPages: toSend.filter((u) => !videoSet.has(u) && !hubs.includes(u)).length,
+    videoPages: changedVideos.length,
+    hubs: hubs.length,
+    pendingOverCap: Math.max(0, changed.length + hubs.length - toSend.length),
+    recorded,
+    firstRun: previous === null,
     refused: result.skipped.length,
     lookbackDays: LOOKBACK_DAYS,
     scanned,
     host: INDEXNOW_HOST,
     keyLocation: INDEXNOW_KEY_LOCATION,
+    urls: dryRun ? toSend.slice(0, 50) : undefined,
     ranAt: new Date().toISOString(),
   })
 }

@@ -19,10 +19,15 @@ import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
+import { semBingSeo1510 } from './test-support/desfaz-bing-seo-1510.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const ts = createRequire(join(root, 'package.json'))('typescript')
-const disk = (rel) => readFileSync(join(root, rel), 'utf8').replace(/\r\n/g, '\n')
+// KINEO-BING-SEO-1510 — reancorado com desfaz byte a byte: a rodada do Bing (aprovada pelo fundador em 15/10) encurtou o
+// título da home e reescreveu o do /text-to-video-shorts. A trava dos títulos continua EXATA contra a base: lê-se a árvore
+// sem a rodada do Bing (scripts/test-support/desfaz-bing-seo-1510.mjs — bloco ausente ou repetido lança). Os títulos novos são
+// provados por scripts/test-bing-seo-1510.mjs.
+const disk = (rel) => semBingSeo1510(rel, readFileSync(join(root, rel), 'utf8').replace(/\r\n/g, '\n'))
 
 const SITE_NAME = 'Kineo (usekineo.com)'
 const TAAFT = 'https://theresanaiforthat.com/ai/kineo/'

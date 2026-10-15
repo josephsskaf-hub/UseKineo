@@ -37,6 +37,7 @@ import { GEO_RODADA3_ALTERNATIVE_SLUGS, GEO_RODADA3_LAST_MODIFIED_ISO, GEO_RODAD
 import { LOTE1_LANDING_PATH_LIST, LOTE1_NICHE_SLUG_LIST, LOTE1_REVIEWED_ISO } from '@/lib/seo/paginasLote1Paths'
 // KINEO-VS-ALTERNATIVAS-1310 — as 4 páginas /vs "alternativa a X" (Pictory, Synthesia, CapCut, OpusClip). Módulo PURO, sem import.
 import { VS_ALTERNATIVE_LINKS, VS_ALT_REVIEWED_ISO } from '@/lib/seo/vsAlternatives1310'
+import { BING_SEO_1510_LASTMOD_ISO, BING_SEO_1510_PATHS } from '@/lib/seo/bingSeo1510Paths' // KINEO-BING-SEO-1510
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -400,7 +401,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: 'daily' as const,
     priority: 0.8,
   }))
-  return [
+  return carimbaBingSeo1510([ // KINEO-BING-SEO-1510 — lastmod das páginas tocadas (ver carimbaBingSeo1510)
     ...effectSitemapEntries(),
     // House portfolio: discoverable only while the public page is enabled.
     // Its own review date must not re-date the unrelated acquisition pages.
@@ -469,5 +470,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly' as const,
       priority: 0.8,
     },
-  ]
+  ])
+}
+
+// KINEO-BING-SEO-1510 — as páginas que esta rodada mudou (título/description/alt/conteúdo, lista em lib/seo/bingSeo1510.ts)
+// ganham o lastmod do dia. É a troca de lastmod que o cron app/api/cron/submit-indexnow passa a comparar com o último envio
+// para avisar o Bing. Só AVANÇA a data: uma página com carimbo mais novo (de outra rodada) fica com o dela.
+function carimbaBingSeo1510(entries: MetadataRoute.Sitemap): MetadataRoute.Sitemap {
+  const paths = new Set<string>(BING_SEO_1510_PATHS)
+  const stamp = new Date(BING_SEO_1510_LASTMOD_ISO)
+  return entries.map((e) => {
+    const path = e.url.startsWith(BASE) ? e.url.slice(BASE.length) || '/' : e.url
+    if (!paths.has(path)) return e
+    const prev = e.lastModified ? new Date(e.lastModified) : null
+    return prev && Number.isFinite(prev.getTime()) && prev.getTime() >= stamp.getTime() ? e : { ...e, lastModified: stamp }
+  })
 }

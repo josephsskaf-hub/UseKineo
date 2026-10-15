@@ -15,6 +15,12 @@ import PaidSeedanceBridge from '@/components/PaidSeedanceBridge'
 import BuyCreatorCta from '@/components/BuyCreatorCta' // KINEO-PAGINAS-QUE-VENDEM-2026-10-12
 import { ENGINES } from '@/lib/growth/enginePageCatalog'
 import { enginePaused } from '@/lib/engineLaunch'
+// KINEO-BING-SEO-1510 — "what is the best ai tool for creating youtube shorts from text?": posição 3,9 no Bing, 38 impressões,
+// 0 cliques. O título dizia "Text to Video Shorts Generator - … | Kineo" (68 caracteres, cortado) e a description tinha 199
+// em produção (o Bing corta em 160). Agora o título é a pergunta, a description responde e mantém a linha do teste grátis da
+// oferta (fonte única), e a página abre com a resposta em 3 frases — sem dizer que a Kineo é a melhor para todos.
+import { TEXT_TO_VIDEO_TITLE_1510, textToVideoAnswer1510, textToVideoDescription1510 } from '@/lib/seo/bingSeo1510'
+const ANSWER_1510 = textToVideoAnswer1510()
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -44,6 +50,7 @@ const STEPS = [
 ] as const
 
 const FAQ = [
+  ANSWER_1510.faq, // KINEO-BING-SEO-1510 — a pergunta exata da consulta (visível = JSON-LD)
   {
     q: 'Can AI turn text into a YouTube Short?',
     a: 'Yes. Kineo turns a topic, prompt, or script into a finished vertical Short with script, AI voiceover, visuals, captions, and an MP4 export.',
@@ -63,9 +70,8 @@ const FAQ = [
 ] as const
 
 export const metadata: Metadata = {
-  title: 'Text to Video Shorts Generator - AI YouTube Shorts From Text | Kineo',
-  description:
-    `Turn a topic or script into a narrated vertical Short with visuals and captions. Trial: ${OFFER.copy.planLimitLine}. Compare films and plans before you choose.`,
+  title: TEXT_TO_VIDEO_TITLE_1510,
+  description: textToVideoDescription1510(OFFER.copy.planLimitLine),
   alternates: { canonical: `${BASE}/text-to-video-shorts` },
   openGraph: {
     title: 'Text to Video Shorts Generator - Kineo',
@@ -136,6 +142,16 @@ export default function TextToVideoShortsPage() {
         <p style={{ fontSize: '1.08rem', color: '#86868b', lineHeight: 1.6, margin: '16px 0 0' }}>
           Paste a topic, prompt, or full script. Kineo turns it into a faceless vertical video with AI voiceover, visuals, captions, and an MP4 export for YouTube Shorts, TikTok, and Reels.
         </p>
+        {/* KINEO-BING-SEO-1510 — a resposta direta à pergunta "qual a melhor IA para Shorts a partir de texto?" */}
+        <section data-kineo="bing-seo-1510-answer" style={{ ...card, margin: '18px 0 0', borderColor: 'rgba(41,151,255,0.4)' }}>
+          <h2 style={{ fontSize: '1.05rem', fontWeight: 800, margin: '0 0 8px' }}>What is the best AI tool for creating YouTube Shorts from text?</h2>
+          {ANSWER_1510.summary.map((line) => (
+            <p key={line} style={{ ...p, color: '#d2d2d7', fontSize: 15, margin: '0 0 6px' }}>{line}</p>
+          ))}
+          <p style={{ ...p, fontSize: 14, margin: 0 }}>
+            Compare by starting point in the <Link href="/best-ai-shorts-generators" style={{ color: '#2997ff' }}>13-tool roundup</Link>.
+          </p>
+        </section>
         {/* KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — compra direta do Creator na primeira dobra; o botão grátis vira o secundário. */}
         {!enginePaused(ENGINES.seedance.param) && (
           <BuyCreatorCta

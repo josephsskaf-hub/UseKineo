@@ -32,6 +32,7 @@ import { execFileSync } from 'node:child_process'
 import { engineFixture } from './gpt24h-engine-fixture.mjs'
 import { offlineModules, renderToStaticMarkup } from './gpt24h-offline-support.mjs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semBingSeo1510 } from './test-support/desfaz-bing-seo-1510.mjs'
 import { edicoesMotoresGeo } from './test-support/motores-geo-2026-10-06.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -308,7 +309,11 @@ async function problemas(rep = {}) {
   }
 
   // (5) sitemap
-  const sm = offlineModules({ replacements: rep, mocks: SITEMAP_MOCKS })(SITEMAP).default()
+// KINEO-BING-SEO-1510 — reancorado com desfaz byte a byte: a rodada do Bing (15/10) carimba o lastmod das páginas que ela
+// mudou (lib/seo/bingSeo1510Paths.ts), entre elas /ai-video-generator/seedance. As datas desta rodada continuam EXATAS no sitemap SEM a rodada do
+// Bing (scripts/test-support/desfaz-bing-seo-1510.mjs: bloco ausente ou repetido lança); o carimbo novo é provado por
+// scripts/test-bing-seo-1510.mjs.
+  const sm = offlineModules({ replacements: { ...rep, [SITEMAP]: semBingSeo1510(SITEMAP, rep[SITEMAP] ?? rd(SITEMAP)) }, mocks: SITEMAP_MOCKS })(SITEMAP).default()
   const urls = sm.map((x) => x.url)
   // REANCORADO KINEO-GEO-RODADA2-2026-10-08 (com motivo): a rodada 2 de GEO (sessão CEO 08/10) mudou de verdade a página do
   // Seedance 1.5 ("é grátis?", 1.5 × 2.5, filmes reais) — o lastmod dela passa a ser a data REAL dessa revisão
@@ -407,7 +412,7 @@ ok(edicoesMotoresGeo(rd(PAGE)) === 11, 'as 11 edições da página que os guardi
   ok(Boolean(iso) && geoSrc.includes(`export const ENGINE_GEO_REVIEWED_ISO = '${iso}'`), '(8) ping escolhe pelo lastmod desta revisão (espelho de ENGINE_GEO_REVIEWED_ISO)')
   ok(s.includes("const submit = args.includes('--submit')") && /if \(!submit\) \{[\s\S]*?process\.exit\(0\)/.test(s) && s.indexOf('await fetch(ENDPOINT') > s.indexOf('if (!submit) {'), '(8) ping é ensaio por padrão: só envia com --submit, depois de conferir a chave no ar')
   // executa o ping em modo offline contra o sitemap REAL gerado aqui (nenhuma rede)
-  const sm = offlineModules({ mocks: SITEMAP_MOCKS })(SITEMAP).default()
+  const sm = offlineModules({ replacements: { [SITEMAP]: semBingSeo1510(SITEMAP, rd(SITEMAP)) }, mocks: SITEMAP_MOCKS })(SITEMAP).default() // KINEO-BING-SEO-1510 — mesmo desfaz da prova (5)
   const xml = `<?xml version="1.0" encoding="UTF-8"?><urlset>${sm.map((x) => `<url><loc>${x.url}</loc><lastmod>${new Date(x.lastModified).toISOString()}</lastmod></url>`).join('')}</urlset>`
   const dir = mkdtempSync(join(tmpdir(), 'kineo-indexnow-'))
   writeFileSync(join(dir, 'sitemap.xml'), xml)

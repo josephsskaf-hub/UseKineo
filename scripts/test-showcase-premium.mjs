@@ -27,6 +27,7 @@ function load(file) {
     if (id === '@/lib/growth/mrrShowcaseConfig') return load('lib/growth/mrrShowcaseConfig.ts')
     if (id === '@/lib/analytics') return { trackEvent: () => { throw Error('Analytics forbidden in offline SSR') } }
     if (id === '@/lib/ui/previewFacts') return load('lib/ui/previewFacts.ts')
+    if (id === '@/lib/ui/posterAlt') return load('lib/ui/posterAlt.ts') // KINEO-BING-SEO-1510 — alt da capa (módulo puro, sem imports)
     if (id === '@/lib/ui/heroFrame') return load('lib/ui/heroFrame.ts')
     if (id === '@/lib/ui/interfaceLanguage' || id === './interfaceLanguage') return load('lib/ui/interfaceLanguage.ts')
     if (id === './showcaseGallery') return load('lib/ui/showcaseGallery.ts')

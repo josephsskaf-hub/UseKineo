@@ -8,6 +8,7 @@ import ControlIcon from '@/components/ControlIcon'
 import { showcaseEngines, showcasePoster } from '@/lib/ui/showcaseGallery'
 import styles from './ExamplesGallery.module.css'
 import { UiLabel, useUiCopy } from '@/components/InterfaceLanguage'
+import { posterAlt1510 } from '@/lib/ui/posterAlt' // KINEO-BING-SEO-1510 — alt descritivo nas capas
 
 function FeaturedMedia({ video, paused, onEnded }: { video: WallVideo; paused: boolean; onEnded?: () => void }) {
   const container = useRef<HTMLSpanElement>(null)
@@ -46,7 +47,7 @@ function FeaturedMedia({ video, paused, onEnded }: { video: WallVideo; paused: b
   }, [failed, visible, tabVisible, allowed, paused, onEnded])
   const openingFocus = video.previewOpening?.focalPoint ?? video.focalPoint
   return <span className={styles.featuredMedia} ref={container}>
-    <img src={video.posterUrl} alt="" loading="eager" style={{ objectPosition: openingFocus }} />
+    <img src={video.posterUrl} alt={posterAlt1510(video)} loading="eager" style={{ objectPosition: openingFocus }} />
     {mounted && !failed && <video ref={player} src={video.previewUrl ?? video.videoUrl} muted loop={!onEnded} playsInline preload="none"
       style={{ opacity: playing ? 1 : 0, objectPosition: openingFocus }} onPlaying={() => setPlaying(true)} onError={() => setFailed(true)}
       onEnded={() => { if (active) onEnded?.() }}
@@ -65,7 +66,7 @@ function FeaturedCard({ videos, lead, autoplay, paused, onOpen, clean }: {
     onClick={event => onOpen(video, event.currentTarget)} aria-label={`${t('Watch preview')}: ${video.title}`}>
     {autoplay ? <FeaturedMedia key={video.id} video={video} paused={paused}
       onEnded={rotates ? () => setIndex(current => (current + 1) % videos.length) : undefined} />
-      : <img src={video.posterUrl} alt="" loading="eager" className={styles.featurePoster} />}
+      : <img src={video.posterUrl} alt={posterAlt1510(video)} loading="eager" className={styles.featurePoster} />}
     {!clean && <span className={styles.featureShade} />}
     {!clean && rotates && <span className={styles.filmSteps} aria-hidden="true">{videos.map((item, step) => <span key={item.id} data-active={step === index} />)}</span>}
     {!clean && <span className={styles.featureCopy}><span className={styles.featureBadge}>{video.badge}</span><strong>{video.title}</strong>
@@ -156,7 +157,7 @@ export default function ExamplesGallery({ videos, startPaused = false, separateF
       {filtered.length ? <div className={styles.grid}>
         {filtered.map(video => <button type="button" className={styles.card} key={video.id} onClick={event => open(video, event.currentTarget)} aria-label={`${t('Watch preview')}: ${video.title}`}>
           <span className={styles.poster}>
-            <img src={video.posterUrl ?? showcasePoster(video)} alt="" loading="lazy" decoding="async" />
+            <img src={video.posterUrl ?? showcasePoster(video)} alt={posterAlt1510(video)} loading="lazy" decoding="async" />
             <span className={styles.badge}>{video.badge}</span><span className={styles.play} aria-hidden="true">▶</span>
           </span>
           <span className={styles.cardTitle}>{video.title}</span><span className={styles.cardHint}><UiLabel>Watch preview</UiLabel> <span aria-hidden="true">↗</span></span>

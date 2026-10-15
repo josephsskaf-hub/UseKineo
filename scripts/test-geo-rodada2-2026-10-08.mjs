@@ -24,6 +24,7 @@ import { execFileSync } from 'node:child_process'
 import { engineFixture } from './gpt24h-engine-fixture.mjs'
 import { React, offlineModules, renderToStaticMarkup } from './gpt24h-offline-support.mjs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semBingSeo1510 } from './test-support/desfaz-bing-seo-1510.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -372,7 +373,11 @@ async function problemas(world = { rep: {} }) {
   }
 
   // ═══ (D) sitemap, llms.txt, ping ═════════════════════════════════════════════════════════════════════════════════
-  const sm = offlineModules({ replacements: rep, mocks: SITEMAP_MOCKS(nicheSlugs) })(SITEMAP).default()
+// KINEO-BING-SEO-1510 — reancorado com desfaz byte a byte: a rodada do Bing (15/10) carimba o lastmod das páginas que ela
+// mudou (lib/seo/bingSeo1510Paths.ts), entre elas /ai-video-generator/seedance. As datas desta rodada continuam EXATAS no sitemap SEM a rodada do
+// Bing (scripts/test-support/desfaz-bing-seo-1510.mjs: bloco ausente ou repetido lança); o carimbo novo é provado por
+// scripts/test-bing-seo-1510.mjs.
+  const sm = offlineModules({ replacements: { ...rep, [SITEMAP]: semBingSeo1510(SITEMAP, rep[SITEMAP] ?? rd(SITEMAP)) }, mocks: SITEMAP_MOCKS(nicheSlugs) })(SITEMAP).default()
   const lm = (path) => { const e = sm.find((x) => x.url === `${BASE}${path}`); return e ? new Date(e.lastModified).toISOString() : null }
   const r2 = new Date(`${RODADA2_ISO}T12:00:00.000Z`).toISOString()
   if (ideas.GEO_RODADA2_REVIEWED_ISO !== RODADA2_ISO) p.push('D: GEO_RODADA2_REVIEWED_ISO ≠ 2026-10-08')

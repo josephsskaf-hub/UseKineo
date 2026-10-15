@@ -34,6 +34,7 @@ import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import vm from 'node:vm'
 import nodeCrypto from 'node:crypto'
+import { semBingSeo1510 } from './test-support/desfaz-bing-seo-1510.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -126,7 +127,11 @@ function carregador({ rep = {}, mocks = {}, env = {} } = {}) {
     'node:crypto': nodeCrypto,
     crypto: nodeCrypto,
   }
-  const src = (rel) => (has(rep, rel) ? rep[rel] : rd(rel))
+// KINEO-BING-SEO-1510 — reancorado com desfaz byte a byte: a rodada do Bing (15/10) carimba o lastmod das páginas que ela
+// mudou (lib/seo/bingSeo1510Paths.ts), entre elas /ai-video-generator/seedance, /best-ai-shorts-generators e /faceless-youtube-shorts-generator. As datas desta rodada continuam EXATAS no sitemap SEM a rodada do
+// Bing (scripts/test-support/desfaz-bing-seo-1510.mjs: bloco ausente ou repetido lança); o carimbo novo é provado por
+// scripts/test-bing-seo-1510.mjs.
+  const src = (rel) => (rel === 'app/sitemap.ts' ? semBingSeo1510(rel, has(rep, rel) ? rep[rel] : rd(rel)) : has(rep, rel) ? rep[rel] : rd(rel))
   const exists = (rel) => has(rep, rel) || has(mocks, rel) || existsSync(join(ROOT, rel))
   const resolve = (spec, from) => {
     const base = spec.startsWith('@/') ? spec.slice(2) : spec.startsWith('.') ? posix.normalize(posix.join(posix.dirname(from), spec)) : null

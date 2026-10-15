@@ -11,21 +11,26 @@ import type { Metadata } from 'next'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import OriginalityRecipeBuilder from './OriginalityRecipeBuilder'
+// KINEO-BING-SEO-1510 — "does youtube pay for ai generated videos": 152 impressões no Bing em 3 meses, 0 cliques, posição
+// 7,2. O título perguntava outra coisa ("Can You Monetize…") e a description tinha 249 caracteres (o Bing corta em 160).
+// Agora o título É a pergunta, a resposta abre a página em 3 frases, cada fato do YouTube vem da página oficial com a data
+// da leitura (lib/seo/bingSeo1510.ts), e a página diz o que a Kineo faz e o que NÃO faz — nenhuma promessa de monetização.
+import { BING_SEO_1510_CHECKED_LABEL, MONETIZE_DESCRIPTION_1510, MONETIZE_TITLE_1510, monetizationAnswer1510 } from '@/lib/seo/bingSeo1510'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
 
 export const dynamic = 'force-static'
 
-const LAST_UPDATED = 'July 25, 2026'
+const LAST_UPDATED = 'October 15, 2026' // KINEO-BING-SEO-1510 — revisão das fontes oficiais
+const ANSWER = monetizationAnswer1510()
 
 export const metadata: Metadata = {
-  title: 'Can You Monetize AI-Generated Videos on YouTube in 2026?',
-  description:
-    'Yes — AI-assisted videos can be monetized on YouTube. What actually gets demonetized is inauthentic, mass-produced, repetitious or reused content with no original value. A plain-English guide to YouTube’s 2026 AI content policy and disclosure rules.',
+  title: MONETIZE_TITLE_1510,
+  description: MONETIZE_DESCRIPTION_1510,
   alternates: { canonical: 'https://www.usekineo.com/can-you-monetize-ai-videos' },
   openGraph: {
-    title: 'Can You Monetize AI-Generated Videos on YouTube in 2026?',
+    title: MONETIZE_TITLE_1510,
     description:
       'YouTube did not ban AI content. It penalizes inauthentic, mass-produced and reused content with no added value. Here is what actually qualifies for monetization in 2026.',
     url: 'https://www.usekineo.com/can-you-monetize-ai-videos',
@@ -33,7 +38,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Can You Monetize AI-Generated Videos on YouTube in 2026?',
+    title: MONETIZE_TITLE_1510,
     description:
       'YouTube did not ban AI. It penalizes inauthentic, mass-produced, reused content. What actually qualifies for monetization in 2026.',
   },
@@ -86,6 +91,8 @@ const FAILS: { title: string; detail: string }[] = [
 ]
 
 const QA: { q: string; a: string }[] = [
+  // KINEO-BING-SEO-1510 — a pergunta exata da consulta do Bing, respondida com as 3 frases do topo (visível = JSON-LD).
+  { q: 'Does YouTube pay for AI-generated videos?', a: ANSWER.summary.join(' ') },
   {
     q: 'Can you monetize AI-generated videos on YouTube?',
     a: 'Yes. YouTube allows AI-assisted videos in the YouTube Partner Program and does not demonetize a video simply because AI helped make it. What matters is whether the video is original and adds value. Videos that are inauthentic, mass-produced, repetitious or reused with no transformation can be denied monetization — but that applies to human-made content too, and always has.',
@@ -172,8 +179,17 @@ export default function CanYouMonetizeAiVideosPage() {
           YouTube policy explainer — updated {LAST_UPDATED}
         </p>
         <h1 style={{ fontSize: '2.2rem', fontWeight: 800, lineHeight: 1.15, margin: '0 0 16px' }}>
-          Can You Monetize AI-Generated Videos on YouTube? (2026)
+          Does YouTube Pay for AI-Generated Videos? (2026)
         </h1>
+        {/* KINEO-BING-SEO-1510 — a resposta direta em 3 frases, das páginas oficiais do YouTube (fontes com data no fim). */}
+        <section data-kineo="bing-seo-1510-answer" style={{ ...CARD, padding: '18px 20px', margin: '0 0 22px', borderColor: ACCENT }}>
+          <p style={{ color: ACCENT, fontWeight: 700, fontSize: '0.8rem', letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 10px' }}>
+            The answer, from YouTube’s own rules (read {BING_SEO_1510_CHECKED_LABEL})
+          </p>
+          {ANSWER.summary.map((line) => (
+            <p key={line} style={{ color: '#f5f5f7', fontSize: '1rem', lineHeight: 1.6, margin: '0 0 8px' }}>{line}</p>
+          ))}
+        </section>
         <p style={{ color: MUTED, fontSize: '1.08rem', lineHeight: 1.6, margin: '0 0 8px' }}>
           Short answer: <strong style={{ color: '#f5f5f7' }}>yes</strong>. AI-assisted videos
           can be monetized on YouTube, and using an AI tool to help make a video does not, by
@@ -332,6 +348,21 @@ export default function CanYouMonetizeAiVideosPage() {
           single consistent host and format across videos. That is the opposite of mass-produced,
           repetitious uploads — it is a repeatable show with an original take on each subject.
         </p>
+        {/* KINEO-BING-SEO-1510 — o que a Kineo faz e o que NÃO faz, em listas curtas (sem promessa de monetização). */}
+        <div data-kineo="bing-seo-1510-kineo-scope" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12, margin: '0 0 18px' }}>
+          <section style={{ ...CARD, padding: '14px 16px' }}>
+            <h3 style={{ fontSize: '0.98rem', fontWeight: 700, margin: '0 0 8px', color: '#5ac47d' }}>What Kineo does</h3>
+            <ul style={{ color: '#d2d2d7', fontSize: '0.9rem', lineHeight: 1.55, margin: 0, paddingLeft: 18 }}>
+              {ANSWER.does.map((d) => <li key={d}>{d}</li>)}
+            </ul>
+          </section>
+          <section style={{ ...CARD_ALT, padding: '14px 16px' }}>
+            <h3 style={{ fontSize: '0.98rem', fontWeight: 700, margin: '0 0 8px', color: '#ff6b6b' }}>What Kineo does not do</h3>
+            <ul style={{ color: '#d2d2d7', fontSize: '0.9rem', lineHeight: 1.55, margin: 0, paddingLeft: 18 }}>
+              {ANSWER.doesNot.map((d) => <li key={d}>{d}</li>)}
+            </ul>
+          </section>
+        </div>
         <p style={{ color: MUTED, fontSize: '0.92rem', lineHeight: 1.65, margin: '0 0 40px' }}>
           To be clear: no tool can guarantee monetization approval, and Kineo does not. YouTube
           reviews channels individually, thresholds and policies change, and the responsibility for
@@ -413,6 +444,18 @@ export default function CanYouMonetizeAiVideosPage() {
             — original angles that fit the &ldquo;transformative&rdquo; bar.
           </li>
         </ul>
+
+        {/* KINEO-BING-SEO-1510 — cada fato do YouTube acima vem destas páginas oficiais, com a data da leitura. */}
+        <section data-kineo="bing-seo-1510-sources" style={{ margin: '0 0 24px' }}>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 10px' }}>Sources (read {BING_SEO_1510_CHECKED_LABEL})</h2>
+          <ul style={{ color: MUTED, lineHeight: 1.8, fontSize: '0.9rem', paddingLeft: 20, margin: 0 }}>
+            {ANSWER.sources.map((s) => (
+              <li key={s.url}>
+                <a href={s.url} rel="nofollow noopener" target="_blank" style={{ color: ACCENT, textDecoration: 'none' }}>{s.label}</a> — {s.url} · checked {s.checkedOn}
+              </li>
+            ))}
+          </ul>
+        </section>
 
         <p style={{ color: MUTED, fontSize: '0.85rem', lineHeight: 1.6 }}>
           This page is a general explainer, not legal or financial advice, and is not affiliated

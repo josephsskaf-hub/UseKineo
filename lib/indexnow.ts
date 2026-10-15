@@ -154,3 +154,102 @@ export async function submitToIndexNow(
     clearTimeout(timer)
   }
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// KINEO-BING-SEO-1510 — o que MUDOU desde o último envio (sitemap + vídeos)
+// ════════════════════════════════════════════════════════════════════════════
+// O Bing Webmaster (relatório do Cowork, 15/10) mostrou o último envio do IndexNow em 13/10 00:54 e nada depois. Causa:
+//   · o único caminho AUTOMÁTICO (app/api/cron/submit-indexnow, 1×/dia) só olhava as páginas públicas de VÍDEO dos
+//     últimos 3 dias. Desde a trava de privacidade, vídeo só vira página pública com o consentimento do dono
+//     (published_at), e o último foi carimbado em 30/09 — o cron termina todo dia em "no new indexable videos in window";
+//   · as páginas de SEO (motores, comparações, /for, nichos) nunca entraram no cron: só iam ao Bing quando alguém rodava à
+//     mão um script de ping da rodada (scripts/indexnow-ping-*.mjs). O envio de 13/10 foi um desses.
+// Conserto: o cron passa a comparar o <lastmod> do /sitemap.xml PUBLICADO (e o published_at dos vídeos) com o que já foi
+// enviado (o retrato gravado em `events` a cada envio real) e envia só o que mudou — portanto, a cada deploy de produção
+// que muda o lastmod de uma página, na primeira execução depois dele. Funções puras abaixo; o guardião
+// scripts/test-bing-seo-1510.mjs as exercita com mutantes.
+
+/** Uma <url> do sitemap: endereço e lastmod como texto (comparado como texto; o sitemap é a fonte). */
+export interface IndexNowEntry {
+  loc: string
+  lastmod: string
+}
+
+/** O retrato do que já foi enviado: URL → lastmod no momento do envio. */
+export type IndexNowSnapshot = Record<string, string>
+
+/** Sem retrato anterior (primeira execução), só entra o que tem lastmod nesta janela — nada de despejar o site inteiro. */
+export const INDEXNOW_FIRST_RUN_WINDOW_DAYS = 7
+
+/**
+ * Teto da casa por 24 horas. O protocolo aceita até 10.000 URLs por POST (INDEXNOW_MAX_URLS); a casa fica uma ordem de
+ * grandeza abaixo para nunca parecer spam ao Bing. O sitemap inteiro tem ~530 URLs, então o teto só morde num erro.
+ */
+export const INDEXNOW_DAILY_URL_CAP = 1000
+
+/** Nomes dos eventos (tabela `events`, só service_role) que guardam o envio e o retrato. */
+export const INDEXNOW_SUBMITTED_EVENT = 'indexnow_submitted'
+export const INDEXNOW_SNAPSHOT_EVENT = 'indexnow_snapshot'
+
+/** Lê as <url> de um sitemap XML (sem dependência: o formato é o que app/sitemap.ts gera). */
+export function parseSitemapXml(xml: string): IndexNowEntry[] {
+  const out: IndexNowEntry[] = []
+  for (const m of (xml ?? '').matchAll(/<url>([\s\S]*?)<\/url>/g)) {
+    const loc = (m[1].match(/<loc>([^<]+)<\/loc>/) ?? [])[1]?.trim() ?? ''
+    const lastmod = (m[1].match(/<lastmod>([^<]+)<\/lastmod>/) ?? [])[1]?.trim() ?? ''
+    if (loc) out.push({ loc: loc.replace(/&amp;/g, '&'), lastmod })
+  }
+  return out
+}
+
+/**
+ * As URLs que mudaram desde o retrato: URL nova ou lastmod diferente do enviado. Sem retrato, só as de lastmod dentro de
+ * INDEXNOW_FIRST_RUN_WINDOW_DAYS. A ordem de `current` é preservada (quem chama põe o sitemap antes dos vídeos).
+ */
+export function changedSinceSnapshot(
+  current: readonly IndexNowEntry[],
+  previous: IndexNowSnapshot | null,
+  nowMs: number,
+): string[] {
+  const out: string[] = []
+  const seen = new Set<string>()
+  const cutoff = nowMs - INDEXNOW_FIRST_RUN_WINDOW_DAYS * 24 * 60 * 60 * 1000
+  for (const e of current) {
+    if (!e.loc || seen.has(e.loc)) continue
+    seen.add(e.loc)
+    if (previous) {
+      if (previous[e.loc] !== e.lastmod) out.push(e.loc)
+    } else {
+      const t = Date.parse(e.lastmod)
+      if (Number.isFinite(t) && t >= cutoff) out.push(e.loc)
+    }
+  }
+  return out
+}
+
+/**
+ * O retrato depois de um envio REAL: toda URL atual entra com o lastmod de agora, MENOS as que mudaram e não couberam no
+ * envio (teto) — essas guardam o valor antigo (ou ficam de fora) para sair na próxima execução. URL que saiu do sitemap
+ * sai do retrato.
+ */
+export function nextSnapshot(
+  current: readonly IndexNowEntry[],
+  previous: IndexNowSnapshot | null,
+  changed: readonly string[],
+  sent: ReadonlySet<string>,
+): IndexNowSnapshot {
+  const pending = new Set(changed.filter((u) => !sent.has(u)))
+  const out: IndexNowSnapshot = {}
+  for (const e of current) {
+    if (!e.loc) continue
+    if (!pending.has(e.loc)) out[e.loc] = e.lastmod
+    else if (previous && Object.prototype.hasOwnProperty.call(previous, e.loc)) out[e.loc] = previous[e.loc]
+  }
+  return out
+}
+
+/** Quantas URLs ainda cabem no teto de 24 h, dado o que os envios reais das últimas 24 h já mandaram. */
+export function remainingDailyBudget(sentLast24h: number): number {
+  const used = Number.isFinite(sentLast24h) && sentLast24h > 0 ? Math.floor(sentLast24h) : 0
+  return Math.max(0, INDEXNOW_DAILY_URL_CAP - used)
+}

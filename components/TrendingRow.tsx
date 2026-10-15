@@ -9,6 +9,7 @@ import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
 import { filterShowcase, showcaseEngines, showcasePoster, showcaseScrollState, shouldPlayShowcase, SHOWCASE_COPY } from '@/lib/ui/showcaseGallery'
 import styles from './TrendingRow.module.css'
 import { decodedPreviewFacts, PREVIEW_FACTS_COPY } from '@/lib/ui/previewFacts'
+import { posterAlt1510 } from '@/lib/ui/posterAlt' // KINEO-BING-SEO-1510 — alt descritivo (o Bing acusava imagem sem alt na home)
 
 // Scoped to this gallery; other landing-page media players remain unchanged.
 function GalleryMedia({ video, paused, limited }: { video: WallVideo; paused: boolean; limited: boolean }) {
@@ -40,7 +41,7 @@ function GalleryMedia({ video, paused, limited }: { video: WallVideo; paused: bo
     return () => { element?.pause() }
   }, [allowed, mounted])
   return <span ref={box} className={styles.media}>
-    {poster && !posterFailed && <img src={poster} alt="" loading="lazy" decoding="async" className={styles.poster} onError={() => setPosterFailed(true)} />}
+    {poster && !posterFailed && <img src={poster} alt={posterAlt1510(video)} loading="lazy" decoding="async" className={styles.poster} onError={() => setPosterFailed(true)} />}
     {mounted && !failed && <video ref={player} src={video.videoUrl} muted loop playsInline preload="metadata"
       className={styles.tileVideo} style={{ opacity: playing ? 1 : 0 }}
       onPlaying={() => setPlaying(true)} onError={() => { setFailed(true); setPlaying(false) }} />}

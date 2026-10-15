@@ -14,13 +14,16 @@ import { FREE_FILM_LABEL, GRANT_COUNTRY_CLAUSE, TRIAL_CREDITS_SHOWN } from '@/li
 import { NARRATION_LANGUAGES } from '@/lib/textLanguage'
 import { money, usd } from '@/lib/seo/engineCitation'
 import { BASE, HUB_PAGES, HUB_REVIEWED_DAY, HUB_REVIEWED_MONTH, hubEngine, hubEngines, hubPlans } from '@/lib/seo/citableHubPages'
+import { FACELESS_DESCRIPTION_1510, FACELESS_TITLE_1510 } from '@/lib/seo/bingSeo1510' // KINEO-BING-SEO-1510
 
 export const dynamic = 'force-static'
 
 const PAGE = HUB_PAGES.faceless
 const CAMPAIGN = 'seo_hub_faceless_shorts'
-const TITLE = `AI Faceless YouTube Shorts Generator — Price per Short (${HUB_REVIEWED_MONTH}) | ${BRAND_WITH_DOMAIN}`
-const DESCRIPTION = 'Type a topic or paste a script and get a finished faceless YouTube Short — script, AI voiceover, AI scenes, captions and music. Price per Short for every model, dated.'
+// KINEO-BING-SEO-1510 — o Bing acusou título longo (92) e description longa (167). O mês e o domínio saem do título (o mês
+// segue datado no corpo e no FAQ, "Prices as of …"); o texto mora em lib/seo/bingSeo1510.ts e o guardião mede o renderizado.
+const TITLE = FACELESS_TITLE_1510
+const DESCRIPTION = FACELESS_DESCRIPTION_1510
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE),

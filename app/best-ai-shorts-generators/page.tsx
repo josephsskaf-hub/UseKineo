@@ -29,6 +29,11 @@ import { AVATAR_PUBLIC } from '@/lib/engineLaunch'
 import GeoRodada3Section from '@/components/GeoRodada3Sections'
 import { bestGeneratorAnswer, competitorCheckedLabel } from '@/lib/seo/geoRodada3Answers'
 import { PRODUCT_TIME } from '@/lib/seo/measuredRenderTime'
+// KINEO-BING-SEO-1510 — "best fully automated ai youtube shorts pricing flowshorts autoshorts revid": 109 impressões no Bing,
+// 0 cliques, posição 7,0. A página já ranqueava e não tinha FlowShorts nem preço de nenhum dos três. Agora: resposta em 3
+// frases logo depois do H1, tabela com o preço público de cada um (página oficial + data; "not published" quando não há),
+// o que entregam, e o custo por Short da Kineo calculado em código (lib/seo/bingSeo1510.ts). Sem vencedor universal.
+import { BING_SEO_1510_CHECKED_LABEL, ROUNDUP_DESCRIPTION_1510, ROUNDUP_TITLE_1510, automationAnswer1510, automationTools1510, kineoAutomationRow1510 } from '@/lib/seo/bingSeo1510'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -41,10 +46,11 @@ const UPDATED = 'August 30, 2026'
 // for "best AI tools for YouTube Shorts" and close variants. Keep the search
 // title, description, H1 and ItemList sourced from the same copy so the result
 // answers that observed intent without drifting into invented ratings.
-const SEARCH_TITLE = '13 Best AI Tools for YouTube Shorts (2026) — Compared'
+// KINEO-BING-SEO-1510 — o título continua respondendo "best AI tools for YouTube Shorts" (a intenção do Search Console) e
+// passa a prometer o que a consulta do Bing pede: preço. A description nomeia FlowShorts, AutoShorts e Revid.
+const SEARCH_TITLE = ROUNDUP_TITLE_1510
 const PAGE_HEADING = '13 Best AI Tools for YouTube Shorts (2026)'
-const SEARCH_DESCRIPTION =
-  'Compare 13 AI tools for YouTube Shorts by starting point: idea, script, long video, avatar or finished clip. See free tiers, prices and best-fit picks.'
+const SEARCH_DESCRIPTION = ROUNDUP_DESCRIPTION_1510
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.usekineo.com'),
@@ -258,7 +264,10 @@ const CTA_URL =
 
 export default function BestAiShortsGeneratorsPage() {
   const best = bestGeneratorAnswer() // KINEO-GEO-RODADA3-2026-10-08
-  const faqs = [...(best ? best.faq : []), ...FAQ]
+  const automation = automationAnswer1510() // KINEO-BING-SEO-1510
+  const automationTools = automationTools1510()
+  const kineoRow = kineoAutomationRow1510()
+  const faqs = [...(best ? best.faq : []), ...automation.faq, ...FAQ]
   const faqJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -369,6 +378,51 @@ export default function BestAiShortsGeneratorsPage() {
           other tools&rsquo; prices in the tested section were read on their official pages on{' '}
           {competitorCheckedLabel()} and change, so verify them before you buy.
         </p>
+
+        {/* KINEO-BING-SEO-1510 — FlowShorts × AutoShorts × Revid × Kineo: resposta em 3 frases + preço público com fonte e data. */}
+        <section data-kineo="bing-seo-1510-automation" style={{ ...CARD, padding: '20px', margin: '0 0 40px', borderColor: ACCENT }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 10px' }}>
+            Fully automated AI Shorts tools: FlowShorts vs AutoShorts vs Revid pricing
+          </h2>
+          {automation.summary.map((line) => (
+            <p key={line} style={{ color: '#f5f5f7', fontSize: '0.98rem', lineHeight: 1.6, margin: '0 0 8px' }}>{line}</p>
+          ))}
+          <div style={{ overflowX: 'auto', margin: '12px 0 0' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem', minWidth: 620 }}>
+              <thead>
+                <tr>
+                  {['Tool', 'Public price', 'What you get', 'Cost per Short'].map((h) => (
+                    <th key={h} style={{ textAlign: 'left', color: MUTED, fontWeight: 700, padding: '8px 10px', borderBottom: '1px solid #2a2a2d' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {automationTools.map((t) => (
+                  <tr key={t.id}>
+                    <td style={{ padding: '8px 10px', verticalAlign: 'top', fontWeight: 700 }}>{t.name}</td>
+                    <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#d2d2d7' }}>
+                      {t.publicPrice}{' '}
+                      {t.sources.map((s) => (
+                        <span key={s.url} style={{ color: MUTED }}>(<a href={s.url} rel="nofollow noopener" target="_blank" style={{ color: ACCENT, textDecoration: 'none' }}>{s.label}</a>, checked {s.checkedOn})</span>
+                      ))}
+                    </td>
+                    <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#d2d2d7' }}>{t.delivers}</td>
+                    <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#d2d2d7' }}>{t.perShort ?? 'Not published as a fixed cost per video.'}</td>
+                  </tr>
+                ))}
+                <tr>
+                  <td style={{ padding: '8px 10px', verticalAlign: 'top', fontWeight: 700 }}>{kineoRow.name}</td>
+                  <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#d2d2d7' }}>{kineoRow.publicPrice}</td>
+                  <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#d2d2d7' }}>{kineoRow.delivers}</td>
+                  <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#d2d2d7' }}>{kineoRow.perShort}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p style={{ color: MUTED, fontSize: '0.82rem', lineHeight: 1.55, margin: '10px 0 0' }}>
+            Third-party prices were read on each tool’s official page on {BING_SEO_1510_CHECKED_LABEL} and change often — check them before you buy. Kineo’s numbers come from its own pricing source. We make Kineo, so weigh this comparison accordingly.
+          </p>
+        </section>
 
         {/* SEARCH-INTENT-ROUNDUP-2026-08-28 — Search Console showed that this
             page was already being surfaced for tool-specific alternative

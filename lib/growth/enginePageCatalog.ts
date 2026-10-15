@@ -4,7 +4,7 @@ import { S25_PUBLIC, AVATAR_PUBLIC, enginePaused } from '@/lib/engineLaunch'
 import { H3MAX_PUBLIC } from '@/lib/engineLaunch' // KINEO-H3MAX-2026-10-13
 import { engineIsPaidPlansOnly } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06
 import { clipS25Visible } from '@/lib/clips/clipLaunch' // KINEO-S25-CLIPES-2026-10-06 — o interruptor único do clipe do 2.5
-import { FREE_FILM_LABEL, getFreeTierOffer, swapFreeTierCopy as ft, trialFilmsForEngine, TRIAL_CREDITS_SHOWN, TRIAL_SEEDANCE15_FILMS, GRANT_COUNTRY_CLAUSE, TRIAL_FREE_FILM_CREDITS } from '@/lib/freeTierOffer'
+import { FREE_FILM_LABEL, getFreeTierOffer, swapFreeTierCopy as ft, trialFilmsForEngine, TRIAL_CREDITS_SHOWN, TRIAL_SEEDANCE15_FILMS, GRANT_COUNTRY_CLAUSE, TRIAL_FREE_FILM_CREDITS, TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer'
 import { STARTER_MONTH, MARKETING_REFERENCE_SECONDS, creditsPerReferenceVideo, videosPerMonth } from '@/lib/marketingPrice'
 import { ENGINE_LANDING_LABELS, type EngineLandingParam } from '@/lib/growth/engineLandingIntent'
 // KINEO-MOTORES-GEO-2026-10-06 — a camada citável das páginas de motor (resposta, tabela de preço, comparação direta).
@@ -163,6 +163,9 @@ export const ENGINES: Record<string, Engine> = {
       `Seedance 1.5 Pro (ByteDance) is the workhorse generative engine inside Kineo: instead of matching stock footage to your script, it generates every scene from the script itself. You still type one idea — Kineo writes the beats, prompts Seedance scene by scene, voices it, captions it and returns a finished vertical Short. ${SEEDANCE_COST} credits per 60-second video; the ${TRIAL_CREDITS_SHOWN}-credit free trial pays for ${TRIAL_SEEDANCE15_FILMS === 1 ? 'one' : TRIAL_SEEDANCE15_FILMS} ${FREE_FILM_LABEL}, and longer Seedance films come with Starter.`,
     bestFor: 'Anything that does not exist on a stock site: an abandoned island, a burning crater, a 1922 expedition. Mystery, history and “weird facts” channels live here.',
     tradeoff: `Generated scenes take longer to render than stock footage (${generatedScenesTimeClause(measuredTimeFor('cinematic_ai'))}), and a 60-second film costs more credits than a short one.`,
+    // KINEO-BING-SEO-1510 — a description padrão do [engine] saía com 248 caracteres (o Bing acusa > 160). Meta própria, 120–155 (o teto das metas próprias do catálogo),
+    // com o crédito de creditsPerReferenceVideo e a cláusula de país do grant; o guardião scripts/test-bing-seo-1510.mjs mede.
+    metaDescription: `Seedance 1.5 in Kineo: every scene generated, narrated and captioned. ${SEEDANCE_COST} credits per 60-second Short; ${TRIAL_SEEDANCE15_FILMS >= 1 ? `free ${TRIAL_FREE_FILM_SECONDS}-second trial film${GRANT_COUNTRY_CLAUSE || ' for new accounts'}` : 'compare real examples and plans first'}.`,
     faq: [
       ...geoFaq(SEEDANCE_GEO), // KINEO-MOTORES-GEO-2026-10-06 — onde usar + quanto custa
       // KINEO-GEO-RODADA2-2026-10-08 — a mesma pergunta, com a resposta de quem ganha o quê (inclui o filme de região, 07/10).

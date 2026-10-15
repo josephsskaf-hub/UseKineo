@@ -199,8 +199,11 @@ console.log('== (e) /arena: sem o card, contagem = cards ==')
 // ── (f) meta da home ────────────────────────────────────────────────────────────────────────────────────────────────
 console.log('== (f) meta da home ==')
 {
-  const page = rd('app/page.tsx')
-  const desc = (src) => (src.match(/description:\s*(?:\/\/[^\n]*\n\s*)?'([^']*)'/) || [])[1] ?? ''
+  // KINEO-BING-SEO-1510 — a description da home passou a morar em lib/seo/bingSeo1510.ts (HOME_DESCRIPTION_1510, o Bing pedia
+  // ≤ 160). A prova segue a fonte real: se a home aponta para a constante, lê a constante; senão, o literal da própria home.
+  const home = rd('app/page.tsx')
+  const page = /\n  description: HOME_DESCRIPTION_1510,\n/.test(home.replace(/\r\n/g, '\n')) ? rd('lib/seo/bingSeo1510.ts') : home
+  const desc = (src) => (src.match(/(?:description:|export const HOME_DESCRIPTION_1510 =)\s*(?:\/\/[^\n]*\n\s*)?'([^']*)'/) || [])[1] ?? ''
   checa('app/page.tsx: description sem "Kineo 1"', desc(page).startsWith('Pick an engine — Veo 3.1, Kling 3, Kling 2.5 or Seedance 1.5') && !/Kineo 1/.test(desc(page)))
   checa('mutante ("or Kineo 1" de volta) → vermelho', /Kineo 1/.test(desc(trocar(page, 'Kling 2.5 or Seedance 1.5', 'Kling 2.5, Seedance 1.5 or Kineo 1'))))
 }

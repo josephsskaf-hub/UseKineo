@@ -17,14 +17,17 @@ import { FaqStructuredData } from '@/components/StructuredData'
 import HomeVariantExposure from '@/components/home/HomeVariantExposure'
 import { resolveHomeVariant } from '@/lib/growth/homeClipsFirstServer'
 import { HOME_PREVIEW_PARAM } from '@/lib/growth/homeClipsFirst'
+import { HOME_DESCRIPTION_1510, HOME_TITLE_1510 } from '@/lib/seo/bingSeo1510' // KINEO-BING-SEO-1510
 
 export const metadata: Metadata = {
   // UX10 #10 (15/08) — o title/description agora vendem o que a pagina VIROU:
   // a vitrine de motores. Antes vendiam o composer, que saiu da home.
-  title: 'Kineo — AI Shorts Engines: Veo 3.1, Kling 3, Seedance | Faceless YouTube Shorts',
-  description:
-    // KINEO-KINEO1-FORA-2026-09-29 — sem "or Kineo 1": o motor saiu da vitrine pública (lib/engineLaunch.ts KINEO1_PUBLIC).
-    'Pick an engine — Veo 3.1, Kling 3, Kling 2.5 or Seedance 1.5 — type a topic and get a finished faceless YouTube Short with script, voice and captions. Real renders on every card.',
+  // KINEO-BING-SEO-1510 — o Bing Webmaster acusou título > 60 (eram 81) e description > 160 (eram 178). O texto mora em
+  // lib/seo/bingSeo1510.ts (o guardião scripts/test-bing-seo-1510.mjs mede o renderizado). Mesma promessa, mesmos motores;
+  // saiu só a cauda "Real renders on every card." e o título passou a abrir com a marca + "AI" (consultas "kineo ai").
+  // KINEO-KINEO1-FORA-2026-09-29 — sem "or Kineo 1": o motor saiu da vitrine pública (lib/engineLaunch.ts KINEO1_PUBLIC).
+  title: HOME_TITLE_1510,
+  description: HOME_DESCRIPTION_1510,
   alternates: { canonical: 'https://www.usekineo.com/' },
 }
 

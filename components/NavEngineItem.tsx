@@ -12,6 +12,7 @@ import { KineoBoltText } from '@/components/KineoBolt'
 import Link from 'next/link'
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { useRef } from 'react'
+import { navThumbAlt1510 } from '@/lib/ui/posterAlt' // KINEO-BING-SEO-1510 — alt descritivo na miniatura do menu
 
 export default function NavEngineItem({
   href,
@@ -56,7 +57,7 @@ export default function NavEngineItem({
       }}
       onMouseLeave={() => ref.current?.pause()}
     >
-      {thumb ? <span className="nm-th" aria-hidden="true"><img src={thumb} alt="" width={40} height={40} loading="lazy" decoding="async" /></span> : icon ? <span className="nm-ic" aria-hidden="true"><KineoBoltText>{icon}</KineoBoltText></span> : null}
+      {thumb ? <span className="nm-th" aria-hidden="true"><img src={thumb} alt={navThumbAlt1510(name)} width={40} height={40} loading="lazy" decoding="async" /></span> : icon ? <span className="nm-ic" aria-hidden="true"><KineoBoltText>{icon}</KineoBoltText></span> : null}
       <span className="nm-tx">
         <b>
           {translateName ? <UiLabel>{name}</UiLabel> : name}

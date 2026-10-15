@@ -81,8 +81,8 @@
       "schedule": "45 6 * * *"
     },
     {
-      "path": "/api/cron/submit-indexnow",
-      "schedule": "35 7 * * *"
+      "path": "/api/cron/submit-indexnow?confirm=SEND",
+      "schedule": "35 * * * *"
     },
     {
       "path": "/api/cron/send-stalled-rescue",
