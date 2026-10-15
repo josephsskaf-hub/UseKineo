@@ -36,12 +36,15 @@ const rd = (p) => readFileSync(join(ROOT, p), 'utf8').replace(/\r\n/g, '\n')
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 let BASE = 'HEAD'
 let PROPRIO = null
+let ULTIMO = null // reancorado KINEO-LEVA3-1510 — o commit MAIS NOVO com a marca: o diff do conserto termina nele, não na árvore integrada
 try {
   const shas = git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, 'HEAD').trim().split('\n').filter(Boolean)
-  if (shas.length) { PROPRIO = shas[shas.length - 1]; BASE = git('rev-parse', `${PROPRIO}~1`).trim() }
+  if (shas.length) { PROPRIO = shas[shas.length - 1]; ULTIMO = shas[0]; BASE = git('rev-parse', `${PROPRIO}~1`).trim() }
 } catch { BASE = 'HEAD' }
 const base = (p) => { try { return git('show', `${BASE}:${p}`).replace(/\r\n/g, '\n') } catch { return null } }
-const diffDoConserto = (opts, paths = []) => git('diff', ...opts, BASE, '--', ...paths).replace(/\r\n/g, '\n') // BASE → a árvore de agora (todos os commits da marca + o que não foi commitado)
+// reancorado KINEO-LEVA3-1510 — numa árvore integrada (leva 3) BASE → árvore trazia a leva 2 e as irmãs inteiras para o V2; agora o diff
+// é BASE → último commit da marca + o que não foi commitado (o mesmo molde de scripts/test-ads-fiel-2-1510.mjs). Antes do commit, igual a antes.
+const diffDoConserto = (opts, paths = []) => (ULTIMO ? git('diff', ...opts, BASE, ULTIMO, '--', ...paths) + git('diff', ...opts, 'HEAD', '--', ...paths) : git('diff', ...opts, BASE, '--', ...paths)).replace(/\r\n/g, '\n') // BASE → todos os commits da marca + o que não foi commitado
 let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }
