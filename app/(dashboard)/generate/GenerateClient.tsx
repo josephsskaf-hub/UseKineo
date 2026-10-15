@@ -267,6 +267,7 @@ import MrrShareFooter from '@/components/growth/MrrShareFooter'
 import FilmReadyExits from '@/components/FilmReadyExits' // KINEO-FLUXO-NOVO-2026-09-25 — as 3 saídas do filme pronto
 import FilmReady60sUpsell from '@/components/FilmReady60sUpsell' // KINEO-VERSAO-60S-2026-10-13 — "Make the 60-second version of this film"
 import { decidirDescidaFilmeGratis, lerDescidaDaUrl, notaDaDescida, DESCIDA_FILME_GRATIS_EVENT, DESCIDA_FILME_GRATIS_PARAM, DESCIDA_FILME_GRATIS_VERSION } from '@/lib/growth/descidaFilmeGratis' // KINEO-PRIMEIRO-FILME-2026-10-13
+import { AUTOANALYZE_SESSION_PREFIX, autoanalyzeSessionKey, jaConsumidoNaAba, enderecoSemAutoanalyze, decidirAutoanalyze, decidirAindaNoForno, filmeDoAvisoChegou, CHECKING_CREDITS_COPY, CREDITS_READ_FAILED_COPY, STILL_RENDERING_COPY, STILL_RENDERING_POLL_MAX_MS, STILL_RENDERING_POLL_EVERY_MS } from '@/lib/growth/studioFantasma' // KINEO-STUDIO-FANTASMA-1510
 import { BUY_CREATOR_FILM_SECONDS, buyCreatorPrice } from '@/lib/growth/buyCreatorOffer' // KINEO-PRIMEIRO-FILME-2026-10-13 — o preço da nota (o mesmo do bloco pós-filme)
 import { film60UpsellEligible } from '@/lib/growth/filmReady60s' // KINEO-VERSAO-60S-2026-10-13
 // KINEO-PAREDE-V1-2026-09-23 — a parede dos 10 créditos com o filme da pessoa na
@@ -2483,9 +2484,16 @@ export default function GenerateClient({
   const entrada15 = seedance15Ok
   const kineo1Shown = kineo1NaTela({ entrada15, kineo1: kineo1Visible, hasPaid })
   const custoSeedance = (segundos: number) => creditCostForDuration('cinematic_ai', true, segundos)
-  // KINEO-PAREDE-NO-CLIQUE-2026-09-27 — o auto-analyze espera o saldo chegar (até 1,5 s) antes de decidir se abre a parede.
+  // KINEO-PAREDE-NO-CLIQUE-2026-09-27 — o auto-analyze espera o saldo chegar antes de decidir se abre a parede (KINEO-STUDIO-FANTASMA-1510: sem o teto de 1,5 s).
   const [autoWaitTick, setAutoWaitTick] = useState(0)
-  const autoWaitScheduledRef = useRef(false)
+  // KINEO-STUDIO-FANTASMA-1510 (2) — o "espera 1,5 s e segue sem a guarda" morreu (Tab 15/10: 1 cr, filme a 9, roteiro escrito
+  // KINEO-STUDIO-FANTASMA-1510 (2) — mesmo assim). Sem saldo lido, nada começa: a tela diz que está conferindo ou pede para tentar de novo.
+  const [autoanalyzeSaldo, setAutoanalyzeSaldo] = useState<'checando_saldo' | 'saldo_falhou' | null>(null) // KINEO-STUDIO-FANTASMA-1510
+  const autoanalyzeSaldoFalhouLoggedRef = useRef(false) // KINEO-STUDIO-FANTASMA-1510
+  // KINEO-STUDIO-FANTASMA-1510 (3) — erro do NAVEGADOR com o filme ainda no forno do servidor: aviso honesto em vez de "falhou".
+  const [aindaNoForno, setAindaNoForno] = useState<{ desde: number; motivo: string } | null>(null) // KINEO-STUDIO-FANTASMA-1510
+  const renderJobAbertoRef = useRef<string | null>(null) // KINEO-STUDIO-FANTASMA-1510 — attempt_id do Kineo 1 que o servidor gravou (render_job_opened ok)
+  const geracaoInicioRef = useRef<number | null>(null) // KINEO-STUDIO-FANTASMA-1510 — relógio do clique que despachou: filme "completed" mais novo que isto é DESTE pedido
   // [TRAVA 8.2 — vai do fundador 13/10 'tudo sim nos 3 consertos'] KINEO-PRIMEIRO-FILME-2026-10-13 (CONSERTO 1) — a duração
   // PEDIDA quando o pedido desceu para o filme grátis de 15 s (lib/growth/descidaFilmeGratis.ts): vem da URL (o /studio/create
   // e o /studio já descem antes de chegar aqui: free_film_from=<pedido> com duration=15&engine=seedance) ou da guarda do
@@ -3054,6 +3062,30 @@ export default function GenerateClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, serverActiveRender])
 
+  // KINEO-STUDIO-FANTASMA-1510 (3) — enquanto o aviso "Still rendering" está na tela: pergunta ao servidor a cada 15 s até o filme
+  // KINEO-STUDIO-FANTASMA-1510 (3) — DESTE pedido aparecer (aí o cartão "Your video is ready" de sempre assume) ou 25 min passarem
+  // KINEO-STUDIO-FANTASMA-1510 (3) — (aí o aviso manda para a Biblioteca). Qualquer outra fase (novo pedido) apaga o aviso.
+  const [aindaNoFornoTick, setAindaNoFornoTick] = useState(0) // KINEO-STUDIO-FANTASMA-1510
+  useEffect(() => {
+    if (!aindaNoForno) return
+    if (phase !== 'idle') { setAindaNoForno(null); return }
+    if (Date.now() - aindaNoForno.desde > STILL_RENDERING_POLL_MAX_MS) return
+    let parado = false
+    const id = setInterval(() => {
+      setAindaNoFornoTick(Date.now())
+      if (Date.now() - aindaNoForno.desde > STILL_RENDERING_POLL_MAX_MS) { clearInterval(id); return }
+      void refreshServerActiveRender().then((probe) => {
+        if (parado || !probe) return
+        if (filmeDoAvisoChegou(probe.state === 'completed' ? { state: 'completed', completedAtMs: probe.completedAtMs } : { state: 'rendering' }, aindaNoForno.desde)) {
+          void trackEvent('generation_still_rendering_resolved', { verdict: aindaNoForno.motivo, waited_ms: Math.max(0, Date.now() - aindaNoForno.desde) })
+          setAindaNoForno(null)
+        }
+      })
+    }, STILL_RENDERING_POLL_EVERY_MS)
+    return () => { parado = true; clearInterval(id) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aindaNoForno, phase])
+
   useEffect(() => {
     return () => {
       if (pollTimerRef.current) clearTimeout(pollTimerRef.current)
@@ -3217,6 +3249,9 @@ export default function GenerateClient({
         }
         const urlPrompt = searchParams?.get('prompt')?.trim()
         if (urlPrompt) autoAnalyzeKeyRef.current = urlPrompt
+        // KINEO-STUDIO-FANTASMA-1510 (1) — a recarga religou um render: este texto já virou filme nesta aba. Só a marca da aba
+        // KINEO-STUDIO-FANTASMA-1510 (1) — (a URL não é tocada aqui: mexer nos parâmetros no meio da retomada reexecutaria este efeito).
+        if (urlPrompt) { try { sessionStorage.setItem(autoanalyzeSessionKey(urlPrompt), String(Date.now())) } catch { /* storage bloqueado: a chave da montagem segura */ } }
 
         if (storedStage === 'avatar_submitting' && avatarPayload) {
           setGenerationId(avatarGenerationId)
@@ -6727,6 +6762,7 @@ export default function GenerateClient({
         setPhase('composing')
       } catch (err) {
         console.error('[generate] compose threw:', err)
+        if (await aindaNoFornoAntesDeFalhar('clips_ready', 'compose_threw', err, null)) return // KINEO-STUDIO-FANTASMA-1510 (3)
         setError(GENERIC_ERROR)
         trackGenerationFailure('clips_ready', 'compose_threw', {
           detail: err instanceof Error ? err.name : 'unknown',
@@ -7510,6 +7546,39 @@ export default function GenerateClient({
       serverProbeProvesIdleRef.current = false
       return null
     }
+  }
+
+  // ═══ KINEO-STUDIO-FANTASMA-1510 (3) — a tela só diz "falhou" depois de perguntar ao servidor ═══════════════════════════
+  // bu.app (23/09, Kineo 1 60 s): o fetch do NAVEGADOR caiu (TypeError após 53–83 s em 'generating'), a tela disse "Video
+  // generation failed. Please try again." 2×, e os 2 filmes chegaram 11 min depois (o servidor seguiu: stranded/orphan). Agora,
+  // nos catch de erro do navegador (fast_threw, cinematic_threw, compose_threw), antes de declarar falha: /api/compose/active
+  // (render vivo ou filme mais novo que o clique) e, no Kineo 1, o pedido que o servidor gravou (render_job_opened ok = o cron
+  // termina). Em voo → aviso "Still rendering…" na tela de criar, sem generation_stage_error (que a sonda leria como morte).
+  // Nada no servidor muda: só a pergunta que a tela faz antes de falar. Regra em lib/growth/studioFantasma.ts.
+  async function aindaNoFornoAntesDeFalhar(etapa: 'generating' | 'clips_ready', motivo: string, err: unknown, elapsedMs: number | null): Promise<boolean> {
+    const attemptId = generationAttemptRef.current
+    const inicioMs = geracaoInicioRef.current ?? Date.now()
+    const probe = await refreshServerActiveRender()
+    const decisao = decidirAindaNoForno({
+      probe: probe ? (probe.state === 'rendering' ? { state: 'rendering' } : { state: 'completed', completedAtMs: probe.completedAtMs }) : null,
+      inicioMs,
+      pedidoKineo1Aberto: (mode === 'fast' || mode === 'creator') && attemptId !== null && renderJobAbertoRef.current === attemptId,
+    })
+    if (!decisao.emVoo) return false
+    setError(null)
+    setAindaNoForno({ desde: inicioMs, motivo: decisao.motivo })
+    setPhase('idle')
+    void trackEvent('generation_still_rendering_shown', {
+      attempt_id: attemptId,
+      stage: etapa,
+      client_reason: motivo,
+      verdict: decisao.motivo,
+      detail: err instanceof Error ? err.name : 'unknown',
+      message: err instanceof Error ? err.message.slice(0, 200) : String(err).slice(0, 200),
+      elapsed_ms: typeof elapsedMs === 'number' ? Math.round(elapsedMs) : null,
+      mode,
+    })
+    return true
   }
 
   // Resume the server-confirmed render on the EXISTING progress screen: commit
@@ -9111,15 +9180,31 @@ export default function GenerateClient({
     if (autoAnalyzeKeyRef.current === key) return
     // KINEO-PAREDE-NO-CLIQUE-2026-09-27 — medido 14 d: 48 de 48 paredes do trial passaram por analyze_idea_clicked
     // ANTES de abrir (2 chamadas OpenAI e mediana de 20 s de espera para depois ouvir "não"). A guarda de saldo
-    // (outOfCredits, a mesma do botão) roda AQUI, antes do roteiro. Enquanto o saldo não chegou (credits === null)
-    // espera até 1,5 s e tenta de novo; passado isso segue como sempre (nunca deixa a pessoa sem análise).
-    if (credits === null) {
-      if (!autoWaitScheduledRef.current) {
-        autoWaitScheduledRef.current = true
-        setTimeout(() => setAutoWaitTick((t) => t + 1), 1500)
-        return
+    // (outOfCredits, a mesma do botão) roda AQUI, antes do roteiro.
+    // KINEO-STUDIO-FANTASMA-1510 (1+2) — a ordem agora: (a) o MESMO texto já consumido nesta aba (recarga, voltar, remontagem)
+    // KINEO-STUDIO-FANTASMA-1510 (1+2) — não analisa de novo e o gatilho sai da URL; (b) sem saldo lido nada começa — "Checking
+    // KINEO-STUDIO-FANTASMA-1510 (1+2) — your credits…" enquanto carrega, "tente de novo" se a leitura falhou (antes: 1,5 s e seguia
+    // KINEO-STUDIO-FANTASMA-1510 (1+2) — SEM a guarda); (c) saldo lido → a guarda de sempre. Regras em lib/growth/studioFantasma.ts.
+    let consumidoNaSessao = false // KINEO-STUDIO-FANTASMA-1510
+    try { consumidoNaSessao = jaConsumidoNaAba({ marcaRaw: sessionStorage.getItem(autoanalyzeSessionKey(key)), studioGoRaw: sessionStorage.getItem('kineo:studio:go:v1'), agoraMs: Date.now() }) } catch { /* storage bloqueado: vale a chave da montagem */ } // KINEO-STUDIO-FANTASMA-1510
+    const passoAuto = decidirAutoanalyze({ auto, prompt: sp, chaveDaMontagem: autoAnalyzeKeyRef.current, consumidoNaSessao, credits, creditsLoading }) // KINEO-STUDIO-FANTASMA-1510
+    if (passoAuto === 'ja_consumido') { // KINEO-STUDIO-FANTASMA-1510
+      consumirAutoanalyze(key, false)
+      setAutoanalyzeSaldo(null)
+      void trackEvent('autoanalyze_replay_blocked', { reason: 'same_text_this_tab', prompt_length: key.length })
+      return
+    } // KINEO-STUDIO-FANTASMA-1510
+    if (passoAuto === 'checando_saldo') { setAutoanalyzeSaldo('checando_saldo'); return } // KINEO-STUDIO-FANTASMA-1510
+    if (passoAuto === 'saldo_falhou') { // KINEO-STUDIO-FANTASMA-1510
+      setAutoanalyzeSaldo('saldo_falhou')
+      if (!autoanalyzeSaldoFalhouLoggedRef.current) {
+        autoanalyzeSaldoFalhouLoggedRef.current = true
+        void trackEvent('autoanalyze_credits_unread', { surface: 'studio_create_autoanalyze', mode, engine: aiEngine, duration })
       }
-    } else if (outOfCredits()) {
+      return
+    } // KINEO-STUDIO-FANTASMA-1510
+    setAutoanalyzeSaldo(null) // KINEO-STUDIO-FANTASMA-1510
+    if (credits !== null && outOfCredits()) { // KINEO-STUDIO-FANTASMA-1510: credits !== null já é garantido acima; repetido para o tipo
       // [TRAVA 8.2 — vai do fundador 13/10 'tudo sim nos 3 consertos'] KINEO-PRIMEIRO-FILME-2026-10-13 (CONSERTO 1) — antes da
       // parede: o saldo não paga a duração pedida mas paga o filme grátis de 15 s do Seedance 1.5 → desce e segue (o efeito
       // roda de novo com 15 s; o roteiro nasce na régua do 15 s). A regra de quem tem filme grátis não muda: teste ativo,
@@ -9135,12 +9220,12 @@ export default function GenerateClient({
         setAutoWaitTick((t) => t + 1)
         return
       } // KINEO-PRIMEIRO-FILME-2026-10-13
-      autoAnalyzeKeyRef.current = key
+      consumirAutoanalyze(key) // KINEO-STUDIO-FANTASMA-1510 (era: autoAnalyzeKeyRef.current = key) — consumido UMA vez: chave, marca da aba e URL
       void trackEvent('wall_before_script', { surface: 'studio_create_autoanalyze', credits, mode, engine: aiEngine, duration })
       openOutOfCreditsModal()
       return
     }
-    autoAnalyzeKeyRef.current = key
+    consumirAutoanalyze(key) // KINEO-STUDIO-FANTASMA-1510 (era: autoAnalyzeKeyRef.current = key) — consumido UMA vez: chave, marca da aba e URL
     if (process.env.NODE_ENV === 'development') console.log(`[ux1] autoanalyze-effect -> handleAnalyze() key="${key.slice(0,40)}" phase=${phase} @${Date.now()}`)
     // Revisão da E2b (achado 5): a 15 s no Seedance, roteiro pronto longo demais (Viral Now, ~110 palavras) iria sem
     // estruturar e a guarda do cinematic recusaria (422) — vira o teaser de 15 s em modo IA, a régua do filme curto.
@@ -9151,7 +9236,40 @@ export default function GenerateClient({
     }
     handleAnalyze(sp, { fromTopic: true, skipPreview: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, activeRenderRestoreResolved, credits, autoWaitTick])
+  }, [searchParams, activeRenderRestoreResolved, credits, autoWaitTick, creditsLoading]) // KINEO-STUDIO-FANTASMA-1510: + creditsLoading (a leitura do saldo terminou)
+
+  // KINEO-STUDIO-FANTASMA-1510 (1) — consome o ?autoanalyze=1 UMA vez: a chave da montagem, a marca da aba (sessionStorage, só
+  // KINEO-STUDIO-FANTASMA-1510 (1) — hash do texto) e o gatilho FORA da URL na hora (recarregar/voltar não reanalisa mais). O
+  // KINEO-STUDIO-FANTASMA-1510 (1) — replaceState vai SEM o estado do Next (null) de propósito: assim o roteador adota a URL nova
+  // KINEO-STUDIO-FANTASMA-1510 (1) — (useSearchParams) e não a regrava com o gatilho no próximo render. prompt/engine/duration/studio ficam.
+  function consumirAutoanalyze(key: string, marcar = true) {
+    autoAnalyzeKeyRef.current = key
+    if (marcar) { try { sessionStorage.setItem(autoanalyzeSessionKey(key), String(Date.now())) } catch { /* storage bloqueado: vale a chave da montagem */ } }
+    try {
+      const semGatilho = enderecoSemAutoanalyze(window.location.href)
+      if (semGatilho !== null) window.history.replaceState(null, '', semGatilho)
+    } catch { /* history bloqueado: a chave e a marca seguram */ }
+  }
+
+  // KINEO-STUDIO-FANTASMA-1510 (1) — os dois cliques que reabrem o auto-start na MESMA aba (série e ideia da fila) apagam as marcas.
+  function limparMarcasAutoanalyze() {
+    try {
+      const chaves: string[] = []
+      for (let i = 0; i < sessionStorage.length; i += 1) {
+        const k = sessionStorage.key(i)
+        if (k && k.startsWith(AUTOANALYZE_SESSION_PREFIX + ':')) chaves.push(k)
+      }
+      for (const k of chaves) sessionStorage.removeItem(k)
+    } catch { /* storage bloqueado: nada foi marcado */ }
+  }
+
+  // KINEO-STUDIO-FANTASMA-1510 (2) — "Try again" do aviso de saldo: relê /api/credits (o mesmo evento que a barra lateral escuta).
+  function tentarLerSaldoDeNovo() {
+    setAutoanalyzeSaldo('checando_saldo')
+    autoanalyzeSaldoFalhouLoggedRef.current = false
+    void trackEvent('autoanalyze_credits_retry_clicked', { surface: 'studio_create_autoanalyze' })
+    try { window.dispatchEvent(new Event('creditsChanged')) } catch { /* ignore */ }
+  }
 
   // KINEO-STUDIO-ONECLICK-2026-08-17 — degrau 2 do Studio: quando a chegada
   // vem do Studio com o TOKEN de intencao (setado pelo clique em Generate LA,
@@ -9224,7 +9342,7 @@ export default function GenerateClient({
     restoreResolved: activeRenderRestoreResolved,
     resumed: resumedRenderRef.current,
     phase,
-    hasBlockingUi: Boolean(error || showUpgradeModal || activeRenderGateBlocked),
+    hasBlockingUi: Boolean(error || showUpgradeModal || activeRenderGateBlocked || aindaNoForno), // KINEO-STUDIO-FANTASMA-1510: + aindaNoForno (o aviso "Still rendering" segura a tela)
   })
   useEffect(() => {
     if (studioRedirectFiredRef.current) return
@@ -9597,6 +9715,7 @@ export default function GenerateClient({
     }
     // These legacy dashboard events now mean an actual render dispatch, not an
     // analysis click (which historically double-counted preview confirmation).
+    geracaoInicioRef.current = Date.now() // KINEO-STUDIO-FANTASMA-1510
     trackEvent('generate_started', dispatchMetadata)
     trackEvent('video_generation_started', dispatchMetadata)
     // KINEO-RENDER-CONDUZIDO-PELO-SERVIDOR-2026-09-18 — caso Axel (18/09 23:04): saiu da aba 2 s depois do
@@ -9604,6 +9723,8 @@ export default function GenerateClient({
     // para o servidor AQUI, com keepalive; se a aba morrer, o cron finish-orphan-jobs termina o filme e a pessoa
     // recebe o e-mail de sempre. Caminho normal intacto: com a aba aberta nada muda.
     if (mode === 'fast' || mode === 'creator') {
+      const pedidoAttemptId = generationAttemptRef.current // KINEO-STUDIO-FANTASMA-1510
+      renderJobAbertoRef.current = null // KINEO-STUDIO-FANTASMA-1510 — pedido novo: só vale o ok DESTE
       try {
         void fetch('/api/render-jobs', {
           method: 'POST',
@@ -9620,7 +9741,8 @@ export default function GenerateClient({
             script_mode: scriptMode,
             version: RENDER_JOB_VERSION,
           }),
-        }).catch(() => { /* o pedido é rede de segurança; nunca atrapalha o caminho normal */ })
+        }).then((r) => { if (r.ok) renderJobAbertoRef.current = pedidoAttemptId }) // KINEO-STUDIO-FANTASMA-1510 (3): o servidor tem o pedido → o cron termina o filme
+          .catch(() => { /* o pedido é rede de segurança; nunca atrapalha o caminho normal */ })
       } catch { /* ignore */ }
     }
     // KINEO-SPRINT-V1V4-49 — a memoria so nasce de um despacho REAL. Guardar
@@ -10140,6 +10262,7 @@ export default function GenerateClient({
         setPhase('fal_polling')
       } catch (err) {
         console.error('[generate] cinematic-ai threw:', err)
+        if (await aindaNoFornoAntesDeFalhar('generating', 'cinematic_threw', err, null)) return // KINEO-STUDIO-FANTASMA-1510 (3)
         setError(GENERIC_ERROR)
         trackGenerationFailure('generating', 'cinematic_threw', {
           detail: err instanceof Error ? err.name : 'unknown',
@@ -10493,6 +10616,7 @@ export default function GenerateClient({
         setPhase('clips_ready')
       } catch (err: unknown) {
         console.error('[generate] fast-mode threw:', err)
+        if (await aindaNoFornoAntesDeFalhar('generating', 'fast_threw', err, Date.now() - fastBranchStartedAt)) return // KINEO-STUDIO-FANTASMA-1510 (3)
         setError(GENERIC_ERROR)
         // KINEO-GENERATING-SEM-PRAZO-2026-08-15 — `fast_threw` era o coador de
         // TUDO neste ramo e chegava sem relógio. Com `elapsed_ms` ele passa a
@@ -11090,6 +11214,7 @@ export default function GenerateClient({
     handleReset()
     setPrompt(nextPrompt)
     autoAnalyzeKeyRef.current = null
+    limparMarcasAutoanalyze() // KINEO-STUDIO-FANTASMA-1510 — clique explícito: o próximo episódio pode analisar sozinho
     router.push(href)
   }
 
@@ -11146,6 +11271,7 @@ export default function GenerateClient({
     handleReset()
     setPrompt(seed)
     autoAnalyzeKeyRef.current = null
+    limparMarcasAutoanalyze() // KINEO-STUDIO-FANTASMA-1510 — clique explícito: a ideia da fila pode analisar sozinha
     // Vai pelo endereco (e nao so pelo estado) para ficar identico ao caminho de
     // serie: recarregar a pagina nao perde a ideia, e o `idea_source` deixa o
     // rastro de ONDE o 2o video nasceu.
@@ -14210,6 +14336,58 @@ export default function GenerateClient({
         </div>
       )}
 
+      {/* KINEO-STUDIO-FANTASMA-1510 (3) — o navegador perdeu a resposta mas o servidor ainda tem o filme: aviso honesto, não "failed". */}
+      {phase === 'idle' && aindaNoForno && !(serverActiveRender && serverActiveRender.state === 'completed' && serverActiveRender.completedAtMs >= aindaNoForno.desde) && (
+        <div
+          role="status"
+          data-testid="still-rendering-notice"
+          className="gv-card rounded-xl px-4 py-4 mb-6 flex items-center justify-between gap-3 flex-wrap"
+          style={{ background: 'rgba(41,151,255,.07)', border: '1px solid rgba(41,151,255,.35)' }}
+        >
+          <div>
+            <div className="font-bold text-sm" style={{ color: 'var(--text)' }}>
+              {STILL_RENDERING_COPY}
+            </div>
+            <div className="text-xs mt-1" style={{ color: 'var(--muted2)' }}>
+              {Math.max(aindaNoFornoTick, serverActiveRenderTick) - aindaNoForno.desde > STILL_RENDERING_POLL_MAX_MS
+                ? 'It is taking longer than usual. It will appear in your Library when it finishes — and any credits taken for a video you never receive are returned automatically.'
+                : 'Your connection dropped, not your video. No need to start it again — this page checks on its own and we also email you when it is ready.'}
+            </div>
+          </div>
+          <a
+            href="/library"
+            className="font-bold text-sm px-4 py-2 rounded-lg"
+            style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.14)', color: 'var(--text)' }}
+          >
+            Open Library
+          </a>
+        </div>
+      )}
+
+      {/* KINEO-STUDIO-FANTASMA-1510 (2) — o auto-start espera o saldo: nunca escreve roteiro de filme pago às cegas. */}
+      {phase === 'idle' && autoanalyzeSaldo && (
+        <div
+          role="status"
+          data-testid="autoanalyze-credits-hold"
+          className="gv-card rounded-xl px-4 py-3 mb-6 flex items-center justify-between gap-3 flex-wrap"
+          style={{ background: 'rgba(255,255,255,.04)', border: '1px solid var(--border)' }}
+        >
+          <div className="text-sm" style={{ color: 'var(--text)' }}>
+            {autoanalyzeSaldo === 'saldo_falhou' ? CREDITS_READ_FAILED_COPY : CHECKING_CREDITS_COPY}
+          </div>
+          {autoanalyzeSaldo === 'saldo_falhou' && (
+            <button
+              type="button"
+              onClick={() => tentarLerSaldoDeNovo()}
+              className="font-bold text-sm px-4 py-2 rounded-lg"
+              style={{ background: '#2997ff', color: '#fff' }}
+            >
+              Try again
+            </button>
+          )}
+        </div>
+      )}
+
       {/* KINEO-RESUME-RENDER-2026-08-04 — server-truth resume card. Replaces
           the blind "Still checking…" dead end: if the server says a render is
           in flight, show elapsed time + a button that reconnects to the
@@ -17062,6 +17240,23 @@ export default function GenerateClient({
                 <p className="text-xs mt-1.5" style={{ color: 'var(--muted)', letterSpacing: '0.04em' }}>
                   {finalVideoSeconds ?? duration}s · MP4
                 </p>
+                {/* KINEO-STUDIO-FANTASMA-1510 (4) — download À VISTA, antes do player de 78vh: Tab (15/10) e AgentMail (20/09) não acharam
+                    o botão (ele fica abaixo do player) e foram ao /history baixar. Mesmo arquivo (finalVideoUrl) e mesmo handleDownload
+                    do botão grande lá embaixo (lib/videoDownload, o mesmo do /history); <a href download> com texto, que robô e leitor
+                    de tela entendem. Não é um div: o título (último <p>) continua sendo o último filho do cabeçalho. */}
+                <a
+                  href={finalVideoUrl}
+                  onClick={(e) => { void trackEvent('done_download_top_clicked', { video_id: publicVideoId ?? null, watermarked: currentResultHasWatermark }); void handleDownload(e) }}
+                  download={`${slugifyTitle(analysis?.title) || `kineo-${duration}s`}.mp4`}
+                  target="_blank"
+                  rel="noreferrer"
+                  data-testid="done-download-top"
+                  aria-label="Download MP4"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg mt-3 py-2 px-4 text-sm font-bold"
+                  style={{ background: 'var(--accent)', color: 'var(--on-accent)', textDecoration: 'none' }}
+                >
+                  <span aria-hidden="true">⬇</span> Download MP4
+                </a>
                 {/* KINEO-CLAMP-FALADO-2026-08-28 — a verdade sobre o corte do
                     free, dita NO momento em que a pessoa perceberia a duração
                     menor e culparia o produto. Honesta e vendedora: diz o

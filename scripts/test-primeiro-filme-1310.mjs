@@ -102,7 +102,8 @@ ok(P.shouldRouteGenerateToPreview({ profile: { ...elig, video_credits: 5 }, para
 ok(P.shouldRouteGenerateToPreview({ profile: elig, params, filmCost: 88 }) === true, 'prévia: sem o custo do curto (outro motor), como antes')
 ok(/freeShortFilmCost: engineParam === 'seedance' && seedance15sVisible\(user\.email\)/.test(CREATE), 'o /studio/create só passa o custo do curto em pedido Seedance')
 // guarda do autoanalyze
-ok(ordem(GEN, "} else if (outOfCredits()) {", 'decidirDescidaFilmeGratis({', 'setDuration(descida.para as Duration)', 'setAutoWaitTick((t) => t + 1)', "void trackEvent('wall_before_script'"), 'autoanalyze: a descida vem ANTES da parede wall_before_script')
+// reancorado KINEO-STUDIO-FANTASMA-1510: a guarda do autoanalyze virou `if (credits !== null && outOfCredits())` (o saldo nulo sai antes, sem seguir às cegas) — mesma ordem
+ok(ordem(GEN, "if (credits !== null && outOfCredits()) {", 'decidirDescidaFilmeGratis({', 'setDuration(descida.para as Duration)', 'setAutoWaitTick((t) => t + 1)', "void trackEvent('wall_before_script'"), 'autoanalyze: a descida vem ANTES da parede wall_before_script')
 ok(/freeFilmEntitled: trialActive === true/.test(GEN) && /paid: planTier === null \? null : hasPaid \|\| isStarter \|\| isCreator \|\| isStudio/.test(GEN), 'autoanalyze: só teste ativo e conta comprovadamente não pagante')
 ok(GEN.includes("const uDur = freeFilmDownshiftRef.current ? duration : Number(searchParams?.get('duration') ?? '') // KINEO-PRIMEIRO-FILME-2026-10-13"),'o disparo do Studio não devolve a duração da URL por cima da descida')
 // Gerar do /studio
