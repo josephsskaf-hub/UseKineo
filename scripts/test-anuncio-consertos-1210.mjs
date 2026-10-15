@@ -20,11 +20,12 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { semLinkLojas1510 } from './test-support/desfaz-ads-link-lojas-1510.mjs' // reancorado KINEO-ADS-LINK-LOJAS-1510
+import { semFiel3_1510 } from './test-support/desfaz-ads-fiel-3-1510.mjs' // reancorado KINEO-ADS-FIEL-3-1510 — o conserto mais novo do Ads sai PRIMEIRO, em memória
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+const read = (rel) => semFiel3_1510(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8')) // reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória (semFiel3_1510 já devolve LF)
 let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }
@@ -61,7 +62,7 @@ const SRC = Object.fromEntries(Object.entries(F).map(([k, v]) => [k, read(v)]))
 // KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o corpo do /plan foi EXTRAÍDO, sem mudar uma linha, para lib/ads/v2PlanCore.ts
 // (a rota só lê o cookie e chama o núcleo). Leitura do /plan = rota + núcleo, na ordem em que rodam.
 SRC.planRoute = `${SRC.planRoute}\n${read('lib/ads/v2PlanCore.ts')}`
-const mundo = (over = {}, mocks = {}, globals = {}) => createOfflineLoader({ mocks, globals, source: (rel, text) => (over[rel] !== undefined ? over[rel] : text) })
+const mundo = (over = {}, mocks = {}, globals = {}) => createOfflineLoader({ mocks, globals, source: (rel, text) => (over[rel] !== undefined ? over[rel] : semFiel3_1510(rel, text)) }) // reancorado KINEO-ADS-FIEL-3-1510 — as frases menores na zona segura e a foto declarada do link (15/10) saem primeiro, em memória (provadas em test-ads-fiel-3-1510)
 const pura = (over = {}) => mundo(over)
 
 // ═══ 1. NARRAÇÃO HONESTA ═════════════════════════════════════════════════════════════════════════════════════════════

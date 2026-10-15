@@ -133,6 +133,7 @@ import { adsV2PackshotCopy } from '@/lib/ads/v2Packshot' // KINEO-ADS-MELHORIAS-
 import { adsV2FormatCopy } from '@/lib/ads/v2Formats' // KINEO-ADS-MELHORIAS-1410 — as frases do formato (16 línguas)
 import { ADS_V2_FORMATS, ADS_V2_FORMAT_CROP, adsV2CropRectFor, adsV2FormatBlock, type AdsV2Format } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — 4:5 e 1:1 em "Mais opções"
 import { ADS_V2_PLAN_LEFT_WARN } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-2-1510 — o contador de roteiros do dia aparece a partir daqui
+import { ADS_V2_ORIGINAL_MAX_SIDE, adsV2NeedsOriginal, adsV2OriginalSize, adsV2SimplePhotoKindFor } from '@/lib/ads/v2Fiel3' // KINEO-ADS-FIEL-3-1510 — foto do link que é do produto vira "produto"; o recorte sai da foto inteira
 import { ADS_V2_START_OVER_DEFAULTS, adsV2EndCardTitle, adsV2Fiel2Copy, adsV2ForeignName, adsV2KindFor, adsV2PlansLeftText } from '@/lib/ads/v2Fiel2Tela' // KINEO-ADS-FIEL-2-1510 — start over limpo, link nunca é lugar, título do cartão, contador e pronúncia
 import { adsV2GenericProduct } from '@/lib/ads/v2CopyFit' // KINEO-ADS-FIEL-2-1510 — o título de sempre é só o substantivo genérico ("Perfume")?
 import { adsV2RedoCopy, adsV2RedoFill, type AdsV2RedoCopy } from '@/lib/ads/v2Redo' // KINEO-ADS-MELHORIAS-1410 — refazer UMA cena aqui mesmo (frases nas 16 línguas)
@@ -235,6 +236,11 @@ interface SimpleItem {
   fromVideo: boolean
   /** KINEO-ADS-1FOTO-LINK-2026-10-10 — veio do link do produto (a página diz que é foto do produto). */
   fromLink?: boolean
+  /** KINEO-ADS-FIEL-3-1510 — a página DECLARA esta foto do produto (JSON-LD/og de produto); e o id da foto inteira que o link já guardou na conta. */
+  linkProduct?: boolean // KINEO-ADS-FIEL-3-1510
+  linkFootageId?: string | null // KINEO-ADS-FIEL-3-1510
+  /** KINEO-ADS-FIEL-3-1510 — a foto INTEIRA (sem o corte do formato) já subiu: o recorte do produto sai dela. */
+  original?: { footageId: string } | null // KINEO-ADS-FIEL-3-1510
   /**
    * KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — preenchido quando o arquivo entra COMO VÍDEO: o original (sobe como está), a
    * duração/dimensões lidas no navegador e o início do trecho mais vivo. srcUrl é a miniatura desse trecho.
@@ -1574,7 +1580,7 @@ export function AdsV2SimpleSession({
     setLinkNote(null)
     setLinkFacts(null) // KINEO-ADS-FLUXO-2026-10-13
     try {
-      const r = await api<{ link?: string; host?: string; sentence?: string; title?: string; price?: string | null; images?: { footage_id: string; url: string }[] }>('/api/ads/v2/link-import', { method: 'POST', body: { url } })
+      const r = await api<{ link?: string; host?: string; sentence?: string; title?: string; price?: string | null; images?: { footage_id: string | null; url: string; product?: boolean }[] }>('/api/ads/v2/link-import', { method: 'POST', body: { url } }) // KINEO-ADS-FIEL-3-1510 — + product
       if (!aliveRef.current) return
       if (!r.ok) {
         if (sampleGone(r.code)) return // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
@@ -1608,7 +1614,7 @@ export function AdsV2SimpleSession({
           const webp = blob.type === 'image/webp' || /^data:image\/webp/i.test(im.url)
           const f = new File([blob], `${(host || 'product').replace(/[^\w-]+/g, '-')}-${i + 1}.${webp ? 'webp' : png ? 'png' : 'jpg'}`, { type: webp ? 'image/webp' : png ? 'image/png' : 'image/jpeg' })
           const it = await itemFromFile(f, false)
-          if (it) added.push({ ...it, fromLink: true })
+          if (it) added.push({ ...it, fromLink: true, ...(im.product === true ? { linkProduct: true } : {}), linkFootageId: typeof im.footage_id === 'string' && im.footage_id ? im.footage_id : null }) // KINEO-ADS-FIEL-3-1510
         } catch {
           /* foto que não baixou: as outras seguem */
         }
@@ -1755,21 +1761,26 @@ export function AdsV2SimpleSession({
    * KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — o vídeo que entra como vídeo sobe ORIGINAL (sem recorte, uma vez só) e vai
    * em `videos` com o início do trecho e o foco; as fotos seguem em `photos`.
    */
-  async function ensureItemsUploaded(): Promise<{ photos: { footage_id: string; kind: typeof photoKind }[]; videos: PlanVideoBody[] } | null> {
-    const out: { footage_id: string; kind: typeof photoKind }[] = []
+  async function ensureItemsUploaded(): Promise<{ photos: { footage_id: string; kind: typeof photoKind; original_footage_id?: string }[]; videos: PlanVideoBody[] } | null> { // KINEO-ADS-FIEL-3-1510 — + a foto inteira do produto
+    const out: { footage_id: string; kind: typeof photoKind; original_footage_id?: string }[] = [] // KINEO-ADS-FIEL-3-1510
     const videos: PlanVideoBody[] = []
-    const push = (p: SimpleItem, footageId: string) => {
+    const push = async (p: SimpleItem, footageId: string) => { // KINEO-ADS-FIEL-3-1510 — async: a foto inteira do produto pode subir aqui
       if (p.video) videos.push({ footage_id: footageId, start: p.video.start, focus_x: p.fx, focus_y: p.fy, width: p.video.width, height: p.video.height })
       // KINEO-ADS-1FOTO-LINK-2026-10-10 — foto que veio do link do PRODUTO é produto quando o texto não reconheceu lugar
       // nenhum ('other'): movimento de produto, não de "atravessar o espaço". Setor reconhecido (imóvel, restaurante…) manda.
-      else out.push({ footage_id: footageId, kind: (firstAsProduct && out.length === 0) || (p.fromLink === true && sector === 'other') ? 'product' : photoKind })
+      // KINEO-ADS-FIEL-3-1510 — e, com "Um produto" marcado, a foto do link que a página declara do produto (o café do T3 entrava como "lugar").
+      else { // KINEO-ADS-FIEL-3-1510
+        const kind = adsV2SimplePhotoKindFor({ photoKind, firstAsProduct, firstPhoto: out.length === 0, fromLink: p.fromLink === true, linkProduct: p.linkProduct === true, sector, adKind, productAlready: out.some((o) => o.kind === 'product') }) // KINEO-ADS-FIEL-3-1510
+        const original = kind === 'product' ? await ensureOriginal(p) : null // KINEO-ADS-FIEL-3-1510 — o recorte do produto sai da foto INTEIRA (o 1:1 cortava a caixa)
+        out.push({ footage_id: footageId, kind, ...(original && original !== footageId ? { original_footage_id: original } : {}) }) // KINEO-ADS-FIEL-3-1510
+      } // KINEO-ADS-FIEL-3-1510
     }
     let n = 0
     for (const p of inAd) {
       n += 1
       const sig = uploadSig(p) + (format !== '9:16' && !p.video ? `@${format}` : '') // KINEO-ADS-MELHORIAS-1410 — outro formato = recortar e subir de novo
       if (p.uploaded && p.uploaded.sig === sig) {
-        push(p, p.uploaded.footageId)
+        await push(p, p.uploaded.footageId) // KINEO-ADS-FIEL-3-1510
         continue
       }
       setBusyNote(fill(copy.plan.noteUpload, { i: n, n: inAd.length }))
@@ -1779,7 +1790,7 @@ export function AdsV2SimpleSession({
         const up = await uploadFootage(file)
         if (!aliveRef.current) return null
         updateItem(p.key, { busy: false, uploaded: { sig, footageId: up.footageId } })
-        push(p, up.footageId)
+        await push(p, up.footageId) // KINEO-ADS-FIEL-3-1510
       } catch (e) {
         if (!aliveRef.current) return null
         if (uploadGone(e)) return null // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
@@ -1791,6 +1802,38 @@ export function AdsV2SimpleSession({
     }
     return { photos: out, videos }
   }
+
+  /**
+   * KINEO-ADS-FIEL-3-1510 — a foto INTEIRA do produto (sem o corte do formato), para o recorte da trava: a do link já está na conta (o id que a
+   * leitura do link devolveu); a enviada sobe uma vez (lado maior ≤ 2048, JPEG) só se o formato cortou alguma coisa. Falhou = null (o recorte
+   * usa a foto do plano, como antes; o anúncio nunca para por isso).
+   */
+  async function ensureOriginal(p: SimpleItem): Promise<string | null> { // KINEO-ADS-FIEL-3-1510
+    if (p.original?.footageId) return p.original.footageId // KINEO-ADS-FIEL-3-1510
+    if (p.fromLink && p.linkFootageId) return p.linkFootageId // KINEO-ADS-FIEL-3-1510
+    if (!adsV2NeedsOriginal(p.w, p.h, p.fx, p.fy, format)) return null // KINEO-ADS-FIEL-3-1510 — o formato não cortou nada: a foto do plano já é a inteira
+    try { // KINEO-ADS-FIEL-3-1510
+      const img = await loadImage(p.srcUrl) // KINEO-ADS-FIEL-3-1510
+      const size = adsV2OriginalSize(img.naturalWidth, img.naturalHeight) // KINEO-ADS-FIEL-3-1510
+      if (Math.max(size.width, size.height) > ADS_V2_ORIGINAL_MAX_SIDE) return null // KINEO-ADS-FIEL-3-1510
+      const canvas = document.createElement('canvas') // KINEO-ADS-FIEL-3-1510
+      canvas.width = size.width // KINEO-ADS-FIEL-3-1510
+      canvas.height = size.height // KINEO-ADS-FIEL-3-1510
+      const ctx = canvas.getContext('2d') // KINEO-ADS-FIEL-3-1510
+      if (!ctx) return null // KINEO-ADS-FIEL-3-1510
+      ctx.fillStyle = '#ffffff' // KINEO-ADS-FIEL-3-1510 — o mesmo branco do recorte do formato
+      ctx.fillRect(0, 0, size.width, size.height) // KINEO-ADS-FIEL-3-1510
+      ctx.imageSmoothingQuality = 'high' // KINEO-ADS-FIEL-3-1510
+      ctx.drawImage(img, 0, 0, size.width, size.height) // KINEO-ADS-FIEL-3-1510
+      const blob = await canvasToBlob(canvas, ADS_V2_CROP.type, ADS_V2_CROP.quality) // KINEO-ADS-FIEL-3-1510
+      const up = await uploadFootage(new File([blob], 'product-full.jpg', { type: ADS_V2_CROP.type })) // KINEO-ADS-FIEL-3-1510
+      if (!aliveRef.current) return null // KINEO-ADS-FIEL-3-1510
+      updateItem(p.key, { original: { footageId: up.footageId } }) // KINEO-ADS-FIEL-3-1510
+      return up.footageId // KINEO-ADS-FIEL-3-1510
+    } catch { // KINEO-ADS-FIEL-3-1510
+      return null // KINEO-ADS-FIEL-3-1510
+    } // KINEO-ADS-FIEL-3-1510
+  } // KINEO-ADS-FIEL-3-1510
 
   /**
    * O servidor não conseguiu usar um vídeo como vídeo (não mediu, curto, tipo): ESSE item vira fotos (plano B), com aviso.

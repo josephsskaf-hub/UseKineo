@@ -11,6 +11,7 @@
 // Só node:zlib; nenhuma rede, nenhum banco (o guardião scripts/test-ads-fiel-1510.mjs roda isto cru).
 import { deflateSync, inflateSync } from 'node:zlib'
 import { ADS_V2_CUTOUT_AREA_MAX, ADS_V2_CUTOUT_AREA_MIN, ADS_V2_FORMAT_CROP, adsV2ProductLockRect, type AdsV2Format, type AdsV2ProductLockMode } from '@/lib/ads/v2ShotLists'
+import { adsV2LockPlacement, type AdsV2Box, type AdsV2LockPlacement, type AdsV2SceneLayout } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-3-1510 — o produto pousa na superfície lida, com teto e longe dos rostos
 
 /** Imagem em memória: RGBA 8 bits, linha a linha, sem preenchimento. */
 export interface AdsV2Rgba { width: number; height: number; data: Uint8Array }
@@ -372,7 +373,7 @@ export function adsV2LayoutPng(cutTrimmed: AdsV2Rgba, format: AdsV2Format, mode:
  * O QUADRO TRAVADO (PNG RGB, no tamanho do formato do anúncio): a cena do Nano Banana em `cover` (centro) + o recorte REAL colado
  * no MESMO retângulo do esboço. Devolve também o retângulo (para o evento e para a montagem, se um dia quiser sobrepor).
  */
-export function adsV2LockedFramePng(scene: AdsV2Rgba, cutTrimmed: AdsV2Rgba, format: AdsV2Format, mode: AdsV2ProductLockMode, opts: { shade?: boolean } = {}): { png: Uint8Array; rect: { x: number; y: number; w: number; h: number }; width: number; height: number; shade?: AdsV2Shade } { // KINEO-ADS-FIEL-2-1510 — opts.shade: sombra de contato + tom da cena (sem a opção = o quadro de antes, pixel a pixel)
+export function adsV2LockedFramePng(scene: AdsV2Rgba, cutTrimmed: AdsV2Rgba, format: AdsV2Format, mode: AdsV2ProductLockMode, opts: { shade?: boolean; place?: { sceneIdx: number; layout?: AdsV2SceneLayout | null } } = {}): { png: Uint8Array; rect: { x: number; y: number; w: number; h: number }; width: number; height: number; shade?: AdsV2Shade; placement?: AdsV2LockPlacement; faces?: AdsV2Box[] } { // KINEO-ADS-FIEL-2-1510 — opts.shade: sombra de contato + tom da cena (sem a opção = o quadro de antes, pixel a pixel) · KINEO-ADS-FIEL-3-1510 — opts.place: onde pousar
   const crop = ADS_V2_FORMAT_CROP[format] ?? ADS_V2_FORMAT_CROP['9:16']
   const W = crop.width
   const H = crop.height
@@ -382,11 +383,24 @@ export function adsV2LockedFramePng(scene: AdsV2Rgba, cutTrimmed: AdsV2Rgba, for
   if (sh > scene.height) { sh = scene.height; sw = sh * ratio }
   const frame = resampleRgba(scene, W, H, { sx: (scene.width - sw) / 2, sy: (scene.height - sh) / 2, sw, sh })
   for (let i = 3; i < frame.data.length; i += 4) frame.data[i] = 255
-  const { rect, piece } = placeCutout(W, H, cutTrimmed, mode)
+  const seen = opts.place && mode === 'scene' ? adsV2LayoutToFrame(opts.place.layout ?? null, scene.width, scene.height, { sx: (scene.width - sw) / 2, sy: (scene.height - sh) / 2, sw, sh }) : null // KINEO-ADS-FIEL-3-1510 — a leitura da visão no quadro final
+  const placed = opts.place && mode === 'scene' ? adsV2LockPlacement({ frameW: W, frameH: H, cutW: cutTrimmed.width, cutH: cutTrimmed.height, format, sceneIdx: opts.place.sceneIdx, layout: seen }) : null // KINEO-ADS-FIEL-3-1510 — cena de gente: superfície + rostos (sem a opção = a caixa fixa de antes)
+  const { rect, piece } = placed ? { rect: placed.rect, piece: resampleRgba(cutTrimmed, placed.rect.w, placed.rect.h) } : placeCutout(W, H, cutTrimmed, mode) // KINEO-ADS-FIEL-3-1510
   const shade = opts.shade === true ? adsV2ShadeAndMatch(frame, piece, rect, mode) : undefined // KINEO-ADS-FIEL-2-1510
   pasteOver(frame, piece, rect.x, rect.y)
-  return { png: encodePng(frame), rect, width: W, height: H, ...(shade ? { shade } : {}) } // KINEO-ADS-FIEL-2-1510
+  return { png: encodePng(frame), rect, width: W, height: H, ...(shade ? { shade } : {}), ...(placed ? { placement: placed, faces: seen ? seen.faces : [] } : {}) } // KINEO-ADS-FIEL-2-1510 · KINEO-ADS-FIEL-3-1510 — + onde pousou (evento e as frases de tela)
 }
+
+/** KINEO-ADS-FIEL-3-1510 — a leitura da visão (frações da IMAGEM da cena) levada ao quadro final (a mesma janela `cover` do recorte). Pura. */
+export function adsV2LayoutToFrame(layout: AdsV2SceneLayout | null, sceneW: number, sceneH: number, win: { sx: number; sy: number; sw: number; sh: number }): AdsV2SceneLayout | null { // KINEO-ADS-FIEL-3-1510
+  if (!layout) return null // KINEO-ADS-FIEL-3-1510
+  const map = (b: AdsV2Box): AdsV2Box | null => { // KINEO-ADS-FIEL-3-1510
+    const c = (v: number) => Math.min(1, Math.max(0, v)) // KINEO-ADS-FIEL-3-1510
+    const r = { x0: c((b.x0 * sceneW - win.sx) / win.sw), y0: c((b.y0 * sceneH - win.sy) / win.sh), x1: c((b.x1 * sceneW - win.sx) / win.sw), y1: c((b.y1 * sceneH - win.sy) / win.sh) } // KINEO-ADS-FIEL-3-1510
+    return r.x1 - r.x0 > 0.005 && r.y1 - r.y0 > 0.005 ? r : null // KINEO-ADS-FIEL-3-1510 — caiu fora da janela
+  } // KINEO-ADS-FIEL-3-1510
+  return { surface: layout.surface ? map(layout.surface) : null, faces: layout.faces.map(map).filter((b): b is AdsV2Box => !!b) } // KINEO-ADS-FIEL-3-1510
+} // KINEO-ADS-FIEL-3-1510
 
 // ── KINEO-ADS-FIEL-2-1510 — o recorte "colado" ganha a luz da cena (QA 15/10: "parece recortado e colado") ─────────────────────
 // KINEO-ADS-FIEL-2-1510 — barato e em JS puro sobre o RGBA já decodificado (sem sharp/canvas): (1) TOM — a luminância média e a

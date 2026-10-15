@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
     }
 
     // As fotos → pasta da conta, com moderação; barrada vai para a quarentena e não vira linha (nenhum plano a alcança).
-    const images: { footage_id: string | null; url: string }[] = []
+    const images: { footage_id: string | null; url: string; product?: true }[] = [] // KINEO-ADS-FIEL-3-1510 — product: a foto que a página declara do produto (a tela a marca "produto" e a trava liga)
     let skipped = read.skipped
     let blocked = 0
     let inlineBytes = 0 // KINEO-ANUNCIO-CONSERTOS-2026-10-12
@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
       // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — WebP (a foto da Graydon): o bucket só aceita JPG/PNG e não há conversor no servidor. Volta
       // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — EMBUTIDO (data:, teto por foto e no total); o navegador desenha no recorte 9:16 e o recorte
       // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — sobe como JPG pelo /api/footage, que modera a imagem antes de qualquer plano a alcançar.
-      if (im.ext === 'webp') { if (im.bytes.byteLength > ADS_V2_LINK_WEBP_INLINE_MAX_BYTES || inlineBytes + im.bytes.byteLength > ADS_V2_LINK_WEBP_INLINE_TOTAL_BYTES) { skipped++; continue } inlineBytes += im.bytes.byteLength; images.push({ footage_id: null, url: `data:image/webp;base64,${Buffer.from(im.bytes).toString('base64')}` }); continue } // KINEO-ANUNCIO-CONSERTOS-2026-10-12
+      if (im.ext === 'webp') { if (im.bytes.byteLength > ADS_V2_LINK_WEBP_INLINE_MAX_BYTES || inlineBytes + im.bytes.byteLength > ADS_V2_LINK_WEBP_INLINE_TOTAL_BYTES) { skipped++; continue } inlineBytes += im.bytes.byteLength; images.push({ footage_id: null, url: `data:image/webp;base64,${Buffer.from(im.bytes).toString('base64')}`, ...(im.declared ? { product: true as const } : {}) }); continue } // KINEO-ANUNCIO-CONSERTOS-2026-10-12 · KINEO-ADS-FIEL-3-1510
       const path = `${uid}/clip-${Date.now()}-link${i}.${im.ext}`
       const up = await admin.storage.from(USER_FOOTAGE_BUCKET).upload(path, im.bytes, { contentType: im.ext === 'png' ? 'image/png' : 'image/jpeg', upsert: false })
       if (up.error) { skipped++; continue }
@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
       }
       const row = await admin.from('user_footage').insert({ user_id: uid, url, kind: 'image', size_bytes: im.bytes.byteLength, ...(ws.role === 'member' ? { created_by: user.id } : {}) }).select('id, url').maybeSingle()
       if (row.error || !row.data) { skipped++; continue }
-      images.push({ footage_id: String((row.data as { id: string }).id), url: String((row.data as { url: string }).url) })
+      images.push({ footage_id: String((row.data as { id: string }).id), url: String((row.data as { url: string }).url), ...(im.declared ? { product: true as const } : {}) }) // KINEO-ADS-FIEL-3-1510
     }
 
     await logRead({ ok: true, host: read.host, candidates: read.candidates, images_saved: images.length, skipped, blocked, price: Boolean(read.price), platform: read.platform ?? null, confidence: read.confidence ?? null }) // KINEO-ADS-LINK-LOJAS-1510

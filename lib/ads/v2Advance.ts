@@ -41,6 +41,7 @@ import { adsV2IsPresenterHolds } from '@/lib/ads/v2PresenterHolds' // KINEO-ADS-
 import { adsV2PlanFormat, adsV2SeedanceAspect } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — o formato gravado no plano (9:16 sem a chave)
 import { ADS_V2_SCENE_IMAGE_SLUG } from '@/lib/ads/v2Tiers' // KINEO-ADS-FIEL-1510 — cancelar a imagem abandonada pelo prazo
 import { ADS_V2_LOCK_DISPATCH_MIN_MS, ADS_V2_FAST_IMAGE_STUCK_MS, ADS_V2_FAST_VIDEO_STUCK_MS, ADS_V2_PRESENTER_BUDGET_MS, ADS_V2_STILL_REASON, adsV2FallbackStep, adsV2IsLockedImage, adsV2OverdueToStills, adsV2ProductLockFor, adsV2ProductLockMotion, adsV2ProductLockScenePrompt, adsV2StillSource, motionPrompt, type AdsV2ProductLock } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-1510 — trava do produto (o recorte real no quadro) e o prazo de ~8 min por anúncio (lib pura)
+import { adsV2LockSidecarUrl, adsV2ParseLockSidecar, type AdsV2Box } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-3-1510 — as frases de tela desviam do produto real e dos rostos
 import { ADS_V2_LOCK_CLOSEUP_REASON, ADS_V2_LOCK_DUP_REASON, adsV2FitTimeline, adsV2IsLockCloseup, adsV2LockCloseupEligible, adsV2LockDupStep, adsV2LockSceneRefs, adsV2LockedScenePrompt, adsV2NarrationWordBudget, adsV2SettingFromPrompt, adsV2ShortenNarration } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-2-1510 — cena sem produto, conferência, close real e a duração que cabe no pedido
 import { buildAdV2Source, ADS_V2_VOICE_START, adsV2ProductOverlays, type AdV2MontageShot } from '@/lib/ads/adV2Montage'
 import { adsV2FallbackTrack, adsV2MusicTrimStart, adsV2MusicUsable, adsV2SwapLibraryTrack } from '@/lib/ads/v2Music'
@@ -386,9 +387,10 @@ async function finishLockedImage(admin: SupabaseClient, order: AdsV2OrderRow, ro
     return 'done' // KINEO-ADS-FIEL-2-1510
   } // KINEO-ADS-FIEL-2-1510
   try {
-    const out = await srv.adsV2FinishLockedScene({ userId: order.user_id, orderId: order.id, idx: row.idx, attempt: row.attempt, lock, format: adsV2PlanFormat(order.plan), sceneUrl })
+    const layout = lock.mode === 'scene' ? await lockVision().then((v) => (v && typeof v.adsV2SceneLayout === 'function' ? v.adsV2SceneLayout(sceneUrl) : null)).catch(() => null) : null // KINEO-ADS-FIEL-3-1510 — a superfície vazia e os rostos (null = a regra fixa: terço de baixo, num dos lados)
+    const out = await srv.adsV2FinishLockedScene({ userId: order.user_id, orderId: order.id, idx: row.idx, attempt: row.attempt, lock, format: adsV2PlanFormat(order.plan), sceneUrl, ...(lock.mode === 'scene' ? { layout } : {}) }) // KINEO-ADS-FIEL-3-1510
     if (await markShot(admin, row, ['image_submitted'], { status: 'image_done', image_url: out.url })) {
-      await writeServerEvent({ name: 'ads_v2_product_locked', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, idx: row.idx, attempt: row.attempt, mode: lock.mode, rect: out.rect, ...((out as { shade?: unknown }).shade ? { shade: (out as { shade?: unknown }).shade } : {}) } }).catch(() => null) // KINEO-ADS-FIEL-2-1510 — + o tom e a sombra
+      await writeServerEvent({ name: 'ads_v2_product_locked', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, idx: row.idx, attempt: row.attempt, mode: lock.mode, rect: out.rect, ...((out as { shade?: unknown }).shade ? { shade: (out as { shade?: unknown }).shade } : {}), ...((out as { placement?: unknown }).placement ? { placement: (out as { placement?: unknown }).placement, faces: layout ? layout.faces.length : null, from_original: !!lock.sourceUrl } : {}) } }).catch(() => null) // KINEO-ADS-FIEL-2-1510 — + o tom e a sombra · KINEO-ADS-FIEL-3-1510 — + onde pousou (superfície/rostos/regra fixa), quantos rostos e se o recorte veio da foto original
     }
     return 'done'
   } catch (e) {
@@ -398,6 +400,23 @@ async function finishLockedImage(admin: SupabaseClient, order: AdsV2OrderRow, ro
     return 'done'
   }
 }
+/**
+ * KINEO-ADS-FIEL-3-1510 — as caixas (produto + rostos, frações do quadro) que as frases de tela evitam, lidas do JSON gravado ao lado de cada
+ * quadro travado (lib/ads/v2ProductLockServer.ts). Sem JSON, fora do ar ou ilegível = a cena fica sem caixas (a regra fixa das frases). Nunca lança.
+ */
+async function lockAvoidBoxes(rows: readonly AdsV2ShotRow[]): Promise<Map<number, AdsV2Box[]>> { // KINEO-ADS-FIEL-3-1510
+  const out = new Map<number, AdsV2Box[]>() // KINEO-ADS-FIEL-3-1510
+  await Promise.all(rows.map(async (r) => { // KINEO-ADS-FIEL-3-1510
+    const url = adsV2LockSidecarUrl(r.image_url) // KINEO-ADS-FIEL-3-1510
+    if (!url) return // KINEO-ADS-FIEL-3-1510
+    try { // KINEO-ADS-FIEL-3-1510
+      const res = await fetch(url, { signal: AbortSignal.timeout(5_000), cache: 'no-store' }) // KINEO-ADS-FIEL-3-1510
+      const boxes = res.ok ? adsV2ParseLockSidecar(await res.text()) : null // KINEO-ADS-FIEL-3-1510
+      if (boxes) out.set(r.idx, boxes) // KINEO-ADS-FIEL-3-1510
+    } catch { /* KINEO-ADS-FIEL-3-1510 — sem caixas: a regra fixa */ } // KINEO-ADS-FIEL-3-1510
+  })) // KINEO-ADS-FIEL-3-1510
+  return out // KINEO-ADS-FIEL-3-1510
+} // KINEO-ADS-FIEL-3-1510
 /** KINEO-ADS-FIEL-1510 — cancela (melhor esforço) o job abandonado pelo prazo: na fila, a fal não cobra. */
 function cancelAbandoned(row: AdsV2ShotRow, kind: 'video' | 'image'): void {
   const model = kind === 'image' ? ADS_V2_SCENE_IMAGE_SLUG : row.engine ? ADS_V2_ENGINES[row.engine].slug : null
@@ -899,6 +918,8 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
     const p = plan.shots?.find((s) => s.idx === r.idx)
     return { ...base, focusX: p?.focusX ?? 0.5, focusY: p?.focusY ?? 0.5, videoWidth: p?.videoWidth ?? null, videoHeight: p?.videoHeight ?? null }
   })
+  const avoid = await lockAvoidBoxes(latest) // KINEO-ADS-FIEL-3-1510 — onde o produto real e os rostos ficaram em cada cena travada: as frases de tela desviam
+  latest.forEach((r, k) => { const a = avoid.get(r.idx); if (a) montageShots[k].avoid = a }) // KINEO-ADS-FIEL-3-1510
   let shotsSeconds = montageShots.reduce((s, x) => s + x.cutSeconds, 0) // KINEO-ADS-FIEL-2-1510 — let: o encaixe na duração pedida pode encolher os planos
   // KINEO-ATOR-ANUNCIO-2026-10-09 — ator pronto (no nosso bucket e medido) = ele vira a trilha base, com a voz DELE (a TTS
   // separada não entra: duas vozes, nunca). Qualquer recusa da montagem com ator = o anúncio de sempre (nunca mata o pedido).

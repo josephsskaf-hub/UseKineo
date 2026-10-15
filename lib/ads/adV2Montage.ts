@@ -54,6 +54,7 @@ export interface AdV2MontageShot {
   packshot?: boolean
   fill?: boolean // KINEO-ADS-POS-ENTREGA-1510 — clipe que só existe em 9:16 (efeito) num quadro de outra proporção: fundo suave + o clipe INTEIRO (sem corte duro)
   closeup?: boolean // KINEO-ADS-FIEL-2-1510 — só no plano `text` que é o CLOSE do Premium com a trava: a foto real com um zoom de close (mais perto e mais fundo que o de sempre)
+  avoid?: readonly AdV2AvoidBox[] // KINEO-ADS-FIEL-3-1510 — cena travada: o produto real e os rostos (frações do quadro) que as frases de tela não cobrem
 }
 /** KINEO-ADS-FIEL-2-1510 — o zoom do close real: começa já perto e aproxima mais (as MESMAS propriedades do zoom do plano `text`, só outros valores). */
 export const ADS_V2_CLOSEUP_ZOOM_START = '108%' // KINEO-ADS-FIEL-2-1510
@@ -332,14 +333,15 @@ export function buildAdV2Source(input: AdV2MontageInput): Record<string, unknown
     if (!(Number.isFinite(o.start) && Number.isFinite(o.end) && o.start >= 0 && o.end > o.start && o.end <= shotsSeconds)) {
       throw new Error(`ads_v2_montage_overlay_window:${i}`)
     }
+    const geo = adsV2OverlayGeometry(text, width, height, adsV2OverlayAvoid(shots, starts, o.start, o.end)) // KINEO-ADS-FIEL-3-1510 — fonte pela largura, ≤ 2 linhas, zona segura, longe do produto e dos rostos
     elements.push({
       type: 'text', track: 4, time: r3(o.start), duration: r3(o.end - o.start),
       text,
       // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — produto sem ator: terço de baixo (o rótulo mora no centro). Sem a opção, o centro.
-      x: '50%', y: pct(input.overlayPlacement === 'lower_third' ? ADS_V2_PRESENTER_OVERLAY_Y : ADS_V2_OVERLAY_Y), x_anchor: '50%', y_anchor: '50%',
+      ...(input.overlayPlacement === 'lower_third' ? { x: '50%', y: geo.y, x_anchor: '50%', y_anchor: geo.y_anchor } : { x: '50%', y: pct(ADS_V2_OVERLAY_Y), x_anchor: '50%', y_anchor: '50%' }), // KINEO-ADS-FIEL-3-1510 — produto: presa pela base na faixa de baixo da zona segura (ou na de cima, se embaixo cobre o produto/rosto)
       x_alignment: '50%', // KINEO-CENTRO-ADS-GANCHO-1410 [TRAVA 8.2 — vai do fundador 14/10] — a frase de tela no MEIO da caixa de 84% (o padrão do Creatomate é a esquerda)
-      width: '84%', height: pct(ADS_V2_OVERLAY_H),
-      font_family: fontFamily, font_size: 64, font_weight: '800', line_height: '110%',
+      width: geo.width, ...(input.overlayPlacement === 'lower_third' ? {} : { height: pct(ADS_V2_OVERLAY_H) }), // KINEO-ADS-FIEL-3-1510 — 80% (era 84%); presa pela base = sem altura fixa
+      font_family: fontFamily, font_size: geo.font_size, font_weight: '800', line_height: '110%', // KINEO-ADS-FIEL-3-1510 — 48 px por 1080 de largura (era 64 fixo)
       fill_color: '#ffffff', stroke_color: 'rgba(0,0,0,0.55)', stroke_width: 2,
       // KINEO-ADS-V2-PILULA-2026-09-28 — 1ª amostra real (Kitchen Magic, cozinha branca): frase branca sumia sobre a foto
       // clara. Pílula escura que abraça a linha, com as MESMAS propriedades que a legenda do compose já usa em produção
@@ -554,14 +556,15 @@ function buildAdV2PresenterSource(input: AdV2MontageInput, presenter: AdV2Presen
     const start = r3(o.start * scale)
     const end = r3(Math.min(o.end * scale, main))
     if (!(end > start)) throw new Error(`ads_v2_montage_overlay_window:${i}`)
+    const geoP = adsV2OverlayGeometry(text, width, height, null) // KINEO-ADS-FIEL-3-1510
     elements.push({
       type: 'text', track: 4, time: start, duration: r3(end - start),
       text,
       // KINEO-ATOR-AJUSTES-2026-10-09 — terço de baixo (o rosto do ator mora no terço do meio).
-      x: '50%', y: pct(ADS_V2_PRESENTER_OVERLAY_Y), x_anchor: '50%', y_anchor: '50%',
+      x: '50%', y: geoP.y, x_anchor: '50%', y_anchor: geoP.y_anchor, // KINEO-ADS-FIEL-3-1510 — presa pela base na faixa de baixo da zona segura (o rosto fica acima)
       x_alignment: '50%', // KINEO-CENTRO-ADS-GANCHO-1410 [TRAVA 8.2 — vai do fundador 14/10] — a frase de tela no MEIO da caixa de 84% (o padrão do Creatomate é a esquerda)
-      width: '84%', height: pct(ADS_V2_OVERLAY_H),
-      font_family: fontFamily, font_size: 64, font_weight: '800', line_height: '110%',
+      width: geoP.width, // KINEO-ADS-FIEL-3-1510 — 80% (era 84%), sem altura fixa
+      font_family: fontFamily, font_size: geoP.font_size, font_weight: '800', line_height: '110%', // KINEO-ADS-FIEL-3-1510 — 48 px por 1080 de largura (era 64 fixo)
       fill_color: '#ffffff', stroke_color: 'rgba(0,0,0,0.55)', stroke_width: 2,
       background_color: 'rgba(0,0,0,0.55)', background_x_padding: '3%', background_y_padding: '2%', border_radius: 10,
       enter_transition: { type: 'fade', duration: 0.2 },
@@ -597,3 +600,100 @@ function buildAdV2PresenterSource(input: AdV2MontageInput, presenter: AdV2Presen
     elements,
   }
 }
+// ── KINEO-ADS-FIEL-3-1510 — FRASES DE TELA menores e na ZONA SEGURA (fundador 15/10, olhando os quadros do T1 95a23737: "as legendas estão
+// KINEO-ADS-FIEL-3-1510 — posicionadas erradas, estão muito grandes") ──────────────────────────────────────────────────────────────────
+// KINEO-ADS-FIEL-3-1510 — Era: fonte 64 px FIXA (com o quadro de 720 px do perfil de custo, 8,9% da largura), caixa de 84% e, no anúncio de
+// KINEO-ADS-FIEL-3-1510 — produto, o terço de baixo (centro em 77%) — em cima do produto colado. Régua de mercado (Reels/TikTok): o bloco
+// KINEO-ADS-FIEL-3-1510 — de texto ≈ 5–6% da altura do 9:16 (2 linhas de 48 px a 110% = 105,6 px = 5,5% de 1920), no máximo 2 linhas, largura
+// KINEO-ADS-FIEL-3-1510 — ≤ 80%, FORA dos ~15% de cima e dos ~20% de baixo (botões, nome e legenda da plataforma). 4:5 e 1:1 aparecem menores
+// KINEO-ADS-FIEL-3-1510 — na tela e com a interface quase toda fora do quadro: a faixa encolhe na proporção da altura (1920 → 1350 → 1080).
+// KINEO-ADS-FIEL-3-1510 — A fonte escala com a LARGURA do quadro (os 3 formatos têm 1080 de largura; o 9:16 pode sair em 720). A frase fica
+// KINEO-ADS-FIEL-3-1510 — presa pela BASE (y_anchor 100%, a mesma âncora das legendas do compose em produção) e cresce para cima.
+// KINEO-ADS-FIEL-3-1510 — No anúncio de produto (e no do ator) a frase vai à faixa de BAIXO da zona segura; se ali ela cobre o produto real
+// KINEO-ADS-FIEL-3-1510 — ou um rosto (as caixas que a trava gravou ao lado de cada quadro), sobe para a faixa de CIMA. Centralizada sempre
+// KINEO-ADS-FIEL-3-1510 — (x_alignment 50%, o conserto do centro de 14/10). O cartão final não muda (o título dele não cobre nada).
+/** KINEO-ADS-FIEL-3-1510 — a fonte das frases num quadro de 1080 px de largura (escala com a largura). */
+export const ADS_V2_OVERLAY_FONT_AT_1080 = 48 // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — o menor tamanho (frase com palavra comprida que não cabe em 2 linhas a 48). */
+export const ADS_V2_OVERLAY_FONT_MIN_AT_1080 = 40 // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — largura da caixa das frases (fração da largura do quadro). */
+export const ADS_V2_OVERLAY_WIDTH = 0.8 // KINEO-ADS-FIEL-3-1510
+export const ADS_V2_OVERLAY_LINE_HEIGHT = 1.1 // KINEO-ADS-FIEL-3-1510 — o '110%' de sempre
+export const ADS_V2_OVERLAY_MAX_LINES = 2 // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — largura média de um caractere em negrito 800 (em "em"): a estimativa das quebras de linha. */
+export const ADS_V2_OVERLAY_CHAR_EM = 0.58 // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — folga da pílula (background_y_padding) até a borda da zona segura, em fração da altura. */
+export const ADS_V2_OVERLAY_PILL_PAD = 0.012 // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — folga em volta das caixas evitadas (a câmera ainda anda um pouco no vídeo). */
+export const ADS_V2_OVERLAY_AVOID_PAD = 0.02 // KINEO-ADS-FIEL-3-1510
+export type AdsV2OverlayFrame = '9:16' | '4:5' | '1:1' // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — zona segura por formato (frações da altura): nada da frase acima de `top` nem abaixo de `bottom`. */
+export const ADS_V2_OVERLAY_SAFE: Readonly<Record<AdsV2OverlayFrame, { top: number; bottom: number }>> = { '9:16': { top: 0.15, bottom: 0.8 }, '4:5': { top: 0.11, bottom: 0.86 }, '1:1': { top: 0.09, bottom: 0.89 } } // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — caixa em frações do quadro (as que a trava grava: produto + rostos). */
+export interface AdV2AvoidBox { x0: number; y0: number; x1: number; y1: number } // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — o formato pelo quadro (a proporção mais próxima). Pura. */
+export function adsV2OverlayFrame(width: number, height: number): AdsV2OverlayFrame { // KINEO-ADS-FIEL-3-1510
+  const r = width / height // KINEO-ADS-FIEL-3-1510
+  return Math.abs(r - 1) < Math.abs(r - 0.8) ? '1:1' : Math.abs(r - 0.8) < Math.abs(r - 0.5625) ? '4:5' : '9:16' // KINEO-ADS-FIEL-3-1510
+} // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — as linhas da frase (quebra por palavra, estimada) numa fonte e num quadro. Pura. */
+export function adsV2OverlayLines(text: string, fontPx: number, frameW: number): string[] { // KINEO-ADS-FIEL-3-1510
+  const perLine = Math.max(4, Math.floor((frameW * ADS_V2_OVERLAY_WIDTH * 0.94) / (fontPx * ADS_V2_OVERLAY_CHAR_EM))) // KINEO-ADS-FIEL-3-1510 — 94%: a pílula come 3% de cada lado
+  const lines: string[] = [] // KINEO-ADS-FIEL-3-1510
+  for (const word of String(text ?? '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean)) { // KINEO-ADS-FIEL-3-1510
+    const last = lines.length ? lines[lines.length - 1] : null // KINEO-ADS-FIEL-3-1510
+    if (last !== null && (last + ' ' + word).length <= perLine) lines[lines.length - 1] = last + ' ' + word // KINEO-ADS-FIEL-3-1510
+    else lines.push(word) // KINEO-ADS-FIEL-3-1510
+  } // KINEO-ADS-FIEL-3-1510
+  return lines // KINEO-ADS-FIEL-3-1510
+} // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — o tamanho da fonte: 48 px por 1080 de largura; desce (até 40) só se a frase não couber em 2 linhas. Pura. */
+export function adsV2OverlayFontSize(text: string, frameW: number): number { // KINEO-ADS-FIEL-3-1510
+  const k = frameW > 0 ? frameW / 1080 : 1 // KINEO-ADS-FIEL-3-1510
+  const max = Math.round(ADS_V2_OVERLAY_FONT_AT_1080 * k), min = Math.round(ADS_V2_OVERLAY_FONT_MIN_AT_1080 * k) // KINEO-ADS-FIEL-3-1510
+  for (let f = max; f > min; f -= 2) if (adsV2OverlayLines(text, f, frameW).length <= ADS_V2_OVERLAY_MAX_LINES) return f // KINEO-ADS-FIEL-3-1510
+  return min // KINEO-ADS-FIEL-3-1510
+} // KINEO-ADS-FIEL-3-1510
+export interface AdV2OverlayPlace { band: 'lower' | 'upper'; bottom: number; box: AdV2AvoidBox; overlap: number } // KINEO-ADS-FIEL-3-1510
+/**
+ * KINEO-ADS-FIEL-3-1510 — onde a frase fica: a faixa de BAIXO da zona segura (a base em `bottom` − folga da pílula) ou a de CIMA (o topo do
+ * bloco de 2 linhas em `top`). A 1ª que não toca nenhuma caixa evitada (com folga) ganha; nenhuma = a de menor invasão (empate = baixo). Pura.
+ */
+export function adsV2OverlayPlace(i: { text: string; frameW: number; frameH: number; fontPx: number; avoid?: readonly AdV2AvoidBox[] | null }): AdV2OverlayPlace { // KINEO-ADS-FIEL-3-1510
+  const safe = ADS_V2_OVERLAY_SAFE[adsV2OverlayFrame(i.frameW, i.frameH)] // KINEO-ADS-FIEL-3-1510
+  const lines = adsV2OverlayLines(i.text, i.fontPx, i.frameW) // KINEO-ADS-FIEL-3-1510
+  const lineH = (i.fontPx * ADS_V2_OVERLAY_LINE_HEIGHT) / i.frameH // KINEO-ADS-FIEL-3-1510
+  const blockH = Math.max(1, lines.length) * lineH // KINEO-ADS-FIEL-3-1510
+  const longest = lines.reduce((m, l) => Math.max(m, l.length), 0) // KINEO-ADS-FIEL-3-1510
+  const halfW = Math.min(ADS_V2_OVERLAY_WIDTH, (longest * i.fontPx * ADS_V2_OVERLAY_CHAR_EM) / i.frameW + 0.06) / 2 // KINEO-ADS-FIEL-3-1510 — a pílula abraça a linha mais longa
+  const lowerBottom = safe.bottom - ADS_V2_OVERLAY_PILL_PAD // KINEO-ADS-FIEL-3-1510
+  const upperBottom = safe.top + ADS_V2_OVERLAY_PILL_PAD + ADS_V2_OVERLAY_MAX_LINES * lineH // KINEO-ADS-FIEL-3-1510 — cabe o bloco de 2 linhas abaixo do topo
+  const avoid = Array.isArray(i.avoid) ? i.avoid : [] // KINEO-ADS-FIEL-3-1510
+  const r4 = (n: number) => Math.round(n * 10000) / 10000 // KINEO-ADS-FIEL-3-1510
+  const cand = (band: 'lower' | 'upper', bottom: number): AdV2OverlayPlace => { // KINEO-ADS-FIEL-3-1510
+    const box = { x0: 0.5 - halfW, y0: bottom - blockH - ADS_V2_OVERLAY_PILL_PAD, x1: 0.5 + halfW, y1: bottom + ADS_V2_OVERLAY_PILL_PAD } // KINEO-ADS-FIEL-3-1510
+    let overlap = 0 // KINEO-ADS-FIEL-3-1510
+    for (const a of avoid) { // KINEO-ADS-FIEL-3-1510
+      const w = Math.min(box.x1, a.x1 + ADS_V2_OVERLAY_AVOID_PAD) - Math.max(box.x0, a.x0 - ADS_V2_OVERLAY_AVOID_PAD) // KINEO-ADS-FIEL-3-1510
+      const h = Math.min(box.y1, a.y1 + ADS_V2_OVERLAY_AVOID_PAD) - Math.max(box.y0, a.y0 - ADS_V2_OVERLAY_AVOID_PAD) // KINEO-ADS-FIEL-3-1510
+      if (w > 0 && h > 0) overlap += w * h // KINEO-ADS-FIEL-3-1510
+    } // KINEO-ADS-FIEL-3-1510
+    return { band, bottom: r4(bottom), box: { x0: r4(box.x0), y0: r4(box.y0), x1: r4(box.x1), y1: r4(box.y1) }, overlap: r4(overlap) } // KINEO-ADS-FIEL-3-1510
+  } // KINEO-ADS-FIEL-3-1510
+  const lower = cand('lower', lowerBottom) // KINEO-ADS-FIEL-3-1510
+  if (lower.overlap <= 0) return lower // KINEO-ADS-FIEL-3-1510
+  const upper = cand('upper', upperBottom) // KINEO-ADS-FIEL-3-1510
+  return upper.overlap < lower.overlap ? upper : lower // KINEO-ADS-FIEL-3-1510
+} // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — as caixas evitadas durante a frase: as das cenas que aparecem no tempo dela. Pura. */
+export function adsV2OverlayAvoid(shots: readonly AdV2MontageShot[], starts: readonly number[], start: number, end: number): AdV2AvoidBox[] { // KINEO-ADS-FIEL-3-1510
+  const out: AdV2AvoidBox[] = [] // KINEO-ADS-FIEL-3-1510
+  shots.forEach((s, k) => { const a = starts[k], b = a + s.cutSeconds; if (Array.isArray(s.avoid) && a < end && b > start) out.push(...s.avoid) }) // KINEO-ADS-FIEL-3-1510
+  return out // KINEO-ADS-FIEL-3-1510
+} // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — as propriedades de lugar e tamanho da frase presa pela base (y_anchor 100%, sem altura fixa: cresce para cima). */
+export function adsV2OverlayGeometry(text: string, frameW: number, frameH: number, avoid?: readonly AdV2AvoidBox[] | null): { y: string; y_anchor: string; width: string; font_size: number; place: AdV2OverlayPlace } { // KINEO-ADS-FIEL-3-1510
+  const fontPx = adsV2OverlayFontSize(text, frameW) // KINEO-ADS-FIEL-3-1510
+  const place = adsV2OverlayPlace({ text, frameW, frameH, fontPx, avoid }) // KINEO-ADS-FIEL-3-1510
+  return { y: pct(place.bottom), y_anchor: '100%', width: pct(ADS_V2_OVERLAY_WIDTH), font_size: fontPx, place } // KINEO-ADS-FIEL-3-1510
+} // KINEO-ADS-FIEL-3-1510
