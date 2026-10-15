@@ -65,6 +65,8 @@ export interface AccountPanelProps {
   onClose: () => void
   onBuyCredits: () => void
   onSignOut: () => void
+  /** KINEO-SAIR-DA-CONTA-1510 — saída em curso: botão desligado com "Signing out…" (sem segundo clique). */
+  signingOut?: boolean
   /** Fecha a sidebar no mobile junto com o painel. */
   onNavigate?: () => void
 }
@@ -113,7 +115,7 @@ function Bar({ pct, warn }: { pct: number; warn?: boolean }) {
 
 export default function AccountPanel({
   email, displayName, plan, credits, storage,
-  onClose, onBuyCredits, onSignOut, onNavigate,
+  onClose, onBuyCredits, onSignOut, onNavigate, signingOut = false,
 }: AccountPanelProps) {
   const [sub, setSub] = useState<MySubscription | null>(null)
 
@@ -366,8 +368,13 @@ export default function AccountPanel({
             ))}
             <div style={{ height: 1, background: 'var(--border)', margin: 'auto 4px 4px' }} />
             <button
-              onClick={() => { onClose(); onSignOut() }}
-              style={{ ...rowBtn, cursor: 'pointer', textAlign: 'left', width: '100%' }}
+              // KINEO-SAIR-DA-CONTA-1510 — o painel NÃO fecha mais no clique: fechava antes de qualquer resposta e a
+              // pessoa, sem ver nada acontecer, clicava de novo. Agora fica aberto, desligado, dizendo "Signing out…".
+              type="button"
+              onClick={() => { if (!signingOut) onSignOut() }}
+              disabled={signingOut}
+              aria-busy={signingOut}
+              style={{ ...rowBtn, cursor: signingOut ? 'progress' : 'pointer', opacity: signingOut ? 0.7 : 1, textAlign: 'left', width: '100%' }}
               onMouseEnter={(e) => { const el = e.currentTarget as HTMLElement; el.style.background = 'rgba(239,68,68,0.10)'; el.style.color = '#f87171' }}
               onMouseLeave={(e) => { const el = e.currentTarget as HTMLElement; el.style.background = 'var(--card2)'; el.style.color = 'var(--text2,#c7c7cc)' }}
             >
@@ -375,7 +382,7 @@ export default function AccountPanel({
                 <path d="M9 21H5.5A1.5 1.5 0 0 1 4 19.5v-15A1.5 1.5 0 0 1 5.5 3H9" />
                 <path d="m15 16.5 4.5-4.5L15 7.5M19.5 12H9" />
               </svg>
-              <span>Sign out</span>
+              <span>{signingOut ? 'Signing out…' : 'Sign out'}</span>
             </button>
           </div>
         </div>

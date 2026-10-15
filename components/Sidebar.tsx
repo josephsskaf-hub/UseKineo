@@ -8,6 +8,7 @@ import { clipsVisible } from '@/lib/clips/clipLaunch' // KINEO-CLIPES-2026-09-29
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { sairDaConta } from '@/lib/auth/sairDaContaCliente' // KINEO-SAIR-DA-CONTA-1510
 import { useState, useEffect, useCallback, useRef } from 'react'
 import AuthModal from '@/components/AuthModal'
 import { FreeTierCopy, useFreeTierOffer } from '@/components/FreeTierOfferProvider'
@@ -546,34 +547,36 @@ export default function Sidebar({
       }
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // KINEO-SAIR-DA-CONTA-1510 — o callback NÃO é async e NÃO chama o Supabase por dentro. O auth-js emite SIGNED_IN
+    // dentro da trava de sessão (toda vez que a aba volta a ficar visível) e ESPERA este callback; o antigo
+    // `await supabase.from('profiles')` pedia getSession() na fila da mesma trava → deadlock → o signOut nunca rodava
+    // (fundador preso na conta de testes em 15/10). A consulta vai para fora da trava com setTimeout(0).
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
         setIsLoggedIn(false); setUserEmail(''); setDisplayName(''); setIsPro(false); setCredits(null)
       } else if (event === 'SIGNED_IN' && session?.user) {
         setIsLoggedIn(true); setUserEmail(session.user.email ?? '')
         setDisplayName(extractDisplayName(session.user.user_metadata as Record<string, unknown> | null))
-        const { data } = await supabase.from('profiles').select('is_pro').eq('id', session.user.id).single()
-        if (data) setIsPro(data.is_pro ?? false)
-        fetchCredits()
+        const userId = session.user.id
+        setTimeout(() => {
+          void (async () => {
+            if (cancelled) return
+            const { data } = await supabase.from('profiles').select('is_pro').eq('id', userId).single()
+            if (!cancelled && data) setIsPro(data.is_pro ?? false)
+            fetchCredits()
+          })()
+        }, 0)
       }
     })
     return () => { cancelled = true; subscription.unsubscribe() }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function handleSignOut() {
-    try {
-      // scope:'local' clears the session immediately without a server round-trip
-      // so the sign-out never hangs on a slow network.
-      await Promise.race([
-        supabase.auth.signOut({ scope: 'local' }),
-        new Promise<void>((resolve) => setTimeout(resolve, 3000)),
-      ])
-    } catch {
-      // ignore — always redirect regardless
-    } finally {
-      // Hard redirect so server renders fresh with no auth cookie
-      window.location.href = '/'
-    }
+  // KINEO-SAIR-DA-CONTA-1510 — caminho único de saída (lib/auth/sairDaContaCliente.ts): servidor revoga e apaga os
+  // cookies, navegador apaga de novo e navega DURO para a home. O painel fica aberto mostrando "Signing out…".
+  const [signingOut, setSigningOut] = useState(false)
+  function handleSignOut() {
+    setSigningOut(true)
+    void sairDaConta()
   }
 
   const creditsZero = credits !== null && credits <= 0
@@ -786,6 +789,7 @@ export default function Sidebar({
               onClose={() => setSettingsOpen(false)}
               onBuyCredits={() => setShowTopup(true)}
               onSignOut={handleSignOut}
+              signingOut={signingOut}
               onNavigate={onClose}
             />
           )}
