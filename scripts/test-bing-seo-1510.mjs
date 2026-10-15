@@ -310,6 +310,12 @@ async function verificar(rep = {}) {
     ok(/can guarantee monetization/.test(vis) && !/\bwill (?:get|be) monetized\b|guaranteed monetization/i.test(vis), 'monetize: nenhuma promessa de monetização')
     ok(a.does.every((d) => vis.includes(norm(d))) && a.doesNot.every((d) => vis.includes(norm(d))), 'monetize: o que a Kineo faz e o que não faz, visíveis')
     for (const s of a.sources) ok(html.includes(s.url) && vis.includes(`checked ${s.checkedOn}`), `monetize: fonte com data no HTML — ${s.url}`)
+    // "Where Kineo fits" diz o que a Kineo entrega hoje: sem apresentador/host (o avatar saiu do catálogo), com os motores da oferta
+    const fits = M.kineoFits1510()
+    ok(vis.includes(norm(fits.paragraph)) && vis.includes(norm(fits.cta)), 'monetize: "Where Kineo fits" e o CTA com o texto da rodada, visíveis')
+    ok(!/consistent host|one consistent host|AI presenter|talking avatar/i.test(fits.paragraph + ' ' + fits.cta) && !/(?:single|one) consistent host/i.test(vis), 'monetize: nenhuma promessa de apresentador/host fixo na página')
+    const nomes = L('lib/seo/paginasMotor1610.ts').kineoCostRows().map((r) => r.name)
+    ok(fits.engines.length > 0 && JSON.stringify(fits.engines) === JSON.stringify(nomes) && nomes.every((n) => fits.paragraph.includes(n)), 'monetize: os motores citados = os da oferta (kineoCostRows)')
   })
   await tentar('roundup: render', async () => {
     const html = await render(ROUNDUP)
@@ -481,6 +487,7 @@ const MUTANTES = [
   ['preço digitado no módulo', () => trocar(MOD, 'On Kineo a finished 60-second Short costs ${a.cheapest.c60} credits on', 'On Kineo a finished 60-second Short costs 35 credits on')],
   ['description do text-to-video longa demais com a oferta ligada', () => trocar(MOD, 'It depends on your text: Kineo turns a topic or a script into a finished, narrated Short. Trial:', 'It depends on your text: Kineo turns a topic or a script into a finished, narrated vertical YouTube Short. Trial:')],
   ['fonte não oficial e sem data', () => { const nl = NL(MOD); return trocar(MOD, `url: 'https://www.revid.ai/pricing',${nl}`, `url: 'http://revid.example/pricing',${nl}`) }],
+  ['"consistent host" volta ao Where Kineo fits', () => trocar(MOD, "'It does not put a presenter or a face on camera, and it does not make a channel original by itself", "'It gives your channel a single consistent host. It does not make a channel original by itself")],
   ['cron ignora o token (envia em ensaio)', () => trocar(ROUTE, '    !confirmed ||', '    false ||')],
   ['cron não compara lastmod', () => trocar(INDEXNOW, 'if (previous[e.loc] !== e.lastmod) out.push(e.loc)', 'if (false) out.push(e.loc)')],
   ['retrato marca como enviado o que não coube', () => trocar(INDEXNOW, 'if (!pending.has(e.loc)) out[e.loc] = e.lastmod', 'out[e.loc] = e.lastmod; if (false) out[e.loc] = e.lastmod')],

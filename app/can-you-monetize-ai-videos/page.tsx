@@ -15,7 +15,7 @@ import OriginalityRecipeBuilder from './OriginalityRecipeBuilder'
 // 7,2. O título perguntava outra coisa ("Can You Monetize…") e a description tinha 249 caracteres (o Bing corta em 160).
 // Agora o título É a pergunta, a resposta abre a página em 3 frases, cada fato do YouTube vem da página oficial com a data
 // da leitura (lib/seo/bingSeo1510.ts), e a página diz o que a Kineo faz e o que NÃO faz — nenhuma promessa de monetização.
-import { BING_SEO_1510_CHECKED_LABEL, MONETIZE_DESCRIPTION_1510, MONETIZE_TITLE_1510, monetizationAnswer1510 } from '@/lib/seo/bingSeo1510'
+import { BING_SEO_1510_CHECKED_LABEL, MONETIZE_DESCRIPTION_1510, MONETIZE_TITLE_1510, kineoFits1510, monetizationAnswer1510 } from '@/lib/seo/bingSeo1510'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -24,6 +24,7 @@ export const dynamic = 'force-static'
 
 const LAST_UPDATED = 'October 15, 2026' // KINEO-BING-SEO-1510 — revisão das fontes oficiais
 const ANSWER = monetizationAnswer1510()
+const { paragraph: KINEO_FITS_1510, cta: KINEO_FITS_CTA_1510 } = kineoFits1510() // KINEO-BING-SEO-1510 — sem "consistent host"
 
 export const metadata: Metadata = {
   title: MONETIZE_TITLE_1510,
@@ -341,13 +342,9 @@ export default function CanYouMonetizeAiVideosPage() {
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 14px' }}>
           Where Kineo fits
         </h2>
-        <p style={{ color: '#d2d2d7', fontSize: '1rem', lineHeight: 1.65, margin: '0 0 14px' }}>
-          Kineo is designed to help you produce content on the <em>original and transformative</em>{' '}
-          side of that line. It writes a unique script per topic rather than recycling one template,
-          lets you set your own angle and use your own script word for word, and gives your channel a
-          single consistent host and format across videos. That is the opposite of mass-produced,
-          repetitious uploads — it is a repeatable show with an original take on each subject.
-        </p>
+        {/* KINEO-BING-SEO-1510 — o texto antigo prometia "a single consistent host": o avatar saiu do catálogo (27/09), então era
+            falso. Agora diz o que a Kineo entrega hoje, com os motores da oferta lidos do código (KINEO_FITS_1510). */}
+        <p style={{ color: '#d2d2d7', fontSize: '1rem', lineHeight: 1.65, margin: '0 0 14px' }}>{KINEO_FITS_1510}</p>
         {/* KINEO-BING-SEO-1510 — o que a Kineo faz e o que NÃO faz, em listas curtas (sem promessa de monetização). */}
         <div data-kineo="bing-seo-1510-kineo-scope" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12, margin: '0 0 18px' }}>
           <section style={{ ...CARD, padding: '14px 16px' }}>
@@ -383,8 +380,7 @@ export default function CanYouMonetizeAiVideosPage() {
             Make an original AI Short — free
           </h2>
           <p style={{ color: '#d2d2d7', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 14px' }}>
-            Type a topic and generate a faceless Short with a unique script, your own angle and one
-            consistent host. {ft(OFFER, 'Up to 3 watermarked videos every 24 hours, no card required.', OFFER.copy.headline)}
+            {KINEO_FITS_CTA_1510}{' '}{ft(OFFER, 'Up to 3 watermarked videos every 24 hours, no card required.', OFFER.copy.headline)}
           </p>
           <OrganicCtaLink
             href="#monetization-originality-builder"

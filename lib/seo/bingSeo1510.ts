@@ -18,7 +18,7 @@
 //     a frase diz "not published" em vez de inventar. Sem vencedor universal, sem nota, sem ranking de qualidade;
 //   · nenhuma promessa de monetização: a decisão é do YouTube, canal a canal.
 // MÓDULO PURO: só imports relativos de módulos puros — o guardião scripts/test-bing-seo-1510.mjs o executa isolado.
-import { cheapestAnswer, cheapestCreditPlan, usd } from './paginasMotor1610'
+import { cheapestAnswer, cheapestCreditPlan, kineoCostRows, usd } from './paginasMotor1610'
 import { TIER_CREDITS, TIER_PRICES } from '../checkoutPricing'
 import { PLANS } from '../pricing'
 import { FREE_FILM_LABEL, GRANT_COUNTRY_CLAUSE, TRIAL_SEEDANCE15_FILMS } from '../freeTierOffer'
@@ -95,6 +95,23 @@ export function monetizationAnswer1510(): MonetizationAnswer1510 {
       'It does not make a channel original by itself: the angle, the research and the series idea are yours. Kineo narrates with an AI voice.',
     ],
     sources: [YOUTUBE_FONTES_1510.monetization, YOUTUBE_FONTES_1510.genAiDisclosure, YOUTUBE_FONTES_1510.ypp],
+  }
+}
+
+/**
+ * "Where Kineo fits" no /can-you-monetize-ai-videos: o que a Kineo entrega HOJE. O texto antigo prometia "a single
+ * consistent host" — o avatar saiu do catálogo, então era falso. Os motores vêm da oferta pública (kineoCostRows: só os
+ * listados, o Seedance 2.5 só com o interruptor); nada de apresentador, rosto na câmera ou promessa de monetização.
+ */
+export function kineoFits1510(): { paragraph: string; cta: string; engines: string[] } {
+  const engines = kineoCostRows().map((r) => r.name)
+  const list = engines.length > 1 ? `${engines.slice(0, -1).join(', ')} or ${engines[engines.length - 1]}` : engines.join('')
+  return {
+    engines,
+    paragraph:
+      `Kineo is built for the original side of that line. From one idea it delivers a complete narrated film: a script written for that topic (or your own script, read word for word), an AI voiceover, generated scenes, captions and music, on the video engine you pick — ${list}. ` +
+      'It does not put a presenter or a face on camera, and it does not make a channel original by itself: the angle, the research and the series idea are yours, and you review every film before it goes out.',
+    cta: 'Type a topic and get a complete narrated Short: a script written for that topic, an AI voiceover, generated scenes, captions and music.',
   }
 }
 
