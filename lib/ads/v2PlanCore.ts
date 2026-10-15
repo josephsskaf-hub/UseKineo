@@ -99,12 +99,14 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
 
     // Cada arquivo conferido no user_footage DO DONO; a URL usada é a do banco. Logo só se veio (modo simples: opcional).
     const videosIn = input.videos ?? []
-    const own = await ownedFootage(admin, uid, [...(input.logo_footage_id ? [input.logo_footage_id] : []), ...(cardId ? [cardId] : []), ...input.photos.map((p) => p.footage_id), ...videosIn.map((v) => v.footage_id)])
+    const own = await ownedFootage(admin, uid, [...(input.logo_footage_id ? [input.logo_footage_id] : []), ...(cardId ? [cardId] : []), ...input.photos.map((p) => p.footage_id), ...input.photos.flatMap((p) => (p.original_footage_id ? [p.original_footage_id] : [])), ...videosIn.map((v) => v.footage_id)]) // KINEO-ADS-FIEL-3-1510 — + a foto inteira do produto
     if (!own) return v2Fail('plan_failed', 502)
     if (input.logo_footage_id && !own.get(input.logo_footage_id)?.isImage) return v2Fail('logo_invalid', 400)
     if (cardId && !own.get(cardId)?.isPng) return v2Fail('card_invalid', 400)
     const photos = input.photos.map((p) => ({ footage_id: p.footage_id, kind: p.kind, url: own.get(p.footage_id)?.isImage ? own.get(p.footage_id)!.url : '' }))
     if (photos.some((p) => !p.url)) return v2Fail('media_not_owned', 400)
+    // KINEO-ADS-FIEL-3-1510 — a foto inteira do produto (o recorte sai dela): só se é imagem do DONO; senão fica de fora (o recorte usa a do plano, como antes).
+    input.photos.forEach((p, k) => { const o = p.original_footage_id ? own.get(p.original_footage_id) : null; if (o?.isImage) Object.assign(photos[k], { original_footage_id: p.original_footage_id, original_url: o.url }) }) // KINEO-ADS-FIEL-3-1510
     // KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — cada vídeo: do DONO, MP4/MOV (kind 'video' no user_footage).
     const badVideo = videosIn.find((v) => !own.get(v.footage_id)?.isVideo)
     if (badVideo) return v2Fail('video_invalid', 400, { footage_id: badVideo.footage_id })

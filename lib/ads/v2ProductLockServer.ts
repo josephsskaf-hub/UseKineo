@@ -22,6 +22,7 @@ import {
 } from '@/lib/ads/v2ShotLists'
 import { adsV2LayoutPng, adsV2LockedFramePng, decodePng, isPng, trimCutout, type AdsV2Rgba } from '@/lib/ads/v2Png'
 import { adsV2EmptyLayoutPng, type AdsV2Shade } from '@/lib/ads/v2Png' // KINEO-ADS-FIEL-2-1510 — a cena nasce SEM produto (esboço só cinza) e o recorte entra com sombra e tom
+import { adsV2CutoutSource, adsV2LockSidecar, type AdsV2LockPlacement, type AdsV2SceneLayout } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-3-1510 — recorte da foto original, onde pousou e o JSON ao lado do quadro
 import { adsV2ShotRenderId } from '@/lib/ads/v2Shots'
 
 const RENDER_BUCKET = 'renders'
@@ -79,13 +80,14 @@ async function runCutout(imageUrl: string): Promise<string | null> {
 }
 
 /** O recorte APARADO da foto do produto (cache no bucket por foto; sem cache, o birefnet). Lança com o motivo. */
-export async function adsV2CutoutFor(userId: string, lock: Pick<AdsV2ProductLock, 'footageId' | 'url'>): Promise<AdsV2Rgba> {
-  const path = adsV2CutoutPath(userId, lock.footageId)
+export async function adsV2CutoutFor(userId: string, lock: Pick<AdsV2ProductLock, 'footageId' | 'url' | 'sourceFootageId' | 'sourceUrl'>): Promise<AdsV2Rgba> { // KINEO-ADS-FIEL-3-1510 — + a foto original
+  const src = adsV2CutoutSource(lock) // KINEO-ADS-FIEL-3-1510 — o recorte sai da foto INTEIRA quando a tela mandou a original (o 1:1 cortava a caixa)
+  const path = adsV2CutoutPath(userId, src.footageId) // KINEO-ADS-FIEL-3-1510 — cache por foto de ORIGEM (o recorte da cortada nunca é reaproveitado)
   const admin = footageAdminClient()
   const cachedUrl = admin.storage.from(RENDER_BUCKET).getPublicUrl(path).data?.publicUrl ?? null
   let bytes = cachedUrl ? await download(cachedUrl, 15_000) : null
   if (!bytes || !isPng(bytes)) {
-    const falUrl = await runCutout(lock.url)
+    const falUrl = await runCutout(src.url) // KINEO-ADS-FIEL-3-1510
     if (!falUrl) throw new Error('cutout_provider')
     bytes = await download(falUrl)
     if (!bytes || !isPng(bytes)) throw new Error('cutout_download')
@@ -104,16 +106,24 @@ export async function adsV2PrepareLockedScene(args: { userId: string; orderId: s
 }
 
 /** O QUADRO TRAVADO no bucket (URL pública), a partir da cena PNG do Nano Banana. Lança com o motivo. */
-export async function adsV2FinishLockedScene(args: { userId: string; orderId: string; idx: number; attempt: number; lock: AdsV2ProductLock; format: AdsV2Format; sceneUrl: string }): Promise<{ url: string; rect: { x: number; y: number; w: number; h: number }; shade?: AdsV2Shade }> { // KINEO-ADS-FIEL-2-1510 — + o tom e a sombra aplicados
+export async function adsV2FinishLockedScene(args: { userId: string; orderId: string; idx: number; attempt: number; lock: AdsV2ProductLock; format: AdsV2Format; sceneUrl: string; layout?: AdsV2SceneLayout | null }): Promise<{ url: string; rect: { x: number; y: number; w: number; h: number }; shade?: AdsV2Shade; placement?: Omit<AdsV2LockPlacement, 'rect'> }> { // KINEO-ADS-FIEL-2-1510 — + o tom e a sombra aplicados · KINEO-ADS-FIEL-3-1510 — + a leitura da cena (superfície e rostos) e onde pousou
   const bytes = await download(args.sceneUrl)
   if (!bytes) throw new Error('scene_download')
   if (!isPng(bytes)) throw new Error('scene_not_png')
   const cut = await adsV2CutoutFor(args.userId, args.lock)
-  const out = adsV2LockedFramePng(decodePng(bytes), cut, args.format, args.lock.mode, { shade: true }) // KINEO-ADS-FIEL-2-1510 — sombra de contato + tom da cena
+  const out = adsV2LockedFramePng(decodePng(bytes), cut, args.format, args.lock.mode, { shade: true, ...(args.lock.mode === 'scene' ? { place: { sceneIdx: args.idx, layout: args.layout ?? null } } : {}) }) // KINEO-ADS-FIEL-2-1510 — sombra de contato + tom da cena · KINEO-ADS-FIEL-3-1510 — pousa na superfície, com teto, longe dos rostos
   const url = await upload(`${args.userId}/${adsV2ShotRenderId(args.orderId, args.idx, args.attempt)}-lock.png`, out.png)
   if (!url) throw new Error('lock_upload')
-  return { url, rect: out.rect, ...(out.shade ? { shade: out.shade } : {}) } // KINEO-ADS-FIEL-2-1510
+  if (out.placement) await uploadJson(`${args.userId}/${adsV2ShotRenderId(args.orderId, args.idx, args.attempt)}-lock.json`, adsV2LockSidecar(out.rect, out.width, out.height, out.faces ?? [])).catch(() => null) // KINEO-ADS-FIEL-3-1510 — onde o produto e os rostos ficaram: as frases de tela desviam deles (falhou = a regra fixa das frases)
+  const where = out.placement ? { source: out.placement.source, side: out.placement.side, scale: out.placement.scale, faceOverlap: out.placement.faceOverlap } : null // KINEO-ADS-FIEL-3-1510
+  return { url, rect: out.rect, ...(out.shade ? { shade: out.shade } : {}), ...(where ? { placement: where } : {}) } // KINEO-ADS-FIEL-2-1510 · KINEO-ADS-FIEL-3-1510
 }
+
+/** KINEO-ADS-FIEL-3-1510 — grava o JSON ao lado do quadro travado (o bucket renders aceita qualquer tipo). Lança se não gravou. */
+async function uploadJson(path: string, value: unknown): Promise<void> { // KINEO-ADS-FIEL-3-1510
+  const up = await footageAdminClient().storage.from(RENDER_BUCKET).upload(path, new TextEncoder().encode(JSON.stringify(value)), { contentType: 'application/json', upsert: true }) // KINEO-ADS-FIEL-3-1510
+  if (up.error) throw new Error('sidecar_upload') // KINEO-ADS-FIEL-3-1510
+} // KINEO-ADS-FIEL-3-1510
 
 /** Cancela (melhor esforço) um job da fila da fal abandonado pelo prazo. Nunca lança. */
 export async function adsV2CancelFalJob(model: string, requestId: string | null | undefined): Promise<void> {

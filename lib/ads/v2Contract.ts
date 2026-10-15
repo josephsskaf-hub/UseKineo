@@ -171,6 +171,8 @@ export function sanitizeCreateOrderBody(raw: unknown): AdsV2Sanitized<AdsV2Creat
 export interface AdsV2PlanPhoto {
   footage_id: string
   kind: AdsV2ContractPhotoKind
+  /** KINEO-ADS-FIEL-3-1510 — só na foto 'product': a MESMA foto inteira, sem o corte do formato (o recorte do produto sai dela). Ausente = a de antes. */
+  original_footage_id?: string // KINEO-ADS-FIEL-3-1510
 }
 /** Vídeo do cliente que entra como vídeo (KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29). */
 export interface AdsV2PlanVideo {
@@ -323,7 +325,11 @@ export function sanitizePlanBody(raw: unknown): AdsV2Sanitized<AdsV2PlanBody> {
     if (seen.has(id)) return fail('duplicate_photo')
     if (id === logoId) return fail('logo_is_photo')
     seen.add(id)
-    photos.push({ footage_id: id, kind: p.kind as AdsV2ContractPhotoKind })
+    // KINEO-ADS-FIEL-3-1510 — a foto inteira do produto (opcional): uuid, nunca a própria foto nem o logo; em foto que não é 'product' é ignorada.
+    if (p.original_footage_id !== undefined && p.original_footage_id !== null && !isUuid(p.original_footage_id)) return fail('bad_photo_id') // KINEO-ADS-FIEL-3-1510
+    const original = p.kind === 'product' && isUuid(p.original_footage_id) ? (p.original_footage_id as string).toLowerCase() : null // KINEO-ADS-FIEL-3-1510
+    if (original && (original === id || original === logoId)) return fail('bad_photo_id') // KINEO-ADS-FIEL-3-1510
+    photos.push({ footage_id: id, kind: p.kind as AdsV2ContractPhotoKind, ...(original ? { original_footage_id: original } : {}) }) // KINEO-ADS-FIEL-3-1510
   }
   for (const v of videos) {
     if (seen.has(v.footage_id)) return fail('duplicate_photo')

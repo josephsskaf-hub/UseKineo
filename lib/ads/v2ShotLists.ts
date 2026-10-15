@@ -865,7 +865,7 @@ export const ADS_V2_CUTOUT_SLUG = 'fal-ai/birefnet/v2' // KINEO-ADS-FIEL-1510
 /** KINEO-ADS-FIEL-1510 — preço público da fal em 15/10: US$ 0 por segundo de computação; teto conservador por recorte. */
 export const ADS_V2_CUTOUT_USD_MAX = 0.01 // KINEO-ADS-FIEL-1510
 export type AdsV2ProductLockMode = 'scene' | 'holds' | 'actor' // KINEO-ADS-FIEL-1510
-export interface AdsV2ProductLock { footageId: string; url: string; mode: AdsV2ProductLockMode } // KINEO-ADS-FIEL-1510
+export interface AdsV2ProductLock { footageId: string; url: string; mode: AdsV2ProductLockMode; sourceFootageId?: string; sourceUrl?: string } // KINEO-ADS-FIEL-1510 · KINEO-ADS-FIEL-3-1510 — source*: a foto ORIGINAL (sem o corte do formato) de onde sai o recorte
 /** KINEO-ADS-FIEL-1510 — onde o produto fica no quadro (frações): cena = centro, acima das frases do terço de baixo; pessoa = no peito. */
 export const ADS_V2_PRODUCT_LOCK_BOX: Readonly<Record<AdsV2ProductLockMode, { x0: number; x1: number; y0: number; y1: number }>> = { scene: { x0: 0.24, x1: 0.76, y0: 0.3, y1: 0.68 }, holds: { x0: 0.31, x1: 0.69, y0: 0.44, y1: 0.74 }, actor: { x0: 0.31, x1: 0.69, y0: 0.44, y1: 0.74 } } // KINEO-ADS-FIEL-1510
 /** KINEO-ADS-FIEL-1510 — recorte que não é produto: área do contorno fora disto (quase nada, ou a foto inteira) = sem trava. */
@@ -881,7 +881,7 @@ export const ADS_V2_LOCK_DISPATCH_MIN_MS = 45_000 // KINEO-ADS-FIEL-1510
  */
 export function adsV2ProductLockFor(input: {
   shot: { source?: string | null; referenceFootageIds?: readonly string[] | null; referenceUrls?: readonly string[] | null; presenterHolds?: unknown } | null | undefined
-  photos: readonly { footage_id?: string | null; kind?: string | null; url?: string | null }[] | null | undefined
+  photos: readonly { footage_id?: string | null; kind?: string | null; url?: string | null; original_footage_id?: string | null; original_url?: string | null }[] | null | undefined // KINEO-ADS-FIEL-3-1510 — + a foto original
   productOrder: boolean
   sector: string | null | undefined
   actor?: { productFootageId?: string | null; productUrl?: string | null } | null
@@ -898,7 +898,9 @@ export function adsV2ProductLockFor(input: {
   if (!input.productOrder && !(ADS_V2_PRODUCT_LOCK_SECTORS as readonly string[]).includes(String(input.sector ?? ''))) return null
   const photos = Array.isArray(input.photos) ? input.photos : []
   const product = ids.map((id) => photos.find((p) => p && p.footage_id === id)).find((p) => !!p && p.kind === 'product' && https(p.url))
-  return product && product.footage_id && product.url ? { footageId: product.footage_id, url: product.url.trim(), mode: 'scene' } : null
+  if (!product || !product.footage_id || !product.url) return null // KINEO-ADS-FIEL-3-1510
+  const original = product.original_footage_id && https(product.original_url) ? { sourceFootageId: String(product.original_footage_id), sourceUrl: product.original_url.trim() } : {} // KINEO-ADS-FIEL-3-1510 — o recorte sai da foto INTEIRA (o 1:1/4:5 cortava a caixa)
+  return { footageId: product.footage_id, url: product.url.trim(), mode: 'scene', ...original } // KINEO-ADS-FIEL-3-1510
 }
 
 /** KINEO-ADS-FIEL-1510 — o retângulo do produto (px inteiros) no quadro W×H: cabe na caixa do modo, centrado, com a BASE no fundo da caixa. */
@@ -927,14 +929,14 @@ export function adsV2ProductLockScenePrompt(scenePrompt: string, mode: AdsV2Prod
 
 /** KINEO-ADS-FIEL-1510 — o movimento do plano com a trava: o produto parado onde está; o resto vive. Termina em ADS_V2_KEEP_PHRASE. */
 export const ADS_V2_PRODUCT_LOCK_MOTIONS: readonly string[] = [
-  'Slow gentle push-in; the people around move naturally; the product stays still exactly where it is, with exactly the same shape, colors, label and proportions; nothing passes in front of it',
-  'Slow lateral slide; the light shifts softly and the people around move naturally; the product stays still exactly where it is, with exactly the same shape, colors, label and proportions; nothing passes in front of it',
+  'Slow gentle push-in; the people around make only small natural movements (breathing, blinking, a slight smile); the product stays still exactly where it is, with exactly the same shape, colors, label and proportions; nothing passes in front of it', // KINEO-ADS-FIEL-3-1510 — gente quase parada (o H3 inventou caixas nas mãos que se mexiam)
+  'Slow lateral slide; the light shifts softly and the people around make only small natural movements (breathing, blinking, a slight smile); the product stays still exactly where it is, with exactly the same shape, colors, label and proportions; nothing passes in front of it', // KINEO-ADS-FIEL-3-1510
 ] // KINEO-ADS-FIEL-1510
 export const ADS_V2_PRODUCT_LOCK_HELD_MOTION = 'Handheld smartphone framing; the person smiles with the mouth closed and moves naturally while holding the product steady; the product keeps exactly its shape, colors, label and proportions; no other hands or objects enter the frame' // KINEO-ADS-FIEL-1510
 export function adsV2ProductLockMotion(mode: AdsV2ProductLockMode, variant: number): string { // KINEO-ADS-FIEL-1510
-  if (mode !== 'scene') return `${ADS_V2_PRODUCT_LOCK_HELD_MOTION}. ${ADS_V2_KEEP_PHRASE}`
+  if (mode !== 'scene') return `${ADS_V2_PRODUCT_LOCK_HELD_MOTION}. ${ADS_V2_LOCK_NO_NEW_OBJECT} ${ADS_V2_KEEP_PHRASE}` // KINEO-ADS-FIEL-3-1510 — a proibição em TODO quadro travado
   const list = ADS_V2_PRODUCT_LOCK_MOTIONS
-  return `${list[((variant % list.length) + list.length) % list.length]}; no other bottle, box or product appears anywhere. ${ADS_V2_KEEP_PHRASE}` // KINEO-ADS-FIEL-2-1510 — o vídeo também não inventa um segundo produto (o "fantasma" do QA 15/10)
+  return `${list[((variant % list.length) + list.length) % list.length]}; no other bottle, box or product appears anywhere. ${ADS_V2_LOCK_NO_NEW_OBJECT} ${ADS_V2_KEEP_PHRASE}` // KINEO-ADS-FIEL-2-1510 — o vídeo também não inventa um segundo produto (o "fantasma" do QA 15/10) · KINEO-ADS-FIEL-3-1510 — + a proibição explícita, o MESMO texto em qualquer motor (Kling O3, H3 de reserva, Seedance)
 }
 
 /** KINEO-ADS-FIEL-1510 — caminhos no bucket renders: o recorte (por foto, reaproveitado) e o quadro travado (por tentativa). */
@@ -1013,6 +1015,10 @@ export const ADS_V2_LOCK_EMPTY_ACTIONS: readonly string[] = [
   'A person standing behind an empty shelf, relaxed, glancing at the empty middle of the shelf',
   'A person behind an empty tabletop, face softly out of focus in the background, the empty tabletop sharp in the foreground',
 ] // KINEO-ADS-FIEL-2-1510
+/** KINEO-ADS-FIEL-3-1510 — validação 15/10 (pedido f65bae05, 1:1): o H3 que animou a cena travada INVENTOU 2 caixas brancas nas mãos das
+ *  pessoas. Esta frase fecha o movimento de TODO quadro travado, em qualquer motor: ninguém pega, segura, entrega ou mostra objeto; mão
+ *  vazia continua vazia; nada entra no quadro. */
+export const ADS_V2_LOCK_NO_NEW_OBJECT = 'No new object appears at any moment: nobody picks up, holds, hands over or shows a box, bottle, jar, bag, package, cup, card or any other product; empty hands stay empty; nothing enters the frame.' // KINEO-ADS-FIEL-3-1510
 const LOCK_FRAME_WORD: Readonly<Record<AdsV2Format, string>> = { '9:16': 'vertical 9:16', '4:5': 'portrait 4:5', '1:1': 'square 1:1' } // KINEO-ADS-FIEL-2-1510
 /** KINEO-ADS-FIEL-2-1510 — a linha "Setting: …" que o /plan já gravou LIMPA no scenePrompt (adsV2SettingLine), ou null. Pura. */
 export function adsV2SettingFromPrompt(scenePrompt: unknown): string | null { // KINEO-ADS-FIEL-2-1510
@@ -1033,6 +1039,7 @@ export function adsV2LockedScenePrompt(i: { sceneIdx: number; setting?: string |
     `${list[n % list.length]}.`,
     i.setting && /^Setting: "/.test(i.setting) ? i.setting : '',
     'The lower middle of the frame is an EMPTY surface (a table, a counter or a shelf) with NOTHING on it, sharp and softly lit: a product will be placed there later, standing on that surface, so keep that area clear and leave nothing in front of it.',
+    'The people stay behind the surface, a little to the sides, with their faces in the upper half of the frame.', // KINEO-ADS-FIEL-3-1510 — o produto pousa na superfície sem tapar rosto (T1/T2: tapou em 5 de 7 cenas)
     'There is NO bottle, NO box, NO packaging, NO container and NO product of any kind anywhere in the frame; hands are empty and stay away from the empty middle of the surface.',
     'Any other attached photo only shows the place and the people; never copy an object from it.',
     'Ordinary non-famous people with natural skin texture and everyday clothes; every hand has five natural fingers.',
@@ -1046,6 +1053,7 @@ export function adsV2LockSceneRefs(i: { refs: readonly string[]; ids?: readonly 
   const productUrls = new Set(photos.filter((p) => p && p.kind === 'product' && typeof p.url === 'string').map((p) => String(p.url).trim()))
   const productIds = new Set(photos.filter((p) => p && p.kind === 'product' && p.footage_id).map((p) => String(p.footage_id)))
   if (typeof i.lockUrl === 'string' && i.lockUrl.trim()) productUrls.add(i.lockUrl.trim())
+  for (const p of photos) if (p && p.kind === 'product' && typeof (p as { original_url?: unknown }).original_url === 'string') productUrls.add(String((p as { original_url?: unknown }).original_url).trim()) // KINEO-ADS-FIEL-3-1510 — a foto original do produto também nunca vai à cena
   const ids = Array.isArray(i.ids) ? i.ids : []
   return (Array.isArray(i.refs) ? i.refs : []).filter((u, k) => typeof u === 'string' && !productUrls.has(u.trim()) && !(ids[k] && productIds.has(String(ids[k]))))
 }
@@ -1148,3 +1156,143 @@ export function adsV2PlanDailyCapFor(i: { internal: boolean; plan: string | null
 export function adsV2PlansLeft(cap: number | null, usedBefore: number): number | null { // KINEO-ADS-FIEL-2-1510
   return cap === null ? null : Math.max(0, cap - Math.max(0, usedBefore) - 1)
 }
+// ── KINEO-ADS-FIEL-3-1510 — ONDE e de que TAMANHO o produto real pousa (validação paga 15/10: 95a23737 · f65bae05 · 5748fdf1) ────────────
+// KINEO-ADS-FIEL-3-1510 — o que se viu: a caixa fixa por formato (ADS_V2_PRODUCT_LOCK_BOX.scene: 52% × 38% do quadro, no centro) punha o
+// KINEO-ADS-FIEL-3-1510 — produto GIGANTE e no MESMO lugar em toda cena (T1: 528×730 px em x 276, y 576 nas 3 cenas), na frente do rosto
+// KINEO-ADS-FIEL-3-1510 — (2 de 3 cenas no 9:16, 3 de 4 no 1:1) e, no quadrado, BOIANDO acima da mesa (a base caía em 68% da altura e a mesa
+// KINEO-ADS-FIEL-3-1510 — começava mais abaixo). Agora: a visão barata (AI_TEXT_MODELS.vision, lib/ads/v2LockVision.ts) devolve a caixa da
+// KINEO-ADS-FIEL-3-1510 — SUPERFÍCIE vazia e as dos ROSTOS; o produto tem teto de altura por formato, pousa NA superfície, desvia dos rostos
+// KINEO-ADS-FIEL-3-1510 — (troca de lado; depois encolhe) e alterna o lado entre as cenas. Visão que falha = regra fixa: terço de baixo, num
+// KINEO-ADS-FIEL-3-1510 — dos lados (nunca no meio, onde a cena põe a pessoa). Tudo puro (o guardião roda com os números reais do T1/T2).
+/** KINEO-ADS-FIEL-3-1510 — caixa em FRAÇÕES (0..1) da largura e da altura do quadro. */
+export interface AdsV2Box { x0: number; y0: number; x1: number; y1: number } // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — o que a visão leu da cena: a superfície vazia (null = não achou) e os rostos. */
+export interface AdsV2SceneLayout { surface: AdsV2Box | null; faces: AdsV2Box[] } // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — teto da ALTURA do produto por formato (fração da altura do quadro): era 38% em todos. */
+export const ADS_V2_LOCK_MAX_H: Readonly<Record<AdsV2Format, number>> = { '9:16': 0.28, '4:5': 0.32, '1:1': 0.35 } // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — teto da LARGURA (fração da largura): produto largo (frasco + caixa lado a lado) não atravessa o quadro. */
+export const ADS_V2_LOCK_MAX_W = 0.42 // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — não coube sem tocar um rosto nos 3 lados: encolhe nestes passos. */
+export const ADS_V2_LOCK_SCALES: readonly number[] = [1, 0.85, 0.7] // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — regra fixa (visão falhou ou sem superfície): a BASE do produto nesta fração da altura — terço de baixo. */
+export const ADS_V2_LOCK_FALLBACK_BASE: Readonly<Record<AdsV2Format, number>> = { '9:16': 0.86, '4:5': 0.88, '1:1': 0.9 } // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — centros horizontais dos lados (fração da largura). */
+export const ADS_V2_LOCK_SIDE_X: Readonly<Record<'left' | 'right' | 'center', number>> = { left: 0.27, right: 0.73, center: 0.5 } // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — folga em volta do rosto (fração do quadro); embaixo ainda desce meio rosto (queixo e pescoço). */
+export const ADS_V2_LOCK_FACE_PAD = 0.03 // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — margem mínima do produto até a borda do quadro. */
+export const ADS_V2_LOCK_EDGE = 0.03 // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — a pergunta da visão (a MESMA imagem 'low' da conferência): a superfície vazia e os rostos, em frações. */
+export const ADS_V2_LOCK_LAYOUT_QUESTION = 'Look at this photo. Find (1) the largest EMPTY flat surface where a small product could stand (a table top, a counter or a shelf), and (2) every human face. Give each box as fractions of the image width and height, from 0 to 1, in the form [x0, y0, x1, y1] (left, top, right, bottom). Answer only with JSON: {"surface": [x0, y0, x1, y1] or null, "faces": [[x0, y0, x1, y1], ...]}.' // KINEO-ADS-FIEL-3-1510
+const box01 = (v: unknown): AdsV2Box | null => { // KINEO-ADS-FIEL-3-1510
+  const o = v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null // KINEO-ADS-FIEL-3-1510
+  const a: unknown[] | null = Array.isArray(v) ? v : o ? [o.x0, o.y0, o.x1, o.y1] : null // KINEO-ADS-FIEL-3-1510
+  if (!a || a.length !== 4 || !a.every((n) => typeof n === 'number' && Number.isFinite(n) && n >= -0.02 && n <= 1.02)) return null // KINEO-ADS-FIEL-3-1510 — pixel ou lixo = sem caixa
+  const [x0, y0, x1, y1] = (a as number[]).map((n) => Math.min(1, Math.max(0, n))) // KINEO-ADS-FIEL-3-1510
+  return x1 - x0 >= 0.01 && y1 - y0 >= 0.01 ? { x0, y0, x1, y1 } : null // KINEO-ADS-FIEL-3-1510
+} // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — a resposta da visão → superfície + rostos (até 8). Ilegível = null (o chamador usa a regra fixa). Pura. */
+export function adsV2ParseSceneLayout(raw: unknown): AdsV2SceneLayout | null { // KINEO-ADS-FIEL-3-1510
+  let v: unknown = raw // KINEO-ADS-FIEL-3-1510
+  if (typeof raw === 'string') { try { v = JSON.parse(raw) } catch { return null } } // KINEO-ADS-FIEL-3-1510
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null // KINEO-ADS-FIEL-3-1510
+  const o = v as Record<string, unknown> // KINEO-ADS-FIEL-3-1510
+  if (!('surface' in o) && !('faces' in o)) return null // KINEO-ADS-FIEL-3-1510
+  const faces = (Array.isArray(o.faces) ? o.faces : []).map(box01).filter((b): b is AdsV2Box => !!b).slice(0, 8) // KINEO-ADS-FIEL-3-1510
+  return { surface: box01(o.surface), faces } // KINEO-ADS-FIEL-3-1510
+} // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — a superfície serve? (larga o bastante e na metade de baixo: superfície no alto = o produto boiaria no meio do quadro). */
+export function adsV2SurfaceUsable(s: AdsV2Box | null | undefined): s is AdsV2Box { // KINEO-ADS-FIEL-3-1510
+  return !!s && s.x1 - s.x0 >= 0.25 && s.y1 >= 0.45 && s.y1 - s.y0 >= 0.03 // KINEO-ADS-FIEL-3-1510
+} // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — a área (em fração do quadro) em que o retângulo invade os rostos, já com a folga. */
+export function adsV2FaceOverlap(r: AdsV2Box, faces: readonly AdsV2Box[]): number { // KINEO-ADS-FIEL-3-1510
+  let total = 0 // KINEO-ADS-FIEL-3-1510
+  for (const f of faces) { // KINEO-ADS-FIEL-3-1510
+    const p = { x0: f.x0 - ADS_V2_LOCK_FACE_PAD, y0: f.y0 - ADS_V2_LOCK_FACE_PAD, x1: f.x1 + ADS_V2_LOCK_FACE_PAD, y1: f.y1 + (f.y1 - f.y0) * 0.5 + ADS_V2_LOCK_FACE_PAD } // KINEO-ADS-FIEL-3-1510 — + queixo e pescoço
+    const w = Math.min(r.x1, p.x1) - Math.max(r.x0, p.x0) // KINEO-ADS-FIEL-3-1510
+    const h = Math.min(r.y1, p.y1) - Math.max(r.y0, p.y0) // KINEO-ADS-FIEL-3-1510
+    if (w > 0 && h > 0) total += w * h // KINEO-ADS-FIEL-3-1510
+  } // KINEO-ADS-FIEL-3-1510
+  return total // KINEO-ADS-FIEL-3-1510
+} // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — o maior trecho horizontal livre de rosto (com a folga) entre lo e hi, olhando só os rostos que descem até a faixa
+ *  vertical [y0, y1] do produto. null = nenhum trecho. Pura. */
+export function adsV2FaceGap(faces: readonly AdsV2Box[], lo: number, hi: number, y0: number, y1: number): { x0: number; x1: number } | null { // KINEO-ADS-FIEL-3-1510
+  const cuts = faces.map((f) => ({ x0: f.x0 - ADS_V2_LOCK_FACE_PAD, x1: f.x1 + ADS_V2_LOCK_FACE_PAD, y0: f.y0 - ADS_V2_LOCK_FACE_PAD, y1: f.y1 + (f.y1 - f.y0) * 0.5 + ADS_V2_LOCK_FACE_PAD })).filter((f) => f.y1 > y0 && f.y0 < y1).sort((a, b) => a.x0 - b.x0) // KINEO-ADS-FIEL-3-1510
+  let best: { x0: number; x1: number } | null = null // KINEO-ADS-FIEL-3-1510
+  let at = lo // KINEO-ADS-FIEL-3-1510
+  for (const c of [...cuts, { x0: hi, x1: hi }]) { // KINEO-ADS-FIEL-3-1510
+    const end = Math.min(hi, c.x0) // KINEO-ADS-FIEL-3-1510
+    if (end > at && (!best || end - at > best.x1 - best.x0)) best = { x0: at, x1: end } // KINEO-ADS-FIEL-3-1510
+    at = Math.max(at, c.x1) // KINEO-ADS-FIEL-3-1510
+  } // KINEO-ADS-FIEL-3-1510
+  return best // KINEO-ADS-FIEL-3-1510
+} // KINEO-ADS-FIEL-3-1510
+export interface AdsV2LockPlacement { rect: { x: number; y: number; w: number; h: number }; source: 'surface' | 'faces' | 'fallback'; side: 'left' | 'right' | 'center' | 'gap'; scale: number; faceOverlap: number } // KINEO-ADS-FIEL-3-1510
+/**
+ * KINEO-ADS-FIEL-3-1510 — onde o produto pousa (px inteiros no quadro W×H). Teto: ADS_V2_LOCK_MAX_H do formato e ADS_V2_LOCK_MAX_W. A BASE
+ * fica NA superfície lida (55% para dentro dela, a partir da borda de trás) ou em ADS_V2_LOCK_FALLBACK_BASE sem superfície. Lados na ordem
+ * da cena (par: direita, esquerda, meio; ímpar: esquerda, direita, meio — cenas seguidas não repetem o lugar), dentro da superfície e do
+ * quadro, e por último o maior VÃO entre os rostos (gente dos dois lados do balcão); o 1º que não toca rosto ganha; não havendo, encolhe
+ * (ADS_V2_LOCK_SCALES); nem assim, o de menor invasão. Pura.
+ */
+export function adsV2LockPlacement(i: { frameW: number; frameH: number; cutW: number; cutH: number; format: AdsV2Format; sceneIdx: number; layout?: AdsV2SceneLayout | null }): AdsV2LockPlacement { // KINEO-ADS-FIEL-3-1510
+  const W = i.frameW, H = i.frameH, cutW = i.cutW, cutH = i.cutH // KINEO-ADS-FIEL-3-1510
+  if (!(W > 0 && H > 0 && cutW > 0 && cutH > 0)) throw new Error('ads_v2_lock_bad_size') // KINEO-ADS-FIEL-3-1510
+  const fmt: AdsV2Format = i.format === '4:5' || i.format === '1:1' ? i.format : '9:16' // KINEO-ADS-FIEL-3-1510
+  const surface = i.layout && adsV2SurfaceUsable(i.layout.surface) ? i.layout.surface : null // KINEO-ADS-FIEL-3-1510
+  const faces = i.layout && Array.isArray(i.layout.faces) ? i.layout.faces : [] // KINEO-ADS-FIEL-3-1510
+  const base = surface ? Math.min(1 - ADS_V2_LOCK_EDGE, Math.max(surface.y0 + 0.015, surface.y0 + (surface.y1 - surface.y0) * 0.55)) : ADS_V2_LOCK_FALLBACK_BASE[fmt] // KINEO-ADS-FIEL-3-1510
+  const k0 = Math.min((ADS_V2_LOCK_MAX_H[fmt] * H) / cutH, (ADS_V2_LOCK_MAX_W * W) / cutW, (Math.max(0.05, base - ADS_V2_LOCK_EDGE) * H) / cutH) // KINEO-ADS-FIEL-3-1510 — nunca sai pelo topo
+  const n = Number.isFinite(i.sceneIdx) ? Math.abs(Math.trunc(i.sceneIdx)) : 0 // KINEO-ADS-FIEL-3-1510
+  const sides: ('left' | 'right' | 'center')[] = n % 2 === 0 ? ['right', 'left', 'center'] : ['left', 'right', 'center'] // KINEO-ADS-FIEL-3-1510
+  const source: AdsV2LockPlacement['source'] = surface ? 'surface' : i.layout ? 'faces' : 'fallback' // KINEO-ADS-FIEL-3-1510
+  let best: AdsV2LockPlacement | null = null // KINEO-ADS-FIEL-3-1510
+  for (const scale of ADS_V2_LOCK_SCALES) { // KINEO-ADS-FIEL-3-1510
+    const w = Math.max(1, Math.round(cutW * k0 * scale)) // KINEO-ADS-FIEL-3-1510
+    const h = Math.max(1, Math.round(cutH * k0 * scale)) // KINEO-ADS-FIEL-3-1510
+    const half = w / 2 / W // KINEO-ADS-FIEL-3-1510
+    const y = Math.round(base * H) - h // KINEO-ADS-FIEL-3-1510
+    const lo = Math.max(ADS_V2_LOCK_EDGE, surface ? surface.x0 : 0), hi = Math.min(1 - ADS_V2_LOCK_EDGE, surface ? surface.x1 : 1) // KINEO-ADS-FIEL-3-1510 — a faixa onde o produto pode ficar
+    const cxs: { side: AdsV2LockPlacement['side']; cx: number }[] = sides.map((side) => ({ side, cx: ADS_V2_LOCK_SIDE_X[side] })) // KINEO-ADS-FIEL-3-1510
+    const gap = adsV2FaceGap(faces, lo, hi, y / H, base) // KINEO-ADS-FIEL-3-1510 — o maior vão entre os rostos na altura do produto (gente dos dois lados)
+    if (gap && gap.x1 - gap.x0 >= 2 * half) cxs.push({ side: 'gap', cx: (gap.x0 + gap.x1) / 2 }) // KINEO-ADS-FIEL-3-1510
+    for (const c of cxs) { // KINEO-ADS-FIEL-3-1510
+      let cx = c.cx // KINEO-ADS-FIEL-3-1510
+      cx = hi - lo > 2 * half ? Math.min(hi - half, Math.max(lo + half, cx)) : (lo + hi) / 2 // KINEO-ADS-FIEL-3-1510 — dentro da superfície e do quadro
+      const x = Math.round(cx * W - w / 2) // KINEO-ADS-FIEL-3-1510
+      const faceOverlap = adsV2FaceOverlap({ x0: x / W, y0: y / H, x1: (x + w) / W, y1: (y + h) / H }, faces) // KINEO-ADS-FIEL-3-1510
+      const cand: AdsV2LockPlacement = { rect: { x, y, w, h }, source, side: c.side, scale, faceOverlap: Math.round(faceOverlap * 10000) / 10000 } // KINEO-ADS-FIEL-3-1510
+      if (faceOverlap <= 0) return cand // KINEO-ADS-FIEL-3-1510
+      if (!best || faceOverlap < best.faceOverlap - 1e-9) best = cand // KINEO-ADS-FIEL-3-1510
+    } // KINEO-ADS-FIEL-3-1510
+  } // KINEO-ADS-FIEL-3-1510
+  return best as AdsV2LockPlacement // KINEO-ADS-FIEL-3-1510
+} // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — de qual foto sai o recorte: a ORIGINAL inteira quando a tela a mandou (validação 15/10, T2 1:1: o recorte da foto
+ *  já cortada no quadrado pegou só o painel dourado da caixa); senão a foto do plano, como antes. Pura. */
+export function adsV2CutoutSource(lock: { footageId: string; url: string; sourceFootageId?: string | null; sourceUrl?: string | null }): { footageId: string; url: string } { // KINEO-ADS-FIEL-3-1510
+  const ok = typeof lock.sourceUrl === 'string' && /^https:\/\/\S+$/i.test(lock.sourceUrl.trim()) && typeof lock.sourceFootageId === 'string' && lock.sourceFootageId.trim() !== '' // KINEO-ADS-FIEL-3-1510
+  return ok ? { footageId: String(lock.sourceFootageId).trim(), url: String(lock.sourceUrl).trim() } : { footageId: lock.footageId, url: lock.url } // KINEO-ADS-FIEL-3-1510
+} // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — o JSON gravado ao lado do quadro travado ('…-lock.json'): o produto e os rostos em frações do quadro (as frases desviam). */
+export function adsV2LockSidecar(rect: { x: number; y: number; w: number; h: number }, frameW: number, frameH: number, faces: readonly AdsV2Box[]): { v: 1; product: AdsV2Box; faces: AdsV2Box[] } { // KINEO-ADS-FIEL-3-1510
+  const r4 = (n: number) => Math.round(Math.min(1, Math.max(0, n)) * 10000) / 10000 // KINEO-ADS-FIEL-3-1510
+  const b = (x: AdsV2Box): AdsV2Box => ({ x0: r4(x.x0), y0: r4(x.y0), x1: r4(x.x1), y1: r4(x.y1) }) // KINEO-ADS-FIEL-3-1510
+  return { v: 1, product: b({ x0: rect.x / frameW, y0: rect.y / frameH, x1: (rect.x + rect.w) / frameW, y1: (rect.y + rect.h) / frameH }), faces: faces.slice(0, 8).map(b) } // KINEO-ADS-FIEL-3-1510
+} // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — o endereço do JSON de um quadro travado (null = não é quadro travado). Pura. */
+export function adsV2LockSidecarUrl(imageUrl: unknown): string | null { // KINEO-ADS-FIEL-3-1510
+  return adsV2IsLockedImage(imageUrl) ? String(imageUrl).trim().replace(/-lock\.png$/i, '-lock.json') : null // KINEO-ADS-FIEL-3-1510
+} // KINEO-ADS-FIEL-3-1510
+/** KINEO-ADS-FIEL-3-1510 — o JSON lido → as caixas que as frases de tela evitam (produto + rostos). Ilegível = null (regra fixa). Pura. */
+export function adsV2ParseLockSidecar(raw: unknown): AdsV2Box[] | null { // KINEO-ADS-FIEL-3-1510
+  let v: unknown = raw // KINEO-ADS-FIEL-3-1510
+  if (typeof raw === 'string') { try { v = JSON.parse(raw) } catch { return null } } // KINEO-ADS-FIEL-3-1510
+  const o = v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null // KINEO-ADS-FIEL-3-1510
+  if (!o || o.v !== 1) return null // KINEO-ADS-FIEL-3-1510
+  const product = box01(o.product) // KINEO-ADS-FIEL-3-1510
+  if (!product) return null // KINEO-ADS-FIEL-3-1510
+  return [product, ...(Array.isArray(o.faces) ? o.faces : []).map(box01).filter((b): b is AdsV2Box => !!b).slice(0, 8)] // KINEO-ADS-FIEL-3-1510
+} // KINEO-ADS-FIEL-3-1510

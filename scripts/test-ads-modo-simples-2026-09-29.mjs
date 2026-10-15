@@ -26,10 +26,11 @@ import { semMarcas1510 } from './test-support/desfaz-ads-marcas-1510.mjs' // rea
 import { semLinkTela1510 } from './test-support/desfaz-ads-link-tela-1510.mjs' // reancorado KINEO-ADS-LINK-TELA-1510
 import { semLista1510 } from './test-support/desfaz-ads-lista-1510.mjs' // reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai em memória antes de todo desfaz mais antigo
 import { semFiel2_1510 } from './test-support/desfaz-ads-fiel-2-1510.mjs' // reancorado KINEO-ADS-FIEL-2-1510 — o conserto mais novo do Ads sai PRIMEIRO, em memória
+import { semFiel3_1510 } from './test-support/desfaz-ads-fiel-3-1510.mjs' // reancorado KINEO-ADS-FIEL-3-1510 — o conserto mais novo do Ads sai PRIMEIRO, em memória
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
-const rd = (p) => semMarcas1510(p, semLinkTela1510(p, semLista1510(p, semFiel2_1510(p, readFileSync(join(RAIZ, p), 'utf8'))))) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-LINK-TELA-1510 — a tela do leitor de link (a mais nova) sai antes das marcas · reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai antes de todos · reancorado KINEO-ADS-FIEL-2-1510 (o mais novo, por dentro do desfaz da lista)
+const rd = (p) => semMarcas1510(p, semLinkTela1510(p, semLista1510(p, semFiel2_1510(p, semFiel3_1510(p, readFileSync(join(RAIZ, p), 'utf8')))))) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-LINK-TELA-1510 — a tela do leitor de link (a mais nova) sai antes das marcas · reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai antes de todos · reancorado KINEO-ADS-FIEL-2-1510 (o mais novo, por dentro do desfaz da lista) · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória
 const semComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map((l) => l.replace(/(^|[^:'"`\\])\/\/.*$/, '$1')).join('\n')
 const sha = (s) => createHash('sha256').update(s).digest('hex')
 let ok = 0

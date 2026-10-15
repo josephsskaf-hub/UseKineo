@@ -26,11 +26,12 @@ import {
 } from './test-support/desfaz-centro-ads-gancho-1410.mjs'
 import { desfazPosEntrega1510 } from './test-support/desfaz-ads-pos-entrega-1510.mjs' // reancorado KINEO-ADS-POS-ENTREGA-1510 — o preenchimento dos formatos (montagem) e o painel depois da entrega (telas) saem em memória ANTES de todo desfaz mais antigo
 import { semFiel2_1510 } from './test-support/desfaz-ads-fiel-2-1510.mjs' // reancorado KINEO-ADS-FIEL-2-1510 — o conserto mais novo do Ads sai PRIMEIRO, em memória
+import { semFiel3_1510 } from './test-support/desfaz-ads-fiel-3-1510.mjs' // reancorado KINEO-ADS-FIEL-3-1510 — o conserto mais novo do Ads sai PRIMEIRO, em memória
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (p) => lf(semFiel2_1510(p, readFileSync(join(RAIZ, p), 'utf8'))) // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória
+const rd = (p) => lf(semFiel2_1510(p, semFiel3_1510(p, readFileSync(join(RAIZ, p), 'utf8')))) // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória
 const git = (args) => execFileSync('git', args, { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()
 let total = 0
 let falhas = 0

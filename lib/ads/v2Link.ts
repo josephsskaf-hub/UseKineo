@@ -146,6 +146,8 @@ export interface AdsV2LinkImage {
   /** KINEO-ANUNCIO-CONSERTOS-2026-10-12 — 'webp' NÃO vai ao bucket: a rota o devolve embutido e o navegador converte no recorte. */
   ext: 'jpg' | 'png' | 'webp'
   bytes: Uint8Array
+  /** KINEO-ADS-FIEL-3-1510 — a página DECLARA que é foto do produto (JSON-LD Product.image, og:image de produto, JSON do Shopify/VTEX). */
+  declared?: boolean // KINEO-ADS-FIEL-3-1510
 }
 export interface AdsV2LinkImportResult {
   /** O endereço final da página (depois dos redirecionamentos) — é ele que vai ao pedido como `link`. */
@@ -221,7 +223,7 @@ export async function adsV2LinkImport(raw: string, opts: { max?: number; roomByt
   const images: AdsV2LinkImage[] = []
   const tried = new Set<string>()
   let skipped = 0
-  const take = async (list: readonly string[]) => {
+  const take = async (list: readonly string[], declared = false) => { // KINEO-ADS-FIEL-3-1510 — declared: a lista das fotos que a página diz serem do produto
     for (const src of list) {
       if (images.length >= max) break
       const key = src.split('?')[0].toLowerCase()
@@ -233,10 +235,10 @@ export async function adsV2LinkImport(raw: string, opts: { max?: number; roomByt
       const ext = img ? adsV2ImageKind(img.body) : null
       if (!img || !ext || img.body.byteLength < ADS_V2_LINK_IMAGE_MIN_BYTES) { skipped++; continue }
       room -= img.body.byteLength
-      images.push({ src, ext, bytes: img.body })
+      images.push({ src, ext, bytes: img.body, ...(declared ? { declared: true } : {}) }) // KINEO-ADS-FIEL-3-1510
     }
   }
-  await take(primary)
+  await take(primary, true) // KINEO-ADS-FIEL-3-1510
   if (!images.length) await take(general)
   return {
     link: finalUrl.toString(),
