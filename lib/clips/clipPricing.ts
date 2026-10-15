@@ -3,14 +3,26 @@
 //
 // MÓDULO PURO (só `import type`, apagado na transpilação): o guardião executa isolado.
 // (05/10: + um import RELATIVO de outro módulo puro, ./clipPriceVsMarket — o loader dos guardiões resolve './'.)
+// (KINEO-PRECOS-CLIPES-KLING25-1610: + `@/lib/checkoutPricing`, para o piso de 40% LER o preço do crédito do plano em
+// vez de um espelho digitado. checkoutPricing só importa engineCost (sem imports) e autopilot/config (só tipo); os
+// loaders dos guardiões que carregam este arquivo resolvem '@/'.)
 //
 // A REGRA, em uma linha:
 //   créditos = max(CLIP_MIN_CREDITS, ceil( custo_fal_do_clipe ÷ ( US$/crédito_do_Studio × (1 − margem_alvo) ) ))
 //   margem_alvo = max( margem do FILME do mesmo motor no Studio , CLIP_MARGIN_FLOOR )
 //
-// POR QUE O STUDIO: é o plano com o crédito MAIS BARATO da casa (US$ 54,90 / 300 cr = US$ 0,183/cr, V8-A de 28/09 —
-// lib/checkoutPricing.ts TIER_PRICES.pro e TIER_CREDITS.pro). Se a margem fecha no crédito mais barato, fecha em todo
-// plano e na barra (piso da barra US$ 0,189/cr > 0,183, docs/DECISAO-PRECOS-V8-2026-09-28.md).
+// POR QUE O STUDIO (REGRA DE 29/09 — HISTÓRICO): em 28/09 o Studio era o crédito MAIS BARATO da casa (US$ 54,90 / 300 cr =
+// US$ 0,183/cr). DEIXOU DE SER em 08/10 (Creator de volta a US$ 19,90 / 150 cr = US$ 0,1327/cr; Creator anual a
+// US$ 0,0928/cr). A regra de 29/09 (clipCreditCostRegra2909 e os efeitos-modelo, piso de 50%) segue medida no crédito do
+// Studio porque o fundador não mexeu nela — os números que ela produz hoje (Seedance 1.5, Omni, efeitos) dão ≥ 47% no
+// crédito do Creator mensal (guardião scripts/test-precos-clipes-kling25-1610.mjs prova motor a motor).
+// ═══ KINEO-PRECOS-CLIPES-KLING25-1610 — O PISO DE 40% PASSA A SER MEDIDO NO CRÉDITO DE QUEM COMPRA ═══
+// Decisão do fundador (15/10, "Sim para as 3"; docs/CONTA-STUDIO-E-MARGEM-CLIPES-2026-10-16.md, recomendação B): o piso
+// de 40% da régua de mercado deixa de usar o Studio (US$ 0,183, plano que nunca vendeu a esse preço) e passa a usar
+// CLIP_FLOOR_USD_PER_CREDIT = CHEAPEST_PLAN_USD_PER_CREDIT de lib/checkoutPricing.ts — o menor US$/crédito entre os planos
+// MENSAIS, lido de TIER_PRICES/TIER_CREDITS (nunca digitado). Hoje é o Creator mensal (US$ 19,90 / 150 = US$ 0,1327),
+// onde estão 100% dos pagantes. Se um dia o Studio ficar mais barato por crédito, o piso acompanha sozinho.
+// O anual (30% off) fica com ~15–25% de margem nos clipes que sobem — escolha do relatório (0 anuais em 60 dias).
 //
 // POR QUE "≥ margem do filme": pedido do CEO — o clipe não pode ser um jeito mais barato (para nós) de usar o mesmo
 // motor. E o PISO de 50%: dois motores (Seedance 1.5 e Kling 2.5) têm filme com margem baixa (28% e 23%) por causa de
@@ -44,7 +56,8 @@
 //
 // MARGEM DO FILME NO STUDIO (custo fal de um filme de 60 s ÷ receita dos créditos a US$ 0,183):
 //   Kling 3 150 cr · US$ 11,00 (CLAUDE.md 18/08: "64-73 s ≈ $11-12"; usamos o PISO do custo = a margem mais alta) → 59,9%
-//   Kling 2.5 60 cr · US$ 8,40 (engineCost.ts KINEO-KLING25-60CR: "≈ US$ 8,40 na fal")                          → 23,5%
+//   Kling 2.5 75 cr · US$ 8,40 (engineCost.ts KINEO-KLING25-60CR: "≈ US$ 8,40 na fal"; 60 → 75 em
+//                   KINEO-PRECOS-CLIPES-KLING25-1610 — era 23,5% a 60 cr)                                          → 38,8%
 //   Seedance 1.5 25 cr · US$ 3,30 (engineCost.ts KINEO-V6.1: fatura de agosto, "$3.30/render TUDO-DENTRO")        → 27,9%
 //   Veo 3.1 100 cr · US$ 9,75 (engineCost.ts KINEO-V6.1: "custo fal ~$9.75/render")                                → 46,7%
 //   MiniMax H3 45 cr · US$ 3,90 (engineCost.ts KINEO-H3: "um filme de 65s … sai por $3.90")                        → 52,6%
@@ -55,12 +68,18 @@ import type { ClipEngineKey } from './clipCatalog'
 // KINEO-CLIP-PRECO-MERCADO-2026-10-05 — único import em tempo de execução, e RELATIVO a outro módulo puro (sem ciclo:
 // clipPriceVsMarket só tem `import type`). A régua "−10% do concorrente" mora lá; aqui só o interruptor.
 import { decideMarketClipPrice, type MarketDecision } from './clipPriceVsMarket'
+// KINEO-PRECOS-CLIPES-KLING25-1610 — o preço do crédito do plano mais barato (mensal), derivado de TIER_PRICES/TIER_CREDITS.
+import { CHEAPEST_PLAN_USD_PER_CREDIT } from '@/lib/checkoutPricing'
 
 /** US$ 54,90 (5490 centavos) — espelho de TIER_PRICES.pro.usd em lib/checkoutPricing.ts (guardião confere). */
 export const STUDIO_PLAN_USD_CENTS = 5490
 /** 300 créditos — espelho de TIER_CREDITS.pro em lib/checkoutPricing.ts (guardião confere). */
 export const STUDIO_PLAN_CREDITS = 300
 export const STUDIO_USD_PER_CREDIT = STUDIO_PLAN_USD_CENTS / 100 / STUDIO_PLAN_CREDITS
+
+/** KINEO-PRECOS-CLIPES-KLING25-1610 — base do piso de 40% da régua de mercado: o menor US$/crédito entre os planos
+ *  mensais (lib/checkoutPricing.ts CHEAPEST_PLAN_USD_PER_CREDIT, lido — não espelhado). Hoje = Creator mensal, US$ 0,1327. */
+export const CLIP_FLOOR_USD_PER_CREDIT: number = CHEAPEST_PLAN_USD_PER_CREDIT
 
 export const CLIP_MARGIN_FLOOR = 0.5
 export const CLIP_MIN_CREDITS = 5
@@ -78,7 +97,7 @@ export interface ClipCostSpec {
 
 export const CLIP_COSTS: Record<ClipEngineKey, ClipCostSpec> = {
   hollywood: { usdPerSecond: 0.112, filmQuality: 'cinematic_hollywood', filmCredits: 150, filmFalUsd: 11.0 },
-  kling: { usdPerSecond: 0.07, filmQuality: 'cinematic_kling', filmCredits: 60, filmFalUsd: 8.4 },
+  kling: { usdPerSecond: 0.07, filmQuality: 'cinematic_kling', filmCredits: 75, filmFalUsd: 8.4 }, // KINEO-PRECOS-CLIPES-KLING25-1610 (era 60)
   seedance: { usdPerSecond: 0.026, filmQuality: 'cinematic_ai', filmCredits: 35, filmFalUsd: 3.3 }, // KINEO-SEEDANCE-35CR-2026-10-04 (era 25)
   veo: { usdPerSecond: 0.1, filmQuality: 'cinematic_veo', filmCredits: 100, filmFalUsd: 9.75 },
   h3: { usdPerSecond: 0.06, filmQuality: 'cinematic_h3', filmCredits: 45, filmFalUsd: 3.9 },
@@ -103,7 +122,8 @@ export function clipFalUsd(engine: ClipEngineKey, seconds: number, _withImage = 
 
 // ═══ KINEO-CLIP-PRECO-MERCADO-2026-10-05 — PREÇO POR SEGUNDO ~10% ABAIXO DO CONCORRENTE, NUNCA NO PREJUÍZO ═══
 // Fundador (04/10): clipe = porta de entrada, comparado na mesma aba com Higgsfield/Kling/Runway. A régua (90% do
-// concorrente mais barato no MESMO modelo e resolução, piso de 40% de margem no crédito do Studio, "IMPOSSÍVEL A −10%"
+// concorrente mais barato no MESMO modelo e resolução, piso de 40% de margem — desde KINEO-PRECOS-CLIPES-KLING25-1610 no
+// crédito de CLIP_FLOOR_USD_PER_CREDIT, o Creator mensal; antes, no do Studio —, "IMPOSSÍVEL A −10%"
 // quando o mercado vende abaixo do que a fal nos cobra) mora em lib/clips/clipPriceVsMarket.ts, com fonte/URL/data de
 // cada número. DESLIGADO = clipCreditCost devolve EXATAMENTE a regra de 29/09 (guardião
 // scripts/test-clip-preco-mercado-2026-10-05.mjs prova motor a motor, duração a duração). Ligar é decisão de preço
@@ -125,7 +145,7 @@ export const CREATOR_USD_PER_CREDIT = CREATOR_PLAN_USD_CENTS / 100 / CREATOR_PLA
 export function clipMarketDecision(engine: ClipEngineKey, seconds: number, withImage = false): MarketDecision {
   return decideMarketClipPrice(engine, seconds, {
     houseFalUsdPerSecond: CLIP_COSTS[engine].usdPerSecond,
-    floorUsdPerCredit: STUDIO_USD_PER_CREDIT,
+    floorUsdPerCredit: CLIP_FLOOR_USD_PER_CREDIT, // KINEO-PRECOS-CLIPES-KLING25-1610 (era STUDIO_USD_PER_CREDIT)
     refUsdPerCredit: CREATOR_USD_PER_CREDIT,
     shelfMaxUsdCents: STUDIO_PLAN_USD_CENTS,
     minCredits: CLIP_MIN_CREDITS,
@@ -141,13 +161,16 @@ export function clipMarketDecision(engine: ClipEngineKey, seconds: number, withI
 //   decisão: ceil(preço da Runway Pro ÷ US$/crédito do Creator) = 11 e 24 cr.
 //   Conferido em 06/10 depois da decisão: a 480p o oficial mais barato é a Higgsfield Plus (US$ 0,74 / 5 s — abaixo do custo
 //   da fal, ~US$ 1,07–1,10), e a Pika vende 720p a US$ 1,36 / 5 s; igualar a Higgsfield daria prejuízo (4 cr / 5 s).
-// Fica ABAIXO do piso de 40% da régua de mercado de propósito (chamariz, decisão de preço público do fundador): a margem
-// sobre a fal é ~30–35% no crédito do Creator e ~23–29% no do Studio mensal (o clipe de 7 s é o mais apertado); no ANUAL
-// de 40% o crédito vale menos que o custo do clipe (relatório de 06/10). Os outros motores NÃO mudam (régua, piso de 40%).
+// (06/10) Ficava ABAIXO do piso de 40% da régua de mercado de propósito (chamariz): margem ~30–35% no crédito do Creator a
+// US$ 29,90. Com o Creator a US$ 19,90 virou prejuízo — ver KINEO-PRECOS-CLIPES-KLING25-1610 logo abaixo.
 // Trocar o preço = editar ESTA constante e nada mais (tela, débito e tabela do /pricing leem clipCreditCost).
-// null = o 2.5 volta para a régua de mercado (hoje 11/15/21/31 cr, "IMPOSSÍVEL A −10%").
-// Guardião: scripts/test-s25-clipes-2026-10-06.mjs (a tabela cobre toda duração oferecida; 5 s = 8 e 10 s = 16).
-export const CLIP_S25_CREDITS: Readonly<Record<number, number>> | null = { 5: 8, 7: 11, 10: 16, 15: 24 }
+// null = o 2.5 volta para a régua de mercado ("IMPOSSÍVEL A −10%").
+// Guardião: scripts/test-s25-clipes-2026-10-06.mjs (a tabela cobre toda duração oferecida).
+// ═══ KINEO-PRECOS-CLIPES-KLING25-1610 — 8/11/16/24 → 14/20/28/42 (fundador 15/10, "Sim para as 3") ═══
+// O chamariz de 06/10 foi calculado sobre o Creator a US$ 29,90; com o Creator a US$ 19,90 cada clipe do 2.5 dava
+// PREJUÍZO no crédito de quem compra (−4% a −6% no Creator mensal). Os valores novos são exatamente o piso de 40% da régua
+// no crédito do Creator mensal (custo fal 0,2205/s, o maior conhecido): margem 40,6% / 41,8% / 40,6% / 40,6%.
+export const CLIP_S25_CREDITS: Readonly<Record<number, number>> | null = { 5: 14, 7: 20, 10: 28, 15: 42 }
 
 /** Créditos decididos para o clipe do 2.5 nesta duração, ou null (sem decisão para ela: vale a régua). */
 export function clipS25DecidedCredits(seconds: number): number | null {
@@ -181,7 +204,9 @@ export function clipCreditCostRegra2909(engine: ClipEngineKey, seconds: number, 
 /**
  * KINEO-EFEITOS-NOVOS-2026-10-13 — créditos de um EFEITO-MODELO (lib/clips/clipEffects.ts `template`: efeito pronto do
  * fornecedor, custo fixo por clipe). Mesma régua de 29/09 sem filme de referência: piso de 50% de margem no crédito do Studio
- * (o mais barato da casa) e mínimo de 5 cr. Não mexe no preço de nenhum outro clipe.
+ * e mínimo de 5 cr. Não mexe no preço de nenhum outro clipe. (KINEO-PRECOS-CLIPES-KLING25-1610: o Studio NÃO é mais o
+ * crédito mais barato da casa; os efeitos de hoje dão ≥ 47% no Creator mensal, e scripts/test-precos-clipes-kling25-1610.mjs
+ * trava isso.)
  */
 export function clipTemplateCreditCost(usd: number): number {
   if (typeof usd !== 'number' || !Number.isFinite(usd) || usd <= 0) throw new Error('clipTemplateCreditCost: usd must be a positive number')

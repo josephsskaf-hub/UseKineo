@@ -117,12 +117,13 @@ function provaPreco(Eng) {
     r.push(c15 < Eng.creditCostForDuration(QUALIDADE[m], true, 35)) // o curto é mais barato: nada sobe em silêncio
     r.push(Eng.creditCostForDuration(QUALIDADE[m], true, 35) === Math.ceil(base * 35 / 60)) // 35/60/90 intactos
   }
-  r.push(Eng.creditCostForDuration('cinematic_kling', true, 15) === 15 && Eng.creditCostForDuration('cinematic_veo', true, 15) === 25)
+  // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: filme do Kling 2.5 60 → 75: o 15 s sai ⌈75 × 15/60⌉ = 19 (era 15), pela mesma régua.
+  r.push(Eng.creditCostForDuration('cinematic_kling', true, 15) === 19 && Eng.creditCostForDuration('cinematic_veo', true, 15) === 25)
   // KINEO-SEEDANCE-35CR-2026-10-04 — Seedance 60 s 25 → 35: o 15 s sai ⌈35 × 15/60⌉ = 9 (era 7), pela mesma régua.
   r.push(Eng.creditCostForDuration('cinematic_ai', true, 15) === Math.ceil(Eng.creditCostFor('cinematic_ai', true) * 15 / 60) && Eng.creditCostForDuration('cinematic_ai', true, 15) === 9)
   return r.every(Boolean)
 }
-checa('preço a 15 s = ⌈base × 15/60⌉ (Kling 2.5 15 cr, Veo 25 cr, Seedance 9), abaixo do de 35 s, 35/60/90 intactos', provaPreco(E))
+checa('preço a 15 s = ⌈base × 15/60⌉ (Kling 2.5 19 cr, Veo 25 cr, Seedance 9), abaixo do de 35 s, 35/60/90 intactos', provaPreco(E))
 const ENGCOST_SRC = rd('lib/credits/engineCost.ts')
 const mutClamp = ENGCOST_SRC.replace('const clamped = Math.max(10, Math.min(180, safe))', 'const clamped = Math.max(35, Math.min(180, safe))')
 checa('mutante: clamp mínimo sobe para 35 s (preço do filme curto sobe em silêncio) fica VERMELHO', mutClamp !== ENGCOST_SRC && !provaPreco(carregador({ 'lib/credits/engineCost.ts': mutClamp })('lib/credits/engineCost')))
@@ -256,7 +257,10 @@ for (const caso of CASOS_CLASSICOS) {
   const semFusao = blocoCurto ? ROTA.split(blocoCurto).join('') : ROTA
   const o2 = await provaPlanoClassico(montarRota(semFusao), { motor: 'kling', idioma: 'en', wps: 2.5, verbatim: true, forma: 'colado7', roteiro: COLADO7 })
   const o3 = await provaPlanoClassico(montarRota(semFusao), { motor: 'kling', idioma: 'es', wps: 2.5, verbatim: true, forma: 'marcado', roteiro: MARCADOS.es })
-  checa(`mutante: planejador curto do roteiro marcado apagado fica VERMELHO (volta o sorteio que pula bloco: fala inteira ${o2.falaInteira}; e bloco a bloco: Kling es [${o3.segundos}] margem ${o3.margem}%)`, Boolean(blocoCurto) && semFusao !== ROTA && !o2.falaInteira && o3.margem < 5)
+  // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10 (Kling 2.5 60 → 75, 15 s = 19 cr): o mutante continua
+  // gerando [10,5,5,10] = 30 s de fal para um filme de 15 s, mas a margem dele subiu de ~0% para ~19% só porque o preço subiu.
+  // A prova passa a medir o DEFEITO (o dobro dos segundos gerados), não a margem que depende do preço do dia.
+  checa(`mutante: planejador curto do roteiro marcado apagado fica VERMELHO (volta o sorteio que pula bloco: fala inteira ${o2.falaInteira}; e bloco a bloco: Kling es [${o3.segundos}] = ${o3.bruto} s gerados p/ 15 s, margem ${o3.margem}%)`, Boolean(blocoCurto) && semFusao !== ROTA && !o2.falaInteira && o3.bruto >= 30)
 }
 {
   // Mutante "clipe fora do schema": a tabela de passos do Veo com 7 s e o plano longo do Kling com 9 s

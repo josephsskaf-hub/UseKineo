@@ -33,8 +33,10 @@ function provas(M) {
     ['saldo sujo vira zero', byQ(-5).fast.minutes === 0 && byQ(NaN).fast.minutes === 0],
     // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o exemplo padrão trocou o Kineo 1 (fora do catálogo público)
     // pelo Kling 2.5; os minutos por motor (acima) e os créditos cobrados não mudaram.
-    ['linha curta legível', M.minutesLine(150) === '4 min of Seedance 1.5 · 2.5 min of Kling 2.5 · 1 min of Kling 3'],
-    ['linha omite motor que não rende meio minuto', M.minutesLine(60) === '1.5 min of Seedance 1.5 · 1 min of Kling 2.5'],
+    // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: filme do Kling 2.5 60 → 75 cr/min. 150 cr = 2 min
+    // (era 2,5); 60 cr = 0,8 → 0,5 min, para BAIXO (era 1). O Kling 3 (150) segue fora da linha de 60 cr.
+    ['linha curta legível', M.minutesLine(150) === '4 min of Seedance 1.5 · 2 min of Kling 2.5 · 1 min of Kling 3'],
+    ['linha omite motor que não rende meio minuto', M.minutesLine(60) === '1.5 min of Seedance 1.5 · 0.5 min of Kling 2.5'],
     ['linha padrão não cita o Kineo 1', !/Kineo 1/.test(M.minutesLine(150)) && !/Kineo 1/.test(M.minutesLine(1000))],
   ]
 }

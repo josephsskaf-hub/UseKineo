@@ -152,7 +152,10 @@ const custo15 = E.creditCostForDuration('cinematic_ai', true, 15)
 // KINEO-SEEDANCE-35CR-2026-10-04 — o engineCost.ts deixou de ser o da base DE PROPÓSITO (Seedance 60 s 25 → 35, decisão do
 // fundador 04/10): o 15 s passa a 9 pela MESMA régua. A intenção do guardião continua — o 3×6 não mexe em preço: fora o
 // Seedance, todo motor e toda duração custam o mesmo que na base, e a regra ⌈base × 15/60⌉ é a mesma.
-const OUTROS_MOTORES = ['fast', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_omni']
+// reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: o filme do Kling 2.5 foi 60 → 75 de propósito; ele sai
+// da comparação com a base e é conferido à parte (⌈75 × s/60⌉), como o Seedance acima.
+const OUTROS_MOTORES = ['fast', 'cinematic_veo', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_omni']
+checa('Kling 2.5 a 75 cr por 60 s, pela mesma régua ⌈base × s/60⌉ (decisão do fundador 15/10)', E.creditCostFor('cinematic_kling', true) === 75 && [15, 35, 60, 90].every((s) => E.creditCostForDuration('cinematic_kling', true, s) === Math.ceil(75 * s / 60)))
 checa(`o filme de 15 s custa ${custo15} cr pela função que debita (⌈35 × 15/60⌉ = 9) e, fora o Seedance, o engineCost.ts cobra o mesmo que a base`, custo15 === 9 && custo15 === Math.ceil(E.creditCostFor('cinematic_ai', true) * 15 / 60) && Eb !== null && OUTROS_MOTORES.every((q) => [15, 35, 60, 90].every((s) => E.creditCostForDuration(q, true, s) === Eb.creditCostForDuration(q, true, s))))
 const USD_S = Number(/export const SEEDANCE_720P_USD_PER_SECOND = ([\d.]+)/.exec(rd('lib/fastAiClips.ts'))?.[1])
 const novo = Math.round(3 * 6 * USD_S * 100) / 100, antes = Math.round(2 * 10 * USD_S * 100) / 100

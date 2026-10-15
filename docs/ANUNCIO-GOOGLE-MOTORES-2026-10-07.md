@@ -119,7 +119,7 @@ Se o A for reprovado por marca, o B segue rodando sozinho e o grupo não para (s
 | 1 | Seedance 2.5 Online | 19 |
 | 2 | Use Seedance 2.5 Today | 22 |
 | 3 | Seedance 2.5 Video Generator | 28 |
-| 4 | Seedance 2.5 Clips: 8 Credits | 29 |
+| 4 | Seedance 2.5 Clips: 14 Credits | 30 |
 | 5 | Finished Films, Not Just Clips | 30 |
 | 6 | Narration, Captions and Music | 29 |
 | 7 | One Sentence to a Full Video | 28 |
@@ -135,7 +135,7 @@ Se o A for reprovado por marca, o B segue rodando sozinho e o grupo não para (s
 | # | Descrição (≤ 90) | car. |
 |---|---|---|
 | 1 | Type one sentence. Kineo directs Seedance 2.5 scenes, voiceover, captions and music. | 84 |
-| 2 | A 5-second Seedance 2.5 clip costs 8 credits. A finished 60-second film costs 150. | 82 |
+| 2 | A 5-second Seedance 2.5 clip costs 14 credits. A finished 60-second film costs 150. | 83 |
 | 3 | Seedance 2.5 runs on paid plans. Creator: $29.90/month for 150 credits. | 71 |
 | 4 | No editing: script, scenes, narration and captions arrive as one vertical MP4. | 78 |
 
@@ -183,7 +183,7 @@ Se o A for reprovado por marca, o B segue rodando sozinho e o grupo não para (s
 | 2 | Use Kling 3 Today | 17 |
 | 3 | Kling 3 Video Generator | 23 |
 | 4 | Kling 3 With Lip Sync | 21 |
-| 5 | Kling 3 Clips: 6 Credits | 24 |
+| 5 | Kling 3 Clips: 8 Credits | 24 |
 | 6 | Characters Speak On Camera | 26 |
 | 7 | Native Voice and Lip Sync | 25 |
 | 8 | Finished Films, Not Just Clips | 30 |
@@ -198,7 +198,7 @@ Se o A for reprovado por marca, o B segue rodando sozinho e o grupo não para (s
 | # | Descrição (≤ 90) | car. |
 |---|---|---|
 | 1 | Kling 3 inside Kineo: talking characters with native voice and lip sync, fully edited. | 86 |
-| 2 | A 5-second Kling 3 clip costs 6 credits. A finished 60-second film costs 150 credits. | 85 |
+| 2 | A 5-second Kling 3 clip costs 8 credits. A finished 60-second film costs 150 credits. | 85 |
 | 3 | Type one sentence. Kineo writes the script, routes scenes to Kling 3 and edits the film. | 88 |
 | 4 | Plans from $12.90/month. Creator ($29.90, 150 credits) covers a 60-second Kling 3 film. | 87 |
 
@@ -246,7 +246,7 @@ Se o A for reprovado por marca, o B segue rodando sozinho e o grupo não para (s
 | 2 | Use Veo 3.1 Fast Today | 22 |
 | 3 | Veo 3.1 Video Generator | 23 |
 | 4 | Veo 3.1 Fast, Fully Edited | 26 |
-| 5 | Veo 3.1 Clips: 6 Credits | 24 |
+| 5 | Veo 3.1 Clips: 8 Credits | 24 |
 | 6 | 60-Second Film: 100 Credits | 27 |
 | 7 | Finished Films, Not Just Clips | 30 |
 | 8 | Narration, Captions and Music | 29 |
@@ -261,7 +261,7 @@ Se o A for reprovado por marca, o B segue rodando sozinho e o grupo não para (s
 | # | Descrição (≤ 90) | car. |
 |---|---|---|
 | 1 | Kineo runs Veo 3.1 Fast and turns one sentence into a narrated, captioned vertical film. | 88 |
-| 2 | A 6-second Veo 3.1 clip costs 6 credits. A finished 60-second film costs 100 credits. | 85 |
+| 2 | A 6-second Veo 3.1 clip costs 8 credits. A finished 60-second film costs 100 credits. | 85 |
 | 3 | No raw clips to stitch: script, scenes, voiceover, captions and music in one MP4. | 81 |
 | 4 | Plans from $12.90/month. Creator ($29.90, 150 credits) covers a 60-second Veo 3.1 film. | 87 |
 
@@ -318,7 +318,7 @@ Se o A for reprovado por marca, o B segue rodando sozinho e o grupo não para (s
 | 11 | Commercial Use on Every Plan | 28 |
 | 12 | Film Ready in Minutes | 21 |
 | 13 | Vertical 9:16, Ready to Post | 28 |
-| 14 | Seedance 2.5 Clips: 8 Credits | 29 |
+| 14 | Seedance 2.5 Clips: 14 Credits | 30 |
 | 15 | Kling 3 and Veo 3.1 Inside | 26 |
 
 | # | Descrição (≤ 90) | car. |

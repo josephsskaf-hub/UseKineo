@@ -42,9 +42,10 @@ checa('H3 60s = 45', custoDe('h3', 60) === 45)
 // KINEO-KLING25-60CR-2026-09-29 — re-ancorado 50 → 60 (decisão do fundador, 29/09:
 // "sobe kling 2 pra 60 creditos"; planos de 5 s + still em todas as cenas ≈ US$ 8,40/filme).
 // A régua por duração é derivada de creditCostForDuration: 35 s = 35 (era 30), 90 s = 90 (era 75).
-checa('Kling 60s = 60', custoDe('kling', 60) === 60, `=${custoDe('kling', 60)}`)
-checa('Kling 35s = 35 (era 30; ceil(60×35/60))', custoDe('kling', 35) === 35, `=${custoDe('kling', 35)}`)
-checa('Kling 90s = 90 (era 75)', custoDe('kling', 90) === 90, `=${custoDe('kling', 90)}`)
+// reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: filme do Kling 2.5 60 → 75 — 35 s = ceil(75×35/60) = 44, 90 s = 113.
+checa('Kling 60s = 75', custoDe('kling', 60) === 75, `=${custoDe('kling', 60)}`)
+checa('Kling 35s = 44 (era 35; ceil(75×35/60))', custoDe('kling', 35) === 44, `=${custoDe('kling', 35)}`)
+checa('Kling 90s = 113 (era 90)', custoDe('kling', 90) === 113, `=${custoDe('kling', 90)}`)
 checa('Kling 3 60s = 150', custoDe('hollywood', 60) === 150)
 checa('Kling 3 35s = 88 (nem encurtando cabe em 62)', custoDe('hollywood', 35) === 88, `=${custoDe('hollywood', 35)}`)
 
@@ -64,7 +65,8 @@ checa('hollywood 150 × saldo 62 → outra câmera', p1.tipo === 'outra_camera',
 // Kling a 60s custa 60 (era 50 até 29/09) e AINDA CABE em 62; H3 custa 45. A regra
 // é "a mais cara que cabe", então a resposta certa é Kling — não o mais barato da
 // lista, e não o que eu tinha chutado ao escrever este teste.
-checa('  ...e a câmera é a MAIS CARA que cabe (Kling, 60) — não a mais barata', p1.alvo?.motor === 'kling' && p1.alvo?.custo === 60, JSON.stringify(p1.alvo))
+// reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: filme do Kling 2.5 60 → 75: o Kling a 75 já NÃO cabe em 62; a mais cara que cabe passa a ser o H3 (45).
+checa('  ...e a câmera é a MAIS CARA que cabe (H3, 45; o Kling a 75 não cabe em 62)', p1.alvo?.motor === 'h3' && p1.alvo?.custo === 45 && custoDe('kling', 60) > 62, JSON.stringify(p1.alvo))
 checa('  ...e ela é de fato mais cara que a alternativa barata (H3, 45)', custoDe('kling', 60) > custoDe('h3', 60))
 // kling 60 / saldo 25 → 35s custa 35, não cabe; nenhuma câmera cabe a 60s (Seedance agora 35) — a saída é o
 // Seedance a 35s por 21 (KINEO-SEEDANCE-35CR-2026-10-04: o 3º degrau do planoDeResgate, outra câmera mais curta).

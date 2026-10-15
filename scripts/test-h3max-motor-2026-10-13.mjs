@@ -66,7 +66,8 @@ function load(code, stubs = {}) {
 function rulesPrice(costSrc) {
   const c = load(costSrc)
   const d = (q, s) => c.creditCostForDuration(q, true, s)
-  const ladder = [['cinematic_ai', 35], ['cinematic_h3', 45], ['cinematic_h3max', 60], ['cinematic_kling', 60], ['cinematic_veo', 100], ['cinematic_hollywood', 150]]
+  // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: filme do Kling 2.5 60 → 75.
+  const ladder = [['cinematic_ai', 35], ['cinematic_h3', 45], ['cinematic_h3max', 60], ['cinematic_kling', 75], ['cinematic_veo', 100], ['cinematic_hollywood', 150]]
   return c.creditCostFor('cinematic_h3max', true) === 60 && c.creditCostFor('cinematic_h3max', false) === 60 &&
     [[15, 15], [30, 30], [35, 35], [60, 60], [90, 90]].every(([s, cr]) => d('cinematic_h3max', s) === cr) &&
     c.creditCostFor('cinematic_h3', true) === 45 && d('cinematic_h3', 35) === 27 && d('cinematic_h3', 90) === 68 &&

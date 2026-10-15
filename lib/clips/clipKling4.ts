@@ -1,7 +1,7 @@
 // Kling 4: a catalog preparation, never a guessed provider/model/cost.
 // Official source checked 2026-10-05: https://fal.ai/kling-4 (early access by contact).
 // No public endpoint, schema or price has been verified. Existing dispatch/billing stays untouched.
-import { CLIP_MIN_CREDITS, CREATOR_USD_PER_CREDIT, STUDIO_USD_PER_CREDIT } from './clipPricing'
+import { CLIP_FLOOR_USD_PER_CREDIT, CLIP_MIN_CREDITS, CREATOR_USD_PER_CREDIT, STUDIO_USD_PER_CREDIT } from './clipPricing'
 import { MARKET_DISCOUNT, MARKET_MARGIN_FLOOR } from './clipPriceVsMarket'
 
 export const KLING4_CLIPS_ENABLED = false
@@ -75,9 +75,10 @@ export function quotePreparedKling4(seconds: number, facts: Kling4Facts = KLING4
   const round = (value: number, places: number) => Math.round(value * 10 ** places) / 10 ** places
   const falUsd = round(facts.falUsdPerSecond! * seconds, 4)
   const targetUsd = round((1 - MARKET_DISCOUNT) * facts.marketUsdPerSecond! * seconds, 6)
-  const floorCredits = Math.ceil(round(falUsd / (STUDIO_USD_PER_CREDIT * (1 - MARKET_MARGIN_FLOOR)), 6))
+  // KINEO-PRECOS-CLIPES-KLING25-1610 — mesmo piso dos clipes de hoje: 40% no crédito de CLIP_FLOOR_USD_PER_CREDIT (Creator mensal), não mais no do Studio.
+  const floorCredits = Math.ceil(round(falUsd / (CLIP_FLOOR_USD_PER_CREDIT * (1 - MARKET_MARGIN_FLOOR)), 6))
   const targetCredits = Math.floor(round(targetUsd / CREATOR_USD_PER_CREDIT, 6))
   const credits = Math.max(CLIP_MIN_CREDITS, floorCredits, targetCredits)
   const status = floorCredits > targetCredits ? 'margin_floor' : CLIP_MIN_CREDITS > targetCredits ? 'house_minimum' : 'below_market'
-  return { credits, falUsd, targetUsd, floorCredits, targetCredits, status, marginAtStudio: 1 - falUsd / (credits * STUDIO_USD_PER_CREDIT) }
+  return { credits, falUsd, targetUsd, floorCredits, targetCredits, status, marginAtStudio: 1 - falUsd / (credits * STUDIO_USD_PER_CREDIT), marginAtFloor: 1 - falUsd / (credits * CLIP_FLOOR_USD_PER_CREDIT) }
 }

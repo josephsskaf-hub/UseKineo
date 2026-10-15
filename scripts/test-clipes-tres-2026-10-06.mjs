@@ -33,6 +33,8 @@ function loadPure(rel, over = {}) {
   const js = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
   const mod = { exports: {} }
   const req = (name) => {
+    // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: clipPricing passou a ler o piso de @/lib/checkoutPricing.
+    if (name.startsWith('@/')) return loadPure(name.slice(2) + '.ts', over)
     if (!name.startsWith('./') && !name.startsWith('../')) throw new Error(`${rel}: import inesperado ${name} (módulo precisa ser puro)`)
     return loadPure(path.posix.normalize(path.posix.join(path.posix.dirname(rel), name)) + '.ts', over)
   }
