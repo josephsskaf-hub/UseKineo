@@ -40,7 +40,7 @@ function rulesAdmin(src) {
   const gate = "if (!(await adminUser())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })"
   return !!post && !!get &&
     post.split('\n')[1].trim() === gate && get.split('\n')[1].trim() === gate &&
-    src.includes("const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com'])") &&
+    src.includes("const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com', 'josephskaf@hotmail.com'])") &&
     src.includes('return user && ADMIN_EMAILS.has((user.email ?? \'\').toLowerCase()) ? user : null')
 }
 
@@ -113,7 +113,7 @@ const mut = (name, from, to, rule) => {
   check(`M ${name}`, () => m !== SRC && rule(m) === false)
 }
 mut('portão admin removido do GET', "export async function GET(req: NextRequest) {\n  if (!(await adminUser())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })\n", 'export async function GET(req: NextRequest) {\n  if (false) return null\n', rulesAdmin)
-mut('e-mail estranho na lista de admin', "'joseph-test@shortsforgeai.com'])", "'joseph-test@shortsforgeai.com', 'x@y.com'])", rulesAdmin)
+mut('e-mail estranho na lista de admin', "'josephskaf@hotmail.com'])", "'josephskaf@hotmail.com', 'x@y.com'])", rulesAdmin) /* reancorado: lista de admin ganhou josephskaf@hotmail.com (fundador 15/10) */
 mut('prompt entra no catálogo antigo', "billboard_ad: { model: PIXVERSE, input: (image) => ({ effect: 'Billboard AD', image_url: image,", "billboard_ad: { model: PIXVERSE, input: (image) => ({ effect: 'Billboard AD', prompt: 'x', image_url: image,", rulesPromptOnlyH3)
 mut('recusa de prompt no catálogo antigo removida', "  if (probe && body?.prompt !== undefined) return NextResponse.json({ error: 'prompt_not_allowed' }, { status: 400 })\n", '', rulesPromptOnlyH3)
 mut('chave nova fora do prefixo h3', "  h3max_i2v: { model: 'minimax/h3-max/image-to-video'", "  omni_t2v: { model: 'minimax/h3-max/image-to-video'", rulesPromptOnlyH3)

@@ -178,7 +178,7 @@ const MAX_PER_RUN = 40
 // não atropelar quem ainda está na sessão. 20h-96h desde o último vídeo
 // (constantes em lib/momentumLadder.ts; `?max_idle_h=` só alarga, #23).
 // #23: sessão de admin também abre a rota (link de 1 clique do fundador).
-const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com'])
+const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com', 'josephskaf@hotmail.com'])
 
 function isInternalOrJunk(email: string): boolean {
   const e = email.toLowerCase()
