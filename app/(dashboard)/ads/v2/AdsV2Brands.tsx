@@ -21,6 +21,7 @@ import {
   type AdBrandFilter,
   type AdBrandView,
 } from '@/lib/ads/brands'
+import { ADS_LIST_BATCH, ADS_LIST_CSS, ADS_LIST_PAGE, adsListCopy, adsListMatches, adsListPill, adsListStyleLabel, adsListTier, adsListTitle, type AdsListItem } from '@/lib/ads/adsList' // KINEO-ADS-LISTA-1510 — a lista com cara de agência (16 línguas)
 
 type ApiResult<T> = { ok: true; status: number; data: T } | { ok: false; status: number; code: string; body: Record<string, unknown> }
 
@@ -341,60 +342,120 @@ export function AdsBrandDialog({
 }
 
 // ─── "Seus anúncios", filtrável por marca ─────────────────────────────────────────────────────────────────────────────
+// KINEO-ADS-LISTA-1510 — cara de ferramenta de agência: miniatura (pôster do vídeo entregue ou a foto do produto), título limpo
+// ("Perfume · num hotel com chuva"), linha de detalhes (estilo, nível, formato, duração, data e hora, versões), o estado num selo
+// (Fazendo animado, Pronto, Não funcionou + o porquê, aprovação do cliente), busca por texto ao lado dos chips e "Carregar mais".
+// As regras são puras em lib/ads/adsList.ts; a rota já devolve cada linha só com os campos da vista.
 
-type ListedOrder = { id: string; status: string; tier: string; seconds: number; video_id: string | null; created_at: string; brand_id?: string | null; sentence?: string | null; link?: string | null }
+type ListedOrder = AdsListItem // KINEO-ADS-LISTA-1510
 
 export function AdsBrandOrders({ lang, brands, brandsOn, refreshKey = 0 }: { lang: InterfaceLanguage; brands: readonly AdBrandView[]; brandsOn: boolean; refreshKey?: number }) {
   const c = adBrandCopy(lang)
+  const lc = adsListCopy(lang) // KINEO-ADS-LISTA-1510
   const [filter, setFilter] = useState<AdBrandFilter>({ kind: 'all' })
   const [orders, setOrders] = useState<ListedOrder[] | null>(null)
+  const [hasMore, setHasMore] = useState(false) // KINEO-ADS-LISTA-1510 — o último lote veio cheio: pode haver mais antigas no servidor
+  const [loadingMore, setLoadingMore] = useState(false) // KINEO-ADS-LISTA-1510
+  const [shown, setShown] = useState(ADS_LIST_PAGE) // KINEO-ADS-LISTA-1510
+  const [query, setQuery] = useState('') // KINEO-ADS-LISTA-1510
   const fkey = filter.kind === 'one' ? filter.id : filter.kind
+  // KINEO-ADS-LISTA-1510 — um lote da rota (o 1º, ou o "Carregar mais" com as linhas mais antigas que a última mostrada)
+  const load = (before: string | null) => {
+    const q = (brandsOn && filter.kind !== 'all' ? `&brand=${encodeURIComponent(filter.kind === 'one' ? filter.id : 'none')}` : '') + (before ? `&before=${encodeURIComponent(before)}` : '')
+    return api<{ orders?: ListedOrder[] }>(`/api/ads/v2/orders?list=brands${q}`).then((r) => {
+      // o servidor já filtrou; a mesma regra local garante a lista certa mesmo com resposta atrasada de outro filtro
+      const list = r.ok && Array.isArray(r.data.orders) ? (brandsOn ? adBrandFilterOrders(r.data.orders, filter) : r.data.orders) : []
+      return { list, full: r.ok && Array.isArray(r.data.orders) && r.data.orders.length >= ADS_LIST_BATCH }
+    })
+  }
   useEffect(() => {
     let stop = false
-    const q = brandsOn && filter.kind !== 'all' ? `&brand=${encodeURIComponent(filter.kind === 'one' ? filter.id : 'none')}` : ''
-    void api<{ orders?: ListedOrder[] }>(`/api/ads/v2/orders?list=brands${q}`).then((r) => {
+    void load(null).then(({ list, full }) => { // KINEO-ADS-LISTA-1510
       if (stop) return
-      // o servidor já filtrou; a mesma regra local garante a lista certa mesmo com resposta atrasada de outro filtro
-      setOrders(r.ok && Array.isArray(r.data.orders) ? (brandsOn ? adBrandFilterOrders(r.data.orders, filter) : r.data.orders) : [])
+      setOrders(list)
+      setHasMore(full)
+      setShown(ADS_LIST_PAGE) // KINEO-ADS-LISTA-1510
     })
     return () => { stop = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fkey, brandsOn, refreshKey])
   const nameOf = (id: string | null | undefined) => (id ? brands.find((b) => b.id === id)?.name ?? null : null)
-  const titleOf = (o: ListedOrder) => {
-    if (o.sentence && o.sentence.trim()) return o.sentence.trim()
-    try { return o.link ? new URL(o.link).hostname.replace(/^www\./, '') : '—' } catch { return '—' }
-  }
-  const date = (iso: string) => { try { return new Date(iso).toLocaleDateString(lang, { day: '2-digit', month: 'short' }) } catch { return '' } }
-  const statusOf = (s: string) => (c.status as Record<string, string>)[s] ?? s
+  const titleOf = (o: ListedOrder) => adsListTitle(o) || lc.untitled // KINEO-ADS-LISTA-1510 — produto · cena, sem travessão solto
+  const when = (iso: string) => { try { return new Date(iso).toLocaleString(lang, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) } catch { return '' } }
+  const metaOf = (o: ListedOrder) => [adsListStyleLabel(o.style, lang), adsListTier(o.tier, lc), o.format, `${o.seconds}s`, when(o.created_at), o.versions > 1 ? adBrandFill(lc.versions, { n: o.versions }) : null].filter((x): x is string => !!x).join(' · ')
   if (orders !== null && orders.length === 0 && filter.kind === 'all') return null
+  // KINEO-ADS-LISTA-1510 — a busca filtra o que já chegou; "Carregar mais" revela 12 por vez e, no fim do lote cheio, busca as mais antigas
+  const matches = orders === null ? [] : orders.filter((o) => adsListMatches({ ...o, title: titleOf(o), brand: nameOf(o.brand_id), styleLabel: adsListStyleLabel(o.style, lang) }, query))
+  const visible = matches.slice(0, shown)
+  const canReveal = matches.length > shown
+  async function loadMore() {
+    if (canReveal) { setShown((n) => n + ADS_LIST_PAGE); return }
+    const last = orders && orders.length ? orders[orders.length - 1].created_at : null
+    if (!last || loadingMore) return
+    setLoadingMore(true)
+    const { list, full } = await load(last)
+    setLoadingMore(false)
+    setOrders((cur) => { const seen = new Set((cur ?? []).map((o) => o.id)); return [...(cur ?? []), ...list.filter((o) => !seen.has(o.id))] })
+    setHasMore(full)
+    setShown((n) => n + ADS_LIST_PAGE)
+  }
   return (
     <section className="adbr-list" aria-labelledby="adbr-list-t" data-kineo="ads-brand-orders">
       <style dangerouslySetInnerHTML={{ __html: AD_BRANDS_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: ADS_LIST_CSS }} />{/* KINEO-ADS-LISTA-1510 */}
       <h2 id="adbr-list-t">{c.yourAds}</h2>
-      {brandsOn && brands.length ? (
-        <div className="adbr-chips" role="group" aria-label={c.brand} data-kineo="ads-brand-filter">
-          <button type="button" className={`pill${filter.kind === 'all' ? ' on' : ''}`} aria-pressed={filter.kind === 'all'} onClick={() => setFilter({ kind: 'all' })}>{c.allBrands}</button>
-          {brands.map((b) => (
-            <button key={b.id} type="button" className={`pill${filter.kind === 'one' && filter.id === b.id ? ' on' : ''}`} aria-pressed={filter.kind === 'one' && filter.id === b.id} onClick={() => setFilter({ kind: 'one', id: b.id })}>{b.name}</button>
-          ))}
-          <button type="button" className={`pill${filter.kind === 'none' ? ' on' : ''}`} aria-pressed={filter.kind === 'none'} onClick={() => setFilter({ kind: 'none' })}>{c.none}</button>
-        </div>
-      ) : null}
+      <div className="adl-tools">{/* KINEO-ADS-LISTA-1510 — os chips de marca e a busca na mesma linha */}
+        {brandsOn && brands.length ? (
+          <div className="adbr-chips" role="group" aria-label={c.brand} data-kineo="ads-brand-filter">
+            <button type="button" className={`pill${filter.kind === 'all' ? ' on' : ''}`} aria-pressed={filter.kind === 'all'} onClick={() => setFilter({ kind: 'all' })}>{c.allBrands}</button>
+            {brands.map((b) => (
+              <button key={b.id} type="button" className={`pill${filter.kind === 'one' && filter.id === b.id ? ' on' : ''}`} aria-pressed={filter.kind === 'one' && filter.id === b.id} onClick={() => setFilter({ kind: 'one', id: b.id })}>{b.name}</button>
+            ))}
+            <button type="button" className={`pill${filter.kind === 'none' ? ' on' : ''}`} aria-pressed={filter.kind === 'none'} onClick={() => setFilter({ kind: 'none' })}>{c.none}</button>
+          </div>
+        ) : null}
+        {orders !== null && orders.length ? (
+          <div className="adl-search" role="search" data-kineo="ads-list-search">
+            <input type="search" value={query} onChange={(e) => { setQuery(e.target.value); setShown(ADS_LIST_PAGE) }} placeholder={lc.search} aria-label={lc.searchLabel} maxLength={80} />
+            {query ? <button type="button" aria-label={lc.clear} onClick={() => { setQuery(''); setShown(ADS_LIST_PAGE) }}>×</button> : null}
+          </div>
+        ) : null}
+      </div>
       {orders === null ? <p className="adbr-empty">…</p> : orders.length === 0 ? (
         <p className="adbr-empty">{c.emptyList}</p>
+      ) : matches.length === 0 ? ( /* KINEO-ADS-LISTA-1510 — a busca sem resultado */
+        <p className="adbr-empty" role="status">{adBrandFill(lc.noMatch, { q: query.trim() })}</p>
       ) : (
-        <ul>
-          {orders.map((o) => (
-            <li key={o.id} data-brand={o.brand_id ?? ''}>
-              <span className="t">{titleOf(o)}</span>
-              {nameOf(o.brand_id) ? <span className="b">{nameOf(o.brand_id)}</span> : null}
-              <span className="m">{statusOf(o.status)} · {o.seconds}s · {date(o.created_at)}</span>
-              <a href={`/ads/v2?order=${encodeURIComponent(o.id)}`}>{c.open}</a>
-            </li>
-          ))}
+        <ul className="adl" data-kineo="ads-list">{/* KINEO-ADS-LISTA-1510 — miniatura | título + detalhes | selo + Abrir */}
+          {visible.map((o) => {
+            const title = titleOf(o)
+            const pill = adsListPill(o)
+            const why = pill === 'failed' ? o.fail_why : null
+            return (
+              <li key={o.id} data-brand={o.brand_id ?? ''} data-kineo="ads-list-row">
+                <span className="adl-th" aria-hidden="true">
+                  {title.charAt(0).toUpperCase()}
+                  {o.thumb ? <img src={o.thumb} alt="" loading="lazy" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none' }} /> : null}
+                </span>
+                <div className="adl-mid">
+                  <div className="adl-top">
+                    <span className="t" title={title}>{title}</span>
+                    {nameOf(o.brand_id) ? <span className="b">{nameOf(o.brand_id)}</span> : null}
+                  </div>
+                  <div className="adl-meta">{metaOf(o)}</div>
+                </div>
+                <div className="adl-end">
+                  <span className={`adl-pill ${pill}`} data-kineo="ads-list-pill" data-pill={pill}><i aria-hidden="true" />{lc.pill[pill]}{why ? <small>· {lc.why[why]}</small> : null}</span>
+                  <a href={`/ads/v2?order=${encodeURIComponent(o.id)}`} aria-label={`${c.open}: ${title}`}>{c.open}</a>
+                </div>
+              </li>
+            )
+          })}
         </ul>
       )}
+      {orders !== null && matches.length > 0 && (canReveal || hasMore) ? ( /* KINEO-ADS-LISTA-1510 — "Carregar mais" */
+        <button type="button" className="adl-more" disabled={loadingMore} onClick={() => { void loadMore() }} data-kineo="ads-list-more">{loadingMore ? '…' : lc.more}</button>
+      ) : null}
     </section>
   )
 }
