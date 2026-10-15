@@ -25,8 +25,8 @@
  ],
  "app/sitemap.ts": [
   [
-   "import { LOTE1_LANDING_PATH_LIST, LOTE1_NICHE_SLUG_LIST, LOTE1_REVIEWED_ISO } from '@/lib/seo/paginasLote1Paths'\n// KINEO-VS-ALTERNATIVAS-1310 — as 4 páginas /vs \"alternativa a X\" (Pictory, Synthesia, CapCut, OpusClip). Módulo PURO, sem import.\nimport { VS_ALTERNATIVE_LINKS, VS_ALT_REVIEWED_ISO } from '@/lib/seo/vsAlternatives1310'\n\n// #458 — SEO: sitemap so Google can discover and index every public page.\n// The site had none, so search engines were barely crawling it — free organic\n",
-   "import { LOTE1_LANDING_PATH_LIST, LOTE1_NICHE_SLUG_LIST, LOTE1_REVIEWED_ISO } from '@/lib/seo/paginasLote1Paths'\n// KINEO-VS-ALTERNATIVAS-1310 — as 4 páginas /vs \"alternativa a X\" (Pictory, Synthesia, CapCut, OpusClip). Módulo PURO, sem import.\nimport { VS_ALTERNATIVE_LINKS, VS_ALT_REVIEWED_ISO } from '@/lib/seo/vsAlternatives1310'\nimport { BING_SEO_1510_LASTMOD_ISO, BING_SEO_1510_PATHS } from '@/lib/seo/bingSeo1510Paths' // KINEO-BING-SEO-1510\n\n// #458 — SEO: sitemap so Google can discover and index every public page.\n// The site had none, so search engines were barely crawling it — free organic\n"
+   "import { VS_ALTERNATIVE_LINKS, VS_ALT_REVIEWED_ISO } from '@/lib/seo/vsAlternatives1310'\n",
+   "import { VS_ALTERNATIVE_LINKS, VS_ALT_REVIEWED_ISO } from '@/lib/seo/vsAlternatives1310'\nimport { BING_SEO_1510_LASTMOD_ISO, BING_SEO_1510_PATHS } from '@/lib/seo/bingSeo1510Paths' // KINEO-BING-SEO-1510\n"
   ],
   [
    "    changeFrequency: 'daily' as const,\n    priority: 0.8,\n  }))\n  return [\n    ...effectSitemapEntries(),\n    // House portfolio: discoverable only while the public page is enabled.\n    // Its own review date must not re-date the unrelated acquisition pages.\n",

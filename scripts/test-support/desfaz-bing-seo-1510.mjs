@@ -11,6 +11,8 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+// reancorado KINEO-LEVA3-1510 — o bloco do import em app/sitemap.ts passou a ser só a linha do import das irmãs /vs + a do Bing
+// (o import do KINEO-VS-NOVOS-1610 entra logo abaixo e quebrava o contexto largo); a troca continua exata e única.
 export const MARCA_BING_SEO_1510 = 'KINEO-BING-SEO-1510'
 const TROCAS = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-bing-seo-1510-trocas.json'), 'utf8'))
 export const ARQUIVOS_BING_SEO_1510 = Object.freeze(Object.keys(TROCAS))
