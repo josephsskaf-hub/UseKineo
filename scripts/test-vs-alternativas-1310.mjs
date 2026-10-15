@@ -107,7 +107,10 @@ function run(opts = {}) {
       const cell = `<td>${escapeHtml(f.text)}<span class="kc-source"><br/><a href="${escapeHtml(f.url)}" rel="nofollow noopener noreferrer">${escapeHtml(f.label)}</a> (${f.checkedOn})</span></td>`
       if (!h.includes(cell)) fail('R1', `${id}.${k}: fato sem texto/fonte/data na mesma célula`)
     }
-    if (!h.includes(`Reviewed ${facts.VS_ALT_REVIEWED_ISO}`)) fail('R1', `${id}: data de revisão`)
+    // reancorado KINEO-VS-NOVOS-1610 — a CapCut foi enriquecida e relida em 15/10 (decisão da CEO): a página leva a data nova;
+    // as outras 3 continuam exigindo 13/10. Os fatos de 13/10 da CapCut seguem com a data deles (R5 abaixo, intacto).
+    const pageDay = id === 'capcut' ? '2026-10-15' : facts.VS_ALT_REVIEWED_ISO
+    if (!h.includes(`Reviewed ${pageDay}`)) fail('R1', `${id}: data de revisão`)
   }
 
   // ── R2 · sitemap, /llms.txt e lista de guias ────────────────────────────────────────────────────────────────────
@@ -134,7 +137,8 @@ function run(opts = {}) {
       const path = facts.VS_ALTERNATIVE_PAGES[id].path
       const e = sm.find((x) => x.url === `${BASE}${path}`)
       if (!e) fail('R2', `sitemap sem ${path}`)
-      else if (new Date(e.lastModified).toISOString().slice(0, 10) !== facts.VS_ALT_REVIEWED_ISO) fail('R2', `sitemap ${path} com lastmod ${e.lastModified}`)
+      // reancorado KINEO-VS-NOVOS-1610 — CapCut relida em 15/10 (mesma regra do R1); as outras 3 seguem em 13/10
+      else if (new Date(e.lastModified).toISOString().slice(0, 10) !== (id === 'capcut' ? '2026-10-15' : facts.VS_ALT_REVIEWED_ISO)) fail('R2', `sitemap ${path} com lastmod ${e.lastModified}`)
     }
     if (sm.filter((x) => ids.some((id) => x.url === `${BASE}${facts.VS_ALTERNATIVE_PAGES[id].path}`)).length !== ids.length) fail('R2', 'sitemap com página duplicada')
   } catch (e) { fail('R2', `sitemap não executa: ${e.message}`) }

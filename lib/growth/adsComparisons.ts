@@ -19,18 +19,25 @@ function officialFeature(mark: string): string {
 export function adsComparisonRows(c: AdsCompetitor & { accessedOn?: string }) {
   const offer = adsSegmentOffer()
   return [
-    { id: 'input', label: 'Starting material', kineo: 'Your website link or brief, logo, photos and clips.', competitor: c.linkToAd.startsWith('✓') ? 'A website or product link; other input requirements not recorded.' : 'Input requirements not confirmed.' },
+    // KINEO-VS-NOVOS-1610 (decisão da CEO 15/10) — a coluna da Kineo descreve o anúncio de HOJE (v2, ~15 s, fotos + logo,
+    // créditos por nível de adsSegmentOffer/v2Tiers); o texto velho (clipes, legenda palavra a palavra, "N credits per
+    // 35-second ad") descrevia só o clássico e mentia sobre o produto principal.
+    { id: 'input', label: 'Starting material', kineo: 'Your website link or brief, authorized business photos and your logo. The longer classic narrated ad also takes clips.', competitor: c.linkToAd.startsWith('✓') ? 'A website or product link; other input requirements not recorded.' : 'Input requirements not confirmed.' },
     { id: 'link', label: 'Link → ad', kineo: '✓ Extract the details, then check the facts before rendering.', competitor: officialFeature(c.linkToAd) },
     { id: 'formats', label: 'Formats', kineo: offer.formats, competitor: c.accessedOn ? officialFeature(c.formats) : `${officialFeature(c.formats)} — square and landscape in the research table; full format list not recorded.` },
-    { id: 'captions', label: 'Captions & soundtrack', kineo: '✓ Captions and music in the finished ad.', competitor: 'Not confirmed in this snapshot.' },
+    { id: 'captions', label: 'Captions & soundtrack', kineo: '✓ Music, short on-screen phrases and your logo at the end; the short voice-over is optional. No word-by-word captions in this workflow.', competitor: 'Not confirmed in this snapshot.' },
     { id: 'translation', label: 'Language & translation', kineo: 'Narration in supported languages; check the script. Not automatic dubbing of an existing ad.', competitor: officialFeature(c.translation) },
     // KINEO-COPY-CONTRADICOES-1510 — era "✗ Not included in Studio Ads.": o anúncio v2 tem a pessoa de IA opcional
     // (lib/ads/v2Presenter.ts, biblioteca fechada, só 9:16). Continua fora: avatar/gêmeo digital da própria pessoa.
     { id: 'avatar', label: 'Avatar / actor', kineo: 'Optional AI presenter from a fixed library, always labeled as AI, in 9:16 only. ✗ No custom avatar or digital twin of you.', competitor: officialFeature(c.avatar) },
     { id: 'publishing-analytics', label: 'Direct publishing & analytics', kineo: '✗ Direct publishing. ✗ Ad-performance analytics. Download and publish yourself.', competitor: `Publishing: ${officialFeature(c.publishing)}. Analytics: ${officialFeature(c.analytics)}.` },
-    { id: 'price', label: 'Entry price', kineo: `From ${offer.starterPrice} USD/month on Starter; Studio Ads is included. ${offer.credits} credits per ${offer.seconds}-second ad.`, competitor: c.accessedOn // KINEO-VS-NOVOS-1610 — leitura própria (Arcads): sem lista de preço pública = "not published", nada de terceiros
+    { id: 'price', label: 'Entry price', kineo: `From ${offer.starterPrice} USD/month on Starter; Studio Ads is included. A ${offer.v2Seconds}-second ad uses ${offer.v2Levels} credits, depending on the level.`, competitor: c.accessedOn // KINEO-VS-NOVOS-1610 — leitura própria (Arcads): sem lista de preço pública = "not published", nada de terceiros
       ? `${c.price} on the official site (read ${c.accessedOn}); check the current terms with ${c.name}.`
-      : `${c.price.replace('(anual)', '(annual billing)')} — as recorded in the official-source snapshot; check billing terms and allowances on the official page.${c.id in ADS_NOVOS_FACTS ? ' A newer reading of the official page is below.' : ''}` },
+      // KINEO-VS-NOVOS-1610 (CEO 15/10) — com leitura nova da página oficial (Creatify), o preço da fotografia de 25-26/09 sai da
+      // página: mostrar dois preços era verdade pública errada. Fica só o de 15/10, com fonte e data.
+      : c.id in ADS_NOVOS_FACTS
+        ? `${ADS_NOVOS_FACTS[c.id as AdsNovoId].price.text} (official page, read ${VS_NOVOS_REVIEWED_ISO}); check billing terms on the official page.`
+        : `${c.price.replace('(anual)', '(annual billing)')} — as recorded in the official-source snapshot; check billing terms and allowances on the official page.` },
   ]
 }
 

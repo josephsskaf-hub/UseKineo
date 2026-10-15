@@ -17,6 +17,9 @@ export const VS_NOVOS_MARK = 'KINEO-VS-NOVOS-1610'
 /** Dia em que os fatos destes 5 concorrentes foram lidos nas páginas oficiais (o "Reviewed" e o lastmod do sitemap). */
 export const VS_NOVOS_REVIEWED_ISO = '2026-10-15'
 
+/** Páginas das irmãs de 13/10 enriquecidas hoje: a data da página ("Reviewed" e lastmod) passa a ser a desta leitura. */
+export const VS_NOVOS_ENRICHED_PATHS: readonly string[] = ['/vs/capcut-alternatives-no-editing-shorts']
+
 export type VsNovosSourcedFact = { text: string; label: string; url: string; checkedOn: string }
 
 // ─── Shorts (molde das irmãs de 13/10) ───────────────────────────────────────────────────────────────────────────────

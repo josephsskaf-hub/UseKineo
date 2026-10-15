@@ -3,12 +3,12 @@
 import CitationAnswerPage, { citationAnswerMetadata } from '@/components/CitationAnswerPage'
 import VsAlternativeComparison, { VsAlternativeFreeCta } from '@/components/VsAlternativeComparison'
 import { VS_ALTERNATIVE_ANSWERS } from '@/lib/growth/vsAlternativeAnswers'
-import { VS_ALT_REVIEWED_ISO } from '@/lib/seo/vsAlternatives1310'
+import { VS_NOVOS_REVIEWED_ISO } from '@/lib/seo/vsNovos1610' // KINEO-VS-NOVOS-1610 — enriquecida em 15/10 (CEO: a página leva a data nova)
 
 export const dynamic = 'force-static'
 const answer = VS_ALTERNATIVE_ANSWERS.capcut
 export const metadata = citationAnswerMetadata(answer)
 
 export default function Page() {
-  return <CitationAnswerPage answer={answer} heroActions={<VsAlternativeFreeCta answer={answer} />} comparisonSection={<VsAlternativeComparison id="capcut" />} reviewDate={VS_ALT_REVIEWED_ISO} />
+  return <CitationAnswerPage answer={answer} heroActions={<VsAlternativeFreeCta answer={answer} />} comparisonSection={<VsAlternativeComparison id="capcut" />} reviewDate={VS_NOVOS_REVIEWED_ISO} />
 }

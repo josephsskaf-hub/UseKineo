@@ -38,7 +38,7 @@ import { LOTE1_LANDING_PATH_LIST, LOTE1_NICHE_SLUG_LIST, LOTE1_REVIEWED_ISO } fr
 // KINEO-VS-ALTERNATIVAS-1310 — as 4 páginas /vs "alternativa a X" (Pictory, Synthesia, CapCut, OpusClip). Módulo PURO, sem import.
 import { VS_ALTERNATIVE_LINKS, VS_ALT_REVIEWED_ISO } from '@/lib/seo/vsAlternatives1310'
 // KINEO-VS-NOVOS-1610 — Google Flow e Dreamina (molde das irmãs) e Arcads (molde do Ads). Módulo PURO, sem import.
-import { VS_NOVOS_LINKS, VS_NOVOS_REVIEWED_ISO } from '@/lib/seo/vsNovos1610'
+import { VS_NOVOS_ENRICHED_PATHS, VS_NOVOS_LINKS, VS_NOVOS_REVIEWED_ISO } from '@/lib/seo/vsNovos1610'
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -443,7 +443,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // os fatos dos 4 concorrentes foram lidos nas páginas oficiais.
     ...VS_ALTERNATIVE_LINKS.map(({ path }) => ({
       url: `${BASE}${path}`,
-      lastModified: VS_ALT_REVIEWED_ISO,
+      lastModified: VS_NOVOS_ENRICHED_PATHS.includes(path) ? VS_NOVOS_REVIEWED_ISO : VS_ALT_REVIEWED_ISO, // KINEO-VS-NOVOS-1610 — CapCut relida em 15/10
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     })),

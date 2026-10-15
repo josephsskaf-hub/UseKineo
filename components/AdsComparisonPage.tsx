@@ -23,7 +23,8 @@ export default function AdsComparisonPage({ competitor }: { competitor: AdsCompa
     <header className={styles.hero}>
       <p className={styles.eyebrow}>YOUR ASSETS. A NARRATED AD.</p>
       <h1>{/^[aeiou]/i.test(competitor.name) ? 'An' : 'A'} {competitor.name} alternative.<br /><span>For the story of your business.</span></h1>
-      <p className={styles.intro}>Turn your logo, photos and clips into a narrated {offer.durations}-second ad with a script, captions, music and a final card.</p>
+      {/* KINEO-VS-NOVOS-1610 (CEO 15/10) — o anúncio de hoje (v2, duração de adsSegmentOffer); antes prometia o clássico de 35/60 s com legenda. */}
+      <p className={styles.intro}>Turn your business photos and logo into a vertical ad of about {offer.v2Seconds} seconds: your real photos in motion, music, short on-screen phrases, an optional voice-over and your logo at the end.</p>
       <a className={styles.cta} href={adsComparisonCta(competitor.id)}>Explore Studio Ads <span aria-hidden="true">→</span></a>
       <p className={styles.price}>Included in any paid plan · from {offer.starterPrice} USD/month.</p>
     </header>

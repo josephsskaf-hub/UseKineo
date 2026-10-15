@@ -40,7 +40,7 @@ const BANNED = [/unlimited/i, /priority queue/i, /1080p/i, /premium voices?/i, /
 const kineoFacts = await moduleAt('lib/kineoFacts.ts')
 const canon = offlineModules()('lib/freeTierOffer.ts')
 const read = (p, rep) => (rep[p] ?? source(p)).replace(/\r\n/g, '\n')
-const codeOnly = (text) => text.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*\*)/.test(l)).join('\n').replace(/\/\/ .*$/gm, '')
+const codeOnly = (text) => text.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*\*)/.test(l)).join('\n').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/ .*$/gm, '')
 
 function loader(rep) {
   const base = offlineModules({ replacements: rep, mocks: { 'lib/kineoFacts.ts': kineoFacts, 'components/OrganicCtaLink.tsx': { __esModule: true, default: ({ children, source: s, placement, ...props }) => React.createElement('a', { ...props, 'data-source': s }, children) } } })
@@ -96,6 +96,7 @@ async function run(rep = {}) {
     if (!d || d.length > 155) fail('R1', `${id}: descrição ${d.length} > 155`)
     if (mod.metadata.alternates?.canonical !== `${BASE}${a.path}`) fail('R1', `${id}: canonical`)
     if (!h.includes(`<h1>${escapeHtml(a.question)}</h1>`)) fail('R1', `${id}: H1 não é a pergunta`)
+    if (!h.includes(`Reviewed ${day}`)) fail('R1', `${id}: "Reviewed" não é a data da leitura (${day})`) // CapCut incluída (CEO 15/10)
     const direct = h.match(/<div class="kc-direct">([\s\S]*?)<\/div>/)?.[1] ?? ''
     if (a.answer.length !== 3 || (direct.match(/<p>/g) ?? []).length !== 3) fail('R1', `${id}: resumo citável não tem 3 linhas`)
     const name = id === 'capcut' ? 'CapCut' : facts.VS_NOVOS_COMPETITORS[id].name
@@ -113,6 +114,7 @@ async function run(rep = {}) {
 
   // ── R2 · Ads ─────────────────────────────────────────────────────────────────────────────────────────────────────────
   const adsLib = load(ADS_LIB)
+  const adsOffer = load('lib/growth/adsSegmentPresentation.ts').adsSegmentOffer()
   for (const [id, file] of Object.entries(ADS)) {
     let mod
     try { mod = load(file) } catch (e) { fail('R2', `${id}: página não carrega (${e.message})`); continue }
@@ -145,6 +147,12 @@ async function run(rep = {}) {
     if (!/href="\/ai-video-generator\/[a-z0-9-]+"/.test(h)) fail('R2', `${id}: sem link para página de motor`)
     const text = h.replace(/<[^>]+>/g, ' ')
     for (const bad of unlabeledPresenter(text)) fail('R2', `${id}: pessoa de IA da Kineo sem rótulo: "${bad.slice(0, 70)}"`)
+    // CEO 15/10: nenhum preço velho do concorrente (fotografia de 25-26/09) ao lado da leitura nova, e a coluna da Kineo descreve o
+    // anúncio de hoje (v2), nunca o "N credits per 35-second ad" nem o "35 / 60-second ad" do clássico.
+    const snap = adsLib.ADS_COMPARISONS.find((c) => c.id === id)
+    if (snap && text.includes(snap.price)) fail('R2', `${id}: preço da fotografia de 25-26/09 (${snap.price}) ainda na página`)
+    if (text.includes(`${adsOffer.credits} credits per ${adsOffer.seconds}-second ad`) || text.includes(`${adsOffer.durations}-second ad`)) fail('R2', `${id}: texto velho do anúncio clássico na coluna da Kineo`)
+    if (!text.includes(`about ${adsOffer.v2Seconds} seconds`)) fail('R2', `${id}: o anúncio de hoje (~${adsOffer.v2Seconds} s) não aparece`)
     if (id === 'arcads' && !/Not published/.test(text)) fail('R2', 'arcads: preço não publicado deixou de dizer "Not published"')
     if (id === 'arcads' && /\$\s?110/.test(text)) fail('R2', 'arcads: número de terceiros na página')
   }
@@ -213,7 +221,7 @@ async function run(rep = {}) {
         'lib/kineoFacts.ts': kineoFacts,
       },
     })(SITEMAP).default()
-    const want = [...facts.VS_NOVOS_LINKS.map((l) => l.path), '/vs/arcads-alternative']
+    const want = [...facts.VS_NOVOS_LINKS.map((l) => l.path), '/vs/arcads-alternative', ...facts.VS_NOVOS_ENRICHED_PATHS]
     for (const path of want) {
       const hits = sm.filter((x) => x.url === `${BASE}${path}`)
       if (hits.length !== 1) fail('R5', `sitemap: ${path} aparece ${hits.length}×`)
@@ -271,6 +279,10 @@ const MUTANTS = [
   ['M12 "when to pick" some da Flow', 'R1', () => sub(ANSWERS, "heading: 'When to pick Google Flow instead',", "heading: 'Why Kineo wins',")],
   ['M13 vencedor universal na FAQ do Ads', 'R6', () => sub(ADS_LIB, "alternative?`, answer: `For a different job.", "alternative?`, answer: `Yes, and the best one.")],
   ['M14 resumo com 2 linhas', 'R1', () => sub(ANSWERS, "      `Pick Flow for shot-by-shot control", "      // `Pick Flow for shot-by-shot control")],
+  ['M16 preço velho ($39) do Creatify de volta', 'R2', () => sub(ADS_LIB, "        ? `${ADS_NOVOS_FACTS[c.id as AdsNovoId].price.text} (official page, read ${VS_NOVOS_REVIEWED_ISO}); check billing terms on the official page.`", "        ? `${c.price} — as recorded in the official-source snapshot.`")],
+  ['M17 "N credits per 35-second ad" de volta', 'R2', () => sub(ADS_LIB, 'A ${offer.v2Seconds}-second ad uses ${offer.v2Levels} credits, depending on the level.`, competitor: c.accessedOn', '${offer.credits} credits per ${offer.seconds}-second ad.`, competitor: c.accessedOn')],
+  ['M18 CapCut volta para 13/10', 'R1', () => sub(SHORTS.capcut, 'reviewDate={VS_NOVOS_REVIEWED_ISO}', "reviewDate={'2026-10-13'}")],
+  ['M19 CapCut com lastmod velho no sitemap', 'R5', () => sub(SITEMAP, 'lastModified: VS_NOVOS_ENRICHED_PATHS.includes(path) ? VS_NOVOS_REVIEWED_ISO : VS_ALT_REVIEWED_ISO,', 'lastModified: VS_ALT_REVIEWED_ISO,')],
   ['M15 pessoa de IA sem rótulo no Ads', 'R2', () => sub(ADS_LIB, "Any AI presenter is optional and always labeled as AI.`", "Any AI presenter is optional.`")],
 ]
 for (const [name, rule, make] of MUTANTS) {
