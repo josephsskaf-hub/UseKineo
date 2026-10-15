@@ -1,7 +1,8 @@
 // KINEO-ADS-FIEL-LIGA-1510 — guardião do LIGA da trava do produto do Studio Ads v2 para TODOS os clientes (fundador 15/10, "liga já", depois
 // do reteste 4: rostos livres, nada boiando, lado alternado; falta pousar no tampo — KINEO-ADS-FIEL-5-1510 em andamento). Fora da TRAVA 8.2.
 // Roda com `node scripts/test-ads-fiel-liga-1510.mjs`, sem rede, sem banco, sem fornecedor: os módulos são transpilados pelo typescript do
-// repo e rodados com stubs. BASE = o pai do PRIMEIRO commit com a marca (sem commit ainda = HEAD, o diff é o da árvore).
+// repo e rodados com stubs. BASE = o pai do PRIMEIRO commit com a marca (sem commit ainda = HEAD, o diff é o da árvore). Integrado à fiel-5
+// (merge 15/10): o texto sem o liga é o da fiel-5; desfeita também a fiel-5 (semFiel5_1510), cada arquivo é EXATAMENTE a base.
 //
 // O que prova:
 //   L  o interruptor: o arquivo VIVO traz ADS_V2_PRODUCT_LOCK_MODE = 'all' (uma vez); o módulo carregado devolve 'all'; o servidor REAL
@@ -20,6 +21,7 @@ import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
 import ts from 'typescript'
 import { semFielLiga1510, comLiga1510, FIEL_LIGA_1510_ARQUIVOS, FIEL_LIGA_1510_NOVOS, FIEL_LIGA_1510_BASE, MARCA_FIEL_LIGA_1510 } from './test-support/desfaz-ads-fiel-liga-1510.mjs'
+import { semFiel5_1510 } from './test-support/desfaz-ads-fiel-5-1510.mjs' // integrado à fiel-5 (merge 15/10): o texto sem o liga ainda traz a fiel-5; desfeita ela também, é a base c56e121ee
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
@@ -138,7 +140,7 @@ await check('P1 preço por nível: adsV2Credits de cada nível × duração (3 �
 const DINHEIRO = ['lib/ads/v2Tiers.ts', 'lib/ads/v2Billing.ts', 'lib/ads/v2StartCore.ts', 'app/api/ads/v2/start/route.ts', 'lib/credits/debit.ts', 'lib/credits/refund.ts', 'lib/ads/access.ts', 'lib/ads/serverAccess.ts', F.server, F.advance, 'lib/ads/v2Png.ts', 'lib/ads/v2LockVision.ts']
 await check('P2 dinheiro, acesso e o caminho da trava intocados: v2Tiers, v2Billing, v2StartCore, /start, débito, estorno, acesso, servidor da trava, avanço, PNG e visão byte a byte iguais ao pai e fora do diff', () => {
   const nomes = diffDoConserto(['--name-only']).split('\n')
-  return DINHEIRO.every((p) => base(p) !== null && rd(p) === base(p) && !nomes.includes(p))
+  return DINHEIRO.every((p) => base(p) !== null && semFiel5_1510(p, semFielLiga1510(p, rd(p))) === base(p) && semFielLiga1510(p, rd(p)) === rd(p) && !nomes.includes(p))
 })
 await check('P3 nada da trava debita: o servidor da trava e a visão não importam crédito/débito/estorno; o avanço só confirma o débito FIXO do /start (credits_charged) e as refações da trava saem com charged:false', () => {
   const srv = rd(F.server)
@@ -155,9 +157,11 @@ await check('P4 nenhuma tela, copy ou rota muda: o diff do conserto não toca ap
 
 // ═══ V. desfaz, ida, marca, guardiões antigos ═══════════════════════════════════════════════════════════════════════════
 console.log('\nV. desfaz, ida, marca e guardiões antigos encadeados')
-await check('V1 desfeito (scripts/test-support/desfaz-ads-fiel-liga-1510.mjs), cada arquivo tocado é EXATAMENTE o pai do commit; a ida devolve o arquivo vivo; a base do desfaz é esse pai', () =>
-  FIEL_LIGA_1510_ARQUIVOS.length === 1 && FIEL_LIGA_1510_ARQUIVOS[0] === F.shotLists && FIEL_LIGA_1510_NOVOS.length === 0 && MARCA_FIEL_LIGA_1510 === MARCA &&
-  FIEL_LIGA_1510_ARQUIVOS.every((f) => semFielLiga1510(f, rd(f)) === base(f) && comLiga1510(f, base(f)) === rd(f)) && (BASE === 'HEAD' || FIEL_LIGA_1510_BASE === BASE))
+const ANTIGOS = ['scripts/test-ads-fiel-1510.mjs', 'scripts/test-ads-fiel-2-1510.mjs', 'scripts/test-ads-fiel-3-1510.mjs', 'scripts/test-ads-fiel-4-1510.mjs', 'scripts/test-ads-lista-1510.mjs', 'scripts/test-ads-refacao-ator-1410.mjs', 'scripts/test-ads-demo-universo-1410.mjs', 'scripts/test-ads-fiel-5-1510.mjs']
+await check('V1 desfeito (scripts/test-support/desfaz-ads-fiel-liga-1510.mjs) e depois a fiel-5, cada arquivo tocado (o modo + os 7 guardiões antigos) é EXATAMENTE o pai do commit; sem o liga não sobra nada dele; a ida devolve o arquivo vivo; a base do desfaz é esse pai', () =>
+  FIEL_LIGA_1510_ARQUIVOS.length === 8 && FIEL_LIGA_1510_ARQUIVOS[0] === F.shotLists && JSON.stringify(FIEL_LIGA_1510_ARQUIVOS.slice(1).sort()) === JSON.stringify(ANTIGOS.filter((f) => f !== 'scripts/test-ads-fiel-5-1510.mjs').sort()) &&
+  FIEL_LIGA_1510_NOVOS.length === 0 && MARCA_FIEL_LIGA_1510 === MARCA &&
+  FIEL_LIGA_1510_ARQUIVOS.every((f) => { const sem = semFielLiga1510(f, rd(f)); return semFiel5_1510(f, sem) === base(f) && !sem.includes(MARCA) && comLiga1510(f, sem) === rd(f) }) && (BASE === 'HEAD' || FIEL_LIGA_1510_BASE === BASE))
 await check('V2 o desfaz é estrito: o modo mexido dentro do bloco (ou o bloco repetido) = lança; a ida sem o texto de antes = lança', () => {
   const lanca = (fn) => { try { fn(); return false } catch { return true } }
   return lanca(() => semFielLiga1510(F.shotLists, SLsrc.replace("= 'all' // KINEO-ADS-FIEL-1510 ·", "= 'off' // KINEO-ADS-FIEL-1510 ·"))) &&
@@ -171,11 +175,10 @@ await check('V3 só lib/ads/v2ShotLists.ts muda no produto; todo bloco novo traz
   return JSON.stringify(arquivos) === JSON.stringify([F.shotLists]) && mais.length === 4 && mais.every((l) => l.includes(MARCA)) && mais.includes('+' + LINHA_ALL) &&
     menos.length === 1 && menos[0] === '-' + LINHA_INTERNAL
 })
-const ANTIGOS = ['scripts/test-ads-fiel-1510.mjs', 'scripts/test-ads-fiel-2-1510.mjs', 'scripts/test-ads-fiel-3-1510.mjs', 'scripts/test-ads-fiel-4-1510.mjs', 'scripts/test-ads-lista-1510.mjs', 'scripts/test-ads-refacao-ator-1410.mjs', 'scripts/test-ads-demo-universo-1410.mjs']
-await check('V4 os guardiões antigos da trava leem os arquivos SEM este liga (desfaz colado no readFileSync, byte a byte): fiel-1510, fiel-2, fiel-3, fiel-4, lista, refação do ator, demo Universo', () =>
+await check('V4 os guardiões antigos da trava leem os arquivos SEM este liga (desfaz colado no readFileSync, byte a byte): fiel-1510, fiel-2, fiel-3, fiel-4, fiel-5, lista, refação do ator, demo Universo', () =>
   ANTIGOS.every((f) => { const s = rd(f); return s.includes("import { semFielLiga1510") && s.includes("from './test-support/desfaz-ads-fiel-liga-1510.mjs'") && /semFielLiga1510\((p|rel|f), (fs\.)?readFileSync\(/.test(s) }))
-await check("V5 os guardiões antigos que cravavam 'internal' foram reancorados para exigir 'all' no arquivo vivo (fiel-1510 S1, fiel-3 V4, fiel-4 V4)", () =>
-  ['scripts/test-ads-fiel-1510.mjs', 'scripts/test-ads-fiel-3-1510.mjs', 'scripts/test-ads-fiel-4-1510.mjs'].every((f) => { const s = rd(f); return s.includes('reancorado KINEO-ADS-FIEL-LIGA-1510 — fundador ligou para todos em 15/10') && s.includes("ADS_V2_PRODUCT_LOCK_MODE === 'all'") }))
+await check("V5 os guardiões antigos que cravavam 'internal' foram reancorados para exigir 'all' no arquivo vivo (fiel-1510 S1, fiel-3 V4, fiel-4 V4, fiel-5 V4)", () =>
+  ['scripts/test-ads-fiel-1510.mjs', 'scripts/test-ads-fiel-3-1510.mjs', 'scripts/test-ads-fiel-4-1510.mjs', 'scripts/test-ads-fiel-5-1510.mjs'].every((f) => { const s = rd(f); return s.includes('reancorado KINEO-ADS-FIEL-LIGA-1510 — fundador ligou para todos em 15/10') && s.includes("ADS_V2_PRODUCT_LOCK_MODE === 'all'") }))
 
 // ═══ M. mutantes ════════════════════════════════════════════════════════════════════════════════════════════════════════
 console.log('\nM. mutantes (cada um tem de ficar VERMELHO)')

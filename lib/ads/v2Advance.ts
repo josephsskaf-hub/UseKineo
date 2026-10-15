@@ -74,6 +74,7 @@ import {
 import { persistAudioCopy, persistSceneImage, pollSceneImage, submitSceneImage } from '@/lib/ads/v2Images'
 import { ADS_V2_SAME_PERSON_LINE, adsV2AnchorDecision, variationTagOf, variationTintOf } from '@/lib/ads/v2Variations'
 import { ADS_V2_LOCK_CORNER_REASON, adsV2LockCornerStep, adsV2LockSceneOrdinal, adsV2LockSideFor, adsV2LockedScenePromptAt, adsV2ParseLockSeen, type AdsV2LockSide } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-4-1510 — o canto reservado decidido em código; a visão só confere
+import { adsV2LockBoxRound } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-5-1510 — o evento registra se a conferência devolveu caixa "redonda"
 
 /** Tentativas por plano dentro de UMA geração paga: 1ª + refação automática no principal + reserva H3. */
 export const ADS_V2_MAX_AUTO_ATTEMPTS = 3
@@ -653,7 +654,7 @@ async function finishReservedScene(admin: SupabaseClient, order: AdsV2OrderRow, 
     const check = await lockVision().then((v) => (v && typeof v.adsV2SceneCheck === 'function' ? v.adsV2SceneCheck(sceneUrl, format, side) : null)).catch(() => null) // KINEO-ADS-FIEL-4-1510
     const previous = await lockSeenOfSiblings(admin, order, row) // KINEO-ADS-FIEL-4-1510
     const out = await srv.adsV2FinishReservedScene({ userId: order.user_id, orderId: order.id, idx: row.idx, attempt: row.attempt, lock, format, sceneUrl, side, check, previous }) // KINEO-ADS-FIEL-4-1510
-    const checkInfo = { trusted: out.trust.trusted, why: out.trust.why, corner_person: check ? check.cornerPerson : null, corner_surface: check ? check.cornerSurface : null } // KINEO-ADS-FIEL-4-1510
+    const checkInfo = { trusted: out.trust.trusted, why: out.trust.why, corner_person: check ? check.cornerPerson : null, corner_surface: check ? check.cornerSurface : null, round: !!check && Array.isArray(check.faces) && check.faces.some(adsV2LockBoxRound), top_edge_raw: check && typeof check.topEdgeY === 'number' ? check.topEdgeY : null } // KINEO-ADS-FIEL-5-1510 — + check.round (caixa na grade de 0,05) e a borda do tampo crua
     if (out.busy) { // KINEO-ADS-FIEL-4-1510
       if (adsV2LockCornerStep({ busy: true, previousReason: row.reason }) === 'retry') { // KINEO-ADS-FIEL-4-1510
         if (await markShot(admin, row, ['image_submitted'], { status: 'pending', image_request_id: null, image_submit_claimed_at: null, reason: ADS_V2_LOCK_CORNER_REASON })) await shotFallbackEvent(order, row, { to: 'scene_retry', reason: ADS_V2_LOCK_CORNER_REASON, side, problem: out.problem, check: checkInfo }) // KINEO-ADS-FIEL-4-1510

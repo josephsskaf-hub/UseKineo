@@ -25,11 +25,12 @@ import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
 import ts from 'typescript'
 import { semFiel4_1510, FIEL_4_1510_ARQUIVOS, FIEL_4_1510_NOVOS, FIEL_4_1510_BASE, MARCA_FIEL_4_1510 } from './test-support/desfaz-ads-fiel-4-1510.mjs'
+import { semFiel5_1510 } from './test-support/desfaz-ads-fiel-5-1510.mjs' // reancorado KINEO-ADS-FIEL-5-1510 — o conserto mais novo do Ads (a base do produto no tampo lido) sai PRIMEIRO, em memória
 import { semFielLiga1510 } from './test-support/desfaz-ads-fiel-liga-1510.mjs' // reancorado KINEO-ADS-FIEL-LIGA-1510 — fundador ligou para todos em 15/10; o liga (o mais novo da trava) sai PRIMEIRO, colado no readFileSync, em memória
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-FIEL-4-1510'
-const rd = (p) => semFielLiga1510(p, readFileSync(join(ROOT, p), 'utf8')) // reancorado KINEO-ADS-FIEL-LIGA-1510 — fundador ligou para todos em 15/10: este guardião lê o texto SEM o liga (semFielLiga1510 já devolve LF)
+const rd = (p) => semFiel5_1510(p, semFielLiga1510(p, readFileSync(join(ROOT, p), 'utf8'))) // reancorado KINEO-ADS-FIEL-5-1510 — esta prova roda a trava da Fiel 4 (base fixa); a base no tampo sai antes, byte a byte (semFiel5_1510 já devolve LF) · reancorado KINEO-ADS-FIEL-LIGA-1510 — o liga (o mais novo) sai PRIMEIRO, colado no readFileSync
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 let BASE = 'HEAD'
 let ULTIMO = null
@@ -561,14 +562,14 @@ await check('V3 dinheiro e acesso intocados: v2Billing, v2Tiers, v2StartCore, /s
 })
 await check('V4 a trava (reancorado KINEO-ADS-FIEL-LIGA-1510 — fundador ligou para todos em 15/10): o arquivo VIVO traz o modo "all" uma vez e o módulo vivo devolve "all"; desfeito o liga, este conserto lê exatamente o "internal" de antes', () => {
   const cru = readFileSync(join(ROOT, F.shotLists), 'utf8').replace(/\r\n/g, '\n')
-  const SLvivo = pure({ [F.shotLists]: cru })(F.shotLists)
+  const SLvivo = pure({ [F.shotLists]: semFiel5_1510(F.shotLists, cru) })(F.shotLists)
   return SLvivo.ADS_V2_PRODUCT_LOCK_MODE === 'all' && cru.split("export const ADS_V2_PRODUCT_LOCK_MODE: 'off' | 'internal' | 'all' = 'all' // KINEO-ADS-FIEL-1510 · KINEO-ADS-FIEL-LIGA-1510").length === 2 &&
     SL.ADS_V2_PRODUCT_LOCK_MODE === 'internal' && rd(F.shotLists).includes("export const ADS_V2_PRODUCT_LOCK_MODE: 'off' | 'internal' | 'all' = 'internal' // KINEO-ADS-FIEL-1510")
 })
 await check('V5 nenhuma string crua de modelo da OpenAI nas linhas novas (o registro central manda)', () => !/^\+.*['"`](gpt-|o[0-9]-|tts-1|whisper-)/m.test(diffDoConserto(['-U0', '--no-color'], ['lib', 'app'])))
 await check('V6 os guardiões antigos da trava leem os arquivos SEM este conserto (desfaz encadeado, byte a byte): fiel-1510, fiel-2, fiel-3, lista, refação do ator, demo Universo', () =>
   ['scripts/test-ads-fiel-1510.mjs', 'scripts/test-ads-fiel-2-1510.mjs', 'scripts/test-ads-fiel-3-1510.mjs', 'scripts/test-ads-lista-1510.mjs', 'scripts/test-ads-refacao-ator-1410.mjs', 'scripts/test-ads-demo-universo-1410.mjs']
-    .every((f) => { const s = rd(f); return s.includes("import { semFiel4_1510 } from './test-support/desfaz-ads-fiel-4-1510.mjs'") && /semFiel4_1510\((p|rel), semFielLiga1510\(\1, (fs\.)?readFileSync\(/.test(s) })) // reancorado KINEO-ADS-FIEL-LIGA-1510 — fundador ligou para todos em 15/10: o liga sai antes, colado no readFileSync
+    .every((f) => { const s = rd(f); return s.includes("import { semFiel4_1510 } from './test-support/desfaz-ads-fiel-4-1510.mjs'") && /semFiel4_1510\((p|rel), (fs\.)?readFileSync\(/.test(s) }))
 await check('V7 o plano do reteste existe: só o T1 (41 cr, ~US$ 2,40), dry-run antes, sem virar para "all"', () => {
   const p = 'docs/PLANO-VALIDACAO-ADS-FIEL-4-1510.md'
   if (!existsSync(join(ROOT, p))) return false
