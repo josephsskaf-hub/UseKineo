@@ -38,6 +38,8 @@ function load(src, dir = 'lib/growth') {
   const js = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText
   const mod = { exports: {} }
   const req = (p) => {
+    // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: clipPricing passou a ler o piso de @/lib/checkoutPricing.
+    if (p.startsWith('@/')) { const rel = p.slice(2) + '.ts'; return load(read(rel), path.posix.dirname(rel)) }
     if (!p.startsWith('./')) throw new Error('import inesperado: ' + p)
     const rel = path.posix.join(dir, p.slice(2) + '.ts')
     return load(read(rel), path.posix.dirname(rel))

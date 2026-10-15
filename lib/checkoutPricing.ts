@@ -409,9 +409,10 @@ export function hasIntroOffer(
 //                          é grátis — não há fornecedor de vídeo) → $0.066/cr
 //   Seedance 720p  20 cr ≈ $1.61/render                            → $0.081/cr
 //   MiniMax H3     45 cr ≈ $5.20/render                            → $0.116/cr  ← PIOR
-//   Kling 2.5      60 cr ≈ $8.40/render (KINEO-KLING25-60CR-2026-09-29) → $0.140/cr  ← ⚠ NOVO PIOR?
+//   Kling 2.5      75 cr ≈ $8.40/render (KINEO-PRECOS-CLIPES-KLING25-1610) → $0.112/cr
 //                  (era 50 cr ≈ $5.50 → $0.110/cr; desde o mutirão 27-28/09 o
-//                  filme de 60 s são ~18 planos de 5 s + 18 stills FLUX)
+//                  filme de 60 s são ~18 planos de 5 s + 18 stills FLUX; a 60 cr,
+//                  de 29/09 a 15/10, dava $0.140/cr — o pior da casa)
 //   Veo 3.1        90 cr ≈ $9.50/render                            → $0.106/cr
 //   Avatar        110 cr ≈ $9.00/render                            → $0.082/cr
 //   Kling 3       150 cr ≈ $11.85/render                           → $0.079/cr
@@ -425,12 +426,35 @@ export function hasIntroOffer(
 // Worst-case COGS de um grant de N créditos: N × pior-$/crédito, com o resto
 // em Fast (o motor mais barato por crédito).
 // ⚠ KINEO-KLING25-60CR-2026-09-29 — o Kling 2.5 a 60cr com ≈ US$ 8,40/filme
-// dá $0.140/cr, ACIMA deste piso (H3, $0.116). A constante NÃO foi mexida
-// nesta entrega de propósito: subir o piso é decisão de preço de PLANO
-// (recalcula a margem de pior caso de Starter/Creator/Studio/packs), não a
-// decisão de motor que o fundador tomou. Quem for reprecificar os planos
-// parte daqui: WORST_ENGINE_CREDITS 45 → 60 e piso 0.116 → 0.140.
+// dava $0.140/cr, ACIMA deste piso (H3, $0.116) — a constante ficou velha de
+// 29/09 a 15/10 (docs/CONTA-STUDIO-E-MARGEM-CLIPES-2026-10-16.md, Parte A).
+// ═══ KINEO-PRECOS-CLIPES-KLING25-1610 — RECONFERIDA COM O KLING 2.5 A 75 cr ═══
+// [TRAVA 8.2 — vai do fundador 15/10 "Sim para as 3"] O filme do Kling 2.5 subiu
+// de 60 para 75 créditos: 8,40 ÷ 75 = $0.112/cr. O pior US$/crédito entre os
+// filmes volta a ser o MiniMax H3 ($5.20 ÷ 45 = $0.1156 → 0.116, arredondado
+// para CIMA), então 0.116 e WORST_ENGINE_CREDITS = 45 voltam a ser verdade.
+// Subir para 0.140 agora seria inventar um custo que deixou de existir (e o
+// invariante (3) acusaria o Creator a $19,90 sem motivo). Para a constante
+// não envelhecer calada de novo, WORST_CASE_FILM_COSTS (abaixo) lista o custo
+// de fornecedor de um filme de 60 s de cada motor, e o guardião
+// scripts/test-precos-clipes-kling25-1610.mjs fica VERMELHO se algum
+// custo ÷ creditCostFor(motor) passar desta constante. (Sem conta no topo do
+// módulo: dezenas de guardiões carregam este arquivo com engineCost stubado.)
 export const WORST_CASE_USD_PER_CREDIT = 0.116
+/** KINEO-PRECOS-CLIPES-KLING25-1610 — custo de fornecedor (US$) de um filme de 60 s, por motor (a quality de
+ *  lib/credits/engineCost.ts). Números documentados na casa; quando há dois, vale o MAIOR. Só dado: quem confere é o
+ *  guardião (custo ÷ creditCostFor ≤ WORST_CASE_USD_PER_CREDIT, e o pior é o motor de WORST_ENGINE_CREDITS). */
+export const WORST_CASE_FILM_COSTS: Readonly<Record<string, number>> = {
+  cinematic_ai: 3.3, // Seedance 1.5 — fatura de agosto (engineCost KINEO-V6.1)
+  cinematic_h3: 5.2, // MiniMax H3 — este arquivo ($5.20; engineCost diz $3.90 — vale o maior)
+  cinematic_h3max: 5.2, // MiniMax H3 Max — engineCost KINEO-H3MAX-2026-10-13
+  cinematic_kling: 8.4, // Kling 2.5 — engineCost KINEO-KLING25-60CR-2026-09-29
+  cinematic_veo: 9.75, // Veo 3.1 — engineCost KINEO-V6.1
+  avatar: 9.6, // Avatar — engineCost KINEO-AVATAR-220 (VEED ~$9.60)
+  cinematic_hollywood: 11.85, // Kling 3 — este arquivo
+  cinematic_omni: 8.5, // Omni Flash — engineCost KINEO-OMNI
+  cinematic_s25: 13.7, // Seedance 2.5 — engineCost KINEO-S25-ESPERTA
+}
 export const FAST_USD_PER_CREDIT = 0.066
 
 /** Worst-case provider cost (USD) a user can extract from a grant of N credits.
@@ -438,7 +462,7 @@ export const FAST_USD_PER_CREDIT = 0.066
  *  o Seedance (20cr). A conta gasta o máximo possível no pior motor e joga o
  *  resto no Fast, que é o mais barato por crédito. */
 export function worstCaseCogsUsd(credits: number): number {
-  const WORST_ENGINE_CREDITS = 45 // MiniMax H3
+  const WORST_ENGINE_CREDITS = 45 // MiniMax H3 (reconferido KINEO-PRECOS-CLIPES-KLING25-1610: o Kling 2.5 a 75 cr fica abaixo)
   const worstRenders = Math.floor(credits / WORST_ENGINE_CREDITS)
   const leftover = credits % WORST_ENGINE_CREDITS
   return worstRenders * WORST_ENGINE_CREDITS * WORST_CASE_USD_PER_CREDIT + leftover * FAST_USD_PER_CREDIT

@@ -12,7 +12,9 @@
 //   mercado  = o MENOR US$/s entre os concorrentes que vendem o MESMO modelo na MESMA resolução, em planos da
 //              "mesma prateleira" (mensalidade ≤ a do nosso Studio — ver MARKET_SHELF abaixo)
 //   alvo     = floor( 90% × mercado × segundos ÷ US$/crédito do CREATOR )      ← o cliente compara no plano do meio
-//   piso     = ceil( custo fal ÷ ( US$/crédito do STUDIO × (1 − 40%) ) )       ← margem medida no crédito MAIS BARATO
+//   piso     = ceil( custo fal ÷ ( US$/crédito do PISO × (1 − 40%) ) )         ← margem medida no crédito de quem compra
+//              (KINEO-PRECOS-CLIPES-KLING25-1610: PISO = clipPricing CLIP_FLOOR_USD_PER_CREDIT = checkoutPricing
+//              CHEAPEST_PLAN_USD_PER_CREDIT, o menor US$/crédito mensal — hoje o Creator, US$ 19,90 / 150; antes, o Studio)
 //   preço    = alvo, se alvo ≥ piso; senão piso com o rótulo "IMPOSSÍVEL A −10%" (não acompanhamos o prejuízo)
 //   + o mínimo da casa (CLIP_MIN_CREDITS = 5, o preço do Modo Clipe do Studio): se ele subir o preço acima do alvo, o
 //     rótulo diz "PISO DA CASA" — o −10% não vale ali, e isso fica escrito na tela de decisão do fundador.
@@ -21,9 +23,11 @@
 // POR QUE floor NO ALVO E ceil NO PISO: o alvo é uma promessa ("abaixo do concorrente") — arredondar para cima quebraria a
 // promessa por meio crédito; o piso é uma trava de margem — arredondar para baixo deixaria a casa abaixo dos 40%.
 //
-// POR QUE O CREATOR NO ALVO E O STUDIO NO PISO: o Creator (US$ 29,90 / 150 cr) é o plano que a página de preços destaca e
-// o "≈ US$" da tabela pública sai dele; o Studio (US$ 54,90 / 300 cr) é o crédito mais barato que a casa vende — se a
-// margem de 40% fecha nele, fecha em todo plano e na barra (mesma escolha de clipPricing.ts, documentada lá).
+// POR QUE O CREATOR NO ALVO: o Creator (US$ 29,90 / 150 cr, congelado em clipPricing CREATOR_PLAN_USD_CENTS) é o plano que a
+// página de preços destaca e o "≈ US$" da tabela pública sai dele. O PISO (KINEO-PRECOS-CLIPES-KLING25-1610, fundador 15/10)
+// deixou de ser o Studio (US$ 54,90 / 300 cr = US$ 0,183 — NÃO é mais o crédito mais barato desde 08/10) e passou a ser o
+// menor US$/crédito MENSAL lido de lib/checkoutPricing.ts (hoje o Creator a US$ 19,90, US$ 0,1327), onde estão os pagantes.
+// O Creator ANUAL (US$ 0,0928/cr) fica fora do piso de propósito (0 anuais em 60 dias; docs/CONTA-STUDIO-E-MARGEM-CLIPES-2026-10-16.md).
 //
 // CUSTO DA FAL: a régua usa o MAIOR entre o número da casa (clipPricing CLIP_COSTS, 29/09) e o conferido em 05/10
 // (ENGINE_FAL_CHECK abaixo). Divergência conhecida: Seedance 2.5 a 480p — a fal publica "≈ US$ 0,2205/s" (token, aprox.),
@@ -46,7 +50,8 @@ export const MARKET_CHECKED_ON = '2026-10-05'
 export const MARKET_CHECKED_ON_S25 = '2026-10-06'
 /** "~10% abaixo do concorrente" (fundador, 04/10). */
 export const MARKET_DISCOUNT = 0.1
-/** Margem mínima sobre o custo da fal no crédito do Studio (fundador, 04/10: "nunca no prejuízo"; o piso pedido é 40%). */
+/** Margem mínima sobre o custo da fal no crédito da base do piso (fundador, 04/10: "nunca no prejuízo"; o piso pedido é 40%;
+ *  desde KINEO-PRECOS-CLIPES-KLING25-1610 medida no crédito do Creator mensal, não mais no do Studio). */
 export const MARKET_MARGIN_FLOOR = 0.4
 export const MARKET_IMPOSSIBLE_LABEL = 'IMPOSSÍVEL A −10%'
 export const MARKET_HOUSE_MIN_LABEL = 'PISO DA CASA'
@@ -281,7 +286,8 @@ export type MarketDecisionStatus = 'abaixo_do_mercado' | 'impossivel' | 'piso_da
 export interface MarketPricingContext {
   /** Custo fal por segundo que a casa usa hoje (clipPricing CLIP_COSTS). A régua usa o maior entre ele e o conferido. */
   houseFalUsdPerSecond: number
-  /** US$/crédito do Studio (o crédito mais barato da casa) — base do piso de margem. */
+  /** US$/crédito da base do piso de margem — KINEO-PRECOS-CLIPES-KLING25-1610: o menor US$/crédito mensal (clipPricing
+   *  CLIP_FLOOR_USD_PER_CREDIT, hoje o Creator a US$ 0,1327); era o do Studio. */
   floorUsdPerCredit: number
   /** US$/crédito do Creator — base da comparação com o mercado. */
   refUsdPerCredit: number

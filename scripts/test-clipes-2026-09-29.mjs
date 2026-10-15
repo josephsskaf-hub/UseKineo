@@ -26,6 +26,7 @@ function loadTs(p) {
   cache.set(p, mod)
   const req = (name) => {
     if (name.startsWith('./')) return loadTs(posix.join(posix.dirname(p), name.slice(2) + '.ts'))
+    if (name.startsWith('@/')) return loadTs(name.slice(2) + '.ts') // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: clipPricing passou a ler o piso de @/lib/checkoutPricing
     throw new Error(`${p}: import inesperado ${name} (módulo precisa ser puro)`)
   }
   new Function('require', 'module', 'exports', out)(req, mod, mod.exports)

@@ -119,7 +119,18 @@ export function creditCostFor(quality: Quality, isPaidUser = false): number {
       // a 60cr volta a um patamar são. A régua por duração é derivada daqui
       // (creditCostForDuration): 35 s = ceil(60×35/60) = 35cr (era 30),
       // 90 s = 90cr (era 75). KLING_CREDIT_COST na rota LÊ esta função.
-      return 60
+      // [TRAVA 8.2 — vai do fundador 15/10 "Sim para as 3"] KINEO-PRECOS-CLIPES-KLING25-1610 — 60 → 75. A 60 cr o
+      // filme de US$ 8,40 rendia 60 × US$ 0,1327 (crédito do Creator mensal, o plano que de fato compra) = US$ 7,96:
+      // prejuízo, e era o pior US$/crédito da casa (US$ 0,140). Zero a zero no pior caso ≈ 71 cr; 75 dá folga
+      // (US$ 0,112/cr, abaixo do MiniMax H3 que volta a ser o pior em lib/checkoutPricing.ts). Régua por duração:
+      // 15 s = 19 · 35 s = 44 · 60 s = 75 · 90 s = 113. Quem já tem render em andamento é liquidado pelo custo
+      // gravado no nascimento (intent.cost / claim), e o estorno devolve o valor DEBITADO, não esta tabela.
+      // ⚠ A frase acima ("KLING_CREDIT_COST na rota LÊ esta função") não é verdade: na rota cinematográfica
+      // KLING_CREDIT_COST segue o literal 50, MORTO (`void baseCost` + uma linha de log). A cobrança sai de
+      // creditCostForDuration(costQuality, …), que lê daqui. O literal ficou de propósito: uma dúzia de guardiões
+      // confere a rota byte a byte contra a base; trocar a linha é limpeza separada.
+      // Doc: docs/CONTA-STUDIO-E-MARGEM-CLIPES-2026-10-16.md. Guardião: scripts/test-precos-clipes-kling25-1610.mjs.
+      return 75
     case 'cinematic_h3':
       // KINEO-H3-2026-08-19 — MiniMax H3 a 768p custa $0.06/s na fal: um filme
       // de 65s (o formato da casa, 60s+ por causa do TikTok Rewards) sai por

@@ -124,7 +124,9 @@ console.log('3. acompanha as fontes')
 const s35 = problems({ 'lib/credits/engineCost.ts': read('lib/credits/engineCost.ts').replace(/(case 'cinematic_ai':[\s\S]*?)return 25\n/, '$1return 35\n') })
 ok(s35.p.length === 0 && row(s35.m.films, 'seedance').cells[2].credits === 35 && row(s35.m.films, 'seedance').cells[0].credits === 9, 'Seedance a 35 cr/60 s (branch do CEO): a tabela segue sozinha (60 s = 35, 15 s = 9)')
 const mkt = problems()
-ok(mkt.p.length === 0 && row(mkt.m.clips, 'hollywood').cells[0].credits === 6 && row(real.m.clips, 'hollywood').cells[0].credits === 8, 'régua de mercado ligada: o clipe Kling 3 de 5 s vai de 8 para 6 cr na tabela sem tocar nela')
+// reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: com o piso de 40% no Creator mensal, a régua ligada dá 8 cr
+// ao Kling 3 de 5 s (era 6 com o piso no Studio) — igual à regra de 29/09 desligada. A tabela segue a fonte sem tocar nela.
+ok(mkt.p.length === 0 && row(mkt.m.clips, 'hollywood').cells[0].credits === 8 && row(real.m.clips, 'hollywood').cells[0].credits === 8 && row(mkt.m.clips, 'veo').cells[0].credits === 8, 'régua de mercado ligada: o clipe Kling 3 de 5 s e o Veo de 6 s saem a 8 cr na tabela sem tocar nela')
 
 console.log('4. marcação')
 ok(real.html.includes('data-kineo="two-products-pricing"') && real.html.includes('Clips — per second') && real.html.includes('Narrated films — per film'), 'render offline das duas seções')

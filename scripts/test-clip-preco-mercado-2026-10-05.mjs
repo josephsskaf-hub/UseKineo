@@ -29,6 +29,7 @@ function loadSet(over = {}) {
     cache.set(rel, mod)
     const req = (p) => {
       if (p.startsWith('./') || p.startsWith('../')) return load(path.posix.normalize(path.posix.join(path.posix.dirname(rel), p)) + '.ts')
+      if (p.startsWith('@/')) return load(p.slice(2) + '.ts') // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: clipPricing passou a ler o piso de @/lib/checkoutPricing
       throw new Error(`${rel}: import inesperado ${p} (módulo precisa ser puro)`)
     }
     new Function('module', 'exports', 'require', js)(mod, mod.exports, req)
@@ -60,14 +61,19 @@ const TODAY = {
   s25: { 5: 12, 7: 16, 10: 23, 15: 35 },
 }
 // A PROPOSTA (interruptor ligado) — vai para o fundador como decisão.
+// reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10 ("Sim para as 3"): o piso de 40% passou a ser
+// medido no crédito do Creator MENSAL (clipPricing CLIP_FLOOR_USD_PER_CREDIT = checkoutPricing CHEAPEST_PLAN_USD_PER_CREDIT,
+// US$ 0,1327), não mais no do Studio (US$ 0,183). Era: kling 10 s 7 · hollywood 6/8/11/16 · veo 6/8 · h3 5/5/7/10
+// (piso_da_casa ×2, abaixo_do_mercado ×2) · s25 11/15/21/31. O H3 deixa de ficar "abaixo do mercado": com 40% no crédito de
+// quem compra, 90% do Runway Pro fica abaixo do piso.
 const PROPOSED = {
   seedance: { 5: [5, 'sem_concorrente'], 7: [5, 'sem_concorrente'], 10: [5, 'sem_concorrente'], 12: [5, 'sem_concorrente'] },
-  kling: { 5: [5, 'impossivel'], 10: [7, 'impossivel'] },
-  hollywood: { 5: [6, 'impossivel'], 7: [8, 'impossivel'], 10: [11, 'impossivel'], 15: [16, 'impossivel'] },
-  veo: { 6: [6, 'impossivel'], 8: [8, 'impossivel'] },
-  h3: { 5: [5, 'piso_da_casa'], 7: [5, 'piso_da_casa'], 10: [7, 'abaixo_do_mercado'], 15: [10, 'abaixo_do_mercado'] },
+  kling: { 5: [5, 'impossivel'], 10: [9, 'impossivel'] },
+  hollywood: { 5: [8, 'impossivel'], 7: [10, 'impossivel'], 10: [15, 'impossivel'], 15: [22, 'impossivel'] },
+  veo: { 6: [8, 'impossivel'], 8: [11, 'impossivel'] },
+  h3: { 5: [5, 'impossivel'], 7: [6, 'impossivel'], 10: [8, 'impossivel'], 15: [12, 'impossivel'] },
   omni: { 5: [12, 'sem_concorrente'], 7: [17, 'sem_concorrente'], 10: [23, 'sem_concorrente'] },
-  s25: { 5: [11, 'impossivel'], 7: [15, 'impossivel'], 10: [21, 'impossivel'], 15: [31, 'impossivel'] },
+  s25: { 5: [14, 'impossivel'], 7: [20, 'impossivel'], 10: [28, 'impossivel'], 15: [42, 'impossivel'] },
 }
 // REANCORADO 06/10 (KINEO-S25-CLIPES-2026-10-06): a 480p, o mais barato OFICIAL do 2.5 passou a ser a Higgsfield Plus
 // (post oficial de 19/09: "10 seconds, 480p | 30 credits", 3 cr/s no plano de US$ 49 / 1.000 cr = US$ 0,147/s), não mais a
@@ -89,9 +95,10 @@ function marketProblems({ price, mk, cat }) {
         const [want, status] = PROPOSED[engine][seconds] ?? []
         if (got !== d.credits) p.push(`${engine} ${seconds}s: clipCreditCost ligado não lê a régua`)
         if (got !== want || d.status !== status) p.push(`${engine} ${seconds}s: ${got} cr/${d.status} ≠ proposta ${want}/${status}`)
-        const studioRevenue = got * price.STUDIO_USD_PER_CREDIT
-        const margin = 1 - d.falUsd / studioRevenue
-        if (d.status !== 'sem_concorrente' && margin < mk.MARKET_MARGIN_FLOOR - E) p.push(`${engine} ${seconds}s: margem ${(margin * 100).toFixed(1)}% < 40% no Studio`)
+        // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: 40% medidos no crédito do piso (Creator mensal).
+        const floorRevenue = got * price.CLIP_FLOOR_USD_PER_CREDIT
+        const margin = 1 - d.falUsd / floorRevenue
+        if (d.status !== 'sem_concorrente' && margin < mk.MARKET_MARGIN_FLOOR - E) p.push(`${engine} ${seconds}s: margem ${(margin * 100).toFixed(1)}% < 40% no Creator mensal`)
         if (d.falUsd + E < price.clipFalUsd(engine, seconds)) p.push(`${engine} ${seconds}s: custo fal da régua abaixo do da casa`)
         if (d.status === 'abaixo_do_mercado' && got * price.CREATOR_USD_PER_CREDIT > (1 - mk.MARKET_DISCOUNT) * d.marketUsdPerSecond * seconds + E) p.push(`${engine} ${seconds}s: "−10%" acima de 90% do mercado`)
         if (d.status === 'impossivel') {
@@ -99,13 +106,27 @@ function marketProblems({ price, mk, cat }) {
           const floorUsd = d.floorCredits * price.CREATOR_USD_PER_CREDIT
           if (!(d.targetUsd < floorUsd)) p.push(`${engine} ${seconds}s: marcado impossível com 90% do mercado acima do piso`)
           if (got !== Math.max(d.floorCredits, price.CLIP_MIN_CREDITS)) p.push(`${engine} ${seconds}s: impossível não cobra o MENOR preço com 40%`)
-          if (d.floorCredits > 1 && 1 - d.falUsd / ((d.floorCredits - 1) * price.STUDIO_USD_PER_CREDIT) >= mk.MARKET_MARGIN_FLOOR - E) p.push(`${engine} ${seconds}s: piso não é o menor com 40%`)
+          if (d.floorCredits > 1 && 1 - d.falUsd / ((d.floorCredits - 1) * price.CLIP_FLOOR_USD_PER_CREDIT) >= mk.MARKET_MARGIN_FLOOR - E) p.push(`${engine} ${seconds}s: piso não é o menor com 40%`)
         }
         if (d.status === 'piso_da_casa' && got !== price.CLIP_MIN_CREDITS) p.push(`${engine} ${seconds}s: piso da casa ≠ CLIP_MIN_CREDITS`)
+        // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: com o piso no Creator mensal nenhum motor real
+        // cai mais em "abaixo do mercado"; o alvo (−10% no crédito do Creator de referência) segue conferido conta a conta.
+        if (d.cheapest && d.marketCredits !== Math.floor(Math.round((d.targetUsd / price.CREATOR_USD_PER_CREDIT) * 1e6) / 1e6)) p.push(`${engine} ${seconds}s: alvo não sai do crédito do Creator de referência`)
+        if (d.cheapest && Math.abs(d.targetUsd - (1 - mk.MARKET_DISCOUNT) * d.marketUsdPerSecond * seconds) > 1e-6) p.push(`${engine} ${seconds}s: alvo ≠ 90% do mercado`)
         if (d.status === 'sem_concorrente' && got !== price.clipCreditCostRegra2909(engine, seconds, withImage)) p.push(`${engine} ${seconds}s: sem concorrente fugiu da regra de 29/09`)
       }
     }
   }
+  // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: os ramos "−10%" e "PISO DA CASA" não aparecem mais
+  // nos motores reais (o piso subiu); a MECÂNICA da régua segue provada com o piso antigo do Studio como fixture (o H3 de
+  // 05/10: 5 s = piso da casa 5, 15 s = −10% do Runway Pro, 10 cr).
+  const fixture = (seconds) => mk.decideMarketClipPrice('h3', seconds, {
+    houseFalUsdPerSecond: price.CLIP_COSTS.h3.usdPerSecond, floorUsdPerCredit: price.STUDIO_USD_PER_CREDIT, refUsdPerCredit: price.CREATOR_USD_PER_CREDIT,
+    shelfMaxUsdCents: price.STUDIO_PLAN_USD_CENTS, minCredits: price.CLIP_MIN_CREDITS, fallbackCredits: 0,
+  })
+  const f5 = fixture(5), f15 = fixture(15)
+  if (f5.status !== 'piso_da_casa' || f5.credits !== 5) p.push(`fixture H3 5 s (piso do Studio): ${f5.credits}/${f5.status} ≠ 5/piso_da_casa`)
+  if (f15.status !== 'abaixo_do_mercado' || f15.credits !== 10 || !/Runway Pro/.test(f15.label)) p.push(`fixture H3 15 s (piso do Studio): ${f15.credits}/${f15.status} ≠ 10/abaixo_do_mercado`)
   return p
 }
 
@@ -143,7 +164,10 @@ ok(OFF.price.CREATOR_PLAN_USD_CENTS === 2990
 const tierCredits = checkout.slice(checkout.indexOf('export const TIER_CREDITS'))
 ok(Number(/^\s*basic:\s*(\d+),?\s*$/m.exec(tierCredits.slice(0, tierCredits.indexOf('\n}')))[1]) === OFF.price.CREATOR_PLAN_CREDITS, 'créditos do Creator = TIER_CREDITS.basic')
 ok(Math.abs(OFF.price.CREATOR_USD_PER_CREDIT - OFF.price.CREATOR_PLAN_USD_CENTS / 100 / OFF.price.CREATOR_PLAN_CREDITS) < 1e-12, 'US$/crédito do Creator é derivado, não digitado')
-ok(OFF.price.STUDIO_USD_PER_CREDIT < OFF.price.CREATOR_USD_PER_CREDIT, 'Studio é o crédito mais barato (piso) e o Creator o de referência (alvo)')
+// reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: o Studio deixou de ser o crédito mais barato
+// (08/10); o piso é LIDO de checkoutPricing (Creator mensal) e o Creator congelado em 2990 segue de referência (alvo).
+ok(Math.abs(OFF.price.CLIP_FLOOR_USD_PER_CREDIT - Number(/basic:\s*\{\s*usd:\s*(\d+)\s*\}/.exec(tierPrices)[1]) / 100 / OFF.price.CREATOR_PLAN_CREDITS) < 1e-12
+  && OFF.price.CLIP_FLOOR_USD_PER_CREDIT < OFF.price.STUDIO_USD_PER_CREDIT, 'piso = crédito do Creator mensal (TIER_PRICES.basic / TIER_CREDITS.basic, lido), abaixo do Studio; o Creator de 2990 é a referência do alvo')
 
 // ─── 3. A régua, executada com o interruptor ligado ──────────────────────────
 console.log('3. régua ligada')
@@ -153,7 +177,9 @@ ok(probs.length === 0, 'régua ligada: −10% onde dá, 40% de margem sempre, IM
 const k3 = MARKET.price.clipMarketDecision('hollywood', 5)
 ok(k3.label === 'IMPOSSÍVEL A −10%' && k3.marketUsdPerSecond < 0.112, `Kling 3: mercado a US$ ${k3.marketUsdPerSecond.toFixed(4)}/s, abaixo da fal (0,112) → IMPOSSÍVEL A −10%`)
 const h3 = MARKET.price.clipMarketDecision('h3', 10)
-ok(h3.status === 'abaixo_do_mercado' && /Runway Pro/.test(h3.label), 'MiniMax H3 10 s: abaixo do Runway Pro')
+// reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: com 40% no Creator mensal, 90% do Runway Pro fica
+// abaixo do piso → IMPOSSÍVEL A −10% (era "abaixo do Runway Pro" com o piso no Studio).
+ok(h3.status === 'impossivel' && h3.cheapest && h3.cheapest.id === 'runway-h3-pro', 'MiniMax H3 10 s: comparado ao Runway Pro, IMPOSSÍVEL A −10% com 40% no Creator mensal')
 ok(MARKET.price.clipCreditCost('omni', 5) === OFF.price.clipCreditCost('omni', 5) && MARKET.price.clipCreditCost('seedance', 10) === OFF.price.clipCreditCost('seedance', 10), 'motor sem concorrente (Omni, Seedance 1.5) mantém a regra de 29/09')
 const allPlans = MARKET.mk.cheapestMarketQuote('hollywood', Infinity)
 ok(allPlans && allPlans.id === 'kling-k3-ultra', 'sem a prateleira, o Kling 3 mais barato seria o Kling Ultra (US$ 160/mês) — a prateleira é decisão documentada')
@@ -206,7 +232,8 @@ const MUTANTS = [
   ['sem piso de margem', mutate('lib/clips/clipPriceVsMarket.ts', 'export const MARKET_MARGIN_FLOOR = 0.4', 'export const MARKET_MARGIN_FLOOR = 0')],
   ['alvo arredondado para cima', mutate('lib/clips/clipPriceVsMarket.ts', 'const marketCredits = Math.floor(', 'const marketCredits = Math.ceil(')],
   ['alvo no crédito do Studio', mutate('lib/clips/clipPricing.ts', 'refUsdPerCredit: CREATOR_USD_PER_CREDIT', 'refUsdPerCredit: STUDIO_USD_PER_CREDIT')],
-  ['piso no crédito do Creator', mutate('lib/clips/clipPricing.ts', 'floorUsdPerCredit: STUDIO_USD_PER_CREDIT', 'floorUsdPerCredit: CREATOR_USD_PER_CREDIT')],
+  // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: o mutante agora devolve o piso ao Studio.
+  ['piso volta ao crédito do Studio', mutate('lib/clips/clipPricing.ts', 'floorUsdPerCredit: CLIP_FLOOR_USD_PER_CREDIT,', 'floorUsdPerCredit: STUDIO_USD_PER_CREDIT,')],
   ['sem prateleira (Ultra de US$ 160 entra)', mutate('lib/clips/clipPricing.ts', 'shelfMaxUsdCents: STUDIO_PLAN_USD_CENTS', 'shelfMaxUsdCents: Infinity')],
   ['ignora o custo fal conferido (S25 0,2205)', mutate('lib/clips/clipPriceVsMarket.ts', 'Math.max(ctx.houseFalUsdPerSecond, ENGINE_MARKET[engine].falUsdPerSecond)', 'ctx.houseFalUsdPerSecond')],
   ['acompanha o concorrente no prejuízo', mutate('lib/clips/clipPriceVsMarket.ts', "credits: Math.max(floorCredits, ctx.minCredits), status: 'impossivel'", "credits: Math.max(marketCredits, ctx.minCredits), status: 'impossivel'")],
@@ -234,7 +261,8 @@ console.log('6. preço decidido do 2.5')
   for (const set of [REAL, REAL_OFF]) for (const s of set.cat.offeredSecondsFor('s25')) for (const img of [false, true]) {
     if (set.price.clipCreditCost('s25', s, img) !== table?.[s]) decidedOk = false
   }
-  ok(decidedOk && table[5] === 8 && table[10] === 16, 'clipe do 2.5 = CLIP_S25_CREDITS com a régua ligada e desligada (5 s = 8, 10 s = 16: decisão do fundador 06/10)')
+  // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: 8/11/16/24 → 14/20/28/42.
+  ok(decidedOk && table[5] === 14 && table[10] === 28, 'clipe do 2.5 = CLIP_S25_CREDITS com a régua ligada e desligada (5 s = 14, 10 s = 28: decisão do fundador 15/10)')
   let othersOk = true
   for (const engine of REAL.cat.CLIP_ENGINE_ORDER) {
     if (engine === 's25') continue

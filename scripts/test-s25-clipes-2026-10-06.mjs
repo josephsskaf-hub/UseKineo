@@ -8,7 +8,7 @@
 //      quem não paga recebe o card trancado com o caminho dos planos; *_trial de cortesia, trial de $1, plano ilegível e
 //      visitante NÃO pagam;
 //   3. motor pausado (lib/engineLaunch.ts) vence o interruptor: nem card;
-//   4. preço = a constante única CLIP_S25_CREDITS (5 s = 8, 10 s = 16 — decisão do fundador; 7/15 s pela mesma conta), que
+//   4. preço = a constante única CLIP_S25_CREDITS (14/20/28/42 desde KINEO-PRECOS-CLIPES-KLING25-1610; era 8/11/16/24), que
 //      cobre toda duração oferecida; sem ela, a régua de mercado; nenhum outro motor muda;
 //   5. não pagante recusado ANTES de qualquer consulta, moderação ou débito (402 engine_paid);
 //   6. selo do motor certo: rótulo "Seedance 2.5", endpoint = o do filme (lib/hollywood/router.ts), 480p sem áudio;
@@ -47,7 +47,9 @@ const SUPA = 'https://abc.supabase.co'
 const NOW = '2026-10-06T12:00:00.000Z'
 const UID = '11111111-2222-3333-4444-555555555555'
 const PHOTO = `${SUPA}/storage/v1/object/public/avatars/${UID}/foto.jpg`
-const DECIDED = { 5: 8, 10: 16 } // fundador 06/10: opção C (igualar Runway Pro, chamariz)
+// reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10 ("Sim para as 3"): 8/11/16/24 → 14/20/28/42 (o chamariz
+// de 06/10 virou prejuízo com o Creator a US$ 19,90; o preço novo é o piso de 40% no crédito do Creator mensal).
+const DECIDED = { 5: 14, 7: 20, 10: 28, 15: 42 }
 const UPGRADE = '/pricing?intent_campaign=s25_paid_plans_clips#plans'
 const S25_LABEL = 'Seedance 2.5'
 
@@ -216,12 +218,13 @@ async function problems(over = {}) {
       if (JSON.stringify(keys) !== JSON.stringify(offered)) p.push(`tabela do 2.5 cobre ${keys} ≠ durações oferecidas ${offered}`)
       for (const [s, cr] of Object.entries(DECIDED)) if (table[s] !== cr) p.push(`2.5 ${s} s = ${table[s]} ≠ ${cr} (decisão do fundador)`)
       for (let i = 1; i < keys.length; i++) if (!(table[keys[i]] > table[keys[i - 1]])) p.push('preço do 2.5 não cresce com a duração')
-      // 7 e 15 s: a MESMA conta da decisão — ceil(Runway Pro em US$ ÷ US$/crédito do Creator).
-      const runway = market.MARKET_QUOTES.find((q) => q.id === 'runway-s25-pro')
-      if (!runway || runway.source !== 'oficial' || runway.resolution !== '480p') p.push('cotação oficial runway-s25-pro (480p) sumiu')
-      else for (const s of keys) {
-        const want = Math.ceil(Math.round(market.quoteUsdPerSecond(runway) * s / price.CREATOR_USD_PER_CREDIT * 1e6) / 1e6)
-        if (table[s] !== want) p.push(`2.5 ${s} s = ${table[s]} ≠ ${want} (igualar Runway Pro no crédito do Creator)`)
+      // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: a conta deixou de ser "igualar a Runway Pro no
+      // crédito do Creator a US$ 29,90" e passou a ser o piso de 40% no crédito do Creator MENSAL (CLIP_FLOOR_USD_PER_CREDIT),
+      // com o custo fal conservador: ceil(fal ÷ (US$/crédito do piso × 0,6)).
+      for (const s of keys) {
+        const fal = Math.max(price.CLIP_COSTS.s25.usdPerSecond, market.ENGINE_MARKET.s25.falUsdPerSecond) * s
+        const want = Math.ceil(Math.round(fal / (price.CLIP_FLOOR_USD_PER_CREDIT * 0.6) * 1e6) / 1e6)
+        if (table[s] !== want) p.push(`2.5 ${s} s = ${table[s]} ≠ ${want} (piso de 40% no crédito do Creator mensal)`)
       }
       for (const s of offered) for (const img of [false, true]) {
         if (price.clipCreditCost('s25', s, img) !== table[s]) p.push(`clipCreditCost(s25, ${s}, foto=${img}) = ${price.clipCreditCost('s25', s, img)} ≠ ${table[s]}`)
@@ -234,6 +237,9 @@ async function problems(over = {}) {
         const studio = 1 - fal / (table[s] * price.STUDIO_USD_PER_CREDIT)
         if (creator < 0.25 - 1e-9) p.push(`2.5 ${s} s: margem ${(creator * 100).toFixed(1)}% < 25% no crédito do Creator`)
         if (studio <= 0) p.push(`2.5 ${s} s: prejuízo no crédito do Studio (${(studio * 100).toFixed(1)}%)`)
+        // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: 40% no crédito de quem compra (Creator mensal).
+        const floor = 1 - fal / (table[s] * price.CLIP_FLOOR_USD_PER_CREDIT)
+        if (floor < 0.4 - 1e-9) p.push(`2.5 ${s} s: margem ${(floor * 100).toFixed(1)}% < 40% no crédito do Creator mensal`)
       }
     }
     // Catálogo e débito leem a MESMA função.
@@ -256,6 +262,12 @@ async function problems(over = {}) {
     else for (const s of nul.cat.offeredSecondsFor('s25')) {
       const want = nul.price.CLIP_PRECO_MERCADO_PUBLIC ? nul.price.clipMarketDecision('s25', s).credits : nul.price.clipCreditCostRegra2909('s25', s)
       if (nul.price.clipCreditCost('s25', s) !== want) p.push(`sem a constante, 2.5 ${s} s = ${nul.price.clipCreditCost('s25', s)} ≠ régua ${want}`)
+    }
+    // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: o preço decidido (14/20/28/42) passou a COINCIDIR
+    // com a régua; para provar que clipCreditCost ainda LÊ a constante, ela é trocada em memória por valores-sonda.
+    const probe = world({ on: true, unpaused: true, over: { ...over, [PRICING]: (t) => (over[PRICING] ? over[PRICING](t) : t).replace(/^export const CLIP_S25_CREDITS: ([^=]+)= \{[^}]*\}/m, 'export const CLIP_S25_CREDITS: $1= { 5: 99, 7: 98, 10: 97, 15: 96 }') } })
+    for (const [s, want] of [[5, 99], [7, 98], [10, 97], [15, 96]]) {
+      if (probe.price.clipCreditCost('s25', s) !== want) p.push(`clipCreditCost(s25, ${s}) não lê CLIP_S25_CREDITS (sonda ${want}, veio ${probe.price.clipCreditCost('s25', s)})`)
     }
   }
 
@@ -392,8 +404,10 @@ const MUTANTS = [
   ['catálogo livre inclui o trancado', { [SERVER]: swap('return CLIP_ENGINE_ORDER.filter((key) => access(key).ok).map((key) => {', "return CLIP_ENGINE_ORDER.filter((key) => { const a = access(key); return a.ok || a.reason === 'paid' }).map((key) => {") }],
   ['fluxo deixa o não pagante passar', { [FLOW]: swap('if (!access.ok) {', "if (!access.ok && access.reason !== 'paid') {") }],
   ['preço ignora a constante', { [PRICING]: swap("const decided = engine === 's25' ? clipS25DecidedCredits(seconds) : null", 'const decided = null') }],
-  ['5 s a 7 cr', { [PRICING]: swap('{ 5: 8, 7: 11, 10: 16, 15: 24 }', '{ 5: 7, 7: 11, 10: 16, 15: 24 }') }],
-  ['tabela sem 15 s', { [PRICING]: swap('{ 5: 8, 7: 11, 10: 16, 15: 24 }', '{ 5: 8, 7: 11, 10: 16 }') }],
+  // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: âncora na tabela nova 14/20/28/42.
+  ['5 s a 13 cr', { [PRICING]: swap('{ 5: 14, 7: 20, 10: 28, 15: 42 }', '{ 5: 13, 7: 20, 10: 28, 15: 42 }') }],
+  ['volta ao chamariz 8/11/16/24', { [PRICING]: swap('{ 5: 14, 7: 20, 10: 28, 15: 42 }', '{ 5: 8, 7: 11, 10: 16, 15: 24 }') }],
+  ['tabela sem 15 s', { [PRICING]: swap('{ 5: 14, 7: 20, 10: 28, 15: 42 }', '{ 5: 14, 7: 20, 10: 28 }') }],
   ['constante vaza para outro motor', { [PRICING]: swap("const decided = engine === 's25' ? clipS25DecidedCredits(seconds) : null", "const decided = engine === 's25' || engine === 'kling' ? clipS25DecidedCredits(seconds) : null") }],
   ['selo trocado', { [CATALOG]: swap("label: 'Seedance 2.5',", "label: 'Seedance 2.0',") }],
   ['endpoint de outro modelo', { [CATALOG]: swap("t2vModel: 'fal-ai/seedance-2.5/text-to-video',", "t2vModel: 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video',") }],
