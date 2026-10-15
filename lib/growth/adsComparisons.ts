@@ -22,7 +22,9 @@ export function adsComparisonRows(c: AdsCompetitor) {
     { id: 'formats', label: 'Formats', kineo: offer.formats, competitor: `${officialFeature(c.formats)} — square and landscape in the research table; full format list not recorded.` },
     { id: 'captions', label: 'Captions & soundtrack', kineo: '✓ Captions and music in the finished ad.', competitor: 'Not confirmed in this snapshot.' },
     { id: 'translation', label: 'Language & translation', kineo: 'Narration in supported languages; check the script. Not automatic dubbing of an existing ad.', competitor: officialFeature(c.translation) },
-    { id: 'avatar', label: 'Avatar / actor', kineo: '✗ Not included in Studio Ads.', competitor: officialFeature(c.avatar) },
+    // KINEO-COPY-CONTRADICOES-1510 — era "✗ Not included in Studio Ads.": o anúncio v2 tem a pessoa de IA opcional
+    // (lib/ads/v2Presenter.ts, biblioteca fechada, só 9:16). Continua fora: avatar/gêmeo digital da própria pessoa.
+    { id: 'avatar', label: 'Avatar / actor', kineo: 'Optional AI presenter from a fixed library, always labeled as AI, in 9:16 only. ✗ No custom avatar or digital twin of you.', competitor: officialFeature(c.avatar) },
     { id: 'publishing-analytics', label: 'Direct publishing & analytics', kineo: '✗ Direct publishing. ✗ Ad-performance analytics. Download and publish yourself.', competitor: `Publishing: ${officialFeature(c.publishing)}. Analytics: ${officialFeature(c.analytics)}.` },
     { id: 'price', label: 'Entry price', kineo: `From ${offer.starterPrice} USD/month on Starter; Studio Ads is included. ${offer.credits} credits per ${offer.seconds}-second ad.`, competitor: `${c.price.replace('(anual)', '(annual billing)')} — as recorded in the official-source snapshot; check billing terms and allowances on the official page.` },
   ]

@@ -3,7 +3,9 @@ import { resolve } from 'node:path'
 import { root, source, offlineModules, React, renderToStaticMarkup, checks } from './gpt24h-offline-support.mjs'
 const { check, finish } = checks()
 const dataPath = 'lib/growth/adsComparisons.ts'
-const load = offlineModules({ replacements: process.argv.includes('--mutant') ? { [dataPath]: source(dataPath).replace('✗ Not included in Studio Ads.', '✓ Included in Studio Ads.') } : {} })
+// KINEO-COPY-CONTRADICOES-1510 — a linha do avatar mudou (o ator de IA opcional existe, lib/ads/v2Presenter.ts): o mutante
+// passa a apagar o "✗" do avatar PRÓPRIO e o rótulo de IA; a checagem abaixo exige os dois (antes: startsWith('✗')).
+const load = offlineModules({ replacements: process.argv.includes('--mutant') ? { [dataPath]: source(dataPath).replace('always labeled as AI, in 9:16 only. ✗ No custom avatar or digital twin of you.', 'custom avatars included.') } : {} })
 const { ADS_COMPARISONS, ADS_COMPARISON_ACCESS, adsComparisonRows, adsComparisonCta } = load(dataPath)
 const snapshot = JSON.parse(readFileSync(resolve(root,'lib/growth/adsCompetitorSnapshot.json'),'utf8'))
 const approvedDoc = source(snapshot.sourceDocument)
@@ -19,7 +21,7 @@ for (const c of ADS_COMPARISONS) {
   check(`${c.id}: snapshot cells match approved document`, approvedDoc.includes(c.sourceRow) && JSON.stringify([c.name,c.linkToAd,c.avatar,c.variations,c.formats,c.brandKit,c.publishing,c.analytics,c.translation,c.price]) === JSON.stringify(cells))
   check(`${c.id}: official source recorded, linked and dated`, approvedDoc.includes(c.officialUrl.replace('https://','')) && html.includes(c.officialUrl) && html.includes(ADS_COMPARISON_ACCESS) && html.includes('according to the official page'))
   check(`${c.id}: eight factual comparison rows rendered`, rows.length === 8 && (html.match(/data-comparison-row=/g) ?? []).length === 8)
-  check(`${c.id}: Kineo lacks avatar, publishing and analytics explicitly`, rows.find(r=>r.id==='avatar').kineo.startsWith('✗') && rows.find(r=>r.id==='publishing-analytics').kineo.includes('✗ Direct publishing') && rows.find(r=>r.id==='publishing-analytics').kineo.includes('✗ Ad-performance analytics'))
+  check(`${c.id}: Kineo lacks avatar, publishing and analytics explicitly`, rows.find(r=>r.id==='avatar').kineo.includes('✗ No custom avatar') && rows.find(r=>r.id==='avatar').kineo.includes('always labeled as AI') && rows.find(r=>r.id==='avatar').kineo.includes('9:16 only') && rows.find(r=>r.id==='publishing-analytics').kineo.includes('✗ Direct publishing') && rows.find(r=>r.id==='publishing-analytics').kineo.includes('✗ Ad-performance analytics'))
   check(`${c.id}: captions unknown rather than invented`, rows.find(r=>r.id==='captions').competitor === 'Not confirmed in this snapshot.')
   check(`${c.id}: third-party and unknown translation not promoted to verified`, c.translation === '✓' ? rows.find(r=>r.id==='translation').competitor.startsWith('✓') : rows.find(r=>r.id==='translation').competitor.startsWith('Not confirmed'))
   const url = new URL(adsComparisonCta(c.id),'https://www.usekineo.com')
