@@ -614,9 +614,11 @@ await check('V1 a base é ancestral de HEAD e é a do desfaz; os arquivos novos 
   const novos = FIEL_1510_NOVOS.every((f) => { try { execFileSync('git', ['-C', ROOT, 'cat-file', '-e', `${BASE}:${f}`], { stdio: 'ignore' }); return false } catch { return true } })
   return anc && BASE_FIEL_1510 === BASE && MARCA_FIEL_1510 === MARCA && novos
 })
+// reancorado KINEO-ADS-FIEL-2-1510 — o pai do 1º commit KINEO-ADS-FIEL-2-1510 (sem ele no histórico, HEAD): os trechos dele levam a marca dele.
+const ANTES_FIEL2 = (() => { try { const s = git('log', '--no-merges', '--format=%H', '--grep=KINEO-ADS-FIEL-2-1510', 'HEAD').trim().split('\n').filter(Boolean); return s.length ? `${s[s.length - 1]}~1` : 'HEAD' } catch { return 'HEAD' } })() // reancorado KINEO-ADS-FIEL-2-1510
 await check('V2 cada arquivo tocado, desfeito, é EXATAMENTE a base; cada trecho do diff traz a marca', () => FIEL_1510_ARQUIVOS.length === 7 && FIEL_1510_ARQUIVOS.every((f) => {
   if (semFiel1510(f, rd(f)) !== base(f)) return false
-  const hunks = git('diff', '-U0', '--no-color', BASE, 'HEAD', '--', f).replace(/\r\n/g, '\n').split(/\n(?=@@ )/).slice(1)
+  const hunks = git('diff', '-U0', '--no-color', BASE, ANTES_FIEL2, '--', f) /* reancorado KINEO-ADS-FIEL-2-1510 — o diff DESTE ajuste vai até antes do conserto mais novo (que leva a marca dele) */.replace(/\r\n/g, '\n').split(/\n(?=@@ )/).slice(1)
   // trecho SÓ de remoção não tem onde levar a marca: só o da linha velha do esgotado (a mesma frase sai agora de `step.step === 'terminal'`)
   const soRemocao = hunks.filter((h) => !h.split('\n').slice(1).some((l) => l.startsWith('+')))
   return hunks.length > 0 && hunks.filter((h) => !soRemocao.includes(h)).every((h) => h.includes(MARCA)) &&
