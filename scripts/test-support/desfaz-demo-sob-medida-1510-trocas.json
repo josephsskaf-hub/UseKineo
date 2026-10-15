@@ -1,0 +1,80 @@
+{
+ "app/api/ads/v2/approval/view/route.ts": [
+  [
+   "import { openApproval } from '@/lib/ads/v2PostDeliveryServer'\nimport { posErr } from '@/lib/ads/v2PostDelivery'",
+   "import { openApproval } from '@/lib/ads/v2PostDeliveryServer'\nimport { approvalViewWithExtras } from '@/lib/ads/approvalExtrasServer' // KINEO-DEMO-SOB-MEDIDA-1510 — + os 3 formatos da mesma versão, a amostra e o apresentador de IA\nimport { posErr } from '@/lib/ads/v2PostDelivery'"
+  ],
+  [
+   "    if (!secret) return v2Fail('unavailable', 503)\n    const view = await openApproval(footageAdminClient(), body?.token, secret)\n    if (!view) return v2Fail('not_found', 404)",
+   "    if (!secret) return v2Fail('unavailable', 503)\n    const admin = footageAdminClient() // KINEO-DEMO-SOB-MEDIDA-1510 — o mesmo cliente para a vista e os formatos\n    const view = await approvalViewWithExtras(admin, body?.token, secret, await openApproval(admin, body?.token, secret)) // KINEO-DEMO-SOB-MEDIDA-1510 — openApproval valida e marca \"visto\"; depois, os formatos\n    if (!view) return v2Fail('not_found', 404)"
+  ]
+ ],
+ "lib/ads/v2PostDelivery.ts": [
+  [
+   " */\nexport const ADS_V2_APPROVAL_PUBLIC_KEYS = ['brand', 'video_url', 'status', 'lang', 'decided'] as const\nexport interface AdsV2ApprovalPublic {",
+   " */\nexport const ADS_V2_APPROVAL_PUBLIC_KEYS = ['brand', 'video_url', 'status', 'lang', 'decided', 'formats', 'sample', 'ai_presenter'] as const // KINEO-DEMO-SOB-MEDIDA-1510 — + os formatos da mesma versão (cópias em renders/share), o rótulo da amostra e o aviso do apresentador de IA\n/** KINEO-DEMO-SOB-MEDIDA-1510 — um formato pronto da MESMA versão: só o quadro e a CÓPIA em renders/share/<aleatório>.mp4. */\nexport interface AdsV2ApprovalFormat { format: AdsV2Format; video_url: string } // KINEO-DEMO-SOB-MEDIDA-1510\nexport interface AdsV2ApprovalPublic {"
+  ],
+  [
+   "  decided: boolean\n}",
+   "  decided: boolean\n  formats: AdsV2ApprovalFormat[] // KINEO-DEMO-SOB-MEDIDA-1510 — o 1º é o vídeo de `video_url`; vazio = só ele\n  sample: boolean // KINEO-DEMO-SOB-MEDIDA-1510 — demo sob medida da Kineo (\"Sample made by Kineo for <Brand>\")\n  ai_presenter: boolean // KINEO-DEMO-SOB-MEDIDA-1510 — o anúncio tem apresentador de IA (a página SEMPRE rotula)\n}"
+  ],
+  [
+   "}\nexport function adsV2ApprovalPublicView(row: { brand_name: string; share_video_url: string; status: string; lang: string | null }): AdsV2ApprovalPublic {\n  const status = (['pending', 'approved', 'changes_requested', 'revoked'] as const).find((s) => s === row.status) ?? 'pending'",
+   "}\nexport function adsV2ApprovalPublicView(row: { brand_name: string; share_video_url: string; status: string; lang: string | null }, extra: { formats?: AdsV2ApprovalFormat[]; sample?: boolean; aiPresenter?: boolean } = {}): AdsV2ApprovalPublic { // KINEO-DEMO-SOB-MEDIDA-1510 — + extra\n  const status = (['pending', 'approved', 'changes_requested', 'revoked'] as const).find((s) => s === row.status) ?? 'pending'"
+  ],
+  [
+   "  const status = (['pending', 'approved', 'changes_requested', 'revoked'] as const).find((s) => s === row.status) ?? 'pending'\n  return { brand: row.brand_name, video_url: row.share_video_url, status, lang: row.lang || 'en', decided: status === 'approved' || status === 'changes_requested' }\n}",
+   "  const status = (['pending', 'approved', 'changes_requested', 'revoked'] as const).find((s) => s === row.status) ?? 'pending'\n  const formats = (extra.formats ?? []).filter((f) => isAdsV2Format(f.format) && typeof f.video_url === 'string' && /\\/renders\\/share\\/[A-Za-z0-9_-]+\\.mp4$/.test(f.video_url)).map((f) => ({ format: f.format, video_url: f.video_url })) // KINEO-DEMO-SOB-MEDIDA-1510 — só cópias de share (nunca o caminho com o id da conta)\n  return { brand: row.brand_name, video_url: row.share_video_url, status, lang: row.lang || 'en', decided: status === 'approved' || status === 'changes_requested', formats, sample: extra.sample === true, ai_presenter: extra.aiPresenter === true } // KINEO-DEMO-SOB-MEDIDA-1510 — + formats/sample/ai_presenter\n}"
+  ]
+ ],
+ "app/approve/ApproveClient.tsx": [
+  [
+   "import { interfaceLanguageIsRtl, parseInterfaceLanguage } from '@/lib/ui/interfaceLanguage'\n",
+   "import { interfaceLanguageIsRtl, parseInterfaceLanguage } from '@/lib/ui/interfaceLanguage'\nimport { demoPageCopy, fillDemo } from '@/lib/ads/demoSobMedida' // KINEO-DEMO-SOB-MEDIDA-1510 — \"Sample made by Kineo for <Brand>\", a nota de honestidade e o aviso do apresentador de IA\nimport { adsV2AiLabelNotice } from '@/lib/ads/v2AiLabel' // KINEO-DEMO-SOB-MEDIDA-1510 — feito com IA: a página SEMPRE diz\n"
+  ],
+  [
+   "\ntype View = { brand: string; video_url: string; status: 'pending' | 'approved' | 'changes_requested' | 'revoked'; lang: string; decided: boolean }\n",
+   "\ntype View = { brand: string; video_url: string; status: 'pending' | 'approved' | 'changes_requested' | 'revoked'; lang: string; decided: boolean; formats?: { format: '9:16' | '4:5' | '1:1'; video_url: string }[]; sample?: boolean; ai_presenter?: boolean } // KINEO-DEMO-SOB-MEDIDA-1510 — + formats/sample/ai_presenter\n"
+  ],
+  [
+   ".ap-solo{max-width:460px;text-align:center;margin-top:12vh}\n`",
+   ".ap-solo{max-width:460px;text-align:center;margin-top:12vh}\n.ap-tabs{display:flex;gap:8px;margin:0 0 10px;flex-wrap:wrap}.ap-tab{min-height:36px;padding:6px 14px;border-radius:999px;border:1px solid var(--ap-line);background:var(--ap-card);color:var(--ap-text);font:inherit;font-weight:650;cursor:pointer}.ap-tab[aria-pressed=true]{background:var(--ap-accent);border-color:var(--ap-accent);color:#fff}.ap-video.f45{aspect-ratio:4/5}.ap-video.f11{aspect-ratio:1/1}.ap-ai{margin:14px 0 0;padding:10px 12px;border-radius:10px;border:1px solid var(--ap-line);color:var(--ap-muted);font-size:13px}.ap-ai strong{color:var(--ap-text)}\n`"
+  ],
+  [
+   "  const [browserLang, setBrowserLang] = useState('en')\n",
+   "  const [browserLang, setBrowserLang] = useState('en')\n  const [fmt, setFmt] = useState(0) // KINEO-DEMO-SOB-MEDIDA-1510 — o formato à vista (0 = o vídeo da aprovação)\n"
+  ],
+  [
+   "  const dir = interfaceLanguageIsRtl(lang) ? 'rtl' : 'ltr'\n",
+   "  const dir = interfaceLanguageIsRtl(lang) ? 'rtl' : 'ltr'\n  const dc = demoPageCopy(lang) // KINEO-DEMO-SOB-MEDIDA-1510\n  const formats = view?.formats && view.formats.length > 1 ? view.formats : null // KINEO-DEMO-SOB-MEDIDA-1510 — os 3 formatos da mesma versão\n  const shown = formats ? formats[Math.min(fmt, formats.length - 1)] : null // KINEO-DEMO-SOB-MEDIDA-1510\n"
+  ],
+  [
+   "        <div className=\"ap-wrap\">\n          <video className=\"ap-video\" src={view.video_url} controls playsInline preload=\"metadata\" />\n          <section className=\"ap-card\" aria-labelledby=\"ap-title\">",
+   "        <div className=\"ap-wrap\">\n          <div>{/* KINEO-DEMO-SOB-MEDIDA-1510 — 9:16 · 4:5 · 1:1 da mesma versão */}\n            {formats ? (\n              <div className=\"ap-tabs\" role=\"group\" aria-label={dc.formats}>\n                {formats.map((f, i) => <button type=\"button\" key={f.format} className=\"ap-tab\" aria-pressed={(shown?.format ?? '') === f.format} onClick={() => setFmt(i)}>{f.format}</button>)}\n              </div>\n            ) : null}\n            <video key={shown?.video_url ?? view.video_url} className={`ap-video${shown?.format === '4:5' ? ' f45' : shown?.format === '1:1' ? ' f11' : ''}`} src={shown?.video_url ?? view.video_url} controls playsInline preload=\"metadata\" />\n          </div>\n          <section className=\"ap-card\" aria-labelledby=\"ap-title\">"
+  ],
+  [
+   "          <section className=\"ap-card\" aria-labelledby=\"ap-title\">\n            <p className=\"ap-from\">{fillPosEntrega(c.pFrom, { brand: view.brand })}</p>\n            <h1 id=\"ap-title\">{c.pTitle}</h1>",
+   "          <section className=\"ap-card\" aria-labelledby=\"ap-title\">\n            <p className=\"ap-from\">{view.sample ? fillDemo(dc.sample, { brand: view.brand }) : fillPosEntrega(c.pFrom, { brand: view.brand })}</p>{/* KINEO-DEMO-SOB-MEDIDA-1510 — a amostra diz quem fez e para quem */}\n            <h1 id=\"ap-title\">{c.pTitle}</h1>"
+  ],
+  [
+   "            )}\n            <p className=\"ap-foot\">{c.pPowered}</p>",
+   "            )}\n            <p className=\"ap-ai\" data-kineo=\"ads-approval-ai-label\">{view.ai_presenter ? <><strong>{dc.aiPresenter}</strong> </> : null}{adsV2AiLabelNotice(lang)}</p>{/* KINEO-DEMO-SOB-MEDIDA-1510 — feito com IA, e o apresentador de IA sempre rotulado */}\n            {view.sample ? <p className=\"ap-foot\">{dc.note}</p> : null}{/* KINEO-DEMO-SOB-MEDIDA-1510 — honestidade: material público, só para a marca ver */}\n            <p className=\"ap-foot\">{c.pPowered}</p>"
+  ]
+ ],
+ "app/api/cron/ads-v2-advance/route.ts": [
+  [
+   "import { drainAdsV2Batches } from '@/lib/ads/v2Batch'\n",
+   "import { drainAdsV2Batches } from '@/lib/ads/v2Batch'\nimport { advanceDemosSobMedida } from '@/lib/ads/demoSobMedidaServer' // KINEO-DEMO-SOB-MEDIDA-1510 — demo entregue: 4:5 + 1:1 dos mesmos clipes e o link de aprovação da marca\n"
+  ],
+  [
+   "  const batches = await drainAdsV2Batches(admin, { deadlineMs: started + TOTAL_BUDGET_MS }) // KINEO-ADS-LOTE-1310\n  console.log('[cron/ads-v2-advance]', JSON.stringify({ scanned: results.length, results, batches, ms: Date.now() - started }))\n  return NextResponse.json({ ok: true, scanned: results.length, results, batches })",
+   "  const batches = await drainAdsV2Batches(admin, { deadlineMs: started + TOTAL_BUDGET_MS }) // KINEO-ADS-LOTE-1310\n  const demos = await advanceDemosSobMedida(admin, { deadlineMs: started + TOTAL_BUDGET_MS + 40_000, secret: process.env.SUPABASE_SERVICE_ROLE_KEY }) // KINEO-DEMO-SOB-MEDIDA-1510 — nunca lança; sem demo, duas leituras\n  console.log('[cron/ads-v2-advance]', JSON.stringify({ scanned: results.length, results, batches, demos, ms: Date.now() - started })) // KINEO-DEMO-SOB-MEDIDA-1510 — + demos\n  return NextResponse.json({ ok: true, scanned: results.length, results, batches })"
+  ]
+ ],
+ "components/admin/AdminShell.tsx": [
+  [
+   "  { label: 'Negócio', pages: [['/admin', 'Visão geral'], ['/admin/paying', 'Pagantes'], ['/admin/overview', 'Indicadores']] },\n  { label: 'Aquisição', pages: [['/admin/leads', 'Oportunidades'], ['/admin/funnel', 'Funil'], ['/admin/affiliates', 'Afiliados'], ['/admin/partners', 'Parceiros']] },\n  { label: 'Pessoas', pages: [['/admin/people', 'Pessoas'], ['/admin/users', 'Contas']] },",
+   "  { label: 'Negócio', pages: [['/admin', 'Visão geral'], ['/admin/paying', 'Pagantes'], ['/admin/overview', 'Indicadores']] },\n  { label: 'Aquisição', pages: [['/admin/leads', 'Oportunidades'], ['/admin/funnel', 'Funil'], ['/admin/affiliates', 'Afiliados'], ['/admin/partners', 'Parceiros'], ['/admin/demo', 'Demo sob medida']] }, // KINEO-DEMO-SOB-MEDIDA-1510 — + a máquina de demo do B2B\n  { label: 'Pessoas', pages: [['/admin/people', 'Pessoas'], ['/admin/users', 'Contas']] },"
+  ]
+ ]
+}

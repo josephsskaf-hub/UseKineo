@@ -5,6 +5,7 @@ import { NextRequest } from 'next/server'
 import { footageAdminClient } from '@/lib/userFootage'
 import { v2Fail, v2Json } from '@/lib/ads/v2Server'
 import { openApproval } from '@/lib/ads/v2PostDeliveryServer'
+import { approvalViewWithExtras } from '@/lib/ads/approvalExtrasServer' // KINEO-DEMO-SOB-MEDIDA-1510 — + os 3 formatos da mesma versão, a amostra e o apresentador de IA
 import { posErr } from '@/lib/ads/v2PostDelivery'
 
 export const runtime = 'nodejs'
@@ -17,7 +18,8 @@ export async function POST(req: NextRequest) {
     const body = (await req.json().catch(() => null)) as { token?: unknown } | null
     const secret = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!secret) return v2Fail('unavailable', 503)
-    const view = await openApproval(footageAdminClient(), body?.token, secret)
+    const admin = footageAdminClient() // KINEO-DEMO-SOB-MEDIDA-1510 — o mesmo cliente para a vista e os formatos
+    const view = await approvalViewWithExtras(admin, body?.token, secret, await openApproval(admin, body?.token, secret)) // KINEO-DEMO-SOB-MEDIDA-1510 — openApproval valida e marca "visto"; depois, os formatos
     if (!view) return v2Fail('not_found', 404)
     return v2Json(view)
   } catch (e) {

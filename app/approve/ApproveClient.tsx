@@ -4,8 +4,10 @@
 import { useEffect, useState } from 'react'
 import { adsV2PosEntregaCopy, fillPosEntrega } from '@/lib/ads/v2PostDeliveryCopy'
 import { interfaceLanguageIsRtl, parseInterfaceLanguage } from '@/lib/ui/interfaceLanguage'
+import { demoPageCopy, fillDemo } from '@/lib/ads/demoSobMedida' // KINEO-DEMO-SOB-MEDIDA-1510 — "Sample made by Kineo for <Brand>", a nota de honestidade e o aviso do apresentador de IA
+import { adsV2AiLabelNotice } from '@/lib/ads/v2AiLabel' // KINEO-DEMO-SOB-MEDIDA-1510 — feito com IA: a página SEMPRE diz
 
-type View = { brand: string; video_url: string; status: 'pending' | 'approved' | 'changes_requested' | 'revoked'; lang: string; decided: boolean }
+type View = { brand: string; video_url: string; status: 'pending' | 'approved' | 'changes_requested' | 'revoked'; lang: string; decided: boolean; formats?: { format: '9:16' | '4:5' | '1:1'; video_url: string }[]; sample?: boolean; ai_presenter?: boolean } // KINEO-DEMO-SOB-MEDIDA-1510 — + formats/sample/ai_presenter
 
 const CSS = `
 :root{--ap-bg:#f6f7f9;--ap-card:#ffffff;--ap-text:#0f1720;--ap-muted:#5b6673;--ap-line:#dfe3e8;--ap-accent:#1f7ae0;--ap-ok:#0f8a4b;--ap-warn:#b4530a}
@@ -30,6 +32,7 @@ const CSS = `
 .ap-msg.warn{color:var(--ap-warn)}
 .ap-foot{margin-top:18px;color:var(--ap-muted);font-size:12.5px}
 .ap-solo{max-width:460px;text-align:center;margin-top:12vh}
+.ap-tabs{display:flex;gap:8px;margin:0 0 10px;flex-wrap:wrap}.ap-tab{min-height:36px;padding:6px 14px;border-radius:999px;border:1px solid var(--ap-line);background:var(--ap-card);color:var(--ap-text);font:inherit;font-weight:650;cursor:pointer}.ap-tab[aria-pressed=true]{background:var(--ap-accent);border-color:var(--ap-accent);color:#fff}.ap-video.f45{aspect-ratio:4/5}.ap-video.f11{aspect-ratio:1/1}.ap-ai{margin:14px 0 0;padding:10px 12px;border-radius:10px;border:1px solid var(--ap-line);color:var(--ap-muted);font-size:13px}.ap-ai strong{color:var(--ap-text)}
 `
 
 export default function ApproveClient() {
@@ -41,6 +44,7 @@ export default function ApproveClient() {
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<{ kind: 'ok' | 'warn'; text: string } | null>(null)
   const [browserLang, setBrowserLang] = useState('en')
+  const [fmt, setFmt] = useState(0) // KINEO-DEMO-SOB-MEDIDA-1510 — o formato à vista (0 = o vídeo da aprovação)
 
   useEffect(() => {
     setBrowserLang(parseInterfaceLanguage((navigator.language || 'en').slice(0, 2).toLowerCase()))
@@ -66,6 +70,9 @@ export default function ApproveClient() {
   const lang = parseInterfaceLanguage(view?.lang ?? browserLang)
   const c = adsV2PosEntregaCopy(lang)
   const dir = interfaceLanguageIsRtl(lang) ? 'rtl' : 'ltr'
+  const dc = demoPageCopy(lang) // KINEO-DEMO-SOB-MEDIDA-1510
+  const formats = view?.formats && view.formats.length > 1 ? view.formats : null // KINEO-DEMO-SOB-MEDIDA-1510 — os 3 formatos da mesma versão
+  const shown = formats ? formats[Math.min(fmt, formats.length - 1)] : null // KINEO-DEMO-SOB-MEDIDA-1510
 
   async function decide(decision: 'approve' | 'changes') {
     if (!token || busy) return
@@ -100,9 +107,16 @@ export default function ApproveClient() {
       ) : null}
       {state === 'ready' && view ? (
         <div className="ap-wrap">
-          <video className="ap-video" src={view.video_url} controls playsInline preload="metadata" />
+          <div>{/* KINEO-DEMO-SOB-MEDIDA-1510 — 9:16 · 4:5 · 1:1 da mesma versão */}
+            {formats ? (
+              <div className="ap-tabs" role="group" aria-label={dc.formats}>
+                {formats.map((f, i) => <button type="button" key={f.format} className="ap-tab" aria-pressed={(shown?.format ?? '') === f.format} onClick={() => setFmt(i)}>{f.format}</button>)}
+              </div>
+            ) : null}
+            <video key={shown?.video_url ?? view.video_url} className={`ap-video${shown?.format === '4:5' ? ' f45' : shown?.format === '1:1' ? ' f11' : ''}`} src={shown?.video_url ?? view.video_url} controls playsInline preload="metadata" />
+          </div>
           <section className="ap-card" aria-labelledby="ap-title">
-            <p className="ap-from">{fillPosEntrega(c.pFrom, { brand: view.brand })}</p>
+            <p className="ap-from">{view.sample ? fillDemo(dc.sample, { brand: view.brand }) : fillPosEntrega(c.pFrom, { brand: view.brand })}</p>{/* KINEO-DEMO-SOB-MEDIDA-1510 — a amostra diz quem fez e para quem */}
             <h1 id="ap-title">{c.pTitle}</h1>
             {view.decided ? (
               <p className={`ap-msg ${view.status === 'approved' ? 'ok' : 'warn'}`} role="status">{note?.text ?? (view.status === 'approved' ? c.pApproved : view.status === 'changes_requested' ? c.pSent : c.pAlready)}</p>
@@ -124,6 +138,8 @@ export default function ApproveClient() {
                 {note ? <p className={`ap-msg ${note.kind}`} role="status">{note.text}</p> : null}
               </>
             )}
+            <p className="ap-ai" data-kineo="ads-approval-ai-label">{view.ai_presenter ? <><strong>{dc.aiPresenter}</strong> </> : null}{adsV2AiLabelNotice(lang)}</p>{/* KINEO-DEMO-SOB-MEDIDA-1510 — feito com IA, e o apresentador de IA sempre rotulado */}
+            {view.sample ? <p className="ap-foot">{dc.note}</p> : null}{/* KINEO-DEMO-SOB-MEDIDA-1510 — honestidade: material público, só para a marca ver */}
             <p className="ap-foot">{c.pPowered}</p>
           </section>
         </div>

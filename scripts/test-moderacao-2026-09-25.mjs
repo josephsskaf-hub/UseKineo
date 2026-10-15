@@ -183,7 +183,9 @@ const imp = ['app', 'lib', 'components'].flatMap(walk).filter((p) => /from '@\/l
 // KINEO-LEVA4-1310 — as duas reancoragens juntas: 28 + generate-script (+1) + adFlow (+1) = 30 importadores.
 // KINEO-ROMANCE-ADULTO-2026-10-13 — re-ancorado: +1 importador de servidor, app/api/generate-video-cinematic/route.ts (pedido romântico: o texto
 // FINAL das cenas é moderado ANTES do ensaio de $0, do still FLUX e do 1º POST pago; barrado ou fora do ar = crédito devolvido) = 31.
-ok(imp.length === 31 && imp.every((p) => !/^\s*['"]use client['"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`)
+// KINEO-DEMO-SOB-MEDIDA-1510 — re-ancorado: +1 importador de servidor, lib/ads/demoSobMedidaServer.ts (a demo sob medida do B2B modera o texto da
+// página do produto e cada foto antes de qualquer plano, igual ao /api/ads/v2/link-import) = 32.
+ok(imp.length === 32 && imp.every((p) => !/^\s*['"]use client['"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`)
 
 // ── 5. upload: o tipo pelos bytes ──────────────────────────────────────────────────────────────────────
 const K = roda('lib/safety/mediaKind.ts')

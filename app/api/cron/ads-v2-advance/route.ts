@@ -13,6 +13,7 @@ import { advanceAdsV2Order } from '@/lib/ads/v2Advance'
 // KINEO-ADS-LOTE-1310 — com a aba fechada, a fila do modo lote anda aqui: depois de avançar os pedidos, a próxima linha de
 // cada lote começa pelo /start de sempre (adsV2StartFor). Nunca lança; sem fila, uma leitura só.
 import { drainAdsV2Batches } from '@/lib/ads/v2Batch'
+import { advanceDemosSobMedida } from '@/lib/ads/demoSobMedidaServer' // KINEO-DEMO-SOB-MEDIDA-1510 — demo entregue: 4:5 + 1:1 dos mesmos clipes e o link de aprovação da marca
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -53,6 +54,7 @@ export async function GET(req: NextRequest) {
     results.push({ order_id: o.id, before: o.status, after: view?.status ?? null })
   }
   const batches = await drainAdsV2Batches(admin, { deadlineMs: started + TOTAL_BUDGET_MS }) // KINEO-ADS-LOTE-1310
-  console.log('[cron/ads-v2-advance]', JSON.stringify({ scanned: results.length, results, batches, ms: Date.now() - started }))
+  const demos = await advanceDemosSobMedida(admin, { deadlineMs: started + TOTAL_BUDGET_MS + 40_000, secret: process.env.SUPABASE_SERVICE_ROLE_KEY }) // KINEO-DEMO-SOB-MEDIDA-1510 — nunca lança; sem demo, duas leituras
+  console.log('[cron/ads-v2-advance]', JSON.stringify({ scanned: results.length, results, batches, demos, ms: Date.now() - started })) // KINEO-DEMO-SOB-MEDIDA-1510 — + demos
   return NextResponse.json({ ok: true, scanned: results.length, results, batches })
 }

@@ -323,17 +323,23 @@ export function sanitizeApprovalDecision(raw: unknown): AdsV2EditParsed<{ token:
  * A vista PÚBLICA da aprovação: só o vídeo, o nome da marca, o estado e a língua. Nada de id de conta, e-mail, pedido, brief,
  * preço ou créditos — a lista de chaves é FECHADA (o guardião confere chave por chave).
  */
-export const ADS_V2_APPROVAL_PUBLIC_KEYS = ['brand', 'video_url', 'status', 'lang', 'decided'] as const
+export const ADS_V2_APPROVAL_PUBLIC_KEYS = ['brand', 'video_url', 'status', 'lang', 'decided', 'formats', 'sample', 'ai_presenter'] as const // KINEO-DEMO-SOB-MEDIDA-1510 — + os formatos da mesma versão (cópias em renders/share), o rótulo da amostra e o aviso do apresentador de IA
+/** KINEO-DEMO-SOB-MEDIDA-1510 — um formato pronto da MESMA versão: só o quadro e a CÓPIA em renders/share/<aleatório>.mp4. */
+export interface AdsV2ApprovalFormat { format: AdsV2Format; video_url: string } // KINEO-DEMO-SOB-MEDIDA-1510
 export interface AdsV2ApprovalPublic {
   brand: string
   video_url: string
   status: AdsV2ApprovalStatus
   lang: string
   decided: boolean
+  formats: AdsV2ApprovalFormat[] // KINEO-DEMO-SOB-MEDIDA-1510 — o 1º é o vídeo de `video_url`; vazio = só ele
+  sample: boolean // KINEO-DEMO-SOB-MEDIDA-1510 — demo sob medida da Kineo ("Sample made by Kineo for <Brand>")
+  ai_presenter: boolean // KINEO-DEMO-SOB-MEDIDA-1510 — o anúncio tem apresentador de IA (a página SEMPRE rotula)
 }
-export function adsV2ApprovalPublicView(row: { brand_name: string; share_video_url: string; status: string; lang: string | null }): AdsV2ApprovalPublic {
+export function adsV2ApprovalPublicView(row: { brand_name: string; share_video_url: string; status: string; lang: string | null }, extra: { formats?: AdsV2ApprovalFormat[]; sample?: boolean; aiPresenter?: boolean } = {}): AdsV2ApprovalPublic { // KINEO-DEMO-SOB-MEDIDA-1510 — + extra
   const status = (['pending', 'approved', 'changes_requested', 'revoked'] as const).find((s) => s === row.status) ?? 'pending'
-  return { brand: row.brand_name, video_url: row.share_video_url, status, lang: row.lang || 'en', decided: status === 'approved' || status === 'changes_requested' }
+  const formats = (extra.formats ?? []).filter((f) => isAdsV2Format(f.format) && typeof f.video_url === 'string' && /\/renders\/share\/[A-Za-z0-9_-]+\.mp4$/.test(f.video_url)).map((f) => ({ format: f.format, video_url: f.video_url })) // KINEO-DEMO-SOB-MEDIDA-1510 — só cópias de share (nunca o caminho com o id da conta)
+  return { brand: row.brand_name, video_url: row.share_video_url, status, lang: row.lang || 'en', decided: status === 'approved' || status === 'changes_requested', formats, sample: extra.sample === true, ai_presenter: extra.aiPresenter === true } // KINEO-DEMO-SOB-MEDIDA-1510 — + formats/sample/ai_presenter
 }
 
 /** O caminho do vídeo dentro do bucket `renders` (para copiar para um nome que não carrega o id da conta). null = fora do bucket. */
