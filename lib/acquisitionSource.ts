@@ -203,3 +203,184 @@ export function hasCorrectableSelfReferral(value: string | null | undefined): bo
   const parsed = parsedReferrer(value)
   return Boolean(parsed && isNonAcquisitionHost(parsed.hostname))
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-ORIGEM-IA-LOJAS-1610 — CLASSE "ai_assistant_likely" (ESTIMATIVA).
+// ═══════════════════════════════════════════════════════════════════════════
+// MEDIDO EM 15/10: o ChatGPT trouxe 8 de 11 pagantes recentes. Desde 09/10 as
+// visitas rotuladas `chatgpt` caíram de ~25 para ~6/dia e as "sem origem"
+// subiram de ~90 para 150–240/dia. Teste real no ChatGPT: o cartão "Open
+// Kineo" e a pílula de citação abrem usekineo.com SEM utm, com
+// `document.referrer` vazio — a visita do ChatGPT virou "direto".
+//
+// A REGRA (as quatro condições juntas, nenhuma sozinha basta):
+//   1. `document.referrer` CRU vazio — não "sanitizado para null": navegação
+//      interna e retorno de OAuth trazem o nosso próprio host e NÃO entram;
+//   2. nenhum `utm_*` na URL (inclusive `homepage`/`sticky_cta`, que são
+//      superfície nossa) e nenhum identificador de clique pago/afiliado
+//      (gclid, gbraid, wbraid, msclkid, fbclid, ttclid, twclid, li_fat_id, ref);
+//   3. o pouso é numa página de CONTEÚDO/SEO (lista abaixo, derivada das rotas
+//      que existem em app/ — o guardião confere uma a uma);
+//   4. NUNCA a home, /pricing, /v/*, /a/*, /s/*, telas do produto.
+//
+// ⚠️ É ESTIMATIVA, não atestado. Pode incluir: favoritos, link copiado e colado
+// (WhatsApp/Slack/e-mail no app), navegador embutido de rede social que corta o
+// Referer, Perplexity/Claude/Gemini/Copilot (também cortam) — por isso o nome
+// é "assistente de IA provável", não "chatgpt". `chatgpt` continua sendo SÓ o
+// que tem utm ou referrer do ChatGPT; esta classe nunca vence uma origem
+// conhecida e nunca é gravada por cima de uma (ver lib/analytics.ts e
+// app/api/track-signup-source/route.ts).
+export const AI_ASSISTANT_LIKELY_SOURCE = 'ai_assistant_likely'
+
+// Primeiro segmento da rota. Vale a página e as filhas (/vs/x, /ai-video-generator/for/y).
+const CONTENT_LANDING_SEGMENTS = new Set([
+  'agencies',
+  'ai-avatar',
+  'ai-faceless-video-generator',
+  'ai-image-generator',
+  'ai-robot-video-generator',
+  'ai-short-film-generator',
+  'ai-shorts-for-agencies',
+  'ai-shorts-generator-no-watermark',
+  'ai-shorts-series',
+  'ai-shorts-without-filming',
+  'ai-video-generator',
+  'ai-video-index',
+  'ai-video-upscaler',
+  'ai-video-with-talking-characters',
+  'ai-voice-generator',
+  'alternatives',
+  'best-ai-shorts-generators',
+  'brainrot-video-generator',
+  'business',
+  'business-video-ads',
+  'business-video-content-plan',
+  'can-you-monetize-ai-videos',
+  'chatgpt',
+  'chatgpt-to-youtube-shorts',
+  'cheapest-ai-shorts-maker',
+  'client-video-brief-generator',
+  'compare',
+  'effects',
+  'faceless-channel-ideas',
+  'faceless-video-generator',
+  'faceless-youtube-shorts-generator',
+  'facts',
+  'free-ai-shorts',
+  'free-ai-shorts-generator',
+  'free-hook-generator',
+  'free-script-generator',
+  'free-shorts-generator',
+  'generador-de-shorts-gratis',
+  'generador-de-videos-de-terror',
+  'gerador-de-shorts-gratis',
+  'how-much-do-youtube-shorts-pay',
+  'how-to-start-a-faceless-youtube-channel',
+  'kineo-vs-higgsfield',
+  'kineo-vs-kineo-studio',
+  'make-money-clipping-with-ai',
+  'models-pricing',
+  'niche-picker',
+  'omni-flash-vs-sora',
+  'product-to-video-script',
+  'real-estate-video-maker',
+  'reddit-story-video-generator',
+  'reviews',
+  'seedance-kling-veo-in-one-place',
+  'seedance-vs-veo-vs-kling',
+  'shorts-money-calculator',
+  'sora-alternative',
+  'state-of-ai-shorts-2026',
+  'text-to-video-shorts',
+  'tiktok-creator-rewards-length-checker',
+  'tiktok-creator-rewards-videos',
+  'tiktok-vs-youtube-shorts-monetization',
+  'viral-score',
+  'vs',
+  'youtube-automation',
+  'youtube-automation-case-study',
+  'youtube-shorts-from-topic',
+  'youtube-shorts-rpm-by-niche',
+  'youtube-shorts-script-timer',
+  'youtube-shorts-title-generator',
+])
+
+// Rotas cujo pai é PRODUTO e só as filhas são conteúdo (/ads é o Studio Ads; /ads/for/* é SEO).
+const CONTENT_LANDING_CHILD_PREFIXES = ['/ads/for/']
+
+// Identificadores de clique que provam origem paga/afiliado mesmo sem utm.
+const CLICK_ID_KEYS = ['gclid', 'gbraid', 'wbraid', 'msclkid', 'fbclid', 'ttclid', 'twclid', 'li_fat_id', 'ref']
+
+function normalizedLandingPath(path: string | null | undefined): string {
+  const raw = (path ?? '').trim().toLowerCase().split(/[?#]/)[0]
+  if (!raw) return ''
+  const withSlash = raw.startsWith('/') ? raw : `/${raw}`
+  return withSlash.length > 1 ? withSlash.replace(/\/+$/, '') : withSlash
+}
+
+/** A rota é uma página de conteúdo/SEO (nunca a home nem tela do produto)? */
+export function isContentLandingPath(path: string | null | undefined): boolean {
+  const p = normalizedLandingPath(path)
+  if (!p || p === '/') return false
+  if (CONTENT_LANDING_CHILD_PREFIXES.some((prefix) => p.startsWith(prefix) && p.length > prefix.length)) return true
+  const first = p.split('/')[1] ?? ''
+  return CONTENT_LANDING_SEGMENTS.has(first)
+}
+
+/** A query string carrega alguma pista de origem (utm_* ou id de clique)? */
+function searchHasSourceSignal(search: string | null | undefined): boolean {
+  const raw = (search ?? '').trim()
+  if (!raw) return false
+  let sp: URLSearchParams
+  try {
+    sp = new URLSearchParams(raw.startsWith('?') ? raw.slice(1) : raw)
+  } catch {
+    return true // query ilegível: não arrisca inventar origem
+  }
+  let signal = false
+  sp.forEach((value, key) => {
+    const k = key.trim().toLowerCase()
+    if (!value.trim()) return
+    if (k.startsWith('utm_') || CLICK_ID_KEYS.includes(k)) signal = true
+  })
+  return signal
+}
+
+/**
+ * KINEO-ORIGEM-IA-LOJAS-1610 — pouso SEM referrer, SEM utm/click-id, direto
+ * numa página de conteúdo → 'ai_assistant_likely'. Qualquer outra coisa → null
+ * (quem chama mantém o que já sabia: origem real, ou "direto").
+ */
+export function inferAiAssistantLikely(input: {
+  path: string | null | undefined
+  rawReferrer: string | null | undefined
+  search: string | null | undefined
+}): typeof AI_ASSISTANT_LIKELY_SOURCE | null {
+  if ((input.rawReferrer ?? '').trim() !== '') return null
+  if (searchHasSourceSignal(input.search)) return null
+  if (!isContentLandingPath(input.path)) return null
+  return AI_ASSISTANT_LIKELY_SOURCE
+}
+
+/**
+ * Classe de origem de UMA sessão de pouso (`landing_session_started`) para o
+ * painel. Eventos novos já trazem `metadata.source`; os anteriores a 16/10
+ * recebem a mesma regra aplicada em retrospecto (sem o referrer CRU, que o
+ * evento antigo não guardava — por isso também é estimativa).
+ */
+export function landingSessionSourceClass(
+  metadata: Record<string, unknown> | null | undefined,
+  path: string | null | undefined,
+): string {
+  const m = metadata ?? {}
+  const str = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim().toLowerCase() : null)
+  const source = str(m.source)
+  if (source) return sanitizeAcquisitionUtmSource(source) ?? 'direct'
+  const referrerHost = str(m.referrer_host)
+  if (referrerHost) return sanitizeAcquisitionUtmSource(referrerHost) ?? 'direct'
+  const utm = str(m.utm_source)
+  if (utm) return sanitizeAcquisitionUtmSource(utm) ?? 'direct'
+  // Superfície interna sem origem = a pessoa já estava aqui; não é pouso de conteúdo "limpo".
+  if (str(m.surface)) return 'direct'
+  return isContentLandingPath(path) ? AI_ASSISTANT_LIKELY_SOURCE : 'direct'
+}

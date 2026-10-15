@@ -17,7 +17,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient, type User } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { INTERNAL_ACCOUNTS_LABEL, isInternalEmail } from '@/lib/internalAccounts'
-import { acquisitionSource, hasCorrectableSelfReferral } from '@/lib/acquisitionSource'
+import { acquisitionSource, AI_ASSISTANT_LIKELY_SOURCE, hasCorrectableSelfReferral, landingSessionSourceClass } from '@/lib/acquisitionSource'
 import { summarizeOrganicActions, uniqueOrganicActorCount } from '@/lib/organicFunnel'
 import { isOrganicSignupAttribution } from '@/lib/growth/organicSignupTruth'
 import {
@@ -187,9 +187,17 @@ export interface FunnelData {
     attributedActivated: number
     attributedPaid: number
     directOrUnknownSignups: number
+    // KINEO-ORIGEM-IA-LOJAS-1610 — ESTIMATIVA, separada de "direto" e fora de "attributed".
+    aiAssistantLikelySignups: number
     correctedSelfReferrals: number
     topSource: string | null
     topSourceSignups: number
+  }
+  // KINEO-ORIGEM-IA-LOJAS-1610 — sessões de pouso (landing_session_started) por classe de origem. ai_assistant_likely
+  // é ESTIMATIVA (pouso sem referrer e sem utm direto em página de conteúdo; pode incluir favoritos/links copiados).
+  landingSourceMix: {
+    sessions: number
+    rows: Array<{ source: string; sessions: number; estimate: boolean }>
   }
   firstVideoOnboarding: {
     views: number
@@ -1068,16 +1076,37 @@ export async function GET(req: Request) {
         paidUserSet,
       ),
     }
-    const attributedSources = sourceQuality.filter((source) => source.source !== 'direct')
+    // KINEO-ORIGEM-IA-LOJAS-1610 — a estimativa não entra em "attributed" (que é atestado) nem some dentro de "direto".
+    const attributedSources = sourceQuality.filter((source) =>
+      source.source !== 'direct' && source.source !== AI_ASSISTANT_LIKELY_SOURCE
+    )
     const topAttributedSource = attributedSources[0] ?? null
     const acquisitionAttribution = {
       attributedSignups: attributedSources.reduce((sum, source) => sum + source.signups, 0),
       attributedActivated: attributedSources.reduce((sum, source) => sum + source.activated, 0),
       attributedPaid: attributedSources.reduce((sum, source) => sum + source.paid, 0),
       directOrUnknownSignups: sourceQuality.find((source) => source.source === 'direct')?.signups ?? 0,
+      aiAssistantLikelySignups: sourceQuality.find((source) => source.source === AI_ASSISTANT_LIKELY_SOURCE)?.signups ?? 0,
       correctedSelfReferrals: cohort.filter((profile) => hasCorrectableSelfReferral(profile.signup_referrer)).length,
       topSource: topAttributedSource?.source ?? null,
       topSourceSignups: topAttributedSource?.signups ?? 0,
+    }
+
+    // KINEO-ORIGEM-IA-LOJAS-1610 — mistura de origem das SESSÕES de pouso (não pessoas). Evento novo traz metadata.source;
+    // o antigo recebe a mesma regra em retrospecto (lib/acquisitionSource.ts, landingSessionSourceClass).
+    const landingSourceCounts = new Map<string, number>()
+    let landingSessionsTotal = 0
+    for (const event of organicEventRows) {
+      if (event.name !== 'landing_session_started') continue
+      landingSessionsTotal += 1
+      const cls = landingSessionSourceClass(event.metadata, event.path)
+      landingSourceCounts.set(cls, (landingSourceCounts.get(cls) ?? 0) + 1)
+    }
+    const landingSourceMix = {
+      sessions: landingSessionsTotal,
+      rows: Array.from(landingSourceCounts.entries())
+        .map(([source, sessions]) => ({ source, sessions, estimate: source === AI_ASSISTANT_LIKELY_SOURCE }))
+        .sort((a, b) => b.sessions - a.sessions || a.source.localeCompare(b.source)),
     }
 
     const organicLandingRows = organicEventRows.filter((event) =>
@@ -1666,7 +1695,7 @@ export async function GET(req: Request) {
       },
       b2bLeadInbox,
       cohort: { signups, createdVideo, completedVideo, checkoutClicked, abandoned, paid: paidCohort },
-      funnelSteps, biggestLeak, revenueLeaks, hotLeads, sourceQuality, sourceConversion, acquisitionAttribution, firstVideoOnboarding, repeatCreatorOffer, organicRecovery, postVideoOffer, trialPostVideoOffer, trialBalanceBridge, planFitOffer, chatGptQuickstart, exampleRemix, creatorLoop, retentionLoop, topicPerformance, renderHealth, trackingHealth,
+      funnelSteps, biggestLeak, revenueLeaks, hotLeads, sourceQuality, sourceConversion, acquisitionAttribution, landingSourceMix, firstVideoOnboarding, repeatCreatorOffer, organicRecovery, postVideoOffer, trialPostVideoOffer, trialBalanceBridge, planFitOffer, chatGptQuickstart, exampleRemix, creatorLoop, retentionLoop, topicPerformance, renderHealth, trackingHealth,
     }
 
     return NextResponse.json({ data, updatedAt: new Date().toISOString() })

@@ -13,6 +13,8 @@ const prices = load('lib/checkoutPricing.ts'), offer = load('lib/ads/offer.ts')
 // intenção segue: preço e crédito canônicos, nunca digitados, e a mudança na fonte aparece no HTML.
 const v2tiers = load('lib/ads/v2Tiers.ts'), v2screen = load('lib/ads/v2Screen.ts')
 const v2Cheapest = Math.min(...v2tiers.ADS_V2_TIER_IDS.map(id => v2tiers.adsV2Credits(id, v2screen.ADS_V2_SCREEN_SECONDS)))
+// REANCORADO 15/10 (KINEO-ORIGEM-IA-LOJAS-1610): online-stores ganhou perguntas próprias (lib/growth/adsStoreGuide.ts). O FAQ
+// continua saindo de UMA função (adsSegmentFaq) para o visível e o JSON-LD; a contagem passa a ser "a mesma da função, mínimo 4".
 const expected = ['restaurants','dentists-and-clinics','real-estate','gyms-and-studios','salons-and-beauty','online-stores','local-services','courses-and-events']
 check('exactly the eight approved slugs, no duplicates', JSON.stringify(data.ADS_SEGMENT_SLUGS) === JSON.stringify(expected))
 check('static params cover every segment', page.generateStaticParams().map(x => x.segment).join('|') === expected.join('|'))
@@ -30,7 +32,7 @@ for (const segment of data.ADS_SEGMENTS) {
   const json = JSON.parse(html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)[1])
   check(`${segment.slug}: metadata length and canonical`, meta.title.absolute.length <= 60 && meta.description.length <= 155 && meta.alternates.canonical === `https://www.usekineo.com/ads/for/${segment.slug}`)
   check(`${segment.slug}: OG references its own poster`, meta.openGraph.images[0].url.endsWith(data.adsSegmentPoster(segment.slug)))
-  check(`${segment.slug}: FAQPage valid and matches visible FAQ`, json['@type'] === 'FAQPage' && json.mainEntity.length === 4 && json.mainEntity.every((q, i) => q.acceptedAnswer.text === presentation.adsSegmentFaq(segment)[i].answer && html.includes(q.name)))
+  check(`${segment.slug}: FAQPage valid and matches visible FAQ`, json['@type'] === 'FAQPage' && json.mainEntity.length >= 4 && json.mainEntity.length === presentation.adsSegmentFaq(segment).length && json.mainEntity.every((q, i) => q.acceptedAnswer.text === presentation.adsSegmentFaq(segment)[i].answer && html.includes(q.name)))
   const cta = new URL(data.adsSegmentCta(segment.slug), 'https://www.usekineo.com')
   check(`${segment.slug}: CTA attribution`, cta.pathname === '/ads' && cta.searchParams.get('utm_source') === 'seo' && cta.searchParams.get('utm_medium') === 'ads_for' && cta.searchParams.get('utm_campaign') === 'gpt24h' && cta.searchParams.get('utm_content') === segment.slug)
   check(`${segment.slug}: single primary CTA, canonical price and credits`, (html.match(/class="cta"/g) ?? []).length === 1 && html.includes(prices.formatCheckoutMoney('usd', prices.getTierPrice('starter','usd','standard'))) && html.includes(`from ${v2Cheapest} credits per ${v2screen.ADS_V2_SCREEN_SECONDS}-second ad`))

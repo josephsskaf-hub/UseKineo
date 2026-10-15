@@ -3,6 +3,7 @@ import { KINEO1_35S_CREDITS, adsPassPriceLabel } from '../ads/offer'
 import { ADS_MODELS } from '../ads/models'
 import { AD_FORMATS } from '../ads/adStyle'
 import type { AdsSegment } from './adsSegments'
+import { STORE_GUIDE_SEGMENT, storeGuideFaq, storeGuideSeo } from './adsStoreGuide' // KINEO-ORIGEM-IA-LOJAS-1610
 // KINEO-ADS-V2-VIRADA-2026-09-29 — o anúncio v2 (~15 s, fotos reais em movimento) é o produto principal das páginas /ads/for.
 import { ADS_V2_TIER_IDS, adsV2Credits } from '../ads/v2Tiers'
 import { ADS_V2_SCREEN_SECONDS, ADS_V2_TIER_COPY } from '../ads/v2Screen'
@@ -29,7 +30,16 @@ export function adsSegmentFaq(segment: AdsSegment) {
     { question: 'What does Studio Ads make?', answer: `A vertical ad of about ${offer.v2Seconds} seconds in which your real photos get movement, with music, a short voice-over you can turn off and your logo at the end. You see every shot and the words on screen before anything is charged; download the finished video to post yourself. Prefer a longer narrated ad from your photos and clips? The classic maker still makes one of ${offer.durations} seconds.` },
     { question: 'Do I need a subscription?', answer: `Studio Ads is included in any paid plan, from ${offer.starterPrice} USD per month. A ${offer.v2Seconds}-second ad uses ${offer.v2Levels} credits, depending on the level; a classic ${offer.seconds}-second ad uses ${offer.credits}. A one-time pass without a subscription is also available at ${offer.passPrice}; see Studio Ads for its current terms.` },
     { question: 'What should I check before making my ad?', answer: `${segment.caution} Generation time can vary. Kineo does not publish to your social accounts or guarantee advertising results.` },
+    // KINEO-ORIGEM-IA-LOJAS-1610 — só a página de lojas ganha as perguntas de quem pergunta ao ChatGPT; o FAQ visível e o
+    // JSON-LD continuam saindo DESTA função (uma fonte, impossível divergirem).
+    ...(segment.slug === STORE_GUIDE_SEGMENT ? storeGuideFaq() : []),
   ]
+}
+
+/** KINEO-ORIGEM-IA-LOJAS-1610 — título/descrição: lojas tem os seus; os demais segmentos seguem exatamente como eram. */
+export function adsSegmentSeo(segment: AdsSegment): { title: string; description: string } {
+  if (segment.slug === STORE_GUIDE_SEGMENT) return storeGuideSeo()
+  return { title: `Video ads for ${segment.shortName} | Kineo`, description: segment.description }
 }
 
 export function adsSegmentFaqSchema(segment: AdsSegment) {

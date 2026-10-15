@@ -1,4 +1,6 @@
 import {
+  AI_ASSISTANT_LIKELY_SOURCE,
+  inferAiAssistantLikely,
   internalSurfaceLabel,
   sanitizeAcquisitionReferrer,
   sanitizeAcquisitionUtmSource,
@@ -284,6 +286,67 @@ function storedSurface(): string | null {
   return readSurfaceCookie()
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-ORIGEM-IA-LOJAS-1610 — ESTIMATIVA "ai_assistant_likely" em chave própria.
+// ═══════════════════════════════════════════════════════════════════════════
+// Regra em lib/acquisitionSource.ts (inferAiAssistantLikely): referrer CRU vazio, sem utm/click-id, pouso direto numa
+// página de conteúdo. First-touch da estimativa (não troca uma já gravada) e só é escrita quando `kineo_src` está
+// vazio. No cadastro ela só vira `signup_utm_source` se o perfil e o pedido não trouxerem NENHUMA origem conhecida.
+const SRC_GUESS_KEY = 'kineo_src_guess'
+
+function readSourceGuessCookie(): string | null {
+  if (typeof document === 'undefined') return null
+  try {
+    const m = document.cookie.match(/(?:^|;\s*)kineo_src_guess=([^;]+)/)
+    const v = m ? decodeURIComponent(m[1]) : null
+    return v === AI_ASSISTANT_LIKELY_SOURCE ? v : null
+  } catch {
+    return null
+  }
+}
+
+function captureSourceGuessOnce(): void {
+  if (typeof window === 'undefined') return
+  try {
+    let already: string | null = null
+    try {
+      already = localStorage.getItem(SRC_GUESS_KEY)
+    } catch {
+      /* localStorage indisponível — o cookie decide */
+    }
+    if (already || readSourceGuessCookie()) return
+    const guess = inferAiAssistantLikely({
+      path: window.location.pathname,
+      rawReferrer: document.referrer,
+      search: window.location.search,
+    })
+    if (!guess) return
+    try {
+      localStorage.setItem(SRC_GUESS_KEY, guess)
+    } catch {
+      /* ignore */
+    }
+    try {
+      document.cookie = `${SRC_GUESS_KEY}=${encodeURIComponent(guess)};path=/;max-age=7776000;samesite=lax`
+    } catch {
+      /* ignore */
+    }
+  } catch {
+    /* silent — estimativa nunca pode quebrar a página */
+  }
+}
+
+function storedSourceGuess(): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(SRC_GUESS_KEY)
+    if (raw === AI_ASSISTANT_LIKELY_SOURCE) return raw
+  } catch {
+    /* cai no cookie */
+  }
+  return readSourceGuessCookie()
+}
+
 function readSourceCookie(): StoredSource | null {
   if (typeof document === 'undefined') return null
   try {
@@ -331,6 +394,10 @@ export function captureSourceOnce(): void {
 
     // Nothing to record (organic/direct with no UTMs and no external referrer) —
     // don't write an empty marker, so a later UTM landing this session can still win.
+    // KINEO-ORIGEM-IA-LOJAS-1610 — a estimativa mora numa chave PRÓPRIA (kineo_src_guess), pelo mesmo motivo da
+    // superfície: se entrasse em `kineo_src` ela CONGELARIA o first-touch e um pouso real posterior (utm chatgpt,
+    // TAAFT, Google) não conseguiria mais vencer. Ela só é lida no cadastro quando NÃO há origem nenhuma.
+    if (Object.keys(src).length === 0) captureSourceGuessOnce()
     if (Object.keys(src).length === 0) return
 
     const json = JSON.stringify(src)
@@ -406,6 +473,8 @@ export function trackSignupSource(): void {
         // `profiles.signup_surface`; NUNCA para `signup_utm_source`, que
         // responde de ONDE a pessoa veio.
         signup_surface: storedSurface(),
+        // KINEO-ORIGEM-IA-LOJAS-1610 — estimativa 'ai_assistant_likely'; o servidor só a usa sem origem conhecida.
+        signup_source_guess: storedSourceGuess(),
       }),
       keepalive: true,
     })

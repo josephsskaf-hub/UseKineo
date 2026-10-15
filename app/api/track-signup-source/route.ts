@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import {
+  AI_ASSISTANT_LIKELY_SOURCE,
   internalSurfaceLabel,
   sanitizeAcquisitionReferrer,
   sanitizeAcquisitionUtmSource,
@@ -75,6 +76,8 @@ export async function POST(req: NextRequest) {
     // pessoa veio" e `signup_surface` responde "em que tela nossa ela clicou".
     // Misturar as duas foi o que apagou a origem externa de 42 perfis.
     let signup_surface: string | null = null
+    // KINEO-ORIGEM-IA-LOJAS-1610 — estimativa; só aceita o valor exato 'ai_assistant_likely'.
+    let signup_source_guess: string | null = null
     const clean = (v: unknown, max: number): string | null =>
       typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null
     try {
@@ -93,6 +96,8 @@ export async function POST(req: NextRequest) {
       signup_surface =
         internalSurfaceLabel(clean(body?.signup_surface, 80)) ??
         internalSurfaceLabel(clean(body?.signup_utm_source, 80))
+      const guess = clean(body?.signup_source_guess, 40)
+      signup_source_guess = guess === AI_ASSISTANT_LIKELY_SOURCE ? guess : null
     } catch {
       /* no/invalid JSON body — keep nulls */
     }
@@ -128,6 +133,12 @@ export async function POST(req: NextRequest) {
       signup_surface = internalSurfaceLabel(req.cookies.get('kineo_surface')?.value ?? null)
     }
 
+    // KINEO-ORIGEM-IA-LOJAS-1610 — fallback do cookie da estimativa (chave própria, ver lib/analytics.ts).
+    if (!signup_source_guess) {
+      const cookieGuess = req.cookies.get('kineo_src_guess')?.value ?? null
+      signup_source_guess = cookieGuess === AI_ASSISTANT_LIKELY_SOURCE ? cookieGuess : null
+    }
+
     // Country comes from Vercel's edge geo header (already received in prod).
     const signup_country = req.headers.get('x-vercel-ip-country') || null
 
@@ -147,13 +158,27 @@ export async function POST(req: NextRequest) {
     if (!profile?.signup_country && signup_country) patch.signup_country = signup_country
     // KINEO-SOURCE-TRACK-2026-07-06 — Block 3.3: first-touch source columns,
     // only ever filled when still null (a reload/return visit never overwrites).
-    if (!profile?.signup_utm_source && signup_utm_source) patch.signup_utm_source = signup_utm_source
+    // KINEO-ORIGEM-IA-LOJAS-1610 — a ESTIMATIVA 'ai_assistant_likely' é a única coisa que uma origem conhecida pode
+    // substituir (atestado > inferência); origem conhecida nunca é sobrescrita.
+    if (
+      (!profile?.signup_utm_source || profile.signup_utm_source === AI_ASSISTANT_LIKELY_SOURCE) &&
+      signup_utm_source && signup_utm_source !== AI_ASSISTANT_LIKELY_SOURCE
+    ) patch.signup_utm_source = signup_utm_source
     if (!profile?.signup_utm_medium && signup_utm_medium) patch.signup_utm_medium = signup_utm_medium
     if (!profile?.signup_utm_campaign && signup_utm_campaign) patch.signup_utm_campaign = signup_utm_campaign
     if (!profile?.signup_referrer && signup_referrer) patch.signup_referrer = signup_referrer
     // KINEO-ATTRIBUTION-SURFACE-2026-08-12 — mesma regra de first-touch das
     // demais: só preenche quando ainda está nula, nunca sobrescreve.
     if (!profile?.signup_surface && signup_surface) patch.signup_surface = signup_surface
+
+    // KINEO-ORIGEM-IA-LOJAS-1610 — ESTIMATIVA 'ai_assistant_likely' (pouso sem referrer e sem utm direto numa página de
+    // conteúdo; regra em lib/acquisitionSource.ts). Mesma coluna que o painel já lê (`signup_utm_source`), mas SÓ quando
+    // não existe NENHUMA origem conhecida — nem no perfil, nem neste pedido, nem gclid. Nunca sobrescreve.
+    const sourceGuess = signup_source_guess === AI_ASSISTANT_LIKELY_SOURCE ? signup_source_guess : null
+    const noKnownOrigin =
+      !profile?.signup_utm_source && !profile?.utm_source && !profile?.signup_referrer && !profile?.gclid &&
+      !signup_utm_source && !utm_source && !signup_referrer && !gclid
+    if (sourceGuess && noKnownOrigin && !patch.signup_utm_source) patch.signup_utm_source = sourceGuess
 
     if (Object.keys(patch).length > 0) {
       await supabase.from('profiles').update(patch).eq('id', user.id)

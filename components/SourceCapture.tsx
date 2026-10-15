@@ -19,6 +19,7 @@ import { captureRefOnce } from '@/lib/referral'
 import { paidClickCookieWrite } from '@/lib/growth/paidClickAttribution' // KINEO-ANUNCIO-MOTOR-2026-10-07
 import {
   acquisitionSource,
+  inferAiAssistantLikely,
   internalSurfaceLabel,
   sanitizeAcquisitionReferrer,
 } from '@/lib/acquisitionSource'
@@ -106,8 +107,23 @@ export default function SourceCapture() {
           // Query string é opcional.
         }
 
-        // Referrer atestado pelo navegador vence o utm escrito no link.
-        const source = referrerHost ?? utmSource
+        // KINEO-ORIGEM-IA-LOJAS-1610 — sem NENHUMA pista (referrer cru vazio, sem utm/click-id) e pousando direto numa
+        // página de conteúdo → 'ai_assistant_likely' (ESTIMATIVA: o ChatGPT abre nossos links sem utm e sem referrer
+        // desde ~09/10). Só preenche o vazio: origem conhecida nunca é trocada. Home sem referrer continua "direto".
+        let inferredSource: string | null = null
+        if (referrerHost === null && utmSource === null && surface === null) {
+          try {
+            inferredSource = inferAiAssistantLikely({
+              path: window.location.pathname,
+              rawReferrer: document.referrer,
+              search: window.location.search,
+            })
+          } catch {
+            // Estimativa é opcional.
+          }
+        }
+        // Referrer atestado pelo navegador vence o utm escrito no link; a estimativa só preenche o vazio.
+        const source = referrerHost ?? utmSource ?? inferredSource
 
         void trackEvent('landing_session_started', {
           referrer_host: referrerHost,
@@ -116,8 +132,10 @@ export default function SourceCapture() {
           source,
           // O campo que torna o denominador legível: quantas sessões pousaram
           // sem NENHUMA pista de origem, separado das que tinham uma e a
-          // perdíamos por não olhar.
-          source_known: source !== null,
+          // perdíamos por não olhar. A estimativa NÃO conta como conhecida.
+          source_known: source !== null && inferredSource === null,
+          // KINEO-ORIGEM-IA-LOJAS-1610 — `source` é inferência (estimativa), não atestado.
+          source_inferred: inferredSource !== null,
         })
       }
     } catch {
