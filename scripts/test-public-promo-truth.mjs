@@ -200,7 +200,11 @@ equal(
 equal(ordinaryCreates, 1, 'ordinary checkout still makes exactly one Session call')
 
 const importAt = route.indexOf("from '@/lib/growth/publicPromoTruth'")
-const recognizeAt = route.indexOf('const promisedPublicPromo = promisedPublicPromoKind')
+// reancorado KINEO-LEVA2-1510 — KINEO-CHECKOUT-CLAREZA-1610 trocou `const` por `let` (o prazo de 48 h vencido descarta o
+// ?promo=WELCOME20 explícito). Só a forma mudou: a promessa continua reconhecida ANTES da metadata. O que a troca abriu —
+// uma reatribuição — fica cercado abaixo: é UMA só, para null, no bloco drop_requested, que apaga junto o estado 'requested'
+// da metadata e roda antes da resolução na Stripe e do desconto.
+const recognizeAt = route.indexOf('let promisedPublicPromo: PromisedPublicPromoKind | null = promisedPublicPromoKind(requestedPromo, privatePackPromo)')
 const metadataAt = route.indexOf("...publicPromoTruthMetadata(promisedPublicPromo, 'requested')")
 const attemptedAt = route.indexOf("recordCheckoutEvent('checkout_attempted'")
 const resolveAt = route.indexOf('const publicPromoResolution = await resolvePromisedPublicPromo')
@@ -215,6 +219,16 @@ const checkoutStartedAt = route.indexOf("'checkout_started',", createAt)
 ok(importAt > 0, 'production route imports the executable policy')
 ok(recognizeAt > importAt && recognizeAt < metadataAt, 'promise is recognized before metadata is built')
 ok(metadataAt < attemptedAt, 'requested state exists before checkout_attempted')
+{ // reancorado KINEO-LEVA2-1510 — a única reatribuição da promessa (prazo de 48 h vencido) não deixa metadata mentindo
+  const assigns = [...route.matchAll(/\bpromisedPublicPromo\s*=(?!=)/g)].map((m) => m.index)
+  const dropAt = route.indexOf("if (deadlineDecision === 'drop_requested') {")
+  const dropEnd = route.indexOf('\n    }', dropAt)
+  const drop = route.slice(dropAt, dropEnd)
+  ok(route.split(/\blet promisedPublicPromo\b|\bconst promisedPublicPromo\b|\bvar promisedPublicPromo\b/).length === 2 && assigns.length === 1, 'promise is declared once and has exactly one reassignment besides its recognition')
+  ok(dropAt > metadataAt && assigns[0] > dropAt && assigns[0] < dropEnd && /promisedPublicPromo = null\r?\n/.test(drop), 'the only reassignment drops the promise to null inside the expired-deadline branch')
+  ok(['public_promo_truth_version', 'public_promo_kind', 'public_promo_state'].every((k) => drop.includes(`delete checkoutMetadata.${k}`)), 'dropping the promise also erases the requested truth from Session metadata')
+  ok(dropEnd < resolveAt && dropEnd < discountsAt, 'the promise is dropped before Stripe resolution and before any discount')
+}
 ok(resolveAt > attemptedAt && resolveAt < discountsAt, 'executable Stripe resolution runs before applying the discount')
 ok(discountsAt < markAt, 'applied state is impossible before the discount enters Session params')
 ok(finalGateAt > markAt && finalGateAt < manualPromoAt, 'unverified promise fails before the manual promo fallback')
