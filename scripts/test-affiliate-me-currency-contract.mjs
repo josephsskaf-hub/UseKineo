@@ -72,6 +72,10 @@ async function run(rows, { source = routeSource, user = true, rate = settlement.
     // Reancorado 06/10 (KINEO-AFILIADOS-40-2026-10-06): a rota devolve a taxa que o webhook paga
     // (effectiveAffiliateCommissionRate, lib pura compilada de verdade) em vez da taxa crua gravada na linha.
     '@/lib/affiliateCommission': compile(fs.readFileSync('lib/affiliateCommission.ts', 'utf8'), {}),
+    // Reancorado 16/10 (KINEO-AFILIADO-POR-POST-1610): a rota lê "Your links" (lib/affiliatePostStats, provada em
+    // scripts/test-afiliado-por-post-1610.mjs). Aqui o dublê falha de propósito: o painel cai em links indisponível e
+    // o contrato de moeda segue inalterado (nenhuma escrita, nenhuma chamada externa).
+    '@/lib/affiliatePostStats': { readAffiliateLinkStats: async () => { throw new Error('fora deste contrato') } },
   }, {
     // Synthetic markers only. Host process.env is never exposed to the VM.
     process: { env: { NEXT_PUBLIC_SUPABASE_URL: 'https://fixture.invalid', SUPABASE_SERVICE_ROLE_KEY: 'fixture-not-a-key' } },

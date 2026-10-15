@@ -20,6 +20,8 @@ import {
   PARTNER_PACK_STAGE2_CREDITS,
   type PartnerPackRow,
 } from '@/lib/partnerPack'
+// KINEO-AFILIADO-POR-POST-1610 — "Your links": desempenho por post (`&p=`) e origem, 30 dias, só contagens do próprio.
+import { readAffiliateLinkStats } from '@/lib/affiliatePostStats'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -309,8 +311,19 @@ export async function GET() {
       partnerPack = { available: false }
     }
 
+    // KINEO-AFILIADO-POR-POST-1610 — escopo = o affiliate_id achado pelo user_id da SESSÃO (acima), nunca parâmetro do
+    // navegador. Leitura paginada; se falhar, o painel mostra "indisponível" em vez de um zero que mente.
+    let links: Record<string, unknown> = { available: false }
+    try {
+      links = await readAffiliateLinkStats(admin, affiliateId)
+    } catch (err) {
+      console.warn('[affiliate/me] links unavailable:', err instanceof Error ? err.message.slice(0, 160) : 'unknown')
+      links = { available: false }
+    }
+
     return NextResponse.json({
       partner_pack: partnerPack,
+      links,
       isAffiliate: true,
       affiliate: {
         code: affiliate.code,

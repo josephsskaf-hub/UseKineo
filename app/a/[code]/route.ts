@@ -15,6 +15,7 @@ import {
   defaultAffiliateRouteDestination,
   getAffiliateRouteDestination,
   isAffiliatePreviewBot,
+  readAffiliatePostTag,
 } from '@/lib/affiliateDestinations'
 import { normalizeAffiliateClickId, normalizeAffiliateCode } from '@/lib/affiliateAttribution'
 import { writeServerEvent } from '@/lib/serverEvents'
@@ -73,6 +74,7 @@ async function recordAffiliateClickEvent(input: {
   destinationKey: string
   explicitDestination: boolean
   legacyTo: string | null
+  post: string | null
   botReason: string | null
   outcome: AffiliateClickOutcome
   referrer: string | null
@@ -86,6 +88,8 @@ async function recordAffiliateClickEvent(input: {
         destination: input.destinationKey,
         explicit_to: input.explicitDestination,
         legacy_to: input.legacyTo,
+        // KINEO-AFILIADO-POR-POST-1610 — o nome do post (`&p=`), já validado; null = link sem nome.
+        post: input.post,
         is_bot: input.botReason !== null,
         bot_reason: input.botReason,
         outcome: input.outcome,
@@ -116,7 +120,10 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
   const requested = legacyTo ? getAffiliateRouteDestination(LEGACY_TO_ALIASES[legacyTo]) : asked
   const destination = requested ?? defaultAffiliateRouteDestination()
   const explicit = requested !== null
-  const destinationUrl = buildAffiliateRouteDestinationUrl(appUrl, destination.key, code)
+  // KINEO-AFILIADO-POR-POST-1610 — `?p=` (ou `?post=`): o nome que o parceiro deu ao post. Validado ([a-z0-9-], até 24);
+  // inválido = descartado. Vai no clique (landing_path + evento) e no destino como utm_term.
+  const post = readAffiliatePostTag(req.nextUrl.searchParams)
+  const destinationUrl = buildAffiliateRouteDestinationUrl(appUrl, destination.key, code, post)
   if (!code) return NextResponse.redirect(destinationUrl)
 
   try {
@@ -136,7 +143,7 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
     const userAgent = (req.headers.get('user-agent') ?? '').slice(0, 300)
     const referrer = req.headers.get('referer')
     // O caminho gravado é o link que a pessoa USOU (`?to=script` continua `?to=script`); o destino real vai no evento.
-    const landingPath = affiliateClickLandingPath(code, asked)
+    const landingPath = affiliateClickLandingPath(code, asked, post)
     // Decide com o filtro de sempre; o motivo (token casado ou UA vazio) só alimenta o evento robô x gente.
     const botReason = isAffiliatePreviewBot(userAgent) ? affiliateBotReason(userAgent) : null
     const clickEvent = (outcome: AffiliateClickOutcome) => recordAffiliateClickEvent({
@@ -145,6 +152,7 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
       destinationKey: destination.key,
       explicitDestination: explicit,
       legacyTo,
+      post,
       botReason,
       outcome,
       referrer,

@@ -131,6 +131,7 @@ export function buildAffiliateRouteDestinationUrl(
   origin: string,
   key: AffiliateRouteDestinationKey,
   code?: string | null,
+  post?: string | null,
 ): URL {
   // KINEO-AFILIADO-DESTINO-1610 — chave fora da lista cai no destino padrão COM etiqueta (antes: home sem etiqueta).
   const destination = ROUTE_DESTINATION_BY_KEY.get(key) ?? defaultAffiliateRouteDestination()
@@ -145,6 +146,10 @@ export function buildAffiliateRouteDestinationUrl(
   // par de cookies sf_aff + sf_aff_click com prova no banco.
   const normalizedCode = (code ?? '').trim().toUpperCase()
   if (AFFILIATE_CODE_SHAPE.test(normalizedCode)) url.searchParams.set('utm_content', normalizedCode)
+  // KINEO-AFILIADO-POR-POST-1610 — utm_term=<post>: o nome curto que o parceiro deu ao post (`&p=tiktok-1`). Só entra
+  // se passar em normalizeAffiliatePostTag; qualquer outra coisa é descartada, nunca cortada nem copiada crua.
+  const postTag = normalizeAffiliatePostTag(post)
+  if (postTag) url.searchParams.set('utm_term', postTag)
   return url
 }
 
@@ -174,8 +179,106 @@ export function buildAffiliateRouteShareLink(
   }
 }
 
-export function affiliateClickLandingPath(code: string, destination: AffiliateRouteDestination | null): string {
-  return destination ? `/a/${code}?to=${destination.key}` : `/a/${code}`
+export function affiliateClickLandingPath(
+  code: string,
+  destination: AffiliateRouteDestination | null,
+  post?: string | null,
+): string {
+  const base = destination ? `/a/${code}?to=${destination.key}` : `/a/${code}`
+  // KINEO-AFILIADO-POR-POST-1610 — o post vai junto no caminho gravado em affiliate_clicks.landing_path (sem coluna
+  // nova): é dele que o painel do parceiro tira a linha "por post". Só a forma validada entra.
+  const postTag = normalizeAffiliatePostTag(post)
+  if (!postTag) return base
+  return `${base}${destination ? '&' : '?'}p=${postTag}`
+}
+
+// ═══ KINEO-AFILIADO-POR-POST-1610 ═══════════════════════════════════════════════════════════════════════════════════
+// O parceiro dá nome a cada post: /a/CODIGO?to=video&p=tiktok-1. Curto, só [a-z0-9-], até 24 caracteres, com pelo
+// menos uma letra ou número. Maiúsculas viram minúsculas; QUALQUER outro caractere (espaço, acento, barra, `<`, URL,
+// e-mail) ou mais de 24 caracteres descarta o valor inteiro — nada é cortado nem "limpo" em silêncio no link, para o
+// placar nunca mostrar um nome que o parceiro não escreveu e nenhum texto arbitrário chegar à URL de destino nem às
+// métricas.
+export const AFFILIATE_POST_TAG_MAX = 24
+const AFFILIATE_POST_TAG_SHAPE = /^(?=[a-z0-9-]*[a-z0-9])[a-z0-9-]{1,24}$/
+
+export function normalizeAffiliatePostTag(value: string | null | undefined): string | null {
+  const tag = (value ?? '').trim().toLowerCase()
+  return AFFILIATE_POST_TAG_SHAPE.test(tag) ? tag : null
+}
+
+/** `p` primeiro; `post` é o apelido aceito. Valor inválido em `p` não esconde um `post` válido. */
+export function readAffiliatePostTag(params: URLSearchParams): string | null {
+  return normalizeAffiliatePostTag(params.get('p')) ?? normalizeAffiliatePostTag(params.get('post'))
+}
+
+/** O post gravado no clique (landing_path de affiliate_clicks), ou null para link sem nome / gravado antes de 16/10. */
+export function affiliatePostTagFromLandingPath(landingPath: string | null | undefined): string | null {
+  if (!landingPath) return null
+  try {
+    return readAffiliatePostTag(new URL(landingPath, 'https://www.usekineo.com').searchParams)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Gerador do painel: "TikTok #1 — outubro" → "tiktok-1-outubro". Só aqui (no navegador do próprio parceiro, antes de
+ * montar o link) o texto livre é convertido; o resultado ainda passa por normalizeAffiliatePostTag.
+ */
+export function slugifyAffiliatePostName(raw: string | null | undefined): string | null {
+  const slug = (raw ?? '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+/, '')
+    .slice(0, AFFILIATE_POST_TAG_MAX)
+    .replace(/-+$/, '')
+  return normalizeAffiliatePostTag(slug)
+}
+
+/** Link de compartilhar com o post: o mesmo do botão Copiar + `&p=<post>`. Post inválido → o link sem `p`. */
+export function buildAffiliatePostShareLink(
+  baseLink: string,
+  key: AffiliateRouteDestinationKey,
+  post: string | null | undefined,
+): string {
+  const link = buildAffiliateRouteShareLink(baseLink, key)
+  const postTag = normalizeAffiliatePostTag(post)
+  if (!link || !postTag) return link
+  const url = new URL(link)
+  url.searchParams.set('p', postTag)
+  return url.toString()
+}
+
+export type AffiliateTrafficOrigin = 'tiktok' | 'youtube' | 'instagram' | 'x' | 'other'
+export const AFFILIATE_TRAFFIC_ORIGINS: readonly AffiliateTrafficOrigin[] = ['tiktok', 'youtube', 'instagram', 'x', 'other']
+
+const ORIGIN_HOSTS: ReadonlyArray<readonly [AffiliateTrafficOrigin, readonly string[]]> = [
+  ['tiktok', ['tiktok.com']],
+  ['youtube', ['youtube.com', 'youtu.be']],
+  ['instagram', ['instagram.com']],
+  ['x', ['x.com', 'twitter.com', 't.co']],
+]
+
+/**
+ * De onde veio o clique, pelo referrer: host exato ou subdomínio (m.youtube.com, l.instagram.com, vm.tiktok.com).
+ * Sem referrer (app que não manda, link copiado, e-mail) ou qualquer outro site = 'other'. Aceita URL ou host.
+ */
+export function affiliateTrafficOrigin(referrer: string | null | undefined): AffiliateTrafficOrigin {
+  const raw = (referrer ?? '').trim().toLowerCase()
+  if (!raw) return 'other'
+  let host: string
+  try {
+    host = new URL(raw.includes('://') ? raw : `https://${raw}`).hostname
+  } catch {
+    return 'other'
+  }
+  host = host.replace(/^www\./, '')
+  for (const [origin, domains] of ORIGIN_HOSTS) {
+    if (domains.some((d) => host === d || host.endsWith(`.${d}`))) return origin
+  }
+  return 'other'
 }
 
 export function affiliateDestinationBucket(

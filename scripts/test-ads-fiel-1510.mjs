@@ -30,12 +30,13 @@ import ts from 'typescript'
 import { semFiel1510, FIEL_1510_ARQUIVOS, FIEL_1510_NOVOS, BASE_FIEL_1510, MARCA_FIEL_1510 } from './test-support/desfaz-ads-fiel-1510.mjs'
 import { semFiel2_1510 } from './test-support/desfaz-ads-fiel-2-1510.mjs' // reancorado KINEO-ADS-FIEL-2-1510 — o conserto mais novo do Ads sai PRIMEIRO, em memória
 import { semAfiliadoDestino1610 } from './test-support/desfaz-afiliado-destino-1610.mjs' // reancorado KINEO-AFILIADO-DESTINO-1610 — o conserto mais novo (link de afiliado) sai antes de todos
+import { semAfiliadoPorPost1610 } from './test-support/desfaz-afiliado-por-post-1610.mjs' // reancorado KINEO-AFILIADO-POR-POST-1610 — o nome reservado affiliate_signup_attribution_result (app/api/events/route.ts) sai antes de todos, byte a byte
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-FIEL-1510'
 const BASE = '285ac112a0be9f96182ec922cb06c4896b5357b1'
-const rd = (p) => semFiel2_1510(p, semAfiliadoDestino1610(p, readFileSync(join(ROOT, p), 'utf8'))) // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória · reancorado KINEO-AFILIADO-DESTINO-1610 — o nome reservado affiliate_link_clicked (app/api/events/route.ts) sai antes de todos
+const rd = (p) => semFiel2_1510(p, semAfiliadoDestino1610(p, semAfiliadoPorPost1610(p, readFileSync(join(ROOT, p), 'utf8')))) // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória · reancorado KINEO-AFILIADO-DESTINO-1610 — o nome reservado affiliate_link_clicked (app/api/events/route.ts) sai antes de todos
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28 })
 const base = (p) => git('show', `${BASE}:${p}`).replace(/\r\n/g, '\n')
 let pass = 0
