@@ -25,10 +25,11 @@ import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
 import ts from 'typescript'
 import { semFiel4_1510, FIEL_4_1510_ARQUIVOS, FIEL_4_1510_NOVOS, FIEL_4_1510_BASE, MARCA_FIEL_4_1510 } from './test-support/desfaz-ads-fiel-4-1510.mjs'
+import { semFiel5_1510 } from './test-support/desfaz-ads-fiel-5-1510.mjs' // reancorado KINEO-ADS-FIEL-5-1510 — o conserto mais novo do Ads (a base do produto no tampo lido) sai PRIMEIRO, em memória
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-FIEL-4-1510'
-const rd = (p) => readFileSync(join(ROOT, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semFiel5_1510(p, readFileSync(join(ROOT, p), 'utf8')) // reancorado KINEO-ADS-FIEL-5-1510 — esta prova roda a trava da Fiel 4 (base fixa); a base no tampo sai antes, byte a byte (semFiel5_1510 já devolve LF)
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 let BASE = 'HEAD'
 let ULTIMO = null

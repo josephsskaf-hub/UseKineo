@@ -30,10 +30,11 @@ import { execFileSync } from 'node:child_process'
 import ts from 'typescript'
 import { semFiel3_1510, FIEL_3_1510_ARQUIVOS, FIEL_3_1510_NOVOS, MARCA_FIEL_3_1510 } from './test-support/desfaz-ads-fiel-3-1510.mjs'
 import { semFiel4_1510 } from './test-support/desfaz-ads-fiel-4-1510.mjs' // reancorado KINEO-ADS-FIEL-4-1510 — o conserto mais novo do Ads (canto reservado da trava) sai PRIMEIRO, em memória
+import { semFiel5_1510 } from './test-support/desfaz-ads-fiel-5-1510.mjs' // reancorado KINEO-ADS-FIEL-5-1510 — o conserto mais novo do Ads (a base do produto no tampo lido) sai PRIMEIRO, em memória
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-FIEL-3-1510'
-const rd = (p) => semFiel4_1510(p, readFileSync(join(ROOT, p), 'utf8')) // reancorado KINEO-ADS-FIEL-4-1510 — esta prova roda a trava da Fiel 3 (o lugar lido pela visão); o canto reservado sai antes, byte a byte (semFiel4_1510 já devolve LF)
+const rd = (p) => semFiel4_1510(p, semFiel5_1510(p, readFileSync(join(ROOT, p), 'utf8'))) // reancorado KINEO-ADS-FIEL-4-1510 — esta prova roda a trava da Fiel 3 (o lugar lido pela visão); o canto reservado sai antes, byte a byte (semFiel4_1510 já devolve LF) · reancorado KINEO-ADS-FIEL-5-1510 — a base do produto no tampo sai antes, byte a byte (semFiel5_1510 já devolve LF)
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 let BASE = 'HEAD'
 let PROPRIO = null
