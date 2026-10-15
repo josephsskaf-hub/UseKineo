@@ -231,8 +231,8 @@ async function problems(replacements = {}) {
     p.push('relógio executado: ' + String(e && e.message))
   }
   const dec = (state, requestedWelcome, autoWelcome) => dl.welcome20CheckoutDecision({ state, requestedWelcome, autoWelcome })
-  if (dec('expired', true, false) !== 'reject_requested' || dec('expired', false, true) !== 'block_auto' || dec('active', true, true) !== 'allow' || dec('unknown', false, true) !== 'allow' || dec('not_started', true, false) !== 'allow') p.push('régua do checkout errada')
-  if (!/has ended\. You have not been charged\./.test(dl.WELCOME20_DEADLINE_ENDED_MESSAGE)) p.push('frase do link vencido não diz que nada foi cobrado')
+  if (dec('expired', true, false) !== 'drop_requested' || dec('expired', true, true) !== 'drop_requested' || dec('expired', false, true) !== 'block_auto' || dec('active', true, true) !== 'allow' || dec('unknown', false, true) !== 'allow' || dec('not_started', true, false) !== 'allow') p.push('régua do checkout errada')
+  if (dl.WELCOME20_DEADLINE_ENDED_NOTICE !== 'Your 48-hour welcome offer ended — this is the regular price.') p.push(`aviso do link vencido ≠ o aprovado: ${dl.WELCOME20_DEADLINE_ENDED_NOTICE}`)
 
   // ── 3b. fiação ───────────────────────────────────────────────────────────────────────────────────────────────────
   const route = src(CHECKOUT)
@@ -241,8 +241,16 @@ async function problems(replacements = {}) {
   const iSession = route.indexOf('stripe.checkout.sessions.create(', iDecide)
   const iAutoApply = route.indexOf('if (autoWelcome20 && !discountApplied && !promoBlocked && !privatePackPromo && !promisedPublicPromo) {')
   if (!(iAffiliate > 0 && iDecide > iAffiliate && iAutoApply > iDecide && iSession > iAutoApply)) p.push('checkout: a régua do prazo não roda antes do automático e da sessão da Stripe')
-  const block = route.slice(iDecide, iDecide + 900)
-  if (!block.includes("if (deadlineDecision === 'reject_requested') {") || !block.includes('return isGet ? redirectError(WELCOME20_DEADLINE_ENDED_MESSAGE) : jsonError(WELCOME20_DEADLINE_ENDED_MESSAGE, 409)')) p.push('checkout: link vencido não é recusado')
+  const block = route.slice(iDecide, iDecide + 1400)
+  // Link vencido com ?promo=WELCOME20: NÃO recusa (recusar perde a venda). O cupom sai do resto da rota, a sessão abre a
+  // preço cheio (a Stripe mostra o total), carimbo deadline_expired_explicit, e a resposta JSON leva o aviso.
+  const dropAt = block.indexOf("if (deadlineDecision === 'drop_requested') {")
+  const drop = dropAt >= 0 ? block.slice(dropAt, block.indexOf('\n    }', dropAt)) : ''
+  if (!drop.includes('promisedPublicPromo = null') || !drop.includes('requestedPromo = undefined') || !drop.includes("checkoutMetadata.public_promo_auto = 'deadline_expired_explicit'") || !drop.includes('welcome20DeadlineNotice = true')) p.push('checkout: link vencido não vira sessão a preço cheio (cupom descartado + carimbo + aviso)')
+  if (/\breturn\b/.test(drop) || /redirectError\(WELCOME20|jsonError\(WELCOME20|WELCOME20_DEADLINE_ENDED_MESSAGE/.test(route)) p.push('checkout: link vencido ainda RECUSA a compra (perde a venda)')
+  if (!route.includes('let requestedPromo: string | undefined =') || !route.includes('let promisedPublicPromo: PromisedPublicPromoKind | null =')) p.push('checkout: o cupom do link vencido não tem como sair do resto da rota')
+  if (!route.includes(': NextResponse.json({ url: session.url, ...(welcome20DeadlineNotice ? { notice: WELCOME20_DEADLINE_ENDED_NOTICE } : {}) })')) p.push('checkout: a resposta JSON não leva o aviso')
+  if (!client.includes("const welcomeEndedNotice = arrivedWelcomeCode && signedIn === true && welcomeDeadline.deadline?.state === 'expired'") || !client.includes('{WELCOME20_DEADLINE_ENDED_NOTICE}')) p.push('/pricing: quem chega com ?promo=WELCOME20 vencido não vê o aviso')
   if (!block.includes("if (deadlineDecision === 'block_auto') {\n      autoWelcome20 = false")) p.push('checkout: vencido ainda leva o WELCOME20 automático')
   if (!route.includes("if (autoWelcome20 || promisedPublicPromo === 'welcome_first_month_20') {")) p.push('checkout: a régua não cobre o automático e o pedido explícito')
   const iStart = route.indexOf('if (welcome20DeadlineStart && (promisedPublicPromoVerified || autoWelcome20Applied)) {')
@@ -292,7 +300,11 @@ const MUTANTES = [
   ['relógio reinicia depois de vencer', troca(DEADLINE, "if (current.state !== 'not_started') return current", "if (current.state === 'active' || current.state === 'unknown') return current")],
   ['lê a linha mais nova', troca(DEADLINE, ".order('created_at', { ascending: true })", ".order('created_at', { ascending: false })")],
   ['vencido continua aparecendo', troca(DEADLINE, "return state !== 'expired'", 'return true')],
-  ['link vencido vira preço cheio calado', troca(DEADLINE, "if (input.requestedWelcome) return 'reject_requested'", "if (input.requestedWelcome) return 'block_auto'")],
+  ['link vencido segue com o cupom (régua)', troca(DEADLINE, "if (input.requestedWelcome) return 'drop_requested'", "if (input.requestedWelcome) return 'allow'")],
+  ['link vencido: o cupom não sai do resto da rota (o bloco genérico aplicaria o WELCOME20)', troca(CHECKOUT, '      requestedPromo = undefined\n', '')],
+  ['link vencido volta a ser recusado (perde a venda)', troca(CHECKOUT, '      welcome20DeadlineNotice = true\n    }', '      welcome20DeadlineNotice = true\n      return isGet ? redirectError(WELCOME20_DEADLINE_ENDED_NOTICE) : jsonError(WELCOME20_DEADLINE_ENDED_NOTICE, 409)\n    }')],
+  ['resposta JSON sem o aviso', troca(CHECKOUT, ', ...(welcome20DeadlineNotice ? { notice: WELCOME20_DEADLINE_ENDED_NOTICE } : {})', '')],
+  ['/pricing sem o aviso do link vencido', troca(CLIENT, "&& welcomeDeadline.deadline?.state === 'expired'", "&& false")],
   ['checkout não desliga o automático do vencido', troca(CHECKOUT, "if (deadlineDecision === 'block_auto') {\n      autoWelcome20 = false", "if (deadlineDecision === 'block_auto') {\n      void autoWelcome20")],
   ['navegador pode cunhar o relógio', troca(EVENTS, "  'welcome20_deadline_started',\n", '')],
   ['cartão ignora o prazo', troca(CLIENT, '&& !arrivedWithPromo && !planSwitch.subscribed && welcome20Allowed\n', '&& !arrivedWithPromo && !planSwitch.subscribed\n')],

@@ -154,7 +154,7 @@ import {
   type PublicPromoFailureReason,
 } from '@/lib/growth/publicPromoTruth'
 // KINEO-CHECKOUT-CLAREZA-1610 — o prazo de 48 h do WELCOME20 por conta (a MESMA linha que /api/offers/welcome20-deadline lê).
-import { WELCOME20_DEADLINE_ENDED_MESSAGE, WELCOME20_DEADLINE_UNKNOWN, readWelcome20Deadline, startWelcome20Deadline, welcome20CheckoutDecision, welcome20DeadlineIdSeed, welcome20DeadlineUuid, type Welcome20DeadlineDb } from '@/lib/growth/welcome20Deadline'
+import { WELCOME20_DEADLINE_ENDED_NOTICE, WELCOME20_DEADLINE_UNKNOWN, readWelcome20Deadline, startWelcome20Deadline, welcome20CheckoutDecision, welcome20DeadlineIdSeed, welcome20DeadlineUuid, type Welcome20DeadlineDb } from '@/lib/growth/welcome20Deadline'
 import { canPurchaseCreditTopup } from '@/lib/growth/topupEligibility'
 import { CREDIT_SLIDER_MAX, CREDIT_SLIDER_MIN, CREDIT_SLIDER_PACK_ID, normalizeSliderCredits, sliderPriceUsdMinor } from '@/lib/credits/creditSlider' // KINEO-BARRA-DE-CREDITOS-2026-09-23
 import {
@@ -1195,9 +1195,10 @@ async function buildAndRedirect(
   // autopilot, packs, top-ups e atacado leem tabelas sem região.
   const region: PriceRegion = resolvePriceRegion(country)
   const rawPromo = (promo ?? '').trim()
-  const requestedPromo = /^[A-Za-z0-9_-]{1,64}$/.test(rawPromo) ? rawPromo : undefined
+  // KINEO-CHECKOUT-CLAREZA-1610 — `let`: o prazo de 48 h vencido descarta o ?promo=WELCOME20 explícito (sessão a preço cheio).
+  let requestedPromo: string | undefined = /^[A-Za-z0-9_-]{1,64}$/.test(rawPromo) ? rawPromo : undefined
   const privatePackPromo = isPrivatePackPromotion(rawPromo)
-  const promisedPublicPromo = promisedPublicPromoKind(requestedPromo, privatePackPromo)
+  let promisedPublicPromo: PromisedPublicPromoKind | null = promisedPublicPromoKind(requestedPromo, privatePackPromo) // KINEO-CHECKOUT-CLAREZA-1610: let
   const plan = TIERS[tier]
   // #381 — annual vs monthly price + billing interval.
   // KINEO-AUTOPILOT-299-2026-07-26 — Autopilot is monthly-only (see the note on
@@ -1498,10 +1499,13 @@ async function buildAndRedirect(
   }
   // ═══ KINEO-CHECKOUT-CLAREZA-1610 — o prazo de 48 h do WELCOME20 é decidido AQUI, no servidor ═══════════════════════
   // A conta tem um relógio (lib/growth/welcome20Deadline.ts): começa na 1ª vez que ela vê a oferta e vence em 48 h.
-  // Vencido: o automático não entra (preço cheio, sem erro) e um ?promo=WELCOME20 explícito (link velho, e-mail) é recusado
-  // com a frase de oferta encerrada — nada é cobrado, nada vira preço cheio calado. Leitura que falha ('unknown'), relógio
-  // não começado ou ativo = a compra de sempre. Só lê aqui; o relógio só COMEÇA depois que a sessão com -20% existe.
+  // Vencido: o automático não entra (preço cheio, sem erro). Um ?promo=WELCOME20 explícito (link velho, e-mail) NÃO recusa a
+  // compra (recusar perde a venda — coordenação 16/10): o cupom é descartado e a sessão abre a PREÇO CHEIO, que a página da
+  // Stripe mostra com clareza (public_promo_auto=deadline_expired_explicit); a resposta JSON leva o aviso para a tela.
+  // Leitura que falha ('unknown'), relógio não começado ou ativo = a compra de sempre. O relógio só COMEÇA depois que a
+  // sessão com -20% existe.
   let welcome20DeadlineStart = false
+  let welcome20DeadlineNotice = false
   if (autoWelcome20 || promisedPublicPromo === 'welcome_first_month_20') {
     const deadlineDb = welcome20DeadlineDb()
     const deadline = deadlineDb ? await readWelcome20Deadline(deadlineDb, user.id, Date.now()) : WELCOME20_DEADLINE_UNKNOWN
@@ -1511,9 +1515,15 @@ async function buildAndRedirect(
       requestedWelcome: promisedPublicPromo === 'welcome_first_month_20',
       autoWelcome: autoWelcome20,
     })
-    if (deadlineDecision === 'reject_requested') {
-      failureContext = { ...checkoutMetadata, failure_stage: 'public_promo', failure_reason: 'welcome20_deadline_expired' }
-      return isGet ? redirectError(WELCOME20_DEADLINE_ENDED_MESSAGE) : jsonError(WELCOME20_DEADLINE_ENDED_MESSAGE, 409)
+    if (deadlineDecision === 'drop_requested') {
+      // O cupom sai de TODO o resto da rota: nem o bloco prometido (que falharia fechado) nem o genérico o aplicam.
+      promisedPublicPromo = null
+      requestedPromo = undefined
+      delete checkoutMetadata.public_promo_truth_version
+      delete checkoutMetadata.public_promo_kind
+      delete checkoutMetadata.public_promo_state
+      checkoutMetadata.public_promo_auto = 'deadline_expired_explicit'
+      welcome20DeadlineNotice = true
     }
     if (deadlineDecision === 'block_auto') {
       autoWelcome20 = false
@@ -2892,7 +2902,7 @@ async function buildAndRedirect(
 
   const response = isGet
     ? NextResponse.redirect(session.url!)
-    : NextResponse.json({ url: session.url })
+    : NextResponse.json({ url: session.url, ...(welcome20DeadlineNotice ? { notice: WELCOME20_DEADLINE_ENDED_NOTICE } : {}) }) // KINEO-CHECKOUT-CLAREZA-1610
   return rememberRecurringCheckout(response, session.id)
 }
 

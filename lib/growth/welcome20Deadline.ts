@@ -9,8 +9,9 @@
 //     chave primária (23505) e o início continua sendo o da primeira. O relógio NUNCA reinicia: não há rota que apague,
 //     atualize ou regrave essa linha; ler é sempre "a linha mais antiga com esse nome desta conta".
 //   · Depois do prazo a oferta SOME: as telas param de mostrar (e o cartão para de mandar ?promo=WELCOME20) e o checkout
-//     NÃO aplica o WELCOME20 automático; um link velho com ?promo=WELCOME20 é recusado com a frase de que a oferta acabou
-//     (nada é cobrado) em vez de virar preço cheio calado. Quem decide é o servidor (app/api/stripe/checkout/route.ts).
+//     NÃO aplica o WELCOME20 automático; um link velho com ?promo=WELCOME20 NÃO recusa a compra (recusar perde a venda): o
+//     cupom é descartado e a sessão abre a preço cheio, que a página da Stripe mostra com clareza; a resposta JSON e o
+//     /pricing levam o aviso WELCOME20_DEADLINE_ENDED_NOTICE. Quem decide é o servidor (app/api/stripe/checkout/route.ts).
 //   · Leitura que falha = 'unknown': a tela não mostra contagem e o checkout segue como era antes do prazo (nunca cobra
 //     mais por erro nosso, nunca inventa que acabou).
 // Sem tabela nova e sem migration: a tabela `events` já existe, já é fechada ao navegador (o sink /api/events recusa o nome,
@@ -158,16 +159,16 @@ export async function startWelcome20Deadline(
  * A régua do checkout (pura). Devolve o que fazer com o WELCOME20 desta compra logada:
  *   'allow'  → segue como era (auto ou pedido explícito);
  *   'block_auto' → o automático não entra (a compra segue a preço cheio, sem erro);
- *   'reject_requested' → o ?promo=WELCOME20 explícito é recusado com a frase de oferta encerrada (nada é cobrado).
+ *   'drop_requested' → o ?promo=WELCOME20 explícito é DESCARTADO: a sessão abre a preço cheio (a Stripe mostra o total) e a
+ *                      tela recebe o aviso de oferta encerrada. Nunca recusa a compra (recusar perde a venda).
  * Só 'expired' bloqueia. 'unknown' / 'not_started' / 'active' / 'off' = 'allow'.
  */
-export function welcome20CheckoutDecision(input: { state: Welcome20DeadlineState; requestedWelcome: boolean; autoWelcome: boolean }): 'allow' | 'block_auto' | 'reject_requested' {
+export function welcome20CheckoutDecision(input: { state: Welcome20DeadlineState; requestedWelcome: boolean; autoWelcome: boolean }): 'allow' | 'block_auto' | 'drop_requested' {
   if (input.state !== 'expired') return 'allow'
-  if (input.requestedWelcome) return 'reject_requested'
+  if (input.requestedWelcome) return 'drop_requested'
   if (input.autoWelcome) return 'block_auto'
   return 'allow'
 }
 
-/** A frase do checkout recusado (link velho com ?promo=WELCOME20 depois do prazo). Nunca diz "erro": diz o que aconteceu. */
-export const WELCOME20_DEADLINE_ENDED_MESSAGE =
-  `Your ${WELCOME20_DEADLINE_HOURS}-hour welcome offer has ended. You have not been charged. The plans page shows the current price.`
+/** O aviso de quem chega com ?promo=WELCOME20 depois do prazo (a compra segue a preço cheio). Nunca bloqueia. */
+export const WELCOME20_DEADLINE_ENDED_NOTICE = `Your ${WELCOME20_DEADLINE_HOURS}-hour welcome offer ended — this is the regular price.`

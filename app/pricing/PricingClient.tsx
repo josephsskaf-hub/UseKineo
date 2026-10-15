@@ -115,7 +115,7 @@ import { CHECKOUT_PAYMENT_GUIDANCE_COMPACT } from '@/lib/growth/checkoutPaymentG
 import { GUEST_CHECKOUT_LIVE, guestCheckoutCoversPlanClick } from '@/lib/growth/guestCheckout' // KINEO-COMPRA-SEM-LOGIN-2026-10-06
 import PricingDealBar from '@/components/pricing/PricingDealBar' // KINEO-WELCOME20-FAIXA-2026-10-09
 import { useWelcome20Deadline } from '@/lib/growth/useWelcome20Deadline' // KINEO-CHECKOUT-CLAREZA-1610 — prazo real de 48 h
-import type { Welcome20DeadlineSurface } from '@/lib/growth/welcome20Deadline' // KINEO-CHECKOUT-CLAREZA-1610
+import { WELCOME20_DEADLINE_ENDED_NOTICE, type Welcome20DeadlineSurface } from '@/lib/growth/welcome20Deadline' // KINEO-CHECKOUT-CLAREZA-1610
 import {
   buildPricingPlanChoiceAttribution,
   sanitizePricingIntentCampaign,
@@ -597,6 +597,13 @@ export default function PricingClient({ initialBilling = 'annual' }: {
   useEffect(() => {
     if (welcomeCardShown && signedIn === true) setWelcomeSeen((s) => s ?? 'pricing_card')
   }, [welcomeCardShown, signedIn])
+  // KINEO-CHECKOUT-CLAREZA-1610 — chegou com ?promo=WELCOME20 (link velho) e o prazo da conta já venceu: a compra segue a preço
+  // cheio (o servidor descarta o cupom, a Stripe mostra o total) e a página AVISA antes do clique, sem bloquear nada.
+  const [arrivedWelcomeCode, setArrivedWelcomeCode] = useState(false)
+  useEffect(() => {
+    try { setArrivedWelcomeCode((new URLSearchParams(window.location.search).get('promo') ?? '').trim().toUpperCase() === WELCOME20_PROMOTION_CODE) } catch { /* sem URL: sem aviso */ }
+  }, [])
+  const welcomeEndedNotice = arrivedWelcomeCode && signedIn === true && welcomeDeadline.deadline?.state === 'expired'
   const welcomeFirstMonthMinor = (tier: 'basic' | 'pro'): number =>
     Math.round((getTierPrice(tier, resolvedCurrency, resolvedRegion) * (100 - WELCOME20_PERCENT_OFF)) / 100)
   // KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — o cartão novo: ligado para todos só com PRICING_VALUE_CARDS_PUBLIC; antes disso,
@@ -1143,6 +1150,11 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         <p className="-mt-5 mb-7 text-center text-[11.5px] font-semibold text-[var(--muted)]">
           {CHECKOUT_CURRENCY_DISCLOSURE}
         </p>
+        {welcomeEndedNotice ? (
+          <p role="status" data-testid="welcome20-ended-notice" className="-mt-4 mb-7 text-center text-[13px] font-bold text-[var(--text)]">
+            {WELCOME20_DEADLINE_ENDED_NOTICE}{/* KINEO-CHECKOUT-CLAREZA-1610 */}
+          </p>
+        ) : null}
 
         {/* KINEO-SPRINT-OFFER-2026-07-14 — SINGLE OFFER cleanup. Three stacked
             competing offers used to sit here (FOUNDING50 "50% for life" banner,
