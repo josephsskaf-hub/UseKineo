@@ -32,7 +32,7 @@ export const maxDuration = 300
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 
-const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com'])
+const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com', 'josephskaf@hotmail.com'])
 const FROM_EMAIL = 'Joseph at Kineo <joseph@usekineo.com>'
 const REPLY_TO = 'joseph@usekineo.com'
 const STAMP = 'card_entry_d1_sent'

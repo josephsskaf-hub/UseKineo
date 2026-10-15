@@ -34,7 +34,7 @@ export const maxDuration = 120
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 
-const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com'])
+const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com', 'josephskaf@hotmail.com'])
 const REFUND_REASON = 'cinematic_abandoned_no_delivery'
 const STAMP = 'rescued_film_persisted'
 

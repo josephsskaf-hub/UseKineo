@@ -15,7 +15,7 @@ import { readAll } from '../../../../lib/supabase/readAll'
 export const ADMIN_EMAILS = new Set([
   'josephsskaf@gmail.com',
   'josephskaf@gmail.com',
-  'joseph-test@shortsforgeai.com',
+  'joseph-test@shortsforgeai.com', 'josephskaf@hotmail.com',
 ])
 
 export function isAdminEmail(email: string | null | undefined): boolean {

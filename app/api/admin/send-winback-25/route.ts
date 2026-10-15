@@ -43,7 +43,7 @@ export const dynamic = 'force-dynamic'
 // zera o revalidate ANTES do primeiro fetch. Nao remover.
 export const fetchCache = 'force-no-store'
 
-const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com'])
+const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com', 'josephskaf@hotmail.com'])
 const FROM_EMAIL = 'Joseph at Kineo <joseph@usekineo.com>'
 const REPLY_TO = 'joseph@usekineo.com'
 const STAMP = 'winback25_sent'

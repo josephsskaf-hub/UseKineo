@@ -62,7 +62,7 @@ export const dynamic = 'force-dynamic'
 // Rota só-GET no Next 14.2 nasce com revalidate=false e leria o banco congelado (KINEO-DATA-CACHE-2026-09-02).
 export const fetchCache = 'force-no-store'
 
-const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com'])
+const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com', 'josephskaf@hotmail.com'])
 const ROUTE = '/api/admin/send-winback-film-60s'
 /** Fatia de ids por consulta `in.(...)` (a URL do PostgREST estoura com milhares de UUIDs). */
 const CHUNK = 200

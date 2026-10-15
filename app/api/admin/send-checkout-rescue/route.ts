@@ -60,7 +60,7 @@ export const fetchCache = 'force-no-store'
 const ADMIN_EMAILS = new Set([
   'josephsskaf@gmail.com',
   'josephskaf@gmail.com',
-  'joseph-test@shortsforgeai.com',
+  'joseph-test@shortsforgeai.com', 'josephskaf@hotmail.com',
 ])
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY ?? ''
