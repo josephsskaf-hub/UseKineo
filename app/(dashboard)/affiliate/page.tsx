@@ -26,9 +26,13 @@ import { trackEvent } from '@/lib/analytics'
 import {
   AFFILIATE_DESTINATIONS,
   RECOMMENDED_AFFILIATE_DESTINATION,
+  AFFILIATE_POST_TAG_MAX,
+  buildAffiliatePostShareLink,
   buildAffiliateShareLink,
   getAffiliateDestination,
+  slugifyAffiliatePostName,
   type AffiliateDestinationKey,
+  type AffiliateTrafficOrigin,
 } from '@/lib/affiliateDestinations'
 import {
   buildAffiliateWidgetEmbedUrl,
@@ -75,6 +79,8 @@ interface AffiliateMe {
   stats?: { clicks: number; signups: number; paid: number }
   earnings?: { pending: number; approved: number; paid: number; total: number }
   recent?: Commission[]
+  // KINEO-AFILIADO-POR-POST-1610 — "Your links": por post (`&p=`) e origem, 30 dias, só contagens.
+  links?: AffiliateLinks | { available: false }
   // KINEO-PARTNERS-PACOTE-2026-10-03 — pacote de demonstração (cortesia em 2 etapas).
   partner_pack?: {
     available: boolean
@@ -87,6 +93,31 @@ interface AffiliateMe {
     stage2_credits?: number
     days?: number
   }
+}
+
+interface LinkCounts {
+  clicks: number
+  signups: number
+  first_film: number
+  paid: number
+}
+
+interface AffiliateLinks {
+  available: true
+  window_days: number
+  rows: Array<LinkCounts & { post: string | null; origin: AffiliateTrafficOrigin }>
+  others: LinkCounts | null
+  untracked: LinkCounts
+  totals: LinkCounts
+  robots_excluded: number
+}
+
+const ORIGIN_LABEL: Record<AffiliateTrafficOrigin, string> = {
+  tiktok: 'TikTok',
+  youtube: 'YouTube',
+  instagram: 'Instagram',
+  x: 'X',
+  other: 'Other / direct',
 }
 
 const CYAN = 'var(--accent)'
@@ -175,6 +206,185 @@ function PartnerPackCard({ pack, onSaved }: { pack: NonNullable<AffiliateMe['par
       {pack.post_status === 'rejected' && pack.stage === 1 && <p className="text-xs mt-2" style={{ color: 'var(--warning)' }}>The last link could not be approved (it must be public and show your link or coupon). You can send another one.</p>}
       {error && <p className="text-xs mt-2" style={{ color: 'var(--warning)' }}>{error}</p>}
     </div>
+  )
+}
+
+// KINEO-AFILIADO-POR-POST-1610 — gerador do link por post: o parceiro dá um nome curto ("tiktok 1"), a página monta
+// o link do destino escolhido + `&p=tiktok-1` e copia. O nome vira só [a-z0-9-], até 24 caracteres (o servidor
+// descarta qualquer outra forma), e é por ele que a tabela "Your links" separa cada post.
+function PostLinkGenerator({
+  baseLink,
+  destinationKey,
+  destinationLabel,
+}: {
+  baseLink: string
+  destinationKey: AffiliateDestinationKey
+  destinationLabel: string
+}) {
+  const [name, setName] = useState('')
+  const [copied, setCopied] = useState(false)
+  const tag = slugifyAffiliatePostName(name)
+  const link = tag ? buildAffiliatePostShareLink(baseLink, destinationKey, tag) : ''
+  async function copy() {
+    if (!link) return
+    try {
+      await navigator.clipboard.writeText(link)
+      setCopied(true)
+      trackAffiliateEvent('affiliate_post_link_copied', { destination: destinationKey, post_tag_length: tag?.length ?? 0 })
+      setTimeout(() => setCopied(false), 1800)
+    } catch {
+      // O campo continua selecionável à mão quando o navegador bloqueia a área de transferência.
+    }
+  }
+  return (
+    <div data-testid="affiliate-post-link-generator" className="rounded-xl p-4 mt-4" style={{ background: 'var(--card2)', border: BORDER }}>
+      <label htmlFor="affiliate-post-name" className="block text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: CYAN }}>
+        One link per post
+      </label>
+      <p className="text-xs mb-3" style={{ color: MUTED, lineHeight: 1.5 }}>
+        Name this post and use its own link, so &ldquo;Your links&rdquo; below shows which post brought people in. Same
+        page ({destinationLabel}), same 90-day attribution.
+      </p>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <input
+          id="affiliate-post-name"
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value)
+            setCopied(false)
+          }}
+          placeholder="Name this post — e.g. tiktok 1"
+          maxLength={60}
+          className="sm:w-56 rounded-xl px-3 py-2.5 text-xs"
+          style={{ background: CARD, border: BORDER, color: TEXT, outline: 'none', fontFamily: 'inherit' }}
+        />
+        <input
+          readOnly
+          aria-label="Link for this post"
+          value={link || 'Type a name to build the link'}
+          onFocus={(e) => e.currentTarget.select()}
+          className="flex-1 rounded-xl px-3 py-2.5 text-xs"
+          style={{ background: CARD, border: BORDER, color: link ? TEXT : MUTED, outline: 'none', fontFamily: 'inherit', minWidth: 0 }}
+        />
+        <button
+          type="button"
+          onClick={() => void copy()}
+          disabled={!link}
+          aria-live="polite"
+          className="rounded-xl px-5 py-2.5 text-xs font-black"
+          style={{ background: 'var(--indigo)', color: 'var(--on-accent)', border: 'none', whiteSpace: 'nowrap', cursor: link ? 'pointer' : 'default', opacity: link ? 1 : 0.5 }}
+        >
+          {copied ? '✓ Copied!' : 'Copy post link'}
+        </button>
+      </div>
+      <p className="text-[10px] mt-2 mb-0" style={{ color: MUTED, lineHeight: 1.5 }}>
+        {tag ? <>Post name in the link: <strong style={{ color: TEXT }}>{tag}</strong>. </> : null}
+        Letters, numbers and dashes only, up to {AFFILIATE_POST_TAG_MAX} characters.
+      </p>
+    </div>
+  )
+}
+
+// KINEO-AFILIADO-POR-POST-1610 — "Your links": por post e origem, só contagens (nunca quem se cadastrou).
+function YourLinksTable({ links }: { links: AffiliateMe['links'] }) {
+  if (!links) return null
+  // No celular (< sm) a coluna "From" dobra para baixo do nome do post: as 4 contagens cabem em 390px sem rolar.
+  const cell = 'px-2 sm:px-3 py-2 text-right tabular-nums'
+  const first = 'px-2 sm:px-3 py-2'
+  const fromCol = 'hidden sm:table-cell px-3 py-2'
+  const n = (v: number) => v.toLocaleString('en-US')
+  if (!links.available) {
+    return (
+      <section data-testid="affiliate-your-links" className="mb-6">
+        <h2 className="font-black tracking-tight mb-3" style={{ fontSize: '0.85rem', color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          Your links
+        </h2>
+        <p className="text-xs rounded-2xl p-4" style={{ background: CARD, border: BORDER, color: MUTED }}>
+          Per-post numbers are temporarily unavailable. Your totals above are not affected — try again in a few minutes.
+        </p>
+      </section>
+    )
+  }
+  const extraRows: Array<{ key: string; label: string; origin: string; counts: LinkCounts }> = []
+  if (links.others) extraRows.push({ key: 'others', label: 'All other posts', origin: '—', counts: links.others })
+  if (links.untracked.signups > 0) {
+    extraRows.push({ key: 'untracked', label: 'Not linked to a post', origin: '—', counts: links.untracked })
+  }
+  const empty = links.rows.length === 0 && extraRows.length === 0
+  return (
+    <section data-testid="affiliate-your-links" className="mb-6">
+      <h2 className="font-black tracking-tight mb-1" style={{ fontSize: '0.85rem', color: MUTED, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+        Your links · last {links.window_days} days
+      </h2>
+      <p className="text-xs mb-3" style={{ color: MUTED, lineHeight: 1.5 }}>
+        Where your visitors came from: each post you named and the site that sent them.
+      </p>
+      <div className="rounded-2xl overflow-x-auto" style={{ background: CARD, border: BORDER }}>
+        <table className="w-full text-left text-xs">
+          <thead>
+            <tr style={{ color: MUTED }}>
+              <th className={`${first} font-bold`}>Post</th>
+              <th className={`${fromCol} font-bold`}>From</th>
+              <th className={`${cell} font-bold`}>Visits</th>
+              <th className={`${cell} font-bold`}>Signups</th>
+              <th className={`${cell} font-bold`}>
+                <span className="hidden sm:inline">Made a 1st film</span>
+                <span className="sm:hidden">1st film</span>
+              </th>
+              <th className={`${cell} font-bold`}>Paid</th>
+            </tr>
+          </thead>
+          <tbody>
+            {links.rows.map((r) => (
+              <tr key={`${r.post ?? ''}|${r.origin}`} style={{ borderTop: BORDER, color: TEXT }}>
+                <td className={`${first} font-bold`} style={{ color: r.post ? TEXT : MUTED, wordBreak: 'break-all' }}>
+                  {r.post ?? '(no post name)'}
+                  <span className="sm:hidden block font-normal text-[10px]" style={{ color: MUTED }}>{ORIGIN_LABEL[r.origin] ?? ORIGIN_LABEL.other}</span>
+                </td>
+                <td className={fromCol}>{ORIGIN_LABEL[r.origin] ?? ORIGIN_LABEL.other}</td>
+                <td className={cell}>{n(r.clicks)}</td>
+                <td className={cell}>{n(r.signups)}</td>
+                <td className={cell}>{n(r.first_film)}</td>
+                <td className={`${cell} font-black`} style={{ color: r.paid > 0 ? GREEN : TEXT }}>{n(r.paid)}</td>
+              </tr>
+            ))}
+            {extraRows.map((r) => (
+              <tr key={r.key} style={{ borderTop: BORDER, color: MUTED }}>
+                <td className={`${first} italic`}>{r.label}</td>
+                <td className={fromCol}>{r.origin}</td>
+                <td className={cell}>{n(r.counts.clicks)}</td>
+                <td className={cell}>{n(r.counts.signups)}</td>
+                <td className={cell}>{n(r.counts.first_film)}</td>
+                <td className={cell}>{n(r.counts.paid)}</td>
+              </tr>
+            ))}
+            {empty ? (
+              <tr>
+                <td colSpan={6} className="px-3 py-6 text-center" style={{ color: MUTED }}>
+                  No visits in the last {links.window_days} days yet — name your next post above and share its link.
+                </td>
+              </tr>
+            ) : (
+              <tr style={{ borderTop: BORDER, color: TEXT }}>
+                <td className={`${first} font-black`}>Total</td>
+                <td className={fromCol} />
+                <td className={`${cell} font-black`}>{n(links.totals.clicks)}</td>
+                <td className={`${cell} font-black`}>{n(links.totals.signups)}</td>
+                <td className={`${cell} font-black`}>{n(links.totals.first_film)}</td>
+                <td className={`${cell} font-black`}>{n(links.totals.paid)}</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      <p data-testid="affiliate-your-links-footnote" className="text-[11px] mt-2 mb-0" style={{ color: MUTED, lineHeight: 1.55 }}>
+        Visits are people, not page loads: robots and link previews are excluded
+        {links.robots_excluded > 0 ? ` (${n(links.robots_excluded)} removed)` : ''}, and reopening the link in the same
+        browser counts once. A signup belongs to the first partner link the person clicked, for 90 days. Links shared
+        without a name show as &ldquo;(no post name)&rdquo;; signups through your coupon, or from before per-post
+        tracking, show as &ldquo;Not linked to a post&rdquo;. Only counts are shown here — never who signed up.
+      </p>
+    </section>
   )
 }
 
@@ -681,6 +891,11 @@ export default function AffiliatePage() {
             {copied ? '✓ Copied!' : 'Copy link'}
           </button>
         </div>
+        <PostLinkGenerator
+          baseLink={data.link ?? ''}
+          destinationKey={selectedDestinationKey}
+          destinationLabel={selectedDestination.label}
+        />
         {shareTargets.length ? (
           <div className="flex flex-wrap items-center gap-2 mt-3">
             <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: MUTED }}>
@@ -889,6 +1104,8 @@ export default function AffiliatePage() {
       <p data-testid="affiliate-payout-terms" className="text-xs mb-6" style={{ color: 'var(--muted)', lineHeight: 1.5 }}>
         {AFFILIATE_PAYOUT_TERMS} {AFFILIATE_BONUS_TERMS} {AFFILIATE_BUSINESS_TERMS}
       </p>
+
+      <YourLinksTable links={data.links} />
 
       {/* Recent commissions */}
       <section>

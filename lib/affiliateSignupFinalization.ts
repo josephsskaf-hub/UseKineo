@@ -72,6 +72,15 @@ export async function finalizeAffiliateSignupAttribution(input: {
       source: input.source,
       outcome,
       already_attributed: result.ok ? result.already : false,
+      // KINEO-AFILIADO-POR-POST-1610 — só numa indicação NOVA: dono interno (nunca o código), o post (`&p=`) e o
+      // site de origem do clique-prova. É daqui que /api/affiliate/me tira "cadastros por post" do parceiro.
+      ...(result.ok && !result.already && result.source
+        ? {
+            affiliate_id: result.affiliateId,
+            post: result.source.post,
+            referrer_host: result.source.referrerHost,
+          }
+        : {}),
     },
   })
 

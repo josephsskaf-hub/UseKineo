@@ -22,7 +22,10 @@ import vm from 'node:vm'
 import ts from 'typescript'
 
 const root = process.cwd()
-const read = (file) => fs.readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n')
+// reancorado KINEO-AFILIADO-POR-POST-1610 — o conserto mais novo (`&p=` por post + "Your links") sai PRIMEIRO, em memória e
+// byte a byte (scripts/test-support/desfaz-afiliado-por-post-1610.mjs); o comportamento dele é provado em test-afiliado-por-post-1610.
+import { semAfiliadoPorPost1610 } from './test-support/desfaz-afiliado-por-post-1610.mjs'
+const read = (file) => semAfiliadoPorPost1610(file, fs.readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n'))
 
 function compile(source, imports = {}, env = {}) {
   const box = { exports: {} }

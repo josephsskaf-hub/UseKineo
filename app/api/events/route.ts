@@ -54,6 +54,9 @@ const SERVER_ONLY_EVENTS = new Set([
   // KINEO-AFILIADO-DESTINO-1610 — clique de link de afiliado (robô x gente), escrito só por app/a/[code]/route.ts.
   // Forjado pelo navegador, inflaria o placar do parceiro que o fundador usa para decidir quem recebe cortesia.
   'affiliate_link_clicked',
+  // KINEO-AFILIADO-POR-POST-1610 — resultado da atribuição no cadastro (lib/affiliateSignupFinalization.ts). Leva o
+  // dono e o post de origem de cada indicação nova; forjado pelo navegador, inventaria cadastro "por post" no painel.
+  'affiliate_signup_attribution_result',
   'payment_success',
   'checkout_attempted',
   'checkout_auth_required',

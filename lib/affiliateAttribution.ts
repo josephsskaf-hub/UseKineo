@@ -17,8 +17,37 @@ type AffiliateAttributionReason =
   | 'profile_stamp_failed'
   | 'unexpected_failure'
 
+// KINEO-AFILIADO-POR-POST-1610 — de QUAL post (`&p=`) e de QUAL site (referrer) veio o clique-prova que virou esta
+// indicação. Só sai numa indicação NOVA (insert confirmado): é o que o painel do parceiro usa para "Your links".
+// Sem import novo de propósito (os guardiões executam este arquivo com dublês só de @/lib/affiliateCode e supabase).
+export type AffiliateReferralClickSource = { post: string | null; referrerHost: string | null }
+
+// Espelho de normalizeAffiliatePostTag (lib/affiliateDestinations.ts): o caminho gravado já sai validado da rota
+// /a/[code], e a leitura revalida — aqui só não deixa nada fora da forma virar métrica.
+const CLICK_POST_SHAPE = /^(?=[a-z0-9-]*[a-z0-9])[a-z0-9-]{1,24}$/
+
+export function affiliateReferralClickSource(
+  click: { landing_path?: unknown; referrer?: unknown } | null | undefined,
+): AffiliateReferralClickSource {
+  let post: string | null = null
+  let referrerHost: string | null = null
+  try {
+    const raw = new URL(String(click?.landing_path ?? ''), 'https://www.usekineo.com').searchParams.get('p')
+    post = raw && CLICK_POST_SHAPE.test(raw) ? raw : null
+  } catch {
+    post = null
+  }
+  try {
+    const ref = String(click?.referrer ?? '').trim()
+    referrerHost = ref ? new URL(ref).hostname.replace(/^www\./, '').slice(0, 120) || null : null
+  } catch {
+    referrerHost = null
+  }
+  return { post, referrerHost }
+}
+
 type AffiliateAttributionResult =
-  | { ok: true; affiliateId: string; already: boolean }
+  | { ok: true; affiliateId: string; already: boolean; source?: AffiliateReferralClickSource }
   | { ok: false; reason: AffiliateAttributionReason; affiliateId?: string }
 
 type AffiliateUser = {
@@ -128,7 +157,7 @@ export async function attributeAffiliateForUser(
     if (!clickId) return { ok: false, reason: 'invalid_click_proof' }
     const { data: click, error: clickError } = await admin
       .from('affiliate_clicks')
-      .select('id, affiliate_id, created_at')
+      .select('id, affiliate_id, created_at, landing_path, referrer')
       .eq('id', clickId)
       .eq('affiliate_id', affiliate.id)
       .maybeSingle()
@@ -173,10 +202,11 @@ export async function attributeAffiliateForUser(
     }
 
     const stamped = await stampProfile(canonicalAffiliateId)
+    const already = !!insertError || !inserted?.affiliate_id
     return stamped
       // Only a confirmed insert is a new attribution. A unique-race loser
       // reconciles the existing owner and must not emit another acquisition.
-      ? { ok: true, affiliateId: canonicalAffiliateId, already: !!insertError || !inserted?.affiliate_id }
+      ? { ok: true, affiliateId: canonicalAffiliateId, already, ...(already ? {} : { source: affiliateReferralClickSource(click) }) }
       : { ok: false, reason: 'profile_stamp_failed', affiliateId: canonicalAffiliateId }
   } catch {
     return { ok: false, reason: 'unexpected_failure' }
