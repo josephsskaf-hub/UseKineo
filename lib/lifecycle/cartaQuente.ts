@@ -33,6 +33,7 @@
 import { WELCOME20_PERCENT_OFF } from '../growth/publicPromoTruth'
 import { regionPassGoHref, regionPassOfferEligible, type RegionPassPrice } from '../regionPass'
 import { linguaDoPais, paisDoPerfil, precoDaCarta, type RegionEmailLang } from './regionFirstFilmEmail'
+import { conviteHtml, conviteTexto, garantiaHtml, garantiaTexto, type RapidoNaCarta } from './abandonoRapido' // KINEO-ABANDONO-RAPIDO-1610
 
 export const CARTA_QUENTE_MARK = 'KINEO-JOGADAS-VENDA-1510' as const
 /** Gravado no carimbo de envio ao lado do EMAIL_VERSION de sempre (que os guardiões de 08/10 conferem byte a byte). */
@@ -126,7 +127,11 @@ export function paisELingua(perfil: { signup_country?: unknown; last_country?: u
   return { pais, lang: linguaDoPais(pais) }
 }
 
-export type ExtrasDaCarta = { lang: CartaLang; proprio: FilmeProprio | null; passe: PasseNaCarta | null }
+export type ExtrasDaCarta = {
+  lang: CartaLang; proprio: FilmeProprio | null; passe: PasseNaCarta | null
+  /** KINEO-ABANDONO-RAPIDO-1610 — a garantia da página aberta e o convite do filme grátis (ausente = a carta de antes). */
+  rapido?: RapidoNaCarta | null
+}
 export const SEM_EXTRAS: ExtrasDaCarta = { lang: 'en', proprio: null, passe: null }
 
 // ─── O texto (en/pt/es) ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -294,12 +299,12 @@ export function cartaTraduzida(input: {
 
 ${c.open}
 
-${feitoT}${blocoDoFilmeTexto(x)}
+${feitoT}${blocoDoFilmeTexto(x)}${conviteTexto(x)}
 
 ${ofertaT}${c.mesmaPagina}
 
 ${input.liveUrl}
-${passeTexto(x)}
+${garantiaTexto(x)}${passeTexto(x)}
 ${c.resposta}
 
 ${c.assinatura}
@@ -318,8 +323,8 @@ ${botao(input.liveUrl, c.botao)}`
 <p>${esc(c.hey)}</p>
 <p>${esc(c.open)}</p>
 <p>${feitoH}</p>
-${blocoDoFilmeHtml(x)}${meio}
-${passeHtml(x)}<p>${esc(c.resposta)}</p>
+${blocoDoFilmeHtml(x)}${conviteHtml(x)}${meio}
+${garantiaHtml(x)}${passeHtml(x)}<p>${esc(c.resposta)}</p>
 <p>${esc(c.assinatura)}<br/>Kineo &middot; <a href="https://usekineo.com" style="color:${AZUL}">usekineo.com</a></p>
 ${input.rodape.html}</div>`
   return { text, html }

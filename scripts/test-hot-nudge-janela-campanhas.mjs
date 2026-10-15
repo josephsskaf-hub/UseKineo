@@ -22,11 +22,12 @@ import { compileOffline, memoryDb } from './test-support/truncamento-dedupe-offl
 // reancorado KINEO-JOGADAS-VENDA-1510 — a rota passou a importar a carta (lib/lifecycle/cartaQuente.ts, módulo puro): o dublê é o
 // módulo REAL, carregado pelo loader offline (resolve os imports relativos de verdade). Nenhuma verificação mudou.
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
-const cartaQuenteReal = createOfflineLoader()('lib/lifecycle/cartaQuente.ts')
+import { desfazAbandonoRapido1610 } from './test-support/desfaz-abandono-rapido-1610.mjs' // reancorado KINEO-ABANDONO-RAPIDO-1610: lê a carta da época (a nova é provada em test-abandono-rapido-1610)
+const cartaQuenteReal = createOfflineLoader({ source: (rel, s) => desfazAbandonoRapido1610(rel, s) })('lib/lifecycle/cartaQuente.ts') // reancorado KINEO-ABANDONO-RAPIDO-1610
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 const ROTA = join(raiz, 'app/api/admin/send-checkout-hot-nudge/route.ts')
-const src = readFileSync(ROTA, 'utf8')
+const src = desfazAbandonoRapido1610('app/api/admin/send-checkout-hot-nudge/route.ts', readFileSync(ROTA, 'utf8')) // reancorado KINEO-ABANDONO-RAPIDO-1610
 
 let ok = 0
 let falhou = 0

@@ -25,6 +25,15 @@ import { buildSeriesContinuationEmailUrl } from '@/lib/seriesContinuation'
 // guardião scripts/test-recovery-clock-premise-2026-09-05.mjs fica VERMELHO
 // para forçar a releitura das duas decisões de copy que dependem dele.
 import { RECURRING_CHECKOUT_WINDOW_HOURS } from '@/lib/growth/checkoutSessionWindow'
+// ═══ KINEO-ABANDONO-RAPIDO-1610 — este e-mail vira o SEGUNDO toque ═══════════════════════════════════════════════════
+// O primeiro toque agora é a carta rápida (app/api/admin/send-checkout-hot-nudge, 30 min–6 h depois do clique, com o filme ou
+// o filme grátis e a garantia). Este, que sai ~24 h depois (quando a sessão expira), continua para quem NÃO levou a
+// rápida; para quem levou, só sai se a pessoa NÃO voltou ao site depois dela (nenhum evento de navegador com
+// session_id). Quem voltou já reagiu ao primeiro toque: pula, com o sentinela de pulo. Leitura que falha = adia (sem
+// carimbo). Não desliguei este e-mail porque ele é o ÚNICO da história com pagamento atribuído (1 em 121, auditoria de
+// 08/10) e, medido em 16/10, 36 das 37 pessoas que o receberam depois da rápida não tinham voltado — é o 2º toque de
+// quem não reagiu, não uma duplicata. Decisão pura em lib/lifecycle/abandonoRapido.ts (decidirSegundoToque24h).
+import { CARTA_RAPIDA_EVENT, decidirSegundoToque24h, inicioDaBuscaDaCartaRapida, type SegundoToque } from '@/lib/lifecycle/abandonoRapido'
 
 // send-recovery — Push #425
 //
@@ -732,6 +741,34 @@ async function latestCompletedFilm(
   }
 }
 
+/**
+ * KINEO-ABANDONO-RAPIDO-1610 — este e-mail é o segundo toque desta pessoa, ou ela já reagiu ao primeiro?
+ * Duas leituras POR PESSOA (coorte de ~2/dia), ambas de existência (limit 1): a carta rápida deste abandono (desde
+ * inicioDaBuscaDaCartaRapida) e, se houver, qualquer evento de navegador (session_id) depois dela. Erro = undefined =
+ * 'adiar' (a decisão pura fecha a porta; a linha fica elegível para a próxima rodada).
+ */
+async function segundoToque(admin: SupabaseClient, userId: string, expiredAt: string | null): Promise<SegundoToque> {
+  try {
+    const desde = inicioDaBuscaDaCartaRapida(expiredAt, RECURRING_CHECKOUT_WINDOW_HOURS)
+    if (!desde) return decidirSegundoToque24h({ cartaRapidaEm: undefined, voltou: undefined })
+    const { data: cartas, error: cartaErr } = await admin
+      .from('events').select('created_at')
+      .eq('name', CARTA_RAPIDA_EVENT).eq('user_id', userId).gte('created_at', desde)
+      .order('created_at', { ascending: false }).limit(1)
+    if (cartaErr || !Array.isArray(cartas)) return decidirSegundoToque24h({ cartaRapidaEm: undefined, voltou: undefined })
+    const cartaEm = typeof cartas[0]?.created_at === 'string' ? (cartas[0].created_at as string) : null
+    if (!cartaEm) return decidirSegundoToque24h({ cartaRapidaEm: null, voltou: null })
+    const { data: voltas, error: voltaErr } = await admin
+      .from('events').select('id')
+      .eq('user_id', userId).gt('created_at', cartaEm).not('session_id', 'is', null)
+      .limit(1)
+    if (voltaErr || !Array.isArray(voltas)) return decidirSegundoToque24h({ cartaRapidaEm: cartaEm, voltou: undefined })
+    return decidirSegundoToque24h({ cartaRapidaEm: cartaEm, voltou: voltas.length > 0 })
+  } catch {
+    return decidirSegundoToque24h({ cartaRapidaEm: undefined, voltou: undefined })
+  }
+}
+
 export async function GET(req: NextRequest) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -792,10 +829,10 @@ export async function GET(req: NextRequest) {
   }
 
   // One candidate row per user (most recent abandonment wins).
-  const byUser = new Map<string, { id: string; tier: string | null }>()
+  const byUser = new Map<string, { id: string; tier: string | null; expiredAt: string | null }>()
   for (const r of rows ?? []) {
     if (r.user_id && !byUser.has(r.user_id)) {
-      byUser.set(r.user_id, { id: r.id, tier: r.tier })
+      byUser.set(r.user_id, { id: r.id, tier: r.tier, expiredAt: typeof r.expired_at === 'string' ? r.expired_at : null }) // KINEO-ABANDONO-RAPIDO-1610
     }
   }
   if (byUser.size === 0) {
@@ -845,6 +882,9 @@ export async function GET(req: NextRequest) {
   // Linhas elegíveis que ficaram para a próxima execução por causa do teto —
   // reportado para que "sent" menor que "total" nunca precise ser adivinhado.
   let deferredByCap = 0
+  // KINEO-ABANDONO-RAPIDO-1610 — quem já reagiu à carta rápida (pula) e quem ficou para a próxima rodada por leitura falha.
+  let skippedReturnedAfterFastLetter = 0
+  let deferredSecondTouch = 0
 
   for (const [userId, cand] of byUser) {
     // Teto por execução. Vem ANTES de qualquer desvio para que um lote grande
@@ -881,6 +921,23 @@ export async function GET(req: NextRequest) {
     // KINEO-SKIP-STAMP-2026-08-05.
     if (!email || isTestEmail(email)) {
       skipped++
+      await admin
+        .from('checkout_abandoned')
+        .update({ recovery_sent_at: LIFECYCLE_SKIP_STAMP })
+        .eq('user_id', userId)
+        .is('recovery_sent_at', null)
+      continue
+    }
+
+    // KINEO-ABANDONO-RAPIDO-1610 — segundo toque só para quem não reagiu à carta rápida. Ver o bloco no topo.
+    const toque = await segundoToque(admin, userId, cand.expiredAt)
+    if (toque === 'adiar') {
+      deferredSecondTouch++
+      continue
+    }
+    if (toque === 'pular_voltou') {
+      skipped++
+      skippedReturnedAfterFastLetter++
       await admin
         .from('checkout_abandoned')
         .update({ recovery_sent_at: LIFECYCLE_SKIP_STAMP })
@@ -1013,5 +1070,7 @@ export async function GET(req: NextRequest) {
     // precisar ser arqueologada em `expired_at` semanas depois.
     checkout_session_expiry_hours: RECURRING_CHECKOUT_WINDOW_HOURS,
     deferred_by_cap: deferredByCap,
+    skipped_returned_after_fast_letter: skippedReturnedAfterFastLetter,
+    deferred_second_touch_check: deferredSecondTouch,
   })
 }
