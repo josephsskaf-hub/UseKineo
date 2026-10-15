@@ -104,6 +104,107 @@ export function decideRenewalFailedEmail(f: RenewalFailedEmailFacts): RenewalFai
   return { send: true, reason: 'first_failure_for_invoice' }
 }
 
+// ═══ KINEO-CARTAO-RECUSADO-1510 — o botão vira 1 clique de verdade, o motivo vira frase, e o dia 2 ganha lembrete ═══
+// MEDIDO (15/10, banco, 60 dias, sem internas): 4 assinantes com renovação recusada (akajitin NG, valos87196 AU,
+// salswina SA, cintia ES). A graça funciona (salswina ficou Studio por 21 dias e 5 tentativas; cintia segue Starter),
+// mas o aviso por e-mail saiu 2 vezes na história (salswina só na 4ª tentativa, 16 dias depois da 1ª recusa) e o botão
+// levava a uma rota que EXIGE LOGIN antes de abrir o portal: quem está com o cartão recusado, no celular e sem sessão,
+// para na tela de login. Nenhum lembrete existia: um e-mail por fatura e silêncio até a Stripe desistir.
+//  1. LINK: a fatura aberta da Stripe tem `hosted_invoice_url` — página da própria Stripe, sem login, onde a pessoa põe
+//     outro cartão e PAGA na hora (a cobrança é retentada no ato, não no próximo agendamento). Só se aceita URL em
+//     https://invoice.stripe.com/; qualquer outra coisa (ou ausência) cai na rota do portal de sempre.
+//  2. MOTIVO: o `reason_category` (lib/stripeCheckoutFailure.ts) vira UMA frase humana na língua da carta, sem número,
+//     bandeira nem final de cartão. Sem categoria → frase genérica ("o banco recusou").
+//  3. LEMBRETE: 1 por fatura, ≥ RENEWAL_FAILED_REMINDER_AFTER_HOURS depois do 1º aviso, só com a fatura AINDA aberta
+//     (relida na Stripe no momento do envio) e a assinatura ainda em cobrança. Quem pagou não recebe nada.
+export const STRIPE_HOSTED_INVOICE_HOST = 'invoice.stripe.com'
+
+/** A URL é a página de fatura hospedada da Stripe (https, host exato)? Puro: só lê a string. */
+export function isStripeHostedInvoiceUrl(value: string | null | undefined): boolean {
+  if (typeof value !== 'string' || !value) return false
+  try {
+    const u = new URL(value)
+    return u.protocol === 'https:' && u.hostname === STRIPE_HOSTED_INVOICE_HOST
+  } catch {
+    return false
+  }
+}
+
+/** O destino do botão: a fatura hospedada (1 clique, sem login) quando existe; senão a rota do portal. */
+export function renewalPayUrl(hostedInvoiceUrl: string | null | undefined): string {
+  return isStripeHostedInvoiceUrl(hostedInvoiceUrl) ? String(hostedInvoiceUrl) : RENEWAL_FAILED_UPDATE_CARD_URL
+}
+
+/** Lembrete do dia 2 — carimbo próprio, 1 por fatura (metadata.invoice_id). Na lista canônica de e-mails. */
+export const RENEWAL_FAILED_REMINDER_EVENT = 'renewal_payment_failed_reminder_sent'
+/** O Resend recusou o lembrete (sem carimbo: a próxima rodada tenta de novo). */
+export const RENEWAL_FAILED_REMINDER_FAILED_EVENT = 'renewal_payment_failed_reminder_failed'
+export const RENEWAL_FAILED_REMINDER_KIND = 'renewal_payment_failed_reminder'
+/** Horas mínimas entre o 1º aviso e o lembrete. O cron roda 2×/dia: o lembrete sai entre 20 h e ~32 h depois (dia 2). */
+export const RENEWAL_FAILED_REMINDER_AFTER_HOURS = 20
+
+export type RenewalFollowUpSkipReason =
+  | 'switch_off'
+  | 'not_renewal'
+  | 'no_invoice'
+  | 'invoice_not_open'
+  | 'not_dunning'
+  | 'no_owner'
+  | 'never_paid'
+  | 'internal'
+  | 'dedupe_unavailable'
+  | 'already_reminded'
+  | 'no_recipient'
+  | 'too_soon'
+
+export type RenewalFollowUpDecision =
+  | { send: true; stage: 'first'; reason: 'first_notice_missing' }
+  | { send: true; stage: 'reminder'; reason: 'reminder_due' }
+  | { send: false; reason: RenewalFollowUpSkipReason }
+
+export interface RenewalFollowUpFacts {
+  live: boolean
+  billingReason: string | null | undefined
+  invoiceId: string | null | undefined
+  /** Status da fatura RELIDO na Stripe no momento do envio ('open' = ainda não pagou). */
+  invoiceStatus: string | null | undefined
+  /** Status VIVO da assinatura. */
+  subscriptionStatus: string | null | undefined
+  ownerId: string | null | undefined
+  ownerHasPaid: boolean
+  internal: boolean
+  /** As duas leituras de carimbo (1º aviso e lembrete) deram certo? false = desconhecido = não envia agora. */
+  dedupeReadable: boolean
+  /** created_at do carimbo do 1º aviso desta fatura, ou null se nunca saiu. */
+  firstSentAt: string | null
+  reminderSent: boolean
+  recipientEmail: string | null | undefined
+  nowMs: number
+}
+
+/**
+ * A rodada do cron (2×/dia): para cada fatura de renovação em cobrança, manda o 1º aviso que o webhook não conseguiu
+ * mandar (Resend fora, fatura anterior a 06/10) OU o lembrete do dia 2. Todas as portas falham FECHADAS.
+ */
+export function decideRenewalFollowUp(x: RenewalFollowUpFacts): RenewalFollowUpDecision {
+  if (!x.live) return { send: false, reason: 'switch_off' }
+  if (x.billingReason !== 'subscription_cycle') return { send: false, reason: 'not_renewal' }
+  if (!x.invoiceId) return { send: false, reason: 'no_invoice' }
+  if (x.invoiceStatus !== 'open') return { send: false, reason: 'invoice_not_open' }
+  if (!stripeSubscriptionIsDunning(x.subscriptionStatus)) return { send: false, reason: 'not_dunning' }
+  if (!x.ownerId) return { send: false, reason: 'no_owner' }
+  if (x.ownerHasPaid !== true) return { send: false, reason: 'never_paid' }
+  if (x.internal) return { send: false, reason: 'internal' }
+  if (!x.dedupeReadable) return { send: false, reason: 'dedupe_unavailable' }
+  if (x.reminderSent) return { send: false, reason: 'already_reminded' }
+  if (!isDeliverableEmail(x.recipientEmail)) return { send: false, reason: 'no_recipient' }
+  if (x.firstSentAt === null) return { send: true, stage: 'first', reason: 'first_notice_missing' }
+  const firstMs = Date.parse(x.firstSentAt)
+  if (!Number.isFinite(firstMs)) return { send: false, reason: 'dedupe_unavailable' }
+  if (x.nowMs - firstMs < RENEWAL_FAILED_REMINDER_AFTER_HOURS * 3_600_000) return { send: false, reason: 'too_soon' }
+  return { send: true, stage: 'reminder', reason: 'reminder_due' }
+}
+
 // ── Língua ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
 // O perfil não guarda língua (a escolha da interface mora só no localStorage do navegador) e nenhuma conta paga tem
 // locale nos metadados do login (medido 06/10). O sinal que existe no servidor é o país: `last_country` quando houver,
@@ -152,6 +253,13 @@ export interface RenewalFailedCopy {
   how: string
   signoff: string
   why: string
+  // KINEO-CARTAO-RECUSADO-1510 — os campos abaixo só entram quando há fatura hospedada / motivo / lembrete.
+  /** "how" quando o botão é a fatura hospedada da Stripe (sem login). */
+  howHosted: string
+  /** O motivo do banco em UMA frase humana (sem dado de cartão). */
+  reason: (category: string | null | undefined) => string
+  reminderSubject: string
+  reminderWhat: (plan: string | null) => string
 }
 
 export const RENEWAL_FAILED_COPY: Record<RenewalEmailLanguage, RenewalFailedCopy> = {
@@ -164,6 +272,20 @@ export const RENEWAL_FAILED_COPY: Record<RenewalEmailLanguage, RenewalFailedCopy
     how: "You'll sign in and land on Stripe's secure page to change the card. Questions? Just reply to this email.",
     signoff: '— Joseph, Kineo',
     why: "You're getting this because a payment for your Kineo subscription didn't go through.",
+    howHosted: "It opens Stripe's secure payment page — no sign-in needed. Use another card and the renewal goes through right away. Questions? Just reply to this email.",
+    reason: (category) => {
+      switch (category) {
+        case 'insufficient_funds': return 'Your bank said the card did not have enough funds at that moment.'
+        case 'expired_card': return 'The card on file has expired.'
+        case 'card_restricted': return 'Your bank blocked this type of charge on the card (common with international or recurring payments).'
+        case 'authentication_required': return 'Your bank asked for an extra confirmation that was not completed.'
+        case 'incorrect_card_details': return 'Some of the card details no longer match.'
+        case 'fraud_or_risk': return 'Your bank flagged the charge and stopped it.'
+        default: return 'Your bank declined the charge.'
+      }
+    },
+    reminderSubject: 'Reminder: your Kineo renewal is still pending',
+    reminderWhat: (plan) => `Quick reminder: the payment to renew your Kineo${plan ? ` ${plan}` : ''} plan still hasn't gone through.`,
   },
   pt: {
     subject: 'Sua renovação da Kineo não passou',
@@ -174,6 +296,20 @@ export const RENEWAL_FAILED_COPY: Record<RenewalEmailLanguage, RenewalFailedCopy
     how: 'Você entra na sua conta e cai na página segura da Stripe para trocar o cartão. Dúvidas? É só responder este e-mail.',
     signoff: '— Joseph, da Kineo',
     why: 'Você recebeu este aviso porque um pagamento da sua assinatura Kineo não passou.',
+    howHosted: 'Abre a página segura de pagamento da Stripe — sem precisar entrar na conta. Use outro cartão e a renovação passa na hora. Dúvidas? É só responder este e-mail.',
+    reason: (category) => {
+      switch (category) {
+        case 'insufficient_funds': return 'O banco informou saldo insuficiente no cartão naquele momento.'
+        case 'expired_card': return 'O cartão cadastrado venceu.'
+        case 'card_restricted': return 'O banco bloqueou esse tipo de cobrança no cartão (comum em pagamento internacional ou recorrente).'
+        case 'authentication_required': return 'O banco pediu uma confirmação extra que não foi concluída.'
+        case 'incorrect_card_details': return 'Algum dado do cartão não confere mais.'
+        case 'fraud_or_risk': return 'O banco sinalizou a cobrança e a barrou.'
+        default: return 'O banco recusou a cobrança.'
+      }
+    },
+    reminderSubject: 'Lembrete: sua renovação da Kineo ainda está pendente',
+    reminderWhat: (plan) => `Só lembrando: o pagamento para renovar o seu plano Kineo${plan ? ` ${plan}` : ''} ainda não passou.`,
   },
   es: {
     subject: 'Tu renovación de Kineo no se completó',
@@ -184,6 +320,20 @@ export const RENEWAL_FAILED_COPY: Record<RenewalEmailLanguage, RenewalFailedCopy
     how: 'Inicias sesión y llegas a la página segura de Stripe para cambiar la tarjeta. ¿Dudas? Solo responde a este correo.',
     signoff: '— Joseph, de Kineo',
     why: 'Recibes este aviso porque un pago de tu suscripción de Kineo no se completó.',
+    howHosted: 'Se abre la página de pago segura de Stripe, sin iniciar sesión. Usa otra tarjeta y la renovación se completa al momento. ¿Dudas? Solo responde a este correo.',
+    reason: (category) => {
+      switch (category) {
+        case 'insufficient_funds': return 'Tu banco indicó fondos insuficientes en la tarjeta en ese momento.'
+        case 'expired_card': return 'La tarjeta registrada venció.'
+        case 'card_restricted': return 'Tu banco bloqueó este tipo de cobro en la tarjeta (es común en pagos internacionales o recurrentes).'
+        case 'authentication_required': return 'Tu banco pidió una confirmación adicional que no se completó.'
+        case 'incorrect_card_details': return 'Algún dato de la tarjeta ya no coincide.'
+        case 'fraud_or_risk': return 'Tu banco marcó el cobro y lo detuvo.'
+        default: return 'Tu banco rechazó el cobro.'
+      }
+    },
+    reminderSubject: 'Recordatorio: tu renovación de Kineo sigue pendiente',
+    reminderWhat: (plan) => `Un recordatorio: el pago para renovar tu plan Kineo${plan ? ` ${plan}` : ''} todavía no se completó.`,
   },
 }
 
@@ -201,20 +351,31 @@ function escapeHtml(value: string): string {
 export function renewalFailedEmailMessage(input: {
   language: RenewalEmailLanguage
   tier?: string | null
+  // KINEO-CARTAO-RECUSADO-1510 — opcionais: sem eles a carta é EXATAMENTE a de 06/10 (rota do portal, sem motivo).
+  /** invoice.hosted_invoice_url — validada por renewalPayUrl; inválida/ausente = rota do portal. */
+  hostedInvoiceUrl?: string | null
+  /** reason_category (lib/stripeCheckoutFailure.ts). undefined = não diz motivo; null/desconhecido = frase genérica. */
+  reasonCategory?: string | null
+  stage?: 'first' | 'reminder'
 }): RenewalFailedEmailMessage {
   const language: RenewalEmailLanguage = RENEWAL_FAILED_COPY[input.language] ? input.language : 'en'
   const c = RENEWAL_FAILED_COPY[language]
-  const what = c.what(renewalPlanLabel(input.tier))
-  const url = RENEWAL_FAILED_UPDATE_CARD_URL
+  const plan = renewalPlanLabel(input.tier)
+  const reminder = input.stage === 'reminder'
+  const what = reminder ? c.reminderWhat(plan) : c.what(plan)
+  const reason = input.reasonCategory === undefined ? null : c.reason(input.reasonCategory)
+  const url = renewalPayUrl(input.hostedInvoiceUrl)
+  const how = url === RENEWAL_FAILED_UPDATE_CARD_URL ? c.how : c.howHosted
   const text = [
     c.greeting,
     '',
     what,
+    ...(reason ? [reason] : []),
     '',
     c.safe,
     url,
     '',
-    c.how,
+    how,
     '',
     c.signoff,
     '',
@@ -224,12 +385,12 @@ export function renewalFailedEmailMessage(input: {
   ].join('\n')
   const html = `<div lang="${language}" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1a1a1a;max-width:520px">
 <p>${escapeHtml(c.greeting)}</p>
-<p>${escapeHtml(what)}</p>
+<p>${escapeHtml(what)}${reason ? ` ${escapeHtml(reason)}` : ''}</p>
 <p>${escapeHtml(c.safe)}</p>
 <p style="margin:18px 0"><a href="${escapeHtml(url)}" style="background:#2997ff;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:700;display:inline-block">${escapeHtml(c.button)}</a></p>
-<p style="color:#555555;font-size:13px">${escapeHtml(c.how)}</p>
+<p style="color:#555555;font-size:13px">${escapeHtml(how)}</p>
 <p>${escapeHtml(c.signoff)}</p>
 <p style="margin-top:28px;color:#94a3b8;font-size:12px">${escapeHtml(c.why)}<br>Kineo &middot; usekineo.com</p>
 </div>`
-  return { language, subject: c.subject, text, html }
+  return { language, subject: reminder ? c.reminderSubject : c.subject, text, html }
 }

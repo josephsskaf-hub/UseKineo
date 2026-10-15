@@ -12,6 +12,8 @@ import { decideRenewalNotice, renewalNoticeCopy, renewalNoticePlanLabel, RENEWAL
 
 export default function RenewalDeclinedBanner({ hasStripeSubscription, plan }: { hasStripeSubscription: boolean; plan: string | null }) {
   const [status, setStatus] = useState<string | null>(null)
+  // KINEO-CARTAO-RECUSADO-1510 — fatura aberta da Stripe (1 clique, paga na hora). Sem ela, o portal de sempre.
+  const [payUrl, setPayUrl] = useState<string | null>(null)
   const [portal, setPortal] = useState<'idle' | 'busy' | 'error'>('idle')
   const shownRef = useRef(false)
 
@@ -20,7 +22,11 @@ export default function RenewalDeclinedBanner({ hasStripeSubscription, plan }: {
     let cancelled = false
     void fetch('/api/me/subscription', { cache: 'no-store', credentials: 'same-origin' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((j: { status?: string | null } | null) => { if (!cancelled && j && typeof j.status === 'string') setStatus(j.status) })
+      .then((j: { status?: string | null; payUrl?: string | null } | null) => {
+        if (cancelled || !j) return
+        if (typeof j.status === 'string') setStatus(j.status)
+        if (typeof j.payUrl === 'string' && j.payUrl.startsWith('https://invoice.stripe.com/')) setPayUrl(j.payUrl)
+      })
       .catch(() => { /* sem status, sem aviso — nunca derruba o painel */ })
     return () => { cancelled = true }
   }, [hasStripeSubscription])
@@ -40,7 +46,11 @@ export default function RenewalDeclinedBanner({ hasStripeSubscription, plan }: {
   async function openPortal() {
     if (portal === 'busy') return
     setPortal('busy')
-    void trackEvent('renewal_declined_banner_clicked', { version: RENEWAL_NOTICE_VERSION, status, plan })
+    void trackEvent('renewal_declined_banner_clicked', { version: RENEWAL_NOTICE_VERSION, status, plan, target: payUrl ? 'hosted_invoice' : 'portal' })
+    if (payUrl) {
+      window.location.assign(payUrl)
+      return
+    }
     try {
       const r = await fetch('/api/stripe/portal', { method: 'POST', credentials: 'same-origin' })
       const j = await r.json().catch(() => null) as { url?: string } | null

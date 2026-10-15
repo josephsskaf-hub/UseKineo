@@ -73,10 +73,14 @@ import {
   RENEWAL_FAILED_EMAIL_SKIPPED_EVENT,
   RENEWAL_FAILED_EMAIL_TIMEOUT_MS,
   RENEWAL_FAILED_EMAIL_VERSION,
+  RENEWAL_FAILED_UPDATE_CARD_URL,
   decideRenewalFailedEmail,
   renewalEmailLanguage,
   renewalFailedEmailMessage,
+  renewalPayUrl,
 } from '@/lib/billing/renewalFailedEmail'
+// KINEO-CARTAO-RECUSADO-1510 — o motivo da recusa (só a categoria, nunca dado de cartão) para a carta dizer em 1 frase.
+import { readInvoiceDeclineCategory } from '@/lib/billing/renewalDecline'
 import { recordEmailSend, recordResendResponse } from '@/lib/email/quota'
 import {
   AffiliateLedgerIntegrityError,
@@ -1237,7 +1241,8 @@ type RenewalFailedEmailOwner = { id: string; plan: string | null; has_paid: bool
 async function sendRenewalFailedEmailOnce(
   supabase: AdminClient,
   input: {
-    invoice: Pick<Stripe.Invoice, 'id' | 'billing_reason' | 'attempt_count' | 'customer_email'>
+    // KINEO-CARTAO-RECUSADO-1510 — + hosted_invoice_url (o botão de 1 clique, sem login) e payment_intent (o motivo).
+    invoice: Pick<Stripe.Invoice, 'id' | 'billing_reason' | 'attempt_count' | 'customer_email' | 'hosted_invoice_url' | 'payment_intent'>
     subscriptionId: string
     subscriptionStatus: string
     owner: RenewalFailedEmailOwner | null
@@ -1314,9 +1319,16 @@ async function sendRenewalFailedEmailOnce(
       return
     }
 
+    // KINEO-CARTAO-RECUSADO-1510 — motivo humano (categoria) e botão na fatura hospedada da Stripe (sem login).
+    // readInvoiceDeclineCategory nunca lança e tem teto de 2,5 s; sem motivo a carta diz a frase genérica.
+    const reasonCategory = await readInvoiceDeclineCategory(input.invoice)
+    const payLink = renewalPayUrl(input.invoice.hosted_invoice_url)
     const message = renewalFailedEmailMessage({
       language: renewalEmailLanguage(profile?.last_country || profile?.signup_country),
       tier: input.tier ?? input.owner?.plan ?? null,
+      hostedInvoiceUrl: input.invoice.hosted_invoice_url,
+      reasonCategory,
+      stage: 'first',
     })
     let res: Response
     try {
@@ -1367,6 +1379,10 @@ async function sendRenewalFailedEmailOnce(
         language: message.language,
         marketing_opt_out: marketingOptOut,
         provider_id: typeof receipt?.id === 'string' ? receipt.id : null,
+        // KINEO-CARTAO-RECUSADO-1510 — para medir: o botão foi a fatura hospedada ou o portal? e qual o motivo?
+        link: payLink === RENEWAL_FAILED_UPDATE_CARD_URL ? 'portal' : 'hosted_invoice',
+        reason_category: reasonCategory,
+        stage: 'first',
       },
     })
     if (!stamped) console.error('[stripe webhook] renewal email SENT but not stamped — the next failure of this invoice may resend:', invoiceId)

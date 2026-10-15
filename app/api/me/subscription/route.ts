@@ -16,6 +16,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { stripe } from '@/lib/stripe'
+// KINEO-CARTAO-RECUSADO-1510 — a mesma validação de link da carta: só a página de fatura hospedada da Stripe.
+import { isStripeHostedInvoiceUrl } from '@/lib/billing/renewalFailedEmail'
+import { RENEWAL_NOTICE_STATUSES } from '@/lib/billing/renewalNotice'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -42,6 +45,11 @@ export interface MySubscription {
   /** Valor da próxima fatura em centavos USD, quando a Stripe souber dizer. */
   amountMinor: number | null
   status: string | null
+  /**
+   * KINEO-CARTAO-RECUSADO-1510 — só com a renovação recusada (past_due/unpaid) e a fatura ainda aberta: a página de
+   * fatura hospedada da Stripe, onde a pessoa troca o cartão e paga em 1 clique. null em qualquer outro caso.
+   */
+  payUrl: string | null
 }
 
 const EMPTY: MySubscription = {
@@ -50,6 +58,7 @@ const EMPTY: MySubscription = {
   provider: null,
   amountMinor: null,
   status: null,
+  payUrl: null,
 }
 
 export async function GET() {
@@ -89,12 +98,28 @@ export async function GET() {
     const item = sub.items?.data?.[0]
     const amountMinor = typeof item?.price?.unit_amount === 'number' ? item.price.unit_amount : null
 
+    // KINEO-CARTAO-RECUSADO-1510 — o botão do aviso de renovação recusada vai direto à fatura aberta (1 clique).
+    // Só consulta a fatura quando a assinatura está em cobrança; falha aqui = sem payUrl (o banner usa o portal).
+    let payUrl: string | null = null
+    if (RENEWAL_NOTICE_STATUSES.has(sub.status)) {
+      try {
+        const latestId = typeof sub.latest_invoice === 'string' ? sub.latest_invoice : sub.latest_invoice?.id ?? null
+        if (latestId) {
+          const invoice = await stripe.invoices.retrieve(latestId)
+          if (invoice.status === 'open' && isStripeHostedInvoiceUrl(invoice.hosted_invoice_url)) payUrl = invoice.hosted_invoice_url ?? null
+        }
+      } catch (err) {
+        console.warn('[me/subscription] fatura aberta indisponível:', err instanceof Error ? err.message : String(err))
+      }
+    }
+
     const payload: MySubscription = {
       renewsAt: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
       cancelsAtPeriodEnd: Boolean(sub.cancel_at_period_end),
       provider: 'stripe',
       amountMinor,
       status: sub.status ?? null,
+      payUrl,
     }
     return NextResponse.json(payload)
   } catch (e) {
