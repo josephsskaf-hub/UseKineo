@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
-const file='lib/growth/mrrRevenueFollowthrough.ts',read=p=>readFileSync(p,'utf8').replace(/\r\n/g,'\n'),source=read(file)
+import { semClareza1610 } from './test-support/desfaz-checkout-clareza-1610.mjs' // reancorado KINEO-CHECKOUT-CLAREZA-1610 — a garantia única / o prazo de 48 h saem antes, em memória
+const file='lib/growth/mrrRevenueFollowthrough.ts',read=p=>semClareza1610(p,readFileSync(p,'utf8')).replace(/\r\n/g,'\n')/* reancorado KINEO-CHECKOUT-CLAREZA-1610 */,source=read(file)
 function contract(text=source){
  const load=createOfflineLoader({source:(p,s)=>p===file?text:s}),m=load(file),pricing=load('lib/checkoutPricing.ts'),cost=load('lib/credits/engineCost.ts')
  for(const tier of ['starter','basic','pro'])for(const seconds of [15,35,60]){

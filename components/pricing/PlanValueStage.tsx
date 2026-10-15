@@ -19,6 +19,9 @@ import type { ReactNode } from 'react'
 import { twoProductsModelForPage } from '@/components/pricing/TwoProductsPricing'
 import { IMG_NANOBANANA_CR } from '@/lib/marketingPrice'
 import { planValueCardLines, planValueFor, type PlanValue } from '@/lib/pricingPlanValue'
+// KINEO-CHECKOUT-CLAREZA-1610 — o custo por filme (mesma régua da linha de filmes do cartão) e a garantia única sob o botão.
+import { planValuePerFilm, planValuePerFilmLine } from '@/lib/pricingPlanValue'
+import { MONEY_BACK_GUARANTEE } from '@/lib/checkoutPricing'
 
 export type PlanValueTier = 'starter' | 'basic' | 'pro'
 
@@ -95,6 +98,8 @@ export const PLAN_VALUE_STAGE_CSS = `
 .pv-cta:focus-visible{outline:2px solid var(--pv-accent);outline-offset:3px}
 .pv-save{margin:10px 0 0;text-align:center;font-size:12.5px;font-weight:500;color:var(--pv-muted)}
 .pv-save b{color:var(--pv-text);font-weight:700}
+.pv-perfilm{margin:6px 0 0;font-size:13px;font-weight:600;color:var(--pv-text)}
+.pv-guarantee{margin:6px 0 0;text-align:center;font-size:11.5px;line-height:1.45;color:var(--pv-muted)}
 .pv-extra{margin-top:8px}
 .pv-sec{margin:16px 10px 0;padding-top:14px;border-top:1px solid var(--pv-line)}
 .pv-label{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--pv-muted)}
@@ -145,6 +150,9 @@ export interface PlanValueCardProps {
   /** O que vem incluso, uma frase por item (a página monta: marca d'água, uso comercial, armazenamento…). */
   included: string[]
   footnote?: string
+  /** KINEO-CHECKOUT-CLAREZA-1610 — o preço CHEIO por mês em centavos de US$ (mensal: TIER_PRICES; anual: ANNUAL_PRICES ÷ 12).
+   *  O cartão divide pelos filmes de 60 s que ele mesmo conta. Ausente/0 = a linha não aparece. */
+  monthlyPriceMinor?: number | null
 }
 
 const plural = (n: number, one: string, many: string) => (n === 1 ? one : many)
@@ -176,6 +184,7 @@ export function PlanValueCard(props: PlanValueCardProps) {
   const value = planValueForPage(props.credits)
   const lines = planValueCardLines(value)
   const topClip = lines.clips[0] ?? null
+  const perFilmLine = planValuePerFilmLine(planValuePerFilm(value, props.monthlyPriceMinor)) // KINEO-CHECKOUT-CLAREZA-1610
   // Uma linha por motor, na ordem do cartão (clipes); o filme do mesmo motor na coluna ao lado.
   const engines: Array<{ engine: string; label: string; clip: number | null; film: number | null }> = value.clips.map((c) => ({
     engine: c.engine,
@@ -238,11 +247,13 @@ export function PlanValueCard(props: PlanValueCardProps) {
           <span className="pv-amount">{props.amount}</span>
           <span className="pv-per">{props.per}</span>
         </div>
+        {perFilmLine ? <p className="pv-perfilm" data-testid="plan-per-film">{perFilmLine}</p> : null /* KINEO-CHECKOUT-CLAREZA-1610 */}
         {props.note ? <p className="pv-note">{props.note}</p> : null}
         <button type="button" className={props.selected ? 'pv-cta pv-cta-pop' : 'pv-cta'} disabled={props.ctaDisabled} aria-pressed={props.selected} onClick={(e) => { e.stopPropagation(); if (props.selected) props.onBuy(); else props.onSelect() }}>
           {props.selected ? props.ctaLabel : `Select ${props.name}`}
         </button>
         {props.save ? <p className="pv-save">{props.save}</p> : null}
+        <p className="pv-guarantee" data-testid="plan-guarantee">{MONEY_BACK_GUARANTEE}</p>{/* KINEO-CHECKOUT-CLAREZA-1610 — sob o botão de pagar */}
         {props.extra ? <div className="pv-extra">{props.extra}</div> : null}
       </div>
 

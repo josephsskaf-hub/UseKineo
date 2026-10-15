@@ -17,6 +17,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
+import { semClareza1610 } from './test-support/desfaz-checkout-clareza-1610.mjs' // reancorado KINEO-CHECKOUT-CLAREZA-1610 — a garantia única / o prazo de 48 h saem antes, em memória
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -24,7 +25,7 @@ const ts = require(path.join(ROOT, 'node_modules', 'typescript'))
 const React = require(path.join(ROOT, 'node_modules', 'react'))
 const jsxRuntime = require(path.join(ROOT, 'node_modules', 'react', 'jsx-runtime'))
 const { renderToStaticMarkup } = require(path.join(ROOT, 'node_modules', 'react-dom', 'server'))
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+const read = (rel) => semClareza1610(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8')).replace(/\r\n/g, '\n') // reancorado KINEO-CHECKOUT-CLAREZA-1610
 const temLinha = (src, linha) => src.split('\n').some((l) => l === linha)
 
 const MODAL = 'components/offers/ConversionUpgrade.tsx'
@@ -70,7 +71,7 @@ function makeLoader(overrides) {
   function load(abs) {
     if (cache.has(abs)) return cache.get(abs).exports
     const rel = path.relative(ROOT, abs).split(path.sep).join('/')
-    const src = overrides[rel] ?? fs.readFileSync(abs, 'utf8')
+    const src = overrides[rel] ?? semClareza1610(rel, fs.readFileSync(abs, 'utf8')) // reancorado KINEO-CHECKOUT-CLAREZA-1610
     const js = ts.transpileModule(src, { fileName: abs, compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText
     const mod = { exports: {} }
     cache.set(abs, mod)

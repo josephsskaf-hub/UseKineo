@@ -30,6 +30,9 @@ import { trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { formatResultCount, videosPerMonth } from '@/lib/marketingPrice'
+// KINEO-CHECKOUT-CLAREZA-1610 — prazo real de 48 h por conta: vencido = o convite não abre; ativo = "Ends in 47h 12m".
+import { fetchWelcome20Deadline, welcome20DeadlineLabelNow } from '@/lib/growth/useWelcome20Deadline'
+import { welcome20OfferAllowed, type Welcome20Deadline } from '@/lib/growth/welcome20Deadline'
 import {
   WELCOME_OFFER_SEEN_KEY,
   WELCOME_OFFER_AFTER_FILM_VERSION,
@@ -112,6 +115,7 @@ export default function WelcomeOfferModal({
   const [open, setOpen] = useState(false)
   const [firstName, setFirstName] = useState<string | null>(null)
   const [nativePending, setNativePending] = useState<'basic' | 'pro' | null>(null)
+  const [deadline, setDeadline] = useState<Welcome20Deadline | null>(null) // KINEO-CHECKOUT-CLAREZA-1610
   const checkout = useCheckoutLaunch(`welcome_offer_${surface}`)
   const pending = checkout.pending ?? nativePending
 
@@ -203,6 +207,13 @@ export default function WelcomeOfferModal({
       // Recheck after the async plan/auth reads: another mounted surface or
       // tab may have claimed the same 72-hour exposure in the meantime.
       if (cancelled || seenRecently()) return
+      // KINEO-CHECKOUT-CLAREZA-1610 — com conta, o servidor diz o prazo (e começa o relógio se é a 1ª vez que ela vê a
+      // oferta). Vencido = o convite não abre. Sem conta = o convite de sempre, sem contagem.
+      if (userResult?.data?.user) {
+        const deadline = await fetchWelcome20Deadline('welcome_modal')
+        if (cancelled || !welcome20OfferAllowed(deadline.state)) return
+        setDeadline(deadline)
+      }
       markWelcomeOfferSeen(Date.now())
       setOpen(true)
       if (isWelcomeOfferMeasurementHost(window.location.hostname)) {
@@ -315,7 +326,7 @@ export default function WelcomeOfferModal({
             ✕
           </button>
           <p style={{ color: 'var(--accent)', fontSize: 11, fontWeight: 900, letterSpacing: '.14em', textTransform: 'uppercase', margin: '0 0 10px' }}>
-            <KineoBolt /> Welcome offer
+            <KineoBolt /> Welcome offer{welcome20DeadlineLabelNow(deadline) ? <span data-testid="welcome20-ends"> · {welcome20DeadlineLabelNow(deadline)}</span> : null /* KINEO-CHECKOUT-CLAREZA-1610 */}
           </p>
           <h2 style={{ color: 'var(--text)', fontSize: 26, fontWeight: 900, lineHeight: 1.15, letterSpacing: '-0.02em', margin: '0 0 6px' }}>
             {firstName ? `${firstName}, your first month is ` : 'Your first month is '}

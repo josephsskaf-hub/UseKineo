@@ -257,6 +257,9 @@ const SERVER_ONLY_EVENTS = new Set([
   // KINEO-ANUAL-2o-MES-2026-10-08 — escrito SÓ por /api/cron/send-month2-annual-offer: o carimbo (id fixo por assinatura)
   // de "a oferta do anual saiu por e-mail". Está na lista canônica da supressão: forjado, calaria as cartas da casa.
   'month2_annual_offer_sent',
+  // KINEO-CHECKOUT-CLAREZA-1610 — o relógio de 48 h dos 20% do 1º mês (lib/growth/welcome20Deadline.ts): escrito só por
+  // /api/offers/welcome20-deadline e pelo checkout. Forjado pelo navegador, começaria (ou anteciparia) o prazo de alguém.
+  'welcome20_deadline_started',
   // KINEO-COMPRA-SEM-LOGIN-2026-10-06 — escritos SÓ no servidor (rota de checkout, webhook, /api/stripe/checkout/
   // guest-access e /auth/guest-link). São o funil da compra sem login (sessão aberta → conta criada/achada → login de
   // uso único usado/recusado → e-mail de entrada) e o conflito com plano ativo; nomes em lib/growth/guestCheckout.ts

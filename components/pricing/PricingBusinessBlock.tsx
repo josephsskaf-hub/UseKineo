@@ -19,6 +19,11 @@ import {
   BUSINESS_PAGE_PATH,
   BUSINESS_PRICE_LABEL,
 } from '@/lib/businessPlan'
+// KINEO-CHECKOUT-CLAREZA-1610 — a comparação com o criador UGC humano: preço do Business ÷ anúncios do mês (as MESMAS
+// constantes da promessa "N product ads of 15 s"), fonte do número de mercado em lib/ads/ugcComparison.ts.
+import { BUSINESS_AD_SECONDS, BUSINESS_ADS_PER_MONTH, BUSINESS_PRICE_USD_MINOR } from '@/lib/businessPlan'
+import { businessUgcComparisonLine } from '@/lib/ads/ugcComparison'
+const UGC_LINE = businessUgcComparisonLine({ planPriceMinor: BUSINESS_PRICE_USD_MINOR, adsPerMonth: BUSINESS_ADS_PER_MONTH, seconds: BUSINESS_AD_SECONDS })
 
 const CSS = `
 .kb-biz{margin:56px auto 0;max-width:64rem;scroll-margin-top:6rem}
@@ -58,6 +63,7 @@ export default function PricingBusinessBlock({ onBuy, pending, switchLabel = nul
           <div className="kb-biz-eyebrow">Business plan</div>
           <h2 id="kb-biz-title">For businesses</h2>
           <p className="kb-biz-promise">{BUSINESS_ADS_PROMISE}</p>
+          {UGC_LINE ? <p className="kb-biz-note" data-testid="pricing-business-ugc">{UGC_LINE}</p> : null /* KINEO-CHECKOUT-CLAREZA-1610 */}
           <ul className="kb-biz-list">
             {BUSINESS_BULLETS.map((b) => <li key={b}>{b}</li>)}
           </ul>

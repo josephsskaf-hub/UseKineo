@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { mrrFilmCapacity, MRR_PRICING_PROOF_ENABLED, MRR_PRICING_VERSION, MRR_TIERS } from '@/lib/growth/mrrRevenueFollowthrough'
 import { planName } from '@/lib/growth/planFit'
+import { MONEY_BACK_GUARANTEE } from '@/lib/checkoutPricing' // KINEO-CHECKOUT-CLAREZA-1610 — a garantia única
 import { useMrrVisible } from '@/lib/growth/useMrrVisible'
 
 // KINEO-PRECOS-REFINO-2026-10-09 — fundador, com o print desta caixa: "mudar a fonte e melhorar a comunicação… ser mais
@@ -49,6 +50,6 @@ export default function MrrPricingProof() {
         <div key={tier} className="mpp-tile"><span className="mpp-plan">{planName(tier)}</span><span className="mpp-films"><b>{p.films}</b> {p.films === 1 ? 'film' : 'films'} a month</span><span className="mpp-price">{p.price}/month</span></div> : null })}
     </div>
     <p className="mpp-film">▶ <a href="/v/83db8b63-b654-491e-a0aa-86ce1bc1f3d7">Watch Lituya Bay</a>, a narrated film made in Kineo with Seedance.</p>
-    <p className="mpp-fine">Counts use Seedance 1.5 on a monthly plan, with all its credits on films of that length. If a render fails, its credits come back to you — a credit refund, not an automatic refund of your subscription payment. Your first paid month has a 7-day money-back guarantee: write to support@usekineo.com within 7 days of the first charge. <a href="/terms">Terms</a>.</p>
+    <p className="mpp-fine">Counts use Seedance 1.5 on a monthly plan, with all its credits on films of that length. If a render fails, its credits come back to you — a credit refund, not an automatic refund of your subscription payment. {MONEY_BACK_GUARANTEE} <a href="/terms">Terms</a>.</p>{/* KINEO-CHECKOUT-CLAREZA-1610 — a garantia única */}
   </section>
 }

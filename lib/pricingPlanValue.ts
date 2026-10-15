@@ -85,6 +85,35 @@ export function planValueFor(credits: number, model: TwoProductsModel, image: { 
   }
 }
 
+// ═══ KINEO-CHECKOUT-CLAREZA-1610 — PREÇO POR FILME AO LADO DO PREÇO DO PLANO (fundador 16/10, "tudo sim", jogada 2) ═══
+// A MESMA régua da linha "≈ N narrated films · 60 s" do cartão (planValueCardLines(value).film: o filme de 60 s mais barato
+// que o público vê, contado por floor(créditos ÷ custo do motor)), nunca uma segunda conta. O preço por mês chega por
+// argumento (TIER_PRICES no mensal, ANNUAL_PRICES ÷ 12 no anual, das funções do caixa): a frase diz o custo por filme
+// pelo preço CHEIO do plano (o 1º mês com cupom não entra — o número tem de valer no mês 2 também).
+export interface PlanValuePerFilm {
+  count: number
+  seconds: number
+  label: string
+  /** Centavos de US$ por filme, arredondados ao centavo. */
+  perFilmMinor: number
+}
+
+/** O custo por filme do cartão, ou null quando o plano não fecha 1 filme (nunca "US$ 0" nem divisão por zero). */
+export function planValuePerFilm(value: PlanValue, monthlyPriceMinor: number | null | undefined): PlanValuePerFilm | null {
+  const film = planValueCardLines(value).film
+  if (!film || film.count < 1) return null
+  if (typeof monthlyPriceMinor !== 'number' || !Number.isFinite(monthlyPriceMinor) || monthlyPriceMinor <= 0) return null
+  return { count: film.count, seconds: film.seconds, label: film.label, perFilmMinor: Math.round(monthlyPriceMinor / film.count) }
+}
+
+/** "≈ 4 films of 60 s · ≈ US$ 4.98 per film" — a linha pronta, sem regex (o valor nunca passa por replace). */
+export function planValuePerFilmLine(perFilm: PlanValuePerFilm | null): string | null {
+  if (!perFilm) return null
+  const dollars = Math.floor(perFilm.perFilmMinor / 100)
+  const cents = String(perFilm.perFilmMinor % 100).padStart(2, '0')
+  return `≈ ${perFilm.count} ${perFilm.count === 1 ? 'film' : 'films'} of ${perFilm.seconds} s · ≈ US$ ${dollars}.${cents} per film`
+}
+
 /** As linhas do cartão: imagens, os N primeiros clipes (só os que o plano paga ≥ 1) e o filme de 60 s mais barato. */
 export function planValueCardLines(value: PlanValue): { images: PlanValue['images']; clips: PlanValueClip[]; film: PlanValueFilm | null } {
   return {
