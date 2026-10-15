@@ -66,6 +66,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
+import { withCheckoutClickMark } from '@/lib/growth/checkoutRobotGate' // KINEO-CHECKOUT-ROBO-1510
 
 // A full-page navigation to /api/stripe/checkout keeps this page alive while
 // the server talks to Stripe (typically < 3 s). 15 s means something is wrong.
@@ -815,6 +816,11 @@ export function useCheckoutLaunch(surface: string): CheckoutLaunch {
       }, REDIRECT_WATCHDOG_MS)
 
       try {
+        // KINEO-CHECKOUT-ROBO-1510 — a marca de clique (kc=1) entra AQUI, no clique, nunca no href que o robô lê: é a
+        // prova que o portão do middleware aceita para criar a sessão sem login (lib/growth/checkoutRobotGate.ts).
+        // Só a URL de /api/stripe/checkout ganha a marca; Stripe direta e /resume voltam iguais. Reatribuída ANTES da
+        // navegação para o resgate dos 15 s (que lê a mesma `url`) também abrir com a marca.
+        url = withCheckoutClickMark(url)
         window.location.href = url
         return true
       } catch (err) {

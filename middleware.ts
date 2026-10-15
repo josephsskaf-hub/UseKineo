@@ -5,6 +5,12 @@ import {
   HOME_VISITOR_COOKIE_MAX_AGE_SECONDS,
   shouldMintHomeVisitorCookie,
 } from '@/lib/growth/homeClipsFirst'
+import {
+  CHECKOUT_GATE_HEADERS,
+  checkoutGateHtml,
+  checkoutGateStatus,
+  decideCheckoutGate,
+} from '@/lib/growth/checkoutRobotGate' // KINEO-CHECKOUT-ROBO-1510
 
 const LEGACY_PUBLIC_HOSTS = new Set([
   'shortsforgeai.com',
@@ -62,6 +68,26 @@ export async function middleware(request: NextRequest) {
   // cookie sb-* novo no mesmo pedido em que app/auth/signout/route.ts apaga todos. Ela mesma revoga e apaga.
   // Texto igual a SAIR_DA_CONTA_ROTA (lib/auth/sairDaConta.ts) — o guardião test-sair-da-conta-1510 confere a igualdade.
   if (request.nextUrl.pathname === '/auth/signout') return NextResponse.next()
+
+  // KINEO-CHECKOUT-ROBO-1510 — sessão da Stripe só nasce de clique de gente. Compra sem conta (sem cookie de login)
+  // em GET /api/stripe/checkout sem prova de clique (Sec-Fetch-User ?1 ou kc=1 do lançador) recebe a página leve
+  // "Continue to secure checkout" em vez de criar a sessão; UA de robô conhecido recebe 403 com a mesma página. Conta
+  // logada, POST e qualquer outro caminho seguem como antes. Regra e porquê: lib/growth/checkoutRobotGate.ts.
+  if (request.nextUrl.pathname === '/api/stripe/checkout') {
+    const gate = decideCheckoutGate({
+      method: request.method,
+      pathname: request.nextUrl.pathname,
+      searchParams: request.nextUrl.searchParams,
+      headers: request.headers,
+      cookieNames: request.cookies.getAll().map((c) => c.name),
+    })
+    if (gate.action !== 'pass') {
+      return new NextResponse(request.method.toUpperCase() === 'HEAD' ? null : checkoutGateHtml(gate.reason), {
+        status: checkoutGateStatus(gate),
+        headers: CHECKOUT_GATE_HEADERS,
+      })
+    }
+  }
 
   // KINEO-AFILIADO-REF-2026-09-08 (tarefa 9) — `?ref=CODE` NUNCA gravou clique nem
   // cookie: só `/a/CODE` grava. Os rascunhos da casa e afiliados antigos usam o

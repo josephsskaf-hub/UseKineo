@@ -47,6 +47,23 @@ export const RAJADA_MIN_SESSOES = 3
 export const RAJADA_JANELA_MS = 5_000
 /** Histórico sem ip_hash: convidados no mesmo segundo (janela deslizante de 1 s). */
 export const RAJADA_CARIMBO_JANELA_MS = 1_000
+// ═══ KINEO-CHECKOUT-ROBO-1510 — varredura: compra sem conta que não navegou no site ═══════════════════════════════════
+// Medido em 15/10 (só SELECT): das 36 aberturas de 30 h, 27 eram compra sem conta com session_id nulo e um ip_hash que
+// NUNCA teve outro evento além do próprio checkout — em rajadas de 2–3 IPs diferentes para a MESMA campanha em 3–13 s,
+// um nicho depois do outro (buy_creator_niche_luxury 19:16:42–47, niche_money 18:08:46–59, …). As 3 compras sem conta que
+// eram gente tinham landing_session_started e o clique no botão minutos antes. Duas regras novas, só para CONVIDADO:
+//   · sem_rastro      — a abertura não traz sessão do navegador e o ip_hash dela não tem NENHUM evento com sessão do
+//                       navegador de SEM_RASTRO_ANTES_MS antes até SEM_RASTRO_DEPOIS_MS depois (o clique do botão é
+//                       gravado pelo navegador junto com a abertura e pode chegar segundos depois). Sem ip_hash ou sem a
+//                       leitura da navegação = não dá para dizer: a regra não se aplica (nunca vira robô por falta de dado).
+//   · rajada_campanha — RAJADA_CAMPANHA_MIN ou mais aberturas sem conta da MESMA campanha (intent_campaign NOMEADA) de
+//                       origens DIFERENTES (ip_hash, sessão) em até RAJADA_CAMPANHA_JANELA_MS. Quem tem rastro de
+//                       navegador nunca entra (a mesma pessoa clicando duas vezes já é a rajada por IP/sessão).
+// Ambas somam em "robô" e aparecem separadas no card como "N robôs/varreduras".
+export const SEM_RASTRO_ANTES_MS = 30 * 60 * 1000
+export const SEM_RASTRO_DEPOIS_MS = 2 * 60 * 1000
+export const RAJADA_CAMPANHA_MIN = 2
+export const RAJADA_CAMPANHA_JANELA_MS = 30_000
 /** O período do card (o mesmo "24h" dos vizinhos no painel ao vivo). */
 export const JANELA_CARTAO_MS = 24 * 60 * 60 * 1000
 /** Quanto para trás se procura a sessão do navegador e o IP de uma conta da casa. */
@@ -70,6 +87,8 @@ export type PerfilDoCartao = { id: string; email: string | null }
 export type SinaisDaCasa = { contas: ReadonlySet<string>; sessoes: ReadonlySet<string>; ips: ReadonlySet<string> }
 
 export type MotivoRobo = 'ua_robo' | 'prefetch' | 'rajada' | 'rajada_pelo_horario'
+/** KINEO-CHECKOUT-ROBO-1510 — os dois motivos de varredura, contados à parte (o `motivos` antigo não muda de forma). */
+export type MotivoVarredura = 'sem_rastro' | 'rajada_campanha'
 
 export type CheckoutHonesto = {
   versao: string
@@ -85,6 +104,8 @@ export type CheckoutHonesto = {
   roboOuRajada: number
   /** Dessas, quantas só pela rajada do carimbo de tempo (sem ip_hash): estimativa. */
   roboOuRajadaEstimado: number
+  /** KINEO-CHECKOUT-ROBO-1510 — dessas, quantas são varredura (compra sem conta sem rastro de navegador ou rajada da campanha). */
+  varreduras: number
   /** Linha 3: pagamentos (payment_success) sem conta da casa. */
   pagou: number
   /** Sessões de pagamento da casa (fora das três linhas). */
@@ -92,6 +113,8 @@ export type CheckoutHonesto = {
   /** Pagamentos da casa (fora da linha "pagou"). */
   pagamentosDaCasa: number
   motivos: Record<MotivoRobo, number>
+  /** KINEO-CHECKOUT-ROBO-1510 — varreduras por motivo (somam `varreduras`). */
+  motivosVarredura: Record<MotivoVarredura, number>
 }
 
 export type LinhaDoCartao = { chave: 'pessoas' | 'robo' | 'pagou'; valor: number; rotulo: string; detalhe: string | null }
@@ -162,12 +185,35 @@ type Sessao = {
   convidado: boolean
   uaClass: string | null
   prefetch: boolean
+  /** KINEO-CHECKOUT-ROBO-1510 — intent_campaign da abertura (null = sem campanha). */
+  campanha: string | null
+  /** KINEO-CHECKOUT-ROBO-1510 — true: navegou no site; false: ip_hash sem evento de navegador na janela; null: não dá para dizer. */
+  temRastro: boolean | null
+}
+
+/**
+ * KINEO-CHECKOUT-ROBO-1510 — para cada ip_hash, os instantes (ms) dos eventos COM sessão do navegador (session_id não
+ * nulo: o sink /api/events, que só o nosso JS chama, e os eventos do servidor de quem já tem o cookie da sessão).
+ */
+export function navegacaoPorIp(linhas: ReadonlyArray<{ created_at: string; ip_hash: string | null }>): Map<string, number[]> {
+  const out = new Map<string, number[]>()
+  for (const l of linhas) {
+    const ip = texto(l.ip_hash)
+    const t = Date.parse(l.created_at)
+    if (!ip || !Number.isFinite(t)) continue
+    const lista = out.get(ip) ?? []
+    lista.push(t)
+    out.set(ip, lista)
+  }
+  return out
 }
 
 export function classificarCheckouts(input: {
   eventos: EventoDoCartao[]
   casa: SinaisDaCasa
   ipsDaSessao?: ReadonlyMap<string, ReadonlySet<string>>
+  /** KINEO-CHECKOUT-ROBO-1510 — navegacaoPorIp(); ausente = a regra sem_rastro não se aplica a ninguém. */
+  navegacaoDoIp?: ReadonlyMap<string, readonly number[]>
 }): CheckoutHonesto {
   const { casa } = input
 
@@ -184,16 +230,26 @@ export function classificarCheckouts(input: {
     const chave = texto(m.stripe_session_id) ?? `ev:${texto(e.id) ?? `${e.created_at}|${conta ?? ''}|${navegador ?? ''}`}`
     const atual = porChave.get(chave)
     if (atual && atual.t <= t) continue
+    const ipProprio = texto(m.ip_hash)
+    // KINEO-CHECKOUT-ROBO-1510 — rastro de navegador: a própria sessão do navegador, ou um evento dela pelo mesmo IP.
+    const temRastro: boolean | null =
+      navegador !== null
+        ? true
+        : ipProprio !== null && input.navegacaoDoIp
+          ? (input.navegacaoDoIp.get(ipProprio) ?? []).some((x) => x >= t - SEM_RASTRO_ANTES_MS && x <= t + SEM_RASTRO_DEPOIS_MS)
+          : null
     porChave.set(chave, {
       chave,
       t,
       conta,
       navegador,
-      ipProprio: texto(m.ip_hash),
+      ipProprio,
       ipsLigados: navegador ? [...(input.ipsDaSessao?.get(navegador) ?? [])] : [],
       convidado: conta === null,
       uaClass: texto(m.ua_class),
       prefetch: m.prefetch === true,
+      campanha: texto(m.intent_campaign),
+      temRastro,
     })
   }
   const sessoes = [...porChave.values()].sort((a, b) => a.t - b.t || (a.chave < b.chave ? -1 : a.chave > b.chave ? 1 : 0))
@@ -208,13 +264,15 @@ export function classificarCheckouts(input: {
   const fora = sessoes.filter((s) => !ehDaCasa(s))
 
   // 3. Robô ou rajada. O primeiro motivo vale (o navegador que se declara robô é mais forte que a rajada).
-  const motivo = new Map<string, MotivoRobo>()
+  const motivo = new Map<string, MotivoRobo | MotivoVarredura>()
   for (const s of fora) {
     if (s.uaClass === 'bot') motivo.set(s.chave, 'ua_robo')
     else if (s.prefetch) motivo.set(s.chave, 'prefetch')
+    // KINEO-CHECKOUT-ROBO-1510 — compra sem conta que nunca navegou no site (o retrato das 27 de 14-15/10).
+    else if (s.convidado && s.temRastro === false) motivo.set(s.chave, 'sem_rastro')
   }
   // Janela deslizante: todo trecho com RAJADA_MIN_SESSOES ou mais sessões cujo intervalo total cabe na janela é rajada.
-  const marcarRajadas = (grupo: Sessao[], janelaMs: number, rotulo: MotivoRobo): void => {
+  const marcarRajadas = (grupo: Sessao[], janelaMs: number, rotulo: MotivoRobo | MotivoVarredura): void => {
     const g = [...grupo].sort((a, b) => a.t - b.t)
     let ini = 0
     for (let fim = 0; fim < g.length; fim++) {
@@ -236,6 +294,28 @@ export function classificarCheckouts(input: {
   for (const g of grupos.values()) marcarRajadas(g, RAJADA_JANELA_MS, 'rajada')
   // Histórico sem ip_hash: só o carimbo de tempo sobra — convidados no mesmo segundo. Estimativa, e a tela diz.
   marcarRajadas(fora.filter((s) => s.convidado && s.ipProprio === null), RAJADA_CARIMBO_JANELA_MS, 'rajada_pelo_horario')
+  // KINEO-CHECKOUT-ROBO-1510 — rajada da campanha: 2+ origens diferentes abrindo o mesmo botão em até 30 s. Quem tem
+  // rastro de navegador fica de fora (é gente; o clique duplo da mesma pessoa é a rajada por IP/sessão acima). Só campanha
+  // NOMEADA (um botão específico): sem intent_campaign não há "mesmo botão" para comparar — fica com as outras regras.
+  const porCampanha = new Map<string, Sessao[]>()
+  for (const s of fora) {
+    if (!s.convidado || s.temRastro === true || s.campanha === null) continue
+    const k = s.campanha
+    const lista = porCampanha.get(k) ?? []
+    lista.push(s)
+    porCampanha.set(k, lista)
+  }
+  const origem = (s: Sessao): string => (s.ipProprio ? `ip:${s.ipProprio}` : s.navegador ? `s:${s.navegador}` : `cs:${s.chave}`)
+  for (const grupo of porCampanha.values()) {
+    const g = [...grupo].sort((a, b) => a.t - b.t)
+    let ini = 0
+    for (let fim = 0; fim < g.length; fim++) {
+      while (g[fim].t - g[ini].t > RAJADA_CAMPANHA_JANELA_MS) ini++
+      const trecho = g.slice(ini, fim + 1)
+      if (new Set(trecho.map(origem)).size < RAJADA_CAMPANHA_MIN) continue
+      for (const s of trecho) if (!motivo.has(s.chave)) motivo.set(s.chave, 'rajada_campanha')
+    }
+  }
 
   // 4. Pessoas: as sessões que sobraram, juntadas por conta e por sessão do navegador (a mesma pessoa que abriu como
   //    convidada e depois logada na mesma aba é UMA). Sem nenhuma das duas, o IP; sem nada, a própria sessão Stripe.
@@ -283,7 +363,11 @@ export function classificarCheckouts(input: {
   }
 
   const motivos: Record<MotivoRobo, number> = { ua_robo: 0, prefetch: 0, rajada: 0, rajada_pelo_horario: 0 }
-  for (const m of motivo.values()) motivos[m] += 1
+  const motivosVarredura: Record<MotivoVarredura, number> = { sem_rastro: 0, rajada_campanha: 0 }
+  for (const m of motivo.values()) {
+    if (m === 'sem_rastro' || m === 'rajada_campanha') motivosVarredura[m] += 1
+    else motivos[m] += 1
+  }
 
   return {
     versao: CHECKOUT_HONESTO_VERSION,
@@ -293,10 +377,12 @@ export function classificarCheckouts(input: {
     pessoasSemIdentidade: deGente.filter((s) => !s.conta && !s.navegador && !s.ipProprio).length,
     roboOuRajada: motivo.size,
     roboOuRajadaEstimado: motivos.rajada_pelo_horario,
+    varreduras: motivosVarredura.sem_rastro + motivosVarredura.rajada_campanha, // KINEO-CHECKOUT-ROBO-1510
     pagou: pagos.size,
     daCasa: daCasa.length,
     pagamentosDaCasa: pagosDaCasa.size,
     motivos,
+    motivosVarredura,
   }
 }
 
@@ -325,8 +411,13 @@ export function cartaoCheckoutHonesto(r: CheckoutHonesto): CartaoCheckoutHonesto
     },
     { chave: 'pagou', valor: r.pagou, rotulo: 'pagaram', detalhe: null },
   ]
+  // KINEO-CHECKOUT-ROBO-1510 — a varredura sai separada ("N robôs/varreduras"); sem varredura, o texto é o de sempre.
+  const varreduras = r.varreduras ?? 0
+  const outrosRobos = r.roboOuRajada - varreduras
   const conta =
-    `Fora da conta: ${plural(r.roboOuRajada, 'robô ou clique repetido', 'robôs ou cliques repetidos')} · ` +
+    'Fora da conta: ' +
+    (varreduras > 0 ? `${plural(varreduras, 'robô/varredura', 'robôs/varreduras')} · ` : '') +
+    (varreduras === 0 || outrosRobos > 0 ? `${plural(outrosRobos, 'robô ou clique repetido', 'robôs ou cliques repetidos')} · ` : '') +
     `${plural(r.daCasa, 'teste da casa', 'testes da casa')} (${plural(r.sessoesAbertas, 'abertura', 'aberturas')} no total)`
   const avisos: string[] = []
   if (r.roboOuRajadaEstimado > 0) {
@@ -337,10 +428,14 @@ export function cartaoCheckoutHonesto(r: CheckoutHonesto): CartaoCheckoutHonesto
       ? '1 pagamento antigo sem conta, sessão nem IP: contado como pessoa, mas pode ser robô.'
       : `${r.pessoasSemIdentidade.toLocaleString('pt-BR')} pagamentos antigos sem conta, sessão nem IP: contados como pessoa, mas podem ser robô.`)
   }
+  if (varreduras > 0) {
+    avisos.push('Robô/varredura: compra sem conta aberta sem nenhum evento do navegador no mesmo IP nos 30 min antes, ou 2 ou mais compras sem conta do mesmo botão em 30 s vindas de IPs diferentes.')
+  }
   if (r.pagamentosDaCasa > 0) avisos.push(`${plural(r.pagamentosDaCasa, 'pagamento da casa ficou', 'pagamentos da casa ficaram')} fora de "pagou".`)
   const regra =
     'Robô ou rajada: navegador que se declara robô, pré-carregamento, ou 3 ou mais pagamentos do mesmo IP ou da mesma ' +
-    'sessão do navegador em até 5 s. Da casa: conta interna, ou a sessão ou o IP que ela usou. Pagou: só pagamento confirmado.'
+    'sessão do navegador em até 5 s; compra sem conta sem nenhum evento do navegador no mesmo IP nos 30 min antes; ou 2 ou ' +
+    'mais compras sem conta do mesmo botão em 30 s de IPs diferentes. Da casa: conta interna, ou a sessão ou o IP que ela usou. Pagou: só pagamento confirmado.'
   return { linhas, conta, avisos, regra }
 }
 
@@ -349,7 +444,8 @@ export function cartaoCheckoutHonesto(r: CheckoutHonesto): CartaoCheckoutHonesto
  *   1. checkout_started + payment_success das últimas 24h;
  *   2. eventos das MESMAS sessões do navegador (7 dias): conta logada e ip_hash do sink;
  *   3. eventos de conta logada com os MESMOS ip_hash (7 dias);
- *   4. e-mail dessas contas, para isInternalEmail (lib/internalAccounts.ts).
+ *   4. e-mail dessas contas, para isInternalEmail (lib/internalAccounts.ts);
+ *   5. (KINEO-CHECKOUT-ROBO-1510) eventos com sessão do navegador dos MESMOS ip_hash das compras sem conta (24 h + 30 min).
  * Erro de leitura lança (o leitor não devolve dado parcial): quem chama mostra "não deu para ler" em vez de um número.
  */
 export async function carregarCheckoutHonesto(
@@ -391,6 +487,24 @@ export async function carregarCheckoutHonesto(
     perfis.push(...((r.data ?? []) as unknown as PerfilDoCartao[]))
   }
 
-  const resultado = classificarCheckouts({ eventos, casa: sinaisDaCasa({ perfis, sessoes, ips }), ipsDaSessao: ipsPorSessao(sessoes) })
+  // KINEO-CHECKOUT-ROBO-1510 — 5. rastro de navegador dos IPs das compras sem conta: eventos COM sessão do navegador
+  // desses ip_hash, desde 30 min antes do começo do card (a janela de cada abertura é conferida na regra).
+  const ipsDeConvidado = unicos(eventos.filter((e) => e.name === EVENTO_ABERTO && !texto(e.user_id)).map((e) => meta(e).ip_hash))
+  const navegacao: Array<{ created_at: string; ip_hash: string | null }> = []
+  const rastroDesde = new Date(agoraMs - JANELA_CARTAO_MS - SEM_RASTRO_ANTES_MS).toISOString()
+  for (const lote of lotes(ipsDeConvidado)) {
+    const r = await ler(
+      () => db.from('events').select('id, created_at, ip_hash:metadata->>ip_hash').in('metadata->>ip_hash', lote).not('session_id', 'is', null).gte('created_at', rastroDesde),
+      { route, table: 'events' },
+    )
+    navegacao.push(...((r.data ?? []) as unknown as Array<{ created_at: string; ip_hash: string | null }>))
+  }
+
+  const resultado = classificarCheckouts({
+    eventos,
+    casa: sinaisDaCasa({ perfis, sessoes, ips }),
+    ipsDaSessao: ipsPorSessao(sessoes),
+    navegacaoDoIp: navegacaoPorIp(navegacao),
+  })
   return { ...resultado, cartao: cartaoCheckoutHonesto(resultado) }
 }
