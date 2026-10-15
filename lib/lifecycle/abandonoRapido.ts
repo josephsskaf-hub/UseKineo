@@ -25,6 +25,9 @@
 // muta). O texto é en/pt/es — as mesmas línguas da carta quente (lib/lifecycle/cartaQuente.ts).
 import { PLANS } from '../pricing'
 import { ANNUAL_REFUND_DAYS } from '../checkoutPricing'
+// reancorado KINEO-LEVA2-1510 — os dias do mensal vêm da MESMA constante da frase única da garantia (MONEY_BACK_GUARANTEE,
+// KINEO-CHECKOUT-CLAREZA-1610), que o FAQ, a faixa de confiança, os cartões do /pricing e o modal de upgrade mostram.
+import { MONTHLY_REFUND_DAYS } from '../checkoutPricing'
 import { TRIAL_FREE_FILM_CREDITS, TRIAL_FREE_FILM_SECONDS } from '../freeTierOffer'
 import { CARD_ENTRY_ONLY } from '../entryPolicy'
 import { isTrialActive, trialCapFor, trialCreditsUsed } from '../reverseTrial'
@@ -43,14 +46,17 @@ export const ABANDONO_JANELA_MIN_MINUTOS = 30
 export const ABANDONO_JANELA_MAX_MINUTOS = 360
 
 /**
- * A garantia do MENSAL. Espelho do texto público — a página de preços não tem constante para ela, só a frase do FAQ
- * ("Starter, Creator, and Studio come with a 7-day money-back guarantee… email us within 7 days of your purchase and
- * we'll refund 100%") e os termos ("7-day money-back guarantee on the first paid month … within 7 days of the first
- * charge"). O guardião lê os DOIS arquivos e falha se o número daqui divergir do número de lá.
+ * A garantia do MENSAL. Lida da fonte única (lib/checkoutPricing: MONTHLY_REFUND_DAYS, o número dentro de
+ * MONEY_BACK_GUARANTEE — a frase que o FAQ, a faixa e os cartões do /pricing mostram) — nunca digitada aqui. Os termos
+ * ("7-day money-back guarantee on the first paid month … within 7 days of the first charge") e o texto do checkout
+ * ainda têm o número escrito: o guardião lê os dois e falha se divergirem desta constante.
  * O anual lê ANNUAL_REFUND_DAYS (lib/checkoutPricing), a fonte única de pricing/FAQ/termos.
  */
-export const MONTHLY_MONEY_BACK_DAYS = 7
-/** Os planos que o FAQ nomeia na garantia. Business e passe avulso não estão lá — sem linha de garantia (cala, não inventa). */
+export const MONTHLY_MONEY_BACK_DAYS: number = MONTHLY_REFUND_DAYS
+/**
+ * Os planos que mostram a garantia sob o botão de pagar (components/pricing/PlanValueStage.tsx: PlanValueTier =
+ * Starter, Creator, Studio). Business e passe avulso não a mostram — sem linha de garantia (cala, não inventa).
+ */
 export const PLANOS_COM_GARANTIA = ['starter', 'basic', 'pro'] as const
 export const SUPORTE_EMAIL = 'support@usekineo.com'
 

@@ -24,10 +24,14 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { createHash } from 'node:crypto'
+import { execFileSync } from 'node:child_process' // reancorado KINEO-LEVA2-1510 (seção G: prova do desfaz do admin hotmail)
 import ts from 'typescript'
 import { compileOffline } from './test-support/truncamento-dedupe-offline.mjs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { desfazAbandonoRapido1610, BASE_SHA256_ABANDONO_RAPIDO_1610 } from './test-support/desfaz-abandono-rapido-1610.mjs'
+// reancorado KINEO-LEVA2-1510 — na leva 2 o admin hotmail (cd1e693b) pôs um e-mail na ADMIN_EMAILS da rota: sai em memória,
+// pelo desfaz exato dele, ANTES do desfaz deste conserto (seção G); a seção G também prova que esse desfaz é exato.
+import { semAdminHotmail1510, ADMIN_HOTMAIL_1510_ARQUIVOS, ADMIN_HOTMAIL_1510_COMMIT, ADMIN_HOTMAIL_1510_BASE } from './test-support/desfaz-admin-hotmail-1510.mjs'
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 const lf = (s) => s.replace(/\r\n/g, '\n')
@@ -228,14 +232,27 @@ for (const u of ['u_29', 'u_361']) check(`A: ${u} (fora da janela) NÃO recebe`,
 const faq = ler('app/pricing/PricingClient.tsx')
 const termos = ler('app/terms/page.tsx')
 const valor = ler('lib/growth/checkoutValueContext.ts')
-const diasFaq = Number(/(\d+)-day money-back guarantee\. If you're not satisfied, email us within (\d+) days/.exec(faq)?.[1])
-const diasFaq2 = Number(/(\d+)-day money-back guarantee\. If you're not satisfied, email us within (\d+) days/.exec(faq)?.[2])
+// reancorado KINEO-LEVA2-1510 — desde KINEO-CHECKOUT-CLAREZA-1610 o FAQ não digita mais a garantia: mostra a frase única
+// MONEY_BACK_GUARANTEE (lib/checkoutPricing.ts), cujos dias são MONTHLY_REFUND_DAYS / ANNUAL_REFUND_DAYS. A carta lê a MESMA
+// constante (nada digitado no módulo); termos e checkout ainda escrevem o número e têm de bater com ela.
+const diasFrase = Number(/within (\d+) days of your first monthly payment \((\d+) days on annual plans\)/.exec(real.cp.MONEY_BACK_GUARANTEE)?.[1])
+const diasFraseAnual = Number(/within (\d+) days of your first monthly payment \((\d+) days on annual plans\)/.exec(real.cp.MONEY_BACK_GUARANTEE)?.[2])
+const faqUsaFrase = /a: `Yes\. \$\{MONEY_BACK_GUARANTEE\}`,/.test(faq) && /^\s*MONEY_BACK_GUARANTEE,.*$/m.test(faq) && !/\d+-day money-back guarantee\. If you're not satisfied/.test(faq)
 const diasTermos = Number(/within (\d+) days of the first charge/.exec(termos.replace(/\s+/g, ' '))?.[1])
 const diasValor = Number(/'Cancel anytime from Account\. (\d+)-day money-back guarantee\.'/.exec(valor)?.[1])
 check('B: a garantia mensal da carta é a MESMA do FAQ, dos termos e do checkout (7 dias)',
-  A.MONTHLY_MONEY_BACK_DAYS === diasFaq && diasFaq === diasFaq2 && diasFaq === diasTermos && diasFaq === diasValor)
-check('B: o FAQ nomeia exatamente Starter, Creator e Studio (os planos com garantia na carta)',
-  /Starter, Creator, and Studio come with a \d+-day money-back guarantee/.test(faq) &&
+  A.MONTHLY_MONEY_BACK_DAYS === 7 && A.MONTHLY_MONEY_BACK_DAYS === real.cp.MONTHLY_REFUND_DAYS && A.MONTHLY_MONEY_BACK_DAYS === diasFrase &&
+  diasFraseAnual === real.cp.ANNUAL_REFUND_DAYS && faqUsaFrase && A.MONTHLY_MONEY_BACK_DAYS === diasTermos && A.MONTHLY_MONEY_BACK_DAYS === diasValor)
+check('B: a carta lê os dias do mensal da fonte única (MONTHLY_REFUND_DAYS de lib/checkoutPricing, sem número digitado)',
+  /^import \{ MONTHLY_REFUND_DAYS \} from '\.\.\/checkoutPricing'$/m.test(LIB) && /^export const MONTHLY_MONEY_BACK_DAYS: number = MONTHLY_REFUND_DAYS$/m.test(LIB))
+// Os planos: a frase única aparece sob o botão de pagar dos cartões do /pricing (PlanValueStage), que são exatamente
+// Starter, Creator e Studio; o bloco do Business não a mostra. A carta dá a garantia a esses três e a mais nenhum.
+const stage = ler('components/pricing/PlanValueStage.tsx')
+const biz = ler('components/pricing/PricingBusinessBlock.tsx')
+const tiersDoCartao = (/^export type PlanValueTier = ((?:'[a-z]+'(?: \| )?)+)$/m.exec(stage)?.[1] ?? '').split(' | ').map((t) => t.replace(/'/g, ''))
+check('B: a garantia sai exatamente sob os cartões Starter, Creator e Studio (os planos com garantia na carta)',
+  /\{MONEY_BACK_GUARANTEE\}/.test(stage) && /data-testid="plan-guarantee"/.test(stage) && !/MONEY_BACK_GUARANTEE|money-back/i.test(biz) &&
+  JSON.stringify(tiersDoCartao) === JSON.stringify([...A.PLANOS_COM_GARANTIA]) &&
   JSON.stringify([...A.PLANOS_COM_GARANTIA].map((t) => A.nomeDoPlano(t))) === JSON.stringify(['Starter', 'Creator', 'Studio']))
 check('B: o anual lê ANNUAL_REFUND_DAYS da fonte única (sem número digitado no módulo)',
   /import \{ ANNUAL_REFUND_DAYS \} from '\.\.\/checkoutPricing'/.test(LIB) && !/\b14 ?(days|dias|días|-day)/.test(LIB.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*\*)/.test(l)).join('\n')) && A.garantiaDaSessao(sessao('x', { tier: 'pro', billing: 'annual' })).dias === real.cp.ANNUAL_REFUND_DAYS)
@@ -377,7 +394,17 @@ check('F: o payload do cron mostra os dois contadores novos', /skipped_returned_
 
 // ═══ G. o desfaz devolve exatamente a base ═════════════════════════════════════════════════════════════════════════
 const sha = (s) => createHash('sha256').update(s).digest('hex')
-check('G: desfazer a rota devolve a base byte a byte', sha(desfazAbandonoRapido1610(ROTA_REL, ROTA)) === BASE_SHA256_ABANDONO_RAPIDO_1610[ROTA_REL])
+// reancorado KINEO-LEVA2-1510 — o admin hotmail (camada irmã, linha disjunta) sai primeiro; sem ele na árvore, volta igual.
+check('G: desfazer a rota devolve a base byte a byte', sha(desfazAbandonoRapido1610(ROTA_REL, semAdminHotmail1510(ROTA_REL, ROTA))) === BASE_SHA256_ABANDONO_RAPIDO_1610[ROTA_REL])
+{
+  const git = (...a) => execFileSync('git', ['-C', raiz, ...a], { encoding: 'utf8', maxBuffer: 1 << 28 })
+  const ruins = ADMIN_HOTMAIL_1510_ARQUIVOS.filter((f) => { try { return semAdminHotmail1510(f, git('show', `${ADMIN_HOTMAIL_1510_COMMIT}:${f}`)) !== lf(git('show', `${ADMIN_HOTMAIL_1510_BASE}:${f}`)) } catch { return true } })
+  check('G: o desfaz do admin hotmail é exato (46 arquivos: blob do cd1e693b desfeito = blob do b1a8766f)', ADMIN_HOTMAIL_1510_ARQUIVOS.length === 46 && ruins.length === 0)
+  const mexida = ROTA.replace("'joseph-test@shortsforgeai.com', 'josephskaf@hotmail.com',", "'joseph-test@shortsforgeai.com', 'josephskaf@hotmail.com', 'x@y.z',")
+  let lancou = false
+  try { semAdminHotmail1510(ROTA_REL, mexida) } catch (e) { lancou = /mudou fora deste conserto/.test(String(e && e.message)) }
+  check('G: mudança alheia na linha do admin hotmail faz o desfaz dele lançar', mexida !== ROTA && lancou)
+}
 check('G: desfazer a carta devolve a base byte a byte', sha(desfazAbandonoRapido1610(CARTA_REL, ler(CARTA_REL))) === BASE_SHA256_ABANDONO_RAPIDO_1610[CARTA_REL])
 check('G: os 4 guardiões antigos reancorados usam o desfaz',
   ['test-checkout-hot-nudge', 'test-hot-nudge-janela-campanhas', 'test-jogadas-venda-1510', 'test-resgate-pagamento-2026-10-08']
@@ -425,6 +452,16 @@ mutanteLib('Business ganha garantia', "export const PLANOS_COM_GARANTIA = ['star
 mutanteLib('has_paid largo no envio', 'if (input.hasPaid !== false || input.pagamentos > 0)', 'if (input.hasPaid === true || input.pagamentos > 0)', (M) => M.podeEnviarAgora({ hasPaid: null, pagamentos: 0, paginaViva: 'u', leituraOk: true }) === null)
 mutanteLib('convite sem a folga do teto', '  if (trialCapFor(p) - trialCreditsUsed(p) < custo) return null\n', '', (M) => M.conviteDoFilmeGratis({ temFilme: false, perfil: { ...trialAtivo, has_paid: false, trial_credits_used: 2 }, ideia: IDEIA, agoraMs: NOW }) !== null)
 mutanteLib('segundo toque ignora a volta', "  if (input.voltou === true) return 'pular_voltou'\n", '', (M) => M.decidirSegundoToque24h({ cartaRapidaEm: 't', voltou: true }) !== 'pular_voltou')
+mutanteLib('garantia mensal digitada (8) em vez de lida', 'export const MONTHLY_MONEY_BACK_DAYS: number = MONTHLY_REFUND_DAYS', 'export const MONTHLY_MONEY_BACK_DAYS: number = 8', (M) => M.garantiaDaSessao(sessao('x')).dias !== real.cp.MONTHLY_REFUND_DAYS)
+{ // reancorado KINEO-LEVA2-1510 — mexer na fonte única (MONTHLY_REFUND_DAYS 7 → 10) muda a carta junto: prova de que ela LÊ
+  const de = 'export const MONTHLY_REFUND_DAYS = 7\n'
+  const n = ler('lib/checkoutPricing.ts').split(de).length - 1
+  check('mutante aplicado (fonte única 7 → 10)', n === 1)
+  if (n === 1) {
+    const mods = carregar((rel, s) => (rel === 'lib/checkoutPricing.ts' ? s.replace(/\r\n/g, '\n').split(de).join('export const MONTHLY_REFUND_DAYS = 10\n') : s))
+    check('mutante MORTO (fonte única 7 → 10: a carta passa a dizer 10 dias)', mods.cp.MONTHLY_REFUND_DAYS === 10 && mods.A.garantiaDaSessao(sessao('x')).dias === 10 && mods.A.MONTHLY_MONEY_BACK_DAYS === 10)
+  }
+}
 mutanteLib('período desconhecido vira mensal', "  if (md.billing === 'monthly') return", "  if (md.billing !== 'annual') return", (M) => M.garantiaDaSessao(sessao('x', { billing: undefined })) !== null)
 
 console.log(falhas.length ? `\n🔴 FALHAS:\n${falhas.map((f) => `   ✗ ${f}`).join('\n')}` : '')
