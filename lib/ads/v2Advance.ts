@@ -73,6 +73,7 @@ import {
 } from '@/lib/ads/v2Shots'
 import { persistAudioCopy, persistSceneImage, pollSceneImage, submitSceneImage } from '@/lib/ads/v2Images'
 import { ADS_V2_SAME_PERSON_LINE, adsV2AnchorDecision, variationTagOf, variationTintOf } from '@/lib/ads/v2Variations'
+import { ADS_V2_LOCK_CORNER_REASON, adsV2LockCornerStep, adsV2LockSceneOrdinal, adsV2LockSideFor, adsV2LockedScenePromptAt, adsV2ParseLockSeen, type AdsV2LockSide } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-4-1510 — o canto reservado decidido em código; a visão só confere
 
 /** Tentativas por plano dentro de UMA geração paga: 1ª + refação automática no principal + reserva H3. */
 export const ADS_V2_MAX_AUTO_ATTEMPTS = 3
@@ -387,6 +388,7 @@ async function finishLockedImage(admin: SupabaseClient, order: AdsV2OrderRow, ro
     return 'done' // KINEO-ADS-FIEL-2-1510
   } // KINEO-ADS-FIEL-2-1510
   try {
+    if (lock.mode === 'scene' && typeof srv.adsV2FinishReservedScene === 'function') return await finishReservedScene(admin, order, row, lock, sceneUrl, srv) // KINEO-ADS-FIEL-4-1510 — o produto vai ao CANTO reservado (servidor antigo sem a função = o caminho da Fiel 3)
     const layout = lock.mode === 'scene' ? await lockVision().then((v) => (v && typeof v.adsV2SceneLayout === 'function' ? v.adsV2SceneLayout(sceneUrl) : null)).catch(() => null) : null // KINEO-ADS-FIEL-3-1510 — a superfície vazia e os rostos (null = a regra fixa: terço de baixo, num dos lados)
     const out = await srv.adsV2FinishLockedScene({ userId: order.user_id, orderId: order.id, idx: row.idx, attempt: row.attempt, lock, format: adsV2PlanFormat(order.plan), sceneUrl, ...(lock.mode === 'scene' ? { layout } : {}) }) // KINEO-ADS-FIEL-3-1510
     if (await markShot(admin, row, ['image_submitted'], { status: 'image_done', image_url: out.url })) {
@@ -513,6 +515,7 @@ async function submitImageFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
       else { if (await markShot(admin, row, ['pending'], { status: 'image_done', image_url: lock.url })) await shotFallbackEvent(order, row, { to: 'product_photo', reason: why }); return } // KINEO-ADS-FIEL-1510
     } // KINEO-ADS-FIEL-1510
   } // KINEO-ADS-FIEL-1510
+  if (lock && lock.mode === 'scene' && sendRefs !== refs) sendPrompt = adsV2LockedScenePromptAt({ sceneIdx: row.movement_variant, setting: adsV2SettingFromPrompt(planned?.scenePrompt), format: adsV2PlanFormat(order.plan), side: lockSideOf(order, row) }) // KINEO-ADS-FIEL-4-1510 — a cena já nasce com o CANTO reservado vazio (o MESMO lado em que o recorte será colado) e a gente na metade oposta
   let outcome
   try {
     outcome = await submitSceneImage({ prompt: sendPrompt, referenceUrls: sendRefs, ...(adsV2PlanFormat(order.plan) !== '9:16' ? { aspect: adsV2PlanFormat(order.plan) } : {}), ...(sendRefs !== refs ? { outputFormat: 'png' as const } : {}) }, { userId: order.user_id, orderId: order.id }) // KINEO-ADS-MELHORIAS-1410 — a cena criada no formato do anúncio · KINEO-ADS-FIEL-1510 — com a trava: o esboço + PNG
@@ -619,6 +622,56 @@ export async function dispatchAdsV2Shots(admin: SupabaseClient, order: AdsV2Orde
   }
   return sent
 }
+/** KINEO-ADS-FIEL-4-1510 — o lado do canto reservado da cena: pela ORDEM dela entre as cenas travadas do plano (1ª direita, 2ª esquerda…).
+ *  A MESMA conta no pedido da imagem e na colagem — é o que faz o recorte cair no canto que a cena deixou vazio. */
+function lockSideOf(order: AdsV2OrderRow, row: Pick<AdsV2ShotRow, 'idx'>): AdsV2LockSide { // KINEO-ADS-FIEL-4-1510
+  const shots = Array.isArray(order.plan?.shots) ? order.plan!.shots : [] // KINEO-ADS-FIEL-4-1510
+  const idxs = shots.filter((s) => adsV2LockOf(order, { idx: s.idx, kind: s.kind })?.mode === 'scene').map((s) => s.idx) // KINEO-ADS-FIEL-4-1510
+  return adsV2LockSideFor(adsV2LockSceneOrdinal(idxs, row.idx)) // KINEO-ADS-FIEL-4-1510
+} // KINEO-ADS-FIEL-4-1510
+/** KINEO-ADS-FIEL-4-1510 — os rostos CRUS que a conferência devolveu nas OUTRAS cenas travadas do pedido (o `seen` do JSON ao lado de cada
+ *  quadro): o palpite repetido entre cenas é reconhecido. Melhor esforço: fora do ar = [] (só a regra da caixa redonda vale). Nunca lança. */
+async function lockSeenOfSiblings(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow): Promise<AdsV2Box[][]> { // KINEO-ADS-FIEL-4-1510
+  try { // KINEO-ADS-FIEL-4-1510
+    const r = await admin.from('ads_v2_shots').select('idx,attempt,image_url').eq('order_id', order.id) // KINEO-ADS-FIEL-4-1510
+    const urls = ((r.data ?? []) as { idx: number; image_url: string | null }[]).filter((x) => x.idx !== row.idx).map((x) => adsV2LockSidecarUrl(x.image_url)).filter((u): u is string => !!u) // KINEO-ADS-FIEL-4-1510
+    const got = await Promise.all(urls.slice(0, 8).map(async (u) => { try { const res = await fetch(u, { signal: AbortSignal.timeout(5_000), cache: 'no-store' }); return res.ok ? adsV2ParseLockSeen(await res.text()) : [] } catch { return [] } })) // KINEO-ADS-FIEL-4-1510
+    return got.filter((g) => g.length > 0) // KINEO-ADS-FIEL-4-1510
+  } catch { // KINEO-ADS-FIEL-4-1510
+    return [] // KINEO-ADS-FIEL-4-1510
+  } // KINEO-ADS-FIEL-4-1510
+} // KINEO-ADS-FIEL-4-1510
+/**
+ * KINEO-ADS-FIEL-4-1510 — a cena de gente com a trava: o recorte REAL vai ao CANTO reservado (lado pela ordem da cena; base no terço de baixo).
+ * A conferência ('high') só decide se o canto está ocupado: confiável e com gente no canto = refaz a imagem UMA vez (scene_retry, a mesma régua
+ * da Fiel 2) e, de novo, a vaga anima a FOTO REAL do produto. Conferência suspeita ou fora do ar = o canto fica. Falha do servidor = a foto real.
+ */
+async function finishReservedScene(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow, lock: AdsV2ProductLock, sceneUrl: string, srv: NonNullable<Awaited<ReturnType<typeof lockServer>>>): Promise<'done'> { // KINEO-ADS-FIEL-4-1510
+  const side = lockSideOf(order, row) // KINEO-ADS-FIEL-4-1510
+  const format = adsV2PlanFormat(order.plan) // KINEO-ADS-FIEL-4-1510
+  try { // KINEO-ADS-FIEL-4-1510
+    const check = await lockVision().then((v) => (v && typeof v.adsV2SceneCheck === 'function' ? v.adsV2SceneCheck(sceneUrl, format, side) : null)).catch(() => null) // KINEO-ADS-FIEL-4-1510
+    const previous = await lockSeenOfSiblings(admin, order, row) // KINEO-ADS-FIEL-4-1510
+    const out = await srv.adsV2FinishReservedScene({ userId: order.user_id, orderId: order.id, idx: row.idx, attempt: row.attempt, lock, format, sceneUrl, side, check, previous }) // KINEO-ADS-FIEL-4-1510
+    const checkInfo = { trusted: out.trust.trusted, why: out.trust.why, corner_person: check ? check.cornerPerson : null, corner_surface: check ? check.cornerSurface : null } // KINEO-ADS-FIEL-4-1510
+    if (out.busy) { // KINEO-ADS-FIEL-4-1510
+      if (adsV2LockCornerStep({ busy: true, previousReason: row.reason }) === 'retry') { // KINEO-ADS-FIEL-4-1510
+        if (await markShot(admin, row, ['image_submitted'], { status: 'pending', image_request_id: null, image_submit_claimed_at: null, reason: ADS_V2_LOCK_CORNER_REASON })) await shotFallbackEvent(order, row, { to: 'scene_retry', reason: ADS_V2_LOCK_CORNER_REASON, side, check: checkInfo }) // KINEO-ADS-FIEL-4-1510
+        return 'done' // KINEO-ADS-FIEL-4-1510
+      } // KINEO-ADS-FIEL-4-1510
+      if (await markShot(admin, row, ['image_submitted'], { status: 'image_done', image_url: lock.url, reason: null })) await shotFallbackEvent(order, row, { to: 'product_photo', reason: 'lock_corner_busy', side, check: checkInfo }) // KINEO-ADS-FIEL-4-1510
+      return 'done' // KINEO-ADS-FIEL-4-1510
+    } // KINEO-ADS-FIEL-4-1510
+    if (await markShot(admin, row, ['image_submitted'], { status: 'image_done', image_url: out.url })) { // KINEO-ADS-FIEL-4-1510
+      await writeServerEvent({ name: 'ads_v2_product_locked', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, idx: row.idx, attempt: row.attempt, mode: lock.mode, rect: out.rect, shade: out.shade, placement: out.placement, faces: out.faces, check: checkInfo, from_original: !!lock.sourceUrl } }).catch(() => null) // KINEO-ADS-FIEL-4-1510 — placement.source 'reserved' + o que a conferência disse
+    } // KINEO-ADS-FIEL-4-1510
+    return 'done' // KINEO-ADS-FIEL-4-1510
+  } catch (e) { // KINEO-ADS-FIEL-4-1510
+    const why = e instanceof Error ? e.message : String(e) // KINEO-ADS-FIEL-4-1510
+    if (await markShot(admin, row, ['image_submitted'], { status: 'image_done', image_url: lock.url })) await shotFallbackEvent(order, row, { to: 'product_photo', reason: `lock_finish:${why}`.slice(0, 160) }) // KINEO-ADS-FIEL-4-1510
+    return 'done' // KINEO-ADS-FIEL-4-1510
+  } // KINEO-ADS-FIEL-4-1510
+} // KINEO-ADS-FIEL-4-1510
 
 // ── acompanhamento de um plano ────────────────────────────────────────────────────────────────────────────────────
 async function pollOne(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow): Promise<void> {

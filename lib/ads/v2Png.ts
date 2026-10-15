@@ -12,6 +12,7 @@
 import { deflateSync, inflateSync } from 'node:zlib'
 import { ADS_V2_CUTOUT_AREA_MAX, ADS_V2_CUTOUT_AREA_MIN, ADS_V2_FORMAT_CROP, adsV2ProductLockRect, type AdsV2Format, type AdsV2ProductLockMode } from '@/lib/ads/v2ShotLists'
 import { adsV2LockPlacement, type AdsV2Box, type AdsV2LockPlacement, type AdsV2SceneLayout } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-3-1510 — o produto pousa na superfície lida, com teto e longe dos rostos
+import { adsV2LockReservedRect, type AdsV2LockSide } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-4-1510 — o canto reservado decidido em código (a visão só confere)
 
 /** Imagem em memória: RGBA 8 bits, linha a linha, sem preenchimento. */
 export interface AdsV2Rgba { width: number; height: number; data: Uint8Array }
@@ -517,3 +518,34 @@ export function adsV2EmptyLayoutPng(format: AdsV2Format): Uint8Array {
   for (let i = 0; i < data.length; i += 4) { data[i] = data[i + 1] = data[i + 2] = ADS_V2_LAYOUT_GREY; data[i + 3] = 255 }
   return encodePng({ width: W, height: H, data })
 }
+
+// ── KINEO-ADS-FIEL-4-1510 — o quadro travado com o CANTO reservado (reteste 15/10: o produto boiou em 7/7 e cobriu um rosto) ──────────
+/** KINEO-ADS-FIEL-4-1510 — o quadro do formato e a janela `cover` (centro) da cena nele: a MESMA conta de adsV2LockedFramePng. Pura. */
+export function adsV2CoverWindow(sceneW: number, sceneH: number, format: AdsV2Format): { W: number; H: number; win: { sx: number; sy: number; sw: number; sh: number } } { // KINEO-ADS-FIEL-4-1510
+  const crop = ADS_V2_FORMAT_CROP[format] ?? ADS_V2_FORMAT_CROP['9:16'] // KINEO-ADS-FIEL-4-1510
+  const ratio = crop.width / crop.height // KINEO-ADS-FIEL-4-1510
+  let sw = sceneW // KINEO-ADS-FIEL-4-1510
+  let sh = sw / ratio // KINEO-ADS-FIEL-4-1510
+  if (sh > sceneH) { sh = sceneH; sw = sh * ratio } // KINEO-ADS-FIEL-4-1510
+  return { W: crop.width, H: crop.height, win: { sx: (sceneW - sw) / 2, sy: (sceneH - sh) / 2, sw, sh } } // KINEO-ADS-FIEL-4-1510
+} // KINEO-ADS-FIEL-4-1510
+/** KINEO-ADS-FIEL-4-1510 — ONDE o produto entra (o canto reservado, só pelo formato e pelo lado) e os rostos da conferência levados ao quadro —
+ *  decidido ANTES de pintar um pixel (canto ocupado = nada é gravado). Pura. */
+export function adsV2ReservedLayout(i: { sceneW: number; sceneH: number; cutW: number; cutH: number; format: AdsV2Format; side: AdsV2LockSide; faces?: readonly AdsV2Box[] | null }): { W: number; H: number; rect: { x: number; y: number; w: number; h: number }; faces: AdsV2Box[] } { // KINEO-ADS-FIEL-4-1510
+  const { W, H, win } = adsV2CoverWindow(i.sceneW, i.sceneH, i.format) // KINEO-ADS-FIEL-4-1510
+  const rect = adsV2LockReservedRect({ frameW: W, frameH: H, cutW: i.cutW, cutH: i.cutH, format: i.format, side: i.side }) // KINEO-ADS-FIEL-4-1510 — a leitura NÃO entra aqui
+  const seen = adsV2LayoutToFrame({ surface: null, faces: Array.isArray(i.faces) ? [...i.faces] : [] }, i.sceneW, i.sceneH, win) // KINEO-ADS-FIEL-4-1510
+  return { W, H, rect, faces: seen ? seen.faces : [] } // KINEO-ADS-FIEL-4-1510
+} // KINEO-ADS-FIEL-4-1510
+/** KINEO-ADS-FIEL-4-1510 — o QUADRO TRAVADO no canto reservado (PNG RGB no tamanho do formato): a cena em `cover`, a sombra de contato
+ *  encostada na BASE do produto + o tom da cena (adsV2ShadeAndMatch, modo 'scene') e o recorte REAL colado no retângulo do canto. */
+export function adsV2ReservedFramePng(scene: AdsV2Rgba, cutTrimmed: AdsV2Rgba, format: AdsV2Format, side: AdsV2LockSide): { png: Uint8Array; rect: { x: number; y: number; w: number; h: number }; width: number; height: number; shade: AdsV2Shade } { // KINEO-ADS-FIEL-4-1510
+  const { W, H, win } = adsV2CoverWindow(scene.width, scene.height, format) // KINEO-ADS-FIEL-4-1510
+  const frame = resampleRgba(scene, W, H, win) // KINEO-ADS-FIEL-4-1510
+  for (let i = 3; i < frame.data.length; i += 4) frame.data[i] = 255 // KINEO-ADS-FIEL-4-1510
+  const rect = adsV2LockReservedRect({ frameW: W, frameH: H, cutW: cutTrimmed.width, cutH: cutTrimmed.height, format, side }) // KINEO-ADS-FIEL-4-1510
+  const piece = resampleRgba(cutTrimmed, rect.w, rect.h) // KINEO-ADS-FIEL-4-1510
+  const shade = adsV2ShadeAndMatch(frame, piece, rect, 'scene') // KINEO-ADS-FIEL-4-1510 — a elipse de contato nasce NA base do retângulo: o produto pousa
+  pasteOver(frame, piece, rect.x, rect.y) // KINEO-ADS-FIEL-4-1510
+  return { png: encodePng(frame), rect, width: W, height: H, shade } // KINEO-ADS-FIEL-4-1510
+} // KINEO-ADS-FIEL-4-1510

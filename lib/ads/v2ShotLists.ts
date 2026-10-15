@@ -1296,3 +1296,154 @@ export function adsV2ParseLockSidecar(raw: unknown): AdsV2Box[] | null { // KINE
   if (!product) return null // KINEO-ADS-FIEL-3-1510
   return [product, ...(Array.isArray(o.faces) ? o.faces : []).map(box01).filter((b): b is AdsV2Box => !!b).slice(0, 8)] // KINEO-ADS-FIEL-3-1510
 } // KINEO-ADS-FIEL-3-1510
+// ── KINEO-ADS-FIEL-4-1510 — o LUGAR do produto passa a ser DETERMINÍSTICO (reteste pago 15/10: ec695e63 · 3f77289f) ──────────────────────
+// KINEO-ADS-FIEL-4-1510 — o que se viu: a leitura de visão 'low' devolvia sempre source 'surface' com caixas de PALPITE (rostos "redondos"
+// KINEO-ADS-FIEL-4-1510 — 0,40–0,60 repetidos em toda cena): o produto BOIOU em 7/7 cenas, cobriu o rosto do homem no T1 cena 4 (rosto real em
+// KINEO-ADS-FIEL-4-1510 — x 0,24–0,40; a visão disse 0,40–0,60 → faceOverlap 0 falso) e ficou sempre à esquerda no T2 (gap 4/4). Agora a
+// KINEO-ADS-FIEL-4-1510 — posição é decidida em CÓDIGO antes da imagem existir: cada cena reserva um CANTO de baixo (lado alternado pela ordem
+// KINEO-ADS-FIEL-4-1510 — da cena entre as cenas travadas), o pedido da imagem manda deixar ali uma superfície vazia e as pessoas na metade
+// KINEO-ADS-FIEL-4-1510 — oposta com o rosto na metade de cima, e o recorte real é colado exatamente nesse canto, base no terço de baixo. A
+// KINEO-ADS-FIEL-4-1510 — visão ('high') vira só CONFERÊNCIA: resposta suspeita = "não sei" (o canto fica); pessoa conferida no canto = refaz a
+// KINEO-ADS-FIEL-4-1510 — imagem 1 vez e, de novo, a foto real do produto. Tudo puro (o guardião roda com os números reais do reteste).
+/** KINEO-ADS-FIEL-4-1510 — o lado do canto reservado. */
+export type AdsV2LockSide = 'left' | 'right' // KINEO-ADS-FIEL-4-1510
+/** KINEO-ADS-FIEL-4-1510 — a BASE do produto no canto reservado (fração da altura do quadro): terço de baixo, entre 78% e 92% (9:16 acima dos
+ *  botões da interface; 1:1 e 4:5 mais embaixo, onde a mesa fica). */
+export const ADS_V2_LOCK_RESERVE_BASE: Readonly<Record<AdsV2Format, number>> = { '9:16': 0.85, '4:5': 0.88, '1:1': 0.9 } // KINEO-ADS-FIEL-4-1510
+/** KINEO-ADS-FIEL-4-1510 — margem do produto até a borda do lado (fração da largura): o produto fica no canto, nunca encostado. */
+export const ADS_V2_LOCK_RESERVE_EDGE = 0.06 // KINEO-ADS-FIEL-4-1510
+/** KINEO-ADS-FIEL-4-1510 — o lado da cena pela ORDEM dela entre as cenas travadas do pedido: 1ª direita, 2ª esquerda, 3ª direita… (sempre
+ *  alterna, inclusive onde antes caía no "vão"). Pura. */
+export function adsV2LockSideFor(ordinal: number): AdsV2LockSide { // KINEO-ADS-FIEL-4-1510
+  const n = Number.isFinite(ordinal) ? Math.abs(Math.trunc(ordinal)) : 0 // KINEO-ADS-FIEL-4-1510
+  return n % 2 === 0 ? 'right' : 'left' // KINEO-ADS-FIEL-4-1510
+} // KINEO-ADS-FIEL-4-1510
+/** KINEO-ADS-FIEL-4-1510 — a ordem (0, 1, 2…) do plano `idx` entre os planos travados `idxs` (fora da lista = o próprio idx). Pura. */
+export function adsV2LockSceneOrdinal(idxs: readonly number[], idx: number): number { // KINEO-ADS-FIEL-4-1510
+  const u = [...new Set((Array.isArray(idxs) ? idxs : []).filter((n) => Number.isFinite(n)))].sort((a, b) => a - b) // KINEO-ADS-FIEL-4-1510
+  const k = u.indexOf(idx) // KINEO-ADS-FIEL-4-1510
+  return k >= 0 ? k : Number.isFinite(idx) ? Math.abs(Math.trunc(idx)) : 0 // KINEO-ADS-FIEL-4-1510
+} // KINEO-ADS-FIEL-4-1510
+const lockFmt = (f: unknown): AdsV2Format => (f === '4:5' || f === '1:1' ? f : '9:16') // KINEO-ADS-FIEL-4-1510
+/** KINEO-ADS-FIEL-4-1510 — o CANTO reservado (frações do quadro): a metade do lado, do alto do produto (com folga) até o pé do quadro. Pura. */
+export function adsV2LockReserveZone(format: AdsV2Format, side: AdsV2LockSide): AdsV2Box { // KINEO-ADS-FIEL-4-1510
+  const f = lockFmt(format) // KINEO-ADS-FIEL-4-1510
+  const y0 = Math.round((ADS_V2_LOCK_RESERVE_BASE[f] - ADS_V2_LOCK_MAX_H[f] - 0.05) * 100) / 100 // KINEO-ADS-FIEL-4-1510
+  return side === 'left' ? { x0: 0, y0, x1: 0.5, y1: 1 } : { x0: 0.5, y0, x1: 1, y1: 1 } // KINEO-ADS-FIEL-4-1510
+} // KINEO-ADS-FIEL-4-1510
+/** KINEO-ADS-FIEL-4-1510 — o retângulo do produto (px inteiros) no canto reservado: teto de altura do formato e de largura, BASE em
+ *  ADS_V2_LOCK_RESERVE_BASE, encostado na margem do lado (nunca passa da metade do quadro). Não depende de leitura nenhuma. Pura. */
+export function adsV2LockReservedRect(i: { frameW: number; frameH: number; cutW: number; cutH: number; format: AdsV2Format; side: AdsV2LockSide }): { x: number; y: number; w: number; h: number } { // KINEO-ADS-FIEL-4-1510
+  const W = i.frameW, H = i.frameH // KINEO-ADS-FIEL-4-1510
+  if (!(W > 0 && H > 0 && i.cutW > 0 && i.cutH > 0)) throw new Error('ads_v2_lock_bad_size') // KINEO-ADS-FIEL-4-1510
+  const f = lockFmt(i.format) // KINEO-ADS-FIEL-4-1510
+  const base = ADS_V2_LOCK_RESERVE_BASE[f] // KINEO-ADS-FIEL-4-1510
+  const k = Math.min((ADS_V2_LOCK_MAX_H[f] * H) / i.cutH, (ADS_V2_LOCK_MAX_W * W) / i.cutW, ((base - ADS_V2_LOCK_EDGE) * H) / i.cutH) // KINEO-ADS-FIEL-4-1510
+  const w = Math.max(1, Math.round(i.cutW * k)), h = Math.max(1, Math.round(i.cutH * k)) // KINEO-ADS-FIEL-4-1510
+  const y = Math.round(base * H) - h // KINEO-ADS-FIEL-4-1510 — a base no terço de baixo, sempre
+  const x = i.side === 'left' ? Math.round(ADS_V2_LOCK_RESERVE_EDGE * W) : Math.round((1 - ADS_V2_LOCK_RESERVE_EDGE) * W) - w // KINEO-ADS-FIEL-4-1510
+  return { x, y, w, h } // KINEO-ADS-FIEL-4-1510
+} // KINEO-ADS-FIEL-4-1510
+const pct = (n: number) => Math.round(n * 100) // KINEO-ADS-FIEL-4-1510
+/** KINEO-ADS-FIEL-4-1510 — as 4 cenas de gente com o CANTO reservado: a pessoa do lado oposto, a ponta do lado do produto vazia. */
+export function adsV2LockCornerAction(sceneIdx: number, side: AdsV2LockSide): string { // KINEO-ADS-FIEL-4-1510
+  const opp = side === 'left' ? 'right' : 'left' // KINEO-ADS-FIEL-4-1510
+  const list = [ // KINEO-ADS-FIEL-4-1510
+    `A person sitting at the ${opp} end of a long table, smiling warmly toward its empty ${side} end, hands resting on the table in front of them`, // KINEO-ADS-FIEL-4-1510
+    `Two friends standing together at the ${opp} end of a counter, smiling and talking, the ${side} end of the counter empty`, // KINEO-ADS-FIEL-4-1510
+    `A person standing on the ${opp} side beside a low wide pedestal, relaxed, glancing toward its empty top on the ${side}`, // KINEO-ADS-FIEL-4-1510
+    `A person on the ${opp} side in the background, face softly out of focus, an empty tabletop sharp in the ${side} foreground`, // KINEO-ADS-FIEL-4-1510
+  ] // KINEO-ADS-FIEL-4-1510
+  const n = Number.isFinite(sceneIdx) ? Math.abs(Math.trunc(sceneIdx)) : 0 // KINEO-ADS-FIEL-4-1510
+  return list[n % list.length] // KINEO-ADS-FIEL-4-1510
+} // KINEO-ADS-FIEL-4-1510
+/**
+ * KINEO-ADS-FIEL-4-1510 — o pedido da cena travada COM o canto reservado: a mesma abertura e as mesmas proibições do pedido da Fiel 2
+ * (adsV2LockedScenePrompt), mas a superfície vazia vai ao canto de baixo do `side` (onde o recorte será colado, ADS_V2_LOCK_RESERVE_BASE)
+ * e as pessoas ficam na metade oposta, com o rosto na metade de cima. Pura.
+ */
+export function adsV2LockedScenePromptAt(i: { sceneIdx: number; setting?: string | null; format?: AdsV2Format | null; side: AdsV2LockSide }): string { // KINEO-ADS-FIEL-4-1510
+  const f = lockFmt(i.format) // KINEO-ADS-FIEL-4-1510
+  const side: AdsV2LockSide = i.side === 'left' ? 'left' : 'right' // KINEO-ADS-FIEL-4-1510
+  const opp = side === 'left' ? 'right' : 'left' // KINEO-ADS-FIEL-4-1510
+  const zone = adsV2LockReserveZone(f, side) // KINEO-ADS-FIEL-4-1510
+  const base = ADS_V2_LOCK_RESERVE_BASE[f] // KINEO-ADS-FIEL-4-1510
+  return [ // KINEO-ADS-FIEL-4-1510
+    `The FIRST attached image is the layout of this frame: a plain grey canvas. Replace it completely with a photorealistic ${LOCK_FRAME_WORD[f]} frame from a product commercial, shot on a cinema camera, natural light, subtle film grain.`, // KINEO-ADS-FIEL-4-1510
+    `${adsV2LockCornerAction(i.sceneIdx, side)}.`, // KINEO-ADS-FIEL-4-1510
+    i.setting && /^Setting: "/.test(i.setting) ? i.setting : '', // KINEO-ADS-FIEL-4-1510
+    `Reserved spot: the lower ${side} corner of the frame (the ${side} half, below ${pct(zone.y0)}% of the frame height) shows the flat top of an EMPTY surface (a table, a counter or a pedestal) with NOTHING on it, sharp and softly lit, its top visible between about ${pct(base - 0.12)}% and ${pct(Math.min(0.97, base + 0.08))}% of the frame height: a product will be placed there later, standing on that surface, so keep that corner completely clear.`, // KINEO-ADS-FIEL-4-1510
+    `People stay on the ${opp} half of the frame, faces in the upper half; no face, head, body, arm or hand enters the lower ${side} corner.`, // KINEO-ADS-FIEL-4-1510
+    'There is NO bottle, NO box, NO packaging, NO container and NO product of any kind anywhere in the frame; hands are empty and stay away from the empty surface.', // KINEO-ADS-FIEL-4-1510
+    'Any other attached photo only shows the place and the people; never copy an object from it.', // KINEO-ADS-FIEL-4-1510
+    'Ordinary non-famous people with natural skin texture and everyday clothes; every hand has five natural fingers.', // KINEO-ADS-FIEL-4-1510
+    'No text, no logos, no signs, no writing anywhere, no watermarks.', // KINEO-ADS-FIEL-4-1510
+    ADS_V2_LOCK_NEGATIVE, // KINEO-ADS-FIEL-4-1510
+  ].filter(Boolean).join(' ') // KINEO-ADS-FIEL-4-1510
+} // KINEO-ADS-FIEL-4-1510
+/** KINEO-ADS-FIEL-4-1510 — a pergunta da CONFERÊNCIA (imagem 'high'): os rostos medidos na foto, se há pessoa no canto reservado e se ali há
+ *  uma superfície vazia. A posição do produto NÃO depende da resposta. Pura. */
+export function adsV2LockCheckQuestion(format: AdsV2Format, side: AdsV2LockSide): string { // KINEO-ADS-FIEL-4-1510
+  const z = adsV2LockReserveZone(format, side) // KINEO-ADS-FIEL-4-1510
+  return `Look carefully at this photo. (1) List every human face as a box [x0, y0, x1, y1] in fractions of the image width and height, from 0 to 1 (left, top, right, bottom), measured on THIS photo, never a default guess; no face = []. (2) Is any part of a person (face, head, body, arm or hand) inside the region x ${z.x0}–${z.x1}, y ${z.y0}–${z.y1} (the lower ${side} corner)? (3) Is the flat top of an empty surface (table, counter or pedestal) visible in that region? Answer only with JSON: {"faces": [[x0, y0, x1, y1], ...], "corner_person": true or false, "corner_surface": true or false}.` // KINEO-ADS-FIEL-4-1510
+} // KINEO-ADS-FIEL-4-1510
+/** KINEO-ADS-FIEL-4-1510 — o que a conferência leu (frações da IMAGEM da cena; null = não sabe). */
+export interface AdsV2LockCheck { faces: AdsV2Box[]; cornerPerson: boolean | null; cornerSurface: boolean | null } // KINEO-ADS-FIEL-4-1510
+/** KINEO-ADS-FIEL-4-1510 — a resposta da conferência → rostos (até 8) + as duas respostas. Ilegível ou sem as chaves = null. Pura. */
+export function adsV2ParseLockCheck(raw: unknown): AdsV2LockCheck | null { // KINEO-ADS-FIEL-4-1510
+  let v: unknown = raw // KINEO-ADS-FIEL-4-1510
+  if (typeof raw === 'string') { try { v = JSON.parse(raw) } catch { return null } } // KINEO-ADS-FIEL-4-1510
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null // KINEO-ADS-FIEL-4-1510
+  const o = v as Record<string, unknown> // KINEO-ADS-FIEL-4-1510
+  if (!('faces' in o) && !('corner_person' in o)) return null // KINEO-ADS-FIEL-4-1510
+  const yn = (x: unknown): boolean | null => (x === true ? true : x === false ? false : null) // KINEO-ADS-FIEL-4-1510
+  const faces = (Array.isArray(o.faces) ? o.faces : []).map(box01).filter((b): b is AdsV2Box => !!b).slice(0, 8) // KINEO-ADS-FIEL-4-1510
+  return { faces, cornerPerson: yn(o.corner_person), cornerSurface: yn(o.corner_surface) } // KINEO-ADS-FIEL-4-1510
+} // KINEO-ADS-FIEL-4-1510
+/** KINEO-ADS-FIEL-4-1510 — caixa "redonda": as 4 coordenadas na grade de 0,05 (o palpite padrão do reteste: 0,40–0,60; 0,35–0,45 / 0,55–0,65). */
+export function adsV2LockBoxRound(b: AdsV2Box): boolean { // KINEO-ADS-FIEL-4-1510
+  return [b.x0, b.y0, b.x1, b.y1].every((v) => Math.abs(v * 20 - Math.round(v * 20)) < 0.02) // KINEO-ADS-FIEL-4-1510
+} // KINEO-ADS-FIEL-4-1510
+/** KINEO-ADS-FIEL-4-1510 — mesma caixa (até 0,005 em cada coordenada). */
+export function adsV2LockBoxSame(a: AdsV2Box, b: AdsV2Box): boolean { // KINEO-ADS-FIEL-4-1510
+  return Math.abs(a.x0 - b.x0) <= 0.005 && Math.abs(a.y0 - b.y0) <= 0.005 && Math.abs(a.x1 - b.x1) <= 0.005 && Math.abs(a.y1 - b.y1) <= 0.005 // KINEO-ADS-FIEL-4-1510
+} // KINEO-ADS-FIEL-4-1510
+/** KINEO-ADS-FIEL-4-1510 — dá para CONFIAR na conferência? Não: sem resposta, caixa redonda, caixa idêntica à de outra cena do pedido
+ *  (`previous`, os rostos crus das cenas já travadas) ou nenhum rosto quando a cena pediu gente. Não confiável = "não sei": o canto fica. Pura. */
+export function adsV2LockCheckTrust(i: { check: AdsV2LockCheck | null | undefined; expectPeople: boolean; previous?: readonly (readonly AdsV2Box[])[] | null }): { trusted: boolean; why: 'no_answer' | 'round_boxes' | 'repeated_boxes' | 'no_face' | null } { // KINEO-ADS-FIEL-4-1510
+  const c = i.check // KINEO-ADS-FIEL-4-1510
+  if (!c || !Array.isArray(c.faces)) return { trusted: false, why: 'no_answer' } // KINEO-ADS-FIEL-4-1510
+  if (c.faces.some(adsV2LockBoxRound)) return { trusted: false, why: 'round_boxes' } // KINEO-ADS-FIEL-4-1510
+  const prev = (Array.isArray(i.previous) ? i.previous : []).flat() // KINEO-ADS-FIEL-4-1510
+  if (c.faces.some((f) => prev.some((p) => adsV2LockBoxSame(f, p)))) return { trusted: false, why: 'repeated_boxes' } // KINEO-ADS-FIEL-4-1510
+  if (i.expectPeople && c.faces.length === 0) return { trusted: false, why: 'no_face' } // KINEO-ADS-FIEL-4-1510
+  return { trusted: true, why: null } // KINEO-ADS-FIEL-4-1510
+} // KINEO-ADS-FIEL-4-1510
+/** KINEO-ADS-FIEL-4-1510 — a conferência CONFIÁVEL diz que há gente no canto? (um rosto lido — com a folga e o pescoço — toca o produto, ou
+ *  a resposta direta "corner_person" é sim). Não confiável = false (o canto fica). `faces` e `rect` no MESMO quadro. Pura. */
+export function adsV2LockCornerBusy(i: { trusted: boolean; cornerPerson: boolean | null | undefined; faces: readonly AdsV2Box[]; rect: AdsV2Box }): boolean { // KINEO-ADS-FIEL-4-1510
+  if (!i.trusted) return false // KINEO-ADS-FIEL-4-1510
+  return i.cornerPerson === true || adsV2FaceOverlap(i.rect, i.faces) > 0 // KINEO-ADS-FIEL-4-1510
+} // KINEO-ADS-FIEL-4-1510
+/** KINEO-ADS-FIEL-4-1510 — o motivo da refação por gente no canto. Começa com ADS_V2_LOCK_DUP_REASON de propósito: a refação da cena travada
+ *  é UMA só por plano, venha da conferência de produto desenhado (Fiel 2) ou da de canto ocupado — a 2ª falha de qualquer uma = foto real. */
+export const ADS_V2_LOCK_CORNER_REASON = 'lock_dup_retry:corner' // KINEO-ADS-FIEL-4-1510 — literal (o guardião prova que começa com ADS_V2_LOCK_DUP_REASON)
+/** KINEO-ADS-FIEL-4-1510 — canto ocupado: 'retry' (1ª vez: refaz a imagem da cena) ou 'product_photo' (já refeita: a foto real do produto em
+ *  movimento); livre = 'keep'. Pura. */
+export function adsV2LockCornerStep(i: { busy: boolean; previousReason: string | null | undefined }): 'keep' | 'retry' | 'product_photo' { // KINEO-ADS-FIEL-4-1510
+  if (!i.busy) return 'keep' // KINEO-ADS-FIEL-4-1510
+  return String(i.previousReason ?? '').startsWith(ADS_V2_LOCK_DUP_REASON) ? 'product_photo' : 'retry' // KINEO-ADS-FIEL-4-1510
+} // KINEO-ADS-FIEL-4-1510
+/** KINEO-ADS-FIEL-4-1510 — o JSON ao lado do quadro travado com o canto reservado: o de antes (produto + rostos CONFIÁVEIS, que as frases
+ *  evitam) + `seen` (os rostos crus que a conferência devolveu, para a próxima cena do pedido reconhecer o palpite repetido). Pura. */
+export function adsV2LockSidecarSeen(rect: { x: number; y: number; w: number; h: number }, frameW: number, frameH: number, faces: readonly AdsV2Box[], seen: readonly AdsV2Box[]): { v: 1; product: AdsV2Box; faces: AdsV2Box[]; seen: AdsV2Box[] } { // KINEO-ADS-FIEL-4-1510
+  const r4 = (n: number) => Math.round(Math.min(1, Math.max(0, n)) * 10000) / 10000 // KINEO-ADS-FIEL-4-1510
+  return { ...adsV2LockSidecar(rect, frameW, frameH, faces), seen: (Array.isArray(seen) ? seen : []).slice(0, 8).map((b) => ({ x0: r4(b.x0), y0: r4(b.y0), x1: r4(b.x1), y1: r4(b.y1) })) } // KINEO-ADS-FIEL-4-1510
+} // KINEO-ADS-FIEL-4-1510
+/** KINEO-ADS-FIEL-4-1510 — os rostos crus (`seen`) de um JSON de quadro travado; sem a chave ou ilegível = []. Pura. */
+export function adsV2ParseLockSeen(raw: unknown): AdsV2Box[] { // KINEO-ADS-FIEL-4-1510
+  let v: unknown = raw // KINEO-ADS-FIEL-4-1510
+  if (typeof raw === 'string') { try { v = JSON.parse(raw) } catch { return [] } } // KINEO-ADS-FIEL-4-1510
+  const o = v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null // KINEO-ADS-FIEL-4-1510
+  return o && o.v === 1 && Array.isArray(o.seen) ? o.seen.map(box01).filter((b): b is AdsV2Box => !!b).slice(0, 8) : [] // KINEO-ADS-FIEL-4-1510
+} // KINEO-ADS-FIEL-4-1510
