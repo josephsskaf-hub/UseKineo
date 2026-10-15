@@ -111,6 +111,8 @@ export type Engine = {
   bestFor: string
   tradeoff: string
   faq: { q: string; a: string }[]
+  /** KINEO-PAGINAS-MOTOR-1610 — meta description própria (≤155) das páginas reescritas; ausente = a frase genérica da página. */
+  metaDescription?: string
 }
 
 // Modelos conferidos LINHA A LINHA em app/api/generate-video-cinematic/route.ts
@@ -205,7 +207,13 @@ export const ENGINES: Record<string, Engine> = {
         q: 'Do I have to write prompts for each scene?',
         a: 'No. You type one idea. Kineo writes the script with a hook-first structure, breaks it into scenes and writes each scene prompt for Kling itself. You can edit the script before it renders.',
       },
+      // KINEO-PAGINAS-MOTOR-1610 — do artigo do GPT (kling-2-5-kling-3-cinematic-shorts-dialogue.md)
+      {
+        q: 'Can characters speak on camera with Kling 2.5?',
+        a: `No. Kineo’s Kling 2.5 workflow generates silent scenes and narrates your script over them, with captions and music. For a character delivering a line with lip sync, use Kling 3 (${KLING3_COST} credits per 60 seconds, English only).`,
+      },
     ],
+    metaDescription: `Kling 2.5 in Kineo: camera-led narrated Shorts with captions and music — ${KLING_COST} credits per 60-second film${videosPerMonth('starter', 'cinematic_kling') >= 1 ? '; the Starter plan covers one' : ''}.`, // KINEO-PAGINAS-MOTOR-1610
   },
   veo: {
     param: 'veo',
@@ -214,10 +222,10 @@ export const ENGINES: Record<string, Engine> = {
     model: 'fal-ai/veo3.1/fast',
     creditCost: VEO_COST,
     tier: tierFor('cinematic_veo'),
-    h1: 'Veo 3.1 AI video generator — Google’s flagship, wired into a finished Short',
+    h1: 'Veo 3.1 AI video generator — Veo 3.1 Fast as a finished Short, no Google plan needed', // KINEO-PAGINAS-MOTOR-1610
     intro:
       `Veo 3.1 is Google’s flagship video model — Kineo runs its Fast version — and inside Kineo it is not a clip generator you then have to edit: you type one idea and get the whole vertical Short — script, AI voiceover, Veo-generated scenes and captions — assembled and ready to post. A 60-second video costs ${VEO_COST} credits; the Studio monthly grant covers ${videosPerMonth('pro', 'cinematic_veo')}.`,
-    bestFor: 'The hero video of a channel: the one render a week that has to look expensive. Prompt adherence and scene coherence are its strong suit.',
+    bestFor: 'The hero video of a channel: narrated stories where you want Google’s Veo 3.1 Fast on every scene. No on-camera dialogue — the narration carries the film.', // KINEO-PAGINAS-MOTOR-1610 — sem ranking de qualidade não medido
     tradeoff: `The most expensive engine after the ${KLING3_COST}-credit flagships (${VEO_COST} credits per 60 seconds). It is not the engine for posting daily — pair it with Seedance 1.5 for volume.`,
     faq: [
       ...geoFaq(VEO_GEO), // KINEO-MOTORES-GEO-2026-10-06
@@ -231,9 +239,20 @@ export const ENGINES: Record<string, Engine> = {
       },
       {
         q: 'Veo 3.1 or Kling 3?',
-        a: `Veo 3.1 (${VEO_COST} credits) is the stronger general-purpose flagship. Kling 3 (${KLING3_COST} credits) is the one to use when a scene needs a person speaking on camera with native voice and lip sync.`,
+        // KINEO-PAGINAS-MOTOR-1610 — sem "stronger flagship" (ranking não medido) e sem "native voice" (a fala do Kling 3 é a voz da casa).
+        a: `Pick by what the story needs. Veo 3.1 (${VEO_COST} credits per 60 seconds) narrates over generated scenes; Kling 3 (${KLING3_COST} credits) is the engine for a character speaking on camera with lip sync, in English. Neither is a guaranteed quality upgrade — compare the previews on each page.`,
+      },
+      // KINEO-PAGINAS-MOTOR-1610 — do artigo do GPT (docs/paginas-gpt/veo-3-1-shorts-without-google-subscription.md)
+      {
+        q: 'Do I need a Google AI Pro or Ultra subscription to use Veo 3.1 in Kineo?',
+        a: `No. Kineo calls Veo 3.1 Fast for you: you use a Kineo account and Kineo credits (${VEO_COST} for a finished 60-second video), with no separate Google subscription. It is access through Kineo’s workflow — it does not include Google’s own Flow workspace or every Veo setting.`,
+      },
+      {
+        q: 'Does a Veo 3.1 video from Kineo have sound, and can characters talk?',
+        a: 'It has sound: Kineo narrates your script and adds captions and music. Veo’s own audio is switched off in this workflow, so characters do not speak on camera. For a character speaking a line with lip sync, use Kling 3 (English only).',
       },
     ],
+    metaDescription: `Veo 3.1 Fast in Kineo, no Google subscription: a narrated vertical Short with captions and music for ${VEO_COST} credits per 60 seconds.`, // KINEO-PAGINAS-MOTOR-1610
   },
   'kling-3': {
     param: 'hollywood',
@@ -242,10 +261,10 @@ export const ENGINES: Record<string, Engine> = {
     model: 'fal-ai Kling 3 (dialogue / i2v scene routing)',
     creditCost: KLING3_COST,
     tier: tierFor('cinematic_hollywood'), // era 'Studio' digitado: o Creator (150 cr) paga um Kling 3 de 60 s
-    h1: 'Kling 3 AI video generator — film scenes with native voice and lip sync',
+    h1: 'Kling 3 AI video generator — films where a character speaks on camera', // KINEO-PAGINAS-MOTOR-1610 — a fala é a voz da casa com lip sync (não "native voice")
     intro:
       `Kling 3 is the top of the range: multi-scene films where a character can speak on camera, in their own generated voice, with lip sync — a medieval historian holding a book, a reporter in golden hour on a Manhattan street, a presenter in a futuristic studio. Kineo routes each scene to the right Kling 3 endpoint and returns the finished vertical film. A 60-second video costs ${KLING3_COST} credits; the Studio monthly grant covers ${videosPerMonth('pro', 'cinematic_hollywood')}.`,
-    bestFor: 'Talking-head storytelling without a camera, a face, or a studio. The renders people say “that does not even look like AI” about.',
+    bestFor: 'Stories where a fictional character speaking on camera (in English) adds something narration alone cannot — mysteries, history and explainers with an on-screen storyteller.', // KINEO-PAGINAS-MOTOR-1610 — sem depoimento não verificado
     tradeoff: `The most expensive engine in the catalogue at ${KLING3_COST} credits per 60 seconds. One Kling 3 render costs what ${Math.floor(KLING3_COST / SEEDANCE_COST)} Seedance renders cost.`,
     faq: [
       // KINEO-MOTORES-GEO-2026-10-06 — onde usar + quanto custa (a do trial dizia "10-credit" digitado).
@@ -255,7 +274,8 @@ export const ENGINES: Record<string, Engine> = {
       },
       {
         q: 'Can Kling 3 make a character speak on camera?',
-        a: 'Yes — that is the reason it exists in the catalogue. Kling 3 renders dialogue scenes with a native generated voice and lip sync, so you can build a talking-head channel without ever filming yourself.',
+        // KINEO-PAGINAS-MOTOR-1610 — corrigido: a fala sai na voz da casa sincronizada no retrato (KINEO-VOZ-NA-BOCA), o áudio nativo é reserva; só inglês.
+        a: 'Yes, in English. Dialogue scenes are lip-synced on the character’s portrait; by default the line is spoken in the same Kineo voice that narrates the rest of the film, with Kling 3’s own audio as the fallback. Review the lip sync before you post.',
       },
       // KINEO-AVATAR-FORA-2026-09-28 (revisão 2) — o Character Lock é ferramenta do Avatar Studio e saiu do catálogo
       // junto com o Avatar (pricing e kineoFacts já não vendem). A página do Kling 3 ainda prometia "Yes. Character Lock
@@ -270,7 +290,21 @@ export const ENGINES: Record<string, Engine> = {
             q: 'Does the character keep the same face across the film?',
             a: 'Within one film, that is the job of the anchor: before any scene is rendered, Kineo generates one portrait of the character and starts every dialogue scene from it, so the face and outfit stay the same scene to scene. Saving a face to reuse across separate videos is not part of the catalogue today.',
           },
+      // KINEO-PAGINAS-MOTOR-1610 — do artigo do GPT (docs/paginas-gpt/kling-2-5-kling-3-cinematic-shorts-dialogue.md), conferido no código
+      {
+        q: 'Which languages can a Kling 3 character speak?',
+        a: 'English. On-camera lines are lip-synced in English only; a Portuguese or Spanish script is narrated over the scenes instead, with no on-camera speech.',
+      },
+      {
+        q: 'Does every Kling 3 film have a talking character?',
+        a: 'No. Kineo plans each film from the script: stories with a narrator persona (mysteries, history, facts, explainers) open and close with the character speaking, while spectacle and fiction without a storyteller are narrated throughout.',
+      },
+      {
+        q: 'Kling 3 or Kling 2.5?',
+        a: `Kling 2.5 (${KLING_COST} credits per 60 seconds) when narration and camera movement carry the story; Kling 3 (${KLING3_COST} credits) when a character speaking on camera adds something narration cannot. Kling 2.5 has no on-camera dialogue in Kineo.`,
+      },
     ],
+    metaDescription: `Kling 3 in Kineo: vertical films where a character speaks on camera in English, with lip sync — ${KLING3_COST} credits per 60-second film.`, // KINEO-PAGINAS-MOTOR-1610
   },
   // KINEO-H3-2026-08-19 — pagina propria do motor novo. Estas paginas sao a
   // porta de entrada organica ("minimax h3 video generator"), e sao lidas pelo

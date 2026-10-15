@@ -11,6 +11,13 @@ import {edicoesIndiceHtml,semIndiceHtml} from './test-support/indice-video-ia-20
 // (descontada dos dois lados pelo marcador neutro e PROVADA renderizada por provaCompraSeedance); a meta description de quem o
 // trial não cobre passou a terminar em positivo (desfeita só nesse final exato). O caminho de compra do Veo segue travado.
 import {comAcoesNeutras,provaCompraSeedance,semMetaPositiva} from './test-support/paginas-que-vendem-2026-10-12.mjs'
+// KINEO-PAGINAS-MOTOR-1610 — reancorado com motivo (fundador 16/10, página de conteúdo/SEO): as páginas de Veo, Kling 3 e Kling 2.5
+// ganharam UM bloco novo, o guia <section data-kineo="engine-guide-1610"> (resumo, preço por duração, limites, quando não usar).
+// O HTML atual desconta SÓ esse bloco e o EXIGE uma vez exatamente nos slugs que têm guia (zero nos outros); o resto segue
+// travado. O conteúdo do guia é provado, com mutantes, por scripts/test-paginas-motor-1610.mjs.
+// Na METADATA: as mesmas páginas ganharam meta description própria (≤155). Ela é EXIGIDA igual à do catálogo e neutralizada
+// dos dois lados só nesses slugs; título, canonical, og e o resto seguem travados na base.
+import {guiasHtml1610,semGuiaHtml1610,comMetaNeutra1610} from './test-support/paginas-motor-1610.mjs'
 const file='app/ai-video-generator/[engine]/page.tsx',base=execFileSync('git',['show','7dbd47c1:'+file],{encoding:'utf8'})
 const mutant=process.argv.includes('--mutant')
 const before=engineFixture({[file]:base}),after=engineFixture(mutant?{'components/SeedanceHeroActions.tsx':source('components/SeedanceHeroActions.tsx').replace('href="/pricing"','href="/signup"')}:{})
@@ -27,7 +34,8 @@ for(const engine of served){
  // time" (/ai-video-index; scripts/test-support/indice-video-ia-2026-10-06.mjs), exigido uma vez por página.
  const renderAtual=renderToStaticMarkup(await after(file).default({params:{engine}}))
  assert.equal(edicoesIndiceHtml(renderAtual),1,engine+': index link exactly once (the normalization has a subject)');count++
- const old=semMotoresGeoHtml(renderToStaticMarkup(await before(file).default({params:{engine}}))),html=semMotoresGeoHtml(semIndiceHtml(renderAtual))
+ assert.equal(guiasHtml1610(renderAtual),after('lib/seo/paginasMotor1610.ts').engineGuideFor(engine)?1:0,engine+': guide 1610 exactly where it belongs');count++ // KINEO-PAGINAS-MOTOR-1610
+ const old=semMotoresGeoHtml(renderToStaticMarkup(await before(file).default({params:{engine}}))),html=semMotoresGeoHtml(semIndiceHtml(semGuiaHtml1610(renderAtual)))
  if(engine!=='veo'){
   // A mutated shared component affects Seedance as well; the mutant below
   // is evaluated against the Veo purchase path, not an incidental sibling.
@@ -50,7 +58,11 @@ for(const engine of served){
  // todo o resto do metadata segue travado na base. Prova completa: scripts/test-marca-kineo-2026-10-06.mjs.
  const metaNow=semMetaPositiva(after(file).generateMetadata({params:{engine}})),{siteName:marcaSiteName,...ogNow}=metaNow.openGraph
  assert.equal(marcaSiteName,'Kineo (usekineo.com)',engine+': og:site_name carries the domain');count++
- assert.equal(JSON.stringify({...metaNow,openGraph:ogNow}),JSON.stringify(before(file).generateMetadata({params:{engine}})),'all canonical metadata preserved');count++
+ // KINEO-PAGINAS-MOTOR-1610 — meta própria: exigida igual à do catálogo; neutralizada dos dois lados só nesses slugs.
+ const meta1610=after('lib/growth/enginePageCatalog.ts').ENGINES[engine].metaDescription
+ if(typeof meta1610==='string'){assert.equal(metaNow.description,meta1610,engine+': own meta description');assert.ok(meta1610.length<=155);count++}
+ const neutra=(m)=>typeof meta1610==='string'?comMetaNeutra1610(m):m
+ assert.equal(JSON.stringify(neutra({...metaNow,openGraph:ogNow})),JSON.stringify(neutra(before(file).generateMetadata({params:{engine}}))),'all canonical metadata preserved');count++
 }
 const events=[],load=offlineModules({mocks:{'lib/analytics.ts':{trackEvent:(...args)=>events.push(args)}}})
 const signupHref=load('lib/growth/engineLandingIntent.ts').buildEngineLandingSignupHref({engine:'veo',campaign:'seo_engine_veo'})

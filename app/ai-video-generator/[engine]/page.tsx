@@ -48,6 +48,7 @@ import {
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 import { ENGINES, ENGINE_SLUGS, type Engine } from '@/lib/growth/enginePageCatalog'
 import { EngineAnswerLead, EnginePriceCard, engineGeoFor, pausedAccessNote } from '@/components/EngineCitationAnswer' // KINEO-MOTORES-GEO-2026-10-06
+import { EngineBuyerGuide } from '@/components/PaginasMotor1610' // KINEO-PAGINAS-MOTOR-1610
 import { S25_PAGE_SLUG } from '@/lib/growth/s25EnginePage' // KINEO-S25-ABRE-2026-10-06 — rota própria do 2.5
 import { enginePaused } from '@/lib/engineLaunch' // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
 import { engineAlternates, LOCALIZED_ENGINE_SLUGS, type LocalizedEngineSlug } from '@/lib/seo/enginePageLangs' // KINEO-MOTORES-16-LINGUAS-2026-09-21
@@ -80,11 +81,12 @@ export function generateMetadata({ params }: { params: { engine: string } }): Me
     : `${e.name} AI Video Generator for YouTube Shorts | Kineo`
   // The private customer gallery is deliberately empty. Search descriptions
   // describe the available workflow, never promise public customer renders.
-  const description = pause
+  let description = pause // KINEO-PAGINAS-MOTOR-1610 — let: a página reescrita troca pela meta própria logo abaixo
     ? `${e.name} is temporarily paused for maintenance in Kineo. ${pause.alternative.label} is an available alternative; compare its credits and limits before creating.`
     // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — terminava em "not enough for this reference video" (a frase que o Google e o
     // ChatGPT citam terminava num "não"). Mesma honestidade, em positivo: o que o trial dá de fato e onde está o filme inteiro.
     : `${e.name} in Kineo: a complete narrated vertical Short with captions, ${engineCostLabel(e).toLowerCase()}. Free trial: ${TRIAL_CREDITS_SHOWN} credits, no card; ${TRIAL_CREDITS_SHOWN >= e.creditCost ? 'covers this reference video' : `${TRIAL_SEEDANCE15_FILMS >= 1 ? `start with a ${FREE_FILM_LABEL}; ` : ''}the full 60-second ${e.name} video comes with a paid plan`}.`
+  if (!pause && e.metaDescription) description = e.metaDescription // KINEO-PAGINAS-MOTOR-1610 — meta própria (≤155) das páginas reescritas
   const url = `${BASE}/ai-video-generator/${params.engine}`
   return {
     metadataBase: new URL(BASE),
@@ -205,6 +207,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
           <p style={{ fontSize: '0.82rem', color: '#86868b', margin: '12px 0 0' }}>{tierNote}</p>
         </section>
         {geo && <EnginePriceCard geo={geo} ctaHref={signupUrl} campaign={campaign} />}
+        <EngineBuyerGuide slug={params.engine} ctaHref={signupUrl} campaign={campaign} />{/* KINEO-PAGINAS-MOTOR-1610 — resumo, preço por duração, limites, quando não usar */}
 
         {/* KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — medido 23/09: esta página recebe a maior fatia do ChatGPT (228 sessões,
             103 contas, 0 pagantes em 60 d) e a ponte de 22/09 vivia abaixo da dobra, sem evento. Agora ela vem logo

@@ -14,9 +14,16 @@ import { semMotoresGeoFonte, edicoesMotoresGeo } from './test-support/motores-ge
 // essas 6 edições exatas da FONTE (o corpo segue travado na base); a metadata é executada com a fonte REAL e a frase nova é
 // exigida exatamente onde o trial não cobre o filme (a honestidade é a mesma: o trial não paga o filme de 60 s).
 import { semPaginasQueVendemFonte, edicoesPaginasQueVendemFonte, EDICOES_PAGINAS_QUE_VENDEM_FONTE, descricaoPositivaOk } from './test-support/paginas-que-vendem-2026-10-12.mjs'
+// KINEO-PAGINAS-MOTOR-1610 — reancorado com motivo (fundador 16/10: página de conteúdo/SEO não é produto congelado): as páginas de
+// Veo 3.1, Kling 3 e Kling 2.5 ganharam o guia (resumo, preço por duração, limites, quando não usar) e uma meta description
+// própria de até 155 caracteres. A normalização desfaz SÓ essas 4 edições exatas da fonte ANTES de tudo (e as exige); a meta
+// própria e o guia são provados, com mutantes, por scripts/test-paginas-motor-1610.mjs. O resto segue travado como estava.
+import { semPaginasMotor1610Fonte, edicoesPaginasMotor1610Fonte, EDICOES_PAGINAS_MOTOR_1610_FONTE } from './test-support/paginas-motor-1610.mjs'
 
 const file = 'app/ai-video-generator/[engine]/page.tsx'
-const currentRaw = fs.readFileSync(file, 'utf8')
+const currentFile = fs.readFileSync(file, 'utf8') // KINEO-PAGINAS-MOTOR-1610
+assert.equal(edicoesPaginasMotor1610Fonte(currentFile), EDICOES_PAGINAS_MOTOR_1610_FONTE, 'as 4 edições do guia 1610 existem (a normalização tem sujeito)')
+const currentRaw = semPaginasMotor1610Fonte(currentFile)
 assert.equal(edicoesPaginasQueVendemFonte(currentRaw), EDICOES_PAGINAS_QUE_VENDEM_FONTE, 'as 6 edições da rodada existem (a normalização tem sujeito)')
 const current = semPaginasQueVendemFonte(currentRaw)
 const previous = execFileSync('git', ['show', '560b5e2f:' + file], { encoding: 'utf8' })

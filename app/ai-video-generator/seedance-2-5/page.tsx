@@ -22,6 +22,7 @@ import { notFound } from 'next/navigation'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { EngineAnswerLead, EnginePriceCard, engineGeoFor } from '@/components/EngineCitationAnswer'
+import { EngineBuyerGuide } from '@/components/PaginasMotor1610' // KINEO-PAGINAS-MOTOR-1610
 import { ENGINES, isIndexableEngineSlug } from '@/lib/growth/enginePageCatalog'
 import { buildEngineLandingSignupHref } from '@/lib/growth/engineLandingIntent'
 import { S25_PUBLIC, enginePaused } from '@/lib/engineLaunch'
@@ -134,6 +135,7 @@ export default function Seedance25Page() {
         {/* KINEO-MOTORES-GEO-2026-10-06 — preço por vídeo, quantos por plano, usar o modelo direto (fonte oficial, datada) e o
             CTA com a campanha da página + a frase da marca. */}
         {geo && <EnginePriceCard geo={geo} ctaHref={signupHref} campaign={CAMPAIGN} />}
+        <EngineBuyerGuide slug={S25_PAGE_SLUG} ctaHref={signupHref} campaign={CAMPAIGN} />{/* KINEO-PAGINAS-MOTOR-1610 — resumo, preço por duração, limites, quando não usar */}
 
         {/* Pika vs Kineo — fatos de terceiro SEMPRE com a data da consulta (PIKA_CHECKED_ON) */}
         <section style={{ marginTop: 48 }} data-kineo="s25-vs-pika">

@@ -26,6 +26,11 @@ import { GRANT_COUNTRY_CLAUSE } from '@/lib/freeTierOffer' // KINEO-MOTORES-GEO-
 // custo bruto no fornecedor, rota direta com fonte e data, filmes da casa e as entradas de FAQ. Dados: lib/seo/geoRodada3Answers.ts.
 import GeoRodada3Section from '@/components/GeoRodada3Sections'
 import { modelsAnswer } from '@/lib/seo/geoRodada3Answers'
+// KINEO-PAGINAS-MOTOR-1610 — o artigo de comparação do GPT (docs/paginas-gpt/seedance-vs-veo-vs-kling-vertical-videos.md): para que
+// história serve cada motor (créditos derivados), quando NÃO usar, 3 perguntas novas (FAQ visível = JSON-LD, mesmo array) e a
+// comparação honesta com Google Flow, Seedance.tv, Dreamina, CapCut e o app do Kling (fonte oficial e data em lib/seo/paginasMotor1610.ts).
+import { CompetitorTable1610, EngineDecision1610 } from '@/components/PaginasMotor1610'
+import { compareExtras1610 } from '@/lib/seo/paginasMotor1610'
 
 // Mesmo regime da /state-of-ai-shorts-2026: os números vêm do banco, revalida uma vez por dia.
 export const revalidate = STUDY_REVALIDATE_SECONDS
@@ -114,6 +119,7 @@ export default async function SeedanceVsVeoVsKlingPage() {
   const kling = rows.find((r) => r.qualityMode === 'cinematic_kling')
   const starterPrice = formatCheckoutMoney('usd', TIER_PRICES.starter.usd)
   const models = modelsAnswer() // KINEO-GEO-RODADA3-2026-10-08
+  const extras1610 = compareExtras1610() // KINEO-PAGINAS-MOTOR-1610
 
   const FAQ: { q: string; a: string }[] = [
     ...(models ? models.faq : []), // KINEO-GEO-RODADA3-2026-10-08 — as duas perguntas da rodada 3 abrem a FAQ
@@ -147,6 +153,7 @@ export default async function SeedanceVsVeoVsKlingPage() {
         'Yes. Paste the script into Kineo, choose "Use my script as is", and the engine you pick narrates it word for ' +
         `word — Seedance 1.5 generates every scene with AI, and a new account${GRANT_COUNTRY_CLAUSE} can try it free with one 15-second film.`,
     },
+    ...extras1610.faq, // KINEO-PAGINAS-MOTOR-1610
   ]
 
   const faqJsonLd = {
@@ -201,6 +208,8 @@ export default async function SeedanceVsVeoVsKlingPage() {
 
         {models ? <GeoRodada3Section answer={models} /> : null}
 
+        <EngineDecision1610 whenNot={extras1610.whenNot} />{/* KINEO-PAGINAS-MOTOR-1610 */}
+
         <h2 style={{ fontSize: '1.4rem', fontWeight: 800, margin: '44px 0 14px' }}>Every engine, measured</h2>
         <div style={{ ...CARD, overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem', minWidth: 760 }}>
@@ -249,6 +258,8 @@ export default async function SeedanceVsVeoVsKlingPage() {
           {/* KINEO-FILME-GRATIS-15S-2026-09-29 — o Kineo 1 saiu do catálogo público e desta tabela (ENGINE_SLUGS). */}
           {` The free way to try it is Seedance itself: a new account’s trial credits${GRANT_COUNTRY_CLAUSE} pay for one 15-second Seedance film.`}
         </p>
+
+        <CompetitorTable1610 />{/* KINEO-PAGINAS-MOTOR-1610 — fora da Kineo, com fonte oficial e data */}
 
         <section style={{ ...CARD, padding: '18px 20px', margin: '28px 0 0' }}>
           <h2 style={{ fontSize: '1.1rem', fontWeight: 800, margin: '0 0 8px' }}>Method</h2>

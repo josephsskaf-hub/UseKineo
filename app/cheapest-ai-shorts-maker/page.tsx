@@ -2,9 +2,19 @@
 // ROBO2-SEO-2026-06-28 — high-intent SEO page for the "cheapest AI shorts maker"
 // buyer cluster (cheapest AI YouTube Shorts generator / affordable faceless shorts AI /
 // make AI YouTube Shorts cheap). Honest angle: a USD calculator uses the real
-// plan credits and prices; Fast is 1 credit, Seedance 20, Kling 50;
-// visitors can test Fast without a card. Generates from a topic, not a re-clipper.
+// plan credits and prices. Generates from a topic, not a re-clipper.
 // Static page; added to sitemap. FAQ JSON-LD for rich results.
+//
+// KINEO-PAGINAS-MOTOR-1610 — a página respondia com o Kineo 1 ("Fast Mode", "3 Fast videos every 24h"), que saiu do catálogo
+// público em 29/09 (KINEO1_PUBLIC=false): a promessa da primeira dobra não existia mais. E o teste no ChatGPT de 15/10 mostrou
+// que a Kineo não aparece para "cheapest way to make AI YouTube Shorts" (o topo cita Google Flow grátis, Kling, CapCut). Agora:
+//   · resumo citável de 3 linhas no topo respondendo EXATAMENTE essa pergunta, com o custo por Short calculado em código
+//     (lib/seo/paginasMotor1610.ts → creditCostForDuration / TIER_PRICES / TIER_CREDITS);
+//   · a tabela de custo por motor e duração (15/35/60 s) do artigo do GPT (docs/paginas-gpt/ai-short-video-cost-2026.md);
+//   · a comparação honesta com Google Flow, Seedance.tv, Dreamina, CapCut e o app do Kling (fonte oficial e data no módulo),
+//     sem vencedor universal;
+//   · a moeda dita pela frase canônica (CHECKOUT_CURRENCY_DISCLOSURE): "Brazil pays in BRL" contradizia o checkout em USD.
+// Nenhum preço ou crédito da Kineo digitado aqui.
 import type { Metadata } from 'next'
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
@@ -14,14 +24,20 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import ShortCostCalculator from './ShortCostCalculator'
 import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
-import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
-import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
-
-// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
-const OFFER = getFreeTierOffer()
-const FAST_CREDITS = creditsPerReferenceVideo('fast')
-const SEEDANCE_CREDITS = creditsPerReferenceVideo('cinematic_ai')
-const KLING_CREDITS = creditsPerReferenceVideo('cinematic_kling')
+import { CheapestAnswer1610, CompetitorTable1610 } from '@/components/PaginasMotor1610'
+import {
+  ENGINE_REFS,
+  FONTES_CONCORRENTES_1610,
+  PAGINAS_MOTOR_1610_CHECKED_LABEL,
+  REFERENCE_PLAN_LINE,
+  cheapestAnswer,
+  engineListed,
+  filmCredits,
+  usd,
+  creditsToCents,
+} from '@/lib/seo/paginasMotor1610'
+import { FREE_FILM_LABEL, GRANT_COUNTRY_CLAUSE, TRIAL_FREE_FILM_SECONDS, TRIAL_SEEDANCE15_FILMS } from '@/lib/freeTierOffer'
+import { CHECKOUT_CURRENCY_DISCLOSURE } from '@/lib/marketingPrice'
 
 const CALCULATOR_CAMPAIGN = 'push77_short_cost_calculator'
 const CALCULATOR_FORM_ID = 'try-costed-workflow'
@@ -31,40 +47,55 @@ const CALCULATOR_EXAMPLES = [
   'Why the Door to Hell is still burning',
 ] as const
 
+// Os números da página (todos derivados): o filme mais barato de 60 s e os três motores mais usados.
+const ANSWER = cheapestAnswer()
+const SEEDANCE_60 = filmCredits('seedance', 60) as number
+const KLING_60 = filmCredits('kling', 60) as number
+const VEO_60 = filmCredits('veo', 60) as number
+const HAS_FREE_FILM = TRIAL_SEEDANCE15_FILMS >= 1
+const FLOW = FONTES_CONCORRENTES_1610.googleFlow
+const FLOW_CLIPS_60 = Math.ceil(60 / FLOW.veoFastMaxSeconds)
+const FLOW_CREDITS_60 = FLOW_CLIPS_60 * FLOW.veoFastCreditsPerGeneration
+const ENGINE_LIST_60 = (['seedance', 'kling', 'h3', 'veo', 'hollywood', 's25'] as const)
+  .filter(engineListed)
+  .map((k) => `${ENGINE_REFS[k].name} ${filmCredits(k, 60)}`)
+  .join(', ')
+
 export const metadata: Metadata = {
-  title: ft(OFFER, 'Affordable AI Shorts Maker — 3 Fast Videos Every 24h | Kineo', 'Affordable AI Shorts Maker — Start With a Free Creator Trial | Kineo'),
+  title: 'Cheapest Way to Make AI YouTube Shorts (2026) | Kineo',
   description:
-    'Calculate the USD cost per AI Short by visual engine and monthly volume. Then build a complete faceless video from one idea and test Fast Mode free.',
+    'The cost of an AI YouTube Short: Kineo’s finished narrated film per engine vs Google Flow, Seedance.tv, Dreamina, CapCut and Kling clips, with sources.',
   alternates: { canonical: 'https://www.usekineo.com/cheapest-ai-shorts-maker' },
   openGraph: {
-    title: 'Cheapest AI Shorts Maker — make AI YouTube Shorts cheap',
+    title: 'Cheapest way to make AI YouTube Shorts (2026)',
     description:
-      'Calculate your USD cost per Short, compare Fast, Seedance and Kling, then test a complete faceless video from one idea free.',
+      'Cost per finished Short on every Kineo engine, next to the public prices of Google Flow, Seedance.tv, Dreamina, CapCut and the Kling app.',
     url: 'https://www.usekineo.com/cheapest-ai-shorts-maker',
     type: 'website',
   },
 }
 
 const STEPS: { n: string; t: string; d: string }[] = [
-  { n: '1', t: 'Type one idea or topic', d: 'No source footage, no long video to re-clip. One line is enough — "the island too dangerous to visit", "how compound interest works".' },
-  { n: '2', t: 'Pick the right-cost visual engine', d: `For a 60-second video, Fast Mode costs ${FAST_CREDITS} credits. AI Generated uses ${SEEDANCE_CREDITS} credits for original Seedance scenes, while Cinematic uses ${KLING_CREDITS} credits for premium Kling scenes.` },
-  { n: '3', t: 'Download a ready-to-post Short', d: 'A finished 9:16 video — script, AI voiceover, footage matched to each line and captions — usually in 3–7 minutes. No editor, no timeline.' },
+  { n: '1', t: 'Type one idea or paste your script', d: 'No source footage, no long video to re-clip. One line is enough — "the island too dangerous to visit", "how compound interest works".' },
+  { n: '2', t: 'Pick the engine by cost', d: `For a 60-second film, ${ENGINE_REFS.seedance.name} uses ${SEEDANCE_60} credits, ${ENGINE_REFS.kling.name} ${KLING_60} and ${ENGINE_REFS.veo.name} ${VEO_60}. Shorter films cost proportionally less.` },
+  { n: '3', t: 'Download a ready-to-post Short', d: 'A finished 9:16 video — script, AI voiceover, generated scenes, captions and music — with no editor and no timeline.' },
 ]
 
 const WHY_CHEAPER: { t: string; d: string }[] = [
-  { t: 'Built only for faceless Shorts', d: 'It does one job — turn an idea into a short-form video — so you’re not paying for a bloated general-purpose video suite you’ll never fully use.' },
-  { t: `Start at ${FAST_CREDITS} credits with Fast Mode`, d: `You choose the engine. For a 60-second video, Fast Mode uses matched stock footage for ${FAST_CREDITS} credits. Original AI Generated scenes use ${SEEDANCE_CREDITS} credits, while premium Cinematic scenes use ${KLING_CREDITS}.` },
-  { t: 'No camera, no editor, no extra subscriptions', d: 'Script, AI voiceover, footage and captions are all generated in one pass — so the price of a Short is the credits, not a stack of separate tools.' },
-  { t: 'Try before you pay anything', d: `${ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24 hours with no credit card, so you can confirm the workflow fits before paying.', OFFER.copy.sentence + ' Confirm the workflow fits before paying.')}` },
+  { t: 'You pay for the finished film, not for raw seconds', d: 'Clip tools charge per generated clip; the script, the voice-over across clips, the captions and the edit are still yours to do. Kineo’s credits cover all of that in one render.' },
+  { t: `Start at ${SEEDANCE_60} credits for 60 seconds`, d: `${ENGINE_REFS.seedance.name} is the lowest-credit engine for a finished 60-second film; use a premium engine only when the scene needs it.` },
+  { t: 'No camera, no editor, no extra subscriptions', d: 'Script, AI voiceover, scenes, captions and music come from one pass — the price of a Short is the credits, not a stack of separate tools.' },
+  { t: 'Try before you pay', d: HAS_FREE_FILM ? `New accounts${GRANT_COUNTRY_CLAUSE} get one ${FREE_FILM_LABEL}, watermarked, so you can judge the result before choosing a plan.` : 'Compare the published examples on each engine page before choosing a plan.' },
 ]
 
 const FAQ: { q: string; a: string }[] = [
-  { q: 'What is the cheapest AI shorts maker?', a: `The answer depends on visual engine and monthly volume. For a 60-second Short, Kineo Fast Mode uses ${FAST_CREDITS} credits, while AI Generated uses ${SEEDANCE_CREDITS} and Cinematic uses ${KLING_CREDITS}. ${ft(OFFER, 'A new account can test up to 3 watermarked Fast videos every 24 hours without a card;', OFFER.copy.sentence + ' Also,')} the calculator on this page uses the current USD subscription prices. Prices shown here are in USD. Customers in Brazil pay in BRL (reais); check checkout for the amount in reais.` },
-  { q: 'How do I make AI YouTube Shorts cheap?', a: 'Type a single idea, choose Fast Mode for the lowest-cost workflow, and download a finished 9:16 Short with script, AI voiceover, matched footage and captions, usually in 3–7 minutes. No camera and no editing app to pay for separately.' },
-  { q: 'Is there an affordable faceless shorts AI that builds the video from just a topic?', a: 'Yes. Kineo generates the entire video from one topic — it writes the script, records the AI voiceover, matches footage to each line and adds captions. It’s made for faceless creators who start with nothing but an idea, so you never film anything.' },
-  { q: 'Why is the cheapest AI YouTube Shorts generator not just a clip cutter?', a: 'Clip cutters like OpusClip or Submagic re-clip a long video you already filmed — useless if you’re faceless and starting from scratch. Kineo creates the video from an idea, so the low price gets you a finished Short, not chopped-up footage.' },
-  { q: 'Do I have to use the most expensive AI engine?', a: `No. You pick the engine per video. For 60 seconds, Fast Mode uses ${FAST_CREDITS} credits with matched stock footage, AI Generated uses ${SEEDANCE_CREDITS} credits for Seedance scenes, and Cinematic uses ${KLING_CREDITS} credits for premium Kling scenes.` },
-  { q: 'Can I try it before paying for a plan?', a: `Yes. ${ft(OFFER, 'A new account can create, download and share up to 3 watermarked Fast videos every 24 hours without a credit card.', OFFER.copy.sentence)} Paid plans unlock clean exports.` },
+  { q: 'What is the cheapest way to make AI YouTube Shorts?', a: ANSWER.summary.join(' ') },
+  { q: 'How much does one AI YouTube Short cost on Kineo?', a: `In credits, a finished 60-second film costs: ${ENGINE_LIST_60}. At the ${REFERENCE_PLAN_LINE()}, the ${ANSWER.cheapest.name} film is worth about ${usd(creditsToCents(ANSWER.cheapest.c60))}. A 15-second ${ANSWER.cheapest.name} film costs ${ANSWER.cheapest.c15} credits. You pay for a plan; every film uses credits from the same monthly balance.` },
+  { q: 'Is Google Flow cheaper than Kineo?', a: `In money, Google Flow’s free tier can be: free accounts get ${FLOW.freeCreditsPerDay} credits a day and a Veo 3.1 Fast generation costs ${FLOW.veoFastCreditsPerGeneration} (Google’s help page, read ${PAGINAS_MOTOR_1610_CHECKED_LABEL}). A 60-second Short from ${FLOW.veoFastMaxSeconds}-second clips needs ${FLOW_CLIPS_60} clips, or ${FLOW_CREDITS_60} credits, and you still write the script, record or generate the voice-over and add captions. Kineo charges per finished film with all of that done. Which is cheaper depends on what your editing time is worth.` },
+  { q: 'Why is a cheap AI Shorts generator not just a clip cutter?', a: 'Clip cutters like OpusClip or Submagic re-clip a long video you already filmed — no help if you are faceless and starting from scratch. Kineo creates the video from an idea, so the price buys a finished Short, not chopped-up footage.' },
+  { q: 'Do I have to use the most expensive AI engine?', a: `No. You pick the engine per video. For 60 seconds, ${ENGINE_REFS.seedance.name} uses ${SEEDANCE_60} credits, ${ENGINE_REFS.kling.name} ${KLING_60} and ${ENGINE_REFS.veo.name} ${VEO_60}. A higher credit price is what you spend, not a guarantee of a better Short.` },
+  { q: 'Are the dollar amounts the price of one video?', a: `No. They are what the credits are worth at the ${REFERENCE_PLAN_LINE()}. Your checkout charges for the plan you choose; other creations use the same balance.` },
+  { q: 'Can I try it before paying for a plan?', a: `${HAS_FREE_FILM ? `Yes. New accounts${GRANT_COUNTRY_CLAUSE} get one ${FREE_FILM_LABEL}, watermarked.` : 'You can compare the published examples on each engine page first.'} Paid plans unlock clean exports.` },
 ]
 
 export default function CheapestAiShortsMakerPage() {
@@ -78,23 +109,24 @@ export default function CheapestAiShortsMakerPage() {
   const p: CSSProperties = { fontSize: '1rem', color: '#86868b', lineHeight: 1.65, margin: '0 0 12px' }
   return (
     <main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'var(--font-sans), Arial, sans-serif' }}>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
-      <div style={{ maxWidth: 820, margin: '0 auto', padding: '64px 20px 88px' }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }} />
+      <div style={{ maxWidth: 860, margin: '0 auto', padding: '64px 20px 88px' }}>
         <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#2997ff', border: '1px solid rgba(41,151,255,0.4)', background: 'rgba(41,151,255,0.12)', borderRadius: 999, padding: '6px 12px' }}>
-          Cheapest AI Shorts Maker
+          AI Short cost, compared
         </span>
         <h1 style={{ fontSize: 'clamp(1.9rem, 5vw, 2.8rem)', fontWeight: 900, lineHeight: 1.12, margin: '18px 0 0' }}>
-          The Cheapest AI Shorts Maker That Builds the Whole Video
+          The cheapest way to make AI YouTube Shorts
         </h1>
-        <p style={{ fontSize: '1.08rem', color: '#86868b', lineHeight: 1.6, margin: '16px 0 0' }}>
-          Kineo is an affordable, faceless AI YouTube Shorts generator that turns a single idea into a finished Short — the hook and script, an AI voiceover, footage matched to every line, and captions. {ft(OFFER, 'Try up to 3 watermarked Fast videos every 24 hours with no card.', OFFER.copy.headline)} The calculator below shows the USD first-month and renewal price. No camera, no editing, no timeline.
+        <CheapestAnswer1610 />
+        <p style={{ fontSize: '1.02rem', color: '#86868b', lineHeight: 1.6, margin: '22px 0 0' }}>
+          Kineo turns a single idea into a finished Short — the hook and script, an AI voiceover, generated scenes, captions and music — and charges credits by engine and length. Below: the same math for the free and paid tools people compare it with, and a calculator for your monthly volume.
         </p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '26px 0 0' }}>
-          <OrganicCtaLink href={signupUrl} source="push22_cheapest" placement="hero" style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>{ft(OFFER, 'Make a Fast video free →', OFFER.copy.ctaPrimary)}</OrganicCtaLink>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '22px 0 0' }}>
+          <OrganicCtaLink href={signupUrl} source="push22_cheapest" placement="hero" style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>{HAS_FREE_FILM ? `Make my free ${TRIAL_FREE_FILM_SECONDS}-second film →` : 'Create my account →'}</OrganicCtaLink>
           <Link href="/pricing" style={{ border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 700, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>See pricing</Link>
         </div>
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 700, margin: '12px 0 0' }}>
-          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · USD reference prices · Brazil pays in BRL
+          USD prices matched to Checkout · {CHECKOUT_CURRENCY_DISCLOSURE}
         </p>
 
         <ShortCostCalculator />
@@ -104,16 +136,19 @@ export default function CheapestAiShortsMakerPage() {
           source={CALCULATOR_CAMPAIGN}
           examples={CALCULATOR_EXAMPLES}
           formId={CALCULATOR_FORM_ID}
+          creationIntent="trial_best"
           copy={{
             label: 'What should your first cost-tested Short be about?',
             placeholder: 'Type one topic or paste your script',
-            submit: 'Create this Short free →',
+            submit: 'Create this Short →',
             examplesLabel: 'Low-cost topic examples',
-            note: 'Your topic stays attached through signup. Fast Mode creates a complete watermarked test without a card.',
+            note: HAS_FREE_FILM ? `Your topic stays attached through signup. New accounts${GRANT_COUNTRY_CLAUSE} start with a ${FREE_FILM_LABEL}.` : 'Your topic stays attached through signup.',
           }}
         />
 
         <AgencyVolumeBridge entry="cost_page" />
+
+        <CompetitorTable1610 />
 
         <h2 style={h2}>Make AI YouTube Shorts cheap in 3 steps</h2>
         <div style={{ display: 'grid', gap: 12 }}>
@@ -128,9 +163,9 @@ export default function CheapestAiShortsMakerPage() {
           ))}
         </div>
 
-        <h2 style={h2}>Why it’s the cheaper way to make Shorts</h2>
+        <h2 style={h2}>Where Kineo is the cheaper choice — and where it is not</h2>
         <p style={p}>
-          You’re not buying a general-purpose AI video suite and using a fraction of it. Kineo does one thing — turn an idea into a faceless Short — and lets you pick the lowest-cost engine for the job.
+          If you have time to edit and want to spend nothing, a free clip allowance and a free editor cost less money. Kineo is built for the other case: one idea in, a finished faceless Short out, at a known credit price per film.
         </p>
         <div style={{ display: 'grid', gap: 10 }}>
           {WHY_CHEAPER.map((w) => (
@@ -141,14 +176,22 @@ export default function CheapestAiShortsMakerPage() {
           ))}
         </div>
 
+        <h2 style={h2}>When NOT to use these numbers</h2>
+        <ul style={{ ...p, paddingLeft: 18 }}>
+          <li>As a fixed production quote when one exact scene is essential: a credit budget does not guarantee the first render meets the brief.</li>
+          <li>To pick the most expensive engine because it costs more — the price is verified here, a quality ranking is not.</li>
+          <li>When you already have all your footage and only need editing: buying new AI scenes adds cost you do not need.</li>
+          <li>For product-photo ads: <Link href="/ads" style={{ color: '#2997ff' }}>Studio Ads</Link> has its own credits per ad, not covered by this table.</li>
+        </ul>
+
         <h2 style={h2}>An affordable faceless shorts AI — not a clip cutter</h2>
         <p style={p}>
-          Most “AI Shorts” tools (OpusClip, Submagic, Klap) take a long video you already filmed and chop it into clips. That’s useless if you’re faceless and starting from just an idea. Kineo works the other way around: it <strong style={{ color: '#f5f5f7' }}>creates the entire video from a topic</strong> — so the low price gets you a finished Short, not chopped-up footage, and you never need source video, a camera, or an editing app. Want the full breakdown of that workflow? See <Link href="/youtube-shorts-from-topic" style={{ color: '#2997ff' }}>making a YouTube Short from a topic</Link>.
+          Most “AI Shorts” tools (OpusClip, Submagic, Klap) take a long video you already filmed and chop it into clips. That’s no help if you’re faceless and starting from just an idea. Kineo works the other way around: it <strong style={{ color: '#f5f5f7' }}>creates the entire video from a topic</strong> — so the price gets you a finished Short, not chopped-up footage, and you never need source video, a camera, or an editing app. Want the full breakdown of that workflow? See <Link href="/youtube-shorts-from-topic" style={{ color: '#2997ff' }}>making a YouTube Short from a topic</Link>.
         </p>
 
-        <h2 style={h2}>Pick the right engine — pay only when you scale up</h2>
+        <h2 style={h2}>Pick the right engine — pay more only when the scene needs it</h2>
         <p style={p}>
-          Every video lets you choose the engine. <strong style={{ color: '#f5f5f7' }}>For 60 seconds, Fast Mode uses {FAST_CREDITS} credits, AI Generated uses {SEEDANCE_CREDITS}, and Cinematic uses {KLING_CREDITS}</strong>. Start with the stock-footage workflow when cost matters most, then use original Seedance or premium Kling scenes only when the creative needs them. Compare the full plans on the <Link href="/pricing" style={{ color: '#2997ff' }}>pricing page</Link>, or see how it stacks up against other tools under <Link href="/alternatives" style={{ color: '#2997ff' }}>alternatives</Link>. For a worked example, read the <Link href="/ai-video-generator/complete-60-second-shorts-cost" style={{ color: '#2997ff' }}>complete Short cost guide</Link>; for workflow differences, use the <Link href="/vs/invideo-alternatives-faceless-shorts" style={{ color: '#2997ff' }}>faceless video tool comparison</Link>.
+          Every video lets you choose the engine. <strong style={{ color: '#f5f5f7' }}>For 60 seconds: {ENGINE_LIST_60} credits</strong>. Start with {ENGINE_REFS.seedance.name} when cost matters most, then use a premium engine only when the creative needs it. See <Link href="/seedance-vs-veo-vs-kling" style={{ color: '#2997ff' }}>which engine fits which story</Link>, compare the full plans on the <Link href="/pricing" style={{ color: '#2997ff' }}>pricing page</Link>, or see how it stacks up against other tools under <Link href="/alternatives" style={{ color: '#2997ff' }}>alternatives</Link>. For a worked example, read the <Link href="/ai-video-generator/complete-60-second-shorts-cost" style={{ color: '#2997ff' }}>complete Short cost guide</Link>; for workflow differences, use the <Link href="/vs/invideo-alternatives-faceless-shorts" style={{ color: '#2997ff' }}>faceless video tool comparison</Link>.
         </p>
 
         <h2 style={h2}>Frequently asked questions</h2>
@@ -162,9 +205,9 @@ export default function CheapestAiShortsMakerPage() {
         </div>
 
         <div style={{ marginTop: 44, textAlign: 'center', background: 'radial-gradient(circle at 50% 0%, rgba(41,151,255,0.14), #0c0c0e 70%)', border: '1px solid rgba(41,151,255,0.25)', borderRadius: 18, padding: '34px 22px' }}>
-          <div style={{ fontSize: 'clamp(1.3rem, 4vw, 1.8rem)', fontWeight: 900 }}>{ft(OFFER, 'Make up to 3 watermarked Fast videos every 24h.', OFFER.copy.headline)}</div>
-          <p style={{ color: '#86868b', margin: '8px 0 18px' }}>One idea in, a ready-to-post Short out. Free to start.</p>
-          <OrganicCtaLink href={signupUrl} source="push22_cheapest" placement="final" style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 30px', borderRadius: 980, textDecoration: 'none' }}>Make my Fast video →</OrganicCtaLink>
+          <div style={{ fontSize: 'clamp(1.3rem, 4vw, 1.8rem)', fontWeight: 900 }}>One idea in, a finished Short out.</div>
+          <p style={{ color: '#86868b', margin: '8px 0 18px' }}>{HAS_FREE_FILM ? `Your first ${TRIAL_FREE_FILM_SECONDS}-second film is free.` : 'Pick the engine that fits your budget.'}</p>
+          <OrganicCtaLink href={signupUrl} source="push22_cheapest" placement="final" style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 30px', borderRadius: 980, textDecoration: 'none' }}>Start my first Short →</OrganicCtaLink>
         </div>
       </div>
       <StickyFreeShortCTA />

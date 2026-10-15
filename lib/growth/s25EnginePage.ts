@@ -149,7 +149,8 @@ export function s25PageCopy(f: S25PageFacts = s25PageFacts()): S25PageCopy {
     moreFilms: `${moreFilmsShort} — ${f.seedance15.starterFilms} films a month on the ${f.seedance15.starterPrice} ${f.seedance15.starterName} plan.`,
     ctaLine: 'Type one sentence. Get a finished 60-second video — voice, captions and music included — in minutes.',
     metaTitle: `${h1} | Kineo`,
-    metaDescription: `Seedance 2.5 on Kineo: one sentence becomes a finished film with narration, captions and music — ${f.cr35} credits for ${S25_FEATURED_SECONDS} seconds, ${f.cr60} for ${S25_REFERENCE_SECONDS}. On paid plans; not in the free trial.`,
+    // KINEO-PAGINAS-MOTOR-1610 — encurtada para caber em 155 caracteres (era 173), mesmos fatos e números derivados.
+    metaDescription: `Seedance 2.5 on Kineo: a finished narrated film with captions and music — ${f.cr35} credits for ${S25_FEATURED_SECONDS} s, ${f.cr60} for ${S25_REFERENCE_SECONDS} s. On paid plans; not in the free trial.`,
     // KINEO-MOTORES-GEO-2026-10-06 — "onde usar + quanto custa" e "é mais barato direto?" vêm da camada citável
     // (ENGINE_GEO['seedance-2-5'], lib/seo/engineCitation.ts, versão só plano pago e sem clipe); aqui, o resto da sessão CEO.
     faq: [
@@ -168,6 +169,11 @@ export function s25PageCopy(f: S25PageFacts = s25PageFacts()): S25PageCopy {
       {
         q: 'Can I use the videos commercially?',
         a: 'Yes, on every plan — see the terms.',
+      },
+      // KINEO-PAGINAS-MOTOR-1610 — a pergunta do diálogo na câmera (o limite que as páginas de motor passam a dizer).
+      {
+        q: 'Can a character speak on camera with Seedance 2.5?',
+        a: 'If a speaking character is the point of the film, choose Kling 3: it is the engine Kineo builds around on-camera dialogue, with English lines only. On Seedance 2.5 the model’s own audio is off and your script is narrated word for word.',
       },
     ],
   }
