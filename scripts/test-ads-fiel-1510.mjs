@@ -33,13 +33,14 @@ import { semAfiliadoPorPost1610 } from './test-support/desfaz-afiliado-por-post-
 import { semFiel2_1510 } from './test-support/desfaz-ads-fiel-2-1510.mjs' // reancorado KINEO-ADS-FIEL-2-1510 — o conserto mais novo do Ads sai PRIMEIRO, em memória
 import { semFiel3_1510 } from './test-support/desfaz-ads-fiel-3-1510.mjs' // reancorado KINEO-ADS-FIEL-3-1510 — o conserto mais novo do Ads sai PRIMEIRO, em memória
 import { semFiel4_1510 } from './test-support/desfaz-ads-fiel-4-1510.mjs' // reancorado KINEO-ADS-FIEL-4-1510 — o conserto mais novo do Ads (canto reservado da trava) sai PRIMEIRO, em memória
+import { semFielLiga1510, comLiga1510 } from './test-support/desfaz-ads-fiel-liga-1510.mjs' // reancorado KINEO-ADS-FIEL-LIGA-1510 — fundador ligou para todos em 15/10; o liga (o mais novo da trava) sai PRIMEIRO, colado no readFileSync, em memória
 import { semAfiliadoDestino1610 } from './test-support/desfaz-afiliado-destino-1610.mjs' // reancorado KINEO-AFILIADO-DESTINO-1610 — o conserto mais novo (link de afiliado) sai antes de todos
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-FIEL-1510'
 const BASE = '285ac112a0be9f96182ec922cb06c4896b5357b1'
-const rd = (p) => semFiel2_1510(p, semAfiliadoDestino1610(p, semAfiliadoPorPost1610(p, semClareza1610(p, semFiel3_1510(p, semFiel4_1510(p, readFileSync(join(ROOT, p), 'utf8'))))))) // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória · reancorado KINEO-AFILIADO-DESTINO-1610 — o nome reservado affiliate_link_clicked (app/api/events/route.ts) sai antes de todos /* reancorado KINEO-CHECKOUT-CLAREZA-1610 (união na leva 2) · reancorado KINEO-AFILIADO-POR-POST-1610 (união na leva 2) · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória · reancorado KINEO-LEVA3-1510 (união na leva 3) */ /* reancorado KINEO-ADS-FIEL-4-1510 — o canto reservado da trava sai primeiro, em memória */
+const rd = (p) => semFiel2_1510(p, semAfiliadoDestino1610(p, semAfiliadoPorPost1610(p, semClareza1610(p, semFiel3_1510(p, semFiel4_1510(p, semFielLiga1510(p, readFileSync(join(ROOT, p), 'utf8')))))))) // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória · reancorado KINEO-AFILIADO-DESTINO-1610 — o nome reservado affiliate_link_clicked (app/api/events/route.ts) sai antes de todos /* reancorado KINEO-CHECKOUT-CLAREZA-1610 (união na leva 2) · reancorado KINEO-AFILIADO-POR-POST-1610 (união na leva 2) · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória · reancorado KINEO-LEVA3-1510 (união na leva 3) */ /* reancorado KINEO-ADS-FIEL-4-1510 — o canto reservado da trava sai primeiro, em memória */
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28 })
 const base = (p) => git('show', `${BASE}:${p}`).replace(/\r\n/g, '\n')
 let pass = 0
@@ -260,11 +261,21 @@ globalThis.fetch = async (url) => {
 process.env.FAL_KEY = 'test-key'
 const SRV = makeLoader(srvStubs)(F.server)
 const LOCK = { footageId: 'f-prod', url: `${PH}prod.jpg`, mode: 'scene' }
-await check('S1 interruptor: modo "internal" liga só para a lista EXATA da casa; outra conta, ou o auth fora do ar = desligado', async () => {
+await check('S1 interruptor (reancorado KINEO-ADS-FIEL-LIGA-1510 — fundador ligou para todos em 15/10): no arquivo VIVO o modo é "all" e liga para a casa, para outra conta e com o auth fora do ar; o ramo "internal" (o texto deste conserto) segue só a lista EXATA da casa; outra conta, ou o auth fora do ar = desligado', async () => {
   const casa = await SRV.adsV2ProductLockEnabled(USER)
   authEmail = 'cliente@exemplo.com'; const cliente = await SRV.adsV2ProductLockEnabled(USER)
   authThrows = true; const fora = await SRV.adsV2ProductLockEnabled(USER); authThrows = false; authEmail = 'josephsskaf@gmail.com'
-  return SL.ADS_V2_PRODUCT_LOCK_MODE === 'internal' && casa === true && cliente === false && fora === false
+  // reancorado KINEO-ADS-FIEL-LIGA-1510 — fundador ligou para todos em 15/10: o módulo VIVO (o texto deste conserto com o liga de volta) liga para todo pedido, sem depender do auth
+  const vivo = comLiga1510(F.shotLists, rd(F.shotLists))
+  const SLvivo = pure({ [F.shotLists]: vivo })(F.shotLists)
+  const SRVvivo = makeLoader(srvStubs, { over: { [F.shotLists]: vivo } })(F.server)
+  const vCasa = await SRVvivo.adsV2ProductLockEnabled(USER)
+  authEmail = 'cliente@exemplo.com'; const vCliente = await SRVvivo.adsV2ProductLockEnabled(USER)
+  authThrows = true; const vFora = await SRVvivo.adsV2ProductLockEnabled(USER); authThrows = false; authEmail = 'josephsskaf@gmail.com'
+  const cru = readFileSync(join(ROOT, F.shotLists), 'utf8').replace(/\r\n/g, '\n')
+  return SL.ADS_V2_PRODUCT_LOCK_MODE === 'internal' && casa === true && cliente === false && fora === false &&
+    SLvivo.ADS_V2_PRODUCT_LOCK_MODE === 'all' && vCasa === true && vCliente === true && vFora === true &&
+    cru.split("export const ADS_V2_PRODUCT_LOCK_MODE: 'off' | 'internal' | 'all' = 'all' // KINEO-ADS-FIEL-1510 · KINEO-ADS-FIEL-LIGA-1510").length === 2 && semFielLiga1510(F.shotLists, cru) === semFielLiga1510(F.shotLists, comLiga1510(F.shotLists, semFielLiga1510(F.shotLists, cru)))
 })
 await check('S2 recorte: fal-ai/birefnet/v2 em PNG UMA vez por foto (cache no bucket por foto); a 2ª cena da mesma foto não chama a fal', async () => {
   srvCalls.fal.length = 0

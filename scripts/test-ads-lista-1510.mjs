@@ -29,10 +29,11 @@ import { semLista1510, LISTA_1510_ARQUIVOS, MARCA_LISTA_1510 } from './test-supp
 import { semFiel2_1510 } from './test-support/desfaz-ads-fiel-2-1510.mjs' // reancorado KINEO-ADS-FIEL-2-1510 — o conserto mais novo do Ads sai PRIMEIRO, em memória
 import { semFiel3_1510 } from './test-support/desfaz-ads-fiel-3-1510.mjs' // reancorado KINEO-ADS-FIEL-3-1510 — o conserto mais novo do Ads sai PRIMEIRO, em memória
 import { semFiel4_1510 } from './test-support/desfaz-ads-fiel-4-1510.mjs' // reancorado KINEO-ADS-FIEL-4-1510 — o conserto mais novo do Ads (canto reservado da trava) sai PRIMEIRO, em memória
+import { semFielLiga1510 } from './test-support/desfaz-ads-fiel-liga-1510.mjs' // reancorado KINEO-ADS-FIEL-LIGA-1510 — fundador ligou para todos em 15/10; o liga (o mais novo da trava) sai PRIMEIRO, colado no readFileSync, em memória
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
-const read = (rel) => semFiel2_1510(rel, semFiel3_1510(rel, semFiel4_1510(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8')))) // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória /* reancorado KINEO-ADS-FIEL-4-1510 — o canto reservado da trava sai primeiro, em memória */
+const read = (rel) => semFiel2_1510(rel, semFiel3_1510(rel, semFiel4_1510(rel, semFielLiga1510(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8'))))) // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória /* reancorado KINEO-ADS-FIEL-4-1510 — o canto reservado da trava sai primeiro, em memória */
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 64 << 20 })
 const MARCA = MARCA_LISTA_1510
 const criou = (() => { try { return git('log', '--format=%H', '--diff-filter=A', '--', 'lib/ads/adsList.ts').trim().split('\n').filter(Boolean).pop() || '' } catch { return '' } })()

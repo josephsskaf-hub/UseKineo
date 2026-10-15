@@ -20,7 +20,7 @@
 //   K foto do link declarada do produto + "Um produto" = 'product' (a trava liga no T3); a regra de antes intacta;
 //   O frases de tela: 48 px por 1080 de largura, ≤ 2 linhas, largura 80%, centralizadas, presas pela base na zona segura dos 3 formatos;
 //     sobem quando embaixo cobrem produto/rosto; o ator também; o anúncio de lugar continua no centro; o cartão não muda;
-//   V desfaz exato + marca em todo bloco + dinheiro byte a byte + trava ainda 'internal';
+//   V desfaz exato + marca em todo bloco + dinheiro byte a byte + trava 'internal' no texto deste conserto e 'all' no arquivo vivo (reancorado KINEO-ADS-FIEL-LIGA-1510 — fundador ligou para todos em 15/10);
 //   M mutantes (todos aplicados e vermelhos).
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname, posix } from 'node:path'
@@ -30,10 +30,11 @@ import { execFileSync } from 'node:child_process'
 import ts from 'typescript'
 import { semFiel3_1510, FIEL_3_1510_ARQUIVOS, FIEL_3_1510_NOVOS, MARCA_FIEL_3_1510 } from './test-support/desfaz-ads-fiel-3-1510.mjs'
 import { semFiel4_1510 } from './test-support/desfaz-ads-fiel-4-1510.mjs' // reancorado KINEO-ADS-FIEL-4-1510 — o conserto mais novo do Ads (canto reservado da trava) sai PRIMEIRO, em memória
+import { semFielLiga1510 } from './test-support/desfaz-ads-fiel-liga-1510.mjs' // reancorado KINEO-ADS-FIEL-LIGA-1510 — fundador ligou para todos em 15/10; o liga (o mais novo da trava) sai PRIMEIRO, colado no readFileSync, em memória
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-FIEL-3-1510'
-const rd = (p) => semFiel4_1510(p, readFileSync(join(ROOT, p), 'utf8')) // reancorado KINEO-ADS-FIEL-4-1510 — esta prova roda a trava da Fiel 3 (o lugar lido pela visão); o canto reservado sai antes, byte a byte (semFiel4_1510 já devolve LF)
+const rd = (p) => semFiel4_1510(p, semFielLiga1510(p, readFileSync(join(ROOT, p), 'utf8'))) // reancorado KINEO-ADS-FIEL-4-1510 — esta prova roda a trava da Fiel 3 (o lugar lido pela visão); o canto reservado sai antes, byte a byte (semFiel4_1510 já devolve LF)
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 let BASE = 'HEAD'
 let PROPRIO = null
@@ -623,7 +624,7 @@ await check('O7 fora as frases, o anúncio é o de ANTES (planos, cartão, véu,
 })
 
 // ═══ V. desfaz, marca, dinheiro, trava ═════════════════════════════════════════════════════════════════════════════════
-console.log('\nV. desfaz, marca, dinheiro e a trava ainda "internal"')
+console.log('\nV. desfaz, marca, dinheiro e a trava ("internal" neste conserto, "all" no arquivo vivo)')
 await check('V1 cada arquivo tocado, desfeito (scripts/test-support/desfaz-ads-fiel-3-1510.mjs), é EXATAMENTE o pai do commit; os novos existem e trazem a marca', () =>
   FIEL_3_1510_ARQUIVOS.length === 11 && FIEL_3_1510_ARQUIVOS.every((f) => semFiel3_1510(f, rd(f)) === base(f)) && FIEL_3_1510_NOVOS.every((f) => existsSync(join(ROOT, f)) && base(f) === null && rd(f).includes(MARCA)) && MARCA_FIEL_3_1510 === MARCA)
 await check('V2 todo bloco novo nos arquivos de produto que já existiam (lib/ e app/) traz a marca KINEO-ADS-FIEL-3-1510, e toda linha de código fora de comentário também', () => {
@@ -650,8 +651,12 @@ await check('V3 dinheiro e acesso intocados: v2Billing, v2Tiers, v2StartCore, /s
   const nomes = diffDoConserto(['--name-only']).split('\n')
   return f.every((p) => base(p) !== null && rd(p) === base(p) && !nomes.includes(p))
 })
-await check('V4 a trava continua em "internal" (só as contas da casa) — virar para todos é decisão do fundador depois do T1+T2', () =>
-  SL.ADS_V2_PRODUCT_LOCK_MODE === 'internal' && rd(F.shotLists).includes("export const ADS_V2_PRODUCT_LOCK_MODE: 'off' | 'internal' | 'all' = 'internal' // KINEO-ADS-FIEL-1510"))
+await check('V4 a trava (reancorado KINEO-ADS-FIEL-LIGA-1510 — fundador ligou para todos em 15/10): o arquivo VIVO traz o modo "all" uma vez e o módulo vivo devolve "all"; desfeito o liga, este conserto lê exatamente o "internal" de antes', () => {
+  const cru = readFileSync(join(ROOT, F.shotLists), 'utf8').replace(/\r\n/g, '\n')
+  const SLvivo = pure({ [F.shotLists]: semFiel4_1510(F.shotLists, cru) })(F.shotLists)
+  return SLvivo.ADS_V2_PRODUCT_LOCK_MODE === 'all' && cru.split("export const ADS_V2_PRODUCT_LOCK_MODE: 'off' | 'internal' | 'all' = 'all' // KINEO-ADS-FIEL-1510 · KINEO-ADS-FIEL-LIGA-1510").length === 2 &&
+    SL.ADS_V2_PRODUCT_LOCK_MODE === 'internal' && rd(F.shotLists).includes("export const ADS_V2_PRODUCT_LOCK_MODE: 'off' | 'internal' | 'all' = 'internal' // KINEO-ADS-FIEL-1510")
+})
 await check('V5 nenhuma string crua de modelo da OpenAI nas linhas novas (o registro central manda)', () => !/^\+.*['"`](gpt-|o[0-9]-|tts-1|whisper-)/m.test(diffDoConserto(['-U0', '--no-color'], ['lib', 'app'])))
 
 // ═══ M. mutantes ════════════════════════════════════════════════════════════════════════════════════════════════════════

@@ -857,7 +857,10 @@ export function adsV2CropRectFor(imgW: number, imgH: number, fx: number, fy: num
 // KINEO-ADS-FIEL-1510 — Qualquer passo que falhe = o plano anima a FOTO REAL do produto (nunca a cena com o produto redesenhado).
 // KINEO-ADS-FIEL-1510 — Só funções puras aqui; o lado servidor mora em lib/ads/v2ProductLockServer.ts e lib/ads/v2Png.ts.
 /** KINEO-ADS-FIEL-1510 — interruptor: 'internal' = só as contas da casa (canário); 'all' = todo pedido; 'off' = o caminho de antes. */
-export const ADS_V2_PRODUCT_LOCK_MODE: 'off' | 'internal' | 'all' = 'internal' // KINEO-ADS-FIEL-1510
+// KINEO-ADS-FIEL-LIGA-1510 — fundador 15/10 'liga já' depois do reteste 4: rostos livres, nada boiando, lado alternado; falta pousar no
+// KINEO-ADS-FIEL-LIGA-1510 — tampo — KINEO-ADS-FIEL-5-1510 em andamento. A trava vale para TODO pedido; o preço do nível não muda (visão
+// KINEO-ADS-FIEL-LIGA-1510 — 'high', recorte e a refação do canto são custo da casa, nunca débito extra ao cliente).
+export const ADS_V2_PRODUCT_LOCK_MODE: 'off' | 'internal' | 'all' = 'all' // KINEO-ADS-FIEL-1510 · KINEO-ADS-FIEL-LIGA-1510
 /** KINEO-ADS-FIEL-1510 — setores em que "the product from the photos" é um produto embalado (prato, cabelo e aparelho de academia ficam de fora). */
 export const ADS_V2_PRODUCT_LOCK_SECTORS: readonly AdsV2Sector[] = ['store', 'other'] // KINEO-ADS-FIEL-1510
 /** KINEO-ADS-FIEL-1510 — endpoint do recorte (catálogo público da fal; OpenAPI lido em 15/10: image_url, model, output_format 'png'). */
