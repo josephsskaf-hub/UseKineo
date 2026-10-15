@@ -23,6 +23,7 @@ import { isPayingPlan, isTrialPlan } from '../_shared/mrr'
 import { TIER_CREDITS, type CheckoutPlanTier } from '@/lib/checkoutPricing' // KINEO-RAZAO-ASSINATURA-2026-09-16
 import { carregarCheckoutHonesto, type CheckoutHonestoComCartao } from '@/lib/admin/checkoutHonesto' // KINEO-CHECKOUT-HONESTO-2026-10-07
 import { LEDGER_GRANT_EVENTS, summarizeLedgerGrants, type LedgerGrantEvent } from '@/lib/admin/ledgerGrants' // KINEO-PAINEL-ORIGEM-2026-10-13
+import { rotuloCredito } from '@/lib/admin/rotuloCredito' // KINEO-ROTULO-CREDITO-1510
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -570,7 +571,10 @@ export async function GET() {
           if (names.has('video_generation_completed')) { did.push('✅ vídeo pronto'); heat = Math.max(heat, 2) }
           if (names.has('video_downloaded')) { did.push('⬇ baixou'); heat = Math.max(heat, 2) }
           if (names.has('pricing_view') || names.has('inline_pricing_currency_resolved')) did.push('💰 viu preço')
-          if (names.has('upgrade_modal_opened') || [...names].some((n) => n.includes('topup'))) did.push('⚡ modal de crédito')
+          // KINEO-ROTULO-CREDITO-1510 — o rótulo ⚡ de modal só com modal de compra ABERTO; chip de créditos só visto na barra
+          // (topup_eligibility_handoff_viewed) vira a linha fraca '👀 viu oferta de créditos'. Regra e nomes: lib/admin/rotuloCredito.ts.
+          const credito = rotuloCredito(names)
+          if (credito) did.push(credito)
           if ([...names].some((n) => n.startsWith('images_') || n === 'image_generated')) did.push('🖼 imagens')
           // KINEO-GUARD-VISIVEL-2026-08-25 (caso Pedro) — o bloqueio educativo
           // de roteiro-curto agora tem nome próprio e vira um chip legível em
