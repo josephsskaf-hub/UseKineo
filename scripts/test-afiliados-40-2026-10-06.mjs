@@ -246,6 +246,8 @@ async function problems(over = {}) {
       'next/server': { NextResponse: { redirect: mkRedirect } },
       '@/lib/supabase/middleware': { updateSession: async () => ({ passthrough: true, cookies: { set() {} } }) },
       '@/lib/growth/homeClipsFirst': { HOME_VISITOR_COOKIE: 'kineo_vid', HOME_VISITOR_COOKIE_MAX_AGE_SECONDS: 1, shouldMintHomeVisitorCookie: () => false },
+      // KINEO-CHECKOUT-ROBO-1510: o portão do checkout só age em /api/stripe/checkout (provado em scripts/test-checkout-robo-1510.mjs).
+      '@/lib/growth/checkoutRobotGate': { decideCheckoutGate: () => ({ action: 'pass', reason: 'other_path' }), checkoutGateHtml: () => '', checkoutGateStatus: () => 200, CHECKOUT_GATE_HEADERS: {} },
     })
     const ledger = pure(S('ledger'), F.ledger)
     payment = compile(
