@@ -8,6 +8,7 @@ import KineoBolt, { KineoBoltText } from '@/components/KineoBolt'
 
 import { Suspense, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { sairDaConta } from '@/lib/auth/sairDaContaCliente' // KINEO-SAIR-DA-CONTA-1510
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
@@ -215,18 +216,12 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
     })
   }, [activeTab, tier])
 
-  async function handleSignOut() {
+  // KINEO-SAIR-DA-CONTA-1510 — mesmo caminho único do menu da conta (lib/auth/sairDaContaCliente.ts). O antigo
+  // race de 3 s + window.location.href='/' navegava com os cookies intactos quando a trava do auth-js prendia.
+  function handleSignOut() {
+    if (signingOut) return
     setSigningOut(true)
-    try {
-      await Promise.race([
-        supabase.auth.signOut({ scope: 'local' }),
-        new Promise<void>((resolve) => setTimeout(resolve, 3000)),
-      ])
-    } catch {
-      // ignore
-    } finally {
-      window.location.href = '/'
-    }
+    void sairDaConta()
   }
 
   async function handlePortal() {

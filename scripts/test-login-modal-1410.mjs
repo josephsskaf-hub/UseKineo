@@ -55,6 +55,8 @@ const PATHS = {
   mw: 'lib/supabase/middleware.ts',
   sidebar: 'components/Sidebar.tsx',
   account: 'app/(dashboard)/account/AccountClient.tsx',
+  sairLib: 'lib/auth/sairDaConta.ts', // KINEO-SAIR-DA-CONTA-1510 — destino único da saída
+  sairCliente: 'lib/auth/sairDaContaCliente.ts',
   callback: 'app/auth/callback/route.ts',
   engineWall: 'lib/engineWall.ts',
   curation: 'lib/homeVideoCuration.ts',
@@ -150,9 +152,13 @@ function rules(F) {
   ok('R5', F.mw.includes("if (user && (pathname === '/login' || pathname === '/signup')) {"), 'logado em /login|/signup continua sendo levado ao destino')
 
   // R6 — sair pousa na home.
+  // KINEO-SAIR-DA-CONTA-1510 — reancorado: os dois botões passaram a chamar o caminho único sairDaConta()
+  // (lib/auth/sairDaContaCliente.ts), que navega com location.replace(SAIR_DA_CONTA_DESTINO); o destino continua '/'.
   for (const [name, src] of [['Sidebar', F.sidebar], ['AccountClient', F.account]]) {
-    const body = fnBody(src, 'async function handleSignOut(') ?? ''
-    ok('R6', body.includes("window.location.href = '/'") && !body.includes('/login'), `${name}: sair → /`)
+    const body = fnBody(src, 'function handleSignOut(') ?? ''
+    ok('R6', body.includes('sairDaConta()') && !body.includes('/login')
+      && F.sairLib.includes("export const SAIR_DA_CONTA_DESTINO = '/'\n")
+      && F.sairCliente.includes('window.location.replace(SAIR_DA_CONTA_DESTINO)'), `${name}: sair → /`)
   }
 
   // R7 — rotas antigas vivas.
@@ -207,7 +213,7 @@ const MUTANTS = [
   ['M1 o modal deixa de levar a query do link', 'modal', 'authModalSearch(next, linkSearch)', "authModalSearch(next, '')", 'R4'],
   ['M2 a lib derruba o redirect', 'lib', 'if (key !== AUTH_MODAL_PARAM) next.append(key, value)', "if (key !== AUTH_MODAL_PARAM && key !== 'redirect') next.append(key, value)", 'R4'],
   ['M3 o middleware perde o redirect', 'mw', "url.searchParams.set('redirect', request.nextUrl.pathname)", '', 'R5'],
-  ['M4 sair volta a pousar no /login', 'sidebar', "      window.location.href = '/'", "      window.location.href = '/login'", 'R6'],
+  ['M4 sair volta a pousar no /login', 'sairLib', "export const SAIR_DA_CONTA_DESTINO = '/'", "export const SAIR_DA_CONTA_DESTINO = '/login'", 'R6'],
   ['M5 o modal ganha Supabase próprio', 'modal', 'const [mode, setMode] = useState', 'const supabase = createClient()\n  const [mode, setMode] = useState', 'R1'],
   ['M6 o modal muda a lógica do login', 'login', '    e.preventDefault()\n    setLoading(true)', '    e.preventDefault()\n    if (inModal) return\n    setLoading(true)', 'R3'],
   ['M7 o callback muda', 'callbackRaw', 'maybeActivateReverseTrial({', 'maybeActivateReverseTrial( {', 'R8'],

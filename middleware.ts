@@ -58,6 +58,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(canonicalUrl, 308)
   }
 
+  // KINEO-SAIR-DA-CONTA-1510 — a rota de saída NÃO passa pelo updateSession: renovar a sessão aqui podia devolver um
+  // cookie sb-* novo no mesmo pedido em que app/auth/signout/route.ts apaga todos. Ela mesma revoga e apaga.
+  // Texto igual a SAIR_DA_CONTA_ROTA (lib/auth/sairDaConta.ts) — o guardião test-sair-da-conta-1510 confere a igualdade.
+  if (request.nextUrl.pathname === '/auth/signout') return NextResponse.next()
+
   // KINEO-AFILIADO-REF-2026-09-08 (tarefa 9) — `?ref=CODE` NUNCA gravou clique nem
   // cookie: só `/a/CODE` grava. Os rascunhos da casa e afiliados antigos usam o
   // primeiro formato → 27 cliques na história, 0 atribuições. Agora `?ref=` com
