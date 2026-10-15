@@ -28,6 +28,10 @@ import {
   AFILIADO_POR_POST_1610_BASE,
   MARCA_AFILIADO_POR_POST_1610,
 } from './test-support/desfaz-afiliado-por-post-1610.mjs'
+// reancorado KINEO-LEVA2-1510 — na leva 2 o KINEO-CHECKOUT-CLAREZA-1610 também pôs um nome reservado (welcome20_deadline_started)
+// em app/api/events/route.ts, num trecho disjunto: sai em memória (desfaz exato dele) SÓ na prova byte a byte (H); o
+// comportamento continua lendo o arquivo de verdade. Sem a camada (árvore sem a marca), semClareza1610 devolve o texto igual.
+import { semClareza1610 } from './test-support/desfaz-checkout-clareza-1610.mjs'
 
 const root = process.cwd()
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n')
@@ -486,7 +490,7 @@ assert.equal(failed, 0, `${failed} mutante(s) sobreviveram ou não se aplicaram`
   assert.equal(MARCA_AFILIADO_POR_POST_1610, 'KINEO-AFILIADO-POR-POST-1610')
   for (const f of AFILIADO_POR_POST_1610_ARQUIVOS) {
     const base = git('show', `${AFILIADO_POR_POST_1610_BASE}:${f}`).replace(/\r\n/g, '\n')
-    assert.equal(semAfiliadoPorPost1610(f, read(f)), base, `desfeito, ${f} não é EXATAMENTE a base`)
+    assert.equal(semAfiliadoPorPost1610(f, semClareza1610(f, read(f))), base, `desfeito, ${f} não é EXATAMENTE a base`) // reancorado KINEO-LEVA2-1510
   }
   const probe = read('app/api/events/route.ts').replace("  'affiliate_signup_attribution_result',\n", "  'affiliate_signup_attribution_result' ,\n")
   assert.notEqual(probe, read('app/api/events/route.ts'), 'a sonda do desfaz não se aplicou')
