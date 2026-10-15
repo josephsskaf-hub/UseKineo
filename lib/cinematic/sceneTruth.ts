@@ -280,44 +280,43 @@ export function extrairAcao(fala: string): string | null {
   }
   return null
 }
-
 // KINEO-CENA-NEGACAO-1510 >>> [TRAVA 8.2 — vai do fundador 15/10] a negacao na fala deixa de virar exigencia visual
-// O caso (filme a278acc5, render 56d96151, Seedance 15 s): a cena 2 falava "Not a single trace was found — no wreckage,
-// nothing." O lexico achou "wreck" dentro de "wreckage", declarou o sujeito shipwreck ausente e INJETOU "wreck, " no
-// comeco do prompt. O filme mostrou um aviao destrocado enquanto a voz dizia que nao havia destrocos.
-//
-// A regra, deterministica e conservadora: uma ocorrencia do termo e NEGADA quando
-//  · ANTES dela, na mesma oracao, vem um negador ligado ao termo so por palavras de ligacao (artigo, "single", "sign of",
-//    "trace of", "found", "sinal do", "rastro del"…): "no wreckage", "never found the wreck", "sem nenhum sinal do
-//    naufragio", "sin rastro del submarino", "neither wreckage nor…";
-//  · ou DEPOIS dela vem auxiliar + negador + particípio de achar/ver: "the wreck was never found", "o submarino nunca foi
-//    encontrado", "el submarino nunca se encontro".
-// Toda palavra fora da lista de ligacao CORTA a busca — e isso inclui pontuacao (que vira token) e adversativa
-// (but/mas/pero/sin embargo…): "no survivors, but the wreckage was found" continua pedindo wreckage, e "Officials have
-// not confirmed that either wreck is leaking" continua pedindo o naufragio (o "not" e do "confirmed", nao do "wreck").
-// O termo so sai da exigencia quando TODAS as ocorrencias dele estao negadas. Fora da extracao do contrato nada muda.
+// O caso (filme a278acc5, render 56d96151, Seedance 15 s): a cena 2 falava "Not a single trace was found — no wreckage, [KINEO-CENA-NEGACAO-1510]
+// nothing." O lexico achou "wreck" dentro de "wreckage", declarou o sujeito shipwreck ausente e INJETOU "wreck, " no [KINEO-CENA-NEGACAO-1510]
+// comeco do prompt. O filme mostrou um aviao destrocado enquanto a voz dizia que nao havia destrocos. [KINEO-CENA-NEGACAO-1510]
+// [KINEO-CENA-NEGACAO-1510]
+// A regra, deterministica e conservadora: uma ocorrencia do termo e NEGADA quando [KINEO-CENA-NEGACAO-1510]
+//  · ANTES dela, na mesma oracao, vem um negador ligado ao termo so por palavras de ligacao (artigo, "single", "sign of", [KINEO-CENA-NEGACAO-1510]
+//    "trace of", "found", "sinal do", "rastro del"…): "no wreckage", "never found the wreck", "sem nenhum sinal do [KINEO-CENA-NEGACAO-1510]
+//    naufragio", "sin rastro del submarino", "neither wreckage nor…"; [KINEO-CENA-NEGACAO-1510]
+//  · ou DEPOIS dela vem auxiliar + negador + particípio de achar/ver: "the wreck was never found", "o submarino nunca foi [KINEO-CENA-NEGACAO-1510]
+//    encontrado", "el submarino nunca se encontro". [KINEO-CENA-NEGACAO-1510]
+// Toda palavra fora da lista de ligacao CORTA a busca — e isso inclui pontuacao (que vira token) e adversativa [KINEO-CENA-NEGACAO-1510]
+// (but/mas/pero/sin embargo…): "no survivors, but the wreckage was found" continua pedindo wreckage, e "Officials have [KINEO-CENA-NEGACAO-1510]
+// not confirmed that either wreck is leaking" continua pedindo o naufragio (o "not" e do "confirmed", nao do "wreck"). [KINEO-CENA-NEGACAO-1510]
+// O termo so sai da exigencia quando TODAS as ocorrencias dele estao negadas. Fora da extracao do contrato nada muda. [KINEO-CENA-NEGACAO-1510]
 const NEGADORES_1510 = new Set([ // KINEO-CENA-NEGACAO-1510
-  'no', 'not', 'never', 'without', 'none', 'nothing', 'neither', 'nor', 'nobody', 'cannot', // EN
-  'nao', 'nenhum', 'nenhuma', 'nenhuns', 'nenhumas', 'sem', 'nunca', 'jamais', 'nada', 'nem', 'ninguem', // PT
-  'ningun', 'ninguna', 'ninguno', 'sin', 'ni', 'nadie', 'tampoco', // ES
-])
+  'no', 'not', 'never', 'without', 'none', 'nothing', 'neither', 'nor', 'nobody', 'cannot', // EN // KINEO-CENA-NEGACAO-1510
+  'nao', 'nenhum', 'nenhuma', 'nenhuns', 'nenhumas', 'sem', 'nunca', 'jamais', 'nada', 'nem', 'ninguem', // PT // KINEO-CENA-NEGACAO-1510
+  'ningun', 'ninguna', 'ninguno', 'sin', 'ni', 'nadie', 'tampoco', // ES // KINEO-CENA-NEGACAO-1510
+]) // KINEO-CENA-NEGACAO-1510
 const LIGACAO_ANTES_1510 = new Set([ // KINEO-CENA-NEGACAO-1510 — o que pode ficar ENTRE o negador e o termo
-  'a', 'an', 'the', 'any', 'single', 'one', 'ever', 'even', 'other', 'more', 'further', 'real', 'actual', 'visible',
-  'physical', 'trace', 'traces', 'sign', 'signs', 'evidence', 'of', 'remains', 'piece', 'pieces', 'bit', 'hint', 'mark',
-  'marks', 'there', 'was', 'were', 'is', 'are', 'been', 'be', 'has', 'have', 'had', 'found', 'find', 'located', 'locate',
-  'recovered', 'recover', 'seen', 'see', 'saw', 'spotted', 'spot', 'discovered', 'discover', 'detected', 'detect',
-  'um', 'uma', 'uns', 'umas', 'o', 'os', 'as', 'de', 'do', 'da', 'dos', 'das', 'qualquer', 'sequer', 'sinal', 'sinais',
-  'rastro', 'rastros', 'vestigio', 'vestigios', 'resto', 'restos', 'pedaco', 'pedacos', 'prova', 'provas', 'houve',
-  'havia', 'ha', 'existe', 'existia', 'existiu', 'encontrou', 'encontraram', 'encontramos', 'achou', 'acharam', 'viu',
-  'viram', 'localizou', 'localizaram', 'foi', 'foram',
-  'un', 'unos', 'unas', 'el', 'la', 'los', 'las', 'del', 'cualquier', 'senal', 'senales', 'huella', 'huellas',
-  'pedazo', 'pedazos', 'hubo', 'habia', 'hay', 'encontro', 'encontraron', 'hallo', 'hallaron', 'vio', 'vieron',
-  'localizo', 'localizaron', 'fue', 'fueron',
-])
+  'a', 'an', 'the', 'any', 'single', 'one', 'ever', 'even', 'other', 'more', 'further', 'real', 'actual', 'visible', // KINEO-CENA-NEGACAO-1510
+  'physical', 'trace', 'traces', 'sign', 'signs', 'evidence', 'of', 'remains', 'piece', 'pieces', 'bit', 'hint', 'mark', // KINEO-CENA-NEGACAO-1510
+  'marks', 'there', 'was', 'were', 'is', 'are', 'been', 'be', 'has', 'have', 'had', 'found', 'find', 'located', 'locate', // KINEO-CENA-NEGACAO-1510
+  'recovered', 'recover', 'seen', 'see', 'saw', 'spotted', 'spot', 'discovered', 'discover', 'detected', 'detect', // KINEO-CENA-NEGACAO-1510
+  'um', 'uma', 'uns', 'umas', 'o', 'os', 'as', 'de', 'do', 'da', 'dos', 'das', 'qualquer', 'sequer', 'sinal', 'sinais', // KINEO-CENA-NEGACAO-1510
+  'rastro', 'rastros', 'vestigio', 'vestigios', 'resto', 'restos', 'pedaco', 'pedacos', 'prova', 'provas', 'houve', // KINEO-CENA-NEGACAO-1510
+  'havia', 'ha', 'existe', 'existia', 'existiu', 'encontrou', 'encontraram', 'encontramos', 'achou', 'acharam', 'viu', // KINEO-CENA-NEGACAO-1510
+  'viram', 'localizou', 'localizaram', 'foi', 'foram', // KINEO-CENA-NEGACAO-1510
+  'un', 'unos', 'unas', 'el', 'la', 'los', 'las', 'del', 'cualquier', 'senal', 'senales', 'huella', 'huellas', // KINEO-CENA-NEGACAO-1510
+  'pedazo', 'pedazos', 'hubo', 'habia', 'hay', 'encontro', 'encontraron', 'hallo', 'hallaron', 'vio', 'vieron', // KINEO-CENA-NEGACAO-1510
+  'localizo', 'localizaron', 'fue', 'fueron', // KINEO-CENA-NEGACAO-1510
+]) // KINEO-CENA-NEGACAO-1510
 const AUXILIAR_DEPOIS_1510 = new Set([ // KINEO-CENA-NEGACAO-1510 — "the wreck WAS never found", "nunca FOI encontrado"
-  'was', 'were', 'is', 'are', 'has', 'have', 'had', 'been', 'be', 'ever', 'yet', 'itself', 'still',
-  'foi', 'foram', 'era', 'eram', 'tem', 'sido', 'ja', 'fue', 'fueron', 'ha', 'han', 'habia', 'se',
-])
+  'was', 'were', 'is', 'are', 'has', 'have', 'had', 'been', 'be', 'ever', 'yet', 'itself', 'still', // KINEO-CENA-NEGACAO-1510
+  'foi', 'foram', 'era', 'eram', 'tem', 'sido', 'ja', 'fue', 'fueron', 'ha', 'han', 'habia', 'se', // KINEO-CENA-NEGACAO-1510
+]) // KINEO-CENA-NEGACAO-1510
 const ACHADO_DEPOIS_1510 = /^(found|located|recovered|seen|spotted|discovered|detected|identified|encontrad[oa]s?|achad[oa]s?|localizad[oa]s?|recuperad[oa]s?|vist[oa]s?|avistad[oa]s?|hallad[oa]s?|descubiert[oa]s?|encontro|hallo)$/ // KINEO-CENA-NEGACAO-1510
 function ehNegador1510(t: string): boolean { // KINEO-CENA-NEGACAO-1510
   return NEGADORES_1510.has(t) || /[a-z]n't$/.test(t) // KINEO-CENA-NEGACAO-1510 — wasn't, didn't, couldn't

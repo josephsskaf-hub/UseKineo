@@ -12,6 +12,7 @@ import { desfazJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' 
 import { execFileSync } from 'node:child_process'
 import { desfazRomanceAdulto } from './test-support/desfaz-romance-adulto-1310.mjs' // reancorado KINEO-LEVA7-1310: o conserto do romance (13/10) também sai, em memória, antes do byte a byte
 import { semContratoClassicos1410 } from "./test-support/desfaz-contrato-classicos-1410.mjs" // reancorado KINEO-CONTRATO-CLASSICOS-1410: o contrato clássico (14/10) sai, em memória, antes do byte a byte
+import { semCenaNegacao1510 } from "./test-support/desfaz-cena-negacao-1510.mjs" // reancorado KINEO-CENA-NEGACAO-1510 [TRAVA 8.2 — vai do fundador 15/10]: a negação no contrato de cena sai, em memória, antes do byte a byte
 import { desfazParceiroEyebible2_1410 } from './test-support/desfaz-parceiro-eyebible-2-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410 [TRAVA 8.2 — vai do fundador 14/10]: a 2ª leva do Robert/EyeBible sai em memória antes do byte a byte
 const desfazAncoraEJuizStill1410 = (p, s) => desfazAncoraLegenda1410(p, desfazJuizStill1410(p, s)) // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 
@@ -58,7 +59,7 @@ if (!process.env.ROTA_ALVO) {
     base = git(['show', `${ref}:${CAMINHO}`]).replace(/\r\n/g, '\n')
   } catch { base = null }
   const semMarca = (s) => s.split('\n').filter((l) => !l.includes(MARCA)).join('\n')
-  checa('sem as linhas marcadas, a rota = base byte a byte', base !== null && desfazRomanceAdulto(CAMINHO, semMarca(semContratoClassicos1410(desfazParceiroEyebible2_1410(CAMINHO, desfazAncoraEJuizStill1410(CAMINHO, rota) /* KINEO-ANCORA-LEGENDA-1410 */), CAMINHO))) === base) /* reancorado KINEO-CONTRATO-CLASSICOS-1410 */ // reancorado KINEO-LEVA7-1310
+  checa('sem as linhas marcadas, a rota = base byte a byte', base !== null && desfazRomanceAdulto(CAMINHO, semMarca(semContratoClassicos1410(desfazParceiroEyebible2_1410(CAMINHO, desfazAncoraEJuizStill1410(CAMINHO, semCenaNegacao1510(rota, CAMINHO) /* reancorado KINEO-CENA-NEGACAO-1510 */) /* KINEO-ANCORA-LEGENDA-1410 */), CAMINHO))) === base) /* reancorado KINEO-CONTRATO-CLASSICOS-1410 */ // reancorado KINEO-LEVA7-1310
 }
 
 console.log(`\ntest-reconexao-mesmo-filme-2026-10-13: ${ok} ok · ${falhas} falhas`)

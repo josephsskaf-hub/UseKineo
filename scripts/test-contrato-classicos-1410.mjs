@@ -31,6 +31,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 import { desfazParceiroEyebible1410 } from './test-support/desfaz-parceiro-eyebible-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-1410 [TRAVA 8.2 — vai do fundador 14/10]
 import { semContratoClassicos1410, MARCA_CONTRATO_CLASSICOS_1410 as MARCA } from './test-support/desfaz-contrato-classicos-1410.mjs'
+import { semCenaNegacao1510, linhaDaCenaNegacao1510 } from './test-support/desfaz-cena-negacao-1510.mjs' // reancorado KINEO-CENA-NEGACAO-1510 [TRAVA 8.2 — vai do fundador 15/10]: a negação no contrato de cena sai em memória antes do byte a byte
 import { desfazParceiroEyebible2_1410, linhaDoParceiroEyebible2_1410 } from './test-support/desfaz-parceiro-eyebible-2-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410 [TRAVA 8.2 — vai do fundador 14/10]: a 2ª leva do Robert/EyeBible sai em memória antes do byte a byte
 const desfazAncoraEJuizStill1410 = (p, s) => desfazAncoraLegenda1410(p, desfazJuizStill1410(p, s)) // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 
@@ -183,7 +184,7 @@ const baseRota = rdBase(ROTA)
 const baseLib = rdBase(LIB)
 let rotaDesfeita = null
 let libDesfeita = null
-try { rotaDesfeita = semContratoClassicos1410(desfazParceiroEyebible2_1410(ROTA, desfazAncoraEJuizStill1410(ROTA, atual.rota)), ROTA) /* KINEO-ANCORA-LEGENDA-1410 */; libDesfeita = semContratoClassicos1410(atual.lib, LIB) } catch (e) { console.log('   desfaz lançou: ' + e.message) }
+try { rotaDesfeita = semContratoClassicos1410(desfazParceiroEyebible2_1410(ROTA, desfazAncoraEJuizStill1410(ROTA, semCenaNegacao1510(atual.rota, ROTA))), ROTA) /* KINEO-ANCORA-LEGENDA-1410 · reancorado KINEO-CENA-NEGACAO-1510 */; libDesfeita = semContratoClassicos1410(semCenaNegacao1510(atual.lib, LIB), LIB) /* reancorado KINEO-CENA-NEGACAO-1510 */ } catch (e) { console.log('   desfaz lançou: ' + e.message) }
 checa('a base existe e NÃO tem a marca', Boolean(baseRota) && !baseRota.includes(MARCA) && Boolean(baseLib) && !baseLib.includes(MARCA))
 checa('rota: desfeito o conserto, byte a byte igual à base', rotaDesfeita !== null && rotaDesfeita === baseRota)
 checa('sceneTruth: desfeito o conserto, byte a byte igual à base', libDesfeita !== null && libDesfeita === baseLib)
@@ -195,7 +196,7 @@ checa('toda linha nova/trocada da rota e do sceneTruth leva a marca (o diff não
   if (!BASE) return false
   const d = git(['diff', BASE, '--', ROTA, LIB]).replace(/\r/g, '')
   const add = d.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))
-  return add.length > 0 && add.every((l) => l.includes(MARCA) || linhaDoParceiroEyebible2_1410(l) || linhaDaAncoraLegenda1410(l) /* KINEO-ANCORA-LEGENDA-1410 */ || linhaDoJuizStill1410(l) /* reancorado KINEO-JUIZ-STILL-1410 */) // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410: as linhas da 2ª leva levam a marca DELA
+  return add.length > 0 && add.every((l) => l.includes(MARCA) || linhaDoParceiroEyebible2_1410(l) || linhaDaAncoraLegenda1410(l) /* KINEO-ANCORA-LEGENDA-1410 */ || linhaDoJuizStill1410(l) /* reancorado KINEO-JUIZ-STILL-1410 */ || linhaDaCenaNegacao1510(l) /* reancorado KINEO-CENA-NEGACAO-1510 */) // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410: as linhas da 2ª leva levam a marca DELA
 })())
 let lancouMarcadaEstranha = false
 try { semContratoClassicos1410(atual.rota + '\n// linha estranha ' + MARCA + '\n', ROTA) } catch { lancouMarcadaEstranha = true }

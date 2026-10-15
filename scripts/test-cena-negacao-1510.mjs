@@ -182,6 +182,8 @@ relata(`provas A–E no código atual (${falhasAtuais.length} falhas)`, falhasAt
     relata(`F byte a byte: ${p} desfeito == ${base}`, desfeito === daBase)
     relata(`F ${p} tem a marca (o conserto está aplicado)`, atual.includes(MARCA))
   }
+  const add = git('diff', base, '--', LIB, ROTA).replace(/\r/g, '').split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))
+  relata('F toda linha nova/trocada da rota e do sceneTruth leva a marca', add.length > 0 && add.every((l) => l.includes(MARCA)), add.filter((l) => !l.includes(MARCA)).slice(0, 2).join(' | '))
 }
 
 // (G) mutantes — cada um provado aplicado, cada um tem de ficar VERMELHO
@@ -191,12 +193,12 @@ relata(`provas A–E no código atual (${falhasAtuais.length} falhas)`, falhasAt
     ['M2 extrairAcao ignora a negação', LIB, '    if (termo && termoAfirmadoNaFala(fala, a.termos)) return a.termos[0] // KINEO-CENA-NEGACAO-1510', '    if (termo) return a.termos[0]'],
     ['M3 o negador para trás nunca conta', LIB, '    if (ehNegador1510(t)) return true // KINEO-CENA-NEGACAO-1510', '    if (ehNegador1510(t)) break'],
     ['M4 a negação atravessa qualquer palavra', LIB, '    if (!LIGACAO_ANTES_1510.has(t)) break // KINEO-CENA-NEGACAO-1510', '    if (!LIGACAO_ANTES_1510.has(t)) continue'],
-    ['M5 o artigo não liga o negador ao termo', LIB, "  'a', 'an', 'the', 'any', 'single', 'one', 'ever', 'even', 'other', 'more', 'further', 'real', 'actual', 'visible',", "  'a', 'an', 'any', 'single', 'one', 'ever', 'even', 'other', 'more', 'further', 'real', 'actual', 'visible',"],
+    ['M5 o artigo não liga o negador ao termo', LIB, "  'a', 'an', 'the', 'any', 'single', 'one', 'ever', 'even', 'other', 'more', 'further', 'real', 'actual', 'visible', // KINEO-CENA-NEGACAO-1510", "  'a', 'an', 'any', 'single', 'one', 'ever', 'even', 'other', 'more', 'further', 'real', 'actual', 'visible', // KINEO-CENA-NEGACAO-1510"],
     ['M12 contração "n\'t" não nega', LIB, "  return NEGADORES_1510.has(t) || /[a-z]n't$/.test(t) // KINEO-CENA-NEGACAO-1510 — wasn't, didn't, couldn't", '  return NEGADORES_1510.has(t)'],
     ['M13 apóstrofo curvo não normalizado', LIB, '  const f = normalizar(fala).replace(/[’‘]/g, "\'") // KINEO-CENA-NEGACAO-1510 — mesmo comprimento: as posicoes batem com o includes()', '  const f = normalizar(fala)'],
     ['M14 a negação pula pontuação e "but"', LIB, '    if (!LIGACAO_ANTES_1510.has(t)) break // KINEO-CENA-NEGACAO-1510', "    if (!LIGACAO_ANTES_1510.has(t) && !/^[a-z]/.test(t)) continue; if (t === 'but') continue; if (!LIGACAO_ANTES_1510.has(t)) break"],
-    ['M6 sem negadores em português', LIB, "  'nao', 'nenhum', 'nenhuma', 'nenhuns', 'nenhumas', 'sem', 'nunca', 'jamais', 'nada', 'nem', 'ninguem', // PT", '  // PT'],
-    ['M7 sem negadores em espanhol', LIB, "  'ningun', 'ninguna', 'ninguno', 'sin', 'ni', 'nadie', 'tampoco', // ES", '  // ES'],
+    ['M6 sem negadores em português', LIB, "  'nao', 'nenhum', 'nenhuma', 'nenhuns', 'nenhumas', 'sem', 'nunca', 'jamais', 'nada', 'nem', 'ninguem', // PT // KINEO-CENA-NEGACAO-1510", '  // PT // KINEO-CENA-NEGACAO-1510'],
+    ['M7 sem negadores em espanhol', LIB, "  'ningun', 'ninguna', 'ninguno', 'sin', 'ni', 'nadie', 'tampoco', // ES // KINEO-CENA-NEGACAO-1510", '  // ES // KINEO-CENA-NEGACAO-1510'],
     ['M8 "was never found" (depois do termo) não conta', LIB, '    if (ACHADO_DEPOIS_1510.test(t)) return viuNegador // KINEO-CENA-NEGACAO-1510', '    if (ACHADO_DEPOIS_1510.test(t)) return false'],
     ['M9 o contrato não grava negados', LIB, '    ...(extrairNegados(args.falaFinal).length > 0 ? { negados: extrairNegados(args.falaFinal) } : {}), // KINEO-CENA-NEGACAO-1510', ''],
     ['M10 a rota clássica não relata negados', ROTA, '            ...(contrato.negados?.length ? { negados: contrato.negados } : {}), // KINEO-CENA-NEGACAO-1510', ''],

@@ -6,8 +6,8 @@
 // detecta a negação ao extrair sujeito/ação) e o claim grava contrato_cena[].negados nos dois caminhos (hollywood e clássico).
 //
 // Toda linha que o conserto tocou carrega a marca KINEO-CENA-NEGACAO-1510. Três formas, e só elas:
-//   · BLOCO — de "// KINEO-CENA-NEGACAO-1510 >>>" até "// <<< KINEO-CENA-NEGACAO-1510" (mais a linha em branco que o
-//     antecede) sai inteiro;
+//   · BLOCO — de "// KINEO-CENA-NEGACAO-1510 >>>" até "// <<< KINEO-CENA-NEGACAO-1510" sai inteiro (toda linha dele
+//     também leva a marca, para quem confere "toda linha nova leva a marca");
 //   · TROCA — a linha da base foi reescrita: a linha nova é reconhecida INTEIRA (nunca por prefixo) e volta a ser a da base;
 //   · ACRÉSCIMO — a linha não existia: reconhecida inteira e removida.
 // Linha marcada que não casa = lança. Com alguma linha marcada, TODAS as entradas daquele arquivo têm de aparecer
@@ -58,6 +58,16 @@ export const FORMA_CENA_NEGACAO_1510 = {
   [LIB]: { trocas: TROCAS[LIB].length, acrescimos: ACRESCIMOS[LIB].length, blocos: BLOCOS[LIB] },
 }
 
+/** A linha é do conserto? (toda linha nova ou trocada leva a marca — inclusive as do bloco). */
+export function linhaDaCenaNegacao1510(l) {
+  return String(l).includes(MARCA_CENA_NEGACAO_1510)
+}
+
+/** As linhas da BASE que o conserto trocou de propósito em `p` (para os guardiões que contam linha removida no diff). */
+export function linhasTrocadasCenaNegacao1510(p) {
+  return (TROCAS[p] ?? []).map(([, base]) => base)
+}
+
 /**
  * O texto de `p` (caminho relativo à raiz, com '/') de ANTES deste conserto. Preserva CRLF se o texto vier em CRLF.
  * Idempotente: sem nada marcado, devolve o texto igual. Arquivo que o conserto não tocou: linha marcada nele = lança.
@@ -82,8 +92,6 @@ export function semCenaNegacao1510(s, p = ROTA) {
     if (!l.includes(MARCA_CENA_NEGACAO_1510)) { out.push(l); continue }
     marcadas++
     if (l.startsWith(INICIO_BLOCO)) {
-      if (out.length === 0 || out[out.length - 1] !== '') throw new Error(`desfaz-cena-negacao-1510: bloco sem linha em branco antes em ${p}`)
-      out.pop()
       blocos++
       dentroDoBloco = true
       continue

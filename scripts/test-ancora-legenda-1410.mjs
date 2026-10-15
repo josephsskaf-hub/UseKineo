@@ -20,6 +20,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { desfazJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
+import { semCenaNegacao1510 } from './test-support/desfaz-cena-negacao-1510.mjs' // reancorado KINEO-CENA-NEGACAO-1510 [TRAVA 8.2 — vai do fundador 15/10]: a negação no contrato de cena sai em memória antes do byte a byte
 import { semAncoraLegenda1410, desfazAncoraLegenda1410, ARQUIVOS_ANCORA_LEGENDA_1410, FORMA_ANCORA_LEGENDA_1410, MARCA_ANCORA_LEGENDA_1410 as MARCA } from './test-support/desfaz-ancora-legenda-1410.mjs'
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
@@ -185,7 +186,7 @@ checa('base: render legado sem x_alignment', !(rdBase(RENDER) ?? 'x_alignment').
 
 secao('(c) desfeito o ajuste, cada arquivo é EXATAMENTE o pai do primeiro commit marcado')
 for (const p of ARQUIVOS_ANCORA_LEGENDA_1410) {
-  const atual = desfazJuizStill1410(p, rd(p)) // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
+  const atual = desfazJuizStill1410(p, semCenaNegacao1510(rd(p), p)) /* reancorado KINEO-CENA-NEGACAO-1510 [TRAVA 8.2 — vai do fundador 15/10] */ // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
   const base = rdBase(p)
   let desfeito = null
   try { desfeito = semAncoraLegenda1410(p, atual) } catch (e) { desfeito = `ERRO ${e.message}` }
