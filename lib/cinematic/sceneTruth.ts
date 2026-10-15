@@ -93,6 +93,8 @@ export interface ContratoCena {
   promptFinal: string
   /** Proibido/traicao so casa PALAVRA INTEIRA ("host" nao casa em "ghost"). Ausente = substring, o comportamento de 27/08. */ // KINEO-CONTRATO-CLASSICOS-1410
   palavraInteira?: boolean // KINEO-CONTRATO-CLASSICOS-1410
+  /** Palavras do lexico que a fala NEGA ("no wreckage") — descartadas da exigencia visual. Ausente = nenhuma. */ // KINEO-CENA-NEGACAO-1510
+  negados?: string[] // KINEO-CENA-NEGACAO-1510
 }
 
 export interface ResultadoContrato {
@@ -264,7 +266,7 @@ export function extrairSujeitos(fala: string): string[] {
   const achados: string[] = []
   for (const e of LEXICO_VISUAL) {
     const termo = e.termos.find((t) => f.includes(normalizar(t)))
-    if (termo) achados.push(e.termos[0])
+    if (termo && termoAfirmadoNaFala(fala, e.termos)) achados.push(e.termos[0]) // KINEO-CENA-NEGACAO-1510
   }
   return achados
 }
@@ -274,10 +276,106 @@ export function extrairAcao(fala: string): string | null {
   const f = normalizar(fala)
   for (const a of LEXICO_DE_ACAO) {
     const termo = a.termos.find((t) => f.includes(normalizar(t)))
-    if (termo) return a.termos[0]
+    if (termo && termoAfirmadoNaFala(fala, a.termos)) return a.termos[0] // KINEO-CENA-NEGACAO-1510
   }
   return null
 }
+
+// KINEO-CENA-NEGACAO-1510 >>> [TRAVA 8.2 — vai do fundador 15/10] a negacao na fala deixa de virar exigencia visual
+// O caso (filme a278acc5, render 56d96151, Seedance 15 s): a cena 2 falava "Not a single trace was found — no wreckage,
+// nothing." O lexico achou "wreck" dentro de "wreckage", declarou o sujeito shipwreck ausente e INJETOU "wreck, " no
+// comeco do prompt. O filme mostrou um aviao destrocado enquanto a voz dizia que nao havia destrocos.
+//
+// A regra, deterministica e conservadora: uma ocorrencia do termo e NEGADA quando
+//  · ANTES dela, na mesma oracao, vem um negador ligado ao termo so por palavras de ligacao (artigo, "single", "sign of",
+//    "trace of", "found", "sinal do", "rastro del"…): "no wreckage", "never found the wreck", "sem nenhum sinal do
+//    naufragio", "sin rastro del submarino", "neither wreckage nor…";
+//  · ou DEPOIS dela vem auxiliar + negador + particípio de achar/ver: "the wreck was never found", "o submarino nunca foi
+//    encontrado", "el submarino nunca se encontro".
+// Toda palavra fora da lista de ligacao CORTA a busca — e isso inclui pontuacao (que vira token) e adversativa
+// (but/mas/pero/sin embargo…): "no survivors, but the wreckage was found" continua pedindo wreckage, e "Officials have
+// not confirmed that either wreck is leaking" continua pedindo o naufragio (o "not" e do "confirmed", nao do "wreck").
+// O termo so sai da exigencia quando TODAS as ocorrencias dele estao negadas. Fora da extracao do contrato nada muda.
+const NEGADORES_1510 = new Set([ // KINEO-CENA-NEGACAO-1510
+  'no', 'not', 'never', 'without', 'none', 'nothing', 'neither', 'nor', 'nobody', 'cannot', // EN
+  'nao', 'nenhum', 'nenhuma', 'nenhuns', 'nenhumas', 'sem', 'nunca', 'jamais', 'nada', 'nem', 'ninguem', // PT
+  'ningun', 'ninguna', 'ninguno', 'sin', 'ni', 'nadie', 'tampoco', // ES
+])
+const LIGACAO_ANTES_1510 = new Set([ // KINEO-CENA-NEGACAO-1510 — o que pode ficar ENTRE o negador e o termo
+  'a', 'an', 'the', 'any', 'single', 'one', 'ever', 'even', 'other', 'more', 'further', 'real', 'actual', 'visible',
+  'physical', 'trace', 'traces', 'sign', 'signs', 'evidence', 'of', 'remains', 'piece', 'pieces', 'bit', 'hint', 'mark',
+  'marks', 'there', 'was', 'were', 'is', 'are', 'been', 'be', 'has', 'have', 'had', 'found', 'find', 'located', 'locate',
+  'recovered', 'recover', 'seen', 'see', 'saw', 'spotted', 'spot', 'discovered', 'discover', 'detected', 'detect',
+  'um', 'uma', 'uns', 'umas', 'o', 'os', 'as', 'de', 'do', 'da', 'dos', 'das', 'qualquer', 'sequer', 'sinal', 'sinais',
+  'rastro', 'rastros', 'vestigio', 'vestigios', 'resto', 'restos', 'pedaco', 'pedacos', 'prova', 'provas', 'houve',
+  'havia', 'ha', 'existe', 'existia', 'existiu', 'encontrou', 'encontraram', 'encontramos', 'achou', 'acharam', 'viu',
+  'viram', 'localizou', 'localizaram', 'foi', 'foram',
+  'un', 'unos', 'unas', 'el', 'la', 'los', 'las', 'del', 'cualquier', 'senal', 'senales', 'huella', 'huellas',
+  'pedazo', 'pedazos', 'hubo', 'habia', 'hay', 'encontro', 'encontraron', 'hallo', 'hallaron', 'vio', 'vieron',
+  'localizo', 'localizaron', 'fue', 'fueron',
+])
+const AUXILIAR_DEPOIS_1510 = new Set([ // KINEO-CENA-NEGACAO-1510 — "the wreck WAS never found", "nunca FOI encontrado"
+  'was', 'were', 'is', 'are', 'has', 'have', 'had', 'been', 'be', 'ever', 'yet', 'itself', 'still',
+  'foi', 'foram', 'era', 'eram', 'tem', 'sido', 'ja', 'fue', 'fueron', 'ha', 'han', 'habia', 'se',
+])
+const ACHADO_DEPOIS_1510 = /^(found|located|recovered|seen|spotted|discovered|detected|identified|encontrad[oa]s?|achad[oa]s?|localizad[oa]s?|recuperad[oa]s?|vist[oa]s?|avistad[oa]s?|hallad[oa]s?|descubiert[oa]s?|encontro|hallo)$/ // KINEO-CENA-NEGACAO-1510
+function ehNegador1510(t: string): boolean { // KINEO-CENA-NEGACAO-1510
+  return NEGADORES_1510.has(t) || /[a-z]n't$/.test(t) // KINEO-CENA-NEGACAO-1510 — wasn't, didn't, couldn't
+} // KINEO-CENA-NEGACAO-1510
+interface Token1510 { t: string; ini: number; fim: number } // KINEO-CENA-NEGACAO-1510
+function tokens1510(f: string): Token1510[] { // KINEO-CENA-NEGACAO-1510
+  const out: Token1510[] = [] // KINEO-CENA-NEGACAO-1510
+  const re = /[a-z0-9]+(?:['-][a-z0-9]+)*|[.!?;:,\-—–()"]/g // KINEO-CENA-NEGACAO-1510
+  for (let m = re.exec(f); m; m = re.exec(f)) out.push({ t: m[0], ini: m.index, fim: m.index + m[0].length }) // KINEO-CENA-NEGACAO-1510
+  return out // KINEO-CENA-NEGACAO-1510
+} // KINEO-CENA-NEGACAO-1510
+/** A ocorrencia que cobre os tokens [a..b] esta negada? (a e b sao indices em `tk`). */ // KINEO-CENA-NEGACAO-1510
+function ocorrenciaNegada1510(tk: Token1510[], a: number, b: number): boolean { // KINEO-CENA-NEGACAO-1510
+  for (let j = a - 1; j >= 0; j--) { // KINEO-CENA-NEGACAO-1510 — para tras: negador ligado ao termo
+    const t = tk[j].t // KINEO-CENA-NEGACAO-1510
+    if (ehNegador1510(t)) return true // KINEO-CENA-NEGACAO-1510
+    if (!LIGACAO_ANTES_1510.has(t)) break // KINEO-CENA-NEGACAO-1510
+  } // KINEO-CENA-NEGACAO-1510
+  let viuNegador = false // KINEO-CENA-NEGACAO-1510 — para a frente: auxiliar + negador + "found"/"encontrado"
+  for (let k = b + 1; k < tk.length; k++) { // KINEO-CENA-NEGACAO-1510
+    const t = tk[k].t // KINEO-CENA-NEGACAO-1510
+    if (ehNegador1510(t)) { viuNegador = true; continue } // KINEO-CENA-NEGACAO-1510
+    if (ACHADO_DEPOIS_1510.test(t)) return viuNegador // KINEO-CENA-NEGACAO-1510
+    if (!AUXILIAR_DEPOIS_1510.has(t)) break // KINEO-CENA-NEGACAO-1510
+  } // KINEO-CENA-NEGACAO-1510
+  return false // KINEO-CENA-NEGACAO-1510
+} // KINEO-CENA-NEGACAO-1510
+/** Cada ocorrencia (na fala normalizada) de qualquer termo da lista: a palavra falada que a contem e se esta negada. */ // KINEO-CENA-NEGACAO-1510
+function ocorrencias1510(fala: string, termos: string[]): Array<{ palavra: string; negada: boolean }> { // KINEO-CENA-NEGACAO-1510
+  const f = normalizar(fala).replace(/[’‘]/g, "'") // KINEO-CENA-NEGACAO-1510 — mesmo comprimento: as posicoes batem com o includes()
+  const tk = tokens1510(f) // KINEO-CENA-NEGACAO-1510
+  const out: Array<{ palavra: string; negada: boolean }> = [] // KINEO-CENA-NEGACAO-1510
+  for (const termo of termos.map(normalizar)) { // KINEO-CENA-NEGACAO-1510
+    if (!termo) continue // KINEO-CENA-NEGACAO-1510
+    for (let i = f.indexOf(termo); i >= 0; i = f.indexOf(termo, i + 1)) { // KINEO-CENA-NEGACAO-1510
+      const a = tk.findIndex((x) => x.fim > i) // KINEO-CENA-NEGACAO-1510
+      if (a < 0) continue // KINEO-CENA-NEGACAO-1510
+      let b = a // KINEO-CENA-NEGACAO-1510
+      while (b + 1 < tk.length && tk[b + 1].ini < i + termo.length) b++ // KINEO-CENA-NEGACAO-1510
+      out.push({ palavra: tk.slice(a, b + 1).map((x) => x.t).join(' '), negada: ocorrenciaNegada1510(tk, a, b) }) // KINEO-CENA-NEGACAO-1510
+    } // KINEO-CENA-NEGACAO-1510
+  } // KINEO-CENA-NEGACAO-1510
+  return out // KINEO-CENA-NEGACAO-1510
+} // KINEO-CENA-NEGACAO-1510
+/** O termo (qualquer grafia da entrada) aparece AFIRMADO ao menos uma vez? Sem ocorrencia nenhuma = false. */ // KINEO-CENA-NEGACAO-1510
+function termoAfirmadoNaFala(fala: string, termos: string[]): boolean { // KINEO-CENA-NEGACAO-1510
+  return ocorrencias1510(fala, termos).some((o) => !o.negada) // KINEO-CENA-NEGACAO-1510
+} // KINEO-CENA-NEGACAO-1510
+/** Palavras faladas do lexico (sujeito ou acao) que a fala so cita NEGADAS — para o claim medir (contrato_cena.negados). */ // KINEO-CENA-NEGACAO-1510
+export function extrairNegados(fala: string): string[] { // KINEO-CENA-NEGACAO-1510
+  const negados = new Set<string>() // KINEO-CENA-NEGACAO-1510
+  for (const e of [...LEXICO_VISUAL, ...LEXICO_DE_ACAO]) { // KINEO-CENA-NEGACAO-1510
+    const oc = ocorrencias1510(fala, e.termos) // KINEO-CENA-NEGACAO-1510
+    if (oc.length > 0 && oc.every((o) => o.negada)) for (const o of oc) negados.add(o.palavra) // KINEO-CENA-NEGACAO-1510
+  } // KINEO-CENA-NEGACAO-1510
+  return [...negados] // KINEO-CENA-NEGACAO-1510
+} // KINEO-CENA-NEGACAO-1510
+// <<< KINEO-CENA-NEGACAO-1510
 
 /**
  * Substantivos concretos da fala (defeito D3).
@@ -443,6 +541,7 @@ export function montarContrato(args: {
     elementosProibidos: args.elementosProibidos ?? [],
     promptFinal: args.promptFinal,
     ...(args.palavraInteira ? { palavraInteira: true } : {}), // KINEO-CONTRATO-CLASSICOS-1410
+    ...(extrairNegados(args.falaFinal).length > 0 ? { negados: extrairNegados(args.falaFinal) } : {}), // KINEO-CENA-NEGACAO-1510
   }
 }
 

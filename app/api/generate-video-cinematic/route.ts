@@ -5658,6 +5658,7 @@ async function manipularPost(req: NextRequest) {
       const contratoRelato: Array<{
         cena: number; antes: string; depois: string; cobertura: string
         acoes: string[]; motivo: string
+        negados?: string[] // KINEO-CENA-NEGACAO-1510
       }> = []
       // ═══ KINEO-KLING3-IMAGENS-2026-09-17 — o supervisor fala×imagem (lib/cinematic/speechImageAlign.ts) também
       // no caminho hollywood: cada cena não-diálogo (fala + plano) volta KEEP ou REWRITE antes de qualquer still ou
@@ -6040,7 +6041,7 @@ async function manipularPost(req: NextRequest) {
               elementosProibidos: proibidosPorModo(formatoVisual.modo),
             })
             const r = aplicarContrato(contrato)
-            if (severidadeDe(r.antes.veredicto) !== 'ok') {
+            if (severidadeDe(r.antes.veredicto) !== 'ok' || (contrato.negados?.length ?? 0) > 0) { // KINEO-CENA-NEGACAO-1510 — cena com objeto negado também vai ao claim
               console.log(`[contrato-cena] cena ${idx + 1} ${r.antes.veredicto} (cobertura=${r.antes.cobertura}) — ${r.antes.motivo}${r.acoes.length ? ` | acoes: ${r.acoes.join('; ')}` : ''}`)
               contratoRelato.push({
                 cena: idx + 1,
@@ -6049,6 +6050,7 @@ async function manipularPost(req: NextRequest) {
                 cobertura: r.antes.cobertura,
                 acoes: r.acoes,
                 motivo: r.antes.motivo,
+                ...(contrato.negados?.length ? { negados: contrato.negados } : {}), // KINEO-CENA-NEGACAO-1510
               })
             }
             scenePrompt = r.promptCorrigido
@@ -6549,6 +6551,7 @@ async function manipularPost(req: NextRequest) {
     const contratoRelatoClassico: Array<{
       cena: number; antes: string; depois: string; cobertura: string
       acoes: string[]; motivo: string
+      negados?: string[] // KINEO-CENA-NEGACAO-1510
     }> = []
 
     // Prepare ONCE, before any paid still: the still and clip must depict the
@@ -6615,11 +6618,12 @@ async function manipularPost(req: NextRequest) {
           palavraInteira: true, // KINEO-CONTRATO-CLASSICOS-1410 — proibido só casa palavra inteira: "ghostly"/"anchored" não perdem "host"/"anchor" (5 de 6 remoções em 30 d mutilaram o prompt)
         })
         const r = aplicarContrato(contrato)
-        if (severidadeDe(r.antes.veredicto) !== 'ok') {
+        if (severidadeDe(r.antes.veredicto) !== 'ok' || (contrato.negados?.length ?? 0) > 0) { // KINEO-CENA-NEGACAO-1510 — cena com objeto negado também vai ao claim
           console.log(`[contrato-cena/classico] cena ${sceneIndex + 1} ${r.antes.veredicto} (cobertura=${r.antes.cobertura}) — ${r.antes.motivo}${r.acoes.length ? ` | acoes: ${r.acoes.join('; ')}` : ''}`) // KINEO-CONTRATO-CLASSICOS-1410
           contratoRelatoClassico.push({
             cena: sceneIndex + 1, antes: r.antes.veredicto, depois: r.depois.veredicto,
             cobertura: r.antes.cobertura, acoes: r.acoes, motivo: r.antes.motivo,
+            ...(contrato.negados?.length ? { negados: contrato.negados } : {}), // KINEO-CENA-NEGACAO-1510
           })
         }
         return r.promptCorrigido
