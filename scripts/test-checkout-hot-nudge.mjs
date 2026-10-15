@@ -19,6 +19,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { desfazAbandonoRapido1610 } from './test-support/desfaz-abandono-rapido-1610.mjs' // reancorado KINEO-ABANDONO-RAPIDO-1610: lê a carta da época (a nova é provada em test-abandono-rapido-1610)
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 const ROTA = join(raiz, 'app/api/admin/send-checkout-hot-nudge/route.ts')
@@ -26,7 +27,7 @@ const VIZINHA = join(raiz, 'app/api/admin/send-checkout-recovery/route.ts')
 const VERCEL = join(raiz, 'vercel.json')
 
 const ler = (p) => readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
-const src = ler(ROTA)
+const src = desfazAbandonoRapido1610('app/api/admin/send-checkout-hot-nudge/route.ts', ler(ROTA)) // reancorado KINEO-ABANDONO-RAPIDO-1610
 
 let ok = 0
 const falhas = []

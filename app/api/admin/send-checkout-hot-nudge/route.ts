@@ -80,6 +80,20 @@ import { readAll } from '@/lib/supabase/readAll'
 // MODOS (GET):
 //   (sem params)           → DRY RUN: quem receberia, e quem caiu fora e por quê. Não grava nada.
 //   ?confirm=SEND&limit=N  → envia para os próximos N (default 30, teto 30) e grava enviados e pulados.
+//
+// ═══ KINEO-ABANDONO-RAPIDO-1610 — a carta rápida do abandono: 1–3 h, com o filme (ou o filme grátis) e a garantia ═══
+// Decisão do fundador (16/10): o primeiro toque a quem abriu o checkout e não pagou sai entre 1 e 3 h depois do clique.
+// Esta carta já era esse toque (saía em 31–45 min); o que muda (detalhes em lib/lifecycle/abandonoRapido.ts):
+//   · JANELA 30 min–6 h → 60 min–3 h (ABANDONO_JANELA_*). O cron de 15 em 15 min passa ~8 vezes por ela;
+//   · a carta leva a GARANTIA da página de preços com o nome do plano aberto (mensal 7 dias / anual ANNUAL_REFUND_DAYS)
+//     e, para quem não tem filme entregue e cujo teste paga o filme de 15 s agora, o convite com a última ideia;
+//   · NO ENVIO (segundos antes do Resend) a casa relê perfil, payment_success e a sessão Stripe: pagou = não envia;
+//   · o carimbo vira RESERVA antes do envio, com id determinístico por pessoa (a chave primária de `events` barra a
+//     segunda carta mesmo que uma leitura falhe ou duas rodadas se cruzem); Resend falhou = a reserva é apagada e a
+//     próxima rodada tenta de novo;
+//   · as leituras por lista de pessoas andam em fatias de 200 (sem `.in()` gigante, sem o corte silencioso de 1000).
+// O carimbo continua sendo 1 carta rápida por pessoa NA VIDA (mais estrito que "uma por abandono": quem abandona de novo
+// semanas depois recebe o e-mail de ~24 h, que agora é o segundo toque — ver app/api/cron/send-recovery).
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
@@ -109,6 +123,19 @@ import {
   type ExtrasDaCarta,
   type FilmeProprio,
 } from '@/lib/lifecycle/cartaQuente'
+import {
+  ABANDONO_JANELA_MAX_MINUTOS,
+  ABANDONO_JANELA_MIN_MINUTOS,
+  ABANDONO_RAPIDO_VERSION,
+  conviteHtml,
+  conviteTexto,
+  garantiaHtml,
+  garantiaTexto,
+  podeEnviarAgora,
+  rapidoDaCarta,
+  type MotivoNoEnvio,
+  type PerfilDoConvite,
+} from '@/lib/lifecycle/abandonoRapido' // KINEO-ABANDONO-RAPIDO-1610
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -150,8 +177,16 @@ export const WELCOME20_INTENT_CAMPAIGN = 'checkout_hot_nudge_welcome20'
  *  carta de expiração, que tem o link de recuperação e o texto certo para
  *  quem já desistiu. O cron de 15 em 15 minutos varre a janela inteira várias
  *  vezes; o carimbo vitalício garante uma carta por pessoa. */
-export const JANELA_MIN_MINUTOS = 30
-export const JANELA_MAX_MINUTOS = 360
+// KINEO-ABANDONO-RAPIDO-1610 — era 30 / 360. Agora 60 / 180 (fundador 16/10: "1–3 h"). Quem fica suprimido até a borda
+// das 3 h cai no e-mail de ~24 h, que segue de pé para quem não levou esta carta.
+export const JANELA_MIN_MINUTOS = ABANDONO_JANELA_MIN_MINUTOS
+export const JANELA_MAX_MINUTOS = ABANDONO_JANELA_MAX_MINUTOS
+/** Tamanho da fatia das leituras por lista de pessoas (URL curta; nenhum corte silencioso). */
+export const FATIA_IDS = 200
+/** Id determinístico da carta rápida de UMA pessoa: a chave primária de `events` é o dedupe de última instância. */
+export function idDaCartaRapida(userId: string): string {
+  return deterministicEventUuid(SENT_EVENT, `user:${userId}`)
+}
 
 /** Ninguém entra em duas campanhas — regra da casa desde o send-made-video-today.
  *  `checkout_recovery_emailed_v1` e `checkout_rescue_emailed_v1` estão aqui de
@@ -311,6 +346,9 @@ export type MotivoDePulo =
   | 'suprimido_24h'
   | 'supressao_degradada'
   | 'sem_pagina_viva'
+  // KINEO-ABANDONO-RAPIDO-1610 — a conferência no envio e a reserva por chave primária.
+  | MotivoNoEnvio
+  | 'reserva_falhou'
 
 type Pulo = {
   userId: string | null
@@ -420,12 +458,12 @@ ${linkBoasVindas(oferta.tier)}
 
 You opened the payment page a little while ago and it is still sitting there, open. No charge was made.
 
-${feito}${blocoDoFilmeTexto(extra)}
+${feito}${blocoDoFilmeTexto(extra)}${conviteTexto(extra)}
 
 ${boasVindas}If life just got in the way, this is the same page you left — same plan, same price, nothing to pick again:
 
 ${liveUrl}
-${passeTexto(extra)}
+${garantiaTexto(extra)}${passeTexto(extra)}
 And if something on that page did not add up, hit reply and tell me in one sentence. It comes straight to me, and I would rather know than guess.
 
 — Joseph, founder
@@ -454,10 +492,26 @@ ${botao(liveUrl, 'Finish where you left off')}`
 <p>Hey &mdash; Joseph here, founder of <strong>Kineo</strong> 🎬</p>
 <p>You opened the payment page a little while ago and it is <strong>still sitting there, open</strong>. No charge was made.</p>
 <p>${feito}</p>
-${blocoDoFilmeHtml(extra)}${meio}
-${passeHtml(extra)}<p>And if something on that page did not add up, hit reply and tell me in one sentence. It comes straight to me, and I would rather know than guess.</p>
+${blocoDoFilmeHtml(extra)}${conviteHtml(extra)}${meio}
+${garantiaHtml(extra)}${passeHtml(extra)}<p>And if something on that page did not add up, hit reply and tell me in one sentence. It comes straight to me, and I would rather know than guess.</p>
 <p>&mdash; Joseph, founder<br/>Kineo &middot; <a href="https://usekineo.com" style="color:#2997ff">usekineo.com</a></p>
 ${emailFooterHtml(userId)}</div>`
+}
+
+/** KINEO-ABANDONO-RAPIDO-1610 — a linha de `profiles` que a rota lê (a mesma de antes + teste e saldo, para o convite). */
+type PerfilLinha = {
+  id: string
+  email: string | null
+  email_opted_out: boolean | null
+  has_paid: boolean | null
+  trial_status: unknown
+  plan: unknown
+  signup_country: unknown
+  last_country: unknown
+  trial_ends_at: unknown
+  trial_credits_used: unknown
+  trial_credits_granted: unknown
+  video_credits: unknown
 }
 
 type Candidato = {
@@ -474,6 +528,9 @@ type Candidato = {
   lang: CartaLang
   proprio: FilmeProprio | null
   perfilDoPasse: { trial_status: string | null; has_paid: boolean | null; plan: string | null }
+  // KINEO-ABANDONO-RAPIDO-1610 — o perfil que decide o convite do filme grátis e a última ideia digitada.
+  perfilDoConvite: PerfilDoConvite
+  ideia: string | null
 }
 
 /** A DECISÃO, isolada da rede de propósito: dada a sessão que a Stripe
@@ -618,11 +675,18 @@ export async function GET(req: NextRequest) {
     }
 
     // ── 2. quem sai da lista, e por quê ─────────────────────────────────────
-    const { data: perfis, error: perfErr } = await readAll(() => admin
-      .from('profiles')
-      .select('id, email, email_opted_out, has_paid, trial_status, plan, signup_country, last_country') // KINEO-JOGADAS-VENDA-1510
-      .in('id', ids.slice(0, 1000)), { route: '/api/admin/send-checkout-hot-nudge', table: 'profiles' })
-    if (perfErr) return NextResponse.json({ error: perfErr.message }, { status: 500 })
+    // KINEO-ABANDONO-RAPIDO-1610 — em fatias (antes: uma lista só, cortada em mil — corte silencioso na pessoa 1001) e com os
+    // campos do teste e do saldo, que decidem o convite do filme grátis.
+    const perfis: PerfilLinha[] = []
+    for (let i = 0; i < ids.length; i += FATIA_IDS) {
+      const fatia = ids.slice(i, i + FATIA_IDS)
+      const { data: lote, error: perfErr } = await readAll(() => admin
+        .from('profiles')
+        .select('id, email, email_opted_out, has_paid, trial_status, plan, signup_country, last_country, trial_ends_at, trial_credits_used, trial_credits_granted, video_credits')
+        .in('id', fatia), { route: '/api/admin/send-checkout-hot-nudge', table: 'profiles' })
+      if (perfErr) return NextResponse.json({ error: perfErr.message }, { status: 500 })
+      perfis.push(...((lote ?? []) as unknown as PerfilLinha[]))
+    }
 
     const comPerfil = new Set((perfis ?? []).map((p) => p.id as string))
     for (const id of ids) if (!comPerfil.has(id)) pulos.push(pulo(id, 'perfil_ausente'))
@@ -640,16 +704,23 @@ export async function GET(req: NextRequest) {
 
     // Os três dedupes com paginação completa: truncar em 1000 aqui é reenviar campanha
     // (KINEO-TRIPWIRE-1000-2026-08-28).
-    const { data: pagouRows } = await readAll(() => admin
-      .from('events').select('user_id').eq('name', 'payment_success').in('user_id', baseIds), { route: '/api/admin/send-checkout-hot-nudge', table: 'events' })
-    const pagou = new Set((pagouRows ?? []).map((r) => r.user_id as string))
-    const { data: outrasRows } = await readAll(() => admin
-      .from('events').select('user_id').in('name', OUTRAS_CAMPANHAS).in('user_id', baseIds)
-      .gte('created_at', corteOutrasCampanhas(agora)), { route: '/api/admin/send-checkout-hot-nudge', table: 'events' })
-    const outras = new Set((outrasRows ?? []).map((r) => r.user_id as string))
-    const { data: jaRows } = await readAll(() => admin
-      .from('events').select('user_id').eq('name', SENT_EVENT).in('user_id', baseIds), { route: '/api/admin/send-checkout-hot-nudge', table: 'events' })
-    const ja = new Set((jaRows ?? []).map((r) => r.user_id as string))
+    // KINEO-ABANDONO-RAPIDO-1610 — as três leituras em fatias de FATIA_IDS pessoas (nenhum `.in()` gigante na URL), cada
+    // fatia paginada por readAll com ORDER BY id. O carimbo (SENT_EVENT) continua SEM corte de data: 1 por pessoa na vida.
+    const usuariosEm = async (ler: (fatia: string[]) => Promise<{ data: unknown[] | null }>): Promise<Set<string>> => {
+      const out = new Set<string>()
+      for (let i = 0; i < baseIds.length; i += FATIA_IDS) {
+        const { data } = await ler(baseIds.slice(i, i + FATIA_IDS))
+        for (const r of data ?? []) out.add((r as { user_id: string }).user_id)
+      }
+      return out
+    }
+    const pagou = await usuariosEm((fatia) => readAll(() => admin
+      .from('events').select('user_id').eq('name', 'payment_success').in('user_id', fatia), { route: '/api/admin/send-checkout-hot-nudge', table: 'events' }))
+    const outras = await usuariosEm((fatia) => readAll(() => admin
+      .from('events').select('user_id').in('name', OUTRAS_CAMPANHAS).in('user_id', fatia)
+      .gte('created_at', corteOutrasCampanhas(agora)), { route: '/api/admin/send-checkout-hot-nudge', table: 'events' }))
+    const ja = await usuariosEm((fatia) => readAll(() => admin
+      .from('events').select('user_id').eq('name', SENT_EVENT).in('user_id', fatia), { route: '/api/admin/send-checkout-hot-nudge', table: 'events' }))
 
     // Filmes entregues — a carta muda de frase conforme a pessoa já tenha
     // recebido filme ou não, e nomear um filme que não existe é mentira.
@@ -672,6 +743,13 @@ export async function GET(req: NextRequest) {
     for (const [uid, lista] of linhasPorPessoa) {
       const entregue = ultimaEntrega(lista)
       if (entregue) filmes.set(uid, { title: entregue.title, topic: entregue.topic, proprio: filmeProprioDe(entregue) })
+    }
+    // KINEO-ABANDONO-RAPIDO-1610 — a ÚLTIMA ideia digitada = o pedido mais novo de QUALQUER status (falhou, rodando…): é o
+    // que a pessoa escreveu. Passa pela régua da casa (pickMomentumTopic: ordem colada/markdown/rótulo = sem ideia).
+    const ideias = new Map<string, string | null>()
+    for (const [uid, lista] of linhasPorPessoa) {
+      const ultima = lista[0]
+      ideias.set(uid, ultima ? (pickMomentumTopic(ultima.topic) ?? pickMomentumTopic(ultima.title)) : null)
     }
 
     const candidatos: Candidato[] = []
@@ -702,6 +780,15 @@ export async function GET(req: NextRequest) {
           has_paid: typeof p.has_paid === 'boolean' ? p.has_paid : null,
           plan: typeof (p as { plan?: unknown }).plan === 'string' ? (p as { plan: string }).plan : null,
         },
+        perfilDoConvite: {
+          has_paid: typeof p.has_paid === 'boolean' ? p.has_paid : null,
+          trial_status: p.trial_status,
+          trial_ends_at: p.trial_ends_at,
+          trial_credits_used: p.trial_credits_used,
+          trial_credits_granted: p.trial_credits_granted,
+          video_credits: p.video_credits,
+        },
+        ideia: ideias.get(id) ?? null,
       })
     }
 
@@ -745,7 +832,9 @@ export async function GET(req: NextRequest) {
       const oferta = await ofertaPara(c.hasPaid, pagina.sessao)
       // KINEO-JOGADAS-VENDA-1510 — o passe só para quem é da régua e abandonou uma ASSINATURA (o modo vem da sessão viva).
       const passe = passeParaCarta({ perfil: c.perfilDoPasse, modoDaSessao: pagina.sessao?.mode, pais: c.pais || null })
-      comPagina.push({ ...c, liveUrl: pagina.url, oferta, extra: { lang: c.lang, proprio: c.proprio, passe } })
+      // KINEO-ABANDONO-RAPIDO-1610 — a garantia da página que a Stripe acabou de devolver (plano e período dela) e o convite.
+      const rapido = rapidoDaCarta({ sessao: pagina.sessao, temFilme: c.temFilme, perfil: c.perfilDoConvite, ideia: c.ideia, agoraMs: agora })
+      comPagina.push({ ...c, liveUrl: pagina.url, oferta, extra: { lang: c.lang, proprio: c.proprio, passe, rapido } })
     }
     const semOferta = comPagina.flatMap((c) => (c.oferta.oferecer ? [] : [{ motivo: c.oferta.motivo }]))
 
@@ -773,7 +862,12 @@ export async function GET(req: NextRequest) {
         com_capa: comPagina.filter((c) => Boolean(c.extra.proprio?.capa)).length,
         com_passe: comPagina.filter((c) => c.extra.passe !== null).length,
         por_lingua: contarMotivos(comPagina.map((c) => ({ motivo: c.lang }))),
-        lista: comPagina.map((c) => `${c.email} · ${c.pais || '??'} · ${c.lang} · ${c.tier ?? '?'} · ${c.temFilme ? `com ${c.extra.proprio?.tipo ?? 'filme'}${c.extra.proprio?.capa ? ' + capa' : ''}` : 'SEM filme'} · ${c.filme ?? '(sem título)'} · clicou ${c.clicouEm} · ${c.oferta.oferecer ? `${WELCOME20_PERCENT_OFF}% ${c.oferta.plano}` : `sem oferta (${c.oferta.motivo})`}${c.extra.passe ? ` · passe ${c.extra.passe.preco.label}` : ''}`),
+        lista: comPagina.map((c) => `${c.email} · ${c.pais || '??'} · ${c.lang} · ${c.tier ?? '?'} · ${c.temFilme ? `com ${c.extra.proprio?.tipo ?? 'filme'}${c.extra.proprio?.capa ? ' + capa' : ''}` : 'SEM filme'} · ${c.filme ?? '(sem título)'} · clicou ${c.clicouEm} · ${c.oferta.oferecer ? `${WELCOME20_PERCENT_OFF}% ${c.oferta.plano}` : `sem oferta (${c.oferta.motivo})`}${c.extra.passe ? ` · passe ${c.extra.passe.preco.label}` : ''}${c.extra.rapido?.garantia ? ` · garantia ${c.extra.rapido.garantia.plano} ${c.extra.rapido.garantia.dias}d` : ''}${c.extra.rapido?.convite ? ` · convite filme grátis${c.extra.rapido.convite.ideia ? ' + ideia' : ''}` : ''}`),
+        // KINEO-ABANDONO-RAPIDO-1610 — a garantia e o convite que a carta levaria; o envio real ainda reconfere o pagamento.
+        abandono_version: ABANDONO_RAPIDO_VERSION,
+        com_garantia: comPagina.filter((c) => Boolean(c.extra.rapido?.garantia)).length,
+        com_convite_filme_gratis: comPagina.filter((c) => Boolean(c.extra.rapido?.convite)).length,
+        conferencia_no_envio: 'perfil + payment_success + sessão Stripe relidos antes de cada envio real',
         from: FROM_EMAIL,
         hint: 'Acrescente &confirm=SEND (e opcionalmente &limit=N) para enviar.',
       })
@@ -782,7 +876,81 @@ export async function GET(req: NextRequest) {
     let enviados = 0
     let falhas = 0
     const resultados: Array<{ email: string; outcome: string }> = []
+    // KINEO-ABANDONO-RAPIDO-1610 — a conferência NO ENVIO: perfil, payment_success e a sessão Stripe relidos segundos antes
+    // do Resend (a seleção acima pode ter minutos de idade num lote de 30 com pausa de 600 ms). Falhou ler = não envia.
+    const conferirNoEnvio = async (c: { id: string; sessionId: string }): Promise<MotivoNoEnvio | null> => {
+      try {
+        const { data: perf } = await readAll(() => admin
+          .from('profiles').select('id, has_paid').eq('id', c.id), { route: ROTA, table: 'profiles' })
+        const { data: pags } = await readAll(() => admin
+          .from('events').select('id').eq('name', 'payment_success').eq('user_id', c.id), { route: ROTA, table: 'events' })
+        const viva = await paginaViva(c.sessionId)
+        const p0 = (perf ?? [])[0] as { has_paid?: unknown } | undefined
+        return podeEnviarAgora({
+          hasPaid: typeof p0?.has_paid === 'boolean' ? p0.has_paid : null,
+          pagamentos: Array.isArray(pags) ? pags.length : null,
+          paginaViva: viva?.url ?? null,
+          leituraOk: Boolean(p0),
+        })
+      } catch {
+        return podeEnviarAgora({ hasPaid: null, pagamentos: null, paginaViva: null, leituraOk: false })
+      }
+    }
+    let puladosNoEnvio = 0
     for (const c of comPagina) {
+      const motivoNoEnvio = await conferirNoEnvio(c)
+      if (motivoNoEnvio) {
+        puladosNoEnvio++
+        pulos.push(pulo(c.id, motivoNoEnvio))
+        resultados.push({ email: c.email, outcome: `skipped: ${motivoNoEnvio}` })
+        continue
+      }
+      // A RESERVA antes do envio, com id determinístico por pessoa: a chave primária barra a segunda carta (23505) mesmo
+      // que a leitura do carimbo tenha falhado ou duas rodadas se cruzem. Resend falhou = a reserva é apagada abaixo.
+      const idReserva = idDaCartaRapida(c.id)
+      const rapido = c.extra.rapido ?? null
+      const { error: reservaErr } = await admin.from('events').insert({
+        id: idReserva,
+        user_id: c.id,
+        name: SENT_EVENT,
+        path: ROTA,
+        metadata: {
+          tier: c.tier,
+          country: c.pais,
+          has_film: c.temFilme,
+          film: c.filme,
+          checkout_started_at: c.clicouEm,
+          minutes_after_click: Math.round((agora - new Date(c.clicouEm).getTime()) / 60000),
+          stripe_session_id: c.sessionId,
+          // O link NÃO é gravado: é uma porta de pagamento pessoal.
+          live_url_used: true,
+          email_version: EMAIL_VERSION,
+          welcome20_offered: c.oferta.oferecer,
+          welcome20_tier: c.oferta.oferecer ? c.oferta.tier : null,
+          welcome20_reason: c.oferta.oferecer ? null : c.oferta.motivo,
+          copy_version: CARTA_QUENTE_COPY_VERSION,
+          lang: c.lang,
+          own_film_kind: c.extra.proprio?.tipo ?? null,
+          own_film_thumb: Boolean(c.extra.proprio?.capa),
+          region_pass_offered: c.extra.passe !== null,
+          region_pass_currency: c.extra.passe?.preco.currency ?? null,
+          // KINEO-ABANDONO-RAPIDO-1610 — a janela, a garantia e o convite (a ideia entra como booleano: texto do cliente).
+          abandono_version: ABANDONO_RAPIDO_VERSION,
+          window_minutes: [JANELA_MIN_MINUTOS, JANELA_MAX_MINUTOS],
+          plan_name: rapido?.garantia?.plano ?? null,
+          guarantee_period: rapido?.garantia?.periodo ?? null,
+          guarantee_days: rapido?.garantia?.dias ?? null,
+          free_film_invite: Boolean(rapido?.convite),
+          free_film_idea: Boolean(rapido?.convite?.ideia),
+          send_time_check: 'ok',
+        },
+      })
+      if (reservaErr) {
+        const motivo: MotivoDePulo = (reservaErr as { code?: string }).code === '23505' ? 'ja_recebeu' : 'reserva_falhou'
+        pulos.push(pulo(c.id, motivo))
+        resultados.push({ email: c.email, outcome: `skipped: ${motivo}` })
+        continue
+      }
       try {
         const res = await fetch('https://api.resend.com/emails', {
           method: 'POST',
@@ -798,37 +966,14 @@ export async function GET(req: NextRequest) {
           }),
         })
         if (!res.ok) throw new Error(`resend ${res.status}`)
-        await admin.from('events').insert({
-          user_id: c.id,
-          name: SENT_EVENT,
-          metadata: {
-            tier: c.tier,
-            country: c.pais,
-            has_film: c.temFilme,
-            film: c.filme,
-            checkout_started_at: c.clicouEm,
-            minutes_after_click: Math.round((agora - new Date(c.clicouEm).getTime()) / 60000),
-            stripe_session_id: c.sessionId,
-            // O link NÃO é gravado: é uma porta de pagamento pessoal.
-            live_url_used: true,
-            email_version: EMAIL_VERSION,
-            welcome20_offered: c.oferta.oferecer,
-            welcome20_tier: c.oferta.oferecer ? c.oferta.tier : null,
-            welcome20_reason: c.oferta.oferecer ? null : c.oferta.motivo,
-            // KINEO-JOGADAS-VENDA-1510 — o que a carta levou (a capa entra como booleano; a URL não é gravada).
-            copy_version: CARTA_QUENTE_COPY_VERSION,
-            lang: c.lang,
-            own_film_kind: c.extra.proprio?.tipo ?? null,
-            own_film_thumb: Boolean(c.extra.proprio?.capa),
-            region_pass_offered: c.extra.passe !== null,
-            region_pass_currency: c.extra.passe?.preco.currency ?? null,
-          },
-        })
         enviados++
         resultados.push({ email: c.email, outcome: 'sent' })
         await new Promise((r) => setTimeout(r, 600))
       } catch (e) {
         falhas++
+        // A carta não saiu: a reserva sai do caminho para a próxima rodada tentar. Se o apagar falhar, a pessoa fica sem
+        // a carta rápida (e leva a de ~24 h) — nunca com duas.
+        try { await admin.from('events').delete().eq('id', idReserva) } catch { /* fica reservado: falha fechada */ }
         resultados.push({ email: c.email, outcome: `failed: ${e instanceof Error ? e.message : 'error'}` })
       }
     }
@@ -838,6 +983,7 @@ export async function GET(req: NextRequest) {
       mode: 'SENT',
       enviados,
       falhas,
+      pulados_na_conferencia_do_envio: puladosNoEnvio,
       com_oferta_boas_vindas: comPagina.length - semOferta.length,
       sem_pagina_viva_nao_receberam: semPagina,
       restam_apos_lote: Math.max(0, naoSuprimidos.length - alvo.length),

@@ -22,6 +22,7 @@ import { dirname, join } from 'node:path'
 import * as nodeCrypto from 'node:crypto'
 import { compileOffline, memoryDb } from './test-support/truncamento-dedupe-offline.mjs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { desfazAbandonoRapido1610 } from './test-support/desfaz-abandono-rapido-1610.mjs' // reancorado KINEO-ABANDONO-RAPIDO-1610: lê a carta da época (a nova é provada em test-abandono-rapido-1610)
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 const lf = (s) => s.replace(/\r\n/g, '\n')
@@ -29,8 +30,8 @@ const ler = (rel) => lf(readFileSync(join(raiz, rel), 'utf8'))
 
 const ROTA_REL = 'app/api/admin/send-checkout-hot-nudge/route.ts'
 const LIB_REL = 'lib/lifecycle/cartaQuente.ts'
-const ROTA = ler(ROTA_REL)
-const LIB = ler(LIB_REL)
+const ROTA = desfazAbandonoRapido1610(ROTA_REL, ler(ROTA_REL)) // reancorado KINEO-ABANDONO-RAPIDO-1610
+const LIB = desfazAbandonoRapido1610(LIB_REL, ler(LIB_REL))
 
 let ok = 0
 const falhas = []
@@ -41,7 +42,8 @@ function check(nome, condicao) {
 
 // ── módulos reais ──────────────────────────────────────────────────────────────────────────────────────────────────
 function carregar(transform = null) {
-  const load = createOfflineLoader(transform ? { source: transform } : {})
+  // reancorado KINEO-ABANDONO-RAPIDO-1610 — a carta da época primeiro; a transformação do mutante (se houver) por cima.
+  const load = createOfflineLoader({ source: (rel, s) => (transform ? transform(rel, desfazAbandonoRapido1610(rel, s)) : desfazAbandonoRapido1610(rel, s)) })
   return { carta: load(LIB_REL), regionPass: load('lib/regionPass.ts'), momentum: load('lib/momentumTopic.ts'), load }
 }
 const real = carregar()
