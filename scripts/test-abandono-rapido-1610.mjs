@@ -2,8 +2,8 @@
 // ═══ GUARDIÃO — KINEO-ABANDONO-RAPIDO-1610 (o e-mail de quem abriu o checkout e não pagou: 1–3 h, filme e garantia) ═════
 //
 // O que ele protege (decisão do fundador de 16/10):
-//   A. a carta rápida (app/api/admin/send-checkout-hot-nudge) só sai entre 60 e 180 min depois do clique de comprar —
-//      bordas inclusivas, 59 e 181 ficam fora;
+//   A. a carta rápida (app/api/admin/send-checkout-hot-nudge) continua saindo entre 30 e 360 min depois do clique de
+//      comprar (a janela de sempre — atrasar seria piora) — bordas inclusivas, 29 e 361 ficam fora;
 //   B. leva a GARANTIA verdadeira da página aberta (mensal = os 7 dias do FAQ/termos; anual = ANNUAL_REFUND_DAYS) com o
 //      nome do plano pela fonte única (PLANS); Business e passe avulso não ganham linha inventada;
 //   C. quem não tem filme entregue e cujo teste paga o filme de 15 s AGORA ganha o convite com a última ideia; quem não
@@ -134,11 +134,11 @@ const video = (uid, minutos, over = {}) => ({ id: `v-${uid}-${minutos}`, user_id
 const PESSOAS = [
   [perfil('u_filme'), sessao('cs_filme'), 90],
   [perfil('u_semfilme', trialAtivo), sessao('cs_semfilme'), 120],
-  [perfil('u_borda60'), sessao('cs_borda60', { tier: 'starter' }), 60],
-  [perfil('u_borda180'), sessao('cs_borda180'), 180],
-  [perfil('u_59'), sessao('cs_59'), 59],
+  [perfil('u_borda30'), sessao('cs_borda30', { tier: 'starter' }), 30],
+  [perfil('u_borda360'), sessao('cs_borda360'), 360],
+  [perfil('u_29'), sessao('cs_29'), 29],
   [perfil('u_45'), sessao('cs_45'), 45],
-  [perfil('u_181'), sessao('cs_181'), 181],
+  [perfil('u_361'), sessao('cs_361'), 361],
   [perfil('u_anual'), sessao('cs_anual', { tier: 'pro', billing: 'annual' }), 100],
   [perfil('u_business'), sessao('cs_business', { tier: 'business' }), 100],
   [perfil('u_br', { signup_country: 'BR' }), sessao('cs_br'), 100],
@@ -213,16 +213,16 @@ const para = (r, uid) => r.enviados.find((e) => e.to === `${uid}@fixture.invalid
 const carimbos = (r, uid) => r.tables.events.filter((e) => e.name === 'checkout_hot_nudge_emailed_v1' && e.user_id === uid)
 
 // ═══ A. a janela ═══════════════════════════════════════════════════════════════════════════════════════════════════
-check('A: a janela nova é 60–180 min', A.ABANDONO_JANELA_MIN_MINUTOS === 60 && A.ABANDONO_JANELA_MAX_MINUTOS === 180)
+check('A: a janela é a de sempre, 30–360 min (não atrasa a carta que já saía em 31–45 min)', A.ABANDONO_JANELA_MIN_MINUTOS === 30 && A.ABANDONO_JANELA_MAX_MINUTOS === 360)
 check('A: a rota usa as constantes do módulo (não um número solto)',
   /export const JANELA_MIN_MINUTOS = ABANDONO_JANELA_MIN_MINUTOS\n/.test(ROTA) && /export const JANELA_MAX_MINUTOS = ABANDONO_JANELA_MAX_MINUTOS\n/.test(ROTA))
-check('A: o cron da carta continua com confirm=SEND e passa de 15 em 15 min (cobre a janela de 2 h ~8 vezes)',
+check('A: o cron da carta continua com confirm=SEND e passa de 15 em 15 min (passa ~22 vezes pela janela)',
   (JSON.parse(ler('vercel.json')).crons ?? []).some((c) => c.path === '/api/admin/send-checkout-hot-nudge?confirm=SEND&limit=30' && c.schedule === '6,21,36,51 * * * *'))
 
 const r = await rodar()
 check('rota: 200 e modo SENT', r.status === 200 && r.body?.mode === 'SENT')
-for (const u of ['u_filme', 'u_semfilme', 'u_borda60', 'u_borda180', 'u_anual', 'u_business', 'u_br']) check(`A: ${u} recebe`, Boolean(para(r, u)))
-for (const u of ['u_59', 'u_45', 'u_181']) check(`A: ${u} (fora da janela) NÃO recebe`, !para(r, u) && carimbos(r, u).length === 0)
+for (const u of ['u_filme', 'u_semfilme', 'u_borda30', 'u_borda360', 'u_45', 'u_anual', 'u_business', 'u_br']) check(`A: ${u} recebe`, Boolean(para(r, u)))
+for (const u of ['u_29', 'u_361']) check(`A: ${u} (fora da janela) NÃO recebe`, !para(r, u) && carimbos(r, u).length === 0)
 
 // ═══ B. a garantia ═════════════════════════════════════════════════════════════════════════════════════════════════
 const faq = ler('app/pricing/PricingClient.tsx')
@@ -304,7 +304,7 @@ check('E: u_dup (reserva determinística existente) não recebe', !para(r, 'u_du
 check('E: cada enviado tem UM carimbo, com o id determinístico da pessoa',
   r.enviados.every((e) => { const uid = e.to.split('@')[0]; const c = carimbos(r, uid); return c.length === 1 && c[0].id === uuid('checkout_hot_nudge_emailed_v1', `user:${uid}`) && c[0].id === r.rota.idDaCartaRapida(uid) }))
 check('E: o carimbo leva versão, janela, garantia e convite (a ideia só como booleano)',
-  (() => { const m = carimbos(r, 'u_semfilme')[0]?.metadata; return m?.abandono_version === 'abandono_rapido_1610' && JSON.stringify(m.window_minutes) === '[60,180]' && m.guarantee_days === 7 && m.plan_name === 'Creator' && m.free_film_invite === true && m.free_film_idea === true && !JSON.stringify(m).includes(IDEIA) && m.send_time_check === 'ok' })())
+  (() => { const m = carimbos(r, 'u_semfilme')[0]?.metadata; return m?.abandono_version === 'abandono_rapido_1610' && JSON.stringify(m.window_minutes) === '[30,360]' && m.guarantee_days === 7 && m.plan_name === 'Creator' && m.free_film_invite === true && m.free_film_idea === true && !JSON.stringify(m).includes(IDEIA) && m.send_time_check === 'ok' })())
 check('E: Resend falhou → a reserva é apagada (a próxima rodada tenta de novo)', !para(r, 'u_falha') && carimbos(r, 'u_falha').length === 0 && r.db.deletes.some((d) => d.ids.includes(uuid('checkout_hot_nudge_emailed_v1', 'user:u_falha'))))
 check('E: falhas contadas', r.body?.falhas === 1)
 check('E: nenhuma leitura usa .in() com mais de 200 ids', r.db.inLens.every((x) => x.n <= 200))
@@ -313,7 +313,7 @@ check('E: o corte silencioso ids.slice(0, 1000) saiu da rota', !ROTA.includes('i
 // dry-run: nada gravado, nada enviado, e o fundador vê garantia e convite
 const d = await rodar({ confirm: false })
 check('dry-run: modo DRY_RUN, zero envio, zero escrita, zero delete', d.body?.mode === 'DRY_RUN' && d.enviados.length === 0 && d.db.writes.length === 0 && d.db.deletes.length === 0)
-check('dry-run: mostra a janela 60–180 e as contagens de garantia/convite', JSON.stringify(d.body?.janela_minutos) === '[60,180]' && d.body?.com_garantia >= 5 && d.body?.com_convite_filme_gratis === 1)
+check('dry-run: mostra a janela 30–360 e as contagens de garantia/convite', JSON.stringify(d.body?.janela_minutos) === '[30,360]' && d.body?.com_garantia >= 5 && d.body?.com_convite_filme_gratis === 1)
 
 // escala: 1.200 pessoas na janela — a seleção inteira chega (nenhum perfil_ausente) e nenhuma URL leva mais de 200 ids
 const grande = { events: [], profiles: [], videos: [] }
@@ -391,7 +391,9 @@ async function mutante(nome, de, para_, provar) {
   const m = await rodar({ fonte: ROTA.split(de).join(para_) })
   check(`mutante MORTO (${nome})`, provar(m) === true)
 }
-await mutante('janela de volta a 30 min', 'export const JANELA_MIN_MINUTOS = ABANDONO_JANELA_MIN_MINUTOS', 'export const JANELA_MIN_MINUTOS = 30', (m) => Boolean(para(m, 'u_45')))
+await mutante('janela atrasada para 60 min', 'export const JANELA_MIN_MINUTOS = ABANDONO_JANELA_MIN_MINUTOS', 'export const JANELA_MIN_MINUTOS = 60', (m) => !para(m, 'u_45') && !para(m, 'u_borda30'))
+await mutante('janela encurtada para 3 h', 'export const JANELA_MAX_MINUTOS = ABANDONO_JANELA_MAX_MINUTOS', 'export const JANELA_MAX_MINUTOS = 180', (m) => !para(m, 'u_borda360'))
+await mutante('janela sem piso (29 min recebe)', 'export const JANELA_MIN_MINUTOS = ABANDONO_JANELA_MIN_MINUTOS', 'export const JANELA_MIN_MINUTOS = 0', (m) => Boolean(para(m, 'u_29')))
 await mutante('sem conferência no envio', 'const motivoNoEnvio = await conferirNoEnvio(c)', 'const motivoNoEnvio = null as MotivoNoEnvio | null', (m) => Boolean(para(m, 'u_flip')))
 await mutante('sem apagar a reserva quando o Resend falha', "try { await admin.from('events').delete().eq('id', idReserva) } catch { /* fica reservado: falha fechada */ }", '', (m) => carimbos(m, 'u_falha').length === 1)
 // a chave primária é a última barreira: sem a leitura vitalícia, ela ainda segura u_dup…

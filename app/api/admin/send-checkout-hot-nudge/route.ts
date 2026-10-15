@@ -81,10 +81,10 @@ import { readAll } from '@/lib/supabase/readAll'
 //   (sem params)           → DRY RUN: quem receberia, e quem caiu fora e por quê. Não grava nada.
 //   ?confirm=SEND&limit=N  → envia para os próximos N (default 30, teto 30) e grava enviados e pulados.
 //
-// ═══ KINEO-ABANDONO-RAPIDO-1610 — a carta rápida do abandono: 1–3 h, com o filme (ou o filme grátis) e a garantia ═══
-// Decisão do fundador (16/10): o primeiro toque a quem abriu o checkout e não pagou sai entre 1 e 3 h depois do clique.
+// ═══ KINEO-ABANDONO-RAPIDO-1610 — a carta rápida do abandono: cedo, com o filme (ou o filme grátis) e a garantia ═══
+// Decisão do fundador (16/10): o primeiro toque a quem abriu o checkout e não pagou sai em horas, não ~24 h.
 // Esta carta já era esse toque (saía em 31–45 min); o que muda (detalhes em lib/lifecycle/abandonoRapido.ts):
-//   · JANELA 30 min–6 h → 60 min–3 h (ABANDONO_JANELA_*). O cron de 15 em 15 min passa ~8 vezes por ela;
+//   · JANELA mantida em 30 min–6 h (ABANDONO_JANELA_*): a carta já saía em 31–45 min; atrasar seria piora;
 //   · a carta leva a GARANTIA da página de preços com o nome do plano aberto (mensal 7 dias / anual ANNUAL_REFUND_DAYS)
 //     e, para quem não tem filme entregue e cujo teste paga o filme de 15 s agora, o convite com a última ideia;
 //   · NO ENVIO (segundos antes do Resend) a casa relê perfil, payment_success e a sessão Stripe: pagou = não envia;
@@ -177,8 +177,8 @@ export const WELCOME20_INTENT_CAMPAIGN = 'checkout_hot_nudge_welcome20'
  *  carta de expiração, que tem o link de recuperação e o texto certo para
  *  quem já desistiu. O cron de 15 em 15 minutos varre a janela inteira várias
  *  vezes; o carimbo vitalício garante uma carta por pessoa. */
-// KINEO-ABANDONO-RAPIDO-1610 — era 30 / 360. Agora 60 / 180 (fundador 16/10: "1–3 h"). Quem fica suprimido até a borda
-// das 3 h cai no e-mail de ~24 h, que segue de pé para quem não levou esta carta.
+// KINEO-ABANDONO-RAPIDO-1610 — os mesmos 30 / 360 de sempre, agora lidos do módulo (lib/lifecycle/abandonoRapido.ts). Quem
+// fica suprimido até a borda das 6 h cai no e-mail de ~24 h, que segue de pé para quem não levou esta carta.
 export const JANELA_MIN_MINUTOS = ABANDONO_JANELA_MIN_MINUTOS
 export const JANELA_MAX_MINUTOS = ABANDONO_JANELA_MAX_MINUTOS
 /** Tamanho da fatia das leituras por lista de pessoas (URL curta; nenhum corte silencioso). */

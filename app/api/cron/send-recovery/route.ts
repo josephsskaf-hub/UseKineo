@@ -26,7 +26,7 @@ import { buildSeriesContinuationEmailUrl } from '@/lib/seriesContinuation'
 // para forçar a releitura das duas decisões de copy que dependem dele.
 import { RECURRING_CHECKOUT_WINDOW_HOURS } from '@/lib/growth/checkoutSessionWindow'
 // ═══ KINEO-ABANDONO-RAPIDO-1610 — este e-mail vira o SEGUNDO toque ═══════════════════════════════════════════════════
-// O primeiro toque agora é a carta rápida (app/api/admin/send-checkout-hot-nudge, 1–3 h depois do clique, com o filme ou
+// O primeiro toque agora é a carta rápida (app/api/admin/send-checkout-hot-nudge, 30 min–6 h depois do clique, com o filme ou
 // o filme grátis e a garantia). Este, que sai ~24 h depois (quando a sessão expira), continua para quem NÃO levou a
 // rápida; para quem levou, só sai se a pessoa NÃO voltou ao site depois dela (nenhum evento de navegador com
 // session_id). Quem voltou já reagiu ao primeiro toque: pula, com o sentinela de pulo. Leitura que falha = adia (sem

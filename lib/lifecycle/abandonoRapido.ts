@@ -1,12 +1,13 @@
-// ═══ KINEO-ABANDONO-RAPIDO-1610 — o e-mail de quem abriu o checkout e não pagou sai em 1–3 h, com o filme e a garantia ═══
+// ═══ KINEO-ABANDONO-RAPIDO-1610 — o e-mail de quem abriu o checkout e não pagou sai cedo, com o filme e a garantia ═══
 //
 // Decisão do fundador (16/10, jogada 3 de docs/PESQUISA-FECHAMENTO-CONCORRENTES-2026-10-16.md): o primeiro toque a quem
-// abandona a página de pagamento sai entre 1 e 3 horas depois do clique — não ~24 h — levando o FILME que a pessoa fez
+// abandona a página de pagamento sai em horas, não ~24 h, levando o FILME que a pessoa fez
 // (ou o convite para o filme grátis de 15 s com a última ideia dela) e a garantia de verdade. Sem desconto novo.
 //
 // NÃO É CARTA NOVA. A carta que fala nessa hora já existe: app/api/admin/send-checkout-hot-nudge (cron "6,21,36,51 * * * *",
 // confirm=SEND, só com a sessão Stripe ainda `open`, uma por pessoa na vida). Este módulo só:
-//   1. muda a JANELA de 30 min–6 h para 60 min–3 h (constantes na rota; o cron de 15 em 15 min passa ~8 vezes por ela);
+//   1. MANTÉM a janela de 30 min–6 h (a carta já saía em 31–45 min; atrasar para 60 min seria piora — coordenação 16/10).
+//      As constantes moram aqui e a rota as lê; o cron de 15 em 15 min passa por ela ~22 vezes;
 //   2. acrescenta à carta a GARANTIA (a mesma da página de preços) com o NOME do plano que a pessoa abriu, e — para quem
 //      ainda não tem filme entregue e cujo teste paga o filme de 15 s AGORA — o convite para fazê-lo com a última ideia;
 //   3. confere NO ENVIO (não só na seleção) que a pessoa não pagou: perfil, payment_success e a sessão Stripe relidos;
@@ -38,8 +39,8 @@ export const ABANDONO_RAPIDO_VERSION = 'abandono_rapido_1610' as const
 export const CARTA_RAPIDA_EVENT = 'checkout_hot_nudge_emailed_v1' as const
 
 /** A janela nova, em minutos depois do `checkout_started`. A rota usa estes números; o guardião prova as bordas. */
-export const ABANDONO_JANELA_MIN_MINUTOS = 60
-export const ABANDONO_JANELA_MAX_MINUTOS = 180
+export const ABANDONO_JANELA_MIN_MINUTOS = 30
+export const ABANDONO_JANELA_MAX_MINUTOS = 360
 
 /**
  * A garantia do MENSAL. Espelho do texto público — a página de preços não tem constante para ela, só a frase do FAQ
@@ -200,7 +201,7 @@ export function decidirSegundoToque24h(input: {
 }
 
 /** Onde procurar a carta rápida DESTE abandono: a sessão vive RECURRING_CHECKOUT_WINDOW_HOURS (24 h) e a carta sai até
- *  3 h depois do clique — tudo cabe em (expiração − sessão − 6 h de folga). Antes disso é carta de outro abandono. */
+ *  6 h depois do clique — tudo cabe em (expiração − sessão − 6 h de folga). Antes disso é carta de outro abandono. */
 export function inicioDaBuscaDaCartaRapida(expiredAtIso: string | null | undefined, horasDaSessao: number): string | null {
   const t = typeof expiredAtIso === 'string' ? Date.parse(expiredAtIso) : NaN
   if (!Number.isFinite(t) || !Number.isFinite(horasDaSessao) || horasDaSessao <= 0) return null
