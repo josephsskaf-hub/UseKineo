@@ -13,6 +13,11 @@ import { edicoesIndiceHtml, semIndiceHtml } from './test-support/indice-video-ia
 // "See plans" logo abaixo. O bloco novo é PROVADO renderizado (provaCompraSeedance) e descontado dos dois lados pelo marcador
 // neutro; tudo fora dele segue byte a byte. O Veo mantém a hierarquia antiga, travada abaixo como antes.
 import { comAcoesNeutras, provaCompraSeedance } from './test-support/paginas-que-vendem-2026-10-12.mjs'
+// KINEO-PAGINAS-MOTOR-1610 — reancorado com motivo (fundador 16/10, página de conteúdo/SEO): as páginas de Veo, Kling 3 e Kling 2.5
+// ganharam UM bloco novo, o guia <section data-kineo="engine-guide-1610"> (resumo, preço por duração, limites, quando não usar).
+// O HTML atual desconta SÓ esse bloco e o EXIGE uma vez exatamente nos slugs que têm guia (zero nos outros); o resto segue
+// travado. O conteúdo do guia é provado, com mutantes, por scripts/test-paginas-motor-1610.mjs.
+import { guiasHtml1610, semGuiaHtml1610 } from './test-support/paginas-motor-1610.mjs'
 
 // Actual server-page rendering, offline boundaries; no visits or analytics writes.
 const path = 'app/ai-video-generator/[engine]/page.tsx'
@@ -34,7 +39,8 @@ for (const engine of served) {
   // time" (/ai-video-index; scripts/test-support/indice-video-ia-2026-10-06.mjs), exigido uma vez por página.
   const renderAtual = renderToStaticMarkup(await after(path).default({ params: { engine } }))
   assert.equal(edicoesIndiceHtml(renderAtual), 1, engine + ': index link exactly once (the normalization has a subject)')
-  const current = semMotoresGeoHtml(semIndiceHtml(renderAtual))
+  assert.equal(guiasHtml1610(renderAtual), after('lib/seo/paginasMotor1610.ts').engineGuideFor(engine) ? 1 : 0, engine + ': guide 1610 exactly where it belongs (the normalization has a subject)') // KINEO-PAGINAS-MOTOR-1610
+  const current = semMotoresGeoHtml(semIndiceHtml(semGuiaHtml1610(renderAtual)))
   //30/09: founder increased acquisition work; Veo adopts the same actions.
   // Its entire non-action content remains byte-locked, as do all other pages.
   if (engine !== 'seedance' && engine !== 'veo') assert.equal(current, old, engine + ': entire rendered page unchanged')

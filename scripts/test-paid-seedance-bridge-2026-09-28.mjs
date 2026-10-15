@@ -7,6 +7,10 @@ import { React, root, source, offlineModules, renderToStaticMarkup, checks } fro
 // aprovada depois da cdb154e2 é a camada citável da TAREFA 12 (11 edições exatas, descontadas pela normalização única).
 import { semMotoresGeoFonte } from './test-support/motores-geo-2026-10-06.mjs'
 import { edicoesIndiceFonte, semIndiceFonte } from './test-support/indice-video-ia-2026-10-06.mjs' // KINEO-INDICE-VIDEO-IA-2026-10-06
+// KINEO-PAGINAS-MOTOR-1610 — reancorado com motivo (fundador 16/10, página de conteúdo/SEO): o guia das páginas de Veo, Kling 3 e
+// Kling 2.5 (1 import + 1 linha JSX) e a meta própria (`let` + 1 linha). As 4 edições exatas são EXIGIDAS e desfeitas em memória
+// antes das outras normalizações; o resto do arquivo segue byte a byte igual ao cdb154e2. Prova: scripts/test-paginas-motor-1610.mjs.
+import { semPaginasMotor1610Fonte, edicoesPaginasMotor1610Fonte, EDICOES_PAGINAS_MOTOR_1610_FONTE } from './test-support/paginas-motor-1610.mjs'
 // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — reancorado com motivo (fundador 12/10, "tudo sim"): a página de motor ganhou 6 edições
 // (compra direta no Seedance, faixa do Kineo 1, meta em positivo) descontadas pela normalização única e exigidas inteiras;
 // nas páginas grátis o primeiro CTA passou a ser a COMPRA (BuyCreatorCta), com o botão grátis de secundário — a ordem
@@ -70,7 +74,9 @@ const S25_GSP_BASE = '  return ENGINE_SLUGS.map((engine) => ({ engine }))'
 const MARCA_OG_NOVO = "    openGraph: { title, description, url, siteName: 'Kineo (usekineo.com)', type: 'website' },"
 const MARCA_OG_BASE = "    openGraph: { title, description, url, type: 'website' },"
 {
-  const atualRaw = source('app/ai-video-generator/[engine]/page.tsx').replace(/\r\n/g,'\n')
+  const arquivo1610 = source('app/ai-video-generator/[engine]/page.tsx') // KINEO-PAGINAS-MOTOR-1610
+  check('S24-01 (PÁGINAS DE MOTOR 1610) as 4 edições do guia existem, inteiras', edicoesPaginasMotor1610Fonte(arquivo1610) === EDICOES_PAGINAS_MOTOR_1610_FONTE)
+  const atualRaw = semPaginasMotor1610Fonte(arquivo1610)
   check('S24-01 (PÁGINAS QUE VENDEM) as 6 edições da rodada existem, inteiras', edicoesPaginasQueVendemFonte(atualRaw) === EDICOES_PAGINAS_QUE_VENDEM_FONTE)
   const atual = semPaginasQueVendemFonte(atualRaw)
   const umaVez = (s, x) => s.split(x).length === 2

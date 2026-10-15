@@ -342,7 +342,13 @@ console.log('== (f2) sobras públicas do apresentador: /best-ai-shorts-generator
   const ENV_CAT = { NODE_ENV: 'production', KINEO_REVERSE_TRIAL_ENABLED: 'true' }
   const catalogo = (mock) => createOfflineLoader({ env: ENV_CAT, mocks: mock ? { '@/lib/engineLaunch': mock } : {} })('lib/growth/enginePageCatalog.ts')
   const C = catalogo()
-  const faqK3 = C.ENGINES['kling-3']?.faq ?? []
+  // KINEO-PAGINAS-MOTOR-1610 — reancorado com motivo (fundador 16/10, página de conteúdo/SEO): a FAQ do Kling 3 ganhou 3 perguntas
+  // do artigo do GPT conferidas no código (língua do diálogo, quando há personagem falando, Kling 3 × 2.5). Elas são EXIGIDAS e
+  // descontadas pelo texto exato da pergunta; o resto da FAQ segue com as 3 entradas travadas. Prova: scripts/test-paginas-motor-1610.mjs.
+  const K3_FAQ_1610 = ['Which languages can a Kling 3 character speak?', 'Does every Kling 3 film have a talking character?', 'Kling 3 or Kling 2.5?']
+  const faqK3Todas = C.ENGINES['kling-3']?.faq ?? []
+  checa('página do Kling 3: as 3 perguntas do 1610 existem uma vez cada (a normalização tem sujeito)', K3_FAQ_1610.every((q) => faqK3Todas.filter((f) => f.q === q).length === 1))
+  const faqK3 = faqK3Todas.filter((f) => !K3_FAQ_1610.includes(f.q))
   checa('página do Kling 3 (executada): nenhuma página de motor promete Character Lock/AI Presenter; a FAQ diz o que o motor faz e "not part of the catalogue today"', Object.keys(C.ENGINES).length >= 6 && !/Character Lock|AI Presenter/.test(JSON.stringify(C.ENGINES)) && faqK3.length === 3 && faqK3.some((f) => /one portrait of the character/.test(f.a) && /not part of the catalogue today/.test(f.a)))
   const Con = catalogo({ ...realLaunch, AVATAR_PUBLIC: true })
   checa('página do Kling 3: com AVATAR_PUBLIC=true a resposta do Character Lock volta', (Con.ENGINES['kling-3']?.faq ?? []).some((f) => f.a.startsWith('Yes. Character Lock saves a presenter')))
