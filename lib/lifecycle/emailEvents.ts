@@ -114,6 +114,9 @@ export const LIFECYCLE_EMAIL_EVENT_NAMES = [
   // fatura de renovação (lib/billing/renewalFailedEmail.ts). É transacional (não espera a janela de ninguém), mas
   // entra aqui para os OUTROS jobs ficarem 24 h quietos depois dele — nada de oferta no dia do cartão recusado.
   'renewal_payment_failed_email_sent',
+  // KINEO-CARTAO-RECUSADO-1510 — o lembrete do dia 2 da mesma fatura (cron admin/send-renewal-declined?etapa=lembrete).
+  // Entra no MESMO commit em que nasce: nenhuma oferta nossa no dia do lembrete do cartão.
+  'renewal_payment_failed_reminder_sent',
   // KINEO-STUDIO50-2026-09-22 — carta 'Studio a 50%' para quem chegou ao checkout e não pagou (admin/send-studio50).
   'studio50_sent',
   // KINEO-ANUAL-2o-MES-2026-10-08 — oferta do anual (30%) para quem pagou a 1ª renovação (cron/send-month2-annual-offer).

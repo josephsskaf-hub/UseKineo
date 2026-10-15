@@ -26,6 +26,9 @@ import { PAID_PLANS } from '../_shared/mrr'
 // KINEO-DUNNING-EMAIL-2026-10-06 — desde 06/10 o webhook manda o aviso sozinho na 1ª falha de cada fatura de renovação
 // (lib/billing/renewalFailedEmail.ts). Esta carta manual vira repescagem: quem já recebeu o automático em 30 dias fica fora.
 import { RENEWAL_FAILED_EMAIL_EVENT } from '@/lib/billing/renewalFailedEmail'
+// KINEO-CARTAO-RECUSADO-1510 — `?etapa=lembrete` nesta MESMA rota (mesmo portão admin/cron, mesmo dry-run por padrão) roda
+// a rodada fatura a fatura: lembrete do dia 2 + 1º aviso que o webhook não conseguiu mandar. Ver o cabeçalho do módulo.
+import { RENEWAL_FOLLOWUP_STAGE_PARAM, RENEWAL_FOLLOWUP_STAGE_VALUE, runRenewalFollowUp } from '@/lib/billing/renewalFailedFollowUp'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -114,6 +117,19 @@ export async function GET(req: NextRequest) {
     const secret = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!url || !secret) return NextResponse.json({ error: 'Supabase env missing' }, { status: 503 })
     const admin = createAdminClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } })
+
+    // KINEO-CARTAO-RECUSADO-1510 — rodada fatura a fatura (lembrete do dia 2 + 1º aviso que faltou). Dry-run por padrão;
+    // envio só com confirm=SEND (o cron do vercel.json leva o confirm). A carta manual abaixo segue intocada.
+    if (req.nextUrl.searchParams.get(RENEWAL_FOLLOWUP_STAGE_PARAM) === RENEWAL_FOLLOWUP_STAGE_VALUE) {
+      const relatorio = await runRenewalFollowUp({
+        admin,
+        confirm: req.nextUrl.searchParams.get('confirm') === 'SEND',
+        limit: Number(req.nextUrl.searchParams.get('limit')),
+        trigger: autorizadoPorCron(req) ? 'cron' : 'admin',
+        resendApiKey: RESEND_API_KEY,
+      })
+      return NextResponse.json(relatorio, { headers: { 'Cache-Control': 'private, no-store, max-age=0' } })
+    }
 
     const desde = new Date(Date.now() - LOOKBACK_DAYS * 86_400_000).toISOString()
     const { data: recusas, error: recErr } = await readAll(() => admin

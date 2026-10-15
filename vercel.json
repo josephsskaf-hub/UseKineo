@@ -153,6 +153,10 @@
       "schedule": "0 13 * * *"
     },
     {
+      "path": "/api/admin/send-renewal-declined?etapa=lembrete&confirm=SEND&limit=30",
+      "schedule": "13 14,22 * * *"
+    },
+    {
       "path": "/api/cron/rescue-vendor-assets",
       "schedule": "23 * * * *"
     },
