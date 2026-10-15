@@ -25,6 +25,10 @@ const root = process.cwd()
 // reancorado KINEO-AFILIADO-POR-POST-1610 — o conserto mais novo (`&p=` por post + "Your links") sai PRIMEIRO, em memória e
 // byte a byte (scripts/test-support/desfaz-afiliado-por-post-1610.mjs); o comportamento dele é provado em test-afiliado-por-post-1610.
 import { semAfiliadoPorPost1610 } from './test-support/desfaz-afiliado-por-post-1610.mjs'
+// reancorado KINEO-LEVA2-1510 — na leva 2 o KINEO-CHECKOUT-CLAREZA-1610 também pôs um nome reservado (welcome20_deadline_started)
+// em app/api/events/route.ts, num trecho disjunto: sai em memória (desfaz exato dele) SÓ na prova byte a byte abaixo; o
+// comportamento continua lendo o arquivo de verdade. Sem a camada (árvore sem a marca), semClareza1610 devolve o texto igual.
+import { semClareza1610 } from './test-support/desfaz-checkout-clareza-1610.mjs'
 const read = (file) => semAfiliadoPorPost1610(file, fs.readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n'))
 
 function compile(source, imports = {}, env = {}) {
@@ -311,11 +315,11 @@ assert.equal(failed, 0, `${failed} mutante(s) sobreviveram ou não se aplicaram`
   assert.ok(anc, 'a base do desfaz do alias não é ancestral de HEAD')
   for (const f of AFILIADO_SCRIPT_ALIAS_1610_ARQUIVOS) {
     const base = git('show', `${AFILIADO_SCRIPT_ALIAS_1610_BASE}:${f}`).replace(/\r\n/g, '\n')
-    assert.equal(semAfiliadoScriptAlias1610(f, read(f)), base, `desfeito o alias, ${f} não é EXATAMENTE a base dele`)
+    assert.equal(semAfiliadoScriptAlias1610(f, semClareza1610(f, read(f))), base, `desfeito o alias, ${f} não é EXATAMENTE a base dele`) // reancorado KINEO-LEVA2-1510
   }
   for (const f of AFILIADO_DESTINO_1610_ARQUIVOS) {
     const base = git('show', `${AFILIADO_DESTINO_1610_BASE}:${f}`).replace(/\r\n/g, '\n')
-    assert.equal(semAfiliadoDestino1610(f, semAfiliadoScriptAlias1610(f, read(f))), base, `desfeito, ${f} não é EXATAMENTE a base`)
+    assert.equal(semAfiliadoDestino1610(f, semAfiliadoScriptAlias1610(f, semClareza1610(f, read(f)))), base, `desfeito, ${f} não é EXATAMENTE a base`) // reancorado KINEO-LEVA2-1510
   }
   const mexidoAlias = read('app/a/[code]/route.ts').replace("{ script: 'video' }", "{ script: 'video' } ")
   assert.notEqual(mexidoAlias, read('app/a/[code]/route.ts'), 'a sonda do desfaz do alias não se aplicou')

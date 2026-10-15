@@ -315,11 +315,20 @@ const MUTANTES = [
 // desfeito, é o pai do 1º commit com a marca (ou HEAD, antes do commit) — medido contra o pai, nunca contra a árvore.
 const { execFileSync } = await import('node:child_process')
 const { semClareza1610, CHECKOUT_CLAREZA_1610_ARQUIVOS } = await import('./test-support/desfaz-checkout-clareza-1610.mjs')
+// reancorado KINEO-LEVA2-1510 — o pai (c9199975) é anterior às camadas irmãs que tocam os MESMOS arquivos: o link de afiliado
+// (KINEO-AFILIADO-DESTINO-1610 + KINEO-AFILIADO-POR-POST-1610, nomes reservados em app/api/events/route.ts) e o Kling 2.5 a 75 cr
+// (KINEO-PRECOS-CLIPES-KLING25-1610, comentários + WORST_CASE_FILM_COSTS em lib/checkoutPricing.ts). Cada uma sai em memória pelo
+// desfaz EXATO dela, na ordem inversa de chegada (o bloco do por-post tem o do destino como contexto), e só então a prova
+// byte a byte contra o pai roda — sem afrouxar nada: bloco ausente/repetido em qualquer desfaz lança e conta como falha.
+const { semAfiliadoPorPost1610 } = await import('./test-support/desfaz-afiliado-por-post-1610.mjs')
+const { semAfiliadoDestino1610 } = await import('./test-support/desfaz-afiliado-destino-1610.mjs')
+const { semPrecosClipesKling25_1610 } = await import('./test-support/desfaz-precos-clipes-kling25-1610.mjs')
+const semIrmas = (f, t) => semPrecosClipesKling25_1610(f, semAfiliadoDestino1610(f, semAfiliadoPorPost1610(f, t)))
 const gitOut = (...a) => execFileSync('git', ['-C', root, ...a], { encoding: 'utf8', maxBuffer: 64 << 20 })
 const meus = gitOut('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, 'HEAD').trim().split('\n').filter(Boolean)
 const PAI = meus.length ? `${meus[meus.length - 1]}~1` : 'HEAD'
 const desfazRuim = CHECKOUT_CLAREZA_1610_ARQUIVOS.filter((f) => {
-  try { return semClareza1610(f, read(f)).replace(/\r\n/g, '\n') !== gitOut('show', `${PAI}:${f}`).replace(/\r\n/g, '\n') } catch { return true }
+  try { return semClareza1610(f, semIrmas(f, read(f))).replace(/\r\n/g, '\n') !== gitOut('show', `${PAI}:${f}`).replace(/\r\n/g, '\n') } catch { return true }
 })
 let failed = 0
 if (desfazRuim.length || CHECKOUT_CLAREZA_1610_ARQUIVOS.length !== 15) { failed++; console.log(`FAIL desfaz não devolve o pai (${PAI}): ${desfazRuim.join(', ')}`) } else console.log(`PASS desfaz exato: ${CHECKOUT_CLAREZA_1610_ARQUIVOS.length} arquivos desfeitos = ${PAI}`)
