@@ -65,10 +65,10 @@ equal(firstClick.buildAffiliateFirstClickOffer(zeroClickPayload({ affiliate: { s
 equal(firstClick.buildAffiliateFirstClickOffer(zeroClickPayload({ stats: {} })), null, 'unknown click count fails closed')
 equal(firstClick.buildAffiliateFirstClickOffer(zeroClickPayload({ stats: { clicks: 1 } })), null, 'mission disappears after first eligible visit')
 const canonicalizedHostOffer = firstClick.buildAffiliateFirstClickOffer(zeroClickPayload({ link: 'https://evil.example/a/ABCD2345' }))
-check(canonicalizedHostOffer.caption.includes('https://www.usekineo.com/a/ABCD2345?to=script'), 'untrusted API host is rewritten to canonical Kineo host')
+check(canonicalizedHostOffer.caption.includes('https://www.usekineo.com/a/ABCD2345?to=video'), 'untrusted API host is rewritten to canonical Kineo host')
 const firstClickOffer = firstClick.buildAffiliateFirstClickOffer(zeroClickPayload())
-equal(firstClickOffer.destination, 'script', 'first-click mission uses recommended free-value destination')
-check(firstClickOffer.caption.includes(`https://www.usekineo.com/a/${CODE}?to=script`), 'ready post carries canonical tracked deep link')
+equal(firstClickOffer.destination, 'video', 'first-click mission uses recommended free-value destination')
+check(firstClickOffer.caption.includes(`https://www.usekineo.com/a/${CODE}?to=video`), 'ready post carries canonical tracked deep link')
 check(!firstClickOffer.caption.includes('Use code'), 'coupon sentence stays absent when coupon is unavailable')
 const couponOffer = firstClick.buildAffiliateFirstClickOffer(zeroClickPayload({
   affiliate: { status: 'ACTIVE', coupon_code: 'SAVE20' },
@@ -85,7 +85,7 @@ equal(firstClick.AFFILIATE_FIRST_CLICK_NUDGE_VERSION, 'affiliate_first_click_rea
 equal(firstClick.AFFILIATE_FIRST_CLICK_VIEW_SESSION_KEY, 'kineo_affiliate_first_click_nudge_viewed_v2', 'view dedupe is version-scoped')
 
 equal(destinations.AFFILIATE_DESTINATIONS.length, 4, 'four audience-specific first-party destinations are enabled')
-equal(destinations.RECOMMENDED_AFFILIATE_DESTINATION, 'script', 'free script tool is recommended')
+equal(destinations.RECOMMENDED_AFFILIATE_DESTINATION, 'video', 'free AI Shorts generator is recommended (KINEO-AFILIADO-DESTINO-1610: 52% x 2%)')
 const scriptDestination = destinations.getAffiliateDestination(' ScRiPt ')
 equal(scriptDestination.path, '/free-script-generator', 'destination key normalizes')
 const expectedDestinations = {
@@ -144,7 +144,7 @@ check(!widgetSnippet.includes('preview.invalid'), 'untrusted API host never reac
 equal(affiliateWidget.buildAffiliateWidgetEmbedUrl('https://evil.example/not-an-affiliate-link'), '', 'non-affiliate path cannot mint widget asset')
 equal(affiliateWidget.buildAffiliateWidgetEmbedUrl('https://www.usekineo.com/a/ABCD2345/extra'), '', 'extra affiliate path segments fail closed')
 equal(affiliateWidget.buildAffiliateWidgetSnippet('javascript:alert(1)'), '', 'unsafe URL cannot become an iframe')
-equal(affiliateWidget.buildAffiliateWidgetCta('abcd2345'), `https://www.usekineo.com/a/${CODE}?to=script`, 'valid embed click enters existing affiliate attribution')
+equal(affiliateWidget.buildAffiliateWidgetCta('abcd2345'), `https://www.usekineo.com/a/${CODE}?to=video`, 'valid embed click enters existing affiliate attribution')
 const genericWidgetCta = new URL(affiliateWidget.buildAffiliateWidgetCta('<script>'))
 equal(genericWidgetCta.origin, 'https://www.usekineo.com', 'invalid embed code stays first-party')
 equal(genericWidgetCta.searchParams.get('utm_source'), 'widget', 'invalid embed code preserves generic widget acquisition')
@@ -226,6 +226,7 @@ async function runRoute({
     '@supabase/supabase-js': { createClient: () => sb },
     '@/lib/affiliateDestinations': destinations,
     '@/lib/affiliateAttribution': attribution,
+    '@/lib/serverEvents': { writeServerEvent: async () => true }, // KINEO-AFILIADO-DESTINO-1610
   }, { AFFILIATE_IP_SALT: 'private-test-salt' })
   const query = to === null ? '' : `?to=${encodeURIComponent(to)}`
   const req = {
@@ -288,13 +289,13 @@ for (const unsafe of [null, 'https://evil.example', '//evil.example', '../checko
   const { response, inserts } = await runRoute({ to: unsafe })
   const location = new URL(response.location)
   equal(location.origin, 'https://www.usekineo.com', `unsafe ${unsafe} stays first-party`)
-  equal(location.pathname, '/', `unsafe ${unsafe} falls back home`)
+  equal(location.pathname, '/free-ai-shorts-generator', `unsafe ${unsafe} falls back to the tagged default destination`)
   equal(inserts[0].landing_path, `/a/${CODE}`, `unsafe ${unsafe} cannot poison landing path`)
 }
 
 {
   const { response, inserts } = await runRoute({ active: false })
-  equal(new URL(response.location).pathname, '/', 'inactive affiliate goes home')
+  equal(new URL(response.location).pathname, '/free-script-generator', 'inactive affiliate keeps the tagged allowlisted destination (no cookie)')
   equal(response.cookieWrites.length, 0, 'inactive owner mints no cookies')
   equal(inserts.length, 0, 'inactive owner mints no click')
 }
@@ -353,7 +354,7 @@ for (const userAgent of ['Twitterbot/1.0', 'WhatsApp/2.0']) {
 
 {
   const { response, inserts } = await runRoute({ currentLookupThrows: true })
-  equal(new URL(response.location).pathname, '/', 'provider outage fails closed to home')
+  equal(new URL(response.location).pathname, '/free-script-generator', 'provider outage keeps the tagged allowlisted destination (no cookie)')
   equal(response.cookieWrites.length, 0, 'provider outage cannot mint cookie')
   equal(inserts.length, 0, 'provider outage cannot mint click')
 }

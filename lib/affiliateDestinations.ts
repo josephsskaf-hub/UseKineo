@@ -21,9 +21,11 @@ export const AFFILIATE_DESTINATIONS = [
     audience: 'People ready to test the full video workflow',
     path: '/free-ai-shorts-generator',
     campaign: 'affiliate_video',
-    description: 'Best for people who want to see the topic-to-video workflow and start a free Fast test.',
-    sharePitch: 'Turn one idea into a scripted, voiced and captioned AI Short with Kineo — the Fast test needs no card:',
-    spokenPitch: 'Kineo turns one idea into a scripted, voiced and captioned vertical video. The Fast test needs no card, so you can judge the result yourself.',
+    // KINEO-AFILIADO-DESTINO-1610 — "Fast test" saiu: o Kineo 1 (ex-Fast) não é mais o grátis (29/09) e a própria
+    // página já tirou essa promessa (guardião test-citation-entry-truth-2026-09-30). Este texto vira o post padrão.
+    description: 'Best for people who want to see the topic-to-video workflow and make a free first film.',
+    sharePitch: 'Turn one idea into a scripted, voiced and captioned AI Short with Kineo — the first test needs no card:',
+    spokenPitch: 'Kineo turns one idea into a scripted, voiced and captioned vertical video. The first test needs no card, so you can judge the result yourself.',
     emailSubject: 'Try Kineo’s free AI Shorts workflow',
   },
   {
@@ -79,7 +81,26 @@ const ROUTE_DESTINATION_BY_KEY = new Map<string, AffiliateRouteDestination>([
   [CLIENT_BRIEF_ROUTE_DESTINATION.key, CLIENT_BRIEF_ROUTE_DESTINATION] as const,
 ])
 
-export const RECOMMENDED_AFFILIATE_DESTINATION: AffiliateDestinationKey = 'script'
+// KINEO-AFILIADO-DESTINO-1610 — o destino padrão passa a ser `video` (/free-ai-shorts-generator).
+// Medido em 28 dias (docs/PLANO-TRIPLICAR-VISITANTES-2026-10-16.md §2.4): /free-script-generator cadastra 2% dos
+// visitantes (1 de 41) e /free-ai-shorts-generator 52% (42 de 80). `script` era o padrão do botão Copiar do painel
+// do parceiro, da missão de 1º clique e do widget; e o link SEM `?to=` caía na home sem etiqueta nenhuma
+// (ColorMango, 68 cliques). Agora o MESMO destino vale para o painel e para o `/a/CODIGO` puro. Fundador, 16/10.
+export const RECOMMENDED_AFFILIATE_DESTINATION: AffiliateDestinationKey = 'video'
+export const DEFAULT_AFFILIATE_ROUTE_DESTINATION: AffiliateDestinationKey = RECOMMENDED_AFFILIATE_DESTINATION
+
+// Formato público do código (o mesmo de buildAffiliateRouteShareLink). Só vira `utm_content` se bater exatamente,
+// então nenhum texto arbitrário do caminho chega à URL de destino nem às métricas.
+const AFFILIATE_CODE_SHAPE = /^[A-HJ-NP-Z2-9]{8}$/
+
+/**
+ * KINEO-AFILIADO-DESTINO-1610 — para onde vai o `/a/[code]` quando o `?to=` está ausente, desconhecido ou é
+ * malicioso. O valor da query só serve de chave de um Map fixo (getAffiliateRouteDestination) — nunca vira caminho
+ * nem URL —, então não existe open redirect; o que não está na lista cai aqui.
+ */
+export function defaultAffiliateRouteDestination(): AffiliateDestination {
+  return DESTINATION_BY_KEY.get(DEFAULT_AFFILIATE_ROUTE_DESTINATION)!
+}
 
 export function getAffiliateDestination(value: string | null | undefined): AffiliateDestination | null {
   const key = (value ?? '').trim().toLowerCase() as AffiliateDestinationKey
@@ -106,13 +127,21 @@ export function buildAffiliateDestinationUrl(origin: string, key: AffiliateDesti
 export function buildAffiliateRouteDestinationUrl(
   origin: string,
   key: AffiliateRouteDestinationKey,
+  code?: string | null,
 ): URL {
-  const destination = ROUTE_DESTINATION_BY_KEY.get(key)
-  if (!destination) return new URL('/', origin)
+  // KINEO-AFILIADO-DESTINO-1610 — chave fora da lista cai no destino padrão COM etiqueta (antes: home sem etiqueta).
+  const destination = ROUTE_DESTINATION_BY_KEY.get(key) ?? defaultAffiliateRouteDestination()
   const url = new URL(destination.path, origin)
+  // A etiqueta que o painel e as consultas já leem: utm_source=affiliate + utm_medium=partner (balde "Afiliados"
+  // do apêndice A.1 do plano) e utm_campaign=affiliate_<destino> (contexto "Recommended by a Kineo partner").
   url.searchParams.set('utm_source', 'affiliate')
   url.searchParams.set('utm_medium', 'partner')
   url.searchParams.set('utm_campaign', destination.campaign)
+  // utm_content=<CÓDIGO>: o trackEvent copia os utm_* guardados para todo evento da sessão, então a visita
+  // (landing_session_started) passa a dizer DE QUAL afiliado veio. Só analytics: o dono financeiro continua sendo o
+  // par de cookies sf_aff + sf_aff_click com prova no banco.
+  const normalizedCode = (code ?? '').trim().toUpperCase()
+  if (AFFILIATE_CODE_SHAPE.test(normalizedCode)) url.searchParams.set('utm_content', normalizedCode)
   return url
 }
 
@@ -172,9 +201,23 @@ export function affiliateDestinationBucket(
 // que se declaram, sem pegar o celular Cubot (o UA dele traz `Cubot X30 Build/` ou `CUBOT_P40`: depois do "bot" vem
 // espaço ou `_`, nunca `/;)`/dígito — ver o guardião scripts/test-afiliados-atribuicao-2026-10-03.mjs, que prova os
 // dois lados).
+//
+// KINEO-AFILIADO-DESTINO-1610 — medido em affiliate_clicks (28 dias até 15/10): 27 linhas ainda eram máquina com UA
+// que a lista não conhecia — curl/8.5.0 (9), Google-Safety (7, quatro disfarçadas de Nexus 5X), python-requests (3),
+// kuma-check (2, monitor de disponibilidade), SubstackContentFetch (1), curl/7 (1). Somam-se as ferramentas HTTP sem
+// navegador (wget, Go, okhttp, axios, node-fetch, Java, libwww) e o UA vazio. Tokens explícitos, nunca `bot` solto:
+// o celular Cubot continua gente (guardião test-afiliados-atribuicao-2026-10-03).
 const AFFILIATE_PREVIEW_BOT =
-  /(facebookexternalhit|facebot|twitterbot|linkedinbot|slackbot|discordbot|whatsapp|telegrambot|googlebot|bingbot|bytespider|crawler|spider|headlesschrome|[a-z]bot[\/;)\d])/i
+  /(facebookexternalhit|facebot|twitterbot|linkedinbot|slackbot|discordbot|whatsapp|telegrambot|googlebot|bingbot|bytespider|crawler|spider|headlesschrome|[a-z]bot[\/;)\d]|curl\/|wget\/|python-requests|python-urllib|aiohttp|go-http-client|okhttp|axios\/|node-fetch|undici|java\/|libwww|httpclient|google-safety|google-inspectiontool|kuma-check|uptime|contentfetch|fetcher|link-?preview|scanner)/i
+
+/** Por que o UA é máquina (o token casado, ou `empty_user_agent`), ou null quando parece gente. */
+export function affiliateBotReason(userAgent: string | null | undefined): string | null {
+  const ua = (userAgent ?? '').trim()
+  if (!ua) return 'empty_user_agent'
+  const match = AFFILIATE_PREVIEW_BOT.exec(ua)
+  return match ? match[1].toLowerCase().slice(0, 40) : null
+}
 
 export function isAffiliatePreviewBot(userAgent: string | null | undefined): boolean {
-  return AFFILIATE_PREVIEW_BOT.test(userAgent ?? '')
+  return affiliateBotReason(userAgent) !== null
 }

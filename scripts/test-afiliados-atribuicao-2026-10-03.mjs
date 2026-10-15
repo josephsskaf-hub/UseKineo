@@ -165,6 +165,8 @@ async function problems(S) {
       'next/server': { NextResponse: { redirect: mkRedirect } }, crypto,
       '@supabase/supabase-js': { createClient: () => db },
       '@/lib/affiliateDestinations': destinations, '@/lib/affiliateAttribution': attribution,
+      // KINEO-AFILIADO-DESTINO-1610: a rota grava o evento affiliate_link_clicked (robô x gente) via writeServerEvent.
+      '@/lib/serverEvents': { writeServerEvent: async () => true },
       // a branch codex/nuvem-b2b-seo-lacos-0210 acrescenta o desvio de código de INDICAÇÃO; aqui o código é de afiliado.
       '@/lib/referralLanding': { findReferrerIdByCode: async () => null, recordReferralLanding: async () => null, normalizeReferralCode: () => null, REFERRAL_COOKIE: 'sf_ref', REFERRAL_COOKIE_MAX_AGE: 1 },
     })

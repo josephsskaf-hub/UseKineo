@@ -1,18 +1,23 @@
 // #479 — Affiliate link handler: /a/{CODE}
 // Logs the click, sets a 90-day FIRST-TOUCH cookie (only if not already set),
-// then redirects to one allowlisted first-party acquisition surface (or the
-// homepage for legacy/invalid links). Attribution is finalized at signup by
-// /api/affiliate/attribute reading this cookie. Service-role only (RLS deny-all).
+// then redirects to one allowlisted first-party acquisition surface (since
+// KINEO-AFILIADO-DESTINO-1610 legacy/invalid links go to the tagged default
+// destination, never to an untagged homepage). Attribution is finalized at
+// signup by /auth/callback + /api/auth/activation-completed (and again before
+// the Stripe session) reading this cookie. Service-role only (RLS deny-all).
 import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'crypto'
 import { createClient as createAdmin } from '@supabase/supabase-js'
 import {
+  affiliateBotReason,
   affiliateClickLandingPath,
   buildAffiliateRouteDestinationUrl,
+  defaultAffiliateRouteDestination,
   getAffiliateRouteDestination,
   isAffiliatePreviewBot,
 } from '@/lib/affiliateDestinations'
 import { normalizeAffiliateClickId, normalizeAffiliateCode } from '@/lib/affiliateAttribution'
+import { writeServerEvent } from '@/lib/serverEvents'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -43,17 +48,64 @@ function admin() {
   )
 }
 
+// KINEO-AFILIADO-DESTINO-1610 — evento de clique que separa robô de gente. `affiliate_clicks` só recebe humano
+// (é a prova financeira e o "Link visits" do parceiro); este evento recebe TODO clique de código ativo, com
+// is_bot + motivo, para o placar contar gente sem inflar e ainda enxergar quanto robô cada link atrai.
+// Sem código nem UUID de prova: affiliate_id (interno) e o caminho público que a pessoa usou bastam.
+// Nome reservado ao servidor em app/api/events/route.ts (SERVER_ONLY_EVENTS) — o navegador não forja clique.
+type AffiliateClickOutcome = 'bot' | 'same_browser_refresh' | 'counted' | 'click_log_failed' | 'proof_lookup_failed'
+
+function referrerHost(raw: string | null): string | null {
+  if (!raw) return null
+  try {
+    return new URL(raw).hostname.replace(/^www\./, '').slice(0, 120) || null
+  } catch {
+    return null
+  }
+}
+
+async function recordAffiliateClickEvent(input: {
+  affiliateId: string
+  landingPath: string
+  destinationKey: string
+  explicitDestination: boolean
+  botReason: string | null
+  outcome: AffiliateClickOutcome
+  referrer: string | null
+}): Promise<void> {
+  try {
+    await writeServerEvent({
+      name: 'affiliate_link_clicked',
+      path: input.landingPath,
+      metadata: {
+        affiliate_id: input.affiliateId,
+        destination: input.destinationKey,
+        explicit_to: input.explicitDestination,
+        is_bot: input.botReason !== null,
+        bot_reason: input.botReason,
+        outcome: input.outcome,
+        counted: input.outcome === 'counted',
+        referrer_host: referrerHost(input.referrer),
+      },
+    })
+  } catch {
+    // Medição nunca segura o redirecionamento.
+  }
+}
+
 export async function GET(req: NextRequest, { params }: { params: { code: string } }) {
   const appUrl = req.nextUrl.origin
   const code = normalizeAffiliateCode(params.code)
-  if (!code) return NextResponse.redirect(appUrl)
 
-  // `to` is an enum, never a path or URL. Invalid/malicious values preserve
-  // the legacy homepage behavior and can never become an open redirect.
-  const destination = getAffiliateRouteDestination(req.nextUrl.searchParams.get('to'))
-  const destinationUrl = destination
-    ? buildAffiliateRouteDestinationUrl(appUrl, destination.key)
-    : new URL('/', appUrl)
+  // KINEO-AFILIADO-DESTINO-1610 — TODO redirecionamento sai com etiqueta de afiliado para a página que mais
+  // cadastra. `to` é uma chave de lista branca, nunca caminho ou URL: valor ausente, desconhecido ou malicioso cai
+  // no destino padrão (video), jamais em outro host. Antes: sem `?to=` (ou código inválido/inativo, ou banco fora)
+  // a pessoa caía na home SEM utm e virava "direto" no placar.
+  const requested = getAffiliateRouteDestination(req.nextUrl.searchParams.get('to'))
+  const destination = requested ?? defaultAffiliateRouteDestination()
+  const explicit = requested !== null
+  const destinationUrl = buildAffiliateRouteDestinationUrl(appUrl, destination.key, code)
+  if (!code) return NextResponse.redirect(destinationUrl)
 
   try {
     const sb = admin()
@@ -63,14 +115,30 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
       .eq('code', code)
       .single()
 
-    // Unknown or inactive code → just send them home, no cookie, no click row.
+    // Unknown or inactive code → useful tagged destination, but no cookie and no click row.
     if (!aff || aff.status !== 'active') {
-      return NextResponse.redirect(appUrl)
+      return NextResponse.redirect(destinationUrl)
     }
 
     const res = NextResponse.redirect(destinationUrl)
     const userAgent = (req.headers.get('user-agent') ?? '').slice(0, 300)
-    if (isAffiliatePreviewBot(userAgent)) return res
+    const referrer = req.headers.get('referer')
+    const landingPath = affiliateClickLandingPath(code, explicit ? destination : null)
+    // Decide com o filtro de sempre; o motivo (token casado ou UA vazio) só alimenta o evento robô x gente.
+    const botReason = isAffiliatePreviewBot(userAgent) ? affiliateBotReason(userAgent) : null
+    const clickEvent = (outcome: AffiliateClickOutcome) => recordAffiliateClickEvent({
+      affiliateId: aff.id,
+      landingPath,
+      destinationKey: destination.key,
+      explicitDestination: explicit,
+      botReason,
+      outcome,
+      referrer,
+    })
+    if (botReason) {
+      await clickEvent('bot')
+      return res
+    }
     const existingRaw = req.cookies.get(COOKIE)?.value
     const existingCode = normalizeAffiliateCode(existingRaw)
     const existingClickId = normalizeAffiliateClickId(req.cookies.get(CLICK_COOKIE)?.value)
@@ -85,7 +153,10 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
         .eq('id', existingClickId)
         .eq('affiliate_id', aff.id)
         .maybeSingle()
-      if (sameProofError) return res
+      if (sameProofError) {
+        await clickEvent('proof_lookup_failed')
+        return res
+      }
       if (sameProof?.id === existingClickId) {
         res.cookies.set(COOKIE_HINT, '1', {
           maxAge: COOKIE_MAX_AGE,
@@ -93,6 +164,7 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
           secure: true,
           path: '/',
         })
+        await clickEvent('same_browser_refresh')
         return res
       }
     }
@@ -115,7 +187,7 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
           affiliate_id: aff.id,
           ip_hash: ipHash,
           user_agent: userAgent,
-          landing_path: affiliateClickLandingPath(code, destination),
+          landing_path: landingPath,
           referrer: (req.headers.get('referer') ?? '').slice(0, 300),
         })
         .select('id')
@@ -191,9 +263,11 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
         path: '/',
       })
     }
+    await clickEvent(clickProofId ? 'counted' : 'click_log_failed')
     return res
   } catch (err) {
     console.error('[affiliate /a] error:', err)
-    return NextResponse.redirect(appUrl)
+    // Banco fora: destino útil e etiquetado, mas sem cookie nem clique (fail closed para o dinheiro).
+    return NextResponse.redirect(destinationUrl)
   }
 }

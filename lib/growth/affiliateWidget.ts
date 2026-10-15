@@ -30,5 +30,6 @@ export function buildAffiliateWidgetSnippet(baseLink: string): string {
 export function buildAffiliateWidgetCta(rawCode: string | null | undefined): string {
   const code = normalizeAffiliateCode(rawCode)
   if (!code) return GENERIC_WIDGET_CTA
-  return `${CANONICAL_ORIGIN}/a/${code}?to=script`
+  // KINEO-AFILIADO-DESTINO-1610 — mesmo destino padrão do painel (video cadastra 52%; script, 2%).
+  return `${CANONICAL_ORIGIN}/a/${code}?to=video`
 }

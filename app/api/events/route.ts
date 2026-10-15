@@ -51,6 +51,9 @@ const SERVER_ONLY_EVENTS = new Set([
   // dentro da rota, e é ele que passa a guardar o que a Fal respondeu.
   'cinematic_submission_claim',
   'cinematic_dispatch_result',
+  // KINEO-AFILIADO-DESTINO-1610 — clique de link de afiliado (robô x gente), escrito só por app/a/[code]/route.ts.
+  // Forjado pelo navegador, inflaria o placar do parceiro que o fundador usa para decidir quem recebe cortesia.
+  'affiliate_link_clicked',
   'payment_success',
   'checkout_attempted',
   'checkout_auth_required',

@@ -646,7 +646,7 @@ export default function AffiliatePage() {
         </div>
         <div className="text-xs mb-3" style={{ color: MUTED, lineHeight: 1.5 }}>
           <strong style={{ color: TEXT }}>{selectedDestination.label}.</strong>{' '}
-          Visitors can generate a useful script before signup instead of landing on the generic homepage.{' '}
+          Visitors land on a free page that matches your post instead of the generic homepage.{' '}
           {selectedDestination.description}
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
@@ -764,7 +764,7 @@ export default function AffiliatePage() {
           </h2>
           <p className="text-xs mb-4" style={{ color: MUTED, lineHeight: 1.55 }}>
             Paste this once into a blog, resource page or creator site. The idea rotates daily; when a reader clicks Kineo,
-            your existing partner attribution sends them to the free script generator.
+            your existing partner attribution sends them to the free AI Shorts generator.
           </p>
           <div
             className="rounded-xl p-3 mb-3 flex justify-center"

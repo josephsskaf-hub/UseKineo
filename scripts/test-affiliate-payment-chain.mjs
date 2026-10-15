@@ -112,6 +112,8 @@ function setup() {
       '@supabase/supabase-js': { createClient: () => db },
       '@/lib/affiliateDestinations': compile(read('lib/affiliateDestinations.ts')),
       '@/lib/affiliateAttribution': attribution,
+      // KINEO-AFILIADO-DESTINO-1610: a rota grava o evento affiliate_link_clicked (robô x gente) via writeServerEvent.
+      '@/lib/serverEvents': { writeServerEvent: async () => true },
     })
     now = initialTime - 3600000
     let response

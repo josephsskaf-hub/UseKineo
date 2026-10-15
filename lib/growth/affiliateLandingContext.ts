@@ -25,7 +25,8 @@ const COPY: Record<AffiliateDestinationKey, Omit<AffiliateLandingContextCopy, 'd
   video: {
     eyebrow: 'Recommended by a Kineo partner',
     heading: 'Test the complete Short workflow before you decide.',
-    body: 'Your partner sent you straight to the Fast test: start with one idea and judge the scripted, voiced, captioned video yourself.',
+    // KINEO-AFILIADO-DESTINO-1610 — destino padrão do link agora; "Fast test" (Kineo 1) não é mais o grátis.
+    body: 'Your partner sent you straight to the free first test: start with one idea and judge the scripted, voiced, captioned video yourself.',
     action: 'Try the free video workflow',
   },
   faceless: {
