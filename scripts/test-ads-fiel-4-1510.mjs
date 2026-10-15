@@ -560,10 +560,10 @@ await check('V3 dinheiro e acesso intocados: v2Billing, v2Tiers, v2StartCore, /s
   const nomes = diffDoConserto(['--name-only']).split('\n')
   return f.every((p) => base(p) !== null && rd(p) === base(p) && !nomes.includes(p))
 })
-await check('V4 a trava (reancorado KINEO-ADS-FIEL-LIGA-1510 — fundador ligou para todos em 15/10): o arquivo VIVO traz o modo "all" uma vez e o módulo vivo devolve "all"; desfeito o liga, este conserto lê exatamente o "internal" de antes', () => {
+await check('V4 a trava (reancorado KINEO-ADS-FIEL-VOLTA-1510 — rollback 15/10 noite: reteste Fiel 5 reprovou (exemplo 0.637 copiado, corner_person falso)): o arquivo VIVO traz o modo "internal" uma vez (o "all" do liga sumiu) e o módulo vivo devolve "internal"; desfeitos rollback e liga, este conserto lê exatamente o "internal" de antes', () => {
   const cru = readFileSync(join(ROOT, F.shotLists), 'utf8').replace(/\r\n/g, '\n')
   const SLvivo = pure({ [F.shotLists]: semFiel5_1510(F.shotLists, cru) })(F.shotLists)
-  return SLvivo.ADS_V2_PRODUCT_LOCK_MODE === 'all' && cru.split("export const ADS_V2_PRODUCT_LOCK_MODE: 'off' | 'internal' | 'all' = 'all' // KINEO-ADS-FIEL-1510 · KINEO-ADS-FIEL-LIGA-1510").length === 2 &&
+  return SLvivo.ADS_V2_PRODUCT_LOCK_MODE === 'internal' && cru.split("export const ADS_V2_PRODUCT_LOCK_MODE: 'off' | 'internal' | 'all' = 'internal' // KINEO-ADS-FIEL-1510 · KINEO-ADS-FIEL-VOLTA-1510").length === 2 && !cru.includes("export const ADS_V2_PRODUCT_LOCK_MODE: 'off' | 'internal' | 'all' = 'all' // KINEO-ADS-FIEL-1510 · KINEO-ADS-FIEL-LIGA-1510") &&
     SL.ADS_V2_PRODUCT_LOCK_MODE === 'internal' && rd(F.shotLists).includes("export const ADS_V2_PRODUCT_LOCK_MODE: 'off' | 'internal' | 'all' = 'internal' // KINEO-ADS-FIEL-1510")
 })
 await check('V5 nenhuma string crua de modelo da OpenAI nas linhas novas (o registro central manda)', () => !/^\+.*['"`](gpt-|o[0-9]-|tts-1|whisper-)/m.test(diffDoConserto(['-U0', '--no-color'], ['lib', 'app'])))
