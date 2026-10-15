@@ -34,7 +34,21 @@
 .faq p { color: #52616e; max-width: 850px; }
 .footer { border-top: 1px solid #dce1e3; padding-top: 25px; font-size: 13px; }
 .footer nav { display: flex; flex-wrap: wrap; gap: 12px 22px; }
+/* KINEO-ORIGEM-IA-LOJAS-1610 — resumo citável, fluxo e tabelas da página de lojas. */
+.summary { background: #edf1f1; border-left: 3px solid #23303b; border-radius: 8px; padding: 18px 22px; margin: 0 0 8px; max-width: 920px; }
+.summary p { margin: 0 0 8px; color: #23303b; }
+.summary p:last-child { margin-bottom: 0; }
+.flow { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px 40px; margin: 0; padding: 0; list-style: none; }
+.flow h3 { font-size: 17px; margin: 0 0 6px; }
+.flow p { font-size: 15px; color: #52616e; margin: 0; }
+.tableWrap { overflow-x: auto; margin: 0 0 14px; border: 1px solid #dce1e3; border-radius: 10px; }
+.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table th, .table td { text-align: left; vertical-align: top; padding: 10px 12px; border-top: 1px solid #dce1e3; }
+.table thead th { border-top: 0; background: #f1f3f2; font-size: 12px; color: #596775; }
+.table td { color: #52616e; }
 @media (max-width: 760px) {
+  .flow { grid-template-columns: 1fr; }
+  .table { min-width: 620px; }
   .page { padding: 18px 22px 32px; }
   .nav { gap: 9px; font-size: 12px; padding-bottom: 12px; }
   .hero { grid-template-columns: 1fr; gap: 30px; padding: 25px 0 38px; }

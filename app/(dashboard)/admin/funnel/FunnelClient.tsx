@@ -120,9 +120,11 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
   }
   const acquisition = data.acquisitionAttribution ?? {
     attributedSignups: 0, attributedActivated: 0, attributedPaid: 0,
-    directOrUnknownSignups: 0, correctedSelfReferrals: 0,
+    directOrUnknownSignups: 0, aiAssistantLikelySignups: 0, correctedSelfReferrals: 0,
     topSource: null, topSourceSignups: 0,
   }
+  // KINEO-ORIGEM-IA-LOJAS-1610 — sessões de pouso por origem; ai_assistant_likely é ESTIMATIVA.
+  const landingSourceMix = data.landingSourceMix ?? { sessions: 0, rows: [] }
   const sourceConversion = data.sourceConversion ?? {
     profilesAvailable: false,
     videosAvailable: false,
@@ -364,7 +366,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
                   return (
                   <tr key={src.source} style={{ borderTop: '1px solid var(--border)', color: 'var(--text2)', background: isChatGpt ? 'rgba(34,211,238,0.07)' : undefined }}>
                     <td className="px-3 py-2 font-bold" style={{ color: isChatGpt ? '#67E8F9' : 'var(--text)' }}>
-                      {src.source}{isChatGpt ? ' · FOCUS' : ''}
+                      {src.source}{isChatGpt ? ' · FOCUS' : ''}{src.source === 'ai_assistant_likely' ? ' · ESTIMATE' : ''}
                     </td>
                     <td className="px-3 py-2">{sourceConversion.profilesAvailable ? fmt(src.signups) : '—'}</td>
                     <td className="px-3 py-2">{sourceConversion.videosAvailable ? fmt(src.completedVideos) : '—'}</td>
@@ -398,6 +400,12 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           accent="#9AA3B2"
         />
         <Card
+          label="AI assistant (likely) · estimate"
+          value={fmt(acquisition.aiAssistantLikelySignups)}
+          hint="no referrer, no utm, landed straight on a content page — may include bookmarks/copied links"
+          accent="#A7F3D0"
+        />
+        <Card
           label="OAuth / checkout refs ignored"
           value={fmt(acquisition.correctedSelfReferrals)}
           hint="historical rows normalized at read time"
@@ -410,6 +418,44 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           accent="#C4B5FD"
         />
       </Section>
+
+      {/* KINEO-ORIGEM-IA-LOJAS-1610 — sessões de pouso por origem. "direct" e "ai_assistant_likely" ficam separados. */}
+      {landingSourceMix.rows.length > 0 && (
+        <section className="mb-7">
+          <div className="mb-3">
+            <h2 className="font-black tracking-tight" style={{ fontSize: '0.88rem', color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              Landing sessions by source · {fmt(landingSourceMix.sessions)} sessions
+            </h2>
+            <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>
+              Sessions, not people. ai_assistant_likely is an ESTIMATE: no referrer and no utm, landing straight on a
+              content/SEO page (never the home). ChatGPT links now open without utm or referrer; this class may also include
+              bookmarks and copied links. chatgpt = only visits with a chatgpt utm or referrer.
+            </p>
+          </div>
+          <div className="rounded-2xl overflow-x-auto" style={{ background: 'var(--card)', border: '1px solid var(--border)' }}>
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr style={{ color: 'var(--muted)' }}>
+                  <th className="px-3 py-2 font-bold">Source</th>
+                  <th className="px-3 py-2 font-bold">Sessions</th>
+                  <th className="px-3 py-2 font-bold">Share</th>
+                </tr>
+              </thead>
+              <tbody>
+                {landingSourceMix.rows.map((row) => (
+                  <tr key={row.source} style={{ borderTop: '1px solid var(--border)', color: 'var(--text2)' }}>
+                    <td className="px-3 py-2 font-bold" style={{ color: row.estimate ? '#A7F3D0' : 'var(--text)' }}>
+                      {row.source}{row.estimate ? ' · ESTIMATE' : ''}
+                    </td>
+                    <td className="px-3 py-2">{fmt(row.sessions)}</td>
+                    <td className="px-3 py-2">{landingSourceMix.sessions > 0 ? pct1(row.sessions / landingSourceMix.sessions) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       {/* ── #475 — Topic performance ──────────────────────────────────────── */}
       {data.topicPerformance && data.topicPerformance.length > 0 && (
