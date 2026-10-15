@@ -13,6 +13,8 @@ const slugs = ['creatify-alternative','topview-alternative','zeely-alternative']
 check('three approved comparison slugs', JSON.stringify(ADS_COMPARISONS.map(c => c.slug)) === JSON.stringify(slugs))
 check('date window comes from the source, not invented per-page access', approvedDoc.includes(`acesso em ${snapshot.accessWindow}`) && ADS_COMPARISON_ACCESS === `${snapshot.accessWindow}/${snapshot.year}`)
 const prices = load('lib/checkoutPricing.ts')
+const novos = load('lib/seo/vsNovos1610.ts') // reancorado KINEO-VS-NOVOS-1610
+const adsOffer = load('lib/growth/adsSegmentPresentation.ts').adsSegmentOffer() // reancorado KINEO-VS-NOVOS-1610
 for (const c of ADS_COMPARISONS) {
   const file = `app/vs/${c.slug}/page.tsx`, mod = load(file)
   const html = renderToStaticMarkup(React.createElement(mod.default))
@@ -26,7 +28,11 @@ for (const c of ADS_COMPARISONS) {
   check(`${c.id}: third-party and unknown translation not promoted to verified`, c.translation === '✓' ? rows.find(r=>r.id==='translation').competitor.startsWith('✓') : rows.find(r=>r.id==='translation').competitor.startsWith('Not confirmed'))
   const url = new URL(adsComparisonCta(c.id),'https://www.usekineo.com')
   check(`${c.id}: CTA gpt24h and per-comparison content`, url.pathname === '/ads' && url.searchParams.get('utm_campaign') === 'gpt24h' && url.searchParams.get('utm_content') === `vs-${c.id}` && html.includes('utm_campaign=gpt24h'))
-  check(`${c.id}: source-derived Kineo price and source-derived competitor price`, html.includes(prices.formatCheckoutMoney('usd',prices.getTierPrice('starter','usd','standard'))) && html.includes(c.price.replace('(anual)','(annual billing)')))
+  // reancorado KINEO-VS-NOVOS-1610 — preço lido de novo na página oficial em 15/10: quem tem leitura nova (Creatify) mostra SÓ
+  // o preço de 15/10 (o da fotografia de 25-26/09 não pode aparecer); os demais seguem exigindo o preço da fotografia. O preço
+  // da Kineo continua vindo das fontes, agora o do anúncio de hoje (créditos por nível) e nunca mais o "N credits per 35-second ad".
+  const fresh = novos.ADS_NOVOS_FACTS[c.id]
+  check(`${c.id}: source-derived Kineo price and source-derived competitor price`, html.includes(prices.formatCheckoutMoney('usd',prices.getTierPrice('starter','usd','standard'))) && html.includes(adsOffer.v2Levels) && !html.includes(`${adsOffer.credits} credits per ${adsOffer.seconds}-second ad`) && (fresh ? html.includes(fresh.price.text) && fresh.price.checkedOn === '2026-10-15' && !html.includes(c.price) : html.includes(c.price.replace('(anual)','(annual billing)'))))
   check(`${c.id}: metadata limits, canonical, own OG`, mod.metadata.title.absolute.length <= 60 && mod.metadata.description.length <= 155 && mod.metadata.alternates.canonical.endsWith(`/vs/${c.slug}`) && mod.metadata.openGraph.images[0].endsWith(`/og/vs-${c.id}.png`))
   const png = readFileSync(resolve(root,`public/og/vs-${c.id}.png`))
   check(`${c.id}: PNG 1200 x 630`, png.readUInt32BE(16) === 1200 && png.readUInt32BE(20) === 630)
