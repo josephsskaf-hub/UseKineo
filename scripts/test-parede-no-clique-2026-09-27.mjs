@@ -13,12 +13,18 @@ const G = rd('app/(dashboard)/generate/GenerateClient.tsx')
 
 // (1) guarda antes do roteiro
 const i0 = G.indexOf("const auto = searchParams?.get('autoanalyze') === '1'")
-const eff = G.slice(i0, G.indexOf('}, [searchParams, activeRenderRestoreResolved, credits, autoWaitTick])', i0))
-checa('auto-analyze: a guarda outOfCredits roda antes de handleAnalyze', eff.indexOf('} else if (outOfCredits()) {') > 0 && eff.indexOf('} else if (outOfCredits()) {') < eff.indexOf("handleAnalyze(sp, { fromTopic: true, skipPreview: true })"))
+// Reancorado 15/10 (KINEO-STUDIO-FANTASMA-1510 — Tab: 1 cr, filme a 9, roteiro escrito mesmo assim): as deps ganharam creditsLoading
+// e a guarda virou `if (credits !== null && outOfCredits())` (o saldo nulo agora sai ANTES, sem seguir). Mesma guarda, mesma ordem.
+const i1 = G.indexOf('}, [searchParams, activeRenderRestoreResolved, credits, autoWaitTick, creditsLoading])', i0)
+const eff = i0 > 0 && i1 > i0 ? G.slice(i0, i1) : ''
+checa('auto-analyze: a guarda outOfCredits roda antes de handleAnalyze', eff.indexOf('if (credits !== null && outOfCredits()) {') > 0 && eff.indexOf('if (credits !== null && outOfCredits()) {') < eff.indexOf("handleAnalyze(sp, { fromTopic: true, skipPreview: true })"))
 checa('auto-analyze: parede abre o modal e NÃO chama o roteiro', /outOfCredits\(\)\) \{[\s\S]*?openOutOfCreditsModal\(\)\n\s+return\n\s+\}/.test(eff))
-checa('auto-analyze: saldo ainda não lido → espera 1,5 s uma vez e tenta de novo', eff.includes('if (credits === null) {') && eff.includes('setTimeout(() => setAutoWaitTick((t) => t + 1), 1500)') && G.includes('}, [searchParams, activeRenderRestoreResolved, credits, autoWaitTick])'))
-checa('auto-analyze: depois da espera segue como sempre (nunca fica sem análise)', /if \(!autoWaitScheduledRef\.current\) \{[\s\S]*?return\n\s+\}\n\s+\}/.test(eff) && eff.includes("handleAnalyze(sp, { fromTopic: true, skipPreview: true })"))
-checa('auto-analyze: a chave só é marcada quando decide (parede ou análise), não na espera', (eff.match(/autoAnalyzeKeyRef\.current = key/g) || []).length === 2 && eff.indexOf('autoAnalyzeKeyRef.current = key') > eff.indexOf('if (credits === null) {'))
+// Reancorado 15/10 (KINEO-STUDIO-FANTASMA-1510, pedido do fundador): "espera 1,5 s e segue sem a guarda" ERA o defeito. Agora o saldo
+// ainda não lido ESPERA a leitura (sem relógio: o efeito roda de novo quando credits/creditsLoading mudam) e a leitura que falhou
+// NÃO segue — pede "Try again". O resto do contrato (nunca abre parede nem roteiro sem decidir pelo saldo) ficou mais apertado.
+checa('auto-analyze: saldo ainda não lido → espera a leitura (sem o teto de 1,5 s) e decide quando ela chega', eff.includes("if (passoAuto === 'checando_saldo') { setAutoanalyzeSaldo('checando_saldo'); return }") && !eff.includes('setTimeout(() => setAutoWaitTick((t) => t + 1), 1500)') && G.includes('}, [searchParams, activeRenderRestoreResolved, credits, autoWaitTick, creditsLoading])'))
+checa('auto-analyze: leitura do saldo falhou → NÃO segue às cegas (pede para tentar de novo)', /if \(passoAuto === 'saldo_falhou'\) \{[\s\S]*?return\n\s+\} \/\/ KINEO-STUDIO-FANTASMA-1510/.test(eff) && eff.indexOf("if (passoAuto === 'saldo_falhou') {") < eff.indexOf("handleAnalyze(sp, { fromTopic: true, skipPreview: true })"))
+checa('auto-analyze: a chave só é marcada quando decide (parede ou análise), não na espera', (eff.match(/consumirAutoanalyze\(key\)/g) || []).length === 2 && !/autoAnalyzeKeyRef\.current = key\n/.test(eff) && eff.indexOf('consumirAutoanalyze(key)') > eff.indexOf("if (passoAuto === 'saldo_falhou') {"))
 checa('auto-analyze: evento wall_before_script com saldo, motor e duração', /trackEvent\('wall_before_script', \{ surface: 'studio_create_autoanalyze', credits, mode, engine: aiEngine, duration \}\)/.test(eff))
 checa('outOfCredits não foi redigitada (fast continua livre da guarda)', G.includes("    if (mode === 'fast') return false\n    if (credits === null) return false"))
 
