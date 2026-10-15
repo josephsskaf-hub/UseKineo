@@ -70,7 +70,11 @@ export function TwoProductsPricingView({ model }: { model: TwoProductsModel }) {
           Clips and narrated films, one credit balance
         </h2>
         <p className="mt-2 text-sm text-[var(--muted)]">
-          Prices in credits. ≈ US$ uses the Creator plan rate ({creditLabel} per credit); Studio credits cost less.
+          {/* KINEO-COPY-CONTRADICOES-1510 — saiu "Studio credits cost less": com o teste de preço de 08/10 o crédito do
+              Creator ficou MAIS BARATO que o do Studio (lib/checkoutPricing.ts TIER_PRICES ÷ TIER_CREDITS, basic × pro).
+              Esta frase não é calculada, então não afirma qual plano é mais barato: a razão muda a cada decisão de preço.
+              (Sem números aqui: o guardião test-precos-dois-produtos proíbe preço digitado no componente.) */}
+          Prices in credits. ≈ US$ uses the Creator plan rate ({creditLabel} per credit).
         </p>
       </div>
 

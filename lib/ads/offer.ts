@@ -144,7 +144,10 @@ export function adsPassCopy() {
     excludes: [
       // KINEO-ADS-V2-VIRADA-2026-09-29 — com o anúncio v2 público, o anúncio de ~15 s EXISTE e o Commercial/Cinema põem o produto
       // da foto dentro de cenas criadas (lib/ads/v2Screen.ts ADS_V2_TIER_COPY): as duas meias-frases viraram mentira e saíram.
-      'Presenter or avatar videos and cloned voices are not part of this pass yet',
+      // KINEO-COPY-CONTRADICOES-1510 — "Presenter or avatar videos … not part of this pass" ficou falso: o anúncio v2 tem a
+      // pessoa de IA opcional (lib/ads/v2Presenter.ts ADS_V2_PRESENTER_PUBLIC, biblioteca fechada de 12, só 9:16). O que segue
+      // fora de verdade: avatar/gêmeo digital da PRÓPRIA pessoa e voz clonada (o ator usa a voz da casa ou a lista fechada).
+      'A custom avatar or digital twin of you, and cloned voices, are not part of this pass yet',
       // KINEO-ADS-REVISAO-2026-09-27 — 1:1, 4:5 e 16:9 existem desde 26/09 (lib/ads/adStyle.ts AD_FORMATS): saíram do "ainda não".
       'Ads with the original audio of your clip are coming next',
     ],

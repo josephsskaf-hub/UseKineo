@@ -355,7 +355,7 @@ function honestyProblems(B, ctx) {
   for (const c of fx) if ((c.badge === 'new') !== ['wings', 'dollar_rain', 'muscle_surge'].includes(c.key)) probs.push(`efeito ${c.key}: selo ${c.badge} em 13/10`)
   if (!T.isNewRelease('2026-10-07', NOW) || T.isNewRelease('2026-10-06', NOW) || T.isNewRelease(undefined, NOW) || T.isNewRelease('2026-10-20', NOW)) probs.push('janela do New ≠ 7 dias')
   // today.json: escolhe e ordena; chave desconhecida some; vencido/quebrado = null.
-  const good = T.parseTrendingToday(JSON.stringify({ date: '2026-10-13', ad_styles: ['beach_ad', 'nao_existe'], clip_effects: ['melt'], topics: ['crime-01'], views: 999 }), NOW)
+  const good = T.parseTrendingToday(JSON.stringify({ date: '2026-10-13', ad_styles: ['beach_ad', 'nao_existe'], clip_effects: ['melt'], topics: ['crime-01'], views: 987654321 }) /* reancorado KINEO-TRENDING-SENTINELA-1510: 999 aparece de verdade num tema (99.9999999% do átomo) quando ele entra na rodada do relógio */, NOW)
   if (!good || good.adStyles.join() !== 'beach_ad,nao_existe' || good.clipEffects.join() !== 'melt') probs.push('today.json válido não lido')
   else {
     const blocks = T.trendingBlocks({ now: NOW, signedIn: true, today: good })
@@ -363,7 +363,7 @@ function honestyProblems(B, ctx) {
     if (b['ad-styles'].cards[0].key !== 'beach_ad' || b['ad-styles'].cards[0].badge !== 'pick') probs.push('escolha da pesquisa não vem primeiro com "Today’s pick"')
     if (b['ad-styles'].cards.some((c) => c.key === 'nao_existe') || b['ad-styles'].cards.length !== S.ADS_V2_STYLES.length) probs.push('pesquisa criou cartão que não existe')
     if (b['clip-effects'].cards[0].key !== 'melt' || b['film-topics'].cards[0].key !== 'crime-01' || b['film-topics'].cards.length !== 8) probs.push('pesquisa não ordena efeitos/temas')
-    if (JSON.stringify(blocks).includes('999')) probs.push('número da pesquisa vazou para a página')
+    if (JSON.stringify(blocks).includes('987654321')) probs.push('número da pesquisa vazou para a página')
   }
   if (T.parseTrendingToday(JSON.stringify({ date: '2026-10-10', ad_styles: ['beach_ad'] }), NOW) !== null) probs.push('today.json vencido aceito')
   if (T.parseTrendingToday('{quebrado', NOW) !== null || T.parseTrendingToday(JSON.stringify({ ad_styles: ['beach_ad'] }), NOW) !== null || T.parseTrendingToday(null, NOW) !== null) probs.push('today.json inválido aceito')

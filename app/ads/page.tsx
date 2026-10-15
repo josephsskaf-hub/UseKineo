@@ -93,6 +93,9 @@ import { readPartnerStatus } from '@/lib/partnerAccess' // KINEO-PARCEIRO-ABRE-T
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — a faixa dos estilos de produto (prévias feitas pelo próprio efeito).
 import { ADS_V2_STYLES, ADS_V2_STYLES_PUBLIC } from '@/lib/ads/v2Styles'
 import { AdsStyleStrip } from '@/components/ads/AdsStyles'
+// KINEO-COPY-CONTRADICOES-1510 — a pessoa de IA do anúncio v2 existe (lib/ads/v2Presenter.ts, só 9:16, lib/ads/v2Formats.ts);
+// a porta passa a dizer isso em "Included" em vez de só listar "Presenter or avatar" em "Not included yet".
+import { ADS_V2_PRESENTER_PUBLIC } from '@/lib/ads/v2Presenter'
 
 export const dynamic = 'force-dynamic'
 
@@ -459,6 +462,7 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
                 <li>Music, a short voice-over you can turn off, and your real logo on the last frame</li>
                 <li>Every shot, the words on screen and the voice-over shown before you pay: planning is free</li>
                 <li>Not happy with a shot? Redo just that one, with the price shown first</li>
+                {ADS_V2_PRESENTER_PUBLIC ? <li>Optional AI presenter: an AI person holds your product and says the voice-over, always labeled as AI, in vertical 9:16</li> : null}
               </ul>
             </div>
             <div className="card">

@@ -6,7 +6,7 @@ import styles from './AdsComparisonPage.module.css'
 
 export function adsComparisonMetadata(c: AdsCompetitor): Metadata {
   const title = `${c.name} alternative for narrated video ads | Kineo`
-  const description = `Compare Kineo Studio Ads with ${c.name}: your materials, narrated ads, pricing sources and honest limits. No avatar or direct social publishing in Kineo.`
+  const description = `Compare Kineo Studio Ads with ${c.name}: your materials, narrated ads, pricing sources and honest limits. No custom avatar or direct publishing in Kineo.` // KINEO-COPY-CONTRADICOES-1510 — o ator de IA opcional existe; "custom" = avatar da própria pessoa (teto de 155 do guardião)
   const url = `https://www.usekineo.com${adsComparisonPath(c.slug)}`
   return { title: { absolute: title }, description, alternates: { canonical: url }, openGraph: { title, description, url, type: 'article', images: [`https://www.usekineo.com/og/vs-${c.id}.png`] }, twitter: { card: 'summary_large_image', title, description, images: [`https://www.usekineo.com/og/vs-${c.id}.png`] } }
 }
@@ -22,7 +22,7 @@ export default function AdsComparisonPage({ competitor }: { competitor: AdsCompe
       <a className={styles.cta} href={adsComparisonCta(competitor.id)}>Explore Studio Ads <span aria-hidden="true">→</span></a>
       <p className={styles.price}>Included in any paid plan · from {offer.starterPrice} USD/month.</p>
     </header>
-    <section className={styles.fit} aria-labelledby="fit-heading"><h2 id="fit-heading">A different job, not a claim to do everything.</h2><p>Choose Kineo when you want a narrated ad assembled from your business materials. If you need an avatar or direct social publishing, those are not part of Studio Ads. Compare the workflow and allowances, not only the entry price.</p></section>
+    <section className={styles.fit} aria-labelledby="fit-heading"><h2 id="fit-heading">A different job, not a claim to do everything.</h2><p>Choose Kineo when you want a narrated ad assembled from your business materials. An optional AI presenter, always labeled as AI, can hold your product; if you need a custom avatar of you or direct social publishing, those are not part of Studio Ads. Compare the workflow and allowances, not only the entry price.</p></section>
     <section aria-labelledby="comparison-heading" className={styles.comparison}>
       <h2 id="comparison-heading">What each workflow includes</h2>
       <p className={styles.source}>Competitor facts according to the official page, as recorded in our research. Access window: {ADS_COMPARISON_ACCESS}. Per-page access dates and some details were not recorded. A missing confirmation is not proof a feature is absent.</p>

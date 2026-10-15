@@ -22,6 +22,8 @@ import { moderateTopic } from '@/lib/safety/topicModeration' // KINEO-MODERACAO-
 import { sanitizeAdsV2Pronounce } from '@/lib/ads/v2Pronounce' // KINEO-ADS-DEMO-UNIVERSO-1410 — "como pronunciar a marca" (só a voz)
 import { AD_BRAND_LIST_STATUSES, adBrandFilter } from '@/lib/ads/brands' // KINEO-ADS-MARCAS-1510 — a lista "Seus anúncios" filtrada por marca
 import { isMissingBrandSchema, orderBrandId } from '@/lib/ads/brandsServer' // KINEO-ADS-MARCAS-1510 — o pedido grava a marca (só uma marca viva DO DONO; sem a tabela = como sempre)
+import { adsListBefore } from '@/lib/ads/adsList' // KINEO-ADS-LISTA-1510 — o cursor do "Carregar mais" (pura)
+import { adsListEnrich } from '@/lib/ads/adsListServer' // KINEO-ADS-LISTA-1510 — miniatura, título limpo, estilo/formato, versões e aprovação (só leitura, só do dono)
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -49,14 +51,18 @@ export async function GET(req: NextRequest) {
       let q = admin.from('ads_v2_orders').select('id, status, tier, seconds, video_id, created_at, brand_id, sentence:brief->>sentence, link:brief->>link').eq('user_id', uid).in('status', [...AD_BRAND_LIST_STATUSES]) // KINEO-ADS-MARCAS-1510
       if (f.kind === 'one') q = q.eq('brand_id', f.id) // KINEO-ADS-MARCAS-1510
       if (f.kind === 'none') q = q.is('brand_id', null) // KINEO-ADS-MARCAS-1510
+      const antes = adsListBefore(req.nextUrl.searchParams.get('before')) // KINEO-ADS-LISTA-1510 — "Carregar mais": só as linhas mais antigas que a última mostrada
+      if (antes) q = q.lt('created_at', antes) // KINEO-ADS-LISTA-1510
       const l = await q.order('created_at', { ascending: false }).limit(40) // KINEO-ADS-MARCAS-1510
       if (l.error && isMissingBrandSchema(l.error.code) && !isMissingAdsTable(l.error.code)) { // KINEO-ADS-MARCAS-1510 — a coluna brand_id ainda não existe: a lista sem marca (o filtro não se aplica)
-        const o = await admin.from('ads_v2_orders').select('id, status, tier, seconds, video_id, created_at, sentence:brief->>sentence, link:brief->>link').eq('user_id', uid).in('status', [...AD_BRAND_LIST_STATUSES]).order('created_at', { ascending: false }).limit(40) // KINEO-ADS-MARCAS-1510
+        let o0 = admin.from('ads_v2_orders').select('id, status, tier, seconds, video_id, created_at, sentence:brief->>sentence, link:brief->>link').eq('user_id', uid).in('status', [...AD_BRAND_LIST_STATUSES]) // KINEO-ADS-MARCAS-1510 · KINEO-ADS-LISTA-1510 — o mesmo cursor sem a coluna da marca
+        if (antes) o0 = o0.lt('created_at', antes) // KINEO-ADS-LISTA-1510
+        const o = await o0.order('created_at', { ascending: false }).limit(40) // KINEO-ADS-MARCAS-1510 · KINEO-ADS-LISTA-1510
         if (o.error) return isMissingAdsTable(o.error.code) ? v2Fail('not_ready', 503) : v2Fail('orders_failed', 502) // KINEO-ADS-MARCAS-1510
-        return v2Json({ orders: o.data ?? [], brands_ready: false }) // KINEO-ADS-MARCAS-1510
+        return v2Json({ orders: await adsListEnrich(admin, uid, o.data ?? []), brands_ready: false }) // KINEO-ADS-MARCAS-1510 · KINEO-ADS-LISTA-1510 — cada linha só com os campos da vista
       } // KINEO-ADS-MARCAS-1510
       if (l.error) return isMissingAdsTable(l.error.code) ? v2Fail('not_ready', 503) : v2Fail('orders_failed', 502) // KINEO-ADS-MARCAS-1510
-      return v2Json({ orders: l.data ?? [], brands_ready: true }) // KINEO-ADS-MARCAS-1510
+      return v2Json({ orders: await adsListEnrich(admin, uid, l.data ?? []), brands_ready: true }) // KINEO-ADS-MARCAS-1510 · KINEO-ADS-LISTA-1510 — cada linha só com os campos da vista
     } // KINEO-ADS-MARCAS-1510
     const { data, error } = await admin
       .from('ads_v2_orders')

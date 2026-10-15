@@ -16,6 +16,7 @@ import StickyGenerateBar from '@/components/StickyGenerateBar'
 import NextActionCard from '@/components/NextActionCard'
 import UpgradeModalTrialDoor from '@/components/UpgradeModalTrialDoor'
 import ConversionUpgrade from '@/components/offers/ConversionUpgrade'
+import { ideiaDoCartao, type FilmeGratisVariante } from '@/lib/growth/paywallFilmePrimeiro' // KINEO-PAYWALL-FILME-PRIMEIRO-1510
 import { MRR_CONVERSION_ENABLED, conversionCheckoutHref, conversionMetadata, type ConversionBilling } from '@/lib/offers/mrrConversion'
 import RegionalFirstPack from '@/components/RegionalFirstPack'
 import RegionPassOffer from '@/components/RegionPassOffer' // KINEO-SAIDA-REGIAO-2026-10-07 (b)
@@ -378,7 +379,7 @@ import {
   type OnboardingGoalId,
 } from '@/lib/growth/onboardingGoals'
 import { FreeTierCopy, useFreeTierOffer } from '@/components/FreeTierOfferProvider'
-import { swapFreeTierCopy as ft, TRIAL_CREDITS_SHOWN, TRIAL_FIRST_FILM_PHRASE } from '@/lib/freeTierOffer'
+import { swapFreeTierCopy as ft, TRIAL_CREDITS_SHOWN, TRIAL_FIRST_FILM_PHRASE, TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer' // KINEO-PAYWALL-FILME-PRIMEIRO-1510: + TRIAL_FREE_FILM_SECONDS
 // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — AvatarPaywallModal import removed.
 // That modal only sold the retired avatar_credits packs (?pack=avatar*). Avatar
 // videos now cost 120 universal credits; the avatar 402 already routes to the
@@ -14503,6 +14504,19 @@ export default function GenerateClient({
               ? { credits, cost: custoSeedance(SEEDANCE_SHORT_SECONDS), seconds: SEEDANCE_SHORT_SECONDS }
               : null
           }
+          // KINEO-PAYWALL-FILME-PRIMEIRO-1510 — a caixa abre com o filme grátis no topo para quem tem 0 filmes. Os filmes do teste
+          // usam o clique de baixo (onFirstFilmFree); o filme grátis de REGIÃO (lido na caixa) desce para o Seedance de 15 s aqui.
+          // Não gera nada: só deixa o Studio no motor e na duração do filme grátis.
+          filmFirst={{
+            filmsDelivered,
+            idea: ideiaDoCartao(prompt),
+            onRegionFreeFilm: () => {
+              void trackEvent('first_film_free_offer_clicked', { reason: upgradeReason, surface: 'generate_upgrade_modal', variant: 'region_free_film', credits: credits ?? null })
+              setShowUpgradeModal(false)
+              setMode('cinematic_ai'); setAiEngine('seedance'); setDuration(SEEDANCE_SHORT_SECONDS)
+              if (scriptMode === 'verbatim' && !roteiroCabeNoFilmeCurto(prompt, SEEDANCE_SHORT_SECONDS, language)) setScriptMode('ai')
+            },
+          }}
           onFirstFilmFree={() => {
             // NAO gera nada: seleciona o motor gratuito e devolve a tela a ela.
             // O clique e da pessoa, exatamente como o card do Kineo 1 no seletor.
@@ -22157,6 +22171,8 @@ function UpgradeModal({
   onFilmPass = null,
   // KINEO-SAIDA-REGIAO-2026-10-07 (b) — do pai: guarda o rascunho antes do checkout do passe da região.
   onRegionPassBeforeBuy = null,
+  // KINEO-PAYWALL-FILME-PRIMEIRO-1510 — ausente = a caixa de hoje.
+  filmFirst = null,
 }: {
   loading: boolean
   onUpgrade: (tier: 'starter' | 'basic' | 'pro', billing?: ConversionBilling) => void
@@ -22222,6 +22238,12 @@ function UpgradeModal({
   onFilmPass?: (() => void) | null
   /** KINEO-SAIDA-REGIAO-2026-10-07 (b) — guardar o rascunho antes do passe da região (o cartão grava a régua do saldo). */
   onRegionPassBeforeBuy?: (() => void) | null
+  /**
+   * KINEO-PAYWALL-FILME-PRIMEIRO-1510 — filmes entregues, a última ideia e o clique do filme grátis de REGIÃO (lido na caixa).
+   * A caixa de conversão abre com o filme grátis no topo para quem tem 0 filmes (planos logo abaixo); ≥ 1 filme = a de hoje.
+   * Os filmes do teste usam o MESMO clique da saída de baixo (onFirstFilmFree).
+   */
+  filmFirst?: { filmsDelivered: number | null; idea: string | null; onRegionFreeFilm: () => void } | null
 }) {
   // KINEO-CHECKOUT-TRIAGE-2026-07-25 — the top-up buttons below were raw
   // window.location.href with only `loading` (a prop that is never true for
@@ -22443,7 +22465,16 @@ function UpgradeModal({
     return <ConversionUpgrade currency={currency} region={region} onClose={onClose} onUpgrade={onUpgrade}
       onFilmPass={isSubscriber ? null : onFilmPass} loading={loading} error={checkoutError}
       freeAction={freeLabel && onFirstFilmFree ? { label: freeLabel, onClick: onFirstFilmFree } : null}
-      regionPass={REGION_PASS_OFFER_LIVE && !isSubscriber ? { beforeBuy: onRegionPassBeforeBuy ?? undefined } : null} /* KINEO-SAIDA-REGIAO-2026-10-07 */ />
+      regionPass={REGION_PASS_OFFER_LIVE && !isSubscriber ? { beforeBuy: onRegionPassBeforeBuy ?? undefined } : null} /* KINEO-SAIDA-REGIAO-2026-10-07 */
+      filmFirst={filmFirst ? {
+        // KINEO-PAYWALL-FILME-PRIMEIRO-1510 — o MESMO filme grátis da saída de baixo (mesma ordem do freeLabel), só que no topo.
+        filmsDelivered: filmFirst.filmsDelivered,
+        idea: filmFirst.idea,
+        freeFilm: firstFilmFree && onFirstFilmFree ? { variant: 'free', seconds: TRIAL_FREE_FILM_SECONDS }
+          : trialSeedance15 && onFirstFilmFree ? { variant: 'trial_seedance15', seconds: trialSeedance15.seconds }
+          : trialKineo1 && onFirstFilmFree ? { variant: 'trial_kineo1', seconds: trialKineo1.seconds } : null,
+        onStart: (variant: FilmeGratisVariante) => { if (variant === 'region_free_film') filmFirst.onRegionFreeFilm(); else onFirstFilmFree?.() },
+      } : null} />
   }
   return (
     <div

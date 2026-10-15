@@ -64,7 +64,9 @@ export const ADS_SEGMENTS: readonly AdsSegment[] = [
     pains: ['Product photos need context, not another slideshow.', 'A campaign needs one clear reason to click.', 'Stock, shipping and offer details must stay accurate.'],
     materials: 'Your store link, logo, product photos or clips, verified product details and destination link.',
     brief: 'Introduce this product using our own photos and the supplied features. End with the product page link.',
-    caution: 'Verify availability, price, shipping and product claims. This uses your assets; it does not create an actor demonstrating your product.',
+    // KINEO-COPY-CONTRADICOES-1510 — saiu "it does not create an actor demonstrating your product": o anúncio v2 tem a pessoa
+    // de IA opcional segurando o produto (lib/ads/v2Presenter.ts, só 9:16). A cautela continua: rotulada como IA, nunca cliente.
+    caution: 'Verify availability, price, shipping and product claims. This starts from your own assets; an optional AI presenter can hold your product in 9:16 ads, always labeled as AI, never as a real customer.',
     exampleVideoUrl: null,
   },
   {
