@@ -242,8 +242,8 @@ function PostLinkGenerator({
         One link per post
       </label>
       <p className="text-xs mb-3" style={{ color: MUTED, lineHeight: 1.5 }}>
-        Name this post and use its own link, so &ldquo;Your links&rdquo; below shows which post brought people in. Same{' '}
-        {destinationLabel.toLowerCase()} page, same 90-day attribution.
+        Name this post and use its own link, so &ldquo;Your links&rdquo; below shows which post brought people in. Same
+        page ({destinationLabel}), same 90-day attribution.
       </p>
       <div className="flex flex-col sm:flex-row gap-2">
         <input
@@ -288,7 +288,10 @@ function PostLinkGenerator({
 // KINEO-AFILIADO-POR-POST-1610 — "Your links": por post e origem, só contagens (nunca quem se cadastrou).
 function YourLinksTable({ links }: { links: AffiliateMe['links'] }) {
   if (!links) return null
-  const cell = 'px-3 py-2 text-right tabular-nums'
+  // No celular (< sm) a coluna "From" dobra para baixo do nome do post: as 4 contagens cabem em 390px sem rolar.
+  const cell = 'px-2 sm:px-3 py-2 text-right tabular-nums'
+  const first = 'px-2 sm:px-3 py-2'
+  const fromCol = 'hidden sm:table-cell px-3 py-2'
   const n = (v: number) => v.toLocaleString('en-US')
   if (!links.available) {
     return (
@@ -317,22 +320,28 @@ function YourLinksTable({ links }: { links: AffiliateMe['links'] }) {
         Where your visitors came from: each post you named and the site that sent them.
       </p>
       <div className="rounded-2xl overflow-x-auto" style={{ background: CARD, border: BORDER }}>
-        <table className="w-full text-left text-xs" style={{ minWidth: 560 }}>
+        <table className="w-full text-left text-xs">
           <thead>
             <tr style={{ color: MUTED }}>
-              <th className="px-3 py-2 font-bold">Post</th>
-              <th className="px-3 py-2 font-bold">From</th>
-              <th className="px-3 py-2 font-bold text-right">Visits</th>
-              <th className="px-3 py-2 font-bold text-right">Signups</th>
-              <th className="px-3 py-2 font-bold text-right">Made a 1st film</th>
-              <th className="px-3 py-2 font-bold text-right">Paid</th>
+              <th className={`${first} font-bold`}>Post</th>
+              <th className={`${fromCol} font-bold`}>From</th>
+              <th className={`${cell} font-bold`}>Visits</th>
+              <th className={`${cell} font-bold`}>Signups</th>
+              <th className={`${cell} font-bold`}>
+                <span className="hidden sm:inline">Made a 1st film</span>
+                <span className="sm:hidden">1st film</span>
+              </th>
+              <th className={`${cell} font-bold`}>Paid</th>
             </tr>
           </thead>
           <tbody>
             {links.rows.map((r) => (
               <tr key={`${r.post ?? ''}|${r.origin}`} style={{ borderTop: BORDER, color: TEXT }}>
-                <td className="px-3 py-2 font-bold" style={{ color: r.post ? TEXT : MUTED, wordBreak: 'break-all' }}>{r.post ?? '(no post name)'}</td>
-                <td className="px-3 py-2">{ORIGIN_LABEL[r.origin] ?? ORIGIN_LABEL.other}</td>
+                <td className={`${first} font-bold`} style={{ color: r.post ? TEXT : MUTED, wordBreak: 'break-all' }}>
+                  {r.post ?? '(no post name)'}
+                  <span className="sm:hidden block font-normal text-[10px]" style={{ color: MUTED }}>{ORIGIN_LABEL[r.origin] ?? ORIGIN_LABEL.other}</span>
+                </td>
+                <td className={fromCol}>{ORIGIN_LABEL[r.origin] ?? ORIGIN_LABEL.other}</td>
                 <td className={cell}>{n(r.clicks)}</td>
                 <td className={cell}>{n(r.signups)}</td>
                 <td className={cell}>{n(r.first_film)}</td>
@@ -341,8 +350,8 @@ function YourLinksTable({ links }: { links: AffiliateMe['links'] }) {
             ))}
             {extraRows.map((r) => (
               <tr key={r.key} style={{ borderTop: BORDER, color: MUTED }}>
-                <td className="px-3 py-2 italic">{r.label}</td>
-                <td className="px-3 py-2">{r.origin}</td>
+                <td className={`${first} italic`}>{r.label}</td>
+                <td className={fromCol}>{r.origin}</td>
                 <td className={cell}>{n(r.counts.clicks)}</td>
                 <td className={cell}>{n(r.counts.signups)}</td>
                 <td className={cell}>{n(r.counts.first_film)}</td>
@@ -357,7 +366,8 @@ function YourLinksTable({ links }: { links: AffiliateMe['links'] }) {
               </tr>
             ) : (
               <tr style={{ borderTop: BORDER, color: TEXT }}>
-                <td className="px-3 py-2 font-black" colSpan={2}>Total</td>
+                <td className={`${first} font-black`}>Total</td>
+                <td className={fromCol} />
                 <td className={`${cell} font-black`}>{n(links.totals.clicks)}</td>
                 <td className={`${cell} font-black`}>{n(links.totals.signups)}</td>
                 <td className={`${cell} font-black`}>{n(links.totals.first_film)}</td>

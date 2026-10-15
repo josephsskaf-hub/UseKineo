@@ -425,7 +425,7 @@ async function problems(S) {
     fail(pg.includes('<PostLinkGenerator') && pg.includes('Name this post') && pg.includes('Copy post link') && pg.includes('buildAffiliatePostShareLink(baseLink, destinationKey, tag)'), 'gerador "name this post" ausente')
     fail(/robots and link previews are excluded/.test(pg) && /first partner link the person clicked, for 90 days/.test(pg) && /Visits are people, not page loads/.test(pg), 'rodapé honesto ausente')
     fail(/Never who signed up|never who signed up/.test(pg), 'rodapé não diz que só há contagens')
-    for (const col of ['>Visits<', '>Signups<', '>Made a 1st film<', '>Paid<', '>From<', '>Post<']) fail(pg.includes(col), `coluna ${col} ausente`)
+    for (const col of ['>Visits<', '>Signups<', '>Made a 1st film<', '>Paid<', '>From<', '>Post<', '>1st film<']) fail(pg.includes(col), `coluna ${col} ausente`)
   }
   return p
 }
