@@ -33,3 +33,11 @@
   .page th, .page td { padding: 16px; }
   .page tbody th { position: sticky; left: 0; background: #fafaf8; box-shadow: 1px 0 #dce1e3; }
 }
+/* KINEO-VS-NOVOS-1610 — resumo em 3 linhas, "when to pick them instead", FAQ e links relacionados. */
+.summary { max-width: 830px; color: #52616e; padding-left: 22px; margin: 0; display: grid; gap: 10px; }
+.faq { max-width: 830px; display: grid; gap: 10px; }
+.faq details { border: 1px solid #dce1e3; border-radius: 10px; padding: 14px 18px; background: #ffffff; }
+.faq summary { cursor: pointer; font-weight: 600; }
+.faq summary:focus-visible { outline: 3px solid #2866d8; outline-offset: 4px; }
+.faq p { margin: 10px 0 0; color: #52616e; }
+.related { display: flex; flex-wrap: wrap; gap: 12px 22px; margin-top: 22px; font-size: 14px; }

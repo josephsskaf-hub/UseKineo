@@ -19,7 +19,7 @@ import { LOCALIZED_ENGINE_SLUGS, ENGINE_LANG_CODES } from '@/lib/seo/enginePageL
 // KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — the self-serve ads door enters the map only while the pass is on sale.
 import { adsPassLive } from '@/lib/ads/offer'
 import { ADS_SEGMENT_SLUGS, ADS_SEGMENTS_UPDATED, adsSegmentPath } from '@/lib/growth/adsSegments'
-import { ADS_COMPARISONS, adsComparisonPath } from '@/lib/growth/adsComparisons'
+import { ADS_COMPARISONS, ADS_COMPARISONS_1610, adsComparisonPath } from '@/lib/growth/adsComparisons'
 import { SHOWCASE_PUBLIC } from '@/lib/showcaseTelemetry'
 import { effectSitemapEntries } from '@/lib/clips/clipEffectPages'
 // KINEO-INDICE-VIDEO-IA-2026-10-06 — o Kineo AI Video Index mensal; lastmod = a leitura da edição vigente (manchete
@@ -37,6 +37,8 @@ import { GEO_RODADA3_ALTERNATIVE_SLUGS, GEO_RODADA3_LAST_MODIFIED_ISO, GEO_RODAD
 import { LOTE1_LANDING_PATH_LIST, LOTE1_NICHE_SLUG_LIST, LOTE1_REVIEWED_ISO } from '@/lib/seo/paginasLote1Paths'
 // KINEO-VS-ALTERNATIVAS-1310 — as 4 páginas /vs "alternativa a X" (Pictory, Synthesia, CapCut, OpusClip). Módulo PURO, sem import.
 import { VS_ALTERNATIVE_LINKS, VS_ALT_REVIEWED_ISO } from '@/lib/seo/vsAlternatives1310'
+// KINEO-VS-NOVOS-1610 — Google Flow e Dreamina (molde das irmãs) e Arcads (molde do Ads). Módulo PURO, sem import.
+import { VS_NOVOS_LINKS, VS_NOVOS_REVIEWED_ISO } from '@/lib/seo/vsNovos1610'
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -442,6 +444,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...VS_ALTERNATIVE_LINKS.map(({ path }) => ({
       url: `${BASE}${path}`,
       lastModified: VS_ALT_REVIEWED_ISO,
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    })),
+    // KINEO-VS-NOVOS-1610 — os 5 nomes que o ChatGPT cita e a Kineo não: Flow e Dreamina (irmãs acima) e Arcads (molde do Ads);
+    // data própria = dia em que os fatos foram lidos nas páginas oficiais.
+    ...[...VS_NOVOS_LINKS.map(({ path }) => path), ...ADS_COMPARISONS_1610.map(({ slug }) => adsComparisonPath(slug))].map((path) => ({
+      url: `${BASE}${path}`,
+      lastModified: VS_NOVOS_REVIEWED_ISO,
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     })),

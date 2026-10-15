@@ -71,6 +71,7 @@ export type CitationGuideId = 'script' | 'tiktok' | 'cost' | 'invideo' | 'budget
 // KINEO-VS-ALTERNATIVAS-1310 — as 4 páginas /vs "alternativa a X" de 13/10 usam o MESMO molde e o mesmo padrão de campanha
 // (citacoes_01_<id>); os dados ficam em lib/growth/vsAlternativeAnswers.ts, fora de CITATION_ANSWERS (as 8 guias de sempre).
 export type CitationAnswerId = CitationGuideId | import('@/lib/seo/vsAlternatives1310').VsAlternativeId
+  | import('@/lib/seo/vsNovos1610').VsNovoId // KINEO-VS-NOVOS-1610 — Google Flow e Dreamina, mesmo molde e campanha
 type Faq = { question: string; answer: string }
 export type CitationAnswer = {
   id: CitationAnswerId
@@ -78,7 +79,8 @@ export type CitationAnswer = {
   label: string
   question: string
   description: string
-  answer: readonly [string, string]
+  /** 2 frases; as páginas /vs de 15/10 (KINEO-VS-NOVOS-1610) trazem uma 3ª: o resumo citável de 3 linhas. */
+  answer: readonly [string, string] | readonly [string, string, string]
   workflow: readonly [string, string, string]
   decisionTitle: string
   decision: string

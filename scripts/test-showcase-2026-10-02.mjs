@@ -171,6 +171,10 @@ function discovery(overrides = {}) {
       // (lib/seo/vsAlternatives1310.ts); without them this run died mapping an undefined list. Inert here: the real entries
       // are exercised by test-vs-alternativas-1310, and the run below still REQUIRES the showcase/hub/study entries as before.
       VS_ALT_REVIEWED_ISO: '2026-10-13', VS_ALTERNATIVE_LINKS: [],
+      // KINEO-VS-NOVOS-1610 (re-anchored 15/10) — the sitemap imports the Flow/Dreamina pages (lib/seo/vsNovos1610.ts) and the
+      // Arcads ad comparison; without them this run died mapping an undefined list. Inert here: the real entries are exercised by
+      // test-vs-novos-1610, and the run below still REQUIRES the showcase/hub/study entries exactly as before.
+      VS_NOVOS_REVIEWED_ISO: '2026-10-15', VS_NOVOS_LINKS: [], ADS_COMPARISONS_1610: [],
     }
     new Function('exports', 'require', 'module', js)(mod.exports, () => fixtures, mod)
     return mod.exports.default()
