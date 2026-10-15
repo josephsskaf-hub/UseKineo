@@ -25,6 +25,8 @@ import { ADS_V2_OVERLAY_MAX_CHARS } from '@/lib/ads/v2ShotLists' // KINEO-ANUNCI
 import { ADS_V2_PLAN_DAILY_CAP, checkV2Prompts, extractAdsV2Brief } from '@/lib/ads/v2Brief'
 import { adsV2LinkText } from '@/lib/ads/v2Link'
 import { researchState, storedResearchFacts } from '@/lib/ads/v2Research'
+import { adsV2PageTextForBrief } from '@/lib/ads/v2Research' // KINEO-ADS-FIEL-2-1510 — a página do link só entra com o que a pessoa marcou (nada de franquia nos roteiros)
+import { adsV2PlanDailyCapFor, adsV2PlansLeft } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-2-1510 — teto por conta (casa sem teto, Business 60) e o contador
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — interruptor único dos estilos de produto (false = o campo `style` é ignorado aqui).
 import { ADS_V2_STYLES_PUBLIC } from '@/lib/ads/v2Styles'
 // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator de IA (interruptor único + o plano dele: foto do produto, pessoa e prompt).
@@ -109,8 +111,10 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
 
     // Teto diário ANTES do modelo.
     const since = new Date(Date.now() - 24 * 3600_000).toISOString()
-    const cap = await admin.from('events').select('id', { count: 'exact', head: true }).eq('user_id', uid).eq('name', 'ads_v2_plan_served').gte('created_at', since)
-    if (!cap.error && (cap.count ?? 0) >= ADS_V2_PLAN_DAILY_CAP) return v2Fail('daily_limit', 429)
+    const capFor = adsV2PlanDailyCapFor({ internal: reason === 'internal', plan: ws.ownerPlan, base: ADS_V2_PLAN_DAILY_CAP }) // KINEO-ADS-FIEL-2-1510 — 'internal' = isAdsInternalEmail (a casa decide primeiro em adsAccessReason): sem teto
+    const cap = capFor === null ? { error: null, count: 0 } : await admin.from('events').select('id', { count: 'exact', head: true }).eq('user_id', uid).eq('name', 'ads_v2_plan_served').gte('created_at', since) // KINEO-ADS-FIEL-2-1510
+    if (capFor !== null && !cap.error && (cap.count ?? 0) >= capFor) return v2Fail('daily_limit', 429, { plans_left: 0 }) // KINEO-ADS-FIEL-2-1510 — Business 60; as outras contas, os 20 de sempre
+    const plansLeft = capFor === null || cap.error ? null : adsV2PlansLeft(capFor, cap.count ?? 0) // KINEO-ADS-FIEL-2-1510 — o contador "N roteiros restantes hoje" (null = sem teto)
 
     // A duração que manda é a MEDIDA aqui (mvhd do arquivo no bucket), nunca a do navegador. Não mediu ou curto demais =
     // 422 com o id: a tela transforma ESSE vídeo em fotos (plano B) e a pessoa planeja de novo, grátis.
@@ -151,14 +155,14 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     if (simple && text && typeof brief0.link === 'string' && brief0.link) {
       const page = await adsV2LinkText(brief0.link).catch(() => null)
       if (page) {
-        text = `${text}\nFrom the product page: ${page.text}`
+        text = `${text}\nFrom the product page: ${adsV2PageTextForBrief(page.text, { factsOffered: known.length > 0 })}` // KINEO-ADS-FIEL-2-1510 — com fatos oferecidos, a descrição da página não entra (só o que foi marcado)
         pageLang = page.lang
       }
     }
     if (!text && typeof brief0.link === 'string' && brief0.link) {
       const read = await adsV2LinkText(brief0.link)
       if (!read) return v2Fail('link_unreachable', 422)
-      text = read.text
+      text = adsV2PageTextForBrief(read.text, { factsOffered: known.length > 0 }) // KINEO-ADS-FIEL-2-1510 — sem frase institucional (franquia, vagas, investidores)
       pageLang = read.lang
     }
     if (!text) return v2Fail('sentence_or_link_required', 400)
@@ -289,6 +293,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
       ad_kind: adsV2IsProductOrder(brief0, sector) ? 'product' : 'place', // KINEO-ADS-CENA-2026-10-13 — rótulos do plano (produto: nada de "Your place")
       scripts, // KINEO-ADS-ROTEIROS-2026-10-13 — [{ id, tone, label, narration, overlays, words }], 1 a 3 (contrato em lib/ads/v2Scripts.ts)
       script_id: scripts[0]?.id ?? 'a', // KINEO-ADS-ROTEIROS-2026-10-13 — o roteiro que está no plano
+      plans_left: plansLeft, // KINEO-ADS-FIEL-2-1510 — roteiros que ainda cabem hoje (null = conta da casa, sem teto)
       shots: plan.shots.map((s) => ({ idx: s.idx, role: s.role, beat: s.beat, kind: s.kind, source: s.source, cut_seconds: s.cutSeconds, photo: s.sourceFootageId, ...(s.effect ? { effect: s.effect } : {}) })),
     })
   } catch (e) {

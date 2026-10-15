@@ -372,7 +372,7 @@ export function adsV2LayoutPng(cutTrimmed: AdsV2Rgba, format: AdsV2Format, mode:
  * O QUADRO TRAVADO (PNG RGB, no tamanho do formato do anúncio): a cena do Nano Banana em `cover` (centro) + o recorte REAL colado
  * no MESMO retângulo do esboço. Devolve também o retângulo (para o evento e para a montagem, se um dia quiser sobrepor).
  */
-export function adsV2LockedFramePng(scene: AdsV2Rgba, cutTrimmed: AdsV2Rgba, format: AdsV2Format, mode: AdsV2ProductLockMode): { png: Uint8Array; rect: { x: number; y: number; w: number; h: number }; width: number; height: number } {
+export function adsV2LockedFramePng(scene: AdsV2Rgba, cutTrimmed: AdsV2Rgba, format: AdsV2Format, mode: AdsV2ProductLockMode, opts: { shade?: boolean } = {}): { png: Uint8Array; rect: { x: number; y: number; w: number; h: number }; width: number; height: number; shade?: AdsV2Shade } { // KINEO-ADS-FIEL-2-1510 — opts.shade: sombra de contato + tom da cena (sem a opção = o quadro de antes, pixel a pixel)
   const crop = ADS_V2_FORMAT_CROP[format] ?? ADS_V2_FORMAT_CROP['9:16']
   const W = crop.width
   const H = crop.height
@@ -383,6 +383,123 @@ export function adsV2LockedFramePng(scene: AdsV2Rgba, cutTrimmed: AdsV2Rgba, for
   const frame = resampleRgba(scene, W, H, { sx: (scene.width - sw) / 2, sy: (scene.height - sh) / 2, sw, sh })
   for (let i = 3; i < frame.data.length; i += 4) frame.data[i] = 255
   const { rect, piece } = placeCutout(W, H, cutTrimmed, mode)
+  const shade = opts.shade === true ? adsV2ShadeAndMatch(frame, piece, rect, mode) : undefined // KINEO-ADS-FIEL-2-1510
   pasteOver(frame, piece, rect.x, rect.y)
-  return { png: encodePng(frame), rect, width: W, height: H }
+  return { png: encodePng(frame), rect, width: W, height: H, ...(shade ? { shade } : {}) } // KINEO-ADS-FIEL-2-1510
+}
+
+// ── KINEO-ADS-FIEL-2-1510 — o recorte "colado" ganha a luz da cena (QA 15/10: "parece recortado e colado") ─────────────────────
+// KINEO-ADS-FIEL-2-1510 — barato e em JS puro sobre o RGBA já decodificado (sem sharp/canvas): (1) TOM — a luminância média e a
+// KINEO-ADS-FIEL-2-1510 — temperatura (R−B) da área da cena onde o produto pousa puxam o recorte de leve, com teto (o produto continua o
+// KINEO-ADS-FIEL-2-1510 — do cliente: ganho entre ADS_V2_SHADE_GAIN_MIN e _MAX, temperatura no máximo ±ADS_V2_SHADE_WARM_MAX níveis);
+// KINEO-ADS-FIEL-2-1510 — (2) SOMBRA — uma elipse de contato na base (só 'scene': na mão não há mesa) + a silhueta do recorte borrada e
+// KINEO-ADS-FIEL-2-1510 — deslocada (sombra projetada suave). Tudo antes de colar: o recorte cobre a sombra onde ele está.
+export interface AdsV2Shade { gain: number; warm: number; contact: boolean; drop: boolean } // KINEO-ADS-FIEL-2-1510
+export const ADS_V2_SHADE_GAIN_MIN = 0.82 // KINEO-ADS-FIEL-2-1510
+export const ADS_V2_SHADE_GAIN_MAX = 1.08 // KINEO-ADS-FIEL-2-1510
+export const ADS_V2_SHADE_WARM_MAX = 10 // KINEO-ADS-FIEL-2-1510 — níveis (0-255) somados ao R e tirados do B
+export const ADS_V2_SHADE_CONTACT = 0.55 // KINEO-ADS-FIEL-2-1510 — escurecimento máximo no centro da elipse de contato
+export const ADS_V2_SHADE_DROP = 0.32 // KINEO-ADS-FIEL-2-1510 — escurecimento máximo da sombra projetada
+const luma = (r: number, g: number, b: number) => 0.2126 * r + 0.7152 * g + 0.0722 * b // KINEO-ADS-FIEL-2-1510
+
+/** KINEO-ADS-FIEL-2-1510 — média (R, G, B, luminância) de uma caixa da imagem; `alphaMin` > 0 = só os pixels opacos (o recorte). */
+export function adsV2MeanRgb(img: AdsV2Rgba, box: { x: number; y: number; w: number; h: number }, alphaMin = 0): { r: number; g: number; b: number; l: number; n: number } {
+  let r = 0, g = 0, b = 0, n = 0
+  const x0 = Math.max(0, Math.floor(box.x)), y0 = Math.max(0, Math.floor(box.y))
+  const x1 = Math.min(img.width, Math.ceil(box.x + box.w)), y1 = Math.min(img.height, Math.ceil(box.y + box.h))
+  const step = Math.max(1, Math.floor(Math.sqrt(((x1 - x0) * (y1 - y0)) / 40000)))
+  for (let y = y0; y < y1; y += step) for (let x = x0; x < x1; x += step) {
+    const o = (y * img.width + x) * 4
+    if (img.data[o + 3] < alphaMin) continue
+    r += img.data[o]; g += img.data[o + 1]; b += img.data[o + 2]; n++
+  }
+  if (!n) return { r: 0, g: 0, b: 0, l: 0, n: 0 }
+  return { r: r / n, g: g / n, b: b / n, l: luma(r / n, g / n, b / n), n }
+}
+
+/** KINEO-ADS-FIEL-2-1510 — o ajuste de tom (puro, com teto): o ganho de luminância e o desvio de temperatura do recorte rumo à cena. */
+export function adsV2ToneMatch(sceneMean: { r: number; b: number; l: number }, cutMean: { r: number; b: number; l: number }): { gain: number; warm: number } {
+  const ratio = cutMean.l > 1 ? Math.max(0.05, sceneMean.l) / cutMean.l : 1
+  const gain = Math.min(ADS_V2_SHADE_GAIN_MAX, Math.max(ADS_V2_SHADE_GAIN_MIN, Math.pow(ratio, 0.35)))
+  const warm = Math.max(-ADS_V2_SHADE_WARM_MAX, Math.min(ADS_V2_SHADE_WARM_MAX, ((sceneMean.r - sceneMean.b) - (cutMean.r - cutMean.b)) * 0.25))
+  return { gain: Math.round(gain * 1000) / 1000, warm: Math.round(warm * 10) / 10 }
+}
+
+/** KINEO-ADS-FIEL-2-1510 — caixa borrada (2 passadas, separável) de um canal em ponto flutuante. Muta `a`. */
+function boxBlur(a: Float32Array, w: number, h: number, radius: number): void {
+  const tmp = new Float32Array(a.length)
+  const pass = (src: Float32Array, dst: Float32Array, horiz: boolean) => {
+    const len = horiz ? w : h
+    const lines = horiz ? h : w
+    for (let l = 0; l < lines; l++) {
+      let acc = 0
+      const at = (k: number) => (horiz ? l * w + k : k * w + l)
+      for (let k = -radius; k <= radius; k++) acc += src[at(Math.min(len - 1, Math.max(0, k)))]
+      for (let k = 0; k < len; k++) {
+        dst[at(k)] = acc / (2 * radius + 1)
+        acc += src[at(Math.min(len - 1, k + radius + 1))] - src[at(Math.max(0, k - radius))]
+      }
+    }
+  }
+  for (let i = 0; i < 2; i++) { pass(a, tmp, true); pass(tmp, a, false) }
+}
+
+/**
+ * KINEO-ADS-FIEL-2-1510 — sombra + tom, ANTES de colar: escurece `frame` (a cena) com a elipse de contato na base do retângulo (só no
+ * modo 'scene') e a sombra projetada (a silhueta de `piece` borrada, deslocada para baixo/direita), e ajusta `piece` (o recorte já no
+ * tamanho final) pelo tom da área da cena sob ele. Muta os dois. Devolve o que foi aplicado (vai no evento ads_v2_product_locked).
+ */
+export function adsV2ShadeAndMatch(frame: AdsV2Rgba, piece: AdsV2Rgba, rect: { x: number; y: number; w: number; h: number }, mode: AdsV2ProductLockMode): AdsV2Shade {
+  // 1. tom: a área da cena onde o produto pousa (o retângulo + uma faixa em volta) contra os pixels opacos do recorte.
+  const pad = Math.round(Math.max(rect.w, rect.h) * 0.25)
+  const sceneMean = adsV2MeanRgb(frame, { x: rect.x - pad, y: rect.y - pad, w: rect.w + 2 * pad, h: rect.h + 2 * pad })
+  const cutMean = adsV2MeanRgb(piece, { x: 0, y: 0, w: piece.width, h: piece.height }, 128)
+  const { gain, warm } = cutMean.n > 0 && sceneMean.n > 0 ? adsV2ToneMatch(sceneMean, cutMean) : { gain: 1, warm: 0 }
+  if (gain !== 1 || warm !== 0) {
+    const d = piece.data
+    for (let i = 0; i < d.length; i += 4) {
+      if (d[i + 3] === 0) continue
+      d[i] = Math.max(0, Math.min(255, Math.round(d[i] * gain + warm)))
+      d[i + 1] = Math.max(0, Math.min(255, Math.round(d[i + 1] * gain)))
+      d[i + 2] = Math.max(0, Math.min(255, Math.round(d[i + 2] * gain - warm)))
+    }
+  }
+  const darken = (x: number, y: number, k: number) => {
+    if (x < 0 || y < 0 || x >= frame.width || y >= frame.height || k <= 0) return
+    const o = (y * frame.width + x) * 4
+    const m = 1 - Math.min(0.9, k)
+    frame.data[o] = Math.round(frame.data[o] * m); frame.data[o + 1] = Math.round(frame.data[o + 1] * m); frame.data[o + 2] = Math.round(frame.data[o + 2] * m)
+  }
+  // 2. sombra projetada: a silhueta borrada, deslocada (luz de cima, um pouco da esquerda).
+  const r = Math.max(2, Math.round(rect.w * 0.025))
+  const dx = Math.round(rect.w * 0.035), dy = Math.round(rect.h * 0.015)
+  const W = piece.width + 4 * r, H = piece.height + 4 * r
+  const a = new Float32Array(W * H)
+  for (let y = 0; y < piece.height; y++) for (let x = 0; x < piece.width; x++) a[(y + 2 * r) * W + (x + 2 * r)] = piece.data[(y * piece.width + x) * 4 + 3] / 255
+  boxBlur(a, W, H, r)
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const v = a[y * W + x]
+    if (v > 0.003) darken(rect.x - 2 * r + x + dx, rect.y - 2 * r + y + dy, v * ADS_V2_SHADE_DROP)
+  }
+  // 3. contato: elipse achatada na base (o produto POUSA na superfície). Na mão (holds/ator) não há superfície.
+  const contact = mode === 'scene'
+  if (contact) {
+    const cx = rect.x + rect.w / 2, cy = rect.y + rect.h - rect.h * 0.01
+    const rx = rect.w * 0.55, ry = Math.max(4, rect.h * 0.045)
+    for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) {
+      const q = ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2
+      if (q < 1) darken(x, y, Math.pow(1 - q, 1.5) * ADS_V2_SHADE_CONTACT)
+    }
+  }
+  return { gain, warm, contact, drop: true }
+}
+
+/** KINEO-ADS-FIEL-2-1510 — o ESBOÇO da cena SEM produto: só a tela cinza no formato (a cena nasce vazia; o recorte real entra depois). */
+export function adsV2EmptyLayoutPng(format: AdsV2Format): Uint8Array {
+  const crop = ADS_V2_FORMAT_CROP[format] ?? ADS_V2_FORMAT_CROP['9:16']
+  const W = ADS_V2_LAYOUT_WIDTH
+  const H = Math.round((W * crop.height) / crop.width)
+  const data = new Uint8Array(W * H * 4)
+  for (let i = 0; i < data.length; i += 4) { data[i] = data[i + 1] = data[i + 2] = ADS_V2_LAYOUT_GREY; data[i + 3] = 255 }
+  return encodePng({ width: W, height: H, data })
 }

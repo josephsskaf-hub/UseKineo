@@ -41,6 +41,7 @@ import { adsV2IsPresenterHolds } from '@/lib/ads/v2PresenterHolds' // KINEO-ADS-
 import { adsV2PlanFormat, adsV2SeedanceAspect } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — o formato gravado no plano (9:16 sem a chave)
 import { ADS_V2_SCENE_IMAGE_SLUG } from '@/lib/ads/v2Tiers' // KINEO-ADS-FIEL-1510 — cancelar a imagem abandonada pelo prazo
 import { ADS_V2_LOCK_DISPATCH_MIN_MS, ADS_V2_FAST_IMAGE_STUCK_MS, ADS_V2_FAST_VIDEO_STUCK_MS, ADS_V2_PRESENTER_BUDGET_MS, ADS_V2_STILL_REASON, adsV2FallbackStep, adsV2IsLockedImage, adsV2OverdueToStills, adsV2ProductLockFor, adsV2ProductLockMotion, adsV2ProductLockScenePrompt, adsV2StillSource, motionPrompt, type AdsV2ProductLock } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-1510 — trava do produto (o recorte real no quadro) e o prazo de ~8 min por anúncio (lib pura)
+import { ADS_V2_LOCK_CLOSEUP_REASON, ADS_V2_LOCK_DUP_REASON, adsV2FitTimeline, adsV2IsLockCloseup, adsV2LockCloseupEligible, adsV2LockDupStep, adsV2LockSceneRefs, adsV2LockedScenePrompt, adsV2NarrationWordBudget, adsV2SettingFromPrompt, adsV2ShortenNarration } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-2-1510 — cena sem produto, conferência, close real e a duração que cabe no pedido
 import { buildAdV2Source, ADS_V2_VOICE_START, adsV2ProductOverlays, type AdV2MontageShot } from '@/lib/ads/adV2Montage'
 import { adsV2FallbackTrack, adsV2MusicTrimStart, adsV2MusicUsable, adsV2SwapLibraryTrack } from '@/lib/ads/v2Music'
 import { ADS_V2_QUALITY, confirmAdsV2Debit, failAdsV2Order } from '@/lib/ads/v2Billing'
@@ -308,6 +309,26 @@ export function adsV2LockOf(order: Pick<AdsV2OrderRow, 'brief' | 'plan' | 'photo
 function lockServer() {
   return import('@/lib/ads/v2ProductLockServer').catch(() => null)
 }
+/** KINEO-ADS-FIEL-2-1510 — a conferência de produto na cena (modelo de visão do registro central), import dinâmico; falha = sem conferência. */
+function lockVision() { // KINEO-ADS-FIEL-2-1510
+  return import('@/lib/ads/v2LockVision').catch(() => null) // KINEO-ADS-FIEL-2-1510
+} // KINEO-ADS-FIEL-2-1510
+/**
+ * KINEO-ADS-FIEL-2-1510 — o CLOSE do Premium com a trava: a vaga vira a FOTO REAL do produto com o zoom de close do montador (o caminho do
+ * plano `text`: sem motor, sem fal, sem cobrança, fora do teto de fotos paradas). Só um vence (upsert sem duplicar).
+ */
+async function closeupStill(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow): Promise<boolean> { // KINEO-ADS-FIEL-2-1510
+  const url = (row.image_url ?? '').trim() // KINEO-ADS-FIEL-2-1510
+  const next = { // KINEO-ADS-FIEL-2-1510
+    order_id: order.id, idx: row.idx, attempt: row.attempt + 1, role: row.role, kind: 'text', source: row.source, source_footage_id: row.source_footage_id, // KINEO-ADS-FIEL-2-1510
+    image_url: url, engine: null, prompt: null, gen_seconds: null, cut_start: 0, cut_seconds: row.cut_seconds, movement_variant: row.movement_variant, // KINEO-ADS-FIEL-2-1510
+    status: 'skipped_text', stored_url: url, reason: ADS_V2_LOCK_CLOSEUP_REASON, // KINEO-ADS-FIEL-2-1510
+  } // KINEO-ADS-FIEL-2-1510
+  const ins = await admin.from('ads_v2_shots').upsert(next, { onConflict: 'order_id,idx,attempt', ignoreDuplicates: true }).select('id') // KINEO-ADS-FIEL-2-1510
+  const won = !ins.error && Array.isArray(ins.data) && ins.data.length > 0 // KINEO-ADS-FIEL-2-1510
+  if (won) await shotFallbackEvent(order, row, { to: 'real_closeup', reason: ADS_V2_LOCK_CLOSEUP_REASON, next_attempt: next.attempt }) // KINEO-ADS-FIEL-2-1510
+  return won // KINEO-ADS-FIEL-2-1510
+} // KINEO-ADS-FIEL-2-1510
 /** KINEO-ADS-FIEL-1510 — evento de toda troca de caminho de um plano (motor de reserva, foto parada, foto real do produto). */
 function shotFallbackEvent(order: AdsV2OrderRow, row: AdsV2ShotRow, metadata: Record<string, unknown>): Promise<unknown> {
   return writeServerEvent({ name: 'ads_v2_shot_fallback', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, idx: row.idx, attempt: row.attempt, kind: row.kind, from_engine: row.engine, previous_reason: row.reason, elapsed_s: Math.round(ageMs(order.started_at) / 1000), charged: false, ...metadata } }).catch(() => null)
@@ -353,10 +374,21 @@ function videoPromptOf(order: AdsV2OrderRow, row: AdsV2ShotRow): string {
 async function finishLockedImage(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow, lock: AdsV2ProductLock, sceneUrl: string): Promise<'skip' | 'done'> {
   const srv = await lockServer()
   if (!srv || !(await srv.adsV2ProductLockEnabled(order.user_id).catch(() => false))) return 'skip'
+  // KINEO-ADS-FIEL-2-1510 — CONFERÊNCIA: a cena de gente nasce sem produto; se ainda veio um desenhado, refaz UMA vez (nova imagem, mesmo
+  // KINEO-ADS-FIEL-2-1510 — pedido) e, de novo, a vaga anima a FOTO REAL do produto. Conferência que falha (null) = a cena segue.
+  const dup = lock.mode === 'scene' ? adsV2LockDupStep({ found: await lockVision().then((v) => (v ? v.adsV2SceneHasProduct(sceneUrl) : null)).catch(() => null), previousReason: row.reason }) : 'keep' // KINEO-ADS-FIEL-2-1510
+  if (dup === 'retry') { // KINEO-ADS-FIEL-2-1510
+    if (await markShot(admin, row, ['image_submitted'], { status: 'pending', image_request_id: null, image_submit_claimed_at: null, reason: ADS_V2_LOCK_DUP_REASON })) await shotFallbackEvent(order, row, { to: 'scene_retry', reason: ADS_V2_LOCK_DUP_REASON }) // KINEO-ADS-FIEL-2-1510
+    return 'done' // KINEO-ADS-FIEL-2-1510
+  } // KINEO-ADS-FIEL-2-1510
+  if (dup === 'product_photo') { // KINEO-ADS-FIEL-2-1510
+    if (await markShot(admin, row, ['image_submitted'], { status: 'image_done', image_url: lock.url, reason: null })) await shotFallbackEvent(order, row, { to: 'product_photo', reason: 'lock_duplicate' }) // KINEO-ADS-FIEL-2-1510
+    return 'done' // KINEO-ADS-FIEL-2-1510
+  } // KINEO-ADS-FIEL-2-1510
   try {
     const out = await srv.adsV2FinishLockedScene({ userId: order.user_id, orderId: order.id, idx: row.idx, attempt: row.attempt, lock, format: adsV2PlanFormat(order.plan), sceneUrl })
     if (await markShot(admin, row, ['image_submitted'], { status: 'image_done', image_url: out.url })) {
-      await writeServerEvent({ name: 'ads_v2_product_locked', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, idx: row.idx, attempt: row.attempt, mode: lock.mode, rect: out.rect } }).catch(() => null)
+      await writeServerEvent({ name: 'ads_v2_product_locked', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, idx: row.idx, attempt: row.attempt, mode: lock.mode, rect: out.rect, ...((out as { shade?: unknown }).shade ? { shade: (out as { shade?: unknown }).shade } : {}) } }).catch(() => null) // KINEO-ADS-FIEL-2-1510 — + o tom e a sombra
     }
     return 'done'
   } catch (e) {
@@ -454,8 +486,8 @@ async function submitImageFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
   if (lock && srv && (await srv.adsV2ProductLockEnabled(order.user_id).catch(() => false))) { // KINEO-ADS-FIEL-1510
     try { // KINEO-ADS-FIEL-1510
       const layout = await srv.adsV2PrepareLockedScene({ userId: order.user_id, orderId: order.id, idx: row.idx, attempt: row.attempt, lock, format: adsV2PlanFormat(order.plan) }) // KINEO-ADS-FIEL-1510
-      sendPrompt = adsV2ProductLockScenePrompt(prompt, lock.mode) // KINEO-ADS-FIEL-1510
-      sendRefs = [layout, ...refs] // KINEO-ADS-FIEL-1510
+      sendPrompt = lock.mode === 'scene' ? adsV2LockedScenePrompt({ sceneIdx: row.movement_variant, setting: adsV2SettingFromPrompt(planned?.scenePrompt), format: adsV2PlanFormat(order.plan) }) : adsV2ProductLockScenePrompt(prompt, lock.mode) // KINEO-ADS-FIEL-1510 · KINEO-ADS-FIEL-2-1510 — cena de gente: SEM produto, superfície vazia + a proibição
+      sendRefs = lock.mode === 'scene' ? [layout, ...adsV2LockSceneRefs({ refs, ids: planned?.referenceFootageIds ?? null, photos: order.photos, lockUrl: lock.url })] : [layout, ...refs] // KINEO-ADS-FIEL-1510 · KINEO-ADS-FIEL-2-1510 — o modelo nunca vê a foto do produto
     } catch (e) { // KINEO-ADS-FIEL-1510
       const why = `lock_prepare:${e instanceof Error ? e.message : String(e)}`.slice(0, 160) // KINEO-ADS-FIEL-1510
       if (lock.mode === 'actor') await shotFallbackEvent(order, row, { to: 'unlocked', reason: why }) // KINEO-ADS-FIEL-1510
@@ -537,7 +569,16 @@ export async function dispatchAdsV2Shots(admin: SupabaseClient, order: AdsV2Orde
   // dentro do teto (adsV2PresenterVoiceReady). Os planos do anúncio não mudam.
   const images = latest.filter(needsImage).filter((r) => r.kind !== ADS_V2_PRESENTER_KIND || order.narration === true)
     .filter((r) => !adsV2LockOf(order, r) || deadlineMs - Date.now() >= ADS_V2_LOCK_DISPATCH_MIN_MS) // KINEO-ADS-FIEL-1510 — cena com trava (recorte até 45 s) só sai de quem tem fôlego: o /start (60 s) deixa para a tela/cron
+  // KINEO-ADS-FIEL-2-1510 — o CLOSE do Premium com a trava ligada para a conta nunca vai ao motor (Seedance/H3 redesenharam tampa, base e
+  // KINEO-ADS-FIEL-2-1510 — líquido no QA de 15/10): vira a foto real com zoom de close. Trava desligada / servidor fora = o caminho de antes.
+  const closeups = latest.filter((r) => adsV2LockCloseupEligible(r) && !r.submit_claimed_at) // KINEO-ADS-FIEL-2-1510
+  const closed = new Set<number>() // KINEO-ADS-FIEL-2-1510
+  if (closeups.length > 0) { // KINEO-ADS-FIEL-2-1510
+    const srv = await lockServer() // KINEO-ADS-FIEL-2-1510
+    if (srv && (await srv.adsV2ProductLockEnabled(order.user_id).catch(() => false))) for (const r of closeups) { await closeupStill(admin, order, r); closed.add(r.idx) } // KINEO-ADS-FIEL-2-1510
+  } // KINEO-ADS-FIEL-2-1510
   const videos = latest.filter(needsVideo).filter((r) => r.kind !== ADS_V2_PRESENTER_KIND || adsV2PresenterVoiceReady(order))
+    .filter((r) => !closed.has(r.idx)) // KINEO-ADS-FIEL-2-1510 — o close já virou a foto real
   const kling = videos.filter((r) => r.engine === 'kling_o3')
   const others = videos.filter((r) => r.engine !== 'kling_o3')
   let sent = 0
@@ -852,12 +893,13 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
       measuredSeconds: r.kind === 'text' ? null : num(r.measured_seconds),
     }
     if (r.kind === 'text' && adsV2IsPackshot(plan, r.idx)) return { ...base, packshot: true } // KINEO-ADS-MELHORIAS-1410 — a foto real do produto: fundo suave + foto inteira
+    if (r.kind === 'text' && adsV2IsLockCloseup(r.reason)) return { ...base, closeup: true } // KINEO-ADS-FIEL-2-1510 — o close do Premium com a trava: a foto real com zoom de close
     if (r.kind !== 'user_video') return base
     // Vídeo do cliente: o enquadramento (foco e dimensões) mora no plano gravado.
     const p = plan.shots?.find((s) => s.idx === r.idx)
     return { ...base, focusX: p?.focusX ?? 0.5, focusY: p?.focusY ?? 0.5, videoWidth: p?.videoWidth ?? null, videoHeight: p?.videoHeight ?? null }
   })
-  const shotsSeconds = montageShots.reduce((s, x) => s + x.cutSeconds, 0)
+  let shotsSeconds = montageShots.reduce((s, x) => s + x.cutSeconds, 0) // KINEO-ADS-FIEL-2-1510 — let: o encaixe na duração pedida pode encolher os planos
   // KINEO-ATOR-ANUNCIO-2026-10-09 — ator pronto (no nosso bucket e medido) = ele vira a trilha base, com a voz DELE (a TTS
   // separada não entra: duas vozes, nunca). Qualquer recusa da montagem com ator = o anúncio de sempre (nunca mata o pedido).
   const presenterClip = presenterRow && presenterRow.status === 'done' && presenterRow.stored_url && num(presenterRow.measured_seconds) ? { url: presenterRow.stored_url, measuredSeconds: num(presenterRow.measured_seconds) as number } : null
@@ -893,6 +935,32 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
     }
   }
   let cardSeconds = ADS_V2_CARD_SECONDS
+  // KINEO-ADS-FIEL-2-1510 — DURAÇÃO (QA 15/10: 15 s pedidos saíram 17,5 s — o cartão crescia até a voz acabar e o Premium planejava 14 s de
+  // KINEO-ADS-FIEL-2-1510 — planos): os planos encolhem para caber em (pedido − cartão), o cartão fica entre 2,5 e 3 s e a voz que não cabe é
+  // KINEO-ADS-FIEL-2-1510 — encurtada (frases inteiras do meio saem, nada reescrito) e sintetizada de novo — até 2 vezes. Nem assim = a régua de antes.
+  let overlayK = 1 // KINEO-ADS-FIEL-2-1510
+  let fitInfo: Record<string, unknown> | null = null // KINEO-ADS-FIEL-2-1510
+  if (!presenterSource) { // KINEO-ADS-FIEL-2-1510
+    const shotsBefore = shotsSeconds // KINEO-ADS-FIEL-2-1510
+    const cuts0 = montageShots.map((s) => s.cutSeconds) // KINEO-ADS-FIEL-2-1510
+    let fit = adsV2FitTimeline({ targetSeconds: order.seconds, cuts: cuts0, voiceSeconds: voiceSeconds ?? null, voiceStart: ADS_V2_VOICE_START }) // KINEO-ADS-FIEL-2-1510
+    let spokenText = narration // KINEO-ADS-FIEL-2-1510
+    let resynth = 0 // KINEO-ADS-FIEL-2-1510
+    while (spokenText && voiceSeconds && !fit.voiceFits && resynth < 2) { // KINEO-ADS-FIEL-2-1510
+      const words = spokenText.split(/\s+/).filter(Boolean).length // KINEO-ADS-FIEL-2-1510
+      const shorter = adsV2ShortenNarration(spokenText, adsV2NarrationWordBudget(words, voiceSeconds, fit.voiceMaxSeconds)) // KINEO-ADS-FIEL-2-1510
+      if (shorter === spokenText) break // KINEO-ADS-FIEL-2-1510 — nada mais a tirar sem reescrever
+      resynth += 1 // KINEO-ADS-FIEL-2-1510
+      const buf = await adsV2NarrationVoice(order, speakableForTts(adsV2NarrationForTts(shorter, adsV2PronounceOf(order.brief)), language), true) // KINEO-ADS-FIEL-2-1510 — a mesma voz, a mesma pronúncia
+      voiceSeconds = Math.round(estimateMp3DurationSeconds(buf) * 1000) / 1000 // KINEO-ADS-FIEL-2-1510
+      voiceUrl = await uploadVoiceoverToSupabase(order.user_id, buf) // KINEO-ADS-FIEL-2-1510
+      spokenText = shorter // KINEO-ADS-FIEL-2-1510
+      await admin.from('ads_v2_orders').update({ voice_url: voiceUrl, voice_seconds: voiceSeconds, plan: { ...plan, narration: shorter } }).eq('id', order.id) // KINEO-ADS-FIEL-2-1510 — o roteiro gravado = o que a voz fala
+      fit = adsV2FitTimeline({ targetSeconds: order.seconds, cuts: cuts0, voiceSeconds, voiceStart: ADS_V2_VOICE_START }) // KINEO-ADS-FIEL-2-1510
+    } // KINEO-ADS-FIEL-2-1510
+    if (fit.scaled) { montageShots.forEach((s, k) => { s.cutSeconds = fit.cuts[k] }); shotsSeconds = fit.shotsSeconds; overlayK = shotsBefore > 0 ? fit.shotsSeconds / shotsBefore : 1 } // KINEO-ADS-FIEL-2-1510
+    fitInfo = { target: order.seconds, scaled: fit.scaled, voice_fits: fit.voiceFits, resynth, narration_words: spokenText ? spokenText.split(/\s+/).filter(Boolean).length : 0 } // KINEO-ADS-FIEL-2-1510
+  } // KINEO-ADS-FIEL-2-1510
   if (voiceSeconds && !presenterSource) {
     const voiceEnd = ADS_V2_VOICE_START + voiceSeconds + 0.2
     cardSeconds = Math.max(cardSeconds, Math.round((voiceEnd - shotsSeconds) * 1000) / 1000)
@@ -909,7 +977,7 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
       width: out.width,
       height: out.height,
       shots: montageShots,
-      overlays: (plan.overlays ?? []).filter((o) => o && typeof o.text === 'string' && o.text.trim()).map((o) => ({ text: o.text, start: o.start, end: o.end })),
+      overlays: (plan.overlays ?? []).filter((o) => o && typeof o.text === 'string' && o.text.trim()).map((o) => (overlayK === 1 ? { text: o.text, start: o.start, end: o.end } : { text: o.text, start: Math.round(o.start * overlayK * 1000) / 1000, end: Math.min(shotsSeconds, Math.round(o.end * overlayK * 1000) / 1000) })), // KINEO-ADS-FIEL-2-1510 — planos encolhidos = as frases na mesma proporção
       fontFamily: captionFontFor(language),
       cardUrl: order.card_url,
       cardSeconds,
@@ -958,7 +1026,7 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
     name: 'ads_v2_assembling',
     userId: order.user_id,
     path: '/lib/ads/v2Advance',
-    metadata: { order_id: order.id, creatomate_render_id: renderId, shots: montageShots.length, card_seconds: cardSeconds, voice_seconds: voiceSeconds, music: Boolean(musicUrl), total_seconds: presenterSource ? Number(presenterSource.duration) : Math.round((shotsSeconds + cardSeconds) * 1000) / 1000, presenter: Boolean(presenterSource), presenter_fallback: presenterMiss },
+    metadata: { order_id: order.id, creatomate_render_id: renderId, shots: montageShots.length, card_seconds: cardSeconds, voice_seconds: voiceSeconds, music: Boolean(musicUrl), total_seconds: presenterSource ? Number(presenterSource.duration) : Math.round((shotsSeconds + cardSeconds) * 1000) / 1000, presenter: Boolean(presenterSource), presenter_fallback: presenterMiss, ...(fitInfo ? { fit: fitInfo } : {}) }, // KINEO-ADS-FIEL-2-1510 — o encaixe na duração
   })
 }
 

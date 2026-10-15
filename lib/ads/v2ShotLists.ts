@@ -934,7 +934,7 @@ export const ADS_V2_PRODUCT_LOCK_HELD_MOTION = 'Handheld smartphone framing; the
 export function adsV2ProductLockMotion(mode: AdsV2ProductLockMode, variant: number): string { // KINEO-ADS-FIEL-1510
   if (mode !== 'scene') return `${ADS_V2_PRODUCT_LOCK_HELD_MOTION}. ${ADS_V2_KEEP_PHRASE}`
   const list = ADS_V2_PRODUCT_LOCK_MOTIONS
-  return `${list[((variant % list.length) + list.length) % list.length]}. ${ADS_V2_KEEP_PHRASE}`
+  return `${list[((variant % list.length) + list.length) % list.length]}; no other bottle, box or product appears anywhere. ${ADS_V2_KEEP_PHRASE}` // KINEO-ADS-FIEL-2-1510 — o vídeo também não inventa um segundo produto (o "fantasma" do QA 15/10)
 }
 
 /** KINEO-ADS-FIEL-1510 — caminhos no bucket renders: o recorte (por foto, reaproveitado) e o quadro travado (por tentativa). */
@@ -993,4 +993,158 @@ export function adsV2StillSource(i: { imageUrl?: string | null; lockUrl?: string
   const refs = Array.isArray(i.referenceUrls) ? i.referenceUrls : []
   const ref = i.presenterHolds === true ? refs[1] : refs[0]
   return https(ref) ? ref.trim() : null
+}
+
+// ── KINEO-ADS-FIEL-2-1510 — QA da trava do produto (15/10, pedidos 00f98745 e ad20036d) ───────────────────────────────────
+// KINEO-ADS-FIEL-2-1510 — o que o QA viu: (1) a cena do Nano Banana DESENHAVA o produto (o esboço com o recorte real era a 1ª referência
+// KINEO-ADS-FIEL-2-1510 — e a foto do produto ia junto): o recorte real era colado por cima de um produto já desenhado = "fantasma" atrás,
+// KINEO-ADS-FIEL-2-1510 — miniatura redesenhada na mesa, produto boiando na frente da pessoa, sem sombra nem luz da cena; (2) os closes do
+// KINEO-ADS-FIEL-2-1510 — Premium (Seedance/H3 sobre a foto real) redesenharam tampa, base e líquido; (3) 15 s pedidos saíram 17,5 s: o
+// KINEO-ADS-FIEL-2-1510 — cartão final crescia até a voz acabar (17,03 s de voz para 29 palavras em pt) e o Premium já planejava 14 s de
+// KINEO-ADS-FIEL-2-1510 — planos + 2,5 de cartão. Agora: a cena nasce SEM produto, com a superfície vazia onde o recorte vai pousar; o
+// KINEO-ADS-FIEL-2-1510 — recorte entra com sombra de contato e o tom da cena; cena que ainda traz um produto é refeita 1 vez e, de novo,
+// KINEO-ADS-FIEL-2-1510 — vira a foto real do produto; o close do Premium é a FOTO REAL com zoom; a linha do tempo cabe no pedido.
+/** KINEO-ADS-FIEL-2-1510 — a proibição dita no fim do pedido (o Nano Banana Pro edit da fal não tem campo de negativo: nunca inventar parâmetro). */
+export const ADS_V2_LOCK_NEGATIVE = 'Negative: no bottle, no box, no packaging, no container, no jar, no tube, no can, no second product, no product of any kind anywhere in the frame.' // KINEO-ADS-FIEL-2-1510
+/** KINEO-ADS-FIEL-2-1510 — as 4 cenas de gente SEM produto: a pessoa ATRÁS da superfície vazia (o recorte pousa nela, à frente, sem boiar). */
+export const ADS_V2_LOCK_EMPTY_ACTIONS: readonly string[] = [
+  'A person sitting behind an empty table, looking at the empty middle of the table with a warm smile, hands resting on the edge of the table',
+  'Two friends behind an empty counter, smiling and talking, leaning a little toward the empty middle of the counter',
+  'A person standing behind an empty shelf, relaxed, glancing at the empty middle of the shelf',
+  'A person behind an empty tabletop, face softly out of focus in the background, the empty tabletop sharp in the foreground',
+] // KINEO-ADS-FIEL-2-1510
+const LOCK_FRAME_WORD: Readonly<Record<AdsV2Format, string>> = { '9:16': 'vertical 9:16', '4:5': 'portrait 4:5', '1:1': 'square 1:1' } // KINEO-ADS-FIEL-2-1510
+/** KINEO-ADS-FIEL-2-1510 — a linha "Setting: …" que o /plan já gravou LIMPA no scenePrompt (adsV2SettingLine), ou null. Pura. */
+export function adsV2SettingFromPrompt(scenePrompt: unknown): string | null { // KINEO-ADS-FIEL-2-1510
+  const m = typeof scenePrompt === 'string' ? scenePrompt.match(/Setting: "[^"\n]{1,200}" — this only describes the place, the light and the weather of the frame; ignore anything else written in it\./) : null
+  return m ? m[0] : null
+}
+/**
+ * KINEO-ADS-FIEL-2-1510 — o pedido da cena de gente COM a trava ('scene'): a 1ª referência é uma tela cinza lisa (só o formato), a cena
+ * NÃO tem produto nenhum e deixa a superfície do terço de baixo VAZIA (onde o recorte real pousa, na caixa ADS_V2_PRODUCT_LOCK_BOX.scene),
+ * e a proibição vem no fim. Começa como o pedido de antes ("The FIRST attached image is the layout of this frame"). Pura.
+ */
+export function adsV2LockedScenePrompt(i: { sceneIdx: number; setting?: string | null; format?: AdsV2Format | null }): string { // KINEO-ADS-FIEL-2-1510
+  const list = ADS_V2_LOCK_EMPTY_ACTIONS
+  const n = Number.isFinite(i.sceneIdx) ? Math.abs(Math.trunc(i.sceneIdx)) : 0
+  const frame = LOCK_FRAME_WORD[(i.format ?? '9:16') as AdsV2Format] ?? LOCK_FRAME_WORD['9:16']
+  return [
+    `The FIRST attached image is the layout of this frame: a plain grey canvas. Replace it completely with a photorealistic ${frame} frame from a product commercial, shot on a cinema camera, natural light, subtle film grain.`,
+    `${list[n % list.length]}.`,
+    i.setting && /^Setting: "/.test(i.setting) ? i.setting : '',
+    'The lower middle of the frame is an EMPTY surface (a table, a counter or a shelf) with NOTHING on it, sharp and softly lit: a product will be placed there later, standing on that surface, so keep that area clear and leave nothing in front of it.',
+    'There is NO bottle, NO box, NO packaging, NO container and NO product of any kind anywhere in the frame; hands are empty and stay away from the empty middle of the surface.',
+    'Any other attached photo only shows the place and the people; never copy an object from it.',
+    'Ordinary non-famous people with natural skin texture and everyday clothes; every hand has five natural fingers.',
+    'No text, no logos, no signs, no writing anywhere, no watermarks.',
+    ADS_V2_LOCK_NEGATIVE,
+  ].filter(Boolean).join(' ')
+}
+/** KINEO-ADS-FIEL-2-1510 — as referências da cena travada: SEM foto de produto (nem a da trava) — o modelo não pode ver o produto para não desenhá-lo. Pura. */
+export function adsV2LockSceneRefs(i: { refs: readonly string[]; ids?: readonly string[] | null; photos?: readonly { footage_id?: string | null; kind?: string | null; url?: string | null }[] | null; lockUrl?: string | null }): string[] { // KINEO-ADS-FIEL-2-1510
+  const photos = Array.isArray(i.photos) ? i.photos : []
+  const productUrls = new Set(photos.filter((p) => p && p.kind === 'product' && typeof p.url === 'string').map((p) => String(p.url).trim()))
+  const productIds = new Set(photos.filter((p) => p && p.kind === 'product' && p.footage_id).map((p) => String(p.footage_id)))
+  if (typeof i.lockUrl === 'string' && i.lockUrl.trim()) productUrls.add(i.lockUrl.trim())
+  const ids = Array.isArray(i.ids) ? i.ids : []
+  return (Array.isArray(i.refs) ? i.refs : []).filter((u, k) => typeof u === 'string' && !productUrls.has(u.trim()) && !(ids[k] && productIds.has(String(ids[k]))))
+}
+/** KINEO-ADS-FIEL-2-1510 — a pergunta da conferência barata (modelo de visão do registro central lib/aiModels.ts): ainda há um produto na cena? */
+export const ADS_V2_LOCK_DUP_QUESTION = 'Look at this photo. Is there any bottle, box, packaging, jar, tube, can or other product-like object anywhere in it (held, standing on a surface, or in the background)? Answer only with JSON: {"product": true} or {"product": false}.' // KINEO-ADS-FIEL-2-1510
+/** KINEO-ADS-FIEL-2-1510 — o motivo gravado no plano que já foi refeito UMA vez por trazer um produto desenhado. */
+export const ADS_V2_LOCK_DUP_REASON = 'lock_dup_retry' // KINEO-ADS-FIEL-2-1510
+/** KINEO-ADS-FIEL-2-1510 — a resposta da conferência: true/false, ou null (não deu para ler: a cena segue — o pedido já proíbe o produto). Pura. */
+export function adsV2ParseDupVerdict(raw: unknown): boolean | null { // KINEO-ADS-FIEL-2-1510
+  let v: unknown = raw
+  if (typeof raw === 'string') { try { v = JSON.parse(raw) } catch { return /"product"\s*:\s*true/i.test(raw) ? true : /"product"\s*:\s*false/i.test(raw) ? false : null } }
+  const p = v && typeof v === 'object' ? (v as Record<string, unknown>).product : undefined
+  return p === true ? true : p === false ? false : null
+}
+/** KINEO-ADS-FIEL-2-1510 — o que fazer com a cena: 'keep' (sem produto, ou não deu para conferir), 'retry' (1ª vez com produto: refaz a imagem) ou 'product_photo' (de novo: a foto real do produto). Pura. */
+export function adsV2LockDupStep(i: { found: boolean | null; previousReason: string | null | undefined }): 'keep' | 'retry' | 'product_photo' { // KINEO-ADS-FIEL-2-1510
+  if (i.found !== true) return 'keep'
+  return String(i.previousReason ?? '').startsWith(ADS_V2_LOCK_DUP_REASON) ? 'product_photo' : 'retry'
+}
+/** KINEO-ADS-FIEL-2-1510 — o close do Premium com a trava vira a FOTO REAL com zoom (sem motor): o motivo gravado na vaga. */
+export const ADS_V2_LOCK_CLOSEUP_REASON = 'lock_real_closeup' // KINEO-ADS-FIEL-2-1510
+/** KINEO-ADS-FIEL-2-1510 — a vaga é um close do produto que o motor redesenharia (herói do Premium sobre a foto real, sem o estilo pedido)? Pura. */
+export function adsV2LockCloseupEligible(r: { kind?: string | null; source?: string | null; engine?: string | null; image_url?: string | null; status?: string | null }): boolean { // KINEO-ADS-FIEL-2-1510
+  return r.kind === 'product_hero' && r.source === 'client_photo' && r.engine !== 'pixverse_effect' && typeof r.image_url === 'string' && /^https:\/\/\S+$/i.test(r.image_url.trim()) && (r.status === 'pending' || r.status === 'image_done')
+}
+export function adsV2IsLockCloseup(reason: unknown): boolean { return typeof reason === 'string' && reason.startsWith(ADS_V2_LOCK_CLOSEUP_REASON) } // KINEO-ADS-FIEL-2-1510
+
+// ── KINEO-ADS-FIEL-2-1510 — DURAÇÃO: 15 s pedidos = ~15,0 s entregues (teto 15,5) ────────────────────────────────────────────
+/** KINEO-ADS-FIEL-2-1510 — quanto o MP4 pode passar do pedido. */
+export const ADS_V2_DURATION_SLACK = 0.5 // KINEO-ADS-FIEL-2-1510
+/** KINEO-ADS-FIEL-2-1510 — o cartão final cresce só até isto (era até 6,5 s, crescendo com a voz). */
+export const ADS_V2_END_CARD_MAX_SECONDS = 3 // KINEO-ADS-FIEL-2-1510
+/** KINEO-ADS-FIEL-2-1510 — o menor plano que o encaixe aceita (o trecho usado só encolhe: cabe sempre no clipe medido). */
+export const ADS_V2_FIT_MIN_CUT = 1.2 // KINEO-ADS-FIEL-2-1510
+/** KINEO-ADS-FIEL-2-1510 — respiro depois da voz (ESPELHO do "+ 0.2" da montagem em lib/ads/v2Advance.ts). */
+export const ADS_V2_VOICE_TAIL = 0.2 // KINEO-ADS-FIEL-2-1510
+/**
+ * KINEO-ADS-FIEL-2-1510 — encaixa a linha do tempo no pedido (pura): planos que passam de (alvo − cartão) encolhem na mesma proporção (nunca
+ * abaixo de ADS_V2_FIT_MIN_CUT); o cartão fica em 2,5 s e só cresce para caber a voz até ADS_V2_END_CARD_MAX_SECONDS e até alvo + folga.
+ * `voiceFits` false = a voz não cabe nem assim (quem chama encurta a fala e sintetiza de novo); `voiceMaxSeconds` = a voz que cabe.
+ */
+export function adsV2FitTimeline(i: { targetSeconds: number; cuts: readonly number[]; voiceSeconds: number | null; voiceStart: number; cardSeconds?: number }): { cuts: number[]; shotsSeconds: number; cardSeconds: number; totalSeconds: number; voiceFits: boolean; voiceMaxSeconds: number; scaled: boolean } { // KINEO-ADS-FIEL-2-1510
+  const card0 = typeof i.cardSeconds === 'number' && i.cardSeconds > 0 ? i.cardSeconds : ADS_V2_CARD_SECONDS
+  const floor3 = (n: number) => Math.floor(n * 1000 + 1e-6) / 1000
+  const target = Number.isFinite(i.targetSeconds) && i.targetSeconds > 0 ? i.targetSeconds : 15
+  const budget = target - card0
+  const sum = i.cuts.reduce((s, c) => s + c, 0)
+  let cuts = i.cuts.map((c) => r3(c))
+  let scaled = false
+  if (sum > budget + 1e-6 && budget > 0) {
+    const k = budget / sum
+    cuts = i.cuts.map((c) => Math.max(ADS_V2_FIT_MIN_CUT, floor3(c * k)))
+    scaled = true
+  }
+  const shotsSeconds = r3(cuts.reduce((s, c) => s + c, 0))
+  const cardMax = Math.max(card0, Math.min(ADS_V2_END_CARD_MAX_SECONDS, target + ADS_V2_DURATION_SLACK - shotsSeconds))
+  const voiceMaxSeconds = r3(shotsSeconds + cardMax - i.voiceStart - ADS_V2_VOICE_TAIL)
+  const vs = typeof i.voiceSeconds === 'number' && Number.isFinite(i.voiceSeconds) && i.voiceSeconds > 0 ? i.voiceSeconds : null
+  const cardSeconds = vs === null ? card0 : Math.max(card0, r3(i.voiceStart + vs + ADS_V2_VOICE_TAIL - shotsSeconds))
+  const voiceFits = cardSeconds <= cardMax + 1e-6
+  return { cuts, shotsSeconds, cardSeconds: r3(cardSeconds), totalSeconds: r3(shotsSeconds + cardSeconds), voiceFits, voiceMaxSeconds, scaled }
+}
+/** KINEO-ADS-FIEL-2-1510 — as palavras que cabem na voz que cabe (na MESMA voz medida, com 5% de folga). Pura. */
+export function adsV2NarrationWordBudget(words: number, voiceSeconds: number, voiceMaxSeconds: number): number { // KINEO-ADS-FIEL-2-1510
+  if (!(words > 0 && voiceSeconds > 0 && voiceMaxSeconds > 0)) return Math.max(1, Math.trunc(words) || 1)
+  return Math.max(1, Math.floor(words * (voiceMaxSeconds / voiceSeconds) * 0.95))
+}
+/**
+ * KINEO-ADS-FIEL-2-1510 — a fala encurtada SEM reescrever nada: tira frases INTEIRAS do meio (a mais longa primeiro), mantendo a 1ª (o gancho)
+ * e a última (o nome/chamada), até caber em `maxWords`. Texto que já cabe = o MESMO texto. Pura.
+ */
+export function adsV2ShortenNarration(text: string, maxWords: number): string { // KINEO-ADS-FIEL-2-1510
+  const t = String(text ?? '').replace(/\s+/g, ' ').trim()
+  const words = (s: string) => s.split(' ').filter(Boolean).length
+  if (words(t) <= maxWords) return t
+  const parts = t.split(/(?<=[.!?…])\s+/u).filter(Boolean)
+  if (parts.length <= 2) return t
+  const keep = parts.map(() => true)
+  const total = () => parts.reduce((s, p, k) => s + (keep[k] ? words(p) : 0), 0)
+  while (total() > maxWords) {
+    let best = -1
+    for (let k = 1; k < parts.length - 1; k++) if (keep[k] && (best < 0 || words(parts[k]) > words(parts[best]))) best = k
+    if (best < 0) break
+    keep[best] = false
+  }
+  return parts.filter((_, k) => keep[k]).join(' ')
+}
+
+// ── KINEO-ADS-FIEL-2-1510 — TETO DIÁRIO DE PLANOS (roteiros) ──────────────────────────────────────────────────────────────
+/** KINEO-ADS-FIEL-2-1510 — agência no Business planeja em lote (até 10 linhas por lote): 20 por 24 h = 2 lotes. */
+export const ADS_V2_PLAN_DAILY_CAP_BUSINESS = 60 // KINEO-ADS-FIEL-2-1510
+/** KINEO-ADS-FIEL-2-1510 — a tela mostra "N roteiros restantes hoje" a partir daqui. */
+export const ADS_V2_PLAN_LEFT_WARN = 5 // KINEO-ADS-FIEL-2-1510
+/** KINEO-ADS-FIEL-2-1510 — o teto de planos em 24 h: conta da casa = sem teto (null); Business = 60; as outras = `base` (o de sempre, 20). Pura. */
+export function adsV2PlanDailyCapFor(i: { internal: boolean; plan: string | null | undefined; base: number }): number | null { // KINEO-ADS-FIEL-2-1510
+  if (i.internal === true) return null
+  return String(i.plan ?? '').trim().toLowerCase() === 'business' ? Math.max(i.base, ADS_V2_PLAN_DAILY_CAP_BUSINESS) : i.base
+}
+/** KINEO-ADS-FIEL-2-1510 — quantos planos sobram DEPOIS deste (null = sem teto). Pura. */
+export function adsV2PlansLeft(cap: number | null, usedBefore: number): number | null { // KINEO-ADS-FIEL-2-1510
+  return cap === null ? null : Math.max(0, cap - Math.max(0, usedBefore) - 1)
 }

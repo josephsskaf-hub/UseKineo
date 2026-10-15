@@ -87,6 +87,23 @@ export function isListingPortal(host: string): boolean {
   return PORTAL_HOST_RE.test(String(host ?? '').toLowerCase())
 }
 
+// KINEO-ADS-FIEL-2-1510 — QA 15/10 (ultracoffee.com.br): "torne-se um franqueado" saiu nos 3 roteiros. Fato INSTITUCIONAL (franquia, vagas,
+// KINEO-ADS-FIEL-2-1510 — carreiras, investidores, "quem somos") não vende o produto: fica fora das sugestões e da descrição da página no roteiro.
+const INSTITUTIONAL_RE = /(?<![\p{L}\p{N}])(franq\p{L}*|franchis\p{L}*|franquic\p{L}*|franchising|trabalhe conosco|trabaje con nosotros|work with us|join our team|vagas? de emprego|vagas abertas|carreiras?|careers?|empregos?|empleos?|job openings?|we(?:'|’)re hiring|hiring|investidor\p{L}*|investors?|investor relations|inversionistas?|inversores|acionistas?|shareholders?|rela[cç][oõ]es com investidores|quem somos|sobre n[oó]s|qui[eé]nes somos|about us)(?![\p{L}\p{N}])/iu // KINEO-ADS-FIEL-2-1510
+/** KINEO-ADS-FIEL-2-1510 — o fato fala da EMPRESA (franquia, vagas, carreiras, investidores), não do produto? Pura. */
+export function adsV2InstitutionalFact(text: string): boolean { return INSTITUTIONAL_RE.test(String(text ?? '')) } // KINEO-ADS-FIEL-2-1510
+/**
+ * KINEO-ADS-FIEL-2-1510 — o que a PÁGINA do link entra no roteiro (a frase de linkSentence: "Nome. Descrição. Price: …. Website: …."): o nome,
+ * o preço e o site sempre; a DESCRIÇÃO só quando a tela NÃO ofereceu fatos para marcar (com fatos oferecidos, só entra o que a pessoa
+ * marcou — "Nothing here goes into the ad unless you tick it") e, mesmo assim, sem frase institucional. Pura.
+ */
+export function adsV2PageTextForBrief(pageText: string, opts: { factsOffered: boolean }): string { // KINEO-ADS-FIEL-2-1510
+  const parts = String(pageText ?? '').split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter(Boolean)
+  if (parts.length <= 1) return parts.join(' ')
+  const keep = parts.filter((p, k) => k === 0 || /^(Price|Website):/.test(p) || (!opts.factsOffered && !adsV2InstitutionalFact(p)))
+  return keep.join(' ')
+}
+
 /** Por que um fato não pode entrar (null = pode). Mesma régua para a pesquisa e para o plano B do link. */
 export function factRefusal(text: string): 'price' | 'unit' | 'address' | 'promise' | 'contact' | 'long' | null {
   if (PRICE_RE.test(text)) return 'price'
@@ -264,6 +281,7 @@ export function parseResearchOutput(outputText: string, annotations: readonly Ad
     if (isListingPortal(src.host)) { dropped.portal += 1; continue }
     const why = factRefusal(body)
     if (why) { dropped[why] += 1; continue }
+    if (adsV2InstitutionalFact(body)) { dropped.promise += 1; continue } // KINEO-ADS-FIEL-2-1510 — franquia/vagas/investidores fora das sugestões (conta como promessa)
     const key = body.toLowerCase()
     if (seen.has(key)) { dropped.duplicate += 1; continue }
     if (facts.length >= ADS_V2_RESEARCH_MAX_FACTS) { dropped.over += 1; continue }
@@ -287,6 +305,7 @@ export function factsFromPageText(pageText: string, url: string): { facts: AdsV2
   for (const body of parts) {
     const why = factRefusal(body)
     if (why) { dropped[why] += 1; continue }
+    if (adsV2InstitutionalFact(body)) { dropped.promise += 1; continue } // KINEO-ADS-FIEL-2-1510 — franquia/vagas/investidores fora das sugestões (conta como promessa)
     const key = body.toLowerCase()
     if (seen.has(key)) { dropped.duplicate += 1; continue }
     if (facts.length >= 3) { dropped.over += 1; continue }

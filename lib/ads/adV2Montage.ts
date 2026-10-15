@@ -53,7 +53,11 @@ export interface AdV2MontageShot {
   /** KINEO-ADS-MELHORIAS-1410 — só no plano `text` que é o PACKSHOT (a foto real do produto): fundo suave + foto inteira com zoom. */
   packshot?: boolean
   fill?: boolean // KINEO-ADS-POS-ENTREGA-1510 — clipe que só existe em 9:16 (efeito) num quadro de outra proporção: fundo suave + o clipe INTEIRO (sem corte duro)
+  closeup?: boolean // KINEO-ADS-FIEL-2-1510 — só no plano `text` que é o CLOSE do Premium com a trava: a foto real com um zoom de close (mais perto e mais fundo que o de sempre)
 }
+/** KINEO-ADS-FIEL-2-1510 — o zoom do close real: começa já perto e aproxima mais (as MESMAS propriedades do zoom do plano `text`, só outros valores). */
+export const ADS_V2_CLOSEUP_ZOOM_START = '108%' // KINEO-ADS-FIEL-2-1510
+export const ADS_V2_CLOSEUP_ZOOM_END = '122%' // KINEO-ADS-FIEL-2-1510
 
 // ── KINEO-ADS-MELHORIAS-1410 — o PACKSHOT (a foto real do produto, sem IA) ─────────────────────────────────────────────────
 // Três elementos na trilha dos planos, só com propriedades que a casa JÁ usa em produção (image + fit cover/contain — contain no
@@ -263,7 +267,7 @@ export function buildAdV2Source(input: AdV2MontageInput): Record<string, unknown
         source: shot.url.trim(), fit: 'cover',
         x: '50%', y: '50%', width: '100%', height: '100%',
         ...transition,
-        animations: [{ type: 'scale', fade: false, start_scale: '100%', end_scale: ADS_V2_TEXT_ZOOM_END, easing: 'linear' }],
+        animations: [shot.closeup === true ? { type: 'scale', fade: false, start_scale: ADS_V2_CLOSEUP_ZOOM_START, end_scale: ADS_V2_CLOSEUP_ZOOM_END, easing: 'linear' } : { type: 'scale', fade: false, start_scale: '100%', end_scale: ADS_V2_TEXT_ZOOM_END, easing: 'linear' }], // KINEO-ADS-FIEL-2-1510 — o close real; sem a marca, o zoom de sempre
       })
       return
     }

@@ -132,6 +132,9 @@ import { ADS_V2_SCENE_MAX_CHARS, ADS_V2_SCENE_PRESETS, adsV2AdKind, adsV2ApplySc
 import { adsV2PackshotCopy } from '@/lib/ads/v2Packshot' // KINEO-ADS-MELHORIAS-1410 — o rótulo do plano com a foto real do produto
 import { adsV2FormatCopy } from '@/lib/ads/v2Formats' // KINEO-ADS-MELHORIAS-1410 — as frases do formato (16 línguas)
 import { ADS_V2_FORMATS, ADS_V2_FORMAT_CROP, adsV2CropRectFor, adsV2FormatBlock, type AdsV2Format } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — 4:5 e 1:1 em "Mais opções"
+import { ADS_V2_PLAN_LEFT_WARN } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-2-1510 — o contador de roteiros do dia aparece a partir daqui
+import { ADS_V2_START_OVER_DEFAULTS, adsV2EndCardTitle, adsV2Fiel2Copy, adsV2ForeignName, adsV2KindFor, adsV2PlansLeftText } from '@/lib/ads/v2Fiel2Tela' // KINEO-ADS-FIEL-2-1510 — start over limpo, link nunca é lugar, título do cartão, contador e pronúncia
+import { adsV2GenericProduct } from '@/lib/ads/v2CopyFit' // KINEO-ADS-FIEL-2-1510 — o título de sempre é só o substantivo genérico ("Perfume")?
 import { adsV2RedoCopy, adsV2RedoFill, type AdsV2RedoCopy } from '@/lib/ads/v2Redo' // KINEO-ADS-MELHORIAS-1410 — refazer UMA cena aqui mesmo (frases nas 16 línguas)
 import { adsV2RedoFreeCopy, type AdsV2RedoFreeCopy } from '@/lib/ads/v2Redo' // KINEO-ADS-REFACAO-ATOR-1410 — "Refazer esta cena · grátis" (16 línguas)
 import { adsV2RedoPrice } from '@/lib/ads/v2FreeRedo' // KINEO-ADS-REFACAO-ATOR-1410 — 0 na 1ª refação, o preço do plano depois
@@ -204,6 +207,7 @@ interface PlanResponse {
   scripts?: unknown
   /** KINEO-ADS-FLUXO-2026-10-13 — o roteiro em vigor ('a' = a narration/overlays desta resposta). */
   script_id?: string
+  plans_left?: number | null // KINEO-ADS-FIEL-2-1510 — roteiros que ainda cabem hoje (null = conta da casa, sem teto)
 }
 interface Plan extends PlanResponse {
   sig: string
@@ -644,13 +648,13 @@ export function AdsV2SimpleSession({
     void importLink(raw)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-  const [tier, setTier] = useState<AdsV2Tier | null>(sample ? ADS_SAMPLE_TIER : null)
+  const [tier, setTier] = useState<AdsV2Tier | null>(sample ? ADS_SAMPLE_TIER : resume ? null : ADS_V2_START_OVER_DEFAULTS.tier) // KINEO-ADS-FIEL-2-1510 — "Start over" = Comercial (o nível lembrado só vale na 1ª abertura)
   // KINEO-ESTILOS-PRODUTO-2026-10-09 — null = segue a sugestão do setor; a pessoa escolheu = vale a escolha dela.
-  const [styleChoice, setStyleChoice] = useState<AdsV2StyleChoice | null>(null)
+  const [styleChoice, setStyleChoice] = useState<AdsV2StyleChoice | null>(resume ? null : ADS_V2_START_OVER_DEFAULTS.style) // KINEO-ADS-FIEL-2-1510 — "Start over" = Auto (nada do estilo do anúncio anterior nem da sugestão do setor)
   // KINEO-TRENDING-2026-10-13 — /ads/v2?style=<chave> (o "Make mine" do /trending) abre com o estilo já marcado. Só chave do
   // catálogo (isAdsV2Style) e só com os estilos ligados; qualquer outra coisa é ignorada e a tela segue a sugestão do setor.
   useEffect(() => {
-    if (!ADS_V2_STYLES_PUBLIC) return
+    if (!ADS_V2_STYLES_PUBLIC || !resume) return // KINEO-ADS-FIEL-2-1510 — o ?style= do /trending vale na abertura, não depois do "Start over"
     let wanted: string | null = null
     try {
       wanted = new URLSearchParams(window.location.search).get('style')
@@ -698,6 +702,7 @@ export function AdsV2SimpleSession({
   const [research, setResearch] = useState<Research | null>(null)
   const [factOn, setFactOn] = useState<Record<string, boolean>>({})
   const [plan, setPlan] = useState<Plan | null>(null)
+  const [plansLeft, setPlansLeft] = useState<number | null>(null) // KINEO-ADS-FIEL-2-1510 — "N roteiros restantes hoje" (só quem tem teto)
   const { previousPlan, rememberPlan } = usePlanComparison()
   const [busy, setBusy] = useState<null | 'plan' | 'start'>(null)
   const [busyNote, setBusyNote] = useState<string | null>(null)
@@ -842,15 +847,18 @@ export function AdsV2SimpleSession({
   // KINEO-ADS-CENA-2026-10-13 — produto x lugar (a pergunta, o exemplo e a pesquisa mudam) e a CENA: o campo, ou a parte da
   // frase que pede cena ("…num hotel com uma chuva"), só em Comercial/Premium. A frase que pede cena nunca vira o título.
   const sc: AdsV2SceneCopy = adsV2SceneCopy(lang)
-  const adKind: AdsV2AdKind = kindChoice ?? adsV2AdKind(sentence)
+  const adKind: AdsV2AdKind = adsV2KindFor({ choice: kindChoice, detected: adsV2AdKind(sentence), linkRead, sentence }) // KINEO-ADS-FIEL-2-1510 — link de produto lido (ou "250g" no nome) nunca vira "Um lugar"
   const textAsk = adKind === 'product' ? sc.product : sc.place
   const sceneSplit = adKind === 'product' ? adsV2SplitSceneRequest(sentence) : { product: '', scene: null }
   const sceneTyped = sanitizeAdsV2Scene(scene)
   const sceneTierOk = tier === null || adsV2SceneAllowed(tier)
   const sceneFinal = adKind === 'product' && tier !== null && adsV2SceneAllowed(tier) ? sceneTyped || sceneSplit.scene || '' : ''
   const sceneProblem = adKind === 'product' && sceneTierOk ? adsV2SceneIssues(sceneTyped || sceneSplit.scene || '')[0] ?? null : null
-  const cardTitleFinal = cardTitle.trim() || adsV2ProductTitle(sentence, adKind)
+  const cardTitleBase = adsV2ProductTitle(sentence, adKind) // KINEO-ADS-FIEL-2-1510
+  const cardTitleFinal = adsV2EndCardTitle({ typed: cardTitle, fallback: cardTitleBase, generic: !!adsV2GenericProduct(cardTitleBase, sentence, spoken, { pageRead: !!linkRead }), linkName: linkPage?.name ?? null, brandName: brand?.name ?? null, pronWord }) // KINEO-ADS-FIEL-2-1510 — o nome lido/digitado antes do substantivo genérico
   const pcopy = adsV2PronounceCopy(lang) // KINEO-ADS-DEMO-UNIVERSO-1410
+  const f2 = adsV2Fiel2Copy(lang) // KINEO-ADS-FIEL-2-1510
+  const foreignWord = narrationOn ? adsV2ForeignName(pronWord.trim() || cardTitleFinal, spoken) : null // KINEO-ADS-FIEL-2-1510 — nome que a voz da língua escolhida tende a ler errado
   const pronWordDefault = adsV2PronounceDefaultWord(cardTitleFinal) // KINEO-ADS-DEMO-UNIVERSO-1410
   const pronounce = narrationOn ? sanitizeAdsV2Pronounce({ word: pronWord.trim() || pronWordDefault, say: pronSay }) : null // KINEO-ADS-DEMO-UNIVERSO-1410 — só com voz; null = narração de sempre
   const cost = tier ? adsV2Credits(tier, ADS_V2_SCREEN_SECONDS) : null
@@ -1935,10 +1943,12 @@ export function AdsV2SimpleSession({
         if (VIDEO_TO_PHOTOS_CODES.includes(r.code)) void videoBackToFrames(typeof r.body.footage_id === 'string' ? r.body.footage_id : null)
         if (r.code === 'too_many_videos') void videosPastLimitToFrames()
         if (r.code === 'not_editable') setDraft(null)
+        if (r.code === 'daily_limit' && typeof r.body.plans_left === 'number') setPlansLeft(r.body.plans_left) // KINEO-ADS-FIEL-2-1510
         setPlanError(failText(r)) // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
         return
       }
       rememberPlan(r.data)
+      setPlansLeft(typeof r.data.plans_left === 'number' ? r.data.plans_left : null) // KINEO-ADS-FIEL-2-1510
       setPlan({ ...r.data, sig: JSON.stringify({ base: baseAtStart, facts: chosen }), cardSig: card.sig })
       setCopyEdit(null) // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — plano novo = texto novo (a edição do anterior não vale mais)
       setCopyNote(null) // KINEO-ANUNCIO-CONSERTOS-2026-10-12
@@ -2168,7 +2178,7 @@ export function AdsV2SimpleSession({
     style,
     tint: styleTint,
     name: styleSpec && style !== 'none' ? styleCopy.styles[style].label : styleCopy.autoLabel,
-    desc: styleSpec && style !== 'none' ? styleCopy.styles[style].oneLine : fc.stage.autoDesc,
+    desc: styleSpec && style !== 'none' ? `${styleCopy.styles[style].oneLine}${styleCopy.fidelity ? ` ${styleCopy.fidelity}` : ''}` : fc.stage.autoDesc, // KINEO-ADS-FIEL-2-1510 — o cartão do estilo escolhido também avisa
     bestFor: styleSpec && style !== 'none' ? styleCopy.styles[style].bestFor : null,
     preview: styleSpec ? styleSpec.preview : null,
     poster: styleSpec ? styleSpec.poster : null,
@@ -2479,6 +2489,7 @@ export function AdsV2SimpleSession({
               {ADS_V2_STYLES_PUBLIC ? (
                 <QuadroStyleRow value={style} suggested={styleSuggested} onChange={setStyleChoice} disabled={locked} copy={styleCopy} labelledBy="adv2s-s3" />
               ) : null}
+              {ADS_V2_STYLES_PUBLIC && styleCopy.fidelity ? <p className="adsw-hint" data-kineo="ads-style-fidelity">{styleCopy.fidelity}</p> : null}{/* KINEO-ADS-FIEL-2-1510 — o aviso honesto também nos cartões compactos (16 línguas) */}
               {startNote ? <p className="adsw-hint" role="status" data-kineo="ads-start-from-note">✓ {startNote}</p> : null}
             </section>
 
@@ -2490,6 +2501,7 @@ export function AdsV2SimpleSession({
                 {planFresh ? goLabel : busy === 'plan' ? copy.plan.planning : fc.review.planShort}
               </button>
               <p className="gnote" role="status">{busy === 'plan' ? copy.plan.planning : !planFresh && missing.length ? missing[0] : !planFresh ? fill(fc.review.then, { go: goLabel }) : ux.preview.delivery}</p>
+              {adsV2PlansLeftText(f2, plansLeft, ADS_V2_PLAN_LEFT_WARN) ? <p className="adsw-hint" data-kineo="ads-plans-left">{adsV2PlansLeftText(f2, plansLeft, ADS_V2_PLAN_LEFT_WARN)}</p> : null}{/* KINEO-ADS-FIEL-2-1510 — o contador antes do teto */}
             </div>
             </div>
 
@@ -2547,6 +2559,13 @@ export function AdsV2SimpleSession({
                 </p>
               ) : null}
             </details>
+            {foreignWord ? (
+              <div className="adsw-f" data-kineo="ads-pronounce-ask">{/* KINEO-ADS-FIEL-2-1510 — nome estrangeiro para a voz: a tela PERGUNTA (nada é gerado sozinho) */}
+                <span>{f2.pronounceAsk.split('{name}').join(foreignWord)}</span>
+                <small>{f2.pronounceHint}</small>
+                <input type="text" aria-label={f2.pronounceAsk.split('{name}').join(foreignWord)} value={pronSay} maxLength={40} disabled={locked} onChange={(e) => { if (!pronWord.trim()) setPronWord(foreignWord); setPronSay(e.target.value) }} placeholder={pcopy.sayPlaceholder} />
+              </div>
+            ) : null}
             {ADS_V2_STYLES_PUBLIC ? (
               <details id="adv2q-styles-all" className="adv2q-opt" data-kineo="ads-quadro-styles-all" open={stylesOpen} onKeyDown={(e) => { if (e.key === 'Escape' && stylesOpen) { e.stopPropagation(); closeStyles() } }}>{/* KINEO-ADS-PALCO-VOLTAR-1410 — Esc fecha */}
                 <summary onClick={(e) => { e.preventDefault(); setStylesOpen((v) => !v) }}>

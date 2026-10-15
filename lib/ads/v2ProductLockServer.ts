@@ -21,6 +21,7 @@ import {
   type AdsV2ProductLock,
 } from '@/lib/ads/v2ShotLists'
 import { adsV2LayoutPng, adsV2LockedFramePng, decodePng, isPng, trimCutout, type AdsV2Rgba } from '@/lib/ads/v2Png'
+import { adsV2EmptyLayoutPng, type AdsV2Shade } from '@/lib/ads/v2Png' // KINEO-ADS-FIEL-2-1510 — a cena nasce SEM produto (esboço só cinza) e o recorte entra com sombra e tom
 import { adsV2ShotRenderId } from '@/lib/ads/v2Shots'
 
 const RENDER_BUCKET = 'renders'
@@ -95,23 +96,23 @@ export async function adsV2CutoutFor(userId: string, lock: Pick<AdsV2ProductLock
 
 /** O ESBOÇO no bucket (URL pública) — a 1ª referência da cena travada. Lança com o motivo. */
 export async function adsV2PrepareLockedScene(args: { userId: string; orderId: string; idx: number; attempt: number; lock: AdsV2ProductLock; format: AdsV2Format }): Promise<string> {
-  const cut = await adsV2CutoutFor(args.userId, args.lock)
-  const png = adsV2LayoutPng(cut, args.format, args.lock.mode)
+  const cut = await adsV2CutoutFor(args.userId, args.lock) // KINEO-ADS-FIEL-2-1510 — na cena ('scene') o recorte só é aquecido aqui (falhou = foto real do produto, como antes)
+  const png = args.lock.mode === 'scene' ? adsV2EmptyLayoutPng(args.format) : adsV2LayoutPng(cut, args.format, args.lock.mode) // KINEO-ADS-FIEL-2-1510 — cena de gente: o esboço é só a tela cinza (o modelo não vê o produto)
   const url = await upload(`${args.userId}/${adsV2ShotRenderId(args.orderId, args.idx, args.attempt)}-layout.png`, png)
   if (!url) throw new Error('layout_upload')
   return url
 }
 
 /** O QUADRO TRAVADO no bucket (URL pública), a partir da cena PNG do Nano Banana. Lança com o motivo. */
-export async function adsV2FinishLockedScene(args: { userId: string; orderId: string; idx: number; attempt: number; lock: AdsV2ProductLock; format: AdsV2Format; sceneUrl: string }): Promise<{ url: string; rect: { x: number; y: number; w: number; h: number } }> {
+export async function adsV2FinishLockedScene(args: { userId: string; orderId: string; idx: number; attempt: number; lock: AdsV2ProductLock; format: AdsV2Format; sceneUrl: string }): Promise<{ url: string; rect: { x: number; y: number; w: number; h: number }; shade?: AdsV2Shade }> { // KINEO-ADS-FIEL-2-1510 — + o tom e a sombra aplicados
   const bytes = await download(args.sceneUrl)
   if (!bytes) throw new Error('scene_download')
   if (!isPng(bytes)) throw new Error('scene_not_png')
   const cut = await adsV2CutoutFor(args.userId, args.lock)
-  const out = adsV2LockedFramePng(decodePng(bytes), cut, args.format, args.lock.mode)
+  const out = adsV2LockedFramePng(decodePng(bytes), cut, args.format, args.lock.mode, { shade: true }) // KINEO-ADS-FIEL-2-1510 — sombra de contato + tom da cena
   const url = await upload(`${args.userId}/${adsV2ShotRenderId(args.orderId, args.idx, args.attempt)}-lock.png`, out.png)
   if (!url) throw new Error('lock_upload')
-  return { url, rect: out.rect }
+  return { url, rect: out.rect, ...(out.shade ? { shade: out.shade } : {}) } // KINEO-ADS-FIEL-2-1510
 }
 
 /** Cancela (melhor esforço) um job da fila da fal abandonado pelo prazo. Nunca lança. */
