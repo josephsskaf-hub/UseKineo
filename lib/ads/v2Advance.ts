@@ -656,10 +656,10 @@ async function finishReservedScene(admin: SupabaseClient, order: AdsV2OrderRow, 
     const checkInfo = { trusted: out.trust.trusted, why: out.trust.why, corner_person: check ? check.cornerPerson : null, corner_surface: check ? check.cornerSurface : null } // KINEO-ADS-FIEL-4-1510
     if (out.busy) { // KINEO-ADS-FIEL-4-1510
       if (adsV2LockCornerStep({ busy: true, previousReason: row.reason }) === 'retry') { // KINEO-ADS-FIEL-4-1510
-        if (await markShot(admin, row, ['image_submitted'], { status: 'pending', image_request_id: null, image_submit_claimed_at: null, reason: ADS_V2_LOCK_CORNER_REASON })) await shotFallbackEvent(order, row, { to: 'scene_retry', reason: ADS_V2_LOCK_CORNER_REASON, side, check: checkInfo }) // KINEO-ADS-FIEL-4-1510
+        if (await markShot(admin, row, ['image_submitted'], { status: 'pending', image_request_id: null, image_submit_claimed_at: null, reason: ADS_V2_LOCK_CORNER_REASON })) await shotFallbackEvent(order, row, { to: 'scene_retry', reason: ADS_V2_LOCK_CORNER_REASON, side, problem: out.problem, check: checkInfo }) // KINEO-ADS-FIEL-4-1510
         return 'done' // KINEO-ADS-FIEL-4-1510
       } // KINEO-ADS-FIEL-4-1510
-      if (await markShot(admin, row, ['image_submitted'], { status: 'image_done', image_url: lock.url, reason: null })) await shotFallbackEvent(order, row, { to: 'product_photo', reason: 'lock_corner_busy', side, check: checkInfo }) // KINEO-ADS-FIEL-4-1510
+      if (await markShot(admin, row, ['image_submitted'], { status: 'image_done', image_url: lock.url, reason: null })) await shotFallbackEvent(order, row, { to: 'product_photo', reason: 'lock_corner_busy', side, problem: out.problem, check: checkInfo }) // KINEO-ADS-FIEL-4-1510
       return 'done' // KINEO-ADS-FIEL-4-1510
     } // KINEO-ADS-FIEL-4-1510
     if (await markShot(admin, row, ['image_submitted'], { status: 'image_done', image_url: out.url })) { // KINEO-ADS-FIEL-4-1510

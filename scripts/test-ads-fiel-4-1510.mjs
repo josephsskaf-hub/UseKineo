@@ -170,7 +170,7 @@ const p1 = (S = SL) => [T1, T2].every((T) => T.idxs.every((_, k) => {
   const b = (r.y + r.h) / T.H
   const n = nrm(r, T.W, T.H)
   return Math.abs(b - S.ADS_V2_LOCK_RESERVE_BASE[T.fmt]) < 0.002 && b >= 0.78 && b <= 0.92 && r.h <= S.ADS_V2_LOCK_MAX_H[T.fmt] * T.H + 1 && r.w <= S.ADS_V2_LOCK_MAX_W * T.W + 1 &&
-    (side === 'right' ? n.x0 >= 0.5 && Math.abs(n.x1 - (1 - S.ADS_V2_LOCK_RESERVE_EDGE)) < 0.002 : n.x1 <= 0.5 && Math.abs(n.x0 - S.ADS_V2_LOCK_RESERVE_EDGE) < 0.002) && n.y0 >= 0.45
+    (side === 'right' ? n.x0 >= 0.5 && Math.abs(n.x1 - (1 - S.ADS_V2_LOCK_RESERVE_EDGE_RIGHT[T.fmt])) < 0.002 : n.x1 <= 0.5 && Math.abs(n.x0 - S.ADS_V2_LOCK_RESERVE_EDGE) < 0.002) && n.y0 >= 0.45
 }))
 await check('P1 T1 (9:16) e T2 (1:1): base do produto NO terço de baixo (85% e 90%, dentro de 78–92%), ≤ 28%/35% da altura, encostado na margem do lado, nunca passando da metade do quadro', () => p1())
 const p2 = (S = SL) => {
@@ -190,6 +190,19 @@ await check('P4 a posição NÃO depende de leitura: a mesma cena dá o mesmo re
   return JSON.stringify(a) === JSON.stringify(b) && s.includes("const rect = adsV2LockReservedRect({ frameW: W, frameH: H, cutW: cutTrimmed.width, cutH: cutTrimmed.height, format, side }) // KINEO-ADS-FIEL-4-1510") &&
     s.includes("const rect = adsV2LockReservedRect({ frameW: W, frameH: H, cutW: i.cutW, cutH: i.cutH, format: i.format, side: i.side }) // KINEO-ADS-FIEL-4-1510 — a leitura NÃO entra aqui")
 })
+
+const p5 = (S = SL) => {
+  const cuts = [[273, 376], [1080, 1450], [1000, 400]]
+  const r = (f, H, side, c) => nrm(S.adsV2LockReservedRect({ frameW: 1080, frameH: H, cutW: c[0], cutH: c[1], format: f, side }), 1080, H)
+  const vertical = cuts.every((c) => { const d = r('9:16', 1920, 'right', c), e = r('9:16', 1920, 'left', c); return d.x1 <= 0.84 + 0.001 && d.x1 >= 0.835 && d.x0 >= 0.5 && Math.abs(e.x0 - 0.06) < 0.002 && e.x1 <= 0.5 })
+  const feed = [['4:5', 1350], ['1:1', 1080]].every(([f, H]) => cuts.every((c) => Math.abs(r(f, H, 'right', c).x1 - 0.94) < 0.002 && S.adsV2LockReserveZone(f, 'right').x1 === 1))
+  const pz = S.adsV2LockedScenePromptAt({ sceneIdx: 0, format: '9:16', side: 'right' })
+  const semRecuo = [S.adsV2LockedScenePromptAt({ sceneIdx: 0, format: '9:16', side: 'left' }), S.adsV2LockedScenePromptAt({ sceneIdx: 0, format: '1:1', side: 'right' }), S.adsV2LockedScenePromptAt({ sceneIdx: 0, format: '4:5', side: 'right' })]
+  return vertical && feed && S.adsV2LockReserveZone('9:16', 'right').x1 === 0.84 && S.adsV2LockReserveZone('9:16', 'left').x0 === 0 &&
+    pz.includes('The empty surface spot sits between 50% and 84% of the frame width, set in from the right edge: the outer 16% strip at the right edge is not part of the spot.') &&
+    semRecuo.every((p) => !p.includes('set in from the right edge')) && /region x 0\.5–0\.84,/.test(S.adsV2LockCheckQuestion('9:16', 'right'))
+}
+await check('P5 9:16 (coluna de botões do TikTok/Reels): o produto do lado DIREITO termina em x ≤ 0,84 (margem ≥ 16%), também com recorte largo, sem passar da metade; o esquerdo segue em 6%; 4:5 e 1:1 iguais; o pedido da cena e a pergunta da conferência usam o MESMO recuo', () => p5())
 
 // ═══ C. o lado alterna sempre ════════════════════════════════════════════════════════════════════════════════════════════
 console.log('\nC. o lado alterna pela ordem da cena (inclusive onde antes caía no "vão")')
@@ -237,7 +250,7 @@ const b1 = async (V = VIS) => {
   const http = await V.adsV2SceneCheck('http://x/scene.png', '9:16', 'right', resp('{"faces":[]}'))
   delete process.env.OPENAI_API_KEY
   return body.model === AIM.AI_TEXT_MODELS.vision && img.image_url.detail === 'high' && body.response_format.type === 'json_object' && txt.text === SL.adsV2LockCheckQuestion('9:16', 'right') &&
-    /region x 0\.5–1, y 0\.52–1 \(the lower right corner\)/.test(txt.text) && semChave === null && bom && bom.faces.length === 1 && bom.cornerPerson === false && bom.cornerSurface === true &&
+    /region x 0\.5–0\.84, y 0\.52–1 \(the lower right corner\)/.test(txt.text) && semChave === null && bom && bom.faces.length === 1 && bom.cornerPerson === false && bom.cornerSurface === true &&
     ruim === null && rede === null && lixo === null && http === null
 }
 await check('B1 a conferência usa o modelo de VISÃO do registro central em detalhe "high" (era "low"), JSON, com a pergunta do canto; sem chave, HTTP ruim, rede fora ou lixo = null (nunca lança)', () => b1())
@@ -272,6 +285,16 @@ await check('B5 a leitura da conferência: até 8 rostos, as duas respostas sim/
   const muitos = SL.adsV2ParseLockCheck({ faces: Array.from({ length: 12 }, (_, i) => [0.01 * i, 0.1, 0.01 * i + 0.05, 0.2]), corner_person: false })
   return okL.faces.length === 1 && okL.cornerPerson === true && okL.cornerSurface === null && muitos.faces.length === 8 && SL.adsV2ParseLockCheck('{}') === null && SL.adsV2ParseLockCheck('talvez') === null && SL.adsV2ParseLockCheck('[1]') === null
 })
+
+const b6 = (S = SL) => {
+  const prod = nrm(rectDe(T1, 0, S), T1.W, T1.H)
+  const longe = [box(0.13, 0.21, 0.27, 0.33)]
+  const pr = (o) => S.adsV2LockCornerProblem({ trusted: true, cornerPerson: false, cornerSurface: true, faces: longe, rect: prod, ...o })
+  return pr({ cornerSurface: false }) === 'no_surface' && S.adsV2LockCornerBusy({ trusted: true, cornerPerson: false, cornerSurface: false, faces: longe, rect: prod }) === true &&
+    pr({ trusted: false, cornerSurface: false }) === null && pr({ cornerSurface: null }) === null && pr({}) === null && pr({ cornerPerson: true, cornerSurface: false }) === 'person' &&
+    S.adsV2LockCornerStep({ busy: pr({ cornerSurface: false }) !== null, previousReason: null }) === 'retry' && S.adsV2LockCornerStep({ busy: true, previousReason: S.ADS_V2_LOCK_CORNER_REASON }) === 'product_photo'
+}
+await check('B6 superfície: conferência CONFIÁVEL com corner_surface=false = canto que não serve ("no_surface"), tratado igual a canto ocupado (refaz 1 vez, depois a foto real); suspeita ou sem resposta = o canto fica', () => b6())
 
 // ═══ D. a sombra encosta na base ═════════════════════════════════════════════════════════════════════════════════════════
 console.log('\nD. a sombra de contato encosta na BASE do produto no canto')
@@ -345,6 +368,15 @@ const g3 = async (S = SRV) => {
   return rep.busy === false && rep.trust.why === 'repeated_boxes' && conf.busy === false && conf.trust.trusted === true && conf.faces === 1 && JSON.parse(j.text).faces.length === 1
 }
 await check('G3 caixa idêntica à de outra cena = "não sei" (o canto fica, mesmo com "corner_person"); rosto medido fora do canto = confiável e vai ao JSON das frases', () => g3())
+const g4 = async (S = SRV) => {
+  srvCalls.uploads.length = 0
+  const medido = [box(0.137, 0.212, 0.268, 0.334)]
+  const sem = await fin(S, { check: { faces: medido, cornerPerson: false, cornerSurface: false } })
+  const semUp = srvCalls.uploads.every((p) => !/-lock\.(png|json)$/.test(p))
+  const suspeita = await fin(S, { check: { faces: PALPITES[2], cornerPerson: false, cornerSurface: false } })
+  return sem.busy === true && sem.problem === 'no_surface' && sem.trust.trusted === true && semUp && suspeita.busy === false && suspeita.trust.why === 'round_boxes'
+}
+await check('G4 conferência CONFIÁVEL dizendo que não há tampo vazio no canto (corner_surface=false): { busy, problem "no_surface" } e nada é gravado; a mesma resposta vinda de palpite redondo não tira o produto do canto', () => g4())
 
 // ═══ A. avanço executado (servidor REAL) ═════════════════════════════════════════════════════════════════════════════════
 console.log('\nA. avanço executado: servidor real, banco e fornecedores falsos')
@@ -437,6 +469,18 @@ const a3 = async (Adv = A) => {
     prov.events.filter((e) => e.name === 'ads_v2_product_locked').length === 0 && retry.length === scenes.length
 }
 await check('A3 conferência confiável com gente no canto: a cena é refeita UMA vez (scene_retry, mesmo lado, sem cobrar); de novo ocupado = a FOTO REAL do produto (lock_corner_busy); nada é colado por cima de gente', () => a3())
+await check('A8 conferência confiável sem tampo vazio no canto: scene_retry UMA vez (problem "no_surface", sem cobrar) e, de novo, a FOTO REAL do produto em movimento; nunca colado sobre parede/painel', async () => {
+  reset()
+  vision.check = async () => ({ faces: [box(0.13, 0.21, 0.27, 0.33)], cornerPerson: false, cornerSurface: false })
+  const w = world()
+  await seed(w)
+  await A.dispatchAdsV2Shots(w.db, w.order, DL())
+  for (let k = 0; k < 3; k++) { await A.advanceAdsV2Order(w.db, ORDER, { deadlineMs: DL() }); await A.dispatchAdsV2Shots(w.db, w.tables.ads_v2_orders[0], DL()) }
+  const scenes = scenesOf(w.tables)
+  const ev = (to, reason) => prov.events.filter((e) => e.name === 'ads_v2_shot_fallback' && e.metadata.to === to && e.metadata.reason === reason && e.metadata.problem === 'no_surface').length
+  return scenes.length === 3 && ev('scene_retry', SL.ADS_V2_LOCK_CORNER_REASON) === 3 && ev('product_photo', 'lock_corner_busy') === 3 && prov.images.length === 6 &&
+    scenes.every((i) => latestOf(w.tables, i).image_url === `${PH}prod.jpg`) && prov.events.filter((e) => e.name === 'ads_v2_product_locked').length === 0 && prov.refunds === 0 && w.tables.ads_v2_orders[0].status === 'generating'
+})
 await check('A4 a refação é UMA só: cena refeita pela conferência de produto desenhado (Fiel 2) que volta com gente no canto vai direto à foto real', async () => {
   reset()
   let n = 0
@@ -538,14 +582,18 @@ await mut('o produto ignora o lado (sempre na esquerda)', () => p1(slMut("const 
 await mut('caixa redonda (o palpite) volta a ser aceita', () => b2(slMut("  if (c.faces.some(adsV2LockBoxRound)) return { trusted: false, why: 'round_boxes' }", "  if (false) return { trusted: false, why: 'round_boxes' }")))
 await mut('caixa repetida entre cenas volta a ser aceita', () => b2(slMut("if (c.faces.some((f) => prev.some((p) => adsV2LockBoxSame(f, p)))) return", "if (false) return")))
 await mut('rosto ausente com gente pedida volta a ser aceito', () => b2(slMut("if (i.expectPeople && c.faces.length === 0) return", "if (false) return")))
-await mut('conferência suspeita tira o produto do canto', () => b3(slMut('  if (!i.trusted) return false // KINEO-ADS-FIEL-4-1510', '  // KINEO-ADS-FIEL-4-1510')))
+await mut('conferência suspeita tira o produto do canto', () => b3(slMut('  if (!i.trusted) return null // KINEO-ADS-FIEL-4-1510', '  // KINEO-ADS-FIEL-4-1510')))
+await mut('9:16: o canto direito volta para baixo dos botões (margem de 6%)', () => p5(slMut("{ '9:16': 0.16, '4:5': 0.06, '1:1': 0.06 }", "{ '9:16': 0.06, '4:5': 0.06, '1:1': 0.06 }")))
+await mut('9:16: o pedido da cena esquece o recuo da direita', () => p5(slMut("side === 'right' && zone.x1 < 1 ? `The empty surface spot sits between", "false ? `The empty surface spot sits between")))
+await mut('superfície ausente conferida é ignorada (cola sobre parede/painel)', () => b6(slMut("  if (i.cornerSurface === false) return 'no_surface' // KINEO-ADS-FIEL-4-1510", '  // KINEO-ADS-FIEL-4-1510')))
 await mut('canto ocupado refaz sem fim (sempre retry)', () => b4(slMut("return String(i.previousReason ?? '').startsWith(ADS_V2_LOCK_DUP_REASON) ? 'product_photo' : 'retry' // KINEO-ADS-FIEL-4-1510", "return 'retry' // KINEO-ADS-FIEL-4-1510")))
 await mut('o pedido da cena esquece a metade oposta', () => q1(slMut('`People stay on the ${opp} half of the frame, faces in the upper half;', '`People stay anywhere in the frame;')))
 await mut('a conferência volta ao detalhe "low"', () => b1(pure({ [F.vision]: trocar(VISsrc, "image_url: { url: sceneUrl, detail: 'high' }", "image_url: { url: sceneUrl, detail: 'low' }") })(F.vision)))
 await mut('a sombra de contato some (modo sem superfície)', () => d1(pure({ [F.png]: trocar(PNGsrc, "const shade = adsV2ShadeAndMatch(frame, piece, rect, 'scene')", "const shade = adsV2ShadeAndMatch(frame, piece, rect, 'holds')") })(F.png)))
 globalThis.fetch = fakeFetch
-await mut('o servidor cola mesmo com gente conferida no canto', () => g2(loadSrv({ [F.server]: trocar(SRVsrc, 'faces: at.faces, rect: prod })) return { busy: true, trust }', 'faces: at.faces, rect: prod })) void 0') })))
+await mut('o servidor cola mesmo com gente conferida no canto', () => g2(loadSrv({ [F.server]: trocar(SRVsrc, '  if (problem) return { busy: true, problem, trust }', '  if (false) return { busy: true, problem, trust }') })))
 await mut('o palpite vai ao JSON das frases', () => g1(loadSrv({ [F.server]: trocar(SRVsrc, 'const faces = trust.trusted ? at.faces : []', 'const faces = at.faces') })))
+await mut('o servidor ignora a superfície ausente', () => g4(loadSrv({ [F.server]: trocar(SRVsrc, 'cornerSurface: args.check ? args.check.cornerSurface : null,', 'cornerSurface: null,') })))
 await mut('o pedido da cena não reserva o canto (volta o "meio da mesa")', async () => (await a1(loadAdvance({ [F.advance]: trocar(ADVsrc, "  if (lock && lock.mode === 'scene' && sendRefs !== refs) sendPrompt = adsV2LockedScenePromptAt(", "  if (false) sendPrompt = adsV2LockedScenePromptAt(") }))).ok)
 await mut('o pedido da cena reserva sempre a direita (colagem e pedido desencontram)', async () => (await a1(loadAdvance({ [F.advance]: trocar(ADVsrc, 'format: adsV2PlanFormat(order.plan), side: lockSideOf(order, row) })', "format: adsV2PlanFormat(order.plan), side: 'right' })") }))).ok)
 await mut('o avanço ignora o canto ocupado (cola por cima)', () => a3(loadAdvance({ [F.advance]: trocar(ADVsrc, '    if (out.busy) { // KINEO-ADS-FIEL-4-1510', '    if (out.busy && false) { // KINEO-ADS-FIEL-4-1510') })))

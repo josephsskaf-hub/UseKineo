@@ -1312,6 +1312,9 @@ export type AdsV2LockSide = 'left' | 'right' // KINEO-ADS-FIEL-4-1510
 export const ADS_V2_LOCK_RESERVE_BASE: Readonly<Record<AdsV2Format, number>> = { '9:16': 0.85, '4:5': 0.88, '1:1': 0.9 } // KINEO-ADS-FIEL-4-1510
 /** KINEO-ADS-FIEL-4-1510 — margem do produto até a borda do lado (fração da largura): o produto fica no canto, nunca encostado. */
 export const ADS_V2_LOCK_RESERVE_EDGE = 0.06 // KINEO-ADS-FIEL-4-1510
+/** KINEO-ADS-FIEL-4-1510 — margem DIREITA por formato: no 9:16 a coluna de botões do TikTok/Reels (curtir, comentar, compartilhar) ocupa a
+ *  faixa da direita, então o produto do lado direito termina em x ≈ 0,84 (margem ≥ 16%). 4:5 e 1:1 (feed) seguem com a margem de sempre. */
+export const ADS_V2_LOCK_RESERVE_EDGE_RIGHT: Readonly<Record<AdsV2Format, number>> = { '9:16': 0.16, '4:5': 0.06, '1:1': 0.06 } // KINEO-ADS-FIEL-4-1510
 /** KINEO-ADS-FIEL-4-1510 — o lado da cena pela ORDEM dela entre as cenas travadas do pedido: 1ª direita, 2ª esquerda, 3ª direita… (sempre
  *  alterna, inclusive onde antes caía no "vão"). Pura. */
 export function adsV2LockSideFor(ordinal: number): AdsV2LockSide { // KINEO-ADS-FIEL-4-1510
@@ -1329,7 +1332,8 @@ const lockFmt = (f: unknown): AdsV2Format => (f === '4:5' || f === '1:1' ? f : '
 export function adsV2LockReserveZone(format: AdsV2Format, side: AdsV2LockSide): AdsV2Box { // KINEO-ADS-FIEL-4-1510
   const f = lockFmt(format) // KINEO-ADS-FIEL-4-1510
   const y0 = Math.round((ADS_V2_LOCK_RESERVE_BASE[f] - ADS_V2_LOCK_MAX_H[f] - 0.05) * 100) / 100 // KINEO-ADS-FIEL-4-1510
-  return side === 'left' ? { x0: 0, y0, x1: 0.5, y1: 1 } : { x0: 0.5, y0, x1: 1, y1: 1 } // KINEO-ADS-FIEL-4-1510
+  const x1 = ADS_V2_LOCK_RESERVE_EDGE_RIGHT[f] > ADS_V2_LOCK_RESERVE_EDGE ? Math.round((1 - ADS_V2_LOCK_RESERVE_EDGE_RIGHT[f]) * 100) / 100 : 1 // KINEO-ADS-FIEL-4-1510 — 9:16: o canto direito para antes da coluna de botões
+  return side === 'left' ? { x0: 0, y0, x1: 0.5, y1: 1 } : { x0: 0.5, y0, x1, y1: 1 } // KINEO-ADS-FIEL-4-1510
 } // KINEO-ADS-FIEL-4-1510
 /** KINEO-ADS-FIEL-4-1510 — o retângulo do produto (px inteiros) no canto reservado: teto de altura do formato e de largura, BASE em
  *  ADS_V2_LOCK_RESERVE_BASE, encostado na margem do lado (nunca passa da metade do quadro). Não depende de leitura nenhuma. Pura. */
@@ -1338,10 +1342,11 @@ export function adsV2LockReservedRect(i: { frameW: number; frameH: number; cutW:
   if (!(W > 0 && H > 0 && i.cutW > 0 && i.cutH > 0)) throw new Error('ads_v2_lock_bad_size') // KINEO-ADS-FIEL-4-1510
   const f = lockFmt(i.format) // KINEO-ADS-FIEL-4-1510
   const base = ADS_V2_LOCK_RESERVE_BASE[f] // KINEO-ADS-FIEL-4-1510
-  const k = Math.min((ADS_V2_LOCK_MAX_H[f] * H) / i.cutH, (ADS_V2_LOCK_MAX_W * W) / i.cutW, ((base - ADS_V2_LOCK_EDGE) * H) / i.cutH) // KINEO-ADS-FIEL-4-1510
+  const edge = i.side === 'left' ? ADS_V2_LOCK_RESERVE_EDGE : ADS_V2_LOCK_RESERVE_EDGE_RIGHT[f] // KINEO-ADS-FIEL-4-1510
+  const k = Math.min((ADS_V2_LOCK_MAX_H[f] * H) / i.cutH, (Math.min(ADS_V2_LOCK_MAX_W, 0.5 - edge) * W) / i.cutW, ((base - ADS_V2_LOCK_EDGE) * H) / i.cutH) // KINEO-ADS-FIEL-4-1510 — cabe entre a margem e a metade do quadro
   const w = Math.max(1, Math.round(i.cutW * k)), h = Math.max(1, Math.round(i.cutH * k)) // KINEO-ADS-FIEL-4-1510
   const y = Math.round(base * H) - h // KINEO-ADS-FIEL-4-1510 — a base no terço de baixo, sempre
-  const x = i.side === 'left' ? Math.round(ADS_V2_LOCK_RESERVE_EDGE * W) : Math.round((1 - ADS_V2_LOCK_RESERVE_EDGE) * W) - w // KINEO-ADS-FIEL-4-1510
+  const x = i.side === 'left' ? Math.round(ADS_V2_LOCK_RESERVE_EDGE * W) : Math.round((1 - edge) * W) - w // KINEO-ADS-FIEL-4-1510
   return { x, y, w, h } // KINEO-ADS-FIEL-4-1510
 } // KINEO-ADS-FIEL-4-1510
 const pct = (n: number) => Math.round(n * 100) // KINEO-ADS-FIEL-4-1510
@@ -1373,6 +1378,7 @@ export function adsV2LockedScenePromptAt(i: { sceneIdx: number; setting?: string
     `${adsV2LockCornerAction(i.sceneIdx, side)}.`, // KINEO-ADS-FIEL-4-1510
     i.setting && /^Setting: "/.test(i.setting) ? i.setting : '', // KINEO-ADS-FIEL-4-1510
     `Reserved spot: the lower ${side} corner of the frame (the ${side} half, below ${pct(zone.y0)}% of the frame height) shows the flat top of an EMPTY surface (a table, a counter or a pedestal) with NOTHING on it, sharp and softly lit, its top visible between about ${pct(base - 0.12)}% and ${pct(Math.min(0.97, base + 0.08))}% of the frame height: a product will be placed there later, standing on that surface, so keep that corner completely clear.`, // KINEO-ADS-FIEL-4-1510
+    side === 'right' && zone.x1 < 1 ? `The empty surface spot sits between ${pct(zone.x0)}% and ${pct(zone.x1)}% of the frame width, set in from the right edge: the outer ${pct(1 - zone.x1)}% strip at the right edge is not part of the spot.` : '', // KINEO-ADS-FIEL-4-1510 — 9:16: o mesmo recuo do retângulo (a coluna de botões do TikTok/Reels)
     `People stay on the ${opp} half of the frame, faces in the upper half; no face, head, body, arm or hand enters the lower ${side} corner.`, // KINEO-ADS-FIEL-4-1510
     'There is NO bottle, NO box, NO packaging, NO container and NO product of any kind anywhere in the frame; hands are empty and stay away from the empty surface.', // KINEO-ADS-FIEL-4-1510
     'Any other attached photo only shows the place and the people; never copy an object from it.', // KINEO-ADS-FIEL-4-1510
@@ -1421,9 +1427,16 @@ export function adsV2LockCheckTrust(i: { check: AdsV2LockCheck | null | undefine
 } // KINEO-ADS-FIEL-4-1510
 /** KINEO-ADS-FIEL-4-1510 — a conferência CONFIÁVEL diz que há gente no canto? (um rosto lido — com a folga e o pescoço — toca o produto, ou
  *  a resposta direta "corner_person" é sim). Não confiável = false (o canto fica). `faces` e `rect` no MESMO quadro. Pura. */
-export function adsV2LockCornerBusy(i: { trusted: boolean; cornerPerson: boolean | null | undefined; faces: readonly AdsV2Box[]; rect: AdsV2Box }): boolean { // KINEO-ADS-FIEL-4-1510
-  if (!i.trusted) return false // KINEO-ADS-FIEL-4-1510
-  return i.cornerPerson === true || adsV2FaceOverlap(i.rect, i.faces) > 0 // KINEO-ADS-FIEL-4-1510
+export function adsV2LockCornerBusy(i: { trusted: boolean; cornerPerson: boolean | null | undefined; cornerSurface?: boolean | null; faces: readonly AdsV2Box[]; rect: AdsV2Box }): boolean { // KINEO-ADS-FIEL-4-1510
+  return adsV2LockCornerProblem(i) !== null // KINEO-ADS-FIEL-4-1510
+} // KINEO-ADS-FIEL-4-1510
+/** KINEO-ADS-FIEL-4-1510 — POR QUE o canto não serve (conferência confiável): 'person' (gente no canto) ou 'no_surface' (a conferência diz que
+ *  não há tampo vazio no canto: o produto seria colado sobre parede/painel e boiaria). Não confiável ou sem resposta = null (o canto fica). Pura. */
+export function adsV2LockCornerProblem(i: { trusted: boolean; cornerPerson: boolean | null | undefined; cornerSurface?: boolean | null; faces: readonly AdsV2Box[]; rect: AdsV2Box }): 'person' | 'no_surface' | null { // KINEO-ADS-FIEL-4-1510
+  if (!i.trusted) return null // KINEO-ADS-FIEL-4-1510
+  if (i.cornerPerson === true || adsV2FaceOverlap(i.rect, i.faces) > 0) return 'person' // KINEO-ADS-FIEL-4-1510
+  if (i.cornerSurface === false) return 'no_surface' // KINEO-ADS-FIEL-4-1510 — igual a canto ocupado: refaz 1 vez, depois a foto real
+  return null // KINEO-ADS-FIEL-4-1510
 } // KINEO-ADS-FIEL-4-1510
 /** KINEO-ADS-FIEL-4-1510 — o motivo da refação por gente no canto. Começa com ADS_V2_LOCK_DUP_REASON de propósito: a refação da cena travada
  *  é UMA só por plano, venha da conferência de produto desenhado (Fiel 2) ou da de canto ocupado — a 2ª falha de qualquer uma = foto real. */
