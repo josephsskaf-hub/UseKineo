@@ -138,7 +138,7 @@ function setup() {
 {
   const s = setup()
   const { response, result } = await s.visitAndSignup()
-  eq(new URL(response.location).pathname, '/free-script-generator', 'real affiliate route redirects to allowlisted destination')
+  eq(new URL(response.location).pathname, '/free-ai-shorts-generator', 'real affiliate route redirects to allowlisted destination (?to=script = alias de video, KINEO-AFILIADO-SCRIPT-ALIAS-1610)')
   eq(s.db.tables.affiliate_clicks.length, 1, 'real route creates one server click in empty simulated ledger')
   eq(result.outcome, 'attributed', 'signup consumes cookies issued by the actual link route')
   const proof = response.writes.find((cookie) => cookie.name === 'sf_aff_click')

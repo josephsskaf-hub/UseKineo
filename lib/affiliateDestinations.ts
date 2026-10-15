@@ -6,14 +6,17 @@
 export const AFFILIATE_DESTINATIONS = [
   {
     key: 'script',
-    label: 'Free script generator',
+    // KINEO-AFILIADO-SCRIPT-ALIAS-1610 — o link `?to=script` agora abre a página de filme grátis (alias em
+    // app/a/[code]/route.ts), então o rótulo e os textos prontos dizem isso. `path`/`campaign` ficam: são a página de
+    // roteiro e a etiqueta dela, que continuam existindo para quem chega lá por outro caminho.
+    label: 'Script-first post (opens the free film page)',
     audience: 'People who have a topic but not a script',
     path: '/free-script-generator',
     campaign: 'affiliate_script',
-    description: 'Best for people who already have a topic and want a hook-to-payoff draft.',
-    sharePitch: 'Try this free AI script generator for Shorts — it can turn one topic into a hook, facts and payoff, no signup:',
-    spokenPitch: 'If you have a Shorts idea but no script, Kineo turns one topic into a hook, facts and payoff before you even create an account.',
-    emailSubject: 'Free AI script generator for Shorts',
+    description: 'For people who have a topic but no script: the link opens the free film page, where Kineo writes the hook-to-payoff script and turns it into a voiced, captioned Short.',
+    sharePitch: 'Have a Shorts topic but no script? Kineo writes the hook-to-payoff script and turns it into a voiced, captioned AI Short — the first test needs no card:',
+    spokenPitch: 'If you have a Shorts idea but no script, Kineo writes the hook, facts and payoff for you and turns it into a voiced, captioned vertical video. The first test needs no card.',
+    emailSubject: 'Turn one Shorts topic into a scripted AI video',
   },
   {
     key: 'video',

@@ -306,7 +306,7 @@ Example only, not a promise. Illustration based on {AFFILIATE_COMMISSION_PCT} of
           </p>
           <div className="partners-grid partners-campaigns" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: 12 }}>
             {[
-              { t: 'Script-first audience', d: 'Send people who have a topic to the no-signup script generator.' },
+              { t: 'Script-first audience', d: 'Send people who have a topic: Kineo writes the script and makes the free first film.' },
               { t: 'Ready to test video', d: 'Send people who want to judge the complete free Fast workflow.' },
               { t: 'Faceless creators', d: 'Send channel builders to the narration, visuals and captions workflow.' },
             ].map((campaign) => (

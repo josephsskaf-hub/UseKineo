@@ -49,7 +49,9 @@ export function resolveAffiliateNextMission(stats: unknown): AffiliateNextMissio
       title: 'Your partner path has converted. Make it durable.',
       description:
         'Install the daily Shorts-idea widget once on a site or resource page. Every click keeps your existing first-touch attribution without requiring another manual post.',
-      destination: 'script',
+      // KINEO-AFILIADO-SCRIPT-ALIAS-1610 — as três missões que mandavam `script` (2% cadastram) agora mandam `video`
+      // (52%): era a missão, não a escolha do parceiro, que fazia 8 de 13 afiliados copiarem `?to=script`.
+      destination: 'video',
       action: 'widget',
       cta: 'Copy the attributed widget',
       steps: ['Paid customer', 'Install durable traffic', 'Next paid customer'],
@@ -63,7 +65,7 @@ export function resolveAffiliateNextMission(stats: unknown): AffiliateNextMissio
       eyebrow: `First-customer mission · ${signupLabel}`,
       title: 'You have signups. Show the complete product next.',
       description:
-        'Use the full Fast-video test for the next campaign. It lets a creator judge the scripted, voiced and captioned result before deciding whether a paid plan fits.',
+        'Use the free first-film test for the next campaign. It lets a creator judge the scripted, voiced and captioned result before deciding whether a paid plan fits.',
       destination: 'video',
       action: 'caption',
       cta: 'Copy the video-test post',
@@ -77,8 +79,8 @@ export function resolveAffiliateNextMission(stats: unknown): AffiliateNextMissio
       eyebrow: 'First-click mission · 0 link visits',
       title: 'Get one real person through your link.',
       description:
-        'Start with the free script tool: the visitor gets a usable hook, facts and payoff before Kineo asks for an account. One focused post is the only job now.',
-      destination: 'script',
+        'Start with the free film page: the visitor types one idea and sees Kineo script, voice and caption it before choosing a plan — no card needed. One focused post is the only job now.',
+      destination: 'video',
       action: 'caption',
       cta: 'Copy the first-click post',
       steps: ['Partner link live', 'Publish the ready post', 'First eligible visit'],
@@ -91,10 +93,10 @@ export function resolveAffiliateNextMission(stats: unknown): AffiliateNextMissio
     eyebrow: `First-signup mission · ${visitLabel}`,
     title: 'Your link gets attention. Now earn the first signup.',
     description:
-      'Do not send the same generic pitch again. Lead with the no-signup script generator so the next visitor receives value before choosing to create an account.',
-    destination: 'script',
+      'Do not send the same generic pitch again. Lead with the free film page so the next visitor sees the product work on their own idea before choosing a plan.',
+    destination: 'video',
     action: 'caption',
-    cta: 'Copy the no-signup post',
+    cta: 'Copy the free-film post',
     steps: ['First link visit', 'Publish free value', 'First attributed signup'],
   }
 }

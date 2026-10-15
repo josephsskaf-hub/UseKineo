@@ -249,10 +249,10 @@ async function runRoute({
 {
   const { response, inserts } = await runRoute()
   const location = new URL(response.location)
-  equal(location.pathname, '/free-script-generator', 'valid link reaches free script tool')
-  equal(location.searchParams.get('utm_campaign'), 'affiliate_script', 'real route keeps campaign')
+  equal(location.pathname, '/free-ai-shorts-generator', 'published ?to=script link reaches the free film page (KINEO-AFILIADO-SCRIPT-ALIAS-1610)')
+  equal(location.searchParams.get('utm_campaign'), 'affiliate_video', 'aliased script link carries the video campaign')
   equal(inserts.length, 1, 'first human visit creates one protected click')
-  equal(inserts[0].landing_path, `/a/${CODE}?to=script`, 'click row stores normalized allowlisted path')
+  equal(inserts[0].landing_path, `/a/${CODE}?to=script`, 'click row stores the link the visitor actually used')
   equal(response.cookieWrites.length, 3, 'first visit writes code, proof and boolean hint')
   const codeCookie = response.cookieWrites.find((item) => item.name === 'sf_aff')
   const proofCookie = response.cookieWrites.find((item) => item.name === 'sf_aff_click')
@@ -280,8 +280,8 @@ async function runRoute({
 for (const [key, expected] of Object.entries(expectedDestinations)) {
   const { response, inserts } = await runRoute({ to: key })
   const location = new URL(response.location)
-  equal(location.pathname, expected.path, `${key} route reaches the matching acquisition surface`)
-  equal(location.searchParams.get('utm_campaign'), expected.campaign, `${key} route preserves campaign attribution`)
+  equal(location.pathname, key === 'script' ? expectedDestinations.video.path : expected.path, `${key} route reaches the matching acquisition surface`)
+  equal(location.searchParams.get('utm_campaign'), key === 'script' ? expectedDestinations.video.campaign : expected.campaign, `${key} route preserves campaign attribution`)
   equal(inserts[0].landing_path, `/a/${CODE}?to=${key}`, `${key} click stores its normalized destination`)
 }
 
@@ -295,7 +295,7 @@ for (const unsafe of [null, 'https://evil.example', '//evil.example', '../checko
 
 {
   const { response, inserts } = await runRoute({ active: false })
-  equal(new URL(response.location).pathname, '/free-script-generator', 'inactive affiliate keeps the tagged allowlisted destination (no cookie)')
+  equal(new URL(response.location).pathname, '/free-ai-shorts-generator', 'inactive affiliate keeps the tagged (aliased) destination (no cookie)')
   equal(response.cookieWrites.length, 0, 'inactive owner mints no cookies')
   equal(inserts.length, 0, 'inactive owner mints no click')
 }
@@ -340,21 +340,21 @@ for (const unsafe of [null, 'https://evil.example', '//evil.example', '../checko
 
 for (const clickFailure of ['error', 'throw']) {
   const { response, inserts } = await runRoute({ clickFailure })
-  equal(new URL(response.location).pathname, '/free-script-generator', `${clickFailure} preserves useful destination`)
+  equal(new URL(response.location).pathname, '/free-ai-shorts-generator', `${clickFailure} preserves useful destination`)
   equal(response.cookieWrites.length, 0, `${clickFailure} cannot mint an unbacked financial cookie`)
   equal(inserts.length, 1, `${clickFailure} attempted exactly one click write`)
 }
 
 for (const userAgent of ['Twitterbot/1.0', 'WhatsApp/2.0']) {
   const { response, inserts } = await runRoute({ userAgent })
-  equal(new URL(response.location).pathname, '/free-script-generator', `${userAgent} still receives preview destination`)
+  equal(new URL(response.location).pathname, '/free-ai-shorts-generator', `${userAgent} still receives preview destination`)
   equal(inserts.length, 0, `${userAgent} is not counted as a visit`)
   equal(response.cookieWrites.length, 0, `${userAgent} receives no financial proof`)
 }
 
 {
   const { response, inserts } = await runRoute({ currentLookupThrows: true })
-  equal(new URL(response.location).pathname, '/free-script-generator', 'provider outage keeps the tagged allowlisted destination (no cookie)')
+  equal(new URL(response.location).pathname, '/free-ai-shorts-generator', 'provider outage keeps the tagged (aliased) destination (no cookie)')
   equal(response.cookieWrites.length, 0, 'provider outage cannot mint cookie')
   equal(inserts.length, 0, 'provider outage cannot mint click')
 }

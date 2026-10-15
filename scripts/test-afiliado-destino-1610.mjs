@@ -170,13 +170,32 @@ async function problems(S) {
     fail(ev && !JSON.stringify(ev.metadata).includes(r.jar.sf_aff_click?.value ?? '§'), 'evento copiou o UUID de prova financeira')
   }
 
-  // (2) ?to= da lista branca continua respeitado, com etiqueta.
-  for (const [to, expected] of [['script', '/free-script-generator'], ['faceless', '/faceless-video-generator'], ['business', '/business-video-content-plan'], ['client_brief', '/client-video-brief-generator'], ['VIDEO', '/free-ai-shorts-generator']]) {
+  // (2) ?to= da lista branca continua respeitado, com etiqueta — menos `script`, que desde KINEO-AFILIADO-SCRIPT-ALIAS-1610
+  // é alias de `video` (links já publicados: 8 de 13 afiliados copiaram `?to=script` do botão padrão).
+  for (const [to, expected] of [['faceless', '/faceless-video-generator'], ['business', '/business-video-content-plan'], ['client_brief', '/client-video-brief-generator'], ['VIDEO', '/free-ai-shorts-generator']]) {
     const r = await hit({ to })
     tagged(r.url, `?to=${to}`)
     fail(r.url.pathname === expected, `?to=${to} não respeitado (${r.url.pathname})`)
     fail(r.url.searchParams.get('utm_content') === CODE, `?to=${to} sem utm_content`)
     fail(r.newClicks[0]?.landing_path === `/a/${CODE}?to=${to.toLowerCase()}`, `?to=${to} landing_path errado`)
+    const ev = r.events.find((e) => e.name === 'affiliate_link_clicked')
+    fail(ev && ev.metadata.legacy_to === null, `?to=${to} marcado como legacy_to sem ser alias`)
+  }
+  for (const to of ['script', 'Script']) {
+    const r = await hit({ to })
+    tagged(r.url, `?to=${to} (alias)`)
+    fail(r.url.pathname === '/free-ai-shorts-generator', `?to=${to} já publicado não foi para a página de filme grátis (${r.url.pathname})`)
+    fail(r.url.searchParams.get('utm_campaign') === 'affiliate_video', `?to=${to} sem utm_campaign=affiliate_video`)
+    fail(r.url.searchParams.get('utm_content') === CODE, `?to=${to} sem utm_content`)
+    fail(r.jar.sf_aff?.value === CODE && Boolean(r.jar.sf_aff_click?.value), `?to=${to} perdeu o cookie de atribuição`)
+    fail(r.newClicks[0]?.landing_path === `/a/${CODE}?to=script`, `?to=${to}: o clique deixou de gravar o link usado (?to=script)`)
+    const ev = r.events.find((e) => e.name === 'affiliate_link_clicked')
+    fail(ev && ev.metadata.legacy_to === 'script' && ev.metadata.destination === 'video' && ev.metadata.explicit_to === true, `?to=${to}: evento sem legacy_to='script' + destination=video`)
+  }
+  {
+    const bot = await hit({ to: 'script', ua: 'curl/8.5.0' })
+    fail(bot.url.pathname === '/free-ai-shorts-generator', 'robô com ?to=script não seguiu o alias')
+    fail(bot.events.some((e) => e.metadata?.legacy_to === 'script' && e.metadata.is_bot === true), 'robô com ?to=script sem legacy_to no evento')
   }
 
   // (3) open redirect bloqueado: tudo fora da lista cai no padrão, no nosso domínio.
@@ -257,6 +276,10 @@ const mutants = [
   ['evento marca todo mundo como gente', 'route', 'is_bot: input.botReason !== null,', 'is_bot: false,'],
   ['evento deixa de ser reservado ao servidor', 'events', "  'affiliate_link_clicked',\n", ''],
   ['widget volta ao roteiro', 'widget', '?to=video`', '?to=script`'],
+  // KINEO-AFILIADO-SCRIPT-ALIAS-1610
+  ['?to=script volta ao gerador de roteiro', 'route', "const LEGACY_TO_ALIASES: Record<string, string> = { script: 'video' }", 'const LEGACY_TO_ALIASES: Record<string, string> = {}'],
+  ['evento perde o legacy_to', 'route', '        legacy_to: input.legacyTo,\n', ''],
+  ['clique grava o destino em vez do link usado', 'route', 'const landingPath = affiliateClickLandingPath(code, asked)', 'const landingPath = affiliateClickLandingPath(code, explicit ? destination : null)'],
 ]
 let failed = 0
 for (const [name, key, from, to] of mutants) {
@@ -279,10 +302,21 @@ assert.equal(failed, 0, `${failed} mutante(s) sobreviveram ou não se aplicaram`
   let anc = true
   try { git('merge-base', '--is-ancestor', AFILIADO_DESTINO_1610_BASE, 'HEAD') } catch { anc = false }
   assert.ok(anc, 'a base do desfaz não é ancestral de HEAD')
+  // KINEO-AFILIADO-SCRIPT-ALIAS-1610 veio depois: sai PRIMEIRO, e sozinho devolve a base dele (b1a8766f).
+  const { semAfiliadoScriptAlias1610, AFILIADO_SCRIPT_ALIAS_1610_ARQUIVOS, AFILIADO_SCRIPT_ALIAS_1610_BASE } = await import('./test-support/desfaz-afiliado-script-alias-1610.mjs')
+  try { git('merge-base', '--is-ancestor', AFILIADO_SCRIPT_ALIAS_1610_BASE, 'HEAD') } catch { anc = false }
+  assert.ok(anc, 'a base do desfaz do alias não é ancestral de HEAD')
+  for (const f of AFILIADO_SCRIPT_ALIAS_1610_ARQUIVOS) {
+    const base = git('show', `${AFILIADO_SCRIPT_ALIAS_1610_BASE}:${f}`).replace(/\r\n/g, '\n')
+    assert.equal(semAfiliadoScriptAlias1610(f, read(f)), base, `desfeito o alias, ${f} não é EXATAMENTE a base dele`)
+  }
   for (const f of AFILIADO_DESTINO_1610_ARQUIVOS) {
     const base = git('show', `${AFILIADO_DESTINO_1610_BASE}:${f}`).replace(/\r\n/g, '\n')
-    assert.equal(semAfiliadoDestino1610(f, read(f)), base, `desfeito, ${f} não é EXATAMENTE a base`)
+    assert.equal(semAfiliadoDestino1610(f, semAfiliadoScriptAlias1610(f, read(f))), base, `desfeito, ${f} não é EXATAMENTE a base`)
   }
+  const mexidoAlias = read('app/a/[code]/route.ts').replace("{ script: 'video' }", "{ script: 'video' } ")
+  assert.notEqual(mexidoAlias, read('app/a/[code]/route.ts'), 'a sonda do desfaz do alias não se aplicou')
+  assert.throws(() => semAfiliadoScriptAlias1610('app/a/[code]/route.ts', mexidoAlias), /mudou fora deste conserto/, 'o desfaz do alias engoliu uma mudança dentro do trecho')
   const mexido = read('app/api/events/route.ts').replace("  'affiliate_link_clicked',\n", "  'affiliate_link_clicked' ,\n")
   assert.notEqual(mexido, read('app/api/events/route.ts'), 'a sonda do desfaz não se aplicou')
   assert.throws(() => semAfiliadoDestino1610('app/api/events/route.ts', mexido), /mudou fora deste conserto/, 'o desfaz engoliu uma mudança dentro do trecho')

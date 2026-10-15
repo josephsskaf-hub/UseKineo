@@ -64,11 +64,15 @@ function referrerHost(raw: string | null): string | null {
   }
 }
 
+// KINEO-AFILIADO-SCRIPT-ALIAS-1610 — `?to=` antigo → destino de hoje (ver GET). Só chaves da lista branca.
+const LEGACY_TO_ALIASES: Record<string, string> = { script: 'video' }
+
 async function recordAffiliateClickEvent(input: {
   affiliateId: string
   landingPath: string
   destinationKey: string
   explicitDestination: boolean
+  legacyTo: string | null
   botReason: string | null
   outcome: AffiliateClickOutcome
   referrer: string | null
@@ -81,6 +85,7 @@ async function recordAffiliateClickEvent(input: {
         affiliate_id: input.affiliateId,
         destination: input.destinationKey,
         explicit_to: input.explicitDestination,
+        legacy_to: input.legacyTo,
         is_bot: input.botReason !== null,
         bot_reason: input.botReason,
         outcome: input.outcome,
@@ -101,7 +106,14 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
   // cadastra. `to` é uma chave de lista branca, nunca caminho ou URL: valor ausente, desconhecido ou malicioso cai
   // no destino padrão (video), jamais em outro host. Antes: sem `?to=` (ou código inválido/inativo, ou banco fora)
   // a pessoa caía na home SEM utm e virava "direto" no placar.
-  const requested = getAffiliateRouteDestination(req.nextUrl.searchParams.get('to'))
+  const asked = getAffiliateRouteDestination(req.nextUrl.searchParams.get('to'))
+  // KINEO-AFILIADO-SCRIPT-ALIAS-1610 — `?to=script` dos links JÁ PUBLICADOS vira o destino video. 8 dos 13 afiliados
+  // com clique usam `?to=script` só porque era o padrão do botão Copiar (não escolheram), e o gerador de roteiro
+  // cadastra 2% contra 52% da página de filme grátis. Em vez de pedir a cada um que troque o link, o link velho
+  // passa a levar para o filme (utm_campaign=affiliate_video), e o evento leva `legacy_to: 'script'` para medirmos.
+  // Os demais destinos da lista continuam respeitados.
+  const legacyTo = asked && Object.prototype.hasOwnProperty.call(LEGACY_TO_ALIASES, asked.key) ? asked.key : null
+  const requested = legacyTo ? getAffiliateRouteDestination(LEGACY_TO_ALIASES[legacyTo]) : asked
   const destination = requested ?? defaultAffiliateRouteDestination()
   const explicit = requested !== null
   const destinationUrl = buildAffiliateRouteDestinationUrl(appUrl, destination.key, code)
@@ -123,7 +135,8 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
     const res = NextResponse.redirect(destinationUrl)
     const userAgent = (req.headers.get('user-agent') ?? '').slice(0, 300)
     const referrer = req.headers.get('referer')
-    const landingPath = affiliateClickLandingPath(code, explicit ? destination : null)
+    // O caminho gravado é o link que a pessoa USOU (`?to=script` continua `?to=script`); o destino real vai no evento.
+    const landingPath = affiliateClickLandingPath(code, asked)
     // Decide com o filtro de sempre; o motivo (token casado ou UA vazio) só alimenta o evento robô x gente.
     const botReason = isAffiliatePreviewBot(userAgent) ? affiliateBotReason(userAgent) : null
     const clickEvent = (outcome: AffiliateClickOutcome) => recordAffiliateClickEvent({
@@ -131,6 +144,7 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
       landingPath,
       destinationKey: destination.key,
       explicitDestination: explicit,
+      legacyTo,
       botReason,
       outcome,
       referrer,

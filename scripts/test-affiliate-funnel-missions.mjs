@@ -35,14 +35,14 @@ for (const malformed of [null, undefined, {}, { clicks: 0 }, { clicks: -1, signu
 
 const firstClick = resolve({ clicks: 0, signups: 0, paid: 0 })
 equal(firstClick.stage, 'first_click', 'zero visits get the first-click mission')
-equal(firstClick.destination, 'script', 'first click leads with free value')
+equal(firstClick.destination, 'video', 'first click leads with the free film page (KINEO-AFILIADO-SCRIPT-ALIAS-1610: 52% x 2%)')
 equal(firstClick.action, 'caption', 'first click has one copyable post')
-ok(firstClick.description.includes('before Kineo asks for an account'), 'first-click rationale names value before signup')
+ok(firstClick.description.includes('before choosing a plan') && !/script tool|before Kineo asks for an account/.test(firstClick.description), 'first-click rationale names value before paying, without promising a no-signup script tool')
 
 for (const clicks of [1, 2, 17, 100]) {
   const mission = resolve({ clicks, signups: 0, paid: 0 })
   equal(mission.stage, 'first_signup', `${clicks} visits and no signup target the first signup`)
-  equal(mission.destination, 'script', 'no-signup stage keeps the no-signup script destination')
+  equal(mission.destination, 'video', 'no-signup stage leads with the free film page')
   equal(mission.action, 'caption', 'no-signup stage offers a ready post')
   ok(mission.eyebrow.includes(String(clicks)), 'mission repeats the exact observed visit count')
 }
@@ -59,7 +59,7 @@ for (const paid of [1, 2, 20]) {
   const mission = resolve({ clicks: paid * 4, signups: paid * 2, paid })
   equal(mission.stage, 'scale', `${paid} paid customers move to durable scale`)
   equal(mission.action, 'widget', 'converted affiliates receive the durable widget action')
-  equal(mission.destination, 'script', 'widget keeps the proven no-signup destination')
+  equal(mission.destination, 'video', 'widget stage keeps the campaign kit on the free film page')
   ok(mission.description.includes('first-touch attribution'), 'scale copy explains what persists')
 }
 
