@@ -19,6 +19,8 @@ import {
 // KINEO-HOME-TEXTOS-2026-10-12 — o 1º mês com 20% (WELCOME20 automático do servidor no Creator/Studio mensal) é calculado
 // pela MESMA função que o checkout grava em public_promo_first_charge_minor: nenhum $15.92/$43.92 digitado aqui.
 import { publicPromoFirstChargeMinor, WELCOME20_PERCENT_OFF } from '@/lib/growth/publicPromoTruth'
+// KINEO-CHECKOUT-CLAREZA-1610 — conta cujo prazo de 48 h venceu não vê mais os 20% aqui (o checkout já cobra o cheio).
+import { useWelcome20OfferLive } from '@/lib/growth/useWelcome20Deadline'
 
 type Resolved = { currency: CheckoutCurrency; region: PriceRegion }
 
@@ -68,6 +70,7 @@ export default function LandingPlanPrice({
   welcomeFirstMonth?: boolean
 }) {
   const [resolved, setResolved] = useState<Resolved | null>(null)
+  const welcomeLive = useWelcome20OfferLive(variant === 'then' || welcomeFirstMonth) // KINEO-CHECKOUT-CLAREZA-1610
 
   useEffect(() => {
     let cancelled = false
@@ -85,11 +88,12 @@ export default function LandingPlanPrice({
     : USD_FALLBACK[tier]
 
   if (variant === 'cta') return <><UiLabel>{ctaLabel ?? 'Start'}</UiLabel> — {price}<UiLabel>/mo</UiLabel></>
+  if (variant === 'then' && !welcomeLive) return null // KINEO-CHECKOUT-CLAREZA-1610 — prazo vencido: sem a linha dos 20%
   if (variant === 'then') return <><UiLabel>{`${WELCOME20_PERCENT_OFF}% off your first month · then `}</UiLabel>{price}<UiLabel>/mo</UiLabel></>
   // KINEO-HOME-TEXTOS-2026-10-12 — mesma regra do servidor (welcome20AutoSkipReason): só Creator ('basic') e Studio ('pro').
   const currency: CheckoutCurrency = resolved?.currency ?? 'usd'
   const fullMinor = resolved ? getTierPrice(tier, resolved.currency, resolved.region) : TIER_PRICES[tier].usd
-  const firstMinor = welcomeFirstMonth && (tier === 'basic' || tier === 'pro')
+  const firstMinor = welcomeFirstMonth && welcomeLive && (tier === 'basic' || tier === 'pro') // KINEO-CHECKOUT-CLAREZA-1610: + welcomeLive
     ? publicPromoFirstChargeMinor('welcome_first_month_20', fullMinor)
     : null
   if (firstMinor !== null) {

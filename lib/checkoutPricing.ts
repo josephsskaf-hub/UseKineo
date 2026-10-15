@@ -262,6 +262,17 @@ export function planAcceptsPromotions(tier: string): boolean {
 export const ANNUAL_REFUND_DAYS = 14
 /** Frase única da política de reembolso do anual — pricing, FAQ e termos leem daqui. */
 export const ANNUAL_REFUND_POLICY = `Annual plans are refundable in full within ${ANNUAL_REFUND_DAYS} days of purchase; after that, no refund.`
+// ═══ KINEO-CHECKOUT-CLAREZA-1610 — A GARANTIA ÚNICA (fundador 16/10, "tudo sim", jogada 1 da pesquisa de fechamento) ═══
+// A política REAL é a dos Termos (app/terms/page.tsx §4): assinatura mensal = reembolso de 100% do 1º mês pago se a
+// pessoa escrever em até 7 dias da 1ª cobrança (renovações não entram); anual = integral em ANNUAL_REFUND_DAYS dias,
+// depois nada. Pacotes avulsos de crédito NÃO estão na garantia (os Termos não os cobrem), por isso a frase fala em
+// "monthly payment" e "annual plans" e nunca em "all plans". O cancelamento é pelo portal da Stripe (Account → Manage
+// billing → Cancel → confirmar): mais de 1 clique, então nenhuma tela diz "cancel in 1 click".
+// UMA frase, a mesma no FAQ, na faixa de confiança, sob o botão de cada cartão do /pricing e no modal de upgrade.
+/** Dias do reembolso do 1º mês pago das assinaturas mensais (Termos §4). */
+export const MONTHLY_REFUND_DAYS = 7
+/** A frase única da garantia (só inglês: as superfícies que a mostram não têm tradução). */
+export const MONEY_BACK_GUARANTEE = `Full refund if you email us within ${MONTHLY_REFUND_DAYS} days of your first monthly payment (${ANNUAL_REFUND_DAYS} days on annual plans).`
 
 /** Desconto real (inteiro, %) do anual de `tier` contra 12 mensalidades — para a copy nunca digitar o número. */
 export function annualSavingsPercent(tier: CheckoutTier): number {

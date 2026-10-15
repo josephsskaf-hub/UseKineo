@@ -16,10 +16,11 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { execSync } from 'node:child_process'
+import { semClareza1610 } from './test-support/desfaz-checkout-clareza-1610.mjs' // reancorado KINEO-CHECKOUT-CLAREZA-1610 — a garantia única / o prazo de 48 h saem antes, em memória
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
 const ts = require(join(root, 'node_modules', 'typescript'))
-const rd = (p) => readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semClareza1610(p, readFileSync(join(root, p), 'utf8')).replace(/\r\n/g, '\n') // reancorado KINEO-CHECKOUT-CLAREZA-1610
 
 let passed = 0
 const falhas = []

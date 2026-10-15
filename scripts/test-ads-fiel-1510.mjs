@@ -28,13 +28,14 @@ import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
 import ts from 'typescript'
 import { semFiel1510, FIEL_1510_ARQUIVOS, FIEL_1510_NOVOS, BASE_FIEL_1510, MARCA_FIEL_1510 } from './test-support/desfaz-ads-fiel-1510.mjs'
+import { semClareza1610 } from './test-support/desfaz-checkout-clareza-1610.mjs' // reancorado KINEO-CHECKOUT-CLAREZA-1610
 import { semFiel2_1510 } from './test-support/desfaz-ads-fiel-2-1510.mjs' // reancorado KINEO-ADS-FIEL-2-1510 — o conserto mais novo do Ads sai PRIMEIRO, em memória
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-FIEL-1510'
 const BASE = '285ac112a0be9f96182ec922cb06c4896b5357b1'
-const rd = (p) => semFiel2_1510(p, readFileSync(join(ROOT, p), 'utf8')) // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória
+const rd = (p) => semFiel2_1510(p, semClareza1610(p, readFileSync(join(ROOT, p), 'utf8'))) /* reancorado KINEO-CHECKOUT-CLAREZA-1610 — a garantia/prazo do checkout (app/api/events) sai antes, em memória */ // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28 })
 const base = (p) => git('show', `${BASE}:${p}`).replace(/\r\n/g, '\n')
 let pass = 0

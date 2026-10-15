@@ -91,7 +91,7 @@ import {
   AUTOPILOT_LITE_PRICES,
   // KINEO-ANUAL-40OFF-2026-10-05 — o selo, a linha do card e a política de reembolso do anual leem daqui.
   ANNUAL_DISCOUNT_PERCENT,
-  ANNUAL_REFUND_POLICY,
+  MONEY_BACK_GUARANTEE, // KINEO-CHECKOUT-CLAREZA-1610 — a garantia única (a política do anual entra nela)
   INTRO_CREDITS,
   TIER_CREDITS,
   // KINEO-REGIONAL-PRICING-2026-08-04 — TIER_PRICES / INTRO_PRICES /
@@ -114,6 +114,8 @@ import { swapFreeTierCopy as ft, type FreeTierOffer } from '@/lib/freeTierOffer'
 import { CHECKOUT_PAYMENT_GUIDANCE_COMPACT } from '@/lib/growth/checkoutPaymentGuidance'
 import { GUEST_CHECKOUT_LIVE, guestCheckoutCoversPlanClick } from '@/lib/growth/guestCheckout' // KINEO-COMPRA-SEM-LOGIN-2026-10-06
 import PricingDealBar from '@/components/pricing/PricingDealBar' // KINEO-WELCOME20-FAIXA-2026-10-09
+import { useWelcome20Deadline } from '@/lib/growth/useWelcome20Deadline' // KINEO-CHECKOUT-CLAREZA-1610 — prazo real de 48 h
+import type { Welcome20DeadlineSurface } from '@/lib/growth/welcome20Deadline' // KINEO-CHECKOUT-CLAREZA-1610
 import {
   buildPricingPlanChoiceAttribution,
   sanitizePricingIntentCampaign,
@@ -215,7 +217,8 @@ const buildFaqs = (OFFER: FreeTierOffer): { q: string; a: string }[] => [
   {
     q: 'Is there a money-back guarantee?',
     // KINEO-ANUAL-40OFF-2026-10-05 — a política do anual (14 dias, depois nada) vem da fonte única.
-    a: `Yes — Starter, Creator, and Studio come with a 7-day money-back guarantee. If you're not satisfied, email us within 7 days of your purchase and we'll refund 100%. No questions asked. ${ANNUAL_REFUND_POLICY}`,
+    // KINEO-CHECKOUT-CLAREZA-1610 — a frase única (lib/checkoutPricing.ts MONEY_BACK_GUARANTEE), a mesma do cartão e da faixa.
+    a: `Yes. ${MONEY_BACK_GUARANTEE}`,
   },
   {
     q: 'What happens if a video fails to generate?',
@@ -581,8 +584,19 @@ export default function PricingClient({ initialBilling = 'annual' }: {
   const [arrivedWithPromo, setArrivedWithPromo] = useState(false)
   // KINEO-WELCOME20-NO-CARTAO-2026-10-09 — o cartão (e o botão) leva os 20% do 1º mês só onde o servidor aceita: Creator ou
   // Studio, MENSAL, sem outro cupom na URL (o da URL vence, como sempre), e para quem não assina hoje (assinante troca de plano).
+  // KINEO-CHECKOUT-CLAREZA-1610 — o prazo de 48 h por conta (servidor). Sem conta: a oferta de sempre, sem contagem. Com
+  // conta: só aparece depois que o servidor respondeu e NUNCA depois de vencer; o relógio começa quando a faixa ou o cartão
+  // com os 20% aparecem (welcomeSeen). O checkout confere a MESMA linha e cobra o preço cheio se venceu.
+  const [welcomeSeen, setWelcomeSeen] = useState<Welcome20DeadlineSurface | null>(null)
+  const welcomeDeadline = useWelcome20Deadline({ enabled: signedIn === true, start: signedIn === true ? welcomeSeen : null })
+  const welcome20Allowed = signedIn === false || (signedIn === true && welcomeDeadline.ready && welcomeDeadline.allowed)
   const welcomeOnCard = (tier: string): tier is 'basic' | 'pro' =>
-    PRICING_WELCOME20_ON_CARD && billing === 'monthly' && (tier === 'basic' || tier === 'pro') && !arrivedWithPromo && !planSwitch.subscribed
+    PRICING_WELCOME20_ON_CARD && billing === 'monthly' && (tier === 'basic' || tier === 'pro') && !arrivedWithPromo && !planSwitch.subscribed && welcome20Allowed
+  // KINEO-CHECKOUT-CLAREZA-1610 — o cartão mostrou os 20% (mensal) a quem tem conta: é a pessoa vendo a oferta.
+  const welcomeCardShown = welcomeOnCard('basic') || welcomeOnCard('pro')
+  useEffect(() => {
+    if (welcomeCardShown && signedIn === true) setWelcomeSeen((s) => s ?? 'pricing_card')
+  }, [welcomeCardShown, signedIn])
   const welcomeFirstMonthMinor = (tier: 'basic' | 'pro'): number =>
     Math.round((getTierPrice(tier, resolvedCurrency, resolvedRegion) * (100 - WELCOME20_PERCENT_OFF)) / 100)
   // KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — o cartão novo: ligado para todos só com PRICING_VALUE_CARDS_PUBLIC; antes disso,
@@ -964,9 +978,11 @@ export default function PricingClient({ initialBilling = 'annual' }: {
     <div className="pricing-blue min-h-screen bg-[var(--bg)] text-[var(--text)] font-sans">
       {/* KINEO-WELCOME20-FAIXA-2026-10-09 — a oferta na faixa do topo (fundador, print de referência): o botão leva ao mensal e
           aos planos, onde o botão do Creator/Studio aplica o WELCOME20. Some para assinante e para quem chegou com outro cupom. */}
-      {PRICING_WELCOME20_ON_CARD && !arrivedWithPromo && !planSwitch.subscribed ? (
+      {PRICING_WELCOME20_ON_CARD && !arrivedWithPromo && !planSwitch.subscribed && welcome20Allowed ? (
         <PricingDealBar
           percent={WELCOME20_PERCENT_OFF}
+          endsLabel={welcomeDeadline.label /* KINEO-CHECKOUT-CLAREZA-1610 — "Ends in 47h 12m", só com prazo ativo */}
+          onVisible={() => setWelcomeSeen((s) => s ?? 'pricing_deal_bar')}
           onClaim={() => {
             setBilling('monthly')
             void trackEvent('pricing_deal_bar_clicked', { offer: 'welcome20' })
@@ -1048,7 +1064,8 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                 "3 grátis / 24h" saiu daqui porque a cota do free não é argumento
                 para quem já está decidindo QUAL plano pagar. */}
             {/* KINEO-PRECOS-REFINO-2026-10-09 — no anual a política já está colada no seletor logo abaixo (data-testid=annual-refund-policy); repetir aqui era a mesma frase duas vezes acima dos planos. */}
-            {['Cancel anytime', ...(billing === 'annual' ? [] : ['7-day money-back guarantee'])].map((label) => (
+            {/* KINEO-CHECKOUT-CLAREZA-1610 — a frase única da garantia (mensal 7 dias do 1º pagamento, anual 14) nos dois modos. */}
+            {['Cancel anytime', MONEY_BACK_GUARANTEE].map((label) => (
               <div key={label} className="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--muted)]">
                 <span aria-hidden="true" style={{ color: 'var(--accent)' }}>✓</span>
                 <span>{label}</span>
@@ -1121,11 +1138,9 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             </button>
           </div>
         </div>
-        {/* KINEO-ANUAL-40OFF-2026-10-05 — política de reembolso do anual (fundador 05/10) colada no seletor. */}
-        <p className="-mt-5 mb-6 text-center text-[11.5px] font-semibold text-[var(--muted)]" data-testid="annual-refund-policy">
-          {ANNUAL_REFUND_POLICY}
-        </p>
-        <p className="-mt-4 mb-7 text-center text-[11.5px] font-semibold text-[var(--muted)]">
+        {/* KINEO-CHECKOUT-CLAREZA-1610 — a política do anual colada no seletor saiu: a frase única da garantia (que já diz os
+            14 dias do anual) está na faixa de confiança do topo e sob o botão de cada cartão logo abaixo. */}
+        <p className="-mt-5 mb-7 text-center text-[11.5px] font-semibold text-[var(--muted)]">
           {CHECKOUT_CURRENCY_DISCLOSURE}
         </p>
 
@@ -1192,6 +1207,8 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                         onSelect={() => { setSelectedTier(tier as 'starter' | 'basic' | 'pro'); void trackEvent('pricing_plan_selected', { tier, billing }) }}
                         cardId={pricingTierCardId(p.tier as PricingTierHandoffTier)}
                         credits={TIER_CREDITS[tier]}
+                        // KINEO-CHECKOUT-CLAREZA-1610 — preço CHEIO por mês (mensal do caixa, ou anual ÷ 12): o cartão faz "≈ US$ X per film".
+                        monthlyPriceMinor={displayCurrency ? (annual ? getAnnualPrice(tier, resolvedCurrency, resolvedRegion) / 12 : getTierPrice(tier, resolvedCurrency, resolvedRegion)) : null}
                         amount={annual ? annualPrices[tier].perMonth : welcome !== null ? formatCheckoutMoney(resolvedCurrency, welcome) : p.price}
                         was={(annual || welcome !== null) && displayCurrency ? p.price : undefined}
                         per={annual ? `/month, ${displayCurrency ? annualPrices[tier].total : '—'} billed yearly` : welcome !== null ? `first month, then ${p.price}/month` : '/month'}
@@ -1211,7 +1228,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                         save={annual && displayCurrency && annualSavingMinor > 0
                           ? <>Save <b>{formatCheckoutMoney(resolvedCurrency, annualSavingMinor)}</b> a year compared to monthly</>
                           : welcome !== null
-                            ? <>Save <b>{formatCheckoutMoney(resolvedCurrency, getTierPrice(tier, resolvedCurrency, resolvedRegion) - welcome)}</b> on your first month · cancel anytime</>
+                            ? <>Save <b>{formatCheckoutMoney(resolvedCurrency, getTierPrice(tier, resolvedCurrency, resolvedRegion) - welcome)}</b> on your first month · cancel anytime{welcomeDeadline.label ? <> · <b>{welcomeDeadline.label}</b></> : null /* KINEO-CHECKOUT-CLAREZA-1610 */}</>
                             : 'Cancel anytime'}
                         extra={localMethod === 'upi' && billing === 'monthly' && !planSwitch.subscribed ? (
                           <a
@@ -1656,7 +1673,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             <div className="min-w-0 text-left">
               <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[var(--accent)]">Your latest film</p>
               <p className="truncate text-[14px] font-bold text-[var(--text)]">{latestFilm.title}</p>
-              <p className="text-[12px] font-semibold text-[var(--muted)]">Your next films come out clean, without the watermark, in 1080p. 7-day money-back guarantee, cancel anytime.</p>
+              <p className="text-[12px] font-semibold text-[var(--muted)]">Your next films come out clean, without the watermark, in 1080p. {MONEY_BACK_GUARANTEE}</p>{/* KINEO-CHECKOUT-CLAREZA-1610 */}
             </div>
           </div>
         )}
@@ -2031,9 +2048,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
           <span className="inline-flex items-center gap-1.5">
             <span className="text-[var(--accent)]">✓</span> Instant access
           </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="text-[var(--accent)]">✓</span> 7-day money-back guarantee
-          </span>
+          {/* KINEO-CHECKOUT-CLAREZA-1610 — a garantia mora sob o botão de cada cartão (a frase única); aqui não repete outra versão. */}
         </div>
 
         {/* ROBO1-PRICE-2026-06-28 — replaced three fabricated 5-star
@@ -2185,14 +2200,12 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
               🛡️
             </div>
             <div>
+              {/* KINEO-CHECKOUT-CLAREZA-1610 — eram duas versões ("all plans… Works for all plans" + a do anual): agora a frase única. */}
               <div className="text-[14px] font-black text-[var(--text)] mb-1">
-                7-day money-back guarantee — all plans
+                Money-back guarantee
               </div>
-              <p className="text-[13px] text-[var(--muted)] leading-relaxed m-0">
-                If you&apos;re not happy in the first 7 days, email us and we&apos;ll refund 100%. No questions asked. Works for all plans.
-              </p>
-              <p className="text-[13px] text-[var(--muted)] leading-relaxed m-0 mt-1">
-                {ANNUAL_REFUND_POLICY}
+              <p className="text-[13px] text-[var(--muted)] leading-relaxed m-0" data-testid="money-back-guarantee">
+                {MONEY_BACK_GUARANTEE}
               </p>
             </div>
           </div>

@@ -153,6 +153,8 @@ import {
   type PromisedPublicPromoKind,
   type PublicPromoFailureReason,
 } from '@/lib/growth/publicPromoTruth'
+// KINEO-CHECKOUT-CLAREZA-1610 — o prazo de 48 h do WELCOME20 por conta (a MESMA linha que /api/offers/welcome20-deadline lê).
+import { WELCOME20_DEADLINE_ENDED_MESSAGE, WELCOME20_DEADLINE_UNKNOWN, readWelcome20Deadline, startWelcome20Deadline, welcome20CheckoutDecision, welcome20DeadlineIdSeed, welcome20DeadlineUuid, type Welcome20DeadlineDb } from '@/lib/growth/welcome20Deadline'
 import { canPurchaseCreditTopup } from '@/lib/growth/topupEligibility'
 import { CREDIT_SLIDER_MAX, CREDIT_SLIDER_MIN, CREDIT_SLIDER_PACK_ID, normalizeSliderCredits, sliderPriceUsdMinor } from '@/lib/credits/creditSlider' // KINEO-BARRA-DE-CREDITOS-2026-09-23
 import {
@@ -698,6 +700,19 @@ async function recordBotSuspicion(req: NextRequest, selection: string): Promise<
 // PRÓXIMA sessão nasce em BRL sem ela pedir nada. Leitura via service role
 // (a tabela events é fechada para o cliente); qualquer erro devolve false e
 // o caminho normal (IP/idioma) decide.
+// KINEO-CHECKOUT-CLAREZA-1610 — o banco do relógio do WELCOME20 (chave de serviço, como os outros leitores de `events`
+// desta rota). Sem chave = null = 'unknown' = a compra segue como antes do prazo existir.
+function welcome20DeadlineDb(): Welcome20DeadlineDb | null {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) return null
+  try {
+    return createAdminClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } }) as unknown as Welcome20DeadlineDb
+  } catch {
+    return null
+  }
+}
+
 async function priorBrazilianCardFailure(userId: string): Promise<boolean> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -1479,6 +1494,32 @@ async function buildAndRedirect(
   if (autoWelcome20 && typeof profile.affiliate_id === 'string' && profile.affiliate_id.length > 0) {
     autoWelcome20 = false
     checkoutMetadata.public_promo_auto = 'affiliate'
+    failureContext = { ...checkoutMetadata }
+  }
+  // ═══ KINEO-CHECKOUT-CLAREZA-1610 — o prazo de 48 h do WELCOME20 é decidido AQUI, no servidor ═══════════════════════
+  // A conta tem um relógio (lib/growth/welcome20Deadline.ts): começa na 1ª vez que ela vê a oferta e vence em 48 h.
+  // Vencido: o automático não entra (preço cheio, sem erro) e um ?promo=WELCOME20 explícito (link velho, e-mail) é recusado
+  // com a frase de oferta encerrada — nada é cobrado, nada vira preço cheio calado. Leitura que falha ('unknown'), relógio
+  // não começado ou ativo = a compra de sempre. Só lê aqui; o relógio só COMEÇA depois que a sessão com -20% existe.
+  let welcome20DeadlineStart = false
+  if (autoWelcome20 || promisedPublicPromo === 'welcome_first_month_20') {
+    const deadlineDb = welcome20DeadlineDb()
+    const deadline = deadlineDb ? await readWelcome20Deadline(deadlineDb, user.id, Date.now()) : WELCOME20_DEADLINE_UNKNOWN
+    checkoutMetadata.welcome20_deadline = deadline.state
+    const deadlineDecision = welcome20CheckoutDecision({
+      state: deadline.state,
+      requestedWelcome: promisedPublicPromo === 'welcome_first_month_20',
+      autoWelcome: autoWelcome20,
+    })
+    if (deadlineDecision === 'reject_requested') {
+      failureContext = { ...checkoutMetadata, failure_stage: 'public_promo', failure_reason: 'welcome20_deadline_expired' }
+      return isGet ? redirectError(WELCOME20_DEADLINE_ENDED_MESSAGE) : jsonError(WELCOME20_DEADLINE_ENDED_MESSAGE, 409)
+    }
+    if (deadlineDecision === 'block_auto') {
+      autoWelcome20 = false
+      checkoutMetadata.public_promo_auto = 'deadline_expired'
+    }
+    welcome20DeadlineStart = deadline.state === 'not_started'
     failureContext = { ...checkoutMetadata }
   }
 
@@ -2835,6 +2876,19 @@ async function buildAndRedirect(
     },
     browserSessionId ?? undefined,
   )
+  // KINEO-CHECKOUT-CLAREZA-1610 — a sessão da Stripe com -20% existe: a pessoa está VENDO a oferta. Se o relógio dela
+  // ainda não tinha começado (chegou por link direto, sem passar pela faixa/cartão/convite), começa agora. Falha = nada.
+  if (welcome20DeadlineStart && (promisedPublicPromoVerified || autoWelcome20Applied)) {
+    const deadlineDb = welcome20DeadlineDb()
+    if (deadlineDb) {
+      await startWelcome20Deadline(deadlineDb, {
+        userId: user.id,
+        eventId: welcome20DeadlineUuid(createHash('sha256').update(welcome20DeadlineIdSeed(user.id)).digest('hex')),
+        surface: 'checkout',
+        nowMs: Date.now(),
+      }).catch(() => undefined)
+    }
+  }
 
   const response = isGet
     ? NextResponse.redirect(session.url!)

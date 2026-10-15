@@ -17,6 +17,8 @@ import {
   buyCreatorPrice,
   type BuyCreatorLang,
 } from '@/lib/growth/buyCreatorOffer'
+import { WELCOME20_SITE_OFFER_LIVE } from '@/lib/growth/publicPromoTruth' // KINEO-CHECKOUT-CLAREZA-1610
+import { useWelcome20OfferLive } from '@/lib/growth/useWelcome20Deadline' // KINEO-CHECKOUT-CLAREZA-1610
 
 function isModifiedClick(event: MouseEvent<HTMLAnchorElement>): boolean {
   return event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey
@@ -37,8 +39,10 @@ export default function BuyCreatorCta({
 }) {
   const href = buyCreatorHref(page)
   const campaign = buyCreatorCampaign(page)
-  const copy = buyCreatorCopy(lang)
-  const price = buyCreatorPrice()
+  // KINEO-CHECKOUT-CLAREZA-1610 — prazo de 48 h vencido nesta conta = sem os 20% (o checkout já cobra o cheio).
+  const welcomeLive = useWelcome20OfferLive(WELCOME20_SITE_OFFER_LIVE)
+  const copy = buyCreatorCopy(lang, welcomeLive)
+  const price = buyCreatorPrice(welcomeLive)
   const checkout = useCheckoutLaunch(`buy_creator_${page}`)
   const pending = checkout.pending !== null
   const metadata = { version: BUY_CREATOR_VERSION, tier: 'basic', billing: 'monthly', intent_campaign: campaign, welcome20_shown: price.firstMonth !== null }

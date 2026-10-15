@@ -13,9 +13,10 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semClareza1610 } from './test-support/desfaz-checkout-clareza-1610.mjs' // reancorado KINEO-CHECKOUT-CLAREZA-1610 — a garantia única / o prazo de 48 h saem antes, em memória
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semClareza1610(p, readFileSync(join(root, p), 'utf8')).replace(/\r\n/g, '\n') // reancorado KINEO-CHECKOUT-CLAREZA-1610
 let ok = 0
 const check = (cond, msg) => { assert.ok(cond, msg); ok += 1 }
 

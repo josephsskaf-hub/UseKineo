@@ -18,6 +18,8 @@ import {
   film60ShownMetadata,
   serializeFilm60Handoff,
 } from '@/lib/growth/filmReady60s'
+import { WELCOME20_SITE_OFFER_LIVE } from '@/lib/growth/publicPromoTruth' // KINEO-CHECKOUT-CLAREZA-1610
+import { useWelcome20OfferLive } from '@/lib/growth/useWelcome20Deadline' // KINEO-CHECKOUT-CLAREZA-1610
 
 export default function FilmReady60sUpsell({
   videoId,
@@ -32,7 +34,9 @@ export default function FilmReady60sUpsell({
   prompt: string
 }) {
   const language = useInterfaceLanguage()
-  const copy = film60Copy(language)
+  // KINEO-CHECKOUT-CLAREZA-1610 — prazo de 48 h vencido nesta conta = a cópia sem os 20% (o checkout já cobra o cheio).
+  const welcomeLive = useWelcome20OfferLive(WELCOME20_SITE_OFFER_LIVE)
+  const copy = film60Copy(language, welcomeLive)
   const href = film60CheckoutHref()
   const rootRef = useRef<HTMLDivElement | null>(null)
   const shownForRef = useRef<string | null>(null)

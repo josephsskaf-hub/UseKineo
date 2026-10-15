@@ -13,6 +13,7 @@ const CSS = `
   background:linear-gradient(90deg,#FFE135 0%,#FFE135 55%,#FFD43B 100%);color:#111;font-family:var(--font-sans)}
 .kdb-tag{display:inline-flex;align-items:center;gap:6px;flex:none;border-radius:6px;padding:4px 9px;background:#0A5CFF;color:#fff;font-size:12px;font-weight:700}
 .kdb-text{flex:1;min-width:0;font-size:14px;font-weight:600;line-height:1.35}
+.kdb-ends{white-space:nowrap;font-weight:800}
 .kdb-cta{flex:none;border:0;border-radius:999px;padding:8px 16px;background:#111;color:#fff;font:inherit;font-size:14px;font-weight:700;cursor:pointer}
 .kdb-cta:hover{background:#2a2a2a}
 .kdb-x{flex:none;display:grid;place-items:center;width:32px;height:32px;border:0;border-radius:8px;background:transparent;color:#111;cursor:pointer}
@@ -21,11 +22,20 @@ const CSS = `
 @media (max-width:640px){.kdb{flex-wrap:wrap;gap:8px 10px;padding:10px 44px 10px 12px}.kdb-text{flex:1 1 100%;font-size:13px}.kdb-cta{padding:7px 14px;font-size:13px}.kdb-x{position:absolute;top:6px;right:6px}}
 `
 
-export default function PricingDealBar({ percent, onClaim }: { percent: number; onClaim: () => void }) {
+// KINEO-CHECKOUT-CLAREZA-1610 — `endsLabel` ("Ends in 47h 12m") vem do servidor (prazo de 48 h por conta); sem conta ou sem
+// prazo ativo, null e a faixa fica como era. `onVisible` avisa a página quando a faixa está NA TELA (não fechada antes),
+// e é isso que começa o relógio da conta.
+export default function PricingDealBar({ percent, onClaim, endsLabel = null, onVisible }: { percent: number; onClaim: () => void; endsLabel?: string | null; onVisible?: () => void }) {
   const [hidden, setHidden] = useState(false)
+  const [checked, setChecked] = useState(false)
   useEffect(() => {
     try { if (localStorage.getItem(DISMISS_KEY) === '1') setHidden(true) } catch { /* sem storage: a faixa fica */ }
+    setChecked(true)
   }, [])
+  useEffect(() => {
+    if (checked && !hidden) onVisible?.()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checked, hidden])
   if (hidden) return null
   return (
     <div className="kdb" role="region" aria-label="Special offer">
@@ -34,7 +44,7 @@ export default function PricingDealBar({ percent, onClaim }: { percent: number; 
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M3 13V8M8 13V3M13 13V6" /></svg>
         Special offer
       </span>
-      <span className="kdb-text">{percent}% off your first month on Creator and Studio monthly plans</span>
+      <span className="kdb-text">{percent}% off your first month on Creator and Studio monthly plans{endsLabel ? <> · <span className="kdb-ends" data-testid="welcome20-ends">{endsLabel}</span></> : null}</span>
       <button type="button" className="kdb-cta" onClick={onClaim}>Get {percent}% off</button>
       <button
         type="button"

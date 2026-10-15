@@ -78,6 +78,7 @@ import { adsPaywallSources } from '@/lib/ads/paywallSources'
 import { REGION_PAID_ONLY_TRIAL_STATUS } from '@/lib/freeFilmPolicy'
 import AdsPaywall from './AdsPaywall'
 import { BUSINESS_ADS_PROMISE, BUSINESS_PAGE_PATH, BUSINESS_PRICE_LABEL } from '@/lib/businessPlan' // KINEO-BUSINESS-84-2026-10-09
+import { adsUgcComparisonLine } from '@/lib/ads/ugcComparison' // KINEO-CHECKOUT-CLAREZA-1610 — criador UGC humano × anúncio na Kineo
 // KINEO-ADS-AMOSTRA-2026-10-09 — o PRIMEIRO anúncio grátis (lib/ads/sample.ts): a porta oferece a amostra ANTES da oferta paga
 // (que continua logo abaixo). Logado e barrado pelo gate ('no_access') com a amostra ainda aberta (adsSampleOpen) → botão para
 // /ads/v2; anônimo CONFIRMADO pelo auth (noSession) → o mesmo botão para /signup?redirect=/ads/v2 (o cadastro volta ao
@@ -305,6 +306,14 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
   const starterPrice = formatCheckoutMoney('usd', getTierPrice('starter', 'usd', 'standard'))
   const starterAds35 = Math.floor(TIER_CREDITS.starter / KINEO1_35S_CREDITS)
   const starterV2 = v2AdsAnyLevel(TIER_CREDITS.starter) // KINEO-ADS-V2-VIRADA-2026-09-29
+  // KINEO-CHECKOUT-CLAREZA-1610 — "A human UGC creator typically charges US$ 150–500 per video (market estimate). On Kineo…"
+  const ugcLine = adsUgcComparisonLine({
+    planName: starterName,
+    planPriceMinor: getTierPrice('starter', 'usd', 'standard'),
+    planCredits: TIER_CREDITS.starter,
+    seconds: ADS_V2_SCREEN_SECONDS,
+    adCredits: V2_LEVELS.map((l) => l.credits),
+  })
   // KINEO-PASSE-B-2026-09-28 — passe B do fundador (90 cr): o cartão e a FAQ dizem nível a nível o que o passe paga, com os
   // níveis DERIVADOS desta página (V2_LEVELS) — "1 new ad at any level" deixou de ser a frase inteira (90 paga 2 de Photo motion).
   const passCoverage = adsCoverageLine(ADS_PASS_CREDITS, V2_LEVELS)
@@ -491,6 +500,9 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
 
         <section className="ads-sec" aria-labelledby="ads-price">
           <h2 id="ads-price">Price</h2>
+          {/* KINEO-CHECKOUT-CLAREZA-1610 — a comparação honesta com o criador UGC humano (fonte e conta em lib/ads/ugcComparison.ts):
+              o lado da Kineo é o pedaço do Starter que um anúncio de 15 s usa (preço do caixa × créditos do nível ÷ créditos do plano). */}
+          {ugcLine ? <p className="ads-fine" data-kineo="ads-ugc-comparison">{ugcLine}</p> : null}
           {/* KINEO-ADS-PORTA-PLANO-2026-09-27 — two doors for whoever cannot open the wizard: the Starter plan first (it includes
               Studio Ads and costs less than the pass), the pass beside it, untouched. With gate 'ok' the pass card stands alone. */}
           <div className={planOffer ? 'ads-doors' : undefined}>
