@@ -13,6 +13,7 @@ import { deflateSync, inflateSync } from 'node:zlib'
 import { ADS_V2_CUTOUT_AREA_MAX, ADS_V2_CUTOUT_AREA_MIN, ADS_V2_FORMAT_CROP, adsV2ProductLockRect, type AdsV2Format, type AdsV2ProductLockMode } from '@/lib/ads/v2ShotLists'
 import { adsV2LockPlacement, type AdsV2Box, type AdsV2LockPlacement, type AdsV2SceneLayout } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-3-1510 — o produto pousa na superfície lida, com teto e longe dos rostos
 import { adsV2LockReservedRect, type AdsV2LockSide } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-4-1510 — o canto reservado decidido em código (a visão só confere)
+import { adsV2LockReservedPlace, adsV2LockTopEdgeTrust, type AdsV2LockReservedPlace } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-5-1510 — a base do produto no tampo lido (confiável) ou a base fixa
 
 /** Imagem em memória: RGBA 8 bits, linha a linha, sem preenchimento. */
 export interface AdsV2Rgba { width: number; height: number; data: Uint8Array }
@@ -549,3 +550,32 @@ export function adsV2ReservedFramePng(scene: AdsV2Rgba, cutTrimmed: AdsV2Rgba, f
   pasteOver(frame, piece, rect.x, rect.y) // KINEO-ADS-FIEL-4-1510
   return { png: encodePng(frame), rect, width: W, height: H, shade } // KINEO-ADS-FIEL-4-1510
 } // KINEO-ADS-FIEL-4-1510
+// ── KINEO-ADS-FIEL-5-1510 — o produto POUSA no tampo lido (reteste 15/10 08ef80e5: tampo em 59–71%, base fixa em 85% = na frente do móvel) ─
+/** KINEO-ADS-FIEL-5-1510 — a borda do tampo que a conferência leu (fração da IMAGEM da cena) levada ao QUADRO pela MESMA janela `cover`. Pura. */
+export function adsV2TopEdgeToFrame(raw: number | null | undefined, sceneH: number, win: { sy: number; sh: number }): number | null { // KINEO-ADS-FIEL-5-1510
+  if (typeof raw !== 'number' || !Number.isFinite(raw) || !(sceneH > 0) || !(win.sh > 0)) return null // KINEO-ADS-FIEL-5-1510
+  return (raw * sceneH - win.sy) / win.sh // KINEO-ADS-FIEL-5-1510
+} // KINEO-ADS-FIEL-5-1510
+/** KINEO-ADS-FIEL-5-1510 — ONDE o produto entra no canto reservado: os rostos da conferência no quadro (como a Fiel 4), a borda do tampo no
+ *  quadro e o veredito dela (adsV2LockTopEdgeTrust: redonda, fora de [0,50; 0,93] ou sem corner_surface=true = base fixa) e o lugar
+ *  (adsV2LockReservedPlace; `trustedFaces` = os rostos entram na proteção de "subir não tapa rosto"). Pura. */
+export function adsV2ReservedLayoutTop(i: { sceneW: number; sceneH: number; cutW: number; cutH: number; format: AdsV2Format; side: AdsV2LockSide; faces?: readonly AdsV2Box[] | null; topEdgeY?: number | null; cornerSurface?: boolean | null; trustedFaces: boolean }): { W: number; H: number; rect: { x: number; y: number; w: number; h: number }; faces: AdsV2Box[]; place: AdsV2LockReservedPlace; top: { raw: number | null; y: number | null; ok: boolean; why: string | null } } { // KINEO-ADS-FIEL-5-1510
+  const { W, H, win } = adsV2CoverWindow(i.sceneW, i.sceneH, i.format) // KINEO-ADS-FIEL-5-1510
+  const seen = adsV2LayoutToFrame({ surface: null, faces: Array.isArray(i.faces) ? [...i.faces] : [] }, i.sceneW, i.sceneH, win) // KINEO-ADS-FIEL-5-1510
+  const faces = seen ? seen.faces : [] // KINEO-ADS-FIEL-5-1510
+  const raw = typeof i.topEdgeY === 'number' && Number.isFinite(i.topEdgeY) ? i.topEdgeY : null // KINEO-ADS-FIEL-5-1510
+  const verdict = adsV2LockTopEdgeTrust({ raw, frameY: adsV2TopEdgeToFrame(raw, i.sceneH, win), cornerSurface: i.cornerSurface ?? null }) // KINEO-ADS-FIEL-5-1510
+  const place = adsV2LockReservedPlace({ frameW: W, frameH: H, cutW: i.cutW, cutH: i.cutH, format: i.format, side: i.side, topEdgeY: verdict.ok ? verdict.y : null, faces: i.trustedFaces ? faces : [] }) // KINEO-ADS-FIEL-5-1510
+  return { W, H, rect: place.rect, faces, place, top: { raw, y: verdict.y, ok: verdict.ok, why: verdict.why } } // KINEO-ADS-FIEL-5-1510
+} // KINEO-ADS-FIEL-5-1510
+/** KINEO-ADS-FIEL-5-1510 — o QUADRO TRAVADO com o produto no retângulo JÁ decidido (adsV2ReservedLayoutTop): a cena em `cover`, a sombra de
+ *  contato nascendo NA base desse retângulo (no tampo, quando a base veio do tampo) e o recorte real por cima. Pura. */
+export function adsV2PlacedFramePng(scene: AdsV2Rgba, cutTrimmed: AdsV2Rgba, format: AdsV2Format, rect: { x: number; y: number; w: number; h: number }): { png: Uint8Array; rect: { x: number; y: number; w: number; h: number }; width: number; height: number; shade: AdsV2Shade } { // KINEO-ADS-FIEL-5-1510
+  const { W, H, win } = adsV2CoverWindow(scene.width, scene.height, format) // KINEO-ADS-FIEL-5-1510
+  const frame = resampleRgba(scene, W, H, win) // KINEO-ADS-FIEL-5-1510
+  for (let i = 3; i < frame.data.length; i += 4) frame.data[i] = 255 // KINEO-ADS-FIEL-5-1510
+  const piece = resampleRgba(cutTrimmed, rect.w, rect.h) // KINEO-ADS-FIEL-5-1510
+  const shade = adsV2ShadeAndMatch(frame, piece, rect, 'scene') // KINEO-ADS-FIEL-5-1510 — a elipse de contato nasce na base do retângulo: no tampo
+  pasteOver(frame, piece, rect.x, rect.y) // KINEO-ADS-FIEL-5-1510
+  return { png: encodePng(frame), rect, width: W, height: H, shade } // KINEO-ADS-FIEL-5-1510
+} // KINEO-ADS-FIEL-5-1510

@@ -26,6 +26,8 @@ import { adsV2CutoutSource, adsV2LockSidecar, type AdsV2LockPlacement, type AdsV
 import { adsV2ShotRenderId } from '@/lib/ads/v2Shots'
 import { adsV2FaceOverlap, adsV2LockCheckTrust, adsV2LockCornerProblem, adsV2LockSidecarSeen, type AdsV2Box, type AdsV2LockCheck, type AdsV2LockSide } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-4-1510 — o canto reservado + a conferência
 import { adsV2ReservedFramePng, adsV2ReservedLayout } from '@/lib/ads/v2Png' // KINEO-ADS-FIEL-4-1510
+import { adsV2PlacedFramePng, adsV2ReservedLayoutTop } from '@/lib/ads/v2Png' // KINEO-ADS-FIEL-5-1510 — a base do produto no tampo lido (confiável) ou a fixa
+import type { AdsV2LockCheckTop } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-5-1510
 
 const RENDER_BUCKET = 'renders'
 const MAX_BYTES = 40 * 1024 * 1024
@@ -128,26 +130,26 @@ export async function adsV2FinishLockedScene(args: { userId: string; orderId: st
  * cena em `previous`, nenhum rosto) = o canto fica; confiável e com gente no canto = { busy: true } SEM gravar nada (o avanço refaz a cena 1
  * vez e, de novo, usa a foto real do produto). Grava o PNG e o JSON (produto + rostos confiáveis + `seen`, os crus). Lança com o motivo.
  */
-export async function adsV2FinishReservedScene(args: { userId: string; orderId: string; idx: number; attempt: number; lock: AdsV2ProductLock; format: AdsV2Format; sceneUrl: string; side: AdsV2LockSide; check: AdsV2LockCheck | null; previous?: readonly (readonly AdsV2Box[])[] | null }): Promise<{ busy: true; problem: 'person' | 'no_surface'; trust: { trusted: boolean; why: string | null } } | { busy: false; url: string; rect: { x: number; y: number; w: number; h: number }; shade: AdsV2Shade; placement: { source: 'reserved'; side: AdsV2LockSide; scale: 1; faceOverlap: number }; trust: { trusted: boolean; why: string | null }; faces: number }> { // KINEO-ADS-FIEL-4-1510
+export async function adsV2FinishReservedScene(args: { userId: string; orderId: string; idx: number; attempt: number; lock: AdsV2ProductLock; format: AdsV2Format; sceneUrl: string; side: AdsV2LockSide; check: AdsV2LockCheckTop | null; previous?: readonly (readonly AdsV2Box[])[] | null }): Promise<{ busy: true; problem: 'person' | 'no_surface'; trust: { trusted: boolean; why: string | null } } | { busy: false; url: string; rect: { x: number; y: number; w: number; h: number }; shade: AdsV2Shade; placement: { source: 'reserved'; side: AdsV2LockSide; scale: number; faceOverlap: number; base_source: 'tabletop' | 'fixed'; base: number; top_edge_y: number | null; top_edge_why: string | null }; trust: { trusted: boolean; why: string | null }; faces: number }> { // KINEO-ADS-FIEL-5-1510 — + onde a base pousou (tampo lido ou fixa)
   const bytes = await download(args.sceneUrl) // KINEO-ADS-FIEL-4-1510
   if (!bytes) throw new Error('scene_download') // KINEO-ADS-FIEL-4-1510
   if (!isPng(bytes)) throw new Error('scene_not_png') // KINEO-ADS-FIEL-4-1510
   const cut = await adsV2CutoutFor(args.userId, args.lock) // KINEO-ADS-FIEL-4-1510
   const scene = decodePng(bytes) // KINEO-ADS-FIEL-4-1510
-  const at = adsV2ReservedLayout({ sceneW: scene.width, sceneH: scene.height, cutW: cut.width, cutH: cut.height, format: args.format, side: args.side, faces: args.check ? args.check.faces : [] }) // KINEO-ADS-FIEL-4-1510
   const trust = adsV2LockCheckTrust({ check: args.check, expectPeople: true, previous: args.previous ?? null }) // KINEO-ADS-FIEL-4-1510 — toda cena do canto pede gente (adsV2LockCornerAction)
+  const at = adsV2ReservedLayoutTop({ sceneW: scene.width, sceneH: scene.height, cutW: cut.width, cutH: cut.height, format: args.format, side: args.side, faces: args.check ? args.check.faces : [], topEdgeY: args.check ? args.check.topEdgeY ?? null : null, cornerSurface: args.check ? args.check.cornerSurface : null, trustedFaces: trust.trusted }) // KINEO-ADS-FIEL-5-1510 — a base no tampo lido (confiável) ou a fixa
   const r = at.rect // KINEO-ADS-FIEL-4-1510
   const prod = { x0: r.x / at.W, y0: r.y / at.H, x1: (r.x + r.w) / at.W, y1: (r.y + r.h) / at.H } // KINEO-ADS-FIEL-4-1510
   const problem = adsV2LockCornerProblem({ trusted: trust.trusted, cornerPerson: args.check ? args.check.cornerPerson : null, cornerSurface: args.check ? args.check.cornerSurface : null, faces: at.faces, rect: prod }) // KINEO-ADS-FIEL-4-1510 — gente no canto, ou sem tampo vazio (o produto boiaria)
   if (problem) return { busy: true, problem, trust } // KINEO-ADS-FIEL-4-1510
   const faces = trust.trusted ? at.faces : [] // KINEO-ADS-FIEL-4-1510 — palpite nunca vai às frases de tela
-  const out = adsV2ReservedFramePng(scene, cut, args.format, args.side) // KINEO-ADS-FIEL-4-1510
+  const out = adsV2PlacedFramePng(scene, cut, args.format, at.rect) // KINEO-ADS-FIEL-5-1510 — o MESMO retângulo conferido acima (tampo ou fixo); a sombra de contato nasce na base dele
   const name = adsV2ShotRenderId(args.orderId, args.idx, args.attempt) // KINEO-ADS-FIEL-4-1510
   const url = await upload(`${args.userId}/${name}-lock.png`, out.png) // KINEO-ADS-FIEL-4-1510
   if (!url) throw new Error('lock_upload') // KINEO-ADS-FIEL-4-1510
   await uploadJson(`${args.userId}/${name}-lock.json`, adsV2LockSidecarSeen(out.rect, out.width, out.height, faces, args.check ? args.check.faces : [])).catch(() => null) // KINEO-ADS-FIEL-4-1510 — falhou = a regra fixa das frases
   const faceOverlap = Math.round(adsV2FaceOverlap(prod, faces) * 10000) / 10000 // KINEO-ADS-FIEL-4-1510
-  return { busy: false, url, rect: out.rect, shade: out.shade, placement: { source: 'reserved', side: args.side, scale: 1, faceOverlap }, trust, faces: faces.length } // KINEO-ADS-FIEL-4-1510
+  return { busy: false, url, rect: out.rect, shade: out.shade, placement: { source: 'reserved', side: args.side, scale: at.place.scale, faceOverlap, base_source: at.place.baseSource, base: at.place.base, top_edge_y: at.top.y, top_edge_why: at.top.ok ? at.place.why : at.top.why }, trust, faces: faces.length } // KINEO-ADS-FIEL-5-1510 — base_source 'tabletop' | 'fixed' + a borda lida (no quadro) e por que não valeu
 } // KINEO-ADS-FIEL-4-1510
 
 /** KINEO-ADS-FIEL-3-1510 — grava o JSON ao lado do quadro travado (o bucket renders aceita qualquer tipo). Lança se não gravou. */

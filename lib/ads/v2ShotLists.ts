@@ -1377,7 +1377,10 @@ export function adsV2LockedScenePromptAt(i: { sceneIdx: number; setting?: string
     `The FIRST attached image is the layout of this frame: a plain grey canvas. Replace it completely with a photorealistic ${LOCK_FRAME_WORD[f]} frame from a product commercial, shot on a cinema camera, natural light, subtle film grain.`, // KINEO-ADS-FIEL-4-1510
     `${adsV2LockCornerAction(i.sceneIdx, side)}.`, // KINEO-ADS-FIEL-4-1510
     i.setting && /^Setting: "/.test(i.setting) ? i.setting : '', // KINEO-ADS-FIEL-4-1510
-    `Reserved spot: the lower ${side} corner of the frame (the ${side} half, below ${pct(zone.y0)}% of the frame height) shows the flat top of an EMPTY surface (a table, a counter or a pedestal) with NOTHING on it, sharp and softly lit, its top visible between about ${pct(base - 0.12)}% and ${pct(Math.min(0.97, base + 0.08))}% of the frame height: a product will be placed there later, standing on that surface, so keep that corner completely clear.`, // KINEO-ADS-FIEL-4-1510
+    `Reserved spot: the lower ${side} corner of the frame (the ${side} half, below ${pct(zone.y0)}% of the frame height) shows the flat top of an EMPTY LOW surface (a low table, a bench, a low counter or a wide low pedestal) seen from slightly above, close to the camera, with NOTHING on it, sharp and softly lit.`, // KINEO-ADS-FIEL-5-1510 — "baixo" e "visto de cima": o tampo desce ao chão do palco
+    `Geometry, in proportions of the frame: the empty tabletop surface occupies the bottom 15–25% of the frame; its top edge is at about ${pct(ADS_V2_LOCK_TOP_TARGET[f])}% of the frame height, never above ${pct(ADS_V2_LOCK_TOP_TARGET[f] - 0.08)}%; the front face of the furniture below that top edge stays short.`, // KINEO-ADS-FIEL-5-1510 — a borda de cima em proporção (o reteste pôs o tampo em 59–71%)
+    `If the place has no table, the product stands on the floor or a rug in the lower ${side} corner instead: keep that patch of floor empty and visible down to the bottom of the frame.`, // KINEO-ADS-FIEL-5-1510 — cena sem mesa: o chão/tapete do canto
+    `A product will be placed there later, standing on that surface (its base at about ${pct(Math.min(base, ADS_V2_LOCK_TOP_TARGET[f] + 0.01))}% of the frame height), so keep that corner completely clear.`, // KINEO-ADS-FIEL-5-1510
     side === 'right' && zone.x1 < 1 ? `The empty surface spot sits between ${pct(zone.x0)}% and ${pct(zone.x1)}% of the frame width, set in from the right edge: the outer ${pct(1 - zone.x1)}% strip at the right edge is not part of the spot.` : '', // KINEO-ADS-FIEL-4-1510 — 9:16: o mesmo recuo do retângulo (a coluna de botões do TikTok/Reels)
     `People stay on the ${opp} half of the frame, faces in the upper half; no face, head, body, arm or hand enters the lower ${side} corner.`, // KINEO-ADS-FIEL-4-1510
     'There is NO bottle, NO box, NO packaging, NO container and NO product of any kind anywhere in the frame; hands are empty and stay away from the empty surface.', // KINEO-ADS-FIEL-4-1510
@@ -1460,3 +1463,84 @@ export function adsV2ParseLockSeen(raw: unknown): AdsV2Box[] { // KINEO-ADS-FIEL
   const o = v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null // KINEO-ADS-FIEL-4-1510
   return o && o.v === 1 && Array.isArray(o.seen) ? o.seen.map(box01).filter((b): b is AdsV2Box => !!b).slice(0, 8) : [] // KINEO-ADS-FIEL-4-1510
 } // KINEO-ADS-FIEL-4-1510
+// ── KINEO-ADS-FIEL-5-1510 — o produto POUSA no tampo que a imagem desenhou (reteste pago 15/10: 08ef80e5) ─────────────────────────────
+// KINEO-ADS-FIEL-5-1510 — o que se viu: o canto reservado funcionou (3/3, lados alternando, nenhum rosto coberto), mas o Nano Banana pôs o
+// KINEO-ADS-FIEL-5-1510 — tampo do móvel entre 59% e 71% da altura (o pedido era 73–93%) e a base colada FIXA em 85% deixou o frasco "grudado"
+// KINEO-ADS-FIEL-5-1510 — na face da frente do pedestal: nem boiando, nem apoiado. Dois lados, o mais robusto vence: (1) a conferência ('high')
+// KINEO-ADS-FIEL-5-1510 — passa a ler a altura da BORDA DE CIMA do tampo no canto (top_edge_y, 3 casas); valor "redondo" (múltiplo de 0,05:
+// KINEO-ADS-FIEL-5-1510 — o palpite que a 'high' ainda devolve — round_boxes 3/3), fora de [0,50; 0,93] ou sem corner_surface=true = não
+// KINEO-ADS-FIEL-5-1510 — confiável = a base fixa de antes; confiável = a base vai ao tampo (+0,005), com o mesmo teto de altura, sem invadir
+// KINEO-ADS-FIEL-5-1510 — o terço de cima (encolhe até 70%; nem assim = base fixa) e sem tocar rosto conferido (toca = base fixa). (2) O pedido
+// KINEO-ADS-FIEL-5-1510 — da imagem diz a geometria em proporção (tampo vazio nos 15–25% de baixo, borda de cima em ~78%) e aceita o chão/
+// KINEO-ADS-FIEL-5-1510 — tapete do canto para cena sem mesa. Tudo puro (o guardião roda com os números reais do reteste).
+/** KINEO-ADS-FIEL-5-1510 — a faixa em que a borda de cima do tampo é aceita (fração da altura do QUADRO). */
+export const ADS_V2_LOCK_TOP_RANGE: Readonly<{ min: number; max: number }> = { min: 0.5, max: 0.93 } // KINEO-ADS-FIEL-5-1510
+/** KINEO-ADS-FIEL-5-1510 — a folga da base do produto abaixo da borda de cima do tampo (o pé entra um pouco no tampo: pousa, não flutua). */
+export const ADS_V2_LOCK_TOP_GAP = 0.005 // KINEO-ADS-FIEL-5-1510
+/** KINEO-ADS-FIEL-5-1510 — o menor tamanho (fração do tamanho cheio) para caber acima do tampo; menor que isto = base fixa. */
+export const ADS_V2_LOCK_TOP_MIN_SCALE = 0.7 // KINEO-ADS-FIEL-5-1510
+/** KINEO-ADS-FIEL-5-1510 — o produto nunca sobe ao terço de CIMA do quadro (onde a cena põe os rostos). */
+export const ADS_V2_LOCK_TOP_CEIL = 1 / 3 // KINEO-ADS-FIEL-5-1510
+/** KINEO-ADS-FIEL-5-1510 — onde o PEDIDO da imagem põe a borda de cima do tampo (fração da altura): um pouco acima da base fixa. */
+export const ADS_V2_LOCK_TOP_TARGET: Readonly<Record<AdsV2Format, number>> = { '9:16': 0.78, '4:5': 0.8, '1:1': 0.8 } // KINEO-ADS-FIEL-5-1510
+/** KINEO-ADS-FIEL-5-1510 — a pergunta da conferência COM a borda do tampo: a da Fiel 4 + (4) a altura da borda de cima do tampo no canto. Pura. */
+export function adsV2LockCheckQuestionTop(format: AdsV2Format, side: AdsV2LockSide): string { // KINEO-ADS-FIEL-5-1510
+  const z = adsV2LockReserveZone(format, side) // KINEO-ADS-FIEL-5-1510
+  return `Look carefully at this photo. (1) List every human face as a box [x0, y0, x1, y1] in fractions of the image width and height, from 0 to 1 (left, top, right, bottom), measured on THIS photo, never a default guess; no face = []. (2) Is any part of a person (face, head, body, arm or hand) inside the region x ${z.x0}–${z.x1}, y ${z.y0}–${z.y1} (the lower ${side} corner)? (3) Is the flat top of an empty surface (table, counter, pedestal, bench, or the floor) visible in that region? (4) If yes, at what height is the TOP EDGE of that empty flat top inside the region (the far edge of the surface, where its flat top ends against the background)? Measure it on THIS photo as a fraction of the image height, 0 = top of the image, 1 = bottom, with exactly 3 decimal places (for example 0.637), never a rounded default; no surface = null. Answer only with JSON: {"faces": [[x0, y0, x1, y1], ...], "corner_person": true or false, "corner_surface": true or false, "top_edge_y": number with 3 decimals or null}.` // KINEO-ADS-FIEL-5-1510
+} // KINEO-ADS-FIEL-5-1510
+/** KINEO-ADS-FIEL-5-1510 — a conferência com a borda do tampo (frações da IMAGEM da cena; null = não sabe). */
+export interface AdsV2LockCheckTop extends AdsV2LockCheck { topEdgeY?: number | null } // KINEO-ADS-FIEL-5-1510
+/** KINEO-ADS-FIEL-5-1510 — a resposta da conferência → a leitura da Fiel 4 + top_edge_y (número, ou texto numérico; outra coisa = null). Pura. */
+export function adsV2ParseLockCheckTop(raw: unknown): AdsV2LockCheckTop | null { // KINEO-ADS-FIEL-5-1510
+  const first = adsV2ParseLockCheck(raw) // KINEO-ADS-FIEL-5-1510
+  if (!first) return null // KINEO-ADS-FIEL-5-1510
+  let v: unknown = raw // KINEO-ADS-FIEL-5-1510
+  if (typeof raw === 'string') { try { v = JSON.parse(raw) } catch { v = null } } // KINEO-ADS-FIEL-5-1510
+  const t = v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>).top_edge_y : null // KINEO-ADS-FIEL-5-1510
+  const n = typeof t === 'number' ? t : typeof t === 'string' && /^\s*\d*\.?\d+\s*$/.test(t) ? Number(t) : Number.NaN // KINEO-ADS-FIEL-5-1510
+  return { ...first, topEdgeY: Number.isFinite(n) ? n : null } // KINEO-ADS-FIEL-5-1510
+} // KINEO-ADS-FIEL-5-1510
+/** KINEO-ADS-FIEL-5-1510 — valor "redondo": nas 3 casas pedidas, múltiplo de 0,05 (0,600 · 0,650 · 0,700 — o palpite padrão da 'high'). */
+export function adsV2LockTopRound(v: number): boolean { // KINEO-ADS-FIEL-5-1510
+  return Number.isFinite(v) && Math.round(v * 1000) % 50 === 0 // KINEO-ADS-FIEL-5-1510
+} // KINEO-ADS-FIEL-5-1510
+/** KINEO-ADS-FIEL-5-1510 — dá para CONFIAR na borda do tampo? `raw` = o que a conferência disse (fração da IMAGEM: o teste de "redondo" é nele);
+ *  `frameY` = o mesmo valor levado ao QUADRO (a faixa é nele; ausente = raw); só com corner_surface=true. Não confiável = base fixa. Pura. */
+export function adsV2LockTopEdgeTrust(i: { raw: number | null | undefined; frameY?: number | null; cornerSurface: boolean | null | undefined }): { ok: boolean; y: number | null; why: 'no_answer' | 'no_surface' | 'round' | 'out_of_range' | null } { // KINEO-ADS-FIEL-5-1510
+  const raw = typeof i.raw === 'number' && Number.isFinite(i.raw) ? i.raw : null // KINEO-ADS-FIEL-5-1510
+  if (raw === null) return { ok: false, y: null, why: 'no_answer' } // KINEO-ADS-FIEL-5-1510
+  const y = typeof i.frameY === 'number' && Number.isFinite(i.frameY) ? i.frameY : raw // KINEO-ADS-FIEL-5-1510
+  const y4 = Math.round(y * 10000) / 10000 // KINEO-ADS-FIEL-5-1510
+  if (i.cornerSurface !== true) return { ok: false, y: y4, why: 'no_surface' } // KINEO-ADS-FIEL-5-1510 — a borda só vale com a superfície confirmada
+  if (adsV2LockTopRound(raw)) return { ok: false, y: y4, why: 'round' } // KINEO-ADS-FIEL-5-1510
+  if (y < ADS_V2_LOCK_TOP_RANGE.min || y > ADS_V2_LOCK_TOP_RANGE.max) return { ok: false, y: y4, why: 'out_of_range' } // KINEO-ADS-FIEL-5-1510
+  return { ok: true, y: y4, why: null } // KINEO-ADS-FIEL-5-1510
+} // KINEO-ADS-FIEL-5-1510
+/** KINEO-ADS-FIEL-5-1510 — onde o produto fica no canto reservado. */
+export interface AdsV2LockReservedPlace { rect: { x: number; y: number; w: number; h: number }; baseSource: 'tabletop' | 'fixed'; base: number; scale: number; why: 'no_top' | 'too_tall' | 'face' | null } // KINEO-ADS-FIEL-5-1510
+/**
+ * KINEO-ADS-FIEL-5-1510 — o retângulo do produto no canto reservado com a base NO TAMPO: sem borda confiável (`topEdgeY` null) = o retângulo
+ * da Fiel 4 (base fixa, ADS_V2_LOCK_RESERVE_BASE). Com borda: base = borda + ADS_V2_LOCK_TOP_GAP, o MESMO lado e a mesma margem, o mesmo teto
+ * de altura/largura; se o alto do produto passaria do terço de cima, encolhe (preso pela base e pela margem do lado) até
+ * ADS_V2_LOCK_TOP_MIN_SCALE; nem assim = base fixa ('too_tall'). Tocar um rosto CONFIÁVEL (`faces`, no quadro) = base fixa ('face'). Pura.
+ */
+export function adsV2LockReservedPlace(i: { frameW: number; frameH: number; cutW: number; cutH: number; format: AdsV2Format; side: AdsV2LockSide; topEdgeY?: number | null; faces?: readonly AdsV2Box[] | null }): AdsV2LockReservedPlace { // KINEO-ADS-FIEL-5-1510
+  const f = lockFmt(i.format) // KINEO-ADS-FIEL-5-1510
+  const fixed = adsV2LockReservedRect({ frameW: i.frameW, frameH: i.frameH, cutW: i.cutW, cutH: i.cutH, format: f, side: i.side }) // KINEO-ADS-FIEL-5-1510 — a Fiel 4, intacta
+  const fixedBase = ADS_V2_LOCK_RESERVE_BASE[f] // KINEO-ADS-FIEL-5-1510
+  const keep = (why: AdsV2LockReservedPlace['why']): AdsV2LockReservedPlace => ({ rect: fixed, baseSource: 'fixed', base: fixedBase, scale: 1, why }) // KINEO-ADS-FIEL-5-1510
+  const top = typeof i.topEdgeY === 'number' && Number.isFinite(i.topEdgeY) ? i.topEdgeY : null // KINEO-ADS-FIEL-5-1510
+  if (top === null || top < ADS_V2_LOCK_TOP_RANGE.min || top > ADS_V2_LOCK_TOP_RANGE.max) return keep('no_top') // KINEO-ADS-FIEL-5-1510
+  const W = i.frameW, H = i.frameH // KINEO-ADS-FIEL-5-1510
+  const base = Math.min(1 - ADS_V2_LOCK_EDGE, top + ADS_V2_LOCK_TOP_GAP) // KINEO-ADS-FIEL-5-1510
+  const fullH = fixed.h / H // KINEO-ADS-FIEL-5-1510 — o tamanho cheio já respeita o teto de altura e de largura do formato
+  const room = base - Math.max(ADS_V2_LOCK_TOP_CEIL, ADS_V2_LOCK_EDGE) // KINEO-ADS-FIEL-5-1510
+  const scale = Math.min(1, room / fullH) // KINEO-ADS-FIEL-5-1510
+  if (!(scale >= ADS_V2_LOCK_TOP_MIN_SCALE)) return keep('too_tall') // KINEO-ADS-FIEL-5-1510
+  const w = Math.max(1, Math.round(fixed.w * scale)), h = Math.max(1, Math.round(fixed.h * scale)) // KINEO-ADS-FIEL-5-1510
+  const y = Math.round(base * H) - h // KINEO-ADS-FIEL-5-1510 — a base NO tampo
+  const x = i.side === 'left' ? fixed.x : fixed.x + fixed.w - w // KINEO-ADS-FIEL-5-1510 — a mesma margem do lado (9:16: longe dos botões)
+  const faces = Array.isArray(i.faces) ? i.faces : [] // KINEO-ADS-FIEL-5-1510
+  if (adsV2FaceOverlap({ x0: x / W, y0: y / H, x1: (x + w) / W, y1: (y + h) / H }, faces) > 0) return keep('face') // KINEO-ADS-FIEL-5-1510 — subir não pode tapar rosto
+  return { rect: { x, y, w, h }, baseSource: 'tabletop', base: Math.round(base * 10000) / 10000, scale: Math.round(scale * 1000) / 1000, why: null } // KINEO-ADS-FIEL-5-1510
+} // KINEO-ADS-FIEL-5-1510

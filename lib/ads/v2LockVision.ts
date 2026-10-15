@@ -80,6 +80,7 @@ export async function adsV2SceneLayout(sceneUrl: string, doFetch: typeof fetch =
 // KINEO-ADS-FIEL-4-1510 — erro, prazo ou resposta ilegível = null ("não sei": o canto fica). Nunca lança, nunca cobra o cliente. Custo: uma
 // KINEO-ADS-FIEL-4-1510 — imagem 'high' do modelo de visão do registro central (~US$ 0,005 por cena).
 import { adsV2LockCheckQuestion, adsV2ParseLockCheck, type AdsV2Format, type AdsV2LockCheck, type AdsV2LockSide } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-4-1510
+import { adsV2LockCheckQuestionTop, adsV2ParseLockCheckTop, type AdsV2LockCheckTop } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-5-1510 — a conferência também lê a borda de cima do tampo no canto
 /** KINEO-ADS-FIEL-4-1510 — prazo da conferência em 'high' (imagem maior que a 'low'). */
 export const ADS_V2_LOCK_CHECK_TIMEOUT_MS = 20_000 // KINEO-ADS-FIEL-4-1510
 /** KINEO-ADS-FIEL-4-1510 — o corpo da conferência (puro: o guardião confere modelo do registro, detalhe 'high', JSON e a pergunta do canto). */
@@ -89,11 +90,11 @@ export function adsV2LockCheckBody(sceneUrl: string, format: AdsV2Format, side: 
     temperature: 0, // KINEO-ADS-FIEL-4-1510
     max_tokens: 300, // KINEO-ADS-FIEL-4-1510
     response_format: { type: 'json_object' }, // KINEO-ADS-FIEL-4-1510
-    messages: [{ role: 'user', content: [{ type: 'text', text: adsV2LockCheckQuestion(format, side) }, { type: 'image_url', image_url: { url: sceneUrl, detail: 'high' } }] }], // KINEO-ADS-FIEL-4-1510
+    messages: [{ role: 'user', content: [{ type: 'text', text: adsV2LockCheckQuestionTop(format, side) }, { type: 'image_url', image_url: { url: sceneUrl, detail: 'high' } }] }], // KINEO-ADS-FIEL-5-1510 — + a borda de cima do tampo (top_edge_y, 3 casas)
   } // KINEO-ADS-FIEL-4-1510
 } // KINEO-ADS-FIEL-4-1510
 /** KINEO-ADS-FIEL-4-1510 — a conferência do canto reservado; null = não deu para conferir (o canto fica). Nunca lança. */
-export async function adsV2SceneCheck(sceneUrl: string, format: AdsV2Format, side: AdsV2LockSide, doFetch: typeof fetch = fetch): Promise<AdsV2LockCheck | null> { // KINEO-ADS-FIEL-4-1510
+export async function adsV2SceneCheck(sceneUrl: string, format: AdsV2Format, side: AdsV2LockSide, doFetch: typeof fetch = fetch): Promise<AdsV2LockCheckTop | null> { // KINEO-ADS-FIEL-5-1510 — + top_edge_y
   const key = process.env.OPENAI_API_KEY // KINEO-ADS-FIEL-4-1510
   if (!key || typeof sceneUrl !== 'string' || !/^https:\/\/\S+$/i.test(sceneUrl.trim())) return null // KINEO-ADS-FIEL-4-1510
   try { // KINEO-ADS-FIEL-4-1510
@@ -105,7 +106,7 @@ export async function adsV2SceneCheck(sceneUrl: string, format: AdsV2Format, sid
     }) // KINEO-ADS-FIEL-4-1510
     if (!res.ok) return null // KINEO-ADS-FIEL-4-1510
     const j = (await res.json()) as { choices?: { message?: { content?: unknown } }[] } // KINEO-ADS-FIEL-4-1510
-    return adsV2ParseLockCheck(j?.choices?.[0]?.message?.content ?? null) // KINEO-ADS-FIEL-4-1510
+    return adsV2ParseLockCheckTop(j?.choices?.[0]?.message?.content ?? null) // KINEO-ADS-FIEL-5-1510
   } catch { // KINEO-ADS-FIEL-4-1510
     return null // KINEO-ADS-FIEL-4-1510
   } // KINEO-ADS-FIEL-4-1510
