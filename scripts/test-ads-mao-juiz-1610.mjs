@@ -8,7 +8,11 @@
 //
 // O que prova (1 seção por item):
 //   J  as chaves de DEFEITO: "both_objects" (frasco E caixa) e "extra_person" (outra pessoa, desfocada, na janela, refletida, parte do corpo
-//      na borda): foto com um objeto passa; com os dois reprova; pessoa extra reprova — na lib, na chamada executada e na resposta crua;
+//      na borda): foto com um objeto passa; com os dois reprova; pessoa extra reprova — e o juiz em 2 ETAPAS (docs/PESQUISA-SEM-ERRO-PRODUTO-NA-
+//      MAO-2026-10-16.md): (i) inventário com caixas, sem "só/apenas", a regra do plano no código; (ii) fidelidade com os RECORTES rotulados;
+//      "unsure" só registra; temperatura 0 e o modelo numa constante própria;
+//   R  os recortes: a referência da cena só com o objeto do plano (BiRefNet + a caixa do inventário, no branco, com cache) e o recorte do
+//      produto gerado (PNG) para o juiz; o avanço pede PNG, troca a 1ª referência pelo recorte e passa o crop ao juiz;
 //   L  a escada: reprovação SÓ nessas chaves refaz 1 vez e fica com a melhor foto (nunca o packshot); o packshot é só do rótulo/produto
 //      errado e no máximo 1 plano de gente por anúncio — mesmo com os 4 planos chegando juntos à 3ª foto (avanço executado);
 //   C  o texto do Ads: "da Perfume Atheeri" → "de Perfume Atheeri" (pt/es/fr) e o hífen solto da frase de tela sai; o pedido ganha a regra;
@@ -29,7 +33,7 @@ import { semMaoAjuste1610, desfazMaoAjuste1610 } from './test-support/desfaz-ads
 import { desfazProdutoNaMao1610 } from './test-support/desfaz-ads-produto-na-mao-1610.mjs'
 import { desfazFiel7_1610 } from './test-support/desfaz-ads-fiel-7-1610.mjs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
-import { GABARITO, conferir, corpo, label } from './calibra-juiz-mao.mjs'
+import { GABARITO, conferir, corpo } from './calibra-juiz-mao.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
@@ -148,6 +152,10 @@ class CreatomateSubmitError extends Error { constructor(m, amb) { super(m); this
 const SH = makeLoader({ '@fal-ai/client': { fal: {} }, '@/lib/falQueue': { FalQueueSubmitError: class extends Error {}, submitFalQueueOnce: async () => 'x' }, '@/lib/cinematic/sceneDisposition': { classifyProviderFailure: () => ({ disposition: 'rejected', reason_class: 'unknown' }) }, '@/lib/renderAssets': { persistRenderAssets: async () => ({}) }, '@/lib/mp4Duration': { probeMp4DurationSeconds: () => 3 }, '@/lib/falAlert': { alertFalExhausted: async () => {}, falErrorText: () => '', looksExhausted: () => false } })('lib/ads/v2Shots.ts')
 const lockSrvStub = new Proxy({}, { get: (_, k) => (k === 'then' ? undefined : () => (k === 'adsV2ProductLockEnabled' ? Promise.resolve(true) : Promise.resolve(null))) })
 let judgeImpl = () => ({ ok: true, fails: [] })
+// os recortes no avanço (o módulo de servidor é falso aqui; ele é provado na seção R com dependências falsas)
+const cropCalls = []
+let refCropImpl = async (a) => `https://sb/renders/u/adsv2-inhand-ref-${a.cacheKey}-${a.object}.png`
+const cropStub = { adsV2InHandReferenceCrop: async (a) => { cropCalls.push({ kind: 'ref', ...a }); return refCropImpl(a) }, adsV2InHandCropper: (a) => { cropCalls.push({ kind: 'cropper', ...a }); return async () => null } }
 const advStubs = () => ({
   '@/lib/compose': { CreatomateSubmitError, estimateMp3DurationSeconds: () => 9.5, pollCreatomateRender: async () => ({ status: 'rendering', url: null }), submitCreatomateRender: async () => 'cm-1', uploadVoiceoverToSupabase: async () => 'https://sb/voiceovers/v.mp3' },
   '@/lib/lyriaMusic': { getLyriaMusicUrl: async () => null },
@@ -170,12 +178,13 @@ const advStubs = () => ({
     pollSceneImage: async () => ({ state: 'done', url: 'https://fal.media/img.jpg' }),
     submitSceneImage: async (sc) => { prov.images.push(sc); return { kind: 'accepted', requestId: `img-${prov.images.length}`, posts: 1 } },
   },
-  '@/lib/ads/v2LockVision': { adsV2SceneHasProduct: async () => false, adsV2SceneCheck: async () => null, adsV2InHandLabelJudge: async (productUrl, scene, doFetch, object) => { prov.judged.push({ scene, object: object ?? null }); return judgeImpl(scene, object ?? null) } },
+  '@/lib/ads/v2LockVision': { adsV2SceneHasProduct: async () => false, adsV2SceneCheck: async () => null, adsV2InHandLabelJudge: async (productUrl, scene, doFetch, object, sink, crop) => { prov.judged.push({ scene, object: object ?? null, productUrl, crop: typeof crop === 'function' ? crop : null }); return judgeImpl(scene, object ?? null) } },
+  '@/lib/ads/v2ProductInHandCrop': cropStub,
   '@/lib/ads/v2ProductLockServer': lockSrvStub,
   '@/lib/ads/v2ProductInHandServer': { adsV2InHandEnabled: async () => true },
 })
 const loadAdvance = (over = {}) => makeLoader(advStubs(), { timers: fastTimers, over })(F.advance)
-const reset = () => { prov.events.length = 0; prov.fails.length = 0; prov.submits.length = 0; prov.polls.length = 0; prov.images.length = 0; prov.judged.length = 0; pollImpl = async () => ({ state: 'processing', url: null }); judgeImpl = () => ({ ok: true, fails: [] }) }
+const reset = () => { cropCalls.length = 0; refCropImpl = async (a) => `https://sb/renders/u/adsv2-inhand-ref-${a.cacheKey}-${a.object}.png`; prov.events.length = 0; prov.fails.length = 0; prov.submits.length = 0; prov.polls.length = 0; prov.images.length = 0; prov.judged.length = 0; pollImpl = async () => ({ state: 'processing', url: null }); judgeImpl = () => ({ ok: true, fails: [] }) }
 const ago = (ms) => new Date(Date.now() - ms).toISOString()
 const DL = () => Date.now() + 60_000
 
@@ -231,22 +240,61 @@ const j2 = (M = H) => {
     JSON.stringify(M.adsV2ParseInHandVerdict(JSON.stringify({ ...FID7, colors: false }))) === JSON.stringify({ ok: false, fails: ['colors'] })
 }
 await check('J2 a leitura (simulada): um objeto e ninguém mais = PASSA; "both_objects": true = reprova; "extra_person": true = reprova; fidelidade continua true = certo; chave faltando ou as chaves velhas = ilegível', () => j2())
+// a visão falsa das 2 etapas: o inventário (max_tokens 700) e a fidelidade (o resto); `inv`/`fid` = a resposta de cada etapa
+const INV_LIMPO = (obj = 'box') => ({ products: [{ type: obj, box_2d: [300, 300, 700, 600], visible: 'yes' }], people: [{ box_2d: [0, 200, 1000, 1000], visible: 'yes' }], hands: 'yes' })
+const FID_OK = { name: 'yes', colors: 'yes', material: 'yes', shape: 'yes' }
+const fake2 = (inv, fid, log) => async (url, init) => { const b = JSON.parse(init.body); log.push(b); const a = b.max_tokens === 700 ? inv : fid; const c = typeof a === 'function' ? a(b) : a; return { ok: true, json: async () => ({ choices: [{ message: { content: typeof c === 'string' ? c : JSON.stringify(c) } }] }) } }
 const j3 = async (V = VIS, M = H) => {
-  const log = []
-  const um = await V.adsV2InHandLabelJudge('https://a/real.jpg', 'https://a/foto-01.jpg', fakeFetch(LIMPA, log), 'box')
-  const dois = await V.adsV2InHandLabelJudge('https://a/real.jpg', 'https://a/foto-x.jpg', fakeFetch({ ...LIMPA, both_objects: true }, log), 'bottle')
-  const extra = await V.adsV2InHandLabelJudge('https://a/real.jpg', 'https://a/foto-05.jpg', fakeFetch({ ...LIMPA, extra_person: true }, log), 'box')
-  let cru = null
-  const dataUrl = 'data:image/jpeg;base64,' + Buffer.from('foto').toString('base64')
-  const dado = await V.adsV2InHandLabelJudge(dataUrl, dataUrl, fakeFetch(LIMPA, log), 'box', (c) => { cru = c })
-  const http = await V.adsV2InHandLabelJudge('http://inseguro/x.jpg', 'https://a/f.jpg', fakeFetch(LIMPA, log), 'box')
-  const lixo = await V.adsV2InHandLabelJudge('https://a/real.jpg', 'data:text/html;base64,AAAA', fakeFetch(LIMPA, log), 'box')
-  return um && um.ok === true && dois && dois.fails.join() === 'both_objects' && extra && extra.fails.join() === 'extra_person' && dado && dado.ok === true &&
-    typeof cru === 'string' && JSON.parse(cru).both_objects === false && http === null && lixo === null && log.length === 4 &&
-    log[0].messages[0].content[0].text === M.adsV2InHandJudgeQuestion('box') && log[1].messages[0].content[0].text === M.adsV2InHandJudgeQuestion('bottle') && log[0].model === 'modelo-do-registro' &&
-    log[0].messages[0].content[1].image_url.url === 'https://a/real.jpg'
+  const q = M.ADS_V2_IN_HAND_INVENTORY_QUESTION
+  const sem = !/\bonly\b|\bnot\b|\bno other\b|when in doubt/i.test(q) && !/when in doubt/.test(M.ADS_V2_IN_HAND_JUDGE_QUESTION) && !/when in doubt/.test(M.adsV2InHandFidelityQuestion('box', true))
+  const pede = /"box_2d" as \[ymin, xmin, ymax, xmax\] from 0 to 1000/.test(q) && /"unsure"/.test(q) && /blurred or out-of-focus person in the background/.test(q) && /through a window or glass/.test(q) && /reflected in a mirror or glass/.test(q) && /enters from the edge of the frame/.test(q) && /belong to that same person/.test(q)
+  const inv = (o) => M.adsV2ParseInHandInventory(JSON.stringify(o))
+  const v = (i, f, obj = 'box', crop = true) => M.adsV2InHandTwoStageVerdict(inv(i), f, obj, crop)
+  const um = v(INV_LIMPO('box'), FID_OK)
+  const dois = v({ ...INV_LIMPO('box'), products: [{ type: 'box', box_2d: [300, 300, 700, 600], visible: 'yes' }, { type: 'bottle', box_2d: [300, 650, 700, 800], visible: 'yes' }] }, FID_OK)
+  const duvidaFrasco = v({ ...INV_LIMPO('box'), products: [{ type: 'box', box_2d: [300, 300, 700, 600], visible: 'yes' }, { type: 'bottle', box_2d: [300, 650, 700, 800], visible: 'unsure' }] }, FID_OK)
+  const extra = v({ ...INV_LIMPO('box'), people: [{ box_2d: [0, 200, 1000, 1000], visible: 'yes' }, { box_2d: [100, 0, 300, 150], visible: 'yes' }] }, FID_OK)
+  const duvidaPessoa = v({ ...INV_LIMPO('box'), people: [{ box_2d: [0, 200, 1000, 1000], visible: 'yes' }, { box_2d: [100, 0, 300, 150], visible: 'unsure' }] }, FID_OK)
+  const preto = v(INV_LIMPO('bottle'), { ...FID_OK, material: 'no', colors: 'no' }, 'bottle')
+  const duvidaNome = v(INV_LIMPO('box'), { ...FID_OK, name: 'unsure' })
+  const semFid = v(INV_LIMPO('box'), null)
+  const maos = v({ ...INV_LIMPO('box'), hands: 'no' }, FID_OK)
+  const umSo = v({ ...INV_LIMPO('box'), products: [{ type: 'box', box_2d: [1, 1, 500, 500], visible: 'yes' }, { type: 'bottle', box_2d: [1, 1, 500, 500], visible: 'yes' }] }, FID_OK, null)
+  const rule = M.adsV2InHandInventoryRule(inv({ ...INV_LIMPO('box'), products: [{ type: 'box', box_2d: [10, 10, 100, 100], visible: 'yes' }, { type: 'box', box_2d: [300, 300, 700, 600], visible: 'yes' }] }), 'box')
+  return sem && pede && um.ok === true && um.crop === true && um.unsure.length === 0 && JSON.stringify(dois.fails) === '["both_objects"]' && duvidaFrasco.ok === true && duvidaFrasco.unsure.includes('product:bottle') &&
+    JSON.stringify(extra.fails) === '["extra_person"]' && duvidaPessoa.ok === true && duvidaPessoa.unsure.includes('person') && JSON.stringify(preto.fails) === '["colors","material"]' && duvidaNome.ok === true && duvidaNome.unsure.includes('name') &&
+    semFid.ok === true && semFid.unsure.includes('fidelity') && semFid.crop === false && JSON.stringify(maos.fails) === '["hands"]' && umSo.ok === true &&
+    JSON.stringify(rule.fails) === '["count"]' && JSON.stringify(rule.objectBox) === '[300,300,700,600]' && M.adsV2InHandTwoStageVerdict(null, FID_OK, 'box', true) === null &&
+    inv({ products: 'x', people: [] }) === null && inv({ products: [{ type: 'lamp', visible: 'yes' }, { type: 'box', box_2d: [5, 5, 1, 1], visible: 'yes' }], people: [] }).products.length === 1 &&
+    M.adsV2ParseInHandFidelity('{"name":"yes","colors":"yes","material":"yes"}') === null && JSON.stringify(M.adsV2InHandBoxToRect([0, 0, 500, 500], 200, 100, 0)) === '{"x":0,"y":0,"w":100,"h":50}'
 }
-await check('J3 executado (visão falsa): a chamada do avanço com um objeto passa; os dois juntos e a pessoa extra reprovam; data:image aceito (calibração com as fotos salvas) e o sink recebe a resposta crua; http e data não-imagem = null', () => j3())
+await check('J3 o juiz em 2 etapas (puro): o inventário pede presença + box_2d + "unsure" (sem "só/apenas", sem "when in doubt"; gente desfocada/na janela/refletida/na borda; as mãos são da mesma pessoa); o código: um objeto passa, frasco E caixa reprova, 2 pessoas reprova, "unsure" só registra, fidelidade "no" reprova, "unsure" registra, fidelidade ilegível = só o inventário, objeto em dobro = count', () => j3())
+const j4 = async (V = VIS, M = H) => {
+  const log = []
+  let cru = null
+  const cropArgs = []
+  const crop = async (a) => { cropArgs.push(a); return { reference: 'https://sb/ref-box.png', generated: 'data:image/png;base64,AAAA' } }
+  const um = await V.adsV2InHandLabelJudge('https://a/real.jpg', 'https://a/foto-01.png', fake2(INV_LIMPO('box'), FID_OK, log), 'box', (r) => { cru = r }, crop)
+  const iv = log[0]
+  const fd = log[1]
+  const fdc = fd.messages[0].content
+  const dois = await V.adsV2InHandLabelJudge('https://a/real.jpg', 'https://a/x.png', fake2({ ...INV_LIMPO('bottle'), products: [{ type: 'bottle', box_2d: [1, 1, 400, 400], visible: 'yes' }, { type: 'box', box_2d: [1, 500, 400, 900], visible: 'yes' }] }, FID_OK, log), 'bottle')
+  const n = log.length
+  const semCrop = await V.adsV2InHandLabelJudge('https://a/real.jpg', 'https://a/x.jpg', fake2(INV_LIMPO('box'), FID_OK, log), 'box', undefined, async () => null)
+  const fs = log[n + 1].messages[0].content
+  const ilegivel = await V.adsV2InHandLabelJudge('https://a/real.jpg', 'https://a/x.jpg', fake2('lixo', FID_OK, log), 'box')
+  const dataUrl = 'data:image/jpeg;base64,' + Buffer.from('foto').toString('base64')
+  const dado = await V.adsV2InHandLabelJudge(dataUrl, dataUrl, fake2(INV_LIMPO('box'), FID_OK, log), 'box')
+  const http = await V.adsV2InHandLabelJudge('http://inseguro/x.jpg', 'https://a/f.jpg', fake2(INV_LIMPO('box'), FID_OK, log), 'box')
+  return um && um.ok === true && um.crop === true && cru && cru.crop === true && JSON.parse(cru.inventory).hands === 'yes' && JSON.parse(cru.fidelity).name === 'yes' &&
+    V.ADS_V2_IN_HAND_JUDGE_MODEL === 'modelo-do-registro' && iv.model === 'modelo-do-registro' && fd.model === 'modelo-do-registro' && iv.temperature === 0 && fd.temperature === 0 &&
+    iv.messages[0].content[0].image_url.url === 'https://a/foto-01.png' && iv.messages[0].content[0].image_url.detail === 'high' && iv.messages[0].content[1].text === M.ADS_V2_IN_HAND_INVENTORY_QUESTION &&
+    JSON.stringify(cropArgs[0]) === JSON.stringify({ sceneUrl: 'https://a/foto-01.png', objectBox: [300, 300, 700, 600], object: 'box' }) &&
+    fdc[0].text === 'Image 1 (REFERENCE):' && fdc[1].image_url.url === 'https://sb/ref-box.png' && fdc[2].text === 'Image 2 (GENERATED):' && fdc[3].image_url.url === 'data:image/png;base64,AAAA' && fdc[4].text === M.adsV2InHandFidelityQuestion('box', true) &&
+    dois && JSON.stringify(dois.fails) === '["both_objects"]' && semCrop && semCrop.crop === false && fs[1].image_url.url === 'https://a/real.jpg' && fs[3].image_url.url === 'https://a/x.jpg' && fs[4].text === M.adsV2InHandFidelityQuestion('box', false) &&
+    ilegivel === null && dado && dado.ok === true && http === null
+}
+await check('J4 executado (visão falsa): 1ª chamada = inventário (a foto antes do texto, "high", temperatura 0, ADS_V2_IN_HAND_JUDGE_MODEL); o crop recebe a caixa do objeto do plano; 2ª chamada = fidelidade com "Image 1 (REFERENCE)" = o recorte real e "Image 2 (GENERATED)" = o recorte gerado; sem recorte = as fotos inteiras; inventário ilegível = null; data:image aceito; o sink recebe as 2 respostas', () => j4())
 
 // ═══ L. a escada ═════════════════════════════════════════════════════════════════════════════════════════════════════
 console.log('\nL. reprovação só de objeto/pessoa = a melhor foto (nunca o packshot); packshot só do rótulo errado, no máximo 1 plano de gente')
@@ -310,6 +358,84 @@ const l4 = async (Adv = A) => {
 }
 await check('L4 executado: um plano só com o produto errado (cor) ainda pode cair no packshot (a vaga está livre); os outros passam', () => l4())
 
+// ═══ R. os recortes ══════════════════════════════════════════════════════════════════════════════════════════════════
+console.log('\nR. a referência só com o objeto do plano (o que entra na referência entra na cena) e o recorte do produto gerado para o juiz')
+const PNG = pure()('lib/ads/v2Png.ts')
+// um recorte SEM fundo de 200×100: o frasco (vermelho) à esquerda, a caixa (azul) à direita, o resto transparente
+const fotoPar = () => { const W = 200, Hh = 100, d = new Uint8Array(W * Hh * 4); for (let y = 0; y < Hh; y++) for (let x = 0; x < W; x++) { const o = (y * W + x) * 4; if (x >= 20 && x < 60 && y >= 10 && y < 90) { d[o] = 220; d[o + 3] = 255 } else if (x >= 110 && x < 180 && y >= 20 && y < 90) { d[o + 2] = 220; d[o + 3] = 255 } } return { width: W, height: Hh, data: d } }
+const cena = () => { const W = 200, Hh = 100, d = new Uint8Array(W * Hh * 4); for (let i = 0; i < d.length; i += 4) { d[i] = 90; d[i + 1] = 90; d[i + 2] = 90; d[i + 3] = 255 } return { width: W, height: Hh, data: d } }
+const INV_PAR = { products: [{ type: 'bottle', box: [100, 100, 900, 300], visible: 'yes' }, { type: 'box', box: [200, 550, 900, 900], visible: 'yes' }], people: [], hands: 'unsure' }
+const cores = (img) => { let red = 0, blue = 0, white = 0; for (let i = 0; i < img.data.length; i += 4) { if (img.data[i] > 200 && img.data[i + 2] < 50) red++; if (img.data[i + 2] > 200 && img.data[i] < 50) blue++; if (img.data[i] === 255 && img.data[i + 1] === 255 && img.data[i + 2] === 255) white++ } return { red, blue, white } }
+const cropLoad = (over = {}) => makeLoader({ ...AIM, '@fal-ai/client': { fal: {} }, '@/lib/userFootage': { footageAdminClient: () => { throw new Error('sem banco no guardião') } } }, { over })('lib/ads/v2ProductInHandCrop.ts')
+const CR = cropLoad()
+function depsFalsas(log, over = {}) {
+  const store = new Map()
+  return {
+    store,
+    deps: {
+      download: async (u) => { log.push('download:' + u); if (store.has(u)) return store.get(u); if (u === 'https://fal/cut.png') return PNG.encodePng(fotoPar(), { alpha: true }); if (u === 'https://sb/cena.png') return PNG.encodePng(cena(), { alpha: false }); if (u === 'https://sb/cena.jpg') return new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]); return null },
+      upload: async (p, png) => { log.push('upload:' + p); store.set('https://sb/' + p, png); return 'https://sb/' + p },
+      publicUrl: (p) => 'https://sb/' + p,
+      cutout: async (u) => { log.push('cutout:' + u); return 'https://fal/cut.png' },
+      inventory: async (u) => { log.push('inventory:' + u); return INV_PAR },
+      ...over,
+    },
+  }
+}
+const r1 = async (C = CR) => {
+  const log = []
+  const { deps, store } = depsFalsas(log)
+  const url = await C.adsV2InHandReferenceCrop({ userId: 'u1', cacheKey: ORDER, productUrl: 'https://x/produto.jpg', object: 'box' }, deps)
+  const img = PNG.decodePng(store.get(url))
+  const c = cores(img)
+  const log2 = []
+  const de2 = depsFalsas(log2)
+  de2.store.set(url, store.get(url))
+  const again = await C.adsV2InHandReferenceCrop({ userId: 'u1', cacheKey: ORDER, productUrl: 'https://x/produto.jpg', object: 'box' }, de2.deps)
+  const frasco = await C.adsV2InHandReferenceCrop({ userId: 'u1', cacheKey: ORDER, productUrl: 'https://x/produto.jpg', object: 'bottle' }, depsFalsas([]).deps)
+  const semInv = await C.adsV2InHandReferenceCrop({ userId: 'u1', cacheKey: ORDER, productUrl: 'https://x/produto.jpg', object: 'box' }, depsFalsas([], { inventory: async () => null }).deps)
+  const semCut = await C.adsV2InHandReferenceCrop({ userId: 'u1', cacheKey: ORDER, productUrl: 'https://x/produto.jpg', object: 'box' }, depsFalsas([], { cutout: async () => null }).deps)
+  return url === `https://sb/u1/adsv2-inhand-ref-${ORDER.replace(/[^A-Za-z0-9_-]/g, '')}-box.png` && img.width === 70 && img.height === 70 && c.blue === 70 * 70 && c.red === 0 &&
+    log.includes('cutout:https://x/produto.jpg') && log.includes('inventory:https://x/produto.jpg') && again === url && !log2.some((l) => l.startsWith('cutout:')) &&
+    /-bottle\.png$/.test(frasco) && semInv === null && semCut === null
+}
+await check('R1 a referência do plano da caixa = o recorte SÓ da caixa (BiRefNet + a caixa do inventário da foto do produto, aparado, no branco): 70×70 azul, nenhum pixel do frasco; cache por pedido e objeto (a 2ª vez não recorta de novo); sem inventário ou sem recorte = null (a foto inteira, como antes)', () => r1())
+const r2 = async (C = CR) => {
+  const { deps } = depsFalsas([])
+  const png = await C.adsV2InHandSceneCrop('https://sb/cena.png', [0, 500, 1000, 1000], deps)
+  const jpg = await C.adsV2InHandSceneCrop('https://sb/cena.jpg', [0, 500, 1000, 1000], deps)
+  const semCaixa = await C.adsV2InHandSceneCrop('https://sb/cena.png', null, deps)
+  const img = png ? PNG.decodePng(new Uint8Array(Buffer.from(png.slice(png.indexOf(',') + 1), 'base64'))) : null
+  const fn = C.adsV2InHandCropper({ userId: 'u1', cacheKey: ORDER, productUrl: 'https://x/produto.jpg' }, deps)
+  const par = await fn({ sceneUrl: 'https://sb/cena.png', objectBox: [0, 500, 1000, 1000], object: 'box' })
+  const nada = await fn({ sceneUrl: 'https://sb/cena.jpg', objectBox: [0, 500, 1000, 1000], object: 'box' })
+  return typeof png === 'string' && png.startsWith('data:image/png;base64,') && img && img.width === 106 && img.height === 100 && jpg === null && semCaixa === null &&
+    par && /-box\.png$/.test(par.reference) && par.generated.startsWith('data:image/png;base64,') && nada === null && CR.ADS_V2_IN_HAND_CROP_MAX_SIDE === 1024
+}
+await check('R2 o recorte do produto GERADO: a foto PNG cortada pela caixa do inventário vira data URL PNG para o juiz; JPEG ou sem caixa = null; o crop do juiz devolve os dois recortes ou nada', () => r2())
+const r3 = async (Adv = A) => {
+  reset()
+  await rodar(Adv, { n: 3 })
+  const fotos = prov.images
+  const refs = cropCalls.filter((c) => c.kind === 'ref')
+  const croppers = cropCalls.filter((c) => c.kind === 'cropper')
+  const objs = fotos.map((f) => (/-box\.png$/.test(f.referenceUrls[0]) ? 'box' : /-bottle\.png$/.test(f.referenceUrls[0]) ? 'bottle' : 'x'))
+  return fotos.length === 4 && fotos.every((f) => f.outputFormat === 'png') && objs.sort().join() === 'bottle,bottle,box,box' && refs.length === 4 && refs.every((r) => r.productUrl === ORIG && r.cacheKey === ORDER && r.userId === USER) &&
+    croppers.length === 4 && croppers.every((c) => c.productUrl === ORIG && c.cacheKey === ORDER) && prov.judged.length === 4 && prov.judged.every((j) => typeof j.crop === 'function' && j.productUrl === ORIG)
+}
+await check('R3 executado (avanço): o plano novo pede a foto da cena em PNG; a 1ª referência de cada plano vira o recorte SÓ do objeto (frasco no gancho e no borrifo, caixa no rótulo e no close); o juiz recebe o crop (recorte real × recorte gerado)', () => r3())
+const r4 = async (Adv = A) => {
+  reset()
+  refCropImpl = async () => null
+  await rodar(Adv, { n: 3 })
+  const um = prov.images
+  reset()
+  await rodar(Adv, { pair: false, n: 3 })
+  const sem = prov.images
+  return um.length === 4 && um.every((f) => f.referenceUrls[0] === ORIG && f.outputFormat === 'png') && sem.length === 4 && sem.every((f) => f.referenceUrls[0] === ORIG && f.outputFormat === 'png') && cropCalls.filter((c) => c.kind === 'ref').length === 0
+}
+await check('R4 executado: recorte que falhou = a foto inteira (como antes); produto de um objeto só = a referência de sempre (o recorte só existe no par)', () => r4())
+
 // ═══ C. o texto do Ads ═══════════════════════════════════════════════════════════════════════════════════════════════
 console.log('\nC. o nome sem artigo antes ("de Perfume Atheeri") e sem hífen solto na frase de tela; o pedido ganha a regra')
 const B = makeLoader({}, { loose: true })(F.brief)
@@ -366,44 +492,73 @@ const k1 = (C = CAL) => {
     bad({ product_image_url: 'https://a/x.jpg', images: Array.from({ length: 13 }, () => ({ url: 'https://a/1.jpg', object: 'box' })) }) && C.ADS_V2_CALIBRATE_MAX_IMAGES === 12
 }
 await check('K1 o corpo: product_image_url + até 12 imagens (https ou data:image) com object bottle/box/single; o resto = 400', () => k1())
-// a visão falsa responde pelo rótulo da foto (o nome do arquivo na URL): o caso do T1 com o juiz consertado
-const respostaPor = (url) => { const n = Number((url.match(/still-(\d+)/) || [])[1]); return n === 5 ? { ...LIMPA, extra_person: true } : n === 9 ? { ...LIMPA, shape: false } : LIMPA }
+// a visão falsa das 2 etapas responde pelo rótulo da foto (o nome na URL): o juiz consertado nas ~21 fotos do gabarito
+const LIMPO_INV = (obj) => INV_LIMPO(obj)
+const invPor = (id, obj) => {
+  const g = GABARITO[id]
+  if (g.mustFail?.includes('both_objects')) return { ...LIMPO_INV(obj), products: [{ type: 'bottle', box_2d: [300, 200, 700, 400], visible: 'yes' }, { type: 'box', box_2d: [300, 500, 800, 800], visible: 'yes' }] }
+  if (g.mustFail?.includes('extra_person')) return { ...LIMPO_INV(obj), people: [{ box_2d: [0, 200, 1000, 1000], visible: 'yes' }, { box_2d: [100, 0, 350, 150], visible: 'yes' }] }
+  return LIMPO_INV(obj)
+}
+const fidPor = (id) => (GABARITO[id].mustFailAny ? { ...FID_OK, material: 'no', colors: 'no' } : id === 'mao3-09' ? { ...FID_OK, shape: 'unsure' } : FID_OK)
+const idDe = (u) => (String(u).match(/foto-([a-z0-9-]+)\.png/) || [])[1]
+const respondeGabarito = (log, mexe = () => null) => async (url, init) => {
+  const b = JSON.parse(init.body)
+  log.push(b)
+  const isInv = b.max_tokens === 700
+  const id = idDe(isInv ? b.messages[0].content[0].image_url.url : b.messages[0].content[3].image_url.url)
+  const obj = GABARITO[id]?.object ?? 'box'
+  const a = mexe(id, isInv) ?? (isInv ? invPor(id, obj) : fidPor(id))
+  return { ok: true, json: async () => ({ choices: [{ message: { content: JSON.stringify(a) } }] }) }
+}
+const fotosGab = () => Object.keys(GABARITO).map((id) => ({ id, url: `https://sb/renders/calib/foto-${id}.png` }))
 const k2 = async (C = CAL, M = H) => {
   const log = []
-  const fotos = Object.keys(GABARITO).map((n) => ({ n: Number(n), url: `https://sb/renders/a6144352/${label(Number(n))}.jpg` }))
+  const fotos = fotosGab().filter((f) => f.id.startsWith('mao3-'))
   const body = corpo('https://sb/user-footage/atheeri-produto.jpg', fotos)
   const p = C.adsV2CalibrateParse(body)
-  const out = await C.adsV2CalibrateRun(p.input, fakeFetch((b) => respostaPor(b.messages[0].content[2].image_url.url), log))
-  const r1 = out.results.find((x) => x.label === 'still-01')
-  const r5 = out.results.find((x) => x.label === 'still-05')
-  const conf = conferir([out])
-  return p.ok && out.results.length === 12 && out.model === 'modelo-do-registro' && out.defect_keys.join() === 'extra_person,both_objects' && out.usd === 0.12 && log.length === 12 &&
-    log.every((b, i) => b.messages[0].content[0].text === M.adsV2InHandJudgeQuestion(body.images[i].object) && b.messages[0].content[1].image_url.url === 'https://sb/user-footage/atheeri-produto.jpg') &&
-    r1.verdict.ok === true && r1.object === 'box' && r1.keys.join() === M.adsV2InHandJudgeKeys('box').join() && Object.keys(r1.answers).length === 9 && r1.answers.both_objects === false &&
-    r5.verdict.fails.join() === 'extra_person' && r5.soft_only === true && r5.answers.extra_person === true && conf.ok === true && conf.faltando.length === 0
+  const cropArgs = []
+  const crop = async (a) => { cropArgs.push(a); return null }
+  const out = await C.adsV2CalibrateRun(p.input, respondeGabarito(log), crop)
+  const r1 = out.results.find((x) => x.label === 'mao3-01')
+  const r5 = out.results.find((x) => x.label === 'mao3-05')
+  const inv = log.filter((b) => b.max_tokens === 700)
+  return p.ok && p.input.repeat === 3 && out.repeat === 3 && out.results.length === 12 && out.model === 'modelo-do-registro' && out.defect_keys.join() === 'extra_person,both_objects' && out.usd === 0.72 &&
+    log.length === 12 * 3 * 2 && inv.length === 36 && inv.every((b) => b.messages[0].content[1].text === M.ADS_V2_IN_HAND_INVENTORY_QUESTION && b.temperature === 0) && cropArgs.length === 36 && cropArgs.every((a, i) => a.object === 'box' || a.object === 'bottle') &&
+    r1.verdict.ok === true && r1.object === 'box' && r1.stable === true && r1.runs.length === 3 && r1.answers.both_objects === false && r1.answers.extra_person === false && r1.answers.name === 'yes' && r1.answers.hands === 'yes' &&
+    r5.verdict.fails.join() === 'extra_person' && r5.soft_only === true && r5.answers.extra_person === true && r5.answers.people === 2 && JSON.stringify(r5.runs[0].inventory.people.length) === '2'
 }
-await check('K2 executado (visão falsa): a calibração chama a MESMA pergunta do avanço para o objeto de cada foto, a 1ª imagem é o produto, devolve veredito + as 9 chaves cruas; o gabarito confere (5 reprova em extra_person; 9 com forma em dúvida não derruba)', () => k2())
-const k3 = () => {
+await check('K2 executado (visão falsa, 12 fotos × 3 repetições): a calibração chama a MESMA função do avanço (inventário + fidelidade, temperatura 0, o crop), devolve cada repetição, a maioria, "stable" e as chaves cruas (defeitos, fidelidade, mãos, pessoas)', () => k2())
+const k3 = async (C = CAL) => {
   const g = GABARITO
-  const firmes = Object.entries(g).filter(([, v]) => v.pass === true).map(([n]) => Number(n))
-  const resp = (mut) => ({ results: Object.keys(g).map((n) => { const l = label(Number(n)); const a = mut(Number(n)) ?? LIMPA; const keys = H.adsV2InHandJudgeKeys(g[n].object); return { label: l, answers: a, verdict: H.adsV2ParseInHandVerdict(JSON.stringify(a), keys) } }) })
-  const base5 = (n) => (n === 5 ? { ...LIMPA, extra_person: true } : null)
-  return JSON.stringify(firmes) === '[1,2,3,4,6,8,10,11]' && g[5].pass === false && g[5].mustFail.join() === 'extra_person' && [7, 9, 12].every((n) => g[n].pass === null && g[n].keys.extra_person === false) &&
-    conferir([resp(base5)]).ok === true &&
-    conferir([resp((n) => (n === 1 ? { ...LIMPA, both_objects: true } : base5(n)))]).ok === false && // a foto 1 reprovada (o defeito do T1)
-    conferir([resp(() => null)]).ok === false && // a 5 passando (o homem na janela aprovado)
-    conferir([resp((n) => (n === 7 ? { ...LIMPA, colors: false } : base5(n)))]).ok === true && // 7: a cor do líquido em dúvida não derruba
-    conferir([resp((n) => (n === 7 ? { ...LIMPA, extra_person: true } : base5(n)))]).linhas.some((l) => /aviso still-07/.test(l)) &&
-    conferir([{ results: [] }]).ok === false
+  const roda = async (mexe) => { const fs = fotosGab(); const a = await C.adsV2CalibrateRun(C.adsV2CalibrateParse(corpo('https://sb/p.jpg', fs.slice(0, 12))).input, respondeGabarito([], mexe)); const b = await C.adsV2CalibrateRun(C.adsV2CalibrateParse(corpo('https://sb/p.jpg', fs.slice(12))).input, respondeGabarito([], mexe)); return { results: [...a.results, ...b.results] } }
+  const firmes = Object.entries(g).filter(([, v]) => v.pass === true).map(([id]) => id)
+  const certo = conferir([await roda()])
+  // o T1 a6144352: o juiz velho reprovava as fotos certas → a calibração fica VERMELHA
+  const velho = conferir([await roda((id, isInv) => (isInv && id === 'mao3-01' ? { ...INV_LIMPO('box'), products: [{ type: 'box', box_2d: [1, 1, 500, 500], visible: 'yes' }, { type: 'bottle', box_2d: [1, 600, 500, 900], visible: 'yes' }] } : null))])
+  // a 5 aprovada (o homem na janela passou)
+  const cinco = conferir([await roda((id, isInv) => (isInv && id === 'mao3-05' ? INV_LIMPO('box') : null))])
+  // o frasco preto aprovado
+  const preto = conferir([await roda((id, isInv) => (!isInv && id === 't1-p2' ? FID_OK : null))])
+  // repetições que discordam = vermelho (variância)
+  let k = 0
+  const instavel = conferir([await roda((id, isInv) => (isInv && id === 'mao3-02' && (k++ % 3 === 1) ? { ...INV_LIMPO('bottle'), people: [{ box_2d: [0, 0, 1000, 1000], visible: 'yes' }, { box_2d: [0, 0, 100, 100], visible: 'yes' }] } : null))])
+  // 9 com a forma em dúvida e 7 com a cor reprovada não derrubam (não afirmados)
+  const sete = conferir([await roda((id, isInv) => (!isInv && id === 'mao3-07' ? { ...FID_OK, colors: 'no' } : null))])
+  return Object.keys(g).length === 21 && JSON.stringify(firmes) === '["mao2-p0","mao2-p2","mao3-01","mao3-02","mao3-03","mao3-04","mao3-06","mao3-08","mao3-10","mao3-11"]' &&
+    g['mao3-05'].mustFail.join() === 'extra_person' && g['mao2-p3'].mustFail.join() === 'extra_person' && ['t1-p1', 't1-p3', 'mao2-p1', 'compara'].every((id) => g[id].mustFail.join() === 'both_objects') && g['t1-p2'].mustFailAny.join() === 'material,colors' &&
+    ['mao3-07', 'mao3-09', 'mao3-12', 't1-p0'].every((id) => g[id].pass === null && g[id].keys.extra_person === false) && Object.values(g).every((v) => existsSync(join('C:\\kineo-wt\\prints-1610', v.file)) || !existsSync('C:\\kineo-wt\\prints-1610')) &&
+    certo.ok === true && certo.faltando.length === 0 && certo.instaveis.length === 0 && velho.ok === false && cinco.ok === false && preto.ok === false && instavel.ok === false && instavel.instaveis.join() === 'mao3-02' &&
+    sete.ok === true && sete.linhas.some((l) => /^ok {4}mao3-07 .*reprovou: colors/.test(l)) && conferir([{ results: [] }]).ok === false
 }
-await check('K3 o gabarito (scripts/calibra-juiz-mao.mjs): 1,2,3,4,6,8,10 passam (e 11, pelo olho); 5 reprova em extra_person; 7, 9 e 12 só com as chaves afirmadas; o conferidor fica vermelho com a foto 1 reprovada, com a 5 aprovada ou faltando foto', () => k3())
+await check('K3 o gabarito das 21 fotos (scripts/calibra-juiz-mao.mjs): limpas passam; frasco E caixa (T1 p1/p3, ajuste 1 p1, comparativo) e pessoa extra (ajuste 1 p3, 3ª rodada 05) reprovam; frasco preto reprova em material/cor; o conferidor fica vermelho com a foto certa reprovada, a 5 aprovada, o frasco preto aprovado ou repetições que discordam', () => k3())
 const RT = rd(F.route)
 const k4 = (src = RT) => /import \{ isAdminEmail \} from '\.\.\/_shared\/db'/.test(src) && /import \{ isInternalEmail \} from '@\/lib\/internalAccounts'/.test(src) &&
   src.includes("if (!user || !isAdminEmail(user.email) || !isInternalEmail(user.email)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })") &&
-  src.includes('const parsed = adsV2CalibrateParse(') && src.includes('await adsV2CalibrateRun(parsed.input)') && /export async function POST\(/.test(src) && !/export async function GET/.test(src) &&
-  !/\.from\(|serviceClient|@fal-ai|submitSceneImage|v2Billing|credits|writeServerEvent/.test(src) && /adsV2InHandLabelJudge\(input\.productUrl, img\.url, doFetch, img\.object, \(c\) => \{ content = c \}\)/.test(rd(F.calib)) &&
-  !/\.from\(|@fal-ai|v2Billing|submit/.test(rd(F.calib))
-await check('K4 a rota: só POST, 403 sem administrador INTERNO, 400 no corpo ruim; chama o núcleo, que chama adsV2InHandLabelJudge (a do avanço) com o objeto e o sink; nada de banco, fal, cobrança ou evento', () => k4())
+  src.includes('const parsed = adsV2CalibrateParse(') && src.includes('const crop = adsV2InHandCropper({ userId: user.id, cacheKey, productUrl: parsed.input.productUrl })') && src.includes('await adsV2CalibrateRun(parsed.input, fetch, crop)') &&
+  /export async function POST\(/.test(src) && !/export async function GET/.test(src) && !/\.from\(|serviceClient|submitSceneImage|v2Billing|credits|writeServerEvent/.test(src) &&
+  /adsV2InHandLabelJudge\(input\.productUrl, img\.url, doFetch, img\.object, \(r\) => \{ raw = r \}, crop\)/.test(rd(F.calib)) && !/\.from\('|@fal-ai|v2Billing|submit/.test(rd(F.calib))
+await check('K4 a rota: só POST, 403 sem administrador INTERNO, 400 no corpo ruim; o MESMO crop do avanço (adsV2InHandCropper); o núcleo chama adsV2InHandLabelJudge (a do avanço) com o objeto, o sink e o crop; nada de banco, cobrança ou evento', () => k4())
 
 // ═══ D. desfaz, marca, encadeamento, travas ═════════════════════════════════════════════════════════════════════════════
 console.log('\nD. desfaz exato, marca, encadeamento, travas "internal", nada de cobrança/motor/filme')
@@ -452,8 +607,6 @@ await mut('a leitura ignora a polaridade (defeito vira "true = certo")', () => j
 await mut('as chaves voltam a "people"/"only_object"', () => j1(mutIH("[...ADS_V2_IN_HAND_JUDGE_KEYS, 'extra_person', ...(object === 'bottle' || object === 'box' ? ['both_objects'] : [])]", "[...ADS_V2_IN_HAND_JUDGE_KEYS, 'people', ...(object === 'bottle' || object === 'box' ? ['only_object'] : [])]")))
 await mut('a pessoa extra perde o desfocado/janela', () => j1(mutIH('a blurred or out-of-focus person in the background, a person seen through a window or a glass door, ', '')))
 await mut('a pergunta perde a frase dos defeitos', () => j1(mutIH('const items = [ADS_V2_IN_HAND_JUDGE_DEFECT_INTRO, ', 'const items = [')))
-await mut('a visão não aceita data:image (calibração com as fotos salvas)', () => j3(visV(" || /^data:image\\/(?:jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(u.trim())", '')))
-await mut('a visão não entrega a resposta crua (sink)', () => j3(visV('    if (sink) { try { sink(', '    if (false) { try { sink(')))
 await mut('a 2ª reprovação só de objeto/pessoa vai para "sem rótulo"', () => l1(mutIH("return soft ? 'best' : 'no_label'", "return 'no_label'")))
 await mut('a 3ª reprovação ignora o teto do packshot', () => l1(mutIH('soft || (typeof i.packshotsUsed === \'number\' && i.packshotsUsed >= ADS_V2_IN_HAND_MAX_PACKSHOTS)', 'soft')))
 await mut('o avanço: a escada sem a melhor foto (todos ao packshot, o T1)', () => l2(advIH("return soft ? 'best' : 'no_label'", "return 'no_label'")))
@@ -464,9 +617,23 @@ await mut('o artigo não muda ("da" fica)', () => c1(brM("pt: { da: 'de', do: 'd
 await mut('o hífen solto fica', () => c2(brM("/(\\p{L})\\s+-\\s+(?=\\p{L})/gu", '/(\\p{L})\\s+~\\s+(?=\\p{L})/gu')))
 await mut('a extração não aplica o acabamento', () => c3({ [F.brief]: trocar(BRsrc, '  return { ok: true, brief, copy: finalMain.copy, dropped', '  return { ok: true, brief, copy: checked.copy, dropped') }))
 await mut('o pedido não ganha a regra do nome', () => c3({ [F.brief]: trocar(BRsrc, "  if (nameLang && args.narration && nameList.length) Object.assign(opts, { nameArticle: true })", '') }))
-await mut('a calibração não passa o objeto (sem "both_objects")', () => k2(calM('doFetch, img.object, (c) =>', 'doFetch, null, (c) =>')))
-await mut('a calibração perde a resposta crua', () => k2(calM('(c) => { content = c }', '(c) => { void c }')))
-await mut('a rota abre para administrador não interno', () => k4(trocar(RT, ' || !isInternalEmail(user.email)', '')))
 
+await mut('a visão não aceita data:image (calibração com as fotos salvas)', () => j4(visV(" || /^data:image\\/(?:jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(u.trim())", '')))
+await mut('a visão não entrega a resposta crua (sink)', () => j4(visV('{ if (sink) { try { sink(raw) }', '{ if (false) { try { sink(raw) }')))
+await mut('o inventário não aplica a regra dos dois objetos', () => j3(VIS, mutIH("  if (object && yes.some((p) => p.type === 'bottle') && yes.some((p) => p.type === 'box')) fails.push('both_objects')", '')))
+await mut('pessoa "unsure" reprova (conta toda a gente)', () => j3(VIS, mutIH("if (inv.people.filter((p) => p.visible === 'yes').length > 1) fails.push('extra_person')", "if (inv.people.length > 1) fails.push('extra_person')")))
+await mut('fidelidade "unsure" reprova', () => j3(VIS, mutIH("ADS_V2_IN_HAND_FIDELITY_KEYS.filter((k) => fidelity[k] === 'no')", "ADS_V2_IN_HAND_FIDELITY_KEYS.filter((k) => fidelity[k] !== 'yes')")))
+await mut('o inventário volta a dizer "when in doubt"', () => j3(VIS, mutIH('Image 1 is a photo. List what you can see in it.', 'Image 1 is a photo. When in doubt, answer no. List what you can see in it.')))
+await mut('o juiz ignora o crop (compara as fotos inteiras)', () => j4(visV('const crops = crop ? await crop(', 'const crops = false ? await crop(')))
+await mut('o inventário sai da temperatura 0', () => j4(visV('return { model: ADS_V2_IN_HAND_JUDGE_MODEL, temperature: 0, max_tokens: 700', 'return { model: ADS_V2_IN_HAND_JUDGE_MODEL, temperature: 0.7, max_tokens: 700')))
+await mut('o recorte de referência leva o contorno inteiro (frasco junto)', () => r1(cropLoad({ 'lib/ads/v2ProductInHandCrop.ts': trocar(rd('lib/ads/v2ProductInHandCrop.ts'), '    piece = cropRgba(cut, rect)', '    piece = cut') })))
+await mut('o avanço não troca a referência pelo recorte', () => r3(advM('if (refUrl) sendRefs = [refUrl, ...sendRefs.slice(1)]', 'if (false) sendRefs = [refUrl, ...sendRefs.slice(1)]')))
+await mut('o avanço não pede PNG no plano novo', () => r4(advM('sendRefs !== refs || inHand ?', 'sendRefs !== refs ?')))
+await mut('o avanço não passa o crop ao juiz', () => r3(advM('tag?.object ?? null, undefined, cropFn)', 'tag?.object ?? null)')))
+await mut('a calibração não passa o objeto', () => k2(calM('img.url, doFetch, img.object, (r) =>', 'img.url, doFetch, null, (r) =>')))
+await mut('a calibração perde a resposta crua', () => k2(calM('(r) => { raw = r }', '(r) => { void r }')))
+await mut('a calibração ignora as repetições', () => k2(calM('Array.from({ length: input.repeat }', 'Array.from({ length: 1 }')))
+await mut('a rota abre para administrador não interno', () => k4(trocar(RT, ' || !isInternalEmail(user.email)', '')))
+await mut('a rota calibra sem o crop do avanço', () => k4(trocar(RT, ', fetch, crop)', ', fetch)')))
 console.log(`\n${pass} ok, ${fail} falha(s)`)
 process.exit(fail ? 1 : 0)

@@ -459,7 +459,7 @@ export const ADS_V2_IN_HAND_SPEECH_SENTENCES = 'four or five short spoken senten
 
 // ── o juiz do rótulo (visão barata, a mesma chamada de lib/ads/v2LockVision.ts) ─────────────────────────────────────────
 /** A pergunta (sem exemplo de resposta pronto: o reteste de 15/10 mostrou que a visão COPIA o exemplo). 1ª imagem = a foto real. */
-export const ADS_V2_IN_HAND_JUDGE_QUESTION = 'The FIRST image is the real product photo. The SECOND image is a generated photo of a person with that product. Be strict: compare the product in the SECOND image with the FIRST one and answer each item with true or false; when in doubt, answer false. "name": the brand name and the logo, where they are visible, are the same words and the same logo (small text may be blurry, but it must not turn into a different word or a different logo). "colors": every visible part of the product has the same colors as in the FIRST image, including the body of the bottle or the package and the color of any liquid inside. "material": every part keeps the same material and finish as in the FIRST image (clear glass stays clear and see-through, matte cardboard stays matte cardboard); a black, opaque or painted body where the FIRST image shows clear glass is false. "shape": the shape and the proportions of the packaging are the same. "count": the SECOND image shows no more product items than the FIRST image (no extra bottle, box, package or duplicate). "hands": the hands look natural, with five fingers, and nothing passes through the product. "one_product": every product item in the SECOND image is part of the product of the FIRST image; no different product appears. Answer only with JSON with the keys "name", "colors", "material", "shape", "count", "hands" and "one_product", each one true or false.' // KINEO-ADS-MAO-AJUSTE-1610 — mais rígida: cor do corpo e do líquido, material, quantidade (no T1 aprovou um frasco preto inventado)
+export const ADS_V2_IN_HAND_JUDGE_QUESTION = 'The FIRST image is the real product photo. The SECOND image is a generated photo of a person with that product. Be strict: compare the product in the SECOND image with the FIRST one and answer each item with true or false. "name": the brand name and the logo, where they are visible, are the same words and the same logo (small text may be blurry, but it must not turn into a different word or a different logo). "colors": every visible part of the product has the same colors as in the FIRST image, including the body of the bottle or the package and the color of any liquid inside. "material": every part keeps the same material and finish as in the FIRST image (clear glass stays clear and see-through, matte cardboard stays matte cardboard); a black, opaque or painted body where the FIRST image shows clear glass is false. "shape": the shape and the proportions of the packaging are the same. "count": the SECOND image shows no more product items than the FIRST image (no extra bottle, box, package or duplicate). "hands": the hands look natural, with five fingers, and nothing passes through the product. "one_product": every product item in the SECOND image is part of the product of the FIRST image; no different product appears. Answer only with JSON with the keys "name", "colors", "material", "shape", "count", "hands" and "one_product", each one true or false.' // KINEO-ADS-MAO-AJUSTE-1610 — mais rígida: cor do corpo e do líquido, material, quantidade (no T1 aprovou um frasco preto inventado) · KINEO-ADS-MAO-JUIZ-1610 — sem "when in doubt, answer false" (puxava tudo para reprovar; o juiz agora é o de 2 etapas abaixo)
 export const ADS_V2_IN_HAND_JUDGE_KEYS: readonly string[] = ['name', 'colors', 'material', 'shape', 'count', 'hands', 'one_product'] // KINEO-ADS-MAO-AJUSTE-1610 — + material, count
 /** KINEO-ADS-MAO-AJUSTE-3-1610 — a pergunta da pessoa extra (o juiz aprovou um homem na cama ao fundo e um olho entrando pela borda). Em TODA conferência in_hand. */
 /** KINEO-ADS-MAO-JUIZ-1610 — virou chave de DEFEITO ("extra_person": true = há mais alguém): a de "pessoa certa" aprovou o homem desfocado na janela (foto 5 do T1 a6144352). */
@@ -496,7 +496,89 @@ export function adsV2ParseInHandPair(raw: unknown): boolean | null { // KINEO-AD
   if (typeof o.container !== 'boolean' || typeof o.box !== 'boolean') return null // KINEO-ADS-MAO-AJUSTE-3-1610
   return o.container === true && o.box === true // KINEO-ADS-MAO-AJUSTE-3-1610
 } // KINEO-ADS-MAO-AJUSTE-3-1610
-export interface AdsV2InHandVerdict { ok: boolean; fails: string[] }
+export interface AdsV2InHandVerdict { ok: boolean; fails: string[]; unsure?: string[]; crop?: boolean } // KINEO-ADS-MAO-JUIZ-1610 — + unsure ("não sei": só log) e crop (a fidelidade comparou os recortes)
+
+// ── KINEO-ADS-MAO-JUIZ-1610 — O JUIZ EM 2 ETAPAS (docs/PESQUISA-SEM-ERRO-PRODUTO-NA-MAO-2026-10-16.md, (a) regras 1, 2, 3, 6 e (c) prioridade 1) ─────────
+// KINEO-ADS-MAO-JUIZ-1610 — (i) INVENTÁRIO: o modelo lista o que VÊ (produtos e pessoas, cada um com box_2d e "yes"/"unsure"); nada de "só/apenas", nada de
+// KINEO-ADS-MAO-JUIZ-1610 — negação. O CÓDIGO aplica a regra do plano (frasco E caixa no plano de um objeto = defeito; mais de uma pessoa = defeito).
+// KINEO-ADS-MAO-JUIZ-1610 — (ii) FIDELIDADE: o recorte do produto gerado ao lado do recorte do produto real, rotulados, atributo por atributo ("yes"/"no"/"unsure").
+// KINEO-ADS-MAO-JUIZ-1610 — "unsure" vai para o log e NUNCA reprova; a frase "when in doubt, answer false" saiu.
+export type AdsV2InHandTri = 'yes' | 'no' | 'unsure' // KINEO-ADS-MAO-JUIZ-1610
+export type AdsV2InHandBox2d = [number, number, number, number] // KINEO-ADS-MAO-JUIZ-1610 — [ymin, xmin, ymax, xmax], de 0 a 1000
+export interface AdsV2InHandInventory { // KINEO-ADS-MAO-JUIZ-1610
+  products: { type: 'bottle' | 'box' | 'other'; box: AdsV2InHandBox2d | null; visible: 'yes' | 'unsure' }[] // KINEO-ADS-MAO-JUIZ-1610
+  people: { box: AdsV2InHandBox2d | null; visible: 'yes' | 'unsure' }[] // KINEO-ADS-MAO-JUIZ-1610
+  hands: AdsV2InHandTri // KINEO-ADS-MAO-JUIZ-1610
+} // KINEO-ADS-MAO-JUIZ-1610
+/** KINEO-ADS-MAO-JUIZ-1610 — a pergunta do inventário (1 imagem). Só presença e posição: o código decide. */
+export const ADS_V2_IN_HAND_INVENTORY_QUESTION = 'Image 1 is a photo. List what you can see in it. "products": every product item you can see — a bottle (a perfume or cosmetic bottle, jar or flask), a box (a carton package) or another product item — each one with "type" ("bottle", "box" or "other"), "box_2d" as [ymin, xmin, ymax, xmax] from 0 to 1000, and "visible" ("yes", or "unsure" when you cannot tell). A bottle seen through the window of its own box counts as part of that box. "people": every distinct person you can see, each person once with one box around all of their visible body parts — including a blurred or out-of-focus person in the background, a person seen through a window or glass, a person reflected in a mirror or glass, and a person whose face, hand or arm enters from the edge of the frame — each one with "box_2d" and "visible" ("yes" or "unsure"). The hands of the person holding the product belong to that same person. "hands": do the visible hands look natural, with five fingers and nothing passing through the product? Answer "yes", "no" or "unsure". Answer with JSON: {"products": [], "people": [], "hands": ""}.' // KINEO-ADS-MAO-JUIZ-1610
+/** KINEO-ADS-MAO-JUIZ-1610 — o nome de cada objeto do plano na pergunta de fidelidade. */
+export const ADS_V2_IN_HAND_OBJECT_NAME: Readonly<Record<AdsV2InHandObject | 'single', string>> = { bottle: 'the bottle', box: 'the box', single: 'the product' } // KINEO-ADS-MAO-JUIZ-1610
+/** KINEO-ADS-MAO-JUIZ-1610 — as chaves da fidelidade (cada uma "yes" / "no" / "unsure"). */
+export const ADS_V2_IN_HAND_FIDELITY_KEYS: readonly string[] = ['name', 'colors', 'material', 'shape'] // KINEO-ADS-MAO-JUIZ-1610
+/** KINEO-ADS-MAO-JUIZ-1610 — a pergunta da fidelidade: crop = os dois recortes; senão as fotos inteiras (o recorte falhou), sempre rotuladas. Pura. */
+export function adsV2InHandFidelityQuestion(object: AdsV2InHandObject | null, crop: boolean): string { // KINEO-ADS-MAO-JUIZ-1610
+  const it = ADS_V2_IN_HAND_OBJECT_NAME[object ?? 'single'] // KINEO-ADS-MAO-JUIZ-1610
+  const intro = crop // KINEO-ADS-MAO-JUIZ-1610
+    ? `Image 1 (REFERENCE) is a crop of ${it} from the real product photo. Image 2 (GENERATED) is a crop of ${it} from a generated photo. Compare Image 2 with Image 1, one attribute at a time.` // KINEO-ADS-MAO-JUIZ-1610
+    : `Image 1 (REFERENCE) is the real product photo. Image 2 (GENERATED) is a generated photo of a person with the product. Compare ${it} in Image 2 with ${it} in Image 1, one attribute at a time.` // KINEO-ADS-MAO-JUIZ-1610
+  return intro + ' Answer each attribute with "yes", "no" or "unsure". "name": the brand words and the logo visible in Image 2 are the same as in Image 1 (small text may be blurry; it must not read as a different word or a different logo). "colors": the colors in Image 2 are the same as in Image 1, including the body of the bottle or package and the color of any liquid inside. "material": the material and finish in Image 2 are the same as in Image 1 (clear glass stays clear and see-through; matte cardboard stays matte cardboard). "shape": the shape and the proportions in Image 2 are the same as in Image 1. Answer only with JSON with the keys "name", "colors", "material" and "shape".' // KINEO-ADS-MAO-JUIZ-1610
+} // KINEO-ADS-MAO-JUIZ-1610
+const tri = (v: unknown): AdsV2InHandTri | null => (v === 'yes' || v === 'no' || v === 'unsure' ? v : v === true ? 'yes' : v === false ? 'no' : null) // KINEO-ADS-MAO-JUIZ-1610
+const box2d = (v: unknown): AdsV2InHandBox2d | null => (Array.isArray(v) && v.length === 4 && v.every((n) => typeof n === 'number' && Number.isFinite(n)) && v[2] > v[0] && v[3] > v[1] ? [v[0], v[1], v[2], v[3]].map((n) => Math.max(0, Math.min(1000, n))) as AdsV2InHandBox2d : null) // KINEO-ADS-MAO-JUIZ-1610
+const jsonOf = (raw: unknown): Record<string, unknown> | null => { let j: unknown = raw; if (typeof raw === 'string') { try { j = JSON.parse(raw) } catch { return null } } return j && typeof j === 'object' && !Array.isArray(j) ? (j as Record<string, unknown>) : null } // KINEO-ADS-MAO-JUIZ-1610
+/** KINEO-ADS-MAO-JUIZ-1610 — a resposta do inventário (pura): sem "products"/"people" em lista = null (ilegível); item torto é ignorado. */
+export function adsV2ParseInHandInventory(raw: unknown): AdsV2InHandInventory | null { // KINEO-ADS-MAO-JUIZ-1610
+  const o = jsonOf(raw) // KINEO-ADS-MAO-JUIZ-1610
+  if (!o || !Array.isArray(o.products) || !Array.isArray(o.people)) return null // KINEO-ADS-MAO-JUIZ-1610
+  const vis = (v: unknown): 'yes' | 'unsure' | null => (v === 'yes' || v === true ? 'yes' : v === 'unsure' ? 'unsure' : null) // KINEO-ADS-MAO-JUIZ-1610
+  const products: AdsV2InHandInventory['products'] = [] // KINEO-ADS-MAO-JUIZ-1610
+  for (const p of o.products as unknown[]) { const x = p as { type?: unknown; box_2d?: unknown; visible?: unknown } | null; const v = x ? vis(x.visible ?? 'yes') : null; if (x && v && (x.type === 'bottle' || x.type === 'box' || x.type === 'other')) products.push({ type: x.type, box: box2d(x.box_2d), visible: v }) } // KINEO-ADS-MAO-JUIZ-1610
+  const people: AdsV2InHandInventory['people'] = [] // KINEO-ADS-MAO-JUIZ-1610
+  for (const p of o.people as unknown[]) { const x = p as { box_2d?: unknown; visible?: unknown } | null; const v = x ? vis(x.visible ?? 'yes') : null; if (x && v) people.push({ box: box2d(x.box_2d), visible: v }) } // KINEO-ADS-MAO-JUIZ-1610
+  return { products, people, hands: tri(o.hands) ?? 'unsure' } // KINEO-ADS-MAO-JUIZ-1610
+} // KINEO-ADS-MAO-JUIZ-1610
+const area = (b: AdsV2InHandBox2d | null): number => (b ? (b[2] - b[0]) * (b[3] - b[1]) : 0) // KINEO-ADS-MAO-JUIZ-1610
+/** KINEO-ADS-MAO-JUIZ-1610 — a regra do plano sobre o inventário (pura): os defeitos, o "não sei" e a caixa do objeto do plano (para o recorte). */
+export function adsV2InHandInventoryRule(inv: AdsV2InHandInventory, object: AdsV2InHandObject | null): { fails: string[]; unsure: string[]; objectBox: AdsV2InHandBox2d | null; seen: string[] } { // KINEO-ADS-MAO-JUIZ-1610
+  const yes = inv.products.filter((p) => p.visible === 'yes') // KINEO-ADS-MAO-JUIZ-1610
+  const fails: string[] = [] // KINEO-ADS-MAO-JUIZ-1610
+  const unsure = [...inv.products.filter((p) => p.visible === 'unsure').map((p) => 'product:' + p.type), ...inv.people.filter((p) => p.visible === 'unsure').map(() => 'person'), ...(inv.hands === 'unsure' ? ['hands'] : [])] // KINEO-ADS-MAO-JUIZ-1610
+  if (object && yes.filter((p) => p.type === object).length > 1) fails.push('count') // KINEO-ADS-MAO-JUIZ-1610 — o objeto do plano em dobro
+  if (inv.hands === 'no') fails.push('hands') // KINEO-ADS-MAO-JUIZ-1610
+  if (inv.people.filter((p) => p.visible === 'yes').length > 1) fails.push('extra_person') // KINEO-ADS-MAO-JUIZ-1610
+  if (object && yes.some((p) => p.type === 'bottle') && yes.some((p) => p.type === 'box')) fails.push('both_objects') // KINEO-ADS-MAO-JUIZ-1610
+  const wanted = yes.filter((p) => (object ? p.type === object : p.type !== 'other') && p.box).sort((a, b) => area(b.box) - area(a.box)) // KINEO-ADS-MAO-JUIZ-1610
+  const seen = yes.map((p) => p.type) // KINEO-ADS-MAO-JUIZ-1610
+  if (object && !seen.includes(object)) unsure.push('object_missing:' + object) // KINEO-ADS-MAO-JUIZ-1610 — o plano pedia este objeto e ele não apareceu: log (a foto continua sendo do produto do cliente)
+  return { fails, unsure, objectBox: wanted[0]?.box ?? null, seen } // KINEO-ADS-MAO-JUIZ-1610
+} // KINEO-ADS-MAO-JUIZ-1610
+/** KINEO-ADS-MAO-JUIZ-1610 — a resposta da fidelidade (pura): cada chave "yes"/"no"/"unsure" (true/false também valem); chave faltando = null (ilegível). */
+export function adsV2ParseInHandFidelity(raw: unknown): Record<string, AdsV2InHandTri> | null { // KINEO-ADS-MAO-JUIZ-1610
+  const o = jsonOf(raw) // KINEO-ADS-MAO-JUIZ-1610
+  if (!o) return null // KINEO-ADS-MAO-JUIZ-1610
+  const out: Record<string, AdsV2InHandTri> = {} // KINEO-ADS-MAO-JUIZ-1610
+  for (const k of ADS_V2_IN_HAND_FIDELITY_KEYS) { const t = tri(o[k]); if (!t) return null; out[k] = t } // KINEO-ADS-MAO-JUIZ-1610
+  return out // KINEO-ADS-MAO-JUIZ-1610
+} // KINEO-ADS-MAO-JUIZ-1610
+/** KINEO-ADS-MAO-JUIZ-1610 — o veredito das 2 etapas (puro). Inventário ilegível = null (a foto segue, a regra de sempre do juiz fora do ar). Fidelidade
+ *  ilegível = só o inventário decide (e "fidelity" vai para o "não sei"). "no" reprova; "unsure" só registra. */
+export function adsV2InHandTwoStageVerdict(inv: AdsV2InHandInventory | null, fidelity: Record<string, AdsV2InHandTri> | null, object: AdsV2InHandObject | null, crop: boolean): AdsV2InHandVerdict | null { // KINEO-ADS-MAO-JUIZ-1610
+  if (!inv) return null // KINEO-ADS-MAO-JUIZ-1610
+  const rule = adsV2InHandInventoryRule(inv, object) // KINEO-ADS-MAO-JUIZ-1610
+  const fidFails = fidelity ? ADS_V2_IN_HAND_FIDELITY_KEYS.filter((k) => fidelity[k] === 'no') : [] // KINEO-ADS-MAO-JUIZ-1610
+  const unsure = [...(fidelity ? ADS_V2_IN_HAND_FIDELITY_KEYS.filter((k) => fidelity[k] === 'unsure') : ['fidelity']), ...rule.unsure] // KINEO-ADS-MAO-JUIZ-1610
+  const fails = [...fidFails, ...rule.fails] // KINEO-ADS-MAO-JUIZ-1610
+  return { ok: fails.length === 0, fails, unsure, crop: !!(fidelity && crop) } // KINEO-ADS-MAO-JUIZ-1610
+} // KINEO-ADS-MAO-JUIZ-1610
+/** KINEO-ADS-MAO-JUIZ-1610 — a caixa normalizada (0–1000) levada a pixels com margem, dentro da imagem. Pura. */
+export function adsV2InHandBoxToRect(box: AdsV2InHandBox2d, w: number, h: number, pad = 0.04): { x: number; y: number; w: number; h: number } | null { // KINEO-ADS-MAO-JUIZ-1610
+  const y0 = (box[0] / 1000) * h, x0 = (box[1] / 1000) * w, y1 = (box[2] / 1000) * h, x1 = (box[3] / 1000) * w // KINEO-ADS-MAO-JUIZ-1610
+  const px = (x1 - x0) * pad, py = (y1 - y0) * pad // KINEO-ADS-MAO-JUIZ-1610
+  const x = Math.max(0, Math.floor(x0 - px)), y = Math.max(0, Math.floor(y0 - py)) // KINEO-ADS-MAO-JUIZ-1610
+  const rw = Math.min(w, Math.ceil(x1 + px)) - x, rh = Math.min(h, Math.ceil(y1 + py)) - y // KINEO-ADS-MAO-JUIZ-1610
+  return rw >= 8 && rh >= 8 ? { x, y, w: rw, h: rh } : null // KINEO-ADS-MAO-JUIZ-1610
+} // KINEO-ADS-MAO-JUIZ-1610
 /** A resposta do juiz (pura): todas as chaves booleanas, senão null ("não sei"). */
 export function adsV2ParseInHandVerdict(raw: unknown, keys: readonly string[] = ADS_V2_IN_HAND_JUDGE_KEYS): AdsV2InHandVerdict | null { // KINEO-ADS-MAO-AJUSTE-3-1610 — + keys (people, only_object)
   let j: unknown = raw
