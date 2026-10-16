@@ -6,6 +6,7 @@
 //   2. o portão de saldo é pulado SÓ quando essa leitura é verdadeira, e o saldo real volta antes do claim;
 //   3. TRAVA 8.2: só linhas marcadas — retiradas, a rota volta à base byte a byte (base = pai do 1º commit com a marca).
 // Mutantes: ROTA_ALVO=<arquivo> roda contra uma cópia mutada (scripts/test-reconexao-mesmo-filme-2026-10-13.mutantes.sh).
+import { semTrilha15s1610, linhaDaTrilha15s1610, linhasTrocadasTrilha15s1610 } from './test-support/desfaz-trilha-15s-1610.mjs' // reancorado KINEO-TRILHA-15S [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"]: o plano de b-roll alinhado e o protagonista sem rosto saem em memória antes do byte a byte
 import { readFileSync } from 'node:fs'
 import { desfazAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 import { desfazJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
@@ -59,7 +60,7 @@ if (!process.env.ROTA_ALVO) {
     base = git(['show', `${ref}:${CAMINHO}`]).replace(/\r\n/g, '\n')
   } catch { base = null }
   const semMarca = (s) => s.split('\n').filter((l) => !l.includes(MARCA)).join('\n')
-  checa('sem as linhas marcadas, a rota = base byte a byte', base !== null && desfazRomanceAdulto(CAMINHO, semMarca(semContratoClassicos1410(desfazParceiroEyebible2_1410(CAMINHO, desfazAncoraEJuizStill1410(CAMINHO, semCenaNegacao1510(rota, CAMINHO) /* reancorado KINEO-CENA-NEGACAO-1510 */) /* KINEO-ANCORA-LEGENDA-1410 */), CAMINHO))) === base) /* reancorado KINEO-CONTRATO-CLASSICOS-1410 */ // reancorado KINEO-LEVA7-1310
+  checa('sem as linhas marcadas, a rota = base byte a byte', base !== null && desfazRomanceAdulto(CAMINHO, semMarca(semContratoClassicos1410(desfazParceiroEyebible2_1410(CAMINHO, desfazAncoraEJuizStill1410(CAMINHO, semCenaNegacao1510(semTrilha15s1610(rota, CAMINHO) /* reancorado KINEO-TRILHA-15S */, CAMINHO) /* reancorado KINEO-CENA-NEGACAO-1510 */) /* KINEO-ANCORA-LEGENDA-1410 */), CAMINHO))) === base) /* reancorado KINEO-CONTRATO-CLASSICOS-1410 */ // reancorado KINEO-LEVA7-1310
 }
 
 console.log(`\ntest-reconexao-mesmo-filme-2026-10-13: ${ok} ok · ${falhas} falhas`)

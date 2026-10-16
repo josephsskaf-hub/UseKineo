@@ -29,6 +29,7 @@ import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { semCenaNegacao1510, MARCA_CENA_NEGACAO_1510 as MARCA } from './test-support/desfaz-cena-negacao-1510.mjs'
+import { semTrilha15s1610, linhaDaTrilha15s1610 } from './test-support/desfaz-trilha-15s-1610.mjs' // reancorado KINEO-TRILHA-15S [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"]: o plano de b-roll alinhado e o protagonista sem rosto saem em memória antes do byte a byte
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const ROTA = 'app/api/generate-video-cinematic/route.ts'
@@ -177,13 +178,13 @@ relata(`provas A–E no código atual (${falhasAtuais.length} falhas)`, falhasAt
   const base = shas.length ? shas[shas.length - 1] + '^' : 'HEAD'
   for (const p of [LIB, ROTA]) {
     const atual = ler(p)
-    const desfeito = semCenaNegacao1510(atual, p).replace(/\r\n/g, '\n')
+    const desfeito = semCenaNegacao1510(semTrilha15s1610(atual, p), p).replace(/\r\n/g, '\n') // reancorado KINEO-TRILHA-15S
     const daBase = git('show', `${base}:${p}`).replace(/\r\n/g, '\n')
     relata(`F byte a byte: ${p} desfeito == ${base}`, desfeito === daBase)
     relata(`F ${p} tem a marca (o conserto está aplicado)`, atual.includes(MARCA))
   }
   const add = git('diff', base, '--', LIB, ROTA).replace(/\r/g, '').split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))
-  relata('F toda linha nova/trocada da rota e do sceneTruth leva a marca', add.length > 0 && add.every((l) => l.includes(MARCA)), add.filter((l) => !l.includes(MARCA)).slice(0, 2).join(' | '))
+  relata('F toda linha nova/trocada da rota e do sceneTruth leva a marca', add.length > 0 && add.every((l) => l.includes(MARCA) || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */), add.filter((l) => !l.includes(MARCA) && !linhaDaTrilha15s1610(l)).slice(0, 2).join(' | '))
 }
 
 // (G) mutantes — cada um provado aplicado, cada um tem de ficar VERMELHO

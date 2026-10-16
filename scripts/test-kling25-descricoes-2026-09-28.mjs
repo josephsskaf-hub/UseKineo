@@ -26,6 +26,7 @@
 //   (8) estático: os guardiões irmãos continuam válidos (laço de 2 tentativas; `await generateCinematicDescriptions(` só
 //       depois de styleAnchor); hollywood intocado (speechImageAlign.ts e klingShots.ts idênticos à base; contagem de
 //       hollywoodPath igual).
+import { semTrilha15s1610, linhaDaTrilha15s1610, linhasTrocadasTrilha15s1610 } from './test-support/desfaz-trilha-15s-1610.mjs' // reancorado KINEO-TRILHA-15S [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"]: o plano de b-roll alinhado e o protagonista sem rosto saem em memória antes do byte a byte
 import { readFileSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -71,7 +72,7 @@ checa('a base (sem o marcador) está disponível para as comparações', Boolean
 
 const ROTA = 'app/api/generate-video-cinematic/route.ts'
 const LIB = 'lib/cinematic/sceneDescriptions.ts'
-const rota = rd(ROTA)
+const rota = semTrilha15s1610(rd(ROTA), ROTA) // reancorado KINEO-TRILHA-15S [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"]: a regra nova do plano de b-roll (plano só alinhado; senão o descritor roda) sai em memória — o bloco do descritor que este guardião executa é byte a byte o de antes; a regra nova é provada em scripts/test-trilha-15s-1610.mjs
 const libSrc = rd(LIB)
 const rotaBase = rdBase(ROTA)
 const S = roda(libSrc)

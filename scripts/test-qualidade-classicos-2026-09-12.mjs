@@ -4,6 +4,7 @@
 // roteiro que os 3 caros aprovam. Esta leva: (3) "as is" literal no compose,
 // (4) voz na língua do texto, (5) cron enxerga cena morta, + escritor entrega a
 // faixa de palavras (Seedance 74/186, Kineo 1 105/186) e "Tomás" não vira "ás".
+import { semTrilha15s1610, linhaDaTrilha15s1610, linhasTrocadasTrilha15s1610 } from './test-support/desfaz-trilha-15s-1610.mjs' // reancorado KINEO-TRILHA-15S [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"]: o plano de b-roll alinhado e o protagonista sem rosto saem em memória antes do byte a byte
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -107,7 +108,7 @@ const cronBase1410 = semRetentarCena1410(cron, ARQUIVO_CRON_1410) // KINEO-RETEN
 checa('chamador passa a idade do claim e pending velho vira rastro', /collectFinishedClips\(requestIds, models, claimAgeMin\)/.test(cronBase1410) && /outcome: `pending_stale:\$\{collected\.done\}\/\$\{collected\.total\}`/.test(cron) && /SILENT_TERMINAL = \/\^\([^\n]*\|pending_stale[|)]/.test(cron) && /const PENDING_STALE_MINUTES = 45/.test(cron))
 
 console.log('== "Tomás" não vira "ás" (filtro de cenário com Unicode) ==')
-const vpp = rd('lib/cinematic/visualPromptPolicy.ts')
+const vpp = semTrilha15s1610(rd('lib/cinematic/visualPromptPolicy.ts'), 'lib/cinematic/visualPromptPolicy.ts') // reancorado KINEO-TRILHA-15S [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"]: o bloco do protagonista sem rosto (cita PERSON_NOUN_RE, fora da fatia) sai em memória; a fatia do scrubInventedSetting fica byte a byte a de antes
 {
   const iS = vpp.indexOf('const SETTING_ALLOW')
   const iE = vpp.indexOf('export function buildClassicVisualPrompt')

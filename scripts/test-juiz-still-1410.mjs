@@ -15,6 +15,7 @@
 //       a âncora final;
 //   (h) o modelo é o do juiz do s25 (nenhuma string crua de modelo nova); desfeito o ajuste, a rota é o pai do 1º commit marcado;
 //   (i) mutantes: cada um fica vermelho e prova que aplicou.
+import { semTrilha15s1610, linhaDaTrilha15s1610, linhasTrocadasTrilha15s1610 } from './test-support/desfaz-trilha-15s-1610.mjs' // reancorado KINEO-TRILHA-15S [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"]: o plano de b-roll alinhado e o protagonista sem rosto saem em memória antes do byte a byte
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -310,7 +311,7 @@ async function verificacoes(over = {}) {
     const forma = FORMA_JUIZ_STILL_1410[ROTA]
     v(`desfaz: a rota tem exatamente ${forma.acrescimos} linhas marcadas, todas acréscimos (nenhuma troca)`, rota.split('\n').filter((l) => l.includes(MARCA)).length === forma.acrescimos && forma.trocas === 0)
     v('desfaz: idempotente e recusa ajuste pela metade', semJuizStill1410(ROTA, 'a\nb') === 'a\nb' && (() => { try { semJuizStill1410(ROTA, `x // ${MARCA}`); return false } catch { return true } })())
-    if (rotaBase) v(`byte a byte: desfeito o ajuste, a rota é EXATAMENTE a base (${BASE})`, desfazJuizStill1410(ROTA, semCenaNegacao1510(rota, ROTA)) === rotaBase) // reancorado KINEO-CENA-NEGACAO-1510 [TRAVA 8.2 — vai do fundador 15/10]: a negação no contrato de cena sai em memória antes do byte a byte
+    if (rotaBase) v(`byte a byte: desfeito o ajuste, a rota é EXATAMENTE a base (${BASE})`, desfazJuizStill1410(ROTA, semCenaNegacao1510(semTrilha15s1610(rota, ROTA) /* reancorado KINEO-TRILHA-15S */, ROTA)) === rotaBase) // reancorado KINEO-CENA-NEGACAO-1510 [TRAVA 8.2 — vai do fundador 15/10]: a negação no contrato de cena sai em memória antes do byte a byte
     const sujos = git(['diff', '--name-only', BASE, (BASE && BASE.endsWith('^') ? BASE.slice(0, -1) : 'HEAD'), '--', 'app', 'lib', 'components']) /* reancorado KINEO-LEVA-1410-BASE: mede o PRÓPRIO commit do conserto, não a árvore (levas posteriores o deixavam vermelho) */.trim().split('\n').filter(Boolean)
     v(`só a rota e a lib nova mudaram em app/lib/components contra a base (${sujos.join(', ')})`, sujos.every((p) => p === ROTA || p === LIB))
     const proibidos = git(['diff', '--name-only', BASE, (BASE && BASE.endsWith('^') ? BASE.slice(0, -1) : 'HEAD'), '--', 'lib/engineWall.ts', 'lib/homeVideoCuration.ts', 'lib/ads', 'app/api/ads', 'lib/engineCost.ts', 'lib/hollywood/anchors.ts']) /* reancorado KINEO-LEVA-1410-BASE */.trim()

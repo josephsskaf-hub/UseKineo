@@ -4,6 +4,7 @@
 // claim e o compose soma ESSE número (sem recalcular, sem ler o navegador).
 // Só readFileSync + transpile local (guardião com alias @/ não roda). As condições do compose são EXTRAÍDAS da rota e
 // EXECUTADAS com o caso real — e com a base (linhas marcadas retiradas) para provar que o caso reproduz o defeito.
+import { semTrilha15s1610, linhaDaTrilha15s1610, linhasTrocadasTrilha15s1610 } from './test-support/desfaz-trilha-15s-1610.mjs' // reancorado KINEO-TRILHA-15S [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"]: o plano de b-roll alinhado e o protagonista sem rosto saem em memória antes do byte a byte
 import { readFileSync } from 'node:fs'
 import { desfazAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 import { desfazJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
@@ -147,7 +148,7 @@ if (BASE) {
   // Reancorado 13/10 (KINEO-MONUMENTO-2026-10-13 — o fundador autorizou o conserto do monumento no pipeline): linhas novas marcadas + 5 linhas da
   // base trocadas de propósito (contexto dos filtros anti-invenção via comVocabularioDoLugar); semMonumento tira só essas, dos dois lados.
   // Prova: scripts/test-monumento-real-1310.mjs.
-  checa('E26 /api/generate-video-cinematic sem as linhas marcadas = base, byte a byte', semMonumento(semS25(semMarca(desfazH3max('app/api/generate-video-cinematic/route.ts', desfazRomanceAdulto('app/api/generate-video-cinematic/route.ts', semContratoClassicos1410(desfazParceiroEyebible2_1410('app/api/generate-video-cinematic/route.ts', desfazAncoraEJuizStill1410('app/api/generate-video-cinematic/route.ts', semCenaNegacao1510(cinematic, 'app/api/generate-video-cinematic/route.ts') /* reancorado KINEO-CENA-NEGACAO-1510 */) /* KINEO-ANCORA-LEGENDA-1410 */), 'app/api/generate-video-cinematic/route.ts')))))) /* reancorado KINEO-CONTRATO-CLASSICOS-1410 */ === semMonumento(semS25(base('app/api/generate-video-cinematic/route.ts'))))
+  checa('E26 /api/generate-video-cinematic sem as linhas marcadas = base, byte a byte', semMonumento(semS25(semMarca(desfazH3max('app/api/generate-video-cinematic/route.ts', desfazRomanceAdulto('app/api/generate-video-cinematic/route.ts', semContratoClassicos1410(desfazParceiroEyebible2_1410('app/api/generate-video-cinematic/route.ts', desfazAncoraEJuizStill1410('app/api/generate-video-cinematic/route.ts', semCenaNegacao1510(semTrilha15s1610(cinematic, 'app/api/generate-video-cinematic/route.ts') /* reancorado KINEO-TRILHA-15S */, 'app/api/generate-video-cinematic/route.ts') /* reancorado KINEO-CENA-NEGACAO-1510 */) /* KINEO-ANCORA-LEGENDA-1410 */), 'app/api/generate-video-cinematic/route.ts')))))) /* reancorado KINEO-CONTRATO-CLASSICOS-1410 */ === semMonumento(semS25(base('app/api/generate-video-cinematic/route.ts'))))
 }
 checa('E27 a Estrela continua só com a casa (ESTRELA_PUBLIC = false)', /export const ESTRELA_PUBLIC = false\n/.test(launch))
 

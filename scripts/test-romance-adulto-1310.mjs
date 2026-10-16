@@ -17,6 +17,7 @@
 //       provados contra a base;
 //   (4) a rota: cada fio ligado no lugar certo (texto real da rota) e a moderação antes do ensaio, do still e do POST;
 //   (5) mutantes: cada um aplicado (prova por texto) tem de deixar o guardião vermelho.
+import { semTrilha15s1610, linhaDaTrilha15s1610, linhasTrocadasTrilha15s1610 } from './test-support/desfaz-trilha-15s-1610.mjs' // reancorado KINEO-TRILHA-15S [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"]: o plano de b-roll alinhado e o protagonista sem rosto saem em memória antes do byte a byte
 import { readFileSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -84,7 +85,7 @@ function carregar(transformar) {
   }
 }
 const semMudanca = (_rel, txt) => txt
-const base = (rel, txt) => desfazRomanceAdulto(rel, txt)
+const base = (rel, txt) => desfazRomanceAdulto(rel, semTrilha15s1610(txt, rel)) // reancorado KINEO-TRILHA-15S [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"]: a base desta leva não tem o protagonista sem rosto (o bloco novo cita PEDE_OBJETO, que esta leva criou)
 
 // O caminho clássico da rota, cena a cena (generate-video-cinematic: formato → look → modo → era → prompt → romance → still).
 // `depois` = a rota deste commit (as linhas marcadas); `antes` = a da base (look de pedido + plano do GPT, sem romance).
@@ -224,7 +225,7 @@ function STILL_DA_BASE(p) {
 }
 
 // ── execução ─────────────────────────────────────────────────────────────────────────────────────────────────────────
-const M = carregar(semMudanca)
+const M = carregar((rel, txt) => semTrilha15s1610(semMudanca(rel, txt), rel)) // reancorado KINEO-TRILHA-15S [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"]: o protagonista sem rosto ("A man walks" mantém o homem, de costas) sai dos DOIS lados; esta leva segue provada contra a sua base, e a forma nova em scripts/test-trilha-15s-1610.mjs
 const MB = carregar(base)
 const falhas = avalia(M, MB, true)
 

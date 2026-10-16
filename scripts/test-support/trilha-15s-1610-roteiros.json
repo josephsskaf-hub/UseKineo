@@ -1,0 +1,81 @@
+{
+  "_fonte": "KINEO-TRILHA-15S — events.name='cinematic_submission_claim' (metadata.response), leitura de 16/10/2026, só leitura. Os 5 filmes Seedance 1.5 de 15 s de clientes externos que docs/SEEDANCE-15-FORA-DA-TRILHA-2026-10-16.md usa como prova. 'enviado' = o núcleo de scene_prompts[i] (sem o prefixo 'Opening shot:' da cena 1 e sem a cauda fixa ', faceless cinematic b-roll, …'), ou seja, o que a rota antiga mandou ao motor.",
+  "roteiros": [
+    {
+      "id": "657b6ea3",
+      "titulo": "What if Earth suddenly stopped spinning?",
+      "aspect": "9:16",
+      "prompt": "HOOK: [Pexels: planet Earth rotating space] What if Earth suddenly stopped spinning?\n\nMICRO REWARD 1: [Pexels: equator aerial view] At the equator, Earth's surface moves at 1,670 kilometers per hour.\n\nMICRO REWARD 2: [Pexels: ocean waves crashing] If Earth stopped instantly, the atmosphere and oceans would keep moving.\n\nPAYOFF: [Pexels: deep space Earth zoom out] The consequences would be catastrophic... as Earth pulls away into deep space.",
+      "voiceover_script": "What if Earth suddenly stopped spinning? At the equator, Earth's surface moves at 1,670 kilometers per hour. If Earth stopped instantly, the atmosphere and oceans would keep moving. The consequences would be catastrophic... as Earth pulls away into deep space.",
+      "clip_word_starts": [0, 17, 28],
+      "scenes": ["planet Earth rotating space, equator aerial view", "ocean waves crashing", "deep space Earth zoom out"],
+      "enviado": [
+        "A close-up shot of the Earth from space, showing the equator and rotating rapidly, then suddenly stopping, emphasizing the equator line clearly.",
+        "A drone shot capturing the curvature of the Earth at the equator, zooming in to highlight the dynamic movement of clouds and land, emphasizing the high speed of 1,670 kilometers per hour.",
+        "A tracking shot along a rugged coastline where powerful ocean waves crash violently against rocks, symbolizing the relentless movement of the atmosphere and oceans if the Earth were to stop spinning."
+      ],
+      "payoff_esperado": ["deep space"]
+    },
+    {
+      "id": "91a25fbb",
+      "titulo": "Você conhece Exu Marabô?",
+      "aspect": "9:16",
+      "prompt": "HOOK (0-2s): [Pexels: dark night road] Você conhece Exu Marabô?\n\nMICRO REWARD 1: [Pexels: empty road at night] Imagine uma noite escura, uma estrada vazia e um homem perdido.\n\nMICRO REWARD 2: [Pexels: man thinking crossroads] Diante de uma encruzilhada, ele percebeu: mudar de vida exige coragem.\n\nPAYOFF: [Pexels: umbanda altar candles] Na Umbanda, Exu Marabô é reverenciado... mas antes de pedir mudanças, olhe suas atitudes.",
+      "voiceover_script": "Você conhece Exu Marabô? Imagine uma noite escura, uma estrada vazia e um homem perdido. Diante de uma encruzilhada, ele percebeu: mudar de vida exige coragem. Na Umbanda, Exu Marabô é reverenciado... mas antes de pedir mudanças, olhe suas atitudes.",
+      "clip_word_starts": [0, 15, 26],
+      "scenes": ["dark night road, empty road at night", "man thinking crossroads", "umbanda altar candles"],
+      "enviado": [
+        "A dark, empty road at night with a silhouette of a lost standing alone, surrounded by shadows, evoking a sense of isolation.",
+        "A drone shot capturing a desolate road under the night sky, illuminated only by the moonlight, with shadows stretching across the asphalt, evoking a sense of isolation and contemplation.",
+        "A tracking shot of a lone standing at a crossroads, with signs pointing in different directions, as he contemplates his next move, highlighting the weight of his decision."
+      ],
+      "supervisor_cena_1": "A dark, empty road at night with a silhouette of a lost man standing alone, surrounded by shadows, evoking a sense of isolation.",
+      "payoff_esperado": ["umbanda"]
+    },
+    {
+      "id": "60518b82",
+      "titulo": "What if humans were ten times bigger?",
+      "aspect": "9:16",
+      "prompt": "HOOK (0-2s): [Pexels: giant human silhouette] What if humans were ten times bigger?\n\nMICRO REWARD 1: [Pexels: giant footprints in mud] You'd weigh about a thousand times more!\n\nMICRO REWARD 2: [Pexels: x-ray of human bones] Your bones would struggle to support your enormous body.\n\nPAYOFF: [Pexels: heart monitor screen closeup] But here's the problem... your heart couldn't pump blood efficiently. Becoming giants... needs major changes to how our bodies work!",
+      "voiceover_script": "What if humans were ten times bigger? You'd weigh about a thousand times more! Your bones would struggle to support your enormous body. But here's the problem... your heart couldn't pump blood efficiently. Becoming giants... needs major changes to how our bodies work!",
+      "clip_word_starts": [0, 7, 23],
+      "scenes": ["giant human silhouette", "giant footprints in mud, x-ray of human bones", "heart monitor screen closeup"],
+      "enviado": [
+        "A close-up shot of an enormous human hand gripping a regular-sized pen, highlighting the immense scale difference between the giant hand and the small object. The background is blurred to focus on the sheer size and power of the hand, creating an energetic visual punch.",
+        "Aerial drone footage of an oversized weight scale in a laboratory, with exaggerated weights on one side tipping the scale dramatically. This visual reinforces the idea of increased weight and its implications as the camera moves around the scale.",
+        "A tracking shot of a model skeleton with exaggeratedly large bones, focusing on the joints and structure as if they are under stress. The camera moves along the skeleton, emphasizing the tension in the bones and the implications of size."
+      ],
+      "payoff_esperado": ["heart"]
+    },
+    {
+      "id": "01ca7fce",
+      "titulo": "What if a star's death is just the universe's beginning?",
+      "aspect": "9:16",
+      "prompt": "HOOK (0-2s): [Pexels: exploding star in space] What if a star's death is just... the universe's beginning?\n\nMICRO REWARD 1: [Pexels: supernova explosion] A supernova can birth neutron stars or black holes.\n\nMICRO REWARD 2: [Pexels: galaxy night sky] These explosions outshine entire galaxies for weeks.\n\nPAYOFF: [Pexels: human silhouette stargazing] Elements in your body... were forged in stellar deaths. Every star's end contributes to creation!",
+      "voiceover_script": "What if a star's death is just... the universe's beginning? A supernova can birth neutron stars or black holes. These explosions outshine entire galaxies for weeks. Elements in your body... were forged in stellar deaths. Every star's end contributes to creation!",
+      "clip_word_starts": [0, 10, 26],
+      "scenes": ["exploding star in space", "supernova explosion, galaxy night sky", "human silhouette stargazing"],
+      "enviado": [
+        "A close-up shot of a brilliant supernova explosion, with vivid colors and intense light radiating outward, symbolizing the end of a star's life and the potential for new beginnings in the universe.",
+        "A close-up of a supernova explosion, with bright colors and intense light, illustrating the birth of neutron stars or black holes amidst cosmic dust and debris. No other characters, no animals, no , no added props.",
+        "A dynamic tracking shot that captures the brilliance of a supernova outshining nearby galaxies, with a focus on the explosive energy and light radiating into the cosmos."
+      ],
+      "payoff_esperado": ["elements", "body", "stargazing"]
+    },
+    {
+      "id": "748e13a2",
+      "titulo": "Midnight in a forgotten mansion",
+      "aspect": "16:9",
+      "prompt": "HOOK (0-2s): [Pexels: abandoned mansion forest night] Midnight in a forgotten mansion... deep within a dark forest.\n\nMICRO REWARD 1: [Pexels: thick fog among trees] Thick fog snakes through ancient trees, wrapping them in mystery.\n\nMICRO REWARD 2: [Pexels: lightning broken windows] Lightning flickers, revealing shattered windows—glimpses of past secrets.\n\nPAYOFF: [Pexels: cinematic camera front entrance] Dead leaves swirl, guiding us to the entrance... where true horror awaits.",
+      "voiceover_script": "Midnight in a forgotten mansion... deep within a dark forest. Thick fog snakes through ancient trees, wrapping them in mystery. Lightning flickers, revealing shattered windows—glimpses of past secrets. Dead leaves swirl, guiding us to the entrance... where true horror awaits.",
+      "clip_word_starts": [0, 10, 28],
+      "scenes": ["abandoned mansion forest night", "thick fog among trees, lightning broken windows", "cinematic camera front entrance"],
+      "enviado": [
+        "A close-up view of a dusty chandelier hanging in a dimly lit room of a forgotten mansion. The light flickers occasionally, casting eerie shadows on the peeling wallpaper and cobwebs in the corners, enhancing the atmosphere of abandonment and mystery.",
+        "Aerial drone footage showcasing a thick fog slowly weaving through a dense forest filled with towering ancient trees. The view reveals the treetops disappearing into the mist, creating an atmosphere of enigma and suspense as the fog wraps around the trunks.",
+        "A tracking shot that follows the path of a lightning bolt as it strikes, illuminating the dark facade of the mansion. The camera reveals shattered windows that reflect the fleeting light, hinting at the secrets and tragedies that once unfolded within."
+      ],
+      "payoff_esperado": ["entrance", "leaves"]
+    }
+  ]
+}

@@ -12,6 +12,7 @@
 //   (c) byte a byte: desfeito o ajuste (scripts/test-support/desfaz-ancora-legenda-1410.mjs), cada arquivo é EXATAMENTE o pai
 //       do primeiro commit marcado (nunca origin/main nem a worktree); os commits do ajuste não tocam ads, preço nem motor;
 //   (d) mutantes: 7 sabotagens em memória, cada uma provada aplicada, e cada uma deixa ao menos uma prova vermelha.
+import { semTrilha15s1610, linhaDaTrilha15s1610, linhasTrocadasTrilha15s1610 } from './test-support/desfaz-trilha-15s-1610.mjs' // reancorado KINEO-TRILHA-15S [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"]: o plano de b-roll alinhado e o protagonista sem rosto saem em memória antes do byte a byte
 import { readFileSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -186,7 +187,7 @@ checa('base: render legado sem x_alignment', !(rdBase(RENDER) ?? 'x_alignment').
 
 secao('(c) desfeito o ajuste, cada arquivo é EXATAMENTE o pai do primeiro commit marcado')
 for (const p of ARQUIVOS_ANCORA_LEGENDA_1410) {
-  const atual = desfazJuizStill1410(p, semCenaNegacao1510(rd(p), p)) /* reancorado KINEO-CENA-NEGACAO-1510 [TRAVA 8.2 — vai do fundador 15/10] */ // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
+  const atual = desfazJuizStill1410(p, semCenaNegacao1510(semTrilha15s1610(rd(p), p) /* reancorado KINEO-TRILHA-15S */, p)) /* reancorado KINEO-CENA-NEGACAO-1510 [TRAVA 8.2 — vai do fundador 15/10] */ // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
   const base = rdBase(p)
   let desfeito = null
   try { desfeito = semAncoraLegenda1410(p, atual) } catch (e) { desfeito = `ERRO ${e.message}` }

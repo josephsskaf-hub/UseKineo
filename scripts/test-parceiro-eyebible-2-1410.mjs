@@ -15,6 +15,7 @@
 // (scripts/test-support/desfaz-parceiro-eyebible-2-1410.mjs), cada arquivo é EXATAMENTE o pai do commit (3476f1a8).
 // Rodar: node scripts/test-parceiro-eyebible-2-1410.mjs
 
+import { semTrilha15s1610, linhaDaTrilha15s1610, linhasTrocadasTrilha15s1610 } from './test-support/desfaz-trilha-15s-1610.mjs' // reancorado KINEO-TRILHA-15S [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"]: o plano de b-roll alinhado e o protagonista sem rosto saem em memória antes do byte a byte
 import { readFileSync } from 'node:fs'
 import { desfazAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 import { desfazStudioFantasma1510 } from './test-support/desfaz-studio-fantasma-1510.mjs' // reancorado KINEO-STUDIO-FANTASMA-1510: os 4 consertos da tela do Studio saem em memória PRIMEIRO, antes do byte a byte
@@ -177,7 +178,7 @@ for (const p of ARQUIVOS_PARCEIRO_EYEBIBLE_2_1410) {
   const atual = lerDisco(p)
   const base = lf(execFileSync('git', ['show', `${BASE}:${p}`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }))
   let desfeito = null
-  try { desfeito = semParceiroEyebible2_1410(p, desfazAncoraEJuizStill1410(p, desfazPaywallFilmePrimeiro1510(p, desfazStudioFantasma1510(p, semCenaNegacao1510(atual, p))))) /* KINEO-ANCORA-LEGENDA-1410 · reancorado KINEO-PAYWALL-FILME-PRIMEIRO-1510 · reancorado KINEO-STUDIO-FANTASMA-1510 · reancorado KINEO-CENA-NEGACAO-1510 */ } catch (e) { desfeito = `ERRO ${e.message}` }
+  try { desfeito = semParceiroEyebible2_1410(p, desfazAncoraEJuizStill1410(p, desfazPaywallFilmePrimeiro1510(p, desfazStudioFantasma1510(p, semCenaNegacao1510(semTrilha15s1610(atual, p) /* reancorado KINEO-TRILHA-15S */, p))))) /* KINEO-ANCORA-LEGENDA-1410 · reancorado KINEO-PAYWALL-FILME-PRIMEIRO-1510 · reancorado KINEO-STUDIO-FANTASMA-1510 · reancorado KINEO-CENA-NEGACAO-1510 */ } catch (e) { desfeito = `ERRO ${e.message}` }
   checa(`${p}: desfeito = base ${BASE.slice(0, 8)}`, desfeito === base, typeof desfeito === 'string' && desfeito.startsWith('ERRO') ? desfeito : '')
   const marcadas = atual.split('\n').filter((l) => l.includes(MARCA_PARCEIRO_EYEBIBLE_2_1410)).length
   const f = FORMA_PARCEIRO_EYEBIBLE_2_1410[p]
