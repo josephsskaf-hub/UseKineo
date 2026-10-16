@@ -1488,7 +1488,7 @@ export const ADS_V2_LOCK_TOP_TARGET: Readonly<Record<AdsV2Format, number>> = { '
 /** KINEO-ADS-FIEL-5-1510 — a pergunta da conferência COM a borda do tampo: a da Fiel 4 + (4) a altura da borda de cima do tampo no canto. Pura. */
 export function adsV2LockCheckQuestionTop(format: AdsV2Format, side: AdsV2LockSide): string { // KINEO-ADS-FIEL-5-1510
   const z = adsV2LockReserveZone(format, side) // KINEO-ADS-FIEL-5-1510
-  return `Look carefully at this photo. (1) List every human face as a box [x0, y0, x1, y1] in fractions of the image width and height, from 0 to 1 (left, top, right, bottom), measured on THIS photo, never a default guess; no face = []. (2) Is any part of a person (face, head, body, arm or hand) inside the region x ${z.x0}–${z.x1}, y ${z.y0}–${z.y1} (the lower ${side} corner)? (3) Is the flat top of an empty surface (table, counter, pedestal, bench, or the floor) visible in that region? (4) If yes, at what height is the TOP EDGE of that empty flat top inside the region (the far edge of the surface, where its flat top ends against the background)? Measure it on THIS photo as a fraction of the image height, 0 = top of the image, 1 = bottom, with exactly 3 decimal places (for example 0.637), never a rounded default; no surface = null. Answer only with JSON: {"faces": [[x0, y0, x1, y1], ...], "corner_person": true or false, "corner_surface": true or false, "top_edge_y": number with 3 decimals or null}.` // KINEO-ADS-FIEL-5-1510
+  return `Look carefully at this photo. (1) List every human face as a box [x0, y0, x1, y1] in fractions of the image width and height, from 0 to 1 (left, top, right, bottom), measured on THIS photo, never a default guess; no face = []. (2) Is any part of a person (face, head, body, arm or hand) inside the region x ${z.x0}–${z.x1}, y ${z.y0}–${z.y1} (the lower ${side} corner)? (3) Is the flat top of an empty surface (table, counter, pedestal, bench, or the floor) visible in that region? (4) If yes, at what height is the TOP EDGE of that empty flat top inside the region (the far edge of the surface, where its flat top ends against the background)? Measure it on THIS photo as a fraction of the image height (0 = top of the image, 1 = bottom), written with three digits after the decimal point, never a rounded default and never a number copied from this question; no surface = null. (5) List every person's whole visible body (head, torso, arms, hands and legs) as a box [x0, y0, x1, y1] in the same fractions, measured on THIS photo; no person = []. Answer only with JSON: {"faces": [[x0, y0, x1, y1], ...], "corner_person": true or false, "corner_surface": true or false, "top_edge_y": number with three decimals or null, "people": [[x0, y0, x1, y1], ...]}.` // KINEO-ADS-FIEL-5-1510 · KINEO-ADS-FIEL-6-1610 — sem número de exemplo (o reteste 96788559 copiou o 0.637 nas 6 respostas) + as caixas de corpo
 } // KINEO-ADS-FIEL-5-1510
 /** KINEO-ADS-FIEL-5-1510 — a conferência com a borda do tampo (frações da IMAGEM da cena; null = não sabe). */
 export interface AdsV2LockCheckTop extends AdsV2LockCheck { topEdgeY?: number | null } // KINEO-ADS-FIEL-5-1510
@@ -1546,3 +1546,115 @@ export function adsV2LockReservedPlace(i: { frameW: number; frameH: number; cutW
   if (adsV2FaceOverlap({ x0: x / W, y0: y / H, x1: (x + w) / W, y1: (y + h) / H }, faces) > 0) return keep('face') // KINEO-ADS-FIEL-5-1510 — subir não pode tapar rosto
   return { rect: { x, y, w, h }, baseSource: 'tabletop', base: Math.round(base * 10000) / 10000, scale: Math.round(scale * 1000) / 1000, why: null } // KINEO-ADS-FIEL-5-1510
 } // KINEO-ADS-FIEL-5-1510
+// ── KINEO-ADS-FIEL-6-1610 — a CONFERÊNCIA deixa de mandar sozinha (reteste pago 15/10: pedido 96788559, REPROVADO) ─────────────────────────
+// KINEO-ADS-FIEL-6-1610 — o que se viu: (1) a pergunta dizia "for example 0.637" e as 6 respostas (3 cenas × 2 tentativas) devolveram
+// KINEO-ADS-FIEL-6-1610 — top_edge_y 0,637 (o tampo real ia de ~0,61 a ~0,77); (2) corner_person=true em 5 de 6 imagens com o canto VAZIO, e
+// KINEO-ADS-FIEL-6-1610 — as 3 cenas de gente viraram a foto da caixa. As regras daqui: número da resposta igual a um número da PRÓPRIA
+// KINEO-ADS-FIEL-6-1610 — pergunta (ou ao eco já visto, 0,637) = copiado; igual ao de OUTRA cena do pedido = repetido; nos dois casos a borda
+// KINEO-ADS-FIEL-6-1610 — não vale (base fixa). "Gente no canto" sozinho NUNCA descarta a cena: só uma caixa CONFIÁVEL (não redonda, não
+// KINEO-ADS-FIEL-6-1610 — repetida, não copiada) de rosto ou de corpo que de fato cai no retângulo do produto. E se mais da metade das cenas do
+// KINEO-ADS-FIEL-6-1610 — pedido (no mínimo 2) seria descartada, a conferência é que está suspeita: as cenas ficam (check.why
+// KINEO-ADS-FIEL-6-1610 — 'conferencia_suspeita'), com a base fixa. Tudo puro (o guardião roda com os números reais do 96788559).
+/** KINEO-ADS-FIEL-6-1610 — números que a conferência já devolveu COPIADOS de uma pergunta antiga (o exemplo da Fiel 5). Nunca valem. */
+export const ADS_V2_LOCK_ECHO_NUMBERS: readonly number[] = [0.637] // KINEO-ADS-FIEL-6-1610
+/** KINEO-ADS-FIEL-6-1610 — tolerância de "o mesmo número" (meia unidade da 3ª casa pedida). */
+export const ADS_V2_LOCK_SAME_NUMBER = 0.0005 // KINEO-ADS-FIEL-6-1610
+/** KINEO-ADS-FIEL-6-1610 — a caixa de CORPO só corrobora se cobrir ao menos esta fração do retângulo do produto (caixa de corpo é larga). */
+export const ADS_V2_LOCK_BODY_MIN_OVERLAP = 0.05 // KINEO-ADS-FIEL-6-1610
+/** KINEO-ADS-FIEL-6-1610 — todo número escrito no texto (0.52 · 0.84 · 1 · 0.637…). Pura. */
+export function adsV2QuestionNumbers(text: string): number[] { // KINEO-ADS-FIEL-6-1610
+  const out: number[] = [] // KINEO-ADS-FIEL-6-1610
+  for (const m of String(text ?? '').match(/\d*\.\d+|\d+/g) ?? []) { const n = Number(m); if (Number.isFinite(n) && !out.includes(n)) out.push(n) } // KINEO-ADS-FIEL-6-1610
+  return out // KINEO-ADS-FIEL-6-1610
+} // KINEO-ADS-FIEL-6-1610
+const sameNum = (a: number, b: number) => Math.abs(a - b) <= ADS_V2_LOCK_SAME_NUMBER // KINEO-ADS-FIEL-6-1610
+/** KINEO-ADS-FIEL-6-1610 — o valor é um número da PRÓPRIA pergunta (ou um eco conhecido)? Pura. */
+export function adsV2LockEchoesQuestion(v: number, question: string): boolean { // KINEO-ADS-FIEL-6-1610
+  if (!Number.isFinite(v)) return false // KINEO-ADS-FIEL-6-1610
+  return [...adsV2QuestionNumbers(question), ...ADS_V2_LOCK_ECHO_NUMBERS].some((n) => sameNum(v, n)) // KINEO-ADS-FIEL-6-1610
+} // KINEO-ADS-FIEL-6-1610
+/** KINEO-ADS-FIEL-6-1610 — caixa COPIADA: alguma coordenada (fora as bordas 0 e 1, onde caixa encosta de verdade) é um número da pergunta. Pura. */
+export function adsV2LockBoxEchoes(b: AdsV2Box, question: string): boolean { // KINEO-ADS-FIEL-6-1610
+  return [b.x0, b.y0, b.x1, b.y1].some((v) => v > ADS_V2_LOCK_SAME_NUMBER && v < 1 - ADS_V2_LOCK_SAME_NUMBER && adsV2LockEchoesQuestion(v, question)) // KINEO-ADS-FIEL-6-1610
+} // KINEO-ADS-FIEL-6-1610
+/** KINEO-ADS-FIEL-6-1610 — as caixas em que dá para confiar UMA A UMA: nem redonda, nem copiada da pergunta, nem idêntica à de outra cena. Pura. */
+export function adsV2LockReliableBoxes(boxes: readonly AdsV2Box[] | null | undefined, i: { question: string; previous?: readonly AdsV2Box[] | null }): AdsV2Box[] { // KINEO-ADS-FIEL-6-1610
+  const prev = Array.isArray(i.previous) ? i.previous : [] // KINEO-ADS-FIEL-6-1610
+  return (Array.isArray(boxes) ? boxes : []).filter((b) => !adsV2LockBoxRound(b) && !adsV2LockBoxEchoes(b, i.question) && !prev.some((p) => adsV2LockBoxSame(b, p))) // KINEO-ADS-FIEL-6-1610
+} // KINEO-ADS-FIEL-6-1610
+/** KINEO-ADS-FIEL-6-1610 — a borda do tampo: as regras da Fiel 5 (adsV2LockTopEdgeTrust) + 'copied' (número da pergunta ou eco conhecido) e
+ *  'repeated' (a mesma borda que OUTRA cena do pedido devolveu, `othersTops`). Não vale = base fixa. Pura. */
+export function adsV2LockTopEdgeTrust6(i: { raw: number | null | undefined; frameY?: number | null; cornerSurface: boolean | null | undefined; question: string; othersTops?: readonly (number | null | undefined)[] | null }): { ok: boolean; y: number | null; why: 'no_answer' | 'no_surface' | 'copied' | 'repeated' | 'round' | 'out_of_range' | null } { // KINEO-ADS-FIEL-6-1610
+  const base = adsV2LockTopEdgeTrust({ raw: i.raw, frameY: i.frameY, cornerSurface: i.cornerSurface }) // KINEO-ADS-FIEL-6-1610
+  if (base.why === 'no_answer' || base.why === 'no_surface') return base // KINEO-ADS-FIEL-6-1610
+  const raw = i.raw as number // KINEO-ADS-FIEL-6-1610 — base.why !== 'no_answer': é número finito
+  if (adsV2LockEchoesQuestion(raw, i.question)) return { ok: false, y: base.y, why: 'copied' } // KINEO-ADS-FIEL-6-1610
+  const others = (Array.isArray(i.othersTops) ? i.othersTops : []).filter((n): n is number => typeof n === 'number' && Number.isFinite(n)) // KINEO-ADS-FIEL-6-1610
+  if (others.some((n) => sameNum(raw, n))) return { ok: false, y: base.y, why: 'repeated' } // KINEO-ADS-FIEL-6-1610
+  return base // KINEO-ADS-FIEL-6-1610
+} // KINEO-ADS-FIEL-6-1610
+/** KINEO-ADS-FIEL-6-1610 — a conferência com as caixas de corpo (frações da IMAGEM da cena). */
+export interface AdsV2LockCheck6 extends AdsV2LockCheckTop { people?: AdsV2Box[] } // KINEO-ADS-FIEL-6-1610
+/** KINEO-ADS-FIEL-6-1610 — a resposta da conferência → a leitura da Fiel 5 + `people` (até 8 caixas; sem a chave = []). Pura. */
+export function adsV2ParseLockCheck6(raw: unknown): AdsV2LockCheck6 | null { // KINEO-ADS-FIEL-6-1610
+  const first = adsV2ParseLockCheckTop(raw) // KINEO-ADS-FIEL-6-1610
+  if (!first) return null // KINEO-ADS-FIEL-6-1610
+  let v: unknown = raw // KINEO-ADS-FIEL-6-1610
+  if (typeof raw === 'string') { try { v = JSON.parse(raw) } catch { v = null } } // KINEO-ADS-FIEL-6-1610
+  const p = v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>).people : null // KINEO-ADS-FIEL-6-1610
+  return { ...first, people: (Array.isArray(p) ? p : []).map(box01).filter((b): b is AdsV2Box => !!b).slice(0, 8) } // KINEO-ADS-FIEL-6-1610
+} // KINEO-ADS-FIEL-6-1610
+/** KINEO-ADS-FIEL-6-1610 — a área da caixa `b` dentro do retângulo `r`, como fração da área de `r`. Pura. */
+export function adsV2LockBoxCover(r: AdsV2Box, b: AdsV2Box): number { // KINEO-ADS-FIEL-6-1610
+  const w = Math.min(r.x1, b.x1) - Math.max(r.x0, b.x0), h = Math.min(r.y1, b.y1) - Math.max(r.y0, b.y0) // KINEO-ADS-FIEL-6-1610
+  const area = (r.x1 - r.x0) * (r.y1 - r.y0) // KINEO-ADS-FIEL-6-1610
+  return w > 0 && h > 0 && area > 0 ? (w * h) / area : 0 // KINEO-ADS-FIEL-6-1610
+} // KINEO-ADS-FIEL-6-1610
+/** KINEO-ADS-FIEL-6-1610 — o canto serve? Gente só com CORROBORAÇÃO geométrica: um rosto CONFIÁVEL que toca o retângulo do produto (com a folga
+ *  e o pescoço, adsV2FaceOverlap) ou um corpo CONFIÁVEL que cobre ≥ ADS_V2_LOCK_BODY_MIN_OVERLAP dele. corner_person=true sem caixa = o canto
+ *  FICA ('corner_person_sem_caixa'). `faces`/`people` = as caixas confiáveis (adsV2LockReliableBoxes) já no QUADRO, como `rect`. Pura. */
+export function adsV2LockCornerVerdict6(i: { trusted: boolean; cornerPerson: boolean | null | undefined; cornerSurface?: boolean | null; faces: readonly AdsV2Box[]; people?: readonly AdsV2Box[] | null; rect: AdsV2Box }): { problem: 'person' | 'no_surface' | null; why: 'untrusted' | 'face_in_rect' | 'body_in_rect' | 'no_surface' | 'corner_person_sem_caixa' | null } { // KINEO-ADS-FIEL-6-1610
+  if (!i.trusted) return { problem: null, why: 'untrusted' } // KINEO-ADS-FIEL-6-1610
+  if (adsV2FaceOverlap(i.rect, i.faces) > 0) return { problem: 'person', why: 'face_in_rect' } // KINEO-ADS-FIEL-6-1610
+  if ((Array.isArray(i.people) ? i.people : []).some((b) => adsV2LockBoxCover(i.rect, b) >= ADS_V2_LOCK_BODY_MIN_OVERLAP)) return { problem: 'person', why: 'body_in_rect' } // KINEO-ADS-FIEL-6-1610
+  if (i.cornerSurface === false) return { problem: 'no_surface', why: 'no_surface' } // KINEO-ADS-FIEL-6-1610 — o de antes: sem tampo vazio o produto boiaria
+  return { problem: null, why: i.cornerPerson === true ? 'corner_person_sem_caixa' : null } // KINEO-ADS-FIEL-6-1610 — o "sim" sozinho não descarta
+} // KINEO-ADS-FIEL-6-1610
+/** KINEO-ADS-FIEL-6-1610 — o limite GLOBAL: esta cena seria descartada e, com ela, mais da metade das cenas travadas do pedido (no mínimo 2)
+ *  também — a conferência é que está errada: mantém. `otherDiscards` = quantas OUTRAS cenas (distintas) a conferência mandou descartar. Pura. */
+export function adsV2LockCheckSuspicious(i: { thisDiscard: boolean; otherDiscards: number; totalScenes: number }): boolean { // KINEO-ADS-FIEL-6-1610
+  if (!i.thisDiscard) return false // KINEO-ADS-FIEL-6-1610
+  const n = (Number.isFinite(i.otherDiscards) ? Math.max(0, Math.trunc(i.otherDiscards)) : 0) + 1 // KINEO-ADS-FIEL-6-1610
+  const total = Number.isFinite(i.totalScenes) ? Math.max(n, Math.trunc(i.totalScenes)) : n // KINEO-ADS-FIEL-6-1610
+  return n >= 2 && n * 2 > total // KINEO-ADS-FIEL-6-1610
+} // KINEO-ADS-FIEL-6-1610
+/** KINEO-ADS-FIEL-6-1610 — o registro de UMA conferência (o JSON '-check-t<n>.json' ao lado da cena, gravado SEMPRE, descartada ou não): o
+ *  que ela disse (caixas cruas, borda crua) e se mandaria descartar. As outras cenas do pedido leem isto (repetição e limite global). */
+export interface AdsV2LockCheckRecord { v: 1; idx: number; try: number; top_edge_raw: number | null; faces: AdsV2Box[]; people: AdsV2Box[]; discard: boolean } // KINEO-ADS-FIEL-6-1610
+/** KINEO-ADS-FIEL-6-1610 — monta o registro (até 8 caixas de cada, 4 casas). Pura. */
+export function adsV2LockCheckRecord(i: { idx: number; try: number; check: AdsV2LockCheck6 | null | undefined; discard: boolean }): AdsV2LockCheckRecord { // KINEO-ADS-FIEL-6-1610
+  const r4 = (n: number) => Math.round(Math.min(1, Math.max(0, n)) * 10000) / 10000 // KINEO-ADS-FIEL-6-1610
+  const bx = (l: unknown) => (Array.isArray(l) ? (l as AdsV2Box[]) : []).slice(0, 8).map((b) => ({ x0: r4(b.x0), y0: r4(b.y0), x1: r4(b.x1), y1: r4(b.y1) })) // KINEO-ADS-FIEL-6-1610
+  const t = i.check && typeof i.check.topEdgeY === 'number' && Number.isFinite(i.check.topEdgeY) ? i.check.topEdgeY : null // KINEO-ADS-FIEL-6-1610
+  return { v: 1, idx: Math.trunc(i.idx), try: Math.trunc(i.try), top_edge_raw: t, faces: bx(i.check?.faces), people: bx(i.check?.people), discard: !!i.discard } // KINEO-ADS-FIEL-6-1610
+} // KINEO-ADS-FIEL-6-1610
+/** KINEO-ADS-FIEL-6-1610 — o registro lido (ilegível, de outra versão ou sem idx = null). Pura. */
+export function adsV2ParseLockCheckRecord(raw: unknown): AdsV2LockCheckRecord | null { // KINEO-ADS-FIEL-6-1610
+  let v: unknown = raw // KINEO-ADS-FIEL-6-1610
+  if (typeof raw === 'string') { try { v = JSON.parse(raw) } catch { return null } } // KINEO-ADS-FIEL-6-1610
+  const o = v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null // KINEO-ADS-FIEL-6-1610
+  if (!o || o.v !== 1 || typeof o.idx !== 'number' || !Number.isFinite(o.idx)) return null // KINEO-ADS-FIEL-6-1610
+  const bx = (l: unknown) => (Array.isArray(l) ? l : []).map(box01).filter((b): b is AdsV2Box => !!b).slice(0, 8) // KINEO-ADS-FIEL-6-1610
+  const t = typeof o.top_edge_raw === 'number' && Number.isFinite(o.top_edge_raw) ? o.top_edge_raw : null // KINEO-ADS-FIEL-6-1610
+  return { v: 1, idx: Math.trunc(o.idx), try: typeof o.try === 'number' && Number.isFinite(o.try) ? Math.trunc(o.try) : 1, top_edge_raw: t, faces: bx(o.faces), people: bx(o.people), discard: o.discard === true } // KINEO-ADS-FIEL-6-1610
+} // KINEO-ADS-FIEL-6-1610
+/** KINEO-ADS-FIEL-6-1610 — o que as OUTRAS cenas do pedido deixam para esta: caixas e bordas cruas (repetição) e quantas cenas distintas a
+ *  conferência mandou descartar (limite global). Registros da própria cena (`idx`) não contam. Pura. */
+export function adsV2LockHistoryOf(records: readonly (AdsV2LockCheckRecord | null | undefined)[] | null | undefined, idx: number): { faces: AdsV2Box[]; people: AdsV2Box[]; tops: number[]; discardScenes: number } { // KINEO-ADS-FIEL-6-1610
+  const rs = (Array.isArray(records) ? records : []).filter((r): r is AdsV2LockCheckRecord => !!r && r.idx !== idx) // KINEO-ADS-FIEL-6-1610
+  return { faces: rs.flatMap((r) => r.faces), people: rs.flatMap((r) => r.people), tops: rs.map((r) => r.top_edge_raw).filter((n): n is number => typeof n === 'number'), discardScenes: new Set(rs.filter((r) => r.discard).map((r) => r.idx)).size } // KINEO-ADS-FIEL-6-1610
+} // KINEO-ADS-FIEL-6-1610
+/** KINEO-ADS-FIEL-6-1610 — qual conferência da cena é esta: 1ª, ou 2ª depois da refação (o motivo da refação começa com ADS_V2_LOCK_DUP_REASON). */
+export function adsV2LockCheckTry(previousReason: string | null | undefined): 1 | 2 { // KINEO-ADS-FIEL-6-1610
+  return String(previousReason ?? '').startsWith(ADS_V2_LOCK_DUP_REASON) ? 2 : 1 // KINEO-ADS-FIEL-6-1610
+} // KINEO-ADS-FIEL-6-1610

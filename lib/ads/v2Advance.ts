@@ -75,6 +75,7 @@ import { persistAudioCopy, persistSceneImage, pollSceneImage, submitSceneImage }
 import { ADS_V2_SAME_PERSON_LINE, adsV2AnchorDecision, variationTagOf, variationTintOf } from '@/lib/ads/v2Variations'
 import { ADS_V2_LOCK_CORNER_REASON, adsV2LockCornerStep, adsV2LockSceneOrdinal, adsV2LockSideFor, adsV2LockedScenePromptAt, adsV2ParseLockSeen, type AdsV2LockSide } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-4-1510 — o canto reservado decidido em código; a visão só confere
 import { adsV2LockBoxRound } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-5-1510 — o evento registra se a conferência devolveu caixa "redonda"
+import { adsV2LockCheckTry } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-6-1610 — 1ª conferência da cena ou a de depois da refação
 
 /** Tentativas por plano dentro de UMA geração paga: 1ª + refação automática no principal + reserva H3. */
 export const ADS_V2_MAX_AUTO_ATTEMPTS = 3
@@ -642,6 +643,22 @@ async function lockSeenOfSiblings(admin: SupabaseClient, order: AdsV2OrderRow, r
     return [] // KINEO-ADS-FIEL-4-1510
   } // KINEO-ADS-FIEL-4-1510
 } // KINEO-ADS-FIEL-4-1510
+/** KINEO-ADS-FIEL-6-1610 — quantas cenas do plano têm a trava no canto (o denominador do limite global da conferência). */
+function lockSceneCount(order: AdsV2OrderRow): number { // KINEO-ADS-FIEL-6-1610
+  const shots = Array.isArray(order.plan?.shots) ? order.plan!.shots : [] // KINEO-ADS-FIEL-6-1610
+  return shots.filter((s) => adsV2LockOf(order, { idx: s.idx, kind: s.kind })?.mode === 'scene').length // KINEO-ADS-FIEL-6-1610
+} // KINEO-ADS-FIEL-6-1610
+/** KINEO-ADS-FIEL-6-1610 — as linhas (idx, tentativa) das OUTRAS cenas travadas do pedido; erro = nenhuma. */
+async function lockSiblingRows(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow): Promise<{ idx: number; attempt: number }[]> { // KINEO-ADS-FIEL-6-1610
+  try { // KINEO-ADS-FIEL-6-1610
+    const shots = Array.isArray(order.plan?.shots) ? order.plan!.shots : [] // KINEO-ADS-FIEL-6-1610
+    const locked = new Set(shots.filter((s) => adsV2LockOf(order, { idx: s.idx, kind: s.kind })?.mode === 'scene').map((s) => s.idx)) // KINEO-ADS-FIEL-6-1610
+    const r = await admin.from('ads_v2_shots').select('idx,attempt').eq('order_id', order.id) // KINEO-ADS-FIEL-6-1610
+    return ((r.data ?? []) as { idx: number; attempt: number }[]).filter((x) => x.idx !== row.idx && locked.has(x.idx)).map((x) => ({ idx: x.idx, attempt: x.attempt })) // KINEO-ADS-FIEL-6-1610
+  } catch { // KINEO-ADS-FIEL-6-1610
+    return [] // KINEO-ADS-FIEL-6-1610
+  } // KINEO-ADS-FIEL-6-1610
+} // KINEO-ADS-FIEL-6-1610
 /**
  * KINEO-ADS-FIEL-4-1510 — a cena de gente com a trava: o recorte REAL vai ao CANTO reservado (lado pela ordem da cena; base no terço de baixo).
  * A conferência ('high') só decide se o canto está ocupado: confiável e com gente no canto = refaz a imagem UMA vez (scene_retry, a mesma régua
@@ -653,8 +670,9 @@ async function finishReservedScene(admin: SupabaseClient, order: AdsV2OrderRow, 
   try { // KINEO-ADS-FIEL-4-1510
     const check = await lockVision().then((v) => (v && typeof v.adsV2SceneCheck === 'function' ? v.adsV2SceneCheck(sceneUrl, format, side) : null)).catch(() => null) // KINEO-ADS-FIEL-4-1510
     const previous = await lockSeenOfSiblings(admin, order, row) // KINEO-ADS-FIEL-4-1510
-    const out = await srv.adsV2FinishReservedScene({ userId: order.user_id, orderId: order.id, idx: row.idx, attempt: row.attempt, lock, format, sceneUrl, side, check, previous }) // KINEO-ADS-FIEL-4-1510
-    const checkInfo = { trusted: out.trust.trusted, why: out.trust.why, corner_person: check ? check.cornerPerson : null, corner_surface: check ? check.cornerSurface : null, round: !!check && Array.isArray(check.faces) && check.faces.some(adsV2LockBoxRound), top_edge_raw: check && typeof check.topEdgeY === 'number' ? check.topEdgeY : null } // KINEO-ADS-FIEL-5-1510 — + check.round (caixa na grade de 0,05) e a borda do tampo crua
+    const history = typeof srv.adsV2ReadLockChecks === 'function' ? await srv.adsV2ReadLockChecks({ userId: order.user_id, orderId: order.id, rows: await lockSiblingRows(admin, order, row) }) : [] // KINEO-ADS-FIEL-6-1610 — o que a conferência disse nas OUTRAS cenas travadas (repetição e limite global)
+    const out = await srv.adsV2FinishReservedScene({ userId: order.user_id, orderId: order.id, idx: row.idx, attempt: row.attempt, lock, format, sceneUrl, side, check, previous, history, totalScenes: lockSceneCount(order), tryN: adsV2LockCheckTry(row.reason) }) // KINEO-ADS-FIEL-4-1510 · KINEO-ADS-FIEL-6-1610 — + o histórico, o total de cenas travadas e a tentativa (1ª ou depois da refação)
+    const checkInfo = { trusted: out.trust.trusted, why: out.trust.why, corner_person: check ? check.cornerPerson : null, corner_surface: check ? check.cornerSurface : null, round: !!check && Array.isArray(check.faces) && check.faces.some(adsV2LockBoxRound), top_edge_raw: check && typeof check.topEdgeY === 'number' ? check.topEdgeY : null, corner: out.corner ?? null, people: check && Array.isArray(check.people) ? check.people.length : null } // KINEO-ADS-FIEL-5-1510 — + check.round (caixa na grade de 0,05) e a borda do tampo crua · KINEO-ADS-FIEL-6-1610 — + por que o canto ficou/saiu e quantos corpos
     if (out.busy) { // KINEO-ADS-FIEL-4-1510
       if (adsV2LockCornerStep({ busy: true, previousReason: row.reason }) === 'retry') { // KINEO-ADS-FIEL-4-1510
         if (await markShot(admin, row, ['image_submitted'], { status: 'pending', image_request_id: null, image_submit_claimed_at: null, reason: ADS_V2_LOCK_CORNER_REASON })) await shotFallbackEvent(order, row, { to: 'scene_retry', reason: ADS_V2_LOCK_CORNER_REASON, side, problem: out.problem, check: checkInfo }) // KINEO-ADS-FIEL-4-1510

@@ -28,6 +28,7 @@ import ts from 'typescript'
 import { semFielLiga1510, comLiga1510, FIEL_LIGA_1510_ARQUIVOS, FIEL_LIGA_1510_NOVOS, FIEL_LIGA_1510_BASE, MARCA_FIEL_LIGA_1510 } from './test-support/desfaz-ads-fiel-liga-1510.mjs'
 import { semVolta1510, desfazVolta1510, comVolta1510, FIEL_VOLTA_1510_ARQUIVOS, FIEL_VOLTA_1510_NOVOS, MARCA_FIEL_VOLTA_1510 } from './test-support/desfaz-ads-fiel-volta-1510.mjs' // reancorado KINEO-ADS-FIEL-VOLTA-1510 — rollback 15/10 noite: reteste Fiel 5 reprovou (exemplo 0.637 copiado, corner_person falso)
 import { semFiel5_1510 } from './test-support/desfaz-ads-fiel-5-1510.mjs' // integrado à fiel-5 (merge 15/10): o texto sem o liga ainda traz a fiel-5; desfeita ela também, é a base c56e121ee
+import { desfazFiel6_1610 } from './test-support/desfaz-ads-fiel-6-1610.mjs' // reancorado KINEO-ADS-FIEL-6-1610 — conserto da conferência (reteste 96788559): o liga e o rollback já desfazem a fiel-6 primeiro; o "vivo" das idas é o vivo SEM a fiel-6
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
@@ -44,6 +45,7 @@ try {
 const gitGrepL = (pat, ...paths) => { try { return git('grep', '-l', '-F', pat, '--', ...paths).trim().split('\n').filter(Boolean) } catch { return [] } }
 /** reancorado KINEO-ADS-FIEL-VOLTA-1510 — rollback 15/10 noite: reteste Fiel 5 reprovou (exemplo 0.637 copiado, corner_person falso): o texto do LIGA = o arquivo vivo com o rollback desfeito (LF). */
 const rdLiga = (p) => desfazVolta1510(p, rd(p))
+const rd6 = (p) => desfazFiel6_1610(p, rd(p)) // reancorado KINEO-ADS-FIEL-6-1610 — o arquivo vivo sem a fiel-6 (LF)
 const VMARCA = 'KINEO-ADS-FIEL-VOLTA-1510'
 let VBASE = 'HEAD'
 let VULTIMO = null
@@ -162,7 +164,7 @@ await check('P1 preço por nível: adsV2Credits de cada nível × duração (3 �
 const DINHEIRO = ['lib/ads/v2Tiers.ts', 'lib/ads/v2Billing.ts', 'lib/ads/v2StartCore.ts', 'app/api/ads/v2/start/route.ts', 'lib/credits/debit.ts', 'lib/credits/refund.ts', 'lib/ads/access.ts', 'lib/ads/serverAccess.ts', F.server, F.advance, 'lib/ads/v2Png.ts', 'lib/ads/v2LockVision.ts']
 await check('P2 dinheiro, acesso e o caminho da trava intocados: v2Tiers, v2Billing, v2StartCore, /start, débito, estorno, acesso, servidor da trava, avanço, PNG e visão byte a byte iguais ao pai e fora do diff', () => {
   const nomes = diffDoConserto(['--name-only']).split('\n')
-  return DINHEIRO.every((p) => base(p) !== null && semFiel5_1510(p, semFielLiga1510(p, rd(p))) === base(p) && semFielLiga1510(p, rd(p)) === rd(p) && !nomes.includes(p))
+  return DINHEIRO.every((p) => base(p) !== null && semFiel5_1510(p, semFielLiga1510(p, rd(p))) === base(p) && semFielLiga1510(p, rd(p)) === rd6(p) /* reancorado KINEO-ADS-FIEL-6-1610 — o liga não toca nestes: sem ele, é o vivo sem a fiel-6 */ && !nomes.includes(p))
 })
 await check('P3 nada da trava debita: o servidor da trava e a visão não importam crédito/débito/estorno; o avanço só confirma o débito FIXO do /start (credits_charged) e as refações da trava saem com charged:false', () => {
   const srv = rd(F.server)
@@ -207,7 +209,7 @@ console.log('\nR. o rollback (reancorado KINEO-ADS-FIEL-VOLTA-1510 — rollback 
 await check('R1 desfeito o rollback (scripts/test-support/desfaz-ads-fiel-volta-1510.mjs), cada arquivo tocado é EXATAMENTE o pai do commit do rollback; a ida devolve o vivo; nada além do modo e dos guardiões da trava', () =>
   MARCA_FIEL_VOLTA_1510 === VMARCA && FIEL_VOLTA_1510_NOVOS.length === 0 && FIEL_VOLTA_1510_ARQUIVOS[0] === F.shotLists &&
   FIEL_VOLTA_1510_ARQUIVOS.every((f) => f === F.shotLists || /^scripts\/test-ads-fiel-(1510|3-1510|4-1510|5-1510|liga-1510)\.mjs$/.test(f)) &&
-  FIEL_VOLTA_1510_ARQUIVOS.every((f) => { const sem = semVolta1510(f, rd(f)); return sem === vbase(f) && !sem.includes(VMARCA) && comVolta1510(f, sem) === rd(f) }))
+  FIEL_VOLTA_1510_ARQUIVOS.every((f) => { const sem = semVolta1510(f, rd(f)); return sem === vbase(f) && !sem.includes(VMARCA) && comVolta1510(f, sem) === rd6(f) /* reancorado KINEO-ADS-FIEL-6-1610 — a ida devolve o vivo sem a fiel-6 */ }))
 await check('R2 no produto o rollback só troca o bloco do modo em lib/ads/v2ShotLists.ts: sai o "all" do liga (4 linhas), entra o "internal" com a marca em TODA linha (3 linhas); nada em app/ nem components/', () => {
   const d = diffDoRollback(['-U0', '--no-color'], ['lib', 'app', 'components'])
   const arquivos = [...d.matchAll(/^\+\+\+ b\/(.+)$/gm)].map((m) => m[1])
