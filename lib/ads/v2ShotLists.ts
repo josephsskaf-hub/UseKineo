@@ -986,6 +986,37 @@ export function adsV2OverdueToStills(i: { elapsedMs: number; working: number; st
   return i.elapsedMs >= ADS_V2_STILL_AT_MS && i.working > 0 && i.stillsUsed + i.working <= ADS_V2_STILLS_MAX
 }
 
+// ── KINEO-ADS-MAO-AJUSTE-1610 — PRAZO do plano "pessoa segurando o produto real" (só ele; os outros modos ficam com o de cima) ─────────────
+// KINEO-ADS-MAO-AJUSTE-1610 — No T1 os 5 Kling COMPLETARAM na fal em 212–233 s e o prazo de 3,5 min (210 s) os jogou fora segundos antes: pagamos 5
+// KINEO-ADS-MAO-AJUSTE-1610 — clipes e usamos 1. Sem o quadro final o Kling levou ~97 s; o típico do modo fica em ~100–120 s e o prazo por tentativa
+// KINEO-ADS-MAO-AJUSTE-1610 — em 5 min. Antes do "travado" o avanço consulta a fal de novo (COMPLETED = usa o clipe). A reserva H3 saiu em 15–35 s.
+/** KINEO-ADS-MAO-AJUSTE-1610 — UMA tentativa do Kling O3 no plano novo que não volta nisto vira 'stuck' (os outros modos: ADS_V2_FAST_VIDEO_STUCK_MS). */
+export const ADS_V2_IN_HAND_VIDEO_STUCK_MS = 5 * 60 * 1000 // KINEO-ADS-MAO-AJUSTE-1610
+/** KINEO-ADS-MAO-AJUSTE-1610 — o prazo do anúncio no plano novo (foto ~1 min + Kling até 5 min + H3 ~1 min); os outros modos: ADS_V2_STILL_AT_MS. */
+export const ADS_V2_IN_HAND_STILL_AT_MS = 8 * 60 * 1000 // KINEO-ADS-MAO-AJUSTE-1610
+/** KINEO-ADS-MAO-AJUSTE-1610 — tempo típico de UMA tentativa no plano novo (medido 16/10: Kling sem quadro final 97 s; H3 15–35 s; foto ~1 min). */
+export const ADS_V2_IN_HAND_ENGINE_TYPICAL_MS: Readonly<Record<string, number>> = { kling_o3: 120_000, h3: 60_000, image: 60_000 } // KINEO-ADS-MAO-AJUSTE-1610
+/**
+ * KINEO-ADS-MAO-AJUSTE-1610 — a MESMA régua de adsV2FallbackStep (pura) com o tempo típico e o prazo do anúncio passados por quem chama. Com
+ * ADS_V2_ENGINE_TYPICAL_MS e ADS_V2_STILL_AT_MS ela é idêntica à de cima (o guardião confere); o plano novo passa os números dele.
+ */
+export function adsV2FallbackStepTimed(i: Parameters<typeof adsV2FallbackStep>[0] & { typical: Readonly<Record<string, number>>; stillAtMs: number }): AdsV2FallbackStep { // KINEO-ADS-MAO-AJUSTE-1610
+  const remaining = i.stillAtMs - Math.max(0, i.elapsedMs) // KINEO-ADS-MAO-AJUSTE-1610
+  for (let a = i.skipPrincipal === true ? Math.max(i.nextAttempt, i.fallbackFrom) : i.nextAttempt; a <= i.maxAttempts; a = a < i.fallbackFrom ? i.fallbackFrom : a + 1) { // KINEO-ADS-MAO-AJUSTE-1610
+    const engine = i.route(a) // KINEO-ADS-MAO-AJUSTE-1610
+    if (!engine) continue // KINEO-ADS-MAO-AJUSTE-1610
+    const need = (i.typical[engine] ?? 180_000) + (i.needsImage ? (i.typical.image ?? ADS_V2_ENGINE_TYPICAL_MS.image) : 0) // KINEO-ADS-MAO-AJUSTE-1610
+    if (need <= remaining) return { step: 'retry', attempt: a, skipped: a !== i.nextAttempt } // KINEO-ADS-MAO-AJUSTE-1610
+  } // KINEO-ADS-MAO-AJUSTE-1610
+  if (i.canStill && i.stillsUsed < ADS_V2_STILLS_MAX) return { step: 'still' } // KINEO-ADS-MAO-AJUSTE-1610
+  if (i.nextAttempt <= i.maxAttempts) return { step: 'retry', attempt: i.nextAttempt, skipped: false } // KINEO-ADS-MAO-AJUSTE-1610
+  return { step: 'terminal' } // KINEO-ADS-MAO-AJUSTE-1610
+} // KINEO-ADS-MAO-AJUSTE-1610
+/** KINEO-ADS-MAO-AJUSTE-1610 — adsV2OverdueToStills com o prazo do anúncio passado por quem chama (o plano novo: ADS_V2_IN_HAND_STILL_AT_MS). */
+export function adsV2OverdueToStillsAt(i: { elapsedMs: number; working: number; stillsUsed: number; stillAtMs: number }): boolean { // KINEO-ADS-MAO-AJUSTE-1610
+  return i.elapsedMs >= i.stillAtMs && i.working > 0 && i.stillsUsed + i.working <= ADS_V2_STILLS_MAX // KINEO-ADS-MAO-AJUSTE-1610
+} // KINEO-ADS-MAO-AJUSTE-1610
+
 /**
  * KINEO-ADS-FIEL-1510 — a FOTO REAL da vaga (pura): a imagem do plano (foto do cliente ou o quadro da cena no NOSSO bucket, já
  * travado); sem ela, a foto do produto da trava; sem trava, a 1ª referência que é foto do cliente (no 'holds' a 1ª é o retrato).

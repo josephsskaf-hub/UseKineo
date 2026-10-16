@@ -116,13 +116,15 @@ export async function adsV2SceneCheck(sceneUrl: string, format: AdsV2Format, sid
 // KINEO-ADS-PRODUTO-NA-MAO-1610 — central, JSON, prazo curto) com DUAS imagens em 'high' — a foto REAL do produto (1ª) e o still gerado (2ª) —
 // KINEO-ADS-PRODUTO-NA-MAO-1610 — e a pergunta pura ADS_V2_IN_HAND_JUDGE_QUESTION (lib/ads/v2ProductInHand.ts): nome/logo, cores, forma, mãos,
 // KINEO-ADS-PRODUTO-NA-MAO-1610 — um produto só. Sem chave, erro, prazo ou resposta ilegível = null (a foto segue). Nunca lança. ~US$ 0,01.
+// KINEO-ADS-MAO-AJUSTE-1610 — a pergunta ficou mais rígida (cor do corpo e do líquido, MATERIAL, QUANTIDADE): no T1 o juiz aprovou um frasco preto
+// KINEO-ADS-MAO-AJUSTE-1610 — inventado. Divergiu → refaz 1 vez → enquadramento sem o rótulo de frente → foto real (o fluxo de sempre).
 import { ADS_V2_IN_HAND_JUDGE_QUESTION, adsV2ParseInHandVerdict, type AdsV2InHandVerdict } from '@/lib/ads/v2ProductInHand' // KINEO-ADS-PRODUTO-NA-MAO-1610
 /** KINEO-ADS-PRODUTO-NA-MAO-1610 — o corpo do juiz (puro: o guardião confere modelo do registro, 'high', JSON e a ordem das imagens). */
 export function adsV2InHandLabelBody(productUrl: string, sceneUrl: string): Record<string, unknown> { // KINEO-ADS-PRODUTO-NA-MAO-1610
   return { // KINEO-ADS-PRODUTO-NA-MAO-1610
     model: AI_TEXT_MODELS.vision, // KINEO-ADS-PRODUTO-NA-MAO-1610
     temperature: 0, // KINEO-ADS-PRODUTO-NA-MAO-1610
-    max_tokens: 80, // KINEO-ADS-PRODUTO-NA-MAO-1610
+    max_tokens: 140, // KINEO-ADS-PRODUTO-NA-MAO-1610 · KINEO-ADS-MAO-AJUSTE-1610 — 7 chaves (+ material, count): era 80
     response_format: { type: 'json_object' }, // KINEO-ADS-PRODUTO-NA-MAO-1610
     messages: [{ role: 'user', content: [{ type: 'text', text: ADS_V2_IN_HAND_JUDGE_QUESTION }, { type: 'image_url', image_url: { url: productUrl, detail: 'high' } }, { type: 'image_url', image_url: { url: sceneUrl, detail: 'high' } }] }], // KINEO-ADS-PRODUTO-NA-MAO-1610 — 1ª = a foto real
   } // KINEO-ADS-PRODUTO-NA-MAO-1610

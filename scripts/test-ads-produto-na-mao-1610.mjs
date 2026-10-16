@@ -30,11 +30,12 @@ import { desfazFiel5_1510 } from './test-support/desfaz-ads-fiel-5-1510.mjs'
 import { desfazVolta1510 } from './test-support/desfaz-ads-fiel-volta-1510.mjs'
 import { semFielLiga1510 } from './test-support/desfaz-ads-fiel-liga-1510.mjs'
 import { desfazExtracao } from './test-support/shopify-extracao-v2-1310.mjs'
+import { semMaoAjuste1610 } from './test-support/desfaz-ads-mao-ajuste-1610.mjs' // reancorado KINEO-ADS-MAO-AJUSTE-1610
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-PRODUTO-NA-MAO-1610'
-const rd = (p) => readFileSync(join(ROOT, p), 'utf8').replace(/\r\n/g, '\n') // o arquivo VIVO (esta é a camada mais nova)
+const rd = (p) => semMaoAjuste1610(p, readFileSync(join(ROOT, p), 'utf8')) // reancorado KINEO-ADS-MAO-AJUSTE-1610 — o ajuste veio depois: este guardião lê o texto SEM ele (já LF); o ajuste é provado em scripts/test-ads-produto-na-mao-ajuste-1610.mjs
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 let BASE = 'HEAD'
 try {

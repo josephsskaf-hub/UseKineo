@@ -7,7 +7,10 @@
 // com a escala da mão e a luz da cena, sem redesenhar a embalagem (nome, árabe, abelha e favo certos; só o texto pequeno deforma);
 // o Kling O3 anima com movimento humano (nota do fundador 8/10: "faltou o movimento do rosto e o movimento das mãos… a gente busca
 // a duplicação do corpo humano"). O defeito do vídeo (a caixa gira, achata e cresce) mora no FIM do clipe: usamos só o começo, e
-// a MESMA foto entra como quadro final (end_image_url) para segurar a embalagem nas duas pontas.
+// SEM quadro final: KINEO-ADS-MAO-AJUSTE-1610 — o T1 (docs/RESULTADO-T1-PRODUTO-NA-MAO-2026-10-16.md) e a comparação (docs/RESULTADO-COMPARA-MOVIMENTO-2026-10-16.md)
+// KINEO-ADS-MAO-AJUSTE-1610 — provaram que o end_image_url = a foto inicial CONGELA a pessoa (YDIF 0,1–0,8) e leva 212–233 s; sem ele, 9/10 em 97 s.
+// KINEO-ADS-MAO-AJUSTE-1610 — Cada plano ganha UMA ação com propósito (pela categoria do produto), "lips closed, not speaking", câmera na mão em
+// KINEO-ADS-MAO-AJUSTE-1610 — tempo real; reserva no MiniMax H3 cortada em ≤ 2,5 s; juiz com cor, material e quantidade; cena com os sinais do lugar.
 //
 // O PLANO NOVO (Comercial 15 s, só contas internas — ADS_V2_IN_HAND_MODE):
 //   0,0–2,0  GANCHO     pessoa na cena traz o produto para o quadro (nunca o packshot branco)      Nano Banana + Kling O3
@@ -122,6 +125,35 @@ export const ADS_V2_IN_HAND_RULES: readonly string[] = [
   'A candid, unposed moment with a shallow depth of field, like a real phone photo: real skin texture, everyday clothes, natural eyes and expression.',
   'No text, captions, logos or watermarks added to the image; the product keeps its own printed label.',
 ]
+/** KINEO-ADS-MAO-AJUSTE-1610 — pedido de UM produto só (uma foto de produto): nada de frasco ou caixa a mais (sem "only this", que a régua anti-invenção lê como urgência). */
+export const ADS_V2_IN_HAND_SINGLE_PRODUCT = 'This single product only, with no extra bottles or boxes: it appears exactly once in the frame.' // KINEO-ADS-MAO-AJUSTE-1610
+/** KINEO-ADS-MAO-AJUSTE-1610 — os sinais do lugar pedido (o T1 pediu "hotel" e saiu uma janela genérica). A frase da cena do cliente manda: só escolhemos objetos típicos. */
+export const ADS_V2_IN_HAND_PLACE_CUES: readonly { re: RegExp; cue: string }[] = [ // KINEO-ADS-MAO-AJUSTE-1610 — a 1ª que bater vence (texto sem acento, minúsculo)
+  { re: /\b(hotel|hoteis|motel|resort|pousada|hostel|suite)\b/, cue: 'a hotel room: a neatly made bed with crisp white sheets, heavy curtains and a bedside lamp' }, // KINEO-ADS-MAO-AJUSTE-1610
+  { re: /\b(kitchen|cozinha|cocina)\b/, cue: 'a home kitchen: a countertop, cabinets and everyday kitchen objects' }, // KINEO-ADS-MAO-AJUSTE-1610
+  { re: /\b(bathroom|banheiro|bano|lavabo|toilet)\b/, cue: 'a bathroom: a mirror, a sink and folded towels' }, // KINEO-ADS-MAO-AJUSTE-1610
+  { re: /\b(gym|academia|gimnasio)\b/, cue: 'a gym: weights, training machines and a rubber floor' }, // KINEO-ADS-MAO-AJUSTE-1610
+  { re: /\b(office|escritorio|oficina|coworking)\b/, cue: 'an office: a desk, a laptop and an office chair' }, // KINEO-ADS-MAO-AJUSTE-1610
+  { re: /\b(beach|praia|playa)\b/, cue: 'a beach: sand, the sea and open sky' }, // KINEO-ADS-MAO-AJUSTE-1610
+  { re: /\b(car|carro|coche|auto)\b/, cue: 'inside a car: the seats, the dashboard and the side windows' }, // KINEO-ADS-MAO-AJUSTE-1610
+  { re: /\b(cafe|cafeteria|coffee shop|padaria|bakery|panaderia)\b/, cue: 'a café: small tables, cups and a counter' }, // KINEO-ADS-MAO-AJUSTE-1610
+  { re: /\b(restaurant|restaurante|bar)\b/, cue: 'a restaurant: set tables and warm ambient light' }, // KINEO-ADS-MAO-AJUSTE-1610
+  { re: /\b(bedroom|quarto|dormitorio|habitacion)\b/, cue: 'a bedroom: a bed with pillows and a bedside table' }, // KINEO-ADS-MAO-AJUSTE-1610
+  { re: /\b(living room|sala de estar|lounge)\b/, cue: 'a living room: a sofa, cushions and a coffee table' }, // KINEO-ADS-MAO-AJUSTE-1610
+  { re: /\b(store|shop|loja|tienda|boutique|mercado|supermarket)\b/, cue: 'a shop: shelves and product displays' }, // KINEO-ADS-MAO-AJUSTE-1610
+  { re: /\b(garden|jardim|jardin|park|parque)\b/, cue: 'a garden or park: plants, trees and grass' }, // KINEO-ADS-MAO-AJUSTE-1610
+  { re: /\b(street|rua|calle|city|cidade|ciudad)\b/, cue: 'a city street: buildings, a sidewalk and passing life' }, // KINEO-ADS-MAO-AJUSTE-1610
+] // KINEO-ADS-MAO-AJUSTE-1610
+const fold = (s: string): string => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase() // KINEO-ADS-MAO-AJUSTE-1610
+/** KINEO-ADS-MAO-AJUSTE-1610 — a linha dos sinais do lugar (pura), a partir da linha "Setting: …" já limpa; sem lugar = null. */
+export function adsV2InHandPlaceLine(settingLine: string | null | undefined): string | null { // KINEO-ADS-MAO-AJUSTE-1610
+  const m = typeof settingLine === 'string' ? settingLine.match(/^Setting: "([^"\n]{1,200})"/) : null // KINEO-ADS-MAO-AJUSTE-1610
+  if (!m) return null // KINEO-ADS-MAO-AJUSTE-1610
+  const hit = ADS_V2_IN_HAND_PLACE_CUES.find((c) => c.re.test(fold(m[1]))) // KINEO-ADS-MAO-AJUSTE-1610
+  return hit // KINEO-ADS-MAO-AJUSTE-1610
+    ? `The place must read at a glance as ${hit.cue}; never a generic room with only a window.` // KINEO-ADS-MAO-AJUSTE-1610
+    : 'The place must read at a glance as the one in the Setting line, with its typical objects in view; never a generic room with only a window.' // KINEO-ADS-MAO-AJUSTE-1610
+} // KINEO-ADS-MAO-AJUSTE-1610
 /** Sem a cena da pessoa (a frase não pediu lugar): uma casa de verdade com luz de janela. */
 export const ADS_V2_IN_HAND_DEFAULT_PLACE = 'Place: a real, lived-in home with soft natural window light.'
 const EXTRA_REFS_LINE = 'Any other reference photo only shows more of the same product or the place; never copy a person from it.'
@@ -137,14 +169,16 @@ const FRAME_OPENING: Readonly<Record<AdsV2InHandPromptFrame, string>> = {
  * O pedido da foto da cena (puro). `settingLine` = a linha "Setting: …" já limpa (adsV2SettingLine, lib/ads/v2Scene.ts) ou null;
  * qualquer outro texto é ignorado (adsV2SettingFromPrompt confere o formato). `format` troca a abertura (adsV2FormatShots).
  */
-export function adsV2InHandScenePrompt(i: { frame: AdsV2InHandPromptFrame; settingLine?: string | null; format?: AdsV2Format | null; extraRefs?: boolean }): string {
+export function adsV2InHandScenePrompt(i: { frame: AdsV2InHandPromptFrame; settingLine?: string | null; format?: AdsV2Format | null; extraRefs?: boolean; singleProduct?: boolean }): string { // KINEO-ADS-MAO-AJUSTE-1610 — + singleProduct
   const frame: AdsV2InHandPromptFrame = Object.prototype.hasOwnProperty.call(ADS_V2_IN_HAND_ACTIONS, i.frame) ? i.frame : 'hold'
   const setting = adsV2InHandSettingFrom(i.settingLine ?? null)
   const text = [
     FRAME_OPENING[frame],
     setting ?? ADS_V2_IN_HAND_DEFAULT_PLACE,
+    adsV2InHandPlaceLine(setting) ?? '', // KINEO-ADS-MAO-AJUSTE-1610 — os sinais do lugar pedido (hotel = cama, cortina, luminária de cabeceira)
     ADS_V2_IN_HAND_ACTIONS[frame],
     ADS_V2_IN_HAND_KEEP_PACKAGING,
+    i.singleProduct === true ? ADS_V2_IN_HAND_SINGLE_PRODUCT : '', // KINEO-ADS-MAO-AJUSTE-1610 — um produto só: nada de frasco ou caixa a mais
     i.extraRefs ? EXTRA_REFS_LINE : '',
     ...ADS_V2_IN_HAND_RULES,
   ].filter(Boolean).join(' ')
@@ -153,28 +187,76 @@ export function adsV2InHandScenePrompt(i: { frame: AdsV2InHandPromptFrame; setti
 }
 
 // ── o movimento (Kling O3 i2v): humano VIVO, produto TRAVADO ────────────────────────────────────────────────────────────
-/** O que muda por enquadramento (o olhar e as mãos). */
-export const ADS_V2_IN_HAND_MOTION_BEATS: Readonly<Record<AdsV2InHandFrame, string>> = {
-  hook: 'their eyes move from the product to the camera and a soft, real smile forms',
-  hold: 'they look down at the product in their hand, then their eyes lift to the camera and a soft smile forms',
-  use: 'their eyes follow their other hand as it moves gently on the product, and a small smile forms',
-  close: 'the face behind stays alive, breathing, blinking and smiling softly, while the fingertips settle on the product',
-}
+// KINEO-ADS-MAO-AJUSTE-1610 — UMA AÇÃO COM PROPÓSITO por plano (nota 8/10 do fundador no Kling sem quadro final: "o movimento ainda precisa ser mais
+// KINEO-ADS-MAO-AJUSTE-1610 — natural"; só respirar/piscar/sorrir lê como "foto viva"). Os líderes dirigem uma ação por plano; a escolha é DETERMINÍSTICA
+// KINEO-ADS-MAO-AJUSTE-1610 — pelo enquadramento e pela categoria do produto (perfume/cosmético: cheirar, borrifar, aplicar; bebida: gole; bolsa: carregar).
+export type AdsV2InHandCategory = 'perfume' | 'cosmetics' | 'drink' | 'bag' | 'generic' // KINEO-ADS-MAO-AJUSTE-1610
+/** KINEO-ADS-MAO-AJUSTE-1610 — a categoria pelo texto do produto (sem acento, minúsculo); a 1ª regra que bater vence; nada = 'generic'. */
+export const ADS_V2_IN_HAND_CATEGORY_RULES: readonly { category: Exclude<AdsV2InHandCategory, 'generic'>; re: RegExp }[] = [ // KINEO-ADS-MAO-AJUSTE-1610
+  { category: 'perfume', re: /(\b(perfumes?|perfumaria|parfums?|fragrances?|fragrancias?|fragancias?|colognes?|colonia|eau de|body splash|attar|oud)\b)|عطر/ }, // KINEO-ADS-MAO-AJUSTE-1610
+  { category: 'cosmetics', re: /\b(cosmetics?|cosmeticos?|creams?|cremes?|cremas?|serums?|lotions?|locao|locion|lipsticks?|batom|labial|makeup|maquiagem|maquillaje|skin ?care|moisturi[sz]er|hidratante|shampoo|xampu|champu|conditioner|condicionador|nail polish|esmalte|sunscreen|protetor solar|protector solar|beauty|beleza|belleza|blush|rimel)\b/ }, // KINEO-ADS-MAO-AJUSTE-1610
+  { category: 'drink', re: /\b(drinks?|beverages?|juices?|coffee|tea|beers?|wines?|soda|water|bebidas?|sucos?|cafe|cha|cervejas?|vinhos?|refrigerantes?|agua|zumos?|jugos?|cervezas?|vinos?|refrescos?|kombucha|smoothies?|energeticos?|energy drinks?|whiske?y|vodka|gin|cachaca|licor|liqueur|matcha|latte|lemonade|limonada)\b/ }, // KINEO-ADS-MAO-AJUSTE-1610
+  { category: 'bag', re: /\b(bags?|handbags?|purses?|backpacks?|totes?|clutch|bolsas?|mochilas?|sacolas?|bolsos?|carteras?)\b/ }, // KINEO-ADS-MAO-AJUSTE-1610
+] // KINEO-ADS-MAO-AJUSTE-1610
+export function adsV2InHandCategory(text: unknown): AdsV2InHandCategory { // KINEO-ADS-MAO-AJUSTE-1610
+  const t = typeof text === 'string' ? fold(text) : '' // KINEO-ADS-MAO-AJUSTE-1610
+  return ADS_V2_IN_HAND_CATEGORY_RULES.find((r) => r.re.test(t))?.category ?? 'generic' // KINEO-ADS-MAO-AJUSTE-1610
+} // KINEO-ADS-MAO-AJUSTE-1610
+/** KINEO-ADS-MAO-AJUSTE-1610 — a ação de cada plano, por categoria × enquadramento (sem dígitos: a régua anti-invenção do /plan). */
+export const ADS_V2_IN_HAND_MOTION_ACTIONS: Readonly<Record<AdsV2InHandCategory, Readonly<Record<AdsV2InHandFrame, string>>>> = { // KINEO-ADS-MAO-AJUSTE-1610
+  perfume: { // KINEO-ADS-MAO-AJUSTE-1610
+    hook: 'the person lifts the perfume toward their face, smells it softly and smiles', // KINEO-ADS-MAO-AJUSTE-1610
+    hold: 'the person turns the product slightly to look at the label, then glances back up at the camera', // KINEO-ADS-MAO-AJUSTE-1610
+    use: 'the person sprays the perfume once on their wrist and brings the wrist close to smell it', // KINEO-ADS-MAO-AJUSTE-1610
+    close: "the person's fingers slowly trace the edge of the product", // KINEO-ADS-MAO-AJUSTE-1610
+  }, // KINEO-ADS-MAO-AJUSTE-1610
+  cosmetics: { // KINEO-ADS-MAO-AJUSTE-1610
+    hook: 'the person lifts the product toward their face, looks at it closely and smiles', // KINEO-ADS-MAO-AJUSTE-1610
+    hold: 'the person turns the product slightly to look at the label, then glances back up at the camera', // KINEO-ADS-MAO-AJUSTE-1610
+    use: 'the person applies a small amount on the back of their hand and smooths it in with the fingertips', // KINEO-ADS-MAO-AJUSTE-1610
+    close: "the person's fingers slowly trace the edge of the product", // KINEO-ADS-MAO-AJUSTE-1610
+  }, // KINEO-ADS-MAO-AJUSTE-1610
+  drink: { // KINEO-ADS-MAO-AJUSTE-1610
+    hook: 'the person raises the drink, takes a small sip and smiles', // KINEO-ADS-MAO-AJUSTE-1610
+    hold: 'the person turns the drink slightly to look at the label, then glances back up at the camera', // KINEO-ADS-MAO-AJUSTE-1610
+    use: 'the person takes a slow sip, lowers the drink and smiles', // KINEO-ADS-MAO-AJUSTE-1610
+    close: "the person's fingers settle around the drink and slowly trace its edge", // KINEO-ADS-MAO-AJUSTE-1610
+  }, // KINEO-ADS-MAO-AJUSTE-1610
+  bag: { // KINEO-ADS-MAO-AJUSTE-1610
+    hook: 'the person swings the bag up onto their shoulder and smiles', // KINEO-ADS-MAO-AJUSTE-1610
+    hold: 'the person adjusts the bag strap on their shoulder and glances down at the bag', // KINEO-ADS-MAO-AJUSTE-1610
+    use: 'the person walks a few natural steps carrying the bag, then looks back at the camera', // KINEO-ADS-MAO-AJUSTE-1610
+    close: "the person's fingers trace the edge and the stitching of the bag", // KINEO-ADS-MAO-AJUSTE-1610
+  }, // KINEO-ADS-MAO-AJUSTE-1610
+  generic: { // KINEO-ADS-MAO-AJUSTE-1610
+    hook: 'the person brings the product up beside their face and smiles at it', // KINEO-ADS-MAO-AJUSTE-1610
+    hold: 'the person turns the product slightly to look at the label, then glances back up at the camera', // KINEO-ADS-MAO-AJUSTE-1610
+    use: 'the person opens or tries the product in a natural, everyday way, one hand steady on it', // KINEO-ADS-MAO-AJUSTE-1610
+    close: "the person's fingertips slowly trace the edge of the product", // KINEO-ADS-MAO-AJUSTE-1610
+  }, // KINEO-ADS-MAO-AJUSTE-1610
+} // KINEO-ADS-MAO-AJUSTE-1610
+/** KINEO-ADS-MAO-AJUSTE-1610 — a boca não fala (na comparação de 16/10 ela mexia como se falasse, sob a narração). */
+export const ADS_V2_IN_HAND_LIPS = 'lips closed, not speaking' // KINEO-ADS-MAO-AJUSTE-1610
+/** KINEO-ADS-MAO-AJUSTE-1610 — a câmera e o ritmo (no lugar de "câmera quase parada, push-in muito lento", que lia como câmera lenta). */
+export const ADS_V2_IN_HAND_CAMERA = 'Subtle handheld camera, natural pacing, real-time speed (not slow motion).' // KINEO-ADS-MAO-AJUSTE-1610
+/** KINEO-ADS-MAO-AJUSTE-1610 — a regra do produto: mesmo tamanho, sem deformar; pode acompanhar a mão, nunca crescer nem mudar. */
+export const ADS_V2_IN_HAND_PRODUCT_RULE = 'The product keeps exactly the same size, shape, colors, label and proportions, with no warping: it may move naturally with the hand, but it never grows, morphs or turns into another object; no other object appears.' // KINEO-ADS-MAO-AJUSTE-1610
 /** O fecho do movimento: identidade da pessoa, do produto e do lugar — SEM "keep everything" (que congela o rosto e as mãos). */
 export const ADS_V2_IN_HAND_MOTION_KEEP = 'Keep the same person, the same product and the same place as in the photo.'
 /**
- * O movimento do plano (puro). O exemplo da tarefa com o corpo humano VIVO o tempo todo — rosto, olhos, respiração, dedos (nota 8/10
- * do fundador em 16/10: "faltou o movimento do rosto e o movimento das mãos… a gente busca a duplicação do corpo humano") — e SÓ o
- * produto travado na mão: não gira, não vira, não inclina, não escorrega, não cresce; câmera quase parada.
+ * O movimento do plano (puro). KINEO-ADS-MAO-AJUSTE-1610 — UMA ação com propósito (enquadramento × categoria), o rosto vivo em volta
+ * dela com a boca fechada, os dedos na pegada, a regra do produto e a câmera na mão em tempo real. Mesmo prompt no Kling O3 e na reserva H3.
  */
-export function adsV2InHandMotion(frame: AdsV2InHandFrame): string {
-  const beat = ADS_V2_IN_HAND_MOTION_BEATS[frame] ?? ADS_V2_IN_HAND_MOTION_BEATS.hold
+export function adsV2InHandMotion(frame: AdsV2InHandFrame, category: AdsV2InHandCategory = 'generic'): string { // KINEO-ADS-MAO-AJUSTE-1610 — + category
+  const table = ADS_V2_IN_HAND_MOTION_ACTIONS[category] ?? ADS_V2_IN_HAND_MOTION_ACTIONS.generic // KINEO-ADS-MAO-AJUSTE-1610
+  const action = table[frame] ?? table.hold // KINEO-ADS-MAO-AJUSTE-1610
   return [
     'Natural lifelike motion, like real handheld footage of a real person.',
-    `The person breathes, the chest and shoulders rise and fall gently; they blink naturally, the eyes move and focus, small micro-expressions play on the face and the head moves slightly; ${beat}.`,
-    'Their fingers shift and adjust their grip slightly on the product; the face, the eyes and the hands stay alive the whole time.',
-    'The product itself is held still in the hand: it does not rotate, flip, tilt, slide or grow; it keeps exactly its shape, colors, label and proportions; no other object appears.',
-    'Camera almost static, very slow push-in.',
+    `One clear, purposeful action in this shot: ${action}.`, // KINEO-ADS-MAO-AJUSTE-1610
+    `Around the action the face stays alive: natural blinking and breathing, the eyes move and focus; ${ADS_V2_IN_HAND_LIPS}.`, // KINEO-ADS-MAO-AJUSTE-1610
+    'The fingers hold the product naturally and adjust their grip as the action needs.', // KINEO-ADS-MAO-AJUSTE-1610
+    ADS_V2_IN_HAND_PRODUCT_RULE, // KINEO-ADS-MAO-AJUSTE-1610
+    ADS_V2_IN_HAND_CAMERA, // KINEO-ADS-MAO-AJUSTE-1610
     ADS_V2_IN_HAND_MOTION_KEEP,
   ].join(' ')
 }
@@ -215,12 +297,14 @@ const r3 = (n: number): number => Math.round(n * 1000) / 1000
  * O plano novo (puro): 4 planos de gente com o produto + o packshot real. Os índices são 0..4; a duração dos planos é 12,5 s
  * (a mesma do Comercial de antes). Inelegível = null (o chamador mantém o plano de antes, objeto por objeto).
  */
-export function adsV2InHandPlan(i: { on: boolean; tier: string; seconds: number; photos: readonly AdsV2InHandPhoto[] | null | undefined; productOrder: boolean; sector: string | null | undefined; presenter: boolean; style: string | null | undefined; videos: number; settingLine?: string | null; format?: AdsV2Format | null }): { shots: AdsV2InHandShot[]; shotsSeconds: number; product: AdsV2InHandPhoto } | null {
+export function adsV2InHandPlan(i: { on: boolean; tier: string; seconds: number; photos: readonly AdsV2InHandPhoto[] | null | undefined; productOrder: boolean; sector: string | null | undefined; presenter: boolean; style: string | null | undefined; videos: number; settingLine?: string | null; format?: AdsV2Format | null; productText?: string | null }): { shots: AdsV2InHandShot[]; shotsSeconds: number; product: AdsV2InHandPhoto } | null { // KINEO-ADS-MAO-AJUSTE-1610 — + productText (a categoria da ação)
   const product = adsV2InHandEligible(i)
   if (!product) return null
   const photos = Array.isArray(i.photos) ? i.photos : []
   const refs = adsV2InHandRefs(product, photos)
   const fallbackUrl = product.url.trim()
+  const category = adsV2InHandCategory(i.productText ?? '') // KINEO-ADS-MAO-AJUSTE-1610 — perfume/cosmético/bebida/bolsa/genérico
+  const singleProduct = photos.filter((p) => p && p.kind === 'product').length === 1 // KINEO-ADS-MAO-AJUSTE-1610 — uma foto de produto = um produto só
   const shots: AdsV2InHandShot[] = ADS_V2_IN_HAND_SLOTS.map((slot, idx) => ({
     idx,
     role: slot.role,
@@ -231,8 +315,8 @@ export function adsV2InHandPlan(i: { on: boolean; tier: string; seconds: number;
     imageUrl: null,
     referenceFootageIds: [...refs.ids],
     referenceUrls: [...refs.urls],
-    scenePrompt: adsV2InHandScenePrompt({ frame: slot.frame, settingLine: i.settingLine ?? null, format: i.format ?? '9:16', extraRefs: refs.urls.length > 1 }),
-    prompt: adsV2InHandMotion(slot.frame),
+    scenePrompt: adsV2InHandScenePrompt({ frame: slot.frame, settingLine: i.settingLine ?? null, format: i.format ?? '9:16', extraRefs: refs.urls.length > 1, singleProduct }), // KINEO-ADS-MAO-AJUSTE-1610 — + singleProduct
+    prompt: adsV2InHandMotion(slot.frame, category), // KINEO-ADS-MAO-AJUSTE-1610 — uma ação com propósito por plano
     movementVariant: idx,
     cutStart: ADS_V2_IN_HAND_CUT_START,
     cutSeconds: slot.cut,
@@ -287,16 +371,17 @@ export function adsV2InHandSummary(shots: readonly unknown[] | null | undefined)
   })
 }
 
-// ── o vídeo: Kling O3 i2v com a MESMA foto como quadro final ────────────────────────────────────────────────────────────
+// ── o vídeo: Kling O3 i2v SEM quadro final (KINEO-ADS-MAO-AJUSTE-1610) ─────────────────────────────────────────────────────
 // Schema conferido em 16/10/2026 (https://fal.ai/models/fal-ai/kling-video/o3/pro/image-to-video/llms.txt; também anotado em
 // lib/ads/v2Engines.ts em 28/09): image_url (obrigatório, quadro inicial) · end_image_url (opcional, quadro final; NÃO existe
 // tail_image_url) · duration enum string '3'..'15' (padrão '5') · generate_audio (padrão false) · prompt | multi_prompt ·
 // shot_type · enable_safety_checker. Montado CAMPO A CAMPO (nada espalhado): o builder de sempre (buildShotInput) continua sem
 // end_image_url; só o plano novo passa por aqui.
+// KINEO-ADS-MAO-AJUSTE-1610 — SEM end_image_url: com o quadro final = a foto inicial a pessoa congelou (YDIF 0,1–0,8) e o clipe levou 212–233 s
+// KINEO-ADS-MAO-AJUSTE-1610 — (estourou o prazo); sem ele, a pessoa viva o clipe inteiro e o produto firme (9/10) em 97 s. Só image_url, prompt, '3' e sem áudio.
 export interface AdsV2InHandKlingInput {
   prompt: string
   image_url: string
-  end_image_url: string
   duration: typeof ADS_V2_IN_HAND_GEN_SECONDS
   generate_audio: false
 }
@@ -306,13 +391,20 @@ export function adsV2InHandKlingInput(shot: { imageUrl: string; prompt: string }
   const prompt = typeof shot?.prompt === 'string' ? shot.prompt.trim() : ''
   if (prompt.length < 3) throw new Error('ads_v2_bad_prompt')
   if (prompt.length > 2500) throw new Error('ads_v2_prompt_too_long')
-  return { prompt, image_url: image, end_image_url: image, duration: ADS_V2_IN_HAND_GEN_SECONDS, generate_audio: false }
+  return { prompt, image_url: image, duration: ADS_V2_IN_HAND_GEN_SECONDS, generate_audio: false } // KINEO-ADS-MAO-AJUSTE-1610 — sem quadro final
 }
+/** KINEO-ADS-MAO-AJUSTE-1610 — a reserva MiniMax H3 (mesmo prompt) usa SÓ o começo: depois de 2,5 s o produto cresce ~1,6× (comparação de 16/10). */
+export const ADS_V2_IN_HAND_H3_MAX_END = 2.5 // KINEO-ADS-MAO-AJUSTE-1610
+/** KINEO-ADS-MAO-AJUSTE-1610 — início do trecho no clipe do H3: o corte [início, início + corte] termina em ≤ 2,5 s (2,0 s → 0,15; 2,5 s → 0). */
+export function adsV2InHandH3CutStart(cut: number): number { // KINEO-ADS-MAO-AJUSTE-1610
+  const c = typeof cut === 'number' && Number.isFinite(cut) && cut > 0 ? cut : 0 // KINEO-ADS-MAO-AJUSTE-1610
+  return r3(Math.max(0, Math.min(ADS_V2_IN_HAND_CUT_START, ADS_V2_IN_HAND_H3_MAX_END - c))) // KINEO-ADS-MAO-AJUSTE-1610
+} // KINEO-ADS-MAO-AJUSTE-1610
 
 // ── o juiz do rótulo (visão barata, a mesma chamada de lib/ads/v2LockVision.ts) ─────────────────────────────────────────
 /** A pergunta (sem exemplo de resposta pronto: o reteste de 15/10 mostrou que a visão COPIA o exemplo). 1ª imagem = a foto real. */
-export const ADS_V2_IN_HAND_JUDGE_QUESTION = 'The FIRST image is the real product photo. The SECOND image is a generated photo of a person with that product. Compare the product in the SECOND image with the FIRST one and answer each item with true or false. "name": the brand name and the logo, where they are visible, are the same words and the same logo (small text may be blurry, but it must not turn into a different word or a different logo). "colors": the packaging colors are the same. "shape": the shape and the proportions of the packaging are the same. "hands": the hands look natural, with five fingers, and nothing passes through the product. "one_product": there is exactly one product and it is this product. Answer only with JSON with the keys "name", "colors", "shape", "hands" and "one_product", each one true or false.'
-export const ADS_V2_IN_HAND_JUDGE_KEYS: readonly string[] = ['name', 'colors', 'shape', 'hands', 'one_product']
+export const ADS_V2_IN_HAND_JUDGE_QUESTION = 'The FIRST image is the real product photo. The SECOND image is a generated photo of a person with that product. Be strict: compare the product in the SECOND image with the FIRST one and answer each item with true or false; when in doubt, answer false. "name": the brand name and the logo, where they are visible, are the same words and the same logo (small text may be blurry, but it must not turn into a different word or a different logo). "colors": every visible part of the product has the same colors as in the FIRST image, including the body of the bottle or the package and the color of any liquid inside. "material": every part keeps the same material and finish as in the FIRST image (clear glass stays clear and see-through, matte cardboard stays matte cardboard); a black, opaque or painted body where the FIRST image shows clear glass is false. "shape": the shape and the proportions of the packaging are the same. "count": the SECOND image shows no more product items than the FIRST image (no extra bottle, box, package or duplicate). "hands": the hands look natural, with five fingers, and nothing passes through the product. "one_product": every product item in the SECOND image is part of the product of the FIRST image; no different product appears. Answer only with JSON with the keys "name", "colors", "material", "shape", "count", "hands" and "one_product", each one true or false.' // KINEO-ADS-MAO-AJUSTE-1610 — mais rígida: cor do corpo e do líquido, material, quantidade (no T1 aprovou um frasco preto inventado)
+export const ADS_V2_IN_HAND_JUDGE_KEYS: readonly string[] = ['name', 'colors', 'material', 'shape', 'count', 'hands', 'one_product'] // KINEO-ADS-MAO-AJUSTE-1610 — + material, count
 export interface AdsV2InHandVerdict { ok: boolean; fails: string[] }
 /** A resposta do juiz (pura): todas as chaves booleanas, senão null ("não sei"). */
 export function adsV2ParseInHandVerdict(raw: unknown): AdsV2InHandVerdict | null {
