@@ -496,6 +496,8 @@ async function rodaCheckout({ over = {}, url, pais, idioma = null, semLogin = fa
     normalizeSliderCredits: () => 0,
     ADS_PASS_ID: 'ads_pass',
     buildAdsPassAndRedirect: nega('buildAdsPassAndRedirect'),
+    DFY_FILMS3_PACK_ID: 'dfy_films3', // reancorado KINEO-PACOTE-3-FILMES-1610 — o despacho do GET ganhou o pacote "3 filmes"
+    buildDfyFilms3AndRedirect: nega('buildDfyFilms3AndRedirect'),
     isBulkPackId: () => false,
     buildBulkPackAndRedirect: nega('buildBulkPackAndRedirect'),
     buildAutopilotPilotAndRedirect: nega('buildAutopilotPilotAndRedirect'),

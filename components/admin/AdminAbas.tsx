@@ -5,10 +5,12 @@
 import Link from 'next/link'
 import type { CSSProperties } from 'react'
 
-export type AbaAdmin = 'visao' | 'clientes'
+// KINEO-PACOTE-3-FILMES-1610 — + aba "Pedidos 3 filmes" (/admin/pedidos): o pacote US$ 19 feito pela equipe.
+export type AbaAdmin = 'visao' | 'clientes' | 'pedidos'
 export const ADMIN_ABAS: ReadonlyArray<readonly [AbaAdmin, string, string]> = [
   ['visao', '/admin', 'Visão geral'],
   ['clientes', '/admin/clientes', 'Clientes'],
+  ['pedidos', '/admin/pedidos', 'Pedidos 3 filmes'], // KINEO-PACOTE-3-FILMES-1610
 ]
 
 const aba: CSSProperties = { display: 'inline-flex', alignItems: 'center', minHeight: 40, padding: '8px 14px', fontSize: 13.5, fontWeight: 700, textDecoration: 'none', color: 'var(--muted)', borderBottom: '2px solid transparent', marginBottom: -1, whiteSpace: 'nowrap' }

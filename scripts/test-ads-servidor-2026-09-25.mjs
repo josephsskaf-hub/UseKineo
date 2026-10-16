@@ -47,7 +47,8 @@ checa('1c. desligado = recusa visível (redirect com erro / 403), nunca sessão'
 checa('1d. moeda da casa: preço de lista em USD, sessão na moeda do país (settlementAmountMinor), idempotência por SKU/usuário/valor', /settlementAmountMinor\(unitAmount, chargeCurrency\)/.test(builder) && /oneTimeIdempotencyKey\(\{\n\s*sku: ADS_PASS_ID,/.test(builder))
 const iProbe = builder.indexOf(".from('profiles').select(ADS_ACCESS_COLUMN).limit(0)")
 checa('1g. sonda da coluna do acesso ANTES da sessão: sem a migration o passe não cobra (503 "opens soon", motivo migration_missing)', iProbe > iGate && iSession > iProbe && /skuContext\.blocked = 'migration_missing'\n\s*return isGet \? redirectError\('Studio Ads opens soon\.'\) : jsonError\('Studio Ads opens soon\.', 503\)/.test(builder) && !/import \{ isInternalEmail \}/.test(co))
-checa('1e. o despacho ?pack=ads_pass chama o builder antes do atacado', /if \(packParam === ADS_PASS_ID\) \{\n\s*return await buildAdsPassAndRedirect\(req, true\)\n\s*\}\n\s*if \(isBulkPackId\(packParam\)\)/.test(co))
+// reancorado KINEO-PACOTE-3-FILMES-1610 — o pacote "3 filmes" entra entre o passe e o atacado (também antes do fallback do Starter).
+checa('1e. o despacho ?pack=ads_pass chama o builder antes do atacado', /if \(packParam === ADS_PASS_ID\) \{\n\s*return await buildAdsPassAndRedirect\(req, true\)\n\s*\}\n(?:\s*\/\/ [^\n]*\n)*\s*if \(packParam === DFY_FILMS3_PACK_ID\) \{\n\s*return await buildDfyFilms3AndRedirect\(req\)\n\s*\}\n\s*if \(isBulkPackId\(packParam\)\)/.test(co))
 checa('1f. ads_checkout_started é nome aceito pelo logger e só é gravado depois da sessão existir', /\| 'ads_checkout_started'/.test(co) && builder.indexOf("recordCheckoutEvent('ads_checkout_started'") > iSession)
 
 // ── 2. webhook: acesso no MESMO UPDATE, fail-closed, evento depois ───────────────────────────

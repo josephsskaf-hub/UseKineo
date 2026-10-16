@@ -108,6 +108,7 @@ import {
   type CheckoutTier as PaidTier,
   type PriceRegion,
 } from '@/lib/checkoutPricing'
+import { dfyFilms3EntryCopy, dfyFilms3EntryHref } from '@/lib/dfyFilms3' // KINEO-PACOTE-3-FILMES-1610
 import { formatSettlementMoney, planSettlementAmountMinor, settlementNote, type SettlementCurrency } from '@/lib/settlementCurrency'
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft, type FreeTierOffer } from '@/lib/freeTierOffer'
@@ -1079,6 +1080,10 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
               </div>
             ))}
           </div>
+          {/* KINEO-PACOTE-3-FILMES-1610 — link discreto para quem não quer assinar: a equipe faz 3 filmes por US$ 19, único. */}
+          <p className="mt-2 text-center text-[12.5px] font-semibold text-[var(--muted)]" data-testid="pricing-dfy-films3">
+            <a href={dfyFilms3EntryHref('pricing')} className="underline underline-offset-2">{dfyFilms3EntryCopy()}</a>
+          </p>
 
           {/* KINEO-ORDEM5-PROOF-2026-08-03 — Ordem 5: prova social com números
               REAIS no ponto de decisão. Cada número é conferível no banco COM o

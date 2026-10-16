@@ -27,6 +27,7 @@ import { dfySessionTier } from '@/lib/growth/dfySession'
 import { dfyBriefUrl, paymentLinkFields, type DfyBrief } from '@/lib/growth/dfyBrief'
 import { DFY_SERVICE_FACT } from '@/lib/growth/dfyServiceFacts'
 import { ADS_PRODUCT_NAME } from '@/lib/ads/offer'
+import { DFY_FILMS3_DELIVERY_HOURS, DFY_FILMS3_FILMS, dfyFilms3LanguageName, founderOrderSubject } from '@/lib/dfyFilms3' // KINEO-PACOTE-3-FILMES-1610
 
 export const FOUNDER_ALERT_EVENT = 'founder_order_alerted' as const
 export const FOUNDER_ALERT_TIMEOUT_MS = 3000
@@ -34,7 +35,8 @@ export const FOUNDER_ALERT_TIMEOUT_MS = 3000
 // webhook não concede nada e o fundador decide reembolso/troca; ver app/api/stripe/webhook/route.ts).
 // KINEO-CUPOM-CONVIDADO-2026-10-07 — 'guest_welcome_promo_reused': compra sem login com o desconto de boas-vindas num
 // e-mail cuja conta já tinha pago (risco aceito; o grant segue igual e o aviso só mede).
-export type FounderAlertKind = 'dfy_order' | 'ads_pass' | 'dfy_brief' | 'guest_conflict' | 'guest_welcome_promo_reused'
+// KINEO-PACOTE-3-FILMES-1610 — 'dfy_films3_order': o pacote "3 filmes feitos por nós" (US$ 19) foi pago.
+export type FounderAlertKind = 'dfy_order' | 'ads_pass' | 'dfy_brief' | 'guest_conflict' | 'guest_welcome_promo_reused' | 'dfy_films3_order'
 export type FounderAlertOutcome = 'sent' | 'failed' | 'timeout' | 'duplicate' | 'error'
 
 /** Origem pública do site: a mesma URL que a página /business-video-ads declara (fonte única, sem domínio redigitado). */
@@ -211,6 +213,33 @@ export async function alertFounderDfyBrief(input: { stripeSessionId: string; tie
       `Sessão Stripe: ${input.stripeSessionId}`,
     ].join('\n')
     return await alertFounderOnce({ kind: 'dfy_brief', stripeSessionId: input.stripeSessionId, subject, text, path: '/api/dfy/brief' })
+  } catch {
+    return 'error'
+  }
+}
+
+/**
+ * KINEO-PACOTE-3-FILMES-1610 — pacote "3 filmes feitos por nós" PAGO. Chamado pelo webhook DEPOIS de o pedido estar
+ * gravado em done_for_you_orders. Assunto: "Pedido novo de 3 filmes — <tema>". 1×/sessão, teto de 3 s, nunca lança.
+ */
+export async function alertFounderDfyFilms3Order(input: { session: Stripe.Checkout.Session; orderId: string | null; topic: string; language: string; style: string | null }): Promise<FounderAlertOutcome> {
+  try {
+    const { session } = input
+    const deadline = new Date(Date.now() + DFY_FILMS3_DELIVERY_HOURS * 3600_000).toISOString().slice(0, 16).replace('T', ' ') + ' UTC'
+    const subject = `[Kineo] ${founderOrderSubject(input.topic)}`
+    const text = [
+      `Pacote de ${DFY_FILMS3_FILMS} filmes PAGO. Entrega por gente na Library da pessoa: prazo ${DFY_FILMS3_DELIVERY_HOURS} h (até ${deadline}).`,
+      `Tema: ${input.topic}`,
+      `Língua: ${dfyFilms3LanguageName(input.language)} (${input.language})`,
+      `Estilo: ${input.style ?? '(livre)'}`,
+      `Comprador: ${buyerLine(session)} · conta ${session.metadata?.supabase_user_id ?? session.client_reference_id ?? '(sem conta)'}`,
+      `Valor: ${paidAmountLabel(session.amount_total, session.currency)}`,
+      `Pedido: ${input.orderId ?? '(sem id)'}`,
+      `Painel (marcar em produção / entregue): ${SITE_ORIGIN}/admin/pedidos`,
+      `Sessão Stripe: ${session.id}`,
+      'Entrega: os filmes têm de aparecer na Library DESTA conta. Nunca gerar na conta do fundador (marca d\'água forçada).',
+    ].join('\n')
+    return await alertFounderOnce({ kind: 'dfy_films3_order', stripeSessionId: session.id, subject, text })
   } catch {
     return 'error'
   }

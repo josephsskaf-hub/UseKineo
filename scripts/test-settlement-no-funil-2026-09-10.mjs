@@ -103,8 +103,9 @@ check(
 const packsComSettlement = (checkout.match(/skuContext\.settlement_currency = chargeCurrency/g) || []).length
 check(
   // KINEO-STUDIO-ADS-2026-09-25 — reancorado com motivo: o passe do Studio Ads é o 6º caminho one-time e também carimba.
-  'checkout: os 6 caminhos de pack (5 + passe do Studio Ads) seguem carimbando skuContext.settlement_currency',
-  packsComSettlement === 6
+  // KINEO-PACOTE-3-FILMES-1610 — reancorado com motivo: o pacote "3 filmes" é o 7º caminho one-time e também carimba.
+  'checkout: os 7 caminhos de pack (5 + passe do Studio Ads + pacote 3 filmes) seguem carimbando skuContext.settlement_currency',
+  packsComSettlement === 7
 )
 
 // ── 5. A parede do checkout: ramo COM DONO ────────────────────────────────

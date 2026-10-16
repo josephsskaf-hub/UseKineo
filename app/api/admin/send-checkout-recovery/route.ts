@@ -50,6 +50,7 @@ import { stripe } from '@/lib/stripe'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { pickMomentumTopic } from '@/lib/momentumTopic'
+import { dfyFilms3EntryCopy, dfyFilms3EntryHref } from '@/lib/dfyFilms3' // KINEO-PACOTE-3-FILMES-1610
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -138,6 +139,12 @@ function planoUrl(): string {
   return `${SITE}/pricing?utm_source=lifecycle&utm_medium=email&utm_campaign=checkout_recovery`
 }
 
+// KINEO-PACOTE-3-FILMES-1610 — P.S. para quem não quer assinar: a equipe faz 3 filmes por US$ 19, pagamento único.
+// É produto, não desconto: nenhuma frase da carta passa a prometer crédito, cupom ou abatimento.
+function dfyFilms3Url(): string {
+  return `${SITE}${dfyFilms3EntryHref('checkout_recovery_email')}&utm_source=lifecycle&utm_medium=email&utm_campaign=checkout_recovery`
+}
+
 function assunto(filme: string | null): string {
   // Sem urgência falsa e sem promoção: é literalmente o que aconteceu.
   return filme
@@ -171,6 +178,9 @@ If it was not the tab — if it was the price, or something the page did not ans
 If you would rather look at the plans again first, they are here:
 ${planoUrl()}
 
+P.S. ${dfyFilms3EntryCopy()}, one-time, no subscription:
+${dfyFilms3Url()}
+
 — Joseph, founder
 Kineo · usekineo.com
 ${emailFooterText(userId)}`
@@ -192,6 +202,7 @@ function corpoHtml(filme: string | null, recoveryUrl: string, userId: string, te
 </p>
 <p>If it was not the tab &mdash; if it was the price, or something the page did not answer &mdash; hit reply and tell me in one sentence. It comes straight to me, and I would rather know than guess.</p>
 <p style="font-size:14px;color:#555">If you would rather look at <a href="${planoUrl()}" style="color:#2997ff">the plans</a> again first, that is fine too.</p>
+<p style="font-size:14px;color:#555">P.S. <a href="${dfyFilms3Url()}" style="color:#2997ff">${dfyFilms3EntryCopy()}</a>, one-time, no subscription.</p>
 <p>&mdash; Joseph, founder<br/>Kineo &middot; <a href="https://usekineo.com" style="color:#2997ff">usekineo.com</a></p>
 ${emailFooterHtml(userId)}</div>`
 }

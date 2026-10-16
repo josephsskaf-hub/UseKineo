@@ -32,7 +32,8 @@ import { readBulkCheckoutTruthVersion } from '@/lib/growth/bulkCheckoutTruth'
 // puro lib/growth/dfySession.ts, que lê os MESMOS números de lib/growth/dfyOffer: a página de briefing pós-pagamento
 // autoriza pela Stripe com a MESMA regra deste webhook, sem cópia. O alerta ao fundador vem de lib/founderAlert.ts.
 import { dfySessionTier, isDfyOrderSession } from '@/lib/growth/dfySession'
-import { alertFounderAdsPass, alertFounderDfyOrder, alertFounderOnce, paidAmountLabel } from '@/lib/founderAlert'
+import { alertFounderAdsPass, alertFounderDfyFilms3Order, alertFounderDfyOrder, alertFounderOnce, paidAmountLabel } from '@/lib/founderAlert' // KINEO-PACOTE-3-FILMES-1610 (+ alertFounderDfyFilms3Order)
+import { DFY_FILMS3_EVENTS, DFY_FILMS3_PACK_ID, DFY_FILMS3_PRICE_USD_MINOR, isDfyFilms3Session } from '@/lib/dfyFilms3' // KINEO-PACOTE-3-FILMES-1610
 // KINEO-PILOT-99-2026-07-26 — o nome do plano e o cálculo do prazo são os MESMOS
 // que o cron lê. Se divergirem, o piloto ou nunca expira ou nunca gera.
 import { AUTOPILOT_PILOT_PLAN, autopilotPilotExpiresAt } from '@/lib/autopilot/config'
@@ -1037,6 +1038,127 @@ async function recordDfyOrderPaid(
   }
 }
 
+// ═══ KINEO-PACOTE-3-FILMES-1610 — o pacote "3 filmes feitos por nós" (US$ 19) vira pedido PAGO ═══════════════════
+// Reconhecido SÓ por metadata.pack === 'dfy_films3' (isDfyFilms3Session): 1900 é também o valor do bulk10 e do legado
+// "$19 → 25 créditos" do fallback por valor logo abaixo — por isso este ramo vem ANTES de qualquer conta de crédito.
+// Não concede crédito, plano nem has_paid: o filme é feito por gente. Idempotente em três camadas:
+//   1. UPDATE guardado por status = 'pending_payment' (a reentrega encontra 'paid' e não regrava nada);
+//   2. stripe_session_id é UNIQUE na tabela (o mesmo pagamento nunca vira dois pedidos);
+//   3. o evento dfy_films3_order_paid tem id determinístico (sha256 da sessão) → 23505 na reentrega.
+// Lança RetryableCheckoutAnalyticsError (→ 500 → a Stripe reenvia) só quando o pedido NÃO ficou gravado; a retomada
+// do evento duplicado está liberada no guard de stripe_events (mesmo tratamento do pedido Empresas).
+async function recordDfyFilms3OrderPaid(
+  supabase: AdminClient,
+  stripeEventId: string,
+  session: Stripe.Checkout.Session,
+): Promise<{ orderId: string | null; topic: string; language: string; style: string | null; fresh: boolean }> {
+  const meta = session.metadata ?? {}
+  const orderIdRaw = (meta.dfy_order_id ?? '').trim()
+  const orderId = /^[0-9a-f-]{36}$/i.test(orderIdRaw) ? orderIdRaw : null
+  const userId = sessionOwnerUuid(session)
+  const nowIso = new Date().toISOString()
+  const paidFields = {
+    status: 'paid',
+    paid_at: nowIso,
+    stripe_session_id: session.id,
+    amount_total: session.amount_total ?? null,
+    currency: session.currency ?? null,
+  }
+  let topic = (meta.dfy_topic ?? '').trim()
+  let language = (meta.dfy_language ?? '').trim()
+  let style: string | null = (meta.dfy_style ?? '').trim() || null
+  let fresh = false
+  let finalOrderId: string | null = orderId
+
+  // (1) o pedido salvo antes do pagamento passa de 'pending_payment' para 'paid' — uma vez só.
+  if (orderId) {
+    const { data: updated, error: updErr } = await supabase
+      .from('done_for_you_orders')
+      .update(paidFields)
+      .eq('id', orderId)
+      .eq('status', 'pending_payment')
+      .select('id, topic, language, style')
+    if (updErr && updErr.code !== '23505') {
+      console.error('[stripe webhook] dfy_films3 order update error:', updErr.code, updErr.message)
+      throw new RetryableCheckoutAnalyticsError(`dfy_films3 order not recorded (${updErr.code ?? 'unknown'})`)
+    }
+    if (updated && updated.length > 0) {
+      fresh = true
+      topic = String(updated[0].topic ?? topic)
+      language = String(updated[0].language ?? language)
+      style = typeof updated[0].style === 'string' ? updated[0].style : style
+    }
+  }
+
+  // (2) nada mudou: ou já estava pago (reentrega), ou o pedido sumiu → grava pela cópia da metadata.
+  if (!fresh) {
+    const { data: existing, error: selErr } = await supabase
+      .from('done_for_you_orders')
+      .select('id, status, topic, language, style')
+      .or(orderId ? `id.eq.${orderId},stripe_session_id.eq.${session.id}` : `stripe_session_id.eq.${session.id}`)
+      .limit(1)
+    if (selErr) {
+      console.error('[stripe webhook] dfy_films3 order lookup error:', selErr.code, selErr.message)
+      throw new RetryableCheckoutAnalyticsError(`dfy_films3 order lookup failed (${selErr.code ?? 'unknown'})`)
+    }
+    if (existing && existing.length > 0) {
+      finalOrderId = String(existing[0].id)
+      topic = String(existing[0].topic ?? topic)
+      language = String(existing[0].language ?? language)
+      style = typeof existing[0].style === 'string' ? existing[0].style : style
+    } else {
+      const row = {
+        ...(orderId ? { id: orderId } : {}),
+        user_id: userId,
+        email: session.customer_details?.email ?? session.customer_email ?? null,
+        topic: topic || '(topic missing — ask the customer)',
+        language: language || 'en',
+        style,
+        price_usd_minor: DFY_FILMS3_PRICE_USD_MINOR,
+        ...paidFields,
+      }
+      let { data: ins, error: insErr } = await supabase.from('done_for_you_orders').insert(row).select('id').limit(1)
+      if (insErr && userId && isOwnerRejection(insErr.code)) {
+        ;({ data: ins, error: insErr } = await supabase.from('done_for_you_orders').insert({ ...row, user_id: null }).select('id').limit(1))
+      }
+      if (insErr && insErr.code !== '23505') {
+        console.error('[stripe webhook] dfy_films3 order insert error:', insErr.code, insErr.message)
+        throw new RetryableCheckoutAnalyticsError(`dfy_films3 order not recorded (${insErr.code ?? 'unknown'})`)
+      }
+      fresh = !insErr
+      finalOrderId = ins?.[0]?.id ? String(ins[0].id) : finalOrderId
+    }
+  }
+
+  // (3) o evento do pedido pago, 1× por sessão (id determinístico).
+  const eventHex = createHash('sha256').update(`${DFY_FILMS3_EVENTS.orderPaid}:${session.id}`).digest('hex').slice(0, 32)
+  const eventRow = {
+    id: `${eventHex.slice(0, 8)}-${eventHex.slice(8, 12)}-${eventHex.slice(12, 16)}-${eventHex.slice(16, 20)}-${eventHex.slice(20)}`,
+    name: DFY_FILMS3_EVENTS.orderPaid,
+    user_id: userId,
+    path: '/api/stripe/webhook',
+    session_id: null,
+    metadata: {
+      source: 'stripe_webhook',
+      stripe_event_id: stripeEventId,
+      stripe_session_id: session.id,
+      order_id: finalOrderId,
+      pack: DFY_FILMS3_PACK_ID,
+      amount_total: session.amount_total ?? null,
+      currency: session.currency ?? null,
+      language,
+      version: meta.dfy_version ?? null,
+    },
+  }
+  const { error: evErr } = await supabase.from('events').insert(eventRow)
+  if (evErr && evErr.code !== '23505') {
+    if (userId && isOwnerRejection(evErr.code)) await supabase.from('events').insert({ ...eventRow, user_id: null })
+    else console.error('[stripe webhook] dfy_films3_order_paid event error (order already recorded):', evErr.code, evErr.message)
+  }
+  console.log('[stripe webhook] dfy_films3 order paid:', session.id, finalOrderId ?? '(no order id)', fresh ? 'fresh' : 'already recorded')
+  return { orderId: finalOrderId, topic, language, style, fresh }
+}
+
 async function recordAsyncCheckoutState(
   session: Stripe.Checkout.Session,
   outcome: StripeAsyncCheckoutOutcome,
@@ -1463,7 +1585,9 @@ export async function POST(req: NextRequest) {
         // carimbo em stripe_events e o insert de dfy_order_paid, a reentrega da Stripe voltava aqui e saía
         // como duplicate:true — pedido pago sem linha no banco. recordPaymentSuccess e recordDfyOrderPaid
         // são idempotentes (dedupe por stripe_session_id + id determinístico), então reexecutar é seguro.
-        if (!duplicateSession || (duplicateSession.mode !== 'subscription' && !duplicateSafeObservation && !isDfyOrderSession(duplicateSession))) {
+        // KINEO-PACOTE-3-FILMES-1610 — o pacote "3 filmes" também retoma: recordDfyFilms3OrderPaid é idempotente (UPDATE guardado
+        // por status, stripe_session_id único, evento com id determinístico) e não concede nada.
+        if (!duplicateSession || (duplicateSession.mode !== 'subscription' && !duplicateSafeObservation && !isDfyOrderSession(duplicateSession) && !isDfyFilms3Session(duplicateSession))) {
           return NextResponse.json({ received: true, duplicate: true })
         }
         console.warn('[stripe webhook] resuming idempotent Checkout event:', event.id, duplicateSession.id)
@@ -1525,6 +1649,13 @@ export async function POST(req: NextRequest) {
           if (isDfyOrderSession(session)) {
             await recordDfyOrderPaid(supabase, event.id, session)
             await alertFounderDfyOrder(session)
+            break
+          }
+          // KINEO-PACOTE-3-FILMES-1610 — "3 filmes feitos por nós" (US$ 19): ANTES do fallback por valor (1900 = legado
+          // "$19 → 25 créditos" e bulk10). Grava o pedido pago, avisa o fundador (1×/sessão) e sai sem conceder nada.
+          if (isDfyFilms3Session(session)) {
+            const films3 = await recordDfyFilms3OrderPaid(supabase, event.id, session)
+            await alertFounderDfyFilms3Order({ session, orderId: films3.orderId, topic: films3.topic, language: films3.language, style: films3.style })
             break
           }
 

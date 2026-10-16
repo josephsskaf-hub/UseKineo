@@ -94,7 +94,8 @@ checa('Price id do Autopilot (USD) só entra quando a sessão é USD', /tier ===
 {
   const n = (rt.match(/const chargeAmount = settlementAmountMinor\(unitAmount, chargeCurrency\)/g) || []).length
   // KINEO-STUDIO-ADS-2026-09-25 — reancorado com motivo: o passe do Studio Ads é o 6º builder avulso e decide a moeda igual.
-  checa('SKUs avulsos (pack, $2,90, top-up, piloto, atacado, passe do Studio Ads): 6 builders decidem a moeda', n === 6)
+  // KINEO-PACOTE-3-FILMES-1610 — reancorado com motivo: o pacote "3 filmes" (US$ 19) é o 7º builder avulso e decide a moeda igual.
+  checa('SKUs avulsos (pack, $2,90, top-up, piloto, atacado, passe do Studio Ads, pacote 3 filmes): 7 builders decidem a moeda', n === 7)
   const nCur = (rt.match(/^\s+currency: chargeCurrency,$/gm) || []).length
   const nAmt = (rt.match(/^\s+unit_amount: chargeAmount,$/gm) || []).length
   checa('SKUs avulsos: price_data E chave de idempotência usam a moeda/valor cobrados (6×2 + plano)', nCur >= 13 && nAmt >= 13)

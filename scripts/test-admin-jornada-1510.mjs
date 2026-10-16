@@ -27,6 +27,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { renderPage } from './preview-ux-complete.mjs'
 import { execFileSync } from 'node:child_process'
 import { semAdminJornada1510, ARQUIVOS_ADMIN_JORNADA_1510, MARCA_ADMIN_JORNADA_1510 } from './test-support/desfaz-admin-jornada-1510.mjs'
+import { semPacote3Filmes1610 } from './test-support/desfaz-pacote-3-filmes-1610.mjs' // KINEO-PACOTE-3-FILMES-1610
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -408,7 +409,9 @@ async function provas(over = {}) {
     return ARQUIVOS_ADMIN_JORNADA_1510.length === 2 && ARQUIVOS_ADMIN_JORNADA_1510.every((f) => {
       const vivo = over[f] ?? rd(f)
       const pai = lf(execFileSync('git', ['show', `${PAI}:${f}`], { cwd: ROOT, encoding: 'utf8' }))
-      return vivo.includes(MARCA_ADMIN_JORNADA_1510) && lf(semAdminJornada1510(f, vivo)) === pai && !pai.includes(MARCA_ADMIN_JORNADA_1510)
+      // reancorado KINEO-PACOTE-3-FILMES-1610 — o pacote "3 filmes" (+ "Pedidos 3 filmes" no grupo Operação, vizinho do atalho
+      // Clientes) chegou depois: sai primeiro, pelo desfaz EXATO dele, e só então o desta aba roda contra o pai.
+      return vivo.includes(MARCA_ADMIN_JORNADA_1510) && lf(semAdminJornada1510(f, semPacote3Filmes1610(f, vivo))) === pai && !pai.includes(MARCA_ADMIN_JORNADA_1510)
     }) && lanca(() => semAdminJornada1510(F.shell, rd(F.shell).replace("['/admin/clientes', 'Clientes']", "['/admin/clientes', 'Clientes ']")))
   })
   return res

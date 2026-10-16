@@ -323,7 +323,9 @@ const { semClareza1610, CHECKOUT_CLAREZA_1610_ARQUIVOS } = await import('./test-
 const { semAfiliadoPorPost1610 } = await import('./test-support/desfaz-afiliado-por-post-1610.mjs')
 const { semAfiliadoDestino1610 } = await import('./test-support/desfaz-afiliado-destino-1610.mjs')
 const { semPrecosClipesKling25_1610 } = await import('./test-support/desfaz-precos-clipes-kling25-1610.mjs')
-const semIrmas = (f, t) => semPrecosClipesKling25_1610(f, semAfiliadoDestino1610(f, semAfiliadoPorPost1610(f, t)))
+// reancorado KINEO-PACOTE-3-FILMES-1610 — o pacote "3 filmes" (checkout, eventos, /pricing, modal) chegou por último: sai primeiro.
+const { semPacote3Filmes1610 } = await import('./test-support/desfaz-pacote-3-filmes-1610.mjs')
+const semIrmas = (f, t) => semPrecosClipesKling25_1610(f, semAfiliadoDestino1610(f, semAfiliadoPorPost1610(f, semPacote3Filmes1610(f, t))))
 const gitOut = (...a) => execFileSync('git', ['-C', root, ...a], { encoding: 'utf8', maxBuffer: 64 << 20 })
 const meus = gitOut('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, 'HEAD').trim().split('\n').filter(Boolean)
 const PAI = meus.length ? `${meus[meus.length - 1]}~1` : 'HEAD'

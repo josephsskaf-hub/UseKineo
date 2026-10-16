@@ -420,7 +420,10 @@ await check('D2 todo bloco do desfaz traz a marca; o diff do commit contra a bas
   const src = rd('scripts/test-support/desfaz-ads-produto-na-mao-1610.mjs')
   const D = JSON.parse(src.split('\n').find((l) => l.startsWith('const DESFAZ = ')).slice('const DESFAZ = '.length))
   const blocos = Object.values(D).flat()
-  const tocados = (BASE === 'HEAD' ? [] : git('diff', '--name-only', BASE, 'HEAD').trim().split('\n').filter(Boolean)).concat(git('diff', '--name-only', 'HEAD').trim().split('\n').filter(Boolean))
+  // reancorado KINEO-PACOTE-3-FILMES-1610 — o diff commitado é medido até o ÚLTIMO commit com a marca (não até HEAD): uma camada
+  // que chega depois (o pacote "3 filmes") não é um toque desta. Edição solta (não commitada) continua proibida, como sempre.
+  const TOPO = BASE === 'HEAD' ? 'HEAD' : (git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, 'HEAD').trim().split('\n').filter(Boolean)[0] || 'HEAD')
+  const tocados = (BASE === 'HEAD' ? [] : git('diff', '--name-only', BASE, TOPO).trim().split('\n').filter(Boolean)).concat(git('diff', '--name-only', 'HEAD').trim().split('\n').filter(Boolean))
   const permitidos = new Set([...PRODUTO_NA_MAO_1610_ARQUIVOS, ...PRODUTO_NA_MAO_1610_NOVOS])
   return blocos.length > 0 && blocos.every((h) => h.now.join('\n').includes(MARCA)) && tocados.every((f) => permitidos.has(f)) && [F.tiers, F.engines, F.shotLists, F.server, F.startCore, 'lib/ads/v2Billing.ts', 'app/api/ads/v2/start/route.ts', 'app/api/ads/v2/plan/route.ts'].every((f) => base(f) === rd(f))
 })

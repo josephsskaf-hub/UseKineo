@@ -82,6 +82,7 @@ import { buildSubscriptionCheckoutSuccessUrl } from '@/lib/growth/checkoutSucces
 import { planSettlementAmountMinor, resolveSettlementCurrency, settlementAmountMinor } from '@/lib/settlementCurrency'
 import { ADS_OFFER_VERSION, ADS_PASS_CREDITS, ADS_PASS_ID, ADS_PASS_USD_MINOR, ADS_PRODUCT_NAME, adsPassLive } from '@/lib/ads/offer' // KINEO-STUDIO-ADS-2026-09-25
 import { isAdsInternalEmail } from '@/lib/ads/access' // KINEO-STUDIO-ADS-2026-09-25 (lista exata; revisão 24/09)
+import { DFY_FILMS3_FILMS, DFY_FILMS3_FILM_SECONDS, DFY_FILMS3_DELIVERY_HOURS, DFY_FILMS3_PACK_ID, DFY_FILMS3_PRICE_USD_MINOR, DFY_FILMS3_VERSION, briefMetadata, dfyFilms3Eligible } from '@/lib/dfyFilms3' // KINEO-PACOTE-3-FILMES-1610
 import { AUTOPILOT_UNAVAILABLE_MESSAGE, AUTOPILOT_UNAVAILABLE_REASON, autopilotCheckoutOpen, isAutopilotFamilySku } from '@/lib/autopilotPublic' // KINEO-AUTOPILOT-FORA-2026-10-09
 import { BULK_PACK_REPLACEMENT_PATH, BULK_PACK_UNAVAILABLE_MESSAGE, BULK_PACK_UNAVAILABLE_REASON, bulkPackCheckoutOpen, isBulkPackSku } from '@/lib/bulkPacksPublic' // KINEO-PAGINAS-QUE-VENDEM-2026-10-12
 import { ADS_ACCESS_COLUMN } from '@/lib/ads/offer'
@@ -4182,6 +4183,135 @@ async function buildAdsPassAndRedirect(req: NextRequest, isGet: boolean): Promis
   return isGet ? NextResponse.redirect(session.url!) : NextResponse.json({ url: session.url })
 }
 
+// ═══ KINEO-PACOTE-3-FILMES-1610 — "3 filmes feitos por nós" (?pack=dfy_films3&order=<uuid>) ═══════════════════════
+// Mesmo trilho do passe avulso e do passe do Studio Ads: Checkout Session mode 'payment', price_data inline (nenhum
+// produto/preço criado na Stripe), preço de lista em USD e moeda de liquidação do país (Brasil = reais pela fórmula da
+// casa), chave de idempotência por pedido. O briefing foi salvo ANTES por /api/dfy-films/order; aqui só entra o id do
+// pedido, conferido contra o dono e o status 'pending_payment'. O webhook reconhece a sessão por metadata.pack exata e
+// marca o pedido pago (sem crédito, sem plano: o filme é feito por gente).
+async function buildDfyFilms3AndRedirect(req: NextRequest): Promise<NextResponse> {
+  const appUrl = req.nextUrl.origin
+  const browserSessionId = browserSessionIdFrom(req)
+  let failureUserId: string | null = null
+  const skuContext: Record<string, unknown> = { sku: DFY_FILMS3_PACK_ID, mode: 'payment', dfy_version: DFY_FILMS3_VERSION }
+  async function redirectError(msg: string) {
+    await recordCheckoutEvent('checkout_failed', failureUserId, { ...skuContext, stage: 'redirect', reason: checkoutFailureReason(msg) }, browserSessionId)
+    return NextResponse.redirect(`${appUrl}/done-for-you?checkout_error=${encodeURIComponent(msg)}`)
+  }
+  if (!process.env.STRIPE_SECRET_KEY) {
+    console.error('[stripe/checkout] STRIPE_SECRET_KEY is not set')
+    return redirectError('Payment service is not configured. Please contact support.')
+  }
+
+  const unitAmount = DFY_FILMS3_PRICE_USD_MINOR
+  const settlement = resolveSettlementCurrency({
+    ipCountry: req.headers.get('x-vercel-ip-country') ?? 'US',
+    acceptLanguage: req.headers.get('accept-language'),
+    forced: req.nextUrl.searchParams.get('currency'),
+  })
+  const chargeCurrency = settlement.currency
+  const chargeAmount = settlementAmountMinor(unitAmount, chargeCurrency)
+  skuContext.currency = 'usd'
+  skuContext.unit_amount = unitAmount
+  skuContext.settlement_currency = chargeCurrency
+  skuContext.charge_amount = chargeAmount
+
+  const supabase = createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  failureUserId = user?.id ?? null
+  await recordCheckoutEvent('checkout_attempted', user?.id ?? null, skuContext, browserSessionId)
+  if (authError || !user) {
+    await recordCheckoutEvent('checkout_auth_required', null, skuContext, browserSessionId)
+    // A página exige login; quem chega aqui sem sessão volta para ela depois do cadastro (o briefing é refeito lá).
+    return NextResponse.redirect(`${appUrl}/signup?redirect=${encodeURIComponent('/done-for-you')}`)
+  }
+
+  const orderId = (req.nextUrl.searchParams.get('order') ?? '').trim()
+  if (!/^[0-9a-f-]{36}$/i.test(orderId)) return redirectError('Write your topic first, then pay.')
+  skuContext.dfy_order_id = orderId
+
+  const svcUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const svcKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!svcUrl || !svcKey) return redirectError('This offer is temporarily unavailable.')
+  const admin = createAdminClient(svcUrl, svcKey, { auth: { persistSession: false, autoRefreshToken: false } })
+  const [{ data: order, error: orderErr }, { data: profile }] = await Promise.all([
+    admin.from('done_for_you_orders').select('id, user_id, status, topic, language, style').eq('id', orderId).maybeSingle(),
+    admin.from('profiles').select('email, stripe_customer_id, plan').eq('id', user.id).maybeSingle(),
+  ])
+  if (orderErr) {
+    console.error('[stripe/checkout] dfy films order read failed:', orderErr.code, orderErr.message)
+    return redirectError('This offer is temporarily unavailable.')
+  }
+  if (!order || order.user_id !== user.id) return redirectError('We could not find your order. Please write your topic again.')
+  if (order.status !== 'pending_payment') return redirectError('This order is already paid. We are on it.')
+  if (!dfyFilms3Eligible(profile)) return redirectError('You already have a plan: your credits make these films in the Studio.')
+
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    mode: 'payment',
+    line_items: [
+      {
+        price_data: {
+          currency: chargeCurrency,
+          product_data: {
+            name: `Kineo — ${DFY_FILMS3_FILMS} films made for you`,
+            description: `${DFY_FILMS3_FILMS} short films (~${DFY_FILMS3_FILM_SECONDS} s each) made by the Kineo team on your topic, delivered to your Library within ${DFY_FILMS3_DELIVERY_HOURS} hours. One-time payment, no subscription.`,
+          },
+          unit_amount: chargeAmount,
+        },
+        quantity: 1,
+      },
+    ],
+    client_reference_id: user.id,
+    success_url: `${appUrl}/done-for-you?paid=1&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${appUrl}/done-for-you?checkout=cancelled`,
+    metadata: {
+      supabase_user_id: user.id,
+      // metadata.pack é a ÚNICA chave do webhook para este pacote (1900 também é o valor do bulk10).
+      pack: DFY_FILMS3_PACK_ID,
+      dfy_order_id: orderId,
+      dfy_version: DFY_FILMS3_VERSION,
+      ...briefMetadata({ topic: String(order.topic ?? ''), language: String(order.language ?? ''), style: typeof order.style === 'string' ? order.style : null }),
+    },
+  }
+  if (profile?.stripe_customer_id) sessionParams.customer = profile.stripe_customer_id
+  else sessionParams.customer_email = profile?.email ?? user.email ?? undefined
+
+  const dfyIdempotencyKey = oneTimeIdempotencyKey({
+    sku: DFY_FILMS3_PACK_ID,
+    user_id: user.id,
+    order_id: orderId,
+    currency: chargeCurrency,
+    unit_amount: chargeAmount,
+    contract_version: DFY_FILMS3_VERSION,
+    description: sessionParams.line_items?.[0]?.price_data?.product_data?.description,
+    customer: sessionParams.customer ?? null,
+  })
+
+  let session: Stripe.Checkout.Session
+  try {
+    session = await stripe.checkout.sessions.create(sessionParams, { idempotencyKey: dfyIdempotencyKey })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    if (msg.toLowerCase().includes('cannot combine currencies')) {
+      delete sessionParams.customer
+      sessionParams.customer_email = profile?.email ?? user.email ?? undefined
+      try {
+        session = await stripe.checkout.sessions.create(sessionParams, { idempotencyKey: `${dfyIdempotencyKey}:email` })
+      } catch (retryErr) {
+        console.error('[stripe/checkout] dfy films retry failed:', retryErr instanceof Error ? retryErr.message : String(retryErr))
+        return redirectError('Payment session failed. Please try again.')
+      }
+    } else {
+      console.error('[stripe/checkout] dfy films session error:', msg)
+      return redirectError('Payment session failed. Please try again.')
+    }
+  }
+
+  console.log(`[stripe/checkout] dfy films session: user=${user.id.slice(0, 8)} order=${orderId.slice(0, 8)} amount=${chargeAmount} ${chargeCurrency}`)
+  await recordCheckoutEvent('checkout_started', user.id, { ...skuContext, stripe_session_id: session.id }, browserSessionId)
+  return NextResponse.redirect(session.url!)
+}
+
 // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — buildAvatarPackAndRedirect() removed.
 // Avatar packs sold profiles.avatar_credits, now unspendable (avatar generation
 // costs 120 universal video_credits). ?pack=avatar* now returns a clean 410 in
@@ -4239,6 +4369,11 @@ export async function GET(req: NextRequest) {
       // KINEO-STUDIO-ADS-2026-09-25 — passe do Studio Ads (desligado por NEXT_PUBLIC_ADS_PASS_LIVE; interno passa).
       if (packParam === ADS_PASS_ID) {
         return await buildAdsPassAndRedirect(req, true)
+      }
+      // KINEO-PACOTE-3-FILMES-1610 — "3 filmes feitos por nós" (US$ 19, único). ANTES do fallback buildPackAndRedirect,
+      // que venderia um Starter Pack no lugar sem erro nenhum.
+      if (packParam === DFY_FILMS3_PACK_ID) {
+        return await buildDfyFilms3AndRedirect(req)
       }
       if (isBulkPackId(packParam)) {
         const closedPack = await refuseClosedBulkPackCheckout(req, packParam) // KINEO-PAGINAS-QUE-VENDEM-2026-10-12

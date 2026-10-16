@@ -8,7 +8,7 @@ export const ADMIN_GROUPS = [
   { label: 'Negócio', pages: [['/admin', 'Visão geral'], ['/admin/paying', 'Pagantes'], ['/admin/overview', 'Indicadores']] },
   { label: 'Aquisição', pages: [['/admin/leads', 'Oportunidades'], ['/admin/funnel', 'Funil'], ['/admin/affiliates', 'Afiliados'], ['/admin/partners', 'Parceiros'], ['/admin/demo', 'Demo sob medida']] }, // KINEO-DEMO-SOB-MEDIDA-1510 — + a máquina de demo do B2B
   { label: 'Pessoas', pages: [['/admin/clientes', 'Clientes'], ['/admin/people', 'Pessoas'], ['/admin/users', 'Contas']] }, // KINEO-ADMIN-JORNADA-1510 — atalho da aba Clientes
-  { label: 'Operação', pages: [['/admin/ads', 'Pedidos Ads'], ['/admin/supplier-health', 'Fornecedores'], ['/admin/coerencia', 'Qualidade'], ['/admin/metrics', 'Métricas']] },
+  { label: 'Operação', pages: [['/admin/ads', 'Pedidos Ads'], ['/admin/pedidos', 'Pedidos 3 filmes'], ['/admin/supplier-health', 'Fornecedores'], ['/admin/coerencia', 'Qualidade'], ['/admin/metrics', 'Métricas']] }, // KINEO-PACOTE-3-FILMES-1610 — + Pedidos 3 filmes
   { label: 'Trial', pages: [['/admin/trial-roi', 'Retorno do trial'], ['/admin/trial-cohort', 'Coortes'], ['/admin/trial-abuse', 'Risco do trial']] },
 ] as const
 

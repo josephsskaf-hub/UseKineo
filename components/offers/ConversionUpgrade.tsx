@@ -7,6 +7,7 @@ import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { PUBLIC_ENGINE_EXAMPLES } from '@/lib/publicExamples'
 import type { CheckoutCurrency, PriceRegion } from '@/lib/checkoutPricing'
 import { MONEY_BACK_GUARANTEE } from '@/lib/checkoutPricing' // KINEO-CHECKOUT-CLAREZA-1610 — a garantia única
+import { dfyFilms3EntryCopy, dfyFilms3EntryHref } from '@/lib/dfyFilms3' // KINEO-PACOTE-3-FILMES-1610
 import {
   ANNUAL_DISCOUNT_PERCENT, CONVERSION_NAMES, CONVERSION_TIERS,
   MRR_CONVERSION_ENABLED, MRR_CONVERSION_VERSION, conversionCheckoutHref,
@@ -242,6 +243,8 @@ export default function ConversionUpgrade({ currency, region, onClose, onUpgrade
       <p style={{ color: 'var(--muted)', fontSize: 12, lineHeight: 1.5 }}>Capacity uses Seedance 1.5, with the entire allowance used for one format, without extras. Films and clips are alternatives, not added together.</p>
       {/* KINEO-CHECKOUT-CLAREZA-1610 — a garantia única (a mesma do /pricing), sob os botões de pagar, nos dois modos. */}
       <p data-testid="upgrade-guarantee" style={{ color: 'var(--muted)', fontSize: 12 }}>{MONEY_BACK_GUARANTEE} Cancel anytime. <a href="/terms">Terms</a></p>
+      {/* KINEO-PACOTE-3-FILMES-1610 — saída discreta para quem não quer assinar: a equipe faz 3 filmes por US$ 19, único. */}
+      <p data-testid="upgrade-dfy-films3" style={{ color: 'var(--muted)', fontSize: 12, margin: '4px 0 0' }}><a href={dfyFilms3EntryHref('upgrade_modal')} style={{ color: 'inherit' }}>{dfyFilms3EntryCopy()}</a></p>
       {error && <p role="alert" style={{ color: 'var(--danger, #d43b3b)' }}>{error}</p>}
     </div>
   </div>
