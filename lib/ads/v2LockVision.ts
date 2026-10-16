@@ -139,9 +139,18 @@ export function adsV2InHandLabelBody(productUrl: string, sceneUrl: string, objec
 /** KINEO-ADS-MAO-JUIZ-1610 — o modelo do juiz do produto na mão: constante PRÓPRIA (padrão = o de visão do registro; o coordenador troca depois da calibração). */
 export const ADS_V2_IN_HAND_JUDGE_MODEL: string = AI_TEXT_MODELS.vision // KINEO-ADS-MAO-JUIZ-1610
 /** KINEO-ADS-MAO-JUIZ-1610 — os recortes da fidelidade (servidor: lib/ads/v2ProductInHandCrop.ts): o produto real só com o objeto do plano e o produto da foto gerada. null = sem recorte (as fotos inteiras). */
-export type AdsV2InHandCropFn = (a: { sceneUrl: string; objectBox: AdsV2InHandBox2d | null; object: AdsV2InHandObject | null }) => Promise<{ reference: string; generated: string } | null> // KINEO-ADS-MAO-JUIZ-1610
+export type AdsV2InHandCropFn = (a: { sceneUrl: string; objectBox: AdsV2InHandBox2d | null; object: AdsV2InHandObject | null; whole?: boolean }) => Promise<{ reference: string; generated: string } | null> // KINEO-ADS-MAO-JUIZ-1610 · KINEO-JUIZ-GRADE-1610 — + whole (variante B: o recorte BiRefNet da foto gerada inteira, sem a caixa do modelo)
 /** KINEO-ADS-MAO-JUIZ-1610 — a resposta crua das 2 etapas (a calibração mostra; o avanço não usa). */
-export interface AdsV2InHandJudgeRaw { inventory: unknown; fidelity: unknown; crop: boolean } // KINEO-ADS-MAO-JUIZ-1610
+export interface AdsV2InHandJudgeRaw { inventory: unknown; fidelity: unknown; crop: boolean; variant?: AdsV2InHandJudgeVariant } // KINEO-ADS-MAO-JUIZ-1610 · KINEO-JUIZ-GRADE-1610 — + variant (só na B)
+// KINEO-JUIZ-GRADE-1610 — o MODELO e a VARIANTE do juiz são escolha SÓ da calibração (POST /api/admin/ads-judge-calibrate). Sem `judge` (o avanço, lib/ads/v2Advance.ts)
+// KINEO-JUIZ-GRADE-1610 — = ADS_V2_IN_HAND_JUDGE_MODEL e a variante A, os MESMOS corpos de sempre. A troca de produção é outra tarefa, depois da calibração.
+import { ADS_V2_IN_HAND_INVENTORY_QUESTION_B, adsV2InHandFidelityQuestionB, adsV2InHandTwoStageVerdictB, adsV2ParseInHandInventoryB, type AdsV2InHandJudgeVariant } from '@/lib/ads/v2ProductInHand' // KINEO-JUIZ-GRADE-1610
+/** KINEO-JUIZ-GRADE-1610 — o modelo e a variante de uma chamada do juiz (a calibração passa; o avanço não). */
+export interface AdsV2InHandJudgeOpts { model?: string; variant?: AdsV2InHandJudgeVariant } // KINEO-JUIZ-GRADE-1610
+/** KINEO-JUIZ-GRADE-1610 — sem opção = o modelo do juiz e a variante A. Pura. */
+export function adsV2InHandJudgeOf(judge?: AdsV2InHandJudgeOpts | null): { model: string; variant: AdsV2InHandJudgeVariant } { // KINEO-JUIZ-GRADE-1610
+  return { model: typeof judge?.model === 'string' && judge.model ? judge.model : ADS_V2_IN_HAND_JUDGE_MODEL, variant: judge?.variant === 'B' ? 'B' : 'A' } // KINEO-JUIZ-GRADE-1610
+} // KINEO-JUIZ-GRADE-1610
 /** KINEO-ADS-MAO-JUIZ-1610 — o corpo do inventário (puro): 1 imagem 'high' ANTES do texto, temperatura 0, JSON, o modelo do juiz. */
 export function adsV2InHandInventoryBody(sceneUrl: string): Record<string, unknown> { // KINEO-ADS-MAO-JUIZ-1610
   return { model: ADS_V2_IN_HAND_JUDGE_MODEL, temperature: 0, max_tokens: 700, response_format: { type: 'json_object' }, messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: sceneUrl, detail: 'high' } }, { type: 'text', text: ADS_V2_IN_HAND_INVENTORY_QUESTION }] }] } // KINEO-ADS-MAO-JUIZ-1610
@@ -150,6 +159,21 @@ export function adsV2InHandInventoryBody(sceneUrl: string): Record<string, unkno
 export function adsV2InHandFidelityBody(referenceUrl: string, generatedUrl: string, object: AdsV2InHandObject | null, crop: boolean): Record<string, unknown> { // KINEO-ADS-MAO-JUIZ-1610
   return { model: ADS_V2_IN_HAND_JUDGE_MODEL, temperature: 0, max_tokens: 150, response_format: { type: 'json_object' }, messages: [{ role: 'user', content: [{ type: 'text', text: 'Image 1 (REFERENCE):' }, { type: 'image_url', image_url: { url: referenceUrl, detail: 'high' } }, { type: 'text', text: 'Image 2 (GENERATED):' }, { type: 'image_url', image_url: { url: generatedUrl, detail: 'high' } }, { type: 'text', text: adsV2InHandFidelityQuestion(object, crop) }] }] } // KINEO-ADS-MAO-JUIZ-1610
 } // KINEO-ADS-MAO-JUIZ-1610
+/** KINEO-JUIZ-GRADE-1610 — o corpo do inventário com o modelo e a variante da calibração (puro). Sem `judge` = EXATAMENTE adsV2InHandInventoryBody. B = a pergunta sem box_2d. */
+export function adsV2InHandInventoryBodyFor(sceneUrl: string, judge?: AdsV2InHandJudgeOpts | null): Record<string, unknown> { // KINEO-JUIZ-GRADE-1610
+  const j = adsV2InHandJudgeOf(judge) // KINEO-JUIZ-GRADE-1610
+  const b = adsV2InHandInventoryBody(sceneUrl) // KINEO-JUIZ-GRADE-1610
+  if (j.variant === 'A') return { ...b, model: j.model } // KINEO-JUIZ-GRADE-1610
+  return { ...b, model: j.model, messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: sceneUrl, detail: 'high' } }, { type: 'text', text: ADS_V2_IN_HAND_INVENTORY_QUESTION_B }] }] } // KINEO-JUIZ-GRADE-1610
+} // KINEO-JUIZ-GRADE-1610
+/** KINEO-JUIZ-GRADE-1610 — o corpo da fidelidade com o modelo e a variante da calibração (puro). Sem `judge` = EXATAMENTE adsV2InHandFidelityBody. B = a pergunta B no fim. */
+export function adsV2InHandFidelityBodyFor(referenceUrl: string, generatedUrl: string, object: AdsV2InHandObject | null, crop: boolean, judge?: AdsV2InHandJudgeOpts | null): Record<string, unknown> { // KINEO-JUIZ-GRADE-1610
+  const j = adsV2InHandJudgeOf(judge) // KINEO-JUIZ-GRADE-1610
+  const b = adsV2InHandFidelityBody(referenceUrl, generatedUrl, object, crop) // KINEO-JUIZ-GRADE-1610
+  if (j.variant === 'A') return { ...b, model: j.model } // KINEO-JUIZ-GRADE-1610
+  const content = (b.messages as { content: unknown[] }[])[0].content.slice(0, -1).concat({ type: 'text', text: adsV2InHandFidelityQuestionB(object, crop) }) // KINEO-JUIZ-GRADE-1610
+  return { ...b, model: j.model, messages: [{ role: 'user', content }] } // KINEO-JUIZ-GRADE-1610
+} // KINEO-JUIZ-GRADE-1610
 async function inHandVision(doFetch: typeof fetch, key: string, body: Record<string, unknown>): Promise<unknown> { // KINEO-ADS-MAO-JUIZ-1610
   const res = await doFetch('https://api.openai.com/v1/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` }, body: JSON.stringify(body), signal: AbortSignal.timeout(ADS_V2_LOCK_CHECK_TIMEOUT_MS) }) // KINEO-ADS-MAO-JUIZ-1610
   if (!res.ok) return null // KINEO-ADS-MAO-JUIZ-1610
@@ -169,21 +193,23 @@ export async function adsV2InHandInventoryOf(imageUrl: string, doFetch: typeof f
  * KINEO-ADS-MAO-JUIZ-1610 — "unsure" só registra. Inventário ilegível = null (a foto segue). A calibração (POST /api/admin/ads-judge-calibrate) chama ESTA
  * KINEO-ADS-MAO-JUIZ-1610 — MESMA função com sink (a resposta crua) e o mesmo crop do avanço.
  */
-export async function adsV2InHandLabelJudge(productUrl: string, sceneUrl: string, doFetch: typeof fetch = fetch, object: AdsV2InHandObject | null = null, sink?: (raw: AdsV2InHandJudgeRaw) => void, crop?: AdsV2InHandCropFn): Promise<AdsV2InHandVerdict | null> { // KINEO-ADS-MAO-JUIZ-1610 — 2 etapas + sink + crop
+export async function adsV2InHandLabelJudge(productUrl: string, sceneUrl: string, doFetch: typeof fetch = fetch, object: AdsV2InHandObject | null = null, sink?: (raw: AdsV2InHandJudgeRaw) => void, crop?: AdsV2InHandCropFn, judge?: AdsV2InHandJudgeOpts): Promise<AdsV2InHandVerdict | null> { // KINEO-ADS-MAO-JUIZ-1610 — 2 etapas + sink + crop · KINEO-JUIZ-GRADE-1610 — + judge (modelo e variante: só a calibração passa)
   const key = process.env.OPENAI_API_KEY // KINEO-ADS-PRODUTO-NA-MAO-1610
   const ok = (u: unknown): u is string => typeof u === 'string' && (/^https:\/\/\S+$/i.test(u.trim()) || /^data:image\/(?:jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(u.trim())) // KINEO-ADS-PRODUTO-NA-MAO-1610 · KINEO-ADS-MAO-JUIZ-1610 — + data:image (a calibração com as fotos salvas; o avanço só passa https)
   if (!key || !ok(productUrl) || !ok(sceneUrl)) return null // KINEO-ADS-PRODUTO-NA-MAO-1610
   const tell = (raw: AdsV2InHandJudgeRaw) => { if (sink) { try { sink(raw) } catch { /* a calibração nunca derruba o juiz */ } } } // KINEO-ADS-MAO-JUIZ-1610
+  const jv = adsV2InHandJudgeOf(judge) // KINEO-JUIZ-GRADE-1610
+  const vB = jv.variant === 'B' ? { variant: 'B' as const } : {} // KINEO-JUIZ-GRADE-1610 — a resposta crua da A fica como era
   try { // KINEO-ADS-MAO-JUIZ-1610
-    const invRaw = await inHandVision(doFetch, key, adsV2InHandInventoryBody(sceneUrl.trim())) // KINEO-ADS-MAO-JUIZ-1610 — (i) inventário
-    const inv = adsV2ParseInHandInventory(invRaw) // KINEO-ADS-MAO-JUIZ-1610
-    if (!inv) { tell({ inventory: invRaw, fidelity: null, crop: false }); return null } // KINEO-ADS-MAO-JUIZ-1610
+    const invRaw = await inHandVision(doFetch, key, adsV2InHandInventoryBodyFor(sceneUrl.trim(), judge)) // KINEO-ADS-MAO-JUIZ-1610 — (i) inventário · KINEO-JUIZ-GRADE-1610 — o corpo com o modelo/variante (sem judge = o de sempre)
+    const inv = jv.variant === 'B' ? adsV2ParseInHandInventoryB(invRaw) : adsV2ParseInHandInventory(invRaw) // KINEO-ADS-MAO-JUIZ-1610 · KINEO-JUIZ-GRADE-1610 — B = presença e contagem
+    if (!inv) { tell({ inventory: invRaw, fidelity: null, crop: false, ...vB }); return null } // KINEO-ADS-MAO-JUIZ-1610 · KINEO-JUIZ-GRADE-1610 — + variant na B
     const rule = adsV2InHandInventoryRule(inv, object) // KINEO-ADS-MAO-JUIZ-1610
-    const crops = crop ? await crop({ sceneUrl: sceneUrl.trim(), objectBox: rule.objectBox, object }).catch(() => null) : null // KINEO-ADS-MAO-JUIZ-1610
+    const crops = crop ? await crop({ sceneUrl: sceneUrl.trim(), objectBox: rule.objectBox, object, ...(jv.variant === 'B' ? { whole: true } : {}) }).catch(() => null) : null // KINEO-ADS-MAO-JUIZ-1610 · KINEO-JUIZ-GRADE-1610 — B = o recorte BiRefNet da foto gerada inteira
     const cropOk = !!crops && ok(crops.reference) && ok(crops.generated) // KINEO-ADS-MAO-JUIZ-1610
-    const fidRaw = await inHandVision(doFetch, key, adsV2InHandFidelityBody(cropOk ? crops!.reference : productUrl.trim(), cropOk ? crops!.generated : sceneUrl.trim(), object, cropOk)).catch(() => null) // KINEO-ADS-MAO-JUIZ-1610 — (ii) fidelidade
-    tell({ inventory: invRaw, fidelity: fidRaw, crop: cropOk }) // KINEO-ADS-MAO-JUIZ-1610
-    return adsV2InHandTwoStageVerdict(inv, adsV2ParseInHandFidelity(fidRaw), object, cropOk) // KINEO-ADS-MAO-JUIZ-1610
+    const fidRaw = await inHandVision(doFetch, key, adsV2InHandFidelityBodyFor(cropOk ? crops!.reference : productUrl.trim(), cropOk ? crops!.generated : sceneUrl.trim(), object, cropOk, judge)).catch(() => null) // KINEO-ADS-MAO-JUIZ-1610 — (ii) fidelidade · KINEO-JUIZ-GRADE-1610 — o corpo com o modelo/variante
+    tell({ inventory: invRaw, fidelity: fidRaw, crop: cropOk, ...vB }) // KINEO-ADS-MAO-JUIZ-1610 · KINEO-JUIZ-GRADE-1610 — + variant na B
+    return (jv.variant === 'B' ? adsV2InHandTwoStageVerdictB : adsV2InHandTwoStageVerdict)(inv, adsV2ParseInHandFidelity(fidRaw), object, cropOk) // KINEO-ADS-MAO-JUIZ-1610 · KINEO-JUIZ-GRADE-1610 — B = a régua da fidelidade B
   } catch { // KINEO-ADS-MAO-JUIZ-1610
     return null // KINEO-ADS-MAO-JUIZ-1610
   } // KINEO-ADS-MAO-JUIZ-1610

@@ -149,9 +149,29 @@ export async function adsV2InHandSceneCrop(sceneUrl: string, box: AdsV2InHandBox
   }
 }
 
+/** KINEO-JUIZ-GRADE-1610 — a foto GERADA inteira sem fundo (BiRefNet, a mesma chamada do recorte de referência), aparada no contorno, no branco (data URL PNG).
+ *  KINEO-JUIZ-GRADE-1610 — É o recorte da fidelidade na variante B do juiz (a caixa do modelo não localiza: docs/RESULTADO-CALIBRA-JUIZ-2026-10-16.md). Vale para JPEG também
+ *  KINEO-JUIZ-GRADE-1610 — (o BiRefNet devolve PNG). Toda falha = null (a fidelidade compara as fotos inteiras). Nunca lança. Custo: 1 recorte (≤ US$ 0,01). */
+export async function adsV2InHandSceneCutout(sceneUrl: string, deps: Pick<AdsV2InHandCropDeps, 'download' | 'cutout'> = adsV2InHandCropDeps()): Promise<string | null> { // KINEO-JUIZ-GRADE-1610
+  try { // KINEO-JUIZ-GRADE-1610
+    const cutUrl = await deps.cutout(sceneUrl) // KINEO-JUIZ-GRADE-1610
+    if (!cutUrl) return null // KINEO-JUIZ-GRADE-1610
+    const bytes = await deps.download(cutUrl) // KINEO-JUIZ-GRADE-1610
+    if (!bytes || !isPng(bytes)) return null // KINEO-JUIZ-GRADE-1610
+    const img = decodePng(bytes) // KINEO-JUIZ-GRADE-1610
+    const a = alphaBox(img) // KINEO-JUIZ-GRADE-1610
+    if (!a || a.w < 24 || a.h < 24) return null // KINEO-JUIZ-GRADE-1610
+    const png = encodePng(adsV2FitMaxSide(adsV2FlattenWhite(cropRgba(img, a)), ADS_V2_IN_HAND_CROP_MAX_SIDE), { alpha: false }) // KINEO-JUIZ-GRADE-1610
+    return `data:image/png;base64,${Buffer.from(png).toString('base64')}` // KINEO-JUIZ-GRADE-1610
+  } catch { // KINEO-JUIZ-GRADE-1610
+    return null // KINEO-JUIZ-GRADE-1610
+  } // KINEO-JUIZ-GRADE-1610
+} // KINEO-JUIZ-GRADE-1610
+
 /** O crop do juiz (o MESMO no avanço e na calibração): o recorte de referência do objeto + o recorte da foto gerada. */
 export function adsV2InHandCropper(a: { userId: string; cacheKey: string; productUrl: string }, deps: AdsV2InHandCropDeps = adsV2InHandCropDeps()): AdsV2InHandCropFn {
-  return async ({ sceneUrl, objectBox, object }) => {
+  return async ({ sceneUrl, objectBox, object, whole }) => { // KINEO-JUIZ-GRADE-1610 — + whole (só a variante B da calibração pede)
+    if (whole) { const [reference, generated] = await Promise.all([adsV2InHandReferenceCrop({ ...a, object }, deps), adsV2InHandSceneCutout(sceneUrl, deps)]); return reference && generated ? { reference, generated } : null } // KINEO-JUIZ-GRADE-1610 — a foto gerada inteira sem fundo, não a caixa do modelo
     if (!objectBox) return null
     const [reference, generated] = await Promise.all([adsV2InHandReferenceCrop({ ...a, object }, deps), adsV2InHandSceneCrop(sceneUrl, objectBox, deps)])
     return reference && generated ? { reference, generated } : null

@@ -28,6 +28,7 @@ import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
 import ts from 'typescript'
 import { semMaoJuiz1610, comMaoJuiz1610, desfazMaoJuiz1610, MAO_JUIZ_1610_ARQUIVOS, MAO_JUIZ_1610_NOVOS, MAO_JUIZ_1610_BASE, MARCA_MAO_JUIZ_1610 } from './test-support/desfaz-ads-mao-juiz-1610.mjs'
+import { desfazJuizGrade1610 } from './test-support/desfaz-juiz-grade-1610.mjs' // reancorado KINEO-JUIZ-GRADE-1610
 import { semMaoAjuste3_1610, desfazMaoAjuste3_1610 } from './test-support/desfaz-ads-mao-ajuste-3-1610.mjs'
 import { semMaoAjuste1610, desfazMaoAjuste1610 } from './test-support/desfaz-ads-mao-ajuste-1610.mjs'
 import { desfazProdutoNaMao1610 } from './test-support/desfaz-ads-produto-na-mao-1610.mjs'
@@ -38,7 +39,7 @@ import { GABARITO, conferir, corpo } from './calibra-juiz-mao.mjs'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-MAO-JUIZ-1610'
-const rd = (p) => readFileSync(join(ROOT, p), 'utf8').replace(/\r\n/g, '\n') // o arquivo VIVO (esta é a camada mais nova)
+const rd = (p) => desfazJuizGrade1610(p, readFileSync(join(ROOT, p), 'utf8')) // reancorado KINEO-JUIZ-GRADE-1610 — a grade do juiz (modelo/variante da calibração) veio depois: este guardião lê o texto SEM ela (já LF); ela é provada em scripts/test-juiz-grade-1610.mjs
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return git('show', `${MAO_JUIZ_1610_BASE}:${p}`).replace(/\r\n/g, '\n') } catch { return null } }
 let pass = 0

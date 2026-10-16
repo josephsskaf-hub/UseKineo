@@ -4,6 +4,8 @@
 // (~US$ 0,02 por foto por repetição; o recorte de referência fica em cache no bucket). Só administrador que também é conta interna.
 // O núcleo (validação + execução) mora em lib/ads/v2JudgeCalibrate.ts; o gabarito das ~21 fotos e o conferidor em scripts/calibra-juiz-mao.mjs.
 //   POST { product_image_url, images: [{ url, object: 'bottle' | 'box' | 'single', label? }], repeat? } → { model, defect_keys, repeat, usd, results }
+// KINEO-JUIZ-GRADE-1610 — + `model?` (ADS_V2_CALIBRATE_MODELS, tirada de lib/aiModels.ts; fora da lista = 400) e `variant?` ('A' | 'B'; outra = 400) → a resposta
+// KINEO-JUIZ-GRADE-1610 — devolve { model, variant, … }. Só a calibração escolhe: o avanço (lib/ads/v2Advance.ts) segue no modelo do juiz e na variante A.
 import { NextResponse } from 'next/server'
 import { createHash } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'

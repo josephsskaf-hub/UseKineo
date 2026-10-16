@@ -643,3 +643,54 @@ export function adsV2InHandCutFits(cut: number, start: number = ADS_V2_IN_HAND_C
   const m = ADS_V2_IN_HAND_MIRROR
   return start + cut + m.fadeSeconds <= gen - m.cutMargin + 1e-9 // KINEO-ADS-MAO-AJUSTE-3-1610
 }
+
+// ── KINEO-JUIZ-GRADE-1610 — a VARIANTE B do juiz do produto na mão (SÓ a calibração escolhe; o avanço segue na A, com o modelo de sempre) ──
+// KINEO-JUIZ-GRADE-1610 — docs/RESULTADO-CALIBRA-JUIZ-2026-10-16.md: o gpt-4o-mini pegou 0 de 2 pessoas extras, reprovou 4 fotos boas por cor/forma e
+// KINEO-JUIZ-GRADE-1610 — devolveu box_2d de molde (não localiza). A B: (1) pergunta DIRETA de pessoa extra (yes/no/unsure), sem a frase que junta as
+// KINEO-JUIZ-GRADE-1610 — mãos "à mesma pessoa"; (2) inventário SEM box_2d (presença e contagem); (3) um atributo de fidelidade errado SOZINHO (cor, forma
+// KINEO-JUIZ-GRADE-1610 — ou material) vira "não sei": reprova só com 2+ atributos errados ou nome/logo errado; (4) a fidelidade compara com o recorte
+// KINEO-JUIZ-GRADE-1610 — BiRefNet da foto gerada INTEIRA (lib/ads/v2ProductInHandCrop.ts, whole), não com a caixa do modelo.
+export type AdsV2InHandJudgeVariant = 'A' | 'B' // KINEO-JUIZ-GRADE-1610
+export const ADS_V2_IN_HAND_JUDGE_VARIANTS: readonly AdsV2InHandJudgeVariant[] = ['A', 'B'] // KINEO-JUIZ-GRADE-1610
+/** KINEO-JUIZ-GRADE-1610 — a pergunta de pessoa extra da pesquisa, literal. */
+export const ADS_V2_IN_HAND_EXTRA_PERSON_QUESTION_B = 'Besides the one person holding/using the product, is there ANY other person or part of another person anywhere in the image (background, window, reflection, edges)? yes/no/unsure' // KINEO-JUIZ-GRADE-1610
+/** KINEO-JUIZ-GRADE-1610 — o inventário da B (1 imagem): presença e contagem, sem caixas; a pessoa extra é pergunta direta. */
+export const ADS_V2_IN_HAND_INVENTORY_QUESTION_B = 'Image 1 is a photo. Look at the whole frame. "bottle": is a bottle (a perfume or cosmetic bottle, jar or flask) visible? Answer "yes", "no" or "unsure". "bottle_count": how many separate bottles you can see (a number). "box": is a box (a carton package) visible? Answer "yes", "no" or "unsure"; a bottle seen through the window of its own box counts as part of that box, not as a separate bottle. "box_count": how many separate boxes you can see (a number). "extra_person": ' + ADS_V2_IN_HAND_EXTRA_PERSON_QUESTION_B + '. "hands": do the visible hands look natural, with five fingers and nothing passing through the product? Answer "yes", "no" or "unsure". Answer only with JSON: {"bottle": "", "bottle_count": 0, "box": "", "box_count": 0, "extra_person": "", "hands": ""}.' // KINEO-JUIZ-GRADE-1610
+/** KINEO-JUIZ-GRADE-1610 — a resposta do inventário B (pura) no formato do inventário de sempre (caixas null): a pessoa que segura + 1 extra quando "yes"
+ *  KINEO-JUIZ-GRADE-1610 — (ou "unsure"). Sem "bottle"/"box"/"extra_person" legíveis = null (ilegível). A contagem vai de 1 a 5 quando a presença é "yes". */
+export function adsV2ParseInHandInventoryB(raw: unknown): AdsV2InHandInventory | null { // KINEO-JUIZ-GRADE-1610
+  const o = jsonOf(raw) // KINEO-JUIZ-GRADE-1610
+  if (!o) return null // KINEO-JUIZ-GRADE-1610
+  const bottle = tri(o.bottle), box = tri(o.box), extra = tri(o.extra_person) // KINEO-JUIZ-GRADE-1610
+  if (!bottle || !box || !extra) return null // KINEO-JUIZ-GRADE-1610
+  const n = (v: unknown): number => { const x = Math.floor(Number(v)); return Number.isFinite(x) ? Math.max(1, Math.min(5, x)) : 1 } // KINEO-JUIZ-GRADE-1610
+  const products: AdsV2InHandInventory['products'] = [] // KINEO-JUIZ-GRADE-1610
+  for (const [type, t, c] of [['bottle', bottle, o.bottle_count], ['box', box, o.box_count]] as const) { // KINEO-JUIZ-GRADE-1610
+    if (t === 'yes') for (let i = 0; i < n(c); i++) products.push({ type, box: null, visible: 'yes' }) // KINEO-JUIZ-GRADE-1610
+    else if (t === 'unsure') products.push({ type, box: null, visible: 'unsure' }) // KINEO-JUIZ-GRADE-1610
+  } // KINEO-JUIZ-GRADE-1610
+  const people: AdsV2InHandInventory['people'] = [{ box: null, visible: 'yes' }, ...(extra === 'yes' ? [{ box: null, visible: 'yes' as const }] : extra === 'unsure' ? [{ box: null, visible: 'unsure' as const }] : [])] // KINEO-JUIZ-GRADE-1610
+  return { products, people, hands: tri(o.hands) ?? 'unsure' } // KINEO-JUIZ-GRADE-1610
+} // KINEO-JUIZ-GRADE-1610
+/** KINEO-JUIZ-GRADE-1610 — a pergunta da fidelidade B: com recorte, a 2ª imagem é a foto gerada INTEIRA sem fundo (a pessoa e o produto); os atributos são os da A. */
+export function adsV2InHandFidelityQuestionB(object: AdsV2InHandObject | null, crop: boolean): string { // KINEO-JUIZ-GRADE-1610
+  const it = ADS_V2_IN_HAND_OBJECT_NAME[object ?? 'single'] // KINEO-JUIZ-GRADE-1610
+  const a = adsV2InHandFidelityQuestion(object, crop) // KINEO-JUIZ-GRADE-1610
+  const tail = a.slice(a.indexOf(' Answer each attribute')) // KINEO-JUIZ-GRADE-1610
+  return (crop ? `Image 1 (REFERENCE) is a crop of ${it} from the real product photo. Image 2 (GENERATED) is a generated photo with the background removed: the person and the product they hold. Find ${it} in Image 2 and compare it with Image 1, one attribute at a time.` : a.slice(0, a.indexOf(' Answer each attribute'))) + tail // KINEO-JUIZ-GRADE-1610
+} // KINEO-JUIZ-GRADE-1610
+/** KINEO-JUIZ-GRADE-1610 — a régua da fidelidade B (pura): "no" em nome/logo ou em 2+ atributos reprova; um "no" sozinho (cor, forma ou material) vira "não sei". */
+export function adsV2InHandFidelityRuleB(fidelity: Record<string, AdsV2InHandTri> | null): { fails: string[]; unsure: string[] } { // KINEO-JUIZ-GRADE-1610
+  if (!fidelity) return { fails: [], unsure: ['fidelity'] } // KINEO-JUIZ-GRADE-1610
+  const no = ADS_V2_IN_HAND_FIDELITY_KEYS.filter((k) => fidelity[k] === 'no') // KINEO-JUIZ-GRADE-1610
+  const un = ADS_V2_IN_HAND_FIDELITY_KEYS.filter((k) => fidelity[k] === 'unsure') // KINEO-JUIZ-GRADE-1610
+  return no.includes('name') || no.length >= 2 ? { fails: no, unsure: un } : { fails: [], unsure: [...un, ...no] } // KINEO-JUIZ-GRADE-1610
+} // KINEO-JUIZ-GRADE-1610
+/** KINEO-JUIZ-GRADE-1610 — o veredito das 2 etapas na B (puro): a mesma regra do inventário da A + a régua da fidelidade B. */
+export function adsV2InHandTwoStageVerdictB(inv: AdsV2InHandInventory | null, fidelity: Record<string, AdsV2InHandTri> | null, object: AdsV2InHandObject | null, crop: boolean): AdsV2InHandVerdict | null { // KINEO-JUIZ-GRADE-1610
+  if (!inv) return null // KINEO-JUIZ-GRADE-1610
+  const rule = adsV2InHandInventoryRule(inv, object) // KINEO-JUIZ-GRADE-1610
+  const fid = adsV2InHandFidelityRuleB(fidelity) // KINEO-JUIZ-GRADE-1610
+  const fails = [...fid.fails, ...rule.fails] // KINEO-JUIZ-GRADE-1610
+  return { ok: fails.length === 0, fails, unsure: [...fid.unsure, ...rule.unsure], crop: !!(fidelity && crop) } // KINEO-JUIZ-GRADE-1610
+} // KINEO-JUIZ-GRADE-1610

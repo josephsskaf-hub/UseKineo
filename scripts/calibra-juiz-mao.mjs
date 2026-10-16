@@ -22,7 +22,15 @@
 //     janela da própria caixa; 12 caixa fechada, uma mulher, um objeto dourado na cama.
 //   Comparativo (compara-raw/input.jpg): mulher com o frasco na frente da caixa (both_objects).
 //   O objeto de cada foto é o que o plano de hoje pediria naquele enquadramento (gancho/borrifo = frasco; rótulo/close = caixa).
-import { readFileSync, writeFileSync, mkdirSync, existsSync, mkdtempSync } from 'node:fs'
+//
+// KINEO-JUIZ-GRADE-1610 — OUTROS MODELOS E OUTRAS PERGUNTAS, sem publicar uma versão por tentativa: --model (gpt-4o-mini | gpt-4o | gpt-4.1-mini | gpt-4.1;
+// KINEO-JUIZ-GRADE-1610 — a rota recusa o resto com 400) e --variant (A = o juiz de produção | B = a da pesquisa). Tudo de uma combinação mora em
+// KINEO-JUIZ-GRADE-1610 — <raiz>\calibra-juiz\<model>-<variant>\ (corpos\ e resp-<foto>.json):
+//   node scripts/calibra-juiz-mao.mjs corpos --model gpt-4o --variant B          → <raiz>\calibra-juiz\gpt-4o-B\corpos\corpo-*.json (com model e variant)
+//   node scripts/calibra-juiz-mao.mjs guardar resposta-*.json [--model gpt-4o --variant B]
+//        → cada resposta vai para <raiz>\calibra-juiz\<model>-<variant>\resp-<foto>.json (a combinação vem da PRÓPRIA resposta; flag diferente = erro)
+//   node scripts/calibra-juiz-mao.mjs conferir --model gpt-4o --variant B         → confere todas as respostas da combinação (misturar combinações = vermelho)
+import { readFileSync, writeFileSync, mkdirSync, existsSync, mkdtempSync, readdirSync } from 'node:fs' // KINEO-JUIZ-GRADE-1610 — + readdirSync
 import { join, extname } from 'node:path'
 import { tmpdir } from 'node:os'
 import { execFileSync } from 'node:child_process'
@@ -74,9 +82,31 @@ export function pngVia(file, max = 1280) {
   }
 }
 /** O corpo da rota para estas fotos. Puro com as fontes já resolvidas. */
-export function corpo(productUrl, fotos, repeat = 3) {
-  return { product_image_url: productUrl, repeat, images: fotos.map(({ id, url }) => ({ url, object: GABARITO[id].object, label: id })) }
+export function corpo(productUrl, fotos, repeat = 3, juiz = null) { // KINEO-JUIZ-GRADE-1610 — + juiz { model, variant } (ausente = o corpo de sempre: o juiz de produção)
+  return { product_image_url: productUrl, repeat, images: fotos.map(({ id, url }) => ({ url, object: GABARITO[id].object, label: id })), ...(juiz ? { model: juiz.model, variant: juiz.variant } : {}) } // KINEO-JUIZ-GRADE-1610
 }
+/** KINEO-JUIZ-GRADE-1610 — o modelo do juiz de produção (espelho de AI_TEXT_MODELS.vision em lib/aiModels.ts; o guardião confere) e as variantes. */
+export const MODELO_PADRAO = 'gpt-4o-mini' // KINEO-JUIZ-GRADE-1610
+export const VARIANTES = ['A', 'B'] // KINEO-JUIZ-GRADE-1610
+/** KINEO-JUIZ-GRADE-1610 — o nome da combinação ("gpt-4o-B"); modelo com caractere fora de [a-z0-9.-] ou variante fora de A/B = lança (vira nome de pasta). Pura. */
+export function combo(model, variant) { // KINEO-JUIZ-GRADE-1610
+  if (typeof model !== 'string' || !/^[a-z0-9][a-z0-9.-]{0,40}$/i.test(model)) throw new Error('modelo inválido: ' + model) // KINEO-JUIZ-GRADE-1610
+  if (!VARIANTES.includes(variant)) throw new Error('variante inválida: ' + variant + ' (A ou B)') // KINEO-JUIZ-GRADE-1610
+  return `${model}-${variant}` // KINEO-JUIZ-GRADE-1610
+} // KINEO-JUIZ-GRADE-1610
+/** KINEO-JUIZ-GRADE-1610 — a pasta da combinação: <raiz>\calibra-juiz\<model>-<variant>. Pura. */
+export function pastaCombo(raiz, model, variant) { return join(raiz, 'calibra-juiz', combo(model, variant)) } // KINEO-JUIZ-GRADE-1610
+/** KINEO-JUIZ-GRADE-1610 — a combinação de uma resposta da rota (a resposta de antes de 16/10 não tem variant = A). null = sem model. Pura. */
+export function comboDe(resposta) { return resposta && typeof resposta.model === 'string' ? combo(resposta.model, resposta.variant ?? 'A') : null } // KINEO-JUIZ-GRADE-1610
+/** KINEO-JUIZ-GRADE-1610 — onde guardar uma resposta: a pasta da combinação DELA + resp-<foto>.json. Flag de modelo/variante que não bate = lança. Pura. */
+export function destinoResposta(raiz, resposta, flags = {}) { // KINEO-JUIZ-GRADE-1610
+  const c = comboDe(resposta) // KINEO-JUIZ-GRADE-1610
+  if (!c) throw new Error('resposta sem "model" (não é da rota de calibração?)') // KINEO-JUIZ-GRADE-1610
+  if ((flags.model && flags.model !== resposta.model) || (flags.variant && flags.variant !== (resposta.variant ?? 'A'))) throw new Error(`a resposta é de ${c}, não de ${flags.model ?? resposta.model}-${flags.variant ?? resposta.variant ?? 'A'}`) // KINEO-JUIZ-GRADE-1610
+  const labels = (resposta.results ?? []).map((x) => String(x?.label ?? '').replace(/[^A-Za-z0-9_-]/g, '')).filter(Boolean) // KINEO-JUIZ-GRADE-1610
+  if (!labels.length) throw new Error('resposta sem resultados com label') // KINEO-JUIZ-GRADE-1610
+  return join(raiz, 'calibra-juiz', c, `resp-${labels.join('+')}.json`) // KINEO-JUIZ-GRADE-1610
+} // KINEO-JUIZ-GRADE-1610
 
 /** Confere as respostas da rota com o gabarito. Devolve { ok, linhas, faltando, instaveis }. Puro. */
 export function conferir(respostas) {
@@ -106,16 +136,21 @@ export function conferir(respostas) {
     linhas.push(`${erros.length ? (firme ? 'ERRO ' : 'aviso') : 'ok   '} ${id} (${g.object}${x.verdict?.crop ? ', recorte' : ''}) ${x.verdict ? (x.verdict.ok ? 'passou' : 'reprovou: ' + fails.join(',')) : 'sem veredito'}${un}${erros.length ? ' — ' + erros.join('; ') : ''}`)
   }
   if (faltando.length) ok = false
-  return { ok, linhas, faltando, instaveis }
+  const combos = [...new Set(respostas.map((r) => { try { return comboDe(r) } catch { return 'inválida' } }).filter(Boolean))] // KINEO-JUIZ-GRADE-1610 — misturar combinações (modelo/variante) = vermelho
+  if (combos.length > 1) { ok = false; linhas.unshift('ERRO combinações misturadas: ' + combos.join(', ') + ' (confira uma por vez: conferir --model … --variant …)') } // KINEO-JUIZ-GRADE-1610
+  return { ok, linhas, faltando, instaveis, combos } // KINEO-JUIZ-GRADE-1610 — + combos
 }
 
 function arg(name, def = null) { const i = process.argv.indexOf(name); return i > 0 && process.argv[i + 1] ? process.argv[i + 1] : def }
+/** KINEO-JUIZ-GRADE-1610 — os argumentos que são arquivos (tira as flags --x e o valor de cada uma). */
+function soArquivos(args) { const out = []; for (let i = 0; i < args.length; i++) { if (args[i].startsWith('--')) { i++; continue } out.push(args[i]) } return out } // KINEO-JUIZ-GRADE-1610
 
 function main() {
   const cmd = process.argv[2]
   if (cmd === 'corpos') {
     const raiz = arg('--raiz', RAIZ)
-    const saida = arg('--saida', join(process.cwd(), 'calibra-juiz-mao-corpos'))
+    const juiz = { model: arg('--model', MODELO_PADRAO), variant: arg('--variant', 'A') } // KINEO-JUIZ-GRADE-1610
+    const saida = arg('--saida', join(pastaCombo(raiz, juiz.model, juiz.variant), 'corpos')) // KINEO-JUIZ-GRADE-1610 — a pasta da combinação
     const repeat = Number(arg('--repeat', '3'))
     const prod = arg('--produto', join(raiz, PRODUTO_LOCAL))
     const productUrl = /^https:\/\//i.test(prod) ? prod : dataUrl(prod)
@@ -125,15 +160,23 @@ function main() {
       const file = join(raiz, g.file)
       if (!existsSync(file)) { console.log('falta ' + file); continue }
       const png = jpeg ? null : pngVia(file)
-      writeFileSync(join(saida, `corpo-${id}.json`), JSON.stringify(corpo(productUrl, [{ id, url: dataUrl(png ?? file) }], repeat)))
+      writeFileSync(join(saida, `corpo-${id}.json`), JSON.stringify(corpo(productUrl, [{ id, url: dataUrl(png ?? file) }], repeat, juiz))) // KINEO-JUIZ-GRADE-1610 — + model e variant no corpo
       console.log(`${id}: ${png ? 'PNG' : 'JPEG'}`)
     }
-    console.log('corpos em ' + saida + ' (1 foto por corpo; mande cada um para POST /api/admin/ads-judge-calibrate)')
+    console.log('corpos em ' + saida + ` (${combo(juiz.model, juiz.variant)}; 1 foto por corpo; mande cada um para POST /api/admin/ads-judge-calibrate)`) // KINEO-JUIZ-GRADE-1610
     return
   }
+  if (cmd === 'guardar') { // KINEO-JUIZ-GRADE-1610 — cada resposta na pasta da SUA combinação
+    const raiz = arg('--raiz', RAIZ) // KINEO-JUIZ-GRADE-1610
+    const files = soArquivos(process.argv.slice(3)) // KINEO-JUIZ-GRADE-1610
+    if (!files.length) { console.log('uso: node scripts/calibra-juiz-mao.mjs guardar resposta.json [...] [--model m --variant A|B] [--raiz pasta]'); process.exit(2) } // KINEO-JUIZ-GRADE-1610
+    for (const f of files) { const r = JSON.parse(readFileSync(f, 'utf8')); const dest = destinoResposta(raiz, r, { model: arg('--model'), variant: arg('--variant') }); mkdirSync(join(dest, '..'), { recursive: true }); writeFileSync(dest, JSON.stringify(r)); console.log(f + ' → ' + dest) } // KINEO-JUIZ-GRADE-1610
+    return // KINEO-JUIZ-GRADE-1610
+  } // KINEO-JUIZ-GRADE-1610
   if (cmd === 'conferir') {
-    const files = process.argv.slice(3)
-    if (!files.length) { console.log('uso: node scripts/calibra-juiz-mao.mjs conferir resposta.json [...]'); process.exit(2) }
+    let files = soArquivos(process.argv.slice(3)) // KINEO-JUIZ-GRADE-1610 — os arquivos soltos, ou a pasta da combinação (--model/--variant)
+    if (!files.length && arg('--model')) { const pasta = pastaCombo(arg('--raiz', RAIZ), arg('--model'), arg('--variant', 'A')); files = existsSync(pasta) ? readdirSync(pasta).filter((n) => /^resp-.*\.json$/.test(n)).map((n) => join(pasta, n)) : []; console.log('combinação ' + pasta + ': ' + files.length + ' resposta(s)') } // KINEO-JUIZ-GRADE-1610
+    if (!files.length) { console.log('uso: node scripts/calibra-juiz-mao.mjs conferir resposta.json [...] | conferir --model m --variant A|B [--raiz pasta]'); process.exit(2) } // KINEO-JUIZ-GRADE-1610 — + a forma da combinação
     const r = conferir(files.map((f) => JSON.parse(readFileSync(f, 'utf8'))))
     for (const l of r.linhas) console.log(l)
     if (r.faltando.length) console.log('faltando: ' + r.faltando.join(', '))
@@ -141,7 +184,7 @@ function main() {
     console.log(r.ok ? '\nCALIBRAÇÃO VERDE — o juiz bate com o gabarito firme, de forma estável.' : '\nCALIBRAÇÃO VERMELHA — NÃO rodar render pago.')
     process.exit(r.ok ? 0 : 1)
   }
-  console.log('uso: node scripts/calibra-juiz-mao.mjs corpos|conferir … (ver o cabeçalho)')
+  console.log('uso: node scripts/calibra-juiz-mao.mjs corpos|guardar|conferir … (ver o cabeçalho)') // KINEO-JUIZ-GRADE-1610 — + guardar
   process.exit(2)
 }
 

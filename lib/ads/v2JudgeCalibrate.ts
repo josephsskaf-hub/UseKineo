@@ -11,6 +11,15 @@
 // cache do recorte de referência no bucket renders). A rota (app/api/admin/ads-judge-calibrate) só abre para administrador interno.
 import { adsV2InHandLabelJudge, ADS_V2_IN_HAND_JUDGE_MODEL, type AdsV2InHandCropFn, type AdsV2InHandJudgeRaw } from '@/lib/ads/v2LockVision'
 import { ADS_V2_IN_HAND_DEFECT_KEYS, ADS_V2_IN_HAND_JUDGE_USD, adsV2InHandSoftOnly, adsV2ParseInHandFidelity, adsV2ParseInHandInventory, type AdsV2InHandInventory, type AdsV2InHandObject, type AdsV2InHandVerdict } from '@/lib/ads/v2ProductInHand'
+// KINEO-JUIZ-GRADE-1610 — a calibração ganha `model` (lista permitida tirada de lib/aiModels.ts) e `variant` ('A' = o juiz de produção | 'B' = a da pesquisa:
+// KINEO-JUIZ-GRADE-1610 — pessoa extra direta, sem box_2d, cor/forma sozinha = "não sei", recorte BiRefNet da foto gerada inteira). SÓ aqui: o avanço não passa nada
+// KINEO-JUIZ-GRADE-1610 — (= ADS_V2_IN_HAND_JUDGE_MODEL + A). Calibrar outro modelo/pergunta não exige publicar uma versão por tentativa.
+import { AI_TEXT_MODELS, OPENAI_SHUTDOWN_DATES } from '@/lib/aiModels' // KINEO-JUIZ-GRADE-1610
+import { ADS_V2_IN_HAND_JUDGE_VARIANTS, adsV2ParseInHandInventoryB, type AdsV2InHandJudgeVariant } from '@/lib/ads/v2ProductInHand' // KINEO-JUIZ-GRADE-1610
+import { ADS_V2_CUTOUT_USD_MAX } from '@/lib/ads/v2ShotLists' // KINEO-JUIZ-GRADE-1610 — o recorte BiRefNet da foto gerada (variante B), 1 por foto
+/** KINEO-JUIZ-GRADE-1610 — os modelos de visão da OpenAI que o repo já usa (lib/aiModels.ts, sem string crua): o do juiz, os de texto do registro e os ids de chat
+ *  KINEO-JUIZ-GRADE-1610 — da tabela de desligamento (gpt-4o-mini, gpt-4o, gpt-4.1-mini, gpt-4.1; todos aceitam imagem). Fora daqui = 400. */
+export const ADS_V2_CALIBRATE_MODELS: readonly string[] = [...new Set<string>([ADS_V2_IN_HAND_JUDGE_MODEL, ...Object.values(AI_TEXT_MODELS), ...Object.keys(OPENAI_SHUTDOWN_DATES).filter((m) => /^gpt-/.test(m) && !/-tts$/.test(m))])] // KINEO-JUIZ-GRADE-1610
 
 /** Teto de fotos por chamada (com URLs https; com data URL mande 1 foto por chamada: o corpo da Vercel aceita ~4,5 MB). */
 export const ADS_V2_CALIBRATE_MAX_IMAGES = 12
@@ -24,7 +33,7 @@ export const ADS_V2_CALIBRATE_PARALLEL = 4
 
 export type AdsV2CalibrateObject = 'bottle' | 'box' | 'single'
 export interface AdsV2CalibrateImage { url: string; object: AdsV2InHandObject | null; label: string | null }
-export interface AdsV2CalibrateInput { productUrl: string; images: AdsV2CalibrateImage[]; repeat: number }
+export interface AdsV2CalibrateInput { productUrl: string; images: AdsV2CalibrateImage[]; repeat: number; model?: string; variant?: AdsV2InHandJudgeVariant } // KINEO-JUIZ-GRADE-1610 — + model e variant (ausentes = o juiz de produção)
 export interface AdsV2CalibrateRun { verdict: AdsV2InHandVerdict | null; answers: Record<string, unknown> | null; inventory: AdsV2InHandInventory | null; crop: boolean; raw?: string }
 export interface AdsV2CalibrateResult {
   label: string | null
@@ -51,12 +60,16 @@ export function adsV2CalibrateUrlOk(u: unknown): u is string {
 /** O corpo da rota (puro): { product_image_url, images: [{ url, object: 'bottle' | 'box' | 'single', label? }], repeat? (1–3, padrão 3) }. */
 export function adsV2CalibrateParse(body: unknown): { ok: true; input: AdsV2CalibrateInput } | { ok: false; error: string } {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return { ok: false, error: 'body_must_be_object' }
-  const b = body as { product_image_url?: unknown; images?: unknown; repeat?: unknown }
+  const b = body as { product_image_url?: unknown; images?: unknown; repeat?: unknown; model?: unknown; variant?: unknown } // KINEO-JUIZ-GRADE-1610 — + model? (ADS_V2_CALIBRATE_MODELS) e variant? ('A' | 'B')
   if (!adsV2CalibrateUrlOk(b.product_image_url)) return { ok: false, error: 'product_image_url_must_be_https_or_data_image' }
   if (!Array.isArray(b.images) || b.images.length === 0) return { ok: false, error: 'images_required' }
   if (b.images.length > ADS_V2_CALIBRATE_MAX_IMAGES) return { ok: false, error: `at_most_${ADS_V2_CALIBRATE_MAX_IMAGES}_images` }
   const repeat = b.repeat === undefined ? ADS_V2_CALIBRATE_REPEAT_DEFAULT : Number(b.repeat)
   if (!Number.isInteger(repeat) || repeat < 1 || repeat > ADS_V2_CALIBRATE_REPEAT_MAX) return { ok: false, error: `repeat_must_be_1_to_${ADS_V2_CALIBRATE_REPEAT_MAX}` }
+  const model = b.model === undefined ? ADS_V2_IN_HAND_JUDGE_MODEL : b.model // KINEO-JUIZ-GRADE-1610
+  if (typeof model !== 'string' || !ADS_V2_CALIBRATE_MODELS.includes(model)) return { ok: false, error: `model_must_be_one_of_${ADS_V2_CALIBRATE_MODELS.join('|')}` } // KINEO-JUIZ-GRADE-1610
+  const variant = b.variant === undefined ? 'A' : b.variant // KINEO-JUIZ-GRADE-1610
+  if (variant !== 'A' && variant !== 'B') return { ok: false, error: `variant_must_be_${ADS_V2_IN_HAND_JUDGE_VARIANTS.join('_or_')}` } // KINEO-JUIZ-GRADE-1610
   const images: AdsV2CalibrateImage[] = []
   for (let i = 0; i < b.images.length; i++) {
     const it = b.images[i] as { url?: unknown; object?: unknown; label?: unknown } | null
@@ -65,7 +78,7 @@ export function adsV2CalibrateParse(body: unknown): { ok: true; input: AdsV2Cali
     if (it.object !== 'bottle' && it.object !== 'box' && it.object !== 'single') return { ok: false, error: `images[${i}].object_must_be_bottle_box_or_single` }
     images.push({ url: it.url.trim(), object: it.object === 'single' ? null : it.object, label: typeof it.label === 'string' && it.label.trim() ? it.label.trim().slice(0, 40) : null })
   }
-  return { ok: true, input: { productUrl: (b.product_image_url as string).trim(), images, repeat } }
+  return { ok: true, input: { productUrl: (b.product_image_url as string).trim(), images, repeat, model, variant } } // KINEO-JUIZ-GRADE-1610 — + model, variant
 }
 
 /** A URL como aparece na resposta: data URL vira um resumo (não devolve megabytes). Pura. */
@@ -75,7 +88,7 @@ export function adsV2CalibrateShowUrl(u: string): string {
 
 /** As respostas de uma rodada, chave por chave (pura): os defeitos do inventário (true/false) + a fidelidade ("yes"/"no"/"unsure") + as mãos. */
 export function adsV2CalibrateAnswers(raw: AdsV2InHandJudgeRaw | null, verdict: AdsV2InHandVerdict | null): Record<string, unknown> | null {
-  const inv = raw ? adsV2ParseInHandInventory(raw.inventory) : null
+  const inv = raw ? (raw.variant === 'B' ? adsV2ParseInHandInventoryB(raw.inventory) : adsV2ParseInHandInventory(raw.inventory)) : null // KINEO-JUIZ-GRADE-1610 — a resposta B lida pela leitura B
   if (!inv || !verdict) return null
   const fid = adsV2ParseInHandFidelity(raw!.fidelity)
   return { ...Object.fromEntries(ADS_V2_IN_HAND_DEFECT_KEYS.map((k) => [k, verdict.fails.includes(k)])), count: verdict.fails.includes('count'), hands: inv.hands, ...(fid ?? {}), people: inv.people.length, products: inv.products.map((p) => `${p.type}:${p.visible}`) }
@@ -84,12 +97,15 @@ export function adsV2CalibrateAnswers(raw: AdsV2InHandJudgeRaw | null, verdict: 
 const verdictKey = (v: AdsV2InHandVerdict | null): string => (v ? `${v.ok}|${[...v.fails].sort().join(',')}` : 'null')
 
 /** Roda o juiz do avanço em cada foto, `repeat` vezes (a mesma função; sink = a resposta crua; crop = o do avanço). Nunca lança. */
-export async function adsV2CalibrateRun(input: AdsV2CalibrateInput, doFetch: typeof fetch = fetch, crop?: AdsV2InHandCropFn): Promise<{ model: string; defect_keys: readonly string[]; repeat: number; usd: number; results: AdsV2CalibrateResult[] }> {
+export async function adsV2CalibrateRun(input: AdsV2CalibrateInput, doFetch: typeof fetch = fetch, crop?: AdsV2InHandCropFn): Promise<{ model: string; variant: AdsV2InHandJudgeVariant; defect_keys: readonly string[]; repeat: number; usd: number; results: AdsV2CalibrateResult[] }> { // KINEO-JUIZ-GRADE-1610 — + variant
+  const judge = { model: input.model ?? ADS_V2_IN_HAND_JUDGE_MODEL, variant: input.variant === 'B' ? ('B' as const) : ('A' as const) } // KINEO-JUIZ-GRADE-1610
+  const cuts = new Map<string, ReturnType<AdsV2InHandCropFn>>() // KINEO-JUIZ-GRADE-1610 — B: o recorte da foto inteira é o mesmo nas repetições (1 BiRefNet por foto)
+  const cropFor: AdsV2InHandCropFn | undefined = crop && judge.variant === 'B' ? (a) => { const k = `${a.object ?? 'single'}|${a.sceneUrl}`; if (!cuts.has(k)) cuts.set(k, crop(a)); return cuts.get(k)! } : crop // KINEO-JUIZ-GRADE-1610
   const once = async (img: AdsV2CalibrateImage): Promise<AdsV2CalibrateRun> => {
     let raw: AdsV2InHandJudgeRaw | null = null
-    const verdict = await adsV2InHandLabelJudge(input.productUrl, img.url, doFetch, img.object, (r) => { raw = r }, crop).catch(() => null)
+    const verdict = await adsV2InHandLabelJudge(input.productUrl, img.url, doFetch, img.object, (r) => { raw = r }, cropFor, judge).catch(() => null) // KINEO-JUIZ-GRADE-1610 — + o modelo e a variante pedidos
     const r = raw as AdsV2InHandJudgeRaw | null
-    const inventory = r ? adsV2ParseInHandInventory(r.inventory) : null
+    const inventory = r ? (r.variant === 'B' ? adsV2ParseInHandInventoryB(r.inventory) : adsV2ParseInHandInventory(r.inventory)) : null // KINEO-JUIZ-GRADE-1610
     return { verdict, answers: adsV2CalibrateAnswers(r, verdict), inventory, crop: !!r?.crop, ...(r && !inventory && r.inventory !== null ? { raw: String(r.inventory).slice(0, 300) } : {}) }
   }
   const one = async (img: AdsV2CalibrateImage): Promise<AdsV2CalibrateResult> => {
@@ -102,5 +118,5 @@ export async function adsV2CalibrateRun(input: AdsV2CalibrateInput, doFetch: typ
   }
   const results: AdsV2CalibrateResult[] = []
   for (let i = 0; i < input.images.length; i += ADS_V2_CALIBRATE_PARALLEL) results.push(...(await Promise.all(input.images.slice(i, i + ADS_V2_CALIBRATE_PARALLEL).map(one))))
-  return { model: ADS_V2_IN_HAND_JUDGE_MODEL, defect_keys: ADS_V2_IN_HAND_DEFECT_KEYS, repeat: input.repeat, usd: Math.round(input.images.length * input.repeat * 2 * ADS_V2_IN_HAND_JUDGE_USD * 1000) / 1000, results }
+  return { model: judge.model, variant: judge.variant, defect_keys: ADS_V2_IN_HAND_DEFECT_KEYS, repeat: input.repeat, usd: Math.round((input.images.length * input.repeat * 2 * ADS_V2_IN_HAND_JUDGE_USD + (judge.variant === 'B' && crop ? input.images.length * ADS_V2_CUTOUT_USD_MAX : 0)) * 1000) / 1000, results } // KINEO-JUIZ-GRADE-1610 — o modelo e a variante usados; B soma 1 recorte por foto (estimativa fixa por chamada: o repo não tem preço de visão por modelo)
 }
