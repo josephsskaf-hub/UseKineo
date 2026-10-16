@@ -136,7 +136,7 @@ const DECOR = /[[\]{}#*_]|[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]/u
  * KINEO-ADS-MODO-SIMPLES-2026-09-29 — opts.overlays === false (modo simples, "sem frases na tela"): o pedido manda
  * devolver overlays: [] e some a regra da marca. overlays ausente = o texto de sempre, byte a byte (guardião Z3).
  */
-export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts: { maxWords: number; narration: boolean; overlays?: boolean; simple?: AdsV2SimpleVoice; ad?: AdsV2AdVoice; honesty?: AdsV2HonestySource; speechMin?: number; generic?: AdsV2GenericProduct | null }): { system: string; user: string } { // KINEO-ADS-RETESTE-1510 — speechMin/generic opcionais: ausentes = o pedido de sempre, byte a byte (Z3)
+export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts: { maxWords: number; narration: boolean; overlays?: boolean; simple?: AdsV2SimpleVoice; ad?: AdsV2AdVoice; honesty?: AdsV2HonestySource; speechMin?: number; generic?: AdsV2GenericProduct | null; speechSentences?: string }): { system: string; user: string } { // KINEO-ADS-RETESTE-1510 — speechMin/generic opcionais: ausentes = o pedido de sempre, byte a byte (Z3) · KINEO-ADS-MAO-AJUSTE-3-1610 — + speechSentences (só o Comercial "produto na mão")
   const brand = brandName(brief)
   const noOverlays = opts.overlays === false
   const voice = opts.simple
@@ -152,7 +152,7 @@ export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts:
     ...(opts.honesty ? [ADS_V2_HONESTY_RULE] : []),
     `Write everything in ${languageName}.`,
     opts.narration
-      ? typeof opts.speechMin === 'number' ? adsV2SpeechNarrationLine(opts.speechMin, opts.maxWords, nameRule) : `narration: one to three short spoken sentences, ${Math.ceil(opts.maxWords * 0.5)} to ${opts.maxWords} words in total (count them). Warm and natural. ${nameRule} No phone number, link or address unless copied exactly from the brief.` // KINEO-ADS-RETESTE-1510 — com o piso de fala, a linha nova; sem ele, a de sempre
+      ? typeof opts.speechMin === 'number' ? adsV2SpeechNarrationLine(opts.speechMin, opts.maxWords, nameRule, ...(typeof opts.speechSentences === 'string' && opts.speechSentences ? [opts.speechSentences] : [])) : `narration: one to three short spoken sentences, ${Math.ceil(opts.maxWords * 0.5)} to ${opts.maxWords} words in total (count them). Warm and natural. ${nameRule} No phone number, link or address unless copied exactly from the brief.` // KINEO-ADS-RETESTE-1510 — com o piso de fala, a linha nova; sem ele, a de sempre · KINEO-ADS-MAO-AJUSTE-3-1610 — + as frases do "produto na mão"
       : 'narration: return "" (the customer turned the voice-over off).',
     ...(voice && opts.narration
       ? [
@@ -523,6 +523,9 @@ async function extractWithBudget(args: {
   scripts?: boolean
   /** KINEO-ADS-ROTEIROS-2026-10-13 — a cena já limpa (adsV2SceneSetting) dá o clima da versão "story". */
   scene?: string | null
+  /** KINEO-ADS-MAO-AJUSTE-3-1610 — o Comercial "produto na mão" (o /plan decide): piso de palavras maior (nunca acima do teto) e uma frase a mais. Ausentes = como sempre. */
+  speechFloor?: number // KINEO-ADS-MAO-AJUSTE-3-1610
+  speechSentences?: string // KINEO-ADS-MAO-AJUSTE-3-1610
 }, budget: AdsV2CallBudget): Promise<AdsV2BriefResult> {
   const briefMsgs = buildAutoBriefMessages(args.text, args.languageName)
   const briefRaw = await callJson([{ role: 'system', content: briefMsgs.system }, { role: 'user', content: briefMsgs.user }], 0.2, 900, budget)
@@ -554,9 +557,10 @@ async function extractWithBudget(args: {
   const opts: typeof base1 & { ad?: AdsV2AdVoice; honesty: AdsV2HonestySource } = ad ? { ...base1, ad, honesty } : { ...base1, honesty }
   // KINEO-ADS-RETESTE-1510 — o piso de fala (90% do anúncio na voz MiniMax do Ads: 27 palavras em 15 s) e o produto genérico
   // KINEO-ADS-RETESTE-1510 — ("Perfume" sem marca, sem nome próprio na frase e sem página lida) entram no pedido E na régua.
-  const speechMin = args.narration ? adsV2SpeechMinWords(args.maxWords) : 0 // KINEO-ADS-RETESTE-1510
+  const speechMin = args.narration ? Math.max(adsV2SpeechMinWords(args.maxWords), typeof args.speechFloor === 'number' && Number.isFinite(args.speechFloor) ? Math.min(args.maxWords, Math.floor(args.speechFloor)) : 0) : 0 // KINEO-ADS-RETESTE-1510 · KINEO-ADS-MAO-AJUSTE-3-1610 — o piso do "produto na mão" (nunca acima do teto)
   const generic = adsV2GenericProduct(brandName(parsed.brief), args.sentence ?? args.text, args.language, { pageRead: /\nFrom the product page:/.test(args.text) }) // KINEO-ADS-RETESTE-1510
   if (speechMin > 0) Object.assign(opts, { speechMin }) // KINEO-ADS-RETESTE-1510
+  if (speechMin > 0 && typeof args.speechSentences === 'string' && args.speechSentences) Object.assign(opts, { speechSentences: args.speechSentences }) // KINEO-ADS-MAO-AJUSTE-3-1610 — uma frase a mais (cada ponto é uma pausa da voz)
   if (generic) Object.assign(opts, { generic }) // KINEO-ADS-RETESTE-1510
   const fitOpts = { generic, speech: speechMin > 0 ? { min: speechMin, max: args.maxWords, language: args.language } : null } // KINEO-ADS-RETESTE-1510
   const fitFixes: string[] = [] // KINEO-ADS-RETESTE-1510

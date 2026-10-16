@@ -177,6 +177,12 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     const language = narrationLanguage(order.language) ?? narrationLanguage(pageLang) ?? resolveNarrationLanguage(undefined, sentenceFull !== sentenceCopy ? `${text}\n${sentenceFull}` : text).language // KINEO-ADS-CONSERTOS-1410 — "perfume" sozinho não diz a língua; a frase inteira diz
     const maxWords = adsV2NarrationMaxWords(order.seconds)
     const overlaysOn = brief0.overlays !== false
+    // KINEO-ADS-MAO-AJUSTE-3-1610 — o Comercial "produto na mão" decidido ANTES do texto (pelo setor da tela; o plano final confere de novo): a narração pede o
+    // KINEO-ADS-MAO-AJUSTE-3-1610 — piso maior e uma frase a mais (cobrir ~13 s dos 15) e, em paralelo com o texto, a visão barata diz se a foto do produto tem o frasco
+    // KINEO-ADS-MAO-AJUSTE-3-1610 — E a caixa (um objeto por plano). Sem a lib, sem a visão ou sem resposta = como antes.
+    const inHandEarly = await import('@/lib/ads/v2ProductInHand').then((m) => (typeof m.adsV2InHandSpeechMin === 'function' ? m : null)).catch(() => null) // KINEO-ADS-MAO-AJUSTE-3-1610
+    const inHandProduct = inHandEarly ? inHandEarly.adsV2InHandEligible({ on: inHandEarly.adsV2InHandOn(reason === 'internal'), tier: order.tier, seconds: order.seconds, photos, productOrder: adsV2IsProductOrder(brief0, input.sector), sector: input.sector, presenter: presenterAsked, style: ADS_V2_STYLES_PUBLIC ? input.style ?? null : null, videos: videos.length }) : null // KINEO-ADS-MAO-AJUSTE-3-1610
+    const inHandPairP: Promise<boolean | null> = inHandProduct ? import('@/lib/ads/v2LockVision').then((v) => (typeof v.adsV2InHandPhotoPair === 'function' ? v.adsV2InHandPhotoPair(typeof inHandProduct.original_url === 'string' && inHandProduct.original_url ? inHandProduct.original_url : inHandProduct.url) : null)).catch(() => null) : Promise.resolve(null) // KINEO-ADS-MAO-AJUSTE-3-1610 — a foto inteira (o recorte pode cortar a caixa)
     const extracted = await extractAdsV2Brief({
       text,
       language,
@@ -192,6 +198,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
       ...(presenterAsked ? { presenter: true } : {}),
       typed, // KINEO-ANUNCIO-CONSERTOS-2026-10-12
       deadlineMs: started + ADS_V2_PLAN_MODEL_DEADLINE_MS, // KINEO-ADS-CENA-2026-10-13 — as chamadas ao modelo terminam antes do maxDuration 60
+      ...(inHandProduct && inHandEarly ? { speechFloor: inHandEarly.adsV2InHandSpeechMin(maxWords), speechSentences: inHandEarly.ADS_V2_IN_HAND_SPEECH_SENTENCES } : {}), // KINEO-ADS-MAO-AJUSTE-3-1610 — a narração do "produto na mão" cobre ~13 s
       scripts: (body as { scripts?: unknown } | null)?.scripts !== false, scene: adsV2SceneSetting(brief0, order.tier), // KINEO-ADS-ROTEIROS-2026-10-13 — +2 versões em outros tons, em paralelo e no MESMO prazo (a cena dá o clima da "story"); corpo com scripts:false (ex.: o lote) = só o texto de sempre
     })
     const modeTag = { mode: simple ? 'simple' : 'full', facts_selected: factTexts.length, overlays: overlaysOn }
@@ -220,8 +227,9 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     const sceneSetting = adsV2SceneSetting(brief0, order.tier) // KINEO-ADS-CENA-2026-10-13 — brief.scene limpa de novo; null no Normal ou sem cena
     plan.shots = adsV2SceneShots(plan.shots, { setting: sceneSetting, sector, product: adsV2IsProductOrder(brief0, sector), photos }) // KINEO-ADS-CENA-2026-10-13 — só o scenePrompt das cenas criadas muda ("Setting: …"); sem cena = o mesmo array
     plan.shots = adsV2PackshotShots(plan.shots, { photos: photos.map((p) => ({ id: p.footage_id, url: p.url, kind: p.kind })), productOrder: adsV2IsProductOrder(brief0, sector) }) // KINEO-ADS-MELHORIAS-1410 — troca UM plano de IA (o fecho; senão o 2º) pela foto real do produto: nº de planos, duração e créditos iguais
+    const inHandPair = await inHandPairP // KINEO-ADS-MAO-AJUSTE-3-1610 — frasco + caixa na foto do produto? (null = não sei: nada muda)
     const inHandLib = await import('@/lib/ads/v2ProductInHand').then((m) => (typeof m.adsV2InHandPlan === 'function' ? m : null)).catch(() => null) // KINEO-ADS-PRODUTO-NA-MAO-1610 — pessoa segurando o produto REAL no Comercial (só contas internas); import dinâmico: sem a lib = o plano de antes
-    const inHand = ((ih) => (ih && ih.shotsSeconds === plan.shotsSeconds ? ih : null))(inHandLib ? inHandLib.adsV2InHandPlan({ on: inHandLib.adsV2InHandOn(reason === 'internal'), tier: order.tier, seconds: order.seconds, photos, productOrder: adsV2IsProductOrder(brief0, sector), sector, presenter: presenterAsked, style: plan.style ?? null, videos: videos.length, settingLine: inHandLib.adsV2InHandSettingLine(sceneSetting), format, productText: `${sentenceCopy} ${extracted.brief.business ?? ''}` }) : null) // KINEO-ADS-PRODUTO-NA-MAO-1610 — Comercial 15 s com foto de produto, conta interna: gancho com gente, 2 usos, close na cena, packshot real (a duração dos planos é a mesma) · KINEO-ADS-MAO-AJUSTE-1610 — + productText (a frase SEM a cena + o negócio): a categoria escolhe a ação de cada plano
+    const inHand = ((ih) => (ih && ih.shotsSeconds === plan.shotsSeconds ? ih : null))(inHandLib ? inHandLib.adsV2InHandPlan({ on: inHandLib.adsV2InHandOn(reason === 'internal'), tier: order.tier, seconds: order.seconds, photos, productOrder: adsV2IsProductOrder(brief0, sector), sector, presenter: presenterAsked, style: plan.style ?? null, videos: videos.length, settingLine: inHandLib.adsV2InHandSettingLine(sceneSetting), format, productText: `${sentenceCopy} ${extracted.brief.business ?? ''}`, pair: inHandPair }) : null) // KINEO-ADS-PRODUTO-NA-MAO-1610 — Comercial 15 s com foto de produto, conta interna: gancho com gente, 2 usos, close na cena, packshot real (a duração dos planos é a mesma) · KINEO-ADS-MAO-AJUSTE-1610 — + productText (a frase SEM a cena + o negócio): a categoria escolhe a ação de cada plano · KINEO-ADS-MAO-AJUSTE-3-1610 — + pair (frasco + caixa: um objeto por plano)
     if (inHand) plan.shots = inHand.shots // KINEO-ADS-PRODUTO-NA-MAO-1610 — a régua anti-invenção abaixo confere os prompts novos também
     plan.shots = adsV2FormatShots(plan.shots, format) // KINEO-ADS-MELHORIAS-1410 — a cena criada pedida no formato ("portrait"/"square", sem números); 9:16 = o mesmo array
     const promptIssues = checkV2Prompts(plan.shots.flatMap((s) => [s.prompt, s.scenePrompt].filter((x): x is string => !!x)), extracted.brief)
@@ -247,6 +255,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     const credits = adsV2Credits(order.tier, order.seconds)
     const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds, presenter: !!presenter })
     if (inHand) Object.assign(modeTag, { in_hand: true }) // KINEO-ADS-PRODUTO-NA-MAO-1610
+    if (inHand) Object.assign(modeTag, { in_hand_pair: inHandPair }) // KINEO-ADS-MAO-AJUSTE-3-1610 — a medição: frasco + caixa na foto (true), um objeto (false), não sei (null)
 
     const upd = await admin
       .from('ads_v2_orders')

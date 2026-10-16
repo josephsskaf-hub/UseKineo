@@ -263,8 +263,8 @@ export function adsV2GenericRepair(text: string, g: AdsV2GenericProduct | null |
 
 // ═══ 3. o que lib/ads/v2Brief.ts chama ══════════════════════════════════════════════════════════════════════════════
 /** A linha da narração no pedido de texto com o piso de fala (no lugar de "one to three…, metade do teto"). Pura. */
-export function adsV2SpeechNarrationLine(min: number, max: number, nameRule: string): string {
-  return `narration: two to four short spoken sentences, ${min} to ${max} words in total (count them) — the voice-over must fill the whole ad: fewer than ${min} words leaves the end of the video silent. Warm and natural. ${nameRule} No phone number, link or address unless copied exactly from the brief.`
+export function adsV2SpeechNarrationLine(min: number, max: number, nameRule: string, sentences: string = 'two to four short spoken sentences'): string { // KINEO-ADS-MAO-AJUSTE-3-1610 — + sentences (o Comercial "produto na mão" pede uma frase a mais; ausente = a linha de sempre)
+  return `narration: ${sentences}, ${min} to ${max} words in total (count them) — the voice-over must fill the whole ad: fewer than ${min} words leaves the end of the video silent. Warm and natural. ${nameRule} No phone number, link or address unless copied exactly from the brief.` // KINEO-ADS-MAO-AJUSTE-3-1610
 }
 
 /** O motivo da recusa quando o texto usa o produto genérico como marca. Pura. */

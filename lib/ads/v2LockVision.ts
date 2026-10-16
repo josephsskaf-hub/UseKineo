@@ -119,18 +119,21 @@ export async function adsV2SceneCheck(sceneUrl: string, format: AdsV2Format, sid
 // KINEO-ADS-MAO-AJUSTE-1610 — a pergunta ficou mais rígida (cor do corpo e do líquido, MATERIAL, QUANTIDADE): no T1 o juiz aprovou um frasco preto
 // KINEO-ADS-MAO-AJUSTE-1610 — inventado. Divergiu → refaz 1 vez → enquadramento sem o rótulo de frente → foto real (o fluxo de sempre).
 import { ADS_V2_IN_HAND_JUDGE_QUESTION, adsV2ParseInHandVerdict, type AdsV2InHandVerdict } from '@/lib/ads/v2ProductInHand' // KINEO-ADS-PRODUTO-NA-MAO-1610
+// KINEO-ADS-MAO-AJUSTE-3-1610 — o juiz pergunta também por PESSOA EXTRA (o homem na cama ao fundo, o olho na borda) e, na foto com frasco + caixa, pelo OBJETO ÚNICO
+// KINEO-ADS-MAO-AJUSTE-3-1610 — do plano (os dois juntos = reprova). E a mesma visão barata diz, no /plan, se a foto do produto tem o frasco E a caixa.
+import { ADS_V2_IN_HAND_PAIR_QUESTION, adsV2InHandJudgeKeys, adsV2InHandJudgeQuestion, adsV2ParseInHandPair, type AdsV2InHandObject } from '@/lib/ads/v2ProductInHand' // KINEO-ADS-MAO-AJUSTE-3-1610
 /** KINEO-ADS-PRODUTO-NA-MAO-1610 — o corpo do juiz (puro: o guardião confere modelo do registro, 'high', JSON e a ordem das imagens). */
-export function adsV2InHandLabelBody(productUrl: string, sceneUrl: string): Record<string, unknown> { // KINEO-ADS-PRODUTO-NA-MAO-1610
+export function adsV2InHandLabelBody(productUrl: string, sceneUrl: string, object: AdsV2InHandObject | null = null): Record<string, unknown> { // KINEO-ADS-PRODUTO-NA-MAO-1610 · KINEO-ADS-MAO-AJUSTE-3-1610 — + object
   return { // KINEO-ADS-PRODUTO-NA-MAO-1610
     model: AI_TEXT_MODELS.vision, // KINEO-ADS-PRODUTO-NA-MAO-1610
     temperature: 0, // KINEO-ADS-PRODUTO-NA-MAO-1610
-    max_tokens: 140, // KINEO-ADS-PRODUTO-NA-MAO-1610 · KINEO-ADS-MAO-AJUSTE-1610 — 7 chaves (+ material, count): era 80
+    max_tokens: 200, // KINEO-ADS-PRODUTO-NA-MAO-1610 · KINEO-ADS-MAO-AJUSTE-1610 — 7 chaves (+ material, count): era 80 · KINEO-ADS-MAO-AJUSTE-3-1610 — até 9 chaves (+ people, only_object): era 140
     response_format: { type: 'json_object' }, // KINEO-ADS-PRODUTO-NA-MAO-1610
-    messages: [{ role: 'user', content: [{ type: 'text', text: ADS_V2_IN_HAND_JUDGE_QUESTION }, { type: 'image_url', image_url: { url: productUrl, detail: 'high' } }, { type: 'image_url', image_url: { url: sceneUrl, detail: 'high' } }] }], // KINEO-ADS-PRODUTO-NA-MAO-1610 — 1ª = a foto real
+    messages: [{ role: 'user', content: [{ type: 'text', text: adsV2InHandJudgeQuestion(object) }, { type: 'image_url', image_url: { url: productUrl, detail: 'high' } }, { type: 'image_url', image_url: { url: sceneUrl, detail: 'high' } }] }], // KINEO-ADS-PRODUTO-NA-MAO-1610 — 1ª = a foto real · KINEO-ADS-MAO-AJUSTE-3-1610 — a pergunta com pessoa extra e objeto único
   } // KINEO-ADS-PRODUTO-NA-MAO-1610
 } // KINEO-ADS-PRODUTO-NA-MAO-1610
 /** KINEO-ADS-PRODUTO-NA-MAO-1610 — o produto do still bate com a foto real? null = não deu para conferir. Nunca lança. */
-export async function adsV2InHandLabelJudge(productUrl: string, sceneUrl: string, doFetch: typeof fetch = fetch): Promise<AdsV2InHandVerdict | null> { // KINEO-ADS-PRODUTO-NA-MAO-1610
+export async function adsV2InHandLabelJudge(productUrl: string, sceneUrl: string, doFetch: typeof fetch = fetch, object: AdsV2InHandObject | null = null): Promise<AdsV2InHandVerdict | null> { // KINEO-ADS-PRODUTO-NA-MAO-1610 · KINEO-ADS-MAO-AJUSTE-3-1610 — + object
   const key = process.env.OPENAI_API_KEY // KINEO-ADS-PRODUTO-NA-MAO-1610
   const ok = (u: unknown): u is string => typeof u === 'string' && /^https:\/\/\S+$/i.test(u.trim()) // KINEO-ADS-PRODUTO-NA-MAO-1610
   if (!key || !ok(productUrl) || !ok(sceneUrl)) return null // KINEO-ADS-PRODUTO-NA-MAO-1610
@@ -138,13 +141,41 @@ export async function adsV2InHandLabelJudge(productUrl: string, sceneUrl: string
     const res = await doFetch('https://api.openai.com/v1/chat/completions', { // KINEO-ADS-PRODUTO-NA-MAO-1610
       method: 'POST', // KINEO-ADS-PRODUTO-NA-MAO-1610
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` }, // KINEO-ADS-PRODUTO-NA-MAO-1610
-      body: JSON.stringify(adsV2InHandLabelBody(productUrl.trim(), sceneUrl.trim())), // KINEO-ADS-PRODUTO-NA-MAO-1610
+      body: JSON.stringify(adsV2InHandLabelBody(productUrl.trim(), sceneUrl.trim(), object)), // KINEO-ADS-PRODUTO-NA-MAO-1610 · KINEO-ADS-MAO-AJUSTE-3-1610 — + object
       signal: AbortSignal.timeout(ADS_V2_LOCK_CHECK_TIMEOUT_MS), // KINEO-ADS-PRODUTO-NA-MAO-1610 — o prazo da conferência em 'high'
     }) // KINEO-ADS-PRODUTO-NA-MAO-1610
     if (!res.ok) return null // KINEO-ADS-PRODUTO-NA-MAO-1610
     const j = (await res.json()) as { choices?: { message?: { content?: unknown } }[] } // KINEO-ADS-PRODUTO-NA-MAO-1610
-    return adsV2ParseInHandVerdict(j?.choices?.[0]?.message?.content ?? null) // KINEO-ADS-PRODUTO-NA-MAO-1610
+    return adsV2ParseInHandVerdict(j?.choices?.[0]?.message?.content ?? null, adsV2InHandJudgeKeys(object)) // KINEO-ADS-PRODUTO-NA-MAO-1610 · KINEO-ADS-MAO-AJUSTE-3-1610 — as chaves desta conferência (sem "people" = ilegível)
   } catch { // KINEO-ADS-PRODUTO-NA-MAO-1610
     return null // KINEO-ADS-PRODUTO-NA-MAO-1610
   } // KINEO-ADS-PRODUTO-NA-MAO-1610
 } // KINEO-ADS-PRODUTO-NA-MAO-1610
+/** KINEO-ADS-MAO-AJUSTE-3-1610 — o corpo da pergunta do par (puro: modelo do registro, 1 imagem 'low', JSON). */
+export function adsV2InHandPairBody(productUrl: string): Record<string, unknown> { // KINEO-ADS-MAO-AJUSTE-3-1610
+  return { // KINEO-ADS-MAO-AJUSTE-3-1610
+    model: AI_TEXT_MODELS.vision, // KINEO-ADS-MAO-AJUSTE-3-1610
+    temperature: 0, // KINEO-ADS-MAO-AJUSTE-3-1610
+    max_tokens: 30, // KINEO-ADS-MAO-AJUSTE-3-1610
+    response_format: { type: 'json_object' }, // KINEO-ADS-MAO-AJUSTE-3-1610
+    messages: [{ role: 'user', content: [{ type: 'text', text: ADS_V2_IN_HAND_PAIR_QUESTION }, { type: 'image_url', image_url: { url: productUrl, detail: 'low' } }] }], // KINEO-ADS-MAO-AJUSTE-3-1610
+  } // KINEO-ADS-MAO-AJUSTE-3-1610
+} // KINEO-ADS-MAO-AJUSTE-3-1610
+/** KINEO-ADS-MAO-AJUSTE-3-1610 — a foto do produto tem o frasco E a caixa? true/false; null = não deu para ver (nada muda). Nunca lança. ~US$ 0,0003. */
+export async function adsV2InHandPhotoPair(productUrl: string, doFetch: typeof fetch = fetch): Promise<boolean | null> { // KINEO-ADS-MAO-AJUSTE-3-1610
+  const key = process.env.OPENAI_API_KEY // KINEO-ADS-MAO-AJUSTE-3-1610
+  if (!key || typeof productUrl !== 'string' || !/^https:\/\/\S+$/i.test(productUrl.trim())) return null // KINEO-ADS-MAO-AJUSTE-3-1610
+  try { // KINEO-ADS-MAO-AJUSTE-3-1610
+    const res = await doFetch('https://api.openai.com/v1/chat/completions', { // KINEO-ADS-MAO-AJUSTE-3-1610
+      method: 'POST', // KINEO-ADS-MAO-AJUSTE-3-1610
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` }, // KINEO-ADS-MAO-AJUSTE-3-1610
+      body: JSON.stringify(adsV2InHandPairBody(productUrl.trim())), // KINEO-ADS-MAO-AJUSTE-3-1610
+      signal: AbortSignal.timeout(ADS_V2_LOCK_VISION_TIMEOUT_MS), // KINEO-ADS-MAO-AJUSTE-3-1610 — o prazo da conferência 'low' (o /plan espera em paralelo com o texto)
+    }) // KINEO-ADS-MAO-AJUSTE-3-1610
+    if (!res.ok) return null // KINEO-ADS-MAO-AJUSTE-3-1610
+    const j = (await res.json()) as { choices?: { message?: { content?: unknown } }[] } // KINEO-ADS-MAO-AJUSTE-3-1610
+    return adsV2ParseInHandPair(j?.choices?.[0]?.message?.content ?? null) // KINEO-ADS-MAO-AJUSTE-3-1610
+  } catch { // KINEO-ADS-MAO-AJUSTE-3-1610
+    return null // KINEO-ADS-MAO-AJUSTE-3-1610
+  } // KINEO-ADS-MAO-AJUSTE-3-1610
+} // KINEO-ADS-MAO-AJUSTE-3-1610
