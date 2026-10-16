@@ -359,7 +359,11 @@ if (docArg && res.ensaio) {
   md.push(`| Antigo (apagava) | ${cel(sujeito(PA.buildClassicVisualPrompt(FX[1].supervisor_cena_1, { ...pol, opening: true })))} |`)
   md.push(`| Novo (sem rosto, frase inteira) | ${cel(sujeito(PN.buildClassicVisualPrompt(FX[1].supervisor_cena_1, { ...pol, opening: true })))} |`, '')
   md.push('## Resultado', '', `- ${res.oks.length} verificações do guardião verdes, ${res.falhas.length} vermelhas (sem contar byte a byte e mutantes).`, '- Nos 5 roteiros, o antigo reproduz a troca (clipe i = bloco i do plano; o prompt do PAYOFF nunca é usado; descritor desligado). O novo ignora o plano, liga o descritor e o clipe 3 fala e mostra o PAYOFF.', '')
-  writeFileSync(docArg.slice('--doc='.length), md.join('\n'))
+  // O que vem depois do marcador (placar de coerência, medido por SQL, fora do gerador) é preservado ao regravar.
+  const MARCADOR_FORA = '<!-- KINEO-TRILHA-15S: fora do gerador'
+  let preservado = ''
+  try { const antigo = readFileSync(docArg.slice('--doc='.length), 'utf8').replace(/\r\n/g, '\n'); const i = antigo.indexOf(MARCADOR_FORA); if (i >= 0) preservado = antigo.slice(i) } catch { /* arquivo novo */ }
+  writeFileSync(docArg.slice('--doc='.length), md.join('\n') + (preservado ? `\n${preservado}` : ''))
   console.log(`\ndoc gravado: ${docArg.slice('--doc='.length)}`)
 }
 

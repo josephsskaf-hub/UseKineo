@@ -66,3 +66,28 @@ PAYOFF (bloco 4: "Dead leaves swirl, guiding us to the entrance... where true ho
 
 - 122 verificações do guardião verdes, 0 vermelhas (sem contar byte a byte e mutantes).
 - Nos 5 roteiros, o antigo reproduz a troca (clipe i = bloco i do plano; o prompt do PAYOFF nunca é usado; descritor desligado). O novo ignora o plano, liga o descritor e o clipe 3 fala e mostra o PAYOFF.
+
+<!-- KINEO-TRILHA-15S: fora do gerador (o --doc preserva daqui para baixo) -->
+## Placar de coerência antes do conserto (régua do fundador 16/10: 95+ = "praticamente perfeito")
+
+SQL só leitura, 16/10/2026: `events.name = 'fast_coherence'`, última nota de cada filme (`distinct on (session_id)`, 1 sessão = 1 filme: 501 sessões, 501 vídeos), últimos 30 dias, todas as contas. Duração cruzada com o `cinematic_submission_claim` do mesmo `generation_id`.
+
+| Motor (`metadata.engine`) | Filmes | Nota 95+ | % 95+ | Média | Mediana |
+|---|---|---|---|---|---|
+| **Seedance 1.5** (`cinematic_ai`) | **220** | **34** | **15,5%** | 78,8 | 80 |
+| — Seedance 1.5 de 15 s | 115 | 24 | 20,9% | | |
+| — Seedance 1.5 de 35/60/90 s | 105 | 10 | 9,5% | | |
+| Kineo 1 (`fast`) | 251 | 47 | 18,7% | 71,6 | 75 |
+| Veo 3.1 (`cinematic_veo`) | 9 | 2 | 22,2% | 84,2 | 90 |
+| Kling 2.5 (`cinematic_kling`) | 7 | 0 | 0% | 70,0 | 75 |
+| Kling 3 (`cinematic_hollywood`) | 5 | 0 | 0% | 75,0 | 75 |
+| Seedance 2.5 (`cinematic_s25`) | 4 | 2 | 50% | 90,0 | 92,5 |
+| MiniMax H3 (`cinematic_h3`) | 4 | 1 | 25% | 82,5 | 80 |
+| Omni (`cinematic_omni`) | 1 | 0 | 0% | 73,0 | 73 |
+
+**A nota dos filmes do diagnóstico (aviso honesto).** Os 8 filmes de 15 s com a troca de cena tiveram 95, 80, 90, 95, 90, 95, 80, 80 (657b6ea3 = 95, 384fc3f3 = 95, 01ca7fce = 95; 3 de 8 com 95+, média 88). Os 4 em que o plano não chegou e o descritor escreveu pela fala (2eac4d22, 97dcd3c4, 0e9899a6, a278acc5) tiveram 80, 100, 80, 80 (1 de 4, média 85). Ou seja: **o juiz `fast_coherence` quase não enxerga a troca** (deu 95 à Terra, cujo clipe 3 mostra ondas enquanto a voz fala de espaço profundo). O conserto devolve a imagem do PAYOFF, mas não se deve esperar que a fatia 95+ do Seedance suba na mesma proporção; a prova do conserto é o ensaio acima (prompt × fala), não essa nota.
+
+| Render de comparação (roteiro 657b6ea3, Seedance 15 s, ~US$ 0,80) | Nota `fast_coherence` | Chega a 95? |
+|---|---|---|
+| Filme do cliente (antes) | 95 | sim (mesmo com o clipe 3 trocado) |
+| Render depois do conserto | pendente: não rodado (sem render pago nesta sessão; depende do "vai" e da publicação) | — |
