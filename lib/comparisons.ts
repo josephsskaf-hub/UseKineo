@@ -37,6 +37,9 @@ import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, GRA
 // em silêncio, e esta linha aparece em 73 páginas (27 de /alternatives + 46 de
 // /vs), incluindo as que o ChatGPT lê para nos comparar.
 import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
+// KINEO-COPY-EQUIPE-1610 — "Kineo publishes no seat tier at all" ficou falso: o Business inclui BUSINESS_SEATS colegas no
+// Studio Ads (lib/ads/team.ts). As frases dizem agora o escopo real: equipe só no Business, só para anúncio, nunca nos Shorts.
+import { BUSINESS_SEATS } from '@/lib/ads/team'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual;
 // este módulo só é importado por código server-side, ver revisão no SPRINT).
@@ -1353,7 +1356,7 @@ export const PAIRS: Pair[] = [
       'You need more than one aspect ratio from the same source.',
       'You need long-video input, which Pictory adds from the Professional tier up.',
       'You want a large monthly ceiling: 200 minutes on Starter, 600 on Professional, 1,800 on Team.',
-      'You are buying for a team: Team is $199/month, or $119/month annually, for 3+ users. Kineo has no comparable seat tier.',
+      `You are buying for a team: Team is $199/month, or $119/month annually, for 3+ users. Kineo has no comparable seat tier for Shorts: its only team access is ${BUSINESS_SEATS} teammates on Business, for Studio Ads product ads.`,
     ],
     differences: [
       {
@@ -1455,7 +1458,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Per member versus per account',
-        p: 'Submagic quotes Starter at $19/member/month, or $12/member/month billed yearly. If two people need access that doubles. Kineo quotes a flat plan price and does not publish a seat tier at all, which is a limitation for teams and a saving for solo operators.',
+        p: `Submagic quotes Starter at $19/member/month, or $12/member/month billed yearly. If two people need access that doubles. Kineo quotes a flat plan price with no per-member charge, and its only team access is ${BUSINESS_SEATS} teammates on Business, for Studio Ads product ads rather than Shorts — a limitation for Shorts teams and a saving for solo operators.`,
       },
       {
         h: 'Quality ceilings',
@@ -4132,7 +4135,7 @@ export const PAIRS: Pair[] = [
       'You have a product URL a tool can read and turn into creative.',
       'You need many variants fast rather than one good video.',
       'AI actors are the format: 300 on Free and Starter, 1,500 plus 3 custom avatars on Pro.',
-      'You need 5 seats on one plan, which Pro includes — Kineo publishes no seat tier at all.',
+      `You need 5 seats on one plan, which Pro includes — Kineo's only seats are the ${BUSINESS_SEATS} teammates included on Business.`,
     ],
     pickB: [
       'The video is channel content, not creative for a campaign.',
@@ -4152,7 +4155,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Team support: published on one side, absent on the other',
-        p: 'Creatify puts 5 seats on Pro at $99/month and 6+ on Enterprise with white-label and API discounts. Kineo does not publish a seat tier. If more than one person needs access, Creatify is the answer by default and that is a straightforward limitation of ours.',
+        p: `Creatify puts 5 seats on Pro at $99/month and 6+ on Enterprise with white-label and API discounts. Kineo Business includes ${BUSINESS_SEATS} teammates in Studio Ads, using the owner's credits, and stops there. If more than ${BUSINESS_SEATS + 1} people need access, Creatify is the answer by default and that is a straightforward limitation of ours.`,
       },
       {
         h: 'Rollover, stated plainly against us',
@@ -4414,7 +4417,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Teams, governance and everything Kineo does not have',
-        p: 'Synthesia sells seats, guests, SSO, brand kits and SCORM export. Kineo publishes no seat tier at all. If more than one person needs access, or if procurement will ask about single sign-on, Synthesia is the answer by default and this is not a close call.',
+        p: `Synthesia sells seats, guests, SSO, brand kits and SCORM export. Kineo's only seats are the ${BUSINESS_SEATS} teammates on Business, and they cover Studio Ads, not Shorts. If more than one person needs access to Shorts, or if procurement will ask about single sign-on, Synthesia is the answer by default and this is not a close call.`,
       },
     ],
     faq: [

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
+import fs from 'node:fs'
 import { React, root, offlineModules, renderToStaticMarkup } from './gpt24h-offline-support.mjs'
 
 // Actual page and existing click handler; only unrelated client/network boundaries are mocked.
@@ -17,7 +18,27 @@ const before = offlineModules({ mocks, replacements: { [path]: base } })
 const after = offlineModules({ mocks })
 const tree = after(path).default()
 const oldHtml = renderToStaticMarkup(before(path).default())
-const html = renderToStaticMarkup(tree)
+// KINEO-COPY-EQUIPE-1610 — reancorado com motivo: a página negava equipe para a Kineo inteira, mas o Business inclui
+// BUSINESS_SEATS colegas no Studio Ads (lib/ads/team.ts). Só estas 4 frases podem mudar, exatamente para o texto abaixo; cada
+// uma precisa APARECER na página nova (prova de que a troca aconteceu) e é desfeita antes da comparação com o f834c583, que
+// continua congelando todo o resto byte a byte. O número de vagas é lido de lib/ads/team.ts, nunca digitado aqui.
+const seats = Number(fs.readFileSync(root + '/lib/ads/team.ts', 'utf8').match(/^export const BUSINESS_SEATS = ([0-9]+)(?![0-9])/m)?.[1])
+assert.ok(Number.isInteger(seats) && seats > 0, 'seat count read from lib/ads/team.ts')
+const TEAM_COPY_1610 = [
+  ['Do agency packs include team seats, client approval portals or white-label software?', 'Does Kineo include team seats, client approval portals or white-label software?'],
+  [`No. These are self-service production packs for one Kineo account. You receive clean MP4 files that you can deliver under your own service, but Kineo is not a white-label client portal. Team seats exist only on the Kineo Business plan: ${seats} teammates included for Studio Ads product ads, each signing in with their own Kineo account and using the owner's credits.`, 'No. These are self-service production packs for one Kineo account. You receive clean MP4 files that you can deliver under your own service, but Kineo is not a multi-seat or white-label client portal.'],
+  [`You can sell and deliver the finished videos. Agency packs do not include team seats, separate client workspaces, approval routing or a white-label portal. One account owns the balance and the library. If teammates need their own logins, the Kineo Business plan includes ${seats} for Studio Ads product ads.`, 'You can sell and deliver the finished videos. Kineo does not currently include team seats, separate client workspaces, approval routing or a white-label portal. One account owns the balance and the library.'],
+  ['several teammates need separate logins to make Shorts (Business team seats cover Studio Ads only);', 'several teammates need separate logins;'],
+]
+const escHtml = (t) => t.split("'").join('&#x27;')
+const htmlNew = renderToStaticMarkup(tree)
+let html = htmlNew
+for (const [now, was] of TEAM_COPY_1610) {
+  assert.ok(htmlNew.includes(now) || htmlNew.includes(escHtml(now)), 'team copy 1610 present: ' + now.slice(0, 60))
+  html = html.split(escHtml(now)).join(escHtml(was)).split(now).join(was)
+  assert.ok(!html.includes(now) && !html.includes(escHtml(now)), 'team copy 1610 fully reverted for the freeze: ' + now.slice(0, 60))
+}
+assert.ok(!htmlNew.includes('Kineo does not currently include team seats') && !htmlNew.includes('multi-seat'), 'the old whole-Kineo denial is gone from the live page')
 const row = /<p data-agency-monthly-plans="true"[^>]*>[\s\S]*?<\/p>/g
 const rows = [...html.matchAll(row)]
 assert.equal(rows.length, 1, 'exactly one monthly path')

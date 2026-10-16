@@ -168,7 +168,9 @@ export function buildBusinessPilotReviewMemo(selection: BusinessPilotSelection):
     '• Whether the current public plans fit the intended cadence.',
     '',
     'Known boundaries',
-    '• Self-service means one account; it does not include team seats, client approval routing or white-label software/client portal.',
+    // KINEO-COPY-EQUIPE-1610 — "does not include team seats" contradizia o Business (colegas no Studio Ads, lib/ads/team.ts).
+    // Módulo sem import (o guardião executa isolado), por isso sem o número de vagas aqui.
+    '• Self-service means one account; team seats exist only on the Kineo Business plan (Studio Ads only), and it does not include client approval routing or white-label software/client portal.',
     '• AI output requires human review before publishing.',
     '• This note makes no SOC 2, ISO 27001 or enterprise SLA claim.',
     '• Verify the current privacy policy, terms, product scope and pricing before deciding.',

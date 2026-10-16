@@ -5,6 +5,10 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
 import TrustActions from './TrustActions'
+// KINEO-COPY-EQUIPE-1610 — a linha que negava vagas de equipe contradizia o /pricing: o Business inclui BUSINESS_SEATS colegas no Studio Ads
+// (lib/ads/team.ts). E o Studio Ads já tem link privado de aprovação do cliente (lib/ads/v2PostDelivery.ts), então a
+// negação de "client approval portal" também saiu. Fica o que segue verdadeiro: nada de white-label nem de SSO.
+import { BUSINESS_SEATS } from '@/lib/ads/team'
 
 const BASE = 'https://www.usekineo.com'
 const CANONICAL = `${BASE}/trust`
@@ -73,7 +77,7 @@ const NOT_CLAIMED = [
   'No invented customer count, retention rate or “#1 tool” badge.',
   'No SOC 2, ISO 27001 or enterprise SLA claim.',
   'No promise that AI output is factually perfect — review remains your responsibility.',
-  'No team seats, client approval portal or white-label software claim.',
+  `No white-label software or enterprise SSO (SAML) claim. Team seats exist only on Kineo Business: ${BUSINESS_SEATS} teammates for Studio Ads, using the owner's credits.`,
 ] as const
 
 const FAQ = [

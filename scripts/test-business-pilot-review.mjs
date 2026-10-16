@@ -29,11 +29,13 @@ for (const text of [
   'Use case: Content for client work',
   'Cadence: Ongoing production',
   'Reviewer: Client approver',
-  'one account; it does not include team seats, client approval routing or white-label software/client portal',
+  'one account; team seats exist only on the Kineo Business plan (Studio Ads only), and it does not include client approval routing or white-label software/client portal',
   'review by your team or client',
   'no SOC 2, ISO 27001 or enterprise SLA claim',
   'Not a contract, certification, legal approval or ROI forecast.',
 ]) check(memo.includes(text), `memo includes honest boundary: ${text}`)
+// KINEO-COPY-EQUIPE-1610 — o Business tem equipe (lib/ads/team.ts): o memo não pode voltar a negar equipe em geral.
+check(!/does not include team seats/i.test(memo), 'memo no longer denies team seats that Kineo Business includes')
 
 const asset = helper.buildBusinessPilotReviewAsset(selection)
 const url = new URL(asset.url)

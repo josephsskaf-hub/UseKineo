@@ -78,6 +78,9 @@ ok(client.includes('sessionStorage.getItem(marker)'), 'page impression dedupes w
 ok(client.includes("`${VIEW_MARKER}:${entry ?? 'direct'}`"), 'entry-scoped marker preserves source attribution')
 ok(client.includes('premium generative engines use more credits per video'), 'credit universality cannot overpromise the Fast count')
 ok(page.includes('not team seats, approval routing, a client portal or white-label software') || page.includes('team seats, separate client workspaces, approval routing or a white-label portal'), 'missing B2B features are disclosed')
+// KINEO-COPY-EQUIPE-1610 — a negação vale para os PACOTES; a Kineo em si tem equipe no Business (lib/ads/team.ts).
+ok(!page.includes('Kineo does not currently include team seats') && !page.includes('Kineo is not a multi-seat'), 'page no longer denies team seats for Kineo as a whole')
+ok(page.includes("import { BUSINESS_SEATS } from '@/lib/ads/team'") && page.includes('the Kineo Business plan includes {BUSINESS_SEATS} for Studio Ads product ads') && page.includes('Team seats exist only on the Kineo Business plan: ${BUSINESS_SEATS} teammates'), 'page points teams to Business and reads the seat count from lib/ads/team.ts')
 ok(page.includes('Commercial use is included'), 'commercial delivery is stated')
 ok(page.includes('https://www.usekineo.com/og-agency-card.png'), 'B2B metadata uses the dedicated agency social card')
 ok(!page.includes('https://www.usekineo.com/og-card.png'), 'B2B metadata does not fall back to the generic product card')

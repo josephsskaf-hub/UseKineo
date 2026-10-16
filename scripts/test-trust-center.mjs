@@ -58,5 +58,9 @@ ok(funnel.includes("'trust_page_viewed', 'trust_cta_clicked'"), 'admin identity 
 ok(funnel.includes("trust_page_viewed: uniqueCheckoutActors('trust_page_viewed')"), 'admin counts trust viewers as actors')
 ok(funnel.includes("trust_cta_clicked: uniqueCheckoutActors('trust_cta_clicked')"), 'admin counts trust CTA actors')
 
+// KINEO-COPY-EQUIPE-1610 — o /pricing vende o Business com colegas (lib/ads/team.ts); o Trust Center não pode negar equipe.
+ok(!/No team seats/i.test(page), 'trust center no longer denies the Business team seats')
+ok(page.includes("import { BUSINESS_SEATS } from '@/lib/ads/team'") && page.includes('Team seats exist only on Kineo Business: ${BUSINESS_SEATS} teammates for Studio Ads'), 'team scope reads the seat count from lib/ads/team.ts')
+
 console.log(`\n${passed}/${passed + failed} checks passed`)
 if (failed) process.exit(1)

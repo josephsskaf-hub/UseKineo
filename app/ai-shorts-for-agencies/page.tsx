@@ -16,6 +16,10 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 // continuam apontando para cá e chegam no lugar certo. Interruptor ligado = a página volta como estava.
 import { redirect } from 'next/navigation'
 import { BULK_PACKS_PUBLIC, BULK_PACK_REPLACEMENT_PATH } from '@/lib/bulkPacksPublic'
+// KINEO-COPY-EQUIPE-1610 — a página negava equipe para a Kineo inteira, mas o plano
+// Business inclui BUSINESS_SEATS colegas no Studio Ads (lib/ads/team.ts, /api/ads/team, tabela ads_team_members). Os
+// pacotes continuam de UMA conta — a negação agora fala só dos pacotes e aponta o Business para quem precisa de equipe.
+import { BUSINESS_SEATS } from '@/lib/ads/team'
 
 const CANONICAL = 'https://www.usekineo.com/ai-shorts-for-agencies'
 
@@ -70,8 +74,8 @@ const FAQ = [
     a: 'It covers 30 Kineo 1 films of 60 seconds and includes operating headroom. Credits are universal, so choosing a premium generative engine uses more credits per video and reduces the number you can make.',
   },
   {
-    q: 'Does Kineo include team seats, client approval portals or white-label software?',
-    a: 'No. These are self-service production packs for one Kineo account. You receive clean MP4 files that you can deliver under your own service, but Kineo is not a multi-seat or white-label client portal.',
+    q: 'Do agency packs include team seats, client approval portals or white-label software?',
+    a: `No. These are self-service production packs for one Kineo account. You receive clean MP4 files that you can deliver under your own service, but Kineo is not a white-label client portal. Team seats exist only on the Kineo Business plan: ${BUSINESS_SEATS} teammates included for Studio Ads product ads, each signing in with their own Kineo account and using the owner's credits.`,
   },
 ] as const
 
@@ -217,14 +221,14 @@ export default function AiShortsForAgenciesPage() {
             <span style={{ color: 'var(--accent)', fontWeight: 850, fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase' }}>Know the boundary before buying</span>
             <h2 style={{ ...sectionTitle, marginTop: 9 }}>Commercial output, without fake enterprise promises</h2>
             <p style={{ color: 'var(--muted)', lineHeight: 1.65, margin: '13px 0 0' }}>
-              You can sell and deliver the finished videos. Kineo does not currently include team seats, separate client workspaces, approval routing or a white-label portal. One account owns the balance and the library.
+              You can sell and deliver the finished videos. Agency packs do not include team seats, separate client workspaces, approval routing or a white-label portal. One account owns the balance and the library. If teammates need their own logins, the Kineo Business plan includes {BUSINESS_SEATS} for Studio Ads product ads.
             </p>
             <Link href="/terms" style={{ display: 'inline-block', marginTop: 14, color: 'var(--accent)', fontWeight: 800, textDecoration: 'none' }}>Read the commercial-use terms →</Link>
           </div>
           <div style={{ padding: 22, borderRadius: 18, background: 'var(--card2)', border: '1px solid var(--border)' }}>
             <div style={{ color: 'var(--warning)', fontWeight: 900, fontSize: 12, textTransform: 'uppercase', letterSpacing: '.12em' }}>Not a fit when</div>
             <ul style={{ margin: '14px 0 0', paddingLeft: 20, color: 'var(--text2)', fontSize: 14, lineHeight: 1.75 }}>
-              <li>several teammates need separate logins;</li>
+              <li>several teammates need separate logins to make Shorts (Business team seats cover Studio Ads only);</li>
               <li>your customer must approve inside the platform;</li>
               <li>you need landscape, long-form or source-footage editing;</li>
               <li>you expect a human editor to revise every scene.</li>
