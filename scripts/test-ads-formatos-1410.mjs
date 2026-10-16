@@ -113,6 +113,7 @@ async function rodaPlano({ coreSrc, tier = 'commercial', format, style, presente
   const mocks = {
     'next/server': { NextResponse: { json: (body, init) => ({ status: init?.status ?? 200, body }) } },
     '@/lib/openai': { openai: new Proxy({}, { get() { throw new Error('Offline: OpenAI proibido') } }) },
+    '@/lib/ads/v2ProductInHand': {}, // reancorado KINEO-ADS-PRODUTO-NA-MAO-1610 — este arreio prova o /plan de SEMPRE (conta interna aqui): a lib do plano novo fica vazia = o plano de antes; o novo é provado em scripts/test-ads-produto-na-mao-1610.mjs
     '@/lib/serverEvents': { writeServerEvent: async () => {} },
     '@/lib/safety/contentModeration': { moderateContent: async () => ({ ok: true }) },
     '@/lib/safety/moderationPolicy': { moderationRefusalMessage: () => 'blocked', moderationRefusalStatus: () => 422 },
