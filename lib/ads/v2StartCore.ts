@@ -34,7 +34,6 @@ import { adsSampleCapReached, adsSampleLevelOk, adsSampleOpen } from '@/lib/ads/
 import { adsSampleRef } from '@/lib/ads/sample'
 import type { AdsV2ChargeResult } from '@/lib/ads/v2Billing'
 import type { AdsV2Caller } from '@/lib/ads/v2PlanCore'
-import { adsV2InHandSummary, adsV2InHandUsd, adsV2IsInHandPlan } from '@/lib/ads/v2ProductInHand' // KINEO-ADS-PRODUTO-NA-MAO-1610 — o plano novo (pessoa segurando o produto real) no dry-run: os planos e o custo com o juiz
 
 /** Prazo para abrir envios novos nesta chamada (o resto sai pelo avanço da tela/cron). */
 const DISPATCH_BUDGET_MS = 40_000
@@ -79,7 +78,6 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
 
     const cost = adsV2Credits(order.tier, order.seconds)
     const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds, presenter: !!plan.presenter }) // KINEO-ESTILOS-PRODUTO-2026-10-09 — o plano com estilo custa o efeito · KINEO-ATOR-ANUNCIO-2026-10-09 — o ator custa a foto e o vídeo falado
-    if (adsV2IsInHandPlan(plan)) Object.assign(usd, adsV2InHandUsd(usd, plan.shots)) // KINEO-ADS-PRODUTO-NA-MAO-1610 — + o juiz do rótulo e a reserva de uma refação de foto (os créditos não mudam)
 
     // ENSAIO DE US$ 0: plano + custo, sem débito e sem fal. Para aqui.
     if (dryRun) {
@@ -94,7 +92,6 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
         narration: plan.narration,
         overlays: plan.overlays,
         shots: plan.shots.map((s) => ({ idx: s.idx, role: s.role, kind: s.kind, source: s.source, cut_seconds: s.cutSeconds, prompt: s.prompt, scene_prompt: s.scenePrompt })),
-        ...(adsV2IsInHandPlan(plan) ? { in_hand: adsV2InHandSummary(plan.shots) } : {}), // KINEO-ADS-PRODUTO-NA-MAO-1610 — quais planos são de gente com o produto e qual é o packshot real
       })
     }
 

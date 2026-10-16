@@ -152,6 +152,24 @@ const BASEIN = { on: true, tier: 'commercial', seconds: 15, photos: PHOTOS, prod
 const planOf = (M = H, extra = {}) => M.adsV2InHandPlan({ ...BASEIN, ...extra })
 const oldPlan = () => { const p = SL.planShots({ sector: 'store', tier: 'commercial', photos: PHOTOS.map((p) => ({ id: p.footage_id, url: p.url, kind: p.kind })), seconds: 15 }); p.shots = SL.adsV2PackshotShots(p.shots, { photos: PHOTOS.map((p) => ({ id: p.footage_id, url: p.url, kind: p.kind })), productOrder: true }); return p }
 
+// ═══ 0. espelhos: a lib nova não importa valor (os guardiões antigos carregam o avanço e o /plan com listas fechadas) ═══════════
+console.log('\n0. a lib nova é pura e SEM import de valor; cada espelho bate com a original')
+const SCN = makeLoader({}, { loose: true })('lib/ads/v2Scene.ts')
+await check('00 lib/ads/v2ProductInHand.ts só importa TIPOS; o avanço e o /plan a carregam por import DINÂMICO (nenhum import estático novo neles)', () => {
+  const src = rd(F.ih)
+  return src.split('\n').filter((l) => /^import /.test(l)).every((l) => /^import type /.test(l)) && !/^import .*v2ProductInHand/m.test(rd(F.advance)) && !/^import .*v2ProductInHand/m.test(rd(F.planCore)) &&
+    rd(F.advance).includes("return import('@/lib/ads/v2ProductInHand').catch(() => null)")
+})
+await check('01 espelhos: cartão, dissolve, margem, clipe e preço do Kling O3, preço da foto, setores da trava, frase de manter, a linha "Setting" e a abertura de cada formato', () => {
+  const m = H.ADS_V2_IN_HAND_MIRROR
+  const sets = ['num hotel com chuva', 'beach at sunset, golden light']
+  return m.cardSeconds === SL.ADS_V2_CARD_SECONDS && m.fadeSeconds === SL.ADS_V2_FADE_SECONDS && m.cutMargin === SL.ADS_V2_CUT_MARGIN && m.klingGenSeconds === SL.ADS_V2_MIN_GEN_SECONDS && m.klingGenSeconds === T.ADS_V2_ENGINES.kling_o3.genSeconds &&
+    m.klingUsdPerSecond === T.ADS_V2_ENGINES.kling_o3.usdPerSecond && m.sceneImageUsd === T.ADS_V2_SCENE_IMAGE_USD && JSON.stringify(m.lockSectors) === JSON.stringify(SL.ADS_V2_PRODUCT_LOCK_SECTORS) && m.keepPhrase === SL.ADS_V2_KEEP_PHRASE &&
+    sets.every((s) => H.adsV2InHandSettingLine(s) === SCN.adsV2SettingLine(s) && H.adsV2InHandSettingFrom('x ' + SCN.adsV2SettingLine(s) + ' y') === SL.adsV2SettingFromPrompt('x ' + SCN.adsV2SettingLine(s) + ' y')) &&
+    ['4:5', '1:1'].every((f) => H.adsV2InHandScenePrompt({ frame: 'hold', format: f }) === SL.adsV2FormatShots([{ scenePrompt: H.adsV2InHandScenePrompt({ frame: 'hold', format: '9:16' }) }], f)[0].scenePrompt) &&
+    T.ADS_V2_KLING_O3_I2V_SLUG === 'fal-ai/kling-video/o3/pro/image-to-video'
+})
+
 // ═══ I. interno usa o caminho novo; não interno, o antigo ═══════════════════════════════════════════════════════════════════════════
 console.log('\nI. interno = plano novo; não interno e pedidos fora do escopo = o plano de antes (a colagem)')
 const i1 = (M = H) => M.ADS_V2_IN_HAND_MODE === 'internal' && M.adsV2InHandOn(true) === true && M.adsV2InHandOn(false) === false && M.adsV2InHandOn(true, 'off') === false && M.adsV2InHandOn(false, 'all') === true &&
@@ -166,11 +184,12 @@ const pc = rd(F.planCore)
 const i3 = (src = pc) => {
   const at = (s) => src.indexOf(s)
   const linha = src.split('\n').find((l) => l.includes('const inHand = ') && l.includes('adsV2InHandPlan(')) ?? ''
-  return linha.includes('on: adsV2InHandOn(reason === \'internal\')') && linha.includes('presenter: presenterAsked') && linha.includes('ih.shotsSeconds === plan.shotsSeconds') &&
+  return linha.includes('on: inHandLib.adsV2InHandOn(reason === \'internal\')') && linha.includes('presenter: presenterAsked') && linha.includes('ih.shotsSeconds === plan.shotsSeconds') &&
+    src.includes("    const inHandLib = await import('@/lib/ads/v2ProductInHand').catch(() => null)") && !/^import .*v2ProductInHand/m.test(src) &&
     at('    if (inHand) plan.shots = inHand.shots') > at(linha) && at('    if (inHand) plan.shots = inHand.shots') < at('const promptIssues = checkV2Prompts(') &&
-    src.includes('    if (inHand) Object.assign(stored, { productInHand: true })') && src.includes('    if (inHand) Object.assign(usd, adsV2InHandUsd(usd, plan.shots))')
+    src.includes('    if (inHand) Object.assign(stored, { productInHand: true })')
 }
-await check('I3 o /plan liga o plano novo SÓ com reason === "internal" (isAdsInternalEmail), ANTES da régua anti-invenção (checkV2Prompts confere os prompts novos), e grava a marca productInHand', () => i3())
+await check('I3 o /plan liga o plano novo SÓ com reason === "internal" (isAdsInternalEmail), por import DINÂMICO (sem a lib = o plano de antes), ANTES da régua anti-invenção (checkV2Prompts confere os prompts novos), e grava a marca productInHand', () => i3())
 
 // ═══ E. a estrutura do Comercial de 15 s com 1 foto ══════════════════════════════════════════════════════════════════════════════
 console.log('\nE. estrutura: gente → 2 usos → close na cena → packshot REAL → cartão; packshot + cartão ≤ ~6 s')
@@ -382,32 +401,28 @@ const c1 = (M = H) => {
   const baseUsd = T.estimateAdUsd({ tier: 'commercial', shots: p.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: 15 })
   const u = M.adsV2InHandUsd({ ...baseUsd }, p.shots)
   const old = T.estimateAdUsd({ tier: 'commercial', shots: oldPlan().shots.map((s) => ({ kind: s.kind, source: s.source })), seconds: 15 })
-  console.log(`       custo real calculado: base ${baseUsd.totalUsd} (vídeo ${baseUsd.videoUsd} + fotos ${baseUsd.imageUsd} + fixos ${baseUsd.fixedUsd}) + juiz ${u.judgeUsd} + reserva de refação ${u.retryReserveUsd} = US$ ${u.totalUsd} (plano de antes: US$ ${old.totalUsd})`)
+  console.log(`       custo real calculado: dry-run (usd_estimate) ${baseUsd.totalUsd} (vídeo ${baseUsd.videoUsd} + fotos ${baseUsd.imageUsd} + fixos ${baseUsd.fixedUsd}) + juiz ${u.judgeUsd} + reserva de refação ${u.retryReserveUsd} = US$ ${u.totalUsd} (plano de antes: US$ ${old.totalUsd})`)
   return baseUsd.videoUsd === 1.344 && baseUsd.imageUsd === 0.6 && baseUsd.fixedUsd === 0.25 && u.judgeUsd === 0.05 && u.retryReserveUsd === 0.15 && u.totalUsd === 2.394 && u.inHand === true && Math.abs(u.totalUsd - 2.4) <= 0.05 && old.totalUsd === 2.38
 }
-await check('C1 custo por anúncio de 15 s: 4 Kling O3 × 3 s (1,344) + 4 fotos (0,60) + fixos (0,25) + juiz 5 × 0,01 + 1 refação de foto (0,15) = US$ 2,394 (alvo ≈ 2,40; o de antes 2,38); créditos 41', () => c1())
+await check('C1 custo por anúncio de 15 s: o dry-run (usd_estimate, a régua de sempre) = 4 Kling O3 × 3 s (1,344) + 4 fotos (0,60) + fixos (0,25) = US$ 2,194; com o juiz 5 × 0,01 e 1 refação de foto (0,15) = US$ 2,394 (alvo ≈ 2,40; o de antes 2,38); créditos 41', () => c1())
 const sc = rd(F.startCore)
-const c2 = (src = sc) => {
-  const usdAt = src.indexOf('    if (adsV2IsInHandPlan(plan)) Object.assign(usd, adsV2InHandUsd(usd, plan.shots))')
-  const dry = src.indexOf('    if (dryRun) {')
-  const resp = src.indexOf("        ...(adsV2IsInHandPlan(plan) ? { in_hand: adsV2InHandSummary(plan.shots) } : {}),")
-  return usdAt > src.indexOf('const usd = estimateAdUsd(') && usdAt < dry && resp > dry && resp < src.indexOf('    if (sampleRun) {') && src.includes('        shots: plan.shots.map((s) => ({ idx: s.idx, role: s.role, kind: s.kind, source: s.source, cut_seconds: s.cutSeconds, prompt: s.prompt, scene_prompt: s.scenePrompt })),')
-}
-await check('C2 o dry-run do /start (US$ 0, para antes do débito) soma o juiz e a reserva no usd_estimate e lista os planos novos (in_hand + prompts de foto e de movimento); o /plan também (in_hand na resposta)', () => c2() && pc.includes('      ...(inHand ? { in_hand: adsV2InHandSummary(plan.shots) } : {}),'))
+const c2 = (src = pc) => sc === base(F.startCore) && sc.includes('        shots: plan.shots.map((s) => ({ idx: s.idx, role: s.role, kind: s.kind, source: s.source, cut_seconds: s.cutSeconds, prompt: s.prompt, scene_prompt: s.scenePrompt })),') &&
+  src.includes('      ...(inHand && inHandLib ? { in_hand: { shots: inHandLib.adsV2InHandSummary(plan.shots), usd: inHandLib.adsV2InHandUsd(usd, plan.shots) } } : {}),') && src.indexOf('in_hand: { shots:') > src.indexOf('    const usd = estimateAdUsd(')
+await check('C2 o dry-run do /start (US$ 0, para antes do débito; lib/ads/v2StartCore.ts — arquivo de dinheiro — INTOCADO) lista os planos do plano gravado com o prompt da foto e o do movimento e o usd_estimate; o /plan devolve in_hand: os planos novos + o custo com juiz e refação', () => c2())
 await check('C3 resumo dos planos (in_hand): hook/hold/use/close + packshot, com o corte de cada um', () => JSON.stringify(H.adsV2InHandSummary(planOf().shots)) === JSON.stringify([{ idx: 0, frame: 'hook', cut_seconds: 2 }, { idx: 1, frame: 'hold', cut_seconds: 2.5 }, { idx: 2, frame: 'use', cut_seconds: 2.5 }, { idx: 3, frame: 'close', cut_seconds: 2.5 }, { idx: 4, frame: 'packshot', cut_seconds: 3 }]))
 
 // ═══ D. desfaz, marca, encadeamento, travas ═════════════════════════════════════════════════════════════════════════════════════
 console.log('\nD. desfaz exato, marca, encadeamento, travas "internal", créditos e motores intocados')
 await check('D1 cada arquivo tocado, desfeito (scripts/test-support/desfaz-ads-produto-na-mao-1610.mjs), é EXATAMENTE o pai do 1º commit com a marca; a ida devolve o vivo; os novos existem e não existiam', () =>
-  PRODUTO_NA_MAO_1610_ARQUIVOS.length === 7 && PRODUTO_NA_MAO_1610_ARQUIVOS.every((f) => semProdutoNaMao1610(f, rd(f)) === base(f) && comProdutoNaMao1610(f, base(f)) === rd(f) && !semProdutoNaMao1610(f, rd(f)).includes(MARCA)) &&
+  PRODUTO_NA_MAO_1610_ARQUIVOS.length === 6 && PRODUTO_NA_MAO_1610_ARQUIVOS.every((f) => semProdutoNaMao1610(f, rd(f)) === base(f) && comProdutoNaMao1610(f, base(f)) === rd(f) && !semProdutoNaMao1610(f, rd(f)).includes(MARCA)) &&
   MARCA_PRODUTO_NA_MAO_1610 === MARCA && (BASE === 'HEAD' || PRODUTO_NA_MAO_1610_BASE === BASE) && PRODUTO_NA_MAO_1610_NOVOS.every((f) => existsSync(join(ROOT, f)) && base(f) === null))
-await check('D2 todo bloco do desfaz traz a marca; o diff do commit contra a base só toca os arquivos da lista e os novos (nada de v2Tiers, v2Engines, v2ShotLists, trava, cobrança)', () => {
+await check('D2 todo bloco do desfaz traz a marca; o diff do commit contra a base só toca os arquivos da lista e os novos (nada de v2Tiers, v2Engines, v2ShotLists, trava, /start, cobrança)', () => {
   const src = rd('scripts/test-support/desfaz-ads-produto-na-mao-1610.mjs')
   const D = JSON.parse(src.split('\n').find((l) => l.startsWith('const DESFAZ = ')).slice('const DESFAZ = '.length))
   const blocos = Object.values(D).flat()
   const tocados = (BASE === 'HEAD' ? [] : git('diff', '--name-only', BASE, 'HEAD').trim().split('\n').filter(Boolean)).concat(git('diff', '--name-only', 'HEAD').trim().split('\n').filter(Boolean))
   const permitidos = new Set([...PRODUTO_NA_MAO_1610_ARQUIVOS, ...PRODUTO_NA_MAO_1610_NOVOS])
-  return blocos.length > 0 && blocos.every((h) => h.now.join('\n').includes(MARCA)) && tocados.every((f) => permitidos.has(f)) && [F.tiers, F.engines, F.shotLists, F.server, 'lib/ads/v2Billing.ts'].every((f) => base(f) === rd(f))
+  return blocos.length > 0 && blocos.every((h) => h.now.join('\n').includes(MARCA)) && tocados.every((f) => permitidos.has(f)) && [F.tiers, F.engines, F.shotLists, F.server, F.startCore, 'lib/ads/v2Billing.ts', 'app/api/ads/v2/start/route.ts', 'app/api/ads/v2/plan/route.ts'].every((f) => base(f) === rd(f))
 })
 await check('D3 encadeamento: fiel-7 (sem/desfaz), fiel-6, fiel-5, rollback e liga tiram esta camada PRIMEIRO; a extração da Shopify remonta o /plan e o /start iguais com ou sem ela', () => {
   const adv = rd(F.advance)
@@ -433,7 +448,7 @@ const ADVsrc = rd(F.advance)
 const mutIH = (a, b) => pure({ [F.ih]: trocar(IHsrc, a, b) })(F.ih)
 const mut = async (m, fn) => { let vermelho = false; try { vermelho = !(await fn()) } catch (e) { vermelho = !/mutante (não aplicou|sem efeito)/.test(String(e && e.message)) } ok(vermelho, 'mutante vermelho: ' + m) }
 await mut('não interno também ganha o plano novo', () => i1(mutIH("if (mode === 'internal') return internal === true", "if (mode === 'internal') return true")))
-await mut('o /plan liga sem conferir a conta interna', () => i3(trocar(pc, "on: adsV2InHandOn(reason === 'internal')", 'on: adsV2InHandOn(true)')))
+await mut('o /plan liga sem conferir a conta interna', () => i3(trocar(pc, "on: inHandLib.adsV2InHandOn(reason === 'internal')", 'on: inHandLib.adsV2InHandOn(true)')))
 await mut('o packshot volta a ocupar 6 s (packshot + cartão 8,5)', () => e1(mutIH('export const ADS_V2_IN_HAND_PACKSHOT_SECONDS = 3.0', 'export const ADS_V2_IN_HAND_PACKSHOT_SECONDS = 6.0')))
 await mut('o anúncio perde o gancho com gente', () => e1(mutIH("  { role: 'hook', beat: 'hook', cut: 2.0, frame: 'hook' },\n", '')))
 await mut('a foto da cena usa a foto cortada em vez da original', () => f1(mutIH('const first = https(product.original_url) ? product.original_url.trim() : product.url.trim()', 'const first = product.url.trim()')))
@@ -444,11 +459,11 @@ await mut('o Kling perde o quadro final', () => v2(mutIH('end_image_url: image, 
 await mut('o juiz aceita a divergência na 1ª vez', () => j1(mutIH("  return 'retry'\n}", "  return 'keep'\n}")))
 await mut('o juiz pula o enquadramento sem rótulo', () => j1(mutIH("if (i.previousReason === ADS_V2_IN_HAND_RETRY_REASON) return 'no_label'", "if (i.previousReason === ADS_V2_IN_HAND_RETRY_REASON) return 'product_photo'")))
 await mut('o custo esquece a refação de foto', () => c1(mutIH('export const ADS_V2_IN_HAND_EXPECTED_RETRIES = 1', 'export const ADS_V2_IN_HAND_EXPECTED_RETRIES = 0')))
-await mut('o avanço deixa o plano novo cair na colagem', () => a3(loadAdvance({ [F.advance]: trocar(ADVsrc, '  if (!isActor && adsV2InHandOf(shot)) return null', '  if (false) return null') })))
-await mut('o avanço manda o Kling de sempre (sem quadro final)', () => a1(loadAdvance({ [F.advance]: trocar(ADVsrc, "    if (engine === 'kling_o3' && adsV2InHandOf(", "    if (false && adsV2InHandOf(") })))
-await mut('o avanço pula o juiz do rótulo', () => a1(loadAdvance({ [F.advance]: trocar(ADVsrc, '        if (adsV2InHandOf(order.plan?.shots?.find((s) => s.idx === row.idx))) { await finishInHandImage(admin, order, row, p.url); return }', '') })))
-await mut('o avanço ignora o interruptor desligado', () => a2(loadAdvance({ [F.advance]: trocar(ADVsrc, 'if (inHand && !(await inHandEnabled(order.user_id)))', 'if (false)') })))
-await mut('o dry-run esquece o juiz e a reserva', () => c2(trocar(sc, '    if (adsV2IsInHandPlan(plan)) Object.assign(usd, adsV2InHandUsd(usd, plan.shots))', '    void 0')))
+await mut('o avanço deixa o plano novo cair na colagem', () => a3(loadAdvance({ [F.advance]: trocar(ADVsrc, '  if (!isActor && shot && (shot as { inHand?: unknown }).inHand) return null', '  if (false) return null') })))
+await mut('o avanço manda o Kling de sempre (sem quadro final)', () => a1(loadAdvance({ [F.advance]: trocar(ADVsrc, "    if (engine === 'kling_o3' && inHandTagOf(order, row.idx)) {", '    if (false) {') })))
+await mut('o avanço pula o juiz do rótulo', () => a1(loadAdvance({ [F.advance]: trocar(ADVsrc, '        if (inHandTagOf(order, row.idx)) { await finishInHandImage(admin, order, row, p.url); return }', '') })))
+await mut('o avanço ignora o interruptor desligado', () => a2(loadAdvance({ [F.advance]: trocar(ADVsrc, 'if (inHand && (!ihLib || !(await inHandEnabled(order.user_id))))', 'if (false)') })))
+await mut('o /plan esconde os planos novos e o custo completo', () => c2(trocar(pc, '      ...(inHand && inHandLib ? { in_hand: {', '      ...(false && inHandLib ? { in_hand: {')))
 
 console.log(`\n${pass} ok, ${fail} falha(s)`)
 process.exit(fail ? 1 : 0)
