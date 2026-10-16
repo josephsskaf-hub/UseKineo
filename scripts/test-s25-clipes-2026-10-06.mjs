@@ -293,10 +293,21 @@ async function problems(over = {}) {
     const spec = W.onFree.cat.CLIP_ENGINES.s25
     if (!t2v || !i2v) p.push('constantes S25_T2V_MODEL/S25_I2V_MODEL sumiram do router do filme')
     if (spec.label !== S25_LABEL) p.push(`rótulo do motor: ${spec.label}`)
-    if (spec.t2vModel !== t2v || spec.i2vModel !== i2v) p.push(`endpoint do clipe (${spec.t2vModel} / ${spec.i2vModel}) ≠ o do filme (${t2v} / ${i2v})`)
+    // REANCORADO KINEO-S25-FOTO-CLIPES-1610 — o clipe do 2.5 ficou SÓ texto (o i2v recusou 2/2 fotos realistas de pessoa em 16/10):
+    // t2v = o do filme, i2v = null no catálogo, e o i2v do FILME (S25_I2V_MODEL) continua existindo — quem some é só a foto do clipe.
+    if (spec.t2vModel !== t2v) p.push(`endpoint de texto do clipe (${spec.t2vModel}) ≠ o do filme (${t2v})`)
+    if (spec.i2vModel !== null) p.push(`clipe do 2.5 voltou a aceitar foto sem decisão (${spec.i2vModel}) — KINEO-S25-FOTO-CLIPES-1610`)
+    if (JSON.stringify(W.onFree.cat.modesFor('s25')) !== JSON.stringify(['t2v'])) p.push(`modesFor('s25') = ${JSON.stringify(W.onFree.cat.modesFor('s25'))} (devia ser só t2v)`)
+    {
+      // Pagante com foto no 2.5: recusado na FORMA (400 'mode'), antes de consulta, moderação, débito ou envio.
+      const { deps, calls } = fakeSubmitDeps(W.onFree.server.engineAccessFor(ACCOUNTS.studio))
+      const r = await W.onFree.flow.submitClip(deps, { userId: UID, idempotencyKey: 'clip-ui-s25-foto', body: s25Body({ imageUrl: PHOTO, seconds: 10 }) })
+      if (r.ok || r.status !== 400 || r.code !== 'mode') p.push(`pagante (foto): pedido do 2.5 com foto não foi recusado com 400 mode (${r.status} ${r.code})`)
+      if (calls.length || deps.sent) p.push(`pagante (foto): recusa tocou em ${calls.join(',')}${deps.sent ? ',submit' : ''} (devia ser ANTES de tudo)`)
+      if (!/Seedance 2\.5 cannot start from a photo/.test(r.error ?? '')) p.push(`pagante (foto): frase da recusa = ${r.error}`)
+    }
     for (const [label, body, model, aspect] of [
       ['texto', s25Body(), t2v, '9:16'],
-      ['foto', s25Body({ imageUrl: PHOTO, seconds: 10 }), i2v, 'auto'],
     ]) {
       const { deps, calls } = fakeSubmitDeps(W.onFree.server.engineAccessFor(ACCOUNTS.studio))
       const r = await W.onFree.flow.submitClip(deps, { userId: UID, idempotencyKey: `clip-ui-s25-${label}`, body })

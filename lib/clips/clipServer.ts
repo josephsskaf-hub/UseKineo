@@ -38,6 +38,8 @@ import { clipEffectFilmHref, clipEffectForRow, type ClipEffectKey } from '@/lib/
 import {
   CLIP_EXPIRE_MS,
   CLIP_PENDING_STALE_MS,
+  cleanProviderError, // KINEO-S25-FOTO-CLIPES-1610
+  falErrorDetail, // KINEO-S25-FOTO-CLIPES-1610
   settleClip,
   type ClipRow,
   type ClipSettleDeps,
@@ -314,12 +316,14 @@ async function submitToFalOnce(model: string, input: Record<string, unknown>): P
   let payload: Record<string, unknown> = {}
   try { payload = raw ? JSON.parse(raw) as Record<string, unknown> : {} } catch { payload = {} }
   if (!response.ok) {
-    const detail = typeof payload.detail === 'string' ? payload.detail : raw.slice(0, 300)
+    // KINEO-S25-FOTO-CLIPES-1610 — o corpo inteiro da fal (detail string OU lista [{loc,msg,type}], message, error), não só o
+    // detail-string; limpo (sem URL, sem a FAL_KEY, ≤300) porque vira `provider_error` no clip_failed (lib/clips/clipFlow.ts).
+    const detail = falErrorDetail(Object.keys(payload).length ? payload : raw) || raw.slice(0, 300)
     // KINEO-FAL-SALDO-ALERTA-2026-09-28 — await: o alarme de saldo não pode morrer com a lambda.
     if (looksExhausted({ status: response.status, message: detail })) {
       await alertFalExhausted({ source: 'clips', engine: model, context: 'clip submit' })
     }
-    return { ok: false, ambiguous: response.status === 408 || response.status >= 500, error: `fal ${response.status}: ${detail}`.slice(0, 200) }
+    return { ok: false, ambiguous: response.status === 408 || response.status >= 500, error: cleanProviderError(`fal ${response.status}: ${detail}`, [key]) ?? `fal ${response.status}` } // KINEO-S25-FOTO-CLIPES-1610
   }
   const requestId = typeof payload.request_id === 'string' ? payload.request_id.trim() : ''
   if (!requestId) return { ok: false, ambiguous: true, error: 'fal response without request_id' }
@@ -349,7 +353,12 @@ async function pollFal(model: string, requestId: string): Promise<ProviderState>
   } catch (err) {
     const status = typeof (err as { status?: unknown })?.status === 'number' ? (err as { status: number }).status : null
     const msg = err instanceof Error ? err.message : String(err)
-    if (status === 422 || status === 400 || /unprocessable entity/i.test(msg)) return { state: 'failed', error: `fal ${status ?? ''} ${msg}`.slice(0, 200) }
+    // KINEO-S25-FOTO-CLIPES-1610 — o motivo REAL mora em err.body.detail (err.message é só "Unprocessable Entity"); era
+    // descartado aqui. Mesmo campo que o poller do filme lê (app/api/cinematic-clip-status pollMessageSignal). Limpo com a FAL_KEY.
+    if (status === 422 || status === 400 || /unprocessable entity/i.test(msg)) {
+      const detail = falErrorDetail((err as { body?: unknown })?.body)
+      return { state: 'failed', error: cleanProviderError(`fal ${status ?? ''} ${detail || msg}`, [process.env.FAL_KEY ?? '']) ?? `fal ${status ?? ''}` }
+    }
     console.warn(`[clips] poll transport error request=${requestId}:`, msg.slice(0, 200))
     return { state: 'unknown' }
   }

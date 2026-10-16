@@ -99,6 +99,55 @@ export function clipFingerprint(req: ClipRequest): string {
   return JSON.stringify([req.engine, req.mode, req.seconds, req.aspect, req.prompt, req.imageUrl ?? ''])
 }
 
+// KINEO-S25-FOTO-CLIPES-1610 — o MOTIVO da recusa do fornecedor. Até 16/10 o /clips lia o erro da fal e o jogava fora: o
+// clip_failed gravava só 'provider_failed'/'provider_rejected', e as 2 recusas do Seedance 2.5 com foto ficaram sem causa
+// (docs/DIAGNOSTICO-S25-FOTO-CLIPES-2026-10-16.md). Agora o texto da fal vai como `provider_error` no clip_failed (envio E
+// consulta, todos os motores) — limpo: sem URL (a URL assinada da foto/do vídeo), sem chave, sem token, ≤300 caracteres.
+export const PROVIDER_ERROR_MAX = 300 // KINEO-S25-FOTO-CLIPES-1610
+
+/** KINEO-S25-FOTO-CLIPES-1610 — o texto útil do corpo de erro da fal: `detail` (string ou lista [{loc,msg,type}]), senão
+ *  `message`/`error`. Nunca devolve o `input`/`ctx` que a validação ecoa (traria o texto e a foto do cliente). */
+export function falErrorDetail(body: unknown): string {
+  if (typeof body === 'string') return body
+  if (!body || typeof body !== 'object') return ''
+  const b = body as Record<string, unknown>
+  const d = b.detail
+  if (typeof d === 'string') return d
+  if (Array.isArray(d)) {
+    return d.map((item) => {
+      if (typeof item === 'string') return item
+      if (!item || typeof item !== 'object') return ''
+      const it = item as Record<string, unknown>
+      const loc = Array.isArray(it.loc) ? it.loc.filter((x) => typeof x === 'string' || typeof x === 'number').join('.') : ''
+      const msg = typeof it.msg === 'string' ? it.msg : typeof it.message === 'string' ? it.message : ''
+      const type = typeof it.type === 'string' ? ` (${it.type})` : ''
+      return `${loc ? loc + ': ' : ''}${msg}${type}`.trim()
+    }).filter(Boolean).join('; ')
+  }
+  if (d && typeof d === 'object') return falErrorDetail(d)
+  for (const k of ['message', 'error']) if (typeof b[k] === 'string') return b[k] as string
+  const rest = Object.fromEntries(Object.entries(b).filter(([k]) => k !== 'input' && k !== 'ctx')) // KINEO-S25-FOTO-CLIPES-1610 — o eco do pedido nunca vai junto
+  try { return JSON.stringify(rest) } catch { return '' }
+}
+
+/** KINEO-S25-FOTO-CLIPES-1610 — limpa o texto do fornecedor antes de gravar/logar: tira os segredos passados (a FAL_KEY),
+ *  toda URL (assinada ou não), credencial depois de nome conhecido (key=, token:, Bearer …) e qualquer sequência opaca longa
+ *  (chave/token/assinatura); junta espaços e corta em PROVIDER_ERROR_MAX. Vazio → null. */
+export function cleanProviderError(raw: unknown, secrets: readonly string[] = []): string | null {
+  if (raw === null || raw === undefined) return null
+  let text = typeof raw === 'string' ? raw : falErrorDetail(raw)
+  for (const s of secrets) if (typeof s === 'string' && s.length >= 8) text = text.split(s).join('[secret]')
+  text = text
+    .replace(/\b[a-z][a-z0-9+.-]*:\/\/[^\s"'<>()\]]+/gi, '[url]')
+    .replace(/\bdata:[a-z]+\/[^\s"']+/gi, '[data]')
+    .replace(/\b(bearer|key|basic|token)\s+[A-Za-z0-9._~+/:=-]{12,}/gi, (_m, name: string) => `${name} [redacted]`)
+    .replace(/\b(authorization|api[_-]?key|access[_-]?token|token|secret|signature|sig|password|credentials?|key|x-amz-[a-z-]+)(["']?\s*[:=]\s*["']?)(?=[^\s"',;&}]*\d)[^\s"',;&}]{8,}/gi, (_m, name: string, sep: string) => `${name}${sep}[redacted]`)
+    .replace(/[A-Za-z0-9_+/=:-]{32,}/g, (m) => (/[0-9]/.test(m) && /[A-Za-z]/.test(m) ? '[redacted]' : m))
+    .replace(/\s+/g, ' ')
+    .trim()
+  return text ? text.slice(0, PROVIDER_ERROR_MAX) : null
+}
+
 export function clipTelemetry(row: Pick<ClipRow, 'engine' | 'seconds' | 'mode' | 'credits' | 'id'>): Record<string, unknown> {
   // Sem dado pessoal: nada de texto, foto ou e-mail — só a forma do pedido.
   return { clip_id: row.id, engine: row.engine, seconds: row.seconds, with_image: row.mode === 'image', credits: row.credits }
@@ -200,10 +249,12 @@ export async function submitClip(
     return { ok: false, status: 503, code: 'storage', error: 'We could not start your clip right now. Nothing was charged — please try again.' }
   }
 
-  const closeWithRefund = async (reason: string, status: number, error: string): Promise<ClipSubmitResult> => {
+  const closeWithRefund = async (reason: string, status: number, error: string, providerError: string | null = null): Promise<ClipSubmitResult> => {
     const refunded = await deps.refund(row.billing_reference)
     await deps.markFailed(row.id, reason, refunded)
-    await deps.event('clip_failed', { ...clipTelemetry(row), reason, credits_refunded: refunded, stage: 'submit' })
+    // KINEO-S25-FOTO-CLIPES-1610 — o motivo da fal vai junto (limpo) e num warn curto no log da Vercel.
+    if (providerError) console.warn(`[clips] clip_failed stage=submit reason=${reason} engine=${row.engine} clip=${row.id}: ${providerError}`)
+    await deps.event('clip_failed', { ...clipTelemetry(row), reason, credits_refunded: refunded, stage: 'submit', ...(providerError ? { provider_error: providerError } : {}) })
     return {
       ok: false,
       status,
@@ -225,7 +276,7 @@ export async function submitClip(
     ? await deps.submit(template.model, template.input(req.imageUrl))
     : await deps.submit(req.model, buildClipFalInput(req))
   if (!sent.ok) {
-    return closeWithRefund(sent.ambiguous ? 'submit_ambiguous' : 'provider_rejected', 502, 'The engine could not accept this clip.')
+    return closeWithRefund(sent.ambiguous ? 'submit_ambiguous' : 'provider_rejected', 502, 'The engine could not accept this clip.', cleanProviderError(sent.error)) // KINEO-S25-FOTO-CLIPES-1610
   }
 
   let saved = await deps.markSubmitted(row.id, sent.requestId)
@@ -256,10 +307,12 @@ export async function settleClip(deps: ClipSettleDeps, row: ClipRow): Promise<Cl
   if (row.status === 'done' || row.status === 'failed') return row
   const age = deps.now() - Date.parse(row.created_at)
 
-  const fail = async (reason: string): Promise<ClipRow> => {
+  const fail = async (reason: string, providerError: string | null = null): Promise<ClipRow> => {
     const refunded = await deps.refund(row.billing_reference)
     const moved = await deps.markFailed(row.id, reason, refunded)
-    if (moved) await deps.event('clip_failed', { ...clipTelemetry(row), reason, credits_refunded: refunded, stage: 'settle' })
+    // KINEO-S25-FOTO-CLIPES-1610 — só quem MOVEU a linha grava (o evento e o warn): duas abas + o cron nunca repetem.
+    if (moved && providerError) console.warn(`[clips] clip_failed stage=settle reason=${reason} engine=${row.engine} clip=${row.id} request=${row.fal_request_id}: ${providerError}`)
+    if (moved) await deps.event('clip_failed', { ...clipTelemetry(row), reason, credits_refunded: refunded, stage: 'settle', ...(providerError ? { provider_error: providerError } : {}) })
     return { ...row, status: 'failed', failure_reason: reason, credits_refunded: refunded }
   }
 
@@ -268,7 +321,7 @@ export async function settleClip(deps: ClipSettleDeps, row: ClipRow): Promise<Cl
   }
 
   const state = await deps.poll(row.model, row.fal_request_id)
-  if (state.state === 'failed') return fail('provider_failed')
+  if (state.state === 'failed') return fail('provider_failed', cleanProviderError(state.error)) // KINEO-S25-FOTO-CLIPES-1610
   if (state.state === 'done') {
     let ours: string
     try {

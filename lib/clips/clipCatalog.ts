@@ -18,7 +18,8 @@
 //   Veo 3.1 Fast ... veo3.1/fast (t2v e i2v): duration '4s' | '6s' | '8s'
 //   MiniMax H3 ..... minimax/h3 t2v e i2v: duration inteiro 5..15
 //   Omni Flash ..... google/gemini-omni-flash/image-to-video: duration inteiro 3..10 (NÃO existe text-to-video)
-//   Seedance 2.5 ... fal-ai/seedance-2.5 t2v e i2v: duration string '4'..'30' (e 'auto', que nunca mandamos)
+//   Seedance 2.5 ... fal-ai/seedance-2.5 t2v e i2v: duration string '4'..'30' (e 'auto', que nunca mandamos) — no clipe, só
+//                    t2v desde KINEO-S25-FOTO-CLIPES-1610 (i2v recusa foto realista de pessoa; ver o cadastro do s25)
 //
 // FORMATO: sem foto, o formato pedido vai em `aspect_ratio` onde o schema aceita. Com foto, a foto é o 1º quadro e o
 // formato É o da foto — Kling 2.5 i2v, Kling O3 i2v e H3 i2v nem têm `aspect_ratio`; Seedance 1.5/2.5 e Veo i2v recebem
@@ -119,7 +120,12 @@ export const CLIP_ENGINES: Record<ClipEngineKey, ClipEngineSpec> = {
     key: 's25',
     label: 'Seedance 2.5',
     t2vModel: 'fal-ai/seedance-2.5/text-to-video',
-    i2vModel: 'fal-ai/seedance-2.5/image-to-video',
+    // KINEO-S25-FOTO-CLIPES-1610 — SEM foto no /clips: o 2.5 recusou 2 de 2 fotos realistas de pessoa em 16/10 (Kling 3 e
+    // Seedance 1.5 animaram as MESMAS fotos minutos depois — docs/DIAGNOSTICO-S25-FOTO-CLIPES-2026-10-16.md). null esconde o
+    // "Add photo" do card (modesFor → photo:false), e validateClipRequest recusa o pedido com foto (400 'mode') ANTES de
+    // qualquer custo; a tela sugere Kling 3 / Seedance 1.5. O FILME do 2.5 não lê este catálogo (lib/hollywood/router.ts
+    // S25_I2V_MODEL segue com a âncora FLUX), e o clipe de TEXTO não muda. Volta só com aviso honesto (opção 2b do diagnóstico).
+    i2vModel: null,
     falSeconds: range(4, 30),
     t2vAspects: ['9:16', '16:9', '1:1'],
     i2vAspects: 'image',

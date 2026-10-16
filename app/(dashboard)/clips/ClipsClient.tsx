@@ -257,6 +257,16 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
   const modeProblem: ClipCopyKey | null = !engine ? null : withPhoto && !engine.photo ? 'noPhoto' : !withPhoto && !engine.text ? 'needsPhoto' : null
   const cost = engine && lengthOk ? engine.credits[String(seconds)] : null
   const alternatives = engines.filter((e) => e.key !== engineKey && e.seconds.includes(seconds) && (withPhoto ? e.photo : e.text))
+  // KINEO-S25-FOTO-CLIPES-1610 — motor sem foto (hoje só o Seedance 2.5): o "Add photo" some e no lugar vem a frase noPhoto com
+  // os motores que animam foto — Kling 3 e Seedance 1.5 primeiro (os dois animaram as fotos que o 2.5 recusou em 16/10).
+  const photoBlocked = !effect && !!engine && !engine.photo
+  const photoPicks = photoBlocked
+    ? (() => {
+        const withPhotoEngines = engines.filter((e) => e.photo && e.key !== engineKey)
+        const preferred = (['hollywood', 'seedance'] as const).flatMap((k) => withPhotoEngines.filter((e) => e.key === k))
+        return preferred.length > 0 ? preferred : withPhotoEngines
+      })()
+    : []
   const textOk = withPhoto ? prompt.trim().length === 0 || prompt.trim().length >= 3 : prompt.trim().length >= 3
   const canGenerate = !!engine && lengthOk && !modeProblem && textOk && !busy && !uploading && cost !== null
   // KINEO-CLIPE360-AMOSTRA-1410 — a nota do giro (lib/clips/clipRotateHint.ts). Fora do canGenerate de propósito: nunca bloqueia.
@@ -488,7 +498,23 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
     })
   }
 
-  const photoRow = (
+  // KINEO-S25-FOTO-CLIPES-1610 — 1 clique troca para um motor que anima foto (chooseEngine acerta a duração).
+  const photoPickButtons = photoPicks.length > 0 && (
+    <div className="row" data-clip-photo-picks="">
+      {photoPicks.map((alt) => (
+        <button key={alt.key} type="button" className="pill" data-clip-photo-pick={alt.key} onClick={() => chooseEngine(alt)}>
+          {alt.label}
+        </button>
+      ))}
+    </div>
+  )
+
+  const photoRow = photoBlocked && !photoUrl ? (
+    <div className="photo-row" data-clip-photo-blocked={engine?.key}>
+      <span className="clip-meta" style={{ marginTop: 0 }}>{t('noPhoto', { engine: engine?.label ?? '' })}</span>
+      {photoPickButtons}
+    </div>
+  ) : (
     <div className="photo-row" data-clip-action="upload">
       {photoUrl
         // eslint-disable-next-line @next/next/no-img-element
@@ -684,6 +710,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
             </div>
           )}
           {engine && modeProblem && <p className="notice" role="status">{t(modeProblem, { engine: engine.label })}</p>}
+          {modeProblem === 'noPhoto' && photoPickButtons /* KINEO-S25-FOTO-CLIPES-1610 — foto já posta + motor sem foto */}
           {errorBlock}
         </div>
 
