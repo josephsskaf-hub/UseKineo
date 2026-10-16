@@ -351,7 +351,7 @@ const a1 = async (Adv = A) => {
   reset()
   judgeOf = JUIZ
   const { latest } = await roda(Adv, newPlan(), { productInHand: true })
-  const judged = prov.events.filter((e) => e.name === 'ads_v2_in_hand_judged')
+  const judged = prov.events.filter((e) => e.name === 'ads_v2_product_locked' && e.metadata.mode === 'in_hand')
   const steps = (i) => judged.filter((e) => e.metadata.idx === i).map((e) => e.metadata.step).join()
   const imgsOf = prov.images
   const kling = prov.submits.filter((s) => s.model === 'fal-ai/kling-video/o3/pro/image-to-video')
@@ -390,7 +390,7 @@ const a4 = async (Adv = A) => {
   reset()
   const o = oldPlan()
   await roda(Adv, o)
-  return prov.lockCalls > 0 && prov.events.filter((e) => e.name === 'ads_v2_in_hand_judged').length === 0 && prov.submits.every((s) => !('end_image_url' in s.input))
+  return prov.lockCalls > 0 && prov.events.filter((e) => e.name === 'ads_v2_product_locked' && e.metadata.mode === 'in_hand').length === 0 && prov.submits.every((s) => !('end_image_url' in s.input))
 }
 await check('A4 executado com o plano de antes: a trava antiga roda (esboço/conferência), nenhum juiz do rótulo, nenhum quadro final', () => a4())
 
@@ -414,7 +414,7 @@ await check('C3 resumo dos planos (in_hand): hook/hold/use/close + packshot, com
 // ═══ D. desfaz, marca, encadeamento, travas ═════════════════════════════════════════════════════════════════════════════════════
 console.log('\nD. desfaz exato, marca, encadeamento, travas "internal", créditos e motores intocados')
 await check('D1 cada arquivo tocado, desfeito (scripts/test-support/desfaz-ads-produto-na-mao-1610.mjs), é EXATAMENTE o pai do 1º commit com a marca; a ida devolve o vivo; os novos existem e não existiam', () =>
-  PRODUTO_NA_MAO_1610_ARQUIVOS.length === 10 && PRODUTO_NA_MAO_1610_ARQUIVOS.every((f) => semProdutoNaMao1610(f, rd(f)) === base(f) && comProdutoNaMao1610(f, base(f)) === rd(f) && !semProdutoNaMao1610(f, rd(f)).includes(MARCA)) &&
+  PRODUTO_NA_MAO_1610_ARQUIVOS.length === 8 && PRODUTO_NA_MAO_1610_ARQUIVOS.every((f) => semProdutoNaMao1610(f, rd(f)) === base(f) && comProdutoNaMao1610(f, base(f)) === rd(f) && !semProdutoNaMao1610(f, rd(f)).includes(MARCA)) &&
   MARCA_PRODUTO_NA_MAO_1610 === MARCA && (BASE === 'HEAD' || PRODUTO_NA_MAO_1610_BASE === BASE) && PRODUTO_NA_MAO_1610_NOVOS.every((f) => existsSync(join(ROOT, f)) && base(f) === null))
 await check('D2 todo bloco do desfaz traz a marca; o diff do commit contra a base só toca os arquivos da lista e os novos (nada de v2Tiers, v2Engines, v2ShotLists, trava, /start, cobrança)', () => {
   const src = rd('scripts/test-support/desfaz-ads-produto-na-mao-1610.mjs')

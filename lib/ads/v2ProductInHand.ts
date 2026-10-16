@@ -22,7 +22,7 @@
 // O JUIZ DO RÓTULO (lib/ads/v2LockVision.ts adsV2InHandLabelJudge — a mesma chamada de visão da trava): compara o produto do still
 // com a foto original (nome/logo, cores, forma, mãos, um produto só). Divergiu → refaz 1 vez; de novo → o plano vira um
 // enquadramento SEM o rótulo de frente; de novo → a foto real do produto (o fallback de sempre). Cada veredito vira o evento
-// 'ads_v2_in_hand_judged'. Juiz fora do ar = a imagem segue (a regra das conferências da trava).
+// 'ads_v2_product_locked' com mode 'in_hand' (o evento da trava que já existe; nenhum nome novo). Juiz fora do ar = a imagem segue (a regra das conferências da trava).
 //
 // A COLAGEM ANTIGA fica no código e continua sendo o caminho de quem NÃO é interno — e o de todo pedido que não cabe aqui
 // (Foto em movimento, Premium, 20/30 s, estilo, ator, vídeo do cliente, pedido sem foto de produto).

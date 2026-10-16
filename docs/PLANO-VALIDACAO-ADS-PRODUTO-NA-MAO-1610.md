@@ -24,7 +24,7 @@ Fica fora da TRAVA 8.2 (é o Ads, não o filme). Trava do produto e interruptor 
 
 - **Packshot + cartão:** 5,5 s. Era ~8,5 s.
 - **Mantidos:** duração, frases de tela, narração, preço (41 cr) e os 3 formatos.
-- **Quando o juiz reprova:** refaz 1 vez. Se reprovar de novo, faz um enquadramento sem o rótulo de frente. Se reprovar mais uma vez, usa a foto real do produto. Cada veredito gera o evento `ads_v2_in_hand_judged`.
+- **Quando o juiz reprova:** refaz 1 vez. Se reprovar de novo, faz um enquadramento sem o rótulo de frente. Se reprovar mais uma vez, usa a foto real do produto. Cada veredito gera o evento `ads_v2_product_locked` com `mode: 'in_hand'` (o evento da trava que já existe), com o veredito e o passo.
 
 ## Custo
 
@@ -35,9 +35,9 @@ Fica fora da TRAVA 8.2 (é o Ads, não o filme). Trava do produto e interruptor 
 | Fixos (Lyria, voz, Creatomate, GPT) | 0,250 |
 | Juiz: 5 conferências × ~0,01 | 0,050 |
 | Reserva de 1 refação de foto | 0,150 |
-| **Total estimado (é o que o dry-run mostra)** | **2,394** |
+| **Total estimado com o juiz e a reserva (o /plan mostra em `in_hand.usd`)** | **2,394** |
 
-O plano de antes custava US$ 2,38. Os créditos não mudam (41).
+O `usd_estimate` (a régua de sempre, a mesma do dry-run) soma só as 3 primeiras linhas: **US$ 2,194**. O juiz e a reserva de refação ficam no `in_hand.usd` do /plan, porque `lib/ads/v2StartCore.ts` é arquivo de dinheiro e ficou intocado. O plano de antes custava US$ 2,38. Os créditos não mudam (41).
 
 ## O teste (T1): UM anúncio, conta da casa, depois do "vai" do fundador
 
@@ -45,18 +45,18 @@ O plano de antes custava US$ 2,38. Os créditos não mudam (41).
 
 1. **Antes de tudo, conferir o saldo da fal.** O teste custa ≈ US$ 2,40 (no pior caso, com 3 fotos no mesmo plano, ≈ US$ 2,85).
 2. **Publicar** esta entrega só depois do ok do fundador. Este documento não publica nada.
-3. **/plan:** a resposta precisa trazer `in_hand` com os 5 planos (hook, hold, use, close, packshot) e `usd_estimate.totalUsd` = 2,394.
+3. **/plan:** a resposta precisa trazer `in_hand.shots` com os 5 planos (hook, hold, use, close, packshot), `in_hand.usd.totalUsd` = 2,394 e `usd_estimate.totalUsd` = 2,194.
 4. **Dry-run (US$ 0)** com `POST /api/ads/v2/start` e `{ order_id, dry_run: true }`. Conferir:
    - `charged: false` e `credits: 41`;
-   - `usd_estimate.inHand: true`, `judgeUsd: 0.05`, `retryReserveUsd: 0.15`, `totalUsd: 2.394`;
-   - `in_hand` com os 5 planos, e o `shots[0]` do tipo `people` / `generated_scene` (nunca o packshot);
+   - `usd_estimate.totalUsd: 2.194`, com `aiShots: 4` e `sceneImages: 4`;
+   - `shots` com 5 planos: o `shots[0]` é `people` / `generated_scene` (nunca o packshot) e o `shots[4]` é `text` (o packshot real);
    - os `scene_prompt` trazem "keep the packaging design, colors, logo and printed text exactly as in the reference" e a cena "num hotel com chuva";
    - os `prompt` (movimento) trazem breathes / blink / eyes / fingers e "does not rotate, flip, tilt, slide or grow".
 5. **Só com o dry-run certo:** o mesmo pedido sem `dry_run`.
 6. **Recolher para a análise:**
    - o MP4;
    - as fotos das 4 cenas (as cópias no bucket renders, que `persistSceneImage` grava);
-   - os eventos `ads_v2_in_hand_judged` e `ads_v2_shot_fallback` do pedido;
+   - os eventos `ads_v2_product_locked` (`mode: 'in_hand'`) e `ads_v2_shot_fallback` do pedido;
    - os `input` enviados ao Kling (o `end_image_url` tem de ser igual ao `image_url`).
 
 ## Critério de aprovação
@@ -77,8 +77,8 @@ O fundador dá uma nota de 0 a 10 em cada item. **Passa só com todos ≥ 8** (m
 
 - Duração final de 15 s (até +0,5 s), 9:16. Packshot + cartão ≤ 6 s. O 1º quadro tem gente (não o fundo branco).
 - 4 planos de gente vieram do caminho novo:
-  - nenhum evento `ads_v2_product_locked` (a colagem não rodou);
-  - os 4 `ads_v2_in_hand_judged` existem;
+  - nenhum `ads_v2_product_locked` com `mode: 'scene'` (a colagem não rodou);
+  - os 4 `ads_v2_product_locked` com `mode: 'in_hand'` existem;
   - ≤ 1 plano caiu na foto real.
 - Os 4 envios ao Kling O3 têm `end_image_url === image_url`, `duration: "3"` e `generate_audio: false`.
 - Débito de 41 cr e nenhum estorno. Custo real na fal ≤ US$ 3 (comparar o saldo antes e depois).
