@@ -434,7 +434,7 @@ function cancelAbandoned(row: AdsV2ShotRow, kind: 'video' | 'image'): void {
 // ── KINEO-ADS-PRODUTO-NA-MAO-1610 — "pessoa segurando o produto real" (Comercial, contas internas): sem colagem, juiz do rótulo, Kling com quadro final ──
 /** KINEO-ADS-PRODUTO-NA-MAO-1610 — a lib do plano novo (lib/ads/v2ProductInHand.ts, pura) por import DINÂMICO: falha = o plano de antes (a foto real do produto). */
 function inHandLib() { // KINEO-ADS-PRODUTO-NA-MAO-1610
-  return import('@/lib/ads/v2ProductInHand').catch(() => null) // KINEO-ADS-PRODUTO-NA-MAO-1610
+  return import('@/lib/ads/v2ProductInHand').then((m) => (typeof m.adsV2InHandJudgeStep === 'function' ? m : null)).catch(() => null) // KINEO-ADS-PRODUTO-NA-MAO-1610
 } // KINEO-ADS-PRODUTO-NA-MAO-1610
 /** KINEO-ADS-PRODUTO-NA-MAO-1610 — o interruptor do lado servidor (lib/ads/v2ProductInHandServer.ts, import dinâmico; falha = desligado). */
 function inHandEnabled(userId: string): Promise<boolean> { // KINEO-ADS-PRODUTO-NA-MAO-1610

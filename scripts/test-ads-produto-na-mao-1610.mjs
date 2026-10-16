@@ -158,7 +158,7 @@ const SCN = makeLoader({}, { loose: true })('lib/ads/v2Scene.ts')
 await check('00 lib/ads/v2ProductInHand.ts só importa TIPOS; o avanço e o /plan a carregam por import DINÂMICO (nenhum import estático novo neles)', () => {
   const src = rd(F.ih)
   return src.split('\n').filter((l) => /^import /.test(l)).every((l) => /^import type /.test(l)) && !/^import .*v2ProductInHand/m.test(rd(F.advance)) && !/^import .*v2ProductInHand/m.test(rd(F.planCore)) &&
-    rd(F.advance).includes("return import('@/lib/ads/v2ProductInHand').catch(() => null)")
+    rd(F.advance).includes("return import('@/lib/ads/v2ProductInHand').then((m) => (typeof m.adsV2InHandJudgeStep === 'function' ? m : null)).catch(() => null)")
 })
 await check('01 espelhos: cartão, dissolve, margem, clipe e preço do Kling O3, preço da foto, setores da trava, frase de manter, a linha "Setting" e a abertura de cada formato', () => {
   const m = H.ADS_V2_IN_HAND_MIRROR
@@ -185,7 +185,7 @@ const i3 = (src = pc) => {
   const at = (s) => src.indexOf(s)
   const linha = src.split('\n').find((l) => l.includes('const inHand = ') && l.includes('adsV2InHandPlan(')) ?? ''
   return linha.includes('on: inHandLib.adsV2InHandOn(reason === \'internal\')') && linha.includes('presenter: presenterAsked') && linha.includes('ih.shotsSeconds === plan.shotsSeconds') &&
-    src.includes("    const inHandLib = await import('@/lib/ads/v2ProductInHand').catch(() => null)") && !/^import .*v2ProductInHand/m.test(src) &&
+    src.includes("    const inHandLib = await import('@/lib/ads/v2ProductInHand').then((m) => (typeof m.adsV2InHandPlan === 'function' ? m : null)).catch(() => null)") && !/^import .*v2ProductInHand/m.test(src) &&
     at('    if (inHand) plan.shots = inHand.shots') > at(linha) && at('    if (inHand) plan.shots = inHand.shots') < at('const promptIssues = checkV2Prompts(') &&
     src.includes('    if (inHand) Object.assign(stored, { productInHand: true })')
 }
@@ -414,7 +414,7 @@ await check('C3 resumo dos planos (in_hand): hook/hold/use/close + packshot, com
 // ═══ D. desfaz, marca, encadeamento, travas ═════════════════════════════════════════════════════════════════════════════════════
 console.log('\nD. desfaz exato, marca, encadeamento, travas "internal", créditos e motores intocados')
 await check('D1 cada arquivo tocado, desfeito (scripts/test-support/desfaz-ads-produto-na-mao-1610.mjs), é EXATAMENTE o pai do 1º commit com a marca; a ida devolve o vivo; os novos existem e não existiam', () =>
-  PRODUTO_NA_MAO_1610_ARQUIVOS.length === 6 && PRODUTO_NA_MAO_1610_ARQUIVOS.every((f) => semProdutoNaMao1610(f, rd(f)) === base(f) && comProdutoNaMao1610(f, base(f)) === rd(f) && !semProdutoNaMao1610(f, rd(f)).includes(MARCA)) &&
+  PRODUTO_NA_MAO_1610_ARQUIVOS.length === 9 && PRODUTO_NA_MAO_1610_ARQUIVOS.every((f) => semProdutoNaMao1610(f, rd(f)) === base(f) && comProdutoNaMao1610(f, base(f)) === rd(f) && !semProdutoNaMao1610(f, rd(f)).includes(MARCA)) &&
   MARCA_PRODUTO_NA_MAO_1610 === MARCA && (BASE === 'HEAD' || PRODUTO_NA_MAO_1610_BASE === BASE) && PRODUTO_NA_MAO_1610_NOVOS.every((f) => existsSync(join(ROOT, f)) && base(f) === null))
 await check('D2 todo bloco do desfaz traz a marca; o diff do commit contra a base só toca os arquivos da lista e os novos (nada de v2Tiers, v2Engines, v2ShotLists, trava, /start, cobrança)', () => {
   const src = rd('scripts/test-support/desfaz-ads-produto-na-mao-1610.mjs')
