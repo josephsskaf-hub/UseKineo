@@ -1295,7 +1295,7 @@ export default function KineoLanding({
                 {/* KINEO-HOME-TEXTOS-2026-10-12 — a linha velha ("todo motor, incluindo o H3") fazia crer que os 60 créditos rendem filmes no
                     H3; qualquer motor pode ser USADO, mas os premium gastam mais crédito por filme (a 1ª linha já diz quantos). */}
                 <li><span className="ck">✓</span><UiLabel> Any video engine — premium engines use more credits per film</UiLabel></li>
-                <li><span className="ck">✓</span><UiLabel> Watermark-free MP4 · 100 projects · 90-day storage</UiLabel></li>
+                <li><span className="ck">✓</span><UiLabel> Watermark-free MP4 · 100 projects · files stay while your account is active</UiLabel></li>
               </ul>
               <HomePricingCheckoutLink href={starterCheckoutHref} tier="starter"><LandingPlanPrice tier="starter" variant="cta" ctaLabel="Start" /></HomePricingCheckoutLink>
             </div>
