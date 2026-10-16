@@ -27,6 +27,8 @@ import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semDemoSobMedida1510, ARQUIVOS_DEMO_SOB_MEDIDA_1510, MARCA_DEMO_SOB_MEDIDA_1510 } from './test-support/desfaz-demo-sob-medida-1510.mjs'
+// KINEO-ADMIN-JORNADA-1510 — a aba Clientes (camada mais nova) mexeu no menu do admin: desfeita por DENTRO antes do byte a byte do D10.
+import { semAdminJornada1510 } from './test-support/desfaz-admin-jornada-1510.mjs'
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -342,7 +344,7 @@ async function provas(over = {}) {
   await p('D10 o desfaz devolve o PAI byte a byte em cada arquivo que já existia (vista da aprovação, tela da aprovação, vista pública, cron, menu do admin); estrito: trecho alterado = lança; lib/ads/v2PostDeliveryServer.ts INTOCADO', () => {
     const porArquivo = { [F.view]: 'view', [F.posPure]: 'posPure', [F.approveClient]: 'approveClient', [F.cron]: 'cron' }
     const lanca = (fn) => { try { fn(); return false } catch { return true } }
-    return PAI !== null && ARQUIVOS_DEMO_SOB_MEDIDA_1510.length === 5 && ARQUIVOS_DEMO_SOB_MEDIDA_1510.every((f) => { const vivo = porArquivo[f] ? fonte(porArquivo[f]) : rd(f); const pai = rdPai(f); return pai !== null && vivo.includes(MARCA_DEMO_SOB_MEDIDA_1510) && lf(semDemoSobMedida1510(f, vivo)) === pai && !pai.includes(MARCA_DEMO_SOB_MEDIDA_1510) }) &&
+    return PAI !== null && ARQUIVOS_DEMO_SOB_MEDIDA_1510.length === 5 && ARQUIVOS_DEMO_SOB_MEDIDA_1510.every((f) => { const vivo = porArquivo[f] ? fonte(porArquivo[f]) : semAdminJornada1510(f, rd(f)); const pai = rdPai(f); return pai !== null && vivo.includes(MARCA_DEMO_SOB_MEDIDA_1510) && lf(semDemoSobMedida1510(f, vivo)) === pai && !pai.includes(MARCA_DEMO_SOB_MEDIDA_1510) }) &&
       lanca(() => semDemoSobMedida1510(F.view, fonte('view').replace('await openApproval(admin, body?.token, secret))', 'await openApproval(admin, body?.token, secret ))'))) &&
       (fonte('posServer') === rdPai(F.posServer)) // o núcleo da aprovação (dinheiro/pós-entrega) ficou byte a byte o do pai
   })

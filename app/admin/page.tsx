@@ -22,11 +22,14 @@ import { createClient } from '@/lib/supabase/server'
 import { isAdminEmail } from '@/app/api/admin/_shared/db'
 import { computeCeoData } from '@/app/api/admin/ceo/compute'
 import CeoClient from '@/app/(dashboard)/admin/ceo/CeoClient'
+// KINEO-ADMIN-JORNADA-1510 — abas no topo: Visão geral (esta tela, conteúdo intocado) | Clientes (/admin/clientes, só carrega quando aberta).
+import { redirect } from 'next/navigation'
+import AdminAbas from '@/components/admin/AdminAbas'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-export default async function AdminHomePage() {
+export default async function AdminHomePage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
   const supabase = createClient()
   const {
     data: { user },
@@ -37,6 +40,23 @@ export default async function AdminHomePage() {
     return <CeoClient denied home />
   }
 
+  // KINEO-ADMIN-JORNADA-1510 — /admin?aba=clientes é endereço da aba Clientes: vai para ela ANTES de calcular a Visão geral.
+  const aba = Array.isArray(searchParams?.aba) ? searchParams?.aba[0] : searchParams?.aba
+  if (aba === 'clientes') {
+    const resto = new URLSearchParams()
+    for (const k of ['p', 'f', 'internas']) {
+      const v = searchParams?.[k]
+      const um = Array.isArray(v) ? v[0] : v
+      if (um) resto.set(k, um)
+    }
+    redirect(`/admin/clientes${resto.toString() ? `?${resto.toString()}` : ''}`)
+  }
+
   const data = await computeCeoData()
-  return <CeoClient data={data ?? undefined} viewerEmail={email} home />
+  return (
+    <>
+      <AdminAbas atual="visao" />
+      <CeoClient data={data ?? undefined} viewerEmail={email} home />
+    </>
+  )
 }
