@@ -63,6 +63,7 @@ import {
 } from '@/lib/cinematic/dispatchScenes'
 import { resolveVerbatimSegments } from '@/lib/cinematic/verbatimBeats'
 import { seedanceShortMarkedScenes } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai" do 15 s] KINEO-CONTAGEM-FALA-15S-2026-09-29 (linha própria: a rota só GANHA linhas)
+import { decidirPlanoDeBroll } from '@/lib/cinematic/planoDeBroll' // [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"] KINEO-TRILHA-15S (linha própria)
 import { checarFalaCurtaDoMotor, scriptTooLongForShortFilmMessageDoMotor, pistasDosTrechos } from '@/lib/durationByEngine' // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 (linha própria)
 import { describeScenesCovered, completeSceneDescriptions, hasSpeechArtifacts, type DescriptionCoverage } from '@/lib/cinematic/sceneDescriptions' // [TRAVA 8.2] KLING25-DESCRICOES-2026-09-28
 import { kling25FootageNeeded, kling25ShotCount, kling25SceneSeconds, kling25ClipsUsd, kling25WriterBudget, kling25AlignBudget, kling25AverageShotSeconds, kling25VerbatimPlan, kling25VisualHint, kling25SceneWordStarts, kling25PlanPace, kling25WordsFit, KLING25_CLIP_LOSS_SECONDS, kling25ApplyShotAxis, kling25StripShotAxis } from '@/lib/cinematic/klingShots' // KINEO-KLING25-PLANOS-5S-2026-09-28 · KINEO-KLING25-VARIEDADE-2026-09-28
@@ -3839,7 +3840,10 @@ async function manipularPost(req: NextRequest) {
       } catch { /* telemetria nunca derruba a resposta */ }
     }
     // L2B - prefer the smart BrollPlan per-scene cinematic prompt when provided
-    if (planScenes.length > 0) {
+    const decisaoPlanoDeBroll = decidirPlanoDeBroll({ blocosDoPlano: planScenes.length, falasDasCenas: scenes.map((s) => s.voiceover), falasDosBlocos: parsedScript.segments.map((s) => s.voiceover), verbatim }) // KINEO-TRILHA-15S — o plano só vale se as cenas do filme SÃO os blocos dele, um por um (lib/cinematic/planoDeBroll.ts)
+    const planoDeBrollAplicado = hollywoodPath ? planScenes.length > 0 : decisaoPlanoDeBroll.aplicar // KINEO-TRILHA-15S — hollywood: como sempre (o planejador dele reescreve as cenas)
+    if (!hollywoodPath && planScenes.length > 0 && !planoDeBrollAplicado) { console.log(`[cinematic] KINEO-TRILHA-15S: plano de b-roll ignorado (${decisaoPlanoDeBroll.motivo}: ${planScenes.length} blocos no plano, ${scenes.length} cenas no filme) — cada imagem nasce da fala do próprio clipe`); void writeServerEvent({ name: 'broll_plan_descartado', userId: user.id, path: '/api/generate-video-cinematic', metadata: { generation_id: generationId, ...decisaoPlanoDeBroll, engine: typeof body.engine === 'string' ? body.engine : 'seedance', duration, verbatim, dry_run: body.dry_run === true } }) } // KINEO-TRILHA-15S
+    if (planoDeBrollAplicado) { // KINEO-TRILHA-15S — era: if (planScenes.length > 0) {
       scenes = scenes.map((s, i) => { const bp = planScenes[i]?.brollPrompt; return bp && bp.trim().length > 20 ? { ...s, aiPrompt: bp.trim() } : s })
     }
 
@@ -3857,7 +3861,7 @@ async function manipularPost(req: NextRequest) {
     // AINDA ficar sem descrição nasce do SUJEITO da vizinha válida com outro enquadramento (completeSceneDescriptions);
     // fala que é só CTA repete o assunto do filme. Caminho clássico (Seedance/Kling/Veo/Sora); hollywood intocado.
     const cenasSemDescricaoDoModelo = new Set<number>() // índices 0-based cujo plano veio do fallback: o supervisor fala×imagem não pode devolvê-los à criatura/CTA literal
-    if (verbatim && planScenes.length === 0 && !hollywoodPath) {
+    if (verbatim && !planoDeBrollAplicado && !hollywoodPath) { // KINEO-TRILHA-15S — era: planScenes.length === 0 (com plano fora de posição, o descritor era pulado)
       let cobertura: DescriptionCoverage = { descriptions: scenes.map(() => null), lotes: 0, repedidas: [], recuperadas: [], erros: [] }
       try {
         cobertura = await describeScenesCovered(scenes.length, async (numeros) => await generateCinematicDescriptions(numeros.map((n) => scenes[n]), prompt, classicVisualPolicy, numeros.length === scenes.length ? undefined : { numeros: numeros.map((n) => n + 1), total: scenes.length })) // ≤ 12 cenas: sem `lote` — mensagens byte-idênticas às de hoje
@@ -6717,6 +6721,7 @@ async function manipularPost(req: NextRequest) {
         contrato_cena: contratoRelatoClassico,
         contrato_modo: classicVisualMode, contrato_palavra_inteira: true, // KINEO-CONTRATO-CLASSICOS-1410 — a régua que o gate clássico aplicou (visual_mode do claim é a do Diretor de Formato)
         fala_x_imagem: alinhamentoFalaImagem, // KINEO-FALA-X-IMAGEM — o que o supervisor reescreveu, a $0
+        broll_plan: { aplicado: planoDeBrollAplicado, ...decisaoPlanoDeBroll }, // KINEO-TRILHA-15S — o ensaio mostra se o plano de b-roll do Studio foi usado ou ignorado, e por quê
         ...(monumentoRelato ? { monumento: monumentoRelato } : {}), // KINEO-MONUMENTO-2026-10-13
         ...(romanceAdulto.ativo ? { romance_adulto: { motivo: romanceAdulto.motivo, elenco: romanceAdulto.elencoFrase, look: styleAnchor.look, cenas_com_sufixo: classicScenePrompts.filter((p) => p.includes(ROMANCE_ADULT_SUFFIX)).length } } : {}), // KINEO-ROMANCE-ADULTO-2026-10-13
         ...(seedanceCoberturaRelato ? { cobertura_da_fala: seedanceCoberturaRelato } : {}), // KINEO-MONUMENTO-2026-10-13 (duração)

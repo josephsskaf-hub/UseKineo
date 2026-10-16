@@ -181,6 +181,31 @@ function semPessoaSemFragmento(texto: string): string { // KINEO-ROMANCE-ADULTO-
     .replace(new RegExp(String.raw`\b(${PEDE_OBJETO})\s*\u0000P\u0000`, 'gi'), '$1 a distant silhouetted figure seen from behind') // KINEO-ROMANCE-ADULTO-2026-10-13
     .replace(/\u0000[PG]\u0000/g, ' ') // KINEO-ROMANCE-ADULTO-2026-10-13 — o resto: espaço, como sempre
 } // KINEO-ROMANCE-ADULTO-2026-10-13
+// KINEO-TRILHA-15S >>> [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"] o protagonista do faceless vira forma SEM ROSTO, não espaço
+// KINEO-TRILHA-15S — 91a25fbb (Exu Marabô, 15/10): o supervisor escreveu "a silhouette of a lost man standing alone" e o apagão
+// KINEO-TRILHA-15S — mandou ao motor "a silhouette of a lost standing alone" (também "chasing in a blue shalwar kameez", "in a
+// KINEO-TRILHA-15S — vibrant blue jalabiya stands"). Agora a pessoa que NÃO vem depois de preposição/verbo que pede objeto (esse
+// KINEO-TRILHA-15S — caso já vira a silhueta neutra, acima) e não é possessivo ("a man's hands", acima) MANTÉM o substantivo e
+// KINEO-TRILHA-15S — ganha a forma sem rosto, escolhida pelo sujeito, sem sorteio: ação de mão logo depois ("holding", "writing"…)
+// KINEO-TRILHA-15S — → "…, seen only as hands in close-up,"; a frase já fala de silhueta → "… seen from behind"; grupo/plural →
+// KINEO-TRILHA-15S — "… seen from behind as distant silhouettes"; uma pessoa → "… seen in silhouette from behind". As palavras
+// KINEO-TRILHA-15S — mantidas levam ROSTO_PROTEGIDO (U+E000) depois da 1ª letra para o PERSON_NOUN_RE não as apagar em seguida;
+// KINEO-TRILHA-15S — a marca sai no fim do sujeito. Sem pessoa no texto: byte a byte igual. A cauda fixa do prompt não é tocada.
+const ROSTO_PROTEGIDO = '\uE000' // KINEO-TRILHA-15S
+const GRUPO_DE_PESSOAS_TEXTO_RE = new RegExp(String.raw`(?:${PERSON_NOUN_RE.source})(?:\s*(?:,|\band\b|\bor\b|&|\bwith\b)\s*(?:${PERSON_NOUN_RE.source}))*`, 'gi') // KINEO-TRILHA-15S
+const PEDE_OBJETO_ANTES_RE = new RegExp(String.raw`\b${PEDE_OBJETO}\s*$`, 'i') // KINEO-TRILHA-15S
+const ACAO_DE_MAO_RE = /^\s*,?\s*(?:[a-z]+ly\s+)?(?:holding|holds|hold|clutching|clutches|gripping|grips|grabbing|grabs|writing|writes|typing|types|counting|counts|signing|signs|opening|opens|pouring|pours|cooking|cooks|cutting|cuts|chopping|stirring|kneading|reaching|reaches|touching|touches|flipping|flips|tapping|taps|scrolling|drawing|draws|painting|paints|planting|plants|placing|places|picking|picks|handing|offering|offers|lighting|lights|folding|unfolding|wrapping|unwrapping|sewing|knitting|shuffling|dealing)\b/i // KINEO-TRILHA-15S
+const GRUPO_OU_PLURAL_RE = /\band\b|\bor\b|\bwith\b|,|&|(?:\b(?:men|women|people|children|crowd|family)|s)$/i // KINEO-TRILHA-15S
+function pessoaSemRosto(grupo: string, pos: number, todo: string): string { // KINEO-TRILHA-15S — replacer de GRUPO_DE_PESSOAS_TEXTO_RE
+  const antes = todo.slice(0, pos) // KINEO-TRILHA-15S
+  const depois = todo.slice(pos + grupo.length) // KINEO-TRILHA-15S
+  if (PEDE_OBJETO_ANTES_RE.test(antes) || /^['’]s\b/.test(depois)) return grupo // KINEO-TRILHA-15S — esses dois casos já têm forma própria (semPessoaSemFragmento)
+  const mantido = grupo.replace(/\b[A-Za-z]/g, (c: string) => c + ROSTO_PROTEGIDO) // KINEO-TRILHA-15S — "man" → "m\uE000an": o PERSON_NOUN_RE não casa mais
+  if (ACAO_DE_MAO_RE.test(depois)) return `${mantido}, seen only as hands in close-up${/^\s*,/.test(depois) ? '' : ','}` // KINEO-TRILHA-15S — mãos em close
+  if (/silhouett/i.test(antes)) return `${mantido} seen from behind` // KINEO-TRILHA-15S — figura vista de trás (a silhueta já está na frase)
+  return GRUPO_OU_PLURAL_RE.test(grupo.trim()) ? `${mantido} seen from behind as distant silhouettes` : `${mantido} seen in silhouette from behind` // KINEO-TRILHA-15S — silhueta de costas
+} // KINEO-TRILHA-15S
+// <<< KINEO-TRILHA-15S
 export function buildClassicVisualPrompt(visual: string, policy: VisualPromptPolicy): string {
   let prompt: string
   if (policy.mode !== 'documentary_faceless') {
@@ -190,8 +215,9 @@ export function buildClassicVisualPrompt(visual: string, policy: VisualPromptPol
     const subject = semPessoaSemFragmento((visual || '') // KINEO-ROMANCE-ADULTO-2026-10-13 — o apagão de pessoa não deixa "of and"
       .replace(NAMED_FIGURE_RE, 'a distant silhouetted figure seen from behind')
       .replace(NAMED_TITLE_RE, 'a distant silhouetted figure seen from behind')
+      .replace(GRUPO_DE_PESSOAS_TEXTO_RE, pessoaSemRosto) // KINEO-TRILHA-15S — protagonista sem rosto, substantivo mantido
       .replace(PERSON_NOUN_RE, PESSOA_APAGADA)) // KINEO-ROMANCE-ADULTO-2026-10-13 — era .replace(PERSON_NOUN_RE, ' ')
-      .replace(/\s+/g, ' ').replace(/^[\s,.;:–-]+/, '').trim()
+      .replace(/\s+/g, ' ').replace(/^[\s,.;:–-]+/, '').trim().split(ROSTO_PROTEGIDO).join('') // KINEO-TRILHA-15S — a marca das palavras mantidas sai aqui
     prompt = applyStyleAnchor(
       `${subject || 'the described story setting'}, faceless cinematic b-roll, ` +
       'focus on the described subject and its environment, no foreground human faces, ' +
