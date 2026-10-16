@@ -6,6 +6,7 @@ import { adsSegmentOffer } from '@/lib/growth/adsSegmentPresentation'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import BusinessAdsOffers from './BusinessAdsOffers'
 import styles from './businessAds.module.css'
+import { guiasIaLinksFrom } from '@/lib/seo/guiasIa1610Paths' // KINEO-GUIAS-IA-1610 — a guia que esta página leva (rodapé)
 
 export const dynamic = 'force-static'
 export const metadata: Metadata = {
@@ -69,6 +70,6 @@ export default function BusinessVideoAdsPage() {
       <details><summary>Can you include my logo, photos and professional details?</summary><p>Yes, where the format allows, using material and facts you supply and approve. We do not invent qualifications, endorsements, patient stories or results. Medical and other regulated claims must be verified by you before publication.</p></details>
       <details><summary>Does this include posting, ads or guaranteed sales?</summary><p>No. You receive the video to publish yourself. Advertising spend, channel management and sales guarantees are not included. This is a one-time service, separate from Kineo subscriptions and credits.</p></details>
     </section>
-    <footer className={styles.footer}><p>Create it yourself. Or let us help.</p><a href="#packages">View Express and Pro ↑</a><span>Kineo Empresas · Updated September 27, 2026</span></footer>
+    <footer className={styles.footer}><p>Create it yourself. Or let us help.</p><a href="#packages">View Express and Pro ↑</a>{guiasIaLinksFrom('/business-video-ads').map(g => <a key={g.href} href={g.href}>{g.label} →</a>)}<span>Kineo Empresas · Updated September 27, 2026</span></footer>
   </main></div>
 }

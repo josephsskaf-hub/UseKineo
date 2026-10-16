@@ -41,3 +41,68 @@ export const GUIAS_IA_PULADAS: Readonly<Record<string, string>> = {
   '/guides/ai-voiceover-costs-short-videos': '/ai-voice-generator', // GPT 17
   '/guides/ai-narration-without-recording': '/ai-voice-generator', // GPT 20 (+ /ai-video-generator/for/ai-voiceover-videos)
 }
+
+// ─── Divulgação (KINEO-GUIAS-IA-1610, publicação de 17/10) ───────────────────────────────────────────────────────────
+// O que o /llms.txt diz de cada guia e qual página que JÁ existe leva a ela (1 link interno por guia, no padrão de links
+// relacionados daquela página). `label` = o título da guia em lib/growth/guiasIa1610.ts — o guardião
+// scripts/test-guias-ia-1610.mjs confere que são iguais. Nenhum número nosso nem de concorrente aqui (a página traz os fatos).
+export type GuiaIaDivulgacao = { label: string; llms: string; from: string; anchor: string }
+export const GUIAS_IA_DIVULGACAO: Readonly<Record<GuiaIaSlug, GuiaIaDivulgacao>> = {
+  'ai-product-video-accuracy': {
+    label: 'AI Product Video Accuracy: Keep Your Product Honest',
+    llms: 'how to check packaging, color and features in an AI product video against the real product before publishing, and how to compare AI ad tools without assuming perfect product fidelity.',
+    from: '/ads/for/online-stores',
+    anchor: 'Keep AI product videos accurate',
+  },
+  'ai-dropshipping-video-ads': {
+    label: 'AI Video Ads for Dropshipping: Step by Step',
+    llms: 'a step-by-step workflow for a dropshipping product ad made from authorized product assets and verified claims, with a dated comparison of AI ad tools.',
+    from: '/ads/for/online-stores',
+    anchor: 'Dropshipping video ads, step by step',
+  },
+  'ai-personal-care-product-ads': {
+    label: 'AI Video Ads for Small Personal Care Brands',
+    llms: 'personal care product ads built from verified facts and real product photos, without invented reviews or results.',
+    from: '/ads/for/online-stores',
+    anchor: 'Video ads for personal care brands',
+  },
+  'ai-clothing-brand-video': {
+    label: 'AI Video Ads for Clothing Brands: What to Check',
+    llms: 'clothing-brand video ads from real garment photos, and what to review in garment details, fit and generated motion.',
+    from: '/ads/for/online-stores',
+    anchor: 'Video ads for clothing brands',
+  },
+  'ai-tech-product-ads': {
+    label: 'AI Video Ads for Tech Products: A Practical Guide',
+    llms: 'planning a cinematic tech-product ad without inventing features, and when real product footage works better than generated scenes.',
+    from: '/ads/for/online-stores',
+    anchor: 'Video ads for tech products',
+  },
+  'elevenlabs-alternatives-narrated-video': {
+    label: 'ElevenLabs Alternatives for Narrated AI Videos',
+    llms: 'whether you need a voice file, an editor, an avatar or a finished narrated video, and which tool fits each output (ElevenLabs, Descript, HeyGen, Kineo).',
+    from: '/ai-voice-generator',
+    anchor: 'ElevenLabs alternatives for narrated videos',
+  },
+  'multilingual-video-narration': {
+    label: 'Multilingual Video Narration: A Practical AI Workflow',
+    llms: 'new narrated videos in the supported narration languages versus dubbing an existing video, and what still needs a human review.',
+    from: '/ai-voice-generator',
+    anchor: 'Multilingual video narration',
+  },
+  'weekly-video-ads-approval': {
+    label: 'Weekly Video Ads with Approval: Kineo Automate',
+    llms: 'Kineo Automate, a done-for-you service: weekly business video ads approved through a private link, with publishing and media buying left to the business; package and pilot terms on the page.',
+    from: '/business-video-ads',
+    anchor: 'Weekly video ads with approval',
+  },
+}
+
+/** As guias que levam um link a partir de `from` (ordem de GUIAS_IA_SLUGS). */
+export const guiasIaLinksFrom = (from: string) =>
+  GUIAS_IA_SLUGS.filter((slug) => GUIAS_IA_DIVULGACAO[slug].from === from).map((slug) => ({ href: guiaIaPath(slug), label: GUIAS_IA_DIVULGACAO[slug].anchor }))
+
+/** Linhas do /llms.txt, uma por guia, no formato da casa `- [rótulo](url): nota`. */
+export function guiasIaLlmsLines(base: string): string {
+  return GUIAS_IA_SLUGS.map((slug) => `- [${GUIAS_IA_DIVULGACAO[slug].label}](${base}${guiaIaPath(slug)}): ${GUIAS_IA_DIVULGACAO[slug].llms}`).join('\n')
+}

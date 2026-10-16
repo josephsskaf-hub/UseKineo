@@ -7,6 +7,7 @@ import Link from 'next/link'
 import Footer from '@/components/Footer'
 import { buildProductSurfaceSignupHref } from '@/lib/growth/productSurfaceIntent'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
+import { guiasIaLinksFrom } from '@/lib/seo/guiasIa1610Paths' // KINEO-GUIAS-IA-1610 — as guias de voz que esta página leva (Related)
 
 const BASE = 'https://www.usekineo.com'
 const VOICE_SIGNUP_HREF = buildProductSurfaceSignupHref({
@@ -118,6 +119,8 @@ export default function AiVoiceGeneratorPage() {
           Related: <Link href="/ai-image-generator" style={{ color: '#2997ff' }}>AI Images</Link> ·{' '}
           <Link href="/ai-video-upscaler" style={{ color: '#2997ff' }}>Video Upscaler</Link> ·{' '}
           <Link href="/examples" style={{ color: '#2997ff' }}>Examples</Link> ·{' '}
+          {/* KINEO-GUIAS-IA-1610 — as guias de voz que esta página leva */}
+          {guiasIaLinksFrom('/ai-voice-generator').map((g) => <span key={g.href}><Link href={g.href} style={{ color: '#2997ff' }}>{g.label}</Link> ·{' '}</span>)}
           <Link href="/pricing" style={{ color: '#2997ff' }}>Pricing</Link>
         </p>
       </main>

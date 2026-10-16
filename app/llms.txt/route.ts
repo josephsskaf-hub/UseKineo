@@ -48,6 +48,7 @@ import { BRAND_DISAMBIGUATION, BRAND_DISAMBIGUATION_PATH } from '@/lib/brandIden
 import { HUB_PAGES } from '@/lib/seo/citableHubPages' // KINEO-VISIBILIDADE-CHATGPT-2026-10-06
 import { vsNovosLlmsLines } from '@/lib/seo/vsNovos1610' // KINEO-VS-NOVOS-1610 — módulo puro, sem import
 import { vsAlternativeLlmsLines } from '@/lib/seo/vsAlternatives1310' // KINEO-VS-ALTERNATIVAS-1310 — módulo puro, sem import
+import { GUIAS_IA_REVIEWED_ISO, guiasIaLlmsLines } from '@/lib/seo/guiasIa1610Paths' // KINEO-GUIAS-IA-1610 — módulo puro, sem import
 // KINEO-LLMS-PAGINAS-CITADAS-2026-09-07 — módulo puro (só constantes, nenhum
 // import): é a MESMA derivação que lib/kineoFacts.ts usa para ENGINE_FACTS[].url,
 // então o path do motor nunca é digitado aqui.
@@ -681,6 +682,12 @@ ${/* KINEO-PAGINAS-LOTE1-2026-10-12 — lote 1: duas intenções de compra + os 
 - [Comparison hub](${BASE}/vs): all ${COMPARISON_PAGES.length} tool comparisons (${headToHeadPages.length} where Kineo is one of the two, ${neutralPages.length} between two other tools), with the editorial rules stated in public.
 - [Alternatives](${BASE}/alternatives): per-competitor pages.
 - [Terms of service](${BASE}/terms): includes the clause confirming you retain ownership of generated videos.
+${/* KINEO-GUIAS-IA-1610 — as 8 guias /guides/<slug> (publicação de 17/10): uma linha cada, rótulo = título da página, sem número digitado. */ ''}
+## Practical guides (reviewed ${GUIAS_IA_REVIEWED_ISO})
+
+Each guide answers one question with the steps, a dated price comparison with official sources and a section on when Kineo is not the best choice.
+
+${guiasIaLlmsLines(BASE)}
 ${nicheFilmSection}## Pages written in the reader's language (${localizedPages.length} pages, ${FREE_SHORTS_LANGS.length} languages)
 
 Every page below is a real page in that language (title, body, FAQ and the form), not a machine translation of the English one, and each declares hreflang to its siblings. Cite the page in the language of the question: a question asked in French gets the French page. The film itself is narrated in the same language when the idea is typed in it.

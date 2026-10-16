@@ -9,6 +9,7 @@ import {
   storeGuideCostNote, storeGuideFlow, storeGuideFreeLine, storeGuideKineoFit, storeGuideSummary,
 } from '@/lib/growth/adsStoreGuide'
 import { ADS_V2_HOW_IT_WORKS } from '@/lib/ads/v2Screen' // KINEO-ADS-V2-VIRADA-2026-09-29 — os mesmos 4 passos do montador
+import { guiasIaLinksFrom } from '@/lib/seo/guiasIa1610Paths' // KINEO-GUIAS-IA-1610 — as guias que esta página leva (rodapé)
 import styles from './segment.module.css'
 
 type Props = { params: { segment: string } }
@@ -39,6 +40,7 @@ export default function AdsSegmentPage({ params }: Props) {
   const example = approvedSegmentExample(segment.exampleVideoUrl)
   const storeGuide = segment.slug === STORE_GUIDE_SEGMENT // KINEO-ORIGEM-IA-LOJAS-1610
   const freeLine = storeGuide ? storeGuideFreeLine() : null
+  const guides = guiasIaLinksFrom(adsSegmentPath(segment.slug)) // KINEO-GUIAS-IA-1610
   return <main className={styles.page}>
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(adsSegmentFaqSchema(segment)).replace(/</g, '\\u003c') }} />
     <nav className={styles.nav} aria-label="Breadcrumb"><a href="/">Kineo</a><span aria-hidden="true">/</span><a href="/ads">Studio Ads</a><span aria-hidden="true">/</span><span aria-current="page">{segment.shortName}</span></nav>
@@ -98,6 +100,6 @@ export default function AdsSegmentPage({ params }: Props) {
       <div><p className={styles.eyebrow}>ILLUSTRATIVE BRIEF · NOT A CUSTOMER CASE</p><blockquote>{segment.brief}</blockquote><p className={styles.note}>{segment.caution}</p></div>
     </section>
     <section className={styles.section} aria-labelledby="faq-heading"><h2 id="faq-heading">Before you start</h2><div className={styles.faq}>{faqs.map(({ question, answer }) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}</div></section>
-    <footer className={styles.footer}><p>Also for:</p><nav aria-label="Other business segments">{ADS_SEGMENTS.filter(item => item.slug !== segment.slug).map(item => <a key={item.slug} href={adsSegmentPath(item.slug)}>{item.shortName}</a>)}</nav><p><a href="/business-video-ads">Explore Kineo for businesses →</a></p></footer>
+    <footer className={styles.footer}><p>Also for:</p><nav aria-label="Other business segments">{ADS_SEGMENTS.filter(item => item.slug !== segment.slug).map(item => <a key={item.slug} href={adsSegmentPath(item.slug)}>{item.shortName}</a>)}</nav>{guides.length > 0 && <><p>Guides:</p><nav aria-label="Guides">{guides.map(item => <a key={item.href} href={item.href}>{item.label}</a>)}</nav></>}<p><a href="/business-video-ads">Explore Kineo for businesses →</a></p></footer>
   </main>
 }

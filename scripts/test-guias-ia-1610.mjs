@@ -10,10 +10,17 @@
 //   R6 nenhum preço/crédito NOSSO digitado no conteúdo (vem de marketingPrice/checkoutPricing/ads); cada linha de
 //      concorrente tem URL oficial e a página diz a data da consulta;
 //   R7 CTA com utm_source=guide e utm_campaign=<slug> (padrão de SEO da casa).
+//   R8 (divulgação 17/10) o /llms.txt REAL (rota executada offline) traz cada guia uma vez, como `- [título](url): `, e o
+//      rótulo é o título da página;
+//   R9 (divulgação 17/10) cada guia tem ≥1 link interno: a página existente de GUIAS_IA_DIVULGACAO[slug].from, renderizada
+//      offline, contém href="/guides/<slug>"; nenhuma origem é a home nem outra guia.
+// R1–R7 só leem texto; R8–R9 executam os módulos reais pelos loaders offline da casa (sem rede, sem banco).
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { React, offlineModules, renderToStaticMarkup } from './gpt24h-offline-support.mjs'
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const F = {
@@ -140,3 +147,74 @@ for (const [rule, file, from, to] of MUTANTS) {
   assert.ok(fails.some((f) => f.startsWith(`${rule}:`)), `mutante ${rule} ("${to.slice(0, 50)}") ficou VERDE — o guardião não pega o defeito. Falhas: ${fails.join(' | ')}`)
 }
 console.log(`ok — ${MUTANTS.length} mutantes aplicados, todos vermelhos na regra certa`)
+// ── R8 · /llms.txt e R9 · links internos (KINEO-GUIAS-IA-1610, divulgação da publicação de 17/10) ──────────────────────
+const LLMS = 'app/llms.txt/route.ts'
+const BASE_URL = 'https://www.usekineo.com'
+/** Página existente → arquivo que a renderiza e as props. Origem nova em GUIAS_IA_DIVULGACAO precisa entrar aqui. */
+const FROM_PAGES = {
+  '/ads/for/online-stores': ['app/ads/for/[segment]/page.tsx', { params: { segment: 'online-stores' } }],
+  '/ai-voice-generator': ['app/ai-voice-generator/page.tsx', {}],
+  '/business-video-ads': ['app/business-video-ads/page.tsx', {}],
+}
+const STUB = { __esModule: true, default: () => null }
+const titlesOf = (content) => Object.fromEntries(guidesOf(content).map((g) => [g.key, strField(g.text, 'title')]))
+
+async function divulgacao(rep = {}) {
+  const fails = []
+  const fail = (rule, msg) => fails.push(rule + ': ' + msg)
+  const load = offlineModules({ replacements: rep, mocks: { 'components/Footer.tsx': STUB, 'app/business-video-ads/BusinessAdsOffers.tsx': STUB } })
+  let paths
+  try { paths = load(F.paths) } catch (e) { fail('R8', 'módulo das guias não carrega: ' + e.message); return fails }
+  const slugs = [...paths.GUIAS_IA_SLUGS]
+  const titles = titlesOf((rep[F.content] ?? real.content).replace(/\r\n/g, '\n'))
+  // R8
+  try {
+    const ll = createOfflineLoader({ env: { NODE_ENV: 'production', KINEO_REVERSE_TRIAL_ENABLED: 'true' }, globals: { Response }, source: (rel, raw) => (rep[rel] ?? raw).replace(/\r\n/g, '\n') })
+    const body = ll(LLMS).GET()
+    const t = typeof body === 'string' ? body : await body.text()
+    for (const slug of slugs) {
+      const url = BASE_URL + '/guides/' + slug
+      const hits = t.split('](' + url + ')').length - 1
+      if (hits !== 1) fail('R8', '/llms.txt cita ' + url + ' ' + hits + '×')
+      const label = paths.GUIAS_IA_DIVULGACAO?.[slug]?.label
+      if (label !== titles[slug]) fail('R8', slug + ': rótulo do /llms.txt ("' + label + '") ≠ título da página ("' + titles[slug] + '")')
+      if (!t.includes('- [' + titles[slug] + '](' + url + '): ')) fail('R8', '/llms.txt sem a linha "- [título](url): " de ' + slug)
+    }
+  } catch (e) { fail('R8', '/llms.txt não executa: ' + e.message) }
+  // R9
+  const html = {}
+  for (const slug of slugs) {
+    const from = paths.GUIAS_IA_DIVULGACAO?.[slug]?.from
+    if (!from || from === '/' || from.startsWith('/guides/')) { fail('R9', slug + ': origem do link inválida (' + from + ')'); continue }
+    const page = FROM_PAGES[from]
+    if (!page) { fail('R9', slug + ': origem ' + from + ' sem página conhecida no guardião'); continue }
+    try { html[from] ??= renderToStaticMarkup(React.createElement(load(page[0]).default, page[1])) } catch (e) { fail('R9', from + ' não renderiza: ' + e.message); continue }
+    if (!html[from].includes('href="/guides/' + slug + '"')) fail('R9', from + ' não leva a /guides/' + slug)
+  }
+  return fails
+}
+
+const realDiv = await divulgacao()
+assert.deepEqual(realDiv, [], 'guardião vermelho na divulgação real:\n' + realDiv.join('\n'))
+console.log('ok — divulgação: as ' + nGuides + ' guias no /llms.txt (rótulo = título) e cada uma com link interno de página existente')
+
+const realLlms = readFileSync(resolve(root, LLMS), 'utf8').replace(/\r\n/g, '\n')
+const realFile = (p) => readFileSync(resolve(root, p), 'utf8').replace(/\r\n/g, '\n')
+const DIV_MUTANTS = [
+  ['R8', LLMS, '${guiasIaLlmsLines(BASE)}', ''],
+  ['R8', F.paths, 'return GUIAS_IA_SLUGS.map((slug) => ' + "`- [", 'return GUIAS_IA_SLUGS.slice(1).map((slug) => ' + "`- ["],
+  ['R8', F.paths, "label: 'Weekly Video Ads with Approval: Kineo Automate',", "label: 'Weekly Video Ads, Approved',"],
+  ['R9', 'app/ads/for/[segment]/page.tsx', '{guides.length > 0 && <>', '{false && <>'],
+  ['R9', 'app/ai-voice-generator/page.tsx', "{guiasIaLinksFrom('/ai-voice-generator').map(", "{guiasIaLinksFrom('/ai-voice-generator').slice(1).map("],
+  ['R9', 'app/business-video-ads/page.tsx', "{guiasIaLinksFrom('/business-video-ads').map(", "{[].map("],
+  ['R9', F.paths, "    from: '/business-video-ads',", "    from: '/',"],
+]
+for (const [rule, file, from, to] of DIV_MUTANTS) {
+  const text = file === LLMS ? realLlms : realFile(file)
+  assert.ok(text.includes(from), 'mutante ' + rule + ' não aplicável: "' + from + '" não existe em ' + file)
+  const mutated = text.replace(from, to)
+  assert.ok(mutated !== text && !mutated.includes(from) || to.includes(from), 'mutante ' + rule + ' não foi aplicado em ' + file)
+  const fails = await divulgacao({ [file]: mutated })
+  assert.ok(fails.some((f) => f.startsWith(rule + ':')), 'mutante ' + rule + ' em ' + file + ' ("' + to.slice(0, 50) + '") ficou VERDE. Falhas: ' + fails.join(' | '))
+}
+console.log('ok — ' + DIV_MUTANTS.length + ' mutantes da divulgação aplicados, todos vermelhos na regra certa')
