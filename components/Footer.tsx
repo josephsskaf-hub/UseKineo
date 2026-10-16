@@ -1,5 +1,7 @@
 
 import { KineoBrandIcon } from '@/components/KineoBolt'
+// KINEO-CONSENTIMENTO-1610 — 'Your privacy choices': abre o painel de consentimento (components/ConsentManager.tsx).
+import { PrivacyChoicesLink } from '@/components/ConsentManager'
 // Push #116 — global footer for public marketing surfaces (/, /start,
 // /pricing, /login, /signup, /terms, /privacy, /not-found). Stays out
 // of (dashboard)/* so signed-in surfaces don't pick up duplicated
@@ -347,6 +349,13 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
           <Link href="/privacy" style={linkStyle}><UiLabel>
             Privacy Policy
           </UiLabel></Link>
+          <span aria-hidden style={{ opacity: 0.4 }}>
+            ·
+          </span>
+          {/* KINEO-CONSENTIMENTO-1610 — recusar Google Ads/TikTok/Clarity em qualquer região (opt-out dos EUA). */}
+          <PrivacyChoicesLink style={linkStyle}><UiLabel>
+            Your privacy choices · Do not sell or share
+          </UiLabel></PrivacyChoicesLink>
           <span aria-hidden style={{ opacity: 0.4 }}>
             ·
           </span>

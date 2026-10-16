@@ -18,13 +18,20 @@ import { createClient } from '@/lib/supabase/server'
 // zera o revalidate ANTES do primeiro fetch. Nao remover.
 export const fetchCache = 'force-no-store'
 
+// KINEO-CONSENTIMENTO-1610 (item 3 do achado jurídico, fundador 16/10) — o texto prometia prazo de armazenamento
+// ("14-day", "90-day", "forever") que nada cumpre: nenhum job apaga arquivo por prazo, e "forever" é garantia que não
+// existe. Fica a verdade, igual para todo plano: o arquivo fica enquanto a conta existe, e a pessoa pede a exclusão
+// quando quiser. Os números de projetos continuam como exibição do plano (ainda sem portão que os imponha).
+const STORAGE_RETENTION_TRUTH = 'files stay while your account is active'
+const STORAGE_RETENTION_NOTE =
+  'Your files stay in your Library while your account is active. Ask support@usekineo.com to delete anything, anytime.'
 const PLAN_LIMITS: Record<string, { projects: number | null; retention: string }> = {
-  free: { projects: 10, retention: '14-day storage' },
-  starter: { projects: 100, retention: '90-day storage' },
-  basic: { projects: 500, retention: 'forever storage' },
-  pro: { projects: null, retention: 'forever storage' }, // null = unlimited
-  autopilot: { projects: null, retention: 'forever storage' },
-  business: { projects: null, retention: 'forever storage' }, // KINEO-BUSINESS-84-2026-10-09
+  free: { projects: 10, retention: STORAGE_RETENTION_TRUTH },
+  starter: { projects: 100, retention: STORAGE_RETENTION_TRUTH },
+  basic: { projects: 500, retention: STORAGE_RETENTION_TRUTH },
+  pro: { projects: null, retention: STORAGE_RETENTION_TRUTH }, // null = unlimited
+  autopilot: { projects: null, retention: STORAGE_RETENTION_TRUTH },
+  business: { projects: null, retention: STORAGE_RETENTION_TRUTH }, // KINEO-BUSINESS-84-2026-10-09
 }
 
 export async function GET() {
@@ -54,6 +61,7 @@ export async function GET() {
     total: v + i + a,
     limit: limits.projects,
     retention: limits.retention,
+    retention_note: STORAGE_RETENTION_NOTE, // KINEO-CONSENTIMENTO-1610
     plan,
   })
 }

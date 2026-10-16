@@ -300,7 +300,7 @@ function buildPricing(currency: DisplayCurrency, region: PriceRegion) {
       // videosPerMonth('starter','cinematic_ai') filmes de 60 s (derivado). A frase diz só o que o saldo compra.
       outcome: `Seedance 1.5: ${videosPerMonth('starter', 'cinematic_ai')} AI films of 60 s a month (more if shorter), voice, captions and score included.`,
       videosPerMonth: filmsAndScenes('starter'),
-      storageLine: '100 projects · 90-day storage',
+      storageLine: '100 projects · files stay while your account is active', // KINEO-CONSENTIMENTO-1610: sem prazo que ninguém cumpre
       cta: { label: 'Get Started', href: '#checkout' },
       // Na região `value` o Starter é a porta de entrada real, e é ele que
       // ganha o realce azul de "Best Value".
@@ -321,7 +321,7 @@ function buildPricing(currency: DisplayCurrency, region: PriceRegion) {
       // KINEO-FILME-GRATIS-15S-2026-09-29 — "1 film a day" era a conta do motor de stock; o número agora é o de Seedance.
       outcome: `Seedance 1.5: ${videosPerMonth('basic', 'cinematic_ai')} AI films of 60 s a month (more if shorter), finished with voice, karaoke captions and score.`,
       videosPerMonth: filmsAndScenes('basic'),
-      storageLine: '500 projects · forever storage',
+      storageLine: '500 projects · files stay while your account is active', // KINEO-CONSENTIMENTO-1610
       cta: { label: 'Get Started', href: '#checkout' },
       // Em `value` o Creator cede a fita e o realce ao Starter, mas continua
       // na página como o degrau de cima — não some, não muda de preço.
@@ -343,9 +343,9 @@ function buildPricing(currency: DisplayCurrency, region: PriceRegion) {
       // KINEO-PRICING-V5-2026-08-17 — 320cr: volume + Kling 3 todo mês +
       // 2 Enhance HD grátis (Topaz) + storage ilimitado.
       // KINEO-AVATAR-FORA-2026-09-28 — ', Avatar' saiu do resultado do Studio: o motor deixou o catálogo público em 27/09.
-      outcome: `Every available engine — Kling 3, Veo 3.1, Kling 2.5, MiniMax H3, Seedance 1.5${AVATAR_PUBLIC ? ', Avatar' : ''} — plus 2 free HD enhances and unlimited forever storage.`, // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 · KINEO-FILME-GRATIS-15S-2026-09-29 (motor de stock fora do catálogo): Omni pausado não se vende · KINEO-H3-DE-VOLTA-2026-09-22
+      outcome: `Every available engine — Kling 3, Veo 3.1, Kling 2.5, MiniMax H3, Seedance 1.5${AVATAR_PUBLIC ? ', Avatar' : ''} — plus 2 free HD enhances a month.`, // KINEO-CONSENTIMENTO-1610: saiu a promessa de armazenamento eterno (sem garantia) · KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 · KINEO-FILME-GRATIS-15S-2026-09-29 (motor de stock fora do catálogo): Omni pausado não se vende · KINEO-H3-DE-VOLTA-2026-09-22
       videosPerMonth: filmsAndScenes('pro'),
-      storageLine: 'Unlimited projects · forever storage',
+      storageLine: 'Unlimited projects · files stay while your account is active', // KINEO-CONSENTIMENTO-1610
       cta: { label: 'Get Started', href: '#checkout' },
     },
   ]

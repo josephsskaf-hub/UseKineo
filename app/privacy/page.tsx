@@ -5,6 +5,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
 import { HANDOFF_TTL_DAYS } from '@/lib/gptHandoff'
+// KINEO-CONSENTIMENTO-1610 — o botão da seção de cookies abre o mesmo painel do banner e do rodapé.
+import { PrivacyChoicesLink } from '@/components/ConsentManager'
 
 export const metadata: Metadata = {
   title: 'Privacy Policy — Kineo',
@@ -54,7 +56,7 @@ export default function PrivacyPage() {
             Privacy Policy
           </h1>
           <p style={{ color: '#86868b', fontSize: 13, margin: 0, marginBottom: 28 }}>
-            Last updated: September 2026
+            Last updated: October 2026
           </p>
 
           <Section title="What we collect">
@@ -116,13 +118,44 @@ export default function PrivacyPage() {
             and we&apos;ll action the request within 30 days.
           </Section>
 
-          <Section title="Cookies">
-            We use cookies that are strictly necessary for the Service
-            (auth session) and a small number of analytics/marketing
-            tags (Google Ads, page-view events) to measure conversion
-            and optimize the funnel. You can clear these from your
-            browser at any time.
-          </Section>
+          {/* KINEO-CONSENTIMENTO-1610 — "Cookies and tracking": o que carrega, quando e como recusar. Espelha lib/consent.ts
+              (regiões opt-in, GPC, cookie de 12 meses) e o que o layout raiz monta. */}
+          <section id="cookies" style={{ marginBottom: 24 }}>
+            <h2 style={SECTION_TITLE_STYLE}>Cookies and tracking</h2>
+            <div style={SECTION_BODY_STYLE}>
+              <p style={{ margin: 0 }}>We group the cookies and tags on usekineo.com in three kinds:</p>
+              <ul style={{ margin: '8px 0 0', paddingLeft: 20 }}>
+                <li>
+                  <strong>Essential</strong> (always on): your sign-in session (Supabase), checkout and payment (Stripe),
+                  your interface language and appearance, the record of your cookie choice, and Vercel Analytics, which
+                  counts page views without cookies.
+                </li>
+                <li>
+                  <strong>Marketing and analytics</strong> (only with your permission where the law requires it):
+                  Google Ads (conversion measurement), TikTok Pixel (ad measurement) and Microsoft Clarity (session
+                  recordings and heatmaps; never on sign-in, password or billing pages, and email and password fields
+                  are masked).
+                </li>
+                <li>
+                  <strong>Affiliate</strong>: Rewardful and our own partner links. They set a referral cookie only when
+                  you arrive through a partner&apos;s link, so the partner gets credit if you subscribe. Visitors who did
+                  not come from a partner link get no Rewardful cookie and send no Rewardful request.
+                </li>
+              </ul>
+              <p style={{ margin: '8px 0 0' }}>
+                In the European Economic Area, the United Kingdom, Switzerland and Brazil, the marketing and analytics
+                tags stay off until you click &ldquo;Accept&rdquo; on the banner. Everywhere else they load by default,
+                and you can turn them off. We honor the Global Privacy Control signal: if your browser sends it, these
+                tags do not load. We keep your choice in a first-party cookie for 12 months.
+              </p>
+              <p style={{ margin: '8px 0 0' }}>
+                To accept or refuse at any time, use{' '}
+                <PrivacyChoicesLink style={{ color: '#2997ff', textDecoration: 'none' }}>Your privacy choices</PrivacyChoicesLink>{' '}
+                (also in the footer of every page). You can also clear cookies in your browser, or email{' '}
+                <a href="mailto:support@usekineo.com" style={{ color: '#2997ff', textDecoration: 'none' }}>support@usekineo.com</a>.
+              </p>
+            </div>
+          </section>
 
           <Section title="Contact">
             Privacy questions?{' '}
@@ -140,6 +173,10 @@ export default function PrivacyPage() {
     </>
   )
 }
+
+// KINEO-CONSENTIMENTO-1610 — os mesmos estilos de <Section/>, para a seção de cookies (que tem lista e não cabe num <p>).
+const SECTION_TITLE_STYLE: React.CSSProperties = { fontSize: '1rem', fontWeight: 900, letterSpacing: '-0.01em', margin: 0, marginBottom: 8 }
+const SECTION_BODY_STYLE: React.CSSProperties = { fontSize: '0.92rem', color: '#CBD5E1', lineHeight: 1.65, margin: 0 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

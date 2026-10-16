@@ -20,6 +20,8 @@ import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import { LLMS_TXT_PATH } from '@/lib/gptHandoff'
 // KINEO-CLARITY-WELCOME20-2026-10-12 — gravação de sessão (Microsoft Clarity) só com NEXT_PUBLIC_CLARITY_ID; travas em lib/clarityTag.ts.
 import ClarityTag from '@/components/ClarityTag'
+// KINEO-CONSENTIMENTO-1610 — Google Ads, TikTok e Clarity só montam pelo portão de consentimento (lib/consent.ts).
+import ConsentManager from '@/components/ConsentManager'
 import { clarityProjectId, KINEO_CLARITY_PROJECT_ID } from '@/lib/clarityTag'
 import './globals.css'
 import './appearance.css'
@@ -181,6 +183,41 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  // KINEO-CONSENTIMENTO-1610 — os pixels de marketing saíram do <head>: viajam como prop para o ConsentManager, que só
+  // os monta com consentimento (região opt-in = depois do "Accept"; demais regiões = salvo GPC ou "Reject").
+  // Rewardful fica no <head>: é atribuição de afiliado (cookie só para quem chega por link de parceiro) — ver lib/consent.ts.
+  const marketingTags = (
+    <>
+      <Script
+        src="https://www.googletagmanager.com/gtag/js?id=AW-18156258081"
+        strategy="afterInteractive"
+      />
+      <Script id="google-ads-tag" strategy="afterInteractive">
+        {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'AW-18156258081');
+        `}
+      </Script>
+      {/* #375 — TikTok Pixel base code (Pixel ID D8EJ1S3C77U8POE02SBG).
+          Fires PageView automatically via ttq.page(). CompleteRegistration
+          is tracked on signup, Purchase on checkout success.
+          Push #92 — Core Web Vitals: this isn't attribution-critical the
+          way gtag is, so it's deferred to lazyOnload to keep it off the
+          main thread during the LCP window. */}
+      <Script id="tiktok-pixel" strategy="lazyOnload">
+        {`
+          !function (w, d, t) {
+            w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script");n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
+
+            ttq.load('D8EJ1S3C77U8POE02SBG');
+            ttq.page();
+          }(window, document, 'ttq');
+        `}
+      </Script>
+    </>
+  )
   return (
     <html lang="en" data-theme="light" suppressHydrationWarning className={`${manrope.variable} ${devanagari.variable}`}>
       <head>
@@ -197,34 +234,6 @@ export default function RootLayout({
             (o mesmo mecanismo do RSS acima) para o leitor que chega pela home.
             `type` espelha o Content-Type que app/llms.txt/route.ts devolve. */}
         <link rel="alternate" type="text/plain" href={LLMS_TXT_PATH} title="llms.txt" />
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=AW-18156258081"
-          strategy="afterInteractive"
-        />
-        <Script id="google-ads-tag" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'AW-18156258081');
-          `}
-        </Script>
-        {/* #375 — TikTok Pixel base code (Pixel ID D8EJ1S3C77U8POE02SBG).
-            Fires PageView automatically via ttq.page(). CompleteRegistration
-            is tracked on signup, Purchase on checkout success.
-            Push #92 — Core Web Vitals: this isn't attribution-critical the
-            way gtag is, so it's deferred to lazyOnload to keep it off the
-            main thread during the LCP window. */}
-        <Script id="tiktok-pixel" strategy="lazyOnload">
-          {`
-            !function (w, d, t) {
-              w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script");n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
-
-              ttq.load('D8EJ1S3C77U8POE02SBG');
-              ttq.page();
-            }(window, document, 'ttq');
-          `}
-        </Script>
         {/* #481 — Rewardful affiliate tracking. The queue snippet defines
             window.rewardful; rw.js (async) captures the ?via=CODE referral and
             sets a 60-day first-party cookie. The 'ready' callback mirrors the
@@ -258,7 +267,7 @@ export default function RootLayout({
       {/* [KINEO-TRIAL-SWAP-2026-08-07] — FreeTierOfferProvider envolve TODO o
           conteúdo: é o único caminho pelo qual client components leem a oferta
           do free tier (a env da flag não existe no browser). */}
-      <body><StructuredData /><InterfaceLanguageProvider><AppearanceProvider><FreeTierOfferProvider offer={OFFER}><SourceCapture /><NavClickTelemetry /><CheckoutResumeBanner /><AutopilotPilotResumeBanner /><CheckoutStalledCta />{children}</FreeTierOfferProvider></AppearanceProvider></InterfaceLanguageProvider><Analytics />{CLARITY_ID ? <ClarityTag projectId={CLARITY_ID} /> : null}</body>
+      <body><StructuredData /><InterfaceLanguageProvider><AppearanceProvider><FreeTierOfferProvider offer={OFFER}><SourceCapture /><NavClickTelemetry /><CheckoutResumeBanner /><AutopilotPilotResumeBanner /><CheckoutStalledCta />{children}</FreeTierOfferProvider><ConsentManager marketing={marketingTags} clarity={CLARITY_ID ? <ClarityTag projectId={CLARITY_ID} /> : null} /></AppearanceProvider></InterfaceLanguageProvider><Analytics /></body>
     </html>
   )
 }
