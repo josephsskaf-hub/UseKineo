@@ -175,6 +175,10 @@ function discovery(overrides = {}) {
       // Arcads ad comparison; without them this run died mapping an undefined list. Inert here: the real entries are exercised by
       // test-vs-novos-1610, and the run below still REQUIRES the showcase/hub/study entries exactly as before.
       VS_NOVOS_REVIEWED_ISO: '2026-10-15', VS_NOVOS_LINKS: [], ADS_COMPARISONS_1610: [],
+      // KINEO-GUIAS-IA-1610 (re-anchored 16/10) — the sitemap imports the /guides/<slug> paths (lib/seo/guiasIa1610Paths.ts);
+      // without them this run died mapping an undefined list. Inert here: the real entries are exercised by
+      // test-guias-ia-1610, and the run below still REQUIRES the showcase/hub/study entries exactly as before.
+      GUIAS_IA_REVIEWED_ISO: '2026-10-16', GUIAS_IA_PATHS: [],
     }
     new Function('exports', 'require', 'module', js)(mod.exports, () => fixtures, mod)
     return mod.exports.default()

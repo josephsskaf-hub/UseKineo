@@ -40,6 +40,8 @@ import { VS_ALTERNATIVE_LINKS, VS_ALT_REVIEWED_ISO } from '@/lib/seo/vsAlternati
 import { BING_SEO_1510_LASTMOD_ISO, BING_SEO_1510_PATHS } from '@/lib/seo/bingSeo1510Paths' // KINEO-BING-SEO-1510
 // KINEO-VS-NOVOS-1610 — Google Flow e Dreamina (molde das irmãs) e Arcads (molde do Ads). Módulo PURO, sem import.
 import { VS_NOVOS_ENRICHED_PATHS, VS_NOVOS_LINKS, VS_NOVOS_REVIEWED_ISO } from '@/lib/seo/vsNovos1610'
+// KINEO-GUIAS-IA-1610 — as guias /guides/<slug> do GPT (16/10) conferidas contra o código. Módulo PURO, sem import.
+import { GUIAS_IA_PATHS, GUIAS_IA_REVIEWED_ISO } from '@/lib/seo/guiasIa1610Paths'
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -453,6 +455,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...[...VS_NOVOS_LINKS.map(({ path }) => path), ...ADS_COMPARISONS_1610.map(({ slug }) => adsComparisonPath(slug))].map((path) => ({
       url: `${BASE}${path}`,
       lastModified: VS_NOVOS_REVIEWED_ISO,
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    })),
+    // KINEO-GUIAS-IA-1610 — guias /guides/<slug>; lastmod = dia da conferência (guardião: test-guias-ia-1610).
+    ...GUIAS_IA_PATHS.map((path) => ({
+      url: `${BASE}${path}`,
+      lastModified: GUIAS_IA_REVIEWED_ISO,
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     })),
