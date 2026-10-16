@@ -36,6 +36,9 @@ import { semFiel2_1510 } from './desfaz-ads-fiel-2-1510.mjs'
 // reancorado KINEO-ADS-FIEL-3-1510 — a foto inteira do produto (original_footage_id) entrou no núcleo do /plan; desfazFiel3_1510 a tira PRIMEIRO,
 // do texto cru (é a leva mais nova; texto sem a marca, como o /start, passa igual).
 import { desfazFiel3_1510 } from './desfaz-ads-fiel-3-1510.mjs'
+// reancorado KINEO-ADS-PRODUTO-NA-MAO-1610 — o plano 'pessoa segurando o produto real' entrou no núcleo do /plan e do /start; desfazProdutoNaMao1610 o tira
+// PRIMEIRO, do texto cru (é a leva mais nova; texto sem a marca passa igual).
+import { desfazProdutoNaMao1610 } from './desfaz-ads-produto-na-mao-1610.mjs'
 
 const linhas = (s) => s.replace(/\r\n/g, '\n').split('\n')
 const achar = (arr, pred, desc) => {
@@ -53,7 +56,7 @@ export const semCena = (s) => String(s).replace(/\r\n/g, '\n').split('\n').filte
 /** O texto da rota de ANTES (LF), remontado de route.ts + núcleo. kind = 'plan' | 'start'. Lança se faltar uma costura. */
 export function desfazExtracao(kind, routeText, coreText) {
   const R = linhas(semCena(routeText))
-  const C = linhas(semMelhorias1410(semConsertos1410(semRoteiros(desfazAtoresIa(semCena(semRefacaoAtor1410(kind === 'plan' ? 'lib/ads/v2PlanCore.ts' : 'lib/ads/v2StartCore.ts', semFiel2_1510(kind === 'plan' ? 'lib/ads/v2PlanCore.ts' : 'lib/ads/v2StartCore.ts', desfazFiel3_1510(kind === 'plan' ? 'lib/ads/v2PlanCore.ts' : 'lib/ads/v2StartCore.ts', coreText))))))))) // reancorado KINEO-LEVA6-1310 — as duas levas marcadas · reancorado KINEO-ADS-ROTEIROS-2026-10-13 — + os roteiros · reancorado KINEO-ADS-CONSERTOS-1410 — + a frase sem a cena /* reancorado KINEO-ADS-FIEL-2-1510 */
+  const C = linhas(semMelhorias1410(semConsertos1410(semRoteiros(desfazAtoresIa(semCena(semRefacaoAtor1410(kind === 'plan' ? 'lib/ads/v2PlanCore.ts' : 'lib/ads/v2StartCore.ts', semFiel2_1510(kind === 'plan' ? 'lib/ads/v2PlanCore.ts' : 'lib/ads/v2StartCore.ts', desfazFiel3_1510(kind === 'plan' ? 'lib/ads/v2PlanCore.ts' : 'lib/ads/v2StartCore.ts', desfazProdutoNaMao1610(kind === 'plan' ? 'lib/ads/v2PlanCore.ts' : 'lib/ads/v2StartCore.ts', coreText)))))))))) // reancorado KINEO-ADS-PRODUTO-NA-MAO-1610 — o produto-na-mão sai primeiro, do núcleo cru · reancorado KINEO-LEVA6-1310 — as duas levas marcadas · reancorado KINEO-ADS-ROTEIROS-2026-10-13 — + os roteiros · reancorado KINEO-ADS-CONSERTOS-1410 — + a frase sem a cena /* reancorado KINEO-ADS-FIEL-2-1510 */
   const marca = achar(R, (l) => l.startsWith('// KINEO-SHOPIFY-2026-10-13 (etapa 2) — o corpo foi EXTRAÍDO'), 'marca da rota')
   if (R[marca - 1] !== '//') throw new Error('desfazExtracao: linha // antes da marca')
   const header = R.slice(0, marca - 1)

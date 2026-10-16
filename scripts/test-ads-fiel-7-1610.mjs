@@ -34,10 +34,11 @@ import { semFiel6_1610, desfazFiel6_1610 } from './test-support/desfaz-ads-fiel-
 import { semFiel5_1510, desfazFiel5_1510 } from './test-support/desfaz-ads-fiel-5-1510.mjs'
 import { semVolta1510, desfazVolta1510 } from './test-support/desfaz-ads-fiel-volta-1510.mjs'
 import { semFielLiga1510 } from './test-support/desfaz-ads-fiel-liga-1510.mjs'
+import { semProdutoNaMao1610 } from './test-support/desfaz-ads-produto-na-mao-1610.mjs' // reancorado KINEO-ADS-PRODUTO-NA-MAO-1610 — pessoa segurando o produto real (Comercial, contas internas)
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-FIEL-7-1610'
-const rd = (p) => readFileSync(join(ROOT, p), 'utf8').replace(/\r\n/g, '\n') // o arquivo VIVO (este é o conserto mais novo da trava)
+const rd = (p) => semProdutoNaMao1610(p, readFileSync(join(ROOT, p), 'utf8')) // reancorado KINEO-ADS-PRODUTO-NA-MAO-1610 — o produto-na-mão veio depois: este guardião lê o texto SEM ele (semProdutoNaMao1610 já devolve LF)
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 let BASE = 'HEAD'
 let ULTIMO = null

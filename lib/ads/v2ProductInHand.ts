@@ -32,7 +32,6 @@ import {
   ADS_V2_CARD_SECONDS,
   ADS_V2_CUT_MARGIN,
   ADS_V2_FADE_SECONDS,
-  ADS_V2_KEEP_PHRASE,
   ADS_V2_MIN_GEN_SECONDS,
   ADS_V2_PRODUCT_LOCK_SECTORS,
   ADS_V2_SCENE_FRAME_OPENING,
@@ -106,7 +105,7 @@ export const ADS_V2_IN_HAND_RULES: readonly string[] = [
   'The light of the place falls on the product: the same light direction and color temperature as the scene, soft shadows of the fingers on the packaging and natural reflections.',
   'The fingers wrap naturally around the product and overlap its edges; every hand has five natural fingers; nothing passes through the product.',
   'Exactly one product in the frame: no second bottle, box, package or other product anywhere.',
-  'Real skin texture, everyday clothes, natural expression.',
+  'A candid, unposed moment with a shallow depth of field, like a real phone photo: real skin texture, everyday clothes, natural eyes and expression.',
   'No text, captions, logos or watermarks added to the image; the product keeps its own printed label.',
 ]
 /** Sem a cena da pessoa (a frase não pediu lugar): uma casa de verdade com luz de janela. */
@@ -142,23 +141,27 @@ export function adsV2InHandScenePrompt(i: { frame: AdsV2InHandPromptFrame; setti
 // ── o movimento (Kling O3 i2v): humano VIVO, produto TRAVADO ────────────────────────────────────────────────────────────
 /** O que muda por enquadramento (o olhar e as mãos). */
 export const ADS_V2_IN_HAND_MOTION_BEATS: Readonly<Record<AdsV2InHandFrame, string>> = {
-  hook: 'they glance from the product to the camera and a soft smile forms',
-  hold: 'a soft smile forms and they glance from the box in their hand to the camera',
-  use: 'their other hand moves gently on the product while they smile at it',
-  close: 'the face behind stays alive, breathing and blinking, while the fingers settle on the product',
+  hook: 'their eyes move from the product to the camera and a soft, real smile forms',
+  hold: 'they look down at the product in their hand, then their eyes lift to the camera and a soft smile forms',
+  use: 'their eyes follow their other hand as it moves gently on the product, and a small smile forms',
+  close: 'the face behind stays alive, breathing, blinking and smiling softly, while the fingertips settle on the product',
 }
+/** O fecho do movimento: identidade da pessoa, do produto e do lugar — SEM "keep everything" (que congela o rosto e as mãos). */
+export const ADS_V2_IN_HAND_MOTION_KEEP = 'Keep the same person, the same product and the same place as in the photo.'
 /**
- * O movimento do plano (puro). O exemplo da tarefa, com rosto e mãos vivos o tempo todo (a nota 8/10 do fundador) e o produto
- * parado na mão: não gira, não vira, não cresce; câmera quase parada. Termina em ADS_V2_KEEP_PHRASE como todo movimento do v2.
+ * O movimento do plano (puro). O exemplo da tarefa com o corpo humano VIVO o tempo todo — rosto, olhos, respiração, dedos (nota 8/10
+ * do fundador em 16/10: "faltou o movimento do rosto e o movimento das mãos… a gente busca a duplicação do corpo humano") — e SÓ o
+ * produto travado na mão: não gira, não vira, não inclina, não escorrega, não cresce; câmera quase parada.
  */
 export function adsV2InHandMotion(frame: AdsV2InHandFrame): string {
   const beat = ADS_V2_IN_HAND_MOTION_BEATS[frame] ?? ADS_V2_IN_HAND_MOTION_BEATS.hold
   return [
-    `Natural lifelike motion: the person breathes, blinks and makes small natural head movements; ${beat}; their fingers adjust their grip slightly.`,
-    'The face and the hands stay alive the whole time, like real footage of a real person.',
-    'The product stays steady in the hand: it does not rotate, flip, tilt toward the camera or grow; it keeps exactly its shape, colors, label and proportions; no other object appears.',
+    'Natural lifelike motion, like real handheld footage of a real person.',
+    `The person breathes, the chest and shoulders rise and fall gently; they blink naturally, the eyes move and focus, small micro-expressions play on the face and the head moves slightly; ${beat}.`,
+    'Their fingers shift and adjust their grip slightly on the product; the face, the eyes and the hands stay alive the whole time.',
+    'The product itself is held still in the hand: it does not rotate, flip, tilt, slide or grow; it keeps exactly its shape, colors, label and proportions; no other object appears.',
     'Camera almost static, very slow push-in.',
-    ADS_V2_KEEP_PHRASE,
+    ADS_V2_IN_HAND_MOTION_KEEP,
   ].join(' ')
 }
 
