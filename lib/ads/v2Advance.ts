@@ -447,6 +447,22 @@ function inHandTagOf(order: Pick<AdsV2OrderRow, 'plan'>, idx: number): { frame: 
   const tag = s ? (s as { inHand?: { frame?: unknown; fallbackUrl?: unknown; object?: unknown } }).inHand : undefined // KINEO-ADS-PRODUTO-NA-MAO-1610 · KINEO-ADS-MAO-AJUSTE-3-1610 — + object
   return tag && typeof tag.frame === 'string' && typeof tag.fallbackUrl === 'string' && /^https:\/\/\S+$/i.test(tag.fallbackUrl.trim()) ? { frame: tag.frame, fallbackUrl: tag.fallbackUrl.trim(), object: tag.object === 'bottle' || tag.object === 'box' ? tag.object : null } : null // KINEO-ADS-PRODUTO-NA-MAO-1610 · KINEO-ADS-MAO-AJUSTE-3-1610 — + object
 } // KINEO-ADS-PRODUTO-NA-MAO-1610
+/**
+ * KINEO-ADS-MAO-JUIZ-1610 — a vaga de packshot deste anúncio já está tomada? Conta os OUTROS planos de gente que já estão no packshot do cliente
+ * KINEO-ADS-MAO-JUIZ-1610 — (image_url = a foto real do fallback) MAIS os de idx MENOR ainda decidindo a 3ª foto (reason = sem rótulo, sem foto aceita):
+ * KINEO-ADS-MAO-JUIZ-1610 — no T1 a6144352 os 4 planos chegaram juntos à 3ª foto (as consultas correm em paralelo) e todos leriam 0. O de menor idx tem a
+ * KINEO-ADS-MAO-JUIZ-1610 — preferência; os outros ficam com a melhor foto. null = a leitura falhou (o passo cai no packshot de antes).
+ */
+async function inHandPackshotsUsed(admin: SupabaseClient, order: AdsV2OrderRow, idx: number, noLabelReason: string): Promise<number | null> { // KINEO-ADS-MAO-JUIZ-1610
+  const r = await admin.from('ads_v2_shots').select('idx, image_url, reason, status').eq('order_id', order.id) // KINEO-ADS-MAO-JUIZ-1610
+  if (r.error || !Array.isArray(r.data)) return null // KINEO-ADS-MAO-JUIZ-1610
+  const seen = new Set<number>() // KINEO-ADS-MAO-JUIZ-1610
+  for (const s of r.data as { idx: number; image_url: string | null; reason: string | null; status: string }[]) { // KINEO-ADS-MAO-JUIZ-1610
+    const t = s.idx === idx ? null : inHandTagOf(order, s.idx) // KINEO-ADS-MAO-JUIZ-1610
+    if (t && (s.image_url === t.fallbackUrl || (s.idx < idx && s.reason === noLabelReason && !s.image_url && (s.status === 'pending' || s.status === 'image_submitted')))) seen.add(s.idx) // KINEO-ADS-MAO-JUIZ-1610
+  } // KINEO-ADS-MAO-JUIZ-1610
+  return seen.size // KINEO-ADS-MAO-JUIZ-1610
+} // KINEO-ADS-MAO-JUIZ-1610
 /** KINEO-ADS-PRODUTO-NA-MAO-1610 — a foto da cena do plano novo voltou: cópia no NOSSO bucket, o juiz compara o produto com a foto real e decide (fica · refaz · sem rótulo · foto real). */
 async function finishInHandImage(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow, falUrl: string): Promise<void> { // KINEO-ADS-PRODUTO-NA-MAO-1610
   const tag = inHandTagOf(order, row.idx) // KINEO-ADS-PRODUTO-NA-MAO-1610
@@ -456,9 +472,13 @@ async function finishInHandImage(admin: SupabaseClient, order: AdsV2OrderRow, ro
   const ih = await inHandLib() // KINEO-ADS-PRODUTO-NA-MAO-1610
   const productUrl = planned?.referenceUrls?.[0] ?? null // KINEO-ADS-PRODUTO-NA-MAO-1610 — a 1ª referência é a foto REAL (a original, sem o corte do formato)
   const verdict = ih && productUrl ? await lockVision().then((v) => (v && typeof v.adsV2InHandLabelJudge === 'function' ? v.adsV2InHandLabelJudge(productUrl, stored, undefined, tag?.object ?? null) : null)).catch(() => null) : null // KINEO-ADS-PRODUTO-NA-MAO-1610 · KINEO-ADS-MAO-AJUSTE-3-1610 — + o objeto único (os dois juntos = reprova) e a pessoa extra
-  const step = ih ? ih.adsV2InHandJudgeStep({ verdict, previousReason: row.reason }) : 'keep' // KINEO-ADS-PRODUTO-NA-MAO-1610 — sem a lib ou sem juiz: a foto segue
-  const judged = () => writeServerEvent({ name: 'ads_v2_product_locked', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, idx: row.idx, attempt: row.attempt, mode: 'in_hand', frame: tag?.frame ?? null, ...(tag?.object ? { object: tag.object } : {}), try: ih ? ih.adsV2InHandTry(row.reason) : null, verdict: verdict ? { ok: verdict.ok, fails: verdict.fails } : null, step, charged: false } }).catch(() => null) // KINEO-ADS-PRODUTO-NA-MAO-1610 · KINEO-ADS-MAO-AJUSTE-3-1610 — + object no evento
+  let step = ih ? ih.adsV2InHandJudgeStep({ verdict, previousReason: row.reason }) : 'keep' // KINEO-ADS-PRODUTO-NA-MAO-1610 — sem a lib ou sem juiz: a foto segue · KINEO-ADS-MAO-JUIZ-1610 — let (o teto do packshot abaixo)
+  const softOnly = !!ih && typeof ih.adsV2InHandSoftOnly === 'function' && ih.adsV2InHandSoftOnly(verdict) // KINEO-ADS-MAO-JUIZ-1610 — reprovou SÓ em "both_objects"/"extra_person" (rótulo e produto certos)
+  let packshotsUsed: number | null = null // KINEO-ADS-MAO-JUIZ-1610
+  if (ih && step === 'product_photo' && typeof ih.adsV2InHandSoftOnly === 'function') { packshotsUsed = await inHandPackshotsUsed(admin, order, row.idx, ih.ADS_V2_IN_HAND_NO_LABEL_REASON); step = ih.adsV2InHandJudgeStep({ verdict, previousReason: row.reason, packshotsUsed }) } // KINEO-ADS-MAO-JUIZ-1610 — no máximo 1 plano de gente vira packshot por anúncio; leitura que falhou = null (o packshot de antes)
+  const judged = () => writeServerEvent({ name: 'ads_v2_product_locked', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, idx: row.idx, attempt: row.attempt, mode: 'in_hand', frame: tag?.frame ?? null, ...(tag?.object ? { object: tag.object } : {}), try: ih ? ih.adsV2InHandTry(row.reason) : null, verdict: verdict ? { ok: verdict.ok, fails: verdict.fails } : null, step, ...(step === 'best' ? { best: softOnly ? 'soft_only' : 'packshot_cap' } : {}), ...(packshotsUsed !== null ? { packshots_used: packshotsUsed } : {}), charged: false } }).catch(() => null) // KINEO-ADS-PRODUTO-NA-MAO-1610 · KINEO-ADS-MAO-AJUSTE-3-1610 — + object no evento · KINEO-ADS-MAO-JUIZ-1610 — + best (por quê) e packshots_used
   if (step === 'keep') { if (await markShot(admin, row, ['image_submitted'], { status: 'image_done', image_url: stored })) await judged(); return } // KINEO-ADS-PRODUTO-NA-MAO-1610
+  if (step === 'best') { if (await markShot(admin, row, ['image_submitted'], { status: 'image_done', image_url: stored })) { await judged(); await shotFallbackEvent(order, row, { to: 'best_photo', reason: softOnly ? 'in_hand_soft' : 'in_hand_packshot_cap', fails: verdict ? verdict.fails : [] }) } return } // KINEO-ADS-MAO-JUIZ-1610 — a melhor foto (esta) em vez do packshot
   if (ih && (step === 'retry' || step === 'no_label')) { // KINEO-ADS-PRODUTO-NA-MAO-1610 — nova foto (a régua da refação da trava: pending sem carimbo)
     const reason = step === 'retry' ? ih.ADS_V2_IN_HAND_RETRY_REASON : ih.ADS_V2_IN_HAND_NO_LABEL_REASON // KINEO-ADS-PRODUTO-NA-MAO-1610
     if (await markShot(admin, row, ['image_submitted'], { status: 'pending', image_request_id: null, image_submit_claimed_at: null, reason })) { await judged(); await shotFallbackEvent(order, row, { to: step === 'retry' ? 'scene_retry' : 'no_label', reason }) } // KINEO-ADS-PRODUTO-NA-MAO-1610

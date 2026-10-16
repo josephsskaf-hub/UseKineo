@@ -122,6 +122,8 @@ import { ADS_V2_IN_HAND_JUDGE_QUESTION, adsV2ParseInHandVerdict, type AdsV2InHan
 // KINEO-ADS-MAO-AJUSTE-3-1610 — o juiz pergunta também por PESSOA EXTRA (o homem na cama ao fundo, o olho na borda) e, na foto com frasco + caixa, pelo OBJETO ÚNICO
 // KINEO-ADS-MAO-AJUSTE-3-1610 — do plano (os dois juntos = reprova). E a mesma visão barata diz, no /plan, se a foto do produto tem o frasco E a caixa.
 import { ADS_V2_IN_HAND_PAIR_QUESTION, adsV2InHandJudgeKeys, adsV2InHandJudgeQuestion, adsV2ParseInHandPair, type AdsV2InHandObject } from '@/lib/ads/v2ProductInHand' // KINEO-ADS-MAO-AJUSTE-3-1610
+// KINEO-ADS-MAO-JUIZ-1610 — a pessoa extra e o objeto único viraram chaves de DEFEITO ("extra_person", "both_objects": true = o defeito aparece = reprova): a pergunta de
+// KINEO-ADS-MAO-JUIZ-1610 — "só/apenas" deu false nas 12 fotos do T1 a6144352. A chamada é a mesma; a pergunta, as chaves e a leitura vêm da lib (adsV2InHandJudgeKeys).
 /** KINEO-ADS-PRODUTO-NA-MAO-1610 — o corpo do juiz (puro: o guardião confere modelo do registro, 'high', JSON e a ordem das imagens). */
 export function adsV2InHandLabelBody(productUrl: string, sceneUrl: string, object: AdsV2InHandObject | null = null): Record<string, unknown> { // KINEO-ADS-PRODUTO-NA-MAO-1610 · KINEO-ADS-MAO-AJUSTE-3-1610 — + object
   return { // KINEO-ADS-PRODUTO-NA-MAO-1610
@@ -133,9 +135,10 @@ export function adsV2InHandLabelBody(productUrl: string, sceneUrl: string, objec
   } // KINEO-ADS-PRODUTO-NA-MAO-1610
 } // KINEO-ADS-PRODUTO-NA-MAO-1610
 /** KINEO-ADS-PRODUTO-NA-MAO-1610 — o produto do still bate com a foto real? null = não deu para conferir. Nunca lança. */
-export async function adsV2InHandLabelJudge(productUrl: string, sceneUrl: string, doFetch: typeof fetch = fetch, object: AdsV2InHandObject | null = null): Promise<AdsV2InHandVerdict | null> { // KINEO-ADS-PRODUTO-NA-MAO-1610 · KINEO-ADS-MAO-AJUSTE-3-1610 — + object
+/** KINEO-ADS-MAO-JUIZ-1610 — a calibração (POST /api/admin/ads-judge-calibrate) chama ESTA MESMA função com sink: recebe a resposta crua do modelo (todas as chaves). O avanço não passa sink. */
+export async function adsV2InHandLabelJudge(productUrl: string, sceneUrl: string, doFetch: typeof fetch = fetch, object: AdsV2InHandObject | null = null, sink?: (content: unknown) => void): Promise<AdsV2InHandVerdict | null> { // KINEO-ADS-MAO-JUIZ-1610 — + sink (só a calibração) · KINEO-ADS-PRODUTO-NA-MAO-1610 · KINEO-ADS-MAO-AJUSTE-3-1610 — + object
   const key = process.env.OPENAI_API_KEY // KINEO-ADS-PRODUTO-NA-MAO-1610
-  const ok = (u: unknown): u is string => typeof u === 'string' && /^https:\/\/\S+$/i.test(u.trim()) // KINEO-ADS-PRODUTO-NA-MAO-1610
+  const ok = (u: unknown): u is string => typeof u === 'string' && (/^https:\/\/\S+$/i.test(u.trim()) || /^data:image\/(?:jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(u.trim())) // KINEO-ADS-PRODUTO-NA-MAO-1610 · KINEO-ADS-MAO-JUIZ-1610 — + data:image (a calibração com as fotos salvas; o avanço só passa https)
   if (!key || !ok(productUrl) || !ok(sceneUrl)) return null // KINEO-ADS-PRODUTO-NA-MAO-1610
   try { // KINEO-ADS-PRODUTO-NA-MAO-1610
     const res = await doFetch('https://api.openai.com/v1/chat/completions', { // KINEO-ADS-PRODUTO-NA-MAO-1610
@@ -146,7 +149,8 @@ export async function adsV2InHandLabelJudge(productUrl: string, sceneUrl: string
     }) // KINEO-ADS-PRODUTO-NA-MAO-1610
     if (!res.ok) return null // KINEO-ADS-PRODUTO-NA-MAO-1610
     const j = (await res.json()) as { choices?: { message?: { content?: unknown } }[] } // KINEO-ADS-PRODUTO-NA-MAO-1610
-    return adsV2ParseInHandVerdict(j?.choices?.[0]?.message?.content ?? null, adsV2InHandJudgeKeys(object)) // KINEO-ADS-PRODUTO-NA-MAO-1610 · KINEO-ADS-MAO-AJUSTE-3-1610 — as chaves desta conferência (sem "people" = ilegível)
+    if (sink) { try { sink(j?.choices?.[0]?.message?.content ?? null) } catch { /* a calibração nunca derruba o juiz */ } } // KINEO-ADS-MAO-JUIZ-1610
+    return adsV2ParseInHandVerdict(j?.choices?.[0]?.message?.content ?? null, adsV2InHandJudgeKeys(object)) // KINEO-ADS-PRODUTO-NA-MAO-1610 · KINEO-ADS-MAO-AJUSTE-3-1610 — as chaves desta conferência (sem "people" = ilegível) · KINEO-ADS-MAO-JUIZ-1610 — sem "extra_person" = ilegível; defeito = true reprova
   } catch { // KINEO-ADS-PRODUTO-NA-MAO-1610
     return null // KINEO-ADS-PRODUTO-NA-MAO-1610
   } // KINEO-ADS-PRODUTO-NA-MAO-1610

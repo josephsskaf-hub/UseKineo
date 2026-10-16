@@ -14,6 +14,10 @@
 // KINEO-ADS-MAO-AJUSTE-3-1610 — 3ª rodada (docs/RESULTADO-T1-MAO-AJUSTE-2026-10-16.md, notas 7/8/7/7/6): foto de frasco + caixa = UM objeto por plano (frasco no
 // KINEO-ADS-MAO-AJUSTE-3-1610 — gancho e no borrifo, caixa no rótulo e no close) e o juiz reprova os dois juntos; ninguém além da pessoa (o juiz pergunta); o plano do
 // KINEO-ADS-MAO-AJUSTE-3-1610 — rótulo vira uma mão inclinando o objeto; borrifo cortado em 2,3 s; packshot + cartão 4 s (era 5,5) e os planos de gente ganham o tempo.
+// KINEO-ADS-MAO-JUIZ-1610 — o T1 da 3ª rodada (docs/RESULTADO-T1-MAO-AJUSTE-3-2026-10-16.md, pedido a6144352): "only_object" reprovou as 12 fotos (7 estavam certas)
+// KINEO-ADS-MAO-JUIZ-1610 — e os 4 planos de gente viraram packshot; "people" aprovou um homem desfocado na janela. Agora as duas são chaves de DEFEITO
+// KINEO-ADS-MAO-JUIZ-1610 — ("both_objects", "extra_person": true = o defeito aparece) e reprovação SÓ nelas usa a melhor foto (nunca o packshot); o packshot
+// KINEO-ADS-MAO-JUIZ-1610 — fica para o rótulo/produto errado, no máximo 1 plano de gente por anúncio.
 //
 // O PLANO NOVO (Comercial 15 s, só contas internas — ADS_V2_IN_HAND_MODE):
 //   0,0–2,0  GANCHO     pessoa na cena traz o produto para o quadro (nunca o packshot branco)      Nano Banana + Kling O3
@@ -458,21 +462,27 @@ export const ADS_V2_IN_HAND_SPEECH_SENTENCES = 'four or five short spoken senten
 export const ADS_V2_IN_HAND_JUDGE_QUESTION = 'The FIRST image is the real product photo. The SECOND image is a generated photo of a person with that product. Be strict: compare the product in the SECOND image with the FIRST one and answer each item with true or false; when in doubt, answer false. "name": the brand name and the logo, where they are visible, are the same words and the same logo (small text may be blurry, but it must not turn into a different word or a different logo). "colors": every visible part of the product has the same colors as in the FIRST image, including the body of the bottle or the package and the color of any liquid inside. "material": every part keeps the same material and finish as in the FIRST image (clear glass stays clear and see-through, matte cardboard stays matte cardboard); a black, opaque or painted body where the FIRST image shows clear glass is false. "shape": the shape and the proportions of the packaging are the same. "count": the SECOND image shows no more product items than the FIRST image (no extra bottle, box, package or duplicate). "hands": the hands look natural, with five fingers, and nothing passes through the product. "one_product": every product item in the SECOND image is part of the product of the FIRST image; no different product appears. Answer only with JSON with the keys "name", "colors", "material", "shape", "count", "hands" and "one_product", each one true or false.' // KINEO-ADS-MAO-AJUSTE-1610 — mais rígida: cor do corpo e do líquido, material, quantidade (no T1 aprovou um frasco preto inventado)
 export const ADS_V2_IN_HAND_JUDGE_KEYS: readonly string[] = ['name', 'colors', 'material', 'shape', 'count', 'hands', 'one_product'] // KINEO-ADS-MAO-AJUSTE-1610 — + material, count
 /** KINEO-ADS-MAO-AJUSTE-3-1610 — a pergunta da pessoa extra (o juiz aprovou um homem na cama ao fundo e um olho entrando pela borda). Em TODA conferência in_hand. */
-export const ADS_V2_IN_HAND_JUDGE_PEOPLE = '"people": the SECOND image shows exactly one person (or only the hands of that one person); there is no other person anywhere: nobody in the background, and no other face, eye, hand or body part cut off at the edge of the frame. Any extra person or cut-off body part is false.' // KINEO-ADS-MAO-AJUSTE-3-1610
+/** KINEO-ADS-MAO-JUIZ-1610 — virou chave de DEFEITO ("extra_person": true = há mais alguém): a de "pessoa certa" aprovou o homem desfocado na janela (foto 5 do T1 a6144352). */
+export const ADS_V2_IN_HAND_JUDGE_PEOPLE = '"extra_person": Is there any OTHER person in the SECOND image besides the one main person with the product? Look at the whole frame: a blurred or out-of-focus person in the background, a person seen through a window or a glass door, a person reflected in a mirror, window or glass, and any other face, eye, hand, arm or body part entering from the edge of the frame. Answer true if you can see any extra person or extra body part, even a small or blurry one; answer false if the main person is the only one.' // KINEO-ADS-MAO-JUIZ-1610 — era "people" (true = certo)
 /** KINEO-ADS-MAO-AJUSTE-3-1610 — a pergunta do objeto único (foto com frasco + caixa): os dois juntos = reprova. */
+/** KINEO-ADS-MAO-JUIZ-1610 — virou chave de DEFEITO ("both_objects": true = frasco E caixa na foto): "only_object" (só/apenas) deu false nas 12 fotos do T1 a6144352, 7 delas certas. */
 export const ADS_V2_IN_HAND_JUDGE_OBJECT: Readonly<Record<AdsV2InHandObject, string>> = { // KINEO-ADS-MAO-AJUSTE-3-1610
-  bottle: '"only_object": the FIRST image shows a bottle together with its box, but this shot must show ONLY the bottle: true only if the bottle appears and the box does not appear anywhere in the SECOND image; both together is false.', // KINEO-ADS-MAO-AJUSTE-3-1610
-  box: '"only_object": the FIRST image shows a bottle together with its box, but this shot must show ONLY the box: true only if the box appears and the bottle does not appear anywhere in the SECOND image outside its closed box; both together is false.', // KINEO-ADS-MAO-AJUSTE-3-1610
+  bottle: '"both_objects": Is there BOTH a bottle (the product container) AND a separate box (the carton package) visible in the SECOND image? Answer true only if you can see both objects; if you see only the bottle, answer false.', // KINEO-ADS-MAO-JUIZ-1610 — era "only_object" (true = certo)
+  box: '"both_objects": Is there BOTH a bottle (the product container) AND a separate box (the carton package) visible in the SECOND image? Answer true only if you can see both objects; if you see only the box, answer false.', // KINEO-ADS-MAO-JUIZ-1610 — era "only_object" (true = certo)
 } // KINEO-ADS-MAO-AJUSTE-3-1610
+/** KINEO-ADS-MAO-JUIZ-1610 — as chaves de DEFEITO: true = o defeito aparece (reprova); false = passa. As outras chaves continuam true = certo. */
+export const ADS_V2_IN_HAND_DEFECT_KEYS: readonly string[] = ['extra_person', 'both_objects'] // KINEO-ADS-MAO-JUIZ-1610
+/** KINEO-ADS-MAO-JUIZ-1610 — a frase que separa as perguntas de defeito das de fidelidade (na pergunta, antes delas). */
+export const ADS_V2_IN_HAND_JUDGE_DEFECT_INTRO = 'The next items ask about DEFECTS: answer true only if you can actually see the defect, otherwise answer false.' // KINEO-ADS-MAO-JUIZ-1610
 /** KINEO-ADS-MAO-AJUSTE-3-1610 — as chaves desta conferência: as 7 de sempre + "people" + "only_object" quando o plano pede um objeto só. Pura. */
 export function adsV2InHandJudgeKeys(object: AdsV2InHandObject | null = null): string[] { // KINEO-ADS-MAO-AJUSTE-3-1610
-  return [...ADS_V2_IN_HAND_JUDGE_KEYS, 'people', ...(object === 'bottle' || object === 'box' ? ['only_object'] : [])] // KINEO-ADS-MAO-AJUSTE-3-1610
+  return [...ADS_V2_IN_HAND_JUDGE_KEYS, 'extra_person', ...(object === 'bottle' || object === 'box' ? ['both_objects'] : [])] // KINEO-ADS-MAO-AJUSTE-3-1610 · KINEO-ADS-MAO-JUIZ-1610 — chaves de defeito (eram "people" e "only_object")
 } // KINEO-ADS-MAO-AJUSTE-3-1610
 /** KINEO-ADS-MAO-AJUSTE-3-1610 — a pergunta desta conferência: a de sempre + pessoa extra + objeto único, com a lista de chaves certa no fim. Pura. */
 export function adsV2InHandJudgeQuestion(object: AdsV2InHandObject | null = null): string { // KINEO-ADS-MAO-AJUSTE-3-1610
   const head = ADS_V2_IN_HAND_JUDGE_QUESTION.split(' Answer only with JSON')[0] // KINEO-ADS-MAO-AJUSTE-3-1610
   const keys = adsV2InHandJudgeKeys(object) // KINEO-ADS-MAO-AJUSTE-3-1610
-  const items = [ADS_V2_IN_HAND_JUDGE_PEOPLE, ...(object === 'bottle' || object === 'box' ? [ADS_V2_IN_HAND_JUDGE_OBJECT[object]] : [])] // KINEO-ADS-MAO-AJUSTE-3-1610
+  const items = [ADS_V2_IN_HAND_JUDGE_DEFECT_INTRO, ADS_V2_IN_HAND_JUDGE_PEOPLE, ...(object === 'bottle' || object === 'box' ? [ADS_V2_IN_HAND_JUDGE_OBJECT[object]] : [])] // KINEO-ADS-MAO-AJUSTE-3-1610 · KINEO-ADS-MAO-JUIZ-1610 — + a frase dos defeitos
   return head + ' ' + items.join(' ') + ' Answer only with JSON with the keys ' + keys.slice(0, -1).map((k) => '"' + k + '"').join(', ') + ' and "' + keys[keys.length - 1] + '", each one true or false.' // KINEO-ADS-MAO-AJUSTE-3-1610
 } // KINEO-ADS-MAO-AJUSTE-3-1610
 /** KINEO-ADS-MAO-AJUSTE-3-1610 — a foto do PRODUTO mostra o frasco e a caixa juntos? (uma visão 'low' no /plan; a resposta escolhe o objeto de cada plano). */
@@ -494,21 +504,32 @@ export function adsV2ParseInHandVerdict(raw: unknown, keys: readonly string[] = 
   if (!j || typeof j !== 'object' || Array.isArray(j)) return null
   const o = j as Record<string, unknown>
   if (!keys.every((k) => typeof o[k] === 'boolean')) return null // KINEO-ADS-MAO-AJUSTE-3-1610
-  const fails = keys.filter((k) => o[k] !== true) // KINEO-ADS-MAO-AJUSTE-3-1610
+  const fails = keys.filter((k) => (ADS_V2_IN_HAND_DEFECT_KEYS.includes(k) ? o[k] !== false : o[k] !== true)) // KINEO-ADS-MAO-AJUSTE-3-1610 · KINEO-ADS-MAO-JUIZ-1610 — chave de defeito reprova com true
   return { ok: fails.length === 0, fails }
 }
 
 export const ADS_V2_IN_HAND_RETRY_REASON = 'in_hand_label_retry'
 export const ADS_V2_IN_HAND_NO_LABEL_REASON = 'in_hand_no_label'
-export type AdsV2InHandStep = 'keep' | 'retry' | 'no_label' | 'product_photo'
+export type AdsV2InHandStep = 'keep' | 'retry' | 'no_label' | 'product_photo' | 'best' // KINEO-ADS-MAO-JUIZ-1610 — + 'best' (a melhor foto: a que reprovou só em defeito de objeto/pessoa, ou a do teto de packshot)
+/** KINEO-ADS-MAO-JUIZ-1610 — no máximo 1 plano de gente vira o packshot do cliente por anúncio (o T1 a6144352 virou 4 de 4: o anúncio saiu sem pessoa). */
+export const ADS_V2_IN_HAND_MAX_PACKSHOTS = 1 // KINEO-ADS-MAO-JUIZ-1610
+/** KINEO-ADS-MAO-JUIZ-1610 — o veredito reprovou SÓ em chave de defeito de objeto/pessoa ("both_objects", "extra_person") — o rótulo e o produto bateram. Pura. */
+export function adsV2InHandSoftOnly(verdict: AdsV2InHandVerdict | null | undefined): boolean { // KINEO-ADS-MAO-JUIZ-1610
+  return !!verdict && !verdict.ok && verdict.fails.length > 0 && verdict.fails.every((k) => ADS_V2_IN_HAND_DEFECT_KEYS.includes(k)) // KINEO-ADS-MAO-JUIZ-1610
+} // KINEO-ADS-MAO-JUIZ-1610
 /**
  * O passo depois do juiz (puro). Bateu (ou o juiz não respondeu) = fica. Divergiu: 1ª vez refaz a MESMA foto; 2ª vez o plano
  * vira o enquadramento sem o rótulo de frente; 3ª vez (ou divergência sem o histórico) a foto real do produto. Nunca rótulo errado.
+ * KINEO-ADS-MAO-JUIZ-1610 — reprovação SÓ em "both_objects"/"extra_person" (rótulo e produto certos): refaz 1 vez e, de novo, fica com a melhor
+ * KINEO-ADS-MAO-JUIZ-1610 — foto ('best': esta) — nunca o packshot. O packshot é só do rótulo/produto errado, e só enquanto o anúncio tem menos de
+ * KINEO-ADS-MAO-JUIZ-1610 — ADS_V2_IN_HAND_MAX_PACKSHOTS plano de gente nele (packshotsUsed); no teto = 'best' (a foto sem o rótulo de frente).
+ * KINEO-ADS-MAO-JUIZ-1610 — packshotsUsed ausente/desconhecido = o packshot de antes (rótulo errado nunca vai ao ar por falta de leitura).
  */
-export function adsV2InHandJudgeStep(i: { verdict: AdsV2InHandVerdict | null | undefined; previousReason: string | null | undefined }): AdsV2InHandStep {
+export function adsV2InHandJudgeStep(i: { verdict: AdsV2InHandVerdict | null | undefined; previousReason: string | null | undefined; packshotsUsed?: number | null }): AdsV2InHandStep { // KINEO-ADS-MAO-JUIZ-1610 — + packshotsUsed
   if (!i.verdict || i.verdict.ok) return 'keep'
-  if (i.previousReason === ADS_V2_IN_HAND_NO_LABEL_REASON) return 'product_photo'
-  if (i.previousReason === ADS_V2_IN_HAND_RETRY_REASON) return 'no_label'
+  const soft = adsV2InHandSoftOnly(i.verdict) // KINEO-ADS-MAO-JUIZ-1610
+  if (i.previousReason === ADS_V2_IN_HAND_NO_LABEL_REASON) return soft || (typeof i.packshotsUsed === 'number' && i.packshotsUsed >= ADS_V2_IN_HAND_MAX_PACKSHOTS) ? 'best' : 'product_photo' // KINEO-ADS-MAO-JUIZ-1610 — o packshot só para rótulo/produto errado, até o teto
+  if (i.previousReason === ADS_V2_IN_HAND_RETRY_REASON) return soft ? 'best' : 'no_label' // KINEO-ADS-MAO-JUIZ-1610 — só defeito de objeto/pessoa: fica com a melhor foto
   return 'retry'
 }
 /** Qual tentativa de foto é esta (1 = a 1ª, 2 = a refação, 3 = o enquadramento sem rótulo). */

@@ -69,6 +69,51 @@ export interface AdsV2Copy {
   sectorHint: AdsV2Sector | null
 }
 
+// ── KINEO-ADS-MAO-JUIZ-1610 — o nome no texto do Ads (T1 a6144352: "Descubra a essência única da Perfume Atheeri" e "Perfume Atheeri - Fragrâncias") ──
+/** KINEO-ADS-MAO-JUIZ-1610 — artigo contraído → preposição sem artigo, por língua (o nome é nome próprio: "de Perfume Atheeri", "em Atheeri"). */
+export const ADS_V2_NAME_ARTICLE_CONTRACTIONS: Readonly<Record<string, Readonly<Record<string, string>>>> = { // KINEO-ADS-MAO-JUIZ-1610
+  pt: { da: 'de', do: 'de', das: 'de', dos: 'de', na: 'em', no: 'em', nas: 'em', nos: 'em', pela: 'por', pelo: 'por', ao: 'a', 'à': 'a' }, // KINEO-ADS-MAO-JUIZ-1610
+  es: { del: 'de', al: 'a' }, // KINEO-ADS-MAO-JUIZ-1610
+  fr: { du: 'de', des: 'de', au: 'à', aux: 'à' }, // KINEO-ADS-MAO-JUIZ-1610
+} // KINEO-ADS-MAO-JUIZ-1610
+/** KINEO-ADS-MAO-JUIZ-1610 — a linha do pedido (pt/es/fr, com narração e um nome que não é o produto genérico). */
+export function adsV2NameArticleRule(brand: string): string { // KINEO-ADS-MAO-JUIZ-1610
+  return `narration: "${brand}" is a proper name: never put an article or a contracted article right before it — in Portuguese write "de ${brand}", "com ${brand}", "em ${brand}", never "da ${brand}", "do ${brand}", "na ${brand}" or "a ${brand}"; in Spanish "de ${brand}", never "del" or "la"; in French "de ${brand}", never "du" or "la". If the sentence needs an article, put it before a common noun instead ("o perfume ${brand}").` // KINEO-ADS-MAO-JUIZ-1610
+} // KINEO-ADS-MAO-JUIZ-1610
+/** KINEO-ADS-MAO-JUIZ-1610 — o nome e as caudas que começam em maiúscula ("Perfume Atheeri" → também "Atheeri"). Pura. */
+export function adsV2NameVariants(brand: string): string[] { // KINEO-ADS-MAO-JUIZ-1610
+  const words = String(brand ?? '').trim().split(/\s+/).filter(Boolean) // KINEO-ADS-MAO-JUIZ-1610
+  const out = words.length ? [words.join(' ')] : [] // KINEO-ADS-MAO-JUIZ-1610
+  for (let k = 1; k < words.length; k++) { const tail = words.slice(k).join(' '); if (/^\p{Lu}/u.test(tail) && tail.length >= 3) out.push(tail) } // KINEO-ADS-MAO-JUIZ-1610
+  return out.filter((n) => n.length >= 2) // KINEO-ADS-MAO-JUIZ-1610
+} // KINEO-ADS-MAO-JUIZ-1610
+const reEscape = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, (c) => '\\' + c) // KINEO-ADS-MAO-JUIZ-1610
+/** KINEO-ADS-MAO-JUIZ-1610 — "da Perfume Atheeri" → "de Perfume Atheeri" (pt/es/fr; outra língua = igual). Só o artigo muda: a contagem de palavras é a mesma. Pura. */
+export function adsV2NameArticleFix(text: string, names: readonly string[], language: string): { text: string; fixes: string[] } { // KINEO-ADS-MAO-JUIZ-1610
+  const map = ADS_V2_NAME_ARTICLE_CONTRACTIONS[String(language ?? '').toLowerCase().slice(0, 2)] // KINEO-ADS-MAO-JUIZ-1610
+  if (!map || typeof text !== 'string' || !text) return { text, fixes: [] } // KINEO-ADS-MAO-JUIZ-1610
+  const arts = Object.keys(map).sort((a, b) => b.length - a.length).map(reEscape).join('|') // KINEO-ADS-MAO-JUIZ-1610
+  const fixes: string[] = [] // KINEO-ADS-MAO-JUIZ-1610
+  let out = text // KINEO-ADS-MAO-JUIZ-1610
+  for (const name of [...new Set(names)].sort((a, b) => b.length - a.length)) { // KINEO-ADS-MAO-JUIZ-1610
+    const re = new RegExp('(^|[^\\p{L}])(' + arts + ')\\s+(?=' + reEscape(name) + '(?![\\p{L}]))', 'giu') // KINEO-ADS-MAO-JUIZ-1610
+    out = out.replace(re, (_all: string, pre: string, art: string) => { const to = map[art.toLowerCase()] ?? art; fixes.push('name_article:' + art.toLowerCase() + '>' + to); return pre + (art[0] !== art[0].toLowerCase() ? to[0].toUpperCase() + to.slice(1) : to) + ' ' }) // KINEO-ADS-MAO-JUIZ-1610
+  } // KINEO-ADS-MAO-JUIZ-1610
+  return { text: out, fixes } // KINEO-ADS-MAO-JUIZ-1610
+} // KINEO-ADS-MAO-JUIZ-1610
+/** KINEO-ADS-MAO-JUIZ-1610 — o HÍFEN solto entre palavras numa frase de tela ("Perfume Atheeri - Fragrâncias") vira espaço; "9 - 18h" e o travessão de título ("Perfume — Fragrâncias") ficam. Pura. */
+export function adsV2LooseDashFix(s: string): string { // KINEO-ADS-MAO-JUIZ-1610
+  return String(s ?? '').replace(/(\p{L})\s+-\s+(?=\p{L})/gu, (_all: string, a: string) => a + ' ') // KINEO-ADS-MAO-JUIZ-1610
+} // KINEO-ADS-MAO-JUIZ-1610
+/** KINEO-ADS-MAO-JUIZ-1610 — o acabamento final do texto do Ads: o artigo antes do nome (narração e frases) e o hífen solto (frases). Pura. */
+export function adsV2NameFinish(copy: AdsV2Copy, names: readonly string[], language: string): { copy: AdsV2Copy; fixes: string[] } { // KINEO-ADS-MAO-JUIZ-1610
+  const fixes: string[] = [] // KINEO-ADS-MAO-JUIZ-1610
+  const n = typeof copy.narration === 'string' ? adsV2NameArticleFix(copy.narration, names, language) : null // KINEO-ADS-MAO-JUIZ-1610
+  if (n) fixes.push(...n.fixes) // KINEO-ADS-MAO-JUIZ-1610
+  const overlays = copy.overlays.map((o) => { const a = adsV2NameArticleFix(o, names, language); fixes.push(...a.fixes); const d = adsV2LooseDashFix(a.text); if (d !== a.text) fixes.push('overlay_dash'); return d }) // KINEO-ADS-MAO-JUIZ-1610
+  return fixes.length ? { copy: { ...copy, narration: n ? n.text : copy.narration, overlays }, fixes } : { copy, fixes } // KINEO-ADS-MAO-JUIZ-1610
+} // KINEO-ADS-MAO-JUIZ-1610
+
 /** Nome da marca = a parte antes do travessão em "<nome> — <o que vende>" (formato do buildAutoBriefMessages). */
 export function brandName(brief: Pick<AdsBrief, 'business'>): string {
   return (brief.business ?? '').split(/\s+[—–-]\s+/)[0].trim().replace(/\s*[—–-]\s*$/, '') // KINEO-ADS-CONSERTOS-1410 — "perfume —" (travessão sem nada depois) não vira "perfume —" na tela
@@ -136,7 +181,7 @@ const DECOR = /[[\]{}#*_]|[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]/u
  * KINEO-ADS-MODO-SIMPLES-2026-09-29 — opts.overlays === false (modo simples, "sem frases na tela"): o pedido manda
  * devolver overlays: [] e some a regra da marca. overlays ausente = o texto de sempre, byte a byte (guardião Z3).
  */
-export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts: { maxWords: number; narration: boolean; overlays?: boolean; simple?: AdsV2SimpleVoice; ad?: AdsV2AdVoice; honesty?: AdsV2HonestySource; speechMin?: number; generic?: AdsV2GenericProduct | null; speechSentences?: string }): { system: string; user: string } { // KINEO-ADS-RETESTE-1510 — speechMin/generic opcionais: ausentes = o pedido de sempre, byte a byte (Z3) · KINEO-ADS-MAO-AJUSTE-3-1610 — + speechSentences (só o Comercial "produto na mão")
+export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts: { maxWords: number; narration: boolean; overlays?: boolean; simple?: AdsV2SimpleVoice; ad?: AdsV2AdVoice; honesty?: AdsV2HonestySource; speechMin?: number; generic?: AdsV2GenericProduct | null; speechSentences?: string; nameArticle?: boolean }): { system: string; user: string } { // KINEO-ADS-MAO-JUIZ-1610 — + nameArticle (pt/es/fr: sem artigo antes do nome) // KINEO-ADS-RETESTE-1510 — speechMin/generic opcionais: ausentes = o pedido de sempre, byte a byte (Z3) · KINEO-ADS-MAO-AJUSTE-3-1610 — + speechSentences (só o Comercial "produto na mão")
   const brand = brandName(brief)
   const noOverlays = opts.overlays === false
   const voice = opts.simple
@@ -165,6 +210,7 @@ export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts:
     // KINEO-ATOR-AJUSTES-2026-10-09 — produto fala do produto; com o ator, 1ª pessoa para a câmera. Sem `ad` = nenhuma linha.
     ...(opts.ad?.product && opts.narration ? [ADS_V2_PRODUCT_NARRATION_RULE] : []),
     ...(opts.ad?.presenter && opts.narration ? [ADS_V2_PRESENTER_NARRATION_RULE] : []),
+    ...(opts.nameArticle === true && opts.narration && brand ? [adsV2NameArticleRule(brand)] : []), // KINEO-ADS-MAO-JUIZ-1610 — "da Perfume Atheeri": o nome é nome próprio, sem artigo antes
     // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — produto: o lugar é opcional e só em forma natural ("made in the UK", "from Toronto").
     ...(opts.honesty?.product && opts.narration ? [adsV2PlaceRule(opts.honesty.places)] : []),
     ...(noOverlays
@@ -562,6 +608,9 @@ async function extractWithBudget(args: {
   if (speechMin > 0) Object.assign(opts, { speechMin }) // KINEO-ADS-RETESTE-1510
   if (speechMin > 0 && typeof args.speechSentences === 'string' && args.speechSentences) Object.assign(opts, { speechSentences: args.speechSentences }) // KINEO-ADS-MAO-AJUSTE-3-1610 — uma frase a mais (cada ponto é uma pausa da voz)
   if (generic) Object.assign(opts, { generic }) // KINEO-ADS-RETESTE-1510
+  const nameLang = ADS_V2_NAME_ARTICLE_CONTRACTIONS[String(args.language ?? '').toLowerCase().slice(0, 2)] ? String(args.language).toLowerCase().slice(0, 2) : null // KINEO-ADS-MAO-JUIZ-1610 — pt/es/fr
+  const nameList = generic ? [] : adsV2NameVariants(brandName(parsed.brief)) // KINEO-ADS-MAO-JUIZ-1610 — o produto genérico já tem o conserto dele ("deste perfume")
+  if (nameLang && args.narration && nameList.length) Object.assign(opts, { nameArticle: true }) // KINEO-ADS-MAO-JUIZ-1610
   const fitOpts = { generic, speech: speechMin > 0 ? { min: speechMin, max: args.maxWords, language: args.language } : null } // KINEO-ADS-RETESTE-1510
   const fitFixes: string[] = [] // KINEO-ADS-RETESTE-1510
   // KINEO-ADS-DEMO-UNIVERSO-1410 — o piso de fala em TODOS os roteiros: os fechos sem fato usam o nome que o brief já tem (marca, ou
@@ -663,5 +712,8 @@ async function extractWithBudget(args: {
     if (!variantsInfo.why && dropWhy.length) variantsInfo.why = `dropped: ${dropWhy.join(' | ')}`.slice(0, 300) // KINEO-ADS-RETESTE-1510
   }
   if (fitFixes.length) honestyFixes = [...honestyFixes, ...fitFixes] // KINEO-ADS-RETESTE-1510 — o acabamento em código vai para o evento (honesty_fixes), como os outros consertos
-  return { ok: true, brief, copy: checked.copy, dropped: parsed.dropped, attempts, ...(voice ? { voice: { ...voice, namesMissing } } : {}), ...(ad ? { ad } : {}), ...(honestyFixes.length ? { honestyFixes } : {}), ...(variantsInfo ? { variants, variantsInfo } : {}), ...(speechShort ? { speechShort } : {}) } // KINEO-ADS-RETESTE-1510 — speechShort: a fala ficou no piso de antes
+  const finalMain = adsV2NameFinish(checked.copy, nameList, args.language) // KINEO-ADS-MAO-JUIZ-1610 — "da Perfume Atheeri" → "de Perfume Atheeri"; "Perfume Atheeri - Fragrâncias" → "Perfume Atheeri Fragrâncias"
+  if (finalMain.fixes.length) honestyFixes = [...honestyFixes, ...finalMain.fixes] // KINEO-ADS-MAO-JUIZ-1610
+  variants = variants.map((v) => { const f = adsV2NameFinish(v.copy, nameList, args.language); return f.fixes.length ? { ...v, copy: f.copy, honestyFixes: [...(v.honestyFixes ?? []), ...f.fixes] } : v }) // KINEO-ADS-MAO-JUIZ-1610
+  return { ok: true, brief, copy: finalMain.copy, dropped: parsed.dropped, attempts, ...(voice ? { voice: { ...voice, namesMissing } } : {}), ...(ad ? { ad } : {}), ...(honestyFixes.length ? { honestyFixes } : {}), ...(variantsInfo ? { variants, variantsInfo } : {}), ...(speechShort ? { speechShort } : {}) } // KINEO-ADS-RETESTE-1510 — speechShort: a fala ficou no piso de antes
 }
