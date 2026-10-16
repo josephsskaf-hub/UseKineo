@@ -1658,3 +1658,46 @@ export function adsV2LockHistoryOf(records: readonly (AdsV2LockCheckRecord | nul
 export function adsV2LockCheckTry(previousReason: string | null | undefined): 1 | 2 { // KINEO-ADS-FIEL-6-1610
   return String(previousReason ?? '').startsWith(ADS_V2_LOCK_DUP_REASON) ? 2 : 1 // KINEO-ADS-FIEL-6-1610
 } // KINEO-ADS-FIEL-6-1610
+// ── KINEO-ADS-FIEL-7-1610 — a base deixa de ir ao tampo lido e a caixa-chute deixa de descartar cena (reteste pago 16/10: 96fbb38f, REPROVADO) ──────────
+// KINEO-ADS-FIEL-7-1610 — o que se viu: (1) a cena 4 respondeu borda 0,675, passou em todos os filtros da Fiel 6 e a base foi ao "tampo" em 0,6814,
+// KINEO-ADS-FIEL-7-1610 — mas o tampo real ia de ~0,715 a ~0,78: o produto BOIOU. A base passa a ser SEMPRE a fixa (ADS_V2_LOCK_RESERVE_BASE, 85% no 9:16;
+// KINEO-ADS-FIEL-7-1610 — lib/ads/v2ProductLockServer.ts); a borda lida fica só como registro no evento. (2) A cena 3 foi descartada por 'face_in_rect'
+// KINEO-ADS-FIEL-7-1610 — com o canto vazio: as caixas de rosto eram chute — duas IDÊNTICAS na mesma resposta (0,388–0,612 duas vezes), simétricas em torno
+// KINEO-ADS-FIEL-7-1610 — de 0,5, e o x0 0,388 em 3 das 4 respostas (cenas diferentes). Caixa assim não é confiável: não corrobora "gente no canto", não vai
+// KINEO-ADS-FIEL-7-1610 — às frases de tela e não descarta cena. Medir a borda por pixel fica para depois. Tudo puro (o guardião roda com os números do 96fbb38f).
+/** KINEO-ADS-FIEL-7-1610 — tolerância de "a mesma caixa" na mesma resposta e de "o mesmo x" entre cenas (fração da largura). */
+export const ADS_V2_LOCK_GUESS_SAME = 0.005 // KINEO-ADS-FIEL-7-1610
+/** KINEO-ADS-FIEL-7-1610 — tolerância da simetria em torno do meio do quadro (|0,5 − x0| contra |x1 − 0,5|). */
+export const ADS_V2_LOCK_GUESS_SYM = 0.01 // KINEO-ADS-FIEL-7-1610
+const near7 = (a: number, b: number, tol: number) => Math.abs(a - b) <= tol // KINEO-ADS-FIEL-7-1610
+/** KINEO-ADS-FIEL-7-1610 — por que a caixa `b` é CHUTE: 'dup' (a lista `same`, a da MESMA resposta que contém `b`, tem 2+ caixas com as 4
+ *  coordenadas iguais às de `b`, até ADS_V2_LOCK_GUESS_SAME),
+ *  'symmetric' (|0,5 − x0| ≈ |x1 − 0,5|, até ADS_V2_LOCK_GUESS_SYM: o palpite centrado) ou 'x_repeated' (o x0 ou o x1 igual ao de uma caixa
+ *  de OUTRA cena do pedido, `others`). Medida = null. Pura. */
+export function adsV2LockBoxGuessWhy(b: AdsV2Box, i: { same?: readonly AdsV2Box[] | null; others?: readonly AdsV2Box[] | null }): 'dup' | 'symmetric' | 'x_repeated' | null { // KINEO-ADS-FIEL-7-1610
+  const same = Array.isArray(i.same) ? i.same : [] // KINEO-ADS-FIEL-7-1610
+  const twin = (o: AdsV2Box) => near7(o.x0, b.x0, ADS_V2_LOCK_GUESS_SAME) && near7(o.y0, b.y0, ADS_V2_LOCK_GUESS_SAME) && near7(o.x1, b.x1, ADS_V2_LOCK_GUESS_SAME) && near7(o.y1, b.y1, ADS_V2_LOCK_GUESS_SAME) // KINEO-ADS-FIEL-7-1610
+  if (same.filter(twin).length >= 2) return 'dup' // KINEO-ADS-FIEL-7-1610 — a 2ª tentativa da cena 3: a mesma caixa duas vezes
+  if (near7(Math.abs(0.5 - b.x0), Math.abs(b.x1 - 0.5), ADS_V2_LOCK_GUESS_SYM)) return 'symmetric' // KINEO-ADS-FIEL-7-1610 — 0,388–0,612 = centro ± 0,112
+  const others = Array.isArray(i.others) ? i.others : [] // KINEO-ADS-FIEL-7-1610
+  if (others.some((o) => near7(o.x0, b.x0, ADS_V2_LOCK_GUESS_SAME) || near7(o.x1, b.x1, ADS_V2_LOCK_GUESS_SAME))) return 'x_repeated' // KINEO-ADS-FIEL-7-1610 — o x0 0,388 em 3 de 4 respostas
+  return null // KINEO-ADS-FIEL-7-1610
+} // KINEO-ADS-FIEL-7-1610
+/** KINEO-ADS-FIEL-7-1610 — as caixas confiáveis da Fiel 6 (nem redonda, nem copiada, nem repetida inteira) MENOS as chutadas (adsV2LockBoxGuessWhy, comparando
+ *  com a lista inteira da mesma resposta e com `others`, as caixas cruas das OUTRAS cenas do pedido). Pura. */
+export function adsV2LockReliableBoxes7(boxes: readonly AdsV2Box[] | null | undefined, i: { question: string; previous?: readonly AdsV2Box[] | null; others?: readonly AdsV2Box[] | null }): AdsV2Box[] { // KINEO-ADS-FIEL-7-1610
+  const list = Array.isArray(boxes) ? boxes : [] // KINEO-ADS-FIEL-7-1610
+  return adsV2LockReliableBoxes(list, { question: i.question, previous: i.previous }).filter((b) => adsV2LockBoxGuessWhy(b, { same: list, others: i.others }) === null) // KINEO-ADS-FIEL-7-1610
+} // KINEO-ADS-FIEL-7-1610
+/** KINEO-ADS-FIEL-7-1610 — quantas caixas da resposta são chute (vai ao evento: check.guess). Pura. */
+export function adsV2LockGuessCount(boxes: readonly AdsV2Box[] | null | undefined, others?: readonly AdsV2Box[] | null): number { // KINEO-ADS-FIEL-7-1610
+  const list = Array.isArray(boxes) ? boxes : [] // KINEO-ADS-FIEL-7-1610
+  return list.filter((b) => adsV2LockBoxGuessWhy(b, { same: list, others }) !== null).length // KINEO-ADS-FIEL-7-1610
+} // KINEO-ADS-FIEL-7-1610
+/** KINEO-ADS-FIEL-7-1610 — por que a base ficou FIXA, para o registro: a conferência suspeita, a borda copiada/repetida, a borda que a Fiel 5/6 não aceitaria
+ *  (sem resposta, sem superfície, redonda, fora da faixa) ou, com a borda "boa", 'tampo_desligado' (a base no tampo lido foi desligada). Pura. */
+export function adsV2LockTopEdgeWhy7(i: { suspicious: boolean; veto: string | null; top: { ok: boolean; why: string | null } }): string { // KINEO-ADS-FIEL-7-1610
+  if (i.suspicious) return 'conferencia_suspeita' // KINEO-ADS-FIEL-7-1610
+  if (i.veto) return i.veto // KINEO-ADS-FIEL-7-1610
+  return i.top.ok ? 'tampo_desligado' : i.top.why ?? 'tampo_desligado' // KINEO-ADS-FIEL-7-1610
+} // KINEO-ADS-FIEL-7-1610
