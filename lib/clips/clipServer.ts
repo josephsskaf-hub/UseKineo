@@ -318,7 +318,7 @@ async function submitToFalOnce(model: string, input: Record<string, unknown>): P
   if (!response.ok) {
     // KINEO-S25-FOTO-CLIPES-1610 — o corpo inteiro da fal (detail string OU lista [{loc,msg,type}], message, error), não só o
     // detail-string; limpo (sem URL, sem a FAL_KEY, ≤300) porque vira `provider_error` no clip_failed (lib/clips/clipFlow.ts).
-    const detail = falErrorDetail(Object.keys(payload).length ? payload : raw) || raw.slice(0, 300)
+    const detail = falErrorDetail(Object.keys(payload).length ? payload : raw) || raw.slice(0, 300) // KINEO-S25-FOTO-CLIPES-1610
     // KINEO-FAL-SALDO-ALERTA-2026-09-28 — await: o alarme de saldo não pode morrer com a lambda.
     if (looksExhausted({ status: response.status, message: detail })) {
       await alertFalExhausted({ source: 'clips', engine: model, context: 'clip submit' })
@@ -355,10 +355,10 @@ async function pollFal(model: string, requestId: string): Promise<ProviderState>
     const msg = err instanceof Error ? err.message : String(err)
     // KINEO-S25-FOTO-CLIPES-1610 — o motivo REAL mora em err.body.detail (err.message é só "Unprocessable Entity"); era
     // descartado aqui. Mesmo campo que o poller do filme lê (app/api/cinematic-clip-status pollMessageSignal). Limpo com a FAL_KEY.
-    if (status === 422 || status === 400 || /unprocessable entity/i.test(msg)) {
-      const detail = falErrorDetail((err as { body?: unknown })?.body)
-      return { state: 'failed', error: cleanProviderError(`fal ${status ?? ''} ${detail || msg}`, [process.env.FAL_KEY ?? '']) ?? `fal ${status ?? ''}` }
-    }
+    if (status === 422 || status === 400 || /unprocessable entity/i.test(msg)) { // KINEO-S25-FOTO-CLIPES-1610
+      const detail = falErrorDetail((err as { body?: unknown })?.body) // KINEO-S25-FOTO-CLIPES-1610
+      return { state: 'failed', error: cleanProviderError(`fal ${status ?? ''} ${detail || msg}`, [process.env.FAL_KEY ?? '']) ?? `fal ${status ?? ''}` } // KINEO-S25-FOTO-CLIPES-1610
+    } // KINEO-S25-FOTO-CLIPES-1610
     console.warn(`[clips] poll transport error request=${requestId}:`, msg.slice(0, 200))
     return { state: 'unknown' }
   }
