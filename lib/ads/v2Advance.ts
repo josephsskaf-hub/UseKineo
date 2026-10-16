@@ -76,6 +76,7 @@ import { ADS_V2_SAME_PERSON_LINE, adsV2AnchorDecision, variationTagOf, variation
 import { ADS_V2_LOCK_CORNER_REASON, adsV2LockCornerStep, adsV2LockSceneOrdinal, adsV2LockSideFor, adsV2LockedScenePromptAt, adsV2ParseLockSeen, type AdsV2LockSide } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-4-1510 — o canto reservado decidido em código; a visão só confere
 import { adsV2LockBoxRound } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-5-1510 — o evento registra se a conferência devolveu caixa "redonda"
 import { adsV2LockCheckTry } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-6-1610 — 1ª conferência da cena ou a de depois da refação
+import { ADS_V2_IN_HAND_NO_LABEL_REASON, ADS_V2_IN_HAND_RETRY_REASON, adsV2InHandJudgeStep, adsV2InHandKlingInput, adsV2InHandOf, adsV2InHandScenePrompt, adsV2InHandTry } from '@/lib/ads/v2ProductInHand' // KINEO-ADS-PRODUTO-NA-MAO-1610 — pessoa segurando o produto REAL (Comercial, contas internas): sem colagem, juiz do rótulo, Kling com quadro final
 
 /** Tentativas por plano dentro de UMA geração paga: 1ª + refação automática no principal + reserva H3. */
 export const ADS_V2_MAX_AUTO_ATTEMPTS = 3
@@ -307,6 +308,7 @@ export function adsV2LockOf(order: Pick<AdsV2OrderRow, 'brief' | 'plan' | 'photo
   const actor = isActor ? adsV2PresenterPlanOf(order.plan) : null
   if (isActor && !actor) return null
   const shot = Array.isArray(order.plan?.shots) ? order.plan!.shots.find((s) => s.idx === row.idx) ?? null : null
+  if (!isActor && adsV2InHandOf(shot)) return null // KINEO-ADS-PRODUTO-NA-MAO-1610 — o plano novo NUNCA passa pela colagem (o modelo vê a foto real e põe o produto na mão)
   return adsV2ProductLockFor({ shot: isActor ? null : shot, photos: order.photos, productOrder: kind === 'product', sector: kind === 'place' ? null : order.sector, actor })
 }
 /** KINEO-ADS-FIEL-1510 — o lado servidor da trava, carregado só quando há produto a travar (import dinâmico; falha = sem trava). */
@@ -317,6 +319,32 @@ function lockServer() {
 function lockVision() { // KINEO-ADS-FIEL-2-1510
   return import('@/lib/ads/v2LockVision').catch(() => null) // KINEO-ADS-FIEL-2-1510
 } // KINEO-ADS-FIEL-2-1510
+/** KINEO-ADS-PRODUTO-NA-MAO-1610 — o interruptor do plano novo do lado servidor (import dinâmico; falha = desligado = a foto real). */
+function inHandEnabled(userId: string): Promise<boolean> { // KINEO-ADS-PRODUTO-NA-MAO-1610
+  return import('@/lib/ads/v2ProductInHandServer').then((m) => m.adsV2InHandEnabled(userId)).catch(() => false) // KINEO-ADS-PRODUTO-NA-MAO-1610
+} // KINEO-ADS-PRODUTO-NA-MAO-1610
+/**
+ * KINEO-ADS-PRODUTO-NA-MAO-1610 — a foto da cena do plano novo voltou: copia para o NOSSO bucket, o juiz compara o produto com a foto real
+ * e decide (adsV2InHandJudgeStep): fica · refaz a mesma foto · refaz SEM o rótulo de frente · a foto real do produto. Evento em cada veredito.
+ */
+async function finishInHandImage(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow, falUrl: string): Promise<void> { // KINEO-ADS-PRODUTO-NA-MAO-1610
+  const planned = order.plan?.shots?.find((s) => s.idx === row.idx) // KINEO-ADS-PRODUTO-NA-MAO-1610
+  const tag = adsV2InHandOf(planned) // KINEO-ADS-PRODUTO-NA-MAO-1610
+  if (!tag) return // KINEO-ADS-PRODUTO-NA-MAO-1610
+  const stored = await persistSceneImage({ userId: order.user_id, orderId: order.id, idx: row.idx, attempt: row.attempt, falUrl }) // KINEO-ADS-PRODUTO-NA-MAO-1610
+  if (!stored) { if (ageMs(row.updated_at) > ADS_V2_COPY_MAX_MS) await failShot(admin, row, ['image_submitted'], 'image_copy_failed', 'unknown'); return } // KINEO-ADS-PRODUTO-NA-MAO-1610 — a regra de sempre da cópia
+  const productUrl = planned?.referenceUrls?.[0] ?? null // KINEO-ADS-PRODUTO-NA-MAO-1610 — a 1ª referência é a foto REAL (a original, sem o corte do formato)
+  const verdict = productUrl ? await lockVision().then((v) => (v && typeof v.adsV2InHandLabelJudge === 'function' ? v.adsV2InHandLabelJudge(productUrl, stored) : null)).catch(() => null) : null // KINEO-ADS-PRODUTO-NA-MAO-1610
+  const step = adsV2InHandJudgeStep({ verdict, previousReason: row.reason }) // KINEO-ADS-PRODUTO-NA-MAO-1610
+  const judged = () => writeServerEvent({ name: 'ads_v2_in_hand_judged', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, idx: row.idx, attempt: row.attempt, frame: tag.frame, try: adsV2InHandTry(row.reason), verdict: verdict ? { ok: verdict.ok, fails: verdict.fails } : null, step, charged: false } }).catch(() => null) // KINEO-ADS-PRODUTO-NA-MAO-1610
+  if (step === 'keep') { if (await markShot(admin, row, ['image_submitted'], { status: 'image_done', image_url: stored })) await judged(); return } // KINEO-ADS-PRODUTO-NA-MAO-1610
+  if (step === 'retry' || step === 'no_label') { // KINEO-ADS-PRODUTO-NA-MAO-1610 — nova foto (a régua da refação da trava: pending sem carimbo)
+    const reason = step === 'retry' ? ADS_V2_IN_HAND_RETRY_REASON : ADS_V2_IN_HAND_NO_LABEL_REASON // KINEO-ADS-PRODUTO-NA-MAO-1610
+    if (await markShot(admin, row, ['image_submitted'], { status: 'pending', image_request_id: null, image_submit_claimed_at: null, reason })) { await judged(); await shotFallbackEvent(order, row, { to: step === 'retry' ? 'scene_retry' : 'no_label', reason }) } // KINEO-ADS-PRODUTO-NA-MAO-1610
+    return // KINEO-ADS-PRODUTO-NA-MAO-1610
+  } // KINEO-ADS-PRODUTO-NA-MAO-1610
+  if (await markShot(admin, row, ['image_submitted'], { status: 'image_done', image_url: tag.fallbackUrl, reason: null })) { await judged(); await shotFallbackEvent(order, row, { to: 'product_photo', reason: 'in_hand_label' }) } // KINEO-ADS-PRODUTO-NA-MAO-1610 — a foto real do produto (o fallback de sempre)
+} // KINEO-ADS-PRODUTO-NA-MAO-1610
 /**
  * KINEO-ADS-FIEL-2-1510 — o CLOSE do Premium com a trava: a vaga vira a FOTO REAL do produto com o zoom de close do montador (o caminho do
  * plano `text`: sem motor, sem fal, sem cobrança, fora do teto de fotos paradas). Só um vence (upsert sem duplicar).
@@ -364,6 +392,7 @@ async function stillFallback(admin: SupabaseClient, order: AdsV2OrderRow, row: A
 /** KINEO-ADS-FIEL-1510 — o prompt de movimento do vídeo: quadro travado = o produto parado; foto real do produto = movimento de produto. */
 function videoPromptOf(order: AdsV2OrderRow, row: AdsV2ShotRow): string {
   if (row.engine === 'kling_avatar' || row.engine === 'pixverse_effect') return row.prompt ?? ''
+  const inHand = adsV2InHandOf(order.plan?.shots?.find((s) => s.idx === row.idx)); if (inHand && row.image_url === inHand.fallbackUrl) return motionPrompt('product', row.movement_variant) // KINEO-ADS-PRODUTO-NA-MAO-1610 — o plano novo que caiu na foto real anima como produto
   const lock = adsV2LockOf(order, row)
   if (!lock) return row.prompt ?? ''
   if (adsV2IsLockedImage(row.image_url)) return adsV2ProductLockMotion(lock.mode, row.movement_variant)
@@ -499,6 +528,8 @@ async function submitImageFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
     await failShot(admin, row, ['pending'], 'scene_without_prompt_or_reference', 'local_policy_gate')
     return
   }
+  const inHand = adsV2InHandOf(planned) // KINEO-ADS-PRODUTO-NA-MAO-1610 — o plano novo: a foto REAL do produto é a 1ª referência e a pessoa o segura (sem esboço, sem colagem)
+  if (inHand && !(await inHandEnabled(order.user_id))) { if (await markShot(admin, row, ['pending'], { status: 'image_done', image_url: inHand.fallbackUrl })) await shotFallbackEvent(order, row, { to: 'product_photo', reason: 'in_hand_off' }); return } // KINEO-ADS-PRODUTO-NA-MAO-1610 — interruptor desligado para a conta = a foto real do produto
   // KINEO-ADS-FIEL-1510 — TRAVA DO PRODUTO: o ESBOÇO (recorte real no lugar, sobre cinza) vira a 1ª referência e a cena volta em PNG
   // KINEO-ADS-FIEL-1510 — para o recorte ser colado de novo sem perda. Falhou o recorte/esboço = o plano anima a FOTO REAL do produto
   // KINEO-ADS-FIEL-1510 — (no ator, que precisa do rosto, o caminho de antes). Sem trava (ou desligada para a conta) = nada muda.
@@ -517,6 +548,7 @@ async function submitImageFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
       else { if (await markShot(admin, row, ['pending'], { status: 'image_done', image_url: lock.url })) await shotFallbackEvent(order, row, { to: 'product_photo', reason: why }); return } // KINEO-ADS-FIEL-1510
     } // KINEO-ADS-FIEL-1510
   } // KINEO-ADS-FIEL-1510
+  if (inHand && row.reason === ADS_V2_IN_HAND_NO_LABEL_REASON) sendPrompt = `${adsV2InHandScenePrompt({ frame: 'no_label', settingLine: adsV2SettingFromPrompt(planned?.scenePrompt), format: adsV2PlanFormat(order.plan), extraRefs: (planned?.referenceUrls?.length ?? 0) > 1 })}${anchorUrl ? ` ${ADS_V2_SAME_PERSON_LINE}` : ''}` // KINEO-ADS-PRODUTO-NA-MAO-1610 — o juiz reprovou 2 vezes: o enquadramento sem o rótulo de frente
   if (lock && lock.mode === 'scene' && sendRefs !== refs) sendPrompt = adsV2LockedScenePromptAt({ sceneIdx: row.movement_variant, setting: adsV2SettingFromPrompt(planned?.scenePrompt), format: adsV2PlanFormat(order.plan), side: lockSideOf(order, row) }) // KINEO-ADS-FIEL-4-1510 — a cena já nasce com o CANTO reservado vazio (o MESMO lado em que o recorte será colado) e a gente na metade oposta
   let outcome
   try {
@@ -550,6 +582,7 @@ async function submitVideoFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
     // KINEO-ESTILOS-PRODUTO-2026-10-09 — o efeito sai da chave gravada no plano do pedido (só o 'pixverse_effect' a usa).
     // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator leva a voz do anúncio (só ele usa audioUrl; sem voz https, recusa local).
     input = buildShotInput(engine, { imageUrl: row.image_url ?? '', prompt: videoPromptOf(order, row), audioUrl: order.voice_url ?? '', effect: adsV2ShotEffect(order.plan, row.idx) }) as unknown as Record<string, unknown> // KINEO-ADS-FIEL-1510 — videoPromptOf: sem trava = row.prompt ?? '' (o de sempre)
+    if (engine === 'kling_o3' && adsV2InHandOf(order.plan?.shots?.find((s) => s.idx === row.idx))) input = adsV2InHandKlingInput({ imageUrl: row.image_url ?? '', prompt: videoPromptOf(order, row) }) as unknown as Record<string, unknown> // KINEO-ADS-PRODUTO-NA-MAO-1610 — plano novo: a MESMA foto como quadro final (end_image_url, schema da fal) segura a embalagem; 3 s
     if (engine === 'seedance_20_fast' && adsV2PlanFormat(order.plan) === '1:1') input = { ...input, aspect_ratio: adsV2SeedanceAspect('1:1') } // KINEO-ADS-MELHORIAS-1410 — o herói do Premium QUADRADO sai em 1:1 (o schema da fal aceita; 4:5 não existe lá e o /plan recusa antes)
   } catch (e) {
     // O efeito recusado AQUI não mata o anúncio: 'invalid_payload' entra na refação automática e, na 3ª tentativa, a
@@ -711,6 +744,7 @@ async function pollOne(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2Sh
       if (!row.image_request_id) return
       const p = await pollSceneImage(row.image_request_id, ctx)
       if (p.state === 'done' && p.url) {
+        if (adsV2InHandOf(order.plan?.shots?.find((s) => s.idx === row.idx))) { await finishInHandImage(admin, order, row, p.url); return } // KINEO-ADS-PRODUTO-NA-MAO-1610 — o juiz do rótulo antes de virar vídeo
         const lock = adsV2LockOf(order, row) // KINEO-ADS-FIEL-1510 — cena de produto: o recorte REAL colado antes de virar vídeo
         if (lock && (await finishLockedImage(admin, order, row, lock, p.url)) === 'done') return // KINEO-ADS-FIEL-1510
         const stored = await persistSceneImage({ userId: order.user_id, orderId: order.id, idx: row.idx, attempt: row.attempt, falUrl: p.url })

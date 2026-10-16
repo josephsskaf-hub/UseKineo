@@ -43,6 +43,8 @@ import { adsV2SentenceForCopy } from '@/lib/ads/v2Scene' // KINEO-ADS-CONSERTOS-
 import { adsV2PackshotShots } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — o packshot: um plano de IA vira a foto REAL do produto (mesmos créditos)
 import { adsV2FormatBlock, adsV2FormatShots, normalizeAdsV2Format } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — formatos 4:5 e 1:1 (só onde o pipeline inteiro aceita)
 import { adsV2BuildScripts } from '@/lib/ads/v2Scripts' // KINEO-ADS-ROTEIROS-2026-10-13 — 2 a 3 roteiros para escolher (o 1º = o texto de sempre); troca em /api/ads/v2/plan/choose
+import { adsV2InHandOn, adsV2InHandPlan, adsV2InHandSummary, adsV2InHandUsd } from '@/lib/ads/v2ProductInHand' // KINEO-ADS-PRODUTO-NA-MAO-1610 — pessoa segurando o produto REAL no Comercial (só contas internas): o plano novo no lugar da colagem
+import { adsV2SettingLine } from '@/lib/ads/v2Scene' // KINEO-ADS-PRODUTO-NA-MAO-1610 — a cena da pessoa entra no pedido da foto como no resto do /plan
 
 /** Quem age: o id do auth (moderação e rastro) e o e-mail VERIFICADO dele (adsV2Visible). */
 export interface AdsV2Caller {
@@ -220,6 +222,8 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     const sceneSetting = adsV2SceneSetting(brief0, order.tier) // KINEO-ADS-CENA-2026-10-13 — brief.scene limpa de novo; null no Normal ou sem cena
     plan.shots = adsV2SceneShots(plan.shots, { setting: sceneSetting, sector, product: adsV2IsProductOrder(brief0, sector), photos }) // KINEO-ADS-CENA-2026-10-13 — só o scenePrompt das cenas criadas muda ("Setting: …"); sem cena = o mesmo array
     plan.shots = adsV2PackshotShots(plan.shots, { photos: photos.map((p) => ({ id: p.footage_id, url: p.url, kind: p.kind })), productOrder: adsV2IsProductOrder(brief0, sector) }) // KINEO-ADS-MELHORIAS-1410 — troca UM plano de IA (o fecho; senão o 2º) pela foto real do produto: nº de planos, duração e créditos iguais
+    const inHand = ((ih) => (ih && ih.shotsSeconds === plan.shotsSeconds ? ih : null))(adsV2InHandPlan({ on: adsV2InHandOn(reason === 'internal'), tier: order.tier, seconds: order.seconds, photos, productOrder: adsV2IsProductOrder(brief0, sector), sector, presenter: presenterAsked, style: plan.style ?? null, videos: videos.length, settingLine: sceneSetting ? adsV2SettingLine(sceneSetting) : null, format })) // KINEO-ADS-PRODUTO-NA-MAO-1610 — Comercial 15 s com foto de produto, conta interna: gancho com gente, 2 usos, close na cena, packshot real (a duração dos planos é a mesma)
+    if (inHand) plan.shots = inHand.shots // KINEO-ADS-PRODUTO-NA-MAO-1610 — a régua anti-invenção abaixo confere os prompts novos também
     plan.shots = adsV2FormatShots(plan.shots, format) // KINEO-ADS-MELHORIAS-1410 — a cena criada pedida no formato ("portrait"/"square", sem números); 9:16 = o mesmo array
     const promptIssues = checkV2Prompts(plan.shots.flatMap((s) => [s.prompt, s.scenePrompt].filter((x): x is string => !!x)), extracted.brief)
     if (promptIssues.length) {
@@ -240,8 +244,11 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     const stored: AdsV2StoredPlan = { ...plan, overlays, narration: extracted.copy.narration, ...(presenter ? { presenter } : {}) }
     Object.assign(stored, { scripts, script_id: scripts[0]?.id ?? 'a' }) // KINEO-ADS-ROTEIROS-2026-10-13 — os roteiros ficam NO plano do pedido; o /choose só copia daqui (preço intocado)
     if (format !== '9:16') Object.assign(stored, { format }) // KINEO-ADS-MELHORIAS-1410 — o formato mora no plano gravado (montagem, motores, refação e variações o leem dali); 9:16 = sem a chave
+    if (inHand) Object.assign(stored, { productInHand: true }) // KINEO-ADS-PRODUTO-NA-MAO-1610 — a marca do plano novo (o dry-run e o avanço a leem)
     const credits = adsV2Credits(order.tier, order.seconds)
     const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds, presenter: !!presenter })
+    if (inHand) Object.assign(usd, adsV2InHandUsd(usd, plan.shots)) // KINEO-ADS-PRODUTO-NA-MAO-1610 — + o juiz do rótulo e a reserva de uma refação de foto (créditos iguais: 41)
+    if (inHand) Object.assign(modeTag, { in_hand: true }) // KINEO-ADS-PRODUTO-NA-MAO-1610
 
     const upd = await admin
       .from('ads_v2_orders')
@@ -297,6 +304,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
       script_id: scripts[0]?.id ?? 'a', // KINEO-ADS-ROTEIROS-2026-10-13 — o roteiro que está no plano
       plans_left: plansLeft, // KINEO-ADS-FIEL-2-1510 — roteiros que ainda cabem hoje (null = conta da casa, sem teto)
       shots: plan.shots.map((s) => ({ idx: s.idx, role: s.role, beat: s.beat, kind: s.kind, source: s.source, cut_seconds: s.cutSeconds, photo: s.sourceFootageId, ...(s.effect ? { effect: s.effect } : {}) })),
+      ...(inHand ? { in_hand: adsV2InHandSummary(plan.shots) } : {}), // KINEO-ADS-PRODUTO-NA-MAO-1610 — os planos novos (enquadramento e corte) para a tela
     })
   } catch (e) {
     console.warn('[ads/v2/plan] falhou:', e instanceof Error ? e.message : String(e))

@@ -112,3 +112,37 @@ export async function adsV2SceneCheck(sceneUrl: string, format: AdsV2Format, sid
     return null // KINEO-ADS-FIEL-4-1510
   } // KINEO-ADS-FIEL-4-1510
 } // KINEO-ADS-FIEL-4-1510
+// KINEO-ADS-PRODUTO-NA-MAO-1610 — o JUIZ DO RÓTULO do plano "pessoa segurando o produto real": a MESMA chamada de visão (modelo do registro
+// KINEO-ADS-PRODUTO-NA-MAO-1610 — central, JSON, prazo curto) com DUAS imagens em 'high' — a foto REAL do produto (1ª) e o still gerado (2ª) —
+// KINEO-ADS-PRODUTO-NA-MAO-1610 — e a pergunta pura ADS_V2_IN_HAND_JUDGE_QUESTION (lib/ads/v2ProductInHand.ts): nome/logo, cores, forma, mãos,
+// KINEO-ADS-PRODUTO-NA-MAO-1610 — um produto só. Sem chave, erro, prazo ou resposta ilegível = null (a foto segue). Nunca lança. ~US$ 0,01.
+import { ADS_V2_IN_HAND_JUDGE_QUESTION, adsV2ParseInHandVerdict, type AdsV2InHandVerdict } from '@/lib/ads/v2ProductInHand' // KINEO-ADS-PRODUTO-NA-MAO-1610
+/** KINEO-ADS-PRODUTO-NA-MAO-1610 — o corpo do juiz (puro: o guardião confere modelo do registro, 'high', JSON e a ordem das imagens). */
+export function adsV2InHandLabelBody(productUrl: string, sceneUrl: string): Record<string, unknown> { // KINEO-ADS-PRODUTO-NA-MAO-1610
+  return { // KINEO-ADS-PRODUTO-NA-MAO-1610
+    model: AI_TEXT_MODELS.vision, // KINEO-ADS-PRODUTO-NA-MAO-1610
+    temperature: 0, // KINEO-ADS-PRODUTO-NA-MAO-1610
+    max_tokens: 80, // KINEO-ADS-PRODUTO-NA-MAO-1610
+    response_format: { type: 'json_object' }, // KINEO-ADS-PRODUTO-NA-MAO-1610
+    messages: [{ role: 'user', content: [{ type: 'text', text: ADS_V2_IN_HAND_JUDGE_QUESTION }, { type: 'image_url', image_url: { url: productUrl, detail: 'high' } }, { type: 'image_url', image_url: { url: sceneUrl, detail: 'high' } }] }], // KINEO-ADS-PRODUTO-NA-MAO-1610 — 1ª = a foto real
+  } // KINEO-ADS-PRODUTO-NA-MAO-1610
+} // KINEO-ADS-PRODUTO-NA-MAO-1610
+/** KINEO-ADS-PRODUTO-NA-MAO-1610 — o produto do still bate com a foto real? null = não deu para conferir. Nunca lança. */
+export async function adsV2InHandLabelJudge(productUrl: string, sceneUrl: string, doFetch: typeof fetch = fetch): Promise<AdsV2InHandVerdict | null> { // KINEO-ADS-PRODUTO-NA-MAO-1610
+  const key = process.env.OPENAI_API_KEY // KINEO-ADS-PRODUTO-NA-MAO-1610
+  const ok = (u: unknown): u is string => typeof u === 'string' && /^https:\/\/\S+$/i.test(u.trim()) // KINEO-ADS-PRODUTO-NA-MAO-1610
+  if (!key || !ok(productUrl) || !ok(sceneUrl)) return null // KINEO-ADS-PRODUTO-NA-MAO-1610
+  try { // KINEO-ADS-PRODUTO-NA-MAO-1610
+    const res = await doFetch('https://api.openai.com/v1/chat/completions', { // KINEO-ADS-PRODUTO-NA-MAO-1610
+      method: 'POST', // KINEO-ADS-PRODUTO-NA-MAO-1610
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` }, // KINEO-ADS-PRODUTO-NA-MAO-1610
+      body: JSON.stringify(adsV2InHandLabelBody(productUrl.trim(), sceneUrl.trim())), // KINEO-ADS-PRODUTO-NA-MAO-1610
+      signal: AbortSignal.timeout(ADS_V2_LOCK_CHECK_TIMEOUT_MS), // KINEO-ADS-PRODUTO-NA-MAO-1610 — o prazo da conferência em 'high'
+    }) // KINEO-ADS-PRODUTO-NA-MAO-1610
+    if (!res.ok) return null // KINEO-ADS-PRODUTO-NA-MAO-1610
+    const j = (await res.json()) as { choices?: { message?: { content?: unknown } }[] } // KINEO-ADS-PRODUTO-NA-MAO-1610
+    return adsV2ParseInHandVerdict(j?.choices?.[0]?.message?.content ?? null) // KINEO-ADS-PRODUTO-NA-MAO-1610
+  } catch { // KINEO-ADS-PRODUTO-NA-MAO-1610
+    return null // KINEO-ADS-PRODUTO-NA-MAO-1610
+  } // KINEO-ADS-PRODUTO-NA-MAO-1610
+} // KINEO-ADS-PRODUTO-NA-MAO-1610
