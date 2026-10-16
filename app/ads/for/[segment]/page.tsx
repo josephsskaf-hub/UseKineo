@@ -100,6 +100,6 @@ export default function AdsSegmentPage({ params }: Props) {
       <div><p className={styles.eyebrow}>ILLUSTRATIVE BRIEF · NOT A CUSTOMER CASE</p><blockquote>{segment.brief}</blockquote><p className={styles.note}>{segment.caution}</p></div>
     </section>
     <section className={styles.section} aria-labelledby="faq-heading"><h2 id="faq-heading">Before you start</h2><div className={styles.faq}>{faqs.map(({ question, answer }) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}</div></section>
-    <footer className={styles.footer}><p>Also for:</p><nav aria-label="Other business segments">{ADS_SEGMENTS.filter(item => item.slug !== segment.slug).map(item => <a key={item.slug} href={adsSegmentPath(item.slug)}>{item.shortName}</a>)}</nav>{guides.length > 0 && <><p>Guides:</p><nav aria-label="Guides">{guides.map(item => <a key={item.href} href={item.href}>{item.label}</a>)}</nav></>}<p><a href="/business-video-ads">Explore Kineo for businesses →</a></p></footer>
+    <footer className={styles.footer}><p>Also for:</p><nav aria-label="Other business segments">{ADS_SEGMENTS.filter(item => item.slug !== segment.slug).map(item => <a key={item.slug} href={adsSegmentPath(item.slug)}>{item.shortName}</a>)}</nav>{guides.length ? <><p>Guides:</p><nav aria-label="Guides">{guides.map(item => <a key={item.href} href={item.href}>{item.label}</a>)}</nav></> : null}<p><a href="/business-video-ads">Explore Kineo for businesses →</a></p></footer>
   </main>
 }

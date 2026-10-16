@@ -204,7 +204,7 @@ const DIV_MUTANTS = [
   ['R8', LLMS, '${guiasIaLlmsLines(BASE)}', ''],
   ['R8', F.paths, 'return GUIAS_IA_SLUGS.map((slug) => ' + "`- [", 'return GUIAS_IA_SLUGS.slice(1).map((slug) => ' + "`- ["],
   ['R8', F.paths, "label: 'Weekly Video Ads with Approval: Kineo Automate',", "label: 'Weekly Video Ads, Approved',"],
-  ['R9', 'app/ads/for/[segment]/page.tsx', '{guides.length > 0 && <>', '{false && <>'],
+  ['R9', 'app/ads/for/[segment]/page.tsx', '{guides.length ? <>', '{false ? <>'],
   ['R9', 'app/ai-voice-generator/page.tsx', "{guiasIaLinksFrom('/ai-voice-generator').map(", "{guiasIaLinksFrom('/ai-voice-generator').slice(1).map("],
   ['R9', 'app/business-video-ads/page.tsx', "{guiasIaLinksFrom('/business-video-ads').map(", "{[].map("],
   ['R9', F.paths, "    from: '/business-video-ads',", "    from: '/',"],
