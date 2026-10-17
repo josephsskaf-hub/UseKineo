@@ -26,13 +26,14 @@ import { execFileSync } from 'node:child_process'
 import ts from 'typescript'
 import { semJuizGrade1610, comJuizGrade1610, desfazJuizGrade1610, JUIZ_GRADE_1610_ARQUIVOS, JUIZ_GRADE_1610_NOVOS, JUIZ_GRADE_1610_BASE, MARCA_JUIZ_GRADE_1610 } from './test-support/desfaz-juiz-grade-1610.mjs'
 import { semMaoJuiz1610, desfazMaoJuiz1610 } from './test-support/desfaz-ads-mao-juiz-1610.mjs'
+import { desfazApresentadorV2_1710 } from './test-support/desfaz-apresentador-v2-1710.mjs' // reancorado KINEO-APRESENTADOR-V2-1710
 import { desfazMaoAjuste3_1610 } from './test-support/desfaz-ads-mao-ajuste-3-1610.mjs'
 import * as SCRIPT from './calibra-juiz-mao.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-JUIZ-GRADE-1610'
-const rd = (p) => readFileSync(join(ROOT, p), 'utf8').replace(/\r\n/g, '\n') // o arquivo VIVO (esta é a camada mais nova)
+const rd = (p) => desfazApresentadorV2_1710(p, readFileSync(join(ROOT, p), 'utf8')) // reancorado KINEO-APRESENTADOR-V2-1710 — o apresentador v2 veio depois: este guardião lê o texto SEM ele (já LF); ele é provado em scripts/test-apresentador-v2-1710.mjs
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return git('show', `${JUIZ_GRADE_1610_BASE}:${p}`).replace(/\r\n/g, '\n') } catch { return null } }
 let pass = 0

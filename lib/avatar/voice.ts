@@ -22,6 +22,22 @@ function langBoost(language?: string): string {
   return 'English'
 }
 
+// KINEO-APRESENTADOR-V2-1710 — a voz do APRESENTADOR do Studio Ads sai na speech-2.8-hd (a mesma do /audio, que tem rota própria e não é tocada).
+// A 2.8 recebe o texto em `prompt` (a 02-hd em `text`) e o mesmo voice_setting/language_boost/output_format 'url'.
+/** KINEO-APRESENTADOR-V2-1710 — a speech-2.8-hd (espelho de ADS_V2_PRESENTER_V2_TTS_MODEL, lib/ads/v2PresenterV2.ts; o guardião confere). */
+export const TTS_28_MODEL = 'fal-ai/minimax/speech-2.8-hd'
+/** KINEO-APRESENTADOR-V2-1710 — o corpo do pedido (puro). Sem `model` = EXATAMENTE o corpo de antes (a voz clonada). */
+export function voiceInputFor(args: { voiceId: string; text: string; language?: string; model?: string; languageBoost?: string; speed?: number }): Record<string, unknown> {
+  const is28 = args.model === TTS_28_MODEL
+  const speed = typeof args.speed === 'number' && Number.isFinite(args.speed) && args.speed > 0 ? { speed: args.speed } : {}
+  return {
+    ...(is28 ? { prompt: args.text } : { text: args.text }),
+    voice_setting: { voice_id: args.voiceId, ...speed },
+    language_boost: typeof args.languageBoost === 'string' && args.languageBoost ? args.languageBoost : langBoost(args.language),
+    output_format: 'url',
+  }
+}
+
 /** Clone a voice from a sample audio URL (>=10s). Returns the custom_voice_id
  *  plus the raw error (surfaced to the client for debugging) when it fails. */
 export async function cloneVoice(audioUrl: string): Promise<{ voiceId: string | null; error?: string }> {
@@ -58,15 +74,16 @@ export async function synthesizeWithVoice(args: {
   voiceId: string
   text: string
   language?: string
+  /** KINEO-APRESENTADOR-V2-1710 — o modelo: ausente = a 02-hd de sempre (a voz CLONADA do /avatar fica nela); TTS_28_MODEL = o apresentador do Studio Ads. */
+  model?: string
+  /** KINEO-APRESENTADOR-V2-1710 — o language_boost exato (ex.: 'Portuguese'); ausente = o mapa de sempre pela língua. */
+  languageBoost?: string
+  /** KINEO-APRESENTADOR-V2-1710 — voice_setting.speed; ausente = sem speed (como sempre). */
+  speed?: number
 }): Promise<Buffer> {
   if (!configureFal()) throw new Error('Voice engine is not configured.')
-  const input: Record<string, unknown> = {
-    text: args.text,
-    voice_setting: { voice_id: args.voiceId },
-    language_boost: langBoost(args.language),
-    output_format: 'url',
-  }
-  const model: string = TTS_MODEL
+  const input = voiceInputFor(args) // KINEO-APRESENTADOR-V2-1710 — o corpo sai de uma função pura (a 02-hd com o corpo de sempre)
+  const model: string = args.model === TTS_28_MODEL ? TTS_28_MODEL : TTS_MODEL // KINEO-APRESENTADOR-V2-1710 — só os dois modelos conhecidos
   const result = (await fal.subscribe(model, { input })) as {
     data?: { audio?: { url?: string } }
     audio?: { url?: string }

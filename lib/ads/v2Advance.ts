@@ -437,6 +437,37 @@ function cancelAbandoned(row: AdsV2ShotRow, kind: 'video' | 'image'): void {
 function inHandLib() { // KINEO-ADS-PRODUTO-NA-MAO-1610
   return import('@/lib/ads/v2ProductInHand').then((m) => (typeof m.adsV2InHandJudgeStep === 'function' ? m : null)).catch(() => null) // KINEO-ADS-PRODUTO-NA-MAO-1610
 } // KINEO-ADS-PRODUTO-NA-MAO-1610
+// ── KINEO-APRESENTADOR-V2-1710 — o apresentador v2 (2 referências, 4 opções, escolha por "frasco e caixa", voz por língua, 15 s): só conta interna ──
+/** KINEO-APRESENTADOR-V2-1710 — a lib do apresentador v2 (lib/ads/v2PresenterV2.ts, pura) por import DINÂMICO: falha = o ator de antes. */
+function presenterV2Lib() { // KINEO-APRESENTADOR-V2-1710
+  return import('@/lib/ads/v2PresenterV2').then((m) => (typeof m.adsV2PresenterV2Of === 'function' ? m : null)).catch(() => null) // KINEO-APRESENTADOR-V2-1710
+} // KINEO-APRESENTADOR-V2-1710
+/** KINEO-APRESENTADOR-V2-1710 — o v2 gravado no pedido, valendo agora (interruptor fora de 'off'); null = o ator de antes. Nunca lança. */
+async function presenterV2Of(order: Pick<AdsV2OrderRow, 'plan'>): Promise<{ lib: NonNullable<Awaited<ReturnType<typeof presenterV2Lib>>>; v2: NonNullable<AdsV2PresenterPlan['v2']> } | null> { // KINEO-APRESENTADOR-V2-1710
+  const lib = await presenterV2Lib() // KINEO-APRESENTADOR-V2-1710
+  const v2 = lib ? lib.adsV2PresenterV2Of(order.plan) : null // KINEO-APRESENTADOR-V2-1710
+  return lib && v2 ? { lib, v2 } : null // KINEO-APRESENTADOR-V2-1710
+} // KINEO-APRESENTADOR-V2-1710
+/**
+ * KINEO-APRESENTADOR-V2-1710 — as 4 opções da foto do apresentador voltaram: cópia de cada uma no NOSSO bucket, a checagem "frasco e caixa juntos"
+ * KINEO-APRESENTADOR-V2-1710 — (o inventário do juiz; a única que acertou 100% na calibração) em cada uma, a melhor vira a foto do avatar e as 4 ficam
+ * KINEO-APRESENTADOR-V2-1710 — gravadas no pedido (plan.presenter.v2.options) para um futuro "Revisar cenas". Checagem fora do ar = a 1ª opção segue.
+ */
+async function finishPresenterV2Image(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow, urls: readonly string[], pv: NonNullable<Awaited<ReturnType<typeof presenterV2Of>>>): Promise<void> { // KINEO-APRESENTADOR-V2-1710
+  const list = urls.slice(0, pv.lib.ADS_V2_PRESENTER_V2_OPTIONS) // KINEO-APRESENTADOR-V2-1710
+  const stored = await Promise.all(list.map((u, k) => persistSceneImage({ userId: order.user_id, orderId: order.id, idx: row.idx, attempt: row.attempt, falUrl: u, suffix: pv.lib.adsV2PresenterV2OptionSuffix(k) }))) // KINEO-APRESENTADOR-V2-1710
+  const kept = stored.filter((s): s is string => typeof s === 'string' && !!s) // KINEO-APRESENTADOR-V2-1710
+  if (kept.length === 0) { if (ageMs(row.updated_at) > ADS_V2_COPY_MAX_MS) await failShot(admin, row, ['image_submitted'], 'image_copy_failed', 'unknown'); return } // KINEO-APRESENTADOR-V2-1710 — a regra de sempre da cópia
+  const vis = await lockVision() // KINEO-APRESENTADOR-V2-1710
+  const both = await Promise.all(kept.map((u) => (vis && typeof vis.adsV2InHandInventoryOf === 'function' ? vis.adsV2InHandInventoryOf(u).then((inv) => pv.lib.adsV2PresenterV2BothObjects(inv)).catch(() => null) : Promise.resolve(null)))) // KINEO-APRESENTADOR-V2-1710 — só "frasco e caixa juntos" decide (null = não leu)
+  const pick = pv.lib.adsV2PresenterV2Pick(both) // KINEO-APRESENTADOR-V2-1710
+  const chosen = kept[pick.index] ?? kept[0] // KINEO-APRESENTADOR-V2-1710
+  if (!(await markShot(admin, row, ['image_submitted'], { status: 'image_done', image_url: chosen }))) return // KINEO-APRESENTADOR-V2-1710 — só quem vence grava as opções
+  const presenter = adsV2PresenterPlanOf(order.plan) // KINEO-APRESENTADOR-V2-1710
+  const options = kept.map((url, k) => ({ url, bothObjects: both[k] ?? null })) // KINEO-APRESENTADOR-V2-1710
+  if (order.plan && presenter) { try { await admin.from('ads_v2_orders').update({ plan: { ...order.plan, presenter: { ...presenter, v2: { ...pv.v2, options, chosen: kept.indexOf(chosen), chosenWhy: pick.why } } } }).eq('id', order.id).eq('status', 'generating') } catch { /* KINEO-APRESENTADOR-V2-1710 — as opções são para revisão: falhar aqui não para o pedido */ } } // KINEO-APRESENTADOR-V2-1710
+  await writeServerEvent({ name: 'ads_v2_product_locked', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, idx: row.idx, attempt: row.attempt, mode: 'presenter_v2', entry: pv.v2.entryId, options: kept.length, chosen: kept.indexOf(chosen), why: pick.why, both_objects: both, charged: false } }).catch(() => null) // KINEO-APRESENTADOR-V2-1710 — o evento da trava de sempre (lista fechada), com o modo novo
+} // KINEO-APRESENTADOR-V2-1710
 /** KINEO-ADS-PRODUTO-NA-MAO-1610 — o interruptor do lado servidor (lib/ads/v2ProductInHandServer.ts, import dinâmico; falha = desligado). */
 function inHandEnabled(userId: string): Promise<boolean> { // KINEO-ADS-PRODUTO-NA-MAO-1610
   return import('@/lib/ads/v2ProductInHandServer').then((m) => m.adsV2InHandEnabled(userId)).catch(() => false) // KINEO-ADS-PRODUTO-NA-MAO-1610
@@ -550,8 +581,9 @@ async function submitImageFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
   const planned = order.plan?.shots?.find((s) => s.idx === row.idx)
   // KINEO-ATOR-ANUNCIO-2026-10-09 — a foto do ator: o prompt fixo dele e a foto do PRODUTO do cliente como única referência.
   const actor = row.kind === ADS_V2_PRESENTER_KIND ? adsV2PresenterPlanOf(order.plan) : null
-  const basePrompt = actor ? actor.actorPrompt : planned?.scenePrompt ?? null
-  const baseRefs = actor ? [actor.productUrl] : planned?.referenceUrls ?? []
+  const pv = actor ? await presenterV2Of(order) : null // KINEO-APRESENTADOR-V2-1710 — o apresentador v2: o retrato + a foto real (2 referências), o prompt de boca neutra e 4 opções
+  const basePrompt = actor ? (pv ? pv.v2.prompt : actor.actorPrompt) : planned?.scenePrompt ?? null // KINEO-APRESENTADOR-V2-1710
+  const baseRefs = actor ? (pv ? pv.lib.adsV2PresenterV2Refs(pv.v2, actor.productUrl) : [actor.productUrl]) : planned?.referenceUrls ?? [] // KINEO-APRESENTADOR-V2-1710
   // O still da A entra como ÚLTIMA referência (as fotos do cliente continuam sendo a referência do lugar e do produto).
   const prompt = basePrompt && anchorUrl ? `${basePrompt} ${ADS_V2_SAME_PERSON_LINE}` : basePrompt
   const refs = anchorUrl && baseRefs.length > 0 ? [...baseRefs, anchorUrl] : baseRefs
@@ -570,7 +602,7 @@ async function submitImageFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
   // KINEO-ADS-FIEL-1510 — (no ator, que precisa do rosto, o caminho de antes). Sem trava (ou desligada para a conta) = nada muda.
   let sendPrompt = prompt // KINEO-ADS-FIEL-1510
   let sendRefs = refs // KINEO-ADS-FIEL-1510
-  const lock = adsV2LockOf(order, row) // KINEO-ADS-FIEL-1510
+  const lock = pv ? null : adsV2LockOf(order, row) // KINEO-ADS-FIEL-1510 · KINEO-APRESENTADOR-V2-1710 — o apresentador v2 não passa pela colagem (a foto real é a 2ª referência)
   const srv = lock ? await lockServer() : null // KINEO-ADS-FIEL-1510
   if (lock && srv && (await srv.adsV2ProductLockEnabled(order.user_id).catch(() => false))) { // KINEO-ADS-FIEL-1510
     try { // KINEO-ADS-FIEL-1510
@@ -588,7 +620,7 @@ async function submitImageFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
   let outcome
   if (inHand && ihLib && row.reason === ihLib.ADS_V2_IN_HAND_NO_LABEL_REASON) sendPrompt = `${ihLib.adsV2InHandScenePrompt({ frame: 'no_label', settingLine: ihLib.adsV2InHandSettingFrom(planned?.scenePrompt), format: adsV2PlanFormat(order.plan), extraRefs: (planned?.referenceUrls?.length ?? 0) > 1, singleProduct: typeof planned?.scenePrompt === 'string' && planned.scenePrompt.includes(ihLib.ADS_V2_IN_HAND_SINGLE_PRODUCT), object: inHand.object })}${anchorUrl ? ` ${ADS_V2_SAME_PERSON_LINE}` : ''}` // KINEO-ADS-PRODUTO-NA-MAO-1610 — o juiz reprovou 2 vezes: o enquadramento sem o rótulo de frente · KINEO-ADS-MAO-AJUSTE-1610 — + um produto só (como no pedido gravado) · KINEO-ADS-MAO-AJUSTE-3-1610 — + o objeto único do plano
   try {
-    outcome = await submitSceneImage({ prompt: sendPrompt, referenceUrls: sendRefs, ...(adsV2PlanFormat(order.plan) !== '9:16' ? { aspect: adsV2PlanFormat(order.plan) } : {}), ...(sendRefs !== refs || inHand ? { outputFormat: 'png' as const } : {}) }, { userId: order.user_id, orderId: order.id }) // KINEO-ADS-MELHORIAS-1410 — a cena criada no formato do anúncio · KINEO-ADS-FIEL-1510 — com a trava: o esboço + PNG · KINEO-ADS-MAO-JUIZ-1610 — + o produto na mão em PNG (o juiz recorta o produto gerado)
+    outcome = await submitSceneImage({ prompt: sendPrompt, referenceUrls: sendRefs, ...(adsV2PlanFormat(order.plan) !== '9:16' ? { aspect: adsV2PlanFormat(order.plan) } : {}), ...(sendRefs !== refs || inHand ? { outputFormat: 'png' as const } : {}), ...(pv ? { numImages: 4 as const } : {}) }, { userId: order.user_id, orderId: order.id }) // KINEO-APRESENTADOR-V2-1710 — + as 4 opções do apresentador // KINEO-ADS-MELHORIAS-1410 — a cena criada no formato do anúncio · KINEO-ADS-FIEL-1510 — com a trava: o esboço + PNG · KINEO-ADS-MAO-JUIZ-1610 — + o produto na mão em PNG (o juiz recorta o produto gerado)
   } catch (e) {
     // buildSceneImageInput recusou (nada saiu daqui): recusa NOSSA, não refazer.
     await failShot(admin, row, ['pending'], `scene_input_invalid:${e instanceof Error ? e.message : String(e)}`, 'local_policy_gate')
@@ -781,6 +813,8 @@ async function pollOne(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2Sh
       const p = await pollSceneImage(row.image_request_id, ctx)
       if (p.state === 'done' && p.url) {
         if (inHandTagOf(order, row.idx)) { await finishInHandImage(admin, order, row, p.url); return } // KINEO-ADS-PRODUTO-NA-MAO-1610 — o juiz do rótulo antes de virar vídeo
+        const pv = row.kind === ADS_V2_PRESENTER_KIND ? await presenterV2Of(order) : null // KINEO-APRESENTADOR-V2-1710
+        if (pv) { await finishPresenterV2Image(admin, order, row, p.urls && p.urls.length > 0 ? p.urls : [p.url], pv); return } // KINEO-APRESENTADOR-V2-1710 — as 4 opções: cópia, "frasco e caixa", a melhor
         const lock = adsV2LockOf(order, row) // KINEO-ADS-FIEL-1510 — cena de produto: o recorte REAL colado antes de virar vídeo
         if (lock && (await finishLockedImage(admin, order, row, lock, p.url)) === 'done') return // KINEO-ADS-FIEL-1510
         const stored = await persistSceneImage({ userId: order.user_id, orderId: order.id, idx: row.idx, attempt: row.attempt, falUrl: p.url })
@@ -939,6 +973,17 @@ async function retryPresenter(admin: SupabaseClient, order: AdsV2OrderRow, row: 
  */
 async function adsV2NarrationVoice(order: AdsV2OrderRow, text: string, fallbackToDefault: boolean): Promise<Buffer> {
   const ctx = { userId: order.user_id, generationId: order.generation_id }
+  const pv = await presenterV2Of(order) // KINEO-APRESENTADOR-V2-1710 — a voz do apresentador v2 por língua (PT-BR: Portuguese_ConfidentWoman na speech-2.8-hd); 'current' = a de sempre (abaixo)
+  const v2Voice = pv ? pv.lib.adsV2PresenterV2VoiceFor(narrationLanguage(order.language) ?? 'en', pv.v2.gender) : null // KINEO-APRESENTADOR-V2-1710
+  if (v2Voice && v2Voice.engine === 'minimax') { // KINEO-APRESENTADOR-V2-1710
+    try { // KINEO-APRESENTADOR-V2-1710
+      const vm = await import('@/lib/avatar/voice') // KINEO-APRESENTADOR-V2-1710 — a síntese com voice id (o /audio e a TTS da casa não mudam)
+      return await vm.synthesizeWithVoice({ voiceId: v2Voice.voiceId, text, model: v2Voice.model, languageBoost: v2Voice.languageBoost, speed: v2Voice.speed }) // KINEO-APRESENTADOR-V2-1710
+    } catch (e) { // KINEO-APRESENTADOR-V2-1710
+      console.warn(`[ads-v2] voz ${v2Voice.voiceId} do apresentador v2 falhou order=${order.id}:`, e instanceof Error ? e.message : String(e)) // KINEO-APRESENTADOR-V2-1710
+      if (!fallbackToDefault) throw e // KINEO-APRESENTADOR-V2-1710 — no passo do ator: tenta de novo na próxima volta; na montagem: a voz de sempre
+    } // KINEO-APRESENTADOR-V2-1710
+  } // KINEO-APRESENTADOR-V2-1710
   const presenterId = adsV2PresenterPlanOf(order.plan)?.presenterId ?? null
   const voice = presenterId ? adsV2PresenterVoiceOf(presenterId) : null
   if (!voice || voice.engine !== 'eleven') return synthesizeTtsFallback(text, ctx)
@@ -1076,6 +1121,7 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
   const presenterClip = presenterRow && presenterRow.status === 'done' && presenterRow.stored_url && num(presenterRow.measured_seconds) ? { url: presenterRow.stored_url, measuredSeconds: num(presenterRow.measured_seconds) as number } : null
   let presenterSource: Record<string, unknown> | null = null
   let presenterMiss: string | null = presenterRow ? (presenterClip ? null : `presenter_${presenterRow.status}:${presenterRow.reason ?? ''}`.slice(0, 160)) : null
+  const presenterV2 = presenterClip && (await presenterV2Of(order)) ? adsV2PresenterPlanOf(plan) : null // KINEO-APRESENTADOR-V2-1710 — o pedido no apresentador v2 (a foto real do close = a 2ª referência)
   if (presenterClip) {
     try {
       const frame = renderOutputSpecFor('9:16')
@@ -1098,7 +1144,7 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
         voiceUrl: null,
         voiceSeconds: null,
         tint: variationTintOf(order.brief) ?? null,
-        presenter: { url: presenterClip.url, measuredSeconds: presenterClip.measuredSeconds, insertOrder },
+        presenter: { url: presenterClip.url, measuredSeconds: presenterClip.measuredSeconds, insertOrder, ...(presenterV2 ? { v2: { speechSeconds: voiceSeconds ?? 0, closeUrl: presenterV2.productUrl } } : {}) }, // KINEO-APRESENTADOR-V2-1710 — a estrutura de 15 s: corte no fim real da fala + close da foto real + cartão
       })
     } catch (e) {
       presenterSource = null

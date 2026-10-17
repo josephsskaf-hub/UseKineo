@@ -29,6 +29,7 @@
 // ADS_V2_PRESENTER_PERFORMANCE_PROMPT = PRESENTER_ENERGETIC_PERFORMANCE_PROMPT (lib/avatar/veed.ts), US$/s =
 // PRESENTER_USD_PER_SECOND; v2Tiers.ts (ADS_V2_KLING_AVATAR_SLUG, ADS_V2_ENGINES.kling_avatar) repete o slug e o preço.
 import type { InterfaceLanguage } from '@/lib/ui/interfaceLanguage'
+import type { AdsV2PresenterV2Plan } from '@/lib/ads/v2PresenterV2' // KINEO-APRESENTADOR-V2-1710 — só o tipo (apagado na transpilação: a lib continua pura)
 
 /** Interruptor ÚNICO do ator. false = a tela esconde o cartão e o /plan ignora o campo (o anúncio sai como antes). */
 export const ADS_V2_PRESENTER_PUBLIC = true
@@ -219,6 +220,8 @@ export interface AdsV2PresenterPlan {
    * para medir e para escolher a VOZ dele. Ausente = o sorteio de sempre (a voz de sempre).
    */
   presenterId?: string
+  /** KINEO-APRESENTADOR-V2-1710 — o método novo (2 referências, 4 opções, boca neutra, voz por língua, 15 s): só conta interna. Ausente = o ator de antes. */
+  v2?: AdsV2PresenterV2Plan
 }
 
 const HTTPS_RE = /^https:\/\/\S+$/i

@@ -81,6 +81,8 @@ export type AdsV2PollState = 'pending' | 'processing' | 'done' | 'failed'
 export interface AdsV2Poll {
   state: AdsV2PollState
   url: string | null
+  /** KINEO-APRESENTADOR-V2-1710 — só na imagem: TODAS as imagens https do pedido (num_images 4 = as 4 opções do apresentador). Ausente no vídeo. */
+  urls?: string[]
 }
 
 function pollMessageSignal(detail: unknown): 'explicit_exhausted_balance' | 'other' {
@@ -120,7 +122,8 @@ export async function pollFalJob(model: string, requestId: string, pick: 'video'
       const url = pick === 'video'
         ? (data?.video?.url ?? data?.output?.video?.url ?? null)
         : (Array.isArray(data?.images) ? data.images[0]?.url ?? null : null)
-      return typeof url === 'string' && /^https:\/\//i.test(url) ? { state: 'done', url } : { state: 'processing', url: null }
+      const urls = pick === 'image' && Array.isArray(data?.images) ? data.images.map((im) => im?.url).filter((u): u is string => typeof u === 'string' && /^https:\/\//i.test(u)) : [] // KINEO-APRESENTADOR-V2-1710 — as 4 opções do apresentador (a 1ª continua sendo `url`)
+      return typeof url === 'string' && /^https:\/\//i.test(url) ? { state: 'done', url, ...(pick === 'image' ? { urls } : {}) } : { state: 'processing', url: null } // KINEO-APRESENTADOR-V2-1710 — + urls na imagem
     }
     if (status === 'FAILED' && idMatches) return { state: 'failed', url: null }
     return { state: 'processing', url: null }

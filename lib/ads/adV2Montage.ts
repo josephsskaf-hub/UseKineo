@@ -203,6 +203,14 @@ export interface AdV2PresenterInput {
   /** Posições em `shots` na ordem de preferência dos inserts (estilo → herói → produto → lugar → gente → vídeo). */
   insertOrder: readonly number[]
   fill?: boolean // KINEO-ADS-POS-ENTREGA-1510 — quadro que não é 9:16: o ator INTEIRO sobre fundo suave e o cartão no quadro (adsV2CardFrame)
+  v2?: AdV2PresenterV2Input | null // KINEO-APRESENTADOR-V2-1710 — o apresentador v2 (só conta interna): corte no fim real da fala + close da foto real + cartão
+}
+/** KINEO-APRESENTADOR-V2-1710 — o que a estrutura de 15 s do apresentador v2 precisa: a duração MEDIDA da voz e a foto REAL do produto. */
+export interface AdV2PresenterV2Input {
+  /** Duração da voz que guiou o avatar (s): a fala termina aqui dentro do clipe (o motor devolve ~10,1 s para ~8 s de áudio). */
+  speechSeconds: number
+  /** A foto REAL do produto (a 2ª referência da foto do apresentador), no close de ~2 s depois da fala. */
+  closeUrl: string
 }
 
 /** Véu aceito: rgba com alfa entre 0,05 e 0,3 (mais que isso lava a foto). */
@@ -472,7 +480,100 @@ export function adsV2PresenterInserts(mainSeconds: number, shots: readonly AdV2M
   return out
 }
 
+// ── KINEO-APRESENTADOR-V2-1710 — a ESTRUTURA DE 15 s do apresentador v2 (lib/ads/v2PresenterV2.ts) ─────────────────────────────────────
+// KINEO-APRESENTADOR-V2-1710 — apresentador de 0 ao FIM REAL DA FALA (a voz medida + 0,15 s; o motor devolve ~10,1 s para ~8 s de áudio e a cauda
+// KINEO-APRESENTADOR-V2-1710 — é ela sorrindo calada, com uma "quebra" no fim), no máximo 1 corte (insert) no meio; no ponto do corte, dissolve para o
+// KINEO-APRESENTADOR-V2-1710 — CLOSE da foto REAL do produto (~2 s, o packshot: nada do produto cortado, zoom lento) e o cartão de 2,5 s. Total ≈ 15 s
+// KINEO-APRESENTADOR-V2-1710 — com ~10,3 s de voz; voz mais longa = filme um pouco mais longo (passar do alvo é bom; amputar a fala, nunca).
+/** KINEO-APRESENTADOR-V2-1710 — folga depois do fim da fala antes do corte. */
+export const ADS_V2_PRESENTER_V2_SPEECH_PAD = 0.15
+/** KINEO-APRESENTADOR-V2-1710 — o close da foto real do produto. */
+export const ADS_V2_PRESENTER_V2_CLOSE_SECONDS = 2
+/** KINEO-APRESENTADOR-V2-1710 — no máximo 1 corte dentro da fala. */
+export const ADS_V2_PRESENTER_V2_MAX_INSERTS = 1
+/**
+ * KINEO-APRESENTADOR-V2-1710 — a linha do tempo (pura): `cut` = fim do apresentador (fala + 0,15 s, sem passar do clipe menos o dissolve), o close de
+ * `cut` a `cardStart`, o cartão até `total`. Voz sem medida = o clipe inteiro (o corte de antes). null = clipe curto demais.
+ */
+export function adsV2PresenterV2Timeline(i: { clipSeconds: number; speechSeconds: number | null | undefined; cardSeconds: number }): { cut: number; cardStart: number; total: number } | null {
+  if (!finitePos(i?.clipSeconds) || !finitePos(i?.cardSeconds)) return null
+  const room = r3(i.clipSeconds - ADS_V2_MONTAGE_FADE)
+  const cut = finitePos(i.speechSeconds) ? r3(Math.min(i.speechSeconds + ADS_V2_PRESENTER_V2_SPEECH_PAD, room)) : room
+  if (cut < ADS_V2_PRESENTER_MIN_SECONDS) return null
+  const cardStart = r3(cut + ADS_V2_PRESENTER_V2_CLOSE_SECONDS)
+  return { cut, cardStart, total: r3(cardStart + i.cardSeconds) }
+}
+
+function buildAdV2PresenterV2Source(input: AdV2MontageInput, presenter: AdV2PresenterInput, v2: AdV2PresenterV2Input): Record<string, unknown> { // KINEO-APRESENTADOR-V2-1710
+  const { width, height } = input
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0 || width % 2 || height % 2) throw new Error('ads_v2_montage_bad_size')
+  if (!isHttps(presenter?.url)) throw new Error('ads_v2_montage_bad_presenter')
+  if (!finitePos(presenter.measuredSeconds)) throw new Error('ads_v2_montage_presenter_unmeasured')
+  if (!isHttps(v2?.closeUrl)) throw new Error('ads_v2_montage_bad_close')
+  if (!isHttps(input.cardUrl)) throw new Error('ads_v2_montage_bad_card')
+  const cardSeconds = input.cardSeconds ?? 2.5
+  if (!finitePos(cardSeconds)) throw new Error('ads_v2_montage_bad_card_seconds')
+  const fontFamily = typeof input.fontFamily === 'string' && input.fontFamily.trim() ? input.fontFamily.trim() : ''
+  if (!fontFamily) throw new Error('ads_v2_montage_bad_font')
+  const t = adsV2PresenterV2Timeline({ clipSeconds: presenter.measuredSeconds, speechSeconds: v2.speechSeconds, cardSeconds })
+  if (!t) throw new Error(`ads_v2_montage_presenter_too_short:${r3(presenter.measuredSeconds)}`)
+  const shots = Array.isArray(input.shots) ? input.shots : []
+  const elements: Record<string, unknown>[] = []
+  elements.push({ type: 'shape', track: 1, time: 0, duration: t.total, x: '50%', y: '50%', width: '100%', height: '100%', path: ADS_V2_RECT_PATH, fill_color: '#000000' })
+  // O apresentador COM o som (a voz é a dele), do 0 ao corte — e o dissolve por baixo do close (a fala já acabou 0,15 s antes do corte).
+  elements.push({ type: 'video', track: ADS_V2_PRESENTER_TRACK, time: 0, duration: r3(t.cut + ADS_V2_MONTAGE_FADE), source: presenter.url.trim(), fit: 'cover', loop: false, trim_start: 0, x: '50%', y: '50%', width: '100%', height: '100%', volume: '100%' })
+  // No máximo 1 corte dentro da fala: um insert do cliente (nunca a foto do produto: ela é o close logo depois).
+  const noPackshot = shots.map((s) => (s && s.kind === 'text' && s.packshot === true ? { ...s, url: '' } : s))
+  for (const ins of adsV2PresenterInserts(t.cut, noPackshot, presenter.insertOrder).slice(0, ADS_V2_PRESENTER_V2_MAX_INSERTS)) {
+    const shot = shots[ins.shot]
+    const start = typeof shot.cutStart === 'number' && Number.isFinite(shot.cutStart) && shot.cutStart >= 0 ? shot.cutStart : 0
+    const frame = shot.kind === 'user_video' ? userVideoFrame(width, height, shot.videoWidth, shot.videoHeight, shot.focusX, shot.focusY) : { x: '50%', y: '50%', width: '100%', height: '100%' }
+    elements.push({ type: 'video', track: ADS_V2_PRESENTER_INSERT_TRACK, time: ins.time, duration: ins.seconds, source: shot.url.trim(), fit: 'cover', loop: false, trim_start: r3(start), ...frame, volume: '0%' })
+  }
+  // O close da foto REAL do produto, na trilha do apresentador: entra com dissolve no ponto do corte e fica por baixo do cartão.
+  elements.push(...adsV2PackshotElements(v2.closeUrl, ADS_V2_PRESENTER_TRACK, t.cut, r3(ADS_V2_PRESENTER_V2_CLOSE_SECONDS + ADS_V2_MONTAGE_FADE), { enter_transition: { type: 'fade', duration: ADS_V2_MONTAGE_FADE } }))
+  // O cartão final (logo real) até o último quadro.
+  elements.push({ type: 'image', track: 3, time: t.cardStart, duration: r3(cardSeconds), source: input.cardUrl.trim(), fit: 'cover', x: '50%', y: '50%', width: '100%', height: '100%', enter_transition: { type: 'fade', duration: ADS_V2_MONTAGE_FADE } })
+  const tint = input.tint ?? null
+  if (tint !== null) {
+    if (typeof tint !== 'string' || !ADS_V2_TINT_RE.test(tint)) throw new Error('ads_v2_montage_bad_tint')
+    elements.push({ type: 'shape', track: ADS_V2_TINT_TRACK, time: 0, duration: t.cardStart, x: '50%', y: '50%', width: '100%', height: '100%', path: ADS_V2_RECT_PATH, fill_color: tint })
+  }
+  // Frases: validadas contra a linha do tempo do PLANO e esticadas para a da FALA (só sobre o apresentador; o close fica limpo).
+  const shotsSeconds = r3(shots.reduce((sum, s) => sum + (finitePos(s?.cutSeconds) ? s.cutSeconds : 0), 0))
+  const overlays = Array.isArray(input.overlays) ? input.overlays : []
+  if (overlays.length > ADS_V2_MAX_OVERLAYS) throw new Error('ads_v2_montage_too_many_overlays')
+  const scale = shotsSeconds > 0 ? t.cut / shotsSeconds : 1
+  overlays.forEach((o, i) => {
+    const text = typeof o?.text === 'string' ? o.text.trim() : ''
+    if (!text) throw new Error(`ads_v2_montage_empty_overlay:${i}`)
+    if (!(Number.isFinite(o.start) && Number.isFinite(o.end) && o.start >= 0 && o.end > o.start && o.end <= shotsSeconds)) throw new Error(`ads_v2_montage_overlay_window:${i}`)
+    const start = r3(o.start * scale)
+    const end = r3(Math.min(o.end * scale, t.cut))
+    if (!(end > start)) throw new Error(`ads_v2_montage_overlay_window:${i}`)
+    const geo = adsV2OverlayGeometry(text, width, height, null)
+    elements.push({ type: 'text', track: 4, time: start, duration: r3(end - start), text, x: '50%', y: geo.y, x_anchor: '50%', y_anchor: geo.y_anchor, x_alignment: '50%', width: geo.width, font_family: fontFamily, font_size: geo.font_size, font_weight: '800', line_height: '110%', fill_color: '#ffffff', stroke_color: 'rgba(0,0,0,0.55)', stroke_width: 2, background_color: 'rgba(0,0,0,0.55)', background_x_padding: '3%', background_y_padding: '2%', border_radius: 10, enter_transition: { type: 'fade', duration: 0.2 } })
+  })
+  // NENHUM elemento de voz (a voz é o som do apresentador). Música baixa sob a fala; sobe logo depois do corte.
+  if (input.musicUrl) {
+    if (!isHttps(input.musicUrl)) throw new Error('ads_v2_montage_bad_music')
+    const trim = input.musicTrimStart ?? 0
+    if (!(typeof trim === 'number' && Number.isFinite(trim) && trim >= 0)) throw new Error('ads_v2_montage_bad_music_trim')
+    const source = input.musicUrl.trim()
+    const musicEl = (time: number, duration: number, start: number, volume: string, fadeIn: number, fadeOut: number): Record<string, unknown> => ({ type: 'audio', track: 6, time: r3(time), duration: r3(duration), source, volume, ...(start > 0 ? { trim_start: r3(start) } : { loop: true }), audio_fade_in: fadeIn, audio_fade_out: fadeOut })
+    const rise = r3(t.cut + ADS_V2_MUSIC_RISE_AFTER_VOICE)
+    if (rise < t.total - 0.5) {
+      elements.push(musicEl(0, rise, trim, ADS_V2_MUSIC_VOLUME_PRESENTER, 0.5, 0.3))
+      elements.push(musicEl(rise, t.total - rise, trim + rise, ADS_V2_MUSIC_VOLUME_NO_VOICE, 0.6, 1))
+    } else {
+      elements.push(musicEl(0, t.total, trim, ADS_V2_MUSIC_VOLUME_PRESENTER, 0.5, 1))
+    }
+  }
+  return { output_format: 'mp4', width, height, frame_rate: ADS_V2_FRAME_RATE, duration: t.total, snapshot_time: 1, elements }
+}
+
 function buildAdV2PresenterSource(input: AdV2MontageInput, presenter: AdV2PresenterInput): Record<string, unknown> {
+  if (presenter && presenter.v2) return buildAdV2PresenterV2Source(input, presenter, presenter.v2) // KINEO-APRESENTADOR-V2-1710 — o apresentador v2: a estrutura de 15 s (abaixo, o ator de antes intocado)
   const { width, height } = input
   if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0 || width % 2 || height % 2) {
     throw new Error('ads_v2_montage_bad_size')
