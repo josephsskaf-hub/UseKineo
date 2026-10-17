@@ -27,6 +27,7 @@ import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semModeracao1410 } from './test-support/desfaz-moderacao-1410.mjs' // reancorado KINEO-MODERACAO-1410
 import { semRetentarCena1410, MARCA_RETENTAR_CENA_1410, ARQUIVO_RETOMADA_1410, ARQUIVO_CRON_1410, ARQUIVO_LIB_NOVA_1410, FORMA_RETENTAR_CENA_1410 } from './test-support/desfaz-retentar-cena-1410.mjs'
+import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]: a entrega mais nova sai antes da comparação com a base
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(RAIZ)
@@ -363,7 +364,7 @@ for (const f of [ARQUIVO_RETOMADA_1410, ARQUIVO_CRON_1410]) {
   const naBase = gitBruto('show',`${base}:${f}`).replace(/\r\n/g, '\n')
   const atual = rd(f)
   let desfeito = null
-  try { desfeito = semRetentarCena1410(atual, f) } catch (e) { console.log('  ' + e.message) }
+  try { desfeito = semRetentarCena1410(semFilmeRapido1710(atual, f) /* reancorado KINEO-FILME-RAPIDO-1710 */, f) } catch (e) { console.log('  ' + e.message) }
   checa(`${f}: desfeito = EXATAMENTE a base (${FORMA_RETENTAR_CENA_1410[f].trocas} trocas, ${FORMA_RETENTAR_CENA_1410[f].acrescimos} acréscimos)`, desfeito !== null && naBase.length > 0 && desfeito === naBase)
   checa(`${f}: a base não tem a marca e o desfaz é idempotente nela`, !naBase.includes(MARCA_RETENTAR_CENA_1410) && semRetentarCena1410(naBase, f) === naBase)
 }

@@ -26,6 +26,7 @@ import { execFileSync } from 'node:child_process'
 import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-2026-10-13.mjs'
 import { desfazEscritorOmni } from './test-support/desfaz-escritor-omni-1310.mjs' // reancorado 13/10 (KINEO-ESCRITOR-MONUMENTO-2026-10-13 · KINEO-OMNI-ETAPA1-2026-10-13, 'tudo sim' do fundador): runway/compose/cinematic sem as mudanças de 13/10, em memória, antes do byte a byte
 import { desfazEstornoNarracao } from './test-support/desfaz-escritor-omni-1310.mjs' // reancorado KINEO-LEVA3-1310 [TRAVA 8.2 — vai do fundador 13/10 'tudo sim nos 3 consertos']: lib/compose.ts sem o conserto da narração (KINEO-ESTORNO-NARRACAO-2026-10-13), em memória, antes do byte a byte
+import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]: o /api/compose ganhou só linhas marcadas (voz e música no clique)
 import { desfazParceiroEyebible1410 } from './test-support/desfaz-parceiro-eyebible-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-1410 [TRAVA 8.2 — vai do fundador 14/10]: os arquivos do conserto do Robert/EyeBible saem em memória antes do byte a byte
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -622,7 +623,7 @@ const rdBase = (p) => { try { return git(['show', `${BASE}:${p}`]).replace(/\r\n
 const semMarca = (s) => s.split('\n').filter((l) => !l.includes(MARCA)).join('\n')
 function problemasTrava(rota) {
   if (!BASE) return ['sem base de comparação']
-  return semMarca(desfazEscritorOmni(ROTA, desfazH3max(ROTA, desfazParceiroEyebible1410(ROTA, rota)))) === rdBase(ROTA) ? [] : ['/api/compose: há linha nova ou alterada sem a marca ' + MARCA] // KINEO-H3MAX-2026-10-13 — reancorado (ver o import)
+  return semMarca(desfazEscritorOmni(ROTA, desfazH3max(ROTA, desfazParceiroEyebible1410(ROTA, semFilmeRapido1710(rota, ROTA) /* reancorado KINEO-FILME-RAPIDO-1710 */)))) === rdBase(ROTA) ? [] : ['/api/compose: há linha nova ou alterada sem a marca ' + MARCA] // KINEO-H3MAX-2026-10-13 — reancorado (ver o import)
 }
 
 // ═══ execução ═══════════════════════════════════════════════════════════════════════════════════════════════════════

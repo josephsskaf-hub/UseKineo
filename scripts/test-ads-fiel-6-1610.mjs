@@ -34,10 +34,11 @@ import { semFiel5_1510, desfazFiel5_1510 } from './test-support/desfaz-ads-fiel-
 import { semVolta1510, desfazVolta1510 } from './test-support/desfaz-ads-fiel-volta-1510.mjs'
 import { semFielLiga1510 } from './test-support/desfaz-ads-fiel-liga-1510.mjs'
 import { semFiel7_1610 } from './test-support/desfaz-ads-fiel-7-1610.mjs' // reancorado KINEO-ADS-FIEL-7-1610 — base sempre fixa + caixa-chute (reteste 96fbb38f)
+import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]: a entrega mais nova sai antes da comparação com a base
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-FIEL-6-1610'
-const rd = (p) => semFiel7_1610(p, readFileSync(join(ROOT, p), 'utf8')) // reancorado KINEO-ADS-FIEL-7-1610 — a fiel-7 veio depois (base sempre fixa, caixa-chute): este guardião lê o texto SEM ela (semFiel7_1610 já devolve LF)
+const rd = (p) => semFiel7_1610(p, semFilmeRapido1710(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-ADS-FIEL-7-1610 — a fiel-7 veio depois (base sempre fixa, caixa-chute): este guardião lê o texto SEM ela (semFiel7_1610 já devolve LF) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 let BASE = 'HEAD'
 let ULTIMO = null

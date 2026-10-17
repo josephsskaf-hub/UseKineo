@@ -6,6 +6,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 import ts from 'typescript'
+import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]: a entrega mais nova sai antes da comparação com a base
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 let assertions = 0
@@ -170,7 +171,7 @@ for (const { block, unlock } of callers) {
   const shared = rt.load('lib/musicScore.ts').selectMusicForScript
   const run = vm.runInNewContext(`(async () => { let musicUrl = null; let hollywoodMusicUrl = null; ${ts.transpileModule(block, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText}; return musicUrl || hollywoodMusicUrl; })`, {
     voiceoverScript: 'An unsolved mystery.', scaledScript: 'An epic historical war.',
-    rawVoiceover: 'An unsolved mystery.', body: { topic: 'Music: none' }, vertical: 'history',
+    rawVoiceover: 'An unsolved mystery.', body: { topic: 'Music: none' }, vertical: 'history', audioDoClique: { musica: undefined }, /* reancorado KINEO-FILME-RAPIDO-1710: a trilha do clique (ausente aqui = o caminho de sempre) */
     console: rt.context.console,
     selectMusicForScript: async input => { selectedInput = input; return shared(input) },
   })
@@ -183,7 +184,7 @@ for (const { block, unlock } of callers) {
     const moods = []
     const runEmotion = vm.runInNewContext(`(async () => { let musicUrl = null; let hollywoodMusicUrl = null; ${ts.transpileModule(block, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText}; })`, {
       voiceoverScript: script, scaledScript: 'An unrelated epic historical war.', rawVoiceover: script,
-      body: { topic: script }, vertical: 'history', console: rt.context.console,
+      body: { topic: script }, vertical: 'history', console: rt.context.console, audioDoClique: { musica: undefined }, /* reancorado KINEO-FILME-RAPIDO-1710 */
       selectMusicForScript: async input => { moods.push(direction(input)); return null },
     })
     await runEmotion()
@@ -261,7 +262,7 @@ for (const { block, unlock } of callers) {
   const shared = rt.load('lib/musicScore.ts').selectMusicForScript
   const run = vm.runInNewContext(`(async () => { let musicUrl = null; let hollywoodMusicUrl = null; ${ts.transpileModule(block, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText}; return musicUrl || hollywoodMusicUrl; })`, {
     voiceoverScript: 'Um mistério inquietante.', scaledScript: 'Uma guerra épica.',
-    rawVoiceover: 'Um mistério inquietante.', body: { topic: 'Música: sem música' }, vertical: 'history',
+    rawVoiceover: 'Um mistério inquietante.', body: { topic: 'Música: sem música' }, vertical: 'history', audioDoClique: { musica: undefined }, /* reancorado KINEO-FILME-RAPIDO-1710 */
     console: rt.context.console,
     selectMusicForScript: async input => { selectedInput = input; return shared(input) },
   })
@@ -272,7 +273,7 @@ for (const { block, unlock } of callers) {
     const moods = []
     const runEmotion = vm.runInNewContext(`(async () => { let musicUrl = null; let hollywoodMusicUrl = null; ${ts.transpileModule(block, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText}; })`, {
       voiceoverScript: script, scaledScript: 'Uma guerra épica sem relação.', rawVoiceover: script,
-      body: { topic: script }, vertical: 'history', console: rt.context.console,
+      body: { topic: script }, vertical: 'history', console: rt.context.console, audioDoClique: { musica: undefined }, /* reancorado KINEO-FILME-RAPIDO-1710 */
       selectMusicForScript: async input => { moods.push(direction(input)); return null },
     })
     await runEmotion()

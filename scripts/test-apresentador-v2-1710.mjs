@@ -25,11 +25,12 @@ import { semApresentadorV2_1710, comApresentadorV2_1710, desfazApresentadorV2_17
 import { desfazJuizGrade1610, semJuizGrade1610 } from './test-support/desfaz-juiz-grade-1610.mjs'
 import { desfazMaoJuiz1610 } from './test-support/desfaz-ads-mao-juiz-1610.mjs'
 import { desfazApresentadorV2Ajuste1710 } from './test-support/desfaz-apresentador-v2-ajuste-1710.mjs' // reancorado KINEO-APRESENTADOR-V2-AJUSTE-1710
+import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]: a entrega mais nova sai antes da comparação com a base
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-APRESENTADOR-V2-1710'
-const rd = (p) => desfazApresentadorV2Ajuste1710(p, readFileSync(join(ROOT, p), 'utf8')) // reancorado KINEO-APRESENTADOR-V2-AJUSTE-1710 — o ajuste do apresentador v2 (17/10) veio depois: este guardião lê o texto SEM ele (já LF); o ajuste é provado em scripts/test-apresentador-v2-ajuste-1710.mjs
+const rd = (p) => desfazApresentadorV2Ajuste1710(p, semFilmeRapido1710(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-APRESENTADOR-V2-AJUSTE-1710 — o ajuste do apresentador v2 (17/10) veio depois: este guardião lê o texto SEM ele (já LF); o ajuste é provado em scripts/test-apresentador-v2-ajuste-1710.mjs /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return git('show', `${APRESENTADOR_V2_1710_BASE}:${p}`).replace(/\r\n/g, '\n') } catch { return null } }
 let pass = 0

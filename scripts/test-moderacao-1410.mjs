@@ -18,11 +18,12 @@ import ts from 'typescript'
 import { semModeracao1410, ARQUIVOS_MODERACAO_1410, FORMA_MODERACAO_1410, MARCA_MODERACAO_1410 } from './test-support/desfaz-moderacao-1410.mjs'
 import { semDemoUniverso1410 } from './test-support/desfaz-ads-demo-universo-1410.mjs' // reancorado KINEO-ADS-DEMO-UNIVERSO-1410
 import { semMarcas1510 } from './test-support/desfaz-ads-marcas-1510.mjs' // reancorado KINEO-ADS-MARCAS-1510
+import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]
 import { semS25FotoClipes1610 } from './test-support/desfaz-s25-foto-clipes-1610.mjs' // reancorado KINEO-S25-FOTO-CLIPES-1610
 import { semLista1510 } from './test-support/desfaz-ads-lista-1510.mjs' // reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai em memória antes de todo desfaz mais antigo
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => semMarcas1510(p, semLista1510(p, semS25FotoClipes1610(p, readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')))) // reancorado KINEO-S25-FOTO-CLIPES-1610 — o motivo da fal no clipServer (o mais novo) sai antes de tudo · reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai antes de todos
+const rd = (p) => semMarcas1510(p, semLista1510(p, semS25FotoClipes1610(p, semFilmeRapido1710(readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'), p) /* reancorado KINEO-FILME-RAPIDO-1710 — a mais nova sai antes de tudo */))) // reancorado KINEO-S25-FOTO-CLIPES-1610 — o motivo da fal no clipServer (o mais novo) sai antes de tudo · reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai antes de todos
 let passou = 0
 const falhas = []
 const ok = (cond, nome) => { if (cond) passou++; else falhas.push(nome) }

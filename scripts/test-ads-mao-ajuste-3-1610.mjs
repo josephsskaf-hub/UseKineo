@@ -30,11 +30,12 @@ import { semProdutoNaMao1610, desfazProdutoNaMao1610 } from './test-support/desf
 import { desfazFiel7_1610 } from './test-support/desfaz-ads-fiel-7-1610.mjs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semMaoJuiz1610 } from './test-support/desfaz-ads-mao-juiz-1610.mjs' // reancorado KINEO-ADS-MAO-JUIZ-1610
+import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]: a entrega mais nova sai antes da comparação com a base
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-MAO-AJUSTE-3-1610'
-const rd = (p) => semMaoJuiz1610(p, readFileSync(join(ROOT, p), 'utf8')) // reancorado KINEO-ADS-MAO-JUIZ-1610 — o conserto do juiz veio depois: este guardião lê o texto SEM ele (já LF); ele é provado em scripts/test-ads-mao-juiz-1610.mjs
+const rd = (p) => semMaoJuiz1610(p, semFilmeRapido1710(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-ADS-MAO-JUIZ-1610 — o conserto do juiz veio depois: este guardião lê o texto SEM ele (já LF); ele é provado em scripts/test-ads-mao-juiz-1610.mjs /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return git('show', `${MAO_AJUSTE_3_1610_BASE}:${p}`).replace(/\r\n/g, '\n') } catch { return null } }
 let pass = 0
@@ -425,7 +426,7 @@ await check('D2 todo bloco do desfaz traz a marca; o diff contra a base só toca
   const tocados = git('diff', '--name-only', MAO_AJUSTE_3_1610_BASE, TOPO).trim().split('\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\n').filter(Boolean))
   const permitidos = new Set([...MAO_AJUSTE_3_1610_ARQUIVOS, ...MAO_AJUSTE_3_1610_NOVOS])
   return blocos.length > 0 && blocos.every((h) => h.now.join('\n').includes(MARCA)) && tocados.every((f) => permitidos.has(f)) &&
-    [F.tiers, F.engines, F.shotLists, F.contract, 'lib/ads/v2Billing.ts', 'lib/ads/v2StartCore.ts', 'lib/ads/v2ProductInHandServer.ts', 'lib/ads/v2ProductLockServer.ts', 'app/api/ads/v2/start/route.ts', 'app/api/ads/v2/plan/route.ts', 'lib/ttsFallback.ts', 'lib/ads/adV2Montage.ts', 'lib/compose.ts', 'app/api/compose/route.ts'].every((f) => base(f) === rd(f))
+    [F.tiers, F.engines, F.shotLists, F.contract, 'lib/ads/v2Billing.ts', 'lib/ads/v2StartCore.ts', 'lib/ads/v2ProductInHandServer.ts', 'lib/ads/v2ProductLockServer.ts', 'app/api/ads/v2/start/route.ts', 'app/api/ads/v2/plan/route.ts', 'lib/ttsFallback.ts', 'lib/ads/adV2Montage.ts', 'lib/compose.ts', 'app/api/compose/route.ts'].every((f) => base(f) === semFilmeRapido1710(rd(f), f) /* reancorado KINEO-FILME-RAPIDO-1710 */)
 })
 await check('D3 encadeamento: o desfaz do ajuste de antes, o do produto na mão e o da fiel-7 tiram esta camada PRIMEIRO; texto sem a marca e null passam igual', () => {
   const tudo = [F.advance, F.planCore, F.ih, F.vision]

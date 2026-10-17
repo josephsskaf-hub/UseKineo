@@ -34,10 +34,11 @@ import { desfazPosEntrega1510 } from './test-support/desfaz-ads-pos-entrega-1510
 import { semLista1510 } from './test-support/desfaz-ads-lista-1510.mjs' // reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai em memória antes de todo desfaz mais antigo
 import { semFiel2_1510 } from './test-support/desfaz-ads-fiel-2-1510.mjs' // reancorado KINEO-ADS-FIEL-2-1510 — o conserto mais novo do Ads sai PRIMEIRO, em memória
 import { semFiel3_1510 } from './test-support/desfaz-ads-fiel-3-1510.mjs' // reancorado KINEO-ADS-FIEL-3-1510 — o conserto mais novo do Ads sai PRIMEIRO, em memória
+import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]: a entrega mais nova sai antes da comparação com a base
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
-const read = (rel) => semFiel2_1510(rel, semFiel3_1510(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8'))) // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória
+const read = (rel) => semFilmeRapido1710(semFiel2_1510(rel, semFiel3_1510(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8'))), rel) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai por fora, em memória */ // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 64 << 20 })
 const MARCA = MARCA_MARCAS_1510
 const criou = (() => { try { return git('log', '--format=%H', '--diff-filter=A', '--', 'lib/ads/brands.ts').trim().split('\n').filter(Boolean).pop() || '' } catch { return '' } })()

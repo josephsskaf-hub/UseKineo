@@ -29,11 +29,12 @@ import { semFielLiga1510, comLiga1510, FIEL_LIGA_1510_ARQUIVOS, FIEL_LIGA_1510_N
 import { semVolta1510, desfazVolta1510, comVolta1510, FIEL_VOLTA_1510_ARQUIVOS, FIEL_VOLTA_1510_NOVOS, MARCA_FIEL_VOLTA_1510 } from './test-support/desfaz-ads-fiel-volta-1510.mjs' // reancorado KINEO-ADS-FIEL-VOLTA-1510 — rollback 15/10 noite: reteste Fiel 5 reprovou (exemplo 0.637 copiado, corner_person falso)
 import { semFiel5_1510 } from './test-support/desfaz-ads-fiel-5-1510.mjs' // integrado à fiel-5 (merge 15/10): o texto sem o liga ainda traz a fiel-5; desfeita ela também, é a base c56e121ee
 import { desfazFiel6_1610 } from './test-support/desfaz-ads-fiel-6-1610.mjs' // reancorado KINEO-ADS-FIEL-6-1610 — conserto da conferência (reteste 96788559): o liga e o rollback já desfazem a fiel-6 primeiro; o "vivo" das idas é o vivo SEM a fiel-6
+import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]: a entrega mais nova sai antes da comparação com a base
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-FIEL-LIGA-1510'
-const rd = (p) => readFileSync(join(ROOT, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semFilmeRapido1710(readFileSync(join(ROOT, p), 'utf8'), p).replace(/\r\n/g, '\n') /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 let BASE = 'HEAD'
 let ULTIMO = null

@@ -25,11 +25,12 @@ import { semApresentadorV2Ajuste3_1710, comApresentadorV2Ajuste3_1710, desfazApr
 import { desfazApresentadorV2Ajuste1710, semApresentadorV2Ajuste1710 } from './test-support/desfaz-apresentador-v2-ajuste-1710.mjs'
 import { desfazApresentadorV2_1710, semApresentadorV2_1710 } from './test-support/desfaz-apresentador-v2-1710.mjs'
 import { desfazJuizGrade1610 } from './test-support/desfaz-juiz-grade-1610.mjs'
+import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]: a entrega mais nova sai antes da comparação com a base
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-APRESENTADOR-V2-AJUSTE-3-1710'
-const rd = (p) => readFileSync(join(ROOT, p), 'utf8').replace(/\r\n/g, '\n') // o arquivo VIVO (esta é a camada mais nova)
+const rd = (p) => semFilmeRapido1710(readFileSync(join(ROOT, p), 'utf8'), p).replace(/\r\n/g, '\n') // o arquivo VIVO (esta é a camada mais nova) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return git('show', `${APRESENTADOR_V2_AJUSTE_3_1710_BASE}:${p}`).replace(/\r\n/g, '\n') } catch { return null } }
 let pass = 0

@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
 import { desfazStudioFantasma1510 } from './test-support/desfaz-studio-fantasma-1510.mjs'
+import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]: o GenerateClient ganhou só linhas marcadas (link trocado depois da resposta)
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -190,11 +191,11 @@ console.log('— desfaz (base ' + BASE_REF + ')')
 const NL = String.fromCharCode(10)
 const semCR = (t) => t.split(String.fromCharCode(13)).join('')
 const baseGen = semCR(execFileSync('git', ['-C', ROOT, 'show', BASE_REF + ':' + GEN_REL], { encoding: 'utf8', maxBuffer: 1 << 28 }))
-ok(desfazStudioFantasma1510(GEN_REL, GEN) === baseGen, 'desfeito este conserto, o GenerateClient é a base byte a byte')
+ok(desfazStudioFantasma1510(GEN_REL, semFilmeRapido1710(GEN, GEN_REL) /* reancorado KINEO-FILME-RAPIDO-1710 */) === baseGen, 'desfeito este conserto, o GenerateClient é a base byte a byte')
 ok(desfazStudioFantasma1510('lib/x.ts', 'a KINEO-STUDIO-FANTASMA-1510') === 'a KINEO-STUDIO-FANTASMA-1510' && desfazStudioFantasma1510(GEN_REL, 'x' + NL + 'y') === 'x' + NL + 'y', 'o desfaz não toca outro arquivo nem arquivo sem a marca')
 ok((() => { try { desfazStudioFantasma1510(GEN_REL, GEN.replace('data-testid="done-download-top"', 'data-testid="x"')); return false } catch { return true } })(), 'o desfaz recusa conserto pela metade')
 const hunks = semCR(execFileSync('git', ['-C', ROOT, 'diff', '-U0', '--no-color', BASE_REF, '--', GEN_REL], { encoding: 'utf8', maxBuffer: 1 << 28 })).split(NL + '@@').slice(1)
-ok(hunks.length > 0 && hunks.every((h) => { const add = h.split(NL).filter((l) => l.startsWith('+') && !l.startsWith('+++')); return add.length === 0 || add.some((l) => l.includes('KINEO-STUDIO-FANTASMA-1510')) }), 'todo bloco novo no GenerateClient traz a marca KINEO-STUDIO-FANTASMA-1510')
+ok(hunks.length > 0 && hunks.every((h) => { const add = h.split(NL).filter((l) => l.startsWith('+') && !l.startsWith('+++')); return add.length === 0 || add.some((l) => l.includes('KINEO-STUDIO-FANTASMA-1510')) || add.every((l) => l.includes('KINEO-FILME-RAPIDO-1710')) /* reancorado KINEO-FILME-RAPIDO-1710: blocos dela, todos marcados */ }), 'todo bloco novo no GenerateClient traz a marca KINEO-STUDIO-FANTASMA-1510')
 
 // ── Mutantes ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 console.log('— mutantes (cada um precisa ficar vermelho)')

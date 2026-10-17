@@ -27,10 +27,11 @@ import ts from 'typescript'
 import { semFiel4_1510, FIEL_4_1510_ARQUIVOS, FIEL_4_1510_NOVOS, FIEL_4_1510_BASE, MARCA_FIEL_4_1510 } from './test-support/desfaz-ads-fiel-4-1510.mjs'
 import { semFiel5_1510 } from './test-support/desfaz-ads-fiel-5-1510.mjs' // reancorado KINEO-ADS-FIEL-5-1510 — o conserto mais novo do Ads (a base do produto no tampo lido) sai PRIMEIRO, em memória
 import { semFielLiga1510 } from './test-support/desfaz-ads-fiel-liga-1510.mjs' // reancorado KINEO-ADS-FIEL-LIGA-1510 — fundador ligou para todos em 15/10; o liga (o mais novo da trava) sai PRIMEIRO, colado no readFileSync, em memória
+import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]: a entrega mais nova sai antes da comparação com a base
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-FIEL-4-1510'
-const rd = (p) => semFiel5_1510(p, semFielLiga1510(p, readFileSync(join(ROOT, p), 'utf8'))) // reancorado KINEO-ADS-FIEL-5-1510 — esta prova roda a trava da Fiel 4 (base fixa); a base no tampo sai antes, byte a byte (semFiel5_1510 já devolve LF) · reancorado KINEO-ADS-FIEL-LIGA-1510 — o liga (o mais novo) sai PRIMEIRO, colado no readFileSync
+const rd = (p) => semFiel5_1510(p, semFielLiga1510(p, semFilmeRapido1710(readFileSync(join(ROOT, p), 'utf8'), p))) // reancorado KINEO-ADS-FIEL-5-1510 — esta prova roda a trava da Fiel 4 (base fixa); a base no tampo sai antes, byte a byte (semFiel5_1510 já devolve LF) · reancorado KINEO-ADS-FIEL-LIGA-1510 — o liga (o mais novo) sai PRIMEIRO, colado no readFileSync /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 let BASE = 'HEAD'
 let ULTIMO = null

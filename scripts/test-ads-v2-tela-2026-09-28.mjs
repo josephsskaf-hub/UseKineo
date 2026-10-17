@@ -19,9 +19,10 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { semRefacaoAtor1410 } from './test-support/desfaz-ads-refacao-ator-1410.mjs' // reancorado KINEO-ADS-REFACAO-ATOR-1410
 import { semMarcas1510 } from './test-support/desfaz-ads-marcas-1510.mjs' // reancorado KINEO-ADS-MARCAS-1510
 import { semLista1510 } from './test-support/desfaz-ads-lista-1510.mjs' // reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai em memória antes de todo desfaz mais antigo
+import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]: a entrega mais nova sai antes da comparação com a base
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => semMarcas1510(p, semLista1510(p, readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'))) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai antes de todos
+const rd = (p) => semFilmeRapido1710(semMarcas1510(p, semLista1510(p, readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'))), p) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai por fora, em memória */ // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai antes de todos
 const imp = (p) => import(pathToFileURL(join(RAIZ, p)).href)
 let ok = 0
 const falhas = []

@@ -35,11 +35,12 @@ import { desfazProdutoNaMao1610 } from './test-support/desfaz-ads-produto-na-mao
 import { desfazFiel7_1610 } from './test-support/desfaz-ads-fiel-7-1610.mjs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { GABARITO, conferir, corpo } from './calibra-juiz-mao.mjs'
+import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]: a entrega mais nova sai antes da comparação com a base
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-MAO-JUIZ-1610'
-const rd = (p) => desfazJuizGrade1610(p, readFileSync(join(ROOT, p), 'utf8')) // reancorado KINEO-JUIZ-GRADE-1610 — a grade do juiz (modelo/variante da calibração) veio depois: este guardião lê o texto SEM ela (já LF); ela é provada em scripts/test-juiz-grade-1610.mjs
+const rd = (p) => desfazJuizGrade1610(p, semFilmeRapido1710(readFileSync(join(ROOT, p), 'utf8'), p) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 (inclusive a reancoragem do guardião da 3ª rodada) sai antes */) // reancorado KINEO-JUIZ-GRADE-1610 — a grade do juiz (modelo/variante da calibração) veio depois: este guardião lê o texto SEM ela (já LF); ela é provada em scripts/test-juiz-grade-1610.mjs
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return git('show', `${MAO_JUIZ_1610_BASE}:${p}`).replace(/\r\n/g, '\n') } catch { return null } }
 let pass = 0
@@ -479,7 +480,7 @@ const c3 = async (over = {}) => {
 }
 await check('C3 executado (extração real, OpenAI falsa): em pt o pedido ganha a regra do nome, a narração sai "de Perfume Atheeri" e a frase de tela "Perfume Atheeri Fragrâncias" (os consertos vão para honesty_fixes); em inglês a regra não entra e o artigo não muda', () => c3())
 const c4 = () => [F.brief].every((f) => !/synthesize|ttsFallback|compose/.test(git('diff', MAO_JUIZ_1610_BASE, '--', f).split('\n').filter((l) => /^[+-][^+-]/.test(l)).join('\n'))) &&
-  ['lib/ttsFallback.ts', 'lib/compose.ts', 'lib/ads/adV2Montage.ts', 'app/api/compose/route.ts', 'lib/ads/speakable.ts'].every((f) => base(f) === rd(f))
+  ['lib/ttsFallback.ts', 'lib/compose.ts', 'lib/ads/adV2Montage.ts', 'app/api/compose/route.ts', 'lib/ads/speakable.ts'].every((f) => base(f) === semFilmeRapido1710(rd(f), f) /* reancorado KINEO-FILME-RAPIDO-1710 */)
 await check('C4 só o texto do Ads: TTS, compose, montador e speakable byte a byte iguais à base; o diff do v2Brief não toca voz/compose', () => c4())
 
 // ═══ K. a calibração ═════════════════════════════════════════════════════════════════════════════════════════════════
@@ -575,7 +576,7 @@ await check('D2 todo bloco do desfaz traz a marca; o diff contra a base só toca
   const tocados = git('diff', '--name-only', MAO_JUIZ_1610_BASE, TOPO).trim().split('\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\n').filter(Boolean))
   const permitidos = new Set([...MAO_JUIZ_1610_ARQUIVOS, ...MAO_JUIZ_1610_NOVOS])
   return blocos.length > 0 && blocos.every((h) => h.now.join('\n').includes(MARCA)) && tocados.every((f) => permitidos.has(f)) &&
-    [F.tiers, F.shotLists, 'lib/ads/v2Engines.ts', 'lib/ads/v2Contract.ts', 'lib/ads/v2CopyFit.ts', 'lib/ads/v2PlanCore.ts', 'lib/ads/v2Billing.ts', 'lib/ads/v2StartCore.ts', 'lib/ads/v2ProductInHandServer.ts', 'lib/ads/v2ProductLockServer.ts', 'lib/ads/v2Images.ts', 'app/api/ads/v2/start/route.ts', 'app/api/ads/v2/plan/route.ts', 'lib/ttsFallback.ts', 'lib/ads/adV2Montage.ts', 'lib/compose.ts', 'app/api/compose/route.ts'].every((f) => base(f) === rd(f))
+    [F.tiers, F.shotLists, 'lib/ads/v2Engines.ts', 'lib/ads/v2Contract.ts', 'lib/ads/v2CopyFit.ts', 'lib/ads/v2PlanCore.ts', 'lib/ads/v2Billing.ts', 'lib/ads/v2StartCore.ts', 'lib/ads/v2ProductInHandServer.ts', 'lib/ads/v2ProductLockServer.ts', 'lib/ads/v2Images.ts', 'app/api/ads/v2/start/route.ts', 'app/api/ads/v2/plan/route.ts', 'lib/ttsFallback.ts', 'lib/ads/adV2Montage.ts', 'lib/compose.ts', 'app/api/compose/route.ts'].every((f) => base(f) === semFilmeRapido1710(rd(f), f) /* reancorado KINEO-FILME-RAPIDO-1710 */)
 })
 await check('D3 encadeamento: o desfaz da 3ª rodada, o do ajuste, o do produto na mão e o da fiel-7 tiram esta camada PRIMEIRO; texto sem a marca e null passam igual', () => {
   const tudo = [F.advance, F.ih, F.vision, F.brief]

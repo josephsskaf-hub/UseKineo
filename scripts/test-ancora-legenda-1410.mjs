@@ -12,7 +12,11 @@
 //   (c) byte a byte: desfeito o ajuste (scripts/test-support/desfaz-ancora-legenda-1410.mjs), cada arquivo é EXATAMENTE o pai
 //       do primeiro commit marcado (nunca origin/main nem a worktree); os commits do ajuste não tocam ads, preço nem motor;
 //   (d) mutantes: 7 sabotagens em memória, cada uma provada aplicada, e cada uma deixa ao menos uma prova vermelha.
-import { semTrilha15s1610, linhaDaTrilha15s1610, linhasTrocadasTrilha15s1610 } from './test-support/desfaz-trilha-15s-1610.mjs' // reancorado KINEO-TRILHA-15S [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"]: o plano de b-roll alinhado e o protagonista sem rosto saem em memória antes do byte a byte
+import { semTrilha15s1610 as semTrilha15s1610Puro, linhaDaTrilha15s1610 as linhaDaTrilha15s1610Puro, linhasTrocadasTrilha15s1610 as linhasTrocadasTrilha15s1610Puro } from './test-support/desfaz-trilha-15s-1610.mjs' // reancorado KINEO-FILME-RAPIDO-1710: os nomes abaixo também desfazem a entrega mais nova (17/10)
+import { semFilmeRapido1710, linhaDoFilmeRapido1710, linhasTrocadasFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]
+const semTrilha15s1610 = (texto, p) => semTrilha15s1610Puro(semFilmeRapido1710(texto, p), p) // reancorado KINEO-FILME-RAPIDO-1710
+const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) // reancorado KINEO-FILME-RAPIDO-1710
+const linhasTrocadasTrilha15s1610 = (p) => [...linhasTrocadasTrilha15s1610Puro(p), ...linhasTrocadasFilmeRapido1710(p)] // reancorado KINEO-FILME-RAPIDO-1710
 import { readFileSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'

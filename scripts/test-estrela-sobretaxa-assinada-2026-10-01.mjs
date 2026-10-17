@@ -4,7 +4,11 @@
 // claim e o compose soma ESSE número (sem recalcular, sem ler o navegador).
 // Só readFileSync + transpile local (guardião com alias @/ não roda). As condições do compose são EXTRAÍDAS da rota e
 // EXECUTADAS com o caso real — e com a base (linhas marcadas retiradas) para provar que o caso reproduz o defeito.
-import { semTrilha15s1610, linhaDaTrilha15s1610, linhasTrocadasTrilha15s1610 } from './test-support/desfaz-trilha-15s-1610.mjs' // reancorado KINEO-TRILHA-15S [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"]: o plano de b-roll alinhado e o protagonista sem rosto saem em memória antes do byte a byte
+import { semTrilha15s1610 as semTrilha15s1610Puro, linhaDaTrilha15s1610 as linhaDaTrilha15s1610Puro, linhasTrocadasTrilha15s1610 as linhasTrocadasTrilha15s1610Puro } from './test-support/desfaz-trilha-15s-1610.mjs' // reancorado KINEO-FILME-RAPIDO-1710: os nomes abaixo também desfazem a entrega mais nova (17/10)
+import { semFilmeRapido1710, linhaDoFilmeRapido1710, linhasTrocadasFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]
+const semTrilha15s1610 = (texto, p) => semTrilha15s1610Puro(semFilmeRapido1710(texto, p), p) // reancorado KINEO-FILME-RAPIDO-1710
+const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) // reancorado KINEO-FILME-RAPIDO-1710
+const linhasTrocadasTrilha15s1610 = (p) => [...linhasTrocadasTrilha15s1610Puro(p), ...linhasTrocadasFilmeRapido1710(p)] // reancorado KINEO-FILME-RAPIDO-1710
 import { readFileSync } from 'node:fs'
 import { desfazAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 import { desfazJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
@@ -126,7 +130,7 @@ if (BASE) {
   // Reancorado 03/10 (KINEO-GANCHO-1Q-2026-10-03): o /api/compose ganhou depois disto só linhas marcadas com o gancho escrito
   // (3 imports + 2 comentários + 2 chamadas withHookFirstFrame, depois do logo); elas saem em memória junto com as da estrela.
   // Reancorado 06/10 (KINEO-SEM-LEGENDA-2026-10-06): idem — o "sem legenda" entrou só com linhas marcadas (imports, decisão, corte e gravação da versão B).
-  checa('E25 /api/compose sem as linhas marcadas = base, byte a byte', semMarca(desfazEscritorOmni('app/api/compose/route.ts', desfazH3max('app/api/compose/route.ts', desfazParceiroEyebible1410('app/api/compose/route.ts', compose)))).split('\n').filter((l) => !l.includes('KINEO-GANCHO-1Q-2026-10-03') && !l.includes('KINEO-SEM-LEGENDA-2026-10-06')).join('\n') === base('app/api/compose/route.ts'))
+  checa('E25 /api/compose sem as linhas marcadas = base, byte a byte', semMarca(desfazEscritorOmni('app/api/compose/route.ts', desfazH3max('app/api/compose/route.ts', desfazParceiroEyebible1410('app/api/compose/route.ts', semFilmeRapido1710(compose, 'app/api/compose/route.ts') /* reancorado KINEO-FILME-RAPIDO-1710 */)))).split('\n').filter((l) => !l.includes('KINEO-GANCHO-1Q-2026-10-03') && !l.includes('KINEO-SEM-LEGENDA-2026-10-06')).join('\n') === base('app/api/compose/route.ts'))
   // Reancorado 06/10 duas vezes: KINEO-S25-ABRE-2026-10-06 (portão pago do 2.5: só linhas marcadas) e KINEO-S25-NOTA95-2026-10-06
   // (passada de cenas do s25: linhas marcadas + as 2 linhas da base trocadas de propósito). Ambas saem em memória dos dois lados.
   // Reancorado 06/10 (KINEO-S25-NOTA95-2026-10-06 [TRAVA 8.2 — vai do fundador 06/10 'vai nota 95']): a rota do cinematic ganhou SÓ linhas

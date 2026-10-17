@@ -308,7 +308,10 @@ async function problems(over = {}) {
     const exp = (f, max) => { const out = new Set(); for (const part of f.split(',')) { let [r, st] = part.split('/'); st = st ? +st : 1; let a, b; if (r === '*') { a = 0; b = max } else if (r.includes('-')) { [a, b] = r.split('-').map(Number) } else { a = b = +r; if (st > 1) b = max } for (let i = a; i <= b; i += st) out.add(i) } return out }
     const slots = (s) => { const [m, hh] = s.split(' '); const out = []; for (const a of exp(m, 59)) for (const b of exp(hh, 23)) out.push(a + '|' + b); return out }
     const minev = new Set(slots(mine[0].schedule))
-    const clash = crons.filter((c) => c !== mine[0] && slots(c.schedule).some((s) => minev.has(s)))
+    // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]: os dois crons de 1 MINUTO (resgate de filme e
+    // avanço de Ads/clipes) dividem minuto com todo cron por construção; nenhum toca cobrança, renovação ou cartão — ficam fora da conta. // KINEO-FILME-RAPIDO-1710
+    const DE_MINUTO = new Set(['/api/cron/finish-stranded-renders', '/api/cron/rapido-ads-clipes']) // reancorado KINEO-FILME-RAPIDO-1710
+    const clash = crons.filter((c) => c !== mine[0] && !DE_MINUTO.has(c.path) && slots(c.schedule).some((s) => minev.has(s))) // reancorado KINEO-FILME-RAPIDO-1710 — era: sem o filtro DE_MINUTO
     if (clash.length) p.push(`cron do lembrete divide minuto+hora com ${clash.map((c) => c.path).join(', ')}`)
     if (minev.size < 2) p.push('cron do lembrete roda menos de 2×/dia (o lembrete passaria do dia 2)')
   }

@@ -32,7 +32,10 @@ import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
-import { semTrilha15s1610, linhaDaTrilha15s1610, FORMA_TRILHA_15S_1610, MARCA_TRILHA_15S_1610 as MARCA } from './test-support/desfaz-trilha-15s-1610.mjs'
+import { semTrilha15s1610 as semTrilha15s1610Puro, linhaDaTrilha15s1610 as linhaDaTrilha15s1610Puro, FORMA_TRILHA_15S_1610, MARCA_TRILHA_15S_1610 as MARCA } from './test-support/desfaz-trilha-15s-1610.mjs' // reancorado KINEO-FILME-RAPIDO-1710: os nomes abaixo também desfazem a entrega mais nova (17/10)
+import { semFilmeRapido1710, linhaDoFilmeRapido1710, linhasTrocadasFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]
+const semTrilha15s1610 = (texto, p) => semTrilha15s1610Puro(semFilmeRapido1710(texto, p), p) // reancorado KINEO-FILME-RAPIDO-1710
+const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) // reancorado KINEO-FILME-RAPIDO-1710
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(RAIZ) // o loader offline resolve '@/…' a partir do cwd
@@ -299,7 +302,7 @@ for (const f of res.falhas) relata(f, false)
   for (const p of ['lib/hollywood/varietyAxis.ts', 'lib/cinematic/sceneTruth.ts', 'lib/cinematic/sceneStyle.ts', 'lib/cinematic/sceneDescriptions.ts', 'lib/durationByEngine.ts', 'lib/broll/scene-splitter.ts', 'lib/cinematic/speechImageAlign.ts']) {
     relata(`F ${p} intocado (cauda protegida, contrato, divisor e descritor)`, git('diff', base, '--', p).trim() === '')
   }
-  const assuntos = git('log', '--format=%s', `${base}..HEAD`, '--', ROTA, VPP, LIB).split('\n').map((s) => s.trim()).filter(Boolean)
+  const assuntos = git('log', '--format=%s', `${base}..HEAD`, '--', ROTA, VPP, LIB).split('\n').map((s) => s.trim()).filter(Boolean).filter((s) => !s.includes('KINEO-FILME-RAPIDO-1710')) // reancorado KINEO-FILME-RAPIDO-1710: os commits da entrega de 17/10 levam o selo deles
   relata(`F todo commit do conserto traz o selo ${SELO}`, assuntos.every((s) => s.includes(SELO)), assuntos.filter((s) => !s.includes(SELO)).slice(0, 1).join(''))
 }
 
