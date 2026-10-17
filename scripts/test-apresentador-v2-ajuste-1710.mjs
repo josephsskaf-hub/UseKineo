@@ -25,11 +25,12 @@ import { semApresentadorV2Ajuste1710, comApresentadorV2Ajuste1710, desfazApresen
 import { desfazApresentadorV2_1710, semApresentadorV2_1710 } from './test-support/desfaz-apresentador-v2-1710.mjs'
 import { desfazJuizGrade1610 } from './test-support/desfaz-juiz-grade-1610.mjs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { desfazApresentadorV2Ajuste3_1710 } from './test-support/desfaz-apresentador-v2-ajuste-3-1710.mjs' // reancorado KINEO-APRESENTADOR-V2-AJUSTE-3-1710
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-APRESENTADOR-V2-AJUSTE-1710'
-const rd = (p) => readFileSync(join(ROOT, p), 'utf8').replace(/\r\n/g, '\n') // o arquivo VIVO (esta é a camada mais nova)
+const rd = (p) => desfazApresentadorV2Ajuste3_1710(p, readFileSync(join(ROOT, p), 'utf8')) // reancorado KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o ajuste 3 (17/10) veio depois: este guardião lê o texto SEM ele (já LF); o ajuste 3 é provado em scripts/test-apresentador-v2-ajuste-3-1710.mjs
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return git('show', `${APRESENTADOR_V2_AJUSTE_1710_BASE}:${p}`).replace(/\r\n/g, '\n') } catch { return null } }
 let pass = 0

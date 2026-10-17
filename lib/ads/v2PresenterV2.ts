@@ -25,6 +25,10 @@
 // KINEO-APRESENTADOR-V2-AJUSTE-1710 — relaxada na fala, gesto pequeno só da mão que JÁ está na foto); a foto com a mão livre inteira preferida entre as limpas;
 // KINEO-APRESENTADOR-V2-AJUSTE-1710 — e o motor Kling AI Avatar v2 PRO (1080p) numa constante. O que funcionou no teste (2 referências, 4 opções, frasco+caixa,
 // KINEO-APRESENTADOR-V2-AJUSTE-1710 — boca neutra na foto, ConfidentWoman, corte no fim da fala, close 2 s e cartão 2,5 s) fica igual.
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — a 2ª rodada real (pedido 8becd82d, notas 8/8/7/9/8/7/9/7; docs/RESULTADO-T1-APRESENTADOR-V2-R2-2026-10-17.md) pediu 5 ajustes (a seção
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — "AJUSTE 3" no fim deste arquivo): MÃOS PARADAS por padrão (gesto só com 2 mãos confirmadas: uma no produto, outra vazia, ambas inteiras,
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — "yes" nunca "unsure"); 0,6 s de silêncio no fim do áudio que vai ao Kling (o clipe termina de boca fechada); foto LIMPA (interface de
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — câmera do celular = opção descartada); a frase de tela acima do produto; piscadas calmas. O resto do v2 fica igual.
 import type { AdsV2PlannedShot } from '@/lib/ads/v2ShotLists'
 
 /** Interruptor ÚNICO: 'internal' = só contas da casa; 'all' = todos; 'off' = o ator de antes para todo mundo. */
@@ -63,8 +67,10 @@ export function adsV2PresenterV2PortraitUrl(entry: { portrait: string | null } |
 export const ADS_V2_PRESENTER_V2_NEUTRAL_MOUTH = 'Neutral mouth: lips relaxed, closed or only slightly parted; no smile showing teeth and no open mouth.'
 /** Só o objeto do produto: "frasco e caixa juntos" é o defeito que a escolha automática descarta. */
 export const ADS_V2_PRESENTER_V2_ONLY_PRODUCT = 'One hand holds only the product itself, close to the face: if the SECOND reference photo also shows a box or other packaging, leave the box out of the frame. Exactly one product item in the frame.'
-/** A outra mão INTEIRA no quadro (a atuação gesticula com ela; no teste ela entrou borrada pela borda). */
-export const ADS_V2_PRESENTER_V2_FREE_HAND = 'The other hand is fully inside the frame, relaxed and complete with five natural fingers, never cut by the edge of the frame.'
+/** A outra mão INTEIRA no quadro (a atuação gesticula com ela; no teste ela entrou borrada pela borda). KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — aberta e apoiada no peito: na R2 nenhuma das 4 fotos teve a mão livre. */
+export const ADS_V2_PRESENTER_V2_FREE_HAND = 'The other hand rests open on the chest, clearly visible and fully inside the frame, relaxed and complete with five natural fingers, never cut by the edge of the frame.' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+/** KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — foto LIMPA: na R2 a opção 0 veio com a interface da câmera do iPhone desenhada (PHOTO / VIDEO / botão). */
+export const ADS_V2_PRESENTER_V2_CLEAN_PHOTO = 'A clean photo, no phone screen interface, no on-screen buttons, no text overlays.' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
 /** Rosto de frente (o avatar guiado por voz quer o rosto inteiro, olhando para a lente). */
 export const ADS_V2_PRESENTER_V2_FACE = 'faces the camera straight on, with the whole face visible and in focus, looking into the lens.'
 
@@ -106,6 +112,7 @@ export function adsV2PresenterV2Prompt(i: { look: string; pronoun: 'She' | 'He';
     ...(i.freeHand ? [ADS_V2_PRESENTER_V2_FREE_HAND] : []),
     `Head, shoulders and ${their} hand with the product in frame, face in the upper third of the frame, natural light, real skin texture, every hand has five natural fingers.`,
     place ? `${place} The background stays softly out of focus.` : `Background: ${where}, softly out of focus.`,
+    ADS_V2_PRESENTER_V2_CLEAN_PHOTO, // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
     'No text, no captions, no logos or watermarks added, no other products, only one person.',
   ].join(' ')
 }
@@ -118,6 +125,8 @@ export interface AdsV2PresenterV2Option {
   bothObjects: boolean | null
   /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a mão LIVRE (a que não segura o produto) aparece inteira? null = a checagem não respondeu (pedido antigo: ausente). */
   freeHand?: boolean | null // KINEO-APRESENTADOR-V2-AJUSTE-1710
+  /** KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — interface de câmera, botões ou texto desenhados na foto? 'yes' = descartada; 'unsure' = só no log; null = não leu. */
+  phoneUi?: AdsV2PresenterV2Tri | null // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
 }
 export interface AdsV2PresenterV2Plan {
   v: 1
@@ -135,6 +144,8 @@ export interface AdsV2PresenterV2Plan {
   chosenWhy?: AdsV2PresenterV2PickWhy | AdsV2PresenterV2HandWhy // KINEO-APRESENTADOR-V2-AJUSTE-1710 — + 'clean_free_hand' / 'clean_no_free_hand'
   /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — o que a voz medida pediu (acelerar ou cortar uma frase inteira) para caber no alvo de ~10,5 s. Ausente = coube. */
   voiceFit?: AdsV2PresenterV2VoiceFitRecord // KINEO-APRESENTADOR-V2-AJUSTE-1710
+  /** KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o retângulo do produto na foto escolhida (frações do quadro; a frase de tela vai acima dele). Ausente = o terço de cima. */
+  productRect?: AdsV2PresenterV2Rect | null // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
 }
 
 const HTTPS_RE = /^https:\/\/\S+$/i
@@ -334,9 +345,9 @@ export function adsV2PresenterV2VoiceFitRecord(fit: AdsV2PresenterV2VoiceFit, be
 // KINEO-APRESENTADOR-V2-AJUSTE-1710 — está na foto, as mãos do quadro iguais às da foto, câmera estável. Escrito em frases AFIRMATIVAS: o motor não tem negative
 // KINEO-APRESENTADOR-V2-AJUSTE-1710 — prompt e "no X" no prompt desenha X (lição do juiz do still).
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a foto escolhida TEM a mão livre inteira: ela gesticula pouco e baixo. */
-export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT = 'the person talks to the camera in a calm, natural UGC style, like chatting with a friend; a light closed-lip smile only at the very start and at the very end; while speaking the mouth stays relaxed and the lips follow every syllable naturally; small, low gestures with the free hand that is already visible in the photo, kept near the chest; the hands in the frame stay exactly the ones in the photo; the other hand holds the product steady with the label facing the camera; gentle natural head movement, steady camera, sharp focus, preserve the exact face and appearance'
+export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT = 'the person talks to the camera in a calm, natural UGC style, like chatting with a friend; a light closed-lip smile only at the very start and at the very end; while speaking the mouth stays relaxed and the lips follow every syllable naturally; small, low gestures with the free hand that is already visible in the photo, kept near the chest; the hands in the frame stay exactly the ones in the photo; the other hand holds the product steady with the label facing the camera; gentle natural head movement, natural blinking at a relaxed pace, steady camera, sharp focus, preserve the exact face and appearance' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + piscadas calmas
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a foto escolhida NÃO tem a mão livre (ou não deu para ver): só rosto, olhar e cabeça; as mãos ficam como na foto. */
-export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL = 'the person talks to the camera in a calm, natural UGC style, like chatting with a friend; a light closed-lip smile only at the very start and at the very end; while speaking the mouth stays relaxed and the lips follow every syllable naturally; the hands in the frame stay exactly the ones in the photo, calm and in place; the hand with the product holds it steady with the label facing the camera; the expression comes from the eyes, the face and a gentle natural head movement; steady camera, sharp focus, preserve the exact face and appearance'
+export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL = 'the person talks to the camera in a calm, natural UGC style, like chatting with a friend; a light closed-lip smile only at the very start and at the very end; while speaking the mouth stays relaxed and the lips follow every syllable naturally; only the one hand holding the product is in the frame and it stays still; the other arm rests out of frame; the hand with the product holds it steady with the label facing the camera; the expression comes from the eyes, the face and a gentle natural head movement; natural blinking at a relaxed pace; steady camera, sharp focus, preserve the exact face and appearance' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — mãos paradas em frase afirmativa + piscadas calmas
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a atuação pela foto escolhida (pura): mão livre inteira = gesto pequeno; senão (ou não sei) = mãos paradas. */
 export function adsV2PresenterV2Performance(freeHand: boolean | null | undefined): string {
   return freeHand === true ? ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT : ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL
@@ -362,9 +373,9 @@ export function adsV2PresenterV2AvatarInput<T extends Record<string, unknown>>(i
 // KINEO-APRESENTADOR-V2-AJUSTE-1710 — inventário no estilo da both_objects: pergunta de PRESENÇA (liste as mãos; cada uma segura o produto? está inteira?), o
 // KINEO-APRESENTADOR-V2-AJUSTE-1710 — código decide. Nenhuma limpa com a mão livre = a 1ª limpa, como antes. "frasco e caixa" continua mandando primeiro.
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a pergunta das mãos (1 imagem; o corpo e a chamada moram em lib/ads/v2LockVision.ts, adsV2PresenterV2HandsOf). */
-export const ADS_V2_PRESENTER_V2_HANDS_QUESTION = 'Image 1 is a photo of a person with a product. List every human hand you can see in it. "hands": one entry per hand, each with "holds_product" ("yes" when this hand holds the product, "no" when it does not, "unsure" when you cannot tell) and "whole" ("yes" when the whole hand — the palm and all five fingers — is inside the frame and in view, "no" when part of it is outside the frame or hidden, "unsure" when you cannot tell). Answer with JSON: {"hands": [{"holds_product": "", "whole": ""}]}.'
+export const ADS_V2_PRESENTER_V2_HANDS_QUESTION = 'Image 1 is a photo of a person with a product. How many separate hands are visible? Count each human hand once. "hand_count": that number. "hands": one entry per hand; for each: is it holding the product? "holding_product": "yes" or "no". And "whole": "yes" when the entire hand is inside the frame and in view (fingers wrapped around the product still count), "no" when part of it is cut by the edge of the frame or hidden, "unsure" when you cannot tell. "phone_ui": is there any phone camera interface, on-screen buttons or overlaid text drawn in the image? "yes", "no" or "unsure" (the printed label on the product itself does not count). Answer with JSON: {"hand_count": 0, "hands": [{"holding_product": "", "whole": ""}], "phone_ui": ""}.' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — "how many separate hands are visible; for each: is it holding the product (yes/no)" + a interface de celular
 export type AdsV2PresenterV2Tri = 'yes' | 'no' | 'unsure'
-export interface AdsV2PresenterV2Hands { hands: { holds: AdsV2PresenterV2Tri; whole: AdsV2PresenterV2Tri }[] }
+export interface AdsV2PresenterV2Hands { hands: { holds: AdsV2PresenterV2Tri; whole: AdsV2PresenterV2Tri }[]; count?: number | null; phoneUi?: AdsV2PresenterV2Tri } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + a contagem e a interface de celular
 const triV2 = (v: unknown): AdsV2PresenterV2Tri => (v === 'yes' || v === true ? 'yes' : v === 'no' || v === false ? 'no' : 'unsure') // KINEO-APRESENTADOR-V2-AJUSTE-1710
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a resposta (pura): texto JSON ou objeto; sem lista "hands" = null (ilegível). */
 export function adsV2PresenterV2ParseHands(raw: unknown): AdsV2PresenterV2Hands | null {
@@ -372,13 +383,16 @@ export function adsV2PresenterV2ParseHands(raw: unknown): AdsV2PresenterV2Hands 
   if (typeof raw === 'string') { try { o = JSON.parse(raw) } catch { return null } }
   const list = o && typeof o === 'object' ? (o as { hands?: unknown }).hands : null
   if (!Array.isArray(list)) return null
-  return { hands: list.filter((h) => h && typeof h === 'object').map((h) => ({ holds: triV2((h as { holds_product?: unknown }).holds_product), whole: triV2((h as { whole?: unknown }).whole) })) }
+  const count = (o as { hand_count?: unknown }).hand_count // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  return { hands: list.filter((h) => h && typeof h === 'object').map((h) => ({ holds: triV2((h as { holding_product?: unknown; holds_product?: unknown }).holding_product ?? (h as { holds_product?: unknown }).holds_product), whole: triV2((h as { whole?: unknown }).whole) })), count: typeof count === 'number' && Number.isFinite(count) ? count : null, phoneUi: triV2((o as { phone_ui?: unknown }).phone_ui) } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — holding_product (a pergunta nova) + hand_count + phone_ui
 }
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a mão LIVRE aparece inteira? (pura) 2+ mãos e uma que NÃO segura o produto (ou "não sei") está inteira. null = ilegível. */
 export function adsV2PresenterV2FreeHandOf(inv: AdsV2PresenterV2Hands | null | undefined): boolean | null {
   if (!inv || !Array.isArray(inv.hands)) return null
-  if (inv.hands.length < 2) return false
-  return inv.hands.some((h) => h.holds !== 'yes' && h.whole === 'yes')
+  if (inv.hands.length !== 2 || (inv.count != null && inv.count !== 2)) return false // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — EXATAMENTE 2 mãos distintas (a lista e a contagem concordam)
+  const holding = inv.hands.filter((h) => h.holds === 'yes' && h.whole === 'yes').length // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const free = inv.hands.filter((h) => h.holds === 'no' && h.whole === 'yes').length // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — "yes"/"no" firmes: "unsure" nunca confirma
+  return holding === 1 && free === 1 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — uma no produto, outra vazia, as duas inteiras; a R2 contou a mão do frasco como livre
 }
 export type AdsV2PresenterV2HandWhy = 'clean_free_hand' | 'clean_no_free_hand'
 /**
@@ -414,8 +428,132 @@ export function adsV2PresenterV2UsdPro(base: { totalUsd: number }, seconds: numb
   const r3 = (n: number) => Math.round(n * 1000) / 1000
   const old = adsV2PresenterV2Usd(base)
   const secs = typeof seconds === 'number' && Number.isFinite(seconds) && seconds > 0 ? seconds : 15
-  const avatarUsd = r3(ADS_V2_PRESENTER_V2_USD_PER_SECOND * ADS_V2_PRESENTER_V2_VOICE_TARGET_SECONDS)
+  const avatarUsd = r3(ADS_V2_PRESENTER_V2_USD_PER_SECOND * (ADS_V2_PRESENTER_V2_VOICE_TARGET_SECONDS + ADS_V2_PRESENTER_V2_TAIL_SILENCE_SECONDS)) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + os 0,6 s de silêncio que o motor cobra
   const avatarDeltaUsd = r3(avatarUsd - ADS_V2_PRESENTER_V2_STANDARD_USD_PER_SECOND * secs)
   const handChecksUsd = ADS_V2_PRESENTER_V2_OPTIONS * ADS_V2_PRESENTER_V2_HAND_CHECK_USD
   return { extraImagesUsd: old.extraImagesUsd, checksUsd: r3(old.checksUsd + handChecksUsd), avatarUsd, avatarDeltaUsd, totalUsd: r3(old.totalUsd + avatarDeltaUsd + handChecksUsd), engine: ADS_V2_PRESENTER_V2_ENGINE_SLUG }
 }
+
+// ══ KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — AJUSTE 3 (a 2ª rodada real: pedido 8becd82d) ═══════════════════════════════════════════════════════
+// ── 1. MÃOS PARADAS por padrão; a interface de celular descarta a opção ────────────────────────────────────────────────────────────────────
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — na R2 o checador marcou a mão livre em 3 de 4 fotos sem nenhuma ter a mão livre (contou a mão do frasco) e o Kling
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — INVENTOU a mão (entra borrada por baixo em 2,5 s). Agora o gesto só vale com EXATAMENTE 2 mãos, uma segurando o produto e
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — outra vazia, as duas inteiras, tudo "yes"/"no" firme (adsV2PresenterV2FreeHandOf); qualquer outra resposta = a atuação das
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — mãos paradas. A MESMA chamada pergunta pela interface de câmera desenhada: "yes" descarta a opção; "unsure" só no log.
+/** KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — um retângulo em frações do quadro (0 a 1). */
+export interface AdsV2PresenterV2Rect { x0: number; y0: number; x1: number; y1: number } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+/** KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — a interface de celular desenhada na foto (pura): 'yes' / 'no' / 'unsure'; null = a checagem não leu. */
+export function adsV2PresenterV2PhoneUiOf(inv: AdsV2PresenterV2Hands | null | undefined): AdsV2PresenterV2Tri | null { // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  if (!inv || !Array.isArray(inv.hands)) return null // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  return inv.phoneUi === 'yes' || inv.phoneUi === 'no' ? inv.phoneUi : 'unsure' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+} // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+/**
+ * KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — a escolha (pura): a opção com a interface de celular ('yes') conta como DESCARTADA, igual a "frasco e caixa"; depois a
+ * KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — regra de antes (adsV2PresenterV2PickHand: a 1ª limpa com 2 mãos confirmadas, senão a 1ª limpa). Todas descartadas = a 1ª
+ * KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — SEM a interface, se houver (o apresentador nunca mata o pedido). 'unsure' não descarta.
+ */
+export function adsV2PresenterV2PickClean(bothObjects: readonly (boolean | null)[], freeHands: readonly (boolean | null)[], phoneUi: readonly (AdsV2PresenterV2Tri | null)[]): { index: number; why: AdsV2PresenterV2PickWhy | AdsV2PresenterV2HandWhy } { // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const both = Array.isArray(bothObjects) ? bothObjects : [] // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const ui = Array.isArray(phoneUi) ? phoneUi : [] // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const merged = both.map((b, k) => (ui[k] === 'yes' ? true : b)) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — interface desenhada = descartada
+  const pick = adsV2PresenterV2PickHand(merged, freeHands) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  if (pick.why !== 'all_discarded' || pick.index < 0) return pick // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const noUi = both.findIndex((_, k) => ui[k] !== 'yes') // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  return noUi >= 0 ? { index: noUi, why: 'all_discarded' } : pick // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+} // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+
+// ── 2. o fim de boca fechada: 0,6 s de silêncio no fim do áudio que vai ao Kling ─────────────────────────────────────────────────────────────
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — na R2 o Kling devolveu 9,87 s para 9,94 s de voz: sem cauda calada, o corte (fala + 0,15 s) caiu no limite do clipe, de
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — boca aberta. Com 0,6 s de silêncio no fim do áudio do MOTOR o clipe ganha um fim calado; a voz do pedido (voice_url e
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — voice_seconds, o corte da montagem) continua a fala real. Sem ffmpeg no servidor: quadros MP3 de silêncio (cabeçalho do
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — 1º quadro, sem CRC nem padding, side info e dados zerados = nenhum coeficiente = silêncio) depois do último quadro de
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — áudio (o ID3 do começo e qualquer tag do fim ficam onde estão); o cabeçalho Xing/Info (e o CRC do LAME/Lavf) e o VBRI
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — passam a contar os quadros novos. Custo: ~0,6 s × US$ 0,115 = ~US$ 0,07 por anúncio.
+/** KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o silêncio no fim do áudio do motor (s). */
+export const ADS_V2_PRESENTER_V2_TAIL_SILENCE_SECONDS = 0.6 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+const MP3_BR_V1 = [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0] // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — espelho de lib/compose.ts
+const MP3_BR_V2 = [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0] // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+const MP3_SR_V1 = [44100, 48000, 32000, 0] // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+interface Mp3Head { h: number; version: number; mpeg1: boolean; sr: number; size: number; samples: number; mono: boolean; crc: boolean } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+function mp3HeadAt(b: Uint8Array, o: number): Mp3Head | null { // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — só Layer III (a voz da casa)
+  if (o < 0 || o + 4 > b.length || b[o] !== 0xff || (b[o + 1] & 0xe0) !== 0xe0) return null // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const h = ((b[o] << 24) | (b[o + 1] << 16) | (b[o + 2] << 8) | b[o + 3]) >>> 0 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const version = (h >>> 19) & 3, layer = (h >>> 17) & 3, bi = (h >>> 12) & 15, si = (h >>> 10) & 3 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  if (version === 1 || layer !== 1 || bi === 0 || bi === 15 || si === 3) return null // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const mpeg1 = version === 3 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const sr = mpeg1 ? MP3_SR_V1[si] : version === 2 ? MP3_SR_V1[si] / 2 : MP3_SR_V1[si] / 4 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const size = Math.floor(((mpeg1 ? 144 : 72) * (mpeg1 ? MP3_BR_V1 : MP3_BR_V2)[bi] * 1000) / sr) + ((h >>> 9) & 1) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  return size >= 4 ? { h, version, mpeg1, sr, size, samples: mpeg1 ? 1152 : 576, mono: ((h >>> 6) & 3) === 3, crc: ((h >>> 16) & 1) === 0 } : null // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+} // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+const crc16Arc = (b: Uint8Array): number => { let c = 0; for (const x of b) { c ^= x; for (let i = 0; i < 8; i++) c = c & 1 ? (c >>> 1) ^ 0xa001 : c >>> 1 } return c } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o CRC-16 da tag LAME
+const rd32 = (b: Uint8Array, o: number): number => ((b[o] << 24) | (b[o + 1] << 16) | (b[o + 2] << 8) | b[o + 3]) >>> 0 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+const wr32 = (b: Uint8Array, o: number, v: number): void => { b[o] = (v >>> 24) & 255; b[o + 1] = (v >>> 16) & 255; b[o + 2] = (v >>> 8) & 255; b[o + 3] = v & 255 } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+const tagAt = (b: Uint8Array, o: number, t: string): boolean => o >= 0 && o + 4 <= b.length && [0, 1, 2, 3].every((k) => b[o + k] === t.charCodeAt(k)) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+/** KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o cabeçalho Xing/Info e o VBRI do 1º quadro passam a contar os quadros e os bytes novos (no lugar, na cópia). */
+function mp3FixVbrHeader(out: Uint8Array, first: number, head: Mp3Head, frames: number, bytes: number): void { // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const side = head.mpeg1 ? (head.mono ? 17 : 32) : head.mono ? 9 : 17 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const x = first + 4 + (head.crc ? 2 : 0) + side // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  if (tagAt(out, x, 'Xing') || tagAt(out, x, 'Info')) { // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+    const flags = rd32(out, x + 4) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+    const crcBefore = out.slice(first, first + head.size) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o quadro ANTES da mudança (para descobrir a forma do CRC)
+    let p = x + 8 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+    if (flags & 1) { wr32(out, p, rd32(out, p) + frames); p += 4 } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+    if (flags & 2) { wr32(out, p, rd32(out, p) + bytes); p += 4 } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+    if (flags & 4) p += 100 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o TOC fica (a busca ainda cai perto)
+    if (flags & 8) p += 4 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+    const at = p + 34 - first // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — a tag LAME/Lavf tem 36 bytes; o CRC dela são os 2 últimos
+    const enc = String.fromCharCode(out[p] ?? 0, out[p + 1] ?? 0, out[p + 2] ?? 0, out[p + 3] ?? 0) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+    if (at + 2 <= head.size && /^(LAME|Lavf|Lavc|L3\.9)/.test(enc)) { // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+      // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — as duas formas vistas: LAME (os bytes antes do CRC) e Lavf (os 190 primeiros bytes com o campo zerado — a voz MiniMax).
+      // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — Só recalcula a forma que batia ANTES; nenhuma batia = o campo fica como veio.
+      const old = (crcBefore[at] << 8) | crcBefore[at + 1] // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+      const zero = (f: Uint8Array): Uint8Array => { const z = f.slice(0, Math.max(190, at + 2)); z[at] = 0; z[at + 1] = 0; return z } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+      const zb = zero(crcBefore), za = zero(out.slice(first, first + head.size)) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+      const c = crc16Arc(zb.slice(0, at)) === old ? crc16Arc(za.slice(0, at)) : head.size >= 190 && crc16Arc(zb.slice(0, 190)) === old ? crc16Arc(za.slice(0, 190)) : null // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+      if (c !== null) { out[first + at] = (c >>> 8) & 255; out[first + at + 1] = c & 255 } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+    } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const v = first + 4 + 32 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o VBRI (Fraunhofer) mora sempre 32 bytes depois do cabeçalho
+  if (tagAt(out, v, 'VBRI') && v + 18 <= out.length) { wr32(out, v + 10, rd32(out, v + 10) + bytes); wr32(out, v + 14, rd32(out, v + 14) + frames) } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+} // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+/**
+ * KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o MP3 com `seconds` de silêncio no fim (pura; nunca muta a entrada). null = não é um MP3 Layer III legível (o avanço
+ * KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — manda a voz de sempre). `addedSeconds` = o silêncio real (quadros inteiros: 0,612 s a 32 kHz).
+ */
+export function adsV2PresenterV2PadMp3(bytes: Uint8Array, seconds: number = ADS_V2_PRESENTER_V2_TAIL_SILENCE_SECONDS): { bytes: Uint8Array; addedSeconds: number; frames: number } | null { // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const b = bytes instanceof Uint8Array ? bytes : null // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  if (!b || b.length < 4 || !(typeof seconds === 'number' && seconds > 0 && seconds <= 5)) return null // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  let o = 0 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  if (b.length > 10 && b[0] === 0x49 && b[1] === 0x44 && b[2] === 0x33) o = 10 + (((b[6] & 0x7f) << 21) | ((b[7] & 0x7f) << 14) | ((b[8] & 0x7f) << 7) | (b[9] & 0x7f)) + (b[5] & 0x10 ? 10 : 0) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o ID3v2 (+ rodapé)
+  let first = -1 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  let head: Mp3Head | null = null // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  for (let k = o; k < Math.min(b.length - 3, o + 4096); k++) { const hd = mp3HeadAt(b, k); const nx = hd ? mp3HeadAt(b, k + hd.size) : null; if (hd && (k + hd.size === b.length || (nx && nx.sr === hd.sr))) { first = k; head = hd; break } } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — 2 quadros seguidos (sync falso não vale)
+  if (!head || first < 0) return null // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  let end = first // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  for (let hd = mp3HeadAt(b, end); hd && hd.sr === head.sr && hd.version === head.version && end + hd.size <= b.length; hd = mp3HeadAt(b, end)) end += hd.size // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o fim do último quadro (tags do fim ficam depois)
+  const silentH = ((head.h | 0x00010000) & ~0x00000200) >>> 0 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — sem CRC, sem padding; o resto do cabeçalho igual
+  const hb = new Uint8Array([silentH >>> 24, (silentH >>> 16) & 255, (silentH >>> 8) & 255, silentH & 255]) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const sh = mp3HeadAt(hb, 0) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  if (!sh) return null // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const frames = Math.ceil((seconds * head.sr) / head.samples - 1e-9) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const out = new Uint8Array(b.length + frames * sh.size) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  out.set(b.subarray(0, end), 0) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  for (let k = 0; k < frames; k++) out.set(hb, end + k * sh.size) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o resto do quadro já é zero
+  out.set(b.subarray(end), end + frames * sh.size) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  mp3FixVbrHeader(out, first, head, frames, frames * sh.size) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  return { bytes: out, addedSeconds: Math.round(((frames * head.samples) / head.sr) * 1000) / 1000, frames } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+} // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+
+// ── 4. a frase de tela ACIMA do produto e das mãos ──────────────────────────────────────────────────────────────────────────────────────────
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — na R2 "Um perfume encantador" ficou sobre os dedos. O retângulo do produto na foto escolhida vem do MESMO inventário da
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — checagem "frasco e caixa" (box_2d de 0 a 1000, sem chamada nova); a montagem põe a frase acima dele
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — (adsV2PresenterV2OverlayGeometry, lib/ads/adV2Montage.ts). Sem retângulo = o terço de cima.
+/** KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o retângulo do produto (pura): o maior produto visível ("yes", nunca a caixa) em frações. null = sem caixa legível. */
+export function adsV2PresenterV2ProductRect(inv: { products?: readonly { type?: unknown; visible?: unknown; box?: unknown }[] } | null | undefined): AdsV2PresenterV2Rect | null { // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  if (!inv || !Array.isArray(inv.products)) return null // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const ok = (v: unknown): v is [number, number, number, number] => Array.isArray(v) && v.length === 4 && v.every((n) => typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= 1000) && v[2] > v[0] && v[3] > v[1] // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const list = inv.products.filter((p) => p && p.visible === 'yes' && p.type !== 'box' && ok(p.box)).map((p) => p.box as [number, number, number, number]) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  if (list.length === 0) return null // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const b = list.sort((p, q) => (q[2] - q[0]) * (q[3] - q[1]) - (p[2] - p[0]) * (p[3] - p[1]))[0] // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — [ymin, xmin, ymax, xmax]
+  return { x0: b[1] / 1000, y0: b[0] / 1000, x1: b[3] / 1000, y1: b[2] / 1000 } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+} // KINEO-APRESENTADOR-V2-AJUSTE-3-1710

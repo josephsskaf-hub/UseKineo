@@ -459,17 +459,40 @@ async function finishPresenterV2Image(admin: SupabaseClient, order: AdsV2OrderRo
   const kept = stored.filter((s): s is string => typeof s === 'string' && !!s) // KINEO-APRESENTADOR-V2-1710
   if (kept.length === 0) { if (ageMs(row.updated_at) > ADS_V2_COPY_MAX_MS) await failShot(admin, row, ['image_submitted'], 'image_copy_failed', 'unknown'); return } // KINEO-APRESENTADOR-V2-1710 — a regra de sempre da cópia
   const vis = await lockVision() // KINEO-APRESENTADOR-V2-1710
-  const both = await Promise.all(kept.map((u) => (vis && typeof vis.adsV2InHandInventoryOf === 'function' ? vis.adsV2InHandInventoryOf(u).then((inv) => pv.lib.adsV2PresenterV2BothObjects(inv)).catch(() => null) : Promise.resolve(null)))) // KINEO-APRESENTADOR-V2-1710 — só "frasco e caixa juntos" decide (null = não leu)
-  const hands = await Promise.all(kept.map((u) => (vis && typeof vis.adsV2PresenterV2HandsRaw === 'function' ? vis.adsV2PresenterV2HandsRaw(u, pv.lib.ADS_V2_PRESENTER_V2_HANDS_QUESTION).then((raw) => pv.lib.adsV2PresenterV2FreeHandOf(pv.lib.adsV2PresenterV2ParseHands(raw))).catch(() => null) : Promise.resolve(null)))) // KINEO-APRESENTADOR-V2-AJUSTE-1710 — a mão livre inteira em cada opção (presença; null = não leu)
-  const pick = pv.lib.adsV2PresenterV2PickHand(both, hands) // KINEO-APRESENTADOR-V2-1710 · KINEO-APRESENTADOR-V2-AJUSTE-1710 — entre as limpas, a 1ª com a mão livre inteira
+  const invs = await Promise.all(kept.map((u) => (vis && typeof vis.adsV2InHandInventoryOf === 'function' ? vis.adsV2InHandInventoryOf(u).catch(() => null) : Promise.resolve(null)))) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o inventário de cada opção fica (o retângulo do produto sai dele, sem chamada nova)
+  const both = invs.map((inv) => pv.lib.adsV2PresenterV2BothObjects(inv)) // KINEO-APRESENTADOR-V2-1710 — só "frasco e caixa juntos" decide (null = não leu) · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — a mesma leitura, do inventário guardado
+  const handInv = await Promise.all(kept.map((u) => (vis && typeof vis.adsV2PresenterV2HandsRaw === 'function' ? vis.adsV2PresenterV2HandsRaw(u, pv.lib.ADS_V2_PRESENTER_V2_HANDS_QUESTION).then((raw) => pv.lib.adsV2PresenterV2ParseHands(raw)).catch(() => null) : Promise.resolve(null)))) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — UMA chamada por opção: as mãos (contagem; cada uma segura o produto?) e a interface de celular
+  const hands = handInv.map((h) => pv.lib.adsV2PresenterV2FreeHandOf(h)) // KINEO-APRESENTADOR-V2-AJUSTE-1710 — a mão livre inteira em cada opção (presença; null = não leu) · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — só 2 mãos confirmadas (uma no produto, outra vazia)
+  const phoneUi = handInv.map((h) => pv.lib.adsV2PresenterV2PhoneUiOf(h)) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — interface de câmera desenhada: 'yes' descarta; 'unsure' só no log
+  const pick = pv.lib.adsV2PresenterV2PickClean(both, hands, phoneUi) // KINEO-APRESENTADOR-V2-1710 · KINEO-APRESENTADOR-V2-AJUSTE-1710 — entre as limpas, a 1ª com a mão livre inteira · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — interface de celular = descartada
   const chosen = kept[pick.index] ?? kept[0] // KINEO-APRESENTADOR-V2-1710
   const chosenHand = hands[kept.indexOf(chosen)] ?? null // KINEO-APRESENTADOR-V2-AJUSTE-1710
   if (!(await markShot(admin, row, ['image_submitted'], { status: 'image_done', image_url: chosen, prompt: pv.lib.adsV2PresenterV2Performance(chosenHand) }))) return // KINEO-APRESENTADOR-V2-1710 — só quem vence grava as opções · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + a atuação do v2 pela foto escolhida (mão livre = gesto pequeno; senão mãos paradas), na PRÓPRIA linha
   const presenter = adsV2PresenterPlanOf(order.plan) // KINEO-APRESENTADOR-V2-1710
-  const options = kept.map((url, k) => ({ url, bothObjects: both[k] ?? null, freeHand: hands[k] ?? null })) // KINEO-APRESENTADOR-V2-1710 · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + freeHand
-  if (order.plan && presenter) { try { await admin.from('ads_v2_orders').update({ plan: { ...order.plan, presenter: { ...presenter, v2: { ...pv.v2, options, chosen: kept.indexOf(chosen), chosenWhy: pick.why } } } }).eq('id', order.id).eq('status', 'generating') } catch { /* KINEO-APRESENTADOR-V2-1710 — as opções são para revisão: falhar aqui não para o pedido */ } } // KINEO-APRESENTADOR-V2-1710
-  await writeServerEvent({ name: 'ads_v2_product_locked', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, idx: row.idx, attempt: row.attempt, mode: 'presenter_v2', entry: pv.v2.entryId, options: kept.length, chosen: kept.indexOf(chosen), why: pick.why, both_objects: both, free_hands: hands, charged: false } }).catch(() => null) // KINEO-APRESENTADOR-V2-1710 — o evento da trava de sempre (lista fechada), com o modo novo · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + free_hands
+  const options = kept.map((url, k) => ({ url, bothObjects: both[k] ?? null, freeHand: hands[k] ?? null, phoneUi: phoneUi[k] ?? null })) // KINEO-APRESENTADOR-V2-1710 · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + freeHand · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + phoneUi
+  const productRect = pv.lib.adsV2PresenterV2ProductRect(invs[kept.indexOf(chosen)] ?? null) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o produto na foto escolhida: a frase de tela vai acima dele
+  if (order.plan && presenter) { try { await admin.from('ads_v2_orders').update({ plan: { ...order.plan, presenter: { ...presenter, v2: { ...pv.v2, options, chosen: kept.indexOf(chosen), chosenWhy: pick.why, productRect } } } }).eq('id', order.id).eq('status', 'generating') } catch { /* KINEO-APRESENTADOR-V2-1710 — as opções são para revisão: falhar aqui não para o pedido */ } } // KINEO-APRESENTADOR-V2-1710 · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + productRect
+  await writeServerEvent({ name: 'ads_v2_product_locked', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, idx: row.idx, attempt: row.attempt, mode: 'presenter_v2', entry: pv.v2.entryId, options: kept.length, chosen: kept.indexOf(chosen), why: pick.why, both_objects: both, free_hands: hands, phone_ui: phoneUi, hand_counts: handInv.map((h) => (h ? h.hands.length : null)), product_rect: productRect, charged: false } }).catch(() => null) // KINEO-APRESENTADOR-V2-1710 — o evento da trava de sempre (lista fechada), com o modo novo · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + free_hands · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + phone_ui, hand_counts, product_rect
 } // KINEO-APRESENTADOR-V2-1710
+/**
+ * KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — a voz do pedido com ~0,6 s de silêncio no fim, SÓ para o Kling (o clipe ganha um fim de boca fechada; voice_url e voice_seconds continuam a fala
+ * KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — real, que é onde a montagem corta). Baixa a voz do NOSSO bucket, junta os quadros calados (adsV2PresenterV2PadMp3, pura) e sobe uma cópia. Qualquer
+ * KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — falha = null: vai a voz de sempre (o corte cai no limite do clipe, como antes) e o log avisa. Nunca lança.
+ */
+async function presenterV2TailVoice(order: AdsV2OrderRow, pv: NonNullable<Awaited<ReturnType<typeof presenterV2Of>>>): Promise<{ url: string; seconds: number } | null> { // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const src = typeof order.voice_url === 'string' ? order.voice_url.trim() : '' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  if (!/^https:\/\/\S+$/i.test(src)) return null // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  try { // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+    const res = await fetch(src, { signal: AbortSignal.timeout(15_000) }) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+    if (!res.ok) throw new Error(`voice_fetch_${res.status}`) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+    const padded = pv.lib.adsV2PresenterV2PadMp3(new Uint8Array(await res.arrayBuffer()), pv.lib.ADS_V2_PRESENTER_V2_TAIL_SILENCE_SECONDS) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+    if (!padded) throw new Error('voice_not_mp3') // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+    return { url: await uploadVoiceoverToSupabase(order.user_id, Buffer.from(padded.bytes)), seconds: padded.addedSeconds } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  } catch (e) { // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+    console.warn(`[ads-v2] silêncio do fim da voz do apresentador v2 falhou order=${order.id}:`, e instanceof Error ? e.message : String(e)) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+    return null // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+} // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
 /** KINEO-ADS-PRODUTO-NA-MAO-1610 — o interruptor do lado servidor (lib/ads/v2ProductInHandServer.ts, import dinâmico; falha = desligado). */
 function inHandEnabled(userId: string): Promise<boolean> { // KINEO-ADS-PRODUTO-NA-MAO-1610
   return import('@/lib/ads/v2ProductInHandServer').then((m) => m.adsV2InHandEnabled(userId)).catch(() => false) // KINEO-ADS-PRODUTO-NA-MAO-1610
@@ -648,11 +671,12 @@ async function submitVideoFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
   const claimed = await markShot(admin, row, ['pending', 'image_done'], { submit_claimed_at: nowIso() }, 'submit_claimed_at')
   if (!claimed) return
   const pv = engine === 'kling_avatar' && row.kind === ADS_V2_PRESENTER_KIND ? await presenterV2Of(order) : null // KINEO-APRESENTADOR-V2-AJUSTE-1710 — o apresentador v2: a atuação dele e o motor PRO
+  const tail = pv ? await presenterV2TailVoice(order, pv) : null // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o áudio do motor com ~0,6 s de silêncio no fim (null = a voz de sempre)
   let input: Record<string, unknown>
   try {
     // KINEO-ESTILOS-PRODUTO-2026-10-09 — o efeito sai da chave gravada no plano do pedido (só o 'pixverse_effect' a usa).
     // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator leva a voz do anúncio (só ele usa audioUrl; sem voz https, recusa local).
-    input = buildShotInput(engine, { imageUrl: row.image_url ?? '', prompt: pv ? pv.lib.adsV2PresenterV2PerformanceOf(row.prompt) : videoPromptOf(order, row), audioUrl: order.voice_url ?? '', effect: adsV2ShotEffect(order.plan, row.idx) }) as unknown as Record<string, unknown> // KINEO-ADS-FIEL-1510 — videoPromptOf: sem trava = row.prompt ?? '' (o de sempre) · KINEO-APRESENTADOR-V2-AJUSTE-1710 — o v2 nunca leva a atuação de 09/10 ("upbeat… visible-hand gestures")
+    input = buildShotInput(engine, { imageUrl: row.image_url ?? '', prompt: pv ? pv.lib.adsV2PresenterV2PerformanceOf(row.prompt) : videoPromptOf(order, row), audioUrl: tail ? tail.url : order.voice_url ?? '', effect: adsV2ShotEffect(order.plan, row.idx) }) as unknown as Record<string, unknown> // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — tail = a voz com o silêncio do fim (só o v2) · KINEO-ADS-FIEL-1510 — videoPromptOf: sem trava = row.prompt ?? '' (o de sempre) · KINEO-APRESENTADOR-V2-AJUSTE-1710 — o v2 nunca leva a atuação de 09/10 ("upbeat… visible-hand gestures")
     if (pv) input = pv.lib.adsV2PresenterV2AvatarInput(input) // KINEO-APRESENTADOR-V2-AJUSTE-1710 — negative prompt só se o motor aceitar (hoje não: o mesmo corpo)
     if (engine === 'kling_o3' && inHandTagOf(order, row.idx)) { const ih = await inHandLib(); if (ih) input = ih.adsV2InHandKlingInput({ imageUrl: row.image_url ?? '', prompt: videoPromptOf(order, row), cutStart: num(row.cut_start), cutSeconds: num(row.cut_seconds) }) as unknown as Record<string, unknown> } // KINEO-ADS-PRODUTO-NA-MAO-1610 — plano novo: 3 s · KINEO-ADS-MAO-AJUSTE-1610 — SEM quadro final (o end_image_url congelava a pessoa) · KINEO-ADS-MAO-AJUSTE-3-1610 — a duração pelo trecho (3 s; 4 s nos planos de 3,1 s)
     if (engine === 'seedance_20_fast' && adsV2PlanFormat(order.plan) === '1:1') input = { ...input, aspect_ratio: adsV2SeedanceAspect('1:1') } // KINEO-ADS-MELHORIAS-1410 — o herói do Premium QUADRADO sai em 1:1 (o schema da fal aceita; 4:5 não existe lá e o /plan recusa antes)
@@ -664,7 +688,7 @@ async function submitVideoFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
   }
   const spec = ADS_V2_ENGINES[engine]
   // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator gera a duração da VOZ (o custo real dele); os outros motores, a do catálogo.
-  const genSeconds = engine === 'kling_avatar' ? (num(order.voice_seconds) ?? spec.genSeconds) : spec.genSeconds
+  const genSeconds = engine === 'kling_avatar' ? Math.round(((num(order.voice_seconds) ?? spec.genSeconds) + (tail ? tail.seconds : 0)) * 1000) / 1000 : spec.genSeconds // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + o silêncio do fim (o motor cobra o áudio inteiro)
   const slug = pv ? pv.lib.ADS_V2_PRESENTER_V2_ENGINE_SLUG : spec.slug // KINEO-APRESENTADOR-V2-AJUSTE-1710 — o v2 no Kling AI Avatar v2 PRO (1080p); a fila da fal consulta pelo app (fal-ai/kling-video): o poll de sempre lê
   const usdPerSecond = pv ? pv.lib.ADS_V2_PRESENTER_V2_USD_PER_SECOND : spec.usdPerSecond // KINEO-APRESENTADOR-V2-AJUSTE-1710
   const outcome = await submitShotOnce(slug, input, { userId: order.user_id, orderId: order.id }) // KINEO-APRESENTADOR-V2-AJUSTE-1710 — era spec.slug
@@ -1182,7 +1206,7 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
         voiceUrl: null,
         voiceSeconds: null,
         tint: variationTintOf(order.brief) ?? null,
-        presenter: { url: presenterClip.url, measuredSeconds: presenterClip.measuredSeconds, insertOrder, ...(presenterV2 ? { v2: { speechSeconds: voiceSeconds ?? 0, closeUrl: presenterV2.productUrl } } : {}) }, // KINEO-APRESENTADOR-V2-1710 — a estrutura de 15 s: corte no fim real da fala + close da foto real + cartão
+        presenter: { url: presenterClip.url, measuredSeconds: presenterClip.measuredSeconds, insertOrder, ...(presenterV2 ? { v2: { speechSeconds: voiceSeconds ?? 0, closeUrl: presenterV2.productUrl, productRect: presenterV2.v2?.productRect ?? null } } : {}) }, // KINEO-APRESENTADOR-V2-1710 — a estrutura de 15 s: corte no fim real da fala + close da foto real + cartão · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + o retângulo do produto (a frase acima dele)
       })
     } catch (e) {
       presenterSource = null

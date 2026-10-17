@@ -211,6 +211,8 @@ export interface AdV2PresenterV2Input {
   speechSeconds: number
   /** A foto REAL do produto (a 2ª referência da foto do apresentador), no close de ~2 s depois da fala. */
   closeUrl: string
+  /** KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o retângulo do produto na foto do apresentador (frações): a frase de tela vai ACIMA dele. Ausente = o terço de cima. */
+  productRect?: AdV2AvoidBox | null // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
 }
 
 /** Véu aceito: rgba com alfa entre 0,05 e 0,3 (mais que isso lava a foto). */
@@ -491,13 +493,23 @@ export const ADS_V2_PRESENTER_V2_SPEECH_PAD = 0.15
 export const ADS_V2_PRESENTER_V2_CLOSE_SECONDS = 2
 /** KINEO-APRESENTADOR-V2-1710 — no máximo 1 corte dentro da fala. */
 export const ADS_V2_PRESENTER_V2_MAX_INSERTS = 1
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o DISSOLVE apresentador → close não aparecia na R2 (quadro a quadro a 24 fps: rosto, e no quadro seguinte o packshot). Causa no código: o close
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — entrava na MESMA trilha do apresentador (2) — a casa já usa trilhas DIFERENTES para o fade cruzar um plano no outro (lib/ads/producao.ts
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — alterna as trilhas 2 e 3 por isso). Agora o close tem trilha própria ACIMA do apresentador, o apresentador fica 0,35 s a mais por
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — baixo dele e o fade de entrada dura 0,35 s (era 0,25: ~8 quadros a 24 fps). O cartão e as frases sobem uma trilha (continuam por cima de tudo).
+/** KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o dissolve visível do apresentador para o close da foto real (s). */
+export const ADS_V2_PRESENTER_V2_DISSOLVE = 0.35 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+/** KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — trilhas do v2: o close ACIMA do apresentador (2); o cartão acima do close; as frases acima de tudo (os inserts seguem na 3, antes do corte). */
+export const ADS_V2_PRESENTER_V2_CLOSE_TRACK = 3 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+export const ADS_V2_PRESENTER_V2_CARD_TRACK = 4 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+export const ADS_V2_PRESENTER_V2_TEXT_TRACK = 5 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
 /**
  * KINEO-APRESENTADOR-V2-1710 — a linha do tempo (pura): `cut` = fim do apresentador (fala + 0,15 s, sem passar do clipe menos o dissolve), o close de
  * `cut` a `cardStart`, o cartão até `total`. Voz sem medida = o clipe inteiro (o corte de antes). null = clipe curto demais.
  */
 export function adsV2PresenterV2Timeline(i: { clipSeconds: number; speechSeconds: number | null | undefined; cardSeconds: number }): { cut: number; cardStart: number; total: number } | null {
   if (!finitePos(i?.clipSeconds) || !finitePos(i?.cardSeconds)) return null
-  const room = r3(i.clipSeconds - ADS_V2_MONTAGE_FADE)
+  const room = r3(i.clipSeconds - ADS_V2_PRESENTER_V2_DISSOLVE) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o dissolve de 0,35 s cabe no clipe (era o fade de 0,25)
   const cut = finitePos(i.speechSeconds) ? r3(Math.min(i.speechSeconds + ADS_V2_PRESENTER_V2_SPEECH_PAD, room)) : room
   if (cut < ADS_V2_PRESENTER_MIN_SECONDS) return null
   const cardStart = r3(cut + ADS_V2_PRESENTER_V2_CLOSE_SECONDS)
@@ -521,7 +533,7 @@ function buildAdV2PresenterV2Source(input: AdV2MontageInput, presenter: AdV2Pres
   const elements: Record<string, unknown>[] = []
   elements.push({ type: 'shape', track: 1, time: 0, duration: t.total, x: '50%', y: '50%', width: '100%', height: '100%', path: ADS_V2_RECT_PATH, fill_color: '#000000' })
   // O apresentador COM o som (a voz é a dele), do 0 ao corte — e o dissolve por baixo do close (a fala já acabou 0,15 s antes do corte).
-  elements.push({ type: 'video', track: ADS_V2_PRESENTER_TRACK, time: 0, duration: r3(t.cut + ADS_V2_MONTAGE_FADE), source: presenter.url.trim(), fit: 'cover', loop: false, trim_start: 0, x: '50%', y: '50%', width: '100%', height: '100%', volume: '100%' })
+  elements.push({ type: 'video', track: ADS_V2_PRESENTER_TRACK, time: 0, duration: r3(t.cut + ADS_V2_PRESENTER_V2_DISSOLVE), source: presenter.url.trim(), fit: 'cover', loop: false, trim_start: 0, x: '50%', y: '50%', width: '100%', height: '100%', volume: '100%' }) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + o dissolve inteiro por baixo do close
   // No máximo 1 corte dentro da fala: um insert do cliente (nunca a foto do produto: ela é o close logo depois).
   const noPackshot = shots.map((s) => (s && s.kind === 'text' && s.packshot === true ? { ...s, url: '' } : s))
   for (const ins of adsV2PresenterInserts(t.cut, noPackshot, presenter.insertOrder).slice(0, ADS_V2_PRESENTER_V2_MAX_INSERTS)) {
@@ -531,9 +543,9 @@ function buildAdV2PresenterV2Source(input: AdV2MontageInput, presenter: AdV2Pres
     elements.push({ type: 'video', track: ADS_V2_PRESENTER_INSERT_TRACK, time: ins.time, duration: ins.seconds, source: shot.url.trim(), fit: 'cover', loop: false, trim_start: r3(start), ...frame, volume: '0%' })
   }
   // O close da foto REAL do produto, na trilha do apresentador: entra com dissolve no ponto do corte e fica por baixo do cartão.
-  elements.push(...adsV2PackshotElements(v2.closeUrl, ADS_V2_PRESENTER_TRACK, t.cut, r3(ADS_V2_PRESENTER_V2_CLOSE_SECONDS + ADS_V2_MONTAGE_FADE), { enter_transition: { type: 'fade', duration: ADS_V2_MONTAGE_FADE } }))
+  elements.push(...adsV2PackshotElements(v2.closeUrl, ADS_V2_PRESENTER_V2_CLOSE_TRACK, t.cut, r3(ADS_V2_PRESENTER_V2_CLOSE_SECONDS + ADS_V2_MONTAGE_FADE), { enter_transition: { type: 'fade', duration: ADS_V2_PRESENTER_V2_DISSOLVE } })) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — trilha ACIMA do apresentador (era a mesma: não cruzava) e fade de 0,35 s
   // O cartão final (logo real) até o último quadro.
-  elements.push({ type: 'image', track: 3, time: t.cardStart, duration: r3(cardSeconds), source: input.cardUrl.trim(), fit: 'cover', x: '50%', y: '50%', width: '100%', height: '100%', enter_transition: { type: 'fade', duration: ADS_V2_MONTAGE_FADE } })
+  elements.push({ type: 'image', track: ADS_V2_PRESENTER_V2_CARD_TRACK, time: t.cardStart, duration: r3(cardSeconds), source: input.cardUrl.trim(), fit: 'cover', x: '50%', y: '50%', width: '100%', height: '100%', enter_transition: { type: 'fade', duration: ADS_V2_MONTAGE_FADE } }) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — acima do close (o close subiu para a 3)
   const tint = input.tint ?? null
   if (tint !== null) {
     if (typeof tint !== 'string' || !ADS_V2_TINT_RE.test(tint)) throw new Error('ads_v2_montage_bad_tint')
@@ -551,8 +563,8 @@ function buildAdV2PresenterV2Source(input: AdV2MontageInput, presenter: AdV2Pres
     const start = r3(o.start * scale)
     const end = r3(Math.min(o.end * scale, t.cut))
     if (!(end > start)) throw new Error(`ads_v2_montage_overlay_window:${i}`)
-    const geo = adsV2OverlayGeometry(text, width, height, null)
-    elements.push({ type: 'text', track: 4, time: start, duration: r3(end - start), text, x: '50%', y: geo.y, x_anchor: '50%', y_anchor: geo.y_anchor, x_alignment: '50%', width: geo.width, font_family: fontFamily, font_size: geo.font_size, font_weight: '800', line_height: '110%', fill_color: '#ffffff', stroke_color: 'rgba(0,0,0,0.55)', stroke_width: 2, background_color: 'rgba(0,0,0,0.55)', background_x_padding: '3%', background_y_padding: '2%', border_radius: 10, enter_transition: { type: 'fade', duration: 0.2 } })
+    const geo = adsV2PresenterV2OverlayGeometry(text, width, height, v2.productRect ?? null) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — acima do produto e das mãos (sem o retângulo: o terço de cima)
+    elements.push({ type: 'text', track: ADS_V2_PRESENTER_V2_TEXT_TRACK, time: start, duration: r3(end - start), text, x: '50%', y: geo.y, x_anchor: '50%', y_anchor: geo.y_anchor, x_alignment: '50%', width: geo.width, font_family: fontFamily, font_size: geo.font_size, font_weight: '800', line_height: '110%', fill_color: '#ffffff', stroke_color: 'rgba(0,0,0,0.55)', stroke_width: 2, background_color: 'rgba(0,0,0,0.55)', background_x_padding: '3%', background_y_padding: '2%', border_radius: 10, enter_transition: { type: 'fade', duration: 0.2 } })
   })
   // NENHUM elemento de voz (a voz é o som do apresentador). Música baixa sob a fala; sobe logo depois do corte.
   if (input.musicUrl) {
@@ -798,3 +810,23 @@ export function adsV2OverlayGeometry(text: string, frameW: number, frameH: numbe
   const place = adsV2OverlayPlace({ text, frameW, frameH, fontPx, avoid }) // KINEO-ADS-FIEL-3-1510
   return { y: pct(place.bottom), y_anchor: '100%', width: pct(ADS_V2_OVERLAY_WIDTH), font_size: fontPx, place } // KINEO-ADS-FIEL-3-1510
 } // KINEO-ADS-FIEL-3-1510
+// ── KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — a FRASE DE TELA do apresentador v2 ACIMA do produto e das mãos ──────────────────────────────────────────────────────────────────
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — na R2 "Um perfume encantador" ficou sobre os dedos (a faixa de baixo da zona segura). A base da frase vai logo acima do topo do produto
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — (o retângulo da foto escolhida, lib/ads/v2PresenterV2.ts adsV2PresenterV2ProductRect), presa entre o topo da zona segura e a faixa de baixo; sem o
+// KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — retângulo, o terço de cima (o bloco de 2 linhas logo abaixo do topo da zona segura — a mesma faixa 'upper' de adsV2OverlayPlace).
+export interface AdV2PresenterV2OverlayPlace { band: 'above_product' | 'upper_third'; bottom: number } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+/** KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — onde a frase do v2 fica (pura). */
+export function adsV2PresenterV2OverlayGeometry(text: string, frameW: number, frameH: number, productRect?: AdV2AvoidBox | null): { y: string; y_anchor: string; width: string; font_size: number; place: AdV2PresenterV2OverlayPlace } { // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const fontPx = adsV2OverlayFontSize(text, frameW) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const safe = ADS_V2_OVERLAY_SAFE[adsV2OverlayFrame(frameW, frameH)] // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const lineH = (fontPx * ADS_V2_OVERLAY_LINE_HEIGHT) / frameH // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const lines = Math.max(1, adsV2OverlayLines(text, fontPx, frameW).length) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const highest = safe.top + ADS_V2_OVERLAY_PILL_PAD + lines * lineH // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — a base mais alta: o topo do bloco encosta no topo da zona segura
+  const upper = safe.top + ADS_V2_OVERLAY_PILL_PAD + ADS_V2_OVERLAY_MAX_LINES * lineH // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o terço de cima (a faixa 'upper' de sempre)
+  const lowest = safe.bottom - ADS_V2_OVERLAY_PILL_PAD // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const r = productRect // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const okRect = !!r && [r.x0, r.y0, r.x1, r.y1].every((n) => typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= 1) && r.y1 > r.y0 && r.x1 > r.x0 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const r4 = (n: number) => Math.round(n * 10000) / 10000 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  const bottom = okRect ? Math.min(lowest, Math.max(highest, (r as AdV2AvoidBox).y0 - ADS_V2_OVERLAY_AVOID_PAD - ADS_V2_OVERLAY_PILL_PAD)) : upper // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — logo acima do topo do produto (com folga), dentro da zona segura
+  return { y: pct(r4(bottom)), y_anchor: '100%', width: pct(ADS_V2_OVERLAY_WIDTH), font_size: fontPx, place: { band: okRect ? 'above_product' : 'upper_third', bottom: r4(bottom) } } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+} // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
