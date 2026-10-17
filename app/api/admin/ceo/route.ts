@@ -7,7 +7,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { isAdminEmail } from '../_shared/db'
-import { computeCeoData } from './compute'
+import { computeCeoDataCached } from './compute' // KINEO-ADMIN-RAPIDO-1710 — polling da Visão geral e /admin/leads reaproveitam o último cálculo (até 2 min)
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -38,7 +38,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const data = await computeCeoData()
+    const data = await computeCeoDataCached()
     if (!data) {
       return NextResponse.json({ error: 'Service role not configured' }, { status: 500 })
     }

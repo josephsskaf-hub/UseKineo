@@ -108,6 +108,7 @@ export function mrrForPlan(plan: string | null | undefined): number {
  */
 type StripeMrr = { mrr: number; counted: number; perSubscription: Array<{ id: string; usd: number; status: string }> }
 const STRIPE_MRR_TTL_MS = 5 * 60 * 1000
+const STRIPE_MRR_BATCH = 10 // KINEO-ADMIN-RAPIDO-1710 — 10 de cada vez (bem abaixo do limite de leitura da Stripe)
 const stripeMrrCache = new Map<string, { at: number; value: StripeMrr | null }>()
 
 /** Cache de 5 min: quatro telas do admin abrindo em sequência não fazem 48 chamadas à Stripe. */
@@ -131,8 +132,15 @@ async function stripeMrrUsdUncached(subscriptionIds: string[]): Promise<{
   try {
     const perSubscription: Array<{ id: string; usd: number; status: string }> = []
     let mrr = 0
-    for (const id of ids) {
-      const sub = await stripe.subscriptions.retrieve(id)
+    // KINEO-ADMIN-RAPIDO-1710 — as assinaturas são LIDAS em lotes de STRIPE_MRR_BATCH em paralelo (antes: uma por uma, em
+    // série — ~0,3 s × assinante). A CONTA abaixo é a mesma, na mesma ordem dos ids: só mudou o transporte.
+    const subs: Awaited<ReturnType<typeof stripe.subscriptions.retrieve>>[] = []
+    for (let i = 0; i < ids.length; i += STRIPE_MRR_BATCH) {
+      subs.push(...(await Promise.all(ids.slice(i, i + STRIPE_MRR_BATCH).map((id) => stripe.subscriptions.retrieve(id)))))
+    }
+    for (let idx = 0; idx < ids.length; idx++) {
+      const id = ids[idx]
+      const sub = subs[idx]
       // Só conta assinatura que a Stripe considera viva. 'canceled'/'unpaid'
       // continuam existindo como objeto e somá-las infla o MRR com receita
       // que não vai entrar.

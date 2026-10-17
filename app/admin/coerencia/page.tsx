@@ -4,7 +4,8 @@
 // para aquela pessoa perguntando se o feedback foi positivo ou negativo").
 // Uma linha por filme, limpa: NOTA · motor · quem/quando · o que escreveu · ▶ filme · 👍👎 · botão.
 // Tudo o mais (por que a nota, narração, cena a cena) fica dobrado em "detalhes". Filtros no topo.
-// Abrir a página julga o que ainda não tem nota (até 6 por vez) e grava. Gate idêntico a toda tela /admin.
+// KINEO-ADMIN-RAPIDO-1710 — abrir a página só LÊ as notas (maxCompute: 0). Quem julga o que falta: o cron quality-radar (a cada
+// 15 min) ou o botão "Avaliar pendentes" (POST /api/admin/coerencia/avaliar). Gate idêntico a toda tela /admin.
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { readAll } from '@/lib/supabase/readAll'
@@ -12,6 +13,7 @@ import { isAdminEmail, serviceClient } from '@/app/api/admin/_shared/db'
 import { ENGINE_LABEL, listFastCoherence, type FastCoherenceRow } from '@/lib/admin/fastCoherence'
 import { ROTULO_CRITERIO, type CriterioJuiz, type JuizStillPainel } from '@/lib/hollywood/juizStill' // KINEO-JUIZ-STILL-2026-10-06
 import PedirFeedback from './PedirFeedback'
+import AvaliarPendentes from './AvaliarPendentes' // KINEO-ADMIN-RAPIDO-1710
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -175,7 +177,7 @@ export default async function AdminCoerenciaPage({ searchParams }: { searchParam
   const incluirCasa = one('casa') === '1'
   const engine = (one('engine') ?? '').trim() || undefined
   const so = one('so') // 'fora' | 'parcial' | 'semfeedback'
-  const todas = await listFastCoherence(admin, { hours, limit: 150, engine, maxCompute: 6, excludeEmails: incluirCasa ? [] : FOUNDER }, readAll)
+  const todas = await listFastCoherence(admin, { hours, limit: 150, engine, maxCompute: 0, excludeEmails: incluirCasa ? [] : FOUNDER }, readAll) // KINEO-ADMIN-RAPIDO-1710 — só lê; o juiz roda no cron ou no botão
   const rows = todas.filter((r) => {
     if (so === 'fora') return r.coherence?.verdict === 'off'
     if (so === 'parcial') return r.coherence?.verdict === 'partial'
@@ -262,7 +264,7 @@ export default async function AdminCoerenciaPage({ searchParams }: { searchParam
             </tr>
           </tbody>
         </table>
-        {semNota > 0 && <div style={{ color: '#9AA3B2', fontSize: 12, marginBottom: 10 }}>{semNota} filme{semNota > 1 ? 's' : ''} ainda sem nota — recarregue a página (o juiz avalia 6 por vez).</div>}
+        {semNota > 0 && <div data-kineo="sem-nota" style={{ color: '#9AA3B2', fontSize: 12, marginBottom: 10 }}>{semNota} filme{semNota > 1 ? 's' : ''} ainda sem nota — o radar avalia sozinho a cada 15 min, ou agora:<AvaliarPendentes hours={hours} engine={engine} casa={incluirCasa} pendentes={semNota} /></div>}
 
         <div style={{ display: 'grid', gap: 8 }}>
           {rows.map((r) => (

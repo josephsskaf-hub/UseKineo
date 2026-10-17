@@ -30,7 +30,8 @@ interface AdminUserRow {
 }
 
 const CARD: React.CSSProperties = { background: 'var(--card)', border: '1px solid #1F2530', borderRadius: 20 }
-const POLL_MS = 60_000
+// KINEO-ADMIN-RAPIDO-1710 — era 60 s. A lista vem do mesmo cálculo cacheado da Visão geral (computeCeoData); 5 min basta.
+const POLL_MS = 5 * 60_000
 
 function fmt(v: number | null | undefined): string {
   if (v === null || v === undefined) return '—'
@@ -83,7 +84,7 @@ export default function LeadsClient({ denied }: { denied?: boolean }) {
       }
     }
     load()
-    const t = setInterval(load, POLL_MS)
+    const t = setInterval(() => { if (typeof document === 'undefined' || !document.hidden) load() }, POLL_MS) // KINEO-ADMIN-RAPIDO-1710
     return () => {
       cancelled = true
       clearInterval(t)

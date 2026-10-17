@@ -29,7 +29,8 @@ function pct1(n: number): string {
   return `${(n * 100).toFixed(1)}%`
 }
 
-const POLL_MS = 30_000
+// KINEO-ADMIN-RAPIDO-1710 — era 30 s: cada volta refazia o Funil inteiro (22–28 s de banco + Stripe). 5 min, e só com a aba à vista.
+const POLL_MS = 5 * 60_000
 const PERIODS: Array<{ label: string; days: string }> = [
   { label: '24h', days: '1' },
   { label: '7d', days: '7' },
@@ -77,7 +78,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
       }
     }
     load()
-    timerRef.current = setInterval(load, POLL_MS)
+    timerRef.current = setInterval(() => { if (typeof document === 'undefined' || !document.hidden) load() }, POLL_MS) // KINEO-ADMIN-RAPIDO-1710 — aba escondida não consulta
     return () => { cancelled = true; if (timerRef.current) clearInterval(timerRef.current) }
   }, [denied, days])
 

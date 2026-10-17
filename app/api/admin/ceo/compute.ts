@@ -23,6 +23,7 @@
 import { stripe } from '@/lib/stripe'
 import { INTERNAL_ACCOUNTS_LABEL, isInternalEmail } from '@/lib/internalAccounts'
 import { fetchAllRows, serviceClient } from '../_shared/db'
+import { cachedAdminStripe } from '../_shared/stripeCache' // KINEO-ADMIN-RAPIDO-1710 — sessions da Stripe com cache de 10 min
 // KINEO-CORTESIA-2026-10-03 — cortesia do admin entra com o plano real (free): fora de pagante e MRR.
 import { maskCourtesyPlans } from '@/lib/courtesy'
 import { loadActiveCourtesyGrants } from '@/lib/courtesyStore'
@@ -222,11 +223,54 @@ function buildFunnel(
 
 // ── main ────────────────────────────────────────────────────────────────────
 
+// ═══ KINEO-ADMIN-RAPIDO-1710 — a Visão geral sem fila ═══════════════════════════════════════════════════════════════
+// Antes (9–12,5 s medidos em 17/10): leituras do banco → Stripe retrieve UM POR UM → checkout_started → até 1000 sessions
+// da Stripe, em SÉRIE, refeito a cada 60 s. Agora: banco + checkout_started + sessions (cache de 10 min) numa onda só;
+// o MRR ao vivo da Stripe em lotes paralelos (_shared/mrr, cache de 5 min). A RÉGUA do MRR não mudou: o laço abaixo
+// continua somando subscriberMrr(paidMonthlyUsdByUser) de _shared/mrr, linha por linha como antes.
+//
+// computeCeoDataCached: a rota /api/admin/ceo (polling da Visão geral e a tela /admin/leads) reaproveita o último
+// cálculo se ele tiver menos de CEO_DATA_TTL_MS; a página /admin (SSR) sempre calcula de novo e deixa o resultado aqui.
+export const CEO_DATA_TTL_MS = 2 * 60 * 1000
+let ceoMemo: { at: number; data: CeoData } | null = null
+let ceoInflight: Promise<CeoData | null> | null = null
+
+export async function computeCeoDataCached(maxAgeMs: number = CEO_DATA_TTL_MS): Promise<CeoData | null> {
+  if (ceoMemo && Date.now() - ceoMemo.at < maxAgeMs) return ceoMemo.data
+  if (ceoInflight) return ceoInflight
+  ceoInflight = computeCeoData().finally(() => { ceoInflight = null })
+  return ceoInflight
+}
+
+type CompactSession = { email: string; status: string | null; expires_at: number; plan: string | null }
+
+/** Até MAX_SESSOES sessions da Stripe, enxutas (só o que o card usa). Lança se a Stripe falhar — o chamador trata. */
+async function loadCheckoutSessionsCompact(): Promise<CompactSession[]> {
+  return cachedAdminStripe('ceo:checkout-sessions:1000', async () => {
+    const out: CompactSession[] = []
+    const MAX_SESSOES = 1000
+    let lidas = 0
+    await stripe.checkout.sessions.list({ limit: 100 }).autoPagingEach((s) => {
+      if (++lidas > MAX_SESSOES) return false
+      out.push({ email: (s.customer_details?.email ?? '').toLowerCase(), status: s.status ?? null, expires_at: s.expires_at, plan: (s.metadata?.plan ?? null) as string | null })
+    })
+    return out
+  })
+}
+
 export async function computeCeoData(): Promise<CeoData | null> {
   const admin = serviceClient()
   if (!admin) return null
 
-  const [profilesRaw, videos, paidEvents, courtesy] = await Promise.all([
+  // A Stripe começa JÁ, em paralelo com o banco; um erro dela não derruba a tela (vira null, como antes virava 0).
+  const sessionsP: Promise<CompactSession[] | null> = process.env.STRIPE_SECRET_KEY
+    ? loadCheckoutSessionsCompact().catch((e) => {
+        console.warn('[admin/ceo] Stripe query failed:', e instanceof Error ? e.message : String(e))
+        return null
+      })
+    : Promise.resolve(null)
+
+  const [profilesRaw, videos, paidEvents, courtesy, checkoutEvents, compactSessions] = await Promise.all([
     fetchAllRows<ProfileRow>(admin, 'profiles', 'id, email, plan, created_at, stripe_customer_id, stripe_subscription_id, video_credits, has_paid', undefined, '/api/admin/ceo'
     ),
     fetchAllRows<VideoRow>(admin, 'videos', 'user_id, created_at', undefined, '/api/admin/ceo'),
@@ -236,6 +280,9 @@ export async function computeCeoData(): Promise<CeoData | null> {
       values: [...MRR_PAID_EVENT_NAMES],
     }, '/api/admin/ceo'),
     loadActiveCourtesyGrants(admin, '/api/admin/ceo'),
+    // KINEO-PAINEL-VERDADE-2026-08-27 — `checkout_started` é o fato (explicação completa no card do vazamento, abaixo).
+    fetchAllRows<{ user_id: string | null }>(admin, 'events', 'id, user_id', { column: 'name', values: ['checkout_started'] }, '/api/admin/ceo'),
+    sessionsP,
   ])
   const profiles = maskCourtesyPlans(profilesRaw, courtesy)
   if (profiles.length === 0) return null
@@ -384,8 +431,7 @@ export async function computeCeoData(): Promise<CeoData | null> {
   // mais rápido de queimar domínio em spam.
   //
   // `checkout_started` é o fato: só o clique do cliente o emite.
-  const checkoutEvents = await fetchAllRows<{ user_id: string | null }>(admin, 'events', 'id, user_id', { column: 'name', values: ['checkout_started'] }, '/api/admin/ceo'
-  )
+  // KINEO-ADMIN-RAPIDO-1710 — checkoutEvents já veio na fase 1 (mesma leitura: values: ['checkout_started']).
   const reachedIds = new Set(
     checkoutEvents.map((e) => e.user_id).filter((id): id is string => !!id && externalIds.has(id)),
   )
@@ -410,11 +456,10 @@ export async function computeCeoData(): Promise<CeoData | null> {
       //    do fundador entravam na taxa que a casa usa para decidir preço.
       //    Agora a conta interna é descartada primeiro, para TODOS os três
       //    contadores, e não só para a lista de leads.
-      const MAX_SESSOES = 1000
-      let lidas = 0
-      await stripe.checkout.sessions.list({ limit: 100 }).autoPagingEach((s) => {
-        if (++lidas > MAX_SESSOES) return false
-        const custEmail = (s.customer_details?.email ?? '').toLowerCase()
+      // KINEO-ADMIN-RAPIDO-1710 — a leitura (autoPagingEach, teto MAX_SESSOES) foi para loadCheckoutSessionsCompact, que roda
+      // na fase 1 com cache de 10 min. Aqui só a CONTA, na mesma ordem de sempre: conta interna sai ANTES dos contadores.
+      ;(compactSessions ?? []).forEach((s) => {
+        const custEmail = s.email
         if (custEmail && isInternalEmail(custEmail)) return
         checkoutCreated += 1
         if (s.status === 'complete') {
@@ -427,7 +472,7 @@ export async function computeCeoData(): Promise<CeoData | null> {
         const at = new Date(s.expires_at * 1000).toISOString()
         const lead = {
           email: custEmail,
-          plan: (s.metadata?.plan ?? null) as string | null,
+          plan: s.plan,
           abandonedAt: at,
           daysAgo: Math.floor((now - new Date(at).getTime()) / DAY_MS),
         }
@@ -448,7 +493,7 @@ export async function computeCeoData(): Promise<CeoData | null> {
 
   const totalUsers = external.length
 
-  return {
+  const result: CeoData = {
     generatedAt: new Date().toISOString(),
     scopeLabel: INTERNAL_ACCOUNTS_LABEL,
     internalExcluded,
@@ -503,4 +548,6 @@ export async function computeCeoData(): Promise<CeoData | null> {
     checkoutAbandoned,
     checkoutConversionRate: pct(checkoutCompleted, checkoutCompleted + checkoutAbandoned),
   }
+  ceoMemo = { at: Date.now(), data: result } // KINEO-ADMIN-RAPIDO-1710 — o /admin (SSR) deixa o cálculo para a rota e para /admin/leads
+  return result
 }

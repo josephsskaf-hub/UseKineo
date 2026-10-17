@@ -30,7 +30,8 @@ interface Props {
   home?: boolean
 }
 
-const POLL_MS = 60_000
+// KINEO-ADMIN-RAPIDO-1710 — era 60 s: cada volta refazia a Visão geral inteira. 5 min, e só com a aba à vista.
+const POLL_MS = 5 * 60_000
 
 function fmt(v: number): string {
   return v.toLocaleString('en-US')
@@ -76,7 +77,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
         setRefreshing(false)
       }
     }
-    timerRef.current = setInterval(poll, POLL_MS)
+    timerRef.current = setInterval(() => { if (typeof document === 'undefined' || !document.hidden) void poll() }, POLL_MS) // KINEO-ADMIN-RAPIDO-1710 — aba escondida não consulta
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
     }

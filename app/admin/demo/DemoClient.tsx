@@ -95,6 +95,7 @@ export default function DemoClient({ denied, initial }: { denied?: boolean; init
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<{ kind: 'ok' | 'bad'; text: string } | null>(null)
+  const [advancing, setAdvancing] = useState(false) // KINEO-ADMIN-RAPIDO-1710
 
   const load = useCallback(async () => {
     try {
@@ -111,7 +112,8 @@ export default function DemoClient({ denied, initial }: { denied?: boolean; init
   useEffect(() => {
     if (denied || initial) return
     void load()
-    const t = window.setInterval(() => void load(), 60_000)
+    // KINEO-ADMIN-RAPIDO-1710 — o GET agora só LÊ (o avanço é do cron a cada 5 min); 2 min basta, e aba escondida não consulta.
+    const t = window.setInterval(() => { if (!document.hidden) void load() }, 120_000)
     return () => window.clearInterval(t)
   }, [denied, initial, load])
 
@@ -121,6 +123,21 @@ export default function DemoClient({ denied, initial }: { denied?: boolean; init
   const cap = data?.cap ?? 3
   const full = count !== null && count >= cap
   const blocked = !data?.house || (full && !(exception && reason.trim().length >= DEMO_REASON_MIN)) || data?.fal.state === 'refused' || (data?.balance !== null && data?.balance !== undefined && data.balance < data.cost)
+
+  // KINEO-ADMIN-RAPIDO-1710 — "Avançar agora": o passo do cron (formatos + link de aprovação + entrega), sem esperar os 5 min.
+  async function advanceNow() {
+    if (advancing) return
+    setAdvancing(true)
+    try {
+      const r = await fetch('/api/admin/demo', { method: 'PATCH', cache: 'no-store' })
+      if (!r.ok) setNote({ kind: 'bad', text: 'Não consegui avançar as demos agora. O robô tenta de novo em até 5 min.' })
+      await load()
+    } catch {
+      setNote({ kind: 'bad', text: 'Não consegui avançar as demos agora. O robô tenta de novo em até 5 min.' })
+    } finally {
+      setAdvancing(false)
+    }
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -182,7 +199,7 @@ export default function DemoClient({ denied, initial }: { denied?: boolean; init
         <p className="dm-rule">Regra: até {cap} por semana (semana ISO, horário de Brasília) · só quem respondeu · o saldo da fal é lido antes · ensaio de US$ 0 antes do débito · a trava do produto fiel vale para todos.</p>
       </section>
 
-      <h2 style={{ fontSize: 16, margin: '24px 0 8px' }}>Demos desta semana</h2>
+      <h2 style={{ fontSize: 16, margin: '24px 0 8px' }}>Demos desta semana <button type="button" className="dm-ghost" data-kineo="demo-avancar" onClick={() => void advanceNow()} disabled={advancing} title="Formatos 4:5 e 1:1, link de aprovação e entrega das demos prontas. O robô faz isso sozinho a cada 5 min.">{advancing ? 'Avançando…' : 'Avançar agora'}</button></h2>
       <div className="dm-list">
         {data && data.rows.length === 0 ? <p className="dm-empty">Nenhuma demo nesta semana.</p> : null}
         {(data?.rows ?? []).map((r) => (

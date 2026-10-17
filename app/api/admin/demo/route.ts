@@ -1,8 +1,11 @@
 // KINEO-DEMO-SOB-MEDIDA-1510 — /api/admin/demo: a máquina de demo sob medida do B2B (regras em lib/ads/demoSobMedida.ts).
 //
 // GET  → o contador "X de 3 demos nesta semana", o saldo de créditos da conta em uso, o estado da fal, se a conta é da casa, e a
-//        lista das demos da semana (fazendo/pronta/falhou, os formatos, o link privado e o texto pronto EN/ES/DE). Antes de ler,
-//        dá UM passo nas demos entregues (formatos + aprovação; idempotente — o cron faz o mesmo a cada 5 min).
+//        lista das demos da semana (fazendo/pronta/falhou, os formatos, o link privado e o texto pronto EN/ES/DE). SÓ LÊ.
+//        KINEO-ADMIN-RAPIDO-1710 — o GET dava UM passo nas demos (formatos + aprovação + entrega, com efeito colateral) a cada
+//        abertura e a cada 60 s da tela. Isso saiu daqui: quem anda é o cron /api/cron/ads-v2-advance (vercel.json, a cada
+//        5 min, já chamava advanceDemosSobMedida — frequência INTOCADA) ou o botão "Avançar agora" (PATCH, abaixo).
+// PATCH → o mesmo passo do cron, sob demanda (admin). Idempotente: o cron e o botão podem rodar juntos sem duplicar.
 // POST { link, brand, voice?, scene?, exception?, exception_reason? } → a demo nova (Comercial 15 s 9:16 na conta da CASA em que o
 //        admin está logado; dry-run antes; débito normal da casa). 202 = começou; o vídeo NÃO é esperado aqui.
 //
@@ -43,7 +46,7 @@ export async function GET(req: NextRequest) {
     if (!admin) return json({ error: 'unavailable' }, 503)
     const now = new Date()
     const secret = process.env.SUPABASE_SERVICE_ROLE_KEY
-    const step = await advanceDemosSobMedida(admin, { deadlineMs: Date.now() + 20_000, secret, now })
+    // KINEO-ADMIN-RAPIDO-1710 — GET só lê (o avanço é do cron ads-v2-advance ou do PATCH).
     const [count, list, prof, panel] = await Promise.all([
       demoWeekCount(admin, now),
       listDemosOfWeek(admin, now, secret, req.nextUrl.origin),
@@ -61,10 +64,24 @@ export async function GET(req: NextRequest) {
       fal: { state: !panel ? 'not_measured' : falRefusalIsFresh(panel, now.getTime()) ? 'refused' : 'ok', last_refusal_at: falLastRefusalAt(panel) },
       rows: list.rows,
       list_error: list.error,
-      step,
     })
   } catch (e) {
     console.warn('[admin/demo GET] falhou:', e instanceof Error ? e.message : String(e))
+    return json({ error: 'unavailable' }, 502)
+  }
+}
+
+// KINEO-ADMIN-RAPIDO-1710 — botão "Avançar agora" da /admin/demo: o mesmo passo que o cron dá a cada 5 min, sob demanda.
+export async function PATCH() {
+  try {
+    const gate = await adminUser()
+    if (!gate.ok) return gate.res
+    const admin = serviceClient()
+    if (!admin) return json({ error: 'unavailable' }, 503)
+    const step = await advanceDemosSobMedida(admin, { deadlineMs: Date.now() + 20_000, secret: process.env.SUPABASE_SERVICE_ROLE_KEY, now: new Date() })
+    return json({ ok: true, step })
+  } catch (e) {
+    console.warn('[admin/demo PATCH] falhou:', e instanceof Error ? e.message : String(e))
     return json({ error: 'unavailable' }, 502)
   }
 }

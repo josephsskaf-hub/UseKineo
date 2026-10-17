@@ -38,6 +38,10 @@ import { createClient } from '@/lib/supabase/server'
 // borrowing the label would assert the opposite of what the numbers do.
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { fetchAllRows, isAdminEmail, serviceClient } from '@/app/api/admin/_shared/db'
+import { readAll } from '@/lib/supabase/readAll' // KINEO-ADMIN-RAPIDO-1710 — profiles já filtrados no banco
+
+/** KINEO-ADMIN-RAPIDO-1710 — quantos ids de trial por leitura de videos/events (as fatias correm em paralelo). */
+const COHORT_ID_CHUNK = 15
 import { TRIAL_CREDIT_CAP } from '@/lib/reverseTrial'
 
 export const dynamic = 'force-dynamic'
@@ -178,8 +182,13 @@ async function loadCohort(): Promise<CohortData | null> {
   const admin = serviceClient()
   if (!admin) return null
 
-  const profiles = await fetchAllRows<TrialProfileRow>(admin, 'profiles', 'id, email, trial_status, trial_ends_at, trial_credits_used, trial_credits_granted, trial_variant, signup_country, last_country, signup_utm_source, utm_source, created_at', undefined, '/admin/trial-cohort'
-  )
+  // KINEO-ADMIN-RAPIDO-1710 — antes: os ~2.600 profiles inteiros (3 páginas com OFFSET) para ficar com ~50 trials. Agora o banco
+  // filtra: ilike sem curinga = igualdade sem diferenciar maiúscula, a MESMA regra do filtro em memória (que fica, por garantia).
+  const { data: profilesData } = await readAll(() => admin
+    .from('profiles')
+    .select('id, email, trial_status, trial_ends_at, trial_credits_used, trial_credits_granted, trial_variant, signup_country, last_country, signup_utm_source, utm_source, created_at')
+    .ilike('trial_status', 'active'), { route: '/admin/trial-cohort', table: 'profiles' })
+  const profiles = (profilesData ?? []) as TrialProfileRow[]
   const trials = profiles.filter((p) => (p.trial_status ?? '').toLowerCase() === 'active')
   if (trials.length === 0) {
     return {
@@ -202,10 +211,17 @@ async function loadCohort(): Promise<CohortData | null> {
 
   // Scoping BOTH reads to the cohort keeps this page cheap: ~5k event rows and
   // a few hundred videos, instead of the 46k-row events table.
-  const [videos, events] = await Promise.all([
-    fetchAllRows<{ user_id: string | null }>(admin, 'videos', 'user_id', { column: 'user_id', values: ids }, '/admin/trial-cohort'),
-    fetchAllRows<EventRow>(admin, 'events', 'user_id, name, created_at', { column: 'user_id', values: ids }, '/admin/trial-cohort'),
+  // KINEO-ADMIN-RAPIDO-1710 — os ids vão em FATIAS de COHORT_ID_CHUNK, todas em paralelo: cada fatia é uma URL curta e, com o
+  // índice events_user_created_idx (17/10), uma leitura de poucas páginas. Antes: UMA leitura com todos os ids, paginada em
+  // série com OFFSET e sem índice em user_id (15,5 s ou a tela "Cut! Something glitched"). Mesmas linhas, mesma soma.
+  const fatias: string[][] = []
+  for (let i = 0; i < ids.length; i += COHORT_ID_CHUNK) fatias.push(ids.slice(i, i + COHORT_ID_CHUNK))
+  const [videoParts, eventParts] = await Promise.all([
+    Promise.all(fatias.map((f) => fetchAllRows<{ user_id: string | null }>(admin, 'videos', 'user_id', { column: 'user_id', values: f }, '/admin/trial-cohort'))),
+    Promise.all(fatias.map((f) => fetchAllRows<EventRow>(admin, 'events', 'user_id, name, created_at', { column: 'user_id', values: f }, '/admin/trial-cohort'))),
   ])
+  const videos = videoParts.flat()
+  const events = eventParts.flat()
 
   const videoCount = new Map<string, number>()
   for (const v of videos) {

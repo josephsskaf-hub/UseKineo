@@ -14,7 +14,8 @@ import { readAll } from '@/lib/supabase/readAll'
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient, type User } from '@supabase/supabase-js'
+import { createClient as createServiceClient, type SupabaseClient, type User } from '@supabase/supabase-js'
+import { cachedAdminStripe } from '../_shared/stripeCache' // KINEO-ADMIN-RAPIDO-1710
 import { stripe } from '@/lib/stripe'
 import { INTERNAL_ACCOUNTS_LABEL, isInternalEmail } from '@/lib/internalAccounts'
 import { acquisitionSource, AI_ASSISTANT_LIKELY_SOURCE, hasCorrectableSelfReferral, landingSessionSourceClass } from '@/lib/acquisitionSource'
@@ -433,6 +434,93 @@ function objectId(value: string | { id: string } | null): string | null {
   return value?.id ?? null
 }
 
+// ═══ KINEO-ADMIN-RAPIDO-1710 — leituras pesadas do Funil, fora do GET ═══════════════════════════════════════════════
+// Stripe: as mesmas três leituras de antes (sessions do período, todas as subscriptions, invoices 'uncollectible'), agora
+// num cache curto de 10 min por instância (_shared/stripeCache). Cada lista é cacheada SEPARADA e só quando deu certo:
+// uma lista que falhou continua "indisponível" nesta abertura e é tentada de novo na próxima — igual ao comportamento antigo.
+type FunnelStripeBundle = {
+  sessions: Stripe.Checkout.Session[]
+  sessionsAvailable: boolean
+  subscriptions: Stripe.Subscription[]
+  subscriptionsAvailable: boolean
+  uncollectibleInvoices: Stripe.Invoice[]
+}
+
+async function loadFunnelStripe(days: string, cohortCutoff: number): Promise<FunnelStripeBundle> {
+  const out: FunnelStripeBundle = { sessions: [], sessionsAvailable: false, subscriptions: [], subscriptionsAvailable: false, uncollectibleInvoices: [] }
+  if (!process.env.STRIPE_SECRET_KEY) return out
+  const [sessions, subscriptions, invoices] = await Promise.all([
+    cachedAdminStripe(`funnel:sessions:${days}`, async () => {
+      const rows: Stripe.Checkout.Session[] = []
+      let startingAfter: string | undefined
+      for (let page = 0; page < 50; page++) {
+        const params: Stripe.Checkout.SessionListParams = { limit: 100 }
+        if (days !== 'all') params.created = { gte: Math.floor(cohortCutoff / 1000) }
+        if (startingAfter) params.starting_after = startingAfter
+        const batch = await stripe.checkout.sessions.list(params)
+        rows.push(...batch.data)
+        if (!batch.has_more || batch.data.length === 0) break
+        startingAfter = batch.data[batch.data.length - 1].id
+      }
+      return rows
+    }).catch((stripeErr) => {
+      console.warn('[admin/funnel] Stripe sessions query failed:', stripeErr instanceof Error ? stripeErr.message : String(stripeErr))
+      return null
+    }),
+    cachedAdminStripe('funnel:subscriptions:all', async () => {
+      const rows: Stripe.Subscription[] = []
+      let startingAfter: string | undefined
+      for (let page = 0; page < 50; page++) {
+        const batch = await stripe.subscriptions.list({ status: 'all', limit: 100, ...(startingAfter ? { starting_after: startingAfter } : {}) })
+        rows.push(...batch.data)
+        if (!batch.has_more || batch.data.length === 0) break
+        startingAfter = batch.data[batch.data.length - 1].id
+      }
+      return rows
+    }).catch((stripeErr) => {
+      console.warn('[admin/funnel] Stripe subscriptions query failed:', stripeErr instanceof Error ? stripeErr.message : String(stripeErr))
+      return null
+    }),
+    cachedAdminStripe('funnel:invoices:uncollectible', async () => (await stripe.invoices.list({ limit: 100, status: 'uncollectible' })).data)
+      .catch(() => null /* ignore, como antes */),
+  ])
+  if (sessions) { out.sessions = sessions; out.sessionsAvailable = true }
+  if (subscriptions) { out.subscriptions = subscriptions; out.subscriptionsAvailable = true }
+  if (invoices) out.uncollectibleInvoices = invoices
+  return out
+}
+
+// Contagem por nome de evento. ANTES: 78 `count: 'exact'` (um por nome), cada um com `user_id NOT IN (internos)`.
+// AGORA: UMA chamada agrupada (RPC admin_event_name_counts, supabase/migrations/20261017120000_admin_event_name_counts.sql),
+// com a MESMA regra: nome na lista, created_at >= início do período, user_id nulo OU fora das contas internas.
+// Enquanto o RPC não estiver aplicado no banco (precisa do "vai"), cai nas contagens exatas de antes — o número é o mesmo,
+// só mais lento. Nome sem linha = 0, igual ao `count ?? 0` antigo.
+async function countTrackedEvents(
+  admin: SupabaseClient,
+  names: string[],
+  periodIso: string | null,
+  internalIds: string[],
+  externalEventFilter: string | null,
+): Promise<Array<{ name: string; count: number }>> {
+  try {
+    const { data, error } = await admin.rpc('admin_event_name_counts', { p_names: names, p_since: periodIso, p_internal_ids: internalIds })
+    if (!error && Array.isArray(data)) {
+      const byName = new Map<string, number>()
+      for (const row of data as Array<{ name: string | null; n: number | string | null }>) {
+        if (row?.name) byName.set(row.name, Number(row.n ?? 0) || 0)
+      }
+      return names.map((name) => ({ name, count: byName.get(name) ?? 0 }))
+    }
+  } catch { /* RPC ausente ou fora do ar: volta às contagens exatas */ }
+  return Promise.all(names.map(async (name) => {
+    let query = admin.from('events').select('id', { head: true, count: 'exact' }).eq('name', name)
+    if (periodIso) query = query.gte('created_at', periodIso)
+    if (externalEventFilter) query = query.or(externalEventFilter)
+    const result = await query
+    return { name, count: result.error ? 0 : (result.count ?? 0) }
+  }))
+}
+
 export async function GET(req: Request) {
   try {
     const cookieClient = createClient()
@@ -460,23 +548,63 @@ export async function GET(req: Request) {
     const monthAgo = now - 30 * 24 * 60 * 60 * 1000
     const cohortCutoff = days === 'all' ? 0 : now - Number(days) * 24 * 60 * 60 * 1000
 
-    // ── auth.users (all-time growth counters) ──────────────────────────────
-    const rawAuthUsers: User[] = []
-    for (let page = 1; ; page++) {
-      const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 })
-      if (error) throw error
-      const batch = data?.users ?? []
-      rawAuthUsers.push(...batch)
-      if (batch.length < 1000) break
-    }
+    // ═══ KINEO-ADMIN-RAPIDO-1710 — FASE 1 EM PARALELO ═══════════════════════
+    // Antes: auth → profiles → leads → videos → click_events → checkout_abandoned → sonda de events → … → Stripe, tudo em
+    // SÉRIE (22–28 s medidos em 17/10). Nenhuma destas leituras depende da outra: os filtros de conta interna são aplicados
+    // DEPOIS, em memória, exatamente como antes. A Stripe vem do cache curto (_shared/stripeCache, 10 min).
+    // Leituras incompletas continuam lançando (readAll) — nada vira zero.
+    const periodIsoForReads = days === 'all' ? null : new Date(cohortCutoff).toISOString()
+    const [
+      rawAuthUsers,
+      profilesRead,
+      leadsRead,
+      videosRead,
+      clicksRead,
+      abandonedRead,
+      eventsProbe,
+      stripeBundle,
+    ] = await Promise.all([
+      // ── auth.users (all-time growth counters) ──────────────────────────────
+      (async () => {
+        const rows: User[] = []
+        for (let page = 1; ; page++) {
+          const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 })
+          if (error) throw error
+          const batch = data?.users ?? []
+          rows.push(...batch)
+          if (batch.length < 1000) break
+        }
+        return rows
+      })(),
+      readAll(() => admin
+        .from('profiles')
+        .select('id,email,created_at,is_pro,plan,stripe_subscription_id,stripe_customer_id,video_credits,utm_source,signup_utm_source,signup_utm_medium,signup_utm_campaign,signup_referrer,signup_country,referred_by,referral_reward_granted,referral_count'), { route: '/api/admin/funnel', table: 'profiles' }),
+      readAll(() => {
+        let query = admin
+          .from('leads')
+          .select('email,magnet,created_at')
+          .eq('source', B2B_LEAD_SOURCE)
+          .order('created_at', { ascending: false })
+        if (periodIsoForReads) {
+          query = query.gte('created_at', periodIsoForReads)
+        }
+        return query
+      }, { route: '/api/admin/funnel', table: 'leads' }),
+      readAll(() => admin
+        .from('videos')
+        .select('user_id,status,quality_mode,topic,niche,created_at'), { route: '/api/admin/funnel', table: 'videos' }),
+      readAll(() => admin.from('click_events').select('user_id,created_at,plan'), { route: '/api/admin/funnel', table: 'click_events' }),
+      readAll(() => admin.from('checkout_abandoned').select('user_id,expired_at,tier'), { route: '/api/admin/funnel', table: 'checkout_abandoned' }),
+      // Sonda barata: só "a tabela responde?". A antiga era count:'exact' sobre os 218 mil eventos, a cada abertura.
+      admin.from('events').select('id').limit(1),
+      loadFunnelStripe(days, cohortCutoff),
+    ])
 
     // ── profiles (plans + cohort) ──────────────────────────────────────────
     let allProfiles: ProfileRow[] = []
     let profilesAvailable = false
     try {
-      const { data: profs, error: profilesError } = await readAll(() => admin
-        .from('profiles')
-        .select('id,email,created_at,is_pro,plan,stripe_subscription_id,stripe_customer_id,video_credits,utm_source,signup_utm_source,signup_utm_medium,signup_utm_campaign,signup_referrer,signup_country,referred_by,referral_reward_granted,referral_count'), { route: '/api/admin/funnel', table: 'profiles' })
+      const { data: profs, error: profilesError } = profilesRead
       if (!profilesError && Array.isArray(profs)) {
         allProfiles = profs as ProfileRow[]
         profilesAvailable = true
@@ -505,17 +633,7 @@ export async function GET(req: Request) {
     // whether people saw and completed the form.
     let b2bLeadInbox: NonNullable<FunnelData['b2bLeadInbox']> = { total: 0, leads: [] }
     try {
-      const { data: leadRows, error: leadError } = await readAll(() => {
-        let query = admin
-          .from('leads')
-          .select('email,magnet,created_at')
-          .eq('source', B2B_LEAD_SOURCE)
-          .order('created_at', { ascending: false })
-        if (days !== 'all') {
-          query = query.gte('created_at', new Date(cohortCutoff).toISOString())
-        }
-        return query
-      }, { route: '/api/admin/funnel', table: 'leads' })
+      const { data: leadRows, error: leadError } = leadsRead // KINEO-ADMIN-RAPIDO-1710 — lida na fase 1
       if (!leadError && Array.isArray(leadRows)) {
         const externalLeads = leadRows.filter((row) => !isInternalEmail(row.email))
         b2bLeadInbox = {
@@ -548,9 +666,7 @@ export async function GET(req: Request) {
     let allVideos: VideoRow[] = []
     let videosAvailable = false
     try {
-      const { data: vids, error: videosError } = await readAll(() => admin
-        .from('videos')
-        .select('user_id,status,quality_mode,topic,niche,created_at'), { route: '/api/admin/funnel', table: 'videos' })
+      const { data: vids, error: videosError } = videosRead // KINEO-ADMIN-RAPIDO-1710 — lida na fase 1
       if (!videosError && Array.isArray(vids)) {
         videosAvailable = true
         allVideos = (vids as VideoRow[]).filter((row) => Boolean(row.user_id && externalKnownUserIds.has(row.user_id)))
@@ -568,7 +684,7 @@ export async function GET(req: Request) {
     let allAbandoned: Array<{ user_id: string | null; expired_at: string | null; tier: string | null }> = []
     let clickEventsAvailable = false
     try {
-      const { data, error } = await readAll(() => admin.from('click_events').select('user_id,created_at,plan'), { route: '/api/admin/funnel', table: 'click_events' })
+      const { data, error } = clicksRead // KINEO-ADMIN-RAPIDO-1710 — lida na fase 1
       if (!error && Array.isArray(data)) {
         clickEventsAvailable = true
         // Legacy one-time Starter Pack clicks had plan=null. Current recurring
@@ -580,7 +696,7 @@ export async function GET(req: Request) {
       }
     } catch (error) { throw error /* incomplete reads cannot become zero */ }
     try {
-      const { data } = await readAll(() => admin.from('checkout_abandoned').select('user_id,expired_at,tier'), { route: '/api/admin/funnel', table: 'checkout_abandoned' })
+      const { data } = abandonedRead // KINEO-ADMIN-RAPIDO-1710 — lida na fase 1
       if (Array.isArray(data)) {
         allAbandoned = (data as typeof allAbandoned).filter((row) =>
           (!row.user_id || !internalUserIds.has(row.user_id)) &&
@@ -653,23 +769,15 @@ export async function GET(req: Request) {
     let postVideoEventRows: EventRow[] = []
     const eventCounts = new Map<string, number>()
     try {
-      const probe = await admin.from('events').select('id', { head: true, count: 'exact' }).limit(1)
-      eventsAvailable = !probe.error
+      // KINEO-ADMIN-RAPIDO-1710 — a sonda veio da fase 1 (sem count exact); as 5 leituras de events correm JUNTAS.
+      eventsAvailable = !eventsProbe.error
       if (eventsAvailable) {
         const periodIso = days === 'all' ? null : new Date(cohortCutoff).toISOString()
         const externalEventFilter = internalUserIds.size > 0
           ? `user_id.is.null,user_id.not.in.(${Array.from(internalUserIds).join(',')})`
           : null
-        const countResults = await Promise.all(trackedEventNames.map(async (name) => {
-          let query = admin.from('events').select('id', { head: true, count: 'exact' }).eq('name', name)
-          if (periodIso) query = query.gte('created_at', periodIso)
-          if (externalEventFilter) query = query.or(externalEventFilter)
-          const result = await query
-          return { name, count: result.error ? 0 : (result.count ?? 0) }
-        }))
-        for (const row of countResults) eventCounts.set(row.name, row.count)
-
-        const identities = await readAll(() => {
+        const countResultsP = countTrackedEvents(admin, trackedEventNames, periodIso, Array.from(internalUserIds), externalEventFilter)
+        const identitiesP = readAll(() => {
           let query = admin
             .from('events')
             .select('name,user_id,created_at,session_id,metadata')
@@ -679,14 +787,8 @@ export async function GET(req: Request) {
           if (externalEventFilter) query = query.or(externalEventFilter)
           return query
         }, { route: '/api/admin/funnel', table: 'events' })
-        if (!identities.error && Array.isArray(identities.data)) {
-          eventRows = (identities.data as unknown as EventRow[])
-            .filter((row) => !row.user_id || !internalUserIds.has(row.user_id))
-          planFitEventsAvailable = true
-          identityEventsAvailable = true
-        }
 
-        const postVideoEvents = await readAll(() => {
+        const postVideoEventsP = readAll(() => {
           let query = admin
             .from('events')
             .select('name,user_id,created_at,session_id,metadata,path')
@@ -703,12 +805,8 @@ export async function GET(req: Request) {
           if (externalEventFilter) query = query.or(externalEventFilter)
           return query
         }, { route: '/api/admin/funnel', table: 'events' })
-        if (!postVideoEvents.error && Array.isArray(postVideoEvents.data)) {
-          postVideoEventRows = (postVideoEvents.data as unknown as EventRow[])
-            .filter((row) => !row.user_id || !internalUserIds.has(row.user_id))
-        }
 
-        const organicEvents = await readAll(() => {
+        const organicEventsP = readAll(() => {
           let query = admin
             .from('events')
             .select('name,user_id,created_at,session_id,metadata,path')
@@ -726,12 +824,8 @@ export async function GET(req: Request) {
           if (externalEventFilter) query = query.or(externalEventFilter)
           return query
         }, { route: '/api/admin/funnel', table: 'events' })
-        if (!organicEvents.error && Array.isArray(organicEvents.data)) {
-          organicEventRows = (organicEvents.data as unknown as EventRow[])
-            .filter((row) => !row.user_id || !internalUserIds.has(row.user_id))
-        }
 
-        const retentionEvents = await readAll(() => {
+        const retentionEventsP = readAll(() => {
           let query = admin
             .from('events')
             .select('name,user_id,created_at,session_id,metadata,path')
@@ -753,6 +847,29 @@ export async function GET(req: Request) {
           if (externalEventFilter) query = query.or(externalEventFilter)
           return query
         }, { route: '/api/admin/funnel', table: 'events' })
+
+        const [countResults, identities, postVideoEvents, organicEvents, retentionEvents] = await Promise.all([
+          countResultsP, identitiesP, postVideoEventsP, organicEventsP, retentionEventsP,
+        ])
+        for (const row of countResults) eventCounts.set(row.name, row.count)
+
+        if (!identities.error && Array.isArray(identities.data)) {
+          eventRows = (identities.data as unknown as EventRow[])
+            .filter((row) => !row.user_id || !internalUserIds.has(row.user_id))
+          planFitEventsAvailable = true
+          identityEventsAvailable = true
+        }
+
+        if (!postVideoEvents.error && Array.isArray(postVideoEvents.data)) {
+          postVideoEventRows = (postVideoEvents.data as unknown as EventRow[])
+            .filter((row) => !row.user_id || !internalUserIds.has(row.user_id))
+        }
+
+        if (!organicEvents.error && Array.isArray(organicEvents.data)) {
+          organicEventRows = (organicEvents.data as unknown as EventRow[])
+            .filter((row) => !row.user_id || !internalUserIds.has(row.user_id))
+        }
+
         if (!retentionEvents.error && Array.isArray(retentionEvents.data)) {
           retentionEventRows = (retentionEvents.data as unknown as EventRow[])
             .filter((row) => !row.user_id || !internalUserIds.has(row.user_id))
@@ -803,44 +920,12 @@ export async function GET(req: Request) {
 
     // Stripe is the source of truth for current subscribers and completed
     // checkouts. A profile flag or a stored subscription id is never enough.
-    let stripeSessionsAvailable = false
-    let stripeSubscriptionsAvailable = false
-    let stripeSessions: Stripe.Checkout.Session[] = []
-    let stripeSubscriptions: Stripe.Subscription[] = []
-    let recentFailedInvoices: Stripe.Invoice[] = []
-    if (process.env.STRIPE_SECRET_KEY) {
-      try {
-        let startingAfter: string | undefined
-        for (let page = 0; page < 50; page++) {
-          const params: Stripe.Checkout.SessionListParams = { limit: 100 }
-          if (days !== 'all') params.created = { gte: Math.floor(cohortCutoff / 1000) }
-          if (startingAfter) params.starting_after = startingAfter
-          const batch = await stripe.checkout.sessions.list(params)
-          stripeSessions.push(...batch.data)
-          if (!batch.has_more || batch.data.length === 0) break
-          startingAfter = batch.data[batch.data.length - 1].id
-        }
-        stripeSessionsAvailable = true
-      } catch (stripeErr) {
-        console.warn('[admin/funnel] Stripe sessions query failed:', stripeErr instanceof Error ? stripeErr.message : String(stripeErr))
-      }
-      try {
-        let startingAfter: string | undefined
-        for (let page = 0; page < 50; page++) {
-          const batch = await stripe.subscriptions.list({ status: 'all', limit: 100, ...(startingAfter ? { starting_after: startingAfter } : {}) })
-          stripeSubscriptions.push(...batch.data)
-          if (!batch.has_more || batch.data.length === 0) break
-          startingAfter = batch.data[batch.data.length - 1].id
-        }
-        stripeSubscriptionsAvailable = true
-      } catch (stripeErr) {
-        console.warn('[admin/funnel] Stripe subscriptions query failed:', stripeErr instanceof Error ? stripeErr.message : String(stripeErr))
-      }
-      try {
-        const failedInvoices = await stripe.invoices.list({ limit: 100, status: 'uncollectible' })
-        recentFailedInvoices = failedInvoices.data.filter((inv) => inv.created * 1000 >= monthAgo)
-      } catch { /* ignore */ }
-    }
+    // KINEO-ADMIN-RAPIDO-1710 — as três listas chegam da fase 1 (loadFunnelStripe, cache de 10 min por período).
+    const stripeSessionsAvailable = stripeBundle.sessionsAvailable
+    const stripeSubscriptionsAvailable = stripeBundle.subscriptionsAvailable
+    const stripeSessions: Stripe.Checkout.Session[] = stripeBundle.sessions
+    const stripeSubscriptions: Stripe.Subscription[] = stripeBundle.subscriptions
+    const recentFailedInvoices: Stripe.Invoice[] = stripeBundle.uncollectibleInvoices.filter((inv) => inv.created * 1000 >= monthAgo)
 
     const userIdForSession = (session: Stripe.Checkout.Session): string | null => {
       const metadataId = session.metadata?.supabase_user_id
