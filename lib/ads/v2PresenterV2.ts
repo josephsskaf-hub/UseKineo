@@ -18,6 +18,13 @@
 // ator de 09/10 até a nota final do fundador. 'off' = nenhum pedido usa isto (nem os já planejados).
 //
 // LIB PURA (só `import type`, apagado na transpilação): o guardião scripts/test-apresentador-v2-1710.mjs carrega este arquivo cru.
+//
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — o 1º teste real (pedido b6823063, notas 8/6/6/6/8/7/6; docs/RESULTADO-T1-APRESENTADOR-V2-2026-10-17.md) pediu 6 ajustes,
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — todos neste caminho (a seção "AJUSTE 17/10" no fim deste arquivo): narração de 17 a 21 palavras (~10 s de voz, anúncio de
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — ~15 s) com a voz medida que passa do alvo acelerada até 1,08 ou cortada em frase inteira; atuação própria (calma, UGC, boca
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — relaxada na fala, gesto pequeno só da mão que JÁ está na foto); a foto com a mão livre inteira preferida entre as limpas;
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — e o motor Kling AI Avatar v2 PRO (1080p) numa constante. O que funcionou no teste (2 referências, 4 opções, frasco+caixa,
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — boca neutra na foto, ConfidentWoman, corte no fim da fala, close 2 s e cartão 2,5 s) fica igual.
 import type { AdsV2PlannedShot } from '@/lib/ads/v2ShotLists'
 
 /** Interruptor ÚNICO: 'internal' = só contas da casa; 'all' = todos; 'off' = o ator de antes para todo mundo. */
@@ -109,6 +116,8 @@ export interface AdsV2PresenterV2Option {
   url: string
   /** "frasco e caixa juntos" na foto? true = descartada; null = a checagem não respondeu. */
   bothObjects: boolean | null
+  /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a mão LIVRE (a que não segura o produto) aparece inteira? null = a checagem não respondeu (pedido antigo: ausente). */
+  freeHand?: boolean | null // KINEO-APRESENTADOR-V2-AJUSTE-1710
 }
 export interface AdsV2PresenterV2Plan {
   v: 1
@@ -123,7 +132,9 @@ export interface AdsV2PresenterV2Plan {
   options?: AdsV2PresenterV2Option[]
   /** A opção escolhida (índice em options) e por quê. */
   chosen?: number
-  chosenWhy?: AdsV2PresenterV2PickWhy
+  chosenWhy?: AdsV2PresenterV2PickWhy | AdsV2PresenterV2HandWhy // KINEO-APRESENTADOR-V2-AJUSTE-1710 — + 'clean_free_hand' / 'clean_no_free_hand'
+  /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — o que a voz medida pediu (acelerar ou cortar uma frase inteira) para caber no alvo de ~10,5 s. Ausente = coube. */
+  voiceFit?: AdsV2PresenterV2VoiceFitRecord // KINEO-APRESENTADOR-V2-AJUSTE-1710
 }
 
 const HTTPS_RE = /^https:\/\/\S+$/i
@@ -248,4 +259,163 @@ export function adsV2PresenterV2Usd(base: { totalUsd: number }): { extraImagesUs
   const extraImagesUsd = r3((ADS_V2_PRESENTER_V2_OPTIONS - 1) * ADS_V2_PRESENTER_V2_IMAGE_USD)
   const checksUsd = r3(ADS_V2_PRESENTER_V2_OPTIONS * ADS_V2_PRESENTER_V2_CHECK_USD)
   return { extraImagesUsd, checksUsd, totalUsd: r3((Number(base?.totalUsd) || 0) + extraImagesUsd + checksUsd) }
+}
+
+// ══ KINEO-APRESENTADOR-V2-AJUSTE-1710 — AJUSTE 17/10 (o 1º teste real: pedido b6823063) ══════════════════════════════════════════════════════
+// ── 1. a régua da fala deste caminho: 17 a 21 palavras (~10 s de voz) e o anúncio fecha em ~15 s ─────────────────────────────────────────────
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — no teste, o teto de 30 palavras do anúncio clássico deu 14,36 s de voz (ConfidentWoman: 2,1 pal/s) e um anúncio de
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — 18,67 s. Aqui: no máximo 21 palavras (21 / 2,1 = 10 s), no mínimo 17 (~8 s: a fala nunca termina cedo com o rosto calado).
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — Total = voz (até ~10,5 s) + 0,15 s + close 2 s + cartão 2,5 s ≈ 15 s (adsV2PresenterV2Timeline, lib/ads/adV2Montage.ts).
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — o teto de palavras da narração do apresentador v2. */
+export const ADS_V2_PRESENTER_V2_MAX_WORDS = 21
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — o piso (a fala cobre o apresentador; menos que isso o rosto fica calado antes do close). */
+export const ADS_V2_PRESENTER_V2_MIN_WORDS = 17
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a voz PT-BR do apresentador, medida no T1: 30 palavras em 14,36 s ≈ 2,1 pal/s. */
+export const ADS_V2_PRESENTER_V2_WPS = 2.1
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — o alvo da voz MEDIDA (s): 10,5 + 0,15 + 2 + 2,5 ≈ 15 s de anúncio. */
+export const ADS_V2_PRESENTER_V2_VOICE_TARGET_SECONDS = 10.5
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — o anúncio do apresentador v2 mira 15 s. */
+export const ADS_V2_PRESENTER_V2_TARGET_TOTAL_SECONDS = 15
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — aceleração máxima da voz (voice_setting.speed): até 8% não se ouve como pressa. */
+export const ADS_V2_PRESENTER_V2_MAX_SPEED = 1.08
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — quantas frases o pedido de texto pede (cada ponto é uma pausa; 21 palavras cabem em 2–3 frases curtas). */
+export const ADS_V2_PRESENTER_V2_SPEECH_SENTENCES = 'two or three short, calm spoken sentences'
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a régua do pedido de texto deste caminho (pura): o teto nunca passa do teto do anúncio nem de 21; o piso nunca passa do teto. */
+export function adsV2PresenterV2Words(maxWords: number): { min: number; max: number } {
+  const cap = typeof maxWords === 'number' && Number.isFinite(maxWords) && maxWords > 0 ? Math.floor(maxWords) : ADS_V2_PRESENTER_V2_MAX_WORDS
+  const max = Math.min(cap, ADS_V2_PRESENTER_V2_MAX_WORDS)
+  return { min: Math.min(ADS_V2_PRESENTER_V2_MIN_WORDS, max), max }
+}
+
+// ── 1b. a voz medida que passa do alvo: acelera de leve ou tira uma frase INTEIRA ────────────────────────────────────────────────────────────
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — a escolha: até 8% acima do alvo (≤ 11,34 s), acelerar (speed ≤ 1,08) mantém o texto inteiro e não se ouve como pressa.
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — Acima disso, acelerar mais soa como locutor de bula: tira a frase do MEIO mais longa (nunca a 1ª, o gancho, nem a última, o
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — nome/chamada; nunca meia frase) e, se ainda precisar, acelera o resto até 1,08. Sem frase do meio para tirar = acelera 1,08 e
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — aceita passar um pouco do alvo (passar é bom; amputar a fala, nunca). Voz sem `speed` (a voz de hoje em EN/ES/homem) só corta.
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — o que foi feito, gravado no pedido (plan.presenter.v2.voiceFit) e no evento da montagem. */
+export interface AdsV2PresenterV2VoiceFitRecord { action: 'speed' | 'cut'; speed: number; wordsBefore: number; wordsAfter: number; secondsBefore: number }
+export type AdsV2PresenterV2VoiceFit = { action: 'ok' } | { action: 'speed' | 'cut'; speed: number; text: string }
+const wordsOfV2 = (t: string): number => String(t ?? '').split(/\s+/).filter(Boolean).length // KINEO-APRESENTADOR-V2-AJUSTE-1710
+const up2 = (n: number): number => Math.ceil(n * 100 - 1e-6) / 100 // KINEO-APRESENTADOR-V2-AJUSTE-1710
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a decisão (pura). `seconds` = a voz MEDIDA; `canSpeed` = a voz aceita voice_setting.speed (a MiniMax com voice id). */
+export function adsV2PresenterV2VoiceFit(i: { seconds: number; text: string; canSpeed: boolean; target?: number }): AdsV2PresenterV2VoiceFit {
+  const target = typeof i?.target === 'number' && i.target > 0 ? i.target : ADS_V2_PRESENTER_V2_VOICE_TARGET_SECONDS
+  const s = Number(i?.seconds)
+  const text = String(i?.text ?? '').replace(/\s+/g, ' ').trim()
+  if (!(s > 0) || !text || s <= target + 1e-9) return { action: 'ok' }
+  const need = s / target
+  if (i.canSpeed === true && need <= ADS_V2_PRESENTER_V2_MAX_SPEED + 1e-9) return { action: 'speed', speed: Math.min(ADS_V2_PRESENTER_V2_MAX_SPEED, up2(need)), text }
+  const parts = text.split(/(?<=[.!?…])\s+/u).filter(Boolean)
+  const perWord = s / Math.max(1, wordsOfV2(text))
+  const limit = target * (i.canSpeed === true ? ADS_V2_PRESENTER_V2_MAX_SPEED : 1)
+  const keep = parts.map(() => true)
+  const est = (): number => parts.reduce((a, p, k) => a + (keep[k] ? wordsOfV2(p) : 0), 0) * perWord
+  while (est() > limit + 1e-9) {
+    let best = -1
+    for (let k = 1; k < parts.length - 1; k++) if (keep[k] && (best < 0 || wordsOfV2(parts[k]) > wordsOfV2(parts[best]))) best = k
+    if (best < 0) break
+    keep[best] = false
+  }
+  const cut = parts.filter((_, k) => keep[k]).join(' ')
+  if (cut === text) return i.canSpeed === true ? { action: 'speed', speed: ADS_V2_PRESENTER_V2_MAX_SPEED, text } : { action: 'ok' }
+  const speed = i.canSpeed === true ? Math.min(ADS_V2_PRESENTER_V2_MAX_SPEED, Math.max(1, up2(est() / target))) : 1
+  return { action: 'cut', speed, text: cut }
+}
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — o registro da decisão (puro). */
+export function adsV2PresenterV2VoiceFitRecord(fit: AdsV2PresenterV2VoiceFit, before: { seconds: number; text: string }): AdsV2PresenterV2VoiceFitRecord | null {
+  if (!fit || fit.action === 'ok') return null
+  return { action: fit.action, speed: fit.speed, wordsBefore: wordsOfV2(before.text), wordsAfter: wordsOfV2(fit.text), secondsBefore: Math.round(Number(before.seconds) * 1000) / 1000 }
+}
+
+// ── 2. a atuação própria do v2 ───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — o v2 usava a atuação do ator de 09/10 ("upbeat presenter energy… visible-hand gestures"): a boca travou num sorriso de
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — dentes em ~2,5 s da fala e o motor INVENTOU uma mão gigante vindo da câmera (a foto escolhida não tinha a mão livre). Agora:
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — calma de UGC, sorriso leve só no começo e no fim, boca relaxada seguindo as sílabas, gesto pequeno e baixo SÓ da mão que já
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — está na foto, as mãos do quadro iguais às da foto, câmera estável. Escrito em frases AFIRMATIVAS: o motor não tem negative
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — prompt e "no X" no prompt desenha X (lição do juiz do still).
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a foto escolhida TEM a mão livre inteira: ela gesticula pouco e baixo. */
+export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT = 'the person talks to the camera in a calm, natural UGC style, like chatting with a friend; a light closed-lip smile only at the very start and at the very end; while speaking the mouth stays relaxed and the lips follow every syllable naturally; small, low gestures with the free hand that is already visible in the photo, kept near the chest; the hands in the frame stay exactly the ones in the photo; the other hand holds the product steady with the label facing the camera; gentle natural head movement, steady camera, sharp focus, preserve the exact face and appearance'
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a foto escolhida NÃO tem a mão livre (ou não deu para ver): só rosto, olhar e cabeça; as mãos ficam como na foto. */
+export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL = 'the person talks to the camera in a calm, natural UGC style, like chatting with a friend; a light closed-lip smile only at the very start and at the very end; while speaking the mouth stays relaxed and the lips follow every syllable naturally; the hands in the frame stay exactly the ones in the photo, calm and in place; the hand with the product holds it steady with the label facing the camera; the expression comes from the eyes, the face and a gentle natural head movement; steady camera, sharp focus, preserve the exact face and appearance'
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a atuação pela foto escolhida (pura): mão livre inteira = gesto pequeno; senão (ou não sei) = mãos paradas. */
+export function adsV2PresenterV2Performance(freeHand: boolean | null | undefined): string {
+  return freeHand === true ? ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT : ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL
+}
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a atuação que vai ao motor (pura): a da linha se for uma das duas do v2; qualquer outra (a de 09/10) = a das mãos paradas. */
+export function adsV2PresenterV2PerformanceOf(rowPrompt: string | null | undefined): string {
+  return rowPrompt === ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT || rowPrompt === ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL ? rowPrompt : ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL
+}
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — o que um negative prompt levaria (pedido do fundador), se o motor aceitar um. */
+export const ADS_V2_PRESENTER_V2_NEGATIVE_PROMPT = 'big smile while talking, teeth, hand entering frame, hand close to camera, blur'
+/**
+ * KINEO-APRESENTADOR-V2-AJUSTE-1710 — o Kling AI Avatar v2 (standard e pro) NÃO aceita negative prompt: o schema da fal (conferido em 17/10) tem só image_url,
+ * KINEO-APRESENTADOR-V2-AJUSTE-1710 — audio_url, prompt e enable_safety_checker. false = o campo não vai (o motor ignoraria). O dia em que aceitar: true e pronto.
+ */
+export const ADS_V2_PRESENTER_V2_NEGATIVE_SUPPORTED: boolean = false
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — o corpo do motor com o negative prompt SÓ se o motor aceitar (puro; hoje devolve o mesmo objeto). */
+export function adsV2PresenterV2AvatarInput<T extends Record<string, unknown>>(input: T, supported: boolean = ADS_V2_PRESENTER_V2_NEGATIVE_SUPPORTED): T {
+  return supported === true ? ({ ...input, negative_prompt: ADS_V2_PRESENTER_V2_NEGATIVE_PROMPT } as T) : input
+}
+
+// ── 3. a escolha da foto: entre as limpas, a que tem a MÃO LIVRE inteira ─────────────────────────────────────────────────────────────────────
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — no teste só a opção 2 tinha a mão livre (no peito, 5 dedos) e a escolha pegou a 0 (a 1ª limpa). Uma checagem barata de
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — inventário no estilo da both_objects: pergunta de PRESENÇA (liste as mãos; cada uma segura o produto? está inteira?), o
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — código decide. Nenhuma limpa com a mão livre = a 1ª limpa, como antes. "frasco e caixa" continua mandando primeiro.
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a pergunta das mãos (1 imagem; o corpo e a chamada moram em lib/ads/v2LockVision.ts, adsV2PresenterV2HandsOf). */
+export const ADS_V2_PRESENTER_V2_HANDS_QUESTION = 'Image 1 is a photo of a person with a product. List every human hand you can see in it. "hands": one entry per hand, each with "holds_product" ("yes" when this hand holds the product, "no" when it does not, "unsure" when you cannot tell) and "whole" ("yes" when the whole hand — the palm and all five fingers — is inside the frame and in view, "no" when part of it is outside the frame or hidden, "unsure" when you cannot tell). Answer with JSON: {"hands": [{"holds_product": "", "whole": ""}]}.'
+export type AdsV2PresenterV2Tri = 'yes' | 'no' | 'unsure'
+export interface AdsV2PresenterV2Hands { hands: { holds: AdsV2PresenterV2Tri; whole: AdsV2PresenterV2Tri }[] }
+const triV2 = (v: unknown): AdsV2PresenterV2Tri => (v === 'yes' || v === true ? 'yes' : v === 'no' || v === false ? 'no' : 'unsure') // KINEO-APRESENTADOR-V2-AJUSTE-1710
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a resposta (pura): texto JSON ou objeto; sem lista "hands" = null (ilegível). */
+export function adsV2PresenterV2ParseHands(raw: unknown): AdsV2PresenterV2Hands | null {
+  let o: unknown = raw
+  if (typeof raw === 'string') { try { o = JSON.parse(raw) } catch { return null } }
+  const list = o && typeof o === 'object' ? (o as { hands?: unknown }).hands : null
+  if (!Array.isArray(list)) return null
+  return { hands: list.filter((h) => h && typeof h === 'object').map((h) => ({ holds: triV2((h as { holds_product?: unknown }).holds_product), whole: triV2((h as { whole?: unknown }).whole) })) }
+}
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a mão LIVRE aparece inteira? (pura) 2+ mãos e uma que NÃO segura o produto (ou "não sei") está inteira. null = ilegível. */
+export function adsV2PresenterV2FreeHandOf(inv: AdsV2PresenterV2Hands | null | undefined): boolean | null {
+  if (!inv || !Array.isArray(inv.hands)) return null
+  if (inv.hands.length < 2) return false
+  return inv.hands.some((h) => h.holds !== 'yes' && h.whole === 'yes')
+}
+export type AdsV2PresenterV2HandWhy = 'clean_free_hand' | 'clean_no_free_hand'
+/**
+ * KINEO-APRESENTADOR-V2-AJUSTE-1710 — a escolha (pura): "frasco e caixa" decide primeiro (adsV2PresenterV2Pick, intocada); havendo limpa, a 1ª limpa COM a mão
+ * KINEO-APRESENTADOR-V2-AJUSTE-1710 — livre inteira ('clean_free_hand'); nenhuma = a 1ª limpa ('clean_no_free_hand'). Sem limpa = a regra de antes.
+ */
+export function adsV2PresenterV2PickHand(bothObjects: readonly (boolean | null)[], freeHands: readonly (boolean | null)[]): { index: number; why: AdsV2PresenterV2PickWhy | AdsV2PresenterV2HandWhy } {
+  const base = adsV2PresenterV2Pick(bothObjects)
+  if (base.why !== 'clean') return base
+  const list = Array.isArray(bothObjects) ? bothObjects : []
+  const hands = Array.isArray(freeHands) ? freeHands : []
+  const withHand = list.findIndex((b, k) => b === false && hands[k] === true)
+  return withHand >= 0 ? { index: withHand, why: 'clean_free_hand' } : { index: base.index, why: 'clean_no_free_hand' }
+}
+
+// ── 5. o motor do v2: Kling AI Avatar v2 PRO (1080p) ─────────────────────────────────────────────────────────────────────────────────────────
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — o standard sai em 720p e "ATHEERI" em latim só ficava legível em parte dos quadros. O pro sai em 1080p (o mesmo input:
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — image_url, audio_url, prompt). A consulta/resultado/cancelamento da fila da fal usa só o app (fal-ai/kling-video), então o
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — poll de sempre lê o pedido pro sem mudança. Só o apresentador v2 usa; o ator de 09/10 e o /avatar continuam no standard.
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — espelho de PRESENTER_PRO_MODEL (lib/avatar/veed.ts; o guardião confere). */
+export const ADS_V2_PRESENTER_V2_ENGINE_SLUG = 'fal-ai/kling-video/ai-avatar/v2/pro'
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — espelho de PRESENTER_PRO_USD_PER_SECOND (lib/avatar/veed.ts). */
+export const ADS_V2_PRESENTER_V2_USD_PER_SECOND = 0.115
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — o standard que o estimateAdUsd de sempre já conta pela duração do anúncio (espelho de ADS_V2_ENGINES.kling_avatar.usdPerSecond). */
+export const ADS_V2_PRESENTER_V2_STANDARD_USD_PER_SECOND = 0.0562
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — uma checagem das mãos (a mesma tarifa da checagem "frasco e caixa"). */
+export const ADS_V2_PRESENTER_V2_HAND_CHECK_USD = 0.01
+/**
+ * KINEO-APRESENTADOR-V2-AJUSTE-1710 — o custo do anúncio v2 (puro): o estimateAdUsd de sempre (1 foto + o avatar STANDARD pela duração do anúncio) trocando o
+ * KINEO-APRESENTADOR-V2-AJUSTE-1710 — avatar pelo PRO no alvo da voz (10,5 s), + as 3 fotos a mais + 4 checagens "frasco e caixa" + 4 checagens das mãos.
+ */
+export function adsV2PresenterV2UsdPro(base: { totalUsd: number }, seconds: number = 15): { extraImagesUsd: number; checksUsd: number; avatarUsd: number; avatarDeltaUsd: number; totalUsd: number; engine: string } {
+  const r3 = (n: number) => Math.round(n * 1000) / 1000
+  const old = adsV2PresenterV2Usd(base)
+  const secs = typeof seconds === 'number' && Number.isFinite(seconds) && seconds > 0 ? seconds : 15
+  const avatarUsd = r3(ADS_V2_PRESENTER_V2_USD_PER_SECOND * ADS_V2_PRESENTER_V2_VOICE_TARGET_SECONDS)
+  const avatarDeltaUsd = r3(avatarUsd - ADS_V2_PRESENTER_V2_STANDARD_USD_PER_SECOND * secs)
+  const handChecksUsd = ADS_V2_PRESENTER_V2_OPTIONS * ADS_V2_PRESENTER_V2_HAND_CHECK_USD
+  return { extraImagesUsd: old.extraImagesUsd, checksUsd: r3(old.checksUsd + handChecksUsd), avatarUsd, avatarDeltaUsd, totalUsd: r3(old.totalUsd + avatarDeltaUsd + handChecksUsd), engine: ADS_V2_PRESENTER_V2_ENGINE_SLUG }
 }

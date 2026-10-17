@@ -460,13 +460,15 @@ async function finishPresenterV2Image(admin: SupabaseClient, order: AdsV2OrderRo
   if (kept.length === 0) { if (ageMs(row.updated_at) > ADS_V2_COPY_MAX_MS) await failShot(admin, row, ['image_submitted'], 'image_copy_failed', 'unknown'); return } // KINEO-APRESENTADOR-V2-1710 — a regra de sempre da cópia
   const vis = await lockVision() // KINEO-APRESENTADOR-V2-1710
   const both = await Promise.all(kept.map((u) => (vis && typeof vis.adsV2InHandInventoryOf === 'function' ? vis.adsV2InHandInventoryOf(u).then((inv) => pv.lib.adsV2PresenterV2BothObjects(inv)).catch(() => null) : Promise.resolve(null)))) // KINEO-APRESENTADOR-V2-1710 — só "frasco e caixa juntos" decide (null = não leu)
-  const pick = pv.lib.adsV2PresenterV2Pick(both) // KINEO-APRESENTADOR-V2-1710
+  const hands = await Promise.all(kept.map((u) => (vis && typeof vis.adsV2PresenterV2HandsRaw === 'function' ? vis.adsV2PresenterV2HandsRaw(u, pv.lib.ADS_V2_PRESENTER_V2_HANDS_QUESTION).then((raw) => pv.lib.adsV2PresenterV2FreeHandOf(pv.lib.adsV2PresenterV2ParseHands(raw))).catch(() => null) : Promise.resolve(null)))) // KINEO-APRESENTADOR-V2-AJUSTE-1710 — a mão livre inteira em cada opção (presença; null = não leu)
+  const pick = pv.lib.adsV2PresenterV2PickHand(both, hands) // KINEO-APRESENTADOR-V2-1710 · KINEO-APRESENTADOR-V2-AJUSTE-1710 — entre as limpas, a 1ª com a mão livre inteira
   const chosen = kept[pick.index] ?? kept[0] // KINEO-APRESENTADOR-V2-1710
-  if (!(await markShot(admin, row, ['image_submitted'], { status: 'image_done', image_url: chosen }))) return // KINEO-APRESENTADOR-V2-1710 — só quem vence grava as opções
+  const chosenHand = hands[kept.indexOf(chosen)] ?? null // KINEO-APRESENTADOR-V2-AJUSTE-1710
+  if (!(await markShot(admin, row, ['image_submitted'], { status: 'image_done', image_url: chosen, prompt: pv.lib.adsV2PresenterV2Performance(chosenHand) }))) return // KINEO-APRESENTADOR-V2-1710 — só quem vence grava as opções · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + a atuação do v2 pela foto escolhida (mão livre = gesto pequeno; senão mãos paradas), na PRÓPRIA linha
   const presenter = adsV2PresenterPlanOf(order.plan) // KINEO-APRESENTADOR-V2-1710
-  const options = kept.map((url, k) => ({ url, bothObjects: both[k] ?? null })) // KINEO-APRESENTADOR-V2-1710
+  const options = kept.map((url, k) => ({ url, bothObjects: both[k] ?? null, freeHand: hands[k] ?? null })) // KINEO-APRESENTADOR-V2-1710 · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + freeHand
   if (order.plan && presenter) { try { await admin.from('ads_v2_orders').update({ plan: { ...order.plan, presenter: { ...presenter, v2: { ...pv.v2, options, chosen: kept.indexOf(chosen), chosenWhy: pick.why } } } }).eq('id', order.id).eq('status', 'generating') } catch { /* KINEO-APRESENTADOR-V2-1710 — as opções são para revisão: falhar aqui não para o pedido */ } } // KINEO-APRESENTADOR-V2-1710
-  await writeServerEvent({ name: 'ads_v2_product_locked', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, idx: row.idx, attempt: row.attempt, mode: 'presenter_v2', entry: pv.v2.entryId, options: kept.length, chosen: kept.indexOf(chosen), why: pick.why, both_objects: both, charged: false } }).catch(() => null) // KINEO-APRESENTADOR-V2-1710 — o evento da trava de sempre (lista fechada), com o modo novo
+  await writeServerEvent({ name: 'ads_v2_product_locked', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, idx: row.idx, attempt: row.attempt, mode: 'presenter_v2', entry: pv.v2.entryId, options: kept.length, chosen: kept.indexOf(chosen), why: pick.why, both_objects: both, free_hands: hands, charged: false } }).catch(() => null) // KINEO-APRESENTADOR-V2-1710 — o evento da trava de sempre (lista fechada), com o modo novo · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + free_hands
 } // KINEO-APRESENTADOR-V2-1710
 /** KINEO-ADS-PRODUTO-NA-MAO-1610 — o interruptor do lado servidor (lib/ads/v2ProductInHandServer.ts, import dinâmico; falha = desligado). */
 function inHandEnabled(userId: string): Promise<boolean> { // KINEO-ADS-PRODUTO-NA-MAO-1610
@@ -645,11 +647,13 @@ async function submitVideoFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
   const engine = row.engine
   const claimed = await markShot(admin, row, ['pending', 'image_done'], { submit_claimed_at: nowIso() }, 'submit_claimed_at')
   if (!claimed) return
+  const pv = engine === 'kling_avatar' && row.kind === ADS_V2_PRESENTER_KIND ? await presenterV2Of(order) : null // KINEO-APRESENTADOR-V2-AJUSTE-1710 — o apresentador v2: a atuação dele e o motor PRO
   let input: Record<string, unknown>
   try {
     // KINEO-ESTILOS-PRODUTO-2026-10-09 — o efeito sai da chave gravada no plano do pedido (só o 'pixverse_effect' a usa).
     // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator leva a voz do anúncio (só ele usa audioUrl; sem voz https, recusa local).
-    input = buildShotInput(engine, { imageUrl: row.image_url ?? '', prompt: videoPromptOf(order, row), audioUrl: order.voice_url ?? '', effect: adsV2ShotEffect(order.plan, row.idx) }) as unknown as Record<string, unknown> // KINEO-ADS-FIEL-1510 — videoPromptOf: sem trava = row.prompt ?? '' (o de sempre)
+    input = buildShotInput(engine, { imageUrl: row.image_url ?? '', prompt: pv ? pv.lib.adsV2PresenterV2PerformanceOf(row.prompt) : videoPromptOf(order, row), audioUrl: order.voice_url ?? '', effect: adsV2ShotEffect(order.plan, row.idx) }) as unknown as Record<string, unknown> // KINEO-ADS-FIEL-1510 — videoPromptOf: sem trava = row.prompt ?? '' (o de sempre) · KINEO-APRESENTADOR-V2-AJUSTE-1710 — o v2 nunca leva a atuação de 09/10 ("upbeat… visible-hand gestures")
+    if (pv) input = pv.lib.adsV2PresenterV2AvatarInput(input) // KINEO-APRESENTADOR-V2-AJUSTE-1710 — negative prompt só se o motor aceitar (hoje não: o mesmo corpo)
     if (engine === 'kling_o3' && inHandTagOf(order, row.idx)) { const ih = await inHandLib(); if (ih) input = ih.adsV2InHandKlingInput({ imageUrl: row.image_url ?? '', prompt: videoPromptOf(order, row), cutStart: num(row.cut_start), cutSeconds: num(row.cut_seconds) }) as unknown as Record<string, unknown> } // KINEO-ADS-PRODUTO-NA-MAO-1610 — plano novo: 3 s · KINEO-ADS-MAO-AJUSTE-1610 — SEM quadro final (o end_image_url congelava a pessoa) · KINEO-ADS-MAO-AJUSTE-3-1610 — a duração pelo trecho (3 s; 4 s nos planos de 3,1 s)
     if (engine === 'seedance_20_fast' && adsV2PlanFormat(order.plan) === '1:1') input = { ...input, aspect_ratio: adsV2SeedanceAspect('1:1') } // KINEO-ADS-MELHORIAS-1410 — o herói do Premium QUADRADO sai em 1:1 (o schema da fal aceita; 4:5 não existe lá e o /plan recusa antes)
   } catch (e) {
@@ -661,14 +665,16 @@ async function submitVideoFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
   const spec = ADS_V2_ENGINES[engine]
   // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator gera a duração da VOZ (o custo real dele); os outros motores, a do catálogo.
   const genSeconds = engine === 'kling_avatar' ? (num(order.voice_seconds) ?? spec.genSeconds) : spec.genSeconds
-  const outcome = await submitShotOnce(spec.slug, input, { userId: order.user_id, orderId: order.id })
+  const slug = pv ? pv.lib.ADS_V2_PRESENTER_V2_ENGINE_SLUG : spec.slug // KINEO-APRESENTADOR-V2-AJUSTE-1710 — o v2 no Kling AI Avatar v2 PRO (1080p); a fila da fal consulta pelo app (fal-ai/kling-video): o poll de sempre lê
+  const usdPerSecond = pv ? pv.lib.ADS_V2_PRESENTER_V2_USD_PER_SECOND : spec.usdPerSecond // KINEO-APRESENTADOR-V2-AJUSTE-1710
+  const outcome = await submitShotOnce(slug, input, { userId: order.user_id, orderId: order.id }) // KINEO-APRESENTADOR-V2-AJUSTE-1710 — era spec.slug
   if (outcome.kind === 'accepted') {
     await markShot(admin, row, ['pending', 'image_done'], {
       status: 'submitted',
       request_id: outcome.requestId,
       submitted_at: nowIso(),
       gen_seconds: genSeconds,
-      usd: Math.round(spec.usdPerSecond * genSeconds * 10000) / 10000,
+      usd: Math.round(usdPerSecond * genSeconds * 10000) / 10000, // KINEO-APRESENTADOR-V2-AJUSTE-1710 — o preço do motor que saiu (o PRO no v2)
     })
   } else if (outcome.kind === 'ambiguous') {
     await markShot(admin, row, ['pending', 'image_done'], { status: 'ambiguous', reason: 'submit_ambiguous', reason_class: outcome.reasonClass, submitted_at: nowIso() })
@@ -971,14 +977,14 @@ async function retryPresenter(admin: SupabaseClient, order: AdsV2OrderRow, row: 
  * a próxima volta tenta de novo e, no prazo do ator, o anúncio sai sem ele); na MONTAGEM é true (lá o ator já desistiu — senão
  * a voz estaria gravada — e a narração sai na voz de sempre em vez de travar o pedido).
  */
-async function adsV2NarrationVoice(order: AdsV2OrderRow, text: string, fallbackToDefault: boolean): Promise<Buffer> {
+async function adsV2NarrationVoice(order: AdsV2OrderRow, text: string, fallbackToDefault: boolean, speedOverride?: number): Promise<Buffer> { // KINEO-APRESENTADOR-V2-AJUSTE-1710 — + speedOverride (só a voz do v2 com voice id: a voz medida que passou do alvo)
   const ctx = { userId: order.user_id, generationId: order.generation_id }
   const pv = await presenterV2Of(order) // KINEO-APRESENTADOR-V2-1710 — a voz do apresentador v2 por língua (PT-BR: Portuguese_ConfidentWoman na speech-2.8-hd); 'current' = a de sempre (abaixo)
   const v2Voice = pv ? pv.lib.adsV2PresenterV2VoiceFor(narrationLanguage(order.language) ?? 'en', pv.v2.gender) : null // KINEO-APRESENTADOR-V2-1710
   if (v2Voice && v2Voice.engine === 'minimax') { // KINEO-APRESENTADOR-V2-1710
     try { // KINEO-APRESENTADOR-V2-1710
       const vm = await import('@/lib/avatar/voice') // KINEO-APRESENTADOR-V2-1710 — a síntese com voice id (o /audio e a TTS da casa não mudam)
-      return await vm.synthesizeWithVoice({ voiceId: v2Voice.voiceId, text, model: v2Voice.model, languageBoost: v2Voice.languageBoost, speed: v2Voice.speed }) // KINEO-APRESENTADOR-V2-1710
+      return await vm.synthesizeWithVoice({ voiceId: v2Voice.voiceId, text, model: v2Voice.model, languageBoost: v2Voice.languageBoost, speed: typeof speedOverride === 'number' && speedOverride > 0 ? speedOverride : v2Voice.speed }) // KINEO-APRESENTADOR-V2-1710 · KINEO-APRESENTADOR-V2-AJUSTE-1710 — a aceleração do ajuste (até 1,08) ou a voz de sempre
     } catch (e) { // KINEO-APRESENTADOR-V2-1710
       console.warn(`[ads-v2] voz ${v2Voice.voiceId} do apresentador v2 falhou order=${order.id}:`, e instanceof Error ? e.message : String(e)) // KINEO-APRESENTADOR-V2-1710
       if (!fallbackToDefault) throw e // KINEO-APRESENTADOR-V2-1710 — no passo do ator: tenta de novo na próxima volta; na montagem: a voz de sempre
@@ -997,6 +1003,29 @@ async function adsV2NarrationVoice(order: AdsV2OrderRow, text: string, fallbackT
 }
 
 /**
+ * KINEO-APRESENTADOR-V2-AJUSTE-1710 — a voz MEDIDA do apresentador v2 passou do alvo (~10,5 s)? Re-sintetiza UMA vez com a decisão pura (adsV2PresenterV2VoiceFit:
+ * KINEO-APRESENTADOR-V2-AJUSTE-1710 — speed até 1,08, ou tirar a frase do meio mais longa e, se precisar, speed). null = coube, não é v2, ou a re-síntese falhou
+ * KINEO-APRESENTADOR-V2-AJUSTE-1710 — (fica a voz medida: passar do alvo é melhor que travar o pedido). Nunca lança.
+ */
+async function presenterV2FitVoice(order: AdsV2OrderRow, narration: string, language: string, voiceSeconds: number): Promise<{ buf: Buffer; voiceSeconds: number; plan: AdsV2StoredPlan } | null> { // KINEO-APRESENTADOR-V2-AJUSTE-1710
+  try { // KINEO-APRESENTADOR-V2-AJUSTE-1710
+    const pv = await presenterV2Of(order) // KINEO-APRESENTADOR-V2-AJUSTE-1710
+    if (!pv || !order.plan) return null // KINEO-APRESENTADOR-V2-AJUSTE-1710
+    const voice = pv.lib.adsV2PresenterV2VoiceFor(narrationLanguage(order.language) ?? 'en', pv.v2.gender) // KINEO-APRESENTADOR-V2-AJUSTE-1710
+    const fit = pv.lib.adsV2PresenterV2VoiceFit({ seconds: voiceSeconds, text: narration, canSpeed: voice.engine === 'minimax' }) // KINEO-APRESENTADOR-V2-AJUSTE-1710 — só a voz com voice id aceita speed
+    const record = pv.lib.adsV2PresenterV2VoiceFitRecord(fit, { seconds: voiceSeconds, text: narration }) // KINEO-APRESENTADOR-V2-AJUSTE-1710
+    if (fit.action === 'ok' || !record) return null // KINEO-APRESENTADOR-V2-AJUSTE-1710
+    const buf = await adsV2NarrationVoice(order, speakableForTts(adsV2NarrationForTts(fit.text, adsV2PronounceOf(order.brief)), language), false, fit.speed !== 1 ? fit.speed : undefined) // KINEO-APRESENTADOR-V2-AJUSTE-1710
+    const presenter = adsV2PresenterPlanOf(order.plan) // KINEO-APRESENTADOR-V2-AJUSTE-1710
+    const plan = { ...order.plan, narration: fit.text, ...(presenter ? { presenter: { ...presenter, v2: { ...pv.v2, voiceFit: record } } } : {}) } as AdsV2StoredPlan // KINEO-APRESENTADOR-V2-AJUSTE-1710
+    return { buf, voiceSeconds: Math.round(estimateMp3DurationSeconds(buf) * 1000) / 1000, plan } // KINEO-APRESENTADOR-V2-AJUSTE-1710
+  } catch (e) { // KINEO-APRESENTADOR-V2-AJUSTE-1710
+    console.warn(`[ads-v2] ajuste da voz do apresentador v2 falhou order=${order.id}:`, e instanceof Error ? e.message : String(e)) // KINEO-APRESENTADOR-V2-AJUSTE-1710
+    return null // KINEO-APRESENTADOR-V2-AJUSTE-1710
+  } // KINEO-APRESENTADOR-V2-AJUSTE-1710
+} // KINEO-APRESENTADOR-V2-AJUSTE-1710
+
+/**
  * KINEO-ATOR-ANUNCIO-2026-10-09 — a voz do anúncio, sintetizada UMA vez por pedido (a mesma da montagem): MiniMax, medida,
  * no bucket voiceovers, gravada no pedido por UPDATE condicional (tela e cron juntos: só um grava; o outro relê a que
  * venceu). null = sem narração, ou a síntese falhou (a próxima volta tenta de novo).
@@ -1011,10 +1040,12 @@ async function ensureAdsV2Voice(admin: SupabaseClient, order: AdsV2OrderRow): Pr
   try {
     // KINEO-ATORES-IA-2026-10-13 — apresentador escolhido = a voz DELE (sem cair na voz de sempre: boca e voz casadas);
     // sem escolha, a chamada de sempre.
-    const buf = await adsV2NarrationVoice(order, speakableForTts(adsV2NarrationForTts(narration, adsV2PronounceOf(order.brief)), language), false) // KINEO-ADS-DEMO-UNIVERSO-1410 — sem pronúncia = o texto de sempre
-    const voiceSeconds = Math.round(estimateMp3DurationSeconds(buf) * 1000) / 1000
+    let buf = await adsV2NarrationVoice(order, speakableForTts(adsV2NarrationForTts(narration, adsV2PronounceOf(order.brief)), language), false) // KINEO-ADS-DEMO-UNIVERSO-1410 — sem pronúncia = o texto de sempre · KINEO-APRESENTADOR-V2-AJUSTE-1710 — let (o ajuste pode re-sintetizar)
+    let voiceSeconds = Math.round(estimateMp3DurationSeconds(buf) * 1000) / 1000 // KINEO-APRESENTADOR-V2-AJUSTE-1710 — let
+    const fitted = await presenterV2FitVoice(order, narration, language, voiceSeconds) // KINEO-APRESENTADOR-V2-AJUSTE-1710 — o apresentador v2: voz acima de ~10,5 s acelera até 1,08 ou perde uma frase INTEIRA do meio
+    if (fitted) { buf = fitted.buf; voiceSeconds = fitted.voiceSeconds } // KINEO-APRESENTADOR-V2-AJUSTE-1710
     const voiceUrl = await uploadVoiceoverToSupabase(order.user_id, buf)
-    const w = await admin.from('ads_v2_orders').update({ voice_url: voiceUrl, voice_seconds: voiceSeconds }).eq('id', order.id).is('voice_url', null).select('id').maybeSingle()
+    const w = await admin.from('ads_v2_orders').update({ voice_url: voiceUrl, voice_seconds: voiceSeconds, ...(fitted ? { plan: fitted.plan } : {}) }).eq('id', order.id).is('voice_url', null).select('id').maybeSingle() // KINEO-APRESENTADOR-V2-AJUSTE-1710 — + o roteiro gravado = o que a voz fala, e o registro do ajuste (plan.presenter.v2.voiceFit)
     if (!w.error && w.data) return { voiceUrl, voiceSeconds }
     const again = (await loadAdsV2Order(admin, order.id)).order
     const s = num(again?.voice_seconds)
@@ -1071,13 +1102,18 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
   const mood = SECTOR_MOOD[order.sector ?? 'other'] ?? 'emotional'
   // 1. Música: Lyria (instrumental) copiada para o NOSSO bucket; sem Lyria, a trilha Pixabay de sempre.
   let musicUrl = order.music_url
+  // KINEO-APRESENTADOR-V2-AJUSTE-1710 — DE ONDE veio a trilha, no evento da montagem. No T1 (b6823063) o Lyria foi recusado pelo filtro de conteúdo da fal e a
+  // KINEO-APRESENTADOR-V2-AJUSTE-1710 — reserva entrou SOZINHA (a curadoria da casa: hustle-02.mp3, clima 'hustle' do setor loja), mas o evento só dizia music:true.
+  let musicSource: 'stored' | 'lyria' | 'library' | 'library_swap' | 'none' = musicUrl ? 'stored' : 'none' // KINEO-APRESENTADOR-V2-AJUSTE-1710
   if (!musicUrl) {
     const lyria = await getLyriaMusicUrl(null, mood)
     musicUrl = lyria ? await persistAudioCopy({ userId: order.user_id, name: `adsv2-${order.id}-music`, sourceUrl: lyria }) : null
+    if (musicUrl) musicSource = 'lyria' // KINEO-APRESENTADOR-V2-AJUSTE-1710
     if (!musicUrl) musicUrl = await getBackgroundMusicUrl(order.id, mood).catch(() => null)
+    if (musicUrl && musicSource === 'none') musicSource = 'library' // KINEO-APRESENTADOR-V2-AJUSTE-1710 — a reserva automática (Lyria recusado/fora do prazo/sem cópia)
     // KINEO-ADS-V2-MUSICA-2026-09-29 — faixa da biblioteca sem 32 s seguidos de música não serve para anúncio:
     // troca por uma aprovada do mesmo clima (lib/ads/v2Music.ts).
-    if (musicUrl && !adsV2MusicUsable(musicUrl)) musicUrl = adsV2SwapLibraryTrack(musicUrl, adsV2FallbackTrack(mood, order.id))
+    if (musicUrl && !adsV2MusicUsable(musicUrl)) { musicUrl = adsV2SwapLibraryTrack(musicUrl, adsV2FallbackTrack(mood, order.id)); musicSource = 'library_swap' } // KINEO-APRESENTADOR-V2-AJUSTE-1710 — + a origem
     if (musicUrl) await admin.from('ads_v2_orders').update({ music_url: musicUrl }).eq('id', order.id).is('music_url', null)
   }
   // 2. Voz MiniMax (a mesma TTS da casa para MiniMax: synthesizeTtsFallback, fal-ai/minimax/speech-2.8-hd), medida
@@ -1243,7 +1279,7 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
     name: 'ads_v2_assembling',
     userId: order.user_id,
     path: '/lib/ads/v2Advance',
-    metadata: { order_id: order.id, creatomate_render_id: renderId, shots: montageShots.length, card_seconds: cardSeconds, voice_seconds: voiceSeconds, music: Boolean(musicUrl), total_seconds: presenterSource ? Number(presenterSource.duration) : Math.round((shotsSeconds + cardSeconds) * 1000) / 1000, presenter: Boolean(presenterSource), presenter_fallback: presenterMiss, ...(fitInfo ? { fit: fitInfo } : {}) }, // KINEO-ADS-FIEL-2-1510 — o encaixe na duração
+    metadata: { order_id: order.id, creatomate_render_id: renderId, shots: montageShots.length, card_seconds: cardSeconds, voice_seconds: voiceSeconds, music: Boolean(musicUrl), music_source: musicUrl ? musicSource : 'none', ...(presenterV2?.v2?.voiceFit ? { presenter_v2_voice_fit: presenterV2.v2.voiceFit } : {}), total_seconds: presenterSource ? Number(presenterSource.duration) : Math.round((shotsSeconds + cardSeconds) * 1000) / 1000, presenter: Boolean(presenterSource), presenter_fallback: presenterMiss, ...(fitInfo ? { fit: fitInfo } : {}) }, // KINEO-ADS-FIEL-2-1510 — o encaixe na duração // KINEO-APRESENTADOR-V2-AJUSTE-1710 — + music_source (lyria / library = a reserva automática / library_swap / stored) e o ajuste da voz do v2
   })
 }
 

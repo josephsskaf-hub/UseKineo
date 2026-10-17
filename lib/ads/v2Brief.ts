@@ -13,6 +13,7 @@ import { briefFactsText, contactOk, countWords, inventedClaims, inventedNumbers 
 import type { AdsBrief } from '@/lib/ads/types'
 import { ADS_V2_OVERLAY_MAX_CHARS, ADS_V2_SECTORS, isAdsV2Sector, type AdsV2Sector } from '@/lib/ads/v2ShotLists'
 import { lowerMidSentence, missingNames, simpleCommonNoun, simpleNames, simpleProductAd } from '@/lib/ads/v2Simple'
+import { ADS_V2_PRODUCT_WORDS } from '@/lib/ads/v2Simple' // KINEO-APRESENTADOR-V2-AJUSTE-1710 — a categoria no começo do nome ("Perfume Atheeri")
 // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — a narração e as frases só afirmam o que veio do cliente (regra no pedido + régua + conserto).
 // KINEO-ATOR-FTC-2026-10-13 — repairTestimonial: com o ator, a narração consertada em código deixa de ser depoimento de cliente.
 import { ADS_V2_HONESTY_RULE, adsV2PlaceRule, honestyIssues, isDemonym, repairHonesty, repairTestimonial, type AdsV2HonestySource } from '@/lib/ads/v2Honesty'
@@ -78,8 +79,34 @@ export const ADS_V2_NAME_ARTICLE_CONTRACTIONS: Readonly<Record<string, Readonly<
 } // KINEO-ADS-MAO-JUIZ-1610
 /** KINEO-ADS-MAO-JUIZ-1610 — a linha do pedido (pt/es/fr, com narração e um nome que não é o produto genérico). */
 export function adsV2NameArticleRule(brand: string): string { // KINEO-ADS-MAO-JUIZ-1610
-  return `narration: "${brand}" is a proper name: never put an article or a contracted article right before it — in Portuguese write "de ${brand}", "com ${brand}", "em ${brand}", never "da ${brand}", "do ${brand}", "na ${brand}" or "a ${brand}"; in Spanish "de ${brand}", never "del" or "la"; in French "de ${brand}", never "du" or "la". If the sentence needs an article, put it before a common noun instead ("o perfume ${brand}").` // KINEO-ADS-MAO-JUIZ-1610
+  const category = adsV2NameCategoryWord(brand) // KINEO-APRESENTADOR-V2-AJUSTE-1710 — "Perfume Atheeri": o exemplo "o perfume Perfume Atheeri" ENSINAVA a repetição (T1 b6823063)
+  const tail = category ? `"${brand}" already names the product: never write the word "${category}" right before it (never "o ${category} ${brand}", "el ${category} ${brand}" or "the ${category} ${brand}") — say "${brand}" alone ("Conheça ${brand}", "Descubre ${brand}", "Meet ${brand}").` : `If the sentence needs an article, put it before a common noun instead ("o perfume ${brand}").` // KINEO-APRESENTADOR-V2-AJUSTE-1710 — sem categoria no nome = a frase de sempre, byte a byte
+  return `narration: "${brand}" is a proper name: never put an article or a contracted article right before it — in Portuguese write "de ${brand}", "com ${brand}", "em ${brand}", never "da ${brand}", "do ${brand}", "na ${brand}" or "a ${brand}"; in Spanish "de ${brand}", never "del" or "la"; in French "de ${brand}", never "du" or "la". ${tail}` // KINEO-ADS-MAO-JUIZ-1610 · KINEO-APRESENTADOR-V2-AJUSTE-1710 — o fim depende da categoria no nome
 } // KINEO-ADS-MAO-JUIZ-1610
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — o nome começa pela CATEGORIA do produto ("Perfume Atheeri" → "perfume")? null = não (ou nome de uma palavra só). Pura. */
+export function adsV2NameCategoryWord(brand: string): string | null { // KINEO-APRESENTADOR-V2-AJUSTE-1710
+  const words = String(brand ?? '').trim().split(/\s+/).filter(Boolean) // KINEO-APRESENTADOR-V2-AJUSTE-1710
+  if (words.length < 2) return null // KINEO-APRESENTADOR-V2-AJUSTE-1710
+  const m = words[0].match(ADS_V2_PRODUCT_WORDS) // KINEO-APRESENTADOR-V2-AJUSTE-1710 — a lista de produtos do modo simples (perfume, sérum, vela aromática…)
+  return m && m[0].toLowerCase() === words[0].toLowerCase() ? words[0].toLowerCase() : null // KINEO-APRESENTADOR-V2-AJUSTE-1710
+} // KINEO-APRESENTADOR-V2-AJUSTE-1710
+/**
+ * KINEO-APRESENTADOR-V2-AJUSTE-1710 — a categoria REPETIDA na frente do nome que já a contém: "Conheça o perfume Perfume Atheeri" → "Conheça o Perfume Atheeri"
+ * KINEO-APRESENTADOR-V2-AJUSTE-1710 — (pt), "el perfume Perfume Atheeri" → "el Perfume Atheeri" (es), "the perfume Perfume Atheeri" → "the Perfume Atheeri" (en). Sem
+ * KINEO-APRESENTADOR-V2-AJUSTE-1710 — distinguir maiúscula/minúscula; só tira a palavra igual à 1ª do nome colada antes do nome inteiro. Qualquer língua. Pura.
+ */
+export function adsV2CategoryRepeatFix(text: string, names: readonly string[]): { text: string; fixes: string[] } { // KINEO-APRESENTADOR-V2-AJUSTE-1710
+  if (typeof text !== 'string' || !text) return { text, fixes: [] } // KINEO-APRESENTADOR-V2-AJUSTE-1710
+  const fixes: string[] = [] // KINEO-APRESENTADOR-V2-AJUSTE-1710
+  let out = text // KINEO-APRESENTADOR-V2-AJUSTE-1710
+  for (const name of [...new Set(names)].sort((a, b) => b.length - a.length)) { // KINEO-APRESENTADOR-V2-AJUSTE-1710
+    const first = String(name ?? '').trim().split(/\s+/)[0] ?? '' // KINEO-APRESENTADOR-V2-AJUSTE-1710
+    if (!first || first === String(name ?? '').trim()) continue // KINEO-APRESENTADOR-V2-AJUSTE-1710 — nome de uma palavra só não tem o que repetir
+    const re = new RegExp('(^|[^\\p{L}])' + reEscape(first) + '\\s+(?=' + reEscape(String(name).trim()) + '(?![\\p{L}]))', 'giu') // KINEO-APRESENTADOR-V2-AJUSTE-1710
+    out = out.replace(re, (_all: string, pre: string) => { fixes.push('category_repeat:' + first.toLowerCase()); return pre }) // KINEO-APRESENTADOR-V2-AJUSTE-1710
+  } // KINEO-APRESENTADOR-V2-AJUSTE-1710
+  return { text: out, fixes } // KINEO-APRESENTADOR-V2-AJUSTE-1710
+} // KINEO-APRESENTADOR-V2-AJUSTE-1710
 /** KINEO-ADS-MAO-JUIZ-1610 — o nome e as caudas que começam em maiúscula ("Perfume Atheeri" → também "Atheeri"). Pura. */
 export function adsV2NameVariants(brand: string): string[] { // KINEO-ADS-MAO-JUIZ-1610
   const words = String(brand ?? '').trim().split(/\s+/).filter(Boolean) // KINEO-ADS-MAO-JUIZ-1610
@@ -108,9 +135,11 @@ export function adsV2LooseDashFix(s: string): string { // KINEO-ADS-MAO-JUIZ-161
 /** KINEO-ADS-MAO-JUIZ-1610 — o acabamento final do texto do Ads: o artigo antes do nome (narração e frases) e o hífen solto (frases). Pura. */
 export function adsV2NameFinish(copy: AdsV2Copy, names: readonly string[], language: string): { copy: AdsV2Copy; fixes: string[] } { // KINEO-ADS-MAO-JUIZ-1610
   const fixes: string[] = [] // KINEO-ADS-MAO-JUIZ-1610
-  const n = typeof copy.narration === 'string' ? adsV2NameArticleFix(copy.narration, names, language) : null // KINEO-ADS-MAO-JUIZ-1610
+  const rep = typeof copy.narration === 'string' ? adsV2CategoryRepeatFix(copy.narration, names) : null // KINEO-APRESENTADOR-V2-AJUSTE-1710 — "perfume Perfume Atheeri" → "Perfume Atheeri" ANTES do artigo
+  if (rep) fixes.push(...rep.fixes) // KINEO-APRESENTADOR-V2-AJUSTE-1710
+  const n = rep ? adsV2NameArticleFix(rep.text, names, language) : null // KINEO-ADS-MAO-JUIZ-1610 · KINEO-APRESENTADOR-V2-AJUSTE-1710 — sobre o texto sem a repetição
   if (n) fixes.push(...n.fixes) // KINEO-ADS-MAO-JUIZ-1610
-  const overlays = copy.overlays.map((o) => { const a = adsV2NameArticleFix(o, names, language); fixes.push(...a.fixes); const d = adsV2LooseDashFix(a.text); if (d !== a.text) fixes.push('overlay_dash'); return d }) // KINEO-ADS-MAO-JUIZ-1610
+  const overlays = copy.overlays.map((o) => { const r = adsV2CategoryRepeatFix(o, names); fixes.push(...r.fixes); const a = adsV2NameArticleFix(r.text, names, language); fixes.push(...a.fixes); const d = adsV2LooseDashFix(a.text); if (d !== a.text) fixes.push('overlay_dash'); return d }) // KINEO-ADS-MAO-JUIZ-1610 · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + a repetição da categoria
   return fixes.length ? { copy: { ...copy, narration: n ? n.text : copy.narration, overlays }, fixes } : { copy, fixes } // KINEO-ADS-MAO-JUIZ-1610
 } // KINEO-ADS-MAO-JUIZ-1610
 
@@ -572,6 +601,8 @@ async function extractWithBudget(args: {
   /** KINEO-ADS-MAO-AJUSTE-3-1610 — o Comercial "produto na mão" (o /plan decide): piso de palavras maior (nunca acima do teto) e uma frase a mais. Ausentes = como sempre. */
   speechFloor?: number // KINEO-ADS-MAO-AJUSTE-3-1610
   speechSentences?: string // KINEO-ADS-MAO-AJUSTE-3-1610
+  /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — o apresentador v2 (o /plan decide): o piso EXATO de palavras (17 no teto de 21; a régua de sempre daria 19). Ausente = como sempre. */
+  speechMinExact?: number // KINEO-APRESENTADOR-V2-AJUSTE-1710
 }, budget: AdsV2CallBudget): Promise<AdsV2BriefResult> {
   const briefMsgs = buildAutoBriefMessages(args.text, args.languageName)
   const briefRaw = await callJson([{ role: 'system', content: briefMsgs.system }, { role: 'user', content: briefMsgs.user }], 0.2, 900, budget)
@@ -603,7 +634,8 @@ async function extractWithBudget(args: {
   const opts: typeof base1 & { ad?: AdsV2AdVoice; honesty: AdsV2HonestySource } = ad ? { ...base1, ad, honesty } : { ...base1, honesty }
   // KINEO-ADS-RETESTE-1510 — o piso de fala (90% do anúncio na voz MiniMax do Ads: 27 palavras em 15 s) e o produto genérico
   // KINEO-ADS-RETESTE-1510 — ("Perfume" sem marca, sem nome próprio na frase e sem página lida) entram no pedido E na régua.
-  const speechMin = args.narration ? Math.max(adsV2SpeechMinWords(args.maxWords), typeof args.speechFloor === 'number' && Number.isFinite(args.speechFloor) ? Math.min(args.maxWords, Math.floor(args.speechFloor)) : 0) : 0 // KINEO-ADS-RETESTE-1510 · KINEO-ADS-MAO-AJUSTE-3-1610 — o piso do "produto na mão" (nunca acima do teto)
+  const speechMin0 = args.narration ? Math.max(adsV2SpeechMinWords(args.maxWords), typeof args.speechFloor === 'number' && Number.isFinite(args.speechFloor) ? Math.min(args.maxWords, Math.floor(args.speechFloor)) : 0) : 0 // KINEO-ADS-RETESTE-1510 · KINEO-ADS-MAO-AJUSTE-3-1610 — o piso do "produto na mão" (nunca acima do teto) · KINEO-APRESENTADOR-V2-AJUSTE-1710 — speechMin0
+  const speechMin = args.narration && typeof args.speechMinExact === 'number' && Number.isFinite(args.speechMinExact) && args.speechMinExact > 0 ? Math.min(args.maxWords, Math.floor(args.speechMinExact)) : speechMin0 // KINEO-APRESENTADOR-V2-AJUSTE-1710 — o piso exato do apresentador v2 (nunca acima do teto); ausente = o de sempre
   const generic = adsV2GenericProduct(brandName(parsed.brief), args.sentence ?? args.text, args.language, { pageRead: /\nFrom the product page:/.test(args.text) }) // KINEO-ADS-RETESTE-1510
   if (speechMin > 0) Object.assign(opts, { speechMin }) // KINEO-ADS-RETESTE-1510
   if (speechMin > 0 && typeof args.speechSentences === 'string' && args.speechSentences) Object.assign(opts, { speechSentences: args.speechSentences }) // KINEO-ADS-MAO-AJUSTE-3-1610 — uma frase a mais (cada ponto é uma pausa da voz)

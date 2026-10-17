@@ -242,3 +242,14 @@ export async function adsV2InHandPhotoPair(productUrl: string, doFetch: typeof f
     return null // KINEO-ADS-MAO-AJUSTE-3-1610
   } // KINEO-ADS-MAO-AJUSTE-3-1610
 } // KINEO-ADS-MAO-AJUSTE-3-1610
+// KINEO-APRESENTADOR-V2-AJUSTE-1710 — as MÃOS de cada opção da foto do apresentador v2 (a pergunta e a leitura moram na lib pura lib/ads/v2PresenterV2.ts: aqui só a chamada).
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — o corpo (puro): o modelo do juiz, 1 imagem 'high' ANTES do texto, temperatura 0, JSON — o mesmo formato do inventário. */
+export function adsV2PresenterV2HandsBody(imageUrl: string, question: string): Record<string, unknown> { // KINEO-APRESENTADOR-V2-AJUSTE-1710
+  return { model: ADS_V2_IN_HAND_JUDGE_MODEL, temperature: 0, max_tokens: 200, response_format: { type: 'json_object' }, messages: [{ role: 'user', content: [{ type: 'image_url', image_url: { url: imageUrl, detail: 'high' } }, { type: 'text', text: question }] }] } // KINEO-APRESENTADOR-V2-AJUSTE-1710
+} // KINEO-APRESENTADOR-V2-AJUSTE-1710
+/** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a resposta CRUA da pergunta das mãos (o avanço lê com adsV2PresenterV2ParseHands). null = sem chave/URL/resposta. Nunca lança. ~US$ 0,01. */
+export async function adsV2PresenterV2HandsRaw(imageUrl: string, question: string, doFetch: typeof fetch = fetch): Promise<unknown> { // KINEO-APRESENTADOR-V2-AJUSTE-1710
+  const key = process.env.OPENAI_API_KEY // KINEO-APRESENTADOR-V2-AJUSTE-1710
+  if (!key || typeof imageUrl !== 'string' || !/^https:\/\/\S+$/i.test(imageUrl.trim()) || typeof question !== 'string' || question.length < 10) return null // KINEO-APRESENTADOR-V2-AJUSTE-1710
+  try { return await inHandVision(doFetch, key, adsV2PresenterV2HandsBody(imageUrl.trim(), question)) } catch { return null } // KINEO-APRESENTADOR-V2-AJUSTE-1710
+} // KINEO-APRESENTADOR-V2-AJUSTE-1710

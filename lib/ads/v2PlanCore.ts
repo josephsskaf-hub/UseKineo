@@ -176,7 +176,11 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     }
 
     const language = narrationLanguage(order.language) ?? narrationLanguage(pageLang) ?? resolveNarrationLanguage(undefined, sentenceFull !== sentenceCopy ? `${text}\n${sentenceFull}` : text).language // KINEO-ADS-CONSERTOS-1410 — "perfume" sozinho não diz a língua; a frase inteira diz
-    const maxWords = adsV2NarrationMaxWords(order.seconds)
+    // KINEO-APRESENTADOR-V2-AJUSTE-1710 — o apresentador v2 decidido ANTES do texto (as mesmas travas do plano abaixo + retrato do escolhido): a narração dele nasce
+    // KINEO-APRESENTADOR-V2-AJUSTE-1710 — com 17 a 21 palavras (~10 s de voz, anúncio de ~15 s). No T1 o teto de 30 do clássico deu 14,36 s de voz e 18,67 s de anúncio.
+    const presenterV2Early = presenterAsked ? await import('@/lib/ads/v2PresenterV2').then((m) => (typeof m.adsV2PresenterV2Words === 'function' ? m : null)).catch(() => null) : null // KINEO-APRESENTADOR-V2-AJUSTE-1710
+    const v2Words = presenterV2Early && presenterV2Early.adsV2PresenterV2Eligible({ on: presenterV2Early.adsV2PresenterV2On(reason === 'internal'), tier: order.tier, format, style: ADS_V2_STYLES_PUBLIC ? input.style ?? null : null }) && (input.presenter_id ? !!presenterV2Early.adsV2PresenterV2PortraitUrl(adsV2PresenterById(input.presenter_id)) : true) ? presenterV2Early.adsV2PresenterV2Words(adsV2NarrationMaxWords(order.seconds)) : null // KINEO-APRESENTADOR-V2-AJUSTE-1710 — null = a régua de sempre
+    const maxWords = v2Words ? v2Words.max : adsV2NarrationMaxWords(order.seconds) // KINEO-APRESENTADOR-V2-AJUSTE-1710 — o teto do v2 (21) só neste caminho
     const overlaysOn = brief0.overlays !== false
     // KINEO-ADS-MAO-AJUSTE-3-1610 — o Comercial "produto na mão" decidido ANTES do texto (pelo setor da tela; o plano final confere de novo): a narração pede o
     // KINEO-ADS-MAO-AJUSTE-3-1610 — piso maior e uma frase a mais (cobrir ~13 s dos 15) e, em paralelo com o texto, a visão barata diz se a foto do produto tem o frasco
@@ -200,6 +204,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
       typed, // KINEO-ANUNCIO-CONSERTOS-2026-10-12
       deadlineMs: started + ADS_V2_PLAN_MODEL_DEADLINE_MS, // KINEO-ADS-CENA-2026-10-13 — as chamadas ao modelo terminam antes do maxDuration 60
       ...(inHandProduct && inHandEarly ? { speechFloor: inHandEarly.adsV2InHandSpeechMin(maxWords), speechSentences: inHandEarly.ADS_V2_IN_HAND_SPEECH_SENTENCES } : {}), // KINEO-ADS-MAO-AJUSTE-3-1610 — a narração do "produto na mão" cobre ~13 s
+      ...(v2Words && presenterV2Early ? { speechMinExact: v2Words.min, speechSentences: presenterV2Early.ADS_V2_PRESENTER_V2_SPEECH_SENTENCES } : {}), // KINEO-APRESENTADOR-V2-AJUSTE-1710 — o piso do v2 (17; a régua de sempre daria 19 em 21) e 2–3 frases curtas
       scripts: (body as { scripts?: unknown } | null)?.scripts !== false, scene: adsV2SceneSetting(brief0, order.tier), // KINEO-ADS-ROTEIROS-2026-10-13 — +2 versões em outros tons, em paralelo e no MESMO prazo (a cena dá o clima da "story"); corpo com scripts:false (ex.: o lote) = só o texto de sempre
     })
     const modeTag = { mode: simple ? 'simple' : 'full', facts_selected: factTexts.length, overlays: overlaysOn }
@@ -249,7 +254,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     const presenter = presenterAsked && extracted.copy.narration ? planAdsV2Presenter({ sector, photos, seedKey: order.id, presenterId: input.presenter_id ?? null }) : null
     plan.shots = adsV2PresenterHoldsShots(plan.shots, { on: ADS_V2_PRESENTER_HOLDS, actor: presenter, entry: adsV2PresenterById(presenter?.presenterId), sector }) // KINEO-ADS-REFACAO-ATOR-1410 — desligado por padrão; ligado: o apresentador ESCOLHIDO segura o produto em UMA vaga trocada (créditos iguais)
     const presenterV2Lib = presenter ? await import('@/lib/ads/v2PresenterV2').then((m) => (typeof m.planAdsV2PresenterV2 === 'function' ? m : null)).catch(() => null) : null // KINEO-APRESENTADOR-V2-1710 — o apresentador v2 (só conta interna, Comercial 9:16); import dinâmico: sem a lib = o ator de antes
-    if (presenter && presenterV2Lib && presenterV2Lib.adsV2PresenterV2Eligible({ on: presenterV2Lib.adsV2PresenterV2On(reason === 'internal'), tier: order.tier, format, style: plan.style ?? null })) { // KINEO-APRESENTADOR-V2-1710
+    if (presenter && presenterV2Lib && v2Words && presenterV2Lib.adsV2PresenterV2Eligible({ on: presenterV2Lib.adsV2PresenterV2On(reason === 'internal'), tier: order.tier, format, style: plan.style ?? null })) { // KINEO-APRESENTADOR-V2-1710 · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + v2Words: o v2 só com a narração escrita na régua dele
       const v2Entry = adsV2PresenterById(presenter.presenterId) ?? (presenter.presenterId ? null : ADS_V2_PRESENTER_LIBRARY[presenter.person] ?? null) // KINEO-APRESENTADOR-V2-1710 — o sorteio usa as 6 primeiras pessoas da biblioteca (mesma ordem e texto)
       const v2 = presenterV2Lib.planAdsV2PresenterV2({ entry: v2Entry, sector, setting: sceneSetting, performancePrompt: ADS_V2_PRESENTER_PERFORMANCE_PROMPT }) // KINEO-APRESENTADOR-V2-1710 — 2 referências, boca neutra, só o produto, o lugar do cliente
       if (v2 && checkV2Prompts([v2.prompt], extracted.brief).length === 0) { presenter.v2 = v2; plan.shots = presenterV2Lib.adsV2PresenterV2Shots(plan.shots, photos) } // KINEO-APRESENTADOR-V2-1710 — o lugar do cliente passa pela régua anti-invenção; os planos de IA viram as fotos dele paradas (a montagem nova não os usa; créditos iguais)
@@ -320,7 +325,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
       plans_left: plansLeft, // KINEO-ADS-FIEL-2-1510 — roteiros que ainda cabem hoje (null = conta da casa, sem teto)
       shots: plan.shots.map((s) => ({ idx: s.idx, role: s.role, beat: s.beat, kind: s.kind, source: s.source, cut_seconds: s.cutSeconds, photo: s.sourceFootageId, ...(s.effect ? { effect: s.effect } : {}) })),
       ...(inHand && inHandLib ? { in_hand: { shots: inHandLib.adsV2InHandSummary(plan.shots), usd: inHandLib.adsV2InHandUsd(usd, plan.shots) } } : {}), // KINEO-ADS-PRODUTO-NA-MAO-1610 — os planos novos e o custo com o juiz e uma refação de foto (usd_estimate fica o de sempre, igual ao dry-run)
-      ...(presenter?.v2 && presenterV2Lib ? { presenter_v2: { options: presenterV2Lib.ADS_V2_PRESENTER_V2_OPTIONS, usd: presenterV2Lib.adsV2PresenterV2Usd(usd) } } : {}), // KINEO-APRESENTADOR-V2-1710 — 4 fotos + 4 checagens por cima do usd_estimate de sempre
+      ...(presenter?.v2 && presenterV2Lib ? { presenter_v2: { options: presenterV2Lib.ADS_V2_PRESENTER_V2_OPTIONS, usd: presenterV2Lib.adsV2PresenterV2UsdPro(usd, order.seconds), words: v2Words } } : {}), // KINEO-APRESENTADOR-V2-1710 — 4 fotos + 4 checagens por cima do usd_estimate de sempre · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + 4 checagens das mãos, o avatar PRO no alvo da voz e a régua de palavras
     })
   } catch (e) {
     console.warn('[ads/v2/plan] falhou:', e instanceof Error ? e.message : String(e))
