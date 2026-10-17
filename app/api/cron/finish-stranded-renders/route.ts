@@ -32,6 +32,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { fal } from '@fal-ai/client'
 import { CINEMATIC_CLAIM_EVENT, authorizeCinematicCompletedUrls, loadVerifiedCinematicClaim, releaseCinematicClaim } from '@/lib/cinematic/claim'
 import { STRANDED_MIN_AGE_MS, CINEMATIC_CLIENT_POLL_EVENT, clientStillAlive } from '@/lib/strandedRescue' // KINEO-RESGATE-RAPIDO-2026-09-19
+import { tomarVezDoCron } from '@/lib/cronLease' // KINEO-FILME-RAPIDO-1710 — uma rodada por vez com o cron de 1 min
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { videoReadyFooter, type VideoReadyFooter } from '@/lib/lifecycle/videoReadyFooter'
 import { composerUrl } from '@/lib/lifecycle/composerUrl'
@@ -77,6 +78,10 @@ const READY_EVENT = 'stranded_ready_sent'
 // ready). Marcador PROPRIO: quando NOS compomos com sucesso, gravamos este
 // evento com o render_id da resposta — a fase 2 lê daqui, nao do claim.
 const COMPOSED_EVENT = 'stranded_composed'
+// KINEO-FILME-RAPIDO-1710 — com o cron a cada 1 min, um compose que a ABA está fazendo (409 pendente, ~50 s) seria contado
+// como tentativa nossa a cada minuto: em 2 minutos o teto de 2 tentativas mandaria o e-mail de "um clique para terminar" [KINEO-FILME-RAPIDO-1710]
+// com o filme montando. A corrida pendente fica marcada à parte e não conta como tentativa. [KINEO-FILME-RAPIDO-1710]
+const PENDING_RACE_EVENT = 'stranded_compose_pending' // KINEO-FILME-RAPIDO-1710
 // ⚠️ KINEO-STRANDED-FAST-2026-08-20 — O MOTOR MAIS USADO NÃO TINHA RESGATE.
 // Este cron nasceu olhando SÓ o claim cinematográfico. Só que o Kineo 1
 // (fast) — 281 dos 410 vídeos da semana — não passa por ele: ele grava
@@ -564,7 +569,28 @@ async function alreadySentDirect(
   return found ? { send: false, reason: 'already_sent' } : { send: true, reason: 'clear' }
 }
 
-export async function GET(req: NextRequest) {
+// KINEO-FILME-RAPIDO-1710 — o cron passou a rodar a cada 1 min (vercel.json; eram 5) com limiares de 90 s (lib/strandedRescue).
+// Uma rodada lenta (3 composes em processo) passaria do minuto: a trava garante UMA rodada por vez (lib/cronLease). Erro de [KINEO-FILME-RAPIDO-1710]
+// banco na trava = esta rodada não roda (o próximo minuto tenta). O compose continua idempotente por si (claim determinístico). [KINEO-FILME-RAPIDO-1710]
+const STRANDED_RUN_LEASE_MS = (maxDuration + 15) * 1000 // KINEO-FILME-RAPIDO-1710
+export async function GET(req: NextRequest) { // KINEO-FILME-RAPIDO-1710 — a trava (uma rodada por vez) por fora; a rodada de sempre em rodadaDoResgate
+  if (!isAuthorized(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) // KINEO-FILME-RAPIDO-1710
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL // KINEO-FILME-RAPIDO-1710
+  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY // KINEO-FILME-RAPIDO-1710
+  if (!url || !secret || !RESEND_API_KEY) return rodadaDoResgate(req) // as mesmas recusas de sempre, lá dentro // KINEO-FILME-RAPIDO-1710
+  const trava = createAdminClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } }) // KINEO-FILME-RAPIDO-1710
+  const vez = await tomarVezDoCron(trava, 'finish-stranded-renders', STRANDED_RUN_LEASE_MS) // KINEO-FILME-RAPIDO-1710
+  if (!vez.ok) { // KINEO-FILME-RAPIDO-1710
+    console.log(`[stranded] rodada pulada: ${vez.motivo}`) // KINEO-FILME-RAPIDO-1710
+    return NextResponse.json({ skipped: vez.motivo }) // KINEO-FILME-RAPIDO-1710
+  } // KINEO-FILME-RAPIDO-1710
+  try { // KINEO-FILME-RAPIDO-1710
+    return await rodadaDoResgate(req) // KINEO-FILME-RAPIDO-1710
+  } finally { // KINEO-FILME-RAPIDO-1710
+    await vez.liberar() // KINEO-FILME-RAPIDO-1710
+  } // KINEO-FILME-RAPIDO-1710
+} // KINEO-FILME-RAPIDO-1710
+async function rodadaDoResgate(req: NextRequest): Promise<NextResponse> { // KINEO-FILME-RAPIDO-1710 — era: export async function GET(req: NextRequest) {
   if (!isAuthorized(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (!RESEND_API_KEY) return NextResponse.json({ error: 'RESEND_API_KEY missing' }, { status: 503 })
 
@@ -623,6 +649,14 @@ export async function GET(req: NextRequest) {
   const outcomes = new Map<string, { total: number; only4xx: boolean }>()
   const composedRender = new Map<string, string | null>()
   const lastPoll = new Map<string, number>() // KINEO-RESGATE-RAPIDO — última batida de vida da aba por geração
+  // KINEO-FILME-RAPIDO-1710 — corridas pendentes (409) por geração; leitura que falha = mapa vazio = a conta de antes.
+  const pendingRaces = new Map<string, number>() // KINEO-FILME-RAPIDO-1710
+  if (genIds.length > 0) { // KINEO-FILME-RAPIDO-1710
+    const { data: raceRows, error: raceErr } = await admin.from('events').select('session_id').eq('name', PENDING_RACE_EVENT).in('session_id', genIds.slice(0, 200)).limit(1000) // KINEO-FILME-RAPIDO-1710
+    if (raceErr) console.warn('[stranded] pending-race lookup failed:', raceErr.message) // KINEO-FILME-RAPIDO-1710
+    for (const r of raceRows ?? []) { const sid = (r as { session_id?: string | null }).session_id; if (sid) pendingRaces.set(sid, (pendingRaces.get(sid) ?? 0) + 1) } // KINEO-FILME-RAPIDO-1710
+  } // KINEO-FILME-RAPIDO-1710
+  const ownAttempts = (sid: string) => Math.max(0, (attempts.get(sid) ?? 0) - (pendingRaces.get(sid) ?? 0)) // KINEO-FILME-RAPIDO-1710
   for (const m of markerRows ?? []) {
     const sid = m.session_id as string | null
     if (!sid) continue
@@ -774,7 +808,7 @@ export async function GET(req: NextRequest) {
     }
 
     // ── Fase 1: compose nunca foi invocado ──
-    const attemptCount = attempts.get(genId) ?? 0
+    const attemptCount = ownAttempts(genId) // KINEO-FILME-RAPIDO-1710 — 409 pendente (a aba montando) não gasta tentativa; era: attempts.get(genId) ?? 0
     const oc = outcomes.get(genId)
     const attemptCap = oc && oc.total >= MAX_COMPOSE_ATTEMPTS && oc.only4xx
       ? MAX_COMPOSE_ATTEMPTS + EXTRA_ATTEMPT_AFTER_4XX
@@ -983,6 +1017,7 @@ export async function GET(req: NextRequest) {
         console.log(`[stranded] server-finish composed gen=${gen8} renderId=${rid ?? '?'}`)
         results.push({ generation: gen8, outcome: 'composed_server_side' })
       } else if (res.status === 409 && json?.pending === true) {
+        await admin.from('events').insert({ user_id: userId, name: PENDING_RACE_EVENT, session_id: genId, metadata: { attempt: attemptCount + 1 } }) // KINEO-FILME-RAPIDO-1710
         results.push({ generation: gen8, outcome: 'compose_pending_race' })
       } else {
         console.error(`[stranded] compose failed gen=${gen8}: ${res.status} ${JSON.stringify(json).slice(0, 200)}`)

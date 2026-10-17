@@ -13,10 +13,15 @@
 
 export const CINEMATIC_CLIENT_POLL_EVENT = 'cinematic_client_poll'
 export const CLIENT_POLL_DEDUPE_MINUTES = 1
-/** Idade mínima do claim para o resgate olhar (as cenas do Veo/Seedance levam 2-4 min). */
-export const STRANDED_MIN_AGE_MS = 4 * 60 * 1000
-/** Batida de vida mais nova que isto = aba viva → o cron não mexe. */
-export const CLIENT_ALIVE_MS = 3 * 60 * 1000
+// KINEO-FILME-RAPIDO-1710 — a montagem sem esperar o cron (auditoria 17/10, G2/V2): 27% dos filmes (aba fechada) começavam o
+// compose 396 s depois do despacho, contra 90 s com a aba aberta. O cron roda a cada 1 min (era 5) e os dois limiares caem
+// de 4 min / 3 min para 90 s. A aba viva grava 1 batida por minuto (CLIENT_POLL_DEDUPE_MINUTES) e consulta a cada ~3 s:
+// a batida mais nova de uma aba viva tem ≤ ~65 s. Nunca monta em dobro: o compose tem claim determinístico por geração
+// (lib/composeClaim) e o cron, uma rodada por vez (lib/cronLease).
+/** Idade mínima do claim para o resgate olhar (antes 4 min; a fal leva ~85 s no p50 — antes disso o cron só confere). */
+export const STRANDED_MIN_AGE_MS = 90 * 1000
+/** Batida de vida mais nova que isto = aba viva → o cron não mexe (antes 3 min). */
+export const CLIENT_ALIVE_MS = 90 * 1000
 export const STRANDED_RESCUE_VERSION = 'resgate_rapido_v1'
 
 export function clientStillAlive(lastPollMs: number | null | undefined, nowMs: number): boolean {

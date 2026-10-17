@@ -21,8 +21,12 @@ console.log('1) decisão pura: aba viva × aba morta')
 const libSrc = rd('lib/strandedRescue.ts')
 const L = roda(libSrc)
 const now = Date.parse('2026-09-19T04:05:00Z')
-checa('idade mínima 4 min (era 12) e vida 3 min', L.STRANDED_MIN_AGE_MS === 4 * 60 * 1000 && L.CLIENT_ALIVE_MS === 3 * 60 * 1000)
+// Reancorado 17/10 (KINEO-FILME-RAPIDO-1710, [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]): 4 min / 3 min → 90 s / 90 s e cron de
+// 1 min. A batida de uma aba viva tem ≤ ~65 s (1 por minuto + poll de ~3 s): 65 s = viva; 2 min = morta. [KINEO-FILME-RAPIDO-1710]
+checa('idade mínima 90 s (era 4 min; antes 12) e vida 90 s (era 3 min)', L.STRANDED_MIN_AGE_MS === 90 * 1000 && L.CLIENT_ALIVE_MS === 90 * 1000) // KINEO-FILME-RAPIDO-1710 — era: 4 * 60 * 1000 e 3 * 60 * 1000
 checa('batida há 1 min → aba viva, cron espera', L.clientStillAlive(now - 60 * 1000, now) === true)
+checa('batida há 65 s (a mais velha de uma aba viva) → viva', L.clientStillAlive(now - 65 * 1000, now) === true) // KINEO-FILME-RAPIDO-1710
+checa('batida há 2 min → aba morta, cron age', L.clientStillAlive(now - 2 * 60 * 1000, now) === false) // KINEO-FILME-RAPIDO-1710
 checa('batida há 5 min → aba morta, cron age', L.clientStillAlive(now - 5 * 60 * 1000, now) === false)
 checa('sem batida nenhuma → aba morta', L.clientStillAlive(null, now) === false && L.clientStillAlive(undefined, now) === false)
 const mut = libSrc.replace('return nowMs - lastPollMs < CLIENT_ALIVE_MS', 'return false')
@@ -38,7 +42,7 @@ checa('MIN_AGE_MS vem de STRANDED_MIN_AGE_MS (não mais 12 min cravados)', cron.
 checa('lê as batidas junto com os marcadores (com created_at)', cron.includes("CINEMATIC_CLIENT_POLL_EVENT])") && cron.includes(".select('name, session_id, metadata, created_at')"))
 checa('aba viva → outcome client_alive e pula, antes de qualquer compose', cron.includes("if (clientStillAlive(lastPoll.get(genId), now)) { results.push({ generation: gen8, outcome: 'client_alive' }); continue }") && cron.indexOf("outcome: 'client_alive'") < cron.indexOf('const res = await composePost(composeReq)'))
 const vj = rd('vercel.json')
-checa('cron a cada 5 min', /"path": "\/api\/cron\/finish-stranded-renders",\s*\n\s*"schedule": "\*\/5 \* \* \* \*"/.test(vj))
+checa('cron a cada 1 min (KINEO-FILME-RAPIDO-1710; era 5)', /"path": "\/api\/cron\/finish-stranded-renders",\s*\n\s*"schedule": "\* \* \* \* \*"/.test(vj))
 
 checa('compose resgatado carrega o pedido (response.prompt) — o painel de coerência deixa de dizer "prompt vazio no banco"', cron.includes("typeof response.prompt === 'string' ? response.prompt : undefined"))
 

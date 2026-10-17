@@ -106,7 +106,7 @@
     },
     {
       "path": "/api/cron/finish-stranded-renders",
-      "schedule": "*/5 * * * *"
+      "schedule": "* * * * *"
     },
     {
       "path": "/api/cron/finish-orphan-jobs",
