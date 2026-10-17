@@ -58,6 +58,8 @@ import { fetchUserPlan } from '@/lib/plan'
 import { cinematicSceneSeconds, trimNarratedSupport, assertCinematicTimeline, CinematicTimelineError, signedSceneMetadata } from '@/lib/cinematic/timelineContract'
 import { rejectCinematicQuality, readVerifiedQualityRejection, type CinematicQualityReason } from '@/lib/cinematic/qualityRejection'
 import { selectMusicForScript } from '@/lib/musicScore'
+import { montagemComAudioDoClique } from '@/lib/audioNoClique' // [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"] KINEO-FILME-RAPIDO-1710 — voz e música no clique (linha própria)
+import { esperarLyria, LYRIA_WAIT_BUDGET_MS } from '@/lib/lyriaMusic' // KINEO-FILME-RAPIDO-1710 (linha própria)
 import { captionStyleOverrides, isAdCaptionStyle, isCaptionElement } from '@/lib/ads/adStyle' // KINEO-ADS-ESTILO-2026-09-26
 import { alinharGrafiaDoRoteiro } from '@/lib/captionScriptSpelling' // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28
 import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
@@ -789,6 +791,7 @@ export async function POST(req: NextRequest) {
     const composeAdmin: SupabaseClient = createAdminClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     })
+    const audioDoClique = montagemComAudioDoClique({ db: composeAdmin, generationId, lookup: lookupCachedVoiceover, esperarLyria, orcamentoLyriaMs: LYRIA_WAIT_BUDGET_MS }) // KINEO-FILME-RAPIDO-1710 — a trilha e a voz pedidas no clique (lib/audioNoClique): pega o pronto, espera um pouco o que está a caminho, senão gera como sempre
     let cinematicBirthClaim: CinematicClaim | null = null
     // KINEO-KLING25-PLANOS-5S-2026-09-28 — segundos de cada clipe e onde a fala de cada um começa, SÓ do claim assinado
     // (nunca do corpo): null = montagem de hoje
@@ -2339,6 +2342,7 @@ export async function POST(req: NextRequest) {
         tentativasCena++
         try {
           if (!hollywoodPinnedVoice) throw new Error('Narration voice unavailable')
+          if (tentativasCena === 1) { const daCena = await audioDoClique.cena(pending.text, hollywoodPinnedVoice.voice, hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0)); if (daCena) { measured.push({ sceneIdx: pending.sceneIdx, url: daCena.voiceoverUrl, dur: daCena.audioDuration, text: pending.text, words: daCena.words.length > 0 && verifyObservedSpeech(pending.text, daCena.words).ok ? daCena.words : undefined }); cenaFeita = true; continue } } // KINEO-FILME-RAPIDO-1710 — a voz desta cena saiu no clique (mesmo texto, voz e velocidade = a mesma síntese; a transcrição passa pela MESMA conferência)
           composeCtx.stage = 'hollywood_host_tts' // KINEO-COMPOSE-FALHA-COM-NOME
           const buf = await synthesizeHostSpeech({
             text: pending.text,
@@ -2704,6 +2708,7 @@ export async function POST(req: NextRequest) {
           rawScript: `${rawVoiceover}\n${String(body.topic ?? '')}`,
           vertical,
           seed: voiceoverScript,
+          lyriaPronta: audioDoClique.musica, // KINEO-FILME-RAPIDO-1710 — a trilha pedida no clique, só com o MESMO prompt
         })
       } catch {
         console.warn('[compose] hollywood music unavailable; preserving narration')
@@ -3042,6 +3047,7 @@ export async function POST(req: NextRequest) {
             model: `${model}|engine=${VOICEOVER_ENGINE_VERSION}`,
           })
           cachedVoiceover = await lookupCachedVoiceover(voiceoverCacheKey)
+          if (!cachedVoiceover) cachedVoiceover = await audioDoClique.voz(voiceoverCacheKey) // KINEO-FILME-RAPIDO-1710 — a MESMA chave pode estar sendo feita agora pelo clique: espera um pouco por ela
           if (cachedVoiceover) {
             console.log('[compose] reusing cached voiceover — skipping TTS + Whisper')
           }
@@ -3402,6 +3408,7 @@ export async function POST(req: NextRequest) {
         seed: voiceoverScript,
         // KINEO-ADS-ESTILO-2026-09-26 — clima escolhido no Studio Ads; musicDirection só aceita o vocabulário controlado.
         ...(typeof body.music_mood === 'string' ? { musicMood: body.music_mood.slice(0, 40) } : {}),
+        lyriaPronta: audioDoClique.musica, // KINEO-FILME-RAPIDO-1710 — a trilha pedida no clique, só com o MESMO prompt
       })
     } catch {
       console.warn('[compose] music unavailable; preserving narration')

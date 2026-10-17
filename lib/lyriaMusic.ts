@@ -49,7 +49,9 @@ const MOOD_PROMPTS: Record<MusicMood, string> = {
     'Organic ambient documentary underscore, airy pads, light acoustic textures, subtle hand percussion, spacious and awe-filled, 80 BPM',
 }
 
-function lyriaPromptFor(mood: MusicMood, direction?: MusicDirection): string {
+// KINEO-FILME-RAPIDO-1710 — exportado: o aquecimento do clique (lib/audioNoCliqueServer) pede a trilha com o MESMO
+// prompt que a montagem pediria, e a montagem só reaproveita a faixa quando o prompt bate (lib/audioNoClique).
+export function lyriaPromptFor(mood: MusicMood, direction?: MusicDirection): string {
   const emotionalDirection = direction ? musicEmotionPrompt(direction) : ''
   return `${emotionalDirection || MOOD_PROMPTS[mood]}. Instrumental only — absolutely no vocals, no singing, no spoken words. Quiet background music beneath narration, no competing lead melody, consistent restrained energy, no abrupt stops.`
 }
@@ -71,10 +73,32 @@ export async function getLyriaMusicUrl(
     const mood = moodOverride ?? resolveMusicMood(niche)
     const deadline = Date.now() + LYRIA_BUDGET_MS
 
+    // KINEO-FILME-RAPIDO-1710 — o mesmo POST e a mesma espera de sempre, agora em duas metades reaproveitáveis.
+    const handle = await submeterLyria(lyriaPromptFor(mood, direction))
+    if (!handle) return null
+    const url = await esperarLyria(handle, deadline)
+    if (url) console.log(`[lyria] trilha pronta mood=${mood}`)
+    else if (Date.now() >= deadline) console.warn(`[lyria] estourou o prazo de ${LYRIA_BUDGET_MS}ms — caindo no Pixabay (o job fica na fila da fal, sem cobrança extra nossa)`)
+    return url
+  } catch {
+    // Provider/network error strings can echo user prompts or signed asset URLs.
+    console.warn('[lyria] non-fatal; using compatible fallback')
+    return null
+  }
+}
+
+/** O job da trilha na fila da fal: com ele, quem chegar depois espera o MESMO job (sem pagar outro). */
+export type LyriaHandle = { requestId: string; statusUrl: string; responseUrl: string }
+
+/** KINEO-FILME-RAPIDO-1710 — o POST da trilha (o mesmo de sempre). null = sem chave, recusa ou erro. Nunca lança. */
+export async function submeterLyria(prompt: string): Promise<LyriaHandle | null> {
+  try {
+    const falKey = process.env.FAL_KEY || process.env.FAL_API_KEY
+    if (!falKey) return null
     const submit = await fetchComPrazo(LYRIA_ENDPOINT, {
       method: 'POST',
       headers: { Authorization: `Key ${falKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: lyriaPromptFor(mood, direction) }),
+      body: JSON.stringify({ prompt }),
     }, 10_000)
     if (!submit.ok) {
       console.warn(`[lyria] submit http ${submit.status} — caindo no Pixabay`)
@@ -82,34 +106,47 @@ export async function getLyriaMusicUrl(
     }
     const sub = (await submit.json()) as { request_id?: string; status_url?: string; response_url?: string }
     if (!sub.request_id) return null
-    const statusUrl = sub.status_url ?? `${LYRIA_ENDPOINT}/requests/${sub.request_id}/status`
-    const responseUrl = sub.response_url ?? `${LYRIA_ENDPOINT}/requests/${sub.request_id}`
-
-    while (Date.now() < deadline) {
-      await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS))
-      const st = await fetchComPrazo(statusUrl, { headers: { Authorization: `Key ${falKey}` } }, 8_000)
-      if (!st.ok) continue
-      const stJson = (await st.json()) as { status?: string }
-      if (stJson.status === 'COMPLETED') {
-        const res = await fetchComPrazo(responseUrl, { headers: { Authorization: `Key ${falKey}` } }, 8_000)
-        if (!res.ok) return null
-        const out = (await res.json()) as { audio?: { url?: string } }
-        const url = out.audio?.url
-        if (typeof url === 'string' && url.startsWith('https://')) {
-          console.log(`[lyria] trilha pronta mood=${mood}`)
-          return url
-        }
-        return null
-      }
+    return {
+      requestId: sub.request_id,
+      statusUrl: sub.status_url ?? `${LYRIA_ENDPOINT}/requests/${sub.request_id}/status`,
+      responseUrl: sub.response_url ?? `${LYRIA_ENDPOINT}/requests/${sub.request_id}`,
     }
-    console.warn(`[lyria] estourou o prazo de ${LYRIA_BUDGET_MS}ms — caindo no Pixabay (o job fica na fila da fal, sem cobrança extra nossa)`)
-    return null
   } catch {
-    // Provider/network error strings can echo user prompts or signed asset URLs.
-    console.warn('[lyria] non-fatal; using compatible fallback')
+    console.warn('[lyria] submit non-fatal; using compatible fallback')
     return null
   }
 }
+
+/**
+ * KINEO-FILME-RAPIDO-1710 — espera o job até `deadlineMs` (relógio absoluto), consultando a cada 2,5 s como sempre.
+ * URL do MP3 ou null (prazo, erro, resposta sem URL). Nunca lança.
+ */
+export async function esperarLyria(handle: LyriaHandle, deadlineMs: number): Promise<string | null> {
+  try {
+    const falKey = process.env.FAL_KEY || process.env.FAL_API_KEY
+    if (!falKey) return null
+    while (Date.now() < deadlineMs) {
+      await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS))
+      const st = await fetchComPrazo(handle.statusUrl, { headers: { Authorization: `Key ${falKey}` } }, 8_000)
+      if (!st.ok) continue
+      const stJson = (await st.json()) as { status?: string }
+      if (stJson.status === 'COMPLETED') {
+        const res = await fetchComPrazo(handle.responseUrl, { headers: { Authorization: `Key ${falKey}` } }, 8_000)
+        if (!res.ok) return null
+        const out = (await res.json()) as { audio?: { url?: string } }
+        const url = out.audio?.url
+        return typeof url === 'string' && url.startsWith('https://') ? url : null
+      }
+    }
+    return null
+  } catch {
+    console.warn('[lyria] wait non-fatal; using compatible fallback')
+    return null
+  }
+}
+
+/** O orçamento de espera da trilha na montagem (o mesmo de sempre), para quem espera o job do aquecimento. */
+export const LYRIA_WAIT_BUDGET_MS = LYRIA_BUDGET_MS
 
 async function fetchComPrazo(url: string, init: RequestInit, ms: number): Promise<Response> {
   const ctl = new AbortController()

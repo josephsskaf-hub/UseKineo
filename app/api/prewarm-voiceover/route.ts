@@ -46,6 +46,8 @@ import {
 } from '@/lib/compose'
 import { ttsModelForTier } from '@/lib/narration/elevenlabs'
 import { stripScriptMarkers, salvageScriptNarration } from '@/lib/scriptParser'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { lerAquecimento } from '@/lib/audioNoClique' // KINEO-FILME-RAPIDO-1710
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -78,6 +80,15 @@ export async function POST(req: NextRequest) {
     const quality = typeof body.quality === 'string' ? body.quality : ''
 
     if (!script || raw.length > 4000) return NextResponse.json({ warmed: false, reason: 'script' })
+    // KINEO-FILME-RAPIDO-1710 — o servidor já aquece a voz deste filme no clique (lib/audioNoCliqueServer): a aba não
+    // paga uma segunda síntese da mesma voz. Sem registro (ou leitura falha): o aquecimento da aba de sempre.
+    const genId = typeof body.generationId === 'string' ? body.generationId.trim() : ''
+    const svcUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const svcKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (genId && /^[A-Za-z0-9_-]{8,100}$/.test(genId) && svcUrl && svcKey) {
+      const reg = await lerAquecimento(createAdminClient(svcUrl, svcKey, { auth: { persistSession: false, autoRefreshToken: false } }), genId)
+      if (reg?.voz) return NextResponse.json({ warmed: false, reason: 'server_prewarm' })
+    }
     // Sem speed explícito o compose reescala o texto via GPT antes do hash —
     // a chave não é derivável aqui. Recusar é o correto; chutar aqueceria lixo.
     if (speed == null) return NextResponse.json({ warmed: false, reason: 'no_explicit_speed' })

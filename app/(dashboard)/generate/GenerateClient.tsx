@@ -10262,6 +10262,7 @@ export default function GenerateClient({
               vertical: analysis?.niche ?? undefined,
               language,
               quality: falQualityRef.current,
+              generationId: cinematicGenerationId, // KINEO-FILME-RAPIDO-1710 — o servidor já aquece esta voz no clique: a rota não repete
             }),
           }).catch(() => {})
         }

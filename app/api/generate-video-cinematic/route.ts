@@ -103,6 +103,7 @@ import { narrationTooShortMessage, MIN_COVERAGE } from '@/lib/narrationFit'
 import { speechRateFor, narrationFitAt, autofitDownAt } from '@/lib/speechRate'
 import { vozDoFilmeCurto, campoDaVozAssinada } from '@/lib/vozDoFilmeCurto' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29
 import { selectPersonaForScript } from '@/lib/narration/niche-mapping' // KINEO-RITMO-POR-VOZ-2026-09-15
+import { agendarAudioNoClique } from '@/lib/audioNoCliqueServer' // [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"] KINEO-FILME-RAPIDO-1710 — voz e música no clique (linha própria)
 // KINEO-DEGRAU-2026-09-03 — o gate vira degrau: fala que não enche o botão
 // desce o alvo ANTES do custo em vez de recusar. Ver o rodapé do módulo.
 import { AUTOFIT_DOWN_FLOOR_SECONDS, AUTOFIT_DOWN_FLOOR_SECONDS_HOLLYWOOD } from '@/lib/narrationFit'
@@ -2734,6 +2735,7 @@ async function manipularPost(req: NextRequest) {
       return typeof data?.refunded_at === 'string' && data.refunded_at.length > 0
     }
 
+    const audioNoClique = (resp: Record<string, unknown>) => (body.dry_run === true ? Promise.resolve(false) : agendarAudioNoClique({ generationId, userId: user.id, quality: claimQuality, response: resp, bodyVertical: body.vertical, bodyLanguage: body.language })) // KINEO-FILME-RAPIDO-1710 — despacho aceito: trilha, voz clássica e vozes por cena começam depois da resposta, enquanto a fal gera as cenas (1 reserva por geração; sem waitUntil = nada muda)
     const settleDebitAndRespond = async (
       claim: CinematicClaim,
       response: Record<string, unknown>,
@@ -2744,6 +2746,7 @@ async function manipularPost(req: NextRequest) {
           { status: 409 },
         )
       }
+      if (claim.status === 'settled') await audioNoClique(response) // KINEO-FILME-RAPIDO-1710 — replay de um despacho já liquidado: a reserva por geração não repete
       if (claim.status === 'settled') return NextResponse.json(response)
       if (claim.status !== 'done') {
         return NextResponse.json(
@@ -2789,6 +2792,7 @@ async function manipularPost(req: NextRequest) {
       }
       activeBirthClaim = null
       cinematicSubmissionCache.delete(cacheKey)
+      await audioNoClique(response) // KINEO-FILME-RAPIDO-1710 — débito confirmado e claim liquidado: voz e música no clique
       return NextResponse.json({ ...response, credits_charged: claim.creditCost, balance: debit.balance })
     }
 
