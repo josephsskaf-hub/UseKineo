@@ -1113,7 +1113,9 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
     if (musicUrl && musicSource === 'none') musicSource = 'library' // KINEO-APRESENTADOR-V2-AJUSTE-1710 — a reserva automática (Lyria recusado/fora do prazo/sem cópia)
     // KINEO-ADS-V2-MUSICA-2026-09-29 — faixa da biblioteca sem 32 s seguidos de música não serve para anúncio:
     // troca por uma aprovada do mesmo clima (lib/ads/v2Music.ts).
-    if (musicUrl && !adsV2MusicUsable(musicUrl)) { musicUrl = adsV2SwapLibraryTrack(musicUrl, adsV2FallbackTrack(mood, order.id)); musicSource = 'library_swap' } // KINEO-APRESENTADOR-V2-AJUSTE-1710 — + a origem
+    const beforeSwap = musicUrl // KINEO-APRESENTADOR-V2-AJUSTE-1710
+    if (musicUrl && !adsV2MusicUsable(musicUrl)) musicUrl = adsV2SwapLibraryTrack(musicUrl, adsV2FallbackTrack(mood, order.id))
+    if (musicUrl && musicUrl !== beforeSwap) musicSource = 'library_swap' // KINEO-APRESENTADOR-V2-AJUSTE-1710 — a faixa da biblioteca trocada por uma aprovada do mesmo clima
     if (musicUrl) await admin.from('ads_v2_orders').update({ music_url: musicUrl }).eq('id', order.id).is('music_url', null)
   }
   // 2. Voz MiniMax (a mesma TTS da casa para MiniMax: synthesizeTtsFallback, fal-ai/minimax/speech-2.8-hd), medida
