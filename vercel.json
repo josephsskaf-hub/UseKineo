@@ -177,6 +177,10 @@
       "schedule": "2-57/5 * * * *"
     },
     {
+      "path": "/api/cron/rapido-ads-clipes",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/cron/geo-citation-monitor?confirm=SEND",
       "schedule": "0 12 * * 1"
     }

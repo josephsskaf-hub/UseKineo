@@ -552,3 +552,27 @@ export async function sweepClipJobs(): Promise<{ scanned: number; delivered: num
   }
   return result
 }
+// KINEO-FILME-RAPIDO-1710 — o clipe parado com a aba fechada (auditoria 17/10, G8/V7): 4 de 5 clipes grátis de texto
+// esperaram de 33 a 126 min, porque só o poll da tela ou a varredura horária (sweepClipJobs, só 10 min+) os olhava. [KINEO-FILME-RAPIDO-1710]
+// O cron de 1 min (/api/cron/rapido-ads-clipes) passa aqui: TODO clipe em andamento com 20 s+ ganha a MESMA settleClip da [KINEO-FILME-RAPIDO-1710]
+// tela (transições condicionais: tela, cron e varredura juntos nunca entregam nem estornam duas vezes). Os prazos de [KINEO-FILME-RAPIDO-1710]
+// estorno continuam os da settleClip (10 min sem envio, 6 h no fornecedor). KINEO-FILME-RAPIDO-1710
+export async function advanceActiveClipJobs(opts: { minAgeMs?: number; limit?: number; deadlineMs?: number } = {}): Promise<{ scanned: number; delivered: number; failed: number; waiting: number }> { // KINEO-FILME-RAPIDO-1710
+  const result = { scanned: 0, delivered: 0, failed: 0, waiting: 0 } // KINEO-FILME-RAPIDO-1710
+  const admin = clipsAdmin() // KINEO-FILME-RAPIDO-1710
+  if (!admin) return result // KINEO-FILME-RAPIDO-1710
+  const youngest = new Date(Date.now() - (opts.minAgeMs ?? 20_000)).toISOString() // KINEO-FILME-RAPIDO-1710
+  const oldest = new Date(Date.now() - CLIP_EXPIRE_MS - 60 * 60 * 1000).toISOString() // KINEO-FILME-RAPIDO-1710 — os vencidos também fecham (estorno), como na varredura
+  const { data, error } = await admin.from(CLIPS_TABLE).select(COLUMNS).in('status', ['pending', 'processing']).lte('created_at', youngest).gte('created_at', oldest).order('created_at', { ascending: true }).limit(opts.limit ?? 30) // KINEO-FILME-RAPIDO-1710
+  if (error) { console.error('[clips/rapido] lookup failed:', error.message); return result } // KINEO-FILME-RAPIDO-1710
+  for (const raw of data ?? []) { // KINEO-FILME-RAPIDO-1710
+    if (opts.deadlineMs && Date.now() > opts.deadlineMs) break // KINEO-FILME-RAPIDO-1710
+    const row = toRow(raw as Record<string, unknown>) // KINEO-FILME-RAPIDO-1710
+    result.scanned += 1 // KINEO-FILME-RAPIDO-1710
+    const after = await settleClip(settleDepsFor(admin, row.user_id), row).catch(() => row) // KINEO-FILME-RAPIDO-1710
+    if (after.status === 'done') result.delivered += 1 // KINEO-FILME-RAPIDO-1710
+    else if (after.status === 'failed') result.failed += 1 // KINEO-FILME-RAPIDO-1710
+    else result.waiting += 1 // KINEO-FILME-RAPIDO-1710
+  } // KINEO-FILME-RAPIDO-1710
+  return result // KINEO-FILME-RAPIDO-1710
+} // KINEO-FILME-RAPIDO-1710
