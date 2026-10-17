@@ -60,6 +60,7 @@ import { rejectCinematicQuality, readVerifiedQualityRejection, type CinematicQua
 import { selectMusicForScript } from '@/lib/musicScore'
 import { montagemComAudioDoClique } from '@/lib/audioNoClique' // [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"] KINEO-FILME-RAPIDO-1710 — voz e música no clique (linha própria)
 import { esperarLyria, LYRIA_WAIT_BUDGET_MS } from '@/lib/lyriaMusic' // KINEO-FILME-RAPIDO-1710 (linha própria)
+import { COMPOSE_STAGE_TIMING_EVENT, cronometroDaMontagem } from '@/lib/tempoDaMontagem' // KINEO-FILME-RAPIDO-1710 · tempo — tempo por etapa da montagem (linha própria)
 import { captionStyleOverrides, isAdCaptionStyle, isCaptionElement } from '@/lib/ads/adStyle' // KINEO-ADS-ESTILO-2026-09-26
 import { alinharGrafiaDoRoteiro } from '@/lib/captionScriptSpelling' // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28
 import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
@@ -791,6 +792,7 @@ export async function POST(req: NextRequest) {
     const composeAdmin: SupabaseClient = createAdminClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     })
+    const tempo = cronometroDaMontagem() // KINEO-FILME-RAPIDO-1710 · tempo — voz, transcrição, música e envio ao Creatomate, em ms (evento compose_stage_timing)
     const audioDoClique = montagemComAudioDoClique({ db: composeAdmin, generationId, lookup: lookupCachedVoiceover, esperarLyria, orcamentoLyriaMs: LYRIA_WAIT_BUDGET_MS }) // KINEO-FILME-RAPIDO-1710 — a trilha e a voz pedidas no clique (lib/audioNoClique): pega o pronto, espera um pouco o que está a caminho, senão gera como sempre
     let cinematicBirthClaim: CinematicClaim | null = null
     // KINEO-KLING25-PLANOS-5S-2026-09-28 — segundos de cada clipe e onde a fala de cada um começa, SÓ do claim assinado
@@ -2702,6 +2704,7 @@ export async function POST(req: NextRequest) {
       // Emotion before theme; same immutable narration and author directives
       // as classic/unlock. No music failures may interrupt the delivered voice.
       let hollywoodMusicUrl: string | null = null
+      tempo.inicio('musica') // KINEO-FILME-RAPIDO-1710 · tempo
       try {
         hollywoodMusicUrl = await selectMusicForScript({
           script: voiceoverScript,
@@ -2713,6 +2716,7 @@ export async function POST(req: NextRequest) {
       } catch {
         console.warn('[compose] hollywood music unavailable; preserving narration')
       }
+      tempo.fim('musica') // KINEO-FILME-RAPIDO-1710 · tempo
 
       let hollywoodSource: Record<string, unknown>
       try {
@@ -2758,7 +2762,10 @@ export async function POST(req: NextRequest) {
       let hollywoodRenderId: string
       try {
         composeProviderAttempted = true
+        tempo.inicio('envio_creatomate') // KINEO-FILME-RAPIDO-1710 · tempo
         hollywoodRenderId = await submitCreatomateOnce(hollywoodSource, submissionKey)
+        tempo.fim('envio_creatomate') // KINEO-FILME-RAPIDO-1710 · tempo
+        void writeServerEvent({ name: COMPOSE_STAGE_TIMING_EVENT, userId: authenticatedUserId, path: '/api/compose', metadata: tempo.metadados({ generation_id: generationId, render_id: hollywoodRenderId, quality, family: 'hollywood', service: isServiceFinish, audio_do_clique: audioDoClique.relato }) }) // KINEO-FILME-RAPIDO-1710 · tempo
       } catch (err) {
         const hollywoodMsg = err instanceof Error ? err.message : String(err)
         console.error('[compose] hollywood Creatomate submit failed:', hollywoodMsg)
@@ -3063,6 +3070,7 @@ export async function POST(req: NextRequest) {
       // devolveria support_pending com o mutex RETIDO e a varredura de 100 min veria um compose 'ambíguo' para sempre — ali [KINEO-ESTORNO-NARRACAO-2026-10-13]
       // fica o 502 de sempre (mutex solto → varredura estorna), que é exatamente o comportamento de hoje. [KINEO-ESTORNO-NARRACAO-2026-10-13]
       const narracaoNoFinalizador = cinematicUpstreamDebited && cinematicBirthClaim?.creditCost === creditCostForDuration(quality, true, duration) // KINEO-ESTORNO-NARRACAO-2026-10-13
+      tempo.inicio('voz') // KINEO-FILME-RAPIDO-1710 · tempo
       const inicioTts = Date.now() // KINEO-PLANO-B-OPENAI-2026-09-28 — o plano B de voz só entra em falha rápida
       try {
         if (!cachedVoiceover && (!audioBuffer || audioBuffer.length === 0)) {
@@ -3263,7 +3271,9 @@ export async function POST(req: NextRequest) {
       voiceoverUrl = cachedVoiceover.voiceoverUrl
       console.log(`[compose] cache hit — voiceover reused from ${voiceoverUrl.slice(0, 80)}`)
     } else {
+      tempo.fim('voz') // KINEO-FILME-RAPIDO-1710 · tempo
       composeCtx.stage = 'voiceover_whisper_and_upload' // KINEO-COMPOSE-FALHA-COM-NOME
+      tempo.inicio('transcricao') // KINEO-FILME-RAPIDO-1710 · tempo — Whisper + upload da voz, em paralelo
       const whisperPromise: Promise<WhisperWord[] | undefined> = audioBuffer
         ? transcribeTTSWithTimestamps(audioBuffer)
             .then((words) => {
@@ -3290,6 +3300,7 @@ export async function POST(req: NextRequest) {
             .catch((err: unknown) => ({ uploadError: err }))
 
       const [words, uploadResult] = await Promise.all([whisperPromise, uploadPromise])
+      tempo.fim('transcricao') // KINEO-FILME-RAPIDO-1710 · tempo
 
       if ('uploadError' in uploadResult) {
         const err = uploadResult.uploadError
@@ -3400,6 +3411,7 @@ export async function POST(req: NextRequest) {
     // Resolve from the original narration, never a TTS-scaled rewrite: clean
     // export receives the same input and must not silently choose another mood.
     let musicUrl: string | null = null
+    tempo.inicio('musica') // KINEO-FILME-RAPIDO-1710 · tempo
     try {
       musicUrl = await selectMusicForScript({
         script: voiceoverScript,
@@ -3413,6 +3425,7 @@ export async function POST(req: NextRequest) {
     } catch {
       console.warn('[compose] music unavailable; preserving narration')
     }
+    tempo.fim('musica') // KINEO-FILME-RAPIDO-1710 · tempo
 
     // ═══ KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28 — a legenda escreve a marca como o roteiro escreve ═══
     // Os 10 anúncios Kineo 1 de 28/09 saíram com 12 marcas erradas na tela (ADMITIWE, SHIVSHANKER, UNATI, RUUS,
@@ -3538,7 +3551,10 @@ export async function POST(req: NextRequest) {
     let renderId: string
     try {
       composeProviderAttempted = true
+      tempo.inicio('envio_creatomate') // KINEO-FILME-RAPIDO-1710 · tempo
       renderId = await submitCreatomateOnce(source, submissionKey)
+      tempo.fim('envio_creatomate') // KINEO-FILME-RAPIDO-1710 · tempo
+      void writeServerEvent({ name: COMPOSE_STAGE_TIMING_EVENT, userId: authenticatedUserId, path: '/api/compose', metadata: tempo.metadados({ generation_id: generationId, render_id: renderId, quality, family: 'classic', service: isServiceFinish, audio_do_clique: audioDoClique.relato }) }) // KINEO-FILME-RAPIDO-1710 · tempo
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('[compose] Creatomate submit failed:', msg)

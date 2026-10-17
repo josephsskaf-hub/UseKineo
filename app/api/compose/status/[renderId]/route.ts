@@ -5,6 +5,7 @@ import { createClient as createAdminClient, type SupabaseClient } from '@supabas
 import { pollCreatomateRender } from '@/lib/compose'
 import { persistRenderAssets } from '@/lib/renderAssets'
 import { depoisDaResposta, ehUrlDoFornecedor, podeAdiarParaDepoisDaResposta } from '@/lib/posResposta' // KINEO-FILME-RAPIDO-1710
+import { COMPOSE_STATUS_TIMING_EVENT } from '@/lib/tempoDaMontagem' // KINEO-FILME-RAPIDO-1710 · tempo
 import { writeServerEvent } from '@/lib/serverEvents'
 import { refundRenderCredits } from '@/lib/credits/refund'
 import { buildBrandedYouTubeDescription } from '@/lib/videoDescription'
@@ -984,6 +985,8 @@ export async function GET(
         }
         if (!adiarEntrega) await copiarParaOBucket()
         let registrarMedidaDepois: (() => Promise<void>) | null = null // KINEO-FILME-RAPIDO-1710
+        let renderMs: number | null = null // KINEO-FILME-RAPIDO-1710 · tempo — do envio ao Creatomate até o "pronto" (broll_metrics.submitted_at)
+        const registrarTempoDaEntrega = (adiada: boolean, trocouLink: boolean) => writeServerEvent({ name: COMPOSE_STATUS_TIMING_EVENT, userId: user.id, path: '/api/compose/status', metadata: { render_id: renderId, quality, render_ms: renderMs, copia_ms: copiaMs, copiou: finalVideoUrl !== state.url, adiada, trocou_link: trocouLink, service: isServiceFinish, version: 'filme_rapido_1710' } }).catch(() => false) // KINEO-FILME-RAPIDO-1710 · tempo
 
         // Push #355 — record render_time_ms in broll_metrics.
         // Best-effort: never blocks the video response.
@@ -995,6 +998,7 @@ export async function GET(
             .maybeSingle()
           if (metricsRow?.submitted_at) {
             const renderTimeMs = Date.now() - new Date(metricsRow.submitted_at).getTime()
+            renderMs = renderTimeMs // KINEO-FILME-RAPIDO-1710 · tempo
             await supabase
               .from('broll_metrics')
               .update({ render_time_ms: renderTimeMs })
@@ -1436,6 +1440,7 @@ export async function GET(
         }
         if (!adiarEntrega) {
           await avisarPronto()
+          void registrarTempoDaEntrega(false, false) // KINEO-FILME-RAPIDO-1710 · tempo
         } else {
           // KINEO-FILME-RAPIDO-1710 — a resposta sai AGORA com o link do Creatomate. Depois dela, na ordem: cópia para o
           // bucket → troca do link na linha do vídeo (condicional) → medida do arquivo → e-mail + push → evento de tempo.
@@ -1450,6 +1455,7 @@ export async function GET(
             if (registrarMedidaDepois) await registrarMedidaDepois()
             await avisarPronto()
             console.log(`[entrega-na-hora] render=${renderId} copia_ms=${copiaMs ?? '?'} copiou=${finalVideoUrl !== urlDoCreatomate} trocou_link=${trocou}`)
+            await registrarTempoDaEntrega(true, trocou) // KINEO-FILME-RAPIDO-1710 · tempo
           })
           linkDoBucketDepois = agendou
           if (!agendou) {
