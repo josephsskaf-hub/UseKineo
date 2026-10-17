@@ -106,6 +106,7 @@ import {
 } from '@/lib/ads/v2Screen'
 import { adsV2RedoPrice } from '@/lib/ads/v2FreeRedo' // KINEO-ADS-REFACAO-ATOR-1410 — 0 na 1ª refação, o preço do plano depois
 import { adsV2AiPersonLabel } from '@/lib/ads/v2PresenterHolds' // KINEO-ADS-REFACAO-ATOR-1410 — o plano "pessoa de IA segurando o produto" leva o rótulo de IA
+import { intervaloDePoll, POLL_RAPIDO_ADS_MS } from '@/lib/pollingRapido' // KINEO-FILME-RAPIDO-1710 · polling — o anúncio em andamento a cada 3 s nos 2 primeiros minutos (linha própria)
 import AdsV2AfterDelivery from './AdsV2AfterDelivery' // KINEO-ADS-POS-ENTREGA-1510 — editar, aprovação do cliente e 3 formatos depois da entrega
 
 // ─── tipos ────────────────────────────────────────────────────────────────────────────────────
@@ -830,6 +831,7 @@ function AdsV2Session({
   const [notReady, setNotReady] = useState(false)
 
   const aliveRef = useRef(true)
+  const pollDesdeRef = useRef<{ id: string; t: number } | null>(null) // KINEO-FILME-RAPIDO-1710 · polling — desde quando ESTE pedido está sendo acompanhado
   // Revisão (29/09): uma seleção por vez — o limite de 2 vídeos é contado sobre `photos`, que só atualiza na próxima
   // renderização; duas seleções seguidas durante a leitura de um vídeo passavam de 2.
   const addingRef = useRef(false)
@@ -940,7 +942,8 @@ function AdsV2Session({
     if (isActiveOrderStatus(v.status)) {
       setPhase('progress')
       onActive(true)
-      schedulePoll(v.order_id, POLL_MS)
+      if (pollDesdeRef.current?.id !== v.order_id) pollDesdeRef.current = { id: v.order_id, t: Date.now() } // KINEO-FILME-RAPIDO-1710 · polling
+      schedulePoll(v.order_id, intervaloDePoll(pollDesdeRef.current.t, Date.now(), POLL_RAPIDO_ADS_MS, POLL_MS)) // KINEO-FILME-RAPIDO-1710 · polling — era: schedulePoll(v.order_id, POLL_MS)
     } else if (v.status === 'delivered') {
       setPhase('delivered')
       onActive(false)

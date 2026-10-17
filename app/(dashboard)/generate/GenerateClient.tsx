@@ -399,6 +399,7 @@ import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 // estava VISÍVEL dentro do modal e perdeu para a grade de planos da mesma caixa.
 import CardEntryDoor from '@/components/CardEntryDoor'
 import { estrelaDisponivelNoMotor } from '@/lib/estrelaDoFilme' // KINEO-ESTRELA-DO-FILME-2026-09-29
+import { intervaloDePoll, POLL_RAPIDO_FILME_MS } from '@/lib/pollingRapido' // KINEO-FILME-RAPIDO-1710 · polling — cenas e montagem a cada 2,5 s nos 2 primeiros minutos (linha própria)
 import { useTrocaDoLinkDoBucket } from '@/lib/useTrocaDoLink' // [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"] KINEO-FILME-RAPIDO-1710 — "pronto" na hora; o link troca para o bucket depois (linha própria)
 import { subidaQueOSaldoPaga, notaDaSubidaSegura, SUBIDA_SEGURA_PELO_SALDO_EVENT, MOTOR_15S_VERSION } from '@/lib/growth/motor15s' // KINEO-MOTOR-15S-1510 [TRAVA 8.2 — vai do fundador 15/10] — diretiva colada e autofit sobem só até onde o saldo paga
 // KINEO-LOWCREDITS-UPSELL import removed 09/07 — banner retired (see note at
@@ -5232,7 +5233,7 @@ export default function GenerateClient({
         }
 
         // Not all done yet — keep polling (dentro do prazo)
-        scheduleNextPoll(6000)
+        scheduleNextPoll(intervaloDePoll(pollStartedAt, Date.now(), POLL_RAPIDO_FILME_MS, 6000)) // KINEO-FILME-RAPIDO-1710 · polling — era: scheduleNextPoll(6000)
       } catch (err) {
         if (cancelled) return
         console.error('[generate] fal poll error:', err)
@@ -5248,7 +5249,7 @@ export default function GenerateClient({
       }
     }
 
-    pollTimerRef.current = setTimeout(pollFal, 4000)
+    pollTimerRef.current = setTimeout(pollFal, POLL_RAPIDO_FILME_MS) // KINEO-FILME-RAPIDO-1710 · polling — era: setTimeout(pollFal, 4000)
     return () => {
       cancelled = true
       if (pollTimerRef.current) { clearTimeout(pollTimerRef.current); pollTimerRef.current = null }
@@ -6954,7 +6955,7 @@ export default function GenerateClient({
         }
 
         setRenderProgress(typeof data.progress === 'number' ? data.progress : 0)
-        scheduleNextComposePoll(POLL_COMPOSING_MS)
+        scheduleNextComposePoll(intervaloDePoll(pollStartedAt, Date.now(), POLL_RAPIDO_FILME_MS, POLL_COMPOSING_MS)) // KINEO-FILME-RAPIDO-1710 · polling — era: scheduleNextComposePoll(POLL_COMPOSING_MS)
       } catch (err) {
         if (cancelled) return
         console.error('[generate] composing poll error:', err)

@@ -27,6 +27,7 @@ import { clipEngineShowcase, type ClipEngineShowcase } from '@/lib/clips/clipEng
 import { CLIP_ENGINE_TAGLINE, clipSecondsLabel } from '@/lib/clips/clipEngineCard' // KINEO-CLIPES-CARTAO-MOTOR-2026-10-09
 import { FREE_CLIP_MARK_TEST_KEY_PREFIX, FREE_CLIP_MARK_TEST_PARAM } from '@/lib/clips/freeClipWatermark' // KINEO-MARCA-TESTE-INTERNO-2026-10-06
 import { CLIP_EFFECT_MEMORY_KEY, CLIP_ROTATE_EFFECT_KEY, clipRotateHint, restoredClipEffect } from '@/lib/clips/clipRotateHint' // KINEO-CLIPE360-AMOSTRA-1410
+import { intervaloDePoll, POLL_RAPIDO_ADS_MS } from '@/lib/pollingRapido' // KINEO-FILME-RAPIDO-1710 · polling — clipe em andamento: pergunta já e a cada 3 s nos 2 primeiros minutos (linha própria)
 
 // KINEO-CLIPE360-AMOSTRA-1410 — a escolha de efeito sobrevive à ida e volta pela barra lateral (sessionStorage desta aba).
 // Antes, ela morava só na memória da tela: o Pedro (14/10) escolheu "Produto 360°", foi ao /spaces, voltou ao /clips e o
@@ -383,7 +384,9 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
   useEffect(() => {
     if (!inFlight) return
     const ids = inFlight.split(',')
-    const timer = window.setInterval(() => {
+    const desde = Date.now() // KINEO-FILME-RAPIDO-1710 · polling — pergunta JÁ (antes esperava 6 s) e a cada 3 s nos 2 primeiros minutos; depois, 6 s
+    let timer = 0 // KINEO-FILME-RAPIDO-1710 · polling
+    const perguntar = () => { // KINEO-FILME-RAPIDO-1710 · polling — era: const timer = window.setInterval(() => {
       for (const id of ids) {
         fetch(`/api/clips/status?id=${encodeURIComponent(id)}`, { cache: 'no-store' })
           .then((r) => (r.ok ? r.json() : null))
@@ -394,8 +397,10 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
           })
           .catch(() => {})
       }
-    }, 6000)
-    return () => window.clearInterval(timer)
+      timer = window.setTimeout(perguntar, intervaloDePoll(desde, Date.now(), POLL_RAPIDO_ADS_MS, 6000)) // KINEO-FILME-RAPIDO-1710 · polling — era: }, 6000)
+    } // KINEO-FILME-RAPIDO-1710 · polling
+    perguntar() // KINEO-FILME-RAPIDO-1710 · polling
+    return () => window.clearTimeout(timer) // KINEO-FILME-RAPIDO-1710 · polling — era: window.clearInterval(timer)
   }, [inFlight])
 
   async function download(url: string, name: string) {
