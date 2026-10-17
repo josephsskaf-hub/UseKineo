@@ -4,6 +4,7 @@ import { MAX_EPISODE_MEMORY_CHARS } from '@/lib/episodeMemory'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { pollCreatomateRender } from '@/lib/compose'
 import { persistRenderAssets } from '@/lib/renderAssets'
+import { depoisDaResposta, ehUrlDoFornecedor, podeAdiarParaDepoisDaResposta } from '@/lib/posResposta' // KINEO-FILME-RAPIDO-1710
 import { writeServerEvent } from '@/lib/serverEvents'
 import { refundRenderCredits } from '@/lib/credits/refund'
 import { buildBrandedYouTubeDescription } from '@/lib/videoDescription'
@@ -244,6 +245,42 @@ async function findCompletedVideoId(userId: string, renderId: string): Promise<s
   }
 }
 
+// KINEO-FILME-RAPIDO-1710 — o link da linha do vídeo, só quando ele já mora no NOSSO bucket (null = ainda no fornecedor,
+// sem linha, ou leitura falhou: a tela segue com o link que já tem e pergunta de novo depois).
+async function linkDoBucketDoVideo(userId: string, renderId: string): Promise<string | null> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !serviceKey) return null
+  try {
+    const admin = createAdminClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } })
+    const { data, error } = await admin.from('videos').select('video_url').eq('render_id', renderId).eq('user_id', userId).maybeSingle()
+    if (error) return null
+    const url = (data as { video_url?: unknown } | null)?.video_url
+    return typeof url === 'string' && url.startsWith('https://') && !ehUrlDoFornecedor(url) ? url : null
+  } catch {
+    return null
+  }
+}
+
+// KINEO-FILME-RAPIDO-1710 — depois da cópia (fora da resposta): a linha do vídeo troca o link do fornecedor pelo do
+// bucket. Condicional ao link antigo — se outro ator (o cron de resgate, fase D) já trocou, esta escrita não faz nada.
+async function trocarLinkDoVideo(userId: string, renderId: string, de: string, para: string, thumb: string | null): Promise<boolean> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !serviceKey || !para || para === de) return false
+  try {
+    const admin = createAdminClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } })
+    const patch: Record<string, unknown> = { video_url: para }
+    if (thumb) patch.thumbnail_url = thumb
+    const { data, error } = await admin.from('videos').update(patch).eq('render_id', renderId).eq('user_id', userId).eq('video_url', de).select('id')
+    if (error) { console.warn('[entrega-na-hora] troca do link falhou:', error.message); return false }
+    return (data ?? []).length > 0
+  } catch (e) {
+    console.warn('[entrega-na-hora] troca do link lançou:', e instanceof Error ? e.message : String(e))
+    return false
+  }
+}
+
 function safeUrlHost(u: string): string {
   try {
     return new URL(u).host
@@ -331,6 +368,13 @@ export async function GET(
     // whichever authenticated user guessed it.
     if (!intent) {
       return NextResponse.json({ error: 'Render not found.' }, { status: 404 })
+    }
+    // KINEO-FILME-RAPIDO-1710 — a TROCA DO LINK. O "pronto" agora sai com o link do Creatomate e a cópia para o bucket
+    // corre depois da resposta; a tela pergunta aqui, de leve, se a linha do vídeo já aponta para casa. Só LÊ a linha do
+    // dono (posse já conferida pelo intent acima): nada de débito, e-mail, fornecedor ou escrita.
+    if (req.nextUrl.searchParams.get('asset') === '1') {
+      const doBucket = await linkDoBucketDoVideo(user.id, renderId)
+      return NextResponse.json({ asset_ready: doBucket !== null, final_video_url: doBucket }, { headers: { 'Cache-Control': 'no-store' } })
     }
     const hasServerIntent = !!intent && intent.userId === user.id
 
@@ -624,6 +668,7 @@ export async function GET(
       // migration runs on the first "done" poll.
       let responseVideoUrl = state.url
       let persistedVideoId: string | null = null
+      let linkDoBucketDepois = false // KINEO-FILME-RAPIDO-1710 — o "pronto" saiu com o link do Creatomate; a cópia corre depois
 
       // Push #088 — Cinematic renders (any non-'fast' quality) no longer
       // deduct from `video_credits`. They were already paid for by a
@@ -906,25 +951,39 @@ export async function GET(
         let finalVideoUrl = state.url
         let finalThumbUrl = state.snapshotUrl
         let measuredDelivery: { measuredSeconds: number | null; measureMethod: 'mvhd' | 'unknown' } = { measuredSeconds: null, measureMethod: 'unknown' }
-        try {
-          const migrated = await persistRenderAssets({
-            userId: user.id,
-            renderId,
-            videoUrl: state.url,
-            snapshotUrl: state.snapshotUrl,
-          })
-          finalVideoUrl = migrated.videoUrl
-          finalThumbUrl = migrated.thumbnailUrl
-          measuredDelivery = { measuredSeconds: migrated.measuredSeconds, measureMethod: migrated.measureMethod }
-          responseVideoUrl = migrated.videoUrl
-          console.log('[history] asset migration result:', JSON.stringify({
-            video_migrated: migrated.videoUrl !== state.url,
-            thumb_migrated: !!migrated.thumbnailUrl && migrated.thumbnailUrl !== state.snapshotUrl,
-          }))
-        } catch (e) {
-          console.warn('[history] asset migration threw — keeping Creatomate URLs:',
-            e instanceof Error ? e.message : String(e))
+        // KINEO-FILME-RAPIDO-1710 — "PRONTO" NA HORA (auditoria G3/V3). O débito e a reserva já foram liquidados acima;
+        // daqui para baixo só há entrega. Com `rapido=1` (só a tela do Studio pede) e waitUntil disponível, a cópia para o
+        // bucket, o pacote, o e-mail e o push vão para DEPOIS da resposta: a pessoa recebe o link do Creatomate na hora
+        // (vive dias) e a linha do vídeo troca para o bucket quando a cópia termina (a tela pergunta com ?asset=1).
+        // Modo serviço (cron de resgate, Ads, autopilot) e qualquer outro chamador: tudo inline, como sempre.
+        const adiarEntrega = !isServiceFinish && req.nextUrl.searchParams.get('rapido') === '1' && podeAdiarParaDepoisDaResposta()
+        let copiaMs: number | null = null
+        const copiarParaOBucket = async (): Promise<void> => {
+          const t0 = Date.now()
+          try {
+            const migrated = await persistRenderAssets({
+              userId: user.id,
+              renderId,
+              videoUrl: state.url!,
+              snapshotUrl: state.snapshotUrl,
+            })
+            finalVideoUrl = migrated.videoUrl
+            finalThumbUrl = migrated.thumbnailUrl
+            measuredDelivery = { measuredSeconds: migrated.measuredSeconds, measureMethod: migrated.measureMethod }
+            if (!adiarEntrega) responseVideoUrl = migrated.videoUrl
+            console.log('[history] asset migration result:', JSON.stringify({
+              video_migrated: migrated.videoUrl !== state.url,
+              thumb_migrated: !!migrated.thumbnailUrl && migrated.thumbnailUrl !== state.snapshotUrl,
+              deferred: adiarEntrega,
+            }))
+          } catch (e) {
+            console.warn('[history] asset migration threw — keeping Creatomate URLs:',
+              e instanceof Error ? e.message : String(e))
+          }
+          copiaMs = Date.now() - t0
         }
+        if (!adiarEntrega) await copiarParaOBucket()
+        let registrarMedidaDepois: (() => Promise<void>) | null = null // KINEO-FILME-RAPIDO-1710
 
         // Push #355 — record render_time_ms in broll_metrics.
         // Best-effort: never blocks the video response.
@@ -1054,6 +1113,9 @@ export async function GET(
           })
           if (result.id) persistedVideoId = result.id
           console.log('[history] persist result:', JSON.stringify(result))
+          // KINEO-FILME-RAPIDO-1710 — a medida do ARQUIVO vem da cópia: com a entrega adiada, o evento sai depois dela (o
+          // bloco abaixo é o de sempre, só embrulhado para poder rodar agora ou depois da resposta).
+          const registrarEntregaMedida = async (result: Awaited<ReturnType<typeof persistCompletedVideo>>): Promise<void> => {
           // ═══ KINEO-ENTREGA-MEDIDA-2026-09-14 — o placar por motor nasce aqui ═══
           // Direção do fundador: pedido, planejado, MEDIDO do arquivo (e o método),
           // motor, resultado. Ausência de medição fica `null` + 'unknown', nunca a
@@ -1100,6 +1162,9 @@ export async function GET(
             }
           }
           // ═══ FIM KINEO-ENTREGA-MEDIDA ═══
+          }
+          if (adiarEntrega) registrarMedidaDepois = () => registrarEntregaMedida(result) // KINEO-FILME-RAPIDO-1710
+          else await registrarEntregaMedida(result)
         } catch (e) {
           // persistCompletedVideo is meant to never throw, but if it
           // somehow does we still want to know about it without
@@ -1115,6 +1180,9 @@ export async function GET(
         // server-to-server hop and so we don't pay a cold-start tax on the
         // user's polling response. Mirrors the env conventions of
         // /api/send-welcome.
+        // KINEO-FILME-RAPIDO-1710 — e-mail + push viram uma etapa só (`avisarPronto`): inline como sempre, ou depois da
+        // resposta e DEPOIS da cópia (o link do e-mail é o do bucket quando a cópia deu certo — o mesmo de antes).
+        const avisarPronto = async (): Promise<void> => {
         try {
           const RESEND_API_KEY = process.env.RESEND_API_KEY
           const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Kineo <support@usekineo.com>'
@@ -1365,6 +1433,34 @@ export async function GET(
         } catch (pushErr) {
           console.warn('[push] video-ready failed:', pushErr instanceof Error ? pushErr.message : String(pushErr))
         }
+        }
+        if (!adiarEntrega) {
+          await avisarPronto()
+        } else {
+          // KINEO-FILME-RAPIDO-1710 — a resposta sai AGORA com o link do Creatomate. Depois dela, na ordem: cópia para o
+          // bucket → troca do link na linha do vídeo (condicional) → medida do arquivo → e-mail + push → evento de tempo.
+          // Se a cópia falhar, a linha fica com o link do fornecedor e a fase D do cron de resgate copia depois (como já
+          // fazia quando os 25 s estouravam).
+          const urlDoCreatomate = state.url
+          const agendou = depoisDaResposta('entrega-na-hora', async () => {
+            await copiarParaOBucket()
+            const trocou = finalVideoUrl !== urlDoCreatomate
+              ? await trocarLinkDoVideo(user.id, renderId, urlDoCreatomate, finalVideoUrl, finalThumbUrl && finalThumbUrl !== state.snapshotUrl ? finalThumbUrl : null)
+              : false
+            if (registrarMedidaDepois) await registrarMedidaDepois()
+            await avisarPronto()
+            console.log(`[entrega-na-hora] render=${renderId} copia_ms=${copiaMs ?? '?'} copiou=${finalVideoUrl !== urlDoCreatomate} trocou_link=${trocou}`)
+          })
+          linkDoBucketDepois = agendou
+          if (!agendou) {
+            // O contexto sumiu entre a decisão e o agendamento: faz tudo aqui, como antes.
+            await copiarParaOBucket()
+            if (finalVideoUrl !== urlDoCreatomate) await trocarLinkDoVideo(user.id, renderId, urlDoCreatomate, finalVideoUrl, finalThumbUrl && finalThumbUrl !== state.snapshotUrl ? finalThumbUrl : null)
+            responseVideoUrl = finalVideoUrl
+            if (registrarMedidaDepois) await registrarMedidaDepois()
+            await avisarPronto()
+          }
+        }
       }
 
       // PUSH #23 — the public share id is a growth-critical output, not a
@@ -1434,6 +1530,7 @@ export async function GET(
       return NextResponse.json({
         phase: 'done',
         final_video_url: responseVideoUrl,
+        ...(linkDoBucketDepois ? { asset_pending: true } : {}), // KINEO-FILME-RAPIDO-1710 — a tela troca pelo link do bucket (?asset=1)
         video_id: videoId,
         progress: 100,
         creditsDeducted,

@@ -1555,6 +1555,9 @@ export async function GET(req: NextRequest) {
       .select('id, user_id, render_id, video_url, final_video_url, created_at')
       .eq('status', 'completed')
       .gte('created_at', new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString())
+      // KINEO-FILME-RAPIDO-1710 — o "pronto" na hora grava a linha com o link do Creatomate e copia DEPOIS da resposta
+      // (5–25 s). Linha com menos de 2 min é dessa cópia em curso: a fase D só pega o que a cópia de fundo não conseguiu. // KINEO-FILME-RAPIDO-1710
+      .lte('created_at', new Date(Date.now() - 2 * 60 * 1000).toISOString()) // KINEO-FILME-RAPIDO-1710
       .or('video_url.ilike.%backblazeb2.com%,video_url.ilike.%creatomate%,final_video_url.ilike.%backblazeb2.com%,final_video_url.ilike.%creatomate%')
       .order('created_at', { ascending: false })
       .limit(4)

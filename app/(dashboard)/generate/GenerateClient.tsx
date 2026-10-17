@@ -399,6 +399,7 @@ import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 // estava VISÍVEL dentro do modal e perdeu para a grade de planos da mesma caixa.
 import CardEntryDoor from '@/components/CardEntryDoor'
 import { estrelaDisponivelNoMotor } from '@/lib/estrelaDoFilme' // KINEO-ESTRELA-DO-FILME-2026-09-29
+import { useTrocaDoLinkDoBucket } from '@/lib/useTrocaDoLink' // [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"] KINEO-FILME-RAPIDO-1710 — "pronto" na hora; o link troca para o bucket depois (linha própria)
 import { subidaQueOSaldoPaga, notaDaSubidaSegura, SUBIDA_SEGURA_PELO_SALDO_EVENT, MOTOR_15S_VERSION } from '@/lib/growth/motor15s' // KINEO-MOTOR-15S-1510 [TRAVA 8.2 — vai do fundador 15/10] — diretiva colada e autofit sobem só até onde o saldo paga
 // KINEO-LOWCREDITS-UPSELL import removed 09/07 — banner retired (see note at
 // the old render site; 0 credits is the normal free state now).
@@ -2155,6 +2156,8 @@ export default function GenerateClient({
   const [renderProgress, setRenderProgress] = useState<number>(0)
   const [generateProgress, setGenerateProgress] = useState<number>(0)
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null)
+  const [linkParaTrocar, setLinkParaTrocar] = useState<string | null>(null) // KINEO-FILME-RAPIDO-1710 — render cujo link do Creatomate ainda vai virar o do bucket
+  const retomarPlayerEmRef = useRef<{ t: number; muted: boolean } | null>(null) // KINEO-FILME-RAPIDO-1710 — onde o player estava na hora da troca do link
   // #283 — KINEO-DURACAO-NO-BOTAO (fundador 23/08): o botão de download dizia
   // "60s" (o valor do SELETOR) num filme que saiu com 79s reais — o overshoot
   // do contrato de duração é feature, mas o rótulo mentia. A verdade vem do
@@ -6778,6 +6781,7 @@ export default function GenerateClient({
   }, [phase, clipUrls])
 
   // ────────────────────────────────────────────────────────────────────────
+  useTrocaDoLinkDoBucket({ ativo: phase === 'done', renderId: linkParaTrocar, aoTrocar: (url) => { const v = videoRef.current; retomarPlayerEmRef.current = v ? { t: v.currentTime || 0, muted: v.muted } : null; setFinalVideoUrl(url); setLinkParaTrocar(null) } }) // KINEO-FILME-RAPIDO-1710 — o link do Creatomate vira o do bucket assim que a cópia de fundo termina
   // PHASE: composing  →  poll /api/compose/status/[renderId]
   // ────────────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -6823,6 +6827,7 @@ export default function GenerateClient({
         // Every newly accepted render is owner-bound by a server intent. Always
         // require that authority; resume is a security gate, not just reload UX.
         params.set('resume', '1')
+        params.set('rapido', '1') // KINEO-FILME-RAPIDO-1710 — "pronto" na hora: a cópia ao bucket, o pacote e o e-mail saem depois da resposta
         // Push #050 — pass duration + topic so the server can record them
         // in the videos history row when the render finishes.
         params.set('duration', String(duration))
@@ -6882,6 +6887,7 @@ export default function GenerateClient({
           }
           setRenderProgress(100)
           setFinalVideoUrl(url)
+          setLinkParaTrocar(data.asset_pending === true ? (renderId as string) : null) // KINEO-FILME-RAPIDO-1710
           if (typeof data.video_id === 'string' && data.video_id) setPublicVideoId(data.video_id)
           try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
           setPhase('done')
@@ -17388,6 +17394,7 @@ export default function GenerateClient({
                     // trazia a verdade sobre o arquivo; agora ele também conta
                     // o QUADRO real, e a caixa acima se ajusta.
                     onLoadedMetadata={(e) => {
+                      { const retomar = retomarPlayerEmRef.current; if (retomar) { retomarPlayerEmRef.current = null; try { e.currentTarget.muted = retomar.muted; if (retomar.t > 0 && retomar.t < e.currentTarget.duration) e.currentTarget.currentTime = retomar.t } catch { /* segue do começo */ } } } // KINEO-FILME-RAPIDO-1710 — troca do link: o player volta ao mesmo ponto
                       const d = e.currentTarget.duration
                       if (Number.isFinite(d) && d > 1) setFinalVideoSeconds(Math.round(d))
                       fitFrameToVideo(e.currentTarget)
