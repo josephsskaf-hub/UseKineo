@@ -32,6 +32,7 @@ import { ADS_V2_STYLES_PUBLIC } from '@/lib/ads/v2Styles'
 // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator de IA (interruptor único + o plano dele: foto do produto, pessoa e prompt).
 import { ADS_V2_PRESENTER_PUBLIC, planAdsV2Presenter } from '@/lib/ads/v2Presenter'
 import { adsV2PresenterById } from '@/lib/ads/v2Presenter' // KINEO-ADS-REFACAO-ATOR-1410 — a entrada da biblioteca (retrato, descrição, pronome)
+import { ADS_V2_PRESENTER_LIBRARY, ADS_V2_PRESENTER_PERFORMANCE_PROMPT } from '@/lib/ads/v2Presenter' // KINEO-APRESENTADOR-V2-1710 — a biblioteca (o sorteio = as 6 primeiras) e a atuação aprovada (a mão livre gesticula)
 import { ADS_V2_PRESENTER_HOLDS, adsV2PresenterHoldsShots } from '@/lib/ads/v2PresenterHolds' // KINEO-ADS-REFACAO-ATOR-1410 — pessoa de IA segurando o produto (interruptor desligado)
 import { loadAdsV2Order, type AdsV2StoredPlan } from '@/lib/ads/v2Advance'
 import { measureFootageVideo, ownedFootage, v2Fail, v2Json } from '@/lib/ads/v2Server'
@@ -247,6 +248,12 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     // narração (o modelo não escreveu) não há o que falar: o plano sai sem ator e a tela diz por quê (presenter_asked).
     const presenter = presenterAsked && extracted.copy.narration ? planAdsV2Presenter({ sector, photos, seedKey: order.id, presenterId: input.presenter_id ?? null }) : null
     plan.shots = adsV2PresenterHoldsShots(plan.shots, { on: ADS_V2_PRESENTER_HOLDS, actor: presenter, entry: adsV2PresenterById(presenter?.presenterId), sector }) // KINEO-ADS-REFACAO-ATOR-1410 — desligado por padrão; ligado: o apresentador ESCOLHIDO segura o produto em UMA vaga trocada (créditos iguais)
+    const presenterV2Lib = presenter ? await import('@/lib/ads/v2PresenterV2').then((m) => (typeof m.planAdsV2PresenterV2 === 'function' ? m : null)).catch(() => null) : null // KINEO-APRESENTADOR-V2-1710 — o apresentador v2 (só conta interna, Comercial 9:16); import dinâmico: sem a lib = o ator de antes
+    if (presenter && presenterV2Lib && presenterV2Lib.adsV2PresenterV2Eligible({ on: presenterV2Lib.adsV2PresenterV2On(reason === 'internal'), tier: order.tier, format, style: plan.style ?? null })) { // KINEO-APRESENTADOR-V2-1710
+      const v2Entry = adsV2PresenterById(presenter.presenterId) ?? (presenter.presenterId ? null : ADS_V2_PRESENTER_LIBRARY[presenter.person] ?? null) // KINEO-APRESENTADOR-V2-1710 — o sorteio usa as 6 primeiras pessoas da biblioteca (mesma ordem e texto)
+      const v2 = presenterV2Lib.planAdsV2PresenterV2({ entry: v2Entry, sector, setting: sceneSetting, performancePrompt: ADS_V2_PRESENTER_PERFORMANCE_PROMPT }) // KINEO-APRESENTADOR-V2-1710 — 2 referências, boca neutra, só o produto, o lugar do cliente
+      if (v2 && checkV2Prompts([v2.prompt], extracted.brief).length === 0) { presenter.v2 = v2; plan.shots = presenterV2Lib.adsV2PresenterV2Shots(plan.shots, photos) } // KINEO-APRESENTADOR-V2-1710 — o lugar do cliente passa pela régua anti-invenção; os planos de IA viram as fotos dele paradas (a montagem nova não os usa; créditos iguais)
+    } // KINEO-APRESENTADOR-V2-1710
     const scripts = adsV2BuildScripts([{ tone: 'benefit', narration: extracted.copy.narration, overlays: extracted.copy.overlays }, ...(extracted.variants ?? []).map((v) => ({ tone: v.tone, narration: v.copy.narration, overlays: v.copy.overlays }))], plan.overlays, overlaysOn) // KINEO-ADS-ROTEIROS-2026-10-13 — o 1º é o texto de sempre (= narration/overlays abaixo)
     const stored: AdsV2StoredPlan = { ...plan, overlays, narration: extracted.copy.narration, ...(presenter ? { presenter } : {}) }
     Object.assign(stored, { scripts, script_id: scripts[0]?.id ?? 'a' }) // KINEO-ADS-ROTEIROS-2026-10-13 — os roteiros ficam NO plano do pedido; o /choose só copia daqui (preço intocado)
@@ -256,6 +263,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds, presenter: !!presenter })
     if (inHand) Object.assign(modeTag, { in_hand: true }) // KINEO-ADS-PRODUTO-NA-MAO-1610
     if (inHand) Object.assign(modeTag, { in_hand_pair: inHandPair }) // KINEO-ADS-MAO-AJUSTE-3-1610 — a medição: frasco + caixa na foto (true), um objeto (false), não sei (null)
+    if (presenter?.v2) Object.assign(modeTag, { presenter_v2: true }) // KINEO-APRESENTADOR-V2-1710
 
     const upd = await admin
       .from('ads_v2_orders')
@@ -312,6 +320,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
       plans_left: plansLeft, // KINEO-ADS-FIEL-2-1510 — roteiros que ainda cabem hoje (null = conta da casa, sem teto)
       shots: plan.shots.map((s) => ({ idx: s.idx, role: s.role, beat: s.beat, kind: s.kind, source: s.source, cut_seconds: s.cutSeconds, photo: s.sourceFootageId, ...(s.effect ? { effect: s.effect } : {}) })),
       ...(inHand && inHandLib ? { in_hand: { shots: inHandLib.adsV2InHandSummary(plan.shots), usd: inHandLib.adsV2InHandUsd(usd, plan.shots) } } : {}), // KINEO-ADS-PRODUTO-NA-MAO-1610 — os planos novos e o custo com o juiz e uma refação de foto (usd_estimate fica o de sempre, igual ao dry-run)
+      ...(presenter?.v2 && presenterV2Lib ? { presenter_v2: { options: presenterV2Lib.ADS_V2_PRESENTER_V2_OPTIONS, usd: presenterV2Lib.adsV2PresenterV2Usd(usd) } } : {}), // KINEO-APRESENTADOR-V2-1710 — 4 fotos + 4 checagens por cima do usd_estimate de sempre
     })
   } catch (e) {
     console.warn('[ads/v2/plan] falhou:', e instanceof Error ? e.message : String(e))

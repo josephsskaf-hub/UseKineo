@@ -12,13 +12,16 @@ import { adsV2ShotRenderId, pollFalJob, submitShotOnce, type AdsV2Poll, type Ads
 
 const RENDER_BUCKET = 'renders'
 const IMAGE_MAX_BYTES = 30 * 1024 * 1024
+/** KINEO-APRESENTADOR-V2-1710 — o teto de num_images do Nano Banana Pro edit (schema da fal: 1 a 4) = as opções do apresentador (ADS_V2_PRESENTER_V2_OPTIONS). */
+export const ADS_V2_SCENE_IMAGE_MAX_OPTIONS = 4
 
 export async function submitSceneImage(
-  scene: { prompt: string; referenceUrls: readonly string[]; aspect?: '9:16' | '4:5' | '1:1' | null; outputFormat?: 'png' | null }, // KINEO-ADS-MELHORIAS-1410 — o formato do anúncio · KINEO-ADS-FIEL-1510 — 'png' na cena com a trava do produto
+  scene: { prompt: string; referenceUrls: readonly string[]; aspect?: '9:16' | '4:5' | '1:1' | null; outputFormat?: 'png' | null; numImages?: 4 }, // KINEO-ADS-MELHORIAS-1410 — o formato do anúncio · KINEO-ADS-FIEL-1510 — 'png' na cena com a trava do produto · KINEO-APRESENTADOR-V2-1710 — numImages 4 (o apresentador)
   ctx: { userId: string; orderId: string },
 ): Promise<AdsV2SubmitOutcome> {
   const input = buildSceneImageInput(scene)
-  return submitShotOnce(ADS_V2_SCENE_IMAGE_SLUG, input as unknown as Record<string, unknown>, ctx)
+  const many = scene.numImages === ADS_V2_SCENE_IMAGE_MAX_OPTIONS ? { num_images: ADS_V2_SCENE_IMAGE_MAX_OPTIONS } : {} // KINEO-APRESENTADOR-V2-1710 — as 4 opções do apresentador num pedido só; ausente = 1 (o de sempre)
+  return submitShotOnce(ADS_V2_SCENE_IMAGE_SLUG, { ...(input as unknown as Record<string, unknown>), ...many }, ctx)
 }
 
 export function pollSceneImage(requestId: string, ctx: { userId: string; orderId: string }): Promise<AdsV2Poll> {
@@ -33,7 +36,7 @@ function imageExt(b: Uint8Array): { ext: 'jpg' | 'png' | 'webp'; type: string } 
 }
 
 /** Copia a imagem da cena para o nosso bucket. null = cópia falhou (o avanço tenta de novo). Nunca lança. */
-export async function persistSceneImage(args: { userId: string; orderId: string; idx: number; attempt: number; falUrl: string }): Promise<string | null> {
+export async function persistSceneImage(args: { userId: string; orderId: string; idx: number; attempt: number; falUrl: string; suffix?: string }): Promise<string | null> { // KINEO-APRESENTADOR-V2-1710 — + suffix (cada opção do apresentador no seu arquivo)
   try {
     const res = await fetch(args.falUrl, { signal: AbortSignal.timeout(30_000), cache: 'no-store' })
     if (!res.ok) return null
@@ -42,7 +45,7 @@ export async function persistSceneImage(args: { userId: string; orderId: string;
     const kind = imageExt(buf)
     if (!kind) return null
     const admin = footageAdminClient()
-    const path = `${args.userId}/${adsV2ShotRenderId(args.orderId, args.idx, args.attempt)}-scene.${kind.ext}`
+    const path = `${args.userId}/${adsV2ShotRenderId(args.orderId, args.idx, args.attempt)}-scene${typeof args.suffix === 'string' && /^-o[0-9]$/.test(args.suffix) ? args.suffix : ''}.${kind.ext}` // KINEO-APRESENTADOR-V2-1710 — '-o<k>' só nas opções do apresentador; sem sufixo = o caminho de sempre
     const up = await admin.storage.from(RENDER_BUCKET).upload(path, buf, { contentType: kind.type, upsert: true })
     if (up.error) return null
     const url = admin.storage.from(RENDER_BUCKET).getPublicUrl(path).data?.publicUrl ?? null
