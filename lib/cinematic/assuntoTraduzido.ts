@@ -12,8 +12,9 @@
 // 5xx, JSON ruim) → null, e o chamador NÃO apaga (regra do conserto: na dúvida, o assunto fica).
 //
 // Pedido em inglês sem escrita estrangeira: nada é chamado (precisaTraducao = false) — a estrada de sempre, byte a byte.
+import { AI_TEXT_MODELS } from '@/lib/aiModels'
 
-const MODELO_TRADUCAO = 'gpt-4o-mini'
+const MODELO_TRADUCAO = AI_TEXT_MODELS.scenePlannerLight // gpt-4o-mini (registro único de modelos: lib/aiModels.ts)
 const PRAZO_MS = 6_000
 const ENTRADA_MAX = 1_800
 

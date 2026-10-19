@@ -37,6 +37,7 @@ export const ACRESCIMOS_META95_ASSUNTO_1910 = {
   'scripts/test-duracoes-curtas-todos-motores-2026-09-29.mjs': 0,
   'scripts/test-h3-palavras-2026-09-15.mjs': 0,
   'scripts/test-kling3-imagens-2026-09-17.mjs': 0,
+  'scripts/test-seedance-15s-3x6-2026-09-29.mjs': 1,
 }
 /** [linha nova (inteira), linha da base] por arquivo. */
 export const TROCAS_META95_ASSUNTO_1910 = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-meta95-assunto-1910-trocas.json'), 'utf8'))
@@ -67,6 +68,11 @@ export function semMeta95Assunto1910(texto, p) {
   if (tiradas !== esperadas) throw new Error(`desfaz-meta95-assunto-1910: ${p} tem ${tiradas} acréscimo(s) marcado(s), esperava ${esperadas}`)
   const out = fora.join('\n')
   return crlf ? out.replace(/\n/g, '\r\n') : out
+}
+
+/** As linhas da BASE que a entrega reescreveu em `p` (para os guardiões que contam linha removida no diff). */
+export function linhasTrocadasMeta95Assunto1910(p) {
+  return (TROCAS_META95_ASSUNTO_1910[p] ?? []).map(([, base]) => base)
 }
 
 /** Mesma coisa, com a ordem (arquivo, texto) que parte dos guardiões usa. */
