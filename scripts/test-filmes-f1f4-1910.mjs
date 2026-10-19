@@ -17,6 +17,7 @@
 //      nenhum plano além do clipe, punch 100→104 % em 0,15 s no reveal; CTA de texto só com 'cta';
 //   M  mutantes: cada peça central desfeita em memória deixa a prova dela vermelha.
 import { readFileSync, existsSync } from 'node:fs'
+import { semCloseRealAjuste1910 } from './test-support/desfaz-close-real-ajuste-1910.mjs' // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: o ajuste pós-canário do Close real (mesclado depois) sai primeiro, em memória
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -27,7 +28,7 @@ import { sintetizarSfxFaceless15, sha256, SFX_FACELESS15_ARQUIVOS } from './gera
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (p) => lf(readFileSync(join(RAIZ, p), 'utf8'))
+const rd = (p) => lf(semCloseRealAjuste1910(readFileSync(join(RAIZ, p), 'utf8'), p)) // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: lê o texto SEM o ajuste do Close real
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else { falhas.push(n); console.log('  FALHOU: ' + n) } }
@@ -64,7 +65,7 @@ checa('A4 contagem exata de acréscimos na rota', rota.split('\n').filter((l) =>
   // A referência de cada guardião reancorado é a ÚLTIMA versão dele deixada por outra sessão (o último commit que o tocou sem a
   // minha marca): o merge de 19/10 (liberação do apresentador v2) reancorou test-filme-rapido-1710 na mesma linha que eu e criou
   // um guardião novo que também precisou do meu desfaz; a regra "pai do 1º commit" não enxergaria nenhum dos dois.
-  const rdAlheio = (p) => { try { const sha = execFileSync('git', ['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F4_1910}`, '--', p], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); return sha ? lf(execFileSync('git', ['show', `${sha}:${p}`], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()) : null } catch { return null } }
+  const rdAlheio = (p) => { try { const sha = execFileSync('git', ['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F4_1910}`, '--grep=KINEO-CLOSE-REAL-AJUSTE-1910', '--', p], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); return sha ? lf(execFileSync('git', ['show', `${sha}:${p}`], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()) : null } catch { return null } } // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: a versão 'alheia' pula também os commits do ajuste do Close real
   const ruins = []
   for (const [p, trocas] of Object.entries(TROCAS_FILMES_F1F4_1910)) {
     const vivo = rd(p)

@@ -13,6 +13,7 @@ import { footageAdminClient } from '@/lib/userFootage'
 import { adsV2CutoutFor } from '@/lib/ads/v2ProductLockServer'
 import { adsV2MeanRgb, encodePng, pasteOver, resampleRgba, type AdsV2Rgba } from '@/lib/ads/v2Png'
 import { ADS_V2_CLOSE_REAL_PRODUCT_BOX, type AdsV2CloseRealPlan } from '@/lib/ads/v2CloseReal'
+import { ADS_V2_CLOSE_REAL_CARD_PRODUCT_BOX } from '@/lib/ads/v2CloseReal' // KINEO-CLOSE-REAL-AJUSTE-1910 — o produto pequeno do cartão final
 
 const RENDER_BUCKET = 'renders'
 /** O quadro do gancho (9:16; a montagem o põe em `cover` no quadro do perfil de render). */
@@ -23,6 +24,10 @@ export const ADS_V2_CLOSE_REAL_HERO_H = 1920
 export function adsV2CloseRealHeroPath(userId: string, orderId: string): string {
   return `${userId}/adsv2-${String(orderId).replace(/[^A-Za-z0-9_-]/g, '')}-closereal-hero.png`
 }
+/** KINEO-CLOSE-REAL-AJUSTE-1910 — o caminho do fundo do cartão final no bucket (o mesmo gradiente do gancho, produto pequeno). */ // KINEO-CLOSE-REAL-AJUSTE-1910
+export function adsV2CloseRealCardPath(userId: string, orderId: string): string { // KINEO-CLOSE-REAL-AJUSTE-1910
+  return `${userId}/adsv2-${String(orderId).replace(/[^A-Za-z0-9_-]/g, '')}-closereal-card.png` // KINEO-CLOSE-REAL-AJUSTE-1910
+} // KINEO-CLOSE-REAL-AJUSTE-1910
 
 const clamp255 = (n: number) => (n < 0 ? 0 : n > 255 ? 255 : Math.round(n))
 const mix = (a: number, b: number, k: number) => a + (b - a) * k
@@ -39,8 +44,8 @@ export function adsV2CloseRealPalette(mean: { r: number; g: number; b: number; l
 }
 
 /** KINEO-CLOSE-REAL-1910 — onde o produto pousa (puro): cabe na caixa do gancho sem distorcer, centrado, a base encostada na base da caixa. */
-export function adsV2CloseRealProductRect(frameW: number, frameH: number, cutW: number, cutH: number): { x: number; y: number; w: number; h: number } {
-  const B = ADS_V2_CLOSE_REAL_PRODUCT_BOX
+export function adsV2CloseRealProductRect(frameW: number, frameH: number, cutW: number, cutH: number, box: { x0: number; x1: number; y0: number; y1: number } = ADS_V2_CLOSE_REAL_PRODUCT_BOX): { x: number; y: number; w: number; h: number } { // KINEO-CLOSE-REAL-AJUSTE-1910 — + box (o cartão usa a caixa pequena)
+  const B = box // KINEO-CLOSE-REAL-AJUSTE-1910 — era: ADS_V2_CLOSE_REAL_PRODUCT_BOX
   const boxW = (B.x1 - B.x0) * frameW
   const boxH = (B.y1 - B.y0) * frameH
   const k = Math.min(boxW / Math.max(1, cutW), boxH / Math.max(1, cutH))
@@ -53,10 +58,10 @@ export function adsV2CloseRealProductRect(frameW: number, frameH: number, cutW: 
  * KINEO-CLOSE-REAL-1910 — o quadro do gancho (puro): fundo na cor do produto + o recorte REAL colado por cima, intocado (só redimensionado).
  * `cut` = o recorte já aparado (trimCutout). Devolve a imagem, onde o produto ficou e as cores usadas.
  */
-export function adsV2CloseRealHeroRgba(cut: AdsV2Rgba, frameW: number = ADS_V2_CLOSE_REAL_HERO_W, frameH: number = ADS_V2_CLOSE_REAL_HERO_H): { img: AdsV2Rgba; rect: { x: number; y: number; w: number; h: number }; palette: ReturnType<typeof adsV2CloseRealPalette> } {
+export function adsV2CloseRealHeroRgba(cut: AdsV2Rgba, frameW: number = ADS_V2_CLOSE_REAL_HERO_W, frameH: number = ADS_V2_CLOSE_REAL_HERO_H, box: { x0: number; x1: number; y0: number; y1: number } = ADS_V2_CLOSE_REAL_PRODUCT_BOX): { img: AdsV2Rgba; rect: { x: number; y: number; w: number; h: number }; palette: ReturnType<typeof adsV2CloseRealPalette> } { // KINEO-CLOSE-REAL-AJUSTE-1910 — + box (o cartão final: o mesmo fundo, o produto pequeno)
   const W = frameW, H = frameH
   const palette = adsV2CloseRealPalette(adsV2MeanRgb(cut, { x: 0, y: 0, w: cut.width, h: cut.height }, 128))
-  const rect = adsV2CloseRealProductRect(W, H, cut.width, cut.height)
+  const rect = adsV2CloseRealProductRect(W, H, cut.width, cut.height, box) // KINEO-CLOSE-REAL-AJUSTE-1910 — era: sem box
   const data = new Uint8Array(W * H * 4)
   const cx = rect.x + rect.w / 2
   const cy = rect.y + rect.h * 0.45
@@ -85,7 +90,7 @@ export function adsV2CloseRealHeroRgba(cut: AdsV2Rgba, frameW: number = ADS_V2_C
  * KINEO-CLOSE-REAL-1910 — o PNG do gancho no bucket (URL pública). null = sem foto de produto, recorte falhou (fora do ar, não é produto,
  * prazo) ou upload falhou: a montagem usa a foto real inteira. Nunca lança.
  */
-export async function adsV2CloseRealHero(args: { userId: string; orderId: string; product: AdsV2CloseRealPlan['product'] }): Promise<{ url: string; rect: { x: number; y: number; w: number; h: number } } | null> {
+export async function adsV2CloseRealHero(args: { userId: string; orderId: string; product: AdsV2CloseRealPlan['product'] }): Promise<{ url: string; rect: { x: number; y: number; w: number; h: number }; cardUrl: string | null } | null> { // KINEO-CLOSE-REAL-AJUSTE-1910 — + cardUrl (o fundo do cartão final; null = o cartão do pedido)
   try {
     const p = args.product
     if (!p || typeof p.url !== 'string') return null
@@ -97,7 +102,9 @@ export async function adsV2CloseRealHero(args: { userId: string; orderId: string
     const up = await admin.storage.from(RENDER_BUCKET).upload(path, png, { contentType: 'image/png', upsert: true })
     if (up.error) return null
     const url = admin.storage.from(RENDER_BUCKET).getPublicUrl(path).data?.publicUrl ?? null
-    return url ? { url, rect: hero.rect } : null
+    if (!url) return null // KINEO-CLOSE-REAL-AJUSTE-1910
+    const cardUrl = await (async () => { try { const card = adsV2CloseRealHeroRgba(cut, ADS_V2_CLOSE_REAL_HERO_W, ADS_V2_CLOSE_REAL_HERO_H, ADS_V2_CLOSE_REAL_CARD_PRODUCT_BOX); const cp = adsV2CloseRealCardPath(args.userId, args.orderId); const cu = await admin.storage.from(RENDER_BUCKET).upload(cp, encodePng(card.img, { alpha: false }), { contentType: 'image/png', upsert: true }); return cu.error ? null : admin.storage.from(RENDER_BUCKET).getPublicUrl(cp).data?.publicUrl ?? null } catch { return null } })() // KINEO-CLOSE-REAL-AJUSTE-1910 — o cartão falhou = o do pedido (o gancho segue)
+    return { url, rect: hero.rect, cardUrl } // KINEO-CLOSE-REAL-AJUSTE-1910 — era: return url ? { url, rect: hero.rect } : null
   } catch (e) {
     console.warn('[ads-v2] gancho do Close real falhou (segue a foto real):', e instanceof Error ? e.message : String(e))
     return null

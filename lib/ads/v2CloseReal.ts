@@ -14,6 +14,8 @@
 // FRASES: as que o Ads já escreve (plan.overlays), uma por plano, no terço de CIMA da zona segura — nada acima de 14% nem abaixo de 65% da
 // altura (os 14% de cima e os 35% de baixo que o Meta pede vazios: ADS_V2_SAFE_TOP / ADS_V2_SAFE_BOTTOM). Frase repetida e palavra repetida
 // colada ("perfume Perfume Atheeri") saem, o mesmo cuidado do apresentador (adsV2CategoryRepeatFix, lib/ads/v2Brief.ts).
+// KINEO-CLOSE-REAL-AJUSTE-1910 — AJUSTE pós-canário (de1c0d72): as frases viraram LEGENDAS no tempo da voz (adsV2CloseRealCaptions: 1 por plano, sem buraco),
+// KINEO-CLOSE-REAL-AJUSTE-1910 — maiores (4,5% da altura), o gancho com zoom 100→112%, a foto do gancho no FIM dos planos e o cartão próprio (nome + chamada).
 // VOZ: a voz por língua do apresentador v2 (PT-BR = Portuguese_ConfidentWoman na fal-ai/minimax/speech-2.8-hd); música com ducking (25% sob a
 // voz, 70% depois). AMOSTRA GRÁTIS (lib/ads/sample.ts): este é o ÚNICO formato da amostra, e ela sai com marca-d'água.
 // CUSTO-ALVO ≈ US$ 0,30: voz ~0,03 + recorte ≤0,01 + Creatomate ~0,13 + música 0,08 + texto 0,01 (adsV2CloseRealUsd).
@@ -22,7 +24,7 @@
 // scripts/test-close-real-1910.mjs. O lado servidor (recorte + fundo) mora em lib/ads/v2CloseRealServer.ts.
 import type { InterfaceLanguage } from '@/lib/ui/interfaceLanguage'
 import type { AdsV2PlannedShot } from '@/lib/ads/v2ShotLists'
-import { ADS_V2_FRAME_RATE, ADS_V2_MONTAGE_FADE, ADS_V2_OVERLAY_LINE_HEIGHT, ADS_V2_OVERLAY_PILL_PAD, ADS_V2_OVERLAY_WIDTH, ADS_V2_RECT_PATH, ADS_V2_SAFE_BOTTOM, ADS_V2_SAFE_TOP, ADS_V2_VOICE_START, ADS_V2_MUSIC_VOLUME_NO_VOICE, ADS_V2_MUSIC_VOLUME_WITH_VOICE, ADS_V2_MUSIC_RISE_AFTER_VOICE, adsV2OverlayFontSize, adsV2OverlayLines, adsV2PackshotElements } from '@/lib/ads/adV2Montage'
+import { ADS_V2_FRAME_RATE, ADS_V2_MONTAGE_FADE, ADS_V2_OVERLAY_LINE_HEIGHT, ADS_V2_OVERLAY_PILL_PAD, ADS_V2_OVERLAY_WIDTH, ADS_V2_RECT_PATH, ADS_V2_SAFE_BOTTOM, ADS_V2_SAFE_TOP, ADS_V2_VOICE_START, ADS_V2_MUSIC_VOLUME_NO_VOICE, ADS_V2_MUSIC_VOLUME_WITH_VOICE, ADS_V2_MUSIC_RISE_AFTER_VOICE, adsV2OverlayFontSize, adsV2OverlayLines, adsV2PackshotElements, ADS_V2_OVERLAY_CHAR_EM } from '@/lib/ads/adV2Montage' // KINEO-CLOSE-REAL-AJUSTE-1910 — + ADS_V2_OVERLAY_CHAR_EM (a quebra das legendas maiores)
 
 /** KINEO-CLOSE-REAL-1910 — interruptor ÚNICO. false = a escolha some da tela, o /plan ignora o pedido e a amostra volta ao caminho de antes. */
 export const ADS_V2_CLOSE_REAL_LIVE = true
@@ -57,7 +59,9 @@ export const ADS_V2_CLOSE_REAL_KEN_BURNS: ReadonlyArray<{ from: string; to: stri
 export const ADS_V2_CLOSE_REAL_PUNCH_FROM = '114%'
 export const ADS_V2_CLOSE_REAL_PUNCH_TO = '118%'
 /** O zoom lento do gancho. */
-export const ADS_V2_CLOSE_REAL_HOOK_ZOOM_END = '106%'
+export const ADS_V2_CLOSE_REAL_HOOK_ZOOM_END = '112%' // KINEO-CLOSE-REAL-AJUSTE-1910 — canário de1c0d72: 100→106% em 3 s parecia foto parada (YDIF 0,09); 112% com ease se vê
+/** KINEO-CLOSE-REAL-AJUSTE-1910 — o zoom do gancho cresce a partir do TOPO do produto (a borda de cima fica parada: o produto nunca sobe para dentro das legendas). */
+export const ADS_V2_CLOSE_REAL_HOOK_ZOOM_EASING = 'ease-in-out' // KINEO-CLOSE-REAL-AJUSTE-1910
 
 /** Onde o produto recortado pousa no gancho (frações): abaixo das frases (que moram no terço de cima da zona segura). */
 export const ADS_V2_CLOSE_REAL_PRODUCT_BOX = { x0: 0.14, x1: 0.86, y0: 0.36, y1: 0.84 } as const
@@ -157,6 +161,141 @@ export function adsV2CloseRealPhraseSlots(phrases: number, photoShots: number = 
   return slots.slice(0, Math.min(phrases, photoShots + 1))
 }
 
+// ── KINEO-CLOSE-REAL-AJUSTE-1910 — as LEGENDAS em sincronia com a voz (canário de1c0d72, 19/10: só 2 frases, a 2ª 8 s depois da fala e a tela
+// KINEO-CLOSE-REAL-AJUSTE-1910 — vazia de 3,0 a 11,3 s). Agora: 1 frase curta por plano (gancho + 3 planos = até 4), cada uma entrando quando a voz
+// KINEO-CLOSE-REAL-AJUSTE-1910 — começa a dizê-la. A voz não tem marca de tempo por palavra: o tempo de cada palavra sai da PROPORÇÃO de caracteres
+// KINEO-CLOSE-REAL-AJUSTE-1910 — da narração sobre a duração medida da voz (com a pausa do ponto e da vírgula), como o resto da casa faz. A divisão
+// KINEO-CLOSE-REAL-AJUSTE-1910 — em frases procura o ponto final, depois a vírgula, e o corte de plano mais perto; as janelas cobrem o anúncio
+// KINEO-CLOSE-REAL-AJUSTE-1910 — inteiro (nenhum plano sem frase). A frase do gancho é o título que o Ads já escreve (com " · " no lugar do travessão).
+// KINEO-CLOSE-REAL-AJUSTE-1910 — Tamanho de anúncio (legenda UGC do Meta/TikTok): fonte de 4,5% da altura, negrito, pílula escura, até 5 palavras
+// KINEO-CLOSE-REAL-AJUSTE-1910 — por linha, dentro da zona segura (14–65%) e sempre ACIMA do produto do gancho.
+/** KINEO-CLOSE-REAL-AJUSTE-1910 — a fonte da legenda em fração da ALTURA do quadro (86 px em 1920): o teto e o piso. */
+export const ADS_V2_CLOSE_REAL_CAPTION_FONT = 0.045 // KINEO-CLOSE-REAL-AJUSTE-1910
+export const ADS_V2_CLOSE_REAL_CAPTION_FONT_MIN = 0.036 // KINEO-CLOSE-REAL-AJUSTE-1910
+/** KINEO-CLOSE-REAL-AJUSTE-1910 — até 3 linhas na fonte cheia e 5 palavras por linha; a largura da caixa (fração da largura). */
+export const ADS_V2_CLOSE_REAL_CAPTION_MAX_LINES = 3 // KINEO-CLOSE-REAL-AJUSTE-1910
+export const ADS_V2_CLOSE_REAL_CAPTION_LINE_WORDS = 5 // KINEO-CLOSE-REAL-AJUSTE-1910
+export const ADS_V2_CLOSE_REAL_CAPTION_WIDTH = 0.9 // KINEO-CLOSE-REAL-AJUSTE-1910
+/** KINEO-CLOSE-REAL-AJUSTE-1910 — palavras de uma legenda tirada da fala (frase curta: cabe em 2–3 linhas; 4 só na fonte mínima, ainda acima do produto). */
+export const ADS_V2_CLOSE_REAL_CAPTION_MAX_CHARS = 54 // KINEO-CLOSE-REAL-AJUSTE-1910 — e no máximo ~54 caracteres (3 linhas de ~18 na fonte cheia): palavra comprida divide melhor a fala
+export const ADS_V2_CLOSE_REAL_CAPTION_MAX_WORDS = 10 // KINEO-CLOSE-REAL-AJUSTE-1910 — uma frase falada inteira de anúncio de 15 s (30 palavras em 4 planos ≈ 7,5)
+/** KINEO-CLOSE-REAL-AJUSTE-1910 — o topo da legenda (fração da altura): a marca-d'água da amostra mora entre 14% e este número. */
+export const ADS_V2_CLOSE_REAL_CAPTION_TOP = 0.175 // KINEO-CLOSE-REAL-AJUSTE-1910
+/** KINEO-CLOSE-REAL-AJUSTE-1910 — a troca de legenda que cai a até 0,35 s de um corte de plano entra NO corte (o olho lê os dois juntos). */
+export const ADS_V2_CLOSE_REAL_CAPTION_SNAP = 0.35 // KINEO-CLOSE-REAL-AJUSTE-1910
+/** KINEO-CLOSE-REAL-AJUSTE-1910 — o menor tempo de uma legenda na tela (s). */
+export const ADS_V2_CLOSE_REAL_CAPTION_MIN_SECONDS = 0.8 // KINEO-CLOSE-REAL-AJUSTE-1910
+/** KINEO-CLOSE-REAL-AJUSTE-1910 — a marca-d'água da amostra: presa pelo TOPO em 14% (logo acima das legendas, nunca sobre o produto). */
+export const ADS_V2_CLOSE_REAL_WATERMARK_TOP = 0.14 // KINEO-CLOSE-REAL-AJUSTE-1910
+/** KINEO-CLOSE-REAL-AJUSTE-1910 — o travessão/hífen entre dois pedaços vira " · " ("Perfume LUME - Fragrâncias" → "Perfume LUME · Fragrâncias"); "9 - 18h" fica. Pura. */
+export function adsV2CloseRealDash(text: string): string { // KINEO-CLOSE-REAL-AJUSTE-1910
+  return String(text ?? '').replace(/(\p{L})\s+[-–—]\s+(?=\p{L})/gu, (_all: string, a: string) => a + ' · ').replace(/\s+/g, ' ').trim() // KINEO-CLOSE-REAL-AJUSTE-1910
+} // KINEO-CLOSE-REAL-AJUSTE-1910
+/** KINEO-CLOSE-REAL-AJUSTE-1910 — as linhas da legenda (quebra por palavra, estimada): cabe na largura E no máximo 5 palavras por linha. Pura. */
+export function adsV2CloseRealCaptionLines(text: string, fontPx: number, frameW: number): string[] { // KINEO-CLOSE-REAL-AJUSTE-1910
+  const perLine = Math.max(4, Math.floor((frameW * ADS_V2_CLOSE_REAL_CAPTION_WIDTH * 0.94) / (fontPx * ADS_V2_OVERLAY_CHAR_EM))) // KINEO-CLOSE-REAL-AJUSTE-1910 — 94%: a pílula come 3% de cada lado
+  const lines: string[][] = [] // KINEO-CLOSE-REAL-AJUSTE-1910
+  for (const word of String(text ?? '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean)) { // KINEO-CLOSE-REAL-AJUSTE-1910
+    const last = lines.length ? lines[lines.length - 1] : null // KINEO-CLOSE-REAL-AJUSTE-1910
+    if (last && last.length < ADS_V2_CLOSE_REAL_CAPTION_LINE_WORDS && [...last, word].join(' ').length <= perLine) last.push(word) // KINEO-CLOSE-REAL-AJUSTE-1910
+    else lines.push([word]) // KINEO-CLOSE-REAL-AJUSTE-1910
+  } // KINEO-CLOSE-REAL-AJUSTE-1910
+  return lines.map((l) => l.join(' ')) // KINEO-CLOSE-REAL-AJUSTE-1910
+} // KINEO-CLOSE-REAL-AJUSTE-1910
+// KINEO-CLOSE-REAL-AJUSTE-1910 — o lugar e o tamanho da legenda: a maior fonte (4,5% → 3,6% da altura) em que ela cabe em 3 linhas.
+// KINEO-CLOSE-REAL-AJUSTE-1910 — Presa pela BASE (y_anchor 100%); o topo em ADS_V2_CLOSE_REAL_CAPTION_TOP (abaixo da marca-d'água da amostra). Pura.
+export function adsV2CloseRealCaptionGeometry(text: string, frameW: number, frameH: number): { y: string; y_anchor: string; width: string; font_size: number; lines: number; box: AdsV2CloseRealTextBox } { // KINEO-CLOSE-REAL-AJUSTE-1910
+  const r4 = (n: number) => Math.round(n * 10000) / 10000 // KINEO-CLOSE-REAL-AJUSTE-1910
+  const sizes: number[] = [] // KINEO-CLOSE-REAL-AJUSTE-1910
+  for (let f = ADS_V2_CLOSE_REAL_CAPTION_FONT; f >= ADS_V2_CLOSE_REAL_CAPTION_FONT_MIN - 1e-9; f -= 0.0015) sizes.push(Math.round(f * frameH)) // KINEO-CLOSE-REAL-AJUSTE-1910
+  const fit = (max: number) => sizes.find((px) => adsV2CloseRealCaptionLines(text, px, frameW).length <= max) // KINEO-CLOSE-REAL-AJUSTE-1910
+  const fontPx = fit(ADS_V2_CLOSE_REAL_CAPTION_MAX_LINES) ?? sizes[sizes.length - 1] // KINEO-CLOSE-REAL-AJUSTE-1910 — o MESMO tamanho em todas as legendas (4,5%); só desce se a frase passar de 3 linhas
+  const wrapped = adsV2CloseRealCaptionLines(text, fontPx, frameW) // KINEO-CLOSE-REAL-AJUSTE-1910 — nenhuma palavra cortada: a legenda nasce com ≤ 10 palavras (no pior caso, 4 linhas na fonte mínima)
+  const lineH = (fontPx * ADS_V2_OVERLAY_LINE_HEIGHT) / frameH // KINEO-CLOSE-REAL-AJUSTE-1910
+  const top = ADS_V2_CLOSE_REAL_CAPTION_TOP // KINEO-CLOSE-REAL-AJUSTE-1910
+  const bottom = top + ADS_V2_OVERLAY_PILL_PAD + wrapped.length * lineH // KINEO-CLOSE-REAL-AJUSTE-1910
+  return { y: `${r4(bottom * 100)}%`, y_anchor: '100%', width: `${r4(ADS_V2_CLOSE_REAL_CAPTION_WIDTH * 100)}%`, font_size: fontPx, lines: wrapped.length, box: { top: r4(top), bottom: r4(bottom + ADS_V2_OVERLAY_PILL_PAD) } } // KINEO-CLOSE-REAL-AJUSTE-1910
+} // KINEO-CLOSE-REAL-AJUSTE-1910
+/** KINEO-CLOSE-REAL-AJUSTE-1910 — uma legenda: o texto, a janela na tela e quando a voz começa a dizê-la (null = sem voz). */
+export interface AdsV2CloseRealCaption { text: string; start: number; end: number; spokenAt: number | null } // KINEO-CLOSE-REAL-AJUSTE-1910
+/** KINEO-CLOSE-REAL-AJUSTE-1910 — o fim da legenda sem o ponto/vírgula solto ("…para você." → "…para você"; "!" e "?" ficam). Pura. */
+function captionText(words: readonly string[]): string { // KINEO-CLOSE-REAL-AJUSTE-1910
+  return words.join(' ').replace(/[.,;:…]+$/u, '').trim() // KINEO-CLOSE-REAL-AJUSTE-1910
+} // KINEO-CLOSE-REAL-AJUSTE-1910
+// KINEO-CLOSE-REAL-AJUSTE-1910 — as legendas do anúncio (puro). Com narração e voz medida: a fala dividida em até 1 frase por plano (programação
+// KINEO-CLOSE-REAL-AJUSTE-1910 — dinâmica: corta no ponto final > vírgula > palavra, perto do corte de plano, ≤ 8 palavras), cada uma entrando quando a voz a começa; a do gancho é
+// KINEO-CLOSE-REAL-AJUSTE-1910 — o título (`headline`) quando existe. Sem voz: as frases de tela (`overlays`) repartidas pelos planos. As janelas cobrem [0, fim dos planos] sem buraco.
+export function adsV2CloseRealCaptions(i: { narration?: string | null; voiceSeconds?: number | null; headline?: string | null; overlays?: readonly (string | null | undefined)[] | null; timeline: AdsV2CloseRealTimeline }): AdsV2CloseRealCaption[] { // KINEO-CLOSE-REAL-AJUSTE-1910
+  const r3 = (n: number) => Math.round(n * 1000) / 1000 // KINEO-CLOSE-REAL-AJUSTE-1910
+  const t = i.timeline // KINEO-CLOSE-REAL-AJUSTE-1910
+  const planStarts = [0, ...t.starts] // KINEO-CLOSE-REAL-AJUSTE-1910
+  const P = planStarts.length // KINEO-CLOSE-REAL-AJUSTE-1910
+  const cuts = planStarts.slice(1) // KINEO-CLOSE-REAL-AJUSTE-1910
+  const clean = (s: unknown): string => adsV2CloseRealPhrases([adsV2CloseRealDash(typeof s === 'string' ? s : '')])[0] ?? '' // KINEO-CLOSE-REAL-AJUSTE-1910 — sem palavra repetida colada e sem travessão colando dois pedaços
+  const words = String(i.narration ?? '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean) // KINEO-CLOSE-REAL-AJUSTE-1910
+  const vs = typeof i.voiceSeconds === 'number' && Number.isFinite(i.voiceSeconds) && i.voiceSeconds > 0 ? i.voiceSeconds : 0 // KINEO-CLOSE-REAL-AJUSTE-1910
+  if (words.length >= 2 && vs > 0) { // KINEO-CLOSE-REAL-AJUSTE-1910
+    // KINEO-CLOSE-REAL-AJUSTE-1910 — 1. o tempo de cada palavra: proporção de caracteres (+ a pausa do ponto e da vírgula) sobre a voz medida, a partir de 0,3 s.
+    const weight = words.map((w) => w.length + 1 + (/[.!?…]$/u.test(w) ? 4 : /[,;:]$/u.test(w) ? 2 : 0)) // KINEO-CLOSE-REAL-AJUSTE-1910
+    const total = weight.reduce((a, b) => a + b, 0) // KINEO-CLOSE-REAL-AJUSTE-1910
+    const at: number[] = [] // KINEO-CLOSE-REAL-AJUSTE-1910
+    let acc = 0 // KINEO-CLOSE-REAL-AJUSTE-1910
+    for (const w of weight) { at.push(ADS_V2_VOICE_START + (vs * acc) / total); acc += w } // KINEO-CLOSE-REAL-AJUSTE-1910
+    // KINEO-CLOSE-REAL-AJUSTE-1910 — 2. a divisão em K frases (K = planos, ou menos se a fala é curta) que minimiza: tamanho fora do alvo, corte fora de pontuação, distância ao corte de plano.
+    const n = words.length // KINEO-CLOSE-REAL-AJUSTE-1910
+    const K = Math.max(1, Math.min(Math.max(P, Math.ceil(words.join(' ').length / ADS_V2_CLOSE_REAL_CAPTION_MAX_CHARS)), 2 * P, Math.floor(n / 2))) // KINEO-CLOSE-REAL-AJUSTE-1910 — 1 por plano; mais só se a fala for longa demais para caber (palavras compridas), nunca frase de 1 palavra só
+    const target = n / K // KINEO-CLOSE-REAL-AJUSTE-1910
+    const endPenalty = (b: number) => (b >= n ? 0 : /[.!?…]$/u.test(words[b - 1]) ? 0 : /[,;:]$/u.test(words[b - 1]) ? 2 : 8) // KINEO-CLOSE-REAL-AJUSTE-1910 — corta no ponto final; depois na vírgula; no meio da frase, só sem outro jeito
+    const innerStops = (a: number, b: number) => { let k = 0; for (let x = a; x < b - 1; x++) if (/[.!?…]$/u.test(words[x])) k++; return k } // KINEO-CLOSE-REAL-AJUSTE-1910 — duas frases faladas coladas numa legenda
+    const cost = (j: number, a: number, b: number) => { const len = b - a; return 50 * Math.max(0, len - ADS_V2_CLOSE_REAL_CAPTION_MAX_WORDS) + (len < 2 ? 50 : 0) + 0.3 * (len - target) ** 2 + endPenalty(b) + 3 * innerStops(a, b) + 0.5 * Math.max(0, words.slice(a, b).join(' ').length - ADS_V2_CLOSE_REAL_CAPTION_MAX_CHARS) + (j > 0 && j < P ? 2.5 * Math.abs(at[a] - planStarts[j]) : 0) } // KINEO-CLOSE-REAL-AJUSTE-1910
+    const best: number[][] = Array.from({ length: K + 1 }, () => Array(n + 1).fill(Infinity)) // KINEO-CLOSE-REAL-AJUSTE-1910
+    const from: number[][] = Array.from({ length: K + 1 }, () => Array(n + 1).fill(-1)) // KINEO-CLOSE-REAL-AJUSTE-1910
+    best[0][0] = 0 // KINEO-CLOSE-REAL-AJUSTE-1910
+    for (let j = 0; j < K; j++) for (let a = 0; a < n; a++) { if (!Number.isFinite(best[j][a])) continue; for (let b = a + 1; b <= n; b++) { const c = best[j][a] + cost(j, a, b); if (c < best[j + 1][b]) { best[j + 1][b] = c; from[j + 1][b] = a } } } // KINEO-CLOSE-REAL-AJUSTE-1910
+    const bounds: number[] = [n] // KINEO-CLOSE-REAL-AJUSTE-1910
+    for (let j = K, b = n; j > 0; j--) { b = from[j][b]; bounds.unshift(b) } // KINEO-CLOSE-REAL-AJUSTE-1910
+    // KINEO-CLOSE-REAL-AJUSTE-1910 — 3. as janelas: cada frase entra quando a voz a começa (no corte de plano, se cair a até 0,35 s dele); a 1ª no quadro 0; a última até o cartão.
+    const spoken = bounds.slice(0, K).map((a) => r3(at[a])) // KINEO-CLOSE-REAL-AJUSTE-1910
+    const starts = spoken.map((s, j) => { if (j === 0) return 0; const near = cuts.reduce((m, c) => (Math.abs(c - s) < Math.abs(m - s) ? c : m), Infinity); return Math.abs(near - s) <= ADS_V2_CLOSE_REAL_CAPTION_SNAP ? near : s }) // KINEO-CLOSE-REAL-AJUSTE-1910
+    for (let j = 1; j < K; j++) starts[j] = r3(Math.min(Math.max(starts[j], starts[j - 1] + ADS_V2_CLOSE_REAL_CAPTION_MIN_SECONDS), t.content - ADS_V2_CLOSE_REAL_CAPTION_MIN_SECONDS * (K - j))) // KINEO-CLOSE-REAL-AJUSTE-1910
+    const headline = clean(i.headline) // KINEO-CLOSE-REAL-AJUSTE-1910
+    return bounds.slice(0, K).map((a, j) => ({ text: j === 0 && headline ? headline : clean(captionText(words.slice(a, bounds[j + 1]))), start: starts[j], end: j === K - 1 ? t.content : starts[j + 1], spokenAt: spoken[j] })).reduce<AdsV2CloseRealCaption[]>((out, c) => { if (c.text) out.push(c); else if (out.length) out[out.length - 1].end = c.end; return out }, []) // KINEO-CLOSE-REAL-AJUSTE-1910 — legenda vazia (rara) = a anterior fica até o fim dela: nenhum buraco
+  } // KINEO-CLOSE-REAL-AJUSTE-1910
+  // KINEO-CLOSE-REAL-AJUSTE-1910 — Sem voz: as frases de tela, cada uma num bloco de planos seguidos (n frases em P planos), sem buraco.
+  const phrases = adsV2CloseRealPhrases((Array.isArray(i.overlays) ? i.overlays : []).map((o) => adsV2CloseRealDash(typeof o === 'string' ? o : ''))).slice(0, P) // KINEO-CLOSE-REAL-AJUSTE-1910
+  const ends = [...cuts, t.content] // KINEO-CLOSE-REAL-AJUSTE-1910
+  return phrases.map((text, k) => { const p0 = Math.floor((k * P) / phrases.length), p1 = Math.floor(((k + 1) * P) / phrases.length) - 1; return { text, start: planStarts[p0], end: ends[p1], spokenAt: null } }) // KINEO-CLOSE-REAL-AJUSTE-1910
+} // KINEO-CLOSE-REAL-AJUSTE-1910
+/** KINEO-CLOSE-REAL-AJUSTE-1910 — as fotos dos planos: a do gancho (a 1ª) vai para o FIM (gancho A → B → C → A); com 2 fotos B → A → B; 1 foto = ela. Pura. */
+export function adsV2CloseRealShotPhotos(photos: readonly string[]): string[] { // KINEO-CLOSE-REAL-AJUSTE-1910
+  const list = (Array.isArray(photos) ? photos : []).filter((u) => typeof u === 'string' && u) // KINEO-CLOSE-REAL-AJUSTE-1910
+  return list.length >= 2 ? [...list.slice(1), list[0]] : list // KINEO-CLOSE-REAL-AJUSTE-1910
+} // KINEO-CLOSE-REAL-AJUSTE-1910
+// ── KINEO-CLOSE-REAL-AJUSTE-1910 — o CARTÃO FINAL do Close real: o mesmo gradiente na cor da embalagem do gancho, o produto recortado pequeno, o nome e
+// KINEO-CLOSE-REAL-AJUSTE-1910 — uma chamada curta na língua do pedido (o PNG azul-marinho do pedido destoava do filme e não tinha chamada). O fundo com o
+// KINEO-CLOSE-REAL-AJUSTE-1910 — produto sai do servidor (lib/ads/v2CloseRealServer.ts, o mesmo recorte do gancho); o recorte falhou = o cartão do pedido.
+/** KINEO-CLOSE-REAL-AJUSTE-1910 — onde o produto pousa no cartão (frações): pequeno, no alto da zona segura, acima do nome e da chamada. */
+export const ADS_V2_CLOSE_REAL_CARD_PRODUCT_BOX = { x0: 0.3, x1: 0.7, y0: 0.19, y1: 0.44 } as const // KINEO-CLOSE-REAL-AJUSTE-1910
+/** KINEO-CLOSE-REAL-AJUSTE-1910 — o centro do nome e da chamada (fração da altura), a fonte de cada um (fração da altura) e a largura do nome. */
+export const ADS_V2_CLOSE_REAL_CARD_NAME_Y = 0.505 // KINEO-CLOSE-REAL-AJUSTE-1910
+export const ADS_V2_CLOSE_REAL_CARD_NAME_FONT = 0.052 // KINEO-CLOSE-REAL-AJUSTE-1910
+export const ADS_V2_CLOSE_REAL_CARD_NAME_FONT_MIN = 0.032 // KINEO-CLOSE-REAL-AJUSTE-1910
+export const ADS_V2_CLOSE_REAL_CARD_NAME_WIDTH = 0.84 // KINEO-CLOSE-REAL-AJUSTE-1910
+export const ADS_V2_CLOSE_REAL_CARD_CTA_Y = 0.6 // KINEO-CLOSE-REAL-AJUSTE-1910
+export const ADS_V2_CLOSE_REAL_CARD_CTA_FONT = 0.03 // KINEO-CLOSE-REAL-AJUSTE-1910
+/** KINEO-CLOSE-REAL-AJUSTE-1910 — trilhas do cartão (acima do fundo dele, na trilha 4). */
+export const ADS_V2_CLOSE_REAL_CARD_TRACKS = { name: 9, cta: 10 } as const // KINEO-CLOSE-REAL-AJUSTE-1910
+/** KINEO-CLOSE-REAL-AJUSTE-1910 — a chamada curta do cartão nas 16 línguas da interface ("Compre agora"; a mesma "buy" do cartão do pedido onde ela existe). */
+export const ADS_V2_CLOSE_REAL_CTA: Record<InterfaceLanguage, string> = { en: 'Shop now', pt: 'Compre agora', es: 'Compra ahora', fr: 'Achetez maintenant', de: 'Jetzt kaufen', it: 'Acquista ora', nl: 'Koop nu', pl: 'Kup teraz', tr: 'Hemen satın al', ru: 'Купить сейчас', uk: 'Купити зараз', ar: 'تسوّق الآن', ur: 'ابھی خریدیں', hi: 'अभी खरीदें', id: 'Beli sekarang', vi: 'Mua ngay' } // KINEO-CLOSE-REAL-AJUSTE-1910
+/** KINEO-CLOSE-REAL-AJUSTE-1910 — a chamada na língua do pedido (desconhecida = inglês). Pura. */
+export function adsV2CloseRealCta(lang: string | null | undefined): string { // KINEO-CLOSE-REAL-AJUSTE-1910
+  const k = String(lang ?? '').toLowerCase().slice(0, 2) // KINEO-CLOSE-REAL-AJUSTE-1910
+  return (ADS_V2_CLOSE_REAL_CTA as Record<string, string>)[k] ?? ADS_V2_CLOSE_REAL_CTA.en // KINEO-CLOSE-REAL-AJUSTE-1910
+} // KINEO-CLOSE-REAL-AJUSTE-1910
+/** KINEO-CLOSE-REAL-AJUSTE-1910 — o nome do cartão = a marca do brief (a parte antes do travessão em "<nome> — <o que vende>", a régua do brandName). Pura. */
+export function adsV2CloseRealCardName(business: unknown): string { // KINEO-CLOSE-REAL-AJUSTE-1910
+  return (typeof business === 'string' ? business : '').split(/\s+[—–-]\s+/)[0].trim().replace(/\s*[—–-]\s*$/, '').replace(/\s+/g, ' ') // KINEO-CLOSE-REAL-AJUSTE-1910
+} // KINEO-CLOSE-REAL-AJUSTE-1910
 // ── o que o pedido guarda (ads_v2_orders.plan.closeReal) ─────────────────────────────────────────────────────────────
 export interface AdsV2CloseRealPlan {
   v: 1
@@ -241,6 +380,10 @@ export interface AdV2CloseRealInput {
   voiceSeconds?: number | null
   /** A marca-d'água (só a amostra grátis). null/ausente = sem marca. */
   watermark?: string | null
+  /** KINEO-CLOSE-REAL-AJUSTE-1910 — o texto que a voz fala (plan.narration): as legendas saem dele, no tempo da voz. Ausente/sem voz = as frases de tela. */
+  narration?: string | null // KINEO-CLOSE-REAL-AJUSTE-1910
+  /** KINEO-CLOSE-REAL-AJUSTE-1910 — o cartão do formato (fundo na cor da embalagem + produto pequeno, do servidor) com o nome e a chamada. null = o cartão do pedido. */
+  closeCard?: { url: string; name: string; cta: string } | null // KINEO-CLOSE-REAL-AJUSTE-1910
 }
 
 const isHttps = (u: unknown): u is string => typeof u === 'string' && HTTPS_RE.test(u.trim())
@@ -271,13 +414,14 @@ export function buildAdV2CloseRealSource(input: AdV2CloseRealInput): Record<stri
   // 1. O gancho (0 → 3 s): o produto recortado sobre o fundo na cor dele, sem fade de entrada (o 1º quadro já é o anúncio).
   const hookDur = r3(t.hook + F)
   if (isHttps(input.heroUrl)) {
-    elements.push({ type: 'image', track: T.shotA, time: 0, duration: hookDur, source: input.heroUrl.trim(), fit: 'cover', x: '50%', y: '50%', width: '100%', height: '100%', animations: [{ type: 'scale', fade: false, start_scale: '100%', end_scale: ADS_V2_CLOSE_REAL_HOOK_ZOOM_END, x_anchor: '50%', y_anchor: '50%', easing: 'ease-out' }] })
+    elements.push({ type: 'image', track: T.shotA, time: 0, duration: hookDur, source: input.heroUrl.trim(), fit: 'cover', x: '50%', y: '50%', width: '100%', height: '100%', animations: [{ type: 'scale', fade: false, start_scale: '100%', end_scale: ADS_V2_CLOSE_REAL_HOOK_ZOOM_END, x_anchor: '50%', y_anchor: `${ADS_V2_CLOSE_REAL_PRODUCT_BOX.y0 * 100}%`, easing: ADS_V2_CLOSE_REAL_HOOK_ZOOM_EASING }] }) // KINEO-CLOSE-REAL-AJUSTE-1910 — 100→112% com ease, a partir do topo do produto (só escala: os pixels do produto são os do recorte)
   } else {
     elements.push(...adsV2PackshotElements(input.heroFallbackUrl, T.shotA, 0, hookDur))
   }
   // 2. Os planos das fotos reais: Ken Burns + punch-in no meio; trilhas alternadas para o dissolve cruzar de verdade.
+  const shotPhotos = adsV2CloseRealShotPhotos(photos) // KINEO-CLOSE-REAL-AJUSTE-1910 — a foto do gancho vai para o fim (gancho A → B → C → A)
   t.shots.forEach((d, k) => {
-    const src = photos[k % photos.length]
+    const src = shotPhotos[k % shotPhotos.length] // KINEO-CLOSE-REAL-AJUSTE-1910 — era: photos[k % photos.length]
     const track = k % 2 === 0 ? T.shotB : T.shotA
     const kb = ADS_V2_CLOSE_REAL_KEN_BURNS[k % ADS_V2_CLOSE_REAL_KEN_BURNS.length]
     const start = t.starts[k]
@@ -289,23 +433,26 @@ export function buildAdV2CloseRealSource(input: AdV2CloseRealInput): Record<stri
   })
   // 3. O cartão final (logo real), até o último quadro.
   const cardSeconds = r3(t.total - t.cardStart)
-  elements.push({ type: 'image', track: T.card, time: t.cardStart, duration: cardSeconds, source: input.cardUrl.trim(), fit: 'cover', x: '50%', y: '50%', width: '100%', height: '100%', enter_transition: { type: 'fade', duration: F } })
-  // 4. As frases: uma por plano, no terço de cima da zona segura; a do gancho já no quadro 0.
-  const phrases = adsV2CloseRealPhrases(input.phrases ?? []).slice(0, t.shots.length + 1)
-  const slots = adsV2CloseRealPhraseSlots(phrases.length, t.shots.length)
-  phrases.forEach((text, i) => {
-    const slot = slots[i]
-    if (slot === undefined) return
-    const start = slot === 0 ? 0 : r3(t.starts[slot - 1] + 0.1)
-    const end = slot === 0 ? t.hook : r3(t.starts[slot - 1] + t.shots[slot - 1])
-    if (!(end > start)) return
-    const geo = adsV2CloseRealOverlayGeometry(text, width, height)
-    elements.push({ type: 'text', track: T.text, time: start, duration: r3(end - start), text, x: '50%', y: geo.y, x_anchor: '50%', y_anchor: geo.y_anchor, x_alignment: '50%', width: geo.width, font_family: fontFamily, font_size: geo.font_size, font_weight: '800', line_height: '110%', fill_color: '#ffffff', stroke_color: 'rgba(0,0,0,0.55)', stroke_width: 2, background_color: 'rgba(0,0,0,0.55)', background_x_padding: '3%', background_y_padding: '2%', border_radius: 10, ...(slot === 0 ? {} : { enter_transition: { type: 'fade', duration: 0.2 } }) })
-  })
-  // 5. A marca-d'água (só a amostra grátis): o anúncio inteiro, pequena, centrada entre as frases e o produto.
+  const cc = input.closeCard && isHttps(input.closeCard.url) ? input.closeCard : null // KINEO-CLOSE-REAL-AJUSTE-1910 — o cartão do formato (fundo na cor da embalagem + produto pequeno); sem ele, o cartão do pedido
+  elements.push({ type: 'image', track: T.card, time: t.cardStart, duration: cardSeconds, source: (cc ? cc.url : input.cardUrl).trim(), fit: 'cover', x: '50%', y: '50%', width: '100%', height: '100%', enter_transition: { type: 'fade', duration: F } }) // KINEO-CLOSE-REAL-AJUSTE-1910 — era: source: input.cardUrl.trim()
+  const ccName = cc ? adsV2CloseRealPhrases([cc.name])[0] ?? '' : '' // KINEO-CLOSE-REAL-AJUSTE-1910
+  const ccCta = cc && typeof cc.cta === 'string' ? cc.cta.replace(/\s+/g, ' ').trim() : '' // KINEO-CLOSE-REAL-AJUSTE-1910
+  if (cc && ccName) { // KINEO-CLOSE-REAL-AJUSTE-1910
+    let namePx = Math.round(ADS_V2_CLOSE_REAL_CARD_NAME_FONT * height) // KINEO-CLOSE-REAL-AJUSTE-1910 — a maior fonte em que o nome cabe em 2 linhas
+    while (namePx > Math.round(ADS_V2_CLOSE_REAL_CARD_NAME_FONT_MIN * height) && adsV2OverlayLines(ccName, namePx, width).length > 2) namePx -= 2 // KINEO-CLOSE-REAL-AJUSTE-1910
+    elements.push({ type: 'text', track: ADS_V2_CLOSE_REAL_CARD_TRACKS.name, time: t.cardStart, duration: cardSeconds, text: ccName, x: '50%', y: `${ADS_V2_CLOSE_REAL_CARD_NAME_Y * 100}%`, x_anchor: '50%', y_anchor: '50%', x_alignment: '50%', width: `${ADS_V2_CLOSE_REAL_CARD_NAME_WIDTH * 100}%`, font_family: fontFamily, font_size: namePx, font_weight: '800', line_height: '110%', fill_color: '#ffffff', stroke_color: 'rgba(0,0,0,0.35)', stroke_width: 2, enter_transition: { type: 'fade', duration: F } }) // KINEO-CLOSE-REAL-AJUSTE-1910
+  } // KINEO-CLOSE-REAL-AJUSTE-1910 — fim do nome do cartão
+  if (cc && ccCta) elements.push({ type: 'text', track: ADS_V2_CLOSE_REAL_CARD_TRACKS.cta, time: t.cardStart, duration: cardSeconds, text: ccCta, x: '50%', y: `${ADS_V2_CLOSE_REAL_CARD_CTA_Y * 100}%`, x_anchor: '50%', y_anchor: '50%', x_alignment: '50%', width: '80%', font_family: fontFamily, font_size: Math.round(ADS_V2_CLOSE_REAL_CARD_CTA_FONT * height), font_weight: '800', line_height: '110%', fill_color: '#111111', background_color: 'rgba(255,255,255,0.92)', background_x_padding: '4%', background_y_padding: '2%', border_radius: 40, enter_transition: { type: 'fade', duration: F } }) // KINEO-CLOSE-REAL-AJUSTE-1910 — a chamada curta na língua do pedido
+  // KINEO-CLOSE-REAL-AJUSTE-1910 — 4. As legendas: 1 por plano, cada uma entrando quando a voz a diz (adsV2CloseRealCaptions); a do gancho no quadro 0; sem buraco até o cartão.
+  const captions = adsV2CloseRealCaptions({ narration: hasVoice ? input.narration ?? null : null, voiceSeconds: hasVoice ? (input.voiceSeconds as number) : null, headline: (input.phrases ?? [])[0] ?? null, overlays: input.phrases ?? [], timeline: t }) // KINEO-CLOSE-REAL-AJUSTE-1910
+  captions.forEach((c) => { // KINEO-CLOSE-REAL-AJUSTE-1910
+    const geo = adsV2CloseRealCaptionGeometry(c.text, width, height) // KINEO-CLOSE-REAL-AJUSTE-1910
+    elements.push({ type: 'text', track: T.text, time: r3(c.start), duration: r3(c.end - c.start), text: c.text, x: '50%', y: geo.y, x_anchor: '50%', y_anchor: geo.y_anchor, x_alignment: '50%', width: geo.width, font_family: fontFamily, font_size: geo.font_size, font_weight: '800', line_height: '110%', fill_color: '#ffffff', stroke_color: 'rgba(0,0,0,0.6)', stroke_width: Math.max(2, Math.round(geo.font_size / 28)), background_color: 'rgba(0,0,0,0.6)', background_x_padding: '3%', background_y_padding: '2%', border_radius: 14 }) // KINEO-CLOSE-REAL-AJUSTE-1910 — tamanho de anúncio; troca seca, no tempo da fala
+  }) // KINEO-CLOSE-REAL-AJUSTE-1910
+  // KINEO-CLOSE-REAL-AJUSTE-1910 — 5. A marca-d'água (só a amostra grátis): o anúncio inteiro, pequena, presa pelo topo em 14% (acima das legendas, nunca sobre o produto).
   const wm = typeof input.watermark === 'string' ? input.watermark.trim() : ''
   if (wm) {
-    elements.push({ type: 'text', track: T.watermark, time: 0, duration: t.total, text: wm, x: '50%', y: `${r3(ADS_V2_CLOSE_REAL_WATERMARK_BOTTOM * 100)}%`, x_anchor: '50%', y_anchor: '100%', x_alignment: '50%', width: '80%', font_family: fontFamily, font_size: Math.round((ADS_V2_CLOSE_REAL_WATERMARK_FONT_AT_1080 * width) / 1080), font_weight: '800', line_height: '110%', fill_color: '#ffffff', background_color: 'rgba(0,0,0,0.35)', background_x_padding: '3%', background_y_padding: '2%', border_radius: 10 })
+    elements.push({ type: 'text', track: T.watermark, time: 0, duration: t.total, text: wm, x: '50%', y: `${r3(ADS_V2_CLOSE_REAL_WATERMARK_TOP * 100)}%`, x_anchor: '50%', y_anchor: '0%', x_alignment: '50%', width: '80%', font_family: fontFamily, font_size: Math.round((ADS_V2_CLOSE_REAL_WATERMARK_FONT_AT_1080 * width) / 1080), font_weight: '800', line_height: '110%', fill_color: '#ffffff', background_color: 'rgba(0,0,0,0.35)', background_x_padding: '3%', background_y_padding: '2%', border_radius: 10 }) // KINEO-CLOSE-REAL-AJUSTE-1910 — era: base em ADS_V2_CLOSE_REAL_WATERMARK_BOTTOM (0,31), que as legendas maiores cobririam
   }
   // 6. Voz (a partir de 0,3 s) e música com ducking: 25% sob a voz, sobe para 70% logo depois.
   if (hasVoice) elements.push({ type: 'audio', track: T.voice, time: ADS_V2_VOICE_START, duration: r3(input.voiceSeconds as number), source: (voiceUrl as string).trim(), volume: '100%' })

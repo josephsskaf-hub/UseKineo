@@ -212,6 +212,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
       ...(inHandProduct && inHandEarly ? { speechFloor: inHandEarly.adsV2InHandSpeechMin(maxWords), speechSentences: inHandEarly.ADS_V2_IN_HAND_SPEECH_SENTENCES } : {}), // KINEO-ADS-MAO-AJUSTE-3-1610 — a narração do "produto na mão" cobre ~13 s
       ...(v2Words && presenterV2Early ? { speechMinExact: v2Words.min, speechSentences: presenterV2Early.ADS_V2_PRESENTER_V2_SPEECH_SENTENCES } : {}), // KINEO-APRESENTADOR-V2-AJUSTE-1710 — o piso do v2 (17; a régua de sempre daria 19 em 21) e 2–3 frases curtas
       scripts: (body as { scripts?: unknown } | null)?.scripts !== false, scene: adsV2SceneSetting(brief0, order.tier), // KINEO-ADS-ROTEIROS-2026-10-13 — +2 versões em outros tons, em paralelo e no MESMO prazo (a cena dá o clima da "story"); corpo com scripts:false (ex.: o lote) = só o texto de sempre
+      ...(closeRealAsked ? { closeReal: true } : {}), // KINEO-CLOSE-REAL-AJUSTE-1910 — o Close real: a marca no máximo 2 vezes na fala (o fecho automático não cola "Agora, <marca>.") e o travessão do título vira " · "
     })
     const modeTag = { mode: simple ? 'simple' : 'full', facts_selected: factTexts.length, overlays: overlaysOn }
     if (extracted.ok && extracted.honestyFixes) Object.assign(modeTag, { honesty_fixes: extracted.honestyFixes }) // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o que a régua consertou em código
@@ -279,6 +280,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds, presenter: !!presenter })
     if (inHand) Object.assign(modeTag, { in_hand: true }) // KINEO-ADS-PRODUTO-NA-MAO-1610
     if (inHand) Object.assign(modeTag, { in_hand_pair: inHandPair }) // KINEO-ADS-MAO-AJUSTE-3-1610 — a medição: frasco + caixa na foto (true), um objeto (false), não sei (null)
+    if (closeReal) { delete (modeTag as { in_hand?: unknown }).in_hand; delete (modeTag as { in_hand_pair?: unknown }).in_hand_pair } // KINEO-CLOSE-REAL-AJUSTE-1910 — a medição: o Close real apaga o produto na mão do plano (canário de1c0d72 gravava in_hand:true)
     if (presenter?.v2) Object.assign(modeTag, { presenter_v2: true }) // KINEO-APRESENTADOR-V2-1710
 
     const upd = await admin

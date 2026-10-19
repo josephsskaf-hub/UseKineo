@@ -16,7 +16,7 @@ import type { InterfaceLanguage } from '@/lib/ui/interfaceLanguage'
 /** KINEO-ADS-AMOSTRA-2026-10-09 — interruptor ÚNICO. false = ninguém ganha amostra; o resto do Ads fica como estava. */
 export const ADS_SAMPLE_LIVE = true
 /** Teto global de amostras INICIADAS por dia UTC (cada uma custa ~US$ 2,20 na fal). */
-export const ADS_SAMPLE_DAILY_CAP = 10
+export const ADS_SAMPLE_DAILY_CAP = 30 // KINEO-CLOSE-REAL-AJUSTE-1910 — fundador 19/10 aprovou 10 → 30: a amostra agora é o Close real (~US$ 0,26 cada, não os ~US$ 2,20 do Comercial com IA)
 /** O único nível da amostra. */
 // KINEO-CLIPE360-AMOSTRA-1410 — fundador (14/10, "tudo sim"): a amostra sai no nível COMMERCIAL (o melhor trabalho padrão
 // KINEO-CLIPE360-AMOSTRA-1410   da casa), não mais no photo_motion. Caso real: o Pedro (agência, prospecção de 13/10) recebeu

@@ -19,6 +19,7 @@ import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import zlib from 'node:zlib'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semCloseRealAjuste1910 } from './test-support/desfaz-close-real-ajuste-1910.mjs' // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: o ajuste pós-canário sai primeiro, em memória
 import { semCloseReal1910, CLOSE_REAL_1910_ARQUIVOS, CLOSE_REAL_1910_NOVOS, CLOSE_REAL_1910_BASE, MARCA_CLOSE_REAL_1910, TROCAS_CLOSE_REAL_1910 } from './test-support/desfaz-close-real-1910.mjs'
 import { semFilmesF1F4_1910 } from './test-support/desfaz-filmes-f1f4-1910.mjs' // reancorado KINEO-FILMES-F1-F4-1910 [TRAVA 8.2 — vai do fundador 19/10 "vai, sim pra tudo"]: as linhas marcadas do Faceless 15 s saem antes da comparação com a base
 
@@ -26,7 +27,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const MARCA = 'KINEO-CLOSE-REAL-1910'
 const lf = (s) => String(s).split('\r\n').join('\n')
-const rd = (p) => lf(semFilmesF1F4_1910(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-FILMES-F1-F4-1910: a camada do Faceless 15 s (mais nova) sai antes da comparação com a base
+const rd = (p) => lf(semFilmesF1F4_1910(semCloseRealAjuste1910(readFileSync(join(ROOT, p), 'utf8'), p), p)) // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: este guardião lê o texto SEM o ajuste (provado em scripts/test-close-real-ajuste-1910.mjs), e depois sem a camada do Faceless 15 s · reancorado KINEO-FILMES-F1-F4-1910: a camada do Faceless 15 s (mais nova) sai antes da comparação com a base
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return lf(git('show', `${CLOSE_REAL_1910_BASE}:${p}`)) } catch { return null } }
 let pass = 0
@@ -44,7 +45,7 @@ const F = {
 const SRC = Object.fromEntries(Object.entries(F).map(([k, p]) => [k, rd(p)]))
 
 // ── carregadores (fontes reais; `over` = mutantes por arquivo) ───────────────────────────────────────────────────────
-const carregar = (over = {}, mocks = {}, env = {}) => createOfflineLoader({ mocks: { 'node:zlib': zlib, ...mocks }, env, source: (rel, text) => (Object.hasOwn(over, rel) ? over[rel] : text) })
+const carregar = (over = {}, mocks = {}, env = {}) => createOfflineLoader({ mocks: { 'node:zlib': zlib, ...mocks }, env, source: (rel, text) => (Object.hasOwn(over, rel) ? over[rel] : semCloseRealAjuste1910(text, rel)) }) // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: executa o formato na régua de antes do ajuste
 const CR = (over = {}) => carregar(over)(F.cr)
 const H = (n) => `https://cdn.test/${n}`
 const U = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`

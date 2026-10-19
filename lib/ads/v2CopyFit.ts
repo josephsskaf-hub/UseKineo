@@ -397,6 +397,8 @@ export interface AdsV2SpeechClose {
   brand?: boolean
   /** As frases de fecho já usadas no CONJUNTO (A, B e C dividem o mesmo): nunca a mesma duas vezes. */
   used?: Set<string>
+  /** KINEO-CLOSE-REAL-AJUSTE-1910 — o teto de menções do nome na fala INTEIRA (contando as que o texto já tem); ausente = a regra de sempre (até 2 fechos com o nome). */ // KINEO-CLOSE-REAL-AJUSTE-1910
+  nameMax?: number // KINEO-CLOSE-REAL-AJUSTE-1910
 }
 
 const closeKey = (s: string) => normWords(s).join(' ')
@@ -425,6 +427,9 @@ export function adsV2CompleteSpeech(text: string, opts: { min: number; max: numb
   ]
   if (!cands.length) return { text: t, fixes }
   let named = 0
+  const nameMax = typeof opts.close?.nameMax === 'number' && opts.close.nameMax > 0 ? Math.floor(opts.close.nameMax) : 0 // KINEO-CLOSE-REAL-AJUSTE-1910
+  const nameCount = (s: string): number => { const ws = normWords(s); return Math.max(0, ...[...nameWords].filter((x) => x.length >= 3).map((x) => ws.filter((y) => y === x).length)) } // KINEO-CLOSE-REAL-AJUSTE-1910 — quantas vezes o nome já aparece (a palavra do nome mais repetida)
+  if (nameMax > 0) cands.push(...(ADS_V2_NAME_CLOSES[lang] ?? []).filter((c) => !c.cta && c.t.startsWith('{name}, ')).map((c) => { const r = c.t.slice('{name}, '.length); return { s: r.charAt(0).toLocaleUpperCase(lang) + r.slice(1), cta: false, named: false } })) // KINEO-CLOSE-REAL-AJUSTE-1910 — com o nome no teto, a frase neutra SEM o nome ("Para você.", "Do seu jeito.") mantém a alternância chamada ↔ neutra e o piso de fala
   for (let round = 0; round < 6 && countWords(t) < opts.min; round++) {
     const w = countWords(t)
     const last = sentencesOf(t).slice(-1)[0] ?? ''
@@ -433,7 +438,8 @@ export function adsV2CompleteSpeech(text: string, opts: { min: number; max: numb
     const textKey = closeKey(t)
     const lastNamed = nameWords.size > 0 && [...nameWords].every((x) => normWords(last).includes(x))
     // Regras DURAS (nunca afrouxam): sem repetir frase (texto e conjunto), nunca chamada depois de chamada, nunca acima do teto.
-    const hard = cands.filter((c) => !used.has(closeKey(c.s)) && !textKey.includes(closeKey(c.s)) && !(lastCta && c.cta) && w + countWords(c.s) <= cap)
+    const nameCapped = nameMax > 0 && (nameCount(t) >= nameMax || normWords(last).some((x) => x.length >= 3 && nameWords.has(x))) // KINEO-CLOSE-REAL-AJUSTE-1910 — no Close real: o nome já dito 2 vezes, ou na última frase = nenhum fecho com o nome (nem como último recurso)
+    const hard = cands.filter((c) => !used.has(closeKey(c.s)) && !textKey.includes(closeKey(c.s)) && !(lastCta && c.cta) && w + countWords(c.s) <= cap && !(nameCapped && c.named)) // KINEO-CLOSE-REAL-AJUSTE-1910 — + !(nameCapped && c.named)
     // Regras de naturalidade: até 2 frases com o nome, nunca logo depois de outra que já diz o nome, sem repetir palavra da última.
     const soft = hard.filter((c) => !(c.named && (named >= 2 || lastNamed)) && !normWords(c.s).some((x) => x.length >= 3 && !nameWords.has(x) && lastKey.has(x)))
     const ok = soft.length ? soft : hard
