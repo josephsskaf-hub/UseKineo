@@ -92,6 +92,8 @@ import { montarContrato, aplicarContrato, severidadeDe } from '@/lib/cinematic/s
 import { alignShotsToSpeech, SPEECH_IMAGE_ALIGN_EVENT, SPEECH_IMAGE_ALIGN_VERSION, type AlignReport } from '@/lib/cinematic/speechImageAlign' // KINEO-FALA-X-IMAGEM-2026-09-16
 import { fal } from '@fal-ai/client'
 import { generateScenes, shortCaptionFromVoiceover, expandVoiceoversToTargets, appendNarrationToTargets, FILLER_LINE_RE } from '@/lib/runway'
+import { escreverIdeiaNoServidor, cenasSemMetaTexto, CENA_META_TEXTO_EVENTO } from '@/lib/meta95/ideiaNoEscritor' // KINEO-META95-IDEIA-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — a ideia solta passa pelo escritor marcado e a fala segue verbatim
+import { POST as escritorMarcadoDoGenerateScript } from '@/app/api/generate-script/route' // KINEO-META95-IDEIA-1910 — o MESMO escritor do /api/generate-script (prompt, régua por motor, recusa, filme curto, script_written com a ideia)
 import { looksLikeInstruction } from '@/lib/momentumTopic'
 // KINEO-CAPACITY-2026-08-08 — teto GLOBAL diário de renders de IA (disjuntor).
 import { checkAiRenderDailyCap, AI_RENDER_CAP_MESSAGE } from '@/lib/aiRenderCircuitBreaker'
@@ -1706,6 +1708,8 @@ async function manipularPost(req: NextRequest) {
     // cá (viviam logo antes da trava de narração, ~900 linhas abaixo), porque
     // o degrau abaixo precisa dos dois ANTES do custo. A trava lá embaixo
     // continua lendo estas mesmas variáveis.
+    const ideiaNoEscritor = await escreverIdeiaNoServidor({ prompt, scriptMode: body.script_mode, engine: typeof body.engine === 'string' ? body.engine : null, seconds: duration, language: narrationLanguage.language, escritor: async (corpo) => { const r = await escritorMarcadoDoGenerateScript(new NextRequest(new URL('/api/generate-script', req.url), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(corpo) })); return { status: r.status, json: await r.json().catch(() => null) } }, registrar: (name, metadata) => writeServerEvent({ name, userId: user.id, path: '/api/generate-video-cinematic', metadata: { ...metadata, generation_id: generationId, dry_run: body.dry_run === true } }) }) // KINEO-META95-IDEIA-1910 — ideia solta (o caminho verbatim=false, 0 filmes ≥ 95 em 7 dias) → roteiro marcado do generate-script no tamanho do filme e na régua do motor; dali em diante a fala é verbatim (o filtro anti-invenção do caminho clássico só roda com verbatim=false); qualquer tropeço = o caminho de antes, com o motivo em idea_written_on_server
+    if (ideiaNoEscritor.usar) prompt = ideiaNoEscritor.prompt // KINEO-META95-IDEIA-1910
     const parsedScript = parseUserScript(prompt)
     // KINEO-REGUA-UNICA-2026-09-14 — portão, degrau e dry-run medem com a régua da
     // família (clássicos 3,1 / hollywood 2,3, × velocidade). Estimativa, não áudio.
@@ -3583,6 +3587,7 @@ async function manipularPost(req: NextRequest) {
         // engine instead of the keyword query.
         aiPrompt: s.description,
       }))
+      const metaDasCenas = cenasSemMetaTexto(scenes, shortCaptionFromVoiceover); if (metaDasCenas.removidas.length) void writeServerEvent({ name: CENA_META_TEXTO_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', metadata: { generation_id: generationId, scenes: metaDasCenas.cenas, removed: metaDasCenas.removidas.map((f) => f.slice(0, 160)), engine: typeof body.engine === 'string' ? body.engine : 'seedance', version: 'meta95_ideia_1910' } }) // KINEO-META95-IDEIA-1910 — caminho antigo (generateScenes): fala que descreve a cena/instrução/"voiceover" (5cb320bb) sai como FRASE INTEIRA, nunca é narrada
       // KINEO-FALA-CLASSICA-FIEL-2026-09-15 — Seedance 0d443007 narrou "The time is exactly 12:00 AM." (o pedido dizia
       // "midnight"): a mesma varredura de datas/horas e de lugares/nomes fora do pedido que protege o hollywood entra
       // aqui, na fala do escritor clássico, ANTES de o footage ser escolhido para ela. Contexto = só o pedido.
