@@ -19,6 +19,7 @@ const isDeepStrictEqual = (a, b) => JSON.stringify(a) === JSON.stringify(b) // o
 import zlib from 'node:zlib'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semCloseRealLegenda1910, CLOSE_REAL_LEGENDA_1910_ARQUIVOS, CLOSE_REAL_LEGENDA_1910_NOVOS, CLOSE_REAL_LEGENDA_1910_BASE, MARCA_CLOSE_REAL_LEGENDA_1910, TROCAS_CLOSE_REAL_LEGENDA_1910, ACRESCIMOS_CLOSE_REAL_LEGENDA_1910 } from './test-support/desfaz-close-real-legenda-1910.mjs'
+import { semCloseRealLegendaPilula1910 } from './test-support/desfaz-close-real-legenda-pilula-1910.mjs' // KINEO-CLOSE-REAL-LEGENDA-PILULA-1910 — reancorado: a pílula de volta (a camada mais nova) sai PRIMEIRO
 import { semCloseRealV3_1910 } from './test-support/desfaz-close-real-v3-1910.mjs'
 import { semCloseRealAjuste1910 } from './test-support/desfaz-close-real-ajuste-1910.mjs'
 import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs'
@@ -27,7 +28,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const MARCA = 'KINEO-CLOSE-REAL-LEGENDA-1910'
 const lf = (s) => String(s).split('\r\n').join('\n')
-const disco = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))
+const disco = (p) => lf(semCloseRealLegendaPilula1910(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-CLOSE-REAL-LEGENDA-PILULA-1910 — reancorado: lê os arquivos SEM a pílula de volta (provada em scripts/test-close-real-legenda-pilula-1910.mjs)
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return lf(git('show', `${CLOSE_REAL_LEGENDA_1910_BASE}:${p}`)) } catch { return null } }
 let pass = 0
@@ -39,7 +40,7 @@ const trocar = (src, a, b) => { const n = src.split(a).length - 1; if (n !== 1) 
 const FCR = 'lib/ads/v2CloseReal.ts'
 const SRC = disco(FCR)
 // over: texto do v2CloseReal no lugar do disco (mutante); velho: a régua de antes (esta camada desfeita em memória)
-const CR = (over = null, velho = false) => createOfflineLoader({ mocks: { 'node:zlib': zlib }, source: (rel, text) => (rel === FCR && over !== null ? over : velho ? semCloseRealLegenda1910(text, rel) : text) })(FCR)
+const CR = (over = null, velho = false) => createOfflineLoader({ mocks: { 'node:zlib': zlib }, source: (rel, text) => (rel === FCR && over !== null ? over : velho ? semCloseRealLegenda1910(text, rel) : semCloseRealLegendaPilula1910(text, rel)) })(FCR) // KINEO-CLOSE-REAL-LEGENDA-PILULA-1910 — reancorado: executa a legenda menor na régua dela (antes da pílula de volta)
 const H = (n) => `https://cdn.test/${n}`
 const FOTOS = [H('frasco-pequeno.jpg'), H('frasco-bege.jpg'), H('cetim.jpg')]
 // o canário v2 (19/10) e um texto de palavras curtas (onde 5 palavras caberiam numa linha)

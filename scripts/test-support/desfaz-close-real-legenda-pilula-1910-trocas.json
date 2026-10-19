@@ -1,0 +1,22 @@
+{
+ "scripts/test-close-real-legenda-1910.mjs": [
+  [
+   "const disco = (p) => lf(semCloseRealLegendaPilula1910(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-CLOSE-REAL-LEGENDA-PILULA-1910 — reancorado: lê os arquivos SEM a pílula de volta (provada em scripts/test-close-real-legenda-pilula-1910.mjs)",
+   "const disco = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))"
+  ],
+  [
+   "const CR = (over = null, velho = false) => createOfflineLoader({ mocks: { 'node:zlib': zlib }, source: (rel, text) => (rel === FCR && over !== null ? over : velho ? semCloseRealLegenda1910(text, rel) : semCloseRealLegendaPilula1910(text, rel)) })(FCR) // KINEO-CLOSE-REAL-LEGENDA-PILULA-1910 — reancorado: executa a legenda menor na régua dela (antes da pílula de volta)",
+   "const CR = (over = null, velho = false) => createOfflineLoader({ mocks: { 'node:zlib': zlib }, source: (rel, text) => (rel === FCR && over !== null ? over : velho ? semCloseRealLegenda1910(text, rel) : text) })(FCR)"
+  ]
+ ],
+ "lib/ads/v2CloseReal.ts": [
+  [
+   "    for (const word of l.split(' ')) { // KINEO-CLOSE-REAL-LEGENDA-PILULA-1910 — a mesma quebra gulosa (cabe na largura E até 4 palavras) …",
+   "    for (const word of l.split(' ')) { const last = lines.length ? lines[lines.length - 1] : null; if (last && last.length < ADS_V2_CLOSE_REAL_SPEECH_LINE_WORDS && [...last, word].join(' ').length <= perLine) last.push(word); else lines.push([word]) } // KINEO-CLOSE-REAL-LEGENDA-1910"
+  ],
+  [
+   "      if (speech) { elements.push({ type: 'text', track: T.text, time: r3(seg.start), duration: r3(seg.end - seg.start), text: adsV2CloseRealSpeechLines(c.text, geo.font_size, width).join('\\n'), x: '50%', y: geo.y, x_anchor: '50%', y_anchor: geo.y_anchor, x_alignment: '50%', width: geo.width, font_family: fontFamily, font_size: geo.font_size, font_weight: '800', line_height: '110%', fill_color: '#ffffff', stroke_color: ADS_V2_CLOSE_REAL_SPEECH_STROKE_COLOR, stroke_width: ADS_V2_CLOSE_REAL_SPEECH_STROKE_WIDTH, background_color: ADS_V2_CLOSE_REAL_SPEECH_BG, background_x_padding: ADS_V2_CLOSE_REAL_SPEECH_PAD_X, background_y_padding: ADS_V2_CLOSE_REAL_SPEECH_PAD_Y, border_radius: ADS_V2_CLOSE_REAL_SPEECH_RADIUS }); continue } // KINEO-CLOSE-REAL-LEGENDA-PILULA-1910 — a fala: 3,6%, as linhas com \"\\n\" (4 por linha valem na tela; palavra fraca não fecha linha), o contorno dos filmes e a PÍLULA da rodada 3 (alpha 0,72) de volta; o gancho segue na linha de baixo",
+   "      if (speech) { elements.push({ type: 'text', track: T.text, time: r3(seg.start), duration: r3(seg.end - seg.start), text: c.text, x: '50%', y: geo.y, x_anchor: '50%', y_anchor: geo.y_anchor, x_alignment: '50%', width: geo.width, font_family: fontFamily, font_size: geo.font_size, font_weight: '800', line_height: '110%', fill_color: '#ffffff', stroke_color: ADS_V2_CLOSE_REAL_SPEECH_STROKE_COLOR, stroke_width: ADS_V2_CLOSE_REAL_SPEECH_STROKE_WIDTH }); continue } // KINEO-CLOSE-REAL-LEGENDA-1910 — a fala: branca com o contorno da legenda dos filmes, SEM pílula (sem background_*); o gancho segue na linha de baixo, como estava"
+  ]
+ ]
+}

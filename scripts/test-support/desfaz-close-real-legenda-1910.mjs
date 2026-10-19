@@ -13,6 +13,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 export const MARCA_CLOSE_REAL_LEGENDA_1910 = 'KINEO-CLOSE-REAL-LEGENDA-1910'
+import { semCloseRealLegendaPilula1910 } from './desfaz-close-real-legenda-pilula-1910.mjs' // KINEO-CLOSE-REAL-LEGENDA-PILULA-1910 — a pílula de volta veio depois: sai PRIMEIRO (encadeado; texto sem a marca dela passa igual)
 
 /** A base da entrega (origin/main de 19/10: a rodada 3 do Close real + o Faceless 15 s no export limpo). */
 export const CLOSE_REAL_LEGENDA_1910_BASE = 'aae496a30341f6fae981375d5543d31cff5a9eef'
@@ -36,6 +37,7 @@ export const CLOSE_REAL_LEGENDA_1910_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semCloseRealLegenda1910(texto, p) {
+  texto = semCloseRealLegendaPilula1910(texto, p) // KINEO-CLOSE-REAL-LEGENDA-PILULA-1910 — a camada mais nova sai primeiro
   if (typeof texto !== 'string' || !texto.includes(MARCA_CLOSE_REAL_LEGENDA_1910) || !CLOSE_REAL_LEGENDA_1910_ARQUIVOS.includes(p)) return texto
   const crlf = texto.includes('\r\n')
   const trocas = new Map((TROCAS_CLOSE_REAL_LEGENDA_1910[p] ?? []).map(([nova, base]) => [nova, base]))
