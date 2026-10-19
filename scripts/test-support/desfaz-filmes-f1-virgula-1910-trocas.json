@@ -40,5 +40,11 @@
    "const rd = (p) => lf(semFilmesF1F3Ajuste1910(semCloseRealV3_1910(semFilmesF1Virgula1910(readFileSync(join(ROOT, p), 'utf8'), p), p), p)) // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a camada do export limpo (a mais nova) sai primeiro, depois a rodada 3 do Close real e o ajuste F1/F3, em memória",
    "const rd = (p) => lf(semFilmesF1F3Ajuste1910(semCloseRealV3_1910(readFileSync(join(ROOT, p), 'utf8'), p), p)) // KINEO-CLOSE-REAL-V3-1910 — reancorado: este guardião lê o texto SEM a rodada 3 (provada em scripts/test-close-real-v3-1910.mjs) e depois sem o ajuste do Faceless 15 s"
   ]
+ ],
+ "scripts/test-close-real-v3-1910.mjs": [
+  [
+   "const rd = (p) => lf(semFilmesF1Virgula1910(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a camada do export limpo (mesclada depois, nos guardiões do ajuste F1/F3 e do Close real) sai PRIMEIRO, em memória",
+   "const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))"
+  ]
  ]
 }
