@@ -23,6 +23,7 @@ export const CLOSE_REAL_AJUSTE_1910_ARQUIVOS = [
   "lib/ads/v2CopyFit.ts",
   "lib/ads/v2PlanCore.ts",
   "scripts/test-close-real-1910.mjs",
+  "scripts/test-filmes-f1f4-1910.mjs",
   "scripts/test-support/desfaz-apresentador-v2-libera-1910.mjs",
   "scripts/test-support/desfaz-close-real-1910.mjs"
 ]
@@ -165,6 +166,16 @@ export const TROCAS_CLOSE_REAL_AJUSTE_1910 = {
     [
       "const carregar = (over = {}, mocks = {}, env = {}) => createOfflineLoader({ mocks: { 'node:zlib': zlib, ...mocks }, env, source: (rel, text) => (Object.hasOwn(over, rel) ? over[rel] : semCloseRealAjuste1910(text, rel)) }) // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: executa o formato na régua de antes do ajuste",
       "const carregar = (over = {}, mocks = {}, env = {}) => createOfflineLoader({ mocks: { 'node:zlib': zlib, ...mocks }, env, source: (rel, text) => (Object.hasOwn(over, rel) ? over[rel] : text) })"
+    ]
+  ],
+  "scripts/test-filmes-f1f4-1910.mjs": [
+    [
+      "const rd = (p) => lf(semCloseRealAjuste1910(readFileSync(join(RAIZ, p), 'utf8'), p)) // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: lê o texto SEM o ajuste do Close real",
+      "const rd = (p) => lf(readFileSync(join(RAIZ, p), 'utf8'))"
+    ],
+    [
+      "  const rdAlheio = (p) => { try { const sha = execFileSync('git', ['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F4_1910}`, '--grep=KINEO-CLOSE-REAL-AJUSTE-1910', '--', p], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); return sha ? lf(execFileSync('git', ['show', `${sha}:${p}`], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()) : null } catch { return null } } // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: a versão 'alheia' pula também os commits do ajuste do Close real",
+      "  const rdAlheio = (p) => { try { const sha = execFileSync('git', ['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F4_1910}`, '--', p], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); return sha ? lf(execFileSync('git', ['show', `${sha}:${p}`], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()) : null } catch { return null } }"
     ]
   ]
 }
