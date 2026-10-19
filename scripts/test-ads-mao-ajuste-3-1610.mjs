@@ -31,11 +31,12 @@ import { desfazFiel7_1610 } from './test-support/desfaz-ads-fiel-7-1610.mjs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semMaoJuiz1610 } from './test-support/desfaz-ads-mao-juiz-1610.mjs' // reancorado KINEO-ADS-MAO-JUIZ-1610
 import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]: a entrega mais nova sai antes da comparação com a base
+import { semFilmesF1F4_1910 } from './test-support/desfaz-filmes-f1f4-1910.mjs' // reancorado KINEO-FILMES-F1-F4-1910 [TRAVA 8.2 — vai do fundador 19/10 "vai, sim pra tudo"]: as linhas marcadas da rota do compose (Faceless 15 s) saem antes da comparação com a base
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-MAO-AJUSTE-3-1610'
-const rd = (p) => semMaoJuiz1610(p, semFilmeRapido1710(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-ADS-MAO-JUIZ-1610 — o conserto do juiz veio depois: este guardião lê o texto SEM ele (já LF); ele é provado em scripts/test-ads-mao-juiz-1610.mjs /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */
+const rd = (p) => semMaoJuiz1610(p, semFilmeRapido1710(semFilmesF1F4_1910(readFileSync(join(ROOT, p), 'utf8'), p), p) /* reancorado KINEO-FILMES-F1-F4-1910 */) // reancorado KINEO-ADS-MAO-JUIZ-1610 — o conserto do juiz veio depois: este guardião lê o texto SEM ele (já LF); ele é provado em scripts/test-ads-mao-juiz-1610.mjs /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return git('show', `${MAO_AJUSTE_3_1610_BASE}:${p}`).replace(/\r\n/g, '\n') } catch { return null } }
 let pass = 0

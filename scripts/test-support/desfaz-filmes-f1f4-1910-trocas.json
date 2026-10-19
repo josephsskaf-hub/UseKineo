@@ -1,0 +1,80 @@
+{
+  "scripts/test-ads-mao-ajuste-3-1610.mjs": [
+    [
+      "const rd = (p) => semMaoJuiz1610(p, semFilmeRapido1710(semFilmesF1F4_1910(readFileSync(join(ROOT, p), 'utf8'), p), p) /* reancorado KINEO-FILMES-F1-F4-1910 */) // reancorado KINEO-ADS-MAO-JUIZ-1610 — o conserto do juiz veio depois: este guardião lê o texto SEM ele (já LF); ele é provado em scripts/test-ads-mao-juiz-1610.mjs /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */",
+      "const rd = (p) => semMaoJuiz1610(p, semFilmeRapido1710(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-ADS-MAO-JUIZ-1610 — o conserto do juiz veio depois: este guardião lê o texto SEM ele (já LF); ele é provado em scripts/test-ads-mao-juiz-1610.mjs /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */"
+    ]
+  ],
+  "scripts/test-ads-mao-juiz-1610.mjs": [
+    [
+      "const rd = (p) => desfazJuizGrade1610(p, semFilmeRapido1710(semFilmesF1F4_1910(readFileSync(join(ROOT, p), 'utf8'), p), p) /* reancorado KINEO-FILMES-F1-F4-1910 · reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 (inclusive a reancoragem do guardião da 3ª rodada) sai antes */) // reancorado KINEO-JUIZ-GRADE-1610 — a grade do juiz (modelo/variante da calibração) veio depois: este guardião lê o texto SEM ela (já LF); ela é provada em scripts/test-juiz-grade-1610.mjs",
+      "const rd = (p) => desfazJuizGrade1610(p, semFilmeRapido1710(readFileSync(join(ROOT, p), 'utf8'), p) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 (inclusive a reancoragem do guardião da 3ª rodada) sai antes */) // reancorado KINEO-JUIZ-GRADE-1610 — a grade do juiz (modelo/variante da calibração) veio depois: este guardião lê o texto SEM ela (já LF); ela é provada em scripts/test-juiz-grade-1610.mjs"
+    ]
+  ],
+  "scripts/test-estrela-sobretaxa-assinada-2026-10-01.mjs": [
+    [
+      "const semTrilha15s1610 = (texto, p) => semTrilha15s1610Puro(semFilmeRapido1710(semFilmesF1F4_1910(texto, p), p), p) /* reancorado KINEO-FILMES-F1-F4-1910 */ // reancorado KINEO-FILME-RAPIDO-1710",
+      "const semTrilha15s1610 = (texto, p) => semTrilha15s1610Puro(semFilmeRapido1710(texto, p), p) // reancorado KINEO-FILME-RAPIDO-1710"
+    ],
+    [
+      "const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) || linhaDosFilmesF1F4_1910(l) /* reancorado KINEO-FILMES-F1-F4-1910 */ // reancorado KINEO-FILME-RAPIDO-1710",
+      "const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) // reancorado KINEO-FILME-RAPIDO-1710"
+    ],
+    [
+      "const compose = semFilmesF1F4_1910(ler('app/api/compose/route.ts'), 'app/api/compose/route.ts') // reancorado KINEO-FILMES-F1-F4-1910",
+      "const compose = ler('app/api/compose/route.ts')"
+    ]
+  ],
+  "scripts/test-filme-rapido-1710.mjs": [
+    [
+      "    if (base === null || SUP.semFilmeRapido1710(semFilmesF1F4_1910(rd(p), p), p) !== base) ruins.push(p) // reancorado KINEO-FILMES-F1-F4-1910",
+      "    if (base === null || SUP.semFilmeRapido1710(rd(p), p) !== base) ruins.push(p)"
+    ]
+  ],
+  "scripts/test-gancho-1q-2026-10-03.mjs": [
+    [
+      "const rota = semFilmesF1F4_1910(read(ROTA), ROTA) // reancorado KINEO-FILMES-F1-F4-1910",
+      "const rota = read(ROTA)"
+    ]
+  ],
+  "scripts/test-parceiro-eyebible-1410.mjs": [
+    [
+      "  try { desfeito = semParceiroEyebible1410(p, desfazParceiroEyebible2_1410(p, desfazAncoraEJuizStill1410(p, semFilmeRapido1710(semFilmesF1F4_1910(atual, p), p) /* reancorado KINEO-FILMES-F1-F4-1910 · reancorado KINEO-FILME-RAPIDO-1710 */))) /* KINEO-ANCORA-LEGENDA-1410 */ } catch (e) { desfeito = `ERRO ${e.message}` }",
+      "  try { desfeito = semParceiroEyebible1410(p, desfazParceiroEyebible2_1410(p, desfazAncoraEJuizStill1410(p, semFilmeRapido1710(atual, p) /* reancorado KINEO-FILME-RAPIDO-1710 */))) /* KINEO-ANCORA-LEGENDA-1410 */ } catch (e) { desfeito = `ERRO ${e.message}` }"
+    ]
+  ],
+  "scripts/test-sem-legenda-2026-10-06.mjs": [
+    [
+      "const SRC_ROTA = semFilmesF1F4_1910(read(ROTA), ROTA) // reancorado KINEO-FILMES-F1-F4-1910",
+      "const SRC_ROTA = read(ROTA)"
+    ]
+  ],
+  "scripts/test-veo-marcado-2026-09-29.mjs": [
+    [
+      "  checa(`${p} byte a byte igual à base${p === 'app/api/compose/route.ts' ? ' (fora o import e o bloco marcados KINEO-VOZ-15S-MESMA-DA-MONTAGEM, só acrescentados)' : ''}`, rdBase(p) !== null && rdBase(p) === semVoz15(p, desfazCobertura15s(p, semLogo(p, desfazEscritorOmni(p, desfazH3max(p, desfazParserVoice1510(p, desfazParceiroEyebible1410(p, desfazParceiroEyebible2_1410(p, semFilmeRapido1710(semFilmesF1F4_1910(rd(p), p), p) /* reancorado KINEO-FILMES-F1-F4-1910 · reancorado KINEO-FILME-RAPIDO-1710 */)))))))) /* reancorado KINEO-PARSER-VOICE-1510 · KINEO-PARCEIRO-EYEBIBLE-1410 */)",
+      "  checa(`${p} byte a byte igual à base${p === 'app/api/compose/route.ts' ? ' (fora o import e o bloco marcados KINEO-VOZ-15S-MESMA-DA-MONTAGEM, só acrescentados)' : ''}`, rdBase(p) !== null && rdBase(p) === semVoz15(p, desfazCobertura15s(p, semLogo(p, desfazEscritorOmni(p, desfazH3max(p, desfazParserVoice1510(p, desfazParceiroEyebible1410(p, desfazParceiroEyebible2_1410(p, semFilmeRapido1710(rd(p), p) /* reancorado KINEO-FILME-RAPIDO-1710 */)))))))) /* reancorado KINEO-PARSER-VOICE-1510 · KINEO-PARCEIRO-EYEBIBLE-1410 */)"
+    ],
+    [
+      "const semTrilha15s1610 = (texto, p) => semTrilha15s1610Puro(semFilmeRapido1710(semFilmesF1F4_1910(texto, p), p), p) /* reancorado KINEO-FILMES-F1-F4-1910 */ // reancorado KINEO-FILME-RAPIDO-1710",
+      "const semTrilha15s1610 = (texto, p) => semTrilha15s1610Puro(semFilmeRapido1710(texto, p), p) // reancorado KINEO-FILME-RAPIDO-1710"
+    ],
+    [
+      "const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) || linhaDosFilmesF1F4_1910(l) /* reancorado KINEO-FILMES-F1-F4-1910 */ // reancorado KINEO-FILME-RAPIDO-1710",
+      "const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) // reancorado KINEO-FILME-RAPIDO-1710"
+    ]
+  ],
+  "scripts/test-veo-modo-ia-2026-09-29.mjs": [
+    [
+      "  checa(`${p} byte a byte igual à base${p === 'app/api/compose/route.ts' ? ' (fora o import e o bloco marcados KINEO-VOZ-15S-MESMA-DA-MONTAGEM, só acrescentados)' : ''}`, rdBase(p) !== null && rdBase(p) === semCurtas(semVoz15(p, desfazCobertura15s(p, semLogo(p, desfazEscritorOmni(p, desfazH3max(p, desfazParceiroEyebible1410(p, semFilmeRapido1710(semFilmesF1F4_1910(rd(p), p), p) /* reancorado KINEO-FILMES-F1-F4-1910 · reancorado KINEO-FILME-RAPIDO-1710 */)))))))) // reancorado KINEO-DURACOES-CURTAS: lib/narrationFit ganhou só um comentário marcado",
+      "  checa(`${p} byte a byte igual à base${p === 'app/api/compose/route.ts' ? ' (fora o import e o bloco marcados KINEO-VOZ-15S-MESMA-DA-MONTAGEM, só acrescentados)' : ''}`, rdBase(p) !== null && rdBase(p) === semCurtas(semVoz15(p, desfazCobertura15s(p, semLogo(p, desfazEscritorOmni(p, desfazH3max(p, desfazParceiroEyebible1410(p, semFilmeRapido1710(rd(p), p) /* reancorado KINEO-FILME-RAPIDO-1710 */)))))))) // reancorado KINEO-DURACOES-CURTAS: lib/narrationFit ganhou só um comentário marcado"
+    ],
+    [
+      "const semTrilha15s1610 = (texto, p) => semTrilha15s1610Puro(semFilmeRapido1710(semFilmesF1F4_1910(texto, p), p), p) /* reancorado KINEO-FILMES-F1-F4-1910 */ // reancorado KINEO-FILME-RAPIDO-1710",
+      "const semTrilha15s1610 = (texto, p) => semTrilha15s1610Puro(semFilmeRapido1710(texto, p), p) // reancorado KINEO-FILME-RAPIDO-1710"
+    ],
+    [
+      "const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) || linhaDosFilmesF1F4_1910(l) /* reancorado KINEO-FILMES-F1-F4-1910 */ // reancorado KINEO-FILME-RAPIDO-1710",
+      "const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) // reancorado KINEO-FILME-RAPIDO-1710"
+    ]
+  ]
+}

@@ -23,6 +23,7 @@
 //   G  desfaz (scripts/test-support/desfaz-filme-rapido-1710.mjs): cada arquivo protegido, desfeito, é EXATAMENTE a base.
 //   M  mutantes: cada um é aplicado (provado por diferença de texto) e deixa a verificação-alvo VERMELHA.
 import fs from 'node:fs'
+import { semFilmesF1F4_1910 } from './test-support/desfaz-filmes-f1f4-1910.mjs' // reancorado KINEO-FILMES-F1-F4-1910 [TRAVA 8.2 — vai do fundador 19/10 "vai, sim pra tudo"]: as linhas marcadas da rota do compose (Faceless 15 s) saem antes da comparação com a base
 import path from 'node:path'
 import vm from 'node:vm'
 import crypto from 'node:crypto'
@@ -423,7 +424,7 @@ try {
   for (const p of SUP.ARQUIVOS_PROTEGIDOS_FILME_RAPIDO_1710) {
     let base = null
     try { base = git('show', `${BASE}:${p}`).replace(/\r\n/g, '\n') } catch { base = null }
-    if (base === null || SUP.semFilmeRapido1710(rd(p), p) !== base) ruins.push(p)
+    if (base === null || SUP.semFilmeRapido1710(semFilmesF1F4_1910(rd(p), p), p) !== base) ruins.push(p) // reancorado KINEO-FILMES-F1-F4-1910
   }
   checa(`G1 ${SUP.ARQUIVOS_PROTEGIDOS_FILME_RAPIDO_1710.length} arquivos protegidos: desfeitos = base ${String(BASE).slice(0, 10)}`, !!BASE && SUP.ARQUIVOS_PROTEGIDOS_FILME_RAPIDO_1710.length >= 8 && ruins.length === 0, ruins.join(', '))
   checa('G2 o desfaz é idempotente (sem a marca devolve igual) e nunca toca linha sem a marca', SUP.semFilmeRapido1710('a\nb', 'x') === 'a\nb' && SUP.semFilmeRapido1710('a\nb // KINEO-FILME-RAPIDO-1710\nc', 'x') === 'a\nc')

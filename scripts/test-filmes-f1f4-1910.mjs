@@ -21,7 +21,7 @@ import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
-import { semFilmesF1F4_1910, MARCA_FILMES_F1F4_1910, ACRESCIMOS_FILMES_F1F4_1910 } from './test-support/desfaz-filmes-f1f4-1910.mjs'
+import { semFilmesF1F4_1910, MARCA_FILMES_F1F4_1910, ACRESCIMOS_FILMES_F1F4_1910, TROCAS_FILMES_F1F4_1910 } from './test-support/desfaz-filmes-f1f4-1910.mjs'
 import { sintetizarSfxFaceless15, sha256, SFX_FACELESS15_ARQUIVOS } from './gerar-sfx-faceless15-1910.mjs'
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
@@ -59,6 +59,19 @@ for (const p of ['lib/compose.ts', 'lib/hookFirstFrame.ts', 'lib/lyriaMusic.ts']
 }
 checa('A3 a rota, sem as linhas marcadas, é BYTE A BYTE a base (só acréscimos)', (() => { try { return semFilmesF1F4_1910(rota, ROTA) === rdBase(ROTA) } catch { return false } })())
 checa('A4 contagem exata de acréscimos na rota', rota.split('\n').filter((l) => l.includes(MARCA_FILMES_F1F4_1910)).length === ACRESCIMOS_FILMES_F1F4_1910[ROTA])
+{
+  // os guardiões reancorados: cada troca da tabela existe no arquivo vivo, e o arquivo desfeito é EXATAMENTE a base
+  const ruins = []
+  for (const [p, trocas] of Object.entries(TROCAS_FILMES_F1F4_1910)) {
+    const vivo = rd(p)
+    const base = rdBase(p)
+    const linhas = vivo.split('\n')
+    if (base === null || !trocas.every(([nova, antiga]) => linhas.includes(nova) && base.split('\n').includes(antiga) && nova.includes(MARCA_FILMES_F1F4_1910) && !antiga.includes(MARCA_FILMES_F1F4_1910))) { ruins.push(p); continue }
+    try { if (semFilmesF1F4_1910(vivo, p) !== base) ruins.push(p) } catch { ruins.push(p) }
+  }
+  checa(`A4b ${Object.keys(TROCAS_FILMES_F1F4_1910).length} guardiões reancorados: cada troca da tabela está no arquivo vivo e na base; desfeitos (trocas + import marcado) = base byte a byte`, Object.keys(TROCAS_FILMES_F1F4_1910).length >= 9 && ruins.length === 0)
+  checa('A4c o desfaz é idempotente e nunca toca linha sem a marca', semFilmesF1F4_1910('a\nb', 'x') === 'a\nb' && semFilmesF1F4_1910(`a\nb // ${MARCA_FILMES_F1F4_1910}\nc`, 'x') === 'a\nc')
+}
 {
   const iBuild = rota.indexOf('source = buildCreatomateSource({')
   const iRes = rota.indexOf('const faceless15 = resolverFaceless15({')
