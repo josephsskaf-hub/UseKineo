@@ -10,7 +10,7 @@ export const MARCA_FILMES_F1F4_1910 = 'KINEO-FILMES-F1-F4-1910'
 
 /** Arquivos protegidos que a entrega toca, com a contagem EXATA de linhas acrescentadas (marcadas). */
 export const ACRESCIMOS_FILMES_F1F4_1910 = {
-  'app/api/compose/route.ts': 4,
+  'app/api/compose/route.ts': 6,
 }
 export const ARQUIVOS_FILMES_F1F4_1910 = Object.keys(ACRESCIMOS_FILMES_F1F4_1910)
 

@@ -19,7 +19,7 @@ import { normalizeAspect } from '@/lib/aspect'
 import { findBrandLogoUrl, withBrandLogo } from '@/lib/brandLogo' // KINEO-LOGO-DA-MARCA-2026-10-01
 import { withHookFirstFrame, hookNarration } from '@/lib/hookFirstFrame' // KINEO-GANCHO-1Q-2026-10-03
 import { isInternalEmail } from '@/lib/internalAccounts' // KINEO-GANCHO-1Q-2026-10-03
-import { resolverFaceless15, aplicarFaceless15 } from '@/lib/filmes/faceless15' // KINEO-FILMES-F1-F4-1910 [TRAVA 8.2 — vai do fundador 19/10 "vai, sim pra tudo"] — a receita "Faceless 15 s" (F1 legenda · F2 gancho · F3 som · F4 5 planos), fase a fase, atrás de interruptores
+import { resolverFaceless15, aplicarFaceless15, aplicarGanchoFaceless15 } from '@/lib/filmes/faceless15' // KINEO-FILMES-F1-F4-1910 [TRAVA 8.2 — vai do fundador 19/10 "vai, sim pra tudo"] — a receita "Faceless 15 s" (F1 legenda · F2 gancho · F3 som · F4 5 planos), fase a fase, atrás de interruptores
 import { captionFontFor } from '@/lib/textLanguage' // KINEO-GANCHO-1Q-2026-10-03
 import { decidirLegenda, tirarLegendaEGancho } from '@/lib/semLegenda' // KINEO-SEM-LEGENDA-2026-10-06
 import { registrarVersaoDaCasa, registrarSemLegendaIgnorado } from '@/lib/semLegendaServer' // KINEO-SEM-LEGENDA-2026-10-06
@@ -3520,6 +3520,8 @@ export async function POST(req: NextRequest) {
     withBrandLogo(source, await findBrandLogoUrl(authenticatedUserId, composeAdmin)) // KINEO-LOGO-DA-MARCA-2026-10-01
     // KINEO-GANCHO-1Q-2026-10-03 — idem no caminho clássico, com o texto que o TTS leu (scaledScript); avatar (rosto no quadro) e Studio Ads (narration_source 'tts' no modo serviço) ficam de fora.
     { const g = withHookFirstFrame(source, { interna: isInternalEmail(user.email), narration: scaledScript, font: captionFontFor(language), skip: avatarMode || (isServiceFinish && body.narration_source === 'tts') }); if (g.applied) console.log(`[compose] KINEO-GANCHO-1Q-2026-10-03: "${g.phrase}" y=${g.y}`) } // KINEO-GANCHO-1Q-2026-10-03
+    { const g2 = aplicarGanchoFaceless15(source, faceless15, { narration: scaledScript, font: captionFontFor(language) }); if (faceless15.ativo) console.log(`[compose] KINEO-FILMES-F1-F4-1910 F2 ${g2.motivo}${g2.frase ? ` "${g2.frase}" y=${g2.y}` : ''}`) } // KINEO-FILMES-F1-F4-1910 — F2: no formato o gancho escrito segue a fase (ligada = entra também para quem não é interno; desligada = sai mesmo da conta interna, uma variável por vez); fora do formato, nada muda
+    if (faceless15.ativo) void writeServerEvent({ name: 'faceless15_fases', userId: authenticatedUserId, sessionId: generationId ?? null, path: '/api/compose', metadata: { fases: faceless15.fases, pedidas: faceless15.pedidas, ignoradas: faceless15.ignoradas, relato: faceless15Relato } }) // KINEO-FILMES-F1-F4-1910 — rastro por filme (medir % ≥95 antes × depois, fase a fase); nunca bloqueia a entrega
 
     // KINEO-ADS-SEM-LEGENDA-2026-09-26 — fundador: "tem que ter opção de sem legenda". As legendas saem do montador
     // (lib/compose, trava 8.2) como elementos de texto nas trilhas 5 (palavra falada) e 7 (destaques). Quando o

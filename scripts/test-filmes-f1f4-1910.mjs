@@ -68,6 +68,11 @@ checa('A4 contagem exata de acréscimos na rota', rota.split('\n').filter((l) =>
   checa('A5 ordem na rota: builder → resolver → aplicar (síncrono, sem await entre) → logo da marca', iBuild > 0 && iCatch > iBuild && iRes > iCatch && iApl > iRes && iLogo > iApl && (iAwait < 0 || iBuild + iAwait < iCatch))
   checa('A6 a conta interna vem do servidor (isInternalEmail(user.email)); quality/duração/quadro/avatar/Ads entram na decisão', rota.slice(iRes, iApl).includes('interna: isInternalEmail(user.email)') && ['quality, duration', 'aspect: aspectRequested', 'avatar: avatarMode', "studioAds: isServiceFinish && body.narration_source === 'tts'"].every((s) => rota.slice(iRes, iApl).includes(s)))
   checa('A7 o pedido é formatFlags (ou format_flags) do corpo; o Whisper da legenda e os segundos assinados dos clipes entram no contexto', rota.slice(iRes, iApl).includes('.formatFlags ??') && rota.slice(iApl, iLogo).includes('whisperWords: legendaWords ?? null') && rota.slice(iApl, iLogo).includes('signedClipPlan?.seconds ?? null'))
+  const iHook = rota.indexOf('{ const g = withHookFirstFrame(source, {')
+  const iG2 = rota.indexOf('const g2 = aplicarGanchoFaceless15(source, faceless15, { narration: scaledScript, font: captionFontFor(language) })')
+  const iEv = rota.indexOf("if (faceless15.ativo) void writeServerEvent({ name: 'faceless15_fases'")
+  const iCap = rota.indexOf('if (body.captions === false) {')
+  checa('A8 F2 na rota: logo DEPOIS do gancho da conta interna (withHookFirstFrame) e antes do captions:false; o rastro (evento faceless15_fases) vem junto e não bloqueia', iHook > iLogo && iG2 > iHook && iEv > iG2 && iCap > iEv && rota.slice(iEv, iCap).includes('relato: faceless15Relato'))
 }
 
 // ═══ cenário: 15 s do Seedance 1.5, 36 palavras em 4 frases (HOOK · MR1 · MR2 · PAYOFF) a 2,56 pal/s ═══════════════
@@ -189,6 +194,33 @@ function provas({ C, F, H, montar }) {
     const rq = F.aplicarFaceless15(quebrado, interna(F, ['f1']), { whisperWords: [{ word: 'x' }] })
     p['D10 falha numa fase = a fase não entra e o filme sai (voz e clipes intactos)'] = rq.ativo === true && trilha(quebrado, 4).length === 1 && trilha(quebrado, 2).length === trilha(ref, 2).length
   }
+  // ── E · F2 (gancho escrito no 1º quadro)
+  {
+    const T = H.GANCHO_1Q_TRACK
+    const s1 = montar()
+    H.withHookFirstFrame(s1, { interna: true, narration: NARRACAO, font: 'Montserrat' })
+    const n1 = trilha(s1, T, 'text').length
+    const r1 = F.aplicarGanchoFaceless15(s1, interna(F, ['f1']), { narration: NARRACAO, font: 'Montserrat' })
+    p['E1 formato + f2 desligada: o gancho que a rota já deu à conta interna SAI (uma variável por vez)'] = n1 === 1 && r1.motivo === 'removido_f2_desligada' && trilha(s1, T).length === 0
+    const s2 = montar()
+    const r2 = F.aplicarGanchoFaceless15(s2, interna(F, ['f2']), { narration: NARRACAO, font: 'Montserrat' })
+    const g2 = trilha(s2, T, 'text')
+    p["E2 formato + f2 ligada: o gancho entra (≤8 palavras, no topo, 0–2,5 s, trilha 11), medido contra legenda/marca d'água como sempre"] = r2.aplicado === true && r2.motivo === 'ok' && g2.length === 1 && g2[0].time === 0 && g2[0].duration === 2.5 && palavrasDoTexto(g2[0].text) <= 8 && pct(g2[0].y) < 25 && g2[0].y_anchor === '0%'
+    const r2b = F.aplicarGanchoFaceless15(s2, interna(F, ['f2']), { narration: NARRACAO, font: 'Montserrat' })
+    p['E3 gancho já na tela: não duplica'] = r2b.motivo === 'ja_aplicado' && trilha(s2, T).length === 1
+    const s3 = montar()
+    F.aplicarFaceless15(s3, interna(F, ['f1', 'f2']), { whisperWords: WORDS })
+    const r3b = F.aplicarGanchoFaceless15(s3, interna(F, ['f1', 'f2']), { narration: NARRACAO, font: 'Montserrat' })
+    p['E4 com a legenda da F1 (62 %) o gancho ainda cabe acima dela (sem colisão)'] = r3b.aplicado === true && r3b.motivo === 'ok'
+    const s4 = montar()
+    H.withHookFirstFrame(s4, { interna: true, narration: NARRACAO })
+    const foto4 = JSON.stringify(s4)
+    const r4 = F.aplicarGanchoFaceless15(s4, interna(F, ['f2'], { duration: 35 }), { narration: NARRACAO })
+    p['E5 fora do formato: o source não muda (o gancho da conta interna fica como desde 03/10)'] = r4.motivo === 'formato_inativo' && JSON.stringify(s4) === foto4
+    const s5 = montar()
+    const r5 = F.aplicarGanchoFaceless15(s5, externa(F, ['f2']), { narration: NARRACAO })
+    p['E6 cliente pedindo f2: nada entra; GANCHO_1Q_PUBLIC de lib/hookFirstFrame segue false'] = r5.motivo === 'formato_inativo' && trilha(s5, T).length === 0 && H.GANCHO_1Q_PUBLIC === false
+  }
   return p
 }
 
@@ -213,6 +245,8 @@ mut('sem antecipação', F15, 'export const FACELESS15_LEGENDA_ANTECIPACAO_S = 0
 mut('payoff sem amarelo', F15, "fill_color: amarelo ? FACELESS15_AMARELO : '#ffffff'", "fill_color: '#ffffff'", ['D7'])
 mut('conta externa aceita o pedido', F15, 'if (input.interna === true) pedidas.push(...pedidasBrutas)', 'pedidas.push(...pedidasBrutas)', ['B1', 'C1 claim'])
 mut('formato ignora a duração', F15, 'if (Number(input.duration) !== FACELESS15_DURATION) foraDoFormato.push', 'if (false) foraDoFormato.push', ['B3'])
+mut('f2: gancho entra mesmo com a fase desligada', F15, "if (decisao.fases.includes('f2')) {", 'if (true) {', ['E1'])
+mut('f2: gancho da conta interna não sai com a fase desligada', F15, '.filter((e) => !ehTexto(e, GANCHO_1Q_TRACK))', '.filter(() => true)', ['E1'])
 
 console.log(`\n${falhas.length === 0 ? '✅' : '❌'} ${ok} verdes, ${falhas.length} vermelhas`)
 if (falhas.length) { console.error('\nFalhas:'); for (const f of falhas) console.error('  · ' + f); process.exit(1) }

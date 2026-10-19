@@ -20,6 +20,7 @@
 // enter_transition, e as de texto da legenda). Nada inédito sem render de validação (regra da casa).
 
 import { buildCaptionElements, buildCaptionsFromWhisperWords, sentenceStartTimes, type WhisperWord } from '@/lib/compose'
+import { withHookFirstFrame, GANCHO_1Q_TRACK, type HookFirstFrameResult } from '@/lib/hookFirstFrame'
 
 export type FaseFaceless15 = 'f1' | 'f2' | 'f3' | 'f4' | 'cta'
 export const FASES_FACELESS15: readonly FaseFaceless15[] = ['f1', 'f2', 'f3', 'f4', 'cta']
@@ -226,6 +227,40 @@ export function aplicarF1Faceless15(els: ReadonlyArray<El>, quadro: QuadroFacele
     els: saida,
     relato: { chunker, chunks, elementos: novas.length, palavrasMax, payoffEm: payoff, amarelos: novas.filter((e) => e.fill_color === FACELESS15_AMARELO).length },
   }
+}
+
+// ── F2 · gancho escrito no 1º quadro (§3.7) ──────────────────────────────────────────────────────────────────────────
+// lib/hookFirstFrame.ts NÃO muda: GANCHO_1Q_PUBLIC continua false para os outros formatos. Aqui, DENTRO do formato, o
+// gancho segue a fase: ligada = entra também para quem não é conta interna (o withHookFirstFrame mede a colisão com a
+// legenda — já na posição da F1 quando ela está ligada — e com marca d'água/logo, como sempre); desligada = SAI, mesmo
+// da conta interna, para a F0/F1/F3/F4 serem testadas uma variável por vez. Fora do formato nada muda (a rota já aplicou
+// o gancho da conta interna, como desde 03/10).
+export interface RelatoF2 {
+  aplicado: boolean
+  motivo: 'formato_inativo' | 'ja_aplicado' | 'removido_f2_desligada' | 'f2_desligada' | HookFirstFrameResult['reason']
+  frase: string | null
+  y: string | null
+}
+
+export function aplicarGanchoFaceless15(
+  source: Record<string, unknown>,
+  decisao: Faceless15Decisao,
+  opts: { narration: string | null | undefined; font?: string | null; skip?: boolean },
+): RelatoF2 {
+  if (!decisao || !decisao.ativo) return { aplicado: false, motivo: 'formato_inativo', frase: null, y: null }
+  const els = (source as { elements?: unknown }).elements
+  if (!Array.isArray(els)) return { aplicado: false, motivo: 'sem_source', frase: null, y: null }
+  const ganchos = (els as El[]).filter((e) => ehTexto(e, GANCHO_1Q_TRACK))
+  if (decisao.fases.includes('f2')) {
+    if (ganchos.length > 0) return { aplicado: true, motivo: 'ja_aplicado', frase: String(ganchos[0].text ?? ''), y: String(ganchos[0].y ?? '') }
+    const g = withHookFirstFrame(source, { interna: true, narration: opts.narration, font: opts.font, skip: opts.skip })
+    return { aplicado: g.applied, motivo: g.reason, frase: g.phrase, y: g.y }
+  }
+  if (ganchos.length > 0) {
+    ;(source as { elements: unknown[] }).elements = (els as El[]).filter((e) => !ehTexto(e, GANCHO_1Q_TRACK))
+    return { aplicado: false, motivo: 'removido_f2_desligada', frase: null, y: null }
+  }
+  return { aplicado: false, motivo: 'f2_desligada', frase: null, y: null }
 }
 
 // ── a aplicação (F1/F3/F4 em cima do source montado) ─────────────────────────────────────────────────────────────────
