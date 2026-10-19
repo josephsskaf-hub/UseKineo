@@ -97,6 +97,12 @@
    "  relata('F toda linha nova/trocada da rota e do sceneTruth leva a marca', add.length > 0 && add.every((l) => l.includes(MARCA) || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */), add.filter((l) => !l.includes(MARCA) && !linhaDaTrilha15s1610(l)).slice(0, 2).join(' | '))"
   ]
  ],
+ "scripts/test-close-real-ajuste-1910.mjs": [
+  [
+   "import { semMeta95Assunto1910 } from './test-support/desfaz-meta95-assunto-1910.mjs' // KINEO-META95-ASSUNTO-1910 — reancorado: o assunto traduzido (19/10, a camada mais nova nos guardiões reancorados) sai PRIMEIRO, em memória",
+   "const rd = (p) => lf(semFilmesF1F3Ajuste1910(semCloseRealV3_1910(semFilmesF1Virgula1910(readFileSync(join(ROOT, p), 'utf8'), p), p), p)) // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a camada do export limpo (a mais nova) sai primeiro, depois a rodada 3 do Close real e o ajuste F1/F3, em memória"
+  ]
+ ],
  "scripts/test-contrato-classicos-1410.mjs": [
   [
    "  return add.length > 0 && add.every((l) => l.includes(MARCA) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || linhaDoParceiroEyebible2_1410(l) || linhaDaAncoraLegenda1410(l) /* KINEO-ANCORA-LEGENDA-1410 */ || linhaDoJuizStill1410(l) /* reancorado KINEO-JUIZ-STILL-1410 */ || linhaDaCenaNegacao1510(l) /* reancorado KINEO-CENA-NEGACAO-1510 */ || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */) // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410: as linhas da 2ª leva levam a marca DELA",
@@ -123,6 +129,16 @@
   [
    "checa('só o plano visual muda (aiPrompt) e passa pelo scrub de cenário; a narração (voiceover) não é tocada no bloco', rt.includes('scenes[c.index].aiPrompt = historiaAlinhada === null ? c.shot : scrubInventedSetting(c.shot, historiaAlinhada).text') && !rt.slice(iAlign, iPrompts).includes('.voiceover =')) /* reancorado KINEO-META95-ASSUNTO-1910 — null (assunto em outra língua sem tradução) = plano reescrito sobe sem o scrub */",
    "checa('só o plano visual muda (aiPrompt) e passa pelo scrub de cenário; a narração (voiceover) não é tocada no bloco', rt.includes('scenes[c.index].aiPrompt = scrubInventedSetting(c.shot, historiaAlinhada).text') && !rt.slice(iAlign, iPrompts).includes('.voiceover ='))"
+  ]
+ ],
+ "scripts/test-filmes-f1-virgula-1910.mjs": [
+  [
+   "  const alheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA}`, '--grep=KINEO-CLOSE-REAL-LEGENDA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } } // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a versão 'alheia' pula também os commits da legenda menor do Close real",
+   "  const alheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA}`, '--grep=KINEO-CLOSE-REAL-LEGENDA-1910', 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } } // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a versão 'alheia' pula também os commits da legenda menor do Close real"
+  ],
+  [
+   "    const vivo = semCloseRealLegenda1910(semMeta95Assunto1910(rd(p), p), p) /* reancorado KINEO-META95-ASSUNTO-1910: a camada do assunto traduzido sai primeiro */ // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: sem a camada da legenda menor (mais nova), em memória",
+   "    const vivo = semCloseRealLegenda1910(rd(p), p) // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: sem a camada da legenda menor (mais nova), em memória"
   ]
  ],
  "scripts/test-filmes-f1f4-1910.mjs": [
