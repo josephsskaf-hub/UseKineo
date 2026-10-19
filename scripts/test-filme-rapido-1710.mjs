@@ -413,6 +413,7 @@ console.log('\nF. Studio Ads (trilha e voz no início; o ator intocado) e clipes
 // ═══ G. desfaz ═════════════════════════════════════════════════════════════════════════════════════════════════════
 console.log('\nG. desfeita a entrega, cada arquivo protegido é EXATAMENTE a base')
 const SUP = await import(pathToFileURL(path.join(RAIZ, 'scripts/test-support/desfaz-filme-rapido-1710.mjs')).href)
+const { desfazApresentadorV2Libera1910 } = await import(pathToFileURL(path.join(RAIZ, 'scripts/test-support/desfaz-apresentador-v2-libera-1910.mjs')).href) // reancorado KINEO-APRESENTADOR-V2-LIBERA-1910: a liberação de 19/10 (camada mais nova) sai antes da comparação com a base
 let BASE = null
 try {
   const shas = git('log', '--format=%H', '--grep=KINEO-FILME-RAPIDO-1710', 'HEAD').trim().split('\n').filter(Boolean)
@@ -423,13 +424,14 @@ try {
   for (const p of SUP.ARQUIVOS_PROTEGIDOS_FILME_RAPIDO_1710) {
     let base = null
     try { base = git('show', `${BASE}:${p}`).replace(/\r\n/g, '\n') } catch { base = null }
-    if (base === null || SUP.semFilmeRapido1710(rd(p), p) !== base) ruins.push(p)
+    if (base === null || SUP.semFilmeRapido1710(desfazApresentadorV2Libera1910(p, rd(p)), p) !== base) ruins.push(p) // reancorado KINEO-APRESENTADOR-V2-LIBERA-1910: era SUP.semFilmeRapido1710(rd(p), p)
   }
   checa(`G1 ${SUP.ARQUIVOS_PROTEGIDOS_FILME_RAPIDO_1710.length} arquivos protegidos: desfeitos = base ${String(BASE).slice(0, 10)}`, !!BASE && SUP.ARQUIVOS_PROTEGIDOS_FILME_RAPIDO_1710.length >= 8 && ruins.length === 0, ruins.join(', '))
   checa('G2 o desfaz é idempotente (sem a marca devolve igual) e nunca toca linha sem a marca', SUP.semFilmeRapido1710('a\nb', 'x') === 'a\nb' && SUP.semFilmeRapido1710('a\nb // KINEO-FILME-RAPIDO-1710\nc', 'x') === 'a\nc')
   const assuntos = git('log', '--format=%s', '--grep=KINEO-FILME-RAPIDO-1710', 'HEAD').trim().split('\n').filter(Boolean)
   checa('G3 todo commit da entrega traz a tag da TRAVA 8.2 no assunto', assuntos.length > 0 && assuntos.every((s) => s.includes('[TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]')), assuntos.find((s) => !s.includes('[TRAVA 8.2')) ?? '')
-  const tocados = git('diff', '--name-only', `${BASE}`, 'HEAD').split('\n').filter(Boolean)
+  const topoFR = git('log', '--format=%H', '--grep=KINEO-FILME-RAPIDO-1710', 'HEAD').trim().split('\n').filter(Boolean)[0] || 'HEAD' // reancorado KINEO-APRESENTADOR-V2-LIBERA-1910: mede a entrega até o SEU último commit (as camadas de depois têm guardião próprio)
+  const tocados = git('diff', '--name-only', `${BASE}`, topoFR).split('\n').filter(Boolean) // reancorado KINEO-APRESENTADOR-V2-LIBERA-1910: era git('diff', '--name-only', `${BASE}`, 'HEAD')
   checa('G4 nada de preço, créditos, motores, roteiro ou réguas; o apresentador do Ads intocado', !tocados.some((p) => /engineCost|pricing|lib\/credits\/|engineLaunch|lib\/ads\/v2PresenterV2|lib\/ads\/v2Advance\.ts|lib\/ads\/v2Billing|v2Tiers|durationByEngine|speechRate|narrationFit/.test(p)), tocados.filter((p) => /engineCost|pricing|lib\/credits\/|v2PresenterV2|v2Advance\.ts/.test(p)).join(', '))
 }
 
