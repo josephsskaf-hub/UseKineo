@@ -10,7 +10,7 @@
 export const MARCA_CLOSE_REAL_1910 = 'KINEO-CLOSE-REAL-1910'
 
 /** O pai do 1º commit da entrega (origin/main de 19/10). */
-export const CLOSE_REAL_1910_BASE = '0a1b6282cea96483325c49a4fe9382b52d208760'
+export const CLOSE_REAL_1910_BASE = '358ea4e21b9c9f0a7a924b0eab5713fa4e860aa9'
 
 /** Arquivos que a entrega toca (só acréscimos marcados + as trocas listadas). */
 export const CLOSE_REAL_1910_ARQUIVOS = [
@@ -73,6 +73,7 @@ export const CLOSE_REAL_1910_ARQUIVOS = [
   "scripts/test-apresentador-v2-1710.mjs",
   "scripts/test-apresentador-v2-ajuste-1710.mjs",
   "scripts/test-apresentador-v2-ajuste-3-1710.mjs",
+  "scripts/test-apresentador-v2-libera-1910.mjs",
   "scripts/test-ator-sem-depoimento-1310.mjs",
   "scripts/test-atores-ia-1310.mjs",
   "scripts/test-centro-ads-gancho-1410.mjs",
@@ -509,6 +510,12 @@ export const TROCAS_CLOSE_REAL_1910 = {
     [
       "const rd = (p) => semFilmeRapido1710(desfazApresentadorV2Libera1910(p, semCloseReal1910(readFileSync(join(ROOT, p), 'utf8'), p)), p).replace(/\\r\\n/g, '\\n') // reancorado KINEO-APRESENTADOR-V2-LIBERA-1910: a liberação de 19/10 sai primeiro (é a camada mais nova), depois a entrega de 17/10 // o arquivo VIVO (esta é a camada mais nova) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */ /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */",
       "const rd = (p) => semFilmeRapido1710(desfazApresentadorV2Libera1910(p, readFileSync(join(ROOT, p), 'utf8')), p).replace(/\\r\\n/g, '\\n') // reancorado KINEO-APRESENTADOR-V2-LIBERA-1910: a liberação de 19/10 sai primeiro (é a camada mais nova), depois a entrega de 17/10 // o arquivo VIVO (esta é a camada mais nova) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */"
+    ]
+  ],
+  "scripts/test-apresentador-v2-libera-1910.mjs": [
+    [
+      "const rd = (p) => semCloseReal1910(readFileSync(join(ROOT, p), 'utf8'), p).replace(/\\r\\n/g, '\\n') // o arquivo VIVO (esta é a camada mais nova) /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */",
+      "const rd = (p) => readFileSync(join(ROOT, p), 'utf8').replace(/\\r\\n/g, '\\n') // o arquivo VIVO (esta é a camada mais nova)"
     ]
   ],
   "scripts/test-ator-sem-depoimento-1310.mjs": [
