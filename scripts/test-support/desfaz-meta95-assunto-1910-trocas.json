@@ -90,5 +90,103 @@
    "  const emCtx = (b: string) => ctx.has(b) || ctx.has(b + 's') || ctx.has(b + 'es') || (b.length > 4 && /s$/.test(b) && (ctx.has(b.slice(0, -1)) || (/es$/.test(b) && ctx.has(b.slice(0, -2))))) // KINEO-META95-ASSUNTO-1910 — plural de um lado só",
    "  const known = (w: string) => ctx.has(base(w)) || SETTING_ALLOW.has(base(w))"
   ]
+ ],
+ "scripts/test-cena-negacao-1510.mjs": [
+  [
+   "  relata('F toda linha nova/trocada da rota e do sceneTruth leva a marca', add.length > 0 && add.every((l) => l.includes(MARCA) || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */ || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */), add.filter((l) => !l.includes(MARCA) && !linhaDaTrilha15s1610(l) && !l.includes('KINEO-META95-ASSUNTO-1910')).slice(0, 2).join(' | '))",
+   "  relata('F toda linha nova/trocada da rota e do sceneTruth leva a marca', add.length > 0 && add.every((l) => l.includes(MARCA) || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */), add.filter((l) => !l.includes(MARCA) && !linhaDaTrilha15s1610(l)).slice(0, 2).join(' | '))"
+  ]
+ ],
+ "scripts/test-contrato-classicos-1410.mjs": [
+  [
+   "  return add.length > 0 && add.every((l) => l.includes(MARCA) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || linhaDoParceiroEyebible2_1410(l) || linhaDaAncoraLegenda1410(l) /* KINEO-ANCORA-LEGENDA-1410 */ || linhaDoJuizStill1410(l) /* reancorado KINEO-JUIZ-STILL-1410 */ || linhaDaCenaNegacao1510(l) /* reancorado KINEO-CENA-NEGACAO-1510 */ || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */) // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410: as linhas da 2ª leva levam a marca DELA",
+   "  return add.length > 0 && add.every((l) => l.includes(MARCA) || linhaDoParceiroEyebible2_1410(l) || linhaDaAncoraLegenda1410(l) /* KINEO-ANCORA-LEGENDA-1410 */ || linhaDoJuizStill1410(l) /* reancorado KINEO-JUIZ-STILL-1410 */ || linhaDaCenaNegacao1510(l) /* reancorado KINEO-CENA-NEGACAO-1510 */ || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */) // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410: as linhas da 2ª leva levam a marca DELA"
+  ]
+ ],
+ "scripts/test-duracoes-curtas-todos-motores-2026-09-29.mjs": [
+  [
+   "  const nomes = ['verbatim', 'wantsKling', 'wantsVeo', 'wantsSora', 'parsedScript', 'narrationRate', 'narrationLanguage', 'body', 'prompt', 'hollywoodPath', 'generateScenes', 'classicVisualPolicy', 'SCENE_WRITER_INPUT_MAX_CHARS', 'resolveVerbatimSegments', 'shortCaptionFromVoiceover', 'comVocabularioDoLugar' /* KINEO-MONUMENTO-2026-10-13 */, 'removerDatasInventadas', 'scrubInventedSetting', 'filtrarFalaSemBuraco' /* reancorado KINEO-META95-ASSUNTO-1910 */, 'seedanceShortMarkedScenes', 'pistasDosTrechos', 'isSeedance15', 'SEEDANCE_SHORT_SECONDS', 'SEEDANCE_SHORT_CLIPS', 'seedanceShortSpeechSeconds', 'seedanceShortClipSeconds', 'SEEDANCE_720P_USD_PER_SECOND', 'wordsPerSceneFor', 'KLING25_CLIP_LOSS_SECONDS', 'VEO_MAX_SHOTS', 'cenasSemDescricaoDoModelo', 'console',",
+   "  const nomes = ['verbatim', 'wantsKling', 'wantsVeo', 'wantsSora', 'parsedScript', 'narrationRate', 'narrationLanguage', 'body', 'prompt', 'hollywoodPath', 'generateScenes', 'classicVisualPolicy', 'SCENE_WRITER_INPUT_MAX_CHARS', 'resolveVerbatimSegments', 'shortCaptionFromVoiceover', 'comVocabularioDoLugar' /* KINEO-MONUMENTO-2026-10-13 */, 'removerDatasInventadas', 'scrubInventedSetting', 'seedanceShortMarkedScenes', 'pistasDosTrechos', 'isSeedance15', 'SEEDANCE_SHORT_SECONDS', 'SEEDANCE_SHORT_CLIPS', 'seedanceShortSpeechSeconds', 'seedanceShortClipSeconds', 'SEEDANCE_720P_USD_PER_SECOND', 'wordsPerSceneFor', 'KLING25_CLIP_LOSS_SECONDS', 'VEO_MAX_SHOTS', 'cenasSemDescricaoDoModelo', 'console',"
+  ],
+  [
+   "    comVocabularioDoLugar: MON.comVocabularioDoLugar, /* KINEO-MONUMENTO-2026-10-13 */ removerDatasInventadas: (t) => ({ texto: t, removidas: [] }), scrubInventedSetting: (t) => ({ text: t, removed: [] }), filtrarFalaSemBuraco: (t) => ({ texto: t, removidas: [], mantidas: [], reescritas: [] }), /* reancorado KINEO-META95-ASSUNTO-1910 */",
+   "    comVocabularioDoLugar: MON.comVocabularioDoLugar, /* KINEO-MONUMENTO-2026-10-13 */ removerDatasInventadas: (t) => ({ texto: t, removidas: [] }), scrubInventedSetting: (t) => ({ text: t, removed: [] }),"
+  ]
+ ],
+ "scripts/test-escritor-monumento-1310.mjs": [
+  [
+   "checa('a fala clássica segue filtrada com o vocabulário do lugar', rt.includes('const contextoFalaClassica = comVocabularioDoLugar(prompt) // KINEO-MONUMENTO-2026-10-13') && rt.includes('const f = filtrarFalaSemBuraco(sc.voiceover, contextoFalaClassica) // KINEO-META95-ASSUNTO-1910')) /* reancorado KINEO-META95-ASSUNTO-1910 — datas + nomes agora via filtrarFalaSemBuraco (frase a frase, sem buraco) */",
+   "checa('a fala clássica segue filtrada com o vocabulário do lugar', rt.includes('const contextoFalaClassica = comVocabularioDoLugar(prompt) // KINEO-MONUMENTO-2026-10-13') && rt.includes('const r = removerDatasInventadas(sc.voiceover, contextoFalaClassica)') && rt.includes('const r2 = scrubInventedSetting(r.texto, contextoFalaClassica)'))"
+  ]
+ ],
+ "scripts/test-fala-x-imagem-2026-09-16.mjs": [
+  [
+   "checa('só o plano visual muda (aiPrompt) e passa pelo scrub de cenário; a narração (voiceover) não é tocada no bloco', rt.includes('scenes[c.index].aiPrompt = historiaAlinhada === null ? c.shot : scrubInventedSetting(c.shot, historiaAlinhada).text') && !rt.slice(iAlign, iPrompts).includes('.voiceover =')) /* reancorado KINEO-META95-ASSUNTO-1910 — null (assunto em outra língua sem tradução) = plano reescrito sobe sem o scrub */",
+   "checa('só o plano visual muda (aiPrompt) e passa pelo scrub de cenário; a narração (voiceover) não é tocada no bloco', rt.includes('scenes[c.index].aiPrompt = scrubInventedSetting(c.shot, historiaAlinhada).text') && !rt.slice(iAlign, iPrompts).includes('.voiceover ='))"
+  ]
+ ],
+ "scripts/test-h3-palavras-2026-09-15.mjs": [
+  [
+   "const params = ['plan', 'verbatim', 'duration', 'DIALOGUE_CAP', 'SCENE_CAP', 'FILLER_LINE_RE', 'expandVoiceoversToTargets', 'appendNarrationToTargets', 'hollywoodLanguage', 'prompt', 'apararComFolga', 'removerDatasInventadas' /* 15/09 R4 */, 'scrubInventedSetting' /* 15/09 R9 */, 'filtrarFalaSemBuraco' /* reancorado KINEO-META95-ASSUNTO-1910 */, 'comVocabularioDoLugar' /* KINEO-MONUMENTO-2026-10-13 */, 'planSilenceReport', 'writeServerEvent', 'user', 'generationId', 'family', 'verbatimOverflowWords', 'MAX_VERBATIM_SCENES', 'hollywoodVoiceover', 'releaseBirthClaim', 'cinematicAdmin', 'body', 'NextResponse', 'hollywoodTarget', 'requestedDuration', 'degrau', 'formatoVisual', 'resolveCharacterVoice', 'cinematicSceneModel', 'buildFalInput', 'confirmCinematicRefund', 'SILENCE_SCENE_MAX_SECONDS', 'SILENCE_TOTAL_MAX_SECONDS', 'fitCinematicPlanFloor', 'console', 'resolveHollywoodVoice', 'hollywoodVertical', 'sceneNarrationsForPlan']",
+   "const params = ['plan', 'verbatim', 'duration', 'DIALOGUE_CAP', 'SCENE_CAP', 'FILLER_LINE_RE', 'expandVoiceoversToTargets', 'appendNarrationToTargets', 'hollywoodLanguage', 'prompt', 'apararComFolga', 'removerDatasInventadas' /* 15/09 R4 */, 'scrubInventedSetting' /* 15/09 R9 */, 'comVocabularioDoLugar' /* KINEO-MONUMENTO-2026-10-13 */, 'planSilenceReport', 'writeServerEvent', 'user', 'generationId', 'family', 'verbatimOverflowWords', 'MAX_VERBATIM_SCENES', 'hollywoodVoiceover', 'releaseBirthClaim', 'cinematicAdmin', 'body', 'NextResponse', 'hollywoodTarget', 'requestedDuration', 'degrau', 'formatoVisual', 'resolveCharacterVoice', 'cinematicSceneModel', 'buildFalInput', 'confirmCinematicRefund', 'SILENCE_SCENE_MAX_SECONDS', 'SILENCE_TOTAL_MAX_SECONDS', 'fitCinematicPlanFloor', 'console', 'resolveHollywoodVoice', 'hollywoodVertical', 'sceneNarrationsForPlan']"
+  ],
+  [
+   "  apararComFolga: FID.apararComFolga, comVocabularioDoLugar: MON.comVocabularioDoLugar, /* KINEO-MONUMENTO-2026-10-13 */ removerDatasInventadas: FID.removerDatasInventadas ?? ((t) => ({ texto: t, removidas: [] })), scrubInventedSetting: (t) => ({ text: t, removed: [] }), filtrarFalaSemBuraco: (t, c) => { const r = (FID.removerDatasInventadas ?? ((x) => ({ texto: x, removidas: [] })))(t, c); return { texto: r.texto, removidas: r.removidas, mantidas: [], reescritas: [] } }, /* reancorado KINEO-META95-ASSUNTO-1910 */ planSilenceReport: TL.planSilenceReport, writeServerEvent: async (e) => { (ctxBase.eventos ??= []).push(e); return true },",
+   "  apararComFolga: FID.apararComFolga, comVocabularioDoLugar: MON.comVocabularioDoLugar, /* KINEO-MONUMENTO-2026-10-13 */ removerDatasInventadas: FID.removerDatasInventadas ?? ((t) => ({ texto: t, removidas: [] })), scrubInventedSetting: (t) => ({ text: t, removed: [] }), planSilenceReport: TL.planSilenceReport, writeServerEvent: async (e) => { (ctxBase.eventos ??= []).push(e); return true },"
+  ]
+ ],
+ "scripts/test-kling3-imagens-2026-09-17.mjs": [
+  [
+   "checa('reescrita passa pelo scrub de cenário e vira evento scene_speech_alignment com engine = família', rt.includes('plan.scenes[idxs[c.index]].prompt = historiaH === null ? c.shot : scrubInventedSetting(c.shot, historiaH).text') /* reancorado KINEO-META95-ASSUNTO-1910 */ && rt.includes(\"metadata: { version: SPEECH_IMAGE_ALIGN_VERSION, engine: family, ...alinhado.relato\"))",
+   "checa('reescrita passa pelo scrub de cenário e vira evento scene_speech_alignment com engine = família', rt.includes('plan.scenes[idxs[c.index]].prompt = scrubInventedSetting(c.shot, historiaH).text') && rt.includes(\"metadata: { version: SPEECH_IMAGE_ALIGN_VERSION, engine: family, ...alinhado.relato\"))"
+  ]
+ ],
+ "scripts/test-monumento-real-1310.mjs": [
+  [
+   "checa('fala clássica: datas e nomes contra o pedido + vocabulário do lugar', rt.includes(`const contextoFalaClassica = comVocabularioDoLugar(prompt) // ${MARCA}`) && rt.includes('const f = filtrarFalaSemBuraco(sc.voiceover, contextoFalaClassica) // KINEO-META95-ASSUNTO-1910') && rt.includes(`\"O : uma área\") [${MARCA}]`) && rt.includes(`if (f.mantidas.length) mantidas.push(...f.mantidas) // KINEO-META95-ASSUNTO-1910 [${MARCA}]`)) /* reancorado KINEO-META95-ASSUNTO-1910 — a fala passa por filtrarFalaSemBuraco (datas + nomes, frase a frase) com o mesmo contexto */",
+   "checa('fala clássica: datas e nomes contra o pedido + vocabulário do lugar', rt.includes(`const contextoFalaClassica = comVocabularioDoLugar(prompt) // ${MARCA}`) && rt.includes(`const r = removerDatasInventadas(sc.voiceover, contextoFalaClassica) // ${MARCA}`) && rt.includes(`const r2 = scrubInventedSetting(r.texto, contextoFalaClassica) // ${MARCA}`))"
+  ],
+  [
+   "checa('planos clássicos: história com vocabulário (scrub e supervisor)', rt.includes('const historia = await contextoDoFiltro(comVocabularioDoLugar(`${prompt} ${scenes.map((s) => s.voiceover ?? \\'\\').join(\\' \\')}`)) // KINEO-META95-ASSUNTO-1910') && rt.includes('const historiaAlinhada = await contextoDoFiltro(comVocabularioDoLugar(`${prompt} ${scenes.map((sc) => sc.voiceover ?? \\'\\').join(\\' \\')}`)) // KINEO-META95-ASSUNTO-1910') && rt.split(`[${MARCA}]`).length >= 5) /* reancorado KINEO-META95-ASSUNTO-1910 — o contexto com vocabulário do lugar ganha o assunto traduzido por fora */",
+   "checa('planos clássicos: história com vocabulário (scrub e supervisor)', rt.includes(`const historia = comVocabularioDoLugar(\\`\\${prompt} \\${scenes.map((s) => s.voiceover ?? '').join(' ')}\\`) // ${MARCA}`) && rt.includes(`const historiaAlinhada = comVocabularioDoLugar(\\`\\${prompt} \\${scenes.map((sc) => sc.voiceover ?? '').join(' ')}\\`) // ${MARCA}`))"
+  ]
+ ],
+ "scripts/test-qualidade-comprovada-2026-09-15.mjs": [
+  [
+   "  checa('varredura final: contexto = só o pedido (o brief da IA trazia a data) e nomes/lugares inventados saem da fala (scrubInventedSetting)', rc.includes('const contextoDatas = comVocabularioDoLugar(prompt) // KINEO-MONUMENTO-2026-10-13') && MON.comVocabularioDoLugar('Create a 60-second historical documentary about the 1958 Lituya Bay megatsunami') === 'Create a 60-second historical documentary about the 1958 Lituya Bay megatsunami' && rc.includes('const f = filtrarFalaSemBuraco(v, contextoDatas, { repararExistentes: true })') /* reancorado KINEO-META95-ASSUNTO-1910 */ && rd('lib/hollywood/router.ts').includes(\"const contexto = String(idea ?? '')\"))",
+   "  checa('varredura final: contexto = só o pedido (o brief da IA trazia a data) e nomes/lugares inventados saem da fala (scrubInventedSetting)', rc.includes('const contextoDatas = comVocabularioDoLugar(prompt) // KINEO-MONUMENTO-2026-10-13') && MON.comVocabularioDoLugar('Create a 60-second historical documentary about the 1958 Lituya Bay megatsunami') === 'Create a 60-second historical documentary about the 1958 Lituya Bay megatsunami' && rc.includes('const r2 = scrubInventedSetting(r.texto, contextoDatas)') && rd('lib/hollywood/router.ts').includes(\"const contexto = String(idea ?? '')\"))"
+  ]
+ ],
+ "scripts/test-s25-nota95-2026-10-06.mjs": [
+  [
+   "    ensaio = carrega(`export async function ensaio(ctx: any) {\\n  const { family, plan, prompt, hollywoodLanguage, alignShotsToSpeech, scrubInventedSetting, contextoDoFiltro /* reancorado KINEO-META95-ASSUNTO-1910 */, planejarCenasS25, ambienteComEpoca, epocaDoFilmeS25, montarPromptS25, garantirAcaoCentral, silenciarFalaNoPrompt, eraSuffix } = ctx\\n${corpoEnsaio}\\n  return s25Ensaio\\n}`).ensaio",
+   "    ensaio = carrega(`export async function ensaio(ctx: any) {\\n  const { family, plan, prompt, hollywoodLanguage, alignShotsToSpeech, scrubInventedSetting, planejarCenasS25, ambienteComEpoca, epocaDoFilmeS25, montarPromptS25, garantirAcaoCentral, silenciarFalaNoPrompt, eraSuffix } = ctx\\n${corpoEnsaio}\\n  return s25Ensaio\\n}`).ensaio"
+  ],
+  [
+   "    const ctxEnsaio = (alinha) => ({ family: 's25', plan: { scenes: plano.map((s) => ({ ...s })), characterSheet: f.characterSheet, environmentSheet: f.environmentSheet, styleSheet: ESTILO }, prompt: f.roteiro, hollywoodLanguage: 'en', alignShotsToSpeech: alinha, scrubInventedSetting: (t) => ({ text: t, removed: [] }), contextoDoFiltro: async (c) => c, /* reancorado KINEO-META95-ASSUNTO-1910 */ planejarCenasS25: S.planejarCenasS25, ambienteComEpoca: S.ambienteComEpoca, epocaDoFilmeS25: S.epocaDoFilmeS25, montarPromptS25: S.montarPromptS25, garantirAcaoCentral: F.garantirAcaoCentral, silenciarFalaNoPrompt: F.silenciarFalaNoPrompt, eraSuffix: f.eraSuffix })",
+   "    const ctxEnsaio = (alinha) => ({ family: 's25', plan: { scenes: plano.map((s) => ({ ...s })), characterSheet: f.characterSheet, environmentSheet: f.environmentSheet, styleSheet: ESTILO }, prompt: f.roteiro, hollywoodLanguage: 'en', alignShotsToSpeech: alinha, scrubInventedSetting: (t) => ({ text: t, removed: [] }), planejarCenasS25: S.planejarCenasS25, ambienteComEpoca: S.ambienteComEpoca, epocaDoFilmeS25: S.epocaDoFilmeS25, montarPromptS25: S.montarPromptS25, garantirAcaoCentral: F.garantirAcaoCentral, silenciarFalaNoPrompt: F.silenciarFalaNoPrompt, eraSuffix: f.eraSuffix })"
+  ]
+ ],
+ "scripts/test-seedance-blocos-e-voz-2026-09-29.mjs": [
+  [
+   "    comVocabularioDoLugar: MON.comVocabularioDoLugar, /* KINEO-MONUMENTO-2026-10-13 */ removerDatasInventadas: (t) => ({ texto: t, removidas: [] }), scrubInventedSetting: (t) => ({ text: t, removed: [] }), filtrarFalaSemBuraco: (t) => ({ texto: t, removidas: [], mantidas: [], reescritas: [] }), /* reancorado KINEO-META95-ASSUNTO-1910 */",
+   "    comVocabularioDoLugar: MON.comVocabularioDoLugar, /* KINEO-MONUMENTO-2026-10-13 */ removerDatasInventadas: (t) => ({ texto: t, removidas: [] }), scrubInventedSetting: (t) => ({ text: t, removed: [] }),"
+  ]
+ ],
+ "scripts/test-trilha-15s-1610.mjs": [
+  [
+   "  relata('F toda linha nova/trocada da rota e do visualPromptPolicy leva a marca', add.length > 0 && add.every((l) => linhaDaTrilha15s1610(l) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */), add.filter((l) => !linhaDaTrilha15s1610(l) && !l.includes('KINEO-META95-ASSUNTO-1910')).slice(0, 2).join(' | '))",
+   "  relata('F toda linha nova/trocada da rota e do visualPromptPolicy leva a marca', add.length > 0 && add.every((l) => linhaDaTrilha15s1610(l)), add.filter((l) => !linhaDaTrilha15s1610(l)).slice(0, 2).join(' | '))"
+  ],
+  [
+   "  const assuntos = git('log', '--format=%s', `${base}..HEAD`, '--', ROTA, VPP, LIB).split('\\n').map((s) => s.trim()).filter(Boolean).filter((s) => !s.includes('KINEO-FILME-RAPIDO-1710')).filter((s) => !s.includes('KINEO-META95-ASSUNTO-1910')) // reancorado KINEO-FILME-RAPIDO-1710: os commits da entrega de 17/10 levam o selo deles · reancorado KINEO-META95-ASSUNTO-1910: os de 19/10 levam o selo \"Vai pra meta do 95\"",
+   "  const assuntos = git('log', '--format=%s', `${base}..HEAD`, '--', ROTA, VPP, LIB).split('\\n').map((s) => s.trim()).filter(Boolean).filter((s) => !s.includes('KINEO-FILME-RAPIDO-1710')) // reancorado KINEO-FILME-RAPIDO-1710: os commits da entrega de 17/10 levam o selo deles"
+  ]
+ ],
+ "scripts/test-visual-contract-2026-09-11.mjs": [
+  [
+   "    removerDatasInventadas: (t) => ({ texto: t, removidas: [] }), scrubInventedSetting: (t) => ({ text: t, removed: [] }), filtrarFalaSemBuraco: (t) => ({ texto: t, removidas: [], mantidas: [], reescritas: [] }), /* reancorado KINEO-META95-ASSUNTO-1910 */",
+   "    removerDatasInventadas: (t) => ({ texto: t, removidas: [] }), scrubInventedSetting: (t) => ({ text: t, removed: [] }),"
+  ]
  ]
 }

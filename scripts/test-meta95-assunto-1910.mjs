@@ -175,12 +175,12 @@ console.log('== F. desfaz exato, novos, marca, encadeamento ==')
 {
   const ARQ = SUP.META95_ASSUNTO_1910_ARQUIVOS
   checa(`F1 cada arquivo tocado, desfeito (scripts/test-support/desfaz-meta95-assunto-1910.mjs), é EXATAMENTE a base ${String(BASE).slice(0, 9)}; os novos existem e não existiam lá`,
-    ARQ.length === 4 && ARQ.every((f) => { const b = base(f); return b !== null && lf(SUP.semMeta95Assunto1910(disco(f), f)) === b }) &&
+    ARQ.length === 17 && ARQ.every((f) => { const b = base(f); return b !== null && lf(SUP.semMeta95Assunto1910(disco(f), f)) === b }) &&
     SUP.META95_ASSUNTO_1910_NOVOS.length === 6 && SUP.META95_ASSUNTO_1910_NOVOS.every((f) => existsSync(join(ROOT, f)) && base(f) === null) && SUP.MARCA_META95_ASSUNTO_1910 === MARCA,
     ARQ.filter((f) => { const b = base(f); try { return b === null || lf(SUP.semMeta95Assunto1910(disco(f), f)) !== b } catch (e) { return true } }).join(', '))
   checa('F2 toda linha nova traz a marca (troca listada inteira, a da base existe lá); a marca não contém as das camadas de antes; contagem errada = erro', (() => {
     const ts = Object.entries(SUP.TROCAS_META95_ASSUNTO_1910)
-    return ts.length === 2 && ts.every(([f, l]) => l.every(([nova, antiga]) => nova.includes(MARCA) && !antiga.includes(MARCA) && disco(f).split('\n').includes(nova) && base(f).split('\n').includes(antiga))) &&
+    return ts.length === 15 && ts.every(([f, l]) => l.every(([nova, antiga]) => nova.includes(MARCA) && !antiga.includes(MARCA) && disco(f).split('\n').includes(nova) && base(f).split('\n').includes(antiga))) &&
       ['KINEO-FILME-RAPIDO-1710', 'KINEO-TRILHA-15S', 'KINEO-MONUMENTO-2026-10-13', 'KINEO-CLOSE-REAL-LEGENDA-1910'].every((m) => !MARCA.includes(m)) &&
       ARQ.every((f) => { const b = new Set(base(f).split('\n')); return disco(f).split('\n').filter((l) => !b.has(l)).every((l) => l.includes(MARCA)) }) &&
       (() => { try { SUP.semMeta95Assunto1910(`${disco(VPP)}\nx // ${MARCA}`, VPP); return false } catch { return true } })() && SUP.semMeta95Assunto1910(`a // ${MARCA}`, 'lib/x.ts') === `a // ${MARCA}`

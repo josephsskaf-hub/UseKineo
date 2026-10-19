@@ -24,6 +24,19 @@ export const ACRESCIMOS_META95_ASSUNTO_1910 = {
   'lib/cinematic/visualPromptPolicy.ts': 24,
   'scripts/test-support/desfaz-filme-rapido-1710.mjs': 2,
   'scripts/test-support/desfaz-trilha-15s-1610.mjs': 2,
+  'scripts/test-trilha-15s-1610.mjs': 0,
+  'scripts/test-cena-negacao-1510.mjs': 0,
+  'scripts/test-contrato-classicos-1410.mjs': 0,
+  'scripts/test-monumento-real-1310.mjs': 0,
+  'scripts/test-s25-nota95-2026-10-06.mjs': 0,
+  'scripts/test-fala-x-imagem-2026-09-16.mjs': 0,
+  'scripts/test-qualidade-comprovada-2026-09-15.mjs': 0,
+  'scripts/test-escritor-monumento-1310.mjs': 0,
+  'scripts/test-visual-contract-2026-09-11.mjs': 0,
+  'scripts/test-seedance-blocos-e-voz-2026-09-29.mjs': 0,
+  'scripts/test-duracoes-curtas-todos-motores-2026-09-29.mjs': 0,
+  'scripts/test-h3-palavras-2026-09-15.mjs': 0,
+  'scripts/test-kling3-imagens-2026-09-17.mjs': 0,
 }
 /** [linha nova (inteira), linha da base] por arquivo. */
 export const TROCAS_META95_ASSUNTO_1910 = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-meta95-assunto-1910-trocas.json'), 'utf8'))

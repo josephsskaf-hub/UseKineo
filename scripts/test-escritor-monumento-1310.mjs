@@ -152,7 +152,7 @@ checa('o piso da 2ª passada (expandShortVoiceovers) é o mesmo: 22 × 4', oV.wo
 
 // ═══ (5) nada volta a apagar nome verdadeiro ═══
 console.log('== (5) nomes verdadeiros ==')
-checa('a fala clássica segue filtrada com o vocabulário do lugar', rt.includes('const contextoFalaClassica = comVocabularioDoLugar(prompt) // KINEO-MONUMENTO-2026-10-13') && rt.includes('const r = removerDatasInventadas(sc.voiceover, contextoFalaClassica)') && rt.includes('const r2 = scrubInventedSetting(r.texto, contextoFalaClassica)'))
+checa('a fala clássica segue filtrada com o vocabulário do lugar', rt.includes('const contextoFalaClassica = comVocabularioDoLugar(prompt) // KINEO-MONUMENTO-2026-10-13') && rt.includes('const f = filtrarFalaSemBuraco(sc.voiceover, contextoFalaClassica) // KINEO-META95-ASSUNTO-1910')) /* reancorado KINEO-META95-ASSUNTO-1910 — datas + nomes agora via filtrarFalaSemBuraco (frase a frase, sem buraco) */
 const libSrc = rd('lib/cinematic/escritorNoLugar.ts')
 checa('a lib é pura (sem import, sem I/O) e não toca em fala', !/^import /m.test(libSrc) && !/voiceover/.test(libSrc.replace(/\/\/.*$/gm, '')))
 
