@@ -42,6 +42,13 @@ function Nota({ nota }: { nota: { score: number; verdict: string } | null }) {
   return <span data-kineo="nota-coerencia" title={`nota de coerência (a mesma do /admin/coerencia; ${NOTA_PERFEITA} = perfeito): ${nota.verdict}`} style={selo(COR_NOTA[c])}>nota {nota.score}{c === 'perfeita' ? ' ★' : ''}</span>
 }
 
+// KINEO-META95-REGUA-1910 — a nota NOVA da régua 95 (coerência v2 + pixel; 95 = perfeito), ao lado da nota antiga.
+function NotaRegua95({ r }: { r: { coerencia: number | null; pixel: number | null; nota: number | null; motivo: string | null } | null | undefined }) {
+  if (!r || r.nota == null) return null
+  const c = corDaNota(r.nota)
+  return <span data-kineo="nota-regua95" title={`régua 95 (a menor das duas): coerência v2 ${r.coerencia ?? '—'} · pixel ${r.pixel ?? '—'}${r.motivo ? ` — ${r.motivo}` : ''}`} style={selo(COR_NOTA[c])}>95: {r.nota}{c === 'perfeita' ? ' ★' : ''}</span>
+}
+
 /** Player leve: nada baixa até o toque (preload="none"); sem arquivo, a miniatura ou um quadro vazio. */
 function Player({ url, thumb, rotulo }: { url: string | null; thumb: string | null; rotulo: string }) {
   const base: CSSProperties = { width: '100%', aspectRatio: '9 / 16', maxHeight: 250, borderRadius: 8, background: 'var(--card2)', border: '1px solid var(--border)', objectFit: 'cover', display: 'block' }
@@ -58,6 +65,7 @@ function CartaoFilme({ f }: { f: FilmePessoa }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
         <span style={selo(COR_STATUS[f.status])}>{ROTULO_STATUS[f.status]}</span>
         <Nota nota={f.nota} />
+        <NotaRegua95 r={f.regua95} />
         {f.opiniao && <span title="o que a própria pessoa disse do filme" style={selo('var(--text2)')}>{f.opiniao === 'up' ? '👍' : '👎'}</span>}
       </div>
       <div style={{ fontSize: 11.5, color: 'var(--text2)', fontWeight: 800 }}>{f.motor}{f.segundos ? ` · ${f.segundos}s` : ''}{f.creditos != null ? ` · ${f.creditos} cr` : ''}</div>
@@ -78,6 +86,7 @@ function CartaoAnuncio({ a }: { a: AnuncioPessoa }) {
         ) : (
           <span title="este anúncio não passou pelo juiz do produto" style={{ ...selo('var(--muted)'), fontWeight: 600 }}>sem nota</span>
         )}
+        <NotaRegua95 r={a.regua95} />
       </div>
       <div style={{ fontSize: 11.5, color: 'var(--text2)', fontWeight: 800 }}>Studio Ads{a.degrau ? ` · ${a.degrau}` : ''}{a.segundos ? ` · ${a.segundos}s` : ''}{a.creditos != null ? ` · ${a.creditos} cr` : ''}</div>
       <div style={{ fontSize: 11, ...muted }}>{quando(a.em)}{a.setor ? ` · ${a.setor}` : ''}</div>
@@ -92,7 +101,7 @@ function CartaoClipe({ c }: { c: ClipePessoa }) {
       <Player url={c.url} thumb={null} rotulo={c.motor} />
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
         <span style={selo(COR_STATUS[c.status])}>{ROTULO_STATUS[c.status]}</span>
-        <span style={{ ...selo('var(--muted)'), fontWeight: 600 }}>sem nota</span>
+        {c.regua95?.nota != null ? <NotaRegua95 r={c.regua95} /> : <span style={{ ...selo('var(--muted)'), fontWeight: 600 }}>sem nota</span>}
       </div>
       <div style={{ fontSize: 11.5, color: 'var(--text2)', fontWeight: 800 }}>{c.motor}{c.segundos ? ` · ${c.segundos}s` : ''}{c.creditos != null ? ` · ${c.creditos} cr` : ''}</div>
       <div style={{ fontSize: 11, ...muted }}>{quando(c.em)}</div>

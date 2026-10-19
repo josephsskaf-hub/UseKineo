@@ -23,6 +23,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { AI_ASSISTANT_LIKELY_SOURCE, acquisitionSource } from '@/lib/acquisitionSource'
 import { FAST_COHERENCE_EVENT, FAST_COHERENCE_VERSION } from '@/lib/fastCoherence'
+import { COHERENCE_V2_EVENT, COHERENCE_V2_VERSION } from '@/lib/regua95/coherenceV2' // KINEO-META95-REGUA-1910
+import { PIXEL_SCORE_EVENT, PIXEL_SCORE_VERSION } from '@/lib/regua95/pixelScore' // KINEO-META95-REGUA-1910
+import { notaRegua } from '@/lib/regua95/contexto' // KINEO-META95-REGUA-1910
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { ENGINE_LABEL } from '@/lib/admin/fastCoherence'
 import { MRR_PAID_EVENT_NAMES, isPayingPlan, paidMonthlyUsdByUser, planLabel, type PaidBilling } from '@/app/api/admin/_shared/mrr'
@@ -65,9 +68,11 @@ import {
 } from '@/lib/admin/pessoaTelaRegras'
 
 export type NotaFilme = { score: number; verdict: string }
-export type FilmePessoa = { id: string; em: string; motor: string; segundos: number | null; creditos: number | null; status: StatusItem; url: string | null; thumb: string | null; tema: string | null; nota: NotaFilme | null; opiniao: 'up' | 'down' | null }
-export type AnuncioPessoa = { id: string; em: string; status: StatusItem; statusBruto: string; degrau: string | null; segundos: number | null; creditos: number | null; setor: string | null; url: string | null; thumb: string | null; erro: string | null; juiz: JuizAnuncio | null }
-export type ClipePessoa = { id: string; em: string; motor: string; segundos: number | null; creditos: number | null; status: StatusItem; url: string | null; prompt: string | null; erro: string | null }
+/** KINEO-META95-REGUA-1910 — as notas NOVAS da régua 95 de um vídeo: coerência v2, pixel e a combinada (a menor das duas). */
+export type NotaRegua95Pessoa = { coerencia: number | null; pixel: number | null; nota: number | null; motivo: string | null }
+export type FilmePessoa = { id: string; em: string; motor: string; segundos: number | null; creditos: number | null; status: StatusItem; url: string | null; thumb: string | null; tema: string | null; nota: NotaFilme | null; opiniao: 'up' | 'down' | null; regua95?: NotaRegua95Pessoa | null }
+export type AnuncioPessoa = { id: string; em: string; status: StatusItem; statusBruto: string; degrau: string | null; segundos: number | null; creditos: number | null; setor: string | null; url: string | null; thumb: string | null; erro: string | null; juiz: JuizAnuncio | null; regua95?: NotaRegua95Pessoa | null }
+export type ClipePessoa = { id: string; em: string; motor: string; segundos: number | null; creditos: number | null; status: StatusItem; url: string | null; prompt: string | null; erro: string | null; regua95?: NotaRegua95Pessoa | null }
 export type ImagemPessoa = { id: string; em: string; modelo: string | null; url: string | null }
 export type AudioPessoa = { id: string; em: string; modelo: string | null; url: string | null; segundos: number | null }
 export type AfiliadoInfo = { id: string; codigo: string | null; nome: string | null; status: string | null; tipo: string | null; comissao: number | null; cupom: string | null; desde: string | null; cliques: number | null; ultimoClique: string | null; cadastros: Array<{ email: string | null; status: string | null; em: string | null; converteu: string | null }>; cadastrosTotal: number | null; comissoes: { total: number; pagas: number; pendentes: number; moeda: string | null; n: number } }
@@ -250,6 +255,31 @@ export async function carregarTelaPessoa(admin: SupabaseClient, chave: { id: str
     const score = typeof m.score === 'number' ? m.score : Number(m.score)
     if (Number.isFinite(score)) notaPorVideo.set(vid, { score: Math.round(score), verdict: typeof m.verdict === 'string' ? m.verdict : '' })
   }
+  // ── KINEO-META95-REGUA-1910 — as notas novas da régua 95 (cron /api/cron/regua-95), por entrega: session_id = id do vídeo
+  // (filmes e anúncios) ou do clipe. Só leitura, da pessoa, com teto; falha aberta (sem a leitura, a tela segue sem a nota nova).
+  const reguaPorChave = new Map<string, NotaRegua95Pessoa>()
+  {
+    const r = (await admin.from('events').select('session_id, name, created_at, metadata').eq('user_id', uid).in('name', [COHERENCE_V2_EVENT, PIXEL_SCORE_EVENT]).order('created_at', { ascending: false }).limit(NOTAS_MAX * 2)) as Resp<Array<{ session_id: string | null; name: string; metadata: Record<string, unknown> | null }>>
+    const visto = new Set<string>()
+    for (const e of ok('events(régua 95)', r) ?? []) {
+      const m = e.metadata ?? {}
+      if (!e.session_id || visto.has(`${e.name}:${e.session_id}`)) continue
+      const coer = e.name === COHERENCE_V2_EVENT && m.version === COHERENCE_V2_VERSION
+      const pix = e.name === PIXEL_SCORE_EVENT && m.version === PIXEL_SCORE_VERSION
+      if (!coer && !pix) continue
+      visto.add(`${e.name}:${e.session_id}`)
+      const score = typeof m.score === 'number' && Number.isFinite(m.score) ? Math.round(m.score) : null
+      const atual = reguaPorChave.get(e.session_id) ?? { coerencia: null, pixel: null, nota: null, motivo: null }
+      if (coer) atual.coerencia = score
+      else {
+        atual.pixel = score
+        const caps = Array.isArray(m.caps) ? (m.caps as unknown[]).filter((x): x is string => typeof x === 'string') : []
+        atual.motivo = caps[0] ?? (typeof m.summary === 'string' && m.summary ? m.summary.slice(0, 140) : atual.motivo)
+      }
+      atual.nota = notaRegua(atual.coerencia, atual.pixel)
+      reguaPorChave.set(e.session_id, atual)
+    }
+  }
   // opinião da própria pessoa (film_feedback grava session_id = video_id)
   const opiniao = new Map<string, 'up' | 'down'>()
   for (const e of linhaEv) {
@@ -273,6 +303,7 @@ export async function carregarTelaPessoa(admin: SupabaseClient, chave: { id: str
     tema: typeof v.topic === 'string' ? v.topic.replace(/\s+/g, ' ').trim().slice(0, 140) : null,
     nota: notaPorVideo.get(v.id) ?? null,
     opiniao: opiniao.get(v.id) ?? null,
+    regua95: reguaPorChave.get(v.id) ?? null, // KINEO-META95-REGUA-1910
   }))
 
   // ── anúncios (Studio Ads v2) com o vídeo entregue e o juiz do produto ──
@@ -298,12 +329,14 @@ export async function carregarTelaPessoa(admin: SupabaseClient, chave: { id: str
     thumb: a.card_url ?? (a.video_id ? videoDoAnuncio.get(a.video_id)?.thumb ?? null : null),
     erro: a.error ? a.error.replace(/\s+/g, ' ').slice(0, 160) : null,
     juiz: juiz.get(a.id) ?? null,
+    regua95: a.video_id ? reguaPorChave.get(a.video_id) ?? null : null, // KINEO-META95-REGUA-1910
   }))
 
   type ClipeRow = { id: string; created_at: string; engine: string | null; model: string | null; mode: string | null; seconds: number | null; credits: number | null; credits_refunded: number | null; status: string | null; video_url: string | null; prompt: string | null; failure_reason: string | null }
   const clipes: ClipePessoa[] = (ok('clips', clipesR as Resp<ClipeRow[]>) ?? []).map((c) => ({
     id: c.id, em: c.created_at, motor: [c.engine, c.mode].filter(Boolean).join(' · ') || (c.model ?? '—'), segundos: c.seconds, creditos: c.credits,
     status: statusDoClipe(c.status, c.credits_refunded), url: c.video_url, prompt: c.prompt ? c.prompt.replace(/\s+/g, ' ').slice(0, 120) : null, erro: c.failure_reason ? c.failure_reason.slice(0, 140) : null,
+    regua95: reguaPorChave.get(c.id) ?? null, // KINEO-META95-REGUA-1910
   }))
   const imagens: ImagemPessoa[] = (ok('images', imagensR as Resp<Array<{ id: string; created_at: string; model: string | null; url: string | null; upscaled_url: string | null }>>) ?? []).map((i) => ({ id: i.id, em: i.created_at, modelo: i.model, url: i.upscaled_url ?? i.url }))
   const audios: AudioPessoa[] = (ok('audios', audiosR as Resp<Array<{ id: string; created_at: string; model: string | null; url: string | null; duration_ms: number | null }>>) ?? []).map((a) => ({ id: a.id, em: a.created_at, modelo: a.model, url: a.url, segundos: typeof a.duration_ms === 'number' ? Math.round(a.duration_ms / 100) / 10 : null }))

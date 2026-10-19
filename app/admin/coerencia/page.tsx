@@ -14,6 +14,10 @@ import { ENGINE_LABEL, listFastCoherence, type FastCoherenceRow } from '@/lib/ad
 import { ROTULO_CRITERIO, type CriterioJuiz, type JuizStillPainel } from '@/lib/hollywood/juizStill' // KINEO-JUIZ-STILL-2026-10-06
 import PedirFeedback from './PedirFeedback'
 import AvaliarPendentes from './AvaliarPendentes' // KINEO-ADMIN-RAPIDO-1710
+import AvaliarRegua95 from './AvaliarRegua95' // KINEO-META95-REGUA-1910
+import { lerRegua95, placarRegua, type LinhaRegua95, type NotaRegua95 } from '@/lib/admin/regua95Painel' // KINEO-META95-REGUA-1910
+import { META_95, REGUA95_DEPLOY_DESDE, ROTULO_PRODUTO_REGUA } from '@/lib/regua95/contexto' // KINEO-META95-REGUA-1910
+import type { ProdutoRegua } from '@/lib/regua95/coherenceV2' // KINEO-META95-REGUA-1910
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -66,6 +70,54 @@ function JuizDaFoto({ j }: { j: JuizStillPainel }) {
         </ul>
       )}
     </div>
+  )
+}
+
+// ═══ KINEO-META95-REGUA-1910 — o PLACAR DA RÉGUA 95: as notas novas (coherence_v2 + pixel_score) por produto e por motor ═══
+// "% ≥ 95" e média de cada nota e da combinada (a menor das duas), com corte por data de entrega. Só lê: o cron
+// /api/cron/regua-95 julga a cada 10 min (ou o botão "Avaliar agora").
+const pct = (l: LinhaRegua95['nota']) => (l.pct95 == null ? '—' : `${l.pct95}%`)
+const corPct = (p: number | null) => (p == null ? '#6b7280' : p >= 80 ? '#5FD4A4' : p >= 40 ? '#FFBF58' : '#FF8787')
+function CelulaPlacar({ l }: { l: LinhaRegua95['nota'] }) {
+  if (l.n === 0) return <td style={{ padding: '5px 10px', color: '#6b7280' }}>—</td>
+  return (
+    <td style={{ padding: '5px 10px', whiteSpace: 'nowrap' }}>
+      <b style={{ color: corPct(l.pct95) }}>{pct(l)}</b>
+      <span style={{ color: '#9AA3B2' }}> · média {l.media} · n {l.n}</span>
+    </td>
+  )
+}
+function TabelaRegua95({ linhas, titulo, dataKineo }: { linhas: LinhaRegua95[]; titulo: string; dataKineo: string }) {
+  const th: React.CSSProperties = { padding: '4px 10px', fontWeight: 700, textAlign: 'left' }
+  return (
+    <table data-kineo={dataKineo} style={{ borderCollapse: 'collapse', fontSize: 12, marginBottom: 10 }}>
+      <thead>
+        <tr style={{ color: '#9AA3B2' }}>
+          <th style={{ ...th, paddingLeft: 0 }}>{titulo}</th><th style={th}>nota (menor das duas) · % ≥ {META_95}</th><th style={th}>coerência v2</th><th style={th}>pixel</th><th style={th}>US$</th>
+        </tr>
+      </thead>
+      <tbody>
+        {linhas.map((l) => (
+          <tr key={l.rotulo} style={{ borderTop: '1px solid #161B24' }}>
+            <td style={{ padding: '5px 10px 5px 0', fontWeight: 800, color: '#C9CFD8' }}>{l.rotulo}</td>
+            <CelulaPlacar l={l.nota} />
+            <CelulaPlacar l={l.coerencia} />
+            <CelulaPlacar l={l.pixel} />
+            <td style={{ padding: '5px 10px', color: '#9AA3B2' }}>{l.usd.toFixed(3)}</td>
+          </tr>
+        ))}
+        {linhas.length === 0 && <tr><td colSpan={5} style={{ color: '#9AA3B2', padding: '5px 0' }}>Nenhuma nota nova nessa janela ainda — o cron julga a cada 10 min.</td></tr>}
+      </tbody>
+    </table>
+  )
+}
+function PiorRegua95({ n }: { n: NotaRegua95 }) {
+  return (
+    <li style={{ marginBottom: 3 }}>
+      <b style={{ color: corDaNota(n.nota) }}>{n.nota ?? '—'}</b> <span style={{ color: '#C4B5FD' }}>{ROTULO_PRODUTO_REGUA[n.product]} · {motor(n.engine)}</span> <span style={{ color: '#9AA3B2' }}>{fmt(n.delivered_at)} · coerência {n.coerencia ?? '—'} · pixel {n.pixel ?? '—'}</span>
+      {n.video_url ? <a href={n.video_url} target="_blank" rel="noreferrer" style={{ color: '#8DB4FF', marginLeft: 6 }}>▶</a> : null}
+      {(n.pixel_caps.length > 0 || n.coerencia_problems.length > 0) && <span style={{ color: '#FF8787' }}> — {[...n.pixel_caps, ...n.coerencia_problems].slice(0, 3).join(' · ')}</span>}
+    </li>
   )
 }
 
@@ -202,10 +254,23 @@ export default async function AdminCoerenciaPage({ searchParams }: { searchParam
   }
   const q = (extra: Record<string, string | undefined>) => {
     const p = new URLSearchParams()
-    const merged: Record<string, string | undefined> = { hours: String(hours), engine, so, casa: incluirCasa ? '1' : undefined, ...extra }
+    const merged: Record<string, string | undefined> = { hours: String(hours), engine, so, casa: incluirCasa ? '1' : undefined, desde: desdeParam || undefined /* KINEO-META95-REGUA-1910 */, ...extra }
     for (const [k, v] of Object.entries(merged)) if (v) p.set(k, v)
     return `/admin/coerencia?${p.toString()}`
   }
+
+  // KINEO-META95-REGUA-1910 — placar da régua 95 (notas novas). desde = 'deploy' (padrão: dia desta régua) | '24h' | '7d' | data ISO.
+  const desdeParam = (one('desde') ?? '').trim()
+  const desdeIso = desdeParam === '24h' ? new Date(Date.now() - 24 * 3600_000).toISOString() : desdeParam === '7d' ? new Date(Date.now() - 7 * 24 * 3600_000).toISOString() : desdeParam && !Number.isNaN(Date.parse(desdeParam)) ? new Date(desdeParam).toISOString() : REGUA95_DEPLOY_DESDE
+  let regua: Awaited<ReturnType<typeof lerRegua95>> | null = null
+  try {
+    regua = await lerRegua95(admin, { desde: desdeIso, incluirCasa }, readAll)
+  } catch (e) {
+    console.warn('[admin/coerencia] régua 95 não leu:', e instanceof Error ? e.message : String(e)) // falha aberta: a tela antiga segue
+  }
+  const reguaPorProduto = regua ? placarRegua(regua.notas, (n) => ROTULO_PRODUTO_REGUA[n.product as ProdutoRegua]) : []
+  const reguaPorMotor = regua ? placarRegua(regua.notas, (n) => `${ROTULO_PRODUTO_REGUA[n.product as ProdutoRegua]} · ${motor(n.engine)}`) : []
+  const reguaPiores = regua ? regua.notas.filter((n) => n.nota != null && n.nota < META_95).sort((a, b) => (a.nota ?? 0) - (b.nota ?? 0)).slice(0, 8) : []
 
   return (
     <main style={{ background: '#07090D', minHeight: '100vh', color: '#C9CFD8', fontFamily: 'system-ui, -apple-system, sans-serif', padding: '22px 18px 60px' }}>
@@ -264,6 +329,35 @@ export default async function AdminCoerenciaPage({ searchParams }: { searchParam
             </tr>
           </tbody>
         </table>
+        {/* KINEO-META95-REGUA-1910 — placar da régua 95 */}
+        <section data-kineo="regua95" style={{ border: '1px solid #1F2530', borderRadius: 12, padding: '12px 14px', marginBottom: 16 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'baseline', marginBottom: 8 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 900, margin: 0 }}>Régua 95 — notas novas</h2>
+            <span style={{ color: '#9AA3B2', fontSize: 11.5 }}>coerência v2 (fala + cenas × ideia original, prompt inteiro, 2 leituras) · pixel (8 quadros do MP4 final num modelo de visão) · nota = a menor das duas · todas as entregas: filmes, Ads, UGC/avatar, clipes</span>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 10 }}>
+            <span style={{ color: '#6b7280', fontSize: 11, marginRight: 2 }}>entregas desde</span>
+            {[['', 'o deploy da régua'], ['24h', '24h'], ['7d', '7 dias']].map(([k, l]) => (
+              <Link key={k || 'deploy'} href={q({ desde: k || undefined })} style={desdeParam === k ? chipOn : chip}>{l}</Link>
+            ))}
+            <span style={{ color: '#6b7280', fontSize: 11 }}>{regua ? `${regua.notas.length} entregas com nota nova${regua.casaFora ? ` · ${regua.casaFora} da casa fora` : ''}` : 'placar indisponível agora'}</span>
+            <AvaliarRegua95 hours={hours} />
+          </div>
+          <TabelaRegua95 linhas={reguaPorProduto} titulo="produto" dataKineo="regua95-por-produto" />
+          <details>
+            <summary style={{ color: '#8DB4FF', fontSize: 11.5, fontWeight: 800, cursor: 'pointer' }}>por motor ({reguaPorMotor.length})</summary>
+            <TabelaRegua95 linhas={reguaPorMotor} titulo="produto · motor" dataKineo="regua95-por-motor" />
+          </details>
+          {reguaPiores.length > 0 && (
+            <details style={{ marginTop: 6 }}>
+              <summary style={{ color: '#FF8787', fontSize: 11.5, fontWeight: 800, cursor: 'pointer' }}>abaixo de {META_95} ({reguaPiores.length} piores)</summary>
+              <ul data-kineo="regua95-piores" style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: 12, lineHeight: 1.45 }}>
+                {reguaPiores.map((n) => <PiorRegua95 key={n.key} n={n} />)}
+              </ul>
+            </details>
+          )}
+        </section>
+
         {semNota > 0 && <div data-kineo="sem-nota" style={{ color: '#9AA3B2', fontSize: 12, marginBottom: 10 }}>{semNota} filme{semNota > 1 ? 's' : ''} ainda sem nota — o radar avalia sozinho a cada 15 min, ou agora:<AvaliarPendentes hours={hours} engine={engine} casa={incluirCasa} pendentes={semNota} /></div>}
 
         <div style={{ display: 'grid', gap: 8 }}>
