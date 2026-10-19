@@ -33,7 +33,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => semCloseReal1910(fs.readFileSync(path.join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n') /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
+const rd = (p) => semCloseReal1910(semFilmesF1F4_1910(fs.readFileSync(path.join(RAIZ, p), 'utf8'), p), p).replace(/\r\n/g, '\n') /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */ // reancorado KINEO-FILMES-F1-F4-1910: o Faceless 15 s (camada mais nova) sai primeiro, por dentro do Close real
 const git = (...a) => execFileSync('git', ['-C', RAIZ, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 let ok = 0
 const falhas = []
