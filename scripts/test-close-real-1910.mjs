@@ -20,12 +20,13 @@ import { execFileSync } from 'node:child_process'
 import zlib from 'node:zlib'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semCloseReal1910, CLOSE_REAL_1910_ARQUIVOS, CLOSE_REAL_1910_NOVOS, CLOSE_REAL_1910_BASE, MARCA_CLOSE_REAL_1910, TROCAS_CLOSE_REAL_1910 } from './test-support/desfaz-close-real-1910.mjs'
+import { semFilmesF1F4_1910 } from './test-support/desfaz-filmes-f1f4-1910.mjs' // reancorado KINEO-FILMES-F1-F4-1910 [TRAVA 8.2 — vai do fundador 19/10 "vai, sim pra tudo"]: as linhas marcadas do Faceless 15 s saem antes da comparação com a base
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const MARCA = 'KINEO-CLOSE-REAL-1910'
 const lf = (s) => String(s).split('\r\n').join('\n')
-const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))
+const rd = (p) => lf(semFilmesF1F4_1910(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-FILMES-F1-F4-1910: a camada do Faceless 15 s (mais nova) sai antes da comparação com a base
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return lf(git('show', `${CLOSE_REAL_1910_BASE}:${p}`)) } catch { return null } }
 let pass = 0

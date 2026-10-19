@@ -21,8 +21,9 @@
 //       piso do compose → vermelho.
 import { semTrilha15s1610 as semTrilha15s1610Puro, linhaDaTrilha15s1610 as linhaDaTrilha15s1610Puro, linhasTrocadasTrilha15s1610 as linhasTrocadasTrilha15s1610Puro } from './test-support/desfaz-trilha-15s-1610.mjs' // reancorado KINEO-FILME-RAPIDO-1710: os nomes abaixo também desfazem a entrega mais nova (17/10)
 import { semFilmeRapido1710, linhaDoFilmeRapido1710, linhasTrocadasFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]
-const semTrilha15s1610 = (texto, p) => semTrilha15s1610Puro(semFilmeRapido1710(texto, p), p) // reancorado KINEO-FILME-RAPIDO-1710
-const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) // reancorado KINEO-FILME-RAPIDO-1710
+import { semFilmesF1F4_1910, linhaDosFilmesF1F4_1910 } from './test-support/desfaz-filmes-f1f4-1910.mjs' // reancorado KINEO-FILMES-F1-F4-1910 [TRAVA 8.2 — vai do fundador 19/10 "vai, sim pra tudo"]: as linhas marcadas da rota do compose (Faceless 15 s) saem antes da comparação com a base
+const semTrilha15s1610 = (texto, p) => semTrilha15s1610Puro(semFilmeRapido1710(semFilmesF1F4_1910(texto, p), p), p) /* reancorado KINEO-FILMES-F1-F4-1910 */ // reancorado KINEO-FILME-RAPIDO-1710
+const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) || linhaDosFilmesF1F4_1910(l) /* reancorado KINEO-FILMES-F1-F4-1910 */ // reancorado KINEO-FILME-RAPIDO-1710
 const linhasTrocadasTrilha15s1610 = (p) => [...linhasTrocadasTrilha15s1610Puro(p), ...linhasTrocadasFilmeRapido1710(p)] // reancorado KINEO-FILME-RAPIDO-1710
 import { readFileSync } from 'node:fs'
 import { desfazAncoraLegenda1410, linhaDaAncoraLegenda1410, linhasTrocadasAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
@@ -343,7 +344,7 @@ checa('o plano do modo IA viaja pelo builder da fal do Veo (scene.clipSeconds �
 // ═══ (c) byte a byte ═══
 console.log('== (c) Seedance / Kling 2.5 / Sora / hollywood byte a byte ==')
 for (const p of ['lib/cinematic/klingShots.ts', 'lib/compose.ts', 'lib/cinematic/classicDryRun.ts', 'lib/runway.ts', 'lib/cinematic/sceneWords.ts', 'lib/speechRate.ts', 'lib/narrationFit.ts', 'app/api/compose/route.ts', 'lib/cinematic/speechImageAlign.ts', 'lib/cinematic/sceneDescriptions.ts']) {
-  checa(`${p} byte a byte igual à base${p === 'app/api/compose/route.ts' ? ' (fora o import e o bloco marcados KINEO-VOZ-15S-MESMA-DA-MONTAGEM, só acrescentados)' : ''}`, rdBase(p) !== null && rdBase(p) === semCurtas(semVoz15(p, desfazCobertura15s(p, semLogo(p, desfazEscritorOmni(p, desfazH3max(p, desfazParceiroEyebible1410(p, semFilmeRapido1710(rd(p), p) /* reancorado KINEO-FILME-RAPIDO-1710 */)))))))) // reancorado KINEO-DURACOES-CURTAS: lib/narrationFit ganhou só um comentário marcado
+  checa(`${p} byte a byte igual à base${p === 'app/api/compose/route.ts' ? ' (fora o import e o bloco marcados KINEO-VOZ-15S-MESMA-DA-MONTAGEM, só acrescentados)' : ''}`, rdBase(p) !== null && rdBase(p) === semCurtas(semVoz15(p, desfazCobertura15s(p, semLogo(p, desfazEscritorOmni(p, desfazH3max(p, desfazParceiroEyebible1410(p, semFilmeRapido1710(semFilmesF1F4_1910(rd(p), p), p) /* reancorado KINEO-FILMES-F1-F4-1910 · reancorado KINEO-FILME-RAPIDO-1710 */)))))))) // reancorado KINEO-DURACOES-CURTAS: lib/narrationFit ganhou só um comentário marcado
 }
 const fatiasIntocadas = [
   ['let kling25Footage = 0', 'clipCount = planos\n    }'],

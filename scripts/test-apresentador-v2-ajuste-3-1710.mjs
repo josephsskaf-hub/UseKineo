@@ -16,6 +16,7 @@
 //   D  desfaz exato + ida + marca em todo bloco + encadeamento (a cadeia apresentador-v2-ajuste tira esta camada primeiro) + diff só nos arquivos da lista;
 //   M  mutantes (todos APLICADOS e VERMELHOS).
 import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
+import { semFilmesF1F4_1910 } from './test-support/desfaz-filmes-f1f4-1910.mjs' // reancorado KINEO-FILMES-F1-F4-1910 [TRAVA 8.2 — vai do fundador 19/10 "vai, sim pra tudo"]: as linhas marcadas do Faceless 15 s saem antes da comparação com a base
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -32,7 +33,7 @@ import { desfazApresentadorV2Libera1910 } from './test-support/desfaz-apresentad
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-APRESENTADOR-V2-AJUSTE-3-1710'
-const rd = (p) => semFilmeRapido1710(desfazApresentadorV2Libera1910(p, semCloseReal1910(readFileSync(join(ROOT, p), 'utf8'), p)), p).replace(/\r\n/g, '\n') // reancorado KINEO-APRESENTADOR-V2-LIBERA-1910: a liberação de 19/10 sai primeiro (é a camada mais nova), depois a entrega de 17/10 // o arquivo VIVO (esta é a camada mais nova) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */ /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
+const rd = (p) => semFilmeRapido1710(desfazApresentadorV2Libera1910(p, semCloseReal1910(semFilmesF1F4_1910(readFileSync(join(ROOT, p), 'utf8'), p), p)), p).replace(/\r\n/g, '\n') // reancorado KINEO-APRESENTADOR-V2-LIBERA-1910: a liberação de 19/10 sai primeiro (é a camada mais nova), depois a entrega de 17/10 // o arquivo VIVO (esta é a camada mais nova) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */ /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */ // reancorado KINEO-FILMES-F1-F4-1910: o Faceless 15 s (camada mais nova) sai primeiro, por dentro do Close real
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return git('show', `${APRESENTADOR_V2_AJUSTE_3_1710_BASE}:${p}`).replace(/\r\n/g, '\n') } catch { return null } }
 let pass = 0

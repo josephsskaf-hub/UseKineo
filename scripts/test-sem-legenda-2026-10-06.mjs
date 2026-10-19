@@ -27,6 +27,7 @@ import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-20
 import { desfazEscritorOmni } from './test-support/desfaz-escritor-omni-1310.mjs' // reancorado 13/10 (KINEO-ESCRITOR-MONUMENTO-2026-10-13 · KINEO-OMNI-ETAPA1-2026-10-13, 'tudo sim' do fundador): runway/compose/cinematic sem as mudanças de 13/10, em memória, antes do byte a byte
 import { desfazEstornoNarracao } from './test-support/desfaz-escritor-omni-1310.mjs' // reancorado KINEO-LEVA3-1310 [TRAVA 8.2 — vai do fundador 13/10 'tudo sim nos 3 consertos']: lib/compose.ts sem o conserto da narração (KINEO-ESTORNO-NARRACAO-2026-10-13), em memória, antes do byte a byte
 import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]: o /api/compose ganhou só linhas marcadas (voz e música no clique)
+import { semFilmesF1F4_1910 } from './test-support/desfaz-filmes-f1f4-1910.mjs' // reancorado KINEO-FILMES-F1-F4-1910 [TRAVA 8.2 — vai do fundador 19/10 "vai, sim pra tudo"]: as linhas marcadas da rota do compose (Faceless 15 s) saem antes da comparação com a base
 import { desfazParceiroEyebible1410 } from './test-support/desfaz-parceiro-eyebible-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-1410 [TRAVA 8.2 — vai do fundador 14/10]: os arquivos do conserto do Robert/EyeBible saem em memória antes do byte a byte
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -58,7 +59,7 @@ async function quieto(fn) {
 const SRC_LIB = read('lib/semLegenda.ts')
 const SRC_GLUE = read('lib/semLegendaServer.ts')
 const ROTA = 'app/api/compose/route.ts'
-const SRC_ROTA = read(ROTA)
+const SRC_ROTA = semFilmesF1F4_1910(read(ROTA), ROTA) // reancorado KINEO-FILMES-F1-F4-1910
 const ROTA_B = 'app/api/admin/recompose-sem-legenda/route.ts'
 const SRC_B = read(ROTA_B)
 const H = load(read('lib/hookFirstFrame.ts'))
