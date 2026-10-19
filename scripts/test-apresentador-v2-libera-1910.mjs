@@ -13,9 +13,6 @@
 //      caminhos medidos (19/10, quadro a quadro) está no código;
 //   F  TERÇO DE CIMA: o retângulo do inventário não é confiável → a frase do v2 vai direto para o terço de cima, com qualquer retângulo (inclusive o
 //      genérico 0,4/0,6/0,2/0,8 da R3 e um retângulo baixo que antes empurrava a frase para baixo);
-//   P  ATUAÇÃO com movimento (docs/RESULTADO-MOVIMENTO-APRESENTADOR-2026-10-19.md, ok do fundador 19/10): o texto do R3 com só 3 trocas — calm→warm,
-//      "natural head tilts and nods, shoulders relaxed and moving with the speech, the upper body alive" no lugar de "gentle natural head movement", +
-//      "eyes open while speaking" — nas 2 variantes; as frases do R3 que seguram a boca, as piscadas, as mãos e o produto ficam; o motor não muda;
 //   D  desfaz exato + ida + marca em todo bloco + encadeamento (a cadeia do apresentador tira esta camada primeiro) + diff só nos arquivos da lista;
 //   M  mutantes (todos APLICADOS e VERMELHOS).
 import { readFileSync, existsSync } from 'node:fs'
@@ -192,32 +189,6 @@ const f2 = (mo = MO) => mo.ADS_V2_PRESENTER_V2_RECT_TRUSTED === false && mo.adsV
   mo.adsV2PresenterV2OverlayRect(BAIXO, true) === BAIXO && mo.adsV2PresenterV2OverlayRect(null, true) === null && mo.adsV2PresenterV2OverlayGeometry('Perfume Atheeri', 1080, 1920, BAIXO).place.band === 'above_product'
 await check('F2 o retângulo não é confiável (ADS_V2_PRESENTER_V2_RECT_TRUSTED = false → null); a geometria "acima do produto" continua lá para quando houver caixa confiável (true = volta a usá-la)', () => f2())
 
-// ═══ P. a atuação com movimento ═══════════════════════════════════════════════════════════════════════════════════════
-console.log('\nP. a atuação com movimento (R3 + 3 trocas), nas 2 variantes; boca, piscadas, mãos e produto do R3 intactos')
-const MOV = 'natural head tilts and nods, shoulders relaxed and moving with the speech, the upper body alive'
-const RECEITA = 'the person talks to the camera in a warm, natural UGC style, like chatting with a friend; a light closed-lip smile only at the very start and at the very end; while speaking the mouth stays relaxed and the lips follow every syllable naturally; natural head tilts and nods, shoulders relaxed and moving with the speech, the upper body alive; small, low gestures with the free hand that is already visible in the photo, kept near the chest; the hands in the frame stay exactly the ones in the photo; the other hand holds the product steady with the label facing the camera; natural blinking at a relaxed pace, eyes open while speaking; steady camera, sharp focus, preserve the exact face and appearance' // o texto da seção "Para o código", byte a byte
-const BOCA = ['a light closed-lip smile only at the very start and at the very end', 'while speaking the mouth stays relaxed and the lips follow every syllable naturally', 'natural blinking at a relaxed pace', 'steady camera, sharp focus, preserve the exact face and appearance']
-const p1 = (v2 = V2) => {
-  const livre = v2.ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT, parada = v2.ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL
-  const ambos = [livre, parada]
-  return livre === RECEITA && ambos.every((t) => t.includes(' a warm, natural UGC style') && !/\bcalm\b/.test(t) && t.includes(MOV) && t.includes('eyes open while speaking') && !t.includes('gentle natural head movement') &&
-      BOCA.every((f) => t.includes(f)) && !/\b(no|not|never|without|don't)\b/i.test(t) && t.length < 2500) &&
-    livre.includes('the hands in the frame stay exactly the ones in the photo') && livre.includes('the other hand holds the product steady with the label facing the camera') && livre.includes('small, low gestures with the free hand that is already visible in the photo, kept near the chest') &&
-    parada.includes('only the one hand holding the product is in the frame and it stays still; the other arm rests out of frame') && parada.includes('the hand with the product holds it steady with the label facing the camera') && !/gesture/i.test(parada) &&
-    v2.adsV2PresenterV2Performance(true) === livre && v2.adsV2PresenterV2Performance(false) === parada && v2.adsV2PresenterV2Performance(null) === parada &&
-    v2.adsV2PresenterV2PerformanceOf(livre) === livre && v2.adsV2PresenterV2PerformanceOf('upbeat presenter energy') === parada && v2.ADS_V2_PRESENTER_V2_ENGINE_SLUG === 'fal-ai/kling-video/ai-avatar/v2/pro'
-}
-await check('P1 a atuação do v2 = a receita de 19/10 byte a byte (R3 com calm→warm, cabeça/ombros vivos no lugar de "gentle natural head movement", + "eyes open while speaking"); a variante de mãos paradas leva o mesmo movimento sem gesto; boca, piscadas, mãos da foto e rótulo para a câmera intactos; motor = Kling AI Avatar v2 Pro', () => p1())
-const p2 = (v2 = V2) => {
-  const antes = base(F.v2)
-  const pick = (src, nome) => { const l = src.split('\n').find((x) => x.startsWith('export const ' + nome + ' = ')); return l.slice(l.indexOf("'") + 1, l.indexOf("' //")) }
-  const r3 = pick(antes, 'ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT'), r3s = pick(antes, 'ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL')
-  const daR3 = r3.replace(' a calm, natural', ' a warm, natural').replace('naturally; small,', 'naturally; ' + MOV + '; small,').replace('camera; gentle natural head movement, natural blinking at a relaxed pace, steady', 'camera; natural blinking at a relaxed pace, eyes open while speaking; steady')
-  const daR3s = r3s.replace(' a calm, natural', ' a warm, natural').replace('naturally; only the one', 'naturally; ' + MOV + '; only the one').replace('the eyes, the face and a gentle natural head movement; natural blinking at a relaxed pace;', 'the eyes and the face; natural blinking at a relaxed pace, eyes open while speaking;')
-  return daR3 === v2.ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT && daR3s === v2.ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL && r3 !== daR3 && r3s !== daR3s
-}
-await check('P2 o resto é o R3 byte a byte: aplicadas só as 3 trocas sobre o texto da base (origin/main), sai exatamente o de agora — nas 2 variantes', () => p2())
-
 // ═══ D. desfaz, marca, encadeamento ══════════════════════════════════════════════════════════════════════════════════
 console.log('\nD. desfaz exato, marca, encadeamento, diff só nos arquivos da lista')
 await check(`D1 cada arquivo tocado, desfeito (scripts/test-support/desfaz-apresentador-v2-libera-1910.mjs), é EXATAMENTE a origin/main ${B.slice(0, 9)}; a ida devolve o vivo; os novos existem e não existiam`, () =>
@@ -266,16 +237,6 @@ await mut('X: o registro do dissolve some', () => x2(trocar(rd(F.montage), 'O DI
 await mut('F: o retângulo volta a ser confiável', () => f1(comMO('export const ADS_V2_PRESENTER_V2_RECT_TRUSTED: boolean = false', 'export const ADS_V2_PRESENTER_V2_RECT_TRUSTED: boolean = true')))
 await mut('F: a montagem volta a passar o retângulo cru', () => f1(comMO('adsV2PresenterV2OverlayGeometry(text, width, height, adsV2PresenterV2OverlayRect(v2.productRect ?? null))', 'adsV2PresenterV2OverlayGeometry(text, width, height, v2.productRect ?? null)')))
 await mut('F: o filtro ignora o "trusted"', () => f2(comMO('  return trusted === true && rect ? rect : null', '  return rect ?? null')))
-
-await mut('P: volta o "calm"', () => p1(comV2("export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT = 'the person talks to the camera in a warm,", "export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT = 'the person talks to the camera in a calm,")))
-await mut('P: sem o movimento de cabeça/ombros (volta "gentle natural head movement")', () => p1(comV2("naturally; natural head tilts and nods, shoulders relaxed and moving with the speech, the upper body alive; small,", "naturally; gentle natural head movement; small,")))
-await mut('P: sem "eyes open while speaking" na variante parada', () => p1(comV2("relaxed pace, eyes open while speaking; steady camera, sharp focus, preserve the exact face and appearance' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — mãos paradas", "relaxed pace; steady camera, sharp focus, preserve the exact face and appearance' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — mãos paradas")))
-await mut('P: a variante parada sem o movimento', () => p1(comV2("naturally; natural head tilts and nods, shoulders relaxed and moving with the speech, the upper body alive; only the one", "naturally; only the one")))
-await mut('P: some a frase que segura a boca', () => p1(comV2("in a warm, natural UGC style, like chatting with a friend; a light closed-lip smile only at the very start and at the very end; while speaking the mouth stays relaxed and the lips follow every syllable naturally; natural head tilts and nods, shoulders relaxed and moving with the speech, the upper body alive; small,", "in a warm, natural UGC style, like chatting with a friend; natural head tilts and nods, shoulders relaxed and moving with the speech, the upper body alive; small,")))
-await mut('P: somem as piscadas calmas', () => p1(comV2("label facing the camera; natural blinking at a relaxed pace, eyes open while speaking; steady", "label facing the camera; eyes open while speaking; steady")))
-await mut('P: o rótulo deixa de olhar para a câmera', () => p1(comV2("the other hand holds the product steady with the label facing the camera; natural", "the other hand holds the product; natural")))
-await mut('P: uma troca a mais além das 3 (sorriso largo)', () => p2(comV2("a warm, natural UGC style, like chatting with a friend; a light closed-lip smile only at the very start and at the very end; while speaking the mouth stays relaxed and the lips follow every syllable naturally; natural head tilts and nods, shoulders relaxed and moving with the speech, the upper body alive; small,", "a warm, natural UGC style, like chatting with a friend; a big smile only at the very start and at the very end; while speaking the mouth stays relaxed and the lips follow every syllable naturally; natural head tilts and nods, shoulders relaxed and moving with the speech, the upper body alive; small,")))
-await mut('P: o motor muda', () => p1(comV2("export const ADS_V2_PRESENTER_V2_ENGINE_SLUG = 'fal-ai/kling-video/ai-avatar/v2/pro'", "export const ADS_V2_PRESENTER_V2_ENGINE_SLUG = 'fal-ai/bytedance/omnihuman/v1.5'")))
 
 console.log(`\n${pass} ok, ${fail} falha(s)`)
 process.exit(fail === 0 ? 0 : 1)
