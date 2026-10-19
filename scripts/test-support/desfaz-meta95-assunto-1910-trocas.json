@@ -109,6 +109,12 @@
    "const disco = (p) => lf(semCloseRealLegendaPilula1910(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-CLOSE-REAL-LEGENDA-PILULA-1910 — reancorado: lê os arquivos SEM a pílula de volta (provada em scripts/test-close-real-legenda-pilula-1910.mjs)"
   ]
  ],
+ "scripts/test-close-real-legenda-corte-1910.mjs": [
+  [
+   "import { semMeta95Assunto1910 } from './test-support/desfaz-meta95-assunto-1910.mjs' // KINEO-META95-ASSUNTO-1910 — reancorado: o assunto traduzido (19/10, a camada mais nova nos guardiões reancorados) sai PRIMEIRO, em memória",
+   "const disco = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))"
+  ]
+ ],
  "scripts/test-close-real-legenda-pilula-1910.mjs": [
   [
    "import { semMeta95Assunto1910 } from './test-support/desfaz-meta95-assunto-1910.mjs' // KINEO-META95-ASSUNTO-1910 — reancorado: o assunto traduzido (19/10, a camada mais nova nos guardiões reancorados) sai PRIMEIRO, em memória",
