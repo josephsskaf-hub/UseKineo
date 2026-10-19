@@ -18,6 +18,7 @@
 //   3. escala 0–100 sem teto artificial (100 é permitido quando tudo bate);
 //   4. temperatura 0 e MÉDIA DE 2 LEITURAS (a oscilação ±5 do 90↔95 cai pela metade na média e o desvio fica gravado).
 // Grava o evento `coherence_v2` (session_id = chave da entrega) sem tocar no fast_coherence antigo (para comparar).
+import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { knownCoherenceCase, narrationCutSeconds, verdictFor, type CoherenceVerdict } from '@/lib/fastCoherence'
 
 export const COHERENCE_V2_EVENT = 'coherence_v2'
@@ -256,7 +257,7 @@ export async function scoreCoherenceV2(
   if (!String(input.idea ?? '').trim() || !String(input.narration ?? '').trim()) return null
   const key = opts?.apiKey ?? process.env.OPENAI_API_KEY
   if (!key) return null
-  const model = opts?.model ?? 'gpt-4o-mini'
+  const model = opts?.model ?? AI_TEXT_MODELS.utility // o id barato do registro (lib/aiModels.ts; migração de 2027 troca lá)
   const doFetch = opts?.fetchImpl ?? fetch
   const n = Math.max(1, Math.min(3, opts?.readings ?? COHERENCE_V2_READINGS))
   const messages = buildCoherenceV2Messages(input)

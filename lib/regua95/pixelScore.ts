@@ -20,6 +20,7 @@
 // (cron /api/cron/regua-95); nunca no caminho do cliente; falha aberta (erro = sem nota, nunca exceção).
 import type { ProdutoRegua } from '@/lib/regua95/coherenceV2'
 import { usdFromUsage } from '@/lib/regua95/coherenceV2'
+import { AI_TEXT_MODELS } from '@/lib/aiModels'
 
 export const PIXEL_SCORE_EVENT = 'pixel_score'
 export const PIXEL_SCORE_VERSION = 'regua95_pixel_v1'
@@ -27,7 +28,7 @@ export const PIXEL_FRAMES = 8
 /** Leituras do juiz de visão por vídeo (média). */
 export const PIXEL_READINGS = 2
 /** Modelo de visão padrão (calibrado em 19/10: docs/REGUA-95-2026-10-19.md); REGUA95_PIXEL_MODEL troca sem deploy de código. */
-export const PIXEL_MODEL_DEFAULT = 'gpt-4o'
+export const PIXEL_MODEL_DEFAULT: string = AI_TEXT_MODELS.writer // o id gpt-4o do registro (lib/aiModels.ts): o mesmo modelo, papel de juiz de visão
 export const PIXEL_FPS_ASSUMED = 24
 export const FAL_NTH_FRAME_MODEL = 'fal-ai/workflow-utilities/extract-nth-frame'
 export const FAL_EXTRACT_FRAME_MODEL = 'fal-ai/ffmpeg-api/extract-frame'
@@ -40,10 +41,9 @@ export type Frame = { url: string; t: number | null; bytes: number | null }
 export type PixelDetail = 'low' | 'high' | 'auto'
 /** US$ por milhão de tokens (entrada/saída) dos modelos de visão aceitos (REGUA95_PIXEL_MODEL). */
 export const PIXEL_MODEL_RATES: Record<string, { inPerM: number; outPerM: number }> = {
-  'gpt-4o-mini': { inPerM: 0.15, outPerM: 0.6 },
-  'gpt-4o': { inPerM: 2.5, outPerM: 10 },
-  'gpt-4.1-mini': { inPerM: 0.4, outPerM: 1.6 },
-  'gpt-4.1': { inPerM: 2, outPerM: 8 },
+  [AI_TEXT_MODELS.utility]: { inPerM: 0.15, outPerM: 0.6 },
+  [AI_TEXT_MODELS.writer]: { inPerM: 2.5, outPerM: 10 },
+  [AI_TEXT_MODELS.research]: { inPerM: 0.4, outPerM: 1.6 },
 }
 
 /** Passo de quadros: duração × fps / PIXEL_FRAMES, entre 1 e 300 (limite da fal). */
@@ -342,7 +342,7 @@ async function judgeFramesOnce(
     } catch {
       return null
     }
-    return normalizePixel(parsed, { product: ctx.product, frames, via: opts?.via ?? null, model, usdFrames: opts?.usdFrames ?? 0, usdVision: usdFromUsage(data.usage, PIXEL_MODEL_RATES[model] ?? PIXEL_MODEL_RATES['gpt-4o-mini']), ms: Date.now() - started })
+    return normalizePixel(parsed, { product: ctx.product, frames, via: opts?.via ?? null, model, usdFrames: opts?.usdFrames ?? 0, usdVision: usdFromUsage(data.usage, PIXEL_MODEL_RATES[model] ?? PIXEL_MODEL_RATES[AI_TEXT_MODELS.writer]), ms: Date.now() - started })
   } catch {
     return null
   } finally {

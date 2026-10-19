@@ -34,6 +34,7 @@ const BASE_REF = (() => {
 const { createOfflineLoader } = await import(pathToFileURL(path.join(ROOT, 'scripts/test-support/offline-ts-loader.mjs')).href)
 const { semRegua35a90_1410, FORMA_REGUA_35_60_90_1410 } = await import(pathToFileURL(path.join(ROOT, 'scripts/test-support/desfaz-regua-35-60-90-1410.mjs')).href)
 const { semMotor15s1510 } = await import(pathToFileURL(path.join(ROOT, 'scripts/test-support/desfaz-motor-15s-1510.mjs')).href)
+const { semMeta95Regua1910 } = await import(pathToFileURL(path.join(ROOT, 'scripts/test-support/desfaz-meta95-regua-1910.mjs')).href) // reancorado KINEO-META95-REGUA-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: o rastro da ideia original sai PRIMEIRO
 const { semModeracao1410 } = await import(pathToFileURL(path.join(ROOT, 'scripts/test-support/desfaz-moderacao-1410.mjs')).href) // reancorado KINEO-MODERACAO-1410: a régua completa do texto (acréscimos) sai PRIMEIRO
 
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
@@ -211,7 +212,7 @@ for (const alvo of DUR_LONGAS) {
 console.log('5 — desfeito o conserto, a rota é a base')
 {
   let d = null
-  try { d = semRegua35a90_1410(semModeracao1410(ROUTE, 'script')) } catch (e) { d = 'ERRO: ' + e.message } // reancorado KINEO-MODERACAO-1410
+  try { d = semRegua35a90_1410(semModeracao1410(semMeta95Regua1910(ROUTE) /* reancorado KINEO-META95-REGUA-1910 */, 'script')) } catch (e) { d = 'ERRO: ' + e.message } // reancorado KINEO-MODERACAO-1410
   ok(ROUTE_BASE !== '' && d === ROUTE_BASE, `${ROUTE_REL}: tiradas as linhas ${MARCA}, é byte a byte a base (${BASE_REF})`)
   ok(semRegua35a90_1410(ROUTE_BASE) === ROUTE_BASE, 'o desfaz é idempotente sobre a base')
   const marcadas = ROUTE.split('\n').filter((l) => l.includes(MARCA)).length
@@ -219,7 +220,7 @@ console.log('5 — desfeito o conserto, a rota é a base')
   let base15 = ''
   try { const shas = git(['log', '--format=%H', '--grep=KINEO-MOTOR-15S-1510', 'HEAD']).trim().split('\n').filter(Boolean); base15 = shas.length ? show(shas[shas.length - 1] + '^', ROUTE_REL) : '' } catch { base15 = '' }
   let d2 = null
-  try { d2 = semMotor15s1510(semRegua35a90_1410(semModeracao1410(ROUTE, 'script')), 'route') } catch (e) { d2 = 'ERRO: ' + e.message } // reancorado KINEO-MODERACAO-1410
+  try { d2 = semMotor15s1510(semRegua35a90_1410(semModeracao1410(semMeta95Regua1910(ROUTE) /* reancorado KINEO-META95-REGUA-1910 */, 'script')), 'route') } catch (e) { d2 = 'ERRO: ' + e.message } // reancorado KINEO-MODERACAO-1410
   ok(base15 !== '' && d2 === base15, 'encadeado com o desfaz do 15 s, a rota volta à base de antes dos dois consertos')
   let lancou = false
   try { semRegua35a90_1410(ROUTE + '\nconst x = 1 // ' + MARCA) } catch { lancou = true }
