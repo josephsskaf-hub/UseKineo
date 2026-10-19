@@ -52,5 +52,11 @@
    "mut('f3: música sem loop (silêncio se a faixa for curta)', F15, 'volume: FACELESS15_MUSICA_VOLUME, loop: true, audio_fade_in', 'volume: FACELESS15_MUSICA_VOLUME, audio_fade_in', ['F2']) // KINEO-FILMES-F1F3-AJUSTE-1910",
    "mut('f3: música sem loop (silêncio se a faixa for curta)', F15, \"const base: El = { type: 'audio', track: 8, source: m.source, loop: true }\", \"const base: El = { type: 'audio', track: 8, source: m.source }\", ['F2'])"
   ]
+ ],
+ "scripts/test-close-real-ajuste-1910.mjs": [
+  [
+   "const rd = (p) => lf(semFilmesF1F3Ajuste1910(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-FILMES-F1F3-AJUSTE-1910 — reancorado: a camada do ajuste do Faceless 15 s (mesclada depois, no guardião test-filmes-f1f4-1910) sai PRIMEIRO, em memória",
+   "const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))"
+  ]
  ]
 }

@@ -15,7 +15,7 @@ import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
-import { semFilmesF1F3Ajuste1910, MARCA_FILMES_F1F3_AJUSTE_1910, TROCAS_FILMES_F1F3_AJUSTE_1910 } from './test-support/desfaz-filmes-f1f3-ajuste-1910.mjs'
+import { semFilmesF1F3Ajuste1910, MARCA_FILMES_F1F3_AJUSTE_1910, TROCAS_FILMES_F1F3_AJUSTE_1910, ACRESCIMOS_FILMES_F1F3_AJUSTE_1910, ARQUIVOS_FILMES_F1F3_AJUSTE_1910 } from './test-support/desfaz-filmes-f1f3-ajuste-1910.mjs'
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
@@ -58,17 +58,20 @@ for (const p of ['lib/compose.ts', 'lib/hookFirstFrame.ts', 'lib/lyriaMusic.ts',
   // 1º commit — a regra "pai do 1º commit" não enxergaria a camada dele.
   const rdAlheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } }
   const ruins = []
-  for (const [p, trocas] of Object.entries(TROCAS_FILMES_F1F3_AJUSTE_1910)) {
+  for (const p of ARQUIVOS_FILMES_F1F3_AJUSTE_1910) {
+    const trocas = TROCAS_FILMES_F1F3_AJUSTE_1910[p] ?? []
     const vivo = rd(p)
     const base = rdAlheio(p)
     if (base === null) { ruins.push(p); continue }
     const lv = vivo.split('\n')
     const lb = base.split('\n')
-    if (!trocas.every(([nova, antiga]) => lv.includes(nova) && lb.includes(antiga) && nova.includes(MARCA_FILMES_F1F3_AJUSTE_1910) && !antiga.includes(MARCA_FILMES_F1F3_AJUSTE_1910))) { ruins.push(p); continue }
+    const acrescimos = lv.filter((l) => l.includes(MARCA_FILMES_F1F3_AJUSTE_1910) && !trocas.some(([nova]) => nova === l)).length
+    if (acrescimos !== (ACRESCIMOS_FILMES_F1F3_AJUSTE_1910[p] ?? 0) || !trocas.every(([nova, antiga]) => lv.includes(nova) && lb.includes(antiga) && nova.includes(MARCA_FILMES_F1F3_AJUSTE_1910) && !antiga.includes(MARCA_FILMES_F1F3_AJUSTE_1910))) { ruins.push(p); continue }
     try { if (semFilmesF1F3Ajuste1910(vivo, p) !== base) ruins.push(p) } catch { ruins.push(p) }
   }
-  checa(`A3 guardião reancorado (${Object.keys(TROCAS_FILMES_F1F3_AJUSTE_1910).join(', ')}): cada troca está no vivo e na última versão alheia; desfeita a camada = essa versão byte a byte`, Object.keys(TROCAS_FILMES_F1F3_AJUSTE_1910).length === 1 && ruins.length === 0)
-  checa('A4 o desfaz é idempotente, não toca linha sem a marca e recusa linha marcada fora da tabela', semFilmesF1F3Ajuste1910('a\nb', 'x') === 'a\nb' && (() => { try { semFilmesF1F3Ajuste1910(`a // ${MARCA_FILMES_F1F3_AJUSTE_1910}`, 'x'); return false } catch { return true } })())
+  checa(`A3 guardiões reancorados (${ARQUIVOS_FILMES_F1F3_AJUSTE_1910.join(', ')}): cada troca no vivo e na última versão alheia, acréscimos na contagem exata; desfeita a camada = essa versão byte a byte`, ARQUIVOS_FILMES_F1F3_AJUSTE_1910.length === 2 && ruins.length === 0)
+  checa('A3b encadeamento: o guardião do Close real (test-close-real-ajuste-1910) tira esta camada PRIMEIRO, colada no readFileSync do rd dele', rd('scripts/test-close-real-ajuste-1910.mjs').includes("const rd = (p) => lf(semFilmesF1F3Ajuste1910(readFileSync(join(ROOT, p), 'utf8'), p))"))
+  checa('A4 o desfaz só age nos arquivos da tabela, é idempotente, e linha marcada a mais num arquivo da tabela é erro (nunca some linha em silêncio)', semFilmesF1F3Ajuste1910('a\nb', 'x') === 'a\nb' && semFilmesF1F3Ajuste1910(`a // ${MARCA_FILMES_F1F3_AJUSTE_1910}`, 'lib/x.ts') === `a // ${MARCA_FILMES_F1F3_AJUSTE_1910}` && (() => { try { semFilmesF1F3Ajuste1910(`${rd('scripts/test-filmes-f1f4-1910.mjs')}\na // ${MARCA_FILMES_F1F3_AJUSTE_1910}`, 'scripts/test-filmes-f1f4-1910.mjs'); return false } catch { return true } })())
 }
 {
   const f15 = rd(F15)
