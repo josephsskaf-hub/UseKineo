@@ -24,6 +24,7 @@ export const ACRESCIMOS_FILMES_F1_VIRGULA_1910 = {
   'scripts/test-filmes-f1f3-ajuste-1910.mjs': 1,
   'scripts/test-close-real-ajuste-1910.mjs': 1,
   'scripts/test-close-real-v3-1910.mjs': 1,
+  'scripts/test-apresentador-v2-libera-1910.mjs': 1,
   'scripts/test-filme-rapido-1710.mjs': 1,
   'scripts/test-close-real-1910.mjs': 1,
 }

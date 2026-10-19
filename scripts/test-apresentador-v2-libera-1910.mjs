@@ -25,6 +25,7 @@ import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semApresentadorV2Libera1910, comApresentadorV2Libera1910, desfazApresentadorV2Libera1910, APRESENTADOR_V2_LIBERA_1910_ARQUIVOS, APRESENTADOR_V2_LIBERA_1910_NOVOS, APRESENTADOR_V2_LIBERA_1910_BASE, MARCA_APRESENTADOR_V2_LIBERA_1910 } from './test-support/desfaz-apresentador-v2-libera-1910.mjs'
 import { semFilmesF1F4_1910 } from './test-support/desfaz-filmes-f1f4-1910.mjs' // reancorado KINEO-FILMES-F1-F4-1910 [TRAVA 8.2 — vai do fundador 19/10 "vai, sim pra tudo"]: as linhas marcadas do Faceless 15 s saem antes da comparação com a base
+import { semFilmesF1Virgula1910 } from './test-support/desfaz-filmes-f1-virgula-1910.mjs' // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a camada mais nova sai primeiro
 import { desfazApresentadorV2Ajuste3_1710, semApresentadorV2Ajuste3_1710 } from './test-support/desfaz-apresentador-v2-ajuste-3-1710.mjs'
 import { desfazApresentadorV2Ajuste1710 } from './test-support/desfaz-apresentador-v2-ajuste-1710.mjs'
 import { desfazApresentadorV2_1710 } from './test-support/desfaz-apresentador-v2-1710.mjs'
@@ -34,7 +35,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT) // o carregador offline resolve '@/' a partir do cwd
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-APRESENTADOR-V2-LIBERA-1910'
-const rd = (p) => semCloseReal1910(semFilmesF1F4_1910(readFileSync(join(ROOT, p), 'utf8'), p), p).replace(/\r\n/g, '\n') // o arquivo VIVO (esta é a camada mais nova) /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */ // reancorado KINEO-FILMES-F1-F4-1910: o Faceless 15 s (camada mais nova) sai primeiro, por dentro do Close real
+const rd = (p) => semCloseReal1910(semFilmesF1F4_1910(semFilmesF1Virgula1910(readFileSync(join(ROOT, p), 'utf8'), p), p), p).replace(/\r\n/g, '\n') // o arquivo VIVO (esta é a camada mais nova) /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */ // reancorado KINEO-FILMES-F1-F4-1910: o Faceless 15 s (camada mais nova) sai primeiro, por dentro do Close real · KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a fiação do Faceless 15 s no export limpo (a mais nova) sai PRIMEIRO
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const B = APRESENTADOR_V2_LIBERA_1910_BASE
 const base = (p) => { try { return git('show', `${B}:${p}`).replace(/\r\n/g, '\n') } catch { return null } }

@@ -58,5 +58,11 @@
    "const rd = (p) => lf(semFilmesF1F4_1910(semCloseRealAjuste1910(semFilmesF1Virgula1910(readFileSync(join(ROOT, p), 'utf8'), p), p), p)) // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a fiação do Faceless 15 s no export limpo (a mais nova) sai PRIMEIRO; depois o ajuste do Close real e o F1–F4",
    "const rd = (p) => lf(semFilmesF1F4_1910(semCloseRealAjuste1910(readFileSync(join(ROOT, p), 'utf8'), p), p)) // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: este guardião lê o texto SEM o ajuste (provado em scripts/test-close-real-ajuste-1910.mjs), e depois sem a camada do Faceless 15 s · reancorado KINEO-FILMES-F1-F4-1910: a camada do Faceless 15 s (mais nova) sai antes da comparação com a base"
   ]
+ ],
+ "scripts/test-apresentador-v2-libera-1910.mjs": [
+  [
+   "const rd = (p) => semCloseReal1910(semFilmesF1F4_1910(semFilmesF1Virgula1910(readFileSync(join(ROOT, p), 'utf8'), p), p), p).replace(/\\r\\n/g, '\\n') // o arquivo VIVO (esta é a camada mais nova) /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */ // reancorado KINEO-FILMES-F1-F4-1910: o Faceless 15 s (camada mais nova) sai primeiro, por dentro do Close real · KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a fiação do Faceless 15 s no export limpo (a mais nova) sai PRIMEIRO",
+   "const rd = (p) => semCloseReal1910(semFilmesF1F4_1910(readFileSync(join(ROOT, p), 'utf8'), p), p).replace(/\\r\\n/g, '\\n') // o arquivo VIVO (esta é a camada mais nova) /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */ // reancorado KINEO-FILMES-F1-F4-1910: o Faceless 15 s (camada mais nova) sai primeiro, por dentro do Close real"
+  ]
  ]
 }
