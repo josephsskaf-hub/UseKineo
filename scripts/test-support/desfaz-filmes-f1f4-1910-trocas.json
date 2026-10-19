@@ -82,5 +82,11 @@
       "const rd = (p) => semFilmesF1F4_1910(readFileSync(join(ROOT, p), 'utf8'), p).replace(/\\r\\n/g, '\\n') // o arquivo VIVO (esta é a camada mais nova) // reancorado KINEO-FILMES-F1-F4-1910: a reâncora do Faceless 15 s em test-filme-rapido-1710 (camada de depois) sai antes",
       "const rd = (p) => readFileSync(join(ROOT, p), 'utf8').replace(/\\r\\n/g, '\\n') // o arquivo VIVO (esta é a camada mais nova)"
     ]
+  ],
+  "scripts/test-juiz-grade-1610.mjs": [
+    [
+      "const rd = (p) => semFilmeRapido1710(desfazApresentadorV2_1710(p, semFilmesF1F4_1910(readFileSync(join(ROOT, p), 'utf8'), p)), p) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai por fora, em memória */ // reancorado KINEO-APRESENTADOR-V2-1710 — o apresentador v2 veio depois: este guardião lê o texto SEM ele (já LF); ele é provado em scripts/test-apresentador-v2-1710.mjs // reancorado KINEO-FILMES-F1-F4-1910: a reâncora do Faceless 15 s em test-ads-mao-juiz-1610 (camada de depois) sai antes",
+      "const rd = (p) => semFilmeRapido1710(desfazApresentadorV2_1710(p, readFileSync(join(ROOT, p), 'utf8')), p) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai por fora, em memória */ // reancorado KINEO-APRESENTADOR-V2-1710 — o apresentador v2 veio depois: este guardião lê o texto SEM ele (já LF); ele é provado em scripts/test-apresentador-v2-1710.mjs"
+    ]
   ]
 }
