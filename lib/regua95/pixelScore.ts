@@ -170,7 +170,7 @@ const PRODUCT_RULES: Record<ProdutoRegua, string> = {
   ads:
     'This is a product AD. The REFERENCE PRODUCT PHOTOS (first images, if given) are the real product: in frames where the product appears, label, shape, color and logo must match one of them (redesigned, misspelled or melted packaging = product_unfaithful). Overlay text and captions should be legible and spelled right; no invented gibberish text.',
   ugc:
-    'This is a UGC/avatar ad: a person talks to camera, usually holding the product. Check eyes (open, natural, looking right), mouth (natural, no melted teeth), hands (5 fingers, holding the product naturally) — any glitch = ugc_eyes_mouth_hands. If REFERENCE PRODUCT PHOTOS are given (first images), the product in hand must match one of them. The same person must stay the same across frames.',
+    'This is a UGC/avatar ad: a person talks to camera, usually holding the product. Check eyes (open, natural, looking right), mouth (natural, no melted teeth), hands (5 fingers, holding the product naturally) — any glitch = ugc_eyes_mouth_hands. If REFERENCE PRODUCT PHOTOS are given (first images), the product in hand must match one of them. The same person must stay the same across frames. The short caption/phrase at the TOP is part of this ad format (a short phrase, split over two lines or two blocks, small letters): it is never caption_broken; flag caption_illegible only when it truly cannot be read.', // KINEO-META95-UGC-1910 — o falso "legenda partida" do R3 (nota 9 do fundador levou 88)
   clipe:
     'This is a short AI CLIP / effect made from a prompt. Check each frame shows what the prompt asked, with no deformed faces/hands, no invented readable text, no black frames, and the same subject kept across frames.',
 }
@@ -221,7 +221,7 @@ const bool = (x: unknown): boolean | null => (x === true ? true : x === false ? 
  *   · legenda presente e ilegível, ou na língua/escrita errada → teto 85;
  *   · quadro fora do assunto em 2+ quadros → teto 80;
  *   · texto inventado (não é legenda nem texto do brief) em 1+ quadro → teto 85;
- *   · legenda partida/órfã (palavra sozinha, bloco que termina em preposição) em 2+ quadros → teto 88.
+ *   · legenda partida/órfã (palavra sozinha, bloco que termina em preposição) em 2+ quadros → teto 88 (nunca no UGC: KINEO-META95-UGC-1910).
  */
 export function normalizePixel(
   parsed: Record<string, unknown>,
@@ -258,7 +258,8 @@ export function normalizePixel(
   if (count('off_topic') + count('subject_missing') >= 2) cap(80, `${count('off_topic') + count('subject_missing')} quadros sem o sujeito da fala`)
   if (count('repeated') >= 3) cap(85, `${count('repeated')} quadros repetidos`)
   if (count('invented_text') >= 1) cap(85, `texto inventado na imagem em ${count('invented_text')} quadro(s)`)
-  if (count('caption_broken') >= 2) cap(88, `legenda partida/órfã em ${count('caption_broken')} quadros`)
+  // KINEO-META95-UGC-1910 — no UGC/apresentador a frase curta no alto é o formato: legenda só pesa se for ilegível (teto 85 acima).
+  if (ctx.product !== 'ugc' && count('caption_broken') >= 2) cap(88, `legenda partida/órfã em ${count('caption_broken')} quadros`)
   return {
     version: PIXEL_SCORE_VERSION,
     score,

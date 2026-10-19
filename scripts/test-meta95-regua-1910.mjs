@@ -168,7 +168,8 @@ async function provas(L) {
   await tenta('R1', () => {
     const s = rd(F.coletar)
     const escritas = s.match(/\.(insert|update|upsert|delete|rpc)\(/g) ?? []
-    const soEvents = escritas.length === 2 && escritas.every((x) => x === '.insert(') && (s.match(/from\('events'\)\.insert\(\{\s*\n?\s*name: (COHERENCE_V2_EVENT|PIXEL_SCORE_EVENT)/g) ?? []).length === 2
+    // KINEO-META95-UGC-1910 — reâncora: o coletor ganhou o 3º juiz (ugc_score), também só INSERT em events.
+    const soEvents = escritas.length === 3 && escritas.every((x) => x === '.insert(') && (s.match(/from\('events'\)\.insert\(\{\s*\n?\s*name: (COHERENCE_V2_EVENT|PIXEL_SCORE_EVENT|UGC_SCORE_EVENT)/g) ?? []).length === 3
     const semRender = !/generate-video|api\/compose|generate-script|falQueue|submitFal/.test(s)
     const rotasRender = ['app/api/compose/route.ts', 'app/api/generate-video-cinematic/route.ts'].every((f) => !/regua95|coherence_v2|pixel_score/.test(rd(f)))
     const evidenciaInteira = /evidence: \{ idea: e\.coherence\.idea\.slice\(0, 4000\)/.test(s) && /prompt: s\.prompt\.slice\(0, 3000\)/.test(s)
