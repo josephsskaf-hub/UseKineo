@@ -1,0 +1,56 @@
+{
+ "scripts/test-filmes-f1f4-1910.mjs": [
+  [
+   "    p['F1 F3 só mexe nas trilhas 8 (música) e 12 (SFX): voz (4), clipes (2), legenda (5) e o resto ficam byte a byte'] = relato.f3?.musica === 'unica' && eqJ(foraDaTrilha(antes, [8, 12]), foraDaTrilha(ref, [8, 12])) && eqJ(trilha(antes, 4), trilha(ref, 4)) // KINEO-FILMES-F1F3-AJUSTE-1910",
+   "    p['F1 F3 só mexe nas trilhas 8 (música) e 12 (SFX): voz (4), clipes (2), legenda (5) e o resto ficam byte a byte'] = relato.f3?.musica === 'ducking' && eqJ(foraDaTrilha(antes, [8, 12]), foraDaTrilha(ref, [8, 12])) && eqJ(trilha(antes, 4), trilha(ref, 4))"
+  ],
+  [
+   "    p['F2 música num elemento SÓ (o ducking em 3 caiu ~20 dB sob o payoff na escada de 19/10): 14 % fixos do 0 ao fim do filme, fades 0,8/1,2 s de sempre, loop, mesma faixa, sem trim_start'] = // KINEO-FILMES-F1F3-AJUSTE-1910",
+   "    p['F2 música em 3 elementos: 18 % até o payoff, 10 % sob o payoff, 18 % na cauda com fade-out 1,2 s; contínuos no tempo e no trecho (trim_start), loop, mesma faixa'] ="
+  ],
+  [
+   "      mus.length === 1 && mus[0].time === 0 && mus[0].volume === '14%' && r3(mus[0].duration) === r3(T) && mus[0].audio_fade_in === 0.8 && // KINEO-FILMES-F1F3-AJUSTE-1910",
+   "      mus.length === 3 && mus[0].time === 0 && mus[0].volume === '18%' && mus[0].duration === payoff && mus[0].audio_fade_in === 0.8 &&"
+  ],
+  [
+   "      mus[0].audio_fade_out === 1.2 && !('trim_start' in mus[0]) && eqJ(relato.f3.cobre, [0, T]) && relato.f3.volume === '14%' && // KINEO-FILMES-F1F3-AJUSTE-1910",
+   "      mus[1].time === payoff && mus[1].volume === '10%' && mus[1].trim_start === payoff && r3(mus[1].time + mus[1].duration) === r3(T - 1.2) &&"
+  ],
+  [
+   "      trilha(antes, 8).length === 1 && trilha(ref, 8).length === 1 && // KINEO-FILMES-F1F3-AJUSTE-1910",
+   "      mus[2].time === r3(T - 1.2) && mus[2].volume === '18%' && mus[2].trim_start === r3(T - 1.2) && r3(mus[2].time + mus[2].duration) === r3(T) && mus[2].audio_fade_out === 1.2 &&"
+  ],
+  [
+   "      mus.every((m) => m.loop === true && m.source === MUSICA && m.track === 8) && !('duck' in relato.f3) // KINEO-FILMES-F1F3-AJUSTE-1910",
+   "      mus.every((m) => m.loop === true && m.source === MUSICA && m.track === 8) && eqJ(relato.f3.duck, [payoff, r3(T - 1.2)])"
+  ],
+  [
+   "    p['F3 sem junção: nenhum pedaço de música, nenhum fade curto de 0,3 s, a cauda (depois do fim da fala) coberta pela mesma música'] = mus.every((m) => m.audio_fade_in !== 0.3 && m.audio_fade_out !== 0.3) && mus.some((m) => m.time <= FALA && r3(m.time + m.duration) >= r3(T)) // KINEO-FILMES-F1F3-AJUSTE-1910",
+   "    p['F3 a junção dos dois volumes usa o fade curto de 0,3 s do Ads (18→10 ≈ −5 dB, dentro dos 6–12 dB do CapCut)'] = mus[0].audio_fade_out === 0.3 && mus[1].audio_fade_in === 0.3 && mus[1].audio_fade_out === 0.3 && mus[2].audio_fade_in === 0.3"
+  ],
+  [
+   "    p['F6 sem Whisper (sem payoff): música a 14 % num elemento só com os fades de sempre; sem pop; whoosh nos cortes'] = rW.f3?.musica === 'unica' && musW.length === 1 && musW[0].volume === '14%' && musW[0].audio_fade_in === 0.8 && musW[0].audio_fade_out === 1.2 && musW[0].duration === semW.duration && !trilha(semW, 12).some((e) => e.source === CAT.pop.url) && rW.f3.sfx.pop === false && rW.f3.sfx.whoosh >= 2 // KINEO-FILMES-F1F3-AJUSTE-1910",
+   "    p['F6 sem Whisper (sem payoff): música a 18 % num elemento só com os fades de sempre; sem pop; whoosh nos cortes'] = rW.f3?.musica === 'sem_payoff' && musW.length === 1 && musW[0].volume === '18%' && musW[0].audio_fade_in === 0.8 && musW[0].audio_fade_out === 1.2 && musW[0].duration === semW.duration && !trilha(semW, 12).some((e) => e.source === CAT.pop.url) && rW.f3.sfx.pop === false && rW.f3.sfx.whoosh >= 2"
+  ],
+  [
+   "    p['F7 catálogo sem URL = slot vazio: nenhum SFX entra, a música da receita entra, o relato diz slot_vazio'] = rV.f3?.sfx === 'slot_vazio' && trilha(vazio, 12).length === 0 && trilha(vazio, 8).length === 1 // KINEO-FILMES-F1F3-AJUSTE-1910",
+   "    p['F7 catálogo sem URL = slot vazio: nenhum SFX entra, a música da receita entra, o relato diz slot_vazio'] = rV.f3?.sfx === 'slot_vazio' && trilha(vazio, 12).length === 0 && trilha(vazio, 8).length === 3"
+  ],
+  [
+   "    p['F8 F1+F3 juntas: legenda da F1 e som da F3, cada uma na sua trilha'] = r13.f1?.chunker === 'whisper' && r13.f3?.musica === 'unica' && trilha(f13, 5).every((e) => e.y === '62%') && trilha(f13, 8).length === 1 && trilha(f13, 12).length >= 4 // KINEO-FILMES-F1F3-AJUSTE-1910",
+   "    p['F8 F1+F3 juntas: legenda da F1 e som da F3, cada uma na sua trilha'] = r13.f1?.chunker === 'whisper' && r13.f3?.musica === 'ducking' && trilha(f13, 5).every((e) => e.y === '62%') && trilha(f13, 8).length === 3 && trilha(f13, 12).length >= 4"
+  ],
+  [
+   "    p['G11 as quatro juntas: legenda 62 %, gancho no topo, música num elemento só + SFX, 5 planos — e a voz byte a byte, sem erro'] = !!r4.f1 && r4.f3?.musica === 'unica' && r4.f4?.planos === 5 && g4.aplicado === true && trilha(s4, 5).every((e) => e.y === '62%') && trilha(s4, 8).length === 1 && trilha(s4, 11).length === 1 && trilha(s4, 2).length === 6 && eqJ(trilha(s4, 4), trilha(ref, 4)) && !r4.erros // KINEO-FILMES-F1F3-AJUSTE-1910",
+   "    p['G11 as quatro juntas: legenda 62 %, gancho no topo, música em 3 + SFX, 5 planos — e a voz byte a byte, sem erro'] = !!r4.f1 && r4.f3?.musica === 'ducking' && r4.f4?.planos === 5 && g4.aplicado === true && trilha(s4, 5).every((e) => e.y === '62%') && trilha(s4, 8).length === 3 && trilha(s4, 11).length === 1 && trilha(s4, 2).length === 6 && eqJ(trilha(s4, 4), trilha(ref, 4)) && !r4.erros"
+  ],
+  [
+   "mut('f3: música de volta aos 18 % (14 % fixos)', F15, \"export const FACELESS15_MUSICA_VOLUME = '14%'\", \"export const FACELESS15_MUSICA_VOLUME = '18%'\", ['F2']) // KINEO-FILMES-F1F3-AJUSTE-1910",
+   "mut('f3: sem ducking (10 % vira 18 %)', F15, \"export const FACELESS15_MUSICA_DUCK = '10%'\", \"export const FACELESS15_MUSICA_DUCK = '18%'\", ['F2'])"
+  ],
+  [
+   "mut('f3: música sem loop (silêncio se a faixa for curta)', F15, 'volume: FACELESS15_MUSICA_VOLUME, loop: true, audio_fade_in', 'volume: FACELESS15_MUSICA_VOLUME, audio_fade_in', ['F2']) // KINEO-FILMES-F1F3-AJUSTE-1910",
+   "mut('f3: música sem loop (silêncio se a faixa for curta)', F15, \"const base: El = { type: 'audio', track: 8, source: m.source, loop: true }\", \"const base: El = { type: 'audio', track: 8, source: m.source }\", ['F2'])"
+  ]
+ ]
+}
