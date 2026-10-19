@@ -27,8 +27,8 @@
   ],
   "scripts/test-filme-rapido-1710.mjs": [
     [
-      "    if (base === null || SUP.semFilmeRapido1710(semFilmesF1F4_1910(rd(p), p), p) !== base) ruins.push(p) // reancorado KINEO-FILMES-F1-F4-1910",
-      "    if (base === null || SUP.semFilmeRapido1710(rd(p), p) !== base) ruins.push(p)"
+      "    if (base === null || SUP.semFilmeRapido1710(semFilmesF1F4_1910(desfazApresentadorV2Libera1910(p, rd(p)), p), p) !== base) ruins.push(p) // reancorado KINEO-APRESENTADOR-V2-LIBERA-1910: era SUP.semFilmeRapido1710(rd(p), p) · reancorado KINEO-FILMES-F1-F4-1910",
+      "    if (base === null || SUP.semFilmeRapido1710(desfazApresentadorV2Libera1910(p, rd(p)), p) !== base) ruins.push(p) // reancorado KINEO-APRESENTADOR-V2-LIBERA-1910: era SUP.semFilmeRapido1710(rd(p), p)"
     ]
   ],
   "scripts/test-gancho-1q-2026-10-03.mjs": [
@@ -75,6 +75,12 @@
     [
       "const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) || linhaDosFilmesF1F4_1910(l) /* reancorado KINEO-FILMES-F1-F4-1910 */ // reancorado KINEO-FILME-RAPIDO-1710",
       "const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) // reancorado KINEO-FILME-RAPIDO-1710"
+    ]
+  ],
+  "scripts/test-apresentador-v2-libera-1910.mjs": [
+    [
+      "const rd = (p) => semFilmesF1F4_1910(readFileSync(join(ROOT, p), 'utf8'), p).replace(/\\r\\n/g, '\\n') // o arquivo VIVO (esta é a camada mais nova) // reancorado KINEO-FILMES-F1-F4-1910: a reâncora do Faceless 15 s em test-filme-rapido-1710 (camada de depois) sai antes",
+      "const rd = (p) => readFileSync(join(ROOT, p), 'utf8').replace(/\\r\\n/g, '\\n') // o arquivo VIVO (esta é a camada mais nova)"
     ]
   ]
 }

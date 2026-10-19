@@ -107,6 +107,41 @@ export function adsV2CategoryRepeatFix(text: string, names: readonly string[]): 
   } // KINEO-APRESENTADOR-V2-AJUSTE-1710
   return { text: out, fixes } // KINEO-APRESENTADOR-V2-AJUSTE-1710
 } // KINEO-APRESENTADOR-V2-AJUSTE-1710
+// KINEO-APRESENTADOR-V2-LIBERA-1910 — a categoria REPETIDA DEPOIS do nome na frase de tela (R3 84a5d07f: "Perfume Atheeri — Perfumes" virou "Perfume Atheeri Perfumes"
+// KINEO-APRESENTADOR-V2-LIBERA-1910 — quando o overlay_dash tirou o travessão). A mesma régua da narração (adsV2CategoryRepeatFix): a palavra só sai quando é a MESMA
+// KINEO-APRESENTADOR-V2-LIBERA-1910 — categoria que o nome já contém (singular/plural, sem acento, sem maiúscula: perfume/Perfumes, sérum/séruns, loción/lociones).
+// KINEO-APRESENTADOR-V2-LIBERA-1910 — Outra palavra ("Perfume Atheeri Fragrâncias", "Perfume Atheeri Velas") fica: não é repetição da mesma palavra.
+/** KINEO-APRESENTADOR-V2-LIBERA-1910 — as palavras do nome que SÃO uma categoria de produto ("Perfume Atheeri" → ["perfume"]). Pura. */
+export function adsV2NameCategoryWords(brand: string): string[] { // KINEO-APRESENTADOR-V2-LIBERA-1910
+  const words = String(brand ?? '').trim().split(/\s+/).filter(Boolean) // KINEO-APRESENTADOR-V2-LIBERA-1910
+  if (words.length < 2) return [] // KINEO-APRESENTADOR-V2-LIBERA-1910 — nome de uma palavra só não tem o que repetir (a mesma regra de adsV2NameCategoryWord)
+  return words.filter((w) => { const m = w.match(ADS_V2_PRODUCT_WORDS); return !!m && m[0].toLowerCase() === w.toLowerCase() }).map((w) => w.toLowerCase()) // KINEO-APRESENTADOR-V2-LIBERA-1910
+} // KINEO-APRESENTADOR-V2-LIBERA-1910
+/** KINEO-APRESENTADOR-V2-LIBERA-1910 — a mesma palavra de categoria? (sem acento e sem maiúscula; singular ↔ plural em pt/es/en: +s, +es, m ↔ ns). Pura. */
+export function adsV2SameCategoryWord(a: string, b: string): boolean { // KINEO-APRESENTADOR-V2-LIBERA-1910
+  const fold = (w: string): string => String(w ?? '').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase() // KINEO-APRESENTADOR-V2-LIBERA-1910
+  const x = fold(a) // KINEO-APRESENTADOR-V2-LIBERA-1910
+  const y = fold(b) // KINEO-APRESENTADOR-V2-LIBERA-1910
+  if (!x || !y) return false // KINEO-APRESENTADOR-V2-LIBERA-1910
+  const forms = (w: string): string[] => [w, w + 's', w + 'es', ...(w.endsWith('m') ? [w.slice(0, -1) + 'ns'] : [])] // KINEO-APRESENTADOR-V2-LIBERA-1910
+  return forms(x).includes(y) || forms(y).includes(x) // KINEO-APRESENTADOR-V2-LIBERA-1910
+} // KINEO-APRESENTADOR-V2-LIBERA-1910
+/** KINEO-APRESENTADOR-V2-LIBERA-1910 — "Perfume Atheeri — Perfumes" / "Perfume Atheeri Perfumes" → "Perfume Atheeri" (a cauda no FIM da frase, com ou sem travessão). Pura. */
+export function adsV2CategoryTailFix(text: string, names: readonly string[]): { text: string; fixes: string[] } { // KINEO-APRESENTADOR-V2-LIBERA-1910
+  if (typeof text !== 'string' || !text) return { text, fixes: [] } // KINEO-APRESENTADOR-V2-LIBERA-1910
+  const fixes: string[] = [] // KINEO-APRESENTADOR-V2-LIBERA-1910
+  let out = text // KINEO-APRESENTADOR-V2-LIBERA-1910
+  for (const name of [...new Set(names)].sort((a, b) => b.length - a.length)) { // KINEO-APRESENTADOR-V2-LIBERA-1910
+    const cats = adsV2NameCategoryWords(String(name ?? '')) // KINEO-APRESENTADOR-V2-LIBERA-1910
+    if (cats.length === 0) continue // KINEO-APRESENTADOR-V2-LIBERA-1910
+    const re = new RegExp('(^|[^\\p{L}])(' + reEscape(String(name).trim()) + ')(?:\\s*[—–:|·,-]\\s*|\\s+)(\\p{L}+)(?![\\p{L}\\p{N}])(\\s*[.!]?)\\s*$', 'iu') // KINEO-APRESENTADOR-V2-LIBERA-1910
+    const m = out.match(re) // KINEO-APRESENTADOR-V2-LIBERA-1910
+    if (!m || !cats.some((c) => adsV2SameCategoryWord(c, m[3]))) continue // KINEO-APRESENTADOR-V2-LIBERA-1910
+    out = out.slice(0, m.index) + m[1] + m[2] + m[4].trim() // KINEO-APRESENTADOR-V2-LIBERA-1910
+    fixes.push('category_tail:' + m[3].toLowerCase()) // KINEO-APRESENTADOR-V2-LIBERA-1910
+  } // KINEO-APRESENTADOR-V2-LIBERA-1910
+  return { text: out, fixes } // KINEO-APRESENTADOR-V2-LIBERA-1910
+} // KINEO-APRESENTADOR-V2-LIBERA-1910
 /** KINEO-ADS-MAO-JUIZ-1610 — o nome e as caudas que começam em maiúscula ("Perfume Atheeri" → também "Atheeri"). Pura. */
 export function adsV2NameVariants(brand: string): string[] { // KINEO-ADS-MAO-JUIZ-1610
   const words = String(brand ?? '').trim().split(/\s+/).filter(Boolean) // KINEO-ADS-MAO-JUIZ-1610
@@ -139,7 +174,7 @@ export function adsV2NameFinish(copy: AdsV2Copy, names: readonly string[], langu
   if (rep) fixes.push(...rep.fixes) // KINEO-APRESENTADOR-V2-AJUSTE-1710
   const n = rep ? adsV2NameArticleFix(rep.text, names, language) : null // KINEO-ADS-MAO-JUIZ-1610 · KINEO-APRESENTADOR-V2-AJUSTE-1710 — sobre o texto sem a repetição
   if (n) fixes.push(...n.fixes) // KINEO-ADS-MAO-JUIZ-1610
-  const overlays = copy.overlays.map((o) => { const r = adsV2CategoryRepeatFix(o, names); fixes.push(...r.fixes); const a = adsV2NameArticleFix(r.text, names, language); fixes.push(...a.fixes); const d = adsV2LooseDashFix(a.text); if (d !== a.text) fixes.push('overlay_dash'); return d }) // KINEO-ADS-MAO-JUIZ-1610 · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + a repetição da categoria
+  const overlays = copy.overlays.map((o) => { const r = adsV2CategoryRepeatFix(o, names); fixes.push(...r.fixes); const a = adsV2NameArticleFix(r.text, names, language); fixes.push(...a.fixes); const d = adsV2LooseDashFix(a.text); if (d !== a.text) fixes.push('overlay_dash'); const t = adsV2CategoryTailFix(d, names); fixes.push(...t.fixes); return t.text }) // KINEO-ADS-MAO-JUIZ-1610 · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + a repetição da categoria · KINEO-APRESENTADOR-V2-LIBERA-1910 — + a categoria repetida DEPOIS do nome ("Perfume Atheeri Perfumes")
   return fixes.length ? { copy: { ...copy, narration: n ? n.text : copy.narration, overlays }, fixes } : { copy, fixes } // KINEO-ADS-MAO-JUIZ-1610
 } // KINEO-ADS-MAO-JUIZ-1610
 

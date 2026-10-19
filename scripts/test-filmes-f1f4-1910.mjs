@@ -61,10 +61,14 @@ checa('A3 a rota, sem as linhas marcadas, é BYTE A BYTE a base (só acréscimos
 checa('A4 contagem exata de acréscimos na rota', rota.split('\n').filter((l) => l.includes(MARCA_FILMES_F1F4_1910)).length === ACRESCIMOS_FILMES_F1F4_1910[ROTA])
 {
   // os guardiões reancorados: cada troca da tabela existe no arquivo vivo, e o arquivo desfeito é EXATAMENTE a base
+  // A referência de cada guardião reancorado é a ÚLTIMA versão dele deixada por outra sessão (o último commit que o tocou sem a
+  // minha marca): o merge de 19/10 (liberação do apresentador v2) reancorou test-filme-rapido-1710 na mesma linha que eu e criou
+  // um guardião novo que também precisou do meu desfaz; a regra "pai do 1º commit" não enxergaria nenhum dos dois.
+  const rdAlheio = (p) => { try { const sha = execFileSync('git', ['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F4_1910}`, '--', p], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); return sha ? lf(execFileSync('git', ['show', `${sha}:${p}`], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()) : null } catch { return null } }
   const ruins = []
   for (const [p, trocas] of Object.entries(TROCAS_FILMES_F1F4_1910)) {
     const vivo = rd(p)
-    const base = rdBase(p)
+    const base = rdAlheio(p)
     const linhas = vivo.split('\n')
     if (base === null || !trocas.every(([nova, antiga]) => linhas.includes(nova) && base.split('\n').includes(antiga) && nova.includes(MARCA_FILMES_F1F4_1910) && !antiga.includes(MARCA_FILMES_F1F4_1910))) { ruins.push(p); continue }
     try { if (semFilmesF1F4_1910(vivo, p) !== base) ruins.push(p) } catch { ruins.push(p) }

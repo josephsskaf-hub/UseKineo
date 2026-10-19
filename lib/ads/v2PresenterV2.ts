@@ -16,6 +16,7 @@
 // CRÉDITOS IGUAIS: adsV2Credits depende só do nível e da duração; o preço do Comercial com apresentador não muda.
 // TRAVA: ADS_V2_PRESENTER_V2_MODE = 'internal' — só as contas da casa (isAdsInternalEmail, reason 'internal' no /plan). Clientes continuam no
 // ator de 09/10 até a nota final do fundador. 'off' = nenhum pedido usa isto (nem os já planejados).
+// KINEO-APRESENTADOR-V2-LIBERA-1910 — 19/10: a nota final veio (9 na R3, pedido 84a5d07f) e a trava virou 'all' — todos os clientes, mesmo escopo (Comercial, 9:16, sem estilo).
 //
 // LIB PURA (só `import type`, apagado na transpilação): o guardião scripts/test-apresentador-v2-1710.mjs carrega este arquivo cru.
 //
@@ -32,7 +33,9 @@
 import type { AdsV2PlannedShot } from '@/lib/ads/v2ShotLists'
 
 /** Interruptor ÚNICO: 'internal' = só contas da casa; 'all' = todos; 'off' = o ator de antes para todo mundo. */
-export const ADS_V2_PRESENTER_V2_MODE: 'off' | 'internal' | 'all' = 'internal'
+// KINEO-APRESENTADOR-V2-LIBERA-1910 — LIBERADO para todos: nota 9 do fundador na R3 (pedido 84a5d07f, docs/RESULTADO-T1-APRESENTADOR-V2-R3-2026-10-17.md). O escopo
+// KINEO-APRESENTADOR-V2-LIBERA-1910 — NÃO muda: só o Comercial, 9:16, sem estilo de produto (adsV2PresenterV2Eligible); o resto segue no ator de antes. 'off' desliga tudo.
+export const ADS_V2_PRESENTER_V2_MODE: 'off' | 'internal' | 'all' = 'all' // KINEO-APRESENTADOR-V2-LIBERA-1910 — era 'internal'
 
 /** O método vale para esta conta? (puro: `internal` = isAdsInternalEmail, que o /plan já resolve como reason 'internal'). */
 export function adsV2PresenterV2On(internal: boolean, mode: 'off' | 'internal' | 'all' = ADS_V2_PRESENTER_V2_MODE): boolean {
@@ -345,9 +348,9 @@ export function adsV2PresenterV2VoiceFitRecord(fit: AdsV2PresenterV2VoiceFit, be
 // KINEO-APRESENTADOR-V2-AJUSTE-1710 — está na foto, as mãos do quadro iguais às da foto, câmera estável. Escrito em frases AFIRMATIVAS: o motor não tem negative
 // KINEO-APRESENTADOR-V2-AJUSTE-1710 — prompt e "no X" no prompt desenha X (lição do juiz do still).
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a foto escolhida TEM a mão livre inteira: ela gesticula pouco e baixo. */
-export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT = 'the person talks to the camera in a calm, natural UGC style, like chatting with a friend; a light closed-lip smile only at the very start and at the very end; while speaking the mouth stays relaxed and the lips follow every syllable naturally; small, low gestures with the free hand that is already visible in the photo, kept near the chest; the hands in the frame stay exactly the ones in the photo; the other hand holds the product steady with the label facing the camera; gentle natural head movement, natural blinking at a relaxed pace, steady camera, sharp focus, preserve the exact face and appearance' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + piscadas calmas
+export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT = 'the person talks to the camera in a warm, natural UGC style, like chatting with a friend; a light closed-lip smile only at the very start and at the very end; while speaking the mouth stays relaxed and the lips follow every syllable naturally; natural head tilts and nods, shoulders relaxed and moving with the speech, the upper body alive; small, low gestures with the free hand that is already visible in the photo, kept near the chest; the hands in the frame stay exactly the ones in the photo; the other hand holds the product steady with the label facing the camera; natural blinking at a relaxed pace, eyes open while speaking; steady camera, sharp focus, preserve the exact face and appearance' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + piscadas calmas · KINEO-APRESENTADOR-V2-LIBERA-1910 — + movimento (docs/RESULTADO-MOVIMENTO-APRESENTADOR-2026-10-19.md): calm→warm, cabeça/ombros vivos no lugar de "gentle natural head movement", + olhos abertos na fala
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a foto escolhida NÃO tem a mão livre (ou não deu para ver): só rosto, olhar e cabeça; as mãos ficam como na foto. */
-export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL = 'the person talks to the camera in a calm, natural UGC style, like chatting with a friend; a light closed-lip smile only at the very start and at the very end; while speaking the mouth stays relaxed and the lips follow every syllable naturally; only the one hand holding the product is in the frame and it stays still; the other arm rests out of frame; the hand with the product holds it steady with the label facing the camera; the expression comes from the eyes, the face and a gentle natural head movement; natural blinking at a relaxed pace; steady camera, sharp focus, preserve the exact face and appearance' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — mãos paradas em frase afirmativa + piscadas calmas
+export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL = 'the person talks to the camera in a warm, natural UGC style, like chatting with a friend; a light closed-lip smile only at the very start and at the very end; while speaking the mouth stays relaxed and the lips follow every syllable naturally; natural head tilts and nods, shoulders relaxed and moving with the speech, the upper body alive; only the one hand holding the product is in the frame and it stays still; the other arm rests out of frame; the hand with the product holds it steady with the label facing the camera; the expression comes from the eyes and the face; natural blinking at a relaxed pace, eyes open while speaking; steady camera, sharp focus, preserve the exact face and appearance' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — mãos paradas em frase afirmativa + piscadas calmas · KINEO-APRESENTADOR-V2-LIBERA-1910 — o mesmo movimento (só cabeça/ombros; as mãos seguem paradas)
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a atuação pela foto escolhida (pura): mão livre inteira = gesto pequeno; senão (ou não sei) = mãos paradas. */
 export function adsV2PresenterV2Performance(freeHand: boolean | null | undefined): string {
   return freeHand === true ? ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT : ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL

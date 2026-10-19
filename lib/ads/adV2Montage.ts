@@ -543,6 +543,12 @@ function buildAdV2PresenterV2Source(input: AdV2MontageInput, presenter: AdV2Pres
     elements.push({ type: 'video', track: ADS_V2_PRESENTER_INSERT_TRACK, time: ins.time, duration: ins.seconds, source: shot.url.trim(), fit: 'cover', loop: false, trim_start: r3(start), ...frame, volume: '0%' })
   }
   // O close da foto REAL do produto, na trilha do apresentador: entra com dissolve no ponto do corte e fica por baixo do cartão.
+  // KINEO-APRESENTADOR-V2-LIBERA-1910 — O DISSOLVE NÃO SAI, E NÃO É SÓ AQUI (medido em 19/10, US$ 0, sem render novo: diferença quadro a quadro, ffmpeg scene, 24 fps):
+  // KINEO-APRESENTADOR-V2-LIBERA-1910 — o `enter_transition: fade` saiu SECO em TODOS os caminhos medidos — Kling 3/hollywood (HOLLYWOOD_CROSSFADE = true, 0,25 s, mesma trilha com sobreposição;
+  // KINEO-APRESENTADOR-V2-LIBERA-1910 — vídeo a855ff2c: cortes em 5,000/10,000 s, 1 quadro cada), Kineo 1 (d94365de: 4,500/8,083/12,583 s), o Ads v1
+  // KINEO-APRESENTADOR-V2-LIBERA-1910 — (7c567a7d: 2,0/4,0/6,5/12,5 s) e esta R3 (9,042/11,042 s). Nenhum caminho do código tem transição que funcione para copiar; a
+  // KINEO-APRESENTADOR-V2-LIBERA-1910 — única animação comprovada é `animations: [{ type: 'scale' }]` (o zoom lento aparece). Trocar por outra propriedade só com uma
+  // KINEO-APRESENTADOR-V2-LIBERA-1910 — montagem de validação no Creatomate (quadro a quadro) — não inventar. Por isso o close e o cartão seguem iguais aos outros caminhos.
   elements.push(...adsV2PackshotElements(v2.closeUrl, ADS_V2_PRESENTER_V2_CLOSE_TRACK, t.cut, r3(ADS_V2_PRESENTER_V2_CLOSE_SECONDS + ADS_V2_MONTAGE_FADE), { enter_transition: { type: 'fade', duration: ADS_V2_PRESENTER_V2_DISSOLVE } })) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — trilha ACIMA do apresentador (era a mesma: não cruzava) e fade de 0,35 s
   // O cartão final (logo real) até o último quadro.
   elements.push({ type: 'image', track: ADS_V2_PRESENTER_V2_CARD_TRACK, time: t.cardStart, duration: r3(cardSeconds), source: input.cardUrl.trim(), fit: 'cover', x: '50%', y: '50%', width: '100%', height: '100%', enter_transition: { type: 'fade', duration: ADS_V2_MONTAGE_FADE } }) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — acima do close (o close subiu para a 3)
@@ -563,7 +569,7 @@ function buildAdV2PresenterV2Source(input: AdV2MontageInput, presenter: AdV2Pres
     const start = r3(o.start * scale)
     const end = r3(Math.min(o.end * scale, t.cut))
     if (!(end > start)) throw new Error(`ads_v2_montage_overlay_window:${i}`)
-    const geo = adsV2PresenterV2OverlayGeometry(text, width, height, v2.productRect ?? null) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — acima do produto e das mãos (sem o retângulo: o terço de cima)
+    const geo = adsV2PresenterV2OverlayGeometry(text, width, height, adsV2PresenterV2OverlayRect(v2.productRect ?? null)) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — acima do produto e das mãos (sem o retângulo: o terço de cima) · KINEO-APRESENTADOR-V2-LIBERA-1910 — o retângulo do inventário não é confiável: o terço de cima direto
     elements.push({ type: 'text', track: ADS_V2_PRESENTER_V2_TEXT_TRACK, time: start, duration: r3(end - start), text, x: '50%', y: geo.y, x_anchor: '50%', y_anchor: geo.y_anchor, x_alignment: '50%', width: geo.width, font_family: fontFamily, font_size: geo.font_size, font_weight: '800', line_height: '110%', fill_color: '#ffffff', stroke_color: 'rgba(0,0,0,0.55)', stroke_width: 2, background_color: 'rgba(0,0,0,0.55)', background_x_padding: '3%', background_y_padding: '2%', border_radius: 10, enter_transition: { type: 'fade', duration: 0.2 } })
   })
   // NENHUM elemento de voz (a voz é o som do apresentador). Música baixa sob a fala; sobe logo depois do corte.
@@ -810,6 +816,15 @@ export function adsV2OverlayGeometry(text: string, frameW: number, frameH: numbe
   const place = adsV2OverlayPlace({ text, frameW, frameH, fontPx, avoid }) // KINEO-ADS-FIEL-3-1510
   return { y: pct(place.bottom), y_anchor: '100%', width: pct(ADS_V2_OVERLAY_WIDTH), font_size: fontPx, place } // KINEO-ADS-FIEL-3-1510
 } // KINEO-ADS-FIEL-3-1510
+// KINEO-APRESENTADOR-V2-LIBERA-1910 — o RETÂNGULO do produto NÃO é confiável: o box_2d do inventário (gpt-4o-mini) sai de molde, não localiza — a calibração de 16/10
+// KINEO-APRESENTADOR-V2-LIBERA-1910 — já tinha visto (lib/ads/v2ProductInHand.ts, KINEO-JUIZ-GRADE-1610) e a R3 (84a5d07f) repetiu: veio 0,4/0,6/0,2/0,8 com o frasco real em
+// KINEO-APRESENTADOR-V2-LIBERA-1910 — x 0–0,33, y 0,35–0,75. Com retângulo falso e baixo, a frase cairia no rosto. Então a frase do v2 vai DIRETO para o terço de cima
+// KINEO-APRESENTADOR-V2-LIBERA-1910 — (o mesmo lugar onde a R3 acertou). O retângulo continua gravado no plano e no evento ads_v2_product_locked; true = volta a usá-lo.
+export const ADS_V2_PRESENTER_V2_RECT_TRUSTED: boolean = false // KINEO-APRESENTADOR-V2-LIBERA-1910
+/** KINEO-APRESENTADOR-V2-LIBERA-1910 — o retângulo que a frase de tela usa (puro): sem confiança no inventário = null (o terço de cima). */
+export function adsV2PresenterV2OverlayRect(rect: AdV2AvoidBox | null | undefined, trusted: boolean = ADS_V2_PRESENTER_V2_RECT_TRUSTED): AdV2AvoidBox | null { // KINEO-APRESENTADOR-V2-LIBERA-1910
+  return trusted === true && rect ? rect : null // KINEO-APRESENTADOR-V2-LIBERA-1910
+} // KINEO-APRESENTADOR-V2-LIBERA-1910
 // ── KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — a FRASE DE TELA do apresentador v2 ACIMA do produto e das mãos ──────────────────────────────────────────────────────────────────
 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — na R2 "Um perfume encantador" ficou sobre os dedos (a faixa de baixo da zona segura). A base da frase vai logo acima do topo do produto
 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — (o retângulo da foto escolhida, lib/ads/v2PresenterV2.ts adsV2PresenterV2ProductRect), presa entre o topo da zona segura e a faixa de baixo; sem o
