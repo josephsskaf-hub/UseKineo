@@ -1,0 +1,94 @@
+{
+ "app/api/generate-video-cinematic/route.ts": [
+  [
+   "          const f = filtrarFalaSemBuraco(sc.voiceover, contextoFalaClassica) // KINEO-META95-ASSUNTO-1910 — frase a frase, nunca com buraco (era removerDatasInventadas + scrubInventedSetting direto na fala: \"In the year,\", \"No Oceano, em,\", \"O : uma área\") [KINEO-MONUMENTO-2026-10-13]",
+   "          const r = removerDatasInventadas(sc.voiceover, contextoFalaClassica) // KINEO-MONUMENTO-2026-10-13"
+  ],
+  [
+   "          if (f.mantidas.length) mantidas.push(...f.mantidas) // KINEO-META95-ASSUNTO-1910 [KINEO-MONUMENTO-2026-10-13]",
+   "          const r2 = scrubInventedSetting(r.texto, contextoFalaClassica) // KINEO-MONUMENTO-2026-10-13"
+  ],
+  [
+   "          if (f.reescritas.length) reescritas.push(...f.reescritas) // KINEO-META95-ASSUNTO-1910",
+   "          const texto = r2.removed.length ? r2.text : r.texto"
+  ],
+  [
+   "          if (f.texto !== sc.voiceover) { sc.voiceover = f.texto; sc.caption = shortCaptionFromVoiceover(f.texto); tiradas.push(...f.removidas) } // KINEO-META95-ASSUNTO-1910",
+   "          if (r.removidas.length || r2.removed.length) { sc.voiceover = texto; sc.caption = shortCaptionFromVoiceover(texto); tiradas.push(...r.removidas, ...r2.removed) }"
+  ],
+  [
+   "            if (typeof v !== 'string' || !v.trim() || verbatim) continue // KINEO-META95-ASSUNTO-1910 — contrato C1: a fala do roteiro colado (\"Use my script as is\") nunca é tocada (era: sem o `|| verbatim`; em verbatim o pedido É o texto, mas o guarda agora é explícito)",
+   "            if (typeof v !== 'string' || !v.trim()) continue"
+  ],
+  [
+   "            const f = filtrarFalaSemBuraco(v, contextoDatas, { repararExistentes: true }) // KINEO-META95-ASSUNTO-1910 — frase a frase, nunca com buraco (era removerDatasInventadas + scrubInventedSetting direto na fala)",
+   "            const r = removerDatasInventadas(v, contextoDatas)"
+  ],
+  [
+   "            if (f.mantidas.length) mantidasH.push(...f.mantidas) // KINEO-META95-ASSUNTO-1910",
+   "            const r2 = scrubInventedSetting(r.texto, contextoDatas)"
+  ],
+  [
+   "            if (f.reescritas.length) reescritasH.push(...f.reescritas) // KINEO-META95-ASSUNTO-1910",
+   "            const texto = r2.removed.length ? r2.text : r.texto"
+  ],
+  [
+   "            if (f.texto !== v) { sc[campo] = f.texto; tiradas.push(...f.removidas) } // KINEO-META95-ASSUNTO-1910",
+   "            if (r.removidas.length || r2.removed.length) { sc[campo] = texto; tiradas.push(...r.removidas, ...r2.removed) }"
+  ],
+  [
+   "              const historiaE = await contextoDoFiltro(`${prompt} ${copia.map((sc) => sc.voiceover ?? '').join(' ')}`) // KINEO-META95-ASSUNTO-1910 — + o assunto traduzido (era a string direta) [KINEO-S25-NOTA95-2026-10-06]",
+   "              const historiaE = `${prompt} ${copia.map((sc) => sc.voiceover ?? '').join(' ')}` // KINEO-S25-NOTA95-2026-10-06"
+  ],
+  [
+   "              if (alinhadoE) for (const c of alinhadoE.rewritten) copia[idxs[c.index]].prompt = historiaE === null ? c.shot : scrubInventedSetting(c.shot, historiaE).text // KINEO-META95-ASSUNTO-1910 — null = sem scrub (era scrubInventedSetting direto) [KINEO-S25-NOTA95-2026-10-06]",
+   "              if (alinhadoE) for (const c of alinhadoE.rewritten) copia[idxs[c.index]].prompt = scrubInventedSetting(c.shot, historiaE).text // KINEO-S25-NOTA95-2026-10-06"
+  ],
+  [
+   "            const historiaH = await contextoDoFiltro(`${prompt} ${plan.scenes.map((sc) => sc.voiceover ?? '').join(' ')}`) // KINEO-META95-ASSUNTO-1910 — + o assunto traduzido (era a string direta)",
+   "            const historiaH = `${prompt} ${plan.scenes.map((sc) => sc.voiceover ?? '').join(' ')}`"
+  ],
+  [
+   "            for (const c of alinhado.rewritten) plan.scenes[idxs[c.index]].prompt = historiaH === null ? c.shot : scrubInventedSetting(c.shot, historiaH).text // KINEO-META95-ASSUNTO-1910 — null = sem scrub (era scrubInventedSetting direto)",
+   "            for (const c of alinhado.rewritten) plan.scenes[idxs[c.index]].prompt = scrubInventedSetting(c.shot, historiaH).text"
+  ],
+  [
+   "      const historia = await contextoDoFiltro(comVocabularioDoLugar(`${prompt} ${scenes.map((s) => s.voiceover ?? '').join(' ')}`)) // KINEO-META95-ASSUNTO-1910 — + o assunto traduzido; null = tradução precisava e falhou: o filtro NÃO apaga (era comVocabularioDoLugar(...) direto) [KINEO-MONUMENTO-2026-10-13]",
+   "      const historia = comVocabularioDoLugar(`${prompt} ${scenes.map((s) => s.voiceover ?? '').join(' ')}`) // KINEO-MONUMENTO-2026-10-13"
+  ],
+  [
+   "        const aiPrompt = historia !== null && s.aiPrompt ? scrubInventedSetting(s.aiPrompt, historia) : null // KINEO-META95-ASSUNTO-1910 — era s.aiPrompt ? …",
+   "        const aiPrompt = s.aiPrompt ? scrubInventedSetting(s.aiPrompt, historia) : null"
+  ],
+  [
+   "        const stockSearchQuery = historia !== null && s.stockSearchQuery ? scrubInventedSetting(s.stockSearchQuery, historia) : null // KINEO-META95-ASSUNTO-1910 — era s.stockSearchQuery ? …",
+   "        const stockSearchQuery = s.stockSearchQuery ? scrubInventedSetting(s.stockSearchQuery, historia) : null"
+  ],
+  [
+   "        const description = historia !== null && s.description ? scrubInventedSetting(s.description, historia) : null // KINEO-META95-ASSUNTO-1910 — era s.description ? …",
+   "        const description = s.description ? scrubInventedSetting(s.description, historia) : null"
+  ],
+  [
+   "        const historiaAlinhada = await contextoDoFiltro(comVocabularioDoLugar(`${prompt} ${scenes.map((sc) => sc.voiceover ?? '').join(' ')}`)) // KINEO-META95-ASSUNTO-1910 — + o assunto traduzido; null = o plano reescrito sobe sem o scrub (era comVocabularioDoLugar(...) direto) [KINEO-MONUMENTO-2026-10-13]",
+   "        const historiaAlinhada = comVocabularioDoLugar(`${prompt} ${scenes.map((sc) => sc.voiceover ?? '').join(' ')}`) // KINEO-MONUMENTO-2026-10-13"
+  ],
+  [
+   "          scenes[c.index].aiPrompt = historiaAlinhada === null ? c.shot : scrubInventedSetting(c.shot, historiaAlinhada).text // KINEO-META95-ASSUNTO-1910 — era scrubInventedSetting(c.shot, historiaAlinhada).text",
+   "          scenes[c.index].aiPrompt = scrubInventedSetting(c.shot, historiaAlinhada).text"
+  ]
+ ],
+ "lib/cinematic/visualPromptPolicy.ts": [
+  [
+   "  return new Set(((context || '').match(/[\\p{L}\\p{N}]+/gu) ?? []).map(normalizarAssunto)) // KINEO-META95-ASSUNTO-1910 — era .toLowerCase().match(…)",
+   "  return new Set((context || '').toLowerCase().match(/[\\p{L}\\p{N}]+/gu) ?? [])"
+  ],
+  [
+   "  const base = (w: string) => normalizarAssunto(w).replace(/\\.$/, '').replace(/['’]\\p{Ll}+$/u, '').replace(/-[a-z]+$/, '') // KINEO-META95-ASSUNTO-1910 — era w.toLowerCase() e só o 's: \"Timur'un\", \"Devri'ne\" (turco) casam com Timur/Devri",
+   "  const base = (w: string) => w.toLowerCase().replace(/\\.$/, '').replace(/['’]s$/, '').replace(/-[a-z]+$/, '')"
+  ],
+  [
+   "  const emCtx = (b: string) => ctx.has(b) || ctx.has(b + 's') || ctx.has(b + 'es') || (b.length > 4 && /s$/.test(b) && (ctx.has(b.slice(0, -1)) || (/es$/.test(b) && ctx.has(b.slice(0, -2))))) // KINEO-META95-ASSUNTO-1910 — plural de um lado só",
+   "  const known = (w: string) => ctx.has(base(w)) || SETTING_ALLOW.has(base(w))"
+  ]
+ ]
+}
