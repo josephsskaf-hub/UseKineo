@@ -10,7 +10,7 @@
 export const MARCA_CLOSE_REAL_1910 = 'KINEO-CLOSE-REAL-1910'
 
 /** O pai do 1º commit da entrega (origin/main de 19/10). */
-export const CLOSE_REAL_1910_BASE = '57f6f4b4598660d7d53b89a751ee34f980e8606e'
+export const CLOSE_REAL_1910_BASE = '0a1b6282cea96483325c49a4fe9382b52d208760'
 
 /** Arquivos que a entrega toca (só acréscimos marcados + as trocas listadas). */
 export const CLOSE_REAL_1910_ARQUIVOS = [
@@ -283,6 +283,10 @@ export const TROCAS_CLOSE_REAL_1910 = {
     [
       "const rd = (p) => semFiel2_1510(p, semAfiliadoDestino1610(p, semAfiliadoPorPost1610(p, semClareza1610(p, semFiel3_1510(p, semFiel4_1510(p, semFiel5_1510(p, semFielLiga1510(p, semCloseReal1910(readFileSync(join(ROOT, p), 'utf8'), p))))))))) // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória · reancorado KINEO-AFILIADO-DESTINO-1610 — o nome reservado affiliate_link_clicked (app/api/events/route.ts) sai antes de todos /* reancorado KINEO-CHECKOUT-CLAREZA-1610 (união na leva 2) · reancorado KINEO-AFILIADO-POR-POST-1610 (união na leva 2) · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória · reancorado KINEO-LEVA3-1510 (união na leva 3) */ /* reancorado KINEO-ADS-FIEL-4-1510 — o canto reservado da trava sai primeiro, em memória */ · reancorado KINEO-ADS-FIEL-5-1510 — a base do produto no tampo sai antes, byte a byte (semFiel5_1510 já devolve LF) · reancorado KINEO-ADS-FIEL-LIGA-1510 — o liga (o mais novo) sai PRIMEIRO, colado no readFileSync /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */",
       "const rd = (p) => semFiel2_1510(p, semAfiliadoDestino1610(p, semAfiliadoPorPost1610(p, semClareza1610(p, semFiel3_1510(p, semFiel4_1510(p, semFiel5_1510(p, semFielLiga1510(p, readFileSync(join(ROOT, p), 'utf8'))))))))) // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória · reancorado KINEO-AFILIADO-DESTINO-1610 — o nome reservado affiliate_link_clicked (app/api/events/route.ts) sai antes de todos /* reancorado KINEO-CHECKOUT-CLAREZA-1610 (união na leva 2) · reancorado KINEO-AFILIADO-POR-POST-1610 (união na leva 2) · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória · reancorado KINEO-LEVA3-1510 (união na leva 3) */ /* reancorado KINEO-ADS-FIEL-4-1510 — o canto reservado da trava sai primeiro, em memória */ · reancorado KINEO-ADS-FIEL-5-1510 — a base do produto no tampo sai antes, byte a byte (semFiel5_1510 já devolve LF) · reancorado KINEO-ADS-FIEL-LIGA-1510 — o liga (o mais novo) sai PRIMEIRO, colado no readFileSync"
+    ],
+    [
+      "  const diff = git('diff', '--name-only', BASE, git('log', '--format=%H', '--grep=KINEO-ADS-FIEL-1510', 'HEAD').trim().split('\\n').filter(Boolean)[0] || 'HEAD').split('\\n') // reancorado KINEO-CLOSE-REAL-1910 — mede o ajuste até o SEU último commit (o Close real de 19/10 toca o /start, com guardião próprio); era: git('diff', '--name-only', BASE, 'HEAD')",
+      "  const diff = git('diff', '--name-only', BASE, 'HEAD').split('\\n')"
     ]
   ],
   "scripts/test-ads-fiel-2-1510.mjs": [
@@ -503,8 +507,8 @@ export const TROCAS_CLOSE_REAL_1910 = {
   ],
   "scripts/test-apresentador-v2-ajuste-3-1710.mjs": [
     [
-      "const rd = (p) => semFilmeRapido1710(semCloseReal1910(readFileSync(join(ROOT, p), 'utf8'), p), p).replace(/\\r\\n/g, '\\n') // o arquivo VIVO (esta é a camada mais nova) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */ /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */",
-      "const rd = (p) => semFilmeRapido1710(readFileSync(join(ROOT, p), 'utf8'), p).replace(/\\r\\n/g, '\\n') // o arquivo VIVO (esta é a camada mais nova) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */"
+      "const rd = (p) => semFilmeRapido1710(desfazApresentadorV2Libera1910(p, semCloseReal1910(readFileSync(join(ROOT, p), 'utf8'), p)), p).replace(/\\r\\n/g, '\\n') // reancorado KINEO-APRESENTADOR-V2-LIBERA-1910: a liberação de 19/10 sai primeiro (é a camada mais nova), depois a entrega de 17/10 // o arquivo VIVO (esta é a camada mais nova) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */ /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */",
+      "const rd = (p) => semFilmeRapido1710(desfazApresentadorV2Libera1910(p, readFileSync(join(ROOT, p), 'utf8')), p).replace(/\\r\\n/g, '\\n') // reancorado KINEO-APRESENTADOR-V2-LIBERA-1910: a liberação de 19/10 sai primeiro (é a camada mais nova), depois a entrega de 17/10 // o arquivo VIVO (esta é a camada mais nova) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */"
     ]
   ],
   "scripts/test-ator-sem-depoimento-1310.mjs": [
