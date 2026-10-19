@@ -15,8 +15,8 @@ import { fileURLToPath } from 'node:url'
 
 export const MARCA_META95_ASSUNTO_1910 = 'KINEO-META95-ASSUNTO-1910'
 
-/** A base da entrega (origin/main de 19/10: a legenda menor do Close real). */
-export const META95_ASSUNTO_1910_BASE = 'cc5c984cca785d0700361b05745835b34ed0a366'
+/** A base da entrega (origin/main de 19/10 à noite: a legenda menor do Close real + a pílula de volta + o corte, mescladas em fac1f3ec4→merge). */
+export const META95_ASSUNTO_1910_BASE = 'ef2879d96085ff77df2b103d532052895c9c3dee'
 
 /** Arquivos que a entrega toca, com a contagem EXATA de acréscimos marcados (as trocas estão no JSON). */
 export const ACRESCIMOS_META95_ASSUNTO_1910 = {
