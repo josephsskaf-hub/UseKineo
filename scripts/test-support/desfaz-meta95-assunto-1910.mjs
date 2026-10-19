@@ -38,6 +38,9 @@ export const ACRESCIMOS_META95_ASSUNTO_1910 = {
   'scripts/test-h3-palavras-2026-09-15.mjs': 0,
   'scripts/test-kling3-imagens-2026-09-17.mjs': 0,
   'scripts/test-seedance-15s-3x6-2026-09-29.mjs': 1,
+  'scripts/test-veo-marcado-2026-09-29.mjs': 1,
+  'scripts/test-veo-modo-ia-2026-09-29.mjs': 1,
+  'scripts/test-voz-15s-mesma-da-montagem-2026-09-29.mjs': 1,
 }
 /** [linha nova (inteira), linha da base] por arquivo. */
 export const TROCAS_META95_ASSUNTO_1910 = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-meta95-assunto-1910-trocas.json'), 'utf8'))
