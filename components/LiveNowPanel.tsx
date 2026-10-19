@@ -11,6 +11,7 @@
 // diferente de quem só está navegando.
 import { useEffect, useState } from 'react'
 import type { LiveData, LiveVisitor } from '@/app/api/admin/live/route'
+import { EmailBotao, PessoaLink } from '@/components/admin/PessoaLink' // KINEO-ADMIN-PESSOA-1910
 
 const REFRESH_MS = 30_000
 
@@ -22,14 +23,12 @@ function flag(cc: string | null): string {
 
 // Assunto por calor: quem está no checkout recebe a pergunta direta; quem só
 // navega recebe o convite de ajuda. Copy no padrão da casa (curta, de gente).
-function mailtoFor(v: LiveVisitor): string {
-  const subject =
-    v.heat === 3
-      ? 'Anything I can fix at checkout?'
-      : v.heat === 2
-        ? 'Saw you making a video — need a hand?'
-        : 'Founder here — anything I can help with?'
-  return `mailto:${v.email}?subject=${encodeURIComponent(subject)}`
+function mailtoSubjectFor(v: LiveVisitor): string {
+  return v.heat === 3
+    ? 'Anything I can fix at checkout?'
+    : v.heat === 2
+      ? 'Saw you making a video — need a hand?'
+      : 'Founder here — anything I can help with?'
 }
 
 function heatColor(heat: number): string {
@@ -148,13 +147,11 @@ export default function LiveNowPanel() {
               {data.online.map((v) => (
                 <tr key={v.user_id} style={{ borderTop: '1px solid var(--border)' }}>
                   <td style={{ padding: '9px 12px', whiteSpace: 'nowrap' }}>
-                    <a
-                      href={mailtoFor(v)}
-                      title="Email this person now"
-                      style={{ color: '#8DB4FF', textDecoration: 'none', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.8rem' }}
-                    >
+                    {/* KINEO-ADMIN-PESSOA-1910 — o e-mail abre a TELA DA PESSOA; escrever e-mail virou o ✉ pequeno ao lado. */}
+                    <PessoaLink id={v.user_id} email={v.email} style={{ color: '#8DB4FF', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.8rem' }}>
                       {v.email}
-                    </a>
+                    </PessoaLink>
+                    <EmailBotao email={v.email} assunto={mailtoSubjectFor(v)} title="Email this person now" />
                     {v.name && <span className="ml-2" style={{ color: 'var(--muted2)', fontSize: '0.75rem' }}>{v.name}</span>}
                     {v.is_paid && (
                       <span className="ml-2 rounded px-1.5 py-0.5 text-[9px] font-black uppercase" style={{ background: 'rgba(52,211,153,.12)', color: '#5FD4A4', border: '1px solid rgba(52,211,153,.35)' }}>sub</span>
@@ -241,7 +238,7 @@ export default function LiveNowPanel() {
         )}
       </div>
       <p className="text-[10px] mt-2" style={{ color: 'var(--muted2)' }}>
-        Online = visitante logado com atividade nos últimos 5 min · atualiza a cada 30s · clique no e-mail para escrever agora.
+        Online = visitante logado com atividade nos últimos 5 min · atualiza a cada 30s · clique no e-mail para abrir a tela da pessoa · ✉ para escrever agora.
         {' '}<b>rendering</b> = geração em voo: o crédito já saiu, o vídeo ainda não existe — é isso que explica &quot;crédito gasto, zero vídeo&quot;.
       </p>
     </section>
