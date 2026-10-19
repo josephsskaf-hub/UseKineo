@@ -305,7 +305,7 @@ export function buildAdV2CloseRealSource(input: AdV2CloseRealInput): Record<stri
   // 5. A marca-d'água (só a amostra grátis): o anúncio inteiro, pequena, centrada entre as frases e o produto.
   const wm = typeof input.watermark === 'string' ? input.watermark.trim() : ''
   if (wm) {
-    elements.push({ type: 'text', track: T.watermark, time: 0, duration: t.total, text: wm, x: '50%', y: `${r3(ADS_V2_CLOSE_REAL_WATERMARK_BOTTOM * 100)}%`, x_anchor: '50%', y_anchor: '100%', x_alignment: '50%', width: '80%', font_family: fontFamily, font_size: Math.round((ADS_V2_CLOSE_REAL_WATERMARK_FONT_AT_1080 * width) / 1080), font_weight: '700', line_height: '110%', fill_color: 'rgba(255,255,255,0.85)', background_color: 'rgba(0,0,0,0.35)', background_x_padding: '3%', background_y_padding: '2%', border_radius: 10 })
+    elements.push({ type: 'text', track: T.watermark, time: 0, duration: t.total, text: wm, x: '50%', y: `${r3(ADS_V2_CLOSE_REAL_WATERMARK_BOTTOM * 100)}%`, x_anchor: '50%', y_anchor: '100%', x_alignment: '50%', width: '80%', font_family: fontFamily, font_size: Math.round((ADS_V2_CLOSE_REAL_WATERMARK_FONT_AT_1080 * width) / 1080), font_weight: '800', line_height: '110%', fill_color: '#ffffff', background_color: 'rgba(0,0,0,0.35)', background_x_padding: '3%', background_y_padding: '2%', border_radius: 10 })
   }
   // 6. Voz (a partir de 0,3 s) e música com ducking: 25% sob a voz, sobe para 70% logo depois.
   if (hasVoice) elements.push({ type: 'audio', track: T.voice, time: ADS_V2_VOICE_START, duration: r3(input.voiceSeconds as number), source: (voiceUrl as string).trim(), volume: '100%' })

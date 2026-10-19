@@ -81,13 +81,15 @@ export const CLOSE_REAL_1910_ARQUIVOS = [
   "scripts/test-equipe-business-2026-10-10.mjs",
   "scripts/test-filme-rapido-1710.mjs",
   "scripts/test-juiz-grade-1610.mjs",
-  "scripts/test-shopify-app-1310.mjs"
+  "scripts/test-shopify-app-1310.mjs",
+  "scripts/test-support/shopify-extracao-v2-1310.mjs"
 ]
 
 /** Arquivos que a entrega cria. */
 export const CLOSE_REAL_1910_NOVOS = [
   "lib/ads/v2CloseReal.ts",
   "lib/ads/v2CloseRealServer.ts",
+  "scripts/test-close-real-1910.mjs",
   "scripts/test-support/desfaz-close-real-1910.mjs"
 ]
 
@@ -127,6 +129,14 @@ export const TROCAS_CLOSE_REAL_1910 = {
     [
       "        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}), ...(format !== '9:16' ? { format } : {}), ...(closeRealOn ? { close_real: true } : {}) }, // KINEO-ADS-MELHORIAS-1410 — o formato só fora do 9:16 · KINEO-CLOSE-REAL-1910 — + o Close do produto real; era: a mesma linha sem close_real",
       "        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}), ...(format !== '9:16' ? { format } : {}) }, // KINEO-ADS-MELHORIAS-1410 — o formato só fora do 9:16"
+    ],
+    [
+      "              {adKind === 'product' && !closeRealOn && sceneSplit.scene && !sceneTyped ? (/* KINEO-CLOSE-REAL-1910 — era: {adKind === 'product' && sceneSplit.scene && !sceneTyped ? ( */",
+      "              {adKind === 'product' && sceneSplit.scene && !sceneTyped ? ("
+    ],
+    [
+      "              {adKind === 'product' && !closeRealOn ? (/* KINEO-CLOSE-REAL-1910 — o Close real não cria cena (só as fotos reais): o campo some; era: {adKind === 'product' ? ( */",
+      "              {adKind === 'product' ? ("
     ],
     [
       "                <h2 id=\"adv2s-s3\" className=\"lab\"><span className=\"n\" aria-hidden=\"true\">3</span>{ADS_V2_CLOSE_REAL_LIVE ? afc.title : styleCopy.title}</h2>{/* KINEO-CLOSE-REAL-1910 — o passo 3 escolhe o FORMATO (Apresentador / Close real); era: o mesmo h2 com {styleCopy.title} */}",
@@ -197,6 +207,18 @@ export const TROCAS_CLOSE_REAL_1910 = {
     [
       "const read = (rel) => semMarcas1510(rel, semFiel2_1510(rel, semFiel3_1510(rel, semCloseReal1910(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)))) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-FIEL-2-1510 · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */",
       "const read = (rel) => semMarcas1510(rel, semFiel2_1510(rel, semFiel3_1510(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8')))) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-FIEL-2-1510 · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória"
+    ],
+    [
+      "const pura = (over = {}) => createOfflineLoader({ source: (rel, text) => (over[rel] !== undefined ? over[rel] : semCloseReal1910(text, rel)) }) // reancorado KINEO-CLOSE-REAL-1910 — o loader roda a base",
+      "const pura = (over = {}) => createOfflineLoader({ source: (rel, text) => (over[rel] !== undefined ? over[rel] : text) })"
+    ],
+    [
+      "  source: (rel, text) => (over[rel] !== undefined ? over[rel] : semCloseReal1910(text, rel)), // reancorado KINEO-CLOSE-REAL-1910 — o loader roda a base",
+      "  source: (rel, text) => (over[rel] !== undefined ? over[rel] : text),"
+    ],
+    [
+      "    source: (rel, text) => (over[rel] !== undefined ? over[rel] : semCloseReal1910(text, rel)), // reancorado KINEO-CLOSE-REAL-1910 — o loader roda a base",
+      "    source: (rel, text) => (over[rel] !== undefined ? over[rel] : text),"
     ]
   ],
   "scripts/test-ads-3-variacoes-2026-09-30.mjs": [
@@ -209,6 +231,10 @@ export const TROCAS_CLOSE_REAL_1910 = {
     [
       "const read = (rel) => semFiel2_1510(rel, semFiel3_1510(rel, semCloseReal1910(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel))) // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */",
       "const read = (rel) => semFiel2_1510(rel, semFiel3_1510(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8'))) // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória"
+    ],
+    [
+      "    source: (rel, text) => (over[rel] !== undefined ? over[rel] : semCloseReal1910(text, rel)), // reancorado KINEO-CLOSE-REAL-1910 — o loader roda a base (a amostra no Close real e o antifarm são provados em scripts/test-close-real-1910.mjs)",
+      "    source: (rel, text) => (over[rel] !== undefined ? over[rel] : text),"
     ]
   ],
   "scripts/test-ads-ator-2026-10-09.mjs": [
@@ -533,6 +559,16 @@ export const TROCAS_CLOSE_REAL_1910 = {
     [
       "const ler = (...p) => semCloseReal1910(readFileSync(path.join(raiz, ...p), 'utf8'), p.join('/')).replace(/\\r\\n/g, '\\n') /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */",
       "const ler = (...p) => readFileSync(path.join(raiz, ...p), 'utf8').replace(/\\r\\n/g, '\\n')"
+    ]
+  ],
+  "scripts/test-support/shopify-extracao-v2-1310.mjs": [
+    [
+      "  const route = semCloseReal1910(readFileSync(join(raiz, `app/api/ads/v2/${kind}/route.ts`), 'utf8'), `app/api/ads/v2/${kind}/route.ts`) // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória",
+      "  const route = readFileSync(join(raiz, `app/api/ads/v2/${kind}/route.ts`), 'utf8')"
+    ],
+    [
+      "  const core = semCloseReal1910(readFileSync(join(raiz, kind === 'plan' ? 'lib/ads/v2PlanCore.ts' : 'lib/ads/v2StartCore.ts'), 'utf8'), kind === 'plan' ? 'lib/ads/v2PlanCore.ts' : 'lib/ads/v2StartCore.ts') // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória",
+      "  const core = readFileSync(join(raiz, kind === 'plan' ? 'lib/ads/v2PlanCore.ts' : 'lib/ads/v2StartCore.ts'), 'utf8')"
     ]
   ]
 }

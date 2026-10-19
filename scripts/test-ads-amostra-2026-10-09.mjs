@@ -123,7 +123,7 @@ function loaderWith({ db = null, over = {}, env = { NEXT_PUBLIC_ADS_PASS_LIVE: '
   return createOfflineLoader({
     env,
     mocks: { '@/lib/userFootage': { footageAdminClient: () => db }, ...mocks },
-    source: (rel, text) => (over[rel] !== undefined ? over[rel] : text),
+    source: (rel, text) => (over[rel] !== undefined ? over[rel] : semCloseReal1910(text, rel)), // reancorado KINEO-CLOSE-REAL-1910 — o loader roda a base (a amostra no Close real e o antifarm são provados em scripts/test-close-real-1910.mjs)
   })
 }
 

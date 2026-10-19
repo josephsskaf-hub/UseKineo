@@ -2497,7 +2497,7 @@ export function AdsV2SimpleSession({
                 <textarea ref={textAreaRef} className="adv2q-prompt" rows={3} maxLength={ADS_V2_SCREEN_SENTENCE_MAX} value={text} disabled={busy === 'start'} onChange={(e) => setText(e.target.value)} placeholder={textAsk.placeholder} />
               </label>
               {/* KINEO-ADS-CENA-2026-10-13 — a frase pede cena ("…num hotel com uma chuva"): dizemos o que lemos e oferecemos mover. */}
-              {adKind === 'product' && sceneSplit.scene && !sceneTyped ? (
+              {adKind === 'product' && !closeRealOn && sceneSplit.scene && !sceneTyped ? (/* KINEO-CLOSE-REAL-1910 — era: {adKind === 'product' && sceneSplit.scene && !sceneTyped ? ( */
                 <p className="adsw-hint adv2s-movescene" role="status" data-kineo="ads-scene-from-text">
                   {fill(sc.scene.moveNote, { scene: sceneSplit.scene })}{' '}
                   {/* KINEO-ADS-CONSERTOS-TELA-1410 — sem disabled={locked}: o roteiro automático (1,2 s depois de cada mudança) deixava
@@ -2508,7 +2508,7 @@ export function AdsV2SimpleSession({
               ) : null}
               {/* KINEO-ADS-CENA-2026-10-13 — "Where does your product appear?" (opcional) + 4 climas prontos. Só cria cena em
                   Comercial/Premium: no Normal fica desligado com o porquê. */}
-              {adKind === 'product' ? (
+              {adKind === 'product' && !closeRealOn ? (/* KINEO-CLOSE-REAL-1910 — o Close real não cria cena (só as fotos reais): o campo some; era: {adKind === 'product' ? ( */
                 <div className="adsw-f adv2s-scene" data-kineo="ads-scene">
                   <label htmlFor="adv2s-scene">{sc.scene.label}</label>
                   <small>{sceneTierOk ? sc.scene.hint : sc.scene.standard}</small>
