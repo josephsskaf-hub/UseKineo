@@ -1035,6 +1035,8 @@ async function adsV2NarrationVoice(order: AdsV2OrderRow, text: string, fallbackT
     return synthesizeTtsFallback(text, ctx)
   }
 }
+/** KINEO-CLOSE-REAL-V3-1910 — a voz do Close real (a MESMA de adsV2NarrationVoice: por língua do apresentador v2; PT-BR = Portuguese_ConfidentWoman; falhou = a de sempre), para o áudio cedo (lib/ads/v2AudioCedo.ts) não gravar a voz padrão antes da montagem. */
+export function adsV2CloseRealNarrationVoice(order: AdsV2OrderRow, text: string): Promise<Buffer> { return adsV2NarrationVoice(order, text, true) } // KINEO-CLOSE-REAL-V3-1910
 
 /**
  * KINEO-APRESENTADOR-V2-AJUSTE-1710 — a voz MEDIDA do apresentador v2 passou do alvo (~10,5 s)? Re-sintetiza UMA vez com a decisão pura (adsV2PresenterV2VoiceFit:
@@ -1231,11 +1233,13 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
   let closeRealHero: 'cutout' | 'photo' | null = null // KINEO-CLOSE-REAL-1910
   if (closeRealPlan) { // KINEO-CLOSE-REAL-1910
     const crServer = await import('@/lib/ads/v2CloseRealServer').catch(() => null) // KINEO-CLOSE-REAL-1910 — import dinâmico: sem o módulo = a foto real no gancho
+    const crBoxesP = crServer ? crServer.adsV2CloseRealPhotoBoxes({ userId: order.user_id, photos: closeRealPlan.photos.map((u) => ({ url: u, footageId: (order.photos ?? []).find((ph) => ph && typeof ph.url === 'string' && ph.url.trim() === u)?.footage_id ?? '' })) }).catch(() => null) : Promise.resolve(null) // KINEO-CLOSE-REAL-V3-1910 — a caixa do produto em cada foto (a legenda desvia dela), em paralelo com o gancho; nunca lança
     const hero = crServer ? await crServer.adsV2CloseRealHero({ userId: order.user_id, orderId: order.id, product: closeRealPlan.product }) : null // KINEO-CLOSE-REAL-1910 — nunca lança
+    const crBoxes = await crBoxesP // KINEO-CLOSE-REAL-V3-1910
     closeRealHero = hero ? 'cutout' : 'photo' // KINEO-CLOSE-REAL-1910
     const crFrame = renderOutputSpecFor('9:16') // KINEO-CLOSE-REAL-1910 — o Close real é só vertical
     try { // KINEO-CLOSE-REAL-1910
-      closeRealSource = buildAdV2CloseRealSource({ width: crFrame.width, height: crFrame.height, heroUrl: hero?.url ?? null, heroFallbackUrl: closeRealPlan.product?.url ?? closeRealPlan.photos[0], photos: closeRealPlan.photos, phrases: (plan.overlays ?? []).map((o) => (o && typeof o.text === 'string' ? o.text : '')), fontFamily: captionFontFor(language), cardUrl: order.card_url, cardSeconds: ADS_V2_CARD_SECONDS, musicUrl, musicTrimStart: adsV2MusicTrimStart(musicUrl), voiceUrl, voiceSeconds, watermark: isAdsSampleRef(order.billing_ref) ? ADS_V2_CLOSE_REAL_WATERMARK : null, narration, closeCard: hero?.cardUrl && adsV2CloseRealCardName(order.brief?.business) ? { url: hero.cardUrl, name: adsV2CloseRealCardName(order.brief?.business), cta: adsV2CloseRealCta(language) } : null }) // KINEO-CLOSE-REAL-1910 // KINEO-CLOSE-REAL-AJUSTE-1910 — + a narração (legendas no tempo da voz) e o cartão próprio (fundo na cor da embalagem + nome + chamada)
+      closeRealSource = buildAdV2CloseRealSource({ width: crFrame.width, height: crFrame.height, heroUrl: hero?.url ?? null, heroFallbackUrl: closeRealPlan.product?.url ?? closeRealPlan.photos[0], photos: closeRealPlan.photos, phrases: (plan.overlays ?? []).map((o) => (o && typeof o.text === 'string' ? o.text : '')), fontFamily: captionFontFor(language), cardUrl: order.card_url, cardSeconds: ADS_V2_CARD_SECONDS, musicUrl, musicTrimStart: adsV2MusicTrimStart(musicUrl), voiceUrl, voiceSeconds, watermark: isAdsSampleRef(order.billing_ref) ? ADS_V2_CLOSE_REAL_WATERMARK : null, narration, closeCard: hero?.cardUrl && adsV2CloseRealCardName(order.brief?.business) ? { url: hero.cardUrl, name: adsV2CloseRealCardName(order.brief?.business), cta: adsV2CloseRealCta(language), ink: hero.ink } : null, photoBoxes: crBoxes }) // KINEO-CLOSE-REAL-V3-1910 — + a cor do botão (ink, o tom da embalagem) e a caixa do produto em cada foto (photoBoxes: a legenda nunca cobre o produto)
     } catch (e) { // KINEO-CLOSE-REAL-1910
       await failAdsV2Order(admin, order, `montage_invalid:${e instanceof Error ? e.message : String(e)}`, '/lib/ads/v2Advance') // KINEO-CLOSE-REAL-1910
       return // KINEO-CLOSE-REAL-1910

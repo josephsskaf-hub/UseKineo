@@ -14,6 +14,9 @@ import { adsV2CutoutFor } from '@/lib/ads/v2ProductLockServer'
 import { adsV2MeanRgb, encodePng, pasteOver, resampleRgba, type AdsV2Rgba } from '@/lib/ads/v2Png'
 import { ADS_V2_CLOSE_REAL_PRODUCT_BOX, type AdsV2CloseRealPlan } from '@/lib/ads/v2CloseReal'
 import { ADS_V2_CLOSE_REAL_CARD_PRODUCT_BOX } from '@/lib/ads/v2CloseReal' // KINEO-CLOSE-REAL-AJUSTE-1910 — o produto pequeno do cartão final
+import { alphaBox, decodePng, isPng } from '@/lib/ads/v2Png' // KINEO-CLOSE-REAL-V3-1910 — a caixa do produto em cada foto (o recorte SEM aparar)
+import { adsV2CutoutPath } from '@/lib/ads/v2ShotLists' // KINEO-CLOSE-REAL-V3-1910 — o MESMO cache por foto do recorte (adsV2CutoutFor)
+import type { AdsV2CloseRealPhotoBox } from '@/lib/ads/v2CloseReal' // KINEO-CLOSE-REAL-V3-1910
 
 const RENDER_BUCKET = 'renders'
 /** O quadro do gancho (9:16; a montagem o põe em `cover` no quadro do perfil de render). */
@@ -90,7 +93,7 @@ export function adsV2CloseRealHeroRgba(cut: AdsV2Rgba, frameW: number = ADS_V2_C
  * KINEO-CLOSE-REAL-1910 — o PNG do gancho no bucket (URL pública). null = sem foto de produto, recorte falhou (fora do ar, não é produto,
  * prazo) ou upload falhou: a montagem usa a foto real inteira. Nunca lança.
  */
-export async function adsV2CloseRealHero(args: { userId: string; orderId: string; product: AdsV2CloseRealPlan['product'] }): Promise<{ url: string; rect: { x: number; y: number; w: number; h: number }; cardUrl: string | null } | null> { // KINEO-CLOSE-REAL-AJUSTE-1910 — + cardUrl (o fundo do cartão final; null = o cartão do pedido)
+export async function adsV2CloseRealHero(args: { userId: string; orderId: string; product: AdsV2CloseRealPlan['product'] }): Promise<{ url: string; rect: { x: number; y: number; w: number; h: number }; cardUrl: string | null; ink: string } | null> { // KINEO-CLOSE-REAL-V3-1910 — + ink (o tom escuro da embalagem: o texto do botão do cartão) · + cardUrl (o fundo do cartão final; null = o cartão do pedido)
   try {
     const p = args.product
     if (!p || typeof p.url !== 'string') return null
@@ -104,9 +107,52 @@ export async function adsV2CloseRealHero(args: { userId: string; orderId: string
     const url = admin.storage.from(RENDER_BUCKET).getPublicUrl(path).data?.publicUrl ?? null
     if (!url) return null // KINEO-CLOSE-REAL-AJUSTE-1910
     const cardUrl = await (async () => { try { const card = adsV2CloseRealHeroRgba(cut, ADS_V2_CLOSE_REAL_HERO_W, ADS_V2_CLOSE_REAL_HERO_H, ADS_V2_CLOSE_REAL_CARD_PRODUCT_BOX); const cp = adsV2CloseRealCardPath(args.userId, args.orderId); const cu = await admin.storage.from(RENDER_BUCKET).upload(cp, encodePng(card.img, { alpha: false }), { contentType: 'image/png', upsert: true }); return cu.error ? null : admin.storage.from(RENDER_BUCKET).getPublicUrl(cp).data?.publicUrl ?? null } catch { return null } })() // KINEO-CLOSE-REAL-AJUSTE-1910 — o cartão falhou = o do pedido (o gancho segue)
-    return { url, rect: hero.rect, cardUrl } // KINEO-CLOSE-REAL-AJUSTE-1910 — era: return url ? { url, rect: hero.rect } : null
+    return { url, rect: hero.rect, cardUrl, ink: adsV2CloseRealHex(hero.palette.bottom) } // KINEO-CLOSE-REAL-V3-1910 — + ink (a base do gradiente: o tom da embalagem escurecido)
   } catch (e) {
     console.warn('[ads-v2] gancho do Close real falhou (segue a foto real):', e instanceof Error ? e.message : String(e))
     return null
   }
 }
+// ── KINEO-CLOSE-REAL-V3-1910 — A CAIXA DO PRODUTO EM CADA FOTO (canário v2: a legenda cobria a tampa do frasco nas fotos B e C). O recorte BiRefNet de
+// KINEO-CLOSE-REAL-V3-1910 — cada foto dos planos (o MESMO cache por foto da trava do produto: a 2ª vez é de graça; a 1ª, ≤ US$ 0,01 por foto), lido SEM aparar:
+// KINEO-CLOSE-REAL-V3-1910 — a caixa do contorno em frações da foto. Roda em paralelo com o gancho, com prazo; falhou = null (a legenda fica no lugar de sempre).
+/** KINEO-CLOSE-REAL-V3-1910 — [r, g, b] → '#rrggbb'. Pura. */
+export function adsV2CloseRealHex(rgb: readonly number[]): string { // KINEO-CLOSE-REAL-V3-1910
+  return '#' + [0, 1, 2].map((k) => clamp255(Number(rgb?.[k]) || 0).toString(16).padStart(2, '0')).join('') // KINEO-CLOSE-REAL-V3-1910
+} // KINEO-CLOSE-REAL-V3-1910
+/** KINEO-CLOSE-REAL-V3-1910 — o prazo das caixas (todas as fotos juntas): passou = as que não chegaram ficam null. */
+export const ADS_V2_CLOSE_REAL_BOXES_TIMEOUT_MS = 25_000 // KINEO-CLOSE-REAL-V3-1910
+/** KINEO-CLOSE-REAL-V3-1910 — a caixa do produto no recorte SEM aparar (pura): frações da foto + o tamanho dela. Contorno vazio ou menor que 1% da foto = null (não confiável). */
+export function adsV2CloseRealBoxOf(raw: { width: number; height: number; data: Uint8Array }): AdsV2CloseRealPhotoBox | null { // KINEO-CLOSE-REAL-V3-1910
+  if (!raw || !(raw.width > 0) || !(raw.height > 0)) return null // KINEO-CLOSE-REAL-V3-1910
+  const b = alphaBox(raw) // KINEO-CLOSE-REAL-V3-1910
+  if (!b || b.w * b.h < 0.01 * raw.width * raw.height) return null // KINEO-CLOSE-REAL-V3-1910
+  const r4 = (n: number) => Math.round(n * 10000) / 10000 // KINEO-CLOSE-REAL-V3-1910
+  return { w: raw.width, h: raw.height, x0: r4(b.x / raw.width), y0: r4(b.y / raw.height), x1: r4((b.x + b.w) / raw.width), y1: r4((b.y + b.h) / raw.height) } // KINEO-CLOSE-REAL-V3-1910
+} // KINEO-CLOSE-REAL-V3-1910
+async function closeRealFetchPng(url: string): Promise<Uint8Array | null> { // KINEO-CLOSE-REAL-V3-1910
+  try { const res = await fetch(url, { signal: AbortSignal.timeout(15_000), cache: 'no-store' }); if (!res.ok) return null; const buf = new Uint8Array(await res.arrayBuffer()); return buf.byteLength > 0 && buf.byteLength <= 40 * 1024 * 1024 && isPng(buf) ? buf : null } catch { return null } // KINEO-CLOSE-REAL-V3-1910
+} // KINEO-CLOSE-REAL-V3-1910
+/** KINEO-CLOSE-REAL-V3-1910
+ * KINEO-CLOSE-REAL-V3-1910 — a caixa do produto em cada foto (pelo URL da foto). Cache do recorte por foto: lê; sem cache, adsV2CutoutFor recorta e grava o
+ * KINEO-CLOSE-REAL-V3-1910 · cache (mesmo quando o contorno não passa no teste de "é produto" — a caixa ainda serve para desviar a legenda) e lê de novo. Nunca lança.
+ */ // KINEO-CLOSE-REAL-V3-1910
+export async function adsV2CloseRealPhotoBoxes(args: { userId: string; photos: readonly { footageId: string; url: string }[] }): Promise<Record<string, AdsV2CloseRealPhotoBox | null>> { // KINEO-CLOSE-REAL-V3-1910
+  const out: Record<string, AdsV2CloseRealPhotoBox | null> = {} // KINEO-CLOSE-REAL-V3-1910
+  try { // KINEO-CLOSE-REAL-V3-1910
+    const admin = footageAdminClient() // KINEO-CLOSE-REAL-V3-1910
+    const seen = new Set<string>() // KINEO-CLOSE-REAL-V3-1910
+    const list = (Array.isArray(args.photos) ? args.photos : []).filter((p) => p && typeof p.footageId === 'string' && p.footageId && typeof p.url === 'string' && /^https:\/\//i.test(p.url) && !seen.has(p.url) && seen.add(p.url)) // KINEO-CLOSE-REAL-V3-1910
+    const one = async (p: { footageId: string; url: string }) => { // KINEO-CLOSE-REAL-V3-1910
+      const pub = admin.storage.from(RENDER_BUCKET).getPublicUrl(adsV2CutoutPath(args.userId, p.footageId)).data?.publicUrl ?? null // KINEO-CLOSE-REAL-V3-1910
+      const read = async () => { const bytes = pub ? await closeRealFetchPng(pub) : null; return bytes ? decodePng(bytes) : null } // KINEO-CLOSE-REAL-V3-1910
+      let raw = await read() // KINEO-CLOSE-REAL-V3-1910
+      if (!raw) { await adsV2CutoutFor(args.userId, { footageId: p.footageId, url: p.url }).catch(() => null); raw = await read() } // KINEO-CLOSE-REAL-V3-1910
+      out[p.url] = raw ? adsV2CloseRealBoxOf(raw) : null // KINEO-CLOSE-REAL-V3-1910
+    } // KINEO-CLOSE-REAL-V3-1910
+    let timer: ReturnType<typeof setTimeout> | null = null // KINEO-CLOSE-REAL-V3-1910
+    await Promise.race([Promise.all(list.map((p) => one(p).catch(() => { out[p.url] = null }))), new Promise<void>((resolve) => { timer = setTimeout(resolve, ADS_V2_CLOSE_REAL_BOXES_TIMEOUT_MS) })]) // KINEO-CLOSE-REAL-V3-1910
+    if (timer) clearTimeout(timer) // KINEO-CLOSE-REAL-V3-1910
+  } catch (e) { console.warn('[ads-v2] caixas do Close real falharam (legenda no lugar de sempre):', e instanceof Error ? e.message : String(e)) } // KINEO-CLOSE-REAL-V3-1910
+  return { ...out } // KINEO-CLOSE-REAL-V3-1910
+} // KINEO-CLOSE-REAL-V3-1910

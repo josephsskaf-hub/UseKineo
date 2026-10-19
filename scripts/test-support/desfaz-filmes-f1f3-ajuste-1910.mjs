@@ -16,6 +16,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semCloseRealV3_1910 } from './desfaz-close-real-v3-1910.mjs' // KINEO-CLOSE-REAL-V3-1910 — a rodada 3 do Close real veio depois: sai PRIMEIRO (encadeado)
 
 export const MARCA_FILMES_F1F3_AJUSTE_1910 = 'KINEO-FILMES-F1F3-AJUSTE-1910'
 
@@ -33,6 +34,7 @@ export const ARQUIVOS_FILMES_F1F3_AJUSTE_1910 = [...new Set([...Object.keys(TROC
  * de bater (senão erro: nunca some linha de ninguém em silêncio). Preserva CRLF.
  */
 export function semFilmesF1F3Ajuste1910(texto, p) {
+  texto = semCloseRealV3_1910(texto, p) // KINEO-CLOSE-REAL-V3-1910 — a rodada 3 do Close real veio depois: sai PRIMEIRO (encadeado; texto sem a marca dela passa igual)
   if (typeof texto !== 'string' || !texto.includes(MARCA_FILMES_F1F3_AJUSTE_1910) || !ARQUIVOS_FILMES_F1F3_AJUSTE_1910.includes(p)) return texto
   const crlf = texto.includes('\r\n')
   const trocas = new Map((TROCAS_FILMES_F1F3_AJUSTE_1910[p] ?? []).map(([nova, base]) => [nova, base]))

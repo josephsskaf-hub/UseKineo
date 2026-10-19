@@ -23,22 +23,22 @@
  ],
  "scripts/test-filmes-f1f3-ajuste-1910.mjs": [
   [
-   "const rd = (p) => lf(semFilmesF1Virgula1910(readFileSync(join(RAIZ, p), 'utf8'), p)) // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: lê o texto SEM o Faceless 15 s no export limpo (a camada mais nova)",
-   "const rd = (p) => lf(readFileSync(join(RAIZ, p), 'utf8'))"
-  ],
-  [
    "  const alheio = (() => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=KINEO-FILMES-F1-VIRGULA-1910`, `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } })() // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo",
    "  const alheio = (() => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } })()"
   ],
   [
-   "  const rdAlheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=KINEO-FILMES-F1-VIRGULA-1910`, `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } } // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo",
-   "  const rdAlheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } }"
+   "const rd = (p) => lf(semCloseRealV3_1910(semFilmesF1Virgula1910(readFileSync(join(RAIZ, p), 'utf8'), p), p)) // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: lê o texto SEM o Faceless 15 s no export limpo (a mais nova) e depois sem a rodada 3 do Close real",
+   "const rd = (p) => lf(semCloseRealV3_1910(readFileSync(join(RAIZ, p), 'utf8'), p)) // KINEO-CLOSE-REAL-V3-1910 — reancorado: a rodada 3 do Close real (mesclada depois) sai primeiro, em memória"
+  ],
+  [
+   "  const rdAlheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, '--grep=KINEO-CLOSE-REAL-V3-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', 'HEAD', '--', p]).trim(); return sha ? lf(semCloseRealV3_1910(git(['show', `${sha}:${p}`]), p)) : null } catch { return null } } // KINEO-CLOSE-REAL-V3-1910 — reancorado: a versão 'alheia' pula também os commits da rodada 3 do Close real (e sai sem a camada dela) · KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo",
+   "  const rdAlheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, '--grep=KINEO-CLOSE-REAL-V3-1910', 'HEAD', '--', p]).trim(); return sha ? lf(semCloseRealV3_1910(git(['show', `${sha}:${p}`]), p)) : null } catch { return null } } // KINEO-CLOSE-REAL-V3-1910 — reancorado: a versão 'alheia' pula também os commits da rodada 3 do Close real (e sai sem a camada dela)"
   ]
  ],
  "scripts/test-close-real-ajuste-1910.mjs": [
   [
-   "const rd = (p) => lf(semFilmesF1F3Ajuste1910(semFilmesF1Virgula1910(readFileSync(join(ROOT, p), 'utf8'), p), p)) // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a camada do export limpo (a mais nova) sai antes da do ajuste F1/F3, em memória",
-   "const rd = (p) => lf(semFilmesF1F3Ajuste1910(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-FILMES-F1F3-AJUSTE-1910 — reancorado: a camada do ajuste do Faceless 15 s (mesclada depois, no guardião test-filmes-f1f4-1910) sai PRIMEIRO, em memória"
+   "const rd = (p) => lf(semFilmesF1F3Ajuste1910(semCloseRealV3_1910(semFilmesF1Virgula1910(readFileSync(join(ROOT, p), 'utf8'), p), p), p)) // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a camada do export limpo (a mais nova) sai primeiro, depois a rodada 3 do Close real e o ajuste F1/F3, em memória",
+   "const rd = (p) => lf(semFilmesF1F3Ajuste1910(semCloseRealV3_1910(readFileSync(join(ROOT, p), 'utf8'), p), p)) // KINEO-CLOSE-REAL-V3-1910 — reancorado: este guardião lê o texto SEM a rodada 3 (provada em scripts/test-close-real-v3-1910.mjs) e depois sem o ajuste do Faceless 15 s"
   ]
  ]
 }
