@@ -18,6 +18,7 @@
 //   D  desfaz exato + ida + marca em todo bloco + encadeamento (o ajuste de antes e o produto na mão tiram esta camada primeiro) + travas + nada de
 //      cobrança, motor, /start ou pipeline de filme (TRAVA 8.2) no diff;
 //   M  mutantes (todos aplicados e vermelhos).
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -35,7 +36,7 @@ import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-MAO-AJUSTE-3-1610'
-const rd = (p) => semMaoJuiz1610(p, semFilmeRapido1710(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-ADS-MAO-JUIZ-1610 — o conserto do juiz veio depois: este guardião lê o texto SEM ele (já LF); ele é provado em scripts/test-ads-mao-juiz-1610.mjs /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */
+const rd = (p) => semMaoJuiz1610(p, semFilmeRapido1710(semCloseReal1910(readFileSync(join(ROOT, p), 'utf8'), p), p)) // reancorado KINEO-ADS-MAO-JUIZ-1610 — o conserto do juiz veio depois: este guardião lê o texto SEM ele (já LF); ele é provado em scripts/test-ads-mao-juiz-1610.mjs /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */ /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return git('show', `${MAO_AJUSTE_3_1610_BASE}:${p}`).replace(/\r\n/g, '\n') } catch { return null } }
 let pass = 0

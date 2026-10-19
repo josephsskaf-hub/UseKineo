@@ -14,6 +14,7 @@
 //   6. a mesma pessoa nas 3 (still da A como última referência de B/C) — decisão pura + ordem no v2Advance;
 //   7. sem variações = comportamento de hoje (o plano de planShots bate com a base 57c9ee90; /start e /plan intocados).
 // MUTANTES (aplicados e revertidos à mão no relatório): débito ×3, estorno total quando só 1 falha, mesmo look nas 3.
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname, posix } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -23,7 +24,7 @@ import ts from 'typescript'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semCloseReal1910(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n') /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const semComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map((l) => l.replace(/(^|[^:'"`\\])\/\/.*$/, '$1')).join('\n')
 const cod = (p) => semComentarios(rd(p))
 const imp = (p) => import(pathToFileURL(join(RAIZ, p)).href)

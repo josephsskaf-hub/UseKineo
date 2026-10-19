@@ -135,6 +135,7 @@ import { ADS_V2_FORMATS, ADS_V2_FORMAT_CROP, adsV2CropRectFor, adsV2FormatBlock,
 import { ADS_V2_PLAN_LEFT_WARN } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-2-1510 — o contador de roteiros do dia aparece a partir daqui
 import { ADS_V2_ORIGINAL_MAX_SIDE, adsV2NeedsOriginal, adsV2OriginalSize, adsV2SimplePhotoKindFor } from '@/lib/ads/v2Fiel3' // KINEO-ADS-FIEL-3-1510 — foto do link que é do produto vira "produto"; o recorte sai da foto inteira
 import { ADS_V2_START_OVER_DEFAULTS, adsV2EndCardTitle, adsV2Fiel2Copy, adsV2ForeignName, adsV2KindFor, adsV2PlansLeftText } from '@/lib/ads/v2Fiel2Tela' // KINEO-ADS-FIEL-2-1510 — start over limpo, link nunca é lugar, título do cartão, contador e pronúncia
+import { ADS_V2_AD_FORMATS_DEFAULT, ADS_V2_CLOSE_REAL_LIVE, adsV2AdFormatCopy, adsV2DefaultAdFormat, adsV2EffectiveAdFormat, type AdsV2AdFormat } from '@/lib/ads/v2CloseReal' // KINEO-CLOSE-REAL-1910 — os 2 formatos padrão (Apresentador e Close do produto real); o resto vira opção avançada
 import { adsV2GenericProduct } from '@/lib/ads/v2CopyFit' // KINEO-ADS-FIEL-2-1510 — o título de sempre é só o substantivo genérico ("Perfume")?
 import { adsV2RedoCopy, adsV2RedoFill, type AdsV2RedoCopy } from '@/lib/ads/v2Redo' // KINEO-ADS-MELHORIAS-1410 — refazer UMA cena aqui mesmo (frases nas 16 línguas)
 import { adsV2RedoFreeCopy, type AdsV2RedoFreeCopy } from '@/lib/ads/v2Redo' // KINEO-ADS-REFACAO-ATOR-1410 — "Refazer esta cena · grátis" (16 línguas)
@@ -469,6 +470,9 @@ const SIMPLE_CSS = `
 .adv2 .adv2s-format .txt b{font-size:13px}
 .adv2 .adv2s-format .txt small{font-size:11.5px;color:var(--ads-muted,#8a8f98);line-height:1.3}
 @media (max-width:520px){.adv2 .adv2s-format .opts{grid-template-columns:1fr}}
+.adv2 .adv2s-format.adv2-fmt2 .opts{grid-template-columns:repeat(2,minmax(0,1fr))} /* KINEO-CLOSE-REAL-1910 — os 2 formatos padrão lado a lado */
+@media (max-width:520px){.adv2 .adv2s-format.adv2-fmt2 .opts{grid-template-columns:1fr}} /* KINEO-CLOSE-REAL-1910 */
+.adv2 .adv2-fmt-adv{margin:8px 0 0;font-size:12px;color:var(--ads-muted,#8a8f98)} /* KINEO-CLOSE-REAL-1910 — o Avançado sem destaque */
 .adv2 .adv2s-facts{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:8px}
 .adv2 .adv2s-facts li{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--ads-line);border-radius:12px;background:var(--ads-bg);font-size:13.5px;line-height:1.5;min-width:0}
 .adv2 .adv2s-facts input{margin-top:3px;accent-color:var(--ads-action);flex-shrink:0}
@@ -610,7 +614,7 @@ export function AdsV2SimpleSession({
   const lcopy: AdsV2LinkImportCopy = adsV2LinkImportCopy(lang) // KINEO-ADS-1FOTO-LINK-2026-10-10 — 16 línguas
   const ltc: AdsV2LinkTelaCopy = adsV2LinkTelaCopy(lang) // KINEO-ADS-LINK-TELA-1510
   const vcopy = variationsCopy(lang)
-  const scopy: AdsSampleCopy | null = sample ? adsSampleCopy(lang) : null
+  const scopy: AdsSampleCopy | null = sample ? (ADS_V2_CLOSE_REAL_LIVE ? { ...adsSampleCopy(lang), note: adsSampleCopy(lang).closeReal } : adsSampleCopy(lang)) : null // KINEO-CLOSE-REAL-1910 — a amostra é o Close real (1 por conta, 15 s, marca-d'água); era: const scopy: AdsSampleCopy | null = sample ? adsSampleCopy(lang) : null
   const [sampleCap, setSampleCap] = useState(false)
   const [three, setThree] = useState(false)
   const [phase, setPhase] = useState<Phase>(resume ? 'loading' : 'build')
@@ -671,6 +675,7 @@ export function AdsV2SimpleSession({
   }, [])
   // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator começa desligado (a pessoa liga; nada muda para quem não liga).
   const [presenterChoice, setPresenterChoice] = useState(false)
+  const [adFormatChoice, setAdFormatChoice] = useState<AdsV2AdFormat>(() => adsV2DefaultAdFormat({ sample, presenterPublic: ADS_V2_PRESENTER_PUBLIC })) // KINEO-CLOSE-REAL-1910 — Apresentador (pagante) ou Close real (amostra); estilos e cenas de IA = "Avançado"
   // KINEO-ADS-MELHORIAS-1410 — o formato escolhido em "Mais opções" (9:16 = o de sempre). Fora do 9:16 o estilo e o ator ficam de fora (só verticais).
   const [formatChoice, setFormatChoice] = useState<AdsV2Format>('9:16')
   // KINEO-ADS-MELHORIAS-1410 — estilo e ator são só verticais: escolher um estilo (seletor completo ou a fileira do quadro) ou ligar o ator volta o
@@ -830,16 +835,20 @@ export function AdsV2SimpleSession({
   const styleCopy: AdsV2StyleCopy = adsV2StyleCopy(lang)
   // KINEO-ADS-CONSERTOS-TELA-1410 — a frase também vai: a palavra do produto refina a sugestão do setor (perfume → close-up).
   const styleSuggested: AdsV2StyleChoice = sentence && sector !== 'other' ? adsV2SuggestedStyle(sector, sentence) : 'none'
-  const style: AdsV2StyleChoice = ADS_V2_STYLES_PUBLIC && formatChoice === '9:16' ? styleChoice ?? styleSuggested : 'none' // KINEO-ADS-MELHORIAS-1410 — estilo só em 9:16 (o efeito não tem outro formato)
+  const adFormat: AdsV2AdFormat = adsV2EffectiveAdFormat(adFormatChoice, sample) // KINEO-CLOSE-REAL-1910 — a amostra não escolhe: é o Close real
+  const closeRealOn = ADS_V2_CLOSE_REAL_LIVE && adFormat === 'close_real' // KINEO-CLOSE-REAL-1910
+  const advancedOn = !ADS_V2_CLOSE_REAL_LIVE || adFormat === 'advanced' // KINEO-CLOSE-REAL-1910 — estilos de IA e o ator pelo interruptor só no "Avançado"
+  const afc = adsV2AdFormatCopy(lang) // KINEO-CLOSE-REAL-1910
+  const style: AdsV2StyleChoice = ADS_V2_STYLES_PUBLIC && advancedOn && formatChoice === '9:16' ? styleChoice ?? styleSuggested : 'none' // KINEO-ADS-MELHORIAS-1410 — estilo só em 9:16 (o efeito não tem outro formato) · KINEO-CLOSE-REAL-1910 — e só no "Avançado"; era: const style: AdsV2StyleChoice = ADS_V2_STYLES_PUBLIC && formatChoice === '9:16' ? styleChoice ?? styleSuggested : 'none'
   // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator fala a narração e segura O produto: sem voz ou com fotos de tela ('text'), o
   // cartão fica desligado com o motivo. Ligado, a 1ª foto também vai como produto (é ela que o ator segura).
   const presenterCopy: AdsV2PresenterCopy = adsV2PresenterCopy(lang)
   const fcopy = adsV2FormatCopy(lang) // KINEO-ADS-MELHORIAS-1410
   const presenterWhy: string | null = !narrationOn ? presenterCopy.needsVoice : photoKind === 'text' ? presenterCopy.needsProduct : null
-  const presenterOn = ADS_V2_PRESENTER_PUBLIC && presenterChoice && presenterWhy === null
-  const firstAsProduct = style !== 'none' && photoKind !== 'text' || presenterOn
+  const presenterOn = ADS_V2_PRESENTER_PUBLIC && (advancedOn ? presenterChoice : adFormat === 'presenter') && presenterWhy === null // KINEO-CLOSE-REAL-1910 — o formato Apresentador liga o ator; no "Avançado", o interruptor de sempre; era: const presenterOn = ADS_V2_PRESENTER_PUBLIC && presenterChoice && presenterWhy === null
+  const firstAsProduct = style !== 'none' && photoKind !== 'text' || presenterOn || (closeRealOn && photoKind !== 'text') // KINEO-CLOSE-REAL-1910 — a 1ª foto vai como produto (o recorte do gancho sai dela); era: const firstAsProduct = style !== 'none' && photoKind !== 'text' || presenterOn
   // KINEO-ADS-MELHORIAS-1410 — o formato que vai ao /plan: o escolhido, menos o 4:5 no Premium (o close-herói do Seedance não tem 4:5 — a tela diz).
-  const format: AdsV2Format = adsV2FormatBlock({ format: formatChoice, tier, style: null, presenter: false }) ? '9:16' : formatChoice
+  const format: AdsV2Format = closeRealOn || adsV2FormatBlock({ format: formatChoice, tier, style: null, presenter: false }) ? '9:16' : formatChoice // KINEO-CLOSE-REAL-1910 — o Close real é só 9:16; era: const format: AdsV2Format = adsV2FormatBlock({ format: formatChoice, tier, style: null, presenter: false }) ? '9:16' : formatChoice
   const detected = detectNarrationLanguage(sentence).language
   // KINEO-ADS-CONSERTOS-TELA-1410 — QA 14/10: "perfume num hotel com chuva" (5 palavras) saía com voz em inglês. Depois do
   // detector de sempre (null abaixo de 8 palavras — régua dos filmes, intocada), o da FRASE CURTA; só então a interface.
@@ -889,7 +898,7 @@ export function AdsV2SimpleSession({
 
   /** Chave do rascunho: mudou texto, preço, contato, frases, voz, língua ou nível = rascunho novo (a pesquisa é copiada). */
   const draftKey = JSON.stringify({ text: sentence, scene: sceneFinal, kind: adKind, price: priceT, contact: contactT, overlays: overlaysOn, voice: narrationOn, lang: spoken, tier, link: linkRead, ...(pronounce ? { pronounce } : {}), ...(brand ? { brand: brand.id } : {}) }) // KINEO-ADS-DEMO-UNIVERSO-1410 — mudou a pronúncia = rascunho novo · KINEO-ADS-MARCAS-1510 — outra marca = rascunho novo
-  const baseSig = JSON.stringify({ draftKey, sector, presenter: presenterOn, items: inAd.map((p) => [p.key, focalSig(p)]), style, ...(presenterOn && presenterPick ? { presenterPick } : {}), ...(format !== '9:16' ? { format } : {}) }) // KINEO-ADS-MELHORIAS-1410 — outro formato = planejar de novo
+  const baseSig = JSON.stringify({ draftKey, sector, presenter: presenterOn, items: inAd.map((p) => [p.key, focalSig(p)]), style, ...(presenterOn && presenterPick ? { presenterPick } : {}), ...(format !== '9:16' ? { format } : {}), ...(closeRealOn ? { closeReal: true } : {}) }) // KINEO-ADS-MELHORIAS-1410 — outro formato = planejar de novo · KINEO-CLOSE-REAL-1910 — trocar para/do Close real = planejar de novo; era: a mesma linha sem a chave closeReal
   // A marca de um fato é presa ao CONTEÚDO (fonte + texto), nunca ao id f1..f6: uma pesquisa nova tem outro f1 e não herda
   // a marca do anterior; a mesma pesquisa copiada para um rascunho novo (troca de nível) mantém a marca.
   const factKey = (f: Fact) => JSON.stringify([f.url, f.text])
@@ -1661,6 +1670,7 @@ export function AdsV2SimpleSession({
     setScene(rec.scene ? sc.presets[rec.scene].text : '')
     setPresenterChoice(rec.presenter !== null)
     setPresenterPick(rec.presenter)
+    if (ADS_V2_CLOSE_REAL_LIVE && !sample) setAdFormatChoice(rec.style !== 'none' ? 'advanced' : rec.presenter !== null ? 'presenter' : adFormatChoice) // KINEO-CLOSE-REAL-1910 — o anúncio da casa com estilo abre o "Avançado"; com pessoa, o Apresentador
     setStartNote(fc.start.applied)
     window.setTimeout(() => goToSection('adv2s-sec3'), 30)
   }
@@ -1978,7 +1988,7 @@ export function AdsV2SimpleSession({
       setBusyNote(copy.plan.notePlan)
       const r = await api<PlanResponse>('/api/ads/v2/plan', {
         method: 'POST',
-        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}), ...(format !== '9:16' ? { format } : {}) }, // KINEO-ADS-MELHORIAS-1410 — o formato só fora do 9:16
+        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}), ...(format !== '9:16' ? { format } : {}), ...(closeRealOn ? { close_real: true } : {}) }, // KINEO-ADS-MELHORIAS-1410 — o formato só fora do 9:16 · KINEO-CLOSE-REAL-1910 — + o Close do produto real; era: a mesma linha sem close_real
       })
       if (!aliveRef.current) return
       if (!r.ok) {
@@ -2522,17 +2532,18 @@ export function AdsV2SimpleSession({
                 escolha completa de sempre (AdsStylePicker, no cartão recolhido abaixo). Os dois mexem no MESMO setStyleChoice. */}
             <section id="adv2s-sec3" className="adv2q-step" aria-labelledby="adv2s-s3">
               <div className="adv2q-head">
-                <h2 id="adv2s-s3" className="lab"><span className="n" aria-hidden="true">3</span>{styleCopy.title}</h2>
-                {ADS_V2_STYLES_PUBLIC ? (
+                <h2 id="adv2s-s3" className="lab"><span className="n" aria-hidden="true">3</span>{ADS_V2_CLOSE_REAL_LIVE ? afc.title : styleCopy.title}</h2>{/* KINEO-CLOSE-REAL-1910 — o passo 3 escolhe o FORMATO (Apresentador / Close real); era: o mesmo h2 com {styleCopy.title} */}
+                {ADS_V2_STYLES_PUBLIC && advancedOn ? (/* KINEO-CLOSE-REAL-1910 — "Ver todos" só no Avançado; era: {ADS_V2_STYLES_PUBLIC ? ( */
                   <button ref={stylesSeeAllRef} type="button" className="pill" data-kineo="ads-quadro-see-all" aria-expanded={stylesOpen} aria-controls="adv2q-styles-all" onClick={() => { setStylesOpen(true); window.setTimeout(() => document.getElementById('adv2q-styles-all')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 40) }}>
                     {fill(qc.seeAll, { n: ADS_V2_STYLES.length })}
                   </button>
                 ) : null}
               </div>
-              {ADS_V2_STYLES_PUBLIC ? (
+              {ADS_V2_CLOSE_REAL_LIVE ? <AdsAdFormatPicker value={adFormat} onChange={(v) => { setAdFormatChoice(v); if (v === 'close_real') setThree(false) }} sample={sample} disabled={locked} copy={afc} presenterNote={adFormat === 'presenter' && ADS_V2_PRESENTER_PUBLIC ? presenterWhy : null} presenterOk={ADS_V2_PRESENTER_PUBLIC} /> : null}{/* KINEO-CLOSE-REAL-1910 — os 2 formatos padrão + o "Avançado" sem destaque */}
+              {ADS_V2_STYLES_PUBLIC && advancedOn ? (/* KINEO-CLOSE-REAL-1910 — a fileira de estilos só no Avançado; era: {ADS_V2_STYLES_PUBLIC ? ( */
                 <QuadroStyleRow value={style} suggested={styleSuggested} onChange={setStyleChoice} disabled={locked} copy={styleCopy} labelledBy="adv2s-s3" />
               ) : null}
-              {ADS_V2_STYLES_PUBLIC && styleCopy.fidelity ? <p className="adsw-hint" data-kineo="ads-style-fidelity">{styleCopy.fidelity}</p> : null}{/* KINEO-ADS-FIEL-2-1510 — o aviso honesto também nos cartões compactos (16 línguas) */}
+              {ADS_V2_STYLES_PUBLIC && advancedOn && styleCopy.fidelity ? <p className="adsw-hint" data-kineo="ads-style-fidelity">{styleCopy.fidelity}</p> : null}{/* KINEO-ADS-FIEL-2-1510 — o aviso honesto também nos cartões compactos (16 línguas) */}{/* KINEO-CLOSE-REAL-1910 — só no Avançado */}
               {startNote ? <p className="adsw-hint" role="status" data-kineo="ads-start-from-note">✓ {startNote}</p> : null}
             </section>
 
@@ -2609,7 +2620,7 @@ export function AdsV2SimpleSession({
                 <input type="text" aria-label={f2.pronounceAsk.split('{name}').join(foreignWord)} value={pronSay} maxLength={40} disabled={locked} onChange={(e) => { if (!pronWord.trim()) setPronWord(foreignWord); setPronSay(e.target.value) }} placeholder={pcopy.sayPlaceholder} />
               </div>
             ) : null}
-            {ADS_V2_STYLES_PUBLIC ? (
+            {ADS_V2_STYLES_PUBLIC && advancedOn ? (/* KINEO-CLOSE-REAL-1910 — a escolha completa de estilos só no Avançado; era: {ADS_V2_STYLES_PUBLIC ? ( */
               <details id="adv2q-styles-all" className="adv2q-opt" data-kineo="ads-quadro-styles-all" open={stylesOpen} onKeyDown={(e) => { if (e.key === 'Escape' && stylesOpen) { e.stopPropagation(); closeStyles() } }}>{/* KINEO-ADS-PALCO-VOLTAR-1410 — Esc fecha */}
                 <summary onClick={(e) => { e.preventDefault(); setStylesOpen((v) => !v) }}>
                   {styleCopy.title}<span className="v">· {stageData.name}</span>
@@ -2635,7 +2646,7 @@ export function AdsV2SimpleSession({
                 <legend>{fcopy.label}</legend>
                 <div className="opts" role="radiogroup" aria-label={fcopy.label}>
                   {ADS_V2_FORMATS.map((fm) => {
-                    const why = adsV2FormatBlock({ format: fm, tier, style: null, presenter: false })
+                    const why = closeRealOn && fm !== '9:16' ? 'style' : adsV2FormatBlock({ format: fm, tier, style: null, presenter: false }) // KINEO-CLOSE-REAL-1910 — o Close real é só 9:16; era: const why = adsV2FormatBlock({ format: fm, tier, style: null, presenter: false })
                     const { width, height } = ADS_V2_FORMAT_CROP[fm]
                     return (
                       <label key={fm} className="opt" data-on={format === fm ? 'true' : undefined} data-off={why ? 'true' : undefined}>
@@ -2651,6 +2662,7 @@ export function AdsV2SimpleSession({
                   {formatChoice !== format ? <> {fcopy.blocked.premium_45}</> : null}
                   {format !== '9:16' && ADS_V2_STYLES_PUBLIC ? <> {fcopy.blocked.style}</> : null}
                   {format !== '9:16' && ADS_V2_PRESENTER_PUBLIC ? <> {fcopy.blocked.presenter}</> : null}
+                  {closeRealOn ? <> {afc.closeRealNote}</> : null}{/* KINEO-CLOSE-REAL-1910 */}
                 </p>
               </fieldset>
               <div className="adv2s-toggles">
@@ -2710,7 +2722,7 @@ export function AdsV2SimpleSession({
                   </label>
                 </div>
               </div>
-              {ADS_V2_PRESENTER_PUBLIC ? (
+              {ADS_V2_PRESENTER_PUBLIC && advancedOn ? (/* KINEO-CLOSE-REAL-1910 — o interruptor do ator só no Avançado (o formato Apresentador já o liga); era: {ADS_V2_PRESENTER_PUBLIC ? ( */
                 <AdsPresenterToggle
                   name="adv2s-presenter"
                   checked={presenterChoice}
@@ -2811,7 +2823,7 @@ export function AdsV2SimpleSession({
                   plan={plan as Plan}
                   copy={copy}
                   cost={cost}
-                  three={variations ? { on: three, onChange: setThree, copy: vcopy } : null}
+                  three={variations && !closeRealOn ? { on: three, onChange: setThree, copy: vcopy } : null} /* KINEO-CLOSE-REAL-1910 — o Close real não tem as 3 variações de cor; era: three={variations ? { on: three, onChange: setThree, copy: vcopy } : null} */
                   sample={scopy}
                   short={short}
                   busy={busy}
@@ -3338,3 +3350,23 @@ function SimpleShotGrid({
     </ol>
   )
 }
+/** KINEO-CLOSE-REAL-1910 — o passo 3: os 2 formatos padrão (Apresentador e Close do produto real) e o caminho antigo (estilos e cenas de IA) como "Avançado", sem destaque. */ // KINEO-CLOSE-REAL-1910
+function AdsAdFormatPicker({ value, onChange, sample, disabled, copy, presenterNote, presenterOk }: { value: AdsV2AdFormat; onChange: (v: AdsV2AdFormat) => void; sample: boolean; disabled: boolean; copy: ReturnType<typeof adsV2AdFormatCopy>; presenterNote: string | null; presenterOk: boolean }) { // KINEO-CLOSE-REAL-1910
+  const opts = ADS_V2_AD_FORMATS_DEFAULT.filter((f) => f !== 'presenter' || presenterOk) // KINEO-CLOSE-REAL-1910 — sem o ator no ar, só o Close real
+  return ( // KINEO-CLOSE-REAL-1910
+    <fieldset className="adv2s-format adv2-fmt2" data-kineo="ads-ad-format" disabled={disabled}>{/* KINEO-CLOSE-REAL-1910 */}
+      <legend className="adv2-sr">{copy.title}</legend>{/* KINEO-CLOSE-REAL-1910 */}
+      <div className="opts" role="radiogroup" aria-label={copy.title}>{/* KINEO-CLOSE-REAL-1910 */}
+        {opts.map((f) => { const off = sample && f !== 'close_real'; const c = f === 'presenter' ? copy.presenter : copy.close_real; return ( /* KINEO-CLOSE-REAL-1910 — na amostra só o Close real abre */
+          <label key={f} className="opt" data-format={f} data-on={value === f ? 'true' : undefined} data-off={off ? 'true' : undefined}>{/* KINEO-CLOSE-REAL-1910 */}
+            <input type="radio" name="adv2s-ad-format" value={f} checked={value === f} disabled={off} onChange={() => onChange(f)} />{/* KINEO-CLOSE-REAL-1910 */}
+            <span className="txt"><b>{c.name}</b><small>{c.line}</small></span>{/* KINEO-CLOSE-REAL-1910 */}
+          </label> /* KINEO-CLOSE-REAL-1910 */
+        ) })}{/* KINEO-CLOSE-REAL-1910 */}
+      </div>{/* KINEO-CLOSE-REAL-1910 */}
+      {value === 'close_real' ? <p className="adsw-hint" data-kineo="ads-close-real-note">{copy.closeRealNote}</p> : null}{/* KINEO-CLOSE-REAL-1910 */}
+      {value === 'presenter' && presenterNote ? <p className="adsw-hint" role="status">{presenterNote}</p> : null}{/* KINEO-CLOSE-REAL-1910 — sem voz ou sem foto de produto, o ator não sai: a tela diz por quê */}
+      {sample ? null : <p className="adv2-fmt-adv"><button type="button" className="pill" data-kineo="ads-ad-format-advanced" aria-pressed={value === 'advanced'} onClick={() => onChange(value === 'advanced' ? (presenterOk ? 'presenter' : 'close_real') : 'advanced')}>{copy.advanced}</button>{value === 'advanced' ? <span> · {copy.advancedNote}</span> : null}</p>}{/* KINEO-CLOSE-REAL-1910 — o caminho antigo fica, sem destaque */}
+    </fieldset> /* KINEO-CLOSE-REAL-1910 */
+  ) // KINEO-CLOSE-REAL-1910
+} // KINEO-CLOSE-REAL-1910

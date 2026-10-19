@@ -44,6 +44,7 @@ import { adsV2SentenceForCopy } from '@/lib/ads/v2Scene' // KINEO-ADS-CONSERTOS-
 import { adsV2PackshotShots } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — o packshot: um plano de IA vira a foto REAL do produto (mesmos créditos)
 import { adsV2FormatBlock, adsV2FormatShots, normalizeAdsV2Format } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — formatos 4:5 e 1:1 (só onde o pipeline inteiro aceita)
 import { adsV2BuildScripts } from '@/lib/ads/v2Scripts' // KINEO-ADS-ROTEIROS-2026-10-13 — 2 a 3 roteiros para escolher (o 1º = o texto de sempre); troca em /api/ads/v2/plan/choose
+import { ADS_V2_CLOSE_REAL_LIVE, ADS_V2_CLOSE_REAL_SECONDS, adsV2CloseRealShots, adsV2CloseRealUsd, planAdsV2CloseReal } from '@/lib/ads/v2CloseReal' // KINEO-CLOSE-REAL-1910 — o formato "Close do produto real" (zero IA de vídeo; a amostra grátis sai SEMPRE nele)
 
 /** Quem age: o id do auth (moderação e rastro) e o e-mail VERIFICADO dele (adsV2Visible). */
 export interface AdsV2Caller {
@@ -79,6 +80,11 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     if (order.status !== 'draft' && order.status !== 'planned') return v2Fail('not_editable', 409)
     // KINEO-ADS-AMOSTRA-2026-10-09 — pela amostra, só o pedido no nível e na duração da amostra é planejado.
     if (gate !== 'ok' && sample && !adsSampleLevelOk(order.tier, order.seconds)) return v2Fail('sample_level_only', 403)
+    // KINEO-CLOSE-REAL-1910 — o Close real: pedido pela tela (close_real) ou SEMPRE pela amostra grátis (quem decide é o servidor, não o corpo). Nele não
+    // KINEO-CLOSE-REAL-1910 — há apresentador, estilo de IA nem outro formato que o 9:16: as chaves saem do corpo aqui, antes de qualquer decisão abaixo.
+    const closeRealAsked = ADS_V2_CLOSE_REAL_LIVE && (input.close_real === true || (gate !== 'ok' && sample)) // KINEO-CLOSE-REAL-1910
+    if (closeRealAsked) { delete input.presenter; delete input.presenter_id; delete input.style; delete input.format } // KINEO-CLOSE-REAL-1910
+    if (closeRealAsked && order.seconds !== ADS_V2_CLOSE_REAL_SECONDS) return v2Fail('close_real_15s_only', 400) // KINEO-CLOSE-REAL-1910 — a estrutura é de 15 s
     // KINEO-ADS-MODO-SIMPLES-2026-09-29 — corpo simples só para pedido nascido no modo simples; enquanto a pesquisa roda,
     // não há plano (nem cobrança): 409 research_running (pesquisa parada há > 90 s conta como falha e libera).
     const brief0 = order.brief ?? {}
@@ -238,6 +244,9 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     const inHand = ((ih) => (ih && ih.shotsSeconds === plan.shotsSeconds ? ih : null))(inHandLib ? inHandLib.adsV2InHandPlan({ on: inHandLib.adsV2InHandOn(reason === 'internal'), tier: order.tier, seconds: order.seconds, photos, productOrder: adsV2IsProductOrder(brief0, sector), sector, presenter: presenterAsked, style: plan.style ?? null, videos: videos.length, settingLine: inHandLib.adsV2InHandSettingLine(sceneSetting), format, productText: `${sentenceCopy} ${extracted.brief.business ?? ''}`, pair: inHandPair }) : null) // KINEO-ADS-PRODUTO-NA-MAO-1610 — Comercial 15 s com foto de produto, conta interna: gancho com gente, 2 usos, close na cena, packshot real (a duração dos planos é a mesma) · KINEO-ADS-MAO-AJUSTE-1610 — + productText (a frase SEM a cena + o negócio): a categoria escolhe a ação de cada plano · KINEO-ADS-MAO-AJUSTE-3-1610 — + pair (frasco + caixa: um objeto por plano)
     if (inHand) plan.shots = inHand.shots // KINEO-ADS-PRODUTO-NA-MAO-1610 — a régua anti-invenção abaixo confere os prompts novos também
     plan.shots = adsV2FormatShots(plan.shots, format) // KINEO-ADS-MELHORIAS-1410 — a cena criada pedida no formato ("portrait"/"square", sem números); 9:16 = o mesmo array
+    const closeReal = closeRealAsked ? planAdsV2CloseReal(photos) : null // KINEO-CLOSE-REAL-1910 — a foto do produto (o recorte do gancho) e as fotos dos planos
+    if (closeRealAsked && !closeReal) return v2Fail('close_real_needs_photo', 400) // KINEO-CLOSE-REAL-1910
+    if (closeReal) plan.shots = adsV2CloseRealShots(plan.shots, photos) // KINEO-CLOSE-REAL-1910 — toda vaga vira a FOTO REAL parada ('skipped_text': nunca vai à fal)
     const promptIssues = checkV2Prompts(plan.shots.flatMap((s) => [s.prompt, s.scenePrompt].filter((x): x is string => !!x)), extracted.brief)
     if (promptIssues.length) {
       await served(false, { stage: 'prompts', why: promptIssues.slice(0, 4) })
@@ -264,6 +273,8 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     Object.assign(stored, { scripts, script_id: scripts[0]?.id ?? 'a' }) // KINEO-ADS-ROTEIROS-2026-10-13 — os roteiros ficam NO plano do pedido; o /choose só copia daqui (preço intocado)
     if (format !== '9:16') Object.assign(stored, { format }) // KINEO-ADS-MELHORIAS-1410 — o formato mora no plano gravado (montagem, motores, refação e variações o leem dali); 9:16 = sem a chave
     if (inHand) Object.assign(stored, { productInHand: true }) // KINEO-ADS-PRODUTO-NA-MAO-1610 — a marca do plano novo (o avanço lê cada plano; o dry-run mostra os prompts)
+    if (closeReal) { Object.assign(stored, { closeReal }); delete (stored as { productInHand?: unknown }).productInHand } // KINEO-CLOSE-REAL-1910 — a marca do formato (a montagem do avanço lê daqui); o produto na mão não vale aqui
+    if (closeReal) Object.assign(modeTag, { close_real: true, sample: gate !== 'ok' }) // KINEO-CLOSE-REAL-1910 — a medição (ads_v2_plan_served)
     const credits = adsV2Credits(order.tier, order.seconds)
     const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds, presenter: !!presenter })
     if (inHand) Object.assign(modeTag, { in_hand: true }) // KINEO-ADS-PRODUTO-NA-MAO-1610
@@ -323,6 +334,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
       scripts, // KINEO-ADS-ROTEIROS-2026-10-13 — [{ id, tone, label, narration, overlays, words }], 1 a 3 (contrato em lib/ads/v2Scripts.ts)
       script_id: scripts[0]?.id ?? 'a', // KINEO-ADS-ROTEIROS-2026-10-13 — o roteiro que está no plano
       plans_left: plansLeft, // KINEO-ADS-FIEL-2-1510 — roteiros que ainda cabem hoje (null = conta da casa, sem teto)
+      ...(closeReal ? { close_real: { usd: adsV2CloseRealUsd() } } : {}), // KINEO-CLOSE-REAL-1910 — o formato aplicado e o custo dele (≈ US$ 0,26: nenhum motor de vídeo)
       shots: plan.shots.map((s) => ({ idx: s.idx, role: s.role, beat: s.beat, kind: s.kind, source: s.source, cut_seconds: s.cutSeconds, photo: s.sourceFootageId, ...(s.effect ? { effect: s.effect } : {}) })),
       ...(inHand && inHandLib ? { in_hand: { shots: inHandLib.adsV2InHandSummary(plan.shots), usd: inHandLib.adsV2InHandUsd(usd, plan.shots) } } : {}), // KINEO-ADS-PRODUTO-NA-MAO-1610 — os planos novos e o custo com o juiz e uma refação de foto (usd_estimate fica o de sempre, igual ao dry-run)
       ...(presenter?.v2 && presenterV2Lib ? { presenter_v2: { options: presenterV2Lib.ADS_V2_PRESENTER_V2_OPTIONS, usd: presenterV2Lib.adsV2PresenterV2UsdPro(usd, order.seconds), words: v2Words } } : {}), // KINEO-APRESENTADOR-V2-1710 — 4 fotos + 4 checagens por cima do usd_estimate de sempre · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + 4 checagens das mãos, o avatar PRO no alvo da voz e a régua de palavras

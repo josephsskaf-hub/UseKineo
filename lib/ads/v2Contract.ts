@@ -215,6 +215,8 @@ export interface AdsV2PlanBody {
   /** KINEO-ADS-MELHORIAS-1410 — formato do anúncio (lib/ads/v2Formats.ts): só aparece fora do 9:16 ('4:5' | '1:1'); ausente/null/'9:16' = sem a chave
    * (o corpo de antes); qualquer outra coisa = 400 bad_format. Se o pipeline aceita o formato com estas escolhas, quem decide é o /plan. */
   format?: '4:5' | '1:1'
+  /** KINEO-CLOSE-REAL-1910 — o formato "Close do produto real" (lib/ads/v2CloseReal.ts): só aparece quando veio true (ausente/null/false = sem a chave, o corpo de antes); qualquer outra coisa = 400 bad_close_real. */
+  close_real?: true // KINEO-CLOSE-REAL-1910
 }
 
 /**
@@ -308,6 +310,8 @@ export function sanitizePlanBody(raw: unknown): AdsV2Sanitized<AdsV2PlanBody> {
     if (b.format !== '4:5' && b.format !== '1:1') return fail('bad_format')
     format = b.format
   }
+  let closeReal = false // KINEO-CLOSE-REAL-1910 — o Close real: ausente, null ou false = sem a chave; true = o formato; qualquer outra coisa = 400
+  if (b.close_real !== undefined && b.close_real !== null && b.close_real !== false) { if (b.close_real !== true) return fail('bad_close_real'); closeReal = true } // KINEO-CLOSE-REAL-1910
   if (!Array.isArray(b.photos)) return fail('bad_photos')
   const vids = readVideos(b.videos)
   if (!vids.ok) return vids
@@ -347,6 +351,7 @@ export function sanitizePlanBody(raw: unknown): AdsV2Sanitized<AdsV2PlanBody> {
     ...(presenter ? { presenter: true as const } : {}),
     ...(presenter && presenterId ? { presenter_id: presenterId } : {}),
     ...(format ? { format } : {}), // KINEO-ADS-MELHORIAS-1410
+    ...(closeReal ? { close_real: true as const } : {}), // KINEO-CLOSE-REAL-1910
   }
   return { ok: true, value: simple ? { ...value, mode: 'simple', facts } : value }
 }

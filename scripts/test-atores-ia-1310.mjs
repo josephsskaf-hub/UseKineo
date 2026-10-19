@@ -17,6 +17,7 @@
 //      depoimento; e o guardião FTC (test-ator-sem-depoimento-1310) continua verde.
 //   7. Medição: evento ads_presenter_selected só de servidor, gravado pelo /plan com o id; o id fica no plano do pedido.
 //   8. Mutantes: cada peça quebrada fica vermelha, e cada mutante prova que aplicou.
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import fs from 'node:fs'
 import { semMelhorias1410 } from './test-support/desfaz-melhorias-1410.mjs' // reancorado KINEO-ADS-MELHORIAS-1410
 import { semDemoUniverso1410 } from './test-support/desfaz-ads-demo-universo-1410.mjs' // reancorado KINEO-ADS-DEMO-UNIVERSO-1410
@@ -29,7 +30,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
-const read = (rel) => desfazApresentadorV2_1710(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8')) // reancorado KINEO-APRESENTADOR-V2-1710 — o apresentador v2 (só conta interna) veio depois: este guardião lê o texto SEM ele (já LF); ele é provado em scripts/test-apresentador-v2-1710.mjs
+const read = (rel) => desfazApresentadorV2_1710(rel, semCloseReal1910(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)) // reancorado KINEO-APRESENTADOR-V2-1710 — o apresentador v2 (só conta interna) veio depois: este guardião lê o texto SEM ele (já LF); ele é provado em scripts/test-apresentador-v2-1710.mjs /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }

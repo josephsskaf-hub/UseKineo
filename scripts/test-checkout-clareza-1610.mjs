@@ -9,13 +9,14 @@
 //      checkout decide ANTES da sessão da Stripe, as telas somem com o vencido, o navegador não cunha o evento.
 //   + mutantes: cada um deixa pelo menos uma verificação vermelha (e prova que foi aplicado: alvo único, senão lança).
 // Só readFileSync + carregador offline (scripts/gpt24h-offline-support.mjs): nada de rede, banco ou Stripe.
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { createHash } from 'node:crypto'
 import { root, offlineModules, React, renderToStaticMarkup } from './gpt24h-offline-support.mjs'
 
 const MARCA = 'KINEO-CHECKOUT-CLAREZA-1610'
-const read = (rel) => readFileSync(resolve(root, rel), 'utf8').replace(/\r\n/g, '\n')
+const read = (rel) => semCloseReal1910(readFileSync(resolve(root, rel), 'utf8'), rel).replace(/\r\n/g, '\n') /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const PRICES = 'lib/checkoutPricing.ts'
 const CLIENT = 'app/pricing/PricingClient.tsx'
 const STAGE = 'components/pricing/PlanValueStage.tsx'

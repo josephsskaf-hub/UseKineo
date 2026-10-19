@@ -18,6 +18,7 @@
 //   (9) frases nas 16 línguas; prévia (mp4 + jpg) existe; telas e páginas (leitura);
 //  (10) mutantes: cada regra quebrada fica vermelha, e cada mutante prova que aplicou.
 // Estilo readFileSync + ts.transpileModule (via offline-ts-loader). Nenhum import com alias @/.
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import fs from 'node:fs'
 import { semAmostra1410 } from './test-support/desfaz-clipe360-amostra-1410.mjs' // reancorado KINEO-CLIPE360-AMOSTRA-1410
 import { desfazApresentadorV2_1710 } from './test-support/desfaz-apresentador-v2-1710.mjs' // reancorado KINEO-APRESENTADOR-V2-1710
@@ -29,7 +30,7 @@ import { desfazExtracao, textoOriginalV2 } from './test-support/shopify-extracao
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
-const readCru = (rel) => desfazApresentadorV2_1710(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8')) // reancorado KINEO-APRESENTADOR-V2-1710 — o apresentador v2 (só conta interna) veio depois: este guardião lê o texto SEM ele (já LF); ele é provado em scripts/test-apresentador-v2-1710.mjs
+const readCru = (rel) => desfazApresentadorV2_1710(rel, semCloseReal1910(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)) // reancorado KINEO-APRESENTADOR-V2-1710 — o apresentador v2 (só conta interna) veio depois: este guardião lê o texto SEM ele (já LF); ele é provado em scripts/test-apresentador-v2-1710.mjs /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 // KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o corpo do /plan e do /start foi EXTRAÍDO, sem mudar uma linha, para
 // lib/ads/v2PlanCore.ts e lib/ads/v2StartCore.ts (a rota só lê o cookie e chama o núcleo). Ler a rota = rota + núcleo, na ordem
 // em que rodam; a impressão digital da base usa o texto de ANTES remontado por test-support/shopify-extracao-v2-1310.mjs.

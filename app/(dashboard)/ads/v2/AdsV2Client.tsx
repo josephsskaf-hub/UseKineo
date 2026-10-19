@@ -53,6 +53,7 @@ const ADS_PANEL_CSS = `.adv2 .kps-panel .adv2-layout{grid-template-columns:minma
 .adv2 .kps-panel .adv2-aside{position:static}`
 import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
 import { ADS_SAMPLE_TIER, adsSampleCopy, type AdsSampleCopy } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
+import { ADS_V2_CLOSE_REAL_LIVE } from '@/lib/ads/v2CloseReal' // KINEO-CLOSE-REAL-1910 — a linha da amostra no Close real
 import { adsAfterSampleCopy, fillAfterSample, type AdsBusinessOffer } from '@/lib/ads/afterSample' // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — a escolha de estilo do produto (modo completo = inglês).
 import { ADS_V2_STYLE_COPY, ADS_V2_STYLES_PUBLIC, adsV2SuggestedStyle, type AdsV2StyleChoice } from '@/lib/ads/v2Styles'
@@ -775,7 +776,7 @@ function AdsV2Session({
   businessOffer?: AdsBusinessOffer | null
   onSampleGone?: () => void
 }) {
-  const scopy: AdsSampleCopy | null = sample ? adsSampleCopy('en') : null
+  const scopy: AdsSampleCopy | null = sample ? (ADS_V2_CLOSE_REAL_LIVE ? { ...adsSampleCopy('en'), note: adsSampleCopy('en').closeReal } : adsSampleCopy('en')) : null // KINEO-CLOSE-REAL-1910 — a amostra é o Close real (o /plan força o formato também na Produção); era: const scopy: AdsSampleCopy | null = sample ? adsSampleCopy('en') : null
   // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — quem entrou pela amostra e já a usou recebe 403 'no_access' (rotas do v2) ou 402 'paid_feature' (envio de foto):
   // em vez do erro genérico, o invólucro mostra a oferta do Business. Assinante/passe/interna nunca entram com sample=true.
   const acopy = adsAfterSampleCopy('en')

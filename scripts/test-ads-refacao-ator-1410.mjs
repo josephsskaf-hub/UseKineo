@@ -19,6 +19,7 @@
 //   B3 o caminho é o de sempre (Nano Banana Pro edit com 2 referências → Kling O3), sem fornecedor novo; entra como insert do ator;
 //   B4 rótulo de IA: a vista marca ai_person e as duas grades escrevem "Pessoa de IA" (16 línguas); nada de depoimento;
 //   M  mutantes (todos vermelhos).
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
@@ -43,7 +44,7 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const MARCA = 'KINEO-ADS-REFACAO-ATOR-1410'
 const BASE = '4d8da757aafbce9c74d231c0718f1f35aebf12f1' // reancorado KINEO-ADS-REFACAO-ATOR-1410 — merge com a origin/main (palco-voltar, demo-universo, cortesia, home): a base é o pai do lado da main
-const rd = (rel) => semFilmeRapido1710(semMarcas1510(rel, semLinkTela1510(rel, semFiel2_1510(rel, semFiel3_1510(rel, semFiel4_1510(rel, semFiel5_1510(rel, semFielLiga1510(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8')))))))), rel) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai por fora, em memória */ // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-LINK-TELA-1510 — a tela do leitor de link (a mais nova) sai antes das marcas · reancorado KINEO-ADS-FIEL-2-1510 · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória /* reancorado KINEO-ADS-FIEL-4-1510 — o canto reservado da trava sai primeiro, em memória */ · reancorado KINEO-ADS-FIEL-5-1510 — a base do produto no tampo sai antes, byte a byte (semFiel5_1510 já devolve LF) · reancorado KINEO-ADS-FIEL-LIGA-1510 — o liga (o mais novo) sai PRIMEIRO, colado no readFileSync
+const rd = (rel) => semFilmeRapido1710(semMarcas1510(rel, semLinkTela1510(rel, semFiel2_1510(rel, semFiel3_1510(rel, semFiel4_1510(rel, semFiel5_1510(rel, semFielLiga1510(rel, semCloseReal1910(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)))))))), rel) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai por fora, em memória */ // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-LINK-TELA-1510 — a tela do leitor de link (a mais nova) sai antes das marcas · reancorado KINEO-ADS-FIEL-2-1510 · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória /* reancorado KINEO-ADS-FIEL-4-1510 — o canto reservado da trava sai primeiro, em memória */ · reancorado KINEO-ADS-FIEL-5-1510 — a base do produto no tampo sai antes, byte a byte (semFiel5_1510 já devolve LF) · reancorado KINEO-ADS-FIEL-LIGA-1510 — o liga (o mais novo) sai PRIMEIRO, colado no readFileSync /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const git = (...a) => execFileSync('git', a, { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 28 })
 const base = (rel) => git('show', `${BASE}:${rel}`).replace(/\r\n/g, '\n')
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex')

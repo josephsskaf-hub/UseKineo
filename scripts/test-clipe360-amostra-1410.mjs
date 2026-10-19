@@ -16,6 +16,7 @@
 //       byte a byte iguais à base; sample.ts só mudou nas linhas esperadas; e a amostra EXECUTADA continua 0 crédito
 //       (test-ads-amostra-2026-10-09, seção 4, rodado aqui no nível commercial); custo fal extra por amostra calculado;
 //   (8) mutantes: cada um prova que aplicou (a fonte mudou) e deixa a MESMA função de regras vermelha.
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
@@ -30,7 +31,7 @@ import { semLista1510 } from './test-support/desfaz-ads-lista-1510.mjs' // reanc
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
 const ts = require(path.join(ROOT, 'node_modules', 'typescript'))
-const read = (rel) => semMarcas1510(rel, semLista1510(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n'))) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai antes de todos
+const read = (rel) => semMarcas1510(rel, semLista1510(rel, semCloseReal1910(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel).replace(/\r\n/g, '\n'))) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai antes de todos /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 // O pai do primeiro commit marcado KINEO-CLIPE360-AMOSTRA-1410 (origin/main de onde esta entrega nasceu).
 const BASE_SHA = '107d766bb6df3fba45baf3e73f09fa500c478186'
 const gitShow = (rel) => execFileSync('git', ['show', `${BASE_SHA}:${rel}`], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 }).replace(/\r\n/g, '\n')

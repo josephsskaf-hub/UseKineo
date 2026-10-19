@@ -21,6 +21,7 @@
 //   D  desfaz exato + ida + marca + encadeamento (a 3ª rodada, o ajuste, o produto na mão e a fiel-7 tiram esta camada primeiro) + travas +
 //      nada de cobrança, motor, /start, TTS, compose ou montador no diff;
 //   M  mutantes (todos aplicados e vermelhos).
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -40,7 +41,7 @@ import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-MAO-JUIZ-1610'
-const rd = (p) => desfazJuizGrade1610(p, semFilmeRapido1710(readFileSync(join(ROOT, p), 'utf8'), p) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 (inclusive a reancoragem do guardião da 3ª rodada) sai antes */) // reancorado KINEO-JUIZ-GRADE-1610 — a grade do juiz (modelo/variante da calibração) veio depois: este guardião lê o texto SEM ela (já LF); ela é provada em scripts/test-juiz-grade-1610.mjs
+const rd = (p) => desfazJuizGrade1610(p, semFilmeRapido1710(semCloseReal1910(readFileSync(join(ROOT, p), 'utf8'), p), p) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 (inclusive a reancoragem do guardião da 3ª rodada) sai antes */) // reancorado KINEO-JUIZ-GRADE-1610 — a grade do juiz (modelo/variante da calibração) veio depois: este guardião lê o texto SEM ela (já LF); ela é provada em scripts/test-juiz-grade-1610.mjs /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return git('show', `${MAO_JUIZ_1610_BASE}:${p}`).replace(/\r\n/g, '\n') } catch { return null } }
 let pass = 0

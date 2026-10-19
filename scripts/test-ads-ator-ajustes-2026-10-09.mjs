@@ -14,6 +14,7 @@
 //       502 pelo tom; a rota manda productPhoto/presenter à extração;
 //   (4) mutantes: cada regra quebrada fica vermelha, e cada mutante prova que aplicou.
 // Estilo readFileSync + ts.transpileModule (via offline-ts-loader). Nenhum import com alias @/.
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
@@ -25,7 +26,7 @@ import { desfazCentroAdsGancho1410 } from './test-support/desfaz-centro-ads-ganc
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
-const readCru = (rel) => semFiel3_1510(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8')) // reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória (semFiel3_1510 já devolve LF)
+const readCru = (rel) => semFiel3_1510(rel, semCloseReal1910(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)) // reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória (semFiel3_1510 já devolve LF) /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 // KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o corpo do /plan e do /start foi EXTRAÍDO, sem mudar uma linha, para
 // lib/ads/v2PlanCore.ts e lib/ads/v2StartCore.ts (a rota só lê o cookie e chama o núcleo). Ler a rota = rota + núcleo, na ordem
 // em que rodam; a impressão digital da base usa o texto de ANTES remontado por test-support/shopify-extracao-v2-1310.mjs.

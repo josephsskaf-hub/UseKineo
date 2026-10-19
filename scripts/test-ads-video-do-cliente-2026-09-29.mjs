@@ -12,6 +12,7 @@
 //   · MUTANTES vermelhos: vídeo indo à fal, áudio do cliente ligado, loop ligado, 3º vídeo aceito, preço mudando.
 // Módulos TS são transpilados com o typescript do repo (mesmo carregador de test-ads-v2-servidor-2026-09-28.mjs), com
 // stubs para o que é de servidor. Um mutante = o MESMO arquivo com 1 trecho trocado, carregado de novo.
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -21,7 +22,7 @@ import { semMelhorias1410 } from './test-support/desfaz-melhorias-1410.mjs' // r
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semCloseReal1910(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n') /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const semComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map((l) => l.replace(/(^|[^:'"`\\])\/\/.*$/, '$1')).join('\n')
 let ok = 0
 const falhas = []

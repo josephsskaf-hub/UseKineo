@@ -19,6 +19,7 @@
 //      no produto; os guardiões antigos da trava leem o texto SEM este liga (encadeado colado no readFileSync);
 //   M  mutantes (todos aplicados e vermelhos): o modo volta a 'all', vira 'off', o servidor ignora a lista da casa, o servidor perde o
 //      atalho do 'all', o preço muda.
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -34,7 +35,7 @@ import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-FIEL-LIGA-1510'
-const rd = (p) => semFilmeRapido1710(readFileSync(join(ROOT, p), 'utf8'), p).replace(/\r\n/g, '\n') /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */
+const rd = (p) => semFilmeRapido1710(semCloseReal1910(readFileSync(join(ROOT, p), 'utf8'), p), p).replace(/\r\n/g, '\n') /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */ /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 let BASE = 'HEAD'
 let ULTIMO = null

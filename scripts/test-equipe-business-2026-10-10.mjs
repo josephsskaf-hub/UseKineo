@@ -17,6 +17,7 @@
 //   (7) eventos novos só-servidor; migration com RLS ligado e sem policy; nada de e-mail mandado pelo código;
 //   (8) mutantes: cada regra quebrada fica vermelha, e cada mutante prova que aplicou.
 // Estilo readFileSync + transpile; nenhum import com alias @/ no guardião.
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
@@ -27,7 +28,7 @@ import { semLista1510 } from './test-support/desfaz-ads-lista-1510.mjs' // reanc
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
-const read = (rel) => semMarcas1510(rel, semLista1510(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n'))) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai antes de todos
+const read = (rel) => semMarcas1510(rel, semLista1510(rel, semCloseReal1910(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel).replace(/\r\n/g, '\n'))) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai antes de todos /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const clone = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)))
 let pass = 0
 let fail = 0

@@ -173,6 +173,7 @@ const SERVER_ONLY_EVENTS = new Set([
   'ads_batch_planned',
   'ads_batch_started',
   'ads_batch_row',
+  'ads_v2_close_real_assembled', // KINEO-CLOSE-REAL-1910 — o Close do produto real foi para a montagem: fato do servidor
   'team_invite_created',
   'team_member_joined',
   'team_member_removed',

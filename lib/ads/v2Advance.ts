@@ -48,6 +48,7 @@ import { buildAdV2Source, ADS_V2_VOICE_START, adsV2ProductOverlays, type AdV2Mon
 import { adsV2FallbackTrack, adsV2MusicTrimStart, adsV2MusicUsable, adsV2SwapLibraryTrack } from '@/lib/ads/v2Music'
 import { ADS_V2_QUALITY, confirmAdsV2Debit, failAdsV2Order } from '@/lib/ads/v2Billing'
 import { isAdsSampleRef } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
+import { ADS_V2_CLOSE_REAL_WATERMARK, adsV2CloseRealOf, buildAdV2CloseRealSource } from '@/lib/ads/v2CloseReal' // KINEO-CLOSE-REAL-1910 — o Close do produto real (zero IA de vídeo; a amostra grátis com marca-d'água)
 // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator de IA (lib pura): a linha dele, quando desiste, a voz que cabe e a ordem dos inserts.
 import {
   ADS_V2_PRESENTER_GIVEUP_MS,
@@ -1003,6 +1004,14 @@ async function retryPresenter(admin: SupabaseClient, order: AdsV2OrderRow, row: 
  */
 async function adsV2NarrationVoice(order: AdsV2OrderRow, text: string, fallbackToDefault: boolean, speedOverride?: number): Promise<Buffer> { // KINEO-APRESENTADOR-V2-AJUSTE-1710 — + speedOverride (só a voz do v2 com voice id: a voz medida que passou do alvo)
   const ctx = { userId: order.user_id, generationId: order.generation_id }
+  if (adsV2CloseRealOf(order.plan)) { // KINEO-CLOSE-REAL-1910 — o Close real fala na voz por língua do apresentador v2 (PT-BR: Portuguese_ConfidentWoman na speech-2.8-hd); falhou = a voz de sempre
+    try { // KINEO-CLOSE-REAL-1910
+      const lib = await presenterV2Lib() // KINEO-CLOSE-REAL-1910
+      const cv = lib ? lib.adsV2PresenterV2VoiceFor(narrationLanguage(order.language) ?? 'en', 'woman') : null // KINEO-CLOSE-REAL-1910
+      if (cv && cv.engine === 'minimax') { const vm = await import('@/lib/avatar/voice'); return await vm.synthesizeWithVoice({ voiceId: cv.voiceId, text, model: cv.model, languageBoost: cv.languageBoost, speed: cv.speed }) } // KINEO-CLOSE-REAL-1910
+    } catch (e) { console.warn(`[ads-v2] voz do Close real falhou order=${order.id} (segue a de sempre):`, e instanceof Error ? e.message : String(e)) } // KINEO-CLOSE-REAL-1910
+    return synthesizeTtsFallback(text, ctx) // KINEO-CLOSE-REAL-1910
+  } // KINEO-CLOSE-REAL-1910
   const pv = await presenterV2Of(order) // KINEO-APRESENTADOR-V2-1710 — a voz do apresentador v2 por língua (PT-BR: Portuguese_ConfidentWoman na speech-2.8-hd); 'current' = a de sempre (abaixo)
   const v2Voice = pv ? pv.lib.adsV2PresenterV2VoiceFor(narrationLanguage(order.language) ?? 'en', pv.v2.gender) : null // KINEO-APRESENTADOR-V2-1710
   if (v2Voice && v2Voice.engine === 'minimax') { // KINEO-APRESENTADOR-V2-1710
@@ -1213,13 +1222,31 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
       presenterMiss = `presenter_montage:${e instanceof Error ? e.message : String(e)}`.slice(0, 160)
     }
   }
+  // KINEO-CLOSE-REAL-1910 — o CLOSE DO PRODUTO REAL (lib/ads/v2CloseReal.ts): gancho com o produto recortado sobre o fundo na cor dele (o recorte falhou =
+  // KINEO-CLOSE-REAL-1910 — a foto real inteira), as fotos reais com Ken Burns e punch-in, frases na zona segura, a voz, a música com ducking e o cartão.
+  // KINEO-CLOSE-REAL-1910 — Nenhum motor de vídeo/imagem: as linhas do pedido são todas 'skipped_text'. A amostra grátis sai com marca-d'água.
+  const closeRealPlan = adsV2CloseRealOf(plan) // KINEO-CLOSE-REAL-1910
+  let closeRealSource: Record<string, unknown> | null = null // KINEO-CLOSE-REAL-1910
+  let closeRealHero: 'cutout' | 'photo' | null = null // KINEO-CLOSE-REAL-1910
+  if (closeRealPlan) { // KINEO-CLOSE-REAL-1910
+    const crServer = await import('@/lib/ads/v2CloseRealServer').catch(() => null) // KINEO-CLOSE-REAL-1910 — import dinâmico: sem o módulo = a foto real no gancho
+    const hero = crServer ? await crServer.adsV2CloseRealHero({ userId: order.user_id, orderId: order.id, product: closeRealPlan.product }) : null // KINEO-CLOSE-REAL-1910 — nunca lança
+    closeRealHero = hero ? 'cutout' : 'photo' // KINEO-CLOSE-REAL-1910
+    const crFrame = renderOutputSpecFor('9:16') // KINEO-CLOSE-REAL-1910 — o Close real é só vertical
+    try { // KINEO-CLOSE-REAL-1910
+      closeRealSource = buildAdV2CloseRealSource({ width: crFrame.width, height: crFrame.height, heroUrl: hero?.url ?? null, heroFallbackUrl: closeRealPlan.product?.url ?? closeRealPlan.photos[0], photos: closeRealPlan.photos, phrases: (plan.overlays ?? []).map((o) => (o && typeof o.text === 'string' ? o.text : '')), fontFamily: captionFontFor(language), cardUrl: order.card_url, cardSeconds: ADS_V2_CARD_SECONDS, musicUrl, musicTrimStart: adsV2MusicTrimStart(musicUrl), voiceUrl, voiceSeconds, watermark: isAdsSampleRef(order.billing_ref) ? ADS_V2_CLOSE_REAL_WATERMARK : null }) // KINEO-CLOSE-REAL-1910
+    } catch (e) { // KINEO-CLOSE-REAL-1910
+      await failAdsV2Order(admin, order, `montage_invalid:${e instanceof Error ? e.message : String(e)}`, '/lib/ads/v2Advance') // KINEO-CLOSE-REAL-1910
+      return // KINEO-CLOSE-REAL-1910
+    } // KINEO-CLOSE-REAL-1910
+  } // KINEO-CLOSE-REAL-1910
   let cardSeconds = ADS_V2_CARD_SECONDS
   // KINEO-ADS-FIEL-2-1510 — DURAÇÃO (QA 15/10: 15 s pedidos saíram 17,5 s — o cartão crescia até a voz acabar e o Premium planejava 14 s de
   // KINEO-ADS-FIEL-2-1510 — planos): os planos encolhem para caber em (pedido − cartão), o cartão fica entre 2,5 e 3 s e a voz que não cabe é
   // KINEO-ADS-FIEL-2-1510 — encurtada (frases inteiras do meio saem, nada reescrito) e sintetizada de novo — até 2 vezes. Nem assim = a régua de antes.
   let overlayK = 1 // KINEO-ADS-FIEL-2-1510
   let fitInfo: Record<string, unknown> | null = null // KINEO-ADS-FIEL-2-1510
-  if (!presenterSource) { // KINEO-ADS-FIEL-2-1510
+  if (!presenterSource && !closeRealSource) { // KINEO-ADS-FIEL-2-1510 · KINEO-CLOSE-REAL-1910 — o Close real tem a linha do tempo dele; era: if (!presenterSource) {
     const shotsBefore = shotsSeconds // KINEO-ADS-FIEL-2-1510
     const cuts0 = montageShots.map((s) => s.cutSeconds) // KINEO-ADS-FIEL-2-1510
     let fit = adsV2FitTimeline({ targetSeconds: order.seconds, cuts: cuts0, voiceSeconds: voiceSeconds ?? null, voiceStart: ADS_V2_VOICE_START }) // KINEO-ADS-FIEL-2-1510
@@ -1240,7 +1267,7 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
     if (fit.scaled) { montageShots.forEach((s, k) => { s.cutSeconds = fit.cuts[k] }); shotsSeconds = fit.shotsSeconds; overlayK = shotsBefore > 0 ? fit.shotsSeconds / shotsBefore : 1 } // KINEO-ADS-FIEL-2-1510
     fitInfo = { target: order.seconds, scaled: fit.scaled, voice_fits: fit.voiceFits, resynth, narration_words: spokenText ? spokenText.split(/\s+/).filter(Boolean).length : 0 } // KINEO-ADS-FIEL-2-1510
   } // KINEO-ADS-FIEL-2-1510
-  if (voiceSeconds && !presenterSource) {
+  if (voiceSeconds && !presenterSource && !closeRealSource) { // KINEO-CLOSE-REAL-1910 — era: if (voiceSeconds && !presenterSource) {
     const voiceEnd = ADS_V2_VOICE_START + voiceSeconds + 0.2
     cardSeconds = Math.max(cardSeconds, Math.round((voiceEnd - shotsSeconds) * 1000) / 1000)
     if (cardSeconds > ADS_V2_CARD_MAX_SECONDS) {
@@ -1252,7 +1279,7 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
   let source: Record<string, unknown>
   try {
     // KINEO-ATOR-ANUNCIO-2026-10-09 — com o ator pronto, a montagem dele; senão, a de sempre (abaixo, intocada).
-    source = presenterSource ?? buildAdV2Source({
+    source = closeRealSource ?? presenterSource ?? buildAdV2Source({ // KINEO-CLOSE-REAL-1910 — o Close real primeiro; era: source = presenterSource ?? buildAdV2Source({
       width: out.width,
       height: out.height,
       shots: montageShots,
@@ -1307,6 +1334,7 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
     path: '/lib/ads/v2Advance',
     metadata: { order_id: order.id, creatomate_render_id: renderId, shots: montageShots.length, card_seconds: cardSeconds, voice_seconds: voiceSeconds, music: Boolean(musicUrl), music_source: musicUrl ? musicSource : 'none', ...(presenterV2?.v2?.voiceFit ? { presenter_v2_voice_fit: presenterV2.v2.voiceFit } : {}), total_seconds: presenterSource ? Number(presenterSource.duration) : Math.round((shotsSeconds + cardSeconds) * 1000) / 1000, presenter: Boolean(presenterSource), presenter_fallback: presenterMiss, ...(fitInfo ? { fit: fitInfo } : {}) }, // KINEO-ADS-FIEL-2-1510 — o encaixe na duração // KINEO-APRESENTADOR-V2-AJUSTE-1710 — + music_source (lyria / library = a reserva automática / library_swap / stored) e o ajuste da voz do v2
   })
+  if (closeRealSource) await writeServerEvent({ name: 'ads_v2_close_real_assembled', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, creatomate_render_id: renderId, hero: closeRealHero, sample: isAdsSampleRef(order.billing_ref), watermark: isAdsSampleRef(order.billing_ref), photos: closeRealPlan?.photos.length ?? 0, total_seconds: Number(closeRealSource.duration), voice_seconds: voiceSeconds, music_source: musicUrl ? musicSource : 'none' } }) // KINEO-CLOSE-REAL-1910 — a medição do formato (gancho recortado ou foto real, amostra com marca, duração real)
 }
 
 async function pollAssembly(admin: SupabaseClient, order: AdsV2OrderRow): Promise<void> {

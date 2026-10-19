@@ -15,6 +15,7 @@
 //   S  MÚSICA: o Lyria recusado cai SOZINHO na trilha da casa e o evento da montagem diz de onde veio a trilha;
 //   D  desfaz exato + ida + marca em todo bloco + encadeamento (a cadeia do apresentador v2 tira esta camada primeiro) + diff só nos arquivos da lista;
 //   M  mutantes (todos APLICADOS e VERMELHOS).
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -31,7 +32,7 @@ import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-APRESENTADOR-V2-AJUSTE-1710'
-const rd = (p) => desfazApresentadorV2Ajuste3_1710(p, semFilmeRapido1710(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o ajuste 3 (17/10) veio depois: este guardião lê o texto SEM ele (já LF); o ajuste 3 é provado em scripts/test-apresentador-v2-ajuste-3-1710.mjs /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */
+const rd = (p) => desfazApresentadorV2Ajuste3_1710(p, semFilmeRapido1710(semCloseReal1910(readFileSync(join(ROOT, p), 'utf8'), p), p)) // reancorado KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o ajuste 3 (17/10) veio depois: este guardião lê o texto SEM ele (já LF); o ajuste 3 é provado em scripts/test-apresentador-v2-ajuste-3-1710.mjs /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */ /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return git('show', `${APRESENTADOR_V2_AJUSTE_1710_BASE}:${p}`).replace(/\r\n/g, '\n') } catch { return null } }
 let pass = 0

@@ -22,6 +22,7 @@
 //     sobem quando embaixo cobrem produto/rosto; o ator também; o anúncio de lugar continua no centro; o cartão não muda;
 //   V desfaz exato + marca em todo bloco + dinheiro byte a byte + trava 'internal' no texto deste conserto e 'all' no arquivo vivo (reancorado KINEO-ADS-FIEL-LIGA-1510 — fundador ligou para todos em 15/10);
 //   M mutantes (todos aplicados e vermelhos).
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -35,7 +36,7 @@ import { semFielLiga1510 } from './test-support/desfaz-ads-fiel-liga-1510.mjs' /
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-FIEL-3-1510'
-const rd = (p) => semFiel4_1510(p, semFiel5_1510(p, semFielLiga1510(p, readFileSync(join(ROOT, p), 'utf8')))) // reancorado KINEO-ADS-FIEL-4-1510 — esta prova roda a trava da Fiel 3 (o lugar lido pela visão); o canto reservado sai antes, byte a byte (semFiel4_1510 já devolve LF) · reancorado KINEO-ADS-FIEL-5-1510 — a base do produto no tampo sai antes, byte a byte (semFiel5_1510 já devolve LF) · reancorado KINEO-ADS-FIEL-LIGA-1510 — o liga (o mais novo) sai PRIMEIRO, colado no readFileSync
+const rd = (p) => semFiel4_1510(p, semFiel5_1510(p, semFielLiga1510(p, semCloseReal1910(readFileSync(join(ROOT, p), 'utf8'), p)))) // reancorado KINEO-ADS-FIEL-4-1510 — esta prova roda a trava da Fiel 3 (o lugar lido pela visão); o canto reservado sai antes, byte a byte (semFiel4_1510 já devolve LF) · reancorado KINEO-ADS-FIEL-5-1510 — a base do produto no tampo sai antes, byte a byte (semFiel5_1510 já devolve LF) · reancorado KINEO-ADS-FIEL-LIGA-1510 — o liga (o mais novo) sai PRIMEIRO, colado no readFileSync /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 let BASE = 'HEAD'
 let PROPRIO = null

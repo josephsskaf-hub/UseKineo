@@ -16,6 +16,7 @@
 //  J. Tela embutida: App Bridge primeiro, nada de innerHTML, frame-ancestors por loja.
 //
 // Rodar: node scripts/test-shopify-app-1310.mjs
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { createHmac, randomBytes } from 'node:crypto'
@@ -29,7 +30,7 @@ const ok = (nome, cond, detalhe = '') => {
   if (cond) console.log(`  ✓ ${nome}`)
   else { console.log(`  ✗ ${nome}${detalhe ? ` — ${detalhe}` : ''}`); falhas.push(nome) }
 }
-const ler = (...p) => readFileSync(path.join(raiz, ...p), 'utf8').replace(/\r\n/g, '\n')
+const ler = (...p) => semCloseReal1910(readFileSync(path.join(raiz, ...p), 'utf8'), p.join('/')).replace(/\r\n/g, '\n') /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 // Código sem as linhas de comentário // (os cabeçalhos citam o que é proibido para explicar a regra).
 const semComentario = (s) => s.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n')
 const ordem = (src, ...marcos) => {

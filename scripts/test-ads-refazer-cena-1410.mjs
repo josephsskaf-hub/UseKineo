@@ -14,6 +14,7 @@
 //      failAdsV2Order (estorno), e no máximo UM pedido ativo por conta (o índice único parcial; a refação não escapa dele);
 //   R6 dinheiro intocado: rota da refação, v2Billing, v2Tiers e v2StartCore byte a byte iguais à base (a1f3dbff);
 //   M  mutantes.
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
@@ -23,7 +24,7 @@ import { semRefacaoAtor1410 } from './test-support/desfaz-ads-refacao-ator-1410.
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
-const rd = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+const rd = (rel) => semCloseReal1910(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel).replace(/\r\n/g, '\n') /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex')
 let pass = 0
 let fail = 0
