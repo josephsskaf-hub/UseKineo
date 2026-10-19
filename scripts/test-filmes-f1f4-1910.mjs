@@ -22,6 +22,7 @@ import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semFilmesF1F4_1910, MARCA_FILMES_F1F4_1910, ACRESCIMOS_FILMES_F1F4_1910 } from './test-support/desfaz-filmes-f1f4-1910.mjs'
+import { sintetizarSfxFaceless15, sha256, SFX_FACELESS15_ARQUIVOS } from './gerar-sfx-faceless15-1910.mjs'
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
@@ -221,12 +222,69 @@ function provas({ C, F, H, montar }) {
     const r5 = F.aplicarGanchoFaceless15(s5, externa(F, ['f2']), { narration: NARRACAO })
     p['E6 cliente pedindo f2: nada entra; GANCHO_1Q_PUBLIC de lib/hookFirstFrame segue false'] = r5.motivo === 'formato_inativo' && trilha(s5, T).length === 0 && H.GANCHO_1Q_PUBLIC === false
   }
+  // ── F · F3 (som)
+  {
+    const antes = montar()
+    const ref = clone(antes)
+    const relato = F.aplicarFaceless15(antes, interna(F, ['f3']), { whisperWords: WORDS, clipSeconds: [6, 6, 6] })
+    const T = antes.duration
+    const payoff = r3(INICIOS[INICIOS.length - 1])
+    const mus = trilha(antes, 8, 'audio')
+    const sfx = trilha(antes, 12, 'audio')
+    const CAT = F.SFX_FACELESS15
+    p['F1 F3 só mexe nas trilhas 8 (música) e 12 (SFX): voz (4), clipes (2), legenda (5) e o resto ficam byte a byte'] = relato.f3?.musica === 'ducking' && eqJ(foraDaTrilha(antes, [8, 12]), foraDaTrilha(ref, [8, 12])) && eqJ(trilha(antes, 4), trilha(ref, 4))
+    p['F2 música em 3 elementos: 18 % até o payoff, 10 % sob o payoff, 18 % na cauda com fade-out 1,2 s; contínuos no tempo e no trecho (trim_start), loop, mesma faixa'] =
+      mus.length === 3 && mus[0].time === 0 && mus[0].volume === '18%' && mus[0].duration === payoff && mus[0].audio_fade_in === 0.8 &&
+      mus[1].time === payoff && mus[1].volume === '10%' && mus[1].trim_start === payoff && r3(mus[1].time + mus[1].duration) === r3(T - 1.2) &&
+      mus[2].time === r3(T - 1.2) && mus[2].volume === '18%' && mus[2].trim_start === r3(T - 1.2) && r3(mus[2].time + mus[2].duration) === r3(T) && mus[2].audio_fade_out === 1.2 &&
+      mus.every((m) => m.loop === true && m.source === MUSICA && m.track === 8) && eqJ(relato.f3.duck, [payoff, r3(T - 1.2)])
+    p['F3 a junção dos dois volumes usa o fade curto de 0,3 s do Ads (18→10 ≈ −5 dB, dentro dos 6–12 dB do CapCut)'] = mus[0].audio_fade_out === 0.3 && mus[1].audio_fade_in === 0.3 && mus[1].audio_fade_out === 0.3 && mus[2].audio_fade_in === 0.3
+    const cortes = trilha(ref, 2, 'video').map((e) => e.time).filter((t) => t > 0)
+    const ris = sfx.filter((e) => e.source === CAT.riser.url)
+    const who = sfx.filter((e) => e.source === CAT.whoosh.url)
+    const pop = sfx.filter((e) => e.source === CAT.pop.url)
+    p['F4 riser 0–1,2 s a −14 dB (20 %); whoosh de 0,25 s a −12 dB (25 %) em cada corte (0,1 s antes dele); pop a −10 dB (30 %) no reveal — trilha 12, URL estável do site'] =
+      cortes.length >= 2 && ris.length === 1 && ris[0].time === 0 && ris[0].duration === 1.2 && ris[0].volume === '20%' &&
+      who.length === cortes.length && cortes.every((t) => who.some((w) => w.time === r3(t - 0.1) && w.duration === 0.25 && w.volume === '25%')) &&
+      pop.length === 1 && pop[0].time === payoff && pop[0].duration === 0.3 && pop[0].volume === '30%' &&
+      sfx.every((e) => e.track === 12 && String(e.source).startsWith('https://www.usekineo.com/sfx/')) && eqJ(relato.f3.sfx, { riser: true, whoosh: cortes.length, pop: true })
+    const semMus = montar({ musica: false })
+    const rSem = F.aplicarFaceless15(semMus, interna(F, ['f3']), { whisperWords: WORDS })
+    p['F5 sem trilha (Lyria e catálogo falharam): nada de música inventada, SFX entram, voz intacta — nunca sai sem som'] = rSem.f3?.musica === 'sem_trilha' && trilha(semMus, 8).length === 0 && trilha(semMus, 12).length >= 3 && eqJ(trilha(semMus, 4), trilha(ref, 4))
+    const semW = montar({ whisper: false })
+    const rW = F.aplicarFaceless15(semW, interna(F, ['f3']), { whisperWords: null })
+    const musW = trilha(semW, 8, 'audio')
+    p['F6 sem Whisper (sem payoff): música a 18 % num elemento só com os fades de sempre; sem pop; whoosh nos cortes'] = rW.f3?.musica === 'sem_payoff' && musW.length === 1 && musW[0].volume === '18%' && musW[0].audio_fade_in === 0.8 && musW[0].audio_fade_out === 1.2 && musW[0].duration === semW.duration && !trilha(semW, 12).some((e) => e.source === CAT.pop.url) && rW.f3.sfx.pop === false && rW.f3.sfx.whoosh >= 2
+    const vazio = montar()
+    const cat = clone(CAT)
+    for (const k of Object.keys(cat)) cat[k].url = null
+    const rV = F.aplicarFaceless15(vazio, interna(F, ['f3']), { whisperWords: WORDS, sfx: cat })
+    p['F7 catálogo sem URL = slot vazio: nenhum SFX entra, a música da receita entra, o relato diz slot_vazio'] = rV.f3?.sfx === 'slot_vazio' && trilha(vazio, 12).length === 0 && trilha(vazio, 8).length === 3
+    const f13 = montar()
+    const r13 = F.aplicarFaceless15(f13, interna(F, ['f1', 'f3']), { whisperWords: WORDS })
+    p['F8 F1+F3 juntas: legenda da F1 e som da F3, cada uma na sua trilha'] = r13.f1?.chunker === 'whisper' && r13.f3?.musica === 'ducking' && trilha(f13, 5).every((e) => e.y === '62%') && trilha(f13, 8).length === 3 && trilha(f13, 12).length >= 4
+  }
   return p
 }
 
 // ═══ pristina ═══════════════════════════════════════════════════════════════════════════════════════════════════════
 const P = provas(carregar())
 for (const [n, v] of Object.entries(P)) checa(n, v === true)
+
+// ═══ F0 · os arquivos SFX: síntese própria, determinística, hash do catálogo = disco = regenerado ═══════════════════
+{
+  const F0 = carregar().F
+  const sons = sintetizarSfxFaceless15()
+  for (const k of ['riser', 'whoosh', 'pop']) {
+    const cat = F0.SFX_FACELESS15[k]
+    const caminho = join(RAIZ, 'public', 'sfx', cat.arquivo)
+    const disco = existsSync(caminho) ? readFileSync(caminho) : null
+    checa(`F0 ${k}: public/sfx/${cat.arquivo} com o hash do catálogo, regenerado em memória byte a byte igual (síntese própria, sem terceiro), URL estável, WAV 44,1 kHz mono 16 bits de ${cat.segundos} s`,
+      !!disco && sha256(disco) === cat.sha256 && sha256(sons[k]) === cat.sha256 && cat.url === 'https://www.usekineo.com/sfx/' + cat.arquivo && cat.arquivo === SFX_FACELESS15_ARQUIVOS[k] &&
+      disco.toString('latin1', 0, 4) === 'RIFF' && disco.readUInt32LE(24) === 44100 && disco.readUInt16LE(22) === 1 && disco.readUInt16LE(34) === 16 && Math.abs(disco.readUInt32LE(40) / 88200 - cat.segundos) < 0.001 && cat.licenca.includes('síntese própria'))
+  }
+  checa('F0 volumes do catálogo = −14/−12/−10 dB (20/25/30 % de amplitude)', F0.SFX_FACELESS15.riser.volume === '20%' && F0.SFX_FACELESS15.whoosh.volume === '25%' && F0.SFX_FACELESS15.pop.volume === '30%')
+}
 
 // ═══ M · mutantes (cada um deixa vermelha a prova que protege) ══════════════════════════════════════════════════════
 const F15 = 'lib/filmes/faceless15.ts'
@@ -247,6 +305,11 @@ mut('conta externa aceita o pedido', F15, 'if (input.interna === true) pedidas.p
 mut('formato ignora a duração', F15, 'if (Number(input.duration) !== FACELESS15_DURATION) foraDoFormato.push', 'if (false) foraDoFormato.push', ['B3'])
 mut('f2: gancho entra mesmo com a fase desligada', F15, "if (decisao.fases.includes('f2')) {", 'if (true) {', ['E1'])
 mut('f2: gancho da conta interna não sai com a fase desligada', F15, '.filter((e) => !ehTexto(e, GANCHO_1Q_TRACK))', '.filter(() => true)', ['E1'])
+mut('f3: sem ducking (10 % vira 18 %)', F15, "export const FACELESS15_MUSICA_DUCK = '10%'", "export const FACELESS15_MUSICA_DUCK = '18%'", ['F2'])
+mut('f3: música sem loop (silêncio se a faixa for curta)', F15, "const base: El = { type: 'audio', track: 8, source: m.source, loop: true }", "const base: El = { type: 'audio', track: 8, source: m.source }", ['F2'])
+mut('f3: riser alto demais (20 % → 50 %)', F15, "segundos: 1.2, volume: '20%'", "segundos: 1.2, volume: '50%'", ['F4'])
+mut('f3: sem pop no reveal', F15, 'const pop = quadro.payoff != null ? som(sfx.pop, quadro.payoff) : null', 'const pop = null', ['F4'])
+mut('f3: whoosh fora do corte', F15, 'export const FACELESS15_WHOOSH_ANTES_S = 0.1', 'export const FACELESS15_WHOOSH_ANTES_S = 0.6', ['F4'])
 
 console.log(`\n${falhas.length === 0 ? '✅' : '❌'} ${ok} verdes, ${falhas.length} vermelhas`)
 if (falhas.length) { console.error('\nFalhas:'); for (const f of falhas) console.error('  · ' + f); process.exit(1) }

@@ -263,6 +263,100 @@ export function aplicarGanchoFaceless15(
   return { aplicado: false, motivo: 'f2_desligada', frase: null, y: null }
 }
 
+// ── F3 · som (§3.5 SFX · §3.6 música) ────────────────────────────────────────────────────────────────────────────────
+/** Lyria a 18 % (hoje 12 % em lib/compose MUSIC_VOLUME); 10 % sob o payoff (≈ −5 dB: dentro dos 6–12 dB do CapCut). */
+export const FACELESS15_MUSICA_VOLUME = '18%'
+export const FACELESS15_MUSICA_DUCK = '10%'
+/** Espelhos de MUSIC_FADE_IN_SECONDS / MUSIC_FADE_OUT_SECONDS (lib/compose). */
+export const FACELESS15_MUSICA_FADE_IN_S = 0.8
+export const FACELESS15_MUSICA_FADE_OUT_S = 1.2
+/** O fade curto nas junções dos dois volumes — o mesmo truque do Ads (lib/ads/adV2Montage: música em 2 elementos, 0,3 s). */
+export const FACELESS15_MUSICA_JUNCAO_S = 0.3
+/** Trilha livre acima de tudo (lib/compose 1–9, logo 10, gancho 11). */
+export const FACELESS15_SFX_TRACK = 12
+export const FACELESS15_SFX_BASE_URL = 'https://www.usekineo.com/sfx/'
+/** O whoosh começa um pouco antes do corte, para o pico cair em cima dele. */
+export const FACELESS15_WHOOSH_ANTES_S = 0.1
+
+export interface SfxFaceless15 {
+  arquivo: string
+  /** URL estável (arquivo estático do próprio site, public/sfx/). null = slot vazio: o SFX não entra e o relato diz. */
+  url: string | null
+  segundos: number
+  /** Volume em % de amplitude do Creatomate: −14 dB ≈ 20 % · −12 dB ≈ 25 % · −10 dB ≈ 30 %. */
+  volume: string
+  sha256: string
+  licenca: string
+}
+const LICENCA_SFX = 'síntese própria, determinística (scripts/gerar-sfx-faceless15-1910.mjs) — nenhum arquivo de terceiro; equivalente a CC0'
+export const SFX_FACELESS15: Readonly<Record<'riser' | 'whoosh' | 'pop', SfxFaceless15>> = {
+  riser: { arquivo: 'faceless15-riser.wav', url: `${FACELESS15_SFX_BASE_URL}faceless15-riser.wav`, segundos: 1.2, volume: '20%', sha256: '3dd7dc9ff16797bcf0347baf0fcc11a27e1956ab1a665c5754870e522fac88ed', licenca: LICENCA_SFX },
+  whoosh: { arquivo: 'faceless15-whoosh.wav', url: `${FACELESS15_SFX_BASE_URL}faceless15-whoosh.wav`, segundos: 0.25, volume: '25%', sha256: '07c0c1e53a17e4f2dfa47278a0209445e1964c0952ae196e503f6dee5cd16939', licenca: LICENCA_SFX },
+  pop: { arquivo: 'faceless15-pop.wav', url: `${FACELESS15_SFX_BASE_URL}faceless15-pop.wav`, segundos: 0.3, volume: '30%', sha256: '8c28bb3147161b08cac0785ade5a10fc414ffc0285fcb0e5cc87f5bae5498642', licenca: LICENCA_SFX },
+}
+
+export interface RelatoF3 {
+  musica: 'ducking' | 'sem_payoff' | 'sem_trilha'
+  /** [início do duck, fim do duck] em s, quando há ducking. */
+  duck: [number, number] | null
+  sfx: { riser: boolean; whoosh: number; pop: boolean } | 'slot_vazio'
+  cortes: number[]
+}
+
+/** Os cortes de hoje na trilha 2 (inícios de plano > 0), quando a F4 não rodou. */
+export function cortesDaTrilha2(els: ReadonlyArray<El>): number[] {
+  const ts = els.filter((e) => ehVideo(e, 2)).map((e) => num(e.time)).filter((t) => t > 0)
+  return [...new Set(ts.map(r3))].sort((a, b) => a - b)
+}
+
+export function aplicarF3Faceless15(els: ReadonlyArray<El>, quadro: QuadroFaceless15, cortes: ReadonlyArray<number>, sfx: typeof SFX_FACELESS15 = SFX_FACELESS15): { els: El[]; relato: RelatoF3 } {
+  const T = quadro.total
+  const saida: El[] = [...els]
+  const relato: RelatoF3 = { musica: 'sem_trilha', duck: null, sfx: 'slot_vazio', cortes: [...cortes] }
+  // ── música: um elemento vira três (18 % · 10 % sob o payoff · 18 % com o fade de saída), contínuos no tempo e no trecho
+  const iMus = saida.findIndex((e) => ehAudio(e, 8))
+  if (iMus >= 0) {
+    const m = saida[iMus]
+    const base: El = { type: 'audio', track: 8, source: m.source, loop: true }
+    const fadeIn = r3(Math.min(FACELESS15_MUSICA_FADE_IN_S, T / 2))
+    const fadeOut = r3(Math.min(FACELESS15_MUSICA_FADE_OUT_S, T / 2))
+    const p = quadro.payoff
+    const fimDuck = r3(T - fadeOut)
+    if (p != null && p + 0.5 < fimDuck) {
+      const segs: El[] = [
+        { ...base, time: 0, duration: r3(p), volume: FACELESS15_MUSICA_VOLUME, audio_fade_in: fadeIn, audio_fade_out: FACELESS15_MUSICA_JUNCAO_S },
+        { ...base, time: r3(p), duration: r3(fimDuck - p), trim_start: r3(p), volume: FACELESS15_MUSICA_DUCK, audio_fade_in: FACELESS15_MUSICA_JUNCAO_S, audio_fade_out: FACELESS15_MUSICA_JUNCAO_S },
+        { ...base, time: fimDuck, duration: r3(T - fimDuck), trim_start: fimDuck, volume: FACELESS15_MUSICA_VOLUME, audio_fade_in: FACELESS15_MUSICA_JUNCAO_S, audio_fade_out: fadeOut },
+      ]
+      saida.splice(iMus, 1, ...segs)
+      relato.musica = 'ducking'
+      relato.duck = [r3(p), fimDuck]
+    } else {
+      saida.splice(iMus, 1, { ...base, time: 0, duration: T, volume: FACELESS15_MUSICA_VOLUME, audio_fade_in: fadeIn, audio_fade_out: fadeOut })
+      relato.musica = 'sem_payoff'
+    }
+  }
+  // ── SFX: riser no gancho, whoosh em cada corte, pop no reveal (trilha 12, só com URL no catálogo)
+  const sons: El[] = []
+  const som = (s: SfxFaceless15, time: number): El | null =>
+    s.url ? { type: 'audio', track: FACELESS15_SFX_TRACK, time: r3(time), duration: r3(Math.min(s.segundos, Math.max(0.1, T - time))), source: s.url, volume: s.volume } : null
+  const riser = som(sfx.riser, 0)
+  if (riser) sons.push(riser)
+  let whooshes = 0
+  for (const t of cortes) {
+    if (!(t > 0 && t < T)) continue
+    const w = som(sfx.whoosh, Math.max(0, t - FACELESS15_WHOOSH_ANTES_S))
+    if (w) { sons.push(w); whooshes++ }
+  }
+  const pop = quadro.payoff != null ? som(sfx.pop, quadro.payoff) : null
+  if (pop) sons.push(pop)
+  if (sons.length > 0) {
+    saida.push(...sons)
+    relato.sfx = { riser: !!riser, whoosh: whooshes, pop: !!pop }
+  }
+  return { els: saida, relato }
+}
+
 // ── a aplicação (F1/F3/F4 em cima do source montado) ─────────────────────────────────────────────────────────────────
 export interface ContextoFaceless15 {
   whisperWords?: ReadonlyArray<WhisperWord> | null
@@ -270,6 +364,8 @@ export interface ContextoFaceless15 {
   clipSeconds?: ReadonlyArray<number> | null
   /** Fonte da legenda para a língua (captionFontFor). */
   font?: string | null
+  /** Catálogo de SFX (padrão SFX_FACELESS15; o guardião passa um com url null para provar o slot vazio). */
+  sfx?: typeof SFX_FACELESS15
 }
 
 export interface RelatoFaceless15 {
@@ -277,6 +373,7 @@ export interface RelatoFaceless15 {
   motivo: string
   fases: FaseFaceless15[]
   f1?: RelatoF1
+  f3?: RelatoF3
   erros?: string[]
 }
 
@@ -294,12 +391,20 @@ export function aplicarFaceless15(source: Record<string, unknown>, decisao: Face
   if (!Array.isArray(elsOriginais) || !(num(source.duration) > 0)) return { ativo: false, motivo: 'sem_source', fases: [] }
   let els: El[] = elsOriginais as El[]
   const fases = new Set(decisao.fases)
+  const quadroDe = (lista: ReadonlyArray<El>): QuadroFaceless15 => lerQuadroFaceless15({ ...source, elements: lista }, ctx.whisperWords)
   if (fases.has('f1')) {
     try {
-      const r = aplicarF1Faceless15(els, lerQuadroFaceless15(source, ctx.whisperWords), ctx.whisperWords)
+      const r = aplicarF1Faceless15(els, quadroDe(els), ctx.whisperWords)
       els = r.els
       relato.f1 = r.relato
     } catch (err) { erros.push(`f1:${err instanceof Error ? err.message : String(err)}`) }
+  }
+  if (fases.has('f3')) {
+    try {
+      const r = aplicarF3Faceless15(els, quadroDe(els), cortesDaTrilha2(els), ctx.sfx ?? SFX_FACELESS15)
+      els = r.els
+      relato.f3 = r.relato
+    } catch (err) { erros.push(`f3:${err instanceof Error ? err.message : String(err)}`) }
   }
   ;(source as { elements: unknown[] }).elements = els
   if (erros.length) relato.erros = erros
