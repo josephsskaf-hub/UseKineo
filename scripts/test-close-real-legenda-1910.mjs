@@ -27,7 +27,8 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const MARCA = 'KINEO-CLOSE-REAL-LEGENDA-1910'
 const lf = (s) => String(s).split('\r\n').join('\n')
-const disco = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))
+import { semMeta95Assunto1910 } from './test-support/desfaz-meta95-assunto-1910.mjs' // KINEO-META95-ASSUNTO-1910 — reancorado: o assunto traduzido (19/10, a camada mais nova nos guardiões reancorados) sai PRIMEIRO, em memória
+const disco = (p) => lf(semMeta95Assunto1910(readFileSync(join(ROOT, p), 'utf8'), p)) /* reancorado KINEO-META95-ASSUNTO-1910: a camada do assunto traduzido (mais nova) sai primeiro */
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return lf(git('show', `${CLOSE_REAL_LEGENDA_1910_BASE}:${p}`)) } catch { return null } }
 let pass = 0
