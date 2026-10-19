@@ -20,7 +20,8 @@ import { semFilmesF1F3Ajuste1910, MARCA_FILMES_F1F3_AJUSTE_1910, TROCAS_FILMES_F
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (p) => lf(readFileSync(join(RAIZ, p), 'utf8'))
+const rd = (p) => lf(semCloseRealV3_1910(readFileSync(join(RAIZ, p), 'utf8'), p)) // KINEO-CLOSE-REAL-V3-1910 — reancorado: a rodada 3 do Close real (mesclada depois) sai primeiro, em memória
+import { semCloseRealV3_1910 } from './test-support/desfaz-close-real-v3-1910.mjs' // KINEO-CLOSE-REAL-V3-1910
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else { falhas.push(n); console.log('  FALHOU: ' + n) } }
@@ -56,7 +57,7 @@ for (const p of ['lib/compose.ts', 'lib/hookFirstFrame.ts', 'lib/lyriaMusic.ts',
   // A referência do guardião reancorado é a ÚLTIMA versão dele deixada por OUTRA sessão (o último commit que o tocou sem a
   // marca do ajuste): o Close real (KINEO-CLOSE-REAL-AJUSTE-1910) reancorou o mesmo guardião no topo, mesclado depois do meu
   // 1º commit — a regra "pai do 1º commit" não enxergaria a camada dele.
-  const rdAlheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } }
+  const rdAlheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, '--grep=KINEO-CLOSE-REAL-V3-1910', 'HEAD', '--', p]).trim(); return sha ? lf(semCloseRealV3_1910(git(['show', `${sha}:${p}`]), p)) : null } catch { return null } } // KINEO-CLOSE-REAL-V3-1910 — reancorado: a versão 'alheia' pula também os commits da rodada 3 do Close real (e sai sem a camada dela)
   const ruins = []
   for (const p of ARQUIVOS_FILMES_F1F3_AJUSTE_1910) {
     const trocas = TROCAS_FILMES_F1F3_AJUSTE_1910[p] ?? []

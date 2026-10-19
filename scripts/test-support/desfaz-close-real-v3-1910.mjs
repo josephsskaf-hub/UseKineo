@@ -21,6 +21,7 @@ export const CLOSE_REAL_V3_1910_ARQUIVOS = [
   "lib/ads/v2CloseRealServer.ts",
   "lib/ads/v2CopyFit.ts",
   "scripts/test-close-real-ajuste-1910.mjs",
+  "scripts/test-filmes-f1f3-ajuste-1910.mjs",
   "scripts/test-support/desfaz-close-real-ajuste-1910.mjs",
   "scripts/test-support/desfaz-filmes-f1f3-ajuste-1910.mjs"
 ]
@@ -103,6 +104,16 @@ export const TROCAS_CLOSE_REAL_V3_1910 = {
     [
       "const carregar = (over = {}, mocks = {}) => createOfflineLoader({ mocks: { 'node:zlib': zlib, ...mocks }, source: (rel, text) => (Object.hasOwn(over, rel) ? over[rel] : semCloseRealV3_1910(text, rel)) }) // KINEO-CLOSE-REAL-V3-1910 — reancorado: executa o formato na régua do ajuste (antes da rodada 3)",
       "const carregar = (over = {}, mocks = {}) => createOfflineLoader({ mocks: { 'node:zlib': zlib, ...mocks }, source: (rel, text) => (Object.hasOwn(over, rel) ? over[rel] : text) })"
+    ]
+  ],
+  "scripts/test-filmes-f1f3-ajuste-1910.mjs": [
+    [
+      "const rd = (p) => lf(semCloseRealV3_1910(readFileSync(join(RAIZ, p), 'utf8'), p)) // KINEO-CLOSE-REAL-V3-1910 — reancorado: a rodada 3 do Close real (mesclada depois) sai primeiro, em memória",
+      "const rd = (p) => lf(readFileSync(join(RAIZ, p), 'utf8'))"
+    ],
+    [
+      "  const rdAlheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, '--grep=KINEO-CLOSE-REAL-V3-1910', 'HEAD', '--', p]).trim(); return sha ? lf(semCloseRealV3_1910(git(['show', `${sha}:${p}`]), p)) : null } catch { return null } } // KINEO-CLOSE-REAL-V3-1910 — reancorado: a versão 'alheia' pula também os commits da rodada 3 do Close real (e sai sem a camada dela)",
+      "  const rdAlheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } }"
     ]
   ]
 }
