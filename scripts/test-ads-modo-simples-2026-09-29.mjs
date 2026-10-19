@@ -12,6 +12,7 @@
 //   2. LEITURA (readFileSync) — a tela: entrada padrão = simples, modo completo intocado (impressão digital sha256 do
 //      trecho AdsV2Session…fim calculada na base c55bab53), espelhos, textos em pt, nenhum preço digitado.
 // Todo item importante tem MUTANTE: a mesma verificação roda contra o código alterado e TEM de ficar vermelha.
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -31,7 +32,7 @@ import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
-const rd = (p) => semFilmeRapido1710(semMarcas1510(p, semLinkTela1510(p, semLista1510(p, semFiel2_1510(p, semFiel3_1510(p, readFileSync(join(RAIZ, p), 'utf8')))))), p) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai por fora, em memória */ // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-LINK-TELA-1510 — a tela do leitor de link (a mais nova) sai antes das marcas · reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai antes de todos · reancorado KINEO-ADS-FIEL-2-1510 (o mais novo, por dentro do desfaz da lista) · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória
+const rd = (p) => semFilmeRapido1710(semMarcas1510(p, semLinkTela1510(p, semLista1510(p, semFiel2_1510(p, semFiel3_1510(p, semCloseReal1910(readFileSync(join(RAIZ, p), 'utf8'), p)))))), p) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai por fora, em memória */ // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-LINK-TELA-1510 — a tela do leitor de link (a mais nova) sai antes das marcas · reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai antes de todos · reancorado KINEO-ADS-FIEL-2-1510 (o mais novo, por dentro do desfaz da lista) · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const semComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map((l) => l.replace(/(^|[^:'"`\\])\/\/.*$/, '$1')).join('\n')
 const sha = (s) => createHash('sha256').update(s).digest('hex')
 let ok = 0

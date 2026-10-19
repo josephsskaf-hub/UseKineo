@@ -13,6 +13,7 @@
 //   V — revisão cética de 28/09: poll que não para/agenda, trava de duplo clique antes do 1º await, voz que volta
 //       (rascunho com a narração na chave), "Get credits" em outra aba, aviso do Start over com /start no ar, refação
 //       que falha volta ao anúncio do pai, copy do Cinema amarrada ao planShots, touch-action por eixo, foco seguro.
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -22,7 +23,7 @@ import { semLista1510 } from './test-support/desfaz-ads-lista-1510.mjs' // reanc
 import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]: a entrega mais nova sai antes da comparação com a base
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => semFilmeRapido1710(semMarcas1510(p, semLista1510(p, readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'))), p) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai por fora, em memória */ // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai antes de todos
+const rd = (p) => semFilmeRapido1710(semMarcas1510(p, semLista1510(p, semCloseReal1910(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n'))), p) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai por fora, em memória */ // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai antes de todos /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const imp = (p) => import(pathToFileURL(join(RAIZ, p)).href)
 let ok = 0
 const falhas = []

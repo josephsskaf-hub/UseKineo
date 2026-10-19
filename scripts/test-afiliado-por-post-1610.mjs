@@ -15,6 +15,7 @@
 //   F. Painel: tabela "Your links", gerador "name this post" com Copiar, rodapé honesto.
 //   G. Mutantes: cada conserto desfeito tem de ser APLICADO e derrubar alguma prova.
 //   H. Desfaz (scripts/test-support/desfaz-afiliado-por-post-1610.mjs): byte a byte à base 8daa6ab8; mudança alheia lança.
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import assert from 'node:assert/strict'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
@@ -34,7 +35,7 @@ import {
 import { semClareza1610 } from './test-support/desfaz-checkout-clareza-1610.mjs'
 
 const root = process.cwd()
-const read = (file) => fs.readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n')
+const read = (file) => semCloseReal1910(fs.readFileSync(path.join(root, file), 'utf8'), file).replace(/\r\n/g, '\n') /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 
 function compile(source, imports = {}, env = {}) {
   const box = { exports: {} }

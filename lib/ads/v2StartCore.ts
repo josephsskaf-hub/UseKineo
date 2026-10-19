@@ -32,6 +32,7 @@ import { v2Fail, v2Json } from '@/lib/ads/v2Server'
 // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra grátis: quem abre, o teto do dia, a chave sem débito e o nível único.
 import { adsSampleCapReached, adsSampleLevelOk, adsSampleOpen } from '@/lib/ads/serverAccess'
 import { adsSampleRef } from '@/lib/ads/sample'
+import { adsV2CloseRealOf } from '@/lib/ads/v2CloseReal' // KINEO-CLOSE-REAL-1910 — a amostra só sai no Close real
 import type { AdsV2ChargeResult } from '@/lib/ads/v2Billing'
 import type { AdsV2Caller } from '@/lib/ads/v2PlanCore'
 
@@ -70,6 +71,7 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     if (!order.card_url) return v2Fail('card_required', 400)
     // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra só sai no nível e na duração dela (a tela trava o resto; aqui é a lei).
     if (sampleRun && !adsSampleLevelOk(order.tier, order.seconds)) return v2Fail('sample_level_only', 403)
+    if (sampleRun && !adsV2CloseRealOf(plan)) return v2Fail('sample_level_only', 403) // KINEO-CLOSE-REAL-1910 — a amostra só sai no Close do produto real (plano sem a marca = planejado antes; o /plan refaz grátis)
 
     // Moderação (a régua do v1, superfície ads_render): o texto que vira VOZ e TELA.
     const text = [plan.narration ?? '', ...(plan.overlays ?? []).map((o) => o.text)].filter(Boolean).join('\n')
@@ -137,7 +139,7 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
 
     if (sampleRun) {
       // KINEO-ADS-AMOSTRA-2026-10-09 — o rastro da amostra (o custo é nosso: conta o teto e o US$ estimado).
-      await writeServerEvent({ name: 'ads_sample_started', userId: uid, path: '/api/ads/v2/start', metadata: { order_id: orderId, generation_id: generationId, billing_ref: billingRef, tier: order.tier, seconds: order.seconds, usd_estimate: usd.totalUsd, credits_list: cost } })
+      await writeServerEvent({ name: 'ads_sample_started', userId: uid, path: '/api/ads/v2/start', metadata: { order_id: orderId, generation_id: generationId, billing_ref: billingRef, tier: order.tier, seconds: order.seconds, usd_estimate: usd.totalUsd, credits_list: cost, format: 'close_real', watermark: true } }) // KINEO-CLOSE-REAL-1910 — + o formato e a marca-d'água; era: o mesmo evento sem format/watermark
     }
 
     // Planos da geração (text nasce 'skipped_text' e nunca vai à fal).

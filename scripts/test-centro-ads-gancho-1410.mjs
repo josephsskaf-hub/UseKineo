@@ -15,6 +15,7 @@
 //   P6  byte a byte: desfeito o ajuste, cada arquivo é EXATAMENTE o pai do primeiro commit marcado (nunca origin/main);
 //   E   escopo: fora de scripts/, só os 3 arquivos; dinheiro (v2Billing, v2Tiers, v2StartCore), engineWall e homeVideoCuration intocados;
 //   M   mutantes: 6 sabotagens em memória, cada uma provada aplicada, cada uma deixa ao menos uma prova vermelha.
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync } from 'node:fs'
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -31,7 +32,7 @@ import { semFiel3_1510 } from './test-support/desfaz-ads-fiel-3-1510.mjs' // rea
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (p) => lf(semFiel2_1510(p, semFiel3_1510(p, readFileSync(join(RAIZ, p), 'utf8')))) // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória
+const rd = (p) => lf(semFiel2_1510(p, semFiel3_1510(p, semCloseReal1910(readFileSync(join(RAIZ, p), 'utf8'), p)))) // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const git = (args) => execFileSync('git', args, { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()
 let total = 0
 let falhas = 0

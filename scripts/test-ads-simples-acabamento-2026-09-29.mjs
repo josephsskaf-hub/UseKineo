@@ -12,6 +12,7 @@
 //      (buildAdV2Source) sem nenhum elemento de texto.
 //   H. ABA OCULTA — lib/ads/v2VideoFrames.ts EXECUTADA num DOM falso com relógio falso: aba oculta não conta o
 //      tempo-limite, a leitura espera a aba voltar (até o teto) e o erro 'decode' só existe com a aba visível.
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -22,7 +23,7 @@ import { semFiel3_1510 } from './test-support/desfaz-ads-fiel-3-1510.mjs' // rea
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
-const rd = (p) => semFiel2_1510(p, semFiel3_1510(p, readFileSync(join(RAIZ, p), 'utf8'))) // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória
+const rd = (p) => semFiel2_1510(p, semFiel3_1510(p, semCloseReal1910(readFileSync(join(RAIZ, p), 'utf8'), p))) // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const semComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map((l) => l.replace(/(^|[^:'"`\\])\/\/.*$/, '$1')).join('\n')
 let ok = 0
 const falhas = []

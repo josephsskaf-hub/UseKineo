@@ -362,7 +362,7 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
           <div className="ads-banner ads-sample" role="region" aria-label="Free first ad" data-kineo="ads-door-sample">
             <p>
               {/* KINEO-CLIPE360-AMOSTRA-1410 — a amostra passou para o nível Commercial (lib/ads/sample.ts ADS_SAMPLE_TIER). */}
-              <b>Your first ad is free.</b> One ad per account at the Commercial level, about {ADS_V2_SCREEN_SECONDS} seconds, from your own photos. No card needed.
+              <b>Your first ad is free.</b> One ad per account in the Real product close-up format: about {ADS_V2_SCREEN_SECONDS} seconds, only your own photos with camera moves, your label 100% faithful, with a small watermark. No card needed.{/* KINEO-CLOSE-REAL-1910 — a amostra é o Close do produto real; era: One ad per account at the Commercial level, about {ADS_V2_SCREEN_SECONDS} seconds, from your own photos. No card needed. */}
             </p>
             <a href={sampleHref} className="go ok ads-go">Make your first ad free <span aria-hidden="true">→</span></a>
           </div>

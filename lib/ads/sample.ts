@@ -28,6 +28,16 @@ export const ADS_SAMPLE_TIER: AdsV2Tier = 'commercial'
 export const ADS_SAMPLE_FOOTAGE_MAX_BYTES = 60 * 1024 * 1024
 /** Prefixo da chave da amostra — NÃO começa com 'adsv2' (não há débito; as redes de estorno não têm o que olhar). */
 export const ADS_SAMPLE_PREFIX = 'adssample-'
+// KINEO-CLOSE-REAL-1910 — o FORMATO da amostra (fundador 19/10, "close real grátis, pode fazer"): SEMPRE o Close do produto real (lib/ads/v2CloseReal.ts) —
+// KINEO-CLOSE-REAL-1910 — zero IA de vídeo, rótulo 100% fiel, ~US$ 0,30 em vez dos ~US$ 2,58 do Comercial com cenas criadas — e COM marca-d'água. O /plan força
+// KINEO-CLOSE-REAL-1910 — o formato na amostra (não confia no corpo) e o /start recusa amostra sem ele. O nível gravado no pedido continua ADS_SAMPLE_TIER.
+export const ADS_SAMPLE_FORMAT = 'close_real' // KINEO-CLOSE-REAL-1910
+/** KINEO-CLOSE-REAL-1910 — antifarm: trial_status que nunca ganha amostra ('blocked' = descartável/digital repetida marcada pelo trial; 'region_paid_only' = região sem filme grátis). */ // KINEO-CLOSE-REAL-1910
+export const ADS_SAMPLE_BLOCKED_TRIAL_STATUS: readonly string[] = ['blocked', 'region_paid_only'] // KINEO-CLOSE-REAL-1910
+/** KINEO-CLOSE-REAL-1910 — o trial_status da conta barra a amostra? (puro) */ // KINEO-CLOSE-REAL-1910
+export function adsSampleTrialStatusBlocked(status: unknown): boolean { // KINEO-CLOSE-REAL-1910
+  return typeof status === 'string' && ADS_SAMPLE_BLOCKED_TRIAL_STATUS.includes(status.trim().toLowerCase()) // KINEO-CLOSE-REAL-1910
+} // KINEO-CLOSE-REAL-1910
 
 // A MESMA validação de lib/ads/v2Billing.ts adsV2BillingRef (copiada: este módulo é puro).
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -56,6 +66,8 @@ export interface AdsSampleCopy {
   paidOnly: string
   /** teto do dia atingido (429 'sample_cap') */
   cap: string
+  /** KINEO-CLOSE-REAL-1910 — a linha da amostra no formato Close do produto real (1 por conta, 15 s, com marca-d'água) */ // KINEO-CLOSE-REAL-1910
+  closeReal: string // KINEO-CLOSE-REAL-1910
 }
 
 export const ADS_SAMPLE_COPY: Record<InterfaceLanguage, AdsSampleCopy> = {
@@ -65,6 +77,7 @@ export const ADS_SAMPLE_COPY: Record<InterfaceLanguage, AdsSampleCopy> = {
     note: 'Free sample: 1 per account, Commercial level, 15 s. More levels and ads on paid plans.',
     paidOnly: 'Paid plans',
     cap: "Today's free samples are taken. Come back tomorrow or pick a plan.",
+    closeReal: "Free sample: 1 per account, in the Real product close-up format, 15 s, with a small watermark. More formats and ads on paid plans.", // KINEO-CLOSE-REAL-1910
   },
   pt: {
     badge: 'Seu primeiro anúncio é grátis',
@@ -72,6 +85,7 @@ export const ADS_SAMPLE_COPY: Record<InterfaceLanguage, AdsSampleCopy> = {
     note: 'Amostra grátis: 1 por conta, nível Comercial, 15 s. Mais níveis e anúncios nos planos pagos.',
     paidOnly: 'Planos pagos',
     cap: 'As amostras grátis de hoje acabaram. Volte amanhã ou escolha um plano.',
+    closeReal: "Amostra grátis: 1 por conta, no formato Close do produto real, 15 s, com marca-d'água discreta. Mais formatos e anúncios nos planos pagos.", // KINEO-CLOSE-REAL-1910
   },
   es: {
     badge: 'Tu primer anuncio es gratis',
@@ -79,6 +93,7 @@ export const ADS_SAMPLE_COPY: Record<InterfaceLanguage, AdsSampleCopy> = {
     note: 'Muestra gratis: 1 por cuenta, nivel Comercial, 15 s. Más niveles y anuncios en los planes de pago.',
     paidOnly: 'Planes de pago',
     cap: 'Las muestras gratis de hoy ya se agotaron. Vuelve mañana o elige un plan.',
+    closeReal: "Muestra gratis: 1 por cuenta, en el formato Primer plano del producto real, 15 s, con una marca de agua discreta. Más formatos y anuncios en los planes de pago.", // KINEO-CLOSE-REAL-1910
   },
   fr: {
     badge: 'Votre première pub est offerte',
@@ -86,6 +101,7 @@ export const ADS_SAMPLE_COPY: Record<InterfaceLanguage, AdsSampleCopy> = {
     note: 'Essai gratuit : 1 par compte, niveau Commercial, 15 s. Plus de niveaux et de pubs avec les offres payantes.',
     paidOnly: 'Offres payantes',
     cap: "Les essais gratuits du jour sont épuisés. Revenez demain ou choisissez une offre.",
+    closeReal: "Essai gratuit : 1 par compte, au format Gros plan du vrai produit, 15 s, avec un petit filigrane. Plus de formats et de pubs avec les offres payantes.", // KINEO-CLOSE-REAL-1910
   },
   de: {
     badge: 'Deine erste Anzeige ist kostenlos',
@@ -93,6 +109,7 @@ export const ADS_SAMPLE_COPY: Record<InterfaceLanguage, AdsSampleCopy> = {
     note: 'Gratis-Probe: 1 pro Konto, Stufe Commercial, 15 s. Mehr Stufen und Anzeigen in den bezahlten Plänen.',
     paidOnly: 'Bezahlte Pläne',
     cap: 'Die Gratis-Proben für heute sind vergeben. Komm morgen wieder oder wähle einen Plan.',
+    closeReal: "Gratis-Probe: 1 pro Konto, im Format Nahaufnahme des echten Produkts, 15 s, mit kleinem Wasserzeichen. Mehr Formate und Anzeigen in den bezahlten Plänen.", // KINEO-CLOSE-REAL-1910
   },
   it: {
     badge: 'Il tuo primo annuncio è gratis',
@@ -100,6 +117,7 @@ export const ADS_SAMPLE_COPY: Record<InterfaceLanguage, AdsSampleCopy> = {
     note: 'Prova gratuita: 1 per account, livello Commercial, 15 s. Più livelli e annunci con i piani a pagamento.',
     paidOnly: 'Piani a pagamento',
     cap: 'Le prove gratuite di oggi sono esaurite. Torna domani o scegli un piano.',
+    closeReal: "Prova gratuita: 1 per account, nel formato Primo piano del prodotto reale, 15 s, con una piccola filigrana. Più formati e annunci con i piani a pagamento.", // KINEO-CLOSE-REAL-1910
   },
   nl: {
     badge: 'Je eerste advertentie is gratis',
@@ -107,6 +125,7 @@ export const ADS_SAMPLE_COPY: Record<InterfaceLanguage, AdsSampleCopy> = {
     note: 'Gratis proef: 1 per account, niveau Commercial, 15 s. Meer niveaus en advertenties met een betaald abonnement.',
     paidOnly: 'Betaalde abonnementen',
     cap: 'De gratis proeven van vandaag zijn op. Kom morgen terug of kies een abonnement.',
+    closeReal: "Gratis proef: 1 per account, in het formaat Close-up van het echte product, 15 s, met een klein watermerk. Meer formaten en advertenties met een betaald abonnement.", // KINEO-CLOSE-REAL-1910
   },
   pl: {
     badge: 'Twoja pierwsza reklama jest za darmo',
@@ -114,6 +133,7 @@ export const ADS_SAMPLE_COPY: Record<InterfaceLanguage, AdsSampleCopy> = {
     note: 'Darmowa próbka: 1 na konto, poziom Commercial, 15 s. Więcej poziomów i reklam w płatnych planach.',
     paidOnly: 'Płatne plany',
     cap: 'Dzisiejsze darmowe próbki już się skończyły. Wróć jutro albo wybierz plan.',
+    closeReal: "Darmowa próbka: 1 na konto, w formacie Zbliżenie prawdziwego produktu, 15 s, z małym znakiem wodnym. Więcej formatów i reklam w płatnych planach.", // KINEO-CLOSE-REAL-1910
   },
   tr: {
     badge: 'İlk reklamın ücretsiz',
@@ -121,6 +141,7 @@ export const ADS_SAMPLE_COPY: Record<InterfaceLanguage, AdsSampleCopy> = {
     note: 'Ücretsiz deneme: hesap başına 1, Commercial seviyesi, 15 sn. Daha fazla seviye ve reklam ücretli planlarda.',
     paidOnly: 'Ücretli planlar',
     cap: 'Bugünün ücretsiz denemeleri bitti. Yarın tekrar gel ya da bir plan seç.',
+    closeReal: "Ücretsiz deneme: hesap başına 1, Gerçek ürün yakın çekimi formatında, 15 sn, küçük bir filigranla. Daha fazla format ve reklam ücretli planlarda.", // KINEO-CLOSE-REAL-1910
   },
   ru: {
     badge: 'Первая реклама — бесплатно',
@@ -128,6 +149,7 @@ export const ADS_SAMPLE_COPY: Record<InterfaceLanguage, AdsSampleCopy> = {
     note: 'Бесплатный пример: 1 на аккаунт, уровень Commercial, 15 с. Больше уровней и роликов — в платных тарифах.',
     paidOnly: 'Платные тарифы',
     cap: 'Бесплатные примеры на сегодня закончились. Возвращайтесь завтра или выберите тариф.',
+    closeReal: "Бесплатный пример: 1 на аккаунт, в формате «Крупный план реального товара», 15 с, с небольшим водяным знаком. Больше форматов и роликов — в платных тарифах.", // KINEO-CLOSE-REAL-1910
   },
   uk: {
     badge: 'Перша реклама — безкоштовно',
@@ -135,6 +157,7 @@ export const ADS_SAMPLE_COPY: Record<InterfaceLanguage, AdsSampleCopy> = {
     note: 'Безкоштовний приклад: 1 на акаунт, рівень Commercial, 15 с. Більше рівнів і роликів — у платних тарифах.',
     paidOnly: 'Платні тарифи',
     cap: 'Безкоштовні приклади на сьогодні закінчилися. Поверніться завтра або оберіть тариф.',
+    closeReal: "Безкоштовний приклад: 1 на акаунт, у форматі «Великий план справжнього товару», 15 с, з невеликим водяним знаком. Більше форматів і роликів — у платних тарифах.", // KINEO-CLOSE-REAL-1910
   },
   ar: {
     badge: 'إعلانك الأول مجاني',
@@ -142,6 +165,7 @@ export const ADS_SAMPLE_COPY: Record<InterfaceLanguage, AdsSampleCopy> = {
     note: 'عينة مجانية: واحدة لكل حساب، مستوى Commercial، مدة 15 ثانية. مستويات وإعلانات أكثر في الخطط المدفوعة.',
     paidOnly: 'الخطط المدفوعة',
     cap: 'نفدت العينات المجانية لليوم. عد غدًا أو اختر خطة.',
+    closeReal: "عينة مجانية: واحدة لكل حساب، بشكل «لقطة قريبة للمنتج الحقيقي»، مدة 15 ثانية، مع علامة مائية صغيرة. أشكال وإعلانات أكثر في الخطط المدفوعة.", // KINEO-CLOSE-REAL-1910
   },
   ur: {
     badge: 'آپ کا پہلا اشتہار مفت ہے',
@@ -149,6 +173,7 @@ export const ADS_SAMPLE_COPY: Record<InterfaceLanguage, AdsSampleCopy> = {
     note: 'مفت نمونہ: ہر اکاؤنٹ کے لیے 1، Commercial لیول، 15 سیکنڈ۔ مزید لیولز اور اشتہارات ادا شدہ پلانز میں۔',
     paidOnly: 'ادا شدہ پلانز',
     cap: 'آج کے مفت نمونے ختم ہو گئے۔ کل دوبارہ آئیں یا کوئی پلان چنیں۔',
+    closeReal: "مفت نمونہ: ہر اکاؤنٹ کے لیے 1، «اصل پروڈکٹ کا کلوز اپ» فارمیٹ میں، 15 سیکنڈ، چھوٹے واٹر مارک کے ساتھ۔ مزید فارمیٹس اور اشتہارات ادا شدہ پلانز میں۔", // KINEO-CLOSE-REAL-1910
   },
   hi: {
     badge: 'आपका पहला विज्ञापन मुफ़्त है',
@@ -156,6 +181,7 @@ export const ADS_SAMPLE_COPY: Record<InterfaceLanguage, AdsSampleCopy> = {
     note: 'मुफ़्त नमूना: हर अकाउंट के लिए 1, Commercial लेवल, 15 सेकंड। ज़्यादा लेवल और विज्ञापन पेड प्लान में।',
     paidOnly: 'पेड प्लान',
     cap: 'आज के मुफ़्त नमूने खत्म हो गए। कल फिर आएँ या कोई प्लान चुनें।',
+    closeReal: "मुफ़्त नमूना: हर अकाउंट के लिए 1, «असली प्रोडक्ट का क्लोज़-अप» फ़ॉर्मैट में, 15 सेकंड, छोटे वॉटरमार्क के साथ। ज़्यादा फ़ॉर्मैट और विज्ञापन पेड प्लान में।", // KINEO-CLOSE-REAL-1910
   },
   id: {
     badge: 'Iklan pertamamu gratis',
@@ -163,6 +189,7 @@ export const ADS_SAMPLE_COPY: Record<InterfaceLanguage, AdsSampleCopy> = {
     note: 'Contoh gratis: 1 per akun, level Commercial, 15 dtk. Lebih banyak level dan iklan di paket berbayar.',
     paidOnly: 'Paket berbayar',
     cap: 'Contoh gratis hari ini sudah habis. Kembali besok atau pilih paket.',
+    closeReal: "Contoh gratis: 1 per akun, format Close-up produk asli, 15 dtk, dengan watermark kecil. Lebih banyak format dan iklan di paket berbayar.", // KINEO-CLOSE-REAL-1910
   },
   vi: {
     badge: 'Quảng cáo đầu tiên của bạn miễn phí',
@@ -170,6 +197,7 @@ export const ADS_SAMPLE_COPY: Record<InterfaceLanguage, AdsSampleCopy> = {
     note: 'Bản mẫu miễn phí: 1 cho mỗi tài khoản, mức Commercial, 15 giây. Thêm mức và quảng cáo ở các gói trả phí.',
     paidOnly: 'Gói trả phí',
     cap: 'Bản mẫu miễn phí hôm nay đã hết. Hãy quay lại vào ngày mai hoặc chọn một gói.',
+    closeReal: "Bản mẫu miễn phí: 1 cho mỗi tài khoản, định dạng Cận cảnh sản phẩm thật, 15 giây, có hình mờ nhỏ. Thêm định dạng và quảng cáo ở các gói trả phí.", // KINEO-CLOSE-REAL-1910
   },
 }
 

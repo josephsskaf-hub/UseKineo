@@ -22,6 +22,7 @@
 //      do montador); cron novo com trava; settleClip para todo clipe em andamento.
 //   G  desfaz (scripts/test-support/desfaz-filme-rapido-1710.mjs): cada arquivo protegido, desfeito, é EXATAMENTE a base.
 //   M  mutantes: cada um é aplicado (provado por diferença de texto) e deixa a verificação-alvo VERMELHA.
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import fs from 'node:fs'
 import { semFilmesF1F4_1910 } from './test-support/desfaz-filmes-f1f4-1910.mjs' // reancorado KINEO-FILMES-F1-F4-1910 [TRAVA 8.2 — vai do fundador 19/10 "vai, sim pra tudo"]: as linhas marcadas da rota do compose (Faceless 15 s) saem antes da comparação com a base
 import path from 'node:path'
@@ -32,7 +33,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => fs.readFileSync(path.join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semCloseReal1910(fs.readFileSync(path.join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n') /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const git = (...a) => execFileSync('git', ['-C', RAIZ, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 let ok = 0
 const falhas = []

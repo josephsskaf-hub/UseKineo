@@ -23,6 +23,7 @@
 //       prometendo "one product photo" e "paste your product link" — agora verdade;
 //   (8) mutantes: cada regra quebrada fica vermelha, e cada mutante prova que aplicou (âncora única + texto novo presente).
 // Estilo readFileSync + ts.transpileModule (via offline-ts-loader). Nenhum import com alias @/.
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -33,7 +34,7 @@ import { semFiel3_1510 } from './test-support/desfaz-ads-fiel-3-1510.mjs' // rea
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
-const read = (rel) => semMarcas1510(rel, semFiel2_1510(rel, semFiel3_1510(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8')))) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-FIEL-2-1510 · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória
+const read = (rel) => semMarcas1510(rel, semFiel2_1510(rel, semFiel3_1510(rel, semCloseReal1910(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)))) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-FIEL-2-1510 · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }
@@ -77,7 +78,7 @@ const SRC = Object.fromEntries(Object.entries(F).map(([k, v]) => [k, read(v)]))
 // KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o corpo do /plan foi EXTRAÍDO, sem mudar uma linha, para lib/ads/v2PlanCore.ts
 // (a rota só lê o cookie e chama o núcleo). A leitura do /plan = rota + núcleo, na ordem em que rodam.
 SRC.plan = `${SRC.plan}\n${read('lib/ads/v2PlanCore.ts')}`
-const pura = (over = {}) => createOfflineLoader({ source: (rel, text) => (over[rel] !== undefined ? over[rel] : text) })
+const pura = (over = {}) => createOfflineLoader({ source: (rel, text) => (over[rel] !== undefined ? over[rel] : semCloseReal1910(text, rel)) }) // reancorado KINEO-CLOSE-REAL-1910 — o loader roda a base
 
 // ═══ 1. 1 foto basta, cliente e servidor ═════════════════════════════════════════════════════════════════════════════
 const U = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
@@ -235,7 +236,7 @@ function internet(over = {}) {
 const linkWorld = (net, over = {}) => createOfflineLoader({
   mocks: { 'node:dns/promises': { lookup: net.lookup } },
   globals: { fetch: net.fetch, AbortSignal, Response, ReadableStream },
-  source: (rel, text) => (over[rel] !== undefined ? over[rel] : text),
+  source: (rel, text) => (over[rel] !== undefined ? over[rel] : semCloseReal1910(text, rel)), // reancorado KINEO-CLOSE-REAL-1910 — o loader roda a base
 })
 const importa = async (raw, opts = {}, netOver = {}, over = {}) => {
   const net = internet(netOver)
@@ -388,7 +389,7 @@ async function runRoute(w, { body = { url: PAGE_URL }, over = {}, netOver = {}, 
         FOOTAGE_QUOTA_PAID: 500 * 1024 * 1024, totalFootageBytes: async () => w.usedBytes, USER_FOOTAGE_BUCKET: 'user-footage',
       },
     },
-    source: (rel, text) => (over[rel] !== undefined ? over[rel] : text),
+    source: (rel, text) => (over[rel] !== undefined ? over[rel] : semCloseReal1910(text, rel)), // reancorado KINEO-CLOSE-REAL-1910 — o loader roda a base
   })
   const route = load(F.route)
   const res = await route.POST({ json: async () => body })

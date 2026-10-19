@@ -18,6 +18,7 @@
 //      conferir vermelho com combinações misturadas;
 //   D  desfaz exato + ida + marca + encadeamento (o desfaz do conserto do juiz e os de antes tiram esta camada primeiro) + diff só nos arquivos da lista;
 //   M  mutantes (todos aplicados e vermelhos).
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname, posix } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -35,7 +36,7 @@ import { semFilmesF1F4_1910 } from './test-support/desfaz-filmes-f1f4-1910.mjs' 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-JUIZ-GRADE-1610'
-const rd = (p) => semFilmeRapido1710(desfazApresentadorV2_1710(p, semFilmesF1F4_1910(readFileSync(join(ROOT, p), 'utf8'), p)), p) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai por fora, em memória */ // reancorado KINEO-APRESENTADOR-V2-1710 — o apresentador v2 veio depois: este guardião lê o texto SEM ele (já LF); ele é provado em scripts/test-apresentador-v2-1710.mjs // reancorado KINEO-FILMES-F1-F4-1910: a reâncora do Faceless 15 s em test-ads-mao-juiz-1610 (camada de depois) sai antes
+const rd = (p) => semFilmeRapido1710(desfazApresentadorV2_1710(p, semCloseReal1910(semFilmesF1F4_1910(readFileSync(join(ROOT, p), 'utf8'), p), p)), p) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai por fora, em memória */ // reancorado KINEO-APRESENTADOR-V2-1710 — o apresentador v2 veio depois: este guardião lê o texto SEM ele (já LF); ele é provado em scripts/test-apresentador-v2-1710.mjs /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */ // reancorado KINEO-FILMES-F1-F4-1910: o Faceless 15 s (camada mais nova) sai primeiro, por dentro do Close real
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return git('show', `${JUIZ_GRADE_1610_BASE}:${p}`).replace(/\r\n/g, '\n') } catch { return null } }
 let pass = 0

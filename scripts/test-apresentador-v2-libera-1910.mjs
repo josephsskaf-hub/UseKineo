@@ -15,6 +15,7 @@
 //      genérico 0,4/0,6/0,2/0,8 da R3 e um retângulo baixo que antes empurrava a frase para baixo);
 //   D  desfaz exato + ida + marca em todo bloco + encadeamento (a cadeia do apresentador tira esta camada primeiro) + diff só nos arquivos da lista;
 //   M  mutantes (todos APLICADOS e VERMELHOS).
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -33,7 +34,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT) // o carregador offline resolve '@/' a partir do cwd
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-APRESENTADOR-V2-LIBERA-1910'
-const rd = (p) => semFilmesF1F4_1910(readFileSync(join(ROOT, p), 'utf8'), p).replace(/\r\n/g, '\n') // o arquivo VIVO (esta é a camada mais nova) // reancorado KINEO-FILMES-F1-F4-1910: a reâncora do Faceless 15 s em test-filme-rapido-1710 (camada de depois) sai antes
+const rd = (p) => semCloseReal1910(semFilmesF1F4_1910(readFileSync(join(ROOT, p), 'utf8'), p), p).replace(/\r\n/g, '\n') // o arquivo VIVO (esta é a camada mais nova) /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */ // reancorado KINEO-FILMES-F1-F4-1910: o Faceless 15 s (camada mais nova) sai primeiro, por dentro do Close real
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const B = APRESENTADOR_V2_LIBERA_1910_BASE
 const base = (p) => { try { return git('show', `${B}:${p}`).replace(/\r\n/g, '\n') } catch { return null } }

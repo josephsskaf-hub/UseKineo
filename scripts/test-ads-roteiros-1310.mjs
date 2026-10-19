@@ -15,6 +15,7 @@
 //   F. o /start de sempre (adsV2StartFor real) usa o roteiro escolhido (moderação, ensaio e planos gravados) e debita o MESMO;
 //   G. byte a byte: tirando as linhas marcadas, o /plan e o /start remontam a base (mesma impressão digital da cena);
 //   M. mutantes: cada regra quebrada fica vermelha, e cada mutante prova que aplicou.
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
@@ -25,7 +26,7 @@ import { MARCA_ROTEIROS, semRoteiros } from './test-support/desfaz-roteiros-1310
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
-const rd = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+const rd = (rel) => semCloseReal1910(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel).replace(/\r\n/g, '\n') /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex')
 let pass = 0
 let fail = 0

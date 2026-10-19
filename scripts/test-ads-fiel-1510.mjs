@@ -21,6 +21,7 @@
 //     cartão e o roteiro salvo ficam com o nome real (anúncio inteiro montado no código);
 //   V o desfaz (scripts/test-support/desfaz-ads-fiel-1510.mjs) devolve cada arquivo tocado EXATAMENTE à base, cada trecho com a marca;
 //   M mutantes (todos aplicados e vermelhos).
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync } from 'node:fs'
 import { join, dirname, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -42,7 +43,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-FIEL-1510'
 const BASE = '285ac112a0be9f96182ec922cb06c4896b5357b1'
-const rd = (p) => semFiel2_1510(p, semAfiliadoDestino1610(p, semAfiliadoPorPost1610(p, semClareza1610(p, semFiel3_1510(p, semFiel4_1510(p, semFiel5_1510(p, semFielLiga1510(p, readFileSync(join(ROOT, p), 'utf8'))))))))) // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória · reancorado KINEO-AFILIADO-DESTINO-1610 — o nome reservado affiliate_link_clicked (app/api/events/route.ts) sai antes de todos /* reancorado KINEO-CHECKOUT-CLAREZA-1610 (união na leva 2) · reancorado KINEO-AFILIADO-POR-POST-1610 (união na leva 2) · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória · reancorado KINEO-LEVA3-1510 (união na leva 3) */ /* reancorado KINEO-ADS-FIEL-4-1510 — o canto reservado da trava sai primeiro, em memória */ · reancorado KINEO-ADS-FIEL-5-1510 — a base do produto no tampo sai antes, byte a byte (semFiel5_1510 já devolve LF) · reancorado KINEO-ADS-FIEL-LIGA-1510 — o liga (o mais novo) sai PRIMEIRO, colado no readFileSync
+const rd = (p) => semFiel2_1510(p, semAfiliadoDestino1610(p, semAfiliadoPorPost1610(p, semClareza1610(p, semFiel3_1510(p, semFiel4_1510(p, semFiel5_1510(p, semFielLiga1510(p, semCloseReal1910(readFileSync(join(ROOT, p), 'utf8'), p))))))))) // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória · reancorado KINEO-AFILIADO-DESTINO-1610 — o nome reservado affiliate_link_clicked (app/api/events/route.ts) sai antes de todos /* reancorado KINEO-CHECKOUT-CLAREZA-1610 (união na leva 2) · reancorado KINEO-AFILIADO-POR-POST-1610 (união na leva 2) · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória · reancorado KINEO-LEVA3-1510 (união na leva 3) */ /* reancorado KINEO-ADS-FIEL-4-1510 — o canto reservado da trava sai primeiro, em memória */ · reancorado KINEO-ADS-FIEL-5-1510 — a base do produto no tampo sai antes, byte a byte (semFiel5_1510 já devolve LF) · reancorado KINEO-ADS-FIEL-LIGA-1510 — o liga (o mais novo) sai PRIMEIRO, colado no readFileSync /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28 })
 const base = (p) => git('show', `${BASE}:${p}`).replace(/\r\n/g, '\n')
 let pass = 0
@@ -571,7 +572,7 @@ await check('D8 o ATOR não usa o prazo curto (vídeo falado é lento: 20 min po
 })
 await check('D9 dinheiro intocado: v2Billing, v2Tiers, v2StartCore, /start, /retake e /variations byte a byte iguais à base; nenhum deles no diff do ajuste', () => {
   const money = ['lib/ads/v2Billing.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2StartCore.ts', 'app/api/ads/v2/start/route.ts', 'app/api/ads/v2/retake/route.ts', 'app/api/ads/v2/variations/route.ts']
-  const diff = git('diff', '--name-only', BASE, 'HEAD').split('\n')
+  const diff = git('diff', '--name-only', BASE, git('log', '--format=%H', '--grep=KINEO-ADS-FIEL-1510', 'HEAD').trim().split('\n').filter(Boolean)[0] || 'HEAD').split('\n') // reancorado KINEO-CLOSE-REAL-1910 — mede o ajuste até o SEU último commit (o Close real de 19/10 toca o /start, com guardião próprio); era: git('diff', '--name-only', BASE, 'HEAD')
   return money.every((f) => rd(f) === base(f) && !diff.includes(f))
 })
 await check('D10 os 2 eventos novos (ads_v2_shot_fallback, ads_v2_product_locked) estão na lista fechada, são só-servidor e estão no SERVER_ONLY_EVENTS do sink', () => {

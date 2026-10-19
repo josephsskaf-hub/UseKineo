@@ -15,6 +15,7 @@
 //   S  "single product" quando o pedido tem um produto só; os sinais do lugar (hotel = cama, cortina, luminária de cabeceira);
 //   D  desfaz exato + ida + marca em todo bloco + encadeamento (o desfaz do produto na mão tira este ajuste primeiro) + travas 'internal';
 //   M  mutantes (todos aplicados e vermelhos).
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -30,7 +31,7 @@ import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-ADS-MAO-AJUSTE-1610'
-const rd = (p) => semMaoAjuste3_1610(p, semFilmeRapido1710(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-ADS-MAO-AJUSTE-3-1610 — a 3ª rodada veio depois: este guardião lê o texto SEM ela (já LF); ela é provada em scripts/test-ads-mao-ajuste-3-1610.mjs /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */
+const rd = (p) => semMaoAjuste3_1610(p, semFilmeRapido1710(semCloseReal1910(readFileSync(join(ROOT, p), 'utf8'), p), p)) // reancorado KINEO-ADS-MAO-AJUSTE-3-1610 — a 3ª rodada veio depois: este guardião lê o texto SEM ela (já LF); ela é provada em scripts/test-ads-mao-ajuste-3-1610.mjs /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai primeiro, em memória */ /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return git('show', `${MAO_AJUSTE_1610_BASE}:${p}`).replace(/\r\n/g, '\n') } catch { return null } }
 let pass = 0

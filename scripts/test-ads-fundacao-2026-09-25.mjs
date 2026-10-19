@@ -2,6 +2,7 @@
 // Decisões do fundador (24/09): nome Studio Ads · passe US$19 (1990 c) + 60 cr · assinante entra ·
 // entrega imediata + revisão humana 24 h · trava 8.2 só ii e iv. Estilo da casa: readFileSync +
 // regex para o que importa alias '@/', transpile+vm para os módulos puros; `check(nome, condição)`.
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -9,7 +10,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semCloseReal1910(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n') /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 let ok = 0
 const falhas = []
 const check = (nome, condicao) => { if (condicao) ok++; else falhas.push(nome) }

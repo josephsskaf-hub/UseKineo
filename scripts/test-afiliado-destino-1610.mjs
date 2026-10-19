@@ -14,6 +14,7 @@
 //   4. robô não grava clique nem cookie, mas gera o evento affiliate_link_clicked com is_bot=true e o motivo;
 //      gente gera o mesmo evento com is_bot=false e counted=true; o nome é reservado ao servidor;
 //   5. mutantes: cada conserto desfeito tem de derrubar alguma prova (e prova-se que o mutante foi aplicado).
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import assert from 'node:assert/strict'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
@@ -29,7 +30,7 @@ import { semAfiliadoPorPost1610 } from './test-support/desfaz-afiliado-por-post-
 // em app/api/events/route.ts, num trecho disjunto: sai em memória (desfaz exato dele) SÓ na prova byte a byte abaixo; o
 // comportamento continua lendo o arquivo de verdade. Sem a camada (árvore sem a marca), semClareza1610 devolve o texto igual.
 import { semClareza1610 } from './test-support/desfaz-checkout-clareza-1610.mjs'
-const read = (file) => semAfiliadoPorPost1610(file, fs.readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n'))
+const read = (file) => semAfiliadoPorPost1610(file, semCloseReal1910(fs.readFileSync(path.join(root, file), 'utf8'), file).replace(/\r\n/g, '\n')) /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 
 function compile(source, imports = {}, env = {}) {
   const box = { exports: {} }

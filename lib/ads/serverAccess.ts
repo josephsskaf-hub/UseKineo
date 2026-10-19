@@ -13,6 +13,8 @@ import { adsAccessReason, ADS_ACCESS_SELECT, type AdsAccessFields, type AdsAcces
 import { adsPassLive } from '@/lib/ads/offer'
 import { ADS_SAMPLE_DAILY_CAP, ADS_SAMPLE_LIVE, ADS_SAMPLE_PREFIX, ADS_SAMPLE_TIER } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
 import { ADS_V2_SCREEN_SECONDS } from '@/lib/ads/v2Screen' // KINEO-ADS-AMOSTRA-2026-10-09
+import { adsSampleTrialStatusBlocked } from '@/lib/ads/sample' // KINEO-CLOSE-REAL-1910 — o antifarm da amostra (trial_status barrado)
+import { isDisposableEmail } from '@/lib/emailValidation' // KINEO-CLOSE-REAL-1910 — a lista de descartáveis da tela de cadastro (pura)
 import { isActivePartner } from '@/lib/partnerAccess' // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09
 import { personalWorkspace, resolveAdsWorkspace, type AdsWorkspace } from '@/lib/ads/workspace' // KINEO-EQUIPE-BUSINESS-2026-10-10
 
@@ -79,6 +81,7 @@ export async function adsSampleOpen(admin: ReturnType<typeof footageAdminClient>
   if (!ADS_SAMPLE_LIVE) return false
   if (reason !== 'none' || adsGate(reason) !== 'no_access') return false
   if (!adsPassLive()) return false
+  if (!(await adsSampleAccountOk(admin, userId))) return false // KINEO-CLOSE-REAL-1910 — conta de e-mail descartável ou já barrada pelo antifarm do trial (digital/região) não ganha amostra
   try {
     const { data, error } = await admin
       .from('ads_v2_orders')
@@ -94,6 +97,23 @@ export async function adsSampleOpen(admin: ReturnType<typeof footageAdminClient>
   }
 }
 
+// KINEO-CLOSE-REAL-1910 — a conta pode ganhar a amostra? As MESMAS travas que o trial/filme grátis já usam: e-mail VERIFICADO do auth (nunca o de
+// KINEO-CLOSE-REAL-1910 — profiles) fora da lista de descartáveis da tela de cadastro (lib/emailValidation.ts) e trial_status fora dos barrados (lib/ads/sample.ts
+// KINEO-CLOSE-REAL-1910 — ADS_SAMPLE_BLOCKED_TRIAL_STATUS: 'blocked' = descartável/digital repetida marcada pelo trial; 'region_paid_only' = região sem filme grátis).
+// KINEO-CLOSE-REAL-1910 — Somadas ao "1 por conta" e ao teto do dia, conta nova em série não farma amostras. Qualquer erro de leitura = false (falha fechada).
+export async function adsSampleAccountOk(admin: ReturnType<typeof footageAdminClient>, userId: string): Promise<boolean> { // KINEO-CLOSE-REAL-1910
+  try { // KINEO-CLOSE-REAL-1910
+    const prof = await admin.from('profiles').select('trial_status').eq('id', userId).maybeSingle() // KINEO-CLOSE-REAL-1910
+    if (prof.error) return false // KINEO-CLOSE-REAL-1910
+    if (adsSampleTrialStatusBlocked((prof.data as { trial_status?: unknown } | null)?.trial_status)) return false // KINEO-CLOSE-REAL-1910
+    const u = await admin.auth.admin.getUserById(userId) // KINEO-CLOSE-REAL-1910
+    const email = u.error ? null : u.data?.user?.email ?? null // KINEO-CLOSE-REAL-1910
+    if (!email) return false // KINEO-CLOSE-REAL-1910
+    return !isDisposableEmail(email) // KINEO-CLOSE-REAL-1910
+  } catch { // KINEO-CLOSE-REAL-1910
+    return false // KINEO-CLOSE-REAL-1910
+  } // KINEO-CLOSE-REAL-1910
+} // KINEO-CLOSE-REAL-1910
 /** O pedido está no nível e na duração da amostra (o único que a amostra abre)? As rotas perguntam AQUI, não ao sample.ts. */
 export function adsSampleLevelOk(tier: unknown, seconds: unknown): boolean {
   return tier === ADS_SAMPLE_TIER && seconds === ADS_V2_SCREEN_SECONDS

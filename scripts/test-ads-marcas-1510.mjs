@@ -22,6 +22,7 @@
 //   J dinheiro intocado (v2Tiers, v2Billing, v2StartCore, /start, /plan, /variations, v2Batch, refund, debit, sample, kit antigo,
 //     workspace) e o desfaz deste conserto devolve os 4 arquivos tocados EXATAMENTE à base; todo bloco novo traz a marca;
 //   M mutantes (12): cada regra quebrada fica vermelha, e cada mutante prova que aplicou (âncora única, texto mudou).
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
@@ -38,7 +39,7 @@ import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs'
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
-const read = (rel) => semFilmeRapido1710(semFiel2_1510(rel, semFiel3_1510(rel, fs.readFileSync(path.join(ROOT, rel), 'utf8'))), rel) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai por fora, em memória */ // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória
+const read = (rel) => semFilmeRapido1710(semFiel2_1510(rel, semFiel3_1510(rel, semCloseReal1910(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel))), rel) /* reancorado KINEO-FILME-RAPIDO-1710: a entrega de 17/10 sai por fora, em memória */ // reancorado KINEO-ADS-FIEL-2-1510 — os consertos do QA da trava (15/10) saem primeiro, em memória · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 64 << 20 })
 const MARCA = MARCA_MARCAS_1510
 const criou = (() => { try { return git('log', '--format=%H', '--diff-filter=A', '--', 'lib/ads/brands.ts').trim().split('\n').filter(Boolean).pop() || '' } catch { return '' } })()

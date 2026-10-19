@@ -13,6 +13,7 @@
 // Qualquer outra diferença (uma vírgula no débito, uma trava a menos) muda a impressão digital do texto remontado: os guardiões
 // que conferem o /start byte a byte (ator, estilos, ux-marca) e o de equivalência (test-shopify-app-1310) ficam vermelhos.
 import { readFileSync } from 'node:fs'
+import { semCloseReal1910 } from './desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { join } from 'node:path'
 // reancorado KINEO-LEVA6-1310 — com a cena e os atores IA juntos no núcleo do /plan, o desfazer em memória tira AS DUAS levas de
 // linhas marcadas (semCena + desfazAtoresIa: a chamada do ator volta à de antes e as 2 linhas KINEO-ATORES-IA-2026-10-13 saem).
@@ -102,7 +103,7 @@ export function desfazExtracao(kind, routeText, coreText) {
 
 /** O mesmo, lendo os arquivos da árvore `raiz`. */
 export function textoOriginalV2(kind, raiz) {
-  const route = readFileSync(join(raiz, `app/api/ads/v2/${kind}/route.ts`), 'utf8')
-  const core = readFileSync(join(raiz, kind === 'plan' ? 'lib/ads/v2PlanCore.ts' : 'lib/ads/v2StartCore.ts'), 'utf8')
+  const route = semCloseReal1910(readFileSync(join(raiz, `app/api/ads/v2/${kind}/route.ts`), 'utf8'), `app/api/ads/v2/${kind}/route.ts`) // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
+  const core = semCloseReal1910(readFileSync(join(raiz, kind === 'plan' ? 'lib/ads/v2PlanCore.ts' : 'lib/ads/v2StartCore.ts'), 'utf8'), kind === 'plan' ? 'lib/ads/v2PlanCore.ts' : 'lib/ads/v2StartCore.ts') // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
   return desfazExtracao(kind, route, core)
 }
