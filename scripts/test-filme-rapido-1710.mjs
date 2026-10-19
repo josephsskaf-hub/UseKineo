@@ -25,6 +25,7 @@
 import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import fs from 'node:fs'
 import { semFilmesF1F4_1910 } from './test-support/desfaz-filmes-f1f4-1910.mjs' // reancorado KINEO-FILMES-F1-F4-1910 [TRAVA 8.2 — vai do fundador 19/10 "vai, sim pra tudo"]: as linhas marcadas da rota do compose (Faceless 15 s) saem antes da comparação com a base
+import { semFilmesF1Virgula1910 } from './test-support/desfaz-filmes-f1-virgula-1910.mjs' // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a camada mais nova sai primeiro
 import path from 'node:path'
 import vm from 'node:vm'
 import crypto from 'node:crypto'
@@ -33,7 +34,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => semCloseReal1910(semFilmesF1F4_1910(fs.readFileSync(path.join(RAIZ, p), 'utf8'), p), p).replace(/\r\n/g, '\n') /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */ // reancorado KINEO-FILMES-F1-F4-1910: o Faceless 15 s (camada mais nova) sai primeiro, por dentro do Close real
+const rd = (p) => semCloseReal1910(semFilmesF1F4_1910(semFilmesF1Virgula1910(fs.readFileSync(path.join(RAIZ, p), 'utf8'), p), p), p).replace(/\r\n/g, '\n') /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */ // reancorado KINEO-FILMES-F1-F4-1910: o Faceless 15 s (camada mais nova) sai primeiro, por dentro do Close real · KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a fiação do Faceless 15 s no export limpo (a mais nova) sai PRIMEIRO
 const git = (...a) => execFileSync('git', ['-C', RAIZ, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 let ok = 0
 const falhas = []
