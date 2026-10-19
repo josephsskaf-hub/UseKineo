@@ -18,6 +18,7 @@
 //      "eyes open while speaking" — nas 2 variantes; as frases do R3 que seguram a boca, as piscadas, as mãos e o produto ficam; o motor não muda;
 //   D  desfaz exato + ida + marca em todo bloco + encadeamento (a cadeia do apresentador tira esta camada primeiro) + diff só nos arquivos da lista;
 //   M  mutantes (todos APLICADOS e VERMELHOS).
+import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -35,7 +36,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT) // o carregador offline resolve '@/' a partir do cwd
 const nodeRequire = createRequire(import.meta.url)
 const MARCA = 'KINEO-APRESENTADOR-V2-LIBERA-1910'
-const rd = (p) => readFileSync(join(ROOT, p), 'utf8').replace(/\r\n/g, '\n') // o arquivo VIVO (esta é a camada mais nova)
+const rd = (p) => semCloseReal1910(readFileSync(join(ROOT, p), 'utf8'), p).replace(/\r\n/g, '\n') // o arquivo VIVO (esta é a camada mais nova) /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const B = APRESENTADOR_V2_LIBERA_1910_BASE
 const base = (p) => { try { return git('show', `${B}:${p}`).replace(/\r\n/g, '\n') } catch { return null } }
