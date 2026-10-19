@@ -1,17 +1,22 @@
 // KINEO-ADMIN-PESSOA-1910 — o nome/e-mail de uma pessoa em qualquer lista do /admin vira o link da TELA DA PESSOA
 // (/admin/people/<id>; sem id, o e-mail também abre). Só apresentação; o portão continua na página, no servidor.
 // Escrever e-mail virou o botão pequeno ✉ ao lado (EmailBotao), para o clique no nome não abrir o Gmail.
-import Link from 'next/link'
+// SEM import de runtime (nem next/link): este arquivo entra no painel ao vivo e em guardiões que carregam a tela offline;
+// um <a> comum basta para uma tela interna (navegação inteira, sem prefetch).
 import type { CSSProperties, ReactNode } from 'react'
-import { hrefPessoa } from '@/lib/admin/pessoaTelaRegras'
+
+/** Endereço da tela da pessoa: pelo id (uuid) quando houver; e-mail também abre (a rota procura por e-mail). */
+export function hrefPessoa(idOuEmail: string | null | undefined): string {
+  return `/admin/people/${encodeURIComponent((idOuEmail ?? '').trim())}`
+}
 
 export function PessoaLink({ id, email, children, style, title }: { id?: string | null; email?: string | null; children?: ReactNode; style?: CSSProperties; title?: string }) {
   const chave = (id ?? '').trim() || (email ?? '').trim()
   if (!chave) return <>{children ?? '—'}</>
   return (
-    <Link href={hrefPessoa(chave)} prefetch={false} data-kineo="pessoa-link" title={title ?? 'Abrir a tela desta pessoa'} style={{ color: 'inherit', textDecoration: 'underline', textDecorationColor: 'rgba(141,180,255,.45)', textUnderlineOffset: 3, ...style }}>
+    <a href={hrefPessoa(chave)} data-kineo="pessoa-link" title={title ?? 'Abrir a tela desta pessoa'} style={{ color: 'inherit', textDecoration: 'underline', textDecorationColor: 'rgba(141,180,255,.45)', textUnderlineOffset: 3, ...style }}>
       {children ?? email ?? chave}
-    </Link>
+    </a>
   )
 }
 

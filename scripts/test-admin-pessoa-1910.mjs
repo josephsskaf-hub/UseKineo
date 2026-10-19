@@ -233,7 +233,7 @@ async function provas(over = {}) {
   const rodar = async (chave = { id: 'u-1' }) => { const db = banco(fixture()); const tela = await L.leitura.carregarTelaPessoa(db, chave, AGORA); return { db, tela } }
   const renderTela = async () => {
     const { tela } = await rodar()
-    const Tela = carregarTsx(F.tela, { 'next/link': LinkFalso, '@/lib/admin/clientesJornadaRegras': L.clientesRegras, '@/lib/admin/pessoaTelaRegras': L.regras }, over).default
+    const Tela = carregarTsx(F.tela, { 'next/link': LinkFalso, '@/lib/admin/clientesJornadaRegras': L.clientesRegras, '@/lib/admin/pessoaTelaRegras': L.regras, '@/components/admin/PessoaLink': carregarTsx(F.link, {}, over) }, over).default
     return { tela, html: renderToStaticMarkup(React.createElement(Tela, { t: tela })) }
   }
 
@@ -368,8 +368,7 @@ async function provas(over = {}) {
 
   // P7 — links nos lugares do painel
   await prova('P7a PessoaLink leva a /admin/people/<id> (e-mail também); ✉ é mailto com assunto', () => {
-    const regras = L.regras
-    const mod = carregarTsx(F.link, { 'next/link': LinkFalso, '@/lib/admin/pessoaTelaRegras': regras }, over)
+    const mod = carregarTsx(F.link, {}, over) // sem dependência nenhuma: entra no painel ao vivo e em guardiões offline
     const a = renderToStaticMarkup(React.createElement(mod.PessoaLink, { id: 'u-1', email: 'ana@exemplo.com' }, 'ana'))
     const b = renderToStaticMarkup(React.createElement(mod.PessoaLink, { email: 'ana@exemplo.com' }, 'ana'))
     const c = renderToStaticMarkup(React.createElement(mod.EmailBotao, { email: 'ana@exemplo.com', assunto: 'Oi' }))
@@ -386,7 +385,7 @@ async function provas(over = {}) {
   })
   await prova('P7d overview (3 tabelas), coerência, clientes, leads, pagantes e CEO com o link da pessoa', () => {
     return (S('overview').match(/<PessoaLink id=\{(t|e)\.id\}>\{(t|e)\.email\}<\/PessoaLink>/g) ?? []).length === 3 &&
-      /<PessoaLink id=\{r\.user_id\}/.test(S('coerencia')) && /<PessoaLink id=\{c\.id\}>/.test(S('clientes')) &&
+      S('coerencia').includes('<a href={`/admin/people/${encodeURIComponent(r.user_id)}`} data-kineo="pessoa-link"') &&/<PessoaLink id=\{c\.id\}>/.test(S('clientes')) &&
       /<PessoaLink email=\{text\}/.test(S('leads')) && /<EmailBotao email=\{text\} assunto=\{mailtoSubject\}/.test(S('leads')) &&
       /<PessoaLink email=\{r\.email\}>\{r\.email\}<\/PessoaLink>/.test(S('paying')) && /<PessoaLink email=\{u\.email\}>\{u\.email\}<\/PessoaLink>/.test(S('ceo'))
   })

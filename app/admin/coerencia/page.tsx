@@ -14,7 +14,6 @@ import { ENGINE_LABEL, listFastCoherence, type FastCoherenceRow } from '@/lib/ad
 import { ROTULO_CRITERIO, type CriterioJuiz, type JuizStillPainel } from '@/lib/hollywood/juizStill' // KINEO-JUIZ-STILL-2026-10-06
 import PedirFeedback from './PedirFeedback'
 import AvaliarPendentes from './AvaliarPendentes' // KINEO-ADMIN-RAPIDO-1710
-import { PessoaLink } from '@/components/admin/PessoaLink' // KINEO-ADMIN-PESSOA-1910 — quem fez o filme abre a tela da pessoa
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -90,7 +89,7 @@ function Linha({ r }: { r: FastCoherenceRow }) {
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', alignItems: 'baseline', fontSize: 11.5, color: '#9AA3B2' }}>
           <span style={{ color: '#C4B5FD', fontWeight: 900, textTransform: 'uppercase', fontSize: 11 }}>{motor(r.engine)}</span>
-          <PessoaLink id={r.user_id} style={{ color: '#C9CFD8', fontWeight: 700 }}>{r.email ?? r.user_id.slice(0, 8)}</PessoaLink>
+          <a href={`/admin/people/${encodeURIComponent(r.user_id)}`} data-kineo="pessoa-link" title="Abrir a tela desta pessoa" style={{ color: '#C9CFD8', fontWeight: 700 }}>{r.email ?? r.user_id.slice(0, 8)}</a>{/* KINEO-ADMIN-PESSOA-1910 — quem fez o filme abre a tela da pessoa (link comum: a linha é carregada offline por guardiões) */}
           <span>{fmt(r.created_at)}</span>
           {r.seconds != null && <span>{r.seconds}s</span>}
           {r.credits != null && <span>{r.credits} cr</span>}

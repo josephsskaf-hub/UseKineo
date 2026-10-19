@@ -6,6 +6,7 @@ import Link from 'next/link'
 import type { CSSProperties, ReactNode } from 'react'
 import type { AnuncioPessoa, ClipePessoa, FilmePessoa, TelaPessoa } from '@/lib/admin/pessoaTela'
 import { quando } from '@/lib/admin/clientesJornadaRegras'
+import { PessoaLink } from '@/components/admin/PessoaLink'
 import { NOTA_PERFEITA, ROTULO_PRODUTO, ROTULO_STATUS, bandeira, corDaNota, type StatusItem, type TomItem } from '@/lib/admin/pessoaTelaRegras'
 
 const card: CSSProperties = { background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px', minWidth: 0 }
@@ -184,7 +185,7 @@ export default function PessoaTela({ t }: { t: TelaPessoa }) {
               {v.em && <span style={muted}>{quando(v.em)}</span>}
             </li>
           ))}
-          {t.indicadoPor && <li style={linha}><b>indicado por</b> <Link href={`/admin/people/${t.indicadoPor.id}`} prefetch={false} style={{ color: 'var(--accent)' }}>{t.indicadoPor.email ?? t.indicadoPor.id.slice(0, 8)}</Link><span style={muted}>profiles.referred_by</span></li>}
+          {t.indicadoPor && <li style={linha}><b>indicado por</b> <PessoaLink id={t.indicadoPor.id} style={{ color: 'var(--accent)' }}>{t.indicadoPor.email ?? t.indicadoPor.id.slice(0, 8)}</PessoaLink><span style={muted}>profiles.referred_by</span></li>}
         </ul>
       </Secao>
 

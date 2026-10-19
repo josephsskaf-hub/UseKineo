@@ -26,12 +26,6 @@ export const DIAS_NA_LINHA = 45
 /** Nota de coerência: 95 = perfeito (régua do fundador, /admin/coerencia). */
 export const NOTA_PERFEITA = 95
 
-/** Endereço da tela da pessoa: pelo id (uuid) quando houver; e-mail também abre (a rota procura por e-mail). */
-export function hrefPessoa(idOuEmail: string | null | undefined): string {
-  const v = (idOuEmail ?? '').trim()
-  return `/admin/people/${encodeURIComponent(v)}`
-}
-
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 /** O segmento da URL vira {id} ou {email}; qualquer outra coisa é inválida (nada de busca livre no banco). */
 export function lerChavePessoa(segmento: string | null | undefined): { id: string } | { email: string } | null {
