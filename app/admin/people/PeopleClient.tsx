@@ -8,6 +8,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import type { PersonRow } from '@/app/api/admin/people/route'
+import { EmailBotao, PessoaLink } from '@/components/admin/PessoaLink' // KINEO-ADMIN-PESSOA-1910
 
 const CARD: React.CSSProperties = { background: 'var(--card)', border: '1px solid #1F2530', borderRadius: 20 }
 
@@ -415,7 +416,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
             border="rgba(52,211,153,.4)"
             empty="No paying customers match."
             rows={buyers.map((p) => [
-              <Mono key="e" text={p.email} badge={kindBadge(p.paid_kind)?.label} badgeColor={kindBadge(p.paid_kind)?.color} />,
+              <Mono key="e" text={p.email} id={p.id} badge={kindBadge(p.paid_kind)?.label} badgeColor={kindBadge(p.paid_kind)?.color} />,
               kindBadge(p.paid_kind)?.label ?? '—',
               planLabel(p),
               fmtDate(p.first_paid),
@@ -446,7 +447,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
             border="rgba(255,255,255,.14)"
             empty="No one matches."
             rows={everyone.map((p) => [
-              <Mono key="e" text={p.email} badge={kindBadge(p.paid_kind)?.label} badgeColor={kindBadge(p.paid_kind)?.color} />,
+              <Mono key="e" text={p.email} id={p.id} badge={kindBadge(p.paid_kind)?.label} badgeColor={kindBadge(p.paid_kind)?.color} />,
               fmtDate(p.signup),
               p.country ? `${flagEmoji(p.country)} ${p.country}` : '—',
               planLabel(p),
@@ -765,10 +766,13 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
   )
 }
 
-function Mono({ text, badge, badgeColor }: { text: string; badge?: string; badgeColor?: string }) {
+// KINEO-ADMIN-PESSOA-1910 — o e-mail abre a TELA DA PESSOA (/admin/people/<id>); escrever e-mail é o ✉ pequeno ao lado.
+function Mono({ text, id, badge, badgeColor }: { text: string; id?: string; badge?: string; badgeColor?: string }) {
+  const mono = <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.82rem' }}>{text || '—'}</span>
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-      <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.82rem' }}>{text || '—'}</span>
+      {id || text ? <PessoaLink id={id} email={text} style={{ color: '#8DB4FF' }}>{mono}</PessoaLink> : mono}
+      <EmailBotao email={text} />
       {badge && (
         <span
           className="rounded px-1.5 py-0.5 text-[10px] font-black uppercase"

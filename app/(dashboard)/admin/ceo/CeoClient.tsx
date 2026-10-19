@@ -19,6 +19,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import type { CeoData, FunnelWindow } from '@/app/api/admin/ceo/compute'
 import LiveNowPanel from '@/components/LiveNowPanel' // KINEO-ADMIN-LIVE-2026-08-19
+import { PessoaLink } from '@/components/admin/PessoaLink' // KINEO-ADMIN-PESSOA-1910 — o e-mail abre a tela da pessoa
 
 export type { CeoData }
 
@@ -366,7 +367,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
               <tbody>
                 {data.atRiskUsers.map((u) => (
                   <tr key={u.email} style={{ borderTop: '1px solid rgba(245,158,11,0.1)' }}>
-                    <td className="px-4 py-2 font-mono" style={{ color: 'var(--text)' }}>{u.email}</td>
+                    <td className="px-4 py-2 font-mono" style={{ color: 'var(--text)' }}><PessoaLink email={u.email}>{u.email}</PessoaLink></td>
                     <td className="px-4 py-2" style={{ color: 'var(--muted2)' }}>{u.plan}</td>
                     <td className="px-4 py-2 font-black" style={{ color: u.credits === 0 ? '#FF8787' : '#FFBF58' }}>
                       {u.credits === 0 ? '0 ⚠️' : u.credits}

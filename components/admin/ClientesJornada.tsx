@@ -5,6 +5,7 @@
 import Link from 'next/link'
 import type { CSSProperties } from 'react'
 import type { AnuncioCliente, ClienteJornada, FilmeCliente, PaginaClientes } from '@/lib/admin/clientesJornada'
+import { PessoaLink } from '@/components/admin/PessoaLink' // KINEO-ADMIN-PESSOA-1910 — o e-mail abre a tela da pessoa
 import {
   CLIENTES_POR_PAGINA,
   EVENTOS_POR_PESSOA,
@@ -103,7 +104,7 @@ function Pessoa({ c, aberto }: { c: ClienteJornada; aberto: boolean }) {
   return (
     <article data-kineo="cliente" style={{ ...card, display: 'grid', gap: 10 }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 10px', alignItems: 'center' }}>
-        <strong style={{ color: 'var(--text)', fontSize: 15, overflowWrap: 'anywhere' }}>{c.email || c.id.slice(0, 8)}</strong>
+        <strong style={{ color: 'var(--text)', fontSize: 15, overflowWrap: 'anywhere' }}><PessoaLink id={c.id}>{c.email || c.id.slice(0, 8)}</PessoaLink></strong>
         {c.pais && <span style={selo('var(--text2)')} title={c.paisUltimo && c.paisUltimo !== c.pais ? `último acesso: ${c.paisUltimo}` : 'país do cadastro'}>{c.pais}{c.paisUltimo && c.paisUltimo !== c.pais ? ` → ${c.paisUltimo}` : ''}</span>}
         {c.pagou ? <span style={selo('var(--success)')}>pagou · {c.plano ?? '—'}</span> : <span style={selo('var(--muted)')}>{c.plano ?? 'free'}{c.trial ? ` · trial ${c.trial}` : ''}</span>}
         <span style={{ fontSize: 12, ...muted }}>{c.creditos ?? 0} créditos</span>

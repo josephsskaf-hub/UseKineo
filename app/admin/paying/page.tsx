@@ -24,6 +24,7 @@ import { fetchAllRows, isAdminEmail, serviceClient } from '@/app/api/admin/_shar
 // KINEO-CORTESIA-2026-10-03 — cortesia do admin não é pagante nem trial de $1: entra com o plano real (free).
 import { maskCourtesyPlans } from '@/lib/courtesy'
 import { loadActiveCourtesyGrants } from '@/lib/courtesyStore'
+import { PessoaLink } from '@/components/admin/PessoaLink' // KINEO-ADMIN-PESSOA-1910 — o e-mail abre a tela da pessoa
 import {
   formatUsd,
   isPaidPlan,
@@ -361,7 +362,7 @@ export default async function AdminPayingPage() {
               <tr key={r.email} style={{ borderTop: '1px solid #1F2530', opacity: r.internal ? 0.55 : 1 }}>
                 <Td>
                   <div style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.82rem' }}>
-                    {r.email}
+                    <PessoaLink email={r.email}>{r.email}</PessoaLink>
                     {r.internal && (
                       <span
                         className="ml-2 rounded px-1.5 py-0.5 text-[10px] font-black uppercase"

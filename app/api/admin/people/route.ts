@@ -36,6 +36,8 @@ export const runtime = 'nodejs'
 export type PaidKind = 'active' | 'churned' | 'one_time' | null
 
 export interface PersonRow {
+  /** KINEO-ADMIN-PESSOA-1910 — profiles.id: o e-mail da lista abre /admin/people/<id> (a tela da pessoa). */
+  id: string
   email: string
   name: string | null
   signup: string
@@ -222,6 +224,7 @@ export async function GET() {
         const planPaid = isPayingPlan((p.plan ?? '').toLowerCase())
         const paidKind: PaidKind = p.has_paid !== true ? null : planPaid ? 'active' : hasSub ? 'churned' : 'one_time'
         return {
+          id: p.id, // KINEO-ADMIN-PESSOA-1910
           email: p.email as string,
           name: p.name ?? null,
           signup: p.created_at ?? '',
