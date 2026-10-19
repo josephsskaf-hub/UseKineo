@@ -11,6 +11,7 @@
 // ENCADEAMENTO no roteirista (app/api/generate-script/route.ts): este conserto veio DEPOIS do KINEO-REGUA-35-60-90-1410 e
 // do KINEO-MOTOR-15S-1510 e não toca as linhas deles. Para voltar à base de antes dos três:
 //   semMotor15s1510(semRegua35a90_1410(semModeracao1410(texto, 'script')), 'route').
+import { semMeta95Regua1910 } from './desfaz-meta95-regua-1910.mjs' // KINEO-META95-REGUA-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: o rastro da ideia original no script_written (a camada MAIS NOVA do roteirista) sai antes desta
 export const MARCA_MODERACAO_1410 = 'KINEO-MODERACAO-1410'
 
 export const ARQUIVOS_MODERACAO_1410 = {
@@ -53,7 +54,7 @@ export const FORMA_MODERACAO_1410 = Object.fromEntries(Object.entries(ACRESCIMOS
 
 /** O texto de ANTES deste conserto (LF). Idempotente: sem nada marcado, devolve o texto igual (só LF). */
 export function semModeracao1410(s, arquivo) {
-  const texto = String(s).replace(/\r\n/g, '\n')
+  const texto = semMeta95Regua1910(String(s), 'app/api/generate-script/route.ts').replace(/\r\n/g, '\n') // KINEO-META95-REGUA-1910 — só a rota do roteirista tem a marca; qualquer outro texto passa igual
   const acrescimos = arquivo ? ACRESCIMOS[arquivo] : Object.values(ACRESCIMOS).flat()
   if (!acrescimos) throw new Error('desfaz-moderacao-1410: arquivo desconhecido: ' + arquivo)
   const usadas = new Set()

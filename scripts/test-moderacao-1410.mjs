@@ -20,7 +20,6 @@ import { semDemoUniverso1410 } from './test-support/desfaz-ads-demo-universo-141
 import { semMarcas1510 } from './test-support/desfaz-ads-marcas-1510.mjs' // reancorado KINEO-ADS-MARCAS-1510
 import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]
 import { semS25FotoClipes1610 } from './test-support/desfaz-s25-foto-clipes-1610.mjs' // reancorado KINEO-S25-FOTO-CLIPES-1610
-import { semMeta95Regua1910 } from './test-support/desfaz-meta95-regua-1910.mjs' // reancorado KINEO-META95-REGUA-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: o rastro da ideia original no script_written (a camada mais nova do roteirista) sai PRIMEIRO
 import { semLista1510 } from './test-support/desfaz-ads-lista-1510.mjs' // reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai em memória antes de todo desfaz mais antigo
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -196,7 +195,7 @@ for (const [k, f] of Object.entries(ARQUIVOS_MODERACAO_1410)) {
   const atual = rd(f)
   const marcadas = atual.split('\n').filter((l) => l.includes(MARCA_MODERACAO_1410)).length
   let desfeito = null
-  try { desfeito = semModeracao1410(semDemoUniverso1410(f, semMeta95Regua1910(atual, f) /* reancorado KINEO-META95-REGUA-1910 */), k) } catch (e) { desfeito = 'ERRO ' + e.message } // reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — no /orders a pronúncia da marca (14/10, depois desta) sai antes; os outros 4 arquivos não têm bloco dela
+  try { desfeito = semModeracao1410(semDemoUniverso1410(f, atual), k) } catch (e) { desfeito = 'ERRO ' + e.message } // reancorado KINEO-ADS-DEMO-UNIVERSO-1410 — no /orders a pronúncia da marca (14/10, depois desta) sai antes; os outros 4 arquivos não têm bloco dela
   const naBase = git('show', `${base}:${f}`).replace(/\r\n/g, '\n')
   ok(marcadas === FORMA_MODERACAO_1410[k].acrescimos && desfeito === naBase, `4a. ${f}: ${marcadas} linhas marcadas (esperado ${FORMA_MODERACAO_1410[k].acrescimos}) e, desfeito, é EXATAMENTE a base ${base.slice(0, 9)}`)
 }
