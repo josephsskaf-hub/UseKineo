@@ -46,20 +46,28 @@ console.log(`   base de comparação: ${BASE ?? '(nenhuma)'}`)
 // ═══ A · arquivos ═══════════════════════════════════════════════════════════════════════════════════════════════════
 checa('A1 a base existe e o módulo da receita nela ainda não carrega a marca do ajuste', Boolean(BASE) && rdBase(F15) !== null && !rdBase(F15).includes(MARCA_FILMES_F1F3_AJUSTE_1910))
 for (const p of ['lib/compose.ts', 'lib/hookFirstFrame.ts', 'lib/lyriaMusic.ts', 'app/api/compose/route.ts']) {
-  checa(`A2 ${p} é BYTE A BYTE a base (nada no motor de vídeo nem na rota)`, rdBase(p) !== null && rd(p) === rdBase(p))
+  // nenhum commit do ajuste (fora os merges da fila) toca o arquivo, e o vivo é BYTE A BYTE a última versão alheia dele (quem
+  // vier depois e mexer nele não deixa este guardião vermelho; o ajuste mexendo nele, sim)
+  const meus = (() => { try { return git(['log', '--no-merges', '--format=%H', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, 'HEAD', '--', p]).trim() } catch { return 'erro' } })()
+  const alheio = (() => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } })()
+  checa(`A2 ${p}: nenhum commit do ajuste o toca e é BYTE A BYTE a última versão alheia e a base (nada no motor de vídeo nem na rota)`, meus === '' && alheio !== null && rd(p) === alheio && rdBase(p) !== null)
 }
 {
+  // A referência do guardião reancorado é a ÚLTIMA versão dele deixada por OUTRA sessão (o último commit que o tocou sem a
+  // marca do ajuste): o Close real (KINEO-CLOSE-REAL-AJUSTE-1910) reancorou o mesmo guardião no topo, mesclado depois do meu
+  // 1º commit — a regra "pai do 1º commit" não enxergaria a camada dele.
+  const rdAlheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } }
   const ruins = []
   for (const [p, trocas] of Object.entries(TROCAS_FILMES_F1F3_AJUSTE_1910)) {
     const vivo = rd(p)
-    const base = rdBase(p)
+    const base = rdAlheio(p)
     if (base === null) { ruins.push(p); continue }
     const lv = vivo.split('\n')
     const lb = base.split('\n')
     if (!trocas.every(([nova, antiga]) => lv.includes(nova) && lb.includes(antiga) && nova.includes(MARCA_FILMES_F1F3_AJUSTE_1910) && !antiga.includes(MARCA_FILMES_F1F3_AJUSTE_1910))) { ruins.push(p); continue }
     try { if (semFilmesF1F3Ajuste1910(vivo, p) !== base) ruins.push(p) } catch { ruins.push(p) }
   }
-  checa(`A3 guardião reancorado (${Object.keys(TROCAS_FILMES_F1F3_AJUSTE_1910).join(', ')}): cada troca está no vivo e na base; desfeita a camada = base byte a byte`, Object.keys(TROCAS_FILMES_F1F3_AJUSTE_1910).length === 1 && ruins.length === 0)
+  checa(`A3 guardião reancorado (${Object.keys(TROCAS_FILMES_F1F3_AJUSTE_1910).join(', ')}): cada troca está no vivo e na última versão alheia; desfeita a camada = essa versão byte a byte`, Object.keys(TROCAS_FILMES_F1F3_AJUSTE_1910).length === 1 && ruins.length === 0)
   checa('A4 o desfaz é idempotente, não toca linha sem a marca e recusa linha marcada fora da tabela', semFilmesF1F3Ajuste1910('a\nb', 'x') === 'a\nb' && (() => { try { semFilmesF1F3Ajuste1910(`a // ${MARCA_FILMES_F1F3_AJUSTE_1910}`, 'x'); return false } catch { return true } })())
 }
 {
