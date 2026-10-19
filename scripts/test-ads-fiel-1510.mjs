@@ -572,7 +572,7 @@ await check('D8 o ATOR não usa o prazo curto (vídeo falado é lento: 20 min po
 })
 await check('D9 dinheiro intocado: v2Billing, v2Tiers, v2StartCore, /start, /retake e /variations byte a byte iguais à base; nenhum deles no diff do ajuste', () => {
   const money = ['lib/ads/v2Billing.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2StartCore.ts', 'app/api/ads/v2/start/route.ts', 'app/api/ads/v2/retake/route.ts', 'app/api/ads/v2/variations/route.ts']
-  const diff = git('diff', '--name-only', BASE, 'HEAD').split('\n')
+  const diff = git('diff', '--name-only', BASE, git('log', '--format=%H', '--grep=KINEO-ADS-FIEL-1510', 'HEAD').trim().split('\n').filter(Boolean)[0] || 'HEAD').split('\n') // reancorado KINEO-CLOSE-REAL-1910 — mede o ajuste até o SEU último commit (o Close real de 19/10 toca o /start, com guardião próprio); era: git('diff', '--name-only', BASE, 'HEAD')
   return money.every((f) => rd(f) === base(f) && !diff.includes(f))
 })
 await check('D10 os 2 eventos novos (ads_v2_shot_fallback, ads_v2_product_locked) estão na lista fechada, são só-servidor e estão no SERVER_ONLY_EVENTS do sink', () => {
