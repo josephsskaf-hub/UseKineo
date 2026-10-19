@@ -29,6 +29,7 @@ import { desfazEstornoNarracao } from './test-support/desfaz-escritor-omni-1310.
 import { desfazParceiroEyebible1410 } from './test-support/desfaz-parceiro-eyebible-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-1410 [TRAVA 8.2 — vai do fundador 14/10]: os arquivos do conserto do Robert/EyeBible saem em memória antes do byte a byte
 import { desfazParceiroEyebible2_1410 } from './test-support/desfaz-parceiro-eyebible-2-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410 [TRAVA 8.2 — vai do fundador 14/10]: a 2ª leva do Robert/EyeBible sai em memória antes do byte a byte
 import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]: a entrega mais nova sai antes da comparação com a base
+import { semFilmesF1F4_1910 } from './test-support/desfaz-filmes-f1f4-1910.mjs' // reancorado KINEO-FILMES-F1-F4-1910 [TRAVA 8.2 — vai do fundador 19/10 "vai, sim pra tudo"]: as linhas marcadas da rota do compose (Faceless 15 s) saem antes da comparação com a base
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -216,7 +217,7 @@ function rotaProblems(rota, unlock) {
   if (!(iU > unlock.indexOf('withBrandLogo(source,') && iU < unlock.indexOf('await submitUnlockOnce(source'))) p.push('unlock: gancho fora de "depois do logo, antes do envio"')
   return p
 }
-const rota = read(ROTA)
+const rota = semFilmesF1F4_1910(read(ROTA), ROTA) // reancorado KINEO-FILMES-F1-F4-1910
 const unlock = read(UNLOCK)
 const rp = rotaProblems(rota, unlock)
 for (const b of rp) console.log('     · ' + b)

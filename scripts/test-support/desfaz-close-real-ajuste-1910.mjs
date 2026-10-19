@@ -10,8 +10,8 @@
 // O guardião scripts/test-close-real-ajuste-1910.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (CLOSE_REAL_AJUSTE_1910_BASE).
 export const MARCA_CLOSE_REAL_AJUSTE_1910 = 'KINEO-CLOSE-REAL-AJUSTE-1910'
 
-/** A base da entrega (origin/main de 19/10, com o Close real no ar). */
-export const CLOSE_REAL_AJUSTE_1910_BASE = '19f826173597a503ea5bc71db348c41fe39a9ece'
+/** A base da entrega (origin/main de 19/10: o Close real no ar + o Faceless 15 s F1–F4, mesclada com merge). */
+export const CLOSE_REAL_AJUSTE_1910_BASE = 'cb42bd5a5fb1951e3956499c13447d5cb6e78ac9'
 
 /** Arquivos que a entrega toca (só acréscimos marcados + as trocas listadas). */
 export const CLOSE_REAL_AJUSTE_1910_ARQUIVOS = [
@@ -159,8 +159,8 @@ export const TROCAS_CLOSE_REAL_AJUSTE_1910 = {
   ],
   "scripts/test-close-real-1910.mjs": [
     [
-      "const rd = (p) => lf(semCloseRealAjuste1910(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: este guardião lê o texto SEM o ajuste (provado em scripts/test-close-real-ajuste-1910.mjs)",
-      "const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))"
+      "const rd = (p) => lf(semFilmesF1F4_1910(semCloseRealAjuste1910(readFileSync(join(ROOT, p), 'utf8'), p), p)) // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: este guardião lê o texto SEM o ajuste (provado em scripts/test-close-real-ajuste-1910.mjs), e depois sem a camada do Faceless 15 s · reancorado KINEO-FILMES-F1-F4-1910: a camada do Faceless 15 s (mais nova) sai antes da comparação com a base",
+      "const rd = (p) => lf(semFilmesF1F4_1910(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-FILMES-F1-F4-1910: a camada do Faceless 15 s (mais nova) sai antes da comparação com a base"
     ],
     [
       "const carregar = (over = {}, mocks = {}, env = {}) => createOfflineLoader({ mocks: { 'node:zlib': zlib, ...mocks }, env, source: (rel, text) => (Object.hasOwn(over, rel) ? over[rel] : semCloseRealAjuste1910(text, rel)) }) // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: executa o formato na régua de antes do ajuste",
