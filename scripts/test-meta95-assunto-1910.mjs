@@ -32,8 +32,7 @@ const TRAD = 'lib/cinematic/assuntoTraduzido.ts'
 const lf = (s) => s.replace(/\r\n/g, '\n')
 const disco = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
-let BASE = 'HEAD'
-try { const shas = git('log', '--format=%H', `--grep=${MARCA}`, 'HEAD').trim().split('\n').filter(Boolean); BASE = shas.length ? shas[shas.length - 1] + '^' : 'HEAD' } catch { BASE = 'HEAD' }
+const BASE = SUP.META95_ASSUNTO_1910_BASE // a base fixa da entrega (origin/main ef2879d96, depois do merge da pílula/corte do Close real): o pai do 1º commit não serve mais, a fila andou no meio
 const base = (p) => { try { return lf(git('show', `${BASE}:${p}`)) } catch { return null } }
 
 let ok = 0
@@ -175,12 +174,12 @@ console.log('== F. desfaz exato, novos, marca, encadeamento ==')
 {
   const ARQ = SUP.META95_ASSUNTO_1910_ARQUIVOS
   checa(`F1 cada arquivo tocado, desfeito (scripts/test-support/desfaz-meta95-assunto-1910.mjs), é EXATAMENTE a base ${String(BASE).slice(0, 9)}; os novos existem e não existiam lá`,
-    ARQ.length === 27 && ARQ.every((f) => { const b = base(f); return b !== null && lf(SUP.semMeta95Assunto1910(disco(f), f)) === b }) &&
+    ARQ.length === 28 && ARQ.every((f) => { const b = base(f); return b !== null && lf(SUP.semMeta95Assunto1910(disco(f), f)) === b }) &&
     SUP.META95_ASSUNTO_1910_NOVOS.length === 6 && SUP.META95_ASSUNTO_1910_NOVOS.every((f) => existsSync(join(ROOT, f)) && base(f) === null) && SUP.MARCA_META95_ASSUNTO_1910 === MARCA,
     ARQ.filter((f) => { const b = base(f); try { return b === null || lf(SUP.semMeta95Assunto1910(disco(f), f)) !== b } catch (e) { return true } }).join(', '))
   checa('F2 toda linha nova traz a marca (troca listada inteira, a da base existe lá); a marca não contém as das camadas de antes; contagem errada = erro', (() => {
     const ts = Object.entries(SUP.TROCAS_META95_ASSUNTO_1910)
-    return ts.length === 25 && ts.every(([f, l]) => l.every(([nova, antiga]) => nova.includes(MARCA) && !antiga.includes(MARCA) && disco(f).split('\n').includes(nova) && base(f).split('\n').includes(antiga))) &&
+    return ts.length === 26 && ts.every(([f, l]) => l.every(([nova, antiga]) => nova.includes(MARCA) && !antiga.includes(MARCA) && disco(f).split('\n').includes(nova) && base(f).split('\n').includes(antiga))) &&
       ['KINEO-FILME-RAPIDO-1710', 'KINEO-TRILHA-15S', 'KINEO-MONUMENTO-2026-10-13', 'KINEO-CLOSE-REAL-LEGENDA-1910'].every((m) => !MARCA.includes(m)) &&
       ARQ.every((f) => { const b = new Set(base(f).split('\n')); return disco(f).split('\n').filter((l) => !b.has(l)).every((l) => l.includes(MARCA)) }) &&
       (() => { try { SUP.semMeta95Assunto1910(`${disco(VPP)}\nx // ${MARCA}`, VPP); return false } catch { return true } })() && SUP.semMeta95Assunto1910(`a // ${MARCA}`, 'lib/x.ts') === `a // ${MARCA}`
