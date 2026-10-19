@@ -1,0 +1,22 @@
+{
+ "scripts/test-close-real-legenda-pilula-1910.mjs": [
+  [
+   "const disco = (p) => lf(semCloseRealLegendaCorte1910(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-CLOSE-REAL-LEGENDA-CORTE-1910 — reancorado: lê os arquivos SEM o corte novo (provado em scripts/test-close-real-legenda-corte-1910.mjs)",
+   "const disco = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))"
+  ],
+  [
+   "const CR = (over = null, velho = false) => createOfflineLoader({ mocks: { 'node:zlib': zlib }, source: (rel, text) => (rel === FCR && over !== null ? over : velho ? semCloseRealLegendaPilula1910(text, rel) : semCloseRealLegendaCorte1910(text, rel)) })(FCR) // KINEO-CLOSE-REAL-LEGENDA-CORTE-1910 — reancorado: executa a pílula na régua dela (antes do corte novo)",
+   "const CR = (over = null, velho = false) => createOfflineLoader({ mocks: { 'node:zlib': zlib }, source: (rel, text) => (rel === FCR && over !== null ? over : velho ? semCloseRealLegendaPilula1910(text, rel) : text) })(FCR)"
+  ]
+ ],
+ "lib/ads/v2CloseReal.ts": [
+  [
+   "  const lines = adsV2CloseRealSpeechSplit(text, fontPx, frameW) // KINEO-CLOSE-REAL-LEGENDA-CORTE-1910 — a melhor divisão (era: a quebra gulosa de adsV2CloseRealSpeechLines)",
+   "  const lines = adsV2CloseRealSpeechLines(text, fontPx, frameW) // KINEO-CLOSE-REAL-LEGENDA-1910"
+  ],
+  [
+   "      if (speech) { elements.push({ type: 'text', track: T.text, time: r3(seg.start), duration: r3(seg.end - seg.start), text: adsV2CloseRealSpeechSplit(c.text, geo.font_size, width).join('\\n'), x: '50%', y: geo.y, x_anchor: '50%', y_anchor: geo.y_anchor, x_alignment: '50%', width: geo.width, font_family: fontFamily, font_size: geo.font_size, font_weight: '800', line_height: '110%', fill_color: '#ffffff', stroke_color: ADS_V2_CLOSE_REAL_SPEECH_STROKE_COLOR, stroke_width: ADS_V2_CLOSE_REAL_SPEECH_STROKE_WIDTH, background_color: ADS_V2_CLOSE_REAL_SPEECH_BG, background_x_padding: ADS_V2_CLOSE_REAL_SPEECH_PAD_X, background_y_padding: ADS_V2_CLOSE_REAL_SPEECH_PAD_Y, border_radius: ADS_V2_CLOSE_REAL_SPEECH_RADIUS }); continue } // KINEO-CLOSE-REAL-LEGENDA-CORTE-1910 — linhas da melhor divisão (até 3 quando a frase inteira cabe); a fala: 3,6%, as linhas com \"\\n\" (4 por linha valem na tela; palavra fraca não fecha linha), o contorno dos filmes e a PÍLULA da rodada 3 (alpha 0,72) de volta; o gancho segue na linha de baixo",
+   "      if (speech) { elements.push({ type: 'text', track: T.text, time: r3(seg.start), duration: r3(seg.end - seg.start), text: adsV2CloseRealSpeechLines(c.text, geo.font_size, width).join('\\n'), x: '50%', y: geo.y, x_anchor: '50%', y_anchor: geo.y_anchor, x_alignment: '50%', width: geo.width, font_family: fontFamily, font_size: geo.font_size, font_weight: '800', line_height: '110%', fill_color: '#ffffff', stroke_color: ADS_V2_CLOSE_REAL_SPEECH_STROKE_COLOR, stroke_width: ADS_V2_CLOSE_REAL_SPEECH_STROKE_WIDTH, background_color: ADS_V2_CLOSE_REAL_SPEECH_BG, background_x_padding: ADS_V2_CLOSE_REAL_SPEECH_PAD_X, background_y_padding: ADS_V2_CLOSE_REAL_SPEECH_PAD_Y, border_radius: ADS_V2_CLOSE_REAL_SPEECH_RADIUS }); continue } // KINEO-CLOSE-REAL-LEGENDA-PILULA-1910 — a fala: 3,6%, as linhas com \"\\n\" (4 por linha valem na tela; palavra fraca não fecha linha), o contorno dos filmes e a PÍLULA da rodada 3 (alpha 0,72) de volta; o gancho segue na linha de baixo"
+  ]
+ ]
+}
