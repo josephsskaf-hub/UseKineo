@@ -19,6 +19,7 @@ import { normalizeAspect } from '@/lib/aspect'
 import { findBrandLogoUrl, withBrandLogo } from '@/lib/brandLogo' // KINEO-LOGO-DA-MARCA-2026-10-01
 import { withHookFirstFrame, hookNarration } from '@/lib/hookFirstFrame' // KINEO-GANCHO-1Q-2026-10-03
 import { isInternalEmail } from '@/lib/internalAccounts' // KINEO-GANCHO-1Q-2026-10-03
+import { resolverFaceless15, aplicarFaceless15 } from '@/lib/filmes/faceless15' // KINEO-FILMES-F1-F4-1910 [TRAVA 8.2 — vai do fundador 19/10 "vai, sim pra tudo"] — a receita "Faceless 15 s" (F1 legenda · F2 gancho · F3 som · F4 5 planos), fase a fase, atrás de interruptores
 import { captionFontFor } from '@/lib/textLanguage' // KINEO-GANCHO-1Q-2026-10-03
 import { decidirLegenda, tirarLegendaEGancho } from '@/lib/semLegenda' // KINEO-SEM-LEGENDA-2026-10-06
 import { registrarVersaoDaCasa, registrarSemLegendaIgnorado } from '@/lib/semLegendaServer' // KINEO-SEM-LEGENDA-2026-10-06
@@ -3512,6 +3513,9 @@ export async function POST(req: NextRequest) {
         ),
       )
     }
+    const faceless15 = resolverFaceless15({ interna: isInternalEmail(user.email), pedido: (body as { formatFlags?: unknown; format_flags?: unknown }).formatFlags ?? (body as { format_flags?: unknown }).format_flags, quality, duration, aspect: aspectRequested, avatar: avatarMode, studioAds: isServiceFinish && body.narration_source === 'tts' }) // KINEO-FILMES-F1-F4-1910 — só Seedance 1.5 de 15 s em 9:16; fase pública (FACELESS15_PUBLIC) ou pedida por conta interna (formatFlags); cliente que manda o campo é ignorado
+    const faceless15Relato = aplicarFaceless15(source, faceless15, { whisperWords: legendaWords ?? null, clipSeconds: composeClipUrls === clipUrls ? signedClipPlan?.seconds ?? null : null, font: captionFontFor(language) }) // KINEO-FILMES-F1-F4-1910 — F1/F3/F4 em cima do source montado (lib/compose intocada), SÍNCRONO, antes de qualquer espera assíncrona (quadro/fonte da mesma montagem); fase desligada = source intacto, byte a byte
+    if (faceless15.ativo) console.log(`[compose] KINEO-FILMES-F1-F4-1910 fases=${faceless15.fases.join(',')} ${JSON.stringify(faceless15Relato)}`) // KINEO-FILMES-F1-F4-1910
     // [TRAVA 8.2 — "vamos fazer isso rápido agora", fundador 01/10] KINEO-LOGO-DA-MARCA-2026-10-01 — idem no caminho clássico (Kineo 1, Seedance, Kling 2.5, Veo, Avatar).
     withBrandLogo(source, await findBrandLogoUrl(authenticatedUserId, composeAdmin)) // KINEO-LOGO-DA-MARCA-2026-10-01
     // KINEO-GANCHO-1Q-2026-10-03 — idem no caminho clássico, com o texto que o TTS leu (scaledScript); avatar (rosto no quadro) e Studio Ads (narration_source 'tts' no modo serviço) ficam de fora.
