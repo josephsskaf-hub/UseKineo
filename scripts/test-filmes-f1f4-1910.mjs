@@ -137,6 +137,7 @@ const palavrasDoTexto = (t) => String(t ?? '').replace(/\[\/?color[^\]]*\]/g, ''
 /** Todas as provas, para um conjunto de módulos; devolve { nome: boolean }. Os mutantes reutilizam. */
 function provas({ C, F, H, montar }) {
   const p = {}
+  const CAT = F.SFX_FACELESS15
   // ── B · interruptor
   {
     const ext = externa(F, ['f1', 'f2', 'f3', 'f4'])
@@ -231,7 +232,6 @@ function provas({ C, F, H, montar }) {
     const payoff = r3(INICIOS[INICIOS.length - 1])
     const mus = trilha(antes, 8, 'audio')
     const sfx = trilha(antes, 12, 'audio')
-    const CAT = F.SFX_FACELESS15
     p['F1 F3 só mexe nas trilhas 8 (música) e 12 (SFX): voz (4), clipes (2), legenda (5) e o resto ficam byte a byte'] = relato.f3?.musica === 'ducking' && eqJ(foraDaTrilha(antes, [8, 12]), foraDaTrilha(ref, [8, 12])) && eqJ(trilha(antes, 4), trilha(ref, 4))
     p['F2 música em 3 elementos: 18 % até o payoff, 10 % sob o payoff, 18 % na cauda com fade-out 1,2 s; contínuos no tempo e no trecho (trim_start), loop, mesma faixa'] =
       mus.length === 3 && mus[0].time === 0 && mus[0].volume === '18%' && mus[0].duration === payoff && mus[0].audio_fade_in === 0.8 &&
@@ -263,6 +263,57 @@ function provas({ C, F, H, montar }) {
     const f13 = montar()
     const r13 = F.aplicarFaceless15(f13, interna(F, ['f1', 'f3']), { whisperWords: WORDS })
     p['F8 F1+F3 juntas: legenda da F1 e som da F3, cada uma na sua trilha'] = r13.f1?.chunker === 'whisper' && r13.f3?.musica === 'ducking' && trilha(f13, 5).every((e) => e.y === '62%') && trilha(f13, 8).length === 3 && trilha(f13, 12).length >= 4
+  }
+  // ── G · F4 (5 planos de 3 clipes)
+  const ZOOM = (de, para) => [{ type: 'scale', fade: false, start_scale: de, end_scale: para, easing: 'ease-out' }]
+  for (const assinado of [true, false]) {
+    const tag = assinado ? 'claim assinado (3×6 s)' : 'caminho clássico (loop, sem segundos)'
+    const antes = montar({ assinado })
+    const ref = clone(antes)
+    const relato = F.aplicarFaceless15(antes, interna(F, ['f4']), { whisperWords: WORDS, clipSeconds: assinado ? [6, 6, 6] : null })
+    const T = ref.duration
+    const payoff = r3(INICIOS[INICIOS.length - 1])
+    const pl = trilha(antes, 2, 'video')
+    const f4 = relato.f4
+    p[`G1 ${tag}: F4 só mexe na trilha 2; voz, legenda, música e o resto ficam byte a byte; o total não muda`] = f4?.aplicado === true && eqJ(foraDaTrilha(antes, [2]), foraDaTrilha(ref, [2])) && antes.duration === T && trilha(ref, 2).length >= 3 && new Set(trilha(ref, 2).map((e) => e.source)).size === 3
+    p[`G2 ${tag}: 5 planos de 2,4–4,0 s (3 clipes → 5), contíguos do 0 ao fim do filme (sobreposição de 0,06 s do #256)`] = f4.planos === 5 && f4.trechos.length === 5 && f4.trechos.every(([, , len]) => len >= 2.4 - 1e-9 && len <= 4.0 + 1e-9) && r3(f4.trechos.reduce((s, [, , l]) => s + l, 0)) === r3(T) && pl[0].time === 0 && pl.every((e, i) => i === 0 || r3(pl[i - 1].time + pl[i - 1].duration - 0.06) === e.time) && r3(pl[pl.length - 1].time + pl[pl.length - 1].duration - 0.06) === r3(T)
+    p[`G3 ${tag}: ordem A A B B C — o 2º plano de um clipe é o MESMO clipe com trim_start 3,0 s; o 1º plano de cada clipe entra na cabeça (0,1 s)`] = eqJ(f4.trechos.map(([c]) => c), [0, 0, 1, 1, 2]) && eqJ(f4.trechos.map(([, trim]) => trim), [0.1, 3, 0.1, 3, 0.1]) && pl.filter((e) => e.source === CLIPES[0]).length >= 2 && pl.filter((e) => e.source === CLIPES[1]).length >= 2 && pl.filter((e) => e.source === CLIPES[2]).length >= 1
+    p[`G4 ${tag}: nenhum plano passa do clipe (trim + duração + 0,06 ≤ 6 s), sem loop por falta; ${assinado ? 'loop desligado (segundos assinados)' : 'loop como na base'}`] = f4.trechos.every(([, trim, len]) => trim + len + 0.06 <= 6 + 1e-9) && f4.loopPorFalta === 0 && (assinado ? pl.every((e) => e.loop === false) : pl.every((e) => e.loop === true))
+    p[`G5 ${tag}: o reveal (início do PAYOFF) é um corte e o 1º corte cai no fim do HOOK (fronteiras de frase do Whisper)`] = f4.cortes.includes(payoff) && f4.cortes[0] === r3(INICIOS[0]) && f4.emFrase >= 2 && f4.punchEm === payoff && f4.cortes.length === 4
+    const cab = pl.find((e) => e.time === payoff)
+    const resto = pl.find((e) => e.time === r3(payoff + 0.15))
+    p[`G6 ${tag}: punch 100→104 % em 0,15 s no reveal, seguido do zoom 104→108 % no mesmo clipe (trecho contínuo), ease-out`] = !!cab && !!resto && cab.duration === r3(0.15 + 0.06) && eqJ(cab.animations, ZOOM('100%', '104%')) && eqJ(resto.animations, ZOOM('104%', '108%')) && resto.trim_start === r3(cab.trim_start + 0.15) && resto.source === cab.source && pl.length === 6
+    const comuns = pl.filter((e) => e.time !== payoff && e.time !== r3(payoff + 0.15))
+    p[`G7 ${tag}: zoom alternado 100→108 / 108→100 nos outros planos; cover 100 %, centro, mudo em todos`] = pl.every((e) => e.fit === 'cover' && e.width === '100%' && e.height === '100%' && e.volume === '0%' && e.x === '50%' && e.y === '50%' && e.track === 2) && comuns.length === 4 && comuns.every((e, i) => eqJ(e.animations, i % 2 === 0 ? ZOOM('100%', '108%') : ZOOM('108%', '100%')))
+    const f34 = montar({ assinado })
+    const r34 = F.aplicarFaceless15(f34, interna(F, ['f3', 'f4']), { whisperWords: WORDS, clipSeconds: assinado ? [6, 6, 6] : null })
+    p[`G8 ${tag}: F3+F4 — um whoosh por corte da F4 (4), no instante do corte; o pop cai no corte do punch`] = r34.f4.cortes.length === 4 && eqJ(r34.f3.cortes, r34.f4.cortes) && trilha(f34, 12).filter((e) => e.source === CAT.whoosh.url).length === 4 && trilha(f34, 12).find((e) => e.source === CAT.pop.url)?.time === r34.f4.punchEm
+  }
+  {
+    const s = montar()
+    const ref = clone(s)
+    const T = ref.duration
+    const r = F.aplicarFaceless15(s, interna(F, ['f4', 'cta']), { whisperWords: WORDS, clipSeconds: [6, 6, 6], font: 'Montserrat' })
+    const cta = trilha(s, 13, 'text')
+    p['G9 CTA só com a fase cta: "Follow for part 2 →" 48 px Montserrat 700 no centro, 1 s depois do fim da fala; o filme cresce 1 s; fundo/véu cobrem o total novo; a voz não muda'] =
+      r.f4?.cta === true && s.duration === r3(T + 1) && cta.length === 1 && cta[0].time === r3(T) && cta[0].duration === 1 && cta[0].text === 'Follow for part 2 →' && cta[0].font_size === 48 && cta[0].font_weight === '700' && cta[0].font_family === 'Montserrat' && cta[0].y === '50%' &&
+      s.elements.filter((e) => e.type === 'shape' && e.time === 0).every((e) => e.duration === r3(T + 1)) && eqJ(trilha(s, 4), trilha(ref, 4)) && r3(r.f4.trechos.reduce((a, [, , l]) => a + l, 0)) === r3(T + 1)
+    const s2 = montar()
+    const r2 = F.aplicarFaceless15(s2, interna(F, ['f4']), { whisperWords: WORDS, clipSeconds: [6, 6, 6] })
+    p['G10 sem a fase cta: nenhum cartão, o filme termina no payoff (sem "outro", como o mercado manda)'] = trilha(s2, 13).length === 0 && s2.duration === T && r2.f4?.cta === false
+    const s4 = montar()
+    const r4 = F.aplicarFaceless15(s4, interna(F, ['f1', 'f2', 'f3', 'f4']), { whisperWords: WORDS, clipSeconds: [6, 6, 6] })
+    const g4 = F.aplicarGanchoFaceless15(s4, interna(F, ['f1', 'f2', 'f3', 'f4']), { narration: NARRACAO, font: 'Montserrat' })
+    p['G11 as quatro juntas: legenda 62 %, gancho no topo, música em 3 + SFX, 5 planos — e a voz byte a byte, sem erro'] = !!r4.f1 && r4.f3?.musica === 'ducking' && r4.f4?.planos === 5 && g4.aplicado === true && trilha(s4, 5).every((e) => e.y === '62%') && trilha(s4, 8).length === 3 && trilha(s4, 11).length === 1 && trilha(s4, 2).length === 6 && eqJ(trilha(s4, 4), trilha(ref, 4)) && !r4.erros
+    const s5 = montar({ whisper: false })
+    const r5 = F.aplicarFaceless15(s5, interna(F, ['f4']), { whisperWords: null, clipSeconds: [6, 6, 6] })
+    p['G12 sem Whisper: planos pelo relógio (2,4–4,0 s), sem punch (não há reveal medido), nada quebra'] = r5.f4?.aplicado === true && r5.f4.planos >= 4 && r5.f4.punchEm === null && r5.f4.trechos.every(([, , l]) => l >= 2.4 - 1e-9 && l <= 4 + 1e-9)
+    const s6 = montar()
+    const r6 = F.aplicarFaceless15(s6, interna(F, ['f4']), { whisperWords: WORDS, clipSeconds: [5, 5, 5] })
+    p['G13 clipes curtos (5 s assinados): o 2º plano recua o trim para caber (trim + duração + 0,06 ≤ 5), sem loop por falta, sem quadro preto'] = r6.f4?.aplicado === true && r6.f4.trechos.every(([, trim, len]) => trim + len + 0.06 <= 5 + 1e-9 && trim >= 0.1) && r6.f4.loopPorFalta === 0 && r6.f4.trechos.some(([, trim]) => trim > 0.1 && trim < 3)
+    const s7 = montar()
+    const r7 = F.aplicarFaceless15(s7, interna(F, ['f4']), { whisperWords: WORDS, clipSeconds: [2.5, 2.5, 2.5] })
+    p['G14 clipe menor que o plano (2,5 s assinados): loop por falta em vez de quadro preto, e o relato conta'] = r7.f4?.aplicado === true && r7.f4.loopPorFalta > 0 && trilha(s7, 2).some((e) => e.loop === true) && trilha(s7, 2).filter((e) => e.loop === true).length >= r7.f4.loopPorFalta
   }
   return p
 }
@@ -310,6 +361,12 @@ mut('f3: música sem loop (silêncio se a faixa for curta)', F15, "const base: E
 mut('f3: riser alto demais (20 % → 50 %)', F15, "segundos: 1.2, volume: '20%'", "segundos: 1.2, volume: '50%'", ['F4'])
 mut('f3: sem pop no reveal', F15, 'const pop = quadro.payoff != null ? som(sfx.pop, quadro.payoff) : null', 'const pop = null', ['F4'])
 mut('f3: whoosh fora do corte', F15, 'export const FACELESS15_WHOOSH_ANTES_S = 0.1', 'export const FACELESS15_WHOOSH_ANTES_S = 0.6', ['F4'])
+mut('f4: 2º plano sem o trim de 3,0 s (o mesmo quadro duas vezes)', F15, 'export const FACELESS15_TRIM_2O_PLANO_S = 3.0', 'export const FACELESS15_TRIM_2O_PLANO_S = 0', ['G3'])
+mut('f4: plano pode passar do clipe (sem a trava do trim)', F15, 'if (trim + len + SOBREPOSICAO_S > segundos[c] + 1e-9) {\n      trim = r3(', 'if (false) {\n      trim = r3(', ['G13'])
+mut('f4: o reveal deixa de ser corte fixo', F15, 'if (p != null && planosPara(p) >= 1 && planosPara(T - p) >= 1) {', 'if (false) {', ['G5'])
+mut('f4: sem punch no reveal', F15, 'Math.abs(ini - punchEm) < 1e-6 && len - FACELESS15_PUNCH_S >= 1', 'false', ['G6'])
+mut('f4: planos de 6 s em vez de ~3 s (o 3×6 de hoje)', F15, 'export const FACELESS15_PLANO_ALVO_S = 3.0', 'export const FACELESS15_PLANO_ALVO_S = 6.0', ['G2'])
+mut('f4: CTA ligado sem a fase', F15, "const ctaOn = opts.cta === true", 'const ctaOn = true', ['G10'])
 
 console.log(`\n${falhas.length === 0 ? '✅' : '❌'} ${ok} verdes, ${falhas.length} vermelhas`)
 if (falhas.length) { console.error('\nFalhas:'); for (const f of falhas) console.error('  · ' + f); process.exit(1) }

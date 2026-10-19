@@ -357,6 +357,167 @@ export function aplicarF3Faceless15(els: ReadonlyArray<El>, quadro: QuadroFacele
   return { els: saida, relato }
 }
 
+// ── F4 · 5 planos de 3 clipes (§3.1 / §3.8 / §3.9) ──────────────────────────────────────────────────────────────────
+// O mercado corta a cada 3–5 s; o 15 s do Seedance nasce com 3 clipes de 6 s. Em vez de gerar mais clipes (custo de fal),
+// cada clipe vira até DOIS planos: o 2º plano é o MESMO clipe com trim_start 3,0 s — zero custo. Os cortes caem na
+// fronteira de frase do Whisper quando cabe (a mesma régua das legendas), com piso 2,4 s e teto 4,0 s por plano; o
+// reveal (payoff) é sempre um corte quando a cauda dele cabe num plano, e o plano do reveal abre com um punch
+// 100→104 % em 0,15 s (elemento curto + o zoom de sempre a partir de 104 %). Nenhum plano passa do clipe
+// (trim_start + duração + sobreposição ≤ segundos do clipe) — o que não cabe encolhe o trim; sem segundos conhecidos e
+// com loop desligado, o limite é o que o clipe já mostrou na montagem de sempre.
+export const FACELESS15_PLANO_MIN_S = 2.4
+export const FACELESS15_PLANO_MAX_S = 4.0
+export const FACELESS15_PLANO_ALVO_S = 3.0
+/** O 2º plano de um clipe entra na metade dele. */
+export const FACELESS15_TRIM_2O_PLANO_S = 3.0
+/** Espelhos de CLIP_TRIM_START e CLIP_GAP_OVERLAP (lib/compose). */
+const TRIM_CABECA_S = 0.1
+const SOBREPOSICAO_S = 0.06
+/** Segundos de um clipe do formato quando o claim não diz (Seedance 15 s assina 6|7|8). */
+export const FACELESS15_CLIPE_PADRAO_S = 6
+export const FACELESS15_PUNCH_S = 0.15
+export const FACELESS15_PUNCH_ESCALA = '104%'
+const ZOOM_ESCALA = '108%'
+/** CTA de texto (§3.9): 1 s sobre o último plano esticado, sem fala; só com a fase 'cta'. */
+export const FACELESS15_CTA_TEXTO = 'Follow for part 2 →'
+export const FACELESS15_CTA_S = 1.0
+export const FACELESS15_CTA_FONTE = 48
+export const FACELESS15_CTA_TRACK = 13
+
+/** Quantos planos cabem num trecho de `L` segundos (0 se nem um plano mínimo cabe). */
+export function planosPara(L: number): number {
+  if (!(L >= FACELESS15_PLANO_MIN_S - 1e-9)) return 0
+  const lo = Math.ceil(L / FACELESS15_PLANO_MAX_S - 1e-9)
+  const hi = Math.floor(L / FACELESS15_PLANO_MIN_S + 1e-9)
+  return Math.max(1, Math.min(hi, Math.max(lo, Math.round(L / FACELESS15_PLANO_ALVO_S))))
+}
+
+/** Os n−1 cortes internos de [ini, fim] em n planos: cada corte vai à fronteira de frase mais perto do ideal dentro da janela [piso, teto] que ainda deixa os planos restantes caberem; sem fronteira na janela, o ideal. */
+export function planejarCortesFaceless15(ini: number, fim: number, n: number, frases: ReadonlyArray<number>): number[] {
+  const cortes: number[] = []
+  let prev = ini
+  for (let k = 1; k < n; k++) {
+    const rest = n - k
+    const lo = Math.max(prev + FACELESS15_PLANO_MIN_S, fim - rest * FACELESS15_PLANO_MAX_S)
+    const hi = Math.min(prev + FACELESS15_PLANO_MAX_S, fim - rest * FACELESS15_PLANO_MIN_S)
+    const ideal = prev + (fim - prev) / (rest + 1)
+    let corte: number
+    if (lo <= hi + 1e-9) {
+      const cands = frases.filter((t) => t >= lo - 1e-9 && t <= hi + 1e-9)
+      corte = cands.length > 0 ? cands.reduce((m, t) => (Math.abs(t - ideal) < Math.abs(m - ideal) ? t : m), cands[0]) : Math.min(hi, Math.max(lo, ideal))
+    } else {
+      corte = Math.min(fim, Math.max(prev + FACELESS15_PLANO_MIN_S, ideal))
+    }
+    corte = r3(corte)
+    cortes.push(corte)
+    prev = corte
+  }
+  return cortes
+}
+
+export interface RelatoF4 {
+  aplicado: boolean
+  motivo: 'ok' | 'sem_clipe' | 'still_na_trilha' | 'curto_demais'
+  clipes: number
+  planos: number
+  cortes: number[]
+  /** Quantos cortes caíram numa fronteira de frase. */
+  emFrase: number
+  punchEm: number | null
+  /** [clipe, trim_start, duração] de cada plano, na ordem. */
+  trechos: Array<[number, number, number]>
+  /** Planos cujo clipe não cobria o pedido e ficaram com loop ligado (frames repetidos em vez de quadro preto). */
+  loopPorFalta: number
+  cta: boolean
+  total: number
+}
+
+export function aplicarF4Faceless15(els: ReadonlyArray<El>, quadro: QuadroFaceless15, clipSeconds: ReadonlyArray<number> | null | undefined, opts: { cta?: boolean; font?: string | null } = {}): { els: El[]; relato: RelatoF4; total: number } {
+  const T = quadro.total
+  const vazio = (motivo: RelatoF4['motivo']): { els: El[]; relato: RelatoF4; total: number } => ({ els: [...els], total: T, relato: { aplicado: false, motivo, clipes: 0, planos: 0, cortes: [], emFrase: 0, punchEm: null, trechos: [], loopPorFalta: 0, cta: false, total: T } })
+  if (els.some((e) => e.type === 'image' && Number(e.track) === 2)) return vazio('still_na_trilha')
+  const planosHoje = els.filter((e) => ehVideo(e, 2))
+  if (planosHoje.length === 0) return vazio('sem_clipe')
+  const fontes: string[] = []
+  for (const e of planosHoje) { const s = String(e.source ?? ''); if (s && !fontes.includes(s)) fontes.push(s) }
+  const nClipes = fontes.length
+  const modelo = planosHoje[0]
+  const primeiroDe = (src: string): El => planosHoje.find((e) => String(e.source) === src) as El
+  // segundos conhecidos de cada clipe (claim assinado) ou o limite inferior que a montagem de sempre já mostrou
+  const assinados = Array.isArray(clipSeconds) && clipSeconds.length === nClipes && clipSeconds.every((s) => typeof s === 'number' && Number.isFinite(s) && s > 0.5 && s <= 30)
+  const segundos = fontes.map((src, c) => {
+    if (assinados) return (clipSeconds as ReadonlyArray<number>)[c]
+    const mostrado = planosHoje.filter((e) => String(e.source) === src).reduce((m, e) => Math.max(m, (num(e.trim_start) || 0) + num(e.duration)), 0)
+    const loopa = planosHoje.filter((e) => String(e.source) === src).every((e) => e.loop === true)
+    return loopa ? Math.max(mostrado, FACELESS15_CLIPE_PADRAO_S) : mostrado
+  })
+  // quantos planos e onde cortar: o reveal é corte fixo quando a cabeça e a cauda cabem
+  const p = quadro.payoff
+  let cortes: number[]
+  let punchEm: number | null = null
+  if (p != null && planosPara(p) >= 1 && planosPara(T - p) >= 1) {
+    cortes = [...planejarCortesFaceless15(0, p, planosPara(p), quadro.frases), r3(p), ...planejarCortesFaceless15(p, T, planosPara(T - p), quadro.frases)]
+    punchEm = r3(p)
+  } else {
+    const n = planosPara(T)
+    if (n === 0) return vazio('curto_demais')
+    cortes = planejarCortesFaceless15(0, T, n, quadro.frases)
+  }
+  const inicios = [0, ...cortes]
+  const n = inicios.length
+  // o CTA estica o último plano em 1 s (sem fala) — o total do filme cresce
+  const ctaOn = opts.cta === true
+  const total = ctaOn ? r3(T + FACELESS15_CTA_S) : T
+  const usos = new Array(nClipes).fill(0)
+  const novos: El[] = []
+  const trechos: RelatoF4['trechos'] = []
+  let loopPorFalta = 0
+  for (let k = 0; k < n; k++) {
+    const ini = inicios[k]
+    const fim = k + 1 < n ? inicios[k + 1] : total
+    const len = r3(fim - ini)
+    const c = Math.min(nClipes - 1, Math.floor((k * nClipes) / n))
+    usos[c]++
+    const base = primeiroDe(fontes[c])
+    const cabeca = num(base.trim_start) || TRIM_CABECA_S
+    let trim = usos[c] === 1 ? r3(cabeca) : r3((usos[c] - 1) * FACELESS15_TRIM_2O_PLANO_S)
+    let loop = base.loop === true && !assinados
+    if (trim + len + SOBREPOSICAO_S > segundos[c] + 1e-9) {
+      trim = r3(Math.max(cabeca, segundos[c] - len - SOBREPOSICAO_S))
+      if (trim + len + SOBREPOSICAO_S > segundos[c] + 1e-9) { loop = true; loopPorFalta++ }
+    }
+    trechos.push([c, trim, len])
+    const zoomIn = k % 2 === 0
+    const comum: El = { ...modelo, source: fontes[c], loop }
+    delete comum.enter_transition
+    if (k === 0 && modelo.enter_transition) comum.enter_transition = modelo.enter_transition
+    const zoom = (de: string, para: string): unknown[] => [{ type: 'scale', fade: false, start_scale: de, end_scale: para, easing: 'ease-out' }]
+    if (punchEm != null && Math.abs(ini - punchEm) < 1e-6 && len - FACELESS15_PUNCH_S >= 1) {
+      // punch no reveal: 0,15 s de 100→104 % e o zoom lento de 104→108 % no resto do plano (mesmo clipe, trecho contínuo)
+      novos.push({ ...comum, time: r3(ini), duration: r3(FACELESS15_PUNCH_S + SOBREPOSICAO_S), trim_start: trim, animations: zoom('100%', FACELESS15_PUNCH_ESCALA) })
+      novos.push({ ...comum, time: r3(ini + FACELESS15_PUNCH_S), duration: r3(len - FACELESS15_PUNCH_S + SOBREPOSICAO_S), trim_start: r3(trim + FACELESS15_PUNCH_S), animations: zoom(FACELESS15_PUNCH_ESCALA, ZOOM_ESCALA) })
+    } else {
+      novos.push({ ...comum, time: r3(ini), duration: r3(len + SOBREPOSICAO_S), trim_start: trim, animations: zoom(zoomIn ? '100%' : ZOOM_ESCALA, zoomIn ? ZOOM_ESCALA : '100%') })
+    }
+  }
+  // troca a trilha 2 no lugar onde ela estava; com CTA, estica o que cobre o filme inteiro (fundo, véu, marca d'água) e põe o cartão
+  const i0 = els.findIndex((e) => ehVideo(e, 2))
+  const semPlanos = els.filter((e) => !ehVideo(e, 2))
+  let saida: El[] = [...semPlanos.slice(0, i0), ...novos, ...semPlanos.slice(i0)]
+  if (ctaOn) {
+    saida = saida.map((e) => (num(e.time) === 0 && Math.abs(num(e.duration) - T) < 1e-6 && (e.type === 'shape' || (e.type === 'text' && Number(e.track) === 9)) ? { ...e, duration: total } : e))
+    saida.push({
+      type: 'text', track: FACELESS15_CTA_TRACK, time: r3(T), duration: FACELESS15_CTA_S, text: FACELESS15_CTA_TEXTO,
+      x: '50%', y: '50%', x_anchor: '50%', y_anchor: '50%', x_alignment: '50%', width: '78%',
+      font_family: typeof opts.font === 'string' && opts.font.trim() ? opts.font.trim() : 'Montserrat', font_size: FACELESS15_CTA_FONTE, font_weight: '700', line_height: '105%',
+      fill_color: '#ffffff', stroke_color: 'rgba(0,0,0,0.98)', stroke_width: 3, background_color: 'rgba(0,0,0,0.60)', background_x_padding: '3%', background_y_padding: '2%', border_radius: 10,
+      enter_transition: { type: 'pop', duration: 0.08 },
+    })
+  }
+  const emFrase = cortes.filter((t) => quadro.frases.some((f) => Math.abs(f - t) < 1e-6)).length
+  return { els: saida, total, relato: { aplicado: true, motivo: 'ok', clipes: nClipes, planos: n, cortes, emFrase, punchEm, trechos, loopPorFalta, cta: ctaOn, total } }
+}
+
 // ── a aplicação (F1/F3/F4 em cima do source montado) ─────────────────────────────────────────────────────────────────
 export interface ContextoFaceless15 {
   whisperWords?: ReadonlyArray<WhisperWord> | null
@@ -374,6 +535,7 @@ export interface RelatoFaceless15 {
   fases: FaseFaceless15[]
   f1?: RelatoF1
   f3?: RelatoF3
+  f4?: RelatoF4
   erros?: string[]
 }
 
@@ -392,6 +554,17 @@ export function aplicarFaceless15(source: Record<string, unknown>, decisao: Face
   let els: El[] = elsOriginais as El[]
   const fases = new Set(decisao.fases)
   const quadroDe = (lista: ReadonlyArray<El>): QuadroFaceless15 => lerQuadroFaceless15({ ...source, elements: lista }, ctx.whisperWords)
+  // F4 primeiro: os cortes dela são os que a F3 marca com whoosh; o CTA estica o filme, e o total novo vale para o resto
+  if (fases.has('f4')) {
+    try {
+      const r = aplicarF4Faceless15(els, quadroDe(els), ctx.clipSeconds, { cta: fases.has('cta'), font: ctx.font })
+      if (r.relato.aplicado) {
+        els = r.els
+        ;(source as { duration: number }).duration = r.total
+      }
+      relato.f4 = r.relato
+    } catch (err) { erros.push(`f4:${err instanceof Error ? err.message : String(err)}`) }
+  }
   if (fases.has('f1')) {
     try {
       const r = aplicarF1Faceless15(els, quadroDe(els), ctx.whisperWords)
@@ -401,7 +574,7 @@ export function aplicarFaceless15(source: Record<string, unknown>, decisao: Face
   }
   if (fases.has('f3')) {
     try {
-      const r = aplicarF3Faceless15(els, quadroDe(els), cortesDaTrilha2(els), ctx.sfx ?? SFX_FACELESS15)
+      const r = aplicarF3Faceless15(els, quadroDe(els), relato.f4?.aplicado ? relato.f4.cortes : cortesDaTrilha2(els), ctx.sfx ?? SFX_FACELESS15)
       els = r.els
       relato.f3 = r.relato
     } catch (err) { erros.push(`f3:${err instanceof Error ? err.message : String(err)}`) }
