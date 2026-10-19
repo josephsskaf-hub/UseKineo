@@ -16,6 +16,7 @@
 // CRÉDITOS IGUAIS: adsV2Credits depende só do nível e da duração; o preço do Comercial com apresentador não muda.
 // TRAVA: ADS_V2_PRESENTER_V2_MODE = 'internal' — só as contas da casa (isAdsInternalEmail, reason 'internal' no /plan). Clientes continuam no
 // ator de 09/10 até a nota final do fundador. 'off' = nenhum pedido usa isto (nem os já planejados).
+// KINEO-APRESENTADOR-V2-LIBERA-1910 — 19/10: a nota final veio (9 na R3, pedido 84a5d07f) e a trava virou 'all' — todos os clientes, mesmo escopo (Comercial, 9:16, sem estilo).
 //
 // LIB PURA (só `import type`, apagado na transpilação): o guardião scripts/test-apresentador-v2-1710.mjs carrega este arquivo cru.
 //
@@ -32,7 +33,9 @@
 import type { AdsV2PlannedShot } from '@/lib/ads/v2ShotLists'
 
 /** Interruptor ÚNICO: 'internal' = só contas da casa; 'all' = todos; 'off' = o ator de antes para todo mundo. */
-export const ADS_V2_PRESENTER_V2_MODE: 'off' | 'internal' | 'all' = 'internal'
+// KINEO-APRESENTADOR-V2-LIBERA-1910 — LIBERADO para todos: nota 9 do fundador na R3 (pedido 84a5d07f, docs/RESULTADO-T1-APRESENTADOR-V2-R3-2026-10-17.md). O escopo
+// KINEO-APRESENTADOR-V2-LIBERA-1910 — NÃO muda: só o Comercial, 9:16, sem estilo de produto (adsV2PresenterV2Eligible); o resto segue no ator de antes. 'off' desliga tudo.
+export const ADS_V2_PRESENTER_V2_MODE: 'off' | 'internal' | 'all' = 'all' // KINEO-APRESENTADOR-V2-LIBERA-1910 — era 'internal'
 
 /** O método vale para esta conta? (puro: `internal` = isAdsInternalEmail, que o /plan já resolve como reason 'internal'). */
 export function adsV2PresenterV2On(internal: boolean, mode: 'off' | 'internal' | 'all' = ADS_V2_PRESENTER_V2_MODE): boolean {
