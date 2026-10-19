@@ -9,6 +9,7 @@
 // sempre semCloseReal1910(semCloseRealAjuste1910(semCloseRealV3_1910(texto))) — esta camada (a mais nova) sai PRIMEIRO (semCloseRealAjuste1910 e semFilmesF1F3Ajuste1910 já chamam esta).
 // O guardião scripts/test-close-real-v3-1910.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (CLOSE_REAL_V3_1910_BASE).
 export const MARCA_CLOSE_REAL_V3_1910 = 'KINEO-CLOSE-REAL-V3-1910'
+import { semCloseRealLegenda1910 } from './desfaz-close-real-legenda-1910.mjs' // KINEO-CLOSE-REAL-LEGENDA-1910 — a legenda menor do Close real veio depois: sai PRIMEIRO (encadeado; texto sem a marca dela passa igual)
 
 /** A base da entrega (origin/main de 19/10: o ajuste do Close real no ar, ddb44e546, + o ajuste F1/F3 do Faceless 15 s, 8abb2394e — mesclada com merge). */
 export const CLOSE_REAL_V3_1910_BASE = "8abb2394e361ec7c8a3a26f628d5d80de33c3498"
@@ -132,6 +133,7 @@ const LF = String.fromCharCode(10)
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Sem linha marcada = devolve igual (CRLF preservado). */
 export function semCloseRealV3_1910(texto, p) {
+  texto = semCloseRealLegenda1910(texto, p) // KINEO-CLOSE-REAL-LEGENDA-1910 — a camada mais nova sai primeiro
   if (typeof texto !== 'string' || !texto.includes(MARCA_CLOSE_REAL_V3_1910)) return texto
   const crlf = texto.includes(CR + LF)
   const trocas = new Map((TROCAS_CLOSE_REAL_V3_1910[p] ?? []).map(([nova, base]) => [nova, base]))

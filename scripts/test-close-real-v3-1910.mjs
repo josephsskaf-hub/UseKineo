@@ -20,6 +20,7 @@ import zlib from 'node:zlib'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semCloseRealV3_1910, CLOSE_REAL_V3_1910_ARQUIVOS, CLOSE_REAL_V3_1910_NOVOS, CLOSE_REAL_V3_1910_BASE, MARCA_CLOSE_REAL_V3_1910, TROCAS_CLOSE_REAL_V3_1910 } from './test-support/desfaz-close-real-v3-1910.mjs'
 import { semFilmesF1Virgula1910 } from './test-support/desfaz-filmes-f1-virgula-1910.mjs' // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a camada mais nova sai primeiro
+import { semCloseRealLegenda1910 } from './test-support/desfaz-close-real-legenda-1910.mjs' // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a legenda menor (a camada mais nova) sai PRIMEIRO
 import { semCloseRealAjuste1910 } from './test-support/desfaz-close-real-ajuste-1910.mjs'
 import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs'
 import { semFilmesF1F3Ajuste1910 } from './test-support/desfaz-filmes-f1f3-ajuste-1910.mjs'
@@ -28,7 +29,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const MARCA = 'KINEO-CLOSE-REAL-V3-1910'
 const lf = (s) => String(s).split('\r\n').join('\n')
-const rd = (p) => lf(semFilmesF1Virgula1910(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a camada do export limpo (mesclada depois, nos guardiões do ajuste F1/F3 e do Close real) sai PRIMEIRO, em memória
+const rd = (p) => lf(semFilmesF1Virgula1910(semCloseRealLegenda1910(readFileSync(join(ROOT, p), 'utf8'), p), p)) // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a legenda menor do Close real (a mais nova) sai PRIMEIRO; depois a camada do export limpo
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return lf(git('show', `${CLOSE_REAL_V3_1910_BASE}:${p}`)) } catch { return null } }
 let pass = 0
@@ -39,7 +40,7 @@ const trocar = (src, a, b) => { const n = src.split(a).length - 1; if (n !== 1) 
 
 const F = { cr: 'lib/ads/v2CloseReal.ts', srv: 'lib/ads/v2CloseRealServer.ts', advance: 'lib/ads/v2Advance.ts', fit: 'lib/ads/v2CopyFit.ts', cedo: 'lib/ads/v2AudioCedo.ts', pv2: 'lib/ads/v2PresenterV2.ts', png: 'lib/ads/v2Png.ts', montage: 'lib/ads/adV2Montage.ts' }
 const SRC = Object.fromEntries(Object.entries(F).map(([k, p]) => [k, rd(p)]))
-const carregar = (over = {}, mocks = {}, globals = {}) => createOfflineLoader({ mocks: { 'node:zlib': zlib, ...mocks }, globals, source: (rel, text) => (Object.hasOwn(over, rel) ? over[rel] : text) })
+const carregar = (over = {}, mocks = {}, globals = {}) => createOfflineLoader({ mocks: { 'node:zlib': zlib, ...mocks }, globals, source: (rel, text) => (Object.hasOwn(over, rel) ? over[rel] : semCloseRealLegenda1910(text, rel)) }) // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: executa o formato na régua da rodada 3 (antes da legenda menor, provada em scripts/test-close-real-legenda-1910.mjs)
 const CR = (over = {}) => carregar(over)(F.cr)
 const H = (n) => `https://cdn.test/${n}`
 const W = 1080, HH = 1920

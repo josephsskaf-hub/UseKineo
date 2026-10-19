@@ -298,6 +298,38 @@ export function adsV2CloseRealCaptionFit(text: string, frameW: number, frameH: n
   const px = sizes[sizes.length - 1] // KINEO-CLOSE-REAL-V3-1910
   return { fontPx: px, lines: adsV2CloseRealCaptionLines2(text, px, frameW), floor: false } // KINEO-CLOSE-REAL-V3-1910
 } // KINEO-CLOSE-REAL-V3-1910
+// ── KINEO-CLOSE-REAL-LEGENDA-1910 — TAMANHO E ESTILO DA LEGENDA DA FALA (fundador 19/10, nota 8,5: "achei a legenda um pouco grande"; pesquisa de mercado em
+// KINEO-CLOSE-REAL-LEGENDA-1910 — docs/PESQUISA-TAMANHO-LEGENDA-ADS-2026-10-19.md: a legenda falada de Arcads/Creatify mora em 2,5–3,5% da altura, o gancho em 3,5–5%;
+// KINEO-CLOSE-REAL-LEGENDA-1910 — nós púnhamos 4,5% em TODAS = tamanho de gancho na fala inteira). Agora: a fala em 3,6% da altura (69 px em 1920), até 4 palavras
+// KINEO-CLOSE-REAL-LEGENDA-1910 — por linha e 2 linhas (frase maior = encurtada no fim de uma oração, como na rodada 3: nunca um pedaço do meio), branca com
+// KINEO-CLOSE-REAL-LEGENDA-1910 — CONTORNO preto e SEM a pílula escura (o contorno some sobre o produto e mostra mais a foto real). O título do gancho fica como
+// KINEO-CLOSE-REAL-LEGENDA-1910 — estava: 4,5% → 3,6% em 2 linhas de até 5 palavras, na pílula. O contorno é o da legenda dos filmes no ar (lib/compose.ts e
+// KINEO-CLOSE-REAL-LEGENDA-1910 — lib/filmes/faceless15.ts: stroke_color 'rgba(0,0,0,0.98)', stroke_width 3). Sombra: a casa NUNCA mandou shadow_* ao Creatomate
+// KINEO-CLOSE-REAL-LEGENDA-1910 — (nenhuma linha do repositório) — propriedade nunca exercitada não entra sem render de validação, então a fala vai só com o contorno.
+/** KINEO-CLOSE-REAL-LEGENDA-1910 — a fonte da legenda da FALA em fração da altura (fixa; o gancho segue em ADS_V2_CLOSE_REAL_CAPTION_FONT, 4,5%). */
+export const ADS_V2_CLOSE_REAL_SPEECH_FONT = 0.036 // KINEO-CLOSE-REAL-LEGENDA-1910
+/** KINEO-CLOSE-REAL-LEGENDA-1910 — no máximo 4 palavras por linha na legenda da fala (o gancho segue com 5). */
+export const ADS_V2_CLOSE_REAL_SPEECH_LINE_WORDS = 4 // KINEO-CLOSE-REAL-LEGENDA-1910
+/** KINEO-CLOSE-REAL-LEGENDA-1910 — o contorno da legenda da fala: EXATAMENTE o da legenda dos filmes no ar (lib/compose.ts, lib/filmes/faceless15.ts). */
+export const ADS_V2_CLOSE_REAL_SPEECH_STROKE_COLOR = 'rgba(0,0,0,0.98)' // KINEO-CLOSE-REAL-LEGENDA-1910
+export const ADS_V2_CLOSE_REAL_SPEECH_STROKE_WIDTH = 3 // KINEO-CLOSE-REAL-LEGENDA-1910
+/** KINEO-CLOSE-REAL-LEGENDA-1910 — as linhas da legenda da fala: a quebra pedida ("\n") e, dentro de cada uma, por palavra — cabe na largura E no máximo 4 palavras por linha. Pura. */
+export function adsV2CloseRealSpeechLines(text: string, fontPx: number, frameW: number): string[] { // KINEO-CLOSE-REAL-LEGENDA-1910
+  const perLine = Math.max(4, Math.floor((frameW * ADS_V2_CLOSE_REAL_CAPTION_WIDTH * 0.94) / (fontPx * ADS_V2_OVERLAY_CHAR_EM))) // KINEO-CLOSE-REAL-LEGENDA-1910 — ≡ adsV2CloseRealCaptionLines
+  const out: string[] = [] // KINEO-CLOSE-REAL-LEGENDA-1910
+  for (const l of String(text ?? '').split('\n').map((x) => x.replace(/\s+/g, ' ').trim()).filter(Boolean)) { // KINEO-CLOSE-REAL-LEGENDA-1910
+    const lines: string[][] = [] // KINEO-CLOSE-REAL-LEGENDA-1910
+    for (const word of l.split(' ')) { const last = lines.length ? lines[lines.length - 1] : null; if (last && last.length < ADS_V2_CLOSE_REAL_SPEECH_LINE_WORDS && [...last, word].join(' ').length <= perLine) last.push(word); else lines.push([word]) } // KINEO-CLOSE-REAL-LEGENDA-1910
+    out.push(...lines.map((x) => x.join(' '))) // KINEO-CLOSE-REAL-LEGENDA-1910
+  } // KINEO-CLOSE-REAL-LEGENDA-1910
+  return out // KINEO-CLOSE-REAL-LEGENDA-1910
+} // KINEO-CLOSE-REAL-LEGENDA-1910
+/** KINEO-CLOSE-REAL-LEGENDA-1910 — o tamanho da legenda da fala: SEMPRE 3,6% da altura (sem escada); `floor` = cabe em 2 linhas (senão a frase falada é encurtada). Pura. */
+export function adsV2CloseRealSpeechFit(text: string, frameW: number, frameH: number): { fontPx: number; lines: string[]; floor: boolean } { // KINEO-CLOSE-REAL-LEGENDA-1910
+  const fontPx = Math.round(ADS_V2_CLOSE_REAL_SPEECH_FONT * frameH) // KINEO-CLOSE-REAL-LEGENDA-1910
+  const lines = adsV2CloseRealSpeechLines(text, fontPx, frameW) // KINEO-CLOSE-REAL-LEGENDA-1910
+  return { fontPx, lines, floor: lines.length <= ADS_V2_CLOSE_REAL_CAPTION_LINES_MAX } // KINEO-CLOSE-REAL-LEGENDA-1910
+} // KINEO-CLOSE-REAL-LEGENDA-1910
 /** KINEO-CLOSE-REAL-V3-1910 — conjunções que abrem uma oração nova (corta ANTES delas; a oração de antes fica inteira). Sem "que/that": a relativa não é oração solta. */
 const CLOSE_REAL_JOINERS = new Set(['and', 'but', 'or', 'e', 'mas', 'ou', 'porém', 'y', 'pero', 'et', 'und', 'aber', 'oder', 'ed', 'ma']) // KINEO-CLOSE-REAL-V3-1910
 /** KINEO-CLOSE-REAL-V3-1910 — palavras em que uma legenda encurtada não pode TERMINAR (artigo, preposição, conjunção, possessivo: deixariam a frase pendurada). */
@@ -311,7 +343,7 @@ const closeRealNormWord = (w: string): string => String(w ?? '').toLocaleLowerCa
  */ // KINEO-CLOSE-REAL-V3-1910
 export function adsV2CloseRealCaptionWords(words: readonly string[], frameW: number = 1080, frameH: number = 1920): string[] { // KINEO-CLOSE-REAL-V3-1910
   const ws = (Array.isArray(words) ? words : []).filter((w) => typeof w === 'string' && w.trim()).map((w) => w.trim()) // KINEO-CLOSE-REAL-V3-1910
-  const fits = (k: number): boolean => { const f = adsV2CloseRealCaptionFit(captionText(ws.slice(0, k)), frameW, frameH); return f.floor && f.lines.length <= ADS_V2_CLOSE_REAL_CAPTION_LINES_MAX } // KINEO-CLOSE-REAL-V3-1910
+  const fits = (k: number): boolean => { const f = adsV2CloseRealSpeechFit(captionText(ws.slice(0, k)), frameW, frameH); return f.floor && f.lines.length <= ADS_V2_CLOSE_REAL_CAPTION_LINES_MAX } // KINEO-CLOSE-REAL-LEGENDA-1910 — a frase falada cabe em 2 linhas de até 4 palavras a 3,6% (era: adsV2CloseRealCaptionFit, 2 linhas de até 5 a ≥ 4%); o encurtamento por oração segue igual
   if (ws.length === 0 || fits(ws.length)) return ws // KINEO-CLOSE-REAL-V3-1910
   const weak = (k: number): boolean => CLOSE_REAL_WEAK_END.has(closeRealNormWord(ws[k - 1])) // KINEO-CLOSE-REAL-V3-1910
   for (let k = ws.length - 1; k >= 3; k--) { const clause = /[,;:–—]$/u.test(ws[k - 1]) || CLOSE_REAL_JOINERS.has(closeRealNormWord(ws[k])); if (clause && !weak(k) && fits(k)) return ws.slice(0, k) } // KINEO-CLOSE-REAL-V3-1910
@@ -386,9 +418,9 @@ export function adsV2CloseRealPlanWindows(i: { timeline: AdsV2CloseRealTimeline;
  * KINEO-CLOSE-REAL-V3-1910 · 14% sem marca-d'água), senão ABAIXO (com folga) até 65% (a zona segura do Meta), senão até 80% (acima da UI do app); nem assim, o que cobre menos (no alto ou nos 80%).
  * KINEO-CLOSE-REAL-V3-1910 · Produto ao lado (sem cruzar a largura da pílula) não conta. `span` null = o topo de sempre.
  */ // KINEO-CLOSE-REAL-V3-1910
-export function adsV2CloseRealCaptionPlace(text: string, frameW: number, frameH: number, span: AdsV2CloseRealBox | null, minTop: number = ADS_V2_CLOSE_REAL_CAPTION_TOP): { y: string; y_anchor: string; width: string; font_size: number; lines: number; box: AdsV2CloseRealTextBox; where: 'top' | 'above' | 'below' | 'low' | 'least' } { // KINEO-CLOSE-REAL-V3-1910
+export function adsV2CloseRealCaptionPlace(text: string, frameW: number, frameH: number, span: AdsV2CloseRealBox | null, minTop: number = ADS_V2_CLOSE_REAL_CAPTION_TOP, speech: boolean = false): { y: string; y_anchor: string; width: string; font_size: number; lines: number; box: AdsV2CloseRealTextBox; where: 'top' | 'above' | 'below' | 'low' | 'least' } { // KINEO-CLOSE-REAL-LEGENDA-1910 — + speech: a legenda da fala (3,6%, até 4 palavras por linha); sem ela, o título do gancho (4,5%) como sempre
   const r4 = (n: number) => Math.round(n * 10000) / 10000 // KINEO-CLOSE-REAL-V3-1910
-  const f = adsV2CloseRealCaptionFit(text, frameW, frameH) // KINEO-CLOSE-REAL-V3-1910
+  const f = speech ? adsV2CloseRealSpeechFit(text, frameW, frameH) : adsV2CloseRealCaptionFit(text, frameW, frameH) // KINEO-CLOSE-REAL-LEGENDA-1910 — a fala mede no tamanho dela (a caixa menor sai do produto com mais folga)
   const h = 2 * ADS_V2_OVERLAY_PILL_PAD + (f.lines.length * f.fontPx * ADS_V2_OVERLAY_LINE_HEIGHT) / frameH // KINEO-CLOSE-REAL-V3-1910
   const longest = Math.max(1, ...f.lines.map((l) => l.length)) // KINEO-CLOSE-REAL-V3-1910
   const halfW = Math.min(ADS_V2_CLOSE_REAL_CAPTION_WIDTH, (longest * f.fontPx * ADS_V2_OVERLAY_CHAR_EM) / frameW + 0.06) / 2 // KINEO-CLOSE-REAL-V3-1910 — a pílula: o texto mais a folga dos lados
@@ -633,9 +665,12 @@ export function buildAdV2CloseRealSource(input: AdV2CloseRealInput): Record<stri
   const captions = adsV2CloseRealCaptionsV3({ narration: hasVoice ? input.narration ?? null : null, voiceSeconds: hasVoice ? (input.voiceSeconds as number) : null, headline: (input.phrases ?? [])[0] ?? null, overlays: input.phrases ?? [], timeline: t, frameW: width, frameH: height }) // KINEO-CLOSE-REAL-V3-1910
   const capWindows = adsV2CloseRealPlanWindows({ timeline: t, shotPhotos, photoBoxes: input.photoBoxes ?? null, hookCutout: isHttps(input.heroUrl), frameW: width, frameH: height }) // KINEO-CLOSE-REAL-V3-1910 — onde o produto mora em cada plano (gancho e fotos)
   const capMinTop = typeof input.watermark === 'string' && input.watermark.trim() ? ADS_V2_CLOSE_REAL_CAPTION_TOP : ADS_V2_SAFE_TOP // KINEO-CLOSE-REAL-V3-1910 — a marca-d'água da amostra mora entre 14% e 17,5%
+  const capHook = adsV2CloseRealHeadline((input.phrases ?? [])[0] ?? null, width, height) // KINEO-CLOSE-REAL-LEGENDA-1910 — o título do gancho (a 1ª legenda, quando existe): o único que fica grande e na pílula
   captions.forEach((c) => { // KINEO-CLOSE-REAL-V3-1910
-    for (const seg of adsV2CloseRealCaptionSegments(c, capWindows, (span) => adsV2CloseRealCaptionPlace(c.text, width, height, span, capMinTop).y)) { // KINEO-CLOSE-REAL-V3-1910 — a legenda que atravessa um corte muda de lugar NO corte se o produto do plano seguinte mora em outro lugar
-      const geo = adsV2CloseRealCaptionPlace(c.text, width, height, seg.span, capMinTop) // KINEO-CLOSE-REAL-V3-1910
+    const speech = !(captions.indexOf(c) === 0 && capHook !== '' && c.text === capHook) // KINEO-CLOSE-REAL-LEGENDA-1910 — toda legenda que não é o título do gancho é legenda da fala
+    for (const seg of adsV2CloseRealCaptionSegments(c, capWindows, (span) => adsV2CloseRealCaptionPlace(c.text, width, height, span, capMinTop, speech).y)) { // KINEO-CLOSE-REAL-LEGENDA-1910 — o lugar medido no tamanho de cada legenda (fala 3,6% · gancho 4,5%); a troca de lugar no corte segue igual
+      const geo = adsV2CloseRealCaptionPlace(c.text, width, height, seg.span, capMinTop, speech) // KINEO-CLOSE-REAL-LEGENDA-1910
+      if (speech) { elements.push({ type: 'text', track: T.text, time: r3(seg.start), duration: r3(seg.end - seg.start), text: c.text, x: '50%', y: geo.y, x_anchor: '50%', y_anchor: geo.y_anchor, x_alignment: '50%', width: geo.width, font_family: fontFamily, font_size: geo.font_size, font_weight: '800', line_height: '110%', fill_color: '#ffffff', stroke_color: ADS_V2_CLOSE_REAL_SPEECH_STROKE_COLOR, stroke_width: ADS_V2_CLOSE_REAL_SPEECH_STROKE_WIDTH }); continue } // KINEO-CLOSE-REAL-LEGENDA-1910 — a fala: branca com o contorno da legenda dos filmes, SEM pílula (sem background_*); o gancho segue na linha de baixo, como estava
       elements.push({ type: 'text', track: T.text, time: r3(seg.start), duration: r3(seg.end - seg.start), text: c.text, x: '50%', y: geo.y, x_anchor: '50%', y_anchor: geo.y_anchor, x_alignment: '50%', width: geo.width, font_family: fontFamily, font_size: geo.font_size, font_weight: '800', line_height: '110%', fill_color: '#ffffff', stroke_color: 'rgba(0,0,0,0.6)', stroke_width: Math.max(2, Math.round(geo.font_size / 28)), background_color: 'rgba(0,0,0,0.6)', background_x_padding: '3%', background_y_padding: '2%', border_radius: 14 }) // KINEO-CLOSE-REAL-V3-1910 — o mesmo estilo de anúncio do ajuste; só o texto (frase inteira) e o lugar (fora do produto) mudam
     } // KINEO-CLOSE-REAL-V3-1910
   }) // KINEO-CLOSE-REAL-V3-1910

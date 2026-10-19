@@ -1,0 +1,44 @@
+{
+ "lib/ads/v2CloseReal.ts": [
+  [
+   "  const fits = (k: number): boolean => { const f = adsV2CloseRealSpeechFit(captionText(ws.slice(0, k)), frameW, frameH); return f.floor && f.lines.length <= ADS_V2_CLOSE_REAL_CAPTION_LINES_MAX } // KINEO-CLOSE-REAL-LEGENDA-1910 — a frase falada cabe em 2 linhas de até 4 palavras a 3,6% (era: adsV2CloseRealCaptionFit, 2 linhas de até 5 a ≥ 4%); o encurtamento por oração segue igual",
+   "  const fits = (k: number): boolean => { const f = adsV2CloseRealCaptionFit(captionText(ws.slice(0, k)), frameW, frameH); return f.floor && f.lines.length <= ADS_V2_CLOSE_REAL_CAPTION_LINES_MAX } // KINEO-CLOSE-REAL-V3-1910"
+  ],
+  [
+   "export function adsV2CloseRealCaptionPlace(text: string, frameW: number, frameH: number, span: AdsV2CloseRealBox | null, minTop: number = ADS_V2_CLOSE_REAL_CAPTION_TOP, speech: boolean = false): { y: string; y_anchor: string; width: string; font_size: number; lines: number; box: AdsV2CloseRealTextBox; where: 'top' | 'above' | 'below' | 'low' | 'least' } { // KINEO-CLOSE-REAL-LEGENDA-1910 — + speech: a legenda da fala (3,6%, até 4 palavras por linha); sem ela, o título do gancho (4,5%) como sempre",
+   "export function adsV2CloseRealCaptionPlace(text: string, frameW: number, frameH: number, span: AdsV2CloseRealBox | null, minTop: number = ADS_V2_CLOSE_REAL_CAPTION_TOP): { y: string; y_anchor: string; width: string; font_size: number; lines: number; box: AdsV2CloseRealTextBox; where: 'top' | 'above' | 'below' | 'low' | 'least' } { // KINEO-CLOSE-REAL-V3-1910"
+  ],
+  [
+   "  const f = speech ? adsV2CloseRealSpeechFit(text, frameW, frameH) : adsV2CloseRealCaptionFit(text, frameW, frameH) // KINEO-CLOSE-REAL-LEGENDA-1910 — a fala mede no tamanho dela (a caixa menor sai do produto com mais folga)",
+   "  const f = adsV2CloseRealCaptionFit(text, frameW, frameH) // KINEO-CLOSE-REAL-V3-1910"
+  ],
+  [
+   "    for (const seg of adsV2CloseRealCaptionSegments(c, capWindows, (span) => adsV2CloseRealCaptionPlace(c.text, width, height, span, capMinTop, speech).y)) { // KINEO-CLOSE-REAL-LEGENDA-1910 — o lugar medido no tamanho de cada legenda (fala 3,6% · gancho 4,5%); a troca de lugar no corte segue igual",
+   "    for (const seg of adsV2CloseRealCaptionSegments(c, capWindows, (span) => adsV2CloseRealCaptionPlace(c.text, width, height, span, capMinTop).y)) { // KINEO-CLOSE-REAL-V3-1910 — a legenda que atravessa um corte muda de lugar NO corte se o produto do plano seguinte mora em outro lugar"
+  ],
+  [
+   "      const geo = adsV2CloseRealCaptionPlace(c.text, width, height, seg.span, capMinTop, speech) // KINEO-CLOSE-REAL-LEGENDA-1910",
+   "      const geo = adsV2CloseRealCaptionPlace(c.text, width, height, seg.span, capMinTop) // KINEO-CLOSE-REAL-V3-1910"
+  ]
+ ],
+ "scripts/test-close-real-v3-1910.mjs": [
+  [
+   "const rd = (p) => lf(semFilmesF1Virgula1910(semCloseRealLegenda1910(readFileSync(join(ROOT, p), 'utf8'), p), p)) // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a legenda menor do Close real (a mais nova) sai PRIMEIRO; depois a camada do export limpo",
+   "const rd = (p) => lf(semFilmesF1Virgula1910(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a camada do export limpo (mesclada depois, nos guardiões do ajuste F1/F3 e do Close real) sai PRIMEIRO, em memória"
+  ],
+  [
+   "const carregar = (over = {}, mocks = {}, globals = {}) => createOfflineLoader({ mocks: { 'node:zlib': zlib, ...mocks }, globals, source: (rel, text) => (Object.hasOwn(over, rel) ? over[rel] : semCloseRealLegenda1910(text, rel)) }) // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: executa o formato na régua da rodada 3 (antes da legenda menor, provada em scripts/test-close-real-legenda-1910.mjs)",
+   "const carregar = (over = {}, mocks = {}, globals = {}) => createOfflineLoader({ mocks: { 'node:zlib': zlib, ...mocks }, globals, source: (rel, text) => (Object.hasOwn(over, rel) ? over[rel] : text) })"
+  ]
+ ],
+ "scripts/test-filmes-f1-virgula-1910.mjs": [
+  [
+   "  const alheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA}`, '--grep=KINEO-CLOSE-REAL-LEGENDA-1910', 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } } // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a versão 'alheia' pula também os commits da legenda menor do Close real",
+   "  const alheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA}`, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } }"
+  ],
+  [
+   "    const vivo = semCloseRealLegenda1910(rd(p), p) // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: sem a camada da legenda menor (mais nova), em memória",
+   "    const vivo = rd(p)"
+  ]
+ ]
+}
