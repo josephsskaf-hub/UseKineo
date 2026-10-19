@@ -22,6 +22,8 @@ import { speakableForTts } from '@/lib/ads/speakable'
 import { adsV2NarrationForTts, adsV2PronounceOf } from '@/lib/ads/v2Pronounce'
 import { persistAudioCopy } from '@/lib/ads/v2Images'
 import { adsV2PresenterPlanOf, type AdsV2OrderRow } from '@/lib/ads/v2Advance'
+import { adsV2CloseRealNarrationVoice } from '@/lib/ads/v2Advance' // KINEO-CLOSE-REAL-V3-1910 — o Close real fala na voz por língua (PT-BR: Portuguese_ConfidentWoman) já no áudio cedo
+import { adsV2CloseRealOf } from '@/lib/ads/v2CloseReal' // KINEO-CLOSE-REAL-V3-1910
 import { writeServerEvent } from '@/lib/serverEvents'
 import { tomarVezDoCron } from '@/lib/cronLease'
 
@@ -68,7 +70,8 @@ export async function adsV2AudioCedo(admin: SupabaseClient, order: AdsV2OrderRow
       return 'pronta' as const
     })().catch(() => 'falhou' as const) : Promise.resolve('pulada' as const)
     const voz = falta.voz && falta.narracao ? (async () => {
-      const buf = await synthesizeTtsFallback(speakableForTts(adsV2NarrationForTts(falta.narracao!, adsV2PronounceOf(order.brief)), language), { userId: order.user_id, generationId: order.generation_id })
+      const spoken = speakableForTts(adsV2NarrationForTts(falta.narracao!, adsV2PronounceOf(order.brief)), language) // KINEO-CLOSE-REAL-V3-1910 — o MESMO texto de sempre
+      const buf = adsV2CloseRealOf(order.plan) ? await adsV2CloseRealNarrationVoice(order, spoken) : await synthesizeTtsFallback(spoken, { userId: order.user_id, generationId: order.generation_id }) // KINEO-CLOSE-REAL-V3-1910 — canário v2: o PT saía na voz padrão (a voz cedo era gravada aqui e a montagem a aproveitava); sem Close real = a chamada de sempre
       const voiceSeconds = Math.round(estimateMp3DurationSeconds(buf) * 1000) / 1000
       if (!(voiceSeconds > 0)) return 'falhou' as const
       const voiceUrl = await uploadVoiceoverToSupabase(order.user_id, buf)

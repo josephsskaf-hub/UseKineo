@@ -8,6 +8,7 @@
 // A marca NÃO contém "KINEO-CLOSE-REAL-1910": o desfaz do Close real (desfaz-close-real-1910.mjs) não vê estas linhas, e o encadeamento é sempre
 // semCloseReal1910(semCloseRealAjuste1910(texto)) — esta camada (a mais nova) sai PRIMEIRO.
 // O guardião scripts/test-close-real-ajuste-1910.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (CLOSE_REAL_AJUSTE_1910_BASE).
+import { semCloseRealV3_1910 } from './desfaz-close-real-v3-1910.mjs' // KINEO-CLOSE-REAL-V3-1910 — a rodada 3 do Close real veio depois: sai PRIMEIRO (encadeado)
 export const MARCA_CLOSE_REAL_AJUSTE_1910 = 'KINEO-CLOSE-REAL-AJUSTE-1910'
 
 /** A base da entrega (origin/main de 19/10: o Close real no ar + o Faceless 15 s F1–F4, mesclada com merge). */
@@ -194,6 +195,7 @@ const LF = String.fromCharCode(10)
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Sem linha marcada = devolve igual (CRLF preservado). */
 export function semCloseRealAjuste1910(texto, p) {
+  texto = semCloseRealV3_1910(texto, p) // KINEO-CLOSE-REAL-V3-1910 — a rodada 3 do Close real veio depois: sai PRIMEIRO (encadeado; texto sem a marca dela passa igual)
   if (typeof texto !== 'string' || !texto.includes(MARCA_CLOSE_REAL_AJUSTE_1910)) return texto
   const crlf = texto.includes(CR + LF)
   const trocas = new Map((TROCAS_CLOSE_REAL_AJUSTE_1910[p] ?? []).map(([nova, base]) => [nova, base]))

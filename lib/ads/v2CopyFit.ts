@@ -390,6 +390,18 @@ export const ADS_V2_NAME_CLOSES: Readonly<Record<string, readonly { t: string; c
   de: [{ t: '{name}, für dich.', cta: false }, { t: 'Das ist {name}.', cta: false, brand: true }, { t: '{name}, ganz nach deinem Stil.', cta: false }, { t: 'Jetzt: {name}.', cta: false }, { t: 'Entdecke {name} noch heute.', cta: true }, { t: 'Probier {name}.', cta: true }, { t: 'Wähl {name}.', cta: true }],
 }
 
+/** KINEO-CLOSE-REAL-V3-1910
+ * KINEO-CLOSE-REAL-V3-1910 — o fecho do Close real quando a marca já está no teto de menções (canário v2, 19/10: a fala terminava em "Para você.", 2 palavras
+ * KINEO-CLOSE-REAL-V3-1910 · soltas). Frases COMPLETAS, com verbo, sem fato e sem a marca: uma chamada (`cta`) e duas neutras — a alternância chamada ↔ neutra continua valendo.
+ */ // KINEO-CLOSE-REAL-V3-1910
+export const ADS_V2_CLOSE_REAL_FULL_CLOSES: Readonly<Record<string, readonly { t: string; cta: boolean }[]>> = { // KINEO-CLOSE-REAL-V3-1910
+  en: [{ t: 'Try it today.', cta: true }, { t: 'You will love it.', cta: false }, { t: 'Enjoy it.', cta: false }], // KINEO-CLOSE-REAL-V3-1910
+  pt: [{ t: 'Experimente hoje.', cta: true }, { t: 'Você vai amar.', cta: false }, { t: 'Você merece.', cta: false }], // KINEO-CLOSE-REAL-V3-1910
+  es: [{ t: 'Pruébalo hoy.', cta: true }, { t: 'Te va a encantar.', cta: false }, { t: 'Disfrútalo ya.', cta: false }], // KINEO-CLOSE-REAL-V3-1910
+  fr: [{ t: 'Essayez-le aujourd’hui.', cta: true }, { t: 'Vous allez l’adorer.', cta: false }, { t: 'Profitez-en bien.', cta: false }], // KINEO-CLOSE-REAL-V3-1910
+  it: [{ t: 'Provalo oggi.', cta: true }, { t: 'Ti piacerà tantissimo.', cta: false }, { t: 'Goditelo ora.', cta: false }], // KINEO-CLOSE-REAL-V3-1910
+  de: [{ t: 'Probier es heute.', cta: true }, { t: 'Du wirst es lieben.', cta: false }, { t: 'Genieß es.', cta: false }], // KINEO-CLOSE-REAL-V3-1910
+} // KINEO-CLOSE-REAL-V3-1910
 export interface AdsV2SpeechClose {
   /** O nome que o brief já tem (marca) ou a forma do produto genérico ("este perfume"); vazio = só as chamadas genéricas. */
   name?: string | null
@@ -429,7 +441,7 @@ export function adsV2CompleteSpeech(text: string, opts: { min: number; max: numb
   let named = 0
   const nameMax = typeof opts.close?.nameMax === 'number' && opts.close.nameMax > 0 ? Math.floor(opts.close.nameMax) : 0 // KINEO-CLOSE-REAL-AJUSTE-1910
   const nameCount = (s: string): number => { const ws = normWords(s); return Math.max(0, ...[...nameWords].filter((x) => x.length >= 3).map((x) => ws.filter((y) => y === x).length)) } // KINEO-CLOSE-REAL-AJUSTE-1910 — quantas vezes o nome já aparece (a palavra do nome mais repetida)
-  if (nameMax > 0) cands.push(...(ADS_V2_NAME_CLOSES[lang] ?? []).filter((c) => !c.cta && c.t.startsWith('{name}, ')).map((c) => { const r = c.t.slice('{name}, '.length); return { s: r.charAt(0).toLocaleUpperCase(lang) + r.slice(1), cta: false, named: false } })) // KINEO-CLOSE-REAL-AJUSTE-1910 — com o nome no teto, a frase neutra SEM o nome ("Para você.", "Do seu jeito.") mantém a alternância chamada ↔ neutra e o piso de fala
+  if (nameMax > 0) cands.push(...(ADS_V2_CLOSE_REAL_FULL_CLOSES[lang] ?? []).map((c) => ({ s: c.t, cta: c.cta, named: false }))) // KINEO-CLOSE-REAL-V3-1910 — com o nome no teto, um fecho COMPLETO com verbo e sem a marca ("Experimente hoje." / "Você vai amar."); era o pedaço "Para você." pendurado no fim (canário v2)
   for (let round = 0; round < 6 && countWords(t) < opts.min; round++) {
     const w = countWords(t)
     const last = sentencesOf(t).slice(-1)[0] ?? ''

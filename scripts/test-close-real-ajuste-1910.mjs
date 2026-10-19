@@ -22,12 +22,13 @@ import { execFileSync } from 'node:child_process'
 import zlib from 'node:zlib'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semCloseRealAjuste1910, CLOSE_REAL_AJUSTE_1910_ARQUIVOS, CLOSE_REAL_AJUSTE_1910_NOVOS, CLOSE_REAL_AJUSTE_1910_BASE, MARCA_CLOSE_REAL_AJUSTE_1910, TROCAS_CLOSE_REAL_AJUSTE_1910 } from './test-support/desfaz-close-real-ajuste-1910.mjs'
+import { semCloseRealV3_1910 } from './test-support/desfaz-close-real-v3-1910.mjs' // KINEO-CLOSE-REAL-V3-1910 — a rodada 3 sai antes (este guardião prova o ajuste)
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const MARCA = 'KINEO-CLOSE-REAL-AJUSTE-1910'
 const lf = (s) => String(s).split('\r\n').join('\n')
-const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))
+const rd = (p) => lf(semCloseRealV3_1910(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-CLOSE-REAL-V3-1910 — reancorado: este guardião lê o texto SEM a rodada 3 (provada em scripts/test-close-real-v3-1910.mjs)
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return lf(git('show', `${CLOSE_REAL_AJUSTE_1910_BASE}:${p}`)) } catch { return null } }
 let pass = 0
@@ -41,7 +42,7 @@ const F = {
   advance: 'lib/ads/v2Advance.ts', brief: 'lib/ads/v2Brief.ts', fit: 'lib/ads/v2CopyFit.ts', sample: 'lib/ads/sample.ts', access: 'lib/ads/serverAccess.ts',
 }
 const SRC = Object.fromEntries(Object.entries(F).map(([k, p]) => [k, rd(p)]))
-const carregar = (over = {}, mocks = {}) => createOfflineLoader({ mocks: { 'node:zlib': zlib, ...mocks }, source: (rel, text) => (Object.hasOwn(over, rel) ? over[rel] : text) })
+const carregar = (over = {}, mocks = {}) => createOfflineLoader({ mocks: { 'node:zlib': zlib, ...mocks }, source: (rel, text) => (Object.hasOwn(over, rel) ? over[rel] : semCloseRealV3_1910(text, rel)) }) // KINEO-CLOSE-REAL-V3-1910 — reancorado: executa o formato na régua do ajuste (antes da rodada 3)
 const CR = (over = {}) => carregar(over)(F.cr)
 const H = (n) => `https://cdn.test/${n}`
 const near = (a, b, e = 1e-6) => Math.abs(a - b) < e
