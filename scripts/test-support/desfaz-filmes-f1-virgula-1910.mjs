@@ -20,6 +20,9 @@ export const ACRESCIMOS_FILMES_F1_VIRGULA_1910 = {
   'app/api/compose/unlock/route.ts': 5,
   'scripts/test-gancho-1q-2026-10-03.mjs': 1,
   'scripts/test-parceiro-eyebible-2-1410.mjs': 1,
+  'scripts/test-filmes-f1f4-1910.mjs': 1,
+  'scripts/test-filmes-f1f3-ajuste-1910.mjs': 1,
+  'scripts/test-close-real-ajuste-1910.mjs': 1,
 }
 /** [linha nova (inteira), linha da base] por arquivo — os guardiões reancorados. */
 export const TROCAS_FILMES_F1_VIRGULA_1910 = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-filmes-f1-virgula-1910-trocas.json'), 'utf8'))

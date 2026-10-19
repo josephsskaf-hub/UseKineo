@@ -195,7 +195,7 @@ mut('token colado ("5 AM") consome só uma original (o alinhamento escorrega)',
     if (base === null || !trocas.every(([nova, antiga]) => vivo.split('\n').includes(nova) && base.split('\n').includes(antiga) && nova.includes(MARCA) && !antiga.includes(MARCA))) { ruins.push(p); continue }
     try { if (semFilmesF1Virgula1910(vivo, p) !== base) ruins.push(p) } catch { ruins.push(p) }
   }
-  checa(`U4 ${ARQUIVOS_FILMES_F1_VIRGULA_1910.length} arquivos (unlock + guardiões reancorados): desfeita a entrega = a última versão alheia byte a byte; acréscimos na contagem exata`, ARQUIVOS_FILMES_F1_VIRGULA_1910.length === 3 && ruins.length === 0)
+  checa(`U4 ${ARQUIVOS_FILMES_F1_VIRGULA_1910.length} arquivos (unlock + guardiões reancorados): desfeita a entrega = a última versão alheia byte a byte; acréscimos na contagem exata`, ARQUIVOS_FILMES_F1_VIRGULA_1910.length === 6 && ruins.length === 0)
   checa('U5 o desfaz só age nos arquivos declarados e recusa contagem errada', semFilmesF1Virgula1910(`a // ${MARCA}`, 'lib/x.ts') === `a // ${MARCA}` && (() => { try { semFilmesF1Virgula1910(`${unlock}\nx // ${MARCA}`, UNLOCK); return false } catch { return true } })())
   // comportamento: a montagem do export limpo (watermark:false, endCard:false) com a receita
   {
