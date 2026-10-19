@@ -19,7 +19,19 @@
 // duration, source, volume, loop, trim_start, audio_fade_in/out, fit, x/y/width/height, animations scale com easing,
 // enter_transition, e as de texto da legenda). Nada inédito sem render de validação (regra da casa).
 
+//
+// KINEO-FILMES-F1F3-AJUSTE-1910 [TRAVA 8.2 — vai do fundador 19/10 "vai, sim pra tudo"] — dois consertos da escada de
+// produção (docs/RESULTADO-ESCADA-F1-F4-2026-10-19.md):
+//   F1 — o corte cego em blocos de ≤5 palavras deixava órfãs ("…SKY OVER" / "CUBA", "MONTHS" sozinho). Agora o
+//        agrupador é desta receita (agruparLegendaFaceless15): bloco nunca atravessa fim de frase, nunca fica com 1
+//        palavra no meio de uma frase (5+1 → 3+3, 4+1 → 3+2), não termina em preposição/artigo/conjunção (EN/PT/ES) e
+//        prefere a vírgula/pausa; o payoff inteiro segue amarelo; os tempos continuam −120 ms sobre a palavra.
+//   F3 — a música em 3 elementos com fades sobrepostos caía ~20 dB sob o payoff e deixava a cauda muda. Volume por
+//        keyframe nunca foi exercitado pela casa (nenhum uso no repo) — então a música volta a UM elemento só, do 0 ao
+//        fim do filme, a 14 % fixos, com os fades de sempre de lib/compose (0,8 / 1,2 s, provados em produção no F0);
+//        sem ducking. Riser/whoosh/pop ficam como estavam.
 import { buildCaptionElements, buildCaptionsFromWhisperWords, sentenceStartTimes, type WhisperWord } from '@/lib/compose'
+import { pickHighlightWord } from '@/lib/openai'
 import { withHookFirstFrame, GANCHO_1Q_TRACK, type HookFirstFrameResult } from '@/lib/hookFirstFrame'
 
 export type FaseFaceless15 = 'f1' | 'f2' | 'f3' | 'f4' | 'cta'
@@ -30,7 +42,7 @@ export const FASES_FACELESS15: readonly FaseFaceless15[] = ['f1', 'f2', 'f3', 'f
  * os clientes do formato (depois da nota ≥ 9 do fundador naquela fase, regra do §4 do estudo).
  *   f1  legenda a 62 %, ≤5 palavras, 64/80 px, −120 ms, linha amarela só no PAYOFF
  *   f2  gancho escrito no 1º quadro (lib/hookFirstFrame) liberado no formato
- *   f3  música a 18 % com ducking em dois elementos + 3 SFX (riser · whoosh · pop)
+ *   f3  música num elemento só a 14 % fixos (do 0 ao fim, sem ducking) + 3 SFX (riser · whoosh · pop)
  *   f4  5 planos de ~3 s a partir dos 3 clipes (2º plano = mesmo clipe, trim 3,0 s) + punch no reveal
  *   cta cartão de texto de 1 s no fim ("Follow for part 2 →") — opcional, exige f4, desligado por padrão
  */
@@ -162,6 +174,115 @@ export interface RelatoF1 {
   amarelos: number
 }
 
+// KINEO-FILMES-F1F3-AJUSTE-1910 — o agrupador da legenda (frase → blocos de 2..5 palavras).
+/** Palavras que nunca fecham um bloco (EN/PT/ES básicos): preposição, artigo, conjunção, possessivo curto. */
+export const FACELESS15_PALAVRAS_QUE_NAO_FECHAM: ReadonlySet<string> = new Set([
+  // EN
+  'a', 'an', 'the', 'of', 'in', 'to', 'on', 'at', 'for', 'over', 'with', 'from', 'by', 'into', 'onto', 'as', 'about', 'under',
+  'and', 'or', 'but', 'than', 'its', 'their', 'his', 'her', 'my', 'your', 'our',
+  // PT
+  'o', 'os', 'as', 'um', 'uma', 'uns', 'umas', 'de', 'do', 'da', 'dos', 'das', 'em', 'no', 'na', 'nos', 'nas', 'para', 'pra',
+  'por', 'pelo', 'pela', 'pelos', 'pelas', 'com', 'e', 'ou', 'mas', 'que', 'ao', 'aos', 'à', 'às', 'sobre', 'seu', 'sua',
+  // ES
+  'el', 'la', 'los', 'las', 'unos', 'unas', 'del', 'en', 'con', 'al', 'y', 'pero', 'su', 'sus',
+])
+/** Pausa (s) entre palavras que conta como vírgula (boa para partir dentro da frase). */
+const PAUSA_VIRGULA_S = 0.15
+/** Pausa (s) que a base trata como fim de frase (lib/compose SENTENCE_GAP_SECONDS) — aqui só vale quando o Whisper não trouxe nenhuma pontuação. */
+const PAUSA_FRASE_S = 0.28
+const normPalavra = (w: string): string => (w ?? '').toLowerCase().replace(/^[^\p{L}\p{N}']+|[^\p{L}\p{N}']+$/gu, '').trim()
+const fechaFrase = (w: WhisperWord): boolean => w.sentenceEnd === true || /[.!?…]["'”’)\]]*$/.test((w.word ?? '').trim())
+const temVirgula = (w: WhisperWord): boolean => /[,;:—–]["'”’)\]]*$/.test((w.word ?? '').trim())
+
+export interface BlocoLegendaFaceless15 {
+  text: string
+  highlight: string | null
+  words: Array<{ word: string; start: number; end: number }>
+  /** O bloco é uma frase inteira (só aí ele pode ter 1 palavra: "Gone."). */
+  fraseInteira: boolean
+}
+
+/** Parte UMA frase (n palavras) em blocos de 2..max: menos blocos, tamanhos parecidos, nunca fecha em preposição/artigo, prefere vírgula/pausa. Devolve os tamanhos. */
+export function partirFraseFaceless15(n: number, naoFecha: ReadonlyArray<boolean>, virgula: ReadonlyArray<number>, max = FACELESS15_LEGENDA_PALAVRAS): number[] {
+  if (n <= 1) return n === 1 ? [1] : []
+  if (n <= max) return [n]
+  const alvo = n / Math.ceil(n / max)
+  const custo: number[] = new Array(n + 1).fill(Infinity)
+  const de: number[] = new Array(n + 1).fill(-1)
+  custo[0] = 0
+  for (let fim = 2; fim <= n; fim++) {
+    for (let tam = 2; tam <= max && tam <= fim; tam++) {
+      const ini = fim - tam
+      if (!Number.isFinite(custo[ini])) continue
+      const ultima = fim - 1
+      const meio = fim < n
+      const c = custo[ini] + 10 + (tam - alvo) ** 2 + (meio && naoFecha[ultima] ? 100 : 0) - (meio ? (virgula[ultima] ?? 0) : 0)
+      if (c < custo[fim] - 1e-9) { custo[fim] = c; de[fim] = ini }
+    }
+  }
+  if (!Number.isFinite(custo[n])) return [n]
+  const tams: number[] = []
+  for (let fim = n; fim > 0; fim = de[fim]) tams.unshift(fim - de[fim])
+  return tams
+}
+
+/**
+ * Os blocos da legenda da F1, a partir do Whisper. Usa o mesmo normalizador de tokens de lib/compose (junta "A"+"M",
+ * cola "5 AM", corta a janela) chamando-o com 1 palavra por bloco, e agrupa aqui com as regras da receita.
+ */
+export function agruparLegendaFaceless15(whisperWords: ReadonlyArray<WhisperWord>, fimJanela: number, max = FACELESS15_LEGENDA_PALAVRAS): BlocoLegendaFaceless15[] {
+  const originais = whisperWords as WhisperWord[]
+  const fimDe = new Map<number, WhisperWord>()
+  for (const w of originais) if (Number.isFinite(w?.end)) fimDe.set(r3(w.end), w)
+  const toks: WhisperWord[] = buildCaptionsFromWhisperWords(originais, fimJanela, 0, 1)
+    .map((c) => c.words[0])
+    .filter((w): w is { word: string; start: number; end: number } => !!w && !!String(w.word ?? '').trim())
+    .map((w) => {
+      const o = fimDe.get(r3(w.end))
+      return { word: w.word, start: w.start, end: w.end, sentenceEnd: o?.sentenceEnd === true || fechaFrase({ word: o?.word ?? w.word, start: 0, end: 0 }) }
+    })
+  if (toks.length === 0) return []
+  const temPontuacao = toks.some((w) => w.sentenceEnd === true)
+  const gap = (i: number): number => (i + 1 < toks.length ? toks[i + 1].start - toks[i].end : Infinity)
+  // 1) frases: fim de frase real (pontuação do Whisper); sem nenhuma pontuação, a pausa longa da base
+  const frases: Array<{ ini: number; fim: number; real: boolean }> = []
+  {
+    let ini = 0
+    for (let i = 0; i < toks.length; i++) {
+      const real = toks[i].sentenceEnd === true
+      const porPausa = !temPontuacao && Number.isFinite(gap(i)) && gap(i) >= PAUSA_FRASE_S
+      if (real || porPausa || i === toks.length - 1) { frases.push({ ini, fim: i + 1, real: real || i === toks.length - 1 }); ini = i + 1 }
+    }
+  }
+  // frase de 1 palavra nascida só de pausa (não de ponto) não fica sozinha: junta à seguinte (ou à anterior, se é a última)
+  for (let k = 0; k < frases.length; k++) {
+    const f = frases[k]
+    if (f.fim - f.ini !== 1 || (f.real && temPontuacao)) continue
+    if (frases.length === 1) break
+    if (k + 1 < frases.length) { frases[k + 1].ini = f.ini; frases.splice(k, 1); k-- }
+    else { frases[k - 1].fim = f.fim; frases.splice(k, 1) }
+  }
+  // 2) cada frase em blocos
+  const blocos: BlocoLegendaFaceless15[] = []
+  for (const f of frases) {
+    const ws = toks.slice(f.ini, f.fim)
+    const naoFecha = ws.map((w) => FACELESS15_PALAVRAS_QUE_NAO_FECHAM.has(normPalavra(w.word)))
+    const virgula = ws.map((w, i) => (temVirgula(w) ? 6 : 0) + (gap(f.ini + i) >= PAUSA_FRASE_S ? 8 : gap(f.ini + i) >= PAUSA_VIRGULA_S ? 4 : 0))
+    let i = 0
+    for (const tam of partirFraseFaceless15(ws.length, naoFecha, virgula, max)) {
+      let usados = ws.slice(i, i + tam)
+      i += tam
+      // anti-gagueira de lib/compose: a mesma palavra no fim de um bloco e no começo do seguinte (TTS "it. It's") sai uma vez
+      const ant = blocos[blocos.length - 1]?.words.slice(-1)[0]
+      if (usados.length > 1 && ant && normPalavra(ant.word) !== '' && normPalavra(ant.word) === normPalavra(usados[0].word)) usados = usados.slice(1)
+      const text = usados.map((w) => String(w.word).trim()).join(' ').trim()
+      if (!text) continue
+      blocos.push({ text, highlight: pickHighlightWord(text), words: usados.map((w) => ({ word: String(w.word).trim(), start: r3(w.start), end: r3(w.end) })), fraseInteira: tam === ws.length })
+    }
+  }
+  return blocos
+}
+
 /** A legenda da receita, em cima do source montado. Devolve os elementos novos (nunca muda os recebidos). */
 export function aplicarF1Faceless15(els: ReadonlyArray<El>, quadro: QuadroFaceless15, whisperWords?: ReadonlyArray<WhisperWord> | null): { els: El[]; relato: RelatoF1 } {
   const idx = els.findIndex((e) => ehTexto(e, 5))
@@ -183,7 +304,7 @@ export function aplicarF1Faceless15(els: ReadonlyArray<El>, quadro: QuadroFacele
   if (Array.isArray(whisperWords) && whisperWords.length > 0) {
     chunker = 'whisper'
     const fimJanela = r3(Math.min(quadro.falaFim, quadro.total))
-    const caps = buildCaptionsFromWhisperWords(whisperWords as WhisperWord[], fimJanela, 0, FACELESS15_LEGENDA_PALAVRAS)
+    const caps = agruparLegendaFaceless15(whisperWords, fimJanela) // KINEO-FILMES-F1F3-AJUSTE-1910 — era o corte cego de lib/compose (≤5 sem olhar a frase): órfãs
     const primeiraFraseAcaba = (() => {
       const w = whisperWords.find((x) => x.sentenceEnd === true)
       return w && Number.isFinite(w.end) ? Math.min(6, Math.max(JANELA_GANCHO_S, w.end)) : JANELA_GANCHO_S
@@ -193,7 +314,7 @@ export function aplicarF1Faceless15(els: ReadonlyArray<El>, quadro: QuadroFacele
       // −120 ms em cima da PALAVRA (não do chunk de lib/compose, que já entra 150 ms depois dela): o chunk nasce em
       // start−0,12 e acaba onde o seguinte nasce; cada palavra do karaokê anda os mesmos 0,12 s. O último chunk termina
       // no fim da fala, como sempre. Contíguo por construção: nunca dois elementos ao mesmo tempo na trilha 5.
-      const raw0 = cap.words[0]?.start ?? cap.time
+      const raw0 = cap.words[0]?.start ?? 0
       const proximo = caps[i + 1]?.words[0]?.start ?? fimJanela
       const time = Math.max(0, r3(raw0 - ANT))
       const fim = i === caps.length - 1 ? fimJanela : Math.max(time + 0.1, r3(proximo - ANT))
@@ -264,14 +385,15 @@ export function aplicarGanchoFaceless15(
 }
 
 // ── F3 · som (§3.5 SFX · §3.6 música) ────────────────────────────────────────────────────────────────────────────────
-/** Lyria a 18 % (hoje 12 % em lib/compose MUSIC_VOLUME); 10 % sob o payoff (≈ −5 dB: dentro dos 6–12 dB do CapCut). */
-export const FACELESS15_MUSICA_VOLUME = '18%'
-export const FACELESS15_MUSICA_DUCK = '10%'
-/** Espelhos de MUSIC_FADE_IN_SECONDS / MUSIC_FADE_OUT_SECONDS (lib/compose). */
+/**
+ * KINEO-FILMES-F1F3-AJUSTE-1910 — Lyria a 14 % FIXOS num elemento só (hoje 12 % em lib/compose MUSIC_VOLUME). O ducking em
+ * 3 elementos (18 · 10 · 18 com junções de 0,3 s) caiu ~20 dB sob o payoff e deixou a cauda muda na escada de 19/10;
+ * volume por keyframe nunca foi exercitado pela casa, então nada de ducking: um elemento, do 0 ao fim do filme.
+ */
+export const FACELESS15_MUSICA_VOLUME = '14%'
+/** Espelhos de MUSIC_FADE_IN_SECONDS / MUSIC_FADE_OUT_SECONDS (lib/compose) — os fades do F0, cauda audível medida em produção. */
 export const FACELESS15_MUSICA_FADE_IN_S = 0.8
 export const FACELESS15_MUSICA_FADE_OUT_S = 1.2
-/** O fade curto nas junções dos dois volumes — o mesmo truque do Ads (lib/ads/adV2Montage: música em 2 elementos, 0,3 s). */
-export const FACELESS15_MUSICA_JUNCAO_S = 0.3
 /** Trilha livre acima de tudo (lib/compose 1–9, logo 10, gancho 11). */
 export const FACELESS15_SFX_TRACK = 12
 export const FACELESS15_SFX_BASE_URL = 'https://www.usekineo.com/sfx/'
@@ -296,9 +418,12 @@ export const SFX_FACELESS15: Readonly<Record<'riser' | 'whoosh' | 'pop', SfxFace
 }
 
 export interface RelatoF3 {
-  musica: 'ducking' | 'sem_payoff' | 'sem_trilha'
-  /** [início do duck, fim do duck] em s, quando há ducking. */
-  duck: [number, number] | null
+  /** KINEO-FILMES-F1F3-AJUSTE-1910 — 'unica' = um elemento de música do 0 ao fim, volume fixo; 'sem_trilha' = não havia música. */
+  musica: 'unica' | 'sem_trilha'
+  /** Volume fixo da música ('14%'), quando há trilha. */
+  volume: string | null
+  /** [início, fim] da música em s — sempre [0, total do filme]: a cauda nunca fica muda. */
+  cobre: [number, number] | null
   sfx: { riser: boolean; whoosh: number; pop: boolean } | 'slot_vazio'
   cortes: number[]
 }
@@ -312,29 +437,20 @@ export function cortesDaTrilha2(els: ReadonlyArray<El>): number[] {
 export function aplicarF3Faceless15(els: ReadonlyArray<El>, quadro: QuadroFaceless15, cortes: ReadonlyArray<number>, sfx: typeof SFX_FACELESS15 = SFX_FACELESS15): { els: El[]; relato: RelatoF3 } {
   const T = quadro.total
   const saida: El[] = [...els]
-  const relato: RelatoF3 = { musica: 'sem_trilha', duck: null, sfx: 'slot_vazio', cortes: [...cortes] }
-  // ── música: um elemento vira três (18 % · 10 % sob o payoff · 18 % com o fade de saída), contínuos no tempo e no trecho
+  const relato: RelatoF3 = { musica: 'sem_trilha', volume: null, cobre: null, sfx: 'slot_vazio', cortes: [...cortes] }
+  // ── música (KINEO-FILMES-F1F3-AJUSTE-1910): UM elemento só na trilha 8, do 0 ao fim do filme (T já inclui o CTA), a 14 %
+  // fixos, loop, com os fades de sempre — nunca pedaços, nunca trim_start, nunca duas músicas somando/cortando na trilha
   const iMus = saida.findIndex((e) => ehAudio(e, 8))
   if (iMus >= 0) {
     const m = saida[iMus]
-    const base: El = { type: 'audio', track: 8, source: m.source, loop: true }
     const fadeIn = r3(Math.min(FACELESS15_MUSICA_FADE_IN_S, T / 2))
     const fadeOut = r3(Math.min(FACELESS15_MUSICA_FADE_OUT_S, T / 2))
-    const p = quadro.payoff
-    const fimDuck = r3(T - fadeOut)
-    if (p != null && p + 0.5 < fimDuck) {
-      const segs: El[] = [
-        { ...base, time: 0, duration: r3(p), volume: FACELESS15_MUSICA_VOLUME, audio_fade_in: fadeIn, audio_fade_out: FACELESS15_MUSICA_JUNCAO_S },
-        { ...base, time: r3(p), duration: r3(fimDuck - p), trim_start: r3(p), volume: FACELESS15_MUSICA_DUCK, audio_fade_in: FACELESS15_MUSICA_JUNCAO_S, audio_fade_out: FACELESS15_MUSICA_JUNCAO_S },
-        { ...base, time: fimDuck, duration: r3(T - fimDuck), trim_start: fimDuck, volume: FACELESS15_MUSICA_VOLUME, audio_fade_in: FACELESS15_MUSICA_JUNCAO_S, audio_fade_out: fadeOut },
-      ]
-      saida.splice(iMus, 1, ...segs)
-      relato.musica = 'ducking'
-      relato.duck = [r3(p), fimDuck]
-    } else {
-      saida.splice(iMus, 1, { ...base, time: 0, duration: T, volume: FACELESS15_MUSICA_VOLUME, audio_fade_in: fadeIn, audio_fade_out: fadeOut })
-      relato.musica = 'sem_payoff'
-    }
+    const unica: El = { type: 'audio', track: 8, time: 0, duration: T, source: m.source, volume: FACELESS15_MUSICA_VOLUME, loop: true, audio_fade_in: fadeIn, audio_fade_out: fadeOut }
+    const semMusica = saida.filter((e) => !ehAudio(e, 8))
+    saida.splice(0, saida.length, ...semMusica.slice(0, iMus), unica, ...semMusica.slice(iMus))
+    relato.musica = 'unica'
+    relato.volume = FACELESS15_MUSICA_VOLUME
+    relato.cobre = [0, T]
   }
   // ── SFX: riser no gancho, whoosh em cada corte, pop no reveal (trilha 12, só com URL no catálogo)
   const sons: El[] = []

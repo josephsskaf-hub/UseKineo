@@ -40,9 +40,9 @@ Trocar o `false` da fase para `true`. Nada mais. (`GANCHO_1Q_PUBLIC` de `lib/hoo
 
 | Fase | Muda | Números | Trilha |
 |---|---|---|---|
-| **F1** legenda | borda inferior 78 % → **62 %**; ≤4 → **≤5 palavras**; 62/76 → **64/80 px**; entra **120 ms antes da palavra** (a base entra 150 ms depois); linha inteira amarela **só no PAYOFF** (última frase); karaokê amarelo mantido; Montserrat 800 caixa alta, pílula de sempre | `FACELESS15_LEGENDA_*` | 5 |
+| **F1** legenda | borda inferior 78 % → **62 %**; ≤4 → **≤5 palavras**, agrupadas pela receita (ajuste 19/10, abaixo): bloco nunca atravessa fim de frase, nunca fica com 1 palavra no meio da frase, não fecha em preposição/artigo/conjunção; 62/76 → **64/80 px**; entra **120 ms antes da palavra** (a base entra 150 ms depois); linha inteira amarela **só no PAYOFF** (última frase); karaokê amarelo mantido; Montserrat 800 caixa alta, pílula de sempre | `FACELESS15_LEGENDA_*`, `agruparLegendaFaceless15` | 5 |
 | **F2** gancho | o gancho escrito de `lib/hookFirstFrame` (≤8 palavras, topo, 0–2,5 s) entra no formato; medido contra a legenda da F1 e marca d'água/logo como sempre | — | 11 |
-| **F3** som | Lyria 12 % → **18 %** em 3 elementos: 18 % até o payoff · **10 %** sob o payoff · 18 % na cauda com fade-out 1,2 s (junções de 0,3 s, o truque do Ads); **riser** 0–1,2 s a −14 dB (20 %), **whoosh** 0,25 s a −12 dB (25 %) em cada corte (0,1 s antes), **pop** 0,3 s a −10 dB (30 %) no reveal | `FACELESS15_MUSICA_*`, `SFX_FACELESS15` | 8 · 12 |
+| **F3** som | Lyria 12 % → **14 % fixos num elemento só**, do 0 ao fim do filme, fades 0,8/1,2 s de sempre, sem ducking (ajuste 19/10, abaixo); **riser** 0–1,2 s a −14 dB (20 %), **whoosh** 0,25 s a −12 dB (25 %) em cada corte (0,1 s antes), **pop** 0,3 s a −10 dB (30 %) no reveal | `FACELESS15_MUSICA_*`, `SFX_FACELESS15` | 8 · 12 |
 | **F4** planos | 3 clipes × 6 s → **5 planos** (A A B B C): 2º plano = mesmo clipe com `trim_start` 3,0 s; cortes em fronteira de frase do Whisper quando cabe, piso 2,4 s / teto 4,0 s; o reveal é corte fixo com **punch 100→104 % em 0,15 s** + zoom 104→108 %; zoom alternado nos outros; nenhum plano passa do clipe (segundos assinados do claim; sem eles, o que a base mostrava; trim recua; loop só por falta, contado) | `FACELESS15_PLANO_*` | 2 |
 | **cta** | "Follow for part 2 →" 48 px Montserrat 700, centro, 1 s depois do fim da fala (o filme cresce 1 s; fundo/véu/marca esticam) — opcional, exige f4 | `FACELESS15_CTA_*` | 13 |
 
@@ -53,6 +53,14 @@ Garantias que o guardião prova: interruptor desligado = JSON do Creatomate **id
 Síntese própria, determinística (`scripts/gerar-sfx-faceless15-1910.mjs`: ruído com semente fixa + senóides → WAV PCM 16 bits mono 44,1 kHz). **Nenhum arquivo de terceiro, nenhuma licença a registrar** — o som é da casa (equivalente a CC0 para todos os efeitos). Hash sha256 de cada arquivo está em `SFX_FACELESS15` e o guardião regenera em memória e confere disco = catálogo = regenerado. Para trocar por um Pixabay CC0: subir o arquivo em `public/sfx/` (ou no bucket), apontar `url` e atualizar `sha256`/`licenca` no catálogo. `url: null` = slot vazio (o SFX não entra; o relato diz `slot_vazio`).
 
 Por que `public/sfx/` e não o bucket: URL estável sem depender de chave de serviço (não havia como subir no bucket sem ler o `.env`), fora do middleware de rotas protegidas, versionado junto com o código.
+
+## Ajuste de 19/10 (KINEO-FILMES-F1F3-AJUSTE-1910) — o que a escada de produção mostrou
+
+Fonte: `docs/RESULTADO-ESCADA-F1-F4-2026-10-19.md`. Guardião: `scripts/test-filmes-f1f3-ajuste-1910.mjs` (roteiro exato da escada, montagem real offline, mutantes aplicados); `scripts/test-filmes-f1f4-1910.mjs` reancorado (desfaz em `scripts/test-support/desfaz-filmes-f1f3-ajuste-1910.mjs` — camada nova sai primeiro).
+
+- **F1 · palavras órfãs.** O corte cego de lib/compose (≤5 sem olhar a frase) deixava "…SKY OVER" / "CUBA" e "MONTHS" sozinho. O agrupador agora é da receita (`agruparLegendaFaceless15`): usa o normalizador de tokens de lib/compose (AM/PM) com 1 palavra por bloco e agrupa por frase (fim de frase do Whisper; sem pontuação nenhuma, a pausa ≥ 0,28 s), cada frase em blocos de 2..5 com o menor número de blocos e tamanhos parecidos (6 → 3+3), sem fechar em preposição/artigo/conjunção EN/PT/ES, preferindo vírgula/pausa. Frase de UMA palavra ("Gone.") fica sozinha porque é frase inteira. No roteiro da escada sai: IN 1859 THE SUN FIRED / A STORM STRAIGHT AT EARTH / TELEGRAPH WIRES SPARKED / AND SHOCKED THEIR OPERATORS / SOME LINES KEPT SENDING MESSAGES / WITH THE BATTERIES UNPLUGGED / AURORAS LIT THE SKY / OVER CUBA / TODAY THE SAME STORM / COULD KNOCK OUT POWER / GRIDS FOR MONTHS (payoff inteiro amarelo).
+- **F3 · música sumindo no payoff e cauda muda.** Os 3 pedaços (18 · 10 · 18 com junções de 0,3 s e `trim_start`) caíram ~20 dB sob o payoff e deixaram a cauda em silêncio. Volume por keyframe **nunca foi exercitado pela casa** (nenhum uso no repo), então não entrou: a música é UM elemento só na trilha 8, a **14 % fixos**, do 0 ao fim do filme (inclusive o 1 s do CTA), loop, com os mesmos fades do F0 (cauda audível medida em produção). Riser/whoosh/pop intocados. Relato do evento: `f3.musica = "unica"`, `f3.volume`, `f3.cobre`.
+- **Antes de ligar:** 1 render de validação de cada (F1 sozinha; F1+F3) e nota do fundador ≥ 9.
 
 ## Rastro para medir
 

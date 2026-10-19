@@ -21,6 +21,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semCloseRealV3_1910, CLOSE_REAL_V3_1910_ARQUIVOS, CLOSE_REAL_V3_1910_NOVOS, CLOSE_REAL_V3_1910_BASE, MARCA_CLOSE_REAL_V3_1910, TROCAS_CLOSE_REAL_V3_1910 } from './test-support/desfaz-close-real-v3-1910.mjs'
 import { semCloseRealAjuste1910 } from './test-support/desfaz-close-real-ajuste-1910.mjs'
 import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs'
+import { semFilmesF1F3Ajuste1910 } from './test-support/desfaz-filmes-f1f3-ajuste-1910.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -299,8 +300,10 @@ await check('D2 toda linha nova traz a marca (troca listada inteira); a marca n�
 await check('D3 encadeamento: semCloseRealAjuste1910 e semCloseReal1910 tiram esta camada PRIMEIRO (a linha só desta camada some); o guardião do ajuste lê sem ela; texto sem a marca passa igual', () => {
   const so = `x\nconst a = 1 // ${MARCA}\ny`
   const aj = rd('scripts/test-close-real-ajuste-1910.mjs')
+  const ajCru = rd('scripts/test-close-real-ajuste-1910.mjs')
   return semCloseRealAjuste1910(so, 'lib/x.ts') === 'x\ny' && semCloseReal1910(so, 'lib/x.ts') === 'x\ny' && semCloseRealV3_1910('sem marca\nnada', 'lib/x.ts') === 'sem marca\nnada' && semCloseRealV3_1910(null, 'x') === null &&
-    aj.includes("const rd = (p) => lf(semCloseRealV3_1910(readFileSync(join(ROOT, p), 'utf8'), p))") && aj.includes('semCloseRealV3_1910(text, rel)')
+    aj.includes("const rd = (p) => lf(semFilmesF1F3Ajuste1910(semCloseRealV3_1910(readFileSync(join(ROOT, p), 'utf8'), p), p))") && aj.includes('semCloseRealV3_1910(text, rel)') &&
+    lf(semFilmesF1F3Ajuste1910(ajCru, 'scripts/test-close-real-ajuste-1910.mjs')) === lf(semFilmesF1F3Ajuste1910(semCloseRealV3_1910(ajCru, 'scripts/test-close-real-ajuste-1910.mjs'), 'scripts/test-close-real-ajuste-1910.mjs')) // o ajuste do Faceless 15 s (mesclado antes) também tira esta camada primeiro
 })
 
 // ═══ M ════════════════════════════════════════════════════════════════════════════════════════════════════════════

@@ -6,12 +6,12 @@
 //   · ACRÉSCIMO — linha nova com a marca: sai inteira;
 //   · TROCA — a linha da base foi reescrita (listadas abaixo, reconhecidas INTEIRAS): volta a ser a da base.
 // A marca NÃO contém "KINEO-CLOSE-REAL-1910" nem "KINEO-CLOSE-REAL-AJUSTE-1910": os desfaz das camadas de antes não veem estas linhas, e o encadeamento é
-// sempre semCloseReal1910(semCloseRealAjuste1910(semCloseRealV3_1910(texto))) — esta camada (a mais nova) sai PRIMEIRO (semCloseRealAjuste1910 já chama esta).
+// sempre semCloseReal1910(semCloseRealAjuste1910(semCloseRealV3_1910(texto))) — esta camada (a mais nova) sai PRIMEIRO (semCloseRealAjuste1910 e semFilmesF1F3Ajuste1910 já chamam esta).
 // O guardião scripts/test-close-real-v3-1910.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (CLOSE_REAL_V3_1910_BASE).
 export const MARCA_CLOSE_REAL_V3_1910 = 'KINEO-CLOSE-REAL-V3-1910'
 
-/** A base da entrega (origin/main de 19/10: o ajuste do Close real no ar, ddb44e546). */
-export const CLOSE_REAL_V3_1910_BASE = "ddb44e54672ba99ef48d74f27451a54819438af2"
+/** A base da entrega (origin/main de 19/10: o ajuste do Close real no ar, ddb44e546, + o ajuste F1/F3 do Faceless 15 s, 8abb2394e — mesclada com merge). */
+export const CLOSE_REAL_V3_1910_BASE = "8abb2394e361ec7c8a3a26f628d5d80de33c3498"
 
 /** Arquivos que a entrega toca (só acréscimos marcados + as trocas listadas). */
 export const CLOSE_REAL_V3_1910_ARQUIVOS = [
@@ -21,7 +21,8 @@ export const CLOSE_REAL_V3_1910_ARQUIVOS = [
   "lib/ads/v2CloseRealServer.ts",
   "lib/ads/v2CopyFit.ts",
   "scripts/test-close-real-ajuste-1910.mjs",
-  "scripts/test-support/desfaz-close-real-ajuste-1910.mjs"
+  "scripts/test-support/desfaz-close-real-ajuste-1910.mjs",
+  "scripts/test-support/desfaz-filmes-f1f3-ajuste-1910.mjs"
 ]
 
 /** Arquivos novos da entrega. */
@@ -96,8 +97,8 @@ export const TROCAS_CLOSE_REAL_V3_1910 = {
   ],
   "scripts/test-close-real-ajuste-1910.mjs": [
     [
-      "const rd = (p) => lf(semCloseRealV3_1910(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-CLOSE-REAL-V3-1910 — reancorado: este guardião lê o texto SEM a rodada 3 (provada em scripts/test-close-real-v3-1910.mjs)",
-      "const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))"
+      "const rd = (p) => lf(semFilmesF1F3Ajuste1910(semCloseRealV3_1910(readFileSync(join(ROOT, p), 'utf8'), p), p)) // KINEO-CLOSE-REAL-V3-1910 — reancorado: este guardião lê o texto SEM a rodada 3 (provada em scripts/test-close-real-v3-1910.mjs) e depois sem o ajuste do Faceless 15 s",
+      "const rd = (p) => lf(semFilmesF1F3Ajuste1910(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-FILMES-F1F3-AJUSTE-1910 — reancorado: a camada do ajuste do Faceless 15 s (mesclada depois, no guardião test-filmes-f1f4-1910) sai PRIMEIRO, em memória"
     ],
     [
       "const carregar = (over = {}, mocks = {}) => createOfflineLoader({ mocks: { 'node:zlib': zlib, ...mocks }, source: (rel, text) => (Object.hasOwn(over, rel) ? over[rel] : semCloseRealV3_1910(text, rel)) }) // KINEO-CLOSE-REAL-V3-1910 — reancorado: executa o formato na régua do ajuste (antes da rodada 3)",
