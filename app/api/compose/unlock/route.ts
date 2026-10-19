@@ -5,6 +5,7 @@ import { findBrandLogoUrl, withBrandLogo } from '@/lib/brandLogo' // KINEO-LOGO-
 import { withHookFirstFrame } from '@/lib/hookFirstFrame' // KINEO-GANCHO-1Q-2026-10-03
 import { isInternalEmail } from '@/lib/internalAccounts' // KINEO-GANCHO-1Q-2026-10-03
 import { captionFontFor } from '@/lib/textLanguage' // KINEO-GANCHO-1Q-2026-10-03
+import { resolverFaceless15, aplicarFaceless15, aplicarGanchoFaceless15 } from '@/lib/filmes/faceless15' // KINEO-FILMES-F1-VIRGULA-1910 [TRAVA 8.2 — vai do fundador 19/10 "vai, sim pra tudo"] — o export limpo PAGO monta o Faceless 15 s igual à prévia do /api/compose (fase pública, ou pedida por conta interna em formatFlags)
 import { stripe } from '@/lib/stripe'
 import {
   buildCreatomateSource,
@@ -634,10 +635,14 @@ export async function POST(req: NextRequest) {
       await releaseExplicitlyRejectedClaim()
       return NextResponse.json({ error: `Could not assemble the render: ${msg}` }, { status: 500 })
     }
+    const faceless15 = resolverFaceless15({ interna: isInternalEmail(user.email), pedido: (body as { formatFlags?: unknown }).formatFlags ?? (body as { format_flags?: unknown }).format_flags, quality: rebuildQuality, duration, aspect, avatar: false, studioAds: false }) // KINEO-FILMES-F1-VIRGULA-1910 — a mesma decisão do /api/compose: só Seedance 1.5 de 15 s em 9:16; conta interna vem do servidor; cliente que manda formatFlags é ignorado
+    const faceless15Relato = aplicarFaceless15(source, faceless15, { whisperWords: whisperWords ? grafiaDoRoteiro(whisperWords, scaledScript) : null, clipSeconds: null, font: captionFontFor(language) }) // KINEO-FILMES-F1-VIRGULA-1910 — F1/F3/F4 em cima do source montado, SÍNCRONO, antes de qualquer espera (mesmo Whisper com a grafia do roteiro que o builder recebeu); desligado = source intacto, byte a byte
+    if (faceless15.ativo) console.log(`[compose/unlock] KINEO-FILMES-F1-VIRGULA-1910 fases=${faceless15.fases.join(',')} ${JSON.stringify(faceless15Relato)}`) // KINEO-FILMES-F1-VIRGULA-1910
     // KINEO-LOGO-DA-MARCA-2026-10-01 — a versão limpa mantém o logo da empresa, igual ao filme original.
     withBrandLogo(source, await findBrandLogoUrl(user.id, admin)) // KINEO-LOGO-DA-MARCA-2026-10-01
     // KINEO-GANCHO-1Q-2026-10-03 — a versão limpa mantém o gancho escrito do 1º quadro, igual ao filme original (mesmo texto narrado, mesma conta medida).
     withHookFirstFrame(source, { interna: isInternalEmail(user.email), narration: scaledScript, font: captionFontFor(language) }) // KINEO-GANCHO-1Q-2026-10-03
+    { const g2 = aplicarGanchoFaceless15(source, faceless15, { narration: scaledScript, font: captionFontFor(language) }); if (faceless15.ativo) console.log(`[compose/unlock] KINEO-FILMES-F1-VIRGULA-1910 F2 ${g2.motivo}`) } // KINEO-FILMES-F1-VIRGULA-1910 — F2: no formato o gancho escrito segue a fase, igual ao /api/compose; fora do formato, nada muda
 
     let renderId: string
     try {

@@ -1,0 +1,14 @@
+{
+ "scripts/test-gancho-1q-2026-10-03.mjs": [
+  [
+   "  ok(semBusiness(semMarca(desfazParceiroEyebible2_1410(UNLOCK, semFilmesF1Virgula1910(unlock, UNLOCK)))) === rdBase(UNLOCK), 'unlock: fora das linhas marcadas, byte a byte a base') // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a fiação do Faceless 15 s no export limpo (só acréscimos) sai PRIMEIRO",
+   "  ok(semBusiness(semMarca(desfazParceiroEyebible2_1410(UNLOCK, unlock))) === rdBase(UNLOCK), 'unlock: fora das linhas marcadas, byte a byte a base')"
+  ]
+ ],
+ "scripts/test-parceiro-eyebible-2-1410.mjs": [
+  [
+   "  const atual = semFilmesF1Virgula1910(lerDisco(p), p) // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a fiação do Faceless 15 s no export limpo (só acréscimos) sai PRIMEIRO",
+   "  const atual = lerDisco(p)"
+  ]
+ ]
+}

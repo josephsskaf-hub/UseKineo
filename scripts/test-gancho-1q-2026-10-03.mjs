@@ -30,6 +30,7 @@ import { desfazParceiroEyebible1410 } from './test-support/desfaz-parceiro-eyebi
 import { desfazParceiroEyebible2_1410 } from './test-support/desfaz-parceiro-eyebible-2-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410 [TRAVA 8.2 — vai do fundador 14/10]: a 2ª leva do Robert/EyeBible sai em memória antes do byte a byte
 import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]: a entrega mais nova sai antes da comparação com a base
 import { semFilmesF1F4_1910 } from './test-support/desfaz-filmes-f1f4-1910.mjs' // reancorado KINEO-FILMES-F1-F4-1910 [TRAVA 8.2 — vai do fundador 19/10 "vai, sim pra tudo"]: as linhas marcadas da rota do compose (Faceless 15 s) saem antes da comparação com a base
+import { semFilmesF1Virgula1910 } from './test-support/desfaz-filmes-f1-virgula-1910.mjs' // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a camada mais nova sai primeiro
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -243,7 +244,7 @@ if (BASE) {
   // as do "sem legenda" — qualquer outra mudança continua vermelha.
   const semBusiness = (t) => t.split('\n').filter((l) => !l.includes('KINEO-BUSINESS-84-2026-10-09')).join('\n')
   ok(semBusiness(semMarca(desfazEscritorOmni(ROTA, desfazH3max(ROTA, desfazParceiroEyebible1410(ROTA, semFilmeRapido1710(rota, ROTA) /* reancorado KINEO-FILME-RAPIDO-1710 */)))).split('\n').filter((l) => !l.includes('KINEO-SEM-LEGENDA-2026-10-06')).join('\n')) === rdBase(ROTA), 'compose: fora das linhas marcadas, byte a byte a base')
-  ok(semBusiness(semMarca(desfazParceiroEyebible2_1410(UNLOCK, unlock))) === rdBase(UNLOCK), 'unlock: fora das linhas marcadas, byte a byte a base')
+  ok(semBusiness(semMarca(desfazParceiroEyebible2_1410(UNLOCK, semFilmesF1Virgula1910(unlock, UNLOCK)))) === rdBase(UNLOCK), 'unlock: fora das linhas marcadas, byte a byte a base') // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a fiação do Faceless 15 s no export limpo (só acréscimos) sai PRIMEIRO
   ok(desfazEstornoNarracao('lib/compose.ts', desfazParceiroEyebible1410('lib/compose.ts', COMPOSE_LIB)) === rdBase('lib/compose.ts'), // reancorado KINEO-LEVA3-1310 · KINEO-PARCEIRO-EYEBIBLE-1410
     'lib/compose.ts byte a byte a base (trava 8.2)')
 }

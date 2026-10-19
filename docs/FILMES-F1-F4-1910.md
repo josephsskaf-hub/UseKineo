@@ -62,6 +62,15 @@ Fonte: `docs/RESULTADO-ESCADA-F1-F4-2026-10-19.md`. Guardião: `scripts/test-fil
 - **F3 · música sumindo no payoff e cauda muda.** Os 3 pedaços (18 · 10 · 18 com junções de 0,3 s e `trim_start`) caíram ~20 dB sob o payoff e deixaram a cauda em silêncio. Volume por keyframe **nunca foi exercitado pela casa** (nenhum uso no repo), então não entrou: a música é UM elemento só na trilha 8, a **14 % fixos**, do 0 ao fim do filme (inclusive o 1 s do CTA), loop, com os mesmos fades do F0 (cauda audível medida em produção). Riser/whoosh/pop intocados. Relato do evento: `f3.musica = "unica"`, `f3.volume`, `f3.cobre`.
 - **Antes de ligar:** 1 render de validação de cada (F1 sozinha; F1+F3) e nota do fundador ≥ 9.
 
+## Ajuste 2 de 19/10 (KINEO-FILMES-F1-VIRGULA-1910) — F1 nas frases com vírgula + export limpo
+
+Escada v2 (`docs/RESULTADO-ESCADA-F1-F4-2026-10-19.md` §v2): F3 consertada e medida; a F1 ainda saiu com 12 blocos — "A STORM STRAIGHT AT" / "EARTH" e "KNOCK OUT POWER GRIDS FOR" / "MONTHS".
+
+- **Causa:** o Whisper REAL dá duração ZERO à última palavra da frase (Earth 3,48–3,48 = o fim de "at"; months 16,58–16,58 = o fim de "for"). O agrupador casava token e palavra original pelo tempo de fim, então o ponto de "Earth" grudava em "at" e "Earth" virava uma frase de 1 palavra. O Whisper sintético do guardião anterior não tinha palavra de duração zero, por isso passou.
+- **Conserto:** o casamento agora é pela ORDEM e pelo TEXTO (token colado "5 AM" consome as originais até o texto bater). Com o Whisper real da escada sai: IN 1859 THE SUN FIRED / A STORM STRAIGHT AT EARTH / TELEGRAPH WIRES SPARKED / AND SHOCKED THEIR OPERATORS / SOME LINES KEPT SENDING MESSAGES / WITH THE BATTERIES UNPLUGGED / AURORAS LIT THE SKY / OVER CUBA / TODAY THE SAME STORM / COULD KNOCK OUT POWER / GRIDS FOR MONTHS (11 blocos).
+- **Prova permanente:** `scripts/test-support/fixture-whisper-carrington-1910.json` (o cache de voz da escada, `voiceovers/cache/20a86ed9….meta.mp3`) em `scripts/test-filmes-f1-virgula-1910.mjs`, pela cadeia da rota (Whisper → grafia do roteiro → builder → receita). Vermelho no código anterior, verde no novo; mutante "casamento por tempo de fim" fica vermelho.
+- **Export limpo ligado:** `app/api/compose/unlock/route.ts` ganhou 5 linhas marcadas (só acréscimos): a mesma decisão (`resolverFaceless15`, conta interna do servidor, quality do rebuild, duração, quadro, `formatFlags` do corpo), `aplicarFaceless15` síncrono logo depois do builder com o mesmo Whisper com a grafia do roteiro, e a F2 depois do gancho da conta interna. Desligado = JSON idêntico (provado). O cliente do unlock hoje não manda `formatFlags`: para conta interna por pedido o export limpo segue a montagem de sempre; quando uma fase virar pública (`FACELESS15_PUBLIC`), prévia e export saem iguais.
+
 ## Rastro para medir
 
 Evento `faceless15_fases` (`events.name`), `metadata.fases` = o que valeu naquele filme, `metadata.relato` = o que cada fase fez (chunks, cortes, trims, ducking, SFX). Medição de % ≥95 antes × depois **por fase**: `where name = 'faceless15_fases' and metadata->'fases' ? 'f1'` etc., cortado no deploy.
@@ -72,7 +81,7 @@ Dry-run $0 antes; saldo da fal lido antes; os mesmos 2 roteiros (1 mistério/his
 
 ## Fora desta entrega (anotar, não esquecer)
 
-1. **Export limpo** (`app/api/compose/unlock/route.ts`, re-render pago sem marca d'água) não aplica as fases: enquanto tudo é interno por pedido, não importa; **antes de virar uma fase pública**, ligar o mesmo `aplicarFaceless15` lá, senão o cliente paga o export e recebe outra montagem.
+1. ~~**Export limpo**~~ — FEITO em 19/10 (KINEO-FILMES-F1-VIRGULA-1910): `app/api/compose/unlock/route.ts` aplica a mesma receita (ver "Ajuste 2" acima).
 2. **Roteiro** (§3.7: HOOK como pergunta/número ≤9 palavras; PAYOFF 8–10) não mudou — `app/api/generate-script/` é caminho proibido da trava e a tarefa pediu só o interruptor do gancho. Fase à parte.
 3. **Imagem por frase + `sujeito/acao/lugar`** (§3.3) e best-of-2 (R4) — fora da receita F1–F4.
 4. O riser da receita "para no pico na 1ª palavra" (silêncio de 0,3 s antes da voz): hoje a voz começa em 0 s; o riser de 1,2 s cobre o gancho a −14 dB. Se o fundador quiser o silêncio de 0,3 s, é a voz (trilha 4) que desloca — não mexido.

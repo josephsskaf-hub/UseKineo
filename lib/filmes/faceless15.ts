@@ -232,15 +232,31 @@ export function partirFraseFaceless15(n: number, naoFecha: ReadonlyArray<boolean
  */
 export function agruparLegendaFaceless15(whisperWords: ReadonlyArray<WhisperWord>, fimJanela: number, max = FACELESS15_LEGENDA_PALAVRAS): BlocoLegendaFaceless15[] {
   const originais = whisperWords as WhisperWord[]
-  const fimDe = new Map<number, WhisperWord>()
-  for (const w of originais) if (Number.isFinite(w?.end)) fimDe.set(r3(w.end), w)
-  const toks: WhisperWord[] = buildCaptionsFromWhisperWords(originais, fimJanela, 0, 1)
+  const brutos = buildCaptionsFromWhisperWords(originais, fimJanela, 0, 1)
     .map((c) => c.words[0])
     .filter((w): w is { word: string; start: number; end: number } => !!w && !!String(w.word ?? '').trim())
-    .map((w) => {
-      const o = fimDe.get(r3(w.end))
-      return { word: w.word, start: w.start, end: w.end, sentenceEnd: o?.sentenceEnd === true || fechaFrase({ word: o?.word ?? w.word, start: 0, end: 0 }) }
-    })
+  // KINEO-FILMES-F1-VIRGULA-1910 — o fim de frase de cada token vem da palavra original casada pela ORDEM e pelo TEXTO,
+  // nunca pelo tempo: o Whisper dá duração ZERO à última palavra da frase (escada v2: Earth 3,48–3,48 = o fim de "at";
+  // months 16,58–16,58 = o fim de "for"), e o casamento antigo por tempo de fim grudava o ponto de "Earth" em "at" —
+  // "A STORM STRAIGHT AT" / "EARTH". Token colado por lib/compose ("A"+"M" → "AM", "5"+"AM" → "5 AM") consome as
+  // originais até o texto bater; na dúvida, consome uma.
+  const chave = (w: unknown): string => String(w ?? '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')
+  const naJanela = originais.filter((o) => !!o && typeof o.start === 'number' && o.start < fimJanela)
+  let j = 0
+  const toks: WhisperWord[] = []
+  for (const w of brutos) {
+    const alvo = chave(w.word)
+    while (j < naJanela.length && chave(naJanela[j].word) === '' && alvo !== '') {
+      if ((naJanela[j].sentenceEnd === true || fechaFrase(naJanela[j])) && toks.length > 0) toks[toks.length - 1].sentenceEnd = true
+      j++
+    }
+    const j0 = j
+    let acc = ''
+    while (j < naJanela.length && acc.length < alvo.length) { acc += chave(naJanela[j].word); j++ }
+    if (acc !== alvo) j = Math.min(naJanela.length, j0 + 1)
+    const casadas = naJanela.slice(j0, j)
+    toks.push({ word: w.word, start: w.start, end: w.end, sentenceEnd: casadas.some((o) => o.sentenceEnd === true || fechaFrase(o)) || fechaFrase({ word: w.word, start: 0, end: 0 }) })
+  }
   if (toks.length === 0) return []
   const temPontuacao = toks.some((w) => w.sentenceEnd === true)
   const gap = (i: number): number => (i + 1 < toks.length ? toks[i + 1].start - toks[i].end : Infinity)
