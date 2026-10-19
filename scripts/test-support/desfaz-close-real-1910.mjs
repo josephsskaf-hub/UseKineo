@@ -7,6 +7,7 @@
 //   · TROCA — a linha da base foi reescrita (só onde não há outro jeito; listadas abaixo, reconhecidas INTEIRAS): volta a ser a da base.
 // O guardião scripts/test-close-real-1910.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE o pai do 1º commit da entrega
 // (CLOSE_REAL_1910_BASE), e que os arquivos novos (CLOSE_REAL_1910_NOVOS) não existiam lá.
+import { semCloseRealAjuste1910 } from './desfaz-close-real-ajuste-1910.mjs' // KINEO-CLOSE-REAL-AJUSTE-1910 — o ajuste pós-canário do Close real veio depois: sai PRIMEIRO (encadeado)
 export const MARCA_CLOSE_REAL_1910 = 'KINEO-CLOSE-REAL-1910'
 
 /** O pai do 1º commit da entrega (origin/main de 19/10). */
@@ -598,6 +599,7 @@ const LF = String.fromCharCode(10)
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Sem linha marcada = devolve igual (CRLF preservado). */
 export function semCloseReal1910(texto, p) {
+  texto = semCloseRealAjuste1910(texto, p) // KINEO-CLOSE-REAL-AJUSTE-1910 — a camada mais nova sai primeiro (texto sem a marca dela passa igual)
   if (typeof texto !== 'string' || !texto.includes(MARCA_CLOSE_REAL_1910)) return texto
   const crlf = texto.includes(CR + LF)
   const trocas = new Map((TROCAS_CLOSE_REAL_1910[p] ?? []).map(([nova, base]) => [nova, base]))

@@ -178,6 +178,12 @@ export function adsV2NameFinish(copy: AdsV2Copy, names: readonly string[], langu
   return fixes.length ? { copy: { ...copy, narration: n ? n.text : copy.narration, overlays }, fixes } : { copy, fixes } // KINEO-ADS-MAO-JUIZ-1610
 } // KINEO-ADS-MAO-JUIZ-1610
 
+/** KINEO-CLOSE-REAL-AJUSTE-1910 — no Close real, a marca dita no máximo 2 vezes na narração (o fecho automático conta as menções que já existem). */ // KINEO-CLOSE-REAL-AJUSTE-1910
+export const ADS_V2_CLOSE_REAL_NAME_MAX = 2 // KINEO-CLOSE-REAL-AJUSTE-1910
+/** KINEO-CLOSE-REAL-AJUSTE-1910 — Close real: o hífen/travessão ENTRE dois pedaços de uma frase de tela vira " · " ("Perfume LUME - Fragrâncias Exclusivas" → "Perfume LUME · Fragrâncias Exclusivas"); "9 - 18h" fica. Pura. */ // KINEO-CLOSE-REAL-AJUSTE-1910
+export function adsV2CloseRealOverlayDash(copy: AdsV2Copy): AdsV2Copy { // KINEO-CLOSE-REAL-AJUSTE-1910
+  return { ...copy, overlays: copy.overlays.map((o) => (typeof o === 'string' ? o.replace(/(\p{L})\s+[-–—]\s+(?=\p{L})/gu, (_all: string, a: string) => a + ' · ') : o)) } // KINEO-CLOSE-REAL-AJUSTE-1910
+} // KINEO-CLOSE-REAL-AJUSTE-1910
 /** Nome da marca = a parte antes do travessão em "<nome> — <o que vende>" (formato do buildAutoBriefMessages). */
 export function brandName(brief: Pick<AdsBrief, 'business'>): string {
   return (brief.business ?? '').split(/\s+[—–-]\s+/)[0].trim().replace(/\s*[—–-]\s*$/, '') // KINEO-ADS-CONSERTOS-1410 — "perfume —" (travessão sem nada depois) não vira "perfume —" na tela
@@ -638,6 +644,8 @@ async function extractWithBudget(args: {
   speechSentences?: string // KINEO-ADS-MAO-AJUSTE-3-1610
   /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — o apresentador v2 (o /plan decide): o piso EXATO de palavras (17 no teto de 21; a régua de sempre daria 19). Ausente = como sempre. */
   speechMinExact?: number // KINEO-APRESENTADOR-V2-AJUSTE-1710
+  /** KINEO-CLOSE-REAL-AJUSTE-1910 — o formato Close do produto real (o /plan decide): a marca no máximo 2 vezes na fala e o travessão do título vira " · ". Ausente = como sempre. */ // KINEO-CLOSE-REAL-AJUSTE-1910
+  closeReal?: boolean // KINEO-CLOSE-REAL-AJUSTE-1910
 }, budget: AdsV2CallBudget): Promise<AdsV2BriefResult> {
   const briefMsgs = buildAutoBriefMessages(args.text, args.languageName)
   const briefRaw = await callJson([{ role: 'system', content: briefMsgs.system }, { role: 'user', content: briefMsgs.user }], 0.2, 900, budget)
@@ -684,6 +692,7 @@ async function extractWithBudget(args: {
   // KINEO-ADS-DEMO-UNIVERSO-1410 — "este perfume" no produto genérico) e um conjunto `used` dividido entre o principal e as versões.
   const speechClose = { name: generic ? adsV2GenericThis(generic) : brandName(brief), brand: !generic, used: new Set<string>() } // KINEO-ADS-DEMO-UNIVERSO-1410
   if (fitOpts.speech) Object.assign(fitOpts.speech, { close: speechClose }) // KINEO-ADS-DEMO-UNIVERSO-1410
+  if (args.closeReal === true) Object.assign(speechClose, { nameMax: ADS_V2_CLOSE_REAL_NAME_MAX }) // KINEO-CLOSE-REAL-AJUSTE-1910 — canário de1c0d72: "Perfume LUME" 3× e o fecho "Agora, Perfume LUME." colado; no Close real o fecho com o nome só entra abaixo de 2 menções
   const copyMsgs = buildV2CopyMessages(brief, args.languageName, opts)
   const base = [{ role: 'system' as const, content: copyMsgs.system }, { role: 'user' as const, content: copyMsgs.user }]
   // KINEO-ADS-ROTEIROS-2026-10-13 — as versões saem em paralelo com o texto de sempre (que sai PRIMEIRO), sob o mesmo prazo;
@@ -779,6 +788,7 @@ async function extractWithBudget(args: {
     if (!variantsInfo.why && dropWhy.length) variantsInfo.why = `dropped: ${dropWhy.join(' | ')}`.slice(0, 300) // KINEO-ADS-RETESTE-1510
   }
   if (fitFixes.length) honestyFixes = [...honestyFixes, ...fitFixes] // KINEO-ADS-RETESTE-1510 — o acabamento em código vai para o evento (honesty_fixes), como os outros consertos
+  if (args.closeReal === true) { checked = { ...checked, copy: adsV2CloseRealOverlayDash(checked.copy) }; variants = variants.map((v) => ({ ...v, copy: adsV2CloseRealOverlayDash(v.copy) })) } // KINEO-CLOSE-REAL-AJUSTE-1910 — o hífen/travessão do título vira " · " ANTES do acabamento (que o trocava por espaço: "Perfume LUME Fragrâncias Exclusivas")
   const finalMain = adsV2NameFinish(checked.copy, nameList, args.language) // KINEO-ADS-MAO-JUIZ-1610 — "da Perfume Atheeri" → "de Perfume Atheeri"; "Perfume Atheeri - Fragrâncias" → "Perfume Atheeri Fragrâncias"
   if (finalMain.fixes.length) honestyFixes = [...honestyFixes, ...finalMain.fixes] // KINEO-ADS-MAO-JUIZ-1610
   variants = variants.map((v) => { const f = adsV2NameFinish(v.copy, nameList, args.language); return f.fixes.length ? { ...v, copy: f.copy, honestyFixes: [...(v.honestyFixes ?? []), ...f.fixes] } : v }) // KINEO-ADS-MAO-JUIZ-1610

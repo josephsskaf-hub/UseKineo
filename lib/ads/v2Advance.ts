@@ -49,6 +49,7 @@ import { adsV2FallbackTrack, adsV2MusicTrimStart, adsV2MusicUsable, adsV2SwapLib
 import { ADS_V2_QUALITY, confirmAdsV2Debit, failAdsV2Order } from '@/lib/ads/v2Billing'
 import { isAdsSampleRef } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
 import { ADS_V2_CLOSE_REAL_WATERMARK, adsV2CloseRealOf, buildAdV2CloseRealSource } from '@/lib/ads/v2CloseReal' // KINEO-CLOSE-REAL-1910 — o Close do produto real (zero IA de vídeo; a amostra grátis com marca-d'água)
+import { adsV2CloseRealCardName, adsV2CloseRealCta } from '@/lib/ads/v2CloseReal' // KINEO-CLOSE-REAL-AJUSTE-1910 — o nome e a chamada do cartão próprio do Close real
 // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator de IA (lib pura): a linha dele, quando desiste, a voz que cabe e a ordem dos inserts.
 import {
   ADS_V2_PRESENTER_GIVEUP_MS,
@@ -1234,7 +1235,7 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
     closeRealHero = hero ? 'cutout' : 'photo' // KINEO-CLOSE-REAL-1910
     const crFrame = renderOutputSpecFor('9:16') // KINEO-CLOSE-REAL-1910 — o Close real é só vertical
     try { // KINEO-CLOSE-REAL-1910
-      closeRealSource = buildAdV2CloseRealSource({ width: crFrame.width, height: crFrame.height, heroUrl: hero?.url ?? null, heroFallbackUrl: closeRealPlan.product?.url ?? closeRealPlan.photos[0], photos: closeRealPlan.photos, phrases: (plan.overlays ?? []).map((o) => (o && typeof o.text === 'string' ? o.text : '')), fontFamily: captionFontFor(language), cardUrl: order.card_url, cardSeconds: ADS_V2_CARD_SECONDS, musicUrl, musicTrimStart: adsV2MusicTrimStart(musicUrl), voiceUrl, voiceSeconds, watermark: isAdsSampleRef(order.billing_ref) ? ADS_V2_CLOSE_REAL_WATERMARK : null }) // KINEO-CLOSE-REAL-1910
+      closeRealSource = buildAdV2CloseRealSource({ width: crFrame.width, height: crFrame.height, heroUrl: hero?.url ?? null, heroFallbackUrl: closeRealPlan.product?.url ?? closeRealPlan.photos[0], photos: closeRealPlan.photos, phrases: (plan.overlays ?? []).map((o) => (o && typeof o.text === 'string' ? o.text : '')), fontFamily: captionFontFor(language), cardUrl: order.card_url, cardSeconds: ADS_V2_CARD_SECONDS, musicUrl, musicTrimStart: adsV2MusicTrimStart(musicUrl), voiceUrl, voiceSeconds, watermark: isAdsSampleRef(order.billing_ref) ? ADS_V2_CLOSE_REAL_WATERMARK : null, narration, closeCard: hero?.cardUrl && adsV2CloseRealCardName(order.brief?.business) ? { url: hero.cardUrl, name: adsV2CloseRealCardName(order.brief?.business), cta: adsV2CloseRealCta(language) } : null }) // KINEO-CLOSE-REAL-1910 // KINEO-CLOSE-REAL-AJUSTE-1910 — + a narração (legendas no tempo da voz) e o cartão próprio (fundo na cor da embalagem + nome + chamada)
     } catch (e) { // KINEO-CLOSE-REAL-1910
       await failAdsV2Order(admin, order, `montage_invalid:${e instanceof Error ? e.message : String(e)}`, '/lib/ads/v2Advance') // KINEO-CLOSE-REAL-1910
       return // KINEO-CLOSE-REAL-1910
