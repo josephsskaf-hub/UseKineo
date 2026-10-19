@@ -37,6 +37,7 @@ import { maskCourtesyPlans } from '@/lib/courtesy'
 import { loadActiveCourtesyGrants } from '@/lib/courtesyStore'
 
 import { funilVersaoB, VERSAO_B_SINCE, metaTrue, type EventRow, type FunilB } from '@/lib/admin/versaoBFunnel'
+import { PessoaLink } from '@/components/admin/PessoaLink' // KINEO-ADMIN-PESSOA-1910 — o e-mail (mascarado) abre a tela da pessoa
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -631,7 +632,7 @@ export default async function AdminOverviewPage() {
                   <thead><tr style={{ color: 'var(--muted2)', textAlign: 'left' }}>{['Pessoa', 'Pagou $1', 'Dias restantes', 'Plano no dia 8', 'Usou dos 80', 'Filmes'].map((h) => <th key={h} style={{ padding: '3px 8px', fontWeight: 700 }}>{h}</th>)}</tr></thead>
                   <tbody>{m.trial1.map((t) => (
                     <tr key={t.id} data-testid="trial-1-pessoa" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                      <td style={{ padding: '3px 8px', fontFamily: 'ui-monospace, monospace' }}>{t.email}</td>
+                      <td style={{ padding: '3px 8px', fontFamily: 'ui-monospace, monospace' }}><PessoaLink id={t.id}>{t.email}</PessoaLink></td>
                       <td style={{ padding: '3px 8px' }}>{t.paidAt ? timeAgo(t.paidAt) : '—'}</td>
                       <td style={{ padding: '3px 8px', fontWeight: 800, color: t.daysLeft != null && t.daysLeft <= 1 ? '#FFBF58' : '#5FD4A4' }}>{t.daysLeft != null ? `${t.daysLeft}d` : '—'}</td>
                       <td style={{ padding: '3px 8px' }}>{(t.plan ?? '').replace('_trial', '') || '—'}</td>
@@ -668,7 +669,7 @@ export default async function AdminOverviewPage() {
                   <thead><tr style={{ color: 'var(--muted2)', textAlign: 'left' }}>{['Pessoa', 'Pagou $1', 'Entrou', 'Plano', 'Usou dos 80', 'Créditos agora', 'Filmes'].map((h) => <th key={h} style={{ padding: '4px 8px', fontWeight: 700 }}>{h}</th>)}</tr></thead>
                   <tbody>{pagaram.map((e) => (
                     <tr key={e.id} data-testid="pagou-1" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-                      <td style={{ padding: '4px 8px', fontFamily: 'ui-monospace, monospace' }}>{e.email}</td>
+                      <td style={{ padding: '4px 8px', fontFamily: 'ui-monospace, monospace' }}><PessoaLink id={e.id}>{e.email}</PessoaLink></td>
                       <td style={{ padding: '4px 8px', color: '#5FD4A4', fontWeight: 800 }}>{timeAgo(e.paid1At)}</td>
                       <td style={{ padding: '4px 8px' }}>{timeAgo(e.bornAt)}</td>
                       <td style={{ padding: '4px 8px' }}>{e.plan ?? '—'}</td>
@@ -689,7 +690,7 @@ export default async function AdminOverviewPage() {
                 {m.entrantes.length === 0 && <tr><td colSpan={9} style={{ padding: 8, color: 'var(--muted2)' }}>Ninguém ainda desde o marco.</td></tr>}
                 {m.entrantes.map((e) => (
                   <tr key={e.id} data-testid="entrante" style={{ borderTop: '1px solid rgba(255,255,255,0.04)', background: e.paid1At ? 'rgba(52,211,153,.06)' : undefined }}>
-                    <td style={{ padding: '4px 8px', fontFamily: 'ui-monospace, monospace' }}>{e.email}</td>
+                    <td style={{ padding: '4px 8px', fontFamily: 'ui-monospace, monospace' }}><PessoaLink id={e.id}>{e.email}</PessoaLink></td>
                     <td style={{ padding: '4px 8px' }}>{timeAgo(e.bornAt)}</td>
                     <td style={{ padding: '4px 8px' }}>{e.sawDoor ? '✓' : '—'}</td>
                     <td style={{ padding: '4px 8px' }}>{e.clicked ? '✓' : '—'}</td>

@@ -11,6 +11,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import type { CeoData } from '@/app/api/admin/ceo/compute'
+import { EmailBotao, PessoaLink } from '@/components/admin/PessoaLink' // KINEO-ADMIN-PESSOA-1910
 
 interface AdminUserRow {
   id: string
@@ -292,17 +293,9 @@ function Mono({ text, badge, badgeColor, mailtoSubject }: { text: string; badge?
   )
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-      {text && mailtoSubject ? (
-        <a
-          href={`mailto:${text}?subject=${encodeURIComponent(mailtoSubject)}`}
-          style={{ color: '#8DB4FF', textDecoration: 'none' }}
-          title="Send the rescue email"
-        >
-          {inner}
-        </a>
-      ) : (
-        inner
-      )}
+      {/* KINEO-ADMIN-PESSOA-1910 — o e-mail abre a TELA DA PESSOA; o e-mail de resgate (assunto pronto) é o ✉ ao lado. */}
+      {text ? <PessoaLink email={text} style={{ color: '#8DB4FF' }}>{inner}</PessoaLink> : inner}
+      {text && mailtoSubject ? <EmailBotao email={text} assunto={mailtoSubject} title="Send the rescue email" /> : null}
       {badge && (
         <span
           className="rounded px-1.5 py-0.5 text-[10px] font-black uppercase"
