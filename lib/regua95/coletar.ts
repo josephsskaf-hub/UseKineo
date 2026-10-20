@@ -21,9 +21,14 @@ import {
   type IdeaSource,
   type ProdutoRegua,
 } from '@/lib/regua95/coherenceV2'
-import { PIXEL_SCORE_EVENT, PIXEL_SCORE_VERSION, scorePixel, type PixelContext } from '@/lib/regua95/pixelScore'
+import { PIXEL_SCORE_EVENT, PIXEL_SCORE_VERSION, extractFramesFal, judgeFrames, type PixelContext } from '@/lib/regua95/pixelScore'
 import { contextoDoAnuncio, produtoDoVideo, resolverIdeia, type ScriptWrittenLido } from '@/lib/regua95/contexto'
-import { UGC_SCORE_EVENT, UGC_SCORE_VERSION, scoreUgc, type UgcContext } from '@/lib/regua95/ugcJudge' // KINEO-META95-UGC-1910
+import { UGC_SCORE_EVENT, UGC_SCORE_VERSION, extractUgcFramesFal, judgeUgcFrames, planUgcFrames, type UgcContext } from '@/lib/regua95/ugcJudge' // KINEO-META95-UGC-1910
+
+/** KINEO-META95-REGUA-AJUSTE-1910 — janela padrão do coletor (7 dias) e a política de nova tentativa de quem falhou. */
+export const REGUA95_JANELA_HORAS = 168
+export const REGUA95_MAX_FALHAS = 3
+export const REGUA95_ESPERA_FALHA_MS = 60 * 60_000
 
 export type EntregaRegua = {
   key: string
@@ -61,8 +66,10 @@ export async function listarEntregasRegua(
   readAll: typeof ReadAllRows,
 ): Promise<EntregaRegua[]> {
   const route = opts.route ?? '/api/cron/regua-95'
-  const hours = Math.max(1, Math.min(24 * 14, opts.hours ?? 6))
-  const limit = Math.max(1, Math.min(300, opts.limit ?? 120))
+  // KINEO-META95-REGUA-AJUSTE-1910 — janela padrão de 7 dias (era 6 h): o estoque da semana sem nota nunca entrava. Em lotes
+  // pequenos (maxJudge por giro), do mais novo para o mais velho.
+  const hours = Math.max(1, Math.min(24 * 14, opts.hours ?? REGUA95_JANELA_HORAS))
+  const limit = Math.max(1, Math.min(400, opts.limit ?? 300))
   const since = new Date(Date.now() - hours * 3600_000).toISOString()
   const ev = (name: string) => admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', name)
 
@@ -162,30 +169,59 @@ export async function listarEntregasRegua(
   return out.sort((a, b) => (a.delivered_at < b.delivered_at ? 1 : -1))
 }
 
-/** O que já tem nota na versão vigente: Set de `${evento}:${chave}`. */
-export async function notasExistentes(admin: SupabaseClient, keys: string[], readAll: typeof ReadAllRows, route = '/api/cron/regua-95'): Promise<Set<string>> {
+/**
+ * O que NÃO julgar agora: Set de `${evento}:${chave}`.
+ * KINEO-META95-REGUA-AJUSTE-1910 — a FALHA também vira evento (mesmo nome, score null, campo `falha`). Sem isso, uma entrega cujo MP4
+ * a fal não fatia voltava ao topo da fila a cada giro e travava o lote inteiro (sempre as mesmas 4, nenhuma outra julgada).
+ * Regra: nota de verdade = feito; falha = espera REGUA95_ESPERA_FALHA_MS e tenta de novo, até REGUA95_MAX_FALHAS; depois, desiste.
+ */
+export async function notasExistentes(admin: SupabaseClient, keys: string[], readAll: typeof ReadAllRows, route = '/api/cron/regua-95', agora: number = Date.now()): Promise<Set<string>> {
   const done = new Set<string>()
+  const falhas = new Map<string, { n: number; ultima: number }>()
   for (const part of chunks(Array.from(new Set(keys)))) {
     const r = await readAll(() => admin.from('events').select('created_at, session_id, user_id, metadata').in('name', [COHERENCE_V2_EVENT, PIXEL_SCORE_EVENT, UGC_SCORE_EVENT /* KINEO-META95-UGC-1910 */]).in('session_id', part), { route, table: 'events' })
-    for (const e of (r.data ?? []) as Array<EventRow & { name?: string }>) {
+    for (const e of (r.data ?? []) as EventRow[]) {
       const v = str(e.metadata?.version)
       if (!e.session_id) continue
-      if (v === COHERENCE_V2_VERSION) done.add(`${COHERENCE_V2_EVENT}:${e.session_id}`)
-      if (v === PIXEL_SCORE_VERSION) done.add(`${PIXEL_SCORE_EVENT}:${e.session_id}`)
-      if (v === UGC_SCORE_VERSION) done.add(`${UGC_SCORE_EVENT}:${e.session_id}`) // KINEO-META95-UGC-1910
+      const nome = v === COHERENCE_V2_VERSION ? COHERENCE_V2_EVENT : v === PIXEL_SCORE_VERSION ? PIXEL_SCORE_EVENT : v === UGC_SCORE_VERSION ? UGC_SCORE_EVENT /* KINEO-META95-UGC-1910 */ : null
+      if (!nome) continue
+      const marca = `${nome}:${e.session_id}`
+      if (typeof e.metadata?.score === 'number') { done.add(marca); continue }
+      const f = falhas.get(marca) ?? { n: 0, ultima: 0 }
+      f.n += 1
+      f.ultima = Math.max(f.ultima, Date.parse(e.created_at) || 0)
+      falhas.set(marca, f)
     }
   }
+  for (const [marca, f] of Array.from(falhas.entries())) if (f.n >= REGUA95_MAX_FALHAS || agora - f.ultima < REGUA95_ESPERA_FALHA_MS) done.add(marca)
   return done
 }
 
-export type ResultadoRegua = { key: string; product: ProdutoRegua; engine: string; coerencia: number | null; pixel: number | null; ugc?: number | null; usd: number; erro?: string }
+export type ResultadoRegua = { key: string; product: ProdutoRegua; engine: string; coerencia: number | null; pixel: number | null; ugc?: number | null; usd: number; erro?: string; frame_via?: string | null }
+
+/**
+ * KINEO-META95-REGUA-AJUSTE-1910 — UMA linha de log por giro, com as contagens, mesmo quando não há nada a julgar. Antes a rota
+ * só escrevia no log quando quebrava: a Vercel só guarda o que a função imprime, e um giro silencioso era indistinguível de um
+ * giro que nunca aconteceu (o 1º diagnóstico pós-deploy, 19/10 23h, não conseguiu dizer se o cron rodava).
+ */
+export function resumoRegua95(r: { candidatas: number; pendentes: number; julgadas: ResultadoRegua[]; porProduto?: Record<string, { candidatas: number; pendentes: number }> } | null | 'tempo', ms: number): string {
+  if (r === 'tempo') return JSON.stringify({ regua95: 'tempo_esgotado', ms })
+  if (!r) return JSON.stringify({ regua95: 'falhou', ms })
+  return JSON.stringify({
+    candidatas: r.candidatas,
+    pendentes: r.pendentes,
+    por_produto: r.porProduto ?? {},
+    julgadas: r.julgadas.map((j) => ({ k: j.key.slice(0, 8), p: j.product, c: j.coerencia, px: j.pixel, ...(j.ugc != null ? { ugc: j.ugc } : {}) /* KINEO-META95-UGC-1910 */, via: j.frame_via ?? null, usd: Math.round(j.usd * 1e4) / 1e4, ...(j.erro ? { erro: j.erro } : {}) })),
+    ms,
+  })
+}
 
 /** Julga as pendentes (até maxJudge entregas), grava um evento por nota. Nunca lança. */
 export async function julgarPendentesRegua(
   admin: SupabaseClient,
   opts: { hours?: number; limit?: number; maxJudge?: number; route?: string; fetchImpl?: typeof fetch },
   readAll: typeof ReadAllRows,
-): Promise<{ candidatas: number; pendentes: number; julgadas: ResultadoRegua[] }> {
+): Promise<{ candidatas: number; pendentes: number; julgadas: ResultadoRegua[]; porProduto: Record<string, { candidatas: number; pendentes: number }> }> {
   const route = opts.route ?? '/api/cron/regua-95'
   const entregas = await listarEntregasRegua(admin, { hours: opts.hours, limit: opts.limit, route }, readAll)
   const done = await notasExistentes(admin, entregas.map((e) => e.key), readAll, route)
@@ -199,6 +235,12 @@ export async function julgarPendentesRegua(
     await Promise.all(lote.slice(i, i + 2).map(async (e) => {
       const base = { product: e.product, engine: e.engine, video_id: e.video_id, generation_id: e.generation_id, render_id: e.render_id, delivered_at: e.delivered_at, deploy_sha: deploySha, kind: e.kind }
       const r: ResultadoRegua = { key: e.key, product: e.product, engine: e.engine, coerencia: null, pixel: null, usd: 0 }
+      // KINEO-META95-REGUA-AJUSTE-1910 — UM ponto de escrita, que confere o erro do insert (antes ignorado: um insert recusado sumia
+      // sem rastro) e o devolve no resumo que a rota loga.
+      const gravar = async (name: string, metadata: Record<string, unknown>) => {
+        const { error } = await admin.from('events').insert({ name, user_id: e.user_id, session_id: e.key, path: route, metadata })
+        if (error) r.erro = [r.erro, `insert_${name}: ${String(error.message).slice(0, 120)}`].filter(Boolean).join(' · ')
+      }
       try {
         if (e.coherence && !done.has(`${COHERENCE_V2_EVENT}:${e.key}`)) {
           const c = await scoreCoherenceV2({ idea: e.coherence.idea, ideaSource: e.coherence.ideaSource, narration: e.coherence.narration, scenes: e.coherence.scenes, engine: e.engine, filmSeconds: e.coherence.filmSeconds }, { fetchImpl: opts.fetchImpl })
@@ -206,32 +248,45 @@ export async function julgarPendentesRegua(
             r.coerencia = c.score
             r.usd += c.usd
             // item 1 da meta 95: a evidência INTEIRA vai junto (ideia original, fala e prompt de cada cena, sem o corte de 240).
-            await admin.from('events').insert({
-              name: COHERENCE_V2_EVENT, user_id: e.user_id, session_id: e.key, path: route,
-              metadata: { ...c, ...base, evidence: { idea: e.coherence.idea.slice(0, 4000), idea_source: e.coherence.ideaSource, narration: e.coherence.narration.slice(0, 3000), scenes: e.coherence.scenes.map((s) => ({ scene: s.scene, spoken: s.spoken.slice(0, 800), prompt: s.prompt.slice(0, 3000), prompt_sem_prefixo_chars: stripFixedPrefix(s.prompt).length })) } },
-            })
+            await gravar(COHERENCE_V2_EVENT, { ...c, ...base, evidence: { idea: e.coherence.idea.slice(0, 4000), idea_source: e.coherence.ideaSource, narration: e.coherence.narration.slice(0, 3000), scenes: e.coherence.scenes.map((s) => ({ scene: s.scene, spoken: s.spoken.slice(0, 800), prompt: s.prompt.slice(0, 3000), prompt_sem_prefixo_chars: stripFixedPrefix(s.prompt).length })) } })
+          } else {
+            r.erro = 'coerencia_sem_resposta'
+            await gravar(COHERENCE_V2_EVENT, { version: COHERENCE_V2_VERSION, score: null, falha: 'coerencia_sem_resposta', ...base })
           }
         }
         if (!done.has(`${PIXEL_SCORE_EVENT}:${e.key}`)) {
-          const p = await scorePixel(e.video_url, e.seconds, e.pixel, { fetchImpl: opts.fetchImpl })
+          // KINEO-META95-REGUA-AJUSTE-1910 — quadros e visão separados: o resumo e o evento de falha dizem QUAL dos dois falhou.
+          const inicio = Date.now()
+          const ex = await extractFramesFal(e.video_url, e.seconds, { fetchImpl: opts.fetchImpl })
+          r.frame_via = ex?.via ?? null
+          const p = ex ? await judgeFrames(e.pixel, ex.frames, { fetchImpl: opts.fetchImpl, via: ex.via, usdFrames: ex.usd, startedAt: inicio }) : null
           if (p) {
             r.pixel = p.score
             r.usd += p.usd
-            await admin.from('events').insert({ name: PIXEL_SCORE_EVENT, user_id: e.user_id, session_id: e.key, path: route, metadata: { ...p, ...base, video_url: e.video_url, asked: String(e.pixel.asked ?? '').slice(0, 600) } })
+            await gravar(PIXEL_SCORE_EVENT, { ...p, ...base, video_url: e.video_url, asked: String(e.pixel.asked ?? '').slice(0, 600) })
           } else {
-            r.erro = 'pixel_sem_nota'
+            const falha = ex ? 'visao_sem_resposta' : 'quadros_indisponiveis'
+            r.erro = [r.erro, falha].filter(Boolean).join(' · ')
+            await gravar(PIXEL_SCORE_EVENT, { version: PIXEL_SCORE_VERSION, score: null, falha, frame_via: ex?.via ?? null, frame_count: ex?.frames.length ?? 0, ...base, video_url: e.video_url })
           }
         }
         // KINEO-META95-UGC-1910 — juiz de UGC/apresentador (só registra): olhos no gancho, sorriso de dentes, mão, duplicação,
-        // rótulo × foto do pedido. O painel combina: nota UGC = a menor entre o pixel e este juiz.
+        // rótulo × foto do pedido. O painel combina: nota UGC = a menor entre o pixel e este juiz. Mesmo fluxo do pixel
+        // (KINEO-META95-REGUA-AJUSTE-1910): quadros e visão separados, gravação pelo ponto único (confere o erro do banco) e a
+        // FALHA vira evento ugc_score com score null — espera e retentativa por notasExistentes, sem travar o lote.
         if (e.ugc && !done.has(`${UGC_SCORE_EVENT}:${e.key}`)) {
-          const u = await scoreUgc(e.video_url, e.seconds, e.ugc, { fetchImpl: opts.fetchImpl })
+          const inicioUgc = Date.now()
+          const plano = planUgcFrames({ seconds: e.seconds, speechSeconds: e.ugc.speechSeconds, pausesSeconds: e.ugc.pausesSeconds })
+          const exU = await extractUgcFramesFal(e.video_url, plano, { fetchImpl: opts.fetchImpl })
+          const u = exU ? await judgeUgcFrames(e.ugc, exU.frames, { fetchImpl: opts.fetchImpl, via: exU.via, usdFrames: exU.usd, startedAt: inicioUgc }) : null
           if (u) {
             r.ugc = u.score
             r.usd += u.usd
-            await admin.from('events').insert({ name: UGC_SCORE_EVENT, user_id: e.user_id, session_id: e.key, path: route, metadata: { ...u, ...base, video_url: e.video_url, asked: String(e.ugc.asked ?? '').slice(0, 600) } })
+            await gravar(UGC_SCORE_EVENT, { ...u, ...base, video_url: e.video_url, asked: String(e.ugc.asked ?? '').slice(0, 600) })
           } else {
-            r.erro = r.erro ? `${r.erro},ugc_sem_nota` : 'ugc_sem_nota'
+            const falha = exU ? 'ugc_visao_sem_resposta' : 'ugc_quadros_indisponiveis'
+            r.erro = [r.erro, falha].filter(Boolean).join(' · ')
+            await gravar(UGC_SCORE_EVENT, { version: UGC_SCORE_VERSION, score: null, falha, frame_via: exU?.via ?? null, frame_count: exU?.frames.length ?? 0, ...base, video_url: e.video_url })
           }
         }
       } catch (err) {
@@ -240,5 +295,9 @@ export async function julgarPendentesRegua(
       julgadas.push(r)
     }))
   }
-  return { candidatas: entregas.length, pendentes: pendentes.length, julgadas }
+  // KINEO-META95-REGUA-AJUSTE-1910 — contagens por produto para a linha de log de cada giro (candidatas na janela × pendentes).
+  const porProduto: Record<string, { candidatas: number; pendentes: number }> = {}
+  for (const e of entregas) { const k = porProduto[e.product] ?? { candidatas: 0, pendentes: 0 }; k.candidatas++; porProduto[e.product] = k }
+  for (const e of pendentes) porProduto[e.product].pendentes++
+  return { candidatas: entregas.length, pendentes: pendentes.length, julgadas, porProduto }
 }

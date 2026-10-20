@@ -93,9 +93,30 @@ const APOS_VIRGULA_FICA = new Set(['she', 'he', 'they', 'it', 'we', 'you', 'i', 
 const SETTING_YEAR_RE = /(?:\b(?:1[0-9]{3}|20[0-9]{2})s?\b|(?:^|\s)['’]?[1-9]0s\b)/g
 const SETTING_ERA_ADJ_RE = /\b(victorian|edwardian|georgian|medieval|ancient|renaissance|colonial|napoleonic|vintage|retro|antique|old[- ]fashioned)(?:-era)?\b/gi
 
+// KINEO-META95-ASSUNTO-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — a comparação ignora acento, i sem ponto e plural: "İstanbul" é
+// KINEO-META95-ASSUNTO-1910 — "Istanbul", "Bermudas" é "Bermuda", "Tomás" é "Tomas". (Outra LÍNGUA — "Osmanlı" × "Ottoman" — é o assunto traduzido que a
+// KINEO-META95-ASSUNTO-1910 — rota acrescenta ao contexto: lib/cinematic/assuntoTraduzido.ts.) Mesma função dos dois lados, por isso simétrica.
+export function normalizarAssunto(w: string): string { // KINEO-META95-ASSUNTO-1910
+  return w.toLowerCase().replace(/ı/g, 'i').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss').replace(/æ/g, 'ae').replace(/œ/g, 'oe').replace(/ø/g, 'o').replace(/đ/g, 'd').replace(/ł/g, 'l') // KINEO-META95-ASSUNTO-1910
+} // KINEO-META95-ASSUNTO-1910
 function settingWords(context: string): Set<string> {
-  return new Set((context || '').toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [])
+  return new Set(((context || '').match(/[\p{L}\p{N}]+/gu) ?? []).map(normalizarAssunto)) // KINEO-META95-ASSUNTO-1910 — era .toLowerCase().match(…)
 }
+// KINEO-META95-ASSUNTO-1910 — restos do apagão (a0b58200, urdu): o nome inventado da moça saía e sobrava "A vibrant scene of confidently posing in front of
+// KINEO-META95-ASSUNTO-1910 — the iconic at sunrise" e "no , no added props". Nome inteiro removido depois de preposição/verbo que pede objeto e antes de um
+// KINEO-META95-ASSUNTO-1910 — verbo em -ing vira "a person" (o faceless troca por silhueta de costas, a história mantém); depois de "the iconic/famous/…" e
+// KINEO-META95-ASSUNTO-1910 — antes de preposição/pontuação vira "landmark"; "no <nome>," some com o "no". Sem nome removido: byte a byte igual.
+const RESTO_PEDE_SUJEITO_RE = /\b(?:of|showing|shows|with|featuring|depicting|depicts|as|while|where|watching|follows|following|captures|capturing|reveals|revealing)\s+$/i // KINEO-META95-ASSUNTO-1910
+const RESTO_VERBO_ING_RE = /^\s+(?:(?:\p{Ll}+ly\s+)?\p{Ll}+ing\b|with\s+(?:a|an|the)\s+\p{Ll}+\s+(?:expression|smile|grin|look|gaze|face)\b|(?:wearing|dressed)\b)/u // KINEO-META95-ASSUNTO-1910 — "[nome] confidently posing", "[nome] with a joyful expression", "[nome] wearing…"
+const RESTO_ADJ_DE_LUGAR_RE = /\b(?:the|a|an)\s+(?:iconic|famous|historic|historical|legendary|majestic|grand|towering|mighty|great|sacred|holy|magnificent|renowned|celebrated|monumental|imposing)\s+$/i // KINEO-META95-ASSUNTO-1910 — "the iconic [Taj Mahal] at sunrise" → landmark
+const RESTO_ADJ_DE_AMBIENTE_RE = /\b(?:the|a|an)\s+(?:bustling|crowded|busy|quiet|lively|sprawling|vast|vibrant|colorful|colourful|dusty|rainy|foggy|snowy|sunlit|moonlit)\s+$/i // KINEO-META95-ASSUNTO-1910 — "the bustling [Spice Bazaar] of Istanbul" → place
+const RESTO_DEPOIS_DE_LUGAR_RE = /^\s*(?:[,.;:)]|$|(?:at|in|on|of|with|under|during|against|beneath|before|after|as|while)\b)/i // KINEO-META95-ASSUNTO-1910
+function restoDoApagao(before: string, after: string): string { // KINEO-META95-ASSUNTO-1910 — o que entra no lugar de um nome removido inteiro
+  if (RESTO_PEDE_SUJEITO_RE.test(before) && RESTO_VERBO_ING_RE.test(after)) return 'a person' // KINEO-META95-ASSUNTO-1910
+  if (RESTO_ADJ_DE_LUGAR_RE.test(before) && RESTO_DEPOIS_DE_LUGAR_RE.test(after)) return 'landmark' // KINEO-META95-ASSUNTO-1910
+  if (RESTO_ADJ_DE_AMBIENTE_RE.test(before) && RESTO_DEPOIS_DE_LUGAR_RE.test(after)) return 'place' // KINEO-META95-ASSUNTO-1910
+  return '' // KINEO-META95-ASSUNTO-1910
+} // KINEO-META95-ASSUNTO-1910
 
 export interface SettingScrub { text: string; removed: string[] }
 
@@ -109,8 +130,9 @@ export function scrubInventedSetting(visual: string, context: string): SettingSc
   const src = visual || ''
   if (!src.trim()) return { text: src, removed: [] }
   const ctx = settingWords(context)
-  const base = (w: string) => w.toLowerCase().replace(/\.$/, '').replace(/['’]s$/, '').replace(/-[a-z]+$/, '')
-  const known = (w: string) => ctx.has(base(w)) || SETTING_ALLOW.has(base(w))
+  const base = (w: string) => normalizarAssunto(w).replace(/\.$/, '').replace(/['’]\p{Ll}+$/u, '').replace(/-[a-z]+$/, '') // KINEO-META95-ASSUNTO-1910 — era w.toLowerCase() e só o 's: "Timur'un", "Devri'ne" (turco) casam com Timur/Devri
+  const emCtx = (b: string) => ctx.has(b) || ctx.has(b + 's') || ctx.has(b + 'es') || (b.length > 4 && /s$/.test(b) && (ctx.has(b.slice(0, -1)) || (/es$/.test(b) && ctx.has(b.slice(0, -2))))) // KINEO-META95-ASSUNTO-1910 — plural de um lado só
+  const known = (w: string) => emCtx(base(w)) || SETTING_ALLOW.has(base(w)) // KINEO-META95-ASSUNTO-1910 — era ctx.has(base(w))
   const removed: string[] = []
   let out = src.replace(META_VARIEDADE_RE, (m: string) => { removed.push(m.trim()); return '' })
   out = out.replace(SETTING_PROPER_RUN_RE, (run: string, offset: number, whole: string) => {
@@ -123,6 +145,7 @@ export function scrubInventedSetting(visual: string, context: string): SettingSc
     const kept = words.filter((w) => (/^\d+$/.test(w) ? (ctx.has(w) || !nomeRemovido) : known(w)))
     if (kept.length === words.length) return run
     for (const w of words) if (!kept.includes(w)) removed.push(w)
+    if (kept.length === 0) return restoDoApagao(before, whole.slice(offset + run.length)) // KINEO-META95-ASSUNTO-1910 — nome inteiro fora: "a person" / "landmark" / nada
     return kept.join(' ')
   })
   out = out.replace(SETTING_YEAR_RE, (m: string) => {
@@ -146,6 +169,7 @@ export function scrubInventedSetting(visual: string, context: string): SettingSc
   for (let i = 0; i < 6; i++) {
     out = out
       .replace(ASPAS_VAZIAS_RE, '')
+      .replace(/\b(?:no|his|her|its|their)\s*,\s*(?=\p{L})/giu, '') // KINEO-META95-ASSUNTO-1910 — "no , no added props" → "no added props" (o determinante órfão sai com a vírgula dele)
       .replace(/\s*\b(?:in|at|of|near|from|on|inside|outside|across|through|toward|towards|into|onto|over|under|behind|beside|along|past|the|a|an)\s*(?=[,.;)]|$)/gi, '')
       .replace(/\b(?:in|at|of|near|from|on|across|through|toward|towards|into|onto|over|under|behind|beside|along|past)\s+(?=(?:in|at|of|near|from|on|across|through|toward|towards|into|onto|over|under|behind|beside|along|past)\b)/gi, '')
       .replace(/,(?:\s*,)+\s*(?=([\p{L}\p{N}]+))/gu, (_m: string, w: string) => (APOS_VIRGULA_FICA.has(w.toLowerCase()) ? ', ' : ' '))

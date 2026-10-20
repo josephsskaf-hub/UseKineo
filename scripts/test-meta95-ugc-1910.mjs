@@ -176,13 +176,15 @@ async function provas(L) {
 
   await tenta('U7', () => {
     const s = rd(F.coletar)
-    const importa = /import \{ UGC_SCORE_EVENT, UGC_SCORE_VERSION, scoreUgc, type UgcContext \} from '@\/lib\/regua95\/ugcJudge'/.test(s)
+    const importa = /import \{ UGC_SCORE_EVENT, UGC_SCORE_VERSION, extractUgcFramesFal, judgeUgcFrames, planUgcFrames, type UgcContext \} from '@\/lib\/regua95\/ugcJudge'/.test(s)
     const voz = /select\('id, video_id, brief, plan, photos, language, voice_seconds'\)/.test(s) && /const ugc: UgcContext \| null = produto === 'ugc' \? \{[^\n]*speechSeconds: Number\.isFinite\(voz\) && voz > 0 \? voz : null, pausesSeconds: null/.test(s)
     const avatar = /ugc: \{ asked: script, narration: script \|\| null, speechSeconds: null, pausesSeconds: null, engine: 'avatar' \}/.test(s)
     const outros = (s.match(/ugc: null/g) ?? []).length === 3 // filme, clipe (videos), clipe (tabela)
-    const chama = /if \(e\.ugc && !done\.has\(`\$\{UGC_SCORE_EVENT\}:\$\{e\.key\}`\)\) \{\n\s*const u = await scoreUgc\(e\.video_url, e\.seconds, e\.ugc, \{ fetchImpl: opts\.fetchImpl \}\)/.test(s)
-    const grava = /await admin\.from\('events'\)\.insert\(\{ name: UGC_SCORE_EVENT, user_id: e\.user_id, session_id: e\.key, path: route, metadata: \{ \.\.\.u, \.\.\.base/.test(s)
-    const idem = /if \(v === UGC_SCORE_VERSION\) done\.add\(`\$\{UGC_SCORE_EVENT\}:\$\{e\.session_id\}`\)/.test(s) && /\.in\('name', \[COHERENCE_V2_EVENT, PIXEL_SCORE_EVENT, UGC_SCORE_EVENT/.test(s) && /\(e\.ugc && !done\.has\(`\$\{UGC_SCORE_EVENT\}:\$\{e\.key\}`\)\)/.test(s)
+    // KINEO-META95-UGC-1910 — reâncora após o merge do KINEO-META95-REGUA-AJUSTE-1910: quadros e visão separados, ponto único
+    // de gravação (gravar, que confere o erro do banco) e evento de FALHA com score null (espera/retentativa em notasExistentes).
+    const chama = /if \(e\.ugc && !done\.has\(`\$\{UGC_SCORE_EVENT\}:\$\{e\.key\}`\)\) \{[\s\S]{0,200}const plano = planUgcFrames\(\{ seconds: e\.seconds, speechSeconds: e\.ugc\.speechSeconds, pausesSeconds: e\.ugc\.pausesSeconds \}\)\n\s*const exU = await extractUgcFramesFal\(e\.video_url, plano, \{ fetchImpl: opts\.fetchImpl \}\)\n\s*const u = exU \? await judgeUgcFrames\(e\.ugc, exU\.frames, /.test(s)
+    const grava = /await gravar\(UGC_SCORE_EVENT, \{ \.\.\.u, \.\.\.base, video_url: e\.video_url/.test(s) && /await gravar\(UGC_SCORE_EVENT, \{ version: UGC_SCORE_VERSION, score: null, falha, frame_via: exU\?\.via \?\? null/.test(s) && /const falha = exU \? 'ugc_visao_sem_resposta' : 'ugc_quadros_indisponiveis'/.test(s)
+    const idem = /v === UGC_SCORE_VERSION \? UGC_SCORE_EVENT/.test(s) && /if \(typeof e\.metadata\?\.score === 'number'\) \{ done\.add\(marca\); continue \}/.test(s) && /\.in\('name', \[COHERENCE_V2_EVENT, PIXEL_SCORE_EVENT, UGC_SCORE_EVENT/.test(s) && /\(e\.ugc && !done\.has\(`\$\{UGC_SCORE_EVENT\}:\$\{e\.key\}`\)\)/.test(s)
     const soEvents = (s.match(/\.(insert|update|upsert|delete|rpc)\(/g) ?? []).every((x) => x === '.insert(')
     const ugcSemRede = !/supabase|\.from\(/.test(rd(F.ugc))
     return importa && voz && avatar && outros && chama && grava && idem && soEvents && ugcSemRede
@@ -249,10 +251,10 @@ for (const [nome, prova, arquivo, de, para] of MUTANTES) {
 // M10 (texto): o coletor sem chamar o juiz UGC — U7 lê o arquivo, então o mutante é conferido no texto.
 {
   const s = rd(F.coletar)
-  const de = 'const u = await scoreUgc(e.video_url, e.seconds, e.ugc, { fetchImpl: opts.fetchImpl })'
+  const de = 'const u = exU ? await judgeUgcFrames(e.ugc, exU.frames, ' // KINEO-META95-UGC-1910 — reâncora: fluxo novo do coletor
   const aplicou = s.split(de).length === 2
-  const mut = s.split(de).join('const u = null as null | { score: number; usd: number }')
-  const vermelho = !/const u = await scoreUgc\(e\.video_url, e\.seconds, e\.ugc, \{ fetchImpl: opts\.fetchImpl \}\)/.test(mut)
+  const mut = s.split(de).join('const u = null && (e.ugc, exU, ')
+  const vermelho = !/const u = exU \? await judgeUgcFrames\(e\.ugc, exU\.frames, /.test(mut)
   if (aplicou && vermelho) { pass++; console.log('  ok  M10 coletor sem o juiz UGC: aplicou e U7 ficaria vermelho') } else { fail++; console.log(`  FAIL M10 aplicou=${aplicou}`) }
 }
 
