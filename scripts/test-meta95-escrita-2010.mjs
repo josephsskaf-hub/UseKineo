@@ -302,7 +302,7 @@ console.log('\nD. desfaz\n')
   try { semMeta95Escrita2010(fs.readFileSync(path.join(ROOT, P.route), 'utf8') + `\n// linha nova ${MARCA}`, P.route) } catch { lancou = true }
   ok(semMeta95Escrita2010('sem marca', P.route) === 'sem marca' && semMeta95Escrita2010(ROUTE, 'outro/arquivo.ts') === ROUTE && desfazMeta95Escrita2010(P.route, null) === null && lancou,
     'D5 idempotente fora da lista / sem a marca / null; acréscimo a mais lança')
-  const TOPO = git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, '-1', 'HEAD').trim() || 'HEAD'
+  const TOPO = git('log', '--format=%H', `--grep=${MARCA}`, '-1', 'HEAD').trim() || 'HEAD' // inclui o merge da main nesta entrega (a base é a main mesclada)
   const tocados = new Set([...git('diff', '--name-only', META95_ESCRITA_2010_BASE, TOPO).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n')].filter(Boolean))
   const permitidos = new Set([...META95_ESCRITA_2010_ARQUIVOS, ...META95_ESCRITA_2010_NOVOS])
   const fora = [...tocados].filter((f) => !permitidos.has(f))
