@@ -359,13 +359,13 @@ console.log('\nK. desfaz exato, encadeamento, diff, commits')
   let lancou = false
   try { semBebeQueFala2010(rd(F.land) + `\n// linha nova ${MARCA}`, F.land) } catch { lancou = true }
   ok(semBebeQueFala2010('sem marca', F.land) === 'sem marca' && semBebeQueFala2010(rd(F.land), 'outro/arquivo.tsx') === rd(F.land) && desfazBebeQueFala2010(F.land, null) === null && lancou, 'K5 idempotente fora da lista / sem a marca / null; acréscimo a mais lança')
-  const TOPO = git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, '-1', 'HEAD').trim() || 'HEAD'
+  const TOPO = git('log', '--format=%H', `--grep=${MARCA}`, '-1', 'HEAD').trim() || 'HEAD' // o último commit da entrega, merge incluso (a base é a origin/main do último merge)
   const tocados = new Set([...git('diff', '--name-only', BEBE_QUE_FALA_2010_BASE, TOPO).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n')].filter(Boolean))
   const permitidos = new Set([...BEBE_QUE_FALA_2010_ARQUIVOS, ...BEBE_QUE_FALA_2010_NOVOS])
   const fora = [...tocados].filter((f) => !permitidos.has(f))
   const semMarca = BEBE_QUE_FALA_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !rd(f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) })
   ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && ![...tocados].some((f) => /engineCost|lib\/credits\//.test(f)), `K6 o diff da base só toca a lista e os novos; toda linha nova traz a marca; nenhuma tabela de preço/crédito (${[...fora.map((f) => `fora: ${f}`), ...semMarca.map((f) => `sem marca: ${f}`)].join('; ') || 'ok'})`)
-  const assuntos = git('log', '--no-merges', '--format=%s', `${BEBE_QUE_FALA_2010_BASE}..${TOPO}`).trim().split('\n').filter(Boolean)
+  const assuntos = git('log', '--format=%s', `${BEBE_QUE_FALA_2010_BASE}..${TOPO}`).trim().split('\n').filter(Boolean)
   ok(assuntos.length > 0 && assuntos.every((s) => s.includes(MARCA)), `K7 todo commit da entrega traz a marca no assunto (${assuntos.length})`)
 }
 
