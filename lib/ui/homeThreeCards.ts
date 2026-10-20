@@ -94,14 +94,14 @@ const preview = (name: string): HomeCardClip => ({ src: `/previews/${name}.mp4`,
 
 /**
  * Os vídeos reais da casa (nenhum render novo):
- *  · films: o farol de Flannan, Seedance 1.5 (a mesma prévia da porta do filme, trio D);
+ *  · films: o farol de Flannan, Seedance 1.5 (filme 970d03e6, conta hotmail do fundador = sem a marca usekineo.com/free), 0–11 s em 720p;
  *  · product_ads: o canário v3 do Close real (19/10, nota 8,5 nos dois) — pedido 885e8cb1 (EN) e f96ac6e7 (PT), perfume LUME,
  *    COM a língua da interface: português vê o PT, o resto vê o EN;
  *  · ugc_ads: o apresentador v2 R3 (17/10, pedido 84a5d07f, NOTA 9 do fundador), perfume Atheeri — o único com nota 9; a fala
  *    é em PT (no card toca mudo).
  */
 export const HOME_CARD_CLIPS: Record<HomeCardId, { default: HomeCardClip; pt?: HomeCardClip }> = {
-  films: { default: preview('door-970d03e6-9b87-403f-bef7-810db80ba8ce') },
+  films: { default: preview('home-card-film-flannan') },
   product_ads: { default: preview('home-card-close-real-en'), pt: preview('home-card-close-real-pt') },
   ugc_ads: { default: preview('home-card-ugc-presenter') },
 }

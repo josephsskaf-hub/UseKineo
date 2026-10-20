@@ -12,6 +12,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semHome3Cards1910 } from './desfaz-home-3-cards-1910.mjs' // KINEO-HOME-3-CARDS-1910 — os 3 cards da home + a amostra pela entrada do card vieram depois: saem PRIMEIRO (encadeado)
 
 export const MARCA_CLOSE_REAL_LEGENDA_CORTE_1910 = 'KINEO-CLOSE-REAL-LEGENDA-CORTE-1910'
 
@@ -36,6 +37,7 @@ export const CLOSE_REAL_LEGENDA_CORTE_1910_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semCloseRealLegendaCorte1910(texto, p) {
+  texto = semHome3Cards1910(texto, p) // KINEO-HOME-3-CARDS-1910
   if (typeof texto !== 'string' || !texto.includes(MARCA_CLOSE_REAL_LEGENDA_CORTE_1910) || !CLOSE_REAL_LEGENDA_CORTE_1910_ARQUIVOS.includes(p)) return texto
   const crlf = texto.includes('\r\n')
   const trocas = new Map((TROCAS_CLOSE_REAL_LEGENDA_CORTE_1910[p] ?? []).map(([nova, base]) => [nova, base]))

@@ -22,6 +22,7 @@
 //   J dinheiro intocado (v2Tiers, v2Billing, v2StartCore, /start, /plan, /variations, v2Batch, refund, debit, sample, kit antigo,
 //     workspace) e o desfaz deste conserto devolve os 4 arquivos tocados EXATAMENTE à base; todo bloco novo traz a marca;
 //   M mutantes (12): cada regra quebrada fica vermelha, e cada mutante prova que aplicou (âncora única, texto mudou).
+import { diffSemHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — os 3 cards da home (+ amostra pela entrada do card) saem do diff/leitura em memória
 import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import fs from 'node:fs'
 import path from 'node:path'
@@ -468,7 +469,7 @@ ok(INTOCADOS.every((f) => base(f) !== null && read(f) === base(f)), `J1 ${INTOCA
 const desfeitoOk = (S) => MARCAS_1510_ARQUIVOS.length === 4 && [['simple', F.simple], ['client', F.client], ['batch', F.batch], ['orders', F.orders]].every(([k, f]) => desfazPosEntrega1510(f, semMarcas1510(f, semLinkTela1510(f, semLista1510(f, S[k])))) === base(f)) // reancorado KINEO-LEVA-ADS-AGENCIA-1510 — marcas (a mais nova) sai primeiro, depois o painel da pos-entrega · reancorado KINEO-ADS-LINK-TELA-1510 — a tela do leitor de link sai antes das marcas · reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai antes de todos
 ok(await tenta(() => desfeitoOk(SRC)), 'J2 desfeito este conserto (scripts/test-support/desfaz-ads-marcas-1510.mjs), AdsV2Simple, AdsV2Client, AdsV2Batch e /orders são EXATAMENTE a base')
 const blocosMarcados = () => [F.simple, F.client, F.batch, F.orders].every((f) => {
-  const d = (PROPRIO ? git('diff', '-U0', '--no-color', BASE, PROPRIO, '--', f) + git('diff', '-U0', '--no-color', 'HEAD', '--', f) : git('diff', '-U0', '--no-color', BASE, '--', f)).replace(/\r\n/g, '\n') // reancorado KINEO-LEVA-ADS-AGENCIA-1510 — o PRÓPRIO commit + o não commitado
+  const d = diffSemHome3Cards1910((PROPRIO ? git('diff', '-U0', '--no-color', BASE, PROPRIO, '--', f) + git('diff', '-U0', '--no-color', 'HEAD', '--', f) : git('diff', '-U0', '--no-color', BASE, '--', f)).replace(/\r\n/g, '\n')) // reancorado KINEO-LEVA-ADS-AGENCIA-1510 — o PRÓPRIO commit + o não commitado // reancorado KINEO-HOME-3-CARDS-1910 — blocos/arquivos desta entrega (todos com a marca) fora do diff
   const blocos = d.split('\n@@').slice(1).map((h) => h.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')))
   return blocos.length > 0 && blocos.every((b) => b.length === 0 || b.some((l) => l.includes(MARCA)))
 })

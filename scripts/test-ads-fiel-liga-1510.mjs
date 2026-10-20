@@ -19,6 +19,7 @@
 //      no produto; os guardiões antigos da trava leem o texto SEM este liga (encadeado colado no readFileSync);
 //   M  mutantes (todos aplicados e vermelhos): o modo volta a 'all', vira 'off', o servidor ignora a lista da casa, o servidor perde o
 //      atalho do 'all', o preço muda.
+import { diffSoHome3Cards1910, diffSemHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — os 3 cards da home (+ amostra pela entrada do card) saem do diff/leitura em memória
 import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname, posix } from 'node:path'
@@ -177,7 +178,7 @@ await check('P3 nada da trava debita: o servidor da trava e a visão não import
     (adv.match(/confirmAdsV2Debit\(/g) || []).length === 1 && adv.includes('cost: order.credits_charged })') && !/charged: true/.test(adv)
 })
 await check('P4 nenhuma tela, copy ou rota muda: o diff do conserto não toca app/ nem components/ (o seletor de nível e o preço na tela são os de antes)', () => {
-  const nomes = diffDoConserto(['--name-only']).split('\n').filter(Boolean)
+  const nomes = diffDoConserto(['--name-only']).split('\n').filter(Boolean).filter((n) => !diffSoHome3Cards1910(diffDoConserto(['-U0', '--no-color'], [n]), n)) // reancorado KINEO-HOME-3-CARDS-1910 — arquivo só desta entrega (todo bloco com a marca) fora da lista
   return nomes.length > 0 && !nomes.some((n) => n.startsWith('app/') || n.startsWith('components/'))
 })
 
@@ -194,7 +195,7 @@ await check('V2 o desfaz é estrito: o modo mexido dentro do bloco (ou o bloco r
     lanca(() => semFielLiga1510(F.shotLists, SLliga + '\n' + SLliga)) && lanca(() => comLiga1510(F.shotLists, SLliga))
 })
 await check('V3 só lib/ads/v2ShotLists.ts muda no produto; todo bloco novo traz a marca KINEO-ADS-FIEL-LIGA-1510 em TODA linha; nenhuma linha some além da do modo', () => {
-  const d = diffDoConserto(['-U0', '--no-color'], ['lib', 'app', 'components'])
+  const d = diffSemHome3Cards1910(diffDoConserto(['-U0', '--no-color'], ['lib', 'app', 'components'])) // reancorado KINEO-HOME-3-CARDS-1910 — blocos/arquivos desta entrega (todos com a marca) fora do diff
   const arquivos = [...d.matchAll(/^\+\+\+ b\/(.+)$/gm)].map((m) => m[1])
   const mais = d.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))
   const menos = d.split('\n').filter((l) => l.startsWith('-') && !l.startsWith('---'))
@@ -213,7 +214,7 @@ await check('R1 desfeito o rollback (scripts/test-support/desfaz-ads-fiel-volta-
   FIEL_VOLTA_1510_ARQUIVOS.every((f) => f === F.shotLists || /^scripts\/test-ads-fiel-(1510|3-1510|4-1510|5-1510|liga-1510)\.mjs$/.test(f)) &&
   FIEL_VOLTA_1510_ARQUIVOS.every((f) => { const sem = semVolta1510(f, rd(f)); return sem === vbase(f) && !sem.includes(VMARCA) && comVolta1510(f, sem) === rd6(f) /* reancorado KINEO-ADS-FIEL-6-1610 — a ida devolve o vivo sem a fiel-6 */ }))
 await check('R2 no produto o rollback só troca o bloco do modo em lib/ads/v2ShotLists.ts: sai o "all" do liga (4 linhas), entra o "internal" com a marca em TODA linha (3 linhas); nada em app/ nem components/', () => {
-  const d = diffDoRollback(['-U0', '--no-color'], ['lib', 'app', 'components'])
+  const d = diffSemHome3Cards1910(diffDoRollback(['-U0', '--no-color'], ['lib', 'app', 'components'])) // reancorado KINEO-HOME-3-CARDS-1910 — blocos/arquivos desta entrega (todos com a marca) fora do diff
   const arquivos = [...d.matchAll(/^\+\+\+ b\/(.+)$/gm)].map((m) => m[1])
   const mais = d.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))
   const menos = d.split('\n').filter((l) => l.startsWith('-') && !l.startsWith('---'))

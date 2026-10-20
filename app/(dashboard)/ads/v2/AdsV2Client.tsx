@@ -505,7 +505,7 @@ type AdsV2WorkspaceProp = { role: 'owner' | 'member'; ownerLabel: string | null;
 // descobre que a amostra já foi usada (403 'no_access' / 402 do envio de foto), o invólucro troca a sessão pela oferta, com o
 // último anúncio entregue da conta. Sem a prop (assinante, passe, interna), nada muda.
 // KINEO-HOME-3-CARDS-1910 — entry: a entrada do card da home (page.tsx validou ?entry=product|ugc; tipo espelhado de lib/ads/sampleEntry.ts sem importar) — vai à
-// sessão do modo simples, que abre no formato do card e, na amostra, manda a entrada ao /plan. null/ausente = a tela de sempre.
+// KINEO-HOME-3-CARDS-1910 — sessão do modo simples, que abre no formato do card e, na amostra, manda a entrada ao /plan. null/ausente = a tela de sempre.
 export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null, business = null, entry = null /* KINEO-HOME-3-CARDS-1910 */ }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp; business?: AdsBusinessOffer | null; entry?: 'product' | 'ugc' | null }) {
   const [sampleGone, setSampleGone] = useState(false) // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
   const [session, setSession] = useState(0)

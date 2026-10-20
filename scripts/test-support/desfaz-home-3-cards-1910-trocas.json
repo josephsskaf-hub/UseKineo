@@ -1,0 +1,246 @@
+{
+ "app/(dashboard)/ads/v2/AdsV2Client.tsx": [
+  [
+   "export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null, business = null, entry = null /* KINEO-HOME-3-CARDS-1910 */ }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp; business?: AdsBusinessOffer | null; entry?: 'product' | 'ugc' | null }) {",
+   "export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null, business = null }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp; business?: AdsBusinessOffer | null }) {"
+  ]
+ ],
+ "app/(dashboard)/ads/v2/AdsV2Simple.tsx": [
+  [
+   "  const scopy: AdsSampleCopy | null = sample ? (samplePresenter ? { ...adsSampleCopy(lang), note: adsSamplePresenterNote(lang) } : ADS_V2_CLOSE_REAL_LIVE ? { ...adsSampleCopy(lang), note: adsSampleCopy(lang).closeReal } : adsSampleCopy(lang)) : null // KINEO-CLOSE-REAL-1910 · KINEO-HOME-3-CARDS-1910 — + a linha da amostra com a pessoa — a amostra é o Close real (1 por conta, 15 s, marca-d'água); era: const scopy: AdsSampleCopy | null = sample ? adsSampleCopy(lang) : null",
+   "  const scopy: AdsSampleCopy | null = sample ? (ADS_V2_CLOSE_REAL_LIVE ? { ...adsSampleCopy(lang), note: adsSampleCopy(lang).closeReal } : adsSampleCopy(lang)) : null // KINEO-CLOSE-REAL-1910 — a amostra é o Close real (1 por conta, 15 s, marca-d'água); era: const scopy: AdsSampleCopy | null = sample ? adsSampleCopy(lang) : null"
+  ],
+  [
+   "  const [adFormatChoice, setAdFormatChoice] = useState<AdsV2AdFormat>(() => (entry === 'ugc' && ADS_V2_PRESENTER_PUBLIC ? 'presenter' : entry === 'product' ? 'close_real' : adsV2DefaultAdFormat({ sample, presenterPublic: ADS_V2_PRESENTER_PUBLIC }))) /* KINEO-HOME-3-CARDS-1910 — o card da home escolhe o formato inicial */ // KINEO-CLOSE-REAL-1910 — Apresentador (pagante) ou Close real (amostra); estilos e cenas de IA = \"Avançado\"",
+   "  const [adFormatChoice, setAdFormatChoice] = useState<AdsV2AdFormat>(() => adsV2DefaultAdFormat({ sample, presenterPublic: ADS_V2_PRESENTER_PUBLIC })) // KINEO-CLOSE-REAL-1910 — Apresentador (pagante) ou Close real (amostra); estilos e cenas de IA = \"Avançado\""
+  ],
+  [
+   "  const adFormat: AdsV2AdFormat = samplePresenter ? 'presenter' : adsV2EffectiveAdFormat(adFormatChoice, sample) // KINEO-CLOSE-REAL-1910 · KINEO-HOME-3-CARDS-1910 — a amostra pelo card UGC é o Apresentador — a amostra não escolhe: é o Close real",
+   "  const adFormat: AdsV2AdFormat = adsV2EffectiveAdFormat(adFormatChoice, sample) // KINEO-CLOSE-REAL-1910 — a amostra não escolhe: é o Close real"
+  ],
+  [
+   "        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}), ...(format !== '9:16' ? { format } : {}), ...(closeRealOn ? { close_real: true } : {}), ...(samplePresenter ? { sample_entry: 'ugc' } : {}) }, // KINEO-HOME-3-CARDS-1910 — a entrada UGC da amostra (o servidor confere) · KINEO-ADS-MELHORIAS-1410 — o formato só fora do 9:16 · KINEO-CLOSE-REAL-1910 — + o Close do produto real; era: a mesma linha sem close_real",
+   "        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}), ...(format !== '9:16' ? { format } : {}), ...(closeRealOn ? { close_real: true } : {}) }, // KINEO-ADS-MELHORIAS-1410 — o formato só fora do 9:16 · KINEO-CLOSE-REAL-1910 — + o Close do produto real; era: a mesma linha sem close_real"
+  ],
+  [
+   "              {ADS_V2_CLOSE_REAL_LIVE ? <AdsAdFormatPicker value={adFormat} onChange={(v) => { setAdFormatChoice(v); if (v === 'close_real') setThree(false) }} sample={sample} sampleFormat={sampleFormat /* KINEO-HOME-3-CARDS-1910 */} disabled={locked} copy={afc} presenterNote={adFormat === 'presenter' && ADS_V2_PRESENTER_PUBLIC ? presenterWhy : null} presenterOk={ADS_V2_PRESENTER_PUBLIC} /> : null}{/* KINEO-CLOSE-REAL-1910 — os 2 formatos padrão + o \"Avançado\" sem destaque */}",
+   "              {ADS_V2_CLOSE_REAL_LIVE ? <AdsAdFormatPicker value={adFormat} onChange={(v) => { setAdFormatChoice(v); if (v === 'close_real') setThree(false) }} sample={sample} disabled={locked} copy={afc} presenterNote={adFormat === 'presenter' && ADS_V2_PRESENTER_PUBLIC ? presenterWhy : null} presenterOk={ADS_V2_PRESENTER_PUBLIC} /> : null}{/* KINEO-CLOSE-REAL-1910 — os 2 formatos padrão + o \"Avançado\" sem destaque */}"
+  ],
+  [
+   "function AdsAdFormatPicker({ value, onChange, sample, sampleFormat = 'close_real' /* KINEO-HOME-3-CARDS-1910 */, disabled, copy, presenterNote, presenterOk }: { value: AdsV2AdFormat; onChange: (v: AdsV2AdFormat) => void; sample: boolean; sampleFormat?: AdsV2AdFormat; disabled: boolean; copy: ReturnType<typeof adsV2AdFormatCopy>; presenterNote: string | null; presenterOk: boolean }) { // KINEO-CLOSE-REAL-1910",
+   "function AdsAdFormatPicker({ value, onChange, sample, disabled, copy, presenterNote, presenterOk }: { value: AdsV2AdFormat; onChange: (v: AdsV2AdFormat) => void; sample: boolean; disabled: boolean; copy: ReturnType<typeof adsV2AdFormatCopy>; presenterNote: string | null; presenterOk: boolean }) { // KINEO-CLOSE-REAL-1910"
+  ],
+  [
+   "        {opts.map((f) => { const off = sample && f !== sampleFormat; /* KINEO-HOME-3-CARDS-1910 — na amostra só o formato da entrada abre (Apresentador pelo card UGC); era: sample && f !== 'close_real' */ const c = f === 'presenter' ? copy.presenter : copy.close_real; return ( /* KINEO-CLOSE-REAL-1910 — na amostra só o Close real abre */",
+   "        {opts.map((f) => { const off = sample && f !== 'close_real'; const c = f === 'presenter' ? copy.presenter : copy.close_real; return ( /* KINEO-CLOSE-REAL-1910 — na amostra só o Close real abre */"
+  ]
+ ],
+ "app/(dashboard)/ads/v2/page.tsx": [
+  [
+   "export default async function AdsV2Page({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) { // KINEO-HOME-3-CARDS-1910 — era: export default async function AdsV2Page() {",
+   "export default async function AdsV2Page() {"
+  ],
+  [
+   "  if (!user) redirect(`/login?redirect=${encodeURIComponent(entry ? `/ads/v2?entry=${entry}` : '/ads/v2')}`) // KINEO-HOME-3-CARDS-1910 — era: encodeURIComponent('/ads/v2')",
+   "  if (!user) redirect(`/login?redirect=${encodeURIComponent('/ads/v2')}`)"
+  ],
+  [
+   "      await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/ads/v2', metadata: { stage: 'page', who: gate, reason, redirect: '/ads?from=v2', ...(entry ? { entry } : {}) } }) // KINEO-HOME-3-CARDS-1910 — + a entrada do card (a porta explica e oferece o plano)",
+   "      await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/ads/v2', metadata: { stage: 'page', who: gate, reason, redirect: '/ads?from=v2' } })"
+  ],
+  [
+   "  return <AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} entry={entry} /> // KINEO-HOME-3-CARDS-1910 — + entry",
+   "  return <AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} />"
+  ]
+ ],
+ "lib/ads/v2PlanCore.ts": [
+  [
+   "    const closeRealAsked = ADS_V2_CLOSE_REAL_LIVE && (input.close_real === true || (gate !== 'ok' && sample && sampleFormat !== 'presenter')) // KINEO-CLOSE-REAL-1910 · KINEO-HOME-3-CARDS-1910 — a amostra pela entrada UGC não é forçada ao Close real; era: (gate !== 'ok' && sample)",
+   "    const closeRealAsked = ADS_V2_CLOSE_REAL_LIVE && (input.close_real === true || (gate !== 'ok' && sample)) // KINEO-CLOSE-REAL-1910"
+  ]
+ ],
+ "lib/ads/v2StartCore.ts": [
+  [
+   "    if (sampleRun && !adsV2CloseRealOf(plan) && !samplePresenter) return v2Fail('sample_level_only', 403) // KINEO-CLOSE-REAL-1910 · KINEO-HOME-3-CARDS-1910 — ou o Close real, ou a amostra com a pessoa; era: if (sampleRun && !adsV2CloseRealOf(plan)) — a amostra só sai no Close do produto real (plano sem a marca = planejado antes; o /plan refaz grátis)",
+   "    if (sampleRun && !adsV2CloseRealOf(plan)) return v2Fail('sample_level_only', 403) // KINEO-CLOSE-REAL-1910 — a amostra só sai no Close do produto real (plano sem a marca = planejado antes; o /plan refaz grátis)"
+  ],
+  [
+   "      await writeServerEvent({ name: 'ads_sample_started', userId: uid, path: '/api/ads/v2/start', metadata: { order_id: orderId, generation_id: generationId, billing_ref: billingRef, tier: order.tier, seconds: order.seconds, usd_estimate: usd.totalUsd, credits_list: cost, format: samplePresenter ? 'presenter' : 'close_real', watermark: true } }) // KINEO-HOME-3-CARDS-1910 — o formato da amostra (Close real ou com a pessoa) // KINEO-CLOSE-REAL-1910 — + o formato e a marca-d'água; era: o mesmo evento sem format/watermark",
+   "      await writeServerEvent({ name: 'ads_sample_started', userId: uid, path: '/api/ads/v2/start', metadata: { order_id: orderId, generation_id: generationId, billing_ref: billingRef, tier: order.tier, seconds: order.seconds, usd_estimate: usd.totalUsd, credits_list: cost, format: 'close_real', watermark: true } }) // KINEO-CLOSE-REAL-1910 — + o formato e a marca-d'água; era: o mesmo evento sem format/watermark"
+  ]
+ ],
+ "scripts/test-ads-fiel-2-1510.mjs": [
+  [
+   "  const d = diffSemHome3Cards1910(diffDoConserto(['-U0', '--no-color'], [f])) // reancorado KINEO-HOME-3-CARDS-1910 — blocos/arquivos desta entrega (todos com a marca) fora do diff",
+   "  const d = diffDoConserto(['-U0', '--no-color'], [f])"
+  ]
+ ],
+ "scripts/test-ads-fiel-3-1510.mjs": [
+  [
+   "  const d = diffSemHome3Cards1910(diffDoConserto(['-U0', '--no-color'], ['lib', 'app'])) // reancorado KINEO-HOME-3-CARDS-1910 — blocos/arquivos desta entrega (todos com a marca) fora do diff",
+   "  const d = diffDoConserto(['-U0', '--no-color'], ['lib', 'app'])"
+  ]
+ ],
+ "scripts/test-ads-fiel-4-1510.mjs": [
+  [
+   "  const d = diffSemHome3Cards1910(diffDoConserto(['-U0', '--no-color'], ['lib', 'app'])) // reancorado KINEO-HOME-3-CARDS-1910 — blocos/arquivos desta entrega (todos com a marca) fora do diff",
+   "  const d = diffDoConserto(['-U0', '--no-color'], ['lib', 'app'])"
+  ]
+ ],
+ "scripts/test-ads-fiel-5-1510.mjs": [
+  [
+   "  const d = diffSemHome3Cards1910(diffDoConserto(['-U0', '--no-color'], ['lib', 'app'])) // reancorado KINEO-HOME-3-CARDS-1910 — blocos/arquivos desta entrega (todos com a marca) fora do diff",
+   "  const d = diffDoConserto(['-U0', '--no-color'], ['lib', 'app'])"
+  ],
+  [
+   "  const nomes = diffDoConserto(['--name-only'], ['lib', 'app']).split('\\n').filter(Boolean).filter((n) => !diffSoHome3Cards1910(diffDoConserto(['-U0', '--no-color'], [n]), n)) // reancorado KINEO-HOME-3-CARDS-1910 — arquivo só desta entrega (todo bloco com a marca) fora da lista",
+   "  const nomes = diffDoConserto(['--name-only'], ['lib', 'app']).split('\\n').filter(Boolean)"
+  ]
+ ],
+ "scripts/test-ads-fiel-6-1610.mjs": [
+  [
+   "  const d = diffSemHome3Cards1910(diffDoConserto(['-U0', '--no-color'], ['lib', 'app'])) // reancorado KINEO-HOME-3-CARDS-1910 — blocos/arquivos desta entrega (todos com a marca) fora do diff",
+   "  const d = diffDoConserto(['-U0', '--no-color'], ['lib', 'app'])"
+  ],
+  [
+   "  const nomes = diffDoConserto(['--name-only'], ['lib', 'app']).split('\\n').filter(Boolean).filter((n) => !diffSoHome3Cards1910(diffDoConserto(['-U0', '--no-color'], [n]), n)) // reancorado KINEO-HOME-3-CARDS-1910 — arquivo só desta entrega (todo bloco com a marca) fora da lista",
+   "  const nomes = diffDoConserto(['--name-only'], ['lib', 'app']).split('\\n').filter(Boolean)"
+  ]
+ ],
+ "scripts/test-ads-fiel-7-1610.mjs": [
+  [
+   "  const d = diffSemHome3Cards1910(diffDoConserto(['-U0', '--no-color'], ['lib', 'app'])) // reancorado KINEO-HOME-3-CARDS-1910 — blocos/arquivos desta entrega (todos com a marca) fora do diff",
+   "  const d = diffDoConserto(['-U0', '--no-color'], ['lib', 'app'])"
+  ],
+  [
+   "  const nomes = diffDoConserto(['--name-only'], ['lib', 'app']).split('\\n').filter(Boolean).filter((n) => !diffSoHome3Cards1910(diffDoConserto(['-U0', '--no-color'], [n]), n)) // reancorado KINEO-HOME-3-CARDS-1910 — arquivo só desta entrega (todo bloco com a marca) fora da lista",
+   "  const nomes = diffDoConserto(['--name-only'], ['lib', 'app']).split('\\n').filter(Boolean)"
+  ]
+ ],
+ "scripts/test-ads-fiel-liga-1510.mjs": [
+  [
+   "  const nomes = diffDoConserto(['--name-only']).split('\\n').filter(Boolean).filter((n) => !diffSoHome3Cards1910(diffDoConserto(['-U0', '--no-color'], [n]), n)) // reancorado KINEO-HOME-3-CARDS-1910 — arquivo só desta entrega (todo bloco com a marca) fora da lista",
+   "  const nomes = diffDoConserto(['--name-only']).split('\\n').filter(Boolean)"
+  ],
+  [
+   "  const d = diffSemHome3Cards1910(diffDoConserto(['-U0', '--no-color'], ['lib', 'app', 'components'])) // reancorado KINEO-HOME-3-CARDS-1910 — blocos/arquivos desta entrega (todos com a marca) fora do diff",
+   "  const d = diffDoConserto(['-U0', '--no-color'], ['lib', 'app', 'components'])"
+  ],
+  [
+   "  const d = diffSemHome3Cards1910(diffDoRollback(['-U0', '--no-color'], ['lib', 'app', 'components'])) // reancorado KINEO-HOME-3-CARDS-1910 — blocos/arquivos desta entrega (todos com a marca) fora do diff",
+   "  const d = diffDoRollback(['-U0', '--no-color'], ['lib', 'app', 'components'])"
+  ]
+ ],
+ "scripts/test-ads-link-tela-1510.mjs": [
+  [
+   "const tocados = () => [...new Set(diffDoConserto(['--name-only']).split('\\n').map((l) => l.trim()).filter(Boolean).filter((n) => !diffSoHome3Cards1910(diffDoConserto(['-U0', '--no-color'], [n]), n)))] // reancorado KINEO-HOME-3-CARDS-1910 — arquivo só desta entrega (todo bloco com a marca) fora da lista",
+   "const tocados = () => [...new Set(diffDoConserto(['--name-only']).split('\\n').map((l) => l.trim()).filter(Boolean))]"
+  ],
+  [
+   "  const d = diffSemHome3Cards1910(diffDoConserto(['-U0', '--no-color'], [f])) // reancorado KINEO-HOME-3-CARDS-1910 — blocos/arquivos desta entrega (todos com a marca) fora do diff",
+   "  const d = diffDoConserto(['-U0', '--no-color'], [f])"
+  ]
+ ],
+ "scripts/test-ads-lista-1510.mjs": [
+  [
+   "  const t = [...new Set([...diffDoConserto(['--name-only']).split('\\n'), ...git('ls-files', '--others', '--exclude-standard').split('\\n')].map((l) => l.trim()).filter(Boolean).filter((n) => !arquivoNovoHome3Cards1910(n) && !diffSoHome3Cards1910(diffDoConserto(['-U0', '--no-color'], [n]), n)))] // reancorado KINEO-HOME-3-CARDS-1910 — arquivo novo ou só desta entrega (todo bloco com a marca) fora da lista",
+   "  const t = [...new Set([...diffDoConserto(['--name-only']).split('\\n'), ...git('ls-files', '--others', '--exclude-standard').split('\\n')].map((l) => l.trim()).filter(Boolean))]"
+  ]
+ ],
+ "scripts/test-ads-mao-ajuste-3-1610.mjs": [
+  [
+   "  const tocados = git('diff', '--name-only', MAO_AJUSTE_3_1610_BASE, TOPO).trim().split('\\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\\n').filter(Boolean).filter((f) => !diffSoHome3Cards1910(git('diff', '-U0', '--no-color', 'HEAD', '--', f), f))) // reancorado KINEO-HOME-3-CARDS-1910 — o não commitado só desta entrega (todo bloco com a marca) fora da lista",
+   "  const tocados = git('diff', '--name-only', MAO_AJUSTE_3_1610_BASE, TOPO).trim().split('\\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\\n').filter(Boolean))"
+  ]
+ ],
+ "scripts/test-ads-mao-juiz-1610.mjs": [
+  [
+   "  const tocados = git('diff', '--name-only', MAO_JUIZ_1610_BASE, TOPO).trim().split('\\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\\n').filter(Boolean).filter((f) => !diffSoHome3Cards1910(git('diff', '-U0', '--no-color', 'HEAD', '--', f), f))) // reancorado KINEO-HOME-3-CARDS-1910 — o não commitado só desta entrega (todo bloco com a marca) fora da lista",
+   "  const tocados = git('diff', '--name-only', MAO_JUIZ_1610_BASE, TOPO).trim().split('\\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\\n').filter(Boolean))"
+  ]
+ ],
+ "scripts/test-ads-marcas-1510.mjs": [
+  [
+   "  const d = diffSemHome3Cards1910((PROPRIO ? git('diff', '-U0', '--no-color', BASE, PROPRIO, '--', f) + git('diff', '-U0', '--no-color', 'HEAD', '--', f) : git('diff', '-U0', '--no-color', BASE, '--', f)).replace(/\\r\\n/g, '\\n')) // reancorado KINEO-LEVA-ADS-AGENCIA-1510 — o PRÓPRIO commit + o não commitado // reancorado KINEO-HOME-3-CARDS-1910 — blocos/arquivos desta entrega (todos com a marca) fora do diff",
+   "  const d = (PROPRIO ? git('diff', '-U0', '--no-color', BASE, PROPRIO, '--', f) + git('diff', '-U0', '--no-color', 'HEAD', '--', f) : git('diff', '-U0', '--no-color', BASE, '--', f)).replace(/\\r\\n/g, '\\n') // reancorado KINEO-LEVA-ADS-AGENCIA-1510 — o PRÓPRIO commit + o não commitado"
+  ]
+ ],
+ "scripts/test-ads-pos-entrega-1510.mjs": [
+  [
+   "    try { tocados = [...(PROPRIO ? [...git(['diff', '--name-only', BASE, PROPRIO]).split('\\n'), ...git(['diff', '--name-only', 'HEAD']).split('\\n').filter((f) => !f || !diffSoHome3Cards1910(git(['diff', '-U0', '--no-color', 'HEAD', '--', f]), f))] : git(['diff', '--name-only', BASE]).split('\\n')), ...git(['ls-files', '--others', '--exclude-standard']).split('\\n').filter((f) => !arquivoNovoHome3Cards1910(f))].filter(Boolean) } catch { return false } // reancorado KINEO-LEVA-ADS-AGENCIA-1510 — mede o PRÓPRIO commit (BASE→1º marcado) + o não commitado; antes do commit existir, a árvore contra a base // reancorado KINEO-HOME-3-CARDS-1910 — o não commitado e os arquivos novos só desta entrega fora da lista",
+   "    try { tocados = [...(PROPRIO ? [...git(['diff', '--name-only', BASE, PROPRIO]).split('\\n'), ...git(['diff', '--name-only', 'HEAD']).split('\\n')] : git(['diff', '--name-only', BASE]).split('\\n')), ...git(['ls-files', '--others', '--exclude-standard']).split('\\n')].filter(Boolean) } catch { return false } // reancorado KINEO-LEVA-ADS-AGENCIA-1510 — mede o PRÓPRIO commit (BASE→1º marcado) + o não commitado; antes do commit existir, a árvore contra a base"
+  ]
+ ],
+ "scripts/test-ads-produto-na-mao-1610.mjs": [
+  [
+   "  const tocados = (BASE === 'HEAD' ? [] : git('diff', '--name-only', BASE, TOPO).trim().split('\\n').filter(Boolean)).concat(git('diff', '--name-only', 'HEAD').trim().split('\\n').filter(Boolean).filter((f) => !diffSoHome3Cards1910(git('diff', '-U0', '--no-color', 'HEAD', '--', f), f))) // reancorado KINEO-HOME-3-CARDS-1910 — o não commitado só desta entrega (todo bloco com a marca) fora da lista",
+   "  const tocados = (BASE === 'HEAD' ? [] : git('diff', '--name-only', BASE, TOPO).trim().split('\\n').filter(Boolean)).concat(git('diff', '--name-only', 'HEAD').trim().split('\\n').filter(Boolean))"
+  ]
+ ],
+ "scripts/test-ads-produto-na-mao-ajuste-1610.mjs": [
+  [
+   "  const tocados = git('diff', '--name-only', MAO_AJUSTE_1610_BASE, TOPO).trim().split('\\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\\n').filter(Boolean).filter((f) => !diffSoHome3Cards1910(git('diff', '-U0', '--no-color', 'HEAD', '--', f), f))) // reancorado KINEO-HOME-3-CARDS-1910 — o não commitado só desta entrega (todo bloco com a marca) fora da lista",
+   "  const tocados = git('diff', '--name-only', MAO_AJUSTE_1610_BASE, TOPO).trim().split('\\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\\n').filter(Boolean))"
+  ]
+ ],
+ "scripts/test-ads-v2-virada-2026-09-29.mjs": [
+  [
+   "const rd = (p) => semHome3Cards1910(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\\r\\n/g, '\\n') // reancorado KINEO-HOME-3-CARDS-1910 — lê as telas do montador SEM os 3 cards (a amostra pela entrada do card), em memória",
+   "const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\\r\\n/g, '\\n')"
+  ]
+ ],
+ "scripts/test-apresentador-v2-1710.mjs": [
+  [
+   "  const tocados = git('diff', '--name-only', APRESENTADOR_V2_1710_BASE, TOPO).trim().split('\\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\\n').filter(Boolean).filter((f) => !diffSoHome3Cards1910(git('diff', '-U0', '--no-color', 'HEAD', '--', f), f))) // reancorado KINEO-HOME-3-CARDS-1910 — o não commitado só desta entrega (todo bloco com a marca) fora da lista",
+   "  const tocados = git('diff', '--name-only', APRESENTADOR_V2_1710_BASE, TOPO).trim().split('\\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\\n').filter(Boolean))"
+  ]
+ ],
+ "scripts/test-apresentador-v2-ajuste-1710.mjs": [
+  [
+   "  const tocados = git('diff', '--name-only', APRESENTADOR_V2_AJUSTE_1710_BASE, TOPO).trim().split('\\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\\n').filter(Boolean).filter((f) => !diffSoHome3Cards1910(git('diff', '-U0', '--no-color', 'HEAD', '--', f), f))) // reancorado KINEO-HOME-3-CARDS-1910 — o não commitado só desta entrega (todo bloco com a marca) fora da lista",
+   "  const tocados = git('diff', '--name-only', APRESENTADOR_V2_AJUSTE_1710_BASE, TOPO).trim().split('\\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\\n').filter(Boolean))"
+  ]
+ ],
+ "scripts/test-apresentador-v2-ajuste-3-1710.mjs": [
+  [
+   "  const tocados = git('diff', '--name-only', B, TOPO).trim().split('\\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\\n').filter(Boolean).filter((f) => !diffSoHome3Cards1910(git('diff', '-U0', '--no-color', 'HEAD', '--', f), f))) // reancorado KINEO-HOME-3-CARDS-1910 — o não commitado só desta entrega (todo bloco com a marca) fora da lista",
+   "  const tocados = git('diff', '--name-only', B, TOPO).trim().split('\\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\\n').filter(Boolean))"
+  ]
+ ],
+ "scripts/test-apresentador-v2-libera-1910.mjs": [
+  [
+   "  const tocados = git('diff', '--name-only', B, TOPO).trim().split('\\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\\n').filter(Boolean).filter((f) => !diffSoHome3Cards1910(git('diff', '-U0', '--no-color', 'HEAD', '--', f), f))) // reancorado KINEO-HOME-3-CARDS-1910 — o não commitado só desta entrega (todo bloco com a marca) fora da lista",
+   "  const tocados = git('diff', '--name-only', B, TOPO).trim().split('\\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\\n').filter(Boolean))"
+  ]
+ ],
+ "scripts/test-business-depois-da-amostra.mjs": [
+  [
+   "const pg = codigo(semHome3Cards1910(rd(F.page), F.page)) // reancorado KINEO-HOME-3-CARDS-1910 — a página do montador SEM a entrada do card (?entry=), em memória",
+   "const pg = codigo(rd(F.page))"
+  ]
+ ],
+ "scripts/test-close-real-v3-1910.mjs": [
+  [
+   "  const tocados = git('diff', '--name-only', CLOSE_REAL_V3_1910_BASE, 'HEAD').trim().split('\\n').concat(git('diff', '--name-only', 'HEAD').trim().split('\\n')).filter(Boolean).filter((f) => !diffSoHome3Cards1910(git('diff', '-U0', '--no-color', CLOSE_REAL_V3_1910_BASE, '--', f), f)) // reancorado KINEO-HOME-3-CARDS-1910 — arquivo cujo diff (base até a árvore) é só desta entrega (todo bloco com a marca) fora da lista",
+   "  const tocados = git('diff', '--name-only', CLOSE_REAL_V3_1910_BASE, 'HEAD').trim().split('\\n').concat(git('diff', '--name-only', 'HEAD').trim().split('\\n')).filter(Boolean)"
+  ]
+ ],
+ "scripts/test-duas-portas-1310.mjs": [
+  [
+   "const LAND = semHome3Cards1910(read('app/KineoLanding.tsx'), 'app/KineoLanding.tsx') // reancorado KINEO-HOME-3-CARDS-1910 — a home SEM os 3 cards (atrás do interruptor) = as 2 portas de sempre, em memória",
+   "const LAND = read('app/KineoLanding.tsx')"
+  ]
+ ],
+ "scripts/test-home-clips-first-2026-10-05.mjs": [
+  [
+   "const landing = semHome3Cards1910(read('app/KineoLanding.tsx'), 'app/KineoLanding.tsx') // reancorado KINEO-HOME-3-CARDS-1910 — a home SEM os 3 cards (atrás do interruptor) = as 2 portas de sempre, em memória",
+   "const landing = read('app/KineoLanding.tsx')"
+  ]
+ ],
+ "scripts/test-juiz-grade-1610.mjs": [
+  [
+   "  const tocados = git('diff', '--name-only', JUIZ_GRADE_1610_BASE, TOPO).trim().split('\\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\\n').filter(Boolean).filter((f) => !diffSoHome3Cards1910(git('diff', '-U0', '--no-color', 'HEAD', '--', f), f))) // reancorado KINEO-HOME-3-CARDS-1910 — o não commitado só desta entrega (todo bloco com a marca) fora da lista",
+   "  const tocados = git('diff', '--name-only', JUIZ_GRADE_1610_BASE, TOPO).trim().split('\\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\\n').filter(Boolean))"
+  ]
+ ]
+}

@@ -33,10 +33,10 @@ export const metadata = { title: 'Studio Ads — Kineo' }
 export const dynamic = 'force-dynamic'
 
 // KINEO-HOME-3-CARDS-1910 — ?entry=product|ugc (os cards "AI Product Ads" / "AI UGC Ads" da home): validado aqui (lib/ads/sampleEntry.ts) e entregue à tela,
-// que abre no formato do card (Close real / Apresentador) e, na amostra, manda a entrada ao /plan — quem decide o formato da amostra é o servidor.
-// Sem login, o redirect do login devolve a MESMA entrada (o visitante que veio do card não perde o formato).
+// KINEO-HOME-3-CARDS-1910 — que abre no formato do card (Close real / Apresentador) e, na amostra, manda a entrada ao /plan — quem decide o formato da amostra é o servidor.
+// KINEO-HOME-3-CARDS-1910 — sem login, o redirect do login devolve a MESMA entrada (o visitante que veio do card não perde o formato).
 export default async function AdsV2Page({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) { // KINEO-HOME-3-CARDS-1910 — era: export default async function AdsV2Page() {
-  const rawEntry = searchParams?.entry
+  const rawEntry = searchParams?.entry // KINEO-HOME-3-CARDS-1910
   const entry: AdsSampleEntry | null = adsSampleEntryOf(Array.isArray(rawEntry) ? rawEntry[0] : rawEntry) // KINEO-HOME-3-CARDS-1910
   const supabase = createClient()
   const {

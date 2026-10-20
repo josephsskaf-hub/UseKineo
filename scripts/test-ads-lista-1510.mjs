@@ -20,6 +20,7 @@
 //   H dinheiro intocado (preço, débito, estorno, /start, /plan…) byte a byte; o diff só toca a tela, a rota e as libs novas; o
 //     desfaz devolve a tela e a rota EXATAMENTE à base; todo bloco novo traz a marca;
 //   M mutantes: cada regra quebrada fica vermelha, e cada mutante prova que aplicou (âncora única, texto mudou).
+import { arquivoNovoHome3Cards1910, diffSoHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — os 3 cards da home (+ amostra pela entrada do card) saem do diff/leitura em memória
 import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import fs from 'node:fs'
 import path from 'node:path'
@@ -338,7 +339,7 @@ const INTOCADOS = ['lib/ads/v2Tiers.ts', 'lib/ads/v2Billing.ts', 'lib/ads/v2Star
 ok(INTOCADOS.every((f) => base(f) !== null && read(f) === base(f)), `H1 ${INTOCADOS.length} arquivos de dinheiro/acesso/pós-entrega/paywall byte a byte iguais à base (${BASE}): nenhum preço, débito, estorno ou porta nova`)
 const PERMITIDOS = new Set([F.lib, F.server, F.ui, F.orders])
 const escopoOk = () => {
-  const t = [...new Set([...diffDoConserto(['--name-only']).split('\n'), ...git('ls-files', '--others', '--exclude-standard').split('\n')].map((l) => l.trim()).filter(Boolean))]
+  const t = [...new Set([...diffDoConserto(['--name-only']).split('\n'), ...git('ls-files', '--others', '--exclude-standard').split('\n')].map((l) => l.trim()).filter(Boolean).filter((n) => !arquivoNovoHome3Cards1910(n) && !diffSoHome3Cards1910(diffDoConserto(['-U0', '--no-color'], [n]), n)))] // reancorado KINEO-HOME-3-CARDS-1910 — arquivo novo ou só desta entrega (todo bloco com a marca) fora da lista
   return t.length > 0 && t.every((f) => PERMITIDOS.has(f) || f.startsWith('scripts/'))
 }
 ok(await tenta(escopoOk), 'H2 o diff deste conserto só toca a tela (AdsV2Brands), a rota /orders, as 2 libs novas e scripts/')

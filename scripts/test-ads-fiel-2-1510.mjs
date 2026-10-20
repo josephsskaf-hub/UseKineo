@@ -20,6 +20,7 @@
 //   C teto de roteiros: conta da casa sem teto, Business 60, as outras 20 (o de sempre), contador "N restantes hoje";
 //   V desfaz exato + marca em todo bloco + dinheiro (v2Billing, v2Tiers, v2StartCore) byte a byte;
 //   M mutantes (todos aplicados e vermelhos).
+import { diffSemHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — os 3 cards da home (+ amostra pela entrada do card) saem do diff/leitura em memória
 import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname, posix } from 'node:path'
@@ -596,7 +597,7 @@ console.log('\nV. desfaz, marca e dinheiro')
 await check('V1 cada arquivo tocado, desfeito (scripts/test-support/desfaz-ads-fiel-2-1510.mjs), é EXATAMENTE o pai do commit', () =>
   FIEL_2_1510_ARQUIVOS.length === 8 && FIEL_2_1510_ARQUIVOS.every((f) => semFiel2_1510(f, rd(f)) === base(f)) && FIEL_2_1510_NOVOS.every((f) => existsSync(join(ROOT, f)) && base(f) === null && rd(f).includes(MARCA)) && MARCA_FIEL_2_1510 === MARCA)
 await check('V2 todo bloco novo nos arquivos tocados traz a marca KINEO-ADS-FIEL-2-1510', () => FIEL_2_1510_ARQUIVOS.every((f) => {
-  const d = diffDoConserto(['-U0', '--no-color'], [f])
+  const d = diffSemHome3Cards1910(diffDoConserto(['-U0', '--no-color'], [f])) // reancorado KINEO-HOME-3-CARDS-1910 — blocos/arquivos desta entrega (todos com a marca) fora do diff
   const blocos = d.split('\n@@').slice(1).map((h) => h.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')))
   return blocos.length > 0 && blocos.every((b) => b.length === 0 || b.some((l) => l.includes(MARCA)))
 }))

@@ -17,6 +17,7 @@
 //   C  custo do dry-run (≈ US$ 2,40): o número real calculado;
 //   D  desfaz exato + ida + marca em todo bloco + encadeamento (fiel-7/6/5/rollback/liga e Shopify tiram esta camada primeiro) + travas 'internal';
 //   M  mutantes (todos aplicados e vermelhos).
+import { diffSoHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — os 3 cards da home (+ amostra pela entrada do card) saem do diff/leitura em memória
 import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname, posix } from 'node:path'
@@ -426,7 +427,7 @@ await check('D2 todo bloco do desfaz traz a marca; o diff do commit contra a bas
   // reancorado KINEO-PACOTE-3-FILMES-1610 — o diff commitado é medido até o ÚLTIMO commit com a marca (não até HEAD): uma camada
   // que chega depois (o pacote "3 filmes") não é um toque desta. Edição solta (não commitada) continua proibida, como sempre.
   const TOPO = BASE === 'HEAD' ? 'HEAD' : (git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, 'HEAD').trim().split('\n').filter(Boolean)[0] || 'HEAD')
-  const tocados = (BASE === 'HEAD' ? [] : git('diff', '--name-only', BASE, TOPO).trim().split('\n').filter(Boolean)).concat(git('diff', '--name-only', 'HEAD').trim().split('\n').filter(Boolean))
+  const tocados = (BASE === 'HEAD' ? [] : git('diff', '--name-only', BASE, TOPO).trim().split('\n').filter(Boolean)).concat(git('diff', '--name-only', 'HEAD').trim().split('\n').filter(Boolean).filter((f) => !diffSoHome3Cards1910(git('diff', '-U0', '--no-color', 'HEAD', '--', f), f))) // reancorado KINEO-HOME-3-CARDS-1910 — o não commitado só desta entrega (todo bloco com a marca) fora da lista
   const permitidos = new Set([...PRODUTO_NA_MAO_1610_ARQUIVOS, ...PRODUTO_NA_MAO_1610_NOVOS])
   return blocos.length > 0 && blocos.every((h) => h.now.join('\n').includes(MARCA)) && tocados.every((f) => permitidos.has(f)) && [F.tiers, F.engines, F.shotLists, F.server, F.startCore, 'lib/ads/v2Billing.ts', 'app/api/ads/v2/start/route.ts', 'app/api/ads/v2/plan/route.ts'].every((f) => base(f) === rd(f))
 })

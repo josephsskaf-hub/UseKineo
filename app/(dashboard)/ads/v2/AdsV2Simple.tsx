@@ -589,7 +589,7 @@ export function AdsV2SimpleSession({
   entry = null, // KINEO-HOME-3-CARDS-1910
 }: {
   /** KINEO-HOME-3-CARDS-1910 — a entrada do card da home (page.tsx validou ?entry=): a tela abre no formato do card; na amostra, 'ugc' = com a pessoa. */
-  entry?: AdsSampleEntry | null
+  entry?: AdsSampleEntry | null // KINEO-HOME-3-CARDS-1910
   resume: boolean
   lang: InterfaceLanguage
   balance: number | null

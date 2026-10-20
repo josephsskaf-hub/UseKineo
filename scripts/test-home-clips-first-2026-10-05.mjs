@@ -18,6 +18,7 @@
 //       (arquivo existe em public/), placeholder marcado onde preview=null; filmes da casa com mídia em public/;
 //  (11) mutantes (cada regra quebrada é pega).
 // Estilo readFileSync + transpile (molde scripts/test-espacos-2026-09-30.mjs).
+import { semHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — os 3 cards da home (+ amostra pela entrada do card) saem do diff/leitura em memória
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
@@ -232,7 +233,7 @@ ok(/const clipsFirst = homeChoice\.variant === 'clips_first'\n/.test(page), '(8b
 ok(/const homeExposure = homeChoice\.expose \? \(/.test(page), '(8c) o sinal de exposição só monta com expose (nunca com off/robô/prévia)')
 ok(/<KineoLanding\n        initialUser=\{user \? \{ id: user\.id \} : null\}\n        engineWall=\{engineWall\}\n        trending=\{trending\}\n        initialEmail=\{email\}\n        initialIsPro=\{isPro\}\n        resume=\{resume\}\n        initialAcquisitionSource=\{initialAcquisitionSource\}\n        showWelcomeGoalRouter=\{showWelcomeGoalRouter\}\n        clipsFirst=\{clipsFirst\}\n      \/>\n      \{homeExposure\}\n/.test(page), '(8d) a chamada da home segue com as mesmas props + o booleano clipsFirst (e o sinal nulo ao lado)')
 ok(/\n      <FaqStructuredData \/>\n      <KineoLanding\n/.test(page) && !/if \(homeChoice\.variant === 'clips_first'\) \{/.test(page), '(8e) FAQPage nas duas variantes: a variante é a mesma home, com as 13 perguntas visíveis')
-const landing = read('app/KineoLanding.tsx')
+const landing = semHome3Cards1910(read('app/KineoLanding.tsx'), 'app/KineoLanding.tsx') // reancorado KINEO-HOME-3-CARDS-1910 — a home SEM os 3 cards (atrás do interruptor) = as 2 portas de sempre, em memória
 const wall = read('lib/engineWall.ts')
 ok(!/ClipsFirst|homeClipsFirst|home_variant/.test(wall) && !/resolveHomeVariant|assignHomeVariant|homeClipsFirstServer|HOME_CLIPS_FIRST|home_variant/.test(landing) && /\n  clipsFirst = false,\n/.test(landing), '(8f) lib/engineWall.ts não sabe da variante; a KineoLanding só recebe o booleano (padrão false), sem sorteio próprio')
 // O que o fundador pediu, preso aqui para ninguém desfazer sem querer:

@@ -27,37 +27,47 @@ import {
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)'
 
 export const HOME_THREE_CARDS_CSS = `
-.klp .k3c{padding:22px 0 6px}
-.k3c-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
-.k3c-card{position:relative;display:flex;flex-direction:column;gap:14px;padding:12px 12px 18px;border-radius:18px;border:1px solid var(--home-line,rgba(255,255,255,.10));background:var(--card,#10141B);color:var(--txt);outline:none;transition:border-color var(--dur-base,250ms) ease,transform var(--dur-base,250ms) var(--ease-swift,ease)}
-.k3c-card:hover{border-color:var(--home-action,#0A5CFF);transform:translateY(-2px)}
-.k3c-card:focus-visible{outline:2px solid var(--home-action,#0A5CFF);outline-offset:4px}
-.k3c-media{position:relative;direction:ltr;aspect-ratio:4/3;border-radius:14px;overflow:hidden;background:#0B0E14;isolation:isolate}
-.k3c-blur{position:absolute;inset:-12%;width:124%;height:124%;object-fit:cover;filter:blur(22px) brightness(.45) saturate(1.2);transform:translateZ(0)}
-.k3c-glow{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 120%,rgba(10,92,255,.30),transparent 70%)}
-.k3c-phone{position:absolute;top:8%;bottom:8%;left:50%;transform:translateX(-50%);aspect-ratio:9/16;border-radius:14px;overflow:hidden;background:#05070B;box-shadow:0 16px 36px -14px rgba(0,0,0,.85);border:1px solid rgba(255,255,255,.14)}
-.k3c-phone video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
-.k3c-badge{position:absolute;left:10px;top:10px;z-index:2;font-size:11px;font-weight:800;letter-spacing:.08em;padding:5px 8px;border-radius:7px;background:rgba(7,9,13,.72);color:#fff;border:1px solid rgba(255,255,255,.18)}
-.k3c-text{display:flex;flex-direction:column;gap:6px;padding:0 6px;flex:1}
-.k3c-title{margin:0;font-size:clamp(1.15rem,1.7vw,1.45rem);line-height:1.15;letter-spacing:-.02em;font-weight:780;color:var(--txt)}
-.k3c-sub{margin:0;font-size:15px;line-height:1.45;color:var(--muted)}
-.k3c-cta{align-self:flex-start;margin:4px 6px 0}
-@media (max-width:980px) and (min-width:761px){
-.k3c-grid{gap:12px}
+.klp .k3c{position:relative;z-index:1;padding:26px 0 8px}
+.k3c-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 2px 14px}
+.k3c-kicker{margin:0;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted,#5A5F67)}
+.k3c-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.k3c-card{position:relative;display:block;aspect-ratio:5/6;border-radius:22px;overflow:hidden;isolation:isolate;background:#0B0E14;color:#fff;outline:none;border:1px solid var(--home-line,rgba(14,17,22,.08));box-shadow:0 1px 2px rgba(10,14,22,.06),0 22px 44px -26px rgba(10,14,22,.55);transition:transform .45s cubic-bezier(.2,.7,.2,1),box-shadow .45s cubic-bezier(.2,.7,.2,1)}
+.k3c-card:hover{transform:translateY(-4px);box-shadow:0 2px 4px rgba(10,14,22,.08),0 34px 60px -28px rgba(10,14,22,.62)}
+.k3c-card:focus-visible{outline:3px solid var(--home-action,#0A5CFF);outline-offset:4px}
+.k3c-media{position:absolute;inset:0;z-index:0}
+.k3c-media video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 42%;display:block;transform:scale(1.001);transition:transform 1.1s cubic-bezier(.2,.7,.2,1)}
+.k3c-card:hover .k3c-media video{transform:scale(1.045)}
+.k3c-card[data-home-card="films"] .k3c-media video{object-position:50% 16%}
+.k3c-card[data-home-card="product_ads"] .k3c-media video{object-position:50% 86%}
+.k3c-card[data-home-card="ugc_ads"] .k3c-media video{object-position:50% 60%}
+.k3c-shade{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(5,7,11,.38) 0%,rgba(5,7,11,0) 16%,rgba(5,7,11,0) 50%,rgba(5,7,11,.55) 68%,rgba(5,7,11,.88) 100%)}
+.k3c-glass{position:absolute;left:0;right:0;bottom:0;height:46%;z-index:1;pointer-events:none;-webkit-backdrop-filter:blur(18px) saturate(1.15);backdrop-filter:blur(18px) saturate(1.15);-webkit-mask-image:linear-gradient(180deg,transparent 0%,#000 38%);mask-image:linear-gradient(180deg,transparent 0%,#000 38%);background:linear-gradient(180deg,rgba(6,8,13,0) 0%,rgba(6,8,13,.5) 45%,rgba(6,8,13,.72) 100%)}
+.k3c-badge{position:absolute;left:16px;top:16px;z-index:2;display:inline-flex;align-items:center;gap:7px;font-size:10.5px;font-weight:800;letter-spacing:.11em;padding:7px 10px;border-radius:999px;color:#fff;background:rgba(10,12,18,.46);border:1px solid rgba(255,255,255,.2);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.k3c-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:#7CF0B2;box-shadow:0 0 0 3px rgba(124,240,178,.18)}
+.k3c-body{position:absolute;left:0;right:0;bottom:0;z-index:2;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:22px 22px 22px}
+.k3c-title{margin:0;font-size:clamp(1.3rem,1.75vw,1.7rem);line-height:1.08;letter-spacing:-.025em;font-weight:800;color:#fff;text-shadow:0 1px 12px rgba(0,0,0,.35)}
+.k3c-sub{margin:0;max-width:34ch;font-size:15px;line-height:1.42;color:rgba(255,255,255,.84)}
+.klp .k3c-cta{margin-top:8px;display:inline-flex;align-items:center;gap:8px;padding:11px 16px;font-size:14px;font-weight:750;border-radius:999px}
+.k3c-cta .k3c-arrow{display:inline-block;transition:transform .3s ease}
+.k3c-card:hover .k3c-arrow{transform:translateX(3px)}
+@media (max-width:1100px) and (min-width:761px){
+.k3c-grid{gap:14px}
+.k3c-card{aspect-ratio:3/4}
+.k3c-body{padding:18px}
 .k3c-sub{font-size:14px}
 }
 @media (max-width:760px){
-.klp .k3c{padding-top:14px}
-.k3c-grid{grid-template-columns:1fr;gap:12px}
-.k3c-card{display:grid;grid-template-columns:112px minmax(0,1fr);grid-template-rows:auto auto;column-gap:14px;row-gap:10px;padding:10px;align-items:center}
-.k3c-media{grid-row:1 / span 2;aspect-ratio:9/16;width:112px}
-.k3c-phone{inset:0;top:0;bottom:0;left:0;transform:none;width:100%;border-radius:12px;border:0}
-.k3c-blur,.k3c-glow{display:none}
-.k3c-badge{left:6px;top:6px;font-size:9px;padding:3px 5px;letter-spacing:.06em;max-width:calc(100% - 12px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.k3c-text{padding:0;align-self:end}
+.klp .k3c{padding-top:16px}
+.k3c-head{margin:0 0 12px}
+.k3c-grid{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:0 -20px;padding:2px 20px 14px;scroll-padding:0 20px}
+.k3c-grid::-webkit-scrollbar{display:none}
+.k3c-card{flex:0 0 80%;max-width:340px;scroll-snap-align:start;border-radius:20px}
+.k3c-card:hover{transform:none}
+.k3c-body{padding:18px}
+.k3c-title{font-size:1.4rem}
 .k3c-sub{font-size:14px}
-.k3c-cta{margin:0;align-self:start}
 }
+@media (prefers-reduced-motion:reduce){.k3c-card,.k3c-media video,.k3c-arrow{transition:none}.k3c-card:hover .k3c-media video{transform:none}}
 `
 
 /** Toca o vídeo do card só enquanto ele está na tela; reduced-motion = parado no pôster. */
@@ -84,30 +94,24 @@ function useCardPlayback(ref: RefObject<HTMLElement>) {
 }
 
 function CardMedia({ card, language }: { card: HomeCardId; language: string }) {
-  const ref = useRef<HTMLDivElement>(null)
+  const ref = useRef<HTMLSpanElement>(null)
   const clip = homeCardClip(card, language)
   useCardPlayback(ref)
   return (
-    <div className="k3c-media" ref={ref}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="k3c-blur" src={clip.poster} alt="" aria-hidden="true" loading="lazy" decoding="async" />
-      <span className="k3c-glow" aria-hidden="true" />
-      <span className="k3c-phone">
-        <video
-          key={clip.src}
-          src={clip.src}
-          poster={clip.poster}
-          muted
-          loop
-          playsInline
-          preload="none"
-          disablePictureInPicture
-          aria-hidden="true"
-          tabIndex={-1}
-        />
-      </span>
-      <span className="k3c-badge" aria-hidden="true">{HOME_CARD_BADGE[card]}</span>
-    </div>
+    <span className="k3c-media" ref={ref}>
+      <video
+        key={clip.src}
+        src={clip.src}
+        poster={clip.poster}
+        muted
+        loop
+        playsInline
+        preload="none"
+        disablePictureInPicture
+        aria-hidden="true"
+        tabIndex={-1}
+      />
+    </span>
   )
 }
 
@@ -121,15 +125,19 @@ export default function HomeThreeCards({ signedIn }: { signedIn: boolean }) {
     <section className="k3c" aria-label={copy('Choose what to make')} data-home-3-cards="1">
       <style dangerouslySetInnerHTML={{ __html: HOME_THREE_CARDS_CSS }} />
       <div className="wrap">
+        <div className="k3c-head"><p className="k3c-kicker"><UiLabel>Choose what to make</UiLabel></p></div>
         <div className="k3c-grid">
           {HOME_CARD_ORDER.map((card) => (
             <Link key={card} href={homeCardHref(card, signedIn)} className="k3c-card" data-home-card={card} onClick={() => track(card)}>
               <CardMedia card={card} language={language} />
-              <span className="k3c-text">
+              <span className="k3c-shade" aria-hidden="true" />
+              <span className="k3c-glass" aria-hidden="true" />
+              <span className="k3c-badge" aria-hidden="true">{HOME_CARD_BADGE[card]}</span>
+              <span className="k3c-body">
                 <h2 className="k3c-title">{copy(HOME_CARD_COPY[card].title)}</h2>
                 <p className="k3c-sub">{copy(HOME_CARD_COPY[card].line)}</p>
+                <span className="btn btn-blue k3c-cta">{card === 'films' ? <UiLabel>Make my film</UiLabel> : adsCta} <span className="k3c-arrow" aria-hidden="true">→</span></span>
               </span>
-              <span className="btn btn-blue k3c-cta">{card === 'films' ? <UiLabel>Make my film</UiLabel> : adsCta} →</span>
             </Link>
           ))}
         </div>

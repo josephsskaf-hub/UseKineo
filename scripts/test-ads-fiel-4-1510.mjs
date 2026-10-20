@@ -18,6 +18,7 @@
 //   A  avanço executado (servidor REAL, banco e fornecedores falsos): prompt e colagem no MESMO lado; retry; foto real; servidor antigo;
 //   V  desfaz exato + marca em todo bloco + dinheiro byte a byte + trava 'internal' no texto deste conserto e 'all' no arquivo vivo (reancorado KINEO-ADS-FIEL-LIGA-1510 — fundador ligou para todos em 15/10) + guardiões antigos encadeados;
 //   M  mutantes (todos aplicados e vermelhos).
+import { diffSemHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — os 3 cards da home (+ amostra pela entrada do card) saem do diff/leitura em memória
 import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname, posix } from 'node:path'
@@ -539,7 +540,7 @@ console.log('\nV. desfaz, marca, dinheiro, trava ("internal" neste conserto, "al
 await check('V1 cada arquivo tocado, desfeito (scripts/test-support/desfaz-ads-fiel-4-1510.mjs), é EXATAMENTE o pai do commit; a base do desfaz é esse pai', () =>
   FIEL_4_1510_ARQUIVOS.length === 5 && FIEL_4_1510_ARQUIVOS.every((f) => semFiel4_1510(f, rd(f)) === base(f)) && FIEL_4_1510_NOVOS.length === 0 && MARCA_FIEL_4_1510 === MARCA && (BASE === 'HEAD' || FIEL_4_1510_BASE === BASE))
 await check('V2 todo bloco novo nos arquivos de produto (lib/ e app/) traz a marca KINEO-ADS-FIEL-4-1510, e toda linha de código fora de comentário também', () => {
-  const d = diffDoConserto(['-U0', '--no-color'], ['lib', 'app'])
+  const d = diffSemHome3Cards1910(diffDoConserto(['-U0', '--no-color'], ['lib', 'app'])) // reancorado KINEO-HOME-3-CARDS-1910 — blocos/arquivos desta entrega (todos com a marca) fora do diff
   let arquivo = ''
   let bloco = []
   const semMarca = []
