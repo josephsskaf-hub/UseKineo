@@ -27,6 +27,7 @@ import {
 } from './test-support/desfaz-avatar-preso-2010.mjs'
 import { semMeta95Refazer1910 } from './test-support/desfaz-meta95-refazer-1910.mjs'
 import { semMenuUgc2010 } from './test-support/desfaz-menu-ugc-2010.mjs'
+import { semBebeQueFala2010 } from './test-support/desfaz-bebe-que-fala-2010.mjs' // reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories e o bebê-podcast (20/10) entraram depois: o generate-avatar ganhou a regra infantil do retrato do bebê e 5 arquivos desta lista ganharam reâncoras; saem em memória
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const ROOT = path.resolve(import.meta.dirname, '..')
@@ -250,7 +251,7 @@ console.log('\nS. cobrança, cron e os caminhos vizinhos')
   ok(p1.length === 0, `S1 o status confere o avatar pelo claim e NÃO debita avatar pré-pago (nada de cobrança dupla)${p1.length ? ' — ' + p1.join(' | ') : ''}`)
   const p2 = cronProblems(rd(F.cron))
   ok(p2.length === 0, `S2 finish-stranded-renders fase 3: claim de montagem com render_id, sem filtro de motor, cutuca o status em modo serviço (janela 20 h)${p2.length ? ' — ' + p2.join(' | ') : ''}`)
-  const mudados = INTOCADOS.filter((rel) => { const b = base(rel); return b === null || rd(rel) !== b })
+  const mudados = INTOCADOS.filter((rel) => { const b = base(rel); return b === null || semBebeQueFala2010(rd(rel), rel) !== b }) // reancorado KINEO-BEBE-QUE-FALA-2010
   ok(mudados.length === 0, `S3 status, cron, generate-avatar, avatar-status, Ads Produção, Apresentador v2 e o /avatar byte a byte iguais à base${mudados.length ? ' — mudou: ' + mudados.join(', ') : ''}`)
   const R = rd(F.reserva), RB = base(F.reserva)
   const iguais = ['loadPrepaidAvatarClaimForGeneration', 'markAvatarClaimPrepaid', 'confirmAvatarBirthDebit', 'refundAvatarBirthDebit', 'settleAvatarCreditHoldForRender']
@@ -261,16 +262,16 @@ console.log('\nS. cobrança, cron e os caminhos vizinhos')
 // ─── D. desfaz, encadeamento, diff ───────────────────────────────────────────
 console.log('\nD. desfaz, encadeamento e diff')
 {
-  const ruins = AVATAR_PRESO_2010_ARQUIVOS.filter((rel) => { try { return semAvatarPreso2010(rd(rel), rel) !== base(rel) } catch { return true } })
+  const ruins = AVATAR_PRESO_2010_ARQUIVOS.filter((rel) => { try { return semAvatarPreso2010(semBebeQueFala2010(rd(rel), rel), rel) !== base(rel) } catch { return true } }) // reancorado KINEO-BEBE-QUE-FALA-2010
   ok(ruins.length === 0, `D1 cada arquivo tocado, desfeito, é EXATAMENTE a base ${AVATAR_PRESO_2010_BASE.slice(0, 9)}${ruins.length ? ' — ' + ruins.join(', ') : ''}`)
   ok(AVATAR_PRESO_2010_NOVOS.every((rel) => base(rel) === null && fs.existsSync(path.join(ROOT, rel))), 'D2 os arquivos novos existem e não existiam na base')
-  const contagem = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => rd(rel).split('\n').filter((l) => l.includes(MARCA)).length === ACRESCIMOS_AVATAR_PRESO_2010[rel] + (TROCAS_AVATAR_PRESO_2010[rel] ?? []).length)
-  const semMarcaNova = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\n'); const bs = new Set(b); return rd(rel).split('\n').every((l) => bs.has(l) || l.includes(MARCA)) })
+  const contagem = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => semBebeQueFala2010(rd(rel), rel).split('\n').filter((l) => l.includes(MARCA)).length === ACRESCIMOS_AVATAR_PRESO_2010[rel] + (TROCAS_AVATAR_PRESO_2010[rel] ?? []).length)
+  const semMarcaNova = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\n'); const bs = new Set(b); return semBebeQueFala2010(rd(rel), rel).split('\n').every((l) => bs.has(l) || l.includes(MARCA)) }) // reancorado KINEO-BEBE-QUE-FALA-2010 — as linhas da camada de 20/10 (mais nova) saem antes da contagem
   ok(contagem && semMarcaNova, 'D3 toda linha nova ou reescrita leva a marca, e a contagem bate (acréscimos + trocas)')
   const M95 = rd(F.meta95)
   ok(/export function semMeta95Refazer1910\(texto, p\) \{\n  texto = semAvatarPreso2010\(texto, p\)/.test(M95) && /^import \{ semAvatarPreso2010 \} from '\.\/desfaz-avatar-preso-2010\.mjs'/m.test(M95), 'D4 encadeado: semMeta95Refazer1910 (a camada mais nova do /api/compose até hoje) chama ESTE primeiro')
   const MU = rd('scripts/test-support/desfaz-menu-ugc-2010.mjs')
-  ok(/export function semMenuUgc2010\(texto, p\) \{\n  texto = semAvatarPreso2010NosGuardioes\(texto, p\)/.test(MU) && /^import \{ semAvatarPreso2010NosGuardioes \} from '\.\/desfaz-avatar-preso-2010\.mjs'/m.test(MU), 'D4b encadeado na cabeça da cadeia geral: semMenuUgc2010 tira as reâncoras desta camada (só scripts/) primeiro; o /api/compose segue intacto nela (é a última versão alheia)')
+  ok(/export function semMenuUgc2010\(texto, p\) \{\n(?:  texto = semBebeQueFala2010\(texto, p\)[^\n]*\n)?  texto = semAvatarPreso2010NosGuardioes\(texto, p\)/.test(MU) /* reancorado KINEO-BEBE-QUE-FALA-2010: a camada de 20/10 (mais nova) pode vir antes */ && /^import \{ semAvatarPreso2010NosGuardioes \} from '\.\/desfaz-avatar-preso-2010\.mjs'/m.test(MU), 'D4b encadeado na cabeça da cadeia geral: semMenuUgc2010 tira as reâncoras desta camada (só scripts/) primeiro; o /api/compose segue intacto nela (é a última versão alheia)')
   const guardioes = ['scripts/test-seedance-15s-3x6-2026-09-29.mjs', 'scripts/test-voz-15s-mesma-da-montagem-2026-09-29.mjs']
   ok(guardioes.every((g) => { try { return !semMenuUgc2010(fs.readFileSync(path.join(ROOT, g), 'utf8'), g).includes(MARCA) } catch { return false } }), 'D5b a cadeia geral (semMenuUgc2010) tira as reâncoras desta camada dos guardiões do 15 s (a linha da base volta inteira)')
   const minhas = (t) => lf(t).split('\n').filter((l) => l.includes(MARCA)).join('\n')
