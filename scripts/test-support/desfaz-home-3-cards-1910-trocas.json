@@ -195,6 +195,10 @@
   [
    "  const tocados = git('diff', '--name-only', CLOSE_REAL_V3_1910_BASE, 'HEAD').trim().split('\\n').concat(git('diff', '--name-only', 'HEAD').trim().split('\\n')).filter(Boolean).filter((f) => !diffSoHome3Cards1910(git('diff', '-U0', '--no-color', CLOSE_REAL_V3_1910_BASE, '--', f), f)) // reancorado KINEO-HOME-3-CARDS-1910 — arquivo cujo diff (base até a árvore) é só desta entrega (todo bloco com a marca) fora da lista",
    "  const tocados = git('diff', '--name-only', CLOSE_REAL_V3_1910_BASE, 'HEAD').trim().split('\\n').concat(git('diff', '--name-only', 'HEAD').trim().split('\\n')).filter(Boolean)"
+  ],
+  [
+   "  tocados.splice(0, tocados.length, ...tocados.filter((f) => !(KIT_BF_1910_ARQUIVOS.includes(f) && lf(semKitBf1910(semHome3Cards1910(readFileSync(join(ROOT, f), 'utf8'), f), f)) === base(f)))) // reancorado KINEO-KIT-BF-1910 — arquivo tocado SÓ pelo kit (desfeito = a base desta entrega) não conta como tocado aqui · reancorado KINEO-HOME-3-CARDS-1910 — a camada dos 3 cards (mais nova, por cima do kit) sai primeiro",
+   "  tocados.splice(0, tocados.length, ...tocados.filter((f) => !(KIT_BF_1910_ARQUIVOS.includes(f) && lf(semKitBf1910(readFileSync(join(ROOT, f), 'utf8'), f)) === base(f)))) // reancorado KINEO-KIT-BF-1910 — arquivo tocado SÓ pelo kit (desfeito = a base desta entrega) não conta como tocado aqui"
   ]
  ],
  "scripts/test-duas-portas-1310.mjs": [
@@ -267,6 +271,16 @@
   [
    "  return <AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} entry={entry} /> // KINEO-HOME-3-CARDS-1910 — + entry",
    "  return <AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} />"
+  ]
+ ],
+ "scripts/test-kit-bf-1910.mjs": [
+  [
+   "const disco = (p) => lf(semHome3Cards1910(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-HOME-3-CARDS-1910 — o disco sem a camada dos 3 cards (mais nova), em memória",
+   "const disco = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))"
+  ],
+  [
+   "  KIT_BF_1910_ARQUIVOS.length >= 6 && KIT_BF_1910_ARQUIVOS.every((f) => base(f) !== null && lf(semKitBf1910(semHome3Cards1910(readFileSync(join(ROOT, f), 'utf8'), f), f)) === base(f)) && // reancorado KINEO-HOME-3-CARDS-1910 — a camada dos 3 cards (mais nova) sai primeiro",
+   "  KIT_BF_1910_ARQUIVOS.length >= 6 && KIT_BF_1910_ARQUIVOS.every((f) => base(f) !== null && lf(semKitBf1910(readFileSync(join(ROOT, f), 'utf8'), f)) === base(f)) &&"
   ]
  ]
 }
