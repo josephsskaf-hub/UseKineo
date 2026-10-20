@@ -111,3 +111,30 @@ export function homeCardClip(card: HomeCardId, language: string | null | undefin
   const c = HOME_CARD_CLIPS[card]
   return (language === 'pt' && c.pt) || c.default
 }
+
+/** KINEO-HOME-CARDS-BOTOES-2010 — um botão diferente por card de anúncio (fundador 20/10: "o botão do UGC e do Product ficou parecido"). [grátis produto, grátis UGC, produto, UGC] por língua. */
+export const HOME_CARD_ADS_CTA: Record<string, readonly [string, string, string, string]> = {
+  en: ["Free product ad","Free UGC ad","Make a product ad","Make a UGC ad"],
+  pt: ["Anúncio de produto grátis","Anúncio UGC grátis","Criar anúncio de produto","Criar anúncio UGC"],
+  es: ["Anuncio de producto gratis","Anuncio UGC gratis","Crear anuncio de producto","Crear anuncio UGC"],
+  fr: ["Pub produit gratuite","Pub UGC gratuite","Créer une pub produit","Créer une pub UGC"],
+  de: ["Gratis Produktanzeige","Gratis UGC-Anzeige","Produktanzeige erstellen","UGC-Anzeige erstellen"],
+  it: ["Annuncio prodotto gratis","Annuncio UGC gratis","Crea annuncio prodotto","Crea annuncio UGC"],
+  nl: ["Gratis productadvertentie","Gratis UGC-advertentie","Maak een productadvertentie","Maak een UGC-advertentie"],
+  pl: ["Darmowa reklama produktu","Darmowa reklama UGC","Zrób reklamę produktu","Zrób reklamę UGC"],
+  tr: ["Ücretsiz ürün reklamı","Ücretsiz UGC reklamı","Ürün reklamı yap","UGC reklamı yap"],
+  ru: ["Бесплатная реклама товара","Бесплатная UGC-реклама","Сделать рекламу товара","Сделать UGC-рекламу"],
+  uk: ["Безкоштовна реклама товару","Безкоштовна UGC-реклама","Зробити рекламу товару","Зробити UGC-рекламу"],
+  ar: ["إعلان منتج مجاني","إعلان UGC مجاني","اصنع إعلان منتج","اصنع إعلان UGC"],
+  ur: ["مفت پروڈکٹ اشتہار","مفت UGC اشتہار","پروڈکٹ اشتہار بنائیں","UGC اشتہار بنائیں"],
+  hi: ["मुफ़्त प्रोडक्ट विज्ञापन","मुफ़्त UGC विज्ञापन","प्रोडक्ट विज्ञापन बनाएँ","UGC विज्ञापन बनाएँ"],
+  id: ["Iklan produk gratis","Iklan UGC gratis","Buat iklan produk","Buat iklan UGC"],
+  vi: ["Quảng cáo sản phẩm miễn phí","Quảng cáo UGC miễn phí","Tạo quảng cáo sản phẩm","Tạo quảng cáo UGC"],
+}
+
+/** KINEO-HOME-CARDS-BOTOES-2010 — rótulo do botão do card de anúncio (com amostra grátis no ar = "grátis"). */
+export function homeCardAdsCta(card: HomeCardId, language: string, sampleLive: boolean): string {
+  const t = HOME_CARD_ADS_CTA[language] ?? HOME_CARD_ADS_CTA.en
+  const ugc = card === 'ugc_ads'
+  return sampleLive ? (ugc ? t[1] : t[0]) : (ugc ? t[3] : t[2])
+}

@@ -167,7 +167,7 @@ function componentProblems(src) {
   if (!/new IntersectionObserver\(/.test(code)) probs.push('vídeo não espera ficar visível')
   if (!/if \(visible && !reduce\)/.test(code) || !code.includes("'(prefers-reduced-motion: reduce)'")) probs.push('vídeo ignora reduced-motion')
   if (/\$\s?\d|US\$|\bcredits?\b|créditos|\/month|\/mo\b/i.test(code.replace(/HOME_THREE_CARDS_CSS = `[\s\S]*?`/, ''))) probs.push('preço/crédito digitado no componente (cartão = motor + nome)')
-  if (!/ADS_SAMPLE_LIVE \? adsSampleCopy\(language\)\.make : copy\('Make my ad'\)/.test(code)) probs.push('botão do anúncio promete "grátis" sem a amostra no ar')
+  if (!code.includes('const adsCta = (card: HomeCardId) => homeCardAdsCta(card, language, ADS_SAMPLE_LIVE)')) probs.push('botão do anúncio promete "grátis" sem a amostra no ar') // KINEO-HOME-CARDS-BOTOES-2010
   return probs
 }
 
@@ -399,7 +399,7 @@ mut(COMP, 'onClick={() => track(card)}', '', componentProblems, '(M12) card sem 
 mut(COMP, '        preload="none"\n', '        preload="auto"\n        autoPlay\n', componentProblems, '(M13) vídeo com autoPlay pesado → vermelho')
 mut(COMP, 'if (visible && !reduce)', 'if (visible)', componentProblems, '(M14) vídeo ignora reduced-motion → vermelho')
 mut(COMP, '<p className="k3c-sub">{copy(HOME_CARD_COPY[card].line)}</p>', '<p className="k3c-sub">{copy(HOME_CARD_COPY[card].line)} · 41 credits</p>', componentProblems, '(M15) preço digitado no cartão → vermelho')
-mut(COMP, "const adsCta = ADS_SAMPLE_LIVE ? adsSampleCopy(language).make : copy('Make my ad')", 'const adsCta = adsSampleCopy(language).make', componentProblems, '(M16) "grátis" sem a amostra no ar → vermelho')
+mut(COMP, 'const adsCta = (card: HomeCardId) => homeCardAdsCta(card, language, ADS_SAMPLE_LIVE)', 'const adsCta = (card: HomeCardId) => homeCardAdsCta(card, language, true)', componentProblems, '(M16) "grátis" sem a amostra no ar → vermelho') // KINEO-HOME-CARDS-BOTOES-2010
 mut(LAND, "  const showThreeCards = home3CardsOn(HOME_3_CARDS_LIVE, isInternalEmail(initialEmail)) // KINEO-HOME-3-CARDS-1910\n", '  const showThreeCards = true // KINEO-HOME-3-CARDS-1910\n', homeProblems, '(M17) cards fora do interruptor → vermelho')
 mut(LAND, `${THREE_TAG}\n`, "      {false ? null : ( // KINEO-HOME-3-CARDS-1910\n", homeProblems, '(M18) cards apagados da home → vermelho')
 mut(LAND, '<Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>', '<Link href="/pricing"><UiLabel>Pricing</UiLabel></Link>', homeProblems, '(M19) menu do topo encolhe → vermelho')

@@ -12,12 +12,13 @@ import Link from 'next/link'
 import { useEffect, useRef, type RefObject } from 'react'
 import { UiLabel, useInterfaceLanguage, useUiCopy } from '@/components/InterfaceLanguage'
 import { trackEvent } from '@/lib/analytics'
-import { ADS_SAMPLE_LIVE, adsSampleCopy } from '@/lib/ads/sample'
+import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample'
 import {
   HOME_CARD_BADGE,
   HOME_CARD_COPY,
   HOME_CARD_EVENT,
   HOME_CARD_ORDER,
+  homeCardAdsCta, // KINEO-HOME-CARDS-BOTOES-2010
   homeCardClickMetadata,
   homeCardClip,
   homeCardHref,
@@ -30,7 +31,7 @@ export const HOME_THREE_CARDS_CSS = `
 .klp .k3c{position:relative;z-index:1;padding:26px 0 8px}
 .k3c-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 2px 14px}
 .k3c-kicker{margin:0;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted,#5A5F67)}
-.k3c-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.k3c-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;max-width:95%;margin-inline:auto}
 .k3c-card{position:relative;display:block;aspect-ratio:5/6;border-radius:22px;overflow:hidden;isolation:isolate;background:#0B0E14;color:#fff;outline:none;border:1px solid var(--home-line,rgba(14,17,22,.08));box-shadow:0 1px 2px rgba(10,14,22,.06),0 22px 44px -26px rgba(10,14,22,.55);transition:transform .45s cubic-bezier(.2,.7,.2,1),box-shadow .45s cubic-bezier(.2,.7,.2,1)}
 .k3c-card:hover{transform:translateY(-4px);box-shadow:0 2px 4px rgba(10,14,22,.08),0 34px 60px -28px rgba(10,14,22,.62)}
 .k3c-card:focus-visible{outline:3px solid var(--home-action,#0A5CFF);outline-offset:4px}
@@ -120,7 +121,7 @@ export default function HomeThreeCards({ signedIn }: { signedIn: boolean }) {
   const language = useInterfaceLanguage()
   // keepalive do trackEvent entrega o POST mesmo com a página saindo pelo link (mesmo padrão das portas).
   const track = (card: HomeCardId) => { void trackEvent(HOME_CARD_EVENT, homeCardClickMetadata(card, signedIn)) }
-  const adsCta = ADS_SAMPLE_LIVE ? adsSampleCopy(language).make : copy('Make my ad')
+  const adsCta = (card: HomeCardId) => homeCardAdsCta(card, language, ADS_SAMPLE_LIVE) // KINEO-HOME-CARDS-BOTOES-2010 — um botão diferente por card (fundador 20/10)
   return (
     <section className="k3c" aria-label={copy('Choose what to make')} data-home-3-cards="1">
       <style dangerouslySetInnerHTML={{ __html: HOME_THREE_CARDS_CSS }} />
@@ -136,7 +137,7 @@ export default function HomeThreeCards({ signedIn }: { signedIn: boolean }) {
               <span className="k3c-body">
                 <h2 className="k3c-title">{copy(HOME_CARD_COPY[card].title)}</h2>
                 <p className="k3c-sub">{copy(HOME_CARD_COPY[card].line)}</p>
-                <span className="btn btn-blue k3c-cta">{card === 'films' ? <UiLabel>Make my film</UiLabel> : adsCta} <span className="k3c-arrow" aria-hidden="true">→</span></span>
+                <span className="btn btn-blue k3c-cta">{card === 'films' ? <UiLabel>Make my film</UiLabel> : adsCta(card)} <span className="k3c-arrow" aria-hidden="true">→</span></span>
               </span>
             </Link>
           ))}
