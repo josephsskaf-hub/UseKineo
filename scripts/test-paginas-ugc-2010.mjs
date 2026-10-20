@@ -21,7 +21,7 @@
 //   G11 números das funções que cobram: a pilar mostra adsV2Credits do nível do apresentador e o preço do plano de entrada;
 //   G12 rostos = os apresentadores aprovados (lib/ads/v2PresenterV2.ts), com retrato/voz/clipe existentes no disco;
 //   G13 desfaz desta camada (scripts/test-support/desfaz-paginas-ugc-2010.mjs): cada arquivo antigo tocado, desfeito, é EXATAMENTE a base,
-//       e a cabeça da cadeia do Studio Ads (semApresentadorOlhos1910) o chama primeiro.
+//       e a cabeça da cadeia do Studio Ads (semKitBfVenda2010) o chama primeiro.
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
@@ -364,7 +364,7 @@ async function audit(rep = {}, groups = null) {
         if (out.replace(/\r\n/g, '\n') !== base.replace(/\r\n/g, '\n')) fail('G13', `${f}: desfeito ≠ base`)
         if (out.includes(D.MARCA_PAGINAS_UGC_2010)) fail('G13', `${f}: sobrou a marca`)
       }
-      if (!/export function semApresentadorOlhos1910\(texto, p\) \{\n  texto = semPaginasUgc2010\(texto, p\)/.test(read('scripts/test-support/desfaz-apresentador-olhos-1910.mjs'))) fail('G13', 'a cabeça da cadeia não chama o desfaz desta camada primeiro')
+      if (!/export function semKitBfVenda2010\(texto, p\) \{\n  texto = semPaginasUgc2010\(texto, p\)/.test(read('scripts/test-support/desfaz-kit-bf-venda-2010.mjs'))) fail('G13', 'a cabeça da cadeia (semKitBfVenda2010) não chama o desfaz desta camada primeiro')
     } catch (e) { fail('G13', `desfaz não carrega: ${e.message}`) }
   }
   return fails

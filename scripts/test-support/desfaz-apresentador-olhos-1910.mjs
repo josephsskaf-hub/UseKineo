@@ -12,7 +12,6 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { semPaginasUgc2010 } from './desfaz-paginas-ugc-2010.mjs' // reancorado KINEO-PAGINAS-UGC-2010 — os links das páginas do UGC (porta /ads, /pricing, 3 cards) vieram depois: saem PRIMEIRO (encadeado; texto sem a marca passa igual)
 import { semHomeCardsBotoes2010 } from './desfaz-home-cards-botoes-2010.mjs' // KINEO-HOME-CARDS-BOTOES-2010 — os botões distintos dos cards de anúncio vieram depois: saem PRIMEIRO (encadeado; texto sem a marca passa igual)
 import { semKitBfVenda2010 } from './desfaz-kit-bf-venda-2010.mjs' // KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday à venda veio depois: sai PRIMEIRO (encadeado; texto sem a marca passa igual)
 
@@ -64,7 +63,6 @@ export function linhasTrocadasApresentadorOlhos1910(p) {
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semApresentadorOlhos1910(texto, p) {
-  texto = semPaginasUgc2010(texto, p) // reancorado KINEO-PAGINAS-UGC-2010 — a camada mais nova sai primeiro
   texto = semKitBfVenda2010(texto, p) // KINEO-KIT-BF-VENDA-2010 — a camada mais nova sai primeiro
   texto = semHomeCardsBotoes2010(texto, p) // KINEO-HOME-CARDS-BOTOES-2010 — a camada mais nova sai primeiro
   if (typeof texto !== 'string' || !texto.includes(MARCA_APRESENTADOR_OLHOS_1910) || !APRESENTADOR_OLHOS_1910_ARQUIVOS.includes(p)) return texto

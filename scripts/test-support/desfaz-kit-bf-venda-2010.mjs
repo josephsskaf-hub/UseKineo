@@ -12,6 +12,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semPaginasUgc2010 } from './desfaz-paginas-ugc-2010.mjs' // reancorado KINEO-PAGINAS-UGC-2010 — os links das páginas do UGC (porta /ads, /pricing, 3 cards) vieram depois do kit: saem PRIMEIRO, em qualquer arquivo (texto sem a marca passa igual)
 
 export const MARCA_KIT_BF_VENDA_2010 = 'KINEO-KIT-BF-VENDA-2010'
 
@@ -37,6 +38,7 @@ export const KIT_BF_VENDA_2010_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semKitBfVenda2010(texto, p) {
+  texto = semPaginasUgc2010(texto, p) // reancorado KINEO-PAGINAS-UGC-2010 — a camada mais nova sai primeiro
   if (typeof texto !== 'string' || !texto.includes(MARCA_KIT_BF_VENDA_2010) || !KIT_BF_VENDA_2010_ARQUIVOS.includes(p)) return texto
   const crlf = texto.includes('\r\n')
   const trocas = new Map((TROCAS_KIT_BF_VENDA_2010[p] ?? []).map(([nova, base]) => [nova, base]))

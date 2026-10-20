@@ -6,8 +6,8 @@
 //   · ACRÉSCIMO — linha nova: sai inteira (contagem EXATA por arquivo);
 //   · TROCA — a linha da base foi reescrita: reconhecida INTEIRA, volta a ser o texto da base.
 // Só age nos arquivos declarados; qualquer outro texto passa igual. Preserva CRLF.
-// ENCADEAMENTO: é a camada MAIS NOVA dessas telas — semApresentadorOlhos1910 (a cabeça da cadeia do Studio Ads: Close real → … → 3 cards →
-// olhos) chama esta PRIMEIRO. O guardião scripts/test-paginas-ugc-2010.mjs (G13) prova que, desfeito isto, cada arquivo é EXATAMENTE a base.
+// ENCADEAMENTO: é a camada MAIS NOVA dessas telas — semKitBfVenda2010 (a cabeça da cadeia do Studio Ads: Close real → … → 3 cards → olhos →
+// kit) chama esta PRIMEIRO, antes da própria guarda de arquivo. O guardião scripts/test-paginas-ugc-2010.mjs (G13) prova que, desfeito isto, cada arquivo é EXATAMENTE a base.
 
 export const MARCA_PAGINAS_UGC_2010 = 'KINEO-PAGINAS-UGC-2010'
 
@@ -19,6 +19,7 @@ export const ACRESCIMOS_PAGINAS_UGC_2010 = {
   'app/ads/page.tsx': 3,
   'components/pricing/PricingBusinessBlock.tsx': 3,
   'components/home/HomeThreeCards.tsx': 3,
+  'scripts/test-support/desfaz-kit-bf-venda-2010.mjs': 2,
 }
 export const PAGINAS_UGC_2010_ARQUIVOS = Object.freeze(Object.keys(ACRESCIMOS_PAGINAS_UGC_2010))
 
