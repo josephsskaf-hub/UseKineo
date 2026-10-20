@@ -32,6 +32,32 @@ export function adsSampleFormatFor(entry: AdsSampleEntry | null | undefined, pre
 
 /** A marca que o /plan grava no plano da amostra com a pessoa (o /start confere). */
 export const ADS_SAMPLE_PRESENTER_MARK = 'presenter' as const
+// ── KINEO-UGC-AJUSTES-2010 — o SUB-TETO da amostra com a pessoa ──────────────────────────────────────────────────────────
+// KINEO-UGC-AJUSTES-2010 — o teto geral (lib/ads/sample.ts ADS_SAMPLE_DAILY_CAP = 30) soma as duas amostras; com a entrada UGC (~US$ 2–3 cada) isso expunha ~US$ 75/dia.
+// KINEO-UGC-AJUSTES-2010 — Agora: no máximo ADS_SAMPLE_PRESENTER_DAILY_CAP amostras COM A PESSOA iniciadas por dia UTC, contadas no servidor do mesmo jeito que o teto geral
+// KINEO-UGC-AJUSTES-2010 — (lib/ads/serverAccess.ts adsSamplePresenterCapReached: chave 'adssample-…' + started_at do dia + plan.sample_format = 'presenter'; leitura que falha =
+// KINEO-UGC-AJUSTES-2010 — teto atingido). Passou do sub-teto: o /plan NÃO recusa — a entrada UGC cai na amostra Close real (zero IA de vídeo, ~US$ 0,30) com o aviso
+// KINEO-UGC-AJUSTES-2010 — honesto na tela (sample_fallback 'presenter_cap'); o /start confere de novo (429 'sample_presenter_cap': a tela pede o plano de novo, que sai no Close real).
+/** KINEO-UGC-AJUSTES-2010 — amostras com a pessoa iniciadas por dia UTC (dentro do teto geral de 30). */
+export const ADS_SAMPLE_PRESENTER_DAILY_CAP = 10 // KINEO-UGC-AJUSTES-2010
+/** KINEO-UGC-AJUSTES-2010 — o código que o /plan devolve quando a entrada UGC caiu no Close real pelo sub-teto. */
+export const ADS_SAMPLE_PRESENTER_FALLBACK = 'presenter_cap' as const // KINEO-UGC-AJUSTES-2010
+/** KINEO-UGC-AJUSTES-2010 — o erro do /start quando o plano com a pessoa chegou depois do sub-teto (a tela refaz o plano: sai no Close real). */
+export const ADS_SAMPLE_PRESENTER_CAP_CODE = 'sample_presenter_cap' as const // KINEO-UGC-AJUSTES-2010
+// ── KINEO-UGC-AJUSTES-2010 — o "sample_probe": a conta INTERNA testa a amostra de verdade ─────────────────────────────────
+// KINEO-UGC-AJUSTES-2010 — /api/ads/v2/plan e /start (e a tela /ads/v2) com ?sample_probe=1: SÓ quem o servidor já resolveu como 'internal' (isAdsInternalEmail) passa a ser
+// KINEO-UGC-AJUSTES-2010 — tratado como 'none' — e aí cai nas MESMAS travas da amostra (1 por conta, antifarm, teto geral, sub-teto da pessoa, marca-d'água). Conta de fora com o
+// KINEO-UGC-AJUSTES-2010 — parâmetro continua com o acesso dela (nada muda); sem o parâmetro, a interna segue 'internal'.
+/** KINEO-UGC-AJUSTES-2010 — o nome do parâmetro de consulta. */
+export const ADS_SAMPLE_PROBE_PARAM = 'sample_probe' // KINEO-UGC-AJUSTES-2010
+/** KINEO-UGC-AJUSTES-2010 — o probe vale? (puro) Só 'internal' com o parâmetro exatamente '1'. */
+export function adsSampleProbeOn(reason: unknown, param: string | null | undefined): boolean { // KINEO-UGC-AJUSTES-2010
+  return reason === 'internal' && param === '1' // KINEO-UGC-AJUSTES-2010
+} // KINEO-UGC-AJUSTES-2010
+/** KINEO-UGC-AJUSTES-2010 — a URL da rota com o probe (puro): a tela só passa probe=true quando o page.tsx decidiu (conta interna com ?sample_probe=1). */
+export function adsSampleProbeUrl(url: string, probe: boolean): string { // KINEO-UGC-AJUSTES-2010
+  return probe === true ? `${url}?${ADS_SAMPLE_PROBE_PARAM}=1` : url // KINEO-UGC-AJUSTES-2010
+} // KINEO-UGC-AJUSTES-2010
 
 /** O plano gravado é uma amostra com a pessoa, planejada pelo servidor? (puro) Marca do /plan + apresentador no plano. */
 export function adsSamplePresenterPlanOk(plan: unknown): boolean {
@@ -90,3 +116,26 @@ export const ADS_SAMPLE_PRESENTER_NOTE: Record<InterfaceLanguage, string> = {
 export function adsSamplePresenterNote(language: InterfaceLanguage | string | null | undefined): string {
   return (typeof language === 'string' && (ADS_SAMPLE_PRESENTER_NOTE as Record<string, string>)[language]) || ADS_SAMPLE_PRESENTER_NOTE.en
 }
+// ── KINEO-UGC-AJUSTES-2010 — o aviso honesto quando a entrada UGC caiu no Close real (16 línguas, nenhuma cai no inglês) ───
+export const ADS_SAMPLE_PRESENTER_CAP_NOTE: Record<InterfaceLanguage, string> = { // KINEO-UGC-AJUSTES-2010
+  en: "Today's free ads with an AI presenter are taken, so your free ad comes in the Real product close-up format: 15 s, your real product, with a small watermark.", // KINEO-UGC-AJUSTES-2010
+  pt: "As amostras grátis com pessoa de IA de hoje acabaram, então o seu anúncio grátis sai no formato Close do produto real: 15 s, o seu produto de verdade, com marca-d'água discreta.", // KINEO-UGC-AJUSTES-2010
+  es: 'Las muestras gratis con persona de IA de hoy ya se agotaron, así que tu anuncio gratis sale en el formato Primer plano del producto real: 15 s, tu producto de verdad, con una marca de agua discreta.', // KINEO-UGC-AJUSTES-2010
+  fr: "Les essais gratuits avec une personne IA sont épuisés pour aujourd'hui : votre pub gratuite sort au format Gros plan du vrai produit, 15 s, votre vrai produit, avec un petit filigrane.", // KINEO-UGC-AJUSTES-2010
+  de: 'Die Gratis-Proben mit KI-Person sind für heute vergeben, deshalb kommt deine kostenlose Anzeige im Format Nahaufnahme des echten Produkts: 15 s, dein echtes Produkt, mit kleinem Wasserzeichen.', // KINEO-UGC-AJUSTES-2010
+  it: 'Le prove gratuite con persona IA di oggi sono esaurite, quindi il tuo annuncio gratis esce nel formato Primo piano del prodotto reale: 15 s, il tuo prodotto vero, con una piccola filigrana.', // KINEO-UGC-AJUSTES-2010
+  nl: 'De gratis proeven met een AI-persoon zijn voor vandaag op, dus je gratis advertentie komt in het formaat Close-up van het echte product: 15 s, je echte product, met een klein watermerk.', // KINEO-UGC-AJUSTES-2010
+  pl: 'Dzisiejsze darmowe próbki z osobą AI już się skończyły, więc Twoja darmowa reklama powstanie w formacie Zbliżenie prawdziwego produktu: 15 s, Twój prawdziwy produkt, z małym znakiem wodnym.', // KINEO-UGC-AJUSTES-2010
+  tr: 'Bugünün yapay zekâ kişili ücretsiz denemeleri bitti; ücretsiz reklamın Gerçek ürün yakın çekimi formatında çıkacak: 15 sn, gerçek ürünün, küçük bir filigranla.', // KINEO-UGC-AJUSTES-2010
+  ru: 'Бесплатные примеры с ИИ-ведущим на сегодня закончились, поэтому ваша бесплатная реклама выйдет в формате «Крупный план реального товара»: 15 с, ваш настоящий товар, с небольшим водяным знаком.', // KINEO-UGC-AJUSTES-2010
+  uk: 'Безкоштовні приклади з ШІ-ведучим на сьогодні закінчилися, тому ваша безкоштовна реклама вийде у форматі «Великий план справжнього товару»: 15 с, ваш справжній товар, з невеликим водяним знаком.', // KINEO-UGC-AJUSTES-2010
+  ar: 'نفدت العينات المجانية مع شخص بالذكاء الاصطناعي لليوم، لذلك يخرج إعلانك المجاني بشكل «لقطة قريبة للمنتج الحقيقي»: 15 ثانية، منتجك الحقيقي، مع علامة مائية صغيرة.', // KINEO-UGC-AJUSTES-2010
+  ur: 'آج کے AI شخص والے مفت نمونے ختم ہو گئے، اس لیے آپ کا مفت اشتہار «اصل پروڈکٹ کا کلوز اپ» فارمیٹ میں بنے گا: 15 سیکنڈ، آپ کا اصل پروڈکٹ، چھوٹے واٹر مارک کے ساتھ۔', // KINEO-UGC-AJUSTES-2010
+  hi: 'आज के AI व्यक्ति वाले मुफ़्त नमूने खत्म हो गए, इसलिए आपका मुफ़्त विज्ञापन «असली प्रोडक्ट का क्लोज़-अप» फ़ॉर्मैट में बनेगा: 15 सेकंड, आपका असली प्रोडक्ट, छोटे वॉटरमार्क के साथ।', // KINEO-UGC-AJUSTES-2010
+  id: 'Contoh gratis dengan orang AI hari ini sudah habis, jadi iklan gratismu dibuat dalam format Close-up produk asli: 15 dtk, produk aslimu, dengan watermark kecil.', // KINEO-UGC-AJUSTES-2010
+  vi: 'Bản mẫu miễn phí có người AI hôm nay đã hết, nên quảng cáo miễn phí của bạn sẽ ở định dạng Cận cảnh sản phẩm thật: 15 giây, sản phẩm thật của bạn, có hình mờ nhỏ.', // KINEO-UGC-AJUSTES-2010
+} // KINEO-UGC-AJUSTES-2010
+/** KINEO-UGC-AJUSTES-2010 — o aviso na língua da interface (língua desconhecida = inglês). */
+export function adsSamplePresenterCapNote(language: InterfaceLanguage | string | null | undefined): string { // KINEO-UGC-AJUSTES-2010
+  return (typeof language === 'string' && (ADS_SAMPLE_PRESENTER_CAP_NOTE as Record<string, string>)[language]) || ADS_SAMPLE_PRESENTER_CAP_NOTE.en // KINEO-UGC-AJUSTES-2010
+} // KINEO-UGC-AJUSTES-2010

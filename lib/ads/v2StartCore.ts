@@ -33,6 +33,8 @@ import { v2Fail, v2Json } from '@/lib/ads/v2Server'
 import { adsSampleCapReached, adsSampleLevelOk, adsSampleOpen } from '@/lib/ads/serverAccess'
 import { adsSampleRef } from '@/lib/ads/sample'
 import { adsSamplePresenterPlanOk } from '@/lib/ads/sampleEntry' // KINEO-HOME-3-CARDS-1910 — a amostra com a pessoa (plano marcado pelo /plan)
+import { ADS_SAMPLE_PRESENTER_CAP_CODE } from '@/lib/ads/sampleEntry' // KINEO-UGC-AJUSTES-2010 — o sub-teto da amostra com a pessoa (o código que a tela lê)
+import { adsSamplePresenterCapReached } from '@/lib/ads/serverAccess' // KINEO-UGC-AJUSTES-2010 — contado no banco, como o teto geral
 import { adsV2CloseRealOf } from '@/lib/ads/v2CloseReal' // KINEO-CLOSE-REAL-1910 — a amostra só sai no Close real
 import type { AdsV2ChargeResult } from '@/lib/ads/v2Billing'
 import type { AdsV2Caller } from '@/lib/ads/v2PlanCore'
@@ -102,6 +104,7 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     if (sampleRun) {
       // KINEO-ADS-AMOSTRA-2026-10-09 — teto GLOBAL do dia ANTES da trava (o custo da amostra é nosso). Sem saldo: não cobra.
       if (await adsSampleCapReached(admin)) return v2Fail('sample_cap', 429)
+      if (samplePresenter && await adsSamplePresenterCapReached(admin)) return v2Fail(ADS_SAMPLE_PRESENTER_CAP_CODE, 429) // KINEO-UGC-AJUSTES-2010 — o plano com a pessoa chegou depois do sub-teto de 10/dia: ANTES da trava, sem débito; a tela refaz o plano (sai no Close real)
     } else {
       // Saldo antes da trava (o RPC de débito não recusa saldo curto; chargeAdsV2 confere de novo).
       const prof = await admin.from('profiles').select('video_credits').eq('id', uid).maybeSingle()

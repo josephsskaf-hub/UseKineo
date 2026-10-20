@@ -14,6 +14,7 @@ import { adsPassLive } from '@/lib/ads/offer'
 import { ADS_SAMPLE_DAILY_CAP, ADS_SAMPLE_LIVE, ADS_SAMPLE_PREFIX, ADS_SAMPLE_TIER } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
 import { ADS_V2_SCREEN_SECONDS } from '@/lib/ads/v2Screen' // KINEO-ADS-AMOSTRA-2026-10-09
 import { adsSampleTrialStatusBlocked } from '@/lib/ads/sample' // KINEO-CLOSE-REAL-1910 — o antifarm da amostra (trial_status barrado)
+import { ADS_SAMPLE_PRESENTER_DAILY_CAP, ADS_SAMPLE_PRESENTER_MARK } from '@/lib/ads/sampleEntry' // KINEO-UGC-AJUSTES-2010 — o sub-teto da amostra com a pessoa (lib pura)
 import { isDisposableEmail } from '@/lib/emailValidation' // KINEO-CLOSE-REAL-1910 — a lista de descartáveis da tela de cadastro (pura)
 import { isActivePartner } from '@/lib/partnerAccess' // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09
 import { personalWorkspace, resolveAdsWorkspace, type AdsWorkspace } from '@/lib/ads/workspace' // KINEO-EQUIPE-BUSINESS-2026-10-10
@@ -138,6 +139,24 @@ export async function adsSampleCapReached(admin: ReturnType<typeof footageAdminC
     return true
   }
 }
+// KINEO-UGC-AJUSTES-2010 — o SUB-TETO da amostra COM A PESSOA (lib/ads/sampleEntry.ts ADS_SAMPLE_PRESENTER_DAILY_CAP): conta igual ao teto geral acima (chave 'adssample-…' iniciada
+// KINEO-UGC-AJUSTES-2010 — desde 00:00 UTC) e só os planos marcados pelo /plan como amostra com a pessoa (plan.sample_format = 'presenter'). Erro de leitura = atingido (falha fechada:
+// KINEO-UGC-AJUSTES-2010 — a entrada UGC cai no Close real, que custa ~US$ 0,30, nunca no apresentador de ~US$ 2–3).
+/** KINEO-UGC-AJUSTES-2010 — o sub-teto do dia das amostras com a pessoa já foi atingido? */
+export async function adsSamplePresenterCapReached(admin: ReturnType<typeof footageAdminClient>, now: Date = new Date()): Promise<boolean> { // KINEO-UGC-AJUSTES-2010
+  try { // KINEO-UGC-AJUSTES-2010
+    const { count, error } = await admin // KINEO-UGC-AJUSTES-2010
+      .from('ads_v2_orders') // KINEO-UGC-AJUSTES-2010
+      .select('id', { count: 'exact', head: true }) // KINEO-UGC-AJUSTES-2010
+      .like('billing_ref', `${ADS_SAMPLE_PREFIX}%`) // KINEO-UGC-AJUSTES-2010
+      .gte('started_at', adsSampleDayStartIso(now)) // KINEO-UGC-AJUSTES-2010
+      .eq('plan->>sample_format', ADS_SAMPLE_PRESENTER_MARK) // KINEO-UGC-AJUSTES-2010
+    if (error || typeof count !== 'number') return true // KINEO-UGC-AJUSTES-2010
+    return count >= ADS_SAMPLE_PRESENTER_DAILY_CAP // KINEO-UGC-AJUSTES-2010
+  } catch { // KINEO-UGC-AJUSTES-2010
+    return true // KINEO-UGC-AJUSTES-2010
+  } // KINEO-UGC-AJUSTES-2010
+} // KINEO-UGC-AJUSTES-2010
 
 // ═══ KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a amostra JÁ USADA e o anúncio que a pessoa fez ═════════════════════════════
 // A porta /ads troca o convite da amostra pela oferta do Business quando a conta barrada ('no_access') já usou a dela. "Usou"

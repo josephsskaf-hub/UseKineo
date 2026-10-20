@@ -300,6 +300,16 @@ export function adsV2PresenterV2Words(maxWords: number): { min: number; max: num
   const max = Math.min(cap, ADS_V2_PRESENTER_V2_MAX_WORDS)
   return { min: Math.min(ADS_V2_PRESENTER_V2_MIN_WORDS, max), max }
 }
+// KINEO-UGC-AJUSTES-2010 — a FOLGA da régua: o pedido ao modelo continua "19 a 21", mas a resposta com até 23 palavras é ACEITA (o piso de 19 fica). Em 20/10 o /plan da
+// KINEO-UGC-AJUSTES-2010 — Yasmin devolveu no_copy porque o modelo escreveu 22 (já depois da 1 correção que existe). Aceitar é o caminho de menor risco: nenhuma chamada a mais
+// KINEO-UGC-AJUSTES-2010 — ao modelo (o prazo de 60 s do /plan não muda) e a voz que passa do alvo já é ajustada na montagem (acelera até 1,08 ou tira a frase do meio, nunca abaixo de 19).
+/** KINEO-UGC-AJUSTES-2010 — o teto ACEITO na resposta do modelo (o pedido continua em ADS_V2_PRESENTER_V2_MAX_WORDS). */
+export const ADS_V2_PRESENTER_V2_ACCEPT_MAX_WORDS = 23 // KINEO-UGC-AJUSTES-2010
+/** KINEO-UGC-AJUSTES-2010 — o teto aceito para uma régua com teto `max` (puro): `max` + a folga de 2, nunca acima de 23 nem abaixo de `max`. */
+export function adsV2PresenterV2AcceptMax(max: number): number { // KINEO-UGC-AJUSTES-2010
+  const m = typeof max === 'number' && Number.isFinite(max) && max > 0 ? Math.floor(max) : ADS_V2_PRESENTER_V2_MAX_WORDS // KINEO-UGC-AJUSTES-2010
+  return Math.max(m, Math.min(ADS_V2_PRESENTER_V2_ACCEPT_MAX_WORDS, m + (ADS_V2_PRESENTER_V2_ACCEPT_MAX_WORDS - ADS_V2_PRESENTER_V2_MAX_WORDS))) // KINEO-UGC-AJUSTES-2010
+} // KINEO-UGC-AJUSTES-2010
 
 // ── 1b. a voz medida que passa do alvo: acelera de leve ou tira uma frase INTEIRA ────────────────────────────────────────────────────────────
 // KINEO-APRESENTADOR-V2-AJUSTE-1710 — a escolha: até 8% acima do alvo (≤ 11,34 s), acelerar (speed ≤ 1,08) mantém o texto inteiro e não se ouve como pressa.
@@ -583,7 +593,8 @@ export function adsV2PresenterV2ProductRect(inv: { products?: readonly { type?: 
 // KINEO-APRESENTADOR-OLHOS-1910 — tela para clientes; as contas internas veem os 12, com os 8 marcados "em teste". O servidor confere de novo (adsV2PresenterV2GatePick): id oculto vindo de tela
 // KINEO-APRESENTADOR-OLHOS-1910 — antiga ou da API vira um aprovado do MESMO gênero, e o sorteio do v2 só cai em aprovada (Sofia ou Amara). Para ampliar: pôr o id na lista. false = os 12 para todos.
 /** KINEO-APRESENTADOR-OLHOS-1910 — quem aparece para clientes na tela de escolha (ids da biblioteca, lib/ads/v2Presenter.ts). */
-export const ADS_V2_PRESENTER_V2_APPROVED: readonly string[] = ['sofia', 'amara', 'rahul', 'kenji'] // KINEO-APRESENTADOR-OLHOS-1910
+// KINEO-UGC-AJUSTES-2010 — revalidação de 20/10 (docs/REVALIDACAO-8-APRESENTADORES-2026-10-20.md): Jade 8 e Robert 8 passaram com os olhos abertos; os outros 6 seguem "em teste".
+export const ADS_V2_PRESENTER_V2_APPROVED: readonly string[] = ['sofia', 'amara', 'rahul', 'kenji', 'jade', 'robert'] // KINEO-UGC-AJUSTES-2010 — era: os 4 aprovados de 19/10 (Sofia, Amara, Rahul, Kenji)
 /** KINEO-APRESENTADOR-OLHOS-1910 — Interruptor ÚNICO: true = clientes só veem (e só recebem) os aprovados; false = os 12 para todos, como antes. */
 export const ADS_V2_PRESENTER_V2_APPROVED_ONLY: boolean = true // KINEO-APRESENTADOR-OLHOS-1910
 /** KINEO-APRESENTADOR-OLHOS-1910 — o apresentador aparece na tela? (puro) `all` = conta interna (vê todos). */

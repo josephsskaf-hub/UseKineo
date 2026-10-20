@@ -403,7 +403,9 @@ export function checkV2Copy(raw: string, brief: AdsBrief, opts: { maxWords: numb
     const words = countWords(narration)
     // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — minWords: só o texto CONSERTADO em código (a frase inventada saiu) aceita menos palavras.
     const min = typeof opts.minWords === 'number' ? opts.minWords : typeof opts.speechMin === 'number' ? opts.speechMin : Math.ceil(opts.maxWords * 0.5) // KINEO-ADS-RETESTE-1510 — o piso de fala vale quando vem; o conserto em código (minWords) continua mandando
-    if (words < min || words > opts.maxWords) why.push(`narration: write ${min} to ${opts.maxWords} words (you wrote ${words}).`)
+    const acceptRaw = (opts as { acceptMaxWords?: unknown }).acceptMaxWords // KINEO-UGC-AJUSTES-2010 — a folga do apresentador v2 (o pedido diz 19–21; a resposta com até 23 passa). Ausente = o teto de sempre
+    const acceptTop = typeof acceptRaw === 'number' && Number.isFinite(acceptRaw) && acceptRaw > opts.maxWords ? Math.floor(acceptRaw) : opts.maxWords // KINEO-UGC-AJUSTES-2010
+    if (words < min || words > acceptTop) why.push(`narration: write ${min} to ${opts.maxWords} words (you wrote ${words}).`) // KINEO-UGC-AJUSTES-2010 — era: words > opts.maxWords (o motivo da correção continua pedindo a régua do pedido)
     if (DECOR.test(narration)) why.push('narration: no brackets, markdown or emojis.')
     // KINEO-ATOR-AJUSTES-2026-10-09 — anúncio de produto não fala como loja ("At LUME, we offer a selection of…").
     if (opts.ad?.product && isShopTalk(narration)) why.push(ADS_V2_SHOP_TALK_WHY)
@@ -669,6 +671,8 @@ async function extractWithBudget(args: {
   speechSentences?: string // KINEO-ADS-MAO-AJUSTE-3-1610
   /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — o apresentador v2 (o /plan decide): o piso EXATO de palavras (17 no teto de 21; a régua de sempre daria 19). Ausente = como sempre. */
   speechMinExact?: number // KINEO-APRESENTADOR-V2-AJUSTE-1710
+  /** KINEO-UGC-AJUSTES-2010 — o apresentador v2 (o /plan decide): o teto ACEITO na resposta (23), acima do teto pedido (21). Ausente = como sempre. */
+  acceptMaxWords?: number // KINEO-UGC-AJUSTES-2010
   /** KINEO-CLOSE-REAL-AJUSTE-1910 — o formato Close do produto real (o /plan decide): a marca no máximo 2 vezes na fala e o travessão do título vira " · ". Ausente = como sempre. */ // KINEO-CLOSE-REAL-AJUSTE-1910
   closeReal?: boolean // KINEO-CLOSE-REAL-AJUSTE-1910
   kitBf?: { offer: string | null; angle: AdsV2KitBfAngle | null } // KINEO-KIT-BF-1910 — o Kit Black Friday (o /plan decide; só Close real de quem tem o Studio Ads). Ausente = como sempre, byte a byte
@@ -708,6 +712,7 @@ async function extractWithBudget(args: {
   const speechMin = args.narration && typeof args.speechMinExact === 'number' && Number.isFinite(args.speechMinExact) && args.speechMinExact > 0 ? Math.min(args.maxWords, Math.floor(args.speechMinExact)) : speechMin0 // KINEO-APRESENTADOR-V2-AJUSTE-1710 — o piso exato do apresentador v2 (nunca acima do teto); ausente = o de sempre
   const generic = adsV2GenericProduct(brandName(parsed.brief), args.sentence ?? args.text, args.language, { pageRead: /\nFrom the product page:/.test(args.text) }) // KINEO-ADS-RETESTE-1510
   if (speechMin > 0) Object.assign(opts, { speechMin }) // KINEO-ADS-RETESTE-1510
+  if (typeof args.acceptMaxWords === 'number' && Number.isFinite(args.acceptMaxWords) && args.acceptMaxWords > args.maxWords) Object.assign(opts, { acceptMaxWords: Math.floor(args.acceptMaxWords) }) // KINEO-UGC-AJUSTES-2010 — a régua (checkV2Copy) aceita até este teto; o pedido ao modelo não muda
   if (speechMin > 0 && typeof args.speechSentences === 'string' && args.speechSentences) Object.assign(opts, { speechSentences: args.speechSentences }) // KINEO-ADS-MAO-AJUSTE-3-1610 — uma frase a mais (cada ponto é uma pausa da voz)
   if (generic) Object.assign(opts, { generic }) // KINEO-ADS-RETESTE-1510
   const nameLang = ADS_V2_NAME_ARTICLE_CONTRACTIONS[String(args.language ?? '').toLowerCase().slice(0, 2)] ? String(args.language).toLowerCase().slice(0, 2) : null // KINEO-ADS-MAO-JUIZ-1610 — pt/es/fr

@@ -27,6 +27,7 @@ import { isTeamOwnerPlan, type AdsWorkspaceView } from '@/lib/ads/team' // KINEO
 import { businessAdsOffer } from '@/lib/businessPlan' // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a oferta que a tela mostra quando a amostra já foi usada
 import { adsSampleEntryOf, type AdsSampleEntry } from '@/lib/ads/sampleEntry' // KINEO-HOME-3-CARDS-1910 — a entrada dos cards da home (?entry=product|ugc)
 import { AdsPresenterAllProvider } from '@/components/ads/AdsPresenterPicker' // KINEO-APRESENTADOR-OLHOS-1910 — conta interna vê os 12 apresentadores (os 8 "em teste"); cliente, só os aprovados
+import { ADS_SAMPLE_PROBE_PARAM, adsSampleProbeOn } from '@/lib/ads/sampleEntry' // KINEO-UGC-AJUSTES-2010 — ?sample_probe=1: a conta interna vê (e faz) a amostra grátis de verdade
 import AdsV2Client from './AdsV2Client'
 
 export const metadata = { title: 'Studio Ads — Kineo' }
@@ -46,7 +47,10 @@ export default async function AdsV2Page({ searchParams }: { searchParams?: Recor
   if (!user) redirect(`/login?redirect=${encodeURIComponent(entry ? `/ads/v2?entry=${entry}` : '/ads/v2')}`) // KINEO-HOME-3-CARDS-1910 — era: encodeURIComponent('/ads/v2')
 
   // KINEO-EQUIPE-BUSINESS-2026-10-10 — o workspace: o membro de um Business entra com o acesso, o saldo e o kit DO DONO (uid = dono).
-  const { admin, reason, ...ws } = await loadAdsAccess(user.id, user.email, { workspace: true })
+  const { admin, reason: reasonOwn, ...ws } = await loadAdsAccess(user.id, user.email, { workspace: true }) // KINEO-UGC-AJUSTES-2010 — era: { admin, reason, ...ws } (o reason passa pelo probe abaixo)
+  const rawProbe = searchParams?.[ADS_SAMPLE_PROBE_PARAM] // KINEO-UGC-AJUSTES-2010
+  const sampleProbe = adsSampleProbeOn(reasonOwn, Array.isArray(rawProbe) ? rawProbe[0] : rawProbe) // KINEO-UGC-AJUSTES-2010 — SÓ a conta que o servidor resolveu como 'internal'; de fora, o parâmetro não faz nada
+  const reason = sampleProbe ? 'none' : reasonOwn // KINEO-UGC-AJUSTES-2010 — a interna com o probe entra pela amostra (as mesmas travas de quem é de fora)
   const uid: string = ws.ownerId ?? user.id
   const gate = adsGate(reason)
   const sample = gate === 'no_access' && (await adsSampleOpen(admin, uid, reason)) // KINEO-ADS-AMOSTRA-2026-10-09
@@ -78,5 +82,5 @@ export default async function AdsV2Page({ searchParams }: { searchParams?: Recor
 
   // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — quem entra pela amostra leva a oferta do Business pronta (números de lib/businessPlan.ts): a tela a mostra quando a
   // amostra já foi usada (403 'no_access') e no aviso do teto do dia. Assinante/passe/interna: null (a tela de sempre).
-  return <AdsPresenterAllProvider all={isAdsInternalEmail(user.email)}><AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} entry={entry} /></AdsPresenterAllProvider> // KINEO-APRESENTADOR-OLHOS-1910 — o provedor "interna?" em volta (a entrada dos cards da home segue igual)
+  return <AdsPresenterAllProvider all={isAdsInternalEmail(user.email) && !sampleProbe}><AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} entry={entry} sampleProbe={sampleProbe} /></AdsPresenterAllProvider> // KINEO-UGC-AJUSTES-2010 — + sampleProbe e, com ele, a tela de escolha só com os aprovados, como o cliente vê (a tela repassa ?sample_probe=1 ao /plan e ao /start só para a conta interna); era: a mesma linha sem sampleProbe
 }

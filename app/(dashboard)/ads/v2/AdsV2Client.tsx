@@ -221,6 +221,8 @@ const CTA_SUGGESTIONS = ['Visit us', 'Call us', 'Book now', 'Buy now', 'Message 
 
 // ─── utilidades (sem estado) ──────────────────────────────────────────────────────────────────
 
+/** KINEO-UGC-AJUSTES-2010 — o teste interno da amostra: com o probe (page.tsx decide: só conta interna com ?sample_probe=1) o /plan e o /start recebem ?sample_probe=1. */
+function adsV2ProbeUrl(url: string, probe: boolean): string { return probe ? `${url}?sample_probe=1` : url } // KINEO-UGC-AJUSTES-2010
 async function api<T>(url: string, init: { method?: string; body?: unknown } = {}): Promise<ApiResult<T>> {
   let res: Response
   try {
@@ -507,7 +509,7 @@ type AdsV2WorkspaceProp = { role: 'owner' | 'member'; ownerLabel: string | null;
 // último anúncio entregue da conta. Sem a prop (assinante, passe, interna), nada muda.
 // KINEO-HOME-3-CARDS-1910 — entry: a entrada do card da home (page.tsx validou ?entry=product|ugc; tipo espelhado de lib/ads/sampleEntry.ts sem importar) — vai à
 // KINEO-HOME-3-CARDS-1910 — sessão do modo simples, que abre no formato do card e, na amostra, manda a entrada ao /plan. null/ausente = a tela de sempre.
-export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null, business = null, entry = null /* KINEO-HOME-3-CARDS-1910 */ }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp; business?: AdsBusinessOffer | null; entry?: 'product' | 'ugc' | null }) {
+export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null, business = null, entry = null, sampleProbe = false }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp; business?: AdsBusinessOffer | null; entry?: 'product' | 'ugc' | null; sampleProbe?: boolean }) { // KINEO-UGC-AJUSTES-2010 — + sampleProbe (o page.tsx só manda true para a conta interna com ?sample_probe=1)
   const [sampleGone, setSampleGone] = useState(false) // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
   const [session, setSession] = useState(0)
   const [groupId, setGroupId] = useState<string | null>(null)
@@ -712,6 +714,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
           onVariationsStarted={openGroup}
           sample={sample}
           businessOffer={business}
+          sampleProbe={sampleProbe} /* KINEO-UGC-AJUSTES-2010 */
           onSampleGone={() => setSampleGone(true)}
         />
       ) : mode === 'batch' ? (
@@ -733,6 +736,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
           business={business}
           onSampleGone={() => setSampleGone(true)}
           entry={entry} /* KINEO-HOME-3-CARDS-1910 */
+          sampleProbe={sampleProbe} /* KINEO-UGC-AJUSTES-2010 */
           rowSlot={rowSlot}
           marcas={{ mode: marcas.state.status === 'ready' ? (marcasOn ? 'ready' : 'legacy') : marcas.state.status, list: marcas.brands, selected: marcasOn ? marcas.selected : null, onPick: marcas.select, onSave: marcas.save }} // KINEO-ADS-MARCAS-1510 — 'legacy' = o kit único de sempre
         />
@@ -766,6 +770,7 @@ function AdsV2Session({
   onVariationsStarted,
   sample = false,
   businessOffer = null,
+  sampleProbe = false, // KINEO-UGC-AJUSTES-2010
   onSampleGone,
 }: {
   resume: boolean
@@ -779,6 +784,8 @@ function AdsV2Session({
   sample?: boolean
   /** KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a oferta do Business (só com a amostra) e o aviso "amostra já usada" para o invólucro. */
   businessOffer?: AdsBusinessOffer | null
+  /** KINEO-UGC-AJUSTES-2010 — o teste interno da amostra (?sample_probe=1 no /plan e no /start). */
+  sampleProbe?: boolean // KINEO-UGC-AJUSTES-2010
   onSampleGone?: () => void
 }) {
   const scopy: AdsSampleCopy | null = sample ? (ADS_V2_CLOSE_REAL_LIVE ? { ...adsSampleCopy('en'), note: adsSampleCopy('en').closeReal } : adsSampleCopy('en')) : null // KINEO-CLOSE-REAL-1910 — a amostra é o Close real (o /plan força o formato também na Produção); era: const scopy: AdsSampleCopy | null = sample ? adsSampleCopy('en') : null
@@ -1356,7 +1363,7 @@ function AdsV2Session({
       const orderId = await ensureDraft()
       if (!orderId || !aliveRef.current) return
       setBusyNote('Planning your shots, the words on screen and the voice-over…')
-      const r = await api<PlanResponse>('/api/ads/v2/plan', {
+      const r = await api<PlanResponse>(adsV2ProbeUrl('/api/ads/v2/plan', sampleProbe), { // KINEO-UGC-AJUSTES-2010 — era: api<PlanResponse>('/api/ads/v2/plan', {
         method: 'POST',
         body: { order_id: orderId, sector, logo_footage_id: logo?.footageId, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: cardDone.footageId, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}) },
       })
@@ -1428,7 +1435,7 @@ function AdsV2Session({
     setCheckNote(null)
     try {
       if (!(await syncCard(plan))) return
-      const r = await api<{ credits: number; shots: unknown[] }>('/api/ads/v2/start', { method: 'POST', body: { order_id: plan.order_id, dry_run: true } })
+      const r = await api<{ credits: number; shots: unknown[] }>(adsV2ProbeUrl('/api/ads/v2/start', sampleProbe), { method: 'POST', body: { order_id: plan.order_id, dry_run: true } }) // KINEO-UGC-AJUSTES-2010 — + o probe
       if (!aliveRef.current) return
       if (!r.ok) {
         setPlanError(failText(r))
@@ -1459,7 +1466,7 @@ function AdsV2Session({
       setBusyNote('Starting your ad…')
       // Daqui em diante o servidor pode cobrar e começar mesmo que a pessoa aperte "Start over": a confirmação avisa.
       onActive(true)
-      const r = await api<StatusView>('/api/ads/v2/start', { method: 'POST', body: { order_id: plan.order_id } })
+      const r = await api<StatusView>(adsV2ProbeUrl('/api/ads/v2/start', sampleProbe), { method: 'POST', body: { order_id: plan.order_id } }) // KINEO-UGC-AJUSTES-2010 — + o probe
       if (!aliveRef.current) return
       if (!r.ok) {
         onActive(false)

@@ -137,6 +137,7 @@ import { ADS_V2_PLAN_LEFT_WARN } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-
 import { ADS_V2_ORIGINAL_MAX_SIDE, adsV2NeedsOriginal, adsV2OriginalSize, adsV2SimplePhotoKindFor } from '@/lib/ads/v2Fiel3' // KINEO-ADS-FIEL-3-1510 — foto do link que é do produto vira "produto"; o recorte sai da foto inteira
 import { ADS_V2_START_OVER_DEFAULTS, adsV2EndCardTitle, adsV2Fiel2Copy, adsV2ForeignName, adsV2KindFor, adsV2PlansLeftText } from '@/lib/ads/v2Fiel2Tela' // KINEO-ADS-FIEL-2-1510 — start over limpo, link nunca é lugar, título do cartão, contador e pronúncia
 import { adsSampleFormatFor, adsSamplePresenterNote, type AdsSampleEntry } from '@/lib/ads/sampleEntry' // KINEO-HOME-3-CARDS-1910 — a entrada dos cards da home: a amostra com a pessoa só pelo card UGC
+import { ADS_SAMPLE_PRESENTER_CAP_CODE, ADS_SAMPLE_PRESENTER_FALLBACK, adsSamplePresenterCapNote, adsSampleProbeUrl } from '@/lib/ads/sampleEntry' // KINEO-UGC-AJUSTES-2010 — o sub-teto da amostra com a pessoa (aviso honesto) e o probe interno
 import { ADS_V2_AD_FORMATS_DEFAULT, ADS_V2_CLOSE_REAL_LIVE, adsV2AdFormatCopy, adsV2DefaultAdFormat, adsV2EffectiveAdFormat, type AdsV2AdFormat } from '@/lib/ads/v2CloseReal' // KINEO-CLOSE-REAL-1910 — os 2 formatos padrão (Apresentador e Close do produto real); o resto vira opção avançada
 import { adsV2KitBfOffer, adsV2KitBfTotal, type AdsV2KitBfCount } from '@/lib/ads/v2KitBf' // KINEO-KIT-BF-1910 — o Kit Black Friday no Close real: oferta opcional + 1/3/5 variações (16 línguas, lib pura)
 import { AdsKitBfPanel, adsV2KitBfRun } from './AdsV2KitBf' // KINEO-KIT-BF-1910 — o painel (oferta + variações) e o lote das variações pelas rotas de sempre (/orders, /research, /batch)
@@ -213,6 +214,8 @@ interface PlanResponse {
   scripts?: unknown
   /** KINEO-ADS-FLUXO-2026-10-13 — o roteiro em vigor ('a' = a narration/overlays desta resposta). */
   script_id?: string
+  /** KINEO-UGC-AJUSTES-2010 — 'presenter_cap': a entrada UGC da amostra saiu no Close real porque as amostras com a pessoa de hoje acabaram. */
+  sample_fallback?: string // KINEO-UGC-AJUSTES-2010
   plans_left?: number | null // KINEO-ADS-FIEL-2-1510 — roteiros que ainda cabem hoje (null = conta da casa, sem teto)
 }
 interface Plan extends PlanResponse {
@@ -590,9 +593,12 @@ export function AdsV2SimpleSession({
   rowSlot = null, // KINEO-ADS-FLUXO-2026-10-13
   marcas, // KINEO-ADS-MARCAS-1510
   entry = null, // KINEO-HOME-3-CARDS-1910
+  sampleProbe = false, // KINEO-UGC-AJUSTES-2010
 }: {
   /** KINEO-HOME-3-CARDS-1910 — a entrada do card da home (page.tsx validou ?entry=): a tela abre no formato do card; na amostra, 'ugc' = com a pessoa. */
   entry?: AdsSampleEntry | null // KINEO-HOME-3-CARDS-1910
+  /** KINEO-UGC-AJUSTES-2010 — o teste interno da amostra (o page.tsx decide): ?sample_probe=1 no /plan e no /start. */
+  sampleProbe?: boolean // KINEO-UGC-AJUSTES-2010
   resume: boolean
   lang: InterfaceLanguage
   balance: number | null
@@ -625,6 +631,7 @@ export function AdsV2SimpleSession({
   const samplePresenter = sample && sampleFormat === 'presenter' // KINEO-HOME-3-CARDS-1910
   const scopy: AdsSampleCopy | null = sample ? (samplePresenter ? { ...adsSampleCopy(lang), note: adsSamplePresenterNote(lang) } : ADS_V2_CLOSE_REAL_LIVE ? { ...adsSampleCopy(lang), note: adsSampleCopy(lang).closeReal } : adsSampleCopy(lang)) : null // KINEO-CLOSE-REAL-1910 · KINEO-HOME-3-CARDS-1910 — + a linha da amostra com a pessoa — a amostra é o Close real (1 por conta, 15 s, marca-d'água); era: const scopy: AdsSampleCopy | null = sample ? adsSampleCopy(lang) : null
   const [sampleCap, setSampleCap] = useState(false)
+  const [presenterCapNote, setPresenterCapNote] = useState(false) // KINEO-UGC-AJUSTES-2010 — o aviso honesto do sub-teto da amostra com a pessoa
   const [three, setThree] = useState(false)
   const [phase, setPhase] = useState<Phase>(resume ? 'loading' : 'build')
   const [items, setItems] = useState<SimpleItem[]>([])
@@ -2001,7 +2008,7 @@ export function AdsV2SimpleSession({
       if (!aliveRef.current) return
       const chosen = facts.filter((f) => isFactOn(f)).map((f) => f.id)
       setBusyNote(copy.plan.notePlan)
-      const r = await api<PlanResponse>('/api/ads/v2/plan', {
+      const r = await api<PlanResponse>(adsSampleProbeUrl('/api/ads/v2/plan', sampleProbe), { // KINEO-UGC-AJUSTES-2010 — era: api<PlanResponse>('/api/ads/v2/plan', {
         method: 'POST',
         body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}), ...(format !== '9:16' ? { format } : {}), ...(closeRealOn ? { close_real: true } : {}), ...(kitOfferT ? { offer: kitOfferT } : {}), ...(samplePresenter ? { sample_entry: 'ugc' } : {}) }, // KINEO-HOME-3-CARDS-1910 — a entrada UGC da amostra (o servidor confere) · KINEO-ADS-MELHORIAS-1410 — o formato só fora do 9:16 · KINEO-CLOSE-REAL-1910 — + o Close do produto real; era: a mesma linha sem close_real · KINEO-KIT-BF-1910 — + a oferta do kit (só com oferta)
       })
@@ -2016,6 +2023,7 @@ export function AdsV2SimpleSession({
         return
       }
       rememberPlan(r.data)
+      setPresenterCapNote(r.data.sample_fallback === ADS_SAMPLE_PRESENTER_FALLBACK) // KINEO-UGC-AJUSTES-2010 — o /plan trocou a pessoa pelo Close real (sub-teto do dia): a tela diz
       setPlansLeft(typeof r.data.plans_left === 'number' ? r.data.plans_left : null) // KINEO-ADS-FIEL-2-1510
       setPlan({ ...r.data, sig: JSON.stringify({ base: baseAtStart, facts: chosen }), cardSig: card.sig })
       setCopyEdit(null) // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — plano novo = texto novo (a edição do anterior não vale mais)
@@ -2111,7 +2119,7 @@ export function AdsV2SimpleSession({
       if (!(await syncCard(plan))) return
       setBusyNote(copy.plan.starting)
       onActive(true)
-      const r = await api<StatusView>('/api/ads/v2/start', { method: 'POST', body: { order_id: plan.order_id } })
+      const r = await api<StatusView>(adsSampleProbeUrl('/api/ads/v2/start', sampleProbe), { method: 'POST', body: { order_id: plan.order_id } }) // KINEO-UGC-AJUSTES-2010 — + o probe
       if (!aliveRef.current) return
       if (!r.ok) {
         onActive(false)
@@ -2122,6 +2130,7 @@ export function AdsV2SimpleSession({
         // KINEO-ADS-AMOSTRA-2026-10-09 — teto do dia: aviso com o link dos planos; nível errado: a regra da amostra.
         if (scopy && r.code === 'sample_cap') setSampleCap(true)
         setPlanError(scopy && r.code === 'sample_cap' ? null : scopy && r.code === 'sample_level_only' ? scopy.note : failText(r)) // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
+        if (r.code === ADS_SAMPLE_PRESENTER_CAP_CODE) { setPlan(null); setPlanError(null); setPresenterCapNote(true) } // KINEO-UGC-AJUSTES-2010 — o plano com a pessoa chegou depois do sub-teto: nada foi cobrado; o aviso pede o plano de novo, que sai no Close real
         void onBalance()
         return
       }
@@ -2569,6 +2578,7 @@ export function AdsV2SimpleSession({
                 ) : null}
               </div>
               {ADS_V2_CLOSE_REAL_LIVE ? <AdsAdFormatPicker value={adFormat} onChange={(v) => { setAdFormatChoice(v); if (v === 'close_real') setThree(false) }} sample={sample} sampleFormat={sampleFormat /* KINEO-HOME-3-CARDS-1910 */} disabled={locked} copy={afc} presenterNote={adFormat === 'presenter' && ADS_V2_PRESENTER_PUBLIC ? presenterWhy : null} presenterOk={ADS_V2_PRESENTER_PUBLIC} /> : null}{/* KINEO-CLOSE-REAL-1910 — os 2 formatos padrão + o "Avançado" sem destaque */}
+              {sample && presenterCapNote ? <p className="adsw-hint" role="status" data-kineo="ads-sample-presenter-cap">{adsSamplePresenterCapNote(lang)}</p> : null}{/* KINEO-UGC-AJUSTES-2010 — a amostra com a pessoa esgotou hoje: o anúncio grátis sai no Close do produto real (aviso honesto, sem recusar) */}
               {kitOn ? <AdsKitBfPanel lang={lang} offer={kitOffer} onOffer={setKitOffer} count={kitCount} onCount={setKitCount} cost={cost} disabled={locked} /> : null}{/* KINEO-KIT-BF-1910 — o Kit Black Friday: oferta (opcional) e 1 · 3 · 5 variações, só no Close real de quem tem o Studio Ads */}
               {ADS_V2_STYLES_PUBLIC && advancedOn ? (/* KINEO-CLOSE-REAL-1910 — a fileira de estilos só no Avançado; era: {ADS_V2_STYLES_PUBLIC ? ( */
                 <QuadroStyleRow value={style} suggested={styleSuggested} onChange={setStyleChoice} disabled={locked} copy={styleCopy} labelledBy="adv2s-s3" />

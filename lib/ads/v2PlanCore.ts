@@ -47,6 +47,8 @@ import { adsV2PackshotShots } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIA
 import { adsV2FormatBlock, adsV2FormatShots, normalizeAdsV2Format } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — formatos 4:5 e 1:1 (só onde o pipeline inteiro aceita)
 import { adsV2BuildScripts } from '@/lib/ads/v2Scripts' // KINEO-ADS-ROTEIROS-2026-10-13 — 2 a 3 roteiros para escolher (o 1º = o texto de sempre); troca em /api/ads/v2/plan/choose
 import { ADS_SAMPLE_PRESENTER_MARK, adsSampleFormatFor } from '@/lib/ads/sampleEntry' // KINEO-HOME-3-CARDS-1910 — a amostra com a pessoa, só pela entrada UGC
+import { ADS_SAMPLE_PRESENTER_FALLBACK } from '@/lib/ads/sampleEntry' // KINEO-UGC-AJUSTES-2010 — a entrada UGC que caiu no Close real pelo sub-teto (o código que a tela lê)
+import { adsSamplePresenterCapReached } from '@/lib/ads/serverAccess' // KINEO-UGC-AJUSTES-2010 — o sub-teto do dia da amostra com a pessoa (contado no banco, como o teto geral)
 import { ADS_V2_CLOSE_REAL_LIVE, ADS_V2_CLOSE_REAL_SECONDS, adsV2CloseRealShots, adsV2CloseRealUsd, planAdsV2CloseReal } from '@/lib/ads/v2CloseReal' // KINEO-CLOSE-REAL-1910 — o formato "Close do produto real" (zero IA de vídeo; a amostra grátis sai SEMPRE nele)
 import { adsV2KitBfFromBody, adsV2KitBfPhotoOrder, adsV2KitBfStored, adsV2KitBfTextWithOffer } from '@/lib/ads/v2KitBf' // KINEO-KIT-BF-1910 — o Kit Black Friday no Close real: oferta opcional e o ângulo/ordem das fotos de cada variação do lote (lib pura)
 
@@ -88,6 +90,10 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     // KINEO-CLOSE-REAL-1910 — há apresentador, estilo de IA nem outro formato que o 9:16: as chaves saem do corpo aqui, antes de qualquer decisão abaixo.
     // KINEO-HOME-3-CARDS-1910 — o formato da amostra: o Apresentador SÓ pela entrada UGC (o card "AI UGC Ads"; sample_entry validado no contrato), o resto o
     // KINEO-HOME-3-CARDS-1910 — Close real. Com a pessoa, o servidor liga o ator e tira estilo/formato (o apresentador v2 é Comercial 9:16 sem estilo).
+    // KINEO-UGC-AJUSTES-2010 — o SUB-TETO da amostra com a pessoa (10/dia, dentro do teto geral de 30): passou dele, a entrada UGC NÃO é recusada — cai no Close real (a linha
+    // KINEO-UGC-AJUSTES-2010 — de baixo vê a entrada 'product') e a resposta leva sample_fallback, que a tela mostra como aviso honesto. Leitura que falha = sub-teto atingido.
+    const samplePresenterCapped = gate !== 'ok' && sample && adsSampleFormatFor(input.sample_entry === 'ugc' ? 'ugc' : 'product', ADS_V2_PRESENTER_PUBLIC) === 'presenter' && await adsSamplePresenterCapReached(admin) // KINEO-UGC-AJUSTES-2010
+    if (samplePresenterCapped) delete input.sample_entry // KINEO-UGC-AJUSTES-2010 — sem a entrada UGC = a amostra de sempre (Close do produto real)
     const sampleFormat = gate !== 'ok' && sample ? adsSampleFormatFor(input.sample_entry === 'ugc' ? 'ugc' : 'product', ADS_V2_PRESENTER_PUBLIC) : null // KINEO-HOME-3-CARDS-1910
     if (sampleFormat === 'presenter') { input.presenter = true; delete input.style; delete input.format; delete input.close_real } // KINEO-HOME-3-CARDS-1910
     if (sampleFormat === 'presenter' && !input.photos.some((p) => p.kind === 'product')) return v2Fail('presenter_needs_voice_and_product', 400) // KINEO-HOME-3-CARDS-1910 — o ator segura O produto: sem foto de produto, não há amostra com a pessoa
@@ -201,6 +207,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     const presenterV2Early = presenterAsked ? await import('@/lib/ads/v2PresenterV2').then((m) => (typeof m.adsV2PresenterV2Words === 'function' ? m : null)).catch(() => null) : null // KINEO-APRESENTADOR-V2-AJUSTE-1710
     const v2Words = presenterV2Early && presenterV2Early.adsV2PresenterV2Eligible({ on: presenterV2Early.adsV2PresenterV2On(reason === 'internal'), tier: order.tier, format, style: ADS_V2_STYLES_PUBLIC ? input.style ?? null : null }) && (input.presenter_id ? !!presenterV2Early.adsV2PresenterV2PortraitUrl(adsV2PresenterById(input.presenter_id)) : true) ? presenterV2Early.adsV2PresenterV2Words(adsV2NarrationMaxWords(order.seconds)) : null // KINEO-APRESENTADOR-V2-AJUSTE-1710 — null = a régua de sempre
     const maxWords = v2Words ? v2Words.max : adsV2NarrationMaxWords(order.seconds) // KINEO-APRESENTADOR-V2-AJUSTE-1710 — o teto do v2 (21) só neste caminho
+    const acceptMaxWords = v2Words && presenterV2Early && typeof presenterV2Early.adsV2PresenterV2AcceptMax === 'function' ? presenterV2Early.adsV2PresenterV2AcceptMax(v2Words.max) : maxWords // KINEO-UGC-AJUSTES-2010 — o apresentador v2: pede 19–21, aceita até 23 (o /plan da Yasmin, 20/10, caiu em no_copy com 22)
     const overlaysOn = brief0.overlays !== false
     // KINEO-ADS-MAO-AJUSTE-3-1610 — o Comercial "produto na mão" decidido ANTES do texto (pelo setor da tela; o plano final confere de novo): a narração pede o
     // KINEO-ADS-MAO-AJUSTE-3-1610 — piso maior e uma frase a mais (cobrir ~13 s dos 15) e, em paralelo com o texto, a visão barata diz se a foto do produto tem o frasco
@@ -226,6 +233,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
       ...(inHandProduct && inHandEarly ? { speechFloor: inHandEarly.adsV2InHandSpeechMin(maxWords), speechSentences: inHandEarly.ADS_V2_IN_HAND_SPEECH_SENTENCES } : {}), // KINEO-ADS-MAO-AJUSTE-3-1610 — a narração do "produto na mão" cobre ~13 s
       ...(v2Words && presenterV2Early ? { speechMinExact: v2Words.min, speechSentences: presenterV2Early.ADS_V2_PRESENTER_V2_SPEECH_SENTENCES } : {}), // KINEO-APRESENTADOR-V2-AJUSTE-1710 — o piso do v2 (17; a régua de sempre daria 19 em 21) e 2–3 frases curtas
       ...(v2Words ? { presenterTalk: true } : {}), // KINEO-APRESENTADOR-OLHOS-1910 — o apresentador v2 fala como apresentador (benefício, para quem é, por que comprar), sem verbos sensoriais
+      ...(acceptMaxWords > maxWords ? { acceptMaxWords } : {}), // KINEO-UGC-AJUSTES-2010 — só o apresentador v2; ausente = a régua de sempre, byte a byte
       scripts: (body as { scripts?: unknown } | null)?.scripts !== false, scene: adsV2SceneSetting(brief0, order.tier), // KINEO-ADS-ROTEIROS-2026-10-13 — +2 versões em outros tons, em paralelo e no MESMO prazo (a cena dá o clima da "story"); corpo com scripts:false (ex.: o lote) = só o texto de sempre
       ...(closeRealAsked ? { closeReal: true } : {}), // KINEO-CLOSE-REAL-AJUSTE-1910 — o Close real: a marca no máximo 2 vezes na fala (o fecho automático não cola "Agora, <marca>.") e o travessão do título vira " · "
       ...(kitBf.offer || kitBf.angle ? { kitBf: { offer: kitBf.offer, angle: kitBf.angle } } : {}), // KINEO-KIT-BF-1910 — a oferta 1× na fala e o ângulo da variação (sem kit = o pedido de sempre)
@@ -299,6 +307,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     const kitBfStored = closeReal ? adsV2KitBfStored(kitBf) : null // KINEO-KIT-BF-1910
     if (kitBfStored) { Object.assign(stored, { kitBf: kitBfStored }); Object.assign(modeTag, { kit_bf: { offer: !!kitBfStored.offer, angle: kitBfStored.angle, variant: kitBfStored.variant } }) } // KINEO-KIT-BF-1910 — a montagem lê a oferta daqui; a medição (ads_v2_plan_served) diz se veio oferta e qual ângulo
     if (sampleFormat === 'presenter' && presenter) { Object.assign(stored, { sample_format: ADS_SAMPLE_PRESENTER_MARK }); Object.assign(modeTag, { sample: true, sample_format: 'presenter' }) } // KINEO-HOME-3-CARDS-1910 — a marca que o /start confere (só o servidor a grava) e a medição
+    if (samplePresenterCapped) Object.assign(modeTag, { sample_fallback: ADS_SAMPLE_PRESENTER_FALLBACK }) // KINEO-UGC-AJUSTES-2010 — a medição (ads_v2_plan_served): a entrada UGC saiu no Close real pelo sub-teto
     const credits = adsV2Credits(order.tier, order.seconds)
     const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds, presenter: !!presenter })
     if (inHand) Object.assign(modeTag, { in_hand: true }) // KINEO-ADS-PRODUTO-NA-MAO-1610
@@ -344,6 +353,8 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
       narration: extracted.copy.narration,
       overlays,
       edit_limits: { narration_words: maxWords, overlay_chars: ADS_V2_OVERLAY_MAX_CHARS }, // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — a tela edita o texto antes de gerar
+      ...(acceptMaxWords > maxWords ? { edit_limits: { narration_words: acceptMaxWords, overlay_chars: ADS_V2_OVERLAY_MAX_CHARS } } : {}), // KINEO-UGC-AJUSTES-2010 — o texto aceito com 22–23 palavras não nasce "longo demais" na edição da tela
+      ...(samplePresenterCapped ? { sample_fallback: ADS_SAMPLE_PRESENTER_FALLBACK } : {}), // KINEO-UGC-AJUSTES-2010 — a tela mostra o aviso honesto (amostra com a pessoa esgotada hoje → Close real)
       total_seconds: plan.totalSeconds,
       card_ready: Boolean((upd.data as { card_url: string | null }).card_url),
       photo_requests: plan.photoRequests,
