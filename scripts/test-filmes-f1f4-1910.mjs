@@ -18,6 +18,7 @@
 //   M  mutantes: cada peça central desfeita em memória deixa a prova dela vermelha.
 import { readFileSync, existsSync } from 'node:fs'
 import { semCloseRealAjuste1910 } from './test-support/desfaz-close-real-ajuste-1910.mjs' // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: o ajuste pós-canário do Close real (mesclado depois) sai primeiro, em memória
+import { semMeta95Assunto1910 } from './test-support/desfaz-meta95-assunto-1910.mjs' // KINEO-META95-ASSUNTO-1910 — reancorado: o assunto traduzido (19/10, a camada mais nova nos guardiões do Veo e da voz de 15 s) sai PRIMEIRO
 import { semFilmesF1Virgula1910 } from './test-support/desfaz-filmes-f1-virgula-1910.mjs' // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a camada mais nova (Faceless 15 s no export limpo) sai primeiro
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -29,7 +30,7 @@ import { sintetizarSfxFaceless15, sha256, SFX_FACELESS15_ARQUIVOS } from './gera
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (p) => lf(semCloseRealAjuste1910(semFilmesF1Virgula1910(readFileSync(join(RAIZ, p), 'utf8'), p), p)) // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: lê o texto SEM o Faceless 15 s no export limpo (a mais nova) e SEM o ajuste do Close real
+const rd = (p) => lf(semCloseRealAjuste1910(semFilmesF1Virgula1910(semMeta95Assunto1910(readFileSync(join(RAIZ, p), 'utf8'), p), p), p)) /* reancorado KINEO-META95-ASSUNTO-1910: a camada do assunto traduzido sai primeiro */ // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: lê o texto SEM o Faceless 15 s no export limpo (a mais nova) e SEM o ajuste do Close real
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else { falhas.push(n); console.log('  FALHOU: ' + n) } }
@@ -66,7 +67,7 @@ checa('A4 contagem exata de acréscimos na rota', rota.split('\n').filter((l) =>
   // A referência de cada guardião reancorado é a ÚLTIMA versão dele deixada por outra sessão (o último commit que o tocou sem a
   // minha marca): o merge de 19/10 (liberação do apresentador v2) reancorou test-filme-rapido-1710 na mesma linha que eu e criou
   // um guardião novo que também precisou do meu desfaz; a regra "pai do 1º commit" não enxergaria nenhum dos dois.
-  const rdAlheio = (p) => { try { const sha = execFileSync('git', ['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F4_1910}`, '--grep=KINEO-CLOSE-REAL-AJUSTE-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', '--', p], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); return sha ? lf(execFileSync('git', ['show', `${sha}:${p}`], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()) : null } catch { return null } } // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: a versão 'alheia' pula também os commits do ajuste do Close real // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo
+  const rdAlheio = (p) => { try { const sha = execFileSync('git', ['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F4_1910}`, '--grep=KINEO-CLOSE-REAL-AJUSTE-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--', p], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); return sha ? lf(execFileSync('git', ['show', `${sha}:${p}`], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()) : null } catch { return null } } // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: a versão 'alheia' pula também os commits do ajuste do Close real // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo
   const ruins = []
   for (const [p, trocas] of Object.entries(TROCAS_FILMES_F1F4_1910)) {
     const vivo = rd(p)

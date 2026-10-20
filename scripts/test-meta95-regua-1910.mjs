@@ -49,7 +49,7 @@ const CAUDA_LONGA = ', faceless cinematic b-roll, focus on the described subject
 
 function carregar(source) {
   const load = createOfflineLoader({ source, globals: { setTimeout: () => 0, clearTimeout() {}, AbortController, Date, Math, JSON, Promise } })
-  return { coer: load(F.coer), pixel: load(F.pixel), ctx: load(F.ctx), painel: load(F.painel, ROOT) }
+  return { coer: load(F.coer), pixel: load(F.pixel), ctx: load(F.ctx), painel: load(F.painel, ROOT), coletar: load(F.coletar) } // KINEO-META95-REGUA-AJUSTE-1910 — o coletor também roda
 }
 
 /** fetch falso: devolve as respostas na ordem e anota as chamadas. */
@@ -168,7 +168,9 @@ async function provas(L) {
   await tenta('R1', () => {
     const s = rd(F.coletar)
     const escritas = s.match(/\.(insert|update|upsert|delete|rpc)\(/g) ?? []
-    const soEvents = escritas.length === 2 && escritas.every((x) => x === '.insert(') && (s.match(/from\('events'\)\.insert\(\{\s*\n?\s*name: (COHERENCE_V2_EVENT|PIXEL_SCORE_EVENT)/g) ?? []).length === 2
+    // KINEO-META95-REGUA-AJUSTE-1910 — reancorado: UM ponto de escrita (gravar), que confere o erro do insert; só os dois nomes.
+    const gravacoes = s.match(/await gravar\(([A-Z0-9_]+),/g) ?? []
+    const soEvents = escritas.length === 1 && escritas[0] === '.insert(' && s.includes("const { error } = await admin.from('events').insert({ name, user_id: e.user_id, session_id: e.key, path: route, metadata })") && gravacoes.length >= 4 && gravacoes.every((g) => /gravar\((COHERENCE_V2_EVENT|PIXEL_SCORE_EVENT),/.test(g))
     const semRender = !/generate-video|api\/compose|generate-script|falQueue|submitFal/.test(s)
     const rotasRender = ['app/api/compose/route.ts', 'app/api/generate-video-cinematic/route.ts'].every((f) => !/regua95|coherence_v2|pixel_score/.test(rd(f)))
     const evidenciaInteira = /evidence: \{ idea: e\.coherence\.idea\.slice\(0, 4000\)/.test(s) && /prompt: s\.prompt\.slice\(0, 3000\)/.test(s)
@@ -176,7 +178,7 @@ async function provas(L) {
   })
   await tenta('R2', () => {
     const c = rd(F.cron), b = rd(F.botao), v = JSON.parse(rd(F.vercel))
-    const auth = /authorization'\) === `Bearer \$\{cronSecret\}`/.test(c) && /if \(!isAuthorized\(req\)\) return NextResponse\.json\(\{ error: 'Unauthorized' \}, \{ status: 401 \}\)/.test(c)
+    const auth = /authorization'\) === `Bearer \$\{cronSecret\}`/.test(c) && /if \(!isAuthorized\(req\)\) \{\n[^\n]*\n\s*return NextResponse\.json\(\{ error: 'Unauthorized' \}, \{ status: 401 \}\)\n\s*\}/.test(c) /* reancorado KINEO-META95-REGUA-AJUSTE-1910: o 401 agora loga uma linha antes de responder */
     const cache = /export const fetchCache = 'force-no-store'/.test(c) && /export const maxDuration = 300/.test(c)
     const agenda = (v.crons ?? []).some((x) => x.path === '/api/cron/regua-95' && /^[0-9,*/ ]+$/.test(x.schedule))
     const portao = b.indexOf('isAdminEmail(') > 0 && b.indexOf('isAdminEmail(') < b.indexOf('serviceClient()') && /export async function POST/.test(b) && !/export async function GET/.test(b)
@@ -215,6 +217,37 @@ async function provas(L) {
     const v5 = /export const FAST_COHERENCE_VERSION = 'k1_coerencia_v5_honesto'/.test(rd(F.v5)) && /a scene list made ONLY of generated footage can score at most 90/.test(rd(F.v5))
     return okNotas && okPlacar && okTela && okPessoa && v5
   })
+  // ── KINEO-META95-REGUA-AJUSTE-1910 — o 1º giro pós-deploy não deixou rastro nenhum ──
+  await tenta('A1', async () => {
+    const C = L.coletar
+    const agora = Date.parse('2026-10-19T23:30:00Z')
+    const ev = (name, key, created, md) => ({ name, created_at: created, session_id: key, user_id: 'u', metadata: md })
+    const linhas = [
+      ev('pixel_score', 'ok', '2026-10-19T20:00:00Z', { version: 'regua95_pixel_v1', score: 90 }),
+      ev('pixel_score', 'falhou-agora', '2026-10-19T23:10:00Z', { version: 'regua95_pixel_v1', score: null, falha: 'quadros_indisponiveis' }),
+      ev('pixel_score', 'falhou-antes', '2026-10-19T20:00:00Z', { version: 'regua95_pixel_v1', score: null, falha: 'quadros_indisponiveis' }),
+      ...[1, 2, 3].map((i) => ev('pixel_score', 'desistiu', `2026-10-19T1${i}:00:00Z`, { version: 'regua95_pixel_v1', score: null, falha: 'visao_sem_resposta' })),
+      ev('coherence_v2', 'velha', '2026-10-19T20:00:00Z', { version: 'regua95_coerencia_v0', score: 99 }),
+    ]
+    const fakeAdmin = { from: () => ({ select() { return this }, in() { return this } }) }
+    const fakeReadAll = async () => ({ data: linhas, error: null })
+    const done = await C.notasExistentes(fakeAdmin, ['ok', 'falhou-agora', 'falhou-antes', 'desistiu', 'velha'], fakeReadAll, '/x', agora)
+    return done.has('pixel_score:ok') && done.has('pixel_score:falhou-agora') && !done.has('pixel_score:falhou-antes') && done.has('pixel_score:desistiu') && !done.has('coherence_v2:velha') && C.REGUA95_MAX_FALHAS === 3 && C.REGUA95_ESPERA_FALHA_MS === 3600000
+  })
+  await tenta('A2', () => {
+    const C = L.coletar
+    const c = rd(F.cron), b = rd(F.botao), s = rd(F.coletar)
+    const linha = JSON.parse(C.resumoRegua95({ candidatas: 3, pendentes: 1, julgadas: [{ key: 'abcdef123456', product: 'filme', engine: 'cinematic_ai', coerencia: 93, pixel: null, usd: 0.01234, erro: 'quadros_indisponiveis', frame_via: null }], porProduto: { filme: { candidatas: 3, pendentes: 1 } } }, 1200))
+    const okLinha = linha.candidatas === 3 && linha.pendentes === 1 && linha.julgadas[0].k === 'abcdef12' && linha.julgadas[0].erro === 'quadros_indisponiveis' && linha.por_produto.filme.pendentes === 1 && JSON.parse(C.resumoRegua95('tempo', 5)).regua95 === 'tempo_esgotado'
+    const okRota = c.includes("console.log('[cron/regua-95]', resumoRegua95(r, Date.now() - t0))") && c.includes('hoursRaw : REGUA95_JANELA_HORAS') && c.includes("console.warn('[cron/regua-95] 401") && b.includes("console.log('[admin/coerencia/regua95]', resumoRegua95(")
+    const okJanela = C.REGUA95_JANELA_HORAS === 168 && s.includes('opts.hours ?? REGUA95_JANELA_HORAS')
+    const okFalha = s.includes("const falha = ex ? 'visao_sem_resposta' : 'quadros_indisponiveis'") && s.includes("falha: 'coerencia_sem_resposta'")
+    return okLinha && okRota && okJanela && okFalha
+  })
+  await tenta('A3', () => {
+    const q = rd('app/api/cron/quality-radar/route.ts')
+    return q.includes("julgarPendentesRegua(admin, { route: '/api/cron/quality-radar', maxJudge: 2 }, readAll).catch(() => null)") && q.includes("setTimeout(() => resolve('tempo'), 60_000)") && q.includes("console.log('[cron/quality-radar] regua95', resumoRegua95(regua95, Date.now() - t95))") && q.lastIndexOf('julgarPendentesRegua(') > q.indexOf('notifyFounder(subject, text)')
+  })
   return r
 }
 
@@ -232,6 +265,9 @@ const NOMES = {
   R2: 'R2 cron com Bearer CRON_SECRET + force-no-store + agenda no vercel.json; botão admin com portão antes do serviço',
   R3: 'R3 /api/generate-script grava original_idea + script_head ([TRAVA 8.2]) e a resposta não mudou',
   R4: 'R4 painel: última nota/versão vigente/corte por data, % ≥ 95 e média, nota = menor; telas ligadas; fast_coherence intocado',
+  A1: 'A1 falha vira evento: espera 1 h e tenta de novo, desiste em 3; nota de versão velha não conta (KINEO-META95-REGUA-AJUSTE-1910)',
+  A2: 'A2 cron loga 1 linha por giro (contagens por produto, mesmo sem nada), loga 401, janela padrão de 7 dias; falha diz quadros × visão',
+  A3: 'A3 carona no quality-radar: até 2 entregas por tique, depois do radar, com teto de 60 s e linha de log',
 }
 for (const [k, m] of Object.entries(NOMES)) { if (real[k]) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }
 
@@ -249,6 +285,9 @@ const MUTANTES = [
   ['M10 visão de uma leitura', 'P3', F.pixel, 'export const PIXEL_READINGS = 2', 'export const PIXEL_READINGS = 1'],
   ['M11 nota combinada = média (não a menor)', 'R4', F.ctx, 'return Math.min(c, p)', 'return Math.round((c + p) / 2)'],
   ['M12 painel aceita versão velha', 'R4', F.painel, "const ehPix = e.name === PIXEL_SCORE_EVENT && m.version === PIXEL_SCORE_VERSION", "const ehPix = e.name === PIXEL_SCORE_EVENT"],
+  ['M13 falha volta a cada giro (sem a espera)', 'A1', F.coletar, 'if (f.n >= REGUA95_MAX_FALHAS || agora - f.ultima < REGUA95_ESPERA_FALHA_MS) done.add(marca)', 'if (f.n >= REGUA95_MAX_FALHAS) done.add(marca)'],
+  ['M14 janela de 6 h de volta', 'A2', F.coletar, 'export const REGUA95_JANELA_HORAS = 168', 'export const REGUA95_JANELA_HORAS = 6'],
+  ['M15 resumo sem as contagens por produto', 'A2', F.coletar, '    por_produto: r.porProduto ?? {},\n', ''],
 ]
 for (const [nome, prova, arquivo, de, para] of MUTANTES) {
   let aplicou = false

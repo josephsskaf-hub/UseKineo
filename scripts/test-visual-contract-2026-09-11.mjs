@@ -407,7 +407,7 @@ async function entryToPayload({ prompt, scriptMode, anchored = false, engine = '
     resolveVerbatimSegments: (...a) => { resolveCalls++; return verbatimBeats.resolveVerbatimSegments(...a) },
     generateScenes: plannerApi.generateScenes, shortCaptionFromVoiceover: plannerApi.shortCaptionFromVoiceover,
     // 15/09 (KINEO-FALA-CLASSICA-FIEL): a varredura de datas/lugares na fala clássica roda dentro do construtor; aqui é identidade (o texto do fixture não tem data inventada)
-    removerDatasInventadas: (t) => ({ texto: t, removidas: [] }), scrubInventedSetting: (t) => ({ text: t, removed: [] }),
+    removerDatasInventadas: (t) => ({ texto: t, removidas: [] }), scrubInventedSetting: (t) => ({ text: t, removed: [] }), filtrarFalaSemBuraco: (t) => ({ texto: t, removidas: [], mantidas: [], reescritas: [] }), /* reancorado KINEO-META95-ASSUNTO-1910 */
     comVocabularioDoLugar: monumento.comVocabularioDoLugar, // KINEO-MONUMENTO-2026-10-13 — a função real (fixture Lituya Bay não é lugar curado → a mesma string)
   })
   const scenes = await constructed.run()

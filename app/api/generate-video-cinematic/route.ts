@@ -200,6 +200,8 @@ import {
 import { closingSceneVariation, deriveStoryCharacter, deriveExplicitCharacter, deriveStyleAnchor, textSafetySuffix, NO_TEXT_OBJECT_DIRECTION } from '@/lib/cinematic/sceneStyle'
 import { buildClassicVisualPrompt, classicVisualNegativePrompt, isStylizedLook, scrubInventedSetting, visualDescriptionDirection, type VisualPromptPolicy } from '@/lib/cinematic/visualPromptPolicy'
 import { ancoraDoLugar, ancorarLugarNoPrompt, comVocabularioDoLugar, lugarPrincipal, pedidoDeTourNarrado, promptTemOLugar } from '@/lib/cinematic/monumentoReal' // KINEO-MONUMENTO-2026-10-13
+import { precisaTraducao, traduzirAssunto, vocabularioDoAssunto } from '@/lib/cinematic/assuntoTraduzido' // KINEO-META95-ASSUNTO-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] (linha própria)
+import { filtrarFalaSemBuraco } from '@/lib/cinematic/falaSemBuraco' // KINEO-META95-ASSUNTO-1910 (linha própria)
 import { aplicarRomanceAdulto, decidirRomanceAdulto, negativoRomanceAdulto, textoParaModeracao, ROMANCE_ADULT_SUFFIX, ROMANCE_ADULTO_VERSAO } from '@/lib/cinematic/romanceGuard' // KINEO-ROMANCE-ADULTO-2026-10-13
 import { forcePhotorealAnchor } from '@/lib/cinematic/sceneStyle' // KINEO-ROMANCE-ADULTO-2026-10-13
 import { derivarElenco } from '@/lib/cinematic/elencoDaHistoria' // KINEO-PARCEIRO-EYEBIBLE-2-1410
@@ -357,6 +359,7 @@ interface DispatchContext {
   submittedPrompts: string[]
   /** KINEO-VIGIA-CENARIO-2026-09-11 — lugar/época fora da história removidos por cena (vazio = nada inventado). */
   cenarioRemovido: string[]
+  assuntoTraduzido?: { precisou: boolean; ok: boolean; ms: number | null; nomes: string[]; filtro_pulado: boolean } | null // KINEO-META95-ASSUNTO-1910 — o pedido traduzido que o filtro anti-invenção leu (null = não precisou)
   monumento?: { lugar: string; curado: boolean; cenas: number; com_nome: number; reparadas: number[] } | null // KINEO-MONUMENTO-2026-10-13 — lugar real ancorado (cenas com o nome / reparadas pela verificação)
   /** KINEO-MOTIVO-REAL-2026-09-16 — a última recusa EXPLÍCITA classificada por submitToFal (status + classe). O laço
    *  hollywood lê isto logo depois de um `null` para o ledger dizer "balance_quota 403" em vez de "unknown null". */
@@ -450,6 +453,7 @@ async function finalizarDespacho(ctx: DispatchContext, res: Response): Promise<v
         scenes: ctx.outcomes.map(safeLogFields),
         submitted_prompts: ctx.submittedPrompts.map((x) => (typeof x === 'string' ? x.slice(0, 240) : null)),
         setting_scrubbed: ctx.cenarioRemovido.map((x) => x.slice(0, 160)),
+        subject_translation: ctx.assuntoTraduzido ?? null, // KINEO-META95-ASSUNTO-1910 — medição: precisou? deu certo? o filtro foi pulado por falta de tradução?
         monument: ctx.monumento ?? null, // KINEO-MONUMENTO-2026-10-13
       },
     })
@@ -1639,6 +1643,17 @@ async function manipularPost(req: NextRequest) {
     // ═══ KINEO-IDIOMA-DO-TEXTO-2026-09-12 — a voz fala a língua do texto (ver
     // generate-video-fast). Escolha explícita vence; "en" cede ao texto claro.
     const narrationLanguage = resolveNarrationLanguage(body.language, prompt)
+    // KINEO-META95-ASSUNTO-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — o filtro anti-invenção lê o pedido TRADUZIDO. Causa C2 do
+    // KINEO-META95-ASSUNTO-1910 — diagnóstico (51% dos filmes abaixo de 95): "Ottoman" apagado com o pedido "Osmanlı", "Bermuda Triangle" com a fala
+    // KINEO-META95-ASSUNTO-1910 — "Triângulo das Bermudas". Língua do filme fora do inglês ou escrita não latina → UMA chamada barata (gpt-4o-mini, 6 s)
+    // KINEO-META95-ASSUNTO-1910 — por filme, memoizada; falhou → null e o filtro NÃO apaga (na dúvida, o assunto fica). Inglês puro: a mesma string, sem chamada.
+    let assuntoTraduzidoPromessa: Promise<string | null> | null = null // KINEO-META95-ASSUNTO-1910
+    const contextoDoFiltro = async (contexto: string): Promise<string | null> => { // KINEO-META95-ASSUNTO-1910 — string = contexto (+ assunto em inglês); null = precisava traduzir e não deu
+      if (!precisaTraducao(contexto, narrationLanguage.language)) return contexto // KINEO-META95-ASSUNTO-1910
+      if (!assuntoTraduzidoPromessa) assuntoTraduzidoPromessa = traduzirAssunto(contexto).then((t) => { ctxDespacho().assuntoTraduzido = { precisou: true, ok: !!t, ms: t?.ms ?? null, nomes: t?.nomes.slice(0, 20) ?? [], filtro_pulado: !t }; if (!t) console.warn('[cinematic] KINEO-META95-ASSUNTO: tradução do assunto falhou — o filtro anti-invenção NÃO apaga neste filme'); else console.log(`[cinematic] KINEO-META95-ASSUNTO: assunto traduzido em ${t.ms} ms (${t.nomes.length} nome(s): ${t.nomes.slice(0, 8).join(', ')})`); return t ? vocabularioDoAssunto(t) : null }) // KINEO-META95-ASSUNTO-1910
+      const v = await assuntoTraduzidoPromessa // KINEO-META95-ASSUNTO-1910
+      return v === null ? null : `${contexto} ${v}` // KINEO-META95-ASSUNTO-1910
+    } // KINEO-META95-ASSUNTO-1910
     if (narrationLanguage.switched) {
       await writeServerEvent({ name: 'narration_language_autodetected', userId: user.id, path: '/api/generate-video-cinematic', metadata: { requested: body.language ?? null, detected: narrationLanguage.detected, confidence: narrationLanguage.confidence, engine: body.engine ?? 'seedance' } })
     }
@@ -3593,14 +3608,17 @@ async function manipularPost(req: NextRequest) {
       if (!hollywoodPath) {
         const tiradas: string[] = []
         const contextoFalaClassica = comVocabularioDoLugar(prompt) // KINEO-MONUMENTO-2026-10-13 — pedido sem lugar real: a MESMA string; com lugar curado: + sub-lugares/figuras/anos verdadeiros (608449fe perdeu "Hall of Mirrors", "Treaty of Versailles", "World War I")
+        const mantidas: string[] = [] // KINEO-META95-ASSUNTO-1910 — frases que ficariam com buraco: ficam inteiras, com o que a IA escreveu
+        const reescritas: string[] = [] // KINEO-META95-ASSUNTO-1910 — frases reescritas sem a oração do buraco ("In the year 1923, a…" → "A…")
         for (const sc of scenes) {
           if (typeof sc.voiceover !== 'string' || !sc.voiceover.trim()) continue
-          const r = removerDatasInventadas(sc.voiceover, contextoFalaClassica) // KINEO-MONUMENTO-2026-10-13
-          const r2 = scrubInventedSetting(r.texto, contextoFalaClassica) // KINEO-MONUMENTO-2026-10-13
-          const texto = r2.removed.length ? r2.text : r.texto
-          if (r.removidas.length || r2.removed.length) { sc.voiceover = texto; sc.caption = shortCaptionFromVoiceover(texto); tiradas.push(...r.removidas, ...r2.removed) }
+          const f = filtrarFalaSemBuraco(sc.voiceover, contextoFalaClassica) // KINEO-META95-ASSUNTO-1910 — frase a frase, nunca com buraco (era removerDatasInventadas + scrubInventedSetting direto na fala: "In the year,", "No Oceano, em,", "O : uma área") [KINEO-MONUMENTO-2026-10-13]
+          if (f.mantidas.length) mantidas.push(...f.mantidas) // KINEO-META95-ASSUNTO-1910 [KINEO-MONUMENTO-2026-10-13]
+          if (f.reescritas.length) reescritas.push(...f.reescritas) // KINEO-META95-ASSUNTO-1910
+          if (f.texto !== sc.voiceover) { sc.voiceover = f.texto; sc.caption = shortCaptionFromVoiceover(f.texto); tiradas.push(...f.removidas) } // KINEO-META95-ASSUNTO-1910
         }
         if (tiradas.length) console.log(`[cinematic] KINEO-FALA-CLASSICA-FIEL: ${tiradas.length} data(s)/hora(s)/nome(s) fora do pedido removida(s) da fala: ${tiradas.map((t) => JSON.stringify(t)).join(', ')}`)
+        if (mantidas.length || reescritas.length) console.log(`[cinematic] KINEO-META95-ASSUNTO: fala sem buraco — ${reescritas.length} frase(s) reescrita(s) sem a oração do buraco, ${mantidas.length} mantida(s) inteira(s): ${[...reescritas, ...mantidas].map((t) => JSON.stringify(t.slice(0, 80))).join(', ')}`) // KINEO-META95-ASSUNTO-1910
       }
     }
 
@@ -5148,19 +5166,22 @@ async function manipularPost(req: NextRequest) {
         // Contexto = só o pedido (em verbatim o pedido É o texto): o brief escrito pela IA trazia "In 2023" e "legitimava" a data.
         const contextoDatas = comVocabularioDoLugar(prompt) // KINEO-MONUMENTO-2026-10-13 — sem lugar real curado = `prompt`, a mesma string
         const tiradas: string[] = []
+        const mantidasH: string[] = [] // KINEO-META95-ASSUNTO-1910 — frases que ficariam com buraco: ficam inteiras
+        const reescritasH: string[] = [] // KINEO-META95-ASSUNTO-1910 — frases reescritas sem a oração do buraco (inclusive as que o planejador já entregou com buraco)
         for (const sc of plan.scenes) {
           for (const campo of ['voiceover', 'dialogueLine'] as const) {
             const v = sc[campo]
-            if (typeof v !== 'string' || !v.trim()) continue
-            const r = removerDatasInventadas(v, contextoDatas)
+            if (typeof v !== 'string' || !v.trim() || verbatim) continue // KINEO-META95-ASSUNTO-1910 — contrato C1: a fala do roteiro colado ("Use my script as is") nunca é tocada (era: sem o `|| verbatim`; em verbatim o pedido É o texto, mas o guarda agora é explícito)
+            const f = filtrarFalaSemBuraco(v, contextoDatas, { repararExistentes: true }) // KINEO-META95-ASSUNTO-1910 — frase a frase, nunca com buraco (era removerDatasInventadas + scrubInventedSetting direto na fala)
             // KINEO-LUGAR-INVENTADO-2026-09-15 — "Bolivia's Salar de Uyuni", "Emily Carter": nome próprio/lugar/época fora do pedido sai
             // da fala com o mesmo filtro que já protege os prompts de imagem do clássico (scrubInventedSetting, puro).
-            const r2 = scrubInventedSetting(r.texto, contextoDatas)
-            const texto = r2.removed.length ? r2.text : r.texto
-            if (r.removidas.length || r2.removed.length) { sc[campo] = texto; tiradas.push(...r.removidas, ...r2.removed) }
+            if (f.mantidas.length) mantidasH.push(...f.mantidas) // KINEO-META95-ASSUNTO-1910
+            if (f.reescritas.length) reescritasH.push(...f.reescritas) // KINEO-META95-ASSUNTO-1910
+            if (f.texto !== v) { sc[campo] = f.texto; tiradas.push(...f.removidas) } // KINEO-META95-ASSUNTO-1910
           }
         }
         if (tiradas.length) console.log(`[hollywood] KINEO-DATA-INVENTADA (final): ${tiradas.length} data(s)/hora(s) fora do pedido removida(s): ${tiradas.map((t) => JSON.stringify(t)).join(', ')}`)
+        if (mantidasH.length || reescritasH.length) console.log(`[hollywood] KINEO-META95-ASSUNTO: fala sem buraco — ${reescritasH.length} frase(s) reescrita(s), ${mantidasH.length} mantida(s) inteira(s): ${[...reescritasH, ...mantidasH].map((t) => JSON.stringify(t.slice(0, 80))).join(', ')}`) // KINEO-META95-ASSUNTO-1910
       }
 
       // ═══ KINEO-OMNI-ALVO-CRAVADO-2026-08-25 (V6.1, fundador aprovou) ═══
@@ -5260,8 +5281,8 @@ async function manipularPost(req: NextRequest) {
             try { // KINEO-S25-NOTA95-2026-10-06
               const idxs = copia.map((_, i) => i).filter((i) => copia[i].type !== 'dialogue' && (copia[i].voiceover ?? '').trim().length > 0 && (copia[i].prompt ?? '').trim().length > 0) // KINEO-S25-NOTA95-2026-10-06
               const alinhadoE = idxs.length > 0 ? await alignShotsToSpeech({ topic: prompt, scenes: idxs.map((i) => ({ voiceover: copia[i].voiceover ?? '', shot: copia[i].prompt })) }) : null // KINEO-S25-NOTA95-2026-10-06
-              const historiaE = `${prompt} ${copia.map((sc) => sc.voiceover ?? '').join(' ')}` // KINEO-S25-NOTA95-2026-10-06
-              if (alinhadoE) for (const c of alinhadoE.rewritten) copia[idxs[c.index]].prompt = scrubInventedSetting(c.shot, historiaE).text // KINEO-S25-NOTA95-2026-10-06
+              const historiaE = await contextoDoFiltro(`${prompt} ${copia.map((sc) => sc.voiceover ?? '').join(' ')}`) // KINEO-META95-ASSUNTO-1910 — + o assunto traduzido (era a string direta) [KINEO-S25-NOTA95-2026-10-06]
+              if (alinhadoE) for (const c of alinhadoE.rewritten) copia[idxs[c.index]].prompt = historiaE === null ? c.shot : scrubInventedSetting(c.shot, historiaE).text // KINEO-META95-ASSUNTO-1910 — null = sem scrub (era scrubInventedSetting direto) [KINEO-S25-NOTA95-2026-10-06]
             } catch { /* falha aberta, como no render pago */ } // KINEO-S25-NOTA95-2026-10-06
             try { // KINEO-S25-NOTA95-2026-10-06
               const s25PlanoE = planejarCenasS25({ cenas: copia.map((s) => ({ prompt: s.prompt, voiceover: s.voiceover ?? null, type: s.type })), roteiro: `${prompt} ${copia.map((s) => s.voiceover ?? '').join(' ')}`, characterSheet: plan.characterSheet, styleSheet: plan.styleSheet, idioma: hollywoodLanguage }) // KINEO-S25-NOTA95-2026-10-06
@@ -5681,8 +5702,8 @@ async function manipularPost(req: NextRequest) {
         if (idxs.length > 0) {
           const alinhado = await alignShotsToSpeech({ topic: prompt, scenes: idxs.map((i) => ({ voiceover: plan.scenes[i].voiceover ?? '', shot: plan.scenes[i].prompt })) })
           if (alinhado) {
-            const historiaH = `${prompt} ${plan.scenes.map((sc) => sc.voiceover ?? '').join(' ')}`
-            for (const c of alinhado.rewritten) plan.scenes[idxs[c.index]].prompt = scrubInventedSetting(c.shot, historiaH).text
+            const historiaH = await contextoDoFiltro(`${prompt} ${plan.scenes.map((sc) => sc.voiceover ?? '').join(' ')}`) // KINEO-META95-ASSUNTO-1910 — + o assunto traduzido (era a string direta)
+            for (const c of alinhado.rewritten) plan.scenes[idxs[c.index]].prompt = historiaH === null ? c.shot : scrubInventedSetting(c.shot, historiaH).text // KINEO-META95-ASSUNTO-1910 — null = sem scrub (era scrubInventedSetting direto)
             await writeServerEvent({ name: SPEECH_IMAGE_ALIGN_EVENT, userId: user.id, path: '/api/generate-video-cinematic', metadata: { version: SPEECH_IMAGE_ALIGN_VERSION, engine: family, ...alinhado.relato, states: alinhado.states, dry_run: body.dry_run === true } }) // KINEO-LIVRO-DE-ESTADO
             if (alinhado.rewritten.length) console.log(`[fala-x-imagem] hollywood/${family}: ${alinhado.rewritten.length}/${idxs.length} cena(s) reescritas em ${alinhado.relato.ms} ms`)
           }
@@ -6539,12 +6560,13 @@ async function manipularPost(req: NextRequest) {
     // House", "1910 New England farmhouse", "Nokia 3310") — a regra no prompt
     // do descritor é pedido; isto é garantia. A narração nunca é tocada.
     {
-      const historia = comVocabularioDoLugar(`${prompt} ${scenes.map((s) => s.voiceover ?? '').join(' ')}`) // KINEO-MONUMENTO-2026-10-13
+      const historia = await contextoDoFiltro(comVocabularioDoLugar(`${prompt} ${scenes.map((s) => s.voiceover ?? '').join(' ')}`)) // KINEO-META95-ASSUNTO-1910 — + o assunto traduzido; null = tradução precisava e falhou: o filtro NÃO apaga (era comVocabularioDoLugar(...) direto) [KINEO-MONUMENTO-2026-10-13]
       const cenarioRemovido: string[] = []
+      if (historia === null) console.warn('[cinematic] KINEO-META95-ASSUNTO: cenario-scrub pulado (assunto em outra língua sem tradução) — nada removido dos prompts') // KINEO-META95-ASSUNTO-1910
       scenes = scenes.map((s, i) => {
-        const aiPrompt = s.aiPrompt ? scrubInventedSetting(s.aiPrompt, historia) : null
-        const stockSearchQuery = s.stockSearchQuery ? scrubInventedSetting(s.stockSearchQuery, historia) : null
-        const description = s.description ? scrubInventedSetting(s.description, historia) : null
+        const aiPrompt = historia !== null && s.aiPrompt ? scrubInventedSetting(s.aiPrompt, historia) : null // KINEO-META95-ASSUNTO-1910 — era s.aiPrompt ? …
+        const stockSearchQuery = historia !== null && s.stockSearchQuery ? scrubInventedSetting(s.stockSearchQuery, historia) : null // KINEO-META95-ASSUNTO-1910 — era s.stockSearchQuery ? …
+        const description = historia !== null && s.description ? scrubInventedSetting(s.description, historia) : null // KINEO-META95-ASSUNTO-1910 — era s.description ? …
         const removidos = [...new Set([...(aiPrompt?.removed ?? []), ...(stockSearchQuery?.removed ?? []), ...(description?.removed ?? [])])]
         if (removidos.length) cenarioRemovido.push(`cena ${i + 1}: ${removidos.join(' | ')}`)
         return {
@@ -6592,13 +6614,13 @@ async function manipularPost(req: NextRequest) {
         scenes: scenes.map((sc) => ({ voiceover: sc.voiceover ?? '', shot: sc.aiPrompt || sc.stockSearchQuery || sc.description || '' })),
       }, wantsKling ? kling25AlignBudget(scenes.length) : undefined) // KINEO-KLING25-PLANOS-5S-2026-09-28: o dobro de cenas ganha teto de tokens e prazo proporcionais; Seedance/Veo: chamada idêntica
       if (alinhado) {
-        const historiaAlinhada = comVocabularioDoLugar(`${prompt} ${scenes.map((sc) => sc.voiceover ?? '').join(' ')}`) // KINEO-MONUMENTO-2026-10-13
+        const historiaAlinhada = await contextoDoFiltro(comVocabularioDoLugar(`${prompt} ${scenes.map((sc) => sc.voiceover ?? '').join(' ')}`)) // KINEO-META95-ASSUNTO-1910 — + o assunto traduzido; null = o plano reescrito sobe sem o scrub (era comVocabularioDoLugar(...) direto) [KINEO-MONUMENTO-2026-10-13]
         for (const c of alinhado.rewritten) {
           // [TRAVA 8.2] KLING25-DESCRICOES: cena cujo plano nasceu do fallback (sem descrição do modelo) tem fala com metáfora/CTA —
           // a reescrita do supervisor (lib compartilhada com o hollywood, por isso intocada) não pode trazê-la de volta como criatura/CTA literal.
           if (cenasSemDescricaoDoModelo.has(c.index) && hasSpeechArtifacts(c.shot)) { console.warn(`[fala-x-imagem] KLING25-DESCRICOES: reescrita da cena ${c.index + 1} recusada (criatura/CTA literal): ${c.shot.slice(0, 120)}`); continue }
           // O plano reescrito passa pelo mesmo scrub determinístico: ano/nome fora da história não sobe.
-          scenes[c.index].aiPrompt = scrubInventedSetting(c.shot, historiaAlinhada).text
+          scenes[c.index].aiPrompt = historiaAlinhada === null ? c.shot : scrubInventedSetting(c.shot, historiaAlinhada).text // KINEO-META95-ASSUNTO-1910 — era scrubInventedSetting(c.shot, historiaAlinhada).text
         }
         alinhamentoFalaImagem = alinhado.relato
         void writeServerEvent({

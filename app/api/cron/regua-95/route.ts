@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { readAll } from '@/lib/supabase/readAll'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
-import { julgarPendentesRegua } from '@/lib/regua95/coletar'
+import { julgarPendentesRegua, resumoRegua95, REGUA95_JANELA_HORAS } from '@/lib/regua95/coletar'
 
 export const dynamic = 'force-dynamic'
 // KINEO-DATA-CACHE-2026-09-02 — rota só-GET nasce com revalidate=false; sem esta linha o marcador "já julgado" viria do
@@ -23,20 +23,27 @@ function isAuthorized(req: NextRequest): boolean {
 }
 
 export async function GET(req: NextRequest) {
-  if (!isAuthorized(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!isAuthorized(req)) {
+    console.warn('[cron/regua-95] 401: chamada sem o Bearer do CRON_SECRET') // KINEO-META95-REGUA-AJUSTE-1910 — nunca imprime o cabeçalho
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) return NextResponse.json({ error: 'service unavailable' }, { status: 503 })
   const admin = createAdminClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: freshFetch } })
   const hoursRaw = Number(req.nextUrl.searchParams.get('hours'))
   const maxRaw = Number(req.nextUrl.searchParams.get('max'))
+  const t0 = Date.now()
   try {
+    // KINEO-META95-REGUA-AJUSTE-1910 — janela padrão de 7 dias (era 6 h, e o 1º giro pós-deploy não achava nada novo) e UMA linha
+    // de log por giro com as contagens, mesmo quando não há nada a julgar.
     const r = await julgarPendentesRegua(admin, {
       route: '/api/cron/regua-95',
-      hours: Number.isFinite(hoursRaw) && hoursRaw > 0 ? hoursRaw : 6,
+      hours: Number.isFinite(hoursRaw) && hoursRaw > 0 ? hoursRaw : REGUA95_JANELA_HORAS,
       maxJudge: Number.isFinite(maxRaw) && maxRaw >= 0 ? maxRaw : 4,
-      limit: 200,
+      limit: 300,
     }, readAll)
+    console.log('[cron/regua-95]', resumoRegua95(r, Date.now() - t0))
     return NextResponse.json({ ok: true, ...r })
   } catch (e) {
     console.warn('[cron/regua-95] falhou:', e instanceof Error ? e.message : String(e))

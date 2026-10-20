@@ -253,10 +253,12 @@ checa('R5 toda linha nova da rota carrega a marca (5 linhas: 2 imports, chamada,
 // desfaz: a rota sem as linhas marcadas = a base (pai do 1º commit com a marca)
 {
   const SUP = await import(pathToFileURL(path.join(ROOT, F.desfaz)).href)
+  // base = a origin/main do último merge desta entrega (2º pai do merge marcado mais novo); sem merge, o pai do 1º commit marcado
   let BASE = null
   try {
+    const merges = git('log', '--format=%H', '--merges', '--grep=' + MARCA, 'HEAD').trim().split('\n').filter(Boolean)
     const shas = git('log', '--format=%H', '--grep=' + MARCA, 'HEAD').trim().split('\n').filter(Boolean)
-    BASE = shas.length ? shas[shas.length - 1] + '^' : 'HEAD'
+    BASE = merges.length ? merges[0] + '^2' : shas.length ? shas[shas.length - 1] + '^' : 'HEAD'
   } catch { BASE = null }
   let base = null
   try { base = lf(git('show', `${BASE}:${F.rota}`)) } catch { base = null }
@@ -266,8 +268,9 @@ checa('R5 toda linha nova da rota carrega a marca (5 linhas: 2 imports, chamada,
     (() => { try { SUP.semMeta95Ideia1910('a\nx // ' + MARCA + '\nc', F.rota); return false } catch { return true } })())
   const filmeRapido = rd('scripts/test-support/desfaz-filme-rapido-1710.mjs')
   const FR = await import(pathToFileURL(path.join(ROOT, 'scripts/test-support/desfaz-filme-rapido-1710.mjs')).href)
-  checa('R8 encadeado: semFilmeRapido1710 tira PRIMEIRO esta camada (a mais nova da rota) e linhaDoFilmeRapido1710 a aceita como "de depois da base"',
-    filmeRapido.includes('semMeta95Ideia1910(') && filmeRapido.includes("from './desfaz-meta95-ideia-1910.mjs'") &&
+  const assunto = rd('scripts/test-support/desfaz-meta95-assunto-1910.mjs')
+  checa('R8 encadeado: semMeta95Assunto1910 (chamado por semFilmeRapido1710) tira PRIMEIRO esta camada (a mais nova da rota) e linhaDoFilmeRapido1710 a aceita como "de depois da base"',
+    assunto.includes('  texto = semMeta95Ideia1910(texto, p)') && assunto.includes("from './desfaz-meta95-ideia-1910.mjs'") && filmeRapido.includes("from './desfaz-meta95-ideia-1910.mjs'") &&
     FR.linhaDoFilmeRapido1710('+x // ' + MARCA) === true && FR.linhaDoFilmeRapido1710('+x') === false &&
     FR.semFilmeRapido1710(rota, F.rota) === FR.semFilmeRapido1710(SUP.semMeta95Ideia1910(rota, F.rota), F.rota))
   const trilha = rd('scripts/test-trilha-15s-1610.mjs')
