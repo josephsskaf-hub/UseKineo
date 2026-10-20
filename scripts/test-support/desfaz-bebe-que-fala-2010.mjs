@@ -31,6 +31,8 @@ export const ACRESCIMOS_BEBE_QUE_FALA_2010 = {
   'components/home/HomeThreeCards.tsx': 4,
   'scripts/test-cena-negacao-1510.mjs': 0,
   'scripts/test-contrato-classicos-1410.mjs': 0,
+  'scripts/test-filmes-f1-virgula-1910.mjs': 0,
+  'scripts/test-filmes-f1f3-ajuste-1910.mjs': 0,
   'scripts/test-filmes-f1f4-1910.mjs': 0,
   'scripts/test-home-3-cards-1910.mjs': 1,
   'scripts/test-kling25-variedade-2026-09-28.mjs': 0,
