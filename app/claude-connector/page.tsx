@@ -34,6 +34,7 @@ import { CLAUDE_CONNECT_ANCHOR, CLAUDE_MCP_SERVER_URL, CLAUDE_START_PROMPT, clau
 import ConnectPanel, { CopyField } from './ConnectPanel'
 import ClaudePromptLink from './ClaudePromptLink'
 import PresetFilter from './PresetFilter'
+import StudioSection from './StudioSection' // KINEO-MCP-STUDIO-2010
 import { ClientGlyph, type ClientKey } from './ClientGlyphs'
 import { MCP_PALETTE as C, MONO } from './palette'
 
@@ -303,6 +304,7 @@ export default function ClaudeConnectorPage() {
           ))}
         </div>
 
+        <StudioSection /> {/* KINEO-MCP-STUDIO-2010 */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '0 32px' }}>
           <section>
             <h2 style={h2}>What happens after the link</h2>
