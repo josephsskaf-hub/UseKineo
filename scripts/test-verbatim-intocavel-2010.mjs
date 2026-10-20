@@ -20,12 +20,13 @@
 //   M. mutantes: contagem crua de volta, só sem pistas (rótulos ainda contam), sem a língua — todos vermelhos;
 //   D. o desfaz devolve a fonte de antes byte a byte (e recusa fonte alheia).
 import { readFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
-import { semVerbatimIntocavel2010, MARCA_VERBATIM_INTOCAVEL_2010 } from './test-support/desfaz-verbatim-intocavel-2010.mjs'
+import { semVerbatimIntocavel2010, MARCA_VERBATIM_INTOCAVEL_2010, REANCORAS_VERBATIM_INTOCAVEL_2010 } from './test-support/desfaz-verbatim-intocavel-2010.mjs'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(RAIZ)
@@ -166,6 +167,20 @@ console.log('D) o desfaz')
   checa('o desfaz recusa fonte alterada por outra mão (par que não casa → null)', semVerbatimIntocavel2010(EN_PATH, EN_SRC.replace(LINHA_NOVA, LINHA_NOVA + ' ')) === null)
   checa('o desfaz devolve intacto o arquivo de fora da entrega', semVerbatimIntocavel2010('lib/outro.ts', 'x KINEO-VERBATIM-INTOCAVEL-2010') === 'x KINEO-VERBATIM-INTOCAVEL-2010')
   checa('o desfaz é idempotente na fonte de antes', semVerbatimIntocavel2010(EN_PATH, antes) === antes)
+  // As reâncoras (guardião do conector Kineo Studio): desfeitas, são o arquivo do pai do 1º commit desta entrega.
+  const gitTxt = (...a) => execFileSync('git', a, { cwd: RAIZ, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  let pai = null
+  try { const h = gitTxt('log', '--reverse', '--format=%H', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, 'HEAD').trim().split('\n').filter(Boolean)[0]; if (h) pai = gitTxt('rev-parse', `${h}^`).trim() } catch { pai = null }
+  for (const rel of REANCORAS_VERBATIM_INTOCAVEL_2010) {
+    const atual = rd(rel)
+    let doPai = null
+    try { doPai = pai ? gitTxt('show', `${pai}:${rel}`).replace(/\r\n/g, '\n') : null } catch { doPai = null }
+    const desfeito = semVerbatimIntocavel2010(rel, atual)
+    checa(`reâncora ${rel}: leva a marca e, desfeita, é o arquivo do pai do 1º commit da entrega (${pai ? pai.slice(0, 9) : 'sem pai'})`, atual.includes(MARCA_VERBATIM_INTOCAVEL_2010) && typeof doPai === 'string' && desfeito === doPai)
+    checa(`reâncora ${rel}: trecho mudado por outra mão → o desfaz recusa (null)`, semVerbatimIntocavel2010(rel, atual.replace('/* reancorado KINEO-VERBATIM-INTOCAVEL-2010 */', '/* x */')) === null)
+  }
+  const pers = rd('scripts/test-meta95-personagem-2010.mjs')
+  checa('encadeado: o guardião da folha de personagem tira esta camada primeiro no D1 e deixa os commits desta fora do D7', pers.includes("semMeta95Personagem2010(semVerbatimIntocavel2010(f, fs.readFileSync(path.join(ROOT, f), 'utf8')), f)") && pers.includes('desdeABase.filter(({ s }) => !s.includes(MARCA_VERBATIM_INTOCAVEL_2010))'))
 }
 
 console.log(`\n${ok} verificações ok, ${falhas.length} falha(s)`)

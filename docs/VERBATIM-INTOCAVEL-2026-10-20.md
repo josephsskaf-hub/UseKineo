@@ -34,7 +34,7 @@ Efeito colateral esperado: um roteiro marcado **curto demais** (abaixo de 36 pal
 
 ## Provas
 
-- Guardião `scripts/test-verbatim-intocavel-2010.mjs`: 40 verificações e 3 mutantes.
+- Guardião `scripts/test-verbatim-intocavel-2010.mjs`: 43 verificações e 3 mutantes.
   - Os 3 roteiros exatos do banco dão vermelho antes e verde depois.
   - A régua é igual à guarda e ao handoff em 33 de 33 roteiros marcados.
   - A expressão real de `needsStructuring` foi executada.
