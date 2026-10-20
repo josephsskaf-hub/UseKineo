@@ -41,6 +41,10 @@
   [
    "  ok(/export function semMenuUgc2010\\(texto, p\\) \\{\\n(?:  texto = semBebeQueFala2010\\(texto, p\\)[^\\n]*\\n)?  texto = semAvatarPreso2010NosGuardioes\\(texto, p\\)/.test(MU) /* reancorado KINEO-BEBE-QUE-FALA-2010: a camada de 20/10 (mais nova) pode vir antes */ && /^import \\{ semAvatarPreso2010NosGuardioes \\} from '\\.\\/desfaz-avatar-preso-2010\\.mjs'/m.test(MU), 'D4b encadeado na cabeça da cadeia geral: semMenuUgc2010 tira as reâncoras desta camada (só scripts/) primeiro; o /api/compose segue intacto nela (é a última versão alheia)')",
    "  ok(/export function semMenuUgc2010\\(texto, p\\) \\{\\n  texto = semAvatarPreso2010NosGuardioes\\(texto, p\\)/.test(MU) && /^import \\{ semAvatarPreso2010NosGuardioes \\} from '\\.\\/desfaz-avatar-preso-2010\\.mjs'/m.test(MU), 'D4b encadeado na cabeça da cadeia geral: semMenuUgc2010 tira as reâncoras desta camada (só scripts/) primeiro; o /api/compose segue intacto nela (é a última versão alheia)')"
+  ],
+  [
+   "  const meus = commits.filter(([, s]) => !s.includes('KINEO-BEBE-QUE-FALA-2010')).filter(([h]) => { const fs2 = git('diff-tree', '--no-commit-id', '--name-only', '-r', h).split('\\n'); return fs2.some((f) => AVATAR_PRESO_2010_NOVOS.includes(f)) }) // reancorado KINEO-BEBE-QUE-FALA-2010 — os commits de 20/10 que reancoraram este guardião levam a marca deles",
+   "  const meus = commits.filter(([h]) => { const fs2 = git('diff-tree', '--no-commit-id', '--name-only', '-r', h).split('\\n'); return fs2.some((f) => AVATAR_PRESO_2010_NOVOS.includes(f)) })"
   ]
  ],
  "scripts/test-cena-negacao-1510.mjs": [
