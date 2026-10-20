@@ -15,8 +15,8 @@ import { fileURLToPath } from 'node:url'
 
 export const MARCA_BEBE_QUE_FALA_2010 = 'KINEO-BEBE-QUE-FALA-2010'
 
-/** A base da entrega: origin/main de 20/10 depois do merge (KINEO-META95-PERSONAGEM-2010 sobre KINEO-MCP-STUDIO-2010 e KINEO-MENU-UGC-2010). */
-export const BEBE_QUE_FALA_2010_BASE = 'fbe47c4677d4af4cc231e41f2db542fbfd2ba476'
+/** A base da entrega: origin/main de 20/10 depois do merge (a fila entrega-atual: KINEO-META95-ESCRITA-2010 sobre KINEO-META95-PERSONAGEM-2010, KINEO-MCP-STUDIO-2010 e KINEO-MENU-UGC-2010). */
+export const BEBE_QUE_FALA_2010_BASE = '02c69b8c05f25bd03e9282a4fadab2d0fe8bc82d'
 
 /** [linha nova (inteira), linha da base] por arquivo. */
 export const TROCAS_BEBE_QUE_FALA_2010 = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-bebe-que-fala-2010-trocas.json'), 'utf8'))
