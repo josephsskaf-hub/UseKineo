@@ -15,8 +15,8 @@ import { fileURLToPath } from 'node:url'
 
 export const MARCA_APRESENTADOR_OLHOS_1910 = 'KINEO-APRESENTADOR-OLHOS-1910'
 
-/** A base da entrega (origin/main de 20/10: KINEO-META95-IDEIA-1910 no ar). */
-export const APRESENTADOR_OLHOS_1910_BASE = '9ddb24c7e2cb4f9e0e5ef7f17a84ae2dddfd5b0a'
+/** A base da entrega (origin/main de 20/10: KINEO-HOME-3-CARDS-1910 + KINEO-KIT-BF-1910 no ar, mesclada com merge). */
+export const APRESENTADOR_OLHOS_1910_BASE = 'c97d629d9c3e7c91e974155ad927fd31b4f6cc0a'
 
 /** Arquivos que a entrega toca, com a contagem EXATA de acréscimos marcados (as trocas estão no JSON). */
 export const ACRESCIMOS_APRESENTADOR_OLHOS_1910 = {
@@ -31,6 +31,8 @@ export const ACRESCIMOS_APRESENTADOR_OLHOS_1910 = {
   'scripts/test-close-real-ajuste-1910.mjs': 0,
   'scripts/test-close-real-v3-1910.mjs': 0,
   'scripts/test-support/desfaz-close-real-legenda-corte-1910.mjs': 2,
+  'scripts/test-support/desfaz-home-3-cards-1910.mjs': 2,
+  'scripts/test-support/desfaz-kit-bf-1910.mjs': 2,
 }
 export const APRESENTADOR_OLHOS_1910_ARQUIVOS = Object.keys(ACRESCIMOS_APRESENTADOR_OLHOS_1910)
 /** Arquivos novos da entrega. */

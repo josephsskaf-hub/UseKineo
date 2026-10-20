@@ -7,8 +7,8 @@
  ],
  "app/(dashboard)/ads/v2/page.tsx": [
   [
-   "  return <AdsPresenterAllProvider all={isAdsInternalEmail(user.email)}><AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} /></AdsPresenterAllProvider> // KINEO-APRESENTADOR-OLHOS-1910",
-   "  return <AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} />"
+   "  return <AdsPresenterAllProvider all={isAdsInternalEmail(user.email)}><AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} entry={entry} /></AdsPresenterAllProvider> // KINEO-APRESENTADOR-OLHOS-1910 — o provedor \"interna?\" em volta (a entrada dos cards da home segue igual)",
+   "  return <AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} entry={entry} /> // KINEO-HOME-3-CARDS-1910 — + entry"
   ]
  ],
  "components/ads/AdsPresenterPicker.tsx": [
@@ -101,8 +101,8 @@
  ],
  "scripts/test-close-real-v3-1910.mjs": [
   [
-   "  const tocados = git('diff', '--name-only', CLOSE_REAL_V3_1910_BASE, git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, 'HEAD').trim().split('\\n').filter(Boolean)[0] || 'HEAD').trim().split('\\n').concat(git('diff', '--name-only', 'HEAD').trim().split('\\n')).filter(Boolean) // reancorado KINEO-APRESENTADOR-OLHOS-1910: mede até o último commit desta entrega (era ..'HEAD'; os olhos abertos do apresentador v2 vieram depois, com guardião próprio)",
-   "  const tocados = git('diff', '--name-only', CLOSE_REAL_V3_1910_BASE, 'HEAD').trim().split('\\n').concat(git('diff', '--name-only', 'HEAD').trim().split('\\n')).filter(Boolean)"
+   "  const tocados = git('diff', '--name-only', CLOSE_REAL_V3_1910_BASE, git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, 'HEAD').trim().split('\\n').filter(Boolean)[0] || 'HEAD').trim().split('\\n').concat(git('diff', '--name-only', 'HEAD').trim().split('\\n')).filter(Boolean).filter((f) => !diffSoHome3Cards1910(git('diff', '-U0', '--no-color', CLOSE_REAL_V3_1910_BASE, '--', f), f)) // reancorado KINEO-HOME-3-CARDS-1910 — arquivo cujo diff (base até a árvore) é só desta entrega (todo bloco com a marca) fora da lista · reancorado KINEO-APRESENTADOR-OLHOS-1910: mede até o último commit desta entrega (era ..'HEAD'; os olhos abertos do apresentador v2 vieram depois, com guardião próprio)",
+   "  const tocados = git('diff', '--name-only', CLOSE_REAL_V3_1910_BASE, 'HEAD').trim().split('\\n').concat(git('diff', '--name-only', 'HEAD').trim().split('\\n')).filter(Boolean).filter((f) => !diffSoHome3Cards1910(git('diff', '-U0', '--no-color', CLOSE_REAL_V3_1910_BASE, '--', f), f)) // reancorado KINEO-HOME-3-CARDS-1910 — arquivo cujo diff (base até a árvore) é só desta entrega (todo bloco com a marca) fora da lista"
   ]
  ]
 }
