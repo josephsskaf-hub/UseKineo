@@ -15,15 +15,11 @@ import { fileURLToPath } from 'node:url'
 
 export const MARCA_HOME_3_CARDS_1910 = 'KINEO-HOME-3-CARDS-1910'
 
-/** A base da entrega (origin/main de 19/10, KINEO-META95-IDEIA-1910 no ar). */
-export const HOME_3_CARDS_1910_BASE = '9ddb24c7e2cb4f9e0e5ef7f17a84ae2dddfd5b0a'
+/** A base da entrega: a fila entrega-atual de 19/10 (origin/main 9ddb24c7e + KINEO-KIT-BF-1910), mesclada nesta branch. */
+export const HOME_3_CARDS_1910_BASE = '719eb5b509703ddc802102363a2603de4882c38c'
 
 /** Arquivos que a entrega toca, com a contagem EXATA de acréscimos marcados (as trocas estão no JSON). */
 export const ACRESCIMOS_HOME_3_CARDS_1910 = {
-  'scripts/test-filmes-f1f3-ajuste-1910.mjs': 1,
-  'scripts/test-support/desfaz-meta95-ideia-1910.mjs': 2,
-  'scripts/test-filmes-f1-virgula-1910.mjs': 0,
-  'scripts/test-filmes-f1f4-1910.mjs': 1,
   'app/(dashboard)/ads/v2/AdsV2Client.tsx': 3,
   'app/(dashboard)/ads/v2/AdsV2Simple.tsx': 6,
   'app/(dashboard)/ads/v2/page.tsx': 6,
@@ -32,7 +28,6 @@ export const ACRESCIMOS_HOME_3_CARDS_1910 = {
   'lib/ads/v2Contract.ts': 5,
   'lib/ads/v2PlanCore.ts': 7,
   'lib/ads/v2StartCore.ts': 2,
-  // guardiões reancorados (KINEO-HOME-3-CARDS-1910): o import do desfaz é acréscimo; as linhas reescritas estão no JSON
   'scripts/test-ads-fiel-2-1510.mjs': 1,
   'scripts/test-ads-fiel-3-1510.mjs': 1,
   'scripts/test-ads-fiel-4-1510.mjs': 1,
@@ -54,10 +49,15 @@ export const ACRESCIMOS_HOME_3_CARDS_1910 = {
   'scripts/test-apresentador-v2-ajuste-3-1710.mjs': 1,
   'scripts/test-apresentador-v2-libera-1910.mjs': 1,
   'scripts/test-business-depois-da-amostra.mjs': 1,
-  'scripts/test-close-real-v3-1910.mjs': 1,
+  'scripts/test-close-real-v3-1910.mjs': 2,
   'scripts/test-duas-portas-1310.mjs': 1,
+  'scripts/test-filmes-f1-virgula-1910.mjs': 0,
+  'scripts/test-filmes-f1f3-ajuste-1910.mjs': 1,
+  'scripts/test-filmes-f1f4-1910.mjs': 1,
   'scripts/test-home-clips-first-2026-10-05.mjs': 1,
   'scripts/test-juiz-grade-1610.mjs': 1,
+  'scripts/test-support/desfaz-close-real-legenda-corte-1910.mjs': 2,
+  'scripts/test-support/desfaz-meta95-ideia-1910.mjs': 2,
 }
 /** [linha nova (inteira), linha da base] por arquivo. */
 export const TROCAS_HOME_3_CARDS_1910 = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-home-3-cards-1910-trocas.json'), 'utf8'))

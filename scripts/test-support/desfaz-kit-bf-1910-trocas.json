@@ -1,0 +1,42 @@
+{
+ "__acrescimos": {
+  "lib/ads/v2PlanCore.ts": 11,
+  "lib/ads/v2Brief.ts": 4,
+  "lib/ads/v2Advance.ts": 5,
+  "app/(dashboard)/ads/v2/AdsV2Simple.tsx": 22,
+  "scripts/test-support/desfaz-close-real-legenda-corte-1910.mjs": 2,
+  "scripts/test-close-real-v3-1910.mjs": 2,
+  "scripts/test-support/desfaz-meta95-ideia-1910.mjs": 2,
+  "scripts/test-filmes-f1-virgula-1910.mjs": 0
+ },
+ "lib/ads/v2Brief.ts": [
+  [
+   "  const copyMsgs = adsV2KitBfCopyMessages(buildV2CopyMessages(brief, args.languageName, opts), args.kitBf) // KINEO-KIT-BF-1910 — + a oferta 1× e o ângulo da variação, antes da linha da resposta (sem kit = o MESMO pedido)",
+   "  const copyMsgs = buildV2CopyMessages(brief, args.languageName, opts)"
+  ]
+ ],
+ "app/(dashboard)/ads/v2/AdsV2Simple.tsx": [
+  [
+   "  const baseSig = JSON.stringify({ draftKey, sector, presenter: presenterOn, items: inAd.map((p) => [p.key, focalSig(p)]), style, ...(presenterOn && presenterPick ? { presenterPick } : {}), ...(format !== '9:16' ? { format } : {}), ...(closeRealOn ? { closeReal: true } : {}), ...(kitOfferT ? { kitOffer: kitOfferT } : {}) }) // KINEO-ADS-MELHORIAS-1410 — outro formato = planejar de novo · KINEO-CLOSE-REAL-1910 — trocar para/do Close real = planejar de novo; era: a mesma linha sem a chave closeReal · KINEO-KIT-BF-1910 — + a oferta do kit (mudou = planejar de novo; vazia = a assinatura de antes)",
+   "  const baseSig = JSON.stringify({ draftKey, sector, presenter: presenterOn, items: inAd.map((p) => [p.key, focalSig(p)]), style, ...(presenterOn && presenterPick ? { presenterPick } : {}), ...(format !== '9:16' ? { format } : {}), ...(closeRealOn ? { closeReal: true } : {}) }) // KINEO-ADS-MELHORIAS-1410 — outro formato = planejar de novo · KINEO-CLOSE-REAL-1910 — trocar para/do Close real = planejar de novo; era: a mesma linha sem a chave closeReal"
+  ],
+  [
+   "        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}), ...(format !== '9:16' ? { format } : {}), ...(closeRealOn ? { close_real: true } : {}), ...(kitOfferT ? { offer: kitOfferT } : {}) }, // KINEO-ADS-MELHORIAS-1410 — o formato só fora do 9:16 · KINEO-CLOSE-REAL-1910 — + o Close do produto real; era: a mesma linha sem close_real · KINEO-KIT-BF-1910 — + a oferta do kit (só com oferta)",
+   "        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}), ...(format !== '9:16' ? { format } : {}), ...(closeRealOn ? { close_real: true } : {}) }, // KINEO-ADS-MELHORIAS-1410 — o formato só fora do 9:16 · KINEO-CLOSE-REAL-1910 — + o Close do produto real; era: a mesma linha sem close_real"
+  ],
+  [
+   "  const shownCost = kitN > 1 ? adsV2KitBfTotal(kitN, cost) : variations && three ? variationsPrice(cost) : cost // KINEO-KIT-BF-1910 — N variações do kit = N × o preço do nível (o total ANTES de confirmar)",
+   "  const shownCost = variations && three ? variationsPrice(cost) : cost"
+  ],
+  [
+   "  const costLine = adsV2CostLine({ tier, balance, sample: !!scopy, group: kitN > 1 ? adsV2KitBfTotal(kitN, cost) : variations && three ? variationsPrice(cost) : null }) // KINEO-KIT-BF-1910 — o custo da prévia ao vivo também mostra o total das N",
+   "  const costLine = adsV2CostLine({ tier, balance, sample: !!scopy, group: variations && three ? variationsPrice(cost) : null })"
+  ]
+ ],
+ "scripts/test-filmes-f1-virgula-1910.mjs": [
+  [
+   "  const alheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA}`, '--grep=KINEO-CLOSE-REAL-LEGENDA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-KIT-BF-1910' /* reancorado KINEO-KIT-BF-1910: o commit do kit (que reancora o guardião da rodada 3) não é a versão alheia */, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } } // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a versão 'alheia' pula também os commits da legenda menor do Close real",
+   "  const alheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA}`, '--grep=KINEO-CLOSE-REAL-LEGENDA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } } // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a versão 'alheia' pula também os commits da legenda menor do Close real"
+  ]
+ ]
+}

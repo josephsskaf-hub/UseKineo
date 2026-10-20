@@ -51,6 +51,8 @@ import { isAdsSampleRef } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-0
 import { adsSampleWatermarkSource } from '@/lib/ads/sampleEntry' // KINEO-HOME-3-CARDS-1910 — a marca-d'água da amostra fora do Close real (a com a pessoa)
 import { ADS_V2_CLOSE_REAL_WATERMARK, adsV2CloseRealOf, buildAdV2CloseRealSource } from '@/lib/ads/v2CloseReal' // KINEO-CLOSE-REAL-1910 — o Close do produto real (zero IA de vídeo; a amostra grátis com marca-d'água)
 import { adsV2CloseRealCardName, adsV2CloseRealCta } from '@/lib/ads/v2CloseReal' // KINEO-CLOSE-REAL-AJUSTE-1910 — o nome e a chamada do cartão próprio do Close real
+import { adsV2KitBfOfPlan } from '@/lib/ads/v2KitBf' // KINEO-KIT-BF-1910 — o Kit Black Friday: a oferta gravada no plano do pedido (plan.kitBf)
+import { adsV2KitBfApplyMontage } from '@/lib/ads/v2KitBfMontage' // KINEO-KIT-BF-1910 — o selo no gancho e a oferta grande no cartão (camada por cima do source pronto; oferta vazia = o mesmo source)
 // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator de IA (lib pura): a linha dele, quando desiste, a voz que cabe e a ordem dos inserts.
 import {
   ADS_V2_PRESENTER_GIVEUP_MS,
@@ -1237,10 +1239,13 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
     const crBoxesP = crServer ? crServer.adsV2CloseRealPhotoBoxes({ userId: order.user_id, photos: closeRealPlan.photos.map((u) => ({ url: u, footageId: (order.photos ?? []).find((ph) => ph && typeof ph.url === 'string' && ph.url.trim() === u)?.footage_id ?? '' })) }).catch(() => null) : Promise.resolve(null) // KINEO-CLOSE-REAL-V3-1910 — a caixa do produto em cada foto (a legenda desvia dela), em paralelo com o gancho; nunca lança
     const hero = crServer ? await crServer.adsV2CloseRealHero({ userId: order.user_id, orderId: order.id, product: closeRealPlan.product }) : null // KINEO-CLOSE-REAL-1910 — nunca lança
     const crBoxes = await crBoxesP // KINEO-CLOSE-REAL-V3-1910
+    const kitBf = adsV2KitBfOfPlan(plan) // KINEO-KIT-BF-1910 — null = pedido sem kit (a montagem de sempre)
+    const kitCardUrl = hero && kitBf?.offer ? await import('@/lib/ads/v2KitBfServer').then((m) => m.adsV2KitBfCardUrl({ userId: order.user_id, orderId: order.id, product: closeRealPlan.product })).catch(() => null) : null // KINEO-KIT-BF-1910 — o fundo do cartão com oferta (o recorte do cache); falhou = o cartão de sempre
     closeRealHero = hero ? 'cutout' : 'photo' // KINEO-CLOSE-REAL-1910
     const crFrame = renderOutputSpecFor('9:16') // KINEO-CLOSE-REAL-1910 — o Close real é só vertical
     try { // KINEO-CLOSE-REAL-1910
       closeRealSource = buildAdV2CloseRealSource({ width: crFrame.width, height: crFrame.height, heroUrl: hero?.url ?? null, heroFallbackUrl: closeRealPlan.product?.url ?? closeRealPlan.photos[0], photos: closeRealPlan.photos, phrases: (plan.overlays ?? []).map((o) => (o && typeof o.text === 'string' ? o.text : '')), fontFamily: captionFontFor(language), cardUrl: order.card_url, cardSeconds: ADS_V2_CARD_SECONDS, musicUrl, musicTrimStart: adsV2MusicTrimStart(musicUrl), voiceUrl, voiceSeconds, watermark: isAdsSampleRef(order.billing_ref) ? ADS_V2_CLOSE_REAL_WATERMARK : null, narration, closeCard: hero?.cardUrl && adsV2CloseRealCardName(order.brief?.business) ? { url: hero.cardUrl, name: adsV2CloseRealCardName(order.brief?.business), cta: adsV2CloseRealCta(language), ink: hero.ink } : null, photoBoxes: crBoxes }) // KINEO-CLOSE-REAL-V3-1910 — + a cor do botão (ink, o tom da embalagem) e a caixa do produto em cada foto (photoBoxes: a legenda nunca cobre o produto)
+      if (closeRealSource && kitBf?.offer) closeRealSource = adsV2KitBfApplyMontage(closeRealSource, { offer: kitBf.offer, heroRect: hero?.rect ?? null, kitCardUrl }) // KINEO-KIT-BF-1910 — o selo da oferta no gancho (fora do produto) e a oferta grande no cartão
     } catch (e) { // KINEO-CLOSE-REAL-1910
       await failAdsV2Order(admin, order, `montage_invalid:${e instanceof Error ? e.message : String(e)}`, '/lib/ads/v2Advance') // KINEO-CLOSE-REAL-1910
       return // KINEO-CLOSE-REAL-1910

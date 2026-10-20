@@ -12,9 +12,10 @@
 //   R  O RESTO intocado: Apresentador, v2PresenterV2, adV2Montage, o fecho fora do Close real e a voz cedo dos outros pedidos;
 //   D  desfaz exato + novos + marca + encadeamento (os guardiões byte a byte tiram esta camada PRIMEIRO);
 //   M  mutantes (todos APLICADOS e VERMELHOS).
-import { diffSoHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — os 3 cards da home (+ amostra pela entrada do card) saem do diff/leitura em memória
+import { diffSoHome3Cards1910, semHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — os 3 cards da home (+ amostra pela entrada do card) saem do diff/leitura em memória
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
+import { semKitBf1910, KIT_BF_1910_ARQUIVOS } from './test-support/desfaz-kit-bf-1910.mjs' // reancorado KINEO-KIT-BF-1910 — o Kit Black Friday (19/10) toca v2Brief/v2PlanCore só com linhas marcadas: desfeitas, o arquivo é o de antes
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import zlib from 'node:zlib'
@@ -250,6 +251,8 @@ const provaBotao = (over = {}) => {
 // ── R: o resto ──────────────────────────────────────────────────────────────────────────────────────────────────────
 const provaResto = () => {
   const tocados = git('diff', '--name-only', CLOSE_REAL_V3_1910_BASE, 'HEAD').trim().split('\n').concat(git('diff', '--name-only', 'HEAD').trim().split('\n')).filter(Boolean).filter((f) => !diffSoHome3Cards1910(git('diff', '-U0', '--no-color', CLOSE_REAL_V3_1910_BASE, '--', f), f)) // reancorado KINEO-HOME-3-CARDS-1910 — arquivo cujo diff (base até a árvore) é só desta entrega (todo bloco com a marca) fora da lista
+  tocados.splice(0, tocados.length, ...tocados.filter((f) => !(KIT_BF_1910_ARQUIVOS.includes(f) && lf(semKitBf1910(readFileSync(join(ROOT, f), 'utf8'), f)) === base(f)))) // reancorado KINEO-KIT-BF-1910 — arquivo tocado SÓ pelo kit (desfeito = a base desta entrega) não conta como tocado aqui
+  tocados.splice(0, tocados.length, ...tocados.filter((f) => !(KIT_BF_1910_ARQUIVOS.includes(f) && lf(semKitBf1910(semHome3Cards1910(readFileSync(join(ROOT, f), 'utf8'), f), f)) === base(f)))) // reancorado KINEO-HOME-3-CARDS-1910 — tocado pelo kit E pelos 3 cards: desfeitas as duas camadas (a mais nova primeiro) = a base desta entrega
   const intocados = ['lib/ads/v2PresenterV2.ts', 'lib/ads/adV2Montage.ts', 'lib/ads/v2Presenter.ts', 'lib/ads/v2Brief.ts', 'lib/ads/v2PlanCore.ts', 'lib/compose.ts', 'lib/ttsFallback.ts', 'lib/avatar/voice.ts'].every((f) => !tocados.includes(f))
   // no avanço: o corpo de adsV2NarrationVoice é o MESMO da base (a voz do Apresentador não mudou); só o invólucro do Close real e o bloco da montagem dele
   const corpo = (s) => s.slice(s.indexOf('async function adsV2NarrationVoice('), s.indexOf('\n}\n', s.indexOf('async function adsV2NarrationVoice(')))

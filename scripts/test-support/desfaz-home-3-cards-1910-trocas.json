@@ -1,56 +1,28 @@
 {
- "app/(dashboard)/ads/v2/AdsV2Client.tsx": [
+ "scripts/test-filmes-f1f3-ajuste-1910.mjs": [
   [
-   "export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null, business = null, entry = null /* KINEO-HOME-3-CARDS-1910 */ }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp; business?: AdsBusinessOffer | null; entry?: 'product' | 'ugc' | null }) {",
-   "export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null, business = null }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp; business?: AdsBusinessOffer | null }) {"
+   "  const rdAlheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, '--grep=KINEO-CLOSE-REAL-V3-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-HOME-3-CARDS-1910' /* reancorado KINEO-HOME-3-CARDS-1910: pula os commits dos 3 cards */, 'HEAD', '--', p]).trim(); return sha ? lf(semCloseRealV3_1910(git(['show', `${sha}:${p}`]), p)) : null } catch { return null } } // KINEO-CLOSE-REAL-V3-1910 — reancorado: a versão 'alheia' pula também os commits da rodada 3 do Close real (e sai sem a camada dela) · KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo",
+   "  const rdAlheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, '--grep=KINEO-CLOSE-REAL-V3-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, 'HEAD', '--', p]).trim(); return sha ? lf(semCloseRealV3_1910(git(['show', `${sha}:${p}`]), p)) : null } catch { return null } } // KINEO-CLOSE-REAL-V3-1910 — reancorado: a versão 'alheia' pula também os commits da rodada 3 do Close real (e sai sem a camada dela) · KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo"
+  ],
+  [
+   "    const vivo = semHome3Cards1910(rd(p), p) // reancorado KINEO-HOME-3-CARDS-1910 — sem a camada dos 3 cards (mais nova), em memória",
+   "    const vivo = rd(p)"
   ]
  ],
- "app/(dashboard)/ads/v2/AdsV2Simple.tsx": [
+ "scripts/test-filmes-f1-virgula-1910.mjs": [
   [
-   "  const scopy: AdsSampleCopy | null = sample ? (samplePresenter ? { ...adsSampleCopy(lang), note: adsSamplePresenterNote(lang) } : ADS_V2_CLOSE_REAL_LIVE ? { ...adsSampleCopy(lang), note: adsSampleCopy(lang).closeReal } : adsSampleCopy(lang)) : null // KINEO-CLOSE-REAL-1910 · KINEO-HOME-3-CARDS-1910 — + a linha da amostra com a pessoa — a amostra é o Close real (1 por conta, 15 s, marca-d'água); era: const scopy: AdsSampleCopy | null = sample ? adsSampleCopy(lang) : null",
-   "  const scopy: AdsSampleCopy | null = sample ? (ADS_V2_CLOSE_REAL_LIVE ? { ...adsSampleCopy(lang), note: adsSampleCopy(lang).closeReal } : adsSampleCopy(lang)) : null // KINEO-CLOSE-REAL-1910 — a amostra é o Close real (1 por conta, 15 s, marca-d'água); era: const scopy: AdsSampleCopy | null = sample ? adsSampleCopy(lang) : null"
-  ],
-  [
-   "  const [adFormatChoice, setAdFormatChoice] = useState<AdsV2AdFormat>(() => (entry === 'ugc' && ADS_V2_PRESENTER_PUBLIC ? 'presenter' : entry === 'product' ? 'close_real' : adsV2DefaultAdFormat({ sample, presenterPublic: ADS_V2_PRESENTER_PUBLIC }))) /* KINEO-HOME-3-CARDS-1910 — o card da home escolhe o formato inicial */ // KINEO-CLOSE-REAL-1910 — Apresentador (pagante) ou Close real (amostra); estilos e cenas de IA = \"Avançado\"",
-   "  const [adFormatChoice, setAdFormatChoice] = useState<AdsV2AdFormat>(() => adsV2DefaultAdFormat({ sample, presenterPublic: ADS_V2_PRESENTER_PUBLIC })) // KINEO-CLOSE-REAL-1910 — Apresentador (pagante) ou Close real (amostra); estilos e cenas de IA = \"Avançado\""
-  ],
-  [
-   "  const adFormat: AdsV2AdFormat = samplePresenter ? 'presenter' : adsV2EffectiveAdFormat(adFormatChoice, sample) // KINEO-CLOSE-REAL-1910 · KINEO-HOME-3-CARDS-1910 — a amostra pelo card UGC é o Apresentador — a amostra não escolhe: é o Close real",
-   "  const adFormat: AdsV2AdFormat = adsV2EffectiveAdFormat(adFormatChoice, sample) // KINEO-CLOSE-REAL-1910 — a amostra não escolhe: é o Close real"
-  ],
-  [
-   "        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}), ...(format !== '9:16' ? { format } : {}), ...(closeRealOn ? { close_real: true } : {}), ...(samplePresenter ? { sample_entry: 'ugc' } : {}) }, // KINEO-HOME-3-CARDS-1910 — a entrada UGC da amostra (o servidor confere) · KINEO-ADS-MELHORIAS-1410 — o formato só fora do 9:16 · KINEO-CLOSE-REAL-1910 — + o Close do produto real; era: a mesma linha sem close_real",
-   "        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}), ...(format !== '9:16' ? { format } : {}), ...(closeRealOn ? { close_real: true } : {}) }, // KINEO-ADS-MELHORIAS-1410 — o formato só fora do 9:16 · KINEO-CLOSE-REAL-1910 — + o Close do produto real; era: a mesma linha sem close_real"
-  ],
-  [
-   "              {ADS_V2_CLOSE_REAL_LIVE ? <AdsAdFormatPicker value={adFormat} onChange={(v) => { setAdFormatChoice(v); if (v === 'close_real') setThree(false) }} sample={sample} sampleFormat={sampleFormat /* KINEO-HOME-3-CARDS-1910 */} disabled={locked} copy={afc} presenterNote={adFormat === 'presenter' && ADS_V2_PRESENTER_PUBLIC ? presenterWhy : null} presenterOk={ADS_V2_PRESENTER_PUBLIC} /> : null}{/* KINEO-CLOSE-REAL-1910 — os 2 formatos padrão + o \"Avançado\" sem destaque */}",
-   "              {ADS_V2_CLOSE_REAL_LIVE ? <AdsAdFormatPicker value={adFormat} onChange={(v) => { setAdFormatChoice(v); if (v === 'close_real') setThree(false) }} sample={sample} disabled={locked} copy={afc} presenterNote={adFormat === 'presenter' && ADS_V2_PRESENTER_PUBLIC ? presenterWhy : null} presenterOk={ADS_V2_PRESENTER_PUBLIC} /> : null}{/* KINEO-CLOSE-REAL-1910 — os 2 formatos padrão + o \"Avançado\" sem destaque */}"
-  ],
-  [
-   "function AdsAdFormatPicker({ value, onChange, sample, sampleFormat = 'close_real' /* KINEO-HOME-3-CARDS-1910 */, disabled, copy, presenterNote, presenterOk }: { value: AdsV2AdFormat; onChange: (v: AdsV2AdFormat) => void; sample: boolean; sampleFormat?: AdsV2AdFormat; disabled: boolean; copy: ReturnType<typeof adsV2AdFormatCopy>; presenterNote: string | null; presenterOk: boolean }) { // KINEO-CLOSE-REAL-1910",
-   "function AdsAdFormatPicker({ value, onChange, sample, disabled, copy, presenterNote, presenterOk }: { value: AdsV2AdFormat; onChange: (v: AdsV2AdFormat) => void; sample: boolean; disabled: boolean; copy: ReturnType<typeof adsV2AdFormatCopy>; presenterNote: string | null; presenterOk: boolean }) { // KINEO-CLOSE-REAL-1910"
-  ],
-  [
-   "        {opts.map((f) => { const off = sample && f !== sampleFormat; /* KINEO-HOME-3-CARDS-1910 — na amostra só o formato da entrada abre (Apresentador pelo card UGC); era: sample && f !== 'close_real' */ const c = f === 'presenter' ? copy.presenter : copy.close_real; return ( /* KINEO-CLOSE-REAL-1910 — na amostra só o Close real abre */",
-   "        {opts.map((f) => { const off = sample && f !== 'close_real'; const c = f === 'presenter' ? copy.presenter : copy.close_real; return ( /* KINEO-CLOSE-REAL-1910 — na amostra só o Close real abre */"
+   "  const alheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA}`, '--grep=KINEO-CLOSE-REAL-LEGENDA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-KIT-BF-1910' /* reancorado KINEO-KIT-BF-1910: o commit do kit (que reancora o guardião da rodada 3) não é a versão alheia */, '--grep=KINEO-HOME-3-CARDS-1910' /* reancorado KINEO-HOME-3-CARDS-1910: pula os commits dos 3 cards */, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } } // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a versão 'alheia' pula também os commits da legenda menor do Close real",
+   "  const alheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA}`, '--grep=KINEO-CLOSE-REAL-LEGENDA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-KIT-BF-1910' /* reancorado KINEO-KIT-BF-1910: o commit do kit (que reancora o guardião da rodada 3) não é a versão alheia */, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } } // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a versão 'alheia' pula também os commits da legenda menor do Close real"
   ]
  ],
- "app/(dashboard)/ads/v2/page.tsx": [
+ "scripts/test-filmes-f1f4-1910.mjs": [
   [
-   "export default async function AdsV2Page({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) { // KINEO-HOME-3-CARDS-1910 — era: export default async function AdsV2Page() {",
-   "export default async function AdsV2Page() {"
+   "  const rdAlheio = (p) => { try { const sha = execFileSync('git', ['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F4_1910}`, '--grep=KINEO-CLOSE-REAL-AJUSTE-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-HOME-3-CARDS-1910' /* reancorado KINEO-HOME-3-CARDS-1910: pula os commits dos 3 cards */, '--', p], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); return sha ? lf(execFileSync('git', ['show', `${sha}:${p}`], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()) : null } catch { return null } } // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: a versão 'alheia' pula também os commits do ajuste do Close real // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo",
+   "  const rdAlheio = (p) => { try { const sha = execFileSync('git', ['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F4_1910}`, '--grep=KINEO-CLOSE-REAL-AJUSTE-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--', p], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); return sha ? lf(execFileSync('git', ['show', `${sha}:${p}`], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()) : null } catch { return null } } // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: a versão 'alheia' pula também os commits do ajuste do Close real // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo"
   ],
   [
-   "  if (!user) redirect(`/login?redirect=${encodeURIComponent(entry ? `/ads/v2?entry=${entry}` : '/ads/v2')}`) // KINEO-HOME-3-CARDS-1910 — era: encodeURIComponent('/ads/v2')",
-   "  if (!user) redirect(`/login?redirect=${encodeURIComponent('/ads/v2')}`)"
-  ],
-  [
-   "      await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/ads/v2', metadata: { stage: 'page', who: gate, reason, redirect: '/ads?from=v2', ...(entry ? { entry } : {}) } }) // KINEO-HOME-3-CARDS-1910 — + a entrada do card (a porta explica e oferece o plano)",
-   "      await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/ads/v2', metadata: { stage: 'page', who: gate, reason, redirect: '/ads?from=v2' } })"
-  ],
-  [
-   "  return <AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} entry={entry} /> // KINEO-HOME-3-CARDS-1910 — + entry",
-   "  return <AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} />"
+   "    const vivo = semHome3Cards1910(rd(p), p) // reancorado KINEO-HOME-3-CARDS-1910 — sem a camada dos 3 cards (mais nova), em memória",
+   "    const vivo = rd(p)"
   ]
  ],
  "lib/ads/v2PlanCore.ts": [
@@ -243,30 +215,58 @@
    "  const tocados = git('diff', '--name-only', JUIZ_GRADE_1610_BASE, TOPO).trim().split('\\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\\n').filter(Boolean))"
   ]
  ],
- "scripts/test-filmes-f1-virgula-1910.mjs": [
+ "app/(dashboard)/ads/v2/AdsV2Client.tsx": [
   [
-   "  const alheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA}`, '--grep=KINEO-CLOSE-REAL-LEGENDA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-HOME-3-CARDS-1910' /* reancorado KINEO-HOME-3-CARDS-1910: pula os commits dos 3 cards */, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } } // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a versão 'alheia' pula também os commits da legenda menor do Close real",
-   "  const alheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA}`, '--grep=KINEO-CLOSE-REAL-LEGENDA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } } // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a versão 'alheia' pula também os commits da legenda menor do Close real"
+   "export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null, business = null, entry = null /* KINEO-HOME-3-CARDS-1910 */ }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp; business?: AdsBusinessOffer | null; entry?: 'product' | 'ugc' | null }) {",
+   "export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null, business = null }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp; business?: AdsBusinessOffer | null }) {"
   ]
  ],
- "scripts/test-filmes-f1f4-1910.mjs": [
+ "app/(dashboard)/ads/v2/AdsV2Simple.tsx": [
   [
-   "  const rdAlheio = (p) => { try { const sha = execFileSync('git', ['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F4_1910}`, '--grep=KINEO-CLOSE-REAL-AJUSTE-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-HOME-3-CARDS-1910' /* reancorado KINEO-HOME-3-CARDS-1910: pula os commits dos 3 cards */, '--', p], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); return sha ? lf(execFileSync('git', ['show', `${sha}:${p}`], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()) : null } catch { return null } } // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: a versão 'alheia' pula também os commits do ajuste do Close real // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo",
-   "  const rdAlheio = (p) => { try { const sha = execFileSync('git', ['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F4_1910}`, '--grep=KINEO-CLOSE-REAL-AJUSTE-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--', p], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); return sha ? lf(execFileSync('git', ['show', `${sha}:${p}`], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()) : null } catch { return null } } // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: a versão 'alheia' pula também os commits do ajuste do Close real // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo"
+   "  const scopy: AdsSampleCopy | null = sample ? (samplePresenter ? { ...adsSampleCopy(lang), note: adsSamplePresenterNote(lang) } : ADS_V2_CLOSE_REAL_LIVE ? { ...adsSampleCopy(lang), note: adsSampleCopy(lang).closeReal } : adsSampleCopy(lang)) : null // KINEO-CLOSE-REAL-1910 · KINEO-HOME-3-CARDS-1910 — + a linha da amostra com a pessoa — a amostra é o Close real (1 por conta, 15 s, marca-d'água); era: const scopy: AdsSampleCopy | null = sample ? adsSampleCopy(lang) : null",
+   "  const scopy: AdsSampleCopy | null = sample ? (ADS_V2_CLOSE_REAL_LIVE ? { ...adsSampleCopy(lang), note: adsSampleCopy(lang).closeReal } : adsSampleCopy(lang)) : null // KINEO-CLOSE-REAL-1910 — a amostra é o Close real (1 por conta, 15 s, marca-d'água); era: const scopy: AdsSampleCopy | null = sample ? adsSampleCopy(lang) : null"
   ],
   [
-   "    const vivo = semHome3Cards1910(rd(p), p) // reancorado KINEO-HOME-3-CARDS-1910 — sem a camada dos 3 cards (mais nova), em memória",
-   "    const vivo = rd(p)"
+   "  const [adFormatChoice, setAdFormatChoice] = useState<AdsV2AdFormat>(() => (entry === 'ugc' && ADS_V2_PRESENTER_PUBLIC ? 'presenter' : entry === 'product' ? 'close_real' : adsV2DefaultAdFormat({ sample, presenterPublic: ADS_V2_PRESENTER_PUBLIC }))) /* KINEO-HOME-3-CARDS-1910 — o card da home escolhe o formato inicial */ // KINEO-CLOSE-REAL-1910 — Apresentador (pagante) ou Close real (amostra); estilos e cenas de IA = \"Avançado\"",
+   "  const [adFormatChoice, setAdFormatChoice] = useState<AdsV2AdFormat>(() => adsV2DefaultAdFormat({ sample, presenterPublic: ADS_V2_PRESENTER_PUBLIC })) // KINEO-CLOSE-REAL-1910 — Apresentador (pagante) ou Close real (amostra); estilos e cenas de IA = \"Avançado\""
+  ],
+  [
+   "  const adFormat: AdsV2AdFormat = samplePresenter ? 'presenter' : adsV2EffectiveAdFormat(adFormatChoice, sample) // KINEO-CLOSE-REAL-1910 · KINEO-HOME-3-CARDS-1910 — a amostra pelo card UGC é o Apresentador — a amostra não escolhe: é o Close real",
+   "  const adFormat: AdsV2AdFormat = adsV2EffectiveAdFormat(adFormatChoice, sample) // KINEO-CLOSE-REAL-1910 — a amostra não escolhe: é o Close real"
+  ],
+  [
+   "        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}), ...(format !== '9:16' ? { format } : {}), ...(closeRealOn ? { close_real: true } : {}), ...(kitOfferT ? { offer: kitOfferT } : {}), ...(samplePresenter ? { sample_entry: 'ugc' } : {}) }, // KINEO-HOME-3-CARDS-1910 — a entrada UGC da amostra (o servidor confere) · KINEO-ADS-MELHORIAS-1410 — o formato só fora do 9:16 · KINEO-CLOSE-REAL-1910 — + o Close do produto real; era: a mesma linha sem close_real · KINEO-KIT-BF-1910 — + a oferta do kit (só com oferta)",
+   "        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}), ...(format !== '9:16' ? { format } : {}), ...(closeRealOn ? { close_real: true } : {}), ...(kitOfferT ? { offer: kitOfferT } : {}) }, // KINEO-ADS-MELHORIAS-1410 — o formato só fora do 9:16 · KINEO-CLOSE-REAL-1910 — + o Close do produto real; era: a mesma linha sem close_real · KINEO-KIT-BF-1910 — + a oferta do kit (só com oferta)"
+  ],
+  [
+   "              {ADS_V2_CLOSE_REAL_LIVE ? <AdsAdFormatPicker value={adFormat} onChange={(v) => { setAdFormatChoice(v); if (v === 'close_real') setThree(false) }} sample={sample} sampleFormat={sampleFormat /* KINEO-HOME-3-CARDS-1910 */} disabled={locked} copy={afc} presenterNote={adFormat === 'presenter' && ADS_V2_PRESENTER_PUBLIC ? presenterWhy : null} presenterOk={ADS_V2_PRESENTER_PUBLIC} /> : null}{/* KINEO-CLOSE-REAL-1910 — os 2 formatos padrão + o \"Avançado\" sem destaque */}",
+   "              {ADS_V2_CLOSE_REAL_LIVE ? <AdsAdFormatPicker value={adFormat} onChange={(v) => { setAdFormatChoice(v); if (v === 'close_real') setThree(false) }} sample={sample} disabled={locked} copy={afc} presenterNote={adFormat === 'presenter' && ADS_V2_PRESENTER_PUBLIC ? presenterWhy : null} presenterOk={ADS_V2_PRESENTER_PUBLIC} /> : null}{/* KINEO-CLOSE-REAL-1910 — os 2 formatos padrão + o \"Avançado\" sem destaque */}"
+  ],
+  [
+   "function AdsAdFormatPicker({ value, onChange, sample, sampleFormat = 'close_real' /* KINEO-HOME-3-CARDS-1910 */, disabled, copy, presenterNote, presenterOk }: { value: AdsV2AdFormat; onChange: (v: AdsV2AdFormat) => void; sample: boolean; sampleFormat?: AdsV2AdFormat; disabled: boolean; copy: ReturnType<typeof adsV2AdFormatCopy>; presenterNote: string | null; presenterOk: boolean }) { // KINEO-CLOSE-REAL-1910",
+   "function AdsAdFormatPicker({ value, onChange, sample, disabled, copy, presenterNote, presenterOk }: { value: AdsV2AdFormat; onChange: (v: AdsV2AdFormat) => void; sample: boolean; disabled: boolean; copy: ReturnType<typeof adsV2AdFormatCopy>; presenterNote: string | null; presenterOk: boolean }) { // KINEO-CLOSE-REAL-1910"
+  ],
+  [
+   "        {opts.map((f) => { const off = sample && f !== sampleFormat; /* KINEO-HOME-3-CARDS-1910 — na amostra só o formato da entrada abre (Apresentador pelo card UGC); era: sample && f !== 'close_real' */ const c = f === 'presenter' ? copy.presenter : copy.close_real; return ( /* KINEO-CLOSE-REAL-1910 — na amostra só o Close real abre */",
+   "        {opts.map((f) => { const off = sample && f !== 'close_real'; const c = f === 'presenter' ? copy.presenter : copy.close_real; return ( /* KINEO-CLOSE-REAL-1910 — na amostra só o Close real abre */"
   ]
  ],
- "scripts/test-filmes-f1f3-ajuste-1910.mjs": [
+ "app/(dashboard)/ads/v2/page.tsx": [
   [
-   "  const rdAlheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, '--grep=KINEO-CLOSE-REAL-V3-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-HOME-3-CARDS-1910' /* reancorado KINEO-HOME-3-CARDS-1910: pula os commits dos 3 cards */, 'HEAD', '--', p]).trim(); return sha ? lf(semCloseRealV3_1910(git(['show', `${sha}:${p}`]), p)) : null } catch { return null } } // KINEO-CLOSE-REAL-V3-1910 — reancorado: a versão 'alheia' pula também os commits da rodada 3 do Close real (e sai sem a camada dela) · KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo",
-   "  const rdAlheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, '--grep=KINEO-CLOSE-REAL-V3-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, 'HEAD', '--', p]).trim(); return sha ? lf(semCloseRealV3_1910(git(['show', `${sha}:${p}`]), p)) : null } catch { return null } } // KINEO-CLOSE-REAL-V3-1910 — reancorado: a versão 'alheia' pula também os commits da rodada 3 do Close real (e sai sem a camada dela) · KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo"
+   "export default async function AdsV2Page({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) { // KINEO-HOME-3-CARDS-1910 — era: export default async function AdsV2Page() {",
+   "export default async function AdsV2Page() {"
   ],
   [
-   "    const vivo = semHome3Cards1910(rd(p), p) // reancorado KINEO-HOME-3-CARDS-1910 — sem a camada dos 3 cards (mais nova), em memória",
-   "    const vivo = rd(p)"
+   "  if (!user) redirect(`/login?redirect=${encodeURIComponent(entry ? `/ads/v2?entry=${entry}` : '/ads/v2')}`) // KINEO-HOME-3-CARDS-1910 — era: encodeURIComponent('/ads/v2')",
+   "  if (!user) redirect(`/login?redirect=${encodeURIComponent('/ads/v2')}`)"
+  ],
+  [
+   "      await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/ads/v2', metadata: { stage: 'page', who: gate, reason, redirect: '/ads?from=v2', ...(entry ? { entry } : {}) } }) // KINEO-HOME-3-CARDS-1910 — + a entrada do card (a porta explica e oferece o plano)",
+   "      await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/ads/v2', metadata: { stage: 'page', who: gate, reason, redirect: '/ads?from=v2' } })"
+  ],
+  [
+   "  return <AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} entry={entry} /> // KINEO-HOME-3-CARDS-1910 — + entry",
+   "  return <AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} />"
   ]
  ]
 }
