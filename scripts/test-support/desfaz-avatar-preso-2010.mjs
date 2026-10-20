@@ -6,8 +6,8 @@
 //   · ACRÉSCIMO — linha nova: sai inteira (contagem EXATA por arquivo);
 //   · TROCA — a linha da base foi reescrita: reconhecida INTEIRA, volta a ser o texto da base. Tabela em desfaz-avatar-preso-2010-trocas.json.
 // Só age nos arquivos declarados; qualquer outro texto passa igual (idempotente). Preserva CRLF. A marca NÃO contém a de nenhuma camada de antes.
-// ENCADEAMENTO: é a camada MAIS NOVA — semMenuUgc2010 (a cabeça da cadeia geral: home/Studio Ads/meta 95 → … → ugc-ajustes → menu-ugc) e
-// semMeta95Refazer1910 (a cabeça da cadeia do /api/compose, que semFilmesF1F4_1910 chama primeiro) chamam ESTE primeiro. Este não importa ninguém.
+// ENCADEAMENTO: é a camada MAIS NOVA — semMeta95Refazer1910 (a cabeça da cadeia do /api/compose, que semFilmesF1F4_1910 chama primeiro) chama
+// ESTE primeiro; semMenuUgc2010 (a cabeça da cadeia geral) chama semAvatarPreso2010NosGuardioes (só as reâncoras em scripts/). Este não importa ninguém.
 // O guardião scripts/test-avatar-preso-2010.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (AVATAR_PRESO_2010_BASE).
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -57,6 +57,12 @@ export function semAvatarPreso2010(texto, p) {
   if (trocadas !== trocas.size) throw new Error(`desfaz-avatar-preso-2010: ${rel} com ${trocadas} de ${trocas.size} troca(s) (conserto pela metade)`)
   const out = fora.join('\n')
   return crlf ? out.replace(/\n/g, '\r\n') : out
+}
+
+/** Só as reâncoras dos guardiões (arquivos em scripts/): é o que a cabeça da cadeia geral (semMenuUgc2010) chama. O /api/compose e a
+ * reservation.ts saem só pela cadeia do /api/compose (semMeta95Refazer1910) — a cadeia geral os lê como "a última versão alheia". */
+export function semAvatarPreso2010NosGuardioes(texto, p) {
+  return String(p ?? '').replace(/\\/g, '/').startsWith('scripts/') ? semAvatarPreso2010(texto, p) : texto
 }
 
 /** As linhas da BASE que a entrega reescreveu no arquivo (para os guardiões que só toleram acréscimo + trocas declaradas). */
