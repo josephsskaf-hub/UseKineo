@@ -21,6 +21,28 @@
    "        <div className=\"k3c-grid\">"
   ]
  ],
+ "scripts/test-avatar-preso-2010.mjs": [
+  [
+   "  const mudados = INTOCADOS.filter((rel) => { const b = base(rel); return b === null || semBebeQueFala2010(rd(rel), rel) !== b }) // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "  const mudados = INTOCADOS.filter((rel) => { const b = base(rel); return b === null || rd(rel) !== b })"
+  ],
+  [
+   "  const ruins = AVATAR_PRESO_2010_ARQUIVOS.filter((rel) => { try { return semAvatarPreso2010(semBebeQueFala2010(rd(rel), rel), rel) !== base(rel) } catch { return true } }) // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "  const ruins = AVATAR_PRESO_2010_ARQUIVOS.filter((rel) => { try { return semAvatarPreso2010(rd(rel), rel) !== base(rel) } catch { return true } })"
+  ],
+  [
+   "  const contagem = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => semBebeQueFala2010(rd(rel), rel).split('\\n').filter((l) => l.includes(MARCA)).length === ACRESCIMOS_AVATAR_PRESO_2010[rel] + (TROCAS_AVATAR_PRESO_2010[rel] ?? []).length) // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "  const contagem = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => rd(rel).split('\\n').filter((l) => l.includes(MARCA)).length === ACRESCIMOS_AVATAR_PRESO_2010[rel] + (TROCAS_AVATAR_PRESO_2010[rel] ?? []).length)"
+  ],
+  [
+   "  const semMarcaNova = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\\n'); const bs = new Set(b); return semBebeQueFala2010(rd(rel), rel).split('\\n').every((l) => bs.has(l) || l.includes(MARCA)) }) // reancorado KINEO-BEBE-QUE-FALA-2010 — as linhas da camada de 20/10 (mais nova) saem antes da contagem",
+   "  const semMarcaNova = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\\n'); const bs = new Set(b); return rd(rel).split('\\n').every((l) => bs.has(l) || l.includes(MARCA)) })"
+  ],
+  [
+   "  ok(/export function semMenuUgc2010\\(texto, p\\) \\{\\n(?:  texto = semBebeQueFala2010\\(texto, p\\)[^\\n]*\\n)?  texto = semAvatarPreso2010NosGuardioes\\(texto, p\\)/.test(MU) /* reancorado KINEO-BEBE-QUE-FALA-2010: a camada de 20/10 (mais nova) pode vir antes */ && /^import \\{ semAvatarPreso2010NosGuardioes \\} from '\\.\\/desfaz-avatar-preso-2010\\.mjs'/m.test(MU), 'D4b encadeado na cabeça da cadeia geral: semMenuUgc2010 tira as reâncoras desta camada (só scripts/) primeiro; o /api/compose segue intacto nela (é a última versão alheia)')",
+   "  ok(/export function semMenuUgc2010\\(texto, p\\) \\{\\n  texto = semAvatarPreso2010NosGuardioes\\(texto, p\\)/.test(MU) && /^import \\{ semAvatarPreso2010NosGuardioes \\} from '\\.\\/desfaz-avatar-preso-2010\\.mjs'/m.test(MU), 'D4b encadeado na cabeça da cadeia geral: semMenuUgc2010 tira as reâncoras desta camada (só scripts/) primeiro; o /api/compose segue intacto nela (é a última versão alheia)')"
+  ]
+ ],
  "scripts/test-cena-negacao-1510.mjs": [
   [
    "  relata('F toda linha nova/trocada da rota e do sceneTruth leva a marca', add.length > 0 && add.every((l) => l.includes(MARCA) || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */ || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || l.includes('KINEO-BEBE-QUE-FALA-2010') /* reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories (20/10) também é de depois da base; provado em scripts/test-bebe-que-fala-2010.mjs */), add.filter((l) => !l.includes(MARCA) && !linhaDaTrilha15s1610(l) && !l.includes('KINEO-META95-ASSUNTO-1910') && !l.includes('KINEO-BEBE-QUE-FALA-2010')).slice(0, 2).join(' | '))",

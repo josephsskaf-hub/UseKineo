@@ -265,7 +265,7 @@ console.log('\nD. desfaz, encadeamento e diff')
   const ruins = AVATAR_PRESO_2010_ARQUIVOS.filter((rel) => { try { return semAvatarPreso2010(semBebeQueFala2010(rd(rel), rel), rel) !== base(rel) } catch { return true } }) // reancorado KINEO-BEBE-QUE-FALA-2010
   ok(ruins.length === 0, `D1 cada arquivo tocado, desfeito, é EXATAMENTE a base ${AVATAR_PRESO_2010_BASE.slice(0, 9)}${ruins.length ? ' — ' + ruins.join(', ') : ''}`)
   ok(AVATAR_PRESO_2010_NOVOS.every((rel) => base(rel) === null && fs.existsSync(path.join(ROOT, rel))), 'D2 os arquivos novos existem e não existiam na base')
-  const contagem = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => semBebeQueFala2010(rd(rel), rel).split('\n').filter((l) => l.includes(MARCA)).length === ACRESCIMOS_AVATAR_PRESO_2010[rel] + (TROCAS_AVATAR_PRESO_2010[rel] ?? []).length)
+  const contagem = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => semBebeQueFala2010(rd(rel), rel).split('\n').filter((l) => l.includes(MARCA)).length === ACRESCIMOS_AVATAR_PRESO_2010[rel] + (TROCAS_AVATAR_PRESO_2010[rel] ?? []).length) // reancorado KINEO-BEBE-QUE-FALA-2010
   const semMarcaNova = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\n'); const bs = new Set(b); return semBebeQueFala2010(rd(rel), rel).split('\n').every((l) => bs.has(l) || l.includes(MARCA)) }) // reancorado KINEO-BEBE-QUE-FALA-2010 — as linhas da camada de 20/10 (mais nova) saem antes da contagem
   ok(contagem && semMarcaNova, 'D3 toda linha nova ou reescrita leva a marca, e a contagem bate (acréscimos + trocas)')
   const M95 = rd(F.meta95)

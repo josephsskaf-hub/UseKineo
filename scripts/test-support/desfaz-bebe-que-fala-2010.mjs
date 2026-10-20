@@ -29,6 +29,7 @@ export const ACRESCIMOS_BEBE_QUE_FALA_2010 = {
   'app/llms.txt/route.ts': 3,
   'app/sitemap.ts': 5,
   'components/home/HomeThreeCards.tsx': 4,
+  'scripts/test-avatar-preso-2010.mjs': 1,
   'scripts/test-cena-negacao-1510.mjs': 0,
   'scripts/test-contrato-classicos-1410.mjs': 0,
   'scripts/test-filmes-f1-virgula-1910.mjs': 0,
