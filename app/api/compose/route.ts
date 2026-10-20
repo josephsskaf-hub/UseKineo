@@ -1003,6 +1003,10 @@ export async function POST(req: NextRequest) {
     const cinematicUpstreamDebited = cinematicBirthClaim?.status === 'settled'
     let composeProviderAttempted = false
     const avatarUpstreamDebited = avatarBirthClaim !== null
+    // KINEO-AVATAR-PRESO-2010 [TRAVA 8.2 — vai do fundador 20/10 "vai pra tudo"] — o avatar/apresentador pré-pago monta pelo custo do NASCIMENTO
+    // KINEO-AVATAR-PRESO-2010 — (claim assinado do generate-avatar: 70 ou 110, já debitado), nunca pela régua de duração: o claim de montagem com
+    // KINEO-AVATAR-PRESO-2010 — 18 (15 s) contra 70 no nascimento fazia o /api/compose/status responder 503 para sempre (render 9087456e, 20/10).
+    const avatarPrepaidCost: number | null = avatarBirthClaim ? avatarBirthClaim.creditCost : null // KINEO-AVATAR-PRESO-2010
     const claimId = composeClaimId(authenticatedUserId, generationId)
     const submissionOwner = randomUUID()
     let submissionAuthority = ''
@@ -2088,7 +2092,7 @@ export async function POST(req: NextRequest) {
         // créditos presos (dois holds de 27). Ela se cadastrou às 04:35,
         // tentou três vezes e foi embora sem UM vídeo.
         // Toda reserva/cobrança tem de sair da MESMA função que criou o claim.
-        const prepaidReservation = await claimGenerationSubmission(creditCostForDuration(quality, true, duration), false)
+        const prepaidReservation = await claimGenerationSubmission(avatarPrepaidCost ?? creditCostForDuration(quality, true, duration), false) // KINEO-AVATAR-PRESO-2010 — avatar: o custo do nascimento; cinematic: a linha de sempre
         if (prepaidReservation.kind !== 'acquired') return prepaidReservation.response
       } else {
         const paidReservation = await reservePaidCreditSlot(creditCostForDuration(quality, true, duration))
@@ -3550,7 +3554,7 @@ export async function POST(req: NextRequest) {
     // ambiguous response can create and charge two jobs.
     // Mesmo motivo do bloco acima: o custo pretendido registrado no intent
     // precisa bater com o do claim, senão o settle diverge lá na frente.
-    const intendedCost = cinematicPrepaidCost ?? creditCostForDuration(quality, quality === 'fast' ? !isFreePlanFast : false, duration)
+    const intendedCost = cinematicPrepaidCost ?? avatarPrepaidCost ?? creditCostForDuration(quality, quality === 'fast' ? !isFreePlanFast : false, duration) // KINEO-AVATAR-PRESO-2010 — o claim de montagem e o intent do avatar levam o custo do nascimento
     const claim: SubmissionClaimResult = ownsSubmissionClaim
       ? { kind: 'acquired' }
       : await claimGenerationSubmission(intendedCost)

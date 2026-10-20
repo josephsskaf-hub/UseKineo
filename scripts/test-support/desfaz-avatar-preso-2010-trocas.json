@@ -1,0 +1,18 @@
+{
+  "app/api/compose/route.ts": [
+    [
+      "        const prepaidReservation = await claimGenerationSubmission(avatarPrepaidCost ?? creditCostForDuration(quality, true, duration), false) // KINEO-AVATAR-PRESO-2010 — avatar: o custo do nascimento; cinematic: a linha de sempre",
+      "        const prepaidReservation = await claimGenerationSubmission(creditCostForDuration(quality, true, duration), false)"
+    ],
+    [
+      "    const intendedCost = cinematicPrepaidCost ?? avatarPrepaidCost ?? creditCostForDuration(quality, quality === 'fast' ? !isFreePlanFast : false, duration) // KINEO-AVATAR-PRESO-2010 — o claim de montagem e o intent do avatar levam o custo do nascimento",
+      "    const intendedCost = cinematicPrepaidCost ?? creditCostForDuration(quality, quality === 'fast' ? !isFreePlanFast : false, duration)"
+    ]
+  ],
+  "lib/avatar/reservation.ts": [
+    [
+      "  if (birth.claim.quality !== quality || !avatarComposeCostMatchesBirth(birth.claim.creditCost, cost, quality, metadata.duration)) { // KINEO-AVATAR-PRESO-2010",
+      "  if (birth.claim.quality !== quality || birth.claim.creditCost !== cost) {"
+    ]
+  ]
+}
