@@ -29,6 +29,7 @@ import {
   ACRESCIMOS_MCP_STUDIO_2010, MARCA_MCP_STUDIO_2010, MCP_STUDIO_2010_ARQUIVOS, MCP_STUDIO_2010_BASE, MCP_STUDIO_2010_NOVOS, semMcpStudio2010,
 } from './test-support/desfaz-mcp-studio-2010.mjs'
 import { semMeta95Personagem2010, META95_PERSONAGEM_2010_ARQUIVOS, MARCA_META95_PERSONAGEM_2010 } from './test-support/desfaz-meta95-personagem-2010.mjs' // reancorado KINEO-META95-PERSONAGEM-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: a folha de personagem (20/10) entrou na fila depois e toca a rota do cinematic e o crítico; sai em memória antes do byte a byte, e os commits/arquivos dela ficam fora desta conta
+import { META95_PERSONAGEM_AJUSTE_2010_ARQUIVOS } from './test-support/desfaz-meta95-personagem-ajuste-2010.mjs' // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: os arquivos dos consertos da folha (desfaz próprio) ficam fora da conta do F3
 
 const require = createRequire(import.meta.url)
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..')
@@ -272,6 +273,7 @@ for (const rel of MCP_STUDIO_2010_NOVOS) {
   ok(fs.existsSync(path.join(ROOT, rel)) && base(rel) === null && read(rel).includes(MARCA_MCP_STUDIO_2010), `(F2) ${rel}: novo (não existia na base) e leva a marca`)
 }
 const changedExisting = git('diff', '--name-only', MCP_STUDIO_2010_BASE, 'HEAD').split('\n').filter(Boolean).filter((f) => base(f) !== null).filter((f) => !META95_PERSONAGEM_2010_ARQUIVOS.includes(f)) // reancorado KINEO-META95-PERSONAGEM-2010: os arquivos da folha de personagem (entrega de depois, com desfaz próprio) ficam fora desta conta
+changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !META95_PERSONAGEM_AJUSTE_2010_ARQUIVOS.includes(f))) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010: a entrega de depois (com desfaz próprio) fora desta conta
 ok(changedExisting.every((f) => MCP_STUDIO_2010_ARQUIVOS.includes(f)), `(F3) o diff contra a base só toca arquivos declarados (existentes alterados: ${changedExisting.join(', ') || 'nenhum ainda commitado'})`)
 const commits = git('log', '--format=%s', `${MCP_STUDIO_2010_BASE}..HEAD`).split('\n').filter(Boolean).filter((s) => !s.includes(MARCA_META95_PERSONAGEM_2010)) // reancorado KINEO-META95-PERSONAGEM-2010: os commits da folha de personagem levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes('KINEO-META95-PERSONAGEM-AJUSTE-2010'))) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: os commits dos consertos da folha levam a marca deles (o guardião deles confere)

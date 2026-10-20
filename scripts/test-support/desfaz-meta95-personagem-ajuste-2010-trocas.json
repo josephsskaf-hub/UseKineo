@@ -2,7 +2,7 @@
  "__acrescimos": {
   "app/api/generate-video-cinematic/route.ts": 9,
   "lib/cinematic/criticoStill.ts": 11,
-  "scripts/test-mcp-studio-2010.mjs": 1,
+  "scripts/test-mcp-studio-2010.mjs": 3,
   "scripts/test-meta95-personagem-2010.mjs": 1,
   "scripts/test-moderacao-2026-09-25.mjs": 1,
   "scripts/test-support/desfaz-filme-rapido-1710.mjs": 2,
