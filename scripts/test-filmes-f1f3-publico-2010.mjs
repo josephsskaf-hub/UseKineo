@@ -130,7 +130,7 @@ check('D1 cada arquivo tocado, desfeito (scripts/test-support/desfaz-filmes-f1f3
 check('D2 toda linha nova traz a marca; o diff da base até o último commit da entrega só toca a lista, os novos e o doc; lib/compose, hookFirstFrame, lyriaMusic, as rotas do compose/unlock e a cobrança intocados', () => {
   const tocados = git('diff', '--name-only', BASE, TOPO).trim().split('\n').concat(git('diff', '--name-only', 'HEAD').trim().split('\n').filter((f) => f && !diffSoFilmesF1F3Publico2010(git('diff', '-U0', '--no-color', 'HEAD', '--', f), f))).filter(Boolean)
   const permitidos = new Set([...FILMES_F1F3_PUBLICO_2010_ARQUIVOS, ...FILMES_F1F3_PUBLICO_2010_NOVOS, 'docs/FILMES-F1-F4-1910.md'])
-  const linhas = FILMES_F1F3_PUBLICO_2010_ARQUIVOS.every((f) => { const b = new Set(base(f).split('\n')); return rd(f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) })
+  const linhas = FILMES_F1F3_PUBLICO_2010_ARQUIVOS.every((f) => { const b = new Set(base(f).split('\n')); return semMeta95Escrita2010(rd(f), f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-META95-ESCRITA-2010 — reancorado: as linhas da legenda na escrita do roteiro (camada mais nova) saem em memória
   return tocados.length > 0 && tocados.every((f) => permitidos.has(f)) && linhas && !/KINEO-FILMES-F1-F4|KINEO-FILMES-F1F3-AJUSTE|KINEO-FILMES-F1-VIRGULA|KINEO-HOME/.test(MARCA) &&
     ['lib/compose.ts', 'lib/hookFirstFrame.ts', 'lib/lyriaMusic.ts', ROTA, UNLOCK, 'lib/engineCost.ts'].every((f) => !tocados.includes(f))
 })

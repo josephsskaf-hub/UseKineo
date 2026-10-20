@@ -33,6 +33,7 @@ export const ACRESCIMOS_META95_ESCRITA_2010 = {
   'scripts/test-filmes-f1-virgula-1910.mjs': 1,
   'scripts/test-filmes-f1f3-ajuste-1910.mjs': 0,
   'scripts/test-filmes-f1f3-publico-2010.mjs': 1,
+  'scripts/test-filmes-f1f4-1910.mjs': 0,
   'scripts/test-gancho-1q-2026-10-03.mjs': 1,
   'scripts/test-kling-duracao-2026-09-15.mjs': 0,
   'scripts/test-legenda-grafia-do-roteiro-2026-09-28.mjs': 0,
