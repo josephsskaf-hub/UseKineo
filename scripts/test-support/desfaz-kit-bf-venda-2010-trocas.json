@@ -1,0 +1,32 @@
+{
+ "__acrescimos": {
+  "app/(dashboard)/ads/v2/AdsV2Client.tsx": 2,
+  "app/api/events/route.ts": 1,
+  "app/api/stripe/checkout/route.ts": 4,
+  "app/api/stripe/webhook/route.ts": 8,
+  "app/pricing/PricingClient.tsx": 3,
+  "lib/billing/annualRefill.ts": 1
+ },
+ "app/api/stripe/checkout/route.ts": [
+  [
+   "    ? annualEarlyOfferPriceMinor(getAnnualPrice(tier, currency, region), monthlyPriceMinor(tier, currency, region)) // KINEO-KIT-BF-VENDA-2010 — na janela (até 21/11), o MENOR entre o anual vigente e 10 × o mensal; hoje o vigente (30%) vence em todo plano = o mesmo valor; era: ? getAnnualPrice(tier, currency, region)",
+   "    ? getAnnualPrice(tier, currency, region)"
+  ]
+ ],
+ "app/api/stripe/webhook/route.ts": [
+  [
+   "            if ((isAdsPass || isKitBf) && ((updateErr as { code?: string }).code === '42703' || new RegExp(ADS_ACCESS_COLUMN).test(updateErr.message ?? ''))) { // KINEO-KIT-BF-VENDA-2010 — o kit também escreve a coluna; era: if (isAdsPass && …",
+   "            if (isAdsPass && ((updateErr as { code?: string }).code === '42703' || new RegExp(ADS_ACCESS_COLUMN).test(updateErr.message ?? ''))) {"
+  ]
+ ],
+ "lib/billing/annualRefill.ts": [
+  [
+   "  ANNUAL_PRICES, TIER_PRICES, // KINEO-KIT-BF-VENDA-2010 — + TIER_PRICES (o piso da oferta \"2 meses grátis\"); era:   ANNUAL_PRICES,",
+   "  ANNUAL_PRICES,"
+  ],
+  [
+   "  if (cur === 'usd' && typeof annualAmountMinor === 'number' && annualAmountMinor > 0 && annualAmountMinor < annualEarlyOfferFloorMinor(ANNUAL_PRICES[tier].usd, TIER_PRICES[tier].usd)) { // KINEO-KIT-BF-VENDA-2010 — o preço da oferta \"2 meses grátis\" (quando vencer) recebe o grant CHEIO; hoje o piso = o anual vigente (o mesmo de antes); era: annualAmountMinor < ANNUAL_PRICES[tier].usd",
+   "  if (cur === 'usd' && typeof annualAmountMinor === 'number' && annualAmountMinor > 0 && annualAmountMinor < ANNUAL_PRICES[tier].usd) {"
+  ]
+ ]
+}
