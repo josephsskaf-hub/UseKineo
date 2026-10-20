@@ -9,6 +9,7 @@
 //     ser a da base.
 // Linha com a marca que não é acréscimo puro nem troca listada não existe por construção (o guardião
 // scripts/test-filme-rapido-1710.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE o pai do 1º commit da entrega).
+import { MARCA_META95_PERSONAGEM_2010 } from './desfaz-meta95-personagem-2010.mjs' // KINEO-META95-PERSONAGEM-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: linhaDoFilmeRapido1710 aceita a marca da folha de personagem como "linha de depois da base"
 import { MARCA_META95_IDEIA_1910 } from './desfaz-meta95-ideia-1910.mjs' // KINEO-META95-IDEIA-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: linhaDoFilmeRapido1710 aceita a marca da camada mais nova da rota do cinematic (o desfaz dela é encadeado em semMeta95Assunto1910)
 import { semMeta95Assunto1910 } from './desfaz-meta95-assunto-1910.mjs' // KINEO-META95-ASSUNTO-1910 — a camada do assunto traduzido (19/10) veio depois: sai PRIMEIRO (encadeado)
 export const MARCA_FILME_RAPIDO_1710 = 'KINEO-FILME-RAPIDO-1710'
@@ -405,6 +406,7 @@ export const TROCAS_FILME_RAPIDO_1710 = {
 
 /** A linha é desta entrega? (toda linha nova ou trocada leva a marca). */
 export function linhaDoFilmeRapido1710(l) {
+  if (typeof l === 'string' && l.includes(MARCA_META95_PERSONAGEM_2010)) return true // KINEO-META95-PERSONAGEM-2010: a folha de personagem (20/10) também é camada de depois da base
   if (typeof l === 'string' && l.includes(MARCA_META95_IDEIA_1910)) return true // KINEO-META95-IDEIA-1910: linha da camada mais nova da rota do cinematic também é de depois da base
   return typeof l === 'string' && l.includes(MARCA_FILME_RAPIDO_1710)
 }

@@ -186,6 +186,7 @@ for(const uncertain of [true,false]){
   const cached=[],signed=[]
   const module=evaluate(`export const publish=${publishNode.getText(generationAst)}`,{
     estrelaAtiva,estrelaSobretaxaDe:(s)=>(s===15?6:0),duracaoCobrada:15,
+    personagemRelatoFinal:null, // reancorado KINEO-META95-PERSONAGEM-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: o publicador ganhou a linha da folha de personagem (só com o relato; null = resposta de sempre)
     cinematicSubmissionUncertain:uncertain,cinematicSubmissionCache:{set:(k,v)=>cached.push(v)},cacheKey:'fixture-cache',
     claimFingerprint:'fixture-fingerprint',cost:25,claimQuality:'cinematic_ai',claimEngine:'fixture-engine',
     cinematicAdmin:{},serviceRoleKey:'fixture',user:{id:'fixture-user'},generationId:'fixture-generation',

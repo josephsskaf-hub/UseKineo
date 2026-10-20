@@ -12,6 +12,7 @@ import { readFileSync } from 'node:fs'
 import { semAvatarPreso2010NosGuardioes } from './desfaz-avatar-preso-2010.mjs' // KINEO-AVATAR-PRESO-2010 — a camada mais nova (20/10): a cabeça da cadeia tira as reâncoras dela primeiro
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semMeta95Personagem2010 } from './desfaz-meta95-personagem-2010.mjs' // KINEO-META95-PERSONAGEM-2010 — a folha de personagem (20/10) veio depois e toca o desfaz da ideia (lido pelas cadeias da home/kit): sai PRIMEIRO (arquivo fora da lista dela passa igual)
 
 export const MARCA_MENU_UGC_2010 = 'KINEO-MENU-UGC-2010'
 
@@ -45,6 +46,7 @@ export const MENU_UGC_2010_NOVOS = [
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semMenuUgc2010(texto, p) {
   texto = semAvatarPreso2010NosGuardioes(texto, p) // KINEO-AVATAR-PRESO-2010 — as reâncoras do avatar preso (20/10) nos guardiões saem PRIMEIRO (o /api/compose fica com a cadeia dele)
+  texto = semMeta95Personagem2010(texto, p) // KINEO-META95-PERSONAGEM-2010 — a camada mais nova sai primeiro
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_MENU_UGC_2010) || !MENU_UGC_2010_ARQUIVOS.includes(rel)) return texto
   const crlf = texto.includes('\r\n')

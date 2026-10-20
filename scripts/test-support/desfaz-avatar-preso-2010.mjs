@@ -15,8 +15,8 @@ import { fileURLToPath } from 'node:url'
 
 export const MARCA_AVATAR_PRESO_2010 = 'KINEO-AVATAR-PRESO-2010'
 
-/** A base da entrega: origin/main de 20/10 (KINEO-MENU-UGC-2010). */
-export const AVATAR_PRESO_2010_BASE = 'b7662b717a0d8513d9c59cc2527c7fd834a49f56'
+/** A base da entrega: origin/main de 20/10 depois do merge (KINEO-META95-PERSONAGEM-2010 + KINEO-MCP-STUDIO-2010 sobre KINEO-MENU-UGC-2010). */
+export const AVATAR_PRESO_2010_BASE = 'fbe47c4677d4af4cc231e41f2db542fbfd2ba476'
 
 /** [linha nova (inteira), linha da base] por arquivo. */
 export const TROCAS_AVATAR_PRESO_2010 = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-avatar-preso-2010-trocas.json'), 'utf8'))
