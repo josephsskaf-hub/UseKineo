@@ -23,6 +23,7 @@ import {
 // constantes da promessa "N product ads of 15 s"), fonte do número de mercado em lib/ads/ugcComparison.ts.
 import { BUSINESS_AD_SECONDS, BUSINESS_ADS_PER_MONTH, BUSINESS_PRICE_USD_MINOR } from '@/lib/businessPlan'
 import { businessUgcComparisonLine } from '@/lib/ads/ugcComparison'
+import { BF_EN_PATH, UGC_PILLAR_PATH } from '@/lib/seo/paginasUgc2010' // KINEO-PAGINAS-UGC-2010 — links para as páginas do UGC e do Kit Black Friday
 const UGC_LINE = businessUgcComparisonLine({ planPriceMinor: BUSINESS_PRICE_USD_MINOR, adsPerMonth: BUSINESS_ADS_PER_MONTH, seconds: BUSINESS_AD_SECONDS })
 
 const CSS = `
@@ -80,6 +81,8 @@ export default function PricingBusinessBlock({ onBuy, pending, switchLabel = nul
           <div className="kb-biz-links">
             <a href={BUSINESS_DFY_HREF}>Prefer we make it for you? →</a>
             <a href={BUSINESS_PAGE_PATH}>How Business works</a>
+            <a href={UGC_PILLAR_PATH} data-kineo="pricing-ugc-link">AI UGC ads: an AI person holds your product →</a>{/* KINEO-PAGINAS-UGC-2010 */}
+            <a href={BF_EN_PATH} data-kineo="pricing-bf-link">Black Friday ad kit →</a>{/* KINEO-PAGINAS-UGC-2010 */}
           </div>
         </div>
       </div>

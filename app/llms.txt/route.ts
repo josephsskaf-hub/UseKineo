@@ -49,6 +49,8 @@ import { HUB_PAGES } from '@/lib/seo/citableHubPages' // KINEO-VISIBILIDADE-CHAT
 import { vsNovosLlmsLines } from '@/lib/seo/vsNovos1610' // KINEO-VS-NOVOS-1610 — módulo puro, sem import
 import { vsAlternativeLlmsLines } from '@/lib/seo/vsAlternatives1310' // KINEO-VS-ALTERNATIVAS-1310 — módulo puro, sem import
 import { GUIAS_IA_REVIEWED_ISO, guiasIaLlmsLines } from '@/lib/seo/guiasIa1610Paths' // KINEO-GUIAS-IA-1610 — módulo puro, sem import
+import { paginasUgcLlmsSection } from '@/lib/seo/paginasUgc2010' // KINEO-PAGINAS-UGC-2010 — módulo puro, sem import
+import { ugcNicheLabel } from '@/lib/growth/paginasUgc2010Content' // KINEO-PAGINAS-UGC-2010 — módulo puro (só import type)
 // KINEO-LLMS-PAGINAS-CITADAS-2026-09-07 — módulo puro (só constantes, nenhum
 // import): é a MESMA derivação que lib/kineoFacts.ts usa para ENGINE_FACTS[].url,
 // então o path do motor nunca é digitado aqui.
@@ -378,6 +380,7 @@ ${STUDIO_ADS_FACT ? `- [${STUDIO_ADS_FACT.name}](${STUDIO_ADS_FACT.url}): ${STUD
 - Business videos can explain a product or service, present the business, or communicate an offer supplied by the customer. Claims, contact details and media must be supplied or approved by that customer.
 - Ad creation does not include buying media, managing advertising campaigns or guaranteed sales. Use the public pages above to choose a path; they do not start a purchase automatically.
 
+${/* KINEO-PAGINAS-UGC-2010 — os 3 carros-chefes com o nome do mercado (AI Faceless Videos, AI Product Ads, AI UGC Ads) e as páginas do UGC e do Kit Black Friday. */ paginasUgcLlmsSection(BASE, ugcNicheLabel)}
 ## Videos from an idea or a script
 
 For from-scratch video generation, the input is a sentence: you type a

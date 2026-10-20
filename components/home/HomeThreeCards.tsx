@@ -24,6 +24,7 @@ import {
   homeCardHref,
   type HomeCardId,
 } from '@/lib/ui/homeThreeCards'
+import { UGC_PILLAR_PATH, UGC_PILLAR_PT_PATH } from '@/lib/seo/paginasUgc2010' // KINEO-PAGINAS-UGC-2010 — o guia do AI UGC Ads ao lado do título dos cards
 
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)'
 
@@ -31,6 +32,8 @@ export const HOME_THREE_CARDS_CSS = `
 .klp .k3c{position:relative;z-index:1;padding:26px 0 8px}
 .k3c-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 2px 14px}
 .k3c-kicker{margin:0;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted,#5A5F67)}
+.k3c-more{font-size:13px;font-weight:700;color:var(--home-action,#0A5CFF);text-decoration:none;white-space:nowrap}
+.k3c-more:hover{text-decoration:underline}
 .k3c-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;max-width:95%;margin-inline:auto}
 .k3c-card{position:relative;display:block;aspect-ratio:5/6;border-radius:22px;overflow:hidden;isolation:isolate;background:#0B0E14;color:#fff;outline:none;border:1px solid var(--home-line,rgba(14,17,22,.08));box-shadow:0 1px 2px rgba(10,14,22,.06),0 22px 44px -26px rgba(10,14,22,.55);transition:transform .45s cubic-bezier(.2,.7,.2,1),box-shadow .45s cubic-bezier(.2,.7,.2,1)}
 .k3c-card:hover{transform:translateY(-4px);box-shadow:0 2px 4px rgba(10,14,22,.08),0 34px 60px -28px rgba(10,14,22,.62)}
@@ -126,7 +129,7 @@ export default function HomeThreeCards({ signedIn }: { signedIn: boolean }) {
     <section className="k3c" aria-label={copy('Choose what to make')} data-home-3-cards="1">
       <style dangerouslySetInnerHTML={{ __html: HOME_THREE_CARDS_CSS }} />
       <div className="wrap">
-        <div className="k3c-head"><p className="k3c-kicker"><UiLabel>Choose what to make</UiLabel></p></div>
+        <div className="k3c-head"><p className="k3c-kicker"><UiLabel>Choose what to make</UiLabel></p><Link className="k3c-more" href={language === 'pt' ? UGC_PILLAR_PT_PATH : UGC_PILLAR_PATH} data-home-ugc-guide="1"><UiLabel>How AI UGC ads work</UiLabel> →</Link></div>{/* KINEO-PAGINAS-UGC-2010 */}
         <div className="k3c-grid">
           {HOME_CARD_ORDER.map((card) => (
             <Link key={card} href={homeCardHref(card, signedIn)} className="k3c-card" data-home-card={card} onClick={() => track(card)}>
