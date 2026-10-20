@@ -41,6 +41,7 @@ import PricingAdsBlock from '@/components/pricing/PricingAdsBlock' // KINEO-FLUX
 import PricingCreditsBlock from '@/components/pricing/PricingCreditsBlock' // KINEO-FLUXO-NOVO-2026-09-25
 import TwoProductsPricing from '@/components/pricing/TwoProductsPricing' // KINEO-PRECOS-DOIS-PRODUTOS-2026-10-05
 import PricingBusinessBlock from '@/components/pricing/PricingBusinessBlock' // KINEO-BUSINESS-84-2026-10-09
+import { AnnualEarlyOfferBadge, KitBfBuyCard } from '@/components/ads/KitBfBuyCard' // KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday (US$ 49) e o selo do anual (só quando baixa o preço)
 import { AUTOPILOT_PUBLIC } from '@/lib/autopilotPublic' // KINEO-AUTOPILOT-FORA-2026-10-09
 // KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — o cartão que mostra o que o plano compra (imagens, clipes por motor, filmes).
 // KINEO-PRECOS-REFINO-2026-10-09 — o cartão calcula os próprios números (os harnesses de render trocam todo import de @/components por
@@ -1152,6 +1153,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         </div>
         {/* KINEO-CHECKOUT-CLAREZA-1610 — a política do anual colada no seletor saiu: a frase única da garantia (que já diz os
             14 dias do anual) está na faixa de confiança do topo e sob o botão de cada cartão logo abaixo. */}
+        {billing === 'annual' ? <AnnualEarlyOfferBadge /> : null}{/* KINEO-KIT-BF-VENDA-2010 — "2 meses grátis no anual" até 21/11: só pinta num plano em que baixa o preço (hoje, nenhum: o anual de 30% já vence) */}
         <p className="-mt-5 mb-7 text-center text-[11.5px] font-semibold text-[var(--muted)]">
           {CHECKOUT_CURRENCY_DISCLOSURE}
         </p>
@@ -1773,6 +1775,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             KINEO-TROCA-BUSINESS-2026-10-10 — quem já assina vê "Switch to Business" / "Current plan" e troca sem checkout. */}
         <PricingBusinessBlock onBuy={() => handleBuy('business')} pending={purchasing === 'business'} switchLabel={switching === 'business' ? 'Switching…' : planSwitchLabel(planSwitch, 'business', 'Business')} switchNote={planSwitch.subscribed && planSwitch.tier !== 'business'} />
 
+        <div className="mx-auto max-w-3xl"><KitBfBuyCard lang="en" surface="pricing" /></div>{/* KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday embaixo do Business (o Business vê "incluído no seu plano"; venda fechada = nada) */}
         {PRICING_SHOW_ADS_BLOCK ? <PricingAdsBlock /> : null}
         <PricingCreditsBlock />
         {PRECOS_DOIS_PRODUTOS_PUBLIC ? <TwoProductsPricing /> : null}

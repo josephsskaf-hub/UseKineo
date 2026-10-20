@@ -86,6 +86,9 @@ import { DFY_FILMS3_FILMS, DFY_FILMS3_FILM_SECONDS, DFY_FILMS3_DELIVERY_HOURS, D
 import { AUTOPILOT_UNAVAILABLE_MESSAGE, AUTOPILOT_UNAVAILABLE_REASON, autopilotCheckoutOpen, isAutopilotFamilySku } from '@/lib/autopilotPublic' // KINEO-AUTOPILOT-FORA-2026-10-09
 import { BULK_PACK_REPLACEMENT_PATH, BULK_PACK_UNAVAILABLE_MESSAGE, BULK_PACK_UNAVAILABLE_REASON, bulkPackCheckoutOpen, isBulkPackSku } from '@/lib/bulkPacksPublic' // KINEO-PAGINAS-QUE-VENDEM-2026-10-12
 import { ADS_ACCESS_COLUMN } from '@/lib/ads/offer'
+import { KIT_BF_PACK_ID } from '@/lib/ads/kitBfSale' // KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday (US$ 49, pagamento único)
+import { buildKitBfAndRedirect } from '@/lib/stripe/kitBfCheckout' // KINEO-KIT-BF-VENDA-2010
+import { annualEarlyOfferPriceMinor } from '@/lib/billing/annualEarlyOffer' // KINEO-KIT-BF-VENDA-2010 — "2 meses grátis no anual" até 21/11 (o MAIOR desconto, sem somar)
 import {
   attributeAffiliateForUser,
   normalizeAffiliateClickId,
@@ -1207,7 +1210,7 @@ async function buildAndRedirect(
   // rather than 500-ing: a buyer who edits the URL should still be able to buy.
   const isAnnual = billing === 'annual'
   const unitAmount = isAnnual && tier !== 'autopilot' && tier !== 'autopilot_lite' && tier !== 'business' // KINEO-BUSINESS-84-2026-10-09
-    ? getAnnualPrice(tier, currency, region)
+    ? annualEarlyOfferPriceMinor(getAnnualPrice(tier, currency, region), monthlyPriceMinor(tier, currency, region)) // KINEO-KIT-BF-VENDA-2010 — na janela (até 21/11), o MENOR entre o anual vigente e 10 × o mensal; hoje o vigente (30%) vence em todo plano = o mesmo valor; era: ? getAnnualPrice(tier, currency, region)
     : monthlyPriceMinor(tier, currency, region)
   const interval: 'month' | 'year' = isAnnual ? 'year' : 'month'
   const checkoutValueContext = buildCheckoutValueContext({
@@ -4375,6 +4378,7 @@ export async function GET(req: NextRequest) {
       if (packParam === DFY_FILMS3_PACK_ID) {
         return await buildDfyFilms3AndRedirect(req)
       }
+      if (packParam === KIT_BF_PACK_ID) return await buildKitBfAndRedirect(req, { recordCheckoutEvent, browserSessionIdFrom, checkoutFailureReason, oneTimeIdempotencyKey }) // KINEO-KIT-BF-VENDA-2010 — ANTES do fallback buildPackAndRedirect (que venderia um Starter Pack no lugar)
       if (isBulkPackId(packParam)) {
         const closedPack = await refuseClosedBulkPackCheckout(req, packParam) // KINEO-PAGINAS-QUE-VENDEM-2026-10-12
         if (closedPack) return closedPack

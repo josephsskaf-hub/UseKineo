@@ -108,6 +108,7 @@ import {
 import { adsV2RedoPrice } from '@/lib/ads/v2FreeRedo' // KINEO-ADS-REFACAO-ATOR-1410 — 0 na 1ª refação, o preço do plano depois
 import { adsV2AiPersonLabel } from '@/lib/ads/v2PresenterHolds' // KINEO-ADS-REFACAO-ATOR-1410 — o plano "pessoa de IA segurando o produto" leva o rótulo de IA
 import { intervaloDePoll, POLL_RAPIDO_ADS_MS } from '@/lib/pollingRapido' // KINEO-FILME-RAPIDO-1710 · polling — o anúncio em andamento a cada 3 s nos 2 primeiros minutos (linha própria)
+import { KitBfBuyCard } from '@/components/ads/KitBfBuyCard' // KINEO-KIT-BF-VENDA-2010 — o cartão "Kit Black Friday — US$ 49" (o servidor decide: venda aberta; Business = incluído)
 import AdsV2AfterDelivery from './AdsV2AfterDelivery' // KINEO-ADS-POS-ENTREGA-1510 — editar, aprovação do cliente e 3 formatos depois da entrega
 
 // ─── tipos ────────────────────────────────────────────────────────────────────────────────────
@@ -695,6 +696,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
       <div className="kps-panel">
       {/* KINEO-ADS-MARCAS-1510 — "Marca: X ▾" no topo do formulário (a caixa do motor do "Make a film"): escolher a marca preenche o kit do anúncio novo. */}
       {marcasOn && marcas.state.status === 'ready' ? <AdsBrandSwitcher lang={lang} state={marcas.state} selected={marcas.selected} onSelect={marcas.select} onNew={() => setBrandDlg({ brand: null })} onEdit={(b) => setBrandDlg({ brand: b })} /> : null}{/* KINEO-ADS-MARCAS-1510 */}
+      {(mode === 'simple' || mode === 'batch') && workspace?.role !== 'member' ? <KitBfBuyCard lang={lang} surface="ads" /> : null}{/* KINEO-KIT-BF-VENDA-2010 — no topo do quadro do Studio Ads (onde o kit vive: oferta + 1 · 3 · 5 variações); membro de equipe usa o saldo do dono e não compra */}
       {/* KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a amostra já foi usada: a oferta do Business no lugar da sessão (e do erro genérico). */}
       {sampleGone && sample && business && mode ? (
         <AdsAfterSampleOffer lang={mode === 'full' ? 'en' : lang} business={business} />

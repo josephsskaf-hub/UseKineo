@@ -42,6 +42,7 @@ import { AUTOPILOT_PILOT_PLAN, autopilotPilotExpiresAt } from '@/lib/autopilot/c
 // abaixo). A flag e o evento seguem o padrão do resto do trial.
 import { REVERSE_TRIAL_ENABLED } from '@/lib/reverseTrial'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { KIT_BF_CREDITS, KIT_BF_EVENTS, KIT_BF_PACK_ID, KIT_BF_VERSION, kitBfAccessUntilIso } from '@/lib/ads/kitBfSale' // KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday: créditos + Studio Ads até 31/12, pelo MESMO Path A (guard → concessão → libera + 500)
 import { ADS_ACCESS_COLUMN, ADS_PASS_CREDITS, ADS_PASS_ID, adsAccessUntil } from '@/lib/ads/offer' // KINEO-STUDIO-ADS-2026-09-25 · ADS_PASS_CREDITS só no fallback sem pack_credits (28/09)
 import {
   buildCanonicalStripeCheckoutFailure,
@@ -1758,6 +1759,7 @@ export async function POST(req: NextRequest) {
             // US$19,90 sem crédito NEM acesso (o break vem antes do UPDATE). Só roda sem pack_credits; o
             // caminho normal continua concedendo o que a pessoa viu ao abrir o checkout (metaCredits).
             else if (packMeta === ADS_PASS_ID) creditsToAdd = ADS_PASS_CREDITS
+            else if (packMeta === KIT_BF_PACK_ID) creditsToAdd = KIT_BF_CREDITS // KINEO-KIT-BF-VENDA-2010 — sessão do kit que perdeu metadata.pack_credits (nunca por valor: 4900 é também o bulk30)
           }
 
           if (creditsToAdd === 0) {
@@ -1829,6 +1831,11 @@ export async function POST(req: NextRequest) {
           const isAdsPass = packMeta === ADS_PASS_ID
           const adsUntilIso = isAdsPass ? adsAccessUntil(new Date()).toISOString() : null
           if (isAdsPass && adsUntilIso) profileUpdate[ADS_ACCESS_COLUMN] = adsUntilIso
+          const isKitBf = packMeta === KIT_BF_PACK_ID // KINEO-KIT-BF-VENDA-2010
+          const kitCur = isKitBf ? await supabase.from('profiles').select(ADS_ACCESS_COLUMN).eq('id', userId).single() : null // KINEO-KIT-BF-VENDA-2010 — o acesso atual (o kit nunca encurta um acesso maior)
+          if (kitCur?.error) throw new RetryableEntitlementError(`Failed to read Studio Ads access for the Black Friday kit (${userId}): ${kitCur.error.message}`) // KINEO-KIT-BF-VENDA-2010 — sem a leitura (ou sem a coluna) = 500 e a Stripe reenvia; nada concedido ainda
+          const kitUntilIso = isKitBf ? kitBfAccessUntilIso((kitCur?.data as { ads_access_until?: unknown } | null)?.ads_access_until) : null // KINEO-KIT-BF-VENDA-2010 — o MAIOR entre o acesso atual e 31/12 (fim do dia em Brasília)
+          if (isKitBf && kitUntilIso) profileUpdate[ADS_ACCESS_COLUMN] = kitUntilIso // KINEO-KIT-BF-VENDA-2010 — no MESMO UPDATE dos créditos: sem a coluna, falha inteiro e a Stripe reenvia
 
           // KINEO-PILOT-99-2026-07-26 — este é o único ponto do Path A que escreve
           // `plan`. Duas regras:
@@ -1859,7 +1866,7 @@ export async function POST(req: NextRequest) {
             // a migration não foi aplicada e o SKU está INERTE. Erro retentável
             // (o guard de fulfillment é liberado no finally), então o Stripe
             // reenvia e o pagamento se resolve sozinho assim que a migration rodar.
-            if (isAdsPass && ((updateErr as { code?: string }).code === '42703' || new RegExp(ADS_ACCESS_COLUMN).test(updateErr.message ?? ''))) {
+            if ((isAdsPass || isKitBf) && ((updateErr as { code?: string }).code === '42703' || new RegExp(ADS_ACCESS_COLUMN).test(updateErr.message ?? ''))) { // KINEO-KIT-BF-VENDA-2010 — o kit também escreve a coluna; era: if (isAdsPass && …
               console.error(
                 '[stripe webhook] ads_pass NOT GRANTED: profiles.' + ADS_ACCESS_COLUMN + ' is missing. ' +
                 'Apply migrations_pending/2026-09-25_studio_ads.sql — the customer HAS BEEN CHARGED ' +
@@ -1892,6 +1899,7 @@ export async function POST(req: NextRequest) {
               // Depois da concessão confirmada; 1×/sessão, teto de 3 s, nunca lança (lib/founderAlert.ts).
               await alertFounderAdsPass({ session, userId, credits: creditsToAdd, until: adsUntilIso })
             }
+            if (isKitBf) await writeServerEvent({ name: KIT_BF_EVENTS.purchased, userId, path: '/api/stripe/webhook', metadata: { stripe_session_id: session.id, credits: creditsToAdd, until: kitUntilIso, amount_total: session.amount_total ?? null, currency: session.currency ?? null, kit_version: session.metadata?.kit_version ?? KIT_BF_VERSION } }) // KINEO-KIT-BF-VENDA-2010 — o evento de compra DEPOIS da concessão confirmada (a retentativa não chega aqui: o guard da sessão já está gravado)
             if (isAutopilotPilot) {
               console.log(`[stripe webhook] autopilot_pilot granted → user ${userId}, expires in ${AUTOPILOT_PILOT_DAYS}d`)
             }

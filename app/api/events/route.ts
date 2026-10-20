@@ -128,6 +128,7 @@ const SERVER_ONLY_EVENTS = new Set([
   // lista: lib/ads/events.ts ADS_SERVER_ONLY_EVENTS; o guardiao test-ads-servidor confere que cada um esta aqui.
   'ads_checkout_started',
   'ads_access_granted',
+  'kit_bf_purchased', // KINEO-KIT-BF-VENDA-2010 — a compra do Kit Black Friday: só o webhook grava, depois de conceder
   'ads_access_denied',
   'ads_script_served',
   'ads_voice_preview_served',

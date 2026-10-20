@@ -27,11 +27,12 @@
 // KINEO-PRECO-V8-A-2026-09-28 — LEGACY_TIER_CREDITS_V6 direto virou
 // legacyCreditsForUsd(tier, valor, 'annual'): um anual de $99 (V5) segue com 60.
 import {
-  ANNUAL_PRICES,
+  ANNUAL_PRICES, TIER_PRICES, // KINEO-KIT-BF-VENDA-2010 — + TIER_PRICES (o piso da oferta "2 meses grátis"); era:   ANNUAL_PRICES,
   TIER_CREDITS,
   legacyCreditsForUsd,
   type CheckoutTier,
 } from '@/lib/checkoutPricing'
+import { annualEarlyOfferFloorMinor } from '@/lib/billing/annualEarlyOffer' // KINEO-KIT-BF-VENDA-2010
 
 export const ANNUAL_REFILL_VERSION = 'annual_refill_v1' as const
 export const ANNUAL_REFILL_EVENT = 'annual_credit_refill' as const
@@ -86,7 +87,7 @@ export function annualRefillCredits(
   currency: string | null | undefined,
 ): number {
   const cur = typeof currency === 'string' ? currency.trim().toLowerCase() : 'usd'
-  if (cur === 'usd' && typeof annualAmountMinor === 'number' && annualAmountMinor > 0 && annualAmountMinor < ANNUAL_PRICES[tier].usd) {
+  if (cur === 'usd' && typeof annualAmountMinor === 'number' && annualAmountMinor > 0 && annualAmountMinor < annualEarlyOfferFloorMinor(ANNUAL_PRICES[tier].usd, TIER_PRICES[tier].usd)) { // KINEO-KIT-BF-VENDA-2010 — o preço da oferta "2 meses grátis" (quando vencer) recebe o grant CHEIO; hoje o piso = o anual vigente (o mesmo de antes); era: annualAmountMinor < ANNUAL_PRICES[tier].usd
     return legacyCreditsForUsd(tier, annualAmountMinor, 'annual')
   }
   return TIER_CREDITS[tier]
