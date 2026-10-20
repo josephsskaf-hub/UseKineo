@@ -262,6 +262,8 @@ export type RelatoCriticoStill = {
   regeraria: boolean
   regerou: boolean
   regeracao_ok: boolean | null
+  /** KINEO-META95-PERSONAGEM-AJUSTE-2010 — por que a foto nova saiu ou não ('ok', 'provider_timeout', 'moderation_blocked', 'sem_url', 'lancou'…); só existe quando o chamador pede (relatarMotivo). */ // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  regeracao_motivo?: string // KINEO-META95-PERSONAGEM-AJUSTE-2010
   instrucao: string | null
   veredito_regerada: VereditoCritico | null
   problemas_regerada: ProblemaStill[] | null
@@ -303,7 +305,13 @@ export function novoFilmeDoCritico(modo: ModoCriticoStill, o: { prazo?: number; 
 export type DepsCritico = {
   filme: FilmeDoCritico
   /** gera a foto nova (na rota: generateCinematicSceneStill com o mesmo estilo do filme); null = falhou */
-  gerarStill: (scenePrompt: string, seed: number, pollWindowMs: number) => Promise<string | null>
+  gerarStill: (scenePrompt: string, seed: number, pollWindowMs: number) => Promise<string | null | { url: string | null; motivo?: string | null }> // KINEO-META95-PERSONAGEM-AJUSTE-2010 — era: Promise<string | null>; o objeto traz o motivo da falha (o edit com folha)
+  /** KINEO-META95-PERSONAGEM-AJUSTE-2010 — janelas por filme: o crítico nasceu medido no FLUX dev (3-6 s); o edit com folha leva 15-40 s e nunca cabia em 9 s. Ausentes = as de sempre. */ // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  tetoCenaMs?: number // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  janelaRegeracaoMs?: number // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  minRegeracaoMs?: number // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  /** KINEO-META95-PERSONAGEM-AJUSTE-2010 — grava `regeracao_motivo` no relato (só a folha pede; sem isto o relato é byte a byte o de antes). */ // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  relatarMotivo?: boolean // KINEO-META95-PERSONAGEM-AJUSTE-2010
   fetchImpl?: typeof fetch
   apiKey?: string
   agora?: () => number
@@ -327,7 +335,7 @@ export async function criticarStill(e: EntradaCritico, d: DepsCritico): Promise<
   let url = e.url
   if (filme.modo === 'off') return { url, relato: r }
   try {
-    const prazoCena = t0 + STILL_CRITIC_TETO_CENA_MS
+    const prazoCena = t0 + (typeof d.tetoCenaMs === 'number' && d.tetoCenaMs > 0 ? d.tetoCenaMs : STILL_CRITIC_TETO_CENA_MS) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — era: t0 + STILL_CRITIC_TETO_CENA_MS
     const folgas = () => {
       const t = agora()
       return { prazo: filme.prazo - t, teto_cena: prazoCena - t, orcamento_filme: filme.orcamentoMs - filme.gastoMs - (t - t0) }
@@ -357,7 +365,7 @@ export async function criticarStill(e: EntradaCritico, d: DepsCritico): Promise<
     // log_only: mede e devolve a original — NUNCA regera.
     if (filme.modo !== 'enforce') { r.pulado_por = 'modo_log_only'; return { url, relato: r } }
     if (filme.regeracoesRestantes <= 0) { r.pulado_por = 'teto_regeracoes'; return { url, relato: r } }
-    if (restante() < STILL_CRITIC_MIN_REGERACAO_MS) { r.pulado_por = quemLimita(); return { url, relato: r } }
+    if (restante() < (typeof d.minRegeracaoMs === 'number' && d.minRegeracaoMs > 0 ? d.minRegeracaoMs : STILL_CRITIC_MIN_REGERACAO_MS)) { r.pulado_por = quemLimita(); if (d.relatarMotivo) r.regeracao_motivo = `sem_tempo:${r.pulado_por}`; return { url, relato: r } } // KINEO-META95-PERSONAGEM-AJUSTE-2010 — era: restante() < STILL_CRITIC_MIN_REGERACAO_MS
     const instrucao = instrucaoDoCritico(v1.problemas)
     if (!instrucao) return { url, relato: r }
     filme.regeracoesRestantes -= 1 // reservado ANTES do await: tarefas paralelas do mesmo filme não passam do teto
@@ -366,9 +374,12 @@ export async function criticarStill(e: EntradaCritico, d: DepsCritico): Promise<
     r.custo_usd = arred(r.custo_usd + STILL_CRITIC_REGERACAO_USD)
     let urlNova: string | null = null
     try {
-      urlNova = await d.gerarStill(promptDaRegeracaoCritico(e.prompt, instrucao), seedDaRegeracaoCritico(e.seed, e.indice), Math.max(1_000, Math.min(STILL_CRITIC_JANELA_REGERACAO_MS, restante() - STILL_CRITIC_MIN_CHAMADA_MS)))
+      const saida = await d.gerarStill(promptDaRegeracaoCritico(e.prompt, instrucao), seedDaRegeracaoCritico(e.seed, e.indice), Math.max(1_000, Math.min(typeof d.janelaRegeracaoMs === 'number' && d.janelaRegeracaoMs > 0 ? d.janelaRegeracaoMs : STILL_CRITIC_JANELA_REGERACAO_MS, restante() - STILL_CRITIC_MIN_CHAMADA_MS))) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — era: urlNova = await d.gerarStill(…, Math.min(STILL_CRITIC_JANELA_REGERACAO_MS, …))
+      urlNova = typeof saida === 'string' ? saida : saida && typeof saida === 'object' && typeof saida.url === 'string' ? saida.url : null // KINEO-META95-PERSONAGEM-AJUSTE-2010
+      if (d.relatarMotivo) r.regeracao_motivo = saida && typeof saida === 'object' && typeof saida.motivo === 'string' && saida.motivo ? saida.motivo.slice(0, 60) : urlNova ? 'ok' : 'sem_url' // KINEO-META95-PERSONAGEM-AJUSTE-2010
     } catch {
       urlNova = null
+      if (d.relatarMotivo) r.regeracao_motivo = 'lancou' // KINEO-META95-PERSONAGEM-AJUSTE-2010
     }
     r.regeracao_ok = typeof urlNova === 'string' && urlNova.length > 0
     if (!urlNova) return { url, relato: r }
