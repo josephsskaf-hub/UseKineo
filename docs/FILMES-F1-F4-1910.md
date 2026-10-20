@@ -36,6 +36,8 @@ export const FACELESS15_PUBLIC = { f1: false, f2: false, f3: false, f4: false, c
 
 Trocar o `false` da fase para `true`. Nada mais. (`GANCHO_1Q_PUBLIC` de `lib/hookFirstFrame.ts` continua `false` para os outros formatos.)
 
+**Estado em 20/10/2026 (KINEO-FILMES-F1F3-PUBLICO-2010 · [TRAVA 8.2 — vai do fundador 20/10 "nota 10"]):** `{ f1: true, f2: false, f3: true, f4: false, cta: false }`. O fundador deu **nota 10** ao filme com a legenda nova (F1) + o som novo (F3) — render `e48e17bf`. Valem para **todo** filme Seedance 1.5 · 15 s · 9:16 (sem avatar, fora do Studio Ads), cliente ou conta interna, com ou sem `formatFlags`; o pedido do cliente segue ignorado. F2 (gancho escrito), F4 (5 planos) e o cta continuam só por pedido de conta interna. Fora do formato o JSON do Creatomate segue idêntico byte a byte. O export limpo (`/api/compose/unlock`) acompanha: o cliente manda `quality` e a duração do filme, a mesma `resolverFaceless15` decide, e a montagem limpa recebe a mesma legenda/música/SFX da prévia. Efeito colateral conhecido: dentro do formato a conta interna SEM `f2` no pedido deixa de receber o gancho escrito de 03/10 (o gancho segue a fase — regra da F2 acima). Guardião: `scripts/test-filmes-f1f3-publico-2010.mjs`; os guardiões das fases (`test-filmes-f1f4-1910`) provam B1–B5/D–G no módulo da época (interruptor desligado, `desfaz-filmes-f1f3-publico-2010`) e B6–B8/C1 no estado novo. Para voltar atrás: o `true` da fase vira `false` (um deploy).
+
 ## O que cada fase faz (e o que o guardião prova)
 
 | Fase | Muda | Números | Trilha |
