@@ -20,6 +20,9 @@ export const HOME_3_CARDS_1910_BASE = '9ddb24c7e2cb4f9e0e5ef7f17a84ae2dddfd5b0a'
 
 /** Arquivos que a entrega toca, com a contagem EXATA de acréscimos marcados (as trocas estão no JSON). */
 export const ACRESCIMOS_HOME_3_CARDS_1910 = {
+  'scripts/test-support/desfaz-meta95-ideia-1910.mjs': 2,
+  'scripts/test-filmes-f1-virgula-1910.mjs': 0,
+  'scripts/test-filmes-f1f4-1910.mjs': 1,
   'app/(dashboard)/ads/v2/AdsV2Client.tsx': 3,
   'app/(dashboard)/ads/v2/AdsV2Simple.tsx': 6,
   'app/(dashboard)/ads/v2/page.tsx': 6,
