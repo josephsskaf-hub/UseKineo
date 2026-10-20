@@ -21,7 +21,7 @@
 //   L. a ligação: os 6 pontos que transcrevem TTS fora do hollywood (que só narra en/pt/es) passam pelo wrapper com o texto que a voz leu; o cache com escrita
 //      errada é ignorado; a rede final alimenta o montador e o Faceless 15; o unlock; o wrapper usa a MESMA chamada do
 //      compose com `language`; lib/compose.ts intocada;
-//   D. desfaz exato (cada arquivo tocado, desfeito, é a base), encadeado como camada mais nova (semMenuUgc2010 chama este
+//   D. desfaz exato (cada arquivo tocado, desfeito, é a base), encadeado como camada mais nova (semMeta95Personagem2010, a cabeça, chama este
 //      primeiro), diff só na lista, todo commit com a marca;
 //   M. mutantes em memória (cada um provado aplicado; todos têm de deixar algo vermelho).
 import fs from 'node:fs'
@@ -34,6 +34,7 @@ import {
   META95_ESCRITA_2010_NOVOS, TROCAS_META95_ESCRITA_2010, ACRESCIMOS_META95_ESCRITA_2010,
 } from './test-support/desfaz-meta95-escrita-2010.mjs'
 import { semMenuUgc2010 } from './test-support/desfaz-menu-ugc-2010.mjs'
+import { semMeta95Personagem2010 } from './test-support/desfaz-meta95-personagem-2010.mjs'
 import { semUgcAjustes2010 } from './test-support/desfaz-ugc-ajustes-2010.mjs'
 
 const require = createRequire(import.meta.url)
@@ -290,13 +291,13 @@ console.log('\nD. desfaz\n')
   ok(META95_ESCRITA_2010_NOVOS.every((f) => fs.existsSync(path.join(ROOT, f)) && base(f) === null), `D2 os ${META95_ESCRITA_2010_NOVOS.length} arquivos novos existem e não existiam na base`)
   const trocasOk = Object.entries(TROCAS_META95_ESCRITA_2010).every(([f, t]) => META95_ESCRITA_2010_ARQUIVOS.includes(f) && t.every(([nova, velha]) => nova.includes(MARCA) && !velha.includes(MARCA)))
   ok(trocasOk && Object.values(ACRESCIMOS_META95_ESCRITA_2010).every((n) => Number.isInteger(n) && n >= 0), 'D3 trocas: linha nova com a marca, linha da base sem; contagens inteiras')
-  const DESFAZ_MENU = rd('scripts/test-support/desfaz-menu-ugc-2010.mjs')
-  const cadeia = /export function semMenuUgc2010\(texto, p\) \{\n  texto = semMeta95Escrita2010\(texto, p\)/.test(DESFAZ_MENU)
+  const DESFAZ_MENU = rd('scripts/test-support/desfaz-meta95-personagem-2010.mjs')
+  const cadeia = /export function semMeta95Personagem2010\(texto, p\) \{\n  texto = semMeta95Escrita2010\(texto, p\)/.test(DESFAZ_MENU)
   const igual = META95_ESCRITA_2010_ARQUIVOS.every((f) => {
     const raw = fs.readFileSync(path.join(ROOT, f), 'utf8'), semEste = semMeta95Escrita2010(raw, f)
-    return semMenuUgc2010(raw, f) === semMenuUgc2010(semEste, f) && semUgcAjustes2010(raw, f) === semUgcAjustes2010(semEste, f)
+    return semMeta95Personagem2010(raw, f) === semMeta95Personagem2010(semEste, f) && semMenuUgc2010(raw, f) === semMenuUgc2010(semEste, f) && semUgcAjustes2010(raw, f) === semUgcAjustes2010(semEste, f)
   })
-  ok(cadeia && igual, 'D4 encadeamento: semMenuUgc2010 (a cabeça das cadeias) tira esta camada PRIMEIRO; ugc-ajustes herda')
+  ok(cadeia && igual, 'D4 encadeamento: semMeta95Personagem2010 (a cabeça das cadeias) tira esta camada PRIMEIRO; menu-ugc e ugc-ajustes herdam')
   let lancou = false
   try { semMeta95Escrita2010(fs.readFileSync(path.join(ROOT, P.route), 'utf8') + `\n// linha nova ${MARCA}`, P.route) } catch { lancou = true }
   ok(semMeta95Escrita2010('sem marca', P.route) === 'sem marca' && semMeta95Escrita2010(ROUTE, 'outro/arquivo.ts') === ROUTE && desfazMeta95Escrita2010(P.route, null) === null && lancou,
@@ -361,8 +362,8 @@ await libMuda('  return escritaDivergente(words, roteiro) ? undefined : words', 
   ok(w2 && !/language: idioma,/.test(w2) && !(/timestamp_granularities: \['word', 'segment'\],\n\s+language: idioma,/.test(w2)), 'M16 wrapper sem `language` → L5 vermelho')
   const sem = (() => { try { return semMeta95Escrita2010(fs.readFileSync(path.join(ROOT, P.route), 'utf8').replace(/\n[^\n]*cachedVoiceover = null \} \/\/ KINEO-META95-ESCRITA-2010[^\n]*/, ''), P.route) } catch { return 'lancou' } })()
   ok(sem === 'lancou', 'M17 acréscimo marcado a menos no compose → o desfaz lança (contagem exata)')
-  const quebrado = muta(rd('scripts/test-support/desfaz-menu-ugc-2010.mjs'), '  texto = semMeta95Escrita2010(texto, p)', '  void 0')
-  ok(quebrado && !/export function semMenuUgc2010\(texto, p\) \{\n  texto = semMeta95Escrita2010\(texto, p\)/.test(quebrado), 'M18 cabeça da cadeia sem chamar esta camada → D4 vermelho')
+  const quebrado = muta(rd('scripts/test-support/desfaz-meta95-personagem-2010.mjs'), '  texto = semMeta95Escrita2010(texto, p)', '  void 0')
+  ok(quebrado && !/export function semMeta95Personagem2010\(texto, p\) \{\n  texto = semMeta95Escrita2010\(texto, p\)/.test(quebrado), 'M18 cabeça da cadeia sem chamar esta camada → D4 vermelho')
   const ca = muta(LIB, '  if (!escrita) return null\n  if (escrita === \'Arabic\') {', '  if (!escrita) return null\n  if (escrita === \'Devanagari\') return \'ur\'\n  if (escrita === \'Arabic\') {')
   if (ca) { const E = transpila(ca, 'M19'); const h = await pontaAPonta(ROUTE, E, HI); ok(provaLib(E).length > 0 && h.grafia && !h.grafia.aplicada, 'M19 devanágari pede urdu (escrita trocada de propósito) → B1 vermelho e a grafia não aplica') } else ok(false, 'M19 âncora sumiu')
 }

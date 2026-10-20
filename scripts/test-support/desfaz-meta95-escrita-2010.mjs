@@ -6,7 +6,7 @@
 //   · ACRÉSCIMO — linha nova: sai inteira (contagem EXATA por arquivo);
 //   · TROCA — a linha da base foi reescrita: reconhecida INTEIRA, volta a ser o texto da base. Tabela em desfaz-meta95-escrita-2010-trocas.json.
 // Só age nos arquivos declarados; qualquer outro texto passa igual (idempotente). Preserva CRLF. A marca NÃO contém a de nenhuma camada de antes.
-// ENCADEAMENTO: é a camada MAIS NOVA — semMenuUgc2010 (a cabeça que semUgcAjustes2010 e as cadeias de antes chamam primeiro) chama ESTE
+// ENCADEAMENTO: é a camada MAIS NOVA — semMeta95Personagem2010 (a cabeça que semMenuUgc2010 e as cadeias de antes chamam primeiro) chama ESTE
 // primeiro. Este não importa ninguém.
 // O guardião scripts/test-meta95-escrita-2010.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (META95_ESCRITA_2010_BASE).
 import { readFileSync } from 'node:fs'
@@ -15,8 +15,8 @@ import { fileURLToPath } from 'node:url'
 
 export const MARCA_META95_ESCRITA_2010 = 'KINEO-META95-ESCRITA-2010'
 
-/** A base da entrega: origin/main de 20/10 (KINEO-MENU-UGC-2010). */
-export const META95_ESCRITA_2010_BASE = 'b7662b717a0d8513d9c59cc2527c7fd834a49f56'
+/** A base da entrega: origin/main de 20/10 (KINEO-META95-PERSONAGEM-2010 sobre KINEO-MCP-STUDIO-2010), mesclada nesta entrega. */
+export const META95_ESCRITA_2010_BASE = 'fbe47c4677d4af4cc231e41f2db542fbfd2ba476'
 
 /** [linha nova (inteira), linha da base] por arquivo. */
 export const TROCAS_META95_ESCRITA_2010 = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-meta95-escrita-2010-trocas.json'), 'utf8'))
@@ -27,7 +27,7 @@ export const ACRESCIMOS_META95_ESCRITA_2010 = {
   'app/api/compose/unlock/route.ts': 3,
   'app/api/prewarm-voiceover/route.ts': 1,
   'lib/audioNoCliqueServer.ts': 1,
-  'scripts/test-support/desfaz-menu-ugc-2010.mjs': 2,
+  'scripts/test-support/desfaz-meta95-personagem-2010.mjs': 2,
   // reâncoras dos guardiões que liam as linhas trocadas (ou a rota byte a byte contra uma base antiga)
   'scripts/test-ads-self-serve-2026-09-24.mjs': 0,
   'scripts/test-filmes-f1-virgula-1910.mjs': 1,
