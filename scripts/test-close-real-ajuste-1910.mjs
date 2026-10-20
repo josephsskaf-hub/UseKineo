@@ -277,7 +277,7 @@ await check('S1 ADS_SAMPLE_DAILY_CAP = 30 (fundador 19/10) e a porta usa a const
 console.log('\nR. o resto intocado')
 await check('R1 EXECUTADO sem closeReal: o texto do Ads de sempre (o hífen vira espaço com overlay_dash; o fecho com nome continua valendo)', () => provaResto())
 await check('R2 o Apresentador não é tocado: nenhuma linha desta entrega em v2PresenterV2/adV2Montage/v2Presenter; o caminho do Close real é o único que muda no avanço', () => {
-  const tocados = git('diff', '--name-only', CLOSE_REAL_AJUSTE_1910_BASE, 'HEAD').trim().split('\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\n').filter(Boolean))
+  const tocados = git('diff', '--name-only', CLOSE_REAL_AJUSTE_1910_BASE, git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, 'HEAD').trim().split('\n').filter(Boolean)[0] || 'HEAD').trim().split('\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\n').filter(Boolean)) // reancorado KINEO-APRESENTADOR-OLHOS-1910: mede até o último commit desta entrega (era ..'HEAD'; os olhos abertos do apresentador v2 vieram depois, com guardião próprio)
   const adv = (TROCAS_CLOSE_REAL_AJUSTE_1910[F.advance] ?? []).map(([n]) => n)
   return ['lib/ads/v2PresenterV2.ts', 'lib/ads/adV2Montage.ts', 'lib/ads/v2Presenter.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2Billing.ts', 'lib/compose.ts'].every((f) => !tocados.includes(f)) &&
     adv.length === 1 && adv[0].includes('closeRealSource = buildAdV2CloseRealSource(') && SRC.advance.split('\n').filter((l) => l.includes(MARCA)).every((l) => /CloseReal|closeReal/.test(l))

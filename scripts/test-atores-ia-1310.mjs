@@ -22,6 +22,7 @@ import fs from 'node:fs'
 import { semMelhorias1410 } from './test-support/desfaz-melhorias-1410.mjs' // reancorado KINEO-ADS-MELHORIAS-1410
 import { semDemoUniverso1410 } from './test-support/desfaz-ads-demo-universo-1410.mjs' // reancorado KINEO-ADS-DEMO-UNIVERSO-1410
 import { desfazApresentadorV2_1710 } from './test-support/desfaz-apresentador-v2-1710.mjs' // reancorado KINEO-APRESENTADOR-V2-1710
+import { APRESENTADOR_OLHOS_1910_NOVOS } from './test-support/desfaz-apresentador-olhos-1910.mjs' // reancorado KINEO-APRESENTADOR-OLHOS-1910: a amostra da voz do anúncio (PT mulher) é arquivo novo desta entrega na pasta dos apresentadores
 import path from 'node:path'
 import { execFileSync, spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
@@ -157,7 +158,7 @@ const arquivosOk = (L) => {
     }
     if (p.clip && !p.portrait) return false // vídeo sempre com o pôster
   }
-  return files.length > 0 && files.every((f) => pointed.has(f))
+  return files.length > 0 && files.every((f) => pointed.has(f) || APRESENTADOR_OLHOS_1910_NOVOS.includes(`public/ads/presenters/${f}`)) // reancorado KINEO-APRESENTADOR-OLHOS-1910: era files.every((f) => pointed.has(f))
 }
 await check('2a retratos WebP 9:16 ≤ 120 KB, vídeos MP4 ≤ 400 KB, amostras MP3 ≤ 120 KB; apontado ⇔ existe; pendente (null) ⇔ ausente; nada solto na pasta', () => arquivosOk(P.ADS_V2_PRESENTER_LIBRARY))
 await check('2b 12 retratos (Sofia/Amara de renders internos; os outros 10 gerados em produção 13/10), 2 vídeos e as 12 amostras de voz (6 MiniMax + 6 ElevenLabs) — KINEO-ATORES-IA-RETRATOS-2026-10-13', () => {

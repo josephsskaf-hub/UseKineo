@@ -248,7 +248,7 @@ const provaBotao = (over = {}) => {
 
 // ── R: o resto ──────────────────────────────────────────────────────────────────────────────────────────────────────
 const provaResto = () => {
-  const tocados = git('diff', '--name-only', CLOSE_REAL_V3_1910_BASE, 'HEAD').trim().split('\n').concat(git('diff', '--name-only', 'HEAD').trim().split('\n')).filter(Boolean)
+  const tocados = git('diff', '--name-only', CLOSE_REAL_V3_1910_BASE, git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, 'HEAD').trim().split('\n').filter(Boolean)[0] || 'HEAD').trim().split('\n').concat(git('diff', '--name-only', 'HEAD').trim().split('\n')).filter(Boolean) // reancorado KINEO-APRESENTADOR-OLHOS-1910: mede até o último commit desta entrega (era ..'HEAD'; os olhos abertos do apresentador v2 vieram depois, com guardião próprio)
   const intocados = ['lib/ads/v2PresenterV2.ts', 'lib/ads/adV2Montage.ts', 'lib/ads/v2Presenter.ts', 'lib/ads/v2Brief.ts', 'lib/ads/v2PlanCore.ts', 'lib/compose.ts', 'lib/ttsFallback.ts', 'lib/avatar/voice.ts'].every((f) => !tocados.includes(f))
   // no avanço: o corpo de adsV2NarrationVoice é o MESMO da base (a voz do Apresentador não mudou); só o invólucro do Close real e o bloco da montagem dele
   const corpo = (s) => s.slice(s.indexOf('async function adsV2NarrationVoice('), s.indexOf('\n}\n', s.indexOf('async function adsV2NarrationVoice(')))

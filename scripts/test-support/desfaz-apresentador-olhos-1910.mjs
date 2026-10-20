@@ -27,6 +27,9 @@ export const ACRESCIMOS_APRESENTADOR_OLHOS_1910 = {
   'lib/ads/v2Brief.ts': 27,
   'lib/ads/v2PlanCore.ts': 6,
   'lib/ads/v2PresenterV2.ts': 75,
+  'scripts/test-atores-ia-1310.mjs': 1,
+  'scripts/test-close-real-ajuste-1910.mjs': 0,
+  'scripts/test-close-real-v3-1910.mjs': 0,
   'scripts/test-support/desfaz-close-real-legenda-corte-1910.mjs': 2,
 }
 export const APRESENTADOR_OLHOS_1910_ARQUIVOS = Object.keys(ACRESCIMOS_APRESENTADOR_OLHOS_1910)
