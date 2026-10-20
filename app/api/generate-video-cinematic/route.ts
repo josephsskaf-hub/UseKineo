@@ -205,6 +205,8 @@ import { filtrarFalaSemBuraco } from '@/lib/cinematic/falaSemBuraco' // KINEO-ME
 import { aplicarRomanceAdulto, decidirRomanceAdulto, negativoRomanceAdulto, textoParaModeracao, ROMANCE_ADULT_SUFFIX, ROMANCE_ADULTO_VERSAO } from '@/lib/cinematic/romanceGuard' // KINEO-ROMANCE-ADULTO-2026-10-13
 import { forcePhotorealAnchor } from '@/lib/cinematic/sceneStyle' // KINEO-ROMANCE-ADULTO-2026-10-13
 import { derivarElenco } from '@/lib/cinematic/elencoDaHistoria' // KINEO-PARCEIRO-EYEBIBLE-2-1410
+import { pedidoDePersonagem, decidirPersonagem, elencoDeterministico, elencoComCasting, fichaDoProtagonista, elencoSecundario, cenasComPersonagem, promptDaFolha, promptDoStillComFolha, relatoDoPersonagem, ensaioDoPersonagem, PERSONAGEM_PUBLIC, PERSONAGEM_EVENTO, PERSONAGEM_MAX_STILLS, type FichaDePersonagem, type RelatoPersonagem } from '@/lib/cinematic/folhaDePersonagem' // KINEO-META95-PERSONAGEM-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — a folha de personagem (só conta interna, por pedido)
+import { gerarStillDaEstrela } from '@/lib/estrelaServer' // KINEO-META95-PERSONAGEM-2010 — o edit com referência da Estrela (POST único + moderação de saída), com a folha no lugar das fotos
 import { moodDoTom } from '@/lib/cinematic/tomDaCena' // KINEO-PARCEIRO-EYEBIBLE-2-1410
 import { tomDoRoteiro } from '@/lib/musicDirection' // KINEO-PARCEIRO-EYEBIBLE-2-1410
 import { moderateContent } from '@/lib/safety/contentModeration' // KINEO-ROMANCE-ADULTO-2026-10-13
@@ -1482,6 +1484,10 @@ async function manipularPost(req: NextRequest) {
     // KINEO-ROMANCE-ADULTO-2026-10-13 — (character_story, nunca o faceless que apagava "man/woman"); a tag [faceless] e o apresentador pedido vencem.
     const romanceAdulto = decidirRomanceAdulto(prompt) // KINEO-ROMANCE-ADULTO-2026-10-13
     if (romanceAdulto.ativo && !tagFacelessPresente && formatoVisual.modo === 'documentary_faceless') Object.assign(formatoVisual, { modo: 'character_story', motivo: `${romanceAdulto.motivo}: as duas pessoas aparecem, mudas, adultas` }) // KINEO-ROMANCE-ADULTO-2026-10-13
+    // KINEO-META95-PERSONAGEM-2010 — a folha de personagem pedida (conta interna + formatFlags "personagem"; PERSONAGEM_PUBLIC=false) e um roteiro COM personagem: o filme mostra o personagem
+    // KINEO-META95-PERSONAGEM-2010 — (character_story, como a Estrela e o romance fazem) — o faceless apagava o protagonista (C5 do diagnóstico). Cliente que manda o campo: nada muda.
+    const personagemPedido = PERSONAGEM_PUBLIC || (isInternalEmail(user.email) && pedidoDePersonagem((body as { formatFlags?: unknown; format_flags?: unknown }).formatFlags ?? (body as { format_flags?: unknown }).format_flags)) // KINEO-META95-PERSONAGEM-2010
+    if (personagemPedido && !tagFacelessPresente && formatoVisual.modo === 'documentary_faceless' && elencoDeterministico(prompt).length > 0) Object.assign(formatoVisual, { modo: 'character_story', motivo: `folha de personagem: o roteiro tem personagem nomeado ou protagonista (antes: ${formatoVisual.motivo})` }) // KINEO-META95-PERSONAGEM-2010
     const facelessRequested = !permiteApresentador(formatoVisual.modo)
     console.log(`[formato] visual_mode=${formatoVisual.modo} — ${formatoVisual.motivo}`)
     if (!prompt) {
@@ -1703,6 +1709,9 @@ async function manipularPost(req: NextRequest) {
     } // KINEO-ESTRELA-DO-FILME-2026-09-29
     /** A sobretaxa da estrela nesta duração (0 sem estrela). A MESMA função que a tela do /studio soma ao preço. [KINEO-ESTRELA-DO-FILME-2026-09-29] */
     const estrelaSobretaxaDe = (segundos: number): number => (estrelaAtiva ? estrelaSobretaxa(body.engine, segundos) : 0) // KINEO-ESTRELA-DO-FILME-2026-09-29
+    // KINEO-META95-PERSONAGEM-2010 — a decisão da folha (lib/cinematic/folhaDePersonagem decidirPersonagem): pedido interno (ou público), motor clássico com still por cena, âncora ligada, sem Estrela, sem [faceless]
+    const personagem = decidirPersonagem({ interna: isInternalEmail(user.email), pedido: (body as { formatFlags?: unknown; format_flags?: unknown }).formatFlags ?? (body as { format_flags?: unknown }).format_flags, engine: body.engine, anchorEnabled: CINEMATIC_ANCHOR_ENABLED, estrelaAtiva, tagFaceless: tagFacelessPresente }) // KINEO-META95-PERSONAGEM-2010
+    if (personagemPedido) console.log(`[personagem] gen=${generationId} folha ${personagem.ativo ? 'LIGADA' : `desligada (${personagem.motivo})`}`) // KINEO-META95-PERSONAGEM-2010
     // ═══ KINEO-SEEDANCE-15S-2026-09-29 [TRAVA 8.2 — "vai" nominal do fundador para o 15 s] ═══
     // 15 s é só do Seedance 1.5. Nos outros motores um alvo abaixo de 35 é RECUSADO aqui — antes do custo (mais abaixo,
     // `const cost = creditCostForDuration(`), do claim e do débito —, nunca trocado por 35 em silêncio (a tela mostrou o
@@ -3132,12 +3141,14 @@ async function manipularPost(req: NextRequest) {
     // `narration_guard_blocked` com `refunded:true`. O claim continua sendo
     // liberado pelo mesmo caminho de sempre.
 
+    let personagemRelatoFinal: RelatoPersonagem | null = null // KINEO-META95-PERSONAGEM-2010 — o relato da folha (contagens, vereditos, custo), preenchido no bloco da folha; null = nada entra na resposta
     const publishCinematicResponse = async (
       response: Record<string, unknown>,
       requestIds: CinematicRequestId[],
       models: string[],
     ): Promise<NextResponse> => {
       response = { ...response, submission_uncertain: cinematicSubmissionUncertain }
+      if (personagemRelatoFinal) response = { ...response, personagem: personagemRelatoFinal } // KINEO-META95-PERSONAGEM-2010 — só com a folha ligada (sem ela, resposta e hash de sempre)
       // [TRAVA 8.2 — Tarefa 0 do pedido de 01/10] KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01 — a sobretaxa que o `cost` somou vai ASSINADA na resposta do claim (hash + assinatura):
       // o /api/compose confere filme + ESTE número, sem recalcular. Sem estrela, nada entra (resposta e hash de sempre). [KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01]
       if (estrelaAtiva) response = { ...response, estrela_sobretaxa_cr: estrelaSobretaxaDe(duracaoCobrada) } // KINEO-ESTRELA-SOBRETAXA-ASSINADA-2026-10-01
@@ -3591,6 +3602,11 @@ async function manipularPost(req: NextRequest) {
     if (estrelaFicha) classicVisualPolicy.character = estrelaFicha // KINEO-ESTRELA-DO-FILME-2026-09-29
     if (desenhoInfantil.ativo) classicVisualPolicy.character = desenhoInfantil.ficha // KINEO-BEBE-QUE-FALA-2010 — a ficha canônica do personagem escolhido (o escritor de cenas e cada cena a repetem)
     if (!estrelaFicha && storyMode && !storyCharacter) { const elenco = derivarElenco(prompt); if (elenco.length > 0) classicVisualPolicy.elenco = elenco } // KINEO-PARCEIRO-EYEBIBLE-2-1410 — drama com papéis que falam e sem ficha do autor: cada papel ganha UMA aparência fixa (zero custo)
+    // KINEO-META95-PERSONAGEM-2010 — com a folha ligada: o elenco do roteiro (determinístico + 1 chamada de casting ao gpt-4o-mini, 6 s, falha = o determinístico) vira a ficha de TODA cena que cita o
+    // KINEO-META95-PERSONAGEM-2010 — personagem — o protagonista pela trilha de KINEO-SEEDANCE-FICHA (policy.character), os outros pela de PARCEIRO-EYEBIBLE-2 (policy.elenco). O escritor de cenas e o
+    // KINEO-META95-PERSONAGEM-2010 — prompt do still/clipe passam a dizer o que o Dino É. A Estrela (fotos reais) continua vencendo; o faceless (tag) continua sem personagem.
+    const personagemElenco: { elenco: FichaDePersonagem[]; casting: string; ms: number } = personagem.ativo ? await elencoComCasting(prompt, elencoDeterministico(prompt)) : { elenco: [], casting: 'desligado', ms: 0 } // KINEO-META95-PERSONAGEM-2010
+    if (personagem.ativo && !estrelaFicha && classicVisualMode === 'character_story' && personagemElenco.elenco.length > 0) { classicVisualPolicy.character = fichaDoProtagonista(personagemElenco.elenco); const secundarios = elencoSecundario(personagemElenco.elenco); if (secundarios.length > 0) classicVisualPolicy.elenco = secundarios; console.log(`[personagem] gen=${generationId} elenco=${personagemElenco.elenco.map((e) => `${e.nome}(${e.tipo}/${e.origem})`).join(', ')} casting=${personagemElenco.casting} ${personagemElenco.ms} ms`) } // KINEO-META95-PERSONAGEM-2010
     let scenes: { description: string; voiceover: string; caption: string; stockSearchQuery?: string; aiPrompt?: string; clipSeconds?: number }[] // clipSeconds: KINEO-KLING25-PLANOS-5S-2026-09-28 (só Kling 2.5)
 
     if (verbatim) {
@@ -6777,6 +6793,7 @@ async function manipularPost(req: NextRequest) {
         ...(seedanceCoberturaRelato ? { cobertura_da_fala: seedanceCoberturaRelato } : {}), // KINEO-MONUMENTO-2026-10-13 (duração)
         // KINEO-ESTRELA-DO-FILME-2026-09-29 — o ensaio de $0 mostra, cena a cena, qual still iria ao edit com o rosto (nada é gerado)
         ...(estrelaAtiva ? { estrela: { ficha: estrelaFicha, sobretaxa_cr: estrelaSobretaxaDe(duration), cenas: planoDaEstrela(scenes.map((s, i) => ({ prompt: classicScenePrompts[i], visual: s.aiPrompt || s.stockSearchQuery || s.description })), estrelaFicha ?? fichaDaEstrela(prompt, null), true, prompt).map((p) => ({ cena: p.indice + 1, estrela: p.protagonista })) } } : {}), // KINEO-ESTRELA-DO-FILME-2026-09-29
+        ...(personagem.ativo ? { personagem: ensaioDoPersonagem({ engine: wantsKling ? 'kling' : wantsVeo ? 'veo' : 'seedance', elenco: personagemElenco.elenco, casting: personagemElenco.casting, visuals: scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description), look: styleAnchor }) } : {}), // KINEO-META95-PERSONAGEM-2010 — o ensaio de $0 mostra o elenco, as folhas, as cenas com folha e o custo estimado (nada é gerado)
         ...relatorioDoEnsaio,
         // KINEO-KLING25-PLANOS-5S-2026-09-28 — os segundos de cada plano, o custo de clipe e a imagem necessária, como no pago
         ...(kling25ClipSeconds ? { clip_seconds: kling25ClipSeconds, clips_usd: kling25ClipsUsd(kling25ClipSeconds), footage_needed_seconds: kling25Footage, plan_words_per_second: kling25Passo } : {}),
@@ -7036,6 +7053,48 @@ async function manipularPost(req: NextRequest) {
       console.log(`[estrela] gen=${generationId} engine=${estrelaMotor} cenas=${relato.scenes} protagonista=${relato.anchored + relato.fallback} ancoradas=${relato.anchored} fallback=${relato.fallback} extra_usd=${(estrelaResultado.feitos * ESTRELA_STILL_USD).toFixed(2)}`) // KINEO-ESTRELA-DO-FILME-2026-09-29
       void writeServerEvent({ name: 'estrela_scene_anchored', userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { ...relato, reasons: estrelaResultado.motivos, extra_usd: Math.round(estrelaResultado.feitos * ESTRELA_STILL_USD * 100) / 100 } }) // KINEO-ESTRELA-DO-FILME-2026-09-29
     } // KINEO-ESTRELA-DO-FILME-2026-09-29
+    // ═══ KINEO-META95-PERSONAGEM-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — a FOLHA DE PERSONAGEM nas cenas que citam o personagem ═══
+    // Desenho: docs/META95-PERSONAGEM-2026-10-20.md e o cabeçalho de lib/cinematic/folhaDePersonagem.ts. Só conta interna com `formatFlags: ["personagem"]` (PERSONAGEM_PUBLIC=false), [KINEO-META95-PERSONAGEM-2010]
+    // motor clássico com still por cena (anchorActive), sem Estrela. Depois do pool FLUX e do bloco da Estrela, ANTES de qualquer POST de clipe: (1) UMA folha por personagem [KINEO-META95-PERSONAGEM-2010]
+    // (FLUX dev, semente do filme + índice, 15 s cada, em paralelo); (2) o still de cada cena que cita o personagem sai do nano-banana-pro/edit com a(s) folha(s) como [KINEO-META95-PERSONAGEM-2010]
+    // image_urls (gerarStillDaEstrela: o POST único + a moderação de saída da Estrela), pool de 4, 60 s; (3) o crítico do still recebe a folha como 2ª imagem e o critério [KINEO-META95-PERSONAGEM-2010]
+    // IDENTITY, em 'enforce' (1 foto nova por cena, teto de 3 por filme, 35 s); (4) o still aprovado SUBSTITUI o FLUX daquela cena. O FLUX fica de reserva: folha, still ou [KINEO-META95-PERSONAGEM-2010]
+    // moderação que falha = a cena sai exatamente como hoje. Sem o interruptor: nada disto roda (o `if` abaixo é a única porta). Fica FORA das fatias que os guardiões executam. [KINEO-META95-PERSONAGEM-2010]
+    // >>> KINEO-META95-PERSONAGEM-2010 bloco
+    if (personagem.ativo && anchorActive && !estrelaAtiva && personagemElenco.elenco.length > 0) { // KINEO-META95-PERSONAGEM-2010
+      const t0Personagem = Date.now() // KINEO-META95-PERSONAGEM-2010
+      providerSubmissionMayExist = true // folha e stills com folha são trabalho pago da fal: o claim fica protegido, como no FLUX // KINEO-META95-PERSONAGEM-2010
+      const personagemMotor = wantsKling ? 'kling' : wantsVeo ? 'veo' : 'seedance' // KINEO-META95-PERSONAGEM-2010
+      const elencoP = personagemElenco.elenco // KINEO-META95-PERSONAGEM-2010
+      const visuaisP = scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description) // KINEO-META95-PERSONAGEM-2010 — a decisão "quem está na cena" lê o plano cru, como a Estrela
+      const cenasP = cenasComPersonagem(visuaisP, elencoP).filter((c) => c.nomes.length > 0).slice(0, PERSONAGEM_MAX_STILLS) // KINEO-META95-PERSONAGEM-2010
+      const folhasP = await Promise.all(elencoP.map((f, i) => generateCinematicSceneStill({ scenePrompt: promptDaFolha(f, styleAnchor), styleSuffix: '', seed: (generationSeed + 7_919 * (101 + i)) % 2_147_483_647, pollWindowMs: 15_000, aspect: aspectRequested }))) // KINEO-META95-PERSONAGEM-2010 — a folha: FLUX dev (o gerador do still de hoje), semente derivada da do filme (retentativa = a mesma folha)
+      const folhaDe = new Map<string, string>(elencoP.flatMap((f, i): Array<[string, string]> => (folhasP[i] ? [[f.nome, folhasP[i] as string]] : []))) // KINEO-META95-PERSONAGEM-2010
+      const stillsP: (string | null)[] = new Array(scenes.length).fill(null) // KINEO-META95-PERSONAGEM-2010
+      const filaP = cenasP.filter((c) => c.nomes.some((n) => folhaDe.has(n))) // KINEO-META95-PERSONAGEM-2010 — cena cujo personagem ficou sem folha: still de hoje
+      const prazoP = Date.now() + 60_000 // KINEO-META95-PERSONAGEM-2010
+      const fichasDaCena = (c: { nomes: string[] }) => elencoP.filter((f) => c.nomes.includes(f.nome) && folhaDe.has(f.nome)) // KINEO-META95-PERSONAGEM-2010
+      const folhasDaCena = (c: { nomes: string[] }) => fichasDaCena(c).map((f) => folhaDe.get(f.nome) as string) // KINEO-META95-PERSONAGEM-2010 — 2 personagens na cena = 2 folhas no image_urls (o edit aceita até 14)
+      const trabalhadorP = async () => { while (filaP.length > 0 && Date.now() < prazoP) { const c = filaP.shift()!; const r = await gerarStillDaEstrela({ prompt: promptDoStillComFolha(classicScenePrompts[c.indice], fichasDaCena(c)), imageUrls: folhasDaCena(c), aspect: aspectRequested, userId: user.id, engine: `personagem:${personagemMotor}`, pollWindowMs: Math.max(5_000, Math.min(40_000, prazoP - Date.now())) }); if (r.url) stillsP[c.indice] = r.url } } // KINEO-META95-PERSONAGEM-2010
+      if (filaP.length > 0) await Promise.all(Array.from({ length: Math.min(4, filaP.length) }, () => trabalhadorP())) // KINEO-META95-PERSONAGEM-2010
+      const criticoP = novoFilmeDoCritico(modoDoCriticoDoStill() === 'off' ? 'off' : 'enforce', { prazo: Date.now() + 35_000 }) // KINEO-META95-PERSONAGEM-2010 — com a folha o crítico DECIDE (enforce); STILL_CRITIC_MODE=off desliga também aqui
+      const relatosP: RelatoCriticoStill[] = [] // KINEO-META95-PERSONAGEM-2010
+      await Promise.all(cenasP.filter((c) => stillsP[c.indice]).map(async (c) => { // KINEO-META95-PERSONAGEM-2010
+        const fichas = fichasDaCena(c) // KINEO-META95-PERSONAGEM-2010
+        const julgado = await criticarStill({ indice: c.indice, url: stillsP[c.indice] as string, mostra: visuaisP[c.indice], fala: scenes[c.indice].voiceover ?? '', prompt: promptDoStillComFolha(classicScenePrompts[c.indice], fichas), seed: generationSeed, referencia: { url: folhasDaCena(c)[0], descricao: fichas.map((f) => f.canonica).join('; ') } }, { // KINEO-META95-PERSONAGEM-2010
+          filme: criticoP, // KINEO-META95-PERSONAGEM-2010
+          gerarStill: async (promptNovo, _seed, pollWindowMs) => (await gerarStillDaEstrela({ prompt: promptNovo, imageUrls: folhasDaCena(c), aspect: aspectRequested, userId: user.id, engine: `personagem:${personagemMotor}`, pollWindowMs })).url, // KINEO-META95-PERSONAGEM-2010 — a foto nova também sai do edit com a folha
+        }) // KINEO-META95-PERSONAGEM-2010
+        relatosP.push(julgado.relato) // KINEO-META95-PERSONAGEM-2010
+        stillsP[c.indice] = julgado.url // KINEO-META95-PERSONAGEM-2010
+        void writeServerEvent({ name: STILL_CRITIC_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, engine: personagemMotor, path_kind: 'personagem', ...julgado.relato } }) // KINEO-META95-PERSONAGEM-2010
+      })) // KINEO-META95-PERSONAGEM-2010
+      for (let i = 0; i < scenes.length; i++) if (stillsP[i]) sceneStills[i] = stillsP[i] // KINEO-META95-PERSONAGEM-2010 — o still com folha vence o FLUX daquela cena
+      personagemRelatoFinal = relatoDoPersonagem({ engine: personagemMotor, elenco: elencoP, casting: personagemElenco.casting, folhas: folhaDe.size, folhasFalhadas: elencoP.length - folhaDe.size, cenas: scenes.length, cenasComPersonagem: cenasP.length, stillsOk: stillsP.filter(Boolean).length, critico: relatosP.map((r) => ({ cena: r.cena, veredito: r.veredito, problemas: r.problemas, regerou: r.regerou, escolhida: r.escolhida })), ms: Date.now() - t0Personagem }) // KINEO-META95-PERSONAGEM-2010
+      console.log(`[personagem] gen=${generationId} engine=${personagemMotor} elenco=${elencoP.length} folhas=${folhaDe.size}/${elencoP.length} cenas_com_personagem=${cenasP.length}/${scenes.length} stills_ok=${personagemRelatoFinal.stills_ok} fallback=${personagemRelatoFinal.fallback} critico=${relatosP.map((r) => `${r.cena}:${r.veredito}${r.regerou ? '→' + r.escolhida : ''}`).join(' ')} extra_usd=${personagemRelatoFinal.extra_usd.toFixed(3)} ${personagemRelatoFinal.ms} ms`) // KINEO-META95-PERSONAGEM-2010
+      void writeServerEvent({ name: PERSONAGEM_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, ...personagemRelatoFinal } }) // KINEO-META95-PERSONAGEM-2010
+    } // KINEO-META95-PERSONAGEM-2010
+    // <<< KINEO-META95-PERSONAGEM-2010 bloco
 
     // KINEO-CINEMATIC-ANCHOR-2026-07-24 — returns per-scene ids AND the model
     // each scene actually ran on (i2v for anchored scenes, t2v otherwise), both

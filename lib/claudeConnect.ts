@@ -13,6 +13,9 @@
 
 /** O servidor MCP remoto da Kineo (sempre com www: o redirect do apex derruba cabeçalhos no cliente de conectores). */
 export const CLAUDE_MCP_SERVER_URL = 'https://www.usekineo.com/api/mcp'
+/** KINEO-MCP-STUDIO-2010 — o conector "Kineo Studio": gera o filme NA CONTA da pessoa (OAuth), só por URL, fora do diretório. */
+export const CLAUDE_STUDIO_MCP_SERVER_URL = 'https://www.usekineo.com/api/mcp/studio' // KINEO-MCP-STUDIO-2010
+export const CLAUDE_STUDIO_CONNECT_ANCHOR = 'studio' // KINEO-MCP-STUDIO-2010
 /** O modal "Adicionar conector personalizado" do claude.ai (testado no Chrome do fundador, 30/09 ~09:15 BRT). */
 export const CLAUDE_ADD_CONNECTOR_URL = 'https://claude.ai/customize/connectors?modal=add-custom-connector'
 /** Chat novo com o texto na caixa, SEM enviar (testado 30/09). Deslogado, o login devolve ao mesmo pedido (returnTo). */
