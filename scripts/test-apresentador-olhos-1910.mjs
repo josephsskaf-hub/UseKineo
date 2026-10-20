@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semUgcAjustes2010 } from './test-support/desfaz-ugc-ajustes-2010.mjs' // reancorado KINEO-UGC-AJUSTES-2010 — a camada mais nova (ajustes do UGC, 20/10) sai do disco antes das provas desta entrega
 import { semApresentadorOlhos1910, desfazApresentadorOlhos1910, APRESENTADOR_OLHOS_1910_ARQUIVOS, APRESENTADOR_OLHOS_1910_NOVOS, APRESENTADOR_OLHOS_1910_BASE, MARCA_APRESENTADOR_OLHOS_1910, ACRESCIMOS_APRESENTADOR_OLHOS_1910 } from './test-support/desfaz-apresentador-olhos-1910.mjs'
 import { semCloseRealLegendaCorte1910 } from './test-support/desfaz-close-real-legenda-corte-1910.mjs'
 import { desfazApresentadorV2Ajuste3_1710 } from './test-support/desfaz-apresentador-v2-ajuste-3-1710.mjs'
@@ -29,7 +30,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT) // o carregador offline resolve '@/' a partir do cwd
 const MARCA = 'KINEO-APRESENTADOR-OLHOS-1910'
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8')) // o arquivo VIVO (esta é a camada mais nova)
+const rd = (p) => lf(semUgcAjustes2010(readFileSync(join(ROOT, p), 'utf8'), p)) // o arquivo VIVO (esta é a camada mais nova) · reancorado KINEO-UGC-AJUSTES-2010 — os ajustes do UGC de 20/10 (Jade e Robert aprovados, sub-teto, probe, folga de 23) saem primeiro, em memória (provados em scripts/test-ugc-ajustes-2010.mjs)
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const B = APRESENTADOR_OLHOS_1910_BASE
 const base = (p) => { try { return lf(git('show', `${B}:${p}`)) } catch { return null } }

@@ -11,6 +11,7 @@
   "lib/ads/v2PlanCore.ts": 11,
   "lib/ads/v2PresenterV2.ts": 11,
   "lib/ads/v2StartCore.ts": 3,
+  "scripts/test-apresentador-olhos-1910.mjs": 1,
   "scripts/test-support/desfaz-filmes-f1f3-publico-2010.mjs": 2,
   "scripts/test-support/desfaz-kit-bf-venda-2010.mjs": 2
  },
@@ -62,6 +63,12 @@
   [
    "export const ADS_V2_PRESENTER_V2_APPROVED: readonly string[] = ['sofia', 'amara', 'rahul', 'kenji', 'jade', 'robert'] // KINEO-UGC-AJUSTES-2010 — era: os 4 aprovados de 19/10 (Sofia, Amara, Rahul, Kenji)",
    "export const ADS_V2_PRESENTER_V2_APPROVED: readonly string[] = ['sofia', 'amara', 'rahul', 'kenji'] // KINEO-APRESENTADOR-OLHOS-1910"
+  ]
+ ],
+ "scripts/test-apresentador-olhos-1910.mjs": [
+  [
+   "const rd = (p) => lf(semUgcAjustes2010(readFileSync(join(ROOT, p), 'utf8'), p)) // o arquivo VIVO (esta é a camada mais nova) · reancorado KINEO-UGC-AJUSTES-2010 — os ajustes do UGC de 20/10 (Jade e Robert aprovados, sub-teto, probe, folga de 23) saem primeiro, em memória (provados em scripts/test-ugc-ajustes-2010.mjs)",
+   "const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8')) // o arquivo VIVO (esta é a camada mais nova)"
   ]
  ]
 }
