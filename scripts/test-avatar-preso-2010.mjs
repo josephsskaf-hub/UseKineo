@@ -26,6 +26,7 @@ import {
   ACRESCIMOS_AVATAR_PRESO_2010, TROCAS_AVATAR_PRESO_2010,
 } from './test-support/desfaz-avatar-preso-2010.mjs'
 import { semMeta95Refazer1910 } from './test-support/desfaz-meta95-refazer-1910.mjs'
+import { semMenuUgc2010 } from './test-support/desfaz-menu-ugc-2010.mjs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const ROOT = path.resolve(import.meta.dirname, '..')
@@ -268,6 +269,10 @@ console.log('\nD. desfaz, encadeamento e diff')
   ok(contagem && semMarcaNova, 'D3 toda linha nova ou reescrita leva a marca, e a contagem bate (acréscimos + trocas)')
   const M95 = rd(F.meta95)
   ok(/export function semMeta95Refazer1910\(texto, p\) \{\n  texto = semAvatarPreso2010\(texto, p\)/.test(M95) && /^import \{ semAvatarPreso2010 \} from '\.\/desfaz-avatar-preso-2010\.mjs'/m.test(M95), 'D4 encadeado: semMeta95Refazer1910 (a camada mais nova do /api/compose até hoje) chama ESTE primeiro')
+  const MU = rd('scripts/test-support/desfaz-menu-ugc-2010.mjs')
+  ok(/export function semMenuUgc2010\(texto, p\) \{\n  texto = semAvatarPreso2010\(texto, p\)/.test(MU) && /^import \{ semAvatarPreso2010 \} from '\.\/desfaz-avatar-preso-2010\.mjs'/m.test(MU), 'D4b encadeado na cabeça da cadeia geral: semMenuUgc2010 chama ESTE primeiro')
+  const guardioes = ['scripts/test-seedance-15s-3x6-2026-09-29.mjs', 'scripts/test-voz-15s-mesma-da-montagem-2026-09-29.mjs']
+  ok(guardioes.every((g) => { try { return !semMenuUgc2010(fs.readFileSync(path.join(ROOT, g), 'utf8'), g).includes(MARCA) } catch { return false } }), 'D5b a cadeia geral (semMenuUgc2010) tira as reâncoras desta camada dos guardiões do 15 s (a linha da base volta inteira)')
   const viaCadeia = semMeta95Refazer1910(fs.readFileSync(path.join(ROOT, F.compose), 'utf8'), F.compose)
   ok(!viaCadeia.includes(MARCA) && !viaCadeia.includes('KINEO-META95-REFAZER-1910'), 'D5 a cadeia do /api/compose tira esta camada e a de antes (nenhuma marca sobra)')
   ok(!MARCA_AVATAR_PRESO_2010.includes('KINEO-META95') && !'KINEO-META95-REFAZER-1910'.includes(MARCA), 'D6 a marca não contém a de nenhuma camada de antes')
@@ -314,6 +319,10 @@ await mut('M12 cron fase 3 filtra por motor (avatar fica de fora)', CR, "      .
   const M95 = rd(F.meta95)
   const quebrado = M95.replace(de, '  // (sem a camada do avatar)')
   ok(M95.includes(de) && quebrado !== M95 && !/export function semMeta95Refazer1910\(texto, p\) \{\n  texto = semAvatarPreso2010\(texto, p\)/.test(quebrado), 'M13 cabeça da cadeia do /api/compose sem chamar esta camada → D4 vermelho')
+  const MU = rd('scripts/test-support/desfaz-menu-ugc-2010.mjs')
+  const deMU = '  texto = semAvatarPreso2010(texto, p) // KINEO-AVATAR-PRESO-2010'
+  const quebradoMU = MU.replace(deMU, '  // (sem a camada do avatar) //')
+  ok(MU.includes(deMU) && quebradoMU !== MU && !/export function semMenuUgc2010\(texto, p\) \{\n  texto = semAvatarPreso2010\(texto, p\)/.test(quebradoMU), 'M16 cabeça da cadeia geral sem chamar esta camada → D4b vermelho')
   let lancou = false
   try { semAvatarPreso2010(COMPOSE.replace(/\n {4}\/\/ KINEO-AVATAR-PRESO-2010 — \(claim assinado[^\n]*/, ''), F.compose) } catch { lancou = true }
   ok(lancou, 'M14 desfaz com um acréscimo a menos (comentário apagado à mão) lança → D1 vermelho')

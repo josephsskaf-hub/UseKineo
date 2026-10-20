@@ -6,8 +6,8 @@
 //   · ACRÉSCIMO — linha nova: sai inteira (contagem EXATA por arquivo);
 //   · TROCA — a linha da base foi reescrita: reconhecida INTEIRA, volta a ser o texto da base. Tabela em desfaz-avatar-preso-2010-trocas.json.
 // Só age nos arquivos declarados; qualquer outro texto passa igual (idempotente). Preserva CRLF. A marca NÃO contém a de nenhuma camada de antes.
-// ENCADEAMENTO: é a camada MAIS NOVA do /api/compose — semMeta95Refazer1910 (desfaz-meta95-refazer-1910.mjs, que semFilmesF1F4_1910 chama
-// primeiro) chama ESTE primeiro. Este não importa ninguém.
+// ENCADEAMENTO: é a camada MAIS NOVA — semMenuUgc2010 (a cabeça da cadeia geral: home/Studio Ads/meta 95 → … → ugc-ajustes → menu-ugc) e
+// semMeta95Refazer1910 (a cabeça da cadeia do /api/compose, que semFilmesF1F4_1910 chama primeiro) chamam ESTE primeiro. Este não importa ninguém.
 // O guardião scripts/test-avatar-preso-2010.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (AVATAR_PRESO_2010_BASE).
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -27,6 +27,7 @@ export const ACRESCIMOS_AVATAR_PRESO_2010 = {
   'scripts/test-support/desfaz-meta95-refazer-1910.mjs': 2,
   'scripts/test-seedance-15s-3x6-2026-09-29.mjs': 1,
   'scripts/test-voz-15s-mesma-da-montagem-2026-09-29.mjs': 1,
+  'scripts/test-support/desfaz-menu-ugc-2010.mjs': 2,
 }
 export const AVATAR_PRESO_2010_ARQUIVOS = Object.freeze(Object.keys(ACRESCIMOS_AVATAR_PRESO_2010))
 /** Arquivos novos da entrega (não existiam na base). */

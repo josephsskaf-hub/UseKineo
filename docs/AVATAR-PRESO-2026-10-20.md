@@ -54,4 +54,4 @@ Só um avatar de **exatos 60 s** passava (70 × 60/60 = 70). Os outros valores d
 
 ## Guardião
 
-`scripts/test-avatar-preso-2010.mjs`: executa `reservation.ts` num vm com assinaturas reais e banco dublê (o caso real fica vermelho na base e verde hoje), confere o compose, o status, o cron e os vizinhos, além do desfaz encadeado (camada mais nova do `/api/compose`: `semMeta95Refazer1910` chama `semAvatarPreso2010` primeiro) e 15 mutantes.
+`scripts/test-avatar-preso-2010.mjs`: executa `reservation.ts` num vm com assinaturas reais e banco dublê (o caso real fica vermelho na base e verde hoje), confere o compose, o status, o cron e os vizinhos, além do desfaz encadeado (camada mais nova do `/api/compose`: `semMeta95Refazer1910` chama `semAvatarPreso2010` primeiro, e a cabeça da cadeia geral `semMenuUgc2010` também) e 16 mutantes.
