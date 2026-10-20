@@ -18,6 +18,7 @@
 //   (7) o menu do celular (site) e os pares do app (Sidebar, MobileNav, lib/ui/workspaceNavigation) e o /examples;
 //   (8) as frases novas nas 16 línguas com {marcas}, números e marcas preservados;
 //   (M) mutantes: cada regra acima fica vermelha quando a quebramos de propósito.
+import { semHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — os 3 cards da home (+ amostra pela entrada do card) saem do diff/leitura em memória
 import fs from 'node:fs'
 import path from 'node:path'
 import vm from 'node:vm'
@@ -41,7 +42,7 @@ function roda(code) {
 
 const LIB = read('lib/ui/homeTwoDoors.ts')
 const COMP = read('components/home/HomeTwoDoors.tsx')
-const LAND = read('app/KineoLanding.tsx')
+const LAND = semHome3Cards1910(read('app/KineoLanding.tsx'), 'app/KineoLanding.tsx') // reancorado KINEO-HOME-3-CARDS-1910 — a home SEM os 3 cards (atrás do interruptor) = as 2 portas de sempre, em memória
 const NAVCFG = read('lib/ui/workspaceNavigation.ts')
 const SIDE = read('components/Sidebar.tsx')
 const MOB = read('components/MobileNav.tsx')

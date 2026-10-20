@@ -15,6 +15,7 @@
 //   S  "single product" quando o pedido tem um produto só; os sinais do lugar (hotel = cama, cortina, luminária de cabeceira);
 //   D  desfaz exato + ida + marca em todo bloco + encadeamento (o desfaz do produto na mão tira este ajuste primeiro) + travas 'internal';
 //   M  mutantes (todos aplicados e vermelhos).
+import { diffSoHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — os 3 cards da home (+ amostra pela entrada do card) saem do diff/leitura em memória
 import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname, posix } from 'node:path'
@@ -410,7 +411,7 @@ await check('D2 todo bloco do desfaz traz a marca; o diff contra a base só toca
   const blocos = Object.values(D).flat()
   const shas = git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, 'HEAD').trim().split('\n').filter(Boolean)
   const TOPO = shas[0] || 'HEAD'
-  const tocados = git('diff', '--name-only', MAO_AJUSTE_1610_BASE, TOPO).trim().split('\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\n').filter(Boolean))
+  const tocados = git('diff', '--name-only', MAO_AJUSTE_1610_BASE, TOPO).trim().split('\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\n').filter(Boolean).filter((f) => !diffSoHome3Cards1910(git('diff', '-U0', '--no-color', 'HEAD', '--', f), f))) // reancorado KINEO-HOME-3-CARDS-1910 — o não commitado só desta entrega (todo bloco com a marca) fora da lista
   const permitidos = new Set([...MAO_AJUSTE_1610_ARQUIVOS, ...MAO_AJUSTE_1610_NOVOS])
   return blocos.length > 0 && blocos.every((h) => h.now.join('\n').includes(MARCA)) && tocados.every((f) => permitidos.has(f)) &&
     [F.tiers, F.engines, 'lib/ads/v2StartCore.ts', 'lib/ads/v2Billing.ts', 'lib/ads/v2ProductInHandServer.ts', 'lib/ads/v2ProductLockServer.ts', 'app/api/ads/v2/start/route.ts', 'app/api/ads/v2/plan/route.ts'].every((f) => base(f) === rd(f))

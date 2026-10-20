@@ -504,7 +504,9 @@ type AdsV2WorkspaceProp = { role: 'owner' | 'member'; ownerLabel: string | null;
 // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — business: a oferta do Business (page.tsx → lib/businessPlan.ts businessAdsOffer), só com a amostra. Quando a sessão
 // descobre que a amostra já foi usada (403 'no_access' / 402 do envio de foto), o invólucro troca a sessão pela oferta, com o
 // último anúncio entregue da conta. Sem a prop (assinante, passe, interna), nada muda.
-export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null, business = null }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp; business?: AdsBusinessOffer | null }) {
+// KINEO-HOME-3-CARDS-1910 — entry: a entrada do card da home (page.tsx validou ?entry=product|ugc; tipo espelhado de lib/ads/sampleEntry.ts sem importar) — vai à
+// KINEO-HOME-3-CARDS-1910 — sessão do modo simples, que abre no formato do card e, na amostra, manda a entrada ao /plan. null/ausente = a tela de sempre.
+export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null, business = null, entry = null /* KINEO-HOME-3-CARDS-1910 */ }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp; business?: AdsBusinessOffer | null; entry?: 'product' | 'ugc' | null }) {
   const [sampleGone, setSampleGone] = useState(false) // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
   const [session, setSession] = useState(0)
   const [groupId, setGroupId] = useState<string | null>(null)
@@ -728,6 +730,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
           onPreview={setSimplePreview}
           business={business}
           onSampleGone={() => setSampleGone(true)}
+          entry={entry} /* KINEO-HOME-3-CARDS-1910 */
           rowSlot={rowSlot}
           marcas={{ mode: marcas.state.status === 'ready' ? (marcasOn ? 'ready' : 'legacy') : marcas.state.status, list: marcas.brands, selected: marcasOn ? marcas.selected : null, onPick: marcas.select, onSave: marcas.save }} // KINEO-ADS-MARCAS-1510 — 'legacy' = o kit único de sempre
         />

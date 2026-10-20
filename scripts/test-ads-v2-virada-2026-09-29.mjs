@@ -13,13 +13,14 @@
 //   L — o link discreto do clássico no montador v2, com o preço vindo do servidor.
 // Cada asserção central é provada por MUTAÇÃO em memória (o mutante tem de ficar vermelho). Lê arquivos com readFileSync;
 // executa só módulos puros (v2Tiers, v2Screen, offer) e o page.tsx do /ads/new com stubs de next/navigation, supabase etc.
+import { semHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — os 3 cards da home (+ amostra pela entrada do card) saem do diff/leitura em memória
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import ts from 'typescript'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semHome3Cards1910(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n') // reancorado KINEO-HOME-3-CARDS-1910 — lê as telas do montador SEM os 3 cards (a amostra pela entrada do card), em memória
 let verdes = 0
 const vermelhos = []
 async function check(nome, cond) {

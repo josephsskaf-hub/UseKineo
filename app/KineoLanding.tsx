@@ -42,6 +42,11 @@ import HomeClipsStrip from '@/components/home/HomeClipsStrip' // KINEO-HOME-CLIP
 // KINEO-DUAS-PORTAS-2026-10-13 — as 2 portas da primeira dobra (filme narrado · anúncio de produto). Os números da oferta
 // saem das fontes abaixo, nunca digitados (guardião scripts/test-duas-portas-1310.mjs).
 import HomeTwoDoors, { type HomeDoorOffer } from '@/components/home/HomeTwoDoors'
+// KINEO-HOME-3-CARDS-1910 — os 3 cards de produto (Filmes · Anúncios de Produto · Anúncios UGC) no lugar das 2 portas, atrás do
+// KINEO-HOME-3-CARDS-1910 — interruptor único HOME_3_CARDS_LIVE (desligado = só a casa vê a prévia). Guardião scripts/test-home-3-cards-1910.mjs.
+import HomeThreeCards from '@/components/home/HomeThreeCards' // KINEO-HOME-3-CARDS-1910
+import { HOME_3_CARDS_LIVE, home3CardsOn } from '@/lib/ui/homeThreeCards' // KINEO-HOME-3-CARDS-1910
+import { isInternalEmail } from '@/lib/internalAccounts' // KINEO-HOME-3-CARDS-1910
 import { BUSINESS_ADS_PER_MONTH, BUSINESS_PRICE_LABEL } from '@/lib/businessPlan'
 import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample'
 import { WELCOME20_PERCENT_OFF } from '@/lib/growth/publicPromoTruth'
@@ -809,6 +814,9 @@ export default function KineoLanding({
   // resolvido no servidor do Studio (lib/kineo1Access.ts, E2b). A grade do bento fecha sozinha para qualquer contagem
   // (lib/ui/homePresentation.ts): visitante 4 tiles, casa 6.
   const showKineo1 = kineo1Visible(initialEmail)
+  // KINEO-HOME-3-CARDS-1910 — um booleano decide a primeira dobra: os 3 cards (interruptor aberto, ou conta da casa vendo a
+  // KINEO-HOME-3-CARDS-1910 — prévia) ou as 2 portas de sempre. Fechado, o visitante vê a home de hoje, byte a byte.
+  const showThreeCards = home3CardsOn(HOME_3_CARDS_LIVE, isInternalEmail(initialEmail)) // KINEO-HOME-3-CARDS-1910
   // KINEO-DUAS-PORTAS-2026-10-13 — a oferta de cada porta com a verdade de hoje, LIDA das fontes:
   //   filme: 1 filme grátis de 15 s no Seedance 1.5, com marca d'água (lib/freeTierOffer; país fora da lista nasce sem
   //   crédito → a cláusula aparece) + Creator $19.90 com 20% no 1º mês (TIER_PRICES.basic + WELCOME20, só se no ar);
@@ -1020,7 +1028,11 @@ export default function KineoLanding({
           narrado (11 dos 12 pagantes) e anúncio de produto (Business). A fileira de 4 cards desceu para "More tools", logo
           depois dos filmes da casa; o hero de filmes (curadoria do fundador) segue intacto e na mesma ordem. No braço
           clips_first do A/B a faixa de Clipes continua vindo antes dos filmes. */}
+      {/* KINEO-HOME-3-CARDS-1910 — fundador 19/10 ("pode ser as 3"): Filmes · Anúncios de Produto · Anúncios UGC; os 2 de anúncio
+          KINEO-HOME-3-CARDS-1910 — levam ao 1º anúncio grátis no formato do card. Interruptor fechado = só a casa vê; o resto segue com as 2 portas. */}
+      {showThreeCards ? <HomeThreeCards signedIn={isSignedIn} /> : ( // KINEO-HOME-3-CARDS-1910
       <HomeTwoDoors signedIn={isSignedIn} filmOffer={filmDoorOffer} adsOffer={adsDoorOffer} />
+      ) /* KINEO-HOME-3-CARDS-1910 */}
       {clipsFirst && <HomeClipsStrip signedIn={isSignedIn} />}
 
       <header className="hero">

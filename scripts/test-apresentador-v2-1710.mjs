@@ -15,6 +15,7 @@
 //   T  TRAVAS: ADS_V2_PRESENTER_V2_MODE = 'internal', o /plan só monta para reason 'internal' + Comercial 9:16 sem estilo; 'off' desliga até o já planejado;
 //   D  desfaz exato + ida + marca + encadeamento (a grade do juiz e, por ela, a cadeia inteira tiram esta camada primeiro) + diff só nos arquivos da lista;
 //   M  mutantes (todos APLICADOS e VERMELHOS).
+import { diffSoHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — os 3 cards da home (+ amostra pela entrada do card) saem do diff/leitura em memória
 import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { semFilmesF1F4_1910 } from './test-support/desfaz-filmes-f1f4-1910.mjs' // reancorado KINEO-FILMES-F1-F4-1910 [TRAVA 8.2 — vai do fundador 19/10 "vai, sim pra tudo"]: as linhas marcadas do Faceless 15 s saem antes da comparação com a base
 import { readFileSync, existsSync } from 'node:fs'
@@ -331,7 +332,7 @@ await check('D2 todo bloco do desfaz traz a marca; o diff contra a base só toca
   const blocos = Object.values(D).flat()
   const shas = git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, 'HEAD').trim().split('\n').filter(Boolean)
   const TOPO = shas[0] || 'HEAD'
-  const tocados = git('diff', '--name-only', APRESENTADOR_V2_1710_BASE, TOPO).trim().split('\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\n').filter(Boolean))
+  const tocados = git('diff', '--name-only', APRESENTADOR_V2_1710_BASE, TOPO).trim().split('\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\n').filter(Boolean).filter((f) => !diffSoHome3Cards1910(git('diff', '-U0', '--no-color', 'HEAD', '--', f), f))) // reancorado KINEO-HOME-3-CARDS-1910 — o não commitado só desta entrega (todo bloco com a marca) fora da lista
   const permitidos = new Set([...APRESENTADOR_V2_1710_ARQUIVOS, ...APRESENTADOR_V2_1710_NOVOS])
   return blocos.length > 0 && blocos.every((h) => h.now.join('\n').includes(MARCA)) && tocados.length > 0 && tocados.every((f) => permitidos.has(f)) &&
     ['lib/ads/v2Tiers.ts', 'lib/ads/v2Billing.ts', 'lib/ads/v2StartCore.ts', 'lib/ttsFallback.ts', 'lib/compose.ts', 'app/api/audio/generate/route.ts', 'lib/ads/v2Engines.ts'].every((f) => !tocados.includes(f))

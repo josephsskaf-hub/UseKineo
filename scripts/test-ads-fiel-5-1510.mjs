@@ -19,6 +19,7 @@
 //   V  desfaz exato + marca em todo bloco + só linhas da Fiel 4 trocadas + dinheiro byte a byte + trava 'internal' no texto deste conserto e 'all' no arquivo vivo (reancorado KINEO-ADS-FIEL-LIGA-1510 — fundador ligou para todos em 15/10) + guardiões antigos
 //      encadeados + o plano do reteste;
 //   M  mutantes (todos aplicados e vermelhos).
+import { diffSemHome3Cards1910, diffSoHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — os 3 cards da home (+ amostra pela entrada do card) saem do diff/leitura em memória
 import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname, posix } from 'node:path'
@@ -425,7 +426,7 @@ console.log('\nV. desfaz, marca, dinheiro, trava ainda "internal", guardiões an
 await check('V1 cada arquivo tocado, desfeito (scripts/test-support/desfaz-ads-fiel-5-1510.mjs), é EXATAMENTE o pai do commit; a base do desfaz é esse pai', () =>
   FIEL_5_1510_ARQUIVOS.length === 12 && FIEL_5_1510_ARQUIVOS.every((f) => semFiel5_1510(f, rd(f)) === base(f)) && FIEL_5_1510_NOVOS.length === 0 && MARCA_FIEL_5_1510 === MARCA && (BASE === 'HEAD' || FIEL_5_1510_BASE === BASE))
 await check('V2 todo bloco novo nos arquivos de produto (lib/ e app/) traz a marca KINEO-ADS-FIEL-5-1510 (e toda linha de código fora de comentário também); só linhas da Fiel 4 foram trocadas', () => {
-  const d = diffDoConserto(['-U0', '--no-color'], ['lib', 'app'])
+  const d = diffSemHome3Cards1910(diffDoConserto(['-U0', '--no-color'], ['lib', 'app'])) // reancorado KINEO-HOME-3-CARDS-1910 — blocos/arquivos desta entrega (todos com a marca) fora do diff
   let arquivo = ''
   let bloco = []
   const semMarca = []
@@ -444,7 +445,7 @@ await check('V2 todo bloco novo nos arquivos de produto (lib/ e app/) traz a mar
   fecha()
   if (semMarca.length) console.log('       ' + semMarca.slice(0, 5).join('\n       '))
   if (removidasAlheias.length) console.log('       ' + removidasAlheias.slice(0, 5).join('\n       '))
-  const nomes = diffDoConserto(['--name-only'], ['lib', 'app']).split('\n').filter(Boolean)
+  const nomes = diffDoConserto(['--name-only'], ['lib', 'app']).split('\n').filter(Boolean).filter((n) => !diffSoHome3Cards1910(diffDoConserto(['-U0', '--no-color'], [n]), n)) // reancorado KINEO-HOME-3-CARDS-1910 — arquivo só desta entrega (todo bloco com a marca) fora da lista
   return semMarca.length === 0 && removidasAlheias.length === 0 && d.includes(MARCA) && nomes.every((n) => ['lib/ads/v2Advance.ts', 'lib/ads/v2LockVision.ts', 'lib/ads/v2Png.ts', 'lib/ads/v2ProductLockServer.ts', 'lib/ads/v2ShotLists.ts'].includes(n))
 })
 await check('V3 dinheiro e acesso intocados: v2Billing, v2Tiers, v2StartCore, /start, débito e estorno byte a byte iguais ao pai e fora do diff', () => {

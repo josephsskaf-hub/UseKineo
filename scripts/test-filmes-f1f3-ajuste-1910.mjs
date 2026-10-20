@@ -15,6 +15,7 @@ import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — o guardião do f1f4 também foi reancorado pelos 3 cards (mais novos): sai primeiro, em memória
 import { semFilmesF1F3Ajuste1910, MARCA_FILMES_F1F3_AJUSTE_1910, TROCAS_FILMES_F1F3_AJUSTE_1910, ACRESCIMOS_FILMES_F1F3_AJUSTE_1910, ARQUIVOS_FILMES_F1F3_AJUSTE_1910 } from './test-support/desfaz-filmes-f1f3-ajuste-1910.mjs'
 import { semFilmesF1Virgula1910 } from './test-support/desfaz-filmes-f1-virgula-1910.mjs' // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a camada mais nova (Faceless 15 s no export limpo) sai primeiro
 
@@ -59,11 +60,11 @@ for (const p of ['lib/compose.ts', 'lib/hookFirstFrame.ts', 'lib/lyriaMusic.ts',
   // A referência do guardião reancorado é a ÚLTIMA versão dele deixada por OUTRA sessão (o último commit que o tocou sem a
   // marca do ajuste): o Close real (KINEO-CLOSE-REAL-AJUSTE-1910) reancorou o mesmo guardião no topo, mesclado depois do meu
   // 1º commit — a regra "pai do 1º commit" não enxergaria a camada dele.
-  const rdAlheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, '--grep=KINEO-CLOSE-REAL-V3-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, 'HEAD', '--', p]).trim(); return sha ? lf(semCloseRealV3_1910(git(['show', `${sha}:${p}`]), p)) : null } catch { return null } } // KINEO-CLOSE-REAL-V3-1910 — reancorado: a versão 'alheia' pula também os commits da rodada 3 do Close real (e sai sem a camada dela) · KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo
+  const rdAlheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, '--grep=KINEO-CLOSE-REAL-V3-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-HOME-3-CARDS-1910' /* reancorado KINEO-HOME-3-CARDS-1910: pula os commits dos 3 cards */, 'HEAD', '--', p]).trim(); return sha ? lf(semCloseRealV3_1910(git(['show', `${sha}:${p}`]), p)) : null } catch { return null } } // KINEO-CLOSE-REAL-V3-1910 — reancorado: a versão 'alheia' pula também os commits da rodada 3 do Close real (e sai sem a camada dela) · KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo
   const ruins = []
   for (const p of ARQUIVOS_FILMES_F1F3_AJUSTE_1910) {
     const trocas = TROCAS_FILMES_F1F3_AJUSTE_1910[p] ?? []
-    const vivo = rd(p)
+    const vivo = semHome3Cards1910(rd(p), p) // reancorado KINEO-HOME-3-CARDS-1910 — sem a camada dos 3 cards (mais nova), em memória
     const base = rdAlheio(p)
     if (base === null) { ruins.push(p); continue }
     const lv = vivo.split('\n')

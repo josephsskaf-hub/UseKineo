@@ -21,6 +21,7 @@
 //   D  desfaz exato + ida + marca + encadeamento (a 3ª rodada, o ajuste, o produto na mão e a fiel-7 tiram esta camada primeiro) + travas +
 //      nada de cobrança, motor, /start, TTS, compose ou montador no diff;
 //   M  mutantes (todos aplicados e vermelhos).
+import { diffSoHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — os 3 cards da home (+ amostra pela entrada do card) saem do diff/leitura em memória
 import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname, posix } from 'node:path'
@@ -575,7 +576,7 @@ await check('D2 todo bloco do desfaz traz a marca; o diff contra a base só toca
   const blocos = Object.values(D).flat()
   const shas = git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, 'HEAD').trim().split('\n').filter(Boolean)
   const TOPO = shas[0] || 'HEAD'
-  const tocados = git('diff', '--name-only', MAO_JUIZ_1610_BASE, TOPO).trim().split('\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\n').filter(Boolean))
+  const tocados = git('diff', '--name-only', MAO_JUIZ_1610_BASE, TOPO).trim().split('\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\n').filter(Boolean).filter((f) => !diffSoHome3Cards1910(git('diff', '-U0', '--no-color', 'HEAD', '--', f), f))) // reancorado KINEO-HOME-3-CARDS-1910 — o não commitado só desta entrega (todo bloco com a marca) fora da lista
   const permitidos = new Set([...MAO_JUIZ_1610_ARQUIVOS, ...MAO_JUIZ_1610_NOVOS])
   return blocos.length > 0 && blocos.every((h) => h.now.join('\n').includes(MARCA)) && tocados.every((f) => permitidos.has(f)) &&
     [F.tiers, F.shotLists, 'lib/ads/v2Engines.ts', 'lib/ads/v2Contract.ts', 'lib/ads/v2CopyFit.ts', 'lib/ads/v2PlanCore.ts', 'lib/ads/v2Billing.ts', 'lib/ads/v2StartCore.ts', 'lib/ads/v2ProductInHandServer.ts', 'lib/ads/v2ProductLockServer.ts', 'lib/ads/v2Images.ts', 'app/api/ads/v2/start/route.ts', 'app/api/ads/v2/plan/route.ts', 'lib/ttsFallback.ts', 'lib/ads/adV2Montage.ts', 'lib/compose.ts', 'app/api/compose/route.ts'].every((f) => base(f) === semFilmeRapido1710(rd(f), f) /* reancorado KINEO-FILME-RAPIDO-1710 */)

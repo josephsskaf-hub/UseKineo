@@ -17,6 +17,7 @@
 //   E dinheiro intocado no diff deste commit (só as 3 telas, a lib nova e scripts/); desfeito este conserto
 //     (scripts/test-support/desfaz-ads-link-tela-1510.mjs), as 3 telas são EXATAMENTE o pai; todo bloco novo traz a marca;
 //   M mutantes: cada regra quebrada fica vermelha, e cada mutante prova que aplicou (âncora única, texto mudou).
+import { diffSoHome3Cards1910, diffSemHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — os 3 cards da home (+ amostra pela entrada do card) saem do diff/leitura em memória
 import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import fs from 'node:fs'
 import path from 'node:path'
@@ -215,13 +216,13 @@ ok(tenta(() => loteOk(SRC.batch)), 'D1 o lote: o 422 mostra body.message (adsV2L
 // ═══ E. dinheiro intocado, desfaz e marca ═══════════════════════════════════════════════════════════════════════════
 console.log('\nE. dinheiro intocado, desfaz e marca')
 const PERMITIDOS = new Set([...LINK_TELA_1510_ARQUIVOS, F.lib])
-const tocados = () => [...new Set(diffDoConserto(['--name-only']).split('\n').map((l) => l.trim()).filter(Boolean))]
+const tocados = () => [...new Set(diffDoConserto(['--name-only']).split('\n').map((l) => l.trim()).filter(Boolean).filter((n) => !diffSoHome3Cards1910(diffDoConserto(['-U0', '--no-color'], [n]), n)))] // reancorado KINEO-HOME-3-CARDS-1910 — arquivo só desta entrega (todo bloco com a marca) fora da lista
 const DINHEIRO = ['lib/ads/v2Billing.ts', 'lib/ads/v2Tiers.ts', 'lib/ads/v2StartCore.ts', 'app/api/ads/v2/start/route.ts', 'app/api/ads/v2/plan/route.ts', 'lib/ads/v2PlanCore.ts', 'lib/ads/v2Batch.ts', 'app/api/ads/v2/link-import/route.ts', 'lib/ads/v2Link.ts', 'lib/ads/linkReader.ts', 'lib/ads/v2LinkImport.ts', 'lib/credits/debit.ts', 'lib/credits/refund.ts']
 ok(tenta(() => { const t = tocados(); return t.every((f) => PERMITIDOS.has(f) || f.startsWith('scripts/')) && DINHEIRO.every((f) => !t.includes(f) && base(f) !== null && read(f) === base(f)) }), `E1 o diff deste conserto só toca as 3 telas, a lib nova e scripts/; dinheiro e a rota/leitor do link byte a byte iguais ao pai (${BASE.slice(0, 8)})`)
 const desfeitoOk = (S) => LINK_TELA_1510_ARQUIVOS.length === 3 && [['simple', F.simple], ['batch', F.batch], ['comp', F.comp]].every(([k, f]) => semLinkTela1510(f, S[k]) === base(f))
 ok(tenta(() => desfeitoOk(SRC)), 'E2 desfeito este conserto (scripts/test-support/desfaz-ads-link-tela-1510.mjs), AdsV2Simple, AdsV2Batch e AdsFlow são EXATAMENTE o pai')
 const marcadosOk = () => LINK_TELA_1510_ARQUIVOS.every((f) => {
-  const d = diffDoConserto(['-U0', '--no-color'], [f])
+  const d = diffSemHome3Cards1910(diffDoConserto(['-U0', '--no-color'], [f])) // reancorado KINEO-HOME-3-CARDS-1910 — blocos/arquivos desta entrega (todos com a marca) fora do diff
   const blocos = d.split('\n@@').slice(1).map((h) => h.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')))
   return blocos.length > 0 && blocos.every((b) => b.length === 0 || b.some((l) => l.includes(MARCA)))
 })

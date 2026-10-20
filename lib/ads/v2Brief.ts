@@ -19,6 +19,7 @@ import { ADS_V2_PRODUCT_WORDS } from '@/lib/ads/v2Simple' // KINEO-APRESENTADOR-
 import { ADS_V2_HONESTY_RULE, adsV2PlaceRule, honestyIssues, isDemonym, repairHonesty, repairTestimonial, type AdsV2HonestySource } from '@/lib/ads/v2Honesty'
 import { adsV2BusinessFallback, adsV2FinishCopyRaw, adsV2GenericBrandUses, adsV2GenericProduct, adsV2GenericRule, adsV2GenericWhy, adsV2HasNarration, adsV2SpeechMinWords, adsV2SpeechNarrationLine, adsV2VariantFirstOverlay, type AdsV2GenericProduct } from '@/lib/ads/v2CopyFit' // KINEO-ADS-RETESTE-1510 — piso de fala (90% do anúncio na voz MiniMax) e produto genérico que não é marca ("da Perfume")
 import { adsV2GenericThis, adsV2NarrationBelow } from '@/lib/ads/v2CopyFit' // KINEO-ADS-DEMO-UNIVERSO-1410 — o nome dos fechos de fala no produto genérico ("este perfume") e "a fala ficou abaixo do piso"
+import { adsV2KitBfBriefOffer, adsV2KitBfCopyMessages, adsV2KitBfOfferOnceCopy, type AdsV2KitBfAngle } from '@/lib/ads/v2KitBf' // KINEO-KIT-BF-1910 — o Kit Black Friday: a oferta digitada no brief (a régua aceita só ela), o ângulo da variação no pedido e a oferta 1× na fala
 
 export const ADS_V2_BRIEF_MODEL = 'gpt-4o-mini'
 /** Teto de planos (chamadas ao GPT) por pessoa em 24 h, contado pelo evento ads_v2_plan_served ANTES do modelo. */
@@ -670,6 +671,7 @@ async function extractWithBudget(args: {
   speechMinExact?: number // KINEO-APRESENTADOR-V2-AJUSTE-1710
   /** KINEO-CLOSE-REAL-AJUSTE-1910 — o formato Close do produto real (o /plan decide): a marca no máximo 2 vezes na fala e o travessão do título vira " · ". Ausente = como sempre. */ // KINEO-CLOSE-REAL-AJUSTE-1910
   closeReal?: boolean // KINEO-CLOSE-REAL-AJUSTE-1910
+  kitBf?: { offer: string | null; angle: AdsV2KitBfAngle | null } // KINEO-KIT-BF-1910 — o Kit Black Friday (o /plan decide; só Close real de quem tem o Studio Ads). Ausente = como sempre, byte a byte
 }, budget: AdsV2CallBudget): Promise<AdsV2BriefResult> {
   const briefMsgs = buildAutoBriefMessages(args.text, args.languageName)
   const briefRaw = await callJson([{ role: 'system', content: briefMsgs.system }, { role: 'user', content: briefMsgs.user }], 0.2, 900, budget)
@@ -691,6 +693,7 @@ async function extractWithBudget(args: {
   const places = voiceRaw && productAd ? voiceRaw.names.filter((n) => !isDemonym(n) && !business.includes(n.toLowerCase())) : []
   const voice = voiceRaw ? { ...voiceRaw, names: productAd ? [] : voiceRaw.names.filter((n) => !isDemonym(n)) } : null
   const brief = withCustomerNames(withPublicFacts(parsed.brief, args.facts), voiceRaw?.names ?? [])
+  if (args.kitBf?.offer) adsV2KitBfBriefOffer(brief, args.kitBf.offer) // KINEO-KIT-BF-1910 — a oferta que a PESSOA digitou vira brief.offer (o número/prazo dela passa na régua anti-invenção; nenhum outro)
   const base0 = args.overlays === false ? { maxWords: args.maxWords, narration: args.narration, overlays: false } : { maxWords: args.maxWords, narration: args.narration }
   const base1 = voice ? { ...base0, simple: voice } : base0
   const ad: AdsV2AdVoice | null = productAd || args.presenter === true ? { product: productAd, presenter: args.presenter === true, ...(args.presenter === true && args.presenterTalk === true ? { talk: true } : {}) } : null // KINEO-APRESENTADOR-OLHOS-1910 — + talk (só o apresentador v2)
@@ -717,7 +720,7 @@ async function extractWithBudget(args: {
   const speechClose = { name: generic ? adsV2GenericThis(generic) : brandName(brief), brand: !generic, used: new Set<string>() } // KINEO-ADS-DEMO-UNIVERSO-1410
   if (fitOpts.speech) Object.assign(fitOpts.speech, { close: speechClose }) // KINEO-ADS-DEMO-UNIVERSO-1410
   if (args.closeReal === true) Object.assign(speechClose, { nameMax: ADS_V2_CLOSE_REAL_NAME_MAX }) // KINEO-CLOSE-REAL-AJUSTE-1910 — canário de1c0d72: "Perfume LUME" 3× e o fecho "Agora, Perfume LUME." colado; no Close real o fecho com o nome só entra abaixo de 2 menções
-  const copyMsgs = buildV2CopyMessages(brief, args.languageName, opts)
+  const copyMsgs = adsV2KitBfCopyMessages(buildV2CopyMessages(brief, args.languageName, opts), args.kitBf) // KINEO-KIT-BF-1910 — + a oferta 1× e o ângulo da variação, antes da linha da resposta (sem kit = o MESMO pedido)
   const base = [{ role: 'system' as const, content: copyMsgs.system }, { role: 'user' as const, content: copyMsgs.user }]
   // KINEO-ADS-ROTEIROS-2026-10-13 — as versões saem em paralelo com o texto de sempre (que sai PRIMEIRO), sob o mesmo prazo;
   // a promessa das versões nunca rejeita.
@@ -818,6 +821,7 @@ async function extractWithBudget(args: {
   if (args.closeReal === true) { checked = { ...checked, copy: adsV2CloseRealOverlayDash(checked.copy) }; variants = variants.map((v) => ({ ...v, copy: adsV2CloseRealOverlayDash(v.copy) })) } // KINEO-CLOSE-REAL-AJUSTE-1910 — o hífen/travessão do título vira " · " ANTES do acabamento (que o trocava por espaço: "Perfume LUME Fragrâncias Exclusivas")
   const finalMain = adsV2NameFinish(checked.copy, nameList, args.language) // KINEO-ADS-MAO-JUIZ-1610 — "da Perfume Atheeri" → "de Perfume Atheeri"; "Perfume Atheeri - Fragrâncias" → "Perfume Atheeri Fragrâncias"
   if (finalMain.fixes.length) honestyFixes = [...honestyFixes, ...finalMain.fixes] // KINEO-ADS-MAO-JUIZ-1610
+  if (args.kitBf?.offer) { const once = adsV2KitBfOfferOnceCopy(finalMain.copy, args.kitBf.offer, args.language); if (once !== finalMain.copy) { finalMain.copy = once; honestyFixes = [...honestyFixes, 'kit_bf_offer_once'] }; variants = variants.map((v) => ({ ...v, copy: adsV2KitBfOfferOnceCopy(v.copy, args.kitBf?.offer ?? null, args.language) })) } // KINEO-KIT-BF-1910 — a oferta EXATAMENTE 1× na fala (faltou = uma frase curta antes do fecho; repetida = só a 1ª fica)
   variants = variants.map((v) => { const f = adsV2NameFinish(v.copy, nameList, args.language); return f.fixes.length ? { ...v, copy: f.copy, honestyFixes: [...(v.honestyFixes ?? []), ...f.fixes] } : v }) // KINEO-ADS-MAO-JUIZ-1610
   return { ok: true, brief, copy: finalMain.copy, dropped: parsed.dropped, attempts, ...(voice ? { voice: { ...voice, namesMissing } } : {}), ...(ad ? { ad } : {}), ...(honestyFixes.length ? { honestyFixes } : {}), ...(variantsInfo ? { variants, variantsInfo } : {}), ...(speechShort ? { speechShort } : {}) } // KINEO-ADS-RETESTE-1510 — speechShort: a fala ficou no piso de antes
 }

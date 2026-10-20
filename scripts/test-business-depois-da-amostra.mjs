@@ -10,6 +10,7 @@
 //       app/api/admin/_shared/sales.ts conta checkout + renovação + troca de plano + anual + Business, UMA venda por fatura/sessão.
 // Estilo da casa: readFileSync + asserts; os módulos PUROS (sem import de valor) são importados pelo caminho (.ts, Node 24).
 // Nenhum import com alias @/ roda aqui.
+import { semHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — os 3 cards da home (+ amostra pela entrada do card) saem do diff/leitura em memória
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -186,7 +187,7 @@ ok(capOk(cli, 'businessOffer') && capOk(sim, 'business'), '1n sample_cap: "amost
 ok(/\{scopy && businessOffer \? <AdsAfterSampleOffer lang="en" business=\{businessOffer\} compact \/> : null\}/.test(cli) && /\{scopy && business \? <AdsAfterSampleOffer lang=\{lang\} business=\{business\} compact \/> : null\}/.test(sim),
   '1o a amostra entregue já mostra a oferta (compacta) logo abaixo do anúncio')
 // a página só entrega a oferta para a amostra; o caminho pago fica sem prop
-const pg = codigo(rd(F.page))
+const pg = codigo(semHome3Cards1910(rd(F.page), F.page)) // reancorado KINEO-HOME-3-CARDS-1910 — a página do montador SEM a entrada do card (?entry=), em memória
 ok(/ sample=\{sample\} business=\{sample \? businessAdsOffer\(\) : null\} \/>/.test(pg) && /import \{ businessAdsOffer \} from '@\/lib\/businessPlan'/.test(pg), '1p /ads/v2 passa a oferta SÓ com sample (assinante/passe/interna: null)')
 // KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o corpo do /start foi EXTRAÍDO, sem mudar uma linha, para lib/ads/v2StartCore.ts
 // (a rota só lê o cookie e chama o núcleo). Leitura do /start = rota + núcleo, na ordem em que rodam.

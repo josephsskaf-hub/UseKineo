@@ -16,6 +16,7 @@
 //       montagem é byte a byte a do pai (desfeitas as linhas marcadas) e o source de sempre sai IDÊNTICO sem `fill`;
 //   F   o painel é cliente e só importa módulos de navegador/puros; 16 línguas completas; a migração mora em migrations_pending;
 //   M   mutantes: cada regra quebrada fica vermelha, e cada mutante prova que aplicou.
+import { arquivoNovoHome3Cards1910, diffSoHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — os 3 cards da home (+ amostra pela entrada do card) saem do diff/leitura em memória
 import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import fs from 'node:fs'
 import path from 'node:path'
@@ -413,7 +414,7 @@ async function provas(over = {}) {
   })
   await p('E6c dinheiro e avanço intocados no diff (v2Billing, v2Tiers, v2StartCore, v2Advance, /start, /retake, /variations, v2Batch, credits/, compose, stripe, preço); fora de scripts/ e dos arquivos novos, só montagem + as 2 telas (2 linhas cada, desfeitas = o pai)', async () => {
     let tocados = []
-    try { tocados = [...(PROPRIO ? [...git(['diff', '--name-only', BASE, PROPRIO]).split('\n'), ...git(['diff', '--name-only', 'HEAD']).split('\n')] : git(['diff', '--name-only', BASE]).split('\n')), ...git(['ls-files', '--others', '--exclude-standard']).split('\n')].filter(Boolean) } catch { return false } // reancorado KINEO-LEVA-ADS-AGENCIA-1510 — mede o PRÓPRIO commit (BASE→1º marcado) + o não commitado; antes do commit existir, a árvore contra a base
+    try { tocados = [...(PROPRIO ? [...git(['diff', '--name-only', BASE, PROPRIO]).split('\n'), ...git(['diff', '--name-only', 'HEAD']).split('\n').filter((f) => !f || !diffSoHome3Cards1910(git(['diff', '-U0', '--no-color', 'HEAD', '--', f]), f))] : git(['diff', '--name-only', BASE]).split('\n')), ...git(['ls-files', '--others', '--exclude-standard']).split('\n').filter((f) => !arquivoNovoHome3Cards1910(f))].filter(Boolean) } catch { return false } // reancorado KINEO-LEVA-ADS-AGENCIA-1510 — mede o PRÓPRIO commit (BASE→1º marcado) + o não commitado; antes do commit existir, a árvore contra a base // reancorado KINEO-HOME-3-CARDS-1910 — o não commitado e os arquivos novos só desta entrega fora da lista
     const novos = new Set(Object.values(F).filter((f) => ![F.montage, F.simple, F.full].includes(f)))
     const fora = tocados.filter((f) => !f.startsWith('scripts/') && !novos.has(f))
     const telasOk = [F.simple, F.full].every((f) => { const pai = rdBase(f); return pai !== null && lf(semPosEntrega1510(f, semMarcas1510(f, semLinkTela1510(f, Object.hasOwn(over, f) ? over[f] : SRC[f === F.simple ? 'simple' : 'full'])))) === pai }) // reancorado KINEO-LEVA-ADS-AGENCIA-1510 — as marcas (mais novas na leva) saem antes · reancorado KINEO-ADS-LINK-TELA-1510
