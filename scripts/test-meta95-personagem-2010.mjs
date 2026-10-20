@@ -28,13 +28,14 @@ import {
   semMeta95Personagem2010, MARCA_META95_PERSONAGEM_2010, META95_PERSONAGEM_2010_BASE, META95_PERSONAGEM_2010_ARQUIVOS, META95_PERSONAGEM_2010_NOVOS,
   ACRESCIMOS_META95_PERSONAGEM_2010, TROCAS_META95_PERSONAGEM_2010,
 } from './test-support/desfaz-meta95-personagem-2010.mjs'
+import { semMeta95PersonagemAjuste2010 } from './test-support/desfaz-meta95-personagem-ajuste-2010.mjs' // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: os consertos da folha (rota e crítico) saem em memória — este guardião prova a folha de 20/10 como ela nasceu
 
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const MARCA = MARCA_META95_PERSONAGEM_2010
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
+const rd = (rel) => lf(semMeta95PersonagemAjuste2010(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — era: lf(fs.readFileSync(…)); o ajuste (scripts/test-meta95-personagem-ajuste-2010.mjs) prova o resto
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 // a base de comparação: a origin/main do ÚLTIMO merge desta entrega (2º pai do merge marcado mais novo); sem merge, a base da entrega
 const BASE_CMP = (() => { try { const m = git('log', '--format=%H', '--merges', `--grep=${MARCA}`, 'HEAD').trim().split('\n').filter(Boolean); return m.length ? git('rev-parse', `${m[0]}^2`).trim() : META95_PERSONAGEM_2010_BASE } catch { return META95_PERSONAGEM_2010_BASE } })()
@@ -366,7 +367,7 @@ console.log('\nD. desfaz, encadeamento, diff e commits')
   ok(marcados.length === 0 || tocados.every((f) => permitidos.has(f)), `D6 os commits da entrega só tocam a lista + os novos (${tocados.filter((f) => !permitidos.has(f)).join(', ') || 'ok'})`)
   // todo commit desde a base que toca um arquivo da entrega é desta entrega (marca + selo); os merges da origin/main também levam a marca e o selo
   const desdeABase = (() => { try { return git('log', '--format=%H%x09%s', `${BASE_CMP}..HEAD`).trim().split('\n').filter(Boolean).map((l) => { const [h, ...s] = l.split('\t'); return { h, s: s.join('\t') } }) } catch { return [] } })() // só o que NÃO está na origin/main mesclada: os commits desta entrega e os merges dela
-  const commitsDaEntrega = desdeABase.filter(({ h, s }) => s.includes(MARCA) || git('diff-tree', '--no-commit-id', '--name-only', '-r', '-m', h).trim().split('\n').some((f) => permitidos.has(f)))
+  const commitsDaEntrega = desdeABase.filter(({ h, s }) => !s.includes('KINEO-META95-PERSONAGEM-AJUSTE-2010') && (s.includes(MARCA) || git('diff-tree', '--no-commit-id', '--name-only', '-r', '-m', h).trim().split('\n').some((f) => permitidos.has(f)))) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — os commits do ajuste têm a marca e o selo próprios (o guardião deles confere); era: filter(({ h, s }) => s.includes(MARCA) || …)
   ok(commitsDaEntrega.length > 0 && commitsDaEntrega.every(({ s }) => s.includes(MARCA) && s.includes('[TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]')), `D7 todo commit da entrega (e todo merge dela) traz a marca e o selo da TRAVA 8.2 (${commitsDaEntrega.length} commit(s); base ${BASE_CMP.slice(0, 10)})`, commitsDaEntrega.filter(({ s }) => !s.includes(MARCA)).map(({ s }) => s.slice(0, 60)).join(' | '))
   ok(fs.existsSync(path.join(ROOT, 'docs/META95-PERSONAGEM-2026-10-20.md')) && /formatFlags/.test(rd('docs/META95-PERSONAGEM-2026-10-20.md')), 'D8 o desenho está em docs/META95-PERSONAGEM-2026-10-20.md, com o jeito de ligar por pedido')
 }
