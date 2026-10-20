@@ -29,6 +29,7 @@ export const ACRESCIMOS_MENU_UGC_2010 = {
   'scripts/test-home-3-cards-1910.mjs': 0,
   'scripts/test-login-modal-1410.mjs': 0,
   'scripts/test-support/desfaz-ugc-ajustes-2010.mjs': 2,
+  'scripts/test-ugc-ajustes-2010.mjs': 0,
 }
 export const MENU_UGC_2010_ARQUIVOS = Object.freeze(Object.keys(ACRESCIMOS_MENU_UGC_2010))
 /** Arquivos novos da entrega (não existiam na base). */

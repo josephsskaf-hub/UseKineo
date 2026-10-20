@@ -233,7 +233,7 @@ await check(`D1 cada arquivo tocado, desfeito (scripts/test-support/desfaz-ugc-a
   UGC_AJUSTES_2010_ARQUIVOS.length >= 11 && UGC_AJUSTES_2010_ARQUIVOS.every((f) => base(f) !== null && semUgcAjustes2010(rd(f), f) === base(f) && !semUgcAjustes2010(rd(f), f).includes(MARCA)) &&
   MARCA_UGC_AJUSTES_2010 === MARCA && UGC_AJUSTES_2010_NOVOS.every((f) => existsSync(join(ROOT, f)) && base(f) === null) && base(F.mp3) !== null)
 await check('D2 toda linha nova traz a marca; o diff contra a base só toca os arquivos da lista, os novos e o mp3; a marca não contém a de outra camada; nada de cobrança, motor ou preço', () => {
-  const tocados = git('diff', '--name-only', B).trim().split('\n').filter(Boolean)
+  const tocados = git('diff', '--name-only', B, git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, '-1', 'HEAD').trim() || 'HEAD').trim().split('\n').filter(Boolean) // reancorado KINEO-MENU-UGC-2010 — mede da base até o último commit DESTA entrega (o menu do topo veio depois, na mesma fila, e toca outros arquivos)
   const permitidos = new Set([...UGC_AJUSTES_2010_ARQUIVOS, ...UGC_AJUSTES_2010_NOVOS, F.mp3])
   const linhas = UGC_AJUSTES_2010_ARQUIVOS.every((f) => git('diff', '-U0', '--no-color', B, '--', f).replace(/\r/g, '').split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).every((l) => l.includes(MARCA)))
   const trocasOk = UGC_AJUSTES_2010_ARQUIVOS.every((f) => (TROCAS_UGC_AJUSTES_2010[f] ?? []).every(([nova, velha]) => nova.includes(MARCA) && !velha.includes(MARCA)))

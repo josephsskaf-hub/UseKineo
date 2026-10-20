@@ -22,5 +22,11 @@
    "      if (id === '@/components/InterfaceLanguage') return { UiLabel: ({children}) => children, useUiCopy: () => value => value, useInterfaceLanguage: () => 'en', InterfaceLanguageSelect: () => React.createElement('select', {'aria-label':'Interface language'}, React.createElement('option', {}, 'English')) } // reancorado KINEO-MENU-UGC-2010 — o item \"AI UGC Ads\" do topo lê a língua (inglês no servidor, como o provedor real)",
    "      if (id === '@/components/InterfaceLanguage') return { UiLabel: ({children}) => children, useUiCopy: () => value => value, InterfaceLanguageSelect: () => React.createElement('select', {'aria-label':'Interface language'}, React.createElement('option', {}, 'English')) }"
   ]
+ ],
+ "scripts/test-ugc-ajustes-2010.mjs": [
+  [
+   "  const tocados = git('diff', '--name-only', B, git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, '-1', 'HEAD').trim() || 'HEAD').trim().split('\\n').filter(Boolean) // reancorado KINEO-MENU-UGC-2010 — mede da base até o último commit DESTA entrega (o menu do topo veio depois, na mesma fila, e toca outros arquivos)",
+   "  const tocados = git('diff', '--name-only', B).trim().split('\\n').filter(Boolean)"
+  ]
  ]
 }
