@@ -26,7 +26,7 @@ import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
-import { semVerbatimIntocavel2010, MARCA_VERBATIM_INTOCAVEL_2010, REANCORAS_VERBATIM_INTOCAVEL_2010 } from './test-support/desfaz-verbatim-intocavel-2010.mjs'
+import { semVerbatimIntocavel2010, semVerbatimIntocavel2010NaCadeia, MARCA_VERBATIM_INTOCAVEL_2010, REANCORAS_VERBATIM_INTOCAVEL_2010, ACRESCIMOS_REANCORA_VERBATIM_INTOCAVEL_2010, TROCAS_REANCORA_VERBATIM_INTOCAVEL_2010 } from './test-support/desfaz-verbatim-intocavel-2010.mjs'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(RAIZ)
@@ -167,20 +167,28 @@ console.log('D) o desfaz')
   checa('o desfaz recusa fonte alterada por outra mão (par que não casa → null)', semVerbatimIntocavel2010(EN_PATH, EN_SRC.replace(LINHA_NOVA, LINHA_NOVA + ' ')) === null)
   checa('o desfaz devolve intacto o arquivo de fora da entrega', semVerbatimIntocavel2010('lib/outro.ts', 'x KINEO-VERBATIM-INTOCAVEL-2010') === 'x KINEO-VERBATIM-INTOCAVEL-2010')
   checa('o desfaz é idempotente na fonte de antes', semVerbatimIntocavel2010(EN_PATH, antes) === antes)
-  // As reâncoras (guardião do conector Kineo Studio): desfeitas, são o arquivo do pai do 1º commit desta entrega.
+  // As reâncoras (acréscimos marcados + as 2 trocas do D3 do avatar preso): desfeitas, são a última versão alheia do arquivo
+  // (o último commit que o tocou sem a marca desta entrega).
   const gitTxt = (...a) => execFileSync('git', a, { cwd: RAIZ, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
-  let pai = null
-  try { const h = gitTxt('log', '--reverse', '--format=%H', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, 'HEAD').trim().split('\n').filter(Boolean)[0]; if (h) pai = gitTxt('rev-parse', `${h}^`).trim() } catch { pai = null }
+  const NL = String.fromCharCode(10)
   for (const rel of REANCORAS_VERBATIM_INTOCAVEL_2010) {
     const atual = rd(rel)
-    let doPai = null
-    try { doPai = pai ? gitTxt('show', `${pai}:${rel}`).replace(/\r\n/g, '\n') : null } catch { doPai = null }
+    let alheia = null, h = ''
+    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null }
     const desfeito = semVerbatimIntocavel2010(rel, atual)
-    checa(`reâncora ${rel}: leva a marca e, desfeita, é o arquivo do pai do 1º commit da entrega (${pai ? pai.slice(0, 9) : 'sem pai'})`, atual.includes(MARCA_VERBATIM_INTOCAVEL_2010) && typeof doPai === 'string' && desfeito === doPai)
-    checa(`reâncora ${rel}: trecho mudado por outra mão → o desfaz recusa (null)`, semVerbatimIntocavel2010(rel, atual.replace('/* reancorado KINEO-VERBATIM-INTOCAVEL-2010 */', '/* x */')) === null)
+    const marcadas = atual.split(NL).filter((l) => l.includes(MARCA_VERBATIM_INTOCAVEL_2010)).length
+    const esperadas = ACRESCIMOS_REANCORA_VERBATIM_INTOCAVEL_2010[rel] + (TROCAS_REANCORA_VERBATIM_INTOCAVEL_2010[rel]?.quantas ?? 0)
+    checa(`reâncora ${rel}: ${marcadas} linha(s) marcada(s) = tabela; desfeita, é a última versão alheia (${h.slice(0, 9) || 'nenhuma'})`, marcadas === esperadas && typeof alheia === 'string' && desfeito === alheia)
+    const aMais = atual + NL + '// x KINEO-VERBATIM-INTOCAVEL-2010'
+    checa(`reâncora ${rel}: uma linha marcada a mais → o desfaz recusa (null) e a cadeia lança`, semVerbatimIntocavel2010(rel, aMais) === null && (() => { try { semVerbatimIntocavel2010NaCadeia(aMais, rel); return false } catch { return true } })())
   }
   const pers = rd('scripts/test-meta95-personagem-2010.mjs')
-  checa('encadeado: o guardião da folha de personagem tira esta camada primeiro no D1 e deixa os commits desta fora do D7', pers.includes("semMeta95Personagem2010(semVerbatimIntocavel2010(f, fs.readFileSync(path.join(ROOT, f), 'utf8')), f)") && pers.includes('desdeABase.filter(({ s }) => !s.includes(MARCA_VERBATIM_INTOCAVEL_2010))'))
+  const av = rd('scripts/test-support/desfaz-avatar-preso-2010.mjs')
+  checa('encadeado: semAvatarPreso2010 (a camada de antes; a cabeça dos guardiões e o D1/D3 dela passam por ela) chama o desfaz desta camada primeiro', av.includes('export function semAvatarPreso2010(texto, p) {' + NL + '  texto = semVerbatimIntocavel2010NaCadeia(texto, p) // KINEO-VERBATIM-INTOCAVEL-2010'))
+  const AVm = await import(new URL('./test-support/desfaz-avatar-preso-2010.mjs', import.meta.url).href)
+  checa('pela cadeia (semAvatarPreso2010NosGuardioes), os guardiões reancorados desfeitos não têm mais a marca desta entrega', ['scripts/test-mcp-studio-2010.mjs', 'scripts/test-meta95-personagem-2010.mjs'].every((g) => !AVm.semAvatarPreso2010NosGuardioes(rd(g), g).includes(MARCA_VERBATIM_INTOCAVEL_2010)))
+  checa('o guardião da folha de personagem deixa os commits desta fora do D7', pers.includes('commitsDaEntrega.filter(({ s }) => !s.includes(MARCA_VERBATIM_INTOCAVEL_2010)))'))
+  checa('o guardião do avatar preso tira esta camada antes da contagem do D3', rd('scripts/test-avatar-preso-2010.mjs').split('semVerbatimIntocavel2010NaCadeia(rd(rel), rel).split(').length - 1 === 2)
 }
 
 console.log(`\n${ok} verificações ok, ${falhas.length} falha(s)`)
