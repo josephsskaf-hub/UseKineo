@@ -34,6 +34,7 @@ import {
   META95_ESCRITA_2010_NOVOS, TROCAS_META95_ESCRITA_2010, ACRESCIMOS_META95_ESCRITA_2010,
 } from './test-support/desfaz-meta95-escrita-2010.mjs'
 import { semMenuUgc2010 } from './test-support/desfaz-menu-ugc-2010.mjs'
+import { semBebeQueFala2010 } from './test-support/desfaz-bebe-que-fala-2010.mjs' // reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories (20/10) entrou depois na fila e reancorou 3 guardiões desta lista: sai em memória antes do D1
 import { semMeta95Personagem2010 } from './test-support/desfaz-meta95-personagem-2010.mjs'
 import { semUgcAjustes2010 } from './test-support/desfaz-ugc-ajustes-2010.mjs'
 
@@ -284,7 +285,7 @@ console.log('\nD. desfaz\n')
     const b = base(f)
     if (b === null) { difs.push(`${f}: fora da base`); continue }
     let out
-    try { out = semMeta95Escrita2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f) } catch (e) { difs.push(`${f}: ${e.message}`); continue }
+    try { out = semMeta95Escrita2010(semBebeQueFala2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f), f) /* reancorado KINEO-BEBE-QUE-FALA-2010 */ } catch (e) { difs.push(`${f}: ${e.message}`); continue }
     if (lf(out) !== b) difs.push(f)
   }
   ok(difs.length === 0, `D1 ${META95_ESCRITA_2010_ARQUIVOS.length} arquivos tocados, desfeitos, = base ${META95_ESCRITA_2010_BASE.slice(0, 9)} (${difs.join('; ') || 'ok'})`)
@@ -294,7 +295,7 @@ console.log('\nD. desfaz\n')
   const DESFAZ_MENU = rd('scripts/test-support/desfaz-meta95-personagem-2010.mjs')
   const cadeia = /export function semMeta95Personagem2010\(texto, p\) \{\n  texto = semMeta95Escrita2010\(texto, p\)/.test(DESFAZ_MENU)
   const igual = META95_ESCRITA_2010_ARQUIVOS.every((f) => {
-    const raw = fs.readFileSync(path.join(ROOT, f), 'utf8'), semEste = semMeta95Escrita2010(raw, f)
+    const raw = semBebeQueFala2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f), semEste = semMeta95Escrita2010(raw, f) // reancorado KINEO-BEBE-QUE-FALA-2010 — sem a camada de 20/10 (mais nova), em memória
     return semMeta95Personagem2010(raw, f) === semMeta95Personagem2010(semEste, f) && semMenuUgc2010(raw, f) === semMenuUgc2010(semEste, f) && semUgcAjustes2010(raw, f) === semUgcAjustes2010(semEste, f)
   })
   ok(cadeia && igual, 'D4 encadeamento: semMeta95Personagem2010 (a cabeça das cadeias) tira esta camada PRIMEIRO; menu-ugc e ugc-ajustes herdam')
@@ -306,7 +307,7 @@ console.log('\nD. desfaz\n')
   const tocados = new Set([...git('diff', '--name-only', META95_ESCRITA_2010_BASE, TOPO).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n')].filter(Boolean))
   const permitidos = new Set([...META95_ESCRITA_2010_ARQUIVOS, ...META95_ESCRITA_2010_NOVOS])
   const fora = [...tocados].filter((f) => !permitidos.has(f))
-  const semMarca = META95_ESCRITA_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !rd(f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) })
+  const semMarca = META95_ESCRITA_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !semBebeQueFala2010(rd(f), f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) }) // reancorado KINEO-BEBE-QUE-FALA-2010 — as linhas da camada de 20/10 saem antes da conferência de marca
   ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && ![...tocados].some((f) => /engineCost|pricing|lib\/credits\//.test(f)),
     `D6 o diff da base só toca a lista e os novos; toda linha nova traz a marca; nada de cobrança ou preço (${[...fora.map((f) => `fora: ${f}`), ...semMarca.map((f) => `sem marca: ${f}`)].join('; ') || 'ok'})`)
   const assuntos = git('log', '--no-merges', '--format=%s', `${META95_ESCRITA_2010_BASE}..${TOPO}`).trim().split('\n').filter(Boolean)

@@ -36,6 +36,7 @@ export const ACRESCIMOS_BEBE_QUE_FALA_2010 = {
   'scripts/test-kling25-variedade-2026-09-28.mjs': 0,
   'scripts/test-mcp-studio-2010.mjs': 1,
   'scripts/test-menu-ugc-2010.mjs': 1,
+  'scripts/test-meta95-escrita-2010.mjs': 1,
   'scripts/test-meta95-personagem-2010.mjs': 1,
   'scripts/test-moderacao-2026-09-25.mjs': 1,
   'scripts/test-showcase-2026-10-02.mjs': 1,
