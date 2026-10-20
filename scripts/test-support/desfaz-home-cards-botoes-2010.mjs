@@ -12,6 +12,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semFilmesF1F3Publico2010 } from './desfaz-filmes-f1f3-publico-2010.mjs' // KINEO-FILMES-F1F3-PUBLICO-2010 — F1+F3 públicas nos filmes vieram depois: saem PRIMEIRO (encadeado; texto sem a marca passa igual)
 
 export const MARCA_HOME_CARDS_BOTOES_2010 = 'KINEO-HOME-CARDS-BOTOES-2010'
 
@@ -40,6 +41,7 @@ export const TROCAS_HOME_CARDS_BOTOES_2010 = JSON.parse(readFileSync(join(dirnam
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semHomeCardsBotoes2010(texto, p) {
+  texto = semFilmesF1F3Publico2010(texto, p) // KINEO-FILMES-F1F3-PUBLICO-2010 — a camada mais nova sai primeiro
   if (typeof texto !== 'string' || !texto.includes(MARCA_HOME_CARDS_BOTOES_2010) || !HOME_CARDS_BOTOES_2010_ARQUIVOS.includes(p)) return texto
   const crlf = texto.includes('\r\n')
   const trocas = new Map((TROCAS_HOME_CARDS_BOTOES_2010[p] ?? []).map(([nova, base]) => [nova, base]))

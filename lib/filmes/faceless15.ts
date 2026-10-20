@@ -46,7 +46,7 @@ export const FASES_FACELESS15: readonly FaseFaceless15[] = ['f1', 'f2', 'f3', 'f
  *   f4  5 planos de ~3 s a partir dos 3 clipes (2º plano = mesmo clipe, trim 3,0 s) + punch no reveal
  *   cta cartão de texto de 1 s no fim ("Follow for part 2 →") — opcional, exige f4, desligado por padrão
  */
-export const FACELESS15_PUBLIC: Readonly<Record<FaseFaceless15, boolean>> = { f1: false, f2: false, f3: false, f4: false, cta: false }
+export const FACELESS15_PUBLIC: Readonly<Record<FaseFaceless15, boolean>> = { f1: true, f2: false, f3: true, f4: false, cta: false } // KINEO-FILMES-F1F3-PUBLICO-2010 [TRAVA 8.2 — vai do fundador 20/10 "nota 10"] — F1 (legenda) + F3 (som) para TODOS no formato (render e48e17bf); f2/f4/cta seguem só por pedido interno
 
 /** O formato: Seedance 1.5 ('cinematic_ai'), 15 s, 9:16, sem avatar e fora do Studio Ads. */
 export const FACELESS15_QUALITY = 'cinematic_ai'

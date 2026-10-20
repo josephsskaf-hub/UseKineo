@@ -4,10 +4,11 @@
 // prova, fase a fase:
 //   A  os arquivos: lib/compose.ts, lib/hookFirstFrame.ts e lib/lyriaMusic.ts são BYTE A BYTE a base (nada no motor);
 //      a rota só tem acréscimos marcados (desfeitos = a base), na ordem certa (depois do builder, antes do 1º await);
-//   B  o interruptor: fase só entra pública (FACELESS15_PUBLIC, hoje tudo false) ou pedida por CONTA INTERNA
+//   B  o interruptor: fase só entra pública (FACELESS15_PUBLIC: F1 e F3 desde 20/10, nota 10 do fundador; f2/f4/cta false) ou pedida por CONTA INTERNA // KINEO-FILMES-F1F3-PUBLICO-2010
 //      (formatFlags); cliente que manda o campo é ignorado; fora do formato (outra duração/motor/quadro/avatar/Ads)
 //      nada entra nem para conta interna;
-//   C  F0: com o interruptor desligado o JSON do Creatomate é IDÊNTICO byte a byte ao de antes (clientes intocados);
+//   C  F0 fora do formato: JSON do Creatomate IDÊNTICO byte a byte; no formato, F1+F3 públicas para todos (o pedido do cliente segue ignorado); // KINEO-FILMES-F1F3-PUBLICO-2010
+//      as provas fase a fase (B1–B5, D–G) rodam no módulo da ÉPOCA (interruptor desligado, desfaz-filmes-f1f3-publico-2010) — uma variável por vez; // KINEO-FILMES-F1F3-PUBLICO-2010
 //   D  F1 (legenda): 62 %, ≤5 palavras, 64/80 px, −120 ms, linha inteira amarela só no PAYOFF, karaokê mantido; o
 //      resto do source não muda;
 //   E  F2 (gancho escrito): no formato entra com a fase e sai sem ela (mesmo de conta interna); fora do formato nada muda;
@@ -27,6 +28,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — os guardiões que esta entrega reancorou também foram reancorados pelos 3 cards (mais novos): saem primeiro, em memória
 import { semFilmesF1F4_1910, MARCA_FILMES_F1F4_1910, ACRESCIMOS_FILMES_F1F4_1910, TROCAS_FILMES_F1F4_1910 } from './test-support/desfaz-filmes-f1f4-1910.mjs'
 import { sintetizarSfxFaceless15, sha256, SFX_FACELESS15_ARQUIVOS } from './gerar-sfx-faceless15-1910.mjs'
+import { semFilmesF1F3Publico2010 } from './test-support/desfaz-filmes-f1f3-publico-2010.mjs' // KINEO-FILMES-F1F3-PUBLICO-2010 — o módulo da ÉPOCA (F1/F3 só por pedido) para as provas fase a fase
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
@@ -124,8 +126,8 @@ const MUSICA = 'https://v3.fal.media/lyria/trilha.mp3'
 const NARR_WORDS = NARRACAO.split(/\s+/)
 const WORD_STARTS = [0, 9, 27]
 
-function carregar(mutante = null) {
-  const load = createOfflineLoader({ source: (p, s) => (mutante && p === mutante.arquivo ? mutante.troca(s) : s) })
+function carregar(mutante = null, { vivo = false } = {}) { // KINEO-FILMES-F1F3-PUBLICO-2010 — vivo = o módulo como está no disco (F1/F3 públicas); padrão = a época
+  const load = createOfflineLoader({ source: (p, s) => { const t = !vivo && p === 'lib/filmes/faceless15.ts' ? semFilmesF1F3Publico2010(s, p) : s; return mutante && p === mutante.arquivo ? mutante.troca(t) : t } }) // KINEO-FILMES-F1F3-PUBLICO-2010
   const C = load('@/lib/compose')
   const F = load('@/lib/filmes/faceless15')
   const H = load('@/lib/hookFirstFrame')
@@ -156,7 +158,7 @@ const foraDaTrilha = (src, ns) => src.elements.filter((e) => !ns.includes(Number
 const palavrasDoTexto = (t) => String(t ?? '').replace(/\[\/?color[^\]]*\]/g, '').trim().split(/\s+/).filter(Boolean).length
 
 /** Todas as provas, para um conjunto de módulos; devolve { nome: boolean }. Os mutantes reutilizam. */
-function provas({ C, F, H, montar }) {
+function provas({ C, F, H, montar }, V = carregar(null, { vivo: true })) { // KINEO-FILMES-F1F3-PUBLICO-2010 — V = o módulo vivo (B6–B8 e C1, o estado novo)
   const p = {}
   const CAT = F.SFX_FACELESS15
   // ── B · interruptor
@@ -175,17 +177,23 @@ function provas({ C, F, H, montar }) {
     p['B3 fora do formato (35 s, Kineo 1, Kling 2.5, 16:9, avatar, Studio Ads) nada entra nem para conta interna'] = fora.every((d) => d.formato === false && d.ativo === false && d.fases.length === 0)
     p['B4 sem quadro no pedido = 9:16 (o padrão de sempre)'] = interna(F, ['f1'], { aspect: undefined }).ativo === true && interna(F, ['f1'], { aspect: '' }).ativo === true
     p['B5 cta exige f4: sozinho é ignorado; com f4 entra'] = !interna(F, ['cta']).fases.includes('cta') && interna(F, ['cta']).ignoradas.includes('cta:exige_f4') && eqJ(interna(F, ['cta', 'f4']).fases, ['f4', 'cta'])
-    p['B6 hoje nenhuma fase é pública (FACELESS15_PUBLIC tudo false) e sem pedido nada entra'] = Object.values(F.FACELESS15_PUBLIC).every((v) => v === false) && interna(F, []).ativo === false && externa(F, undefined).ativo === false
+    p['B6 F1 e F3 públicas (nota 10 do fundador 20/10, render e48e17bf); f2, f4 e cta seguem false; na época tudo false; sem pedido, cliente e interna recebem F1+F3 no formato'] = eqJ(V.F.FACELESS15_PUBLIC, { f1: true, f2: false, f3: true, f4: false, cta: false }) && Object.values(F.FACELESS15_PUBLIC).every((v) => v === false) && externa(V.F, undefined).ativo === true && eqJ(externa(V.F, undefined).fases, ['f1', 'f3']) && externa(V.F, undefined).motivo === 'ok' && eqJ(interna(V.F, []).fases, ['f1', 'f3']) // KINEO-FILMES-F1F3-PUBLICO-2010
+    { const cli = externa(V.F, ['f1', 'f2', 'f3', 'f4', 'cta']); const fora = [externa(V.F, [], { duration: 35 }), externa(V.F, [], { quality: 'fast' }), externa(V.F, [], { quality: 'cinematic_kling' }), externa(V.F, [], { aspect: '16:9' }), externa(V.F, [], { avatar: true }), externa(V.F, [], { studioAds: true })] // KINEO-FILMES-F1F3-PUBLICO-2010
+      p['B7 cliente pedindo f2/f4/cta: só F1+F3 (o pedido segue ignorado, conta_externa); interna soma o pedido às públicas; cliente fora do formato: nada'] = eqJ(cli.fases, ['f1', 'f3']) && cli.ignoradas.some((i) => i.endsWith(':conta_externa')) && eqJ(interna(V.F, ['f2']).fases, ['f1', 'f2', 'f3']) && eqJ(interna(V.F, ['f4', 'cta']).fases, ['f1', 'f3', 'f4', 'cta']) && fora.every((d) => d.formato === false && d.ativo === false && d.fases.length === 0) } // KINEO-FILMES-F1F3-PUBLICO-2010
+    { const s = V.montar(); const r = V.F.aplicarGanchoFaceless15(s, externa(V.F, ['f2']), { narration: NARRACAO, font: 'Montserrat' }) // KINEO-FILMES-F1F3-PUBLICO-2010
+      p['B8 cliente no formato pedindo f2: o gancho escrito NÃO entra (f2 segue só por pedido interno); GANCHO_1Q_PUBLIC segue false'] = r.aplicado === false && trilha(s, V.H.GANCHO_1Q_TRACK).length === 0 && V.H.GANCHO_1Q_PUBLIC === false } // KINEO-FILMES-F1F3-PUBLICO-2010
   }
-  // ── C · F0: desligado = byte a byte
-  for (const assinado of [true, false]) {
-    const antes = montar({ assinado })
-    const foto = JSON.stringify(antes)
-    const r1 = F.aplicarFaceless15(antes, externa(F, ['f1', 'f2', 'f3', 'f4']), { whisperWords: WORDS, clipSeconds: [6, 6, 6] })
-    const r2 = F.aplicarFaceless15(antes, interna(F, []), { whisperWords: WORDS })
-    const r3x = F.aplicarFaceless15(antes, interna(F, ['f1', 'f3', 'f4'], { duration: 35 }), { whisperWords: WORDS })
-    p[`C1 ${assinado ? 'claim assinado (3×6 s)' : 'caminho clássico'}: interruptor desligado = JSON do Creatomate IDÊNTICO byte a byte (cliente, interna sem pedido, fora do formato)`] =
-      JSON.stringify(antes) === foto && r1.ativo === false && r2.ativo === false && r3x.ativo === false
+  // ── C · F0 fora do formato = byte a byte; no formato, F1+F3 públicas (módulo vivo) // KINEO-FILMES-F1F3-PUBLICO-2010
+  for (const assinado of [true, false]) { // KINEO-FILMES-F1F3-PUBLICO-2010
+    const antes = V.montar({ assinado }) // KINEO-FILMES-F1F3-PUBLICO-2010
+    const foto = JSON.stringify(antes) // KINEO-FILMES-F1F3-PUBLICO-2010
+    const r1 = V.F.aplicarFaceless15(antes, externa(V.F, ['f1', 'f2', 'f3', 'f4'], { duration: 35 }), { whisperWords: WORDS, clipSeconds: [6, 6, 6] }) // KINEO-FILMES-F1F3-PUBLICO-2010
+    const r2 = V.F.aplicarFaceless15(antes, externa(V.F, [], { quality: 'fast' }), { whisperWords: WORDS }) // KINEO-FILMES-F1F3-PUBLICO-2010
+    const r3x = V.F.aplicarFaceless15(antes, interna(V.F, ['f1', 'f3', 'f4'], { duration: 35 }), { whisperWords: WORDS }) // KINEO-FILMES-F1F3-PUBLICO-2010
+    const cli = V.montar({ assinado }); const ref = clone(cli); const ctxC = { whisperWords: WORDS, clipSeconds: assinado ? [6, 6, 6] : null } // KINEO-FILMES-F1F3-PUBLICO-2010
+    const rc = V.F.aplicarFaceless15(cli, externa(V.F, undefined), ctxC); const cliP = V.montar({ assinado }); const rp = V.F.aplicarFaceless15(cliP, externa(V.F, ['f1', 'f2', 'f3', 'f4', 'cta']), ctxC) // KINEO-FILMES-F1F3-PUBLICO-2010
+    p[`C1 ${assinado ? 'claim assinado (3×6 s)' : 'caminho clássico'}: fora do formato o JSON do Creatomate é IDÊNTICO byte a byte (35 s, Kineo 1, interna com pedido em 35 s); no formato o CLIENTE recebe só F1 (trilha 5) + F3 (trilhas 8/12) — clipes, voz e o resto byte a byte, duração igual — e o pedido dele não muda nada`] = // KINEO-FILMES-F1F3-PUBLICO-2010
+      JSON.stringify(antes) === foto && r1.ativo === false && r2.ativo === false && r3x.ativo === false && rc.ativo === true && eqJ(rc.fases, ['f1', 'f3']) && rc.f1?.chunker === 'whisper' && rc.f3?.musica === 'unica' && !rc.f4 && !rc.erros && eqJ(foraDaTrilha(cli, [5, 8, 12]), foraDaTrilha(ref, [5, 8, 12])) && cli.duration === ref.duration && trilha(cli, 5).length > 0 && trilha(cli, 5).every((e) => e.y === '62%') && trilha(cli, 8, 'audio').length === 1 && trilha(cli, 8, 'audio')[0].volume === '14%' && trilha(cli, 12, 'audio').length >= 3 && JSON.stringify(cliP) === JSON.stringify(cli) && eqJ(rp.fases, ['f1', 'f3']) // KINEO-FILMES-F1F3-PUBLICO-2010
   }
   // ── D · F1
   {
@@ -340,7 +348,7 @@ function provas({ C, F, H, montar }) {
 }
 
 // ═══ pristina ═══════════════════════════════════════════════════════════════════════════════════════════════════════
-const P = provas(carregar())
+const P = provas(carregar(), carregar(null, { vivo: true })) // KINEO-FILMES-F1F3-PUBLICO-2010
 for (const [n, v] of Object.entries(P)) checa(n, v === true)
 
 // ═══ F0 · os arquivos SFX: síntese própria, determinística, hash do catálogo = disco = regenerado ═══════════════════
@@ -361,14 +369,17 @@ for (const [n, v] of Object.entries(P)) checa(n, v === true)
 // ═══ M · mutantes (cada um deixa vermelha a prova que protege) ══════════════════════════════════════════════════════
 const F15 = 'lib/filmes/faceless15.ts'
 const mut = (nome, arquivo, de, para, provasQueCaem) => {
-  const fonte = rd(arquivo)
+  const fonte = arquivo === F15 ? lf(readFileSync(join(RAIZ, F15), 'utf8')) : rd(arquivo) // KINEO-FILMES-F1F3-PUBLICO-2010 — âncora do mutante no módulo VIVO (o interruptor novo)
   if (!fonte.includes(de)) { checa(`M ${nome}: a âncora do mutante existe`, false); return }
   let caiu
-  try { caiu = provas(carregar({ arquivo, troca: (s) => s.split(de).join(para) })) } catch (e) { caiu = { erro: e.message } }
+  try { const m = { arquivo, troca: (s) => s.split(de).join(para) }; caiu = provas(carregar(m), carregar(m, { vivo: true })) } catch (e) { caiu = { erro: e.message } } // KINEO-FILMES-F1F3-PUBLICO-2010
   const vermelhas = Object.entries(caiu).filter(([, v]) => v !== true).map(([k]) => k)
   checa(`M ${nome} → fica vermelho: ${provasQueCaem.join(' · ')}`, provasQueCaem.every((pq) => vermelhas.some((v) => v.startsWith(pq))))
 }
-mut('f1 pública (FACELESS15_PUBLIC.f1 = true)', F15, 'f1: false, f2: false', 'f1: true, f2: false', ['C1 claim', 'C1 caminho', 'B6'])
+mut('f1 volta a ser só interna (FACELESS15_PUBLIC.f1 = false)', F15, 'f1: true, f2: false, f3: true', 'f1: false, f2: false, f3: true', ['C1 claim', 'C1 caminho', 'B6', 'B7']) // KINEO-FILMES-F1F3-PUBLICO-2010
+mut('f3 volta a ser só interna (FACELESS15_PUBLIC.f3 = false)', F15, 'f2: false, f3: true, f4: false', 'f2: false, f3: false, f4: false', ['C1 claim', 'C1 caminho', 'B6']) // KINEO-FILMES-F1F3-PUBLICO-2010
+mut('f2 pública (o gancho escrito para todos sem nota)', F15, 'f1: true, f2: false, f3: true', 'f1: true, f2: true, f3: true', ['B6', 'B7', 'B8']) // KINEO-FILMES-F1F3-PUBLICO-2010
+mut('f4 pública (5 planos para todos sem nota)', F15, 'f3: true, f4: false, cta: false', 'f3: true, f4: true, cta: false', ['B6', 'C1 claim', 'C1 caminho']) // KINEO-FILMES-F1F3-PUBLICO-2010
 mut('legenda de volta aos 78 %', F15, "export const FACELESS15_LEGENDA_Y = '62%'", "export const FACELESS15_LEGENDA_Y = '78%'", ['D2'])
 mut('4 palavras por chunk (a base)', F15, 'export const FACELESS15_LEGENDA_PALAVRAS = 5', 'export const FACELESS15_LEGENDA_PALAVRAS = 4', ['D3'])
 mut('sem antecipação', F15, 'export const FACELESS15_LEGENDA_ANTECIPACAO_S = 0.12', 'export const FACELESS15_LEGENDA_ANTECIPACAO_S = 0', ['D5'])
