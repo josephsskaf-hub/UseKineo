@@ -6,7 +6,8 @@
   "scripts/test-support/desfaz-filme-rapido-1710.mjs": 2,
   "scripts/test-trilha-15s-1610.mjs": 1,
   "scripts/test-support/desfaz-menu-ugc-2010.mjs": 2,
-  "scripts/test-quality-route-integration-2026-09-11.mjs": 1
+  "scripts/test-quality-route-integration-2026-09-11.mjs": 1,
+  "scripts/test-mcp-studio-2010.mjs": 1
  },
  "lib/cinematic/criticoStill.ts": [
   [
@@ -32,6 +33,20 @@
   [
    "const ORDEM: ProblemaStill[] = ['identidade', 'sujeito', 'anatomia', 'texto', 'artefato'] // KINEO-META95-PERSONAGEM-2010 — identidade primeiro (só existe com a folha); era: ['sujeito', 'anatomia', 'texto', 'artefato']",
    "const ORDEM: ProblemaStill[] = ['sujeito', 'anatomia', 'texto', 'artefato']"
+  ]
+ ],
+ "scripts/test-mcp-studio-2010.mjs": [
+  [
+   "  ok(base(rel) !== null && lf(semMeta95Personagem2010(raw(rel), rel)) === base(rel), `(E2) ${rel} intocada por esta entrega (nenhuma rota de geração mudou — a trava 8.2 não foi tocada; a folha de personagem, entrega de depois, sai em memória)`) // reancorado KINEO-META95-PERSONAGEM-2010",
+   "  ok(base(rel) !== null && read(rel) === base(rel), `(E2) ${rel} intocada (nenhuma rota de geração mudou — a trava 8.2 não foi tocada)`)"
+  ],
+  [
+   "const changedExisting = git('diff', '--name-only', MCP_STUDIO_2010_BASE, 'HEAD').split('\\n').filter(Boolean).filter((f) => base(f) !== null).filter((f) => !META95_PERSONAGEM_2010_ARQUIVOS.includes(f)) // reancorado KINEO-META95-PERSONAGEM-2010: os arquivos da folha de personagem (entrega de depois, com desfaz próprio) ficam fora desta conta",
+   "const changedExisting = git('diff', '--name-only', MCP_STUDIO_2010_BASE, 'HEAD').split('\\n').filter(Boolean).filter((f) => base(f) !== null)"
+  ],
+  [
+   "const commits = git('log', '--format=%s', `${MCP_STUDIO_2010_BASE}..HEAD`).split('\\n').filter(Boolean).filter((s) => !s.includes(MARCA_META95_PERSONAGEM_2010)) // reancorado KINEO-META95-PERSONAGEM-2010: os commits da folha de personagem levam a marca deles",
+   "const commits = git('log', '--format=%s', `${MCP_STUDIO_2010_BASE}..HEAD`).split('\\n').filter(Boolean)"
   ]
  ]
 }
