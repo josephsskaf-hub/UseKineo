@@ -240,11 +240,13 @@ function provasDaRota(src) {
   // roda só com verbatim=false (o roteiro do cliente nunca é tocado), depois dos construtores e do resgate de zero cenas, antes do L2B
   const iSe = src.indexOf('    if (verbatim) {\n      // #369')
   const iSenao = src.indexOf('    } else {\n      const generated = await generateScenes(', iSe)
-  const iFiltro = src.indexOf('          const r = removerDatasInventadas(sc.voiceover, contextoFalaClassica)', iSenao)
+  // o filtro da fala clássica (desde KINEO-META95-ASSUNTO-1910: filtrarFalaSemBuraco; antes removerDatasInventadas + scrubInventedSetting)
+  const FILTRO = src.includes('          const f = filtrarFalaSemBuraco(sc.voiceover, contextoFalaClassica)') ? '          const f = filtrarFalaSemBuraco(sc.voiceover, contextoFalaClassica)' : '          const r = removerDatasInventadas(sc.voiceover, contextoFalaClassica)'
+  const iFiltro = src.indexOf(FILTRO, iSenao)
   const iZero = src.indexOf('    if (scenes.length === 0 && prompt.trim().length > 0) {', iSenao)
   const iGuarda = src.indexOf('    if (!verbatim) { const metaDasCenas = cenasSemMetaTexto(scenes, shortCaptionFromVoiceover); if (metaDasCenas.removidas.length) void writeServerEvent({ name: CENA_META_TEXTO_EVENTO,', iSenao)
   const iL2B = src.indexOf('    // L2B - prefer the smart BrollPlan per-scene cinematic prompt when provided')
-  r.R4 = iSe > iTroca && iSenao > iSe && iFiltro > iSenao && iZero > iFiltro && iGuarda > iZero && iL2B > iGuarda && src.slice(iGuarda, iL2B).split('\n').length === 2 && (src.match(/removerDatasInventadas\(sc\.voiceover/g) ?? []).length === 1
+  r.R4 = iSe > iTroca && iSenao > iSe && iFiltro > iSenao && iZero > iFiltro && iGuarda > iZero && iL2B > iGuarda && src.slice(iGuarda, iL2B).split('\n').length === 2 && src.split(FILTRO.trim()).length === 2
   return r
 }
 const rr = provasDaRota(rota)
@@ -273,6 +275,10 @@ checa('R5 toda linha nova da rota carrega a marca (5 linhas: 2 imports, chamada,
     assunto.includes('  texto = semMeta95Ideia1910(texto, p)') && assunto.includes("from './desfaz-meta95-ideia-1910.mjs'") && filmeRapido.includes("from './desfaz-meta95-ideia-1910.mjs'") &&
     FR.linhaDoFilmeRapido1710('+x // ' + MARCA) === true && FR.linhaDoFilmeRapido1710('+x') === false &&
     FR.semFilmeRapido1710(rota, F.rota) === FR.semFilmeRapido1710(SUP.semMeta95Ideia1910(rota, F.rota), F.rota))
+  const outros = Object.keys(SUP.ACRESCIMOS_META95_IDEIA_1910).filter((f) => f !== F.rota)
+  checa('R8c fora da rota, só acréscimos marcados de reâncora/encadeamento (+ a troca listada do guardião do assunto), e o desfaz devolve cada arquivo à base',
+    outros.length === 4 && outros.every((f) => { const d = rd(f); const b = (() => { try { return lf(git('show', `${BASE}:${f}`)) } catch { return null } })(); return b !== null && lf(SUP.semMeta95Ideia1910(fs.readFileSync(path.join(ROOT, f), 'utf8'), f)) === b && d.split('\n').filter((l) => l.includes(MARCA)).length === SUP.ACRESCIMOS_META95_IDEIA_1910[f].length }),
+    outros.filter((f) => { try { return lf(SUP.semMeta95Ideia1910(fs.readFileSync(path.join(ROOT, f), 'utf8'), f)) !== lf(git('show', `${BASE}:${f}`)) } catch { return true } }).join(', '))
   const trilha = rd('scripts/test-trilha-15s-1610.mjs')
   checa('R8b a reâncora do selo no guardião da trilha é uma linha só, marcada, e o desfaz a tira', trilha.split('\n').filter((l) => l.includes(MARCA)).length === 1 && !SUP.semMeta95Ideia1910(trilha, 'scripts/test-trilha-15s-1610.mjs').includes(MARCA))
   checa('R9 o roteirista (/api/generate-script) não foi tocado por esta entrega', !rd(F.script).includes(MARCA))

@@ -405,7 +405,8 @@ export const TROCAS_FILME_RAPIDO_1710 = {
 
 /** A linha é desta entrega? (toda linha nova ou trocada leva a marca). */
 export function linhaDoFilmeRapido1710(l) {
-  return typeof l === 'string' && (l.includes(MARCA_FILME_RAPIDO_1710) || l.includes(MARCA_META95_IDEIA_1910)) // KINEO-META95-IDEIA-1910: linha da camada mais nova da rota do cinematic também é de depois da base
+  if (typeof l === 'string' && l.includes(MARCA_META95_IDEIA_1910)) return true // KINEO-META95-IDEIA-1910: linha da camada mais nova da rota do cinematic também é de depois da base
+  return typeof l === 'string' && l.includes(MARCA_FILME_RAPIDO_1710)
 }
 
 /** As linhas da BASE que a entrega reescreveu (para os guardiões que contam linhas removidas). */

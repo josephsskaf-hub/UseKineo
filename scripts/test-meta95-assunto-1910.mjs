@@ -13,6 +13,7 @@
 //   D  rota: o contexto do filtro passa pelo assunto traduzido nos 4 pontos; null = não apaga; verbatim nunca passa pela fala;
 //   E  estrada de sempre: inglês puro sem escrita estrangeira = byte a byte igual à lib da base;
 //   F  desfaz exato + novos + marca + encadeamento (as camadas filme-rápido e trilha-15s tiram esta PRIMEIRO).
+import { semMeta95Ideia1910 } from './test-support/desfaz-meta95-ideia-1910.mjs' // reancorado KINEO-META95-IDEIA-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]
 import { readFileSync, existsSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { dirname, join } from 'node:path'
@@ -30,7 +31,7 @@ const VPP = 'lib/cinematic/visualPromptPolicy.ts'
 const FALA = 'lib/cinematic/falaSemBuraco.ts'
 const TRAD = 'lib/cinematic/assuntoTraduzido.ts'
 const lf = (s) => s.replace(/\r\n/g, '\n')
-const disco = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))
+const disco = (p) => lf(semMeta95Ideia1910(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-META95-IDEIA-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: a ideia no escritor marcado (camada mais nova, provada em test-meta95-ideia-1910) sai do disco antes das provas deste guardião
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const BASE = SUP.META95_ASSUNTO_1910_BASE // a base fixa da entrega (origin/main 6e104e188, depois dos merges da pílula/corte do Close real e da Régua 95): o pai do 1º commit não serve mais, a fila andou no meio
 const base = (p) => { try { return lf(git('show', `${BASE}:${p}`)) } catch { return null } }

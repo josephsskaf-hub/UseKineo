@@ -7,7 +7,10 @@
 //     e a troca do pedido (logo antes do parseUserScript), e a guarda de meta-texto do caminho antigo (generateScenes,
 //     verbatim=false), logo antes do L2B — fora das fatias do construtor que outros guardiões executam isoladas;
 //   · em scripts/test-trilha-15s-1610.mjs (protegido pelo guardião do filme rápido): a reâncora que tira os commits desta
-//     entrega da conta do selo da trilha.
+//     entrega da conta do selo da trilha;
+//   · nos desfaz das camadas anteriores: desfaz-meta95-assunto-1910.mjs chama este PRIMEIRO (encadeamento) e
+//     desfaz-filme-rapido-1710.mjs aceita a marca em linhaDoFilmeRapido1710 ("linha de depois da base");
+//   · em scripts/test-meta95-assunto-1910.mjs (lia o disco cru): o import e a TROCA do `disco`, que passa por este desfaz.
 // Desfaz: cada linha marcada é reconhecida pelo PREFIXO exato do seu arquivo e sai inteira; linha marcada fora dos prefixos,
 // prefixo repetido ou conserto pela metade = lança (o guardião fica vermelho). Sem a marca, ou outro arquivo, devolve o texto
 // igual (idempotente). Preserva CRLF.
@@ -29,6 +32,24 @@ export const ACRESCIMOS_META95_IDEIA_1910 = {
   'scripts/test-trilha-15s-1610.mjs': [
     "  assuntos.splice(0, assuntos.length, ...assuntos.filter((s) => !s.includes('KINEO-META95-IDEIA-1910'))) // reancorado KINEO-META95-IDEIA-1910",
   ],
+  'scripts/test-support/desfaz-filme-rapido-1710.mjs': [
+    "import { MARCA_META95_IDEIA_1910 } from './desfaz-meta95-ideia-1910.mjs' // KINEO-META95-IDEIA-1910",
+    "  if (typeof l === 'string' && l.includes(MARCA_META95_IDEIA_1910)) return true // KINEO-META95-IDEIA-1910",
+  ],
+  'scripts/test-support/desfaz-meta95-assunto-1910.mjs': [
+    "import { semMeta95Ideia1910 } from './desfaz-meta95-ideia-1910.mjs' // KINEO-META95-IDEIA-1910",
+    '  texto = semMeta95Ideia1910(texto, p) // KINEO-META95-IDEIA-1910',
+  ],
+  'scripts/test-meta95-assunto-1910.mjs': [
+    "import { semMeta95Ideia1910 } from './test-support/desfaz-meta95-ideia-1910.mjs' // reancorado KINEO-META95-IDEIA-1910",
+    "const disco = (p) => lf(semMeta95Ideia1910(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-META95-IDEIA-1910",
+  ],
+}
+/** TROCA (a linha da base foi reescrita; só no guardião do assunto, que lia o disco cru): prefixo marcado → a linha da base volta no lugar. */
+export const TROCAS_META95_IDEIA_1910 = {
+  'scripts/test-meta95-assunto-1910.mjs': {
+    "const disco = (p) => lf(semMeta95Ideia1910(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-META95-IDEIA-1910": "const disco = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))",
+  },
 }
 /** Compatibilidade: os prefixos da rota. */
 export const PREFIXOS_META95_IDEIA_1910 = ACRESCIMOS_META95_IDEIA_1910[ROTA_META95_IDEIA_1910]
@@ -46,6 +67,8 @@ export function semMeta95Ideia1910(texto, rel = ROTA_META95_IDEIA_1910) {
     if (i < 0) throw new Error('desfaz-meta95-ideia-1910: linha com a marca fora dos prefixos conhecidos: ' + linha.slice(0, 120))
     if (usados.has(i)) throw new Error('desfaz-meta95-ideia-1910: prefixo repetido: ' + prefixos[i].slice(0, 80))
     usados.add(i)
+    const daBase = (TROCAS_META95_IDEIA_1910[rel] ?? {})[prefixos[i]]
+    if (typeof daBase === 'string') fora.push(daBase)
   }
   if (usados.size !== prefixos.length) throw new Error(`desfaz-meta95-ideia-1910: conserto pela metade em ${rel} (${usados.size} de ${prefixos.length} linhas)`)
   const out = fora.join('\n')
