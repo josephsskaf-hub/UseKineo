@@ -1,0 +1,67 @@
+{
+ "__acrescimos": {
+  "app/(dashboard)/ads/v2/AdsV2Client.tsx": 7,
+  "app/(dashboard)/ads/v2/AdsV2Simple.tsx": 10,
+  "app/(dashboard)/ads/v2/page.tsx": 4,
+  "app/api/ads/v2/plan/route.ts": 2,
+  "app/api/ads/v2/start/route.ts": 2,
+  "lib/ads/sampleEntry.ts": 49,
+  "lib/ads/serverAccess.ts": 19,
+  "lib/ads/v2Brief.ts": 5,
+  "lib/ads/v2PlanCore.ts": 11,
+  "lib/ads/v2PresenterV2.ts": 11,
+  "lib/ads/v2StartCore.ts": 3,
+  "scripts/test-support/desfaz-kit-bf-venda-2010.mjs": 2,
+  "scripts/test-support/desfaz-filmes-f1f3-publico-2010.mjs": 2
+ },
+ "app/(dashboard)/ads/v2/AdsV2Client.tsx": [
+  [
+   "export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null, business = null, entry = null, sampleProbe = false }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp; business?: AdsBusinessOffer | null; entry?: 'product' | 'ugc' | null; sampleProbe?: boolean }) { // KINEO-UGC-AJUSTES-2010 — + sampleProbe (o page.tsx só manda true para a conta interna com ?sample_probe=1)",
+   "export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null, business = null, entry = null /* KINEO-HOME-3-CARDS-1910 */ }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp; business?: AdsBusinessOffer | null; entry?: 'product' | 'ugc' | null }) {"
+  ],
+  [
+   "      const r = await api<PlanResponse>(adsV2ProbeUrl('/api/ads/v2/plan', sampleProbe), { // KINEO-UGC-AJUSTES-2010 — era: api<PlanResponse>('/api/ads/v2/plan', {",
+   "      const r = await api<PlanResponse>('/api/ads/v2/plan', {"
+  ],
+  [
+   "      const r = await api<{ credits: number; shots: unknown[] }>(adsV2ProbeUrl('/api/ads/v2/start', sampleProbe), { method: 'POST', body: { order_id: plan.order_id, dry_run: true } }) // KINEO-UGC-AJUSTES-2010 — + o probe",
+   "      const r = await api<{ credits: number; shots: unknown[] }>('/api/ads/v2/start', { method: 'POST', body: { order_id: plan.order_id, dry_run: true } })"
+  ],
+  [
+   "      const r = await api<StatusView>(adsV2ProbeUrl('/api/ads/v2/start', sampleProbe), { method: 'POST', body: { order_id: plan.order_id } }) // KINEO-UGC-AJUSTES-2010 — + o probe",
+   "      const r = await api<StatusView>('/api/ads/v2/start', { method: 'POST', body: { order_id: plan.order_id } })"
+  ]
+ ],
+ "app/(dashboard)/ads/v2/AdsV2Simple.tsx": [
+  [
+   "      const r = await api<PlanResponse>(adsSampleProbeUrl('/api/ads/v2/plan', sampleProbe), { // KINEO-UGC-AJUSTES-2010 — era: api<PlanResponse>('/api/ads/v2/plan', {",
+   "      const r = await api<PlanResponse>('/api/ads/v2/plan', {"
+  ],
+  [
+   "      const r = await api<StatusView>(adsSampleProbeUrl('/api/ads/v2/start', sampleProbe), { method: 'POST', body: { order_id: plan.order_id } }) // KINEO-UGC-AJUSTES-2010 — + o probe",
+   "      const r = await api<StatusView>('/api/ads/v2/start', { method: 'POST', body: { order_id: plan.order_id } })"
+  ]
+ ],
+ "app/(dashboard)/ads/v2/page.tsx": [
+  [
+   "  const { admin, reason: reasonOwn, ...ws } = await loadAdsAccess(user.id, user.email, { workspace: true }) // KINEO-UGC-AJUSTES-2010 — era: { admin, reason, ...ws } (o reason passa pelo probe abaixo)",
+   "  const { admin, reason, ...ws } = await loadAdsAccess(user.id, user.email, { workspace: true })"
+  ],
+  [
+   "  return <AdsPresenterAllProvider all={isAdsInternalEmail(user.email) && !sampleProbe}><AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} entry={entry} sampleProbe={sampleProbe} /></AdsPresenterAllProvider> // KINEO-UGC-AJUSTES-2010 — + sampleProbe e, com ele, a tela de escolha só com os aprovados, como o cliente vê (a tela repassa ?sample_probe=1 ao /plan e ao /start só para a conta interna); era: a mesma linha sem sampleProbe",
+   "  return <AdsPresenterAllProvider all={isAdsInternalEmail(user.email)}><AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} entry={entry} /></AdsPresenterAllProvider> // KINEO-APRESENTADOR-OLHOS-1910 — o provedor \"interna?\" em volta (a entrada dos cards da home segue igual)"
+  ]
+ ],
+ "lib/ads/v2Brief.ts": [
+  [
+   "    if (words < min || words > acceptTop) why.push(`narration: write ${min} to ${opts.maxWords} words (you wrote ${words}).`) // KINEO-UGC-AJUSTES-2010 — era: words > opts.maxWords (o motivo da correção continua pedindo a régua do pedido)",
+   "    if (words < min || words > opts.maxWords) why.push(`narration: write ${min} to ${opts.maxWords} words (you wrote ${words}).`)"
+  ]
+ ],
+ "lib/ads/v2PresenterV2.ts": [
+  [
+   "export const ADS_V2_PRESENTER_V2_APPROVED: readonly string[] = ['sofia', 'amara', 'rahul', 'kenji', 'jade', 'robert'] // KINEO-UGC-AJUSTES-2010 — era: os 4 aprovados de 19/10 (Sofia, Amara, Rahul, Kenji)",
+   "export const ADS_V2_PRESENTER_V2_APPROVED: readonly string[] = ['sofia', 'amara', 'rahul', 'kenji'] // KINEO-APRESENTADOR-OLHOS-1910"
+  ]
+ ]
+}

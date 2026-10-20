@@ -12,6 +12,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semUgcAjustes2010 } from './desfaz-ugc-ajustes-2010.mjs' // KINEO-UGC-AJUSTES-2010 — os ajustes do UGC (20/10) vieram depois: saem PRIMEIRO (encadeado; texto sem a marca passa igual)
 
 export const MARCA_KIT_BF_VENDA_2010 = 'KINEO-KIT-BF-VENDA-2010'
 
@@ -37,6 +38,7 @@ export const KIT_BF_VENDA_2010_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semKitBfVenda2010(texto, p) {
+  texto = semUgcAjustes2010(texto, p) // KINEO-UGC-AJUSTES-2010 — a camada mais nova sai primeiro
   if (typeof texto !== 'string' || !texto.includes(MARCA_KIT_BF_VENDA_2010) || !KIT_BF_VENDA_2010_ARQUIVOS.includes(p)) return texto
   const crlf = texto.includes('\r\n')
   const trocas = new Map((TROCAS_KIT_BF_VENDA_2010[p] ?? []).map(([nova, base]) => [nova, base]))
