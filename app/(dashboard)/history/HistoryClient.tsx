@@ -59,6 +59,7 @@ import {
   HISTORY_FIRST_VIDEO_OFFER_VISIBLE_RATIO,
   shouldDwellOnHistoryFirstVideoOffer,
 } from '@/lib/growth/historyFirstVideoOfferHumanView'
+import FreeRedoFilmButton from '@/components/video/FreeRedoFilmButton' // KINEO-META95-REFAZER-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — "Refazer uma cena (grátis, 1×)"
 
 const STARTER_PRICE_USD = formatCheckoutMoney('usd', TIER_PRICES.starter.usd)
 
@@ -1815,6 +1816,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                     <span style={{ color: '#5cb3ff', display: 'flex' }}><IcoList /></span>
                     <span>{summaryLoading === video.id ? 'Writing…' : 'Title, description & hashtags'}</span>
                   </button>
+                  <FreeRedoFilmButton videoId={video.id} qualityMode={video.quality_mode} createdAt={video.created_at} />{/* KINEO-META95-REFAZER-1910 — 1 refação grátis por filme (só aparece quando o servidor diz que cabe) */}
                 </div>
 
                 <Link

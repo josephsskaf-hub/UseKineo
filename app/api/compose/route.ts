@@ -23,6 +23,7 @@ import { resolverFaceless15, aplicarFaceless15, aplicarGanchoFaceless15 } from '
 import { captionFontFor } from '@/lib/textLanguage' // KINEO-GANCHO-1Q-2026-10-03
 import { decidirLegenda, tirarLegendaEGancho } from '@/lib/semLegenda' // KINEO-SEM-LEGENDA-2026-10-06
 import { registrarVersaoDaCasa, registrarSemLegendaIgnorado } from '@/lib/semLegendaServer' // KINEO-SEM-LEGENDA-2026-10-06
+import { guardarFonteDoFilme } from '@/lib/freeRedo/fonteDoFilme' // KINEO-META95-REFAZER-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — o RenderScript assinado do filme clássico, para a refação grátis de uma cena
 import {
   buildCreatomateSource,
   CreatomateSubmitError,
@@ -3680,6 +3681,7 @@ export async function POST(req: NextRequest) {
     })
     const claimStored = await completeGenerationClaim(renderId, intendedCost)
     await registrarVersaoDaCasa({ userId: authenticatedUserId, generationId, renderId, quality, decisao: semLegenda, source }) // KINEO-SEM-LEGENDA-2026-10-06 — conta interna: versão gerada + RenderScript da versão B; cliente: nada
+    await guardarFonteDoFilme({ userId: authenticatedUserId, generationId, renderId, quality, source }) // KINEO-META95-REFAZER-1910 — todo filme clássico (Seedance 1.5, Kling 2.5, Veo 3.1): o RenderScript exato, assinado, para "Refazer uma cena (grátis, 1×)"; nunca lança, resposta igual
     if ((!intentStored && !claimStored) || (cinematicUpstreamDebited && !claimStored)) {
       return NextResponse.json(
         { error: 'Your render was accepted and is being recovered safely.', pending: true, retry_after_ms: 5000 },

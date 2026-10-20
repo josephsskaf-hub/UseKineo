@@ -13,6 +13,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semMeta95Refazer1910 } from './desfaz-meta95-refazer-1910.mjs' // KINEO-META95-REFAZER-1910 — a refação grátis (19/10) veio depois: sai PRIMEIRO (encadeado)
 
 export const MARCA_FILMES_F1F4_1910 = 'KINEO-FILMES-F1-F4-1910'
 
@@ -36,6 +37,7 @@ export function linhasTrocadasFilmesF1F4_1910(p) {
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Sem linha marcada = devolve igual. Preserva CRLF. */
 export function semFilmesF1F4_1910(texto, p) {
+  texto = semMeta95Refazer1910(texto, p) // KINEO-META95-REFAZER-1910 — tira o import + a chamada marcados da refação grátis antes de tudo
   if (typeof texto !== 'string' || !texto.includes(MARCA_FILMES_F1F4_1910)) return texto
   const crlf = texto.includes('\r\n')
   const trocas = new Map((TROCAS_FILMES_F1F4_1910[p] ?? []).map(([nova, base]) => [nova, base]))
