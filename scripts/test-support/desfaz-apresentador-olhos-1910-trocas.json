@@ -104,5 +104,11 @@
    "  const tocados = git('diff', '--name-only', CLOSE_REAL_V3_1910_BASE, git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, 'HEAD').trim().split('\\n').filter(Boolean)[0] || 'HEAD').trim().split('\\n').concat(git('diff', '--name-only', 'HEAD').trim().split('\\n')).filter(Boolean).filter((f) => !diffSoHome3Cards1910(git('diff', '-U0', '--no-color', CLOSE_REAL_V3_1910_BASE, '--', f), f)) // reancorado KINEO-HOME-3-CARDS-1910 — arquivo cujo diff (base até a árvore) é só desta entrega (todo bloco com a marca) fora da lista · reancorado KINEO-APRESENTADOR-OLHOS-1910: mede até o último commit desta entrega (era ..'HEAD'; os olhos abertos do apresentador v2 vieram depois, com guardião próprio)",
    "  const tocados = git('diff', '--name-only', CLOSE_REAL_V3_1910_BASE, 'HEAD').trim().split('\\n').concat(git('diff', '--name-only', 'HEAD').trim().split('\\n')).filter(Boolean).filter((f) => !diffSoHome3Cards1910(git('diff', '-U0', '--no-color', CLOSE_REAL_V3_1910_BASE, '--', f), f)) // reancorado KINEO-HOME-3-CARDS-1910 — arquivo cujo diff (base até a árvore) é só desta entrega (todo bloco com a marca) fora da lista"
   ]
+ ],
+ "scripts/test-home-3-cards-1910.mjs": [
+  [
+   "  const corte = semApresentadorOlhos1910(read('scripts/test-support/desfaz-close-real-legenda-corte-1910.mjs'), 'scripts/test-support/desfaz-close-real-legenda-corte-1910.mjs') // reancorado KINEO-APRESENTADOR-OLHOS-1910: era read(...) direto",
+   "  const corte = read('scripts/test-support/desfaz-close-real-legenda-corte-1910.mjs')"
+  ]
  ]
 }

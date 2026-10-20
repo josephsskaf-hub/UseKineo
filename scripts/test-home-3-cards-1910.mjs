@@ -26,6 +26,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import vm from 'node:vm'
 import { createRequire } from 'node:module'
+import { semApresentadorOlhos1910 } from './test-support/desfaz-apresentador-olhos-1910.mjs' // reancorado KINEO-APRESENTADOR-OLHOS-1910: a cabeça da corrente do Close real é lida sem a camada dos olhos abertos (a mais nova, que sai antes desta)
 
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
@@ -370,7 +371,7 @@ const qp = clientProblems(CLIENT, SIMPLE); ok(qp.length === 0, `(9b) tela: entra
   }
   if (semBase) console.log('  (10) base', D.HOME_3_CARDS_1910_BASE.slice(0, 9), 'fora deste clone — prova pulada')
   else ok(difs.length === 0, `(10) desfaz: ${D.HOME_3_CARDS_1910_ARQUIVOS.length} arquivos voltam à base exata (${difs.slice(0, 3).join('; ') || 'ok'})`)
-  const corte = read('scripts/test-support/desfaz-close-real-legenda-corte-1910.mjs')
+  const corte = semApresentadorOlhos1910(read('scripts/test-support/desfaz-close-real-legenda-corte-1910.mjs'), 'scripts/test-support/desfaz-close-real-legenda-corte-1910.mjs') // reancorado KINEO-APRESENTADOR-OLHOS-1910: era read(...) direto
   ok(/export function semCloseRealLegendaCorte1910\(texto, p\) \{\n  texto = semHome3Cards1910\(texto, p\)/.test(corte), '(10b) encadeado: a cabeça da corrente do Close real tira esta camada PRIMEIRO')
   ok(D.semHome3Cards1910('sem marca nenhuma', 'lib/ads/v2PlanCore.ts') === 'sem marca nenhuma' && D.semHome3Cards1910(read('lib/ads/v2PlanCore.ts'), 'outro/arquivo.ts') === read('lib/ads/v2PlanCore.ts'), '(10c) desfaz idempotente fora da lista / sem a marca')
   let lancou = false
