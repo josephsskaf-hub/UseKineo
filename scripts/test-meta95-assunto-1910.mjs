@@ -32,7 +32,7 @@ const TRAD = 'lib/cinematic/assuntoTraduzido.ts'
 const lf = (s) => s.replace(/\r\n/g, '\n')
 const disco = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
-const BASE = SUP.META95_ASSUNTO_1910_BASE // a base fixa da entrega (origin/main ef2879d96, depois do merge da pílula/corte do Close real): o pai do 1º commit não serve mais, a fila andou no meio
+const BASE = SUP.META95_ASSUNTO_1910_BASE // a base fixa da entrega (origin/main 6e104e188, depois dos merges da pílula/corte do Close real e da Régua 95): o pai do 1º commit não serve mais, a fila andou no meio
 const base = (p) => { try { return lf(git('show', `${BASE}:${p}`)) } catch { return null } }
 
 let ok = 0
