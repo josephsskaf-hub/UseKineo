@@ -41,7 +41,7 @@ const F = {
   lib: 'lib/kidsVenda/kidsVenda.ts', server: 'lib/kidsVenda/server.ts', cron: 'lib/kidsVenda/cron.ts', wh: 'lib/kidsVenda/webhook.ts', checkoutKids: 'lib/stripe/kidsVendaCheckout.ts',
   checkout: 'app/api/stripe/checkout/route.ts', webhook: 'app/api/stripe/webhook/route.ts', film: 'app/api/generate-video-cinematic/route.ts', cronRoute: 'app/api/cron/autopilot-generate/route.ts',
   cards: 'components/kidsCartoon/KidsVendaCards.tsx', panel: 'components/kidsCartoon/KidsVendaPanel.tsx', sample: 'app/api/kids-venda/sample/route.ts', status: 'app/api/kids-venda/status/route.ts',
-  pricing: 'app/pricing/PricingClient.tsx', pages: 'components/kidsCartoon/KidsCartoonPages.tsx', page: 'app/(dashboard)/kids-cartoon/page.tsx', precos: 'lib/checkoutPricing.ts', engine: 'lib/credits/engineCost.ts', settle: 'lib/settlementCurrency.ts',
+  statusRoute: 'app/api/compose/status/[renderId]/route.ts', stranded: 'app/api/cron/finish-stranded-renders/route.ts', pricing: 'app/pricing/PricingClient.tsx', pages: 'components/kidsCartoon/KidsCartoonPages.tsx', page: 'app/(dashboard)/kids-cartoon/page.tsx', precos: 'lib/checkoutPricing.ts', engine: 'lib/credits/engineCost.ts', settle: 'lib/settlementCurrency.ts',
 }
 const ENV = { STRIPE_SECRET_KEY: 'sk_test_guardiao', NEXT_PUBLIC_SUPABASE_URL: 'https://guardiao.supabase.test', SUPABASE_SERVICE_ROLE_KEY: 'svc_guardiao' }
 const noop = async () => true
@@ -156,6 +156,9 @@ async function provas(over = {}) {
   r.Q2_run_nasce_antes_do_gasto = iRun > 0 && iStory > iRun && iFund > iStory && iPost > iFund && /if \(\(claim\.error as \{ code\?: string \}\)\.code !== '23505'\)/.test(cronSrc) && /if \(order\.kind === 'autopilot'\) break/.test(cronSrc)
   r.Q3_pausa_da_fal = K.KIDS_FAL_BALANCE_EVENT === 'fal_balance_exhausted' && K.kidsFalPaused(new Date(t0 - 60 * 60 * 1000).toISOString(), t0) === true && K.kidsFalPaused(new Date(t0 - 3 * 60 * 60 * 1000).toISOString(), t0) === false && K.kidsFalPaused(null, t0) === false && /kidsFalPaused\(lastExhausted, now\)/.test(cronSrc)
   r.Q4_estorno_tira_de_volta = /if \(debit === 'refunded'\) \{ await fail\('render_refunded', true\); continue \}/.test(cronSrc) && /async function clawBack/.test(cronSrc) && /KIDS_RUN_TIMEOUT_MS/.test(cronSrc) && K.KIDS_RUN_TIMEOUT_MS === 6 * 60 * 60 * 1000
+  r.Q6_email_so_do_cron = src(F.statusRoute).includes("if (RESEND_API_KEY && user.email && !String(prepaidCinematicClaim?.generationId ?? '').startsWith('kids-')) { // KINEO-KIDS-VENDA-2010")
+    && src(F.stranded).includes("const mayEmail = !!email && !prof?.email_opted_out && !isInternalOrJunkEmail(email) && !String(genId).startsWith('kids-') // KINEO-KIDS-VENDA-2010")
+    && K.kidsGenerationId('abc') === 'kids-abc' && /houseAlreadyEmailed/.test(cronSrc)
   r.Q5_no_cron_do_autopilot = /kids = await kidsPass\(\{ db, baseUrl, deadline, sessions \}\)/.test(src(F.cronRoute)) && !/kids-venda|kidsPass/.test(disco('vercel.json'))
 
   // A — 1 grátis por conta + teto
@@ -294,6 +297,8 @@ const MUT = [
   ['M20 estorno não tira de volta', F.cron, "if (debit === 'refunded') { await fail('render_refunded', true); continue }", "if (debit === 'refunded') { await fail('render_refunded', false); continue }", 'Q4_estorno_tira_de_volta'],
   ['M21 webhook: pedido antes do guard', F.webhook, "            const { error: kidsGuardError } = await supabase.from('stripe_events').insert({ id: checkoutFulfillmentGuard }) // KINEO-KIDS-VENDA-2010\n", "            const kidsPack = await fulfillKidsPack(supabase, session) // KINEO-KIDS-VENDA-2010\n            const { error: kidsGuardError } = await supabase.from('stripe_events').insert({ id: checkoutFulfillmentGuard }) // KINEO-KIDS-VENDA-2010\n", 'I1_pack_guard_antes_pedido_antes_do_valor'],
   ['M22 rota: admissão fora de currentPaid', F.film, '      kidsPedidoAdmitido || // KINEO-KIDS-VENDA-2010', '      false || // KINEO-KIDS-VENDA-2010', 'R1_admissao_antes_do_gate'],
+  ['M24 e-mail genérico da rota de status sai para o episódio', F.statusRoute, "user.email && !String(prepaidCinematicClaim?.generationId ?? '').startsWith('kids-')) { // KINEO-KIDS-VENDA-2010", "user.email) { // KINEO-KIDS-VENDA-2010", 'Q6_email_so_do_cron'],
+  ['M25 e-mail de resgate da casa sai para o episódio', F.stranded, " && !String(genId).startsWith('kids-') // KINEO-KIDS-VENDA-2010", " // KINEO-KIDS-VENDA-2010", 'Q6_email_so_do_cron'],
   ['M23 preço na URL do cartão', F.cards, '#plans`', '#plans&price=2900`', 'N1_telas'],
 ]
 for (const [nome, arq, a, b, alvo] of MUT) {

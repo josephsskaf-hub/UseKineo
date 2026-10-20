@@ -1,7 +1,9 @@
 {
  "__acrescimos": {
   "app/(dashboard)/kids-cartoon/page.tsx": 1,
+  "app/api/compose/status/[renderId]/route.ts": 0,
   "app/api/cron/autopilot-generate/route.ts": 4,
+  "app/api/cron/finish-stranded-renders/route.ts": 0,
   "app/api/generate-video-cinematic/route.ts": 10,
   "app/api/stripe/checkout/route.ts": 3,
   "app/api/stripe/webhook/route.ts": 52,
@@ -9,16 +11,28 @@
   "components/kidsCartoon/KidsCartoonPages.tsx": 2,
   "scripts/test-support/desfaz-bebe-que-fala-2010.mjs": 2
  },
- "app/api/stripe/webhook/route.ts": [
-  [
-   "        if (!duplicateSession || (duplicateSession.mode !== 'subscription' && !duplicateSafeObservation && !isDfyOrderSession(duplicateSession) && !isDfyFilms3Session(duplicateSession) && !isKidsPackSession(duplicateSession))) { // KINEO-KIDS-VENDA-2010 — o pack infantil também retoma (guard por sessão + pedido único por sessão; nada é creditado)",
-   "        if (!duplicateSession || (duplicateSession.mode !== 'subscription' && !duplicateSafeObservation && !isDfyOrderSession(duplicateSession) && !isDfyFilms3Session(duplicateSession))) {"
-  ]
- ],
  "app/(dashboard)/kids-cartoon/page.tsx": [
   [
    "  return <><KidsVendaPanel />{/* KINEO-KIDS-VENDA-2010 — acima do template: nada muda no template em si */}<KidsCartoonTemplate /></>",
    "  return <KidsCartoonTemplate />"
+  ]
+ ],
+ "app/api/compose/status/[renderId]/route.ts": [
+  [
+   "          if (RESEND_API_KEY && user.email && !String(prepaidCinematicClaim?.generationId ?? '').startsWith('kids-')) { // KINEO-KIDS-VENDA-2010 — episódio do desenho infantil vendido (geração kids-<run>): quem avisa é o passe do cron (\"seu vídeo de hoje está pronto\", na língua do pedido, com a contagem e a oferta); este e-mail genérico não sai",
+   "          if (RESEND_API_KEY && user.email) {"
+  ]
+ ],
+ "app/api/cron/finish-stranded-renders/route.ts": [
+  [
+   "    const mayEmail = !!email && !prof?.email_opted_out && !isInternalOrJunkEmail(email) && !String(genId).startsWith('kids-') // KINEO-KIDS-VENDA-2010 — geração do desenho infantil vendido (kids-<run>): monta como sempre, mas quem avisa (pronto/resgate) é o passe do cron do Autopilot, na língua do pedido; nem \"ready\" nem \"um clique para terminar\" daqui",
+   "    const mayEmail = !!email && !prof?.email_opted_out && !isInternalOrJunkEmail(email)"
+  ]
+ ],
+ "app/api/stripe/webhook/route.ts": [
+  [
+   "        if (!duplicateSession || (duplicateSession.mode !== 'subscription' && !duplicateSafeObservation && !isDfyOrderSession(duplicateSession) && !isDfyFilms3Session(duplicateSession) && !isKidsPackSession(duplicateSession))) { // KINEO-KIDS-VENDA-2010 — o pack infantil também retoma (guard por sessão + pedido único por sessão; nada é creditado)",
+   "        if (!duplicateSession || (duplicateSession.mode !== 'subscription' && !duplicateSafeObservation && !isDfyOrderSession(duplicateSession) && !isDfyFilms3Session(duplicateSession))) {"
   ]
  ]
 }

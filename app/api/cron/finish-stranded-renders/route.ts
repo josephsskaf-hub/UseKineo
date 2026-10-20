@@ -705,7 +705,7 @@ async function rodadaDoResgate(req: NextRequest): Promise<NextResponse> { // KIN
       .eq('id', userId)
       .maybeSingle()
     const email = prof?.email ?? ''
-    const mayEmail = !!email && !prof?.email_opted_out && !isInternalOrJunkEmail(email)
+    const mayEmail = !!email && !prof?.email_opted_out && !isInternalOrJunkEmail(email) && !String(genId).startsWith('kids-') // KINEO-KIDS-VENDA-2010 — geração do desenho infantil vendido (kids-<run>): monta como sempre, mas quem avisa (pronto/resgate) é o passe do cron do Autopilot, na língua do pedido; nem "ready" nem "um clique para terminar" daqui
 
     const claimRenderId = typeof md.render_id === 'string' && md.render_id.length > 0 ? md.render_id : null
     const ourRenderId = composedRender.has(genId) ? composedRender.get(genId) ?? null : null
