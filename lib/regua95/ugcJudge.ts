@@ -127,7 +127,7 @@ export function planUgcFrames(input: { seconds: number | null | undefined; speec
   if (fim >= ini) {
     const vistos = new Set<number>()
     for (let k = 0; k < UGC_SPEECH_FRAMES; k++) {
-      const alvo = UGC_SPEECH_FRAMES === 1 ? ini : ini + ((fim - ini) * k) / (UGC_SPEECH_FRAMES - 1)
+      const alvo = ini + ((fim - ini) * k) / (UGC_SPEECH_FRAMES - 1)
       let t = speechEnd <= 20 ? r1(Math.round(alvo / UGC_STEP_SECONDS) * UGC_STEP_SECONDS) : r1(alvo)
       if (t >= speechEnd) t = r1(t - UGC_STEP_SECONDS) // a grade arredondou para depois do fim da fala (ex.: avatar no último quadro)
       if (t >= ini && t < speechEnd && !vistos.has(t)) { vistos.add(t); out.push({ t, zone: 'fala' }) }
