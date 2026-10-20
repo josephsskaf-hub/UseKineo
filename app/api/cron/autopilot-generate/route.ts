@@ -60,6 +60,7 @@ import {
 import { mintUserSession, type UserSession } from '@/lib/autopilot/session'
 import { buildAutopilotPrompt, pickTopic, recentTopicsForSchedule } from '@/lib/autopilot/topics'
 import { isInternalEmail } from '@/lib/internalAccounts'
+import { kidsPass, type KidsPassSummary } from '@/lib/kidsVenda/cron' // KINEO-KIDS-VENDA-2010 — passe 3: os desenhos infantis vendidos (piloto/pack/amostra) no MESMO cron horário (nenhuma entrada nova de cron; mesma sessão-como-a-pessoa)
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -589,6 +590,8 @@ export async function GET(req: NextRequest) {
     console.error('[autopilot] generate pass threw:', e instanceof Error ? e.message : String(e))
   }
 
+  let kids: KidsPassSummary | null = null // KINEO-KIDS-VENDA-2010
+  try { kids = await kidsPass({ db, baseUrl, deadline, sessions }) } catch (e) { console.error('[autopilot] kids pass threw:', e instanceof Error ? e.message : String(e)) } // KINEO-KIDS-VENDA-2010 — depois dos dois passes do Autopilot (o que já está pago entrega primeiro); nunca derruba o resumo
   const summary = {
     ok: true,
     due: generate.due,
@@ -597,6 +600,7 @@ export async function GET(req: NextRequest) {
     skipped: generate.skipped,
     failed: generate.failed + publish.failed,
     publish: publish,
+    kids, // KINEO-KIDS-VENDA-2010
     ran_at: new Date().toISOString(),
   }
   console.log('[autopilot]', JSON.stringify(summary))

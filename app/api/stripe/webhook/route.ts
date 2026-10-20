@@ -42,6 +42,8 @@ import { AUTOPILOT_PILOT_PLAN, autopilotPilotExpiresAt } from '@/lib/autopilot/c
 // abaixo). A flag e o evento seguem o padrão do resto do trial.
 import { REVERSE_TRIAL_ENABLED } from '@/lib/reverseTrial'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { isKidsAutopilotSession, isKidsPackSession, isKidsSubscription } from '@/lib/kidsVenda/kidsVenda' // KINEO-KIDS-VENDA-2010 — reconhecimento SÓ pela metadata (nunca pelo valor: 4900 é também o Kit BF e o bulk30)
+import { fulfillKidsAutopilot, fulfillKidsPack, kidsInvoicePaid, kidsSubscriptionDeleted, kidsSubscriptionUpdated } from '@/lib/kidsVenda/webhook' // KINEO-KIDS-VENDA-2010 — pedido do piloto/pack (nenhum crédito concedido; o cron financia filme a filme), ciclo novo, pausa, cancela
 import { KIT_BF_CREDITS, KIT_BF_EVENTS, KIT_BF_PACK_ID, KIT_BF_VERSION, kitBfAccessUntilIso } from '@/lib/ads/kitBfSale' // KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday: créditos + Studio Ads até 31/12, pelo MESMO Path A (guard → concessão → libera + 500)
 import { ADS_ACCESS_COLUMN, ADS_PASS_CREDITS, ADS_PASS_ID, adsAccessUntil } from '@/lib/ads/offer' // KINEO-STUDIO-ADS-2026-09-25 · ADS_PASS_CREDITS só no fallback sem pack_credits (28/09)
 import {
@@ -1588,7 +1590,7 @@ export async function POST(req: NextRequest) {
         // são idempotentes (dedupe por stripe_session_id + id determinístico), então reexecutar é seguro.
         // KINEO-PACOTE-3-FILMES-1610 — o pacote "3 filmes" também retoma: recordDfyFilms3OrderPaid é idempotente (UPDATE guardado
         // por status, stripe_session_id único, evento com id determinístico) e não concede nada.
-        if (!duplicateSession || (duplicateSession.mode !== 'subscription' && !duplicateSafeObservation && !isDfyOrderSession(duplicateSession) && !isDfyFilms3Session(duplicateSession))) {
+        if (!duplicateSession || (duplicateSession.mode !== 'subscription' && !duplicateSafeObservation && !isDfyOrderSession(duplicateSession) && !isDfyFilms3Session(duplicateSession) && !isKidsPackSession(duplicateSession))) { // KINEO-KIDS-VENDA-2010 — o pack infantil também retoma (guard por sessão + pedido único por sessão; nada é creditado)
           return NextResponse.json({ received: true, duplicate: true })
         }
         console.warn('[stripe webhook] resuming idempotent Checkout event:', event.id, duplicateSession.id)
@@ -1659,6 +1661,18 @@ export async function POST(req: NextRequest) {
             await alertFounderDfyFilms3Order({ session, orderId: films3.orderId, topic: films3.topic, language: films3.language, style: films3.style })
             break
           }
+          if (isKidsPackSession(session)) { // KINEO-KIDS-VENDA-2010 — o pack de 30 desenhos: pedido em FILA, NENHUM crédito concedido (o cron financia filme a filme); ANTES do fallback por valor (4900 = Kit BF / bulk30) e com o guard da sessão ANTES de gravar, como o pack legado
+            entitlementPending = true // KINEO-KIDS-VENDA-2010
+            const { error: kidsGuardError } = await supabase.from('stripe_events').insert({ id: checkoutFulfillmentGuard }) // KINEO-KIDS-VENDA-2010
+            if (kidsGuardError && kidsGuardError.code === '23505') { entitlementConfirmed = true; entitlementPending = false; console.log('[stripe webhook] kids pack already fulfilled:', session.id); break } // KINEO-KIDS-VENDA-2010
+            if (kidsGuardError) throw new RetryableEntitlementError(`Failed to acquire kids pack fulfillment guard (${session.id}): ${kidsGuardError.message}`) // KINEO-KIDS-VENDA-2010
+            checkoutFulfillmentGuardAcquired = true // KINEO-KIDS-VENDA-2010
+            const kidsPack = await fulfillKidsPack(supabase, session) // KINEO-KIDS-VENDA-2010
+            if (!kidsPack.ok) throw new RetryableEntitlementError(kidsPack.error) // KINEO-KIDS-VENDA-2010 — o catch libera o guard e a Stripe reenvia: nunca cobra sem gravar o pedido
+            entitlementConfirmed = true; entitlementPending = false // KINEO-KIDS-VENDA-2010
+            console.log('[stripe webhook] kids pack:', kidsPack.detail, session.id) // KINEO-KIDS-VENDA-2010
+            break // KINEO-KIDS-VENDA-2010
+          } // KINEO-KIDS-VENDA-2010
 
           // #473 — Starter Pack ($4.90 → 10 Shorts) + legacy credit packs.
           // Prefer metadata.pack_credits (currency-proof) over the amount map,
@@ -1937,6 +1951,22 @@ export async function POST(req: NextRequest) {
         // Qualquer falha = RetryableEntitlementError → 500 → a Stripe reenvia (o resolver é idempotente: mesmo e-mail,
         // carimbo em app_metadata, eventos com id determinístico). Sem kineo_guest=1, nada disto roda.
         // Conta NASCIDA desta compra: depois do grant sai UM e-mail "sua conta está pronta" (cobre quem fechou a aba).
+        if (isKidsAutopilotSession(session)) { // KINEO-KIDS-VENDA-2010 — o piloto infantil é assinatura À PARTE (a pessoa pode ter Creator/Studio junto): nunca toca em plan/stripe_subscription_id; pedido de 30 por ciclo + has_paid; ANTES do Path B de sempre, que escreveria plan='basic'
+          entitlementPending = true // KINEO-KIDS-VENDA-2010
+          const kidsSubId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id ?? null // KINEO-KIDS-VENDA-2010
+          if (!session.metadata?.supabase_user_id || !kidsSubId) throw new RetryableEntitlementError(`Kids autopilot Checkout missing ids (${session.id})`) // KINEO-KIDS-VENDA-2010
+          const { error: kidsSubGuardError } = await supabase.from('stripe_events').insert({ id: checkoutFulfillmentGuard }) // KINEO-KIDS-VENDA-2010
+          if (kidsSubGuardError && kidsSubGuardError.code === '23505') { entitlementConfirmed = true; entitlementPending = false; console.log('[stripe webhook] kids autopilot already fulfilled:', session.id); break } // KINEO-KIDS-VENDA-2010
+          if (kidsSubGuardError) throw new RetryableEntitlementError(`Failed to acquire kids autopilot fulfillment guard (${session.id}): ${kidsSubGuardError.message}`) // KINEO-KIDS-VENDA-2010
+          checkoutFulfillmentGuardAcquired = true // KINEO-KIDS-VENDA-2010
+          let kidsSub: Stripe.Subscription // KINEO-KIDS-VENDA-2010
+          try { kidsSub = await stripe.subscriptions.retrieve(kidsSubId) } catch (e) { throw new RetryableEntitlementError(`Failed to verify kids autopilot subscription (${kidsSubId}): ${e instanceof Error ? e.message : String(e)}`) } // KINEO-KIDS-VENDA-2010 — estado VIVO da Stripe (dono + active/trialing)
+          const kidsAuto = await fulfillKidsAutopilot(supabase, session, kidsSub) // KINEO-KIDS-VENDA-2010
+          if (!kidsAuto.ok) throw new RetryableEntitlementError(kidsAuto.error) // KINEO-KIDS-VENDA-2010 — o catch libera o guard e a Stripe reenvia
+          entitlementConfirmed = true; entitlementPending = false // KINEO-KIDS-VENDA-2010
+          console.log('[stripe webhook] kids autopilot:', kidsAuto.detail, session.id) // KINEO-KIDS-VENDA-2010
+          break // KINEO-KIDS-VENDA-2010
+        } // KINEO-KIDS-VENDA-2010
         let sendGuestReadyEmail: (() => Promise<void>) | null = null
         if (isGuestCheckoutSession(session)) {
           entitlementPending = true
@@ -2765,6 +2795,13 @@ export async function POST(req: NextRequest) {
             `Failed to load subscription for renewal (${subscriptionId}): ${msg}`
           )
         }
+        if (isKidsSubscription(subscription)) { // KINEO-KIDS-VENDA-2010 — fatura do piloto infantil: ciclo novo de 30 desenhos (idempotente por fatura), NUNCA o SET de créditos do plano (que zeraria o saldo do mês da pessoa)
+          const kidsInv = await kidsInvoicePaid(supabase, subscription, { id: invoice.id ?? null, created: invoice.created ?? null, billing_reason: billingReason ?? null }) // KINEO-KIDS-VENDA-2010
+          if (!kidsInv.ok) throw new RetryableEntitlementError(kidsInv.error) // KINEO-KIDS-VENDA-2010
+          entitlementConfirmed = true; entitlementPending = false // KINEO-KIDS-VENDA-2010
+          console.log('[stripe webhook] kids autopilot invoice:', kidsInv.detail, invoice.id) // KINEO-KIDS-VENDA-2010
+          break // KINEO-KIDS-VENDA-2010
+        } // KINEO-KIDS-VENDA-2010
 
         const renewalUserId = subscription.metadata?.supabase_user_id
         // KINEO-AUTOPILOT-299-2026-07-26 — 'autopilot' added.
@@ -3021,6 +3058,13 @@ export async function POST(req: NextRequest) {
             `Failed to verify subscription update (${eventSubscription.id}): ${message}`
           )
         }
+        if (isKidsSubscription(subscription)) { // KINEO-KIDS-VENDA-2010 — assinatura do piloto infantil: pausa/reativa o pedido e SAI (o caminho de sempre linkaria stripe_subscription_id da pessoa ao piloto e rebaixaria o plano dela)
+          const kidsUpd = await kidsSubscriptionUpdated(supabase, subscription) // KINEO-KIDS-VENDA-2010
+          if (!kidsUpd.ok) throw new RetryableEntitlementError(kidsUpd.error) // KINEO-KIDS-VENDA-2010
+          entitlementConfirmed = true; entitlementPending = false // KINEO-KIDS-VENDA-2010
+          console.log('[stripe webhook] kids autopilot subscription.updated:', kidsUpd.detail, subscription.id) // KINEO-KIDS-VENDA-2010
+          break // KINEO-KIDS-VENDA-2010
+        } // KINEO-KIDS-VENDA-2010
         const customerId = typeof subscription.customer === 'string'
           ? subscription.customer
           : subscription.customer?.id ?? null
@@ -3113,6 +3157,14 @@ export async function POST(req: NextRequest) {
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription
+        if (isKidsSubscription(subscription)) { // KINEO-KIDS-VENDA-2010 — piloto infantil cancelado: o pedido para (o que já foi entregue fica na biblioteca); nada em profiles
+          entitlementPending = true // KINEO-KIDS-VENDA-2010
+          const kidsDel = await kidsSubscriptionDeleted(supabase, subscription) // KINEO-KIDS-VENDA-2010
+          if (!kidsDel.ok) throw new RetryableEntitlementError(kidsDel.error) // KINEO-KIDS-VENDA-2010
+          entitlementConfirmed = true; entitlementPending = false // KINEO-KIDS-VENDA-2010
+          console.log('[stripe webhook] kids autopilot subscription.deleted:', kidsDel.detail, subscription.id) // KINEO-KIDS-VENDA-2010
+          break // KINEO-KIDS-VENDA-2010
+        } // KINEO-KIDS-VENDA-2010
         const customerId = typeof subscription.customer === 'string'
           ? subscription.customer
           : subscription.customer?.id ?? null

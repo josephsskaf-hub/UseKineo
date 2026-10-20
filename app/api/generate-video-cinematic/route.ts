@@ -225,6 +225,7 @@ import {
   type CinematicRequestId,
 } from '@/lib/cinematic/claim'
 import { decideEngineGate, engineGateMessage } from '@/lib/enginePlanGate'
+import { kidsOrderAdmits } from '@/lib/kidsVenda/server' // KINEO-KIDS-VENDA-2010 [TRAVA 8.2 — vai do fundador 20/10 "três sim"] — a admissão do pedido infantil pago/grátis (run pendente presa a este generationId)
 import { KIDS_CARTOON_LIVE, comPersonagemInfantil, desenhoInfantilDoPedido, kidsCartoonOn } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010 [TRAVA 8.2 — vai do fundador 20/10 "começa hoje"] — o desenho infantil 3D: estilo e personagem em TODA cena
 
 // KINEO-POLL-FATAL-2026-08-17 — era 60. Na noite do fal travado a rota morreu
@@ -2199,6 +2200,13 @@ async function manipularPost(req: NextRequest) {
     // Fast (3 watermarked videos / 24h), never a hidden premium trial.
     // KINEO-REVERSE-TRIAL-P1-2026-08-06 — exceção EXPLÍCITA e flag-gated: o
     // reverse trial (Creator por 3/7 dias, cap 40 no backend) libera o Seedance.
+    // KINEO-KIDS-VENDA-2010 [TRAVA 8.2 — vai do fundador 20/10 "três sim"] — `kids_order` no corpo: o despacho do cron do AI Kids Cartoon
+    // KINEO-KIDS-VENDA-2010 — Stories (lib/kidsVenda/cron.ts) para um pedido ATIVO desta pessoa com run PENDENTE presa a ESTE generationId (gravada antes
+    // KINEO-KIDS-VENDA-2010 — do POST). Só a amostra grátis precisa disto (conta sem plano); o crédito do filme foi financiado pelo cron logo antes e o saldo
+    // KINEO-KIDS-VENDA-2010 — abaixo segue cobrando como sempre. Sem o campo, ou com qualquer coisa fora do lugar: false = a rota de antes, byte a byte.
+    const kidsPedidoAdmitido = await kidsOrderAdmits({ raw: (body as { kids_order?: unknown }).kids_order, userId: user.id, generationId, engine: body.engine, duration }) // KINEO-KIDS-VENDA-2010
+    if (kidsPedidoAdmitido) await writeServerEvent({ name: 'kids_order_admitted', userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { order_id: String((body as { kids_order?: unknown }).kids_order), seconds: duration, cost, balance } }) // KINEO-KIDS-VENDA-2010
+    if (!kidsPedidoAdmitido) { // KINEO-KIDS-VENDA-2010 — o pedido infantil admitido pula o gate de plano (o saldo abaixo segue cobrando). Só linhas ACRESCENTADAS: os gates de dentro são os da base.
     if (!regionFreeFilmAdmitted) { // KINEO-SAIDA-REGIAO-2026-10-07 — o filme grátis de região admitido pula o gate de plano (o saldo abaixo segue cobrando). Só linhas ACRESCENTADAS: o gate de dentro é o da base.
     if (!isPaidUser && !trialActive) {
       // KINEO-E4-SAIDA-B-2026-09-29 — a cota semanal nova é a única outra exceção: o admitido pula a recusa. (Só linhas
@@ -2239,6 +2247,7 @@ async function manipularPost(req: NextRequest) {
       } // KINEO-E4-SAIDA-B-2026-09-29 — fim do `if (!freeWeeklyAdmitted)`
     }
     } // KINEO-SAIDA-REGIAO-2026-10-07 — fim do `if (!regionFreeFilmAdmitted)`
+    } // KINEO-KIDS-VENDA-2010 — fim do `if (!kidsPedidoAdmitido)`
 
     // ═══ KINEO-TRIAL-STALL-2026-08-14 (fase 2, item 3) ═══════════════════════
     // ESTE ERA O ÚNICO DOS QUATRO 402 DESTA ROTA SEM TRATAMENTO CONTEXTUAL E
@@ -3026,6 +3035,7 @@ async function manipularPost(req: NextRequest) {
       PAID_PLANS.has(currentPlan) ||
       freeWeeklyAdmitted || // KINEO-E4-SAIDA-B-2026-09-29: admitido acima pela cota semanal (15 s, Seedance, país da lista); o saldo abaixo segue cobrando
       regionFreeFilmAdmitted || // KINEO-SAIDA-REGIAO-2026-10-07: admitido acima pelo filme grátis de região (15 s, Seedance, 1 por conta); o saldo abaixo segue cobrando
+      kidsPedidoAdmitido || // KINEO-KIDS-VENDA-2010: admitido acima pelo pedido infantil (run pendente deste generationId); o saldo abaixo segue cobrando o crédito que o cron financiou
       isTrialActive(currentProfile)
     const currentBalance = Math.max(0, currentProfile.video_credits)
     const heldByOtherJobs = Math.max(0, holds.totalHeld - cost)

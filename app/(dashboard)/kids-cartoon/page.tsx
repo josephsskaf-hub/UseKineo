@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { KIDS_CARTOON_LIVE, KIDS_CARTOON_TEMPLATE_PATH, kidsCartoonOn } from '@/lib/kidsCartoon/kidsCartoon'
 import KidsCartoonTemplate from '@/components/kidsCartoon/KidsCartoonTemplate'
+import KidsVendaPanel from '@/components/kidsCartoon/KidsVendaPanel' // KINEO-KIDS-VENDA-2010 — meus episódios + planos (piloto/pack/grátis); o servidor decide se aparece (KIDS_SALES_LIVE ou casa)
 
 export const metadata = { title: 'AI Kids Cartoon Stories — Kineo', robots: { index: false, follow: false } }
 export const dynamic = 'force-dynamic'
@@ -16,5 +17,5 @@ export default async function KidsCartoonPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect(`/login?redirect=${encodeURIComponent(KIDS_CARTOON_TEMPLATE_PATH)}`)
   if (!kidsCartoonOn(KIDS_CARTOON_LIVE, isInternalEmail(user.email))) notFound()
-  return <KidsCartoonTemplate />
+  return <><KidsVendaPanel />{/* KINEO-KIDS-VENDA-2010 — acima do template: nada muda no template em si */}<KidsCartoonTemplate /></>
 }
