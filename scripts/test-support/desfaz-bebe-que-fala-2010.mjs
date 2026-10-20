@@ -24,9 +24,10 @@ export const TROCAS_BEBE_QUE_FALA_2010 = JSON.parse(readFileSync(join(dirname(fi
 export const ACRESCIMOS_BEBE_QUE_FALA_2010 = {
   'app/(dashboard)/generate/GenerateClient.tsx': 3,
   'app/KineoLanding.tsx': 2,
+  'app/api/generate-avatar/route.ts': 5,
   'app/api/generate-video-cinematic/route.ts': 9,
-  'app/llms.txt/route.ts': 2,
-  'app/sitemap.ts': 3,
+  'app/llms.txt/route.ts': 3,
+  'app/sitemap.ts': 5,
   'components/home/HomeThreeCards.tsx': 4,
   'scripts/test-cena-negacao-1510.mjs': 0,
   'scripts/test-contrato-classicos-1410.mjs': 0,
@@ -34,8 +35,8 @@ export const ACRESCIMOS_BEBE_QUE_FALA_2010 = {
   'scripts/test-home-3-cards-1910.mjs': 1,
   'scripts/test-kling25-variedade-2026-09-28.mjs': 0,
   'scripts/test-mcp-studio-2010.mjs': 1,
-  'scripts/test-meta95-personagem-2010.mjs': 1,
   'scripts/test-menu-ugc-2010.mjs': 1,
+  'scripts/test-meta95-personagem-2010.mjs': 1,
   'scripts/test-moderacao-2026-09-25.mjs': 1,
   'scripts/test-showcase-2026-10-02.mjs': 1,
   'scripts/test-studio-fantasma-1510.mjs': 0,
@@ -48,11 +49,18 @@ export const ACRESCIMOS_BEBE_QUE_FALA_2010 = {
 export const BEBE_QUE_FALA_2010_ARQUIVOS = Object.freeze(Object.keys(ACRESCIMOS_BEBE_QUE_FALA_2010))
 /** Arquivos novos da entrega (não existiam na base). */
 export const BEBE_QUE_FALA_2010_NOVOS = [
+  'app/(dashboard)/baby-podcast/page.tsx',
   'app/(dashboard)/kids-cartoon/page.tsx',
+  'app/ai-baby-podcast-videos/page.tsx',
   'app/ai-kids-cartoon-videos/page.tsx',
+  'app/api/baby-podcast/prepare/route.ts',
   'app/api/kids-cartoon/story/route.ts',
   'app/desenho-infantil-3d-com-ia/page.tsx',
+  'app/videos-bebe-podcast-ia/page.tsx',
   'components/home/HomeKidsCard.tsx',
+  'components/kidsCartoon/BabyCtaLink.tsx',
+  'components/kidsCartoon/BabyPodcastPages.tsx',
+  'components/kidsCartoon/BabyPodcastTemplate.tsx',
   'components/kidsCartoon/KidsCartoonPages.tsx',
   'components/kidsCartoon/KidsCartoonTemplate.tsx',
   'components/kidsCartoon/KidsCtaLink.tsx',
@@ -63,8 +71,8 @@ export const BEBE_QUE_FALA_2010_NOVOS = [
   'public/posters/home-card-kids-cartoon-leo.webp',
   'public/previews/home-card-kids-cartoon-leo.mp4',
   'scripts/test-bebe-que-fala-2010.mjs',
-  'scripts/test-support/desfaz-bebe-que-fala-2010.mjs',
   'scripts/test-support/desfaz-bebe-que-fala-2010-trocas.json',
+  'scripts/test-support/desfaz-bebe-que-fala-2010.mjs',
 ]
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */

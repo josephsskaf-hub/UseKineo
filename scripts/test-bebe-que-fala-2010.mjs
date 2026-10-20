@@ -80,6 +80,8 @@ function switchProblems(libSrc = rd(F.lib), cardSrc = rd(F.card), babySrc = rd(F
   if (L.KIDS_CARTOON_PAGES_LIVE !== false) p.push('KIDS_CARTOON_PAGES_LIVE ligado')
   if (C.HOME_4TH_CARD_LIVE !== false) p.push('HOME_4TH_CARD_LIVE ligado')
   if (B.BABY_PODCAST_LIVE !== false) p.push('BABY_PODCAST_LIVE ligado')
+  if (B.BABY_PODCAST_PAGES_LIVE !== false) p.push('BABY_PODCAST_PAGES_LIVE ligado')
+  if (B.babyPodcastOn(false, false) !== false || B.babyPodcastOn(false, true) !== true) p.push('babyPodcastOn fora da régua')
   if (L.kidsCartoonOn(false, false) !== false || L.kidsCartoonOn(false, true) !== true || L.kidsCartoonOn(true, false) !== true) p.push('kidsCartoonOn fora da régua live || casa')
   if (C.home4thCardOn(false, false) !== false || C.home4thCardOn(false, true) !== true || C.home4thCardOn(true, false) !== true) p.push('home4thCardOn fora da régua')
   if (L.KIDS_CARTOON_MARK !== MARCA || C.HOME_KIDS_CARD_MARK !== MARCA) p.push('marca das libs')
@@ -331,11 +333,73 @@ function pagesProblems(seoSrc = rd(F.seo), en = rd(F.pageEn), pt = rd(F.pagePt),
   if (!pages.includes('robots: paginasKidsRobots(KIDS_CARTOON_PAGES_LIVE)')) p.push('metadata sem robots do interruptor')
   if (!/made for kids/i.test(pages) || !/conteúdo para crianças/i.test(pages) || !/We do not promise income/.test(pages) || !/Não prometemos renda/.test(pages) || !/AI label/.test(pages) || !/rótulo de IA/.test(pages) || !/repetitive/.test(pages) || !/repetitivo/.test(pages)) p.push('FAQ sem a honestidade (made for kids, selo de IA, sem renda, repetitivo) nas 2 línguas')
   if (!sitemap.includes('...paginasKidsSitemapPaths(KIDS_CARTOON_PAGES_LIVE).map((path) =>')) p.push('sitemap.ts não passa pelo interruptor')
-  if (!llms.includes('paginasKidsLlmsSection(BASE, KIDS_CARTOON_PAGES_LIVE)}## Videos from an idea or a script')) p.push('/llms.txt não passa pelo interruptor (ou mudou a linha seguinte)')
+  if (!llms.includes('paginasKidsLlmsSection(BASE, KIDS_CARTOON_PAGES_LIVE)}${babyPagesLlmsSection(BASE, BABY_PODCAST_PAGES_LIVE)}## Videos from an idea or a script')) p.push('/llms.txt não passa pelo interruptor (ou mudou a linha seguinte)')
   return p
 }
 console.log('\nH. páginas')
 { const p = tenta(() => pagesProblems()); ok(p.length === 0, `H1 404 + noindex desligadas; sitemap/llms.txt vazios desligados, 2 URLs ligados (IndexNow pelo cron); hreflang; FAQ honesta nas 2 línguas (${p.join('; ') || 'ok'})`) }
+
+// ─── P. bebê-podcast (o 2º modo) ─────────────────────────────────────────────
+F.babyRoute = 'app/api/baby-podcast/prepare/route.ts'
+F.babyTpl = 'app/(dashboard)/baby-podcast/page.tsx'
+F.babyComp = 'components/kidsCartoon/BabyPodcastTemplate.tsx'
+F.babyPages = 'components/kidsCartoon/BabyPodcastPages.tsx'
+F.avatar = 'app/api/generate-avatar/route.ts'
+function babyLibProblems(src = rd(F.baby)) {
+  const p = []
+  const B = puro(src, 'babyPodcast')
+  const ready = B.babiesReady().map((b) => b.id)
+  if (ready.length < 3 || ready.length > 4) p.push(`bebês com retrato = ${ready.length} (3–4)`)
+  if (!B.BABY_PODCAST_BABIES.every((b) => B.babyPortraitUrl(b.portrait) === null || b.portrait.startsWith(B.BABY_PORTRAITS_BUCKET))) p.push('retrato fora do nosso bucket')
+  if (B.babyPortraitUrl('https://evil.example/a.png') !== null || B.babyPortraitUrl(`${B.BABY_PORTRAITS_BUCKET}../x.png`) !== null) p.push('retrato de fora aceito')
+  const ok1 = B.validateBabyPodcastRequest({ baby: ready[0], language: 'pt', topic: 'por que soneca é superestimada' })
+  if (!ok1.ok || ok1.value.mode !== 'write') p.push('pedido bom recusado')
+  for (const r of [{ baby: 'robot', language: 'en', topic: 'naps are great fun' }, { baby: ready[0], language: 'es', topic: 'naps are great fun' }, { baby: ready[0], language: 'en', topic: 'hi' }, { baby: ready[0], language: 'en', topic: 'see www.x.com now' }, { baby: ready[0], language: 'en', topic: 'too short to paste here', mode: 'verbatim' }]) if (B.validateBabyPodcastRequest(r).ok) p.push(`recusa passou: ${JSON.stringify(r).slice(0, 50)}`)
+  const pl = B.babyAvatarPayload({ generationId: 'abc12345', script: 'x', language: 'en', avatarImageUrl: 'u' })
+  if (pl.engine !== 'presenter' || pl.scriptMode !== 'verbatim' || pl.noBroll !== true || pl.voiceId !== 'English_PlayfulGirl' || pl.duration !== 15) p.push('corpo do generate-avatar fora do caminho do teste (presenter, verbatim, sem B-roll, PlayfulGirl)')
+  if (JSON.stringify(B.BABY_PODCAST_WORDS) !== '{"min":30,"max":45}') p.push('faixa de palavras ≠ 30–45')
+  const refusal = (t) => (/gun|beer/.test(t) ? 'x' : null)
+  if (B.babyScriptCheck('word '.repeat(29), refusal).reason !== 'too_short' || B.babyScriptCheck('word '.repeat(46), refusal).reason !== 'too_long' || B.babyScriptCheck('beer ' + 'word '.repeat(35), refusal).reason !== 'not_innocent' || !B.babyScriptCheck('word '.repeat(35), refusal).ok) p.push('conferência da fala')
+  if (!B.isBabyPodcastAvatarUrl('https://x.supabase.co/storage/v1/object/public/avatars/u1/baby-podcast-studio.png', 'u1') || B.isBabyPodcastAvatarUrl('https://x.supabase.co/storage/v1/object/public/avatars/u1/face-1.png', 'u1') || B.babyAvatarObjectPath('u1', 'car') !== 'u1/baby-podcast-car.png') p.push('reconhecimento do retrato do bebê')
+  if (!/AI-generated/.test(B.babyPostCaption('en')) || !/Gerado por IA|gerado por IA/.test(B.babyPostCaption('pt'))) p.push('legenda sem o selo AI-generated')
+  if (B.babyPagesSitemapPaths(false).length !== 0 || B.babyPagesSitemapPaths(true).length !== 2 || B.babyPagesLlmsSection('x', false) !== '') p.push('páginas fora do interruptor')
+  return p
+}
+function babyRouteProblems(src = rd(F.babyRoute), avatar = rd(F.avatar), tpl = rd(F.babyTpl), comp = rd(F.babyComp)) {
+  const p = []
+  const code = src.replace(/^\s*\/\/.*$/gm, '')
+  const ordem = ["if (!user) return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 })", 'if (!babyPodcastOn(BABY_PODCAST_LIVE, isInternalEmail(user.email))) return', 'const v = validateBabyPodcastRequest(raw)', 'if (kidsContentRefusal(request.topic)) return recusa(422', 'const tema = await moderateTopic(', 'const entrada = await moderateContent(', 'openai.chat.completions.create(', 'const saida = await moderateContent(', 'const fonte = babyPortraitUrl(baby.portrait)', "admin.storage.from('avatars').upload(objeto"]
+  const ps = ordem.map((s) => code.indexOf(s))
+  ps.forEach((x, k) => { if (x < 0) p.push(`ausente: ${ordem[k].slice(0, 50)}`) })
+  if (ps.every((x) => x >= 0) && !ps.every((x, k) => k === 0 || x > ps[k - 1])) p.push('ordem errada na rota de preparo')
+  if (/debit|video_credits|creditCost|deduct/i.test(code)) p.push('cobrança na rota de preparo')
+  const al = avatar.split('\n')
+  const regra = al.findIndex((l) => l.includes('if (!dryRun && !videoMode && isBabyPodcastAvatarUrl(avatarImageUrl, userId) && kidsContentRefusal(prompt)) { await releaseAvatarSubmission(); return NextResponse.json({ error: KIDS_REFUSAL_MESSAGE.en'))
+  const seguranca = al.findIndex((l) => l.includes('const avatarSafety = await moderateContent({'))
+  const tts = al.findIndex((l) => l.includes('audioBuffer = await synthesizeWithVoice({ voiceId: cloneVoiceId'))
+  const debito = al.findIndex((l) => /debitVideoCredits\(/.test(l) && !l.trimStart().startsWith('//') && !l.trimStart().startsWith('import'))
+  if (!(regra > seguranca && seguranca > 0 && regra < tts && (debito < 0 || regra < debito))) p.push('regra infantil do generate-avatar fora do lugar (depois da moderação, antes do TTS e do débito)')
+  if (!avatar.includes("[TRAVA 8.2 — vai do fundador 20/10 \"começa hoje\"]")) p.push('generate-avatar sem o selo da trava 8.2')
+  if (!tpl.includes('if (!user) redirect(`/login?redirect=${encodeURIComponent(BABY_PODCAST_TEMPLATE_PATH)}`)') || !tpl.includes('if (!babyPodcastOn(BABY_PODCAST_LIVE, isInternalEmail(user.email))) notFound()') || !tpl.includes('robots: { index: false, follow: false }')) p.push('portas da tela do bebê')
+  const cc = comp.replace(/^\s*\/\/.*$/gm, '')
+  if (!cc.includes("postJson('/api/generate-avatar', babyAvatarPayload(") || !cc.includes('quality: BABY_PODCAST_QUALITY') || !cc.includes('`/api/avatar-status?request_id=${encodeURIComponent(requestId)}&engine=${BABY_PODCAST_ENGINE}`')) p.push('tela fora do caminho do /avatar')
+  if ((cc.match(/\{price\} credits/g) || []).length !== 1 || /\b\d+\s*credits\b/.test(cc)) p.push('preço fora do botão de gerar (ou digitado)')
+  return p
+}
+function babyPagesProblems(pages = rd(F.babyPages), en = rd('app/ai-baby-podcast-videos/page.tsx'), pt = rd('app/videos-bebe-podcast-ia/page.tsx'), sitemap = rd(F.sitemap)) {
+  const p = []
+  for (const [n, s] of [['EN', en], ['PT', pt]]) if (!s.includes('  if (!BABY_PODCAST_PAGES_LIVE) notFound()')) p.push(`página ${n} sem 404 pelo interruptor`)
+  if (!pages.includes('robots: paginasKidsRobots(BABY_PODCAST_PAGES_LIVE)')) p.push('robots fora do interruptor')
+  if (!/We do not promise income/.test(pages) || !/Não prometemos renda/.test(pages) || !/AI label/.test(pages) || !/rótulo de IA/.test(pages) || !/reused-content/.test(pages) || !/made for kids/.test(pages)) p.push('FAQ sem a honestidade (renda, rótulo de IA, conteúdo reutilizado, made for kids)')
+  if (!sitemap.includes('...babyPagesSitemapPaths(BABY_PODCAST_PAGES_LIVE).map((path) =>')) p.push('sitemap do bebê fora do interruptor')
+  return p
+}
+console.log('\nP. bebê-podcast')
+{
+  const a = tenta(() => babyLibProblems()); ok(a.length === 0, `P1 4 retratos da casa no nosso bucket, validação, corpo do /avatar (presenter, verbatim, sem B-roll, PlayfulGirl), 30–45 palavras, selo AI-generated, páginas pelo interruptor (${a.join('; ') || 'ok'})`)
+  const b = tenta(() => babyRouteProblems()); ok(b.length === 0, `P2 preparo: porta → interruptor → validação → regra infantil → moderação → escritor → moderação da saída → retrato copiado, sem cobrança; generate-avatar barra roteiro não inocente no retrato do bebê ANTES do TTS/débito; tela pelo caminho do /avatar, preço só no botão (${b.join('; ') || 'ok'})`)
+  const c = tenta(() => babyPagesProblems()); ok(c.length === 0, `P3 páginas do bebê: 404 + noindex desligadas, FAQ honesta, sitemap pelo interruptor (${c.join('; ') || 'ok'})`)
+}
 
 // ─── K. desfaz, encadeamento, diff, commits ───────────────────────────────────
 console.log('\nK. desfaz exato, encadeamento, diff, commits')
@@ -408,6 +472,13 @@ mut('M22 FAQ promete renda', rd(F.pages), 'We do not promise income.', 'Earn pas
   try { semBebeQueFala2010(rd(F.land).replace(/^.*const showKidsCard = .*\n/m, ''), F.land) } catch { lancou = true }
   ok(lancou, 'M24 desfaz com um acréscimo a menos (linha apagada à mão) lança → K1 vermelho')
 }
+const BABY = rd(F.baby), BROUTE = rd(F.babyRoute), AVATAR = rd(F.avatar)
+mut('M25 bebê-podcast com páginas ligadas', BABY, 'export const BABY_PODCAST_PAGES_LIVE = false', 'export const BABY_PODCAST_PAGES_LIVE = true', (s) => switchProblems(undefined, undefined, s))
+mut('M26 retrato de qualquer origem', BABY, "  if (portrait.startsWith(BABY_PORTRAITS_BUCKET) && ", '  if (portrait.startsWith("https://") || ', (s) => babyLibProblems(s))
+mut('M27 corpo do /avatar com B-roll', BABY, '    noBroll: true,', '    noBroll: false,', (s) => babyLibProblems(s))
+mut('M28 preparo sem a regra infantil', BROUTE, '  if (kidsContentRefusal(request.topic)) return recusa(422', '  if (false) return recusa(422', (s) => babyRouteProblems(s))
+mut('M29 generate-avatar sem a regra do bebê', AVATAR, AVATAR.split('\n').find((l) => l.includes('isBabyPodcastAvatarUrl(avatarImageUrl, userId) && kidsContentRefusal(prompt)')) + '\n', '', (s) => babyRouteProblems(undefined, s))
+mut('M30 página do bebê sem 404 desligada', rd('app/ai-baby-podcast-videos/page.tsx'), '  if (!BABY_PODCAST_PAGES_LIVE) notFound()\n', '', (s) => babyPagesProblems(undefined, s))
 
 console.log(`\n${fail === 0 ? 'VERDE' : 'VERMELHO'}: ${pass} ok, ${fail} falha(s)`)
 process.exit(fail === 0 ? 0 : 1)

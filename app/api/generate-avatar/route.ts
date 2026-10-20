@@ -78,6 +78,8 @@ import {
 // reivindicação, para o reenvio de quem reconecta não reler), antes do GPT/TTS e antes do débito. Falha fechada.
 import { moderateContent } from '@/lib/safety/contentModeration'
 import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/moderationPolicy'
+import { KIDS_REFUSAL_MESSAGE, kidsContentRefusal } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010 [TRAVA 8.2 — vai do fundador 20/10 "começa hoje"] — a regra infantil sobre os retratos do bebê-podcast
+import { isBabyPodcastAvatarUrl } from '@/lib/kidsCartoon/babyPodcast' // KINEO-BEBE-QUE-FALA-2010
 
 // A origem tem de estar na pasta do PRÓPRIO usuário (avatars/<uid>/). URL normalizada: `..`/`%2e` não escapam da pasta.
 function isOwnAvatarUrl(url: string, userId: string, supabaseUrl: string): boolean {
@@ -756,6 +758,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // KINEO-BEBE-QUE-FALA-2010 — retrato do bebê-podcast (avatars/<uid>/baby-podcast-*, copiado pelo /api/baby-podcast/prepare): o roteiro passa também pela regra
+    // KINEO-BEBE-QUE-FALA-2010 — infantil (sem romance, violência, zombaria, produto adulto) — vale fora da tela também. Antes do TTS e do débito; barrado = solta tudo.
+    if (!dryRun && !videoMode && isBabyPodcastAvatarUrl(avatarImageUrl, userId) && kidsContentRefusal(prompt)) { await releaseAvatarSubmission(); return NextResponse.json({ error: KIDS_REFUSAL_MESSAGE.en, code: 'kids_rule' }, { status: 422 }) } // KINEO-BEBE-QUE-FALA-2010
     const parsed = parseUserScript(prompt)
     const verbatim = parsed.hasMarkers && parsed.segments.length > 0
     let narration: string

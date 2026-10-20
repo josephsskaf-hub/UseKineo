@@ -46,6 +46,7 @@ import { GUIAS_IA_PATHS, GUIAS_IA_REVIEWED_ISO } from '@/lib/seo/guiasIa1610Path
 import { PAGINAS_UGC_PATHS, PAGINAS_UGC_REVIEWED_ISO, PAGINAS_UGC_TOUCHED_PATHS } from '@/lib/seo/paginasUgc2010'
 import { PAGINAS_KIDS_REVIEWED_ISO, paginasKidsSitemapPaths } from '@/lib/seo/paginasKidsCartoon2010' // KINEO-BEBE-QUE-FALA-2010 — as páginas do AI Kids Cartoon Stories (módulo puro)
 import { KIDS_CARTOON_PAGES_LIVE } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010 — o interruptor das páginas (desligado = nenhuma URL)
+import { BABY_PODCAST_PAGES_LIVE, babyPagesSitemapPaths } from '@/lib/kidsCartoon/babyPodcast' // KINEO-BEBE-QUE-FALA-2010 — as páginas do bebê-podcast (interruptor próprio)
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -479,6 +480,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     })),
     ...paginasKidsSitemapPaths(KIDS_CARTOON_PAGES_LIVE).map((path) => ({ url: `${BASE}${path}`, lastModified: PAGINAS_KIDS_REVIEWED_ISO, changeFrequency: 'weekly' as const, priority: 0.9 })), // KINEO-BEBE-QUE-FALA-2010 — /ai-kids-cartoon-videos e /desenho-infantil-3d-com-ia só com o interruptor ligado (URL nova = o cron do IndexNow envia)
+    ...babyPagesSitemapPaths(BABY_PODCAST_PAGES_LIVE).map((path) => ({ url: `${BASE}${path}`, lastModified: PAGINAS_KIDS_REVIEWED_ISO, changeFrequency: 'weekly' as const, priority: 0.8 })), // KINEO-BEBE-QUE-FALA-2010 — /ai-baby-podcast-videos e /videos-bebe-podcast-ia só com o interruptor do bebê ligado
     // KINEO-DURACAO-REWARDS-2026-10-06 — ferramenta grátis (régua de narração × piso de 1 min do Creator Rewards);
     // data própria = dia em que as fontes oficiais da página foram lidas. Guardião: test-duracao-rewards-2026-10-06.
     {
