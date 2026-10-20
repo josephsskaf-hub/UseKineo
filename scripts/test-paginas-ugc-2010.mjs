@@ -242,7 +242,13 @@ async function audit(rep = {}, groups = null) {
         const href = P.bfCtaHref(p.campaign)
         if (!href.startsWith('/ads?') || !href.endsWith('&go=maker') || !href.includes(`utm_campaign=${p.campaign}`)) fail('G6', `${p.path}: destino do kit ${href}`)
         const n = p.html.split(`href="${href.replace(/&/g, '&amp;')}"`).length - 1
-        if (n !== 2) fail('G6', `${p.path}: botão do Studio Ads ×${n} (esperado 2)`)
+        const K = load('lib/ads/kitBfSale.ts')
+        if (facts.kitSale) {
+          // KINEO-KIT-BF-VENDA-2010 no ar: o kit à venda é o botão principal (herói + fecho) e o Studio Ads fica para quem já assina
+          const k = p.html.split(`href="${K.KIT_BF_CHECKOUT_HREF.replace(/&/g, '&amp;')}"`).length - 1
+          if (k !== 2 || n !== 1) fail('G6', `${p.path}: compra do kit ×${k} (esperado 2) e Studio Ads ×${n} (esperado 1)`)
+          if (!p.text.includes(K.kitBfPriceLabel())) fail('G6', `${p.path}: preço do kit ausente`)
+        } else if (n !== 2) fail('G6', `${p.path}: botão do Studio Ads ×${n} (esperado 2)`)
       }
     }
   }
@@ -328,6 +334,10 @@ async function audit(rep = {}, groups = null) {
     if (pil && !pil.text.includes(`${c15} credits (15 s), ${c20} (20 s) or ${c30} (30 s)`)) fail('G11', 'a pilar não mostra os créditos calculados')
     const bf = ok.find((p) => p.path === P.BF_EN_PATH)
     if (bf && !bf.text.includes(`from ${facts.minAdCredits15} credits (15 s)`)) fail('G11', 'a página do kit não mostra o crédito calculado')
+    const K = load('lib/ads/kitBfSale.ts')
+    if (facts.kitSale && (facts.kitSale.credits !== K.KIT_BF_CREDITS || facts.kitSale.perAd !== T.adsV2Credits('photo_motion', 15) || facts.kitSale.price !== K.kitBfPriceLabel())) fail('G11', 'números do kit ≠ lib/ads/kitBfSale.ts / adsV2Credits')
+    if (bf && facts.kitSale && !bf.text.includes(`It adds ${K.KIT_BF_CREDITS} credits`)) fail('G11', 'a página do kit não mostra os créditos do kit')
+    if (!src(F.facts).includes("from '@/lib/ads/kitBfSale'")) fail('G11', 'fatos não leem lib/ads/kitBfSale')
     const fs = src(F.facts)
     for (const imp of ["from '@/lib/ads/v2Tiers'", "from '@/lib/checkoutPricing'", "from '@/lib/ads/ugcComparison'", "from '@/lib/ads/v2KitBf'"]) if (!fs.includes(imp)) fail('G11', `fatos não leem ${imp}`)
   }
@@ -378,7 +388,8 @@ const MUTANTS = [
   ['G5', F.llms, 'STUDIO_ADS_FACT ? paginasUgcLlmsSection(BASE, ugcNicheLabel) :', "STUDIO_ADS_FACT ? '' :"],
   ['G5', F.paths, "{ name: 'AI Product Ads', path: '/ads',", "{ name: 'Product Ads', path: '/ads',"],
   ['G6', F.paths, 'return `/ads/v2?entry=ugc&utm_source=seo', 'return `/ads/v2?entry=product&utm_source=seo'],
-  ['G6', F.comp, 'href={bfCtaHref(campaign)} source={campaign} placement="hero"', 'href="/pricing" source={campaign} placement="hero"'],
+  ['G6', F.comp, 'href={primaryHref} source={campaign} placement="hero"', 'href="/pricing" source={campaign} placement="hero"'],
+  ['G11', F.facts, 'credits: KIT_BF_CREDITS,', 'credits: 300,'],
   ['G7', F.comp, '<span>{tag[p.tag] ?? p.tag} · {p.ageMin}–{p.ageMax}</span>', '<span>{tag[p.tag] ?? p.tag} · 41 credits</span>'],
   ['G8', F.content, "photos: 'The bottle upright with the cap on and the name readable, plus the box. A photo on a dressing table or in a hand helps the presenter shot get the scale right.',", "photos: 'The bottle or jar with the label readable, one photo of the texture on a clean surface, and the box if it carries the brand.',"],
   ['G8', F.content, "'Tap to get yours.']", "'Tap the button below right now and get yours today.']"],

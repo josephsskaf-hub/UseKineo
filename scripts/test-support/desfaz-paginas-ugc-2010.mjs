@@ -11,8 +11,8 @@
 
 export const MARCA_PAGINAS_UGC_2010 = 'KINEO-PAGINAS-UGC-2010'
 
-/** A base: a fila entrega-atual de 20/10 (origin/main 9e5f60a19 + KINEO-HOME-CARDS-BOTOES-2010), mesclada nesta branch. */
-export const PAGINAS_UGC_2010_BASE = '87251eba98fec13a8662659a55606d444402a386'
+/** A base: origin/main 44d8d206f de 20/10 (KINEO-HOME-CARDS-BOTOES-2010 + KINEO-FILMES-F1F3-PUBLICO-2010 + KINEO-KIT-BF-VENDA-2010), mesclada nesta branch (era 87251eba9). */
+export const PAGINAS_UGC_2010_BASE = '44d8d206fe601e263447ba5fe6f336ebbe31514e'
 
 /** Arquivos tocados, com a contagem EXATA de acréscimos marcados. */
 export const ACRESCIMOS_PAGINAS_UGC_2010 = {

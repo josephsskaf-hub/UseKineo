@@ -21,6 +21,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
 import { semMarcas1510 } from './test-support/desfaz-ads-marcas-1510.mjs' // reancorado KINEO-ADS-MARCAS-1510
+import { semKitBfVenda2010 } from './test-support/desfaz-kit-bf-venda-2010.mjs' // reancorado KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday à venda (a camada mais nova) sai antes, em memória
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(raiz)
@@ -33,7 +34,7 @@ const ok = (nome, cond, detalhe = '') => {
   if (cond) console.log(`  ✓ ${nome}`)
   else { console.log(`  ✗ ${nome}${detalhe ? ` — ${detalhe}` : ''}`); falhas.push(nome) }
 }
-const ler = (rel) => semMarcas1510(rel, readFileSync(path.join(raiz, rel), 'utf8').replace(/\r\n/g, '\n')) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510)
+const ler = (rel) => semMarcas1510(rel, semKitBfVenda2010(readFileSync(path.join(raiz, rel), 'utf8').replace(/\r\n/g, '\n'), rel)) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-KIT-BF-VENDA-2010 — antes delas, o cartão do kit (mais novo)
 const semComentario = (s) => s.split('\n').filter((l) => !l.trim().startsWith('//') && !l.trim().startsWith('*') && !l.trim().startsWith('/*') && !l.trim().startsWith('{/*')).join('\n')
 const ordem = (src, ...marcos) => {
   let pos = -1

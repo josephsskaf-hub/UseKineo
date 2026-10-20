@@ -38,6 +38,8 @@ export type UgcFacts = {
   /** Quantas variações o kit oferece (lib/ads/v2KitBf.ts ADS_V2_KIT_BF_COUNTS) e o teto do campo Oferta. */
   kitCounts: readonly number[]
   offerMax: number
+  /** O Kit Black Friday À VENDA (lib/ads/kitBfSale.ts, KINEO-KIT-BF-VENDA-2010): null = venda fechada (o texto volta ao "a partir de"). */
+  kitSale: null | { price: string; credits: number; ads: number; perAd: number; saleEndsEn: string; saleEndsPt: string; accessUntilEn: string; accessUntilPt: string; includedPlan: string }
 }
 
 export type UgcQa = { q: string; a: string }
@@ -619,8 +621,9 @@ export function bfCopy(lang: UgcLang, f: UgcFacts) {
       eyebrow: 'Kit Black Friday',
       h1: 'Anúncios de Black Friday com IA: a sua oferta na tela e 3 a 5 variações por produto',
       lead: 'Uma foto do produto e a oferta ("−30%", "Frete grátis"). O Studio Ads monta o anúncio com a oferta em selo no começo e grande no cartão final, a voz fala a oferta uma vez, e você gera 3 ou 5 versões com ângulos diferentes para testar.',
-      cta: 'Abrir o Studio Ads',
-      ctaNote: `O kit está no Studio Ads dos planos pagos (a partir de ${f.starterPrice}/mês, USD). Cada variação é cobrada como um anúncio.`,
+      cta: f.kitSale ? `Comprar o kit — ${f.kitSale.price}` : 'Abrir o Studio Ads',
+      studioLink: f.kitSale ? 'Já assina? Abrir o Studio Ads' : null,
+      ctaNote: f.kitSale ? `Pagamento único · ${f.kitSale.ads} anúncios com a sua oferta · Studio Ads aberto até ${f.kitSale.accessUntilPt} · à venda até ${f.kitSale.saleEndsPt}. No plano ${f.kitSale.includedPlan}, já está incluído.` : `O kit está no Studio Ads dos planos pagos (a partir de ${f.starterPrice}/mês, USD). Cada variação é cobrada como um anúncio.`,
       sampleLink: FREE_ON(f) ? 'Ainda sem plano? Faça antes 1 anúncio UGC grátis' : null,
       calendarHeading: 'O calendário que as marcas estão seguindo',
       calendar: [
@@ -638,6 +641,7 @@ export function bfCopy(lang: UgcLang, f: UgcFacts) {
       ],
       priceHeading: 'Quanto custa',
       price: [
+        ...(f.kitSale ? [`Kit Black Friday: ${f.kitSale.price}, pagamento único, sem assinatura. Ele soma ${f.kitSale.credits} créditos, que pagam ${f.kitSale.ads} anúncios "close do produto real" com a sua oferta, a ${f.kitSale.perAd} créditos cada (ex.: 2 produtos × 5 variações), e abre o Studio Ads até ${f.kitSale.accessUntilPt}. À venda até ${f.kitSale.saleEndsPt}. Assinante ${f.kitSale.includedPlan}: os créditos do mês já cobrem o kit, nada a comprar.`] : []),
         `Cada variação é cobrada como um anúncio do nível que você escolher, a partir de ${per} créditos (15 s). ${counts.map((n) => `${n} variações: a partir de ${n * per} créditos`).join('; ')}. Sem desconto escondido nem cobrança extra pelo kit.`,
         `O Studio Ads está incluído em todo plano pago, a partir de ${f.starterPrice} por mês (USD). O total aparece antes de gerar.`,
         FREE_ON(f) ? `A amostra grátis (1 por conta) é um anúncio único, sem oferta e sem variações.` : 'A amostra grátis está pausada no momento.',
@@ -665,8 +669,9 @@ export function bfCopy(lang: UgcLang, f: UgcFacts) {
     eyebrow: 'Black Friday kit',
     h1: 'AI Black Friday video ads: your offer on screen and 3 to 5 variations per product',
     lead: 'One product photo and your offer ("30% off", "Free shipping"). Studio Ads builds the ad with the offer as a badge on the hook and big on the final card, the voice says it once, and you generate 3 or 5 versions with different angles to test.',
-    cta: 'Open Studio Ads',
-    ctaNote: `The kit lives in Studio Ads on paid plans (from ${f.starterPrice}/month). Each variation is billed as one ad.`,
+    cta: f.kitSale ? `Buy the kit — ${f.kitSale.price}` : 'Open Studio Ads',
+    studioLink: f.kitSale ? 'Already subscribed? Open Studio Ads' : null,
+    ctaNote: f.kitSale ? `One-time payment · ${f.kitSale.ads} ads with your offer · Studio Ads open until ${f.kitSale.accessUntilEn} · on sale until ${f.kitSale.saleEndsEn}. Included in the ${f.kitSale.includedPlan} plan.` : `The kit lives in Studio Ads on paid plans (from ${f.starterPrice}/month). Each variation is billed as one ad.`,
     sampleLink: FREE_ON(f) ? 'No plan yet? Make one free AI UGC ad first' : null,
     calendarHeading: 'The calendar brands are working to',
     calendar: [
@@ -684,6 +689,7 @@ export function bfCopy(lang: UgcLang, f: UgcFacts) {
     ],
     priceHeading: 'What it costs',
     price: [
+      ...(f.kitSale ? [`Black Friday Kit: ${f.kitSale.price}, one-time, no subscription. It adds ${f.kitSale.credits} credits, which pay for ${f.kitSale.ads} "real product close-up" ads with your offer at ${f.kitSale.perAd} credits each (for example 2 products × 5 variations), and opens Studio Ads until ${f.kitSale.accessUntilEn}. On sale until ${f.kitSale.saleEndsEn}. On the ${f.kitSale.includedPlan} plan, your monthly credits already cover it: nothing to buy.`] : []),
       `Each variation is billed as one ad at the level you choose, from ${per} credits (15 s). ${counts.map((n) => `${n} variations: from ${n * per} credits`).join('; ')}. No hidden discount and no extra charge for the kit.`,
       `Studio Ads is included in every paid plan, from ${f.starterPrice} per month. The total is shown before you generate.`,
       FREE_ON(f) ? 'The free sample (one per account) is a single ad, with no offer and no variations.' : 'The free sample is paused right now.',

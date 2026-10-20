@@ -498,6 +498,8 @@ async function rodaCheckout({ over = {}, url, pais, idioma = null, semLogin = fa
     buildAdsPassAndRedirect: nega('buildAdsPassAndRedirect'),
     DFY_FILMS3_PACK_ID: 'dfy_films3', // reancorado KINEO-PACOTE-3-FILMES-1610 — o despacho do GET ganhou o pacote "3 filmes"
     buildDfyFilms3AndRedirect: nega('buildDfyFilms3AndRedirect'),
+    KIT_BF_PACK_ID: 'kit_bf', // reancorado KINEO-KIT-BF-VENDA-2010 — o despacho do GET ganhou o Kit Black Friday (US$ 49)
+    buildKitBfAndRedirect: nega('buildKitBfAndRedirect'), // reancorado KINEO-KIT-BF-VENDA-2010
     isBulkPackId: () => false,
     buildBulkPackAndRedirect: nega('buildBulkPackAndRedirect'),
     buildAutopilotPilotAndRedirect: nega('buildAutopilotPilotAndRedirect'),

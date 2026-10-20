@@ -14,11 +14,19 @@ import { ADS_V2_MAX_PHOTOS, ADS_V2_MIN_PHOTOS } from '@/lib/ads/v2ShotLists'
 import { ADS_V2_KIT_BF_COUNTS, ADS_V2_KIT_BF_OFFER_MAX } from '@/lib/ads/v2KitBf'
 import { UGC_CREATOR_LINE, UGC_CREATOR_PRICE_SOURCE, UGC_CREATOR_PRICE_USD } from '@/lib/ads/ugcComparison'
 import { formatCheckoutMoney, getTierPrice } from '@/lib/checkoutPricing'
+import { KIT_BF_ACCESS_UNTIL, KIT_BF_AD_CREDITS, KIT_BF_ADS, KIT_BF_CREDITS, KIT_BF_SALE_ENDS_AT, kitBfPriceLabel, kitBfSaleOpen } from '@/lib/ads/kitBfSale'
 import { NARRATION_LANGUAGES } from '@/lib/textLanguage'
 import type { UgcFacts } from '@/lib/growth/paginasUgc2010Content'
 
 /** O nível do anúncio UGC (o 1º nível em que o apresentador v2 vive; hoje só o Comercial). */
 export const UGC_AD_TIER = (ADS_V2_PRESENTER_V2_TIERS[0] ?? 'commercial') as (typeof ADS_V2_TIER_IDS)[number]
+
+/** O último dia de um prazo "até 24:00 em Brasília" (o ISO é 03:00 UTC do dia seguinte): "Nov 30" / "30/11". */
+function brtDay(iso: string, lang: 'en' | 'pt'): string {
+  const d = new Date(Date.parse(iso) - 3 * 3600_000 - 1)
+  const day = d.getUTCDate(); const m = d.getUTCMonth()
+  return lang === 'pt' ? `${String(day).padStart(2, '0')}/${String(m + 1).padStart(2, '0')}` : `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m]} ${day}`
+}
 
 export function paginasUgcFacts(): UgcFacts {
   return {
@@ -38,5 +46,7 @@ export function paginasUgcFacts(): UgcFacts {
     creatorSource: UGC_CREATOR_PRICE_SOURCE,
     kitCounts: ADS_V2_KIT_BF_COUNTS,
     offerMax: ADS_V2_KIT_BF_OFFER_MAX,
+    // KINEO-KIT-BF-VENDA-2010 já está na origin/main: o preço do kit vira texto honesto (fonte única lib/ads/kitBfSale.ts) enquanto a venda está aberta no build.
+    kitSale: kitBfSaleOpen() ? { price: kitBfPriceLabel(), credits: KIT_BF_CREDITS, ads: KIT_BF_ADS, perAd: KIT_BF_AD_CREDITS, saleEndsEn: brtDay(KIT_BF_SALE_ENDS_AT, 'en'), saleEndsPt: brtDay(KIT_BF_SALE_ENDS_AT, 'pt'), accessUntilEn: brtDay(KIT_BF_ACCESS_UNTIL, 'en'), accessUntilPt: brtDay(KIT_BF_ACCESS_UNTIL, 'pt'), includedPlan: 'Business' } : null,
   }
 }

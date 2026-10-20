@@ -12,7 +12,7 @@ import Link from 'next/link'
 import { useEffect, useRef, type RefObject } from 'react'
 import { UiLabel, useInterfaceLanguage, useUiCopy } from '@/components/InterfaceLanguage'
 import { trackEvent } from '@/lib/analytics'
-import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample'
+import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample' // KINEO-HOME-CARDS-BOTOES-2010 — o rótulo grátis agora vem de homeCardAdsCta
 import {
   HOME_CARD_BADGE,
   HOME_CARD_COPY,
@@ -34,7 +34,7 @@ export const HOME_THREE_CARDS_CSS = `
 .k3c-kicker{margin:0;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted,#5A5F67)}
 .k3c-more{font-size:13px;font-weight:700;color:var(--home-action,#0A5CFF);text-decoration:none;white-space:nowrap} /* KINEO-PAGINAS-UGC-2010 */
 .k3c-more:hover{text-decoration:underline} /* KINEO-PAGINAS-UGC-2010 */
-.k3c-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;max-width:95%;margin-inline:auto}
+.k3c-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;max-width:95%;margin-inline:auto} /* KINEO-HOME-CARDS-BOTOES-2010 — os 3 cards 5% menores no computador */
 .k3c-card{position:relative;display:block;aspect-ratio:5/6;border-radius:22px;overflow:hidden;isolation:isolate;background:#0B0E14;color:#fff;outline:none;border:1px solid var(--home-line,rgba(14,17,22,.08));box-shadow:0 1px 2px rgba(10,14,22,.06),0 22px 44px -26px rgba(10,14,22,.55);transition:transform .45s cubic-bezier(.2,.7,.2,1),box-shadow .45s cubic-bezier(.2,.7,.2,1)}
 .k3c-card:hover{transform:translateY(-4px);box-shadow:0 2px 4px rgba(10,14,22,.08),0 34px 60px -28px rgba(10,14,22,.62)}
 .k3c-card:focus-visible{outline:3px solid var(--home-action,#0A5CFF);outline-offset:4px}
@@ -64,6 +64,7 @@ export const HOME_THREE_CARDS_CSS = `
 .klp .k3c{padding-top:16px}
 .k3c-head{margin:0 0 12px}
 .k3c-grid{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:0 -20px;padding:2px 20px 14px;scroll-padding:0 20px}
+.k3c-grid{max-width:none} /* KINEO-HOME-CARDS-BOTOES-2010 — no celular a faixa segue rolando de ponta a ponta (o 95% é só do computador) */
 .k3c-grid::-webkit-scrollbar{display:none}
 .k3c-card{flex:0 0 80%;max-width:340px;scroll-snap-align:start;border-radius:20px}
 .k3c-card:hover{transform:none}
@@ -140,7 +141,7 @@ export default function HomeThreeCards({ signedIn }: { signedIn: boolean }) {
               <span className="k3c-body">
                 <h2 className="k3c-title">{copy(HOME_CARD_COPY[card].title)}</h2>
                 <p className="k3c-sub">{copy(HOME_CARD_COPY[card].line)}</p>
-                <span className="btn btn-blue k3c-cta">{card === 'films' ? <UiLabel>Make my film</UiLabel> : adsCta(card)} <span className="k3c-arrow" aria-hidden="true">→</span></span>
+                <span className="btn btn-blue k3c-cta">{card === 'films' ? <UiLabel>Make my film</UiLabel> : adsCta(card)} <span className="k3c-arrow" aria-hidden="true">→</span></span>{/* KINEO-HOME-CARDS-BOTOES-2010 */}
               </span>
             </Link>
           ))}

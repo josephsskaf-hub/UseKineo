@@ -7,6 +7,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 import ts from 'typescript'
+import { semKitBfVenda2010 } from './test-support/desfaz-kit-bf-venda-2010.mjs' // reancorado KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday à venda (a camada mais nova) sai antes, em memória
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
@@ -55,7 +56,7 @@ checa('o degrau legado do anual de 40% off guarda EXATAMENTE os valores vendidos
   ANNUAL40.starter === 9290 && ANNUAL40.basic === 21500 && ANNUAL40.pro === 39500)
 
 // ── módulo puro, transpilado e executado com as tabelas injetadas no lugar do import ──
-const src = rd('lib/billing/annualRefill.ts')
+const src = semKitBfVenda2010(rd('lib/billing/annualRefill.ts'), 'lib/billing/annualRefill.ts') // reancorado KINEO-KIT-BF-VENDA-2010 — o piso da oferta "2 meses grátis" (igual à base em toda a grade: test-kit-bf-venda-2010 N1) sai antes, em memória
 checa('o módulo só importa de @/lib/checkoutPricing (puro: sem stripe, supabase, crypto)',
   (src.match(/^import /gm) || []).length === 1 && /from '@\/lib\/checkoutPricing'/.test(src) && !/node:crypto|supabase|@\/lib\/stripe/.test(src))
 const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText

@@ -16,6 +16,7 @@ import UgcVideo from '@/components/ugc/UgcVideo'
 import { ADS_V2_PRESENTER_LIBRARY, type AdsV2PresenterEntry } from '@/lib/ads/v2Presenter'
 import { ADS_V2_PRESENTER_V2_APPROVED, adsV2PresenterV2Visible } from '@/lib/ads/v2PresenterV2'
 import { HOME_CARD_BADGE, HOME_CARD_CLIPS } from '@/lib/ui/homeThreeCards'
+import { KIT_BF_CHECKOUT_HREF } from '@/lib/ads/kitBfSale'
 import { paginasUgcFacts } from '@/lib/growth/paginasUgc2010Facts'
 import { UGC_NICHES, bfCopy, ugcGeneratorCopy, ugcPillarCopy, ugcScriptWords, type UgcFacts, type UgcLang, type UgcQa } from '@/lib/growth/paginasUgc2010Content'
 import {
@@ -531,6 +532,8 @@ export function BlackFridayPage({ lang }: { lang: UgcLang }) {
   const pt = lang === 'pt'
   const path = pt ? BF_PT_PATH : BF_EN_PATH
   const campaign = pt ? PAGINAS_UGC_CAMPAIGN.bfPt : PAGINAS_UGC_CAMPAIGN.bf
+  // KINEO-KIT-BF-VENDA-2010 no ar: o botão principal compra o kit (GET; sem sessão o checkout leva ao login e retoma); o Studio Ads vira o link de quem já assina.
+  const primaryHref = f.kitSale ? KIT_BF_CHECKOUT_HREF : bfCtaHref(campaign)
   const related = pt
     ? [{ href: UGC_PILLAR_PT_PATH, label: 'Anúncios UGC com IA' }, { href: BF_EN_PATH, label: 'Black Friday video ads (English)' }, { href: '/ads', label: 'Studio Ads' }, { href: '/pricing', label: 'Preços' }]
     : [{ href: UGC_PILLAR_PATH, label: 'AI UGC Ads' }, { href: '/ads', label: 'AI Product Ads (Studio Ads)' }, { href: ugcNichePath('beauty-skincare'), label: 'AI UGC ads for skincare' }, { href: ugcNichePath('electronics-gadgets'), label: 'AI UGC ads for gadgets' }, { href: BF_PT_PATH, label: 'Anúncios de Black Friday (Português)' }, { href: '/pricing', label: 'Pricing' }]
@@ -544,7 +547,8 @@ export function BlackFridayPage({ lang }: { lang: UgcLang }) {
             <h1>{c.h1}</h1>
             <p className="kug-lead">{c.lead}</p>
             <div className="kug-actions">
-              <OrganicCtaLink className="kug-cta" href={bfCtaHref(campaign)} source={campaign} placement="hero">{c.cta} <span aria-hidden="true">→</span></OrganicCtaLink>
+              <OrganicCtaLink className="kug-cta" href={primaryHref} source={campaign} placement="hero">{c.cta} <span aria-hidden="true">→</span></OrganicCtaLink>
+              {c.studioLink ? <OrganicCtaLink className="kug-link" href={bfCtaHref(campaign)} source={campaign} placement="hero_studio">{c.studioLink}</OrganicCtaLink> : null}
               {c.sampleLink ? <UgcCtaLink className="kug-link" campaign={campaign} placement="hero_sample">{c.sampleLink}</UgcCtaLink> : null}
             </div>
             <p className="kug-note">{c.ctaNote}</p>
@@ -588,7 +592,7 @@ export function BlackFridayPage({ lang }: { lang: UgcLang }) {
       <div className="kug-wrap">
         <div className="kug-closing">
           <div><h2>{c.closingHeading}</h2><p>{c.closingText}</p></div>
-          <OrganicCtaLink className="kug-cta" href={bfCtaHref(campaign)} source={campaign} placement="closing">{c.cta} <span aria-hidden="true">→</span></OrganicCtaLink>
+          <OrganicCtaLink className="kug-cta" href={primaryHref} source={campaign} placement="closing">{c.cta} <span aria-hidden="true">→</span></OrganicCtaLink>
         </div>
       </div>
     </Shell>
