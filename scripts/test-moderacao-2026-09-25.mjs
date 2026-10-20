@@ -186,7 +186,8 @@ const imp = ['app', 'lib', 'components'].flatMap(walk).filter((p) => /from '@\/l
 // FINAL das cenas é moderado ANTES do ensaio de $0, do still FLUX e do 1º POST pago; barrado ou fora do ar = crédito devolvido) = 31.
 // KINEO-DEMO-SOB-MEDIDA-1510 — re-ancorado: +1 importador de servidor, lib/ads/demoSobMedidaServer.ts (a demo sob medida do B2B modera o texto da
 // página do produto e cada foto antes de qualquer plano, igual ao /api/ads/v2/link-import) = 32.
-ok(imp.length === 32 && imp.every((p) => !/^\s*['"]use client['"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`)
+// KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — re-ancorado: +1 importador de servidor, lib/cinematic/personagemAjusteServer.ts (o still com folha passa pela moderação de saída 'estrela', e a criatura em cena inocente é reconferida sem termo de idade) = 33.
+ok(imp.length === 33 && imp.every((p) => !/^\s*['"]use client['"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — era: imp.length === 32
 
 // ── 5. upload: o tipo pelos bytes ──────────────────────────────────────────────────────────────────────
 const K = roda('lib/safety/mediaKind.ts')

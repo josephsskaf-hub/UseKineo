@@ -2,8 +2,13 @@
  "__acrescimos": {
   "app/api/generate-video-cinematic/route.ts": 9,
   "lib/cinematic/criticoStill.ts": 11,
+  "scripts/test-mcp-studio-2010.mjs": 1,
+  "scripts/test-meta95-personagem-2010.mjs": 1,
+  "scripts/test-moderacao-2026-09-25.mjs": 1,
+  "scripts/test-support/desfaz-filme-rapido-1710.mjs": 2,
   "scripts/test-support/desfaz-meta95-personagem-2010.mjs": 2,
-  "scripts/test-meta95-personagem-2010.mjs": 1
+  "scripts/test-trilha-15s-1610.mjs": 1,
+  "scripts/test-visual-contract-2026-09-11.mjs": 1
  },
  "app/api/generate-video-cinematic/route.ts": [
   [
@@ -69,6 +74,12 @@
   [
    "  const commitsDaEntrega = desdeABase.filter(({ h, s }) => !s.includes('KINEO-META95-PERSONAGEM-AJUSTE-2010') && (s.includes(MARCA) || git('diff-tree', '--no-commit-id', '--name-only', '-r', '-m', h).trim().split('\\n').some((f) => permitidos.has(f)))) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 \"Vai pra meta do 95\"] — os commits do ajuste têm a marca e o selo próprios (o guardião deles confere); era: filter(({ h, s }) => s.includes(MARCA) || …)",
    "  const commitsDaEntrega = desdeABase.filter(({ h, s }) => s.includes(MARCA) || git('diff-tree', '--no-commit-id', '--name-only', '-r', '-m', h).trim().split('\\n').some((f) => permitidos.has(f)))"
+  ]
+ ],
+ "scripts/test-moderacao-2026-09-25.mjs": [
+  [
+   "ok(imp.length === 33 && imp.every((p) => !/^\\s*['\"]use client['\"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — era: imp.length === 32",
+   "ok(imp.length === 32 && imp.every((p) => !/^\\s*['\"]use client['\"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`)"
   ]
  ]
 }
