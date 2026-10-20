@@ -28,6 +28,10 @@ export const ACRESCIMOS_AVATAR_PRESO_2010 = {
   'scripts/test-seedance-15s-3x6-2026-09-29.mjs': 1,
   'scripts/test-voz-15s-mesma-da-montagem-2026-09-29.mjs': 1,
   'scripts/test-support/desfaz-menu-ugc-2010.mjs': 2,
+  'scripts/test-support/desfaz-meta95-escrita-2010.mjs': 2,
+  'scripts/test-meta95-escrita-2010.mjs': 1,
+  'scripts/test-filmes-f1f3-ajuste-1910.mjs': 1,
+  'scripts/test-filmes-f1-virgula-1910.mjs': 1,
 }
 export const AVATAR_PRESO_2010_ARQUIVOS = Object.freeze(Object.keys(ACRESCIMOS_AVATAR_PRESO_2010))
 /** Arquivos novos da entrega (não existiam na base). */

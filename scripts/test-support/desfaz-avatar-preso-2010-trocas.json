@@ -26,5 +26,30 @@
       "  const soAcrescimos = (p) => { try { const d = semCR(execFileSync('git', ['diff', '--unified=0', '--no-color', BASE, '--', p], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024 }).toString()); return d.split(LF).filter((l) => l.startsWith('-') && !l.startsWith('---') && !TROCADAS_CURTAS.includes(l.slice(1)) && !linhasTrocadasH3max(p).includes(l.slice(1)) && !linhasTrocadasParceiroEyebible1410(p).includes(l.slice(1)) && !linhasTrocadasParceiroEyebible2_1410(p).includes(l.slice(1)) && !linhasTrocadasAncoraLegenda1410(p).includes(l.slice(1)) && !linhasTrocadasJuizStill1410(p).includes(l.slice(1)) && !linhasTrocadasCenaNegacao1510(p).includes(l.slice(1)) /* reancorado KINEO-CENA-NEGACAO-1510 */ && !linhasTrocadasMeta95Assunto1910(p).includes(l.slice(1)) /* reancorado KINEO-META95-ASSUNTO-1910 */ && !linhasTrocadasAvatarPreso2010(p).includes(l.slice(1)) /* reancorado KINEO-AVATAR-PRESO-2010: as 2 linhas da base do /api/compose que o custo do nascimento do avatar trocou (reserva e intendedCost) */ && !linhasTrocadasTrilha15s1610(p).includes(l.slice(1)) /* reancorado KINEO-TRILHA-15S: as 2 linhas da base trocadas (o if do plano de b-roll e o if do descritor) */ /* reancorado KINEO-JUIZ-STILL-1410 */ /* KINEO-ANCORA-LEGENDA-1410 */).length === 0 } /* reancorado KINEO-DURACOES-CURTAS: as 6 trocas marcadas · KINEO-H3MAX-2026-10-13: + as linhas da base trocadas pela entrada do H3 Max (lista exata) */ catch { return false } }",
       "  const soAcrescimos = (p) => { try { const d = semCR(execFileSync('git', ['diff', '--unified=0', '--no-color', BASE, '--', p], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024 }).toString()); return d.split(LF).filter((l) => l.startsWith('-') && !l.startsWith('---') && !TROCADAS_CURTAS.includes(l.slice(1)) && !linhasTrocadasH3max(p).includes(l.slice(1)) && !linhasTrocadasParceiroEyebible1410(p).includes(l.slice(1)) && !linhasTrocadasParceiroEyebible2_1410(p).includes(l.slice(1)) && !linhasTrocadasAncoraLegenda1410(p).includes(l.slice(1)) && !linhasTrocadasJuizStill1410(p).includes(l.slice(1)) && !linhasTrocadasCenaNegacao1510(p).includes(l.slice(1)) /* reancorado KINEO-CENA-NEGACAO-1510 */ && !linhasTrocadasMeta95Assunto1910(p).includes(l.slice(1)) /* reancorado KINEO-META95-ASSUNTO-1910 */ && !linhasTrocadasTrilha15s1610(p).includes(l.slice(1)) /* reancorado KINEO-TRILHA-15S: as 2 linhas da base trocadas (o if do plano de b-roll e o if do descritor) */ /* reancorado KINEO-JUIZ-STILL-1410 */ /* KINEO-ANCORA-LEGENDA-1410 */).length === 0 } /* reancorado KINEO-DURACOES-CURTAS: as 6 trocas marcadas · KINEO-H3MAX-2026-10-13: + as linhas da base trocadas pela entrada do H3 Max (lista exata) */ catch { return false } }"
     ]
+  ],
+  "scripts/test-support/desfaz-meta95-refazer-1910.mjs": [],
+  "scripts/test-support/desfaz-menu-ugc-2010.mjs": [],
+  "scripts/test-support/desfaz-meta95-escrita-2010.mjs": [],
+  "scripts/test-meta95-escrita-2010.mjs": [
+    [
+      "    try { out = semMeta95Escrita2010(semAvatarPreso2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f), f) } catch (e) { difs.push(`${f}: ${e.message}`); continue } // reancorado KINEO-AVATAR-PRESO-2010: sem a camada do avatar preso (mais nova), em memória",
+      "    try { out = semMeta95Escrita2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f) } catch (e) { difs.push(`${f}: ${e.message}`); continue }"
+    ],
+    [
+      "  const semMarca = META95_ESCRITA_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !semAvatarPreso2010(rd(f), f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) }) // reancorado KINEO-AVATAR-PRESO-2010: as linhas do avatar preso não são desta entrega",
+      "  const semMarca = META95_ESCRITA_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !rd(f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) })"
+    ]
+  ],
+  "scripts/test-filmes-f1f3-ajuste-1910.mjs": [
+    [
+      "  checa(`A2 ${p}: nenhum commit do ajuste o toca e é BYTE A BYTE a última versão alheia e a base (nada no motor de vídeo nem na rota)`, meus === '' && alheio !== null && semAvatarPreso2010(rd(p), p) === semAvatarPreso2010(lf(semCloseRealV3_1910(semFilmesF1Virgula1910(semMeta95Assunto1910(alheio, p), p), p)), p) && rdBase(p) !== null) // reancorado KINEO-AVATAR-PRESO-2010: o merge da fila (avatar + legenda) vira a versão alheia; os dois lados saem sem o avatar e pela mesma cadeia do rd",
+      "  checa(`A2 ${p}: nenhum commit do ajuste o toca e é BYTE A BYTE a última versão alheia e a base (nada no motor de vídeo nem na rota)`, meus === '' && alheio !== null && rd(p) === alheio && rdBase(p) !== null)"
+    ]
+  ],
+  "scripts/test-filmes-f1-virgula-1910.mjs": [
+    [
+      "    checa(`U0 ${p}: nenhum commit desta entrega o toca e é BYTE A BYTE a última versão alheia`, meus(p) === '' && alheio(p) !== null && semAvatarPreso2010(semMeta95Escrita2010(rd(p), p), p) === semAvatarPreso2010(semMeta95Escrita2010(alheio(p), p), p)) // reancorado KINEO-AVATAR-PRESO-2010: os dois lados sem o avatar (o merge da fila vira a versão alheia) · KINEO-META95-ESCRITA-2010 — reancorado: sem a camada da escrita (mais nova), em memória",
+      "    checa(`U0 ${p}: nenhum commit desta entrega o toca e é BYTE A BYTE a última versão alheia`, meus(p) === '' && alheio(p) !== null && semMeta95Escrita2010(rd(p), p) === alheio(p)) // KINEO-META95-ESCRITA-2010 — reancorado: sem a camada da escrita (mais nova), em memória"
+    ]
   ]
 }

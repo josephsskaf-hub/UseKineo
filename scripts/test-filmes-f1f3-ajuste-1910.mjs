@@ -25,6 +25,7 @@ const lf = (s) => String(s).replace(/\r\n/g, '\n')
 import { semMeta95Assunto1910 } from './test-support/desfaz-meta95-assunto-1910.mjs' // KINEO-META95-ASSUNTO-1910 — reancorado: o assunto traduzido (19/10, a camada mais nova nos guardiões reancorados) sai PRIMEIRO, em memória
 const rd = (p) => lf(semCloseRealV3_1910(semFilmesF1Virgula1910(semMeta95Assunto1910(readFileSync(join(RAIZ, p), 'utf8'), p), p), p)) /* reancorado KINEO-META95-ASSUNTO-1910: a camada do assunto traduzido sai primeiro */ // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: lê o texto SEM o Faceless 15 s no export limpo (a mais nova) e depois sem a rodada 3 do Close real
 import { semCloseRealV3_1910 } from './test-support/desfaz-close-real-v3-1910.mjs' // KINEO-CLOSE-REAL-V3-1910
+import { semAvatarPreso2010 } from './test-support/desfaz-avatar-preso-2010.mjs' // reancorado KINEO-AVATAR-PRESO-2010 [TRAVA 8.2 — vai do fundador 20/10 "vai pra tudo"]: a camada do avatar preso sai em memória
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else { falhas.push(n); console.log('  FALHOU: ' + n) } }
@@ -54,7 +55,7 @@ for (const p of ['lib/compose.ts', 'lib/hookFirstFrame.ts', 'lib/lyriaMusic.ts',
   // vier depois e mexer nele não deixa este guardião vermelho; o ajuste mexendo nele, sim)
   const meus = (() => { try { return git(['log', '--no-merges', '--format=%H', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, 'HEAD', '--', p]).trim() } catch { return 'erro' } })()
   const alheio = (() => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=KINEO-FILMES-F1-VIRGULA-1910`, `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-META95-ESCRITA-2010' /* reancorado KINEO-META95-ESCRITA-2010: pula os commits da legenda na escrita do roteiro */, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } })() // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo
-  checa(`A2 ${p}: nenhum commit do ajuste o toca e é BYTE A BYTE a última versão alheia e a base (nada no motor de vídeo nem na rota)`, meus === '' && alheio !== null && rd(p) === alheio && rdBase(p) !== null)
+  checa(`A2 ${p}: nenhum commit do ajuste o toca e é BYTE A BYTE a última versão alheia e a base (nada no motor de vídeo nem na rota)`, meus === '' && alheio !== null && semAvatarPreso2010(rd(p), p) === semAvatarPreso2010(lf(semCloseRealV3_1910(semFilmesF1Virgula1910(semMeta95Assunto1910(alheio, p), p), p)), p) && rdBase(p) !== null) // reancorado KINEO-AVATAR-PRESO-2010: o merge da fila (avatar + legenda) vira a versão alheia; os dois lados saem sem o avatar e pela mesma cadeia do rd
 }
 {
   // A referência do guardião reancorado é a ÚLTIMA versão dele deixada por OUTRA sessão (o último commit que o tocou sem a
