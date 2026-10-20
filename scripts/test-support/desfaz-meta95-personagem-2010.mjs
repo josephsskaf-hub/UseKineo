@@ -14,6 +14,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semMeta95Escrita2010 } from './desfaz-meta95-escrita-2010.mjs' // KINEO-META95-ESCRITA-2010 — a legenda na escrita do roteiro veio depois: sai PRIMEIRO (encadeado; texto sem a marca passa igual)
 
 export const MARCA_META95_PERSONAGEM_2010 = 'KINEO-META95-PERSONAGEM-2010'
 
@@ -36,6 +37,7 @@ export const META95_PERSONAGEM_2010_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semMeta95Personagem2010(texto, p) {
+  texto = semMeta95Escrita2010(texto, p) // KINEO-META95-ESCRITA-2010 — a camada mais nova sai primeiro
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_META95_PERSONAGEM_2010) || !META95_PERSONAGEM_2010_ARQUIVOS.includes(rel)) return texto
   const crlf = texto.includes('\r\n')

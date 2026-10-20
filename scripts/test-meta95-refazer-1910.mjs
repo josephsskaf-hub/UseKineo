@@ -22,6 +22,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semMeta95Refazer1910, MARCA_META95_REFAZER_1910, ACRESCIMOS_META95_REFAZER_1910, BASE_META95_REFAZER_1910 } from './test-support/desfaz-meta95-refazer-1910.mjs'
+import { semMeta95Escrita2010 } from './test-support/desfaz-meta95-escrita-2010.mjs' // KINEO-META95-ESCRITA-2010 — reancorado: a legenda na escrita do roteiro (a camada mais nova) sai em memória antes do byte a byte
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -328,7 +329,7 @@ async function provas(L) {
   })
 
   await tenta('R1', () => {
-    const rota = rd(F.compose)
+    const rota = semMeta95Escrita2010(rd(F.compose), F.compose) // KINEO-META95-ESCRITA-2010 — reancorado: a legenda na escrita do roteiro (mais nova) sai em memória antes do byte a byte
     const marcadas = rota.split('\n').filter((l) => l.includes(MARCA_META95_REFAZER_1910))
     const base = lf(execFileSync('git', ['show', `${BASE_META95_REFAZER_1910}:${F.compose}`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }))
     const chamada = marcadas.find((l) => l.includes('await guardarFonteDoFilme('))

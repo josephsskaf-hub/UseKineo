@@ -44,6 +44,7 @@ import { desfazParceiroEyebible1410, linhasTrocadasParceiroEyebible1410 } from '
 import { TROCADAS_MONUMENTO } from './test-support/desfaz-monumento-1310.mjs' // KINEO-MONUMENTO-2026-10-13
 import { MARCA_ROMANCE_ADULTO, TROCADAS_ROMANCE_ADULTO } from './test-support/desfaz-romance-adulto-1310.mjs' // KINEO-ROMANCE-ADULTO-2026-10-13 — reancorado: as linhas novas marcadas e as 4 linhas da base da rota que a leva trocou ('tudo sim' do fundador 13/10)
 import { linhasTrocadasParceiroEyebible2_1410 } from './test-support/desfaz-parceiro-eyebible-2-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410 [TRAVA 8.2 — vai do fundador 14/10]: a 2ª leva do Robert/EyeBible sai em memória antes do byte a byte
+import { linhasTrocadasMeta95Escrita2010 } from './test-support/desfaz-meta95-escrita-2010.mjs' // KINEO-META95-ESCRITA-2010 — reancorado: as linhas da base do /api/compose que a legenda na escrita do roteiro trocou de propósito (lista exata no desfaz)
 // ═══ Reancorado KINEO-DURACOES-CURTAS-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] ═══
 // A entrega das durações curtas (15 s em todo motor de IA, 30 s na estrada hollywood) marca TODA linha que acrescenta à rota do
 // cinematic (e às outras rotas travadas) com KINEO-DURACOES-CURTAS-2026-09-29, e troca de propósito SEIS linhas da base (a frase da
@@ -77,6 +78,7 @@ TROCADAS_CURTAS.push('          const inNarratorWorld = envSig.length > 8 && hs.
 // essas cinco entram na lista de trocas aceitas. Prova: scripts/test-monumento-real-1310.mjs.
 TROCADAS_CURTAS.push(...TROCADAS_MONUMENTO)
 TROCADAS_CURTAS.push(...TROCADAS_ROMANCE_ADULTO.filter(([arq]) => arq === 'app/api/generate-video-cinematic/route.ts').flatMap(([, , linhas]) => linhas)) // KINEO-ROMANCE-ADULTO-2026-10-13
+TROCADAS_CURTAS.push(...linhasTrocadasMeta95Escrita2010('app/api/compose/route.ts')) // KINEO-META95-ESCRITA-2010 — reancorado: as 2 linhas da base do /api/compose que a legenda na escrita do roteiro trocou (a transcrição e a linha da legenda)
 const semCurtas = (t) => (t == null ? t : t.split('\n').filter((l) => !l.includes(MARCA_CURTAS) && !l.includes(MARCA_ESTRELA) && !l.includes(MARCA_S25)).join('\n'))
 const semTrocadas = (t) => (t == null ? t : t.split('\n').filter((l) => !TROCADAS_CURTAS.includes(l.replace(/\r$/, ''))).join('\n'))
 

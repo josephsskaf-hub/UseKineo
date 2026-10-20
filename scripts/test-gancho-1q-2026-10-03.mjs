@@ -31,6 +31,7 @@ import { desfazParceiroEyebible2_1410 } from './test-support/desfaz-parceiro-eye
 import { semFilmeRapido1710 } from './test-support/desfaz-filme-rapido-1710.mjs' // reancorado KINEO-FILME-RAPIDO-1710 [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"]: a entrega mais nova sai antes da comparação com a base
 import { semFilmesF1F4_1910 } from './test-support/desfaz-filmes-f1f4-1910.mjs' // reancorado KINEO-FILMES-F1-F4-1910 [TRAVA 8.2 — vai do fundador 19/10 "vai, sim pra tudo"]: as linhas marcadas da rota do compose (Faceless 15 s) saem antes da comparação com a base
 import { semFilmesF1Virgula1910 } from './test-support/desfaz-filmes-f1-virgula-1910.mjs' // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a camada mais nova sai primeiro
+import { semMeta95Escrita2010 } from './test-support/desfaz-meta95-escrita-2010.mjs' // KINEO-META95-ESCRITA-2010 — reancorado: a legenda na escrita do roteiro (a camada mais nova) sai em memória antes do byte a byte
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -219,7 +220,7 @@ function rotaProblems(rota, unlock) {
   return p
 }
 const rota = semFilmesF1F4_1910(read(ROTA), ROTA) // reancorado KINEO-FILMES-F1-F4-1910
-const unlock = read(UNLOCK)
+const unlock = semMeta95Escrita2010(read(UNLOCK), UNLOCK) // KINEO-META95-ESCRITA-2010 — reancorado: a transcrição na escrita do roteiro e a rede do export limpo saem em memória antes do byte a byte
 const rp = rotaProblems(rota, unlock)
 for (const b of rp) console.log('     · ' + b)
 ok(rp.length === 0, `rotas com a injeção marcada (${rp.length} problema(s))`)
