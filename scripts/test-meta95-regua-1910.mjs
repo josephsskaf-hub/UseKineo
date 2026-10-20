@@ -168,9 +168,10 @@ async function provas(L) {
   await tenta('R1', () => {
     const s = rd(F.coletar)
     const escritas = s.match(/\.(insert|update|upsert|delete|rpc)\(/g) ?? []
-    // KINEO-META95-REGUA-AJUSTE-1910 — reancorado: UM ponto de escrita (gravar), que confere o erro do insert; só os dois nomes.
+    // KINEO-META95-REGUA-AJUSTE-1910 — reancorado: UM ponto de escrita (gravar), que confere o erro do insert.
+    // KINEO-META95-UGC-1910 — reâncora: o 3º juiz (ugc_score) também grava só pelo ponto único.
     const gravacoes = s.match(/await gravar\(([A-Z0-9_]+),/g) ?? []
-    const soEvents = escritas.length === 1 && escritas[0] === '.insert(' && s.includes("const { error } = await admin.from('events').insert({ name, user_id: e.user_id, session_id: e.key, path: route, metadata })") && gravacoes.length >= 4 && gravacoes.every((g) => /gravar\((COHERENCE_V2_EVENT|PIXEL_SCORE_EVENT),/.test(g))
+    const soEvents = escritas.length === 1 && escritas[0] === '.insert(' && s.includes("const { error } = await admin.from('events').insert({ name, user_id: e.user_id, session_id: e.key, path: route, metadata })") && gravacoes.length >= 6 && gravacoes.every((g) => /gravar\((COHERENCE_V2_EVENT|PIXEL_SCORE_EVENT|UGC_SCORE_EVENT),/.test(g))
     const semRender = !/generate-video|api\/compose|generate-script|falQueue|submitFal/.test(s)
     const rotasRender = ['app/api/compose/route.ts', 'app/api/generate-video-cinematic/route.ts'].every((f) => !/regua95|coherence_v2|pixel_score/.test(rd(f)))
     const evidenciaInteira = /evidence: \{ idea: e\.coherence\.idea\.slice\(0, 4000\)/.test(s) && /prompt: s\.prompt\.slice\(0, 3000\)/.test(s)

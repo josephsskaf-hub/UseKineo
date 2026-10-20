@@ -93,7 +93,7 @@ function TabelaRegua95({ linhas, titulo, dataKineo }: { linhas: LinhaRegua95[]; 
     <table data-kineo={dataKineo} style={{ borderCollapse: 'collapse', fontSize: 12, marginBottom: 10 }}>
       <thead>
         <tr style={{ color: '#9AA3B2' }}>
-          <th style={{ ...th, paddingLeft: 0 }}>{titulo}</th><th style={th}>nota (menor das duas) · % ≥ {META_95}</th><th style={th}>coerência v2</th><th style={th}>pixel</th><th style={th}>US$</th>
+          <th style={{ ...th, paddingLeft: 0 }}>{titulo}</th><th style={th}>nota (menor das duas) · % ≥ {META_95}</th><th style={th}>coerência v2</th><th style={th}>pixel</th><th style={th} title="KINEO-META95-UGC-1910 — só UGC/apresentador: olhos no gancho, sorriso de dentes, mão, pessoa duplicada, rótulo × foto do pedido">juiz UGC</th><th style={th}>US$</th>
         </tr>
       </thead>
       <tbody>
@@ -103,10 +103,11 @@ function TabelaRegua95({ linhas, titulo, dataKineo }: { linhas: LinhaRegua95[]; 
             <CelulaPlacar l={l.nota} />
             <CelulaPlacar l={l.coerencia} />
             <CelulaPlacar l={l.pixel} />
+            <CelulaPlacar l={l.ugc} />{/* KINEO-META95-UGC-1910 */}
             <td style={{ padding: '5px 10px', color: '#9AA3B2' }}>{l.usd.toFixed(3)}</td>
           </tr>
         ))}
-        {linhas.length === 0 && <tr><td colSpan={5} style={{ color: '#9AA3B2', padding: '5px 0' }}>Nenhuma nota nova nessa janela ainda — o cron julga a cada 10 min.</td></tr>}
+        {linhas.length === 0 && <tr><td colSpan={6} style={{ color: '#9AA3B2', padding: '5px 0' }}>Nenhuma nota nova nessa janela ainda — o cron julga a cada 10 min.</td></tr>}
       </tbody>
     </table>
   )
@@ -114,9 +115,10 @@ function TabelaRegua95({ linhas, titulo, dataKineo }: { linhas: LinhaRegua95[]; 
 function PiorRegua95({ n }: { n: NotaRegua95 }) {
   return (
     <li style={{ marginBottom: 3 }}>
-      <b style={{ color: corDaNota(n.nota) }}>{n.nota ?? '—'}</b> <span style={{ color: '#C4B5FD' }}>{ROTULO_PRODUTO_REGUA[n.product]} · {motor(n.engine)}</span> <span style={{ color: '#9AA3B2' }}>{fmt(n.delivered_at)} · coerência {n.coerencia ?? '—'} · pixel {n.pixel ?? '—'}</span>
+      <b style={{ color: corDaNota(n.nota) }}>{n.nota ?? '—'}</b> <span style={{ color: '#C4B5FD' }}>{ROTULO_PRODUTO_REGUA[n.product]} · {motor(n.engine)}</span> <span style={{ color: '#9AA3B2' }}>{fmt(n.delivered_at)} · coerência {n.coerencia ?? '—'} · pixel {n.pixel ?? '—'}{n.product === 'ugc' ? ` · juiz UGC ${n.ugc ?? '—'}` : ''}</span>
       {n.video_url ? <a href={n.video_url} target="_blank" rel="noreferrer" style={{ color: '#8DB4FF', marginLeft: 6 }}>▶</a> : null}
-      {(n.pixel_caps.length > 0 || n.coerencia_problems.length > 0) && <span style={{ color: '#FF8787' }}> — {[...n.pixel_caps, ...n.coerencia_problems].slice(0, 3).join(' · ')}</span>}
+      {(n.pixel_caps.length > 0 || n.coerencia_problems.length > 0 || n.ugc_caps.length > 0) && <span style={{ color: '#FF8787' }}> — {[...n.ugc_caps, ...n.pixel_caps, ...n.coerencia_problems].slice(0, 3).join(' · ')}</span>}
+      {n.ugc_motivos.length > 0 && <span data-kineo="regua95-ugc-motivos" style={{ color: '#9AA3B2' }}> · quadros: {n.ugc_motivos.slice(0, 3).join(' · ')}</span>}{/* KINEO-META95-UGC-1910 */}
     </li>
   )
 }
@@ -333,7 +335,7 @@ export default async function AdminCoerenciaPage({ searchParams }: { searchParam
         <section data-kineo="regua95" style={{ border: '1px solid #1F2530', borderRadius: 12, padding: '12px 14px', marginBottom: 16 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'baseline', marginBottom: 8 }}>
             <h2 style={{ fontSize: 15, fontWeight: 900, margin: 0 }}>Régua 95 — notas novas</h2>
-            <span style={{ color: '#9AA3B2', fontSize: 11.5 }}>coerência v2 (fala + cenas × ideia original, prompt inteiro, 2 leituras) · pixel (8 quadros do MP4 final num modelo de visão) · nota = a menor das duas · todas as entregas: filmes, Ads, UGC/avatar, clipes</span>
+            <span style={{ color: '#9AA3B2', fontSize: 11.5 }}>coerência v2 (fala + cenas × ideia original, prompt inteiro, 2 leituras) · pixel (8 quadros do MP4 final num modelo de visão) · juiz UGC (12 quadros: gancho 0–3 s denso + fala; olhos, sorriso, mão, rótulo) · nota = a menor delas · todas as entregas: filmes, Ads, UGC/avatar, clipes</span>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 10 }}>
             <span style={{ color: '#6b7280', fontSize: 11, marginRight: 2 }}>entregas desde</span>

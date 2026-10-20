@@ -6,6 +6,7 @@ import type { readAll as ReadAllRows } from '../supabase/readAll'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { COHERENCE_V2_EVENT, COHERENCE_V2_VERSION, type ProdutoRegua } from '@/lib/regua95/coherenceV2'
 import { PIXEL_SCORE_EVENT, PIXEL_SCORE_VERSION } from '@/lib/regua95/pixelScore'
+import { UGC_SCORE_EVENT, UGC_SCORE_VERSION } from '@/lib/regua95/ugcJudge' // KINEO-META95-UGC-1910
 import { PRODUTOS_REGUA, REGUA95_DEPLOY_DESDE, notaRegua, placar, type LinhaPlacar } from '@/lib/regua95/contexto'
 import { isInternalEmail } from '@/lib/internalAccounts'
 
@@ -19,22 +20,29 @@ export type NotaRegua95 = {
   video_url: string | null
   coerencia: number | null
   pixel: number | null
+  /** KINEO-META95-UGC-1910 — juiz de UGC/apresentador (olhos no gancho, sorriso, mão, duplicação, rótulo); só UGC */
+  ugc: number | null
   nota: number | null
   idea_source: string | null
   pixel_caps: string[]
   pixel_summary: string
   coerencia_problems: string[]
+  ugc_caps: string[]
+  ugc_motivos: string[]
   usd: number
 }
 
-export type LinhaRegua95 = { rotulo: string; coerencia: LinhaPlacar; pixel: LinhaPlacar; nota: LinhaPlacar; usd: number }
+export type LinhaRegua95 = { rotulo: string; coerencia: LinhaPlacar; pixel: LinhaPlacar; ugc: LinhaPlacar; nota: LinhaPlacar; usd: number }
 
 type EventRow = { created_at: string; session_id: string | null; user_id: string | null; metadata: Record<string, unknown> | null }
 
 const str = (x: unknown) => (typeof x === 'string' ? x : '')
 const num = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) ? x : null)
 
-/** Eventos (os dois juízes, versão vigente; o mais recente por entrega vence) → uma nota por entrega. Pura. */
+/**
+ * Eventos (os juízes, versão vigente; o mais recente por entrega vence) → uma nota por entrega. Pura.
+ * KINEO-META95-UGC-1910 — no UGC entra o 3º juiz (ugc_score) e a nota = a menor entre coerência, pixel e UGC.
+ */
 export function juntarNotasRegua(eventos: Array<EventRow & { name: string }>, desdeIso: string): NotaRegua95[] {
   const porChave = new Map<string, NotaRegua95>()
   const visto = new Set<string>()
@@ -45,7 +53,8 @@ export function juntarNotasRegua(eventos: Array<EventRow & { name: string }>, de
     if (!key) continue
     const ehCoer = e.name === COHERENCE_V2_EVENT && m.version === COHERENCE_V2_VERSION
     const ehPix = e.name === PIXEL_SCORE_EVENT && m.version === PIXEL_SCORE_VERSION
-    if (!ehCoer && !ehPix) continue
+    const ehUgc = e.name === UGC_SCORE_EVENT && m.version === UGC_SCORE_VERSION // KINEO-META95-UGC-1910
+    if (!ehCoer && !ehPix && !ehUgc) continue
     if (typeof m.score !== 'number') continue // KINEO-META95-REGUA-AJUSTE-1910 — evento de FALHA (score null) não é nota
     const marca = `${e.name}:${key}`
     if (visto.has(marca)) continue
@@ -53,11 +62,16 @@ export function juntarNotasRegua(eventos: Array<EventRow & { name: string }>, de
     const entregue = str(m.delivered_at) || e.created_at
     if (entregue < desdeIso) continue
     const produto = (PRODUTOS_REGUA as string[]).includes(str(m.product)) ? (str(m.product) as ProdutoRegua) : 'filme'
-    const n = porChave.get(key) ?? { key, user_id: e.user_id, product: produto, engine: str(m.engine) || 'unknown', delivered_at: entregue, video_id: str(m.video_id) || null, video_url: null, coerencia: null, pixel: null, nota: null, idea_source: null, pixel_caps: [], pixel_summary: '', coerencia_problems: [], usd: 0 }
+    const n = porChave.get(key) ?? { key, user_id: e.user_id, product: produto, engine: str(m.engine) || 'unknown', delivered_at: entregue, video_id: str(m.video_id) || null, video_url: null, coerencia: null, pixel: null, ugc: null, nota: null, idea_source: null, pixel_caps: [], pixel_summary: '', coerencia_problems: [], ugc_caps: [], ugc_motivos: [], usd: 0 }
     if (ehCoer) {
       n.coerencia = num(m.score)
       n.idea_source = str(m.idea_source) || null
       n.coerencia_problems = Array.isArray(m.problems) ? (m.problems as unknown[]).filter((p): p is string => typeof p === 'string').slice(0, 4) : []
+    } else if (ehUgc) {
+      n.ugc = num(m.score)
+      n.video_url = n.video_url || str(m.video_url) || null
+      n.ugc_caps = Array.isArray(m.caps) ? (m.caps as unknown[]).filter((p): p is string => typeof p === 'string').slice(0, 6) : []
+      n.ugc_motivos = Array.isArray(m.motivos) ? (m.motivos as unknown[]).filter((p): p is string => typeof p === 'string').slice(0, 6) : []
     } else {
       n.pixel = num(m.score)
       n.video_url = str(m.video_url) || n.video_url
@@ -65,7 +79,7 @@ export function juntarNotasRegua(eventos: Array<EventRow & { name: string }>, de
       n.pixel_summary = str(m.summary)
     }
     n.usd += num(m.usd) ?? 0
-    n.nota = notaRegua(n.coerencia, n.pixel)
+    n.nota = notaRegua(n.coerencia, notaRegua(n.pixel, n.ugc)) // KINEO-META95-UGC-1910 — UGC: a menor das três (pixel × juiz UGC)
     porChave.set(key, n)
   }
   return Array.from(porChave.values()).sort((a, b) => (a.delivered_at < b.delivered_at ? 1 : -1))
@@ -76,7 +90,7 @@ export function placarRegua(notas: NotaRegua95[], chave: (n: NotaRegua95) => str
   const grupos = new Map<string, NotaRegua95[]>()
   for (const n of notas) { const k = chave(n); grupos.set(k, [...(grupos.get(k) ?? []), n]) }
   return Array.from(grupos.entries())
-    .map(([rotulo, xs]) => ({ rotulo, coerencia: placar(xs.map((x) => x.coerencia)), pixel: placar(xs.map((x) => x.pixel)), nota: placar(xs.map((x) => x.nota)), usd: Math.round(xs.reduce((a, x) => a + x.usd, 0) * 1e4) / 1e4 }))
+    .map(([rotulo, xs]) => ({ rotulo, coerencia: placar(xs.map((x) => x.coerencia)), pixel: placar(xs.map((x) => x.pixel)), ugc: placar(xs.map((x) => x.ugc)), nota: placar(xs.map((x) => x.nota)), usd: Math.round(xs.reduce((a, x) => a + x.usd, 0) * 1e4) / 1e4 }))
     .sort((a, b) => b.nota.n - a.nota.n || a.rotulo.localeCompare(b.rotulo))
 }
 
@@ -88,7 +102,7 @@ export async function lerRegua95(
 ): Promise<{ notas: NotaRegua95[]; desde: string; casaFora: number }> {
   const desde = opts.desde && !Number.isNaN(Date.parse(opts.desde)) ? new Date(opts.desde).toISOString() : REGUA95_DEPLOY_DESDE
   const route = opts.route ?? '/admin/coerencia'
-  const r = await readAll(() => admin.from('events').select('name, created_at, session_id, user_id, metadata').in('name', [COHERENCE_V2_EVENT, PIXEL_SCORE_EVENT]).gte('created_at', desde), { route, table: 'events' })
+  const r = await readAll(() => admin.from('events').select('name, created_at, session_id, user_id, metadata').in('name', [COHERENCE_V2_EVENT, PIXEL_SCORE_EVENT, UGC_SCORE_EVENT /* KINEO-META95-UGC-1910 */]).gte('created_at', desde), { route, table: 'events' })
   let notas = juntarNotasRegua((r.data ?? []) as Array<EventRow & { name: string }>, desde)
   let casaFora = 0
   if (!opts.incluirCasa && notas.length > 0) {

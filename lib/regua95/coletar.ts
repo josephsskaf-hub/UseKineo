@@ -23,6 +23,7 @@ import {
 } from '@/lib/regua95/coherenceV2'
 import { PIXEL_SCORE_EVENT, PIXEL_SCORE_VERSION, extractFramesFal, judgeFrames, type PixelContext } from '@/lib/regua95/pixelScore'
 import { contextoDoAnuncio, produtoDoVideo, resolverIdeia, type ScriptWrittenLido } from '@/lib/regua95/contexto'
+import { UGC_SCORE_EVENT, UGC_SCORE_VERSION, extractUgcFramesFal, judgeUgcFrames, planUgcFrames, type UgcContext } from '@/lib/regua95/ugcJudge' // KINEO-META95-UGC-1910
 
 /** KINEO-META95-REGUA-AJUSTE-1910 — janela padrão do coletor (7 dias) e a política de nova tentativa de quem falhou. */
 export const REGUA95_JANELA_HORAS = 168
@@ -44,6 +45,8 @@ export type EntregaRegua = {
   /** evidência do juiz de coerência (só filmes com nascimento cinematic) */
   coherence: { idea: string; ideaSource: IdeaSource; narration: string; scenes: CoherenceV2Scene[]; filmSeconds: number | null } | null
   pixel: PixelContext
+  /** KINEO-META95-UGC-1910 — juiz de UGC/apresentador (olhos no gancho, sorriso de dentes, mão, duplicação, rótulo); só UGC */
+  ugc: UgcContext | null
 }
 
 type EventRow = { created_at: string; session_id: string | null; user_id: string | null; metadata: Record<string, unknown> | null }
@@ -121,6 +124,7 @@ export async function listarEntregasRegua(
       key: v.id, kind: 'video', product: 'filme', engine: v.quality_mode ?? 'unknown', user_id: v.user_id, delivered_at: v.created_at,
       video_url: v.video_url as string, seconds: v.duration, video_id: v.id, generation_id: gen, render_id: v.render_id,
       coherence,
+      ugc: null,
       pixel: { product: 'filme', engine: v.quality_mode, asked: ideia.idea || v.topic || '', narration: narration || null, spokenByScene: evd?.scenes.map((s) => s.spoken) ?? null, language: str(claim?.metadata?.language) || null },
     })
   }
@@ -129,7 +133,7 @@ export async function listarEntregasRegua(
   const adsVids = videos.filter((v) => v.quality_mode === 'ads_v2')
   const orderByVideo = new Map<string, Record<string, unknown>>()
   for (const part of chunks(adsVids.map((v) => v.id))) {
-    const r = await admin.from('ads_v2_orders').select('id, video_id, brief, plan, photos, language').in('video_id', part).limit(part.length * 2)
+    const r = await admin.from('ads_v2_orders').select('id, video_id, brief, plan, photos, language, voice_seconds').in('video_id', part).limit(part.length * 2)
     for (const o of (r.data ?? []) as Array<Record<string, unknown>>) if (str(o.video_id)) orderByVideo.set(str(o.video_id), o)
   }
   for (const v of adsVids) {
@@ -137,16 +141,20 @@ export async function listarEntregasRegua(
     const plan = (order?.plan ?? {}) as Record<string, unknown>
     const produto = produtoDoVideo('ads_v2', !!plan.presenter && typeof plan.presenter === 'object')
     const ctx = order ? contextoDoAnuncio(order, produto) : { product: produto, engine: 'ads_v2', asked: v.topic ?? '' }
-    out.push({ key: v.id, kind: 'video', product: produto, engine: 'ads_v2', user_id: v.user_id, delivered_at: v.created_at, video_url: v.video_url as string, seconds: v.duration, video_id: v.id, generation_id: order ? str(order.id) : null, render_id: v.render_id, coherence: null, pixel: ctx })
+    // KINEO-META95-UGC-1910 — UGC = Ads com apresentador: a fala vai de 0 até voice_seconds (o corte da montagem); o pedido não
+    // guarda os tempos dos silêncios da voz, então a checagem de boca na pausa fica de fora (pause_check 'sem_tempos').
+    const voz = Number(order?.voice_seconds)
+    const ugc: UgcContext | null = produto === 'ugc' ? { asked: ctx.asked, narration: ctx.narration ?? null, productPhotoUrls: ctx.productPhotoUrls ?? null, speechSeconds: Number.isFinite(voz) && voz > 0 ? voz : null, pausesSeconds: null, engine: 'ads_v2', language: ctx.language ?? null } : null
+    out.push({ key: v.id, kind: 'video', product: produto, engine: 'ads_v2', user_id: v.user_id, delivered_at: v.created_at, video_url: v.video_url as string, seconds: v.duration, video_id: v.id, generation_id: order ? str(order.id) : null, render_id: v.render_id, coherence: null, pixel: ctx, ugc })
   }
 
   // ── Clipes: "Just this clip" (videos) e o produto Clipes/efeitos (tabela clips) ──
   for (const v of videos.filter((x) => x.quality_mode === 'clip')) {
-    out.push({ key: v.id, kind: 'video', product: 'clipe', engine: 'clip', user_id: v.user_id, delivered_at: v.created_at, video_url: v.video_url as string, seconds: v.duration, video_id: v.id, generation_id: null, render_id: v.render_id, coherence: null, pixel: { product: 'clipe', engine: 'clip', asked: v.topic ?? '' } })
+    out.push({ key: v.id, kind: 'video', product: 'clipe', engine: 'clip', user_id: v.user_id, delivered_at: v.created_at, video_url: v.video_url as string, seconds: v.duration, video_id: v.id, generation_id: null, render_id: v.render_id, coherence: null, ugc: null, pixel: { product: 'clipe', engine: 'clip', asked: v.topic ?? '' } })
   }
   for (const c of (clipsR.data ?? []) as Array<Record<string, unknown>>) {
     if (!str(c.video_url) || !str(c.id) || !str(c.user_id)) continue
-    out.push({ key: str(c.id), kind: 'clip', product: 'clipe', engine: str(c.engine) || 'clip', user_id: str(c.user_id), delivered_at: str(c.created_at), video_url: str(c.video_url), seconds: typeof c.seconds === 'number' ? c.seconds : null, video_id: null, generation_id: str(c.id), render_id: null, coherence: null, pixel: { product: 'clipe', engine: str(c.engine) || 'clip', asked: str(c.prompt) } })
+    out.push({ key: str(c.id), kind: 'clip', product: 'clipe', engine: str(c.engine) || 'clip', user_id: str(c.user_id), delivered_at: str(c.created_at), video_url: str(c.video_url), seconds: typeof c.seconds === 'number' ? c.seconds : null, video_id: null, generation_id: str(c.id), render_id: null, coherence: null, ugc: null, pixel: { product: 'clipe', engine: str(c.engine) || 'clip', asked: str(c.prompt) } })
   }
 
   // ── Avatar: o claim 'done' com o MP4 final ──
@@ -156,7 +164,7 @@ export async function listarEntregasRegua(
     const gen = a.session_id ?? str(resp.generationId)
     if (!url || !gen || !a.user_id || str(a.metadata?.status) !== 'done') continue
     const script = str(resp.voiceover_script)
-    out.push({ key: gen, kind: 'avatar', product: 'ugc', engine: 'avatar', user_id: a.user_id, delivered_at: a.created_at, video_url: url, seconds: Number(resp.duration) > 0 ? Number(resp.duration) : null, video_id: null, generation_id: gen, render_id: null, coherence: null, pixel: { product: 'ugc', engine: 'avatar', asked: script, narration: script || null } })
+    out.push({ key: gen, kind: 'avatar', product: 'ugc', engine: 'avatar', user_id: a.user_id, delivered_at: a.created_at, video_url: url, seconds: Number(resp.duration) > 0 ? Number(resp.duration) : null, video_id: null, generation_id: gen, render_id: null, coherence: null, pixel: { product: 'ugc', engine: 'avatar', asked: script, narration: script || null }, ugc: { asked: script, narration: script || null, speechSeconds: null, pausesSeconds: null, engine: 'avatar' } /* KINEO-META95-UGC-1910 — avatar: a pessoa fala o vídeo inteiro */ })
   }
   return out.sort((a, b) => (a.delivered_at < b.delivered_at ? 1 : -1))
 }
@@ -171,11 +179,11 @@ export async function notasExistentes(admin: SupabaseClient, keys: string[], rea
   const done = new Set<string>()
   const falhas = new Map<string, { n: number; ultima: number }>()
   for (const part of chunks(Array.from(new Set(keys)))) {
-    const r = await readAll(() => admin.from('events').select('created_at, session_id, user_id, metadata').in('name', [COHERENCE_V2_EVENT, PIXEL_SCORE_EVENT]).in('session_id', part), { route, table: 'events' })
+    const r = await readAll(() => admin.from('events').select('created_at, session_id, user_id, metadata').in('name', [COHERENCE_V2_EVENT, PIXEL_SCORE_EVENT, UGC_SCORE_EVENT /* KINEO-META95-UGC-1910 */]).in('session_id', part), { route, table: 'events' })
     for (const e of (r.data ?? []) as EventRow[]) {
       const v = str(e.metadata?.version)
       if (!e.session_id) continue
-      const nome = v === COHERENCE_V2_VERSION ? COHERENCE_V2_EVENT : v === PIXEL_SCORE_VERSION ? PIXEL_SCORE_EVENT : null
+      const nome = v === COHERENCE_V2_VERSION ? COHERENCE_V2_EVENT : v === PIXEL_SCORE_VERSION ? PIXEL_SCORE_EVENT : v === UGC_SCORE_VERSION ? UGC_SCORE_EVENT /* KINEO-META95-UGC-1910 */ : null
       if (!nome) continue
       const marca = `${nome}:${e.session_id}`
       if (typeof e.metadata?.score === 'number') { done.add(marca); continue }
@@ -189,7 +197,7 @@ export async function notasExistentes(admin: SupabaseClient, keys: string[], rea
   return done
 }
 
-export type ResultadoRegua = { key: string; product: ProdutoRegua; engine: string; coerencia: number | null; pixel: number | null; usd: number; erro?: string; frame_via?: string | null }
+export type ResultadoRegua = { key: string; product: ProdutoRegua; engine: string; coerencia: number | null; pixel: number | null; ugc?: number | null; usd: number; erro?: string; frame_via?: string | null }
 
 /**
  * KINEO-META95-REGUA-AJUSTE-1910 — UMA linha de log por giro, com as contagens, mesmo quando não há nada a julgar. Antes a rota
@@ -203,7 +211,7 @@ export function resumoRegua95(r: { candidatas: number; pendentes: number; julgad
     candidatas: r.candidatas,
     pendentes: r.pendentes,
     por_produto: r.porProduto ?? {},
-    julgadas: r.julgadas.map((j) => ({ k: j.key.slice(0, 8), p: j.product, c: j.coerencia, px: j.pixel, via: j.frame_via ?? null, usd: Math.round(j.usd * 1e4) / 1e4, ...(j.erro ? { erro: j.erro } : {}) })),
+    julgadas: r.julgadas.map((j) => ({ k: j.key.slice(0, 8), p: j.product, c: j.coerencia, px: j.pixel, ...(j.ugc != null ? { ugc: j.ugc } : {}) /* KINEO-META95-UGC-1910 */, via: j.frame_via ?? null, usd: Math.round(j.usd * 1e4) / 1e4, ...(j.erro ? { erro: j.erro } : {}) })),
     ms,
   })
 }
@@ -217,7 +225,7 @@ export async function julgarPendentesRegua(
   const route = opts.route ?? '/api/cron/regua-95'
   const entregas = await listarEntregasRegua(admin, { hours: opts.hours, limit: opts.limit, route }, readAll)
   const done = await notasExistentes(admin, entregas.map((e) => e.key), readAll, route)
-  const pendentes = entregas.filter((e) => !done.has(`${PIXEL_SCORE_EVENT}:${e.key}`) || (e.coherence && !done.has(`${COHERENCE_V2_EVENT}:${e.key}`)))
+  const pendentes = entregas.filter((e) => !done.has(`${PIXEL_SCORE_EVENT}:${e.key}`) || (e.coherence && !done.has(`${COHERENCE_V2_EVENT}:${e.key}`)) || (e.ugc && !done.has(`${UGC_SCORE_EVENT}:${e.key}`)) /* KINEO-META95-UGC-1910 */)
   const maxJudge = Math.max(0, Math.min(12, opts.maxJudge ?? 4))
   const lote = pendentes.slice(0, maxJudge)
   const deploySha = process.env.VERCEL_GIT_COMMIT_SHA ?? 'local'
@@ -260,6 +268,25 @@ export async function julgarPendentesRegua(
             const falha = ex ? 'visao_sem_resposta' : 'quadros_indisponiveis'
             r.erro = [r.erro, falha].filter(Boolean).join(' · ')
             await gravar(PIXEL_SCORE_EVENT, { version: PIXEL_SCORE_VERSION, score: null, falha, frame_via: ex?.via ?? null, frame_count: ex?.frames.length ?? 0, ...base, video_url: e.video_url })
+          }
+        }
+        // KINEO-META95-UGC-1910 — juiz de UGC/apresentador (só registra): olhos no gancho, sorriso de dentes, mão, duplicação,
+        // rótulo × foto do pedido. O painel combina: nota UGC = a menor entre o pixel e este juiz. Mesmo fluxo do pixel
+        // (KINEO-META95-REGUA-AJUSTE-1910): quadros e visão separados, gravação pelo ponto único (confere o erro do banco) e a
+        // FALHA vira evento ugc_score com score null — espera e retentativa por notasExistentes, sem travar o lote.
+        if (e.ugc && !done.has(`${UGC_SCORE_EVENT}:${e.key}`)) {
+          const inicioUgc = Date.now()
+          const plano = planUgcFrames({ seconds: e.seconds, speechSeconds: e.ugc.speechSeconds, pausesSeconds: e.ugc.pausesSeconds })
+          const exU = await extractUgcFramesFal(e.video_url, plano, { fetchImpl: opts.fetchImpl })
+          const u = exU ? await judgeUgcFrames(e.ugc, exU.frames, { fetchImpl: opts.fetchImpl, via: exU.via, usdFrames: exU.usd, startedAt: inicioUgc }) : null
+          if (u) {
+            r.ugc = u.score
+            r.usd += u.usd
+            await gravar(UGC_SCORE_EVENT, { ...u, ...base, video_url: e.video_url, asked: String(e.ugc.asked ?? '').slice(0, 600) })
+          } else {
+            const falha = exU ? 'ugc_visao_sem_resposta' : 'ugc_quadros_indisponiveis'
+            r.erro = [r.erro, falha].filter(Boolean).join(' · ')
+            await gravar(UGC_SCORE_EVENT, { version: UGC_SCORE_VERSION, score: null, falha, frame_via: exU?.via ?? null, frame_count: exU?.frames.length ?? 0, ...base, video_url: e.video_url })
           }
         }
       } catch (err) {
