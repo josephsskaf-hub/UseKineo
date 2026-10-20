@@ -11,7 +11,8 @@
   "scripts/test-ads-servidor-2026-09-25.mjs": 1,
   "scripts/test-anual-recarga-mensal-2026-09-24.mjs": 1,
   "scripts/test-saida-regiao-2026-10-07.mjs": 2,
-  "scripts/test-consentimento-1610.mjs": 1
+  "scripts/test-consentimento-1610.mjs": 1,
+  "scripts/test-home-cards-botoes-2010.mjs": 1
  },
  "app/api/stripe/checkout/route.ts": [
   [
@@ -57,6 +58,16 @@
   [
    "      if (semConsentimento1610(f, semKitBfVenda2010(read(f), f)) !== git('show', `${CONSENTIMENTO_1610_BASE}:${f}`).replace(/\\r\\n/g, '\\n')) ruins.push(`${f} desfeito ≠ base`) // reancorado KINEO-KIT-BF-VENDA-2010 — o cartão do kit no /pricing (camada mais nova) sai antes, em memória",
    "      if (semConsentimento1610(f, read(f)) !== git('show', `${CONSENTIMENTO_1610_BASE}:${f}`).replace(/\\r\\n/g, '\\n')) ruins.push(`${f} desfeito ≠ base`)"
+  ]
+ ],
+ "scripts/test-home-cards-botoes-2010.mjs": [
+  [
+   "const rd = (p) => lf(semKitBfVenda2010(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-KIT-BF-VENDA-2010 — o disco sem a camada do kit (mais nova)",
+   "const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))"
+  ],
+  [
+   "  HOME_CARDS_BOTOES_2010_ARQUIVOS.length === 6 && HOME_CARDS_BOTOES_2010_ARQUIVOS.every((f) => { const b = base(f); return b !== null && lf(sem(semKitBfVenda2010(readFileSync(join(ROOT, f), 'utf8'), f), f)) === b }) && // reancorado KINEO-KIT-BF-VENDA-2010 — o kit (mais novo) sai antes",
+   "  HOME_CARDS_BOTOES_2010_ARQUIVOS.length === 6 && HOME_CARDS_BOTOES_2010_ARQUIVOS.every((f) => { const b = base(f); return b !== null && lf(sem(readFileSync(join(ROOT, f), 'utf8'), f)) === b }) &&"
   ]
  ]
 }

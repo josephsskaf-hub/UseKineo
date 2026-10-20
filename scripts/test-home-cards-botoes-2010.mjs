@@ -16,11 +16,12 @@ import ts from 'typescript'
 import { semHomeCardsBotoes2010, desfazHomeCardsBotoes2010, diffSoHomeCardsBotoes2010, HOME_CARDS_BOTOES_2010_ARQUIVOS, HOME_CARDS_BOTOES_2010_NOVOS, HOME_CARDS_BOTOES_2010_BASE, MARCA_HOME_CARDS_BOTOES_2010, ACRESCIMOS_HOME_CARDS_BOTOES_2010 } from './test-support/desfaz-home-cards-botoes-2010.mjs'
 import { semApresentadorOlhos1910 } from './test-support/desfaz-apresentador-olhos-1910.mjs'
 import { semHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs'
+import { semKitBfVenda2010 } from './test-support/desfaz-kit-bf-venda-2010.mjs' // reancorado KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday à venda (mesclado depois, por cima) sai antes, em memória
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const MARCA = 'KINEO-HOME-CARDS-BOTOES-2010'
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))
+const rd = (p) => lf(semKitBfVenda2010(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-KIT-BF-VENDA-2010 — o disco sem a camada do kit (mais nova)
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const B = HOME_CARDS_BOTOES_2010_BASE
 const base = (p) => { try { return lf(git('show', `${B}:${p}`)) } catch { return null } }
@@ -86,7 +87,7 @@ check('G1 no computador a grade tem max-width:95% centralizada; no celular max-w
 console.log('\nD. desfaz exato, marca, encadeamento, novos')
 const TOPO = git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, 'HEAD').trim().split('\n').filter(Boolean)[0] || 'HEAD'
 const provaDesfaz = (sem = semHomeCardsBotoes2010) =>
-  HOME_CARDS_BOTOES_2010_ARQUIVOS.length === 6 && HOME_CARDS_BOTOES_2010_ARQUIVOS.every((f) => { const b = base(f); return b !== null && lf(sem(readFileSync(join(ROOT, f), 'utf8'), f)) === b }) &&
+  HOME_CARDS_BOTOES_2010_ARQUIVOS.length === 6 && HOME_CARDS_BOTOES_2010_ARQUIVOS.every((f) => { const b = base(f); return b !== null && lf(sem(semKitBfVenda2010(readFileSync(join(ROOT, f), 'utf8'), f), f)) === b }) && // reancorado KINEO-KIT-BF-VENDA-2010 — o kit (mais novo) sai antes
   HOME_CARDS_BOTOES_2010_NOVOS.length === 3 && HOME_CARDS_BOTOES_2010_NOVOS.every((f) => existsSync(join(ROOT, f)) && statSync(join(ROOT, f)).size > 0 && base(f) === null) && MARCA_HOME_CARDS_BOTOES_2010 === MARCA
 check(`D1 cada arquivo tocado, desfeito (scripts/test-support/desfaz-home-cards-botoes-2010.mjs), é EXATAMENTE a base ${B}; os novos existem e não existiam lá`, () => provaDesfaz())
 check('D2 toda linha nova traz a marca; o diff da base até o último commit da entrega só toca a lista e os novos; nada de cobrança, motor ou preço', () => {
