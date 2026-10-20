@@ -44,6 +44,7 @@ import { adsV2SentenceForCopy } from '@/lib/ads/v2Scene' // KINEO-ADS-CONSERTOS-
 import { adsV2PackshotShots } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — o packshot: um plano de IA vira a foto REAL do produto (mesmos créditos)
 import { adsV2FormatBlock, adsV2FormatShots, normalizeAdsV2Format } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — formatos 4:5 e 1:1 (só onde o pipeline inteiro aceita)
 import { adsV2BuildScripts } from '@/lib/ads/v2Scripts' // KINEO-ADS-ROTEIROS-2026-10-13 — 2 a 3 roteiros para escolher (o 1º = o texto de sempre); troca em /api/ads/v2/plan/choose
+import { ADS_SAMPLE_PRESENTER_MARK, adsSampleFormatFor } from '@/lib/ads/sampleEntry' // KINEO-HOME-3-CARDS-1910 — a amostra com a pessoa, só pela entrada UGC
 import { ADS_V2_CLOSE_REAL_LIVE, ADS_V2_CLOSE_REAL_SECONDS, adsV2CloseRealShots, adsV2CloseRealUsd, planAdsV2CloseReal } from '@/lib/ads/v2CloseReal' // KINEO-CLOSE-REAL-1910 — o formato "Close do produto real" (zero IA de vídeo; a amostra grátis sai SEMPRE nele)
 
 /** Quem age: o id do auth (moderação e rastro) e o e-mail VERIFICADO dele (adsV2Visible). */
@@ -82,7 +83,12 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     if (gate !== 'ok' && sample && !adsSampleLevelOk(order.tier, order.seconds)) return v2Fail('sample_level_only', 403)
     // KINEO-CLOSE-REAL-1910 — o Close real: pedido pela tela (close_real) ou SEMPRE pela amostra grátis (quem decide é o servidor, não o corpo). Nele não
     // KINEO-CLOSE-REAL-1910 — há apresentador, estilo de IA nem outro formato que o 9:16: as chaves saem do corpo aqui, antes de qualquer decisão abaixo.
-    const closeRealAsked = ADS_V2_CLOSE_REAL_LIVE && (input.close_real === true || (gate !== 'ok' && sample)) // KINEO-CLOSE-REAL-1910
+    // KINEO-HOME-3-CARDS-1910 — o formato da amostra: o Apresentador SÓ pela entrada UGC (o card "AI UGC Ads"; sample_entry validado no contrato), o resto o
+    // KINEO-HOME-3-CARDS-1910 — Close real. Com a pessoa, o servidor liga o ator e tira estilo/formato (o apresentador v2 é Comercial 9:16 sem estilo).
+    const sampleFormat = gate !== 'ok' && sample ? adsSampleFormatFor(input.sample_entry === 'ugc' ? 'ugc' : 'product', ADS_V2_PRESENTER_PUBLIC) : null // KINEO-HOME-3-CARDS-1910
+    if (sampleFormat === 'presenter') { input.presenter = true; delete input.style; delete input.format; delete input.close_real } // KINEO-HOME-3-CARDS-1910
+    if (sampleFormat === 'presenter' && !input.photos.some((p) => p.kind === 'product')) return v2Fail('presenter_needs_voice_and_product', 400) // KINEO-HOME-3-CARDS-1910 — o ator segura O produto: sem foto de produto, não há amostra com a pessoa
+    const closeRealAsked = ADS_V2_CLOSE_REAL_LIVE && (input.close_real === true || (gate !== 'ok' && sample && sampleFormat !== 'presenter')) // KINEO-CLOSE-REAL-1910 · KINEO-HOME-3-CARDS-1910 — a amostra pela entrada UGC não é forçada ao Close real; era: (gate !== 'ok' && sample)
     if (closeRealAsked) { delete input.presenter; delete input.presenter_id; delete input.style; delete input.format } // KINEO-CLOSE-REAL-1910
     if (closeRealAsked && order.seconds !== ADS_V2_CLOSE_REAL_SECONDS) return v2Fail('close_real_15s_only', 400) // KINEO-CLOSE-REAL-1910 — a estrutura é de 15 s
     // KINEO-ADS-MODO-SIMPLES-2026-09-29 — corpo simples só para pedido nascido no modo simples; enquanto a pesquisa roda,
@@ -276,6 +282,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     if (inHand) Object.assign(stored, { productInHand: true }) // KINEO-ADS-PRODUTO-NA-MAO-1610 — a marca do plano novo (o avanço lê cada plano; o dry-run mostra os prompts)
     if (closeReal) { Object.assign(stored, { closeReal }); delete (stored as { productInHand?: unknown }).productInHand } // KINEO-CLOSE-REAL-1910 — a marca do formato (a montagem do avanço lê daqui); o produto na mão não vale aqui
     if (closeReal) Object.assign(modeTag, { close_real: true, sample: gate !== 'ok' }) // KINEO-CLOSE-REAL-1910 — a medição (ads_v2_plan_served)
+    if (sampleFormat === 'presenter' && presenter) { Object.assign(stored, { sample_format: ADS_SAMPLE_PRESENTER_MARK }); Object.assign(modeTag, { sample: true, sample_format: 'presenter' }) } // KINEO-HOME-3-CARDS-1910 — a marca que o /start confere (só o servidor a grava) e a medição
     const credits = adsV2Credits(order.tier, order.seconds)
     const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds, presenter: !!presenter })
     if (inHand) Object.assign(modeTag, { in_hand: true }) // KINEO-ADS-PRODUTO-NA-MAO-1610

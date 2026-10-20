@@ -217,6 +217,8 @@ export interface AdsV2PlanBody {
   format?: '4:5' | '1:1'
   /** KINEO-CLOSE-REAL-1910 — o formato "Close do produto real" (lib/ads/v2CloseReal.ts): só aparece quando veio true (ausente/null/false = sem a chave, o corpo de antes); qualquer outra coisa = 400 bad_close_real. */
   close_real?: true // KINEO-CLOSE-REAL-1910
+  /** KINEO-HOME-3-CARDS-1910 — a entrada da amostra grátis (lib/ads/sampleEntry.ts): só aparece com 'ugc' (o card "AI UGC Ads"); ausente/null/'product' = sem a chave (o corpo de antes); qualquer outra coisa = 400 bad_sample_entry. Só a amostra lê; quem decide o formato é o /plan. */
+  sample_entry?: 'ugc' // KINEO-HOME-3-CARDS-1910
 }
 
 /**
@@ -312,6 +314,8 @@ export function sanitizePlanBody(raw: unknown): AdsV2Sanitized<AdsV2PlanBody> {
   }
   let closeReal = false // KINEO-CLOSE-REAL-1910 — o Close real: ausente, null ou false = sem a chave; true = o formato; qualquer outra coisa = 400
   if (b.close_real !== undefined && b.close_real !== null && b.close_real !== false) { if (b.close_real !== true) return fail('bad_close_real'); closeReal = true } // KINEO-CLOSE-REAL-1910
+  let sampleEntryUgc = false // KINEO-HOME-3-CARDS-1910 — a entrada da amostra: ausente, null ou 'product' = sem a chave; 'ugc' = a amostra com a pessoa; qualquer outra coisa = 400
+  if (b.sample_entry !== undefined && b.sample_entry !== null && b.sample_entry !== 'product') { if (b.sample_entry !== 'ugc') return fail('bad_sample_entry'); sampleEntryUgc = true } // KINEO-HOME-3-CARDS-1910
   if (!Array.isArray(b.photos)) return fail('bad_photos')
   const vids = readVideos(b.videos)
   if (!vids.ok) return vids
@@ -352,6 +356,7 @@ export function sanitizePlanBody(raw: unknown): AdsV2Sanitized<AdsV2PlanBody> {
     ...(presenter && presenterId ? { presenter_id: presenterId } : {}),
     ...(format ? { format } : {}), // KINEO-ADS-MELHORIAS-1410
     ...(closeReal ? { close_real: true as const } : {}), // KINEO-CLOSE-REAL-1910
+    ...(sampleEntryUgc ? { sample_entry: 'ugc' as const } : {}), // KINEO-HOME-3-CARDS-1910
   }
   return { ok: true, value: simple ? { ...value, mode: 'simple', facts } : value }
 }

@@ -48,6 +48,7 @@ import { buildAdV2Source, ADS_V2_VOICE_START, adsV2ProductOverlays, type AdV2Mon
 import { adsV2FallbackTrack, adsV2MusicTrimStart, adsV2MusicUsable, adsV2SwapLibraryTrack } from '@/lib/ads/v2Music'
 import { ADS_V2_QUALITY, confirmAdsV2Debit, failAdsV2Order } from '@/lib/ads/v2Billing'
 import { isAdsSampleRef } from '@/lib/ads/sample' // KINEO-ADS-AMOSTRA-2026-10-09
+import { adsSampleWatermarkSource } from '@/lib/ads/sampleEntry' // KINEO-HOME-3-CARDS-1910 — a marca-d'água da amostra fora do Close real (a com a pessoa)
 import { ADS_V2_CLOSE_REAL_WATERMARK, adsV2CloseRealOf, buildAdV2CloseRealSource } from '@/lib/ads/v2CloseReal' // KINEO-CLOSE-REAL-1910 — o Close do produto real (zero IA de vídeo; a amostra grátis com marca-d'água)
 import { adsV2CloseRealCardName, adsV2CloseRealCta } from '@/lib/ads/v2CloseReal' // KINEO-CLOSE-REAL-AJUSTE-1910 — o nome e a chamada do cartão próprio do Close real
 // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator de IA (lib pura): a linha dele, quando desiste, a voz que cabe e a ordem dos inserts.
@@ -1305,6 +1306,9 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
     await failAdsV2Order(admin, order, `montage_invalid:${e instanceof Error ? e.message : String(e)}`, '/lib/ads/v2Advance')
     return
   }
+  // KINEO-HOME-3-CARDS-1910 — a amostra grátis fora do Close real (a do card UGC, com a pessoa, ou o anúncio de reserva dela se o ator desistir) leva a MESMA
+  // KINEO-HOME-3-CARDS-1910 — marca-d'água do Close real (que já a desenha): um texto por cima de tudo, do 0 ao fim. Pago nunca passa aqui (chave 'adsv2').
+  if (isAdsSampleRef(order.billing_ref) && !closeRealSource) source = adsSampleWatermarkSource(source, { text: ADS_V2_CLOSE_REAL_WATERMARK, fontFamily: captionFontFor(language), width: Number(source.width) || out.width }) // KINEO-HOME-3-CARDS-1910
   // 4. Carimbo ANTES do POST (só quem ainda segura a trava): com ele e sem id, o envio é ambíguo e nunca se repete.
   const stamp = await admin
     .from('ads_v2_orders')

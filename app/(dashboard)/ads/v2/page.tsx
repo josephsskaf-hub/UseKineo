@@ -25,18 +25,24 @@ import { adsSampleOpen } from '@/lib/ads/serverAccess' // KINEO-ADS-AMOSTRA-2026
 import { loadAdsWorkspaceLabel } from '@/lib/ads/workspace' // KINEO-EQUIPE-BUSINESS-2026-10-10
 import { isTeamOwnerPlan, type AdsWorkspaceView } from '@/lib/ads/team' // KINEO-EQUIPE-BUSINESS-2026-10-10
 import { businessAdsOffer } from '@/lib/businessPlan' // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a oferta que a tela mostra quando a amostra já foi usada
+import { adsSampleEntryOf, type AdsSampleEntry } from '@/lib/ads/sampleEntry' // KINEO-HOME-3-CARDS-1910 — a entrada dos cards da home (?entry=product|ugc)
 import AdsV2Client from './AdsV2Client'
 
 export const metadata = { title: 'Studio Ads — Kineo' }
 
 export const dynamic = 'force-dynamic'
 
-export default async function AdsV2Page() {
+// KINEO-HOME-3-CARDS-1910 — ?entry=product|ugc (os cards "AI Product Ads" / "AI UGC Ads" da home): validado aqui (lib/ads/sampleEntry.ts) e entregue à tela,
+// que abre no formato do card (Close real / Apresentador) e, na amostra, manda a entrada ao /plan — quem decide o formato da amostra é o servidor.
+// Sem login, o redirect do login devolve a MESMA entrada (o visitante que veio do card não perde o formato).
+export default async function AdsV2Page({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) { // KINEO-HOME-3-CARDS-1910 — era: export default async function AdsV2Page() {
+  const rawEntry = searchParams?.entry
+  const entry: AdsSampleEntry | null = adsSampleEntryOf(Array.isArray(rawEntry) ? rawEntry[0] : rawEntry) // KINEO-HOME-3-CARDS-1910
   const supabase = createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) redirect(`/login?redirect=${encodeURIComponent('/ads/v2')}`)
+  if (!user) redirect(`/login?redirect=${encodeURIComponent(entry ? `/ads/v2?entry=${entry}` : '/ads/v2')}`) // KINEO-HOME-3-CARDS-1910 — era: encodeURIComponent('/ads/v2')
 
   // KINEO-EQUIPE-BUSINESS-2026-10-10 — o workspace: o membro de um Business entra com o acesso, o saldo e o kit DO DONO (uid = dono).
   const { admin, reason, ...ws } = await loadAdsAccess(user.id, user.email, { workspace: true })
@@ -46,7 +52,7 @@ export default async function AdsV2Page() {
   if (gate !== 'ok') {
     // KINEO-ADS-AMOSTRA-2026-10-09 — quem entra pela amostra grátis passa SEM rastro de negação; o resto, como antes.
     if (!sample) {
-      await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/ads/v2', metadata: { stage: 'page', who: gate, reason, redirect: '/ads?from=v2' } })
+      await writeServerEvent({ name: 'ads_access_denied', userId: user.id, path: '/ads/v2', metadata: { stage: 'page', who: gate, reason, redirect: '/ads?from=v2', ...(entry ? { entry } : {}) } }) // KINEO-HOME-3-CARDS-1910 — + a entrada do card (a porta explica e oferece o plano)
       redirect('/ads?from=v2')
     }
   }
@@ -71,5 +77,5 @@ export default async function AdsV2Page() {
 
   // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — quem entra pela amostra leva a oferta do Business pronta (números de lib/businessPlan.ts): a tela a mostra quando a
   // amostra já foi usada (403 'no_access') e no aviso do teto do dia. Assinante/passe/interna: null (a tela de sempre).
-  return <AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} />
+  return <AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} entry={entry} /> // KINEO-HOME-3-CARDS-1910 — + entry
 }
