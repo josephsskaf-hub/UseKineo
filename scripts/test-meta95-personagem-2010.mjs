@@ -36,7 +36,9 @@ const MARCA = MARCA_META95_PERSONAGEM_2010
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
 const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
-const base = (rel) => { try { return lf(git('show', `${META95_PERSONAGEM_2010_BASE}:${rel}`)) } catch { return null } }
+// a base de comparação: a origin/main do ÚLTIMO merge desta entrega (2º pai do merge marcado mais novo); sem merge, a base da entrega
+const BASE_CMP = (() => { try { const m = git('log', '--format=%H', '--merges', `--grep=${MARCA}`, 'HEAD').trim().split('\n').filter(Boolean); return m.length ? git('rev-parse', `${m[0]}^2`).trim() : META95_PERSONAGEM_2010_BASE } catch { return META95_PERSONAGEM_2010_BASE } })()
+const base = (rel) => { try { return lf(git('show', `${BASE_CMP}:${rel}`)) } catch { return null } }
 let pass = 0
 let fail = 0
 function ok(cond, msg) { if (cond) { pass++; console.log('  ok  ', msg) } else { fail++; console.log('  FALHA', msg) } }
@@ -357,12 +359,15 @@ console.log('\nD. desfaz, encadeamento, diff e commits')
   ok(ideia.includes("import { semMeta95Personagem2010 } from './desfaz-meta95-personagem-2010.mjs' // KINEO-META95-PERSONAGEM-2010") && ideia.includes('  texto = semMeta95Personagem2010(texto, rel) // KINEO-META95-PERSONAGEM-2010') && ideia.indexOf('semMeta95Personagem2010(texto, rel)') < ideia.indexOf('semHome3Cards1910(texto, rel)'), 'D4 encadeado: semMeta95Ideia1910 (a cabeça da cadeia da rota) tira ESTA camada primeiro')
   const I = await import(`${new URL('./test-support/desfaz-meta95-ideia-1910.mjs', import.meta.url).href}`)
   ok(!I.semMeta95Ideia1910(rota, F.rota).includes(MARCA) && I.semMeta95Ideia1910(rota, F.rota) === I.semMeta95Ideia1910(semMeta95Personagem2010(rota, F.rota), F.rota), 'D5 pela cadeia, a rota desfeita não tem mais a marca (e dá no mesmo chamar este antes)')
-  const marcados = (() => { try { return git('log', '--format=%H', `--grep=${MARCA}`, 'HEAD').trim().split('\n').filter(Boolean) } catch { return [] } })()
-  const tocados = marcados.length ? git('diff', '--name-only', `${META95_PERSONAGEM_2010_BASE}..HEAD`).trim().split('\n').filter(Boolean) : []
+  // os commits DESTA entrega (sem os merges): o que cada um tocou, somado — merges da origin/main trazem arquivos alheios e ficam de fora da conta
+  const marcados = (() => { try { return git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, 'HEAD').trim().split('\n').filter(Boolean) } catch { return [] } })()
+  const tocados = [...new Set(marcados.flatMap((h) => git('diff-tree', '--no-commit-id', '--name-only', '-r', h).trim().split('\n').filter(Boolean)))]
   const permitidos = new Set([...META95_PERSONAGEM_2010_ARQUIVOS, ...META95_PERSONAGEM_2010_NOVOS])
-  ok(marcados.length === 0 || tocados.every((f) => permitidos.has(f)), `D6 o diff base..HEAD só toca a lista + os novos (${tocados.filter((f) => !permitidos.has(f)).join(', ') || 'ok'})`)
-  const assuntos = (() => { try { return git('log', '--format=%s', `${META95_PERSONAGEM_2010_BASE}..HEAD`).trim().split('\n').filter(Boolean) } catch { return [] } })()
-  ok(assuntos.every((s) => s.includes(MARCA) && s.includes('[TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]')), `D7 todo commit da entrega traz a marca e o selo da TRAVA 8.2 (${assuntos.length} commit(s))`)
+  ok(marcados.length === 0 || tocados.every((f) => permitidos.has(f)), `D6 os commits da entrega só tocam a lista + os novos (${tocados.filter((f) => !permitidos.has(f)).join(', ') || 'ok'})`)
+  // todo commit desde a base que toca um arquivo da entrega é desta entrega (marca + selo); os merges da origin/main também levam a marca e o selo
+  const desdeABase = (() => { try { return git('log', '--format=%H%x09%s', `${META95_PERSONAGEM_2010_BASE}..HEAD`).trim().split('\n').filter(Boolean).map((l) => { const [h, ...s] = l.split('\t'); return { h, s: s.join('\t') } }) } catch { return [] } })()
+  const commitsDaEntrega = desdeABase.filter(({ h, s }) => s.includes(MARCA) || git('diff-tree', '--no-commit-id', '--name-only', '-r', '-m', h).trim().split('\n').some((f) => permitidos.has(f)))
+  ok(commitsDaEntrega.length > 0 && commitsDaEntrega.every(({ s }) => s.includes(MARCA) && s.includes('[TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]')), `D7 todo commit da entrega (e todo merge dela) traz a marca e o selo da TRAVA 8.2 (${commitsDaEntrega.length} commit(s); base ${BASE_CMP.slice(0, 10)})`, commitsDaEntrega.filter(({ s }) => !s.includes(MARCA)).map(({ s }) => s.slice(0, 60)).join(' | '))
   ok(fs.existsSync(path.join(ROOT, 'docs/META95-PERSONAGEM-2026-10-20.md')) && /formatFlags/.test(rd('docs/META95-PERSONAGEM-2026-10-20.md')), 'D8 o desenho está em docs/META95-PERSONAGEM-2026-10-20.md, com o jeito de ligar por pedido')
 }
 
