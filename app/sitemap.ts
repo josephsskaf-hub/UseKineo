@@ -336,6 +336,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: r.freq,
     priority: r.priority,
   }))
+  carimbaPaginasUgc2010(staticEntries) // KINEO-PAGINAS-UGC-2010 — home, /pricing e /ads ganharam link para as páginas novas
   // #478 — programmatic SEO niche landing pages (/free-ai-shorts/[niche]).
   const nicheEntries = NICHE_SLUGS.map((slug) => ({
     url: `${BASE}/free-ai-shorts/${slug}`,
@@ -407,7 +408,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: 'daily' as const,
     priority: 0.8,
   }))
-  return carimbaPaginasUgc2010(carimbaBingSeo1510([ // KINEO-BING-SEO-1510 — lastmod das páginas tocadas (ver carimbaBingSeo1510) · KINEO-PAGINAS-UGC-2010 — e as que ganharam link para as páginas novas
+  return carimbaBingSeo1510([ // KINEO-BING-SEO-1510 — lastmod das páginas tocadas (ver carimbaBingSeo1510)
     ...effectSitemapEntries(),
     // House portfolio: discoverable only while the public page is enabled.
     // Its own review date must not re-date the unrelated acquisition pages.
@@ -499,20 +500,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly' as const,
       priority: 0.8,
     },
-  ]))
-}
-
-// KINEO-PAGINAS-UGC-2010 — as páginas que já existiam e ganharam link para as novas (home, /pricing, /ads) avançam o lastmod para o
-// dia do lote; o cron do IndexNow compara o lastmod com o último envio e as reenvia ao Bing. Só AVANÇA a data (igual ao carimbo abaixo).
-function carimbaPaginasUgc2010(entries: MetadataRoute.Sitemap): MetadataRoute.Sitemap {
-  const paths = new Set<string>(PAGINAS_UGC_TOUCHED_PATHS)
-  const stamp = new Date(`${PAGINAS_UGC_REVIEWED_ISO}T12:00:00.000Z`)
-  return entries.map((e) => {
-    const path = e.url.startsWith(BASE) ? e.url.slice(BASE.length) : e.url
-    if (!paths.has(path)) return e
-    const prev = e.lastModified ? new Date(e.lastModified) : null
-    return prev && Number.isFinite(prev.getTime()) && prev.getTime() >= stamp.getTime() ? e : { ...e, lastModified: stamp }
-  })
+  ])
 }
 
 // KINEO-BING-SEO-1510 — as páginas que esta rodada mudou (título/description/alt/conteúdo, lista em lib/seo/bingSeo1510.ts)
@@ -527,4 +515,18 @@ function carimbaBingSeo1510(entries: MetadataRoute.Sitemap): MetadataRoute.Sitem
     const prev = e.lastModified ? new Date(e.lastModified) : null
     return prev && Number.isFinite(prev.getTime()) && prev.getTime() >= stamp.getTime() ? e : { ...e, lastModified: stamp }
   })
+}
+
+// KINEO-PAGINAS-UGC-2010 — as páginas que já existiam e ganharam link para as novas (home, /pricing, /ads) avançam o lastmod para o
+// dia do lote; o cron do IndexNow compara o lastmod com o último envio e as reenvia ao Bing. Só AVANÇA a data (igual ao carimbo do Bing acima).
+// (em lugar, como o lote 1 faz com os nichos: as linhas da rodada do Bing ficam intactas para o desfaz dela)
+function carimbaPaginasUgc2010(entries: { url: string; lastModified?: string | Date }[]): void {
+  const paths = new Set<string>(PAGINAS_UGC_TOUCHED_PATHS)
+  const stamp = new Date(`${PAGINAS_UGC_REVIEWED_ISO}T12:00:00.000Z`)
+  for (const e of entries) {
+    const path = e.url.startsWith(BASE) ? e.url.slice(BASE.length) : e.url
+    if (!paths.has(path)) continue
+    const prev = e.lastModified ? new Date(e.lastModified) : null
+    if (!(prev && Number.isFinite(prev.getTime()) && prev.getTime() >= stamp.getTime())) e.lastModified = stamp
+  }
 }

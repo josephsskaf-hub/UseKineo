@@ -505,7 +505,7 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
               o lado da Kineo é o pedaço do Starter que um anúncio de 15 s usa (preço do caixa × créditos do nível ÷ créditos do plano). */}
           {ugcLine ? <p className="ads-fine" data-kineo="ads-ugc-comparison">{ugcLine}</p> : null}
           {/* KINEO-PAGINAS-UGC-2010 — as páginas novas a 1 clique da porta do menu "Product ads" (visitante cai aqui pelo /ads/new). */}
-          <p className="ads-fine" data-kineo="ads-ugc-pages"><a href={UGC_PILLAR_PATH}>AI UGC ads: an AI person holds your product</a> · <a href={BF_EN_PATH}>Black Friday ad kit: your offer + 3–5 variations</a></p>
+          <p className="ads-fine" data-kineo="ads-ugc-pages"><a href={UGC_PILLAR_PATH}>AI UGC ads: an AI person holds your product</a> · <a href={BF_EN_PATH}>Black Friday ad kit: your offer + 3–5 variations</a></p>{/* KINEO-PAGINAS-UGC-2010 */}
           {/* KINEO-ADS-PORTA-PLANO-2026-09-27 — two doors for whoever cannot open the wizard: the Starter plan first (it includes
               Studio Ads and costs less than the pass), the pass beside it, untouched. With gate 'ok' the pass card stands alone. */}
           <div className={planOffer ? 'ads-doors' : undefined}>

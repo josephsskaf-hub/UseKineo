@@ -19,13 +19,16 @@
 //       cliente nem pedido sensorial;
 //   G10 links internos: pilar → 12 nichos + gerador + BF; nicho/gerador/BF → pilar; home (cards), /pricing e /ads → páginas novas;
 //   G11 números das funções que cobram: a pilar mostra adsV2Credits do nível do apresentador e o preço do plano de entrada;
-//   G12 rostos = os apresentadores aprovados (lib/ads/v2PresenterV2.ts), com retrato/voz/clipe existentes no disco.
+//   G12 rostos = os apresentadores aprovados (lib/ads/v2PresenterV2.ts), com retrato/voz/clipe existentes no disco;
+//   G13 desfaz desta camada (scripts/test-support/desfaz-paginas-ugc-2010.mjs): cada arquivo antigo tocado, desfeito, é EXATAMENTE a base,
+//       e a cabeça da cadeia do Studio Ads (semApresentadorOlhos1910) o chama primeiro.
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { React, offlineModules, renderToStaticMarkup } from './gpt24h-offline-support.mjs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { execFileSync } from 'node:child_process'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (p) => readFileSync(resolve(root, p), 'utf8').replace(/\r\n/g, '\n')
@@ -338,13 +341,29 @@ async function audit(rep = {}, groups = null) {
     for (const p of L.ADS_V2_PRESENTER_LIBRARY.filter((x) => want.includes(x.id))) for (const f of [p.portrait, p.voiceSample, p.clip].filter(Boolean)) if (!existsSync(resolve(root, 'public' + f))) fail('G12', `${p.id}: arquivo ausente ${f}`)
     for (const f of ['/previews/home-card-ugc-presenter.mp4', '/posters/home-card-ugc-presenter.webp']) if (!existsSync(resolve(root, 'public' + f))) fail('G12', `vídeo do herói ausente ${f}`)
   }
+  // ── G13 desfaz ────────────────────────────────────────────────────────────────────────────────────────────────────
+  if (on('G13')) {
+    try {
+      const D = await import('./test-support/desfaz-paginas-ugc-2010.mjs')
+      const git = (...a) => { try { return execFileSync('git', ['-C', root, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] }) } catch { return null } }
+      for (const f of D.PAGINAS_UGC_2010_ARQUIVOS) {
+        const base = git('show', `${D.PAGINAS_UGC_2010_BASE}:${f}`)
+        if (base === null) continue // base fora deste clone: prova pulada
+        let out
+        try { out = D.semPaginasUgc2010(src(f), f) } catch (e) { fail('G13', e.message); continue }
+        if (out.replace(/\r\n/g, '\n') !== base.replace(/\r\n/g, '\n')) fail('G13', `${f}: desfeito ≠ base`)
+        if (out.includes(D.MARCA_PAGINAS_UGC_2010)) fail('G13', `${f}: sobrou a marca`)
+      }
+      if (!/export function semApresentadorOlhos1910\(texto, p\) \{\n  texto = semPaginasUgc2010\(texto, p\)/.test(read('scripts/test-support/desfaz-apresentador-olhos-1910.mjs'))) fail('G13', 'a cabeça da cadeia não chama o desfaz desta camada primeiro')
+    } catch (e) { fail('G13', `desfaz não carrega: ${e.message}`) }
+  }
   return fails
 }
 
 // ── Real: verde ────────────────────────────────────────────────────────────────────────────────────────────────────
 const realFails = await audit()
 assert.deepEqual(realFails, [], `guardião vermelho no código real:\n${realFails.join('\n')}`)
-console.log(`ok — 17 páginas renderizadas: rotas, metadata/hreflang, schema, sitemap+IndexNow, /llms.txt, botões, sem preço em cartão, nichos únicos (máx. ${audit.stats.maxWhole.toFixed(3)} texto, ${audit.stats.maxPage.toFixed(3)} página; gerador × pilar ${audit.stats.gen.toFixed(3)}), honestidade, links, números calculados, rostos aprovados`)
+console.log(`ok — 17 páginas renderizadas: rotas, metadata/hreflang, schema, sitemap+IndexNow, /llms.txt, botões, sem preço em cartão, nichos únicos (máx. ${audit.stats.maxWhole.toFixed(3)} texto, ${audit.stats.maxPage.toFixed(3)} página; gerador × pilar ${audit.stats.gen.toFixed(3)}), honestidade, links, números calculados, rostos aprovados, desfaz exato`)
 
 // ── Mutantes: cada um TEM de ficar vermelho na regra certa ─────────────────────────────────────────────────────────
 const MUTANTS = [
@@ -356,7 +375,7 @@ const MUTANTS = [
   ['G3', F.comp, '{ld(productLd)}', ''],
   ['G4', F.sitemap, '...PAGINAS_UGC_PATHS.map((path) => ({', '...PAGINAS_UGC_PATHS.slice(2).map((path) => ({'],
   ['G4', F.sitemap, 'const paths = new Set<string>(PAGINAS_UGC_TOUCHED_PATHS)', 'const paths = new Set<string>([])'],
-  ['G5', F.llms, 'paginasUgcLlmsSection(BASE, ugcNicheLabel)}', "''}"],
+  ['G5', F.llms, 'STUDIO_ADS_FACT ? paginasUgcLlmsSection(BASE, ugcNicheLabel) :', "STUDIO_ADS_FACT ? '' :"],
   ['G5', F.paths, "{ name: 'AI Product Ads', path: '/ads',", "{ name: 'Product Ads', path: '/ads',"],
   ['G6', F.paths, 'return `/ads/v2?entry=ugc&utm_source=seo', 'return `/ads/v2?entry=product&utm_source=seo'],
   ['G6', F.comp, 'href={bfCtaHref(campaign)} source={campaign} placement="hero"', 'href="/pricing" source={campaign} placement="hero"'],
@@ -373,6 +392,8 @@ const MUTANTS = [
   ['G11', F.facts, 's15: adsV2Credits(UGC_AD_TIER, 15)', 's15: 40'],
   // G12: o interruptor dos aprovados e a lista filtram juntos; o mutante tira os dois e os 12 rostos aparecem.
   ['G12', F.comp, 'adsV2PresenterV2Visible(p.id, false) && ADS_V2_PRESENTER_V2_APPROVED.includes(p.id) && !!p.portrait)', '!!p.portrait)'],
+  ['G13', F.ads, '3–5 variations</a></p>{/* KINEO-PAGINAS-UGC-2010 */}\n', '3–5 variations</a></p>\n'],
+  ['G13', F.pricing, 'How Business works</a>\n', 'How Business works</a>\n            <span>extra</span>\n'],
 ]
 for (const [rule, file, from, to] of MUTANTS) {
   const text = read(file)

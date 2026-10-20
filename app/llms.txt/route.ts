@@ -380,7 +380,7 @@ ${STUDIO_ADS_FACT ? `- [${STUDIO_ADS_FACT.name}](${STUDIO_ADS_FACT.url}): ${STUD
 - Business videos can explain a product or service, present the business, or communicate an offer supplied by the customer. Claims, contact details and media must be supplied or approved by that customer.
 - Ad creation does not include buying media, managing advertising campaigns or guaranteed sales. Use the public pages above to choose a path; they do not start a purchase automatically.
 
-${/* KINEO-PAGINAS-UGC-2010 — os 3 carros-chefes com o nome do mercado (AI Faceless Videos, AI Product Ads, AI UGC Ads) e as páginas do UGC e do Kit Black Friday. */ paginasUgcLlmsSection(BASE, ugcNicheLabel)}
+${/* KINEO-PAGINAS-UGC-2010 — os 3 carros-chefes com o nome do mercado (AI Faceless Videos, AI Product Ads, AI UGC Ads) e as páginas do UGC e do Kit Black Friday; com o Studio Ads desligado, nada (as páginas vendem anúncio). */ STUDIO_ADS_FACT ? paginasUgcLlmsSection(BASE, ugcNicheLabel) : ''}
 ## Videos from an idea or a script
 
 For from-scratch video generation, the input is a sentence: you type a

@@ -179,6 +179,10 @@ function discovery(overrides = {}) {
       // without them this run died mapping an undefined list. Inert here: the real entries are exercised by
       // test-guias-ia-1610, and the run below still REQUIRES the showcase/hub/study entries exactly as before.
       GUIAS_IA_REVIEWED_ISO: '2026-10-16', GUIAS_IA_PATHS: [],
+      // KINEO-PAGINAS-UGC-2010 (re-anchored 20/10) — the sitemap imports the AI UGC Ads / Black Friday paths (lib/seo/paginasUgc2010.ts);
+      // without them this run died mapping an undefined list. Inert here: the real entries are exercised by test-paginas-ugc-2010,
+      // and the run below still REQUIRES the showcase/hub/study entries exactly as before.
+      PAGINAS_UGC_REVIEWED_ISO: '2026-10-20', PAGINAS_UGC_PATHS: [], PAGINAS_UGC_TOUCHED_PATHS: [],
     }
     new Function('exports', 'require', 'module', js)(mod.exports, () => fixtures, mod)
     return mod.exports.default()
