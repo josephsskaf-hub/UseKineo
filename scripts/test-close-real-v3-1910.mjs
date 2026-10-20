@@ -29,7 +29,8 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const MARCA = 'KINEO-CLOSE-REAL-V3-1910'
 const lf = (s) => String(s).split('\r\n').join('\n')
-const rd = (p) => lf(semFilmesF1Virgula1910(semCloseRealLegenda1910(readFileSync(join(ROOT, p), 'utf8'), p), p)) // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a legenda menor do Close real (a mais nova) sai PRIMEIRO; depois a camada do export limpo
+import { semMeta95Assunto1910 } from './test-support/desfaz-meta95-assunto-1910.mjs' // KINEO-META95-ASSUNTO-1910 — reancorado: o assunto traduzido (19/10, a camada mais nova nos guardiões reancorados) sai PRIMEIRO, em memória
+const rd = (p) => lf(semFilmesF1Virgula1910(semCloseRealLegenda1910(semMeta95Assunto1910(readFileSync(join(ROOT, p), 'utf8'), p), p), p)) /* reancorado KINEO-META95-ASSUNTO-1910: a camada do assunto traduzido sai primeiro */ // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a legenda menor do Close real (a mais nova) sai PRIMEIRO; depois a camada do export limpo
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return lf(git('show', `${CLOSE_REAL_V3_1910_BASE}:${p}`)) } catch { return null } }
 let pass = 0

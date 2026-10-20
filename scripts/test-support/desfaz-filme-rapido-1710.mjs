@@ -9,6 +9,7 @@
 //     ser a da base.
 // Linha com a marca que não é acréscimo puro nem troca listada não existe por construção (o guardião
 // scripts/test-filme-rapido-1710.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE o pai do 1º commit da entrega).
+import { semMeta95Assunto1910 } from './desfaz-meta95-assunto-1910.mjs' // KINEO-META95-ASSUNTO-1910 — a camada do assunto traduzido (19/10) veio depois: sai PRIMEIRO (encadeado)
 export const MARCA_FILME_RAPIDO_1710 = 'KINEO-FILME-RAPIDO-1710'
 
 /** Arquivos protegidos que a entrega toca (só acréscimos marcados + as trocas listadas). */
@@ -413,6 +414,7 @@ export function linhasTrocadasFilmeRapido1710(p) {
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Sem linha marcada = devolve igual. */
 export function semFilmeRapido1710(texto, p) {
+  texto = semMeta95Assunto1910(texto, p) // KINEO-META95-ASSUNTO-1910 — a camada mais nova na rota do cinematic sai primeiro
   if (typeof texto !== 'string' || !texto.includes(MARCA_FILME_RAPIDO_1710)) return texto
   const crlf = texto.includes('\r\n')
   const trocas = new Map((TROCAS_FILME_RAPIDO_1710[p] ?? []).map(([nova, base]) => [nova, base]))
