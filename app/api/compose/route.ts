@@ -65,6 +65,8 @@ import { esperarLyria, LYRIA_WAIT_BUDGET_MS } from '@/lib/lyriaMusic' // KINEO-F
 import { COMPOSE_STAGE_TIMING_EVENT, cronometroDaMontagem } from '@/lib/tempoDaMontagem' // KINEO-FILME-RAPIDO-1710 · tempo — tempo por etapa da montagem (linha própria)
 import { captionStyleOverrides, isAdCaptionStyle, isCaptionElement } from '@/lib/ads/adStyle' // KINEO-ADS-ESTILO-2026-09-26
 import { alinharGrafiaDoRoteiro } from '@/lib/captionScriptSpelling' // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28
+import { escritaDivergente, legendaNaEscritaDoRoteiro } from '@/lib/escritaDaLegenda' // [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] KINEO-META95-ESCRITA-2010 — a legenda sai na escrita do roteiro (linha própria)
+import { transcreverNaEscritaDoRoteiro } from '@/lib/whisperNaEscrita' // KINEO-META95-ESCRITA-2010 — Whisper com o idioma que a escrita do roteiro diz (linha própria)
 import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
 import { speechRateFor, speechFamilyForQuality } from '@/lib/speechRate' // KINEO-RITMO-POR-VOZ-2026-09-15
 // KINEO-CREDIT-INTENT-2026-07-11 — record the authoritative engine + intended
@@ -1003,6 +1005,10 @@ export async function POST(req: NextRequest) {
     const cinematicUpstreamDebited = cinematicBirthClaim?.status === 'settled'
     let composeProviderAttempted = false
     const avatarUpstreamDebited = avatarBirthClaim !== null
+    // KINEO-AVATAR-PRESO-2010 [TRAVA 8.2 — vai do fundador 20/10 "vai pra tudo"] — o avatar/apresentador pré-pago monta pelo custo do NASCIMENTO
+    // KINEO-AVATAR-PRESO-2010 — (claim assinado do generate-avatar: 70 ou 110, já debitado), nunca pela régua de duração: o claim de montagem com
+    // KINEO-AVATAR-PRESO-2010 — 18 (15 s) contra 70 no nascimento fazia o /api/compose/status responder 503 para sempre (render 9087456e, 20/10).
+    const avatarPrepaidCost: number | null = avatarBirthClaim ? avatarBirthClaim.creditCost : null // KINEO-AVATAR-PRESO-2010
     const claimId = composeClaimId(authenticatedUserId, generationId)
     const submissionOwner = randomUUID()
     let submissionAuthority = ''
@@ -2088,7 +2094,7 @@ export async function POST(req: NextRequest) {
         // créditos presos (dois holds de 27). Ela se cadastrou às 04:35,
         // tentou três vezes e foi embora sem UM vídeo.
         // Toda reserva/cobrança tem de sair da MESMA função que criou o claim.
-        const prepaidReservation = await claimGenerationSubmission(creditCostForDuration(quality, true, duration), false)
+        const prepaidReservation = await claimGenerationSubmission(avatarPrepaidCost ?? creditCostForDuration(quality, true, duration), false) // KINEO-AVATAR-PRESO-2010 — avatar: o custo do nascimento; cinematic: a linha de sempre
         if (prepaidReservation.kind !== 'acquired') return prepaidReservation.response
       } else {
         const paidReservation = await reservePaidCreditSlot(creditCostForDuration(quality, true, duration))
@@ -3057,6 +3063,7 @@ export async function POST(req: NextRequest) {
           })
           cachedVoiceover = await lookupCachedVoiceover(voiceoverCacheKey)
           if (!cachedVoiceover) cachedVoiceover = await audioDoClique.voz(voiceoverCacheKey) // KINEO-FILME-RAPIDO-1710 — a MESMA chave pode estar sendo feita agora pelo clique: espera um pouco por ela
+          if (cachedVoiceover && escritaDivergente(cachedVoiceover.words, scaledScript)) { console.warn('[compose] KINEO-META95-ESCRITA-2010: voz em cache com o Whisper em outra escrita (ex.: urdu sobre roteiro em hindi) — sintetiza de novo e regrava a chave'); cachedVoiceover = null } // KINEO-META95-ESCRITA-2010 — cache antigo não herda a escrita errada
           if (cachedVoiceover) {
             console.log('[compose] reusing cached voiceover — skipping TTS + Whisper')
           }
@@ -3277,7 +3284,7 @@ export async function POST(req: NextRequest) {
       composeCtx.stage = 'voiceover_whisper_and_upload' // KINEO-COMPOSE-FALHA-COM-NOME
       tempo.inicio('transcricao') // KINEO-FILME-RAPIDO-1710 · tempo — Whisper + upload da voz, em paralelo
       const whisperPromise: Promise<WhisperWord[] | undefined> = audioBuffer
-        ? transcribeTTSWithTimestamps(audioBuffer)
+        ? transcreverNaEscritaDoRoteiro(audioBuffer, scaledScript) // KINEO-META95-ESCRITA-2010 — mesmo contrato (nunca lança; [] = plano B); roteiro em devanágari → language=hi, bengali → bn…
             .then((words) => {
               if (words.length > 0) {
                 console.log(`[compose] Whisper sync: ${words.length} words for direct caption build`)
@@ -3443,7 +3450,8 @@ export async function POST(req: NextRequest) {
     if (grafia) {
       console.log(`[compose] legenda com a grafia do roteiro: ${grafia.motivo} ancoras=${grafia.ancoras}/${grafia.palavrasDoRoteiro} trocadas=${grafia.trocadas} mantidos=${grafia.trechosMantidos}`)
     }
-    const legendaWords: WhisperWord[] | undefined = grafia ? grafia.words : whisperWords
+    const legendaWords: WhisperWord[] | undefined = legendaNaEscritaDoRoteiro(grafia ? grafia.words : whisperWords, scaledScript) // KINEO-META95-ESCRITA-2010 — rede final: Whisper em outra escrita não vai para a tela (plano B: o texto do roteiro no tempo do áudio)
+    if (whisperWords && whisperWords.length > 0 && !legendaWords) console.warn('[compose] KINEO-META95-ESCRITA-2010: Whisper em outra escrita que o roteiro — legenda pelo texto do roteiro (plano B)') // KINEO-META95-ESCRITA-2010
 
     // KINEO-TRIAL-WATERMARK-2026-09-07 — a decisão de marca d'água mora AQUI,
     // uma única vez, lida pelo builder logo abaixo E pela resposta lá no fim.
@@ -3550,7 +3558,7 @@ export async function POST(req: NextRequest) {
     // ambiguous response can create and charge two jobs.
     // Mesmo motivo do bloco acima: o custo pretendido registrado no intent
     // precisa bater com o do claim, senão o settle diverge lá na frente.
-    const intendedCost = cinematicPrepaidCost ?? creditCostForDuration(quality, quality === 'fast' ? !isFreePlanFast : false, duration)
+    const intendedCost = cinematicPrepaidCost ?? avatarPrepaidCost ?? creditCostForDuration(quality, quality === 'fast' ? !isFreePlanFast : false, duration) // KINEO-AVATAR-PRESO-2010 — o claim de montagem e o intent do avatar levam o custo do nascimento
     const claim: SubmissionClaimResult = ownsSubmissionClaim
       ? { kind: 'acquired' }
       : await claimGenerationSubmission(intendedCost)

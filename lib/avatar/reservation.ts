@@ -16,6 +16,7 @@ import {
   verifyComposeClaim,
 } from '@/lib/composeClaim'
 import { refundRenderCredits } from '@/lib/credits/refund'
+import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost' // KINEO-AVATAR-PRESO-2010
 
 type SettlementReason = 'compose_succeeded' | 'provider_failed' | 'compose_failed_after_asset_delivered'
 type AvatarClaimStatus = 'pending' | 'done' | 'settled'
@@ -407,6 +408,19 @@ export async function loadPrepaidAvatarClaimForGeneration(args: {
   return debit.ok ? loaded : { ok: false, error: debit.error }
 }
 
+// KINEO-AVATAR-PRESO-2010 [TRAVA 8.2 — vai do fundador 20/10 "vai pra tudo"] — a montagem do /avatar ficava PRESA para sempre.
+// KINEO-AVATAR-PRESO-2010 — O nascimento (generate-avatar) debita e ASSINA o preço fixo do motor (presenter 70, avatar 110); desde o
+// KINEO-AVATAR-PRESO-2010 — FIX2 de 21/08 o /api/compose gravava no claim de montagem o preço ESCALADO pela duração (15 s → 18, 52 s → 61).
+// KINEO-AVATAR-PRESO-2010 — Esta conferência exigia os dois iguais: só um avatar de exatos 60 s passava; todo o resto respondia 503 em loop
+// KINEO-AVATAR-PRESO-2010 — (render 9087456e, 20/10). O compose agora grava o custo do NASCIMENTO (igualdade direta). Para os claims de
+// KINEO-AVATAR-PRESO-2010 — montagem já gravados no formato velho, aceita só o número que a régua por duração dá para a duração do próprio
+// KINEO-AVATAR-PRESO-2010 — claim. Nenhum dinheiro sai daqui: o avatar pré-pago não é debitado na montagem; o débito conferido é o do nascimento.
+export function avatarComposeCostMatchesBirth(birthCost: number, composeCost: number, quality: string, composeDuration: unknown): boolean { // KINEO-AVATAR-PRESO-2010
+  if (composeCost === birthCost) return true // KINEO-AVATAR-PRESO-2010
+  if (quality !== 'avatar' && quality !== 'presenter') return false // KINEO-AVATAR-PRESO-2010
+  const d = typeof composeDuration === 'number' && Number.isFinite(composeDuration) && composeDuration > 0 ? composeDuration : null // KINEO-AVATAR-PRESO-2010
+  return d !== null && creditCostFor(quality, true) === birthCost && composeCost === creditCostForDuration(quality, true, d) // KINEO-AVATAR-PRESO-2010
+} // KINEO-AVATAR-PRESO-2010
 export async function loadPrepaidAvatarClaimForRender(args: {
   db: SupabaseClient
   secret: string
@@ -449,7 +463,7 @@ export async function loadPrepaidAvatarClaimForRender(args: {
   }
   const birth = await loadPrepaidAvatarClaimForGeneration({ ...args, generationId })
   if (!birth.ok || !birth.claim) return birth
-  if (birth.claim.quality !== quality || birth.claim.creditCost !== cost) {
+  if (birth.claim.quality !== quality || !avatarComposeCostMatchesBirth(birth.claim.creditCost, cost, quality, metadata.duration)) { // KINEO-AVATAR-PRESO-2010
     return { ok: false, error: 'avatar birth/compose billing mismatch' }
   }
   return birth
