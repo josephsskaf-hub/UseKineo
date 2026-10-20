@@ -7,9 +7,10 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 import ts from 'typescript'
+import { semKitBfVenda2010 } from './test-support/desfaz-kit-bf-venda-2010.mjs' // reancorado KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday à venda (a camada mais nova) sai antes, em memória
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semKitBfVenda2010(readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'), p) // reancorado KINEO-KIT-BF-VENDA-2010 — o kit também escreve ads_access_until (provado em test-kit-bf-venda-2010: I5/T4); aqui, o passe sozinho como antes
 let ok = 0
 const falhas = []
 const checa = (nome, condicao) => { if (condicao) ok++; else falhas.push(nome) }

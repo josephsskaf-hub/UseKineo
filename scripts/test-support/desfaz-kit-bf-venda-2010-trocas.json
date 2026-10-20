@@ -4,8 +4,14 @@
   "app/api/events/route.ts": 1,
   "app/api/stripe/checkout/route.ts": 4,
   "app/api/stripe/webhook/route.ts": 8,
-  "app/pricing/PricingClient.tsx": 3,
-  "lib/billing/annualRefill.ts": 1
+  "app/pricing/PricingClient.tsx": 2,
+  "lib/billing/annualRefill.ts": 1,
+  "scripts/test-support/desfaz-apresentador-olhos-1910.mjs": 2,
+  "scripts/test-ads-lote-1310.mjs": 1,
+  "scripts/test-ads-servidor-2026-09-25.mjs": 1,
+  "scripts/test-anual-recarga-mensal-2026-09-24.mjs": 1,
+  "scripts/test-saida-regiao-2026-10-07.mjs": 2,
+  "scripts/test-consentimento-1610.mjs": 1
  },
  "app/api/stripe/checkout/route.ts": [
   [
@@ -27,6 +33,30 @@
   [
    "  if (cur === 'usd' && typeof annualAmountMinor === 'number' && annualAmountMinor > 0 && annualAmountMinor < annualEarlyOfferFloorMinor(ANNUAL_PRICES[tier].usd, TIER_PRICES[tier].usd)) { // KINEO-KIT-BF-VENDA-2010 — o preço da oferta \"2 meses grátis\" (quando vencer) recebe o grant CHEIO; hoje o piso = o anual vigente (o mesmo de antes); era: annualAmountMinor < ANNUAL_PRICES[tier].usd",
    "  if (cur === 'usd' && typeof annualAmountMinor === 'number' && annualAmountMinor > 0 && annualAmountMinor < ANNUAL_PRICES[tier].usd) {"
+  ]
+ ],
+ "scripts/test-ads-lote-1310.mjs": [
+  [
+   "const ler = (rel) => semMarcas1510(rel, semKitBfVenda2010(readFileSync(path.join(raiz, rel), 'utf8').replace(/\\r\\n/g, '\\n'), rel)) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-KIT-BF-VENDA-2010 — antes delas, o cartão do kit (mais novo)",
+   "const ler = (rel) => semMarcas1510(rel, readFileSync(path.join(raiz, rel), 'utf8').replace(/\\r\\n/g, '\\n')) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510)"
+  ]
+ ],
+ "scripts/test-ads-servidor-2026-09-25.mjs": [
+  [
+   "const rd = (p) => semKitBfVenda2010(readFileSync(join(RAIZ, p), 'utf8').replace(/\\r\\n/g, '\\n'), p) // reancorado KINEO-KIT-BF-VENDA-2010 — o kit também escreve ads_access_until (provado em test-kit-bf-venda-2010: I5/T4); aqui, o passe sozinho como antes",
+   "const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\\r\\n/g, '\\n')"
+  ]
+ ],
+ "scripts/test-anual-recarga-mensal-2026-09-24.mjs": [
+  [
+   "const src = semKitBfVenda2010(rd('lib/billing/annualRefill.ts'), 'lib/billing/annualRefill.ts') // reancorado KINEO-KIT-BF-VENDA-2010 — o piso da oferta \"2 meses grátis\" (igual à base em toda a grade: test-kit-bf-venda-2010 N1) sai antes, em memória",
+   "const src = rd('lib/billing/annualRefill.ts')"
+  ]
+ ],
+ "scripts/test-consentimento-1610.mjs": [
+  [
+   "      if (semConsentimento1610(f, semKitBfVenda2010(read(f), f)) !== git('show', `${CONSENTIMENTO_1610_BASE}:${f}`).replace(/\\r\\n/g, '\\n')) ruins.push(`${f} desfeito ≠ base`) // reancorado KINEO-KIT-BF-VENDA-2010 — o cartão do kit no /pricing (camada mais nova) sai antes, em memória",
+   "      if (semConsentimento1610(f, read(f)) !== git('show', `${CONSENTIMENTO_1610_BASE}:${f}`).replace(/\\r\\n/g, '\\n')) ruins.push(`${f} desfeito ≠ base`)"
   ]
  ]
 }

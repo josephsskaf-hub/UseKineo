@@ -162,6 +162,7 @@ async function provas(over = {}) {
   r.I4_so_metadata_nunca_valor = marcadasW.length === 8 && marcadasW.every((l) => { const code = l.split(' // ')[0]; return /isKitBf|KIT_BF_PACK_ID|kitCur/.test(code) && !/4900|amount\s*===|\bbreak\b|\breturn\b/.test(code) })
     && /^            else if \(packMeta === KIT_BF_PACK_ID\) creditsToAdd = KIT_BF_CREDITS \/\/ KINEO-KIT-BF-VENDA-2010/m.test(seg) && S.isKitBfSession({ mode: 'payment', metadata: { pack: 'kit_bf' } }) && !S.isKitBfSession({ mode: 'payment', metadata: { pack: 'bulk30' } })
   r.I5_mesmo_update_creditos_e_acesso = /^          if \(isKitBf && kitUntilIso\) profileUpdate\[ADS_ACCESS_COLUMN\] = kitUntilIso \/\/ KINEO-KIT-BF-VENDA-2010/m.test(seg) && seg.split('.update(profileUpdate)').length === 2
+    && (W.match(/profileUpdate\[ADS_ACCESS_COLUMN\]/g) || []).length === 2 && /if \(isAdsPass && adsUntilIso\) profileUpdate\[ADS_ACCESS_COLUMN\] = adsUntilIso/.test(seg) // só o passe e o kit escrevem a coluna
   const sEv = src(F.events)
   r.I6_evento_server_only = sEv.split('\n').filter((l) => l.includes(MARCA)).length === 1 && /^  'kit_bf_purchased', \/\/ KINEO-KIT-BF-VENDA-2010/m.test(sEv) && S.KIT_BF_EVENTS.purchased === 'kit_bf_purchased'
 
@@ -194,6 +195,11 @@ ok(KIT_BF_VENDA_2010_NOVOS.filter((p) => /\.(ts|tsx|mjs)$/.test(p)).every((p) =>
 ok(MARCA_KIT_BF_VENDA_2010 === MARCA && Object.keys(TROCAS_KIT_BF_VENDA_2010).filter((k) => k !== '__acrescimos').every((k) => KIT_BF_VENDA_2010_ARQUIVOS.includes(k)), 'D4 trocas só em arquivos declarados')
 ok(KIT_BF_VENDA_2010_ARQUIVOS.every((p) => { const n = disco(p).split('\n').filter((l) => l.includes(MARCA)).length; return n === (ACRESCIMOS_KIT_BF_VENDA_2010[p] ?? 0) + (TROCAS_KIT_BF_VENDA_2010[p] ?? []).length }), 'D5 contagem de linhas marcadas = acréscimos + trocas, arquivo a arquivo')
 ok(semKitBfVenda2010('qualquer texto sem marca', F.webhook) === 'qualquer texto sem marca' && semKitBfVenda2010(disco(F.sale), F.sale) === disco(F.sale), 'D6 idempotente fora da lista e sem marca')
+{
+  const { semApresentadorOlhos1910 } = await import('./test-support/desfaz-apresentador-olhos-1910.mjs')
+  const viaCadeia = semApresentadorOlhos1910(disco(F.adsClient), F.adsClient)
+  ok(!viaCadeia.includes(MARCA) && /^  texto = semKitBfVenda2010\(texto, p\) \/\/ KINEO-KIT-BF-VENDA-2010/m.test(disco('scripts/test-support/desfaz-apresentador-olhos-1910.mjs')), 'D7 encadeado: a cabeça do Ads (semApresentadorOlhos1910) tira esta camada PRIMEIRO')
+}
 
 // ── as provas no disco ───────────────────────────────────────────────────────────────────────────────────────────────────────────────
 console.log('P / T / B / I / N — no disco')
