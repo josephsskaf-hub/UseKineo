@@ -18,7 +18,7 @@
 //   D. desfaz exato (cada arquivo tocado, desfeito, é a base), encadeado como camada mais nova do /api/compose (semMeta95Refazer1910 chama
 //      este primeiro), toda linha nova com a marca, o diff só toca a lista e os novos, todo commit da entrega com a marca no assunto;
 //   M. mutantes: cada regra acima fica vermelha quando a quebramos de propósito (aplicação provada antes de medir).
-import { semVerbatimIntocavel2010NaCadeia } from './test-support/desfaz-verbatim-intocavel-2010.mjs' // reancorado KINEO-VERBATIM-INTOCAVEL-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: o conserto do verbatim (20/10, depois desta entrega) reancorou 2 guardiões da lista; as linhas dele saem antes do D3
+import { semVerbatimIntocavel2010NaCadeia, MARCA_VERBATIM_INTOCAVEL_2010 } from './test-support/desfaz-verbatim-intocavel-2010.mjs' // reancorado KINEO-VERBATIM-INTOCAVEL-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: o conserto do verbatim (20/10, depois desta entrega) reancorou 2 guardiões da lista; as linhas dele saem antes do D3
 import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
@@ -290,6 +290,7 @@ console.log('\nD. desfaz, encadeamento e diff')
   const fora = [...tocados].filter((f) => !permitidos.has(f))
   ok(fora.length === 0, `D7 o diff da entrega só toca a lista e os novos${fora.length ? ' — fora: ' + fora.join(', ') : ''}`)
   const meus = commits.filter(([h]) => { const fs2 = git('diff-tree', '--no-commit-id', '--name-only', '-r', h).split('\n'); return fs2.some((f) => AVATAR_PRESO_2010_NOVOS.includes(f)) })
+  meus.splice(0, meus.length, ...meus.filter(([, s]) => !s.includes(MARCA_VERBATIM_INTOCAVEL_2010))) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 — os commits do conserto do verbatim (reâncoras no desfaz e no guardião desta entrega) levam a marca deles
   ok(meus.every(([, s]) => s.includes(MARCA) && s.includes('[TRAVA 8.2')), 'D8 todo commit da entrega leva a marca e a [TRAVA 8.2] no assunto')
 }
 

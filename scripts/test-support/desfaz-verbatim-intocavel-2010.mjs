@@ -12,7 +12,7 @@ export const ACRESCIMOS_REANCORA_VERBATIM_INTOCAVEL_2010 = {
   'scripts/test-mcp-studio-2010.mjs': 3,
   'scripts/test-meta95-personagem-2010.mjs': 2,
   'scripts/test-support/desfaz-avatar-preso-2010.mjs': 2,
-  'scripts/test-avatar-preso-2010.mjs': 1,
+  'scripts/test-avatar-preso-2010.mjs': 2,
 }
 /** Reâncoras que REESCREVEM uma linha (D3 do guardião do avatar preso): [sufixo marcado, trecho novo, trecho da base], e quantas. */
 const TAG_D3_AVATAR = ' // reancorado KINEO-VERBATIM-INTOCAVEL-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: as reâncoras do conserto do verbatim (camada de depois) saem antes da contagem'
