@@ -18,8 +18,8 @@ import { fileURLToPath } from 'node:url'
 
 export const MARCA_UGC_AJUSTES_2010 = 'KINEO-UGC-AJUSTES-2010'
 
-/** A base da entrega (origin/main de 20/10 = a fila: KINEO-KIT-BF-VENDA-2010 mesclado com a origin/main c5b739f13). */
-export const UGC_AJUSTES_2010_BASE = '44d8d206fe601e263447ba5fe6f336ebbe31514e'
+/** A base da entrega (origin/main de 20/10 = a fila: KINEO-PAGINAS-UGC-2010 sobre KINEO-KIT-BF-VENDA-2010; mesclada com merge sobre a 1ª base 44d8d206f). */
+export const UGC_AJUSTES_2010_BASE = '9ebff0df33037329dc390e314014c5408f5c5258'
 
 /** [linha nova (inteira), linha da base] por arquivo. */
 export const TROCAS_UGC_AJUSTES_2010 = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-ugc-ajustes-2010-trocas.json'), 'utf8'))

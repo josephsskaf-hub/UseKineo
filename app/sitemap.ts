@@ -42,6 +42,8 @@ import { BING_SEO_1510_LASTMOD_ISO, BING_SEO_1510_PATHS } from '@/lib/seo/bingSe
 import { VS_NOVOS_ENRICHED_PATHS, VS_NOVOS_LINKS, VS_NOVOS_REVIEWED_ISO } from '@/lib/seo/vsNovos1610'
 // KINEO-GUIAS-IA-1610 — as guias /guides/<slug> do GPT (16/10) conferidas contra o código. Módulo PURO, sem import.
 import { GUIAS_IA_PATHS, GUIAS_IA_REVIEWED_ISO } from '@/lib/seo/guiasIa1610Paths'
+// KINEO-PAGINAS-UGC-2010 — AI UGC Ads (pilar EN/PT, gerador, 12 nichos) e Kit Black Friday (EN/PT). Módulo PURO, sem import.
+import { PAGINAS_UGC_PATHS, PAGINAS_UGC_REVIEWED_ISO, PAGINAS_UGC_TOUCHED_PATHS } from '@/lib/seo/paginasUgc2010'
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -334,6 +336,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: r.freq,
     priority: r.priority,
   }))
+  carimbaPaginasUgc2010(staticEntries) // KINEO-PAGINAS-UGC-2010 — home, /pricing e /ads ganharam link para as páginas novas
   // #478 — programmatic SEO niche landing pages (/free-ai-shorts/[niche]).
   const nicheEntries = NICHE_SLUGS.map((slug) => ({
     url: `${BASE}/free-ai-shorts/${slug}`,
@@ -465,6 +468,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     })),
+    // KINEO-PAGINAS-UGC-2010 — as páginas do AI UGC Ads e do Kit Black Friday; lastmod = dia da conferência dos fatos. URL nova
+    // no sitemap = o cron app/api/cron/submit-indexnow avisa o Bing na 1ª execução depois do deploy (guardião: test-paginas-ugc-2010).
+    ...PAGINAS_UGC_PATHS.map((path) => ({
+      url: `${BASE}${path}`,
+      lastModified: PAGINAS_UGC_REVIEWED_ISO,
+      changeFrequency: 'weekly' as const,
+      priority: 0.9,
+    })),
     // KINEO-DURACAO-REWARDS-2026-10-06 — ferramenta grátis (régua de narração × piso de 1 min do Creator Rewards);
     // data própria = dia em que as fontes oficiais da página foram lidas. Guardião: test-duracao-rewards-2026-10-06.
     {
@@ -504,4 +515,18 @@ function carimbaBingSeo1510(entries: MetadataRoute.Sitemap): MetadataRoute.Sitem
     const prev = e.lastModified ? new Date(e.lastModified) : null
     return prev && Number.isFinite(prev.getTime()) && prev.getTime() >= stamp.getTime() ? e : { ...e, lastModified: stamp }
   })
+}
+
+// KINEO-PAGINAS-UGC-2010 — as páginas que já existiam e ganharam link para as novas (home, /pricing, /ads) avançam o lastmod para o
+// dia do lote; o cron do IndexNow compara o lastmod com o último envio e as reenvia ao Bing. Só AVANÇA a data (igual ao carimbo do Bing acima).
+// (em lugar, como o lote 1 faz com os nichos: as linhas da rodada do Bing ficam intactas para o desfaz dela)
+function carimbaPaginasUgc2010(entries: { url: string; lastModified?: string | Date }[]): void {
+  const paths = new Set<string>(PAGINAS_UGC_TOUCHED_PATHS)
+  const stamp = new Date(`${PAGINAS_UGC_REVIEWED_ISO}T12:00:00.000Z`)
+  for (const e of entries) {
+    const path = e.url.startsWith(BASE) ? e.url.slice(BASE.length) : e.url
+    if (!paths.has(path)) continue
+    const prev = e.lastModified ? new Date(e.lastModified) : null
+    if (!(prev && Number.isFinite(prev.getTime()) && prev.getTime() >= stamp.getTime())) e.lastModified = stamp
+  }
 }
