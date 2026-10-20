@@ -19,6 +19,7 @@
 // filme rápido volta à base de sempre sem ser editado.
 // scripts/test-meta95-ideia-1910.mjs prova que, desfeito isto, a rota é EXATAMENTE o pai do 1º commit com a marca.
 export const MARCA_META95_IDEIA_1910 = 'KINEO-META95-IDEIA-1910'
+import { semKitBf1910 } from './desfaz-kit-bf-1910.mjs' // KINEO-KIT-BF-1910 — o Kit Black Friday veio depois: sai PRIMEIRO também na cadeia da meta 95 (texto sem a marca dele passa igual)
 export const ROTA_META95_IDEIA_1910 = 'app/api/generate-video-cinematic/route.ts'
 
 export const ACRESCIMOS_META95_IDEIA_1910 = {
@@ -56,6 +57,7 @@ export const PREFIXOS_META95_IDEIA_1910 = ACRESCIMOS_META95_IDEIA_1910[ROTA_META
 
 /** O texto de `rel` sem a alavanca A2 da meta 95 (padrão: a rota do cinematic). */
 export function semMeta95Ideia1910(texto, rel = ROTA_META95_IDEIA_1910) {
+  texto = semKitBf1910(texto, rel) // KINEO-KIT-BF-1910 — a camada mais nova sai primeiro
   const prefixos = ACRESCIMOS_META95_IDEIA_1910[rel]
   if (typeof texto !== 'string' || !prefixos || !texto.includes(MARCA_META95_IDEIA_1910)) return texto
   const crlf = texto.includes('\r\n')

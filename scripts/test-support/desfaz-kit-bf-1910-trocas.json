@@ -5,7 +5,9 @@
   "lib/ads/v2Advance.ts": 5,
   "app/(dashboard)/ads/v2/AdsV2Simple.tsx": 22,
   "scripts/test-support/desfaz-close-real-legenda-corte-1910.mjs": 2,
-  "scripts/test-close-real-v3-1910.mjs": 2
+  "scripts/test-close-real-v3-1910.mjs": 2,
+  "scripts/test-support/desfaz-meta95-ideia-1910.mjs": 2,
+  "scripts/test-filmes-f1-virgula-1910.mjs": 0
  },
  "lib/ads/v2Brief.ts": [
   [
@@ -29,6 +31,12 @@
   [
    "  const costLine = adsV2CostLine({ tier, balance, sample: !!scopy, group: kitN > 1 ? adsV2KitBfTotal(kitN, cost) : variations && three ? variationsPrice(cost) : null }) // KINEO-KIT-BF-1910 — o custo da prévia ao vivo também mostra o total das N",
    "  const costLine = adsV2CostLine({ tier, balance, sample: !!scopy, group: variations && three ? variationsPrice(cost) : null })"
+  ]
+ ],
+ "scripts/test-filmes-f1-virgula-1910.mjs": [
+  [
+   "  const alheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA}`, '--grep=KINEO-CLOSE-REAL-LEGENDA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-KIT-BF-1910' /* reancorado KINEO-KIT-BF-1910: o commit do kit (que reancora o guardião da rodada 3) não é a versão alheia */, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } } // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a versão 'alheia' pula também os commits da legenda menor do Close real",
+   "  const alheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA}`, '--grep=KINEO-CLOSE-REAL-LEGENDA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } } // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a versão 'alheia' pula também os commits da legenda menor do Close real"
   ]
  ]
 }
