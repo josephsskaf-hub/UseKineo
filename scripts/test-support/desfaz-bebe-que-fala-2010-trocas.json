@@ -37,6 +37,12 @@
    "  return add.length > 0 && add.every((l) => l.includes(MARCA) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || linhaDoParceiroEyebible2_1410(l) || linhaDaAncoraLegenda1410(l) /* KINEO-ANCORA-LEGENDA-1410 */ || linhaDoJuizStill1410(l) /* reancorado KINEO-JUIZ-STILL-1410 */ || linhaDaCenaNegacao1510(l) /* reancorado KINEO-CENA-NEGACAO-1510 */ || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */) // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410: as linhas da 2ª leva levam a marca DELA"
   ]
  ],
+ "scripts/test-filmes-f1f4-1910.mjs": [
+  [
+   "  const rdAlheio = (p) => { try { const sha = execFileSync('git', ['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F4_1910}`, '--grep=KINEO-CLOSE-REAL-AJUSTE-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-HOME-3-CARDS-1910' /* reancorado KINEO-HOME-3-CARDS-1910: pula os commits dos 3 cards */, '--grep=KINEO-BEBE-QUE-FALA-2010' /* reancorado KINEO-BEBE-QUE-FALA-2010: pula os commits do desenho infantil */, '--', p], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); return sha ? lf(execFileSync('git', ['show', `${sha}:${p}`], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()) : null } catch { return null } } // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: a versão 'alheia' pula também os commits do ajuste do Close real // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo",
+   "  const rdAlheio = (p) => { try { const sha = execFileSync('git', ['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F4_1910}`, '--grep=KINEO-CLOSE-REAL-AJUSTE-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-HOME-3-CARDS-1910' /* reancorado KINEO-HOME-3-CARDS-1910: pula os commits dos 3 cards */, '--', p], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); return sha ? lf(execFileSync('git', ['show', `${sha}:${p}`], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()) : null } catch { return null } } // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: a versão 'alheia' pula também os commits do ajuste do Close real // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo"
+  ]
+ ],
  "scripts/test-home-3-cards-1910.mjs": [
   [
    "const LAND = semBebeQueFala2010(read('app/KineoLanding.tsx'), 'app/KineoLanding.tsx') // reancorado KINEO-BEBE-QUE-FALA-2010 — a landing sem o 4º card = a de antes (o kidsCard pelo interruptor é provado em scripts/test-bebe-que-fala-2010.mjs)",
@@ -49,10 +55,34 @@
    "  vm.runInNewContext(js, { exports: exp, console: { log() {}, warn() {}, error() {} }, JSON, Math, Number, Array, Object, Set, Map, String, RegExp, process: { env: {} }, romanceAdulto: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op)"
   ]
  ],
+ "scripts/test-mcp-studio-2010.mjs": [
+  [
+   "  ok(base(rel) !== null && lf(semMeta95Personagem2010(semBebeQueFala2010(raw(rel), rel), rel)) === base(rel) /* reancorado KINEO-BEBE-QUE-FALA-2010 */, `(E2) ${rel} intocada por esta entrega (nenhuma rota de geração mudou — a trava 8.2 não foi tocada; a folha de personagem, entrega de depois, sai em memória)`) // reancorado KINEO-META95-PERSONAGEM-2010",
+   "  ok(base(rel) !== null && lf(semMeta95Personagem2010(raw(rel), rel)) === base(rel), `(E2) ${rel} intocada por esta entrega (nenhuma rota de geração mudou — a trava 8.2 não foi tocada; a folha de personagem, entrega de depois, sai em memória)`) // reancorado KINEO-META95-PERSONAGEM-2010"
+  ],
+  [
+   "const changedExisting = git('diff', '--name-only', MCP_STUDIO_2010_BASE, 'HEAD').split('\\n').filter(Boolean).filter((f) => base(f) !== null).filter((f) => !META95_PERSONAGEM_2010_ARQUIVOS.includes(f)).filter((f) => !BEBE_QUE_FALA_2010_ARQUIVOS.includes(f)) /* reancorado KINEO-BEBE-QUE-FALA-2010 */ // reancorado KINEO-META95-PERSONAGEM-2010: os arquivos da folha de personagem (entrega de depois, com desfaz próprio) ficam fora desta conta",
+   "const changedExisting = git('diff', '--name-only', MCP_STUDIO_2010_BASE, 'HEAD').split('\\n').filter(Boolean).filter((f) => base(f) !== null).filter((f) => !META95_PERSONAGEM_2010_ARQUIVOS.includes(f)) // reancorado KINEO-META95-PERSONAGEM-2010: os arquivos da folha de personagem (entrega de depois, com desfaz próprio) ficam fora desta conta"
+  ],
+  [
+   "const commits = git('log', '--format=%s', `${MCP_STUDIO_2010_BASE}..HEAD`).split('\\n').filter(Boolean).filter((s) => !s.includes(MARCA_META95_PERSONAGEM_2010)).filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010')) /* reancorado KINEO-BEBE-QUE-FALA-2010 */ // reancorado KINEO-META95-PERSONAGEM-2010: os commits da folha de personagem levam a marca deles",
+   "const commits = git('log', '--format=%s', `${MCP_STUDIO_2010_BASE}..HEAD`).split('\\n').filter(Boolean).filter((s) => !s.includes(MARCA_META95_PERSONAGEM_2010)) // reancorado KINEO-META95-PERSONAGEM-2010: os commits da folha de personagem levam a marca deles"
+  ]
+ ],
  "scripts/test-menu-ugc-2010.mjs": [
   [
    "  const semMarca = MENU_UGC_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !semBebeQueFala2010(rd(f), f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) }) // reancorado KINEO-BEBE-QUE-FALA-2010",
    "  const semMarca = MENU_UGC_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !rd(f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) })"
+  ]
+ ],
+ "scripts/test-meta95-personagem-2010.mjs": [
+  [
+   "    const d = tenta(() => lf(semMeta95Personagem2010(semBebeQueFala2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f), f))) // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "    const d = tenta(() => lf(semMeta95Personagem2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f)))"
+  ],
+  [
+   "  const commitsDaEntrega = desdeABase.filter(({ s }) => !s.includes('KINEO-BEBE-QUE-FALA-2010')) /* reancorado KINEO-BEBE-QUE-FALA-2010: os commits de 20/10 levam a marca deles */ .filter(({ h, s }) => s.includes(MARCA) || git('diff-tree', '--no-commit-id', '--name-only', '-r', '-m', h).trim().split('\\n').some((f) => permitidos.has(f)))",
+   "  const commitsDaEntrega = desdeABase.filter(({ h, s }) => s.includes(MARCA) || git('diff-tree', '--no-commit-id', '--name-only', '-r', '-m', h).trim().split('\\n').some((f) => permitidos.has(f)))"
   ]
  ],
  "scripts/test-moderacao-2026-09-25.mjs": [
