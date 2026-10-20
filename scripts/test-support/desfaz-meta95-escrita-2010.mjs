@@ -28,6 +28,17 @@ export const ACRESCIMOS_META95_ESCRITA_2010 = {
   'app/api/prewarm-voiceover/route.ts': 1,
   'lib/audioNoCliqueServer.ts': 1,
   'scripts/test-support/desfaz-menu-ugc-2010.mjs': 2,
+  // reâncoras dos guardiões que liam as linhas trocadas (ou a rota byte a byte contra uma base antiga)
+  'scripts/test-ads-self-serve-2026-09-24.mjs': 0,
+  'scripts/test-filmes-f1-virgula-1910.mjs': 1,
+  'scripts/test-filmes-f1f3-ajuste-1910.mjs': 0,
+  'scripts/test-filmes-f1f3-publico-2010.mjs': 1,
+  'scripts/test-gancho-1q-2026-10-03.mjs': 1,
+  'scripts/test-kling-duracao-2026-09-15.mjs': 0,
+  'scripts/test-legenda-grafia-do-roteiro-2026-09-28.mjs': 0,
+  'scripts/test-meta95-refazer-1910.mjs': 1,
+  'scripts/test-seedance-15s-3x6-2026-09-29.mjs': 2,
+  'scripts/test-voz-15s-mesma-da-montagem-2026-09-29.mjs': 2,
 }
 export const META95_ESCRITA_2010_ARQUIVOS = Object.freeze(Object.keys(ACRESCIMOS_META95_ESCRITA_2010))
 /** Arquivos novos da entrega (não existiam na base). */

@@ -53,7 +53,7 @@ for (const p of ['lib/compose.ts', 'lib/hookFirstFrame.ts', 'lib/lyriaMusic.ts',
   // nenhum commit do ajuste (fora os merges da fila) toca o arquivo, e o vivo é BYTE A BYTE a última versão alheia dele (quem
   // vier depois e mexer nele não deixa este guardião vermelho; o ajuste mexendo nele, sim)
   const meus = (() => { try { return git(['log', '--no-merges', '--format=%H', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, 'HEAD', '--', p]).trim() } catch { return 'erro' } })()
-  const alheio = (() => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=KINEO-FILMES-F1-VIRGULA-1910`, `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } })() // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo
+  const alheio = (() => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=KINEO-FILMES-F1-VIRGULA-1910`, `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-META95-ESCRITA-2010' /* reancorado KINEO-META95-ESCRITA-2010: pula os commits da legenda na escrita do roteiro */, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } })() // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo
   checa(`A2 ${p}: nenhum commit do ajuste o toca e é BYTE A BYTE a última versão alheia e a base (nada no motor de vídeo nem na rota)`, meus === '' && alheio !== null && rd(p) === alheio && rdBase(p) !== null)
 }
 {

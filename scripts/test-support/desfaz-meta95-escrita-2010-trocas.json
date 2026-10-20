@@ -36,5 +36,59 @@
    "    if (words.length === 0) words = await transcreverNaEscritaDoRoteiro(voiceBuf, narration).catch(() => []) // KINEO-META95-ESCRITA-2010",
    "    if (words.length === 0) words = await transcribeTTSWithTimestamps(voiceBuf).catch(() => [])"
   ]
+ ],
+ "scripts/test-ads-self-serve-2026-09-24.mjs": [
+  [
+   "ok(/let words = await transcreverNaEscritaDoRoteiro\\(voiceBuf, narration\\)\\.catch\\(\\(\\) => \\[\\]\\)[^\\n]*\\n\\s*if \\(words\\.length === 0\\) words = await transcreverNaEscritaDoRoteiro\\(voiceBuf, narration\\)\\.catch\\(\\(\\) => \\[\\]\\)[^\\n]*\\n\\s*if \\(words\\.length === 0\\) \\{\\n\\s*await back\\('draft', 'whisper_empty'\\)/.test(post) && ip(\"await back('draft', 'whisper_empty')\") < ip('uploadVoiceoverToSupabase(user.id, voiceBuf)') && ip('uploadVoiceoverToSupabase(user.id, voiceBuf)') < ip('buildCreatomateSource({'), // KINEO-META95-ESCRITA-2010 — reancorado: as 2 tentativas passam pelo Whisper na escrita do roteiro",
+   "ok(/let words = await transcribeTTSWithTimestamps\\(voiceBuf\\)\\.catch\\(\\(\\) => \\[\\]\\)\\n\\s*if \\(words\\.length === 0\\) words = await transcribeTTSWithTimestamps\\(voiceBuf\\)\\.catch\\(\\(\\) => \\[\\]\\)\\n\\s*if \\(words\\.length === 0\\) \\{\\n\\s*await back\\('draft', 'whisper_empty'\\)/.test(post) && ip(\"await back('draft', 'whisper_empty')\") < ip('uploadVoiceoverToSupabase(user.id, voiceBuf)') && ip('uploadVoiceoverToSupabase(user.id, voiceBuf)') < ip('buildCreatomateSource({'),"
+  ]
+ ],
+ "scripts/test-kling-duracao-2026-09-15.mjs": [
+  [
+   "  checa('legendas e sincronia: o Whisper transcreve o MESMO buffer corrigido (transcribeTTSWithTimestamps(audioBuffer)) depois do corretivo, e o upload usa o mesmo buffer', depois.includes('transcreverNaEscritaDoRoteiro(audioBuffer, scaledScript)') && depois.includes('uploadVoiceoverToSupabase(user.id, audioBuffer as Buffer)')) // KINEO-META95-ESCRITA-2010 — reancorado: o mesmo buffer corrigido, agora pelo Whisper na escrita do roteiro",
+   "  checa('legendas e sincronia: o Whisper transcreve o MESMO buffer corrigido (transcribeTTSWithTimestamps(audioBuffer)) depois do corretivo, e o upload usa o mesmo buffer', depois.includes('transcribeTTSWithTimestamps(audioBuffer)') && depois.includes('uploadVoiceoverToSupabase(user.id, audioBuffer as Buffer)'))"
+  ]
+ ],
+ "scripts/test-legenda-grafia-do-roteiro-2026-09-28.mjs": [
+  [
+   "  r.words = /^    const legendaWords: WhisperWord\\[\\] \\| undefined = legendaNaEscritaDoRoteiro\\(grafia \\? grafia\\.words : whisperWords, scaledScript\\) \\/\\/ KINEO-META95-ESCRITA-2010 /m.test(route) // KINEO-META95-ESCRITA-2010 — reancorado: a mesma escolha (alinhadas, ou o Whisper) agora passa pela rede da escrita",
+   "  r.words = /^    const legendaWords: WhisperWord\\[\\] \\| undefined = grafia \\? grafia\\.words : whisperWords$/m.test(route)"
+  ]
+ ],
+ "scripts/test-meta95-refazer-1910.mjs": [
+  [
+   "    const rota = semMeta95Escrita2010(rd(F.compose), F.compose) // KINEO-META95-ESCRITA-2010 — reancorado: a legenda na escrita do roteiro (mais nova) sai em memória antes do byte a byte",
+   "    const rota = rd(F.compose)"
+  ]
+ ],
+ "scripts/test-seedance-15s-3x6-2026-09-29.mjs": [],
+ "scripts/test-voz-15s-mesma-da-montagem-2026-09-29.mjs": [],
+ "scripts/test-filmes-f1-virgula-1910.mjs": [
+  [
+   "  const alheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA}`, '--grep=KINEO-CLOSE-REAL-LEGENDA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-KIT-BF-1910' /* reancorado KINEO-KIT-BF-1910: o commit do kit (que reancora o guardião da rodada 3) não é a versão alheia */, '--grep=KINEO-HOME-3-CARDS-1910' /* reancorado KINEO-HOME-3-CARDS-1910: pula os commits dos 3 cards */, '--grep=KINEO-APRESENTADOR-OLHOS-1910' /* reancorado KINEO-APRESENTADOR-OLHOS-1910: pula os commits dos olhos abertos (merge e reâncoras) */, '--grep=KINEO-FILMES-F1F3-PUBLICO-2010' /* reancorado KINEO-FILMES-F1F3-PUBLICO-2010: pula os commits da virada F1+F3 públicas */, '--grep=KINEO-META95-ESCRITA-2010' /* reancorado KINEO-META95-ESCRITA-2010: pula os commits da legenda na escrita do roteiro */, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } } // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a versão 'alheia' pula também os commits da legenda menor do Close real",
+   "  const alheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA}`, '--grep=KINEO-CLOSE-REAL-LEGENDA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-KIT-BF-1910' /* reancorado KINEO-KIT-BF-1910: o commit do kit (que reancora o guardião da rodada 3) não é a versão alheia */, '--grep=KINEO-HOME-3-CARDS-1910' /* reancorado KINEO-HOME-3-CARDS-1910: pula os commits dos 3 cards */, '--grep=KINEO-APRESENTADOR-OLHOS-1910' /* reancorado KINEO-APRESENTADOR-OLHOS-1910: pula os commits dos olhos abertos (merge e reâncoras) */, '--grep=KINEO-FILMES-F1F3-PUBLICO-2010' /* reancorado KINEO-FILMES-F1F3-PUBLICO-2010: pula os commits da virada F1+F3 públicas */, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } } // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a versão 'alheia' pula também os commits da legenda menor do Close real"
+  ],
+  [
+   "    checa(`U0 ${p}: nenhum commit desta entrega o toca e é BYTE A BYTE a última versão alheia`, meus(p) === '' && alheio(p) !== null && semMeta95Escrita2010(rd(p), p) === alheio(p)) // KINEO-META95-ESCRITA-2010 — reancorado: sem a camada da escrita (mais nova), em memória",
+   "    checa(`U0 ${p}: nenhum commit desta entrega o toca e é BYTE A BYTE a última versão alheia`, meus(p) === '' && alheio(p) !== null && rd(p) === alheio(p))"
+  ]
+ ],
+ "scripts/test-filmes-f1f3-ajuste-1910.mjs": [
+  [
+   "  const alheio = (() => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=KINEO-FILMES-F1-VIRGULA-1910`, `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-META95-ESCRITA-2010' /* reancorado KINEO-META95-ESCRITA-2010: pula os commits da legenda na escrita do roteiro */, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } })() // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo",
+   "  const alheio = (() => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=KINEO-FILMES-F1-VIRGULA-1910`, `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } })() // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo"
+  ]
+ ],
+ "scripts/test-gancho-1q-2026-10-03.mjs": [
+  [
+   "const unlock = semMeta95Escrita2010(read(UNLOCK), UNLOCK) // KINEO-META95-ESCRITA-2010 — reancorado: a transcrição na escrita do roteiro e a rede do export limpo saem em memória antes do byte a byte",
+   "const unlock = read(UNLOCK)"
+  ]
+ ],
+ "scripts/test-filmes-f1f3-publico-2010.mjs": [
+  [
+   "    semFilmesF1F3Publico2010(rd(ROTA), ROTA) === semMeta95Escrita2010(rd(ROTA), ROTA) && semFilmesF1F3Publico2010(rd(F15), 'outro/arquivo.ts') === rd(F15) && desfazFilmesF1F3Publico2010(F15, null) === null && // KINEO-META95-ESCRITA-2010 — reancorado: a rota ganhou a legenda na escrita do roteiro (camada mais nova, que a cadeia tira); esta camada segue sem tocá-la",
+   "    semFilmesF1F3Publico2010(rd(ROTA), ROTA) === rd(ROTA) && semFilmesF1F3Publico2010(rd(F15), 'outro/arquivo.ts') === rd(F15) && desfazFilmesF1F3Publico2010(F15, null) === null &&"
+  ]
  ]
 }

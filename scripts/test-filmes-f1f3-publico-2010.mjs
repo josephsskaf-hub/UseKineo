@@ -19,6 +19,7 @@ import { semFilmesF1F3Publico2010, desfazFilmesF1F3Publico2010, diffSoFilmesF1F3
 import { semHomeCardsBotoes2010 } from './test-support/desfaz-home-cards-botoes-2010.mjs'
 import { semApresentadorOlhos1910 } from './test-support/desfaz-apresentador-olhos-1910.mjs'
 import { semHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs'
+import { semMeta95Escrita2010 } from './test-support/desfaz-meta95-escrita-2010.mjs' // KINEO-META95-ESCRITA-2010 — reancorado: a legenda na escrita do roteiro (a camada mais nova) sai em memória antes do byte a byte
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ) // o carregador offline resolve '@/' a partir do cwd
@@ -138,7 +139,7 @@ check('D3 encadeamento: semHomeCardsBotoes2010 (e, por ela, semApresentadorOlhos
     const raw = readFileSync(join(RAIZ, f), 'utf8'), semEste = semFilmesF1F3Publico2010(raw, f)
     return semHomeCardsBotoes2010(raw, f) === semHomeCardsBotoes2010(semEste, f) && semApresentadorOlhos1910(raw, f) === semApresentadorOlhos1910(semEste, f) && semHome3Cards1910(raw, f) === semHome3Cards1910(semEste, f)
   }) && /export function semHomeCardsBotoes2010\(texto, p\) \{\n  texto = semFilmesF1F3Publico2010\(texto, p\)/.test(rd('scripts/test-support/desfaz-home-cards-botoes-2010.mjs')) &&
-    semFilmesF1F3Publico2010(rd(ROTA), ROTA) === rd(ROTA) && semFilmesF1F3Publico2010(rd(F15), 'outro/arquivo.ts') === rd(F15) && desfazFilmesF1F3Publico2010(F15, null) === null &&
+    semFilmesF1F3Publico2010(rd(ROTA), ROTA) === semMeta95Escrita2010(rd(ROTA), ROTA) && semFilmesF1F3Publico2010(rd(F15), 'outro/arquivo.ts') === rd(F15) && desfazFilmesF1F3Publico2010(F15, null) === null && // KINEO-META95-ESCRITA-2010 — reancorado: a rota ganhou a legenda na escrita do roteiro (camada mais nova, que a cadeia tira); esta camada segue sem tocá-la
     Object.values(ACRESCIMOS_FILMES_F1F3_PUBLICO_2010).every((n) => Number.isInteger(n) && n >= 0)
 })
 check('D4 todo commit da entrega traz a marca e a [TRAVA 8.2 — vai do fundador 20/10 "nota 10"] no assunto', () => {

@@ -407,7 +407,7 @@ function ligacao(route, unlock, ads) {
   }
   r.import = /^import \{ alinharGrafiaDoRoteiro \} from '@\/lib\/captionScriptSpelling'/m.test(route)
   r.grafia = /^    const grafia = legendaPelaGrafiaDoRoteiro && whisperWords \? alinharGrafiaDoRoteiro\(whisperWords, scaledScript\) : null$/m.test(route)
-  r.words = /^    const legendaWords: WhisperWord\[\] \| undefined = grafia \? grafia\.words : whisperWords$/m.test(route)
+  r.words = /^    const legendaWords: WhisperWord\[\] \| undefined = legendaNaEscritaDoRoteiro\(grafia \? grafia\.words : whisperWords, scaledScript\) \/\/ KINEO-META95-ESCRITA-2010 /m.test(route) // KINEO-META95-ESCRITA-2010 — reancorado: a mesma escolha (alinhadas, ou o Whisper) agora passa pela rede da escrita
   const call = route.indexOf('      source = buildCreatomateSource({')
   const callEnd = route.indexOf('\n      })\n', call)
   const bloco = call >= 0 && callEnd > call ? route.slice(call, callEnd) : ''
