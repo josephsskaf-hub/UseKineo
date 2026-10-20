@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { openai, OPENAI_SCRIPT_TIMEOUT_MS } from '@/lib/openai'
+import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { moderateTopic } from '@/lib/safety/topicModeration'
 import { moderateContent } from '@/lib/safety/contentModeration'
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest) {
     try {
       const completion = await openai.chat.completions.create(
         {
-          model: 'gpt-4o',
+          model: AI_TEXT_MODELS.writer, // o escritor de roteiro da casa (gpt-4o hoje; a migração troca num lugar só)
           temperature: 0.8,
           max_tokens: 600,
           messages: [

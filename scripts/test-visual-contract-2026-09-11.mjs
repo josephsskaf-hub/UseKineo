@@ -32,7 +32,7 @@ const noNetwork = () => { throw new Error('Network is forbidden in this test') }
 function execute(source, globals = {}) {
   const exports = {}
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText,
-    { exports, console: { log() {}, warn() {}, error() {} }, process: { env: {} }, fetch: noNetwork, romanceAdulto: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op)
+    { exports, console: { log() {}, warn() {}, error() {} }, process: { env: {} }, fetch: noNetwork, romanceAdulto: { ativo: false }, desenhoInfantil: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op) · desenhoInfantil: reancorado KINEO-BEBE-QUE-FALA-2010 (sem kids_cartoon a linha é no-op)
   return exports
 }
 const allowed = new Set(['lib/aspect.ts', 'lib/cinematic/sceneStyle.ts', 'lib/cinematic/visualMode.ts',

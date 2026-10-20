@@ -26,6 +26,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import vm from 'node:vm'
 import { createRequire } from 'node:module'
+import { semBebeQueFala2010 } from './test-support/desfaz-bebe-que-fala-2010.mjs' // reancorado KINEO-BEBE-QUE-FALA-2010 — o 4º card (kidsCard) veio depois
 import { semApresentadorOlhos1910 } from './test-support/desfaz-apresentador-olhos-1910.mjs' // reancorado KINEO-APRESENTADOR-OLHOS-1910: a cabeça da corrente do Close real é lida sem a camada dos olhos abertos (a mais nova, que sai antes desta)
 
 const require = createRequire(import.meta.url)
@@ -47,7 +48,7 @@ const semComentario = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'
 
 const LIB = read('lib/ui/homeThreeCards.ts')
 const COMP = read('components/home/HomeThreeCards.tsx')
-const LAND = read('app/KineoLanding.tsx')
+const LAND = semBebeQueFala2010(read('app/KineoLanding.tsx'), 'app/KineoLanding.tsx') // reancorado KINEO-BEBE-QUE-FALA-2010 — a landing sem o 4º card = a de antes (o kidsCard pelo interruptor é provado em scripts/test-bebe-que-fala-2010.mjs)
 const DICT = JSON.parse(read('lib/ui/refinementCopy.json'))
 const WALL = read('lib/engineWall.ts')
 const CURA = read('lib/homeVideoCuration.ts')

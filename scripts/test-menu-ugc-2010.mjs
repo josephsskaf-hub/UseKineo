@@ -24,6 +24,7 @@ import {
 import { semUgcAjustes2010 } from './test-support/desfaz-ugc-ajustes-2010.mjs'
 import { semPaginasUgc2010 } from './test-support/desfaz-paginas-ugc-2010.mjs'
 import { semHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs'
+import { semBebeQueFala2010 } from './test-support/desfaz-bebe-que-fala-2010.mjs' // reancorado KINEO-BEBE-QUE-FALA-2010 — a camada de 20/10 sai antes da conferência de marca do D6
 
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
@@ -250,7 +251,7 @@ console.log('\nD. desfaz exato, encadeamento, diff, commits')
   const tocados = new Set([...git('diff', '--name-only', MENU_UGC_2010_BASE, TOPO).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n')].filter(Boolean))
   const permitidos = new Set([...MENU_UGC_2010_ARQUIVOS, ...MENU_UGC_2010_NOVOS])
   const fora = [...tocados].filter((f) => !permitidos.has(f))
-  const semMarca = MENU_UGC_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !rd(f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) })
+  const semMarca = MENU_UGC_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !semBebeQueFala2010(rd(f), f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) }) // reancorado KINEO-BEBE-QUE-FALA-2010
   ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && ![...tocados].some((f) => /engineCost|pricing|lib\/credits\/|lib\/ads\/|app\/api\//.test(f)),
     `D6 o diff da base só toca a lista e os novos; toda linha nova traz a marca; nada de cobrança, motor ou preço (${[...fora.map((f) => `fora: ${f}`), ...semMarca.map((f) => `sem marca: ${f}`)].join('; ') || 'ok'})`)
   const assuntos = git('log', '--no-merges', '--format=%s', `${MENU_UGC_2010_BASE}..${TOPO}`).trim().split('\n').filter(Boolean)

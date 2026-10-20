@@ -113,7 +113,7 @@ function avaliar({ rota, lib, modo }, log = false) {
         buildClassicVisualPrompt: (v) => `${v}${SUFIXO}`,
         montarContrato: L.montarContrato, aplicarContrato: L.aplicarContrato, severidadeDe: L.severidadeDe,
         proibidosPorModo: V.proibidosPorModo,
-        romanceAdulto: { ativo: false }, aplicarRomanceAdulto: (p) => p,
+        romanceAdulto: { ativo: false }, aplicarRomanceAdulto: (p) => p, desenhoInfantil: { ativo: false }, // reancorado KINEO-BEBE-QUE-FALA-2010 — sem kids_cartoon a linha do desenho infantil é no-op
         kling25ApplyShotAxis: (p, i) => `[K${i}] ${p}`, veoApplyShotAxis: (p, i) => `[V${i}] ${p}`,
       }).rodar
     } catch (e) { c('(B) a fatia do laço transpila: ' + e.message, false) }
@@ -201,7 +201,7 @@ checa('toda linha nova/trocada da rota e do sceneTruth leva a marca (o diff não
   if (!BASE) return false
   const d = git(['diff', BASE, '--', ROTA, LIB]).replace(/\r/g, '')
   const add = d.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))
-  return add.length > 0 && add.every((l) => l.includes(MARCA) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || linhaDoParceiroEyebible2_1410(l) || linhaDaAncoraLegenda1410(l) /* KINEO-ANCORA-LEGENDA-1410 */ || linhaDoJuizStill1410(l) /* reancorado KINEO-JUIZ-STILL-1410 */ || linhaDaCenaNegacao1510(l) /* reancorado KINEO-CENA-NEGACAO-1510 */ || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */) // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410: as linhas da 2ª leva levam a marca DELA
+  return add.length > 0 && add.every((l) => l.includes(MARCA) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || l.includes('KINEO-BEBE-QUE-FALA-2010') /* reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories (20/10) também é de depois da base; provado em scripts/test-bebe-que-fala-2010.mjs */ || linhaDoParceiroEyebible2_1410(l) || linhaDaAncoraLegenda1410(l) /* KINEO-ANCORA-LEGENDA-1410 */ || linhaDoJuizStill1410(l) /* reancorado KINEO-JUIZ-STILL-1410 */ || linhaDaCenaNegacao1510(l) /* reancorado KINEO-CENA-NEGACAO-1510 */ || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */) // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410: as linhas da 2ª leva levam a marca DELA
 })())
 let lancouMarcadaEstranha = false
 try { semContratoClassicos1410(atual.rota + '\n// linha estranha ' + MARCA + '\n', ROTA) } catch { lancouMarcadaEstranha = true }

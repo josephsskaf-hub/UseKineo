@@ -28,7 +28,19 @@ export const ACRESCIMOS_BEBE_QUE_FALA_2010 = {
   'app/llms.txt/route.ts': 2,
   'app/sitemap.ts': 3,
   'components/home/HomeThreeCards.tsx': 4,
+  'scripts/test-cena-negacao-1510.mjs': 0,
+  'scripts/test-contrato-classicos-1410.mjs': 0,
+  'scripts/test-home-3-cards-1910.mjs': 1,
+  'scripts/test-kling25-variedade-2026-09-28.mjs': 0,
+  'scripts/test-menu-ugc-2010.mjs': 1,
+  'scripts/test-moderacao-2026-09-25.mjs': 1,
+  'scripts/test-showcase-2026-10-02.mjs': 1,
+  'scripts/test-studio-fantasma-1510.mjs': 0,
   'scripts/test-support/desfaz-menu-ugc-2010.mjs': 2,
+  'scripts/test-trilha-15s-1610.mjs': 0,
+  'scripts/test-veo-marcado-2026-09-29.mjs': 0,
+  'scripts/test-veo-modo-ia-2026-09-29.mjs': 0,
+  'scripts/test-visual-contract-2026-09-11.mjs': 0,
 }
 export const BEBE_QUE_FALA_2010_ARQUIVOS = Object.freeze(Object.keys(ACRESCIMOS_BEBE_QUE_FALA_2010))
 /** Arquivos novos da entrega (não existiam na base). */

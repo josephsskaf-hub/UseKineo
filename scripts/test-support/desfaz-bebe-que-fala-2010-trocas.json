@@ -20,5 +20,79 @@
    "        <div className=\"k3c-grid\" data-k3c-cols={kidsCard ? '4' : undefined}>{/* KINEO-BEBE-QUE-FALA-2010 — undefined = o atributo nem é emitido (home de hoje); era: <div className=\"k3c-grid\"> */}",
    "        <div className=\"k3c-grid\">"
   ]
+ ],
+ "scripts/test-cena-negacao-1510.mjs": [
+  [
+   "  relata('F toda linha nova/trocada da rota e do sceneTruth leva a marca', add.length > 0 && add.every((l) => l.includes(MARCA) || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */ || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || l.includes('KINEO-BEBE-QUE-FALA-2010') /* reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories (20/10) também é de depois da base; provado em scripts/test-bebe-que-fala-2010.mjs */), add.filter((l) => !l.includes(MARCA) && !linhaDaTrilha15s1610(l) && !l.includes('KINEO-META95-ASSUNTO-1910') && !l.includes('KINEO-BEBE-QUE-FALA-2010')).slice(0, 2).join(' | '))",
+   "  relata('F toda linha nova/trocada da rota e do sceneTruth leva a marca', add.length > 0 && add.every((l) => l.includes(MARCA) || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */ || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */), add.filter((l) => !l.includes(MARCA) && !linhaDaTrilha15s1610(l) && !l.includes('KINEO-META95-ASSUNTO-1910')).slice(0, 2).join(' | '))"
+  ]
+ ],
+ "scripts/test-contrato-classicos-1410.mjs": [
+  [
+   "        romanceAdulto: { ativo: false }, aplicarRomanceAdulto: (p) => p, desenhoInfantil: { ativo: false }, // reancorado KINEO-BEBE-QUE-FALA-2010 — sem kids_cartoon a linha do desenho infantil é no-op",
+   "        romanceAdulto: { ativo: false }, aplicarRomanceAdulto: (p) => p,"
+  ],
+  [
+   "  return add.length > 0 && add.every((l) => l.includes(MARCA) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || l.includes('KINEO-BEBE-QUE-FALA-2010') /* reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories (20/10) também é de depois da base; provado em scripts/test-bebe-que-fala-2010.mjs */ || linhaDoParceiroEyebible2_1410(l) || linhaDaAncoraLegenda1410(l) /* KINEO-ANCORA-LEGENDA-1410 */ || linhaDoJuizStill1410(l) /* reancorado KINEO-JUIZ-STILL-1410 */ || linhaDaCenaNegacao1510(l) /* reancorado KINEO-CENA-NEGACAO-1510 */ || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */) // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410: as linhas da 2ª leva levam a marca DELA",
+   "  return add.length > 0 && add.every((l) => l.includes(MARCA) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || linhaDoParceiroEyebible2_1410(l) || linhaDaAncoraLegenda1410(l) /* KINEO-ANCORA-LEGENDA-1410 */ || linhaDoJuizStill1410(l) /* reancorado KINEO-JUIZ-STILL-1410 */ || linhaDaCenaNegacao1510(l) /* reancorado KINEO-CENA-NEGACAO-1510 */ || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */) // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410: as linhas da 2ª leva levam a marca DELA"
+  ]
+ ],
+ "scripts/test-home-3-cards-1910.mjs": [
+  [
+   "const LAND = semBebeQueFala2010(read('app/KineoLanding.tsx'), 'app/KineoLanding.tsx') // reancorado KINEO-BEBE-QUE-FALA-2010 — a landing sem o 4º card = a de antes (o kidsCard pelo interruptor é provado em scripts/test-bebe-que-fala-2010.mjs)",
+   "const LAND = read('app/KineoLanding.tsx')"
+  ]
+ ],
+ "scripts/test-kling25-variedade-2026-09-28.mjs": [
+  [
+   "  vm.runInNewContext(js, { exports: exp, console: { log() {}, warn() {}, error() {} }, JSON, Math, Number, Array, Object, Set, Map, String, RegExp, process: { env: {} }, romanceAdulto: { ativo: false }, desenhoInfantil: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op) · desenhoInfantil: reancorado KINEO-BEBE-QUE-FALA-2010 (sem kids_cartoon a linha é no-op)",
+   "  vm.runInNewContext(js, { exports: exp, console: { log() {}, warn() {}, error() {} }, JSON, Math, Number, Array, Object, Set, Map, String, RegExp, process: { env: {} }, romanceAdulto: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op)"
+  ]
+ ],
+ "scripts/test-menu-ugc-2010.mjs": [
+  [
+   "  const semMarca = MENU_UGC_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !semBebeQueFala2010(rd(f), f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) }) // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "  const semMarca = MENU_UGC_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !rd(f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) })"
+  ]
+ ],
+ "scripts/test-moderacao-2026-09-25.mjs": [
+  [
+   "ok(imp.length === 33 && imp.every((p) => !/^\\s*['\"]use client['\"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`) // reancorado KINEO-BEBE-QUE-FALA-2010 — era 32",
+   "ok(imp.length === 32 && imp.every((p) => !/^\\s*['\"]use client['\"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`)"
+  ]
+ ],
+ "scripts/test-studio-fantasma-1510.mjs": [
+  [
+   "ok(hunks.length > 0 && hunks.every((h) => { const add = h.split(NL).filter((l) => l.startsWith('+') && !l.startsWith('+++')); return add.length === 0 || add.some((l) => l.includes('KINEO-STUDIO-FANTASMA-1510')) || add.every((l) => l.includes('KINEO-FILME-RAPIDO-1710')) || add.every((l) => l.includes('KINEO-FILME-RAPIDO-1710') || l.includes('KINEO-BEBE-QUE-FALA-2010')) /* reancorado KINEO-BEBE-QUE-FALA-2010: blocos do kids_cartoon (um deles colado no import da filme-rápido), todos marcados */ /* reancorado KINEO-FILME-RAPIDO-1710: blocos dela, todos marcados */ }), 'todo bloco novo no GenerateClient traz a marca KINEO-STUDIO-FANTASMA-1510')",
+   "ok(hunks.length > 0 && hunks.every((h) => { const add = h.split(NL).filter((l) => l.startsWith('+') && !l.startsWith('+++')); return add.length === 0 || add.some((l) => l.includes('KINEO-STUDIO-FANTASMA-1510')) || add.every((l) => l.includes('KINEO-FILME-RAPIDO-1710')) /* reancorado KINEO-FILME-RAPIDO-1710: blocos dela, todos marcados */ }), 'todo bloco novo no GenerateClient traz a marca KINEO-STUDIO-FANTASMA-1510')"
+  ]
+ ],
+ "scripts/test-trilha-15s-1610.mjs": [
+  [
+   "  relata('F toda linha nova/trocada da rota e do visualPromptPolicy leva a marca', add.length > 0 && add.every((l) => linhaDaTrilha15s1610(l) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || l.includes('KINEO-BEBE-QUE-FALA-2010') /* reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories (20/10) também é de depois da base; provado em scripts/test-bebe-que-fala-2010.mjs */), add.filter((l) => !linhaDaTrilha15s1610(l) && !l.includes('KINEO-META95-ASSUNTO-1910') && !l.includes('KINEO-BEBE-QUE-FALA-2010')).slice(0, 2).join(' | '))",
+   "  relata('F toda linha nova/trocada da rota e do visualPromptPolicy leva a marca', add.length > 0 && add.every((l) => linhaDaTrilha15s1610(l) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */), add.filter((l) => !linhaDaTrilha15s1610(l) && !l.includes('KINEO-META95-ASSUNTO-1910')).slice(0, 2).join(' | '))"
+  ],
+  [
+   "  const assuntos = git('log', '--format=%s', `${base}..HEAD`, '--', ROTA, VPP, LIB).split('\\n').map((s) => s.trim()).filter(Boolean).filter((s) => !s.includes('KINEO-FILME-RAPIDO-1710')).filter((s) => !s.includes('KINEO-META95-ASSUNTO-1910')).filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010')) /* reancorado KINEO-BEBE-QUE-FALA-2010: os commits de 20/10 levam o selo deles */ // reancorado KINEO-FILME-RAPIDO-1710: os commits da entrega de 17/10 levam o selo deles · reancorado KINEO-META95-ASSUNTO-1910: os de 19/10 levam o selo \"Vai pra meta do 95\"",
+   "  const assuntos = git('log', '--format=%s', `${base}..HEAD`, '--', ROTA, VPP, LIB).split('\\n').map((s) => s.trim()).filter(Boolean).filter((s) => !s.includes('KINEO-FILME-RAPIDO-1710')).filter((s) => !s.includes('KINEO-META95-ASSUNTO-1910')) // reancorado KINEO-FILME-RAPIDO-1710: os commits da entrega de 17/10 levam o selo deles · reancorado KINEO-META95-ASSUNTO-1910: os de 19/10 levam o selo \"Vai pra meta do 95\""
+  ]
+ ],
+ "scripts/test-veo-marcado-2026-09-29.mjs": [
+  [
+   "const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) || linhaDosFilmesF1F4_1910(l) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || l.includes('KINEO-BEBE-QUE-FALA-2010') /* reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories (20/10) também é de depois da base; provado em scripts/test-bebe-que-fala-2010.mjs */ /* reancorado KINEO-FILMES-F1-F4-1910 */ // reancorado KINEO-FILME-RAPIDO-1710",
+   "const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) || linhaDosFilmesF1F4_1910(l) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ /* reancorado KINEO-FILMES-F1-F4-1910 */ // reancorado KINEO-FILME-RAPIDO-1710"
+  ]
+ ],
+ "scripts/test-veo-modo-ia-2026-09-29.mjs": [
+  [
+   "const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) || linhaDosFilmesF1F4_1910(l) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || l.includes('KINEO-BEBE-QUE-FALA-2010') /* reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories (20/10) também é de depois da base; provado em scripts/test-bebe-que-fala-2010.mjs */ /* reancorado KINEO-FILMES-F1-F4-1910 */ // reancorado KINEO-FILME-RAPIDO-1710",
+   "const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) || linhaDosFilmesF1F4_1910(l) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ /* reancorado KINEO-FILMES-F1-F4-1910 */ // reancorado KINEO-FILME-RAPIDO-1710"
+  ]
+ ],
+ "scripts/test-visual-contract-2026-09-11.mjs": [
+  [
+   "    { exports, console: { log() {}, warn() {}, error() {} }, process: { env: {} }, fetch: noNetwork, romanceAdulto: { ativo: false }, desenhoInfantil: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op) · desenhoInfantil: reancorado KINEO-BEBE-QUE-FALA-2010 (sem kids_cartoon a linha é no-op)",
+   "    { exports, console: { log() {}, warn() {}, error() {} }, process: { env: {} }, fetch: noNetwork, romanceAdulto: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op)"
+  ]
  ]
 }
