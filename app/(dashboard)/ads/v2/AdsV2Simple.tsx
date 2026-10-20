@@ -136,7 +136,7 @@ import { ADS_V2_PLAN_LEFT_WARN } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-
 import { ADS_V2_ORIGINAL_MAX_SIDE, adsV2NeedsOriginal, adsV2OriginalSize, adsV2SimplePhotoKindFor } from '@/lib/ads/v2Fiel3' // KINEO-ADS-FIEL-3-1510 — foto do link que é do produto vira "produto"; o recorte sai da foto inteira
 import { ADS_V2_START_OVER_DEFAULTS, adsV2EndCardTitle, adsV2Fiel2Copy, adsV2ForeignName, adsV2KindFor, adsV2PlansLeftText } from '@/lib/ads/v2Fiel2Tela' // KINEO-ADS-FIEL-2-1510 — start over limpo, link nunca é lugar, título do cartão, contador e pronúncia
 import { ADS_V2_AD_FORMATS_DEFAULT, ADS_V2_CLOSE_REAL_LIVE, adsV2AdFormatCopy, adsV2DefaultAdFormat, adsV2EffectiveAdFormat, type AdsV2AdFormat } from '@/lib/ads/v2CloseReal' // KINEO-CLOSE-REAL-1910 — os 2 formatos padrão (Apresentador e Close do produto real); o resto vira opção avançada
-import { adsV2KitBfCopy, adsV2KitBfOffer, adsV2KitBfTotal, type AdsV2KitBfCount } from '@/lib/ads/v2KitBf' // KINEO-KIT-BF-1910 — o Kit Black Friday no Close real: oferta opcional + 1/3/5 variações (16 línguas, lib pura)
+import { adsV2KitBfOffer, adsV2KitBfTotal, type AdsV2KitBfCount } from '@/lib/ads/v2KitBf' // KINEO-KIT-BF-1910 — o Kit Black Friday no Close real: oferta opcional + 1/3/5 variações (16 línguas, lib pura)
 import { AdsKitBfPanel, adsV2KitBfRun } from './AdsV2KitBf' // KINEO-KIT-BF-1910 — o painel (oferta + variações) e o lote das variações pelas rotas de sempre (/orders, /research, /batch)
 import { adsV2GenericProduct } from '@/lib/ads/v2CopyFit' // KINEO-ADS-FIEL-2-1510 — o título de sempre é só o substantivo genérico ("Perfume")?
 import { adsV2RedoCopy, adsV2RedoFill, type AdsV2RedoCopy } from '@/lib/ads/v2Redo' // KINEO-ADS-MELHORIAS-1410 — refazer UMA cena aqui mesmo (frases nas 16 línguas)
@@ -844,7 +844,6 @@ export function AdsV2SimpleSession({
   const kitOn = closeRealOn && !sample // KINEO-KIT-BF-1910 — só o Close real de quem tem o Studio Ads (a amostra grátis não muda)
   const kitOfferT = kitOn ? adsV2KitBfOffer(kitOffer) : null // KINEO-KIT-BF-1910
   const kitN: AdsV2KitBfCount = kitOn ? kitCount : 1 // KINEO-KIT-BF-1910
-  const kitCopy = adsV2KitBfCopy(lang) // KINEO-KIT-BF-1910
   const advancedOn = !ADS_V2_CLOSE_REAL_LIVE || adFormat === 'advanced' // KINEO-CLOSE-REAL-1910 — estilos de IA e o ator pelo interruptor só no "Avançado"
   const afc = adsV2AdFormatCopy(lang) // KINEO-CLOSE-REAL-1910
   const style: AdsV2StyleChoice = ADS_V2_STYLES_PUBLIC && advancedOn && formatChoice === '9:16' ? styleChoice ?? styleSuggested : 'none' // KINEO-ADS-MELHORIAS-1410 — estilo só em 9:16 (o efeito não tem outro formato) · KINEO-CLOSE-REAL-1910 — e só no "Avançado"; era: const style: AdsV2StyleChoice = ADS_V2_STYLES_PUBLIC && formatChoice === '9:16' ? styleChoice ?? styleSuggested : 'none'
@@ -2268,7 +2267,7 @@ export function AdsV2SimpleSession({
   }
   const presenterAi = adsV2PresenterPickerCopy(lang).ai
   const presenterSummary = !presenterOn ? fc.review.noPerson : adsV2PresenterById(presenterPick)?.name ?? fc.review.surprise
-  const goLabel = shownCost === null ? ux.preview.chooseLevel : scopy ? scopy.make : kitN > 1 ? fill(kitCopy.go, { n: kitN, c: shownCost }) : fill(fc.review.go, { c: shownCost }) // KINEO-KIT-BF-1910 — "Gerar 3 variações · N créditos"
+  const goLabel = shownCost === null ? ux.preview.chooseLevel : scopy ? scopy.make : fill(fc.review.go, { c: shownCost })
   const scriptOptions = planFresh && plan ? adsV2ScriptOptions(plan.scripts) : null
   const goDisabled = planFresh ? busy !== null || cost === null || short > 0 || !!copyEdit : locked || missing.length > 0
   /** "Comece deste": o nome do anúncio da casa (estilo, ou a pessoa com o selo de IA) e as etiquetas da receita (cena, pessoa). */

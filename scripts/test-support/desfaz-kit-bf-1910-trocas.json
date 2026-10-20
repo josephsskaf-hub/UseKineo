@@ -3,8 +3,9 @@
   "lib/ads/v2PlanCore.ts": 11,
   "lib/ads/v2Brief.ts": 4,
   "lib/ads/v2Advance.ts": 5,
-  "app/(dashboard)/ads/v2/AdsV2Simple.tsx": 23,
-  "scripts/test-support/desfaz-close-real-legenda-corte-1910.mjs": 2
+  "app/(dashboard)/ads/v2/AdsV2Simple.tsx": 22,
+  "scripts/test-support/desfaz-close-real-legenda-corte-1910.mjs": 2,
+  "scripts/test-close-real-v3-1910.mjs": 2
  },
  "lib/ads/v2Brief.ts": [
   [
@@ -28,10 +29,6 @@
   [
    "  const costLine = adsV2CostLine({ tier, balance, sample: !!scopy, group: kitN > 1 ? adsV2KitBfTotal(kitN, cost) : variations && three ? variationsPrice(cost) : null }) // KINEO-KIT-BF-1910 — o custo da prévia ao vivo também mostra o total das N",
    "  const costLine = adsV2CostLine({ tier, balance, sample: !!scopy, group: variations && three ? variationsPrice(cost) : null })"
-  ],
-  [
-   "  const goLabel = shownCost === null ? ux.preview.chooseLevel : scopy ? scopy.make : kitN > 1 ? fill(kitCopy.go, { n: kitN, c: shownCost }) : fill(fc.review.go, { c: shownCost }) // KINEO-KIT-BF-1910 — \"Gerar 3 variações · N créditos\"",
-   "  const goLabel = shownCost === null ? ux.preview.chooseLevel : scopy ? scopy.make : fill(fc.review.go, { c: shownCost })"
   ]
  ]
 }

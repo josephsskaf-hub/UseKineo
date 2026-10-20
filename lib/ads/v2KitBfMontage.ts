@@ -61,7 +61,18 @@ const hit = (a: AdsV2KitBfBox, b: AdsV2KitBfBox, gap: number) => a.x0 < b.x1 + g
 /** O tamanho da pílula de texto de uma linha (frações do quadro). Pura. */
 export function adsV2KitBfPill(text: string, fontPx: number, W: number, H: number): { w: number; h: number } {
   const padX = pct(ADS_V2_KIT_BF_PAD_X), padY = pct(ADS_V2_KIT_BF_PAD_Y)
-  return { w: (String(text).length * fontPx * ADS_V2_KIT_BF_CHAR_EM + 2 * padX * fontPx) / W, h: (fontPx * (ADS_V2_OVERLAY_LINE_HEIGHT + 2 * padY)) / H }
+  const lines = String(text).split('\n')
+  const longest = Math.max(1, ...lines.map((l) => l.length))
+  return { w: (longest * fontPx * ADS_V2_KIT_BF_CHAR_EM + 2 * padX * fontPx) / W, h: (fontPx * (lines.length * ADS_V2_OVERLAY_LINE_HEIGHT + 2 * padY)) / H }
+}
+
+/** As formas do texto do selo (pura): a linha inteira e, com espaço, em 2 linhas cortadas no espaço mais perto do meio ("Frete\ngrátis"). */
+export function adsV2KitBfBadgeTexts(offer: string): string[] {
+  const t = String(offer ?? '').trim()
+  const spaces = [...t.matchAll(/ /g)].map((m) => m.index as number)
+  if (!spaces.length) return [t]
+  const cut = spaces.reduce((b, i) => (Math.abs(i - t.length / 2) < Math.abs(b - t.length / 2) ? i : b), spaces[0])
+  return [t, `${t.slice(0, cut)}\n${t.slice(cut + 1)}`]
 }
 
 /**
@@ -98,23 +109,30 @@ export function adsV2KitBfCaptionBox(el: El, W: number, H: number): AdsV2KitBfBo
  * alto possível dentro de 14%–65%, sem tocar o produto (folga das legendas do Close real) nem as legendas do gancho. null = não cabe em
  * lugar nenhum sem cobrir nada (o selo fica de fora; o cartão e a voz seguem com a oferta).
  */
-export function adsV2KitBfBadgePlace(offer: string, W: number, H: number, span: AdsV2KitBfBox, captions: readonly AdsV2KitBfBox[]): { px: number; side: 'right' | 'left'; box: AdsV2KitBfBox } | null {
+export function adsV2KitBfBadgePlace(offer: string, W: number, H: number, span: AdsV2KitBfBox, captions: readonly AdsV2KitBfBox[]): { px: number; side: 'right' | 'left'; box: AdsV2KitBfBox; text: string } | null {
+  // as alturas candidatas: a grade fina e, de propósito, logo abaixo de cada obstáculo (legenda e produto)
+  const ys = [...new Set([ADS_V2_SAFE_TOP, ...captions.map((c) => c.y1 + ADS_V2_KIT_BF_BADGE_TEXT_GAP + 1e-4), span.y1 + ADS_V2_CLOSE_REAL_CAPTION_PRODUCT_GAP + 1e-4, ...Array.from({ length: Math.ceil((ADS_V2_SAFE_BOTTOM - ADS_V2_SAFE_TOP) / 0.0025) + 1 }, (_, k) => ADS_V2_SAFE_TOP + k * 0.0025)].map((y) => r4(y)))].filter((y) => y >= ADS_V2_SAFE_TOP - 1e-9).sort((a, b) => a - b)
   for (let f = ADS_V2_KIT_BF_BADGE_FONT_MAX; f >= ADS_V2_KIT_BF_BADGE_FONT_MIN - 1e-9; f -= 0.002) {
     const px = Math.round(f * H)
-    const { w, h } = adsV2KitBfPill(offer, px, W, H)
-    if (w > 1 - 2 * ADS_V2_KIT_BF_BADGE_EDGE) continue
-    for (const side of ['right', 'left'] as const) {
-      const x0 = side === 'right' ? 1 - ADS_V2_KIT_BF_BADGE_EDGE - w : ADS_V2_KIT_BF_BADGE_EDGE
-      for (let y0 = ADS_V2_SAFE_TOP; y0 + h <= ADS_V2_SAFE_BOTTOM + 1e-9; y0 += 0.005) {
-        const box = { x0: r4(x0), x1: r4(x0 + w), y0: r4(y0), y1: r4(y0 + h) }
-        if (hit(box, span, ADS_V2_CLOSE_REAL_CAPTION_PRODUCT_GAP)) continue
-        if (captions.some((c) => hit(box, c, ADS_V2_KIT_BF_BADGE_TEXT_GAP))) continue
-        return { px, side, box }
+    for (const text of adsV2KitBfBadgeTexts(offer)) {
+      const { w, h } = adsV2KitBfPill(text, px, W, H)
+      if (w > 1 - 2 * ADS_V2_KIT_BF_BADGE_EDGE) continue
+      for (const side of ['right', 'left'] as const) {
+        const x0 = side === 'right' ? 1 - ADS_V2_KIT_BF_BADGE_EDGE - w : ADS_V2_KIT_BF_BADGE_EDGE
+        for (const y0 of ys) {
+          if (y0 + h > ADS_V2_SAFE_BOTTOM + 1e-9) break
+          const box = { x0: r4(x0), x1: r4(x0 + w), y0: r4(y0), y1: r4(y0 + h) }
+          if (hit(box, span, ADS_V2_CLOSE_REAL_CAPTION_PRODUCT_GAP)) continue
+          if (captions.some((c) => hit(box, c, ADS_V2_KIT_BF_BADGE_TEXT_GAP))) continue
+          return { px, side, box, text }
+        }
       }
     }
   }
   return null
 }
+/** O selo só no começo do gancho (antes da 1ª troca de legenda) precisa durar pelo menos isto (s); menos que isso = sem selo. */
+export const ADS_V2_KIT_BF_BADGE_MIN_SECONDS = 1.2
 
 /**
  * O cartão com a oferta (puro): nome logo abaixo do produto do fundo do kit, a oferta na maior fonte que cabe e o botão abaixo dela,
@@ -164,11 +182,17 @@ export function adsV2KitBfApplyMontage(source: Record<string, unknown>, i: { off
   let badge = false
   if (Number.isFinite(hookEnd) && hookEnd > 0) {
     const span = adsV2KitBfHookSpan(i.heroRect ?? null)
-    const caps = elements.filter((e) => e.type === 'text' && e.track === T.text && typeof e.time === 'number' && (e.time as number) < hookEnd - 1e-6).map((e) => adsV2KitBfCaptionBox(e, W, H)).filter((b): b is AdsV2KitBfBox => !!b)
-    const place = adsV2KitBfBadgePlace(offer, W, H, span, caps)
-    if (place) {
-      elements.push(pill({ text: offer, track: ADS_V2_KIT_BF_TRACKS.badge, time: 0, duration: Math.round(hookEnd * 1000) / 1000, x: place.side === 'right' ? `${r4((1 - ADS_V2_KIT_BF_BADGE_EDGE) * 100)}%` : `${r4(ADS_V2_KIT_BF_BADGE_EDGE * 100)}%`, xAnchor: place.side === 'right' ? '100%' : '0%', y: (place.box.y0 + place.box.y1) / 2, px: place.px, fontFamily: font }))
+    const hookCaps = elements.filter((e) => e.type === 'text' && e.track === T.text && typeof e.time === 'number' && (e.time as number) < hookEnd - 1e-6)
+    const boxesUntil = (t: number) => hookCaps.filter((e) => (e.time as number) < t - 1e-6).map((e) => adsV2KitBfCaptionBox(e, W, H)).filter((b): b is AdsV2KitBfBox => !!b)
+    // o gancho inteiro; se não couber, só até a 1ª troca de legenda dentro do gancho (se isso durar ≥ ADS_V2_KIT_BF_BADGE_MIN_SECONDS)
+    const firstChange = Math.min(...hookCaps.map((e) => e.time as number).filter((t) => t > 1e-6))
+    const tries = [hookEnd, ...(Number.isFinite(firstChange) && firstChange >= ADS_V2_KIT_BF_BADGE_MIN_SECONDS ? [firstChange] : [])]
+    for (const until of tries) {
+      const place = adsV2KitBfBadgePlace(offer, W, H, span, boxesUntil(until))
+      if (!place) continue
+      elements.push(pill({ text: place.text, track: ADS_V2_KIT_BF_TRACKS.badge, time: 0, duration: Math.round(until * 1000) / 1000, x: place.side === 'right' ? `${r4((1 - ADS_V2_KIT_BF_BADGE_EDGE) * 100)}%` : `${r4(ADS_V2_KIT_BF_BADGE_EDGE * 100)}%`, xAnchor: place.side === 'right' ? '100%' : '0%', y: (place.box.y0 + place.box.y1) / 2, px: place.px, fontFamily: font }))
       badge = true
+      break
     }
   }
   // 2. o cartão: fundo do kit, nome mais alto, a oferta grande, o botão embaixo dela
