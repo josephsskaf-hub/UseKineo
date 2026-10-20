@@ -93,6 +93,7 @@ const creditLabel = (quality: Parameters<typeof creditCostFor>[0]) =>
   `${creditCostFor(quality, true)} credits / video`
 // KINEO-NAV-MEGA-PREVIEW-2026-08-17 — item de motor com mini-clipe no hover.
 import NavEngineItem from '@/components/NavEngineItem'
+import NavUgcAdsLink from '@/components/NavUgcAdsLink' // KINEO-MENU-UGC-2010 — o item "AI UGC Ads" do menu do topo (destino pela língua)
 import WelcomeOfferModal from '@/components/WelcomeOfferModal' // KINEO-WELCOME20-2026-08-25
 import SignupConversionTracker from '@/components/SignupConversionTracker' // KINEO-POUSO-VITRINE-2026-08-25
 import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, GRANT_COUNTRY_CLAUSE, TRIAL_FIRST_FILM_PHRASE, TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
@@ -946,6 +947,7 @@ export default function KineoLanding({
             {/* KINEO-NAV-TOPO-ADS-2026-09-30 — /ads/new leva quem está logado ao montador e o visitante à porta pública /ads.
                 KINEO-DUAS-PORTAS-2026-10-13 — vira a 2ª porta do topo, "Product ads", com o mesmo peso do "Make a film". */}
             <Link href="/ads/new" data-nav-item="business" className="nav-primary"><UiLabel>Product ads</UiLabel></Link>
+            <NavUgcAdsLink data-nav-item="more:ugc" />{/* KINEO-MENU-UGC-2010 — fundador 20/10 ("o 2 no menu no topo, sim"): "AI UGC Ads" logo depois de "Product ads", leva à pilar /ai-ugc-ads (PT → /anuncios-ugc-com-ia); nada saiu nem mudou de ordem */}
             {/* KINEO-DUAS-PORTAS-2026-10-13 — "More tools": tudo que saiu do topo, a 1 clique de distância. Imagem ABRE o menu
                 (fundador: "pode deixar Imagem no topo, os outros sites têm" — aqui ela é a 1ª coluna, visível na 1ª abertura,
                 com os 6 motores); depois Clips (foto → clipe, texto → clipe), Spaces e o MCP (/claude-connector). */}
@@ -995,6 +997,7 @@ export default function KineoLanding({
                   rótulo "More tools", tudo o que saiu do topo (Imagem com os motores primeiro, Clips, Spaces, MCP, Examples). */}
               <Link href="/studio" data-nav-item="video"><UiLabel>Make a film</UiLabel></Link>
               <Link href="/ads/new" data-nav-item="business"><UiLabel>Product ads</UiLabel></Link>
+              <NavUgcAdsLink data-nav-item="more:ugc" />{/* KINEO-MENU-UGC-2010 — par do topo no celular */}
               <Link href="/trending" data-nav-item="more:trending"><UiLabel>🔥 Trending</UiLabel></Link>{/* KINEO-TRENDING-2026-10-13 — par do topo */}
               <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
               {initialUser

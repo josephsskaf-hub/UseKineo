@@ -1,0 +1,26 @@
+{
+ "scripts/test-home-3-cards-1910.mjs": [
+  [
+   "  if (navCount !== NAV_ITEMS_ORIGIN + 2) probs.push(`menu mexido: ${navCount} itens (era ${NAV_ITEMS_ORIGIN} + 2 do \"AI UGC Ads\")`) // reancorado KINEO-MENU-UGC-2010 — o menu só cresce: +1 item no topo e +1 no celular (antiga + 1 em cada menu); a ordem dos antigos é provada em scripts/test-menu-ugc-2010.mjs",
+   "  if (navCount !== NAV_ITEMS_ORIGIN) probs.push(`menu mexido: ${navCount} itens (era ${NAV_ITEMS_ORIGIN})`)"
+  ]
+ ],
+ "scripts/test-login-modal-1410.mjs": [
+  [
+   "  ok('R9', BASES.landing !== null && navCount(F.landing) === navCount(BASES.landing) + 2, `o menu não encolheu (${navCount(F.landing)} itens data-nav-item, base + 2 do \"AI UGC Ads\")`) // reancorado KINEO-MENU-UGC-2010 — o menu só cresce: +1 item no topo e +1 no celular; a ordem dos antigos é provada em scripts/test-menu-ugc-2010.mjs",
+   "  ok('R9', BASES.landing !== null && navCount(F.landing) === navCount(BASES.landing), `o menu não encolheu (${navCount(F.landing)} itens data-nav-item, igual à base)`)"
+  ]
+ ],
+ "scripts/test-duas-portas-1310.mjs": [
+  [
+   "const EXAMPLES = semMenuUgc2010(read('app/examples/page.tsx'), 'app/examples/page.tsx') // reancorado KINEO-MENU-UGC-2010 — o /examples sem o item \"AI UGC Ads\" = as 2 portas e Imagem logo depois, como antes",
+   "const EXAMPLES = read('app/examples/page.tsx')"
+  ]
+ ],
+ "scripts/test-examples-gallery.mjs": [
+  [
+   "      if (id === '@/components/InterfaceLanguage') return { UiLabel: ({children}) => children, useUiCopy: () => value => value, useInterfaceLanguage: () => 'en', InterfaceLanguageSelect: () => React.createElement('select', {'aria-label':'Interface language'}, React.createElement('option', {}, 'English')) } // reancorado KINEO-MENU-UGC-2010 — o item \"AI UGC Ads\" do topo lê a língua (inglês no servidor, como o provedor real)",
+   "      if (id === '@/components/InterfaceLanguage') return { UiLabel: ({children}) => children, useUiCopy: () => value => value, InterfaceLanguageSelect: () => React.createElement('select', {'aria-label':'Interface language'}, React.createElement('option', {}, 'English')) }"
+  ]
+ ]
+}

@@ -19,6 +19,7 @@
 //   (8) as frases novas nas 16 línguas com {marcas}, números e marcas preservados;
 //   (M) mutantes: cada regra acima fica vermelha quando a quebramos de propósito.
 import { semHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — os 3 cards da home (+ amostra pela entrada do card) saem do diff/leitura em memória
+import { semMenuUgc2010 } from './test-support/desfaz-menu-ugc-2010.mjs' // reancorado KINEO-MENU-UGC-2010 — o "AI UGC Ads" do topo do /examples sai em memória (a ordem dos antigos é provada em scripts/test-menu-ugc-2010.mjs)
 import fs from 'node:fs'
 import path from 'node:path'
 import vm from 'node:vm'
@@ -46,7 +47,7 @@ const LAND = semHome3Cards1910(read('app/KineoLanding.tsx'), 'app/KineoLanding.t
 const NAVCFG = read('lib/ui/workspaceNavigation.ts')
 const SIDE = read('components/Sidebar.tsx')
 const MOB = read('components/MobileNav.tsx')
-const EXAMPLES = read('app/examples/page.tsx')
+const EXAMPLES = semMenuUgc2010(read('app/examples/page.tsx'), 'app/examples/page.tsx') // reancorado KINEO-MENU-UGC-2010 — o /examples sem o item "AI UGC Ads" = as 2 portas e Imagem logo depois, como antes
 const PUBLIC_EX = read('lib/publicExamples.ts')
 const DICT = JSON.parse(read('lib/ui/refinementCopy.json'))
 const WALL = read('lib/engineWall.ts')

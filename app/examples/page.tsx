@@ -17,6 +17,7 @@ import ExamplesBusinessProofBridge from './ExamplesBusinessProofBridge'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage'
+import NavUgcAdsLink from '@/components/NavUgcAdsLink' // KINEO-MENU-UGC-2010 — o item "AI UGC Ads" do menu do topo (par da home)
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -54,6 +55,7 @@ export default async function ExamplesPage() {
                 Imagem segue à vista (fundador: "pode deixar Imagem no topo"); o resto mora no "More tools" da home. */}
             <Link href="/studio" className={styles.navPrimary} data-nav-item="video"><UiLabel>Make a film</UiLabel></Link>
             <Link href="/ads/new" className={styles.navPrimary} data-nav-item="business"><UiLabel>Product ads</UiLabel></Link>
+            <NavUgcAdsLink data-nav-item="more:ugc" />{/* KINEO-MENU-UGC-2010 — par do topo da home: logo depois de "Product ads" */}
             <Link href="/images" data-nav-item="image"><UiLabel>Images</UiLabel></Link>
             <Link href="/trending" data-nav-item="more:trending"><UiLabel>🔥 Trending</UiLabel></Link>{/* KINEO-TRENDING-2026-10-13 — par do topo da home */}
             <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>

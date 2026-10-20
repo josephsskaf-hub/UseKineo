@@ -175,7 +175,7 @@ function rules(F) {
   ok('R9', F.landing.includes("data-auth-modal=\"signup\" href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav-mobile'}"), 'celular: "Start free" abre o modal, mesmo href')
   ok('R9', F.landing.includes('<HomeAuthModal signedIn={isSignedIn} />'), 'a home monta o modal')
   const navCount = (src) => (src.match(/data-nav-item=/g) ?? []).length
-  ok('R9', BASES.landing !== null && navCount(F.landing) === navCount(BASES.landing), `o menu não encolheu (${navCount(F.landing)} itens data-nav-item, igual à base)`)
+  ok('R9', BASES.landing !== null && navCount(F.landing) === navCount(BASES.landing) + 2, `o menu não encolheu (${navCount(F.landing)} itens data-nav-item, base + 2 do "AI UGC Ads")`) // reancorado KINEO-MENU-UGC-2010 — o menu só cresce: +1 item no topo e +1 no celular; a ordem dos antigos é provada em scripts/test-menu-ugc-2010.mjs
   ok('R9', BASES.engineWall !== null && F.engineWall === BASES.engineWall.replace(/\r\n/g, '\n'), 'lib/engineWall.ts intocado')
   ok('R9', BASES.curation !== null && F.curation === BASES.curation.replace(/\r\n/g, '\n'), 'lib/homeVideoCuration.ts intocado')
 

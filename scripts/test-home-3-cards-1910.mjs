@@ -189,7 +189,7 @@ function homeProblems(src) {
   if (!(three > 0 && doors > three && hero > doors)) probs.push('3 cards fora da 1ª dobra (antes das portas/hero)')
   if (three > 0 && src.slice(three, doors).replace(THREE_TAG, '').trim() !== '') probs.push('a troca cards ↔ portas não é a do interruptor')
   const navCount = (src.match(/data-nav-item=/g) || []).length
-  if (navCount !== NAV_ITEMS_ORIGIN) probs.push(`menu mexido: ${navCount} itens (era ${NAV_ITEMS_ORIGIN})`)
+  if (navCount !== NAV_ITEMS_ORIGIN + 2) probs.push(`menu mexido: ${navCount} itens (era ${NAV_ITEMS_ORIGIN} + 2 do "AI UGC Ads")`) // reancorado KINEO-MENU-UGC-2010 — o menu só cresce: +1 item no topo e +1 no celular (antiga + 1 em cada menu); a ordem dos antigos é provada em scripts/test-menu-ugc-2010.mjs
   if (/homeThreeCards|HomeThreeCards|home_card|HOME_3_CARDS/.test(WALL)) probs.push('lib/engineWall.ts sabe dos cards')
   if (/homeThreeCards|HomeThreeCards|home_card|HOME_3_CARDS/.test(CURA)) probs.push('lib/homeVideoCuration.ts sabe dos cards')
   return probs

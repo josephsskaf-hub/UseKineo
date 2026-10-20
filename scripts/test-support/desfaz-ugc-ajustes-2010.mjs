@@ -15,6 +15,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semMenuUgc2010 } from './desfaz-menu-ugc-2010.mjs' // KINEO-MENU-UGC-2010 — o "AI UGC Ads" no menu do topo veio depois: sai PRIMEIRO (encadeado; texto sem a marca passa igual)
 
 export const MARCA_UGC_AJUSTES_2010 = 'KINEO-UGC-AJUSTES-2010'
 
@@ -37,6 +38,7 @@ export const UGC_AJUSTES_2010_BINARIOS = { 'public/ads/presenters/voice-pt-confi
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semUgcAjustes2010(texto, p) {
+  texto = semMenuUgc2010(texto, p) // KINEO-MENU-UGC-2010 — a camada mais nova sai primeiro
   if (typeof texto !== 'string' || !texto.includes(MARCA_UGC_AJUSTES_2010) || !UGC_AJUSTES_2010_ARQUIVOS.includes(p)) return texto
   const crlf = texto.includes('\r\n')
   const trocas = new Map((TROCAS_UGC_AJUSTES_2010[p] ?? []).map(([nova, base]) => [nova, base]))

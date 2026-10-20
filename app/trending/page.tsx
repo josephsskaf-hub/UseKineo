@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/server'
 import { KineoBrandIcon } from '@/components/KineoBolt'
 import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage'
+import NavUgcAdsLink from '@/components/NavUgcAdsLink' // KINEO-MENU-UGC-2010 — o item "AI UGC Ads" do menu do topo (par da home)
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 import { parseTrendingToday, trendingBlocks, TRENDING_PATH, TRENDING_TODAY_FILE } from '@/lib/trending/trendingNow'
 import TrendingCard from './TrendingCard'
@@ -55,6 +56,7 @@ export default async function TrendingPage() {
             {/* KINEO-TRENDING-2026-10-13 — par do topo da home e do /examples: as 2 portas, o Trending (esta página) e o resto. */}
             <Link href="/studio" className={styles.navPrimary} data-nav-item="video"><UiLabel>Make a film</UiLabel></Link>
             <Link href="/ads/new" className={styles.navPrimary} data-nav-item="business"><UiLabel>Product ads</UiLabel></Link>
+            <NavUgcAdsLink data-nav-item="more:ugc" />{/* KINEO-MENU-UGC-2010 — par do topo da home: logo depois de "Product ads" */}
             <Link href="/images" data-nav-item="image"><UiLabel>Images</UiLabel></Link>
             <Link href="/trending" data-nav-item="more:trending" aria-current="page"><UiLabel>🔥 Trending</UiLabel></Link>
             <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>

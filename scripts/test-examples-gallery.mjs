@@ -21,7 +21,7 @@ function loader(overrides = {}) {
     const exports = {}; cache.set(file, exports)
     const require = id => {
       if (id === 'react' || id === 'react/jsx-runtime') return requireNode(id)
-      if (id === '@/components/InterfaceLanguage') return { UiLabel: ({children}) => children, useUiCopy: () => value => value, InterfaceLanguageSelect: () => React.createElement('select', {'aria-label':'Interface language'}, React.createElement('option', {}, 'English')) }
+      if (id === '@/components/InterfaceLanguage') return { UiLabel: ({children}) => children, useUiCopy: () => value => value, useInterfaceLanguage: () => 'en', InterfaceLanguageSelect: () => React.createElement('select', {'aria-label':'Interface language'}, React.createElement('option', {}, 'English')) } // reancorado KINEO-MENU-UGC-2010 — o item "AI UGC Ads" do topo lê a língua (inglês no servidor, como o provedor real)
       if (id === '@/components/AppearanceSettings') return { AppearanceSettingsButton: () => React.createElement('button', {type:'button','aria-label':'Settings'}, '⚙') }
       if (id === 'next/navigation') return { notFound: () => { throw Error('NOT_FOUND') } }
       // G4: support the new conditional proof section without relaxing gallery checks.
