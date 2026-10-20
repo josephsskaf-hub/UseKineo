@@ -46,6 +46,7 @@ export function juntarNotasRegua(eventos: Array<EventRow & { name: string }>, de
     const ehCoer = e.name === COHERENCE_V2_EVENT && m.version === COHERENCE_V2_VERSION
     const ehPix = e.name === PIXEL_SCORE_EVENT && m.version === PIXEL_SCORE_VERSION
     if (!ehCoer && !ehPix) continue
+    if (typeof m.score !== 'number') continue // KINEO-META95-REGUA-AJUSTE-1910 — evento de FALHA (score null) não é nota
     const marca = `${e.name}:${key}`
     if (visto.has(marca)) continue
     visto.add(marca)

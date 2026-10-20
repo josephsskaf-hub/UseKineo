@@ -6,6 +6,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { listFastCoherence } from '@/lib/admin/fastCoherence'
 import { notifyFounder } from '@/lib/supplier/notify'
+import { julgarPendentesRegua, resumoRegua95 } from '@/lib/regua95/coletar' // KINEO-META95-REGUA-AJUSTE-1910 — carona da régua 95 (ver o fim do GET)
 import {
   QUALITY_RADAR_VERSION, RADAR_ALERT_EVENT, RADAR_DIGEST_EVENT, RADAR_MAX_JUDGE_PER_RUN, RADAR_ALERT_MAX_AGE_MS, RADAR_JUDGE_WINDOW_HOURS,
   decideRadarAlert, radarAlertText, radarDigestText, type RadarFilm,
@@ -76,5 +77,17 @@ export async function GET(req: NextRequest) {
     sentCount += 1
     await admin.from('events').insert({ name: RADAR_ALERT_EVENT, session_id: f.video_id, path: '/api/cron/quality-radar', metadata: { version: QUALITY_RADAR_VERSION, reason: d.reason, score: f.score, engine: f.engine, has_paid: f.hasPaid, email: f.email, delivered: sent.delivered } })
   }
-  return NextResponse.json({ ok: true, judged_window_films: films.length, alerts: sentCount, results })
+  // ═══ KINEO-META95-REGUA-AJUSTE-1910 — CARONA DA RÉGUA 95 ═══
+  // O cron próprio (/api/cron/regua-95, vercel.json) não deixou NENHUM evento nas 3 primeiras janelas depois do deploy de 19/10
+  // (22:57, 23:07, 23:17 UTC), e a Vercel não guarda chamada silenciosa — não deu para provar se ele foi agendado. Este radar SIM
+  // roda (gravou fast_coherence às 22:19). Então, em todo tique de 15 min, ele também julga até 2 entregas da régua 95, depois
+  // do trabalho dele e com teto de 60 s (o radar continua respondendo dentro do maxDuration). Os dois caminhos usam a mesma
+  // regra de "já julgado"; uma corrida rara entre eles só grava a mesma nota duas vezes (o painel lê a mais recente).
+  const t95 = Date.now()
+  const regua95 = await Promise.race([
+    julgarPendentesRegua(admin, { route: '/api/cron/quality-radar', maxJudge: 2 }, readAll).catch(() => null),
+    new Promise<'tempo'>((resolve) => setTimeout(() => resolve('tempo'), 60_000)),
+  ])
+  console.log('[cron/quality-radar] regua95', resumoRegua95(regua95, Date.now() - t95))
+  return NextResponse.json({ ok: true, judged_window_films: films.length, alerts: sentCount, results, regua95: regua95 === 'tempo' ? 'tempo' : regua95 ? { candidatas: regua95.candidatas, pendentes: regua95.pendentes, julgadas: regua95.julgadas.length } : null })
 }

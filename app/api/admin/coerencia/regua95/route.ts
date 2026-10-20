@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { readAll } from '@/lib/supabase/readAll'
 import { isAdminEmail, serviceClient } from '../../_shared/db'
-import { julgarPendentesRegua } from '@/lib/regua95/coletar'
+import { julgarPendentesRegua, resumoRegua95, REGUA95_JANELA_HORAS } from '@/lib/regua95/coletar'
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -26,8 +26,10 @@ export async function POST(req: Request) {
     if (!admin) return NextResponse.json({ error: 'unavailable' }, { status: 503 })
     const body = (await req.json().catch(() => ({}))) as { hours?: unknown }
     const hoursRaw = Number(body.hours)
-    const hours = Number.isFinite(hoursRaw) && hoursRaw > 0 ? Math.min(hoursRaw, 336) : 48
-    const r = await julgarPendentesRegua(admin, { route: '/api/admin/coerencia/regua95', hours, maxJudge: REGUA95_BOTAO_MAX, limit: 200 }, readAll)
+    const hours = Number.isFinite(hoursRaw) && hoursRaw > 0 ? Math.min(hoursRaw, 336) : REGUA95_JANELA_HORAS // KINEO-META95-REGUA-AJUSTE-1910 — era 48 h
+    const t0 = Date.now()
+    const r = await julgarPendentesRegua(admin, { route: '/api/admin/coerencia/regua95', hours, maxJudge: REGUA95_BOTAO_MAX, limit: 300 }, readAll)
+    console.log('[admin/coerencia/regua95]', resumoRegua95(r, Date.now() - t0)) // KINEO-META95-REGUA-AJUSTE-1910
     return NextResponse.json({ ok: true, ...r })
   } catch (e) {
     console.warn('[admin/coerencia/regua95] falhou:', e instanceof Error ? e.message : String(e))
