@@ -121,6 +121,10 @@
       "schedule": "5 11 * * *"
     },
     {
+      "path": "/api/cron/regua-95",
+      "schedule": "7,17,27,37,47,57 * * * *"
+    },
+    {
       "path": "/api/admin/demo-render",
       "schedule": "*/5 * * * *"
     },
