@@ -183,7 +183,7 @@ function discovery(overrides = {}) {
       // without them this run died mapping an undefined list. Inert here: the real entries are exercised by test-paginas-ugc-2010,
       // and the run below still REQUIRES the showcase/hub/study entries exactly as before.
       PAGINAS_UGC_REVIEWED_ISO: '2026-10-20', PAGINAS_UGC_PATHS: [], PAGINAS_UGC_TOUCHED_PATHS: [],
-      PAGINAS_KIDS_REVIEWED_ISO: '2026-10-20', paginasKidsSitemapPaths: () => [], KIDS_CARTOON_PAGES_LIVE: false, // KINEO-BEBE-QUE-FALA-2010 (re-anchored 20/10) — the sitemap imports the kids cartoon pages behind their switch (inert here; exercised by test-bebe-que-fala-2010)
+      PAGINAS_KIDS_REVIEWED_ISO: '2026-10-20', paginasKidsSitemapPaths: () => [], KIDS_CARTOON_PAGES_LIVE: false, babyPagesSitemapPaths: () => [], BABY_PODCAST_PAGES_LIVE: false, // KINEO-BEBE-QUE-FALA-2010 (re-anchored 20/10) — the sitemap imports the kids cartoon pages behind their switch (inert here; exercised by test-bebe-que-fala-2010)
     }
     new Function('exports', 'require', 'module', js)(mod.exports, () => fixtures, mod)
     return mod.exports.default()
