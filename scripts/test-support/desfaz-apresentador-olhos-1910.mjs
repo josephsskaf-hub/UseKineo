@@ -30,6 +30,8 @@ export const ACRESCIMOS_APRESENTADOR_OLHOS_1910 = {
   'scripts/test-atores-ia-1310.mjs': 1,
   'scripts/test-close-real-ajuste-1910.mjs': 0,
   'scripts/test-close-real-v3-1910.mjs': 0,
+  'scripts/test-filmes-f1-virgula-1910.mjs': 0,
+  'scripts/test-filmes-f1f3-ajuste-1910.mjs': 0,
   'scripts/test-home-3-cards-1910.mjs': 1,
   'scripts/test-support/desfaz-close-real-legenda-corte-1910.mjs': 2,
   'scripts/test-support/desfaz-home-3-cards-1910.mjs': 2,
