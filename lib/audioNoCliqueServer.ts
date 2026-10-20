@@ -27,6 +27,7 @@ import { hollywoodVoiceFromClaim, resolveHollywoodVoice, synthesizeHostSpeech } 
 import { collectSceneNarrations, type SceneSpeechEngine } from '@/lib/cinematic/speechContract'
 import { depoisDaResposta, podeAdiarParaDepoisDaResposta } from '@/lib/posResposta'
 import { chaveDaCenaAquecida, executarAquecimento, idDoAquecimento, reservarAquecimento, type PedidoDeAquecimento } from '@/lib/audioNoClique'
+import { transcreverNaEscritaDoRoteiro } from '@/lib/whisperNaEscrita' // [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] KINEO-META95-ESCRITA-2010 — Whisper com o idioma que a escrita do roteiro diz (linha própria)
 
 const HOLLYWOOD_FAMILY = new Set(['cinematic_hollywood', 'cinematic_h3', 'cinematic_h3max', 'cinematic_omni', 'cinematic_s25'])
 
@@ -64,7 +65,7 @@ export function vozClassicaAquecivel(a: {
     if (!audio || audio.length === 0) return false
     const duration = estimateMp3DurationSeconds(audio)
     if (!(duration > 0.5)) return false
-    const words = await transcribeTTSWithTimestamps(audio).catch(() => [])
+    const words = await transcreverNaEscritaDoRoteiro(audio, a.script).catch(() => []) // KINEO-META95-ESCRITA-2010 — a voz do clique entra no cache já na escrita do roteiro
     const stored = await storeCachedVoiceover(chave, audio, words ?? [], duration)
     console.log(`[audio-no-clique] voz ${a.log ?? ''} key=${chave.slice(0, 12)} dur=${duration.toFixed(1)}s words=${(words ?? []).length} stored=${!!stored}`)
     return !!stored
@@ -137,7 +138,7 @@ export async function agendarAudioNoClique(a: {
             const buf = await synthesizeHostSpeech({ text: p.text, voice: pinned.voice, speed: velocidade })
             const dur = buf && buf.length > 0 ? estimateMp3DurationSeconds(buf) : 0
             if (!(dur > 0.3)) return false
-            const words = await transcribeTTSWithTimestamps(buf).catch(() => [])
+            const words = await transcreverNaEscritaDoRoteiro(buf, p.text).catch(() => []) // KINEO-META95-ESCRITA-2010
             return !!(await storeCachedVoiceover(chave, buf, words ?? [], dur))
           })
         }
