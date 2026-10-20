@@ -9,6 +9,7 @@
   "app/api/stripe/webhook/route.ts": 52,
   "app/pricing/PricingClient.tsx": 2,
   "components/kidsCartoon/KidsCartoonPages.tsx": 2,
+  "scripts/test-saida-regiao-2026-10-07.mjs": 3,
   "scripts/test-support/desfaz-bebe-que-fala-2010.mjs": 2
  },
  "app/(dashboard)/kids-cartoon/page.tsx": [
@@ -31,7 +32,7 @@
  ],
  "app/api/stripe/webhook/route.ts": [
   [
-   "        if (!duplicateSession || (duplicateSession.mode !== 'subscription' && !duplicateSafeObservation && !isDfyOrderSession(duplicateSession) && !isDfyFilms3Session(duplicateSession) && !isKidsPackSession(duplicateSession))) { // KINEO-KIDS-VENDA-2010 — o pack infantil também retoma (guard por sessão + pedido único por sessão; nada é creditado)",
+   "        if (!duplicateSession || (!isKidsPackSession(duplicateSession) && duplicateSession.mode !== 'subscription' && !duplicateSafeObservation && !isDfyOrderSession(duplicateSession) && !isDfyFilms3Session(duplicateSession))) { // KINEO-KIDS-VENDA-2010 — o pack infantil também retoma (guard por sessão + pedido único por sessão; nada é creditado)",
    "        if (!duplicateSession || (duplicateSession.mode !== 'subscription' && !duplicateSafeObservation && !isDfyOrderSession(duplicateSession) && !isDfyFilms3Session(duplicateSession))) {"
   ]
  ]

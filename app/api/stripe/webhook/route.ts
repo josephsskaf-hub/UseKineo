@@ -1590,7 +1590,7 @@ export async function POST(req: NextRequest) {
         // são idempotentes (dedupe por stripe_session_id + id determinístico), então reexecutar é seguro.
         // KINEO-PACOTE-3-FILMES-1610 — o pacote "3 filmes" também retoma: recordDfyFilms3OrderPaid é idempotente (UPDATE guardado
         // por status, stripe_session_id único, evento com id determinístico) e não concede nada.
-        if (!duplicateSession || (duplicateSession.mode !== 'subscription' && !duplicateSafeObservation && !isDfyOrderSession(duplicateSession) && !isDfyFilms3Session(duplicateSession) && !isKidsPackSession(duplicateSession))) { // KINEO-KIDS-VENDA-2010 — o pack infantil também retoma (guard por sessão + pedido único por sessão; nada é creditado)
+        if (!duplicateSession || (!isKidsPackSession(duplicateSession) && duplicateSession.mode !== 'subscription' && !duplicateSafeObservation && !isDfyOrderSession(duplicateSession) && !isDfyFilms3Session(duplicateSession))) { // KINEO-KIDS-VENDA-2010 — o pack infantil também retoma (guard por sessão + pedido único por sessão; nada é creditado)
           return NextResponse.json({ received: true, duplicate: true })
         }
         console.warn('[stripe webhook] resuming idempotent Checkout event:', event.id, duplicateSession.id)
