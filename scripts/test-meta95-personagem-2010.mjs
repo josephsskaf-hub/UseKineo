@@ -28,6 +28,7 @@ import {
   semMeta95Personagem2010, MARCA_META95_PERSONAGEM_2010, META95_PERSONAGEM_2010_BASE, META95_PERSONAGEM_2010_ARQUIVOS, META95_PERSONAGEM_2010_NOVOS,
   ACRESCIMOS_META95_PERSONAGEM_2010, TROCAS_META95_PERSONAGEM_2010,
 } from './test-support/desfaz-meta95-personagem-2010.mjs'
+import { MARCA_META95_ESCRITA_2010, META95_ESCRITA_2010_ARQUIVOS } from './test-support/desfaz-meta95-escrita-2010.mjs' // KINEO-META95-ESCRITA-2010 — reancorado: a legenda na escrita do roteiro (entrega de depois) mede até HEAD junto; os commits e arquivos dela saem da conta
 
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
@@ -367,6 +368,7 @@ console.log('\nD. desfaz, encadeamento, diff e commits')
   // todo commit desde a base que toca um arquivo da entrega é desta entrega (marca + selo); os merges da origin/main também levam a marca e o selo
   const desdeABase = (() => { try { return git('log', '--format=%H%x09%s', `${BASE_CMP}..HEAD`).trim().split('\n').filter(Boolean).map((l) => { const [h, ...s] = l.split('\t'); return { h, s: s.join('\t') } }) } catch { return [] } })() // só o que NÃO está na origin/main mesclada: os commits desta entrega e os merges dela
   const commitsDaEntrega = desdeABase.filter(({ h, s }) => s.includes(MARCA) || git('diff-tree', '--no-commit-id', '--name-only', '-r', '-m', h).trim().split('\n').some((f) => permitidos.has(f)))
+  commitsDaEntrega.splice(0, commitsDaEntrega.length, ...commitsDaEntrega.filter(({ s }) => !s.includes(MARCA_META95_ESCRITA_2010))) // KINEO-META95-ESCRITA-2010 — reancorado: os commits (e o merge) da legenda na escrita do roteiro não são desta entrega
   ok(commitsDaEntrega.length > 0 && commitsDaEntrega.every(({ s }) => s.includes(MARCA) && s.includes('[TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]')), `D7 todo commit da entrega (e todo merge dela) traz a marca e o selo da TRAVA 8.2 (${commitsDaEntrega.length} commit(s); base ${BASE_CMP.slice(0, 10)})`, commitsDaEntrega.filter(({ s }) => !s.includes(MARCA)).map(({ s }) => s.slice(0, 60)).join(' | '))
   ok(fs.existsSync(path.join(ROOT, 'docs/META95-PERSONAGEM-2026-10-20.md')) && /formatFlags/.test(rd('docs/META95-PERSONAGEM-2026-10-20.md')), 'D8 o desenho está em docs/META95-PERSONAGEM-2026-10-20.md, com o jeito de ligar por pedido')
 }

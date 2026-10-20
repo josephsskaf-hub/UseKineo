@@ -37,6 +37,8 @@ export const ACRESCIMOS_META95_ESCRITA_2010 = {
   'scripts/test-gancho-1q-2026-10-03.mjs': 1,
   'scripts/test-kling-duracao-2026-09-15.mjs': 0,
   'scripts/test-legenda-grafia-do-roteiro-2026-09-28.mjs': 0,
+  'scripts/test-mcp-studio-2010.mjs': 3,
+  'scripts/test-meta95-personagem-2010.mjs': 2,
   'scripts/test-meta95-refazer-1910.mjs': 1,
   'scripts/test-seedance-15s-3x6-2026-09-29.mjs': 2,
   'scripts/test-voz-15s-mesma-da-montagem-2026-09-29.mjs': 2,
