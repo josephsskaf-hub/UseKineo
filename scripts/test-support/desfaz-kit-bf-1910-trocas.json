@@ -1,0 +1,37 @@
+{
+ "__acrescimos": {
+  "lib/ads/v2PlanCore.ts": 11,
+  "lib/ads/v2Brief.ts": 4,
+  "lib/ads/v2Advance.ts": 5,
+  "app/(dashboard)/ads/v2/AdsV2Simple.tsx": 23,
+  "scripts/test-support/desfaz-close-real-legenda-corte-1910.mjs": 2
+ },
+ "lib/ads/v2Brief.ts": [
+  [
+   "  const copyMsgs = adsV2KitBfCopyMessages(buildV2CopyMessages(brief, args.languageName, opts), args.kitBf) // KINEO-KIT-BF-1910 — + a oferta 1× e o ângulo da variação, antes da linha da resposta (sem kit = o MESMO pedido)",
+   "  const copyMsgs = buildV2CopyMessages(brief, args.languageName, opts)"
+  ]
+ ],
+ "app/(dashboard)/ads/v2/AdsV2Simple.tsx": [
+  [
+   "  const baseSig = JSON.stringify({ draftKey, sector, presenter: presenterOn, items: inAd.map((p) => [p.key, focalSig(p)]), style, ...(presenterOn && presenterPick ? { presenterPick } : {}), ...(format !== '9:16' ? { format } : {}), ...(closeRealOn ? { closeReal: true } : {}), ...(kitOfferT ? { kitOffer: kitOfferT } : {}) }) // KINEO-ADS-MELHORIAS-1410 — outro formato = planejar de novo · KINEO-CLOSE-REAL-1910 — trocar para/do Close real = planejar de novo; era: a mesma linha sem a chave closeReal · KINEO-KIT-BF-1910 — + a oferta do kit (mudou = planejar de novo; vazia = a assinatura de antes)",
+   "  const baseSig = JSON.stringify({ draftKey, sector, presenter: presenterOn, items: inAd.map((p) => [p.key, focalSig(p)]), style, ...(presenterOn && presenterPick ? { presenterPick } : {}), ...(format !== '9:16' ? { format } : {}), ...(closeRealOn ? { closeReal: true } : {}) }) // KINEO-ADS-MELHORIAS-1410 — outro formato = planejar de novo · KINEO-CLOSE-REAL-1910 — trocar para/do Close real = planejar de novo; era: a mesma linha sem a chave closeReal"
+  ],
+  [
+   "        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}), ...(format !== '9:16' ? { format } : {}), ...(closeRealOn ? { close_real: true } : {}), ...(kitOfferT ? { offer: kitOfferT } : {}) }, // KINEO-ADS-MELHORIAS-1410 — o formato só fora do 9:16 · KINEO-CLOSE-REAL-1910 — + o Close do produto real; era: a mesma linha sem close_real · KINEO-KIT-BF-1910 — + a oferta do kit (só com oferta)",
+   "        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}), ...(format !== '9:16' ? { format } : {}), ...(closeRealOn ? { close_real: true } : {}) }, // KINEO-ADS-MELHORIAS-1410 — o formato só fora do 9:16 · KINEO-CLOSE-REAL-1910 — + o Close do produto real; era: a mesma linha sem close_real"
+  ],
+  [
+   "  const shownCost = kitN > 1 ? adsV2KitBfTotal(kitN, cost) : variations && three ? variationsPrice(cost) : cost // KINEO-KIT-BF-1910 — N variações do kit = N × o preço do nível (o total ANTES de confirmar)",
+   "  const shownCost = variations && three ? variationsPrice(cost) : cost"
+  ],
+  [
+   "  const costLine = adsV2CostLine({ tier, balance, sample: !!scopy, group: kitN > 1 ? adsV2KitBfTotal(kitN, cost) : variations && three ? variationsPrice(cost) : null }) // KINEO-KIT-BF-1910 — o custo da prévia ao vivo também mostra o total das N",
+   "  const costLine = adsV2CostLine({ tier, balance, sample: !!scopy, group: variations && three ? variationsPrice(cost) : null })"
+  ],
+  [
+   "  const goLabel = shownCost === null ? ux.preview.chooseLevel : scopy ? scopy.make : kitN > 1 ? fill(kitCopy.go, { n: kitN, c: shownCost }) : fill(fc.review.go, { c: shownCost }) // KINEO-KIT-BF-1910 — \"Gerar 3 variações · N créditos\"",
+   "  const goLabel = shownCost === null ? ux.preview.chooseLevel : scopy ? scopy.make : fill(fc.review.go, { c: shownCost })"
+  ]
+ ]
+}

@@ -45,6 +45,7 @@ import { adsV2PackshotShots } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIA
 import { adsV2FormatBlock, adsV2FormatShots, normalizeAdsV2Format } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — formatos 4:5 e 1:1 (só onde o pipeline inteiro aceita)
 import { adsV2BuildScripts } from '@/lib/ads/v2Scripts' // KINEO-ADS-ROTEIROS-2026-10-13 — 2 a 3 roteiros para escolher (o 1º = o texto de sempre); troca em /api/ads/v2/plan/choose
 import { ADS_V2_CLOSE_REAL_LIVE, ADS_V2_CLOSE_REAL_SECONDS, adsV2CloseRealShots, adsV2CloseRealUsd, planAdsV2CloseReal } from '@/lib/ads/v2CloseReal' // KINEO-CLOSE-REAL-1910 — o formato "Close do produto real" (zero IA de vídeo; a amostra grátis sai SEMPRE nele)
+import { adsV2KitBfFromBody, adsV2KitBfPhotoOrder, adsV2KitBfStored, adsV2KitBfTextWithOffer } from '@/lib/ads/v2KitBf' // KINEO-KIT-BF-1910 — o Kit Black Friday no Close real: oferta opcional e o ângulo/ordem das fotos de cada variação do lote (lib pura)
 
 /** Quem age: o id do auth (moderação e rastro) e o e-mail VERIFICADO dele (adsV2Visible). */
 export interface AdsV2Caller {
@@ -85,6 +86,9 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     const closeRealAsked = ADS_V2_CLOSE_REAL_LIVE && (input.close_real === true || (gate !== 'ok' && sample)) // KINEO-CLOSE-REAL-1910
     if (closeRealAsked) { delete input.presenter; delete input.presenter_id; delete input.style; delete input.format } // KINEO-CLOSE-REAL-1910
     if (closeRealAsked && order.seconds !== ADS_V2_CLOSE_REAL_SECONDS) return v2Fail('close_real_15s_only', 400) // KINEO-CLOSE-REAL-1910 — a estrutura é de 15 s
+    const kitBfIn = adsV2KitBfFromBody(body, { closeReal: closeRealAsked, paid: gate === 'ok' }) // KINEO-KIT-BF-1910 — offer / kit_angle / kit_variant do corpo cru; fora do Close real pago (amostra incluída) = ignorados
+    if (!kitBfIn.ok) return v2Fail(kitBfIn.error, 400) // KINEO-KIT-BF-1910 — ANTES do modelo (nada cobrado)
+    const kitBf = kitBfIn.value // KINEO-KIT-BF-1910
     // KINEO-ADS-MODO-SIMPLES-2026-09-29 — corpo simples só para pedido nascido no modo simples; enquanto a pesquisa roda,
     // não há plano (nem cobrança): 409 research_running (pesquisa parada há > 90 s conta como falha e libera).
     const brief0 = order.brief ?? {}
@@ -156,6 +160,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     }
     // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o que a pessoa DIGITOU (frase + preço + contato), antes da página do link: alegação
     // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — de saúde só vale se estiver aqui (lib/ads/v2Honesty.ts); a página nunca a autoriza.
+    if (kitBf.offer) text = adsV2KitBfTextWithOffer(text, kitBf.offer) // KINEO-KIT-BF-1910 — a oferta digitada entra no texto do negócio (o que a pessoa DIGITOU: a régua de honestidade a conhece)
     const typed = text // KINEO-ANUNCIO-CONSERTOS-2026-10-12
     let pageLang: string | null = null
     // KINEO-ADS-1FOTO-LINK-2026-10-10 — modo simples com o link do produto colado (/api/ads/v2/link-import): a frase da
@@ -175,6 +180,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
       pageLang = read.lang
     }
     if (!text) return v2Fail('sentence_or_link_required', 400)
+    if (kitBf.offer) text = adsV2KitBfTextWithOffer(text, kitBf.offer) // KINEO-KIT-BF-1910 — só o link (sem frase): a oferta entra também (já presente = o mesmo texto)
 
     const safety = await moderateContent({ surface: 'ads_brief', stage: 'input', userId: user.id, text: [text, ...(sentenceFull !== sentenceCopy ? [sentenceFull] : []), ...factTexts].join('\n'), meta: { order_id: order.id, v2: true } }) // KINEO-ADS-CONSERTOS-1410 — a frase inteira (com a cena) continua moderada
     if (!safety.ok) {
@@ -213,6 +219,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
       ...(v2Words && presenterV2Early ? { speechMinExact: v2Words.min, speechSentences: presenterV2Early.ADS_V2_PRESENTER_V2_SPEECH_SENTENCES } : {}), // KINEO-APRESENTADOR-V2-AJUSTE-1710 — o piso do v2 (17; a régua de sempre daria 19 em 21) e 2–3 frases curtas
       scripts: (body as { scripts?: unknown } | null)?.scripts !== false, scene: adsV2SceneSetting(brief0, order.tier), // KINEO-ADS-ROTEIROS-2026-10-13 — +2 versões em outros tons, em paralelo e no MESMO prazo (a cena dá o clima da "story"); corpo com scripts:false (ex.: o lote) = só o texto de sempre
       ...(closeRealAsked ? { closeReal: true } : {}), // KINEO-CLOSE-REAL-AJUSTE-1910 — o Close real: a marca no máximo 2 vezes na fala (o fecho automático não cola "Agora, <marca>.") e o travessão do título vira " · "
+      ...(kitBf.offer || kitBf.angle ? { kitBf: { offer: kitBf.offer, angle: kitBf.angle } } : {}), // KINEO-KIT-BF-1910 — a oferta 1× na fala e o ângulo da variação (sem kit = o pedido de sempre)
     })
     const modeTag = { mode: simple ? 'simple' : 'full', facts_selected: factTexts.length, overlays: overlaysOn }
     if (extracted.ok && extracted.honestyFixes) Object.assign(modeTag, { honesty_fixes: extracted.honestyFixes }) // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o que a régua consertou em código
@@ -248,6 +255,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     const closeReal = closeRealAsked ? planAdsV2CloseReal(photos) : null // KINEO-CLOSE-REAL-1910 — a foto do produto (o recorte do gancho) e as fotos dos planos
     if (closeRealAsked && !closeReal) return v2Fail('close_real_needs_photo', 400) // KINEO-CLOSE-REAL-1910
     if (closeReal) plan.shots = adsV2CloseRealShots(plan.shots, photos) // KINEO-CLOSE-REAL-1910 — toda vaga vira a FOTO REAL parada ('skipped_text': nunca vai à fal)
+    if (closeReal && kitBf.variant > 0) closeReal.photos = adsV2KitBfPhotoOrder(closeReal.photos, kitBf.variant) // KINEO-KIT-BF-1910 — a variação k do lote: a foto do produto (o gancho) fica, as outras mudam de ordem
     const promptIssues = checkV2Prompts(plan.shots.flatMap((s) => [s.prompt, s.scenePrompt].filter((x): x is string => !!x)), extracted.brief)
     if (promptIssues.length) {
       await served(false, { stage: 'prompts', why: promptIssues.slice(0, 4) })
@@ -276,6 +284,8 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     if (inHand) Object.assign(stored, { productInHand: true }) // KINEO-ADS-PRODUTO-NA-MAO-1610 — a marca do plano novo (o avanço lê cada plano; o dry-run mostra os prompts)
     if (closeReal) { Object.assign(stored, { closeReal }); delete (stored as { productInHand?: unknown }).productInHand } // KINEO-CLOSE-REAL-1910 — a marca do formato (a montagem do avanço lê daqui); o produto na mão não vale aqui
     if (closeReal) Object.assign(modeTag, { close_real: true, sample: gate !== 'ok' }) // KINEO-CLOSE-REAL-1910 — a medição (ads_v2_plan_served)
+    const kitBfStored = closeReal ? adsV2KitBfStored(kitBf) : null // KINEO-KIT-BF-1910
+    if (kitBfStored) { Object.assign(stored, { kitBf: kitBfStored }); Object.assign(modeTag, { kit_bf: { offer: !!kitBfStored.offer, angle: kitBfStored.angle, variant: kitBfStored.variant } }) } // KINEO-KIT-BF-1910 — a montagem lê a oferta daqui; a medição (ads_v2_plan_served) diz se veio oferta e qual ângulo
     const credits = adsV2Credits(order.tier, order.seconds)
     const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds, presenter: !!presenter })
     if (inHand) Object.assign(modeTag, { in_hand: true }) // KINEO-ADS-PRODUTO-NA-MAO-1610
@@ -337,6 +347,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
       script_id: scripts[0]?.id ?? 'a', // KINEO-ADS-ROTEIROS-2026-10-13 — o roteiro que está no plano
       plans_left: plansLeft, // KINEO-ADS-FIEL-2-1510 — roteiros que ainda cabem hoje (null = conta da casa, sem teto)
       ...(closeReal ? { close_real: { usd: adsV2CloseRealUsd() } } : {}), // KINEO-CLOSE-REAL-1910 — o formato aplicado e o custo dele (≈ US$ 0,26: nenhum motor de vídeo)
+      ...(kitBfStored ? { kit_bf: { offer: kitBfStored.offer, angle: kitBfStored.angle, variant: kitBfStored.variant } } : {}), // KINEO-KIT-BF-1910 — a oferta e o ângulo aplicados (a tela mostra)
       shots: plan.shots.map((s) => ({ idx: s.idx, role: s.role, beat: s.beat, kind: s.kind, source: s.source, cut_seconds: s.cutSeconds, photo: s.sourceFootageId, ...(s.effect ? { effect: s.effect } : {}) })),
       ...(inHand && inHandLib ? { in_hand: { shots: inHandLib.adsV2InHandSummary(plan.shots), usd: inHandLib.adsV2InHandUsd(usd, plan.shots) } } : {}), // KINEO-ADS-PRODUTO-NA-MAO-1610 — os planos novos e o custo com o juiz e uma refação de foto (usd_estimate fica o de sempre, igual ao dry-run)
       ...(presenter?.v2 && presenterV2Lib ? { presenter_v2: { options: presenterV2Lib.ADS_V2_PRESENTER_V2_OPTIONS, usd: presenterV2Lib.adsV2PresenterV2UsdPro(usd, order.seconds), words: v2Words } } : {}), // KINEO-APRESENTADOR-V2-1710 — 4 fotos + 4 checagens por cima do usd_estimate de sempre · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + 4 checagens das mãos, o avatar PRO no alvo da voz e a régua de palavras

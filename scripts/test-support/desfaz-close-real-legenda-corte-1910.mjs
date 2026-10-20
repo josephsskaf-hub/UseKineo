@@ -14,6 +14,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 export const MARCA_CLOSE_REAL_LEGENDA_CORTE_1910 = 'KINEO-CLOSE-REAL-LEGENDA-CORTE-1910'
+import { semKitBf1910 } from './desfaz-kit-bf-1910.mjs' // KINEO-KIT-BF-1910 — o Kit Black Friday veio depois: sai PRIMEIRO (encadeado; texto sem a marca dele passa igual)
 
 /** A base da entrega (origin/main de 19/10: a pílula de volta, f8d1bf990, no ar). */
 export const CLOSE_REAL_LEGENDA_CORTE_1910_BASE = 'f8d1bf990ffdb706aa32e77fc03a4cf67c61b412'
@@ -36,6 +37,7 @@ export const CLOSE_REAL_LEGENDA_CORTE_1910_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semCloseRealLegendaCorte1910(texto, p) {
+  texto = semKitBf1910(texto, p) // KINEO-KIT-BF-1910 — a camada mais nova sai primeiro
   if (typeof texto !== 'string' || !texto.includes(MARCA_CLOSE_REAL_LEGENDA_CORTE_1910) || !CLOSE_REAL_LEGENDA_CORTE_1910_ARQUIVOS.includes(p)) return texto
   const crlf = texto.includes('\r\n')
   const trocas = new Map((TROCAS_CLOSE_REAL_LEGENDA_CORTE_1910[p] ?? []).map(([nova, base]) => [nova, base]))
