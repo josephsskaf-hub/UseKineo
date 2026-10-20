@@ -12,6 +12,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semHomeCardsBotoes2010 } from './desfaz-home-cards-botoes-2010.mjs' // KINEO-HOME-CARDS-BOTOES-2010 — os botões distintos dos cards de anúncio vieram depois: saem PRIMEIRO (encadeado; texto sem a marca passa igual)
 import { semApresentadorOlhos1910 } from './desfaz-apresentador-olhos-1910.mjs' // KINEO-APRESENTADOR-OLHOS-1910 — os olhos abertos do apresentador v2 vieram depois: saem PRIMEIRO (encadeado; texto sem a marca passa igual)
 
 export const MARCA_HOME_3_CARDS_1910 = 'KINEO-HOME-3-CARDS-1910'
@@ -76,6 +77,7 @@ export const HOME_3_CARDS_1910_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semHome3Cards1910(texto, p) {
+  texto = semHomeCardsBotoes2010(texto, p) // KINEO-HOME-CARDS-BOTOES-2010 — a camada mais nova sai primeiro
   texto = semApresentadorOlhos1910(texto, p) // KINEO-APRESENTADOR-OLHOS-1910 — a camada mais nova sai primeiro
   if (typeof texto !== 'string' || !texto.includes(MARCA_HOME_3_CARDS_1910) || !HOME_3_CARDS_1910_ARQUIVOS.includes(p)) return texto
   const crlf = texto.includes('\r\n')

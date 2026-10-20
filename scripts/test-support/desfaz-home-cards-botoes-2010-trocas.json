@@ -1,0 +1,44 @@
+{
+  "components/home/HomeThreeCards.tsx": [
+    [
+      "import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample' // KINEO-HOME-CARDS-BOTOES-2010 — o rótulo grátis agora vem de homeCardAdsCta",
+      "import { ADS_SAMPLE_LIVE, adsSampleCopy } from '@/lib/ads/sample'"
+    ],
+    [
+      ".k3c-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;max-width:95%;margin-inline:auto} /* KINEO-HOME-CARDS-BOTOES-2010 — os 3 cards 5% menores no computador */",
+      ".k3c-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}"
+    ],
+    [
+      "  const adsCta = (card: HomeCardId) => homeCardAdsCta(card, language, ADS_SAMPLE_LIVE) // KINEO-HOME-CARDS-BOTOES-2010 — um botão diferente por card (fundador 20/10)",
+      "  const adsCta = ADS_SAMPLE_LIVE ? adsSampleCopy(language).make : copy('Make my ad')"
+    ],
+    [
+      "                <span className=\"btn btn-blue k3c-cta\">{card === 'films' ? <UiLabel>Make my film</UiLabel> : adsCta(card)} <span className=\"k3c-arrow\" aria-hidden=\"true\">→</span></span>{/* KINEO-HOME-CARDS-BOTOES-2010 */}",
+      "                <span className=\"btn btn-blue k3c-cta\">{card === 'films' ? <UiLabel>Make my film</UiLabel> : adsCta} <span className=\"k3c-arrow\" aria-hidden=\"true\">→</span></span>"
+    ]
+  ],
+  "scripts/test-home-3-cards-1910.mjs": [
+    [
+      "  if (!code.includes('const adsCta = (card: HomeCardId) => homeCardAdsCta(card, language, ADS_SAMPLE_LIVE)')) probs.push('botão do anúncio promete \"grátis\" sem a amostra no ar') // KINEO-HOME-CARDS-BOTOES-2010",
+      "  if (!/ADS_SAMPLE_LIVE \\? adsSampleCopy\\(language\\)\\.make : copy\\('Make my ad'\\)/.test(code)) probs.push('botão do anúncio promete \"grátis\" sem a amostra no ar')"
+    ],
+    [
+      "mut(COMP, 'const adsCta = (card: HomeCardId) => homeCardAdsCta(card, language, ADS_SAMPLE_LIVE)', 'const adsCta = (card: HomeCardId) => homeCardAdsCta(card, language, true)', componentProblems, '(M16) \"grátis\" sem a amostra no ar → vermelho') // KINEO-HOME-CARDS-BOTOES-2010",
+      "mut(COMP, \"const adsCta = ADS_SAMPLE_LIVE ? adsSampleCopy(language).make : copy('Make my ad')\", 'const adsCta = adsSampleCopy(language).make', componentProblems, '(M16) \"grátis\" sem a amostra no ar → vermelho')"
+    ]
+  ],
+  "scripts/test-apresentador-olhos-1910.mjs": [
+    [
+      "  const tocados = git('diff', '--name-only', B, TOPO).trim().split('\\n').concat(git('diff', '--name-only', 'HEAD').trim().split('\\n').filter((f) => f && !diffSoHomeCardsBotoes2010(git('diff', '-U0', '--no-color', 'HEAD', '--', f), f))).filter(Boolean) // reancorado KINEO-HOME-CARDS-BOTOES-2010 — até o TOPO; o não commitado só da camada nova fica fora",
+      "  const tocados = git('diff', '--name-only', B, 'HEAD').trim().split('\\n').concat(git('diff', '--name-only', 'HEAD').trim().split('\\n')).filter(Boolean)"
+    ],
+    [
+      "  const linhas = APRESENTADOR_OLHOS_1910_ARQUIVOS.every((f) => { const b = new Set(base(f).split('\\n')); return lf(semHomeCardsBotoes2010(rd(f), f)).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) }) // reancorado KINEO-HOME-CARDS-BOTOES-2010 — o disco sem a camada nova",
+      "  const linhas = APRESENTADOR_OLHOS_1910_ARQUIVOS.every((f) => { const b = new Set(base(f).split('\\n')); return rd(f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) })"
+    ],
+    [
+      "  const assuntos = git('log', '--no-merges', '--format=%s', `${B}..${TOPO}`).trim().split('\\n').filter(Boolean) // reancorado KINEO-HOME-CARDS-BOTOES-2010 — até o TOPO",
+      "  const assuntos = git('log', '--no-merges', '--format=%s', `${B}..HEAD`).trim().split('\\n').filter(Boolean)"
+    ]
+  ]
+}

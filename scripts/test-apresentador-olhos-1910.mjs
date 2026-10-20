@@ -23,6 +23,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semApresentadorOlhos1910, desfazApresentadorOlhos1910, APRESENTADOR_OLHOS_1910_ARQUIVOS, APRESENTADOR_OLHOS_1910_NOVOS, APRESENTADOR_OLHOS_1910_BASE, MARCA_APRESENTADOR_OLHOS_1910, ACRESCIMOS_APRESENTADOR_OLHOS_1910 } from './test-support/desfaz-apresentador-olhos-1910.mjs'
 import { semCloseRealLegendaCorte1910 } from './test-support/desfaz-close-real-legenda-corte-1910.mjs'
 import { desfazApresentadorV2Ajuste3_1710 } from './test-support/desfaz-apresentador-v2-ajuste-3-1710.mjs'
+import { semHomeCardsBotoes2010, diffSoHomeCardsBotoes2010 } from './test-support/desfaz-home-cards-botoes-2010.mjs' // reancorado KINEO-HOME-CARDS-BOTOES-2010 — os botões distintos dos cards de anúncio (camada mais nova) saem do disco e do diff antes das provas D2/D4
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT) // o carregador offline resolve '@/' a partir do cwd
@@ -219,13 +220,14 @@ await check('V3 voice_id gravado no ads_v2_assembling e no ads_v2_close_real_ass
 
 // ═══ D. desfaz ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 console.log('\nD. desfaz exato, marca, encadeamento, novos')
+const TOPO = git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, 'HEAD').trim().split('\n').filter(Boolean)[0] || 'HEAD' // reancorado KINEO-HOME-CARDS-BOTOES-2010 — D2/D4 medem da base até o ÚLTIMO commit com a marca desta entrega; camadas mais novas por cima não contam
 await check(`D1 cada arquivo tocado, desfeito (scripts/test-support/desfaz-apresentador-olhos-1910.mjs), é EXATAMENTE a base ${B.slice(0, 9)}; os novos existem e não existiam lá`, () =>
   APRESENTADOR_OLHOS_1910_ARQUIVOS.length >= 8 && APRESENTADOR_OLHOS_1910_ARQUIVOS.every((f) => { const b = base(f); return b !== null && lf(semApresentadorOlhos1910(rd(f), f)) === b }) &&
   APRESENTADOR_OLHOS_1910_NOVOS.length === 4 && APRESENTADOR_OLHOS_1910_NOVOS.every((f) => existsSync(join(ROOT, f)) && statSync(join(ROOT, f)).size > 0 && base(f) === null) && MARCA_APRESENTADOR_OLHOS_1910 === MARCA)
 await check('D2 toda linha nova traz a marca (o diff contra a base só toca os arquivos da lista e os novos); a marca não contém a de outra camada; nada de cobrança, motor ou preço', () => {
-  const tocados = git('diff', '--name-only', B, 'HEAD').trim().split('\n').concat(git('diff', '--name-only', 'HEAD').trim().split('\n')).filter(Boolean)
+  const tocados = git('diff', '--name-only', B, TOPO).trim().split('\n').concat(git('diff', '--name-only', 'HEAD').trim().split('\n').filter((f) => f && !diffSoHomeCardsBotoes2010(git('diff', '-U0', '--no-color', 'HEAD', '--', f), f))).filter(Boolean) // reancorado KINEO-HOME-CARDS-BOTOES-2010 — até o TOPO; o não commitado só da camada nova fica fora
   const permitidos = new Set([...APRESENTADOR_OLHOS_1910_ARQUIVOS, ...APRESENTADOR_OLHOS_1910_NOVOS])
-  const linhas = APRESENTADOR_OLHOS_1910_ARQUIVOS.every((f) => { const b = new Set(base(f).split('\n')); return rd(f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) })
+  const linhas = APRESENTADOR_OLHOS_1910_ARQUIVOS.every((f) => { const b = new Set(base(f).split('\n')); return lf(semHomeCardsBotoes2010(rd(f), f)).split('\n').every((l) => b.has(l) || l.includes(MARCA)) }) // reancorado KINEO-HOME-CARDS-BOTOES-2010 — o disco sem a camada nova
   return tocados.length > 0 && tocados.every((f) => permitidos.has(f)) && linhas && !/KINEO-APRESENTADOR-V2|KINEO-CLOSE-REAL/.test(MARCA) &&
     !tocados.some((f) => /engineCost|pricing|lib\/credits\/|v2Billing|v2Tiers|v2Engines|v2StartCore|ttsFallback|lib\/compose\.ts|lib\/avatar\//.test(f))
 })
@@ -237,7 +239,7 @@ await check('D3 encadeamento: a cabeça da cadeia do Close real (e, por ela, o a
     Object.values(ACRESCIMOS_APRESENTADOR_OLHOS_1910).every((n) => Number.isInteger(n) && n >= 0)
 })
 await check('D4 todo commit da entrega traz a marca no assunto', () => {
-  const assuntos = git('log', '--no-merges', '--format=%s', `${B}..HEAD`).trim().split('\n').filter(Boolean)
+  const assuntos = git('log', '--no-merges', '--format=%s', `${B}..${TOPO}`).trim().split('\n').filter(Boolean) // reancorado KINEO-HOME-CARDS-BOTOES-2010 — até o TOPO
   return assuntos.length === 0 || assuntos.every((s) => s.includes(MARCA))
 })
 

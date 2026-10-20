@@ -15,8 +15,8 @@ import { fileURLToPath } from 'node:url'
 
 export const MARCA_KIT_BF_VENDA_2010 = 'KINEO-KIT-BF-VENDA-2010'
 
-/** A base da entrega (a ponta da fila entrega-atual de 20/10: KINEO-HOME-CARDS-BOTOES-2010, 87251eba9, sobre origin/main 9e5f60a19). */
-export const KIT_BF_VENDA_2010_BASE = '87251eba98fec13a8662659a55606d444402a386'
+/** A base da entrega (a ponta da fila entrega-atual de 20/10: KINEO-HOME-CARDS-BOTOES-2010 + o desfaz dela, bf83b5067, sobre origin/main 9e5f60a19). */
+export const KIT_BF_VENDA_2010_BASE = 'bf83b5067b5dabdf0cd722611a57890717b155d3'
 
 /** [linha nova (inteira), linha da base] por arquivo. */
 export const TROCAS_KIT_BF_VENDA_2010 = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-kit-bf-venda-2010-trocas.json'), 'utf8'))
