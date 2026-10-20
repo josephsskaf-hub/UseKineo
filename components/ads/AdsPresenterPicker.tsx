@@ -23,6 +23,8 @@ import {
   type AdsV2PresenterTag,
 } from '@/lib/ads/v2Presenter'
 import type { AdsV2PresenterPickerCopy } from '@/lib/ads/v2PresenterLibrary'
+import { createContext, useContext, type ReactNode } from 'react' // KINEO-APRESENTADOR-OLHOS-1910
+import { adsV2PresenterV2SampleFor, adsV2PresenterV2Testing, adsV2PresenterV2Visible } from '@/lib/ads/v2PresenterV2' // KINEO-APRESENTADOR-OLHOS-1910 — só os aprovados para clientes; a amostra = a voz do anúncio
 
 const CSS = `
 .kpp{margin:12px 0 0;min-width:0;padding:14px;border:1px solid var(--ads-line,var(--border));border-radius:18px;background:linear-gradient(180deg,color-mix(in srgb,var(--ads-action,var(--accent)) 7%,var(--ads-card,var(--card))),var(--ads-card,var(--card)))}
@@ -110,12 +112,17 @@ function Face({ p, copy, live }: { p: AdsV2PresenterEntry | null; copy: AdsV2Pre
   )
 }
 
+// KINEO-APRESENTADOR-OLHOS-1910 — a conta é interna? (page.tsx resolve no servidor com isAdsInternalEmail e embrulha a tela em AdsPresenterAllProvider). false (o padrão) = cliente:
+// KINEO-APRESENTADOR-OLHOS-1910 — só os apresentadores aprovados na validação de 19/10 aparecem (lib/ads/v2PresenterV2.ts, ADS_V2_PRESENTER_V2_APPROVED). Interna = os 12, os outros com "em teste".
+export const AdsPresenterAllContext = createContext(false) // KINEO-APRESENTADOR-OLHOS-1910
+export function AdsPresenterAllProvider({ all, children }: { all: boolean; children: ReactNode }) { return <AdsPresenterAllContext.Provider value={all === true}>{children}</AdsPresenterAllContext.Provider> } // KINEO-APRESENTADOR-OLHOS-1910
 export function AdsPresenterPicker({
   name,
   value,
   onChange,
   copy,
   disabled,
+  voiceLanguage = null, // KINEO-APRESENTADOR-OLHOS-1910
 }: {
   name: string
   /** null = "Surprise me" (o sorteio de sempre). */
@@ -123,6 +130,8 @@ export function AdsPresenterPicker({
   onChange: (next: string | null) => void
   copy: AdsV2PresenterPickerCopy
   disabled?: boolean
+  /** KINEO-APRESENTADOR-OLHOS-1910 — a língua da voz do anúncio quando o apresentador v2 vale (Comercial 9:16 sem estilo): a amostra toca a voz que o anúncio vai usar. null = a voz do retrato (como antes). */
+  voiceLanguage?: string | null // KINEO-APRESENTADOR-OLHOS-1910
 }) {
   const titleId = `${name}-title`
   const [cat, setCat] = useState<AdsV2PresenterTag | 'all'>('all')
@@ -131,8 +140,10 @@ export function AdsPresenterPicker({
   const [playing, setPlaying] = useState<string | null>(null)
   const [hovered, setHovered] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
-  const chosen = adsV2PresenterById(value)
-  const sampleOf = (p: AdsV2PresenterEntry | null): string | null => (p && p.voiceSample && !broken[p.id] ? p.voiceSample : null)
+  const all = useContext(AdsPresenterAllContext) // KINEO-APRESENTADOR-OLHOS-1910
+  const chosen = ((c) => (c && adsV2PresenterV2Visible(c.id, all) ? c : null))(adsV2PresenterById(value)) // KINEO-APRESENTADOR-OLHOS-1910 — escolha oculta (tela antiga, voltar) não aparece no destaque
+  useEffect(() => { if (value && !adsV2PresenterV2Visible(value, all)) onChange(null) }, [value, all, onChange]) // KINEO-APRESENTADOR-OLHOS-1910 — e volta para "Surprise me"
+  const sampleOf = (p: AdsV2PresenterEntry | null): string | null => (p && !broken[p.id] ? adsV2PresenterV2SampleFor(p, voiceLanguage) : null) // KINEO-APRESENTADOR-OLHOS-1910 — a amostra da voz que o ANÚNCIO vai usar nesta língua (sem língua = a do retrato, como antes)
 
   useEffect(() => () => {
     audioRef.current?.pause()
@@ -160,7 +171,7 @@ export function AdsPresenterPicker({
     a.play().catch(() => setPlaying((cur) => (cur === p.id ? null : cur)))
   }
   const voiceLabel = (p: AdsV2PresenterEntry) => (p.gender === 'man' ? copy.voiceMan : copy.voiceWoman)
-  const shown = ADS_V2_PRESENTER_LIBRARY.filter((p) => cat === 'all' || p.tag === cat)
+  const shown = ADS_V2_PRESENTER_LIBRARY.filter((p) => adsV2PresenterV2Visible(p.id, all) && (cat === 'all' || p.tag === cat)) // KINEO-APRESENTADOR-OLHOS-1910 — cliente: só os aprovados
 
   const card = (p: AdsV2PresenterEntry | null) => {
     const id = p ? p.id : 'auto'
@@ -175,7 +186,7 @@ export function AdsPresenterPicker({
             <span className="kpp-ai">{copy.ai}</span>
             <span className="kpp-check" aria-hidden="true">✓</span>
           </span>
-          <span className="kpp-name">{p ? p.name : copy.autoName}</span>
+          <span className="kpp-name">{p ? p.name : copy.autoName}{p && all && adsV2PresenterV2Testing(p.id) ? <span data-kineo="ads-presenter-testing" style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 800, color: '#b45309' }}>em teste</span> : null}</span>{/* KINEO-APRESENTADOR-OLHOS-1910 — só a conta interna vê os 8 em teste */}
           <span className="kpp-tag">{p ? copy.tags[p.tag] : copy.autoLine}</span>
         </label>
         {canHear && p ? (
@@ -215,7 +226,7 @@ export function AdsPresenterPicker({
       ) : null}
 
       <div className="kpp-cats" role="group" aria-labelledby={titleId}>
-        {(['all', ...ADS_V2_PRESENTER_TAGS] as const).map((c) => (
+        {(['all', ...ADS_V2_PRESENTER_TAGS] as const).filter((c) => c === 'all' || ADS_V2_PRESENTER_LIBRARY.some((p) => p.tag === c && adsV2PresenterV2Visible(p.id, all))).map((c) => ( // KINEO-APRESENTADOR-OLHOS-1910 — categoria sem ninguém visível some
           <button key={c} type="button" className="kpp-cat" aria-pressed={cat === c} onClick={() => setCat(c)}>{copy.tags[c]}</button>
         ))}
       </div>

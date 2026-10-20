@@ -25,6 +25,7 @@ import { adsSampleOpen } from '@/lib/ads/serverAccess' // KINEO-ADS-AMOSTRA-2026
 import { loadAdsWorkspaceLabel } from '@/lib/ads/workspace' // KINEO-EQUIPE-BUSINESS-2026-10-10
 import { isTeamOwnerPlan, type AdsWorkspaceView } from '@/lib/ads/team' // KINEO-EQUIPE-BUSINESS-2026-10-10
 import { businessAdsOffer } from '@/lib/businessPlan' // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a oferta que a tela mostra quando a amostra já foi usada
+import { AdsPresenterAllProvider } from '@/components/ads/AdsPresenterPicker' // KINEO-APRESENTADOR-OLHOS-1910 — conta interna vê os 12 apresentadores (os 8 "em teste"); cliente, só os aprovados
 import AdsV2Client from './AdsV2Client'
 
 export const metadata = { title: 'Studio Ads — Kineo' }
@@ -71,5 +72,5 @@ export default async function AdsV2Page() {
 
   // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — quem entra pela amostra leva a oferta do Business pronta (números de lib/businessPlan.ts): a tela a mostra quando a
   // amostra já foi usada (403 'no_access') e no aviso do teto do dia. Assinante/passe/interna: null (a tela de sempre).
-  return <AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} />
+  return <AdsPresenterAllProvider all={isAdsInternalEmail(user.email)}><AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} /></AdsPresenterAllProvider> // KINEO-APRESENTADOR-OLHOS-1910
 }

@@ -216,6 +216,8 @@ export const ADS_V2_CUSTOMER_NAMES_KEY = 'customer_names'
 export interface AdsV2AdVoice {
   product: boolean
   presenter: boolean
+  /** KINEO-APRESENTADOR-OLHOS-1910 — o APRESENTADOR v2 fala como apresentador (benefício, para quem é, por que comprar), nunca sensorial/contemplativo. Ausente = como sempre. */
+  talk?: boolean // KINEO-APRESENTADOR-OLHOS-1910
 }
 export const ADS_V2_PRODUCT_NARRATION_RULE =
   'narration: this is a PRODUCT ad. Talk about the product itself, not about a shop: what it is, its main benefit, one sensory detail (how it looks, feels, smells or tastes — only what the brief says or what is plain from the product), and a short call to action. Speak directly to the viewer. Never sound like a store: never "At <brand>, we offer", "a selection of", "our store", "our collection" or "visit us".'
@@ -225,6 +227,24 @@ export const ADS_V2_PRODUCT_NARRATION_RULE =
 export const ADS_V2_PRESENTER_NARRATION_RULE =
   'narration: an AI presenter says it on camera while holding the product. The presenter is NOT a customer and never used the product: write it as a presenter or in the brand\'s voice — third person, or speaking to the viewer — in the spirit of "Meet <name>…", "This is <name> — …" or "Here\'s why…" (written in the ad\'s language). Never a testimonial: no "I bought", "I use", "I\'ve been using", "I tried", "I love it", "I recommend", "my skin", "changed my life", no personal result and no before/after. Short, natural sentences; never "we offer". Keep within the word count above.'
 export const ADS_V2_SHOP_TALK_WHY = 'narration: this is a product ad — talk about the product itself (what it is, the benefit, how it feels), not like a shop ("we offer", "a selection of", "our store", "visit us").'
+// KINEO-APRESENTADOR-OLHOS-1910 — validação dos 12 apresentadores (19/10): o texto do perfume saía SENSORIAL ("encanta os sentidos", "sinta a essência", "envelops you", "Experience the allure")
+// KINEO-APRESENTADOR-OLHOS-1910 — e o Kling fechava os olhos do apresentador falando, "saboreando o perfume" (8 de 11 reprovados). Só no caminho do apresentador v2 (o /plan decide; o Close real e
+// KINEO-APRESENTADOR-OLHOS-1910 — o resto intocados): a regra do produto troca o "detalhe sensorial" por um detalhe concreto, a fala de apresentador entra no pedido, e a régua recusa (1 correção)
+// KINEO-APRESENTADOR-OLHOS-1910 — os verbos sensoriais em en/pt/es. Sobrou depois da correção = aceita e conta no evento (presenter_talk_left): tom nunca vira 502. As versões B/C com isso caem.
+/** KINEO-APRESENTADOR-OLHOS-1910 — a regra do PRODUTO no apresentador v2: igual à de sempre, sem o "detalhe sensorial" (cheiro/sabor/toque). */
+export const ADS_V2_PRODUCT_TALK_RULE = 'narration: this is a PRODUCT ad. Talk about the product itself, not about a shop: what it is, its main benefit, who it is for, one concrete detail taken only from the brief or plain from the product (what it is for, how it is used), and a short call to action. Speak directly to the viewer. Never sound like a store: never "At <brand>, we offer", "a selection of", "our store", "our collection" or "visit us".' // KINEO-APRESENTADOR-OLHOS-1910
+/** KINEO-APRESENTADOR-OLHOS-1910 — a fala do apresentador v2 (pedido de texto). */
+export const ADS_V2_PRESENTER_TALK_RULE = 'narration: the presenter talks TO THE VIEWER like a presenter, never like someone enjoying the product: what it is, the main benefit, who it is for and why to get it now. No sensory or contemplative words: never ask the viewer to smell, feel, close their eyes, savor, breathe in, "experience the…", be enveloped or transported, and nothing about "the senses" or "allure" (in any language — e.g. never "sinta", "cheire", "envolva-se", "transporta", "encanta os sentidos", "siente", "envuélvete").' // KINEO-APRESENTADOR-OLHOS-1910
+/** KINEO-APRESENTADOR-OLHOS-1910 — os verbos/expressões sensoriais e contemplativos (en/pt/es) que fazem o apresentador fechar os olhos. */
+export const ADS_V2_PRESENTER_TALK_RE = /(?<![\p{L}\p{N}])(smell(?:s|ing)?|feel(?:s|ing)?|close your eyes|eyes closed|savou?r(?:s|ing)?|envelop(?:s|es|ing|ed)?|transport(?:s|ing|ed)?|(?:the|your) senses|breathe (?:it )?in|immerse yourself|indulge(?: yourself| in)?|experience the|allur(?:e|ing)|sint(?:a|am|o)|sinta-se|sent(?:ir|e|em)|cheir(?:o|os|ar|e|em|a|am|oso|osa)|(?:feche|fechar|fecha) os olhos|olhos fechados|sabore(?:ar|ie|iem|ia|e)|envolv\p{L}*|transport(?:a|am|ar|e|em)\p{L}*|(?:os|seus|teus) sentidos|deixe-se levar|respire|inspire-se|sient(?:e|a|en|an)(?:lo|la)?|huel(?:e|a|en)|oler|(?:cierra|cerrar) los ojos|ojos cerrados|sabore(?:a|ar|en)|envu[eé]lvete|(?:los|tus) sentidos|d[eé]jate llevar)(?![\p{L}\p{N}])/giu // KINEO-APRESENTADOR-OLHOS-1910
+/** KINEO-APRESENTADOR-OLHOS-1910 — as marcas sensoriais da fala (pura; minúsculas, sem repetir). [] = fala de apresentador. */
+export function presenterTalkMarks(text: string | null | undefined): string[] { // KINEO-APRESENTADOR-OLHOS-1910
+  const out = new Set<string>() // KINEO-APRESENTADOR-OLHOS-1910
+  for (const m of String(text ?? '').matchAll(ADS_V2_PRESENTER_TALK_RE)) out.add(m[1].toLowerCase()) // KINEO-APRESENTADOR-OLHOS-1910
+  return [...out] // KINEO-APRESENTADOR-OLHOS-1910
+} // KINEO-APRESENTADOR-OLHOS-1910
+/** KINEO-APRESENTADOR-OLHOS-1910 — o motivo da recusa (vai na correção). */
+export function adsV2PresenterTalkWhy(marks: readonly string[]): string { return `narration: a presenter is talking to the camera — remove the sensory/contemplative words (${marks.map((m) => `"${m}"`).join(', ')}) and say what it is, the main benefit, who it is for and why to get it now.` } // KINEO-APRESENTADOR-OLHOS-1910
 /** Fala de LOJA num anúncio de produto (en/pt/es): "At LUME, we offer…", "a selection of", "our store", "visit us". */
 export const ADS_V2_AT_BRAND_WE = /(?<![\p{L}\p{N}])[Aa]t \p{Lu}[\p{L}\p{N}&'’.-]*(?: \p{Lu}[\p{L}\p{N}&'’.-]*)*,? [Ww]e(?![\p{L}\p{N}])/u
 export const ADS_V2_SHOP_TALK = /(?<![\p{L}\p{N}])(we offer|we carry|we have a (?:wide |great |curated )?(?:selection|range|collection)|(?:a|our) (?:wide |great |curated |captivating )?selection of|our (?:store|shop|boutique|collection)|visit (?:us|our)|n[oó]s oferecemos|oferecemos|nossa loja|temos uma (?:sele[cç][aã]o|variedade|linha)|uma sele[cç][aã]o de|visite (?:a )?nossa|ofrecemos|nuestra tienda|una selecci[oó]n de|vis[ií]tanos)(?![\p{L}\p{N}])/iu
@@ -278,8 +298,9 @@ export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts:
         ]
       : []),
     // KINEO-ATOR-AJUSTES-2026-10-09 — produto fala do produto; com o ator, 1ª pessoa para a câmera. Sem `ad` = nenhuma linha.
-    ...(opts.ad?.product && opts.narration ? [ADS_V2_PRODUCT_NARRATION_RULE] : []),
+    ...(opts.ad?.product && opts.narration ? [opts.ad?.talk === true ? ADS_V2_PRODUCT_TALK_RULE : ADS_V2_PRODUCT_NARRATION_RULE] : []), // KINEO-APRESENTADOR-OLHOS-1910 — no apresentador v2, sem o "detalhe sensorial"
     ...(opts.ad?.presenter && opts.narration ? [ADS_V2_PRESENTER_NARRATION_RULE] : []),
+    ...(opts.ad?.talk === true && opts.narration ? [ADS_V2_PRESENTER_TALK_RULE] : []), // KINEO-APRESENTADOR-OLHOS-1910 — a fala de apresentador (só o v2)
     ...(opts.nameArticle === true && opts.narration && brand ? [adsV2NameArticleRule(brand)] : []), // KINEO-ADS-MAO-JUIZ-1610 — "da Perfume Atheeri": o nome é nome próprio, sem artigo antes
     // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — produto: o lugar é opcional e só em forma natural ("made in the UK", "from Toronto").
     ...(opts.honesty?.product && opts.narration ? [adsV2PlaceRule(opts.honesty.places)] : []),
@@ -385,6 +406,7 @@ export function checkV2Copy(raw: string, brief: AdsBrief, opts: { maxWords: numb
     if (DECOR.test(narration)) why.push('narration: no brackets, markdown or emojis.')
     // KINEO-ATOR-AJUSTES-2026-10-09 — anúncio de produto não fala como loja ("At LUME, we offer a selection of…").
     if (opts.ad?.product && isShopTalk(narration)) why.push(ADS_V2_SHOP_TALK_WHY)
+    if (opts.ad?.talk === true) { const tm = presenterTalkMarks(narration); if (tm.length) why.push(adsV2PresenterTalkWhy(tm)) } // KINEO-APRESENTADOR-OLHOS-1910 — a fala sensorial do apresentador v2 volta para 1 correção
     why.push(...textIssues(narration, brief, 'narration'))
     if (opts.honesty) why.push(...honestyIssues(narration, opts.honesty, 'narration'))
   }
@@ -632,6 +654,8 @@ async function extractWithBudget(args: {
    *  PRODUTO — simpleProductAd); e o ATOR fala a narração. Ausentes = como sempre. */
   productPhoto?: boolean
   presenter?: boolean
+  /** KINEO-APRESENTADOR-OLHOS-1910 — o apresentador v2 (o /plan decide): a fala de apresentador, sem verbos sensoriais. Ausente = como sempre. */
+  presenterTalk?: boolean // KINEO-APRESENTADOR-OLHOS-1910
   /** KINEO-ANUNCIO-CONSERTOS-2026-10-12 — só o que a pessoa DIGITOU (frase + preço + contato), sem a página do link: alegação de
    *  saúde só vale se estiver aqui. Ausente = a frase (ou o texto). */
   typed?: string
@@ -669,7 +693,7 @@ async function extractWithBudget(args: {
   const brief = withCustomerNames(withPublicFacts(parsed.brief, args.facts), voiceRaw?.names ?? [])
   const base0 = args.overlays === false ? { maxWords: args.maxWords, narration: args.narration, overlays: false } : { maxWords: args.maxWords, narration: args.narration }
   const base1 = voice ? { ...base0, simple: voice } : base0
-  const ad: AdsV2AdVoice | null = productAd || args.presenter === true ? { product: productAd, presenter: args.presenter === true } : null
+  const ad: AdsV2AdVoice | null = productAd || args.presenter === true ? { product: productAd, presenter: args.presenter === true, ...(args.presenter === true && args.presenterTalk === true ? { talk: true } : {}) } : null // KINEO-APRESENTADOR-OLHOS-1910 — + talk (só o apresentador v2)
   // A fonte da régua de honestidade: tudo o que o cliente deu (frase, preço, contato, página do produto, fatos marcados) e só
   // o que ele DIGITOU (alegação de saúde só vale dali — nunca copiada da página).
   // KINEO-ATOR-FTC-2026-10-13 — com o ator, a régua também recusa (e conserta) depoimento de cliente na narração.
@@ -735,8 +759,9 @@ async function extractWithBudget(args: {
   let namesMissing: string[] = []
   const relaxNames = !!voice && voice.names.length > 0
   const relaxShop = opts.ad?.product === true
-  const relaxedOpts = { ...opts, ...(voice ? { simple: { ...voice, names: [] } } : {}), ...(opts.ad ? { ad: { ...opts.ad, product: false } } : {}) }
-  if (!checked.ok && (relaxNames || relaxShop)) {
+  const relaxTalk = opts.ad?.talk === true // KINEO-APRESENTADOR-OLHOS-1910 — a fala sensorial que sobrou da correção é acabamento: nunca um 502 por causa do tom (vai para o evento)
+  const relaxedOpts = { ...opts, ...(voice ? { simple: { ...voice, names: [] } } : {}), ...(opts.ad ? { ad: { ...opts.ad, product: false, ...(relaxTalk ? { talk: false } : {}) } } : {}) } // KINEO-APRESENTADOR-OLHOS-1910 — + talk (só quando havia)
+  if (!checked.ok && (relaxNames || relaxShop || relaxTalk)) { // KINEO-APRESENTADOR-OLHOS-1910 — + relaxTalk
     const relaxed = checkV2Copy(raw, brief, relaxedOpts)
     if (relaxed.ok) {
       namesMissing = voice ? missingNames(relaxed.copy.narration ?? '', voice.names) : []
@@ -766,6 +791,7 @@ async function extractWithBudget(args: {
   // KINEO-ADS-RETESTE-1510 — teto) decide — a resposta corrigida; a 1ª só se a correção não trouxe narração. O resultado conta (speechShort).
   let speechShort = false // KINEO-ADS-RETESTE-1510
   const shortOpts = { ...opts, speechMin: undefined, ...(relaxNames && voice ? { simple: { ...voice, names: [] } } : {}), ...(relaxShop && opts.ad ? { ad: { ...opts.ad, product: false } } : {}) } // KINEO-ADS-RETESTE-1510 — só os afrouxamentos que a régua acima já permite
+  if (relaxTalk && shortOpts.ad) shortOpts.ad = { ...shortOpts.ad, talk: false } // KINEO-APRESENTADOR-OLHOS-1910 — a fala curta também não cai por causa do tom
   if (!checked.ok && speechMin > 0) { for (const cand of [raw, ...(raw !== rawFirst && !adsV2HasNarration(raw) ? [rawFirst] : [])]) { const old = checkV2Copy(cand, brief, shortOpts); if (old.ok) { checked = old; speechShort = true; namesMissing = voice ? missingNames(old.copy.narration ?? '', voice.names) : []; break } } } // KINEO-ADS-RETESTE-1510
   if (!checked.ok) return { ok: false, stage: 'copy', why: checked.why.slice(0, 6), attempts }
   // KINEO-ADS-ROTEIROS-2026-10-13 — cada versão pela MESMA régua; reprovada sai (nunca derruba o plano).
@@ -778,7 +804,8 @@ async function extractWithBudget(args: {
     // KINEO-ADS-RETESTE-1510 — de fala, produto genérico) antes da régua inteira, e fala curta não derruba a versão (o piso de antes decide).
     const dropWhy: string[] = [] // KINEO-ADS-RETESTE-1510 — o motivo de cada versão que caiu vai para o evento (scripts_why)
     const mainFirst = checked.ok ? checked.copy.overlays[0] ?? null : null // KINEO-ADS-RETESTE-1510
-    const checkVariantFit = (raw0: string) => { const raw1 = adsV2VariantFirstOverlay(raw0, brandName(brief), mainFirst); const fin = adsV2FinishCopyRaw(raw1, fitOpts); const raw2 = fin ? fin.raw : raw1; let r = checkV2Variant(raw2, brief, opts, relaxedOpts, honesty); if (!r.ok && speechMin > 0) { const o = checkV2Variant(raw2, brief, { ...opts, speechMin: undefined }, { ...relaxedOpts, speechMin: undefined }, honesty); if (o.ok) r = o } if (!r.ok) dropWhy.push(String(r.why[0] ?? 'unknown').slice(0, 120)); return r.ok && fin ? { ...r, fixes: [...r.fixes, ...fin.fixes] } : r } // KINEO-ADS-RETESTE-1510
+    const variantRelaxedOpts = relaxTalk && relaxedOpts.ad ? { ...relaxedOpts, ad: { ...relaxedOpts.ad, talk: true } } : relaxedOpts // KINEO-APRESENTADOR-OLHOS-1910 — as versões B/C NÃO afrouxam o tom: sensorial = a versão cai (nunca derruba o plano)
+    const checkVariantFit = (raw0: string) => { const raw1 = adsV2VariantFirstOverlay(raw0, brandName(brief), mainFirst); const fin = adsV2FinishCopyRaw(raw1, fitOpts); const raw2 = fin ? fin.raw : raw1; let r = checkV2Variant(raw2, brief, opts, variantRelaxedOpts, honesty); if (!r.ok && speechMin > 0) { const o = checkV2Variant(raw2, brief, { ...opts, speechMin: undefined }, { ...variantRelaxedOpts, speechMin: undefined }, honesty); if (o.ok) r = o } if (!r.ok) dropWhy.push(String(r.why[0] ?? 'unknown').slice(0, 120)); return r.ok && fin ? { ...r, fixes: [...r.fixes, ...fin.fixes] } : r } // KINEO-ADS-RETESTE-1510 · KINEO-APRESENTADOR-OLHOS-1910 — relaxedOpts → variantRelaxedOpts
     for (const v of alt.list) {
       const r = checkVariantFit(v.raw) // KINEO-ADS-RETESTE-1510 — era checkV2Variant(v.raw, …) direto
       if (r.ok) variants.push({ tone: v.tone, copy: r.copy, ...(r.fixes.length ? { honestyFixes: r.fixes } : {}) })

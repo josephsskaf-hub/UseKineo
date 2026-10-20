@@ -1037,6 +1037,19 @@ async function adsV2NarrationVoice(order: AdsV2OrderRow, text: string, fallbackT
 }
 /** KINEO-CLOSE-REAL-V3-1910 — a voz do Close real (a MESMA de adsV2NarrationVoice: por língua do apresentador v2; PT-BR = Portuguese_ConfidentWoman; falhou = a de sempre), para o áudio cedo (lib/ads/v2AudioCedo.ts) não gravar a voz padrão antes da montagem. */
 export function adsV2CloseRealNarrationVoice(order: AdsV2OrderRow, text: string): Promise<Buffer> { return adsV2NarrationVoice(order, text, true) } // KINEO-CLOSE-REAL-V3-1910
+// KINEO-APRESENTADOR-OLHOS-1910 — o voice_id que a voz do pedido usa (para auditoria no evento da montagem), pela MESMA árvore de adsV2NarrationVoice: Close real = a voz por língua
+// KINEO-APRESENTADOR-OLHOS-1910 — (mulher); apresentador v2 = a da tabela por língua+gênero, senão a do retrato; ator de antes = a ElevenLabs dele; resto = a MiniMax padrão. Nunca lança ('unknown').
+async function adsV2NarrationVoiceId(order: AdsV2OrderRow): Promise<string> { // KINEO-APRESENTADOR-OLHOS-1910
+  try { // KINEO-APRESENTADOR-OLHOS-1910
+    const lang = narrationLanguage(order.language) ?? 'en' // KINEO-APRESENTADOR-OLHOS-1910
+    if (adsV2CloseRealOf(order.plan)) { const lib = await presenterV2Lib(); return lib ? lib.adsV2PresenterV2VoiceIdOf(lang, 'woman', null) : 'minimax:default' } // KINEO-APRESENTADOR-OLHOS-1910
+    const presenterId = adsV2PresenterPlanOf(order.plan)?.presenterId ?? null // KINEO-APRESENTADOR-OLHOS-1910
+    const entryVoice = presenterId ? adsV2PresenterVoiceOf(presenterId) : null // KINEO-APRESENTADOR-OLHOS-1910
+    const pv = await presenterV2Of(order) // KINEO-APRESENTADOR-OLHOS-1910
+    if (pv) return pv.lib.adsV2PresenterV2VoiceIdOf(lang, pv.v2.gender, entryVoice) // KINEO-APRESENTADOR-OLHOS-1910
+    return entryVoice && entryVoice.engine === 'eleven' ? `eleven:${entryVoice.voice}` : 'minimax:default' // KINEO-APRESENTADOR-OLHOS-1910
+  } catch { return 'unknown' } // KINEO-APRESENTADOR-OLHOS-1910
+} // KINEO-APRESENTADOR-OLHOS-1910
 
 /**
  * KINEO-APRESENTADOR-V2-AJUSTE-1710 — a voz MEDIDA do apresentador v2 passou do alvo (~10,5 s)? Re-sintetiza UMA vez com a decisão pura (adsV2PresenterV2VoiceFit:
@@ -1333,13 +1346,14 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
   let w = await write()
   if (w.error) w = await write()
   if (w.error) console.error(`[ads-v2] creatomate_render_id NÃO gravado order=${order.id} render=${renderId}`)
+  const voiceId = await adsV2NarrationVoiceId(order) // KINEO-APRESENTADOR-OLHOS-1910 — a voz que o anúncio usou (auditoria: a amostra da tela tem de bater com ela)
   await writeServerEvent({
     name: 'ads_v2_assembling',
     userId: order.user_id,
     path: '/lib/ads/v2Advance',
-    metadata: { order_id: order.id, creatomate_render_id: renderId, shots: montageShots.length, card_seconds: cardSeconds, voice_seconds: voiceSeconds, music: Boolean(musicUrl), music_source: musicUrl ? musicSource : 'none', ...(presenterV2?.v2?.voiceFit ? { presenter_v2_voice_fit: presenterV2.v2.voiceFit } : {}), total_seconds: presenterSource ? Number(presenterSource.duration) : Math.round((shotsSeconds + cardSeconds) * 1000) / 1000, presenter: Boolean(presenterSource), presenter_fallback: presenterMiss, ...(fitInfo ? { fit: fitInfo } : {}) }, // KINEO-ADS-FIEL-2-1510 — o encaixe na duração // KINEO-APRESENTADOR-V2-AJUSTE-1710 — + music_source (lyria / library = a reserva automática / library_swap / stored) e o ajuste da voz do v2
+    metadata: { order_id: order.id, creatomate_render_id: renderId, voice_id: voiceId, shots: montageShots.length, card_seconds: cardSeconds, voice_seconds: voiceSeconds, music: Boolean(musicUrl), music_source: musicUrl ? musicSource : 'none', ...(presenterV2?.v2?.voiceFit ? { presenter_v2_voice_fit: presenterV2.v2.voiceFit } : {}), total_seconds: presenterSource ? Number(presenterSource.duration) : Math.round((shotsSeconds + cardSeconds) * 1000) / 1000, presenter: Boolean(presenterSource), presenter_fallback: presenterMiss, ...(fitInfo ? { fit: fitInfo } : {}) }, // KINEO-ADS-FIEL-2-1510 — o encaixe na duração // KINEO-APRESENTADOR-V2-AJUSTE-1710 — + music_source (lyria / library = a reserva automática / library_swap / stored) e o ajuste da voz do v2 · KINEO-APRESENTADOR-OLHOS-1910 — + voice_id
   })
-  if (closeRealSource) await writeServerEvent({ name: 'ads_v2_close_real_assembled', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, creatomate_render_id: renderId, hero: closeRealHero, sample: isAdsSampleRef(order.billing_ref), watermark: isAdsSampleRef(order.billing_ref), photos: closeRealPlan?.photos.length ?? 0, total_seconds: Number(closeRealSource.duration), voice_seconds: voiceSeconds, music_source: musicUrl ? musicSource : 'none' } }) // KINEO-CLOSE-REAL-1910 — a medição do formato (gancho recortado ou foto real, amostra com marca, duração real)
+  if (closeRealSource) await writeServerEvent({ name: 'ads_v2_close_real_assembled', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, creatomate_render_id: renderId, hero: closeRealHero, sample: isAdsSampleRef(order.billing_ref), watermark: isAdsSampleRef(order.billing_ref), photos: closeRealPlan?.photos.length ?? 0, total_seconds: Number(closeRealSource.duration), voice_seconds: voiceSeconds, voice_id: voiceId, music_source: musicUrl ? musicSource : 'none' } }) // KINEO-CLOSE-REAL-1910 — a medição do formato (gancho recortado ou foto real, amostra com marca, duração real) · KINEO-APRESENTADOR-OLHOS-1910 — + voice_id
 }
 
 async function pollAssembly(admin: SupabaseClient, order: AdsV2OrderRow): Promise<void> {

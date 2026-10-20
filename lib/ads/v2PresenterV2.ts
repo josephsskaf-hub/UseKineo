@@ -283,7 +283,7 @@ export function adsV2PresenterV2Usd(base: { totalUsd: number }): { extraImagesUs
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — o teto de palavras da narração do apresentador v2. */
 export const ADS_V2_PRESENTER_V2_MAX_WORDS = 21
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — o piso (a fala cobre o apresentador; menos que isso o rosto fica calado antes do close). */
-export const ADS_V2_PRESENTER_V2_MIN_WORDS = 17
+export const ADS_V2_PRESENTER_V2_MIN_WORDS = 19 // KINEO-APRESENTADOR-OLHOS-1910 — era 17: na validação de 19/10 os 11 roteiros nasceram COLADOS no piso (17–19 palavras) e a voz deu 7,1–9,5 s (anúncio de 11–14 s; alvo 15). 19 a 21 ainda é a régua de 17–21
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a voz PT-BR do apresentador, medida no T1: 30 palavras em 14,36 s ≈ 2,1 pal/s. */
 export const ADS_V2_PRESENTER_V2_WPS = 2.1
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — o alvo da voz MEDIDA (s): 10,5 + 0,15 + 2 + 2,5 ≈ 15 s de anúncio. */
@@ -317,6 +317,7 @@ export function adsV2PresenterV2VoiceFit(i: { seconds: number; text: string; can
   const s = Number(i?.seconds)
   const text = String(i?.text ?? '').replace(/\s+/g, ' ').trim()
   if (!(s > 0) || !text || s <= target + 1e-9) return { action: 'ok' }
+  if (i.canSpeed !== true && s <= target * ADS_V2_PRESENTER_V2_MAX_SPEED + 1e-9) return { action: 'ok' } // KINEO-APRESENTADOR-OLHOS-1910 — a voz sem speed (EN/ES/homem) até 8% acima do alvo FICA (Rahul d036c357: 10,76 s para 10,5 perdeu a frase do meio e saiu com 12 palavras, 6,3 s). Passar é bom; amputar, nunca
   const need = s / target
   if (i.canSpeed === true && need <= ADS_V2_PRESENTER_V2_MAX_SPEED + 1e-9) return { action: 'speed', speed: Math.min(ADS_V2_PRESENTER_V2_MAX_SPEED, up2(need)), text }
   const parts = text.split(/(?<=[.!?…])\s+/u).filter(Boolean)
@@ -327,6 +328,7 @@ export function adsV2PresenterV2VoiceFit(i: { seconds: number; text: string; can
   while (est() > limit + 1e-9) {
     let best = -1
     for (let k = 1; k < parts.length - 1; k++) if (keep[k] && (best < 0 || wordsOfV2(parts[k]) > wordsOfV2(parts[best]))) best = k
+    if (best >= 0 && parts.reduce((a, p, k) => a + (keep[k] && k !== best ? wordsOfV2(p) : 0), 0) < ADS_V2_PRESENTER_V2_MIN_WORDS) best = -1 // KINEO-APRESENTADOR-OLHOS-1910 — o corte nunca deixa a fala abaixo do piso de palavras (história interrompida é defeito)
     if (best < 0) break
     keep[best] = false
   }
@@ -348,19 +350,34 @@ export function adsV2PresenterV2VoiceFitRecord(fit: AdsV2PresenterV2VoiceFit, be
 // KINEO-APRESENTADOR-V2-AJUSTE-1710 — está na foto, as mãos do quadro iguais às da foto, câmera estável. Escrito em frases AFIRMATIVAS: o motor não tem negative
 // KINEO-APRESENTADOR-V2-AJUSTE-1710 — prompt e "no X" no prompt desenha X (lição do juiz do still).
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a foto escolhida TEM a mão livre inteira: ela gesticula pouco e baixo. */
-export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT = 'the person talks to the camera in a calm, natural UGC style, like chatting with a friend; a light closed-lip smile only at the very start and at the very end; while speaking the mouth stays relaxed and the lips follow every syllable naturally; small, low gestures with the free hand that is already visible in the photo, kept near the chest; the hands in the frame stay exactly the ones in the photo; the other hand holds the product steady with the label facing the camera; gentle natural head movement, natural blinking at a relaxed pace, steady camera, sharp focus, preserve the exact face and appearance' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + piscadas calmas
+// KINEO-APRESENTADOR-OLHOS-1910 — VALIDAÇÃO DOS 12 (19/10, docs/VALIDACAO-12-APRESENTADORES-2026-10-19.md): 8 de 11 reprovados por UM defeito — OLHOS FECHADOS falando ("saboreando o
+// KINEO-APRESENTADOR-OLHOS-1910 — perfume"), 0,5–1,8 s, muitas vezes no gancho, às vezes com sorriso de dentes. A R3 só dizia "natural blinking at a relaxed pace". Agora a 1ª instrução da
+// KINEO-APRESENTADOR-OLHOS-1910 — atuação é olhar para a lente de olhos abertos (piscada só rápida), e a lista do que evitar vai no FIM do prompt: o Kling AI Avatar v2 Pro continua SEM campo
+// KINEO-APRESENTADOR-OLHOS-1910 — de negative (schema da fal conferido de novo em 20/10: image_url, audio_url, prompt, enable_safety_checker). Risco conhecido: "no X" pode desenhar X — por isso
+// KINEO-APRESENTADOR-OLHOS-1910 — a frase afirmativa vem PRIMEIRO e a lista é curta. Revalidar os 8 com a mesma régua. NÃO reintroduzir o "warm" (358ea4e21: piorou olhos e dentes).
+/** KINEO-APRESENTADOR-OLHOS-1910 — a 1ª instrução da atuação (as duas variantes). */
+export const ADS_V2_PRESENTER_V2_EYES_OPEN = 'eyes open and looking into the lens the whole time; only quick, brief blinks' // KINEO-APRESENTADOR-OLHOS-1910
+/** KINEO-APRESENTADOR-OLHOS-1910 — o que evitar: vai no fim do prompt (o motor não tem negative) e no negative de reserva (ADS_V2_PRESENTER_V2_NEGATIVE_PROMPT). */
+export const ADS_V2_PRESENTER_V2_EYES_AVOID = 'closed eyes, eyes shut, squinting, savoring, head tilted back, toothy grin' // KINEO-APRESENTADOR-OLHOS-1910
+/** KINEO-APRESENTADOR-OLHOS-1910 — a atuação que vai ao motor (pura): olhos abertos no INÍCIO + o texto da R3 intacto + "avoid: …" no fim. */
+export function adsV2PresenterV2EyesFirst(r3: string): string { return `${ADS_V2_PRESENTER_V2_EYES_OPEN}; ${r3}; avoid: ${ADS_V2_PRESENTER_V2_EYES_AVOID}` } // KINEO-APRESENTADOR-OLHOS-1910
+export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_R3 = 'the person talks to the camera in a calm, natural UGC style, like chatting with a friend; a light closed-lip smile only at the very start and at the very end; while speaking the mouth stays relaxed and the lips follow every syllable naturally; small, low gestures with the free hand that is already visible in the photo, kept near the chest; the hands in the frame stay exactly the ones in the photo; the other hand holds the product steady with the label facing the camera; gentle natural head movement, natural blinking at a relaxed pace, steady camera, sharp focus, preserve the exact face and appearance' // KINEO-APRESENTADOR-OLHOS-1910 — a atuação da R3 (nota 9, pedido 84a5d07f), INTACTA: vai ao motor dentro de adsV2PresenterV2EyesFirst (abaixo)
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a foto escolhida NÃO tem a mão livre (ou não deu para ver): só rosto, olhar e cabeça; as mãos ficam como na foto. */
-export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL = 'the person talks to the camera in a calm, natural UGC style, like chatting with a friend; a light closed-lip smile only at the very start and at the very end; while speaking the mouth stays relaxed and the lips follow every syllable naturally; only the one hand holding the product is in the frame and it stays still; the other arm rests out of frame; the hand with the product holds it steady with the label facing the camera; the expression comes from the eyes, the face and a gentle natural head movement; natural blinking at a relaxed pace; steady camera, sharp focus, preserve the exact face and appearance' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — mãos paradas em frase afirmativa + piscadas calmas
+export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL_R3 = 'the person talks to the camera in a calm, natural UGC style, like chatting with a friend; a light closed-lip smile only at the very start and at the very end; while speaking the mouth stays relaxed and the lips follow every syllable naturally; only the one hand holding the product is in the frame and it stays still; the other arm rests out of frame; the hand with the product holds it steady with the label facing the camera; the expression comes from the eyes, the face and a gentle natural head movement; natural blinking at a relaxed pace; steady camera, sharp focus, preserve the exact face and appearance' // KINEO-APRESENTADOR-OLHOS-1910 — a das mãos paradas da R3, INTACTA
+/** KINEO-APRESENTADOR-OLHOS-1910 — a atuação do v2 com a mão livre (olhos abertos primeiro). */
+export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT = adsV2PresenterV2EyesFirst(ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_R3) // KINEO-APRESENTADOR-OLHOS-1910
+/** KINEO-APRESENTADOR-OLHOS-1910 — a atuação do v2 com as mãos paradas (olhos abertos primeiro). */
+export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL = adsV2PresenterV2EyesFirst(ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL_R3) // KINEO-APRESENTADOR-OLHOS-1910
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a atuação pela foto escolhida (pura): mão livre inteira = gesto pequeno; senão (ou não sei) = mãos paradas. */
 export function adsV2PresenterV2Performance(freeHand: boolean | null | undefined): string {
   return freeHand === true ? ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT : ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL
 }
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a atuação que vai ao motor (pura): a da linha se for uma das duas do v2; qualquer outra (a de 09/10) = a das mãos paradas. */
 export function adsV2PresenterV2PerformanceOf(rowPrompt: string | null | undefined): string {
-  return rowPrompt === ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT || rowPrompt === ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL ? rowPrompt : ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL
+  return rowPrompt === ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT || rowPrompt === ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_R3 ? ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT : ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL // KINEO-APRESENTADOR-OLHOS-1910 — a linha planejada ANTES desta entrega (texto da R3) também sai com os olhos abertos; qualquer outra = a das mãos paradas
 }
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — o que um negative prompt levaria (pedido do fundador), se o motor aceitar um. */
-export const ADS_V2_PRESENTER_V2_NEGATIVE_PROMPT = 'big smile while talking, teeth, hand entering frame, hand close to camera, blur'
+export const ADS_V2_PRESENTER_V2_NEGATIVE_PROMPT = `big smile while talking, teeth, hand entering frame, hand close to camera, blur, ${ADS_V2_PRESENTER_V2_EYES_AVOID}` // KINEO-APRESENTADOR-OLHOS-1910 — + olhos fechados/apertados, "saboreando", cabeça para trás, sorriso de dentes
 /**
  * KINEO-APRESENTADOR-V2-AJUSTE-1710 — o Kling AI Avatar v2 (standard e pro) NÃO aceita negative prompt: o schema da fal (conferido em 17/10) tem só image_url,
  * KINEO-APRESENTADOR-V2-AJUSTE-1710 — audio_url, prompt e enable_safety_checker. false = o campo não vai (o motor ignoraria). O dia em que aceitar: true e pronto.
@@ -560,3 +577,61 @@ export function adsV2PresenterV2ProductRect(inv: { products?: readonly { type?: 
   const b = list.sort((p, q) => (q[2] - q[0]) * (q[3] - q[1]) - (p[2] - p[0]) * (p[3] - p[1]))[0] // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — [ymin, xmin, ymax, xmax]
   return { x0: b[1] / 1000, y0: b[0] / 1000, x1: b[3] / 1000, y1: b[2] / 1000 } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
 } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+// ══ KINEO-APRESENTADOR-OLHOS-1910 — a TELA DE ESCOLHA só com os aprovados + a amostra de voz = a voz do anúncio ══════════════════════════════════════════════
+// ── 1. KINEO-APRESENTADOR-OLHOS-1910 — os aprovados da validação de 19/10 (até revalidar os outros 8) ──────────────────────────────────────────────────────────────────────
+// KINEO-APRESENTADOR-OLHOS-1910 — Sofia 9 (R3), Amara 8, Rahul 8, Kenji 8. Os outros 8 (Robert, Yasmin, Jade, Hannah, Marcus, Clara, Chloe, Lucía) fecharam os olhos falando: ficam FORA da
+// KINEO-APRESENTADOR-OLHOS-1910 — tela para clientes; as contas internas veem os 12, com os 8 marcados "em teste". O servidor confere de novo (adsV2PresenterV2GatePick): id oculto vindo de tela
+// KINEO-APRESENTADOR-OLHOS-1910 — antiga ou da API vira um aprovado do MESMO gênero, e o sorteio do v2 só cai em aprovada (Sofia ou Amara). Para ampliar: pôr o id na lista. false = os 12 para todos.
+/** KINEO-APRESENTADOR-OLHOS-1910 — quem aparece para clientes na tela de escolha (ids da biblioteca, lib/ads/v2Presenter.ts). */
+export const ADS_V2_PRESENTER_V2_APPROVED: readonly string[] = ['sofia', 'amara', 'rahul', 'kenji'] // KINEO-APRESENTADOR-OLHOS-1910
+/** KINEO-APRESENTADOR-OLHOS-1910 — Interruptor ÚNICO: true = clientes só veem (e só recebem) os aprovados; false = os 12 para todos, como antes. */
+export const ADS_V2_PRESENTER_V2_APPROVED_ONLY: boolean = true // KINEO-APRESENTADOR-OLHOS-1910
+/** KINEO-APRESENTADOR-OLHOS-1910 — o apresentador aparece na tela? (puro) `all` = conta interna (vê todos). */
+export function adsV2PresenterV2Visible(id: string | null | undefined, all: boolean, only: boolean = ADS_V2_PRESENTER_V2_APPROVED_ONLY): boolean { // KINEO-APRESENTADOR-OLHOS-1910
+  if (typeof id !== 'string' || !id) return false // KINEO-APRESENTADOR-OLHOS-1910
+  return only !== true || all === true || ADS_V2_PRESENTER_V2_APPROVED.includes(id) // KINEO-APRESENTADOR-OLHOS-1910
+} // KINEO-APRESENTADOR-OLHOS-1910
+/** KINEO-APRESENTADOR-OLHOS-1910 — "em teste" (puro): fora dos aprovados com o interruptor ligado (só as contas internas chegam a ver). */
+export function adsV2PresenterV2Testing(id: string | null | undefined, only: boolean = ADS_V2_PRESENTER_V2_APPROVED_ONLY): boolean { // KINEO-APRESENTADOR-OLHOS-1910
+  return only === true && typeof id === 'string' && !!id && !ADS_V2_PRESENTER_V2_APPROVED.includes(id) // KINEO-APRESENTADOR-OLHOS-1910
+} // KINEO-APRESENTADOR-OLHOS-1910
+// KINEO-APRESENTADOR-OLHOS-1910 — a trava do SERVIDOR (pura). Conta interna ou interruptor desligado = igual. Cliente que escolheu um oculto = o aprovado do mesmo gênero (posição do
+// KINEO-APRESENTADOR-OLHOS-1910 — escolhido na biblioteca, em rodízio); sem escolha (o sorteio: `person` é o índice da biblioteca) e a pessoa sorteada oculta = uma aprovada (mulher: a voz
+// KINEO-APRESENTADOR-OLHOS-1910 — de sempre do sorteio é feminina). `swapped` = trocou (vai para o evento).
+export function adsV2PresenterV2GatePick(i: { presenterId: string | null | undefined; person: number; internal: boolean; library: readonly { id: string; gender: 'woman' | 'man' }[] }, only: boolean = ADS_V2_PRESENTER_V2_APPROVED_ONLY): { presenterId: string | null; person: number; swapped: boolean } { // KINEO-APRESENTADOR-OLHOS-1910
+  const lib = Array.isArray(i?.library) ? i.library : [] // KINEO-APRESENTADOR-OLHOS-1910
+  const id = typeof i?.presenterId === 'string' && i.presenterId ? i.presenterId : null // KINEO-APRESENTADOR-OLHOS-1910
+  const person = Number.isInteger(i?.person) && i.person >= 0 ? i.person : 0 // KINEO-APRESENTADOR-OLHOS-1910
+  const same = { presenterId: id, person, swapped: false } // KINEO-APRESENTADOR-OLHOS-1910
+  if (only !== true || i?.internal === true) return same // KINEO-APRESENTADOR-OLHOS-1910
+  const pick = (gender: 'woman' | 'man', k: number) => { const ok = lib.filter((e) => e.gender === gender && ADS_V2_PRESENTER_V2_APPROVED.includes(e.id)); return ok.length ? ok[k % ok.length] : null } // KINEO-APRESENTADOR-OLHOS-1910
+  if (id) { // KINEO-APRESENTADOR-OLHOS-1910
+    if (ADS_V2_PRESENTER_V2_APPROVED.includes(id)) return same // KINEO-APRESENTADOR-OLHOS-1910
+    const k = lib.findIndex((e) => e.id === id) // KINEO-APRESENTADOR-OLHOS-1910
+    const to = pick(k >= 0 ? lib[k].gender : 'woman', Math.max(0, k)) // KINEO-APRESENTADOR-OLHOS-1910
+    return to ? { presenterId: to.id, person: lib.indexOf(to), swapped: true } : same // KINEO-APRESENTADOR-OLHOS-1910
+  } // KINEO-APRESENTADOR-OLHOS-1910
+  const drawn = lib[person] // KINEO-APRESENTADOR-OLHOS-1910
+  if (drawn && ADS_V2_PRESENTER_V2_APPROVED.includes(drawn.id)) return same // KINEO-APRESENTADOR-OLHOS-1910
+  const to = pick('woman', person) // KINEO-APRESENTADOR-OLHOS-1910
+  return to ? { presenterId: null, person: lib.indexOf(to), swapped: true } : same // KINEO-APRESENTADOR-OLHOS-1910
+} // KINEO-APRESENTADOR-OLHOS-1910
+// ── 2. KINEO-APRESENTADOR-OLHOS-1910 — a amostra que a tela toca = a voz que o anúncio vai usar ────────────────────────────────────────────────────────────────────────────
+// KINEO-APRESENTADOR-OLHOS-1910 — a voz do anúncio v2 sai por língua + gênero (adsV2PresenterV2VoiceFor): onde a tabela tem uma voz com voice id (hoje só PT-BR mulher = Portuguese_ConfidentWoman),
+// KINEO-APRESENTADOR-OLHOS-1910 — o anúncio NÃO usa a voz cadastrada no retrato — e a amostra da tela (a voz do retrato) mentia. Caminho de menor risco: a TELA passa a tocar a amostra da voz
+// KINEO-APRESENTADOR-OLHOS-1910 — da tabela (a do anúncio não muda: é a que o fundador escolheu pelo ouvido e a R3 aprovou com 9). Voz da tabela sem amostra = nenhuma amostra ("em breve"),
+// KINEO-APRESENTADOR-OLHOS-1910 — nunca a voz errada. 'current' (EN/ES, homens em PT) = a voz do retrato, que é a mesma do anúncio (adsV2NarrationVoice cai na voz do apresentador).
+/** KINEO-APRESENTADOR-OLHOS-1910 — amostra por voice id (arquivo público). Portuguese_ConfidentWoman = a amostra nº 3 que o fundador ouviu e escolheu em 17/10 (C:\kineo-wt\prints-1610\vozes). */
+export const ADS_V2_PRESENTER_V2_VOICE_SAMPLES: Readonly<Record<string, string>> = { Portuguese_ConfidentWoman: '/ads/presenters/voice-pt-confidentwoman.mp3' } // KINEO-APRESENTADOR-OLHOS-1910
+/** KINEO-APRESENTADOR-OLHOS-1910 — a amostra da tela (pura): com a língua do anúncio e o v2 valendo, a da voz do ANÚNCIO; sem língua (fora do v2) = a do retrato, como antes. */
+export function adsV2PresenterV2SampleFor(entry: { gender: 'woman' | 'man'; voiceSample: string | null } | null | undefined, language: string | null | undefined): string | null { // KINEO-APRESENTADOR-OLHOS-1910
+  if (!entry) return null // KINEO-APRESENTADOR-OLHOS-1910
+  if (typeof language === 'string' && language) { const v = adsV2PresenterV2VoiceFor(language, entry.gender); if (v.engine === 'minimax') return ADS_V2_PRESENTER_V2_VOICE_SAMPLES[v.voiceId] ?? null } // KINEO-APRESENTADOR-OLHOS-1910
+  return entry.voiceSample ?? null // KINEO-APRESENTADOR-OLHOS-1910
+} // KINEO-APRESENTADOR-OLHOS-1910
+/** KINEO-APRESENTADOR-OLHOS-1910 — o voice_id que a voz do anúncio usa (puro, para o evento): a da tabela ('minimax:<voice id>'), senão a do retrato ('eleven:<voz>'), senão a MiniMax padrão. */
+export function adsV2PresenterV2VoiceIdOf(language: string | null | undefined, gender: 'woman' | 'man' | null | undefined, entryVoice: { engine: string; voice?: string } | null | undefined): string { // KINEO-APRESENTADOR-OLHOS-1910
+  const v = adsV2PresenterV2VoiceFor(language, gender) // KINEO-APRESENTADOR-OLHOS-1910
+  if (v.engine === 'minimax') return `minimax:${v.voiceId}` // KINEO-APRESENTADOR-OLHOS-1910
+  return entryVoice && entryVoice.engine === 'eleven' && typeof entryVoice.voice === 'string' && entryVoice.voice ? `eleven:${entryVoice.voice}` : 'minimax:default' // KINEO-APRESENTADOR-OLHOS-1910
+} // KINEO-APRESENTADOR-OLHOS-1910

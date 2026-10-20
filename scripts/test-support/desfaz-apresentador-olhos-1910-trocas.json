@@ -1,0 +1,90 @@
+{
+ "app/(dashboard)/ads/v2/AdsV2Simple.tsx": [
+  [
+   "              {presenterOn ? <AdsPresenterPicker name=\"adv2s-presenter-pick\" value={presenterPick} onChange={setPresenterPick} copy={adsV2PresenterPickerCopy(lang)} disabled={locked} voiceLanguage={presenterV2Voice} /> : null}{/* KINEO-APRESENTADOR-OLHOS-1910 — + voiceLanguage */}",
+   "              {presenterOn ? <AdsPresenterPicker name=\"adv2s-presenter-pick\" value={presenterPick} onChange={setPresenterPick} copy={adsV2PresenterPickerCopy(lang)} disabled={locked} /> : null}"
+  ]
+ ],
+ "app/(dashboard)/ads/v2/page.tsx": [
+  [
+   "  return <AdsPresenterAllProvider all={isAdsInternalEmail(user.email)}><AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} /></AdsPresenterAllProvider> // KINEO-APRESENTADOR-OLHOS-1910",
+   "  return <AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} />"
+  ]
+ ],
+ "components/ads/AdsPresenterPicker.tsx": [
+  [
+   "  const chosen = ((c) => (c && adsV2PresenterV2Visible(c.id, all) ? c : null))(adsV2PresenterById(value)) // KINEO-APRESENTADOR-OLHOS-1910 — escolha oculta (tela antiga, voltar) não aparece no destaque",
+   "  const chosen = adsV2PresenterById(value)"
+  ],
+  [
+   "  const sampleOf = (p: AdsV2PresenterEntry | null): string | null => (p && !broken[p.id] ? adsV2PresenterV2SampleFor(p, voiceLanguage) : null) // KINEO-APRESENTADOR-OLHOS-1910 — a amostra da voz que o ANÚNCIO vai usar nesta língua (sem língua = a do retrato, como antes)",
+   "  const sampleOf = (p: AdsV2PresenterEntry | null): string | null => (p && p.voiceSample && !broken[p.id] ? p.voiceSample : null)"
+  ],
+  [
+   "  const shown = ADS_V2_PRESENTER_LIBRARY.filter((p) => adsV2PresenterV2Visible(p.id, all) && (cat === 'all' || p.tag === cat)) // KINEO-APRESENTADOR-OLHOS-1910 — cliente: só os aprovados",
+   "  const shown = ADS_V2_PRESENTER_LIBRARY.filter((p) => cat === 'all' || p.tag === cat)"
+  ],
+  [
+   "          <span className=\"kpp-name\">{p ? p.name : copy.autoName}{p && all && adsV2PresenterV2Testing(p.id) ? <span data-kineo=\"ads-presenter-testing\" style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 800, color: '#b45309' }}>em teste</span> : null}</span>{/* KINEO-APRESENTADOR-OLHOS-1910 — só a conta interna vê os 8 em teste */}",
+   "          <span className=\"kpp-name\">{p ? p.name : copy.autoName}</span>"
+  ],
+  [
+   "        {(['all', ...ADS_V2_PRESENTER_TAGS] as const).filter((c) => c === 'all' || ADS_V2_PRESENTER_LIBRARY.some((p) => p.tag === c && adsV2PresenterV2Visible(p.id, all))).map((c) => ( // KINEO-APRESENTADOR-OLHOS-1910 — categoria sem ninguém visível some",
+   "        {(['all', ...ADS_V2_PRESENTER_TAGS] as const).map((c) => ("
+  ]
+ ],
+ "lib/ads/v2Advance.ts": [
+  [
+   "    metadata: { order_id: order.id, creatomate_render_id: renderId, voice_id: voiceId, shots: montageShots.length, card_seconds: cardSeconds, voice_seconds: voiceSeconds, music: Boolean(musicUrl), music_source: musicUrl ? musicSource : 'none', ...(presenterV2?.v2?.voiceFit ? { presenter_v2_voice_fit: presenterV2.v2.voiceFit } : {}), total_seconds: presenterSource ? Number(presenterSource.duration) : Math.round((shotsSeconds + cardSeconds) * 1000) / 1000, presenter: Boolean(presenterSource), presenter_fallback: presenterMiss, ...(fitInfo ? { fit: fitInfo } : {}) }, // KINEO-ADS-FIEL-2-1510 — o encaixe na duração // KINEO-APRESENTADOR-V2-AJUSTE-1710 — + music_source (lyria / library = a reserva automática / library_swap / stored) e o ajuste da voz do v2 · KINEO-APRESENTADOR-OLHOS-1910 — + voice_id",
+   "    metadata: { order_id: order.id, creatomate_render_id: renderId, shots: montageShots.length, card_seconds: cardSeconds, voice_seconds: voiceSeconds, music: Boolean(musicUrl), music_source: musicUrl ? musicSource : 'none', ...(presenterV2?.v2?.voiceFit ? { presenter_v2_voice_fit: presenterV2.v2.voiceFit } : {}), total_seconds: presenterSource ? Number(presenterSource.duration) : Math.round((shotsSeconds + cardSeconds) * 1000) / 1000, presenter: Boolean(presenterSource), presenter_fallback: presenterMiss, ...(fitInfo ? { fit: fitInfo } : {}) }, // KINEO-ADS-FIEL-2-1510 — o encaixe na duração // KINEO-APRESENTADOR-V2-AJUSTE-1710 — + music_source (lyria / library = a reserva automática / library_swap / stored) e o ajuste da voz do v2"
+  ],
+  [
+   "  if (closeRealSource) await writeServerEvent({ name: 'ads_v2_close_real_assembled', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, creatomate_render_id: renderId, hero: closeRealHero, sample: isAdsSampleRef(order.billing_ref), watermark: isAdsSampleRef(order.billing_ref), photos: closeRealPlan?.photos.length ?? 0, total_seconds: Number(closeRealSource.duration), voice_seconds: voiceSeconds, voice_id: voiceId, music_source: musicUrl ? musicSource : 'none' } }) // KINEO-CLOSE-REAL-1910 — a medição do formato (gancho recortado ou foto real, amostra com marca, duração real) · KINEO-APRESENTADOR-OLHOS-1910 — + voice_id",
+   "  if (closeRealSource) await writeServerEvent({ name: 'ads_v2_close_real_assembled', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, creatomate_render_id: renderId, hero: closeRealHero, sample: isAdsSampleRef(order.billing_ref), watermark: isAdsSampleRef(order.billing_ref), photos: closeRealPlan?.photos.length ?? 0, total_seconds: Number(closeRealSource.duration), voice_seconds: voiceSeconds, music_source: musicUrl ? musicSource : 'none' } }) // KINEO-CLOSE-REAL-1910 — a medição do formato (gancho recortado ou foto real, amostra com marca, duração real)"
+  ]
+ ],
+ "lib/ads/v2Brief.ts": [
+  [
+   "    ...(opts.ad?.product && opts.narration ? [opts.ad?.talk === true ? ADS_V2_PRODUCT_TALK_RULE : ADS_V2_PRODUCT_NARRATION_RULE] : []), // KINEO-APRESENTADOR-OLHOS-1910 — no apresentador v2, sem o \"detalhe sensorial\"",
+   "    ...(opts.ad?.product && opts.narration ? [ADS_V2_PRODUCT_NARRATION_RULE] : []),"
+  ],
+  [
+   "  const ad: AdsV2AdVoice | null = productAd || args.presenter === true ? { product: productAd, presenter: args.presenter === true, ...(args.presenter === true && args.presenterTalk === true ? { talk: true } : {}) } : null // KINEO-APRESENTADOR-OLHOS-1910 — + talk (só o apresentador v2)",
+   "  const ad: AdsV2AdVoice | null = productAd || args.presenter === true ? { product: productAd, presenter: args.presenter === true } : null"
+  ],
+  [
+   "  const relaxedOpts = { ...opts, ...(voice ? { simple: { ...voice, names: [] } } : {}), ...(opts.ad ? { ad: { ...opts.ad, product: false, ...(relaxTalk ? { talk: false } : {}) } } : {}) } // KINEO-APRESENTADOR-OLHOS-1910 — + talk (só quando havia)",
+   "  const relaxedOpts = { ...opts, ...(voice ? { simple: { ...voice, names: [] } } : {}), ...(opts.ad ? { ad: { ...opts.ad, product: false } } : {}) }"
+  ],
+  [
+   "  if (!checked.ok && (relaxNames || relaxShop || relaxTalk)) { // KINEO-APRESENTADOR-OLHOS-1910 — + relaxTalk",
+   "  if (!checked.ok && (relaxNames || relaxShop)) {"
+  ],
+  [
+   "    const checkVariantFit = (raw0: string) => { const raw1 = adsV2VariantFirstOverlay(raw0, brandName(brief), mainFirst); const fin = adsV2FinishCopyRaw(raw1, fitOpts); const raw2 = fin ? fin.raw : raw1; let r = checkV2Variant(raw2, brief, opts, variantRelaxedOpts, honesty); if (!r.ok && speechMin > 0) { const o = checkV2Variant(raw2, brief, { ...opts, speechMin: undefined }, { ...variantRelaxedOpts, speechMin: undefined }, honesty); if (o.ok) r = o } if (!r.ok) dropWhy.push(String(r.why[0] ?? 'unknown').slice(0, 120)); return r.ok && fin ? { ...r, fixes: [...r.fixes, ...fin.fixes] } : r } // KINEO-ADS-RETESTE-1510 · KINEO-APRESENTADOR-OLHOS-1910 — relaxedOpts → variantRelaxedOpts",
+   "    const checkVariantFit = (raw0: string) => { const raw1 = adsV2VariantFirstOverlay(raw0, brandName(brief), mainFirst); const fin = adsV2FinishCopyRaw(raw1, fitOpts); const raw2 = fin ? fin.raw : raw1; let r = checkV2Variant(raw2, brief, opts, relaxedOpts, honesty); if (!r.ok && speechMin > 0) { const o = checkV2Variant(raw2, brief, { ...opts, speechMin: undefined }, { ...relaxedOpts, speechMin: undefined }, honesty); if (o.ok) r = o } if (!r.ok) dropWhy.push(String(r.why[0] ?? 'unknown').slice(0, 120)); return r.ok && fin ? { ...r, fixes: [...r.fixes, ...fin.fixes] } : r } // KINEO-ADS-RETESTE-1510"
+  ]
+ ],
+ "lib/ads/v2PresenterV2.ts": [
+  [
+   "export const ADS_V2_PRESENTER_V2_MIN_WORDS = 19 // KINEO-APRESENTADOR-OLHOS-1910 — era 17: na validação de 19/10 os 11 roteiros nasceram COLADOS no piso (17–19 palavras) e a voz deu 7,1–9,5 s (anúncio de 11–14 s; alvo 15). 19 a 21 ainda é a régua de 17–21",
+   "export const ADS_V2_PRESENTER_V2_MIN_WORDS = 17"
+  ],
+  [
+   "export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_R3 = 'the person talks to the camera in a calm, natural UGC style, like chatting with a friend; a light closed-lip smile only at the very start and at the very end; while speaking the mouth stays relaxed and the lips follow every syllable naturally; small, low gestures with the free hand that is already visible in the photo, kept near the chest; the hands in the frame stay exactly the ones in the photo; the other hand holds the product steady with the label facing the camera; gentle natural head movement, natural blinking at a relaxed pace, steady camera, sharp focus, preserve the exact face and appearance' // KINEO-APRESENTADOR-OLHOS-1910 — a atuação da R3 (nota 9, pedido 84a5d07f), INTACTA: vai ao motor dentro de adsV2PresenterV2EyesFirst (abaixo)",
+   "export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT = 'the person talks to the camera in a calm, natural UGC style, like chatting with a friend; a light closed-lip smile only at the very start and at the very end; while speaking the mouth stays relaxed and the lips follow every syllable naturally; small, low gestures with the free hand that is already visible in the photo, kept near the chest; the hands in the frame stay exactly the ones in the photo; the other hand holds the product steady with the label facing the camera; gentle natural head movement, natural blinking at a relaxed pace, steady camera, sharp focus, preserve the exact face and appearance' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + piscadas calmas"
+  ],
+  [
+   "export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL_R3 = 'the person talks to the camera in a calm, natural UGC style, like chatting with a friend; a light closed-lip smile only at the very start and at the very end; while speaking the mouth stays relaxed and the lips follow every syllable naturally; only the one hand holding the product is in the frame and it stays still; the other arm rests out of frame; the hand with the product holds it steady with the label facing the camera; the expression comes from the eyes, the face and a gentle natural head movement; natural blinking at a relaxed pace; steady camera, sharp focus, preserve the exact face and appearance' // KINEO-APRESENTADOR-OLHOS-1910 — a das mãos paradas da R3, INTACTA",
+   "export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL = 'the person talks to the camera in a calm, natural UGC style, like chatting with a friend; a light closed-lip smile only at the very start and at the very end; while speaking the mouth stays relaxed and the lips follow every syllable naturally; only the one hand holding the product is in the frame and it stays still; the other arm rests out of frame; the hand with the product holds it steady with the label facing the camera; the expression comes from the eyes, the face and a gentle natural head movement; natural blinking at a relaxed pace; steady camera, sharp focus, preserve the exact face and appearance' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — mãos paradas em frase afirmativa + piscadas calmas"
+  ],
+  [
+   "  return rowPrompt === ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT || rowPrompt === ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_R3 ? ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT : ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL // KINEO-APRESENTADOR-OLHOS-1910 — a linha planejada ANTES desta entrega (texto da R3) também sai com os olhos abertos; qualquer outra = a das mãos paradas",
+   "  return rowPrompt === ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT || rowPrompt === ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL ? rowPrompt : ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL"
+  ],
+  [
+   "export const ADS_V2_PRESENTER_V2_NEGATIVE_PROMPT = `big smile while talking, teeth, hand entering frame, hand close to camera, blur, ${ADS_V2_PRESENTER_V2_EYES_AVOID}` // KINEO-APRESENTADOR-OLHOS-1910 — + olhos fechados/apertados, \"saboreando\", cabeça para trás, sorriso de dentes",
+   "export const ADS_V2_PRESENTER_V2_NEGATIVE_PROMPT = 'big smile while talking, teeth, hand entering frame, hand close to camera, blur'"
+  ]
+ ]
+}

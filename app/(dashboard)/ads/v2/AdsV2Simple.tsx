@@ -87,6 +87,7 @@ import { AdsPresenterToggle, AdsStylePicker } from '@/components/ads/AdsStyles'
 import { ADS_V2_PRESENTER_POSTER, ADS_V2_PRESENTER_PUBLIC, adsV2PresenterById, adsV2PresenterCopy, type AdsV2PresenterCopy } from '@/lib/ads/v2Presenter'
 // KINEO-ATORES-IA-2026-10-13 — o seletor de apresentadores de IA e as frases dele (a biblioteca mora em v2Presenter).
 import { AdsPresenterPicker } from '@/components/ads/AdsPresenterPicker'
+import { adsV2PresenterV2Eligible, adsV2PresenterV2On } from '@/lib/ads/v2PresenterV2' // KINEO-APRESENTADOR-OLHOS-1910 — a amostra do seletor toca a voz do anúncio quando o apresentador v2 vale
 import { adsV2PresenterPickerCopy } from '@/lib/ads/v2PresenterLibrary'
 // KINEO-ATOR-FTC-2026-10-13 — aviso de rótulo de IA na entrega (16 línguas, lib pura; não é marca d'água).
 import { adsV2AiLabelNotice } from '@/lib/ads/v2AiLabel'
@@ -856,6 +857,7 @@ export function AdsV2SimpleSession({
   const shortLang = detected ? null : detectShortTextLanguage(`${sentence} ${scene}`)
   const linkLangHint = adsV2LinkLanguageHint(linkLang, linkRead ?? (link.trim() || null)) // KINEO-ADS-DEMO-UNIVERSO-1410 — <html lang> da página lida, senão o domínio (.br → pt)
   const spoken: NarrationLanguage = adsV2SpokenLanguage({ chosen: voiceLang, detected, short: shortLang, text: `${sentence} ${scene}`, hint: linkLangHint, ui: lang }) // KINEO-ADS-DEMO-UNIVERSO-1410 — escolha → detector de sempre → frase curta → desempate pt×es → o LINK → interface → inglês
+  const presenterV2Voice: string | null = adsV2PresenterV2Eligible({ on: adsV2PresenterV2On(false), tier: tier ?? '', format, style: style === 'none' ? null : style }) ? spoken : null // KINEO-APRESENTADOR-OLHOS-1910 — as mesmas travas do /plan (Comercial, 9:16, sem estilo)
   /** Ninguém tem certeza da língua da frase: a linha ao lado do seletor "Voz em" diz em que língua a voz vai sair. */
   const voiceUnsure = !!sentence && narrationOn && voiceLang === null && !detected && !shortLang && browserLang !== spoken
   const tc = adsV2TelaConsertosCopy(lang) // KINEO-ADS-CONSERTOS-TELA-1410
@@ -2734,7 +2736,7 @@ export function AdsV2SimpleSession({
                 />
               ) : null}
               {/* KINEO-ATORES-IA-2026-10-13 — com o ator ligado, a escolha do apresentador (padrão = o sorteio de sempre). */}
-              {presenterOn ? <AdsPresenterPicker name="adv2s-presenter-pick" value={presenterPick} onChange={setPresenterPick} copy={adsV2PresenterPickerCopy(lang)} disabled={locked} /> : null}
+              {presenterOn ? <AdsPresenterPicker name="adv2s-presenter-pick" value={presenterPick} onChange={setPresenterPick} copy={adsV2PresenterPickerCopy(lang)} disabled={locked} voiceLanguage={presenterV2Voice} /> : null}{/* KINEO-APRESENTADOR-OLHOS-1910 — + voiceLanguage */}
             </details>
 
             {/* 4. Descobrir, planejar e fazer */}
