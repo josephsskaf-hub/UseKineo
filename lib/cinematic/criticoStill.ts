@@ -67,8 +67,9 @@ export function criticoNaFamiliaHollywood(family: string | null | undefined): bo
   return typeof family === 'string' && family.length > 0 && family !== 's25'
 }
 
-export type ProblemaStill = 'anatomia' | 'texto' | 'sujeito' | 'artefato'
+export type ProblemaStill = 'anatomia' | 'texto' | 'sujeito' | 'artefato' | 'identidade' // KINEO-META95-PERSONAGEM-2010 — 'identidade' só existe quando o pedido levou a folha (referencia)
 const PROBLEMA_DO_MODELO: Record<string, ProblemaStill> = { anatomy: 'anatomia', text: 'texto', subject: 'sujeito', artifact: 'artefato' }
+const PROBLEMA_IDENTIDADE: Record<string, ProblemaStill> = { identity: 'identidade' } // KINEO-META95-PERSONAGEM-2010 — lido SÓ com referência; sem ela "identity" segue ignorado (gosto), byte a byte o de antes
 export type VereditoCritico = 'PASS' | 'FAIL' | 'ERRO' | 'PULADO'
 
 const limpa = (t: string | null | undefined) => String(t ?? '').replace(/\s+/g, ' ').trim()
@@ -87,6 +88,8 @@ export type EntradaCritico = {
   prompt: string
   /** a semente do filme (a regeração usa outra, derivada dela) */
   seed: number
+  /** KINEO-META95-PERSONAGEM-2010 — a folha de personagem (imagem de referência + descrição canônica): com ela o crítico recebe 2 imagens e o critério IDENTITY. Ausente = o pedido de sempre. */
+  referencia?: { url: string; descricao: string } // KINEO-META95-PERSONAGEM-2010
 }
 
 // ── 1. O PEDIDO ──
@@ -105,6 +108,11 @@ export const STILL_CRITIC_SISTEMA =
   'Reply ONLY with JSON: {"verdict":"PASS"|"FAIL","issues":[zero or more of "anatomy","text","subject","artifact"; empty when PASS],' +
   '"reason":"<max 15 English words, empty when PASS>","score":<0-100, how usable this image is as the first frame of this shot>}'
 
+// KINEO-META95-PERSONAGEM-2010 — o 5º critério, anexado ao sistema SÓ quando o pedido traz a folha (lib/cinematic/folhaDePersonagem):
+// KINEO-META95-PERSONAGEM-2010 — o Dino virou menino na cena 3 e o crítico de 4 critérios não tinha como dizer "é outro personagem".
+export const STILL_CRITIC_IDENTIDADE = // KINEO-META95-PERSONAGEM-2010
+  ' When a CHARACTER REFERENCE image is given, also apply (5) IDENTITY — the named character in the still is CLEARLY a different character from the reference: another species or kind of creature, a different sex or apparent age group, a clearly different body shape, different fur/skin/scale colour, different hair or a different outfit (a different pose, angle, expression, lighting or background is fine; the reference is a design sheet, not the shot). ' + // KINEO-META95-PERSONAGEM-2010
+  'For (5) use the issue name "identity".' // KINEO-META95-PERSONAGEM-2010
 /** O pedido ao crítico: a foto + o que a cena deve mostrar + a narração. Uma imagem só, detail 'low'. */
 export function montarPedidoAoCritico(e: EntradaCritico, url: string): { messages: MensagemDoCritico[]; imagens: number; caracteres: number } {
   const texto = [
@@ -113,13 +121,16 @@ export function montarPedidoAoCritico(e: EntradaCritico, url: string): { message
     `Narration heard during the shot: "${limpa(e.fala).slice(0, 300)}"`,
   ].join('\n')
   const parts: ParteDoPedidoCritico[] = [{ type: 'text', text: texto }, { type: 'image_url', image_url: { url, detail: 'low' } }]
-  return { messages: [{ role: 'system', content: STILL_CRITIC_SISTEMA }, { role: 'user', content: parts }], imagens: 1, caracteres: STILL_CRITIC_SISTEMA.length + texto.length }
+  const sistema = e.referencia ? STILL_CRITIC_SISTEMA + STILL_CRITIC_IDENTIDADE : STILL_CRITIC_SISTEMA // KINEO-META95-PERSONAGEM-2010 — sem folha, o sistema de sempre
+  const textoReferencia = e.referencia ? `CHARACTER REFERENCE (design sheet of the character who must appear in this shot, NOT the shot itself): ${limpa(e.referencia.descricao).slice(0, 400)}` : '' // KINEO-META95-PERSONAGEM-2010
+  if (e.referencia) parts.splice(1, 0, { type: 'text', text: textoReferencia }, { type: 'image_url', image_url: { url: e.referencia.url, detail: 'low' } }, { type: 'text', text: `STILL TO CHECK (shot ${e.indice + 1}):` }) // KINEO-META95-PERSONAGEM-2010 — a folha vem ANTES do still, cada uma rotulada
+  return { messages: [{ role: 'system', content: sistema }, { role: 'user', content: parts }], imagens: e.referencia ? 2 : 1, caracteres: sistema.length + texto.length + textoReferencia.length } // KINEO-META95-PERSONAGEM-2010 — era: sistema fixo, 1 imagem (sem folha, os mesmos números)
 }
 
 // ── 2. A RESPOSTA ──
 export type RespostaDoCritico = { veredito: 'PASS' | 'FAIL'; problemas: ProblemaStill[]; motivo: string; nota: number }
 /** Lê o JSON. null = ilegível (vira ERRO, falha aberta). FAIL sem nenhum problema da lista (gosto) vira PASS. */
-export function lerRespostaDoCritico(raw: string): RespostaDoCritico | null {
+export function lerRespostaDoCritico(raw: string, comIdentidade: boolean = false): RespostaDoCritico | null { // KINEO-META95-PERSONAGEM-2010 — `comIdentidade` (padrão false): só com a folha "identity" vira problema; era: (raw: string)
   let j: Record<string, unknown>
   try {
     const p = JSON.parse(raw) as unknown
@@ -131,7 +142,7 @@ export function lerRespostaDoCritico(raw: string): RespostaDoCritico | null {
   const v = String(j.verdict ?? '').trim().toUpperCase()
   if (v !== 'PASS' && v !== 'FAIL') return null
   const lista = Array.isArray(j.issues) ? j.issues : typeof j.issues === 'string' ? [j.issues] : []
-  const problemas = Array.from(new Set(lista.map((x) => PROBLEMA_DO_MODELO[String(x ?? '').trim().toLowerCase()]).filter((x): x is ProblemaStill => Boolean(x))))
+  const problemas = Array.from(new Set(lista.map((x) => (comIdentidade ? { ...PROBLEMA_DO_MODELO, ...PROBLEMA_IDENTIDADE } : PROBLEMA_DO_MODELO)[String(x ?? '').trim().toLowerCase()]).filter((x): x is ProblemaStill => Boolean(x)))) // KINEO-META95-PERSONAGEM-2010 — era: só PROBLEMA_DO_MODELO
   const notaBruta = Number(j.score)
   const nota = Number.isFinite(notaBruta) ? Math.max(0, Math.min(100, Math.round(notaBruta))) : v === 'PASS' ? 80 : 30
   const motivo = limpa(typeof j.reason === 'string' ? j.reason : '').slice(0, 160)
@@ -185,7 +196,7 @@ export async function chamarCritico(
     if (!res.ok) return { ...base, erro: `http_${res.status}`, ms: agora() - t0 }
     const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
     const custoUsd = custoDoCriticoUsd(data.usage, imagens, caracteres)
-    const r = lerRespostaDoCritico(data.choices?.[0]?.message?.content ?? '')
+    const r = lerRespostaDoCritico(data.choices?.[0]?.message?.content ?? '', Boolean(e.referencia)) // KINEO-META95-PERSONAGEM-2010 — "identity" só conta com a folha; era: lerRespostaDoCritico(conteúdo)
     if (!r) return { ...base, erro: 'resposta_ilegivel', custoUsd, ms: agora() - t0 }
     return { ...base, veredito: r.veredito, problemas: r.problemas, motivo: r.motivo, nota: r.nota, custoUsd, ms: agora() - t0 }
   } catch (err) {
@@ -204,8 +215,9 @@ const INSTRUCAO: Record<ProblemaStill, string> = {
   anatomia: 'Natural anatomy: relaxed, well-formed hands and calm, naturally proportioned faces.',
   texto: 'Every surface plain and unmarked.',
   artefato: 'One clean, coherent photograph, every object whole, solid and separate.',
+  identidade: 'The named character exactly as in the reference image: same species, body shape, colours, face, hair and outfit.', // KINEO-META95-PERSONAGEM-2010
 }
-const ORDEM: ProblemaStill[] = ['sujeito', 'anatomia', 'texto', 'artefato']
+const ORDEM: ProblemaStill[] = ['identidade', 'sujeito', 'anatomia', 'texto', 'artefato'] // KINEO-META95-PERSONAGEM-2010 — identidade primeiro (só existe com a folha); era: ['sujeito', 'anatomia', 'texto', 'artefato']
 
 /** A instrução da foto nova: uma frase por problema, na ordem sujeito → anatomia → texto → artefato. '' = nada a refazer. */
 export function instrucaoDoCritico(problemas: readonly ProblemaStill[]): string {

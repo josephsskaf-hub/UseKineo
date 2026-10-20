@@ -1,0 +1,34 @@
+{
+ "__acrescimos": {
+  "app/api/generate-video-cinematic/route.ts": 59,
+  "lib/cinematic/criticoStill.ts": 12,
+  "scripts/test-support/desfaz-meta95-ideia-1910.mjs": 2,
+  "scripts/test-support/desfaz-filme-rapido-1710.mjs": 2
+ },
+ "lib/cinematic/criticoStill.ts": [
+  [
+   "export type ProblemaStill = 'anatomia' | 'texto' | 'sujeito' | 'artefato' | 'identidade' // KINEO-META95-PERSONAGEM-2010 — 'identidade' só existe quando o pedido levou a folha (referencia)",
+   "export type ProblemaStill = 'anatomia' | 'texto' | 'sujeito' | 'artefato'"
+  ],
+  [
+   "  const sistema = e.referencia ? STILL_CRITIC_SISTEMA + STILL_CRITIC_IDENTIDADE : STILL_CRITIC_SISTEMA // KINEO-META95-PERSONAGEM-2010 — sem folha, o sistema de sempre",
+   "  return { messages: [{ role: 'system', content: STILL_CRITIC_SISTEMA }, { role: 'user', content: parts }], imagens: 1, caracteres: STILL_CRITIC_SISTEMA.length + texto.length }"
+  ],
+  [
+   "export function lerRespostaDoCritico(raw: string, comIdentidade: boolean = false): RespostaDoCritico | null { // KINEO-META95-PERSONAGEM-2010 — `comIdentidade` (padrão false): só com a folha \"identity\" vira problema; era: (raw: string)",
+   "export function lerRespostaDoCritico(raw: string): RespostaDoCritico | null {"
+  ],
+  [
+   "  const problemas = Array.from(new Set(lista.map((x) => (comIdentidade ? { ...PROBLEMA_DO_MODELO, ...PROBLEMA_IDENTIDADE } : PROBLEMA_DO_MODELO)[String(x ?? '').trim().toLowerCase()]).filter((x): x is ProblemaStill => Boolean(x)))) // KINEO-META95-PERSONAGEM-2010 — era: só PROBLEMA_DO_MODELO",
+   "  const problemas = Array.from(new Set(lista.map((x) => PROBLEMA_DO_MODELO[String(x ?? '').trim().toLowerCase()]).filter((x): x is ProblemaStill => Boolean(x))))"
+  ],
+  [
+   "    const r = lerRespostaDoCritico(data.choices?.[0]?.message?.content ?? '', Boolean(e.referencia)) // KINEO-META95-PERSONAGEM-2010 — \"identity\" só conta com a folha; era: lerRespostaDoCritico(conteúdo)",
+   "    const r = lerRespostaDoCritico(data.choices?.[0]?.message?.content ?? '')"
+  ],
+  [
+   "const ORDEM: ProblemaStill[] = ['identidade', 'sujeito', 'anatomia', 'texto', 'artefato'] // KINEO-META95-PERSONAGEM-2010 — identidade primeiro (só existe com a folha); era: ['sujeito', 'anatomia', 'texto', 'artefato']",
+   "const ORDEM: ProblemaStill[] = ['sujeito', 'anatomia', 'texto', 'artefato']"
+  ]
+ ]
+}
