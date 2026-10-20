@@ -51,5 +51,12 @@
       "    checa(`U0 ${p}: nenhum commit desta entrega o toca e é BYTE A BYTE a última versão alheia`, meus(p) === '' && alheio(p) !== null && semAvatarPreso2010(semMeta95Escrita2010(rd(p), p), p) === semAvatarPreso2010(semMeta95Escrita2010(alheio(p), p), p)) // reancorado KINEO-AVATAR-PRESO-2010: os dois lados sem o avatar (o merge da fila vira a versão alheia) · KINEO-META95-ESCRITA-2010 — reancorado: sem a camada da escrita (mais nova), em memória",
       "    checa(`U0 ${p}: nenhum commit desta entrega o toca e é BYTE A BYTE a última versão alheia`, meus(p) === '' && alheio(p) !== null && semMeta95Escrita2010(rd(p), p) === alheio(p)) // KINEO-META95-ESCRITA-2010 — reancorado: sem a camada da escrita (mais nova), em memória"
     ]
-  ]
+  ],
+  "scripts/test-mcp-studio-2010.mjs": [
+    [
+      "  ok(base(rel) !== null && lf(semMeta95Personagem2010(semAvatarPreso2010(raw(rel), rel), rel)) === base(rel), `(E2) ${rel} intocada por esta entrega (nenhuma rota de geração mudou — a trava 8.2 não foi tocada; a folha de personagem, entrega de depois, sai em memória)`) // reancorado KINEO-META95-PERSONAGEM-2010 · reancorado KINEO-AVATAR-PRESO-2010: o conserto do avatar preso no /api/compose (entrega de depois) sai em memória",
+      "  ok(base(rel) !== null && lf(semMeta95Personagem2010(raw(rel), rel)) === base(rel), `(E2) ${rel} intocada por esta entrega (nenhuma rota de geração mudou — a trava 8.2 não foi tocada; a folha de personagem, entrega de depois, sai em memória)`) // reancorado KINEO-META95-PERSONAGEM-2010"
+    ]
+  ],
+  "scripts/test-meta95-personagem-2010.mjs": []
 }

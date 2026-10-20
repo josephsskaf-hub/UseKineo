@@ -18,6 +18,7 @@
 //   (F) DESFAZ: os 2 arquivos existentes tocados, desfeitos, são a base; todo arquivo novo leva a marca; o diff contra a
 //       base só toca esses 2 + os novos.
 //   (M) MUTANTES: cada regra acima fica vermelha quando a quebramos de propósito.
+import { semAvatarPreso2010, MARCA_AVATAR_PRESO_2010, AVATAR_PRESO_2010_ARQUIVOS } from './test-support/desfaz-avatar-preso-2010.mjs' // reancorado KINEO-AVATAR-PRESO-2010 [TRAVA 8.2 — vai do fundador 20/10 "vai pra tudo"]: a camada do avatar preso não é desta entrega
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -224,7 +225,7 @@ for (const rel of ['app/api/mcp/route.ts', 'lib/mcp/kineoMcp.ts', 'lib/mcp/conne
   ok(base(rel) !== null && read(rel) === base(rel), `(E1) ${rel} INTOCADO byte a byte (o conector do diretório segue em revisão como estava)`)
 }
 for (const rel of ['app/api/generate-video-cinematic/route.ts', 'app/api/compose/route.ts', 'app/api/generate-video-fast/route.ts', 'app/api/cinematic-clip-status/route.ts']) {
-  ok(base(rel) !== null && lf(semMeta95Personagem2010(raw(rel), rel)) === base(rel), `(E2) ${rel} intocada por esta entrega (nenhuma rota de geração mudou — a trava 8.2 não foi tocada; a folha de personagem, entrega de depois, sai em memória)`) // reancorado KINEO-META95-PERSONAGEM-2010
+  ok(base(rel) !== null && lf(semMeta95Personagem2010(semAvatarPreso2010(raw(rel), rel), rel)) === base(rel), `(E2) ${rel} intocada por esta entrega (nenhuma rota de geração mudou — a trava 8.2 não foi tocada; a folha de personagem, entrega de depois, sai em memória)`) // reancorado KINEO-META95-PERSONAGEM-2010 · reancorado KINEO-AVATAR-PRESO-2010: o conserto do avatar preso no /api/compose (entrega de depois) sai em memória
 }
 ok(/bearerFrom\(req\.headers\.get\('authorization'\)\)/.test(S.route) && /'WWW-Authenticate': wwwAuthenticateHeader\(origin, error\)/.test(S.route) && /401,/.test(S.route), '(E3) rota: sem Bearer → 401 com WWW-Authenticate (é isto que dispara o login no Claude)')
 ok(/row\.revoked_at \|\| Date\.parse\(row\.access_expires_at\) <= Date\.now\(\)/.test(S.route), '(E4) rota: token revogado ou vencido → 401 invalid_token')
@@ -274,9 +275,11 @@ for (const rel of MCP_STUDIO_2010_NOVOS) {
 }
 const changedExisting = git('diff', '--name-only', MCP_STUDIO_2010_BASE, 'HEAD').split('\n').filter(Boolean).filter((f) => base(f) !== null).filter((f) => !META95_PERSONAGEM_2010_ARQUIVOS.includes(f)) // reancorado KINEO-META95-PERSONAGEM-2010: os arquivos da folha de personagem (entrega de depois, com desfaz próprio) ficam fora desta conta
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !META95_ESCRITA_2010_ARQUIVOS.includes(f))) // KINEO-META95-ESCRITA-2010 — reancorado: os arquivos da legenda na escrita do roteiro (entrega de depois) não são desta
+changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !AVATAR_PRESO_2010_ARQUIVOS.includes(f))) // KINEO-AVATAR-PRESO-2010 — reancorado: os arquivos do avatar preso (entrega de depois, com desfaz próprio) não são desta
 ok(changedExisting.every((f) => MCP_STUDIO_2010_ARQUIVOS.includes(f)), `(F3) o diff contra a base só toca arquivos declarados (existentes alterados: ${changedExisting.join(', ') || 'nenhum ainda commitado'})`)
 const commits = git('log', '--format=%s', `${MCP_STUDIO_2010_BASE}..HEAD`).split('\n').filter(Boolean).filter((s) => !s.includes(MARCA_META95_PERSONAGEM_2010)) // reancorado KINEO-META95-PERSONAGEM-2010: os commits da folha de personagem levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_META95_ESCRITA_2010))) // KINEO-META95-ESCRITA-2010 — reancorado: os commits da legenda na escrita do roteiro levam a marca deles
+commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_AVATAR_PRESO_2010))) // KINEO-AVATAR-PRESO-2010 — reancorado: os commits (e os merges) do avatar preso levam a marca deles
 ok(commits.every((s) => s.includes(MARCA_MCP_STUDIO_2010)), `(F4) todo commit da entrega leva a marca no assunto (${commits.length} commit(s))`)
 ok(semMcpStudio2010('sem marca', 'lib/claudeConnect.ts') === 'sem marca' && semMcpStudio2010(raw(F.page), 'outro/arquivo.ts') === raw(F.page), '(F5) desfaz é idempotente fora do alvo')
 

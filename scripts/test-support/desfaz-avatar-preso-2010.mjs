@@ -32,6 +32,8 @@ export const ACRESCIMOS_AVATAR_PRESO_2010 = {
   'scripts/test-meta95-escrita-2010.mjs': 1,
   'scripts/test-filmes-f1f3-ajuste-1910.mjs': 1,
   'scripts/test-filmes-f1-virgula-1910.mjs': 1,
+  'scripts/test-mcp-studio-2010.mjs': 3,
+  'scripts/test-meta95-personagem-2010.mjs': 2,
 }
 export const AVATAR_PRESO_2010_ARQUIVOS = Object.freeze(Object.keys(ACRESCIMOS_AVATAR_PRESO_2010))
 /** Arquivos novos da entrega (não existiam na base). */
