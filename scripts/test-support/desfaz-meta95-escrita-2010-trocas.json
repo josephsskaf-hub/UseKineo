@@ -1,0 +1,52 @@
+{
+ "app/api/compose/route.ts": [
+  [
+   "          const observed = await transcreverNaEscritaDoRoteiro(buf, pending.text).catch(() => [] as WhisperWord[]) // KINEO-META95-ESCRITA-2010 — Whisper na escrita do texto que esta voz leu",
+   "          const observed = await transcribeTTSWithTimestamps(buf).catch(() => [] as WhisperWord[])"
+  ],
+  [
+   "          const observed = await transcreverNaEscritaDoRoteiro(buf, m.text).catch(() => [] as WhisperWord[]) // KINEO-META95-ESCRITA-2010 — Whisper na escrita do texto re-sintetizado",
+   "          const observed = await transcribeTTSWithTimestamps(buf).catch(() => [] as WhisperWord[])"
+  ],
+  [
+   "        ? transcreverNaEscritaDoRoteiro(audioBuffer, scaledScript) // KINEO-META95-ESCRITA-2010 — mesmo contrato (nunca lança; [] = plano B); roteiro em devanágari → language=hi, bengali → bn…",
+   "        ? transcribeTTSWithTimestamps(audioBuffer)"
+  ],
+  [
+   "    const legendaWords: WhisperWord[] | undefined = legendaNaEscritaDoRoteiro(grafia ? grafia.words : whisperWords, scaledScript) // KINEO-META95-ESCRITA-2010 — rede final: Whisper em outra escrita não vai para a tela (plano B: o texto do roteiro no tempo do áudio)",
+   "    const legendaWords: WhisperWord[] | undefined = grafia ? grafia.words : whisperWords"
+  ]
+ ],
+ "app/api/compose/unlock/route.ts": [
+  [
+   "      const words = await transcreverNaEscritaDoRoteiro(audioBuffer, scaledScript) // KINEO-META95-ESCRITA-2010 — Whisper na escrita do roteiro",
+   "      const words = await transcribeTTSWithTimestamps(audioBuffer)"
+  ]
+ ],
+ "lib/audioNoCliqueServer.ts": [
+  [
+   "    const words = await transcreverNaEscritaDoRoteiro(audio, a.script).catch(() => []) // KINEO-META95-ESCRITA-2010 — a voz do clique entra no cache já na escrita do roteiro",
+   "    const words = await transcribeTTSWithTimestamps(audio).catch(() => [])"
+  ],
+  [
+   "            const words = await transcreverNaEscritaDoRoteiro(buf, p.text).catch(() => []) // KINEO-META95-ESCRITA-2010",
+   "            const words = await transcribeTTSWithTimestamps(buf).catch(() => [])"
+  ]
+ ],
+ "app/api/prewarm-voiceover/route.ts": [
+  [
+   "    const words = await transcreverNaEscritaDoRoteiro(audio, script).catch(() => []) // KINEO-META95-ESCRITA-2010 — o aquecimento grava o cache já na escrita do roteiro",
+   "    const words = await transcribeTTSWithTimestamps(audio).catch(() => [])"
+  ]
+ ],
+ "app/api/ads/render/route.ts": [
+  [
+   "    let words = await transcreverNaEscritaDoRoteiro(voiceBuf, narration).catch(() => []) // KINEO-META95-ESCRITA-2010",
+   "    let words = await transcribeTTSWithTimestamps(voiceBuf).catch(() => [])"
+  ],
+  [
+   "    if (words.length === 0) words = await transcreverNaEscritaDoRoteiro(voiceBuf, narration).catch(() => []) // KINEO-META95-ESCRITA-2010",
+   "    if (words.length === 0) words = await transcribeTTSWithTimestamps(voiceBuf).catch(() => [])"
+  ]
+ ]
+}
