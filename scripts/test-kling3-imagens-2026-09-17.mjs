@@ -52,7 +52,7 @@ const iAlign = rt.indexOf("const alinhado = await alignShotsToSpeech({ topic: pr
 const iLoop = rt.indexOf('for (const [idx, hs] of plan.scenes.entries()) {')
 const iStill = rt.indexOf('generateCinematicSceneStill(')
 checa('supervisor fala×imagem no caminho hollywood: antes do laço de submissão e de qualquer still/POST; só cena não-diálogo com fala', iAlign > 0 && iLoop > iAlign && (iStill < 0 || iStill > iAlign || rt.indexOf('generateCinematicSceneStill(', iAlign) > iAlign) && rt.includes("plan.scenes[i].type !== 'dialogue' && (plan.scenes[i].voiceover ?? '').trim().length > 0"))
-checa('reescrita passa pelo scrub de cenário e vira evento scene_speech_alignment com engine = família', rt.includes('plan.scenes[idxs[c.index]].prompt = scrubInventedSetting(c.shot, historiaH).text') && rt.includes("metadata: { version: SPEECH_IMAGE_ALIGN_VERSION, engine: family, ...alinhado.relato"))
+checa('reescrita passa pelo scrub de cenário e vira evento scene_speech_alignment com engine = família', rt.includes('plan.scenes[idxs[c.index]].prompt = historiaH === null ? c.shot : scrubInventedSetting(c.shot, historiaH).text') /* reancorado KINEO-META95-ASSUNTO-1910 */ && rt.includes("metadata: { version: SPEECH_IMAGE_ALIGN_VERSION, engine: family, ...alinhado.relato"))
 checa('falha aberta no caminho hollywood', rt.includes("console.warn('[fala-x-imagem] hollywood falhou, planos originais seguem:'"))
 
 console.log(`\n${ok} ok · ${falhas.length} falhas`)

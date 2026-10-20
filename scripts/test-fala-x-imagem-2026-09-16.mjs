@@ -50,7 +50,7 @@ const iAlign = rt.indexOf('const alinhado = await alignShotsToSpeech({')
 const iPrompts = rt.indexOf('const classicScenePrompts = scenes.map((scene, sceneIndex) => {')
 const iDry = rt.indexOf("if (body.dry_run === true && isDryRunAccount(user.email)) {\n      const classicReport = classicDryRunReport({")
 checa('o supervisor roda ANTES de montar os prompts clássicos, do dry-run e de qualquer still/POST pago', iAlign > 0 && iPrompts > iAlign && iDry > iPrompts && rt.indexOf('submitToFal(sPrompts[i]') !== -1)
-checa('só o plano visual muda (aiPrompt) e passa pelo scrub de cenário; a narração (voiceover) não é tocada no bloco', rt.includes('scenes[c.index].aiPrompt = scrubInventedSetting(c.shot, historiaAlinhada).text') && !rt.slice(iAlign, iPrompts).includes('.voiceover ='))
+checa('só o plano visual muda (aiPrompt) e passa pelo scrub de cenário; a narração (voiceover) não é tocada no bloco', rt.includes('scenes[c.index].aiPrompt = historiaAlinhada === null ? c.shot : scrubInventedSetting(c.shot, historiaAlinhada).text') && !rt.slice(iAlign, iPrompts).includes('.voiceover =')) /* reancorado KINEO-META95-ASSUNTO-1910 — null (assunto em outra língua sem tradução) = plano reescrito sobe sem o scrub */
 checa('relato no evento scene_speech_alignment (versão, motor, cenas, reescritas, exemplos) e no dry-run (fala_x_imagem)', rt.includes('name: SPEECH_IMAGE_ALIGN_EVENT') && rt.includes('metadata: { version: SPEECH_IMAGE_ALIGN_VERSION, engine:') && rt.includes('fala_x_imagem: alinhamentoFalaImagem'))
 checa('falha aberta na rota: try/catch com aviso, planos originais seguem', rt.slice(iAlign - 400, iPrompts).includes("console.warn('[fala-x-imagem] falhou, planos originais seguem:'"))
 

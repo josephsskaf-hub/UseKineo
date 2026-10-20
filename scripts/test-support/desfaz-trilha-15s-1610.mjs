@@ -17,6 +17,7 @@
 //
 // ENCADEAMENTO: este é o conserto MAIS NOVO na rota do cinematic e no visualPromptPolicy. Quem já desfaz outros aplica este
 // PRIMEIRO: semCenaNegacao1510(semTrilha15s1610(texto, p), p)
+import { semMeta95Assunto1910 } from './desfaz-meta95-assunto-1910.mjs' // KINEO-META95-ASSUNTO-1910 — a camada do assunto traduzido (19/10) veio depois no visualPromptPolicy e na rota: sai PRIMEIRO (encadeado)
 export const MARCA_TRILHA_15S_1610 = 'KINEO-TRILHA-15S'
 
 const ROTA = 'app/api/generate-video-cinematic/route.ts'
@@ -72,6 +73,7 @@ export function linhasTrocadasTrilha15s1610(p) {
  */
 export function semTrilha15s1610(s, p = ROTA) {
   if (s == null) return s
+  s = semMeta95Assunto1910(s, p) // KINEO-META95-ASSUNTO-1910 — a camada mais nova no visualPromptPolicy (e na rota) sai primeiro
   const texto = String(s)
   const crlf = texto.includes('\r\n')
   const trocas = TROCAS[p] ?? []

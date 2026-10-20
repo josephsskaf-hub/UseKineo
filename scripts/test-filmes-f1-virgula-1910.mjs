@@ -27,6 +27,7 @@ const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
 const MARCA = 'KINEO-FILMES-F1-VIRGULA-1910'
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
+import { semMeta95Assunto1910 } from './test-support/desfaz-meta95-assunto-1910.mjs' // KINEO-META95-ASSUNTO-1910 — reancorado: o assunto traduzido (19/10, a camada mais nova nos guardiões reancorados) sai PRIMEIRO, em memória
 const rd = (p) => lf(readFileSync(join(RAIZ, p), 'utf8'))
 let ok = 0
 const falhas = []
@@ -156,7 +157,7 @@ mut('token colado ("5 AM") consome só uma original (o alinhamento escorrega)',
 {
   const UNLOCK = 'app/api/compose/unlock/route.ts'
   // a referência de cada arquivo é a ÚLTIMA versão dele deixada por OUTRA sessão (último commit que o tocou sem a marca)
-  const alheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA}`, '--grep=KINEO-CLOSE-REAL-LEGENDA-1910', 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } } // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a versão 'alheia' pula também os commits da legenda menor do Close real
+  const alheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA}`, '--grep=KINEO-CLOSE-REAL-LEGENDA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } } // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a versão 'alheia' pula também os commits da legenda menor do Close real
   const meus = (p) => { try { return git(['log', '--no-merges', '--format=%H', `--grep=${MARCA}`, 'HEAD', '--', p]).trim() } catch { return 'erro' } }
   for (const p of ['lib/compose.ts', 'lib/hookFirstFrame.ts', 'lib/lyriaMusic.ts', 'app/api/compose/route.ts']) {
     checa(`U0 ${p}: nenhum commit desta entrega o toca e é BYTE A BYTE a última versão alheia`, meus(p) === '' && alheio(p) !== null && rd(p) === alheio(p))
@@ -190,7 +191,7 @@ mut('token colado ("5 AM") consome só uma original (o alinhamento escorrega)',
   // desfeito = a última versão alheia (o unlock e os guardiões reancorados)
   const ruins = []
   for (const p of ARQUIVOS_FILMES_F1_VIRGULA_1910) {
-    const vivo = semCloseRealLegenda1910(rd(p), p) // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: sem a camada da legenda menor (mais nova), em memória
+    const vivo = semCloseRealLegenda1910(semMeta95Assunto1910(rd(p), p), p) /* reancorado KINEO-META95-ASSUNTO-1910: a camada do assunto traduzido sai primeiro */ // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: sem a camada da legenda menor (mais nova), em memória
     const base = alheio(p)
     const trocas = TROCAS_FILMES_F1_VIRGULA_1910[p] ?? []
     if (base === null || !trocas.every(([nova, antiga]) => vivo.split('\n').includes(nova) && base.split('\n').includes(antiga) && nova.includes(MARCA) && !antiga.includes(MARCA))) { ruins.push(p); continue }
