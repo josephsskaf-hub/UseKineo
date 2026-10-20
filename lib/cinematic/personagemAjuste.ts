@@ -388,14 +388,14 @@ export async function stillComFolha(args: { prompt: string; imageUrls: string[];
 }
 
 // ═══ 5. A REFAÇÃO — janelas do edit (o crítico nasceu medido no FLUX dev, 3-6 s; o edit leva 15-40 s) ═════════════════
-/** Teto do crítico numa cena com folha: julgar (≤ 6 s) + refazer no edit (≤ 45 s) + julgar de novo. */
-export const PERSONAGEM_CRITICO_TETO_CENA_MS = 70_000
+/** Teto do crítico numa cena com folha: julgar (≤ 6 s) + refazer no edit (≤ 40 s) + julgar de novo (≤ 6 s). */
+export const PERSONAGEM_CRITICO_TETO_CENA_MS = 55_000
 /** Janela de espera da foto nova no edit (o padrão do crítico, 9 s, é a do FLUX: o edit nunca cabia nela). */
-export const PERSONAGEM_REGERACAO_JANELA_MS = 45_000
+export const PERSONAGEM_REGERACAO_JANELA_MS = 40_000
 /** Menos que isto de folga = não refaz (o edit não volta antes). */
 export const PERSONAGEM_REGERACAO_MIN_MS = 20_000
-/** Prazo absoluto do crítico com folha no filme (o lote é paralelo: o pior caso é UMA cena). */
-export const PERSONAGEM_CRITICO_PRAZO_MS = 80_000
+/** Prazo absoluto do crítico com folha no filme (o lote é paralelo: o pior caso é UMA cena). A rota tem maxDuration 300 s: +25 s sobre os 35 s de antes. */
+export const PERSONAGEM_CRITICO_PRAZO_MS = 60_000
 
 // ═══ Relato e ensaio ═════════════════════════════════════════════════════════════════════════════════════════════
 export function relatoDoAjuste(args: { motivos: Partial<Record<MotivoStillComFolha, number>>; reconferidas: number; cenas: ReadonlyArray<CenaDoElenco>; comFicha: readonly number[]; semGente: readonly number[]; regeracoes: ReadonlyArray<{ cena: number; regerou: boolean; regeracao_ok: boolean | null; regeracao_motivo?: string | null }>; elenco: ReadonlyArray<FichaDePersonagem> }) {
