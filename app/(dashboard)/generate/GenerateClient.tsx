@@ -401,6 +401,7 @@ import CardEntryDoor from '@/components/CardEntryDoor'
 import { estrelaDisponivelNoMotor } from '@/lib/estrelaDoFilme' // KINEO-ESTRELA-DO-FILME-2026-09-29
 import { intervaloDePoll, POLL_RAPIDO_FILME_MS } from '@/lib/pollingRapido' // KINEO-FILME-RAPIDO-1710 · polling — cenas e montagem a cada 2,5 s nos 2 primeiros minutos (linha própria)
 import { useTrocaDoLinkDoBucket } from '@/lib/useTrocaDoLink' // [TRAVA 8.2 — vai do fundador 17/10 "vai pra tudo"] KINEO-FILME-RAPIDO-1710 — "pronto" na hora; o link troca para o bucket depois (linha própria)
+import { isKidsCharacterId } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010 [TRAVA 8.2 — vai do fundador 20/10 "começa hoje"] — ?kids_cartoon=<personagem> do template /kids-cartoon viaja ao filme (o servidor decide)
 import { subidaQueOSaldoPaga, notaDaSubidaSegura, SUBIDA_SEGURA_PELO_SALDO_EVENT, MOTOR_15S_VERSION } from '@/lib/growth/motor15s' // KINEO-MOTOR-15S-1510 [TRAVA 8.2 — vai do fundador 15/10] — diretiva colada e autofit sobem só até onde o saldo paga
 // KINEO-LOWCREDITS-UPSELL import removed 09/07 — banner retired (see note at
 // the old render site; 0 credits is the normal free state now).
@@ -2127,6 +2128,7 @@ export default function GenerateClient({
   // universal credits and the 402 routes to the universal upgrade modal.
   // /generate?avatar=1 still deep-links to auto-open the upload panel.
   const avatarAutoOpen = searchParams.get('avatar') === '1'
+  const kidsCartoonId = isKidsCharacterId(searchParams.get('kids_cartoon')) ? searchParams.get('kids_cartoon') : null // KINEO-BEBE-QUE-FALA-2010 — só id da lista; fora dela, o link segue como filme comum
   const avatarComposeRef = useRef<{
     voiceoverUrl: string
     realAudioDuration: number | null
@@ -9889,6 +9891,7 @@ export default function GenerateClient({
           ...(aiEngine === 'hollywood' && selectedCharacterId ? { characterId: selectedCharacterId } : {}),
           // KINEO-ESTRELA-DO-FILME-2026-09-29 — as fotos da estrela (caminhos + autorização) só num motor com âncora.
           ...(estrelaRef.current && estrelaDisponivelNoMotor(aiEngine) ? { estrela: estrelaRef.current } : {}),
+          ...(kidsCartoonId && aiEngine === 'seedance' ? { kids_cartoon: kidsCartoonId } : {}), // KINEO-BEBE-QUE-FALA-2010 — o desenho infantil só no Seedance 1.5 (trocou de motor = filme comum); sem o parâmetro, payload de sempre
         }
         let res: Response
         let data: Record<string, unknown>

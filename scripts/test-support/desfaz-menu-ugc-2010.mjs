@@ -11,6 +11,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semBebeQueFala2010 } from './desfaz-bebe-que-fala-2010.mjs' // KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories veio depois: sai PRIMEIRO (encadeado; texto sem a marca passa igual)
 
 export const MARCA_MENU_UGC_2010 = 'KINEO-MENU-UGC-2010'
 
@@ -43,6 +44,7 @@ export const MENU_UGC_2010_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semMenuUgc2010(texto, p) {
+  texto = semBebeQueFala2010(texto, p) // KINEO-BEBE-QUE-FALA-2010 — a camada mais nova sai primeiro
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_MENU_UGC_2010) || !MENU_UGC_2010_ARQUIVOS.includes(rel)) return texto
   const crlf = texto.includes('\r\n')

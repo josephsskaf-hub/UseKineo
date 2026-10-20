@@ -225,6 +225,7 @@ import {
   type CinematicRequestId,
 } from '@/lib/cinematic/claim'
 import { decideEngineGate, engineGateMessage } from '@/lib/enginePlanGate'
+import { KIDS_CARTOON_LIVE, comPersonagemInfantil, desenhoInfantilDoPedido, kidsCartoonOn } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010 [TRAVA 8.2 — vai do fundador 20/10 "começa hoje"] — o desenho infantil 3D: estilo e personagem em TODA cena
 
 // KINEO-POLL-FATAL-2026-08-17 — era 60. Na noite do fal travado a rota morreu
 // em "Task timed out after 60 seconds" DEPOIS do débito e ANTES do estorno
@@ -1716,6 +1717,11 @@ async function manipularPost(req: NextRequest) {
         return NextResponse.json({ error: mensagemDaRecusaDeDuracao(checagemDuracao, typeof body.engine === 'string' ? body.engine : null), reason: checagemDuracao.recusa, engine: typeof body.engine === 'string' ? body.engine : null, requested_seconds: duration, suggested_seconds: checagemDuracao.sugestao, retryable: false, charged: false, refunded: false }, { status: 422 }) // KINEO-DURACOES-CURTAS-2026-09-29
       }
     }
+    // KINEO-BEBE-QUE-FALA-2010 [TRAVA 8.2 — vai do fundador 20/10 "começa hoje"] — `kids_cartoon` (o template /kids-cartoon): só com o produto aberto
+    // KINEO-BEBE-QUE-FALA-2010 — (KIDS_CARTOON_LIVE ou conta da casa), personagem da lista, Seedance 1.5, 15/35 s e texto inocente; recusa ANTES do custo,
+    // KINEO-BEBE-QUE-FALA-2010 — do claim e do débito. Sem o campo: inativo, nada muda (lib/kidsCartoon/kidsCartoon.ts desenhoInfantilDoPedido).
+    const desenhoInfantil = desenhoInfantilDoPedido({ raw: (body as { kids_cartoon?: unknown }).kids_cartoon, engine: body.engine, duration, aberto: kidsCartoonOn(KIDS_CARTOON_LIVE, isInternalEmail(user.email)), texto: prompt }) // KINEO-BEBE-QUE-FALA-2010
+    if (desenhoInfantil.recusa) { await writeServerEvent({ name: 'kids_cartoon_refused', userId: user.id, path: '/api/generate-video-cinematic', metadata: { reason: desenhoInfantil.recusa.reason, engine: typeof body.engine === 'string' ? body.engine : null, requested_seconds: duration, charged: false } }); return NextResponse.json({ error: desenhoInfantil.recusa.error, reason: desenhoInfantil.recusa.reason, retryable: false, charged: false, refunded: false }, { status: desenhoInfantil.recusa.status }) } // KINEO-BEBE-QUE-FALA-2010
     const family: CinematicFamily = wantsH3 ? 'h3' : wantsH3Max ? 'h3max' : wantsOmni ? 'omni' : wantsS25 ? 's25' : 'hollywood' // KINEO-H3MAX-2026-10-13
 
     // Parse script for verbatim mode
@@ -3558,6 +3564,7 @@ async function manipularPost(req: NextRequest) {
       styleSuffix,
     )
     if (romanceAdulto.ativo) Object.assign(styleAnchor, forcePhotorealAnchor(styleAnchor, styleSuffix)) // KINEO-ROMANCE-ADULTO-2026-10-13 — romance é sempre fotorreal
+    if (desenhoInfantil.ativo) Object.assign(styleAnchor, desenhoInfantil.estilo) // KINEO-BEBE-QUE-FALA-2010 — desenho infantil: o look 3D fixo (vence o texto) e, por ser desenhado, a estrada vira character_story
     const storyMode = isStylizedLook(styleAnchor) || formatoVisual.modo === 'character_story' || classifyEngineFit(prompt).verdict === 'stock_cannot_tell'
     const storyCharacter = storyMode ? deriveStoryCharacter(prompt) : null
     const classicVisualMode: VisualMode = tagFacelessPresente ? 'documentary_faceless'
@@ -3572,6 +3579,7 @@ async function manipularPost(req: NextRequest) {
     const estrelaFicha: string | null = estrelaAtiva ? fichaDaEstrela(prompt, storyCharacter) : null // KINEO-ESTRELA-DO-FILME-2026-09-29
     // A política da estrada clássica passa a carregar a ficha da estrela (o escritor de cenas e o prompt de cada cena a repetem). [KINEO-ESTRELA-DO-FILME-2026-09-29]
     if (estrelaFicha) classicVisualPolicy.character = estrelaFicha // KINEO-ESTRELA-DO-FILME-2026-09-29
+    if (desenhoInfantil.ativo) classicVisualPolicy.character = desenhoInfantil.ficha // KINEO-BEBE-QUE-FALA-2010 — a ficha canônica do personagem escolhido (o escritor de cenas e cada cena a repetem)
     if (!estrelaFicha && storyMode && !storyCharacter) { const elenco = derivarElenco(prompt); if (elenco.length > 0) classicVisualPolicy.elenco = elenco } // KINEO-PARCEIRO-EYEBIBLE-2-1410 — drama com papéis que falam e sem ficha do autor: cada papel ganha UMA aparência fixa (zero custo)
     let scenes: { description: string; voiceover: string; caption: string; stockSearchQuery?: string; aiPrompt?: string; clipSeconds?: number }[] // clipSeconds: KINEO-KLING25-PLANOS-5S-2026-09-28 (só Kling 2.5)
 
@@ -6670,6 +6678,7 @@ async function manipularPost(req: NextRequest) {
       // KINEO-ROMANCE-ADULTO-2026-10-13 — romance: idade adulta nas palavras, elenco fixo na frente e o sufixo de adultos no fim de TODA cena
       // KINEO-ROMANCE-ADULTO-2026-10-13 — (o still FLUX nasce deste mesmo vetor). Antes dos eixos do Kling/Veo, que só PREFIXAM. Sem romance: o mesmo prompt.
       .map((promptDaCena) => (romanceAdulto.ativo ? aplicarRomanceAdulto(promptDaCena, romanceAdulto) : promptDaCena)) // KINEO-ROMANCE-ADULTO-2026-10-13
+      .map((promptDaCena) => (desenhoInfantil.ativo ? comPersonagemInfantil(promptDaCena, desenhoInfantil.ficha) : promptDaCena)) // KINEO-BEBE-QUE-FALA-2010 — o MESMO personagem em TODA cena (o still FLUX nasce deste vetor) + a trava infantil; sem kids_cartoon, o mesmo prompt
       // ═══ KINEO-KLING25-VARIEDADE-2026-09-28 — um eixo de enquadramento por plano, SÓ no Kling 2.5 ═══
       // Fundador (28/09): "a única coisa é mais variedade de cenas" · "melhore o Kling 2.5 (...) foca em melhorar ele". Com 12
       // planos de 5 s o descritor repete enquadramento e movimento nos vizinhos apesar do pedido "do not repeat the same shot

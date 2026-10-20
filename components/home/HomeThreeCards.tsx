@@ -24,6 +24,8 @@ import {
   homeCardHref,
   type HomeCardId,
 } from '@/lib/ui/homeThreeCards'
+import HomeKidsCard from '@/components/home/HomeKidsCard' // KINEO-BEBE-QUE-FALA-2010 — o 4º card (AI Kids Cartoons), só com o interruptor
+import { HOME_KIDS_CARD_CSS } from '@/lib/ui/homeKidsCard' // KINEO-BEBE-QUE-FALA-2010 — a grade de 4 colunas mora num <style> próprio, emitido só com o card ligado
 import { UGC_PILLAR_PATH, UGC_PILLAR_PT_PATH } from '@/lib/seo/paginasUgc2010' // KINEO-PAGINAS-UGC-2010 — o guia do AI UGC Ads ao lado do título dos cards
 
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)'
@@ -120,7 +122,7 @@ function CardMedia({ card, language }: { card: HomeCardId; language: string }) {
   )
 }
 
-export default function HomeThreeCards({ signedIn }: { signedIn: boolean }) {
+export default function HomeThreeCards({ signedIn, kidsCard = false }: { signedIn: boolean; kidsCard?: boolean }) { // KINEO-BEBE-QUE-FALA-2010 — + kidsCard (o 4º card); era: export default function HomeThreeCards({ signedIn }: { signedIn: boolean }) {
   const copy = useUiCopy()
   const language = useInterfaceLanguage()
   // keepalive do trackEvent entrega o POST mesmo com a página saindo pelo link (mesmo padrão das portas).
@@ -129,9 +131,10 @@ export default function HomeThreeCards({ signedIn }: { signedIn: boolean }) {
   return (
     <section className="k3c" aria-label={copy('Choose what to make')} data-home-3-cards="1">
       <style dangerouslySetInnerHTML={{ __html: HOME_THREE_CARDS_CSS }} />
+      {kidsCard ? <style dangerouslySetInnerHTML={{ __html: HOME_KIDS_CARD_CSS }} /> : null}{/* KINEO-BEBE-QUE-FALA-2010 — desligado: nem o <style> nasce */}
       <div className="wrap">
         <div className="k3c-head"><p className="k3c-kicker"><UiLabel>Choose what to make</UiLabel></p><Link className="k3c-more" href={language === 'pt' ? UGC_PILLAR_PT_PATH : UGC_PILLAR_PATH} data-home-ugc-guide="1"><UiLabel>How AI UGC ads work</UiLabel> →</Link></div>{/* KINEO-PAGINAS-UGC-2010 */}
-        <div className="k3c-grid">
+        <div className="k3c-grid" data-k3c-cols={kidsCard ? '4' : undefined}>{/* KINEO-BEBE-QUE-FALA-2010 — undefined = o atributo nem é emitido (home de hoje); era: <div className="k3c-grid"> */}
           {HOME_CARD_ORDER.map((card) => (
             <Link key={card} href={homeCardHref(card, signedIn)} className="k3c-card" data-home-card={card} onClick={() => track(card)}>
               <CardMedia card={card} language={language} />
@@ -145,6 +148,7 @@ export default function HomeThreeCards({ signedIn }: { signedIn: boolean }) {
               </span>
             </Link>
           ))}
+          {kidsCard ? <HomeKidsCard signedIn={signedIn} /> : null}{/* KINEO-BEBE-QUE-FALA-2010 — o 4º card, depois dos 3 */}
         </div>
       </div>
     </section>

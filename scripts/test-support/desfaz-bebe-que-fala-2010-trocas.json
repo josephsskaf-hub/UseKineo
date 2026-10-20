@@ -1,0 +1,24 @@
+{
+ "app/KineoLanding.tsx": [
+  [
+   "      {showThreeCards ? <HomeThreeCards signedIn={isSignedIn} kidsCard={showKidsCard} /> : ( // KINEO-HOME-3-CARDS-1910 · KINEO-BEBE-QUE-FALA-2010 — + kidsCard (false = o componente de sempre)",
+   "      {showThreeCards ? <HomeThreeCards signedIn={isSignedIn} /> : ( // KINEO-HOME-3-CARDS-1910"
+  ]
+ ],
+ "app/llms.txt/route.ts": [
+  [
+   "${/* KINEO-BEBE-QUE-FALA-2010 — AI Kids Cartoon Stories: '' com o interruptor desligado (o /llms.txt de hoje, byte a byte) */ paginasKidsLlmsSection(BASE, KIDS_CARTOON_PAGES_LIVE)}## Videos from an idea or a script",
+   "## Videos from an idea or a script"
+  ]
+ ],
+ "components/home/HomeThreeCards.tsx": [
+  [
+   "export default function HomeThreeCards({ signedIn, kidsCard = false }: { signedIn: boolean; kidsCard?: boolean }) { // KINEO-BEBE-QUE-FALA-2010 — + kidsCard (o 4º card); era: export default function HomeThreeCards({ signedIn }: { signedIn: boolean }) {",
+   "export default function HomeThreeCards({ signedIn }: { signedIn: boolean }) {"
+  ],
+  [
+   "        <div className=\"k3c-grid\" data-k3c-cols={kidsCard ? '4' : undefined}>{/* KINEO-BEBE-QUE-FALA-2010 — undefined = o atributo nem é emitido (home de hoje); era: <div className=\"k3c-grid\"> */}",
+   "        <div className=\"k3c-grid\">"
+  ]
+ ]
+}

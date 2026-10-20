@@ -44,6 +44,8 @@ import { VS_NOVOS_ENRICHED_PATHS, VS_NOVOS_LINKS, VS_NOVOS_REVIEWED_ISO } from '
 import { GUIAS_IA_PATHS, GUIAS_IA_REVIEWED_ISO } from '@/lib/seo/guiasIa1610Paths'
 // KINEO-PAGINAS-UGC-2010 — AI UGC Ads (pilar EN/PT, gerador, 12 nichos) e Kit Black Friday (EN/PT). Módulo PURO, sem import.
 import { PAGINAS_UGC_PATHS, PAGINAS_UGC_REVIEWED_ISO, PAGINAS_UGC_TOUCHED_PATHS } from '@/lib/seo/paginasUgc2010'
+import { PAGINAS_KIDS_REVIEWED_ISO, paginasKidsSitemapPaths } from '@/lib/seo/paginasKidsCartoon2010' // KINEO-BEBE-QUE-FALA-2010 — as páginas do AI Kids Cartoon Stories (módulo puro)
+import { KIDS_CARTOON_PAGES_LIVE } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010 — o interruptor das páginas (desligado = nenhuma URL)
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -476,6 +478,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'weekly' as const,
       priority: 0.9,
     })),
+    ...paginasKidsSitemapPaths(KIDS_CARTOON_PAGES_LIVE).map((path) => ({ url: `${BASE}${path}`, lastModified: PAGINAS_KIDS_REVIEWED_ISO, changeFrequency: 'weekly' as const, priority: 0.9 })), // KINEO-BEBE-QUE-FALA-2010 — /ai-kids-cartoon-videos e /desenho-infantil-3d-com-ia só com o interruptor ligado (URL nova = o cron do IndexNow envia)
     // KINEO-DURACAO-REWARDS-2026-10-06 — ferramenta grátis (régua de narração × piso de 1 min do Creator Rewards);
     // data própria = dia em que as fontes oficiais da página foram lidas. Guardião: test-duracao-rewards-2026-10-06.
     {
