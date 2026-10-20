@@ -69,7 +69,7 @@ function libProblems(src) {
   if (/^\s*import\s/m.test(src) || /\brequire\(/.test(src)) probs.push('lib com import (tem de ser pura)')
   let M
   try { M = roda(src, 'lib dos cards') } catch (e) { return [`lib não roda: ${e.message}`] }
-  if (M.HOME_3_CARDS_LIVE !== false) probs.push('interruptor HOME_3_CARDS_LIVE não está false (prévia só da casa até o ok do fundador)')
+  if (M.HOME_3_CARDS_LIVE !== true) probs.push('interruptor HOME_3_CARDS_LIVE não está true (ok do fundador na prévia em 19/10: "podemos deixar assim")')
   if (M.home3CardsOn?.(false, false) !== false) probs.push('visitante vê os cards com o interruptor fechado')
   if (M.home3CardsOn?.(false, true) !== true) probs.push('a casa não vê a prévia')
   if (M.home3CardsOn?.(true, false) !== true) probs.push('interruptor aberto não abre para todos')
@@ -383,7 +383,7 @@ function mut(src, from, to, check, label) {
   const applied = src.includes(from)
   ok(applied && check(src.split(from).join(to)).length > 0, `${label}${applied ? '' : ' (MUTANTE NÃO APLICOU)'}`)
 }
-mut(LIB, 'export const HOME_3_CARDS_LIVE = false', 'export const HOME_3_CARDS_LIVE = true', libProblems, '(M1) cards abertos para todos sem o ok → vermelho')
+mut(LIB, 'export const HOME_3_CARDS_LIVE = true', 'export const HOME_3_CARDS_LIVE = false', libProblems, '(M1) cards fechados de novo depois do ok do fundador → vermelho')
 mut(LIB, '  return live === true || internal === true', '  return live === true', libProblems, '(M2) a casa perde a prévia → vermelho')
 mut(LIB, "['films', 'product_ads', 'ugc_ads']", "['product_ads', 'films', 'ugc_ads']", libProblems, '(M3) ordem trocada → vermelho')
 mut(LIB, "product_ads: 'product', ugc_ads: 'ugc'", "product_ads: 'product', ugc_ads: 'product'", libProblems, '(M4) card UGC leva à entrada do Close → vermelho')

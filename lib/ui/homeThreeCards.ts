@@ -14,9 +14,9 @@
 
 /**
  * Interruptor ÚNICO. false = só as contas da casa (isInternalEmail, decidido na KineoLanding) veem os 3 cards — o fundador
- * vê a prévia logado; true = todo visitante. Virar só depois do "ok" do fundador na prévia.
+ * vê a prévia logado; true = todo visitante. LIGADO em 19/10 com o ok do fundador na prévia ("podemos deixar assim").
  */
-export const HOME_3_CARDS_LIVE = false
+export const HOME_3_CARDS_LIVE = true
 
 /** Quem vê os 3 cards no lugar das 2 portas (puro: `internal` = isInternalEmail do e-mail verificado da sessão). */
 export function home3CardsOn(live: boolean, internal: boolean): boolean {
