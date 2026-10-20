@@ -146,6 +146,7 @@ const EXCECOES = {
   'app/api/enhance/route.ts': 'amplia vídeo já gerado (o servidor não extrai quadro)',
   'app/api/generate-thumbnail/route.ts': 'OpenAI Images já modera na origem; sem login no texto — dívida anotada ao fundador',
   'app/api/retry-hollywood-scene/route.ts': 'repete cena da esteira travada (8.2) — decisão do fundador',
+  'app/api/free-redo/film/route.ts': 'KINEO-META95-REFAZER-1910 — reenvia o payload ASSINADO que a fal já aceitou no nascimento (já moderado na esteira travada) + um sufixo fixo de variação; o cliente não manda texto',
 }
 const semPorta = arquivos('app/api').filter((p) => !TRAVA.test(p) && !p.startsWith('app/api/admin/') && GERADOR.test(rd(p)) && !/moderateContent\(/.test(rd(p)))
 const novas = semPorta.filter((p) => !(p in EXCECOES))
