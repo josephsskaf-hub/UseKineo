@@ -3587,7 +3587,6 @@ async function manipularPost(req: NextRequest) {
         // engine instead of the keyword query.
         aiPrompt: s.description,
       }))
-      const metaDasCenas = cenasSemMetaTexto(scenes, shortCaptionFromVoiceover); if (metaDasCenas.removidas.length) void writeServerEvent({ name: CENA_META_TEXTO_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', metadata: { generation_id: generationId, scenes: metaDasCenas.cenas, removed: metaDasCenas.removidas.map((f) => f.slice(0, 160)), engine: typeof body.engine === 'string' ? body.engine : 'seedance', version: 'meta95_ideia_1910' } }) // KINEO-META95-IDEIA-1910 — caminho antigo (generateScenes): fala que descreve a cena/instrução/"voiceover" (5cb320bb) sai como FRASE INTEIRA, nunca é narrada
       // KINEO-FALA-CLASSICA-FIEL-2026-09-15 — Seedance 0d443007 narrou "The time is exactly 12:00 AM." (o pedido dizia
       // "midnight"): a mesma varredura de datas/horas e de lugares/nomes fora do pedido que protege o hollywood entra
       // aqui, na fala do escritor clássico, ANTES de o footage ser escolhido para ela. Contexto = só o pedido.
@@ -3848,6 +3847,7 @@ async function manipularPost(req: NextRequest) {
         })
       } catch { /* telemetria nunca derruba a resposta */ }
     }
+    if (!verbatim) { const metaDasCenas = cenasSemMetaTexto(scenes, shortCaptionFromVoiceover); if (metaDasCenas.removidas.length) void writeServerEvent({ name: CENA_META_TEXTO_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', metadata: { generation_id: generationId, scenes: metaDasCenas.cenas, removed: metaDasCenas.removidas.map((f) => f.slice(0, 160)), engine: typeof body.engine === 'string' ? body.engine : 'seedance', version: 'meta95_ideia_1910' } }) } // KINEO-META95-IDEIA-1910 — caminho antigo (generateScenes, verbatim=false): fala que descreve a cena/instrução/"voiceover" (5cb320bb) sai como FRASE INTEIRA, nunca é narrada; o roteiro do cliente (verbatim) nunca é tocado
     // L2B - prefer the smart BrollPlan per-scene cinematic prompt when provided
     const decisaoPlanoDeBroll = decidirPlanoDeBroll({ blocosDoPlano: planScenes.length, falasDasCenas: scenes.map((s) => s.voiceover), falasDosBlocos: parsedScript.segments.map((s) => s.voiceover), verbatim }) // KINEO-TRILHA-15S — o plano só vale se as cenas do filme SÃO os blocos dele, um por um (lib/cinematic/planoDeBroll.ts)
     const planoDeBrollAplicado = hollywoodPath ? planScenes.length > 0 : decisaoPlanoDeBroll.aplicar // KINEO-TRILHA-15S — hollywood: como sempre (o planejador dele reescreve as cenas)

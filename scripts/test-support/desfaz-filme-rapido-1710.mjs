@@ -9,7 +9,7 @@
 //     ser a da base.
 // Linha com a marca que não é acréscimo puro nem troca listada não existe por construção (o guardião
 // scripts/test-filme-rapido-1710.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE o pai do 1º commit da entrega).
-import { semMeta95Ideia1910 } from './desfaz-meta95-ideia-1910.mjs' // KINEO-META95-IDEIA-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: encadeado no ponto único (semFilmeRapido1710 tira esta camada primeiro)
+import { semMeta95Ideia1910, MARCA_META95_IDEIA_1910 } from './desfaz-meta95-ideia-1910.mjs' // KINEO-META95-IDEIA-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: encadeado no ponto único (semFilmeRapido1710 tira esta camada primeiro)
 export const MARCA_FILME_RAPIDO_1710 = 'KINEO-FILME-RAPIDO-1710'
 
 /** Arquivos protegidos que a entrega toca (só acréscimos marcados + as trocas listadas). */
@@ -404,7 +404,7 @@ export const TROCAS_FILME_RAPIDO_1710 = {
 
 /** A linha é desta entrega? (toda linha nova ou trocada leva a marca). */
 export function linhaDoFilmeRapido1710(l) {
-  return typeof l === 'string' && l.includes(MARCA_FILME_RAPIDO_1710)
+  return typeof l === 'string' && (l.includes(MARCA_FILME_RAPIDO_1710) || l.includes(MARCA_META95_IDEIA_1910)) // KINEO-META95-IDEIA-1910: linha da camada mais nova da rota do cinematic também é de depois da base
 }
 
 /** As linhas da BASE que a entrega reescreveu (para os guardiões que contam linhas removidas). */

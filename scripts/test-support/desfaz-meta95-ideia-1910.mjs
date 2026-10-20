@@ -1,40 +1,53 @@
 // [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] KINEO-META95-IDEIA-1910 — DESFAZ, em memória, a alavanca A2 da
-// meta 95 (ideia solta → escritor marcado do /api/generate-script → fala verbatim) na rota do cinematic, para os guardiões
-// que conferem a rota BYTE A BYTE contra uma base antiga. Módulo auxiliar; não é teste (o nome não começa com test-).
+// meta 95 (ideia solta → escritor marcado do /api/generate-script → fala verbatim) nos arquivos que guardiões conferem BYTE
+// A BYTE contra uma base antiga. Módulo auxiliar; não é teste (o nome não começa com test-).
 //
-// A entrega só ACRESCENTA linhas à rota (app/api/generate-video-cinematic/route.ts), e toda linha nova carrega a marca
-// KINEO-META95-IDEIA-1910: os 2 imports (linhas próprias), a chamada ao escritor e a troca do pedido (logo antes do
-// parseUserScript), e a guarda de meta-texto no caminho antigo (generateScenes). Desfaz: cada linha marcada é reconhecida
-// pelo PREFIXO exato e sai inteira; linha marcada fora dos prefixos, prefixo repetido ou conserto pela metade = lança (o
-// guardião fica vermelho). Sem a marca, ou outro arquivo, devolve o texto igual (idempotente). Preserva CRLF.
+// A entrega só ACRESCENTA linhas, e toda linha nova carrega a marca KINEO-META95-IDEIA-1910:
+//   · na rota do cinematic (app/api/generate-video-cinematic/route.ts): os 2 imports (linhas próprias), a chamada ao escritor
+//     e a troca do pedido (logo antes do parseUserScript), e a guarda de meta-texto do caminho antigo (generateScenes,
+//     verbatim=false), logo antes do L2B — fora das fatias do construtor que outros guardiões executam isoladas;
+//   · em scripts/test-trilha-15s-1610.mjs (protegido pelo guardião do filme rápido): a reâncora que tira os commits desta
+//     entrega da conta do selo da trilha.
+// Desfaz: cada linha marcada é reconhecida pelo PREFIXO exato do seu arquivo e sai inteira; linha marcada fora dos prefixos,
+// prefixo repetido ou conserto pela metade = lança (o guardião fica vermelho). Sem a marca, ou outro arquivo, devolve o texto
+// igual (idempotente). Preserva CRLF.
 // ENCADEAMENTO: é a camada MAIS NOVA da rota do cinematic. semFilmeRapido1710 (desfaz-filme-rapido-1710.mjs) chama esta
-// PRIMEIRO, então todo guardião que já desfazia o filme rápido volta à base de sempre sem ser editado.
+// PRIMEIRO, e linhaDoFilmeRapido1710 aceita a marca desta como "linha de depois da base": todo guardião que já desfazia o
+// filme rápido volta à base de sempre sem ser editado.
 // scripts/test-meta95-ideia-1910.mjs prova que, desfeito isto, a rota é EXATAMENTE o pai do 1º commit com a marca.
 export const MARCA_META95_IDEIA_1910 = 'KINEO-META95-IDEIA-1910'
 export const ROTA_META95_IDEIA_1910 = 'app/api/generate-video-cinematic/route.ts'
 
-export const PREFIXOS_META95_IDEIA_1910 = [
-  "import { escreverIdeiaNoServidor, cenasSemMetaTexto, CENA_META_TEXTO_EVENTO } from '@/lib/meta95/ideiaNoEscritor' // KINEO-META95-IDEIA-1910",
-  "import { POST as escritorMarcadoDoGenerateScript } from '@/app/api/generate-script/route' // KINEO-META95-IDEIA-1910",
-  '    const ideiaNoEscritor = await escreverIdeiaNoServidor({ prompt, scriptMode: body.script_mode, ',
-  '    if (ideiaNoEscritor.usar) prompt = ideiaNoEscritor.prompt // KINEO-META95-IDEIA-1910',
-  '      const metaDasCenas = cenasSemMetaTexto(scenes, shortCaptionFromVoiceover); if (metaDasCenas.removidas.length) void writeServerEvent({ name: CENA_META_TEXTO_EVENTO, ',
-]
+export const ACRESCIMOS_META95_IDEIA_1910 = {
+  [ROTA_META95_IDEIA_1910]: [
+    "import { escreverIdeiaNoServidor, cenasSemMetaTexto, CENA_META_TEXTO_EVENTO } from '@/lib/meta95/ideiaNoEscritor' // KINEO-META95-IDEIA-1910",
+    "import { POST as escritorMarcadoDoGenerateScript } from '@/app/api/generate-script/route' // KINEO-META95-IDEIA-1910",
+    '    const ideiaNoEscritor = await escreverIdeiaNoServidor({ prompt, scriptMode: body.script_mode, ',
+    '    if (ideiaNoEscritor.usar) prompt = ideiaNoEscritor.prompt // KINEO-META95-IDEIA-1910',
+    '    if (!verbatim) { const metaDasCenas = cenasSemMetaTexto(scenes, shortCaptionFromVoiceover); if (metaDasCenas.removidas.length) void writeServerEvent({ name: CENA_META_TEXTO_EVENTO, ',
+  ],
+  'scripts/test-trilha-15s-1610.mjs': [
+    "  assuntos.splice(0, assuntos.length, ...assuntos.filter((s) => !s.includes('KINEO-META95-IDEIA-1910'))) // reancorado KINEO-META95-IDEIA-1910",
+  ],
+}
+/** Compatibilidade: os prefixos da rota. */
+export const PREFIXOS_META95_IDEIA_1910 = ACRESCIMOS_META95_IDEIA_1910[ROTA_META95_IDEIA_1910]
 
-/** O texto da rota sem a alavanca A2 da meta 95. `rel` = caminho do arquivo (padrão: a rota do cinematic). */
+/** O texto de `rel` sem a alavanca A2 da meta 95 (padrão: a rota do cinematic). */
 export function semMeta95Ideia1910(texto, rel = ROTA_META95_IDEIA_1910) {
-  if (typeof texto !== 'string' || rel !== ROTA_META95_IDEIA_1910 || !texto.includes(MARCA_META95_IDEIA_1910)) return texto
+  const prefixos = ACRESCIMOS_META95_IDEIA_1910[rel]
+  if (typeof texto !== 'string' || !prefixos || !texto.includes(MARCA_META95_IDEIA_1910)) return texto
   const crlf = texto.includes('\r\n')
   const usados = new Set()
   const fora = []
   for (const linha of texto.replace(/\r\n/g, '\n').split('\n')) {
     if (!linha.includes(MARCA_META95_IDEIA_1910)) { fora.push(linha); continue }
-    const i = PREFIXOS_META95_IDEIA_1910.findIndex((p) => linha.startsWith(p))
+    const i = prefixos.findIndex((p) => linha.startsWith(p))
     if (i < 0) throw new Error('desfaz-meta95-ideia-1910: linha com a marca fora dos prefixos conhecidos: ' + linha.slice(0, 120))
-    if (usados.has(i)) throw new Error('desfaz-meta95-ideia-1910: prefixo repetido: ' + PREFIXOS_META95_IDEIA_1910[i].slice(0, 80))
+    if (usados.has(i)) throw new Error('desfaz-meta95-ideia-1910: prefixo repetido: ' + prefixos[i].slice(0, 80))
     usados.add(i)
   }
-  if (usados.size !== PREFIXOS_META95_IDEIA_1910.length) throw new Error(`desfaz-meta95-ideia-1910: conserto pela metade (${usados.size} de ${PREFIXOS_META95_IDEIA_1910.length} linhas)`)
+  if (usados.size !== prefixos.length) throw new Error(`desfaz-meta95-ideia-1910: conserto pela metade em ${rel} (${usados.size} de ${prefixos.length} linhas)`)
   const out = fora.join('\n')
   return crlf ? out.replace(/\n/g, '\r\n') : out
 }

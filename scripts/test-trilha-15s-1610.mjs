@@ -303,6 +303,7 @@ for (const f of res.falhas) relata(f, false)
     relata(`F ${p} intocado (cauda protegida, contrato, divisor e descritor)`, git('diff', base, '--', p).trim() === '')
   }
   const assuntos = git('log', '--format=%s', `${base}..HEAD`, '--', ROTA, VPP, LIB).split('\n').map((s) => s.trim()).filter(Boolean).filter((s) => !s.includes('KINEO-FILME-RAPIDO-1710')) // reancorado KINEO-FILME-RAPIDO-1710: os commits da entrega de 17/10 levam o selo deles
+  assuntos.splice(0, assuntos.length, ...assuntos.filter((s) => !s.includes('KINEO-META95-IDEIA-1910'))) // reancorado KINEO-META95-IDEIA-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: os commits da ideia no escritor marcado (19/10) levam o selo deles
   relata(`F todo commit do conserto traz o selo ${SELO}`, assuntos.every((s) => s.includes(SELO)), assuntos.filter((s) => !s.includes(SELO)).slice(0, 1).join(''))
 }
 

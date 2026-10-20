@@ -236,12 +236,15 @@ function provasDaRota(src) {
   r.R3 = chamada.includes('prompt, scriptMode: body.script_mode, engine: typeof body.engine === \'string\' ? body.engine : null, seconds: duration, language: narrationLanguage.language') &&
     chamada.includes("escritorMarcadoDoGenerateScript(new NextRequest(new URL('/api/generate-script', req.url), { method: 'POST'") && chamada.includes('JSON.stringify(corpo)') &&
     chamada.includes("path: '/api/generate-video-cinematic'") && chamada.includes('generation_id: generationId')
-  // o filtro anti-invenção da fala só existe no ramo verbatim=false (que a ideia escrita não visita mais) e a guarda de meta-texto vem antes dele
+  // o filtro anti-invenção da fala só existe no ramo verbatim=false (que a ideia escrita não visita mais); a guarda de meta-texto
+  // roda só com verbatim=false (o roteiro do cliente nunca é tocado), depois dos construtores e do resgate de zero cenas, antes do L2B
   const iSe = src.indexOf('    if (verbatim) {\n      // #369')
   const iSenao = src.indexOf('    } else {\n      const generated = await generateScenes(', iSe)
-  const iGuarda = src.indexOf('      const metaDasCenas = cenasSemMetaTexto(scenes, shortCaptionFromVoiceover); if (metaDasCenas.removidas.length) void writeServerEvent({ name: CENA_META_TEXTO_EVENTO,', iSenao)
   const iFiltro = src.indexOf('          const r = removerDatasInventadas(sc.voiceover, contextoFalaClassica)', iSenao)
-  r.R4 = iSe > iTroca && iSenao > iSe && iGuarda > iSenao && iFiltro > iGuarda && (src.match(/removerDatasInventadas\(sc\.voiceover/g) ?? []).length === 1
+  const iZero = src.indexOf('    if (scenes.length === 0 && prompt.trim().length > 0) {', iSenao)
+  const iGuarda = src.indexOf('    if (!verbatim) { const metaDasCenas = cenasSemMetaTexto(scenes, shortCaptionFromVoiceover); if (metaDasCenas.removidas.length) void writeServerEvent({ name: CENA_META_TEXTO_EVENTO,', iSenao)
+  const iL2B = src.indexOf('    // L2B - prefer the smart BrollPlan per-scene cinematic prompt when provided')
+  r.R4 = iSe > iTroca && iSenao > iSe && iFiltro > iSenao && iZero > iFiltro && iGuarda > iZero && iL2B > iGuarda && src.slice(iGuarda, iL2B).split('\n').length === 2 && (src.match(/removerDatasInventadas\(sc\.voiceover/g) ?? []).length === 1
   return r
 }
 const rr = provasDaRota(rota)
@@ -262,7 +265,13 @@ checa('R5 toda linha nova da rota carrega a marca (5 linhas: 2 imports, chamada,
     SUP.semMeta95Ideia1910('a\nb', F.rota) === 'a\nb' && SUP.semMeta95Ideia1910('a\nb // ' + MARCA + '\nc', 'outro.ts') === 'a\nb // ' + MARCA + '\nc' &&
     (() => { try { SUP.semMeta95Ideia1910('a\nx // ' + MARCA + '\nc', F.rota); return false } catch { return true } })())
   const filmeRapido = rd('scripts/test-support/desfaz-filme-rapido-1710.mjs')
-  checa('R8 encadeado: semFilmeRapido1710 tira PRIMEIRO esta camada (a mais nova da rota)', filmeRapido.includes('semMeta95Ideia1910(') && filmeRapido.includes("from './desfaz-meta95-ideia-1910.mjs'"))
+  const FR = await import(pathToFileURL(path.join(ROOT, 'scripts/test-support/desfaz-filme-rapido-1710.mjs')).href)
+  checa('R8 encadeado: semFilmeRapido1710 tira PRIMEIRO esta camada (a mais nova da rota) e linhaDoFilmeRapido1710 a aceita como "de depois da base"',
+    filmeRapido.includes('semMeta95Ideia1910(') && filmeRapido.includes("from './desfaz-meta95-ideia-1910.mjs'") &&
+    FR.linhaDoFilmeRapido1710('+x // ' + MARCA) === true && FR.linhaDoFilmeRapido1710('+x') === false &&
+    FR.semFilmeRapido1710(rota, F.rota) === FR.semFilmeRapido1710(SUP.semMeta95Ideia1910(rota, F.rota), F.rota))
+  const trilha = rd('scripts/test-trilha-15s-1610.mjs')
+  checa('R8b a reâncora do selo no guardião da trilha é uma linha só, marcada, e o desfaz a tira', trilha.split('\n').filter((l) => l.includes(MARCA)).length === 1 && !SUP.semMeta95Ideia1910(trilha, 'scripts/test-trilha-15s-1610.mjs').includes(MARCA))
   checa('R9 o roteirista (/api/generate-script) não foi tocado por esta entrega', !rd(F.script).includes(MARCA))
   const assuntos = (() => { try { return git('log', '--format=%s', '--grep=' + MARCA, 'HEAD').trim().split('\n').filter(Boolean) } catch { return [] } })()
   checa('R10 todo commit da entrega traz a marca e o selo da TRAVA 8.2 no assunto', assuntos.every((s) => s.includes('[TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]')), assuntos.find((s) => !s.includes('[TRAVA 8.2')) ?? '')
@@ -296,7 +305,8 @@ for (const [nome, prova, de, para] of mutantesDaLib) {
 const mutantesDaRota = [
   ['M12 a troca do pedido depois do parse', 'R2', (s) => { const linha = '    if (ideiaNoEscritor.usar) prompt = ideiaNoEscritor.prompt // ' + MARCA + '\n'; return s.includes(linha) ? s.replace(linha, '').replace('    const parsedScript = parseUserScript(prompt)\n', '    const parsedScript = parseUserScript(prompt)\n' + linha) : null }],
   ['M13 o escritor deixa de ser o POST do generate-script', 'R3', (s) => (s.includes("escritorMarcadoDoGenerateScript(new NextRequest(new URL('/api/generate-script', req.url)") ? s.replace("escritorMarcadoDoGenerateScript(new NextRequest(new URL('/api/generate-script', req.url)", "escritorMarcadoDoGenerateScript(new NextRequest(new URL('/api/analyze-idea', req.url)") : null)],
-  ['M14 a guarda de meta-texto sai do caminho antigo', 'R4', (s) => { const i = s.indexOf('      const metaDasCenas = cenasSemMetaTexto('); return i > 0 ? s.slice(0, i) + s.slice(s.indexOf('\n', i) + 1) : null }],
+  ['M14 a guarda de meta-texto sai do caminho antigo', 'R4', (s) => { const i = s.indexOf('    if (!verbatim) { const metaDasCenas = cenasSemMetaTexto('); return i > 0 ? s.slice(0, i) + s.slice(s.indexOf('\n', i) + 1) : null }],
+  ['M15 a guarda de meta-texto passa a mexer no roteiro do cliente (verbatim)', 'R4', (s) => (s.includes('    if (!verbatim) { const metaDasCenas = cenasSemMetaTexto(') ? s.replace('    if (!verbatim) { const metaDasCenas = cenasSemMetaTexto(', '    if (true) { const metaDasCenas = cenasSemMetaTexto(') : null)],
 ]
 for (const [nome, prova, fn] of mutantesDaRota) {
   const mut = fn(rota)
