@@ -28,7 +28,7 @@ export function paginasUgcFacts(): UgcFacts {
     starterPriceAmount: (getTierPrice('starter', 'usd', 'standard') / 100).toFixed(2),
     // as MESMAS travas de adsSampleOpen (lib/ads/serverAccess.ts): amostra no ar, pessoa no ar, ator público e o Studio Ads aberto.
     freeUgcLive: ADS_SAMPLE_LIVE === true && ADS_SAMPLE_PRESENTER_LIVE === true && ADS_V2_PRESENTER_PUBLIC === true && adsPassLive(),
-    noCard: CARD_ENTRY_ONLY !== true,
+    noCard: !(CARD_ENTRY_ONLY as boolean),
     sampleSeconds: ADS_V2_SCREEN_SECONDS,
     narrationLanguages: NARRATION_LANGUAGES.length,
     minPhotos: ADS_V2_MIN_PHOTOS,
