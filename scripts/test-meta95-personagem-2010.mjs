@@ -19,6 +19,7 @@
 //   D.  desfaz exato (cada arquivo tocado, desfeito, é a base), encadeado (semMeta95Ideia1910 chama este primeiro), o diff da entrega só toca a
 //       lista + os novos, todo commit com a marca e o selo da TRAVA 8.2;
 //   M.  mutantes: cada regra acima fica vermelha quando a quebramos de propósito (aplicação provada antes de medir).
+import { MARCA_AVATAR_PRESO_2010 } from './test-support/desfaz-avatar-preso-2010.mjs' // reancorado KINEO-AVATAR-PRESO-2010 [TRAVA 8.2 — vai do fundador 20/10 "vai pra tudo"]: a camada do avatar preso não é desta entrega
 import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
@@ -370,6 +371,7 @@ console.log('\nD. desfaz, encadeamento, diff e commits')
   const desdeABase = (() => { try { return git('log', '--format=%H%x09%s', `${BASE_CMP}..HEAD`).trim().split('\n').filter(Boolean).map((l) => { const [h, ...s] = l.split('\t'); return { h, s: s.join('\t') } }) } catch { return [] } })() // só o que NÃO está na origin/main mesclada: os commits desta entrega e os merges dela
   const commitsDaEntrega = desdeABase.filter(({ s }) => !s.includes('KINEO-BEBE-QUE-FALA-2010')) /* reancorado KINEO-BEBE-QUE-FALA-2010: os commits de 20/10 levam a marca deles */ .filter(({ h, s }) => s.includes(MARCA) || git('diff-tree', '--no-commit-id', '--name-only', '-r', '-m', h).trim().split('\n').some((f) => permitidos.has(f)))
   commitsDaEntrega.splice(0, commitsDaEntrega.length, ...commitsDaEntrega.filter(({ s }) => !s.includes(MARCA_META95_ESCRITA_2010))) // KINEO-META95-ESCRITA-2010 — reancorado: os commits (e o merge) da legenda na escrita do roteiro não são desta entrega
+  commitsDaEntrega.splice(0, commitsDaEntrega.length, ...commitsDaEntrega.filter(({ s }) => !s.includes(MARCA_AVATAR_PRESO_2010))) // KINEO-AVATAR-PRESO-2010 — reancorado: os commits (e os merges) do avatar preso não são desta entrega
   ok(commitsDaEntrega.length > 0 && commitsDaEntrega.every(({ s }) => s.includes(MARCA) && s.includes('[TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]')), `D7 todo commit da entrega (e todo merge dela) traz a marca e o selo da TRAVA 8.2 (${commitsDaEntrega.length} commit(s); base ${BASE_CMP.slice(0, 10)})`, commitsDaEntrega.filter(({ s }) => !s.includes(MARCA)).map(({ s }) => s.slice(0, 60)).join(' | '))
   ok(fs.existsSync(path.join(ROOT, 'docs/META95-PERSONAGEM-2026-10-20.md')) && /formatFlags/.test(rd('docs/META95-PERSONAGEM-2026-10-20.md')), 'D8 o desenho está em docs/META95-PERSONAGEM-2026-10-20.md, com o jeito de ligar por pedido')
 }

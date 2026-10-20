@@ -37,6 +37,7 @@ import { semMenuUgc2010 } from './test-support/desfaz-menu-ugc-2010.mjs'
 import { semBebeQueFala2010 } from './test-support/desfaz-bebe-que-fala-2010.mjs' // reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories (20/10) entrou depois na fila e reancorou 3 guardiões desta lista: sai em memória antes do D1
 import { semMeta95Personagem2010 } from './test-support/desfaz-meta95-personagem-2010.mjs'
 import { semUgcAjustes2010 } from './test-support/desfaz-ugc-ajustes-2010.mjs'
+import { semAvatarPreso2010 } from './test-support/desfaz-avatar-preso-2010.mjs' // reancorado KINEO-AVATAR-PRESO-2010 [TRAVA 8.2 — vai do fundador 20/10 "vai pra tudo"]: a camada do avatar preso sai em memória
 
 const require = createRequire(import.meta.url)
 const ROOT = path.resolve(import.meta.dirname, '..')
@@ -285,7 +286,7 @@ console.log('\nD. desfaz\n')
     const b = base(f)
     if (b === null) { difs.push(`${f}: fora da base`); continue }
     let out
-    try { out = semMeta95Escrita2010(semBebeQueFala2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f), f) /* reancorado KINEO-BEBE-QUE-FALA-2010 */ } catch (e) { difs.push(`${f}: ${e.message}`); continue }
+    try { out = semMeta95Escrita2010(semAvatarPreso2010(semBebeQueFala2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f), f), f) /* reancorado KINEO-BEBE-QUE-FALA-2010 */ } catch (e) { difs.push(`${f}: ${e.message}`); continue } // reancorado KINEO-AVATAR-PRESO-2010: sem a camada do avatar preso (mais nova), em memória
     if (lf(out) !== b) difs.push(f)
   }
   ok(difs.length === 0, `D1 ${META95_ESCRITA_2010_ARQUIVOS.length} arquivos tocados, desfeitos, = base ${META95_ESCRITA_2010_BASE.slice(0, 9)} (${difs.join('; ') || 'ok'})`)
@@ -307,7 +308,7 @@ console.log('\nD. desfaz\n')
   const tocados = new Set([...git('diff', '--name-only', META95_ESCRITA_2010_BASE, TOPO).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n')].filter(Boolean))
   const permitidos = new Set([...META95_ESCRITA_2010_ARQUIVOS, ...META95_ESCRITA_2010_NOVOS])
   const fora = [...tocados].filter((f) => !permitidos.has(f))
-  const semMarca = META95_ESCRITA_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !semBebeQueFala2010(rd(f), f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) }) // reancorado KINEO-BEBE-QUE-FALA-2010 — as linhas da camada de 20/10 saem antes da conferência de marca
+  const semMarca = META95_ESCRITA_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !semAvatarPreso2010(semBebeQueFala2010(rd(f), f) /* reancorado KINEO-BEBE-QUE-FALA-2010 */, f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) }) // reancorado KINEO-AVATAR-PRESO-2010: as linhas do avatar preso não são desta entrega
   ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && ![...tocados].some((f) => /engineCost|pricing|lib\/credits\//.test(f)),
     `D6 o diff da base só toca a lista e os novos; toda linha nova traz a marca; nada de cobrança ou preço (${[...fora.map((f) => `fora: ${f}`), ...semMarca.map((f) => `sem marca: ${f}`)].join('; ') || 'ok'})`)
   const assuntos = git('log', '--no-merges', '--format=%s', `${META95_ESCRITA_2010_BASE}..${TOPO}`).trim().split('\n').filter(Boolean)

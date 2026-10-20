@@ -10,6 +10,7 @@
 // primeiro. Este não importa ninguém.
 // O guardião scripts/test-meta95-escrita-2010.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (META95_ESCRITA_2010_BASE).
 import { readFileSync } from 'node:fs'
+import { semAvatarPreso2010NosGuardioes } from './desfaz-avatar-preso-2010.mjs' // KINEO-AVATAR-PRESO-2010 — a camada mais nova (20/10): as reâncoras dela nos guardiões saem primeiro
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { semBebeQueFala2010 } from './desfaz-bebe-que-fala-2010.mjs' // KINEO-BEBE-QUE-FALA-2010 — a camada de 20/10 reancorou um guardião desta lista NA MESMA LINHA (test-filmes-f1f4-1910): sai PRIMEIRO também por aqui
@@ -58,6 +59,7 @@ export const META95_ESCRITA_2010_NOVOS = [
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semMeta95Escrita2010(texto, p) {
   texto = semBebeQueFala2010(texto, p) // KINEO-BEBE-QUE-FALA-2010 — a camada mais nova sai primeiro (texto sem a marca passa igual)
+  texto = semAvatarPreso2010NosGuardioes(texto, p) // KINEO-AVATAR-PRESO-2010 — encadeado (o /api/compose fica com a cadeia dele)
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_META95_ESCRITA_2010) || !META95_ESCRITA_2010_ARQUIVOS.includes(rel)) return texto
   const crlf = texto.includes('\r\n')
