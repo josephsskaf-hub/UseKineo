@@ -295,7 +295,7 @@ for (const f of res.falhas) relata(f, false)
     relata(`F ${p}: ${f.trocas} troca(s) + ${f.acrescimos} acréscimo(s) + ${f.blocos} bloco(s), toda linha marcada no comentário`, fora.length === 0 && marcadas.length >= f.trocas + f.acrescimos, fora.slice(0, 1).join(''))
   }
   const add = git('diff', base, '--', ROTA, VPP).replace(/\r/g, '').split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))
-  relata('F toda linha nova/trocada da rota e do visualPromptPolicy leva a marca', add.length > 0 && add.every((l) => linhaDaTrilha15s1610(l) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */), add.filter((l) => !linhaDaTrilha15s1610(l) && !l.includes('KINEO-META95-ASSUNTO-1910')).slice(0, 2).join(' | '))
+  relata('F toda linha nova/trocada da rota e do visualPromptPolicy leva a marca', add.length > 0 && add.every((l) => linhaDaTrilha15s1610(l) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || l.includes('KINEO-BEBE-QUE-FALA-2010') || l.includes('KINEO-KIDS-VENDA-2010') /* reancorado KINEO-KIDS-VENDA-2010: o template do desenho infantil e a venda dele (20/10) levam a marca deles */), add.filter((l) => !linhaDaTrilha15s1610(l) && !l.includes('KINEO-META95-ASSUNTO-1910')).slice(0, 2).join(' | '))
   let libNaBase = true
   try { execFileSync('git', ['-C', RAIZ, 'cat-file', '-e', `${base}:${LIB}`], { stdio: ['ignore', 'ignore', 'ignore'] }) } catch { libNaBase = false }
   relata('F lib/cinematic/planoDeBroll.ts é arquivo novo (não existe na base)', !libNaBase)
@@ -304,6 +304,7 @@ for (const f of res.falhas) relata(f, false)
   }
   const assuntos = git('log', '--format=%s', `${base}..HEAD`, '--', ROTA, VPP, LIB).split('\n').map((s) => s.trim()).filter(Boolean).filter((s) => !s.includes('KINEO-FILME-RAPIDO-1710')).filter((s) => !s.includes('KINEO-META95-ASSUNTO-1910')) // reancorado KINEO-FILME-RAPIDO-1710: os commits da entrega de 17/10 levam o selo deles · reancorado KINEO-META95-ASSUNTO-1910: os de 19/10 levam o selo "Vai pra meta do 95"
   assuntos.splice(0, assuntos.length, ...assuntos.filter((s) => !s.includes('KINEO-META95-IDEIA-1910'))) // reancorado KINEO-META95-IDEIA-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: os commits da ideia no escritor marcado (19/10) levam o selo deles
+  assuntos.splice(0, assuntos.length, ...assuntos.filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010') && !s.includes('KINEO-KIDS-VENDA-2010'))) // reancorado KINEO-KIDS-VENDA-2010 [TRAVA 8.2 — vai do fundador 20/10 "três sim"]: os commits do desenho infantil (template e venda, 20/10) levam o selo deles
   assuntos.splice(0, assuntos.length, ...assuntos.filter((s) => !s.includes('KINEO-META95-PERSONAGEM-2010'))) // reancorado KINEO-META95-PERSONAGEM-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: os commits da folha de personagem (20/10) levam o selo deles
   relata(`F todo commit do conserto traz o selo ${SELO}`, assuntos.every((s) => s.includes(SELO)), assuntos.filter((s) => !s.includes(SELO)).slice(0, 1).join(''))
 }

@@ -23,7 +23,8 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
-import { semKidsVenda2010, KIDS_VENDA_2010_ARQUIVOS, KIDS_VENDA_2010_NOVOS, KIDS_VENDA_2010_BASE, MARCA_KIDS_VENDA_2010, ACRESCIMOS_KIDS_VENDA_2010, TROCAS_KIDS_VENDA_2010 } from './test-support/desfaz-kids-venda-2010.mjs'
+import { semMeta95Personagem2010 } from './test-support/desfaz-meta95-personagem-2010.mjs' // a folha de personagem (origin/main fbe47c467, mesclada DEPOIS da base desta entrega) sai antes de comparar com a base
+import { semKidsVenda2010, KIDS_VENDA_2010_ARQUIVOS, KIDS_VENDA_2010_NOVOS, KIDS_VENDA_2010_BASE, KIDS_VENDA_2010_MERGED_MAIN, MARCA_KIDS_VENDA_2010, ACRESCIMOS_KIDS_VENDA_2010, TROCAS_KIDS_VENDA_2010 } from './test-support/desfaz-kids-venda-2010.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -251,10 +252,13 @@ async function provas(over = {}) {
 // ── D — desfaz exato, novos, marca, encadeamento ──────────────────────────────────────────────────────────────────────────
 console.log('D — desfaz / novos / marca')
 for (const p of KIDS_VENDA_2010_ARQUIVOS) {
-  const b = base(p)
+  // arquivo que já existia na base 7d0e71806: desfeita esta camada E a folha de personagem (origin/main mesclada depois), sobra a base;
+  // arquivo que NASCEU na origin/main mesclada (guardiões do conector/da folha, reancorados aqui): desfeita só esta camada, sobra a origin/main.
+  const b0 = base(p)
+  const b = b0 ?? (() => { try { return lf(git('show', `${KIDS_VENDA_2010_MERGED_MAIN}:${p}`)) } catch { return null } })()
   let des = null
-  try { des = semKidsVenda2010(disco(p), p) } catch (e) { console.log('       (' + e.message + ')') }
-  ok(b !== null && des === b, `D1 desfaz exato = base: ${p}`)
+  try { des = b0 !== null ? semMeta95Personagem2010(semKidsVenda2010(disco(p), p), p) : semKidsVenda2010(disco(p), p) } catch (e) { console.log('       (' + e.message + ')') }
+  ok(b !== null && des === b, `D1 desfaz exato = ${b0 !== null ? 'base (sem esta camada e sem a folha de personagem)' : 'origin/main mesclada (sem esta camada)'}: ${p}`)
 }
 ok(KIDS_VENDA_2010_NOVOS.every((p) => existsSync(join(ROOT, p)) && base(p) === null), 'D2 os arquivos novos existem e não estavam na base')
 ok(KIDS_VENDA_2010_NOVOS.filter((p) => /\.(ts|tsx|mjs|sql)$/.test(p)).every((p) => disco(p).includes(MARCA)), 'D3 todo arquivo novo carrega a marca')

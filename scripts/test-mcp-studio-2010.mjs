@@ -30,6 +30,8 @@ import {
 } from './test-support/desfaz-mcp-studio-2010.mjs'
 import { semMeta95Personagem2010, META95_PERSONAGEM_2010_ARQUIVOS, MARCA_META95_PERSONAGEM_2010 } from './test-support/desfaz-meta95-personagem-2010.mjs' // reancorado KINEO-META95-PERSONAGEM-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: a folha de personagem (20/10) entrou na fila depois e toca a rota do cinematic e o crítico; sai em memória antes do byte a byte, e os commits/arquivos dela ficam fora desta conta
 
+import { semBebeQueFala2010, BEBE_QUE_FALA_2010_ARQUIVOS, MARCA_BEBE_QUE_FALA_2010 } from './test-support/desfaz-bebe-que-fala-2010.mjs' // reancorado KINEO-KIDS-VENDA-2010: o template do desenho infantil (KINEO-BEBE-QUE-FALA-2010) e a venda dele (KINEO-KIDS-VENDA-2010) entraram na fila depois do conector
+import { KIDS_VENDA_2010_ARQUIVOS, MARCA_KIDS_VENDA_2010 } from './test-support/desfaz-kids-venda-2010.mjs' // reancorado KINEO-KIDS-VENDA-2010
 const require = createRequire(import.meta.url)
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..')
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
@@ -223,7 +225,7 @@ for (const rel of ['app/api/mcp/route.ts', 'lib/mcp/kineoMcp.ts', 'lib/mcp/conne
   ok(base(rel) !== null && read(rel) === base(rel), `(E1) ${rel} INTOCADO byte a byte (o conector do diretório segue em revisão como estava)`)
 }
 for (const rel of ['app/api/generate-video-cinematic/route.ts', 'app/api/compose/route.ts', 'app/api/generate-video-fast/route.ts', 'app/api/cinematic-clip-status/route.ts']) {
-  ok(base(rel) !== null && lf(semMeta95Personagem2010(raw(rel), rel)) === base(rel), `(E2) ${rel} intocada por esta entrega (nenhuma rota de geração mudou — a trava 8.2 não foi tocada; a folha de personagem, entrega de depois, sai em memória)`) // reancorado KINEO-META95-PERSONAGEM-2010
+  ok(base(rel) !== null && lf(semMeta95Personagem2010(semBebeQueFala2010(raw(rel), rel), rel)) === base(rel), `(E2) ${rel} intocada por esta entrega (nenhuma rota de geração mudou — a trava 8.2 não foi tocada; a folha de personagem, entrega de depois, sai em memória)`) // reancorado KINEO-META95-PERSONAGEM-2010 // reancorado KINEO-KIDS-VENDA-2010: o template do desenho infantil e a venda dele saem antes (a cabeça bebe chama a kids primeiro)
 }
 ok(/bearerFrom\(req\.headers\.get\('authorization'\)\)/.test(S.route) && /'WWW-Authenticate': wwwAuthenticateHeader\(origin, error\)/.test(S.route) && /401,/.test(S.route), '(E3) rota: sem Bearer → 401 com WWW-Authenticate (é isto que dispara o login no Claude)')
 ok(/row\.revoked_at \|\| Date\.parse\(row\.access_expires_at\) <= Date\.now\(\)/.test(S.route), '(E4) rota: token revogado ou vencido → 401 invalid_token')
@@ -271,9 +273,9 @@ for (const rel of MCP_STUDIO_2010_ARQUIVOS) {
 for (const rel of MCP_STUDIO_2010_NOVOS) {
   ok(fs.existsSync(path.join(ROOT, rel)) && base(rel) === null && read(rel).includes(MARCA_MCP_STUDIO_2010), `(F2) ${rel}: novo (não existia na base) e leva a marca`)
 }
-const changedExisting = git('diff', '--name-only', MCP_STUDIO_2010_BASE, 'HEAD').split('\n').filter(Boolean).filter((f) => base(f) !== null).filter((f) => !META95_PERSONAGEM_2010_ARQUIVOS.includes(f)) // reancorado KINEO-META95-PERSONAGEM-2010: os arquivos da folha de personagem (entrega de depois, com desfaz próprio) ficam fora desta conta
+const changedExisting = git('diff', '--name-only', MCP_STUDIO_2010_BASE, 'HEAD').split('\n').filter(Boolean).filter((f) => base(f) !== null).filter((f) => !META95_PERSONAGEM_2010_ARQUIVOS.includes(f)).filter((f) => !BEBE_QUE_FALA_2010_ARQUIVOS.includes(f) && !KIDS_VENDA_2010_ARQUIVOS.includes(f)) /* reancorado KINEO-KIDS-VENDA-2010: arquivos do desenho infantil (template + venda) são de outras entregas */ // reancorado KINEO-META95-PERSONAGEM-2010: os arquivos da folha de personagem (entrega de depois, com desfaz próprio) ficam fora desta conta
 ok(changedExisting.every((f) => MCP_STUDIO_2010_ARQUIVOS.includes(f)), `(F3) o diff contra a base só toca arquivos declarados (existentes alterados: ${changedExisting.join(', ') || 'nenhum ainda commitado'})`)
-const commits = git('log', '--format=%s', `${MCP_STUDIO_2010_BASE}..HEAD`).split('\n').filter(Boolean).filter((s) => !s.includes(MARCA_META95_PERSONAGEM_2010)) // reancorado KINEO-META95-PERSONAGEM-2010: os commits da folha de personagem levam a marca deles
+const commits = git('log', '--format=%s', `${MCP_STUDIO_2010_BASE}..HEAD`).split('\n').filter(Boolean).filter((s) => !s.includes(MARCA_META95_PERSONAGEM_2010)).filter((s) => !s.includes(MARCA_BEBE_QUE_FALA_2010) && !s.includes(MARCA_KIDS_VENDA_2010)) /* reancorado KINEO-KIDS-VENDA-2010 */ // reancorado KINEO-META95-PERSONAGEM-2010: os commits da folha de personagem levam a marca deles
 ok(commits.every((s) => s.includes(MARCA_MCP_STUDIO_2010)), `(F4) todo commit da entrega leva a marca no assunto (${commits.length} commit(s))`)
 ok(semMcpStudio2010('sem marca', 'lib/claudeConnect.ts') === 'sem marca' && semMcpStudio2010(raw(F.page), 'outro/arquivo.ts') === raw(F.page), '(F5) desfaz é idempotente fora do alvo')
 

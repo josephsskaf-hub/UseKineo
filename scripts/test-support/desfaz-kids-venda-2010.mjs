@@ -16,6 +16,8 @@ export const MARCA_KIDS_VENDA_2010 = 'KINEO-KIDS-VENDA-2010'
 
 /** A base da entrega: a ponta da KINEO-BEBE-QUE-FALA-2010 (template, kids_cartoon na rota do filme) sobre a origin/main de 20/10. */
 export const KIDS_VENDA_2010_BASE = '7d0e71806b412acd1c7aff1c7306b5bdd87ffd3e'
+/** A origin/main mesclada DEPOIS da base (conector Kineo Studio + folha de personagem): arquivos que nasceram nela comparam com ela. */
+export const KIDS_VENDA_2010_MERGED_MAIN = 'fbe47c4677d4af4cc231e41f2db542fbfd2ba476'
 
 const TABELA = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-kids-venda-2010-trocas.json'), 'utf8'))
 /** [linha nova (inteira), linha da base] por arquivo. */
