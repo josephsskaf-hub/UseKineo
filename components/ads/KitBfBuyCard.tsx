@@ -36,12 +36,13 @@ function useBfOffers(): BfOffers | null {
 const CSS = `
 .kitbf{margin:12px 0;padding:14px 16px;border:1px solid #FFD400;border-radius:14px;background:linear-gradient(135deg,rgba(255,212,0,.10),rgba(255,212,0,.02));color:inherit}
 .kitbf h4{margin:0;font-size:15px;font-weight:800;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline}
-.kitbf h4 span{font-size:13px;font-weight:700;color:#FFD400}
+.kitbf h4 span{font-size:13px;font-weight:700;color:#8a6a00}
+.kitbf[data-surface=ads] h4 span,.kitbf[data-surface=ads] .kitbf-inc,html[data-theme=dark] .kitbf h4 span,html[data-theme=dark] .kitbf .kitbf-inc{color:#FFD400}
 .kitbf ul{margin:8px 0 0;padding:0 0 0 18px;font-size:13px;line-height:1.45}
 .kitbf .kitbf-row{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:10px 0 0}
 .kitbf a.kitbf-cta{display:inline-block;padding:9px 14px;border-radius:10px;background:#FFD400;color:#111;font-weight:800;font-size:14px;text-decoration:none}
 .kitbf .kitbf-ends{font-size:12px;opacity:.8}
-.kitbf .kitbf-inc{font-size:13px;font-weight:700;color:#FFD400}
+.kitbf .kitbf-inc{font-size:13px;font-weight:700;color:#8a6a00}
 `
 
 /** O cartão do kit. `lang` = a língua da interface (16; desconhecida = inglês). */
