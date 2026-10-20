@@ -4,7 +4,9 @@
   "lib/cinematic/criticoStill.ts": 12,
   "scripts/test-support/desfaz-meta95-ideia-1910.mjs": 2,
   "scripts/test-support/desfaz-filme-rapido-1710.mjs": 2,
-  "scripts/test-trilha-15s-1610.mjs": 1
+  "scripts/test-trilha-15s-1610.mjs": 1,
+  "scripts/test-support/desfaz-menu-ugc-2010.mjs": 2,
+  "scripts/test-quality-route-integration-2026-09-11.mjs": 1
  },
  "lib/cinematic/criticoStill.ts": [
   [
