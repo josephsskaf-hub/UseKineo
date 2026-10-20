@@ -13,7 +13,7 @@
   "lib/ads/v2StartCore.ts": 3,
   "scripts/test-apresentador-olhos-1910.mjs": 1,
   "scripts/test-support/desfaz-filmes-f1f3-publico-2010.mjs": 2,
-  "scripts/test-support/desfaz-kit-bf-venda-2010.mjs": 2
+  "scripts/test-support/desfaz-paginas-ugc-2010.mjs": 2
  },
  "app/(dashboard)/ads/v2/AdsV2Client.tsx": [
   [

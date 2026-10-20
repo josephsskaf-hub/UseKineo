@@ -241,13 +241,14 @@ await check('D2 toda linha nova traz a marca; o diff contra a base só toca os a
     ['lib/ads/v2Tiers.ts', 'lib/ads/v2Billing.ts', 'lib/ads/v2Advance.ts', 'lib/ads/adV2Montage.ts', 'lib/ads/sample.ts', 'lib/compose.ts'].every((f) => !tocados.includes(f)) &&
     Object.values(ACRESCIMOS_UGC_AJUSTES_2010).every((n) => Number.isInteger(n) && n >= 0)
 })
-await check('D3 encadeamento: desfaz-kit-bf-venda-2010, desfaz-filmes-f1f3-publico-2010 (e por elas os olhos do apresentador e os botões dos cards) tiram esta camada PRIMEIRO; texto sem a marca e null passam igual', () =>
+await check('D3 encadeamento: desfaz-paginas-ugc-2010 (a cabeça que semKitBfVenda2010 chama primeiro), desfaz-filmes-f1f3-publico-2010 (e por elas os olhos do apresentador e os botões dos cards) tiram esta camada PRIMEIRO; texto sem a marca e null passam igual', () =>
   UGC_AJUSTES_2010_ARQUIVOS.every((f) => {
     const vivo = rd(f), semEste = semUgcAjustes2010(vivo, f)
     return semKitBfVenda2010(vivo, f) === semKitBfVenda2010(semEste, f) && semFilmesF1F3Publico2010(vivo, f) === semFilmesF1F3Publico2010(semEste, f) &&
       semApresentadorOlhos1910(vivo, f) === semApresentadorOlhos1910(semEste, f) && semHomeCardsBotoes2010(vivo, f) === semHomeCardsBotoes2010(semEste, f) && semUgcAjustes2010(semEste, f) === semEste
   }) && semUgcAjustes2010(null, F.v2) === null && semUgcAjustes2010('x', 'nao/existe.ts') === 'x' &&
-  /  texto = semUgcAjustes2010\(texto, p\) \/\/ KINEO-UGC-AJUSTES-2010/.test(rd('scripts/test-support/desfaz-kit-bf-venda-2010.mjs')) &&
+  rd('scripts/test-support/desfaz-paginas-ugc-2010.mjs').includes('export function semPaginasUgc2010(texto, p) {\n  texto = semUgcAjustes2010(texto, p) // KINEO-UGC-AJUSTES-2010') &&
+  rd('scripts/test-support/desfaz-kit-bf-venda-2010.mjs').includes('export function semKitBfVenda2010(texto, p) {\n  texto = semPaginasUgc2010(texto, p)') &&
   /  texto = semUgcAjustes2010\(texto, p\) \/\/ KINEO-UGC-AJUSTES-2010/.test(rd('scripts/test-support/desfaz-filmes-f1f3-publico-2010.mjs')))
 await check('D4 as libs puras continuam puras (v2PresenterV2 e sampleEntry só com import type)', () => [F.v2, F.entry].every((f) => rd(f).split('\n').filter((l) => /^import /.test(l)).every((l) => /^import type /.test(l))))
 

@@ -7,7 +7,7 @@
 //   · ACRÉSCIMO — linha nova: sai inteira (contagem EXATA por arquivo);
 //   · TROCA — a linha da base foi reescrita: reconhecida INTEIRA, volta a ser o texto da base. Tabela em desfaz-ugc-ajustes-2010-trocas.json.
 // Só age nos arquivos declarados; qualquer outro texto passa igual (idempotente). Preserva CRLF. A marca NÃO contém a de nenhuma camada de antes.
-// ENCADEAMENTO: é a camada MAIS NOVA — os desfaz das camadas de antes que leem os mesmos arquivos (KINEO-KIT-BF-VENDA-2010, KINEO-FILMES-F1F3-PUBLICO-2010, …) chamam
+// ENCADEAMENTO: é a camada MAIS NOVA — os desfaz das camadas de antes que leem os mesmos arquivos (KINEO-PAGINAS-UGC-2010, a cabeça que semKitBfVenda2010 chama primeiro, e KINEO-FILMES-F1F3-PUBLICO-2010) chamam
 // ESTE primeiro; os guardiões que liam o disco cru ganharam a reâncora (linha marcada, também desfeita aqui).
 // O arquivo binário public/ads/presenters/voice-pt-confidentwoman.mp3 (a frase neutra de 20/10, mesma voz) não tem desfaz em texto: o guardião
 // scripts/test-ugc-ajustes-2010.mjs confere o sha256 dele.
