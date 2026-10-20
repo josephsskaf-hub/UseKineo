@@ -25,6 +25,8 @@ export const ACRESCIMOS_AVATAR_PRESO_2010 = {
   'app/api/compose/route.ts': 4,
   'lib/avatar/reservation.ts': 14,
   'scripts/test-support/desfaz-meta95-refazer-1910.mjs': 2,
+  'scripts/test-seedance-15s-3x6-2026-09-29.mjs': 1,
+  'scripts/test-voz-15s-mesma-da-montagem-2026-09-29.mjs': 1,
 }
 export const AVATAR_PRESO_2010_ARQUIVOS = Object.freeze(Object.keys(ACRESCIMOS_AVATAR_PRESO_2010))
 /** Arquivos novos da entrega (não existiam na base). */
@@ -54,6 +56,11 @@ export function semAvatarPreso2010(texto, p) {
   if (trocadas !== trocas.size) throw new Error(`desfaz-avatar-preso-2010: ${rel} com ${trocadas} de ${trocas.size} troca(s) (conserto pela metade)`)
   const out = fora.join('\n')
   return crlf ? out.replace(/\n/g, '\r\n') : out
+}
+
+/** As linhas da BASE que a entrega reescreveu no arquivo (para os guardiões que só toleram acréscimo + trocas declaradas). */
+export function linhasTrocadasAvatarPreso2010(p) {
+  return (TROCAS_AVATAR_PRESO_2010[String(p ?? '').replace(/\\/g, '/')] ?? []).map(([, base]) => base)
 }
 
 /** Mesma coisa, com a ordem (arquivo, texto) que parte dos guardiões usa. */
