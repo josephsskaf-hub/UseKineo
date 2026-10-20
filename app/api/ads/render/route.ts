@@ -34,6 +34,7 @@ import {
 } from '@/lib/compose'
 import { POST as composePost } from '@/app/api/compose/route'
 import { GET as composeStatusGet } from '@/app/api/compose/status/[renderId]/route'
+import { transcreverNaEscritaDoRoteiro } from '@/lib/whisperNaEscrita' // [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] KINEO-META95-ESCRITA-2010 — Whisper com o idioma que a escrita do roteiro diz (linha própria)
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -165,8 +166,8 @@ export async function POST(req: NextRequest) {
     }
     // Revisão: sem as palavras do Whisper a simulação cairia no corte fixo de 2,5 s enquanto o compose corta em frase —
     // a mídia escorregaria de batida e o cartão poderia sumir. Tenta 2 vezes; sem palavras, não monta (nada cobrado).
-    let words = await transcribeTTSWithTimestamps(voiceBuf).catch(() => [])
-    if (words.length === 0) words = await transcribeTTSWithTimestamps(voiceBuf).catch(() => [])
+    let words = await transcreverNaEscritaDoRoteiro(voiceBuf, narration).catch(() => []) // KINEO-META95-ESCRITA-2010
+    if (words.length === 0) words = await transcreverNaEscritaDoRoteiro(voiceBuf, narration).catch(() => []) // KINEO-META95-ESCRITA-2010
     if (words.length === 0) {
       await back('draft', 'whisper_empty')
       return fail('voice_failed', 502)

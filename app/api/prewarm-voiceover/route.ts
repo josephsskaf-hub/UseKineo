@@ -46,6 +46,7 @@ import {
 } from '@/lib/compose'
 import { ttsModelForTier } from '@/lib/narration/elevenlabs'
 import { stripScriptMarkers, salvageScriptNarration } from '@/lib/scriptParser'
+import { transcreverNaEscritaDoRoteiro } from '@/lib/whisperNaEscrita' // [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] KINEO-META95-ESCRITA-2010 — Whisper com o idioma que a escrita do roteiro diz (linha própria)
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { lerAquecimento } from '@/lib/audioNoClique' // KINEO-FILME-RAPIDO-1710
 
@@ -114,7 +115,7 @@ export async function POST(req: NextRequest) {
     if (!audio || audio.length === 0) return NextResponse.json({ warmed: false, reason: 'tts_empty' })
     const duration = estimateMp3DurationSeconds(audio)
     if (!(duration > 0.5)) return NextResponse.json({ warmed: false, reason: 'duration' })
-    const words = await transcribeTTSWithTimestamps(audio).catch(() => [])
+    const words = await transcreverNaEscritaDoRoteiro(audio, script).catch(() => []) // KINEO-META95-ESCRITA-2010 — o aquecimento grava o cache já na escrita do roteiro
     await storeCachedVoiceover(cacheKey, audio, words ?? [], duration)
     console.log(`[prewarm-voiceover] warmed key=${cacheKey.slice(0, 12)} dur=${duration.toFixed(1)}s words=${(words ?? []).length} user=${user.id.slice(0, 8)}`)
     return NextResponse.json({ warmed: true, cached: false })
