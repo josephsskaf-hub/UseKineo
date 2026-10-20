@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return v2Fail('unauthenticated', 401)
     const access = await loadAdsAccess(user.id, user.email, { workspace: true })
-    if (adsSampleProbeOn(access.reason, req.nextUrl.searchParams.get(ADS_SAMPLE_PROBE_PARAM))) access.reason = 'none' // KINEO-UGC-AJUSTES-2010 — conta INTERNA com ?sample_probe=1 vira 'none': cai nas travas da amostra de verdade (1 por conta, tetos, marca-d'água); ninguém de fora aciona
+    if (adsSampleProbeOn(access.reason, req.nextUrl?.searchParams?.get(ADS_SAMPLE_PROBE_PARAM))) access.reason = 'none' // KINEO-UGC-AJUSTES-2010 — conta INTERNA com ?sample_probe=1 vira 'none': cai nas travas da amostra de verdade (1 por conta, tetos, marca-d'água); ninguém de fora aciona
     return await adsV2PlanFor(user, access, () => req.json().catch(() => null), started)
   } catch (e) {
     console.warn('[ads/v2/plan] falhou:', e instanceof Error ? e.message : String(e))

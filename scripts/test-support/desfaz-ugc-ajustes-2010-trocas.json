@@ -11,8 +11,8 @@
   "lib/ads/v2PlanCore.ts": 11,
   "lib/ads/v2PresenterV2.ts": 11,
   "lib/ads/v2StartCore.ts": 3,
-  "scripts/test-support/desfaz-kit-bf-venda-2010.mjs": 2,
-  "scripts/test-support/desfaz-filmes-f1f3-publico-2010.mjs": 2
+  "scripts/test-support/desfaz-filmes-f1f3-publico-2010.mjs": 2,
+  "scripts/test-support/desfaz-kit-bf-venda-2010.mjs": 2
  },
  "app/(dashboard)/ads/v2/AdsV2Client.tsx": [
   [
@@ -48,7 +48,7 @@
    "  const { admin, reason, ...ws } = await loadAdsAccess(user.id, user.email, { workspace: true })"
   ],
   [
-   "  return <AdsPresenterAllProvider all={isAdsInternalEmail(user.email) && !sampleProbe}><AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} entry={entry} sampleProbe={sampleProbe} /></AdsPresenterAllProvider> // KINEO-UGC-AJUSTES-2010 — + sampleProbe e, com ele, a tela de escolha só com os aprovados, como o cliente vê (a tela repassa ?sample_probe=1 ao /plan e ao /start só para a conta interna); era: a mesma linha sem sampleProbe",
+   "  return <AdsPresenterAllProvider all={isAdsInternalEmail(user.email) && !sampleProbe}><AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} sampleProbe={sampleProbe} entry={entry} /></AdsPresenterAllProvider> // KINEO-UGC-AJUSTES-2010 — + sampleProbe e, com ele, a tela de escolha só com os aprovados, como o cliente vê (a tela repassa ?sample_probe=1 ao /plan e ao /start só para a conta interna); era: a mesma linha sem sampleProbe",
    "  return <AdsPresenterAllProvider all={isAdsInternalEmail(user.email)}><AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} entry={entry} /></AdsPresenterAllProvider> // KINEO-APRESENTADOR-OLHOS-1910 — o provedor \"interna?\" em volta (a entrada dos cards da home segue igual)"
   ]
  ],
