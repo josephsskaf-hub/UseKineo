@@ -18,7 +18,7 @@
 //      erro, vazio, ainda errado → a de sempre; latim → só a de sempre);
 //   C. o conserto de ponta a ponta COMO ESTÁ LIGADO: lê qual transcritor a rota chama e simula a montagem — legenda em
 //      devanágari com a grafia do roteiro (hindi) e em bengali (bengali, pelo plano B se preciso);
-//   L. a ligação: os 9 pontos que transcreviam TTS passam pelo wrapper com o texto que a voz leu; o cache com escrita
+//   L. a ligação: os 6 pontos que transcrevem TTS fora do hollywood (que só narra en/pt/es) passam pelo wrapper com o texto que a voz leu; o cache com escrita
 //      errada é ignorado; a rede final alimenta o montador e o Faceless 15; o unlock; o wrapper usa a MESMA chamada do
 //      compose com `language`; lib/compose.ts intocada;
 //   D. desfaz exato (cada arquivo tocado, desfeito, é a base), encadeado como camada mais nova (semMenuUgc2010 chama este
@@ -219,51 +219,55 @@ console.log('\nC. ponta a ponta (rota como está no disco)\n')
 
 // ─── L. a ligação ─────────────────────────────────────────────────────────────
 console.log('\nL. ligação\n')
+// Os pontos que transcrevem TTS fora do hollywood (o hollywood narra só en/pt/es — escrita latina, o wrapper não forçaria
+// idioma nenhum — e fica com a transcrição de sempre; L8 prova a premissa).
 const SITIOS = [
-  [P.route, ROUTE, '          const observed = await transcreverNaEscritaDoRoteiro(buf, pending.text).catch(() => [] as WhisperWord[])', 'hollywood: voz da cena'],
-  [P.route, ROUTE, '          const observed = await transcreverNaEscritaDoRoteiro(buf, m.text).catch(() => [] as WhisperWord[])', 'hollywood: re-síntese'],
-  [P.route, ROUTE, '        ? transcreverNaEscritaDoRoteiro(audioBuffer, scaledScript)', 'clássico (Kineo 1, Seedance 1.5, Veo, Kling 2.5) e Studio Ads'],
-  [P.unlock, UNLOCK, '      const words = await transcreverNaEscritaDoRoteiro(audioBuffer, scaledScript)', 'export limpo pago'],
-  [P.clique, CLIQUE, '    const words = await transcreverNaEscritaDoRoteiro(audio, a.script).catch(() => [])', 'voz do clique (cache)'],
-  [P.clique, CLIQUE, '            const words = await transcreverNaEscritaDoRoteiro(buf, p.text).catch(() => [])', 'voz de cena do clique (cache)'],
-  [P.prewarm, PREWARM, '    const words = await transcreverNaEscritaDoRoteiro(audio, script).catch(() => [])', 'aquecimento de voz (cache)'],
-  [P.ads, ADS, '    let words = await transcreverNaEscritaDoRoteiro(voiceBuf, narration).catch(() => [])', 'Studio Ads v1'],
-  [P.ads, ADS, '    if (words.length === 0) words = await transcreverNaEscritaDoRoteiro(voiceBuf, narration).catch(() => [])', 'Studio Ads v1 (2ª tentativa)'],
+  [P.route, '        ? transcreverNaEscritaDoRoteiro(audioBuffer, scaledScript)', 'clássico (Kineo 1, Seedance 1.5, Veo, Kling 2.5) e Studio Ads'],
+  [P.unlock, '      const words = await transcreverNaEscritaDoRoteiro(audioBuffer, scaledScript)', 'export limpo pago'],
+  [P.clique, '    const words = await transcreverNaEscritaDoRoteiro(audio, a.script).catch(() => [])', 'voz do clique'],
+  [P.prewarm, '    const words = await transcreverNaEscritaDoRoteiro(audio, script).catch(() => [])', 'aquecimento de voz'],
+  [P.ads, '    let words = await transcreverNaEscritaDoRoteiro(voiceBuf, narration).catch(() => [])', 'Studio Ads v1'],
+  [P.ads, '    if (words.length === 0) words = await transcreverNaEscritaDoRoteiro(voiceBuf, narration).catch(() => [])', 'Studio Ads v1 (2ª tentativa)'],
 ]
+// Cada falha nasce com o prefixo do item (L1…L4) — o filtro por item não depende do texto.
 function provaLigacao(T) {
   const f = []
-  for (const [rel, , linha, rot] of SITIOS) {
-    const src = T[rel]
-    const l = src.split('\n').find((x) => x.startsWith(linha))
-    if (!l || !l.includes(MARCA)) f.push(`sem o wrapper: ${rot}`)
+  for (const [rel, linha, rot] of SITIOS) {
+    const l = T[rel].split('\n').find((x) => x.startsWith(linha))
+    if (!l || !l.includes(MARCA)) f.push(`L1 sem o wrapper: ${rot}`)
   }
   for (const rel of [P.route, P.unlock, P.clique, P.prewarm, P.ads]) {
-    const n = (T[rel].match(/transcribeTTSWithTimestamps\(/g) ?? []).length
-    if (n !== 0) f.push(`${rel} ainda chama transcribeTTSWithTimestamps( ${n}×`)
-    if (!T[rel].includes("import { transcreverNaEscritaDoRoteiro } from '@/lib/whisperNaEscrita'")) f.push(`${rel} sem import do wrapper`)
+    const diretas = T[rel].match(/transcribeTTSWithTimestamps\([^)]*\)/g) ?? []
+    const esperadas = rel === P.route ? 2 : rel === P.clique ? 1 : 0 // só as do hollywood, sempre sobre `buf`
+    if (diretas.length !== esperadas || diretas.some((d) => d !== 'transcribeTTSWithTimestamps(buf)')) f.push(`L1 ${rel} chama a transcrição sem idioma fora do hollywood: ${diretas.join(', ')}`)
+    if (!T[rel].includes("import { transcreverNaEscritaDoRoteiro } from '@/lib/whisperNaEscrita'")) f.push(`L1 ${rel} sem import do wrapper`)
   }
   const R = T[P.route]
   const iVoz = R.indexOf('if (!cachedVoiceover) cachedVoiceover = await audioDoClique.voz(voiceoverCacheKey)')
   const iCache = R.indexOf('if (cachedVoiceover && escritaDivergente(cachedVoiceover.words, scaledScript)) {')
   const iUso = R.indexOf('let realAudioDuration = cachedVoiceover')
-  if (!(iVoz > 0 && iCache > iVoz && iUso > iCache && /escritaDivergente\(cachedVoiceover\.words, scaledScript\)\) \{[^\n]*cachedVoiceover = null \}/.test(R))) f.push('cache em outra escrita não é ignorado entre a busca e o uso')
+  if (!(iVoz > 0 && iCache > iVoz && iUso > iCache && /escritaDivergente\(cachedVoiceover\.words, scaledScript\)\) \{[^\n]*cachedVoiceover = null \}/.test(R))) f.push('L2 cache em outra escrita não é ignorado entre a busca e o uso')
   const iLeg = R.indexOf('const legendaWords: WhisperWord[] | undefined = legendaNaEscritaDoRoteiro(grafia ? grafia.words : whisperWords, scaledScript)')
   const iGrafia = R.indexOf('const grafia = legendaPelaGrafiaDoRoteiro && whisperWords ? alinharGrafiaDoRoteiro(whisperWords, scaledScript) : null')
-  if (!(iGrafia > 0 && iLeg > iGrafia)) f.push('rede final não está na linha da legenda (depois da grafia)')
-  if (!R.includes('whisperWords: legendaWords, // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28') || !R.includes('aplicarFaceless15(source, faceless15, { whisperWords: legendaWords ?? null')) f.push('montador/Faceless 15 não recebem legendaWords')
+  if (!(iGrafia > 0 && iLeg > iGrafia)) f.push('L3 rede final não está na linha da legenda (depois da grafia)')
+  if (!R.includes('whisperWords: legendaWords, // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28') || !R.includes('aplicarFaceless15(source, faceless15, { whisperWords: legendaWords ?? null')) f.push('L3 montador/Faceless 15 não recebem legendaWords')
   const U = T[P.unlock]
   const iU = U.indexOf('const words = await transcreverNaEscritaDoRoteiro(audioBuffer, scaledScript)')
   const iUn = U.indexOf('if (whisperWords && escritaDivergente(whisperWords, scaledScript)) whisperWords = undefined')
-  if (!(iU > 0 && iUn > iU && U.indexOf('grafiaDoRoteiro(whisperWords, scaledScript)', iUn) > iUn)) f.push('unlock sem a rede depois da transcrição')
+  if (!(iU > 0 && iUn > iU && U.indexOf('grafiaDoRoteiro(whisperWords, scaledScript)', iUn) > iUn)) f.push('L4 unlock sem a rede depois da transcrição')
   return f
 }
 const TEXTOS = { [P.route]: ROUTE, [P.unlock]: UNLOCK, [P.clique]: CLIQUE, [P.prewarm]: PREWARM, [P.ads]: ADS }
+const doItem = (fl, item) => fl.filter((x) => x.startsWith(`${item} `))
 {
   const fl = provaLigacao(TEXTOS)
-  ok(fl.length === 0, `L1 os 9 pontos que transcreviam TTS passam pelo wrapper com o texto que a voz leu; zero chamada direta restante (${fl.filter((x) => !/cache|rede|montador|unlock/.test(x)).join(' · ') || 'ok'})`)
-  ok(!fl.some((x) => /cache/.test(x)), 'L2 voz em cache (ou do clique) com o Whisper em outra escrita é ignorada entre a busca e o uso — sintetiza de novo e regrava a chave')
-  ok(!fl.some((x) => /rede|montador/.test(x)), 'L3 rede final na linha da legenda; montador e Faceless 15 recebem a legenda já conferida')
-  ok(!fl.some((x) => /unlock/.test(x)), 'L4 export limpo: rede logo depois da transcrição, antes da grafia')
+  ok(doItem(fl, 'L1').length === 0, `L1 os 6 pontos que transcrevem TTS fora do hollywood passam pelo wrapper com o texto que a voz leu; chamada sem idioma só nas 3 do hollywood (${doItem(fl, 'L1').join(' · ') || 'ok'})`)
+  ok(doItem(fl, 'L2').length === 0, 'L2 voz em cache (ou do clique) com o Whisper em outra escrita é ignorada entre a busca e o uso — sintetiza de novo e regrava a chave')
+  ok(doItem(fl, 'L3').length === 0, 'L3 rede final na linha da legenda; montador e Faceless 15 recebem a legenda já conferida')
+  ok(doItem(fl, 'L4').length === 0, 'L4 export limpo: rede logo depois da transcrição, antes da grafia')
+  ok(/^export const HOLLYWOOD_LANGUAGES = \['en', 'pt', 'es'\] as const$/m.test(rd('lib/textLanguage.ts')) &&
+    ['The ship sank at dawn.', 'O navio afundou de madrugada.', 'El barco se hundió al amanecer.'].every((t) => E0.idiomaWhisperDaEscrita(t) === null),
+    'L8 hollywood fica com a transcrição de sempre porque só narra en/pt/es (escrita latina → o wrapper não forçaria idioma)')
   const chamada = /model: AI_TRANSCRIPTION_MODEL,[\s\S]*response_format: 'verbose_json',\n\s+timestamp_granularities: \['word', 'segment'\],\n\s+language: idioma,[\s\S]*\{ timeout: OPENAI_WHISPER_TIMEOUT_MS, maxRetries: 0 \}\)/.test(WRAP)
   ok(chamada && /markSentenceEnds\(words, segments\)/.test(WRAP) && /padrao: \(\) => transcribeTTSWithTimestamps\(buffer\)/.test(WRAP) && /comIdioma: \(idioma\) => whisperComIdioma\(buffer, idioma\)/.test(WRAP) && /catch \{\n\s+return \[\]\n\s+\}/.test(WRAP),
     'L5 wrapper: a de sempre é transcribeTTSWithTimestamps; com idioma, a MESMA chamada (modelo, verbose_json, word+segment, timeout, sem retry) + language, fronteiras pelo markSentenceEnds; nunca lança')
@@ -344,11 +348,11 @@ await libMuda('  return escritaDivergente(words, roteiro) ? undefined : words', 
   let T = fluxo(P.route, '        ? transcreverNaEscritaDoRoteiro(audioBuffer, scaledScript)', '        ? transcribeTTSWithTimestamps(audioBuffer)\n', 'M10')
   if (T) { const h = await pontaAPonta(T[P.route], E0, HI); ok(provaLigacao(T).length > 0 && (h.planoB || !h.grafia.aplicada), 'M10 rota clássica volta para a transcrição sem idioma → L1 vermelho e C2 perde a grafia') }
   T = fluxo(P.route, 'if (cachedVoiceover && escritaDivergente(cachedVoiceover.words, scaledScript)) {', 'if (false) {', 'M11')
-  if (T) ok(provaLigacao(T).some((x) => /cache/.test(x)), 'M11 cache em outra escrita volta a ser reaproveitado → L2 vermelho')
+  if (T) ok(doItem(provaLigacao(T), 'L2').length > 0, 'M11 cache em outra escrita volta a ser reaproveitado → L2 vermelho')
   T = fluxo(P.route, 'legendaNaEscritaDoRoteiro(grafia ? grafia.words : whisperWords, scaledScript)', '(grafia ? grafia.words : whisperWords)', 'M12')
-  if (T) { const s = await pontaAPonta(T[P.route], { ...E0, transcreverNaEscritaCom: async (r, t) => t.padrao() }, HI); ok(provaLigacao(T).some((x) => /rede/.test(x)) && ARABE.test(s.tela), 'M12 rede final fora da linha da legenda → L3 vermelho (e, se o Whisper ainda vier em urdu, a tela volta a urdu)') }
+  if (T) { const s = await pontaAPonta(T[P.route], { ...E0, transcreverNaEscritaCom: async (r, t) => t.padrao() }, HI); ok(doItem(provaLigacao(T), 'L3').length > 0 && ARABE.test(s.tela), 'M12 rede final fora da linha da legenda → L3 vermelho (e, se o Whisper ainda vier em urdu, a tela volta a urdu)') }
   T = fluxo(P.unlock, 'if (whisperWords && escritaDivergente(whisperWords, scaledScript)) whisperWords = undefined', 'void 0', 'M13')
-  if (T) ok(provaLigacao(T).some((x) => /unlock/.test(x)), 'M13 unlock sem a rede → L4 vermelho')
+  if (T) ok(doItem(provaLigacao(T), 'L4').length > 0, 'M13 unlock sem a rede → L4 vermelho')
   T = fluxo(P.clique, '    const words = await transcreverNaEscritaDoRoteiro(audio, a.script).catch(() => [])', '    const words = await transcribeTTSWithTimestamps(audio).catch(() => [])', 'M14')
   if (T) ok(provaLigacao(T).length > 0, 'M14 voz do clique volta a gravar o cache sem idioma → L1 vermelho')
   T = fluxo(P.prewarm, 'transcreverNaEscritaDoRoteiro(audio, script)', 'transcreverNaEscritaDoRoteiro(audio, "")', 'M15')

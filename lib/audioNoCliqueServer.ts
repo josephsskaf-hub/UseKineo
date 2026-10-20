@@ -138,7 +138,7 @@ export async function agendarAudioNoClique(a: {
             const buf = await synthesizeHostSpeech({ text: p.text, voice: pinned.voice, speed: velocidade })
             const dur = buf && buf.length > 0 ? estimateMp3DurationSeconds(buf) : 0
             if (!(dur > 0.3)) return false
-            const words = await transcreverNaEscritaDoRoteiro(buf, p.text).catch(() => []) // KINEO-META95-ESCRITA-2010
+            const words = await transcribeTTSWithTimestamps(buf).catch(() => [])
             return !!(await storeCachedVoiceover(chave, buf, words ?? [], dur))
           })
         }

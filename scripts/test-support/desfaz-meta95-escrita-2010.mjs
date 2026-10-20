@@ -61,6 +61,11 @@ export function semMeta95Escrita2010(texto, p) {
   return crlf ? out.replace(/\n/g, '\r\n') : out
 }
 
+/** As linhas da BASE que esta entrega trocou de propósito no arquivo (para guardiões que só aceitam acréscimos sobre uma base antiga). */
+export function linhasTrocadasMeta95Escrita2010(p) {
+  return (TROCAS_META95_ESCRITA_2010[String(p ?? '').replace(/\\/g, '/')] ?? []).map(([, base]) => base)
+}
+
 /** Mesma coisa, com a ordem (arquivo, texto) que parte dos guardiões usa. */
 export function desfazMeta95Escrita2010(p, texto) {
   return semMeta95Escrita2010(texto, p)

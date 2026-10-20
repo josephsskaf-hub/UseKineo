@@ -2362,7 +2362,7 @@ export async function POST(req: NextRequest) {
           // voice. ASR is optional timing evidence, not authority to reject or
           // rewrite trusted TTS (e.g. "22" versus "twenty-two"). If it cannot
           // align, caption the canonical TTS text over this same measured audio.
-          const observed = await transcreverNaEscritaDoRoteiro(buf, pending.text).catch(() => [] as WhisperWord[]) // KINEO-META95-ESCRITA-2010 — Whisper na escrita do texto que esta voz leu
+          const observed = await transcribeTTSWithTimestamps(buf).catch(() => [] as WhisperWord[])
           const words = verifyObservedSpeech(pending.text, observed).ok ? observed : undefined
           const url = await uploadVoiceoverToSupabase(user.id, buf)
           measured.push({
@@ -2428,7 +2428,7 @@ export async function POST(req: NextRequest) {
             console.warn(`[compose] KINEO-FALA-CABE: re-síntese da cena ${m.sceneIdx + 1} não melhorou (${dur.toFixed(1)}s vs ${m.dur.toFixed(1)}s) — mantendo o original`)
             return false
           }
-          const observed = await transcreverNaEscritaDoRoteiro(buf, m.text).catch(() => [] as WhisperWord[]) // KINEO-META95-ESCRITA-2010 — Whisper na escrita do texto re-sintetizado
+          const observed = await transcribeTTSWithTimestamps(buf).catch(() => [] as WhisperWord[])
           const words = verifyObservedSpeech(m.text, observed).ok ? observed : undefined
           const url = await uploadVoiceoverToSupabase(user.id, buf)
           console.log(`[compose] KINEO-FALA-CABE: cena ${m.sceneIdx + 1} fala ${m.dur.toFixed(1)}s + ${FALA_CABE_RESPIRO_S} > clipe ${footage}s → re-sintetizada a ×${fator} (${dur.toFixed(1)}s), texto idêntico`)
