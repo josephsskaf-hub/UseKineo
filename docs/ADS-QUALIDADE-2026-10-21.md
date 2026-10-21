@@ -36,3 +36,15 @@ Frasco de perfume "LUME", pote "GLOW", caixa de chá "Calm Leaf", smartwatch soz
 Tela conferida no navegador: aviso de foto de estilo de vida OK (o relógio no pulso parou antes de cobrar; "Trocar foto" tirou a foto); entrada nova por card OK ("Your ad is still being made — view it"); aviso de pessoas de IA AINDA aparecia no Product Ads reaberto pelo link (consertado no c66a27d31).
 
 Consertos enfileirados em **c66a27d31**: fundo = a própria foto em cover (sem truque); roteiro sem urgência inventada e sem qualidade não digitada (lista de genéricos maior; o que a pessoa digitou não conta como genérico); título do cartão com até 3 palavras do que vende; fontes do cartão maiores; aviso de IA lê os planos do pedido.
+
+### Rodada 1b (deploys c66a27d31 / 42035e9df) — parada de propósito depois de 3 renders (123 cr)
+
+| Produto | Formato | Nota | Problema | Vídeo |
+|---|---|---|---|---|
+| Smartwatch | Product Ads | 6 | Fundo AINDA preto na abertura e no cartão; título em 2 linhas cobrindo o selo; "Experience the convenience and style", "Enjoy it" | [1afcda1a](https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/e92d81bf-0068-46c3-8de7-1f67e2006756/adsv2-1afcda1a-678f-451d-8fd7-1aa6884d24e4-54a6743d-d191-4706-986e-a249ecf5f44a.mp4) |
+| Perfume | Product Ads | — | (mesmo defeito do fundo; não avaliado quadro a quadro) | [2edb01ec](https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/e92d81bf-0068-46c3-8de7-1f67e2006756/adsv2-2edb01ec-ccf5-4dc8-8985-9af14afbdbf7-5f7474fe-295f-46e9-a812-5e88e42703b7.mp4) |
+| Pote GLOW | Product Ads | — | renderizando com o mesmo defeito (e9b0d322) | — |
+
+**Causa real do fundo preto:** no Creatomate, 2 elementos visuais na MESMA trilha ao mesmo tempo = só o último aparece. O fundo (foto em cover) e a foto inteira (contain) estavam na mesma trilha — copiando o `adsV2PackshotElements` de produção, que tem o MESMO defeito (o "véu escuro" e o "fundo suave" dele nunca apareceram: é a origem do "retângulo no fundo marrom/preto" de antes). Conserto: trilhas separadas + guardião que proíbe sobreposição na mesma trilha (fila: ver o SHA no relatório ao coordenador).
+
+**Plano do roteiro que falha:** com "20% off this week" e depois com "20% off", o perfume falhou 2–3× ("ends soon / last chance" inventado + faixa de 29–30 palavras). Parte foi minha: citar a urgência proibida no pedido fez o modelo escrevê-la (consertado no 42035e9df; passou depois). A faixa de 29–30 palavras do Close real é estreita demais e empurra o modelo para frases de enchimento ("Enjoy it", "embrace the essence") — próxima frente.
