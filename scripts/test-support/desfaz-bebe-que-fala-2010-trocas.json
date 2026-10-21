@@ -19,6 +19,10 @@
   [
    "        <div className=\"k3c-grid\" data-k3c-cols={kidsCard ? '4' : undefined}>{/* KINEO-BEBE-QUE-FALA-2010 — undefined = o atributo nem é emitido (home de hoje); era: <div className=\"k3c-grid\"> */}",
    "        <div className=\"k3c-grid\">"
+  ],
+  [
+   "              {kidsCard && card === 'product_ads' ? <HomeProductAdsReel language={language} /> : <CardMedia card={card} language={language} />}{/* KINEO-BEBE-QUE-FALA-2010 — modo 4 cards: o reel Lume + 3 trios no card de produto; era: <CardMedia card={card} language={language} /> */}",
+   "              <CardMedia card={card} language={language} />"
   ]
  ],
  "scripts/test-avatar-preso-2010.mjs": [

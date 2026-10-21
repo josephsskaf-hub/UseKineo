@@ -47,28 +47,40 @@ export function homeKidsCardClickMetadata(signedIn: boolean): { card: typeof HOM
   return { card: HOME_KIDS_CARD_ID, position: HOME_KIDS_CARD_POSITION, href: homeKidsCardHref(signedIn), signed_in: signedIn, surface: 'home', card_v: 1 }
 }
 
-/** [título, frase, botão] nas 16 línguas da interface. */
+/** [título, frase, botão] nas 16 línguas da interface. Título = o nome do mercado, "AI Cartoon Videos" (fundador 20/10, 20:55); "kids"/"3D" na frase. */
 export const HOME_KIDS_CARD_COPY: Record<string, readonly [string, string, string]> = {
-  en: ['AI Kids Cartoons', 'Type a story idea. Get a narrated 3D cartoon.', 'Make my cartoon'],
-  pt: ['Desenhos infantis com IA', 'Escreva a ideia. Receba um desenho 3D narrado.', 'Fazer meu desenho'],
-  es: ['Dibujos infantiles con IA', 'Escribe la idea. Recibe un dibujo 3D narrado.', 'Hacer mi dibujo'],
-  fr: ['Dessins animés pour enfants IA', 'Tapez une idée. Recevez un dessin animé 3D raconté.', 'Créer mon dessin animé'],
-  de: ['KI-Kinder-Cartoons', 'Idee eintippen. Erzählten 3D-Cartoon bekommen.', 'Meinen Cartoon erstellen'],
-  it: ['Cartoni per bambini con IA', "Scrivi un'idea. Ricevi un cartone 3D narrato.", 'Crea il mio cartone'],
-  nl: ['AI-kindertekenfilms', 'Typ een idee. Krijg een vertelde 3D-tekenfilm.', 'Maak mijn tekenfilm'],
-  pl: ['Bajki dla dzieci z AI', 'Wpisz pomysł. Dostań bajkę 3D z narracją.', 'Zrób moją bajkę'],
-  tr: ['Yapay zekâ ile çocuk çizgi filmleri', 'Bir fikir yaz. Anlatımlı 3D çizgi film al.', 'Çizgi filmimi yap'],
-  ru: ['Детские мультики с ИИ', 'Напишите идею. Получите 3D-мультик с озвучкой.', 'Сделать мой мультик'],
-  uk: ['Дитячі мультики з ШІ', 'Напишіть ідею. Отримайте 3D-мультик з озвученням.', 'Зробити мій мультик'],
-  ar: ['رسوم متحركة للأطفال بالذكاء الاصطناعي', 'اكتب فكرة القصة. واحصل على كرتون ثلاثي الأبعاد مروي.', 'اصنع كرتوني'],
-  ur: ['اے آئی کے ساتھ بچوں کے کارٹون', 'کہانی کا خیال لکھیں۔ بیان کے ساتھ 3D کارٹون پائیں۔', 'میرا کارٹون بنائیں'],
-  hi: ['AI से बच्चों के कार्टून', 'कहानी का आइडिया लिखें। नैरेशन वाला 3D कार्टून पाएँ।', 'मेरा कार्टून बनाएँ'],
-  id: ['Kartun anak dengan AI', 'Tulis ide cerita. Dapatkan kartun 3D bernarasi.', 'Buat kartunku'],
-  vi: ['Phim hoạt hình thiếu nhi bằng AI', 'Nhập ý tưởng. Nhận phim hoạt hình 3D có lời kể.', 'Làm phim hoạt hình của tôi'],
+  en: ['AI Cartoon Videos', '3D kids cartoon stories with the same character, ready to post.', 'Make my cartoon'],
+  pt: ['Vídeos de desenho com IA', 'Histórias infantis em desenho 3D com o mesmo personagem, prontas para postar.', 'Fazer meu desenho'],
+  es: ['Videos de dibujos con IA', 'Cuentos infantiles en dibujo 3D con el mismo personaje, listos para publicar.', 'Hacer mi dibujo'],
+  fr: ['Vidéos de dessin animé IA', 'Histoires 3D pour enfants avec le même personnage, prêtes à publier.', 'Créer mon dessin animé'],
+  de: ['KI-Cartoon-Videos', '3D-Kindergeschichten mit derselben Figur, bereit zum Posten.', 'Meinen Cartoon erstellen'],
+  it: ['Video di cartoni con IA', 'Storie 3D per bambini con lo stesso personaggio, pronte da pubblicare.', 'Crea il mio cartone'],
+  nl: ['AI-tekenfilmvideo’s', '3D-kinderverhalen met hetzelfde personage, klaar om te posten.', 'Maak mijn tekenfilm'],
+  pl: ['Filmy rysunkowe z AI', 'Bajki 3D dla dzieci z tą samą postacią, gotowe do publikacji.', 'Zrób moją bajkę'],
+  tr: ['Yapay zekâ çizgi film videoları', 'Aynı karakterle 3D çocuk hikâyeleri, paylaşmaya hazır.', 'Çizgi filmimi yap'],
+  ru: ['Мультфильмы с ИИ', 'Детские 3D-истории с одним и тем же героем, готовые к публикации.', 'Сделать мой мультик'],
+  uk: ['Мультфільми з ШІ', 'Дитячі 3D-історії з тим самим героєм, готові до публікації.', 'Зробити мій мультик'],
+  ar: ['فيديوهات كرتون بالذكاء الاصطناعي', 'قصص أطفال كرتونية ثلاثية الأبعاد بنفس الشخصية، جاهزة للنشر.', 'اصنع كرتوني'],
+  ur: ['اے آئی کارٹون ویڈیوز', 'ایک ہی کردار کے ساتھ بچوں کی 3D کارٹون کہانیاں، پوسٹ کے لیے تیار۔', 'میرا کارٹون بنائیں'],
+  hi: ['AI कार्टून वीडियो', 'एक ही किरदार वाली बच्चों की 3D कार्टून कहानियाँ, पोस्ट के लिए तैयार।', 'मेरा कार्टून बनाएँ'],
+  id: ['Video kartun AI', 'Cerita kartun 3D anak dengan karakter yang sama, siap diposting.', 'Buat kartunku'],
+  vi: ['Video hoạt hình AI', 'Truyện hoạt hình 3D cho bé với cùng một nhân vật, sẵn sàng đăng.', 'Làm phim hoạt hình của tôi'],
 }
 /** [título, frase, botão] na língua da interface (sem a língua = inglês). */
 export function homeKidsCardCopy(language: string | null | undefined): readonly [string, string, string] {
   return HOME_KIDS_CARD_COPY[language ?? ''] ?? HOME_KIDS_CARD_COPY.en
+}
+
+/**
+ * O card "AI Product Ads" no modo 4 cards (fundador 20/10, 20:55): o reel que troca 3 vezes — o Close real do perfume LUME (o vídeo de hoje
+ * do card, na língua da interface) e depois os trios do card "ADS: 3 VARIATIONS" (KINEO-CARD-ADS-3VAR-2026-09-30, os mesmos de
+ * lib/ui/homeTwoDoors.ts HOME_DOOR_ADS_CLIPS: garrafa, fone e tênis, 3 variações lado a lado). Nenhum render novo; troca quando o vídeo
+ * TERMINA (onEnded), nunca por timer. Os trios são paisagem (3 telas lado a lado): entram inteiros (contain) no alto do card.
+ */
+export const HOME_PRODUCT_ADS_REEL_TRIOS: readonly { src: string; poster: string }[] = [1, 2, 3].map((n) => ({ src: `/previews/promo-ads-3var-${n}.mp4`, poster: `/posters/promo-ads-3var-${n}.webp` }))
+/** A sequência do reel: o clipe do card (por língua) + os 3 trios. */
+export function homeProductAdsReel(cardClip: { src: string; poster: string }): readonly { src: string; poster: string; trio: boolean }[] {
+  return [{ ...cardClip, trio: false }, ...HOME_PRODUCT_ADS_REEL_TRIOS.map((c) => ({ ...c, trio: true }))]
 }
 
 /** O CSS SÓ do modo 4 cards: entra num <style> próprio, emitido apenas com o card ligado (desligado = bytes de hoje). */
@@ -83,6 +95,10 @@ export const HOME_KIDS_CARD_CSS = `
 .klp .k3c-grid[data-k3c-cols="4"] .k3c-cta{padding:10px 14px;font-size:13px}
 }
 .k3c-card[data-home-card="kids_cartoon"] .k3c-media video{object-position:50% 28%}
+.k3c-reel video{opacity:0;transition:opacity .6s ease}
+.k3c-reel video[data-on]{opacity:1}
+.k3c-card .k3c-reel video[data-trio]{object-fit:contain;object-position:50% 12%;padding:44px 8px 0;transform:none}
+.k3c-card:hover .k3c-reel video[data-trio]{transform:none}
 .k3c-kids-art{position:absolute;inset:0;z-index:0;background:radial-gradient(circle at 28% 30%,#FFE08A 0 9%,transparent 10%),radial-gradient(circle at 72% 22%,#fff 0 4%,transparent 5%),radial-gradient(ellipse 70% 40% at 50% 100%,#6BD38A 0 60%,transparent 61%),linear-gradient(180deg,#7EC8FF 0%,#B9A7FF 55%,#FFB3C7 100%)}
 .k3c-kids-art::after{content:'';position:absolute;left:50%;top:44%;width:34%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle at 36% 40%,#2B2F3A 0 6%,transparent 7%),radial-gradient(circle at 64% 40%,#2B2F3A 0 6%,transparent 7%),radial-gradient(ellipse 22% 12% at 50% 66%,#E5557A 0 60%,transparent 62%),radial-gradient(circle at 50% 50%,#FFD9B3 0 70%,transparent 71%);box-shadow:0 18px 30px -16px rgba(20,20,40,.45)}
 `

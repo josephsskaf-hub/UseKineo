@@ -253,7 +253,7 @@ export function kidsPostCaption(language: KidsCartoonLanguage, characterId: Kids
 // ── a tela do template (EN/PT; o resto das línguas vê o inglês) ─────────────────────────────────────────────────
 export const KIDS_TEMPLATE_COPY = {
   en: {
-    title: 'AI Kids Cartoon Stories', lead: 'Type a story idea, pick a character and get a narrated 3D cartoon with captions.',
+    title: 'AI Cartoon Videos', lead: 'Type a story idea, pick a character and get a narrated 3D cartoon with captions.',
     character: 'Character', idea: 'Story idea', ideaPlaceholder: 'e.g. learns to say sorry to a friend', ready: 'Or pick a ready idea',
     language: 'Narration language', duration: 'Length', write: 'Write my story', writing: 'Writing the story…', story: 'Your story',
     make: 'Make my cartoon', makeNote: 'Opens the Studio on Seedance 1.5 with your story. The price shows on the Generate button there.',
@@ -261,7 +261,7 @@ export const KIDS_TEMPLATE_COPY = {
     rules: 'Kids content stays innocent: no romance, violence, mocking or adult products.', again: 'Write another version',
   },
   pt: {
-    title: 'Histórias infantis em desenho 3D com IA', lead: 'Escreva a ideia da história, escolha o personagem e receba um desenho 3D narrado e com legenda.',
+    title: 'Vídeos de desenho com IA', lead: 'Escreva a ideia da história, escolha o personagem e receba um desenho 3D narrado e com legenda.',
     character: 'Personagem', idea: 'Ideia da história', ideaPlaceholder: 'ex.: aprende a pedir desculpas a um amigo', ready: 'Ou escolha uma ideia pronta',
     language: 'Língua da narração', duration: 'Duração', write: 'Escrever minha história', writing: 'Escrevendo a história…', story: 'Sua história',
     make: 'Fazer meu desenho', makeNote: 'Abre o Studio no Seedance 1.5 com a sua história. O preço aparece no botão de gerar de lá.',

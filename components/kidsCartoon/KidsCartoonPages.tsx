@@ -24,10 +24,10 @@ type Qa = { q: string; a: string }
 export function kidsPageCopy(lang: KidsLang) {
   if (lang === 'pt') {
     return {
-      title: 'Histórias infantis em desenho 3D com IA — Kineo',
+      title: 'Vídeos de desenho com IA — histórias infantis em 3D | Kineo',
       description: 'Escreva a ideia da história, escolha o personagem e receba um desenho 3D infantil narrado, com legenda, em 9:16. Sem promessa de renda: com avisos de "conteúdo para crianças" e selo de IA.',
-      eyebrow: 'Desenho infantil 3D com IA',
-      h1: 'Histórias infantis em desenho 3D, a partir de uma ideia',
+      eyebrow: 'Vídeos de desenho com IA',
+      h1: 'Vídeos de desenho com IA: histórias infantis em 3D a partir de uma ideia',
       lead: 'Você escreve a ideia (ou escolhe uma pronta), escolhe o personagem e a língua. A Kineo escreve uma história curta e inocente e entrega um desenho 3D vertical narrado, com legenda — o mesmo personagem do começo ao fim.',
       cta: 'Fazer meu primeiro desenho', how: 'Como funciona', note: 'O preço em créditos aparece no botão de gerar, antes de você confirmar.', reviewed: 'Revisado em',
       caption: 'Curta de teste feito no fluxo de filme (Seedance 1.5, estilo 3D). Saiu com a marca usekineo.com/free porque foi feito na conta da casa.',
@@ -55,10 +55,10 @@ export function kidsPageCopy(lang: KidsLang) {
     }
   }
   return {
-    title: 'AI Kids Cartoon Stories — narrated 3D cartoon shorts | Kineo',
+    title: 'AI Cartoon Videos — 3D kids cartoon stories | Kineo',
     description: 'Type a story idea, pick a character and get a narrated 3D kids cartoon with captions in 9:16. No income promises: includes the "made for kids" and AI-label rules.',
-    eyebrow: 'AI kids cartoon stories',
-    h1: 'Narrated 3D cartoon stories for kids, from one idea',
+    eyebrow: 'AI cartoon videos',
+    h1: 'AI cartoon videos: narrated 3D kids stories from one idea',
     lead: 'You type the idea (or pick a ready one), choose the character and the language. Kineo writes a short, innocent story and renders a vertical 3D cartoon with narration and captions — the same character from start to finish.',
     cta: 'Make my first cartoon', how: 'How it works', note: 'The credit price shows on the Generate button, before you confirm.', reviewed: 'Reviewed',
     caption: 'Test short made with the film flow (Seedance 1.5, 3D style). It carries the usekineo.com/free mark because it was made on the house account.',

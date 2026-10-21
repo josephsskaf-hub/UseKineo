@@ -40,7 +40,7 @@ export function paginasKidsLlmsSection(base: string, live: boolean): string {
   if (live !== true) return ''
   return `## AI kids cartoon stories (reviewed ${PAGINAS_KIDS_REVIEWED_ISO})
 
-- [AI Kids Cartoon Stories — narrated 3D cartoon shorts for young children](${base}${KIDS_EN_PATH}): type a story idea (or pick one of six ready ideas), choose one of six fixed characters (boy, girl, little dinosaur, puppy, bunny, baby elephant), the narration language and 15 or 35 seconds; Kineo writes a short, innocent story and renders a vertical 3D cartoon on Seedance 1.5 with the same character in every scene, narration and captions. The credit cost is the same as any Seedance 1.5 film of that length and shows on the Generate button. Honest limits: no income is promised; YouTube requires "made for kids" for children's content (no personalized ads), platforms require an AI label, and mass-produced repetitive videos can be demonetized.
-- [Histórias infantis em desenho 3D com IA (Portuguese)](${base}${KIDS_PT_PATH}): the same page in Brazilian Portuguese.
+- [AI Cartoon Videos — narrated 3D kids cartoon stories](${base}${KIDS_EN_PATH}): type a story idea (or pick one of six ready ideas), choose one of six fixed characters (boy, girl, little dinosaur, puppy, bunny, baby elephant), the narration language and 15 or 35 seconds; Kineo writes a short, innocent story and renders a vertical 3D cartoon on Seedance 1.5 with the same character in every scene, narration and captions. The credit cost is the same as any Seedance 1.5 film of that length and shows on the Generate button. Honest limits: no income is promised; YouTube requires "made for kids" for children's content (no personalized ads), platforms require an AI label, and mass-produced repetitive videos can be demonetized.
+- [Vídeos de desenho com IA (Portuguese)](${base}${KIDS_PT_PATH}): the same page in Brazilian Portuguese.
 `
 }

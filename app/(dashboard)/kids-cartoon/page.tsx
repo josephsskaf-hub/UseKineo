@@ -8,7 +8,7 @@ import { isInternalEmail } from '@/lib/internalAccounts'
 import { KIDS_CARTOON_LIVE, KIDS_CARTOON_TEMPLATE_PATH, kidsCartoonOn } from '@/lib/kidsCartoon/kidsCartoon'
 import KidsCartoonTemplate from '@/components/kidsCartoon/KidsCartoonTemplate'
 
-export const metadata = { title: 'AI Kids Cartoon Stories — Kineo', robots: { index: false, follow: false } }
+export const metadata = { title: 'AI Cartoon Videos — Kineo', robots: { index: false, follow: false } }
 export const dynamic = 'force-dynamic'
 
 export default async function KidsCartoonPage() {
