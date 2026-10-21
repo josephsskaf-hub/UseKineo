@@ -308,7 +308,7 @@ function homeProblems(threeSrc0 = rd(F.three), land = rd(F.land), cardSrc = rd(F
   const kids = com.slice(com.lastIndexOf('data-home-card="kids_cartoon"'))
   const kidsTxt = kids.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
   if (/\$\s?\d|\b\d+\s*(?:credits?|cr)\b|\bfree\b|grátis/i.test(kidsTxt)) p.push(`preço/oferta no card: ${kidsTxt.slice(0, 160)}`)
-  if (!kids.includes('SEEDANCE 1.5')) p.push('selo sem o motor real')
+  if (kids.includes('SEEDANCE 1.5') || !C.HOME_KIDS_CARD_BADGE.startsWith('SEEDANCE 1.5')) p.push('selo do motor de volta no card / rótulo honesto sumiu da lib') // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: o card não mostra mais o motor (fundador 21/10: "pode tirar o motor de todos os cards desses 4 primeiros"); o rótulo real segue na lib; era: if (!kids.includes('SEEDANCE 1.5')) p.push('selo sem o motor real')
   if (!kids.includes('AI Cartoon Videos') || !kids.includes('Make my cartoon') || !kids.includes('3D kids cartoon')) p.push('textos EN do card (nome do mercado "AI Cartoon Videos", kids/3D na frase)')
   const reel = com.slice(com.indexOf('data-home-card="product_ads">'), com.indexOf('data-home-card="ugc_ads">'))
   if (!reel.includes('data-home-ads-reel="1"') || (reel.match(/<video/g) || []).length !== 4 || (reel.match(/data-trio=""/g) || []).length !== 3 || !reel.includes('/previews/home-card-close-real-en.mp4') || !['1', '2', '3'].every((n) => reel.includes(`/previews/promo-ads-3var-${n}.mp4`))) p.push('card de produto sem o reel Lume + 3 trios no modo 4 cards')
