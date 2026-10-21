@@ -11,6 +11,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semLegendaBengali2010, MARCA_LEGENDA_BENGALI_2010 as MARCA, LEGENDA_BENGALI_2010_BASE as BASE, REGRAS_LEGENDA_BENGALI_2010 as REGRAS } from './test-support/desfaz-legenda-bengali-2010.mjs'
 import { semAvatarEstorno2010, MARCA_AVATAR_ESTORNO_2010, REGRAS_AVATAR_ESTORNO_2010 } from './test-support/desfaz-avatar-estorno-2010.mjs'
 import { semMenuUgc2010 } from './test-support/desfaz-menu-ugc-2010.mjs'
+import { semDesenhoSom2110 } from './test-support/desfaz-desenho-som-2110.mjs' // KINEO-LEGENDA-BENGALI-2010 — reancorado na integração 21/10: o som do desenho (21/10) mexeu no /api/compose depois; a prova "montador intacto" lê a rota sem aquela camada
 const ROOT = path.resolve(import.meta.dirname, '..')
 process.chdir(ROOT)
 const lf = s => String(s).replace(/\r\n/g, '\n')
@@ -95,7 +96,7 @@ await check('BASE reproduz o defeito: bn vira en/Montserrat no caminho do montad
 })
 await check('catálogo atual, payload real e equivalência das outras línguas', async () => assert.deepEqual(await problems(), []))
 await check('rotas e montador intactos; os dois caminhos continuam usando a fonte do idioma', () => {
-  for (const file of [COMPOSE, 'app/api/compose/route.ts', 'app/api/compose/unlock/route.ts']) assert.equal(rd(file), base(file), file)
+  for (const file of [COMPOSE, 'app/api/compose/route.ts', 'app/api/compose/unlock/route.ts']) assert.equal(lf(semDesenhoSom2110(rd(file), file)), base(file), file) // KINEO-LEGENDA-BENGALI-2010 — reancorado: camada do som do desenho fora; era: assert.equal(rd(file), base(file), file)
   assert.match(rd('app/api/compose/route.ts'), /const language = narrationLanguage\(body.language\) \?\? 'en'/)
   assert.equal((rd('app/api/compose/route.ts').match(/setActiveCaptionFont\(language\)/g) ?? []).length, 2)
   assert.match(rd('app/api/compose/unlock/route.ts'), /setActiveCaptionFont\(language\)/)
