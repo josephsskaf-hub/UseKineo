@@ -17,8 +17,8 @@ import { fileURLToPath } from 'node:url'
 
 export const MARCA_HOME_REMODELA_2010 = 'KINEO-HOME-REMODELA-2010'
 
-/** A base da entrega: a fila de 20/10 (entrega-atual = origin/main + KINEO-VERBATIM-INTOCAVEL-2010), mesclada nesta entrega. */
-export const HOME_REMODELA_2010_BASE = 'b023609fdc2fac86dc1276ec4704ae4ae98b2cda'
+/** A base da entrega: a fila de 20/10 (entrega-atual = origin/main + KINEO-VERBATIM-INTOCAVEL-2010 + KINEO-MCP-STUDIO-AJUSTE-2010), mesclada nesta entrega. */
+export const HOME_REMODELA_2010_BASE = 'e79cea9677c7e0071489b4cced7830217345cb5f'
 
 /** [linha nova (inteira), bloco da base] por arquivo. */
 export const TROCAS_HOME_REMODELA_2010 = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-home-remodela-2010-trocas.json'), 'utf8'))
