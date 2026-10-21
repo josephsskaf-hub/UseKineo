@@ -18,6 +18,7 @@
 //   D3 encadeamento: semBebeQueFala2010 (que a cabeça semMenuUgc2010 chama primeiro) tira esta camada PRIMEIRO;
 //   M* mutantes: cada conserto desfeito à mão deixa o guardião certo vermelho.
 import { readFileSync, existsSync } from 'node:fs'
+import { semAvatarEstorno2010 } from './test-support/desfaz-avatar-estorno-2010.mjs' // KINEO-AVATAR-ESTORNO-2010 — reancorado na integração 21/10: as linhas do estorno/legenda bengali (camada mais nova) saem antes da conferência da marca
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -142,6 +143,7 @@ console.log('\nD. desfaz exato, diff, encadeamento')
   const permitidos = new Set([...HOME_CARDS_CLAROS_2010_ARQUIVOS, ...HOME_CARDS_CLAROS_2010_NOVOS])
   const fora = [...tocados].filter((f) => !permitidos.has(f))
   const semMarca = HOME_CARDS_CLAROS_2010_ARQUIVOS.filter((f) => { const b = new Set(base(f).split('\n')); return !rd(f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) })
+  semMarca.splice(0, semMarca.length, ...semMarca.filter((f) => { const b = new Set(base(f).split('\n')); return !semAvatarEstorno2010(rd(f), f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) })) // KINEO-AVATAR-ESTORNO-2010
   const intocados = ['lib/engineWall.ts', 'lib/homeVideoCuration.ts', 'lib/ui/homeKidsCard.ts', 'components/home/HomeKidsCard.tsx', 'components/home/HomeProductAdsReel.tsx', 'lib/ui/homeThreeCards.ts'].filter((f) => existsSync(join(ROOT, f)) && rd(f) !== base(f))
   const trocasOk = Object.entries(TROCAS_HOME_CARDS_CLAROS_2010).every(([f, t]) => HOME_CARDS_CLAROS_2010_ARQUIVOS.includes(f) && t.every(([nova, velha]) => nova.includes(MARCA) && !velha.includes(MARCA)))
   ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && intocados.length === 0 && trocasOk && !/KINEO-BEBE|KINEO-HOME-CARDS-BOTOES|KINEO-HOME-REMODELA/.test(MARCA),
