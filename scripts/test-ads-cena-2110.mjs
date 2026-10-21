@@ -129,6 +129,15 @@ async function pipelineProof(over = {}) {
   assert.equal(aw.submits.length, 1)
   aw.setTime(1_000_000 + pipe.CENA_AMBIGUOUS_MS + 1); await pipe.stepCena(ambiguous, aw.d)
   assert.equal(ambiguous.phase, 'failed'); assert.equal(ambiguous.reason, 'cena_submit_unconfirmed'); assert.equal(aw.submits.length, 1)
+  // Retomada tardia: vídeo já concluído não pode virar nova tentativa paga sem sequer consultar o recibo.
+  const late = pipe.newCenaState(plan, 'kling3'), lw = pipelineDouble(late)
+  await drive(pipe, late, lw.d)
+  const clip = late.jobs.find(j => j.kind === 'video'); clip.status = 'pending'; late.phase = 'video'
+  lw.setTime(1_000_000 + pipe.CENA_JOB_MS + 2)
+  const posted = lw.submits.length, polled = lw.polls.length
+  await pipe.stepCena(late, lw.d)
+  assert.equal(lw.polls.length, polled + 1); assert.equal(clip.status, 'done'); assert.equal(lw.submits.length, posted)
+  await pipe.stepCena(late, lw.d); assert.equal(late.phase, 'ready'); assert.equal(late.videoAttempt, 1)
   return true
 }
 async function adapterProof(over = {}) {

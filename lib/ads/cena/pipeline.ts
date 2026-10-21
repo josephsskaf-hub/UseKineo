@@ -70,10 +70,13 @@ export async function stepCena(s: CenaState, d: CenaDeps): Promise<void> {
     else if (result.kind === 'rejected') { j.status = 'failed'; await d.save(s) }
     return
   }
-  if (d.now() - (j.claimedAt ?? 0) > CENA_JOB_MS) { j.status = 'failed'; await d.save(s); return }
   const result = await d.poll(j)
   if (result.state === 'failed') { j.status = 'failed'; await d.save(s); return }
-  if (result.state !== 'done' || !result.url) return
+  if (result.state !== 'done' || !result.url) {
+    // A aba/cron pode retomar depois do prazo com o vídeo já pronto. Consulte antes de abandonar trabalho pago.
+    if (d.now() - (j.claimedAt ?? 0) > CENA_JOB_MS) { j.status = 'failed'; await d.save(s) }
+    return
+  }
   j.url = result.url
   const url = await d.persist(j, kind === 'image' ? s.imageRound : s.videoAttempt)
   if (!url) return // cópia transitória: tenta novamente sem criar outro job pago
