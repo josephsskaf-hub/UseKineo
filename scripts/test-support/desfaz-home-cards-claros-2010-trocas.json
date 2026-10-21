@@ -1,7 +1,21 @@
 {
+  "components/home/HomeKidsCard.tsx": [
+    [
+      "import { HOME_KIDS_CARD_CLIP, HOME_KIDS_CARD_ID, homeKidsCardClickMetadata, homeKidsCardCopy, homeKidsCardHref } from '@/lib/ui/homeKidsCard' // KINEO-HOME-CARDS-CLAROS-2010 — HOME_KIDS_CARD_BADGE saiu do import (sem o selo do motor no card)",
+      "import { HOME_KIDS_CARD_BADGE, HOME_KIDS_CARD_CLIP, HOME_KIDS_CARD_ID, homeKidsCardClickMetadata, homeKidsCardCopy, homeKidsCardHref } from '@/lib/ui/homeKidsCard'"
+    ],
+    [
+      "      {/* KINEO-HOME-CARDS-CLAROS-2010 — sem o selo do motor (fundador 21/10: \"pode tirar o motor de todos os cards desses 4 primeiros\"); era: <span className=\"k3c-badge\" aria-hidden=\"true\">{HOME_KIDS_CARD_BADGE}</span> */}",
+      "      <span className=\"k3c-badge\" aria-hidden=\"true\">{HOME_KIDS_CARD_BADGE}</span>"
+    ]
+  ],
   "components/home/HomeThreeCards.tsx": [
     [
-      ".k3c-shade{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(5,7,11,.3) 0%,rgba(5,7,11,0) 16%,rgba(5,7,11,0) 62%,rgba(5,7,11,.28) 80%,rgba(5,7,11,.5) 100%)} /* KINEO-HOME-CARDS-CLAROS-2010 — v2 (fundador 21/10: \"ainda está com problema na parte de baixo, parece uma sombra\"): só um degradê curto e leve atrás do texto */",
+      "  // HOME_CARD_BADGE saiu do import — KINEO-HOME-CARDS-CLAROS-2010: o selo do motor não aparece mais nos cards (fundador 21/10: \"pode tirar o motor de todos os cards desses 4 primeiros\")",
+      "  HOME_CARD_BADGE,"
+    ],
+    [
+      ".k3c-shade{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(5,7,11,.12) 0%,rgba(5,7,11,0) 14%,rgba(5,7,11,0) 62%,rgba(5,7,11,.28) 80%,rgba(5,7,11,.5) 100%)} /* KINEO-HOME-CARDS-CLAROS-2010 — v2 (fundador 21/10: \"ainda está com problema na parte de baixo, parece uma sombra\"): só um degradê curto e leve atrás do texto */",
       ".k3c-shade{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(5,7,11,.38) 0%,rgba(5,7,11,0) 16%,rgba(5,7,11,0) 50%,rgba(5,7,11,.55) 68%,rgba(5,7,11,.88) 100%)}"
     ],
     [
@@ -15,6 +29,10 @@
     [
       ".k3c-sub{margin:0;max-width:34ch;font-size:15px;line-height:1.42;color:rgba(255,255,255,.88);text-shadow:0 1px 3px rgba(0,0,0,.45),0 2px 18px rgba(0,0,0,.55)} /* KINEO-HOME-CARDS-CLAROS-2010 — v2: era .84 sem sombra */",
       ".k3c-sub{margin:0;max-width:34ch;font-size:15px;line-height:1.42;color:rgba(255,255,255,.84)}"
+    ],
+    [
+      "              {/* KINEO-HOME-CARDS-CLAROS-2010 — sem o selo do motor (fundador 21/10: \"pode tirar o motor de todos os cards desses 4 primeiros\"); era: <span className=\"k3c-badge\" aria-hidden=\"true\">{HOME_CARD_BADGE[card]}</span> */}",
+      "              <span className=\"k3c-badge\" aria-hidden=\"true\">{HOME_CARD_BADGE[card]}</span>"
     ]
   ],
   "scripts/test-bebe-que-fala-2010.mjs": [
