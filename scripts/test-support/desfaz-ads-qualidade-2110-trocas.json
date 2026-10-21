@@ -11,8 +11,8 @@
     "lib/ads/v2PresenterV2.ts": 61,
     "scripts/test-ads-bola-2110.mjs": 1,
     "scripts/test-ads-nota9-2110.mjs": 1,
-    "scripts/test-mcp-studio-2010.mjs": 13,
-    "scripts/test-mcp-studio-ajuste-2010.mjs": 13,
+    "scripts/test-mcp-studio-2010.mjs": 3,
+    "scripts/test-mcp-studio-ajuste-2010.mjs": 3,
     "scripts/test-support/desfaz-ads-bola-2110.mjs": 2
   },
   "app/(dashboard)/ads/v2/AdsV2Client.tsx": [
@@ -182,14 +182,5 @@
   ],
   "scripts/test-mcp-studio-2010.mjs": [],
   "scripts/test-mcp-studio-ajuste-2010.mjs": [],
-  "scripts/test-support/desfaz-ads-bola-2110.mjs": [
-    [
-      "export const ADS_BOLA_2110_BASE = '58b03e12d' // KINEO-ADS-QUALIDADE-2110 — merge da fila: a base da bola é a origin/main 58b03e12d",
-      "export const ADS_BOLA_2110_BASE = '9165cc6ab'"
-    ],
-    [
-      "  'scripts/test-support/desfaz-legenda-bengali-2010.mjs': 2, // KINEO-ADS-QUALIDADE-2110 — merge da fila (origin/main 58b03e12d): a cabeça da cadeia passou a ser a legenda bengali",
-      "  'scripts/test-support/desfaz-desenho-som-2110.mjs': 2,"
-    ]
-  ]
+  "scripts/test-support/desfaz-ads-bola-2110.mjs": []
 }

@@ -16,8 +16,8 @@ import { fileURLToPath } from 'node:url'
 
 export const MARCA_ADS_QUALIDADE_2110 = 'KINEO-ADS-QUALIDADE-2110'
 
-/** A base da entrega: o anúncio da bola mesclado com a origin/main 9165cc6ab (5bb2a69d4). */
-export const ADS_QUALIDADE_2110_BASE = '5bb2a69d4'
+/** A base da entrega: o anúncio da bola (5bb2a69d4) mesclado com a origin/main 58b03e12d, sem esta camada (38d0ece90, trazido ao histórico por merge -s ours). */
+export const ADS_QUALIDADE_2110_BASE = '38d0ece90'
 
 const TABELA = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-ads-qualidade-2110-trocas.json'), 'utf8'))
 /** [linha nova (inteira), linha da base] por arquivo. */

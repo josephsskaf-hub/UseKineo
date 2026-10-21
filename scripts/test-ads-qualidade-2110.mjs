@@ -8,7 +8,7 @@
 //   C  CARTÃO v3: título ("Pulse smartwatch", "Glow face cream"), selo da oferta digitada ("30% off this week", "Free shipping"), botão na língua, tudo
 //      acima de 80% da tela, produto em contain (nunca cortado), sem propriedade nova (blur desligado);
 //   R  ROTEIRO: o benefício digitado faltando e as frases genéricas do caso real voltam para correção; a fala limpa passa;
-//   B  NA BASE (5bb2a69d4) as provas são VERMELHAS;  X  desfaz exato, marca em toda linha, encadeamento;  U  mutantes aplicados e vermelhos.
+//   B  NA BASE (38d0ece90) as provas são VERMELHAS;  X  desfaz exato, marca em toda linha, encadeamento;  U  mutantes aplicados e vermelhos.
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -142,7 +142,7 @@ await check('C1 título, selo da oferta, chamada na língua; textos acima de 80%
 console.log('\nR. o roteiro do produto')
 await check('R1 o caso real: "7-day battery" faltando + "stunning design" + "Elevate your style" + "Pulse, for you" voltam; a fala concreta passa', () => provas.roteiro(loader()))
 
-console.log('\nB. na base (5bb2a69d4) as mesmas provas são VERMELHAS')
+console.log('\nB. na base (38d0ece90) as mesmas provas são VERMELHAS')
 const LB = loader({ onBase: true })
 for (const [nome, fn] of Object.entries(provas)) {
   if (nome === 'semCamadaIgual' || nome === 'cartao') continue // a comparação com a base / o módulo novo (não existe na base)
