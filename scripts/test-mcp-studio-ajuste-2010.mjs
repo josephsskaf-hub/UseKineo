@@ -25,6 +25,7 @@ import { semBebeQueFala2010, BEBE_QUE_FALA_2010_ARQUIVOS, BEBE_QUE_FALA_2010_NOV
 import { HOME_CARDS_CLAROS_2010_ARQUIVOS, HOME_CARDS_CLAROS_2010_NOVOS, MARCA_HOME_CARDS_CLAROS_2010 } from './test-support/desfaz-home-cards-claros-2010.mjs' // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: o véu mais claro dos cards da home (fundador 20/10 23:30: "a parte de baixo dos vídeos tá bem escura, arruma isso pra hoje") foi mesclado depois: arquivos e commits dele fora da conta
 import { DESENHO_NOTA9_2110_ARQUIVOS, DESENHO_NOTA9_2110_NOVOS, DESENHO_NOTA9_2110_REESCRITOS, MARCA_DESENHO_NOTA9_2110 } from './test-support/desfaz-desenho-nota9-2110.mjs' // KINEO-DESENHO-NOTA9-2110 — reâncora: o desenho infantil inteiro na tela clara (21/10) foi mesclado depois: arquivos e commits dele fora da conta
 import { META95_PERSONAGEM_AJUSTE_2010_ARQUIVOS, META95_PERSONAGEM_AJUSTE_2010_NOVOS, MARCA_META95_PERSONAGEM_AJUSTE_2010 } from './test-support/desfaz-meta95-personagem-ajuste-2010.mjs' // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — os consertos da folha (integrados 21/10) foram mesclados depois: arquivos e commits deles fora da conta
+import { DESENHO_SOM_2110_ARQUIVOS, DESENHO_SOM_2110_NOVOS, DESENHO_SOM_2110_REESCRITOS, MARCA_DESENHO_SOM_2110 } from './test-support/desfaz-desenho-som-2110.mjs' // KINEO-DESENHO-SOM-2110 — reâncora: o som do desenho infantil (21/10) foi mesclado depois: arquivos e commits dele fora da conta
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { pathToFileURL, fileURLToPath } from 'node:url'
@@ -347,6 +348,7 @@ declared.push(...BEBE_QUE_FALA_2010_ARQUIVOS, ...BEBE_QUE_FALA_2010_NOVOS) // re
 declared.push(...HOME_CARDS_CLAROS_2010_ARQUIVOS, ...HOME_CARDS_CLAROS_2010_NOVOS) // KINEO-HOME-CARDS-CLAROS-2010 — os arquivos do véu mais claro (entrega de depois) não são desta
 declared.push(...DESENHO_NOTA9_2110_ARQUIVOS, ...DESENHO_NOTA9_2110_NOVOS, ...DESENHO_NOTA9_2110_REESCRITOS) // KINEO-DESENHO-NOTA9-2110 — os arquivos do desenho na tela clara (entrega de depois) não são desta
 declared.push(...META95_PERSONAGEM_AJUSTE_2010_ARQUIVOS, ...META95_PERSONAGEM_AJUSTE_2010_NOVOS) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — os arquivos dos consertos da folha (entrega de depois, desfaz próprio) não são desta
+declared.push(...DESENHO_SOM_2110_ARQUIVOS, ...DESENHO_SOM_2110_NOVOS, ...DESENHO_SOM_2110_REESCRITOS) // KINEO-DESENHO-SOM-2110 — os arquivos do som do desenho (entrega de depois) não são desta
 ok(changed.every((f) => declared.includes(f)), `(F3) o diff contra a base só toca arquivos declarados (${changed.filter((f) => !declared.includes(f)).join(', ') || 'ok'})`)
 const commits = git('log', '--format=%s', `${MCP_STUDIO_AJUSTE_2010_BASE}..HEAD`).split('\n').filter(Boolean)
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_HOME_REMODELA_2010))) // KINEO-HOME-REMODELA-2010 — os commits (e os merges da fila) da home remodelada levam a marca deles
@@ -354,6 +356,7 @@ commits.splice(0, commits.length, ...commits.filter((s) => !s.includes('KINEO-BE
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_HOME_CARDS_CLAROS_2010))) // KINEO-HOME-CARDS-CLAROS-2010 — os commits do véu mais claro levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_DESENHO_NOTA9_2110))) // KINEO-DESENHO-NOTA9-2110 — os commits do desenho na tela clara levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_META95_PERSONAGEM_AJUSTE_2010))) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — os commits (e os merges) dos consertos da folha levam a marca deles
+commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_DESENHO_SOM_2110))) // KINEO-DESENHO-SOM-2110 — os commits (e o merge da fila) do som do desenho levam a marca deles
 ok(commits.every((s) => s.includes(MARCA_MCP_STUDIO_AJUSTE_2010)), `(F4) todo commit da entrega leva a marca (${commits.length})`)
 ok(semMcpStudioAjuste2010('sem marca', F.page) === 'sem marca' && semMcpStudioAjuste2010(raw(F.page), 'outro/arquivo.ts') === raw(F.page), '(F5) desfaz idempotente fora do alvo')
 {

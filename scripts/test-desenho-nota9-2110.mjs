@@ -30,6 +30,7 @@ import {
   DESENHO_NOTA9_2110_ARQUIVOS, DESENHO_NOTA9_2110_NOVOS, DESENHO_NOTA9_2110_REESCRITOS, TROCAS_DESENHO_NOTA9_2110,
 } from './test-support/desfaz-desenho-nota9-2110.mjs'
 import { semMeta95PersonagemAjuste2010 } from './test-support/desfaz-meta95-personagem-ajuste-2010.mjs' // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — os consertos da folha (camada de depois) tocam a rota do filme; o T7 compara a rota sem eles
+import { semDesenhoSom2110 } from './test-support/desfaz-desenho-som-2110.mjs' // KINEO-DESENHO-SOM-2110 — reâncora: o som do desenho (camada mais nova) mexe na rota do filme e no compose, só para kids_cartoon
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const rd = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\r\n/g, '\n')
@@ -176,7 +177,7 @@ function t7() {
   for (const f of [F.gen, 'lib/engineWall.ts', 'lib/homeVideoCuration.ts', F.story, F.rota, F.page, 'app/api/compose/route.ts', 'lib/credits/engineCost.ts']) {
     const b = base(f)
     if (b === null) { p.push(`${f}: sem base`); continue }
-    if (semMeta95PersonagemAjuste2010(rd(f), f) !== b) p.push(`${f} mudou`) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 — a rota sem os consertos da folha (só rodam com a folha interna, desfaz próprio); era: if (rd(f) !== b)
+    if (semDesenhoSom2110(rd(f), f) !== b) p.push(`${f} mudou`) // KINEO-DESENHO-SOM-2110 — reâncora: as linhas do som do desenho (camada mais nova, só para kids_cartoon) saem antes; era: if (rd(f) !== b)
   }
   return p
 }
@@ -211,7 +212,7 @@ console.log('\nK. desfaz encadeado e diff da base')
   const tocados = new Set([...git('diff', '--name-only', BASE, TOPO).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard', 'scripts', 'public/kids-cartoon').trim().split('\n').filter((f) => f.includes('desenho-nota9') || f.startsWith('public/kids-cartoon/'))].filter(Boolean))
   const permitidos = new Set([...DESENHO_NOTA9_2110_ARQUIVOS, ...DESENHO_NOTA9_2110_NOVOS, ...DESENHO_NOTA9_2110_REESCRITOS])
   const fora = [...tocados].filter((f) => !permitidos.has(f))
-  const semMarca = DESENHO_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set(((claroDepois(f) ? semDesenhoNota9_2110(rd(f), f) : base(f)) ?? '').split('\n')); return !rd(f).split('\n').every((l) => b.has(l) || l.includes(MARCA) || l.includes('KINEO-META95-PERSONAGEM-AJUSTE-2010')) }) // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: claroDepois; era: new Set((base(f) ?? '').split(...)) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — as reâncoras dos consertos da folha (camada de depois, desfaz próprio) levam a marca delas
+  const semMarca = DESENHO_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set(((claroDepois(f) ? semDesenhoNota9_2110(rd(f), f) : base(f)) ?? '').split('\n')); return !semDesenhoSom2110(rd(f), f).split('\n').every((l) => b.has(l) || l.includes(MARCA) || l.includes('KINEO-META95-PERSONAGEM-AJUSTE-2010')) }) // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: claroDepois; era: new Set((base(f) ?? '').split(...)) // KINEO-DESENHO-SOM-2110 — reâncora: as linhas do som do desenho (camada mais nova) saem antes da conferência da marca // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — as reâncoras dos consertos da folha (camada de depois, desfaz próprio) levam a marca delas
   const reescritosMarcados = DESENHO_NOTA9_2110_REESCRITOS.every((f) => rd(f).includes(MARCA))
   ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && reescritosMarcados, `K5 o diff da base só toca a lista, os reescritos e os novos; toda linha nova por linha traz a marca (${[...fora.map((f) => `fora: ${f}`), ...semMarca.map((f) => `sem marca: ${f}`)].join('; ') || 'ok'})`)
 }

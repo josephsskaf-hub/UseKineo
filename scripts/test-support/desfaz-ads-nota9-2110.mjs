@@ -13,7 +13,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { semMeta95PersonagemAjuste2010 } from './desfaz-meta95-personagem-ajuste-2010.mjs' // KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — os consertos da folha (integrados 21/10, depois do Studio Ads nota 9) são a camada MAIS NOVA: saem PRIMEIRO (texto sem a marca deles passa igual)
+import { semDesenhoSom2110 } from './desfaz-desenho-som-2110.mjs' // KINEO-DESENHO-SOM-2110 — o som do desenho infantil (21/10) veio depois: sai PRIMEIRO (encadeado; texto sem a marca passa igual)
 
 export const MARCA_ADS_NOTA9_2110 = 'KINEO-ADS-NOTA9-2110'
 
@@ -36,7 +36,7 @@ export const ADS_NOTA9_2110_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semAdsNota92110(texto, p) {
-  texto = semMeta95PersonagemAjuste2010(texto, p) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — a camada mais nova sai primeiro (encadeado: semDesenhoNota9_2110 → semAdsNota92110 → o ajuste da folha)
+  texto = semDesenhoSom2110(texto, p) // KINEO-DESENHO-SOM-2110 — a camada mais nova sai primeiro
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_ADS_NOTA9_2110) || !ADS_NOTA9_2110_ARQUIVOS.includes(rel)) return texto
   const crlf = texto.includes('\r\n')

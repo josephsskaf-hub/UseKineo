@@ -190,6 +190,8 @@ export function selectPersonaForScript(
   const getPersona = (id: string): VoicePersona | undefined =>
     VOICE_PERSONAS.find((p) => p.id === id)
 
+  // KINEO-DESENHO-SOM-2110 [TRAVA 8.2 — vai do fundador 21/10 "experiência no mínimo 9"] — desenho infantil ('kids_story' ≡ KIDS_NARRATION_VERTICAL, lib/kidsCartoon): a contadora calorosa, nunca o palpite por palavra-chave (que dava o narrador de documentário)
+  if (vertical === 'kids_story') { const k = getPersona('emotional-storyteller'); if (k) return applyLanguageOverride(k, language) } // KINEO-DESENHO-SOM-2110
   // Cinematic tier: try cinematic → primary → secondary
   if (userTier === 'cinematic' && mapping.cinematic) {
     const p = getPersona(mapping.cinematic)

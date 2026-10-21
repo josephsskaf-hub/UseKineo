@@ -221,6 +221,7 @@ import { writeServerEvent } from '@/lib/serverEvents'
 // KINEO-PLANO-B-OPENAI-2026-09-28 — voz reserva (MiniMax 2.8 HD na fal) quando a TTS da OpenAI cai.
 import { ttsFallbackApplies, ttsFallbackSkipsRetry, synthesizeTtsFallback, registerTtsFallbackUse, TTS_FALLBACK_MODEL } from '@/lib/ttsFallback'
 import { primaryStatusOf } from '@/lib/llmFallback'
+import { desenhoDoClaim, kidsMusicQuieter } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-DESENHO-SOM-2110 [TRAVA 8.2 — vai do fundador 21/10 "experiência no mínimo 9"] — o desenho infantil assinado no claim: legenda opcional e trilha mais baixa
 
 // FREE_FAST_PREVIEW_LIMIT e FREE_FAST_WINDOW_MS moraram aqui até 06/08/2026.
 // Agora vêm de lib/freeFastQuota.ts, junto da contagem que os usa — o cron
@@ -3552,6 +3553,9 @@ export async function POST(req: NextRequest) {
       }
     }
     if (semLegenda.tirarLegenda || semLegenda.tirarGancho) { const sl = tirarLegendaEGancho(source, { legenda: semLegenda.tirarLegenda, gancho: semLegenda.tirarGancho }); source = sl.source; console.log(`[compose] KINEO-SEM-LEGENDA-2026-10-06 (${semLegenda.motivo}): ${sl.legendas} legenda(s) e ${sl.gancho} gancho retirados`) } // KINEO-SEM-LEGENDA-2026-10-06
+    const desenhoAssinado = desenhoDoClaim(cinematicBirthClaim?.response) // KINEO-DESENHO-SOM-2110 — só o claim assinado decide (null = filme comum: nada abaixo roda)
+    if (desenhoAssinado && !desenhoAssinado.captions && !semLegenda.tirarLegenda) { const sl = tirarLegendaEGancho(source, { legenda: true, gancho: false }); source = sl.source; console.log(`[compose] KINEO-DESENHO-SOM-2110 desenho sem legenda: ${sl.legendas} legenda(s) retirada(s)`) } // KINEO-DESENHO-SOM-2110 — a marca d'água (trilha 9) fica
+    if (desenhoAssinado) { const q = kidsMusicQuieter(source); source = q.source; console.log(`[compose] KINEO-DESENHO-SOM-2110 trilha do desenho mais baixa: ${q.changed}`) } // KINEO-DESENHO-SOM-2110
 
     // Step 5 — Submit to Creatomate once per authenticated generation. The
     // provider has no documented idempotency key, so a blind retry after an

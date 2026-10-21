@@ -8,7 +8,7 @@
 //   · TROCA — a linha da base foi reescrita: reconhecida INTEIRA, volta a ser o texto da base. Tabela em desfaz-meta95-personagem-ajuste-2010-trocas.json.
 // Só age nos arquivos declarados; qualquer outro texto passa igual (idempotente). Preserva CRLF. A marca NÃO contém a de nenhuma camada de antes
 // ("KINEO-META95-PERSONAGEM-2010" não é substring de "KINEO-META95-PERSONAGEM-AJUSTE-2010").
-// ENCADEAMENTO: é a camada MAIS NOVA — semAdsNota92110 (que semDesenhoNota9_2110 chama primeiro; e este, semHomeCardsClaros2010, semBebeQueFala2010, semAvatarPreso2010,
+// ENCADEAMENTO: é a camada MAIS NOVA — semDesenhoSom2110 (que semAdsNota92110 chama primeiro; e este, semDesenhoNota9_2110, semHomeCardsClaros2010, semBebeQueFala2010, semAvatarPreso2010,
 // semMenuUgc2010) e semMeta95Personagem2010 chamam ESTA primeiro, então toda cadeia (semMeta95Ideia1910, semMenuUgc2010, o guardião do conector) tira o ajuste sem mudar.
 // Este não importa ninguém.
 // As libs novas (lib/cinematic/personagemAjuste.ts, lib/cinematic/personagemAjusteServer.ts) não existem na base: guardião byte a byte não as lê.
@@ -19,8 +19,8 @@ import { fileURLToPath } from 'node:url'
 
 export const MARCA_META95_PERSONAGEM_AJUSTE_2010 = 'KINEO-META95-PERSONAGEM-AJUSTE-2010'
 
-/** A base da entrega: nasceu sobre fbe47c46 (20/10); INTEGRADA em 21/10 sobre a fila 20e67c05 (KINEO-ADS-NOTA9-2110 sobre o desenho nota 9) — a tabela foi refeita contra esta. */
-export const META95_PERSONAGEM_AJUSTE_2010_BASE = '20e67c05b46e3512614504a5875e481fe1d5064d'
+/** A base da entrega: nasceu sobre fbe47c46 (20/10); INTEGRADA em 21/10 sobre origin/main 9165cc6a (KINEO-DESENHO-SOM-2110 sobre o Ads nota 9) — a tabela foi refeita contra esta. */
+export const META95_PERSONAGEM_AJUSTE_2010_BASE = '9165cc6ab1b52dd6ea6d01a6fe34c5cbb651d90c'
 
 /** [linha nova (inteira), linha da base] por arquivo + a contagem exata de acréscimos (__acrescimos). */
 export const TROCAS_META95_PERSONAGEM_AJUSTE_2010 = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-meta95-personagem-ajuste-2010-trocas.json'), 'utf8'))
