@@ -11,7 +11,7 @@
 export const HOME_KIDS_CARD_MARK = 'KINEO-BEBE-QUE-FALA-2010'
 
 /** Interruptor do 4º card. false = só as contas da casa veem a prévia (a home pública fica como hoje). */
-export const HOME_4TH_CARD_LIVE = false
+export const HOME_4TH_CARD_LIVE = true // LIGADO 20/10 noite: "Make My Films · Free Product Ad · Free UGC Ad · AI Cartoon Videos" (fundador, 20:45)
 
 /** Quem vê o 4º card (puro: `internal` = isInternalEmail do e-mail verificado da sessão). */
 export function home4thCardOn(live: boolean, internal: boolean): boolean {

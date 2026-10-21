@@ -20,9 +20,9 @@
 export const KIDS_CARTOON_MARK = 'KINEO-BEBE-QUE-FALA-2010'
 
 /** Interruptor do PRODUTO (template + `kids_cartoon` no filme). false = só as contas da casa veem e usam. */
-export const KIDS_CARTOON_LIVE = false
+export const KIDS_CARTOON_LIVE = true // LIGADO 20/10 noite: nota 10 do fundador ao curta 4f6c8a40 e "os 4 cards no ar hoje"
 /** Interruptor das PÁGINAS públicas (EN/PT). false = 404 + fora do sitemap/llms.txt (o IndexNow do cron só envia o que está no sitemap). */
-export const KIDS_CARTOON_PAGES_LIVE = false
+export const KIDS_CARTOON_PAGES_LIVE = true // LIGADO 20/10 noite: o menu do topo (home remodelada) aponta "AI Cartoon Videos" → /ai-kids-cartoon-videos
 
 /** O produto abre para esta conta? (puro: `internal` = isInternalEmail do e-mail verificado da sessão). */
 export function kidsCartoonOn(live: boolean, internal: boolean): boolean {

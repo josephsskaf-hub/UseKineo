@@ -76,9 +76,9 @@ function puro(src, nome) {
 function switchProblems(libSrc = rd(F.lib), cardSrc = rd(F.card), babySrc = rd(F.baby)) {
   const p = []
   const L = puro(libSrc, 'kidsCartoon'), C = puro(cardSrc, 'homeKidsCard'), B = puro(babySrc, 'babyPodcast')
-  if (L.KIDS_CARTOON_LIVE !== false) p.push('KIDS_CARTOON_LIVE ligado')
-  if (L.KIDS_CARTOON_PAGES_LIVE !== false) p.push('KIDS_CARTOON_PAGES_LIVE ligado')
-  if (C.HOME_4TH_CARD_LIVE !== false) p.push('HOME_4TH_CARD_LIVE ligado')
+  if (L.KIDS_CARTOON_LIVE !== true) p.push('KIDS_CARTOON_LIVE desligado (ligado 20/10 noite, ordem do fundador)')
+  if (L.KIDS_CARTOON_PAGES_LIVE !== true) p.push('KIDS_CARTOON_PAGES_LIVE desligado (o menu do topo aponta para a página)')
+  if (C.HOME_4TH_CARD_LIVE !== true) p.push('HOME_4TH_CARD_LIVE desligado (os 4 cards no ar, fundador 20:45)')
   if (B.BABY_PODCAST_LIVE !== false) p.push('BABY_PODCAST_LIVE ligado')
   if (B.BABY_PODCAST_PAGES_LIVE !== false) p.push('BABY_PODCAST_PAGES_LIVE ligado')
   if (B.babyPodcastOn(false, false) !== false || B.babyPodcastOn(false, true) !== true) p.push('babyPodcastOn fora da régua')
@@ -90,7 +90,7 @@ function switchProblems(libSrc = rd(F.lib), cardSrc = rd(F.card), babySrc = rd(F
 console.log('A. interruptores')
 {
   const p = tenta(() => switchProblems())
-  ok(p.length === 0, `A1 produto, páginas, 4º card e bebê-podcast DESLIGADOS; quem vê = live || casa (${p.join('; ') || 'ok'})`)
+  ok(p.length === 0, `A1 desenho infantil LIGADO (produto, páginas, 4º card — ordem do fundador 20/10 noite), bebê-podcast DESLIGADO; quem vê = live || casa (${p.join('; ') || 'ok'})`)
   const L = puro(rd(F.lib), 'kidsCartoon')
   const ids = L.KIDS_CHARACTERS.map((c) => c.id)
   const fichas = L.KIDS_CHARACTERS.every((c) => c.sheet.startsWith(`${c.name}, `) && c.sheet.length > 60 && c.kind.en && c.kind.pt && c.kind.es && c.portrait === '')
@@ -449,8 +449,8 @@ function mut(nome, src, de, para, fn) {
   ok(p.length > 0, `${nome} → vermelho (${String(p[0] ?? '').slice(0, 90)})`)
 }
 const LIB = rd(F.lib), CARD = rd(F.card), ROTA = rd(F.rota), STORY = rd(F.story), THREE = rd(F.three), GEN = rd(F.gen), TPL = rd(F.tpl)
-mut('M1 produto ligado sem ordem', LIB, 'export const KIDS_CARTOON_LIVE = false', 'export const KIDS_CARTOON_LIVE = true', (s) => switchProblems(s))
-mut('M2 4º card ligado sem ordem', CARD, 'export const HOME_4TH_CARD_LIVE = false', 'export const HOME_4TH_CARD_LIVE = true', (s) => switchProblems(undefined, s))
+mut('M1 produto desligado sem ordem', LIB, 'export const KIDS_CARTOON_LIVE = true', 'export const KIDS_CARTOON_LIVE = false', (s) => switchProblems(s))
+mut('M2 4º card desligado sem ordem', CARD, 'export const HOME_4TH_CARD_LIVE = true', 'export const HOME_4TH_CARD_LIVE = false', (s) => switchProblems(undefined, s))
 mut('M3 bebê-podcast ligado', rd(F.baby), 'export const BABY_PODCAST_LIVE = false', 'export const BABY_PODCAST_LIVE = true', (s) => switchProblems(undefined, undefined, s))
 mut('M4 validação aceita 60 s', LIB, 'export const KIDS_CARTOON_DURATIONS = [15, 35] as const', 'export const KIDS_CARTOON_DURATIONS = [15, 35, 60] as const', (s) => validProblems(s))
 mut('M5 validação aceita link', LIB, "if (/https?:\\/\\/|www\\./i.test(typed))", 'if (false)', (s) => validProblems(s))
