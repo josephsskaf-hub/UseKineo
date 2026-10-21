@@ -29,11 +29,13 @@ import {
   semDesenhoNota9_2110, desfazDesenhoNota9_2110, MARCA_DESENHO_NOTA9_2110 as MARCA, DESENHO_NOTA9_2110_BASE as BASE,
   DESENHO_NOTA9_2110_ARQUIVOS, DESENHO_NOTA9_2110_NOVOS, DESENHO_NOTA9_2110_REESCRITOS, TROCAS_DESENHO_NOTA9_2110,
 } from './test-support/desfaz-desenho-nota9-2110.mjs'
+import { semDesenhoSom2110 } from './test-support/desfaz-desenho-som-2110.mjs' // KINEO-DESENHO-SOM-2110 — reâncora: o som do desenho (camada mais nova) mexe na rota do filme e no compose, só para kids_cartoon
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const rd = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\r\n/g, '\n')
 const git = (...a) => { try { return execFileSync('git', a, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 }) } catch { return '' } }
 const base = (f) => { const s = git('show', `${BASE}:${f}`); return s ? s.replace(/\r\n/g, '\n') : null }
+const claroDepois = (f) => git('log', '--no-merges', '--format=%H', '--grep=KINEO-HOME-CARDS-CLAROS-2010', `${BASE}..HEAD`, '--', f).trim() !== '' // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: arquivo que a entrega do selo (fundador 21/10: "pode tirar o motor de todos os cards desses 4 primeiros") continuou mexendo depois desta base não tem versão pura para comparar; confere-se que o desfaz tira as linhas desta camada sem lançar
 const F = {
   tpl: 'components/kidsCartoon/KidsCartoonTemplate.tsx',
   lib: 'lib/kidsCartoon/kidsCartoon.ts',
@@ -174,7 +176,7 @@ function t7() {
   for (const f of [F.gen, 'lib/engineWall.ts', 'lib/homeVideoCuration.ts', F.story, F.rota, F.page, 'app/api/compose/route.ts', 'lib/credits/engineCost.ts']) {
     const b = base(f)
     if (b === null) { p.push(`${f}: sem base`); continue }
-    if (rd(f) !== b) p.push(`${f} mudou`)
+    if (semDesenhoSom2110(rd(f), f) !== b) p.push(`${f} mudou`) // KINEO-DESENHO-SOM-2110 — reâncora: as linhas do som do desenho (camada mais nova, só para kids_cartoon) saem antes; era: if (rd(f) !== b)
   }
   return p
 }
@@ -195,7 +197,7 @@ console.log('\nK. desfaz encadeado e diff da base')
   for (const f of DESENHO_NOTA9_2110_ARQUIVOS) {
     const b = base(f)
     if (b === null) { difs.push(`${f}: fora da base`); continue }
-    try { if (semDesenhoNota9_2110(rd(f), f) !== b) difs.push(f) } catch (e) { difs.push(`${f}: ${e.message}`) }
+    try { const out = semDesenhoNota9_2110(rd(f), f); if (claroDepois(f) ? out.includes(MARCA) : out !== b) difs.push(f) } catch (e) { difs.push(`${f}: ${e.message}`) } // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: claroDepois; era: if (semDesenhoNota9_2110(rd(f), f) !== b) difs.push(f)
   }
   ok(difs.length === 0, `K1 ${DESENHO_NOTA9_2110_ARQUIVOS.length} arquivos tocados por linha, desfeitos, = base ${BASE} (${difs.join('; ') || 'ok'})`)
   ok(DESENHO_NOTA9_2110_NOVOS.every((f) => fs.existsSync(path.join(ROOT, f)) && base(f) === null), `K2 os ${DESENHO_NOTA9_2110_NOVOS.length} arquivos novos existem e não existiam na base`)
@@ -209,7 +211,7 @@ console.log('\nK. desfaz encadeado e diff da base')
   const tocados = new Set([...git('diff', '--name-only', BASE, TOPO).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard', 'scripts', 'public/kids-cartoon').trim().split('\n').filter((f) => f.includes('desenho-nota9') || f.startsWith('public/kids-cartoon/'))].filter(Boolean))
   const permitidos = new Set([...DESENHO_NOTA9_2110_ARQUIVOS, ...DESENHO_NOTA9_2110_NOVOS, ...DESENHO_NOTA9_2110_REESCRITOS])
   const fora = [...tocados].filter((f) => !permitidos.has(f))
-  const semMarca = DESENHO_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !rd(f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) })
+  const semMarca = DESENHO_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set(((claroDepois(f) ? semDesenhoNota9_2110(rd(f), f) : base(f)) ?? '').split('\n')); return !semDesenhoSom2110(rd(f), f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: claroDepois; era: new Set((base(f) ?? '').split(...)) // KINEO-DESENHO-SOM-2110 — reâncora: as linhas do som do desenho (camada mais nova) saem antes da conferência da marca
   const reescritosMarcados = DESENHO_NOTA9_2110_REESCRITOS.every((f) => rd(f).includes(MARCA))
   ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && reescritosMarcados, `K5 o diff da base só toca a lista, os reescritos e os novos; toda linha nova por linha traz a marca (${[...fora.map((f) => `fora: ${f}`), ...semMarca.map((f) => `sem marca: ${f}`)].join('; ') || 'ok'})`)
 }

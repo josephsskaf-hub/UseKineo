@@ -29,6 +29,7 @@ import {
 import { semMenuUgc2010 } from './test-support/desfaz-menu-ugc-2010.mjs'
 import { semUgcAjustes2010 } from './test-support/desfaz-ugc-ajustes-2010.mjs'
 import { semHomeCardsClaros2010 } from './test-support/desfaz-home-cards-claros-2010.mjs' // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: o véu dos cards ficou mais claro depois (fundador 20/10 23:30: "a parte de baixo dos vídeos tá bem escura, arruma isso pra hoje"); a faixa e as linhas são conferidas sem aquela camada
+import { semDesenhoSom2110 } from './test-support/desfaz-desenho-som-2110.mjs' // KINEO-DESENHO-SOM-2110 — reâncora: o som do desenho infantil (21/10) mexe na rota do filme, só com desenhoInfantil.ativo
 
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
@@ -159,7 +160,7 @@ function gateProblems(libSrc = rd(F.lib)) {
   if ((L.comPersonagemInfantil(jaTem, leo.sheet).split(leo.sheet).length - 1) !== 1) p.push('ficha duplicada quando a cena já a traz')
   return p
 }
-function wiringProblems(rota = rd(F.rota)) {
+function wiringProblems(rota0 = rd(F.rota)) { const rota = semDesenhoSom2110(rota0, F.rota) // KINEO-DESENHO-SOM-2110 — reâncora: as 5 linhas do som do desenho (vertical infantil e claim) saem antes da conferência da fiação; era: function wiringProblems(rota = rd(F.rota)) {
   const p = []
   const linhas = rota.split('\n')
   const i = (s) => linhas.findIndex((l) => !l.trimStart().startsWith('//') && l.includes(s))
@@ -308,7 +309,7 @@ function homeProblems(threeSrc0 = rd(F.three), land = rd(F.land), cardSrc = rd(F
   const kids = com.slice(com.lastIndexOf('data-home-card="kids_cartoon"'))
   const kidsTxt = kids.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')
   if (/\$\s?\d|\b\d+\s*(?:credits?|cr)\b|\bfree\b|grátis/i.test(kidsTxt)) p.push(`preço/oferta no card: ${kidsTxt.slice(0, 160)}`)
-  if (!kids.includes('SEEDANCE 1.5')) p.push('selo sem o motor real')
+  if (kids.includes('SEEDANCE 1.5') || !C.HOME_KIDS_CARD_BADGE.startsWith('SEEDANCE 1.5')) p.push('selo do motor de volta no card / rótulo honesto sumiu da lib') // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: o card não mostra mais o motor (fundador 21/10: "pode tirar o motor de todos os cards desses 4 primeiros"); o rótulo real segue na lib; era: if (!kids.includes('SEEDANCE 1.5')) p.push('selo sem o motor real')
   if (!kids.includes('AI Cartoon Videos') || !kids.includes('Make my cartoon') || !kids.includes('3D kids cartoon')) p.push('textos EN do card (nome do mercado "AI Cartoon Videos", kids/3D na frase)')
   const reel = com.slice(com.indexOf('data-home-card="product_ads">'), com.indexOf('data-home-card="ugc_ads">'))
   if (!reel.includes('data-home-ads-reel="1"') || (reel.match(/<video/g) || []).length !== 4 || (reel.match(/data-trio=""/g) || []).length !== 3 || !reel.includes('/previews/home-card-close-real-en.mp4') || !['1', '2', '3'].every((n) => reel.includes(`/previews/promo-ads-3var-${n}.mp4`))) p.push('card de produto sem o reel Lume + 3 trios no modo 4 cards')

@@ -5,13 +5,15 @@
 // Honestidade (fundador 20/10 + pesquisa docs/PESQUISA-BEBE-QUE-FALA-2026-10-20.md): sem prometer renda; avisa o "made for kids" do
 // YouTube, o selo de IA das plataformas e a punição de conteúdo repetitivo em massa. Sem número de crédito: o preço aparece no
 // botão de gerar (o mesmo de qualquer filme Seedance 1.5 da duração).
+// KINEO-DESENHO-SOM-2110 — sem a pílula do motor no topo (fundador 21/10: nome de motor na porta de entrada "perde a vontade de comprar");
+// os passos e a FAQ do preço dizem o fluxo novo (o filme sai na mesma página, com a linha de créditos logo acima do botão).
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
 import UgcVideo from '@/components/ugc/UgcVideo'
 import KidsCtaLink from '@/components/kidsCartoon/KidsCtaLink'
 import { UGC_PAGE_CSS } from '@/components/ugc/UgcPages'
-import { KIDS_CARTOON_ENGINE_LABEL, KIDS_CARTOON_PAGES_LIVE, KIDS_CHARACTERS, KIDS_IDEAS } from '@/lib/kidsCartoon/kidsCartoon'
+import { KIDS_CARTOON_PAGES_LIVE, KIDS_CHARACTERS, KIDS_IDEAS } from '@/lib/kidsCartoon/kidsCartoon'
 import { HOME_KIDS_CARD_CLIP, HOME_KIDS_CARD_CSS } from '@/lib/ui/homeKidsCard'
 import {
   KIDS_EN_PATH, KIDS_PT_PATH, PAGINAS_KIDS_BASE, PAGINAS_KIDS_CAMPAIGN, PAGINAS_KIDS_MARK, PAGINAS_KIDS_REVIEWED_ISO,
@@ -38,7 +40,7 @@ export function kidsPageCopy(lang: KidsLang) {
       stepsHeading: 'Em 3 passos', steps: [
         { title: 'Escolha o personagem', body: 'Leo, Mia, Dino, Pip, Bibi ou Ollie — personagens próprios da Kineo, não de outro estúdio.' },
         { title: 'Escreva a ideia', body: 'Uma linha basta ("aprende a dividir os brinquedos"), ou uma das 6 ideias prontas. Escolha a língua e 15 ou 35 s.' },
-        { title: 'Gere o desenho', body: 'A história sai escrita para você ler. Um clique abre o Studio no Seedance 1.5 com ela; o preço aparece no botão de gerar.' },
+        { title: 'Gere o desenho', body: 'A história sai escrita para você ler e mudar o que quiser. Um botão faz o desenho ali mesmo, com o progresso e o download na mesma página.' },
       ],
       charsHeading: 'Os personagens', charsIntro: 'Cada um tem uma ficha fixa (aparência e roupa) que vai em toda cena. A IA ainda pode variar pequenos detalhes entre as cenas.',
       ideasHeading: 'Ideias prontas (varie as histórias)',
@@ -47,7 +49,7 @@ export function kidsPageCopy(lang: KidsLang) {
       faqs: [
         { q: 'Dá para ganhar dinheiro com esses vídeos?', a: 'Não prometemos renda. No YouTube, vídeo feito para crianças precisa ser marcado como "conteúdo para crianças" (regra da COPPA): sem anúncio personalizado e sem comentários, o que paga bem menos. As plataformas também desmonetizam canais de conteúdo repetitivo produzido em massa. Use os desenhos como conteúdo de família, escola, marca ou loja, com histórias variadas.' },
         { q: 'Preciso avisar que foi feito com IA?', a: 'Sim. YouTube, TikTok e Instagram pedem o rótulo de conteúdo gerado por IA. O template entrega uma legenda pronta com "Feito com IA" — ligue também o rótulo de IA da plataforma ao postar.' },
-        { q: 'Quanto custa?', a: 'O mesmo que qualquer filme do Seedance 1.5 na duração escolhida (15 ou 35 s). O número em créditos aparece no botão de gerar, antes de você confirmar; escrever a história não cobra nada.' },
+        { q: 'Quanto custa?', a: 'O mesmo que qualquer filme da Kineo na duração escolhida (15 ou 35 s). Logo acima do botão aparece quantos créditos ele usa e com quantos você fica, antes de confirmar; escrever a história não cobra nada.' },
         { q: 'O personagem fica igual em todas as cenas?', a: 'A descrição do personagem e o estilo 3D vão em toda cena. Na maioria dos filmes ele fica reconhecível do começo ao fim, mas é IA: detalhes como cabelo ou roupa ainda podem variar um pouco.' },
         { q: 'Que conteúdo não é aceito?', a: 'Desenho infantil é inocente: nada de romance ou nudez, violência ou armas, zombaria ou humilhação, nem produto adulto (álcool, cigarro, aposta). Além disso vale a moderação de sempre da Kineo. Também não use personagens de outros estúdios.' },
         { q: 'Em que línguas?', a: 'O template escreve em português, inglês ou espanhol; a narração e a legenda saem na língua escolhida.' },
@@ -69,7 +71,7 @@ export function kidsPageCopy(lang: KidsLang) {
     stepsHeading: 'In 3 steps', steps: [
       { title: 'Pick the character', body: 'Leo, Mia, Dino, Pip, Bibi or Ollie — Kineo’s own characters, not another studio’s.' },
       { title: 'Type the idea', body: 'One line is enough ("learns to share toys"), or one of 6 ready ideas. Choose the language and 15 or 35 s.' },
-      { title: 'Generate the cartoon', body: 'You read the written story first. One click opens the Studio on Seedance 1.5 with it; the price shows on the Generate button.' },
+      { title: 'Generate the cartoon', body: 'You read the written story first and change anything you like. One button makes the cartoon right there, with progress and the download on the same page.' },
     ],
     charsHeading: 'The characters', charsIntro: 'Each one has a fixed sheet (look and outfit) that goes into every scene. The AI can still vary small details between scenes.',
     ideasHeading: 'Ready ideas (vary your stories)',
@@ -78,7 +80,7 @@ export function kidsPageCopy(lang: KidsLang) {
     faqs: [
       { q: 'Can I make money with these videos?', a: 'We do not promise income. On YouTube, videos made for children must be set as "made for kids" (COPPA rules): no personalized ads and no comments, which pays far less. Platforms also demonetize channels that mass-produce repetitive content. Use the cartoons as family, school, brand or shop content, with varied stories.' },
       { q: 'Do I have to say it was made with AI?', a: 'Yes. YouTube, TikTok and Instagram ask you to label AI-generated content. The template gives you a ready caption with "Made with AI" — also turn on the platform’s AI label when you post.' },
-      { q: 'How much does it cost?', a: 'The same as any Seedance 1.5 film of the length you choose (15 or 35 s). The credit number shows on the Generate button before you confirm; writing the story is free.' },
+      { q: 'How much does it cost?', a: 'The same as any Kineo film of the length you choose (15 or 35 s). Right above the button you see how many credits it uses and how many you will have left, before you confirm; writing the story is free.' },
       { q: 'Does the character stay the same in every scene?', a: 'The character description and the 3D style go into every scene. In most films the character stays recognizable from start to finish, but this is AI: details like hair or clothes can still vary a little.' },
       { q: 'What content is not allowed?', a: 'Kids cartoons stay innocent: no romance or nudity, no violence or weapons, no mocking or humiliation, and no adult products (alcohol, smoking, gambling). Kineo’s usual moderation applies too. Do not use characters owned by other studios.' },
       { q: 'Which languages?', a: 'The template writes in English, Portuguese or Spanish; narration and captions come out in the chosen language.' },
@@ -135,7 +137,6 @@ export function KidsCartoonPage({ lang }: { lang: KidsLang }) {
             <span className="k3c-kids-art" aria-hidden="true" />
             {HOME_KIDS_CARD_CLIP ? <UgcVideo src={HOME_KIDS_CARD_CLIP.src} poster={HOME_KIDS_CARD_CLIP.poster} label={c.h1} /> : null}
             <span className="kug-shade" aria-hidden="true" />
-            <span className="kug-badge" aria-hidden="true">{KIDS_CARTOON_ENGINE_LABEL} · 3D</span>
             <figcaption className="kug-cap">{c.caption}</figcaption>
           </figure>
         </header>

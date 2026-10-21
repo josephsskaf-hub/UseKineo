@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url'
 export const MARCA_ADS_BOLA_2110 = 'KINEO-ADS-BOLA-2110'
 
 /** A base da entrega: origin/main de 21/10 manhã (9415fa5dd, KINEO-DESENHO-NOTA9-2110 reâncoras). */
-export const ADS_BOLA_2110_BASE = '9415fa5dd'
+export const ADS_BOLA_2110_BASE = '9165cc6ab'
 
 /** [linha nova (inteira), linha da base] por arquivo. */
 export const TROCAS_ADS_BOLA_2110 = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-ads-bola-2110-trocas.json'), 'utf8'))
@@ -37,7 +37,7 @@ export const ACRESCIMOS_ADS_BOLA_2110 = {
   'lib/ads/v2Scene.ts': 15,
   'lib/ads/v2SceneServer.ts': 1,
   'lib/ads/v2Simple.ts': 106,
-  'scripts/test-support/desfaz-desenho-nota9-2110.mjs': 2,
+  'scripts/test-support/desfaz-desenho-som-2110.mjs': 2,
 }
 export const ADS_BOLA_2110_ARQUIVOS = Object.freeze(Object.keys(ACRESCIMOS_ADS_BOLA_2110))
 /** Arquivos novos da entrega (não existiam na base). */

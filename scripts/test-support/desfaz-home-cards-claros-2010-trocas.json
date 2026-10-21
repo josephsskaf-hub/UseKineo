@@ -1,7 +1,21 @@
 {
+  "components/home/HomeKidsCard.tsx": [
+    [
+      "import { HOME_KIDS_CARD_CLIP, HOME_KIDS_CARD_ID, homeKidsCardClickMetadata, homeKidsCardCopy, homeKidsCardHref } from '@/lib/ui/homeKidsCard' // KINEO-HOME-CARDS-CLAROS-2010 — HOME_KIDS_CARD_BADGE saiu do import (sem o selo do motor no card)",
+      "import { HOME_KIDS_CARD_BADGE, HOME_KIDS_CARD_CLIP, HOME_KIDS_CARD_ID, homeKidsCardClickMetadata, homeKidsCardCopy, homeKidsCardHref } from '@/lib/ui/homeKidsCard'"
+    ],
+    [
+      "      {/* KINEO-HOME-CARDS-CLAROS-2010 — sem o selo do motor (fundador 21/10: \"pode tirar o motor de todos os cards desses 4 primeiros\"); era: <span className=\"k3c-badge\" aria-hidden=\"true\">{HOME_KIDS_CARD_BADGE}</span> */}",
+      "      <span className=\"k3c-badge\" aria-hidden=\"true\">{HOME_KIDS_CARD_BADGE}</span>"
+    ]
+  ],
   "components/home/HomeThreeCards.tsx": [
     [
-      ".k3c-shade{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(5,7,11,.3) 0%,rgba(5,7,11,0) 16%,rgba(5,7,11,0) 62%,rgba(5,7,11,.28) 80%,rgba(5,7,11,.5) 100%)} /* KINEO-HOME-CARDS-CLAROS-2010 — v2 (fundador 21/10: \"ainda está com problema na parte de baixo, parece uma sombra\"): só um degradê curto e leve atrás do texto */",
+      "  // HOME_CARD_BADGE saiu do import — KINEO-HOME-CARDS-CLAROS-2010: o selo do motor não aparece mais nos cards (fundador 21/10: \"pode tirar o motor de todos os cards desses 4 primeiros\")",
+      "  HOME_CARD_BADGE,"
+    ],
+    [
+      ".k3c-shade{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(5,7,11,.12) 0%,rgba(5,7,11,0) 14%,rgba(5,7,11,0) 62%,rgba(5,7,11,.28) 80%,rgba(5,7,11,.5) 100%)} /* KINEO-HOME-CARDS-CLAROS-2010 — v2 (fundador 21/10: \"ainda está com problema na parte de baixo, parece uma sombra\"): só um degradê curto e leve atrás do texto */",
       ".k3c-shade{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(5,7,11,.38) 0%,rgba(5,7,11,0) 16%,rgba(5,7,11,0) 50%,rgba(5,7,11,.55) 68%,rgba(5,7,11,.88) 100%)}"
     ],
     [
@@ -15,6 +29,10 @@
     [
       ".k3c-sub{margin:0;max-width:34ch;font-size:15px;line-height:1.42;color:rgba(255,255,255,.88);text-shadow:0 1px 3px rgba(0,0,0,.45),0 2px 18px rgba(0,0,0,.55)} /* KINEO-HOME-CARDS-CLAROS-2010 — v2: era .84 sem sombra */",
       ".k3c-sub{margin:0;max-width:34ch;font-size:15px;line-height:1.42;color:rgba(255,255,255,.84)}"
+    ],
+    [
+      "              {/* KINEO-HOME-CARDS-CLAROS-2010 — sem o selo do motor (fundador 21/10: \"pode tirar o motor de todos os cards desses 4 primeiros\"); era: <span className=\"k3c-badge\" aria-hidden=\"true\">{HOME_CARD_BADGE[card]}</span> */}",
+      "              <span className=\"k3c-badge\" aria-hidden=\"true\">{HOME_CARD_BADGE[card]}</span>"
     ]
   ],
   "scripts/test-bebe-que-fala-2010.mjs": [
@@ -23,13 +41,17 @@
       "function homeProblems(threeSrc = rd(F.three), land = rd(F.land), cardSrc = rd(F.card)) {"
     ],
     [
+      "  if (kids.includes('SEEDANCE 1.5') || !C.HOME_KIDS_CARD_BADGE.startsWith('SEEDANCE 1.5')) p.push('selo do motor de volta no card / rótulo honesto sumiu da lib') // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: o card não mostra mais o motor (fundador 21/10: \"pode tirar o motor de todos os cards desses 4 primeiros\"); o rótulo real segue na lib; era: if (!kids.includes('SEEDANCE 1.5')) p.push('selo sem o motor real')",
+      "  if (!kids.includes('SEEDANCE 1.5')) p.push('selo sem o motor real')"
+    ],
+    [
       "  const semMarca = BEBE_QUE_FALA_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !semHomeCardsClaros2010(rd(f), f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: as linhas do véu mais claro (camada mais nova) saem antes da conferência da marca",
       "  const semMarca = BEBE_QUE_FALA_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !rd(f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) })"
     ]
   ],
   "scripts/test-verbatim-intocavel-2010.mjs": [
     [
-      "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-BEBE-QUE-FALA-2010', '--grep=KINEO-MCP-STUDIO-AJUSTE-2010', `--grep=${MARCA_HOME_REMODELA_2010}`, '--grep=KINEO-HOME-CARDS-CLAROS-2010', 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-HOME-REMODELA-2010 — a última versão alheia pula também os commits da home remodelada (os merges da fila e as reâncoras) // KINEO-HOME-CARDS-CLAROS-2010 — reancorado: os commits do véu mais claro dos cards (20/10 23:30) também são de depois",
+      "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-BEBE-QUE-FALA-2010', '--grep=KINEO-MCP-STUDIO-AJUSTE-2010', `--grep=${MARCA_HOME_REMODELA_2010}`, '--grep=KINEO-HOME-CARDS-CLAROS-2010', '--grep=KINEO-DESENHO-NOTA9-2110', 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-HOME-REMODELA-2010 — a última versão alheia pula também os commits da home remodelada (os merges da fila e as reâncoras) // KINEO-HOME-CARDS-CLAROS-2010 — reancorado: os commits do véu mais claro dos cards (20/10 23:30) também são de depois",
       "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-BEBE-QUE-FALA-2010', '--grep=KINEO-MCP-STUDIO-AJUSTE-2010', `--grep=${MARCA_HOME_REMODELA_2010}`, 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-HOME-REMODELA-2010 — a última versão alheia pula também os commits da home remodelada (os merges da fila e as reâncoras)"
     ]
   ]

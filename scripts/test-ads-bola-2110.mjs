@@ -25,7 +25,7 @@ import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semAdsBola2110, ADS_BOLA_2110_ARQUIVOS, ADS_BOLA_2110_NOVOS, ADS_BOLA_2110_BASE, MARCA_ADS_BOLA_2110 } from './test-support/desfaz-ads-bola-2110.mjs'
-import { semDesenhoNota9_2110 } from './test-support/desfaz-desenho-nota9-2110.mjs'
+import { semDesenhoSom2110 as semDesenhoNota9_2110 } from './test-support/desfaz-desenho-som-2110.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)

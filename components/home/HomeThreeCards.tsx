@@ -14,7 +14,7 @@ import { UiLabel, useInterfaceLanguage, useUiCopy } from '@/components/Interface
 import { trackEvent } from '@/lib/analytics'
 import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample' // KINEO-HOME-CARDS-BOTOES-2010 — o rótulo grátis agora vem de homeCardAdsCta
 import {
-  HOME_CARD_BADGE,
+  // HOME_CARD_BADGE saiu do import — KINEO-HOME-CARDS-CLAROS-2010: o selo do motor não aparece mais nos cards (fundador 21/10: "pode tirar o motor de todos os cards desses 4 primeiros")
   HOME_CARD_COPY,
   HOME_CARD_EVENT,
   HOME_CARD_ORDER,
@@ -47,7 +47,7 @@ export const HOME_THREE_CARDS_CSS = `
 .k3c-card[data-home-card="films"] .k3c-media video{object-position:50% 16%}
 .k3c-card[data-home-card="product_ads"] .k3c-media video{object-position:50% 86%}
 .k3c-card[data-home-card="ugc_ads"] .k3c-media video{object-position:50% 60%}
-.k3c-shade{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(5,7,11,.3) 0%,rgba(5,7,11,0) 16%,rgba(5,7,11,0) 62%,rgba(5,7,11,.28) 80%,rgba(5,7,11,.5) 100%)} /* KINEO-HOME-CARDS-CLAROS-2010 — v2 (fundador 21/10: "ainda está com problema na parte de baixo, parece uma sombra"): só um degradê curto e leve atrás do texto */
+.k3c-shade{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(5,7,11,.12) 0%,rgba(5,7,11,0) 14%,rgba(5,7,11,0) 62%,rgba(5,7,11,.28) 80%,rgba(5,7,11,.5) 100%)} /* KINEO-HOME-CARDS-CLAROS-2010 — v2 (fundador 21/10: "ainda está com problema na parte de baixo, parece uma sombra"): só um degradê curto e leve atrás do texto */
 .k3c-glass{display:none} /* KINEO-HOME-CARDS-CLAROS-2010 — v2: o vidro fosco saiu (o desfoque virava mancha escura); o vídeo fica nítido até embaixo */
 .k3c-card[data-home-card="films"] .k3c-media video{object-position:50% 0% !important;transform-origin:50% 0;transform:scale(1.1)} /* KINEO-HOME-CARDS-CLAROS-2010 — v2 letreiro: sem o vidro, o letreiro queimado do vídeo não pode cair cortado atrás do título/botão (farol: o letreiro de baixo, a ~70% do vídeo, sai do quadro) */
 .k3c-card[data-home-card="films"]:hover .k3c-media video{transform:scale(1.14)} /* KINEO-HOME-CARDS-CLAROS-2010 — v2 letreiro: sem o vidro, o letreiro queimado do vídeo não pode cair cortado atrás do título/botão */
@@ -148,7 +148,7 @@ export default function HomeThreeCards({ signedIn, kidsCard = false }: { signedI
               {kidsCard && card === 'product_ads' ? <HomeProductAdsReel language={language} /> : <CardMedia card={card} language={language} />}{/* KINEO-BEBE-QUE-FALA-2010 — modo 4 cards: o reel Lume + 3 trios no card de produto; era: <CardMedia card={card} language={language} /> */}
               <span className="k3c-shade" aria-hidden="true" />
               <span className="k3c-glass" aria-hidden="true" />
-              <span className="k3c-badge" aria-hidden="true">{HOME_CARD_BADGE[card]}</span>
+              {/* KINEO-HOME-CARDS-CLAROS-2010 — sem o selo do motor (fundador 21/10: "pode tirar o motor de todos os cards desses 4 primeiros"); era: <span className="k3c-badge" aria-hidden="true">{HOME_CARD_BADGE[card]}</span> */}
               <span className="k3c-body">
                 <h2 className="k3c-title">{copy(HOME_CARD_COPY[card].title)}</h2>
                 <p className="k3c-sub">{copy(HOME_CARD_COPY[card].line)}</p>

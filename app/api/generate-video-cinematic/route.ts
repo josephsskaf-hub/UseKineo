@@ -227,6 +227,8 @@ import {
   type CinematicRequestId,
 } from '@/lib/cinematic/claim'
 import { decideEngineGate, engineGateMessage } from '@/lib/enginePlanGate'
+import { KIDS_NARRATION_VERTICAL, kidsClaimField } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-DESENHO-SOM-2110 [TRAVA 8.2 — vai do fundador 21/10 "experiência no mínimo 9"] — o som do desenho infantil (voz contadora, trilha infantil, legenda opcional)
+import { vozQueOComposeEscolhe } from '@/lib/vozDoFilmeCurto' // KINEO-DESENHO-SOM-2110 — a voz do desenho de 35 s assinada como a do 15 s
 import { KIDS_CARTOON_LIVE, comPersonagemInfantil, desenhoInfantilDoPedido, kidsCartoonOn } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010 [TRAVA 8.2 — vai do fundador 20/10 "começa hoje"] — o desenho infantil 3D: estilo e personagem em TODA cena
 
 // KINEO-POLL-FATAL-2026-08-17 — era 60. Na noite do fal travado a rota morreu
@@ -1731,6 +1733,7 @@ async function manipularPost(req: NextRequest) {
     // KINEO-BEBE-QUE-FALA-2010 — do claim e do débito. Sem o campo: inativo, nada muda (lib/kidsCartoon/kidsCartoon.ts desenhoInfantilDoPedido).
     const desenhoInfantil = desenhoInfantilDoPedido({ raw: (body as { kids_cartoon?: unknown }).kids_cartoon, engine: body.engine, duration, aberto: kidsCartoonOn(KIDS_CARTOON_LIVE, isInternalEmail(user.email)), texto: prompt }) // KINEO-BEBE-QUE-FALA-2010
     if (desenhoInfantil.recusa) { await writeServerEvent({ name: 'kids_cartoon_refused', userId: user.id, path: '/api/generate-video-cinematic', metadata: { reason: desenhoInfantil.recusa.reason, engine: typeof body.engine === 'string' ? body.engine : null, requested_seconds: duration, charged: false } }); return NextResponse.json({ error: desenhoInfantil.recusa.error, reason: desenhoInfantil.recusa.reason, retryable: false, charged: false, refunded: false }, { status: desenhoInfantil.recusa.status }) } // KINEO-BEBE-QUE-FALA-2010
+    if (desenhoInfantil.ativo) body.vertical = KIDS_NARRATION_VERTICAL // KINEO-DESENHO-SOM-2110 — ANTES da voz ser medida (vozCurta/classicPersona logo abaixo): a contadora calorosa e a trilha infantil; o pedido do cliente não escolhe isto
     const family: CinematicFamily = wantsH3 ? 'h3' : wantsH3Max ? 'h3max' : wantsOmni ? 'omni' : wantsS25 ? 's25' : 'hollywood' // KINEO-H3MAX-2026-10-13
 
     // Parse script for verbatim mode
@@ -7418,6 +7421,8 @@ async function manipularPost(req: NextRequest) {
     // persona ficam de rastro); o /api/compose os põe no corpo antes de escolher a voz, em vez do `vertical` do navegador (que
     // o resgate do cron nem manda). Todo outro filme: resposta intacta.
     if (seedanceShortFilm && vozCurta) response.narration_voice = campoDaVozAssinada(vozCurta)
+    if (desenhoInfantil.ativo) response.kids_cartoon = kidsClaimField({ character: desenhoInfantil.personagem.id, captions: (body as { kids_captions?: unknown }).kids_captions !== false }) // KINEO-DESENHO-SOM-2110 — assinado: a montagem (e o resgate do cron) sabe que é desenho e se a legenda vai
+    if (desenhoInfantil.ativo && !response.narration_voice) { const vozInfantil = vozQueOComposeEscolhe({ narration: parsedScript.narration || prompt, vertical: KIDS_NARRATION_VERTICAL, tier: 'cinematic', language: narrationLanguage.language }); response.narration_voice = { vertical: KIDS_NARRATION_VERTICAL, speed_factor: 1, voice: vozInfantil.voice, speed: vozInfantil.defaultSpeed, persona_id: vozInfantil.id } } // KINEO-DESENHO-SOM-2110 — o 35 s também leva a voz assinada (fator 1: a velocidade do roteiro não muda)
     // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 — o filme de 15 s do Kling 2.5 e do Veo 3.1 fala a MESMA voz
     // [KINEO-DURACOES-CURTAS-2026-09-29] do 15 s (lib/vozDoFilmeCurto — o portão acima mediu nela): vai assinada no claim do mesmo jeito, e o /api/compose a usa.
     if (vozCurta && (wantsKling || wantsVeo)) response.narration_voice = campoDaVozAssinada(vozCurta) // KINEO-DURACOES-CURTAS-2026-09-29

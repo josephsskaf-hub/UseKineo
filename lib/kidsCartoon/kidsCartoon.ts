@@ -262,7 +262,7 @@ export const KIDS_TEMPLATE_COPY = {
     storyHint: 'Read it and change anything you like — the narrator says exactly this text.', make: 'Make my cartoon', starting: 'Starting…',
     caption: 'Post caption (with the AI label)', copy: 'Copy', copied: 'Copied', label: 'Made with AI — turn on the AI label when you post.',
     rules: 'Kids content stays innocent: no romance, violence, mocking or adult products.', again: 'Write another version',
-    plans: 'See plans', shorter: 'Make it 15 seconds instead', back: 'Change the idea',
+    plans: 'See plans', shorter: 'Make it 15 seconds instead', back: 'Change the idea', captionsToggle: 'Captions on the video', captionsHint: 'Turn off to post without burned-in captions.',
     stepScenes: 'Drawing the scenes', stepVoice: 'Adding the voice and captions', stepReady: 'Your cartoon is ready',
     wait: 'Usually 3 to 6 minutes. You can close this page — we finish it and email you, and it stays in your library.',
     download: 'Download video', library: 'Open my library', another: 'Make another cartoon', failed: 'The cartoon did not finish', retry: 'Try again',
@@ -274,7 +274,7 @@ export const KIDS_TEMPLATE_COPY = {
     storyHint: 'Leia e mude o que quiser — o narrador fala exatamente este texto.', make: 'Fazer meu desenho', starting: 'Começando…',
     caption: 'Legenda para postar (com o selo de IA)', copy: 'Copiar', copied: 'Copiado', label: 'Feito com IA — ligue o rótulo de IA ao postar.',
     rules: 'Conteúdo infantil é inocente: sem romance, violência, zombaria ou produto adulto.', again: 'Escrever outra versão',
-    plans: 'Ver planos', shorter: 'Fazer com 15 segundos', back: 'Mudar a ideia',
+    plans: 'Ver planos', shorter: 'Fazer com 15 segundos', back: 'Mudar a ideia', captionsToggle: 'Legenda no vídeo', captionsHint: 'Desligue para postar sem legenda queimada no vídeo.',
     stepScenes: 'Desenhando as cenas', stepVoice: 'Colocando a voz e a legenda', stepReady: 'Seu desenho está pronto',
     wait: 'Leva de 3 a 6 minutos. Pode fechar esta página — a gente termina, avisa por e-mail e ele fica na sua biblioteca.',
     download: 'Baixar vídeo', library: 'Abrir minha biblioteca', another: 'Fazer outro desenho', failed: 'O desenho não terminou', retry: 'Tentar de novo',
@@ -286,7 +286,7 @@ export const KIDS_TEMPLATE_COPY = {
     storyHint: 'Léelo y cambia lo que quieras — el narrador dice exactamente este texto.', make: 'Hacer mi dibujo', starting: 'Empezando…',
     caption: 'Texto para publicar (con la etiqueta de IA)', copy: 'Copiar', copied: 'Copiado', label: 'Hecho con IA — activa la etiqueta de IA al publicar.',
     rules: 'El contenido infantil es inocente: sin romance, violencia, burlas ni productos para adultos.', again: 'Escribir otra versión',
-    plans: 'Ver planes', shorter: 'Hacerlo de 15 segundos', back: 'Cambiar la idea',
+    plans: 'Ver planes', shorter: 'Hacerlo de 15 segundos', back: 'Cambiar la idea', captionsToggle: 'Subtítulos en el video', captionsHint: 'Desactívalos para publicar sin subtítulos grabados en el video.',
     stepScenes: 'Dibujando las escenas', stepVoice: 'Poniendo la voz y los subtítulos', stepReady: 'Tu dibujo está listo',
     wait: 'Suele tardar de 3 a 6 minutos. Puedes cerrar esta página — lo terminamos, te avisamos por e-mail y queda en tu biblioteca.',
     download: 'Descargar video', library: 'Abrir mi biblioteca', another: 'Hacer otro dibujo', failed: 'El dibujo no terminó', retry: 'Intentar de nuevo',
@@ -340,7 +340,7 @@ export function kidsCostLine(language: string | null | undefined, i: { seconds: 
 
 // ── KINEO-DESENHO-NOTA9-2110 — os pedidos do filme, montados aqui (puro) com os MESMOS campos que o /generate manda ────────
 /** O corpo do POST /api/generate-video-cinematic: o do /generate no Seedance 1.5 com "Use my script as is" e kids_cartoon. */
-export function kidsCinematicPayload(i: { generationId: string; script: string; request: Pick<KidsCartoonRequest, 'character' | 'language' | 'duration'> }) {
+export function kidsCinematicPayload(i: { generationId: string; script: string; request: Pick<KidsCartoonRequest, 'character' | 'language' | 'duration'>; captions?: boolean }) {
   return {
     generationId: i.generationId,
     prompt: String(i.script ?? '').trim(),
@@ -349,6 +349,7 @@ export function kidsCinematicPayload(i: { generationId: string; script: string; 
     script_mode: 'verbatim' as const,
     engine: KIDS_CARTOON_ENGINE,
     kids_cartoon: i.request.character,
+    ...(i.captions === false ? { kids_captions: false as const } : {}), // KINEO-DESENHO-SOM-2110 — o botão "Captions on the video" desligado; ligado (padrão) = corpo de antes
   }
 }
 /** O corpo do POST /api/compose do caminho clássico (o mesmo composePayload do /generate para um filme do Seedance 1.5). */
@@ -364,4 +365,48 @@ export function kidsComposePayload(i: { generationId: string; clipUrls: string[]
     language: i.language,
     ...(typeof i.speed === 'number' ? { speed: i.speed } : {}),
   }
+}
+
+// ── KINEO-DESENHO-SOM-2110 [TRAVA 8.2 — vai do fundador 21/10 "experiência no mínimo 9"] — o SOM do desenho infantil ──────────────
+// Fundador deu 9,5 aos dois curtas do Ollie: "o que me incomodou foi a trilha, tem que ser diferente; o resto está perfeito". E a
+// pesquisa de mercado (docs/MERCADO-DESENHO-INFANTIL-OPCOES-2026-10-21.md): o padrão é um NARRADOR CONTADOR DE HISTÓRIAS caloroso,
+// não voz de criança. Tudo aqui vale SÓ para o filme com `kids_cartoon` (Seedance 1.5); filme comum = byte a byte o de antes.
+//   · VOZ: a rota do filme põe `vertical = KIDS_NARRATION_VERTICAL` no pedido infantil; lib/narration/niche-mapping devolve a persona
+//     KIDS_NARRATION_PERSONA (nova, a contadora calorosa — 2,55 × 0,97 = 2,47 pal/s, dentro da régua de 2,5 do Seedance 1.5) antes de
+//     qualquer palpite por palavra-chave (que mandava "learns…" para o narrador de documentário). Vai ASSINADA no claim
+//     (`narration_voice`, também no 35 s), então a montagem, a retomada e o resgate do cron falam a mesma voz.
+//   · TRILHA: lib/musicDirection devolve a direção 'kids' para esse `vertical` (Lyria: música leve de programa infantil — ukulele,
+//     glockenspiel, xilofone, piano suave, alegre, sem bateria/épico/tensão) e o /api/compose baixa a trilha para KIDS_MUSIC_VOLUME.
+//   · LEGENDA: o botão "Captions on the video" da tela (ligado por padrão). Desligado, o pedido manda `kids_captions:false`, a rota
+//     assina `kids_cartoon.captions=false` no claim e o /api/compose tira as legendas faladas (trilhas 5/7). Marca d'água fica.
+export const KIDS_SOM_MARK = 'KINEO-DESENHO-SOM-2110'
+/** O `vertical` do filme infantil (literal espelhado em lib/narration/niche-mapping.ts e lib/musicDirection.ts — o guardião confere). */
+export const KIDS_NARRATION_VERTICAL = 'kids_story'
+/** A persona do narrador infantil: a contadora de histórias calorosa (lib/narration/personas.ts, voz nova). */
+export const KIDS_NARRATION_PERSONA = 'emotional-storyteller'
+/** Volume da trilha no desenho infantil (o filme comum fica em 12% — lib/compose MUSIC_VOLUME). */
+export const KIDS_MUSIC_VOLUME = '8%'
+/** O que vai assinado no claim do filme infantil (a montagem e o resgate do cron leem daqui). */
+export function kidsClaimField(i: { character: KidsCharacterId; captions: boolean }): { character: KidsCharacterId; captions: boolean } {
+  return { character: i.character, captions: i.captions !== false }
+}
+/** O desenho infantil assinado no claim (response.kids_cartoon). null = filme comum (nada muda) ou campo inválido. */
+export function desenhoDoClaim(response: unknown): { character: KidsCharacterId; captions: boolean } | null {
+  const r = response && typeof response === 'object' ? (response as Record<string, unknown>) : null
+  const k = r?.kids_cartoon
+  if (!k || typeof k !== 'object' || Array.isArray(k)) return null
+  const { character, captions } = k as Record<string, unknown>
+  if (!isKidsCharacterId(character) || typeof captions !== 'boolean') return null
+  return { character, captions }
+}
+/** A trilha (áudio da trilha 8 do RenderScript) mais baixa no desenho infantil. Puro: devolve um source novo; o resto intacto. */
+export function kidsMusicQuieter<T extends Record<string, unknown>>(source: T): { source: T; changed: number } {
+  const els = source && typeof source === 'object' ? (source as { elements?: unknown }).elements : undefined
+  if (!Array.isArray(els)) return { source, changed: 0 }
+  let changed = 0
+  const next = els.map((e) => {
+    if (e && typeof e === 'object' && (e as { type?: unknown }).type === 'audio' && Number((e as { track?: unknown }).track) === 8) { changed++; return { ...(e as Record<string, unknown>), volume: KIDS_MUSIC_VOLUME } }
+    return e
+  })
+  return { source: { ...source, elements: next }, changed }
 }
