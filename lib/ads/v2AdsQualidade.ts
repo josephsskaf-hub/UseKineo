@@ -110,7 +110,7 @@ export function adsV2EndCardV3Of(i: { business: unknown; offer: unknown; ctaKind
   return { title, offer: adsV2EndCardOffer(i.offer), cta, contact }
 }
 /** KINEO-ADS-QUALIDADE-2110 — o desenho do cartão v3 (frações do quadro). Tudo acima de 80% (a interface do TikTok/Reels mora embaixo). */
-export const ADS_V2_END_CARD_V3 = { productY: 0.27, productH: 0.42, productW: 0.9, panelTop: 0.5, panelFill: 'rgba(12,12,14,0.9)', titleY: 0.565, titleFont: 0.05, titleFontMin: 0.034, offerY: 0.645, offerFont: 0.033, offerFill: '#111111', offerBg: '#FFD23F', ctaY: 0.725, ctaFont: 0.034, ctaFill: '#111111', ctaBg: '#ffffff', contactY: 0.79, contactFont: 0.024 } as const
+export const ADS_V2_END_CARD_V3 = { productY: 0.3, productH: 0.5, productW: 0.94, panelTop: 0.58, panelFill: 'rgba(12,12,14,0.9)', titleY: 0.64, titleFont: 0.05, titleFontMin: 0.034, offerY: 0.71, offerFont: 0.033, offerFill: '#111111', offerBg: '#FFD23F', ctaY: 0.78, ctaFont: 0.034, ctaFill: '#111111', ctaBg: '#ffffff', contactY: 0.84, contactFont: 0.024 } as const
 const CHAR_EM = 0.56
 /** KINEO-ADS-QUALIDADE-2110 — os elementos do cartão final v3 (puro). Usa as trilhas track..track+7. */
 export function adsV2EndCardV3Elements(i: { productUrl: string; card: AdsV2EndCardV3; fontFamily: string; width: number; height: number; time: number; duration: number; track: number; fade?: number }): Record<string, unknown>[] {
