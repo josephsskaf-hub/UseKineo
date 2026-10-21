@@ -16,6 +16,8 @@ export function buildCenaMontage(s: CenaState): Record<string, unknown> {
   // Inserto real coberto: esconde rosto/boca e produto gerado, conserva som contínuo da cena.
   els.push(...adsV2SoftPackshotElements(s.plan.input.foto, 10, 9.5, 1.5))
   const card = adsV2EndCardV3Elements({ productUrl: s.plan.input.foto, card: { title: s.plan.product.slice(0, 55), offer: s.plan.input.oferta ?? '', cta: s.plan.script.cta, contact: '' }, fontFamily: 'Inter', width, height, time: 13, duration: 2, track: 20, fade: 0.2 })
+  const backdrop = card.find(e => e.track === 20)
+  if (backdrop) { delete backdrop.source; delete backdrop.fit; delete backdrop.animations; backdrop.type = 'shape'; backdrop.path = 'M 0 0 L 100 0 L 100 100 L 0 100 L 0 0 Z'; backdrop.fill_color = '#ffffff' }
   // Cartão CENA dentro da zona segura: título, selo e CTA em trilhas próprias, CTA acima de y1480.
   for (const e of card.filter(e => e.type === 'text')) {
     if (e.track === 24) e.y = '60.5%'
