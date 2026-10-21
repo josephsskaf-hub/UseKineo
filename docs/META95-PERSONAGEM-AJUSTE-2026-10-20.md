@@ -1,6 +1,6 @@
 # KINEO-META95-PERSONAGEM-AJUSTE-2010
 
-DECISÃO DO PEDIDO: branch `codex/meta95-personagem-ajuste-2010`, base `origin/main` `9d4d0ffc1f71a34f9e4f56a05c55631908b925fc`, consulta Git em 20/10/2026 (America/Sao_Paulo). Só código e provas offline; push apenas da branch, sem PR/publicação/render ou acesso a serviços.
+FATO CONFIRMADO / ESCOPO DO PEDIDO: branch `codex/meta95-personagem-ajuste-2010-codex`, base `origin/main` `9d4d0ffc1f71a34f9e4f56a05c55631908b925fc`, consulta Git em 20/10/2026 (America/Sao_Paulo). Só código e provas offline; push apenas da branch, sem PR/publicação/render ou acesso a serviços.
 
 FATO CONFIRMADO / IMPLEMENTADO: o still com folha pede proporção explícita, composição contínua e fundo até a borda; proíbe painéis, colagem e faixa vazia. `lib/cinematic/folhaDePersonagem.ts:454`. O servidor só com opt-in `personagem` confere as dimensões devolvidas (tolerância relativa de 2% para arredondamento; ausentes/inválidas também recusadas) antes de aceitar o edit. `lib/estrelaServer.ts:49`, `lib/cinematic/personagemStill.ts:4`. URL nula conserva o FLUX já gerado na rota.
 
@@ -19,3 +19,5 @@ FATO CONFIRMADO / IMPLEMENTADO: cena sem personagem citado não recebe ficha ou 
 TESTADO LOCALMENTE: `scripts/test-meta95-personagem-ajuste-2010.mjs` executa os módulos TS e fatias reais da rota com casos manuais Dino/floresta/vagalumes, menino/Ravan, boy/his bike/he, girl/her/she, refação simulada de 25 segundos e fornecedores falsos. Prova recusa de dimensões, bloqueios de segurança, evento com motivo, ambiente sem pessoa, caminho desligado e desfaz exato/idempotente/CRLF. Quinze mutantes de comportamento devem ficar vermelhos, além do mutante estrutural do desfaz. O desfaz novo é a camada mais recente e os guardiões antigos conservam seus recortes em memória.
 
 SUGESTÃO / PRÓXIMO PASSO: depois da revisão da branch pelo fundador, validar os mesmos casos reais sob uma autorização separada de render. O push desta branch não prova imagem entregue nem resultado em produção.
+
+FATO CONFIRMADO / COORDENAÇÃO (20/10/2026): a branch remota com o nome original já existia no commit `1a8f1efa284f9df23dbebcb18be91c4f7cea4017`, com uma implementação do Claude. Após consulta, Joseph pediu entregar esta versão em outra branch com nome distinto. Esta entrega usa `codex/meta95-personagem-ajuste-2010-codex`, sem merge com a versão remota. Fonte: `git ls-remote` / `git show` do commit remoto e resposta direta do fundador neste pedido.
