@@ -690,7 +690,7 @@ ${/* KINEO-PAGINAS-LOTE1-2026-10-12 — lote 1: duas intenções de compra + os 
 - [Alternatives](${BASE}/alternatives): per-competitor pages.
 - [Terms of service](${BASE}/terms): includes the clause confirming you retain ownership of generated videos.
 ${/* KINEO-GUIAS-IA-1610 — as 8 guias /guides/<slug> (publicação de 17/10): uma linha cada, rótulo = título da página, sem número digitado. */ ''}
-${/* KINEO-PAGINAS-CONECTOR-2110 — quatro guias do conector Kineo Studio, pares EN/PT, sem preço literal. */ connectorGuideLlmsLines(BASE)}
+${/* KINEO-PAGINAS-CONECTOR-2110 — quatro guias do conector Kineo Studio, pares EN/PT, sem preço literal. */ connectorGuideLlmsLines(BASE, Boolean(STUDIO_ADS_FACT))}
 ${/* KINEO-PAGINAS-CONECTOR-2110 */ ''}
 ## Practical guides (reviewed ${GUIAS_IA_REVIEWED_ISO})
 

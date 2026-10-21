@@ -46,6 +46,7 @@ async function proofs(src) {
   check(model.CONNECTOR_GUIDES.length === 4, 'catálogo tem exatamente quatro guias')
   check(model.CONNECTOR_GUIDES_REVIEWED === '2026-10-21', 'data da revisão')
   const sitemap = routePaths(src['app/sitemap.ts'])
+  check(!model.connectorGuideLlmsLines('https://www.usekineo.com', false).includes('Studio Ads') && model.connectorGuideLlmsLines('https://www.usekineo.com', true).includes('Studio Ads'), 'llms respeita anúncios pausados, mantendo os quatro guias de filmes')
   const key = [src['app/sitemap.ts'], src['app/llms.txt/route.ts'], src['lib/seo/connectorGuides.ts']].join('\0')
   if (!distributionCache.has(key)) distributionCache.set(key, guideDistribution(src))
   const distribution = await distributionCache.get(key)
@@ -78,7 +79,7 @@ async function proofs(src) {
     check(showcase.length === 1 && showcase[0].props.locale === lang && src['components/ConnectorGuidePage.tsx'].includes("@/app/claude-connector/palette") && src['components/ConnectorGuidePage.tsx'].includes("@/app/claude-connector/ShowcaseGrid"), `${route}: reuso da paleta clara e vitrine`)
     check(names(tree, 'Link').filter((node) => node.props.href?.startsWith('/signup?')).length === 2, `${route}: CTAs de criar conta`)
     check(sitemap.filter((p) => p === route).length === 1 && distribution.sitemap.filter((entry) => entry.url === `https://www.usekineo.com${route}`).length === 1, `${route}: entrada única no sitemap`)
-    check(llmsLines.split(`](https://www.usekineo.com${route})`).length === 2 && src['app/llms.txt/route.ts'].includes('connectorGuideLlmsLines(BASE)'), `${route}: entrada no llms.txt`)
+    check(llmsLines.split(`](https://www.usekineo.com${route})`).length === 2 && src['app/llms.txt/route.ts'].includes('connectorGuideLlmsLines(BASE, Boolean(STUDIO_ADS_FACT))'), `${route}: entrada no llms.txt`)
     check(src['components/Footer.tsx'].includes(`href: '${route}'`) && src['app/claude-connector/page.tsx'].includes('CONNECTOR_GUIDES.map((guide) =>') && src['app/claude-connector/page.tsx'].includes('href={guide.path}'), `${route}: link no rodapé e no conector`)
     check(!/\$\s*\d|R\$|guaranteed income|renda garantida|100% safe|100% seguro/i.test(text), `${route}: sem preço literal, renda ou segurança absoluta`)
   }
@@ -149,8 +150,9 @@ await mutant('anúncio prometido no chat', 'components/ConnectorGuidePage.tsx', 
 await mutant('vitrine removida', 'components/ConnectorGuidePage.tsx', '<ShowcaseGrid locale={lang} />', '<div />')
 await mutant('CTA perdido', 'components/ConnectorGuidePage.tsx', '`/signup?utm_source=', '`/login?utm_source=')
 await mutant('sitemap sem Claude PT', 'app/sitemap.ts', "path: '/criar-videos-com-ia-no-claude'", "path: '/claude-pt-errado'")
+await mutant('pausa de anúncios ignorada', 'lib/seo/connectorGuides.ts', 'adsAvailable ? guide.description : filmOnly', 'guide.description')
 await mutant('sitemap perde guia na saída', 'app/sitemap.ts', '...staticEntries,', "...staticEntries.filter((entry) => !entry.url.endsWith('/make-ai-videos-in-chatgpt')),")
-await mutant('llms sem as linhas', 'app/llms.txt/route.ts', 'connectorGuideLlmsLines(BASE)', "''")
+await mutant('llms sem as linhas', 'app/llms.txt/route.ts', 'connectorGuideLlmsLines(BASE, Boolean(STUDIO_ADS_FACT))', "''")
 await mutant('rodapé sem ChatGPT EN', 'components/Footer.tsx', "href: '/make-ai-videos-in-chatgpt'", "href: '/chatgpt-errado'")
 await mutant('guia órfão na página mãe', 'app/claude-connector/page.tsx', 'href={guide.path}', 'href="/pricing"')
 for (const file of FILES) {

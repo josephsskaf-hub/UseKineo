@@ -85,6 +85,12 @@ export function connectorGuideFaq(client: ConnectorClient, lang: ConnectorLangua
   ]
 }
 
-export function connectorGuideLlmsLines(base: string): string {
-  return CONNECTOR_GUIDES.map((guide) => `- [${guide.title}](${base}${guide.path}): ${guide.description}`).join('\n')
+export function connectorGuideLlmsLines(base: string, adsAvailable = false): string {
+  return CONNECTOR_GUIDES.map((guide) => {
+    // O mapa global respeita a pausa comercial dos anúncios. Os guias de filmes continuam acessíveis.
+    const filmOnly = guide.lang === 'pt'
+      ? 'Conecte sua conta Kineo por OAuth e crie filmes narrados com os créditos da conta. Passo a passo, URL copiável, permissões e revogação.'
+      : 'Connect your Kineo account with OAuth and create narrated films using account credits. Setup, copyable server URL, permissions and revocation.'
+    return `- [${guide.title}](${base}${guide.path}): ${adsAvailable ? guide.description : filmOnly}`
+  }).join('\n')
 }
