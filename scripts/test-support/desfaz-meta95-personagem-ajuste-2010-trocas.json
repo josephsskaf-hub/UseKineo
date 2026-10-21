@@ -12,6 +12,7 @@
     "scripts/test-support/desfaz-filme-rapido-1710.mjs": 2,
     "scripts/test-support/desfaz-meta95-personagem-2010.mjs": 2,
     "scripts/test-trilha-15s-1610.mjs": 1,
+    "scripts/test-verbatim-intocavel-2010.mjs": 0,
     "scripts/test-visual-contract-2026-09-11.mjs": 1
   },
   "app/api/generate-video-cinematic/route.ts": [
@@ -100,6 +101,12 @@
     [
       "// KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 \"Vai pra meta do 95\"] — re-ancorado: +1 importador de servidor, lib/cinematic/personagemAjusteServer.ts (o still com folha passa pela moderação de saída 'estrela', e a criatura em cena inocente é reconferida sem termo de idade) = 35 (34 do KINEO-BEBE-QUE-FALA-2010 + 1).",
       "ok(imp.length === 34 && imp.every((p) => !/^\\s*['\"]use client['\"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`) // reancorado KINEO-BEBE-QUE-FALA-2010 — era 32 (+2)"
+    ]
+  ],
+  "scripts/test-verbatim-intocavel-2010.mjs": [
+    [
+      "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-BEBE-QUE-FALA-2010', '--grep=KINEO-MCP-STUDIO-AJUSTE-2010', `--grep=${MARCA_HOME_REMODELA_2010}`, '--grep=KINEO-HOME-CARDS-CLAROS-2010', '--grep=KINEO-DESENHO-NOTA9-2110', '--grep=KINEO-META95-PERSONAGEM-AJUSTE-2010', 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-HOME-REMODELA-2010 — a última versão alheia pula também os commits da home remodelada (os merges da fila e as reâncoras) // KINEO-HOME-CARDS-CLAROS-2010 — reancorado: os commits do véu mais claro dos cards (20/10 23:30) também são de depois // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 \"Vai pra meta do 95\"] — os commits e merges dos consertos da folha (camada de depois, tirada primeiro pela cadeia do bebê) também não são alheios",
+      "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-BEBE-QUE-FALA-2010', '--grep=KINEO-MCP-STUDIO-AJUSTE-2010', `--grep=${MARCA_HOME_REMODELA_2010}`, '--grep=KINEO-HOME-CARDS-CLAROS-2010', '--grep=KINEO-DESENHO-NOTA9-2110', 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-HOME-REMODELA-2010 — a última versão alheia pula também os commits da home remodelada (os merges da fila e as reâncoras) // KINEO-HOME-CARDS-CLAROS-2010 — reancorado: os commits do véu mais claro dos cards (20/10 23:30) também são de depois"
     ]
   ]
 }
