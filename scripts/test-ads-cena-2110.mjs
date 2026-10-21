@@ -367,7 +367,7 @@ for (const path of ADS_CENA_2110_ARQUIVOS) {
   assert.equal(restored, baseline, 'desfaz exato: ' + path)
   assert.equal(semAdsCena2110(restored, path), baseline, 'desfaz idempotente: ' + path)
   assert.equal(semAdsCena2110(original.replace(/\n/g, '\r\n'), path), baseline.replace(/\n/g, '\r\n'), 'desfaz preserva CRLF: ' + path)
-  const delta = execFileSync('git', ['diff', '--unified=0', ADS_CENA_2110_BASE, '--', path], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  const delta = execFileSync('git', ['diff', '--ignore-cr-at-eol', '--unified=0', ADS_CENA_2110_BASE, '--', path], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
   const unmarked = delta.split('\n').filter(l => l.startsWith('+') && !l.startsWith('+++') && l.trim() !== '+' && !l.includes(MARCA_ADS_CENA_2110))
   assert.equal(unmarked.length, 0, 'toda linha tocada carrega marca: ' + path)
 }
