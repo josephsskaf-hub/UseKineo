@@ -2,9 +2,10 @@
   "__acrescimos": {
     "app/api/generate-video-cinematic/route.ts": 9,
     "lib/cinematic/criticoStill.ts": 11,
-    "scripts/test-desenho-nota9-2110.mjs": 0,
+    "scripts/test-desenho-nota9-2110.mjs": 1,
     "scripts/test-home-cards-claros-2010.mjs": 0,
     "scripts/test-mcp-studio-2010.mjs": 3,
+    "scripts/test-mcp-studio-ajuste-2010.mjs": 3,
     "scripts/test-meta95-personagem-2010.mjs": 2,
     "scripts/test-moderacao-2026-09-25.mjs": 1,
     "scripts/test-support/desfaz-desenho-nota9-2110.mjs": 2,
@@ -74,6 +75,10 @@
     ]
   ],
   "scripts/test-desenho-nota9-2110.mjs": [
+    [
+      "    if (semMeta95PersonagemAjuste2010(rd(f), f) !== b) p.push(`${f} mudou`) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 — a rota sem os consertos da folha (só rodam com a folha interna, desfaz próprio); era: if (rd(f) !== b)",
+      "    if (rd(f) !== b) p.push(`${f} mudou`)"
+    ],
     [
       "  const semMarca = DESENHO_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !rd(f).split('\\n').every((l) => b.has(l) || l.includes(MARCA) || l.includes('KINEO-META95-PERSONAGEM-AJUSTE-2010')) }) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 \"Vai pra meta do 95\"] — as reâncoras dos consertos da folha (camada de depois, chamada primeiro por semDesenhoNota9_2110) levam a marca delas",
       "  const semMarca = DESENHO_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !rd(f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) })"
