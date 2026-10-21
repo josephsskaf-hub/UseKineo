@@ -5,6 +5,7 @@
 //   · as reâncoras nos guardiões alheios (só acréscimos de linha com a marca): saem as linhas marcadas, na contagem da tabela.
 // Par que não casa / contagem errada = null (semVerbatimIntocavel2010) ou erro (semVerbatimIntocavel2010NaCadeia) — nunca
 // "desfaz" em silêncio.
+import { semMcpStudioAjuste2010 } from './desfaz-mcp-studio-ajuste-2010.mjs' // KINEO-MCP-STUDIO-AJUSTE-2010 — a camada mais nova (20/10, depois do verbatim): as reâncoras do ajuste do conector saem primeiro
 export const MARCA_VERBATIM_INTOCAVEL_2010 = 'KINEO-VERBATIM-INTOCAVEL-2010'
 export const ARQUIVOS_VERBATIM_INTOCAVEL_2010 = ['lib/growth/entradaSeedance15.ts']
 /** Guardiões/desfaz alheios reancorados por esta entrega → quantas linhas marcadas cada um ganhou (só acréscimos). */
@@ -58,6 +59,7 @@ function semReancoras(texto, p) {
 /** A fonte sem esta entrega (null = algum par não casou: texto intocado ou mudado por outra mão). Ordem (arquivo, texto). */
 export function semVerbatimIntocavel2010(caminho, src) {
   if (typeof src !== 'string') return src
+  src = semMcpStudioAjuste2010(src, rel(caminho)) // KINEO-MCP-STUDIO-AJUSTE-2010 — encadeado: o ajuste do conector (camada de depois) sai PRIMEIRO; texto sem a marca passa igual
   const p = rel(caminho)
   if (REANCORAS_VERBATIM_INTOCAVEL_2010.some((a) => p.endsWith(a))) {
     const r = semReancoras(src, REANCORAS_VERBATIM_INTOCAVEL_2010.find((a) => p.endsWith(a)))
@@ -73,6 +75,7 @@ export function semVerbatimIntocavel2010(caminho, src) {
 /** Para a cadeia dos guardiões (ordem (texto, arquivo), como os outros desfaz): só as reâncoras em scripts/, CRLF preservado;
  *  contagem errada = erro. lib/growth/entradaSeedance15.ts passa igual (o guardião desta entrega o desfaz direto). */
 export function semVerbatimIntocavel2010NaCadeia(texto, p) {
+  texto = semMcpStudioAjuste2010(texto, p) // KINEO-MCP-STUDIO-AJUSTE-2010 — encadeado: o ajuste do conector (camada de depois) sai PRIMEIRO
   if (!rel(p).startsWith('scripts/')) return texto
   const r = semReancoras(texto, p)
   if (r === null) throw new Error(`desfaz-verbatim-intocavel-2010: ${rel(p)} com contagem de linhas marcadas diferente de ${ACRESCIMOS_REANCORA_VERBATIM_INTOCAVEL_2010[rel(p)]}`)

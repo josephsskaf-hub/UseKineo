@@ -301,3 +301,29 @@ export function tokenResponse(access: string, refresh: string | null, scope: str
     scope,
   }
 }
+
+// ─── KINEO-MCP-STUDIO-AJUSTE-2010 — a tela de consentimento nomeia o app que pediu (Claude, ChatGPT…) ────────────
+// O Kineo Studio funciona no Claude E no ChatGPT (Developer mode → custom MCP server). A tela dizia "remova o conector no
+// Claude" até para quem conectava pelo ChatGPT. O nome vem do HOST do redirect registrado (o client_name da DCR é texto
+// livre de quem se registra; só vale quando é um nome conhecido) — nada de ecoar texto arbitrário na frase de revogação.
+export const STUDIO_KNOWN_APPS = ['Claude', 'Claude Code', 'ChatGPT', 'Cursor'] as const
+export function studioClientApp(redirectUri: string, clientName: string | null): string | null {
+  let host = ''
+  try {
+    host = new URL(redirectUri).hostname.toLowerCase()
+  } catch {
+    host = ''
+  }
+  if (host === 'claude.ai' || host.endsWith('.claude.ai') || host === 'claude.com' || host.endsWith('.claude.com')) return 'Claude'
+  if (host === 'chatgpt.com' || host.endsWith('.chatgpt.com') || host === 'chat.openai.com' || host === 'openai.com' || host.endsWith('.openai.com')) return 'ChatGPT'
+  const name = (clientName ?? '').trim().toLowerCase()
+  return STUDIO_KNOWN_APPS.find((a) => a.toLowerCase() === name) ?? null
+}
+/** "in Claude" / "in ChatGPT" / "in the app you connected (Claude, ChatGPT…)" — onde a pessoa revoga. */
+export function studioRevokeWhere(app: string | null): string {
+  return app ? `in ${app}` : 'in the app you connected (Claude, ChatGPT…)'
+}
+/** "Go back to Claude" / "Go back to the app you were connecting (Claude, ChatGPT…)". */
+export function studioBackTo(app: string | null): string {
+  return app ? `Go back to ${app}` : 'Go back to the app you were connecting (Claude, ChatGPT…)'
+}

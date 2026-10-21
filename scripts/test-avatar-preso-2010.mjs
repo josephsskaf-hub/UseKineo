@@ -293,6 +293,7 @@ console.log('\nD. desfaz, encadeamento e diff')
   ok(fora.length === 0, `D7 o diff da entrega só toca a lista e os novos${fora.length ? ' — fora: ' + fora.join(', ') : ''}`)
   const meus = commits.filter(([h]) => { const fs2 = git('diff-tree', '--no-commit-id', '--name-only', '-r', h).split('\n'); return fs2.some((f) => AVATAR_PRESO_2010_NOVOS.includes(f)) })
   meus.splice(0, meus.length, ...meus.filter(([, s]) => !s.includes(MARCA_VERBATIM_INTOCAVEL_2010))) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 — os commits do conserto do verbatim (reâncoras no desfaz e no guardião desta entrega) levam a marca deles
+  meus.splice(0, meus.length, ...meus.filter(([, s]) => !s.includes('KINEO-MCP-STUDIO-AJUSTE-2010'))) // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: os commits do ajuste do conector (reâncoras no guardião desta entrega) levam a marca deles
   meus.splice(0, meus.length, ...meus.filter(([, s]) => !s.includes('KINEO-HOME-REMODELA-2010'))) // KINEO-HOME-REMODELA-2010 — os commits da home remodelada (reâncoras neste guardião) levam a marca deles
   ok(meus.every(([, s]) => s.includes(MARCA) && s.includes('[TRAVA 8.2')), 'D8 todo commit da entrega leva a marca e a [TRAVA 8.2] no assunto')
 }

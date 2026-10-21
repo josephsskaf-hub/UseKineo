@@ -25,6 +25,7 @@ const SRC = {
   panel: read('app/claude-connector/ConnectPanel.tsx'),
   filter: read('app/claude-connector/PresetFilter.tsx'),
   glyphs: read('app/claude-connector/ClientGlyphs.tsx'),
+  grid: read('app/claude-connector/ShowcaseGrid.tsx'), // KINEO-MCP-STUDIO-AJUSTE-2010 — a vitrine de 9 que substituiu os clipes dos cartões
   wall: read('lib/engineWall.ts'),
   lib: read('lib/claudeConnect.ts'),
 }
@@ -40,10 +41,10 @@ function tabProblems(panel) {
   const want = ['claude', 'claude_code', 'cursor', 'other', 'chatgpt']
   if (tabs.map((t) => t.key).join() !== want.join()) probs.push(`abas ≠ ${want.join(' · ')} (${tabs.map((t) => t.key).join(' · ')})`)
   const gpt = tabs.find((t) => t.key === 'chatgpt')
-  if (!gpt || !gpt.soon) probs.push('aba ChatGPT sem "soon"')
-  if (tabs.some((t) => t.key !== 'chatgpt' && t.soon)) probs.push('aba que funciona marcada como "soon"')
+  if (!gpt || gpt.soon) probs.push('aba ChatGPT marcada "soon" (o Kineo Studio está no ar no ChatGPT)') // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: ChatGPT no ar
+  if (tabs.some((t) => t.soon)) probs.push('aba que funciona marcada como "soon"') // KINEO-MCP-STUDIO-AJUSTE-2010
   if (!/\{t\.soon && \(/.test(panel)) probs.push('marca "soon" não é renderizada')
-  if (!panel.includes('<strong>Coming soon.</strong> A Kineo app for ChatGPT is not available yet.')) probs.push('aba ChatGPT não diz "Coming soon"')
+  if (!/Developer mode/.test(panel) || !panel.includes('<CopyField value={CLAUDE_STUDIO_MCP_SERVER_URL}')) probs.push('aba ChatGPT sem os passos do Developer mode / sem a URL do Kineo Studio') // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado
   return probs
 }
 
@@ -114,20 +115,19 @@ function curatedOf(wall) {
   for (const m of block.matchAll(/^\s*([a-z0-9_]+): \[([^\]]*)\]/gm)) out[m[1]] = [...m[2].matchAll(/'([0-9a-f-]+)'/g)].map((x) => x[1])
   return out
 }
-function clipProblems(page, wall) {
+// KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado (fundador 20/10: "vídeos velhos"): os cartões de pedido perderam o clipe; os vídeos moram na vitrine
+// ./ShowcaseGrid (9 clipes que o site já serve). Prova agora: 4-6 pedidos legíveis, nenhum <video>/clipe na página, e todo
+// vídeo e pôster da vitrine existe em public/. (A curadoria CURATED de lib/engineWall.ts segue intocada.)
+function clipProblems(page, wall, grid = SRC.grid) {
   const probs = []
-  const curated = curatedOf(wall)
-  if (!Object.keys(curated).length) probs.push('CURATED ilegível em lib/engineWall.ts')
-  const presets = [...page.matchAll(/id: '([a-z]+)',\n\s+cat: '([a-z]+)',[\s\S]*?clip: (null|'([0-9a-f-]+)'),\n\s+engine: (null|'([a-z0-9]+)'),/g)]
+  if (!wall.includes('const CURATED')) probs.push('CURATED ilegível em lib/engineWall.ts')
+  const presets = [...page.matchAll(/id: '([a-z]+)',\n\s+cat: '([a-z]+)',[\s\S]*?engine: (null|'([a-z0-9]+)'),/g)]
   if (presets.length < 4) probs.push(`menos de 4 pedidos legíveis (${presets.length})`)
-  for (const m of presets) {
-    const [, id, , , clip, , engine] = m
-    if (!clip) { if (engine) probs.push(`${id}: motor sem clipe`); continue }
-    if (!fs.existsSync(path.join(ROOT, 'public/previews', clip + '.mp4'))) probs.push(`${id}: clipe inexistente ${clip}`)
-    const wk = WALL_KEY[engine]
-    if (!wk || !(curated[wk] || []).includes(clip)) probs.push(`${id}: selo "${engine}" não é o motor do clipe ${clip.slice(0, 8)} em CURATED`)
-  }
   if (presets.length > 6) probs.push(`mais de 6 pedidos (${presets.length})`)
+  if (/<video/.test(page) || /\n\s+clip: /.test(page)) probs.push('clipe velho de volta nos cartões de pedido')
+  const files = [...grid.matchAll(/\{ src: '([^']+)', poster: '([^']+)'/g)].flatMap((m) => [m[1], m[2]])
+  if (files.length !== 18) probs.push(`vitrine sem 9 vídeos + 9 pôsteres (${files.length / 2})`)
+  for (const f of files) if (!fs.existsSync(path.join(ROOT, 'public', f))) probs.push(`arquivo inexistente na vitrine: ${f}`)
   return probs
 }
 
@@ -158,7 +158,7 @@ const LOOK = { page: SRC.page, panel: SRC.panel, filter: SRC.filter, glyphs: SRC
 
 // ─── o real ──────────────────────────────────────────────────────────────────
 const t = tabProblems(SRC.panel)
-ok(t.length === 0, `(1) 5 abas com ícone: Claude · Claude Code · Cursor · Other MCP clients · ChatGPT "soon" (${t.join('; ') || 'ok'})`)
+ok(t.length === 0, `(1) 5 abas com ícone: Claude · Claude Code · Cursor · Other MCP clients · ChatGPT (no ar, Developer mode) (${t.join('; ') || 'ok'})`) // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado
 const st = stepProblems(SRC.panel)
 ok(st.length === 0, `(2) cada aba = 3 cartões numerados lado a lado; Claude/Claude Code/Cursor com os passos certos (${st.join('; ') || 'ok'})`)
 const u = urlProblems(SRC)
@@ -166,7 +166,7 @@ ok(u.length === 0, `(3) URL do servidor só de CLAUDE_MCP_SERVER_URL (hero, pain
 const cl = claimProblems([SRC.page, SRC.panel, SRC.filter])
 ok(cl.length === 0, `(4) nenhuma promessa de vídeo gerado dentro do Claude (${cl.join('; ') || 'ok'})`)
 const cp = clipProblems(SRC.page, SRC.wall)
-ok(cp.length === 0, `(5) todo clipe existe em public/previews e o selo nomeia o motor de CURATED (${cp.join('; ') || 'ok'})`)
+ok(cp.length === 0, `(5) cartões sem clipe velho; a vitrine de 9 tem todos os vídeos e pôsteres em public/ (${cp.join('; ') || 'ok'})`) // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado
 const ch = chipProblems(SRC.page, SRC.filter)
 ok(ch.length === 0, `(6) chips All · Shorts · Ads · Clips · Plans cobrem todos os pedidos (${ch.join('; ') || 'ok'})`)
 const lk = lookProblems(LOOK)
@@ -179,8 +179,8 @@ ok(/export const dynamic = 'force-static'/.test(SRC.page) && SRC.page.includes('
   ok(m !== SRC.panel && tabProblems(m).length > 0, '(M1) sem a aba Cursor → vermelho')
 }
 {
-  const m = SRC.panel.replace("{ key: 'chatgpt', label: 'ChatGPT', soon: true }", "{ key: 'chatgpt', label: 'ChatGPT' }")
-  ok(m !== SRC.panel && tabProblems(m).length > 0, '(M2) ChatGPT sem "soon" → vermelho')
+  const m = SRC.panel.replace("{ key: 'chatgpt', label: 'ChatGPT' }", "{ key: 'chatgpt', label: 'ChatGPT', soon: true }") // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: o defeito agora é marcar "soon"
+  ok(m !== SRC.panel && tabProblems(m).length > 0, '(M2) ChatGPT marcado "soon" (está no ar) → vermelho') // KINEO-MCP-STUDIO-AJUSTE-2010
 }
 {
   const m = SRC.panel.replace(/<StepCard n=\{2\} title="Add the Kineo connector">[\s\S]*?<\/StepCard>\n/, '')
@@ -197,10 +197,10 @@ ok(/export const dynamic = 'force-static'/.test(SRC.page) && SRC.page.includes('
   ok(m2 !== SRC.panel && claimProblems([m2]).length > 0, '(M6) "renders in Claude" no painel → vermelho')
 }
 {
-  const m = SRC.page.replace("clip: 'c4e4fbab-0978-4daa-9fcf-119096370210'", "clip: '00000000-dead-beef-0000-000000000000'")
-  ok(m !== SRC.page && clipProblems(m, SRC.wall).length > 0, '(M7) clipe que não existe na vitrine → vermelho')
-  const m2 = SRC.page.replace("clip: 'c4e4fbab-0978-4daa-9fcf-119096370210',\n    engine: 'kling',", "clip: 'c4e4fbab-0978-4daa-9fcf-119096370210',\n    engine: 'veo',")
-  ok(m2 !== SRC.page && clipProblems(m2, SRC.wall).length > 0, '(M8) selo com motor que não gerou o clipe → vermelho')
+  const m = SRC.page.replace("    engine: 'kling',", "    clip: 'c4e4fbab-0978-4daa-9fcf-119096370210',\n    engine: 'kling',") // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado
+  ok(m !== SRC.page && clipProblems(m, SRC.wall).length > 0, '(M7) clipe velho de volta num cartão de pedido → vermelho') // KINEO-MCP-STUDIO-AJUSTE-2010
+  const m2 = SRC.grid.replace('/previews/home-card-film-flannan.mp4', '/previews/nao-existe.mp4') // KINEO-MCP-STUDIO-AJUSTE-2010
+  ok(m2 !== SRC.grid && clipProblems(SRC.page, SRC.wall, m2).length > 0, '(M8) vídeo da vitrine que não existe em public/ → vermelho') // KINEO-MCP-STUDIO-AJUSTE-2010
 }
 {
   const m = SRC.page.replace("    cat: 'plans',", "    cat: 'memes',")
