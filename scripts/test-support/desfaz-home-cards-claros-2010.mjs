@@ -23,7 +23,7 @@ export const HOME_CARDS_CLAROS_2010_BASE = '625a5f9dc'
 export const TROCAS_HOME_CARDS_CLAROS_2010 = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-home-cards-claros-2010-trocas.json'), 'utf8'))
 /** Arquivos que a entrega toca, com a contagem EXATA de acréscimos marcados (as trocas estão no JSON). */
 export const ACRESCIMOS_HOME_CARDS_CLAROS_2010 = {
-  'components/home/HomeThreeCards.tsx': 0,
+  'components/home/HomeThreeCards.tsx': 6,
   'scripts/test-bebe-que-fala-2010.mjs': 1,
   'scripts/test-mcp-studio-2010.mjs': 2,
   'scripts/test-mcp-studio-ajuste-2010.mjs': 3,
