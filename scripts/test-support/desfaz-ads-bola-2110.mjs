@@ -19,7 +19,7 @@ import { semAdsQualidade2110 } from './desfaz-ads-qualidade-2110.mjs' // KINEO-A
 export const MARCA_ADS_BOLA_2110 = 'KINEO-ADS-BOLA-2110'
 
 /** A base da entrega: origin/main de 21/10 manhã (9415fa5dd, KINEO-DESENHO-NOTA9-2110 reâncoras). */
-export const ADS_BOLA_2110_BASE = '9165cc6ab'
+export const ADS_BOLA_2110_BASE = '58b03e12d' // KINEO-ADS-QUALIDADE-2110 — merge da fila: a base da bola é a origin/main 58b03e12d
 
 /** [linha nova (inteira), linha da base] por arquivo. */
 export const TROCAS_ADS_BOLA_2110 = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-ads-bola-2110-trocas.json'), 'utf8'))
@@ -38,7 +38,7 @@ export const ACRESCIMOS_ADS_BOLA_2110 = {
   'lib/ads/v2Scene.ts': 15,
   'lib/ads/v2SceneServer.ts': 1,
   'lib/ads/v2Simple.ts': 106,
-  'scripts/test-support/desfaz-desenho-som-2110.mjs': 2,
+  'scripts/test-support/desfaz-legenda-bengali-2010.mjs': 2, // KINEO-ADS-QUALIDADE-2110 — merge da fila (origin/main 58b03e12d): a cabeça da cadeia passou a ser a legenda bengali
 }
 export const ADS_BOLA_2110_ARQUIVOS = Object.freeze(Object.keys(ACRESCIMOS_ADS_BOLA_2110))
 /** Arquivos novos da entrega (não existiam na base). */

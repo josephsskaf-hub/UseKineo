@@ -10,6 +10,7 @@
 // ESTE primeiro; semMenuUgc2010 (a cabeça da cadeia geral) chama semAvatarPreso2010NosGuardioes (só as reâncoras em scripts/). Este não importa ninguém.
 // O guardião scripts/test-avatar-preso-2010.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (AVATAR_PRESO_2010_BASE).
 import { readFileSync } from 'node:fs'
+import { semAvatarEstorno2010 } from './desfaz-avatar-estorno-2010.mjs' // KINEO-AVATAR-ESTORNO-2010 — camada posterior; sai antes das provas históricas
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { semBebeQueFala2010 } from './desfaz-bebe-que-fala-2010.mjs' // KINEO-BEBE-QUE-FALA-2010 — a camada de 20/10 divide linhas de reâncora com esta: sai PRIMEIRO (texto sem a marca passa igual)
@@ -52,6 +53,7 @@ export function semAvatarPreso2010(texto, p) {
   texto = semBebeQueFala2010(texto, p) // KINEO-BEBE-QUE-FALA-2010 — a camada mais nova sai primeiro
   texto = semHomeRemodela2010(texto, p) // KINEO-HOME-REMODELA-2010 — encadeado: a camada mais nova (home remodelada, 20/10) sai primeiro; idempotente fora dos arquivos dela
   texto = semVerbatimIntocavel2010NaCadeia(texto, p) // KINEO-VERBATIM-INTOCAVEL-2010 — encadeado: a camada mais nova sai primeiro (só as reâncoras dela em scripts/; o lib/growth/entradaSeedance15.ts tem desfaz próprio)
+  texto = semAvatarEstorno2010(texto, p) // KINEO-AVATAR-ESTORNO-2010 — a camada nova sai primeiro, sem apagar proteções anteriores
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_AVATAR_PRESO_2010) || !AVATAR_PRESO_2010_ARQUIVOS.includes(rel)) return texto
   const crlf = texto.includes('\r\n')
@@ -74,6 +76,7 @@ export function semAvatarPreso2010(texto, p) {
 /** Só as reâncoras dos guardiões (arquivos em scripts/): é o que a cabeça da cadeia geral (semMenuUgc2010) chama. O /api/compose e a
  * reservation.ts saem só pela cadeia do /api/compose (semMeta95Refazer1910) — a cadeia geral os lê como "a última versão alheia". */
 export function semAvatarPreso2010NosGuardioes(texto, p) {
+  texto = semAvatarEstorno2010(texto, p) // KINEO-AVATAR-ESTORNO-2010 — também nos arquivos de produto pela cadeia geral (as marcas anteriores ficam)
   return String(p ?? '').replace(/\\/g, '/').startsWith('scripts/') ? semAvatarPreso2010(texto, p) : texto
 }
 
