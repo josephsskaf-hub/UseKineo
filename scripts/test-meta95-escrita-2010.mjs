@@ -305,7 +305,7 @@ console.log('\nD. desfaz\n')
   ok(semMeta95Escrita2010('sem marca', P.route) === 'sem marca' && semMeta95Escrita2010(ROUTE, 'outro/arquivo.ts') === ROUTE && desfazMeta95Escrita2010(P.route, null) === null && lancou,
     'D5 idempotente fora da lista / sem a marca / null; acréscimo a mais lança')
   const TOPO = git('log', '--format=%H', `--grep=${MARCA}`, '-1', 'HEAD').trim() || 'HEAD' // inclui o merge da main nesta entrega (a base é a main mesclada)
-  const tocados = new Set([...git('diff', '--name-only', META95_ESCRITA_2010_BASE, TOPO).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n').filter((f) => rd(f) !== base(f))].filter(Boolean)) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — desfeita a camada nova, mede apenas alterações desta entrega
+  const tocados = new Set([...git('diff', '--name-only', META95_ESCRITA_2010_BASE, TOPO).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n').filter(Boolean).filter((f) => rd(f) !== base(f))].filter(Boolean)) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — desfeita a camada nova, mede apenas alterações desta entrega; árvore limpa não é caminho de arquivo
   const permitidos = new Set([...META95_ESCRITA_2010_ARQUIVOS, ...META95_ESCRITA_2010_NOVOS])
   const fora = [...tocados].filter((f) => !permitidos.has(f))
   const semMarca = META95_ESCRITA_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !semAvatarPreso2010(rd(f), f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) }) // reancorado KINEO-AVATAR-PRESO-2010: as linhas do avatar preso não são desta entrega

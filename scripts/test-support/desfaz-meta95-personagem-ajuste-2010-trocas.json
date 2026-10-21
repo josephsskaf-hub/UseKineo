@@ -184,7 +184,7 @@
       "const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))"
     ],
     [
-      "  const tocados = new Set([...git('diff', '--name-only', META95_ESCRITA_2010_BASE, TOPO).trim().split('\\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\\n').filter((f) => rd(f) !== base(f))].filter(Boolean)) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — desfeita a camada nova, mede apenas alterações desta entrega",
+      "  const tocados = new Set([...git('diff', '--name-only', META95_ESCRITA_2010_BASE, TOPO).trim().split('\\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\\n').filter(Boolean).filter((f) => rd(f) !== base(f))].filter(Boolean)) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — desfeita a camada nova, mede apenas alterações desta entrega; árvore limpa não é caminho de arquivo",
       "  const tocados = new Set([...git('diff', '--name-only', META95_ESCRITA_2010_BASE, TOPO).trim().split('\\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\\n')].filter(Boolean))"
     ]
   ],
