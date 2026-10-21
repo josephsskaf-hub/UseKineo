@@ -1,4 +1,5 @@
 // KINEO-MCP-STUDIO-2010 — guardião do conector "Kineo Studio" (servidor MCP /api/mcp/studio que gera o filme NA CONTA da
+import { semPaginasConector2110, PAGINAS_CONECTOR_2110_ARQUIVOS, PAGINAS_CONECTOR_2110_NOVOS, MARCA_PAGINAS_CONECTOR_2110 } from './test-support/desfaz-paginas-conector-2110.mjs' // KINEO-PAGINAS-CONECTOR-2110
 import { semMcpStudioAjuste2010, MARCA_MCP_STUDIO_AJUSTE_2010, MCP_STUDIO_AJUSTE_2010_ARQUIVOS } from './test-support/desfaz-mcp-studio-ajuste-2010.mjs' // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: o ajuste do conector (entrega de depois) sai em memória antes do byte a byte
 // pessoa, adicionado por URL no Claude; fundador 20/10 "vai pra tudo").
 //
@@ -284,6 +285,7 @@ changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) 
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !ARQUIVOS_VERBATIM_INTOCAVEL_2010.includes(f))) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 — os arquivos do conserto do verbatim não são desta
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !MCP_STUDIO_AJUSTE_2010_ARQUIVOS.includes(f) || MCP_STUDIO_2010_ARQUIVOS.includes(f))) // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: os arquivos do ajuste do conector (entrega de depois, com desfaz próprio) não são desta
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !HOME_REMODELA_2010_ARQUIVOS.includes(f) && f !== HOME_REMODELA_2010_JSON)) // KINEO-HOME-REMODELA-2010 — reancorado: os arquivos da home remodelada não são desta
+changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !PAGINAS_CONECTOR_2110_ARQUIVOS.includes(f))) // KINEO-PAGINAS-CONECTOR-2110
 ok(changedExisting.every((f) => MCP_STUDIO_2010_ARQUIVOS.includes(f)), `(F3) o diff contra a base só toca arquivos declarados (existentes alterados: ${changedExisting.join(', ') || 'nenhum ainda commitado'})`)
 const commits = git('log', '--format=%s', `${MCP_STUDIO_2010_BASE}..HEAD`).split('\n').filter(Boolean).filter((s) => !s.includes(MARCA_META95_PERSONAGEM_2010)).filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010')) /* reancorado KINEO-BEBE-QUE-FALA-2010 */ // reancorado KINEO-META95-PERSONAGEM-2010: os commits da folha de personagem levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_HOME_CARDS_CLAROS_2010))) // KINEO-HOME-CARDS-CLAROS-2010 — os commits do véu mais claro (entrega de depois) levam a marca deles
@@ -292,6 +294,7 @@ commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_AVA
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_VERBATIM_INTOCAVEL_2010))) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 — os commits do conserto do verbatim levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_MCP_STUDIO_AJUSTE_2010))) // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: os commits do ajuste do conector levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_HOME_REMODELA_2010))) // KINEO-HOME-REMODELA-2010 — reancorado: os commits (e o merge da fila) da home remodelada levam a marca deles
+commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_PAGINAS_CONECTOR_2110))) // KINEO-PAGINAS-CONECTOR-2110
 ok(commits.every((s) => s.includes(MARCA_MCP_STUDIO_2010)), `(F4) todo commit da entrega leva a marca no assunto (${commits.length} commit(s))`)
 ok(semMcpStudio2010('sem marca', 'lib/claudeConnect.ts') === 'sem marca' && semMcpStudio2010(raw(F.page), 'outro/arquivo.ts') === raw(F.page), '(F5) desfaz é idempotente fora do alvo')
 

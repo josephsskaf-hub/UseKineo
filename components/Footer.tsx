@@ -117,6 +117,10 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       // KINEO-WORKS-WITH-CLAUDE-2026-09-30 — o conector da Kineo no Claude (/claude-connector), em todo rodapé.
       // KINEO-CLAUDE-1CLIQUE-2026-09-30 — direto no painel de conexão (#connect), com a origem para a medição.
       { href: '/claude-connector?src=footer#connect', label: 'Use Kineo in Claude' },
+      { href: '/make-ai-videos-in-chatgpt', label: 'Make AI videos in ChatGPT' }, // KINEO-PAGINAS-CONECTOR-2110
+      { href: '/criar-videos-com-ia-no-chatgpt', label: 'Crie vídeos com IA no ChatGPT' }, // KINEO-PAGINAS-CONECTOR-2110
+      { href: '/make-ai-videos-in-claude', label: 'Make AI videos in Claude' }, // KINEO-PAGINAS-CONECTOR-2110
+      { href: '/criar-videos-com-ia-no-claude', label: 'Crie vídeos com IA no Claude' }, // KINEO-PAGINAS-CONECTOR-2110
       { href: '/cheapest-ai-shorts-maker', label: 'Cheapest AI Shorts maker', costCalculator: true },
       { href: '/ai-shorts-without-filming', label: 'Shorts without filming' },
       { href: '/faceless-channel-ideas', label: 'Faceless channel ideas (2026)' },

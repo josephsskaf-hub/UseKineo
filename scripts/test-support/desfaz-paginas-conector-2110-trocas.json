@@ -1,0 +1,50 @@
+{
+  "app/claude-connector/ConnectPanel.tsx": [
+    [
+      "export function CopyField({ value, label, block = false, locale = 'en' }: { value: string; label: string; block?: boolean; locale?: 'en' | 'pt' }) { // KINEO-PAGINAS-CONECTOR-2110",
+      "export function CopyField({ value, label, block = false }: { value: string; label: string; block?: boolean }) {"
+    ],
+    [
+      "        <span aria-live=\"polite\">{locale === 'pt' ? (copied ? 'Copiado' : 'Copiar') : (copied ? 'Copied' : 'Copy')}</span> {/* KINEO-PAGINAS-CONECTOR-2110 */}",
+      "        {copied ? 'Copied' : 'Copy'}"
+    ]
+  ],
+  "app/claude-connector/ShowcaseGrid.tsx": [
+    [
+      "const SHOWCASE_PT = { // KINEO-PAGINAS-CONECTOR-2110",
+      "export default function ShowcaseGrid() {"
+    ],
+    [
+      "              {locale === 'pt' ? SHOWCASE_PT[g.key].label : g.label} <span style={{ fontWeight: 500, color: C.muted, fontSize: '0.92rem' }}>· {locale === 'pt' ? SHOWCASE_PT[g.key].line : g.line}</span> {/* KINEO-PAGINAS-CONECTOR-2110 */}",
+      "              {g.label} <span style={{ fontWeight: 500, color: C.muted, fontSize: '0.92rem' }}>· {g.line}</span>"
+    ],
+    [
+      "            <a href={g.href} style={{ color: C.accent, textDecoration: 'none', fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap' }}>{locale === 'pt' ? 'Abrir na Kineo →' : 'Open in Kineo →'}</a> {/* KINEO-PAGINAS-CONECTOR-2110 */}",
+      "            <a href={g.href} style={{ color: C.accent, textDecoration: 'none', fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap' }}>Open in Kineo →</a>"
+    ],
+    [
+      "            {g.clips.map((c, index) => ( // KINEO-PAGINAS-CONECTOR-2110",
+      "            {g.clips.map((c) => ("
+    ],
+    [
+      "                    aria-label={locale === 'pt' ? `${SHOWCASE_PT[g.key].titles[index]} — feito na Kineo (${c.badge})` : `${c.title} — made with Kineo (${c.badge})` /* KINEO-PAGINAS-CONECTOR-2110 */}",
+      "                    aria-label={`${c.title} — made with Kineo (${c.badge})`}"
+    ],
+    [
+      "                <figcaption style={caption}>{locale === 'pt' ? SHOWCASE_PT[g.key].titles[index] : c.title}</figcaption> {/* KINEO-PAGINAS-CONECTOR-2110 */}",
+      "                <figcaption style={caption}>{c.title}</figcaption>"
+    ]
+  ],
+  "scripts/test-home-cards-claros-2010.mjs": [
+    [
+      "  const semMarca = HOME_CARDS_CLAROS_2010_ARQUIVOS.filter((f) => { const b = new Set(base(f).split('\\n')); return !semPaginasConector2110(rd(f), f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-PAGINAS-CONECTOR-2110",
+      "  const semMarca = HOME_CARDS_CLAROS_2010_ARQUIVOS.filter((f) => { const b = new Set(base(f).split('\\n')); return !rd(f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) })"
+    ]
+  ],
+  "scripts/test-verbatim-intocavel-2010.mjs": [
+    [
+      "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-BEBE-QUE-FALA-2010', '--grep=KINEO-MCP-STUDIO-AJUSTE-2010', `--grep=${MARCA_HOME_REMODELA_2010}`, '--grep=KINEO-HOME-CARDS-CLAROS-2010', '--grep=KINEO-PAGINAS-CONECTOR-2110', 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-HOME-REMODELA-2010 — a última versão alheia pula também os commits da home remodelada (os merges da fila e as reâncoras) // KINEO-HOME-CARDS-CLAROS-2010 — reancorado: os commits do véu mais claro dos cards (20/10 23:30) também são de depois // KINEO-PAGINAS-CONECTOR-2110",
+      "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-BEBE-QUE-FALA-2010', '--grep=KINEO-MCP-STUDIO-AJUSTE-2010', `--grep=${MARCA_HOME_REMODELA_2010}`, '--grep=KINEO-HOME-CARDS-CLAROS-2010', 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-HOME-REMODELA-2010 — a última versão alheia pula também os commits da home remodelada (os merges da fila e as reâncoras) // KINEO-HOME-CARDS-CLAROS-2010 — reancorado: os commits do véu mais claro dos cards (20/10 23:30) também são de depois"
+    ]
+  ]
+}

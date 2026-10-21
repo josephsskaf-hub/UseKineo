@@ -1,0 +1,14 @@
+{
+  "app/claude-connector/ConnectPanel.tsx": 0,
+  "app/claude-connector/ShowcaseGrid.tsx": 5,
+  "app/claude-connector/page.tsx": 2,
+  "app/llms.txt/route.ts": 3,
+  "app/sitemap.ts": 5,
+  "components/Footer.tsx": 4,
+  "scripts/test-home-cards-claros-2010.mjs": 1,
+  "scripts/test-mcp-studio-2010.mjs": 3,
+  "scripts/test-mcp-studio-ajuste-2010.mjs": 3,
+  "scripts/test-meta95-personagem-2010.mjs": 1,
+  "scripts/test-support/desfaz-home-cards-claros-2010.mjs": 2,
+  "scripts/test-verbatim-intocavel-2010.mjs": 0
+}

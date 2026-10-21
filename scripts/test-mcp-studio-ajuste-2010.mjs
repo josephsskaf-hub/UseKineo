@@ -20,6 +20,7 @@
 //   (F) DESFAZ: desfeita a entrega, cada arquivo declarado é a base; o diff só toca arquivos declarados + novos.
 //   (M) MUTANTES em disco: tirar o reenvio, tirar o job da falha, tirar o `.is('title', null)` ou o reenvio do status
 //       deixa (R)/(T) vermelho.
+import { semPaginasConector2110, PAGINAS_CONECTOR_2110_ARQUIVOS, PAGINAS_CONECTOR_2110_NOVOS, MARCA_PAGINAS_CONECTOR_2110 } from './test-support/desfaz-paginas-conector-2110.mjs' // KINEO-PAGINAS-CONECTOR-2110
 import fs from 'node:fs'
 import { semBebeQueFala2010, BEBE_QUE_FALA_2010_ARQUIVOS, BEBE_QUE_FALA_2010_NOVOS } from './test-support/desfaz-bebe-que-fala-2010.mjs' // reancorado KINEO-BEBE-QUE-FALA-2010 — o desenho infantil/bebê-podcast (20/10) foi mesclado depois: sai em memória; arquivos e commits dele fora da conta
 import { HOME_CARDS_CLAROS_2010_ARQUIVOS, HOME_CARDS_CLAROS_2010_NOVOS, MARCA_HOME_CARDS_CLAROS_2010 } from './test-support/desfaz-home-cards-claros-2010.mjs' // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: o véu mais claro dos cards da home (fundador 20/10 23:30: "a parte de baixo dos vídeos tá bem escura, arruma isso pra hoje") foi mesclado depois: arquivos e commits dele fora da conta
@@ -343,11 +344,13 @@ const declared = [...MCP_STUDIO_AJUSTE_2010_ARQUIVOS, ...MCP_STUDIO_AJUSTE_2010_
 declared.push(...HOME_REMODELA_2010_ARQUIVOS, ...HOME_REMODELA_2010_NOVOS, HOME_REMODELA_2010_JSON) // KINEO-HOME-REMODELA-2010 — os arquivos da home remodelada (entrega de depois) não são desta
 declared.push(...BEBE_QUE_FALA_2010_ARQUIVOS, ...BEBE_QUE_FALA_2010_NOVOS) // reancorado KINEO-BEBE-QUE-FALA-2010 — os arquivos do desenho infantil (entrega de depois) não são desta
 declared.push(...HOME_CARDS_CLAROS_2010_ARQUIVOS, ...HOME_CARDS_CLAROS_2010_NOVOS) // KINEO-HOME-CARDS-CLAROS-2010 — os arquivos do véu mais claro (entrega de depois) não são desta
+declared.push(...PAGINAS_CONECTOR_2110_ARQUIVOS, ...PAGINAS_CONECTOR_2110_NOVOS) // KINEO-PAGINAS-CONECTOR-2110
 ok(changed.every((f) => declared.includes(f)), `(F3) o diff contra a base só toca arquivos declarados (${changed.filter((f) => !declared.includes(f)).join(', ') || 'ok'})`)
 const commits = git('log', '--format=%s', `${MCP_STUDIO_AJUSTE_2010_BASE}..HEAD`).split('\n').filter(Boolean)
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_HOME_REMODELA_2010))) // KINEO-HOME-REMODELA-2010 — os commits (e os merges da fila) da home remodelada levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010'))) // reancorado KINEO-BEBE-QUE-FALA-2010 — os commits do desenho infantil levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_HOME_CARDS_CLAROS_2010))) // KINEO-HOME-CARDS-CLAROS-2010 — os commits do véu mais claro levam a marca deles
+commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_PAGINAS_CONECTOR_2110))) // KINEO-PAGINAS-CONECTOR-2110
 ok(commits.every((s) => s.includes(MARCA_MCP_STUDIO_AJUSTE_2010)), `(F4) todo commit da entrega leva a marca (${commits.length})`)
 ok(semMcpStudioAjuste2010('sem marca', F.page) === 'sem marca' && semMcpStudioAjuste2010(raw(F.page), 'outro/arquivo.ts') === raw(F.page), '(F5) desfaz idempotente fora do alvo')
 {

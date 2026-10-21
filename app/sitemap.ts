@@ -248,6 +248,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // no Claude (URL exigida pelo Connectors Directory). Página viva fora do
     // mapa mede zero (peça-sem-superfície).
     { path: '/claude-connector', priority: 0.7, freq: 'monthly' },
+    { path: '/make-ai-videos-in-chatgpt', priority: 0.7, freq: 'monthly' }, // KINEO-PAGINAS-CONECTOR-2110
+    { path: '/criar-videos-com-ia-no-chatgpt', priority: 0.7, freq: 'monthly' }, // KINEO-PAGINAS-CONECTOR-2110
+    { path: '/make-ai-videos-in-claude', priority: 0.7, freq: 'monthly' }, // KINEO-PAGINAS-CONECTOR-2110
+    { path: '/criar-videos-com-ia-no-claude', priority: 0.7, freq: 'monthly' }, // KINEO-PAGINAS-CONECTOR-2110
     // KINEO-B2B-BULK-2026-08-27 — the checkout and four approved one-time
     // agency packs existed without a single public caller. This is the first
     // indexable door for freelancers, agencies and businesses buying batches.
@@ -340,6 +344,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: r.priority,
   }))
   carimbaPaginasUgc2010(staticEntries) // KINEO-PAGINAS-UGC-2010 — home, /pricing e /ads ganharam link para as páginas novas
+  for (const entry of staticEntries) if (['/make-ai-videos-in-chatgpt', '/criar-videos-com-ia-no-chatgpt', '/make-ai-videos-in-claude', '/criar-videos-com-ia-no-claude', '/claude-connector'].some((p) => entry.url === `${BASE}${p}`)) entry.lastModified = new Date('2026-10-21T12:00:00.000Z') // KINEO-PAGINAS-CONECTOR-2110
   // #478 — programmatic SEO niche landing pages (/free-ai-shorts/[niche]).
   const nicheEntries = NICHE_SLUGS.map((slug) => ({
     url: `${BASE}/free-ai-shorts/${slug}`,

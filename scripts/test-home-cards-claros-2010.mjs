@@ -17,6 +17,7 @@
 //      enquadramento antigo e 4º card (lib/ui/homeKidsCard.ts) intocados;
 //   D3 encadeamento: semBebeQueFala2010 (que a cabeça semMenuUgc2010 chama primeiro) tira esta camada PRIMEIRO;
 //   M* mutantes: cada conserto desfeito à mão deixa o guardião certo vermelho.
+import { semPaginasConector2110, PAGINAS_CONECTOR_2110_ARQUIVOS, PAGINAS_CONECTOR_2110_NOVOS, MARCA_PAGINAS_CONECTOR_2110 } from './test-support/desfaz-paginas-conector-2110.mjs' // KINEO-PAGINAS-CONECTOR-2110
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -141,7 +142,7 @@ console.log('\nD. desfaz exato, diff, encadeamento')
   const tocados = new Set([...git('diff', '--name-only', B, TOPO).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard', 'scripts').trim().split('\n').filter((f) => f.includes('home-cards-claros-2010'))].filter(Boolean))
   const permitidos = new Set([...HOME_CARDS_CLAROS_2010_ARQUIVOS, ...HOME_CARDS_CLAROS_2010_NOVOS])
   const fora = [...tocados].filter((f) => !permitidos.has(f))
-  const semMarca = HOME_CARDS_CLAROS_2010_ARQUIVOS.filter((f) => { const b = new Set(base(f).split('\n')); return !rd(f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) })
+  const semMarca = HOME_CARDS_CLAROS_2010_ARQUIVOS.filter((f) => { const b = new Set(base(f).split('\n')); return !semPaginasConector2110(rd(f), f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-PAGINAS-CONECTOR-2110
   const intocados = ['lib/engineWall.ts', 'lib/homeVideoCuration.ts', 'lib/ui/homeKidsCard.ts', 'components/home/HomeKidsCard.tsx', 'components/home/HomeProductAdsReel.tsx', 'lib/ui/homeThreeCards.ts'].filter((f) => existsSync(join(ROOT, f)) && rd(f) !== base(f))
   const trocasOk = Object.entries(TROCAS_HOME_CARDS_CLAROS_2010).every(([f, t]) => HOME_CARDS_CLAROS_2010_ARQUIVOS.includes(f) && t.every(([nova, velha]) => nova.includes(MARCA) && !velha.includes(MARCA)))
   ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && intocados.length === 0 && trocasOk && !/KINEO-BEBE|KINEO-HOME-CARDS-BOTOES|KINEO-HOME-REMODELA/.test(MARCA),

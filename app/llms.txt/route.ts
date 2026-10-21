@@ -54,6 +54,7 @@ import { ugcNicheLabel } from '@/lib/growth/paginasUgc2010Content' // KINEO-PAGI
 import { paginasKidsLlmsSection } from '@/lib/seo/paginasKidsCartoon2010' // KINEO-BEBE-QUE-FALA-2010 — o trecho do AI Kids Cartoon Stories (vazio com o interruptor desligado)
 import { KIDS_CARTOON_PAGES_LIVE } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010
 import { BABY_PODCAST_PAGES_LIVE, babyPagesLlmsSection } from '@/lib/kidsCartoon/babyPodcast' // KINEO-BEBE-QUE-FALA-2010 — o trecho do bebê-podcast (vazio desligado)
+import { connectorGuideLlmsLines } from '@/lib/seo/connectorGuides' // KINEO-PAGINAS-CONECTOR-2110
 // KINEO-LLMS-PAGINAS-CITADAS-2026-09-07 — módulo puro (só constantes, nenhum
 // import): é a MESMA derivação que lib/kineoFacts.ts usa para ENGINE_FACTS[].url,
 // então o path do motor nunca é digitado aqui.
@@ -689,6 +690,8 @@ ${/* KINEO-PAGINAS-LOTE1-2026-10-12 — lote 1: duas intenções de compra + os 
 - [Alternatives](${BASE}/alternatives): per-competitor pages.
 - [Terms of service](${BASE}/terms): includes the clause confirming you retain ownership of generated videos.
 ${/* KINEO-GUIAS-IA-1610 — as 8 guias /guides/<slug> (publicação de 17/10): uma linha cada, rótulo = título da página, sem número digitado. */ ''}
+${/* KINEO-PAGINAS-CONECTOR-2110 — quatro guias do conector Kineo Studio, pares EN/PT, sem preço literal. */ connectorGuideLlmsLines(BASE)}
+${/* KINEO-PAGINAS-CONECTOR-2110 */ ''}
 ## Practical guides (reviewed ${GUIAS_IA_REVIEWED_ISO})
 
 Each guide answers one question with the steps, a dated price comparison with official sources and a section on when Kineo is not the best choice.

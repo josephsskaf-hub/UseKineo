@@ -52,7 +52,12 @@ export const SHOWCASE_GROUPS: readonly ShowcaseGroup[] = [
   },
 ]
 
-export default function ShowcaseGrid() {
+const SHOWCASE_PT = { // KINEO-PAGINAS-CONECTOR-2110
+  ugc: { label: 'Anúncios UGC', line: 'Uma pessoa de IA apresenta o produto.', titles: ['Perfume com apresentadora de IA', 'Sofia, apresentadora UGC', 'Amara, UGC na neve'] }, // KINEO-PAGINAS-CONECTOR-2110
+  product: { label: 'Anúncios de produto', line: 'Fotos reais viram um anúncio pronto.', titles: ['Perfume LUME em close real', 'Produto em close na chuva', 'Produto gigante em neon'] }, // KINEO-PAGINAS-CONECTOR-2110
+  films: { label: 'Filmes', line: 'Uma ideia vira um Short narrado.', titles: ['O farol das Ilhas Flannan', 'O robô do fundo do mar', 'Titanic'] }, // KINEO-PAGINAS-CONECTOR-2110
+} as const // KINEO-PAGINAS-CONECTOR-2110
+export default function ShowcaseGrid({ locale = 'en' }: { locale?: 'en' | 'pt' } = {}) { // KINEO-PAGINAS-CONECTOR-2110
   const ref = useRef<HTMLDivElement | null>(null)
   const [near, setNear] = useState(false)
   useEffect(() => {
@@ -82,12 +87,12 @@ export default function ShowcaseGrid() {
         <div key={g.key}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', margin: '0 0 12px' }}>
             <p style={{ margin: 0, fontSize: '1.08rem', fontWeight: 700, color: C.text, letterSpacing: '-0.01em' }}>
-              {g.label} <span style={{ fontWeight: 500, color: C.muted, fontSize: '0.92rem' }}>· {g.line}</span>
+              {locale === 'pt' ? SHOWCASE_PT[g.key].label : g.label} <span style={{ fontWeight: 500, color: C.muted, fontSize: '0.92rem' }}>· {locale === 'pt' ? SHOWCASE_PT[g.key].line : g.line}</span> {/* KINEO-PAGINAS-CONECTOR-2110 */}
             </p>
-            <a href={g.href} style={{ color: C.accent, textDecoration: 'none', fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap' }}>Open in Kineo →</a>
+            <a href={g.href} style={{ color: C.accent, textDecoration: 'none', fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap' }}>{locale === 'pt' ? 'Abrir na Kineo →' : 'Open in Kineo →'}</a> {/* KINEO-PAGINAS-CONECTOR-2110 */}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 'clamp(8px, 2vw, 16px)' }}>
-            {g.clips.map((c) => (
+            {g.clips.map((c, index) => ( // KINEO-PAGINAS-CONECTOR-2110
               <figure key={c.src} style={{ margin: 0, minWidth: 0 }}>
                 <div style={tile}>
                   <video
@@ -98,12 +103,12 @@ export default function ShowcaseGrid() {
                     loop
                     playsInline
                     preload="none"
-                    aria-label={`${c.title} — made with Kineo (${c.badge})`}
+                    aria-label={locale === 'pt' ? `${SHOWCASE_PT[g.key].titles[index]} — feito na Kineo (${c.badge})` : `${c.title} — made with Kineo (${c.badge})` /* KINEO-PAGINAS-CONECTOR-2110 */}
                     style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                   />
                   <span style={badge}>{c.badge}</span>
                 </div>
-                <figcaption style={caption}>{c.title}</figcaption>
+                <figcaption style={caption}>{locale === 'pt' ? SHOWCASE_PT[g.key].titles[index] : c.title}</figcaption> {/* KINEO-PAGINAS-CONECTOR-2110 */}
               </figure>
             ))}
           </div>

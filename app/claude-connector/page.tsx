@@ -44,6 +44,7 @@ import StudioSection from './StudioSection' // KINEO-MCP-STUDIO-2010
 import ShowcaseGrid from './ShowcaseGrid' // KINEO-MCP-STUDIO-AJUSTE-2010
 import { ClientGlyph, type ClientKey } from './ClientGlyphs'
 import { MCP_PALETTE as C, MONO } from './palette'
+import { CONNECTOR_GUIDES } from '@/lib/seo/connectorGuides' // KINEO-PAGINAS-CONECTOR-2110
 
 export const dynamic = 'force-static'
 
@@ -294,6 +295,7 @@ export default function ClaudeConnectorPage() {
         </div>
 
         <StudioSection /> {/* KINEO-MCP-STUDIO-2010 */}
+        <section aria-label="Kineo Studio setup guides" style={{ ...CARD, marginTop: 32 }}><h2 style={{ ...h2, margin: '0 0 12px' }}>Make videos in your AI chat · Guias de conexão</h2><ul style={{ margin: 0, paddingLeft: 20, display: 'grid', gap: 12 }}>{CONNECTOR_GUIDES.map((guide) => <li key={guide.path}><Link href={guide.path} hrefLang={guide.lang} lang={guide.lang} style={link}>{guide.title} →</Link></li>)}</ul></section> {/* KINEO-PAGINAS-CONECTOR-2110 */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '0 32px' }}>
           <section>
             <h2 style={h2}>What happens after the link</h2>

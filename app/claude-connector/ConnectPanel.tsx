@@ -33,7 +33,7 @@ const TABS: readonly { key: TabKey; label: string; soon?: true }[] = [
   { key: 'chatgpt', label: 'ChatGPT' }, // KINEO-MCP-STUDIO-AJUSTE-2010: no ar (Kineo Studio por Developer mode)
 ]
 
-export function CopyField({ value, label, block = false }: { value: string; label: string; block?: boolean }) {
+export function CopyField({ value, label, block = false, locale = 'en' }: { value: string; label: string; block?: boolean; locale?: 'en' | 'pt' }) { // KINEO-PAGINAS-CONECTOR-2110
   const [copied, setCopied] = useState(false)
   const copy = async () => {
     try {
@@ -70,7 +70,7 @@ export function CopyField({ value, label, block = false }: { value: string; labe
         onClick={copy}
         style={{ flex: '0 0 auto', background: 'transparent', color: C.accent, border: `1px solid ${C.accentLine}`, borderRadius: 10, padding: '0 14px', fontWeight: 800, fontSize: '0.88rem', cursor: 'pointer', minHeight: 40 }}
       >
-        {copied ? 'Copied' : 'Copy'}
+        <span aria-live="polite">{locale === 'pt' ? (copied ? 'Copiado' : 'Copiar') : (copied ? 'Copied' : 'Copy')}</span> {/* KINEO-PAGINAS-CONECTOR-2110 */}
       </button>
     </div>
   )

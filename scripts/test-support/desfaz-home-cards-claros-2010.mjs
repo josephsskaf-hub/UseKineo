@@ -13,6 +13,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semPaginasConector2110 } from './desfaz-paginas-conector-2110.mjs' // KINEO-PAGINAS-CONECTOR-2110
 
 export const MARCA_HOME_CARDS_CLAROS_2010 = 'KINEO-HOME-CARDS-CLAROS-2010'
 
@@ -41,6 +42,7 @@ export const HOME_CARDS_CLAROS_2010_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semHomeCardsClaros2010(texto, p) {
+  texto = semPaginasConector2110(texto, p) // KINEO-PAGINAS-CONECTOR-2110
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_HOME_CARDS_CLAROS_2010) || !HOME_CARDS_CLAROS_2010_ARQUIVOS.includes(rel)) return texto
   const crlf = texto.includes('\r\n')
