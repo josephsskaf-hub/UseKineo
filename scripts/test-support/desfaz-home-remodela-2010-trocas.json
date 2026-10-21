@@ -64,5 +64,59 @@
       "            {/* KINEO-HOME-REMODELA-2010 — o título \"Images made by Kineo\" virou o h2 da seção (app/KineoLanding.tsx), no lugar de \"More tools\" */}",
       "            <h3><UiLabel>Images made with Kineo</UiLabel></h3>\n            <p><UiLabel>Products, places, food and cinematic scenes, each from one line of text.</UiLabel></p>"
     ]
+  ],
+  "scripts/test-avatar-preso-2010.mjs": [
+    [
+      "  const ruins = AVATAR_PRESO_2010_ARQUIVOS.filter((rel) => { try { return semAvatarPreso2010(semHomeRemodela2010(rd(rel), rel), rel) !== base(rel) } catch { return true } }) // KINEO-HOME-REMODELA-2010",
+      "  const ruins = AVATAR_PRESO_2010_ARQUIVOS.filter((rel) => { try { return semAvatarPreso2010(rd(rel), rel) !== base(rel) } catch { return true } })"
+    ],
+    [
+      "  const semMarcaNova = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\\n'); const bs = new Set(b); return semHomeRemodela2010(rd(rel), rel).split('\\n').every((l) => bs.has(l) || l.includes(MARCA)) }) // KINEO-HOME-REMODELA-2010",
+      "  const semMarcaNova = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\\n'); const bs = new Set(b); return rd(rel).split('\\n').every((l) => bs.has(l) || l.includes(MARCA)) })"
+    ],
+    [
+      "  const MU = semHomeRemodela2010(rd('scripts/test-support/desfaz-menu-ugc-2010.mjs'), 'scripts/test-support/desfaz-menu-ugc-2010.mjs') // KINEO-HOME-REMODELA-2010",
+      "  const MU = rd('scripts/test-support/desfaz-menu-ugc-2010.mjs')"
+    ],
+    [
+      "  const MU = semHomeRemodela2010(rd('scripts/test-support/desfaz-menu-ugc-2010.mjs'), 'scripts/test-support/desfaz-menu-ugc-2010.mjs') // KINEO-HOME-REMODELA-2010",
+      "  const MU = rd('scripts/test-support/desfaz-menu-ugc-2010.mjs')"
+    ]
+  ],
+  "scripts/test-business-ads-navigation-2026-09-24.mjs": [
+    [
+      "// KINEO-HOME-REMODELA-2010 — reancorado 20/10, fundador: \"esses vão ser os quatro principais, e ao lado vai ser o MCP do Claude e do GPT… more tools a gente vai cancelar\" — Images e Spaces saíram do topo (rodapé).",
+      "check('top menu order: Product ads · More tools (Images · Spaces) · Pricing', (() => { const i = ['href=\"/ads/new\"', 'href=\"/images', 'href=\"/spaces\"', 'href=\"/pricing\"'].map((h) => desktop.indexOf(h)); return i.every((x) => x >= 0) && i.every((x, k) => k === 0 || x > i[k - 1]) })())"
+    ]
+  ],
+  "scripts/test-clipes-2026-09-29.mjs": [
+    [
+      "  && /\\{showClips && <HomeClipsStrip signedIn=\\{isSignedIn\\} \\/>\\}/.test(landingLF) // KINEO-HOME-REMODELA-2010 — reancorado 20/10 (fundador 20/10: \"esses vão ser os quatro principais, e ao lado vai ser o MCP do Claude e do GPT… more tools a gente vai cancelar\"): os 2 links de Clipes saíram do topo e do celular; Clipes segue atrás do MESMO interruptor na faixa de 8 clipes da home",
+      "  && /\\{showClips && \\(\\n\\s*<span data-nav-item=\"more:clips\" style=\\{\\{ display: 'contents' \\}\\}>\\n\\s*<span className=\"nm-h\"><UiLabel>Clips<\\/UiLabel><\\/span>\\n\\s*<NavEngineItem href=\"\\/clips\\?upload=1\"[^\\n]*\\/>\\n\\s*<NavEngineItem href=\"\\/clips\"/.test(landingLF)\n  && /\\{showClips && <Link href=\"\\/clips\" data-nav-item=\"more:clips\">/.test(landingLF)\n  && (landingLF.match(/href=\"\\/clips\"/g) ?? []).length === 2, 'mega-menu e menu público têm Clipes (par) atrás do interruptor')"
+    ]
+  ],
+  "scripts/test-espacos-2026-09-30.mjs": [
+    [
+      "ok(/\\{ href: '\\/spaces', label: 'Spaces', icon: 'spaces' \\}/.test(nav) && /\\n  spaces: \\(/.test(side) && /href: '\\/spaces'/.test(mob) && /\\.\\.\\.MORE_TOOLS_NAV\\.filter\\(/.test(mob) /* reancorado 13/10 (KINEO-DUAS-PORTAS-2026-10-13): Espaços saiu da barra do celular para o \"More\" (MORE_TOOLS_NAV) */ /* reancorado 20/10 (KINEO-HOME-REMODELA-2010, fundador 20/10: “esses vão ser os quatro principais, e ao lado vai ser o MCP do Claude e do GPT… more tools a gente vai cancelar“): o topo e o celular da home perderam o \"More tools\" — Espaços segue no rodapé */ && !/href=\"\\/spaces\"/.test(land) && /\\{ href: '\\/spaces', label: '[^']+' \\}/.test(read('components/Footer.tsx')) && /'\\/spaces': 'Spaces'/.test(shell), '(7j) Espaços em todos os pares do menu (lateral, celular, rodapé do site, título)') // KINEO-HOME-REMODELA-2010",
+      "ok(/\\{ href: '\\/spaces', label: 'Spaces', icon: 'spaces' \\}/.test(nav) && /\\n  spaces: \\(/.test(side) && /href: '\\/spaces'/.test(mob) && /\\.\\.\\.MORE_TOOLS_NAV\\.filter\\(/.test(mob) /* reancorado 13/10 (KINEO-DUAS-PORTAS-2026-10-13): Espaços saiu da barra do celular para o \"More\" (MORE_TOOLS_NAV) */ && /<Link href=\"\\/spaces\" data-nav-item=\"more:spaces\"><span className=\"nm-tx\"><b><UiLabel>Spaces<\\/UiLabel><\\/b>/.test(land) &&/<Link href=\"\\/spaces\" data-nav-item=\"more:spaces\"><UiLabel>Spaces<\\/UiLabel><\\/Link>/.test(land) && /'\\/spaces': 'Spaces'/.test(shell), '(7j) Espaços em todos os pares do menu (lateral, celular, topo do site, título)')"
+    ]
+  ],
+  "scripts/test-home-3-cards-1910.mjs": [
+    [
+      "  if (navCount !== NAV_ITEMS_ORIGIN + 2 - 10 + 4) probs.push(`menu mexido: ${navCount} itens (era ${NAV_ITEMS_ORIGIN} + 2 do \"AI UGC Ads\" − 10 do \"More tools\" + 4 de \"AI Cartoon Videos\"/\"Claude & ChatGPT\")`) // KINEO-HOME-REMODELA-2010 — reancorado 20/10 (fundador 20/10: \"esses vão ser os quatro principais, e ao lado vai ser o MCP do Claude e do GPT… more tools a gente vai cancelar\"): saíram os 10 itens do \"More tools\" (topo 4, celular 6) e entraram 2 em cada menu; a ordem nova é provada em scripts/test-home-remodela-2010.mjs",
+      "  if (navCount !== NAV_ITEMS_ORIGIN + 2) probs.push(`menu mexido: ${navCount} itens (era ${NAV_ITEMS_ORIGIN} + 2 do \"AI UGC Ads\")`) // reancorado KINEO-MENU-UGC-2010 — o menu só cresce: +1 item no topo e +1 no celular (antiga + 1 em cada menu); a ordem dos antigos é provada em scripts/test-menu-ugc-2010.mjs"
+    ]
+  ],
+  "scripts/test-home-blue-layout.mjs": [
+    [
+      " // KINEO-HOME-REMODELA-2010 — reancorado 20/10 (fundador: \"more tools a gente vai cancelar\"): o menu não leva mais a /images; a porta real é a galeria \"Images made by Kineo\" (cada foto → /images, provado em scripts/test-home-limpa-1410.mjs e scripts/test-home-remodela-2010.mjs) e o rodapé.",
+      " check(html.includes('href=\"/images\"'),'home keeps real destination /images')"
+    ]
+  ],
+  "scripts/test-login-modal-1410.mjs": [
+    [
+      "  ok('R9', BASES.landing !== null && navCount(F.landing) === navCount(BASES.landing) + 2 - 10 + 4, `o menu só mudou pela ordem do fundador (${navCount(F.landing)} itens data-nav-item, base + 2 do \"AI UGC Ads\" − 10 do \"More tools\" + 4 de \"AI Cartoon Videos\"/\"Claude & ChatGPT\")`) // KINEO-HOME-REMODELA-2010 — reancorado 20/10 (fundador 20/10: \"esses vão ser os quatro principais, e ao lado vai ser o MCP do Claude e do GPT… more tools a gente vai cancelar\"); a ordem nova é provada em scripts/test-home-remodela-2010.mjs",
+      "  ok('R9', BASES.landing !== null && navCount(F.landing) === navCount(BASES.landing) + 2, `o menu não encolheu (${navCount(F.landing)} itens data-nav-item, base + 2 do \"AI UGC Ads\")`) // reancorado KINEO-MENU-UGC-2010 — o menu só cresce: +1 item no topo e +1 no celular; a ordem dos antigos é provada em scripts/test-menu-ugc-2010.mjs"
+    ]
   ]
 }

@@ -27,6 +27,7 @@ import {
 } from './test-support/desfaz-avatar-preso-2010.mjs'
 import { semMeta95Refazer1910 } from './test-support/desfaz-meta95-refazer-1910.mjs'
 import { semMenuUgc2010 } from './test-support/desfaz-menu-ugc-2010.mjs'
+import { semHomeRemodela2010 } from './test-support/desfaz-home-remodela-2010.mjs' // KINEO-HOME-REMODELA-2010 — a home remodelada (20/10) é a camada mais nova: a cabeça da cadeia ganhou 1 linha dela; D1/D3/D4b leem o arquivo SEM ela
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const ROOT = path.resolve(import.meta.dirname, '..')
@@ -261,15 +262,15 @@ console.log('\nS. cobrança, cron e os caminhos vizinhos')
 // ─── D. desfaz, encadeamento, diff ───────────────────────────────────────────
 console.log('\nD. desfaz, encadeamento e diff')
 {
-  const ruins = AVATAR_PRESO_2010_ARQUIVOS.filter((rel) => { try { return semAvatarPreso2010(rd(rel), rel) !== base(rel) } catch { return true } })
+  const ruins = AVATAR_PRESO_2010_ARQUIVOS.filter((rel) => { try { return semAvatarPreso2010(semHomeRemodela2010(rd(rel), rel), rel) !== base(rel) } catch { return true } }) // KINEO-HOME-REMODELA-2010
   ok(ruins.length === 0, `D1 cada arquivo tocado, desfeito, é EXATAMENTE a base ${AVATAR_PRESO_2010_BASE.slice(0, 9)}${ruins.length ? ' — ' + ruins.join(', ') : ''}`)
   ok(AVATAR_PRESO_2010_NOVOS.every((rel) => base(rel) === null && fs.existsSync(path.join(ROOT, rel))), 'D2 os arquivos novos existem e não existiam na base')
   const contagem = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => rd(rel).split('\n').filter((l) => l.includes(MARCA)).length === ACRESCIMOS_AVATAR_PRESO_2010[rel] + (TROCAS_AVATAR_PRESO_2010[rel] ?? []).length)
-  const semMarcaNova = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\n'); const bs = new Set(b); return rd(rel).split('\n').every((l) => bs.has(l) || l.includes(MARCA)) })
+  const semMarcaNova = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\n'); const bs = new Set(b); return semHomeRemodela2010(rd(rel), rel).split('\n').every((l) => bs.has(l) || l.includes(MARCA)) }) // KINEO-HOME-REMODELA-2010
   ok(contagem && semMarcaNova, 'D3 toda linha nova ou reescrita leva a marca, e a contagem bate (acréscimos + trocas)')
   const M95 = rd(F.meta95)
   ok(/export function semMeta95Refazer1910\(texto, p\) \{\n  texto = semAvatarPreso2010\(texto, p\)/.test(M95) && /^import \{ semAvatarPreso2010 \} from '\.\/desfaz-avatar-preso-2010\.mjs'/m.test(M95), 'D4 encadeado: semMeta95Refazer1910 (a camada mais nova do /api/compose até hoje) chama ESTE primeiro')
-  const MU = rd('scripts/test-support/desfaz-menu-ugc-2010.mjs')
+  const MU = semHomeRemodela2010(rd('scripts/test-support/desfaz-menu-ugc-2010.mjs'), 'scripts/test-support/desfaz-menu-ugc-2010.mjs') // KINEO-HOME-REMODELA-2010
   ok(/export function semMenuUgc2010\(texto, p\) \{\n  texto = semAvatarPreso2010NosGuardioes\(texto, p\)/.test(MU) && /^import \{ semAvatarPreso2010NosGuardioes \} from '\.\/desfaz-avatar-preso-2010\.mjs'/m.test(MU), 'D4b encadeado na cabeça da cadeia geral: semMenuUgc2010 tira as reâncoras desta camada (só scripts/) primeiro; o /api/compose segue intacto nela (é a última versão alheia)')
   const guardioes = ['scripts/test-seedance-15s-3x6-2026-09-29.mjs', 'scripts/test-voz-15s-mesma-da-montagem-2026-09-29.mjs']
   ok(guardioes.every((g) => { try { return !semMenuUgc2010(fs.readFileSync(path.join(ROOT, g), 'utf8'), g).includes(MARCA) } catch { return false } }), 'D5b a cadeia geral (semMenuUgc2010) tira as reâncoras desta camada dos guardiões do 15 s (a linha da base volta inteira)')
@@ -321,7 +322,7 @@ await mut('M12 cron fase 3 filtra por motor (avatar fica de fora)', CR, "      .
   const M95 = rd(F.meta95)
   const quebrado = M95.replace(de, '  // (sem a camada do avatar)')
   ok(M95.includes(de) && quebrado !== M95 && !/export function semMeta95Refazer1910\(texto, p\) \{\n  texto = semAvatarPreso2010\(texto, p\)/.test(quebrado), 'M13 cabeça da cadeia do /api/compose sem chamar esta camada → D4 vermelho')
-  const MU = rd('scripts/test-support/desfaz-menu-ugc-2010.mjs')
+  const MU = semHomeRemodela2010(rd('scripts/test-support/desfaz-menu-ugc-2010.mjs'), 'scripts/test-support/desfaz-menu-ugc-2010.mjs') // KINEO-HOME-REMODELA-2010
   const deMU = '  texto = semAvatarPreso2010NosGuardioes(texto, p) // KINEO-AVATAR-PRESO-2010'
   const quebradoMU = MU.replace(deMU, '  // (sem a camada do avatar) //')
   ok(MU.includes(deMU) && quebradoMU !== MU && !/export function semMenuUgc2010\(texto, p\) \{\n  texto = semAvatarPreso2010NosGuardioes\(texto, p\)/.test(quebradoMU), 'M16 cabeça da cadeia geral sem chamar esta camada → D4b vermelho')

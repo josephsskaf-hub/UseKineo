@@ -20,7 +20,8 @@ const linked = html => html.includes(destination) && /Videos for businesses|For 
 const topLinked = html => /href="\/ads\/new"[^>]*>(?:<!-- -->)?(?:<[^>]+>)*Product ads</.test(html) && !html.includes('buy.stripe.com') && !/For businesses/.test(html)
 check('desktop menu opens the Ads panel, not checkout', topLinked(desktop))
 check('mobile menu opens the Ads panel, not checkout', topLinked(mobile))
-check('top menu order: Product ads · More tools (Images · Spaces) · Pricing', (() => { const i = ['href="/ads/new"', 'href="/images', 'href="/spaces"', 'href="/pricing"'].map((h) => desktop.indexOf(h)); return i.every((x) => x >= 0) && i.every((x, k) => k === 0 || x > i[k - 1]) })())
+// KINEO-HOME-REMODELA-2010 — reancorado 20/10, fundador: "esses vão ser os quatro principais, e ao lado vai ser o MCP do Claude e do GPT… more tools a gente vai cancelar" — Images e Spaces saíram do topo (rodapé).
+check('top menu order: Product ads · AI Cartoon Videos · Claude & ChatGPT · Pricing, sem Images/Spaces no topo', (() => { const i = ['href="/ads/new"', 'href="/ai-kids-cartoon-videos"', 'href="/claude-connector"', 'href="/pricing"'].map((h) => desktop.indexOf(h)); return i.every((x) => x >= 0) && i.every((x, k) => k === 0 || x > i[k - 1]) && !desktop.includes('href="/images') && !desktop.includes('href="/spaces"') })()) // KINEO-HOME-REMODELA-2010
 check('/ads/new sends visitors to the public door, never /login', /redirect\(visitante \? adsV2Href\(searchParams\) : adsPublicHref\(searchParams\)\)/.test(read('app/(dashboard)/ads/new/page.tsx')))
 check('shared footer opens the creator', linked(footer))
 check('existing pricing and studio destinations survive', nav.includes('href="/pricing"') && nav.includes('href="/studio"'))

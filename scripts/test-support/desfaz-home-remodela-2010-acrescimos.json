@@ -5,5 +5,12 @@
   "components/Footer.tsx": 3,
   "components/home/HomeClipsStrip.tsx": 18,
   "components/home/HomeImageGallery.tsx": 15,
+  "scripts/test-avatar-preso-2010.mjs": 1,
+  "scripts/test-business-ads-navigation-2026-09-24.mjs": 1,
+  "scripts/test-clipes-2026-09-29.mjs": 2,
+  "scripts/test-espacos-2026-09-30.mjs": 0,
+  "scripts/test-home-3-cards-1910.mjs": 0,
+  "scripts/test-home-blue-layout.mjs": 1,
+  "scripts/test-login-modal-1410.mjs": 0,
   "scripts/test-support/desfaz-menu-ugc-2010.mjs": 2
 }
