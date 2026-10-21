@@ -18,6 +18,8 @@ export const PAGINAS_CONECTOR_2110_NOVOS = [
   'components/ConnectorGuidePage.tsx',
   'lib/seo/connectorGuides.ts',
   'docs/preview-paginas-conector-2110.html',
+  'docs/RELATORIO-CEO-PAGINAS-CONECTOR-2110.md',
+  'docs/evidencias-paginas-conector-2110.json',
   'scripts/test-paginas-conector-2110.mjs',
   'scripts/test-support/connector-guide-fixture.mjs',
   'scripts/test-support/desfaz-paginas-conector-2110.mjs',
