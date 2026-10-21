@@ -20,6 +20,8 @@ import { semMcpStudioAjuste2010, MARCA_MCP_STUDIO_AJUSTE_2010, MCP_STUDIO_AJUSTE
 //       base só toca esses 2 + os novos.
 //   (M) MUTANTES: cada regra acima fica vermelha quando a quebramos de propósito.
 import { semAvatarPreso2010, MARCA_AVATAR_PRESO_2010, AVATAR_PRESO_2010_ARQUIVOS } from './test-support/desfaz-avatar-preso-2010.mjs' // reancorado KINEO-AVATAR-PRESO-2010 [TRAVA 8.2 — vai do fundador 20/10 "vai pra tudo"]: a camada do avatar preso não é desta entrega
+import { MARCA_AVATAR_ESTORNO_2010, REGRAS_AVATAR_ESTORNO_2010 } from './test-support/desfaz-avatar-estorno-2010.mjs' // KINEO-AVATAR-ESTORNO-2010 — entrega posterior, com desfaz exato próprio
+import { MARCA_LEGENDA_BENGALI_2010, REGRAS_LEGENDA_BENGALI_2010 } from './test-support/desfaz-legenda-bengali-2010.mjs' // KINEO-AVATAR-ESTORNO-2010 — entrega posterior, com desfaz exato próprio
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -284,6 +286,7 @@ changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) 
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !ARQUIVOS_VERBATIM_INTOCAVEL_2010.includes(f))) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 — os arquivos do conserto do verbatim não são desta
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !MCP_STUDIO_AJUSTE_2010_ARQUIVOS.includes(f) || MCP_STUDIO_2010_ARQUIVOS.includes(f))) // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: os arquivos do ajuste do conector (entrega de depois, com desfaz próprio) não são desta
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !HOME_REMODELA_2010_ARQUIVOS.includes(f) && f !== HOME_REMODELA_2010_JSON)) // KINEO-HOME-REMODELA-2010 — reancorado: os arquivos da home remodelada não são desta
+changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !Object.hasOwn(REGRAS_AVATAR_ESTORNO_2010, f) && !Object.hasOwn(REGRAS_LEGENDA_BENGALI_2010, f))) // KINEO-AVATAR-ESTORNO-2010 — só arquivos das camadas posteriores verificadas byte a byte por seus guardiões
 ok(changedExisting.every((f) => MCP_STUDIO_2010_ARQUIVOS.includes(f)), `(F3) o diff contra a base só toca arquivos declarados (existentes alterados: ${changedExisting.join(', ') || 'nenhum ainda commitado'})`)
 const commits = git('log', '--format=%s', `${MCP_STUDIO_2010_BASE}..HEAD`).split('\n').filter(Boolean).filter((s) => !s.includes(MARCA_META95_PERSONAGEM_2010)).filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010')) /* reancorado KINEO-BEBE-QUE-FALA-2010 */ // reancorado KINEO-META95-PERSONAGEM-2010: os commits da folha de personagem levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_HOME_CARDS_CLAROS_2010))) // KINEO-HOME-CARDS-CLAROS-2010 — os commits do véu mais claro (entrega de depois) levam a marca deles
@@ -292,6 +295,7 @@ commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_AVA
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_VERBATIM_INTOCAVEL_2010))) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 — os commits do conserto do verbatim levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_MCP_STUDIO_AJUSTE_2010))) // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: os commits do ajuste do conector levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_HOME_REMODELA_2010))) // KINEO-HOME-REMODELA-2010 — reancorado: os commits (e o merge da fila) da home remodelada levam a marca deles
+commits.splice(0, commits.length, ...commits.filter((s) => !s.startsWith(MARCA_AVATAR_ESTORNO_2010 + ' ') && !s.startsWith(MARCA_LEGENDA_BENGALI_2010 + ' '))) // KINEO-AVATAR-ESTORNO-2010 — cada entrega posterior guarda seus próprios commits
 ok(commits.every((s) => s.includes(MARCA_MCP_STUDIO_2010)), `(F4) todo commit da entrega leva a marca no assunto (${commits.length} commit(s))`)
 ok(semMcpStudio2010('sem marca', 'lib/claudeConnect.ts') === 'sem marca' && semMcpStudio2010(raw(F.page), 'outro/arquivo.ts') === raw(F.page), '(F5) desfaz é idempotente fora do alvo')
 

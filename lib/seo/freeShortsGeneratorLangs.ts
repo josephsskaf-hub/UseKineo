@@ -10,7 +10,7 @@
 import type { NarrationLanguage } from '@/lib/textLanguage'
 
 export type FreeShortsLang = {
-  code: Exclude<NarrationLanguage, 'en' | 'pt' | 'es'>
+  code: Exclude<NarrationLanguage, 'en' | 'pt' | 'es' | 'bn'> // KINEO-LEGENDA-BENGALI-2010 — páginas traduzidas seguem nas 16 línguas existentes; bn entra só na narração
   /** BCP-47 para <html lang> e hreflang */
   locale: string
   /** direção do texto */

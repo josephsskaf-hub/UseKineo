@@ -1,12 +1,13 @@
 // KINEO-GUARDIAO-2026-08-28 — provas das 5 prioridades da pista "qualidade,
 // números e zero falha" (divisão do fundador: aquisição/assinaturas = Codex).
 import { readFileSync } from 'node:fs'
+import { semAvatarEstorno2010 } from './test-support/desfaz-avatar-estorno-2010.mjs' // KINEO-AVATAR-ESTORNO-2010 — a prova histórica mantém sua fotografia; o guardião novo executa o estorno corrigido
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 const R = join(dirname(fileURLToPath(import.meta.url)), '..')
 let ok = 0, bad = 0
 const chk = (n, c, d='') => { if (c) { ok++; console.log(`  ✓ ${n}`) } else { bad++; console.log(`  ✗ ${n}${d?' — '+d:''}`) } }
-const ler = (p) => readFileSync(join(R, p), 'utf8')
+const ler = (p) => semAvatarEstorno2010(readFileSync(join(R, p), 'utf8'), p) // KINEO-AVATAR-ESTORNO-2010
 const cod = (p) => ler(p).replace(/\/\*[\s\S]*?\*\//g,'').split('\n').filter(l=>!/^\s*(\/\/|\*)/.test(l)).join('\n')
 
 console.log('\n═══ GUARDIÃO 28/08 — as 5 prioridades ═══\n')

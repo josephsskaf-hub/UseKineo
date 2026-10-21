@@ -15,7 +15,7 @@ import { COMPOSE_CLAIM_EVENT } from '@/lib/composeClaim'
 import { CINEMATIC_CLAIM_EVENT, releaseCinematicClaim } from '@/lib/cinematic/claim'
 // KINEO-TRIAL-DOUBLECOUNT-2026-08-07 — ver o bloco do estorno em lib/reverseTrial.ts.
 import { recordReverseTrialRefundForRender } from '@/lib/reverseTrial'
-import { refundAvatarBirthDebitForFailedRequest } from '@/lib/avatar/reservation'
+import { loadVerifiedAvatarClaimForBillingReference } from '@/lib/avatar/reservation' // KINEO-AVATAR-ESTORNO-2010
 import {
   GENERIC_SWEEP_EXCLUDED_PATTERNS,
   SYNC_MEDIA_DELIVERY_WINDOW_MS,
@@ -512,8 +512,8 @@ export async function sweepAbandonedCinematicDebits(opts?: { userId?: string; li
 //     `videos`; existir vídeo na janela = provável entrega → PULA (nunca
 //     estornar entrega de verdade — na dúvida, o caso fica `ambiguous` e
 //     visível no log do cron, o mesmo contrato do sweep cinematográfico);
-//   · o estorno reaproveita refundAvatarBirthDebitForFailedRequest, que é
-//     idempotente por chave de ledger — re-rodar o cron nunca dobra crédito.
+//   · claim assinado pelo id do ledger, sem entrega/settlement; o RPC devolve // KINEO-AVATAR-ESTORNO-2010
+//     créditos e auditoria só ao vencedor, inclusive com sweeps concorrentes. // KINEO-AVATAR-ESTORNO-2010
 export async function sweepAbandonedAvatarDebits(): Promise<{
   scanned: number
   refunded: number
@@ -566,26 +566,24 @@ export async function sweepAbandonedAvatarDebits(): Promise<{
       continue
     }
 
-    // render_id = 'avatar-<requestId>' — ver generate-avatar (debita por essa
-    // chave determinística antes do POST na fal).
-    const requestId = renderId.slice('avatar-'.length)
-    if (!requestId) continue
-    const refunded = await refundAvatarBirthDebitForFailedRequest({ userId, requestId })
-    if (!refunded.ok) {
-      // Claim que não se deixa carregar/estornar é ambiguidade, não silêncio:
-      // aparece no log do cron a cada meia hora até alguém olhar.
-      console.warn(`[refund/avatar-sweep] could not settle ${renderId}: ${refunded.error}`)
-      result.ambiguous += 1
-      continue
-    }
-    if (refunded.credits > 0) {
+    // render_id = avatar-<claimId>, NÃO o requestId do provedor. Sem claim verificável, nunca estornar. // KINEO-AVATAR-ESTORNO-2010
+    const loaded = await loadVerifiedAvatarClaimForBillingReference({ db, secret: process.env.SUPABASE_SERVICE_ROLE_KEY ?? '', userId, billingReference: renderId }) // KINEO-AVATAR-ESTORNO-2010
+    if (!loaded.ok || !loaded.claim || loaded.claim.creditCost !== Number(debit.amount) || loaded.claim.status === 'settled' || loaded.claim.completedVideoUrl) { // KINEO-AVATAR-ESTORNO-2010
+      result.ambiguous += 1 // KINEO-AVATAR-ESTORNO-2010
+      continue // KINEO-AVATAR-ESTORNO-2010
+    } // KINEO-AVATAR-ESTORNO-2010
+    const claim = loaded.claim // KINEO-AVATAR-ESTORNO-2010
+    const { data: reserved, error: reserveError } = await db.from('events').update({ metadata: { ...claim.metadata, abandoned_refund_claimed_at: claim.metadata.abandoned_refund_claimed_at ?? new Date().toISOString() } }).eq('id', claim.claimId).eq('user_id', userId).eq('name', 'avatar_submission_claim').eq('metadata->>authority', claim.authority).select('id').maybeSingle() // KINEO-AVATAR-ESTORNO-2010 — CAS partilhado com binding/completion; URL ou settlement concorrente muda a assinatura e vence o estorno
+    if (reserveError || reserved?.id !== claim.claimId) { result.ambiguous += 1; continue } // KINEO-AVATAR-ESTORNO-2010 — marker persiste se o RPC falhar, permitindo retry sem entregar o MP4
+    const credits = await refundRenderCredits(renderId) // KINEO-AVATAR-ESTORNO-2010
+    if (credits > 0) { // KINEO-AVATAR-ESTORNO-2010
       result.refunded += 1
-      result.creditsReturned += refunded.credits
+      result.creditsReturned += credits // KINEO-AVATAR-ESTORNO-2010
       await db.from('events').insert({
         user_id: userId,
         name: 'credits_refunded',
         path: '/api/cron/refund-sweep',
-        metadata: { billing_reference: renderId, amount: refunded.credits, reason: 'abandoned_avatar' },
+        metadata: { billing_reference: renderId, amount: credits, reason: 'abandoned_avatar' }, // KINEO-AVATAR-ESTORNO-2010
       })
     }
   }
