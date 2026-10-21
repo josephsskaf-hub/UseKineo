@@ -11,6 +11,13 @@
   "scripts/test-espacos-2026-09-30.mjs": 0,
   "scripts/test-home-3-cards-1910.mjs": 0,
   "scripts/test-home-blue-layout.mjs": 1,
+  "scripts/test-home-clips-first-2026-10-05.mjs": 1,
+  "scripts/test-home-limpa-1410.mjs": 12,
+  "scripts/test-interface-language.mjs": 1,
+  "scripts/test-language-navigation.mjs": 1,
   "scripts/test-login-modal-1410.mjs": 0,
+  "scripts/test-menu-ugc-2010.mjs": 1,
+  "scripts/test-promo-cards-2026-09-30.mjs": 4,
+  "scripts/test-studio-heroi-2026-09-30.mjs": 3,
   "scripts/test-support/desfaz-menu-ugc-2010.mjs": 2
 }

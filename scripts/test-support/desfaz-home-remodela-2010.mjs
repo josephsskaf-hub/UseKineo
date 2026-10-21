@@ -69,7 +69,7 @@ export function semHomeRemodela2010(texto, p) {
   }
   const esperadas = ACRESCIMOS_HOME_REMODELA_2010[rel] ?? 0
   if (tiradas !== esperadas) throw new Error(`desfaz-home-remodela-2010: ${rel} tem ${tiradas} acréscimo(s) marcado(s), esperava ${esperadas}`)
-  if (trocadas !== trocas.size) throw new Error(`desfaz-home-remodela-2010: ${rel} com ${trocadas} de ${trocas.size} troca(s) (remodelação pela metade)`)
+  if (trocadas !== (TROCAS_HOME_REMODELA_2010[rel] ?? []).length) throw new Error(`desfaz-home-remodela-2010: ${rel} com ${trocadas} de ${(TROCAS_HOME_REMODELA_2010[rel] ?? []).length} troca(s) (remodelação pela metade)`)
   const out = fora.join('\n')
   return crlf ? out.replace(/\n/g, '\r\n') : out
 }
