@@ -1,6 +1,7 @@
 // KINEO-ADS-CENA-2110 — máquina durável, sem SDK: cada intenção é salva ANTES do efeito; não reenvia POST ambíguo.
 import { cenaKeyframeRequest, cenaVideoRequests, type CenaRoute } from './adapters'
 import { CENA_JUDGE_QUESTION, judgeCena, type CenaJson, type CenaPlan, type CenaVerdict } from './plan'
+import { AI_TEXT_MODELS } from '@/lib/aiModels'
 export const CENA_KEYFRAME_ROUNDS = 2
 export const CENA_VIDEO_ATTEMPTS = 2
 export const CENA_JOB_MS = 25 * 60_000
@@ -41,7 +42,7 @@ export async function stepCena(s: CenaState, d: CenaDeps): Promise<void> {
   if (s.phase === 'judge') {
     for (const j of s.jobs.filter(j => j.kind === 'image' && !j.verdict)) {
       let verdict: CenaVerdict
-      try { verdict = judgeCena(await d.json({ model: 'gpt-4o', system: CENA_JUDGE_QUESTION, text: 'Image 1 = exact customer product. Image 2 = candidate. Image 3 = actor identity. Fail closed for ambiguous hand ownership, actor or product fidelity.', images: [s.plan.input.foto, j.url!, ...(s.plan.input.actorUrl ? [s.plan.input.actorUrl] : [])] })) }
+      try { verdict = judgeCena(await d.json({ model: AI_TEXT_MODELS.adsRetry, system: CENA_JUDGE_QUESTION, text: 'Image 1 = exact customer product. Image 2 = candidate. Image 3 = actor identity. Fail closed for ambiguous hand ownership, actor or product fidelity.', images: [s.plan.input.foto, j.url!, ...(s.plan.input.actorUrl ? [s.plan.input.actorUrl] : [])] })) }
       catch { verdict = { approved: false, score: 0, reasons: ['judge_unavailable'] } }
       j.verdict = verdict; await d.save(s)
       await d.event('ads_cena_keyframe_judged', { index: j.index, round: s.imageRound, ...verdict })

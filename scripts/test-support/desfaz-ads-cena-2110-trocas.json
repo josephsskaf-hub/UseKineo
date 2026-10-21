@@ -8,7 +8,8 @@
     "scripts/test-ads-ator-2026-10-09.mjs": 1,
     "scripts/test-ads-bola-2110.mjs": 1,
     "scripts/test-ads-qualidade-2110.mjs": 1,
-    "scripts/test-support/desfaz-ads-qualidade-2110.mjs": 2
+    "scripts/test-support/desfaz-ads-qualidade-2110.mjs": 2,
+    "scripts/test-moderacao-2026-09-25.mjs": 0
   },
   "lib/ads/v2Advance.ts": [
     [
@@ -110,6 +111,12 @@
     [
       "const rd = (p) => lf(semAdsCena2110(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-ADS-CENA-2110 — leitura anterior byte a byte, incluindo mutantes e marcas",
       "const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))"
+    ]
+  ],
+  "scripts/test-moderacao-2026-09-25.mjs": [
+    [
+      "ok(imp.length === 36 && imp.includes('app/api/admin/ads-cena/route.ts') && imp.every((p) => !/^\\s*['\"]use client['\"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`) // KINEO-ADS-CENA-2110 — +1: a porta admin modera antes do plano; exige o caminho exato e preserva a proibição de use client.",
+      "ok(imp.length === 35 && imp.every((p) => !/^\\s*['\"]use client['\"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — era: imp.length === 34 (reancorado KINEO-BEBE-QUE-FALA-2010)"
     ]
   ]
 }

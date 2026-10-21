@@ -113,6 +113,7 @@ async function pipelineProof(over = {}) {
   assert.equal(w.submits.filter(j => j.kind === 'video').length, 1)
   assert.equal(s.keyframe, 'https://offline.example/stored-image-1-1', 'best of two escolhe maior nota')
   same(s.keyframes, ['https://offline.example/stored-image-1-1', 'https://offline.example/stored-image-1-3']); assert.equal(w.judged.length, 4); same(w.judged[0].images, [photo, 'https://offline.example/stored-image-1-0', actor])
+  assert.ok(w.judged.every(call => call.model === 'gpt-4o'), 'juiz usa o modelo completo do catálogo central')
   const bad = pipe.newCenaState(plan, 'kling3'), bw = pipelineDouble(bad, { verdict: () => ({ ...goodJudge, own_hands_attached: false }) })
   await drive(pipe, bad, bw.d)
   assert.equal(bad.phase, 'failed'); assert.equal(bad.imageRound, 2)
@@ -374,7 +375,7 @@ for (const path of ADS_CENA_2110_ARQUIVOS) {
 for (const path of [...Object.values(F).filter(p => p.includes('/cena/') || p === F.captions), F.route, 'scripts/test-ads-cena-2110.mjs']) assert.ok(ADS_CENA_2110_NOVOS.includes(path), 'novo arquivo coberto no desfaz: ' + path)
 assert.equal(semAdsCena2110('untouched\n', 'lib/elsewhere.ts'), 'untouched\n')
 assert.throws(() => semAdsCena2110(read(F.start) + '\n// KINEO-ADS-CENA-2110 inesperado\n', F.start), /desfaz-ads-cena-2110/)
-console.log('ok desfaz mais novo exato em nove arquivos, idempotente, CRLF, marcas e lista de novos')
+console.log('ok desfaz mais novo exato em dez arquivos, idempotente, CRLF, marcas e lista de novos')
 function changed(path, from, to) {
   const original = read(path), occurrences = original.split(from).length - 1
   assert.equal(occurrences, 1, 'mutante aplica uma vez: ' + path + ' ' + from)
