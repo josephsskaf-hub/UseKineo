@@ -41,6 +41,8 @@ export const ACRESCIMOS_MCP_STUDIO_AJUSTE_2010 = {
   'scripts/test-mcp-studio-2010.mjs': 3,
   'scripts/test-avatar-preso-2010.mjs': 1,
   'scripts/test-support/desfaz-verbatim-intocavel-2010.mjs': 3,
+  'scripts/test-meta95-personagem-2010.mjs': 1,
+  'scripts/test-verbatim-intocavel-2010.mjs': 0,
 }
 export const TROCAS_MCP_STUDIO_AJUSTE_2010 = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-mcp-studio-ajuste-2010-trocas.json'), 'utf8'))
 

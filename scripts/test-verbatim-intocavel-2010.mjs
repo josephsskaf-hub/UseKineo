@@ -174,7 +174,7 @@ console.log('D) o desfaz')
   for (const rel of REANCORAS_VERBATIM_INTOCAVEL_2010) {
     const atual = rd(rel)
     let alheia = null, h = ''
-    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null }
+    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-MCP-STUDIO-AJUSTE-2010', 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // reancorado KINEO-MCP-STUDIO-AJUSTE-2010: os commits do ajuste do conector (camada de depois) também não são "alheios" aqui — o desfaz do verbatim já os tira primeiro
     const desfeito = semVerbatimIntocavel2010(rel, atual)
     const marcadas = atual.split(NL).filter((l) => l.includes(MARCA_VERBATIM_INTOCAVEL_2010)).length
     const esperadas = ACRESCIMOS_REANCORA_VERBATIM_INTOCAVEL_2010[rel] + (TROCAS_REANCORA_VERBATIM_INTOCAVEL_2010[rel]?.quantas ?? 0)
