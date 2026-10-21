@@ -175,6 +175,12 @@
       "  const semMarca = MENU_UGC_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !rd(f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) })"
     ]
   ],
+  "scripts/test-meta95-personagem-2010.mjs": [
+    [
+      "    const d = tenta(() => lf(semMeta95Personagem2010(semHomeRemodela2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f), f))) // KINEO-HOME-REMODELA-2010 — a home remodelada pôs 1 linha na cabeça da cadeia (desfaz-menu-ugc): sai antes",
+      "    const d = tenta(() => lf(semMeta95Personagem2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f)))"
+    ]
+  ],
   "scripts/test-promo-cards-2026-09-30.mjs": [
     [
       "  // KINEO-HOME-REMODELA-2010 — REANCORADO 20/10, fundador: \"no More Tools, eu quero extinguir esses cards… só quero colocar os exemplos deles, que estão muito bons, em algum outro lugar\" — a fileira SAI da home (componente e lib seguem); os clipes do card Clips foram para a faixa de Clipes e a foto do Nano Banana para a galeria (scripts/test-home-remodela-2010.mjs).",
@@ -193,6 +199,16 @@
     [
       "ok(navProblems(LAND.replace(/ *<Link href=\\{MENU_CONNECTOR_HREF\\} data-nav-item=\\{MENU_CONNECTOR_NAV_ITEM\\} className=\"nav-connector\">[^\\n]*\\n/, ''), THEME).length > 0, '(M4) MCP fora do topo → vermelho') // KINEO-HOME-REMODELA-2010",
       "ok(navProblems(LAND.replace(/ *<Link href=\"\\/claude-connector\" data-nav-item=\"more:mcp\"><span className=\"nm-tx\">[^\\n]*\\n/, ''), THEME).length > 0, '(M4) MCP fora do topo → vermelho')"
+    ]
+  ],
+  "scripts/test-verbatim-intocavel-2010.mjs": [
+    [
+      "    const atual = semHomeRemodela2010(rd(rel), rel) // KINEO-HOME-REMODELA-2010 — reancorado: a reâncora da home remodelada (entrega de depois) sai antes",
+      "    const atual = rd(rel)"
+    ],
+    [
+      "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, `--grep=${MARCA_HOME_REMODELA_2010}`, 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-HOME-REMODELA-2010 — a última versão alheia pula também os commits da home remodelada (o merge da fila e as reâncoras)",
+      "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null }"
     ]
   ]
 }
