@@ -25,6 +25,7 @@ import { desfazApresentadorV2_1710 } from './test-support/desfaz-apresentador-v2
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
+import { semAdsCena2110 } from './test-support/desfaz-ads-cena-2110.mjs' // KINEO-ADS-CENA-2110 — testa política antiga sem a camada nova, que tem guardião próprio
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { desfazExtracao, textoOriginalV2 } from './test-support/shopify-extracao-v2-1310.mjs' // KINEO-SHOPIFY-2026-10-13 (etapa 2)
 
@@ -168,7 +169,7 @@ function world(over = {}, opts = {}) {
   const load = createOfflineLoader({
     mocks,
     globals: { setTimeout: (fn) => { setImmediate(fn); return 0 } },
-    source: (rel, text) => (Object.prototype.hasOwnProperty.call(over, rel) ? over[rel] : text),
+    source: (rel, text) => semAdsCena2110(Object.prototype.hasOwnProperty.call(over, rel) ? over[rel] : text, rel), // KINEO-ADS-CENA-2110 — também desfaz no carregador executado, preservando os mutantes da camada antiga
   })
   return { load, submits, images, events, fails, sources, tts }
 }

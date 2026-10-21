@@ -1,0 +1,115 @@
+{
+  "__acrescimos": {
+    "lib/ads/v2Advance.ts": 22,
+    "lib/ads/v2PostDeliveryServer.ts": 2,
+    "lib/ads/v2Screen.ts": 1,
+    "lib/ads/v2Simple.ts": 3,
+    "lib/ads/v2StartCore.ts": 7,
+    "scripts/test-ads-ator-2026-10-09.mjs": 1,
+    "scripts/test-ads-bola-2110.mjs": 1,
+    "scripts/test-ads-qualidade-2110.mjs": 1,
+    "scripts/test-support/desfaz-ads-qualidade-2110.mjs": 2
+  },
+  "lib/ads/v2Advance.ts": [
+    [
+      "      } else if (ageMs(row.image_submit_claimed_at ?? row.updated_at) > (row.kind === ADS_V2_PRESENTER_KIND ? Math.max(ADS_V2_SHOT_STUCK_MS, cenaUgcAttemptDeadline(row)) : ADS_V2_FAST_IMAGE_STUCK_MS)) { // KINEO-ADS-FIEL-1510 — prazo curto da imagem (o ator mantém o de antes)\r // KINEO-ADS-CENA-2110",
+      "      } else if (ageMs(row.image_submit_claimed_at ?? row.updated_at) > (row.kind === ADS_V2_PRESENTER_KIND ? ADS_V2_SHOT_STUCK_MS : ADS_V2_FAST_IMAGE_STUCK_MS)) { // KINEO-ADS-FIEL-1510 — prazo curto da imagem (o ator mantém o de antes)"
+    ],
+    [
+      "          const late = ageMs(row.submitted_at ?? row.updated_at) > (row.kind === ADS_V2_PRESENTER_KIND ? Math.max(ADS_V2_SHOT_STUCK_MS, cenaUgcAttemptDeadline(row)) : ihLate && row.engine === 'kling_o3' ? ADS_V2_IN_HAND_VIDEO_STUCK_MS : ADS_V2_FAST_VIDEO_STUCK_MS) // KINEO-ADS-FIEL-1510 — prazo curto por tentativa (o ator mantém o de antes) · KINEO-ADS-MAO-AJUSTE-1610 — Kling do produto na mão: 5 min\r // KINEO-ADS-CENA-2110",
+      "          const late = ageMs(row.submitted_at ?? row.updated_at) > (row.kind === ADS_V2_PRESENTER_KIND ? ADS_V2_SHOT_STUCK_MS : ihLate && row.engine === 'kling_o3' ? ADS_V2_IN_HAND_VIDEO_STUCK_MS : ADS_V2_FAST_VIDEO_STUCK_MS) // KINEO-ADS-FIEL-1510 — prazo curto por tentativa (o ator mantém o de antes) · KINEO-ADS-MAO-AJUSTE-1610 — Kling do produto na mão: 5 min"
+    ],
+    [
+      "  // KINEO-ADS-CENA-2110 — UGC exige a pessoa: uma refação, depois falha terminal com estorno.",
+      "  // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator NUNCA é terminal: 2ª tentativa sem cobrar, depois desiste e o anúncio normal sai."
+    ],
+    [
+      " * KINEO-ADS-CENA-2110 — foto, recomeça pela foto). O prazo antigo repete UMA vez, com relógio novo e maior.",
+      " * foto, recomeça pela foto). Desistiu (adsV2PresenterGaveUp: 2ª falha, sem acesso, saldo, recusa nossa, sem voz, prazo)"
+    ],
+    [
+      " * KINEO-ADS-CENA-2110 — falha terminal devolve motivo ao estorno do pedido; nunca entrega UGC sem pessoa.",
+      " * = nada a fazer aqui: a montagem sai sem ele. Devolve SEMPRE null (o ator nunca mata o pedido)."
+    ],
+    [
+      "async function retryPresenter(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow): Promise<string | null> { // KINEO-ADS-CENA-2110",
+      "async function retryPresenter(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow): Promise<null> {"
+    ],
+    [
+      "  const action = cenaUgcFailureAction(row) // KINEO-ADS-CENA-2110",
+      "  if (adsV2PresenterGaveUp(row)) return null"
+    ],
+    [
+      " * KINEO-ADS-CENA-2110 — um passo do ator, antes do despacho. Sem voz ou prazo: marca a tentativa como falha.",
+      " * KINEO-ATOR-ANUNCIO-2026-10-09 — um passo do ator, antes do despacho. Sem narração = desiste (sem voz não há ator). Prazo"
+    ],
+    [
+      " * KINEO-ADS-CENA-2110 — a política de refação/estorno decide o pedido; prazo novo na segunda tentativa. Garante a voz e",
+      " * (ADS_V2_PRESENTER_GIVEUP_MS desde o início) = desiste. Senão garante a voz (que a montagem usaria de qualquer jeito) e"
+    ],
+    [
+      "  if (cenaUgcAttemptExpired(row, order.started_at, Date.now())) { // KINEO-ADS-CENA-2110 — a tentativa nova tem prazo próprio e maior.",
+      "  if (ageMs(order.started_at) > Math.min(ADS_V2_PRESENTER_GIVEUP_MS, ADS_V2_PRESENTER_BUDGET_MS)) { // KINEO-ADS-FIEL-1510 — o ator desiste em 10 min (era 45): o anúncio sai sem ele"
+    ],
+    [
+      "    if (await failShot(admin, row, [row.status], 'presenter_deadline', 'local_policy_gate')) cancelAbandoned(row, row.status === 'image_submitted' ? 'image' : 'video') // KINEO-ADS-CENA-2110",
+      "    await failShot(admin, row, [row.status], 'presenter_deadline', 'local_policy_gate')"
+    ],
+    [
+      "  // KINEO-ADS-CENA-2110 — separada não entra: duas vozes, nunca). Recusa da montagem com ator = falha com estorno.",
+      "  // separada não entra: duas vozes, nunca). Qualquer recusa da montagem com ator = o anúncio de sempre (nunca mata o pedido)."
+    ],
+    [
+      "  const state = READY.has(r.status) ? 'ready' : 'working' // KINEO-ADS-CENA-2110",
+      "  const state = READY.has(r.status) ? 'ready' : r.status === 'failed' || r.status === 'stuck' ? (adsV2PresenterGaveUp(r) ? 'skipped' : 'working') : 'working'"
+    ],
+    [
+      "      if (terminal.startsWith('ugc_presenter_failed:')) await failRequiredUgc(admin, order, terminal); else await failAdsV2Order(admin, order, terminal, '/lib/ads/v2Advance') // KINEO-ADS-CENA-2110",
+      "      await failAdsV2Order(admin, order, terminal, '/lib/ads/v2Advance')"
+    ],
+    [
+      "  // KINEO-ADS-CENA-2110 — sem voz/prazo: falha da tentativa; UGC nunca vira anúncio de produto em silêncio.",
+      "  // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator: sem voz/prazo = desiste; senão garante a voz (o despacho manda o vídeo falado)."
+    ],
+    [
+      "  // KINEO-ADS-CENA-2110 — só o ator pronto libera a montagem UGC; falha terminal exige estorno.",
+      "  // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator ainda trabalhando segura a montagem; pronto ou desistiu = segue."
+    ],
+    [
+      "  if (adsV2PresenterPlanOf(order.plan) && !actor) { await failRequiredUgc(admin, order, 'ugc_presenter_failed:missing_person'); return } // KINEO-ADS-CENA-2110",
+      "  if (actor && !READY.has(actor.status) && !adsV2PresenterGaveUp(actor)) return"
+    ]
+  ],
+  "lib/ads/v2PostDeliveryServer.ts": [
+    [
+      "      return captioned(buildAdV2Source(adsV2EditMontageInput(base, edit, f))) // KINEO-ADS-CENA-2110",
+      "      return buildAdV2Source(adsV2EditMontageInput(base, edit, f))"
+    ],
+    [
+      "    return captioned(buildAdV2Source(adsV2EditMontageInput(adsV2EditWithoutPresenter(base), edit, f))) // KINEO-ADS-CENA-2110",
+      "    return buildAdV2Source(adsV2EditMontageInput(adsV2EditWithoutPresenter(base), edit, f))"
+    ],
+    [
+      "  return captioned(buildAdV2Source(adsV2EditMontageInput(base, edit, f))) // KINEO-ADS-CENA-2110",
+      "  return buildAdV2Source(adsV2EditMontageInput(base, edit, f))"
+    ]
+  ],
+  "scripts/test-ads-ator-2026-10-09.mjs": [
+    [
+      "    source: (rel, text) => semAdsCena2110(Object.prototype.hasOwnProperty.call(over, rel) ? over[rel] : text, rel), // KINEO-ADS-CENA-2110 — também desfaz no carregador executado, preservando os mutantes da camada antiga",
+      "    source: (rel, text) => (Object.prototype.hasOwnProperty.call(over, rel) ? over[rel] : text),"
+    ]
+  ],
+  "scripts/test-ads-bola-2110.mjs": [
+    [
+      "const rd = (p) => lf(semAdsCena2110(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-ADS-CENA-2110 — leitura anterior byte a byte, incluindo mutantes e marcas",
+      "const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))"
+    ]
+  ],
+  "scripts/test-ads-qualidade-2110.mjs": [
+    [
+      "const rd = (p) => lf(semAdsCena2110(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-ADS-CENA-2110 — leitura anterior byte a byte, incluindo mutantes e marcas",
+      "const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))"
+    ]
+  ]
+}

@@ -19,6 +19,7 @@
 //   R  NA BASE (9415fa5dd) as mesmas provas ficam VERMELHAS;
 //   X  desfaz exato + marca em toda linha + encadeamento (a cabeça das cadeias tira esta camada primeiro) + novos;
 //   M  mutantes (todos APLICADOS e VERMELHOS).
+import { semAdsCena2110 } from './test-support/desfaz-ads-cena-2110.mjs' // KINEO-ADS-CENA-2110 — prova a camada anterior sem a cena
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -31,7 +32,7 @@ import { semAdsQualidade2110 } from './test-support/desfaz-ads-qualidade-2110.mj
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))
+const rd = (p) => lf(semAdsCena2110(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-ADS-CENA-2110 — leitura anterior byte a byte, incluindo mutantes e marcas
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const baseCache = new Map()
 const base = (p) => { if (!baseCache.has(p)) { let t = null; try { t = lf(git('show', `${ADS_BOLA_2110_BASE}:${p}`)) } catch { t = null } baseCache.set(p, t) } return baseCache.get(p) }

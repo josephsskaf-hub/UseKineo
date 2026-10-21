@@ -9,6 +9,7 @@
 //      acima de 80% da tela, produto em contain (nunca cortado), sem propriedade nova (blur desligado);
 //   R  ROTEIRO: o benefício digitado faltando e as frases genéricas do caso real voltam para correção; a fala limpa passa;
 //   B  NA BASE (38d0ece90) as provas são VERMELHAS;  X  desfaz exato, marca em toda linha, encadeamento;  U  mutantes aplicados e vermelhos.
+import { semAdsCena2110 } from './test-support/desfaz-ads-cena-2110.mjs' // KINEO-ADS-CENA-2110 — prova a camada anterior sem a cena
 import { readFileSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -20,7 +21,7 @@ import { semAdsBola2110 } from './test-support/desfaz-ads-bola-2110.mjs'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))
+const rd = (p) => lf(semAdsCena2110(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-ADS-CENA-2110 — leitura anterior byte a byte, incluindo mutantes e marcas
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const baseCache = new Map()
 const base = (p) => { if (!baseCache.has(p)) { let t = null; try { t = lf(git('show', `${ADS_QUALIDADE_2110_BASE}:${p}`)) } catch { t = null } baseCache.set(p, t) } return baseCache.get(p) }

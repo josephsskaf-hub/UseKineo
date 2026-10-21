@@ -10,6 +10,7 @@
 // Só age nos arquivos declarados; qualquer outro texto passa igual (idempotente). Preserva CRLF. A marca NÃO contém a de nenhuma camada de antes.
 // ENCADEAMENTO: é a camada MAIS NOVA — semAdsBola2110 (que semDesenhoSom2110 e as cadeias da home e do Ads chamam primeiro) chama ESTE primeiro.
 // Este não importa ninguém. O guardião scripts/test-ads-qualidade-2110.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base.
+import { semAdsCena2110 } from './desfaz-ads-cena-2110.mjs' // KINEO-ADS-CENA-2110 — a camada mais nova sai primeiro
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -37,6 +38,7 @@ export const ADS_QUALIDADE_2110_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semAdsQualidade2110(texto, p) {
+  texto = semAdsCena2110(texto, p) // KINEO-ADS-CENA-2110 — cena, legenda e UGC obrigatório saem antes da qualidade
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_ADS_QUALIDADE_2110) || !ADS_QUALIDADE_2110_ARQUIVOS.includes(rel)) return texto
   const crlf = texto.includes('\r\n')
