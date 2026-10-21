@@ -728,6 +728,7 @@ async function submitVideoFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
  * Kling O3 em série com pausa curta; Seedance/H3/Nano Banana em lotes de 3. Para de abrir envio novo no prazo.
  */
 export async function dispatchAdsV2Shots(admin: SupabaseClient, order: AdsV2OrderRow, deadlineMs: number): Promise<number> {
+  if ((order.plan as { cena?: { plan?: { marker?: string } } } | null)?.cena?.plan?.marker === 'KINEO-ADS-CENA-2110') return 0 // KINEO-ADS-CENA-2110 — nenhuma cena envia planos pelo motor legado
   // Pedido que já falhou/entregou (outra lambda venceu entre a leitura e aqui) não manda NADA à fal.
   if (order.status !== 'generating') return 0
   const rows = await loadAdsV2Shots(admin, order.id)
@@ -1602,6 +1603,7 @@ export async function advanceAdsV2Order(admin: SupabaseClient, orderId: string, 
 }
 
 async function stepGenerating(admin: SupabaseClient, order: AdsV2OrderRow, deadlineMs: number): Promise<void> {
+  if ((order.plan as { cena?: { plan?: { marker?: string } } } | null)?.cena?.plan?.marker === 'KINEO-ADS-CENA-2110') { await (await import('@/lib/ads/cena/runtime')).advanceCenaOrder(admin, order); return } // KINEO-ADS-CENA-2110 — pedido marcado usa a cena; ausente = o corpo anterior byte a byte
   let rows = await loadAdsV2Shots(admin, order.id)
   if (!rows) return
   // Linhas que faltam (o /start caiu entre o débito e o insert): recria pelo plano gravado, sem duplicar.

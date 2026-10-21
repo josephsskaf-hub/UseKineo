@@ -38,6 +38,10 @@ import { adsSamplePresenterCapReached } from '@/lib/ads/serverAccess' // KINEO-U
 import { adsV2CloseRealOf } from '@/lib/ads/v2CloseReal' // KINEO-CLOSE-REAL-1910 — a amostra só sai no Close real
 import type { AdsV2ChargeResult } from '@/lib/ads/v2Billing'
 import type { AdsV2Caller } from '@/lib/ads/v2PlanCore'
+import { cenaEnabled } from '@/lib/ads/cena/catalog' // KINEO-ADS-CENA-2110
+import { isAdsInternalEmail } from '@/lib/ads/access' // KINEO-ADS-CENA-2110
+import { cenaOf } from '@/lib/ads/cena/pipeline' // KINEO-ADS-CENA-2110
+import { cenaCosts } from '@/lib/ads/cena/adapters' // KINEO-ADS-CENA-2110
 
 /** Prazo para abrir envios novos nesta chamada (o resto sai pelo avanço da tela/cron). */
 const DISPATCH_BUDGET_MS = 40_000
@@ -70,6 +74,7 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     if (!order) return v2Fail('order_not_found', 404)
     if (order.status !== 'draft' && order.status !== 'planned') return v2Fail('not_startable', 409, { status: order.status })
     const plan = order.plan
+    const cena = cenaOf(plan); if (cena && !cenaEnabled(isAdsInternalEmail(user.email))) return v2Fail('cena_internal_only', 403) // KINEO-ADS-CENA-2110
     if (!plan || !Array.isArray(plan.shots) || plan.shots.length === 0) return v2Fail('plan_required', 409)
     if (!order.card_url) return v2Fail('card_required', 400)
     // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra só sai no nível e na duração dela (a tela trava o resto; aqui é a lei).
@@ -84,6 +89,7 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
 
     const cost = adsV2Credits(order.tier, order.seconds)
     const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds, presenter: !!plan.presenter }) // KINEO-ESTILOS-PRODUTO-2026-10-09 — o plano com estilo custa o efeito · KINEO-ATOR-ANUNCIO-2026-10-09 — o ator custa a foto e o vídeo falado
+    if (cena && dryRun) return v2Json({ dry_run: true, charged: false, order_id: orderId, credits: cost, plan: cena.plan, costs: cenaCosts() }) // KINEO-ADS-CENA-2110
 
     // ENSAIO DE US$ 0: plano + custo, sem débito e sem fal. Para aqui.
     if (dryRun) {
@@ -148,6 +154,7 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     }
 
     // Planos da geração (text nasce 'skipped_text' e nunca vai à fal).
+    if (cena) { locked = null; await writeServerEvent({ name: 'ads_cena_started', userId: uid, path: '/api/ads/v2/start', metadata: { order_id: orderId, route: cena.route, credits: cost, costs: cenaCosts() } }); return v2Json({ order_id: orderId, status: 'generating', credits: cost, costs: cenaCosts(), status_url: `/api/ads/v2/status?order_id=${orderId}` }, 202) } // KINEO-ADS-CENA-2110 — nenhum plano legado é enviado; /status e cron avançam a cena
     const rows = buildInitialShotRows(orderId, order.tier, plan)
     const ins = await admin.from('ads_v2_shots').upsert(rows, { onConflict: 'order_id,idx,attempt', ignoreDuplicates: true })
     if (ins.error) {

@@ -84,6 +84,7 @@ export type CenaVideoRequestInput = {
   productUrl: string
   prompt: string
   language?: string
+  segmentPrompts?: readonly [string, string]
 }
 
 function requiredUrl(value: unknown, field: string): string {
@@ -136,7 +137,7 @@ export function cenaVideoRequests(route: CenaRoute, data: CenaVideoRequestInput)
   return [0, 8].map((offsetSeconds, index) => ({
     endpoint: info.endpoint,
     input: {
-      prompt: `The first reference is the approved scene and actor; the second is the customer's exact product. Preserve both identities.\n${prompt}\nSEGMENT ${index + 1}/2: render only absolute ad time ${offsetSeconds}–${offsetSeconds + 8}s from that timed plan. Local 0s equals absolute ${offsetSeconds}s. ${index === 0 ? 'End with the ongoing product interaction; do not repeat the opening later.' : 'Continue the interaction, benefit and CTA from absolute 8s. Do not repeat the opening hook. The last generated second will be trimmed.'}`,
+      prompt: `The first reference is the approved scene and actor; the second is the customer's exact product. Preserve both identities.\n${data.segmentPrompts?.[index] ?? prompt}\nSEGMENT ${index + 1}/2: local 0s equals absolute ${offsetSeconds}s. ${index === 0 ? 'End with ongoing product interaction.' : 'Continue from absolute 8s. The last generated second will be trimmed.'}`,
       image_urls: [keyframeUrl, productUrl], duration: '8s', aspect_ratio: '9:16', resolution: '720p', generate_audio: true,
     },
     seconds: 8, keepSeconds: index === 0 ? 8 : 7, offsetSeconds, nativeSpeechSupported, warnings: [...warnings],
