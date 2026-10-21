@@ -154,7 +154,7 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     }
 
     // Planos da geração (text nasce 'skipped_text' e nunca vai à fal).
-    if (cena) { locked = null; await writeServerEvent({ name: 'ads_cena_started', userId: uid, path: '/api/ads/v2/start', metadata: { order_id: orderId, route: cena.route, credits: cost, costs: cenaCosts() } }); return v2Json({ order_id: orderId, status: 'generating', credits: cost, costs: cenaCosts(), status_url: `/api/ads/v2/status?order_id=${orderId}` }, 202) } // KINEO-ADS-CENA-2110 — nenhum plano legado é enviado; /status e cron avançam a cena
+    if (cena) { const costs = cena.plan.voice_mode ? cenaCosts(undefined, cena.plan.voice_mode) : cenaCosts(); locked = null; await writeServerEvent({ name: 'ads_cena_started', userId: uid, path: '/api/ads/v2/start', metadata: { order_id: orderId, route: cena.route, credits: cost, costs } }); return v2Json({ order_id: orderId, status: 'generating', credits: cost, costs, status_url: `/api/ads/v2/status?order_id=${orderId}` }, 202) } // KINEO-ADS-CENA-2110 KINEO-ADS-CENA-AJUSTE-2110 — resposta e evento usam o modo salvo; nenhum plano legado é enviado; /status e cron avançam a cena
     const rows = buildInitialShotRows(orderId, order.tier, plan)
     const ins = await admin.from('ads_v2_shots').upsert(rows, { onConflict: 'order_id,idx,attempt', ignoreDuplicates: true })
     if (ins.error) {

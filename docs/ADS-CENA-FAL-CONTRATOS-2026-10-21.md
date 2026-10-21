@@ -1,5 +1,7 @@
 # KINEO-ADS-CENA-2110 — contratos fal e estimativas, 21/10/2026
 
+**FATO CONFIRMADO — HISTÓRICO / KINEO-ADS-CENA-AJUSTE-2110, 21/10/2026:** este documento registra o contrato da primeira entrega. Para novos pedidos, consultar o [complemento de voz explícita, parâmetros por modo e custos atuais](ADS-CENA-AJUSTE-2026-10-21.md): `narrated` é padrão e usa `generate_audio:false` mais TTS; `talking` usa áudio nativo sem TTS. O cartão/packshot separado foi removido. As tabelas com áudio e o fallback por idioma abaixo descrevem somente a versão histórica.
+
 **FATO CONFIRMADO — IMPLEMENTADO:** os builders em `lib/ads/cena/adapters.ts:110` e `:153` apenas montam objetos. Não importam SDK, não leem ambiente e não fazem rede. A execução e a aprovação visual ficam a cargo da orquestração. A autorização é o pedido do fundador em 21/10: `[TRAVA 8.2 — vai do fundador 21/10 "A e B, vamo time"]`.
 
 ## Contratos consultados

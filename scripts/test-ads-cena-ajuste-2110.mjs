@@ -67,6 +67,48 @@ for (const [mode, route] of [['narrated', 'kling3'], ['talking', 'veo31']]) {
   assert.equal(new Set(final.map(e => e.track)).size, final.length)
   console.log('ok fluxo completo interno → plano → juiz → vídeo → cena final: ' + route + '/' + mode)
 }
+async function startCostsProof(override) {
+  for (const mode of ['narrated', 'talking', undefined]) for (const dry of [false, true]) {
+    let charges = 0; const events = [], id = '00000000-0000-4000-8000-000000000001'
+    const plan = { totalSeconds: 15, narration: 'Use Pulse on your run.', overlays: [], shots: [{ idx: 0, kind: 'text', source: 'user_photo' }], cena: { route: 'kling3', plan: { marker: 'KINEO-ADS-CENA-2110', ...(mode ? { voice_mode: mode } : {}) } } }
+    const order = { id, user_id: 'house', status: 'planned', tier: 'commercial', seconds: 15, card_url: input.foto, plan }
+    const admin = { from(table) {
+      assert.ok(['profiles', 'ads_v2_orders'].includes(table)); const q = { select() { return q }, eq() { return q }, in() { return q }, update() { assert.equal(table, 'ads_v2_orders'); return q }, maybeSingle: async () => ({ error: null, data: table === 'profiles' ? { video_credits: 100 } : { id } }) }; return q
+    } }
+    const mocks = {
+      crypto: { randomUUID: () => '00000000-0000-4000-8000-000000000009' },
+      '@/lib/serverEvents': { writeServerEvent: async e => events.push(e) }, '@/lib/safety/contentModeration': { moderateContent: async () => ({ ok: true }) },
+      '@/lib/ads/serverAccess': { adsGate: () => 'ok', adsSampleOpen: async () => false, isMissingAdsTable: () => false },
+      '@/lib/ads/v2Access': { adsV2Visible: () => true }, '@/lib/ads/v2Contract': { sanitizeStartBody: () => ({ ok: true, value: { order_id: id, dry_run: dry } }) },
+      '@/lib/ads/v2Tiers': { adsV2Credits: () => 41, estimateAdUsd: () => ({ totalUsd: 0 }) },
+      '@/lib/ads/v2Billing': { adsV2BillingRef: () => 'offline-ref', chargeAdsV2: async () => { charges++; return { ok: true, balance: 59 } }, failAdsV2Order: async () => { throw new Error('falha inesperada no start') } },
+      '@/lib/ads/v2Advance': { loadAdsV2Order: async () => ({ order, error: null }), buildInitialShotRows: () => { throw new Error('Cena tentou iniciar motor legado') } },
+      '@/lib/ads/v2Server': { v2Json: (body, status = 200) => new Response(JSON.stringify(body), { status }), v2Fail: (error, status) => new Response(JSON.stringify({ error }), { status }) },
+      '@/lib/ads/sample': {}, '@/lib/ads/sampleEntry': {}, '@/lib/ads/v2CloseReal': {},
+    }
+    const current = createOfflineLoader({ globals: { Response, Request, Error }, mocks, source: (p, s) => p === 'lib/ads/v2StartCore.ts' && override ? override : s })
+    const response = await current('lib/ads/v2StartCore.ts').adsV2StartFor({ id: 'house', email: 'josephsskaf@gmail.com' }, { reason: 'internal', admin }, async () => ({}))
+    assert.equal(response.status, dry ? 200 : 202)
+    const result = await response.json(), costs = current('lib/ads/cena/adapters.ts').cenaCosts(undefined, mode)
+    assert.deepEqual(result.costs, JSON.parse(JSON.stringify(costs)), 'resposta direta usa modo salvo, inclusive legado')
+    assert.equal(result.costs.kling3.knownSubtotalUsd, mode === 'narrated' ? 2.28 : 3.12)
+    assert.equal(result.costs.veo31.knownSubtotalUsd, mode === 'narrated' ? 3.8 : 7)
+    assert.equal(charges, dry ? 0 : 1)
+    const started = events.filter(e => e.name === 'ads_cena_started'); assert.equal(started.length, dry ? 0 : 1)
+    if (!dry) assert.deepEqual(JSON.parse(JSON.stringify(started[0].metadata.costs)), result.costs, 'evento e resposta informam o mesmo custo por modo')
+  }
+}
+await startCostsProof()
+console.log('ok start direto: custo por modo no dry/live/evento; legado preservado, sem efeito real')
+const startSource = source('lib/ads/v2StartCore.ts')
+for (const [label, from, to] of [
+  ['resposta live volta à tarifa com áudio', "credits: cost, costs, status_url:", "credits: cost, costs: cenaCosts(), status_url:"],
+  ['evento live volta à tarifa com áudio', 'route: cena.route, credits: cost, costs }', 'route: cena.route, credits: cost, costs: cenaCosts() }'],
+]) {
+  assert.equal(startSource.split(from).length - 1, 1, 'mutante deve ter ponto único')
+  await assert.rejects(() => startCostsProof(startSource.replace(from, to)), undefined, 'mutante deve ficar vermelho: ' + label)
+  console.log('ok mutante vermelho: ' + label)
+}
 for (const p of ADS_CENA_AJUSTE_2110_ARQUIVOS) {
   const actual = source(p), before = git('show', ADS_CENA_AJUSTE_2110_BASE + ':' + p)
   assert.ok(actual.includes(MARCA_ADS_CENA_AJUSTE_2110), 'marca da camada: ' + p)

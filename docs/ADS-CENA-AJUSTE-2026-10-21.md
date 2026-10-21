@@ -52,6 +52,8 @@
 |---|---:|---:|---:|
 | Kling 3 Pro `narrated`, 15s sem áudio nativo | US$1,68 | US$0,60 | US$2,28 |
 | Kling 3 Pro com áudio nativo, referência anterior | US$2,52 | US$0,60 | US$3,12 |
+| Seedance 2 standard, 15s, ambos os modos | US$4,536 | US$0,60 | US$5,136 |
+| Veo 3.1 `narrated`, duas chamadas de 8s sem áudio nativo | US$3,20 | US$0,60 | US$3,80 |
 | Veo 3.1 `talking`, duas chamadas de 8s | US$6,40 | US$0,60 | US$7,00 |
 
 **FATO CONFIRMADO — fontes dos contratos:** [Kling 3 Pro](https://fal.ai/models/fal-ai/kling-video/v3/pro/image-to-video/api), [Veo 3.1](https://fal.ai/models/fal-ai/veo3.1/reference-to-video/api), [Seedance 2](https://fal.ai/models/bytedance/seedance-2.0/reference-to-video/api), [Nano Banana Pro edit](https://fal.ai/models/fal-ai/nano-banana-pro/edit/api). Conferência documental, sem executar fornecedor.
@@ -60,7 +62,9 @@
 
 ## Provas
 
-**FATO CONFIRMADO — TESTADO LOCALMENTE:** os guardiões específicos de voz e montagem executam 14 e 9 mutantes comportamentais, respectivamente, todos ficando vermelhos como esperado. O guardião integrado passa pelos dois caminhos reais (pedido → plano → juiz → jobs → montagem), pelo desfaz exato de onze arquivos e por mutações de integridade. O guardião original da Cena e seus mutantes continuam verdes após a reancoragem.
+**FATO CONFIRMADO — TESTADO LOCALMENTE:** os guardiões específicos de voz e montagem executam 14 e 9 mutantes comportamentais, respectivamente, todos ficando vermelhos como esperado. O guardião integrado passa pelos dois caminhos reais (pedido → plano → juiz → jobs → montagem), pelo desfaz exato de treze arquivos e por mutações de integridade. Também executa o start v2 direto nos modos novo/legado, dry/live: confere custo por modo na resposta e no evento, com dois mutantes independentes que ficam vermelhos. O guardião original da Cena e seus mutantes continuam verdes após a reancoragem.
+
+**FATO CONFIRMADO — correção da revisão final:** o custo informado no start direto ainda usava a estimativa com áudio; agora respeita o modo salvo tanto na resposta quanto em `ads_cena_started`, mantendo o contrato de pedidos legados (`lib/ads/v2StartCore.ts:157`). Nenhuma cobrança mudou. Os dois relatórios anteriores estão sinalizados como históricos e apontam para este complemento.
 
 **FATO CONFIRMADO — correção de prova anterior:** a linha de contagem dos importadores de moderação havia perdido a marca ancestral META95 quando foi reancorada para Cena na entrega anterior. Isso quebrava D1 dentro de um guardião já vermelho por outro motivo. A linha agora preserva as duas marcas, sem alterar a contagem exigida, a proibição de cliente ou os mutantes (`scripts/test-moderacao-2026-09-25.mjs:191`). O desfaz deste complemento reproduz exatamente a fonte b77 anterior, inclusive essa diferença, sem retocar a baseline.
 
