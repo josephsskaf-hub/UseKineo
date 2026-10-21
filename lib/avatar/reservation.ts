@@ -214,6 +214,18 @@ async function loadAvatarClaimByGeneration(args: {
   return verifyAvatarClaimRow({ ...args, row: data })
 }
 
+// KINEO-AVATAR-ESTORNO-2010 — o ledger guarda avatar-<claimId>, inclusive quando o processo cai antes de existir requestId.
+export async function loadVerifiedAvatarClaimForBillingReference(args: { db: SupabaseClient; secret: string; userId: string; billingReference: string }): Promise<AvatarClaimLoad> { // KINEO-AVATAR-ESTORNO-2010
+  const claimId = args.billingReference.startsWith('avatar-') ? args.billingReference.slice('avatar-'.length) : '' // KINEO-AVATAR-ESTORNO-2010
+  if (!claimId) return { ok: false, error: 'invalid avatar billing reference' } // KINEO-AVATAR-ESTORNO-2010
+  const { data, error } = await args.db.from('events').select('id,name,user_id,path,session_id,metadata').eq('id', claimId).eq('user_id', args.userId).eq('name', AVATAR_CLAIM_EVENT).maybeSingle() // KINEO-AVATAR-ESTORNO-2010
+  if (error) return { ok: false, error: error.message } // KINEO-AVATAR-ESTORNO-2010
+  if (!data) return { ok: false, error: 'avatar billing claim is missing' } // KINEO-AVATAR-ESTORNO-2010
+  const generationId = typeof data.session_id === 'string' ? data.session_id : '' // KINEO-AVATAR-ESTORNO-2010
+  const loaded = verifyAvatarClaimRow({ ...args, generationId, row: data }) // KINEO-AVATAR-ESTORNO-2010
+  if (!loaded.ok || !loaded.claim) return loaded // KINEO-AVATAR-ESTORNO-2010
+  return loaded.claim.billingReference === args.billingReference ? loaded : { ok: false, error: 'avatar billing reference mismatch' } // KINEO-AVATAR-ESTORNO-2010
+} // KINEO-AVATAR-ESTORNO-2010
 export async function loadVerifiedAvatarClaimForRequest(args: {
   userId: string
   requestId: string

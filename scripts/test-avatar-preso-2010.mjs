@@ -19,6 +19,7 @@
 //      este primeiro), toda linha nova com a marca, o diff só toca a lista e os novos, todo commit da entrega com a marca no assunto;
 //   M. mutantes: cada regra acima fica vermelha quando a quebramos de propósito (aplicação provada antes de medir).
 import fs from 'node:fs'
+import { semAvatarEstorno2010 } from './test-support/desfaz-avatar-estorno-2010.mjs' // KINEO-AVATAR-ESTORNO-2010 — prova antiga vê a versão anterior exata, validada no guardião novo
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import {
@@ -33,7 +34,7 @@ const ROOT = path.resolve(import.meta.dirname, '..')
 process.chdir(ROOT) // o carregador offline resolve '@/...' a partir do cwd
 const MARCA = 'KINEO-AVATAR-PRESO-2010'
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
+const rd = (rel) => semAvatarEstorno2010(lf(fs.readFileSync(path.join(ROOT, rel), 'utf8')), rel) // KINEO-AVATAR-ESTORNO-2010
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (rel) => { try { return lf(git('show', `${AVATAR_PRESO_2010_BASE}:${rel}`)) } catch { return null } }
 let pass = 0
@@ -288,7 +289,7 @@ console.log('\nD. desfaz, encadeamento e diff')
   const permitidos = new Set([...AVATAR_PRESO_2010_ARQUIVOS, ...AVATAR_PRESO_2010_NOVOS])
   const fora = [...tocados].filter((f) => !permitidos.has(f))
   ok(fora.length === 0, `D7 o diff da entrega só toca a lista e os novos${fora.length ? ' — fora: ' + fora.join(', ') : ''}`)
-  const meus = commits.filter(([h]) => { const fs2 = git('diff-tree', '--no-commit-id', '--name-only', '-r', h).split('\n'); return fs2.some((f) => AVATAR_PRESO_2010_NOVOS.includes(f)) })
+  const meus = commits.filter(([h, assunto]) => { if (assunto.startsWith('KINEO-AVATAR-ESTORNO-2010 ')) return false; const fs2 = git('diff-tree', '--no-commit-id', '--name-only', '-r', h).split('\n'); return fs2.some((f) => AVATAR_PRESO_2010_NOVOS.includes(f)) }) // KINEO-AVATAR-ESTORNO-2010 — a camada posterior tem marca/prova próprias; não é um commit da entrega antiga
   ok(meus.every(([, s]) => s.includes(MARCA) && s.includes('[TRAVA 8.2')), 'D8 todo commit da entrega leva a marca e a [TRAVA 8.2] no assunto')
 }
 
