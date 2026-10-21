@@ -24,3 +24,15 @@ Frasco de perfume "LUME", pote "GLOW", caixa de chá "Calm Leaf", smartwatch soz
 ## Rodada 1 — renders em produção
 
 (a preencher depois da publicação)
+
+### Rodada 1a (deploy ea4559a46) — 3 renders, 123 cr
+
+| Produto | Formato | Nota | Problema | Vídeo |
+|---|---|---|---|---|
+| Smartwatch (packshot) | Product Ads | 6 | Gancho e cartão com faixas PRETAS (o fundo "canto ampliado 4×" não renderiza no Creatomate); fala com "intuitive features", "modern look", "upgrade your tech", "take a closer look". Benefício "7-day battery" e "free shipping" ditos; selo "Free shipping this week" + "Shop now" no cartão; 15,4 s | [194e9b50](https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/e92d81bf-0068-46c3-8de7-1f67e2006756/adsv2-194e9b50-8970-4df7-9686-cb1f898a49da-27b6b372-4a0f-4e14-9d97-cf708a4c4982.mp4) |
+| Perfume (packshot) | Product Ads | 6 | Mesmas faixas pretas; "delightful fragrance experience", "Treat yourself"; título só "LUME". Com "20% off this week" o plano falhou 2× ("ends soon / last chance" inventado + régua 29–30 palavras) — passou com "20% off" | [0aef9199](https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/e92d81bf-0068-46c3-8de7-1f67e2006756/adsv2-0aef9199-8e1d-4dd7-850f-dbcf961cc015-776b60dc-6f30-4c43-9f11-83e87af7db66.mp4) |
+| Pote GLOW (packshot) + Sofia | UGC | 3 | O Kling Avatar estourou o prazo (`presenter_failed:presenter_deadline`, 11,3 min) e o pedido caiu no anúncio de produto SEM apresentadora, com o cartão antigo — o cliente pagou UGC e recebeu outra coisa. As 4 fotos da apresentadora ficaram ÓTIMAS (peito, 1 mão, nada no rosto, escala real) | [9de2a502](https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/e92d81bf-0068-46c3-8de7-1f67e2006756/adsv2-9de2a502-a2b6-42d3-83c0-5ae7b03236c2-57af4e89-afc8-47eb-b088-d46a153f870c.mp4) |
+
+Tela conferida no navegador: aviso de foto de estilo de vida OK (o relógio no pulso parou antes de cobrar; "Trocar foto" tirou a foto); entrada nova por card OK ("Your ad is still being made — view it"); aviso de pessoas de IA AINDA aparecia no Product Ads reaberto pelo link (consertado no c66a27d31).
+
+Consertos enfileirados em **c66a27d31**: fundo = a própria foto em cover (sem truque); roteiro sem urgência inventada e sem qualidade não digitada (lista de genéricos maior; o que a pessoa digitou não conta como genérico); título do cartão com até 3 palavras do que vende; fontes do cartão maiores; aviso de IA lê os planos do pedido.
