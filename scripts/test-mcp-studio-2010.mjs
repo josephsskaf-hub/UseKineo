@@ -36,6 +36,7 @@ import { semMeta95Personagem2010, META95_PERSONAGEM_2010_ARQUIVOS, MARCA_META95_
 import { MARCA_META95_ESCRITA_2010, META95_ESCRITA_2010_ARQUIVOS } from './test-support/desfaz-meta95-escrita-2010.mjs' // KINEO-META95-ESCRITA-2010 — reancorado: a legenda na escrita do roteiro (entrega de depois) mede até HEAD junto; os commits e arquivos dela saem da conta
 import { ARQUIVOS_VERBATIM_INTOCAVEL_2010, MARCA_VERBATIM_INTOCAVEL_2010 } from './test-support/desfaz-verbatim-intocavel-2010.mjs' // reancorado KINEO-VERBATIM-INTOCAVEL-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: o conserto do verbatim (20/10) toca lib/growth/entradaSeedance15.ts; os arquivos e commits dele saem da conta (desfaz próprio)
 import { semHomeRemodela2010, HOME_REMODELA_2010_ARQUIVOS, HOME_REMODELA_2010_JSON, MARCA_HOME_REMODELA_2010 } from './test-support/desfaz-home-remodela-2010.mjs' // KINEO-HOME-REMODELA-2010 — a home e o menu remodelados (20/10, entrega de depois, com desfaz próprio) não são desta entrega
+import { META95_PERSONAGEM_AJUSTE_2010_ARQUIVOS } from './test-support/desfaz-meta95-personagem-ajuste-2010.mjs' // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: os arquivos dos consertos da folha (desfaz próprio) ficam fora da conta do F3
 
 const require = createRequire(import.meta.url)
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..')
@@ -284,6 +285,7 @@ changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) 
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !ARQUIVOS_VERBATIM_INTOCAVEL_2010.includes(f))) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 — os arquivos do conserto do verbatim não são desta
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !MCP_STUDIO_AJUSTE_2010_ARQUIVOS.includes(f) || MCP_STUDIO_2010_ARQUIVOS.includes(f))) // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: os arquivos do ajuste do conector (entrega de depois, com desfaz próprio) não são desta
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !HOME_REMODELA_2010_ARQUIVOS.includes(f) && f !== HOME_REMODELA_2010_JSON)) // KINEO-HOME-REMODELA-2010 — reancorado: os arquivos da home remodelada não são desta
+changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !META95_PERSONAGEM_AJUSTE_2010_ARQUIVOS.includes(f))) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010: a entrega de depois (com desfaz próprio) fora desta conta
 ok(changedExisting.every((f) => MCP_STUDIO_2010_ARQUIVOS.includes(f)), `(F3) o diff contra a base só toca arquivos declarados (existentes alterados: ${changedExisting.join(', ') || 'nenhum ainda commitado'})`)
 const commits = git('log', '--format=%s', `${MCP_STUDIO_2010_BASE}..HEAD`).split('\n').filter(Boolean).filter((s) => !s.includes(MARCA_META95_PERSONAGEM_2010)).filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010')) /* reancorado KINEO-BEBE-QUE-FALA-2010 */ // reancorado KINEO-META95-PERSONAGEM-2010: os commits da folha de personagem levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_HOME_CARDS_CLAROS_2010))) // KINEO-HOME-CARDS-CLAROS-2010 — os commits do véu mais claro (entrega de depois) levam a marca deles
@@ -292,6 +294,7 @@ commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_AVA
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_VERBATIM_INTOCAVEL_2010))) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 — os commits do conserto do verbatim levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_MCP_STUDIO_AJUSTE_2010))) // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: os commits do ajuste do conector levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_HOME_REMODELA_2010))) // KINEO-HOME-REMODELA-2010 — reancorado: os commits (e o merge da fila) da home remodelada levam a marca deles
+commits.splice(0, commits.length, ...commits.filter((s) => !s.includes('KINEO-META95-PERSONAGEM-AJUSTE-2010'))) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: os commits dos consertos da folha levam a marca deles (o guardião deles confere)
 ok(commits.every((s) => s.includes(MARCA_MCP_STUDIO_2010)), `(F4) todo commit da entrega leva a marca no assunto (${commits.length} commit(s))`)
 ok(semMcpStudio2010('sem marca', 'lib/claudeConnect.ts') === 'sem marca' && semMcpStudio2010(raw(F.page), 'outro/arquivo.ts') === raw(F.page), '(F5) desfaz é idempotente fora do alvo')
 

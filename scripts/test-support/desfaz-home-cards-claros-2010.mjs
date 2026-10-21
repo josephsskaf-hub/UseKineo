@@ -13,6 +13,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semMeta95PersonagemAjuste2010 } from './desfaz-meta95-personagem-ajuste-2010.mjs' // KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — os consertos da folha (integrados 21/10, depois dos cards claros) são a camada MAIS NOVA: saem PRIMEIRO (texto sem a marca deles passa igual)
 
 export const MARCA_HOME_CARDS_CLAROS_2010 = 'KINEO-HOME-CARDS-CLAROS-2010'
 
@@ -41,6 +42,7 @@ export const HOME_CARDS_CLAROS_2010_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semHomeCardsClaros2010(texto, p) {
+  texto = semMeta95PersonagemAjuste2010(texto, p) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — a camada mais nova sai primeiro (encadeado: semBebeQueFala2010 → este → o ajuste da folha)
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_HOME_CARDS_CLAROS_2010) || !HOME_CARDS_CLAROS_2010_ARQUIVOS.includes(rel)) return texto
   const crlf = texto.includes('\r\n')
