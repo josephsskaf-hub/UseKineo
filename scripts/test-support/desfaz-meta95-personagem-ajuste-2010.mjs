@@ -8,8 +8,8 @@
 //   · TROCA — a linha da base foi reescrita: reconhecida INTEIRA, volta a ser o texto da base. Tabela em desfaz-meta95-personagem-ajuste-2010-trocas.json.
 // Só age nos arquivos declarados; qualquer outro texto passa igual (idempotente). Preserva CRLF. A marca NÃO contém a de nenhuma camada de antes
 // ("KINEO-META95-PERSONAGEM-2010" não é substring de "KINEO-META95-PERSONAGEM-AJUSTE-2010").
-// ENCADEAMENTO: é a camada MAIS NOVA — semHomeCardsClaros2010 (que semBebeQueFala2010, e por ele semAvatarPreso2010/semMenuUgc2010, chama primeiro)
-// e semMeta95Personagem2010 chamam ESTA primeiro, então toda cadeia (semMeta95Ideia1910, semMenuUgc2010, o guardião do conector) tira o ajuste sem mudar.
+// ENCADEAMENTO: é a camada MAIS NOVA — semDesenhoNota9_2110 (que semHomeCardsClaros2010 chama primeiro; e este, semBebeQueFala2010, semAvatarPreso2010,
+// semMenuUgc2010) e semMeta95Personagem2010 chamam ESTA primeiro, então toda cadeia (semMeta95Ideia1910, semMenuUgc2010, o guardião do conector) tira o ajuste sem mudar.
 // Este não importa ninguém.
 // As libs novas (lib/cinematic/personagemAjuste.ts, lib/cinematic/personagemAjusteServer.ts) não existem na base: guardião byte a byte não as lê.
 // O guardião scripts/test-meta95-personagem-ajuste-2010.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (META95_PERSONAGEM_AJUSTE_2010_BASE).
@@ -19,8 +19,8 @@ import { fileURLToPath } from 'node:url'
 
 export const MARCA_META95_PERSONAGEM_AJUSTE_2010 = 'KINEO-META95-PERSONAGEM-AJUSTE-2010'
 
-/** A base da entrega: nasceu sobre fbe47c46 (20/10); INTEGRADA em 21/10 sobre origin/main f5373312 (KINEO-HOME-CARDS-CLAROS-2010 v2) — a tabela foi refeita contra esta. */
-export const META95_PERSONAGEM_AJUSTE_2010_BASE = 'f53733122fbdd8393a9950444ab70e0695c3c9f1'
+/** A base da entrega: nasceu sobre fbe47c46 (20/10); INTEGRADA em 21/10 sobre a fila 9415fa5d (KINEO-DESENHO-NOTA9-2110 sobre f5373312) — a tabela foi refeita contra esta. */
+export const META95_PERSONAGEM_AJUSTE_2010_BASE = '9415fa5dd0ba75305659f7931d4d45642d09aa17'
 
 /** [linha nova (inteira), linha da base] por arquivo + a contagem exata de acréscimos (__acrescimos). */
 export const TROCAS_META95_PERSONAGEM_AJUSTE_2010 = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-meta95-personagem-ajuste-2010-trocas.json'), 'utf8'))

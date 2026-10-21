@@ -94,7 +94,7 @@ console.log('A. interruptores')
   ok(p.length === 0, `A1 desenho infantil LIGADO (produto, páginas, 4º card — ordem do fundador 20/10 noite), bebê-podcast DESLIGADO; quem vê = live || casa (${p.join('; ') || 'ok'})`)
   const L = puro(rd(F.lib), 'kidsCartoon')
   const ids = L.KIDS_CHARACTERS.map((c) => c.id)
-  const fichas = L.KIDS_CHARACTERS.every((c) => c.sheet.startsWith(`${c.name}, `) && c.sheet.length > 60 && c.kind.en && c.kind.pt && c.kind.es && c.portrait === '')
+  const fichas = L.KIDS_CHARACTERS.every((c) => c.sheet.startsWith(`${c.name}, `) && c.sheet.length > 60 && c.kind.en && c.kind.pt && c.kind.es && c.portrait === `/kids-cartoon/${c.id}.webp`) // KINEO-DESENHO-NOTA9-2110 — reâncora: os 6 retratos existem (public/kids-cartoon/<id>.webp); era: c.portrait === ''
   ok(ids.length === 6 && new Set(ids).size === 6 && fichas, 'A2 6 personagens fixos, ficha canônica começando pelo nome (a cena reconhece), tipo em EN/PT/ES')
   ok(L.KIDS_IDEAS.length === 6 && L.KIDS_IDEAS.every((i) => i.en && i.pt && i.es), 'A3 6 ideias prontas nas 3 línguas (variedade)')
   ok(JSON.stringify(L.KIDS_CARTOON_DURATIONS) === '[15,35]' && ['en', 'pt'].every((l) => L.KIDS_CARTOON_LANGUAGES.includes(l)) && L.KIDS_CARTOON_ENGINE === 'seedance', 'A4 Seedance 1.5, 15/35 s, EN e PT no mínimo')

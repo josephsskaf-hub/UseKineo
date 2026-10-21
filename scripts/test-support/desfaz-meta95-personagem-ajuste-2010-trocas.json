@@ -2,12 +2,13 @@
   "__acrescimos": {
     "app/api/generate-video-cinematic/route.ts": 9,
     "lib/cinematic/criticoStill.ts": 11,
+    "scripts/test-desenho-nota9-2110.mjs": 0,
     "scripts/test-home-cards-claros-2010.mjs": 0,
     "scripts/test-mcp-studio-2010.mjs": 3,
     "scripts/test-meta95-personagem-2010.mjs": 2,
     "scripts/test-moderacao-2026-09-25.mjs": 1,
+    "scripts/test-support/desfaz-desenho-nota9-2110.mjs": 2,
     "scripts/test-support/desfaz-filme-rapido-1710.mjs": 2,
-    "scripts/test-support/desfaz-home-cards-claros-2010.mjs": 2,
     "scripts/test-support/desfaz-meta95-personagem-2010.mjs": 2,
     "scripts/test-trilha-15s-1610.mjs": 1,
     "scripts/test-visual-contract-2026-09-11.mjs": 1
@@ -72,10 +73,16 @@
       "      urlNova = await d.gerarStill(promptDaRegeracaoCritico(e.prompt, instrucao), seedDaRegeracaoCritico(e.seed, e.indice), Math.max(1_000, Math.min(STILL_CRITIC_JANELA_REGERACAO_MS, restante() - STILL_CRITIC_MIN_CHAMADA_MS)))"
     ]
   ],
+  "scripts/test-desenho-nota9-2110.mjs": [
+    [
+      "  const semMarca = DESENHO_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !rd(f).split('\\n').every((l) => b.has(l) || l.includes(MARCA) || l.includes('KINEO-META95-PERSONAGEM-AJUSTE-2010')) }) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 \"Vai pra meta do 95\"] — as reâncoras dos consertos da folha (camada de depois, chamada primeiro por semDesenhoNota9_2110) levam a marca delas",
+      "  const semMarca = DESENHO_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !rd(f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) })"
+    ]
+  ],
   "scripts/test-home-cards-claros-2010.mjs": [
     [
-      "  const semMarca = HOME_CARDS_CLAROS_2010_ARQUIVOS.filter((f) => { const b = new Set(base(f).split('\\n')); return !rd(f).split('\\n').every((l) => b.has(l) || l.includes(MARCA) || l.includes('KINEO-META95-PERSONAGEM-AJUSTE-2010')) }) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 \"Vai pra meta do 95\"] — as reâncoras dos consertos da folha (entrega de depois, desfaz próprio, chamado primeiro por semHomeCardsClaros2010) levam a marca delas",
-      "  const semMarca = HOME_CARDS_CLAROS_2010_ARQUIVOS.filter((f) => { const b = new Set(base(f).split('\\n')); return !rd(f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) })"
+      "  const semMarca = HOME_CARDS_CLAROS_2010_ARQUIVOS.filter((f) => { const b = new Set(base(f).split('\\n')); return !semDesenhoNota9_2110(rd(f), f).split('\\n').every((l) => b.has(l) || l.includes(MARCA) || l.includes('KINEO-META95-PERSONAGEM-AJUSTE-2010')) }) // KINEO-DESENHO-NOTA9-2110 — reâncora: as linhas da camada mais nova saem antes; era: return !rd(f).split(...) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 \"Vai pra meta do 95\"] — as reâncoras dos consertos da folha (camada de depois, desfaz próprio) levam a marca delas",
+      "  const semMarca = HOME_CARDS_CLAROS_2010_ARQUIVOS.filter((f) => { const b = new Set(base(f).split('\\n')); return !semDesenhoNota9_2110(rd(f), f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-DESENHO-NOTA9-2110 — reâncora: as linhas da camada mais nova saem antes; era: return !rd(f).split(...)"
     ]
   ],
   "scripts/test-meta95-personagem-2010.mjs": [
