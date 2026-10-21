@@ -28,6 +28,7 @@ import {
 } from './test-support/desfaz-bebe-que-fala-2010.mjs'
 import { semMenuUgc2010 } from './test-support/desfaz-menu-ugc-2010.mjs'
 import { semUgcAjustes2010 } from './test-support/desfaz-ugc-ajustes-2010.mjs'
+import { semHomeCardsClaros2010 } from './test-support/desfaz-home-cards-claros-2010.mjs' // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: o véu dos cards ficou mais claro depois (fundador 20/10 23:30: "a parte de baixo dos vídeos tá bem escura, arruma isso pra hoje"); a faixa e as linhas são conferidas sem aquela camada
 
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
@@ -288,7 +289,7 @@ function renderFaixa(threeSrc, props, { lang = 'en', kidsCardSrc = rd(F.card) } 
   const C = load('components/home/HomeThreeCards.tsx').default
   return renderToStaticMarkup(React.createElement(C, props))
 }
-function homeProblems(threeSrc = rd(F.three), land = rd(F.land), cardSrc = rd(F.card)) {
+function homeProblems(threeSrc0 = rd(F.three), land = rd(F.land), cardSrc = rd(F.card)) { const threeSrc = semHomeCardsClaros2010(threeSrc0, F.three) // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: a faixa comparada à base sem o véu mais claro de 20/10 23:30; era: function homeProblems(threeSrc = rd(F.three), land = rd(F.land), cardSrc = rd(F.card)) {
   const p = []
   const baseThree = base(F.three)
   const C0 = puro(cardSrc, 'homeKidsCard')
@@ -433,7 +434,7 @@ console.log('\nK. desfaz exato, encadeamento, diff, commits')
   const tocados = new Set([...git('diff', '--name-only', BEBE_QUE_FALA_2010_BASE, TOPO).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n')].filter(Boolean))
   const permitidos = new Set([...BEBE_QUE_FALA_2010_ARQUIVOS, ...BEBE_QUE_FALA_2010_NOVOS])
   const fora = [...tocados].filter((f) => !permitidos.has(f))
-  const semMarca = BEBE_QUE_FALA_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !rd(f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) })
+  const semMarca = BEBE_QUE_FALA_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !semHomeCardsClaros2010(rd(f), f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: as linhas do véu mais claro (camada mais nova) saem antes da conferência da marca
   ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && ![...tocados].some((f) => /engineCost|lib\/credits\//.test(f)), `K6 o diff da base só toca a lista e os novos; toda linha nova traz a marca; nenhuma tabela de preço/crédito (${[...fora.map((f) => `fora: ${f}`), ...semMarca.map((f) => `sem marca: ${f}`)].join('; ') || 'ok'})`)
   const assuntos = git('log', '--format=%s', `${BEBE_QUE_FALA_2010_BASE}..${TOPO}`).trim().split('\n').filter(Boolean)
   ok(assuntos.length > 0 && assuntos.every((s) => s.includes(MARCA)), `K7 todo commit da entrega traz a marca no assunto (${assuntos.length})`)
