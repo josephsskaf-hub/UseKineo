@@ -5,6 +5,7 @@
     "lib/cinematic/folhaDePersonagem.ts": 49,
     "lib/cinematic/visualPromptPolicy.ts": 1,
     "lib/estrelaServer.ts": 4,
+    "scripts/test-avatar-preso-2010.mjs": 1,
     "scripts/test-contrato-classicos-1410.mjs": 1,
     "scripts/test-estrela-do-filme-2026-09-29.mjs": 1,
     "scripts/test-kling25-variedade-2026-09-28.mjs": 1,
@@ -15,7 +16,12 @@
     "scripts/test-seedance-15s-3x6-2026-09-29.mjs": 2,
     "scripts/test-support/desfaz-filme-rapido-1710.mjs": 2,
     "scripts/test-support/desfaz-meta95-escrita-2010.mjs": 2,
-    "scripts/test-support/desfaz-meta95-personagem-2010.mjs": 2
+    "scripts/test-support/desfaz-meta95-personagem-2010.mjs": 2,
+    "scripts/test-trilha-15s-1610.mjs": 1,
+    "scripts/test-veo-marcado-2026-09-29.mjs": 1,
+    "scripts/test-veo-modo-ia-2026-09-29.mjs": 1,
+    "scripts/test-visual-contract-2026-09-11.mjs": 0,
+    "scripts/test-voz-15s-mesma-da-montagem-2026-09-29.mjs": 1
   },
   "app/api/generate-video-cinematic/route.ts": [
     [
@@ -151,6 +157,16 @@
       "    const check = await moderateContent({ surface: 'estrela', stage: 'output', userId: args.userId, text: args.prompt, imageUrls: [pedido.url], meta: { engine: args.engine } })"
     ]
   ],
+  "scripts/test-avatar-preso-2010.mjs": [
+    [
+      "const rd = (rel) => lf(semMeta95PersonagemAjuste2010(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — mede o avatar sem a camada posterior",
+      "const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))"
+    ],
+    [
+      "  const meus = commits.filter(([, s]) => !s.includes('KINEO-META95-PERSONAGEM-AJUSTE-2010')).filter(([h]) => { const fs2 = git('diff-tree', '--no-commit-id', '--name-only', '-r', h).split('\\n'); return fs2.some((f) => AVATAR_PRESO_2010_NOVOS.includes(f)) }) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — esta entrega tem selo e desfaz próprios",
+      "  const meus = commits.filter(([h]) => { const fs2 = git('diff-tree', '--no-commit-id', '--name-only', '-r', h).split('\\n'); return fs2.some((f) => AVATAR_PRESO_2010_NOVOS.includes(f)) })"
+    ]
+  ],
   "scripts/test-contrato-classicos-1410.mjs": [
     [
       "const rd = (p) => semMeta95PersonagemAjuste2010(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\\r\\n/g, '\\n') // KINEO-META95-PERSONAGEM-AJUSTE-2010",
@@ -209,5 +225,30 @@
   ],
   "scripts/test-support/desfaz-filme-rapido-1710.mjs": [],
   "scripts/test-support/desfaz-meta95-escrita-2010.mjs": [],
-  "scripts/test-support/desfaz-meta95-personagem-2010.mjs": []
+  "scripts/test-support/desfaz-meta95-personagem-2010.mjs": [],
+  "scripts/test-trilha-15s-1610.mjs": [],
+  "scripts/test-veo-marcado-2026-09-29.mjs": [
+    [
+      "import { linhasTrocadasMeta95PersonagemAjuste2010 } from './test-support/desfaz-meta95-personagem-ajuste-2010.mjs' // KINEO-META95-PERSONAGEM-AJUSTE-2010 — lista exata das linhas da base trocadas nesta camada",
+      "const linhasTrocadasTrilha15s1610 = (p) => [...linhasTrocadasTrilha15s1610Puro(p), ...linhasTrocadasFilmeRapido1710(p), ...linhasTrocadasMeta95Assunto1910(p)] /* reancorado KINEO-META95-ASSUNTO-1910 */ // reancorado KINEO-FILME-RAPIDO-1710"
+    ]
+  ],
+  "scripts/test-veo-modo-ia-2026-09-29.mjs": [
+    [
+      "import { linhasTrocadasMeta95PersonagemAjuste2010 } from './test-support/desfaz-meta95-personagem-ajuste-2010.mjs' // KINEO-META95-PERSONAGEM-AJUSTE-2010 — lista exata das linhas da base trocadas nesta camada",
+      "const linhasTrocadasTrilha15s1610 = (p) => [...linhasTrocadasTrilha15s1610Puro(p), ...linhasTrocadasFilmeRapido1710(p), ...linhasTrocadasMeta95Assunto1910(p)] /* reancorado KINEO-META95-ASSUNTO-1910 */ // reancorado KINEO-FILME-RAPIDO-1710"
+    ]
+  ],
+  "scripts/test-visual-contract-2026-09-11.mjs": [
+    [
+      "    { exports, console: { log() {}, warn() {}, error() {} }, process: { env: {} }, fetch: noNetwork, romanceAdulto: { ativo: false }, personagem: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — fatias antigas executam com o interruptor desligado",
+      "    { exports, console: { log() {}, warn() {}, error() {} }, process: { env: {} }, fetch: noNetwork, romanceAdulto: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op)"
+    ]
+  ],
+  "scripts/test-voz-15s-mesma-da-montagem-2026-09-29.mjs": [
+    [
+      "  const soAcrescimos = (p) => { try { const d = semCR(execFileSync('git', ['diff', '--unified=0', '--no-color', BASE, '--', p], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024 }).toString()); return d.split(LF).filter((l) => l.startsWith('-') && !l.startsWith('---') && !TROCADAS_CURTAS.includes(l.slice(1)) && !linhasTrocadasH3max(p).includes(l.slice(1)) && !linhasTrocadasParceiroEyebible1410(p).includes(l.slice(1)) && !linhasTrocadasParceiroEyebible2_1410(p).includes(l.slice(1)) && !linhasTrocadasAncoraLegenda1410(p).includes(l.slice(1)) && !linhasTrocadasJuizStill1410(p).includes(l.slice(1)) && !linhasTrocadasCenaNegacao1510(p).includes(l.slice(1)) /* reancorado KINEO-CENA-NEGACAO-1510 */ && !linhasTrocadasMeta95PersonagemAjuste2010(p).includes(l.slice(1)) /* KINEO-META95-PERSONAGEM-AJUSTE-2010: lista exata por arquivo */ && !linhasTrocadasMeta95Assunto1910(p).includes(l.slice(1)) /* reancorado KINEO-META95-ASSUNTO-1910 */ && !linhasTrocadasAvatarPreso2010(p).includes(l.slice(1)) /* reancorado KINEO-AVATAR-PRESO-2010: as 2 linhas da base do /api/compose que o custo do nascimento do avatar trocou (reserva e intendedCost) */ && !linhasTrocadasTrilha15s1610(p).includes(l.slice(1)) /* reancorado KINEO-TRILHA-15S: as 2 linhas da base trocadas (o if do plano de b-roll e o if do descritor) */ /* reancorado KINEO-JUIZ-STILL-1410 */ /* KINEO-ANCORA-LEGENDA-1410 */).length === 0 } /* reancorado KINEO-DURACOES-CURTAS: as 6 trocas marcadas · KINEO-H3MAX-2026-10-13: + as linhas da base trocadas pela entrada do H3 Max (lista exata) */ catch { return false } }",
+      "  const soAcrescimos = (p) => { try { const d = semCR(execFileSync('git', ['diff', '--unified=0', '--no-color', BASE, '--', p], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024 }).toString()); return d.split(LF).filter((l) => l.startsWith('-') && !l.startsWith('---') && !TROCADAS_CURTAS.includes(l.slice(1)) && !linhasTrocadasH3max(p).includes(l.slice(1)) && !linhasTrocadasParceiroEyebible1410(p).includes(l.slice(1)) && !linhasTrocadasParceiroEyebible2_1410(p).includes(l.slice(1)) && !linhasTrocadasAncoraLegenda1410(p).includes(l.slice(1)) && !linhasTrocadasJuizStill1410(p).includes(l.slice(1)) && !linhasTrocadasCenaNegacao1510(p).includes(l.slice(1)) /* reancorado KINEO-CENA-NEGACAO-1510 */ && !linhasTrocadasMeta95Assunto1910(p).includes(l.slice(1)) /* reancorado KINEO-META95-ASSUNTO-1910 */ && !linhasTrocadasAvatarPreso2010(p).includes(l.slice(1)) /* reancorado KINEO-AVATAR-PRESO-2010: as 2 linhas da base do /api/compose que o custo do nascimento do avatar trocou (reserva e intendedCost) */ && !linhasTrocadasTrilha15s1610(p).includes(l.slice(1)) /* reancorado KINEO-TRILHA-15S: as 2 linhas da base trocadas (o if do plano de b-roll e o if do descritor) */ /* reancorado KINEO-JUIZ-STILL-1410 */ /* KINEO-ANCORA-LEGENDA-1410 */).length === 0 } /* reancorado KINEO-DURACOES-CURTAS: as 6 trocas marcadas · KINEO-H3MAX-2026-10-13: + as linhas da base trocadas pela entrada do H3 Max (lista exata) */ catch { return false } }"
+    ]
+  ]
 }
