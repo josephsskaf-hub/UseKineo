@@ -71,8 +71,8 @@
       "  const ruins = AVATAR_PRESO_2010_ARQUIVOS.filter((rel) => { try { return semAvatarPreso2010(rd(rel), rel) !== base(rel) } catch { return true } })"
     ],
     [
-      "  const semMarcaNova = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\\n'); const bs = new Set(b); return semHomeRemodela2010(rd(rel), rel).split('\\n').every((l) => bs.has(l) || l.includes(MARCA)) }) // KINEO-HOME-REMODELA-2010",
-      "  const semMarcaNova = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\\n'); const bs = new Set(b); return rd(rel).split('\\n').every((l) => bs.has(l) || l.includes(MARCA)) })"
+      "  const semMarcaNovaSemHome = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\\n'); const bs = new Set(b); return semVerbatimIntocavel2010NaCadeia(semHomeRemodela2010(rd(rel), rel), rel).split('\\n').every((l) => bs.has(l) || l.includes(MARCA)) }) // KINEO-HOME-REMODELA-2010 — a home remodelada (20/10, camada mais nova) pôs 1 linha na cabeça da cadeia geral: sai antes, como a do verbatim",
+      "  ok(contagem && semMarcaNova, 'D3 toda linha nova ou reescrita leva a marca, e a contagem bate (acréscimos + trocas)')"
     ],
     [
       "  const MU = semHomeRemodela2010(rd('scripts/test-support/desfaz-menu-ugc-2010.mjs'), 'scripts/test-support/desfaz-menu-ugc-2010.mjs') // KINEO-HOME-REMODELA-2010",
