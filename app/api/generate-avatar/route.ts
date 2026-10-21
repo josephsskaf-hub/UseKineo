@@ -396,6 +396,7 @@ export async function POST(req: NextRequest) {
           { status: 409 },
         )
       }
+      if (metadata.abandoned_refund_claimed_at) return safetyUnavailable() // KINEO-AVATAR-ESTORNO-2010 — claim reservado para estorno nunca expõe resposta por replay
       if (status === 'done' || status === 'settled') {
         if (!response || !responseHash || avatarValueHash(response) !== responseHash) {
           console.error(`[generate-avatar] rejected corrupt replay response id=${claimId}`)
@@ -474,6 +475,7 @@ export async function POST(req: NextRequest) {
         const currentMetadata = currentRow.metadata && typeof currentRow.metadata === 'object'
           ? currentRow.metadata as Record<string, unknown>
           : {}
+        if (currentMetadata.abandoned_refund_claimed_at) return false // KINEO-AVATAR-ESTORNO-2010 — o submit/enriquecimento tardio não pode reabrir entrega depois da reserva do sweep
         if (currentMetadata.status === 'settled') return true
         if (currentMetadata.status !== 'pending' && currentMetadata.status !== 'done') {
           console.error('[generate-avatar] claim has invalid completion status:', currentMetadata.status)
@@ -525,6 +527,7 @@ export async function POST(req: NextRequest) {
           .eq('user_id', userId)
           .eq('name', AVATAR_CLAIM_EVENT)
           .eq('metadata->>authority', currentAuthority)
+          .is('metadata->>abandoned_refund_claimed_at', null) // KINEO-AVATAR-ESTORNO-2010 — CAS contra a reserva concorrente, inclusive se o worker leu antes dela
           // Optional B-roll enrichment can finish after the client has already
           // composed and paid. Never downgrade that concurrently-settled hold
           // back to `done`.

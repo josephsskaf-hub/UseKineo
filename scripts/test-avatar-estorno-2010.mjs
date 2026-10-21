@@ -3,6 +3,8 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
+import ts from 'typescript'
+import vm from 'node:vm'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semAvatarEstorno2010, AVATAR_ESTORNO_2010_BASE as BASE, REGRAS_AVATAR_ESTORNO_2010 as REGRAS } from './test-support/desfaz-avatar-estorno-2010.mjs'
@@ -28,25 +30,33 @@ function fixture({ status = 'done', url = '', amount = 70, age = OLD, kind = 'vi
   return { credit_debits: [{ render_id: REF, user_id: USER, amount, created_at: age, kind, refunded_at: refunded }], events: [{ id: claimId, user_id: USER, name: C.AVATAR_CLAIM_EVENT, path: C.AVATAR_CLAIM_PATH, session_id: GEN, metadata }], videos: [] }
 }
 const contains = (obj, sub) => obj != null && Object.entries(sub).every(([k, v]) => v && typeof v === 'object' ? contains(obj[k], v) : obj[k] === v)
+const field = (row, key) => key.split(/->>?/).reduce((v, k) => v?.[k], row)
 function database(rows, errors = {}) {
   const state = { rows, rpc: [], paid: 0, audits: [] }
   return { state,
     from(table) {
-      let predicates = [], single = false, max = Infinity, op = 'select'
+      let predicates = [], single = false, max = Infinity, op = 'select', values
       const q = {
         select() { return q }, order() { return q }, limit(n) { max = n; return q },
-        eq(k, v) { predicates.push(r => r[k] === v); return q },
-        is(k, v) { return q.eq(k, v) },
+        eq(k, v) { predicates.push(r => field(r, k) === v); return q },
+        neq(k, v) { predicates.push(r => field(r, k) !== v); return q },
+        is(k, v) { predicates.push(r => v === null ? field(r, k) == null : field(r, k) === v); return q },
         like(k, v) { predicates.push(r => String(r[k]).startsWith(v.replace(/%$/, ''))); return q },
         lt(k, v) { predicates.push(r => r[k] < v); return q },
         gte(k, v) { predicates.push(r => r[k] >= v); return q },
         contains(k, v) { predicates.push(r => contains(r[k], v)); return q },
         maybeSingle() { single = true; return q },
         insert(value) { op = 'insert'; state.audits.push(value); return q },
+        update(value) { op = 'update'; values = value; return q },
         then(resolve, reject) {
-          if (errors[table]) return Promise.resolve({ data: null, error: { message: 'erro simulado' } }).then(resolve, reject)
-          const found = (rows[table] ?? []).filter(r => predicates.every(p => p(r))).slice(0, max).map(r => structuredClone(r))
-          return Promise.resolve({ data: op === 'insert' ? null : single ? found[0] ?? null : found, error: null }).then(resolve, reject)
+          return (async () => {
+            if (state.beforeQuery) await state.beforeQuery({ table, op, values })
+            if (errors[table]) return { data: null, error: { message: 'erro simulado' } }
+            const matching = (rows[table] ?? []).filter(r => predicates.every(p => p(r))).slice(0, max)
+            if (op === 'update') for (const row of matching) Object.assign(row, structuredClone(values))
+            const found = matching.map(r => structuredClone(r))
+            return { data: op === 'insert' ? null : single ? found[0] ?? null : found, error: null }
+          })().then(resolve, reject)
         },
       }
       return q
@@ -68,14 +78,17 @@ function load(db, overrides = {}) {
   let runtime = runtimes.get(overrides)
   if (runtime) { runtime.db = db; return runtime.mod }
   runtime = { db }
-  runtime.mod = createOfflineLoader({
+  runtime.loader = createOfflineLoader({
     env: { NEXT_PUBLIC_SUPABASE_URL: 'https://banco.invalid', SUPABASE_SERVICE_ROLE_KEY: SECRET }, globals: { Date: Clock },
     mocks: { '@supabase/supabase-js': { createClient: () => runtime.db }, '@/lib/reverseTrial': { recordReverseTrialRefundForRender: async () => {} }, '@/lib/cinematic/claim': { CINEMATIC_CLAIM_EVENT: 'cinematic_submission_claim', releaseCinematicClaim: async () => false } },
     source: (p, raw) => overrides[p] ?? raw,
-  })('@/lib/credits/refund')
+  })
+  runtime.mod = runtime.loader('@/lib/credits/refund')
   runtimes.set(overrides, runtime)
   return runtime.mod
 }
+const reservation = (db, overrides) => { load(db, overrides); return runtimes.get(overrides).loader('@/lib/avatar/reservation') }
+const bindArgs = { userId: USER, requestId: 'request-do-provedor-diferente-do-claim', engine: 'presenter', videoUrl: 'https://entrega.invalid/avatar.mp4' }
 let passed = 0
 async function check(name, fn) { await fn(); passed++; console.log(`ok ${name}`) }
 async function problems(overrides = {}) {
@@ -103,6 +116,55 @@ async function problems(overrides = {}) {
     assert.equal(results.reduce((n, r) => n + r.refunded, 0), 1)
     assert.equal(db.state.paid, 70); assert.equal(db.state.audits.length, 1)
     assert.equal(db.state.rpc.length, 2, 'as duas leituras viram débito aberto; só o RPC decide vencedor')
+  })
+  await run('entrega ganha o CAS antes do estorno', async () => {
+    const db = database(fixture()), mod = load(db, overrides), reserve = reservation(db, overrides)
+    let intercepted = false
+    db.state.beforeQuery = async ({ op, values }) => {
+      if (op !== 'update' || !values.metadata.abandoned_refund_claimed_at || intercepted) return
+      intercepted = true
+      const bound = await reserve.bindAvatarCompletedVideo(bindArgs)
+      assert.equal(bound.ok, true)
+    }
+    const r = await mod.sweepAbandonedAvatarDebits()
+    assert.equal(intercepted, true); assert.equal(r.creditsReturned, 0); assert.equal(db.state.paid, 0)
+    assert.equal(db.state.rows.events[0].metadata.response.completed_video_url, bindArgs.videoUrl)
+  })
+  await run('estorno ganha contra binding que já leu o claim', async () => {
+    const db = database(fixture()), mod = load(db, overrides), reserve = reservation(db, overrides)
+    let intercepted = false
+    db.state.beforeQuery = async ({ op, values }) => {
+      if (op !== 'update' || !values.metadata.response?.completed_video_url || intercepted) return
+      intercepted = true
+      assert.equal((await mod.sweepAbandonedAvatarDebits()).creditsReturned, 70)
+    }
+    const bound = await reserve.bindAvatarCompletedVideo(bindArgs)
+    assert.equal(intercepted, true); assert.equal(bound.ok, false)
+    assert.equal(db.state.rows.events[0].metadata.response.completed_video_url, undefined)
+    assert.equal(db.state.paid, 70)
+  })
+  await run('binding tardio recusado; falha RPC pode ser retentada', async () => {
+    const errors = { rpc: true }, db = database(fixture(), errors), mod = load(db, overrides), reserve = reservation(db, overrides)
+    assert.equal((await mod.sweepAbandonedAvatarDebits()).creditsReturned, 0)
+    assert.equal((await reserve.bindAvatarCompletedVideo(bindArgs)).ok, false)
+    errors.rpc = false
+    assert.equal((await mod.sweepAbandonedAvatarDebits()).creditsReturned, 70)
+    assert.equal((await reserve.bindAvatarCompletedVideo(bindArgs)).ok, false)
+    assert.equal(db.state.rows.events[0].metadata.response.completed_video_url, undefined)
+    assert.equal(db.state.audits.length, 1)
+  })
+  for (const writer of ['prepaid', 'settled']) await run(`${writer} tardio não apaga reserva`, async () => {
+    const db = database(fixture({ status: writer === 'prepaid' ? 'pending' : 'done' })), mod = load(db, overrides), reserve = reservation(db, overrides)
+    let intercepted = false
+    db.state.beforeQuery = async ({ op, values }) => {
+      if (op !== 'update' || values.metadata.abandoned_refund_claimed_at || intercepted) return
+      if (!(writer === 'prepaid' ? values.metadata.prepaid_billing_reference : values.metadata.status === 'settled')) return
+      intercepted = true
+      assert.equal((await mod.sweepAbandonedAvatarDebits()).creditsReturned, 70)
+    }
+    const r = writer === 'prepaid' ? await reserve.markAvatarClaimPrepaid({ userId: USER, generationId: GEN }) : await reserve.settleAvatarCreditHoldForFailedRequest({ userId: USER, requestId: bindArgs.requestId })
+    assert.equal(intercepted, true); assert.equal(r, false)
+    assert.ok(db.state.rows.events[0].metadata.abandoned_refund_claimed_at)
   })
   const skip = [
     ['URL entregue sem videos', fixture({ url: 'https://entrega.invalid/avatar.mp4' })],
@@ -151,6 +213,49 @@ await check('BASE reproduz o defeito: sufixo claimId não encontra requestId', a
   assert.equal(r.creditsReturned, 0); assert.equal(db.state.paid, 0)
 })
 await check('dublê: abandono, pending, concorrência, repetição, entregas e falhas fechadas', async () => assert.deepEqual(await problems(), []))
+function replay(src, row) {
+  const begin = src.indexOf('    async function responseForClaimRow('), end = src.indexOf('    async function completeAvatarClaim(', begin)
+  assert.ok(begin >= 0 && end > begin)
+  const code = ts.transpileModule(src.slice(begin, end) + '\nexports.run = responseForClaimRow', { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText
+  const exports = {}
+  vm.runInNewContext(code, { exports, avatarAdmin: {}, claimId, userId: USER, generationId: GEN, AVATAR_CLAIM_EVENT: C.AVATAR_CLAIM_EVENT, AVATAR_CLAIM_PATH: C.AVATAR_CLAIM_PATH, serviceRoleKey: SECRET, requestFingerprint: 'fp-estorno', AVATAR_CREDIT_COST: 70, verifyAvatarClaim: C.verifyAvatarClaim, avatarValueHash: C.avatarValueHash, safetyUnavailable: () => ({ status: 503 }), NextResponse: { json: (body, opts = {}) => ({ body, status: opts.status ?? 200 }) }, console: { error() {} } })
+  return exports.run(row)
+}
+await check('replay real recusa reserva de estorno antes de expor resposta', async () => {
+  const src = rd('app/api/generate-avatar/route.ts'), row = fixture({ url: bindArgs.videoUrl }).events[0]
+  assert.equal((await replay(src, row)).status, 200)
+  row.metadata.abandoned_refund_claimed_at = OLD
+  assert.equal((await replay(src, row)).status, 503)
+  const anchor = '      if (metadata.abandoned_refund_claimed_at) return safetyUnavailable()'
+  assert.ok(src.includes(anchor)); assert.equal((await replay(src.replace(anchor, '      if (false) return safetyUnavailable()'), row)).status, 200, 'mutante do replay fica vermelho')
+})
+function complete(src, db) {
+  const begin = src.indexOf('    async function completeAvatarClaim('), end = src.indexOf('    if (!dryRun) {', begin)
+  assert.ok(begin >= 0 && end > begin)
+  const code = ts.transpileModule(src.slice(begin, end) + '\nexports.run = completeAvatarClaim', { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText
+  const exports = {}
+  vm.runInNewContext(code, { exports, avatarAdmin: db, ownsAvatarClaim: true, claimId, userId: USER, generationId: GEN, AVATAR_CLAIM_EVENT: C.AVATAR_CLAIM_EVENT, serviceRoleKey: SECRET, requestFingerprint: 'fp-estorno', AVATAR_CREDIT_COST: 70, avatarDebitConfirmed: true, avatarPrepaidAt: OLD, claimStartedAt: OLD, avatarBillingReference: () => REF, signAvatarClaim: C.signAvatarClaim, avatarValueHash: C.avatarValueHash, Date: Clock, console: { error() {}, warn() {} } })
+  return exports.run({ avatar_request_id: bindArgs.requestId, engine: 'presenter', generationId: GEN })
+}
+async function completionRace(src) {
+  const db = database(fixture()), overrides = {}, mod = load(db, overrides)
+  let intercepted = false
+  db.state.beforeQuery = async ({ op, values }) => {
+    if (op !== 'update' || !values.metadata.started_at || intercepted) return
+    intercepted = true
+    assert.equal((await mod.sweepAbandonedAvatarDebits()).creditsReturned, 70)
+  }
+  const r = await complete(src, db)
+  assert.equal(intercepted, true); assert.equal(r, false)
+  assert.ok(db.state.rows.events[0].metadata.abandoned_refund_claimed_at)
+}
+await check('completion real com snapshot anterior não apaga reserva; mutante CAS vermelho', async () => {
+  const src = rd('app/api/generate-avatar/route.ts')
+  await completionRace(src)
+  const anchor = ".is('metadata->>abandoned_refund_claimed_at', null)"
+  assert.ok(src.includes(anchor))
+  await assert.rejects(() => completionRace(src.replace(anchor, '')))
+})
 for (const [name, file, before, after] of [
   ['volta a confundir requestId com claimId', F, 'billingReference: renderId', "billingReference: 'avatar-' + loadedRequestId"],
   ['pending precisa indevidamente de requestId', F, "loaded.claim.status === 'settled'", "!loaded.claim.requestId || loaded.claim.status === 'settled'"],
@@ -161,10 +266,16 @@ for (const [name, file, before, after] of [
   ['ignora vídeo entregue', F, 'if (delivered) {', 'if (false) {'],
   ['estorna débito recente', F, "6 * 60 * 60 * 1000", '0'],
   ['ignora assinatura do claim', R, '!verifyAvatarClaim(args.secret, {', 'false && !verifyAvatarClaim(args.secret, {'],
+  ['remove CAS contra entrega concorrente', F, ".eq('metadata->>authority', claim.authority).select('id')", ".select('id')"],
+  ['permite binding com leitura anterior à reserva', R, ".is('metadata->>abandoned_refund_claimed_at', null)", ''],
+  ['permite binding tardio', R, "if (claim.metadata.abandoned_refund_claimed_at) return { ok: false, error: 'avatar abandonment refund reserved' }", 'if (false) return { ok: false, error: \'avatar abandonment refund reserved\' }'],
+  ['prepaid apaga reserva com snapshot velho', R, ".is('metadata->>abandoned_refund_claimed_at', null) // KINEO-AVATAR-ESTORNO-2010 — CAS também no marcador prepaid", '// KINEO-AVATAR-ESTORNO-2010 — CAS também no marcador prepaid'],
+  ['settlement apaga reserva com snapshot velho', R, ".is('metadata->>abandoned_refund_claimed_at', null) // KINEO-AVATAR-ESTORNO-2010 — settlement tardio", '// KINEO-AVATAR-ESTORNO-2010 — settlement tardio'],
 ]) await check(`MUTANTE aplicado → vermelho: ${name}`, async () => {
   const src = rd(file); assert.ok(src.includes(before), 'âncora presente')
   // O primeiro mutante usa o caminho antigo real, sem introduzir erro de sintaxe/identificador.
-  const mutant = name.startsWith('volta a confundir') ? base(F) : src.replace(before, after)
+  let mutant = name.startsWith('volta a confundir') ? base(F) : src.replace(before, after)
+  if (name === 'permite binding tardio') mutant = mutant.replace(".is('metadata->>abandoned_refund_claimed_at', null)", '')
   assert.notEqual(mutant, src)
   const issues = await problems({ [file]: mutant }); assert.ok(issues.length > 0)
 })

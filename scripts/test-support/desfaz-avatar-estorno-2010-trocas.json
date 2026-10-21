@@ -1,10 +1,10 @@
 {
   "lib/avatar/reservation.ts": {
-    "acrescimos": 12,
+    "acrescimos": 18,
     "trocas": []
   },
   "lib/credits/refund.ts": {
-    "acrescimos": 8,
+    "acrescimos": 11,
     "trocas": [
       [
         "import { loadVerifiedAvatarClaimForBillingReference } from '@/lib/avatar/reservation' // KINEO-AVATAR-ESTORNO-2010",
@@ -71,5 +71,20 @@
   "scripts/test-support/desfaz-avatar-preso-2010.mjs": {
     "acrescimos": 3,
     "trocas": []
+  },
+  "app/api/generate-avatar/route.ts": {
+    "acrescimos": 3,
+    "trocas": []
+  },
+  "scripts/test-guardiao-2026-08-28.mjs": {
+    "acrescimos": 1,
+    "trocas": [
+      [
+        "const ler = (p) => semAvatarEstorno2010(readFileSync(join(R, p), 'utf8'), p) // KINEO-AVATAR-ESTORNO-2010",
+        [
+          "const ler = (p) => readFileSync(join(R, p), 'utf8')"
+        ]
+      ]
+    ]
   }
 }

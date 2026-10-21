@@ -572,6 +572,9 @@ export async function sweepAbandonedAvatarDebits(): Promise<{
       result.ambiguous += 1 // KINEO-AVATAR-ESTORNO-2010
       continue // KINEO-AVATAR-ESTORNO-2010
     } // KINEO-AVATAR-ESTORNO-2010
+    const claim = loaded.claim // KINEO-AVATAR-ESTORNO-2010
+    const { data: reserved, error: reserveError } = await db.from('events').update({ metadata: { ...claim.metadata, abandoned_refund_claimed_at: claim.metadata.abandoned_refund_claimed_at ?? new Date().toISOString() } }).eq('id', claim.claimId).eq('user_id', userId).eq('name', 'avatar_submission_claim').eq('metadata->>authority', claim.authority).select('id').maybeSingle() // KINEO-AVATAR-ESTORNO-2010 — CAS partilhado com binding/completion; URL ou settlement concorrente muda a assinatura e vence o estorno
+    if (reserveError || reserved?.id !== claim.claimId) { result.ambiguous += 1; continue } // KINEO-AVATAR-ESTORNO-2010 — marker persiste se o RPC falhar, permitindo retry sem entregar o MP4
     const credits = await refundRenderCredits(renderId) // KINEO-AVATAR-ESTORNO-2010
     if (credits > 0) { // KINEO-AVATAR-ESTORNO-2010
       result.refunded += 1
