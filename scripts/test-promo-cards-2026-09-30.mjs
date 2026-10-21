@@ -171,10 +171,11 @@ function landingProblems(src) {
   // (filme narrado · anúncio de produto) e a fileira desceu para "More tools", logo DEPOIS do hero de filmes. Continua
   // obrigatória na home, uma vez só, com os 4 cards — o mutante M13 prova que a âncora existe.
   const heroEnd = src.indexOf('</header>', hero)
-  if (row < 0) probs.push('fileira ausente da home')
-  else if (!(nav < hero && heroEnd > 0 && row > heroEnd)) probs.push('fileira fora do lugar (tem de vir em "More tools", depois do hero de filmes)')
-  if ((src.match(/<PromoCards /g) || []).length !== 1) probs.push('fileira repetida')
-  if (!src.includes("import PromoCards from '@/components/PromoCards'")) probs.push('import do componente ausente')
+  // KINEO-HOME-REMODELA-2010 — REANCORADO 20/10, fundador: "no More Tools, eu quero extinguir esses cards… só quero colocar os exemplos deles, que estão muito bons, em algum outro lugar" — a fileira SAI da home (componente e lib seguem); os clipes do card Clips foram para a faixa de Clipes e a foto do Nano Banana para a galeria (scripts/test-home-remodela-2010.mjs).
+  if (row >= 0 || /<PromoCards\b/.test(src)) probs.push('fileira de volta na home') // KINEO-HOME-REMODELA-2010
+  void nav; void heroEnd // KINEO-HOME-REMODELA-2010
+  if (!src.includes('<HomeClipsStrip signedIn={isSignedIn} />') || !src.includes('<HomeImageGallery />')) probs.push('os exemplos dos cards perderam o lugar (faixa de Clipes / galeria)') // KINEO-HOME-REMODELA-2010
+  if (/^import PromoCards /m.test(src)) probs.push('import do componente ainda vivo na home') // KINEO-HOME-REMODELA-2010
   // Curadoria do fundador intocada: hero de filmes e vitrine de motores seguem na página.
   // REANCORADO 30/09 — fundador: "tira essa parte" (a grade "Video" com os tiles de motor saiu da home; os motores seguem no mega-menu e no /studio).
   for (const keep of ['<HomeFeaturedFilms />', 'engineWall']) if (!src.includes(keep)) probs.push(`curadoria mexida: sumiu ${keep}`)
@@ -265,7 +266,7 @@ ok(componentProblems(compSrc.replace('preload="none"', 'autoPlay preload="auto"'
 // Reancorado 05/10 (KINEO-HOME-CLIPES-EM-CIMA-2026-10-05, 2ª rodada): a fileira voltou a abrir a página nos dois braços
 // do A/B (fundador: "tem que vir em cima, com quatro"); o mutante tira a linha e PROVA que a âncora existia.
 const M13_FROM = '        <PromoCards cards={promoCardsFor({ clips: clipsVisible(initialEmail) })} />\n'
-ok(landing.includes(M13_FROM) && landingProblems(landing.replace(M13_FROM, '')).length > 0, '(M13) fileira removida da home → vermelho')
+ok(!landing.includes(M13_FROM) && landing.includes('        <HomeImageGallery />') && landingProblems(landing.replace('        <HomeImageGallery />', M13_FROM + '        <HomeImageGallery />')).length > 0, '(M13) fileira de volta na home → vermelho') // KINEO-HOME-REMODELA-2010
 ok(dataProblems(dataSrc.replace("gate: 'clips',", '')).length > 0, '(M14) Clips sem interruptor → vermelho')
 ok(dataProblems(dataSrc.replace("href: '/ads',", "href: '/ads/new',")).length > 0, '(M16) link de Ads errado → vermelho')
 ok(dataProblems(dataSrc.replace("id: 'ads',", "id: 'ads-x',")).length > 0, '(M17) card de Ads fora da ordem/ausente → vermelho')

@@ -25,6 +25,7 @@ import { semUgcAjustes2010 } from './test-support/desfaz-ugc-ajustes-2010.mjs'
 import { semPaginasUgc2010 } from './test-support/desfaz-paginas-ugc-2010.mjs'
 import { semHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs'
 import { semBebeQueFala2010 } from './test-support/desfaz-bebe-que-fala-2010.mjs' // reancorado KINEO-BEBE-QUE-FALA-2010 — a camada de 20/10 sai antes da conferência de marca do D6
+import { semHomeRemodela2010 } from './test-support/desfaz-home-remodela-2010.mjs' // KINEO-HOME-REMODELA-2010 — 20/10, fundador: "esses vão ser os quatro principais, e ao lado vai ser o MCP do Claude e do GPT… more tools a gente vai cancelar": a regra "o menu só cresce" deste guardião foi revogada pelo próprio fundador; H/P/P5/D6 medem o item UGC no menu SEM a remodelação (camada mais nova, provada em scripts/test-home-remodela-2010.mjs)
 
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
@@ -206,12 +207,12 @@ console.log('\nH/P. menus: o item logo depois de "Product ads", o menu antigo in
 const ARQ_DE = { 'topo da home': F.land, 'celular da home': F.land, 'topo do /examples': F.examples, 'topo do /trending': F.trending }
 for (const [i, nome] of Object.keys(BLOCOS).entries()) {
   const rel = ARQ_DE[nome]
-  const mp = tenta(() => menuProblems(nome, rd(rel), base(rel) ?? '')); ok(mp.length === 0, `${i === 0 ? 'H1' : `P${i}`} ${nome}: ${itens(BLOCOS[nome](rd(rel))).join(' · ')} (${mp.join('; ') || 'ok'})`)
+  const mp = tenta(() => menuProblems(nome, semHomeRemodela2010(rd(rel), rel), base(rel) ?? '')); ok(mp.length === 0, `${i === 0 ? 'H1' : `P${i}`} ${nome}: ${itens(BLOCOS[nome](semHomeRemodela2010(rd(rel), rel))).join(' · ')} (${mp.join('; ') || 'ok'})`) // KINEO-HOME-REMODELA-2010
 }
 const ip = [F.land, F.examples, F.trending].flatMap((r) => importProblems(rd(r), r)); ok(ip.length === 0, `P4 os 3 arquivos importam o componente (${ip.join('; ') || 'ok'})`)
 {
   const totalBase = (base(F.land).match(/data-nav-item=/g) || []).length
-  const total = (rd(F.land).match(/data-nav-item=/g) || []).length
+  const total = (semHomeRemodela2010(rd(F.land), F.land).match(/data-nav-item=/g) || []).length // KINEO-HOME-REMODELA-2010
   ok(total === totalBase + 2, `P5 KineoLanding: ${total} data-nav-item = base ${totalBase} + 2 (1 no topo, 1 no celular) — o menu só cresce`)
 }
 
@@ -251,7 +252,7 @@ console.log('\nD. desfaz exato, encadeamento, diff, commits')
   const tocados = new Set([...git('diff', '--name-only', MENU_UGC_2010_BASE, TOPO).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n')].filter(Boolean))
   const permitidos = new Set([...MENU_UGC_2010_ARQUIVOS, ...MENU_UGC_2010_NOVOS])
   const fora = [...tocados].filter((f) => !permitidos.has(f))
-  const semMarca = MENU_UGC_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !semBebeQueFala2010(rd(f), f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) }) // reancorado KINEO-BEBE-QUE-FALA-2010
+  const semMarca = MENU_UGC_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !semHomeRemodela2010(semBebeQueFala2010(rd(f), f), f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-HOME-REMODELA-2010 // reancorado KINEO-BEBE-QUE-FALA-2010
   ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && ![...tocados].some((f) => /engineCost|pricing|lib\/credits\/|lib\/ads\/|app\/api\//.test(f)),
     `D6 o diff da base só toca a lista e os novos; toda linha nova traz a marca; nada de cobrança, motor ou preço (${[...fora.map((f) => `fora: ${f}`), ...semMarca.map((f) => `sem marca: ${f}`)].join('; ') || 'ok'})`)
   const assuntos = git('log', '--no-merges', '--format=%s', `${MENU_UGC_2010_BASE}..${TOPO}`).trim().split('\n').filter(Boolean)

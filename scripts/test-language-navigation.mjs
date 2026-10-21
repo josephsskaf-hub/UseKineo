@@ -16,7 +16,8 @@ for(const signedIn of [false,true])for(const language of ['en','es']){
  // 27/09: For businesses → /ads (porta pública; /ads/new mandava visitante ao /login).
   // 30/09 (KINEO-NAV-TOPO-ADS, fundador): topo = Video · Images · Spaces · Ads · Pricing; "Ads" vai a /ads/new, que leva o
  // logado ao painel e o visitante à porta pública /ads (não mais ao /login — ver app/(dashboard)/ads/new/page.tsx).
-check(['/studio','/images','/spaces','/ads/new','/pricing','/examples'].every(h=>main.includes('href="'+h+'"'))&&!main.includes('href="#pricing"'),'canonical navigation retained')
+ // KINEO-HOME-REMODELA-2010 — 20/10, fundador: "esses vão ser os quatro principais, e ao lado vai ser o MCP do Claude e do GPT… more tools a gente vai cancelar" — topo = /studio · /ads/new · AI UGC Ads · /ai-kids-cartoon-videos · /claude-connector · /trending · /pricing; Images e Spaces saíram do topo (rodapé); Examples segue no mega-menu do filme.
+check(['/studio','/ads/new','/ai-kids-cartoon-videos','/claude-connector','/pricing','/examples'].every(h=>main.includes('href="'+h+'"'))&&!main.includes('href="#pricing"')&&!main.includes('href="/spaces"'),'canonical navigation retained') // KINEO-HOME-REMODELA-2010
  if(signedIn){
   check(main.indexOf('kineo-interface-language')<main.indexOf('540 credits'),'language precedes balance')
   check(main.includes('nav-dashboard')&&main.includes('540 credits'),'balance and Dashboard preserved')

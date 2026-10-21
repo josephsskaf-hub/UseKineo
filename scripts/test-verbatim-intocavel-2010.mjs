@@ -28,6 +28,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semVerbatimIntocavel2010, semVerbatimIntocavel2010NaCadeia, MARCA_VERBATIM_INTOCAVEL_2010, REANCORAS_VERBATIM_INTOCAVEL_2010, ACRESCIMOS_REANCORA_VERBATIM_INTOCAVEL_2010, TROCAS_REANCORA_VERBATIM_INTOCAVEL_2010 } from './test-support/desfaz-verbatim-intocavel-2010.mjs'
+import { semHomeRemodela2010, HOME_REMODELA_2010_ARQUIVOS, HOME_REMODELA_2010_JSON, MARCA_HOME_REMODELA_2010 } from './test-support/desfaz-home-remodela-2010.mjs' // KINEO-HOME-REMODELA-2010 — a home e o menu remodelados (20/10, entrega de depois, com desfaz próprio) não são desta entrega
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(RAIZ)
@@ -173,9 +174,10 @@ console.log('D) o desfaz')
   const gitTxt = (...a) => execFileSync('git', a, { cwd: RAIZ, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
   const NL = String.fromCharCode(10)
   for (const rel of REANCORAS_VERBATIM_INTOCAVEL_2010) {
-    const atual = semBebeQueFala2010(rd(rel), rel) // reancorado KINEO-BEBE-QUE-FALA-2010
+    const atual = semHomeRemodela2010(semBebeQueFala2010(rd(rel), rel), rel) // KINEO-HOME-REMODELA-2010 — reancorado: a reâncora da home remodelada (entrega de depois) sai antes // reancorado KINEO-BEBE-QUE-FALA-2010
     let alheia = null, h = ''
-    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-BEBE-QUE-FALA-2010' /* reancorado KINEO-BEBE-QUE-FALA-2010: pula os commits do desenho infantil */, 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null }
+    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-BEBE-QUE-FALA-2010', '--grep=KINEO-MCP-STUDIO-AJUSTE-2010', 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // reancorado KINEO-MCP-STUDIO-AJUSTE-2010: os commits do ajuste do conector (camada de depois) também não são "alheios" aqui — o desfaz do verbatim já os tira primeiro
+    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-BEBE-QUE-FALA-2010', '--grep=KINEO-MCP-STUDIO-AJUSTE-2010', `--grep=${MARCA_HOME_REMODELA_2010}`, 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-HOME-REMODELA-2010 — a última versão alheia pula também os commits da home remodelada (os merges da fila e as reâncoras)
     const desfeito = semVerbatimIntocavel2010(rel, atual)
     const marcadas = atual.split(NL).filter((l) => l.includes(MARCA_VERBATIM_INTOCAVEL_2010)).length
     const esperadas = ACRESCIMOS_REANCORA_VERBATIM_INTOCAVEL_2010[rel] + (TROCAS_REANCORA_VERBATIM_INTOCAVEL_2010[rel]?.quantas ?? 0)
@@ -184,7 +186,7 @@ console.log('D) o desfaz')
     checa(`reâncora ${rel}: uma linha marcada a mais → o desfaz recusa (null) e a cadeia lança`, semVerbatimIntocavel2010(rel, aMais) === null && (() => { try { semVerbatimIntocavel2010NaCadeia(aMais, rel); return false } catch { return true } })())
   }
   const pers = rd('scripts/test-meta95-personagem-2010.mjs')
-  const av = semBebeQueFala2010(rd('scripts/test-support/desfaz-avatar-preso-2010.mjs'), 'scripts/test-support/desfaz-avatar-preso-2010.mjs') // reancorado KINEO-BEBE-QUE-FALA-2010
+  const av = semHomeRemodela2010(semBebeQueFala2010(rd('scripts/test-support/desfaz-avatar-preso-2010.mjs'), 'scripts/test-support/desfaz-avatar-preso-2010.mjs'), 'scripts/test-support/desfaz-avatar-preso-2010.mjs') // KINEO-HOME-REMODELA-2010 — a home remodelada (camada de depois) entra antes desta dentro de semAvatarPreso2010; sem ela, esta segue a 1ª // reancorado KINEO-BEBE-QUE-FALA-2010
   checa('encadeado: semAvatarPreso2010 (a camada de antes; a cabeça dos guardiões e o D1/D3 dela passam por ela) chama o desfaz desta camada primeiro', av.includes('export function semAvatarPreso2010(texto, p) {' + NL + '  texto = semVerbatimIntocavel2010NaCadeia(texto, p) // KINEO-VERBATIM-INTOCAVEL-2010'))
   const AVm = await import(new URL('./test-support/desfaz-avatar-preso-2010.mjs', import.meta.url).href)
   checa('pela cadeia (semAvatarPreso2010NosGuardioes), os guardiões reancorados desfeitos não têm mais a marca desta entrega', ['scripts/test-mcp-studio-2010.mjs', 'scripts/test-meta95-personagem-2010.mjs'].every((g) => !AVm.semAvatarPreso2010NosGuardioes(rd(g), g).includes(MARCA_VERBATIM_INTOCAVEL_2010)))

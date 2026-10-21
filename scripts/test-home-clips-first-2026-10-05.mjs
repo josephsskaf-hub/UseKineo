@@ -246,12 +246,13 @@ ok(/\n      <HomeTwoDoors signedIn=\{isSignedIn\} filmOffer=\{filmDoorOffer\} ad
 const strip = read('components/home/HomeClipsStrip.tsx')
 const homeKeys = (strip.match(/export const HOME_CLIP_KEYS: readonly ClipEffectKey\[\] = \[([^\]]*)\]/)?.[1] ?? '').match(/'([a-z0-9_]+)'/g)?.map((k) => k.slice(1, -1)) ?? []
 const fxAll = load(effectsSrc, 'lib/clips').CLIP_EFFECTS
-ok(homeKeys.length === 4 && new Set(homeKeys).size === 4 && homeKeys.every((k) => fxAll.some((e) => e.key === k && e.preview && /^Made with this effect /.test(e.preview.note))) && homeKeys[0] === 'color_burst' && homeKeys.includes('product_360'), '(8k) metade de clipes = 4 efeitos do catálogo com prévia feita pelo próprio efeito (o fundador escolheu a explosão de cor e o tênis girando)')
+// KINEO-HOME-REMODELA-2010 — reancorado 20/10 (fundador: "os clips, eu quero dobrar o número de clips"): 5 efeitos do catálogo (os 4 de antes, na mesma ordem, + 1) e os 3 clipes de texto do antigo card Clips = 8 cartões.
+ok(homeKeys.length === 5 && new Set(homeKeys).size === 5 && homeKeys.every((k) => fxAll.some((e) => e.key === k && e.preview && /^Made with this effect /.test(e.preview.note))) && homeKeys.slice(0, 4).join() === 'color_burst,product_360,secret_cake,melt' && (strip.match(/\{ id: '\w+', title: '[^']+', video: '\/previews\/promo-clips-/g) ?? []).length === 3, '(8k) faixa de clipes = 5 efeitos do catálogo com prévia feita pelo próprio efeito (os 4 escolhidos pelo fundador primeiro) + 3 clipes de texto = 8') // KINEO-HOME-REMODELA-2010
 // A grade dos filmes da home mora em app/kineoLandingTheme.ts (.featuredFour); a dos clipes tem de repetir altura e
 // colunas — se alguém mexer numa metade, este check lembra de mexer na outra.
 const theme = read('app/kineoLandingTheme.ts')
 const filmRule = theme.match(/\.klp #samples \.\$\{gallery\.featuredFour\} \{ (--film-height:clamp\([^)]*\)); (grid-template-columns:repeat\(4,minmax\(0,1fr\)\)); height:var\(--film-height\); gap:(\d+px); \}/)
-ok(Boolean(filmRule) && strip.includes(`${filmRule[1]};display:grid;${filmRule[2]};height:var(--film-height);gap:${filmRule[3]}`), '(8o) os 4 clipes usam a MESMA grade dos 4 filmes narrados (altura, 4 colunas e espaço iguais), para as duas metades baterem')
+ok(Boolean(filmRule) && strip.includes(`${filmRule[1]};display:grid;${filmRule[2]};grid-auto-rows:var(--film-height);gap:${filmRule[3]}`), '(8o) os clipes usam a MESMA grade dos 4 filmes narrados (altura de cada fileira, 4 colunas e espaço iguais), agora em 2 fileiras') // KINEO-HOME-REMODELA-2010 — reancorado 20/10: 8 cartões = 2 fileiras da mesma altura
 // reancorado KINEO-HOME-LIMPA-1410 — o fundador tirou "Videos for your business." da home (14/10, "o topo já cobre"): nos dois
 // braços a seção tem de estar AUSENTE, e depois dos filmes vem a fileira "More tools".
 ok(!landing.includes('businessShowcase') && !landing.includes('Videos for your business.') && !landing.includes('<BusinessVisualReferences') && landing.indexOf('<section className="home-more-tools" aria-label="More tools">') > landing.indexOf('</header>'), '(8p) "Videos for your business." saiu da home nos dois braços; depois dos filmes vem More tools')

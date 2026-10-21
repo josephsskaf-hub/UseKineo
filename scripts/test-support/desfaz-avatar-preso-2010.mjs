@@ -14,6 +14,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { semBebeQueFala2010 } from './desfaz-bebe-que-fala-2010.mjs' // KINEO-BEBE-QUE-FALA-2010 — a camada de 20/10 divide linhas de reâncora com esta: sai PRIMEIRO (texto sem a marca passa igual)
 import { semVerbatimIntocavel2010NaCadeia } from './desfaz-verbatim-intocavel-2010.mjs' // KINEO-VERBATIM-INTOCAVEL-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — a camada mais nova (20/10, depois do avatar preso): as reâncoras dela nos guardiões saem primeiro
+import { semHomeRemodela2010 } from './desfaz-home-remodela-2010.mjs' // KINEO-HOME-REMODELA-2010 — a home e o menu remodelados (20/10) são a camada mais nova: saem antes de tudo também por aqui
 
 export const MARCA_AVATAR_PRESO_2010 = 'KINEO-AVATAR-PRESO-2010'
 
@@ -49,6 +50,7 @@ export const AVATAR_PRESO_2010_NOVOS = [
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semAvatarPreso2010(texto, p) {
   texto = semBebeQueFala2010(texto, p) // KINEO-BEBE-QUE-FALA-2010 — a camada mais nova sai primeiro
+  texto = semHomeRemodela2010(texto, p) // KINEO-HOME-REMODELA-2010 — encadeado: a camada mais nova (home remodelada, 20/10) sai primeiro; idempotente fora dos arquivos dela
   texto = semVerbatimIntocavel2010NaCadeia(texto, p) // KINEO-VERBATIM-INTOCAVEL-2010 — encadeado: a camada mais nova sai primeiro (só as reâncoras dela em scripts/; o lib/growth/entradaSeedance15.ts tem desfaz próprio)
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_AVATAR_PRESO_2010) || !AVATAR_PRESO_2010_ARQUIVOS.includes(rel)) return texto

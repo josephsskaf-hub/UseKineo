@@ -111,7 +111,7 @@ function tryProblems(code, panelCode) {
   for (const m of code.matchAll(/clip: '([0-9a-f-]+)'/g)) {
     if (!fs.existsSync(path.join(ROOT, 'public/previews', m[1] + '.mp4'))) probs.push(`clipe inexistente: ${m[1]}`)
   }
-  if (!has('Sample made with Kineo · {ENGINE_LABELS[pr.engine]}')) probs.push('clipe sem selo "Sample made with Kineo · <motor>"')
+  if (!has('Engine set · {ENGINE_LABELS[pr.engine]}') || /<video/.test(code)) probs.push('cartão sem o selo do motor do pedido, ou com clipe velho') // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: os clipes saíram dos cartões (vitrine ./ShowcaseGrid)
   const v = visible(code)
   const panelAt = v.indexOf('<ConnectPanel ')
   const tryAt = v.indexOf('Try it in Claude</h2>')
@@ -122,7 +122,7 @@ function tryProblems(code, panelCode) {
   if (!/<ClaudePromptLink href=\{claudePromptHref\(pr\.prompt\)\} preset=\{pr\.id\}/.test(code)) probs.push('"Try in Claude" fora do ClaudePromptLink (sem medição) ou sem a frase de conexão')
   if (!/target="_blank"/.test(promptLink) || !/rel="noopener/.test(promptLink)) probs.push('"Try in Claude" sem aba nova/noopener')
   // Aba ChatGPT "em breve" (não existe app nosso lá).
-  if (!panelCode.includes('<strong>Coming soon.</strong> A Kineo app for ChatGPT is not available yet.') || /chatgpt\.com\/(plugins|apps|g\/)/.test(panelCode)) probs.push('aba ChatGPT promete app que não existe')
+  if (!/Developer mode/.test(panelCode) || !/in review/.test(panelCode) || /chatgpt\.com\/(plugins|apps|g\/)/.test(panelCode)) probs.push('aba ChatGPT sem o caminho real (Developer mode) ou promete app de loja que ainda está em análise') // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: Kineo Studio no ar no ChatGPT
   if (OVERCLAIM.test(visible(panelCode))) probs.push(`painel promete demais: ${visible(panelCode).match(OVERCLAIM)[0]}`)
   return probs
 }
@@ -183,8 +183,9 @@ ok(tryProblems(page.replace('write a 35-second narrated YouTube Short from this 
   const m12 = connectLib.replace('encodeURIComponent(`${prompt} ${CLAUDE_CONNECT_SENTENCE}`)', 'encodeURIComponent(prompt)')
   ok(m12 !== connectLib && libProblems(m12).length > 0, '(M12) pedido sem a frase de conexão → vermelho')
 }
-ok(tryProblems(page.replace("clip: '75728dfb-3b29-47fa-aea8-b806d549a2b9'", "clip: '00000000-dead-beef-0000-000000000000'"), panel).length > 0, '(M13) clipe que não existe na vitrine → vermelho')
-ok(tryProblems(page, panel.replace('<strong>Coming soon.</strong> A Kineo app for ChatGPT is not available yet.', 'Open the Kineo app in ChatGPT: https://chatgpt.com/plugins/kineo')).length > 0, '(M14) aba ChatGPT prometendo app que não existe → vermelho')
+ok(tryProblems(page.replace('Try in Claude ↗', '<video src="/previews/x.mp4" />Try in Claude ↗'), panel).length > 0, '(M13) clipe velho de volta num cartão de pedido → vermelho') // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: os clipes saíram dos cartões
+ok(tryProblems(page, panel.replace('The Kineo MCP app for the ChatGPT store is in review.', 'Open the Kineo app in ChatGPT: https://chatgpt.com/plugins/kineo')).length > 0, // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado
+   '(M14) aba ChatGPT prometendo app que não existe → vermelho')
 const mut = (patch) => oneClickProblems({ ...oneClick, ...patch }).length > 0
 ok(mut({ clientCode: connectClient.replace("window.open(CLAUDE_ADD_CONNECTOR_URL, '_blank', 'noopener')", '') }), '(M15) gesto que não abre o modal → vermelho')
 {

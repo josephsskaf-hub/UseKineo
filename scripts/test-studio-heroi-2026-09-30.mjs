@@ -98,9 +98,10 @@ function navProblems(land, theme) {
   const desk = land.slice(land.indexOf('<div className="nav-links"'), land.indexOf('<div className="nav-right">'))
   // REANCORADO 13/10 (KINEO-DUAS-PORTAS-2026-10-13, fundador "tudo sim", ação B): o topo virou Make a film ▾ · Product ads ·
   // More tools ▾ · Pricing; Imagem (1ª coluna), Spaces e MCP moram dentro do More tools — seguem no menu do topo, a 1 clique.
-  const order = ['<PublicNavDropdown item="video"', 'href="/ads/new"', '<PublicNavDropdown item="more:tools"', 'data-nav-item="image"', 'href="/spaces"', 'href="/claude-connector"', 'href="/pricing"'].map((h) => desk.indexOf(h))
-  if (order.some((x) => x < 0) || order.some((x, i) => i > 0 && x < order[i - 1])) p.push(`topo fora da ordem Make a film · Product ads · More tools (Images · Spaces · MCP) · Pricing (${order.join(',')})`)
-  if (!/<Link href="\/claude-connector" data-nav-item="more:mcp"><span className="nm-tx"><b><UiLabel>MCP<\/UiLabel><\/b>/.test(desk)) p.push('MCP fora do topo')
+  // KINEO-HOME-REMODELA-2010 — REANCORADO 20/10, fundador: "esses vão ser os quatro principais, e ao lado vai ser o MCP do Claude e do GPT… more tools a gente vai cancelar" — topo = Make a film ▾ · Product ads · AI UGC Ads · AI Cartoon Videos · Claude & ChatGPT (o MCP, agora no topo) · Trending · Pricing.
+  const order = ['<PublicNavDropdown item="video"', 'href="/ads/new"', 'data-nav-item="more:ugc"', 'href={MENU_CARTOON_HREF}', 'href={MENU_CONNECTOR_HREF}', 'href="/trending"', 'href="/pricing"'].map((h) => desk.indexOf(h)) // KINEO-HOME-REMODELA-2010
+  if (order.some((x) => x < 0) || order.some((x, i) => i > 0 && x < order[i - 1]) || desk.includes('item="more:tools"')) p.push(`topo fora da ordem Make a film · Product ads · AI UGC Ads · AI Cartoon Videos · Claude & ChatGPT · Trending · Pricing (${order.join(',')})`) // KINEO-HOME-REMODELA-2010
+  if (!/<Link href=\{MENU_CONNECTOR_HREF\} data-nav-item=\{MENU_CONNECTOR_NAV_ITEM\}[^>]*>\{MENU_CONNECTOR_LABEL\}<\/Link>/.test(desk)) p.push('MCP fora do topo') // KINEO-HOME-REMODELA-2010
   if (!/\.klp \.nav-links>a,\.klp \.nav-links>\.nd>summary \{ color:var\(--txt\); \}/.test(theme) || !/html:not\(\[data-theme=dark\]\) \.klp \.nav-links>a,html:not\(\[data-theme=dark\]\) \.klp \.nav-links>\.nd>summary \{ color:#0E1116; \}/.test(theme)) p.push('itens do topo não têm a mesma cor')
   return p
 }
@@ -118,7 +119,7 @@ ok(np.length === 0, `(5) topo na ordem com MCP e mesma cor (${np.join('; ') || '
 ok(pageProblems(PAGE.replace("  kling: 'cinematic_kling',", "  kling: 'cinematic_veo',")).length > 0, '(M1) Kling 2.5 mostrando filme do Veo → vermelho')
 ok(clientProblems(CLIENT.replace("videos={withPick(engineHeroes[scriptMode === 'clip' ? 'seedance' : engine] ?? [],", "videos={withPick(engineHeroes['seedance'] ?? [],")).length > 0, '(M2) herói preso num motor → vermelho')
 ok(clientProblems(CLIENT.replace('        {/* KINEO-STUDIO-HEROI-2026-09-30 — fundador: tirar \"AI Presenter\" e \"Animate a Photo\" daqui (já têm porta própria). */}\n', '        <Link href="/animate"><UiLabel>Animate a Photo</UiLabel></Link>\n')).length > 0, '(M3) aba Animate de volta → vermelho')
-ok(navProblems(LAND.replace(/ *<Link href="\/claude-connector" data-nav-item="more:mcp"><span className="nm-tx">[^\n]*\n/, ''), THEME).length > 0, '(M4) MCP fora do topo → vermelho')
+ok(navProblems(LAND.replace(/ *<Link href=\{MENU_CONNECTOR_HREF\} data-nav-item=\{MENU_CONNECTOR_NAV_ITEM\} className="nav-connector">[^\n]*\n/, ''), THEME).length > 0, '(M4) MCP fora do topo → vermelho') // KINEO-HOME-REMODELA-2010
 {
   const a = CLIENT.indexOf('<div className="studio-engine-pick"')
   const b = CLIENT.indexOf('<div className="card">', a)

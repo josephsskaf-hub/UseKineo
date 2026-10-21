@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { randomBytes } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
 import { STUDIO_MCP_PATH, STUDIO_OAUTH_BASE_PATH, studioAllowsEmail, studioLiveMode, studioPublicOrigin } from '@/lib/mcp/studioLaunch'
-import { oauthRedirectUrl, validateAuthorizeParams, type AuthorizeParams } from '@/lib/mcp/studioOauth'
+import { oauthRedirectUrl, studioBackTo, studioClientApp, studioRevokeWhere, validateAuthorizeParams, type AuthorizeParams } from '@/lib/mcp/studioOauth' // KINEO-MCP-STUDIO-AJUSTE-2010: + o nome do app que pediu (Claude, ChatGPT…)
 import { getClient, issueCode, studioAdmin } from '@/lib/mcp/studioOauthStore'
 import { STUDIO_AUTH_EVENT, recordStudioEvent } from '@/lib/mcp/studioTools'
 
@@ -35,8 +35,8 @@ function page(title: string, body: string, status = 200, extraHeaders: Record<st
   return new NextResponse(html, { status, headers: { ...HTML_HEADERS, ...extraHeaders } })
 }
 
-function errorPage(error: string, description: string): NextResponse {
-  return page('Connection error', `<div class="card"><h1>Could not connect Kineo Studio</h1><p>${esc(description)}</p><p class="k">Error</p><p class="v">${esc(error)}</p><p>Go back to Claude and add the connector again.</p></div>`, 400)
+function errorPage(error: string, description: string, app: string | null = null): NextResponse { // KINEO-MCP-STUDIO-AJUSTE-2010: app = Claude/ChatGPT quando conhecido
+  return page('Connection error', `<div class="card"><h1>Could not connect Kineo Studio</h1><p>${esc(description)}</p><p class="k">Error</p><p class="v">${esc(error)}</p><p>${esc(studioBackTo(app))} and add the connector again.</p></div>`, 400)
 }
 
 function redirectWithError(v: { redirectUri: string; state: string | null; error: string; description: string }): NextResponse {
@@ -84,19 +84,20 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(new URL(`/login?redirect=${encodeURIComponent(here)}`, req.nextUrl.origin), 302)
   }
   if (!studioAllowsEmail(studioLiveMode(), user.email)) {
-    return page('Not open yet', `<div class="card"><h1>Kineo Studio inside Claude is not open to this account yet</h1><p>You are signed in as <strong>${esc(user.email ?? user.id)}</strong>. This connector is being opened gradually; the <a href="/claude-connector" style="color:#2997ff">Kineo MCP page</a> says when it reaches everyone.</p></div>`, 403)
+    return page('Not open yet', `<div class="card"><h1>Kineo Studio is not open to this account yet</h1><p>You are signed in as <strong>${esc(user.email ?? user.id)}</strong>. This connector is being opened gradually; the <a href="/claude-connector" style="color:#2997ff">Kineo MCP page</a> says when it reaches everyone.</p></div>`, 403)
   }
   const nonce = randomBytes(18).toString('base64url')
   const hidden = Object.entries({ client_id: params.client_id, redirect_uri: params.redirect_uri, state: params.state ?? '', code_challenge: params.code_challenge, code_challenge_method: 'S256', scope: params.scope, resource: params.resource ?? '', response_type: 'code', nonce })
     .map(([k, v]) => `<input type="hidden" name="${k}" value="${esc(v)}">`)
     .join('')
+  const app = studioClientApp(params.redirect_uri, clientName) // KINEO-MCP-STUDIO-AJUSTE-2010
   const who = clientName ? esc(clientName) : 'An AI assistant'
   const body = `<div class="card"><h1>Allow ${who} to use your Kineo account?</h1>
 <p>Signed in as <strong>${esc(user.email ?? user.id)}</strong>. Allowing lets this app:</p>
 <ul><li>read your plan, credit balance and recent videos;</li><li><strong>create videos in your account and spend your credits</strong> — the same price and rules as pressing Generate in Kineo Studio.</li></ul>
 <p class="k">You will be sent back to</p><p class="v">${esc(hostOf(params.redirect_uri))}</p>
 ${/^http:\/\/(localhost|127\.0\.0\.1|\[::1\])/.test(params.redirect_uri) ? '<p class="warn">This is a local address on your own computer (Claude Code or another local client). Only allow it if you started this connection yourself.</p>' : ''}
-<p class="k">Access lasts</p><p>1 hour per token, renewed automatically for up to 30 days. Revoke any time by removing the connector in Claude.</p>
+<p class="k">Access lasts</p><p>1 hour per token, renewed automatically for up to 30 days. Revoke any time by removing the connector ${esc(studioRevokeWhere(app))}.</p>
 <form method="post" action="${STUDIO_OAUTH_BASE_PATH}/authorize">${hidden}<div class="row"><button class="deny" name="action" value="deny" type="submit">Cancel</button><button class="allow" name="action" value="allow" type="submit">Allow</button></div></form></div>`
   const res = page('Connect Kineo Studio', body)
   res.cookies.set(CONSENT_COOKIE, nonce, { httpOnly: true, sameSite: 'lax', secure: req.nextUrl.protocol === 'https:', path: `${STUDIO_OAUTH_BASE_PATH}/authorize`, maxAge: 600 })
@@ -112,10 +113,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const { params, clientName } = prepared
   const user = await currentUser()
   if (!user) return NextResponse.redirect(new URL(`/login?redirect=${encodeURIComponent(`${STUDIO_OAUTH_BASE_PATH}/authorize?${form.toString()}`)}`, req.nextUrl.origin), 302)
-  if (!studioAllowsEmail(studioLiveMode(), user.email)) return errorPage('access_denied', 'Kineo Studio inside Claude is not open to this account yet.')
+  const app = studioClientApp(params.redirect_uri, clientName) // KINEO-MCP-STUDIO-AJUSTE-2010
+  if (!studioAllowsEmail(studioLiveMode(), user.email)) return errorPage('access_denied', 'Kineo Studio is not open to this account yet.', app)
   const nonce = form.get('nonce') ?? ''
   const cookieNonce = req.cookies.get(CONSENT_COOKIE)?.value ?? ''
-  if (!nonce || nonce !== cookieNonce) return errorPage('invalid_request', 'This consent form expired. Go back to Claude and connect again.')
+  if (!nonce || nonce !== cookieNonce) return errorPage('invalid_request', `This consent form expired. ${studioBackTo(app)} and connect again.`, app)
   if (form.get('action') !== 'allow') {
     await recordStudioEvent(STUDIO_AUTH_EVENT, user.id, { outcome: 'denied', client_name: clientName })
     return redirectWithError({ redirectUri: params.redirect_uri, state: params.state, error: 'access_denied', description: 'The person cancelled the connection.' })

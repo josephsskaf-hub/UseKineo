@@ -440,9 +440,9 @@ const landingLF = landing.replace(/\r\n/g, '\n')
 ok(/\n  const showClips = clipsVisible\(initialEmail\)\n/.test(landingLF)
   // Reancorado 13/10 (KINEO-DUAS-PORTAS-2026-10-13): o grupo Clips mudou do mega-menu "Video" para o "More tools" do topo
   // (2ª coluna), e no celular desceu para o bloco "More tools" — mesmos 2 links, mesmo interruptor.
-  && /\{showClips && \(\n\s*<span data-nav-item="more:clips" style=\{\{ display: 'contents' \}\}>\n\s*<span className="nm-h"><UiLabel>Clips<\/UiLabel><\/span>\n\s*<NavEngineItem href="\/clips\?upload=1"[^\n]*\/>\n\s*<NavEngineItem href="\/clips"/.test(landingLF)
-  && /\{showClips && <Link href="\/clips" data-nav-item="more:clips">/.test(landingLF)
-  && (landingLF.match(/href="\/clips"/g) ?? []).length === 2, 'mega-menu e menu público têm Clipes (par) atrás do interruptor')
+  && /\{showClips && <HomeClipsStrip signedIn=\{isSignedIn\} \/>\}/.test(landingLF) // KINEO-HOME-REMODELA-2010 — reancorado 20/10 (fundador 20/10: "esses vão ser os quatro principais, e ao lado vai ser o MCP do Claude e do GPT… more tools a gente vai cancelar"): os 2 links de Clipes saíram do topo e do celular; Clipes segue atrás do MESMO interruptor na faixa de 8 clipes da home
+  && /\{ href: '\/clips', label: '[^']+' \}/.test(readFileSync(join(root, 'components/Footer.tsx'), 'utf8')) // KINEO-HOME-REMODELA-2010 — e a 1 clique no rodapé
+  && (landingLF.match(/href="\/clips"/g) ?? []).length === 0, 'Clipes atrás do interruptor na faixa da home e no rodapé (o "More tools" do topo saiu)') // KINEO-HOME-REMODELA-2010
 
 // ─── 10. Interruptor de lançamento: preço é PROPOSTA até o "vai" do fundador ─
 const launch = read('lib/clips/clipLaunch.ts')

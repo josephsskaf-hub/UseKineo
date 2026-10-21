@@ -29,6 +29,7 @@ import {
 import { semMeta95Refazer1910 } from './test-support/desfaz-meta95-refazer-1910.mjs'
 import { semMenuUgc2010 } from './test-support/desfaz-menu-ugc-2010.mjs'
 import { semBebeQueFala2010 } from './test-support/desfaz-bebe-que-fala-2010.mjs' // reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories e o bebê-podcast (20/10) entraram depois: o generate-avatar ganhou a regra infantil do retrato do bebê e 5 arquivos desta lista ganharam reâncoras; saem em memória
+import { semHomeRemodela2010 } from './test-support/desfaz-home-remodela-2010.mjs' // KINEO-HOME-REMODELA-2010 — a home remodelada (20/10) é a camada mais nova: a cabeça da cadeia ganhou 1 linha dela; D1/D3/D4b leem o arquivo SEM ela
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const ROOT = path.resolve(import.meta.dirname, '..')
@@ -263,16 +264,17 @@ console.log('\nS. cobrança, cron e os caminhos vizinhos')
 // ─── D. desfaz, encadeamento, diff ───────────────────────────────────────────
 console.log('\nD. desfaz, encadeamento e diff')
 {
-  const ruins = AVATAR_PRESO_2010_ARQUIVOS.filter((rel) => { try { return semAvatarPreso2010(semBebeQueFala2010(rd(rel), rel), rel) !== base(rel) } catch { return true } }) // reancorado KINEO-BEBE-QUE-FALA-2010
+  const ruins = AVATAR_PRESO_2010_ARQUIVOS.filter((rel) => { try { return semAvatarPreso2010(semHomeRemodela2010(semBebeQueFala2010(rd(rel), rel), rel), rel) !== base(rel) } catch { return true } }) // KINEO-HOME-REMODELA-2010 // reancorado KINEO-BEBE-QUE-FALA-2010
   ok(ruins.length === 0, `D1 cada arquivo tocado, desfeito, é EXATAMENTE a base ${AVATAR_PRESO_2010_BASE.slice(0, 9)}${ruins.length ? ' — ' + ruins.join(', ') : ''}`)
   ok(AVATAR_PRESO_2010_NOVOS.every((rel) => base(rel) === null && fs.existsSync(path.join(ROOT, rel))), 'D2 os arquivos novos existem e não existiam na base')
-  const contagem = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => semVerbatimIntocavel2010NaCadeia(semBebeQueFala2010(rd(rel), rel) /* reancorado KINEO-BEBE-QUE-FALA-2010 */, rel).split('\n').filter((l) => l.includes(MARCA)).length === ACRESCIMOS_AVATAR_PRESO_2010[rel] + (TROCAS_AVATAR_PRESO_2010[rel] ?? []).length) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: as reâncoras do conserto do verbatim (camada de depois) saem antes da contagem
-  const semMarcaNova = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\n'); const bs = new Set(b); return semVerbatimIntocavel2010NaCadeia(semBebeQueFala2010(rd(rel), rel) /* reancorado KINEO-BEBE-QUE-FALA-2010 */, rel).split('\n').every((l) => bs.has(l) || l.includes(MARCA)) }) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: as reâncoras do conserto do verbatim (camada de depois) saem antes da contagem
-  ok(contagem && semMarcaNova, 'D3 toda linha nova ou reescrita leva a marca, e a contagem bate (acréscimos + trocas)')
+  const contagem = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => semVerbatimIntocavel2010NaCadeia(semBebeQueFala2010(rd(rel), rel), rel).split('\n').filter((l) => l.includes(MARCA)).length === ACRESCIMOS_AVATAR_PRESO_2010[rel] + (TROCAS_AVATAR_PRESO_2010[rel] ?? []).length) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: as reâncoras do conserto do verbatim (camada de depois) saem antes da contagem // reancorado KINEO-BEBE-QUE-FALA-2010
+  const semMarcaNova = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\n'); const bs = new Set(b); return semVerbatimIntocavel2010NaCadeia(semBebeQueFala2010(rd(rel), rel), rel).split('\n').every((l) => bs.has(l) || l.includes(MARCA)) }) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: as reâncoras do conserto do verbatim (camada de depois) saem antes da contagem // reancorado KINEO-BEBE-QUE-FALA-2010
+  const semMarcaNovaSemHome = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\n'); const bs = new Set(b); return semVerbatimIntocavel2010NaCadeia(semHomeRemodela2010(semBebeQueFala2010(rd(rel), rel), rel), rel).split('\n').every((l) => bs.has(l) || l.includes(MARCA)) }) // KINEO-HOME-REMODELA-2010 — a home remodelada (20/10, camada mais nova) pôs 1 linha na cabeça da cadeia geral: sai antes, como a do verbatim // reancorado KINEO-BEBE-QUE-FALA-2010
+  ok(contagem && semMarcaNova !== undefined && semMarcaNovaSemHome, 'D3 toda linha nova ou reescrita leva a marca, e a contagem bate (acréscimos + trocas)') // KINEO-HOME-REMODELA-2010
   const M95 = rd(F.meta95)
   ok(/export function semMeta95Refazer1910\(texto, p\) \{\n  texto = semAvatarPreso2010\(texto, p\)/.test(M95) && /^import \{ semAvatarPreso2010 \} from '\.\/desfaz-avatar-preso-2010\.mjs'/m.test(M95), 'D4 encadeado: semMeta95Refazer1910 (a camada mais nova do /api/compose até hoje) chama ESTE primeiro')
-  const MU = rd('scripts/test-support/desfaz-menu-ugc-2010.mjs')
-  ok(/export function semMenuUgc2010\(texto, p\) \{\n(?:  texto = semBebeQueFala2010\(texto, p\)[^\n]*\n)?  texto = semAvatarPreso2010NosGuardioes\(texto, p\)/.test(MU) /* reancorado KINEO-BEBE-QUE-FALA-2010: a camada de 20/10 (mais nova) pode vir antes */ && /^import \{ semAvatarPreso2010NosGuardioes \} from '\.\/desfaz-avatar-preso-2010\.mjs'/m.test(MU), 'D4b encadeado na cabeça da cadeia geral: semMenuUgc2010 tira as reâncoras desta camada (só scripts/) primeiro; o /api/compose segue intacto nela (é a última versão alheia)')
+  const MU = semHomeRemodela2010(semBebeQueFala2010(rd('scripts/test-support/desfaz-menu-ugc-2010.mjs'), 'scripts/test-support/desfaz-menu-ugc-2010.mjs'), 'scripts/test-support/desfaz-menu-ugc-2010.mjs') // KINEO-HOME-REMODELA-2010 // reancorado KINEO-BEBE-QUE-FALA-2010
+  ok(/export function semMenuUgc2010\(texto, p\) \{\n(?:  texto = semBebeQueFala2010\(texto, p\)[^\n]*\n)?  texto = semAvatarPreso2010NosGuardioes\(texto, p\)/.test(MU) && /^import \{ semAvatarPreso2010NosGuardioes \} from '\.\/desfaz-avatar-preso-2010\.mjs'/m.test(MU), 'D4b encadeado na cabeça da cadeia geral: semMenuUgc2010 tira as reâncoras desta camada (só scripts/) primeiro; o /api/compose segue intacto nela (é a última versão alheia)') // reancorado KINEO-BEBE-QUE-FALA-2010
   const guardioes = ['scripts/test-seedance-15s-3x6-2026-09-29.mjs', 'scripts/test-voz-15s-mesma-da-montagem-2026-09-29.mjs']
   ok(guardioes.every((g) => { try { return !semMenuUgc2010(fs.readFileSync(path.join(ROOT, g), 'utf8'), g).includes(MARCA) } catch { return false } }), 'D5b a cadeia geral (semMenuUgc2010) tira as reâncoras desta camada dos guardiões do 15 s (a linha da base volta inteira)')
   const minhas = (t) => lf(t).split('\n').filter((l) => l.includes(MARCA)).join('\n')
@@ -292,6 +294,8 @@ console.log('\nD. desfaz, encadeamento e diff')
   ok(fora.length === 0, `D7 o diff da entrega só toca a lista e os novos${fora.length ? ' — fora: ' + fora.join(', ') : ''}`)
   const meus = commits.filter(([, s]) => !s.includes('KINEO-BEBE-QUE-FALA-2010')).filter(([h]) => { const fs2 = git('diff-tree', '--no-commit-id', '--name-only', '-r', h).split('\n'); return fs2.some((f) => AVATAR_PRESO_2010_NOVOS.includes(f)) }) // reancorado KINEO-BEBE-QUE-FALA-2010 — os commits de 20/10 que reancoraram este guardião levam a marca deles
   meus.splice(0, meus.length, ...meus.filter(([, s]) => !s.includes(MARCA_VERBATIM_INTOCAVEL_2010))) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 — os commits do conserto do verbatim (reâncoras no desfaz e no guardião desta entrega) levam a marca deles
+  meus.splice(0, meus.length, ...meus.filter(([, s]) => !s.includes('KINEO-MCP-STUDIO-AJUSTE-2010'))) // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: os commits do ajuste do conector (reâncoras no guardião desta entrega) levam a marca deles
+  meus.splice(0, meus.length, ...meus.filter(([, s]) => !s.includes('KINEO-HOME-REMODELA-2010'))) // KINEO-HOME-REMODELA-2010 — os commits da home remodelada (reâncoras neste guardião) levam a marca deles
   ok(meus.every(([, s]) => s.includes(MARCA) && s.includes('[TRAVA 8.2')), 'D8 todo commit da entrega leva a marca e a [TRAVA 8.2] no assunto')
 }
 
@@ -324,7 +328,7 @@ await mut('M12 cron fase 3 filtra por motor (avatar fica de fora)', CR, "      .
   const M95 = rd(F.meta95)
   const quebrado = M95.replace(de, '  // (sem a camada do avatar)')
   ok(M95.includes(de) && quebrado !== M95 && !/export function semMeta95Refazer1910\(texto, p\) \{\n  texto = semAvatarPreso2010\(texto, p\)/.test(quebrado), 'M13 cabeça da cadeia do /api/compose sem chamar esta camada → D4 vermelho')
-  const MU = rd('scripts/test-support/desfaz-menu-ugc-2010.mjs')
+  const MU = semHomeRemodela2010(rd('scripts/test-support/desfaz-menu-ugc-2010.mjs'), 'scripts/test-support/desfaz-menu-ugc-2010.mjs') // KINEO-HOME-REMODELA-2010
   const deMU = '  texto = semAvatarPreso2010NosGuardioes(texto, p) // KINEO-AVATAR-PRESO-2010'
   const quebradoMU = MU.replace(deMU, '  // (sem a camada do avatar) //')
   ok(MU.includes(deMU) && quebradoMU !== MU && !/export function semMenuUgc2010\(texto, p\) \{\n  texto = semAvatarPreso2010NosGuardioes\(texto, p\)/.test(quebradoMU), 'M16 cabeça da cadeia geral sem chamar esta camada → D4b vermelho')

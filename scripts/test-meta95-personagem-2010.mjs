@@ -21,6 +21,7 @@
 //   M.  mutantes: cada regra acima fica vermelha quando a quebramos de propósito (aplicação provada antes de medir).
 import { MARCA_AVATAR_PRESO_2010 } from './test-support/desfaz-avatar-preso-2010.mjs' // reancorado KINEO-AVATAR-PRESO-2010 [TRAVA 8.2 — vai do fundador 20/10 "vai pra tudo"]: a camada do avatar preso não é desta entrega
 import { MARCA_VERBATIM_INTOCAVEL_2010 } from './test-support/desfaz-verbatim-intocavel-2010.mjs' // reancorado KINEO-VERBATIM-INTOCAVEL-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: as reâncoras do conserto do verbatim não são desta entrega (o D1 já as tira pela cadeia: desfaz-avatar-preso chama o desfaz do verbatim primeiro)
+import { semHomeRemodela2010, HOME_REMODELA_2010_ARQUIVOS, HOME_REMODELA_2010_JSON, MARCA_HOME_REMODELA_2010 } from './test-support/desfaz-home-remodela-2010.mjs' // KINEO-HOME-REMODELA-2010 — a home e o menu remodelados (20/10, entrega de depois, com desfaz próprio) não são desta entrega
 import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
@@ -348,7 +349,7 @@ console.log('\nD. desfaz, encadeamento, diff e commits')
   const probs = []
   for (const f of META95_PERSONAGEM_2010_ARQUIVOS) {
     const b = base(f)
-    const d = tenta(() => lf(semMeta95Personagem2010(semBebeQueFala2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f), f))) // reancorado KINEO-BEBE-QUE-FALA-2010
+    const d = tenta(() => lf(semMeta95Personagem2010(semHomeRemodela2010(semBebeQueFala2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f), f), f))) // KINEO-HOME-REMODELA-2010 — a home remodelada pôs 1 linha na cabeça da cadeia (desfaz-menu-ugc): sai antes // reancorado KINEO-BEBE-QUE-FALA-2010
     if (b === null) probs.push(`${f}: sem base`)
     else if (Array.isArray(d)) probs.push(`${f}: ${d[0]}`)
     else if (d !== b) probs.push(`${f}: desfeito ≠ base`)
@@ -374,6 +375,8 @@ console.log('\nD. desfaz, encadeamento, diff e commits')
   commitsDaEntrega.splice(0, commitsDaEntrega.length, ...commitsDaEntrega.filter(({ s }) => !s.includes(MARCA_META95_ESCRITA_2010))) // KINEO-META95-ESCRITA-2010 — reancorado: os commits (e o merge) da legenda na escrita do roteiro não são desta entrega
   commitsDaEntrega.splice(0, commitsDaEntrega.length, ...commitsDaEntrega.filter(({ s }) => !s.includes(MARCA_AVATAR_PRESO_2010))) // KINEO-AVATAR-PRESO-2010 — reancorado: os commits (e os merges) do avatar preso não são desta entrega
   commitsDaEntrega.splice(0, commitsDaEntrega.length, ...commitsDaEntrega.filter(({ s }) => !s.includes(MARCA_VERBATIM_INTOCAVEL_2010))) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 — os commits do conserto do verbatim (reâncoras) não são desta entrega
+  commitsDaEntrega.splice(0, commitsDaEntrega.length, ...commitsDaEntrega.filter(({ s }) => !s.includes('KINEO-MCP-STUDIO-AJUSTE-2010'))) // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: os commits (e o merge da fila) do ajuste do conector não são desta entrega
+  commitsDaEntrega.splice(0, commitsDaEntrega.length, ...commitsDaEntrega.filter(({ s }) => !s.includes(MARCA_HOME_REMODELA_2010))) // KINEO-HOME-REMODELA-2010 — reancorado: os commits (e o merge da fila) da home remodelada não são desta entrega
   ok(commitsDaEntrega.length > 0 && commitsDaEntrega.every(({ s }) => s.includes(MARCA) && s.includes('[TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]')), `D7 todo commit da entrega (e todo merge dela) traz a marca e o selo da TRAVA 8.2 (${commitsDaEntrega.length} commit(s); base ${BASE_CMP.slice(0, 10)})`, commitsDaEntrega.filter(({ s }) => !s.includes(MARCA)).map(({ s }) => s.slice(0, 60)).join(' | '))
   ok(fs.existsSync(path.join(ROOT, 'docs/META95-PERSONAGEM-2026-10-20.md')) && /formatFlags/.test(rd('docs/META95-PERSONAGEM-2026-10-20.md')), 'D8 o desenho está em docs/META95-PERSONAGEM-2026-10-20.md, com o jeito de ligar por pedido')
 }

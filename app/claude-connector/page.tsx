@@ -23,6 +23,12 @@
 //
 // Nada digitado que tenha fonte: tools vêm de buildTools() (o mesmo objeto de tools/list), prazo e teto do roteiro
 // de lib/gptHandoff, nomes de motor de ENGINE_LABELS. Nenhum preço literal — preço é o que kineo_facts devolve.
+//
+// KINEO-MCP-STUDIO-AJUSTE-2010 (fundador 20/10: "muito feia" — escura, vídeos velhos, fontes velhas) — CLARA nos tokens da home (./palette),
+// tipografia da home (Manrope, peso 600-700, letter-spacing negativo), os vídeos velhos dos cartões de pedido SAEM e entra a
+// vitrine de 9 (./ShowcaseGrid: 3 UGC, 3 anúncios de produto, 3 filmes, clipes que o site já serve). O topo diz a verdade de
+// hoje: o Kineo Studio está no ar no Claude E no ChatGPT; o herói separa os dois conectores (Kineo MCP não renderiza nem
+// cobra; Kineo Studio faz o filme e gasta os créditos da conta).
 import type { Metadata } from 'next'
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
@@ -30,11 +36,12 @@ import Footer from '@/components/Footer'
 import { PAUSED_ENGINE_KEYS } from '@/lib/engineLaunch'
 import { ENGINE_LABELS, HANDOFF_TTL_DAYS, SCRIPT_MAX_CHARS, type HandoffEngine } from '@/lib/gptHandoff'
 import { MCP_SERVER_VERSION, buildTools } from '@/lib/mcp/kineoMcp'
-import { CLAUDE_CONNECT_ANCHOR, CLAUDE_MCP_SERVER_URL, CLAUDE_START_PROMPT, claudePromptHref } from '@/lib/claudeConnect'
+import { CLAUDE_CONNECT_ANCHOR, CLAUDE_MCP_SERVER_URL, CLAUDE_START_PROMPT, CLAUDE_STUDIO_CONNECT_ANCHOR, claudePromptHref } from '@/lib/claudeConnect' // KINEO-MCP-STUDIO-AJUSTE-2010: + âncora do Kineo Studio
 import ConnectPanel, { CopyField } from './ConnectPanel'
 import ClaudePromptLink from './ClaudePromptLink'
 import PresetFilter from './PresetFilter'
 import StudioSection from './StudioSection' // KINEO-MCP-STUDIO-2010
+import ShowcaseGrid from './ShowcaseGrid' // KINEO-MCP-STUDIO-AJUSTE-2010
 import { ClientGlyph, type ClientKey } from './ClientGlyphs'
 import { MCP_PALETTE as C, MONO } from './palette'
 
@@ -60,15 +67,15 @@ export const metadata: Metadata = {
   },
 }
 
-const CARD: CSSProperties = { background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: '18px 20px' }
+const CARD: CSSProperties = { background: C.card, border: `1px solid ${C.line}`, borderRadius: 18, padding: '18px 20px', boxShadow: C.shadow }
 
-/** Azulejos do hero (molde Buzzy): onde o servidor MCP da Kineo funciona. ChatGPT aparece como "soon". */
+/** Azulejos do hero (molde Buzzy): onde a Kineo funciona. KINEO-MCP-STUDIO-AJUSTE-2010: ChatGPT no ar (Kineo Studio por Developer mode). */
 const HERO_CLIENTS: readonly { key: ClientKey; label: string; soon?: true }[] = [
   { key: 'claude', label: 'Claude' },
   { key: 'claude_code', label: 'Claude Code' },
   { key: 'cursor', label: 'Cursor' },
   { key: 'other', label: 'Any MCP client' },
-  { key: 'chatgpt', label: 'ChatGPT', soon: true },
+  { key: 'chatgpt', label: 'ChatGPT' },
 ]
 
 /** Chips da galeria (molde Higgsfield). */
@@ -91,7 +98,6 @@ const PRESETS: readonly {
   cat: PresetCategory
   title: string
   line: string
-  clip: string | null
   engine: HandoffEngine | null
   learnMore: string
   prompt: string
@@ -101,7 +107,6 @@ const PRESETS: readonly {
     cat: 'clips',
     title: 'Clip from an idea',
     line: 'One sentence becomes a 15-second clip script, saved to Kineo Studio.',
-    clip: '75728dfb-3b29-47fa-aea8-b806d549a2b9',
     engine: 'seedance',
     learnMore: '/ai-video-generator/seedance',
     prompt: 'Using the Kineo connector, turn this idea into a 15-second narration script and send it to Kineo Studio: a giant wave rolling in from the open sea.',
@@ -111,7 +116,6 @@ const PRESETS: readonly {
     cat: 'shorts',
     title: 'Narrated 35-second film',
     line: 'From one line to a narrated Short with a hook, a build and a twist.',
-    clip: '4b12925e-16e6-4b56-af5a-7047f9ae7a28',
     engine: 'hollywood',
     learnMore: '/ai-video-generator/kling-3',
     prompt: 'Using the Kineo connector, write a 35-second narrated YouTube Short from this one line and send it to Kineo Studio: the lake where lightning almost never stops.',
@@ -121,7 +125,6 @@ const PRESETS: readonly {
     cat: 'ads',
     title: 'Product ad in 3 variations',
     line: 'Three angles on the same offer, each saved as its own Studio link.',
-    clip: '9bbd5d98-33e5-423f-b9cb-82f7af6c67ba',
     engine: 'veo',
     learnMore: '/ads',
     prompt: 'Using the Kineo connector, write 3 variations of a 15-second ad script for my product and send each one to Kineo Studio. My product is: [describe your product].',
@@ -131,7 +134,6 @@ const PRESETS: readonly {
     cat: 'shorts',
     title: '60-second mystery Short',
     line: 'A full mystery story sized for 60 seconds, with the engine already set.',
-    clip: '04189a48-45f7-45f4-b98c-27832702e837',
     engine: 'h3',
     learnMore: '/ai-video-generator/minimax-h3',
     prompt: 'Using the Kineo connector, write a 60-second mystery YouTube Short script about a ship that vanished in a storm, set the engine to MiniMax H3 and send it to Kineo Studio.',
@@ -141,7 +143,6 @@ const PRESETS: readonly {
     cat: 'shorts',
     title: 'History in 35 seconds',
     line: 'One moment from history told as a Short, ready to open in Studio.',
-    clip: 'c4e4fbab-0978-4daa-9fcf-119096370210',
     engine: 'kling',
     learnMore: '/ai-video-generator/kling',
     prompt: 'Using the Kineo connector, write a 35-second history YouTube Short script about a lost Roman treasure, set the engine to Kling 2.5 and send it to Kineo Studio.',
@@ -151,7 +152,6 @@ const PRESETS: readonly {
     cat: 'plans',
     title: 'Kineo plans & prices',
     line: 'Live plans, free trial and credits per engine, straight from Kineo.',
-    clip: null,
     engine: null,
     learnMore: '/pricing',
     prompt: 'Using the Kineo connector, explain Kineo\'s plans, prices and free trial, and tell me which plan covers four 60-second films a month.',
@@ -160,12 +160,12 @@ const PRESETS: readonly {
 
 export default function ClaudeConnectorPage() {
   const tools = buildTools({ pausedEngines: PAUSED_ENGINE_KEYS })
-  const h2: CSSProperties = { fontSize: 'clamp(1.4rem, 3.6vw, 2rem)', fontWeight: 900, letterSpacing: '-0.01em', margin: '72px 0 12px', color: C.text }
+  const h2: CSSProperties = { fontSize: 'clamp(1.5rem, 3.6vw, 2.2rem)', fontWeight: 650, letterSpacing: '-0.024em', lineHeight: 1.12, margin: '80px 0 12px', color: C.text }
   const h2Center: CSSProperties = { ...h2, textAlign: 'center' }
   const p: CSSProperties = { fontSize: '1rem', color: C.body, lineHeight: 1.7, margin: '0 0 14px' }
   const small: CSSProperties = { fontSize: '0.9rem', color: C.muted, lineHeight: 1.6, margin: '0 0 14px' }
   const link: CSSProperties = { color: C.accent, textDecoration: 'none' }
-  const kicker: CSSProperties = { fontSize: 12, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: C.accent, margin: 0 }
+  const kicker: CSSProperties = { fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.muted, margin: 0 }
   const chip: CSSProperties = {
     display: 'inline-block',
     fontSize: 11,
@@ -177,7 +177,9 @@ export default function ClaudeConnectorPage() {
     marginLeft: 8,
     verticalAlign: 'middle',
   }
-  const pill: CSSProperties = { display: 'inline-block', borderRadius: 999, padding: '12px 22px', fontWeight: 800, fontSize: '0.98rem', textDecoration: 'none', minHeight: 44 }
+  const pill: CSSProperties = { display: 'inline-block', borderRadius: 999, padding: '12px 22px', fontWeight: 750, fontSize: '0.98rem', textDecoration: 'none', minHeight: 44 }
+  const livePill: CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 8, borderRadius: 999, padding: '7px 14px', fontWeight: 700, fontSize: '0.9rem', color: C.text, background: C.card, border: `1px solid ${C.line}`, boxShadow: C.shadow }
+  const liveDot: CSSProperties = { width: 8, height: 8, borderRadius: 999, background: C.ok, boxShadow: `0 0 0 3px ${C.okSoft}` }
 
   return (
     <main style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: 'var(--font-sans), Arial, sans-serif', overflowX: 'hidden' }}>
@@ -193,7 +195,7 @@ export default function ClaudeConnectorPage() {
           </nav>
 
           {/* Hero centrado (molde Buzzy): azulejos de cliente → título → subtítulo honesto → CTA → URL com Copy. */}
-          <section style={{ textAlign: 'center', maxWidth: 820, margin: '0 auto' }}>
+          <section style={{ textAlign: 'center', maxWidth: 860, margin: '0 auto' }}>
             <ul aria-label="Works with" style={{ listStyle: 'none', margin: '0 0 30px', padding: 0, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 'clamp(8px, 2.5vw, 18px)' }}>
               {HERO_CLIENTS.map((c) => (
                 <li key={c.key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, width: 'clamp(58px, 16vw, 76px)' }}>
@@ -202,20 +204,21 @@ export default function ClaudeConnectorPage() {
                   </span>
                   <span style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.25 }}>
                     {c.label}
-                    {c.soon && <span style={{ color: C.warn }}> · soon</span>}
                   </span>
                 </li>
               ))}
             </ul>
             <p style={kicker}>MCP server · v{MCP_SERVER_VERSION}</p>
-            <h1 style={{ fontSize: 'clamp(2.3rem, 7vw, 4.4rem)', fontWeight: 900, lineHeight: 1.02, letterSpacing: '-0.03em', margin: '12px 0 0' }}>
+            <h1 style={{ fontSize: 'clamp(2.4rem, 7vw, 4.6rem)', fontWeight: 600, lineHeight: 1.02, letterSpacing: '-0.035em', margin: '12px 0 0', textWrap: 'balance' }}>
               Kineo MCP for any AI
             </h1>
-            <p style={{ fontSize: 'clamp(1rem, 2.4vw, 1.15rem)', color: C.body, lineHeight: 1.65, margin: '18px auto 0', maxWidth: 680 }}>
-              Write it in Claude. Make it in Kineo. Connect Kineo and your assistant reads Kineo&apos;s live plans and
-              engines, writes your script, and sends it to Kineo Studio as a one-click link with the length, frame and
-              engine already set. The connector never renders a video, never creates an account and never charges
-              anything — you press Generate in Studio.
+            <div aria-label="Live now" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, margin: '20px 0 0' }}>
+              <span style={livePill}><span aria-hidden style={liveDot} />Live in Claude</span>
+              <span style={livePill}><span aria-hidden style={liveDot} />Live in ChatGPT</span>
+            </div>
+            <p style={{ fontSize: 'clamp(1rem, 2.4vw, 1.12rem)', color: C.body, lineHeight: 1.65, margin: '20px auto 0', maxWidth: 720 }}>
+              <strong>Kineo MCP</strong> writes your script and sends it to Studio as a one-click link — it never renders, creates an
+              account or charges. <strong>Kineo Studio</strong> (<a href={`#${CLAUDE_STUDIO_CONNECT_ANCHOR}`} style={{ color: C.accent, textDecoration: 'none', fontWeight: 700 }}>below</a>) makes the film in your Kineo account, using your credits.
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, margin: '26px 0 0' }}>
               <a href={`#${CLAUDE_CONNECT_ANCHOR}`} style={{ ...pill, background: C.accent, color: C.onAccent }}>Connect Kineo →</a>
@@ -230,6 +233,11 @@ export default function ClaudeConnectorPage() {
       </div>
 
       <div style={{ maxWidth: 1120, margin: '0 auto', padding: '56px 16px 88px' }}>
+        <section aria-label="Made with Kineo" style={{ margin: '0 0 72px' }}>
+          <h2 style={{ ...h2Center, margin: '0 0 8px' }}>Made with Kineo</h2>
+          <p style={{ ...small, textAlign: 'center', margin: '0 auto 26px', maxWidth: 600 }}>UGC ads, product ads and narrated films — real videos made in Kineo.</p>
+          <ShowcaseGrid />
+        </section>
         <h2 style={{ ...h2Center, margin: '0 0 8px' }}>Connect in three steps</h2>
         <p style={{ ...small, textAlign: 'center', margin: '0 auto 22px', maxWidth: 560 }}>Pick where you use AI. No sign-in to Kineo is needed to connect.</p>
         <ConnectPanel serverUrl={SERVER_URL} startHref={claudePromptHref(CLAUDE_START_PROMPT)} />
@@ -244,31 +252,12 @@ export default function ClaudeConnectorPage() {
           <PresetFilter categories={PRESET_CATEGORIES}>
             {PRESETS.map((pr) => (
               <div key={pr.title} data-cat={pr.cat} style={{ ...CARD, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ position: 'relative', aspectRatio: '16 / 10', background: C.placeholder }}>
-                  {pr.clip ? (
-                    <video
-                      src={`/previews/${pr.clip}.mp4`}
-                      autoPlay
-                      muted
-                      loop
-                      playsInline
-                      preload="metadata"
-                      aria-label={`Sample film made with Kineo on ${pr.engine ? ENGINE_LABELS[pr.engine] : 'Kineo'}`}
-                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                  ) : (
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.4rem', letterSpacing: '-0.01em' }}>
-                      Plans · Trial · Credits
-                    </div>
-                  )}
-                  {pr.engine && (
-                    <span style={{ position: 'absolute', left: 10, bottom: 10, background: C.overlay, color: C.text, borderRadius: 999, padding: '4px 10px', fontSize: 11, fontWeight: 700 }}>
-                      Sample made with Kineo · {ENGINE_LABELS[pr.engine]}
-                    </span>
-                  )}
-                </div>
-                <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
-                  <p style={{ margin: 0, fontWeight: 800, fontSize: '1.05rem' }}>{pr.title}</p>
+                <div style={{ padding: '18px 18px 18px', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+                  <p style={{ margin: 0, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.accent, background: C.accentSoft, borderRadius: 999, padding: '3px 9px' }}>{PRESET_CATEGORIES.find((c) => c.key === pr.cat)?.label}</span>
+                    {pr.engine && <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, border: `1px solid ${C.line}`, borderRadius: 999, padding: '3px 9px' }}>Engine set · {ENGINE_LABELS[pr.engine]}</span>}
+                  </p>
+                  <p style={{ margin: 0, fontWeight: 700, fontSize: '1.08rem', letterSpacing: '-0.01em' }}>{pr.title}</p>
                   <p style={{ ...small, margin: 0, flex: 1 }}>{pr.line}</p>
                   <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', marginTop: 4 }}>
                     <ClaudePromptLink href={claudePromptHref(pr.prompt)} preset={pr.id} title={pr.prompt} style={{ background: C.accent, color: C.onAccent, borderRadius: 999, padding: '9px 16px', fontSize: '0.92rem', fontWeight: 800, textDecoration: 'none' }}>
