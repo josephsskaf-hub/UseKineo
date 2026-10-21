@@ -169,10 +169,10 @@ export function adsV2GenericFiller(narration: unknown, typed: readonly string[] 
   if (forYou) out.push(forYou[1].trim())
   return out.slice(0, 4)
 }
-/** KINEO-ADS-QUALIDADE-2110 — a regra do roteiro de PRODUTO (pedido ao modelo). Sem benefício digitado = só a parte do genérico. */
+/** KINEO-ADS-QUALIDADE-2110 — a regra do roteiro de PRODUTO (pedido ao modelo). Sem benefício digitado = só a parte do genérico. A urgência ("ends soon", "last chance") NÃO é citada: na rodada 1b citá-la fez o modelo escrevê-la nas 3 tentativas ("no X desenha X"); a checagem continua recusando. */
 export function adsV2BenefitRule(benefits: readonly string[]): string {
   const say = benefits.length ? `say every benefit and offer the customer typed, each one clearly and with its exact numbers: ${benefits.map((b) => `"${b}"`).join(', ')}. ` : ''
-  return `narration: ${say}Say each offer exactly as typed and never add urgency the customer did not type ("ends soon", "last chance", "hurry", "limited time"). Never describe qualities the customer did not type (design, look, features, quality, comfort): fill the time with the typed benefits said again in other words, the product name and a clear call to action ("Order yours today"). Never use generic filler such as "stunning design", "intuitive features", "elevate your style", "upgrade your tech", "take a closer look", "must-have" or a closing "<name>, for you". Write full sentences without dashes (—).`
+  return `narration: ${say}Say each offer exactly as typed, calmly, as a plain fact. Never describe qualities the customer did not type (design, look, features, quality, comfort): fill the time with the typed benefits said again in other words, the product name and a clear call to action ("Order yours today"). Never use generic filler such as "stunning design", "intuitive features", "elevate your style", "upgrade your tech", "take a closer look", "must-have" or a closing "<name>, for you". Write full sentences without dashes (—).`
 }
 /** KINEO-ADS-QUALIDADE-2110 — os motivos de correção do roteiro de produto (puros): benefício faltando, frase genérica, travessão. */
 export function adsV2BenefitWhy(narration: unknown, benefits: readonly string[]): string[] {

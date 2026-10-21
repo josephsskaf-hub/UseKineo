@@ -127,7 +127,7 @@ const provas = {
     const why = bad.ok ? '' : bad.why.join(' | ')
     const r1 = Q.adsV2GenericFiller('Discover the Pulse smartwatch featuring a 7-day battery. It offers intuitive features and a modern look. This week, enjoy free shipping. Upgrade your tech today! Take a closer look.', benefits) // a fala REAL da rodada 1 (pedido 194e9b50)
     if (!(r1.length >= 3 && Q.adsV2GenericFiller('Get 20% off this week, it ends soon.').some((g) => /ends soon/i.test(g)) && Q.adsV2GenericFiller('Premium quality leather.', ['premium quality leather']).length === 0)) return false
-    return /"7-day battery"/.test(sys) && /stunning design/.test(sys) && !bad.ok && /say "7-day battery"/.test(why) && /stunning design/.test(why) && /Elevate your style/.test(why) && /Pulse, for you/.test(why) && good.ok === true
+    return /"7-day battery"/.test(sys) && /stunning design/.test(sys) && !/ends soon|last chance|hurry|limited time/i.test(sys) /* rodada 1b: citar a urgência no pedido fez o modelo escrevê-la ("no X desenha X") */ && !bad.ok && /say "7-day battery"/.test(why) && /stunning design/.test(why) && /Elevate your style/.test(why) && /Pulse, for you/.test(why) && good.ok === true
   },
 }
 
