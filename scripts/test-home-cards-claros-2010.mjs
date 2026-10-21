@@ -157,7 +157,7 @@ console.log('\nD. desfaz exato, diff, encadeamento')
 
   const TOPO = git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, '-1', 'HEAD').trim() || 'HEAD'
   const tocados = new Set([...git('log', '--no-merges', '--format=', '--name-only', `--grep=${MARCA}`, `${B}..HEAD`).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard', 'scripts').trim().split('\n').filter((f) => f.includes('home-cards-claros-2010'))].filter(Boolean))
-  const REANCORAS_DEPOIS = ['scripts/test-desenho-nota9-2110.mjs'] // reâncoras em guardiões de entregas mescladas depois (KINEO-DESENHO-NOTA9-2110): toda linha que esta entrega mudou nelas traz a marca
+  const REANCORAS_DEPOIS = ['scripts/test-desenho-nota9-2110.mjs'] // reâncoras em guardiões de entregas mescladas depois (o desenho nota 9 de 21/10): toda linha que esta entrega mudou nelas traz a marca
   const reancOk = REANCORAS_DEPOIS.every((f) => { const d = git('log', '--no-merges', '-p', '-U0', '--format=', `--grep=${MARCA}`, `${B}..HEAD`, '--', f); return d.replace(/\r/g, '').split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).every((l) => l.includes(MARCA)) })
   const permitidos = new Set([...HOME_CARDS_CLAROS_2010_ARQUIVOS, ...HOME_CARDS_CLAROS_2010_NOVOS, ...REANCORAS_DEPOIS])
   const fora = [...tocados].filter((f) => !permitidos.has(f))
