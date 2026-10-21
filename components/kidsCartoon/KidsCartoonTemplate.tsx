@@ -11,6 +11,8 @@
 // is" e kids_cartoon (lib kidsCinematicPayload/kidsComposePayload): POST /api/generate-video-cinematic → /api/cinematic-clip-status
 // (com a retomada de cena de 2 rodadas do /generate) → POST /api/compose → /api/compose/status. Moderação, regra infantil,
 // personagem em toda cena, marca d'água e débito continuam no servidor; se a aba fechar, o cron finish-stranded-renders termina.
+// KINEO-DESENHO-SOM-2110 — sem a pílula do motor no topo (fundador 21/10: nome de motor na porta de entrada "perde a vontade de comprar"); o botão
+// "Captions on the video" (ligado por padrão) viaja no corpo do filme como kids_captions:false quando desligado.
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
@@ -19,7 +21,6 @@ import { creditCostForDuration } from '@/lib/credits/engineCost'
 import {
   KIDS_CARTOON_DEFAULT_DURATION,
   KIDS_CARTOON_DURATIONS,
-  KIDS_CARTOON_ENGINE_LABEL,
   KIDS_CARTOON_LANGUAGES,
   KIDS_CHARACTERS,
   KIDS_HANDOFF_PROMPT_MAX_CHARS,
@@ -120,6 +121,12 @@ html[data-theme=dark] .kkc{--bg:#07090D;--card:#10141B;--line:#1F2530;--txt:#F2F
 .kkc-edit{min-height:180px!important;font-size:1.02rem!important;line-height:1.6}
 .kkc-buy{display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line);margin-top:16px;padding-top:16px}
 .kkc-cost{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;line-height:1.4}
+.kkc-toggle{display:flex;align-items:flex-start;gap:12px;margin:16px 0 0;cursor:pointer}
+.kkc-toggle input{appearance:none;-webkit-appearance:none;width:44px;height:26px;border-radius:999px;background:var(--line);position:relative;flex-shrink:0;cursor:pointer;transition:background .2s;margin:0}
+.kkc-toggle input::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
+.kkc-toggle input:checked{background:var(--blue)}.kkc-toggle input:checked::after{transform:translateX(18px)}
+.kkc-toggle input:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.kkc-toggle b{display:block;font-size:15px}.kkc-toggle small{display:block;font-size:13px;color:var(--muted);margin-top:2px}
 .kkc-cost i{width:9px;height:9px;border-radius:50%;background:#12B76A;flex-shrink:0}
 .kkc-cost[data-enough=false]{color:#B42318}.kkc-cost[data-enough=false] i{background:#B42318}
 .kkc-big{font-size:17px;padding:16px 28px;justify-content:center;min-width:280px}
@@ -157,6 +164,7 @@ export default function KidsCartoonTemplate() {
   const [script, setScript] = useState('')
   const [caption, setCaption] = useState('')
   const [copied, setCopied] = useState(false)
+  const [captions, setCaptions] = useState(true) // KINEO-DESENHO-SOM-2110 — legenda no vídeo (ligada por padrão)
   const [balance, setBalance] = useState<number | null>(null)
   const [clips, setClips] = useState<{ done: number; total: number }>({ done: 0, total: 0 })
   const [composePct, setComposePct] = useState(0)
@@ -245,9 +253,9 @@ export default function KidsCartoonTemplate() {
     if (!texto || kidsContentRefusal(texto)) return
     const generationId = newGenerationId()
     setStage('starting'); setError(null); setNeedPlans(false); setVideoUrl(null); setClips({ done: 0, total: 0 }); setComposePct(0)
-    void trackEvent('kids_cartoon_make_clicked', { character, language, duration, credits: cost, balance })
+    void trackEvent('kids_cartoon_make_clicked', { character, language, duration, credits: cost, balance, captions })
     try {
-      const { res, data } = await postJson('/api/generate-video-cinematic', kidsCinematicPayload({ generationId, script: texto, request: { character, language, duration } }))
+      const { res, data } = await postJson('/api/generate-video-cinematic', kidsCinematicPayload({ generationId, script: texto, request: { character, language, duration }, captions }))
       if (res.status === 401) { window.location.href = `/login?redirect=${encodeURIComponent('/kids-cartoon')}`; return }
       const msg = typeof data.error === 'string' ? data.error : null
       if (res.status === 402) {
@@ -377,7 +385,6 @@ export default function KidsCartoonTemplate() {
   return (
     <main className="kkc" data-kids-cartoon="template" data-stage={stage}>
       <style dangerouslySetInnerHTML={{ __html: KIDS_TEMPLATE_CSS }} />
-      <span className="kkc-badge">{KIDS_CARTOON_ENGINE_LABEL} · 3D</span>
       <h1>{t.title}</h1>
       <p className="kkc-lead">{t.lead}</p>
 
@@ -473,6 +480,7 @@ export default function KidsCartoonTemplate() {
                 <button type="button" className="kkc-ghost" onClick={() => { void write() }}>{t.again}</button>
                 <button type="button" className="kkc-ghost" onClick={() => { setStage('idle'); setScript(''); setError(null) }}>{t.back}</button>
               </div>
+              <label className="kkc-toggle" data-kids-captions="1"><input type="checkbox" checked={captions} onChange={(e) => setCaptions(e.target.checked)} /><span><b>{t.captionsToggle}</b><small>{t.captionsHint}</small></span></label>
               <div className="kkc-buy" data-kids-cost="1">
                 <p className="kkc-cost" data-enough={String(costLine.enough)}><i aria-hidden="true" />{costLine.text}</p>
                 {costLine.enough === false ? (

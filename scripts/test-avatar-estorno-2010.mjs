@@ -14,7 +14,7 @@ process.chdir(ROOT)
 const lf = s => String(s).replace(/\r\n/g, '\n')
 const rd = p => lf(fs.readFileSync(path.join(ROOT, p), 'utf8'))
 const git = (...args) => execFileSync('git', ['-C', ROOT, ...args], { encoding: 'utf8', maxBuffer: 1 << 26 })
-const BASE_INTEGRACAO = '20e67c05b46e3512614504a5875e481fe1d5064d' // reancorado na integração 21/10: a camada foi mesclada sobre esta origin/main (bebê/verbatim/home/desenho nota 9/Ads nota 9 vieram depois de 9d4d0ffc1 e ficam); refund.ts/reservation.ts/composeHold.ts são idênticos nas duas bases
+const BASE_INTEGRACAO = '1a9254123feccb20d8d72ab1d5a9ba4c44f3e035' // reancorado na integração 21/10: a camada foi mesclada sobre esta origin/main (bebê/verbatim/home/desenho nota 9/Ads nota 9/som do desenho/ajuste da folha vieram depois de 9d4d0ffc1 e ficam); refund.ts/reservation.ts/composeHold.ts são idênticos nas duas bases
 const base = p => lf(git('show', `${BASE_INTEGRACAO}:${p}`))
 const F = 'lib/credits/refund.ts', R = 'lib/avatar/reservation.ts'
 const SECRET = 'segredo-falso-avatar-estorno-2010', USER = 'pessoa-externa-duble', GEN = 'avatar-estorno-2010'

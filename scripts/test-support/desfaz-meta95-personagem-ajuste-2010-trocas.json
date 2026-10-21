@@ -1,0 +1,115 @@
+{
+  "__acrescimos": {
+    "app/api/generate-video-cinematic/route.ts": 9,
+    "lib/cinematic/criticoStill.ts": 11,
+    "scripts/test-desenho-nota9-2110.mjs": 1,
+    "scripts/test-desenho-som-2110.mjs": 0,
+    "scripts/test-home-cards-claros-2010.mjs": 0,
+    "scripts/test-mcp-studio-2010.mjs": 6,
+    "scripts/test-mcp-studio-ajuste-2010.mjs": 6,
+    "scripts/test-meta95-personagem-2010.mjs": 3,
+    "scripts/test-moderacao-2026-09-25.mjs": 1,
+    "scripts/test-support/desfaz-desenho-som-2110.mjs": 2,
+    "scripts/test-support/desfaz-filme-rapido-1710.mjs": 2,
+    "scripts/test-support/desfaz-meta95-personagem-2010.mjs": 2,
+    "scripts/test-trilha-15s-1610.mjs": 1,
+    "scripts/test-verbatim-intocavel-2010.mjs": 0,
+    "scripts/test-visual-contract-2026-09-11.mjs": 1
+  },
+  "app/api/generate-video-cinematic/route.ts": [
+    [
+      "    const personagemElenco: { elenco: FichaDePersonagem[]; casting: string; ms: number } = personagem.ativo ? await elencoComCastingAjuste(prompt, elencoDoRoteiro(prompt)) : { elenco: [], casting: 'desligado', ms: 0 } // KINEO-META95-PERSONAGEM-AJUSTE-2010 — figura conhecida (Ravan) com a iconografia tradicional; era: elencoComCasting(prompt, elencoDeterministico(prompt))",
+      "    const personagemElenco: { elenco: FichaDePersonagem[]; casting: string; ms: number } = personagem.ativo ? await elencoComCasting(prompt, elencoDeterministico(prompt)) : { elenco: [], casting: 'desligado', ms: 0 } // KINEO-META95-PERSONAGEM-2010"
+    ],
+    [
+      "        ...(personagem.ativo ? { personagem: ensaioDoPersonagemAjuste({ engine: wantsKling ? 'kling' : wantsVeo ? 'veo' : 'seedance', elenco: personagemElenco.elenco, casting: personagemElenco.casting, visuals: scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description), falas: scenes.map((s) => s.voiceover ?? ''), look: styleAnchor, ajuste: personagemCenas }) } : {}), // KINEO-META95-PERSONAGEM-AJUSTE-2010 — o ensaio de $0 com as cenas pela fala, as cenas sem gente e as figuras míticas; era: ensaioDoPersonagem({ … visuals, look })",
+      "        ...(personagem.ativo ? { personagem: ensaioDoPersonagem({ engine: wantsKling ? 'kling' : wantsVeo ? 'veo' : 'seedance', elenco: personagemElenco.elenco, casting: personagemElenco.casting, visuals: scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description), look: styleAnchor }) } : {}), // KINEO-META95-PERSONAGEM-2010 — o ensaio de $0 mostra o elenco, as folhas, as cenas com folha e o custo estimado (nada é gerado)"
+    ],
+    [
+      "      const cenasP = (personagemCenas?.cenas ?? cenasDoElenco(visuaisP, scenes.map((s) => s.voiceover ?? ''), elencoP)).filter((c) => c.nomes.length > 0).slice(0, PERSONAGEM_MAX_STILLS) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — quem está na cena: o visual diz se há alguém, a FALA diz quem; era: cenasComPersonagem(visuaisP, elencoP)",
+      "      const cenasP = cenasComPersonagem(visuaisP, elencoP).filter((c) => c.nomes.length > 0).slice(0, PERSONAGEM_MAX_STILLS) // KINEO-META95-PERSONAGEM-2010"
+    ],
+    [
+      "      const trabalhadorP = async () => { while (filaP.length > 0 && Date.now() < prazoP) { const c = filaP.shift()!; const r = await gerarStillComFolha({ prompt: promptDoStillComFolhaAjuste(classicScenePrompts[c.indice], fichasDaCena(c), aspectRequested), imageUrls: folhasDaCena(c), aspect: aspectRequested, userId: user.id, engine: `personagem:${personagemMotor}`, pollWindowMs: Math.max(5_000, Math.min(40_000, prazoP - Date.now())), fichas: fichasDaCena(c) }); motivosP[r.motivo] = (motivosP[r.motivo] ?? 0) + 1; if (r.reconferida && r.url) reconferidasP++; if (r.url) stillsP[c.indice] = r.url } } // KINEO-META95-PERSONAGEM-AJUSTE-2010 — formato do filme por extenso + sem painel; still fora do formato ou barrado = o FLUX; era: gerarStillDaEstrela({ prompt: promptDoStillComFolha(…) … })",
+      "      const trabalhadorP = async () => { while (filaP.length > 0 && Date.now() < prazoP) { const c = filaP.shift()!; const r = await gerarStillDaEstrela({ prompt: promptDoStillComFolha(classicScenePrompts[c.indice], fichasDaCena(c)), imageUrls: folhasDaCena(c), aspect: aspectRequested, userId: user.id, engine: `personagem:${personagemMotor}`, pollWindowMs: Math.max(5_000, Math.min(40_000, prazoP - Date.now())) }); if (r.url) stillsP[c.indice] = r.url } } // KINEO-META95-PERSONAGEM-2010"
+    ],
+    [
+      "      const criticoP = novoFilmeDoCritico(modoDoCriticoDoStill() === 'off' ? 'off' : 'enforce', { prazo: Date.now() + PERSONAGEM_CRITICO_PRAZO_MS }) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — o edit leva 15-40 s: 35 s de prazo matavam a refação; era: { prazo: Date.now() + 35_000 }",
+      "      const criticoP = novoFilmeDoCritico(modoDoCriticoDoStill() === 'off' ? 'off' : 'enforce', { prazo: Date.now() + 35_000 }) // KINEO-META95-PERSONAGEM-2010 — com a folha o crítico DECIDE (enforce); STILL_CRITIC_MODE=off desliga também aqui"
+    ],
+    [
+      "        const julgado = await criticarStill({ indice: c.indice, url: stillsP[c.indice] as string, mostra: visuaisP[c.indice], fala: scenes[c.indice].voiceover ?? '', prompt: promptDoStillComFolhaAjuste(classicScenePrompts[c.indice], fichas, aspectRequested), seed: generationSeed, referencia: { url: folhasDaCena(c)[0], descricao: fichas.map((f) => f.canonica).join('; ') } }, { // KINEO-META95-PERSONAGEM-AJUSTE-2010 — a foto nova parte do MESMO prompt do still (formato + sem painel); era: promptDoStillComFolha(classicScenePrompts[c.indice], fichas)",
+      "        const julgado = await criticarStill({ indice: c.indice, url: stillsP[c.indice] as string, mostra: visuaisP[c.indice], fala: scenes[c.indice].voiceover ?? '', prompt: promptDoStillComFolha(classicScenePrompts[c.indice], fichas), seed: generationSeed, referencia: { url: folhasDaCena(c)[0], descricao: fichas.map((f) => f.canonica).join('; ') } }, { // KINEO-META95-PERSONAGEM-2010"
+    ],
+    [
+      "          filme: criticoP, tetoCenaMs: PERSONAGEM_CRITICO_TETO_CENA_MS, janelaRegeracaoMs: PERSONAGEM_REGERACAO_JANELA_MS, minRegeracaoMs: PERSONAGEM_REGERACAO_MIN_MS, relatarMotivo: true, // KINEO-META95-PERSONAGEM-AJUSTE-2010 — CAUSA da refação que não saía (regeracao_ok=false): o crítico esperava a foto nova 9 s (janela do FLUX) e o edit leva 15-40 s → provider_timeout; era: filme: criticoP,",
+      "          filme: criticoP, // KINEO-META95-PERSONAGEM-2010"
+    ],
+    [
+      "          gerarStill: async (promptNovo, _seed, pollWindowMs) => { const r = await gerarStillComFolha({ prompt: promptNovo, imageUrls: folhasDaCena(c), aspect: aspectRequested, userId: user.id, engine: `personagem:${personagemMotor}`, pollWindowMs, fichas }); return { url: r.url, motivo: r.motivo } }, // KINEO-META95-PERSONAGEM-AJUSTE-2010 — a foto nova também sai do edit com a folha, com formato e moderação conferidos, e o MOTIVO vai ao relato; era: (await gerarStillDaEstrela({ … })).url",
+      "          gerarStill: async (promptNovo, _seed, pollWindowMs) => (await gerarStillDaEstrela({ prompt: promptNovo, imageUrls: folhasDaCena(c), aspect: aspectRequested, userId: user.id, engine: `personagem:${personagemMotor}`, pollWindowMs })).url, // KINEO-META95-PERSONAGEM-2010 — a foto nova também sai do edit com a folha"
+    ],
+    [
+      "      personagemRelatoFinal = { ...relatoDoPersonagem({ engine: personagemMotor, elenco: elencoP, casting: personagemElenco.casting, folhas: folhaDe.size, folhasFalhadas: elencoP.length - folhaDe.size, cenas: scenes.length, cenasComPersonagem: cenasP.length, stillsOk: stillsP.filter(Boolean).length, critico: relatosP.map((r) => ({ cena: r.cena, veredito: r.veredito, problemas: r.problemas, regerou: r.regerou, escolhida: r.escolhida })), ms: Date.now() - t0Personagem }), ...relatoDoAjuste({ motivos: motivosP, reconferidas: reconferidasP, cenas: personagemCenas?.cenas ?? cenasDoElenco(visuaisP, scenes.map((s) => s.voiceover ?? ''), elencoP), comFicha: personagemCenas?.comFicha ?? [], semGente: personagemCenas?.semGente ?? [], regeracoes: relatosP, elenco: elencoP }) } // KINEO-META95-PERSONAGEM-AJUSTE-2010 — + os motivos de cada still, a reconferência, as cenas pela fala/sem gente e o motivo de cada refação; era: personagemRelatoFinal = relatoDoPersonagem({ … })",
+      "      personagemRelatoFinal = relatoDoPersonagem({ engine: personagemMotor, elenco: elencoP, casting: personagemElenco.casting, folhas: folhaDe.size, folhasFalhadas: elencoP.length - folhaDe.size, cenas: scenes.length, cenasComPersonagem: cenasP.length, stillsOk: stillsP.filter(Boolean).length, critico: relatosP.map((r) => ({ cena: r.cena, veredito: r.veredito, problemas: r.problemas, regerou: r.regerou, escolhida: r.escolhida })), ms: Date.now() - t0Personagem }) // KINEO-META95-PERSONAGEM-2010"
+    ]
+  ],
+  "lib/cinematic/criticoStill.ts": [
+    [
+      "  'For (5) use the issue name \"identity\". Deliberate anatomy of a creature or mythical figure shown in the reference, such as the demon king Ravan with ten heads, is its identity and is not an anatomy defect.' // KINEO-META95-PERSONAGEM-AJUSTE-2010 — integração 21/10 (ideia da versão Codex): as 10 cabeças do Ravan não são defeito de anatomia; era: 'For (5) use the issue name \"identity\".'",
+      "  'For (5) use the issue name \"identity\".' // KINEO-META95-PERSONAGEM-2010"
+    ],
+    [
+      "  gerarStill: (scenePrompt: string, seed: number, pollWindowMs: number) => Promise<string | null | { url: string | null; motivo?: string | null }> // KINEO-META95-PERSONAGEM-AJUSTE-2010 — era: Promise<string | null>; o objeto traz o motivo da falha (o edit com folha)",
+      "  gerarStill: (scenePrompt: string, seed: number, pollWindowMs: number) => Promise<string | null>"
+    ],
+    [
+      "    const prazoCena = t0 + (typeof d.tetoCenaMs === 'number' && d.tetoCenaMs > 0 ? d.tetoCenaMs : STILL_CRITIC_TETO_CENA_MS) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — era: t0 + STILL_CRITIC_TETO_CENA_MS",
+      "    const prazoCena = t0 + STILL_CRITIC_TETO_CENA_MS"
+    ],
+    [
+      "    if (restante() < (typeof d.minRegeracaoMs === 'number' && d.minRegeracaoMs > 0 ? d.minRegeracaoMs : STILL_CRITIC_MIN_REGERACAO_MS)) { r.pulado_por = quemLimita(); if (d.relatarMotivo) r.regeracao_motivo = `sem_tempo:${r.pulado_por}`; return { url, relato: r } } // KINEO-META95-PERSONAGEM-AJUSTE-2010 — era: restante() < STILL_CRITIC_MIN_REGERACAO_MS",
+      "    if (restante() < STILL_CRITIC_MIN_REGERACAO_MS) { r.pulado_por = quemLimita(); return { url, relato: r } }"
+    ],
+    [
+      "      const saida = await d.gerarStill(promptDaRegeracaoCritico(e.prompt, instrucao), seedDaRegeracaoCritico(e.seed, e.indice), Math.max(1_000, Math.min(typeof d.janelaRegeracaoMs === 'number' && d.janelaRegeracaoMs > 0 ? d.janelaRegeracaoMs : STILL_CRITIC_JANELA_REGERACAO_MS, restante() - STILL_CRITIC_MIN_CHAMADA_MS))) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — era: urlNova = await d.gerarStill(…, Math.min(STILL_CRITIC_JANELA_REGERACAO_MS, …))",
+      "      urlNova = await d.gerarStill(promptDaRegeracaoCritico(e.prompt, instrucao), seedDaRegeracaoCritico(e.seed, e.indice), Math.max(1_000, Math.min(STILL_CRITIC_JANELA_REGERACAO_MS, restante() - STILL_CRITIC_MIN_CHAMADA_MS)))"
+    ]
+  ],
+  "scripts/test-desenho-nota9-2110.mjs": [
+    [
+      "  const semMarca = DESENHO_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set(((claroDepois(f) ? semDesenhoNota9_2110(rd(f), f) : base(f)) ?? '').split('\\n')); return !semDesenhoSom2110(rd(f), f).split('\\n').every((l) => b.has(l) || l.includes(MARCA) || l.includes('KINEO-META95-PERSONAGEM-AJUSTE-2010')) }) // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: claroDepois; era: new Set((base(f) ?? '').split(...)) // KINEO-DESENHO-SOM-2110 — reâncora: as linhas do som do desenho (camada mais nova) saem antes da conferência da marca // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 \"Vai pra meta do 95\"] — as reâncoras dos consertos da folha (camada de depois, desfaz próprio) levam a marca delas",
+      "  const semMarca = DESENHO_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set(((claroDepois(f) ? semDesenhoNota9_2110(rd(f), f) : base(f)) ?? '').split('\\n')); return !semDesenhoSom2110(rd(f), f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: claroDepois; era: new Set((base(f) ?? '').split(...)) // KINEO-DESENHO-SOM-2110 — reâncora: as linhas do som do desenho (camada mais nova) saem antes da conferência da marca"
+    ]
+  ],
+  "scripts/test-desenho-som-2110.mjs": [
+    [
+      "  const semMarca = DESENHO_SOM_2110_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !rd(f).split('\\n').every((l) => b.has(l) || l.includes(MARCA) || l.includes('KINEO-META95-PERSONAGEM-AJUSTE-2010')) }) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 \"Vai pra meta do 95\"] — as reâncoras dos consertos da folha (camada de depois, chamada primeiro por semDesenhoSom2110) levam a marca delas",
+      "  const semMarca = DESENHO_SOM_2110_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !rd(f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) })"
+    ]
+  ],
+  "scripts/test-home-cards-claros-2010.mjs": [
+    [
+      "  const semMarca = HOME_CARDS_CLAROS_2010_ARQUIVOS.filter((f) => { const b = new Set(base(f).split('\\n')); return !semDesenhoNota9_2110(rd(f), f).split('\\n').every((l) => b.has(l) || l.includes(MARCA) || l.includes('KINEO-META95-PERSONAGEM-AJUSTE-2010')) }) // KINEO-DESENHO-NOTA9-2110 — reâncora: as linhas da camada mais nova saem antes; era: return !rd(f).split(...) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 \"Vai pra meta do 95\"] — as reâncoras dos consertos da folha (camada de depois, desfaz próprio) levam a marca delas",
+      "  const semMarca = HOME_CARDS_CLAROS_2010_ARQUIVOS.filter((f) => { const b = new Set(base(f).split('\\n')); return !semDesenhoNota9_2110(rd(f), f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-DESENHO-NOTA9-2110 — reâncora: as linhas da camada mais nova saem antes; era: return !rd(f).split(...)"
+    ]
+  ],
+  "scripts/test-meta95-personagem-2010.mjs": [
+    [
+      "const rd = (rel) => lf(semMeta95PersonagemAjuste2010(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 \"Vai pra meta do 95\"] — era: lf(fs.readFileSync(…)); o ajuste (scripts/test-meta95-personagem-ajuste-2010.mjs) prova o resto",
+      "const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))"
+    ]
+  ],
+  "scripts/test-moderacao-2026-09-25.mjs": [
+    [
+      "// KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 \"Vai pra meta do 95\"] — re-ancorado: +1 importador de servidor, lib/cinematic/personagemAjusteServer.ts (o still com folha passa pela moderação de saída 'estrela', e a criatura em cena inocente é reconferida sem termo de idade) = 35 (34 do KINEO-BEBE-QUE-FALA-2010 + 1).",
+      "ok(imp.length === 34 && imp.every((p) => !/^\\s*['\"]use client['\"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`) // reancorado KINEO-BEBE-QUE-FALA-2010 — era 32 (+2)"
+    ]
+  ],
+  "scripts/test-verbatim-intocavel-2010.mjs": [
+    [
+      "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-BEBE-QUE-FALA-2010', '--grep=KINEO-MCP-STUDIO-AJUSTE-2010', `--grep=${MARCA_HOME_REMODELA_2010}`, '--grep=KINEO-HOME-CARDS-CLAROS-2010', '--grep=KINEO-DESENHO-NOTA9-2110', '--grep=KINEO-DESENHO-SOM-2110', '--grep=KINEO-META95-PERSONAGEM-AJUSTE-2010', 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-HOME-REMODELA-2010 — a última versão alheia pula também os commits da home remodelada (os merges da fila e as reâncoras) // KINEO-HOME-CARDS-CLAROS-2010 — reancorado: os commits do véu mais claro dos cards (20/10 23:30) também são de depois // KINEO-DESENHO-SOM-2110 — reancorado: os commits do som do desenho infantil (21/10) também são de depois // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 \"Vai pra meta do 95\"] — os commits e merges dos consertos da folha (camada de depois, tirada primeiro pela cadeia do bebê) também não são alheios",
+      "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-BEBE-QUE-FALA-2010', '--grep=KINEO-MCP-STUDIO-AJUSTE-2010', `--grep=${MARCA_HOME_REMODELA_2010}`, '--grep=KINEO-HOME-CARDS-CLAROS-2010', '--grep=KINEO-DESENHO-NOTA9-2110', '--grep=KINEO-DESENHO-SOM-2110', 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-HOME-REMODELA-2010 — a última versão alheia pula também os commits da home remodelada (os merges da fila e as reâncoras) // KINEO-HOME-CARDS-CLAROS-2010 — reancorado: os commits do véu mais claro dos cards (20/10 23:30) também são de depois // KINEO-DESENHO-SOM-2110 — reancorado: os commits do som do desenho infantil (21/10) também são de depois"
+    ]
+  ]
+}

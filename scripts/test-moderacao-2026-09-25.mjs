@@ -187,7 +187,8 @@ const imp = ['app', 'lib', 'components'].flatMap(walk).filter((p) => /from '@\/l
 // KINEO-DEMO-SOB-MEDIDA-1510 — re-ancorado: +1 importador de servidor, lib/ads/demoSobMedidaServer.ts (a demo sob medida do B2B modera o texto da
 // página do produto e cada foto antes de qualquer plano, igual ao /api/ads/v2/link-import) = 32.
 // KINEO-BEBE-QUE-FALA-2010 — re-ancorado: +1 importador de servidor, app/api/kids-cartoon/story/route.ts (a ideia da história infantil e a história escrita são moderadas antes e depois do escritor; fora do ar = recusa) e app/api/baby-podcast/prepare/route.ts (o tema e a fala do bebê-podcast, idem) = 34.
-ok(imp.length === 34 && imp.every((p) => !/^\s*['"]use client['"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`) // reancorado KINEO-BEBE-QUE-FALA-2010 — era 32 (+2)
+// KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — re-ancorado: +1 importador de servidor, lib/cinematic/personagemAjusteServer.ts (o still com folha passa pela moderação de saída 'estrela', e a criatura em cena inocente é reconferida sem termo de idade) = 35 (34 do KINEO-BEBE-QUE-FALA-2010 + 1).
+ok(imp.length === 35 && imp.every((p) => !/^\s*['"]use client['"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — era: imp.length === 34 (reancorado KINEO-BEBE-QUE-FALA-2010)
 
 // ── 5. upload: o tipo pelos bytes ──────────────────────────────────────────────────────────────────────
 const K = roda('lib/safety/mediaKind.ts')

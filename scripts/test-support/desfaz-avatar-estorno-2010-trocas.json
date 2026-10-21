@@ -101,15 +101,7 @@
     "acrescimos": 4,
     "trocas": []
   },
-  "scripts/test-home-cards-claros-2010.mjs": {
-    "acrescimos": 2,
-    "trocas": []
-  },
-  "scripts/test-support/desfaz-ads-nota9-2110.mjs": {
-    "acrescimos": 2,
-    "trocas": []
-  },
-  "scripts/test-desenho-nota9-2110.mjs": {
+  "scripts/test-support/desfaz-meta95-personagem-ajuste-2010.mjs": {
     "acrescimos": 2,
     "trocas": []
   }
