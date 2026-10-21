@@ -5,8 +5,9 @@ import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semAdsCena2110, ADS_CENA_2110_BASE, ADS_CENA_2110_ARQUIVOS, ADS_CENA_2110_NOVOS, MARCA_ADS_CENA_2110 } from './test-support/desfaz-ads-cena-2110.mjs'
+import { semAdsCenaAjuste2110 } from './test-support/desfaz-ads-cena-ajuste-2110.mjs' // KINEO-ADS-CENA-AJUSTE-2110 — o guardião original continua provando a camada original.
 const F = { cat: 'lib/ads/cena/catalog.ts', plan: 'lib/ads/cena/plan.ts', pipe: 'lib/ads/cena/pipeline.ts', adapt: 'lib/ads/cena/adapters.ts', montage: 'lib/ads/cena/montage.ts', runtime: 'lib/ads/cena/runtime.ts', internal: 'lib/ads/cena/internal.ts', route: 'app/api/admin/ads-cena/route.ts', start: 'lib/ads/v2StartCore.ts', captions: 'lib/ads/v2CenaQuality.ts' }
-const read = p => readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
+const read = p => semAdsCenaAjuste2110(readFileSync(p, 'utf8'), p).replace(/\r\n/g, '\n') // KINEO-ADS-CENA-AJUSTE-2110
 const plain = v => JSON.parse(JSON.stringify(v))
 const same = (actual, expected, label) => assert.deepEqual(plain(actual), plain(expected), label)
 const photo = 'https://offline.example/product.png', actor = 'https://offline.example/actor.png'
@@ -15,7 +16,7 @@ const classification = { category: 'wearable', confidence: 0.9, product: 'Pulse 
 const goodScript = { hooks: ['Need a watch for your run?', 'Take Pulse on your next run.', 'A smartwatch for your daily run.'], use: 'Wear Pulse while you run.', benefit: '7-day battery. Free shipping.', cta: 'Shop Pulse now.' }
 const goodJudge = { own_hands_attached: true, extra_hands: false, extra_people: false, product_whole: true, product_faithful: true, real_scale: true, touching_face: false, actor_identity_match: true, score: 91 }
 const jsonCalls = calls => async c => { calls.push(plain(c)); return c.images.length ? classification : goodScript }
-function loader(over = {}, mocks = {}, globals = {}) { return createOfflineLoader({ mocks, globals: { Response, Request, ...globals }, source: (p, text) => over[p] ?? text }) }
+function loader(over = {}, mocks = {}, globals = {}) { return createOfflineLoader({ mocks, globals: { Response, Request, ...globals }, source: (p, text) => semAdsCenaAjuste2110(over[p] ?? text, p) }) } // KINEO-ADS-CENA-AJUSTE-2110 — preservar as fontes executadas e os 13 mutantes antigos.
 async function makePlan(over = {}, route = 'kling3', values = {}) {
   const load = loader(over), P = load(F.plan), calls = []
   const plan = await P.planCena(P.cenaInput({ ...customer, ...values }), route, jsonCalls(calls))

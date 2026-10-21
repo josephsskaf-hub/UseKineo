@@ -89,7 +89,7 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
 
     const cost = adsV2Credits(order.tier, order.seconds)
     const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds, presenter: !!plan.presenter }) // KINEO-ESTILOS-PRODUTO-2026-10-09 — o plano com estilo custa o efeito · KINEO-ATOR-ANUNCIO-2026-10-09 — o ator custa a foto e o vídeo falado
-    if (cena && dryRun) return v2Json({ dry_run: true, charged: false, order_id: orderId, credits: cost, plan: cena.plan, costs: cenaCosts() }) // KINEO-ADS-CENA-2110
+    if (cena && dryRun) return v2Json({ dry_run: true, charged: false, order_id: orderId, credits: cost, plan: cena.plan, costs: cena.plan.voice_mode ? cenaCosts(undefined, cena.plan.voice_mode) : cenaCosts() }) // KINEO-ADS-CENA-2110 KINEO-ADS-CENA-AJUSTE-2110 — o ensaio também respeita o modo salvo; legado sem modo conserva estimativa antiga.
 
     // ENSAIO DE US$ 0: plano + custo, sem débito e sem fal. Para aqui.
     if (dryRun) {

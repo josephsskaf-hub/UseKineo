@@ -4,6 +4,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semAdsCenaAjuste2110, ADS_CENA_AJUSTE_2110_NOVOS } from './desfaz-ads-cena-ajuste-2110.mjs' // KINEO-ADS-CENA-AJUSTE-2110 — a camada posterior sai primeiro.
 
 export const MARCA_ADS_CENA_2110 = 'KINEO-ADS-CENA-2110'
 export const ADS_CENA_2110_BASE = '4cbd06b1'
@@ -12,6 +13,7 @@ export const TROCAS_ADS_CENA_2110 = Object.fromEntries(Object.entries(TABELA).fi
 export const ACRESCIMOS_ADS_CENA_2110 = TABELA.__acrescimos
 export const ADS_CENA_2110_ARQUIVOS = Object.freeze(Object.keys(ACRESCIMOS_ADS_CENA_2110))
 export const ADS_CENA_2110_NOVOS = [
+  ...ADS_CENA_AJUSTE_2110_NOVOS, // KINEO-ADS-CENA-AJUSTE-2110 — o escopo posterior tem prova própria e desfaz exato.
   'app/api/admin/ads-cena/route.ts',
   'docs/ADS-CENA-FAL-CONTRATOS-2026-10-21.md',
   'docs/ADS-CENA-2026-10-21.md',
@@ -35,6 +37,7 @@ export const ADS_CENA_2110_NOVOS = [
 
 /** Sem a entrega atual: CRLF preservado, idempotente, arquivos fora da lista intocados. */
 export function semAdsCena2110(texto, p) {
+  texto = semAdsCenaAjuste2110(texto, p) // KINEO-ADS-CENA-AJUSTE-2110 — antes de qualquer interpretação da marca original.
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_ADS_CENA_2110) || !ADS_CENA_2110_ARQUIVOS.includes(rel)) return texto
   const crlf = texto.includes('\r\n')
