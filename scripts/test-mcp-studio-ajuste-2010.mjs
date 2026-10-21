@@ -329,7 +329,7 @@ for (const rel of MCP_STUDIO_AJUSTE_2010_ARQUIVOS) {
   ok(b !== null && cur.includes(MARCA_MCP_STUDIO_AJUSTE_2010) && lf(semMcpStudioAjuste2010(cur, rel)) === b && (!cur.includes('\r\n') || semMcpStudioAjuste2010(cur, rel).includes('\r\n')), `(F1) ${rel}: leva a marca e, desfeita a entrega, é EXATAMENTE a base ${MCP_STUDIO_AJUSTE_2010_BASE.slice(0, 9)}`)
 }
 for (const rel of MCP_STUDIO_AJUSTE_2010_NOVOS) {
-  ok(fs.existsSync(path.join(ROOT, rel)) && base(rel) === null && read(rel).includes(MARCA_MCP_STUDIO_AJUSTE_2010), `(F2) ${rel}: novo e leva a marca`)
+  ok(fs.existsSync(path.join(ROOT, rel)) && base(rel) === null && read(rel).includes(MARCA_MCP_STUDIO_AJUSTE_2010), `(F2) ${rel}: novo e leva a marca`) // a tabela .json leva a marca nas linhas novas
 }
 const changed = [...new Set([...git('diff', '--name-only', MCP_STUDIO_AJUSTE_2010_BASE).split('\n'), ...git('ls-files', '--others', '--exclude-standard').split('\n')].filter(Boolean))]
 const declared = [...MCP_STUDIO_AJUSTE_2010_ARQUIVOS, ...MCP_STUDIO_AJUSTE_2010_NOVOS]
@@ -337,7 +337,13 @@ ok(changed.every((f) => declared.includes(f)), `(F3) o diff contra a base só to
 const commits = git('log', '--format=%s', `${MCP_STUDIO_AJUSTE_2010_BASE}..HEAD`).split('\n').filter(Boolean)
 ok(commits.every((s) => s.includes(MARCA_MCP_STUDIO_AJUSTE_2010)), `(F4) todo commit da entrega leva a marca (${commits.length})`)
 ok(semMcpStudioAjuste2010('sem marca', F.page) === 'sem marca' && semMcpStudioAjuste2010(raw(F.page), 'outro/arquivo.ts') === raw(F.page), '(F5) desfaz idempotente fora do alvo')
-ok(/import \{ semMcpStudioAjuste2010 \} from '\.\/desfaz-mcp-studio-ajuste-2010\.mjs'/.test(read('scripts/test-support/desfaz-avatar-preso-2010.mjs')) && /export function semAvatarPreso2010\(texto, p\) \{\n\s+texto = semMcpStudioAjuste2010\(texto, p\)/.test(read('scripts/test-support/desfaz-avatar-preso-2010.mjs')), '(F6) encadeado: semAvatarPreso2010 (a camada de antes) tira esta camada primeiro')
+{
+  const V = read('scripts/test-support/desfaz-verbatim-intocavel-2010.mjs')
+  ok(/import \{ semMcpStudioAjuste2010 \} from '\.\/desfaz-mcp-studio-ajuste-2010\.mjs'/.test(V) && /export function semVerbatimIntocavel2010NaCadeia\(texto, p\) \{\n\s+texto = semMcpStudioAjuste2010\(texto, p\)/.test(V) && /export function semVerbatimIntocavel2010\(caminho, src\) \{\n\s+if \(typeof src !== 'string'\) return src\n\s+src = semMcpStudioAjuste2010\(src, rel\(caminho\)\)/.test(V) && /texto = semVerbatimIntocavel2010NaCadeia\(texto, p\)/.test(read('scripts/test-support/desfaz-avatar-preso-2010.mjs')), '(F6) encadeado: a camada de antes (verbatim, chamada primeiro por semAvatarPreso2010) tira esta camada primeiro')
+  let lancou = false
+  try { semMcpStudioAjuste2010(raw('scripts/test-mcp-studio-2010.mjs') + '\n// linha a mais ' + MARCA_MCP_STUDIO_AJUSTE_2010, 'scripts/test-mcp-studio-2010.mjs') } catch { lancou = true }
+  ok(lancou, '(F7) acréscimo marcado a mais num arquivo linha-a-linha → o desfaz explode (nunca devolve base falsa)')
+}
 
 // ─── (M) mutantes em disco ───────────────────────────────────────────────────
 async function withMutant(label, from, to, fn) {

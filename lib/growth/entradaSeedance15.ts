@@ -15,6 +15,7 @@
 // scripts/test-entrada-seedance15-2026-09-29.mjs.
 import { SEEDANCE_SHORT_SECONDS, maxWordsForShortFilm } from '@/lib/durationByEngine'
 import { resolveNarrationLanguage } from '@/lib/textLanguage' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29
+import { parseUserScript } from '@/lib/scriptParser' // [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] KINEO-VERBATIM-INTOCAVEL-2010 — a régua da FALA da guarda (lib/scriptParser também é pura, zero import)
 
 export const ENTRADA_SEEDANCE15_VERSION = 'entrada_seedance15_v1' as const
 
@@ -119,7 +120,13 @@ export function rotuloDoFilmeGratis(f: {
  * de verbatim (a guarda do cinematic recusaria com 422 'script_too_long_for_short_film'). Mesma régua da guarda.
  */
 export function roteiroCabeNoFilmeCurto(texto: string | null | undefined, segundos: number = SEEDANCE_SHORT_SECONDS, language?: string | null): boolean {
-  const palavras = String(texto ?? '').split(/\s+/).filter(Boolean).length
+  // [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] KINEO-VERBATIM-INTOCAVEL-2010 — conta a FALA, como a guarda do cinematic
+  // (parseUserScript(prompt).narration, palavras por espaço). Antes contava o texto CRU: rótulos (HOOK (0-2s):, MICRO REWARD 2:,
+  // PAYOFF:) e pistas [Pexels: ...] viravam "palavras". Teste de 20/10 (Dino/Ravan/moto, Seedance 15 s, "Use my script as is"):
+  // 41/44/41 palavras faladas (cabem: a guarda aceita até 56) mediam 57/62/62 cruas → "não cabe" → o /generate trocava o
+  // verbatim por modo IA (scriptModeOverride 'ai') e o escritor ACRESCENTAVA ou TROCAVA um bloco de fala (Dino: + "What was that?").
+  // O teaser em modo IA continua só para o roteiro que a guarda recusaria de verdade.
+  const palavras = parseUserScript(String(texto ?? '')).narration.split(/\s+/).filter(Boolean).length
   // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29 — o teto na LÍNGUA, como a guarda do
   // cinematic (checarFalaDoFilmeCurto com a língua: tr 45, de 47, en/pt/es 56), resolvida como a rota a resolve
   // (resolveNarrationLanguage: a pedida; inglês/ausente → a detectada no texto). Sem a língua, 50 palavras turcas "cabiam" aqui,

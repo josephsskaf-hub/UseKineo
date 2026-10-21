@@ -1,0 +1,16 @@
+{
+  "scripts/test-mcp-studio-2010.mjs": [
+    [
+      "ok(/^export const STUDIO_GENERATE_PATH = '\\/api\\/generate-video-cinematic'$/m.test(S.tools) && /fetch\\(`\\$\\{ctx\\.origin\\}\\$\\{STUDIO_GENERATE_PATH\\}`/.test(S.tools) && /cookie: minted\\.session\\.cookie/.test(S.tools) && /mint: \\(userId, email\\) => mintUserSession\\(userId, email\\)/.test(S.tools) && /await io\\.mint\\(ctx\\.userId, ctx\\.email\\)/.test(S.tools), '(E10) o caminho pago é o /api/generate-video-cinematic do site, chamado com o cookie da sessão da pessoa (mesma cobrança do Generate)') // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: a sessão é cunhada por mintUserSession via I/O injetável (dublê no guardião do ajuste)",
+      "ok(/^export const STUDIO_GENERATE_PATH = '\\/api\\/generate-video-cinematic'$/m.test(S.tools) && /fetch\\(`\\$\\{ctx\\.origin\\}\\$\\{STUDIO_GENERATE_PATH\\}`/.test(S.tools) && /cookie: minted\\.session\\.cookie/.test(S.tools) && /await mintUserSession\\(ctx\\.userId, ctx\\.email\\)/.test(S.tools), '(E10) o caminho pago é o /api/generate-video-cinematic do site, chamado com o cookie da sessão da pessoa (mesma cobrança do Generate)')"
+    ],
+    [
+      "ok(/Credits are spent only when a render actually starts/.test(S.section) && /remove the connector in the app you\\s+connected \\(Claude or ChatGPT\\)/.test(S.section), '(E30) seção: crédito só quando a produção começa; como revogar') // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: revogar no app em que conectou (Claude ou ChatGPT)",
+      "ok(/Credits are spent only when a render actually starts/.test(S.section) && /Remove the connector in Claude to revoke/.test(S.section), '(E30) seção: crédito só quando a produção começa; como revogar')"
+    ],
+    [
+      "  ok(b !== null && lf(semMcpStudio2010(semMcpStudioAjuste2010(raw(rel), rel), rel)) === b && (!raw(rel).includes('\\r\\n') || semMcpStudio2010(semMcpStudioAjuste2010(raw(rel), rel), rel).includes('\\r\\n')), `(F1) ${rel}: desfeita a entrega, é EXATAMENTE a base ${MCP_STUDIO_2010_BASE.slice(0, 9)} (${ACRESCIMOS_MCP_STUDIO_2010[rel]} acréscimo(s))`) // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: o ajuste do conector sai primeiro",
+      "  ok(b !== null && lf(semMcpStudio2010(raw(rel), rel)) === b && (!raw(rel).includes('\\r\\n') || semMcpStudio2010(raw(rel), rel).includes('\\r\\n')), `(F1) ${rel}: desfeita a entrega, é EXATAMENTE a base ${MCP_STUDIO_2010_BASE.slice(0, 9)} (${ACRESCIMOS_MCP_STUDIO_2010[rel]} acréscimo(s))`)"
+    ]
+  ]
+}
