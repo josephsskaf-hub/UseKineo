@@ -15,8 +15,8 @@
 
 export const MARCA_DESENHO_SOM_2110 = 'KINEO-DESENHO-SOM-2110'
 
-/** A base da entrega: a tela clara do desenho (KINEO-DESENHO-NOTA9-2110), d37a272bf. */
-export const DESENHO_SOM_2110_BASE = 'd37a272bf'
+/** A base da entrega: a tela clara do desenho (KINEO-DESENHO-NOTA9-2110, já na fila), 9415fa5dd. */
+export const DESENHO_SOM_2110_BASE = '9415fa5dd'
 
 /** [linha nova (inteira), linha da base] por arquivo. */
 export const TROCAS_DESENHO_SOM_2110 = {
@@ -40,6 +40,8 @@ export const ACRESCIMOS_DESENHO_SOM_2110 = {
   'lib/musicDirection.ts': 2,
   'lib/narration/niche-mapping.ts': 2,
   'scripts/test-desenho-nota9-2110.mjs': 1,
+  'scripts/test-mcp-studio-2010.mjs': 2,
+  'scripts/test-mcp-studio-ajuste-2010.mjs': 3,
   'scripts/test-support/desfaz-desenho-nota9-2110.mjs': 2,
 }
 export const DESENHO_SOM_2110_ARQUIVOS = Object.freeze(Object.keys(ACRESCIMOS_DESENHO_SOM_2110))

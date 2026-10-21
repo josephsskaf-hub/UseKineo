@@ -220,7 +220,7 @@ console.log('\nK. desfaz encadeado e diff da base')
   try { semDesenhoSom2110(rd(F.niche) + `\n// linha nova ${MARCA}`, F.niche) } catch { lancou = true }
   const trocasOk = Object.entries(TROCAS_DESENHO_SOM_2110).every(([f, t]) => DESENHO_SOM_2110_ARQUIVOS.includes(f) && t.every(([nova, velha]) => nova.includes(MARCA) && !velha.includes(MARCA)))
   ok(lancou && trocasOk && semDesenhoSom2110('sem marca', F.niche) === 'sem marca' && desfazDesenhoSom2110(F.niche, null) === null && !/KINEO-DESENHO-NOTA9|KINEO-BEBE|KINEO-HOME/.test(MARCA), 'K4 idempotente fora da lista / sem a marca / null; acréscimo a mais lança; trocas marcadas; marca sem a de camada antiga')
-  const TOPO = git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, '-1', 'HEAD').trim() || 'HEAD'
+  const TOPO = git('log', '--format=%H', `--grep=${MARCA}`, '-1', 'HEAD').trim() || 'HEAD' // merge incluso (a base é a ponta da fila mesclada)
   const tocados = new Set([...git('diff', '--name-only', BASE, TOPO).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard', 'scripts').trim().split('\n').filter((f) => f.includes('desenho-som'))].filter(Boolean))
   const permitidos = new Set([...DESENHO_SOM_2110_ARQUIVOS, ...DESENHO_SOM_2110_NOVOS, ...DESENHO_SOM_2110_REESCRITOS])
   const fora = [...tocados].filter((f) => !permitidos.has(f))
