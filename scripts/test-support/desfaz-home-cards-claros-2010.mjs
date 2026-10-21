@@ -25,6 +25,8 @@ export const TROCAS_HOME_CARDS_CLAROS_2010 = JSON.parse(readFileSync(join(dirnam
 export const ACRESCIMOS_HOME_CARDS_CLAROS_2010 = {
   'components/home/HomeThreeCards.tsx': 0,
   'scripts/test-bebe-que-fala-2010.mjs': 1,
+  'scripts/test-mcp-studio-2010.mjs': 2,
+  'scripts/test-mcp-studio-ajuste-2010.mjs': 3,
   'scripts/test-support/desfaz-bebe-que-fala-2010.mjs': 2,
 }
 export const HOME_CARDS_CLAROS_2010_ARQUIVOS = Object.freeze(Object.keys(ACRESCIMOS_HOME_CARDS_CLAROS_2010))
