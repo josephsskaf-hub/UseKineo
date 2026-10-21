@@ -18,6 +18,7 @@
 //   D. desfaz exato (cada arquivo tocado, desfeito, é a base), encadeado como camada mais nova do /api/compose (semMeta95Refazer1910 chama
 //      este primeiro), toda linha nova com a marca, o diff só toca a lista e os novos, todo commit da entrega com a marca no assunto;
 //   M. mutantes: cada regra acima fica vermelha quando a quebramos de propósito (aplicação provada antes de medir).
+import { semMcpStudioAjuste2010 } from './test-support/desfaz-mcp-studio-ajuste-2010.mjs' // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: as linhas do ajuste do conector (entrega de depois) não são desta
 import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
@@ -264,8 +265,8 @@ console.log('\nD. desfaz, encadeamento e diff')
   const ruins = AVATAR_PRESO_2010_ARQUIVOS.filter((rel) => { try { return semAvatarPreso2010(rd(rel), rel) !== base(rel) } catch { return true } })
   ok(ruins.length === 0, `D1 cada arquivo tocado, desfeito, é EXATAMENTE a base ${AVATAR_PRESO_2010_BASE.slice(0, 9)}${ruins.length ? ' — ' + ruins.join(', ') : ''}`)
   ok(AVATAR_PRESO_2010_NOVOS.every((rel) => base(rel) === null && fs.existsSync(path.join(ROOT, rel))), 'D2 os arquivos novos existem e não existiam na base')
-  const contagem = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => rd(rel).split('\n').filter((l) => l.includes(MARCA)).length === ACRESCIMOS_AVATAR_PRESO_2010[rel] + (TROCAS_AVATAR_PRESO_2010[rel] ?? []).length)
-  const semMarcaNova = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\n'); const bs = new Set(b); return rd(rel).split('\n').every((l) => bs.has(l) || l.includes(MARCA)) })
+  const contagem = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => semMcpStudioAjuste2010(rd(rel), rel).split('\n').filter((l) => l.includes(MARCA)).length === ACRESCIMOS_AVATAR_PRESO_2010[rel] + (TROCAS_AVATAR_PRESO_2010[rel] ?? []).length) // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado
+  const semMarcaNova = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\n'); const bs = new Set(b); return semMcpStudioAjuste2010(rd(rel), rel).split('\n').every((l) => bs.has(l) || l.includes(MARCA)) }) // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado
   ok(contagem && semMarcaNova, 'D3 toda linha nova ou reescrita leva a marca, e a contagem bate (acréscimos + trocas)')
   const M95 = rd(F.meta95)
   ok(/export function semMeta95Refazer1910\(texto, p\) \{\n  texto = semAvatarPreso2010\(texto, p\)/.test(M95) && /^import \{ semAvatarPreso2010 \} from '\.\/desfaz-avatar-preso-2010\.mjs'/m.test(M95), 'D4 encadeado: semMeta95Refazer1910 (a camada mais nova do /api/compose até hoje) chama ESTE primeiro')

@@ -12,6 +12,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semMcpStudioAjuste2010 } from './desfaz-mcp-studio-ajuste-2010.mjs' // KINEO-MCP-STUDIO-AJUSTE-2010 — a camada mais nova (20/10): o ajuste do conector sai primeiro
 
 export const MARCA_AVATAR_PRESO_2010 = 'KINEO-AVATAR-PRESO-2010'
 
@@ -46,6 +47,7 @@ export const AVATAR_PRESO_2010_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semAvatarPreso2010(texto, p) {
+  texto = semMcpStudioAjuste2010(texto, p) // KINEO-MCP-STUDIO-AJUSTE-2010 — encadeado: o ajuste do conector (20/10) veio depois e sai PRIMEIRO (texto sem a marca passa igual)
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_AVATAR_PRESO_2010) || !AVATAR_PRESO_2010_ARQUIVOS.includes(rel)) return texto
   const crlf = texto.includes('\r\n')
