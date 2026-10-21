@@ -39,6 +39,7 @@ function database(rows, errors = {}) {
       const q = {
         select() { return q }, order() { return q }, limit(n) { max = n; return q },
         eq(k, v) { predicates.push(r => field(r, k) === v); return q },
+        in(k, values) { predicates.push(r => values.includes(field(r, k))); return q },
         neq(k, v) { predicates.push(r => field(r, k) !== v); return q },
         is(k, v) { predicates.push(r => v === null ? field(r, k) == null : field(r, k) === v); return q },
         like(k, v) { predicates.push(r => String(r[k]).startsWith(v.replace(/%$/, ''))); return q },
@@ -88,6 +89,7 @@ function load(db, overrides = {}) {
   return runtime.mod
 }
 const reservation = (db, overrides) => { load(db, overrides); return runtimes.get(overrides).loader('@/lib/avatar/reservation') }
+const holds = (db, overrides) => { load(db, overrides); return runtimes.get(overrides).loader('@/lib/credits/composeHold').inspectActiveComposeCreditHolds({ db, secret: SECRET, userId: USER, currentClaimId: 'outra-geracao' }) }
 const bindArgs = { userId: USER, requestId: 'request-do-provedor-diferente-do-claim', engine: 'presenter', videoUrl: 'https://entrega.invalid/avatar.mp4' }
 let passed = 0
 async function check(name, fn) { await fn(); passed++; console.log(`ok ${name}`) }
@@ -101,8 +103,19 @@ async function problems(overrides = {}) {
     assert.deepEqual(db.state.rpc, [REF]); assert.equal(db.state.audits.length, 1)
     assert.equal(db.state.audits[0].metadata.amount, 70)
     assert.equal(db.state.audits[0].metadata.billing_reference, REF)
+    const hold = await holds(db, overrides)
+    assert.equal(hold.ok, true); assert.equal(hold.totalHeld, 0, 'crédito devolvido fica utilizável, sem renascer como hold')
     const again = await mod.sweepAbandonedAvatarDebits()
     assert.equal(again.refunded, 0); assert.equal(again.creditsReturned, 0); assert.equal(db.state.audits.length, 1)
+  })
+  for (const corrupt of ['sem ledger', 'outro dono', 'outro custo', 'sem marcador']) await run(`hold não é liberado por ${corrupt}`, async () => {
+    const rows = fixture({ refunded: OLD }); rows.events[0].metadata.abandoned_refund_claimed_at = OLD
+    if (corrupt === 'sem ledger') rows.credit_debits = []
+    if (corrupt === 'outro dono') rows.credit_debits[0].user_id = 'outra-pessoa'
+    if (corrupt === 'outro custo') rows.credit_debits[0].amount = 110
+    if (corrupt === 'sem marcador') delete rows.events[0].metadata.abandoned_refund_claimed_at
+    const h = await holds(database(rows), overrides)
+    assert.equal(h.ok, true); assert.equal(h.totalHeld, 70)
   })
   await run('pending sem request ou marca prepaid', async () => {
     const db = database(fixture({ status: 'pending' }))
@@ -267,15 +280,16 @@ for (const [name, file, before, after] of [
   ['estorna débito recente', F, "6 * 60 * 60 * 1000", '0'],
   ['ignora assinatura do claim', R, '!verifyAvatarClaim(args.secret, {', 'false && !verifyAvatarClaim(args.secret, {'],
   ['remove CAS contra entrega concorrente', F, ".eq('metadata->>authority', claim.authority).select('id')", ".select('id')"],
-  ['permite binding com leitura anterior à reserva', R, ".is('metadata->>abandoned_refund_claimed_at', null)", ''],
+  ['permite binding com leitura anterior à reserva', R, ".is('metadata->>abandoned_refund_claimed_at', null) // KINEO-AVATAR-ESTORNO-2010 — bind e reserva", '// KINEO-AVATAR-ESTORNO-2010 — bind e reserva'],
   ['permite binding tardio', R, "if (claim.metadata.abandoned_refund_claimed_at) return { ok: false, error: 'avatar abandonment refund reserved' }", 'if (false) return { ok: false, error: \'avatar abandonment refund reserved\' }'],
   ['prepaid apaga reserva com snapshot velho', R, ".is('metadata->>abandoned_refund_claimed_at', null) // KINEO-AVATAR-ESTORNO-2010 — CAS também no marcador prepaid", '// KINEO-AVATAR-ESTORNO-2010 — CAS também no marcador prepaid'],
   ['settlement apaga reserva com snapshot velho', R, ".is('metadata->>abandoned_refund_claimed_at', null) // KINEO-AVATAR-ESTORNO-2010 — settlement tardio", '// KINEO-AVATAR-ESTORNO-2010 — settlement tardio'],
+  ['crédito estornado renasce como hold', 'lib/credits/composeHold.ts', 'if (metadata.abandoned_refund_claimed_at && returnedDebit?.userId', 'if (false && metadata.abandoned_refund_claimed_at && returnedDebit?.userId'],
 ]) await check(`MUTANTE aplicado → vermelho: ${name}`, async () => {
   const src = rd(file); assert.ok(src.includes(before), 'âncora presente')
   // O primeiro mutante usa o caminho antigo real, sem introduzir erro de sintaxe/identificador.
   let mutant = name.startsWith('volta a confundir') ? base(F) : src.replace(before, after)
-  if (name === 'permite binding tardio') mutant = mutant.replace(".is('metadata->>abandoned_refund_claimed_at', null)", '')
+  if (name === 'permite binding tardio') mutant = mutant.replace(".is('metadata->>abandoned_refund_claimed_at', null) // KINEO-AVATAR-ESTORNO-2010 — bind e reserva", '// KINEO-AVATAR-ESTORNO-2010 — bind e reserva')
   assert.notEqual(mutant, src)
   const issues = await problems({ [file]: mutant }); assert.ok(issues.length > 0)
 })

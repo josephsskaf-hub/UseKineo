@@ -71,6 +71,7 @@ export async function inspectActiveComposeCreditHolds(args: {
     return [`${row.name === AVATAR_CLAIM_EVENT ? 'avatar' : 'cinematic'}-${row.id}`]
   }))]
   const confirmedProviderDebits = new Map<string, { userId: string; amount: number }>()
+  const refundedAvatarDebits = new Map<string, { userId: string; amount: number }>() // KINEO-AVATAR-ESTORNO-2010 — crédito devolvido não pode renascer como hold do claim abandonado
   if (candidateProviderDebitRefs.length > 0) {
     // KINEO-HOLD-EM-LOTES-2026-10-09 — conta com centenas de claims (a do fundador tem 517) fazia um único
     // .in('render_id', [...517]) virar uma URL de ~24 KB e o PostgREST respondia 400 "Bad Request": a rota
@@ -91,6 +92,7 @@ export async function inspectActiveComposeCreditHolds(args: {
       const userId = typeof row.user_id === 'string' ? row.user_id : ''
       const amount = typeof row.amount === 'number' ? row.amount : Number(row.amount)
       const refunded = typeof row.refunded_at === 'string' && Boolean(row.refunded_at)
+      if (reference.startsWith('avatar-') && userId && Number.isFinite(amount) && amount > 0 && refunded) refundedAvatarDebits.set(reference, { userId, amount }) // KINEO-AVATAR-ESTORNO-2010 — somente ledger real confirmado
       if (reference && userId && Number.isFinite(amount) && amount > 0 && !refunded) {
         confirmedProviderDebits.set(reference, { userId, amount })
       }
@@ -194,6 +196,8 @@ export async function inspectActiveComposeCreditHolds(args: {
         continue
       }
       const billingReference = `avatar-${claimId}`
+      const returnedDebit = refundedAvatarDebits.get(billingReference) // KINEO-AVATAR-ESTORNO-2010
+      if (metadata.abandoned_refund_claimed_at && returnedDebit?.userId === args.userId && returnedDebit.amount === cost) continue // KINEO-AVATAR-ESTORNO-2010 — claim já verificado + estorno exato: saldo livre, entrega revogada
       const confirmedDebit = confirmedProviderDebits.get(billingReference)
       if (
         confirmedDebit?.userId === args.userId &&
