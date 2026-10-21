@@ -3,7 +3,9 @@
     "app/(dashboard)/ads/v2/AdsV2Simple.tsx": 63,
     "app/(dashboard)/ads/v2/AdsV2Client.tsx": 4,
     "components/ads/KitBfBuyCard.tsx": 8,
-    "scripts/test-support/desfaz-desenho-nota9-2110.mjs": 2
+    "scripts/test-support/desfaz-desenho-nota9-2110.mjs": 2,
+    "scripts/test-kit-bf-venda-2010.mjs": 1,
+    "scripts/test-ugc-ajustes-2010.mjs": 0
   },
   "app/(dashboard)/ads/v2/AdsV2Simple.tsx": [
     [
@@ -49,6 +51,18 @@
     [
       "export function KitBfBuyCard({ lang = 'en', surface, slim = false }: { lang?: string; surface: 'ads' | 'pricing'; slim?: boolean }) { // KINEO-ADS-NOTA9-2110 — + slim: a faixa de uma linha da tela foco do Studio Ads; era: export function KitBfBuyCard({ lang = 'en', surface }: { lang?: string; surface: 'ads' | 'pricing' }) {",
       "export function KitBfBuyCard({ lang = 'en', surface }: { lang?: string; surface: 'ads' | 'pricing' }) {"
+    ]
+  ],
+  "scripts/test-kit-bf-venda-2010.mjs": [
+    [
+      "const disco = (p) => lf(semAdsNota92110(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-ADS-NOTA9-2110 — a faixa de uma linha do kit (slim) e a tela foco do Studio Ads (21/10) saem por fora, em memória; era: const disco = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))",
+      "const disco = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))"
+    ]
+  ],
+  "scripts/test-ugc-ajustes-2010.mjs": [
+    [
+      "  const linhas = UGC_AJUSTES_2010_ARQUIVOS.every((f) => git('diff', '-U0', '--no-color', B, '--', f).replace(/\\r/g, '').split('\\n').filter((l) => l.startsWith('+') && !l.startsWith('+++') && !l.includes('KINEO-ADS-NOTA9-2110')).every((l) => l.includes(MARCA))) // reancorado KINEO-ADS-NOTA9-2110 — as linhas da tela foco (21/10, camada mais nova) não contam como desta entrega",
+      "  const linhas = UGC_AJUSTES_2010_ARQUIVOS.every((f) => git('diff', '-U0', '--no-color', B, '--', f).replace(/\\r/g, '').split('\\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).every((l) => l.includes(MARCA)))"
     ]
   ]
 }
