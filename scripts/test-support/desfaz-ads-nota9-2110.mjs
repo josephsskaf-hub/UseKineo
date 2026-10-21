@@ -11,6 +11,7 @@
 // primeiro. Este não importa ninguém.
 // O guardião scripts/test-ads-nota9-2110.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (ADS_NOTA9_2110_BASE).
 import { readFileSync } from 'node:fs'
+import { semAvatarEstorno2010 } from './desfaz-avatar-estorno-2010.mjs' // KINEO-AVATAR-ESTORNO-2010 — integração 21/10: o estorno do avatar abandonado + a legenda bengali (Codex) entraram depois desta camada: saem PRIMEIRO (texto sem a marca passa igual)
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -35,6 +36,7 @@ export const ADS_NOTA9_2110_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semAdsNota92110(texto, p) {
+  texto = semAvatarEstorno2010(texto, p) // KINEO-AVATAR-ESTORNO-2010 — a camada mais nova (que tira também a bengali) sai primeiro
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_ADS_NOTA9_2110) || !ADS_NOTA9_2110_ARQUIVOS.includes(rel)) return texto
   const crlf = texto.includes('\r\n')
