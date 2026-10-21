@@ -184,7 +184,7 @@ console.log('D) o desfaz')
     checa(`reâncora ${rel}: uma linha marcada a mais → o desfaz recusa (null) e a cadeia lança`, semVerbatimIntocavel2010(rel, aMais) === null && (() => { try { semVerbatimIntocavel2010NaCadeia(aMais, rel); return false } catch { return true } })())
   }
   const pers = rd('scripts/test-meta95-personagem-2010.mjs')
-  const av = rd('scripts/test-support/desfaz-avatar-preso-2010.mjs')
+  const av = semHomeRemodela2010(rd('scripts/test-support/desfaz-avatar-preso-2010.mjs'), 'scripts/test-support/desfaz-avatar-preso-2010.mjs') // KINEO-HOME-REMODELA-2010 — a home remodelada (camada de depois) entra antes desta dentro de semAvatarPreso2010; sem ela, esta segue a 1ª
   checa('encadeado: semAvatarPreso2010 (a camada de antes; a cabeça dos guardiões e o D1/D3 dela passam por ela) chama o desfaz desta camada primeiro', av.includes('export function semAvatarPreso2010(texto, p) {' + NL + '  texto = semVerbatimIntocavel2010NaCadeia(texto, p) // KINEO-VERBATIM-INTOCAVEL-2010'))
   const AVm = await import(new URL('./test-support/desfaz-avatar-preso-2010.mjs', import.meta.url).href)
   checa('pela cadeia (semAvatarPreso2010NosGuardioes), os guardiões reancorados desfeitos não têm mais a marca desta entrega', ['scripts/test-mcp-studio-2010.mjs', 'scripts/test-meta95-personagem-2010.mjs'].every((g) => !AVm.semAvatarPreso2010NosGuardioes(rd(g), g).includes(MARCA_VERBATIM_INTOCAVEL_2010)))
