@@ -88,8 +88,12 @@ const ravan = elenco(RAVAN).find((f) => f.nome === 'Ravan')
 const falsoCasting = JSON.stringify({ characters: [{ name: 'Ravan', description: 'A red haired human man in a yellow hoodie and jeans with a round face and bright green eyes' }] })
 ok(ravan?.tipo === 'criatura' && /ten.headed demon king/i.test(ravan.canonica) && !/hoodie|early thirties|reddish/.test(ravan.canonica) && L.lerCasting(falsoCasting, [ravan])[0].canonica === ravan.canonica, '3a Ravan preserva dez cabeças/rei-demônio; casting humano rejeitado')
 ok(/deliberate|mythical/i.test(C.STILL_CRITIC_IDENTIDADE), '3b anatomia mítica deliberada da referência é respeitada pelo juiz')
-const pedidoDuplo = C.montarPedidoAoCritico({ indice:0, url:'still', mostra:'boy with Ravan', fala:'boy talks to Ravan', prompt:'boy with Ravan', seed:1, referencia:{url:'boy-sheet',descricao:'the boy',outras:[{url:'ravan-sheet',descricao:ravan.canonica}]} }, 'still')
-ok(pedidoDuplo.imagens === 3 && JSON.stringify(pedidoDuplo).includes('ravan-sheet') && JSON.stringify(pedidoDuplo).includes('ADDITIONAL CHARACTER REFERENCE'), '3c juiz recebe ambas as folhas rotuladas, antes do still')
+const entradaDupla = { indice:0, url:'still', mostra:'boy with Ravan', fala:'boy talks to Ravan', prompt:'boy with Ravan', seed:1, referencia:{url:'boy-sheet',descricao:'the boy',outras:[{url:'ravan-sheet',descricao:ravan.canonica}]} }
+function referenciasNaOrdem(c) {
+  const p=c.montarPedidoAoCritico(entradaDupla,'still'), partes=p.messages[1].content
+  return p.imagens===3 && JSON.stringify(partes.filter(x=>x.type==='image_url').map(x=>x.image_url.url))==='["boy-sheet","ravan-sheet","still"]' && partes[1].text.includes('the boy') && partes[3].text.includes(ravan.canonica) && partes[5].text.includes('STILL TO CHECK')
+}
+ok(referenciasNaOrdem(C), '3c juiz recebe ambas as folhas na ordem exata e com cada descrição associada à sua imagem')
 
 // 4. A fala manda: nome/papel/pronome; visual young man não envelhece o menino.
 ok(L.cenasComPersonagem(MOTO.visuals, elenco(MOTO), MOTO.falas).every((c) => c.nomes.length === 1) && /boy/.test(direcao(L,V,MOTO,0)) && !/young man/i.test(direcao(L,V,MOTO,0)), '4a moto 3/3 cenas pela fala e pronome; plano final mostra boy')
@@ -164,6 +168,7 @@ async function mutante(nome,p,de,para,prova) {
 }
 await mutante('ratio pedido',F.lib,'Output aspect ratio ${normalizeAspect(aspect)}','Output format',o=>/Output aspect ratio 9:16/.test(carregador(o)(F.lib).promptDoStillComFolha('x',elenco(RAVAN))))
 await mutante('painéis',F.lib,'No panels,','Panels allowed,',o=>/No panels/.test(carregador(o)(F.lib).promptDoStillComFolha('x',elenco(RAVAN))))
+await mutante('segunda referência após still',F.juiz,'parts.splice(3, 0, ...outrasPartes)','parts.splice(parts.length, 0, ...outrasPartes)',o=>referenciasNaOrdem(carregador(o)(F.juiz)))
 await mutante('dimensões',F.srv,'validarFormato && url && !formatoDoStillDoPersonagem','false && url && !formatoDoStillDoPersonagem',async o=>(await servidor(o,{width:1024,height:1024})).r.motivo==='format_invalid')
 await mutante('metadata tamanho',F.helper,"'small')","'child-sized')",o=>!M.decideModeration(nota(0.12),carregador(o)(F.helper).textoModeracaoDoPersonagem(autor,fichaDino),{hasImage:true}).block)
 const castingMitoErrado = JSON.stringify({characters:[{name:'Ravan',description:'A red demon with one head in a yellow hoodie and jeans with green eyes and a short tail'}]})
@@ -175,5 +180,5 @@ await mutante('pessoa em ambiente',F.policy,'policy.personagemCena !== undefined
 await mutante('rota ignora fala',F.rota,"cenasComPersonagem(visuaisP, elencoP, scenes.map((s) => s.voiceover ?? ''))",'cenasComPersonagem(visuaisP, elencoP)',async o=>(await bloco(o,true,MOTO)).edits.length===6)
 const primeira=ARQUIVOS.find((p)=>TROCAS[p]?.length)
 let estrito=false;try{desfaz(rd(primeira)+'\n// '+MARCA,primeira)}catch{estrito=true}ok(estrito,'mutante desfaz: acréscimo inesperado lança')
-console.log(`\n${pass} ok; ${fail} falhas; ${vermelhos}/10 mutantes executados vermelhos; base ${BASE}`)
+console.log(`\n${pass} ok; ${fail} falhas; ${vermelhos}/11 mutantes executados vermelhos; base ${BASE}`)
 process.exit(fail ? 1 : 0)
