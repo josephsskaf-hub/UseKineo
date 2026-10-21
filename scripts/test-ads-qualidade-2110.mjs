@@ -116,9 +116,12 @@ const provas = {
       ys.length === 3 && ys.every((y) => y <= 80) && els.some((e) => e.fit === 'contain') && Q.adsV2EndCardOffer('30% off this week') === '30% off this week'
   },
   async roteiro(L) {
-    const B = L(F.brief)
-    const opts = { maxWords: 34, narration: true, minWords: 5, ad: { product: true } }
-    const sys = B.buildV2CopyMessages(WATCH, 'English', { maxWords: 34, narration: true, ad: { product: true } }).system
+    const B = L(F.brief), Q = L(F.q)
+    const benefits = Q.adsV2TypedBenefits(WATCH)
+    const opts = { maxWords: 34, narration: true, minWords: 5, ad: { product: true, benefits } }
+    const sys = B.buildV2CopyMessages(WATCH, 'English', { maxWords: 34, narration: true, ad: { product: true, benefits } }).system
+    const sem = B.buildV2CopyMessages(WATCH, 'English', { maxWords: 34, narration: true, ad: { product: true } }).system
+    if (/stunning design/.test(sem) || !B.checkV2Copy(JSON.stringify({ narration: WATCH_BAD, overlays: ['Pulse smartwatch', '7-day battery'], sector: 'store' }), WATCH, { ...opts, ad: { product: true } }).ok) return false // sem a lista (guardiões antigos, chamadas sem benefitRule) = como sempre
     const bad = B.checkV2Copy(JSON.stringify({ narration: WATCH_BAD, overlays: ['Pulse smartwatch', '7-day battery'], sector: 'store' }), WATCH, opts)
     const good = B.checkV2Copy(JSON.stringify({ narration: WATCH_OK, overlays: ['Pulse smartwatch', '7-day battery'], sector: 'store' }), WATCH, opts)
     const why = bad.ok ? '' : bad.why.join(' | ')
@@ -167,7 +170,8 @@ await mut('o punch-in some', F.q, '  const scale = fits(P.scale) ? P.scale : fit
 await mut('o cartão v3 é ignorado no UGC', F.montage, '  if (q?.card) elements.push(...q.card(t.cardStart, r3(cardSeconds))); else', '  if (false) elements.push(...q.card(t.cardStart, r3(cardSeconds))); else', provas.montagemUgc)
 await mut('o gancho volta ao recorte no Product Ads', F.close, '  if (input.quality?.hook) { elements.push(...input.quality.hook(0, hookDur)) } else', '  if (false) { } else', provas.montagemProduto)
 await mut('o selo pega a primeira parte (benefício, não oferta)', F.q, '  const parts = all.filter((p) => OFFER_RE.test(p))', '  const parts = all', provas.montagemProduto)
-await mut('o benefício faltando passa', F.brief, '    if (opts.ad?.product) why.push(...adsV2BenefitWhy(narration, adsV2TypedBenefits(brief)))', '    if (false) why.push(...adsV2BenefitWhy(narration, adsV2TypedBenefits(brief)))', provas.roteiro)
+await mut('o /plan não liga a regra dos benefícios', F.plan, '      benefitRule: true,', '      benefitRule: false,', async (L) => /benefitRule: true/.test(L.text(F.plan)))
+await mut('o benefício faltando passa', F.brief, '    if (opts.ad?.product && Array.isArray(opts.ad.benefits)) why.push(...adsV2BenefitWhy(narration, opts.ad.benefits))', '    if (false) why.push(...adsV2BenefitWhy(narration, opts.ad.benefits))', provas.roteiro)
 
 console.log(`\n${pass} ok, ${fail} falha(s)`)
 process.exit(fail ? 1 : 0)

@@ -5,9 +5,9 @@
     "lib/ads/adV2Montage.ts": 5,
     "lib/ads/v2Advance.ts": 11,
     "lib/ads/v2BolaFix.ts": 4,
-    "lib/ads/v2Brief.ts": 3,
+    "lib/ads/v2Brief.ts": 5,
     "lib/ads/v2CloseReal.ts": 1,
-    "lib/ads/v2PlanCore.ts": 7,
+    "lib/ads/v2PlanCore.ts": 8,
     "lib/ads/v2PresenterV2.ts": 61,
     "scripts/test-ads-bola-2110.mjs": 1,
     "scripts/test-support/desfaz-ads-bola-2110.mjs": 2
@@ -69,7 +69,12 @@
     ]
   ],
   "lib/ads/v2BolaFix.ts": [],
-  "lib/ads/v2Brief.ts": [],
+  "lib/ads/v2Brief.ts": [
+    [
+      "  const ad: AdsV2AdVoice | null = productAd || args.presenter === true ? { product: productAd, presenter: args.presenter === true, ...(args.presenter === true && args.presenterTalk === true ? { talk: true } : {}), ...(args.benefitRule === true && productAd ? { benefits: adsV2TypedBenefits(brief) } : {}) } : null // KINEO-ADS-QUALIDADE-2110 — + os benefícios digitados (só com benefitRule) · KINEO-APRESENTADOR-OLHOS-1910 — + talk (só o apresentador v2)",
+      "  const ad: AdsV2AdVoice | null = productAd || args.presenter === true ? { product: productAd, presenter: args.presenter === true, ...(args.presenter === true && args.presenterTalk === true ? { talk: true } : {}) } : null // KINEO-APRESENTADOR-OLHOS-1910 — + talk (só o apresentador v2)"
+    ]
+  ],
   "lib/ads/v2CloseReal.ts": [
     [
       "  if (input.quality?.hook) { elements.push(...input.quality.hook(0, hookDur)) } else if (isHttps(input.heroUrl)) { // KINEO-ADS-QUALIDADE-2110 — com a camada: a foto inteira do produto (nunca mais o recorte pequeno no fundo marrom)",

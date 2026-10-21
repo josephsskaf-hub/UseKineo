@@ -221,6 +221,7 @@ export interface AdsV2AdVoice {
   presenter: boolean
   /** KINEO-APRESENTADOR-OLHOS-1910 — o APRESENTADOR v2 fala como apresentador (benefício, para quem é, por que comprar), nunca sensorial/contemplativo. Ausente = como sempre. */
   talk?: boolean // KINEO-APRESENTADOR-OLHOS-1910
+  benefits?: string[] // KINEO-ADS-QUALIDADE-2110 — os benefícios/ofertas DIGITADOS: presente = a regra e a checagem do roteiro (só o /plan liga; ausente = como sempre, byte a byte)
 }
 export const ADS_V2_PRODUCT_NARRATION_RULE =
   'narration: this is a PRODUCT ad. Talk about the product itself, not about a shop: what it is, its main benefit, one sensory detail (how it looks, feels, smells or tastes — only what the brief says or what is plain from the product), and a short call to action. Speak directly to the viewer. Never sound like a store: never "At <brand>, we offer", "a selection of", "our store", "our collection" or "visit us".'
@@ -302,7 +303,7 @@ export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts:
       : []),
     // KINEO-ATOR-AJUSTES-2026-10-09 — produto fala do produto; com o ator, 1ª pessoa para a câmera. Sem `ad` = nenhuma linha.
     ...(opts.ad?.product && opts.narration ? [opts.ad?.talk === true ? ADS_V2_PRODUCT_TALK_RULE : ADS_V2_PRODUCT_NARRATION_RULE] : []), // KINEO-APRESENTADOR-OLHOS-1910 — no apresentador v2, sem o "detalhe sensorial"
-    ...(opts.ad?.product && opts.narration ? [adsV2BenefitRule(adsV2TypedBenefits(brief))] : []), // KINEO-ADS-QUALIDADE-2110 — Product Ads de 21/10: "7-day battery" sumiu e entrou "It features a stunning design"
+    ...(opts.ad?.product && Array.isArray(opts.ad.benefits) && opts.narration ? [adsV2BenefitRule(opts.ad.benefits)] : []), // KINEO-ADS-QUALIDADE-2110 — Product Ads de 21/10: "7-day battery" sumiu e entrou "It features a stunning design"
     ...(opts.ad?.presenter && opts.narration ? [ADS_V2_PRESENTER_NARRATION_RULE] : []),
     ...(opts.ad?.talk === true && opts.narration ? [ADS_V2_PRESENTER_TALK_RULE] : []), // KINEO-APRESENTADOR-OLHOS-1910 — a fala de apresentador (só o v2)
     ...(opts.nameArticle === true && opts.narration && brand ? [adsV2NameArticleRule(brand)] : []), // KINEO-ADS-MAO-JUIZ-1610 — "da Perfume Atheeri": o nome é nome próprio, sem artigo antes
@@ -412,7 +413,7 @@ export function checkV2Copy(raw: string, brief: AdsBrief, opts: { maxWords: numb
     if (DECOR.test(narration)) why.push('narration: no brackets, markdown or emojis.')
     // KINEO-ATOR-AJUSTES-2026-10-09 — anúncio de produto não fala como loja ("At LUME, we offer a selection of…").
     if (opts.ad?.product && isShopTalk(narration)) why.push(ADS_V2_SHOP_TALK_WHY)
-    if (opts.ad?.product) why.push(...adsV2BenefitWhy(narration, adsV2TypedBenefits(brief))) // KINEO-ADS-QUALIDADE-2110 — benefício faltando / frase genérica / travessão: 1 correção (o afrouxamento do produto também afrouxa isto: nunca um 502)
+    if (opts.ad?.product && Array.isArray(opts.ad.benefits)) why.push(...adsV2BenefitWhy(narration, opts.ad.benefits)) // KINEO-ADS-QUALIDADE-2110 — benefício faltando / frase genérica / travessão: 1 correção (o afrouxamento do produto também afrouxa isto: nunca um 502)
     if (opts.ad?.talk === true) { const tm = presenterTalkMarks(narration); if (tm.length) why.push(adsV2PresenterTalkWhy(tm)) } // KINEO-APRESENTADOR-OLHOS-1910 — a fala sensorial do apresentador v2 volta para 1 correção
     why.push(...textIssues(narration, brief, 'narration'))
     if (opts.honesty) why.push(...honestyIssues(narration, opts.honesty, 'narration'))
@@ -645,6 +646,7 @@ export async function extractAdsV2Brief(args: AdsV2ExtractArgs & { deadlineMs?: 
 type AdsV2ExtractArgs = Parameters<typeof extractWithBudget>[0]
 
 async function extractWithBudget(args: {
+  benefitRule?: boolean // KINEO-ADS-QUALIDADE-2110 — liga a regra dos benefícios digitados (o /plan manda true)
   text: string
   language: string
   languageName: string
@@ -706,7 +708,7 @@ async function extractWithBudget(args: {
   if (args.kitBf?.offer) adsV2KitBfBriefOffer(brief, args.kitBf.offer) // KINEO-KIT-BF-1910 — a oferta que a PESSOA digitou vira brief.offer (o número/prazo dela passa na régua anti-invenção; nenhum outro)
   const base0 = args.overlays === false ? { maxWords: args.maxWords, narration: args.narration, overlays: false } : { maxWords: args.maxWords, narration: args.narration }
   const base1 = voice ? { ...base0, simple: voice } : base0
-  const ad: AdsV2AdVoice | null = productAd || args.presenter === true ? { product: productAd, presenter: args.presenter === true, ...(args.presenter === true && args.presenterTalk === true ? { talk: true } : {}) } : null // KINEO-APRESENTADOR-OLHOS-1910 — + talk (só o apresentador v2)
+  const ad: AdsV2AdVoice | null = productAd || args.presenter === true ? { product: productAd, presenter: args.presenter === true, ...(args.presenter === true && args.presenterTalk === true ? { talk: true } : {}), ...(args.benefitRule === true && productAd ? { benefits: adsV2TypedBenefits(brief) } : {}) } : null // KINEO-ADS-QUALIDADE-2110 — + os benefícios digitados (só com benefitRule) · KINEO-APRESENTADOR-OLHOS-1910 — + talk (só o apresentador v2)
   // A fonte da régua de honestidade: tudo o que o cliente deu (frase, preço, contato, página do produto, fatos marcados) e só
   // o que ele DIGITOU (alegação de saúde só vale dali — nunca copiada da página).
   // KINEO-ATOR-FTC-2026-10-13 — com o ator, a régua também recusa (e conserta) depoimento de cliente na narração.

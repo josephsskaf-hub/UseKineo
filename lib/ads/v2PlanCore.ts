@@ -231,6 +231,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     const inHandProduct = inHandEarly ? inHandEarly.adsV2InHandEligible({ on: inHandEarly.adsV2InHandOn(reason === 'internal'), tier: order.tier, seconds: order.seconds, photos, productOrder: adsV2IsProductOrder(brief0, input.sector), sector: input.sector, presenter: presenterAsked, style: ADS_V2_STYLES_PUBLIC ? input.style ?? null : null, videos: videos.length }) : null // KINEO-ADS-MAO-AJUSTE-3-1610
     const inHandPairP: Promise<boolean | null> = inHandProduct ? import('@/lib/ads/v2LockVision').then((v) => (typeof v.adsV2InHandPhotoPair === 'function' ? v.adsV2InHandPhotoPair(typeof inHandProduct.original_url === 'string' && inHandProduct.original_url ? inHandProduct.original_url : inHandProduct.url) : null)).catch(() => null) : Promise.resolve(null) // KINEO-ADS-MAO-AJUSTE-3-1610 — a foto inteira (o recorte pode cortar a caixa)
     const extracted = await extractAdsV2Brief({
+      benefitRule: true, // KINEO-ADS-QUALIDADE-2110 — Product Ads: todo benefício digitado na fala, sem frase genérica
       text,
       language,
       languageName: LANGUAGE_NAMES[language],
