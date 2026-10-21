@@ -29,7 +29,7 @@ export const ACRESCIMOS_HOME_CARDS_CLAROS_2010 = {
   'scripts/test-bebe-que-fala-2010.mjs': 1,
   'scripts/test-mcp-studio-2010.mjs': 2,
   'scripts/test-mcp-studio-ajuste-2010.mjs': 3,
-  'scripts/test-meta95-personagem-2010.mjs': 1,
+  'scripts/test-meta95-personagem-2010.mjs': 2,
   'scripts/test-support/desfaz-bebe-que-fala-2010.mjs': 2,
   'scripts/test-verbatim-intocavel-2010.mjs': 0,
 }
