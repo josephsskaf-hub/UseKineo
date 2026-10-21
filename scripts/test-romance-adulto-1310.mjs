@@ -19,6 +19,7 @@
 //   (5) mutantes: cada um aplicado (prova por texto) tem de deixar o guardião vermelho.
 import { semTrilha15s1610, linhaDaTrilha15s1610, linhasTrocadasTrilha15s1610 } from './test-support/desfaz-trilha-15s-1610.mjs' // reancorado KINEO-TRILHA-15S [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"]: o plano de b-roll alinhado e o protagonista sem rosto saem em memória antes do byte a byte
 import { readFileSync } from 'node:fs'
+import { semMeta95PersonagemAjuste2010 } from './test-support/desfaz-meta95-personagem-ajuste-2010.mjs' // KINEO-META95-PERSONAGEM-AJUSTE-2010 — a tentativa com folha tem guardião próprio; preserva o recorte do romance
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
@@ -28,7 +29,7 @@ import { desfazRomanceAdulto, MARCA_ROMANCE_ADULTO } from './test-support/desfaz
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semMeta95PersonagemAjuste2010(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n') // KINEO-META95-PERSONAGEM-AJUSTE-2010
 const ROTA = 'app/api/generate-video-cinematic/route.ts'
 const VERBOSO = process.argv.includes('--antes-depois')
 

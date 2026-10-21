@@ -27,6 +27,7 @@ const semTrilha15s1610 = (texto, p) => semTrilha15s1610Puro(semFilmeRapido1710(t
 const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) // reancorado KINEO-FILME-RAPIDO-1710
 const linhasTrocadasTrilha15s1610 = (p) => [...linhasTrocadasTrilha15s1610Puro(p), ...linhasTrocadasFilmeRapido1710(p)] // reancorado KINEO-FILME-RAPIDO-1710
 import { readFileSync } from 'node:fs'
+import { semMeta95PersonagemAjuste2010 } from './test-support/desfaz-meta95-personagem-ajuste-2010.mjs' // KINEO-META95-PERSONAGEM-AJUSTE-2010 — o laço executado mantém o recorte do contrato anterior
 import { desfazAncoraLegenda1410, linhaDaAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 import { desfazJuizStill1410, linhaDoJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 import { join, dirname } from 'node:path'
@@ -44,7 +45,7 @@ const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const ROTA = 'app/api/generate-video-cinematic/route.ts'
 const LIB = 'lib/cinematic/sceneTruth.ts'
 const MODO = 'lib/cinematic/visualMode.ts'
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semMeta95PersonagemAjuste2010(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n') // KINEO-META95-PERSONAGEM-AJUSTE-2010
 const git = (args) => execFileSync('git', args, { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()
 
 let ok = 0
