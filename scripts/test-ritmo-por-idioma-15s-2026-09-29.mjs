@@ -25,6 +25,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { reguaDe95No15s } from './test-support/desfaz-cobertura-15s.mjs'
+import { semLegendaBengali2010 } from './test-support/desfaz-legenda-bengali-2010.mjs' // KINEO-LEGENDA-BENGALI-2010 — preserva a grade histórica de 16 línguas
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ) // o loader offline resolve '@/...' a partir do cwd
@@ -38,7 +39,7 @@ const eqJ = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 const trocaUma = (src, a, b) => (src != null && src.split(a).length === 2 ? src.split(a).join(b) : null)
 const palavras = (t) => String(t ?? '').trim().split(/\s+/).filter(Boolean)
 const SILENCIO = { log() {}, warn() {}, error() {} }
-const L = createOfflineLoader({ source: reguaDe95No15s }) // reancorado 30/09 (KINEO-COBERTURA-15S): esta prova é da régua de 95 % do 15 s de 29/09 — a régua de 75 % de 30/09 volta a 95 % em memória aqui e tem guardião próprio (test-cobertura-15s-2026-09-30)
+const L = createOfflineLoader({ source: (rel, texto) => reguaDe95No15s(rel, semLegendaBengali2010(texto, rel)) }) // reancorado 30/09 (KINEO-COBERTURA-15S): esta prova é da régua de 95 % do 15 s de 29/09 — a régua de 75 % de 30/09 volta a 95 % em memória aqui e tem guardião próprio (test-cobertura-15s-2026-09-30) // KINEO-LEGENDA-BENGALI-2010 — camada posterior desfeita antes da régua histórica
 
 // ═══ BASE = as fontes sem o marcador: o pai do 1º commit com ele; antes do commit, HEAD; senão origin/main ═══
 const git = (args) => execFileSync('git', args, { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()

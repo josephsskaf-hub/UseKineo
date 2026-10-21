@@ -1,0 +1,116 @@
+{
+  "lib/avatar/reservation.ts": {
+    "acrescimos": 18,
+    "trocas": []
+  },
+  "lib/credits/refund.ts": {
+    "acrescimos": 11,
+    "trocas": [
+      [
+        "import { loadVerifiedAvatarClaimForBillingReference } from '@/lib/avatar/reservation' // KINEO-AVATAR-ESTORNO-2010",
+        [
+          "import { refundAvatarBirthDebitForFailedRequest } from '@/lib/avatar/reservation'"
+        ]
+      ],
+      [
+        "//   · claim assinado pelo id do ledger, sem entrega/settlement; o RPC devolve // KINEO-AVATAR-ESTORNO-2010",
+        [
+          "//   · o estorno reaproveita refundAvatarBirthDebitForFailedRequest, que é",
+          "//     idempotente por chave de ledger — re-rodar o cron nunca dobra crédito."
+        ]
+      ],
+      [
+        "    // render_id = avatar-<claimId>, NÃO o requestId do provedor. Sem claim verificável, nunca estornar. // KINEO-AVATAR-ESTORNO-2010",
+        [
+          "    // render_id = 'avatar-<requestId>' — ver generate-avatar (debita por essa",
+          "    // chave determinística antes do POST na fal).",
+          "    const requestId = renderId.slice('avatar-'.length)",
+          "    if (!requestId) continue",
+          "    const refunded = await refundAvatarBirthDebitForFailedRequest({ userId, requestId })",
+          "    if (!refunded.ok) {",
+          "      // Claim que não se deixa carregar/estornar é ambiguidade, não silêncio:",
+          "      // aparece no log do cron a cada meia hora até alguém olhar.",
+          "      console.warn(`[refund/avatar-sweep] could not settle ${renderId}: ${refunded.error}`)",
+          "      result.ambiguous += 1",
+          "      continue",
+          "    }",
+          "    if (refunded.credits > 0) {"
+        ]
+      ],
+      [
+        "      result.creditsReturned += credits // KINEO-AVATAR-ESTORNO-2010",
+        [
+          "      result.creditsReturned += refunded.credits"
+        ]
+      ],
+      [
+        "        metadata: { billing_reference: renderId, amount: credits, reason: 'abandoned_avatar' }, // KINEO-AVATAR-ESTORNO-2010",
+        [
+          "        metadata: { billing_reference: renderId, amount: refunded.credits, reason: 'abandoned_avatar' },"
+        ]
+      ]
+    ]
+  },
+  "scripts/test-avatar-preso-2010.mjs": {
+    "acrescimos": 2,
+    "trocas": [
+      [
+        "const rd = (rel) => semAvatarEstorno2010(lf(fs.readFileSync(path.join(ROOT, rel), 'utf8')), rel) // KINEO-AVATAR-ESTORNO-2010",
+        [
+          "const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))"
+        ]
+      ]
+    ]
+  },
+  "scripts/test-support/desfaz-avatar-preso-2010.mjs": {
+    "acrescimos": 3,
+    "trocas": []
+  },
+  "app/api/generate-avatar/route.ts": {
+    "acrescimos": 5,
+    "trocas": []
+  },
+  "scripts/test-guardiao-2026-08-28.mjs": {
+    "acrescimos": 1,
+    "trocas": [
+      [
+        "const ler = (p) => semAvatarEstorno2010(readFileSync(join(R, p), 'utf8'), p) // KINEO-AVATAR-ESTORNO-2010",
+        [
+          "const ler = (p) => readFileSync(join(R, p), 'utf8')"
+        ]
+      ]
+    ]
+  },
+  "lib/credits/composeHold.ts": {
+    "acrescimos": 4,
+    "trocas": []
+  },
+  "scripts/test-mcp-studio-2010.mjs": {
+    "acrescimos": 4,
+    "trocas": []
+  },
+  "scripts/test-meta95-personagem-2010.mjs": {
+    "acrescimos": 1,
+    "trocas": []
+  },
+  "scripts/test-verbatim-intocavel-2010.mjs": {
+    "acrescimos": 1,
+    "trocas": []
+  },
+  "scripts/test-mcp-studio-ajuste-2010.mjs": {
+    "acrescimos": 4,
+    "trocas": []
+  },
+  "scripts/test-support/desfaz-meta95-personagem-ajuste-2010.mjs": {
+    "acrescimos": 2,
+    "trocas": []
+  },
+  "scripts/test-desenho-som-2110.mjs": {
+    "acrescimos": 2,
+    "trocas": []
+  },
+  "scripts/test-meta95-personagem-ajuste-2010.mjs": {
+    "acrescimos": 1,
+    "trocas": []
+  }
+}

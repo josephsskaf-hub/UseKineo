@@ -17,7 +17,7 @@
 // com o tamanho errado. Entram quando a régua souber contar caracteres.
 // O catálogo mora AQUI, não em arquivo próprio, porque três guardiões carregam lib/textLanguage.ts cru (sem resolver
 // imports). Quem precisa da lista importa daqui.
-export type NarrationLanguage = 'en' | 'pt' | 'es' | 'hi' | 'fr' | 'de' | 'it' | 'nl' | 'pl' | 'tr' | 'ru' | 'uk' | 'ar' | 'ur' | 'id' | 'vi'
+export type NarrationLanguage = 'en' | 'pt' | 'es' | 'hi' | 'fr' | 'de' | 'it' | 'nl' | 'pl' | 'tr' | 'ru' | 'uk' | 'ar' | 'ur' | 'id' | 'vi' | 'bn' // KINEO-LEGENDA-BENGALI-2010 — a língua atravessa as rotas até a fonte do Creatomate
 export interface NarrationLanguageSpec {
   code: NarrationLanguage
   /** Nome que vai na instrução ao roteirista ("Write all voiceover sentences in …"). */
@@ -34,6 +34,7 @@ export const NARRATION_LANGUAGES: readonly NarrationLanguageSpec[] = [
   { code: 'pt', name: 'Brazilian Portuguese (pt-BR)', native: 'Português', captionFont: DEFAULT_CAPTION_FONT, rtl: false },
   { code: 'es', name: 'Spanish (es-419, Latin American)', native: 'Español', captionFont: DEFAULT_CAPTION_FONT, rtl: false },
   { code: 'hi', name: 'Hindi (Devanagari script)', native: 'हिन्दी', captionFont: 'Noto Sans Devanagari', rtl: false },
+  { code: 'bn', name: 'Bengali', native: 'বাংলা', captionFont: 'Noto Sans Bengali', rtl: false }, // KINEO-LEGENDA-BENGALI-2010 — mesma estrada Google Fonts já usada pelo hindi
   { code: 'fr', name: 'French', native: 'Français', captionFont: DEFAULT_CAPTION_FONT, rtl: false },
   { code: 'de', name: 'German', native: 'Deutsch', captionFont: DEFAULT_CAPTION_FONT, rtl: false },
   { code: 'it', name: 'Italian', native: 'Italiano', captionFont: DEFAULT_CAPTION_FONT, rtl: false },

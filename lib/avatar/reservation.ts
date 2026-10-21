@@ -214,6 +214,18 @@ async function loadAvatarClaimByGeneration(args: {
   return verifyAvatarClaimRow({ ...args, row: data })
 }
 
+// KINEO-AVATAR-ESTORNO-2010 — o ledger guarda avatar-<claimId>, inclusive quando o processo cai antes de existir requestId.
+export async function loadVerifiedAvatarClaimForBillingReference(args: { db: SupabaseClient; secret: string; userId: string; billingReference: string }): Promise<AvatarClaimLoad> { // KINEO-AVATAR-ESTORNO-2010
+  const claimId = args.billingReference.startsWith('avatar-') ? args.billingReference.slice('avatar-'.length) : '' // KINEO-AVATAR-ESTORNO-2010
+  if (!claimId) return { ok: false, error: 'invalid avatar billing reference' } // KINEO-AVATAR-ESTORNO-2010
+  const { data, error } = await args.db.from('events').select('id,name,user_id,path,session_id,metadata').eq('id', claimId).eq('user_id', args.userId).eq('name', AVATAR_CLAIM_EVENT).maybeSingle() // KINEO-AVATAR-ESTORNO-2010
+  if (error) return { ok: false, error: error.message } // KINEO-AVATAR-ESTORNO-2010
+  if (!data) return { ok: false, error: 'avatar billing claim is missing' } // KINEO-AVATAR-ESTORNO-2010
+  const generationId = typeof data.session_id === 'string' ? data.session_id : '' // KINEO-AVATAR-ESTORNO-2010
+  const loaded = verifyAvatarClaimRow({ ...args, generationId, row: data }) // KINEO-AVATAR-ESTORNO-2010
+  if (!loaded.ok || !loaded.claim) return loaded // KINEO-AVATAR-ESTORNO-2010
+  return loaded.claim.billingReference === args.billingReference ? loaded : { ok: false, error: 'avatar billing reference mismatch' } // KINEO-AVATAR-ESTORNO-2010
+} // KINEO-AVATAR-ESTORNO-2010
 export async function loadVerifiedAvatarClaimForRequest(args: {
   userId: string
   requestId: string
@@ -257,6 +269,7 @@ export async function markAvatarClaimPrepaid(args: {
     const loaded = await loadAvatarClaimByGeneration({ ...admin, ...args })
     if (!loaded.ok || !loaded.claim) return false
     const claim = loaded.claim
+    if (claim.metadata.abandoned_refund_claimed_at) return false // KINEO-AVATAR-ESTORNO-2010 — marcação prepaid tardia não pode apagar a reserva de estorno
     const expectedReference = claim.billingReference
     const existingReference = typeof claim.metadata.prepaid_billing_reference === 'string'
       ? claim.metadata.prepaid_billing_reference
@@ -277,6 +290,7 @@ export async function markAvatarClaimPrepaid(args: {
       .eq('user_id', args.userId)
       .eq('name', AVATAR_CLAIM_EVENT)
       .eq('metadata->>authority', claim.authority)
+      .is('metadata->>abandoned_refund_claimed_at', null) // KINEO-AVATAR-ESTORNO-2010 — CAS também no marcador prepaid: não reabre entrega com snapshot velho
       .select('id')
       .maybeSingle()
     if (!error && data?.id === claim.claimId) return true
@@ -336,6 +350,7 @@ export async function bindAvatarCompletedVideo(args: {
     const loaded = await loadVerifiedAvatarClaimForRequest({ userId: args.userId, requestId: args.requestId })
     if (!loaded.ok || !loaded.claim) return loaded
     const claim = loaded.claim
+    if (claim.metadata.abandoned_refund_claimed_at) return { ok: false, error: 'avatar abandonment refund reserved' } // KINEO-AVATAR-ESTORNO-2010 — nenhuma URL tardia pode entrar no replay de um avatar estornado
     if (claim.engine !== args.engine) return { ok: false, error: 'avatar engine mismatch' }
     if (claim.completedVideoUrl) {
       return claim.completedVideoUrl === videoUrl
@@ -366,6 +381,7 @@ export async function bindAvatarCompletedVideo(args: {
       .eq('user_id', claim.userId)
       .eq('name', AVATAR_CLAIM_EVENT)
       .eq('metadata->>authority', claim.authority)
+      .is('metadata->>abandoned_refund_claimed_at', null) // KINEO-AVATAR-ESTORNO-2010 — bind e reserva de estorno não podem ganhar juntos, mesmo com a mesma assinatura lida
       .select('id,name,user_id,path,session_id,metadata')
       .maybeSingle()
     if (!error && data) {
@@ -507,6 +523,7 @@ async function settleClaim(args: {
     return false
   }
   const claim = loaded.claim
+  if (claim.metadata.abandoned_refund_claimed_at) return false // KINEO-AVATAR-ESTORNO-2010 — o sweep já reservou a liquidação financeira deste claim
   if (claim.status === 'settled') return true
   if (claim.status !== 'done' || !claim.response || !claim.responseHash) return false
 
@@ -532,6 +549,7 @@ async function settleClaim(args: {
     .eq('user_id', args.userId)
     .eq('name', AVATAR_CLAIM_EVENT)
     .eq('metadata->>authority', claim.authority)
+    .is('metadata->>abandoned_refund_claimed_at', null) // KINEO-AVATAR-ESTORNO-2010 — settlement tardio não apaga o marcador reservado pelo sweep
     .select('id')
     .maybeSingle()
   if (updateError || updated?.id !== claim.claimId) {
