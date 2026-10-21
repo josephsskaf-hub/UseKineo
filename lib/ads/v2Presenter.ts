@@ -222,6 +222,8 @@ export interface AdsV2PresenterPlan {
   presenterId?: string
   /** KINEO-APRESENTADOR-V2-1710 — o método novo (2 referências, 4 opções, boca neutra, voz por língua, 15 s): só conta interna. Ausente = o ator de antes. */
   v2?: AdsV2PresenterV2Plan
+  /** KINEO-ADS-BOLA-2110 — a foto INTEIRA do produto (original_url, KINEO-ADS-FIEL-3), sem o recorte 9:16 do navegador: o apresentador v2 usa como referência e como close. Ausente = só o recorte (pedido antigo). */ // KINEO-ADS-BOLA-2110
+  productOriginalUrl?: string // KINEO-ADS-BOLA-2110
 }
 
 const HTTPS_RE = /^https:\/\/\S+$/i
@@ -230,24 +232,25 @@ const HTTPS_RE = /^https:\/\/\S+$/i
  * O ator do pedido: a 1ª foto marcada como 'product'. null = sem foto de produto (a rota recusa antes, com 400).
  * `seedKey` = o id do pedido (a pessoa varia de pedido para pedido, e é a mesma em toda tentativa do mesmo pedido).
  */
-export function planAdsV2Presenter(input: { sector: string | null | undefined; photos: readonly { footage_id: string; kind: string; url: string }[]; seedKey: string; presenterId?: string | null }): AdsV2PresenterPlan | null {
+export function planAdsV2Presenter(input: { sector: string | null | undefined; photos: readonly { footage_id: string; kind: string; url: string; original_url?: string }[]; seedKey: string; presenterId?: string | null }): AdsV2PresenterPlan | null { // KINEO-ADS-BOLA-2110 — + original_url (a foto inteira do produto)
   const photo = (Array.isArray(input.photos) ? input.photos : []).find((p) => p && p.kind === 'product' && typeof p.url === 'string' && HTTPS_RE.test(p.url.trim()))
   if (!photo) return null
+  const orig = typeof photo.original_url === 'string' && HTTPS_RE.test(photo.original_url.trim()) && photo.original_url.trim() !== photo.url.trim() ? { productOriginalUrl: photo.original_url.trim() } : {} // KINEO-ADS-BOLA-2110 — pedido 618a6680: o recorte 9:16 de uma foto quadrada cortou a bola dos dois lados (e o close mostrou 126 px ampliados)
   // KINEO-ATORES-IA-2026-10-13 — apresentador escolhido (resolvido AQUI, contra a lista fechada) = a descrição e o pronome
   // DELE, e o id gravado no pedido; sem escolha (ou id fora da lista — o contrato já recusa antes) = o sorteio de sempre.
   const pick = adsV2PresenterById(input.presenterId)
   if (pick) {
-    return { productFootageId: photo.footage_id, productUrl: photo.url.trim(), person: ADS_V2_PRESENTER_LIBRARY.indexOf(pick), actorPrompt: adsV2ActorPromptFor(input.sector, pick.look, pick.pronoun), presenterId: pick.id }
+    return { productFootageId: photo.footage_id, productUrl: photo.url.trim(), person: ADS_V2_PRESENTER_LIBRARY.indexOf(pick), actorPrompt: adsV2ActorPromptFor(input.sector, pick.look, pick.pronoun), presenterId: pick.id, ...orig } // KINEO-ADS-BOLA-2110 — + a foto inteira
   }
   const person = adsV2PresenterPerson(input.seedKey)
-  return { productFootageId: photo.footage_id, productUrl: photo.url.trim(), person, actorPrompt: adsV2ActorPrompt(input.sector, person) }
+  return { productFootageId: photo.footage_id, productUrl: photo.url.trim(), person, actorPrompt: adsV2ActorPrompt(input.sector, person), ...orig } // KINEO-ADS-BOLA-2110 — + a foto inteira
 }
 
 export function isAdsV2PresenterPlan(raw: unknown): raw is AdsV2PresenterPlan {
   const p = raw as Partial<AdsV2PresenterPlan> | null
   return !!p && typeof p === 'object' && typeof p.productFootageId === 'string' && typeof p.productUrl === 'string' && HTTPS_RE.test(p.productUrl) &&
     typeof p.actorPrompt === 'string' && p.actorPrompt.trim().length > 10 && typeof p.person === 'number' &&
-    (p.presenterId === undefined || adsV2PresenterById(p.presenterId) !== null) // KINEO-ATORES-IA-2026-10-13 — só id da lista fechada
+    (p.presenterId === undefined || adsV2PresenterById(p.presenterId) !== null) && (p.productOriginalUrl === undefined || (typeof p.productOriginalUrl === 'string' && HTTPS_RE.test(p.productOriginalUrl))) // KINEO-ATORES-IA-2026-10-13 — só id da lista fechada · KINEO-ADS-BOLA-2110 — a foto inteira, quando vem, é https
 }
 
 /** A voz cabe no ator? (alvo do anúncio + a mesma folga do cartão; e o teto do modelo). */

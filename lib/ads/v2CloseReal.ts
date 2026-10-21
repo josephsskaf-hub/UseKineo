@@ -23,6 +23,7 @@
 // LIB PURA (só `import type` e a montagem pura lib/ads/adV2Montage.ts): roda no navegador (a escolha da tela) e no guardião
 // scripts/test-close-real-1910.mjs. O lado servidor (recorte + fundo) mora em lib/ads/v2CloseRealServer.ts.
 import type { InterfaceLanguage } from '@/lib/ui/interfaceLanguage'
+import { adsV2BusinessName } from '@/lib/ads/v2BolaFix' // KINEO-ADS-BOLA-2110 — o nome do cartão sem travessão solto
 import type { AdsV2PlannedShot } from '@/lib/ads/v2ShotLists'
 import { ADS_V2_FRAME_RATE, ADS_V2_MONTAGE_FADE, ADS_V2_OVERLAY_LINE_HEIGHT, ADS_V2_OVERLAY_PILL_PAD, ADS_V2_OVERLAY_WIDTH, ADS_V2_RECT_PATH, ADS_V2_SAFE_BOTTOM, ADS_V2_SAFE_TOP, ADS_V2_VOICE_START, ADS_V2_MUSIC_VOLUME_NO_VOICE, ADS_V2_MUSIC_VOLUME_WITH_VOICE, ADS_V2_MUSIC_RISE_AFTER_VOICE, adsV2OverlayFontSize, adsV2OverlayLines, adsV2PackshotElements, ADS_V2_OVERLAY_CHAR_EM } from '@/lib/ads/adV2Montage' // KINEO-CLOSE-REAL-AJUSTE-1910 — + ADS_V2_OVERLAY_CHAR_EM (a quebra das legendas maiores)
 
@@ -575,7 +576,7 @@ export function adsV2CloseRealCta(lang: string | null | undefined): string { // 
 } // KINEO-CLOSE-REAL-AJUSTE-1910
 /** KINEO-CLOSE-REAL-AJUSTE-1910 — o nome do cartão = a marca do brief (a parte antes do travessão em "<nome> — <o que vende>", a régua do brandName). Pura. */
 export function adsV2CloseRealCardName(business: unknown): string { // KINEO-CLOSE-REAL-AJUSTE-1910
-  return (typeof business === 'string' ? business : '').split(/\s+[—–-]\s+/)[0].trim().replace(/\s*[—–-]\s*$/, '').replace(/\s+/g, ' ') // KINEO-CLOSE-REAL-AJUSTE-1910
+  return adsV2BusinessName(typeof business === 'string' ? business : '') // KINEO-ADS-BOLA-2110 — a régua única: travessão solto na frente ou atrás sai ("— bola de futebol" → "bola de futebol")
 } // KINEO-CLOSE-REAL-AJUSTE-1910
 // ── o que o pedido guarda (ads_v2_orders.plan.closeReal) ─────────────────────────────────────────────────────────────
 export interface AdsV2CloseRealPlan {

@@ -17,6 +17,7 @@ import { ADS_V2_CLAIMS, ADS_V2_TESTIMONIAL } from '@/lib/ads/v2Honesty'
 import { inventedClaims, inventedNumbers } from '@/lib/ads/scriptPrompt'
 import { ADS_V2_SECTOR_SPECS, isAdsV2Sector, sceneImagePrompt } from '@/lib/ads/v2ShotLists'
 import { ADS_V2_PRODUCT_WORDS, ADS_V2_SIMPLE_COPY, inferSector, isProductSentence, simpleTitle } from '@/lib/ads/v2Simple'
+import { adsV2LooksLikeInstruction, adsV2ReadInstruction, simpleInstructionTitle } from '@/lib/ads/v2Simple' // KINEO-ADS-BOLA-2110 — o texto-instrução
 
 // ─── o campo ───────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -272,6 +273,8 @@ const PLACE_SECTORS = new Set(['real_estate', 'restaurant', 'clinic', 'gym', 'sa
 export function adsV2AdKind(sentence: string): AdsV2AdKind {
   const s = String(sentence ?? '').replace(/\s+/g, ' ').trim()
   if (!s) return 'product'
+  const ins = adsV2ReadInstruction(s) // KINEO-ADS-BOLA-2110 — um PROMPT colado ("Crie uma propaganda … para a bola de futebol da foto …"): decide o produto que ele nomeia; sem produto = produto
+  if (ins) return ins.product && !adsV2LooksLikeInstruction(ins.product) ? adsV2AdKind(ins.product) : 'product' // KINEO-ADS-BOLA-2110
   const split = adsV2SplitSceneRequest(s)
   const base = split.scene !== null && split.product ? split.product : s
   if (ADS_V2_PRODUCT_WORDS.test(base) && isProductSentence(base)) return 'product'
@@ -284,6 +287,8 @@ export function adsV2AdKind(sentence: string): AdsV2AdKind {
 /** O nome do produto que a prévia e o cartão final mostram: no anúncio de produto, a frase que pede cena NUNCA vira título. */
 export function adsV2ProductTitle(sentence: string, kind: AdsV2AdKind): string {
   const s = String(sentence ?? '').replace(/\s+/g, ' ').trim()
+  const it = simpleInstructionTitle(s) // KINEO-ADS-BOLA-2110 — texto-instrução: o título é o produto, nunca "Crie uma propaganda de 15 segundos"
+  if (it !== null) return it // KINEO-ADS-BOLA-2110
   if (kind !== 'product') return simpleTitle(s)
   const split = adsV2SplitSceneRequest(s)
   return split.scene !== null ? split.product : simpleTitle(s)
@@ -576,3 +581,13 @@ export function adsV2SceneErrorText(code: string | null | undefined, language: I
 export function adsV2SceneRow(copy: AdsV2SceneCopy, scene: string): string {
   return copy.plan.sceneRow.split('{scene}').join(capFirst(String(scene ?? '').trim()))
 }
+/** KINEO-ADS-BOLA-2110 — o pedido gravado como "lugar" num TEXTO-INSTRUÇÃO com foto marcada como produto volta a "produto" (pura): o detector antigo lia a frase longa do prompt
+ *  como loja ("o lugar ideal para quem ama futebol", pedido 618a6680). A escolha EXPLÍCITA da pessoa (brief.kind_chosen === true, a tela nova manda) nunca muda; frase que não é — KINEO-ADS-BOLA-2110
+ *  instrução também não (lá "lugar" com produto detectado = a pessoa escolheu). Devolve o MESMO objeto quando nada muda. */ // KINEO-ADS-BOLA-2110
+export function adsV2KindWithProductPhoto<T>(brief: T, photos: readonly { kind?: unknown }[] | null | undefined): T { // KINEO-ADS-BOLA-2110
+  const b = brief && typeof brief === 'object' ? (brief as Record<string, unknown>) : null // KINEO-ADS-BOLA-2110
+  if (!b || b.kind !== 'place' || b.kind_chosen === true || typeof b.sentence !== 'string') return brief // KINEO-ADS-BOLA-2110
+  if (!(Array.isArray(photos) ? photos : []).some((p) => p && p.kind === 'product')) return brief // KINEO-ADS-BOLA-2110
+  if (!adsV2ReadInstruction(b.sentence) || adsV2AdKind(b.sentence) !== 'product') return brief // KINEO-ADS-BOLA-2110
+  return { ...b, kind: 'product', kind_fixed: 'instruction_product_photo' } as T // KINEO-ADS-BOLA-2110
+} // KINEO-ADS-BOLA-2110

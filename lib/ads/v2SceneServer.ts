@@ -32,6 +32,7 @@ export async function adsV2SceneForDraft(body: unknown, tier: string, userId: st
   if (!parsed.ok) return { ok: false, fail: v2Fail(parsed.error, 400) }
   const fields: Record<string, unknown> = {}
   if (parsed.kind) fields.kind = parsed.kind
+  if (parsed.kind && (body as Record<string, unknown> | null)?.kind_chosen === true) fields.kind_chosen = true // KINEO-ADS-BOLA-2110 — a pessoa ESCOLHEU produto/lugar (a tela nova manda kind_chosen: true): o /plan nunca troca a escolha (adsV2KindWithProductPhoto)
   if (parsed.scene) {
     const { moderateContent } = await import('@/lib/safety/contentModeration')
     const { moderationRefusalMessage, moderationRefusalStatus } = await import('@/lib/safety/moderationPolicy')

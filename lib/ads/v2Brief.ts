@@ -9,6 +9,7 @@
 // Recusa → 1 correção com o motivo (como /api/ads/script); falhou de novo = a rota devolve 502 com o porquê, nada cobrado.
 import { openai } from '@/lib/openai'
 import { buildAutoBriefMessages, parseAutoBrief } from '@/lib/ads/autoBrief'
+import { adsV2BusinessName } from '@/lib/ads/v2BolaFix' // KINEO-ADS-BOLA-2110 — o nome limpo dos dois lados (nunca "— bola de futebol")
 import { briefFactsText, contactOk, countWords, inventedClaims, inventedNumbers } from '@/lib/ads/scriptPrompt'
 import type { AdsBrief } from '@/lib/ads/types'
 import { ADS_V2_OVERLAY_MAX_CHARS, ADS_V2_SECTORS, isAdsV2Sector, type AdsV2Sector } from '@/lib/ads/v2ShotLists'
@@ -187,7 +188,7 @@ export function adsV2CloseRealOverlayDash(copy: AdsV2Copy): AdsV2Copy { // KINEO
 } // KINEO-CLOSE-REAL-AJUSTE-1910
 /** Nome da marca = a parte antes do travessão em "<nome> — <o que vende>" (formato do buildAutoBriefMessages). */
 export function brandName(brief: Pick<AdsBrief, 'business'>): string {
-  return (brief.business ?? '').split(/\s+[—–-]\s+/)[0].trim().replace(/\s*[—–-]\s*$/, '') // KINEO-ADS-CONSERTOS-1410 — "perfume —" (travessão sem nada depois) não vira "perfume —" na tela
+  return adsV2BusinessName(brief.business) // KINEO-ADS-BOLA-2110 — travessão/hífen solto na FRENTE e atrás saem ("— bola de futebol" → "bola de futebol"); sem nome = o produto; loja de terceiros nunca é a marca
 }
 
 /**
@@ -676,6 +677,8 @@ async function extractWithBudget(args: {
   /** KINEO-CLOSE-REAL-AJUSTE-1910 — o formato Close do produto real (o /plan decide): a marca no máximo 2 vezes na fala e o travessão do título vira " · ". Ausente = como sempre. */ // KINEO-CLOSE-REAL-AJUSTE-1910
   closeReal?: boolean // KINEO-CLOSE-REAL-AJUSTE-1910
   kitBf?: { offer: string | null; angle: AdsV2KitBfAngle | null } // KINEO-KIT-BF-1910 — o Kit Black Friday (o /plan decide; só Close real de quem tem o Studio Ads). Ausente = como sempre, byte a byte
+  /** KINEO-ADS-BOLA-2110 — a narração que a PESSOA escreveu entre aspas num texto-instrução (inteira e na faixa de palavras): vai VERBATIM no roteiro principal. Ausente = como sempre. */ // KINEO-ADS-BOLA-2110
+  narrationVerbatim?: string // KINEO-ADS-BOLA-2110
 }, budget: AdsV2CallBudget): Promise<AdsV2BriefResult> {
   const briefMsgs = buildAutoBriefMessages(args.text, args.languageName)
   const briefRaw = await callJson([{ role: 'system', content: briefMsgs.system }, { role: 'user', content: briefMsgs.user }], 0.2, 900, budget)
@@ -716,7 +719,7 @@ async function extractWithBudget(args: {
   if (speechMin > 0 && typeof args.speechSentences === 'string' && args.speechSentences) Object.assign(opts, { speechSentences: args.speechSentences }) // KINEO-ADS-MAO-AJUSTE-3-1610 — uma frase a mais (cada ponto é uma pausa da voz)
   if (generic) Object.assign(opts, { generic }) // KINEO-ADS-RETESTE-1510
   const nameLang = ADS_V2_NAME_ARTICLE_CONTRACTIONS[String(args.language ?? '').toLowerCase().slice(0, 2)] ? String(args.language).toLowerCase().slice(0, 2) : null // KINEO-ADS-MAO-JUIZ-1610 — pt/es/fr
-  const nameList = generic ? [] : adsV2NameVariants(brandName(parsed.brief)) // KINEO-ADS-MAO-JUIZ-1610 — o produto genérico já tem o conserto dele ("deste perfume")
+  const nameList = generic || voice?.commonNoun ? [] : adsV2NameVariants(brandName(parsed.brief)) // KINEO-ADS-MAO-JUIZ-1610 — o produto genérico já tem o conserto dele ("deste perfume") · KINEO-ADS-BOLA-2110 — o nome que é substantivo comum ("bola de futebol") também não: "da bola" nunca vira "de bola"
   if (nameLang && args.narration && nameList.length) Object.assign(opts, { nameArticle: true }) // KINEO-ADS-MAO-JUIZ-1610
   const fitOpts = { generic, speech: speechMin > 0 ? { min: speechMin, max: args.maxWords, language: args.language } : null } // KINEO-ADS-RETESTE-1510
   const fitFixes: string[] = [] // KINEO-ADS-RETESTE-1510
@@ -828,5 +831,6 @@ async function extractWithBudget(args: {
   if (finalMain.fixes.length) honestyFixes = [...honestyFixes, ...finalMain.fixes] // KINEO-ADS-MAO-JUIZ-1610
   if (args.kitBf?.offer) { const once = adsV2KitBfOfferOnceCopy(finalMain.copy, args.kitBf.offer, args.language); if (once !== finalMain.copy) { finalMain.copy = once; honestyFixes = [...honestyFixes, 'kit_bf_offer_once'] }; variants = variants.map((v) => ({ ...v, copy: adsV2KitBfOfferOnceCopy(v.copy, args.kitBf?.offer ?? null, args.language) })) } // KINEO-KIT-BF-1910 — a oferta EXATAMENTE 1× na fala (faltou = uma frase curta antes do fecho; repetida = só a 1ª fica)
   variants = variants.map((v) => { const f = adsV2NameFinish(v.copy, nameList, args.language); return f.fixes.length ? { ...v, copy: f.copy, honestyFixes: [...(v.honestyFixes ?? []), ...f.fixes] } : v }) // KINEO-ADS-MAO-JUIZ-1610
+  if (args.narration && typeof args.narrationVerbatim === 'string' && args.narrationVerbatim.trim()) { finalMain.copy = { ...finalMain.copy, narration: args.narrationVerbatim.replace(/\s+/g, ' ').trim() }; honestyFixes = [...honestyFixes, 'customer_narration_verbatim'] } // KINEO-ADS-BOLA-2110 — "Narração: “…”" da pessoa: o roteiro principal fala EXATAMENTE o que ela escreveu (as frases de tela continuam do modelo)
   return { ok: true, brief, copy: finalMain.copy, dropped: parsed.dropped, attempts, ...(voice ? { voice: { ...voice, namesMissing } } : {}), ...(ad ? { ad } : {}), ...(honestyFixes.length ? { honestyFixes } : {}), ...(variantsInfo ? { variants, variantsInfo } : {}), ...(speechShort ? { speechShort } : {}) } // KINEO-ADS-RETESTE-1510 — speechShort: a fala ficou no piso de antes
 }

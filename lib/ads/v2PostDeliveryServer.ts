@@ -9,6 +9,7 @@
 // Aprovação: cópia do MP4 para renders/share/<aleatório>.mp4 (o caminho original carrega o id da conta), token assinado
 // (lib/ads/v2ApprovalToken.ts), decisão por UPDATE condicional pending → approved | changes_requested (uma decisão por link).
 import { randomBytes, randomUUID } from 'node:crypto'
+import { adsV2BusinessName } from '@/lib/ads/v2BolaFix' // KINEO-ADS-BOLA-2110 — o nome das versões sem travessão solto
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { CreatomateSubmitError, pollCreatomateRender, submitCreatomateRender } from '@/lib/compose'
 import { persistRenderAssets } from '@/lib/renderAssets'
@@ -216,7 +217,7 @@ export async function submitAdsV2Version(
 
 function businessName(order: Pick<AdsV2OrderRow, 'brief'>): string {
   const b = order.brief && typeof order.brief.business === 'string' ? order.brief.business : ''
-  return b.split(/\s+[—–-]\s+/)[0].trim().slice(0, 120) || 'Studio Ads'
+  return adsV2BusinessName(b).slice(0, 120) || 'Studio Ads' // KINEO-ADS-BOLA-2110 — a MESMA limpeza do título da Biblioteca (v2Advance businessName)
 }
 
 /** Um passo das versões em andamento do pedido (tela). Nunca lança. Até `max` consultas ao Creatomate por chamada. */

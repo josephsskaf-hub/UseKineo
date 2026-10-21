@@ -15,6 +15,7 @@
 // ENCADEAMENTO: é a camada MAIS NOVA — semHomeCardsClaros2010 (que semBebeQueFala2010, a cabeça semMenuUgc2010 e as cadeias da home chamam
 // primeiro) chama ESTE primeiro. Este não importa ninguém.
 
+import { semAdsBola2110 } from './desfaz-ads-bola-2110.mjs' // KINEO-ADS-BOLA-2110 — o anúncio da bola (21/10) veio depois: sai PRIMEIRO (encadeado; texto sem a marca passa igual)
 export const MARCA_DESENHO_NOTA9_2110 = 'KINEO-DESENHO-NOTA9-2110'
 
 /** A base da entrega: origin/main de 21/10 manhã (f53733122, KINEO-HOME-CARDS-CLAROS-2010 v2). */
@@ -60,6 +61,7 @@ export const DESENHO_NOTA9_2110_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semDesenhoNota9_2110(texto, p) {
+  texto = semAdsBola2110(texto, p) // KINEO-ADS-BOLA-2110 — a camada mais nova sai primeiro
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_DESENHO_NOTA9_2110) || !DESENHO_NOTA9_2110_ARQUIVOS.includes(rel)) return texto
   const crlf = texto.includes('\r\n')

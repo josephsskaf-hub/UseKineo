@@ -113,7 +113,7 @@ export function simpleProductAd(sentence: string, hasProductPhoto: boolean): boo
 
 /** Título curto do cartão final: a 1ª oração (até vírgula, ponto, travessão ou quebra), no máximo 40 caracteres. */
 export function simpleTitle(text: string): string {
-  const first = String(text ?? '').replace(/\s+/g, ' ').trim().split(/[,.;:!?\n]|\s[—–-]\s/)[0]?.trim() ?? ''
+  const first = simpleInstructionTitle(text) ?? adsV2StripMarketplacePrefix(String(text ?? '')).replace(/\s+/g, ' ').trim().split(/[,.;:!?\n]|\s[—–-]\s/)[0]?.trim() ?? '' // KINEO-ADS-BOLA-2110 — texto-instrução = o PRODUTO ("Crie uma propaganda de 15 segundos…" → "Bola de futebol"); "Amazon.com : mini printer" → "mini printer"
   if (first.length <= 40) return first
   const cut = first.slice(0, 40)
   const sp = cut.lastIndexOf(' ')
@@ -1094,3 +1094,109 @@ export function simpleUploadErrorMessage(reason: string | null | undefined, lang
   if (!table) return null
   return table[String(reason ?? '')] ?? table.upload_failed
 }
+// ══ KINEO-ADS-BOLA-2110 — o TEXTO-INSTRUÇÃO e a LOJA DE TERCEIROS (pedido 618a6680, 21/10: um prompt colado virou "lugar", fala de loja e o cartão "Crie uma propaganda de 15 segundos") ══
+/** Lojas de terceiros (marketplaces): o nome delas nunca é a marca do anúncio — o produto é. */ // KINEO-ADS-BOLA-2110
+export const ADS_V2_MARKETPLACE_RE = /^(?:www\.)?(?:amazon(?:\.(?:com|co|com\.br|com\.mx|co\.uk|de|fr|es|it|ca|in|co\.jp|com\.au|nl|se|pl|sg|ae|sa|eg|com\.tr|com\.be))?|mercado ?livre(?:\.com\.br)?|mercado ?libre(?:\.com(?:\.[a-z]{2})?)?|shopee(?:\.com\.br|\.[a-z]{2,3})?|ali ?express(?:\.com|\.us)?|ebay(?:\.com|\.[a-z]{2,3}(?:\.[a-z]{2})?)?|etsy(?:\.com)?|walmart(?:\.com(?:\.mx)?)?|magazine ?luiza|magalu|americanas(?:\.com\.br)?|shein(?:\.com)?|temu(?:\.com)?|casas ?bahia|kabum|submarino|best ?buy|target\.com)$/iu // KINEO-ADS-BOLA-2110
+/** É o nome de uma loja de terceiros? (pura) */ // KINEO-ADS-BOLA-2110
+export function adsV2IsMarketplace(name: unknown): boolean { // KINEO-ADS-BOLA-2110
+  return ADS_V2_MARKETPLACE_RE.test(String(name ?? '').replace(/\s+/g, ' ').trim()) // KINEO-ADS-BOLA-2110
+} // KINEO-ADS-BOLA-2110
+/** Tira a loja de terceiros da FRENTE de um título ("Amazon.com : mini portable thermal printer" → "mini portable thermal printer"). Pura. */ // KINEO-ADS-BOLA-2110
+export function adsV2StripMarketplacePrefix(text: unknown): string { // KINEO-ADS-BOLA-2110
+  const t = String(text ?? '') // KINEO-ADS-BOLA-2110
+  const m = /^\s*([^:|—–\n]{2,40}?)\s*(?::|\||\s[—–-]\s)\s*/u.exec(t) // KINEO-ADS-BOLA-2110
+  if (m && adsV2IsMarketplace(m[1]) && /[\p{L}\p{N}]/u.test(t.slice(m[0].length))) return t.slice(m[0].length) // KINEO-ADS-BOLA-2110
+  return t // KINEO-ADS-BOLA-2110
+} // KINEO-ADS-BOLA-2110
+// ── 2. o texto-instrução (um prompt colado no lugar da frase) ─────────────────────────────────────────────────────────────── // KINEO-ADS-BOLA-2110
+export interface AdsV2Instruction { // KINEO-ADS-BOLA-2110
+  /** O que está sendo anunciado ("bola de futebol"); null = a instrução não diz. */ // KINEO-ADS-BOLA-2110
+  product: string | null // KINEO-ADS-BOLA-2110
+  /** A narração que a pessoa escreveu (sem as aspas); null = não escreveu. */ // KINEO-ADS-BOLA-2110
+  narration: string | null // KINEO-ADS-BOLA-2110
+  /** A narração fechou (aspas de fechamento, ou termina em ponto final)? false = cortada (ex.: a caixa cortou no caractere 400). */ // KINEO-ADS-BOLA-2110
+  narrationComplete: boolean // KINEO-ADS-BOLA-2110
+} // KINEO-ADS-BOLA-2110
+const CREATE_VERBS = 'crie|cria|criar|fa[çc]a|faz|fazer|gere|gera|gerar|monte|produza|elabore|create|make|generate|produce|write|build|crea|cree|haz|hacer|genera|genere|produzca|elabora' // KINEO-ADS-BOLA-2110
+const AD_NOUNS = 'propagandas?|publicidades?|an[uú]ncios?|comerciais|comercial|v[ií]deos?|reels?|ads?|adverts?|advertisements?|commercials?|anuncios?|publicidad|spots?' // KINEO-ADS-BOLA-2110
+const CREATE_AD_RE = new RegExp(`(?:^|[.!?\\n]\\s*)(?:(?:por favor|please|pls),?\\s+)?(?:${CREATE_VERBS})(?![\\p{L}])(?:\\s+[^\\s.!?\\n]+){0,7}?\\s+(?:${AD_NOUNS})(?![\\p{L}])`, 'iu') // KINEO-ADS-BOLA-2110
+const NARRATION_LABEL_RE = /(?:^|[\s.!?;,])(narra[çc][aã]o|narration|narraci[oó]n|narrador|voice-? ?over|locu[çc][aã]o|locuci[oó]n|roteiro|script|gui[oó]n|texto da narra[çc][aã]o|texto falado)\s*:/iu // KINEO-ADS-BOLA-2110
+const SCENE_DIRECTION_RE = /(?:^|[.!?]\s+)(?:mostre|mostrar|show|muestra|muestre|use um visual|use a|use an|preserve|mantenha|keep the|com cenas?|with scenes?)(?![\p{L}])/iu // KINEO-ADS-BOLA-2110
+const DURATION_RE = /(?<![\p{L}\p{N}])\d{1,3}\s?(?:s|seg|segundos?|seconds?|-second|segs?)(?![\p{L}])/iu // KINEO-ADS-BOLA-2110
+const PHOTO_REF_RE = /(?<![\p{L}])(?:d[aeo]s?|n[ao]s?|dest[ae]|dess[ae]|from|in|on|of|de la|en la|en el|del)\s+(?:(?:the|this|that|a|esta|essa|aquela|la|el)\s+)?(?:foto|fotos|imagem|imagens|image|images|photo|photos|picture|pic|imagen|im[aá]genes)(?![\p{L}])/iu // KINEO-ADS-BOLA-2110
+const PRODUCT_FOR_RE = /(?:^|[\s,])(?:para|pra|pro|for|sobre|about|de)\s+(?:(?:o|a|os|as|um|uma|meu|minha|meus|minhas|nosso|nossa|seu|sua|the|my|our|this|that|these|el|la|los|las|mi|mis|nuestro|nuestra|este|esta|esse|essa)\s+)?([^,.;:!?\n"“”«»]{2,80}?)(?=\s+(?:d[aeo]s?|n[ao]s?|dest[ae]|dess[ae]|from|in|on|of|de la|en la|en el|del)\s+(?:(?:the|this|that|a|esta|essa|aquela|la|el)\s+)?(?:foto|fotos|imagem|imagens|image|images|photo|photos|picture|pic|imagen|im[aá]genes)(?![\p{L}])|\s*[,.;:!?\n"“”«»]|$)/giu // KINEO-ADS-BOLA-2110
+const NOT_A_PRODUCT_RE = /^(?:\d|instagram|tiktok|youtube|facebook|meta|reels?|stories|shorts|whatsapp|redes sociais|social media|redes sociales|portugu[eê]s|ingl[eê]s|espanhol|english|spanish|portuguese|quem|pessoas|people|those|who|clientes|customers|o p[uú]blico|audience|p[uú]blico|mulheres|homens|crian[çc]as|segundos?|seconds?|minutos?)(?![\p{L}])/iu // KINEO-ADS-BOLA-2110
+const QUOTE_PAIRS: Readonly<Record<string, string>> = { '“': '”', '"': '"', '«': '»', '‘': '’', "'": "'", '„': '“' } // KINEO-ADS-BOLA-2110
+// KINEO-ADS-BOLA-2110
+/** A frase parece uma INSTRUÇÃO (um prompt) e não a descrição do negócio? (pura) Rótulo de narração, ou "crie/faça/create … propaganda/anúncio/ad" // KINEO-ADS-BOLA-2110
+ *  acompanhado de duração, alvo ("para a …"), direção de cena ou referência à foto. "Make your video with us" (estúdio de vídeo) NÃO é. */ // KINEO-ADS-BOLA-2110
+export function adsV2LooksLikeInstruction(text: unknown): boolean { // KINEO-ADS-BOLA-2110
+  const t = String(text ?? '').replace(/[ \t]+/g, ' ').trim() // KINEO-ADS-BOLA-2110
+  if (!t) return false // KINEO-ADS-BOLA-2110
+  if (NARRATION_LABEL_RE.test(t)) return true // KINEO-ADS-BOLA-2110
+  const m = CREATE_AD_RE.exec(t) // KINEO-ADS-BOLA-2110
+  if (!m) return false // KINEO-ADS-BOLA-2110
+  const after = t.slice(m.index + m[0].length) // KINEO-ADS-BOLA-2110
+  return DURATION_RE.test(t) || SCENE_DIRECTION_RE.test(t) || PHOTO_REF_RE.test(t) || /^\s*(?:,\s*)?(?:para|pra|pro|for|sobre|about|de)\s/iu.test(after) || /^[^.!?\n]{0,60}?\s(?:para|pra|pro|for)\s/iu.test(after) // KINEO-ADS-BOLA-2110
+} // KINEO-ADS-BOLA-2110
+// KINEO-ADS-BOLA-2110
+/** O produto que a instrução nomeia ("… para a bola de futebol da foto" → "bola de futebol"). null = não nomeia. Pura. */ // KINEO-ADS-BOLA-2110
+function instructionProduct(t: string): string | null { // KINEO-ADS-BOLA-2110
+  const first = t.split(NARRATION_LABEL_RE)[0] ?? t // KINEO-ADS-BOLA-2110
+  PRODUCT_FOR_RE.lastIndex = 0 // KINEO-ADS-BOLA-2110
+  for (let m = PRODUCT_FOR_RE.exec(first); m; m = PRODUCT_FOR_RE.exec(first)) { // KINEO-ADS-BOLA-2110
+    let p = String(m[1] ?? '').replace(/\s+/g, ' ').trim() // KINEO-ADS-BOLA-2110
+    p = p.replace(PHOTO_REF_RE, '').replace(/\s+(?:em|in|en)\s+(?:portugu[eê]s|ingl[eê]s|espanhol|english|spanish|portuguese|espa[ñn]ol)(?:\s.*)?$/iu, '').trim() // KINEO-ADS-BOLA-2110
+    if (p.length < 2 || NOT_A_PRODUCT_RE.test(p) || !/[\p{L}]/u.test(p)) continue // KINEO-ADS-BOLA-2110
+    if (new RegExp(`^(?:${AD_NOUNS})(?![\\p{L}])`, 'iu').test(p)) continue // KINEO-ADS-BOLA-2110
+    return p.slice(0, 60).trim() // KINEO-ADS-BOLA-2110
+  } // KINEO-ADS-BOLA-2110
+  return null // KINEO-ADS-BOLA-2110
+} // KINEO-ADS-BOLA-2110
+// KINEO-ADS-BOLA-2110
+/** A narração que a pessoa escreveu depois do rótulo ("Narração: “…”"), com as aspas tiradas; cortada = complete false. Pura. */ // KINEO-ADS-BOLA-2110
+function instructionNarration(t: string): { narration: string | null; complete: boolean } { // KINEO-ADS-BOLA-2110
+  const m = NARRATION_LABEL_RE.exec(t) // KINEO-ADS-BOLA-2110
+  if (!m) return { narration: null, complete: false } // KINEO-ADS-BOLA-2110
+  const rest = t.slice(m.index + m[0].length).trim() // KINEO-ADS-BOLA-2110
+  const open = rest.charAt(0) // KINEO-ADS-BOLA-2110
+  let narration = '' // KINEO-ADS-BOLA-2110
+  let complete = false // KINEO-ADS-BOLA-2110
+  if (Object.prototype.hasOwnProperty.call(QUOTE_PAIRS, open)) { // KINEO-ADS-BOLA-2110
+    const close = rest.indexOf(QUOTE_PAIRS[open], 1) // KINEO-ADS-BOLA-2110
+    if (close > 0) { narration = rest.slice(1, close); complete = true } else narration = rest.slice(1) // KINEO-ADS-BOLA-2110
+  } else { // KINEO-ADS-BOLA-2110
+    narration = rest.split('\n')[0] ?? '' // KINEO-ADS-BOLA-2110
+    complete = /[.!?…]\s*$/u.test(narration) // KINEO-ADS-BOLA-2110
+  } // KINEO-ADS-BOLA-2110
+  narration = narration.replace(/\s+/g, ' ').trim() // KINEO-ADS-BOLA-2110
+  const words = narration.split(' ').filter((w) => /[\p{L}\p{N}]/u.test(w)).length // KINEO-ADS-BOLA-2110
+  return words >= 3 ? { narration, complete } : { narration: null, complete: false } // KINEO-ADS-BOLA-2110
+} // KINEO-ADS-BOLA-2110
+// KINEO-ADS-BOLA-2110
+/** Lê a instrução (pura). null = a frase NÃO é instrução (o caminho de sempre, intocado). */ // KINEO-ADS-BOLA-2110
+export function adsV2ReadInstruction(text: unknown): AdsV2Instruction | null { // KINEO-ADS-BOLA-2110
+  const t = String(text ?? '').replace(/[ \t]+/g, ' ').trim() // KINEO-ADS-BOLA-2110
+  if (!adsV2LooksLikeInstruction(t)) return null // KINEO-ADS-BOLA-2110
+  const n = instructionNarration(t) // KINEO-ADS-BOLA-2110
+  return { product: instructionProduct(t), narration: n.narration, narrationComplete: n.complete } // KINEO-ADS-BOLA-2110
+} // KINEO-ADS-BOLA-2110
+// KINEO-ADS-BOLA-2110
+/** A narração da pessoa vale VERBATIM? (pura) Só inteira (aspas fechadas) e dentro da faixa [min, max] de palavras (pontuação não conta). */ // KINEO-ADS-BOLA-2110
+export function adsV2InstructionNarrationFits(ins: AdsV2Instruction | null | undefined, range: { min: number; max: number }): boolean { // KINEO-ADS-BOLA-2110
+  if (!ins || !ins.narration || ins.narrationComplete !== true) return false // KINEO-ADS-BOLA-2110
+  const w = adsV2SpokenWords(ins.narration) // KINEO-ADS-BOLA-2110
+  return w >= Math.max(1, Math.floor(range.min)) && w <= Math.floor(range.max) // KINEO-ADS-BOLA-2110
+} // KINEO-ADS-BOLA-2110
+// KINEO-ADS-BOLA-2110
+/** Palavras FALADAS: travessão, reticências e qualquer pontuação solta nunca contam como palavra. Pura. */ // KINEO-ADS-BOLA-2110
+export function adsV2SpokenWords(text: unknown): number { // KINEO-ADS-BOLA-2110
+  return String(text ?? '').split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length // KINEO-ADS-BOLA-2110
+} // KINEO-ADS-BOLA-2110
+/** KINEO-ADS-BOLA-2110 — o título de um texto-instrução (pura): o produto que ela nomeia, senão a palavra de produto do texto, com maiúscula; '' = nenhum; null = NÃO é instrução (o título de sempre). */ // KINEO-ADS-BOLA-2110
+export function simpleInstructionTitle(text: unknown): string | null { // KINEO-ADS-BOLA-2110
+  const ins = adsV2ReadInstruction(text) // KINEO-ADS-BOLA-2110
+  if (!ins) return null // KINEO-ADS-BOLA-2110
+  const p = ins.product ?? (ADS_V2_PRODUCT_WORDS.exec(String(text ?? ''))?.[0] ?? '') // KINEO-ADS-BOLA-2110
+  return p ? p.charAt(0).toLocaleUpperCase() + p.slice(1) : '' // KINEO-ADS-BOLA-2110
+} // KINEO-ADS-BOLA-2110

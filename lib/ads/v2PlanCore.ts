@@ -43,6 +43,9 @@ import { adsSampleLevelOk, adsSampleOpen } from '@/lib/ads/serverAccess'
 import { adsV2IsProductOrder, adsV2SceneSetting, adsV2SceneShots } from '@/lib/ads/v2Scene' // KINEO-ADS-CENA-2026-10-13 — a cena da pessoa no prompt das cenas criadas (só Comercial/Premium)
 import { ADS_V2_BRIEF_TIMEOUT_WHY, ADS_V2_PLAN_MODEL_DEADLINE_MS } from '@/lib/ads/v2Brief' // KINEO-ADS-CENA-2026-10-13 — prazo do modelo amarrado ao maxDuration e timeout que não vira 502 cru
 import { adsV2SentenceForCopy } from '@/lib/ads/v2Scene' // KINEO-ADS-CONSERTOS-1410 — produto sem a cena da frase
+import { adsV2KindWithProductPhoto } from '@/lib/ads/v2Scene' // KINEO-ADS-BOLA-2110 — "lugar" num texto-instrução com foto de produto volta a produto
+import { adsV2InstructionNarrationFits, adsV2ReadInstruction, simpleInstructionTitle } from '@/lib/ads/v2Simple' // KINEO-ADS-BOLA-2110 — o texto-instrução (produto + narração entre aspas)
+import { ADS_V2_PRODUCT_PHOTO_MIN_SIDE, ADS_V2_SMALL_PHOTO_CONFIRM_REQUIRED, adsV2MeasureImage, adsV2ProductPhotoSmall, adsV2ProductPhotoSmallText } from '@/lib/ads/v2BolaFix' // KINEO-ADS-BOLA-2110 — a foto do produto pequena
 import { adsV2PackshotShots } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — o packshot: um plano de IA vira a foto REAL do produto (mesmos créditos)
 import { adsV2FormatBlock, adsV2FormatShots, normalizeAdsV2Format } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — formatos 4:5 e 1:1 (só onde o pipeline inteiro aceita)
 import { adsV2BuildScripts } from '@/lib/ads/v2Scripts' // KINEO-ADS-ROTEIROS-2026-10-13 — 2 a 3 roteiros para escolher (o 1º = o texto de sempre); troca em /api/ads/v2/plan/choose
@@ -105,7 +108,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     const kitBf = kitBfIn.value // KINEO-KIT-BF-1910
     // KINEO-ADS-MODO-SIMPLES-2026-09-29 — corpo simples só para pedido nascido no modo simples; enquanto a pesquisa roda,
     // não há plano (nem cobrança): 409 research_running (pesquisa parada há > 90 s conta como falha e libera).
-    const brief0 = order.brief ?? {}
+    const brief0 = adsV2KindWithProductPhoto(order.brief ?? {}, input.photos) // KINEO-ADS-BOLA-2110 — era: order.brief ?? {} (o prompt colado com a foto da bola virou "lugar" e a fala saiu de loja)
     const simple = input.mode === 'simple'
     if (simple && brief0.mode !== 'simple') return v2Fail('mode_mismatch', 400)
     if (researchState(brief0.research, Date.now()) === 'running') return v2Fail('research_running', 409)
@@ -135,6 +138,9 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     // KINEO-ADS-VIDEO-DO-CLIENTE-2026-09-29 — cada vídeo: do DONO, MP4/MOV (kind 'video' no user_footage).
     const badVideo = videosIn.find((v) => !own.get(v.footage_id)?.isVideo)
     if (badVideo) return v2Fail('video_invalid', 400, { footage_id: badVideo.footage_id })
+    const productPhoto = photos.find((p) => p.kind === 'product') as { url: string; original_url?: string } | undefined // KINEO-ADS-BOLA-2110 — a foto do produto: mede a INTEIRA (o recorte 9:16 vem ampliado para 1080×1920 e esconde a miniatura)
+    const productSizeP = productPhoto ? adsV2MeasureImage(productPhoto.original_url ?? productPhoto.url).catch(() => null) : Promise.resolve(null) // KINEO-ADS-BOLA-2110 — em paralelo com o modelo (só espera antes dele com a trava ligada)
+    if (ADS_V2_SMALL_PHOTO_CONFIRM_REQUIRED && (body as { small_photo_ok?: unknown } | null)?.small_photo_ok !== true) { const sz = await productSizeP; if (sz && adsV2ProductPhotoSmall(sz)) return v2Fail('product_photo_small', 422, { width: sz.width, height: sz.height, min: ADS_V2_PRODUCT_PHOTO_MIN_SIDE, ...adsV2ProductPhotoSmallText(order.language, sz) }) } // KINEO-ADS-BOLA-2110 — bloqueio SUAVE (desligado até a tela nova ter o "usar mesmo assim"): nada cobrado
 
     // Teto diário ANTES do modelo.
     const since = new Date(Date.now() - 24 * 3600_000).toISOString()
@@ -165,13 +171,15 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     // KINEO-ADS-CONSERTOS-1410 — QA 14/10: "perfume num hotel com chuva" virava a MARCA (brief, 1ª frase de tela e narração).
     // KINEO-ADS-CONSERTOS-1410 — pedido de produto com cena na frase: o texto do negócio é só o produto (a cena vai pelo brief.scene).
     const sentenceFull = typeof brief0.sentence === 'string' ? brief0.sentence.trim() : '' // KINEO-ADS-CONSERTOS-1410 — a frase INTEIRA (moderação)
-    const sentenceCopy = adsV2SentenceForCopy(brief0, input.sector) // KINEO-ADS-CONSERTOS-1410 — a frase que vira brief, frases de tela e narração
+    const instruction = simple ? adsV2ReadInstruction(sentenceFull) : null // KINEO-ADS-BOLA-2110 — a pessoa colou um PROMPT ("Crie uma propaganda … para a bola de futebol da foto … Narração: “…”")
+    const sentenceCopy = instruction ? instruction.product ?? (simpleInstructionTitle(sentenceFull) || adsV2SentenceForCopy(brief0, input.sector)) : adsV2SentenceForCopy(brief0, input.sector) // KINEO-ADS-CONSERTOS-1410 — a frase que vira brief, frases de tela e narração · KINEO-ADS-BOLA-2110 — texto-instrução = só o PRODUTO que ela nomeia
     let text = sentenceCopy // KINEO-ADS-CONSERTOS-1410
     if (simple && text) {
       const price = typeof brief0.price === 'string' ? brief0.price.trim() : ''
       const contact = typeof brief0.contact === 'string' ? brief0.contact.trim() : ''
       text = [text, price ? `Price: ${price}` : '', contact ? `Contact: ${contact}` : ''].filter(Boolean).join('\n')
     }
+    if (instruction?.narration) text = `${text}\nNarration written by the customer: ${instruction.narration}` // KINEO-ADS-BOLA-2110 — a narração da pessoa é fonte (honestidade: o que ela DIGITOU vale)
     // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o que a pessoa DIGITOU (frase + preço + contato), antes da página do link: alegação
     // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — de saúde só vale se estiver aqui (lib/ads/v2Honesty.ts); a página nunca a autoriza.
     if (kitBf.offer) text = adsV2KitBfTextWithOffer(text, kitBf.offer) // KINEO-KIT-BF-1910 — a oferta digitada entra no texto do negócio (o que a pessoa DIGITOU: a régua de honestidade a conhece)
@@ -205,9 +213,12 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     // KINEO-APRESENTADOR-V2-AJUSTE-1710 — o apresentador v2 decidido ANTES do texto (as mesmas travas do plano abaixo + retrato do escolhido): a narração dele nasce
     // KINEO-APRESENTADOR-V2-AJUSTE-1710 — com 17 a 21 palavras (~10 s de voz, anúncio de ~15 s). No T1 o teto de 30 do clássico deu 14,36 s de voz e 18,67 s de anúncio.
     const presenterV2Early = presenterAsked ? await import('@/lib/ads/v2PresenterV2').then((m) => (typeof m.adsV2PresenterV2Words === 'function' ? m : null)).catch(() => null) : null // KINEO-APRESENTADOR-V2-AJUSTE-1710
-    const v2Words = presenterV2Early && presenterV2Early.adsV2PresenterV2Eligible({ on: presenterV2Early.adsV2PresenterV2On(reason === 'internal'), tier: order.tier, format, style: ADS_V2_STYLES_PUBLIC ? input.style ?? null : null }) && (input.presenter_id ? !!presenterV2Early.adsV2PresenterV2PortraitUrl(adsV2PresenterById(input.presenter_id)) : true) ? presenterV2Early.adsV2PresenterV2Words(adsV2NarrationMaxWords(order.seconds)) : null // KINEO-APRESENTADOR-V2-AJUSTE-1710 — null = a régua de sempre
+    const v2Words = presenterV2Early && presenterV2Early.adsV2PresenterV2Eligible({ on: presenterV2Early.adsV2PresenterV2On(reason === 'internal'), tier: order.tier, format, style: ADS_V2_STYLES_PUBLIC ? input.style ?? null : null }) && (input.presenter_id ? !!presenterV2Early.adsV2PresenterV2PortraitUrl(adsV2PresenterById(input.presenter_id)) : true) ? presenterV2Early.adsV2PresenterV2Words(adsV2NarrationMaxWords(order.seconds), { language, gender: (input.presenter_id ? adsV2PresenterById(input.presenter_id)?.gender : null) ?? 'woman' }) : null // KINEO-APRESENTADOR-V2-AJUSTE-1710 — null = a régua de sempre · KINEO-ADS-BOLA-2110 — a régua pelo ritmo MEDIDO da voz do anúncio (PT ConfidentWoman 2,14 pal/s → 22–24)
     const maxWords = v2Words ? v2Words.max : adsV2NarrationMaxWords(order.seconds) // KINEO-APRESENTADOR-V2-AJUSTE-1710 — o teto do v2 (21) só neste caminho
     const acceptMaxWords = v2Words && presenterV2Early && typeof presenterV2Early.adsV2PresenterV2AcceptMax === 'function' ? presenterV2Early.adsV2PresenterV2AcceptMax(v2Words.max) : maxWords // KINEO-UGC-AJUSTES-2010 — o apresentador v2: pede 19–21, aceita até 23 (o /plan da Yasmin, 20/10, caiu em no_copy com 22)
+    const verbatimRange = { min: Math.max(5, Math.ceil(maxWords * 0.4)), max: acceptMaxWords + 4 } // KINEO-ADS-BOLA-2110 — a narração da pessoa vai verbatim nesta faixa (a voz medida ainda é ajustada na montagem)
+    const narrationVerbatim = order.narration === true && instruction && adsV2InstructionNarrationFits(instruction, verbatimRange) ? instruction.narration : null // KINEO-ADS-BOLA-2110
+    const instructionTag = instruction ? { instruction: { product: Boolean(instruction.product), narration: !instruction.narration ? 'none' : narrationVerbatim ? 'verbatim' : instruction.narrationComplete ? 'out_of_range' : 'truncated' } } : null // KINEO-ADS-BOLA-2110 — a medição (ads_v2_plan_served)
     const overlaysOn = brief0.overlays !== false
     // KINEO-ADS-MAO-AJUSTE-3-1610 — o Comercial "produto na mão" decidido ANTES do texto (pelo setor da tela; o plano final confere de novo): a narração pede o
     // KINEO-ADS-MAO-AJUSTE-3-1610 — piso maior e uma frase a mais (cobrir ~13 s dos 15) e, em paralelo com o texto, a visão barata diz se a foto do produto tem o frasco
@@ -237,8 +248,10 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
       scripts: (body as { scripts?: unknown } | null)?.scripts !== false, scene: adsV2SceneSetting(brief0, order.tier), // KINEO-ADS-ROTEIROS-2026-10-13 — +2 versões em outros tons, em paralelo e no MESMO prazo (a cena dá o clima da "story"); corpo com scripts:false (ex.: o lote) = só o texto de sempre
       ...(closeRealAsked ? { closeReal: true } : {}), // KINEO-CLOSE-REAL-AJUSTE-1910 — o Close real: a marca no máximo 2 vezes na fala (o fecho automático não cola "Agora, <marca>.") e o travessão do título vira " · "
       ...(kitBf.offer || kitBf.angle ? { kitBf: { offer: kitBf.offer, angle: kitBf.angle } } : {}), // KINEO-KIT-BF-1910 — a oferta 1× na fala e o ângulo da variação (sem kit = o pedido de sempre)
+      ...(narrationVerbatim ? { narrationVerbatim } : {}), // KINEO-ADS-BOLA-2110 — "Narração: “…”" inteira e na faixa = o roteiro principal fala o que a pessoa escreveu
     })
     const modeTag = { mode: simple ? 'simple' : 'full', facts_selected: factTexts.length, overlays: overlaysOn }
+    Object.assign(modeTag, { photos: photos.length, product_photos: photos.filter((p) => p.kind === 'product').length, ...(instructionTag ?? {}), ...((brief0 as { kind_fixed?: unknown }).kind_fixed ? { kind_fixed: true } : {}) }) // KINEO-ADS-BOLA-2110 — as fotos REAIS (o ads_v2_order_created grava photos ANTES do upload: 0 em 100% do modo simples) + o texto-instrução + o tipo consertado
     if (extracted.ok && extracted.honestyFixes) Object.assign(modeTag, { honesty_fixes: extracted.honestyFixes }) // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o que a régua consertou em código
     if (extracted.ok && extracted.ad?.talk === true) { const tl = presenterTalkMarks(extracted.copy.narration); if (tl.length) Object.assign(modeTag, { presenter_talk_left: tl.slice(0, 6) }) } // KINEO-APRESENTADOR-OLHOS-1910 — a correção não tirou tudo: conta no ads_v2_plan_served
     if (extracted.ok && extracted.variantsInfo) Object.assign(modeTag, { scripts: 1 + extracted.variantsInfo.kept, scripts_dropped: extracted.variantsInfo.dropped, ...(extracted.variantsInfo.why ? { scripts_why: extracted.variantsInfo.why } : {}) }) // KINEO-ADS-ROTEIROS-2026-10-13 — quantos roteiros saíram e por que faltou
@@ -253,6 +266,8 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
         : v2Fail('no_copy', 502, { why: extracted.why.slice(0, 4) })
     }
 
+    const productSize = await productSizeP // KINEO-ADS-BOLA-2110 — o tamanho real da foto do produto (null = não mediu)
+    if (productSize) Object.assign(modeTag, { product_photo_side: Math.min(productSize.width, productSize.height), product_photo_small: adsV2ProductPhotoSmall(productSize) }) // KINEO-ADS-BOLA-2110
     // Modo simples: o setor veio do texto (palavras-chave na tela). Só quando deu 'other' o palpite do modelo entra;
     // o palpite nunca troca um setor que as palavras já decidiram.
     const sector = simple && input.sector === 'other' && extracted.copy.sectorHint ? extracted.copy.sectorHint : input.sector
@@ -356,6 +371,8 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
       ...(acceptMaxWords > maxWords ? { edit_limits: { narration_words: acceptMaxWords, overlay_chars: ADS_V2_OVERLAY_MAX_CHARS } } : {}), // KINEO-UGC-AJUSTES-2010 — o texto aceito com 22–23 palavras não nasce "longo demais" na edição da tela
       ...(samplePresenterCapped ? { sample_fallback: ADS_SAMPLE_PRESENTER_FALLBACK } : {}), // KINEO-UGC-AJUSTES-2010 — a tela mostra o aviso honesto (amostra com a pessoa esgotada hoje → Close real)
       total_seconds: plan.totalSeconds,
+      ...(productSize && adsV2ProductPhotoSmall(productSize) ? { product_photo_small: { width: productSize.width, height: productSize.height, min: ADS_V2_PRODUCT_PHOTO_MIN_SIDE, ...adsV2ProductPhotoSmallText(language, productSize) } } : {}), // KINEO-ADS-BOLA-2110 — a tela nova mostra o aviso (título, texto, "usar mesmo assim", "enviar maior")
+      ...(instructionTag ? instructionTag : {}), // KINEO-ADS-BOLA-2110 — a tela sabe que leu um texto-instrução (produto achado? narração verbatim/cortada?)
       card_ready: Boolean((upd.data as { card_url: string | null }).card_url),
       photo_requests: plan.photoRequests,
       // KINEO-ESTILOS-PRODUTO-2026-10-09 — o estilo pedido e o APLICADO (null = sem foto de produto, sai sem efeito).

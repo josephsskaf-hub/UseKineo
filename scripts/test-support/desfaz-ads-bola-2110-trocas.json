@@ -1,0 +1,168 @@
+{
+ "app/api/ads/v2/edit/route.ts": [
+  [
+   "        business: adsV2BusinessName(str(brief.business) ?? ''), // KINEO-ADS-BOLA-2110 — era: split(/ — /)[0] (\"— bola de futebol\" passava com o travessão)",
+   "        business: str(brief.business)?.split(/\\s+[—–-]\\s+/)[0] ?? '',"
+  ]
+ ],
+ "lib/ads/autoBrief.ts": [
+  [
+   "    'name: the business or brand name exactly as written in the text; \"\" when the text has no name (never a placeholder, never a marketplace such as Amazon or Mercado Livre). sells: what it sells or advertises, a short phrase (e.g. \"soccer ball\"). Never put a dash, colon or other punctuation at the start or end of name or sells.', // KINEO-ADS-BOLA-2110 — era \"business = <nome> — <o que vende>\": sem nome saía \"— bola de futebol\"",
+   "    'business is written as \"<business name> — <what it sells>\" (name, a space, an em dash, a space, then what it sells). If the text has no name, use only what it sells.',"
+  ],
+  [
+   "    'Answer with JSON only: {\"name\":\"\",\"sells\":\"\",\"offer\":\"\",\"cta\":\"\",\"contact\":\"\",\"audience\":\"\",\"tone\":\"\",\"extra\":{' + ADS_AUTO_EXTRA_KEYS.map((k) => `\"${k}\":\"\"`).join(',') + '},\"model_hint\":\"\"}', // KINEO-ADS-BOLA-2110 — name + sells no lugar de business (o código compõe)",
+   "    'Answer with JSON only: {\"business\":\"\",\"offer\":\"\",\"cta\":\"\",\"contact\":\"\",\"audience\":\"\",\"tone\":\"\",\"extra\":{' + ADS_AUTO_EXTRA_KEYS.map((k) => `\"${k}\":\"\"`).join(',') + '},\"model_hint\":\"\"}',"
+  ],
+  [
+   "  const composed = typeof p.name === 'string' || typeof p.sells === 'string' ? adsV2ComposeBusiness(clip(p.name, ADS_BRIEF_LIMITS.business), clip(p.sells, ADS_BRIEF_LIMITS.business)) : adsV2CleanBusiness(clip(p.business, ADS_BRIEF_LIMITS.business)) // KINEO-ADS-BOLA-2110 — \"<nome> — <o que vende>\" só com os DOIS; resposta no formato antigo = limpa dos dois lados",
+   "  const business = keep('business', clip(p.business, ADS_BRIEF_LIMITS.business))"
+  ]
+ ],
+ "lib/ads/scriptPrompt.ts": [
+  [
+   "  return text.trim().split(/\\s+/).filter((w) => /[\\p{L}\\p{N}]/u.test(w)).length // KINEO-ADS-BOLA-2110 — travessão e pontuação solta nunca contam como palavra (\"Conheça — bola\" = 2, não 3)",
+   "  return text.trim().split(/\\s+/).filter(Boolean).length"
+  ]
+ ],
+ "lib/ads/v2Advance.ts": [
+  [
+   "  const whole = handInv.map((h) => pv.lib.adsV2PresenterV2ProductWholeOf(h)) // KINEO-ADS-BOLA-2110 — o produto inteiro no quadro (a MESMA chamada das mãos)",
+   "  const pick = pv.lib.adsV2PresenterV2PickClean(both, hands, phoneUi) // KINEO-APRESENTADOR-V2-1710 · KINEO-APRESENTADOR-V2-AJUSTE-1710 — entre as limpas, a 1ª com a mão livre inteira · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — interface de celular = descartada"
+  ],
+  [
+   "  const options = kept.map((url, k) => ({ url, bothObjects: both[k] ?? null, freeHand: hands[k] ?? null, phoneUi: phoneUi[k] ?? null, productWhole: whole[k] ?? null })) // KINEO-APRESENTADOR-V2-1710 · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + freeHand · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + phoneUi · KINEO-ADS-BOLA-2110 — + productWhole",
+   "  const options = kept.map((url, k) => ({ url, bothObjects: both[k] ?? null, freeHand: hands[k] ?? null, phoneUi: phoneUi[k] ?? null })) // KINEO-APRESENTADOR-V2-1710 · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + freeHand · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + phoneUi"
+  ],
+  [
+   "  await writeServerEvent({ name: 'ads_v2_product_locked', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, idx: row.idx, attempt: row.attempt, mode: 'presenter_v2', entry: pv.v2.entryId, options: kept.length, chosen: kept.indexOf(chosen), why: pick.why, both_objects: both, free_hands: hands, phone_ui: phoneUi, hand_counts: handInv.map((h) => (h ? h.hands.length : null)), product_rect: productRect, product_whole: whole, product_at_edge: rects.map((r) => pv.lib.adsV2PresenterV2RectAtEdge(r)), charged: false } }).catch(() => null) // KINEO-APRESENTADOR-V2-1710 — o evento da trava de sempre (lista fechada), com o modo novo · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + free_hands · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + phone_ui, hand_counts, product_rect · KINEO-ADS-BOLA-2110 — a foto inteira no close; o produto inteiro no evento",
+   "  await writeServerEvent({ name: 'ads_v2_product_locked', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, idx: row.idx, attempt: row.attempt, mode: 'presenter_v2', entry: pv.v2.entryId, options: kept.length, chosen: kept.indexOf(chosen), why: pick.why, both_objects: both, free_hands: hands, phone_ui: phoneUi, hand_counts: handInv.map((h) => (h ? h.hands.length : null)), product_rect: productRect, charged: false } }).catch(() => null) // KINEO-APRESENTADOR-V2-1710 — o evento da trava de sempre (lista fechada), com o modo novo · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + free_hands · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + phone_ui, hand_counts, product_rect"
+  ],
+  [
+   "  const baseRefs = actor ? (pv ? pv.lib.adsV2PresenterV2Refs(pv.v2, pv.lib.adsV2PresenterV2ProductSource(actor) ?? actor.productUrl) : [actor.productUrl]) : planned?.referenceUrls ?? [] // KINEO-APRESENTADOR-V2-1710 · KINEO-ADS-BOLA-2110 — o v2 recebe a foto INTEIRA do produto (o recorte 9:16 cortava a bola dos dois lados)",
+   "  const baseRefs = actor ? (pv ? pv.lib.adsV2PresenterV2Refs(pv.v2, actor.productUrl) : [actor.productUrl]) : planned?.referenceUrls ?? [] // KINEO-APRESENTADOR-V2-1710"
+  ],
+  [
+   "    const fit = pv.lib.adsV2PresenterV2VoiceFit({ seconds: voiceSeconds, text: narration, canSpeed: voice.engine === 'minimax', language: narrationLanguage(order.language) ?? 'en' }) // KINEO-APRESENTADOR-V2-AJUSTE-1710 — só a voz com voice id aceita speed · KINEO-ADS-BOLA-2110 — + a língua: a voz CURTA ganha a frase a mais na língua do anúncio",
+   "    const fit = pv.lib.adsV2PresenterV2VoiceFit({ seconds: voiceSeconds, text: narration, canSpeed: voice.engine === 'minimax' }) // KINEO-APRESENTADOR-V2-AJUSTE-1710 — só a voz com voice id aceita speed"
+  ],
+  [
+   "  return adsV2BusinessName(b).slice(0, 120) || 'Studio Ads' // KINEO-ADS-BOLA-2110 — era: b.split(/ — /)[0] (não limpava \"— bola de futebol\" nem \"Perfume LUME —\"; 48 de 71 títulos)",
+   "  return b.split(/\\s+[—–-]\\s+/)[0].trim().slice(0, 120) || 'Studio Ads'"
+  ],
+  [
+   "        presenter: { url: presenterClip.url, measuredSeconds: presenterClip.measuredSeconds, insertOrder, ...(presenterV2 ? { v2: { speechSeconds: voiceSeconds ?? 0, closeUrl: presenterV2Close ?? presenterV2.productUrl, productRect: presenterV2.v2?.productRect ?? null } } : {}) }, // KINEO-APRESENTADOR-V2-1710 — a estrutura de 15 s: corte no fim real da fala + close da foto real + cartão · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + o retângulo do produto (a frase acima dele) · KINEO-ADS-BOLA-2110 — a foto inteira no close; o produto inteiro no evento",
+   "        presenter: { url: presenterClip.url, measuredSeconds: presenterClip.measuredSeconds, insertOrder, ...(presenterV2 ? { v2: { speechSeconds: voiceSeconds ?? 0, closeUrl: presenterV2.productUrl, productRect: presenterV2.v2?.productRect ?? null } } : {}) }, // KINEO-APRESENTADOR-V2-1710 — a estrutura de 15 s: corte no fim real da fala + close da foto real + cartão · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + o retângulo do produto (a frase acima dele)"
+  ]
+ ],
+ "lib/ads/v2Brief.ts": [
+  [
+   "  return adsV2BusinessName(brief.business) // KINEO-ADS-BOLA-2110 — travessão/hífen solto na FRENTE e atrás saem (\"— bola de futebol\" → \"bola de futebol\"); sem nome = o produto; loja de terceiros nunca é a marca",
+   "  return (brief.business ?? '').split(/\\s+[—–-]\\s+/)[0].trim().replace(/\\s*[—–-]\\s*$/, '') // KINEO-ADS-CONSERTOS-1410 — \"perfume —\" (travessão sem nada depois) não vira \"perfume —\" na tela"
+  ],
+  [
+   "  const nameList = generic || voice?.commonNoun ? [] : adsV2NameVariants(brandName(parsed.brief)) // KINEO-ADS-MAO-JUIZ-1610 — o produto genérico já tem o conserto dele (\"deste perfume\") · KINEO-ADS-BOLA-2110 — o nome que é substantivo comum (\"bola de futebol\") também não: \"da bola\" nunca vira \"de bola\"",
+   "  const nameList = generic ? [] : adsV2NameVariants(brandName(parsed.brief)) // KINEO-ADS-MAO-JUIZ-1610 — o produto genérico já tem o conserto dele (\"deste perfume\")"
+  ]
+ ],
+ "lib/ads/v2CloseReal.ts": [
+  [
+   "  return adsV2BusinessName(typeof business === 'string' ? business : '') // KINEO-ADS-BOLA-2110 — a régua única: travessão solto na frente ou atrás sai (\"— bola de futebol\" → \"bola de futebol\")",
+   "  return (typeof business === 'string' ? business : '').split(/\\s+[—–-]\\s+/)[0].trim().replace(/\\s*[—–-]\\s*$/, '').replace(/\\s+/g, ' ') // KINEO-CLOSE-REAL-AJUSTE-1910"
+  ]
+ ],
+ "lib/ads/v2PlanCore.ts": [
+  [
+   "    const brief0 = adsV2KindWithProductPhoto(order.brief ?? {}, input.photos) // KINEO-ADS-BOLA-2110 — era: order.brief ?? {} (o prompt colado com a foto da bola virou \"lugar\" e a fala saiu de loja)",
+   "    const brief0 = order.brief ?? {}"
+  ],
+  [
+   "    const instruction = simple ? adsV2ReadInstruction(sentenceFull) : null // KINEO-ADS-BOLA-2110 — a pessoa colou um PROMPT (\"Crie uma propaganda … para a bola de futebol da foto … Narração: “…”\")",
+   "    const sentenceCopy = adsV2SentenceForCopy(brief0, input.sector) // KINEO-ADS-CONSERTOS-1410 — a frase que vira brief, frases de tela e narração"
+  ],
+  [
+   "    const v2Words = presenterV2Early && presenterV2Early.adsV2PresenterV2Eligible({ on: presenterV2Early.adsV2PresenterV2On(reason === 'internal'), tier: order.tier, format, style: ADS_V2_STYLES_PUBLIC ? input.style ?? null : null }) && (input.presenter_id ? !!presenterV2Early.adsV2PresenterV2PortraitUrl(adsV2PresenterById(input.presenter_id)) : true) ? presenterV2Early.adsV2PresenterV2Words(adsV2NarrationMaxWords(order.seconds), { language, gender: (input.presenter_id ? adsV2PresenterById(input.presenter_id)?.gender : null) ?? 'woman' }) : null // KINEO-APRESENTADOR-V2-AJUSTE-1710 — null = a régua de sempre · KINEO-ADS-BOLA-2110 — a régua pelo ritmo MEDIDO da voz do anúncio (PT ConfidentWoman 2,14 pal/s → 22–24)",
+   "    const v2Words = presenterV2Early && presenterV2Early.adsV2PresenterV2Eligible({ on: presenterV2Early.adsV2PresenterV2On(reason === 'internal'), tier: order.tier, format, style: ADS_V2_STYLES_PUBLIC ? input.style ?? null : null }) && (input.presenter_id ? !!presenterV2Early.adsV2PresenterV2PortraitUrl(adsV2PresenterById(input.presenter_id)) : true) ? presenterV2Early.adsV2PresenterV2Words(adsV2NarrationMaxWords(order.seconds)) : null // KINEO-APRESENTADOR-V2-AJUSTE-1710 — null = a régua de sempre"
+  ]
+ ],
+ "lib/ads/v2PostDeliveryServer.ts": [
+  [
+   "  return adsV2BusinessName(b).slice(0, 120) || 'Studio Ads' // KINEO-ADS-BOLA-2110 — a MESMA limpeza do título da Biblioteca (v2Advance businessName)",
+   "  return b.split(/\\s+[—–-]\\s+/)[0].trim().slice(0, 120) || 'Studio Ads'"
+  ]
+ ],
+ "lib/ads/v2Presenter.ts": [
+  [
+   "export function planAdsV2Presenter(input: { sector: string | null | undefined; photos: readonly { footage_id: string; kind: string; url: string; original_url?: string }[]; seedKey: string; presenterId?: string | null }): AdsV2PresenterPlan | null { // KINEO-ADS-BOLA-2110 — + original_url (a foto inteira do produto)",
+   "export function planAdsV2Presenter(input: { sector: string | null | undefined; photos: readonly { footage_id: string; kind: string; url: string }[]; seedKey: string; presenterId?: string | null }): AdsV2PresenterPlan | null {"
+  ],
+  [
+   "    return { productFootageId: photo.footage_id, productUrl: photo.url.trim(), person: ADS_V2_PRESENTER_LIBRARY.indexOf(pick), actorPrompt: adsV2ActorPromptFor(input.sector, pick.look, pick.pronoun), presenterId: pick.id, ...orig } // KINEO-ADS-BOLA-2110 — + a foto inteira",
+   "    return { productFootageId: photo.footage_id, productUrl: photo.url.trim(), person: ADS_V2_PRESENTER_LIBRARY.indexOf(pick), actorPrompt: adsV2ActorPromptFor(input.sector, pick.look, pick.pronoun), presenterId: pick.id }"
+  ],
+  [
+   "  return { productFootageId: photo.footage_id, productUrl: photo.url.trim(), person, actorPrompt: adsV2ActorPrompt(input.sector, person), ...orig } // KINEO-ADS-BOLA-2110 — + a foto inteira",
+   "  return { productFootageId: photo.footage_id, productUrl: photo.url.trim(), person, actorPrompt: adsV2ActorPrompt(input.sector, person) }"
+  ],
+  [
+   "    (p.presenterId === undefined || adsV2PresenterById(p.presenterId) !== null) && (p.productOriginalUrl === undefined || (typeof p.productOriginalUrl === 'string' && HTTPS_RE.test(p.productOriginalUrl))) // KINEO-ATORES-IA-2026-10-13 — só id da lista fechada · KINEO-ADS-BOLA-2110 — a foto inteira, quando vem, é https",
+   "    (p.presenterId === undefined || adsV2PresenterById(p.presenterId) !== null) // KINEO-ATORES-IA-2026-10-13 — só id da lista fechada"
+  ]
+ ],
+ "lib/ads/v2PresenterV2.ts": [
+  [
+   "export function adsV2PresenterV2Words(maxWords: number, voice?: { language?: string | null; gender?: 'woman' | 'man' | null } | null): { min: number; max: number } { // KINEO-ADS-BOLA-2110 — + voice: a régua pelo ritmo MEDIDO da voz do anúncio (ausente = 19–21, como antes)",
+   "export function adsV2PresenterV2Words(maxWords: number): { min: number; max: number } {"
+  ],
+  [
+   "  const paced = voice ? adsV2PresenterV2PaceWords(voice.language, voice.gender) : null // KINEO-ADS-BOLA-2110",
+   "  const max = Math.min(cap, ADS_V2_PRESENTER_V2_MAX_WORDS)"
+  ],
+  [
+   "  const max = Math.min(cap, paced ? paced.max : ADS_V2_PRESENTER_V2_MAX_WORDS) // KINEO-ADS-BOLA-2110 — era: Math.min(cap, ADS_V2_PRESENTER_V2_MAX_WORDS)",
+   "  return { min: Math.min(ADS_V2_PRESENTER_V2_MIN_WORDS, max), max }"
+  ],
+  [
+   "  return m + (ADS_V2_PRESENTER_V2_ACCEPT_MAX_WORDS - ADS_V2_PRESENTER_V2_MAX_WORDS) // KINEO-UGC-AJUSTES-2010 · KINEO-ADS-BOLA-2110 — a folga de 2 vale para qualquer teto (a régua por voz passa de 21); até 21 é o mesmo número de antes",
+   "  return Math.max(m, Math.min(ADS_V2_PRESENTER_V2_ACCEPT_MAX_WORDS, m + (ADS_V2_PRESENTER_V2_ACCEPT_MAX_WORDS - ADS_V2_PRESENTER_V2_MAX_WORDS))) // KINEO-UGC-AJUSTES-2010"
+  ],
+  [
+   "export interface AdsV2PresenterV2VoiceFitRecord { action: 'speed' | 'cut' | 'extend'; speed: number; wordsBefore: number; wordsAfter: number; secondsBefore: number } // KINEO-ADS-BOLA-2110 — + 'extend' (a voz curta ganhou uma frase e/ou desacelerou)",
+   "export interface AdsV2PresenterV2VoiceFitRecord { action: 'speed' | 'cut'; speed: number; wordsBefore: number; wordsAfter: number; secondsBefore: number }"
+  ],
+  [
+   "export type AdsV2PresenterV2VoiceFit = { action: 'ok' } | { action: 'speed' | 'cut' | 'extend'; speed: number; text: string } // KINEO-ADS-BOLA-2110 — + 'extend'",
+   "export type AdsV2PresenterV2VoiceFit = { action: 'ok' } | { action: 'speed' | 'cut'; speed: number; text: string }"
+  ],
+  [
+   "const wordsOfV2 = (t: string): number => String(t ?? '').split(/\\s+/).filter((w) => /[\\p{L}\\p{N}]/u.test(w)).length // KINEO-APRESENTADOR-V2-AJUSTE-1710 · KINEO-ADS-BOLA-2110 — o travessão de \"Conheça — bola\" não conta como palavra",
+   "const wordsOfV2 = (t: string): number => String(t ?? '').split(/\\s+/).filter(Boolean).length // KINEO-APRESENTADOR-V2-AJUSTE-1710"
+  ],
+  [
+   "export function adsV2PresenterV2VoiceFit(i: { seconds: number; text: string; canSpeed: boolean; target?: number; language?: string | null }): AdsV2PresenterV2VoiceFit { // KINEO-ADS-BOLA-2110 — + language (a frase a mais da voz curta)",
+   "export function adsV2PresenterV2VoiceFit(i: { seconds: number; text: string; canSpeed: boolean; target?: number }): AdsV2PresenterV2VoiceFit {"
+  ],
+  [
+   "export const ADS_V2_PRESENTER_V2_HANDS_QUESTION = 'Image 1 is a photo of a person with a product. \"product_whole\": is the WHOLE product inside the frame? \"no\" when any part of the product is cut by or touches the edge of the image, \"yes\" when it is entirely visible with some space around it, \"unsure\" when you cannot tell. How many separate hands are visible? Count each human hand once. \"hand_count\": that number. \"hands\": one entry per hand; for each: is it holding the product? \"holding_product\": \"yes\" or \"no\". And \"whole\": \"yes\" when the entire hand is inside the frame and in view (fingers wrapped around the product still count), \"no\" when part of it is cut by the edge of the frame or hidden, \"unsure\" when you cannot tell. \"phone_ui\": is there any phone camera interface, on-screen buttons or overlaid text drawn in the image? \"yes\", \"no\" or \"unsure\" (the printed label on the product itself does not count). Answer with JSON: {\"product_whole\": \"\", \"hand_count\": 0, \"hands\": [{\"holding_product\": \"\", \"whole\": \"\"}], \"phone_ui\": \"\"}.' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — \"how many separate hands are visible; for each: is it holding the product (yes/no)\" + a interface de celular · KINEO-ADS-BOLA-2110 — + \"product_whole\" (produto cortado na borda = a opção perde)",
+   "export const ADS_V2_PRESENTER_V2_HANDS_QUESTION = 'Image 1 is a photo of a person with a product. How many separate hands are visible? Count each human hand once. \"hand_count\": that number. \"hands\": one entry per hand; for each: is it holding the product? \"holding_product\": \"yes\" or \"no\". And \"whole\": \"yes\" when the entire hand is inside the frame and in view (fingers wrapped around the product still count), \"no\" when part of it is cut by the edge of the frame or hidden, \"unsure\" when you cannot tell. \"phone_ui\": is there any phone camera interface, on-screen buttons or overlaid text drawn in the image? \"yes\", \"no\" or \"unsure\" (the printed label on the product itself does not count). Answer with JSON: {\"hand_count\": 0, \"hands\": [{\"holding_product\": \"\", \"whole\": \"\"}], \"phone_ui\": \"\"}.' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — \"how many separate hands are visible; for each: is it holding the product (yes/no)\" + a interface de celular"
+  ],
+  [
+   "export interface AdsV2PresenterV2Hands { hands: { holds: AdsV2PresenterV2Tri; whole: AdsV2PresenterV2Tri }[]; count?: number | null; phoneUi?: AdsV2PresenterV2Tri; productWhole?: AdsV2PresenterV2Tri } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + a contagem e a interface de celular · KINEO-ADS-BOLA-2110 — + o produto inteiro no quadro",
+   "export interface AdsV2PresenterV2Hands { hands: { holds: AdsV2PresenterV2Tri; whole: AdsV2PresenterV2Tri }[]; count?: number | null; phoneUi?: AdsV2PresenterV2Tri } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + a contagem e a interface de celular"
+  ],
+  [
+   "  return { hands: list.filter((h) => h && typeof h === 'object').map((h) => ({ holds: triV2((h as { holding_product?: unknown; holds_product?: unknown }).holding_product ?? (h as { holds_product?: unknown }).holds_product), whole: triV2((h as { whole?: unknown }).whole) })), count: typeof count === 'number' && Number.isFinite(count) ? count : null, phoneUi: triV2((o as { phone_ui?: unknown }).phone_ui), productWhole: triV2((o as { product_whole?: unknown }).product_whole) } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — holding_product (a pergunta nova) + hand_count + phone_ui · KINEO-ADS-BOLA-2110 — + product_whole",
+   "  return { hands: list.filter((h) => h && typeof h === 'object').map((h) => ({ holds: triV2((h as { holding_product?: unknown; holds_product?: unknown }).holding_product ?? (h as { holds_product?: unknown }).holds_product), whole: triV2((h as { whole?: unknown }).whole) })), count: typeof count === 'number' && Number.isFinite(count) ? count : null, phoneUi: triV2((o as { phone_ui?: unknown }).phone_ui) } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — holding_product (a pergunta nova) + hand_count + phone_ui"
+  ],
+  [
+   "export type AdsV2PresenterV2HandWhy = 'clean_free_hand' | 'clean_no_free_hand' | 'all_cut' // KINEO-ADS-BOLA-2110 — + 'all_cut': toda opção limpa tinha o produto cortado (fica a menos ruim)",
+   "export type AdsV2PresenterV2HandWhy = 'clean_free_hand' | 'clean_no_free_hand'"
+  ]
+ ],
+ "lib/ads/v2Simple.ts": [
+  [
+   "  const first = simpleInstructionTitle(text) ?? adsV2StripMarketplacePrefix(String(text ?? '')).replace(/\\s+/g, ' ').trim().split(/[,.;:!?\\n]|\\s[—–-]\\s/)[0]?.trim() ?? '' // KINEO-ADS-BOLA-2110 — texto-instrução = o PRODUTO (\"Crie uma propaganda de 15 segundos…\" → \"Bola de futebol\"); \"Amazon.com : mini printer\" → \"mini printer\"",
+   "  const first = String(text ?? '').replace(/\\s+/g, ' ').trim().split(/[,.;:!?\\n]|\\s[—–-]\\s/)[0]?.trim() ?? ''"
+  ]
+ ]
+}

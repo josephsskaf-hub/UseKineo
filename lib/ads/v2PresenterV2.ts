@@ -76,6 +76,8 @@ export const ADS_V2_PRESENTER_V2_FREE_HAND = 'The other hand rests open on the c
 export const ADS_V2_PRESENTER_V2_CLEAN_PHOTO = 'A clean photo, no phone screen interface, no on-screen buttons, no text overlays.' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
 /** Rosto de frente (o avatar guiado por voz quer o rosto inteiro, olhando para a lente). */
 export const ADS_V2_PRESENTER_V2_FACE = 'faces the camera straight on, with the whole face visible and in focus, looking into the lens.'
+/** KINEO-ADS-BOLA-2110 — o produto INTEIRO dentro do quadro (pedido 618a6680: as 4 opções saíram com a bola cortada na borda direita). */ // KINEO-ADS-BOLA-2110
+export const ADS_V2_PRESENTER_V2_WHOLE_PRODUCT = 'The whole product is visible inside the frame with a little space around it, never cut or touched by the edge of the frame.' // KINEO-ADS-BOLA-2110
 
 /** A atuação pede gesto da mão livre? (o prompt de atuação aprovado pede "visible-hand gestures") — então a outra mão aparece inteira. */
 export function adsV2PresenterV2FreeHand(performancePrompt: string | null | undefined): boolean {
@@ -112,6 +114,7 @@ export function adsV2PresenterV2Prompt(i: { look: string; pronoun: 'She' | 'He';
     ADS_V2_PRESENTER_V2_NEUTRAL_MOUTH,
     ADS_V2_PRESENTER_V2_ONLY_PRODUCT,
     'Keep the product EXACTLY as in the second reference photo: same shape, colors, label, text and proportions. Do not redesign, rename, resize or add anything to the product.',
+    ADS_V2_PRESENTER_V2_WHOLE_PRODUCT, // KINEO-ADS-BOLA-2110
     ...(i.freeHand ? [ADS_V2_PRESENTER_V2_FREE_HAND] : []),
     `Head, shoulders and ${their} hand with the product in frame, face in the upper third of the frame, natural light, real skin texture, every hand has five natural fingers.`,
     place ? `${place} The background stays softly out of focus.` : `Background: ${where}, softly out of focus.`,
@@ -130,6 +133,8 @@ export interface AdsV2PresenterV2Option {
   freeHand?: boolean | null // KINEO-APRESENTADOR-V2-AJUSTE-1710
   /** KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — interface de câmera, botões ou texto desenhados na foto? 'yes' = descartada; 'unsure' = só no log; null = não leu. */
   phoneUi?: AdsV2PresenterV2Tri | null // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  /** KINEO-ADS-BOLA-2110 — o produto inteiro dentro do quadro? 'no' (ou o retângulo encostado na borda) = a opção perde para qualquer inteira; null = não leu. */ // KINEO-ADS-BOLA-2110
+  productWhole?: AdsV2PresenterV2Tri | null // KINEO-ADS-BOLA-2110
 }
 export interface AdsV2PresenterV2Plan {
   v: 1
@@ -168,6 +173,13 @@ export function adsV2PresenterV2Of(plan: { presenter?: unknown } | null | undefi
   return isAdsV2PresenterV2Plan(pr.v2) ? pr.v2 : null
 }
 
+/** KINEO-ADS-BOLA-2110 — a foto do produto que o apresentador v2 usa (referência do Nano Banana e close de 2 s): a INTEIRA (original_url) quando o pedido tem; senão o recorte de sempre. Pura. */ // KINEO-ADS-BOLA-2110
+export function adsV2PresenterV2ProductSource(actor: { productUrl?: unknown; productOriginalUrl?: unknown } | null | undefined): string | null { // KINEO-ADS-BOLA-2110
+  const o = typeof actor?.productOriginalUrl === 'string' ? actor.productOriginalUrl.trim() : '' // KINEO-ADS-BOLA-2110
+  if (HTTPS_RE.test(o)) return o // KINEO-ADS-BOLA-2110
+  const u = typeof actor?.productUrl === 'string' ? actor.productUrl.trim() : '' // KINEO-ADS-BOLA-2110
+  return HTTPS_RE.test(u) ? u : null // KINEO-ADS-BOLA-2110
+} // KINEO-ADS-BOLA-2110
 /** As 2 referências, nesta ordem: o retrato e a foto real do produto. */
 export function adsV2PresenterV2Refs(v2: Pick<AdsV2PresenterV2Plan, 'portraitUrl'>, productUrl: string): string[] {
   return [v2.portraitUrl, productUrl]
@@ -295,10 +307,11 @@ export const ADS_V2_PRESENTER_V2_MAX_SPEED = 1.08
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — quantas frases o pedido de texto pede (cada ponto é uma pausa; 21 palavras cabem em 2–3 frases curtas). */
 export const ADS_V2_PRESENTER_V2_SPEECH_SENTENCES = 'two or three short, calm spoken sentences'
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a régua do pedido de texto deste caminho (pura): o teto nunca passa do teto do anúncio nem de 21; o piso nunca passa do teto. */
-export function adsV2PresenterV2Words(maxWords: number): { min: number; max: number } {
+export function adsV2PresenterV2Words(maxWords: number, voice?: { language?: string | null; gender?: 'woman' | 'man' | null } | null): { min: number; max: number } { // KINEO-ADS-BOLA-2110 — + voice: a régua pelo ritmo MEDIDO da voz do anúncio (ausente = 19–21, como antes)
   const cap = typeof maxWords === 'number' && Number.isFinite(maxWords) && maxWords > 0 ? Math.floor(maxWords) : ADS_V2_PRESENTER_V2_MAX_WORDS
-  const max = Math.min(cap, ADS_V2_PRESENTER_V2_MAX_WORDS)
-  return { min: Math.min(ADS_V2_PRESENTER_V2_MIN_WORDS, max), max }
+  const paced = voice ? adsV2PresenterV2PaceWords(voice.language, voice.gender) : null // KINEO-ADS-BOLA-2110
+  const max = Math.min(cap, paced ? paced.max : ADS_V2_PRESENTER_V2_MAX_WORDS) // KINEO-ADS-BOLA-2110 — era: Math.min(cap, ADS_V2_PRESENTER_V2_MAX_WORDS)
+  return { min: Math.min(paced ? paced.min : ADS_V2_PRESENTER_V2_MIN_WORDS, max), max } // KINEO-ADS-BOLA-2110 — era: Math.min(ADS_V2_PRESENTER_V2_MIN_WORDS, max)
 }
 // KINEO-UGC-AJUSTES-2010 — a FOLGA da régua: o pedido ao modelo continua "19 a 21", mas a resposta com até 23 palavras é ACEITA (o piso de 19 fica). Em 20/10 o /plan da
 // KINEO-UGC-AJUSTES-2010 — Yasmin devolveu no_copy porque o modelo escreveu 22 (já depois da 1 correção que existe). Aceitar é o caminho de menor risco: nenhuma chamada a mais
@@ -308,7 +321,7 @@ export const ADS_V2_PRESENTER_V2_ACCEPT_MAX_WORDS = 23 // KINEO-UGC-AJUSTES-2010
 /** KINEO-UGC-AJUSTES-2010 — o teto aceito para uma régua com teto `max` (puro): `max` + a folga de 2, nunca acima de 23 nem abaixo de `max`. */
 export function adsV2PresenterV2AcceptMax(max: number): number { // KINEO-UGC-AJUSTES-2010
   const m = typeof max === 'number' && Number.isFinite(max) && max > 0 ? Math.floor(max) : ADS_V2_PRESENTER_V2_MAX_WORDS // KINEO-UGC-AJUSTES-2010
-  return Math.max(m, Math.min(ADS_V2_PRESENTER_V2_ACCEPT_MAX_WORDS, m + (ADS_V2_PRESENTER_V2_ACCEPT_MAX_WORDS - ADS_V2_PRESENTER_V2_MAX_WORDS))) // KINEO-UGC-AJUSTES-2010
+  return m + (ADS_V2_PRESENTER_V2_ACCEPT_MAX_WORDS - ADS_V2_PRESENTER_V2_MAX_WORDS) // KINEO-UGC-AJUSTES-2010 · KINEO-ADS-BOLA-2110 — a folga de 2 vale para qualquer teto (a régua por voz passa de 21); até 21 é o mesmo número de antes
 } // KINEO-UGC-AJUSTES-2010
 
 // ── 1b. a voz medida que passa do alvo: acelera de leve ou tira uma frase INTEIRA ────────────────────────────────────────────────────────────
@@ -317,15 +330,16 @@ export function adsV2PresenterV2AcceptMax(max: number): number { // KINEO-UGC-AJ
 // KINEO-APRESENTADOR-V2-AJUSTE-1710 — nome/chamada; nunca meia frase) e, se ainda precisar, acelera o resto até 1,08. Sem frase do meio para tirar = acelera 1,08 e
 // KINEO-APRESENTADOR-V2-AJUSTE-1710 — aceita passar um pouco do alvo (passar é bom; amputar a fala, nunca). Voz sem `speed` (a voz de hoje em EN/ES/homem) só corta.
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — o que foi feito, gravado no pedido (plan.presenter.v2.voiceFit) e no evento da montagem. */
-export interface AdsV2PresenterV2VoiceFitRecord { action: 'speed' | 'cut'; speed: number; wordsBefore: number; wordsAfter: number; secondsBefore: number }
-export type AdsV2PresenterV2VoiceFit = { action: 'ok' } | { action: 'speed' | 'cut'; speed: number; text: string }
-const wordsOfV2 = (t: string): number => String(t ?? '').split(/\s+/).filter(Boolean).length // KINEO-APRESENTADOR-V2-AJUSTE-1710
+export interface AdsV2PresenterV2VoiceFitRecord { action: 'speed' | 'cut' | 'extend'; speed: number; wordsBefore: number; wordsAfter: number; secondsBefore: number } // KINEO-ADS-BOLA-2110 — + 'extend' (a voz curta ganhou uma frase e/ou desacelerou)
+export type AdsV2PresenterV2VoiceFit = { action: 'ok' } | { action: 'speed' | 'cut' | 'extend'; speed: number; text: string } // KINEO-ADS-BOLA-2110 — + 'extend'
+const wordsOfV2 = (t: string): number => String(t ?? '').split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length // KINEO-APRESENTADOR-V2-AJUSTE-1710 · KINEO-ADS-BOLA-2110 — o travessão de "Conheça — bola" não conta como palavra
 const up2 = (n: number): number => Math.ceil(n * 100 - 1e-6) / 100 // KINEO-APRESENTADOR-V2-AJUSTE-1710
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a decisão (pura). `seconds` = a voz MEDIDA; `canSpeed` = a voz aceita voice_setting.speed (a MiniMax com voice id). */
-export function adsV2PresenterV2VoiceFit(i: { seconds: number; text: string; canSpeed: boolean; target?: number }): AdsV2PresenterV2VoiceFit {
+export function adsV2PresenterV2VoiceFit(i: { seconds: number; text: string; canSpeed: boolean; target?: number; language?: string | null }): AdsV2PresenterV2VoiceFit { // KINEO-ADS-BOLA-2110 — + language (a frase a mais da voz curta)
   const target = typeof i?.target === 'number' && i.target > 0 ? i.target : ADS_V2_PRESENTER_V2_VOICE_TARGET_SECONDS
   const s = Number(i?.seconds)
   const text = String(i?.text ?? '').replace(/\s+/g, ' ').trim()
+  if (s > 0 && text && s < ADS_V2_PRESENTER_V2_VOICE_MIN_SECONDS - 1e-9) return adsV2PresenterV2VoiceExtend({ seconds: s, text, canSpeed: i.canSpeed === true, language: i.language ?? null }) // KINEO-ADS-BOLA-2110 — voz CURTA (anúncio < 14,5 s): uma frase a mais e/ou desacelera até 0,92 ANTES de montar
   if (!(s > 0) || !text || s <= target + 1e-9) return { action: 'ok' }
   if (i.canSpeed !== true && s <= target * ADS_V2_PRESENTER_V2_MAX_SPEED + 1e-9) return { action: 'ok' } // KINEO-APRESENTADOR-OLHOS-1910 — a voz sem speed (EN/ES/homem) até 8% acima do alvo FICA (Rahul d036c357: 10,76 s para 10,5 perdeu a frase do meio e saiu com 12 palavras, 6,3 s). Passar é bom; amputar, nunca
   const need = s / target
@@ -403,9 +417,9 @@ export function adsV2PresenterV2AvatarInput<T extends Record<string, unknown>>(i
 // KINEO-APRESENTADOR-V2-AJUSTE-1710 — inventário no estilo da both_objects: pergunta de PRESENÇA (liste as mãos; cada uma segura o produto? está inteira?), o
 // KINEO-APRESENTADOR-V2-AJUSTE-1710 — código decide. Nenhuma limpa com a mão livre = a 1ª limpa, como antes. "frasco e caixa" continua mandando primeiro.
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a pergunta das mãos (1 imagem; o corpo e a chamada moram em lib/ads/v2LockVision.ts, adsV2PresenterV2HandsOf). */
-export const ADS_V2_PRESENTER_V2_HANDS_QUESTION = 'Image 1 is a photo of a person with a product. How many separate hands are visible? Count each human hand once. "hand_count": that number. "hands": one entry per hand; for each: is it holding the product? "holding_product": "yes" or "no". And "whole": "yes" when the entire hand is inside the frame and in view (fingers wrapped around the product still count), "no" when part of it is cut by the edge of the frame or hidden, "unsure" when you cannot tell. "phone_ui": is there any phone camera interface, on-screen buttons or overlaid text drawn in the image? "yes", "no" or "unsure" (the printed label on the product itself does not count). Answer with JSON: {"hand_count": 0, "hands": [{"holding_product": "", "whole": ""}], "phone_ui": ""}.' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — "how many separate hands are visible; for each: is it holding the product (yes/no)" + a interface de celular
+export const ADS_V2_PRESENTER_V2_HANDS_QUESTION = 'Image 1 is a photo of a person with a product. "product_whole": is the WHOLE product inside the frame? "no" when any part of the product is cut by or touches the edge of the image, "yes" when it is entirely visible with some space around it, "unsure" when you cannot tell. How many separate hands are visible? Count each human hand once. "hand_count": that number. "hands": one entry per hand; for each: is it holding the product? "holding_product": "yes" or "no". And "whole": "yes" when the entire hand is inside the frame and in view (fingers wrapped around the product still count), "no" when part of it is cut by the edge of the frame or hidden, "unsure" when you cannot tell. "phone_ui": is there any phone camera interface, on-screen buttons or overlaid text drawn in the image? "yes", "no" or "unsure" (the printed label on the product itself does not count). Answer with JSON: {"product_whole": "", "hand_count": 0, "hands": [{"holding_product": "", "whole": ""}], "phone_ui": ""}.' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — "how many separate hands are visible; for each: is it holding the product (yes/no)" + a interface de celular · KINEO-ADS-BOLA-2110 — + "product_whole" (produto cortado na borda = a opção perde)
 export type AdsV2PresenterV2Tri = 'yes' | 'no' | 'unsure'
-export interface AdsV2PresenterV2Hands { hands: { holds: AdsV2PresenterV2Tri; whole: AdsV2PresenterV2Tri }[]; count?: number | null; phoneUi?: AdsV2PresenterV2Tri } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + a contagem e a interface de celular
+export interface AdsV2PresenterV2Hands { hands: { holds: AdsV2PresenterV2Tri; whole: AdsV2PresenterV2Tri }[]; count?: number | null; phoneUi?: AdsV2PresenterV2Tri; productWhole?: AdsV2PresenterV2Tri } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + a contagem e a interface de celular · KINEO-ADS-BOLA-2110 — + o produto inteiro no quadro
 const triV2 = (v: unknown): AdsV2PresenterV2Tri => (v === 'yes' || v === true ? 'yes' : v === 'no' || v === false ? 'no' : 'unsure') // KINEO-APRESENTADOR-V2-AJUSTE-1710
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a resposta (pura): texto JSON ou objeto; sem lista "hands" = null (ilegível). */
 export function adsV2PresenterV2ParseHands(raw: unknown): AdsV2PresenterV2Hands | null {
@@ -414,7 +428,7 @@ export function adsV2PresenterV2ParseHands(raw: unknown): AdsV2PresenterV2Hands 
   const list = o && typeof o === 'object' ? (o as { hands?: unknown }).hands : null
   if (!Array.isArray(list)) return null
   const count = (o as { hand_count?: unknown }).hand_count // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
-  return { hands: list.filter((h) => h && typeof h === 'object').map((h) => ({ holds: triV2((h as { holding_product?: unknown; holds_product?: unknown }).holding_product ?? (h as { holds_product?: unknown }).holds_product), whole: triV2((h as { whole?: unknown }).whole) })), count: typeof count === 'number' && Number.isFinite(count) ? count : null, phoneUi: triV2((o as { phone_ui?: unknown }).phone_ui) } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — holding_product (a pergunta nova) + hand_count + phone_ui
+  return { hands: list.filter((h) => h && typeof h === 'object').map((h) => ({ holds: triV2((h as { holding_product?: unknown; holds_product?: unknown }).holding_product ?? (h as { holds_product?: unknown }).holds_product), whole: triV2((h as { whole?: unknown }).whole) })), count: typeof count === 'number' && Number.isFinite(count) ? count : null, phoneUi: triV2((o as { phone_ui?: unknown }).phone_ui), productWhole: triV2((o as { product_whole?: unknown }).product_whole) } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — holding_product (a pergunta nova) + hand_count + phone_ui · KINEO-ADS-BOLA-2110 — + product_whole
 }
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a mão LIVRE aparece inteira? (pura) 2+ mãos e uma que NÃO segura o produto (ou "não sei") está inteira. null = ilegível. */
 export function adsV2PresenterV2FreeHandOf(inv: AdsV2PresenterV2Hands | null | undefined): boolean | null {
@@ -424,7 +438,7 @@ export function adsV2PresenterV2FreeHandOf(inv: AdsV2PresenterV2Hands | null | u
   const free = inv.hands.filter((h) => h.holds === 'no' && h.whole === 'yes').length // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — "yes"/"no" firmes: "unsure" nunca confirma
   return holding === 1 && free === 1 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — uma no produto, outra vazia, as duas inteiras; a R2 contou a mão do frasco como livre
 }
-export type AdsV2PresenterV2HandWhy = 'clean_free_hand' | 'clean_no_free_hand'
+export type AdsV2PresenterV2HandWhy = 'clean_free_hand' | 'clean_no_free_hand' | 'all_cut' // KINEO-ADS-BOLA-2110 — + 'all_cut': toda opção limpa tinha o produto cortado (fica a menos ruim)
 /**
  * KINEO-APRESENTADOR-V2-AJUSTE-1710 — a escolha (pura): "frasco e caixa" decide primeiro (adsV2PresenterV2Pick, intocada); havendo limpa, a 1ª limpa COM a mão
  * KINEO-APRESENTADOR-V2-AJUSTE-1710 — livre inteira ('clean_free_hand'); nenhuma = a 1ª limpa ('clean_no_free_hand'). Sem limpa = a regra de antes.
@@ -646,3 +660,92 @@ export function adsV2PresenterV2VoiceIdOf(language: string | null | undefined, g
   if (v.engine === 'minimax') return `minimax:${v.voiceId}` // KINEO-APRESENTADOR-OLHOS-1910
   return entryVoice && entryVoice.engine === 'eleven' && typeof entryVoice.voice === 'string' && entryVoice.voice ? `eleven:${entryVoice.voice}` : 'minimax:default' // KINEO-APRESENTADOR-OLHOS-1910
 } // KINEO-APRESENTADOR-OLHOS-1910
+// ══ KINEO-ADS-BOLA-2110 — o anúncio "— bola de futebol" (pedido 618a6680, 21/10): 15 s saíram 12,3 s; a bola saiu cortada na borda ══════════════════════════
+// ── 3. a régua pelo RITMO MEDIDO da voz ────────────────────────────────────────────────────────────────────────────────────────────────────── // KINEO-ADS-BOLA-2110
+// Medido em produção (22 anúncios com apresentador de 17 a 21/10, voice_seconds do ads_v2_assembling × as palavras faladas do roteiro gravado): // KINEO-ADS-BOLA-2110
+// Portuguese_ConfidentWoman 2,14 pal/s em 18 renders (1,67 a 2,48: a mesma voz varia ±15% de um texto para outro); EN (MiniMax padrão / ElevenLabs) // KINEO-ADS-BOLA-2110
+// 1,89 pal/s em 5. O "2,6 pal/s" do diagnóstico veio de UM render (o da bola: 19 palavras em 7,67 s, no topo da faixa). O defeito real foi a régua // KINEO-ADS-BOLA-2110
+// de 19 palavras (o modelo escreve no piso) + nenhum conserto para voz CURTA. Agora: a régua mira ~10,5 s no ritmo medido de cada voz e a voz medida // KINEO-ADS-BOLA-2110
+// abaixo de 9,85 s (anúncio < 14,5 s) ganha uma frase e/ou desacelera ANTES da montagem (adsV2PresenterV2VoiceExtend). Os filmes não mudam. // KINEO-ADS-BOLA-2110
+/** Ritmo medido (palavras faladas por segundo) por voice id da MiniMax. */ // KINEO-ADS-BOLA-2110
+export const ADS_V2_PRESENTER_V2_PACE_BY_VOICE: Readonly<Record<string, number>> = { Portuguese_ConfidentWoman: 2.14 } // KINEO-ADS-BOLA-2110
+/** Ritmo medido por língua para a voz de hoje ('current': MiniMax padrão / ElevenLabs do retrato). Fora da tabela = ADS_V2_PRESENTER_V2_WPS. */ // KINEO-ADS-BOLA-2110
+export const ADS_V2_PRESENTER_V2_PACE_BY_LANGUAGE: Readonly<Record<string, number>> = { pt: 2.14, en: 1.89, es: 2.1 } // KINEO-ADS-BOLA-2110
+/** O ritmo da voz que o anúncio vai usar (puro). */ // KINEO-ADS-BOLA-2110
+export function adsV2PresenterV2Pace(language: string | null | undefined, gender: 'woman' | 'man' | null | undefined): number { // KINEO-ADS-BOLA-2110
+  const v = adsV2PresenterV2VoiceFor(language, gender) // KINEO-ADS-BOLA-2110
+  const lang = String(language ?? '').toLowerCase().slice(0, 2) // KINEO-ADS-BOLA-2110
+  const pace = v.engine === 'minimax' ? ADS_V2_PRESENTER_V2_PACE_BY_VOICE[v.voiceId] : ADS_V2_PRESENTER_V2_PACE_BY_LANGUAGE[lang] // KINEO-ADS-BOLA-2110
+  return typeof pace === 'number' && pace > 0 ? pace : ADS_V2_PRESENTER_V2_WPS // KINEO-ADS-BOLA-2110
+} // KINEO-ADS-BOLA-2110
+/** A janela da fala (s) que a régua mira: 10,2 a 11,2 s (no centro, 10,5 + 0,15 + 2 + 2,5 ≈ 15 s de anúncio). */ // KINEO-ADS-BOLA-2110
+export const ADS_V2_PRESENTER_V2_SPEECH_WINDOW_SECONDS: Readonly<{ min: number; max: number }> = { min: 10.2, max: 11.2 } // KINEO-ADS-BOLA-2110
+/** A régua de palavras da voz (pura): PT ConfidentWoman 22–24; EN 19–21 (o mesmo de antes); ES 21–24. */ // KINEO-ADS-BOLA-2110
+export function adsV2PresenterV2PaceWords(language: string | null | undefined, gender: 'woman' | 'man' | null | undefined): { min: number; max: number } { // KINEO-ADS-BOLA-2110
+  const pace = adsV2PresenterV2Pace(language, gender) // KINEO-ADS-BOLA-2110
+  const min = Math.round(pace * ADS_V2_PRESENTER_V2_SPEECH_WINDOW_SECONDS.min) // KINEO-ADS-BOLA-2110
+  return { min, max: Math.max(min, Math.round(pace * ADS_V2_PRESENTER_V2_SPEECH_WINDOW_SECONDS.max)) } // KINEO-ADS-BOLA-2110
+} // KINEO-ADS-BOLA-2110
+// ── 3b. a voz medida CURTA: uma frase a mais e/ou desacelera ───────────────────────────────────────────────────────────────────────────────── // KINEO-ADS-BOLA-2110
+/** O piso da voz MEDIDA (s): 14,5 s de anúncio − (0,15 + close 2 + cartão 2,5). Abaixo disso o anúncio de 15 s sai curto (a bola: 7,67 s → 12,3 s). */ // KINEO-ADS-BOLA-2110
+export const ADS_V2_PRESENTER_V2_VOICE_MIN_SECONDS = 9.85 // KINEO-ADS-BOLA-2110
+/** Quanto a voz pode desacelerar (voice_setting.speed): 8% mais lenta ainda soa natural (o espelho do 1,08 de acelerar). */ // KINEO-ADS-BOLA-2110
+export const ADS_V2_PRESENTER_V2_MIN_SPEED = 0.92 // KINEO-ADS-BOLA-2110
+/** A pausa que um ponto final acrescenta na voz (s), na estimativa da frase a mais. */ // KINEO-ADS-BOLA-2110
+export const ADS_V2_PRESENTER_V2_SENTENCE_PAUSE_SECONDS = 0.35 // KINEO-ADS-BOLA-2110
+/** As frases a mais, por língua: chamada neutra (sem número, sem fama, sem gênero gramatical do produto, sem "loja"). Fora da tabela = só desacelera. */ // KINEO-ADS-BOLA-2110
+export const ADS_V2_PRESENTER_V2_EXTEND_SENTENCES: Readonly<Record<string, readonly string[]>> = { // KINEO-ADS-BOLA-2110
+  pt: ['Peça agora mesmo.', 'Aproveite e garanta já.'], // KINEO-ADS-BOLA-2110
+  en: ['Order yours today.', 'Get it now.'], // KINEO-ADS-BOLA-2110
+  es: ['Pídelo ahora mismo.', 'Aprovecha y consíguelo ya.'], // KINEO-ADS-BOLA-2110
+} // KINEO-ADS-BOLA-2110
+const down2 = (n: number): number => Math.floor(n * 100 + 1e-6) / 100 // KINEO-ADS-BOLA-2110
+/** A decisão para a voz CURTA (pura): 1ª frase a mais; ainda curta = desacelera até 0,92; ainda curta = a 2ª frase. Nada a fazer = 'ok'. */ // KINEO-ADS-BOLA-2110
+export function adsV2PresenterV2VoiceExtend(i: { seconds: number; text: string; canSpeed: boolean; language?: string | null }): AdsV2PresenterV2VoiceFit { // KINEO-ADS-BOLA-2110
+  const s = Number(i?.seconds) // KINEO-ADS-BOLA-2110
+  const text = String(i?.text ?? '').replace(/\s+/g, ' ').trim() // KINEO-ADS-BOLA-2110
+  if (!(s > 0) || !text || s >= ADS_V2_PRESENTER_V2_VOICE_MIN_SECONDS) return { action: 'ok' } // KINEO-ADS-BOLA-2110
+  const perWord = s / Math.max(1, wordsOfV2(text)) // KINEO-ADS-BOLA-2110
+  const pool = ADS_V2_PRESENTER_V2_EXTEND_SENTENCES[String(i?.language ?? '').toLowerCase().slice(0, 2)] ?? [] // KINEO-ADS-BOLA-2110
+  let out = text // KINEO-ADS-BOLA-2110
+  let est = s // KINEO-ADS-BOLA-2110
+  const add = (sentence: string): void => { // KINEO-ADS-BOLA-2110
+    if (out.toLowerCase().includes(sentence.toLowerCase())) return // KINEO-ADS-BOLA-2110
+    out = `${/[.!?…]$/u.test(out) ? out : `${out}.`} ${sentence}` // KINEO-ADS-BOLA-2110
+    est += wordsOfV2(sentence) * perWord + ADS_V2_PRESENTER_V2_SENTENCE_PAUSE_SECONDS // KINEO-ADS-BOLA-2110
+  } // KINEO-ADS-BOLA-2110
+  const speedFor = (): number => (i.canSpeed === true && est < ADS_V2_PRESENTER_V2_VOICE_MIN_SECONDS ? Math.max(ADS_V2_PRESENTER_V2_MIN_SPEED, down2(est / ADS_V2_PRESENTER_V2_VOICE_MIN_SECONDS)) : 1) // KINEO-ADS-BOLA-2110
+  if (pool[0]) add(pool[0]) // KINEO-ADS-BOLA-2110
+  let speed = speedFor() // KINEO-ADS-BOLA-2110
+  if (est / speed < ADS_V2_PRESENTER_V2_VOICE_MIN_SECONDS && pool[1]) { add(pool[1]); speed = speedFor() } // KINEO-ADS-BOLA-2110
+  if (out === text && speed === 1) return { action: 'ok' } // KINEO-ADS-BOLA-2110
+  return { action: 'extend', speed, text: out } // KINEO-ADS-BOLA-2110
+} // KINEO-ADS-BOLA-2110
+// ── 2b. a escolha da foto: produto INTEIRO primeiro, depois 2 mãos ─────────────────────────────────────────────────────────────────────────── // KINEO-ADS-BOLA-2110
+/** O produto encosta na borda do quadro? (pura) Retângulo em frações; a 1,5% da borda conta como encostado. null = não sei. */ // KINEO-ADS-BOLA-2110
+export function adsV2PresenterV2RectAtEdge(rect: AdsV2PresenterV2Rect | null | undefined): boolean | null { // KINEO-ADS-BOLA-2110
+  if (!rect || ![rect.x0, rect.y0, rect.x1, rect.y1].every((n) => typeof n === 'number' && Number.isFinite(n))) return null // KINEO-ADS-BOLA-2110
+  const e = 0.015 // KINEO-ADS-BOLA-2110
+  return rect.x0 <= e || rect.y0 <= e || rect.x1 >= 1 - e || rect.y1 >= 1 - e // KINEO-ADS-BOLA-2110
+} // KINEO-ADS-BOLA-2110
+/** O produto inteiro no quadro, pela checagem das mãos (pura): 'yes' / 'no' / 'unsure'; null = a checagem não leu. */ // KINEO-ADS-BOLA-2110
+export function adsV2PresenterV2ProductWholeOf(inv: AdsV2PresenterV2Hands | null | undefined): AdsV2PresenterV2Tri | null { // KINEO-ADS-BOLA-2110
+  if (!inv || !Array.isArray(inv.hands)) return null // KINEO-ADS-BOLA-2110
+  return inv.productWhole === 'yes' || inv.productWhole === 'no' ? inv.productWhole : 'unsure' // KINEO-ADS-BOLA-2110
+} // KINEO-ADS-BOLA-2110
+/** // KINEO-ADS-BOLA-2110
+ * A escolha (pura). Descartada (frasco + caixa, ou interface de celular) só entra se TODAS forem; entre as outras, nesta ordem: produto inteiro // KINEO-ADS-BOLA-2110
+ * ('yes' e sem encostar na borda) > não sei > cortado ('no' ou retângulo na borda); depois as 2 mãos confirmadas (uma no produto, outra livre) > // KINEO-ADS-BOLA-2110
+ * exatamente 2 mãos > o resto; empate = a de menor índice. Todas descartadas = a regra de antes (adsV2PresenterV2PickClean). // KINEO-ADS-BOLA-2110
+ */ // KINEO-ADS-BOLA-2110
+export function adsV2PresenterV2PickWhole(i: { both: readonly (boolean | null)[]; freeHands: readonly (boolean | null)[]; phoneUi: readonly (AdsV2PresenterV2Tri | null)[]; productWhole: readonly (AdsV2PresenterV2Tri | null)[]; handCounts: readonly (number | null)[]; rects?: readonly (AdsV2PresenterV2Rect | null)[] }): { index: number; why: AdsV2PresenterV2PickWhy | AdsV2PresenterV2HandWhy } { // KINEO-ADS-BOLA-2110
+  const both = Array.isArray(i?.both) ? i.both : [] // KINEO-ADS-BOLA-2110
+  const at = <T,>(list: readonly T[] | undefined, k: number): T | null => (Array.isArray(list) && k < list.length ? list[k] ?? null : null) // KINEO-ADS-BOLA-2110
+  const live = both.map((_, k) => k).filter((k) => both[k] !== true && at(i.phoneUi, k) !== 'yes') // KINEO-ADS-BOLA-2110
+  if (live.length === 0) return adsV2PresenterV2PickClean(both, Array.isArray(i?.freeHands) ? i.freeHands : [], Array.isArray(i?.phoneUi) ? i.phoneUi : []) // KINEO-ADS-BOLA-2110
+  const cut = (k: number): number => { const w = at(i.productWhole, k); const edge = adsV2PresenterV2RectAtEdge(at(i.rects, k)); return w === 'no' || edge === true ? 2 : w === 'yes' ? 0 : 1 } // KINEO-ADS-BOLA-2110
+  const handScore = (k: number): number => (at(i.freeHands, k) === true ? 0 : at(i.handCounts, k) === 2 ? 1 : 2) // KINEO-ADS-BOLA-2110
+  const best = live.slice().sort((a, b) => cut(a) - cut(b) || handScore(a) - handScore(b) || a - b)[0] // KINEO-ADS-BOLA-2110
+  const why: AdsV2PresenterV2PickWhy | AdsV2PresenterV2HandWhy = cut(best) === 2 ? 'all_cut' : both[best] === null ? 'unchecked' : at(i.freeHands, best) === true ? 'clean_free_hand' : 'clean_no_free_hand' // KINEO-ADS-BOLA-2110
+  return { index: best, why } // KINEO-ADS-BOLA-2110
+} // KINEO-ADS-BOLA-2110
