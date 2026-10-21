@@ -49,12 +49,14 @@ function database(rows, errors = {}) {
         maybeSingle() { single = true; return q },
         insert(value) { op = 'insert'; state.audits.push(value); return q },
         update(value) { op = 'update'; values = value; return q },
+        delete() { op = 'delete'; return q },
         then(resolve, reject) {
           return (async () => {
             if (state.beforeQuery) await state.beforeQuery({ table, op, values })
             if (errors[table]) return { data: null, error: { message: 'erro simulado' } }
             const matching = (rows[table] ?? []).filter(r => predicates.every(p => p(r))).slice(0, max)
             if (op === 'update') for (const row of matching) Object.assign(row, structuredClone(values))
+            if (op === 'delete') rows[table] = rows[table].filter(row => !matching.includes(row))
             const found = matching.map(r => structuredClone(r))
             return { data: op === 'insert' ? null : single ? found[0] ?? null : found, error: null }
           })().then(resolve, reject)
@@ -64,6 +66,7 @@ function database(rows, errors = {}) {
     },
     async rpc(name, args) {
       assert.equal(name, 'refund_render_credits')
+      if (state.beforeRpc) await state.beforeRpc()
       state.rpc.push(args.p_render)
       if (errors.rpc) return { data: null, error: { message: 'RPC simulado falhou' } }
       const row = rows.credit_debits.find(d => d.render_id === args.p_render)
@@ -226,12 +229,12 @@ await check('BASE reproduz o defeito: sufixo claimId não encontra requestId', a
   assert.equal(r.creditsReturned, 0); assert.equal(db.state.paid, 0)
 })
 await check('dublê: abandono, pending, concorrência, repetição, entregas e falhas fechadas', async () => assert.deepEqual(await problems(), []))
-function replay(src, row) {
+function replay(src, row, db = {}, refund = null) {
   const begin = src.indexOf('    async function responseForClaimRow('), end = src.indexOf('    async function completeAvatarClaim(', begin)
   assert.ok(begin >= 0 && end > begin)
   const code = ts.transpileModule(src.slice(begin, end) + '\nexports.run = responseForClaimRow', { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText
   const exports = {}
-  vm.runInNewContext(code, { exports, avatarAdmin: {}, claimId, userId: USER, generationId: GEN, AVATAR_CLAIM_EVENT: C.AVATAR_CLAIM_EVENT, AVATAR_CLAIM_PATH: C.AVATAR_CLAIM_PATH, serviceRoleKey: SECRET, requestFingerprint: 'fp-estorno', AVATAR_CREDIT_COST: 70, verifyAvatarClaim: C.verifyAvatarClaim, avatarValueHash: C.avatarValueHash, safetyUnavailable: () => ({ status: 503 }), NextResponse: { json: (body, opts = {}) => ({ body, status: opts.status ?? 200 }) }, console: { error() {} } })
+  vm.runInNewContext(code, { exports, avatarAdmin: db, claimId, userId: USER, generationId: GEN, AVATAR_CLAIM_EVENT: C.AVATAR_CLAIM_EVENT, AVATAR_CLAIM_PATH: C.AVATAR_CLAIM_PATH, serviceRoleKey: SECRET, requestFingerprint: 'fp-estorno', AVATAR_CREDIT_COST: 70, verifyAvatarClaim: C.verifyAvatarClaim, avatarValueHash: C.avatarValueHash, safetyUnavailable: () => ({ status: 503 }), NextResponse: { json: (body, opts = {}) => ({ body, status: opts.status ?? 200 }) }, Date: Clock, ACTIVE_RESERVATION_TTL_MS: 2 * 3600000, refundAvatarBirthDebit: refund, reservationId: 'reserva-duble', console: { error() {} } })
   return exports.run(row)
 }
 await check('replay real recusa reserva de estorno antes de expor resposta', async () => {
@@ -241,6 +244,27 @@ await check('replay real recusa reserva de estorno antes de expor resposta', asy
   assert.equal((await replay(src, row)).status, 503)
   const anchor = '      if (metadata.abandoned_refund_claimed_at) return safetyUnavailable()'
   assert.ok(src.includes(anchor)); assert.equal((await replay(src.replace(anchor, '      if (false) return safetyUnavailable()'), row)).status, 200, 'mutante do replay fica vermelho')
+})
+async function stalePendingRace(src) {
+  const rows = fixture({ status: 'pending' }); rows.events[0].created_at = OLD
+  const db = database(rows), overrides = {}, mod = load(db, overrides), reserve = reservation(db, overrides)
+  let intercepted = false
+  db.state.beforeRpc = async () => {
+    if (intercepted) return
+    intercepted = true
+    assert.equal((await mod.sweepAbandonedAvatarDebits()).creditsReturned, 70)
+  }
+  const r = await replay(src, structuredClone(rows.events[0]), db, reserve.refundAvatarBirthDebit)
+  assert.equal(intercepted, true); assert.equal(r.status, 503)
+  assert.equal(db.state.rows.events.length, 1); assert.ok(db.state.rows.events[0].metadata.abandoned_refund_claimed_at)
+  assert.equal(db.state.paid, 70)
+}
+await check('replay pending aguardando refund não apaga marker; mutante DELETE vermelho', async () => {
+  const src = rd('app/api/generate-avatar/route.ts')
+  await stalePendingRace(src)
+  const anchor = ".is('metadata->>abandoned_refund_claimed_at', null) // KINEO-AVATAR-ESTORNO-2010 — replay pending"
+  assert.ok(src.includes(anchor))
+  await assert.rejects(() => stalePendingRace(src.replace(anchor, '// KINEO-AVATAR-ESTORNO-2010 — replay pending')))
 })
 function complete(src, db) {
   const begin = src.indexOf('    async function completeAvatarClaim('), end = src.indexOf('    if (!dryRun) {', begin)
@@ -265,9 +289,9 @@ async function completionRace(src) {
 await check('completion real com snapshot anterior não apaga reserva; mutante CAS vermelho', async () => {
   const src = rd('app/api/generate-avatar/route.ts')
   await completionRace(src)
-  const anchor = ".is('metadata->>abandoned_refund_claimed_at', null)"
+  const anchor = ".is('metadata->>abandoned_refund_claimed_at', null) // KINEO-AVATAR-ESTORNO-2010 — CAS contra a reserva concorrente"
   assert.ok(src.includes(anchor))
-  await assert.rejects(() => completionRace(src.replace(anchor, '')))
+  await assert.rejects(() => completionRace(src.replace(anchor, '// KINEO-AVATAR-ESTORNO-2010 — CAS contra a reserva concorrente')))
 })
 for (const [name, file, before, after] of [
   ['volta a confundir requestId com claimId', F, 'billingReference: renderId', "billingReference: 'avatar-' + loadedRequestId"],

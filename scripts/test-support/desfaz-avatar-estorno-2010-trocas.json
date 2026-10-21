@@ -73,7 +73,7 @@
     "trocas": []
   },
   "app/api/generate-avatar/route.ts": {
-    "acrescimos": 3,
+    "acrescimos": 5,
     "trocas": []
   },
   "scripts/test-guardiao-2026-08-28.mjs": {

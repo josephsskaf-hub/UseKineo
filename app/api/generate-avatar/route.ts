@@ -337,6 +337,7 @@ export async function POST(req: NextRequest) {
           .eq('id', claimId)
           .eq('user_id', userId)
           .eq('name', AVATAR_CLAIM_EVENT)
+          .is('metadata->>abandoned_refund_claimed_at', null) // KINEO-AVATAR-ESTORNO-2010 — cleanup tardio não remove a revogação de entrega reservada pelo sweep
         if (error) console.error('[generate-avatar] claim release failed:', error.message)
         else ownsAvatarClaim = false
       }
@@ -430,6 +431,7 @@ export async function POST(req: NextRequest) {
           .eq('name', AVATAR_CLAIM_EVENT)
           .eq('metadata->>status', 'pending')
           .eq('metadata->>authority', metadata.authority as string)
+          .is('metadata->>abandoned_refund_claimed_at', null) // KINEO-AVATAR-ESTORNO-2010 — replay pending iniciado antes do sweep não apaga o claim marcado enquanto o refund aguardava
           .select('id')
           .maybeSingle()
         if (deleteError || deleted?.id !== claimId) {
