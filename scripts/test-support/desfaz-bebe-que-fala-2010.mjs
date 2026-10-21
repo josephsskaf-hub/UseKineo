@@ -51,6 +51,7 @@ export const ACRESCIMOS_BEBE_QUE_FALA_2010 = {
   'scripts/test-trilha-15s-1610.mjs': 0,
   'scripts/test-veo-marcado-2026-09-29.mjs': 0,
   'scripts/test-veo-modo-ia-2026-09-29.mjs': 0,
+  'scripts/test-verbatim-intocavel-2010.mjs': 1,
   'scripts/test-visual-contract-2026-09-11.mjs': 0,
 }
 export const BEBE_QUE_FALA_2010_ARQUIVOS = Object.freeze(Object.keys(ACRESCIMOS_BEBE_QUE_FALA_2010))

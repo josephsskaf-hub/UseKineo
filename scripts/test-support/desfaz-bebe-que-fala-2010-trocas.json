@@ -179,6 +179,24 @@
    "const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) || linhaDosFilmesF1F4_1910(l) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ /* reancorado KINEO-FILMES-F1-F4-1910 */ // reancorado KINEO-FILME-RAPIDO-1710"
   ]
  ],
+ "scripts/test-verbatim-intocavel-2010.mjs": [
+  [
+   "    const atual = semBebeQueFala2010(rd(rel), rel) // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "    const atual = rd(rel)"
+  ],
+  [
+   "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-BEBE-QUE-FALA-2010' /* reancorado KINEO-BEBE-QUE-FALA-2010: pula os commits do desenho infantil */, 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null }",
+   "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null }"
+  ],
+  [
+   "  const av = semBebeQueFala2010(rd('scripts/test-support/desfaz-avatar-preso-2010.mjs'), 'scripts/test-support/desfaz-avatar-preso-2010.mjs') // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "  const av = rd('scripts/test-support/desfaz-avatar-preso-2010.mjs')"
+  ],
+  [
+   "  checa('o guardião do avatar preso tira esta camada antes da contagem do D3', semBebeQueFala2010(rd('scripts/test-avatar-preso-2010.mjs'), 'scripts/test-avatar-preso-2010.mjs').split('semVerbatimIntocavel2010NaCadeia(rd(rel), rel).split(').length - 1 === 2) // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "  checa('o guardião do avatar preso tira esta camada antes da contagem do D3', rd('scripts/test-avatar-preso-2010.mjs').split('semVerbatimIntocavel2010NaCadeia(rd(rel), rel).split(').length - 1 === 2)"
+  ]
+ ],
  "scripts/test-visual-contract-2026-09-11.mjs": [
   [
    "    { exports, console: { log() {}, warn() {}, error() {} }, process: { env: {} }, fetch: noNetwork, romanceAdulto: { ativo: false }, desenhoInfantil: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op) · desenhoInfantil: reancorado KINEO-BEBE-QUE-FALA-2010 (sem kids_cartoon a linha é no-op)",

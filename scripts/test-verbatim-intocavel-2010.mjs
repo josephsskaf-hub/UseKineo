@@ -20,6 +20,7 @@
 //   M. mutantes: contagem crua de volta, só sem pistas (rótulos ainda contam), sem a língua — todos vermelhos;
 //   D. o desfaz devolve a fonte de antes byte a byte (e recusa fonte alheia).
 import { readFileSync } from 'node:fs'
+import { semBebeQueFala2010 } from './test-support/desfaz-bebe-que-fala-2010.mjs' // reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories (20/10) entrou depois e reancorou os mesmos guardiões/desfaz: sai em memória antes de contar e comparar
 import { execFileSync } from 'node:child_process'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -172,9 +173,9 @@ console.log('D) o desfaz')
   const gitTxt = (...a) => execFileSync('git', a, { cwd: RAIZ, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
   const NL = String.fromCharCode(10)
   for (const rel of REANCORAS_VERBATIM_INTOCAVEL_2010) {
-    const atual = rd(rel)
+    const atual = semBebeQueFala2010(rd(rel), rel) // reancorado KINEO-BEBE-QUE-FALA-2010
     let alheia = null, h = ''
-    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null }
+    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-BEBE-QUE-FALA-2010' /* reancorado KINEO-BEBE-QUE-FALA-2010: pula os commits do desenho infantil */, 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null }
     const desfeito = semVerbatimIntocavel2010(rel, atual)
     const marcadas = atual.split(NL).filter((l) => l.includes(MARCA_VERBATIM_INTOCAVEL_2010)).length
     const esperadas = ACRESCIMOS_REANCORA_VERBATIM_INTOCAVEL_2010[rel] + (TROCAS_REANCORA_VERBATIM_INTOCAVEL_2010[rel]?.quantas ?? 0)
@@ -183,12 +184,12 @@ console.log('D) o desfaz')
     checa(`reâncora ${rel}: uma linha marcada a mais → o desfaz recusa (null) e a cadeia lança`, semVerbatimIntocavel2010(rel, aMais) === null && (() => { try { semVerbatimIntocavel2010NaCadeia(aMais, rel); return false } catch { return true } })())
   }
   const pers = rd('scripts/test-meta95-personagem-2010.mjs')
-  const av = rd('scripts/test-support/desfaz-avatar-preso-2010.mjs')
+  const av = semBebeQueFala2010(rd('scripts/test-support/desfaz-avatar-preso-2010.mjs'), 'scripts/test-support/desfaz-avatar-preso-2010.mjs') // reancorado KINEO-BEBE-QUE-FALA-2010
   checa('encadeado: semAvatarPreso2010 (a camada de antes; a cabeça dos guardiões e o D1/D3 dela passam por ela) chama o desfaz desta camada primeiro', av.includes('export function semAvatarPreso2010(texto, p) {' + NL + '  texto = semVerbatimIntocavel2010NaCadeia(texto, p) // KINEO-VERBATIM-INTOCAVEL-2010'))
   const AVm = await import(new URL('./test-support/desfaz-avatar-preso-2010.mjs', import.meta.url).href)
   checa('pela cadeia (semAvatarPreso2010NosGuardioes), os guardiões reancorados desfeitos não têm mais a marca desta entrega', ['scripts/test-mcp-studio-2010.mjs', 'scripts/test-meta95-personagem-2010.mjs'].every((g) => !AVm.semAvatarPreso2010NosGuardioes(rd(g), g).includes(MARCA_VERBATIM_INTOCAVEL_2010)))
   checa('o guardião da folha de personagem deixa os commits desta fora do D7', pers.includes('commitsDaEntrega.filter(({ s }) => !s.includes(MARCA_VERBATIM_INTOCAVEL_2010)))'))
-  checa('o guardião do avatar preso tira esta camada antes da contagem do D3', rd('scripts/test-avatar-preso-2010.mjs').split('semVerbatimIntocavel2010NaCadeia(rd(rel), rel).split(').length - 1 === 2)
+  checa('o guardião do avatar preso tira esta camada antes da contagem do D3', semBebeQueFala2010(rd('scripts/test-avatar-preso-2010.mjs'), 'scripts/test-avatar-preso-2010.mjs').split('semVerbatimIntocavel2010NaCadeia(rd(rel), rel).split(').length - 1 === 2) // reancorado KINEO-BEBE-QUE-FALA-2010
 }
 
 console.log(`\n${ok} verificações ok, ${falhas.length} falha(s)`)
