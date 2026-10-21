@@ -7,7 +7,7 @@
 //   · ACRÉSCIMO — linha nova: sai inteira (contagem EXATA por arquivo);
 //   · TROCA — a linha da base foi reescrita: reconhecida INTEIRA, volta a ser o texto da base. Tabela em desfaz-ads-nota9-2110-trocas.json.
 // Só age nos arquivos declarados; qualquer outro texto passa igual (idempotente). Preserva CRLF. A marca NÃO contém a de nenhuma camada de antes.
-// ENCADEAMENTO: é a camada MAIS NOVA — semHomeCardsClaros2010 (que semBebeQueFala2010 e a cabeça semMenuUgc2010 chamam primeiro) chama ESTE
+// ENCADEAMENTO: é a camada MAIS NOVA — semDesenhoNota9_2110 (que semHomeCardsClaros2010, semBebeQueFala2010 e a cabeça semMenuUgc2010 chamam primeiro) chama ESTE
 // primeiro. Este não importa ninguém.
 // O guardião scripts/test-ads-nota9-2110.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (ADS_NOTA9_2110_BASE).
 import { readFileSync } from 'node:fs'
@@ -16,8 +16,8 @@ import { fileURLToPath } from 'node:url'
 
 export const MARCA_ADS_NOTA9_2110 = 'KINEO-ADS-NOTA9-2110'
 
-/** A base da entrega: origin/main de 21/10 manhã (f53733122, KINEO-HOME-CARDS-CLAROS-2010 v2). */
-export const ADS_NOTA9_2110_BASE = 'f53733122'
+/** A base da entrega: origin/main de 21/10 (dbd50f95a, KINEO-HOME-CARDS-CLAROS-2010 reâncoras depois do desenho nota 9). */
+export const ADS_NOTA9_2110_BASE = 'dbd50f95a'
 
 /** [linha nova (inteira), linha da base] por arquivo. */
 export const TROCAS_ADS_NOTA9_2110 = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-ads-nota9-2110-trocas.json'), 'utf8'))

@@ -13,7 +13,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { semAdsNota92110 } from './desfaz-ads-nota9-2110.mjs' // KINEO-ADS-NOTA9-2110 — o Studio Ads nota 9 (21/10) veio depois: sai PRIMEIRO (encadeado; texto sem a marca passa igual)
+import { semDesenhoNota9_2110 } from './desfaz-desenho-nota9-2110.mjs' // KINEO-DESENHO-NOTA9-2110 — o desenho infantil inteiro na tela clara (21/10) veio depois: sai PRIMEIRO (encadeado; texto sem a marca passa igual)
 
 export const MARCA_HOME_CARDS_CLAROS_2010 = 'KINEO-HOME-CARDS-CLAROS-2010'
 
@@ -24,11 +24,12 @@ export const HOME_CARDS_CLAROS_2010_BASE = '625a5f9dc'
 export const TROCAS_HOME_CARDS_CLAROS_2010 = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-home-cards-claros-2010-trocas.json'), 'utf8'))
 /** Arquivos que a entrega toca, com a contagem EXATA de acréscimos marcados (as trocas estão no JSON). */
 export const ACRESCIMOS_HOME_CARDS_CLAROS_2010 = {
+  'components/home/HomeKidsCard.tsx': 0,
   'components/home/HomeThreeCards.tsx': 6,
   'scripts/test-bebe-que-fala-2010.mjs': 1,
   'scripts/test-mcp-studio-2010.mjs': 2,
   'scripts/test-mcp-studio-ajuste-2010.mjs': 3,
-  'scripts/test-meta95-personagem-2010.mjs': 1,
+  'scripts/test-meta95-personagem-2010.mjs': 2,
   'scripts/test-support/desfaz-bebe-que-fala-2010.mjs': 2,
   'scripts/test-verbatim-intocavel-2010.mjs': 0,
 }
@@ -42,7 +43,7 @@ export const HOME_CARDS_CLAROS_2010_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semHomeCardsClaros2010(texto, p) {
-  texto = semAdsNota92110(texto, p) // KINEO-ADS-NOTA9-2110 — a camada mais nova sai primeiro
+  texto = semDesenhoNota9_2110(texto, p) // KINEO-DESENHO-NOTA9-2110 — a camada mais nova sai primeiro
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_HOME_CARDS_CLAROS_2010) || !HOME_CARDS_CLAROS_2010_ARQUIVOS.includes(rel)) return texto
   const crlf = texto.includes('\r\n')

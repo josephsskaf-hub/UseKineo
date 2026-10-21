@@ -18,7 +18,7 @@
 //      (nível, formato, apresentador, kit, estilo) não mudaram; o "Avançado" recolhe por CSS sem mover nada no DOM; o CSS esconde o Gerar antigo, a barra
 //      do celular e o palco do estilo só na tela foco; servidor/curadoria/gerador/kids intocados;
 //   D  desfaz exato (cada arquivo tocado volta a ser a base f53733122) + toda linha nova com a marca + o diff só toca a lista e os novos + encadeamento
-//      (semHomeCardsClaros2010 → e as cabeças semBebeQueFala2010 / semMenuUgc2010 tiram esta camada primeiro);
+//      (semDesenhoNota9_2110 → semHomeCardsClaros2010 → e as cabeças semBebeQueFala2010 / semMenuUgc2010 tiram esta camada primeiro);
 //   M  mutantes (todos APLICADOS — provado por grep — e VERMELHOS).
 import { readFileSync, existsSync, statSync } from 'node:fs'
 import { join, dirname } from 'node:path'
@@ -31,6 +31,7 @@ import {
   semAdsNota92110, MARCA_ADS_NOTA9_2110 as MARCA, ADS_NOTA9_2110_BASE as B, ADS_NOTA9_2110_ARQUIVOS, ADS_NOTA9_2110_NOVOS, TROCAS_ADS_NOTA9_2110, ACRESCIMOS_ADS_NOTA9_2110,
 } from './test-support/desfaz-ads-nota9-2110.mjs'
 import { semHomeCardsClaros2010 } from './test-support/desfaz-home-cards-claros-2010.mjs'
+import { semDesenhoNota9_2110 } from './test-support/desfaz-desenho-nota9-2110.mjs'
 import { semBebeQueFala2010 } from './test-support/desfaz-bebe-que-fala-2010.mjs'
 import { semMenuUgc2010 } from './test-support/desfaz-menu-ugc-2010.mjs'
 
@@ -44,14 +45,18 @@ const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return lf(git('show', `${B}:${p}`)) } catch { return null } }
 /** Os arquivos DESTA entrega: os commits com a marca (rebase/fila não importam) + o que ainda não foi commitado + os novos sem rastreio. */
-const daEntrega = () => new Set([...git('log', '--format=', '--name-only', `--grep=${MARCA}`, 'HEAD').trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard').trim().split('\n').filter((f) => /nota9/i.test(f))].map((f) => f.trim()).filter(Boolean))
+const daEntrega = () => { const meus = new Set(git('log', '--format=', '--name-only', `--grep=${MARCA}`, 'HEAD').trim().split('
+').map((f) => f.trim()).filter(Boolean)); const mudou = new Set(git('diff', '--name-only', B, 'HEAD').trim().split('
+').filter(Boolean)); return new Set([...[...meus].filter((f) => mudou.has(f)), ...git('diff', '--name-only', 'HEAD').trim().split('
+'), ...git('ls-files', '--others', '--exclude-standard').trim().split('
+').filter((f) => /nota9/i.test(f))].map((f) => f.trim()).filter(Boolean)) } // os meus commits que ainda diferem da base (merge/fila não contam)
 const F = {
   simple: 'app/(dashboard)/ads/v2/AdsV2Simple.tsx',
   client: 'app/(dashboard)/ads/v2/AdsV2Client.tsx',
   kit: 'components/ads/KitBfBuyCard.tsx',
   comp: 'components/ads/AdsNota9.tsx',
   lib: 'lib/ads/v2Nota9.ts',
-  claros: 'scripts/test-support/desfaz-home-cards-claros-2010.mjs',
+  claros: 'scripts/test-support/desfaz-desenho-nota9-2110.mjs',
   approved: 'lib/ads/v2PresenterV2.ts',
 }
 
@@ -275,14 +280,14 @@ console.log('\nD. desfaz exato, diff, encadeamento')
   const fora = [...tocados].filter((f) => !permitidos.has(f))
   const semMarca = ADS_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !rd(f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) })
   const trocasOk = Object.entries(TROCAS_ADS_NOTA9_2110).filter(([f]) => f !== '__acrescimos').every(([f, t]) => ADS_NOTA9_2110_ARQUIVOS.includes(f) && t.every(([nova, velha]) => nova.includes(MARCA) && !velha.includes(MARCA)))
-  ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && trocasOk && !/KINEO-HOME-CARDS-CLAROS|KINEO-BEBE|KINEO-MENU-UGC/.test(MARCA),
+  ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && trocasOk && !/KINEO-HOME-CARDS-CLAROS|KINEO-BEBE|KINEO-MENU-UGC|KINEO-DESENHO-NOTA9/.test(MARCA),
     `D2 o diff só toca a lista e os novos; toda linha nova com a marca; trocas de linha inteira (${[...fora.map((f) => `fora: ${f}`), ...semMarca.map((f) => `sem marca: ${f}`)].join('; ') || 'ok'})`)
-  const cadeia = /export function semHomeCardsClaros2010\(texto, p\) \{\n  texto = semAdsNota92110\(texto, p\)/.test(rd(F.claros))
-  const igual = ADS_NOTA9_2110_ARQUIVOS.every((f) => { const raw = readFileSync(join(ROOT, f), 'utf8'), semEste = semAdsNota92110(raw, f); return semHomeCardsClaros2010(raw, f) === semHomeCardsClaros2010(semEste, f) && semBebeQueFala2010(raw, f) === semBebeQueFala2010(semEste, f) && semMenuUgc2010(raw, f) === semMenuUgc2010(semEste, f) })
+  const cadeia = /export function semDesenhoNota9_2110\(texto, p\) \{\n  texto = semAdsNota92110\(texto, p\)/.test(rd(F.claros))
+  const igual = ADS_NOTA9_2110_ARQUIVOS.every((f) => { const raw = readFileSync(join(ROOT, f), 'utf8'), semEste = semAdsNota92110(raw, f); return semDesenhoNota9_2110(raw, f) === semDesenhoNota9_2110(semEste, f) && semHomeCardsClaros2010(raw, f) === semHomeCardsClaros2010(semEste, f) && semBebeQueFala2010(raw, f) === semBebeQueFala2010(semEste, f) && semMenuUgc2010(raw, f) === semMenuUgc2010(semEste, f) })
   const idem = semAdsNota92110('qualquer coisa', F.simple) === 'qualquer coisa' && semAdsNota92110(`x ${MARCA}`, 'outro/arquivo.ts') === `x ${MARCA}` && semAdsNota92110(null, F.simple) === null
   let lanca = false
   try { semAdsNota92110(rd(F.simple) + `\n// mais uma ${MARCA}`, F.simple) } catch { lanca = true }
-  ok(cadeia && igual && idem && lanca, 'D3 encadeamento: semHomeCardsClaros2010 (e as cabeças semBebeQueFala2010 / semMenuUgc2010) tiram esta camada PRIMEIRO; idempotente fora da lista / sem a marca / null; acréscimo a mais lança')
+  ok(cadeia && igual && idem && lanca, 'D3 encadeamento: semDesenhoNota9_2110 (e semHomeCardsClaros2010, as cabeças semBebeQueFala2010 / semMenuUgc2010) tiram esta camada PRIMEIRO; idempotente fora da lista / sem a marca / null; acréscimo a mais lança')
 }
 
 // ═══ M. mutantes ═══════════════════════════════════════════════════════════════════════════════════════════════════════
@@ -312,7 +317,7 @@ const vermelho = (fn) => { const r = tenta(fn); return Array.isArray(r) && r.len
   try { const t = rd(F.client).split('\n').map((l) => (l.includes('<h1>{n9Head ? n9Head.title : shell.title}</h1>') ? l.replace('<h1>', '<h1 data-x="1">') : l)).join('\n'); semAdsNota92110(t, F.client) } catch { lancou = true }
   ok(lancou, 'M14 troca reescrita à mão (conserto pela metade) → o desfaz lança → D1 vermelho')
   const semCadeia = rd(F.claros).replace('  texto = semAdsNota92110(texto, p) // KINEO-ADS-NOTA9-2110 — a camada mais nova sai primeiro\n', '')
-  ok(semCadeia !== rd(F.claros) && !/export function semHomeCardsClaros2010\(texto, p\) \{\n  texto = semAdsNota92110\(texto, p\)/.test(semCadeia), 'M15 semHomeCardsClaros2010 sem chamar esta camada → D3 vermelho')
+  ok(semCadeia !== rd(F.claros) && !/export function semDesenhoNota9_2110\(texto, p\) \{\n  texto = semAdsNota92110\(texto, p\)/.test(semCadeia), 'M15 semDesenhoNota9_2110 sem chamar esta camada → D3 vermelho')
 }
 
 console.log(`\n${falhas === 0 ? 'VERDE' : 'VERMELHO'} — ${oks} ok, ${falhas} falha(s)`)
