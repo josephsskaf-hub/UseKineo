@@ -19,6 +19,7 @@
 //   K  desfaz encadeado como camada mais nova (semDesenhoNota9_2110 chama este primeiro); diff da base só nos arquivos declarados;
 //   M  mutantes: cada um APLICADO (provado por diferença) e VERMELHO.
 import fs from 'node:fs'
+import { semAvatarEstorno2010 } from './test-support/desfaz-avatar-estorno-2010.mjs' // KINEO-AVATAR-ESTORNO-2010 — reancorado na integração 21/10: as linhas do estorno/legenda bengali (camada mais nova) saem antes da conferência da marca
 import path from 'node:path'
 import vm from 'node:vm'
 import { execFileSync } from 'node:child_process'
@@ -225,6 +226,7 @@ console.log('\nK. desfaz encadeado e diff da base')
   const permitidos = new Set([...DESENHO_SOM_2110_ARQUIVOS, ...DESENHO_SOM_2110_NOVOS, ...DESENHO_SOM_2110_REESCRITOS])
   const fora = [...tocados].filter((f) => !permitidos.has(f))
   const semMarca = DESENHO_SOM_2110_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !rd(f).split('\n').every((l) => b.has(l) || l.includes(MARCA) || l.includes('KINEO-META95-PERSONAGEM-AJUSTE-2010')) }) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — as reâncoras dos consertos da folha (camada de depois, chamada primeiro por semDesenhoSom2110) levam a marca delas
+  semMarca.splice(0, semMarca.length, ...semMarca.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !semAvatarEstorno2010(rd(f), f).split('\n').every((l) => b.has(l) || l.includes(MARCA) || l.includes('KINEO-META95-' + 'PERSONAGEM-AJUSTE-2010')) })) // KINEO-AVATAR-ESTORNO-2010
   ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && DESENHO_SOM_2110_REESCRITOS.every((f) => rd(f).includes(MARCA)) && ![...tocados].some((f) => /engineCost|lib\/compose\.ts|lib\/engineWall|homeVideoCuration/.test(f)), `K5 o diff da base só toca a lista, os reescritos e os novos; toda linha nova traz a marca; lib/compose, preços e vitrine intocados (${[...fora.map((f) => `fora: ${f}`), ...semMarca.map((f) => `sem marca: ${f}`)].join('; ') || 'ok'})`)
 }
 

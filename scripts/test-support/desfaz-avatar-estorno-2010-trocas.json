@@ -104,5 +104,13 @@
   "scripts/test-support/desfaz-meta95-personagem-ajuste-2010.mjs": {
     "acrescimos": 2,
     "trocas": []
+  },
+  "scripts/test-desenho-som-2110.mjs": {
+    "acrescimos": 2,
+    "trocas": []
+  },
+  "scripts/test-meta95-personagem-ajuste-2010.mjs": {
+    "acrescimos": 1,
+    "trocas": []
   }
 }
