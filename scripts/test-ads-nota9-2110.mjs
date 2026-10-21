@@ -45,11 +45,7 @@ const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return lf(git('show', `${B}:${p}`)) } catch { return null } }
 /** Os arquivos DESTA entrega: os commits com a marca (rebase/fila não importam) + o que ainda não foi commitado + os novos sem rastreio. */
-const daEntrega = () => { const meus = new Set(git('log', '--format=', '--name-only', `--grep=${MARCA}`, 'HEAD').trim().split('
-').map((f) => f.trim()).filter(Boolean)); const mudou = new Set(git('diff', '--name-only', B, 'HEAD').trim().split('
-').filter(Boolean)); return new Set([...[...meus].filter((f) => mudou.has(f)), ...git('diff', '--name-only', 'HEAD').trim().split('
-'), ...git('ls-files', '--others', '--exclude-standard').trim().split('
-').filter((f) => /nota9/i.test(f))].map((f) => f.trim()).filter(Boolean)) } // os meus commits que ainda diferem da base (merge/fila não contam)
+const daEntrega = () => { const meus = new Set(git('log', '--format=', '--name-only', `--grep=${MARCA}`, 'HEAD').trim().split('\n').map((f) => f.trim()).filter(Boolean)); const mudou = new Set(git('diff', '--name-only', B, 'HEAD').trim().split('\n').filter(Boolean)); return new Set([...[...meus].filter((f) => mudou.has(f)), ...git('diff', '--name-only', 'HEAD').trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard').trim().split('\n').filter((f) => /nota9/i.test(f))].map((f) => f.trim()).filter(Boolean)) } // os meus commits que ainda diferem da base (merge/fila não contam)
 const F = {
   simple: 'app/(dashboard)/ads/v2/AdsV2Simple.tsx',
   client: 'app/(dashboard)/ads/v2/AdsV2Client.tsx',
