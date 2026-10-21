@@ -2,7 +2,7 @@
   "__acrescimos": {
     "app/api/generate-video-cinematic/route.ts": 6,
     "lib/cinematic/criticoStill.ts": 10,
-    "lib/cinematic/folhaDePersonagem.ts": 48,
+    "lib/cinematic/folhaDePersonagem.ts": 49,
     "lib/cinematic/visualPromptPolicy.ts": 1,
     "lib/estrelaServer.ts": 4,
     "scripts/test-contrato-classicos-1410.mjs": 1,

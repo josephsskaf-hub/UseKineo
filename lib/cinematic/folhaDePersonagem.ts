@@ -457,7 +457,8 @@ export function promptDoStillComFolha(scenePrompt: string, fichas: ReadonlyArray
   return `Output aspect ratio ${normalizeAspect(aspect)}, full-bleed composition. ${cena}\n\nCharacter in this scene: ${quem}.\n${PERSONAGEM_IDENTIDADE} ${PERSONAGEM_UM_QUADRO}` // KINEO-META95-PERSONAGEM-AJUSTE-2010
 }
 /** A fala vence a idade genérica inventada pelo descritor; só o único humano da cena e seu gênero conhecido. */ // KINEO-META95-PERSONAGEM-AJUSTE-2010
-export function visualDoPersonagem(visual: string, fichas: ReadonlyArray<FichaDePersonagem>): string { // KINEO-META95-PERSONAGEM-AJUSTE-2010
+export function visualDoPersonagem(visual: string, fichas: ReadonlyArray<FichaDePersonagem>, fala?: string): string { // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  if (fichas.length === 0 && fala !== undefined) return limpa(fala) || 'An unoccupied environment establishing shot.' // KINEO-META95-PERSONAGEM-AJUSTE-2010 — sem citação, o descritor não pode introduzir pessoa que o narrador não pediu
   const humanos = fichas.filter((f) => f.tipo === 'humano') // KINEO-META95-PERSONAGEM-AJUSTE-2010
   if (humanos.length !== 1 || !humanos[0].genero) return visual // KINEO-META95-PERSONAGEM-AJUSTE-2010
   const papel = humanos[0].genero === 'man' ? 'man|boy' : 'woman|girl' // KINEO-META95-PERSONAGEM-AJUSTE-2010

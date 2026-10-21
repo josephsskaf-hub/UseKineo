@@ -50,6 +50,13 @@ const direcao = (lib, policy, caso, i) => {
   const m={exports:{}};new Function('module','exports',js)(m,m.exports)
   return m.exports.run(ctx)
 }
+const direcaoSegura = (lib, policy, caso, i) => {
+  const e=lib.elencoDeterministico(caso.script), scenes=caso.visuals.map((v,j)=>({aiPrompt:v,voiceover:caso.falas[j]}))
+  const ctx={personagem:{ativo:true},personagemElenco:{elenco:e},personagensPorCena:lib.cenasComPersonagem(caso.visuals,e,caso.falas),scene:scenes[i],sceneIndex:i,classicVisualPolicy:{mode:'character_story',style,aspect:'9:16'},eraSuffix:'',safeVisualPrompt:'old-safe',sanitizeRealPeople:(s)=>s,visualDoPersonagem:lib.visualDoPersonagem,buildClassicVisualPrompt:policy.buildClassicVisualPrompt}
+  const linha=rd(F.rota).split('\n').find((l)=>l.includes('const safeVisualPersonagem ='))
+  const js=ts.transpileModule(`export function run(ctx:any){const {${Object.keys(ctx).join(',')}}=ctx;\n${linha}\nreturn safeVisualPersonagem}`,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText
+  const m={exports:{}};new Function('module','exports',js)(m,m.exports);return m.exports.run(ctx)
+}
 const nota = (sexual = 0, menores = 0, cats = {}) => ({ categories: cats, category_scores: { sexual, 'sexual/minors': menores } })
 
 // 1. Formato pedido + dimensões devolvidas + 2 folhas na mesma composição.
@@ -72,7 +79,7 @@ const bom = await servidor(), quadrado = await servidor({}, { width: 1024, heigh
 ok(bom.r.url && bom.pedidos[0].aspect_ratio === '9:16' && bom.pedidos[0].image_urls.length === 2 && quadrado.r.url === null && quadrado.r.motivo === 'format_invalid' && ausente.r.motivo === 'format_invalid' && quadrado.checks.length === 0, '1c servidor REAL recusa formato/ausência antes de aceitar a imagem; conserva 2 referências')
 ok((await servidor({}, {}, { off: true })).r.url, '1d Estrela sem opt-in mantém resultado URL-only anterior')
 
-// 2. Nunca muda categoria, limiar ou imagem. Só os metadados benignos são normalizados.
+// 2. Nunca muda categoria, limiar ou imagem. Idade explicitamente não humana vira fase de vida, só em contexto benigno.
 const fichaDino = [{ tipo: 'criatura', canonica: 'Dino, a child-sized green dinosaur, no clothes' }]
 const autor = 'Dino hears a noise in his bedroom and sees fireflies.'
 const texto = H.textoModeracaoDoPersonagem(autor, fichaDino)
@@ -82,6 +89,16 @@ const sensivel = 'A boy is described with sexual content.'
 ok(H.textoModeracaoDoPersonagem(sensivel, fichaDino).includes(sensivel) && H.textoModeracaoDoPersonagem(sensivel, fichaDino).includes('child-sized') && H.textoModeracaoDoPersonagem(autor, [{ tipo: 'humano', canonica: 'A child, no clothes' }]).includes('A child, no clothes'), '2c texto sensível e humano não são neutralizados')
 for (const n of [nota(0, 0.02), nota(0, 0, { 'sexual/minors': true }), nota(0.3), nota(0, 0, { sexual: true })]) ok((await servidor({}, undefined, { nota: n, texto })).r.motivo === 'moderation_blocked', '2d bloqueio real de categoria/score continua fechado')
 ok(bom.checks[0].imageUrls[0] === 'https://fake/still.jpg', '2e imagem devolvida continua indo à moderação')
+const idadesDino=['child dinosaur','nine-year-old dinosaur','dinossauro criança','dinossauro de nove anos']
+for(const idade of idadesDino) {
+  const cena=`A ${idade} hears a noise in the bedroom and finds fireflies.`, fichas=[{tipo:'criatura',canonica:`Dino, a ${idade}.`}], textoIdade=H.textoModeracaoDoPersonagem(cena,fichas)
+  ok(M.decideModeration(nota(0.12),cena,{hasImage:true}).block && !M.decideModeration(nota(0.12),textoIdade,{hasImage:true}).block && (await servidor({},undefined,{nota:nota(0.12),texto:textoIdade})).r.url, `2f idade não humana explícita no autor e canônica: ${idade}, mesmo score 0.12`)
+}
+for(const cena of ['A child is near a dinosaur.','A nine-year-old child watches a dinosaur.','A child dinosaur meets a boy.','A child dinosaur meets a human.','A child dinosaur is a humanoid.','A child dinosaur in a sexual scene.','Um dinossauro criança em cena com sexo.','A sexy child dinosaur.','A child dinosaur is molested.','A child dinosaur suffers rape.','Um dinossauro criança sofre abuso.','A child dinosaur is in an incest scene.']) {
+  ok(H.textoModeracaoDoPersonagem(cena,fichaDino)===`${cena}\n\nCharacter descriptions: ${fichaDino[0].canonica}` && M.decideModeration(nota(0.12),H.textoModeracaoDoPersonagem(cena,fichaDino),{hasImage:true}).block, `2g contexto humano/sensível/idade solta integral: ${cena}`)
+}
+const misto=[...fichaDino,{tipo:'humano',canonica:'A child in a coat.'}], cenaMista='A child dinosaur meets a child.'
+ok(H.textoModeracaoDoPersonagem(cenaMista,misto)===`${cenaMista}\n\nCharacter descriptions: ${misto.map(f=>f.canonica).join('; ')}`, '2h elenco humano misto nunca neutraliza idade')
 
 // 3. Nome mítico não pode ser convertido em humano genérico nem pelo casting.
 const ravan = elenco(RAVAN).find((f) => f.nome === 'Ravan')
@@ -121,6 +138,10 @@ for (const m of ['provider_timeout','moderation_blocked','format_invalid']) ok((
 // 6. Floresta sem menção não ganha performance genérica nem pessoa.
 const dino1 = direcao(L,V,DINO,0), dino2 = direcao(L,V,DINO,1)
 ok(!/characters act naturally|same main character|early thirties/i.test(dino1) && /no people, no extra characters/.test(dino1) && /Dino.*dinosaur/i.test(dino2), '6a Dino: cena 1 ambiente; cenas citadas recebem só o dinossauro')
+const dinoComIntruso={...DINO,visuals:['An adult man in a red hoodie walks through the forest.',...DINO.visuals.slice(1)]}
+const semIntruso=(s)=>!/adult man|red hoodie|walks through/i.test(s) && /noise came from the forest/i.test(s) && /no people, no extra characters/.test(s)
+if (!semIntruso(direcao(L,V,dinoComIntruso,0)) || !semIntruso(direcaoSegura(L,V,dinoComIntruso,0))) console.log('diagnostico 6b',JSON.stringify({principal:direcao(L,V,dinoComIntruso,0),seguro:direcaoSegura(L,V,dinoComIntruso,0)}))
+ok(semIntruso(direcao(L,V,dinoComIntruso,0)) && semIntruso(direcaoSegura(L,V,dinoComIntruso,0)), '6b visual inventa homem: rota principal E fallback usam ambiente narrado sem intruso ou prompt contraditório')
 
 // Bloco real da rota: integração e evento; nunca carrega a rota inteira ou credenciais.
 async function bloco(over = {}, ativo = true, caso = DINO, editFalha = false) {
@@ -174,6 +195,8 @@ await mutante('painéis',F.lib,'No panels,','Panels allowed,',o=>/No panels/.tes
 await mutante('segunda referência após still',F.juiz,'parts.splice(3, 0, ...outrasPartes)','parts.splice(parts.length, 0, ...outrasPartes)',o=>referenciasNaOrdem(carregador(o)(F.juiz)))
 await mutante('dimensões',F.srv,'validarFormato && url && !formatoDoStillDoPersonagem','false && url && !formatoDoStillDoPersonagem',async o=>(await servidor(o,{width:1024,height:1024})).r.motivo==='format_invalid')
 await mutante('metadata tamanho',F.helper,"'small')","'child-sized')",o=>!M.decideModeration(nota(0.12),carregador(o)(F.helper).textoModeracaoDoPersonagem(autor,fichaDino),{hasImage:true}).block)
+await mutante('idade explícita criatura',F.helper,"s.replace(IDADE_EN, 'young $1')","s.replace(IDADE_EN, '$&')",o=>!M.decideModeration(nota(0.12),carregador(o)(F.helper).textoModeracaoDoPersonagem('A child dinosaur sees fireflies.',[{tipo:'criatura',canonica:'Dino, a child dinosaur.'}]),{hasImage:true}).block)
+await mutante('abuso preserva idade',F.helper,'CONTEXTO_SENSIVEL.test(contexto)', 'false',o=>M.decideModeration(nota(0.12),carregador(o)(F.helper).textoModeracaoDoPersonagem('A child dinosaur is molested.',[{tipo:'criatura',canonica:'Dino, a child dinosaur.'}]),{hasImage:true}).block)
 const castingMitoErrado = JSON.stringify({characters:[{name:'Ravan',description:'A red demon with one head in a yellow hoodie and jeans with green eyes and a short tail'}]})
 await mutante('mito casting',F.lib,"if (identidadeMitica(e.nome) || /\\bmythological identity\\b/i.test(e.canonica))", 'if (false)',o=>carregador(o)(F.lib).lerCasting(castingMitoErrado,[ravan])[0].canonica===ravan.canonica)
 await mutante('fala',F.lib,'if (falas !== undefined) return cenasFaladasComPersonagem(visuals, elenco, falas)','if (false) return cenasFaladasComPersonagem(visuals, elenco, falas)',o=>carregador(o)(F.lib).cenasComPersonagem(MOTO.visuals,elenco(MOTO),MOTO.falas).every(c=>c.nomes.length===1))
@@ -181,8 +204,9 @@ await mutante('antecedente após ambiente',F.lib,'if (nomes.length > 0 || ele ||
 await mutante('prazo FLUX',F.juiz,'STILL_CRITIC_REFERENCIA_JANELA_REGERACAO_MS = 45_000','STILL_CRITIC_REFERENCIA_JANELA_REGERACAO_MS = 9_000',async o=>(await refaz(o)).relato.regeracao_ok===true)
 await mutante('motivo perdido',F.juiz,'if (e.referencia) r.regeracao_motivo = resultado','if (false) r.regeracao_motivo = resultado',async o=>(await refaz(o,'provider_timeout')).relato.regeracao_motivo==='provider_timeout')
 await mutante('pessoa em ambiente',F.policy,'policy.personagemCena !== undefined','false',o=>/no people, no extra characters/.test(direcao(L,carregador(o)(F.policy),DINO,0)))
+await mutante('intruso no visual',F.lib,"if (fichas.length === 0 && fala !== undefined)", 'if (false)',o=>semIntruso(direcao(carregador(o)(F.lib),V,dinoComIntruso,0)) && semIntruso(direcaoSegura(carregador(o)(F.lib),V,dinoComIntruso,0)))
 await mutante('rota ignora fala',F.rota,"cenasComPersonagem(visuaisP, elencoP, scenes.map((s) => s.voiceover ?? ''))",'cenasComPersonagem(visuaisP, elencoP)',async o=>(await bloco(o,true,MOTO)).edits.length===6)
 const primeira=ARQUIVOS.find((p)=>TROCAS[p]?.length)
 let estrito=false;try{desfaz(rd(primeira)+'\n// '+MARCA,primeira)}catch{estrito=true}ok(estrito,'mutante desfaz: acréscimo inesperado lança')
-console.log(`\n${pass} ok; ${fail} falhas; ${vermelhos}/12 mutantes executados vermelhos; base ${BASE}`)
+console.log(`\n${pass} ok; ${fail} falhas; ${vermelhos}/15 mutantes executados vermelhos; base ${BASE}`)
 process.exit(fail ? 1 : 0)

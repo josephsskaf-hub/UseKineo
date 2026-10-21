@@ -6660,7 +6660,7 @@ async function manipularPost(req: NextRequest) {
     const personagensPorCena = personagem.ativo ? cenasComPersonagem(scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description), personagemElenco.elenco, scenes.map((s) => s.voiceover ?? '')) : null // KINEO-META95-PERSONAGEM-AJUSTE-2010 — mesma decisão na política, ensaio, still e refação
     const classicScenePrompts = scenes.map((scene, sceneIndex) => {
       const visualBruto = scene.aiPrompt || scene.stockSearchQuery || scene.description // KINEO-META95-PERSONAGEM-AJUSTE-2010
-      const visualPrompt = personagem.ativo ? visualDoPersonagem(visualBruto, personagemElenco.elenco.filter((f) => personagensPorCena?.[sceneIndex]?.nomes.includes(f.nome))) : visualBruto // KINEO-META95-PERSONAGEM-AJUSTE-2010
+      const visualPrompt = personagem.ativo ? visualDoPersonagem(visualBruto, personagemElenco.elenco.filter((f) => personagensPorCena?.[sceneIndex]?.nomes.includes(f.nome)), scene.voiceover ?? '') : visualBruto // KINEO-META95-PERSONAGEM-AJUSTE-2010
       const cinematicBruto = buildClassicVisualPrompt(visualPrompt, {
         ...classicVisualPolicy, eraSuffix, opening: sceneIndex === 0,
         ...(personagem.ativo ? { character: null, elenco: [], personagemCena: personagemElenco.elenco.filter((f) => personagensPorCena?.[sceneIndex]?.nomes.includes(f.nome)).map((f) => f.canonica) } : {}), // KINEO-META95-PERSONAGEM-AJUSTE-2010 — cena sem citação não recebe protagonista/performance genérica
@@ -6975,7 +6975,7 @@ async function manipularPost(req: NextRequest) {
         sanitizeRealPeople(scene.aiPrompt || scene.stockSearchQuery || scene.description),
         { ...classicVisualPolicy, character: sanitizeRealPeople(storyCharacter || ''), eraSuffix, opening: sceneIndex === 0 },
       )
-      const safeVisualPersonagem = personagem.ativo ? buildClassicVisualPrompt(sanitizeRealPeople(visualDoPersonagem(scene.aiPrompt || scene.stockSearchQuery || scene.description, personagemElenco.elenco.filter((f) => personagensPorCena?.[sceneIndex]?.nomes.includes(f.nome)))), { ...classicVisualPolicy, character: null, elenco: [], eraSuffix, opening: sceneIndex === 0, personagemCena: personagemElenco.elenco.filter((f) => personagensPorCena?.[sceneIndex]?.nomes.includes(f.nome)).map((f) => f.canonica) }) : safeVisualPrompt // KINEO-META95-PERSONAGEM-AJUSTE-2010 — fallback preserva a decisão por cena
+      const safeVisualPersonagem = personagem.ativo ? buildClassicVisualPrompt(sanitizeRealPeople(visualDoPersonagem(scene.aiPrompt || scene.stockSearchQuery || scene.description, personagemElenco.elenco.filter((f) => personagensPorCena?.[sceneIndex]?.nomes.includes(f.nome)), scene.voiceover ?? '')), { ...classicVisualPolicy, character: null, elenco: [], eraSuffix, opening: sceneIndex === 0, personagemCena: personagemElenco.elenco.filter((f) => personagensPorCena?.[sceneIndex]?.nomes.includes(f.nome)).map((f) => f.canonica) }) : safeVisualPrompt // KINEO-META95-PERSONAGEM-AJUSTE-2010 — fallback preserva a decisão por cena
       const despachoCena = await dispatchOneSceneWithSafeVisualRetry({
         sceneIndex,
         models: modelos,
