@@ -25,6 +25,7 @@
 //      primeiro), diff só na lista, todo commit com a marca;
 //   M. mutantes em memória (cada um provado aplicado; todos têm de deixar algo vermelho).
 import fs from 'node:fs'
+import { semMeta95PersonagemAjuste2010, MARCA_META95_PERSONAGEM_AJUSTE_2010 } from './test-support/desfaz-meta95-personagem-ajuste-2010.mjs' // KINEO-META95-PERSONAGEM-AJUSTE-2010 — preserva o recorte e os mutantes da entrega antiga
 import path from 'node:path'
 import vm from 'node:vm'
 import { createRequire } from 'node:module'
@@ -43,7 +44,7 @@ const ROOT = path.resolve(import.meta.dirname, '..')
 const ts = require(path.join(ROOT, 'node_modules', 'typescript'))
 const MARCA = MARCA_META95_ESCRITA_2010
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
+const rd = (rel) => lf(semMeta95PersonagemAjuste2010(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)) // KINEO-META95-PERSONAGEM-AJUSTE-2010
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (rel) => { try { return lf(git('show', `${META95_ESCRITA_2010_BASE}:${rel}`)) } catch { return null } }
 let pass = 0
@@ -304,7 +305,7 @@ console.log('\nD. desfaz\n')
   ok(semMeta95Escrita2010('sem marca', P.route) === 'sem marca' && semMeta95Escrita2010(ROUTE, 'outro/arquivo.ts') === ROUTE && desfazMeta95Escrita2010(P.route, null) === null && lancou,
     'D5 idempotente fora da lista / sem a marca / null; acréscimo a mais lança')
   const TOPO = git('log', '--format=%H', `--grep=${MARCA}`, '-1', 'HEAD').trim() || 'HEAD' // inclui o merge da main nesta entrega (a base é a main mesclada)
-  const tocados = new Set([...git('diff', '--name-only', META95_ESCRITA_2010_BASE, TOPO).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n')].filter(Boolean))
+  const tocados = new Set([...git('diff', '--name-only', META95_ESCRITA_2010_BASE, TOPO).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n').filter((f) => rd(f) !== base(f))].filter(Boolean)) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — desfeita a camada nova, mede apenas alterações desta entrega
   const permitidos = new Set([...META95_ESCRITA_2010_ARQUIVOS, ...META95_ESCRITA_2010_NOVOS])
   const fora = [...tocados].filter((f) => !permitidos.has(f))
   const semMarca = META95_ESCRITA_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !semAvatarPreso2010(rd(f), f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) }) // reancorado KINEO-AVATAR-PRESO-2010: as linhas do avatar preso não são desta entrega

@@ -13,6 +13,7 @@
 //   D. a tela, o /studio/create, o analyze-idea, o interruptor, os eventos.
 //   E. mutantes (dono, autorização, sobretaxa depois do débito, regra REAL PEOPLE aberta, interruptor aberto) ficam vermelhos.
 import { readFileSync } from 'node:fs'
+import { semMeta95PersonagemAjuste2010 } from './test-support/desfaz-meta95-personagem-ajuste-2010.mjs' // KINEO-META95-PERSONAGEM-AJUSTE-2010 — servidor opt-in tem guardião próprio; preserva o recorte da Estrela
 import { desfazAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 import { desfazJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 import { execFileSync } from 'node:child_process'
@@ -25,7 +26,7 @@ const desfazAncoraEJuizStill1410 = (p, s) => desfazAncoraLegenda1410(p, desfazJu
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
 const ts = require(join(root, 'node_modules', 'typescript'))
-const rd = (p) => readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semMeta95PersonagemAjuste2010(readFileSync(join(root, p), 'utf8'), p).replace(/\r\n/g, '\n') // KINEO-META95-PERSONAGEM-AJUSTE-2010
 const BASE = '54e53aa5'
 const rdBase = (p) => { try { return execFileSync('git', ['-C', root, 'show', `${BASE}:${p}`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).replace(/\r\n/g, '\n') } catch { return null } }
 

@@ -15,11 +15,12 @@ import { signReferencePhotos } from '@/lib/imageStore'
 import { REFERENCE_SIGNED_URL_SECONDS } from '@/lib/imageReference'
 import { moderateContent } from '@/lib/safety/contentModeration'
 import { ESTRELA_EDIT_SLUG, buildEstrelaEditInput } from '@/lib/estrelaDoFilme'
+import { formatoDoStillDoPersonagem } from '@/lib/cinematic/personagemStill' // KINEO-META95-PERSONAGEM-AJUSTE-2010
 
 /** Custo de log (US$ por still da estrela na fal, a 1K) — só para o TOTAL do log; o crédito do cliente é a sobretaxa. */
 export const ESTRELA_STILL_USD = 0.15
 
-export type EstrelaStillMotivo = 'ok' | 'provider_failed' | 'provider_timeout' | 'moderation_blocked' | 'moderation_unavailable' | 'no_key'
+export type EstrelaStillMotivo = 'ok' | 'provider_failed' | 'provider_timeout' | 'moderation_blocked' | 'moderation_unavailable' | 'no_key' | 'format_invalid' // KINEO-META95-PERSONAGEM-AJUSTE-2010
 export interface EstrelaStillResultado { url: string | null; motivo: EstrelaStillMotivo }
 
 /** URLs assinadas (curtas) das fotos já validadas por decideEstrelaRequest. null = alguma foto sumiu do bucket. */
@@ -28,7 +29,7 @@ export async function assinarFotosDaEstrela(paths: string[]): Promise<string[] |
   return signReferencePhotos(paths, REFERENCE_SIGNED_URL_SECONDS)
 }
 
-async function pedirStill(input: Record<string, unknown>, pollWindowMs: number): Promise<{ url: string | null; motivo: EstrelaStillMotivo }> {
+async function pedirStill(input: Record<string, unknown>, pollWindowMs: number, validarFormato: boolean = false): Promise<{ url: string | null; motivo: EstrelaStillMotivo }> { // KINEO-META95-PERSONAGEM-AJUSTE-2010
   let requestId: string
   try {
     requestId = await submitFalQueueOnce(ESTRELA_EDIT_SLUG, input)
@@ -42,8 +43,10 @@ async function pedirStill(input: Record<string, unknown>, pollWindowMs: number):
     try {
       const st = (await fal.queue.status(ESTRELA_EDIT_SLUG, { requestId })) as { status?: string }
       if (st.status === 'COMPLETED') {
-        const r = (await fal.queue.result(ESTRELA_EDIT_SLUG, { requestId })) as { data?: { images?: Array<{ url?: string }> }; images?: Array<{ url?: string }> }
+        const r = (await fal.queue.result(ESTRELA_EDIT_SLUG, { requestId })) as { data?: { images?: Array<{ url?: string; width?: number; height?: number }> }; images?: Array<{ url?: string; width?: number; height?: number }> } // KINEO-META95-PERSONAGEM-AJUSTE-2010
         const url = r?.data?.images?.[0]?.url ?? r?.images?.[0]?.url ?? null
+        const imagem = r?.data?.images?.[0] ?? r?.images?.[0] // KINEO-META95-PERSONAGEM-AJUSTE-2010
+        if (validarFormato && url && !formatoDoStillDoPersonagem(imagem?.width, imagem?.height, input.aspect_ratio)) return { url: null, motivo: 'format_invalid' } // KINEO-META95-PERSONAGEM-AJUSTE-2010
         return url ? { url, motivo: 'ok' } : { url: null, motivo: 'provider_failed' }
       }
       if (st.status === 'FAILED') return { url: null, motivo: 'provider_failed' }
@@ -70,17 +73,18 @@ export async function gerarStillDaEstrela(args: {
   userId: string
   engine: string
   pollWindowMs: number
+  personagem?: { textoModeracao: string } // KINEO-META95-PERSONAGEM-AJUSTE-2010 — só a folha liga conferência de formato e recebe texto autoral + metadados separados
 }): Promise<EstrelaStillResultado> {
   const key = process.env.FAL_KEY
   if (!key) return { url: null, motivo: 'no_key' }
   try {
     fal.config({ credentials: key })
     const input = buildEstrelaEditInput(args.prompt, args.imageUrls, args.aspect)
-    const pedido = await pedirStill(input, args.pollWindowMs)
+    const pedido = await pedirStill(input, args.pollWindowMs, Boolean(args.personagem)) // KINEO-META95-PERSONAGEM-AJUSTE-2010
     if (!pedido.url) return pedido
     // A imagem pronta passa pela régua ANTES de virar o primeiro quadro de um clipe pago. Barrada ou sem veredito = a cena
     // volta ao still de hoje (content_moderation_blocked/unavailable já é gravado pela porta).
-    const check = await moderateContent({ surface: 'estrela', stage: 'output', userId: args.userId, text: args.prompt, imageUrls: [pedido.url], meta: { engine: args.engine } })
+    const check = await moderateContent({ surface: 'estrela', stage: 'output', userId: args.userId, text: args.personagem?.textoModeracao ?? args.prompt, imageUrls: [pedido.url], meta: { engine: args.engine } }) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — mesma imagem, categorias e limiares; só metadados benignos da criatura são neutralizados antes
     if (!check.ok) return { url: null, motivo: check.reason === 'blocked' ? 'moderation_blocked' : 'moderation_unavailable' }
     return { url: pedido.url, motivo: 'ok' }
   } catch (err) {

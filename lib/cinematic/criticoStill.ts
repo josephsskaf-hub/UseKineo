@@ -37,6 +37,8 @@ export const STILL_CRITIC_TETO_CENA_MS = 20_000
 export const STILL_CRITIC_ORCAMENTO_SERIAL_MS = 45_000
 /** Janela de espera da foto nova. */
 export const STILL_CRITIC_JANELA_REGERACAO_MS = 9_000
+export const STILL_CRITIC_REFERENCIA_TETO_CENA_MS = 70_000 // KINEO-META95-PERSONAGEM-AJUSTE-2010 — edit (45 s) + moderação de saída (8 s) + os dois julgamentos (6 s cada)
+export const STILL_CRITIC_REFERENCIA_JANELA_REGERACAO_MS = 45_000 // KINEO-META95-PERSONAGEM-AJUSTE-2010 — os 9 s da refação FLUX truncavam o Nano Banana edit
 /** Menos que isto de folga = não chama o crítico (a resposta não chegaria). */
 export const STILL_CRITIC_MIN_CHAMADA_MS = 1_500
 /** Menos que isto de folga = não regera (FLUX dev leva 3-6 s; sobra para o 2º julgamento). */
@@ -89,7 +91,7 @@ export type EntradaCritico = {
   /** a semente do filme (a regeração usa outra, derivada dela) */
   seed: number
   /** KINEO-META95-PERSONAGEM-2010 — a folha de personagem (imagem de referência + descrição canônica): com ela o crítico recebe 2 imagens e o critério IDENTITY. Ausente = o pedido de sempre. */
-  referencia?: { url: string; descricao: string } // KINEO-META95-PERSONAGEM-2010
+  referencia?: { url: string; descricao: string; outras?: Array<{ url: string; descricao: string }> } // KINEO-META95-PERSONAGEM-2010 // KINEO-META95-PERSONAGEM-AJUSTE-2010 — uma referência rotulada por personagem
 }
 
 // ── 1. O PEDIDO ──
@@ -112,7 +114,7 @@ export const STILL_CRITIC_SISTEMA =
 // KINEO-META95-PERSONAGEM-2010 — o Dino virou menino na cena 3 e o crítico de 4 critérios não tinha como dizer "é outro personagem".
 export const STILL_CRITIC_IDENTIDADE = // KINEO-META95-PERSONAGEM-2010
   ' When a CHARACTER REFERENCE image is given, also apply (5) IDENTITY — the named character in the still is CLEARLY a different character from the reference: another species or kind of creature, a different sex or apparent age group, a clearly different body shape, different fur/skin/scale colour, different hair or a different outfit (a different pose, angle, expression, lighting or background is fine; the reference is a design sheet, not the shot). ' + // KINEO-META95-PERSONAGEM-2010
-  'For (5) use the issue name "identity".' // KINEO-META95-PERSONAGEM-2010
+  'For (5) use the issue name "identity". Deliberate anatomy of a creature or mythical figure shown in the reference, such as the demon king Ravan with ten heads, is its identity and is not an anatomy defect.' // KINEO-META95-PERSONAGEM-AJUSTE-2010
 /** O pedido ao crítico: a foto + o que a cena deve mostrar + a narração. Uma imagem só, detail 'low'. */
 export function montarPedidoAoCritico(e: EntradaCritico, url: string): { messages: MensagemDoCritico[]; imagens: number; caracteres: number } {
   const texto = [
@@ -124,7 +126,10 @@ export function montarPedidoAoCritico(e: EntradaCritico, url: string): { message
   const sistema = e.referencia ? STILL_CRITIC_SISTEMA + STILL_CRITIC_IDENTIDADE : STILL_CRITIC_SISTEMA // KINEO-META95-PERSONAGEM-2010 — sem folha, o sistema de sempre
   const textoReferencia = e.referencia ? `CHARACTER REFERENCE (design sheet of the character who must appear in this shot, NOT the shot itself): ${limpa(e.referencia.descricao).slice(0, 400)}` : '' // KINEO-META95-PERSONAGEM-2010
   if (e.referencia) parts.splice(1, 0, { type: 'text', text: textoReferencia }, { type: 'image_url', image_url: { url: e.referencia.url, detail: 'low' } }, { type: 'text', text: `STILL TO CHECK (shot ${e.indice + 1}):` }) // KINEO-META95-PERSONAGEM-2010 — a folha vem ANTES do still, cada uma rotulada
-  return { messages: [{ role: 'system', content: sistema }, { role: 'user', content: parts }], imagens: e.referencia ? 2 : 1, caracteres: sistema.length + texto.length + textoReferencia.length } // KINEO-META95-PERSONAGEM-2010 — era: sistema fixo, 1 imagem (sem folha, os mesmos números)
+  const outras = e.referencia?.outras ?? [] // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  const outrasPartes: ParteDoPedidoCritico[] = outras.flatMap((r) => [{ type: 'text' as const, text: `ADDITIONAL CHARACTER REFERENCE: ${limpa(r.descricao).slice(0, 400)}` }, { type: 'image_url' as const, image_url: { url: r.url, detail: 'low' as const } }]) // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  if (outras.length) parts.splice(3, 0, ...outrasPartes) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — todas as folhas antes do rótulo do still
+  return { messages: [{ role: 'system', content: sistema }, { role: 'user', content: parts }], imagens: (e.referencia ? 2 : 1) + outras.length, caracteres: sistema.length + texto.length + textoReferencia.length + outrasPartes.reduce((n, p) => n + (p.type === 'text' ? p.text.length : 0), 0) } // KINEO-META95-PERSONAGEM-2010 // KINEO-META95-PERSONAGEM-AJUSTE-2010 — sem referência preserva números anteriores
 }
 
 // ── 2. A RESPOSTA ──
@@ -262,6 +267,7 @@ export type RelatoCriticoStill = {
   regeraria: boolean
   regerou: boolean
   regeracao_ok: boolean | null
+  regeracao_motivo?: string // KINEO-META95-PERSONAGEM-AJUSTE-2010 — só pedidos com referência: preserva o motivo do edit sem URL, prompt ou erro sensível
   instrucao: string | null
   veredito_regerada: VereditoCritico | null
   problemas_regerada: ProblemaStill[] | null
@@ -303,7 +309,7 @@ export function novoFilmeDoCritico(modo: ModoCriticoStill, o: { prazo?: number; 
 export type DepsCritico = {
   filme: FilmeDoCritico
   /** gera a foto nova (na rota: generateCinematicSceneStill com o mesmo estilo do filme); null = falhou */
-  gerarStill: (scenePrompt: string, seed: number, pollWindowMs: number) => Promise<string | null>
+  gerarStill: (scenePrompt: string, seed: number, pollWindowMs: number) => Promise<string | null | { url: string | null; motivo: string }> // KINEO-META95-PERSONAGEM-AJUSTE-2010 — o edit mantém o motivo; os chamadores FLUX continuam com string/null
   fetchImpl?: typeof fetch
   apiKey?: string
   agora?: () => number
@@ -327,7 +333,7 @@ export async function criticarStill(e: EntradaCritico, d: DepsCritico): Promise<
   let url = e.url
   if (filme.modo === 'off') return { url, relato: r }
   try {
-    const prazoCena = t0 + STILL_CRITIC_TETO_CENA_MS
+    const prazoCena = t0 + (e.referencia ? STILL_CRITIC_REFERENCIA_TETO_CENA_MS : STILL_CRITIC_TETO_CENA_MS) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — sem referência o teto FLUX de sempre
     const folgas = () => {
       const t = agora()
       return { prazo: filme.prazo - t, teto_cena: prazoCena - t, orcamento_filme: filme.orcamentoMs - filme.gastoMs - (t - t0) }
@@ -366,9 +372,12 @@ export async function criticarStill(e: EntradaCritico, d: DepsCritico): Promise<
     r.custo_usd = arred(r.custo_usd + STILL_CRITIC_REGERACAO_USD)
     let urlNova: string | null = null
     try {
-      urlNova = await d.gerarStill(promptDaRegeracaoCritico(e.prompt, instrucao), seedDaRegeracaoCritico(e.seed, e.indice), Math.max(1_000, Math.min(STILL_CRITIC_JANELA_REGERACAO_MS, restante() - STILL_CRITIC_MIN_CHAMADA_MS)))
-    } catch {
+      const resultado = await d.gerarStill(promptDaRegeracaoCritico(e.prompt, instrucao), seedDaRegeracaoCritico(e.seed, e.indice), Math.max(1_000, Math.min(e.referencia ? STILL_CRITIC_REFERENCIA_JANELA_REGERACAO_MS : STILL_CRITIC_JANELA_REGERACAO_MS, restante() - (e.referencia ? 8_000 : 0) - STILL_CRITIC_MIN_CHAMADA_MS))) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — com folha reserva também os 8 s da moderação de saída
+      urlNova = typeof resultado === 'string' ? resultado : resultado?.url ?? null // KINEO-META95-PERSONAGEM-AJUSTE-2010
+      if (e.referencia) r.regeracao_motivo = resultado && typeof resultado === 'object' ? (/^[a-z_]{1,64}$/.test(resultado.motivo) ? resultado.motivo : 'motivo_invalido') : urlNova ? 'ok' : 'sem_url' // KINEO-META95-PERSONAGEM-AJUSTE-2010
+    } catch (err) { // KINEO-META95-PERSONAGEM-AJUSTE-2010
       urlNova = null
+      if (e.referencia) r.regeracao_motivo = err instanceof Error && (err.name === 'AbortError' || err.name === 'TimeoutError') ? 'provider_timeout' : 'exception' // KINEO-META95-PERSONAGEM-AJUSTE-2010 — nunca grava mensagem/URL/segredo da exceção
     }
     r.regeracao_ok = typeof urlNova === 'string' && urlNova.length > 0
     if (!urlNova) return { url, relato: r }

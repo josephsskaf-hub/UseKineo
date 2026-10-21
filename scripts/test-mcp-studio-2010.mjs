@@ -20,6 +20,7 @@
 //   (M) MUTANTES: cada regra acima fica vermelha quando a quebramos de propósito.
 import { semAvatarPreso2010, MARCA_AVATAR_PRESO_2010, AVATAR_PRESO_2010_ARQUIVOS } from './test-support/desfaz-avatar-preso-2010.mjs' // reancorado KINEO-AVATAR-PRESO-2010 [TRAVA 8.2 — vai do fundador 20/10 "vai pra tudo"]: a camada do avatar preso não é desta entrega
 import fs from 'node:fs'
+import { META95_PERSONAGEM_AJUSTE_2010_ARQUIVOS, MARCA_META95_PERSONAGEM_AJUSTE_2010 } from './test-support/desfaz-meta95-personagem-ajuste-2010.mjs' // KINEO-META95-PERSONAGEM-AJUSTE-2010 — escopo posterior explícito
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -273,11 +274,12 @@ for (const rel of MCP_STUDIO_2010_ARQUIVOS) {
 for (const rel of MCP_STUDIO_2010_NOVOS) {
   ok(fs.existsSync(path.join(ROOT, rel)) && base(rel) === null && read(rel).includes(MARCA_MCP_STUDIO_2010), `(F2) ${rel}: novo (não existia na base) e leva a marca`)
 }
-const changedExisting = git('diff', '--name-only', MCP_STUDIO_2010_BASE, 'HEAD').split('\n').filter(Boolean).filter((f) => base(f) !== null).filter((f) => !META95_PERSONAGEM_2010_ARQUIVOS.includes(f)) // reancorado KINEO-META95-PERSONAGEM-2010: os arquivos da folha de personagem (entrega de depois, com desfaz próprio) ficam fora desta conta
+const changedExisting = git('diff', '--name-only', MCP_STUDIO_2010_BASE, 'HEAD').split('\n').filter(Boolean).filter((f) => base(f) !== null).filter((f) => !META95_PERSONAGEM_2010_ARQUIVOS.includes(f)).filter((f) => !META95_PERSONAGEM_AJUSTE_2010_ARQUIVOS.includes(f)) // reancorado KINEO-META95-PERSONAGEM-2010: os arquivos da folha de personagem (entrega de depois, com desfaz próprio) ficam fora desta conta // KINEO-META95-PERSONAGEM-AJUSTE-2010
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !META95_ESCRITA_2010_ARQUIVOS.includes(f))) // KINEO-META95-ESCRITA-2010 — reancorado: os arquivos da legenda na escrita do roteiro (entrega de depois) não são desta
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !AVATAR_PRESO_2010_ARQUIVOS.includes(f))) // KINEO-AVATAR-PRESO-2010 — reancorado: os arquivos do avatar preso (entrega de depois, com desfaz próprio) não são desta
 ok(changedExisting.every((f) => MCP_STUDIO_2010_ARQUIVOS.includes(f)), `(F3) o diff contra a base só toca arquivos declarados (existentes alterados: ${changedExisting.join(', ') || 'nenhum ainda commitado'})`)
 const commits = git('log', '--format=%s', `${MCP_STUDIO_2010_BASE}..HEAD`).split('\n').filter(Boolean).filter((s) => !s.includes(MARCA_META95_PERSONAGEM_2010)) // reancorado KINEO-META95-PERSONAGEM-2010: os commits da folha de personagem levam a marca deles
+commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_META95_PERSONAGEM_AJUSTE_2010))) // KINEO-META95-PERSONAGEM-AJUSTE-2010
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_META95_ESCRITA_2010))) // KINEO-META95-ESCRITA-2010 — reancorado: os commits da legenda na escrita do roteiro levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_AVATAR_PRESO_2010))) // KINEO-AVATAR-PRESO-2010 — reancorado: os commits (e os merges) do avatar preso levam a marca deles
 ok(commits.every((s) => s.includes(MARCA_MCP_STUDIO_2010)), `(F4) todo commit da entrega leva a marca no assunto (${commits.length} commit(s))`)

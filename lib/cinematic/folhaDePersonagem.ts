@@ -35,6 +35,7 @@
 import { deriveExplicitCharacter, type PapelDoElenco, type StyleAnchor } from '@/lib/cinematic/sceneStyle'
 import { ESTRELA_EDIT_SLUG, buildEstrelaEditInput } from '@/lib/estrelaDoFilme'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
+import { normalizeAspect } from '@/lib/aspect' // KINEO-META95-PERSONAGEM-AJUSTE-2010
 
 export const MARCA_PERSONAGEM = 'KINEO-META95-PERSONAGEM-2010'
 export const PERSONAGEM_VERSAO = 'personagem_v1'
@@ -126,6 +127,19 @@ const VERBO_RE = /^(?:is|was|has|had|does|did|can|could|will|would|says|said|too
 const limpa = (s: string) => String(s ?? '').replace(/\s+/g, ' ').trim()
 const escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const baixa = (s: string) => s.toLowerCase().replace(/[’‘]/g, "'")
+// O nome mítico conhecido tem identidade, não um sorteio de cabelo/roupa moderna. // KINEO-META95-PERSONAGEM-AJUSTE-2010
+function identidadeMitica(nome: string): string | null { // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  if (/^ravana?$/i.test(nome)) return `${nome}, Ravana the ten-headed demon king from the Ramayana, ten distinct crowned heads, traditional royal Indian attire and ornaments, preserving his recognizable mythological identity` // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  return null // KINEO-META95-PERSONAGEM-AJUSTE-2010
+} // KINEO-META95-PERSONAGEM-AJUSTE-2010
+// Figura mítica não catalogada: só o papel que o próprio autor escreveu; nunca inventar um homem de roupa atual. // KINEO-META95-PERSONAGEM-AJUSTE-2010
+function identidadeMiticaDoAutor(texto: string, nome: string): string | null { // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  const papel = '(?:(?:mythic|mythical|mythological|legendary)\\s+(?:[a-z-]+\\s+){0,3}(?:king|queen|hero|heroine|creature|figure|deity|god|goddess)|demon[- ]king|demon[- ]queen|deity|god|goddess)' // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  const depois = new RegExp(`(?<![\\p{L}\\p{N}])${escapaRe(nome)}\\s*,\\s*(?:the|a|an)\\s+(${papel})(?![\\p{L}\\p{N}])`, 'iu').exec(texto) // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  const antes = new RegExp(`\\b(?:the|a|an)\\s+(${papel})\\s+(?:(?:named|called)\\s+)?${escapaRe(nome)}(?![\\p{L}\\p{N}])`, 'iu').exec(texto) // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  const declarado = depois?.[1] ?? antes?.[1] // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  return declarado ? `${nome}, the ${limpa(declarado)}, with the mythological identity and cultural appearance explicitly described in the story` : null // KINEO-META95-PERSONAGEM-AJUSTE-2010
+} // KINEO-META95-PERSONAGEM-AJUSTE-2010
 
 /** FNV-1a de 32 bits: o mesmo nome escolhe sempre o mesmo traço (determinístico, como lib/cinematic/elencoDaHistoria). */
 function hash(texto: string): number {
@@ -171,6 +185,7 @@ function janelasDoNome(texto: string, nome: string): string {
 
 /** Tipo pelo que o roteiro diz perto do nome (e, sem pista, pelo roteiro inteiro); humano por padrão. */
 function tipoDoNome(texto: string, nome: string): { tipo: TipoDePersonagem; especie: string | null } {
+  if (identidadeMitica(nome) || identidadeMiticaDoAutor(texto, nome)) return { tipo: 'criatura', especie: 'mythological figure' } // KINEO-META95-PERSONAGEM-AJUSTE-2010
   const perto = frasesCom(texto, nome).join(' ')
   const nomeBaixo = nome.toLowerCase()
   // "Dino" é apelido de dinossauro; "Leo the Lion"
@@ -188,6 +203,8 @@ function tipoDoNome(texto: string, nome: string): { tipo: TipoDePersonagem; espe
 
 /** A descrição canônica determinística de um personagem (mesmo roteiro → mesmo texto). */
 function canonicaDeterministica(nome: string, tipo: TipoDePersonagem, especie: string | null, contexto: string, usados: Set<string>): string {
+  const mitica = identidadeMitica(nome) // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  if (mitica) return mitica // KINEO-META95-PERSONAGEM-AJUSTE-2010
   const h = hash(nome.toLowerCase())
   if (tipo !== 'humano') {
     const cor = escolhe(CORES, h, usados)
@@ -231,7 +248,7 @@ function nomesDoRoteiro(script: string): string[] {
     if ((possessivo || fala || verbo) && !adjetivo) atual.atua += 1
     contagem.set(nome, atual)
   }
-  return [...contagem.entries()].filter(([, c]) => c.atua >= 1 && c.total >= 2).sort((a, b) => b[1].atua - a[1].atua || b[1].total - a[1].total).map(([n]) => n)
+  return [...contagem.entries()].filter(([n, c]) => (c.atua >= 1 && c.total >= 2) || !!identidadeMitica(n) || !!identidadeMiticaDoAutor(texto, n)).sort((a, b) => b[1].atua - a[1].atua || b[1].total - a[1].total).map(([n]) => n) // KINEO-META95-PERSONAGEM-AJUSTE-2010
 }
 
 /**
@@ -251,7 +268,7 @@ export function elencoDeterministico(script: string): FichaDePersonagem[] {
     if (elenco.length >= PERSONAGEM_MAX_PERSONAGENS) break
     const { tipo, especie } = tipoDoNome(bruto, nome)
     const contexto = `${janelasDoNome(semTags, nome)} | ${frasesCom(semTags, nome).join(' ')}`
-    const canonica = canonicaDeterministica(nome, tipo, especie, contexto, usados)
+    const canonica = identidadeMiticaDoAutor(semTags, nome) && !identidadeMitica(nome) ? identidadeMiticaDoAutor(semTags, nome)! : canonicaDeterministica(nome, tipo, especie, contexto, usados) // KINEO-META95-PERSONAGEM-AJUSTE-2010
     elenco.push({ nome, nucleo: nome, tipo, canonica, origem: 'deterministica', protagonista: elenco.length === 0, genero: tipo === 'humano' ? generoDe(janelasDoNome(semTags, nome)) ?? generoDe(contexto) : null })
   }
   if (elenco.length < PERSONAGEM_MAX_PERSONAGENS) {
@@ -307,6 +324,7 @@ export function lerCasting(raw: string, elenco: ReadonlyArray<FichaDePersonagem>
     const palavras = d ? d.split(' ').length : 0
     if (!d || palavras < 12 || palavras > 70 || /\b(?:reference|photo|same|scene)\b/i.test(d)) return { ...e }
     if (e.origem === 'autor') return { ...e }
+    if (identidadeMitica(e.nome) || /\bmythological identity\b/i.test(e.canonica)) return { ...e } // KINEO-META95-PERSONAGEM-AJUSTE-2010
     // criatura/animal descrita como gente ("a little boy with a dinosaur plush") não passa; "the size of a child" é tamanho, não espécie
     const humanoNaDescricao = /\b(?:man|woman|boy|girl|person|teen|teenager|elderly|human|lady|guy)\b/i.test(d) || (e.tipo === 'humano' && /\bchild\b/i.test(d))
     const especie = e.tipo === 'humano' ? humanoNaDescricao : new RegExp(`\\b(?:${ANIMAIS}|${CRIATURAS})s?\\b`, 'i').test(d) && !humanoNaDescricao
@@ -372,7 +390,8 @@ function citaNaCena(visual: string, ficha: FichaDePersonagem): boolean {
 }
 
 /** Por cena (índice alinhado ao plano), os personagens que ela cita — nome, papel, ou pronome que continua a cena anterior. */
-export function cenasComPersonagem(visuals: ReadonlyArray<string>, elenco: ReadonlyArray<FichaDePersonagem>): Array<{ indice: number; nomes: string[] }> {
+export function cenasComPersonagem(visuals: ReadonlyArray<string>, elenco: ReadonlyArray<FichaDePersonagem>, falas?: ReadonlyArray<string>): Array<{ indice: number; nomes: string[] }> { // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  if (falas !== undefined) return cenasFaladasComPersonagem(visuals, elenco, falas) // KINEO-META95-PERSONAGEM-AJUSTE-2010
   let anterior: string[] = []
   return visuals.map((visual, indice) => {
     const v = String(visual ?? '')
@@ -394,6 +413,26 @@ export function cenasComPersonagem(visuals: ReadonlyArray<string>, elenco: Reado
     return { indice, nomes }
   })
 }
+// Quando a fala existe, ela é a fonte de identidade: o plano "young man" não envelhece o "boy" que o narrador diz. // KINEO-META95-PERSONAGEM-AJUSTE-2010
+function cenasFaladasComPersonagem(visuals: ReadonlyArray<string>, elenco: ReadonlyArray<FichaDePersonagem>, falas: ReadonlyArray<string>): Array<{ indice: number; nomes: string[] }> { // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  let anterior: string[] = [] // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  return visuals.map((visual, indice) => { // KINEO-META95-PERSONAGEM-AJUSTE-2010
+    const fala = String(falas[indice] ?? '') // KINEO-META95-PERSONAGEM-AJUSTE-2010
+    const fonte = fala.trim() ? fala : String(visual ?? '') // KINEO-META95-PERSONAGEM-AJUSTE-2010
+    const nomes = elenco.filter((f) => citaNaCena(fonte, f)).map((f) => f.nome) // KINEO-META95-PERSONAGEM-AJUSTE-2010
+    if (nomes.length === 0 && SEM_GENTE_RE.test(fonte)) { anterior = []; return { indice, nomes: [] } } // KINEO-META95-PERSONAGEM-AJUSTE-2010
+    const ele = /\b(?:he|him|his|himself)\b/i.test(fonte) // KINEO-META95-PERSONAGEM-AJUSTE-2010
+    const ela = /\b(?:she|her|hers|herself)\b/i.test(fonte) // KINEO-META95-PERSONAGEM-AJUSTE-2010
+    // "his sister appears" cita outra pessoa; possessivo de objeto ("his bike") ainda cita o menino. // KINEO-META95-PERSONAGEM-AJUSTE-2010
+    const outraPessoa = /\b(?:his|her)\s+(?:missing\s+|younger\s+|older\s+)?(?:sister|brother|mother|father|friend|daughter|son|wife|husband)\b/i.test(fonte) // KINEO-META95-PERSONAGEM-AJUSTE-2010
+    if (nomes.length === 0 && (ele || ela) && !outraPessoa) { // KINEO-META95-PERSONAGEM-AJUSTE-2010
+      const candidatos = anterior.filter((nome) => { const f = elenco.find((e) => e.nome === nome); return f && (f.genero === null || (ele && f.genero === 'man') || (ela && f.genero === 'woman')) }) // KINEO-META95-PERSONAGEM-AJUSTE-2010
+      if (candidatos.length === 1) nomes.push(candidatos[0]) // KINEO-META95-PERSONAGEM-AJUSTE-2010
+    } // KINEO-META95-PERSONAGEM-AJUSTE-2010
+    anterior = nomes // KINEO-META95-PERSONAGEM-AJUSTE-2010
+    return { indice, nomes } // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  }) // KINEO-META95-PERSONAGEM-AJUSTE-2010
+} // KINEO-META95-PERSONAGEM-AJUSTE-2010
 
 // ═══ 5. O TEXTO em toda cena e o pedido ao edit ═══════════════════════════════════════════════════════════════════
 /** A ficha que vai à política da estrada clássica (policy.character) — o protagonista; a mesma trilha de KINEO-SEEDANCE-FICHA. */
@@ -408,15 +447,22 @@ export function elencoSecundario(elenco: ReadonlyArray<FichaDePersonagem>): Pape
 }
 
 const PERSONAGEM_IDENTIDADE = 'The character(s) named above must be EXACTLY the character shown in the reference image: same species, same body shape and size, same colours, same face, same hair and same outfit. Do not copy the reference pose or background; place the character in the described scene doing the described action, framed as described.'
-const PERSONAGEM_UM_QUADRO = 'One single continuous composition filling the whole frame, no split screen, no collage, no picture-in-picture, no text, no letters, no watermark, no logo.'
+const PERSONAGEM_UM_QUADRO = 'One single continuous scene filling the entire canvas edge to edge. All referenced characters interact inside this SAME scene. Never copy the reference sheets layout. No panels, no split-screen, no split screen, no collage, no picture-in-picture, no borders, no blank strips, no empty bottom band, no text, no letters, no watermark, no logo.' // KINEO-META95-PERSONAGEM-AJUSTE-2010
 const PROMPT_MAX = 2400
 
 /** O prompt do still com folha: a cena (prompt final) + quem está nela + a instrução de identidade. */
-export function promptDoStillComFolha(scenePrompt: string, fichas: ReadonlyArray<FichaDePersonagem>): string {
-  const cena = limpa(scenePrompt).slice(0, PROMPT_MAX - 700)
+export function promptDoStillComFolha(scenePrompt: string, fichas: ReadonlyArray<FichaDePersonagem>, aspect: unknown = '9:16'): string { // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  const cena = limpa(scenePrompt).replace(/(?:with )?the lower third clear for captions[,]?/gi, 'continuous scenery to the bottom edge').slice(0, PROMPT_MAX - 1100) // KINEO-META95-PERSONAGEM-AJUSTE-2010
   const quem = fichas.map((f) => `${f.nome} is ${f.canonica.replace(new RegExp(`^${escapaRe(f.nome)},\\s*`, 'i'), '')}`).join('; ')
-  return `${cena}\n\nCharacter in this scene: ${quem}.\n${PERSONAGEM_IDENTIDADE} ${PERSONAGEM_UM_QUADRO}`
+  return `Output aspect ratio ${normalizeAspect(aspect)}, full-bleed composition. ${cena}\n\nCharacter in this scene: ${quem}.\n${PERSONAGEM_IDENTIDADE} ${PERSONAGEM_UM_QUADRO}` // KINEO-META95-PERSONAGEM-AJUSTE-2010
 }
+/** A fala vence a idade genérica inventada pelo descritor; só o único humano da cena e seu gênero conhecido. */ // KINEO-META95-PERSONAGEM-AJUSTE-2010
+export function visualDoPersonagem(visual: string, fichas: ReadonlyArray<FichaDePersonagem>): string { // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  const humanos = fichas.filter((f) => f.tipo === 'humano') // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  if (humanos.length !== 1 || !humanos[0].genero) return visual // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  const papel = humanos[0].genero === 'man' ? 'man|boy' : 'woman|girl' // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  return visual.replace(new RegExp(`\\b(?:a|an|the)\\s+(?:(?:young|little|small|adult|teenage|old)\\s+){0,2}(?:${papel})\\b`, 'gi'), humanos[0].nome.replace(/^the\s+/i, 'the ')) // KINEO-META95-PERSONAGEM-AJUSTE-2010
+} // KINEO-META95-PERSONAGEM-AJUSTE-2010
 
 /** O corpo do edit: o MESMO da Estrela (lib/estrelaDoFilme buildEstrelaEditInput), com a folha no lugar das fotos. */
 export function buildPersonagemEditInput(prompt: string, folhaUrl: string, aspect: unknown): Record<string, unknown> {
@@ -442,7 +488,7 @@ export interface RelatoPersonagem {
   cenas_com_personagem: number
   stills_ok: number
   fallback: number
-  critico: Array<{ cena: number; veredito: string; problemas: string[]; regerou: boolean; escolhida: string }>
+  critico: Array<{ cena: number; veredito: string; problemas: string[]; regerou: boolean; escolhida: string; regeracao_motivo?: string }> // KINEO-META95-PERSONAGEM-AJUSTE-2010
   extra_usd: number
   ms: number
 }
@@ -456,7 +502,7 @@ export function relatoDoPersonagem(args: {
   cenas: number
   cenasComPersonagem: number
   stillsOk: number
-  critico: ReadonlyArray<{ cena: number; veredito: string; problemas: ReadonlyArray<string>; regerou: boolean; escolhida: string }>
+  critico: ReadonlyArray<{ cena: number; veredito: string; problemas: ReadonlyArray<string>; regerou: boolean; escolhida: string; regeracao_motivo?: string }> // KINEO-META95-PERSONAGEM-AJUSTE-2010
   ms: number
 }): RelatoPersonagem {
   const regeracoes = args.critico.filter((c) => c.regerou).length
@@ -472,15 +518,15 @@ export function relatoDoPersonagem(args: {
     cenas_com_personagem: args.cenasComPersonagem,
     stills_ok: args.stillsOk,
     fallback: Math.max(0, args.cenasComPersonagem - args.stillsOk),
-    critico: args.critico.map((c) => ({ cena: c.cena, veredito: c.veredito, problemas: [...c.problemas], regerou: c.regerou, escolhida: c.escolhida })),
+    critico: args.critico.map((c) => ({ cena: c.cena, veredito: c.veredito, problemas: [...c.problemas], regerou: c.regerou, escolhida: c.escolhida, ...(c.regeracao_motivo ? { regeracao_motivo: c.regeracao_motivo } : {}) })), // KINEO-META95-PERSONAGEM-AJUSTE-2010
     extra_usd: custo.usd,
     ms: Math.max(0, Math.round(args.ms)),
   }
 }
 
 /** O que o ensaio de $0 (dry_run) mostra: o elenco, as cenas com folha e a estimativa — nada é gerado. */
-export function ensaioDoPersonagem(args: { engine: string; elenco: ReadonlyArray<FichaDePersonagem>; casting: string; visuals: ReadonlyArray<string>; look: Pick<StyleAnchor, 'lookPhrase'> | null | undefined }) {
-  const cenas = cenasComPersonagem(args.visuals, args.elenco)
+export function ensaioDoPersonagem(args: { engine: string; elenco: ReadonlyArray<FichaDePersonagem>; casting: string; visuals: ReadonlyArray<string>; falas?: ReadonlyArray<string>; look: Pick<StyleAnchor, 'lookPhrase'> | null | undefined }) { // KINEO-META95-PERSONAGEM-AJUSTE-2010
+  const cenas = cenasComPersonagem(args.visuals, args.elenco, args.falas) // KINEO-META95-PERSONAGEM-AJUSTE-2010
   const comPersonagem = cenas.filter((c) => c.nomes.length > 0).length
   return {
     version: PERSONAGEM_VERSAO,

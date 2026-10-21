@@ -6,6 +6,7 @@ import { comElencoNaCena, type PapelDoElenco } from './sceneStyle' // KINEO-PARC
 import type { VisualMode } from './visualMode'
 
 export interface VisualPromptPolicy {
+  personagemCena?: ReadonlyArray<string> // KINEO-META95-PERSONAGEM-AJUSTE-2010 — só o opt-in: elenco efetivamente citado nesta cena; [] = ambiente
   mode: VisualMode
   style: StyleAnchor
   character?: string | null
@@ -254,7 +255,7 @@ export function buildClassicVisualPrompt(visual: string, policy: VisualPromptPol
     ? 'Opening shot: show the described subject and action immediately in the first frame, clearly readable; no unrelated establishing landscape or slow fade-in. '
     : ''
   // Non-speaking illustration is not an avatar/lip-sync claim.
-  const performance = policy.mode === 'character_story' ? ', characters act naturally within the scene without addressing the viewer' : ''
+  const performance = policy.personagemCena !== undefined ? (policy.personagemCena.length ? `, show only these story characters acting naturally: ${policy.personagemCena.join('; ')}, without addressing the viewer` : ', show only the described environment and action, no people, no extra characters') : policy.mode === 'character_story' ? ', characters act naturally within the scene without addressing the viewer' : '' // KINEO-META95-PERSONAGEM-AJUSTE-2010
   return opening + applyVisualFraming(prompt, policy.aspect) + performance +
     (policy.eraSuffix || '') + textSafetySuffix(visual) + `, ${aspectSpec(policy.aspect).promptFraming}`
 }

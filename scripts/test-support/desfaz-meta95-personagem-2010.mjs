@@ -12,6 +12,7 @@
 // A lib nova (lib/cinematic/folhaDePersonagem.ts) não existe na base: guardião byte a byte não a lê.
 // O guardião scripts/test-meta95-personagem-2010.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (META95_PERSONAGEM_2010_BASE).
 import { readFileSync } from 'node:fs'
+import { semMeta95PersonagemAjuste2010 } from './desfaz-meta95-personagem-ajuste-2010.mjs' // KINEO-META95-PERSONAGEM-AJUSTE-2010 — camada mais nova
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { semMeta95Escrita2010 } from './desfaz-meta95-escrita-2010.mjs' // KINEO-META95-ESCRITA-2010 — a legenda na escrita do roteiro veio depois: sai PRIMEIRO (encadeado; texto sem a marca passa igual)
@@ -37,6 +38,7 @@ export const META95_PERSONAGEM_2010_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semMeta95Personagem2010(texto, p) {
+  texto = semMeta95PersonagemAjuste2010(texto, p) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — antes de todas as camadas antigas
   texto = semMeta95Escrita2010(texto, p) // KINEO-META95-ESCRITA-2010 — a camada mais nova sai primeiro
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_META95_PERSONAGEM_2010) || !META95_PERSONAGEM_2010_ARQUIVOS.includes(rel)) return texto
