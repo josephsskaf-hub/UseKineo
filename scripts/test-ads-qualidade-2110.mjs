@@ -125,6 +125,8 @@ const provas = {
     const bad = B.checkV2Copy(JSON.stringify({ narration: WATCH_BAD, overlays: ['Pulse smartwatch', '7-day battery'], sector: 'store' }), WATCH, opts)
     const good = B.checkV2Copy(JSON.stringify({ narration: WATCH_OK, overlays: ['Pulse smartwatch', '7-day battery'], sector: 'store' }), WATCH, opts)
     const why = bad.ok ? '' : bad.why.join(' | ')
+    const r1 = Q.adsV2GenericFiller('Discover the Pulse smartwatch featuring a 7-day battery. It offers intuitive features and a modern look. This week, enjoy free shipping. Upgrade your tech today! Take a closer look.', benefits) // a fala REAL da rodada 1 (pedido 194e9b50)
+    if (!(r1.length >= 3 && Q.adsV2GenericFiller('Get 20% off this week, it ends soon.').some((g) => /ends soon/i.test(g)) && Q.adsV2GenericFiller('Premium quality leather.', ['premium quality leather']).length === 0)) return false
     return /"7-day battery"/.test(sys) && /stunning design/.test(sys) && !bad.ok && /say "7-day battery"/.test(why) && /stunning design/.test(why) && /Elevate your style/.test(why) && /Pulse, for you/.test(why) && good.ok === true
   },
 }

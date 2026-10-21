@@ -53,8 +53,8 @@ export function adsV2PresenterVideoElements(i: { url: string; track: number; dur
 // ── 3. o produto inteiro sobre o próprio fundo desfocado + o cartão final v3 ─────────────────────────────────────────
 /** KINEO-ADS-QUALIDADE-2110 — o fundo é a própria foto (nunca mais o "retângulo no fundo marrom"). */
 export const ADS_V2_SOFT_BG_BLUR = 0 // desligado: blur_radius nunca foi exercitado num render nosso (regra da casa); ligar só depois de UM render de validação
-/** KINEO-ADS-QUALIDADE-2110 — o fundo SEM propriedade nova: o canto de cima/esquerda da própria foto (o fundo do packshot) ampliado 4× preenche o quadro, macio e da cor do fundo. */
-export const ADS_V2_SOFT_BG_FRAME = { x: '200%', y: '200%', width: '400%', height: '400%' } as const
+/** KINEO-ADS-QUALIDADE-2110 — o fundo SEM propriedade nova: a própria foto em cover (sem véu) preenche o quadro; a foto inteira (contain) vem por cima. */
+export const ADS_V2_SOFT_BG_FRAME = { x: '50%', y: '50%', width: '100%', height: '100%' } as const // rodada 1 (pedido 194e9b50): o canto ampliado 4× saiu PRETO no Creatomate; a própria foto em cover (o fundo liso do packshot emenda com a foto inteira)
 export const ADS_V2_SOFT_BG_VEIL = 'rgba(0,0,0,0)' // sem véu: o fundo e as bordas da foto inteira se emendam (véu escuro desenharia o retângulo de novo)
 /** KINEO-ADS-QUALIDADE-2110 — a foto INTEIRA do produto (contain: nada cortado) sobre a mesma foto em cover, ampliada e desfocada, as 3 na MESMA trilha (como o adsV2PackshotElements de produção). `box` = onde o produto mora (frações). */
 export function adsV2SoftPackshotElements(url: string, track: number, time: number, duration: number, opts: { box?: { y: number; h: number; w?: number }; zoomEnd?: string; extra?: Record<string, unknown> } = {}): Record<string, unknown>[] {
@@ -96,7 +96,7 @@ export function adsV2EndCardTitle(business: unknown): string {
   const name = adsV2BusinessName(business)
   const parts = adsV2CleanBusiness(business).split(/\s+[—–-]\s+|\s*·\s*/)
   const sells = clean(parts[1] ?? '')
-  const t = name && name.split(' ').length === 1 && sells && sells.split(' ').length <= 2 && !sells.toLowerCase().includes(name.toLowerCase()) ? `${name} ${sells}` : name
+  const t = name && name.split(' ').length === 1 && sells && sells.split(' ').length <= 3 && !sells.toLowerCase().includes(name.toLowerCase()) ? `${name} ${sells}` : name
   return cap(t).slice(0, 48).trim()
 }
 /** KINEO-ADS-QUALIDADE-2110 — o que o cartão diz (pura): título, selo da oferta, chamada (a do pedido, na língua) e o contato. Sem título = null (fica o cartão do pedido). */
@@ -110,7 +110,7 @@ export function adsV2EndCardV3Of(i: { business: unknown; offer: unknown; ctaKind
   return { title, offer: adsV2EndCardOffer(i.offer), cta, contact }
 }
 /** KINEO-ADS-QUALIDADE-2110 — o desenho do cartão v3 (frações do quadro). Tudo acima de 80% (a interface do TikTok/Reels mora embaixo). */
-export const ADS_V2_END_CARD_V3 = { productY: 0.3, productH: 0.5, productW: 0.94, panelTop: 0.58, panelFill: 'rgba(12,12,14,0.9)', titleY: 0.64, titleFont: 0.05, titleFontMin: 0.034, offerY: 0.71, offerFont: 0.033, offerFill: '#111111', offerBg: '#FFD23F', ctaY: 0.78, ctaFont: 0.034, ctaFill: '#111111', ctaBg: '#ffffff', contactY: 0.84, contactFont: 0.024 } as const
+export const ADS_V2_END_CARD_V3 = { productY: 0.3, productH: 0.5, productW: 0.94, panelTop: 0.58, panelFill: 'rgba(12,12,14,0.9)', titleY: 0.64, titleFont: 0.056, titleFontMin: 0.034, offerY: 0.71, offerFont: 0.036, offerFill: '#111111', offerBg: '#FFD23F', ctaY: 0.78, ctaFont: 0.04, ctaFill: '#111111', ctaBg: '#ffffff', contactY: 0.84, contactFont: 0.024 } as const
 const CHAR_EM = 0.56
 /** KINEO-ADS-QUALIDADE-2110 — os elementos do cartão final v3 (puro). Usa as trilhas track..track+7. */
 export function adsV2EndCardV3Elements(i: { productUrl: string; card: AdsV2EndCardV3; fontFamily: string; width: number; height: number; time: number; duration: number; track: number; fade?: number }): Record<string, unknown>[] {
@@ -157,13 +157,14 @@ export function adsV2MissingBenefits(narration: unknown, benefits: readonly stri
     return t.filter((w) => have.has(w)).length / t.length < 0.6
   })
 }
-const GENERIC_RE = /\b(stunning design|sleek design|elegant design|elevate your (?:style|look|game|routine|day|everyday)|take (?:it|your \w+) to the next level|next level|game[- ]changer|must[- ]have|look no further|upgrade your (?:life|style|look)|perfect for (?:any|every) occasion|you deserve (?:it|the best)|treat yourself|like never before|experience the (?:difference|future)|redefin\w+|unleash|ultimate|revolutionary|eleve seu estilo|design deslumbrante|design incr[íi]vel|imperd[íi]vel|n[ãa]o perca|eleva tu estilo|dise[ñn]o impresionante)\b/i
+const GENERIC_RE = /\b(stunning design|sleek design|elegant design|elevate your (?:style|look|game|routine|day|everyday)|take (?:it|your \w+) to the next level|next level|game[- ]changer|must[- ]have|look no further|upgrade your (?:life|style|look)|perfect for (?:any|every) occasion|you deserve (?:it|the best)|treat yourself|like never before|experience the (?:difference|future)|redefin\w+|unleash|ultimate|revolutionary|intuitive features|modern look|sleek look|stylish look|upgrade your w+|take a closer look|look and feel|premium quality|high[- ]quality|top[- ]notch|cutting[- ]edge|innovative|state[- ]of[- ]the[- ]art|everyday essential|perfect companion|you'll love|ends soon|last chance|hurry|limited time|don't miss out|while (?:it|they|supplies) lasts?|eleve seu estilo|design deslumbrante|design incr[íi]vel|imperd[íi]vel|n[ãa]o perca|eleva tu estilo|dise[ñn]o impresionante)\b/i
 /** KINEO-ADS-QUALIDADE-2110 — as frases genéricas da fala (pura): os clichês e o fecho "X, for you". */
-export function adsV2GenericFiller(narration: unknown): string[] {
+export function adsV2GenericFiller(narration: unknown, typed: readonly string[] = []): string[] {
   const n = clean(narration)
   const out: string[] = []
+  const said = typed.join(' ').toLowerCase()
   const g = n.match(new RegExp(GENERIC_RE.source, 'gi'))
-  if (g) out.push(...g)
+  if (g) out.push(...g.filter((m) => !said.includes(m.toLowerCase())))
   const forYou = n.match(/(?:^|[.!?]\s+)([^.!?]{1,30},\s*(?:for you|para voc[êe]|para ti))[.!?]?\s*$/i)
   if (forYou) out.push(forYou[1].trim())
   return out.slice(0, 4)
@@ -171,14 +172,14 @@ export function adsV2GenericFiller(narration: unknown): string[] {
 /** KINEO-ADS-QUALIDADE-2110 — a regra do roteiro de PRODUTO (pedido ao modelo). Sem benefício digitado = só a parte do genérico. */
 export function adsV2BenefitRule(benefits: readonly string[]): string {
   const say = benefits.length ? `say every benefit and offer the customer typed, each one clearly and with its exact numbers: ${benefits.map((b) => `"${b}"`).join(', ')}. ` : ''
-  return `narration: ${say}Every sentence carries a concrete fact from the brief; never use generic filler such as "stunning design", "elevate your style", "take it to the next level", "must-have" or a closing "<name>, for you". Write full sentences without dashes (—).`
+  return `narration: ${say}Say each offer exactly as typed and never add urgency the customer did not type ("ends soon", "last chance", "hurry", "limited time"). Never describe qualities the customer did not type (design, look, features, quality, comfort): fill the time with the typed benefits said again in other words, the product name and a clear call to action ("Order yours today"). Never use generic filler such as "stunning design", "intuitive features", "elevate your style", "upgrade your tech", "take a closer look", "must-have" or a closing "<name>, for you". Write full sentences without dashes (—).`
 }
 /** KINEO-ADS-QUALIDADE-2110 — os motivos de correção do roteiro de produto (puros): benefício faltando, frase genérica, travessão. */
 export function adsV2BenefitWhy(narration: unknown, benefits: readonly string[]): string[] {
   const why: string[] = []
   const miss = adsV2MissingBenefits(narration, benefits)
   if (miss.length) why.push(`narration: say ${miss.map((b) => `"${b}"`).join(', ')} — the customer typed ${miss.length > 1 ? 'them' : 'it'}; keep the exact numbers.`)
-  const gen = adsV2GenericFiller(narration)
+  const gen = adsV2GenericFiller(narration, benefits)
   if (gen.length) why.push(`narration: remove the generic filler (${gen.map((g) => `"${g}"`).join(', ')}) and say a concrete fact from the brief instead.`)
   if (/[—–]/.test(String(narration ?? ''))) why.push('narration: do not use dashes (—); write full sentences.')
   return why
