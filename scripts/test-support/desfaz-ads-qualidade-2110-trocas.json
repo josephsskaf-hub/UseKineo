@@ -11,9 +11,12 @@
     "lib/ads/v2PresenterV2.ts": 61,
     "scripts/test-ads-bola-2110.mjs": 1,
     "scripts/test-ads-nota9-2110.mjs": 1,
+    "scripts/test-close-real-1910.mjs": 2,
+    "scripts/test-kit-bf-1910.mjs": 1,
     "scripts/test-mcp-studio-2010.mjs": 3,
     "scripts/test-mcp-studio-ajuste-2010.mjs": 3,
-    "scripts/test-support/desfaz-ads-bola-2110.mjs": 2
+    "scripts/test-support/desfaz-ads-bola-2110.mjs": 2,
+    "scripts/test-ugc-ajustes-2010.mjs": 1
   },
   "app/(dashboard)/ads/v2/AdsV2Client.tsx": [
     [
@@ -180,7 +183,28 @@
       "  const semMarca = ADS_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !rd(f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) })"
     ]
   ],
+  "scripts/test-close-real-1910.mjs": [],
+  "scripts/test-kit-bf-1910.mjs": [
+    [
+      "const carregar = (over = {}, velho = false, mocks = {}) => createOfflineLoader({ mocks: { 'node:zlib': zlib, ...JSONS, ...mocks }, source: (rel, text) => (Object.hasOwn(over, rel) ? over[rel] : velho ? semKitBf1910(text, rel) : semAdsBola2110(text, rel)) }) // KINEO-ADS-QUALIDADE-2110 — reancorado: o texto de hoje sem a bola e a qualidade (21/10, entregas de depois, desfaz próprio)",
+      "const carregar = (over = {}, velho = false, mocks = {}) => createOfflineLoader({ mocks: { 'node:zlib': zlib, ...JSONS, ...mocks }, source: (rel, text) => (Object.hasOwn(over, rel) ? over[rel] : velho ? semKitBf1910(text, rel) : text) })"
+    ]
+  ],
   "scripts/test-mcp-studio-2010.mjs": [],
   "scripts/test-mcp-studio-ajuste-2010.mjs": [],
-  "scripts/test-support/desfaz-ads-bola-2110.mjs": []
+  "scripts/test-support/desfaz-ads-bola-2110.mjs": [],
+  "scripts/test-ugc-ajustes-2010.mjs": [
+    [
+      "const V2 = loadPure(semAdsBola2110(rd(F.v2), F.v2)) // KINEO-ADS-QUALIDADE-2110 — reancorado: a faixa e a régua desta entrega são provadas sem o anúncio da bola e a qualidade (21/10, entregas de depois, desfaz próprio)",
+      "const V2 = loadPure(rd(F.v2))"
+    ],
+    [
+      "const BR = (over = {}) => createOfflineLoader({ mocks: { '@/lib/openai': { openai: {} }, ...JSONS }, source: (rel, text) => (over[rel] !== undefined ? over[rel] : semAdsBola2110(text, rel)) })(F.brief) // KINEO-ADS-QUALIDADE-2110 — reancorado: a faixa e a régua desta entrega são provadas sem o anúncio da bola e a qualidade (21/10, entregas de depois, desfaz próprio)",
+      "const BR = (over = {}) => createOfflineLoader({ mocks: { '@/lib/openai': { openai: {} }, ...JSONS }, source: (rel, text) => (over[rel] !== undefined ? over[rel] : text) })(F.brief)"
+    ],
+    [
+      "  const linhas = UGC_AJUSTES_2010_ARQUIVOS.every((f) => git('diff', '-U0', '--no-color', B, '--', f).replace(/\\r/g, '').split('\\n').filter((l) => l.startsWith('+') && !l.startsWith('+++') && !l.includes('KINEO-ADS-NOTA9-2110') && !l.includes('KINEO-ADS-BOLA-2110') && !l.includes('KINEO-ADS-QUALIDADE-2110')).every((l) => l.includes(MARCA))) // reancorado KINEO-ADS-NOTA9-2110 — as linhas da tela foco (21/10, camada mais nova) não contam como desta entrega // KINEO-ADS-QUALIDADE-2110 — reancorado: as linhas da bola e da qualidade levam a marca delas",
+      "  const linhas = UGC_AJUSTES_2010_ARQUIVOS.every((f) => git('diff', '-U0', '--no-color', B, '--', f).replace(/\\r/g, '').split('\\n').filter((l) => l.startsWith('+') && !l.startsWith('+++') && !l.includes('KINEO-ADS-NOTA9-2110')).every((l) => l.includes(MARCA))) // reancorado KINEO-ADS-NOTA9-2110 — as linhas da tela foco (21/10, camada mais nova) não contam como desta entrega"
+    ]
+  ]
 }

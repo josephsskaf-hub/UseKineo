@@ -25,6 +25,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semKitBf1910, KIT_BF_1910_ARQUIVOS, KIT_BF_1910_NOVOS, KIT_BF_1910_BASE, MARCA_KIT_BF_1910, ACRESCIMOS_KIT_BF_1910, TROCAS_KIT_BF_1910 } from './test-support/desfaz-kit-bf-1910.mjs'
 import { semCloseRealLegendaCorte1910 } from './test-support/desfaz-close-real-legenda-corte-1910.mjs'
 import { semHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs' // reancorado KINEO-HOME-3-CARDS-1910 — os 3 cards da home (mesclados depois, por cima do kit) saem do disco antes das provas deste guardião
+import { semAdsBola2110 } from './test-support/desfaz-ads-bola-2110.mjs' // KINEO-ADS-QUALIDADE-2110 — reancorado: a bola (que tira a qualidade primeiro) veio depois
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -47,7 +48,7 @@ const F = {
 }
 const JSONS = { '@/lib/ui/refinementCopy.json': JSON.parse(disco('lib/ui/refinementCopy.json')) }
 /** Carregador: `over` troca a fonte de um arquivo (mutante); velho = esta camada desfeita (a base). */
-const carregar = (over = {}, velho = false, mocks = {}) => createOfflineLoader({ mocks: { 'node:zlib': zlib, ...JSONS, ...mocks }, source: (rel, text) => (Object.hasOwn(over, rel) ? over[rel] : velho ? semKitBf1910(text, rel) : text) })
+const carregar = (over = {}, velho = false, mocks = {}) => createOfflineLoader({ mocks: { 'node:zlib': zlib, ...JSONS, ...mocks }, source: (rel, text) => (Object.hasOwn(over, rel) ? over[rel] : velho ? semKitBf1910(text, rel) : semAdsBola2110(text, rel)) }) // KINEO-ADS-QUALIDADE-2110 — reancorado: o texto de hoje sem a bola e a qualidade (21/10, entregas de depois, desfaz próprio)
 
 // ── fixtures da montagem (o Close real de verdade, como nos guardiões dele) ──────────────────────────────────────────────
 const H = (n) => `https://cdn.test/${n}`
