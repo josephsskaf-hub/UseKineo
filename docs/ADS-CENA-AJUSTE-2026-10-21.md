@@ -62,13 +62,36 @@
 
 ## Provas
 
+**FATO CONFIRMADO — inventário, 21/10/2026:** 21 arquivos no complemento, comparados com `origin/main b77f8f79` (treze existentes + oito novos):
+
+| Grupo | Arquivos |
+|---|---|
+| Motor | `lib/ads/cena/adapters.ts`, `catalog.ts`, `internal.ts`, `montage.ts`, `pipeline.ts`, `plan.ts`, `runtime.ts` |
+| Integração | `lib/ads/v2StartCore.ts` |
+| Guardiões | `scripts/test-ads-cena-2110.mjs`, `test-ads-cena-ajuste-2110.mjs`, `test-ads-cena-final-cena-2110.mjs`, `test-ads-cena-voz-2110.mjs`, `test-moderacao-2026-09-25.mjs` |
+| Desfaz | `scripts/test-support/desfaz-ads-cena-2110.mjs`, `desfaz-ads-cena-ajuste-2110.mjs`, `desfaz-ads-cena-ajuste-2110-fontes.json` |
+| Relatórios | `docs/ADS-CENA-AJUSTE-2026-10-21.md`, `ADS-CENA-2026-10-21.md`, `ADS-CENA-FAL-CONTRATOS-2026-10-21.md` |
+| Prévia antes/depois | `docs/previews/ads-cena-ajuste-2110.html`, `ads-cena-ajuste-2110.png` |
+
 **FATO CONFIRMADO — TESTADO LOCALMENTE:** os guardiões específicos de voz e montagem executam 14 e 9 mutantes comportamentais, respectivamente, todos ficando vermelhos como esperado. O guardião integrado passa pelos dois caminhos reais (pedido → plano → juiz → jobs → montagem), pelo desfaz exato de treze arquivos e por mutações de integridade. Também executa o start v2 direto nos modos novo/legado, dry/live: confere custo por modo na resposta e no evento, com dois mutantes independentes que ficam vermelhos. O guardião original da Cena e seus mutantes continuam verdes após a reancoragem.
 
 **FATO CONFIRMADO — correção da revisão final:** o custo informado no start direto ainda usava a estimativa com áudio; agora respeita o modo salvo tanto na resposta quanto em `ads_cena_started`, mantendo o contrato de pedidos legados (`lib/ads/v2StartCore.ts:157`). Nenhuma cobrança mudou. Os dois relatórios anteriores estão sinalizados como históricos e apontam para este complemento.
 
 **FATO CONFIRMADO — correção de prova anterior:** a linha de contagem dos importadores de moderação havia perdido a marca ancestral META95 quando foi reancorada para Cena na entrega anterior. Isso quebrava D1 dentro de um guardião já vermelho por outro motivo. A linha agora preserva as duas marcas, sem alterar a contagem exigida, a proibição de cliente ou os mutantes (`scripts/test-moderacao-2026-09-25.mjs:191`). O desfaz deste complemento reproduz exatamente a fonte b77 anterior, inclusive essa diferença, sem retocar a baseline.
 
-**QUESTÃO PENDENTE — execução final em andamento:** completar aqui resultado dos guardiões, mutantes, TypeScript e bateria comparada com `origin/main b77f8f79` antes do push.
+**FATO CONFIRMADO — TESTADO LOCALMENTE, baseline b77f8f79, 21/10/2026:** 973/973 scripts executados: **822 verdes / 151 vermelhos preexistentes**, com zero bloqueios offline e zero timeouts no resultado consolidado. Sete testes que mutam fontes em disco passaram e restituíram seus bytes; snapshot terminou limpa. Os dois testes longos que atingiram o prazo na execução paralela passaram isolados (ritmo: 204,4s; S25: 196,2s). Tentativas iniciais e repetições foram preservadas.
+
+**FATO CONFIRMADO — ambiente da comparação:** bloqueio de rede, leitura de .env e herança de segredos; Git compatível com checkout Windows (`core.autocrlf=true`, `core.safecrlf=false`). O comparador reconhece as falhas dos 151 scripts vermelhos, incluindo exceções que encerram o processo; confere nomes dos checks e mensagens de erro além do exit code. Só o runner externo recebeu tolerância maior para os testes longos; nenhum prazo/assertion do produto ou dos guardiões foi afrouxado.
+
+**FATO CONFIRMADO — TESTADO LOCALMENTE, versão final 16a16690, 21/10/2026:** **976/976 scripts executados, 825 verdes / os mesmos 151 vermelhos preexistentes**. `newRed: []`, `changedRedChecks: []`; os três scripts novos estão verdes. Zero bloqueios offline e zero timeouts no consolidado. A comparação inclui mensagens reconhecidas dos 151 vermelhos; D1 de META95 melhorou de falha para aprovação, embora o script mantenha D7 preexistente. Os sete testes com mutação em disco passaram e a snapshot final permaneceu limpa.
+
+**FATO CONFIRMADO — repetições preservadas:** `test-ads-roteiros-1310.mjs` teve 30/31 na execução paralela e 31/31 isolado (12,46s), sem mudar fonte, assertion ou prazo; os módulos exercitados são idênticos à base. O teste calcula o limite antes de carregar/transpilar o módulo, deixando 500ms para esse carregamento. **HIPÓTESE:** contenção do carregamento explica a primeira diferença. Dois testes de Git local repetiram o mesmo contexto autorizado da base, com transporte estritamente `file-only`: transporte verde e publicador com os mesmos quatro checks antigos em falha (8/12). As tentativas restritas originais continuam arquivadas; nenhum acesso de rede foi liberado para eles.
+
+**FATO CONFIRMADO — fontes das provas:** manifestos e logs em `C:/Users/josep/.codex/visualizations/2026/10/21/01a15fdc-02f8-7120-b05c-3fd4162edc8f/baseline`: `cena-ajuste-origin-main.json`, `cena-ajuste-final.json`, `cena-ajuste-final-comparison.json`, `cena-ajuste-origin-main-summary.json` e diretórios das tentativas/repetições. O código exercitado é `16a16690fa383b17950501be8708607c8472bc0f`; o fechamento posterior só altera este relatório.
+
+**FATO CONFIRMADO — integração final, 21/10/2026:** `git fetch origin main` seguido de `git merge origin/main` confirmou `b77f8f79a2031b8af4fffca0b1b32d6eacc24f4a` já integrada, sem conflito. `main` não foi alterada. O envio autorizado é exclusivamente para `codex/ads-cena-2110`, sem force, PR ou deploy.
+
+**FATO CONFIRMADO — TESTADO LOCALMENTE, 21/10/2026:** `tsc --noEmit --incremental false` terminou verde, exit code 0, sem diagnóstico (62,121s). Evidências: `cena-ajuste-final-tsc.json` e `.log` no diretório externo acima. O inventário final confirma 976 nomes únicos para 976 arquivos; snapshots base e final limpas. `git diff --check` verde. Depois do commit documental, o guardião integrado é repetido para conferir escopo e marca/trava do fechamento; não houve alteração adicional de TypeScript.
 
 **FATO CONFIRMADO — desenho da reversão:** `scripts/test-support/desfaz-ads-cena-ajuste-2110.mjs` sai antes de `semAdsCena2110`. Restaura a fonte anterior de `b77f8f79` a partir de snapshot conhecida e hash SHA-256 normalizado por LF, preservando CRLF. Fonte marcada diferente falha fechada. O guardião antigo continua executando a camada antiga e seus mutantes; os novos executam a implementação atual.
 
