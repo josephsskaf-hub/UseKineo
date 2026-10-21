@@ -12,6 +12,10 @@
 //   A4 enquadramento anti-letreiro: farol e LUME com zoom de cima (o quadro termina ≤ 69% do vídeo em 3:4 e 5:6 — o letreiro de baixo
 //      a ~70% sai); desenho a 70% (3:4) e 100% no celular (5:6): o letreiro (~55–62% do vídeo) termina acima de 62% do card; o zoom no
 //      hover continua (regra :hover própria);
+//   A5 sem o selo do motor nos 4 cards (fundador 21/10: "isso perde um pouco a vontade de comprar às vezes, sabendo qual motor é, no caso
+//      um Seedance velho; pode tirar o motor de todos os cards desses 4 primeiros"): nenhum .k3c-badge renderizado em HomeThreeCards nem
+//      em HomeKidsCard; os rótulos continuam exportados (lib/ui/homeThreeCards.ts / homeKidsCard.ts) para as outras telas; faixa de cima
+//      do degradê mais leve (.12 → 0 a 14%);
 //   D1 desfeita a camada (scripts/test-support/desfaz-home-cards-claros-2010.mjs), cada arquivo tocado é EXATAMENTE a base; os novos existem;
 //   D2 toda linha nova traz a marca; o diff só toca a lista e os novos; vídeos, curadoria (lib/engineWall.ts, lib/homeVideoCuration.ts),
 //      enquadramento antigo e 4º card (lib/ui/homeKidsCard.ts) intocados;
@@ -34,7 +38,7 @@ const lf = (s) => s.replace(/\r\n/g, '\n')
 const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return lf(git('show', `${B}:${p}`)) } catch { return null } }
-const F = { three: 'components/home/HomeThreeCards.tsx', bebe: 'scripts/test-support/desfaz-bebe-que-fala-2010.mjs' }
+const F = { kids: 'components/home/HomeKidsCard.tsx', three: 'components/home/HomeThreeCards.tsx', bebe: 'scripts/test-support/desfaz-bebe-que-fala-2010.mjs' }
 
 let falhas = 0, oks = 0
 const ok = (cond, msg) => { if (cond) { oks++; console.log(`  ok   ${msg}`) } else { falhas++; console.log(`  FALHA ${msg}`) } }
@@ -88,7 +92,7 @@ const SOMBRA = 'text-shadow:0 1px 3px rgba(0,0,0,.45),0 2px 18px rgba(0,0,0,.55)
 function cssProblems(src = rd(F.three)) {
   const p = []
   const v = veu(src)
-  if (!v.shade.includes('background:linear-gradient(180deg,rgba(5,7,11,.3) 0%,rgba(5,7,11,0) 16%,rgba(5,7,11,0) 62%,rgba(5,7,11,.28) 80%,rgba(5,7,11,.5) 100%)')) p.push('A1 degradê sem os valores novos')
+  if (!v.shade.includes('background:linear-gradient(180deg,rgba(5,7,11,.12) 0%,rgba(5,7,11,0) 14%,rgba(5,7,11,0) 62%,rgba(5,7,11,.28) 80%,rgba(5,7,11,.5) 100%)')) p.push('A1 degradê sem os valores novos')
   if (!v.semVidro) p.push('A1 o vidro fosco ainda está ligado')
   const blurs = (v.c.match(/backdrop-filter:blur\(/g) || []).length
   if (blurs !== 2 || !/\n\.k3c-badge\{[^}]*-webkit-backdrop-filter:blur\(10px\);backdrop-filter:blur\(10px\)\}/.test(v.c)) p.push(`A1 backdrop-filter fora do selo (${blurs})`)
@@ -96,7 +100,7 @@ function cssProblems(src = rd(F.three)) {
   if (!new RegExp('\\n\\.k3c-sub\\{margin:0[^}]*' + SOMBRA.replace(/[().,]/g, (x) => '\\' + x)).test(v.c)) p.push('A1 linha sem a sombra forte')
   if (/rgba\(5,7,11,\.55\) 68%|rgba\(5,7,11,\.88\) 100%|rgba\(6,8,13,\.72\)|rgba\(6,8,13,\.46\)|blur\(18px\) saturate\(1\.15\)/.test(v.c)) p.push('A2 valor de antes ainda no CSS')
   if (v.preto(1) > 0.5) p.push(`A3 rodapé com ${v.preto(1).toFixed(2)} de preto (> .50)`)
-  for (let y = 0.17; y <= 0.62; y += 0.01) if (v.preto(y) > 0.001) { p.push(`A3 preto a ${(y * 100).toFixed(0)}% (${v.preto(y).toFixed(2)})`); break }
+  for (let y = 0.15; y <= 0.62; y += 0.01) if (v.preto(y) > 0.001) { p.push(`A3 preto a ${(y * 100).toFixed(0)}% (${v.preto(y).toFixed(2)})`); break }
   const antes = veu(base(F.three))
   for (let y = 0.6; y <= 1.0001; y += 0.02) if (!(v.preto(y) < antes.preto(y))) { p.push(`A3 a ${(y * 100).toFixed(0)}% não ficou mais claro`); break }
   // A4 enquadramento anti-letreiro
@@ -119,11 +123,24 @@ function cssProblems(src = rd(F.three)) {
   return p
 }
 
+/** A5: nenhum selo de motor renderizado nos 4 cards. */
+function seloProblems(three = rd(F.three), kids = rd(F.kids)) {
+  const p = []
+  const semComent = (t) => t.replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+  if (/className="k3c-badge"/.test(semComent(three))) p.push('A5 HomeThreeCards ainda renderiza o selo')
+  if (/className="k3c-badge"/.test(semComent(kids))) p.push('A5 HomeKidsCard ainda renderiza o selo')
+  if (/HOME_CARD_BADGE\[/.test(semComent(three)) || /\{HOME_KIDS_CARD_BADGE\}/.test(semComent(kids))) p.push('A5 rótulo do motor ainda usado no card')
+  if (!/export const HOME_CARD_BADGE/.test(rd('lib/ui/homeThreeCards.ts')) || !/export const HOME_KIDS_CARD_BADGE/.test(rd('lib/ui/homeKidsCard.ts'))) p.push('A5 rótulos sumiram da lib (as outras telas usam)')
+  return p
+}
+
 console.log('A. o véu de baixo e o enquadramento, calculados do CSS real')
 {
   const v = veu(rd(F.three)), a = veu(base(F.three))
   console.log(`  (preto no rodapé ${a.preto(1).toFixed(2)} → ${v.preto(1).toFixed(2)}; a 80%: ${a.preto(0.8).toFixed(2)} → ${v.preto(0.8).toFixed(2)}; a 70%: ${a.preto(0.7).toFixed(2)} → ${v.preto(0.7).toFixed(2)}; vidro fosco: ${a.semVidro ? 'não' : 'sim'} → ${v.semVidro ? 'não' : 'sim'})`)
   const p = tenta(() => cssProblems())
+  const p5 = tenta(() => seloProblems())
+  ok(p5.length === 0, `A5 sem o selo do motor nos 4 cards; rótulos seguem na lib para as outras telas (${p5.join('; ') || 'ok'})`)
   ok(p.length === 0, `A1–A4 degradê curto e leve, sem vidro fosco, sombra forte no título e na linha, rodapé ≤ .50 e mais claro, letreiros fora do caminho do título (${p.join('; ') || 'ok'})`)
 }
 
@@ -139,13 +156,15 @@ console.log('\nD. desfaz exato, diff, encadeamento')
   ok(difs.length === 0 && novos, `D1 ${HOME_CARDS_CLAROS_2010_ARQUIVOS.length} arquivos tocados, desfeitos, = base ${B}; ${HOME_CARDS_CLAROS_2010_NOVOS.length} novos existem e não existiam (${difs.join('; ') || 'ok'})`)
 
   const TOPO = git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, '-1', 'HEAD').trim() || 'HEAD'
-  const tocados = new Set([...git('diff', '--name-only', B, TOPO).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard', 'scripts').trim().split('\n').filter((f) => f.includes('home-cards-claros-2010'))].filter(Boolean))
-  const permitidos = new Set([...HOME_CARDS_CLAROS_2010_ARQUIVOS, ...HOME_CARDS_CLAROS_2010_NOVOS])
+  const tocados = new Set([...git('log', '--no-merges', '--format=', '--name-only', `--grep=${MARCA}`, `${B}..HEAD`).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard', 'scripts').trim().split('\n').filter((f) => f.includes('home-cards-claros-2010'))].filter(Boolean))
+  const REANCORAS_DEPOIS = ['scripts/test-desenho-nota9-2110.mjs'] // reâncoras em guardiões de entregas mescladas depois (o desenho nota 9 de 21/10): toda linha que esta entrega mudou nelas traz a marca
+  const reancOk = REANCORAS_DEPOIS.every((f) => { const d = git('log', '--no-merges', '-p', '-U0', '--format=', `--grep=${MARCA}`, `${B}..HEAD`, '--', f); return d.replace(/\r/g, '').split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).every((l) => l.includes(MARCA)) })
+  const permitidos = new Set([...HOME_CARDS_CLAROS_2010_ARQUIVOS, ...HOME_CARDS_CLAROS_2010_NOVOS, ...REANCORAS_DEPOIS])
   const fora = [...tocados].filter((f) => !permitidos.has(f))
   const semMarca = HOME_CARDS_CLAROS_2010_ARQUIVOS.filter((f) => { const b = new Set(base(f).split('\n')); return !semDesenhoNota9_2110(rd(f), f).split('\n').every((l) => b.has(l) || l.includes(MARCA) || l.includes('KINEO-META95-PERSONAGEM-AJUSTE-2010')) }) // KINEO-DESENHO-NOTA9-2110 — reâncora: as linhas da camada mais nova saem antes; era: return !rd(f).split(...) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — as reâncoras dos consertos da folha (camada de depois, desfaz próprio) levam a marca delas
-  const intocados = ['lib/engineWall.ts', 'lib/homeVideoCuration.ts', 'lib/ui/homeKidsCard.ts', 'components/home/HomeKidsCard.tsx', 'components/home/HomeProductAdsReel.tsx', 'lib/ui/homeThreeCards.ts'].filter((f) => existsSync(join(ROOT, f)) && rd(f) !== base(f))
+  const intocados = ['lib/engineWall.ts', 'lib/homeVideoCuration.ts', 'lib/ui/homeKidsCard.ts', 'components/home/HomeProductAdsReel.tsx', 'lib/ui/homeThreeCards.ts'].filter((f) => existsSync(join(ROOT, f)) && rd(f) !== base(f))
   const trocasOk = Object.entries(TROCAS_HOME_CARDS_CLAROS_2010).every(([f, t]) => HOME_CARDS_CLAROS_2010_ARQUIVOS.includes(f) && t.every(([nova, velha]) => nova.includes(MARCA) && !velha.includes(MARCA)))
-  ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && intocados.length === 0 && trocasOk && !/KINEO-BEBE|KINEO-HOME-CARDS-BOTOES|KINEO-HOME-REMODELA/.test(MARCA),
+  ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && intocados.length === 0 && trocasOk && reancOk && !/KINEO-BEBE|KINEO-HOME-CARDS-BOTOES|KINEO-HOME-REMODELA/.test(MARCA),
     `D2 o diff só toca a lista e os novos; toda linha nova com a marca; vídeos/curadoria/enquadramento/4º card intocados (${[...fora.map((f) => `fora: ${f}`), ...semMarca.map((f) => `sem marca: ${f}`), ...intocados.map((f) => `mexeu: ${f}`)].join('; ') || 'ok'})`)
 
   const cadeia = /export function semBebeQueFala2010\(texto, p\) \{\n  texto = semHomeCardsClaros2010\(texto, p\)/.test(rd(F.bebe))
@@ -171,6 +190,8 @@ console.log('\nM. mutantes (cada um precisa deixar o guardião certo vermelho)')
   mut('M4 desenho no celular sem subir o letreiro', '@media (max-width:760px){.k3c-card[data-home-card="kids_cartoon"] .k3c-media video{object-position:50% 100% !important}}', '@media (max-width:760px){.k3c-card[data-home-card="kids_cartoon"] .k3c-media video{object-position:50% 70% !important}}', 'A4')
   mut('M5 linha sem a sombra forte', 'color:rgba(255,255,255,.88);text-shadow:0 1px 3px rgba(0,0,0,.45),0 2px 18px rgba(0,0,0,.55)}', 'color:rgba(255,255,255,.88)}', 'A1')
   mut('M6 degradê começando a 50% (laje de novo)', 'rgba(5,7,11,0) 62%', 'rgba(5,7,11,.2) 50%', 'A3')
+  { const m = rd(F.kids).replace(/\{\/\* KINEO-HOME-CARDS-CLAROS-2010 — sem o selo do motor.*\*\/\}/, '<span className="k3c-badge" aria-hidden="true">{HOME_KIDS_CARD_BADGE}</span>'); const p = seloProblems(rd(F.three), m); ok(m !== rd(F.kids) && p.some((x) => x.startsWith('A5 HomeKidsCard')), `M9 selo de volta no card do desenho → A5 vermelho (${p[0] || 'NÃO pegou'})`) }
+  { const m = rd(F.three).replace(/\{\/\* KINEO-HOME-CARDS-CLAROS-2010 — sem o selo do motor.*\*\/\}/, '<span className="k3c-badge" aria-hidden="true">{HOME_CARD_BADGE[card]}</span>'); const p = seloProblems(m); ok(m !== rd(F.three) && p.some((x) => x.startsWith('A5 HomeThreeCards')), `M10 selo de volta nos 3 cards → A5 vermelho (${p[0] || 'NÃO pegou'})`) }
   const semCadeia = rd(F.bebe).replace(/^  texto = semHomeCardsClaros2010\(texto, p\).*\n/m, '')
   ok(semCadeia !== rd(F.bebe) && !/export function semBebeQueFala2010\(texto, p\) \{\n  texto = semHomeCardsClaros2010\(texto, p\)/.test(semCadeia), 'M7 semBebeQueFala2010 sem chamar esta camada → D3 vermelho')
   let lancou = false

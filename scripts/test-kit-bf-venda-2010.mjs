@@ -23,12 +23,13 @@ import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semKitBfVenda2010, KIT_BF_VENDA_2010_ARQUIVOS, KIT_BF_VENDA_2010_NOVOS, KIT_BF_VENDA_2010_BASE, MARCA_KIT_BF_VENDA_2010, ACRESCIMOS_KIT_BF_VENDA_2010, TROCAS_KIT_BF_VENDA_2010 } from './test-support/desfaz-kit-bf-venda-2010.mjs'
+import { semAdsNota92110 } from './test-support/desfaz-ads-nota9-2110.mjs' // reancorado KINEO-ADS-NOTA9-2110
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const MARCA = 'KINEO-KIT-BF-VENDA-2010'
 const lf = (s) => String(s).split('\r\n').join('\n')
-const disco = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))
+const disco = (p) => lf(semAdsNota92110(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-ADS-NOTA9-2110 — a faixa de uma linha do kit (slim) e a tela foco do Studio Ads (21/10) saem por fora, em memória; era: const disco = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return lf(git('show', `${KIT_BF_VENDA_2010_BASE}:${p}`)) } catch { return null } }
 let pass = 0

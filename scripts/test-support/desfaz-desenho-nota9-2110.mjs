@@ -15,7 +15,7 @@
 // ENCADEAMENTO: é a camada MAIS NOVA — semHomeCardsClaros2010 (que semBebeQueFala2010, a cabeça semMenuUgc2010 e as cadeias da home chamam
 // primeiro) chama ESTE primeiro. Este não importa ninguém.
 
-import { semMeta95PersonagemAjuste2010 } from './desfaz-meta95-personagem-ajuste-2010.mjs' // KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — os consertos da folha (integrados 21/10, depois do desenho na tela clara) são a camada MAIS NOVA: saem PRIMEIRO (texto sem a marca deles passa igual)
+import { semAdsNota92110 } from './desfaz-ads-nota9-2110.mjs' // KINEO-ADS-NOTA9-2110 — o Studio Ads nota 9 (21/10) veio depois: sai PRIMEIRO (encadeado; texto sem a marca passa igual)
 export const MARCA_DESENHO_NOTA9_2110 = 'KINEO-DESENHO-NOTA9-2110'
 
 /** A base da entrega: origin/main de 21/10 manhã (f53733122, KINEO-HOME-CARDS-CLAROS-2010 v2). */
@@ -61,7 +61,7 @@ export const DESENHO_NOTA9_2110_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semDesenhoNota9_2110(texto, p) {
-  texto = semMeta95PersonagemAjuste2010(texto, p) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — a camada mais nova sai primeiro (encadeado: semHomeCardsClaros2010 → semDesenhoNota9_2110 → o ajuste da folha)
+  texto = semAdsNota92110(texto, p) // KINEO-ADS-NOTA9-2110 — a camada mais nova sai primeiro
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_DESENHO_NOTA9_2110) || !DESENHO_NOTA9_2110_ARQUIVOS.includes(rel)) return texto
   const crlf = texto.includes('\r\n')
