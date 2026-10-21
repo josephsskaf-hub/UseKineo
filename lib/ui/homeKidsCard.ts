@@ -97,7 +97,7 @@ export const HOME_KIDS_CARD_CSS = `
 .k3c-card[data-home-card="kids_cartoon"] .k3c-media video{object-position:50% 28%}
 .k3c-reel video{opacity:0;transition:opacity .6s ease}
 .k3c-reel video[data-on]{opacity:1}
-.k3c-card .k3c-reel video[data-trio]{object-fit:contain;object-position:50% 12%;padding:44px 8px 0;transform:none}
+.k3c-card .k3c-reel video[data-trio]{object-fit:contain;object-position:50% 12%;padding:44px 8px 0;box-sizing:border-box;transform:none}
 .k3c-card:hover .k3c-reel video[data-trio]{transform:none}
 .k3c-kids-art{position:absolute;inset:0;z-index:0;background:radial-gradient(circle at 28% 30%,#FFE08A 0 9%,transparent 10%),radial-gradient(circle at 72% 22%,#fff 0 4%,transparent 5%),radial-gradient(ellipse 70% 40% at 50% 100%,#6BD38A 0 60%,transparent 61%),linear-gradient(180deg,#7EC8FF 0%,#B9A7FF 55%,#FFB3C7 100%)}
 .k3c-kids-art::after{content:'';position:absolute;left:50%;top:44%;width:34%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle at 36% 40%,#2B2F3A 0 6%,transparent 7%),radial-gradient(circle at 64% 40%,#2B2F3A 0 6%,transparent 7%),radial-gradient(ellipse 22% 12% at 50% 66%,#E5557A 0 60%,transparent 62%),radial-gradient(circle at 50% 50%,#FFD9B3 0 70%,transparent 71%);box-shadow:0 18px 30px -16px rgba(20,20,40,.45)}
