@@ -45,6 +45,8 @@ export const ACRESCIMOS_BEBE_QUE_FALA_2010 = {
   'scripts/test-showcase-2026-10-02.mjs': 1,
   'scripts/test-studio-fantasma-1510.mjs': 0,
   'scripts/test-support/desfaz-avatar-preso-2010.mjs': 2,
+  'scripts/test-support/desfaz-home-remodela-2010.mjs': 2,
+  'scripts/test-support/desfaz-mcp-studio-ajuste-2010.mjs': 2,
   'scripts/test-support/desfaz-menu-ugc-2010.mjs': 2,
   'scripts/test-support/desfaz-meta95-escrita-2010.mjs': 2,
   'scripts/test-support/desfaz-verbatim-intocavel-2010.mjs': 3,

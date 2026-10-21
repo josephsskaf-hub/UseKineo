@@ -18,6 +18,7 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semBebeQueFala2010 } from './desfaz-bebe-que-fala-2010.mjs' // KINEO-BEBE-QUE-FALA-2010 — a camada de 20/10 (mesclada depois) divide linhas de reâncora com esta: sai PRIMEIRO (texto sem a marca passa igual)
 
 export const MARCA_MCP_STUDIO_AJUSTE_2010 = 'KINEO-MCP-STUDIO-AJUSTE-2010'
 
@@ -69,6 +70,7 @@ function baseOf(rel) {
 
 /** O texto do arquivo sem a entrega. Fora da lista ou sem a marca = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semMcpStudioAjuste2010(texto, p) {
+  texto = semBebeQueFala2010(texto, p) // KINEO-BEBE-QUE-FALA-2010 — a camada mais nova sai primeiro
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_MCP_STUDIO_AJUSTE_2010) || !MCP_STUDIO_AJUSTE_2010_ARQUIVOS.includes(rel)) return texto
   const crlf = texto.includes('\r\n')
