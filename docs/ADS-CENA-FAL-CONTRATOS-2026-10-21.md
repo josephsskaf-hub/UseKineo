@@ -1,6 +1,6 @@
 # KINEO-ADS-CENA-2110 — contratos fal e estimativas, 21/10/2026
 
-**FATO CONFIRMADO — IMPLEMENTADO:** os builders em `lib/ads/cena/adapters.ts:108` e `:149` apenas montam objetos. Não importam SDK, não leem ambiente e não fazem rede. A execução e a aprovação visual ficam a cargo da orquestração. A autorização é o pedido do fundador em 21/10: `[TRAVA 8.2 — vai do fundador 21/10 "A e B, vamo time"]`.
+**FATO CONFIRMADO — IMPLEMENTADO:** os builders em `lib/ads/cena/adapters.ts:110` e `:153` apenas montam objetos. Não importam SDK, não leem ambiente e não fazem rede. A execução e a aprovação visual ficam a cargo da orquestração. A autorização é o pedido do fundador em 21/10: `[TRAVA 8.2 — vai do fundador 21/10 "A e B, vamo time"]`.
 
 ## Contratos consultados
 
@@ -13,7 +13,7 @@
 | Veo 3.1 reference | `fal-ai/veo3.1/reference-to-video`: `image_urls`, `prompt`, `duration: "8s"`, `resolution: "720p"`, `aspect_ratio: "9:16"`, `generate_audio: true`. Duas chamadas: conservar 8s + 7s, e cobrir 13–15s com o cartão final real. | [API](https://fal.ai/models/fal-ai/veo3.1/reference-to-video/api), [limite de 8s](https://fal.ai/veo-3.1) |
 | Keyframe | `fal-ai/nano-banana-pro/edit`: `image_urls`, `prompt`, `num_images: 1`, `aspect_ratio: "9:16"`, `resolution: "2K"`, `output_format: "png"`, `enable_web_search: false`. Um candidato por chamada, best-of-2 na orquestração. | [API](https://fal.ai/models/fal-ai/nano-banana-pro/edit/api) |
 
-**FATO CONFIRMADO — IMPLEMENTADO:** `lib/ads/cena/adapters.ts:108` retorna `{endpoint,input,seconds,keepSeconds,offsetSeconds,nativeSpeechSupported,warnings}`. Veo recebe indicação explícita do segmento temporal para não repetir o gancho. Kling sem inglês/chinês recebe instrução de áudio ambiental sem diálogo nem movimento labial; o chamador deve acrescentar a narração separada. Não se anuncia fala nativa PT-BR que a documentação não suporta.
+**FATO CONFIRMADO — IMPLEMENTADO:** `lib/ads/cena/adapters.ts:110` retorna `{endpoint,input,seconds,keepSeconds,offsetSeconds,nativeSpeechSupported,warnings}`. Veo recebe fala própria por segmento temporal para não repetir o gancho. Kling sem inglês/chinês recebe áudio ambiental sem diálogo nem movimento labial e TTS separado. As duas imagens aprovadas vão como início/fim no Kling e referências no Seedance/Veo, junto do packshot nesses dois últimos. Não se anuncia fala nativa PT-BR que a documentação não suporta.
 
 **QUESTÃO PENDENTE / DESCONHECIDO:** a [API Veo](https://fal.ai/models/fal-ai/veo3.1/reference-to-video/api) exibe depreciação em **17/11/2026**. Reconfirmar disponibilidade antes do A/B pago. Qualidade das mãos, fidelidade, continuidade e fala não foram verificadas com geração real nesta entrega.
 
