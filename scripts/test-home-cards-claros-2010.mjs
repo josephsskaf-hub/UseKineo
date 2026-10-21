@@ -31,6 +31,7 @@ import {
 } from './test-support/desfaz-home-cards-claros-2010.mjs'
 import { semBebeQueFala2010 } from './test-support/desfaz-bebe-que-fala-2010.mjs'
 import { semMenuUgc2010 } from './test-support/desfaz-menu-ugc-2010.mjs'
+import { semDesenhoNota9_2110 } from './test-support/desfaz-desenho-nota9-2110.mjs' // KINEO-DESENHO-NOTA9-2110 — reâncora: a camada mais nova (o desenho infantil na tela clara, 21/10) sai antes da conferência da marca
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const lf = (s) => s.replace(/\r\n/g, '\n')
@@ -158,7 +159,7 @@ console.log('\nD. desfaz exato, diff, encadeamento')
   const tocados = new Set([...git('diff', '--name-only', B, TOPO).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard', 'scripts').trim().split('\n').filter((f) => f.includes('home-cards-claros-2010'))].filter(Boolean))
   const permitidos = new Set([...HOME_CARDS_CLAROS_2010_ARQUIVOS, ...HOME_CARDS_CLAROS_2010_NOVOS])
   const fora = [...tocados].filter((f) => !permitidos.has(f))
-  const semMarca = HOME_CARDS_CLAROS_2010_ARQUIVOS.filter((f) => { const b = new Set(base(f).split('\n')); return !rd(f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) })
+  const semMarca = HOME_CARDS_CLAROS_2010_ARQUIVOS.filter((f) => { const b = new Set(base(f).split('\n')); return !semDesenhoNota9_2110(rd(f), f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-DESENHO-NOTA9-2110 — reâncora: as linhas da camada mais nova saem antes; era: return !rd(f).split(...)
   const intocados = ['lib/engineWall.ts', 'lib/homeVideoCuration.ts', 'lib/ui/homeKidsCard.ts', 'components/home/HomeProductAdsReel.tsx', 'lib/ui/homeThreeCards.ts'].filter((f) => existsSync(join(ROOT, f)) && rd(f) !== base(f))
   const trocasOk = Object.entries(TROCAS_HOME_CARDS_CLAROS_2010).every(([f, t]) => HOME_CARDS_CLAROS_2010_ARQUIVOS.includes(f) && t.every(([nova, velha]) => nova.includes(MARCA) && !velha.includes(MARCA)))
   ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && intocados.length === 0 && trocasOk && !/KINEO-BEBE|KINEO-HOME-CARDS-BOTOES|KINEO-HOME-REMODELA/.test(MARCA),
