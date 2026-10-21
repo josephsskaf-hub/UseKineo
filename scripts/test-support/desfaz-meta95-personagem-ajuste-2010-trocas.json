@@ -154,6 +154,10 @@
     [
       "const rd = (p) => semMeta95PersonagemAjuste2010(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\\r\\n/g, '\\n') // KINEO-META95-PERSONAGEM-AJUSTE-2010",
       "const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\\r\\n/g, '\\n')"
+    ],
+    [
+      "  return add.length > 0 && add.every((l) => l.includes(MARCA) || l.includes(MARCA_META95_PERSONAGEM_AJUSTE_2010) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || linhaDoParceiroEyebible2_1410(l) || linhaDaAncoraLegenda1410(l) /* KINEO-ANCORA-LEGENDA-1410 */ || linhaDoJuizStill1410(l) /* reancorado KINEO-JUIZ-STILL-1410 */ || linhaDaCenaNegacao1510(l) /* reancorado KINEO-CENA-NEGACAO-1510 */ || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */) // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410: as linhas da 2ª leva levam a marca DELA // KINEO-META95-PERSONAGEM-AJUSTE-2010 — esta camada é provada separadamente pelo desfaz exato",
+      "  return add.length > 0 && add.every((l) => l.includes(MARCA) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || linhaDoParceiroEyebible2_1410(l) || linhaDaAncoraLegenda1410(l) /* KINEO-ANCORA-LEGENDA-1410 */ || linhaDoJuizStill1410(l) /* reancorado KINEO-JUIZ-STILL-1410 */ || linhaDaCenaNegacao1510(l) /* reancorado KINEO-CENA-NEGACAO-1510 */ || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */) // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410: as linhas da 2ª leva levam a marca DELA"
     ]
   ],
   "scripts/test-estrela-do-filme-2026-09-29.mjs": [

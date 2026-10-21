@@ -151,7 +151,8 @@ ok(JSON.stringify(C.montarPedidoAoCritico(e,'x'))===JSON.stringify(baseLoad(F.ju
 ok(JSON.stringify(await refaz({},'ok',false))===JSON.stringify(await refaz({[F.juiz]:base(F.juiz)},'ok',false)), 'OFF crítico sem referência: JSON e chamadas byte a byte')
 
 // Desfaz estrito e composição com a cadeia antiga, CRLF e idempotência.
-ok(ARQUIVOS.length >= 11, 'D0 tabela de desfaz não pode ficar vazia nem omitir os arquivos originais')
+const existentesTocados=git('diff','--name-only',BASE).trim().split('\n').filter(Boolean).filter((p)=>{try{base(p);return true}catch{return false}})
+ok(existentesTocados.length > 0 && JSON.stringify([...ARQUIVOS].sort())===JSON.stringify(existentesTocados.sort()), 'D0 tabela de desfaz enumera TODOS os arquivos existentes tocados, sem omissão ou arquivo extra')
 for(const p of ARQUIVOS) { const raw=fs.readFileSync(path.join(ROOT,p),'utf8'); ok(lf(desfaz(raw,p))===base(p),`D1 desfaz exato ${p}`); ok(desfaz(desfaz(raw,p),p)===desfaz(raw,p),`D2 idempotente ${p}`); ok(desfaz(lf(raw).replace(/\n/g,'\r\n'),p)===base(p).replace(/\n/g,'\r\n'),`D2 CRLF ${p}`) }
 ok(desfaz('sem marca',F.rota)==='sem marca' && desfaz(null,F.rota)===null && desfaz(`x // ${MARCA}`,'outro.ts')===`x // ${MARCA}`, 'D3 fora do escopo não mexe')
 const antigo=await import('./test-support/desfaz-meta95-personagem-2010.mjs')
