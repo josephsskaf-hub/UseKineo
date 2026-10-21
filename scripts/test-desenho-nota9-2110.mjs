@@ -29,6 +29,7 @@ import {
   semDesenhoNota9_2110, desfazDesenhoNota9_2110, MARCA_DESENHO_NOTA9_2110 as MARCA, DESENHO_NOTA9_2110_BASE as BASE,
   DESENHO_NOTA9_2110_ARQUIVOS, DESENHO_NOTA9_2110_NOVOS, DESENHO_NOTA9_2110_REESCRITOS, TROCAS_DESENHO_NOTA9_2110,
 } from './test-support/desfaz-desenho-nota9-2110.mjs'
+import { semDesenhoSom2110 } from './test-support/desfaz-desenho-som-2110.mjs' // KINEO-DESENHO-SOM-2110 — reâncora: o som do desenho (camada mais nova) mexe na rota do filme e no compose, só para kids_cartoon
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const rd = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\r\n/g, '\n')
@@ -174,7 +175,7 @@ function t7() {
   for (const f of [F.gen, 'lib/engineWall.ts', 'lib/homeVideoCuration.ts', F.story, F.rota, F.page, 'app/api/compose/route.ts', 'lib/credits/engineCost.ts']) {
     const b = base(f)
     if (b === null) { p.push(`${f}: sem base`); continue }
-    if (rd(f) !== b) p.push(`${f} mudou`)
+    if (semDesenhoSom2110(rd(f), f) !== b) p.push(`${f} mudou`) // KINEO-DESENHO-SOM-2110 — reâncora: as linhas do som do desenho (camada mais nova, só para kids_cartoon) saem antes; era: if (rd(f) !== b)
   }
   return p
 }

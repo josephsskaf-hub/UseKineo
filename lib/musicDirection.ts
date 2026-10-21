@@ -6,7 +6,7 @@ export type MusicEmotion = 'grief' | 'celebration' | 'tension' | 'calm' | 'neutr
 export type MusicDirection = {
   enabled: boolean
   mood: MusicMood
-  emotion: MusicEmotion
+  emotion: MusicEmotion | 'kids' // KINEO-DESENHO-SOM-2110 — 'kids' (trilha de programa infantil) não é emoção do roteiro: só o vertical do desenho infantil a pede
   source: 'directive' | 'emotion' | 'theme'
   /** Catalog buckets do not distinguish grief from joy: never guess that split. */
   curatedFallback: boolean
@@ -95,6 +95,7 @@ export function tomDoRoteiro(script: string): MusicEmotion | null { // KINEO-PAR
   return emotionOf(texto) // KINEO-PARCEIRO-EYEBIBLE-2-1410
 } // KINEO-PARCEIRO-EYEBIBLE-2-1410
 export function resolveMusicDirection(input: MusicDirectionInput): MusicDirection {
+  if (input.vertical === 'kids_story') return { enabled: true, source: 'theme', emotion: 'kids', mood: 'nature', curatedFallback: true } // KINEO-DESENHO-SOM-2110 — desenho infantil ('kids_story' ≡ KIDS_NARRATION_VERTICAL): a trilha leve de programa infantil; sem Lyria, o catálogo mais leve (nature), nunca o épico/suspense
   const raw = normalized((input.rawScript || input.script).slice(0, 32_000))
   const directives: string[] = []
   const musicDirectives: string[] = []
@@ -135,6 +136,7 @@ export function musicEmotionPrompt(value: MusicDirection): string {
     case 'tension': return 'Subtle unresolved mystery, low sustained textures and sparse pulses. No triumphant climax, no cheerful dance beat, no jump scares.'
     case 'conflict': return 'Somber tense war-drama underscore, low sustained strings, slow distant war drums, minor key, grave and restrained. No upbeat rhythm, no hip-hop beat, no cheerful melody, no triumphant celebration.' // KINEO-PARCEIRO-EYEBIBLE-1410
     case 'calm': return 'Peaceful spacious ambient texture, soft sustained notes and gentle movement. No ominous pulse, no aggressive percussion or dramatic crescendo.'
+    case 'kids': return 'Light playful children\'s TV show music, gentle ukulele, glockenspiel and xylophone over soft piano, bouncy happy major key, cozy and innocent, 100 BPM. No drums, no heavy percussion, no epic orchestra, no tension, no dark or sad tones.' // KINEO-DESENHO-SOM-2110
     default: return ''
   }
 }
