@@ -9,7 +9,8 @@
     "scripts/test-ads-bola-2110.mjs": 1,
     "scripts/test-ads-qualidade-2110.mjs": 1,
     "scripts/test-support/desfaz-ads-qualidade-2110.mjs": 2,
-    "scripts/test-moderacao-2026-09-25.mjs": 0
+    "scripts/test-moderacao-2026-09-25.mjs": 0,
+    "scripts/test-mcp-studio-ajuste-2010.mjs": 3
   },
   "lib/ads/v2Advance.ts": [
     [

@@ -375,7 +375,12 @@ for (const path of ADS_CENA_2110_ARQUIVOS) {
 for (const path of [...Object.values(F).filter(p => p.includes('/cena/') || p === F.captions), F.route, 'scripts/test-ads-cena-2110.mjs']) assert.ok(ADS_CENA_2110_NOVOS.includes(path), 'novo arquivo coberto no desfaz: ' + path)
 assert.equal(semAdsCena2110('untouched\n', 'lib/elsewhere.ts'), 'untouched\n')
 assert.throws(() => semAdsCena2110(read(F.start) + '\n// KINEO-ADS-CENA-2110 inesperado\n', F.start), /desfaz-ads-cena-2110/)
-console.log('ok desfaz mais novo exato em dez arquivos, idempotente, CRLF, marcas e lista de novos')
+const declared = new Set([...ADS_CENA_2110_ARQUIVOS, ...ADS_CENA_2110_NOVOS])
+const changedFiles = execFileSync('git', ['diff', '--ignore-cr-at-eol', '--name-only', ADS_CENA_2110_BASE], { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
+assert.ok(changedFiles.length > 0 && changedFiles.every(p => declared.has(p)), 'escopo completo da camada Cena: somente arquivos declarados')
+const subjects = execFileSync('git', ['log', '--format=%s', ADS_CENA_2110_BASE + '..HEAD'], { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
+assert.ok(subjects.length > 0 && subjects.every(s => s.startsWith(MARCA_ADS_CENA_2110 + ' ') && s.includes('[TRAVA 8.2 — vai do fundador 21/10 "A e B, vamo time"]')), 'todo commit da camada Cena leva marca e autorização exatas')
+console.log('ok desfaz mais novo exato em onze arquivos, idempotente, CRLF, marcas e escopo completo')
 function changed(path, from, to) {
   const original = read(path), occurrences = original.split(from).length - 1
   assert.equal(occurrences, 1, 'mutante aplica uma vez: ' + path + ' ' + from)

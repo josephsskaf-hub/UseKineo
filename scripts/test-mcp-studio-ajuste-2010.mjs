@@ -21,6 +21,7 @@
 //   (M) MUTANTES em disco: tirar o reenvio, tirar o job da falha, tirar o `.is('title', null)` ou o reenvio do status
 //       deixa (R)/(T) vermelho.
 import fs from 'node:fs'
+import { ADS_CENA_2110_ARQUIVOS, ADS_CENA_2110_NOVOS, MARCA_ADS_CENA_2110 } from './test-support/desfaz-ads-cena-2110.mjs' // KINEO-ADS-CENA-2110 — a camada nova tem inventário, commits e desfaz próprios.
 import { semBebeQueFala2010, BEBE_QUE_FALA_2010_ARQUIVOS, BEBE_QUE_FALA_2010_NOVOS } from './test-support/desfaz-bebe-que-fala-2010.mjs' // reancorado KINEO-BEBE-QUE-FALA-2010 — o desenho infantil/bebê-podcast (20/10) foi mesclado depois: sai em memória; arquivos e commits dele fora da conta
 import { HOME_CARDS_CLAROS_2010_ARQUIVOS, HOME_CARDS_CLAROS_2010_NOVOS, MARCA_HOME_CARDS_CLAROS_2010 } from './test-support/desfaz-home-cards-claros-2010.mjs' // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: o véu mais claro dos cards da home (fundador 20/10 23:30: "a parte de baixo dos vídeos tá bem escura, arruma isso pra hoje") foi mesclado depois: arquivos e commits dele fora da conta
 import { DESENHO_NOTA9_2110_ARQUIVOS, DESENHO_NOTA9_2110_NOVOS, DESENHO_NOTA9_2110_REESCRITOS, MARCA_DESENHO_NOTA9_2110 } from './test-support/desfaz-desenho-nota9-2110.mjs' // KINEO-DESENHO-NOTA9-2110 — reâncora: o desenho infantil inteiro na tela clara (21/10) foi mesclado depois: arquivos e commits dele fora da conta
@@ -356,6 +357,7 @@ declared.push(...ADS_NOTA9_2110_ARQUIVOS, ...ADS_NOTA9_2110_NOVOS) // reancorado
 declared.push(...DESENHO_SOM_2110_ARQUIVOS, ...DESENHO_SOM_2110_NOVOS, ...DESENHO_SOM_2110_REESCRITOS) // KINEO-DESENHO-SOM-2110 — os arquivos do som do desenho (entrega de depois) não são desta
 declared.push(...Object.keys(REGRAS_AVATAR_ESTORNO_2010), ...Object.keys(REGRAS_LEGENDA_BENGALI_2010), 'scripts/test-avatar-estorno-2010.mjs', 'scripts/test-legenda-bengali-2010.mjs', 'scripts/test-support/desfaz-avatar-estorno-2010.mjs', 'scripts/test-support/desfaz-avatar-estorno-2010-trocas.json', 'scripts/test-support/desfaz-legenda-bengali-2010.mjs', 'scripts/test-support/desfaz-legenda-bengali-2010-trocas.json') // KINEO-AVATAR-ESTORNO-2010 — os arquivos do estorno/legenda bengali (entrega de depois, com desfaz e guardião próprios) não são desta
 declared.push(...[...ADS_BOLA_2110_ARQUIVOS, ...ADS_BOLA_2110_NOVOS, ...ADS_QUALIDADE_2110_ARQUIVOS, ...ADS_QUALIDADE_2110_NOVOS, 'docs/HANDOFF-ADS-BOLA-2110.md', 'docs/ADS-BOLA-DIAGNOSTICO-2026-10-21.md', 'scripts/test-support/desfaz-legenda-bengali-2010.mjs']) // KINEO-ADS-QUALIDADE-2110 — reancorado: os arquivos da bola e da qualidade (entregas de depois) não são desta
+declared.push(...ADS_CENA_2110_ARQUIVOS, ...ADS_CENA_2110_NOVOS) // KINEO-ADS-CENA-2110 — excluir só os arquivos declarados da entrega posterior; o guardião dela confere o escopo inteiro.
 ok(changed.every((f) => declared.includes(f)), `(F3) o diff contra a base só toca arquivos declarados (${changed.filter((f) => !declared.includes(f)).join(', ') || 'ok'})`)
 const commits = git('log', '--format=%s', `${MCP_STUDIO_AJUSTE_2010_BASE}..HEAD`).split('\n').filter(Boolean)
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_HOME_REMODELA_2010))) // KINEO-HOME-REMODELA-2010 — os commits (e os merges da fila) da home remodelada levam a marca deles
@@ -367,6 +369,7 @@ commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_ADS
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_DESENHO_SOM_2110))) // KINEO-DESENHO-SOM-2110 — os commits (e o merge da fila) do som do desenho levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes('KINEO-AVATAR-ESTORNO-2010') && !s.includes('KINEO-LEGENDA-BENGALI-2010'))) // KINEO-AVATAR-ESTORNO-2010 — os commits do estorno/legenda bengali levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes('KINEO-ADS-BOLA-2110') && !s.includes('KINEO-ADS-QUALIDADE-2110'))) // KINEO-ADS-QUALIDADE-2110 — reancorado: os commits (e os merges da fila) da bola e da qualidade levam a marca deles
+commits.splice(0, commits.length, ...commits.filter((s) => !s.startsWith(MARCA_ADS_CENA_2110 + ' '))) // KINEO-ADS-CENA-2110 — apenas commits com o prefixo exato desta camada posterior.
 ok(commits.every((s) => s.includes(MARCA_MCP_STUDIO_AJUSTE_2010)), `(F4) todo commit da entrega leva a marca (${commits.length})`)
 ok(semMcpStudioAjuste2010('sem marca', F.page) === 'sem marca' && semMcpStudioAjuste2010(raw(F.page), 'outro/arquivo.ts') === raw(F.page), '(F5) desfaz idempotente fora do alvo')
 {
