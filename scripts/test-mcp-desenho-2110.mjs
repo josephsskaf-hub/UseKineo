@@ -217,7 +217,8 @@ for (const [name, fn, readable] of [
 }
 {
   const w = world(); const r = await w.call('kineo_create_video', cartoon({ story_idea: '' }))
-  ok(succeeded(r) && w.posts[0]?.body.ideaId === K.KIDS_IDEAS[0].id && w.posts[0]?.body.idea === K.KIDS_IDEAS[0].en, 'B8 ideia pronta passa pela MESMA rota de história')
+  const request = K.validateKidsCartoonRequest(w.posts[0]?.body)
+  ok(succeeded(r) && w.posts[0]?.body.ideaId === K.KIDS_IDEAS[0].id && w.posts[0]?.body.idea === '' && request.ok && request.value.idea === K.KIDS_IDEAS[0].en && request.value.ideaId === K.KIDS_IDEAS[0].id, 'B8 ideia pronta passa pela MESMA rota de história e mantém sua atribuição')
 }
 {
   const w = world(); w.cinematic(() => w.json(402, { error: 'Not enough credits.', reason: 'insufficient_credits', balance: 0 }))

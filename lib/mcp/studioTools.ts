@@ -196,7 +196,8 @@ export async function studioCreateVideo(ctx: StudioCtx, input: CreateVideoInput,
         storyRes = await io.fetch(`${ctx.origin}${STUDIO_STORY_PATH}`, {
           method: 'POST',
           headers: { 'content-type': 'application/json', cookie: minted.session.cookie, 'user-agent': STUDIO_USER_AGENT, 'x-kineo-mcp-studio': '1' },
-          body: JSON.stringify(input.cartoon),
+          // Ideia pronta viaja como na tela: o validador da rota resolve o texto e preserva idea_id na medição.
+          body: JSON.stringify({ ...input.cartoon, idea: input.cartoon.ideaId ? '' : input.cartoon.idea }),
           cache: 'no-store',
           signal: AbortSignal.timeout(STUDIO_STORY_TIMEOUT_MS),
         })
