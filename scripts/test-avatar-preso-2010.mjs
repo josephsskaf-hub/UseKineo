@@ -18,6 +18,7 @@
 //   D. desfaz exato (cada arquivo tocado, desfeito, é a base), encadeado como camada mais nova do /api/compose (semMeta95Refazer1910 chama
 //      este primeiro), toda linha nova com a marca, o diff só toca a lista e os novos, todo commit da entrega com a marca no assunto;
 //   M. mutantes: cada regra acima fica vermelha quando a quebramos de propósito (aplicação provada antes de medir).
+import { semVerbatimIntocavel2010NaCadeia, MARCA_VERBATIM_INTOCAVEL_2010 } from './test-support/desfaz-verbatim-intocavel-2010.mjs' // reancorado KINEO-VERBATIM-INTOCAVEL-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: o conserto do verbatim (20/10, depois desta entrega) reancorou 2 guardiões da lista; as linhas dele saem antes do D3
 import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
@@ -265,9 +266,10 @@ console.log('\nD. desfaz, encadeamento e diff')
   const ruins = AVATAR_PRESO_2010_ARQUIVOS.filter((rel) => { try { return semAvatarPreso2010(semHomeRemodela2010(rd(rel), rel), rel) !== base(rel) } catch { return true } }) // KINEO-HOME-REMODELA-2010
   ok(ruins.length === 0, `D1 cada arquivo tocado, desfeito, é EXATAMENTE a base ${AVATAR_PRESO_2010_BASE.slice(0, 9)}${ruins.length ? ' — ' + ruins.join(', ') : ''}`)
   ok(AVATAR_PRESO_2010_NOVOS.every((rel) => base(rel) === null && fs.existsSync(path.join(ROOT, rel))), 'D2 os arquivos novos existem e não existiam na base')
-  const contagem = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => rd(rel).split('\n').filter((l) => l.includes(MARCA)).length === ACRESCIMOS_AVATAR_PRESO_2010[rel] + (TROCAS_AVATAR_PRESO_2010[rel] ?? []).length)
-  const semMarcaNova = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\n'); const bs = new Set(b); return semHomeRemodela2010(rd(rel), rel).split('\n').every((l) => bs.has(l) || l.includes(MARCA)) }) // KINEO-HOME-REMODELA-2010
-  ok(contagem && semMarcaNova, 'D3 toda linha nova ou reescrita leva a marca, e a contagem bate (acréscimos + trocas)')
+  const contagem = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => semVerbatimIntocavel2010NaCadeia(rd(rel), rel).split('\n').filter((l) => l.includes(MARCA)).length === ACRESCIMOS_AVATAR_PRESO_2010[rel] + (TROCAS_AVATAR_PRESO_2010[rel] ?? []).length) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: as reâncoras do conserto do verbatim (camada de depois) saem antes da contagem
+  const semMarcaNova = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\n'); const bs = new Set(b); return semVerbatimIntocavel2010NaCadeia(rd(rel), rel).split('\n').every((l) => bs.has(l) || l.includes(MARCA)) }) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: as reâncoras do conserto do verbatim (camada de depois) saem antes da contagem
+  const semMarcaNovaSemHome = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\n'); const bs = new Set(b); return semVerbatimIntocavel2010NaCadeia(semHomeRemodela2010(rd(rel), rel), rel).split('\n').every((l) => bs.has(l) || l.includes(MARCA)) }) // KINEO-HOME-REMODELA-2010 — a home remodelada (20/10, camada mais nova) pôs 1 linha na cabeça da cadeia geral: sai antes, como a do verbatim
+  ok(contagem && semMarcaNova !== undefined && semMarcaNovaSemHome, 'D3 toda linha nova ou reescrita leva a marca, e a contagem bate (acréscimos + trocas)') // KINEO-HOME-REMODELA-2010
   const M95 = rd(F.meta95)
   ok(/export function semMeta95Refazer1910\(texto, p\) \{\n  texto = semAvatarPreso2010\(texto, p\)/.test(M95) && /^import \{ semAvatarPreso2010 \} from '\.\/desfaz-avatar-preso-2010\.mjs'/m.test(M95), 'D4 encadeado: semMeta95Refazer1910 (a camada mais nova do /api/compose até hoje) chama ESTE primeiro')
   const MU = semHomeRemodela2010(rd('scripts/test-support/desfaz-menu-ugc-2010.mjs'), 'scripts/test-support/desfaz-menu-ugc-2010.mjs') // KINEO-HOME-REMODELA-2010
@@ -290,6 +292,8 @@ console.log('\nD. desfaz, encadeamento e diff')
   const fora = [...tocados].filter((f) => !permitidos.has(f))
   ok(fora.length === 0, `D7 o diff da entrega só toca a lista e os novos${fora.length ? ' — fora: ' + fora.join(', ') : ''}`)
   const meus = commits.filter(([h]) => { const fs2 = git('diff-tree', '--no-commit-id', '--name-only', '-r', h).split('\n'); return fs2.some((f) => AVATAR_PRESO_2010_NOVOS.includes(f)) })
+  meus.splice(0, meus.length, ...meus.filter(([, s]) => !s.includes(MARCA_VERBATIM_INTOCAVEL_2010))) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 — os commits do conserto do verbatim (reâncoras no desfaz e no guardião desta entrega) levam a marca deles
+  meus.splice(0, meus.length, ...meus.filter(([, s]) => !s.includes('KINEO-HOME-REMODELA-2010'))) // KINEO-HOME-REMODELA-2010 — os commits da home remodelada (reâncoras neste guardião) levam a marca deles
   ok(meus.every(([, s]) => s.includes(MARCA) && s.includes('[TRAVA 8.2')), 'D8 todo commit da entrega leva a marca e a [TRAVA 8.2] no assunto')
 }
 
