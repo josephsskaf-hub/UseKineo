@@ -215,7 +215,7 @@ console.log('\nK. desfaz encadeado e diff da base')
   }
   ok(difs.length === 0, `K1 ${DESENHO_SOM_2110_ARQUIVOS.length} arquivos tocados por linha, desfeitos, = base ${BASE} (${difs.join('; ') || 'ok'})`)
   ok(DESENHO_SOM_2110_NOVOS.every((f) => fs.existsSync(path.join(ROOT, f)) && base(f) === null), `K2 os ${DESENHO_SOM_2110_NOVOS.length} arquivos novos existem e não existiam na base`)
-  ok(/export function semDesenhoNota9_2110\(texto, p\) \{\n  texto = semDesenhoSom2110\(texto, p\)/.test(rd('scripts/test-support/desfaz-desenho-nota9-2110.mjs')), 'K3 encadeamento: semDesenhoNota9_2110 (chamada primeiro por semHomeCardsClaros2010 e o resto da cadeia) tira esta camada PRIMEIRO')
+  ok(/export function semAdsNota92110\(texto, p\) \{\n  texto = semDesenhoSom2110\(texto, p\)/.test(rd('scripts/test-support/desfaz-ads-nota9-2110.mjs')) && /export function semDesenhoNota9_2110\(texto, p\) \{\n  texto = semAdsNota92110\(texto, p\)/.test(rd('scripts/test-support/desfaz-desenho-nota9-2110.mjs')), 'K3 encadeamento: semAdsNota92110 (chamada primeiro por semDesenhoNota9_2110, semHomeCardsClaros2010 e o resto da cadeia) tira esta camada PRIMEIRO')
   let lancou = false
   try { semDesenhoSom2110(rd(F.niche) + `\n// linha nova ${MARCA}`, F.niche) } catch { lancou = true }
   const trocasOk = Object.entries(TROCAS_DESENHO_SOM_2110).every(([f, t]) => DESENHO_SOM_2110_ARQUIVOS.includes(f) && t.every(([nova, velha]) => nova.includes(MARCA) && !velha.includes(MARCA)))
@@ -253,9 +253,9 @@ mut('M14 legenda nasce desligada', F.tpl, 'const [captions, setCaptions] = useSt
 mut('M18 pílula do motor de volta na tela', F.tpl, '<h1>{t.title}</h1>', '<span className="kkc-badge">{KIDS_CARTOON_ENGINE_LABEL} · 3D</span>\n      <h1>{t.title}</h1>', (s) => s6(s))
 mut('M15 botão fora do corpo do filme', F.tpl, 'request: { character, language, duration }, captions })', 'request: { character, language, duration } })', (s) => s6(s))
 {
-  const D = 'scripts/test-support/desfaz-desenho-nota9-2110.mjs'
+  const D = 'scripts/test-support/desfaz-ads-nota9-2110.mjs'
   const quebrado = rd(D).replace(/^  texto = semDesenhoSom2110\(texto, p\).*\n/m, '')
-  ok(quebrado !== rd(D) && !/export function semDesenhoNota9_2110\(texto, p\) \{\n  texto = semDesenhoSom2110\(texto, p\)/.test(quebrado), 'M16 semDesenhoNota9_2110 sem chamar esta camada → K3 vermelho')
+  ok(quebrado !== rd(D) && !/export function semAdsNota92110\(texto, p\) \{\n  texto = semDesenhoSom2110\(texto, p\)/.test(quebrado), 'M16 semAdsNota92110 sem chamar esta camada → K3 vermelho')
   let lancou = false
   try { semDesenhoSom2110(rd(F.compose).replace(/^.*kidsMusicQuieter\(source\).*\n/m, ''), F.compose) } catch { lancou = true }
   ok(lancou, 'M17 desfaz com um acréscimo a menos (linha apagada à mão) lança → K1 vermelho')

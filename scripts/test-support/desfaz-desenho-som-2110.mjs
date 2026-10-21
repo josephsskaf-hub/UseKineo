@@ -10,13 +10,13 @@
 // REESCRITOS (fora do desfaz por linha): components/kidsCartoon/KidsCartoonTemplate.tsx, components/kidsCartoon/KidsCartoonPages.tsx e lib/kidsCartoon/kidsCartoon.ts (a tela, as páginas e a lib
 // do desenho, reescritas pela camada KINEO-DESENHO-NOTA9-2110 logo antes); o guardião scripts/test-desenho-som-2110.mjs prova o resto.
 //
-// ENCADEAMENTO: é a camada MAIS NOVA — semDesenhoNota9_2110 (que semHomeCardsClaros2010, semBebeQueFala2010 e a cabeça semMenuUgc2010 chamam
-// primeiro) chama ESTE primeiro. Este não importa ninguém.
+// ENCADEAMENTO: é a camada MAIS NOVA — semAdsNota92110 (que semDesenhoNota9_2110, semHomeCardsClaros2010, semBebeQueFala2010 e a cabeça
+// semMenuUgc2010 chamam primeiro) chama ESTE primeiro. Este não importa ninguém.
 
 export const MARCA_DESENHO_SOM_2110 = 'KINEO-DESENHO-SOM-2110'
 
-/** A base da entrega: a tela clara do desenho (KINEO-DESENHO-NOTA9-2110, já na fila), 9415fa5dd. */
-export const DESENHO_SOM_2110_BASE = '9415fa5dd'
+/** A base da entrega: a origin/main mesclada antes de enfileirar (20e67c05b: tela clara do desenho, selo dos cards, Studio Ads nota 9). */
+export const DESENHO_SOM_2110_BASE = '20e67c05b'
 
 /** [linha nova (inteira), linha da base] por arquivo. */
 export const TROCAS_DESENHO_SOM_2110 = {
@@ -34,8 +34,8 @@ export const TROCAS_DESENHO_SOM_2110 = {
   ],
   "scripts/test-verbatim-intocavel-2010.mjs": [
     [
-      "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-BEBE-QUE-FALA-2010', '--grep=KINEO-MCP-STUDIO-AJUSTE-2010', `--grep=${MARCA_HOME_REMODELA_2010}`, '--grep=KINEO-HOME-CARDS-CLAROS-2010', '--grep=KINEO-DESENHO-NOTA9-2110', '--grep=KINEO-DESENHO-SOM-2110', 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-HOME-REMODELA-2010 — a última versão alheia pula também os commits da home remodelada (os merges da fila e as reâncoras) // KINEO-HOME-CARDS-CLAROS-2010 — reancorado: os commits do véu mais claro dos cards (20/10 23:30) também são de depois // KINEO-DESENHO-SOM-2110 — reancorado: os commits da tela clara e do som do desenho infantil (21/10) também são de depois",
-      "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-BEBE-QUE-FALA-2010', '--grep=KINEO-MCP-STUDIO-AJUSTE-2010', `--grep=${MARCA_HOME_REMODELA_2010}`, '--grep=KINEO-HOME-CARDS-CLAROS-2010', 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-HOME-REMODELA-2010 — a última versão alheia pula também os commits da home remodelada (os merges da fila e as reâncoras) // KINEO-HOME-CARDS-CLAROS-2010 — reancorado: os commits do véu mais claro dos cards (20/10 23:30) também são de depois",
+      "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-BEBE-QUE-FALA-2010', '--grep=KINEO-MCP-STUDIO-AJUSTE-2010', `--grep=${MARCA_HOME_REMODELA_2010}`, '--grep=KINEO-HOME-CARDS-CLAROS-2010', '--grep=KINEO-DESENHO-NOTA9-2110', '--grep=KINEO-DESENHO-SOM-2110', 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-HOME-REMODELA-2010 — a última versão alheia pula também os commits da home remodelada (os merges da fila e as reâncoras) // KINEO-HOME-CARDS-CLAROS-2010 — reancorado: os commits do véu mais claro dos cards (20/10 23:30) também são de depois // KINEO-DESENHO-SOM-2110 — reancorado: os commits do som do desenho infantil (21/10) também são de depois",
+      "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-BEBE-QUE-FALA-2010', '--grep=KINEO-MCP-STUDIO-AJUSTE-2010', `--grep=${MARCA_HOME_REMODELA_2010}`, '--grep=KINEO-HOME-CARDS-CLAROS-2010', '--grep=KINEO-DESENHO-NOTA9-2110', 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-HOME-REMODELA-2010 — a última versão alheia pula também os commits da home remodelada (os merges da fila e as reâncoras) // KINEO-HOME-CARDS-CLAROS-2010 — reancorado: os commits do véu mais claro dos cards (20/10 23:30) também são de depois",
     ],
   ],
   "scripts/test-cena-negacao-1510.mjs": [
@@ -74,8 +74,8 @@ export const TROCAS_DESENHO_SOM_2110 = {
   ],
   'scripts/test-desenho-nota9-2110.mjs': [
     [
-      "  const semMarca = DESENHO_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !semDesenhoSom2110(rd(f), f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-DESENHO-SOM-2110 — reâncora: as linhas do som do desenho (camada mais nova) saem antes da conferência da marca; era: return !rd(f).split(...)",
-      "  const semMarca = DESENHO_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !rd(f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) })",
+      "  const semMarca = DESENHO_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set(((claroDepois(f) ? semDesenhoNota9_2110(rd(f), f) : base(f)) ?? '').split('\\n')); return !semDesenhoSom2110(rd(f), f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: claroDepois; era: new Set((base(f) ?? '').split(...)) // KINEO-DESENHO-SOM-2110 — reâncora: as linhas do som do desenho (camada mais nova) saem antes da conferência da marca",
+      "  const semMarca = DESENHO_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set(((claroDepois(f) ? semDesenhoNota9_2110(rd(f), f) : base(f)) ?? '').split('\\n')); return !rd(f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: claroDepois; era: new Set((base(f) ?? '').split(...))",
     ],
     [
       "    if (semDesenhoSom2110(rd(f), f) !== b) p.push(`${f} mudou`) // KINEO-DESENHO-SOM-2110 — reâncora: as linhas do som do desenho (camada mais nova, só para kids_cartoon) saem antes; era: if (rd(f) !== b)",
@@ -100,7 +100,7 @@ export const ACRESCIMOS_DESENHO_SOM_2110 = {
   'scripts/test-mcp-studio-2010.mjs': 3,
   'scripts/test-mcp-studio-ajuste-2010.mjs': 3,
   'scripts/test-meta95-personagem-2010.mjs': 1,
-  'scripts/test-support/desfaz-desenho-nota9-2110.mjs': 2,
+  'scripts/test-support/desfaz-ads-nota9-2110.mjs': 2,
 }
 export const DESENHO_SOM_2110_ARQUIVOS = Object.freeze(Object.keys(ACRESCIMOS_DESENHO_SOM_2110))
 /** Arquivos que a entrega reescreve (fora do desfaz por linha; ver o cabeçalho). */

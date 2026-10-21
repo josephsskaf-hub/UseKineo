@@ -1,0 +1,68 @@
+{
+  "__acrescimos": {
+    "app/(dashboard)/ads/v2/AdsV2Simple.tsx": 63,
+    "app/(dashboard)/ads/v2/AdsV2Client.tsx": 4,
+    "components/ads/KitBfBuyCard.tsx": 8,
+    "scripts/test-support/desfaz-desenho-nota9-2110.mjs": 2,
+    "scripts/test-kit-bf-venda-2010.mjs": 1,
+    "scripts/test-ugc-ajustes-2010.mjs": 0
+  },
+  "app/(dashboard)/ads/v2/AdsV2Simple.tsx": [
+    [
+      "  const ux: AdsV2UxCopy = ((u) => (focus ? { ...u, steps: { ...u.steps, product: focus === 'ugc' ? n9.photoUgc : n9.photoProduct } } : u))(adsV2UxCopy(lang)) // KINEO-ADS-NOTA9-2110 — na tela foco o passo do produto diz \"Envie a foto do produto (ou o link)\"; era: const ux: AdsV2UxCopy = adsV2UxCopy(lang)",
+      "  const ux: AdsV2UxCopy = adsV2UxCopy(lang)"
+    ],
+    [
+      "    <div className=\"adv2-layout\" data-nota9={focus ?? undefined} data-adv={focus ? (advOpen ? 'open' : 'closed') : undefined}>{/* KINEO-ADS-NOTA9-2110 — na tela foco o \"Avançado\" recolhe o resto da tela de sempre (CSS em ADS_NOTA9_CSS); era: <div className=\"adv2-layout\"> */}",
+      "    <div className=\"adv2-layout\">"
+    ],
+    [
+      "              <h2 id=\"adv2s-s1\" className=\"lab\"><span className=\"n\" aria-hidden=\"true\">{steps[0].done ? '✓' : focus ? adsNota9Step(focus, 'product') : 1}</span>{ux.steps.product}</h2>{/* KINEO-ADS-NOTA9-2110 — na tela foco do UGC o produto é o 2º passo (o 1º é quem apresenta) */}",
+      "              <h2 id=\"adv2s-s1\" className=\"lab\"><span className=\"n\" aria-hidden=\"true\">{steps[0].done ? '✓' : 1}</span>{ux.steps.product}</h2>"
+    ]
+  ],
+  "app/(dashboard)/ads/v2/AdsV2Client.tsx": [
+    [
+      "          <h1>{n9Head ? n9Head.title : shell.title}</h1>{/* KINEO-ADS-NOTA9-2110 — era: <h1>{shell.title}</h1> */}",
+      "          <h1>{shell.title}</h1>"
+    ],
+    [
+      "          <p className=\"sub\">{n9Head ? n9Head.sub : mode === 'full' ? shell.sub : shell.subSimple}</p>{/* KINEO-ADS-NOTA9-2110 */}",
+      "          <p className=\"sub\">{mode === 'full' ? shell.sub : shell.subSimple}</p>"
+    ],
+    [
+      "          {mode && !n9Head ? <AdsFlowTabs active={adsV2FlowTabFor(mode)} copy={adsV2FlowCopy(mode === 'full' ? 'en' : lang)} /> : null}{/* KINEO-ADS-NOTA9-2110 — na tela foco as abas moram no \"Avançado\" */}",
+      "          {mode ? <AdsFlowTabs active={adsV2FlowTabFor(mode)} copy={adsV2FlowCopy(mode === 'full' ? 'en' : lang)} /> : null}"
+    ],
+    [
+      "          {mode && !n9Head ? (/* KINEO-ADS-NOTA9-2110 — \"I prefer to fill in everything myself\" também vai para o \"Avançado\" na tela foco */",
+      "          {mode ? ("
+    ],
+    [
+      "          {producao && !n9Head ? (/* KINEO-ADS-NOTA9-2110 — o atalho da Produção vai para o \"Avançado\" na tela foco */",
+      "          {producao ? ("
+    ],
+    [
+      "      {(mode === 'simple' || mode === 'batch') && workspace?.role !== 'member' ? <KitBfBuyCard lang={lang} surface=\"ads\" slim={!!n9Head} /* KINEO-ADS-NOTA9-2110 — na tela foco o kit vira uma faixa de uma linha (o link de compra fica) */ /> : null}{/* KINEO-KIT-BF-VENDA-2010 — no topo do quadro do Studio Ads (onde o kit vive: oferta + 1 · 3 · 5 variações); membro de equipe usa o saldo do dono e não compra */}",
+      "      {(mode === 'simple' || mode === 'batch') && workspace?.role !== 'member' ? <KitBfBuyCard lang={lang} surface=\"ads\" /> : null}{/* KINEO-KIT-BF-VENDA-2010 — no topo do quadro do Studio Ads (onde o kit vive: oferta + 1 · 3 · 5 variações); membro de equipe usa o saldo do dono e não compra */}"
+    ]
+  ],
+  "components/ads/KitBfBuyCard.tsx": [
+    [
+      "export function KitBfBuyCard({ lang = 'en', surface, slim = false }: { lang?: string; surface: 'ads' | 'pricing'; slim?: boolean }) { // KINEO-ADS-NOTA9-2110 — + slim: a faixa de uma linha da tela foco do Studio Ads; era: export function KitBfBuyCard({ lang = 'en', surface }: { lang?: string; surface: 'ads' | 'pricing' }) {",
+      "export function KitBfBuyCard({ lang = 'en', surface }: { lang?: string; surface: 'ads' | 'pricing' }) {"
+    ]
+  ],
+  "scripts/test-kit-bf-venda-2010.mjs": [
+    [
+      "const disco = (p) => lf(semAdsNota92110(readFileSync(join(ROOT, p), 'utf8'), p)) // reancorado KINEO-ADS-NOTA9-2110 — a faixa de uma linha do kit (slim) e a tela foco do Studio Ads (21/10) saem por fora, em memória; era: const disco = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))",
+      "const disco = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))"
+    ]
+  ],
+  "scripts/test-ugc-ajustes-2010.mjs": [
+    [
+      "  const linhas = UGC_AJUSTES_2010_ARQUIVOS.every((f) => git('diff', '-U0', '--no-color', B, '--', f).replace(/\\r/g, '').split('\\n').filter((l) => l.startsWith('+') && !l.startsWith('+++') && !l.includes('KINEO-ADS-NOTA9-2110')).every((l) => l.includes(MARCA))) // reancorado KINEO-ADS-NOTA9-2110 — as linhas da tela foco (21/10, camada mais nova) não contam como desta entrega",
+      "  const linhas = UGC_AJUSTES_2010_ARQUIVOS.every((f) => git('diff', '-U0', '--no-color', B, '--', f).replace(/\\r/g, '').split('\\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).every((l) => l.includes(MARCA)))"
+    ]
+  ]
+}
