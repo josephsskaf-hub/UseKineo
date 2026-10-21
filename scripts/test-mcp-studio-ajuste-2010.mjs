@@ -25,6 +25,7 @@ import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { pathToFileURL, fileURLToPath } from 'node:url'
 import { registerHooks } from 'node:module'
+import { semHomeRemodela2010, HOME_REMODELA_2010_ARQUIVOS, HOME_REMODELA_2010_NOVOS, HOME_REMODELA_2010_JSON, MARCA_HOME_REMODELA_2010 } from './test-support/desfaz-home-remodela-2010.mjs' // KINEO-HOME-REMODELA-2010 — a home remodelada (20/10, entrega de depois, com desfaz próprio) não é desta
 import { randomBytes } from 'node:crypto'
 import {
   MARCA_MCP_STUDIO_AJUSTE_2010, MCP_STUDIO_AJUSTE_2010_ARQUIVOS, MCP_STUDIO_AJUSTE_2010_BASE, MCP_STUDIO_AJUSTE_2010_NOVOS, semMcpStudioAjuste2010,
@@ -329,7 +330,7 @@ ok(/MCP_STUDIO_LIVE|Kineo Studio/.test(S.doc) && /ChatGPT/.test(S.doc) && /reenv
 // ─── (F) desfaz ──────────────────────────────────────────────────────────────
 for (const rel of MCP_STUDIO_AJUSTE_2010_ARQUIVOS) {
   const b = base(rel)
-  const cur = raw(rel)
+  const cur = semHomeRemodela2010(raw(rel), rel) // KINEO-HOME-REMODELA-2010 — as reâncoras da home remodelada (camada de depois) saem antes
   ok(b !== null && cur.includes(MARCA_MCP_STUDIO_AJUSTE_2010) && lf(semMcpStudioAjuste2010(cur, rel)) === b && (!cur.includes('\r\n') || semMcpStudioAjuste2010(cur, rel).includes('\r\n')), `(F1) ${rel}: leva a marca e, desfeita a entrega, é EXATAMENTE a base ${MCP_STUDIO_AJUSTE_2010_BASE.slice(0, 9)}`)
 }
 for (const rel of MCP_STUDIO_AJUSTE_2010_NOVOS) {
@@ -337,8 +338,10 @@ for (const rel of MCP_STUDIO_AJUSTE_2010_NOVOS) {
 }
 const changed = [...new Set([...git('diff', '--name-only', MCP_STUDIO_AJUSTE_2010_BASE).split('\n'), ...git('ls-files', '--others', '--exclude-standard').split('\n')].filter(Boolean))]
 const declared = [...MCP_STUDIO_AJUSTE_2010_ARQUIVOS, ...MCP_STUDIO_AJUSTE_2010_NOVOS]
+declared.push(...HOME_REMODELA_2010_ARQUIVOS, ...HOME_REMODELA_2010_NOVOS, HOME_REMODELA_2010_JSON) // KINEO-HOME-REMODELA-2010 — os arquivos da home remodelada (entrega de depois) não são desta
 ok(changed.every((f) => declared.includes(f)), `(F3) o diff contra a base só toca arquivos declarados (${changed.filter((f) => !declared.includes(f)).join(', ') || 'ok'})`)
 const commits = git('log', '--format=%s', `${MCP_STUDIO_AJUSTE_2010_BASE}..HEAD`).split('\n').filter(Boolean)
+commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_HOME_REMODELA_2010))) // KINEO-HOME-REMODELA-2010 — os commits (e os merges da fila) da home remodelada levam a marca deles
 ok(commits.every((s) => s.includes(MARCA_MCP_STUDIO_AJUSTE_2010)), `(F4) todo commit da entrega leva a marca (${commits.length})`)
 ok(semMcpStudioAjuste2010('sem marca', F.page) === 'sem marca' && semMcpStudioAjuste2010(raw(F.page), 'outro/arquivo.ts') === raw(F.page), '(F5) desfaz idempotente fora do alvo')
 {

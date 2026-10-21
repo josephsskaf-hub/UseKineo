@@ -161,6 +161,12 @@
       "  ok('R9', BASES.landing !== null && navCount(F.landing) === navCount(BASES.landing) + 2, `o menu não encolheu (${navCount(F.landing)} itens data-nav-item, base + 2 do \"AI UGC Ads\")`) // reancorado KINEO-MENU-UGC-2010 — o menu só cresce: +1 item no topo e +1 no celular; a ordem dos antigos é provada em scripts/test-menu-ugc-2010.mjs"
     ]
   ],
+  "scripts/test-mcp-studio-ajuste-2010.mjs": [
+    [
+      "  const cur = semHomeRemodela2010(raw(rel), rel) // KINEO-HOME-REMODELA-2010 — as reâncoras da home remodelada (camada de depois) saem antes",
+      "  const cur = raw(rel)"
+    ]
+  ],
   "scripts/test-menu-ugc-2010.mjs": [
     [
       "  const mp = tenta(() => menuProblems(nome, semHomeRemodela2010(rd(rel), rel), base(rel) ?? '')); ok(mp.length === 0, `${i === 0 ? 'H1' : `P${i}`} ${nome}: ${itens(BLOCOS[nome](semHomeRemodela2010(rd(rel), rel))).join(' · ')} (${mp.join('; ') || 'ok'})`) // KINEO-HOME-REMODELA-2010",
