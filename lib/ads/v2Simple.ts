@@ -511,6 +511,7 @@ const EN = {
     'We could not confirm the credits for this ad, so it was not made. If credits left your balance, they come back on their own.': 'We could not confirm the credits for this ad, so it was not made. If credits left your balance, they come back on their own.',
     'This ad could not be finished because of our content rules. Its credits go back to your balance automatically.': 'This ad could not be finished because of our content rules. Its credits go back to your balance automatically.',
     'We could not finish this ad. Its credits go back to your balance automatically. You can plan it again from your photos.': 'We could not finish this ad. Its credits go back to your balance automatically. You can plan it again from your photos.',
+    "The AI person could not be generated. We stopped your UGC ad instead of delivering an ad without the person. Its credits go back to your balance automatically. You can try again from your photos.": "The AI person could not be generated. We stopped your UGC ad instead of delivering an ad without the person. Its credits go back to your balance automatically. You can try again from your photos.", // KINEO-ADS-CENA-2110
   } as Record<string, string>,
 }
 export type AdsV2SimpleCopy = typeof EN
@@ -710,6 +711,7 @@ const PT: AdsV2SimpleCopy = {
     'We could not confirm the credits for this ad, so it was not made. If credits left your balance, they come back on their own.': 'Não conseguimos confirmar os créditos deste anúncio, então ele não foi feito. Se saíram créditos do seu saldo, eles voltam sozinhos.',
     'This ad could not be finished because of our content rules. Its credits go back to your balance automatically.': 'Este anúncio não pôde ser terminado por causa das nossas regras de conteúdo. Os créditos voltam ao seu saldo sozinhos.',
     'We could not finish this ad. Its credits go back to your balance automatically. You can plan it again from your photos.': 'Não conseguimos terminar este anúncio. Os créditos voltam ao seu saldo sozinhos. Você pode planejar de novo a partir das suas fotos.',
+    "The AI person could not be generated. We stopped your UGC ad instead of delivering an ad without the person. Its credits go back to your balance automatically. You can try again from your photos.": "Não conseguimos gerar a pessoa de IA. Interrompemos o anúncio UGC para não entregar um anúncio sem a pessoa. Os créditos voltam automaticamente ao seu saldo. Você pode tentar de novo com suas fotos.", // KINEO-ADS-CENA-2110
   },
 }
 
@@ -908,6 +910,7 @@ const ES: AdsV2SimpleCopy = {
     'We could not confirm the credits for this ad, so it was not made. If credits left your balance, they come back on their own.': 'No pudimos confirmar los créditos de este anuncio, así que no se hizo. Si salieron créditos de tu saldo, vuelven solos.',
     'This ad could not be finished because of our content rules. Its credits go back to your balance automatically.': 'Este anuncio no se pudo terminar por nuestras reglas de contenido. Sus créditos vuelven solos a tu saldo.',
     'We could not finish this ad. Its credits go back to your balance automatically. You can plan it again from your photos.': 'No pudimos terminar este anuncio. Sus créditos vuelven solos a tu saldo. Puedes planificarlo de nuevo con tus fotos.',
+    "The AI person could not be generated. We stopped your UGC ad instead of delivering an ad without the person. Its credits go back to your balance automatically. You can try again from your photos.": "No pudimos generar a la persona de IA. Detuvimos el anuncio UGC para no entregar un anuncio sin la persona. Sus créditos vuelven automáticamente a tu saldo. Puedes intentar de nuevo con tus fotos.", // KINEO-ADS-CENA-2110
   },
 }
 

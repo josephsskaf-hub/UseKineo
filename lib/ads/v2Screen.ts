@@ -352,6 +352,7 @@ export function failedOrderMessage(error: string | null | undefined, redo = fals
     return 'We could not redo this shot. The credits for the redo go back to your balance automatically. Your ad is still in My Videos, exactly as it was.'
   }
   if (/^charge_/.test(e)) return 'We could not confirm the credits for this ad, so it was not made. If credits left your balance, they come back on their own.'
+  if (/^ugc_presenter_failed:/.test(e)) return 'The AI person could not be generated. We stopped your UGC ad instead of delivering an ad without the person. Its credits go back to your balance automatically. You can try again from your photos.' // KINEO-ADS-CENA-2110
   if (/moderation/.test(e)) return 'This ad could not be finished because of our content rules. Its credits go back to your balance automatically.'
   return 'We could not finish this ad. Its credits go back to your balance automatically. You can plan it again from your photos.'
 }
