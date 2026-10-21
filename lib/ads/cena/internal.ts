@@ -30,7 +30,7 @@ export async function internalCenaFor(user: AdsV2Caller, body: unknown, d: CenaI
     // Nenhum preço novo: canário custa o mesmo nível Comercial. O start v2 confirma débito e garante uma geração ativa.
     const skeleton = planShots({ sector: 'store', tier: 'commercial', seconds: 15, photos: [{ id: '00000000-0000-4000-8000-000000000001', url: input.foto, kind: 'text' }] })
     const stored = { ...skeleton, overlays: [], narration: plan.script.narration, cena: newCenaState(plan, b.rota) }
-    const ins = await d.admin.from('ads_v2_orders').insert({ user_id: user.id, status: 'planned', tier: 'commercial', seconds: 15, sector: 'store', language: input.language, narration: true, card_url: input.foto, photos: [], brief: { sentence: input.frase, business: plan.product, offer: input.oferta, kind: 'product', cena: true }, plan: stored }).select('id').maybeSingle()
+    const ins = await d.admin.from('ads_v2_orders').insert({ user_id: user.id, status: 'planned', tier: 'commercial', seconds: 15, sector: 'store', language: input.language, narration: true, card_url: input.foto, photos: [], brief: { sentence: input.frase, business: plan.product, offer: plan.input.oferta, kind: 'product', cena: true }, plan: stored }).select('id').maybeSingle()
     if (ins.error || !ins.data) return v2Fail('cena_order_failed', 503)
     return d.start(String(ins.data.id))
   } catch (e) {

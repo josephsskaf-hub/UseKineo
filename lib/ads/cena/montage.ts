@@ -15,7 +15,16 @@ export function buildCenaMontage(s: CenaState): Record<string, unknown> {
   video.forEach((e, i) => { e.time = i === 0 ? 0 : 8; e.duration = clips.length === 1 ? 15 : i === 0 ? 8 : 7; e.volume = s.plan.audioMode === 'native' ? '100%' : '12%'; delete e.enter_transition })
   // Inserto real coberto: esconde rosto/boca e produto gerado, conserva som contínuo da cena.
   els.push(...adsV2SoftPackshotElements(s.plan.input.foto, 10, 9.5, 1.5))
-  els.push(...adsV2EndCardV3Elements({ productUrl: s.plan.input.foto, card: { title: s.plan.product.slice(0, 55), offer: s.plan.input.oferta ?? '', cta: s.plan.script.cta, contact: '' }, fontFamily: 'Inter', width, height, time: 13, duration: 2, track: 20, fade: 0 }))
+  const card = adsV2EndCardV3Elements({ productUrl: s.plan.input.foto, card: { title: s.plan.product.slice(0, 55), offer: s.plan.input.oferta ?? '', cta: s.plan.script.cta, contact: '' }, fontFamily: 'Inter', width, height, time: 13, duration: 2, track: 20, fade: 0.2 })
+  // Cartão CENA dentro da zona segura: título, selo e CTA em trilhas próprias, CTA acima de y1480.
+  for (const e of card.filter(e => e.type === 'text')) {
+    if (e.track === 24) e.y = '60.5%'
+    if (e.track === 25) e.y = '67%'
+    if (e.track === 26) e.y = '74%'
+    const n = String(e.text ?? '').length
+    if (e.track === 25 || e.track === 26) e.font_size = Math.max(38, Math.min(Number(e.font_size), Math.floor(width * 0.78 / Math.max(1, n * 0.55))))
+  }
+  els.push(...card)
   const beats = [{ text: s.plan.script.hook, start: 0, seconds: 3 }, { text: s.plan.script.use, start: 3, seconds: 7 }, { text: s.plan.script.benefit, start: 10, seconds: 3 }]
   for (const b of beats) els.push(...cenaCaptionElements({ ...b, width, height, track: 40 }))
   if (s.plan.audioMode === 'voiceover') {

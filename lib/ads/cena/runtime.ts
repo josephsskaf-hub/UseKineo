@@ -19,7 +19,7 @@ export const cenaJson: CenaJson = async c => {
 }
 export async function failCenaOrder(admin: SupabaseClient, order: AdsV2OrderRow, reason: string): Promise<void> {
   const r = await failAdsV2Order(admin, order, reason, '/lib/ads/cena')
-  if (r.won) await writeServerEvent({ name: 'ads_cena_failed_refunded', userId: order.user_id, path: '/lib/ads/cena', metadata: { order_id: order.id, reason, refund: r.refund, credits_returned: r.amount } })
+  if (r.won) await writeServerEvent({ name: 'ads_cena_failed', userId: order.user_id, path: '/lib/ads/cena', metadata: { order_id: order.id, reason, refund: r.refund, credits_returned: r.amount } })
 }
 export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderRow): Promise<void> {
   const state = cenaOf(order.plan)
@@ -81,8 +81,9 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
       if (!(e instanceof CreatomateSubmitError && e.ambiguous)) await failCenaOrder(admin, order, 'cena_montage_rejected')
     }
   } catch (e) {
+    if (e instanceof Error && e.message === 'cena_lease_lost') return
     if (state.phase === 'ready') await failCenaOrder(admin, order, 'cena_montage_or_voice_failed')
-    else if (!(e instanceof Error && e.message === 'cena_lease_lost')) throw e
+    else throw e
   } finally {
     await admin.from('ads_v2_orders').update({ assembly_lease_at: null }).eq('id', order.id).eq('status', 'generating').eq('assembly_lease_at', token)
   }
