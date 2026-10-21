@@ -1,4 +1,5 @@
 // KINEO-ADS-CENA-2110 — máquina durável, sem SDK: cada intenção é salva ANTES do efeito; não reenvia POST ambíguo.
+// KINEO-ADS-CENA-AJUSTE-2110 — propaga o modo explícito sem reinterpretar trabalhos legados em andamento.
 import { cenaKeyframeRequest, cenaVideoRequests, type CenaRoute } from './adapters'
 import { CENA_JUDGE_QUESTION, judgeCena, type CenaJson, type CenaPlan, type CenaVerdict } from './plan'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
@@ -42,7 +43,7 @@ export async function stepCena(s: CenaState, d: CenaDeps): Promise<void> {
   if (s.phase === 'judge') {
     for (const j of s.jobs.filter(j => j.kind === 'image' && !j.verdict)) {
       let verdict: CenaVerdict
-      try { verdict = judgeCena(await d.json({ model: AI_TEXT_MODELS.adsRetry, system: CENA_JUDGE_QUESTION, text: 'Image 1 = exact customer product. Image 2 = candidate. Image 3 = actor identity. Fail closed for ambiguous hand ownership, actor or product fidelity.', images: [s.plan.input.foto, j.url!, ...(s.plan.input.actorUrl ? [s.plan.input.actorUrl] : [])] })) }
+      try { verdict = judgeCena(await d.json({ model: AI_TEXT_MODELS.adsRetry, system: CENA_JUDGE_QUESTION, text: `Image 1 = exact customer product. Image 2 = candidate. Image 3 = actor identity. Fail closed for ambiguous hand ownership, actor or product fidelity.${s.plan.continuity ? ` Also return wardrobe_match: true ONLY if the visible clothing matches this exact expected wardrobe: ${s.plan.continuity.wardrobe}. Unknown or hidden clothing means false.${s.plan.continuity.productWrist === 'left' ? ' Also return product_wrist_match: true ONLY if the watch is visibly on the actor LEFT wrist; right, mirrored, hidden or ambiguous means false.' : ''}` : ''}`, images: [s.plan.input.foto, j.url!, ...(s.plan.input.actorUrl ? [s.plan.input.actorUrl] : [])] }), s.plan.continuity) }
       catch { verdict = { approved: false, score: 0, reasons: ['judge_unavailable'] } }
       j.verdict = verdict; await d.save(s)
       await d.event('ads_cena_keyframe_judged', { index: j.index, round: s.imageRound, ...verdict })
@@ -53,7 +54,7 @@ export async function stepCena(s: CenaState, d: CenaDeps): Promise<void> {
   }
   const kind = s.phase === 'images' ? 'image' : 'video'
   if (!s.jobs.some(j => j.kind === kind)) {
-    const jobs: CenaJob[] = kind === 'image' ? images(s) : cenaVideoRequests(s.route, { keyframeUrl: s.keyframes![0], endKeyframeUrl: s.keyframes![1], productUrl: s.plan.input.foto, prompt: s.plan.videoPrompt, language: s.plan.input.language, segmentPrompts: s.plan.segmentPrompts }).map((j, index) => ({ endpoint: j.endpoint, input: j.input, seconds: j.seconds, keepSeconds: j.keepSeconds, index, kind: 'video', status: 'new' }))
+    const jobs: CenaJob[] = kind === 'image' ? images(s) : cenaVideoRequests(s.route, { keyframeUrl: s.keyframes![0], endKeyframeUrl: s.keyframes![1], productUrl: s.plan.input.foto, prompt: s.plan.videoPrompt, language: s.plan.input.language, segmentPrompts: s.plan.segmentPrompts, voiceMode: s.plan.voice_mode }).map((j, index) => ({ endpoint: j.endpoint, input: j.input, seconds: j.seconds, keepSeconds: j.keepSeconds, index, kind: 'video', status: 'new' }))
     s.jobs.push(...jobs); await d.save(s)
   }
   const j = s.jobs.find(j => j.kind === kind && j.status !== 'done')

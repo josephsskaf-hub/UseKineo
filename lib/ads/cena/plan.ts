@@ -1,5 +1,7 @@
 // KINEO-ADS-CENA-2110 — planejamento sem SDK; chamadas JSON/visão injetadas. Nenhum fallback comercial inventado.
-import { CENA_CATALOG, CENA_ACTORS, cenaCategory, type CenaCategory } from './catalog'
+// KINEO-ADS-CENA-AJUSTE-2110 — narrated/talking é intenção explícita; nenhum fallback entre os modos.
+import { CENA_CATALOG, CENA_ACTORS, CENA_WARDROBE, cenaCategory, type CenaCategory } from './catalog'
+import { cenaAssertVoiceRoute, cenaResolveRoute, isCenaVoiceMode, type CenaVoiceMode } from './adapters'
 import { adsV2CleanBusiness } from '../v2BolaFix'
 import { adsV2ReadInstruction } from '../v2Simple'
 import { adsV2BenefitRule, adsV2BenefitWhy } from '../v2AdsQualidade'
@@ -9,14 +11,18 @@ import { adsV2PresenterById } from '../v2Presenter'
 import type { AdsBrief } from '../types'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
 
-export interface CenaInput { foto: string; frase: string; oferta?: string; beneficios?: string[]; language?: string; formato?: 'ugc' | 'product'; actorUrl?: string }
+export interface CenaInput { foto: string; frase: string; oferta?: string; beneficios?: string[]; language?: string; formato?: 'ugc' | 'product'; actorUrl?: string; voice_mode?: CenaVoiceMode }
 export interface CenaJsonCall { model: typeof AI_TEXT_MODELS.ads | typeof AI_TEXT_MODELS.adsRetry; system: string; text: string; images: string[] }
 export type CenaJson = (call: CenaJsonCall) => Promise<unknown>
 export interface CenaScript { hooks: [string, string, string]; hook: string; use: string; benefit: string; cta: string; narration: string }
 export interface CenaPlan {
   marker: 'KINEO-ADS-CENA-2110'; input: CenaInput; category: CenaCategory; product: string; format: string; setting: string; actor: string; interaction: string;
   script: CenaScript; keyframePrompts: [string, string]; videoPrompt: string; segmentPrompts: [string, string]; audioMode: 'native' | 'voiceover';
+  voice_mode?: CenaVoiceMode;
+  continuity?: { actorUrl: string; wardrobe: string; productWrist: 'left' | null };
 }
+/** Compatibilidade dos pedidos já gravados: não aplicar o novo default de planejamento ao andamento antigo. */
+export function cenaVoiceModeOf(plan: Pick<CenaPlan, 'voice_mode' | 'audioMode'>): CenaVoiceMode { return plan.voice_mode ?? (plan.audioMode === 'voiceover' ? 'narrated' : 'talking') }
 const clean = (v: unknown): string => typeof v === 'string' ? v.replace(/\s+/g, ' ').trim() : ''
 export function cenaHttps(v: unknown): v is string {
   if (typeof v !== 'string' || v.length > 2048) return false
@@ -31,7 +37,8 @@ export function cenaInput(raw: unknown): CenaInput {
   if (b.formato !== undefined && b.formato !== 'ugc' && b.formato !== 'product') throw new Error('cena_bad_format')
   if (b.language !== undefined && (typeof b.language !== 'string' || !/^[a-z]{2}$/.test(b.language))) throw new Error('cena_bad_language')
   if (b.actorUrl !== undefined && !cenaHttps(b.actorUrl)) throw new Error('cena_bad_actor')
-  return { foto: b.foto, frase, oferta: clean(b.oferta), beneficios: (b.beneficios as string[] | undefined)?.map(clean) ?? [], language: clean(b.language) || 'en', formato: b.formato === 'ugc' ? 'ugc' : 'product', ...(b.actorUrl ? { actorUrl: b.actorUrl as string } : {}) }
+  if (b.voice_mode !== undefined && !isCenaVoiceMode(b.voice_mode)) throw new Error('cena_bad_voice_mode')
+  return { foto: b.foto, frase, oferta: clean(b.oferta), beneficios: (b.beneficios as string[] | undefined)?.map(clean) ?? [], language: clean(b.language) || 'en', formato: b.formato === 'ugc' ? 'ugc' : 'product', voice_mode: b.voice_mode ?? 'narrated', ...(b.actorUrl ? { actorUrl: b.actorUrl as string } : {}) }
 }
 function jsonObject(raw: unknown): Record<string, unknown> {
   const v = typeof raw === 'string' ? JSON.parse(raw) : raw
@@ -60,9 +67,13 @@ export function cenaScript(raw: unknown, input: CenaInput): CenaScript {
   return { hooks: hooks as [string, string, string], hook: hooks[0], use, benefit, cta, narration }
 }
 export async function planCena(input: CenaInput, route: string, call: CenaJson): Promise<CenaPlan> {
+  const voiceMode = input.voice_mode ?? 'narrated'
+  const selectedRoute = cenaResolveRoute(voiceMode, route)
+  cenaAssertVoiceRoute(selectedRoute, voiceMode, input.language)
   const classification = await classifyCena(input, call), { category, product } = classification, row = CENA_CATALOG[category]
   const portrait = adsV2PresenterById(CENA_ACTORS[category])?.portrait
-  input = { ...input, oferta: input.oferta || classification.offer, beneficios: [...new Set([...(input.beneficios ?? []), ...classification.benefits])], actorUrl: input.actorUrl || (portrait ? `https://www.usekineo.com${portrait}` : undefined) }
+  input = { ...input, voice_mode: voiceMode, oferta: input.oferta || classification.offer, beneficios: [...new Set([...(input.beneficios ?? []), ...classification.benefits])], actorUrl: input.actorUrl || (portrait ? `https://www.usekineo.com${portrait}` : undefined) }
+  if (!input.actorUrl) throw new Error('cena_actor_reference_required')
   const benefits = [...(input.beneficios ?? []), ...(input.oferta ? [input.oferta] : [])]
   let script: CenaScript | null = null, why = ''
   for (let n = 0; n < 2; n++) {
@@ -73,27 +84,34 @@ export async function planCena(input: CenaInput, route: string, call: CenaJson):
   }
   if (!script) throw new Error(why || 'cena_script_failed')
   const anatomy = 'Exactly ONE adult. Only that same person own hands, visibly attached to their own continuous forearms and body. No extra hand, extra arm or second person. Product entirely visible, exact customer product shape, label, colours and proportions; real scale. Nothing touches or approaches the face. No invented accessories, no text or graphics.'
-  const base = `${input.formato === 'ugc' ? 'Natural creator product demonstration' : 'Product use demonstration'}. ${row.actor} in ${row.setting}. ${row.interaction}. ${row.scale}. The uploaded product is the identity reference, not a generic substitute. ${anatomy}`
-  const audioMode = route === 'kling3' && !['en', 'zh'].includes(input.language ?? 'en') ? 'voiceover' : 'native'
-  const voice = audioMode === 'voiceover' ? 'Ambient sound only, no spoken dialogue, lips remain still; narration is added in the edit.' : `Native audio in ${input.language}. Speak only these exact words, no additions: ${script.narration}`
+  const actor = voiceMode === 'talking' ? 'one adult presenter, face and mouth fully visible throughout every frame' : row.format === 'hands_demo' ? 'one adult, their own forearms and hands visible with the upper torso and shirt sleeves in frame; face may remain outside the frame' : row.actor
+  const continuity = { actorUrl: input.actorUrl, wardrobe: CENA_WARDROBE[category], productWrist: category === 'wearable' ? 'left' as const : null }
+  const lock = `CONTINUITY LOCK for every keyframe, shot and retry: the exact actor identity from reference ${continuity.actorUrl}; always wears ${continuity.wardrobe}. Keep the shirt and sleeves clearly visible so clothing continuity can be judged. Never change shirt colour, outfit or actor between angles. ${category === 'wearable' ? 'The watch stays on the actor LEFT wrist throughout; never the right wrist, never mirrored, never switching arms. Keep the left wrist unobstructed so ownership and side can be judged.' : 'Preserve left/right hand anatomy and the same visible arms throughout.'}`
+  const base = `${input.formato === 'ugc' ? 'Natural creator product demonstration' : 'Product use demonstration'}. ${actor} in ${row.setting}. ${row.interaction}. ${row.scale}. The uploaded product is the identity reference, not a generic substitute. ${anatomy} ${lock}`
+  const audioMode = voiceMode === 'narrated' ? 'voiceover' : 'native'
+  const silent = 'No speech, dialogue, narration or lip-sync in the generated scene. Lips remain closed throughout every frame. A separate TTS voiceover is added in editing.'
+  const face = 'Keep the presenter face and speaking mouth visible and unobstructed for the ENTIRE segment, including product use and the final CTA. Continuous face-to-camera speech with lip-sync; no hands-only inserts, no cutaway and no silent scene.'
+  const voice = voiceMode === 'narrated' ? silent : `${face} Native audio in ${input.language}. Speak only these exact words, no additions: ${script.narration}`
   const useWords = script.use.split(' '), split = Math.max(1, Math.round(useWords.length * 5 / 7))
   const segmentPrompts: [string, string] = [
-    `${base} Local 0–3s: human hook, head-and-shoulders only if face speaks; 3–8s: product in use, no talking face. Native audio in ${input.language}, say ONLY: ${script.hook} ${useWords.slice(0, split).join(' ')}. End mid-action.`,
-    `${base} Local 0–2s: continue product use, no talking face; 2–5s: typed benefit; 5–7s: CTA, covered by real packshot in editing; 7–8s: ambient sound only, trimmed. Native audio in ${input.language}, say ONLY: ${useWords.slice(split).join(' ')} ${script.benefit} ${script.cta}. No opening hook.`,
+    `${base} Local 0–3s: human hook; 3–8s: product in use. ${voiceMode === 'narrated' ? silent : `${face} Native audio in ${input.language}, say ONLY: ${script.hook} ${useWords.slice(0, split).join(' ')}.`} End mid-action.`,
+    `${base} Local 0–2s: continue product use; 2–5s: typed benefit; 5–7s: CTA while the scene continues; 7–8s: continue the same scene, final extra second trimmed. ${voiceMode === 'narrated' ? silent : `${face} Native audio in ${input.language}, say ONLY: ${useWords.slice(split).join(' ')} ${script.benefit} ${script.cta}.`} Do not repeat the opening.`,
   ]
-  return { marker: 'KINEO-ADS-CENA-2110', input, category, product, format: row.format, setting: row.setting, actor: row.actor, interaction: row.interaction, script, audioMode,
+  return { marker: 'KINEO-ADS-CENA-2110', input, category, product, format: voiceMode === 'talking' ? 'talking_presenter' : row.format, setting: row.setting, actor, interaction: row.interaction, script, audioMode, voice_mode: voiceMode, continuity,
     segmentPrompts,
-    keyframePrompts: [`${base} OPENING KEYFRAME: before the action, natural posture, person and whole product in context.`, `${base} USE KEYFRAME: the same person actively using the product, the interaction and the whole product clearly visible.`],
-    videoPrompt: `${base} Full scene in video, continuous natural movement, no frozen photograph or avatar lip-sync. Timed edit: 0–3s human hook (${script.hook}), only a head-and-shoulders shot may show a talking face. 3–10s ${row.interaction}, focus on hands and product, no talking face. 10–13s show the typed benefit (${script.benefit}) through use without invented claims. 13–15s CTA (${script.cta}); edit will cover this with the real uploaded packshot. ${voice}` }
+    keyframePrompts: [`${base} OPENING KEYFRAME: before the action, natural posture, person and whole product in context. ${voiceMode === 'talking' ? 'Face and mouth fully visible, ready to speak.' : 'Mouth closed, not speaking.'}`, `${base} USE KEYFRAME: the same referenced person in the exact locked wardrobe actively using the product; whole product clearly visible. ${voiceMode === 'talking' ? 'Face and mouth fully visible while using the product.' : 'Mouth closed, not speaking.'}`],
+    videoPrompt: `${base} Full scene in video for all 15 seconds, continuous natural movement, no frozen photograph. Timed visual action: 0–3s begin a natural movement with the product; 3–10s ${row.interaction}; 10–13s ${voiceMode === 'talking' ? 'keep a medium face-to-camera frame with the product clearly visible, never a product-only closeup' : 'show a close clear view of the same product in use without invented properties'}; 13–15s continue the same live interaction and natural movement until the final frame. ${voice}` }
 }
 
 export interface CenaVerdict { approved: boolean; score: number; reasons: string[] }
 export const CENA_JUDGE_QUESTION = 'Compare the candidate with the customer product reference and actor reference. Return JSON: {"own_hands_attached":true,"extra_hands":false,"extra_people":false,"product_whole":true,"product_faithful":true,"real_scale":true,"touching_face":false,"actor_identity_match":true,"score":90}. Check visible continuous wrist/forearm ownership, not only finger count. Unknown, occlusion or uncertainty MUST fail the corresponding check. The label and shape must match the reference. Actor identity must match the actor reference; hands-only frames may match visible skin/arms without inventing a face.'
-export function judgeCena(raw: unknown): CenaVerdict {
+export function judgeCena(raw: unknown, continuity?: CenaPlan['continuity']): CenaVerdict {
   let r: Record<string, unknown>
   try { r = jsonObject(raw) } catch { return { approved: false, score: 0, reasons: ['invalid_json'] } }
   const reasons = ['own_hands_attached', 'product_whole', 'product_faithful', 'real_scale', 'actor_identity_match'].filter(k => r[k] !== true)
   reasons.push(...['extra_hands', 'extra_people', 'touching_face'].filter(k => r[k] !== false))
+  if (continuity && r.wardrobe_match !== true) reasons.push('wardrobe_match')
+  if (continuity?.productWrist === 'left' && r.product_wrist_match !== true) reasons.push('product_wrist_match')
   const score = typeof r.score === 'number' && Number.isFinite(r.score) && r.score >= 0 && r.score <= 100 ? r.score : 0
   if (score < 80) reasons.push('score')
   return { approved: reasons.length === 0, score, reasons }

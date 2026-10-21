@@ -1,7 +1,8 @@
 // KINEO-ADS-CENA-2110 — tabela única editável: a visão escolhe a categoria, nunca inventa cenário nem ação.
+// KINEO-ADS-CENA-AJUSTE-2110 — figurino explícito e estável nas duas imagens, tomadas e refações.
 export const ADS_CENA_LIVE: 'off' | 'internal' = 'internal'
 export const CENA_CATALOG = {
-  wearable: { format: 'athlete_demo', setting: 'an outdoor running track at dawn', actor: 'one adult runner in sportswear', interaction: 'wears the watch on their own wrist, runs, slows down and looks at the watch', scale: 'a watch fitted around one wrist' },
+  wearable: { format: 'athlete_demo', setting: 'an outdoor running track at dawn', actor: 'one adult runner in sportswear', interaction: 'wears the watch on their own LEFT wrist, runs, slows down and looks at the watch', scale: 'a watch fitted around the LEFT wrist' },
   skincare: { format: 'hands_demo', setting: 'a bright clean bathroom counter', actor: 'one adult, only their own forearms and hands visible', interaction: 'opens the jar and applies a small amount to their own forearm', scale: 'a small jar fitting in one palm' },
   perfume: { format: 'lifestyle_demo', setting: 'a dressing table before an evening walk', actor: 'one adult getting ready to go out', interaction: 'picks up the bottle and sprays once onto their own wrist, away from the face', scale: 'a bottle held comfortably in one hand' },
   footwear: { format: 'athlete_demo', setting: 'a city sidewalk beside a gym', actor: 'one adult runner', interaction: 'puts on the shoes, ties them with their own hands and starts running', scale: 'shoes correctly fitted to the actor feet' },
@@ -11,6 +12,16 @@ export const CENA_CATALOG = {
   other: { format: 'hands_demo', setting: 'a bright tidy worktable', actor: 'one adult, only their own arms and hands visible', interaction: 'picks up and turns the product to show its real front and side', scale: 'the actual product proportions, no enlargement' },
 } as const
 export type CenaCategory = keyof typeof CENA_CATALOG
+export const CENA_WARDROBE: Record<CenaCategory, string> = {
+  wearable: 'a plain cobalt-blue short-sleeve athletic shirt, charcoal running shorts and white running shoes',
+  skincare: 'a plain cream short-sleeve cotton shirt, no jewellery or accessories',
+  perfume: 'a plain black short-sleeve shirt and dark trousers, no jewellery or accessories',
+  footwear: 'a plain cobalt-blue short-sleeve athletic shirt and charcoal running shorts',
+  bag: 'a plain ivory short-sleeve blouse and charcoal trousers, no jewellery or accessories',
+  bottle: 'a plain cobalt-blue short-sleeve athletic shirt and charcoal trousers',
+  supplement: 'a plain cobalt-blue short-sleeve athletic shirt and charcoal trousers',
+  other: 'a plain cream short-sleeve cotton shirt and charcoal trousers, no jewellery or accessories',
+}
 export const CENA_ACTORS: Record<CenaCategory, string> = { wearable: 'jade', skincare: 'clara', perfume: 'sofia', footwear: 'jade', bag: 'hannah', bottle: 'jade', supplement: 'jade', other: 'sofia' }
 export function cenaCategory(value: unknown): value is CenaCategory { return typeof value === 'string' && Object.hasOwn(CENA_CATALOG, value) }
 

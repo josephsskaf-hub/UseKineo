@@ -1,4 +1,5 @@
 // KINEO-ADS-CENA-2110 — ligação ao v2 sem tabela nova; este módulo só é carregado para pedido com a marca.
+// KINEO-ADS-CENA-AJUSTE-2110 — TTS obrigatório em narrated, nunca em talking; mantém audioMode de pedidos legados.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AdsV2OrderRow } from '../v2Advance'
 import { isAdsInternalEmail } from '../access'
@@ -6,7 +7,8 @@ import { cenaEnabled } from './catalog'
 import { cenaOf, stepCena, type CenaState } from './pipeline'
 import { buildCenaMontage } from './montage'
 import { openai } from '@/lib/openai'
-import type { CenaJson } from './plan'
+import { cenaVoiceModeOf, type CenaJson } from './plan'
+import { cenaAssertVoiceRoute } from './adapters'
 import { failAdsV2Order } from '../v2Billing'
 import { submitShotOnce, pollFalJob, persistShotClip } from '../v2Shots'
 import { persistSceneImage } from '../v2Images'
@@ -26,6 +28,10 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
   if (!state || order.status !== 'generating') return
   const auth = await admin.auth.admin.getUserById(order.user_id)
   if (auth.error || !cenaEnabled(isAdsInternalEmail(auth.data.user?.email))) { await failCenaOrder(admin, order, 'cena_internal_only'); return }
+  if (state.plan.voice_mode) {
+    try { cenaAssertVoiceRoute(state.route, state.plan.voice_mode, state.plan.input.language) }
+    catch (e) { await failCenaOrder(admin, order, e instanceof Error ? e.message : 'cena_bad_voice_mode'); return }
+  }
   // A mesma coluna de lease da montagem, enquanto generating. Um vencedor; relógio da segunda tentativa próprio.
   if (order.assembly_lease_at && Date.now() - Date.parse(order.assembly_lease_at) < 5 * 60_000) return
   const token = new Date().toISOString()
@@ -60,7 +66,7 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
     })
     if (state.phase === 'failed') { await failCenaOrder(admin, order, state.reason ?? 'cena_failed'); return }
     if (state.phase !== 'ready') return
-    if (state.plan.audioMode === 'voiceover' && !state.voiceUrl) {
+    if (cenaVoiceModeOf(state.plan) === 'narrated' && !state.voiceUrl) {
       if (state.voiceClaimedAt) { await failCenaOrder(admin, order, 'cena_voice_submit_unconfirmed'); return }
       state.voiceClaimedAt = Date.now(); await save(state)
       const audio = await synthesizeTtsFallback(state.plan.script.narration, { userId: order.user_id, generationId: order.id })
