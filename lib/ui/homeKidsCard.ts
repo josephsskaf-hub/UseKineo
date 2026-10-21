@@ -90,18 +90,18 @@ export function homeProductAdsReel(cardClip: { src: string; poster: string }): r
  *    (computador com 3 cards e celular) = 50% 70% (janela 22,8–90 %); card 3:4 (tablet e modo 4 cards) = 50% 88% (22–97 %). E o card fica
  *    mais claro (brilho +14 %, sombra de cima mais leve), igual aos outros;
  *  · AI Product Ads (Close real LUME): letreiros a ~18–27 % (1ºs planos) e ~70–77 % (planos de perto) → card 5:6 = 50% 92% (janela
- *    30–97 %: o de cima fora, o de baixo inteiro); card 3:4 = 50% 60% (15–90 %: os dois inteiros). Os trios do reel ficam no contain deles.
+ *    30–97 %: o de cima fora, o de baixo inteiro); card 3:4 = 50% 35% (8,75–83,75 %: os dois inteiros, o de cima abaixo do selo). Os trios do reel ficam no contain deles.
  */
 export const HOME_CARDS_AJUSTE_CSS = `
 .k3c-card[data-home-card="product_ads"] .k3c-media video:not([data-trio]){object-position:50% 92%}
 .k3c-card[data-home-card="ugc_ads"] .k3c-media video{object-position:50% 70%;filter:brightness(1.14) saturate(1.04)}
 .k3c-card[data-home-card="ugc_ads"] .k3c-shade{opacity:.72}
 @media (max-width:1100px) and (min-width:761px){
-.k3c-card[data-home-card="product_ads"] .k3c-media video:not([data-trio]){object-position:50% 60%}
+.k3c-card[data-home-card="product_ads"] .k3c-media video:not([data-trio]){object-position:50% 35%}
 .k3c-card[data-home-card="ugc_ads"] .k3c-media video{object-position:50% 88%}
 }
 @media (min-width:761px){
-.k3c-grid[data-k3c-cols="4"] .k3c-card[data-home-card="product_ads"] .k3c-media video:not([data-trio]){object-position:50% 60%}
+.k3c-grid[data-k3c-cols="4"] .k3c-card[data-home-card="product_ads"] .k3c-media video:not([data-trio]){object-position:50% 35%}
 .k3c-grid[data-k3c-cols="4"] .k3c-card[data-home-card="ugc_ads"] .k3c-media video{object-position:50% 88%}
 }
 `
