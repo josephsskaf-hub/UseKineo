@@ -57,14 +57,15 @@ export const ADS_V2_SOFT_BG_BLUR = 0 // desligado: blur_radius nunca foi exercit
 export const ADS_V2_SOFT_BG_FRAME = { x: '50%', y: '50%', width: '100%', height: '100%' } as const // rodada 1 (pedido 194e9b50): o canto ampliado 4× saiu PRETO no Creatomate; a própria foto em cover (o fundo liso do packshot emenda com a foto inteira)
 export const ADS_V2_SOFT_BG_VEIL = 'rgba(0,0,0,0)' // sem véu: o fundo e as bordas da foto inteira se emendam (véu escuro desenharia o retângulo de novo)
 /** KINEO-ADS-QUALIDADE-2110 — a foto INTEIRA do produto (contain: nada cortado) sobre a mesma foto em cover, ampliada e desfocada, as 3 na MESMA trilha (como o adsV2PackshotElements de produção). `box` = onde o produto mora (frações). */
-export function adsV2SoftPackshotElements(url: string, track: number, time: number, duration: number, opts: { box?: { y: number; h: number; w?: number }; zoomEnd?: string; extra?: Record<string, unknown> } = {}): Record<string, unknown>[] {
+export function adsV2SoftPackshotElements(url: string, track: number, time: number, duration: number, opts: { box?: { y: number; h: number; w?: number }; zoomEnd?: string; extra?: Record<string, unknown>; containTrack?: number } = {}): Record<string, unknown>[] {
+  // rodada 1b (pedidos 194e9b50, 1afcda1a): as 3 na MESMA trilha = o Creatomate mostra só a última (a foto em contain) sobre PRETO — o fundo e o véu nunca
+  // apareceram (o adsV2PackshotElements de produção tem o mesmo defeito). Agora cada uma na sua trilha: fundo em `track`, a foto inteira em `containTrack` (padrão track + 1).
   const source = url.trim()
   const extra = opts.extra ?? {}
   const box = opts.box ?? { y: 0.5, h: 1, w: 1 }
   return [
     { type: 'image', track, time, duration, source, fit: 'cover', ...ADS_V2_SOFT_BG_FRAME, ...(ADS_V2_SOFT_BG_BLUR > 0 ? { blur_radius: ADS_V2_SOFT_BG_BLUR } : {}), ...extra },
-    { type: 'shape', track, time, duration, x: '50%', y: '50%', width: '100%', height: '100%', path: 'M 0 0 L 100 0 L 100 100 L 0 100 L 0 0 Z', fill_color: ADS_V2_SOFT_BG_VEIL, ...extra },
-    { type: 'image', track, time, duration, source, fit: 'contain', x: '50%', y: pct(box.y), width: pct(box.w ?? 1), height: pct(box.h), ...extra, animations: [{ type: 'scale', fade: false, start_scale: '100%', end_scale: opts.zoomEnd ?? '106%', easing: 'linear' }] },
+    { type: 'image', track: opts.containTrack ?? track + 1, time, duration, source, fit: 'contain', x: '50%', y: pct(box.y), width: pct(box.w ?? 1), height: pct(box.h), ...extra, animations: [{ type: 'scale', fade: false, start_scale: '100%', end_scale: opts.zoomEnd ?? '106%', easing: 'linear' }] },
   ]
 }
 
@@ -110,7 +111,7 @@ export function adsV2EndCardV3Of(i: { business: unknown; offer: unknown; ctaKind
   return { title, offer: adsV2EndCardOffer(i.offer), cta, contact }
 }
 /** KINEO-ADS-QUALIDADE-2110 — o desenho do cartão v3 (frações do quadro). Tudo acima de 80% (a interface do TikTok/Reels mora embaixo). */
-export const ADS_V2_END_CARD_V3 = { productY: 0.3, productH: 0.5, productW: 0.94, panelTop: 0.58, panelFill: 'rgba(12,12,14,0.9)', titleY: 0.64, titleFont: 0.056, titleFontMin: 0.034, offerY: 0.71, offerFont: 0.036, offerFill: '#111111', offerBg: '#FFD23F', ctaY: 0.78, ctaFont: 0.04, ctaFill: '#111111', ctaBg: '#ffffff', contactY: 0.84, contactFont: 0.024 } as const
+export const ADS_V2_END_CARD_V3 = { productY: 0.29, productH: 0.48, productW: 0.94, panelTop: 0.56, panelFill: 'rgba(12,12,14,0.9)', titleY: 0.665, titleFont: 0.052, titleFontMin: 0.034, offerY: 0.725, offerFont: 0.036, offerFill: '#111111', offerBg: '#FFD23F', ctaY: 0.795, ctaFont: 0.04, ctaFill: '#111111', ctaBg: '#ffffff', contactY: 0.85, contactFont: 0.024 } as const
 const CHAR_EM = 0.56
 /** KINEO-ADS-QUALIDADE-2110 — os elementos do cartão final v3 (puro). Usa as trilhas track..track+7. */
 export function adsV2EndCardV3Elements(i: { productUrl: string; card: AdsV2EndCardV3; fontFamily: string; width: number; height: number; time: number; duration: number; track: number; fade?: number }): Record<string, unknown>[] {
@@ -121,9 +122,9 @@ export function adsV2EndCardV3Elements(i: { productUrl: string; card: AdsV2EndCa
   els.push({ type: 'shape', track: i.track + 3, time, duration, x: '50%', y: pct((L.panelTop + 1) / 2), width: '100%', height: pct(1 - L.panelTop), path: 'M 0 0 L 100 0 L 100 100 L 0 100 L 0 0 Z', fill_color: L.panelFill, ...enter })
   const title = clean(i.card.title)
   let tpx = Math.round(L.titleFont * H)
-  while (tpx > Math.round(L.titleFontMin * H) && Math.ceil((title.length * tpx * CHAR_EM) / (0.86 * W)) > 2) tpx -= 2
+  while (tpx > Math.round(L.titleFontMin * H) && Math.ceil((title.length * tpx * CHAR_EM * 1.08) / (0.86 * W)) > 1) tpx -= 2 // rodada 1b: "Pulse smartwatch" quebrou em 2 linhas e cobriu o selo — prefere 1 linha; 2 linhas crescem para CIMA (âncora embaixo)
   const text = (track: number, y: number, t: string, px: number, more: Record<string, unknown>): Record<string, unknown> => ({ type: 'text', track, time, duration, text: t, x: '50%', y: pct(y), x_anchor: '50%', y_anchor: '50%', x_alignment: '50%', width: '86%', font_family: i.fontFamily, font_size: px, font_weight: '800', line_height: '110%', ...more, ...enter })
-  els.push(text(i.track + 4, L.titleY, title, tpx, { fill_color: '#ffffff' }))
+  els.push(text(i.track + 4, L.titleY, title, tpx, { fill_color: '#ffffff', y_anchor: '100%' }))
   const offer = clean(i.card.offer)
   const slots = offer ? [L.offerY, L.ctaY, L.contactY] : [L.offerY, L.contactY - 0.065, L.contactY]
   if (offer) els.push(text(i.track + 5, slots[0], offer, Math.round(L.offerFont * H), { fill_color: L.offerFill, background_color: L.offerBg, background_x_padding: '5%', background_y_padding: '2%', border_radius: 18 }))

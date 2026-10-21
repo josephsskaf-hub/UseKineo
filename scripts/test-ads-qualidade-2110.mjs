@@ -50,11 +50,13 @@ const montageInput = (quality) => ({
 })
 const qualityHooks = (Q, product, card) => ({
   video: (i) => Q.adsV2PresenterVideoElements({ ...i, rect: { x0: 0.3, y0: 0.45, x1: 0.6, y1: 0.7 } }), hookSeconds: Q.ADS_V2_PRESENTER_HOOK_SECONDS,
-  hook: (t, d) => Q.adsV2SoftPackshotElements(product, 10, t, d), close: (t, d) => Q.adsV2SoftPackshotElements(product, 3, t, d),
+  hook: (t, d) => Q.adsV2SoftPackshotElements(product, 10, t, d), close: (t, d) => Q.adsV2SoftPackshotElements(product, 13, t, d),
   card: (t, d) => Q.adsV2EndCardV3Elements({ productUrl: product, card, fontFamily: 'Inter', width: 1080, height: 1920, time: t, duration: d, track: 20 }),
 })
 const CLOSE = { width: 720, height: 1280, heroUrl: H('hero.png'), heroFallbackUrl: H('watch.jpg'), photos: [H('watch.jpg')], phrases: ['Pulse smartwatch', '7-day battery, free shipping'], fontFamily: 'Montserrat', cardUrl: H('card.png'), cardSeconds: 2.5, musicUrl: H('music.mp3'), musicTrimStart: 0, voiceUrl: H('voz.mp3'), voiceSeconds: 9.2, watermark: null, narration: WATCH_OK }
 
+// rodada 1b: no Creatomate, 2 elementos visuais na MESMA trilha ao mesmo tempo = só o último aparece (o fundo da foto inteira saiu PRETO). Nenhuma trilha da camada pode sobrepor.
+const semSobreposicao = (els) => { const vis = els.filter((e) => ['image', 'video', 'shape', 'text'].includes(e.type)); return vis.every((a, i) => vis.every((b, j) => j <= i || a.track !== b.track || a.time + a.duration <= b.time + 0.001 || b.time + b.duration <= a.time + 0.001)) }
 const provas = {
   async pose(L) {
     const P = L(F.v2)
@@ -85,11 +87,11 @@ const provas = {
     const src = MO.buildAdV2Source(montageInput(qualityHooks(Q, H('jar.jpg'), card)))
     const els = src.elements
     const vids = els.filter((e) => e.type === 'video' && e.source === H('ator.mp4'))
-    const hook = els.filter((e) => e.track === 10 && e.time === 0)
+    const hook = els.filter((e) => (e.track === 10 || e.track === 11) && e.time === 0)
     const cardTxt = els.filter((e) => e.type === 'text' && e.track >= 20).map((e) => e.text)
     const contain = els.filter((e) => e.type === 'image' && e.fit === 'contain')
     return vids.length === 2 && vids[1].trim_start === vids[1].time && vids.every((v) => v.volume === '100%') && /11[0-9]%/.test(vids[1].animations[0].start_scale) &&
-      hook.length === 3 && hook[0].duration === 0.7 && cardTxt.includes('Glow face cream') && cardTxt.includes('30% off this week') && cardTxt.includes('Shop now') &&
+      hook.length === 2 && hook[0].duration === 0.7 && semSobreposicao(els) && cardTxt.includes('Glow face cream') && cardTxt.includes('30% off this week') && cardTxt.includes('Shop now') &&
       contain.length >= 3 && !JSON.stringify(src).includes('blur_radius') && !els.some((e) => e.source === H('card.png'))
   },
   async semCamadaIgual(L) {
@@ -100,11 +102,11 @@ const provas = {
   async montagemProduto(L) {
     const CR = L(F.close), Q = L(F.q)
     const card = Q.adsV2EndCardV3Of({ business: WATCH.business, offer: WATCH.offer, ctaKind: 'buy', language: 'en', buyLabel: 'Shop now' })
-    const src = CR.buildAdV2CloseRealSource({ ...CLOSE, quality: { hook: (t, d) => Q.adsV2SoftPackshotElements(H('watch.jpg'), 2, t, d, { zoomEnd: '110%' }), card: (t, d) => Q.adsV2EndCardV3Elements({ productUrl: H('watch.jpg'), card, fontFamily: 'Montserrat', width: 720, height: 1280, time: t, duration: d, track: 20 }) } })
+    const src = CR.buildAdV2CloseRealSource({ ...CLOSE, quality: { hook: (t, d) => Q.adsV2SoftPackshotElements(H('watch.jpg'), 2, t, d, { zoomEnd: '110%', containTrack: 4 }), card: (t, d) => Q.adsV2EndCardV3Elements({ productUrl: H('watch.jpg'), card, fontFamily: 'Montserrat', width: 720, height: 1280, time: t, duration: d, track: 20 }) } })
     const els = src.elements
     const txt = els.filter((e) => e.type === 'text' && e.track >= 20).map((e) => e.text)
     return !els.some((e) => e.source === H('hero.png')) && !els.some((e) => e.source === H('card.png')) && els.some((e) => e.time === 0 && e.fit === 'contain' && e.source === H('watch.jpg')) &&
-      txt.includes('Pulse smartwatch') && txt.includes('Free shipping') && txt.includes('Shop now') && !els.some((e) => e.track === 9 || e.track === 10)
+      txt.includes('Pulse smartwatch') && txt.includes('Free shipping') && txt.includes('Shop now') && semSobreposicao(els) && !els.some((e) => e.track === 9 || e.track === 10)
   },
   async cartao(L) {
     const Q = L(F.q)
@@ -168,6 +170,7 @@ const mut = async (nome, arquivo, a, b, prova) => {
 await mut('o produto volta para perto do rosto', F.v2, 'in one hand at chest height, label facing the camera', 'in one hand near ${their} face, label facing the camera', provas.pose)
 await mut('a escolha ignora a pose', F.v2, '  const poseS = (k: number): number => adsV2PresenterPoseScore(at(i.poses, k), at(i.handCounts, k))', '  const poseS = (k: number): number => 0', provas.escolha)
 await mut('encostar no rosto deixa de pesar', F.v2, "  if (pose.touchingFace === 'yes') s += 100", "  if (pose.touchingFace === 'yes') s += 0", provas.escolha)
+await mut('o fundo e a foto inteira voltam para a MESMA trilha (o fundo some no Creatomate)', F.q, "track: opts.containTrack ?? track + 1, time, duration, source, fit: 'contain'", "track, time, duration, source, fit: 'contain'", provas.montagemUgc)
 await mut('o punch-in some', F.q, '  const scale = fits(P.scale) ? P.scale : fits(P.fallbackScale) ? P.fallbackScale : 0', '  const scale = 0', provas.montagemUgc)
 await mut('o cartão v3 é ignorado no UGC', F.montage, '  if (q?.card) elements.push(...q.card(t.cardStart, r3(cardSeconds))); else', '  if (false) elements.push(...q.card(t.cardStart, r3(cardSeconds))); else', provas.montagemUgc)
 await mut('o gancho volta ao recorte no Product Ads', F.close, '  if (input.quality?.hook) { elements.push(...input.quality.hook(0, hookDur)) } else', '  if (false) { } else', provas.montagemProduto)
