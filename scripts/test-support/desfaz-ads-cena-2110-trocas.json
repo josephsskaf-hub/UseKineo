@@ -10,7 +10,10 @@
     "scripts/test-ads-qualidade-2110.mjs": 1,
     "scripts/test-support/desfaz-ads-qualidade-2110.mjs": 2,
     "scripts/test-moderacao-2026-09-25.mjs": 0,
-    "scripts/test-mcp-studio-ajuste-2010.mjs": 3
+    "scripts/test-mcp-studio-ajuste-2010.mjs": 3,
+    "scripts/test-mcp-studio-2010.mjs": 3,
+    "scripts/test-meta95-personagem-2010.mjs": 1,
+    "scripts/test-verbatim-intocavel-2010.mjs": 0
   },
   "lib/ads/v2Advance.ts": [
     [
@@ -118,6 +121,12 @@
     [
       "ok(imp.length === 36 && imp.includes('app/api/admin/ads-cena/route.ts') && imp.every((p) => !/^\\s*['\"]use client['\"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`) // KINEO-ADS-CENA-2110 — +1: a porta admin modera antes do plano; exige o caminho exato e preserva a proibição de use client.",
       "ok(imp.length === 35 && imp.every((p) => !/^\\s*['\"]use client['\"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — era: imp.length === 34 (reancorado KINEO-BEBE-QUE-FALA-2010)"
+    ]
+  ],
+  "scripts/test-verbatim-intocavel-2010.mjs": [
+    [
+      "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-' + 'BEBE-QUE-FALA-2010', '--grep=KINEO-' + 'MCP-STUDIO-AJUSTE-2010', `--grep=${MARCA_HOME_REMODELA_2010}`, '--grep=KINEO-' + 'HOME-CARDS-CLAROS-2010', '--grep=KINEO-' + 'DESENHO-NOTA9-2110', '--grep=KINEO-' + 'DESENHO-SOM-2110', '--grep=KINEO-' + 'META95-PERSONAGEM-AJUSTE-2010', '--grep=KINEO-AVATAR-ESTORNO-2010', '--grep=KINEO-LEGENDA-BENGALI-2010', '--grep=KINEO-' + 'ADS-BOLA-2110', '--grep=KINEO-' + 'ADS-QUALIDADE-2110', '--grep=KINEO-' + 'ADS-CENA-2110', 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-AVATAR-ESTORNO-2010 — reancorado na integração 21/10: os commits do estorno/legenda bengali (Codex, camada mais nova; o desfaz da cadeia já os tira do atual) também não são alheios · KINEO-ADS-QUALIDADE-2110 — reancorado: os commits da bola e da qualidade (21/10) também não são alheios · KINEO-ADS-CENA-2110 — reancorado: os commits da camada Cena (21/10) também não são alheios",
+      "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-' + 'BEBE-QUE-FALA-2010', '--grep=KINEO-' + 'MCP-STUDIO-AJUSTE-2010', `--grep=${MARCA_HOME_REMODELA_2010}`, '--grep=KINEO-' + 'HOME-CARDS-CLAROS-2010', '--grep=KINEO-' + 'DESENHO-NOTA9-2110', '--grep=KINEO-' + 'DESENHO-SOM-2110', '--grep=KINEO-' + 'META95-PERSONAGEM-AJUSTE-2010', '--grep=KINEO-AVATAR-ESTORNO-2010', '--grep=KINEO-LEGENDA-BENGALI-2010', '--grep=KINEO-' + 'ADS-BOLA-2110', '--grep=KINEO-' + 'ADS-QUALIDADE-2110', 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-AVATAR-ESTORNO-2010 — reancorado na integração 21/10: os commits do estorno/legenda bengali (Codex, camada mais nova; o desfaz da cadeia já os tira do atual) também não são alheios · KINEO-ADS-QUALIDADE-2110 — reancorado: os commits da bola e da qualidade (21/10) também não são alheios"
     ]
   ]
 }
