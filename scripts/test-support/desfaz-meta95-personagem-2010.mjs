@@ -38,8 +38,8 @@ export const META95_PERSONAGEM_2010_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semMeta95Personagem2010(texto, p) {
-  texto = semMeta95PersonagemAjuste2010(texto, p) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — a camada mais nova sai primeiro
   texto = semMeta95Escrita2010(texto, p) // KINEO-META95-ESCRITA-2010 — a camada mais nova sai primeiro
+  texto = semMeta95PersonagemAjuste2010(texto, p) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — a camada mais nova sai primeiro
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_META95_PERSONAGEM_2010) || !META95_PERSONAGEM_2010_ARQUIVOS.includes(rel)) return texto
   const crlf = texto.includes('\r\n')
