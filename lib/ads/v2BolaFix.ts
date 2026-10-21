@@ -54,6 +54,10 @@ export function adsV2ComposeBusiness(name: unknown, sells: unknown): string {
 // ── 3. a foto do produto pequena ────────────────────────────────────────────────────────────────────────────────────────
 /** O lado menor mínimo da foto do produto (px): abaixo disso o close de 1080 px fica borrado e o modelo copia um produto mole. */
 export const ADS_V2_PRODUCT_PHOTO_MIN_SIDE = 500
+/** KINEO-ADS-QUALIDADE-2110 — O LIMITE ÚNICO de "foto pequena" (lado menor < 500 px) da tela e do servidor: o aviso do /plan, o aviso da tela foco (v2Nota9) e o aviso do cartão da foto (/ads/v2 simples e completo). */ // KINEO-ADS-QUALIDADE-2110
+export const ADS_V2_SMALL_PHOTO_MIN_SIDE: number = ADS_V2_PRODUCT_PHOTO_MIN_SIDE // KINEO-ADS-QUALIDADE-2110 — = 500; o valor mora na linha de cima (a mutação do guardião da bola continua valendo para todos)
+/** KINEO-ADS-QUALIDADE-2110 — A foto (largura × altura reais) é pequena? Lado menor < ADS_V2_SMALL_PHOTO_MIN_SIDE. Dimensão desconhecida (0) não acusa. Pura. */ // KINEO-ADS-QUALIDADE-2110
+export function adsV2SmallPhotoSide(w: number, h: number): boolean { const s = Math.min(Number(w) || 0, Number(h) || 0); return s > 0 && s < ADS_V2_SMALL_PHOTO_MIN_SIDE } // KINEO-ADS-QUALIDADE-2110
 /** Interruptor: true = o /plan RECUSA foto pequena sem a confirmação da pessoa (body.small_photo_ok); false = só avisa (resposta + evento).
  *  Virar para true quando a tela nova mostrar o aviso com o botão de confirmar (KINEO-ADS-NOTA9-2110). */
 export const ADS_V2_SMALL_PHOTO_CONFIRM_REQUIRED: boolean = false

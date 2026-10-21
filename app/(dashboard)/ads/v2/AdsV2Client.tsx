@@ -724,7 +724,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
         <AdsV2BatchSession key={session} balance={balance} onBalance={refreshBalance} sample={sample} business={business} brandId={marcasOn ? marcas.selectedId : null} />/* KINEO-ADS-MARCAS-1510 — o lote inteiro sai na marca escolhida */
       ) : mode === 'simple' ? (
         <AdsV2SimpleSession
-          key={session}
+          key={`${session}:${entry ?? ''}`} /* KINEO-ADS-QUALIDADE-2110 — outra entrada da home (?entry=ugc|product) = um pedido NOVO (remonta); era: key={session} */
           resume={session === 0}
           lang={lang}
           balance={balance}

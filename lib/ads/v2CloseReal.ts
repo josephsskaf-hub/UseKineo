@@ -668,6 +668,7 @@ export interface AdV2CloseRealInput {
   closeCard?: { url: string; name: string; cta: string; ink?: string | null } | null // KINEO-CLOSE-REAL-V3-1910 — + ink: a cor do texto do botão (o tom escuro da embalagem; ausente = quase preto)
   /** KINEO-CLOSE-REAL-V3-1910 — a caixa do produto em cada foto (pelo URL da foto; o recorte BiRefNet do servidor): a legenda desvia dela. Ausente/null = a regra fixa. */
   photoBoxes?: Readonly<Record<string, AdsV2CloseRealPhotoBox | null>> | null // KINEO-CLOSE-REAL-V3-1910
+  quality?: { hook?: (time: number, duration: number) => Record<string, unknown>[]; card?: (time: number, duration: number) => Record<string, unknown>[] } | null // KINEO-ADS-QUALIDADE-2110 — o gancho e o cartão com o produto INTEIRO sobre o próprio fundo desfocado (lib/ads/v2AdsQualidade.ts, montados em v2Advance); ausente = o de antes
 }
 
 const isHttps = (u: unknown): u is string => typeof u === 'string' && HTTPS_RE.test(u.trim())
@@ -697,7 +698,7 @@ export function buildAdV2CloseRealSource(input: AdV2CloseRealInput): Record<stri
   elements.push({ type: 'shape', track: T.bg, time: 0, duration: t.total, x: '50%', y: '50%', width: '100%', height: '100%', path: ADS_V2_RECT_PATH, fill_color: '#000000' })
   // 1. O gancho (0 → 3 s): o produto recortado sobre o fundo na cor dele, sem fade de entrada (o 1º quadro já é o anúncio).
   const hookDur = r3(t.hook + F)
-  if (isHttps(input.heroUrl)) {
+  if (input.quality?.hook) { elements.push(...input.quality.hook(0, hookDur)) } else if (isHttps(input.heroUrl)) { // KINEO-ADS-QUALIDADE-2110 — com a camada: a foto inteira do produto (nunca mais o recorte pequeno no fundo marrom)
     elements.push({ type: 'image', track: T.shotA, time: 0, duration: hookDur, source: input.heroUrl.trim(), fit: 'cover', x: '50%', y: '50%', width: '100%', height: '100%', animations: [{ type: 'scale', fade: false, start_scale: '100%', end_scale: ADS_V2_CLOSE_REAL_HOOK_ZOOM_END, x_anchor: '50%', y_anchor: `${ADS_V2_CLOSE_REAL_PRODUCT_BOX.y0 * 100}%`, easing: ADS_V2_CLOSE_REAL_HOOK_ZOOM_EASING }] }) // KINEO-CLOSE-REAL-AJUSTE-1910 — 100→112% com ease, a partir do topo do produto (só escala: os pixels do produto são os do recorte)
   } else {
     elements.push(...adsV2PackshotElements(input.heroFallbackUrl, T.shotA, 0, hookDur))
@@ -717,8 +718,8 @@ export function buildAdV2CloseRealSource(input: AdV2CloseRealInput): Record<stri
   })
   // 3. O cartão final (logo real), até o último quadro.
   const cardSeconds = r3(t.total - t.cardStart)
-  const cc = input.closeCard && isHttps(input.closeCard.url) ? input.closeCard : null // KINEO-CLOSE-REAL-AJUSTE-1910 — o cartão do formato (fundo na cor da embalagem + produto pequeno); sem ele, o cartão do pedido
-  elements.push({ type: 'image', track: T.card, time: t.cardStart, duration: cardSeconds, source: (cc ? cc.url : input.cardUrl).trim(), fit: 'cover', x: '50%', y: '50%', width: '100%', height: '100%', enter_transition: { type: 'fade', duration: F } }) // KINEO-CLOSE-REAL-AJUSTE-1910 — era: source: input.cardUrl.trim()
+  const cc = !input.quality?.card && input.closeCard && isHttps(input.closeCard.url) ? input.closeCard : null // KINEO-ADS-QUALIDADE-2110 — com o cartão v3, nem o nome nem o botão de antes · KINEO-CLOSE-REAL-AJUSTE-1910 — o cartão do formato (fundo na cor da embalagem + produto pequeno); sem ele, o cartão do pedido
+  if (input.quality?.card) elements.push(...input.quality.card(t.cardStart, cardSeconds)); else elements.push({ type: 'image', track: T.card, time: t.cardStart, duration: cardSeconds, source: (cc ? cc.url : input.cardUrl).trim(), fit: 'cover', x: '50%', y: '50%', width: '100%', height: '100%', enter_transition: { type: 'fade', duration: F } }) // KINEO-CLOSE-REAL-AJUSTE-1910 — era: source: input.cardUrl.trim() · KINEO-ADS-QUALIDADE-2110 — com a camada: o cartão final v3
   const ccName = cc ? adsV2CloseRealPhrases([cc.name])[0] ?? '' : '' // KINEO-CLOSE-REAL-AJUSTE-1910
   const ccCta = cc && typeof cc.cta === 'string' ? cc.cta.replace(/\s+/g, ' ').trim() : '' // KINEO-CLOSE-REAL-AJUSTE-1910
   if (cc && ccName) { // KINEO-CLOSE-REAL-AJUSTE-1910
@@ -729,7 +730,7 @@ export function buildAdV2CloseRealSource(input: AdV2CloseRealInput): Record<stri
   if (cc && ccCta) elements.push(adsV2CloseRealCtaButton({ text: ccCta, ink: cc.ink ?? null, nameText: ccName, track: ADS_V2_CLOSE_REAL_CARD_TRACKS.cta, time: t.cardStart, duration: cardSeconds, fontFamily, width, height, fade: F })) // KINEO-CLOSE-REAL-V3-1910 — a chamada vira BOTÃO (4% da altura, folga e canto arredondado de verdade, texto no tom da embalagem), abaixo do nome com respiro
   // KINEO-CLOSE-REAL-V3-1910 — 4. As legendas: 1 FRASE inteira cada (encurtada no fim de uma oração se passar de 2 linhas; nunca um pedaço que começa no meio), no tempo da voz, sem buraco; e nunca SOBRE o produto (a caixa do recorte de cada foto, com o zoom do plano).
   const captions = adsV2CloseRealCaptionsV3({ narration: hasVoice ? input.narration ?? null : null, voiceSeconds: hasVoice ? (input.voiceSeconds as number) : null, headline: (input.phrases ?? [])[0] ?? null, overlays: input.phrases ?? [], timeline: t, frameW: width, frameH: height }) // KINEO-CLOSE-REAL-V3-1910
-  const capWindows = adsV2CloseRealPlanWindows({ timeline: t, shotPhotos, photoBoxes: input.photoBoxes ?? null, hookCutout: isHttps(input.heroUrl), frameW: width, frameH: height }) // KINEO-CLOSE-REAL-V3-1910 — onde o produto mora em cada plano (gancho e fotos)
+  const capWindows = adsV2CloseRealPlanWindows({ timeline: t, shotPhotos, photoBoxes: input.photoBoxes ?? null, hookCutout: !input.quality?.hook && isHttps(input.heroUrl), frameW: width, frameH: height }) // KINEO-CLOSE-REAL-V3-1910 — onde o produto mora em cada plano (gancho e fotos) · KINEO-ADS-QUALIDADE-2110 — o gancho da camada é a foto inteira (a regra das fotos)
   const capMinTop = typeof input.watermark === 'string' && input.watermark.trim() ? ADS_V2_CLOSE_REAL_CAPTION_TOP : ADS_V2_SAFE_TOP // KINEO-CLOSE-REAL-V3-1910 — a marca-d'água da amostra mora entre 14% e 17,5%
   const capHook = adsV2CloseRealHeadline((input.phrases ?? [])[0] ?? null, width, height) // KINEO-CLOSE-REAL-LEGENDA-1910 — o título do gancho (a 1ª legenda, quando existe): o único que fica grande e na pílula
   captions.forEach((c, k) => { // KINEO-CLOSE-REAL-LEGENDA-CORTE-1910 — a legenda inteira de 3+ linhas que não acha lugar fora do produto (algum plano = 'least') cai para a regra 2 com 2 linhas

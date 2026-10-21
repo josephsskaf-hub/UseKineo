@@ -46,6 +46,7 @@ import { adsV2SentenceForCopy } from '@/lib/ads/v2Scene' // KINEO-ADS-CONSERTOS-
 import { adsV2KindWithProductPhoto } from '@/lib/ads/v2Scene' // KINEO-ADS-BOLA-2110 — "lugar" num texto-instrução com foto de produto volta a produto
 import { adsV2InstructionNarrationFits, adsV2ReadInstruction, simpleInstructionTitle } from '@/lib/ads/v2Simple' // KINEO-ADS-BOLA-2110 — o texto-instrução (produto + narração entre aspas)
 import { ADS_V2_PRODUCT_PHOTO_MIN_SIDE, ADS_V2_SMALL_PHOTO_CONFIRM_REQUIRED, adsV2MeasureImage, adsV2ProductPhotoSmall, adsV2ProductPhotoSmallText } from '@/lib/ads/v2BolaFix' // KINEO-ADS-BOLA-2110 — a foto do produto pequena
+import { ADS_V2_LIFESTYLE_CONFIRM_REQUIRED, adsV2LifestylePhoto, adsV2LifestylePhotoText } from '@/lib/ads/v2LifestylePhoto' // KINEO-ADS-QUALIDADE-2110 — a foto de estilo de vida (mão/pessoa domina, produto pequeno): aviso suave com 1 visão barata
 import { adsV2PackshotShots } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — o packshot: um plano de IA vira a foto REAL do produto (mesmos créditos)
 import { adsV2FormatBlock, adsV2FormatShots, normalizeAdsV2Format } from '@/lib/ads/v2ShotLists' // KINEO-ADS-MELHORIAS-1410 — formatos 4:5 e 1:1 (só onde o pipeline inteiro aceita)
 import { adsV2BuildScripts } from '@/lib/ads/v2Scripts' // KINEO-ADS-ROTEIROS-2026-10-13 — 2 a 3 roteiros para escolher (o 1º = o texto de sempre); troca em /api/ads/v2/plan/choose
@@ -141,6 +142,9 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
     const productPhoto = photos.find((p) => p.kind === 'product') as { url: string; original_url?: string } | undefined // KINEO-ADS-BOLA-2110 — a foto do produto: mede a INTEIRA (o recorte 9:16 vem ampliado para 1080×1920 e esconde a miniatura)
     const productSizeP = productPhoto ? adsV2MeasureImage(productPhoto.original_url ?? productPhoto.url).catch(() => null) : Promise.resolve(null) // KINEO-ADS-BOLA-2110 — em paralelo com o modelo (só espera antes dele com a trava ligada)
     if (ADS_V2_SMALL_PHOTO_CONFIRM_REQUIRED && (body as { small_photo_ok?: unknown } | null)?.small_photo_ok !== true) { const sz = await productSizeP; if (sz && adsV2ProductPhotoSmall(sz)) return v2Fail('product_photo_small', 422, { width: sz.width, height: sz.height, min: ADS_V2_PRODUCT_PHOTO_MIN_SIDE, ...adsV2ProductPhotoSmallText(order.language, sz) }) } // KINEO-ADS-BOLA-2110 — bloqueio SUAVE (desligado até a tela nova ter o "usar mesmo assim"): nada cobrado
+    const lifestyleOk = (body as { lifestyle_photo_ok?: unknown } | null)?.lifestyle_photo_ok === true // KINEO-ADS-QUALIDADE-2110 — a pessoa já disse "continuar assim"
+    const lifestyleP: Promise<boolean | null> = productPhoto && !lifestyleOk ? adsV2LifestylePhoto(productPhoto.original_url ?? productPhoto.url).catch(() => null) : Promise.resolve(null) // KINEO-ADS-QUALIDADE-2110 — a foto INTEIRA, em paralelo com o modelo; erro/6 s = null (nunca bloqueia)
+    if (ADS_V2_LIFESTYLE_CONFIRM_REQUIRED && !lifestyleOk) { const ls = await lifestyleP; if (ls === true) return v2Fail('product_photo_lifestyle', 422, { ...adsV2LifestylePhotoText(order.language) }) } // KINEO-ADS-QUALIDADE-2110 — bloqueio SUAVE (desligado): nada cobrado
 
     // Teto diário ANTES do modelo.
     const since = new Date(Date.now() - 24 * 3600_000).toISOString()
@@ -268,6 +272,8 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
 
     const productSize = await productSizeP // KINEO-ADS-BOLA-2110 — o tamanho real da foto do produto (null = não mediu)
     if (productSize) Object.assign(modeTag, { product_photo_side: Math.min(productSize.width, productSize.height), product_photo_small: adsV2ProductPhotoSmall(productSize) }) // KINEO-ADS-BOLA-2110
+    const productLifestyle = await lifestyleP // KINEO-ADS-QUALIDADE-2110 — true/false; null = não conferiu (sem foto de produto, erro, prazo, ou já confirmada)
+    Object.assign(modeTag, { product_photo_lifestyle: productLifestyle, ...(lifestyleOk ? { lifestyle_photo_ok: true } : {}) }) // KINEO-ADS-QUALIDADE-2110 — a medição (ads_v2_plan_served)
     // Modo simples: o setor veio do texto (palavras-chave na tela). Só quando deu 'other' o palpite do modelo entra;
     // o palpite nunca troca um setor que as palavras já decidiram.
     const sector = simple && input.sector === 'other' && extracted.copy.sectorHint ? extracted.copy.sectorHint : input.sector
@@ -309,7 +315,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
       const gate = presenterV2Lib.adsV2PresenterV2GatePick({ presenterId: presenter.presenterId ?? null, person: presenter.person, internal: reason === 'internal', library: ADS_V2_PRESENTER_LIBRARY }) // KINEO-APRESENTADOR-OLHOS-1910 — cliente só recebe os aprovados da validação de 19/10 (a tela já só mostra eles); interna = qualquer um
       if (gate.swapped) { const from = presenter.presenterId ?? ADS_V2_PRESENTER_LIBRARY[presenter.person]?.id ?? null; if (gate.presenterId) { const np = planAdsV2Presenter({ sector, photos, seedKey: order.id, presenterId: gate.presenterId }); if (np) Object.assign(presenter, np) } else Object.assign(presenter, { person: gate.person, actorPrompt: adsV2ActorPrompt(sector, gate.person) }); Object.assign(modeTag, { presenter_gate: { from, to: gate.presenterId ?? ADS_V2_PRESENTER_LIBRARY[gate.person]?.id ?? null } }) } // KINEO-APRESENTADOR-OLHOS-1910
       const v2Entry = adsV2PresenterById(presenter.presenterId) ?? (presenter.presenterId ? null : ADS_V2_PRESENTER_LIBRARY[presenter.person] ?? null) // KINEO-APRESENTADOR-V2-1710 — o sorteio usa as 6 primeiras pessoas da biblioteca (mesma ordem e texto)
-      const v2 = presenterV2Lib.planAdsV2PresenterV2({ entry: v2Entry, sector, setting: sceneSetting, performancePrompt: ADS_V2_PRESENTER_PERFORMANCE_PROMPT }) // KINEO-APRESENTADOR-V2-1710 — 2 referências, boca neutra, só o produto, o lugar do cliente
+      const v2 = presenterV2Lib.planAdsV2PresenterV2({ entry: v2Entry, sector, setting: sceneSetting, performancePrompt: ADS_V2_PRESENTER_PERFORMANCE_PROMPT, product: `${sentenceCopy} ${extracted.brief.business ?? ''}` }) // KINEO-ADS-QUALIDADE-2110 — + o produto (a escala real na pose) · KINEO-APRESENTADOR-V2-1710 — 2 referências, boca neutra, só o produto, o lugar do cliente
       if (v2 && checkV2Prompts([v2.prompt], extracted.brief).length === 0) { presenter.v2 = v2; plan.shots = presenterV2Lib.adsV2PresenterV2Shots(plan.shots, photos) } // KINEO-APRESENTADOR-V2-1710 — o lugar do cliente passa pela régua anti-invenção; os planos de IA viram as fotos dele paradas (a montagem nova não os usa; créditos iguais)
     } // KINEO-APRESENTADOR-V2-1710
     const scripts = adsV2BuildScripts([{ tone: 'benefit', narration: extracted.copy.narration, overlays: extracted.copy.overlays }, ...(extracted.variants ?? []).map((v) => ({ tone: v.tone, narration: v.copy.narration, overlays: v.copy.overlays }))], plan.overlays, overlaysOn) // KINEO-ADS-ROTEIROS-2026-10-13 — o 1º é o texto de sempre (= narration/overlays abaixo)
@@ -372,6 +378,7 @@ export async function adsV2PlanFor(user: AdsV2Caller, access: AdsAccessLoad, rea
       ...(samplePresenterCapped ? { sample_fallback: ADS_SAMPLE_PRESENTER_FALLBACK } : {}), // KINEO-UGC-AJUSTES-2010 — a tela mostra o aviso honesto (amostra com a pessoa esgotada hoje → Close real)
       total_seconds: plan.totalSeconds,
       ...(productSize && adsV2ProductPhotoSmall(productSize) ? { product_photo_small: { width: productSize.width, height: productSize.height, min: ADS_V2_PRODUCT_PHOTO_MIN_SIDE, ...adsV2ProductPhotoSmallText(language, productSize) } } : {}), // KINEO-ADS-BOLA-2110 — a tela nova mostra o aviso (título, texto, "usar mesmo assim", "enviar maior")
+      ...(productLifestyle === true ? { product_photo_lifestyle: adsV2LifestylePhotoText(language) } : {}), // KINEO-ADS-QUALIDADE-2110 — a tela mostra o aviso (título, texto, "Trocar a foto", "Continuar assim")
       ...(instructionTag ? instructionTag : {}), // KINEO-ADS-BOLA-2110 — a tela sabe que leu um texto-instrução (produto achado? narração verbatim/cortada?)
       card_ready: Boolean((upd.data as { card_url: string | null }).card_url),
       photo_requests: plan.photoRequests,

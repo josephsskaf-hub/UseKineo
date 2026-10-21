@@ -26,6 +26,7 @@ import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semAdsBola2110, ADS_BOLA_2110_ARQUIVOS, ADS_BOLA_2110_NOVOS, ADS_BOLA_2110_BASE, MARCA_ADS_BOLA_2110 } from './test-support/desfaz-ads-bola-2110.mjs'
 import { semDesenhoSom2110 as semDesenhoNota9_2110 } from './test-support/desfaz-desenho-som-2110.mjs'
+import { semAdsQualidade2110 } from './test-support/desfaz-ads-qualidade-2110.mjs' // KINEO-ADS-QUALIDADE-2110 — reancorado: as provas desta camada rodam sobre o texto SEM a camada da qualidade (21/10, que veio depois e mudou a escolha de propósito)
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -72,8 +73,8 @@ function fakeOpenai(briefJson, copyJson) {
 }
 /** O loader: `over` = { arquivo: texto } (mutantes); onBase = as fontes da base 9415fa5dd. */
 const loader = ({ over = {}, onBase = false, mocks = {} } = {}) => {
-  const load = createOfflineLoader({ mocks, source: (r, text) => (over[r] !== undefined ? over[r] : onBase ? (base(r) ?? text) : text) })
-  load.text = (p) => (over[p] !== undefined ? lf(over[p]) : onBase ? (base(p) ?? rd(p)) : rd(p))
+  const load = createOfflineLoader({ mocks, source: (r, text) => (over[r] !== undefined ? over[r] : onBase ? (base(r) ?? text) : semAdsQualidade2110(text, r)) }) // KINEO-ADS-QUALIDADE-2110 — reancorado: sem a camada da qualidade
+  load.text = (p) => (over[p] !== undefined ? lf(over[p]) : onBase ? (base(p) ?? rd(p)) : lf(semAdsQualidade2110(rd(p), p))) // KINEO-ADS-QUALIDADE-2110 — reancorado: sem a camada da qualidade
   load.withMocks = (m) => loader({ over, onBase, mocks: { ...mocks, ...m } })
   return load
 }
@@ -260,7 +261,7 @@ await check('X3 a camada não toca a tela (components/, app/**/*.tsx), lib/engin
   return all.length > 0 && !all.some((p) => p.startsWith('components/') || (p.startsWith('app/') && p.endsWith('.tsx')) || p === 'lib/engineWall.ts' || p === 'lib/homeVideoCuration.ts')
 })
 await check('X4 os novos existem e não existiam na base', () => ADS_BOLA_2110_NOVOS.every((p) => existsSync(join(ROOT, p)) && base(p) === null))
-await check('X5 toda linha diferente da base nos arquivos tocados carrega a marca (o desfaz só tira linha marcada)', () => ADS_BOLA_2110_ARQUIVOS.every((p) => { const b = new Set(base(p).split('\n')); return rd(p).split('\n').every((l) => b.has(l) || l.includes(MARCA_ADS_BOLA_2110)) }))
+await check('X5 toda linha diferente da base nos arquivos tocados carrega a marca (o desfaz só tira linha marcada)', () => ADS_BOLA_2110_ARQUIVOS.every((p) => { const b = new Set(base(p).split('\n')); return lf(semAdsQualidade2110(rd(p), p)).split('\n').every((l) => b.has(l) || l.includes(MARCA_ADS_BOLA_2110)) })) // KINEO-ADS-QUALIDADE-2110 — reancorado: as linhas da qualidade levam a marca dela
 await check('X6 v2Simple, v2Presenter e v2PresenterV2 continuam SEM import de valor (os guardiões antigos os carregam crus)', () => [F.simple, F.presenter, F.v2].every((p) => !/^import (?!type )/m.test(rd(p))))
 
 // ═══ M. mutantes ════════════════════════════════════════════════════════════════════════════════════════════════════════

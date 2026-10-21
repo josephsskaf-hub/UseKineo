@@ -14,6 +14,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semAdsQualidade2110 } from './desfaz-ads-qualidade-2110.mjs' // KINEO-ADS-QUALIDADE-2110 — a qualidade do Studio Ads (21/10) veio depois: sai PRIMEIRO (encadeado; texto sem a marca passa igual)
 
 export const MARCA_ADS_BOLA_2110 = 'KINEO-ADS-BOLA-2110'
 
@@ -50,6 +51,7 @@ export const ADS_BOLA_2110_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semAdsBola2110(texto, p) {
+  texto = semAdsQualidade2110(texto, p) // KINEO-ADS-QUALIDADE-2110 — a camada mais nova sai primeiro
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_ADS_BOLA_2110) || !ADS_BOLA_2110_ARQUIVOS.includes(rel)) return texto
   const crlf = texto.includes('\r\n')

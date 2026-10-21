@@ -213,7 +213,10 @@ export interface AdV2PresenterV2Input {
   closeUrl: string
   /** KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o retângulo do produto na foto do apresentador (frações): a frase de tela vai ACIMA dele. Ausente = o terço de cima. */
   productRect?: AdV2AvoidBox | null // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+  quality?: AdV2QualityHooks | null // KINEO-ADS-QUALIDADE-2110 — o vídeo com punch-in, o gancho do produto, o close e o cartão final v3 (lib/ads/v2AdsQualidade.ts, montados em v2Advance); ausente = o de antes
 }
+/** KINEO-ADS-QUALIDADE-2110 — os elementos da camada de qualidade, por função (este arquivo continua sem import): cada uma devolve os elementos já com trilha e tempo. */
+export interface AdV2QualityHooks { video?: (i: { url: string; track: number; duration: number; cut: number }) => Record<string, unknown>[]; hook?: (time: number, duration: number) => Record<string, unknown>[]; hookSeconds?: number; close?: (time: number, duration: number) => Record<string, unknown>[]; card?: (time: number, duration: number) => Record<string, unknown>[] } // KINEO-ADS-QUALIDADE-2110
 
 /** Véu aceito: rgba com alfa entre 0,05 e 0,3 (mais que isso lava a foto). */
 export const ADS_V2_TINT_RE = /^rgba\(\d{1,3},\d{1,3},\d{1,3},0\.(?:0[5-9]|[12]\d?|30?)\)$/
@@ -533,7 +536,9 @@ function buildAdV2PresenterV2Source(input: AdV2MontageInput, presenter: AdV2Pres
   const elements: Record<string, unknown>[] = []
   elements.push({ type: 'shape', track: 1, time: 0, duration: t.total, x: '50%', y: '50%', width: '100%', height: '100%', path: ADS_V2_RECT_PATH, fill_color: '#000000' })
   // O apresentador COM o som (a voz é a dele), do 0 ao corte — e o dissolve por baixo do close (a fala já acabou 0,15 s antes do corte).
-  elements.push({ type: 'video', track: ADS_V2_PRESENTER_TRACK, time: 0, duration: r3(t.cut + ADS_V2_PRESENTER_V2_DISSOLVE), source: presenter.url.trim(), fit: 'cover', loop: false, trim_start: 0, x: '50%', y: '50%', width: '100%', height: '100%', volume: '100%' }) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + o dissolve inteiro por baixo do close
+  const q = v2.quality ?? null // KINEO-ADS-QUALIDADE-2110
+  if (q?.video) elements.push(...q.video({ url: presenter.url.trim(), track: ADS_V2_PRESENTER_TRACK, duration: r3(t.cut + ADS_V2_PRESENTER_V2_DISSOLVE), cut: t.cut })); else elements.push({ type: 'video', track: ADS_V2_PRESENTER_TRACK, time: 0, duration: r3(t.cut + ADS_V2_PRESENTER_V2_DISSOLVE), source: presenter.url.trim(), fit: 'cover', loop: false, trim_start: 0, x: '50%', y: '50%', width: '100%', height: '100%', volume: '100%' }) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + o dissolve inteiro por baixo do close · KINEO-ADS-QUALIDADE-2110 — com a camada: o punch-in de UGC no meio da fala
+  if (q?.hook && typeof q.hookSeconds === 'number' && q.hookSeconds > 0 && q.hookSeconds < t.cut - 2) elements.push(...q.hook(0, q.hookSeconds)) // KINEO-ADS-QUALIDADE-2110 — o gancho: o produto inteiro enquanto a voz já começa
   // No máximo 1 corte dentro da fala: um insert do cliente (nunca a foto do produto: ela é o close logo depois).
   const noPackshot = shots.map((s) => (s && s.kind === 'text' && s.packshot === true ? { ...s, url: '' } : s))
   for (const ins of adsV2PresenterInserts(t.cut, noPackshot, presenter.insertOrder).slice(0, ADS_V2_PRESENTER_V2_MAX_INSERTS)) {
@@ -549,9 +554,9 @@ function buildAdV2PresenterV2Source(input: AdV2MontageInput, presenter: AdV2Pres
   // KINEO-APRESENTADOR-V2-LIBERA-1910 — (7c567a7d: 2,0/4,0/6,5/12,5 s) e esta R3 (9,042/11,042 s). Nenhum caminho do código tem transição que funcione para copiar; a
   // KINEO-APRESENTADOR-V2-LIBERA-1910 — única animação comprovada é `animations: [{ type: 'scale' }]` (o zoom lento aparece). Trocar por outra propriedade só com uma
   // KINEO-APRESENTADOR-V2-LIBERA-1910 — montagem de validação no Creatomate (quadro a quadro) — não inventar. Por isso o close e o cartão seguem iguais aos outros caminhos.
-  elements.push(...adsV2PackshotElements(v2.closeUrl, ADS_V2_PRESENTER_V2_CLOSE_TRACK, t.cut, r3(ADS_V2_PRESENTER_V2_CLOSE_SECONDS + ADS_V2_MONTAGE_FADE), { enter_transition: { type: 'fade', duration: ADS_V2_PRESENTER_V2_DISSOLVE } })) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — trilha ACIMA do apresentador (era a mesma: não cruzava) e fade de 0,35 s
+  elements.push(...(q?.close ? q.close(t.cut, r3(ADS_V2_PRESENTER_V2_CLOSE_SECONDS + ADS_V2_MONTAGE_FADE)) : adsV2PackshotElements(v2.closeUrl, ADS_V2_PRESENTER_V2_CLOSE_TRACK, t.cut, r3(ADS_V2_PRESENTER_V2_CLOSE_SECONDS + ADS_V2_MONTAGE_FADE), { enter_transition: { type: 'fade', duration: ADS_V2_PRESENTER_V2_DISSOLVE } }))) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — trilha ACIMA do apresentador (era a mesma: não cruzava) e fade de 0,35 s · KINEO-ADS-QUALIDADE-2110 — com a camada: o produto inteiro sobre o próprio fundo desfocado
   // O cartão final (logo real) até o último quadro.
-  elements.push({ type: 'image', track: ADS_V2_PRESENTER_V2_CARD_TRACK, time: t.cardStart, duration: r3(cardSeconds), source: input.cardUrl.trim(), fit: 'cover', x: '50%', y: '50%', width: '100%', height: '100%', enter_transition: { type: 'fade', duration: ADS_V2_MONTAGE_FADE } }) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — acima do close (o close subiu para a 3)
+  if (q?.card) elements.push(...q.card(t.cardStart, r3(cardSeconds))); else elements.push({ type: 'image', track: ADS_V2_PRESENTER_V2_CARD_TRACK, time: t.cardStart, duration: r3(cardSeconds), source: input.cardUrl.trim(), fit: 'cover', x: '50%', y: '50%', width: '100%', height: '100%', enter_transition: { type: 'fade', duration: ADS_V2_MONTAGE_FADE } }) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — acima do close (o close subiu para a 3) · KINEO-ADS-QUALIDADE-2110 — com a camada: o cartão final v3 (produto inteiro, nome, selo da oferta, botão)
   const tint = input.tint ?? null
   if (tint !== null) {
     if (typeof tint !== 'string' || !ADS_V2_TINT_RE.test(tint)) throw new Error('ads_v2_montage_bad_tint')

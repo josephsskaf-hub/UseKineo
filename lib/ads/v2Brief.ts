@@ -10,6 +10,7 @@
 import { openai } from '@/lib/openai'
 import { buildAutoBriefMessages, parseAutoBrief } from '@/lib/ads/autoBrief'
 import { adsV2BusinessName } from '@/lib/ads/v2BolaFix' // KINEO-ADS-BOLA-2110 — o nome limpo dos dois lados (nunca "— bola de futebol")
+import { adsV2BenefitRule, adsV2BenefitWhy, adsV2TypedBenefits } from '@/lib/ads/v2AdsQualidade' // KINEO-ADS-QUALIDADE-2110 — todo benefício digitado na fala; nada de frase genérica nem travessão
 import { briefFactsText, contactOk, countWords, inventedClaims, inventedNumbers } from '@/lib/ads/scriptPrompt'
 import type { AdsBrief } from '@/lib/ads/types'
 import { ADS_V2_OVERLAY_MAX_CHARS, ADS_V2_SECTORS, isAdsV2Sector, type AdsV2Sector } from '@/lib/ads/v2ShotLists'
@@ -301,6 +302,7 @@ export function buildV2CopyMessages(brief: AdsBrief, languageName: string, opts:
       : []),
     // KINEO-ATOR-AJUSTES-2026-10-09 — produto fala do produto; com o ator, 1ª pessoa para a câmera. Sem `ad` = nenhuma linha.
     ...(opts.ad?.product && opts.narration ? [opts.ad?.talk === true ? ADS_V2_PRODUCT_TALK_RULE : ADS_V2_PRODUCT_NARRATION_RULE] : []), // KINEO-APRESENTADOR-OLHOS-1910 — no apresentador v2, sem o "detalhe sensorial"
+    ...(opts.ad?.product && opts.narration ? [adsV2BenefitRule(adsV2TypedBenefits(brief))] : []), // KINEO-ADS-QUALIDADE-2110 — Product Ads de 21/10: "7-day battery" sumiu e entrou "It features a stunning design"
     ...(opts.ad?.presenter && opts.narration ? [ADS_V2_PRESENTER_NARRATION_RULE] : []),
     ...(opts.ad?.talk === true && opts.narration ? [ADS_V2_PRESENTER_TALK_RULE] : []), // KINEO-APRESENTADOR-OLHOS-1910 — a fala de apresentador (só o v2)
     ...(opts.nameArticle === true && opts.narration && brand ? [adsV2NameArticleRule(brand)] : []), // KINEO-ADS-MAO-JUIZ-1610 — "da Perfume Atheeri": o nome é nome próprio, sem artigo antes
@@ -410,6 +412,7 @@ export function checkV2Copy(raw: string, brief: AdsBrief, opts: { maxWords: numb
     if (DECOR.test(narration)) why.push('narration: no brackets, markdown or emojis.')
     // KINEO-ATOR-AJUSTES-2026-10-09 — anúncio de produto não fala como loja ("At LUME, we offer a selection of…").
     if (opts.ad?.product && isShopTalk(narration)) why.push(ADS_V2_SHOP_TALK_WHY)
+    if (opts.ad?.product) why.push(...adsV2BenefitWhy(narration, adsV2TypedBenefits(brief))) // KINEO-ADS-QUALIDADE-2110 — benefício faltando / frase genérica / travessão: 1 correção (o afrouxamento do produto também afrouxa isto: nunca um 502)
     if (opts.ad?.talk === true) { const tm = presenterTalkMarks(narration); if (tm.length) why.push(adsV2PresenterTalkWhy(tm)) } // KINEO-APRESENTADOR-OLHOS-1910 — a fala sensorial do apresentador v2 volta para 1 correção
     why.push(...textIssues(narration, brief, 'narration'))
     if (opts.honesty) why.push(...honestyIssues(narration, opts.honesty, 'narration'))

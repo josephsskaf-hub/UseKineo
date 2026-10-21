@@ -31,6 +31,62 @@
 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — "yes" nunca "unsure"); 0,6 s de silêncio no fim do áudio que vai ao Kling (o clipe termina de boca fechada); foto LIMPA (interface de
 // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — câmera do celular = opção descartada); a frase de tela acima do produto; piscadas calmas. O resto do v2 fica igual.
 import type { AdsV2PlannedShot } from '@/lib/ads/v2ShotLists'
+const cleanQ2110 = (s: unknown): string => String(s ?? '').replace(/\s+/g, ' ').trim() // KINEO-ADS-QUALIDADE-2110
+// ── 1. a pose e a escala ─────────────────────────────────────────────────────────────────────────────────────────── // KINEO-ADS-QUALIDADE-2110
+export type AdsV2ProductShape = 'jar' | 'bottle' | 'box' | 'shoe' | 'bag' | 'device' | 'other' // KINEO-ADS-QUALIDADE-2110
+const SHAPES: readonly [AdsV2ProductShape, RegExp][] = [ // KINEO-ADS-QUALIDADE-2110
+  ['shoe', /\b(shoes?|sneakers?|trainers?|boots?|sandals?|heels|loafers?|t[êe]nis|sapatos?|botas?|sand[áa]lias?|zapatos?|zapatillas?)\b/i], // KINEO-ADS-QUALIDADE-2110
+  ['bag', /\b(bags?|handbags?|purses?|backpacks?|totes?|clutch|wallets?|bolsas?|mochilas?|carteiras?|bolsos?|mochila)\b/i], // KINEO-ADS-QUALIDADE-2110
+  ['device', /\b(smart ?watch(es)?|watch(es)?|phones?|smartphones?|earbuds|headphones?|speakers?|tablets?|cameras?|gadgets?|devices?|chargers?|rel[óo]gios?|celulares?|fones?|aud[íi]fonos?|relojes?|reloj)\b/i], // KINEO-ADS-QUALIDADE-2110
+  ['jar', /\b(jars?|creams?|balms?|butters?|pots?|tubs?|pomades?|potes?|cremes?|creme|crema|b[áa]lsamos?|tarros?|manteigas?)\b/i], // KINEO-ADS-QUALIDADE-2110
+  ['bottle', /\b(bottles?|perfumes?|fragrances?|colognes?|serums?|s[ée]runs?|lotions?|oils?|sprays?|shampoos?|conditioners?|wines?|frascos?|garrafas?|[óo]leos?|lo[çc][ãa]o|lociones?|botellas?)\b/i], // KINEO-ADS-QUALIDADE-2110
+  ['box', /\b(box(es)?|packs?|packages?|kits?|teas?|coffees?|cereals?|chocolates?|caixas?|ch[áa]s?|caf[ée]s?|cajas?|pacotes?|paquetes?)\b/i], // KINEO-ADS-QUALIDADE-2110
+] // KINEO-ADS-QUALIDADE-2110
+/** KINEO-ADS-QUALIDADE-2110 — o tipo de produto pelo texto (o produto digitado + o negócio). Pura. */
+export function adsV2ProductShape(text: unknown): AdsV2ProductShape { // KINEO-ADS-QUALIDADE-2110
+  const t = cleanQ2110(text) // KINEO-ADS-QUALIDADE-2110
+  for (const [shape, re] of SHAPES) if (re.test(t)) return shape // KINEO-ADS-QUALIDADE-2110
+  return 'other' // KINEO-ADS-QUALIDADE-2110
+} // KINEO-ADS-QUALIDADE-2110
+const HOLD: Readonly<Record<AdsV2ProductShape, string>> = { // KINEO-ADS-QUALIDADE-2110
+  jar: 'a small jar that sits in the palm of one hand, the lid on top and the front label facing the camera', // KINEO-ADS-QUALIDADE-2110
+  bottle: 'a bottle about the length of a hand, held upright with the label facing the camera', // KINEO-ADS-QUALIDADE-2110
+  box: 'a box held upright in one hand at its real size, the front of the box facing the camera', // KINEO-ADS-QUALIDADE-2110
+  shoe: 'one shoe held from below in one hand at its real size, the side of the shoe facing the camera', // KINEO-ADS-QUALIDADE-2110
+  bag: 'the bag held by its handle in one hand at its real size, hanging in front of the body', // KINEO-ADS-QUALIDADE-2110
+  device: 'the device resting in the palm of one hand at its real size, its screen or face turned to the camera', // KINEO-ADS-QUALIDADE-2110
+  other: 'the product held in one hand at its true real-world size, its front turned to the camera', // KINEO-ADS-QUALIDADE-2110
+} // KINEO-ADS-QUALIDADE-2110
+/** KINEO-ADS-QUALIDADE-2110 — a linha da pose (prompt da foto do apresentador): peito, virado para a câmera, mão segurando, longe do rosto, escala real. */
+export function adsV2PresenterPoseLine(text: unknown, their: 'her' | 'his'): string { // KINEO-ADS-QUALIDADE-2110
+  return `Pose: ${their} hand holds the product at chest height, a little in front of the body, with clear space between the product and ${their} face; ${HOLD[adsV2ProductShape(text)]}. The fingers visibly hold the product. The other arm rests relaxed at ${their} side, out of the frame.` // KINEO-ADS-QUALIDADE-2110
+} // KINEO-ADS-QUALIDADE-2110
+/** KINEO-ADS-QUALIDADE-2110 — o que a visão responde sobre a pose de cada opção (campos novos da MESMA pergunta das mãos). */
+export interface AdsV2PresenterPose { touchingFace: 'yes' | 'no' | 'unsure'; at: 'chest' | 'face' | 'low' | 'unsure'; held: 'yes' | 'no' | 'unsure'; scale: 'realistic' | 'too_big' | 'too_small' | 'unsure' } // KINEO-ADS-QUALIDADE-2110
+export const ADS_V2_PRESENTER_POSE_QUESTION = ' "touching_face": does the product or any hand touch the face, cheek, chin, lips, neck or hair? "yes", "no" or "unsure". "product_height": where is the product held — "chest" (in front of the body between the shoulders and the waist), "face" (at the level of the face or next to it), "low" (below the waist) or "unsure". "held": is the product clearly held by a hand (not floating in the air)? "yes", "no" or "unsure". "scale": compared with the hand and the person, is the product at a realistic real-world size? "realistic", "too_big", "too_small" or "unsure".' // KINEO-ADS-QUALIDADE-2110
+export const ADS_V2_PRESENTER_POSE_JSON = '"touching_face": "", "product_height": "", "held": "", "scale": ""' // KINEO-ADS-QUALIDADE-2110
+/** KINEO-ADS-QUALIDADE-2110 — a pose da resposta (pura). Sem os campos = tudo "unsure". */
+export function adsV2ParsePresenterPose(o: unknown): AdsV2PresenterPose { // KINEO-ADS-QUALIDADE-2110
+  const g = (k: string): unknown => (o && typeof o === 'object' ? (o as Record<string, unknown>)[k] : undefined) // KINEO-ADS-QUALIDADE-2110
+  const tri = (v: unknown): 'yes' | 'no' | 'unsure' => (v === 'yes' || v === true ? 'yes' : v === 'no' || v === false ? 'no' : 'unsure') // KINEO-ADS-QUALIDADE-2110
+  const at = g('product_height'), sc = g('scale') // KINEO-ADS-QUALIDADE-2110
+  return { touchingFace: tri(g('touching_face')), at: at === 'chest' || at === 'face' || at === 'low' ? at : 'unsure', held: tri(g('held')), scale: sc === 'realistic' || sc === 'too_big' || sc === 'too_small' ? sc : 'unsure' } // KINEO-ADS-QUALIDADE-2110
+} // KINEO-ADS-QUALIDADE-2110
+/** KINEO-ADS-QUALIDADE-2110 — o defeito da pose (pura): 0 = limpa; ≥ 100 = recusa (encostando no rosto, flutuando, mãos demais); 30-60 = pior que qualquer limpa. */
+export function adsV2PresenterPoseScore(pose: AdsV2PresenterPose | null | undefined, handCount: number | null | undefined): number { // KINEO-ADS-QUALIDADE-2110
+  if (!pose) return 20 // KINEO-ADS-QUALIDADE-2110
+  let s = 0 // KINEO-ADS-QUALIDADE-2110
+  if (pose.touchingFace === 'yes') s += 100 // KINEO-ADS-QUALIDADE-2110
+  if (pose.held === 'no') s += 100 // KINEO-ADS-QUALIDADE-2110
+  if (typeof handCount === 'number' && (handCount > 2 || handCount < 1)) s += 100 // KINEO-ADS-QUALIDADE-2110
+  if (pose.scale === 'too_big' || pose.scale === 'too_small') s += 50 // KINEO-ADS-QUALIDADE-2110
+  if (pose.at === 'face') s += 40 // KINEO-ADS-QUALIDADE-2110
+  else if (pose.at === 'low') s += 15 // KINEO-ADS-QUALIDADE-2110
+  for (const v of [pose.touchingFace, pose.held, pose.scale, pose.at]) if (v === 'unsure') s += 4 // KINEO-ADS-QUALIDADE-2110
+  return s // KINEO-ADS-QUALIDADE-2110
+} // KINEO-ADS-QUALIDADE-2110
+/** KINEO-ADS-QUALIDADE-2110 — a atuação viva (frases afirmativas: o Kling AI Avatar não tem negative). Vai dentro de adsV2PresenterV2EyesFirst. */
+export const ADS_V2_PRESENTER_LIVELY_PROMPT = 'the person talks to the camera with warm, lively UGC energy, like recommending a favorite product to a friend; bright, attentive eyes on the lens; expressive eyebrows, small nods and natural head tilts on the key words; relaxed shoulders with a slight natural movement of the upper body; a light natural smile at the start and at the end; while speaking the mouth stays relaxed and the lips follow every syllable naturally; the hand with the product keeps it at chest height with the label facing the camera and moves it gently toward the lens when the product is named; the product stays in front of the chest, away from the face; handheld selfie camera with a subtle natural movement; sharp focus; preserve the exact face, hands and appearance' // KINEO-ADS-QUALIDADE-2110
 
 /** Interruptor ÚNICO: 'internal' = só contas da casa; 'all' = todos; 'off' = o ator de antes para todo mundo. */
 // KINEO-APRESENTADOR-V2-LIBERA-1910 — LIBERADO para todos: nota 9 do fundador na R3 (pedido 84a5d07f, docs/RESULTADO-T1-APRESENTADOR-V2-R3-2026-10-17.md). O escopo
@@ -69,9 +125,9 @@ export function adsV2PresenterV2PortraitUrl(entry: { portrait: string | null } |
 /** Boca neutra: o sorriso de dentes do still travou a boca nas sílabas abertas no teste de 17/10. */
 export const ADS_V2_PRESENTER_V2_NEUTRAL_MOUTH = 'Neutral mouth: lips relaxed, closed or only slightly parted; no smile showing teeth and no open mouth.'
 /** Só o objeto do produto: "frasco e caixa juntos" é o defeito que a escolha automática descarta. */
-export const ADS_V2_PRESENTER_V2_ONLY_PRODUCT = 'One hand holds only the product itself, close to the face: if the SECOND reference photo also shows a box or other packaging, leave the box out of the frame. Exactly one product item in the frame.'
+export const ADS_V2_PRESENTER_V2_ONLY_PRODUCT = 'One hand holds only the product itself: if the SECOND reference photo also shows a box or other packaging, leave the box out of the frame. Exactly one product item in the frame.' // KINEO-ADS-QUALIDADE-2110 — sem "close to the face"
 /** A outra mão INTEIRA no quadro (a atuação gesticula com ela; no teste ela entrou borrada pela borda). KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — aberta e apoiada no peito: na R2 nenhuma das 4 fotos teve a mão livre. */
-export const ADS_V2_PRESENTER_V2_FREE_HAND = 'The other hand rests open on the chest, clearly visible and fully inside the frame, relaxed and complete with five natural fingers, never cut by the edge of the frame.' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
+export const ADS_V2_PRESENTER_V2_FREE_HAND = 'The other arm rests relaxed at the side, out of the frame; only the hand holding the product is in the frame.' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 · KINEO-ADS-QUALIDADE-2110 — era: a mão aberta no peito (fundador 21/10: "a pessoa encostando" — mão no corpo não é natural)
 /** KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — foto LIMPA: na R2 a opção 0 veio com a interface da câmera do iPhone desenhada (PHOTO / VIDEO / botão). */
 export const ADS_V2_PRESENTER_V2_CLEAN_PHOTO = 'A clean photo, no phone screen interface, no on-screen buttons, no text overlays.' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
 /** Rosto de frente (o avatar guiado por voz quer o rosto inteiro, olhando para a lente). */
@@ -104,12 +160,13 @@ export function adsV2PresenterV2SettingLine(setting: string | null | undefined):
 }
 
 /** O prompt da foto (puro). 1ª referência = o retrato; 2ª = a foto real do produto. Lugar do cliente, senão o fundo do setor. */
-export function adsV2PresenterV2Prompt(i: { look: string; pronoun: 'She' | 'He'; sector: string | null | undefined; setting?: string | null; freeHand: boolean }): string {
+export function adsV2PresenterV2Prompt(i: { look: string; pronoun: 'She' | 'He'; sector: string | null | undefined; setting?: string | null; freeHand: boolean; product?: string | null }): string { // KINEO-ADS-QUALIDADE-2110 — + product: o tipo do produto escolhe a escala real
   const their = i.pronoun === 'He' ? 'his' : 'her'
   const where = SETTING[typeof i.sector === 'string' ? i.sector : 'other'] ?? SETTING.other
   const place = adsV2PresenterV2SettingLine(i.setting)
   return [
-    `Realistic vertical 9:16 smartphone selfie photo, UGC style: the person from the FIRST reference photo, ${i.look}, holds the product from the SECOND reference photo in one hand near ${their} face, label facing the camera, clearly visible.`,
+    `Realistic vertical 9:16 smartphone selfie photo, UGC style: the person from the FIRST reference photo, ${i.look}, holds the product from the SECOND reference photo in one hand at chest height, label facing the camera, clearly visible.`, // KINEO-ADS-QUALIDADE-2110 — era: "near ${their} face" (o pote encostava no rosto)
+    adsV2PresenterPoseLine(i.product ?? '', their === 'his' ? 'his' : 'her'), // KINEO-ADS-QUALIDADE-2110 — a pose natural e a escala real por tipo de produto
     `Keep the person EXACTLY as in the first reference photo: same face, hair, skin tone, age and clothes. ${i.pronoun} ${ADS_V2_PRESENTER_V2_FACE}`,
     ADS_V2_PRESENTER_V2_NEUTRAL_MOUTH,
     ADS_V2_PRESENTER_V2_ONLY_PRODUCT,
@@ -186,11 +243,11 @@ export function adsV2PresenterV2Refs(v2: Pick<AdsV2PresenterV2Plan, 'portraitUrl
 }
 
 /** Monta o v2 do pedido (puro). null = sem retrato (fica o ator de antes). */
-export function planAdsV2PresenterV2(i: { entry: { id: string; gender: 'woman' | 'man'; look: string; pronoun: 'She' | 'He'; portrait: string | null } | null | undefined; sector: string | null | undefined; setting?: string | null; performancePrompt: string }): AdsV2PresenterV2Plan | null {
+export function planAdsV2PresenterV2(i: { entry: { id: string; gender: 'woman' | 'man'; look: string; pronoun: 'She' | 'He'; portrait: string | null } | null | undefined; sector: string | null | undefined; setting?: string | null; performancePrompt: string; product?: string | null }): AdsV2PresenterV2Plan | null { // KINEO-ADS-QUALIDADE-2110 — + product
   const e = i.entry
   const portraitUrl = adsV2PresenterV2PortraitUrl(e)
   if (!e || !portraitUrl) return null
-  return { v: 1, entryId: e.id, gender: e.gender, portraitUrl, prompt: adsV2PresenterV2Prompt({ look: e.look, pronoun: e.pronoun, sector: i.sector, setting: i.setting ?? null, freeHand: adsV2PresenterV2FreeHand(i.performancePrompt) }) }
+  return { v: 1, entryId: e.id, gender: e.gender, portraitUrl, prompt: adsV2PresenterV2Prompt({ look: e.look, pronoun: e.pronoun, sector: i.sector, setting: i.setting ?? null, freeHand: adsV2PresenterV2FreeHand(i.performancePrompt), product: i.product ?? null }) } // KINEO-ADS-QUALIDADE-2110 — + o produto (a escala)
 }
 
 // ── a escolha automática (só "frasco e caixa juntos") ────────────────────────────────────────────────────────────────
@@ -394,11 +451,13 @@ export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT = adsV2PresenterV2EyesFirst(
 export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL = adsV2PresenterV2EyesFirst(ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL_R3) // KINEO-APRESENTADOR-OLHOS-1910
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a atuação pela foto escolhida (pura): mão livre inteira = gesto pequeno; senão (ou não sei) = mãos paradas. */
 export function adsV2PresenterV2Performance(freeHand: boolean | null | undefined): string {
-  return freeHand === true ? ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT : ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL
+  return freeHand === true ? ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_LIVELY : ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_LIVELY // KINEO-ADS-QUALIDADE-2110 — a atuação viva para toda foto (fundador 21/10: "não tem muita movimentação dela"); a pose nova tem 1 mão só
 }
+/** KINEO-ADS-QUALIDADE-2110 — a atuação viva que vai ao motor (olhos abertos primeiro, a lista do que evitar no fim). */
+export const ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_LIVELY = adsV2PresenterV2EyesFirst(ADS_V2_PRESENTER_LIVELY_PROMPT) // KINEO-ADS-QUALIDADE-2110
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a atuação que vai ao motor (pura): a da linha se for uma das duas do v2; qualquer outra (a de 09/10) = a das mãos paradas. */
 export function adsV2PresenterV2PerformanceOf(rowPrompt: string | null | undefined): string {
-  return rowPrompt === ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT || rowPrompt === ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_R3 ? ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT : ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL // KINEO-APRESENTADOR-OLHOS-1910 — a linha planejada ANTES desta entrega (texto da R3) também sai com os olhos abertos; qualquer outra = a das mãos paradas
+  return typeof rowPrompt === 'string' || rowPrompt == null ? ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_LIVELY : ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL // KINEO-ADS-QUALIDADE-2110 — toda linha do v2 sai com a atuação viva · KINEO-APRESENTADOR-OLHOS-1910 — a linha planejada ANTES desta entrega (texto da R3) também sai com os olhos abertos; qualquer outra = a das mãos paradas
 }
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — o que um negative prompt levaria (pedido do fundador), se o motor aceitar um. */
 export const ADS_V2_PRESENTER_V2_NEGATIVE_PROMPT = `big smile while talking, teeth, hand entering frame, hand close to camera, blur, ${ADS_V2_PRESENTER_V2_EYES_AVOID}` // KINEO-APRESENTADOR-OLHOS-1910 — + olhos fechados/apertados, "saboreando", cabeça para trás, sorriso de dentes
@@ -417,9 +476,9 @@ export function adsV2PresenterV2AvatarInput<T extends Record<string, unknown>>(i
 // KINEO-APRESENTADOR-V2-AJUSTE-1710 — inventário no estilo da both_objects: pergunta de PRESENÇA (liste as mãos; cada uma segura o produto? está inteira?), o
 // KINEO-APRESENTADOR-V2-AJUSTE-1710 — código decide. Nenhuma limpa com a mão livre = a 1ª limpa, como antes. "frasco e caixa" continua mandando primeiro.
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a pergunta das mãos (1 imagem; o corpo e a chamada moram em lib/ads/v2LockVision.ts, adsV2PresenterV2HandsOf). */
-export const ADS_V2_PRESENTER_V2_HANDS_QUESTION = 'Image 1 is a photo of a person with a product. "product_whole": is the WHOLE product inside the frame? "no" when any part of the product is cut by or touches the edge of the image, "yes" when it is entirely visible with some space around it, "unsure" when you cannot tell. How many separate hands are visible? Count each human hand once. "hand_count": that number. "hands": one entry per hand; for each: is it holding the product? "holding_product": "yes" or "no". And "whole": "yes" when the entire hand is inside the frame and in view (fingers wrapped around the product still count), "no" when part of it is cut by the edge of the frame or hidden, "unsure" when you cannot tell. "phone_ui": is there any phone camera interface, on-screen buttons or overlaid text drawn in the image? "yes", "no" or "unsure" (the printed label on the product itself does not count). Answer with JSON: {"product_whole": "", "hand_count": 0, "hands": [{"holding_product": "", "whole": ""}], "phone_ui": ""}.' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — "how many separate hands are visible; for each: is it holding the product (yes/no)" + a interface de celular · KINEO-ADS-BOLA-2110 — + "product_whole" (produto cortado na borda = a opção perde)
+export const ADS_V2_PRESENTER_V2_HANDS_QUESTION = 'Image 1 is a photo of a person with a product. "product_whole": is the WHOLE product inside the frame? "no" when any part of the product is cut by or touches the edge of the image, "yes" when it is entirely visible with some space around it, "unsure" when you cannot tell. How many separate hands are visible? Count each human hand once. "hand_count": that number. "hands": one entry per hand; for each: is it holding the product? "holding_product": "yes" or "no". And "whole": "yes" when the entire hand is inside the frame and in view (fingers wrapped around the product still count), "no" when part of it is cut by the edge of the frame or hidden, "unsure" when you cannot tell. "phone_ui": is there any phone camera interface, on-screen buttons or overlaid text drawn in the image? "yes", "no" or "unsure" (the printed label on the product itself does not count).' + ADS_V2_PRESENTER_POSE_QUESTION + ' Answer with JSON: {"product_whole": "", "hand_count": 0, "hands": [{"holding_product": "", "whole": ""}], "phone_ui": "", ' + ADS_V2_PRESENTER_POSE_JSON + '}.' // KINEO-ADS-QUALIDADE-2110 — + a pose (encostando no rosto, altura, segurado, escala) na MESMA chamada · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — "how many separate hands are visible; for each: is it holding the product (yes/no)" + a interface de celular · KINEO-ADS-BOLA-2110 — + "product_whole" (produto cortado na borda = a opção perde)
 export type AdsV2PresenterV2Tri = 'yes' | 'no' | 'unsure'
-export interface AdsV2PresenterV2Hands { hands: { holds: AdsV2PresenterV2Tri; whole: AdsV2PresenterV2Tri }[]; count?: number | null; phoneUi?: AdsV2PresenterV2Tri; productWhole?: AdsV2PresenterV2Tri } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + a contagem e a interface de celular · KINEO-ADS-BOLA-2110 — + o produto inteiro no quadro
+export interface AdsV2PresenterV2Hands { hands: { holds: AdsV2PresenterV2Tri; whole: AdsV2PresenterV2Tri }[]; count?: number | null; phoneUi?: AdsV2PresenterV2Tri; productWhole?: AdsV2PresenterV2Tri; pose?: AdsV2PresenterPose } // KINEO-ADS-QUALIDADE-2110 — + a pose · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + a contagem e a interface de celular · KINEO-ADS-BOLA-2110 — + o produto inteiro no quadro
 const triV2 = (v: unknown): AdsV2PresenterV2Tri => (v === 'yes' || v === true ? 'yes' : v === 'no' || v === false ? 'no' : 'unsure') // KINEO-APRESENTADOR-V2-AJUSTE-1710
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a resposta (pura): texto JSON ou objeto; sem lista "hands" = null (ilegível). */
 export function adsV2PresenterV2ParseHands(raw: unknown): AdsV2PresenterV2Hands | null {
@@ -428,7 +487,7 @@ export function adsV2PresenterV2ParseHands(raw: unknown): AdsV2PresenterV2Hands 
   const list = o && typeof o === 'object' ? (o as { hands?: unknown }).hands : null
   if (!Array.isArray(list)) return null
   const count = (o as { hand_count?: unknown }).hand_count // KINEO-APRESENTADOR-V2-AJUSTE-3-1710
-  return { hands: list.filter((h) => h && typeof h === 'object').map((h) => ({ holds: triV2((h as { holding_product?: unknown; holds_product?: unknown }).holding_product ?? (h as { holds_product?: unknown }).holds_product), whole: triV2((h as { whole?: unknown }).whole) })), count: typeof count === 'number' && Number.isFinite(count) ? count : null, phoneUi: triV2((o as { phone_ui?: unknown }).phone_ui), productWhole: triV2((o as { product_whole?: unknown }).product_whole) } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — holding_product (a pergunta nova) + hand_count + phone_ui · KINEO-ADS-BOLA-2110 — + product_whole
+  return { hands: list.filter((h) => h && typeof h === 'object').map((h) => ({ holds: triV2((h as { holding_product?: unknown; holds_product?: unknown }).holding_product ?? (h as { holds_product?: unknown }).holds_product), whole: triV2((h as { whole?: unknown }).whole) })), count: typeof count === 'number' && Number.isFinite(count) ? count : null, phoneUi: triV2((o as { phone_ui?: unknown }).phone_ui), productWhole: triV2((o as { product_whole?: unknown }).product_whole), pose: adsV2ParsePresenterPose(o) } // KINEO-ADS-QUALIDADE-2110 — + a pose · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — holding_product (a pergunta nova) + hand_count + phone_ui · KINEO-ADS-BOLA-2110 — + product_whole
 }
 /** KINEO-APRESENTADOR-V2-AJUSTE-1710 — a mão LIVRE aparece inteira? (pura) 2+ mãos e uma que NÃO segura o produto (ou "não sei") está inteira. null = ilegível. */
 export function adsV2PresenterV2FreeHandOf(inv: AdsV2PresenterV2Hands | null | undefined): boolean | null {
@@ -738,14 +797,16 @@ export function adsV2PresenterV2ProductWholeOf(inv: AdsV2PresenterV2Hands | null
  * ('yes' e sem encostar na borda) > não sei > cortado ('no' ou retângulo na borda); depois as 2 mãos confirmadas (uma no produto, outra livre) > // KINEO-ADS-BOLA-2110
  * exatamente 2 mãos > o resto; empate = a de menor índice. Todas descartadas = a regra de antes (adsV2PresenterV2PickClean). // KINEO-ADS-BOLA-2110
  */ // KINEO-ADS-BOLA-2110
-export function adsV2PresenterV2PickWhole(i: { both: readonly (boolean | null)[]; freeHands: readonly (boolean | null)[]; phoneUi: readonly (AdsV2PresenterV2Tri | null)[]; productWhole: readonly (AdsV2PresenterV2Tri | null)[]; handCounts: readonly (number | null)[]; rects?: readonly (AdsV2PresenterV2Rect | null)[] }): { index: number; why: AdsV2PresenterV2PickWhy | AdsV2PresenterV2HandWhy } { // KINEO-ADS-BOLA-2110
+export function adsV2PresenterV2PickWhole(i: { both: readonly (boolean | null)[]; freeHands: readonly (boolean | null)[]; phoneUi: readonly (AdsV2PresenterV2Tri | null)[]; productWhole: readonly (AdsV2PresenterV2Tri | null)[]; handCounts: readonly (number | null)[]; rects?: readonly (AdsV2PresenterV2Rect | null)[]; poses?: readonly (AdsV2PresenterPose | null)[] }): { index: number; why: AdsV2PresenterV2PickWhy | AdsV2PresenterV2HandWhy } { // KINEO-ADS-BOLA-2110 · KINEO-ADS-QUALIDADE-2110 — + poses
   const both = Array.isArray(i?.both) ? i.both : [] // KINEO-ADS-BOLA-2110
   const at = <T,>(list: readonly T[] | undefined, k: number): T | null => (Array.isArray(list) && k < list.length ? list[k] ?? null : null) // KINEO-ADS-BOLA-2110
   const live = both.map((_, k) => k).filter((k) => both[k] !== true && at(i.phoneUi, k) !== 'yes') // KINEO-ADS-BOLA-2110
   if (live.length === 0) return adsV2PresenterV2PickClean(both, Array.isArray(i?.freeHands) ? i.freeHands : [], Array.isArray(i?.phoneUi) ? i.phoneUi : []) // KINEO-ADS-BOLA-2110
   const cut = (k: number): number => { const w = at(i.productWhole, k); const edge = adsV2PresenterV2RectAtEdge(at(i.rects, k)); return w === 'no' || edge === true ? 2 : w === 'yes' ? 0 : 1 } // KINEO-ADS-BOLA-2110
-  const handScore = (k: number): number => (at(i.freeHands, k) === true ? 0 : at(i.handCounts, k) === 2 ? 1 : 2) // KINEO-ADS-BOLA-2110
-  const best = live.slice().sort((a, b) => cut(a) - cut(b) || handScore(a) - handScore(b) || a - b)[0] // KINEO-ADS-BOLA-2110
+  const handScore = (k: number): number => (at(i.handCounts, k) === 1 ? 0 : at(i.handCounts, k) === 2 && at(i.freeHands, k) !== true ? 1 : at(i.freeHands, k) === true ? 2 : 3) // KINEO-ADS-BOLA-2110 · KINEO-ADS-QUALIDADE-2110 — a pose nova tem 1 mão (a outra fora do quadro); a mão livre no peito ficou por último
+  const poseS = (k: number): number => adsV2PresenterPoseScore(at(i.poses, k), at(i.handCounts, k)) // KINEO-ADS-QUALIDADE-2110
+  const poseB = (k: number): number => (poseS(k) >= 100 ? 2 : poseS(k) >= 30 ? 1 : 0) // KINEO-ADS-QUALIDADE-2110 — encostando no rosto / flutuando / mãos demais = recusa; escala errada ou no rosto = pior que qualquer limpa
+  const best = live.slice().sort((a, b) => poseB(a) - poseB(b) || cut(a) - cut(b) || poseS(a) - poseS(b) || handScore(a) - handScore(b) || a - b)[0] // KINEO-ADS-BOLA-2110 · KINEO-ADS-QUALIDADE-2110 — a pose natural decide primeiro, depois o produto inteiro
   const why: AdsV2PresenterV2PickWhy | AdsV2PresenterV2HandWhy = cut(best) === 2 ? 'all_cut' : both[best] === null ? 'unchecked' : at(i.freeHands, best) === true ? 'clean_free_hand' : 'clean_no_free_hand' // KINEO-ADS-BOLA-2110
   return { index: best, why } // KINEO-ADS-BOLA-2110
 } // KINEO-ADS-BOLA-2110
