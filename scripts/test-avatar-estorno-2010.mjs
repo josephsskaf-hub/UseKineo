@@ -14,7 +14,8 @@ process.chdir(ROOT)
 const lf = s => String(s).replace(/\r\n/g, '\n')
 const rd = p => lf(fs.readFileSync(path.join(ROOT, p), 'utf8'))
 const git = (...args) => execFileSync('git', ['-C', ROOT, ...args], { encoding: 'utf8', maxBuffer: 1 << 26 })
-const base = p => lf(git('show', `${BASE}:${p}`))
+const BASE_INTEGRACAO = 'f53733122fbdd8393a9950444ab70e0695c3c9f1' // reancorado na integração 21/10: a camada foi mesclada sobre esta origin/main (bebê/verbatim/home vieram depois de 9d4d0ffc1 e ficam); refund.ts/reservation.ts/composeHold.ts são idênticos nas duas bases
+const base = p => lf(git('show', `${BASE_INTEGRACAO}:${p}`))
 const F = 'lib/credits/refund.ts', R = 'lib/avatar/reservation.ts'
 const SECRET = 'segredo-falso-avatar-estorno-2010', USER = 'pessoa-externa-duble', GEN = 'avatar-estorno-2010'
 const NOW = Date.parse('2026-10-20T23:00:00Z'), OLD = new Date(NOW - 7 * 3600000).toISOString()

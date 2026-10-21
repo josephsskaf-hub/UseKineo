@@ -50,10 +50,10 @@ export const AVATAR_PRESO_2010_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semAvatarPreso2010(texto, p) {
-  texto = semAvatarEstorno2010(texto, p) // KINEO-AVATAR-ESTORNO-2010 — a camada nova sai primeiro, sem apagar proteções anteriores
   texto = semBebeQueFala2010(texto, p) // KINEO-BEBE-QUE-FALA-2010 — a camada mais nova sai primeiro
   texto = semHomeRemodela2010(texto, p) // KINEO-HOME-REMODELA-2010 — encadeado: a camada mais nova (home remodelada, 20/10) sai primeiro; idempotente fora dos arquivos dela
   texto = semVerbatimIntocavel2010NaCadeia(texto, p) // KINEO-VERBATIM-INTOCAVEL-2010 — encadeado: a camada mais nova sai primeiro (só as reâncoras dela em scripts/; o lib/growth/entradaSeedance15.ts tem desfaz próprio)
+  texto = semAvatarEstorno2010(texto, p) // KINEO-AVATAR-ESTORNO-2010 — a camada nova sai primeiro, sem apagar proteções anteriores
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_AVATAR_PRESO_2010) || !AVATAR_PRESO_2010_ARQUIVOS.includes(rel)) return texto
   const crlf = texto.includes('\r\n')
