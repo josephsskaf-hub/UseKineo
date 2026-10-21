@@ -99,6 +99,8 @@ ok(referenciasNaOrdem(C), '3c juiz recebe ambas as folhas na ordem exata e com c
 ok(L.cenasComPersonagem(MOTO.visuals, elenco(MOTO), MOTO.falas).every((c) => c.nomes.length === 1) && /boy/.test(direcao(L,V,MOTO,0)) && !/young man/i.test(direcao(L,V,MOTO,0)), '4a moto 3/3 cenas pela fala e pronome; plano final mostra boy')
 const girl = { ...MOTO, script: 'A girl rode her bike home. Her bike stopped. She vanished.', falas: ['A girl rode home.', 'Her bike stopped.', 'She vanished.'] }
 ok(L.cenasComPersonagem(girl.visuals, elenco(girl), girl.falas).every((c) => c.nomes.length === 1), '4b girl/her/she propaga identidade')
+const comAmbiente = L.cenasComPersonagem(['boy','forest','bike'], elenco(MOTO), ['A boy rides home.', 'A forest at night.', 'His bike stopped.'])
+ok(comAmbiente[0].nomes.length===1 && comAmbiente[1].nomes.length===0 && comAmbiente[2].nomes.length===1, '4e ambiente intermediário continua vazio e preserva antecedente para his bike')
 const dois = [{ ...ravan, nome: 'Adam', nucleo: 'Adam', genero: 'man' }, { ...ravan, nome: 'Boris', nucleo: 'Boris', genero: 'man' }]
 ok(L.cenasComPersonagem(['x','x'], dois, ['Adam talks to Boris.', 'He leaves.'])[1].nomes.length === 0, '4c pronome ambíguo não espalha duas identidades')
 ok(L.ensaioDoPersonagem({ engine:'seedance', elenco:elenco(MOTO), casting:'offline', visuals:MOTO.visuals, falas:MOTO.falas, look:style }).cenas_com_personagem === 3, '4d ensaio usa a mesma fala do pago')
@@ -174,11 +176,12 @@ await mutante('metadata tamanho',F.helper,"'small')","'child-sized')",o=>!M.deci
 const castingMitoErrado = JSON.stringify({characters:[{name:'Ravan',description:'A red demon with one head in a yellow hoodie and jeans with green eyes and a short tail'}]})
 await mutante('mito casting',F.lib,"if (identidadeMitica(e.nome) || /\\bmythological identity\\b/i.test(e.canonica))", 'if (false)',o=>carregador(o)(F.lib).lerCasting(castingMitoErrado,[ravan])[0].canonica===ravan.canonica)
 await mutante('fala',F.lib,'if (falas !== undefined) return cenasFaladasComPersonagem(visuals, elenco, falas)','if (false) return cenasFaladasComPersonagem(visuals, elenco, falas)',o=>carregador(o)(F.lib).cenasComPersonagem(MOTO.visuals,elenco(MOTO),MOTO.falas).every(c=>c.nomes.length===1))
+await mutante('antecedente após ambiente',F.lib,'if (nomes.length > 0 || ele || ela) anterior = nomes','anterior = nomes',o=>carregador(o)(F.lib).cenasComPersonagem(['boy','forest','bike'],elenco(MOTO),['A boy rides home.','A forest at night.','His bike stopped.'])[2].nomes.length===1)
 await mutante('prazo FLUX',F.juiz,'STILL_CRITIC_REFERENCIA_JANELA_REGERACAO_MS = 45_000','STILL_CRITIC_REFERENCIA_JANELA_REGERACAO_MS = 9_000',async o=>(await refaz(o)).relato.regeracao_ok===true)
 await mutante('motivo perdido',F.juiz,'if (e.referencia) r.regeracao_motivo = resultado','if (false) r.regeracao_motivo = resultado',async o=>(await refaz(o,'provider_timeout')).relato.regeracao_motivo==='provider_timeout')
 await mutante('pessoa em ambiente',F.policy,'policy.personagemCena !== undefined','false',o=>/no people, no extra characters/.test(direcao(L,carregador(o)(F.policy),DINO,0)))
 await mutante('rota ignora fala',F.rota,"cenasComPersonagem(visuaisP, elencoP, scenes.map((s) => s.voiceover ?? ''))",'cenasComPersonagem(visuaisP, elencoP)',async o=>(await bloco(o,true,MOTO)).edits.length===6)
 const primeira=ARQUIVOS.find((p)=>TROCAS[p]?.length)
 let estrito=false;try{desfaz(rd(primeira)+'\n// '+MARCA,primeira)}catch{estrito=true}ok(estrito,'mutante desfaz: acréscimo inesperado lança')
-console.log(`\n${pass} ok; ${fail} falhas; ${vermelhos}/11 mutantes executados vermelhos; base ${BASE}`)
+console.log(`\n${pass} ok; ${fail} falhas; ${vermelhos}/12 mutantes executados vermelhos; base ${BASE}`)
 process.exit(fail ? 1 : 0)

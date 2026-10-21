@@ -429,7 +429,7 @@ function cenasFaladasComPersonagem(visuals: ReadonlyArray<string>, elenco: Reado
       const candidatos = anterior.filter((nome) => { const f = elenco.find((e) => e.nome === nome); return f && (f.genero === null || (ele && f.genero === 'man') || (ela && f.genero === 'woman')) }) // KINEO-META95-PERSONAGEM-AJUSTE-2010
       if (candidatos.length === 1) nomes.push(candidatos[0]) // KINEO-META95-PERSONAGEM-AJUSTE-2010
     } // KINEO-META95-PERSONAGEM-AJUSTE-2010
-    anterior = nomes // KINEO-META95-PERSONAGEM-AJUSTE-2010
+    if (nomes.length > 0 || ele || ela) anterior = nomes // KINEO-META95-PERSONAGEM-AJUSTE-2010 — plano de ambiente fica vazio, mas não apaga antecedente único; pronome não resolvido corta
     return { indice, nomes } // KINEO-META95-PERSONAGEM-AJUSTE-2010
   }) // KINEO-META95-PERSONAGEM-AJUSTE-2010
 } // KINEO-META95-PERSONAGEM-AJUSTE-2010
