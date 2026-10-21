@@ -8,10 +8,10 @@ export const CONNECTOR_GUIDES_REVIEWED = '2026-10-21'
 export const CONNECTOR_GUIDES_BASE = 'https://www.usekineo.com'
 
 export const CONNECTOR_GUIDES = [
-  { client: 'chatgpt', lang: 'en', path: '/make-ai-videos-in-chatgpt', title: 'Make AI videos in ChatGPT', description: 'Connect Kineo Studio to ChatGPT with OAuth. Follow the setup steps, create narrated films with Kineo credits, or prepare an ad and continue in Studio Ads. Requires paid ChatGPT.' },
-  { client: 'chatgpt', lang: 'pt', path: '/criar-videos-com-ia-no-chatgpt', title: 'Crie vídeos com IA no ChatGPT', description: 'Conecte o Kineo Studio ao ChatGPT com OAuth. Veja o passo a passo, crie filmes narrados com créditos Kineo ou prepare um anúncio para continuar no Studio Ads. Exige ChatGPT pago.' },
-  { client: 'claude', lang: 'en', path: '/make-ai-videos-in-claude', title: 'Make AI videos in Claude', description: 'Add Kineo Studio as a custom Claude connector with OAuth. Create narrated films with Kineo credits, or prepare an ad and continue in Studio Ads. Setup and safety FAQ.' },
-  { client: 'claude', lang: 'pt', path: '/criar-videos-com-ia-no-claude', title: 'Crie vídeos com IA no Claude', description: 'Adicione o Kineo Studio como conector personalizado do Claude com OAuth. Crie filmes narrados com créditos Kineo ou prepare um anúncio para continuar no Studio Ads. Passos e FAQ.' },
+  { client: 'chatgpt', lang: 'en', path: '/make-ai-videos-in-chatgpt', title: 'Make AI videos in ChatGPT', description: 'Connect Kineo Studio to ChatGPT with OAuth. Make narrated films with Kineo credits, or prepare ads for Studio Ads. Paid ChatGPT required.' },
+  { client: 'chatgpt', lang: 'pt', path: '/criar-videos-com-ia-no-chatgpt', title: 'Crie vídeos com IA no ChatGPT', description: 'Conecte o Kineo Studio ao ChatGPT com OAuth. Crie filmes narrados com créditos Kineo ou prepare anúncios para o Studio Ads. Exige ChatGPT pago.' },
+  { client: 'claude', lang: 'en', path: '/make-ai-videos-in-claude', title: 'Make AI videos in Claude', description: 'Connect Kineo Studio to Claude with OAuth. Create narrated films with Kineo credits or prepare an ad for Studio Ads. Setup and safety FAQ.' },
+  { client: 'claude', lang: 'pt', path: '/criar-videos-com-ia-no-claude', title: 'Crie vídeos com IA no Claude', description: 'Conecte o Kineo Studio ao Claude com OAuth. Crie filmes narrados com créditos Kineo ou prepare anúncios para o Studio Ads. Passos e FAQ.' },
 ] as const
 
 export function connectorGuide(client: ConnectorClient, lang: ConnectorLanguage) {

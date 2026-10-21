@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
-import { ROOT, rd, loadGuideFixture, nodes, textOf } from './test-support/connector-guide-fixture.mjs'
+import { ROOT, rd, loadGuideFixture, nodes, textOf, guideDistribution } from './test-support/connector-guide-fixture.mjs'
 import { semHomeCardsClaros2010 } from './test-support/desfaz-home-cards-claros-2010.mjs'
 import { semPaginasConector2110, MARCA_PAGINAS_CONECTOR_2110 as MARCA, PAGINAS_CONECTOR_2110_BASE as BASE, PAGINAS_CONECTOR_2110_ARQUIVOS as FILES, PAGINAS_CONECTOR_2110_NOVOS as NEW, TROCAS_PAGINAS_CONECTOR_2110 as SWAPS } from './test-support/desfaz-paginas-conector-2110.mjs'
 
@@ -37,7 +37,8 @@ function routePaths(src) {
   return found
 }
 
-function proofs(src) {
+const distributionCache = new Map()
+async function proofs(src) {
   const e = []
   const check = (condition, message) => { if (!condition) e.push(message) }
   const fixture = loadGuideFixture(src), { model } = fixture
@@ -45,7 +46,10 @@ function proofs(src) {
   check(model.CONNECTOR_GUIDES.length === 4, 'catálogo tem exatamente quatro guias')
   check(model.CONNECTOR_GUIDES_REVIEWED === '2026-10-21', 'data da revisão')
   const sitemap = routePaths(src['app/sitemap.ts'])
-  const llmsLines = model.connectorGuideLlmsLines('https://www.usekineo.com')
+  const key = [src['app/sitemap.ts'], src['app/llms.txt/route.ts'], src['lib/seo/connectorGuides.ts']].join('\0')
+  if (!distributionCache.has(key)) distributionCache.set(key, guideDistribution(src))
+  const distribution = await distributionCache.get(key)
+  const llmsLines = distribution.llms
   for (const [client, lang, route] of EXPECTED) {
     const pt = lang === 'pt', guide = model.connectorGuide(client, lang), meta = model.connectorGuideMetadata(client, lang)
     const tree = fixture.page({ client, lang }), text = textOf(tree)
@@ -54,7 +58,7 @@ function proofs(src) {
     const root = page.default()
     check(root.type === 'ConnectorGuidePage' && root.props.client === client && root.props.lang === lang && page.dynamic === 'force-static', `${route}: página chama componente com cliente/idioma certos`)
     check(tree.type === 'main' && tree.props.lang === lang && names(tree, 'h1').length === 1 && textOf(names(tree, 'h1')[0]) === guide.title, `${route}: um H1 direto, idioma explícito`)
-    check(meta.alternates.canonical === `https://www.usekineo.com${route}` && page.metadata.alternates.canonical === meta.alternates.canonical, `${route}: canonical próprio`)
+    check(meta.alternates.canonical === `https://www.usekineo.com${route}` && JSON.stringify(page.metadata) === JSON.stringify(meta), `${route}: canonical próprio`)
     for (const language of ['en', 'pt']) check(meta.alternates.languages[language] === `https://www.usekineo.com${model.connectorGuide(client, language).path}`, `${route}: hreflang recíproco ${language}`)
     check(meta.openGraph.url === meta.alternates.canonical && meta.openGraph.title.includes(guide.title) && meta.openGraph.locale === (pt ? 'pt_BR' : 'en_US') && meta.openGraph.images[0].url.includes('/og-card.png') && meta.twitter.card === 'summary_large_image' && meta.description === guide.description, `${route}: metadata/OG/Twitter locais`)
     const ol = names(tree, 'ol')
@@ -73,8 +77,8 @@ function proofs(src) {
     const showcase = names(tree, 'ShowcaseGrid')
     check(showcase.length === 1 && showcase[0].props.locale === lang && src['components/ConnectorGuidePage.tsx'].includes("@/app/claude-connector/palette") && src['components/ConnectorGuidePage.tsx'].includes("@/app/claude-connector/ShowcaseGrid"), `${route}: reuso da paleta clara e vitrine`)
     check(names(tree, 'Link').filter((node) => node.props.href?.startsWith('/signup?')).length === 2, `${route}: CTAs de criar conta`)
-    check(sitemap.filter((p) => p === route).length === 1, `${route}: entrada única no sitemap`)
-    check(llmsLines.includes(`https://www.usekineo.com${route}`) && src['app/llms.txt/route.ts'].includes('connectorGuideLlmsLines(BASE)'), `${route}: entrada no llms.txt`)
+    check(sitemap.filter((p) => p === route).length === 1 && distribution.sitemap.filter((entry) => entry.url === `https://www.usekineo.com${route}`).length === 1, `${route}: entrada única no sitemap`)
+    check(llmsLines.split(`](https://www.usekineo.com${route})`).length === 2 && src['app/llms.txt/route.ts'].includes('connectorGuideLlmsLines(BASE)'), `${route}: entrada no llms.txt`)
     check(src['components/Footer.tsx'].includes(`href: '${route}'`) && src['app/claude-connector/page.tsx'].includes('CONNECTOR_GUIDES.map((guide) =>') && src['app/claude-connector/page.tsx'].includes('href={guide.path}'), `${route}: link no rodapé e no conector`)
     check(!/\$\s*\d|R\$|guaranteed income|renda garantida|100% safe|100% seguro/i.test(text), `${route}: sem preço literal, renda ou segurança absoluta`)
   }
@@ -83,13 +87,14 @@ function proofs(src) {
     const showcase = fixture.load('app/claude-connector/ShowcaseGrid.tsx').default({ locale: lang })
     const videos = names(showcase, 'video')
     check(videos.length === 9 && videos.every((v) => v.props.poster && !v.props.src && v.props.preload === 'none' && v.props.muted && v.props.playsInline), `${lang}: vitrine real com nove vídeos, pôsteres e carregamento adiado`)
+    check(names(showcase, 'figure').every((figure) => figure.props.children[0].type === 'div' && figure.props.children[0].props.style.aspectRatio === '9 / 16' && figure.props.children[1].type === 'figcaption'), `${lang}: quadro 9:16 inteiro e título abaixo do vídeo`)
     check(textOf(showcase).includes(lang === 'pt' ? 'Anúncios UGC' : 'UGC ads'), `${lang}: vitrine localizada`)
   }
   return e
 }
 
 console.log(`${MARCA} — provas`)
-try { const errors = proofs(sources); ok(errors.length === 0, `P: quatro rotas, conteúdo, componentes, SEO e distribuição (${errors.join(' | ') || 'ok'})`) } catch (error) { ok(false, `P: ${error.stack}`) }
+try { const errors = await proofs(sources); ok(errors.length === 0, `P: quatro rotas, conteúdo, componentes, SEO e distribuição (${errors.join(' | ') || 'ok'})`) } catch (error) { ok(false, `P: ${error.stack}`) }
 
 // Executa o botão de cópia real. Nenhuma cópia/telemetria ocorre antes do gesto.
 {
@@ -123,29 +128,31 @@ ok(git('log', '--format=%s', `${BASE}..HEAD`).trim().split('\n').filter(Boolean)
 ok(semPaginasConector2110(null, FILES[0]) === null && semPaginasConector2110('sem marca', FILES[0]) === 'sem marca' && semPaginasConector2110(rd(FILES[0]), 'fora.ts') === rd(FILES[0]), 'D7 null/sem marca/fora do alvo passam iguais')
 
 console.log('M — mutantes; cada aplicação precisa quebrar a prova sem exceção')
-function mutant(label, file, from, to) {
-  const clean = proofs(sources)
+async function mutant(label, file, from, to) {
+  const clean = await proofs(sources)
   if (clean.length) { ok(false, `M ${label}: prova original já vermelha (${clean[0]})`); return }
   const changed = sources[file].replace(from, to)
   if (changed === sources[file]) { ok(false, `M ${label}: não aplicou`); return }
-  try { const errors = proofs({ ...sources, [file]: changed }); ok(errors.length > 0, `M ${label}: ${errors[0] || 'NÃO detectou'}`) } catch (error) { ok(false, `M ${label}: exceção não vale como prova (${error.message})`) }
+  try { const errors = await proofs({ ...sources, [file]: changed }); ok(errors.length > 0, `M ${label}: ${errors[0] || 'NÃO detectou'}`) } catch (error) { ok(false, `M ${label}: exceção não vale como prova (${error.message})`) }
 }
-mutant('rota fora do par', 'lib/seo/connectorGuides.ts', "path: '/criar-videos-com-ia-no-chatgpt'", "path: '/chatgpt-errado'")
-mutant('hreflang PT apontando para EN', 'lib/seo/connectorGuides.ts', "connectorGuide(client, 'pt').path", "connectorGuide(client, 'en').path")
-mutant('OG sem idioma PT', 'lib/seo/connectorGuides.ts', "locale: lang === 'pt' ? 'pt_BR' : 'en_US'", "locale: 'en_US'")
-mutant('wrapper PT chama EN', 'app/criar-videos-com-ia-no-claude/page.tsx', 'client="claude" lang="pt"', 'client="claude" lang="en"')
-mutant('URL anônima no lugar da Studio', 'components/ConnectorGuidePage.tsx', 'value={CLAUDE_STUDIO_MCP_SERVER_URL}', 'value="https://www.usekineo.com/api/mcp"')
-mutant('passos sem lista numerada', 'components/ConnectorGuidePage.tsx', /<\/?ol\b/g, (match) => match.replace('ol', 'ul'))
-mutant('ChatGPT pago omitido dos passos', 'lib/seo/connectorGuides.ts', /paid ChatGPT|ChatGPT pago/g, 'ChatGPT')
-mutant('custo omitido', 'components/ConnectorGuidePage.tsx', /Você paga com os créditos da sua conta Kineo\./g, 'Você pode continuar.')
-mutant('3D como disponível', 'components/ConnectorGuidePage.tsx', "'Em breve' : 'Coming soon'", "'Disponível' : 'Available now'")
-mutant('anúncio prometido no chat', 'components/ConnectorGuidePage.tsx', /não gera nem cobra/g, 'já cria e cobra')
-mutant('vitrine removida', 'components/ConnectorGuidePage.tsx', '<ShowcaseGrid locale={lang} />', '<div />')
-mutant('CTA perdido', 'components/ConnectorGuidePage.tsx', '`/signup?utm_source=', '`/login?utm_source=')
-mutant('sitemap sem Claude PT', 'app/sitemap.ts', "path: '/criar-videos-com-ia-no-claude'", "path: '/claude-pt-errado'")
-mutant('llms sem as linhas', 'app/llms.txt/route.ts', 'connectorGuideLlmsLines(BASE)', "''")
-mutant('rodapé sem ChatGPT EN', 'components/Footer.tsx', "href: '/make-ai-videos-in-chatgpt'", "href: '/chatgpt-errado'")
-mutant('guia órfão na página mãe', 'app/claude-connector/page.tsx', 'href={guide.path}', 'href="/pricing"')
+await mutant('rota fora do par', 'lib/seo/connectorGuides.ts', "path: '/criar-videos-com-ia-no-chatgpt'", "path: '/chatgpt-errado'")
+await mutant('hreflang PT apontando para EN', 'lib/seo/connectorGuides.ts', "connectorGuide(client, 'pt').path", "connectorGuide(client, 'en').path")
+await mutant('OG sem idioma PT', 'lib/seo/connectorGuides.ts', "locale: lang === 'pt' ? 'pt_BR' : 'en_US'", "locale: 'en_US'")
+await mutant('wrapper PT chama EN', 'app/criar-videos-com-ia-no-claude/page.tsx', 'client="claude" lang="pt"', 'client="claude" lang="en"')
+await mutant('wrapper sem hreflang/OG', 'app/make-ai-videos-in-chatgpt/page.tsx', "export const metadata = connectorGuideMetadata('chatgpt', 'en')", "export const metadata = { ...connectorGuideMetadata('chatgpt', 'en'), alternates: { canonical: 'https://www.usekineo.com/make-ai-videos-in-chatgpt' }, openGraph: undefined }")
+await mutant('URL anônima no lugar da Studio', 'components/ConnectorGuidePage.tsx', 'value={CLAUDE_STUDIO_MCP_SERVER_URL}', 'value="https://www.usekineo.com/api/mcp"')
+await mutant('passos sem lista numerada', 'components/ConnectorGuidePage.tsx', /<\/?ol\b/g, (match) => match.replace('ol', 'ul'))
+await mutant('ChatGPT pago omitido dos passos', 'lib/seo/connectorGuides.ts', /paid ChatGPT|ChatGPT pago/g, 'ChatGPT')
+await mutant('custo omitido', 'components/ConnectorGuidePage.tsx', /Você paga com os créditos da sua conta Kineo\./g, 'Você pode continuar.')
+await mutant('3D como disponível', 'components/ConnectorGuidePage.tsx', "'Em breve' : 'Coming soon'", "'Disponível' : 'Available now'")
+await mutant('anúncio prometido no chat', 'components/ConnectorGuidePage.tsx', /não gera nem cobra/g, 'já cria e cobra')
+await mutant('vitrine removida', 'components/ConnectorGuidePage.tsx', '<ShowcaseGrid locale={lang} />', '<div />')
+await mutant('CTA perdido', 'components/ConnectorGuidePage.tsx', '`/signup?utm_source=', '`/login?utm_source=')
+await mutant('sitemap sem Claude PT', 'app/sitemap.ts', "path: '/criar-videos-com-ia-no-claude'", "path: '/claude-pt-errado'")
+await mutant('sitemap perde guia na saída', 'app/sitemap.ts', '...staticEntries,', "...staticEntries.filter((entry) => !entry.url.endsWith('/make-ai-videos-in-chatgpt')),")
+await mutant('llms sem as linhas', 'app/llms.txt/route.ts', 'connectorGuideLlmsLines(BASE)', "''")
+await mutant('rodapé sem ChatGPT EN', 'components/Footer.tsx', "href: '/make-ai-videos-in-chatgpt'", "href: '/chatgpt-errado'")
+await mutant('guia órfão na página mãe', 'app/claude-connector/page.tsx', 'href={guide.path}', 'href="/pricing"')
 for (const file of FILES) {
   let rejected = false
   try { semPaginasConector2110(`${rd(file)}\n// ${MARCA} a mais`, file) } catch { rejected = true }

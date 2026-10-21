@@ -41,6 +41,12 @@
       "  const semMarca = HOME_CARDS_CLAROS_2010_ARQUIVOS.filter((f) => { const b = new Set(base(f).split('\\n')); return !rd(f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) })"
     ]
   ],
+  "scripts/test-mcp-studio-ajuste-2010.mjs": [
+    [
+      "ok(/aspectRatio: '9 \\/ 16'/.test(semPaginasConector2110(S.grid, F.grid)) && /<\\/div>\\n\\s+<figcaption style=\\{caption\\}>\\{c\\.title\\}<\\/figcaption>/.test(semPaginasConector2110(S.grid, F.grid)) && all.every((c) => c.badge.length <= 13 && !c.badge.includes('·')) && !/textOverflow: 'ellipsis'/.test(semPaginasConector2110(S.grid, F.grid)), '(D12) polimento: quadro 9:16 inteiro (letreiro do clipe nunca cortado), título ABAIXO do quadro, selo curto que cabe sem reticências') // KINEO-PAGINAS-CONECTOR-2110 — a geometria anterior é preservada; a prova nova executa as legendas EN/PT reais",
+      "ok(/aspectRatio: '9 \\/ 16'/.test(S.grid) && /<\\/div>\\n\\s+<figcaption style=\\{caption\\}>\\{c\\.title\\}<\\/figcaption>/.test(S.grid) && all.every((c) => c.badge.length <= 13 && !c.badge.includes('·')) && !/textOverflow: 'ellipsis'/.test(S.grid), '(D12) polimento: quadro 9:16 inteiro (letreiro do clipe nunca cortado), título ABAIXO do quadro, selo curto que cabe sem reticências')"
+    ]
+  ],
   "scripts/test-verbatim-intocavel-2010.mjs": [
     [
       "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-BEBE-QUE-FALA-2010', '--grep=KINEO-MCP-STUDIO-AJUSTE-2010', `--grep=${MARCA_HOME_REMODELA_2010}`, '--grep=KINEO-HOME-CARDS-CLAROS-2010', '--grep=KINEO-PAGINAS-CONECTOR-2110', 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-HOME-REMODELA-2010 — a última versão alheia pula também os commits da home remodelada (os merges da fila e as reâncoras) // KINEO-HOME-CARDS-CLAROS-2010 — reancorado: os commits do véu mais claro dos cards (20/10 23:30) também são de depois // KINEO-PAGINAS-CONECTOR-2110",
