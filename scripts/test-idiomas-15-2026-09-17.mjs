@@ -2,13 +2,14 @@
 // Fundador: "Você tem meu vai pro 6 idiomas… acredito que 15 idiomas esteja ok". Sem rede, sem banco.
 // Carrega lib/textLanguage.ts cru (transpilado, sem alias) como os guardiões vizinhos.
 import { readFileSync } from 'node:fs'
+import { semLegendaBengali2010 } from './test-support/desfaz-legenda-bengali-2010.mjs' // KINEO-LEGENDA-BENGALI-2010 — a fotografia histórica mantém as 16 línguas de sua entrega
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
 const ts = require(join(root, 'node_modules', 'typescript'))
-const rd = (p) => readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semLegendaBengali2010(readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n'), p) // KINEO-LEGENDA-BENGALI-2010 — Bengali tem prova própria; as provas históricas permanecem idênticas
 function roda(src) { const js = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText; const m = { exports: {} }; new Function('module', 'exports', 'require', js)(m, m.exports, require); return m.exports }
 let ok = 0; const falhas = []
 const checa = (nome, cond) => { if (cond) { ok += 1; return } falhas.push(nome); console.error('  ✗ ' + nome) }

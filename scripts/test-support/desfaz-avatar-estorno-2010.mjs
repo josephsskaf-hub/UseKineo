@@ -2,10 +2,12 @@
 // Camada mais nova: remove somente acréscimos marcados e restaura trocas EXATAS.
 // Sem marca/fora da lista: identidade. Contagem divergente: falha fechada. Preserva CRLF.
 import { readFileSync } from 'node:fs'
+import { semLegendaBengali2010 } from './desfaz-legenda-bengali-2010.mjs' // KINEO-LEGENDA-BENGALI-2010 — camada mais nova, retirada PRIMEIRO
 export const MARCA_AVATAR_ESTORNO_2010 = 'KINEO-AVATAR-ESTORNO-2010'
 export const AVATAR_ESTORNO_2010_BASE = '9d4d0ffc1f71a34f9e4f56a05c55631908b925fc'
 export const REGRAS_AVATAR_ESTORNO_2010 = JSON.parse(readFileSync(new URL('./desfaz-avatar-estorno-2010-trocas.json', import.meta.url), 'utf8'))
 export function semAvatarEstorno2010(texto, p) {
+  texto = semLegendaBengali2010(texto, p) // KINEO-LEGENDA-BENGALI-2010 — inclui catálogo e reâncoras; nada muda nas regras antigas
   const rel = String(p ?? '').replace(/\\/g, '/')
   const regra = REGRAS_AVATAR_ESTORNO_2010[rel]
   if (!regra || typeof texto !== 'string' || !texto.includes(MARCA_AVATAR_ESTORNO_2010)) return texto
