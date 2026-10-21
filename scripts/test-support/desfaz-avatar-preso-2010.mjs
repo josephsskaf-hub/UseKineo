@@ -7,9 +7,10 @@
 //   · TROCA — a linha da base foi reescrita: reconhecida INTEIRA, volta a ser o texto da base. Tabela em desfaz-avatar-preso-2010-trocas.json.
 // Só age nos arquivos declarados; qualquer outro texto passa igual (idempotente). Preserva CRLF. A marca NÃO contém a de nenhuma camada de antes.
 // ENCADEAMENTO: é a camada MAIS NOVA — semMeta95Refazer1910 (a cabeça da cadeia do /api/compose, que semFilmesF1F4_1910 chama primeiro) chama
-// ESTE primeiro; semMenuUgc2010 (a cabeça da cadeia geral) chama semAvatarPreso2010NosGuardioes (só as reâncoras em scripts/). Este não importa ninguém.
+// ESTE primeiro; semMenuUgc2010 chama semAvatarPreso2010NosGuardioes em scripts/. Antes sai o AJUSTE posterior. // KINEO-META95-PERSONAGEM-AJUSTE-2010
 // O guardião scripts/test-avatar-preso-2010.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (AVATAR_PRESO_2010_BASE).
 import { readFileSync } from 'node:fs'
+import { semMeta95PersonagemAjuste2010 } from './desfaz-meta95-personagem-ajuste-2010.mjs' // KINEO-META95-PERSONAGEM-AJUSTE-2010 — a camada mais nova sai antes da contagem/trocas do avatar
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -46,6 +47,7 @@ export const AVATAR_PRESO_2010_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semAvatarPreso2010(texto, p) {
+  texto = semMeta95PersonagemAjuste2010(texto, p) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — também pela cabeça geral semMenuUgc2010, antes de qualquer desfaz anterior
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_AVATAR_PRESO_2010) || !AVATAR_PRESO_2010_ARQUIVOS.includes(rel)) return texto
   const crlf = texto.includes('\r\n')
