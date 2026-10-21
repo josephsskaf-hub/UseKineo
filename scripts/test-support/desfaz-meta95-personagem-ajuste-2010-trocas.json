@@ -12,6 +12,7 @@
     "scripts/test-meta95-escrita-2010.mjs": 1,
     "scripts/test-meta95-personagem-2010.mjs": 2,
     "scripts/test-romance-adulto-1310.mjs": 1,
+    "scripts/test-seedance-15s-3x6-2026-09-29.mjs": 2,
     "scripts/test-support/desfaz-meta95-escrita-2010.mjs": 2,
     "scripts/test-support/desfaz-meta95-personagem-2010.mjs": 2
   },
@@ -193,6 +194,12 @@
     [
       "const rd = (p) => semMeta95PersonagemAjuste2010(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\\r\\n/g, '\\n') // KINEO-META95-PERSONAGEM-AJUSTE-2010",
       "const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\\r\\n/g, '\\n')"
+    ]
+  ],
+  "scripts/test-seedance-15s-3x6-2026-09-29.mjs": [
+    [
+      "const rd = (p) => semMeta95PersonagemAjuste2010(readFileSync(join(RAIZ, p), 'utf8'), p).split(CR + LF).join(LF) // KINEO-META95-PERSONAGEM-AJUSTE-2010",
+      "const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').split(CR + LF).join(LF)"
     ]
   ],
   "scripts/test-support/desfaz-meta95-escrita-2010.mjs": [],

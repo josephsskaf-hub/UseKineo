@@ -25,3 +25,4 @@ export function semMeta95PersonagemAjuste2010(texto, p) {
   return crlf ? out.replace(/\n/g, '\r\n') : out
 }
 export const desfazMeta95PersonagemAjuste2010 = (p, texto) => semMeta95PersonagemAjuste2010(texto, p)
+export const linhasTrocadasMeta95PersonagemAjuste2010 = (p) => (TROCAS_META95_PERSONAGEM_AJUSTE_2010[String(p).replace(/\\/g, '/')] ?? []).flatMap(([, base]) => base.split('\n'))

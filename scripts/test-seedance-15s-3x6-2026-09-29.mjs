@@ -30,6 +30,7 @@
 // original também cumpria). (d) dinheiro — o resgate de roteiro todo entre colchetes também sai em 3 blocos.
 import { semTrilha15s1610, linhaDaTrilha15s1610, linhasTrocadasTrilha15s1610 } from './test-support/desfaz-trilha-15s-1610.mjs' // reancorado KINEO-TRILHA-15S [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"]: o plano de b-roll alinhado e o protagonista sem rosto saem em memória antes do byte a byte
 import { readFileSync } from 'node:fs'
+import { semMeta95PersonagemAjuste2010, linhasTrocadasMeta95PersonagemAjuste2010 } from './test-support/desfaz-meta95-personagem-ajuste-2010.mjs' // KINEO-META95-PERSONAGEM-AJUSTE-2010 — recorte anterior e lista exata das linhas substituídas
 import { linhasTrocadasAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 import { linhasTrocadasJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: o crítico do still só acrescenta linhas (nenhuma troca); a lista de trocas dele entra no filtro por completude
 import { linhasTrocadasMeta95Assunto1910 } from './test-support/desfaz-meta95-assunto-1910.mjs' // reancorado KINEO-META95-ASSUNTO-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: as linhas da base da rota que o assunto traduzido / a fala sem buraco trocaram de propósito (lista exata no desfaz; provadas em test-meta95-assunto-1910)
@@ -57,7 +58,7 @@ import { linhasTrocadasParceiroEyebible2_1410 } from './test-support/desfaz-parc
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ) // o loader offline resolve '@/...' a partir do cwd
 const LF = String.fromCharCode(10), CR = String.fromCharCode(13)
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').split(CR + LF).join(LF)
+const rd = (p) => semMeta95PersonagemAjuste2010(readFileSync(join(RAIZ, p), 'utf8'), p).split(CR + LF).join(LF) // KINEO-META95-PERSONAGEM-AJUSTE-2010
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) { ok++; console.log('  ✓ ' + n) } else { falhas.push(n); console.log('  ✗ FALHOU: ' + n) } }
@@ -457,6 +458,7 @@ function soAcrescimos(p) {
   // (lista exata em scripts/test-support/h3max-2026-10-13-trocas.json; cada substituta marcada e provada em test-h3max-motor-2026-10-13).
   const tiradas = diff.split(LF).filter((l) => l.startsWith('-') && !l.startsWith('---') && !(p.endsWith('generate-video-cinematic/route.ts') && TROCADAS.has(l.slice(1))) && !linhasTrocadasH3max(p).includes(l.slice(1)) && !linhasTrocadasParceiroEyebible1410(p).includes(l.slice(1)) && !linhasTrocadasParceiroEyebible2_1410(p).includes(l.slice(1)) && !linhasTrocadasAncoraLegenda1410(p).includes(l.slice(1)) && !linhasTrocadasJuizStill1410(p).includes(l.slice(1)) && !linhasTrocadasCenaNegacao1510(p).includes(l.slice(1)) /* reancorado KINEO-CENA-NEGACAO-1510 */ && !linhasTrocadasMeta95Assunto1910(p).includes(l.slice(1)) /* reancorado KINEO-META95-ASSUNTO-1910 */ && !linhasTrocadasAvatarPreso2010(p).includes(l.slice(1)) /* reancorado KINEO-AVATAR-PRESO-2010: as 2 linhas da base do /api/compose que o custo do nascimento do avatar trocou (reserva e intendedCost) */ && !linhasTrocadasTrilha15s1610(p).includes(l.slice(1)) /* reancorado KINEO-TRILHA-15S: as 2 linhas da base trocadas (o if do plano de b-roll e o if do descritor) */ /* reancorado KINEO-JUIZ-STILL-1410 */ /* KINEO-ANCORA-LEGENDA-1410 */) // reancorado KINEO-PARCEIRO-EYEBIBLE-1410 [TRAVA 8.2 — vai do fundador 14/10]
   tiradas.splice(0, tiradas.length, ...tiradas.filter((l) => !linhasTrocadasMeta95Escrita2010(p).includes(l.slice(1)))) // KINEO-META95-ESCRITA-2010 — reancorado: as linhas da base que a legenda na escrita do roteiro trocou (lista exata)
+  tiradas.splice(0, tiradas.length, ...tiradas.filter((l) => !linhasTrocadasMeta95PersonagemAjuste2010(p).includes(l.slice(1)))) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — só as substituições exatas provadas pelo desfaz novo
   return { ok: tiradas.length === 0, n: diff.split(LF).filter((l) => l.startsWith('+') && !l.startsWith('+++')).length }
 }
 {
