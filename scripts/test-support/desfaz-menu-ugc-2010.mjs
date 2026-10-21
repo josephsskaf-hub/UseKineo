@@ -9,6 +9,7 @@
 // apresentador-olhos/home-3-cards, e filmes-f1f3-publico → home-cards-botoes → home-3-cards) chama ESTE primeiro. Este não importa ninguém.
 // O guardião scripts/test-menu-ugc-2010.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (MENU_UGC_2010_BASE).
 import { readFileSync } from 'node:fs'
+import { semHomeRemodela2010 } from './desfaz-home-remodela-2010.mjs' // KINEO-HOME-REMODELA-2010 — a camada mais nova (20/10, home + menu remodelados): a cabeça da cadeia tira ela primeiro
 import { semAvatarPreso2010NosGuardioes } from './desfaz-avatar-preso-2010.mjs' // KINEO-AVATAR-PRESO-2010 — a camada mais nova (20/10): a cabeça da cadeia tira as reâncoras dela primeiro
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -45,6 +46,7 @@ export const MENU_UGC_2010_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semMenuUgc2010(texto, p) {
+  texto = semHomeRemodela2010(texto, p) // KINEO-HOME-REMODELA-2010 — a home e o menu remodelados (20/10) saem PRIMEIRO
   texto = semAvatarPreso2010NosGuardioes(texto, p) // KINEO-AVATAR-PRESO-2010 — as reâncoras do avatar preso (20/10) nos guardiões saem PRIMEIRO (o /api/compose fica com a cadeia dele)
   texto = semMeta95Personagem2010(texto, p) // KINEO-META95-PERSONAGEM-2010 — a camada mais nova sai primeiro
   const rel = String(p ?? '').replace(/\\/g, '/')

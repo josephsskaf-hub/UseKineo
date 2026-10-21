@@ -15,18 +15,30 @@ export const HOME_GALLERY_DIR = '/home-images/' // KINEO-HOME-LIMPA-1410
 
 // Grade em mosaico (CSS grid com dense), tudo em faixas de 2 linhas: retrato = 1 coluna, paisagem = 2 colunas, destaque =
 // 2 colunas × 2 faixas. 10 retratos + 2 paisagens (2) + 1 destaque (4) = 18 blocos: fecha sem buraco em 6, 3 e 2 colunas.
+// KINEO-HOME-REMODELA-2010 — 20 retratos + 3 paisagens (6) + 1 destaque (4) = 30 blocos: segue fechando sem buraco em 6, 3 e 2 colunas.
 export const HOME_GALLERY_IMAGES: readonly HomeGalleryImage[] = [ // KINEO-HOME-LIMPA-1410
   { file: 'puddle.webp', w: 640, h: 1146, alt: 'A man leaping over a rain puddle on a cobblestone street at golden hour' },
+  { file: 'ad-01.webp', w: 640, h: 1146, alt: 'An amber perfume bottle on wet black volcanic stone with rim light' }, // KINEO-HOME-REMODELA-2010
+  { file: 'ad-02.webp', w: 640, h: 1146, alt: 'A white knit running sneaker with a coral sole floating over a water splash' }, // KINEO-HOME-REMODELA-2010
   { file: 'clock-blue.webp', w: 640, h: 1146, alt: 'A pastel blue twin-bell alarm clock on a white pedestal' },
+  { file: 'ad-03.webp', w: 640, h: 1146, alt: 'A frosted skincare jar with a gold lid on white marble with eucalyptus leaves' }, // KINEO-HOME-REMODELA-2010
   { file: 'lighthouse.webp', w: 900, h: 502, alt: 'A red and white lighthouse on a cliff in a storm with lightning' },
   { file: 'sneaker-white.webp', w: 640, h: 1146, alt: 'A white running sneaker with orange accents on a round pedestal' },
+  { file: 'ad-04.webp', w: 640, h: 1146, alt: 'A kraft paper coffee bag with roasted beans and an espresso cup on a walnut table' }, // KINEO-HOME-REMODELA-2010
   { file: 'raincoat.webp', w: 640, h: 1146, alt: 'A woman in a yellow raincoat on a grassy sea cliff' },
+  { file: 'ad-05.webp', w: 640, h: 1146, alt: 'A minimalist smartwatch on a wrist at golden hour by the beach dunes' }, // KINEO-HOME-REMODELA-2010
   { file: 'coffee.webp', w: 640, h: 1146, alt: 'A warm specialty coffee shop with a wooden slatted ceiling' },
+  { file: 'perfume-splash.webp', w: 768, h: 522, alt: 'A perfume bottle in a water splash on dark volcanic rock' }, // KINEO-HOME-REMODELA-2010 — a foto do antigo card Nano Banana Pro
   { file: 'apple.webp', w: 640, h: 1146, alt: 'A glossy red apple on a light wooden table by a window' },
+  { file: 'ad-06.webp', w: 640, h: 1146, alt: 'A glossy red lipstick in a gold tube on blush pink satin' }, // KINEO-HOME-REMODELA-2010
   { file: 'boutique.webp', w: 640, h: 1146, alt: 'A concrete streetwear boutique with lit sneaker shelves' },
+  { file: 'ad-07.webp', w: 640, h: 1146, alt: 'Cream wireless headphones on pastel geometric blocks' }, // KINEO-HOME-REMODELA-2010
   { file: 'astronaut.webp', w: 900, h: 502, alt: 'An astronaut standing in a field of sunflowers at sunset' },
+  { file: 'ad-08.webp', w: 640, h: 1146, alt: 'A silver drink can with condensation on crushed ice with lime slices under neon light' }, // KINEO-HOME-REMODELA-2010
   { file: 'cube.webp', w: 640, h: 1146, alt: 'A colorful puzzle cube on a white pedestal' },
+  { file: 'ad-09.webp', w: 640, h: 1146, alt: 'A camel leather tote bag on a travertine pedestal in warm studio light' }, // KINEO-HOME-REMODELA-2010
   { file: 'coworking.webp', w: 640, h: 1146, alt: 'An open coworking office with wooden desks and plants' },
+  { file: 'ad-10.webp', w: 640, h: 1146, alt: 'Tortoiseshell sunglasses with amber lenses on golden beach sand' }, // KINEO-HOME-REMODELA-2010
   { file: 'clock-brass.webp', w: 640, h: 1146, alt: 'A vintage brass alarm clock on a sunny stone windowsill' },
   { file: 'toycar.webp', w: 640, h: 1146, alt: 'A small red vintage toy car on a white desk' },
 ]
@@ -35,6 +47,7 @@ export const HOME_GALLERY_BIG: ReadonlySet<string> = new Set(['puddle.webp'])
 
 const CSS = `
 .klp .khg{padding:22px 0 6px}
+.klp .home-more-tools .khg{padding-top:8px} /* KINEO-HOME-REMODELA-2010 — o título agora é o h2 da seção logo acima */
 .klp .khg-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
 .klp .khg-head h3{margin:0;font-size:clamp(18px,1.6vw,22px);font-weight:600;letter-spacing:-.02em;color:var(--txt)}
 .klp .khg-head p{margin:4px 0 0;color:var(--muted);font-size:14px;line-height:1.45}
@@ -49,6 +62,7 @@ const CSS = `
 .klp .khg-item:hover img{transform:scale(1.03)}
 @media(max-width:1099px){.klp .khg-grid{grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:clamp(130px,20vw,200px)}}
 @media(max-width:700px){.klp .khg-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:30vw;gap:10px}.klp .khg-item{border-radius:12px}}
+@media(max-width:700px){.klp .khg-grid{grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:26vw;gap:8px}.klp .khg-item{border-radius:10px}} /* KINEO-HOME-REMODELA-2010 — 24 fotos: 3 colunas no celular (30 blocos = 10 faixas), senão a galeria passava de 4.000 px */
 @media(prefers-reduced-motion:reduce){.klp .khg-item img{transition:none}.klp .khg-item:hover img{transform:none}}
 `
 
@@ -59,8 +73,8 @@ export default function HomeImageGallery() {
       <div className="wrap">
         <div className="khg-head">
           <div>
-            <h3><UiLabel>Images made with Kineo</UiLabel></h3>
-            <p><UiLabel>Products, places, food and cinematic scenes, each from one line of text.</UiLabel></p>
+            {/* KINEO-HOME-REMODELA-2010 — o título "Images made by Kineo" virou o h2 da seção (app/KineoLanding.tsx), no lugar de "More tools" */}
+            <p><UiLabel>Product ads, places and cinematic scenes, each from one line of text.</UiLabel></p>{/* KINEO-HOME-REMODELA-2010 */}
           </div>
           <span className="khg-tag"><UiLabel>Made with Kineo Images · Nano Banana</UiLabel></span>
         </div>

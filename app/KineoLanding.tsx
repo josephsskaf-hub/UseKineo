@@ -14,7 +14,7 @@ import Link from 'next/link'
 import { InterfaceLanguageSelect, UiLabel, UiText } from '@/components/InterfaceLanguage'
 import { HOME_PRESENTATION_CSS } from '@/lib/ui/homePresentation'
 import { KINEO_LANDING_THEME_CSS } from './kineoLandingTheme'
-import { IMG_ENGINES } from '@/lib/imageModels'
+// KINEO-HOME-REMODELA-2010 — import { IMG_ENGINES } saiu com o "More tools" do topo (os motores de imagem seguem em /images)
 import NavCreditsBadge from '@/components/NavCreditsBadge'
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
 import ExitIntentOffer from '@/components/ExitIntentOffer'
@@ -37,7 +37,7 @@ import HomeImageGallery from '@/components/home/HomeImageGallery' // KINEO-HOME-
 import HomeFeaturedFilms from '@/components/HomeFeaturedFilms'
 import TrendingRow from '@/components/TrendingRow'
 // KINEO-PROMO-CARDS-2026-09-30 — fileira de cards grandes logo abaixo do menu (Kineo for Claude + Clips).
-import PromoCards from '@/components/PromoCards'
+// KINEO-HOME-REMODELA-2010 — a fileira PromoCards saiu da home (o componente e as rotas seguem no ar)
 import HomeClipsStrip from '@/components/home/HomeClipsStrip' // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05
 // KINEO-DUAS-PORTAS-2026-10-13 — as 2 portas da primeira dobra (filme narrado · anúncio de produto). Os números da oferta
 // saem das fontes abaixo, nunca digitados (guardião scripts/test-duas-portas-1310.mjs).
@@ -52,7 +52,7 @@ import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample'
 import { WELCOME20_PERCENT_OFF } from '@/lib/growth/publicPromoTruth'
 import { TRIAL_FREE_FILM_SECONDS, TRIAL_SEEDANCE15_FILMS } from '@/lib/freeTierOffer'
 import { clipsFirstFilmHref } from '@/lib/growth/homeClipsFirst'
-import { promoCardsFor } from '@/lib/ui/promoCards'
+import { MENU_CARTOON_HREF, MENU_CARTOON_LABEL, MENU_CARTOON_NAV_ITEM, MENU_CONNECTOR_HREF, MENU_CONNECTOR_LABEL, MENU_CONNECTOR_NAV_ITEM, HOME_GALLERY_TITLE } from '@/lib/ui/homeRemodela2010' // KINEO-HOME-REMODELA-2010
 // KINEO-VITRINE-MOEDA-2026-08-19 — LandingStarterPrice cobria SÓ o Starter, e
 // por isso a home mostrava R$24,90 (regional) ao lado de $19.90 e $39.90
 // (chumbados). Agora os TRÊS planos falam a moeda do visitante.
@@ -522,6 +522,10 @@ html{scroll-behavior:smooth}
 .klp .composer{margin-left:auto;margin-right:auto}.klp .price{grid-template-columns:1fr;max-width:400px;margin:0 auto;gap:30px}
 }
 /* BUSINESS-NAV-20260924: leave room for the translated business destination. */
+/* KINEO-HOME-REMODELA-2010 — 7 itens no topo (4 principais + conector + Trending + Pricing): rótulo numa linha só e espaço menor até o menu compacto (1200px) */
+.klp .nav-links>.nd>summary{white-space:nowrap} /* KINEO-HOME-REMODELA-2010 */
+@media(max-width:1390px) and (min-width:1201px){.klp .nav-links{gap:18px}} /* KINEO-HOME-REMODELA-2010 */
+@media(max-width:1300px) and (min-width:1201px){.klp .nav-links{gap:14px;font-size:14px}} /* KINEO-HOME-REMODELA-2010 */
 @media(max-width:1200px){
 /* KINEO-GROWTH-TOOLS-NAV-2026-08-29 — o oitavo destino público ultrapassava
    o espaço disponível em tablets. A navegação compacta entra antes que os
@@ -948,31 +952,10 @@ export default function KineoLanding({
                 KINEO-DUAS-PORTAS-2026-10-13 — vira a 2ª porta do topo, "Product ads", com o mesmo peso do "Make a film". */}
             <Link href="/ads/new" data-nav-item="business" className="nav-primary"><UiLabel>Product ads</UiLabel></Link>
             <NavUgcAdsLink data-nav-item="more:ugc" />{/* KINEO-MENU-UGC-2010 — fundador 20/10 ("o 2 no menu no topo, sim"): "AI UGC Ads" logo depois de "Product ads", leva à pilar /ai-ugc-ads (PT → /anuncios-ugc-com-ia); nada saiu nem mudou de ordem */}
-            {/* KINEO-DUAS-PORTAS-2026-10-13 — "More tools": tudo que saiu do topo, a 1 clique de distância. Imagem ABRE o menu
-                (fundador: "pode deixar Imagem no topo, os outros sites têm" — aqui ela é a 1ª coluna, visível na 1ª abertura,
-                com os 6 motores); depois Clips (foto → clipe, texto → clipe), Spaces e o MCP (/claude-connector). */}
-            <PublicNavDropdown item="more:tools" label="More tools">
-              <span className="nd-menu nd-mega nd-more-tools">
-                <span className="nm-col" data-nav-item="image">
-                  <span className="nm-h"><UiLabel>Images</UiLabel></span>
-                  {IMG_ENGINES.map(engine => <NavEngineItem key={engine.key} href={`/images?engine=${engine.key}`} name={engine.name} desc={engine.desc} icon={engine.icon} />)}
-                </span>
-                <span className="nm-col">
-                  {showClips && (
-                    <span data-nav-item="more:clips" style={{ display: 'contents' }}>
-                      <span className="nm-h"><UiLabel>Clips</UiLabel></span>
-                      <NavEngineItem href="/clips?upload=1" name="Photo to clip" translateName desc="One-click photo effects" preview="/previews/efeito-product_360.mp4" thumb="/nav-thumbs/photo.webp" />
-                      <NavEngineItem href="/clips" name="Text to clip" translateName desc="One line, a 5–15 s scene" preview="/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4" thumb="/nav-thumbs/kling.webp" />
-                    </span>
-                  )}
-                  <span className={showClips ? 'nm-h nm-h-next' : 'nm-h'}><UiLabel>More</UiLabel></span>
-                  <Link href="/spaces" data-nav-item="more:spaces"><span className="nm-tx"><b><UiLabel>Spaces</UiLabel></b><i><UiLabel>Empty space in, finished space out</UiLabel></i></span></Link>
-                  {/* KINEO-NAV-MCP-2026-09-30 — fundador: "colocar o MCP no menu" (como Buzzy/Higgsfield). A página do MCP é a
-                      /claude-connector (URL de documentação do diretório do Claude — não muda de endereço). */}
-                  <Link href="/claude-connector" data-nav-item="more:mcp"><span className="nm-tx"><b><UiLabel>MCP</UiLabel></b><i><UiLabel>Write your video in Claude, render it in Kineo Studio</UiLabel></i></span></Link>
-                </span>
-              </span>
-            </PublicNavDropdown>
+            {/* KINEO-HOME-REMODELA-2010 — fundador 20/10: "esses vão ser os quatro principais, e ao lado vai ser o MCP do Claude e do GPT… more tools a gente vai cancelar". */}
+            {/* KINEO-HOME-REMODELA-2010 — 4º principal: os desenhos 3D para crianças; ao lado, o conector (Claude e ChatGPT). O "More tools" saiu: Images, Clips, Spaces e Examples seguem no rodapé e pela URL. */}
+            <Link href={MENU_CARTOON_HREF} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>{/* KINEO-HOME-REMODELA-2010 */}
+            <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM} className="nav-connector">{MENU_CONNECTOR_LABEL}</Link>{/* KINEO-HOME-REMODELA-2010 */}
             {/* KINEO-TRENDING-2026-10-13 — fundador 13/10: "🔥 Trending now" no topo (vídeos reais feitos na Kineo, cada um com "Make mine"). Item
                 novo logo antes de Pricing; nada saiu nem encolheu. Pares: menu do celular abaixo, /examples, /trending, Sidebar/MobileNav. */}
             <Link href="/trending" data-nav-item="more:trending"><UiLabel>🔥 Trending</UiLabel></Link>
@@ -998,21 +981,14 @@ export default function KineoLanding({
               <Link href="/studio" data-nav-item="video"><UiLabel>Make a film</UiLabel></Link>
               <Link href="/ads/new" data-nav-item="business"><UiLabel>Product ads</UiLabel></Link>
               <NavUgcAdsLink data-nav-item="more:ugc" />{/* KINEO-MENU-UGC-2010 — par do topo no celular */}
+              <Link href={MENU_CARTOON_HREF} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>{/* KINEO-HOME-REMODELA-2010 — par do topo */}
+              <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM}>{MENU_CONNECTOR_LABEL}</Link>{/* KINEO-HOME-REMODELA-2010 — par do topo */}
               <Link href="/trending" data-nav-item="more:trending"><UiLabel>🔥 Trending</UiLabel></Link>{/* KINEO-TRENDING-2026-10-13 — par do topo */}
               <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
               {initialUser
                 ? <Link className="btn btn-w" href="/studio"><UiLabel>Dashboard</UiLabel></Link>
                 : <Link href="/login" data-nav-item="login" data-auth-modal="login"><UiLabel>Log in</UiLabel></Link>}
-              <span className="nav-mobile-kicker"><UiLabel>More tools</UiLabel></span>
-              <Link href="/images" data-nav-item="image"><UiLabel>Images</UiLabel></Link>
-              <span className="nav-mobile-engines">
-                {IMG_ENGINES.map(engine => <Link key={engine.key} href={`/images?engine=${engine.key}`} data-nav-item="image"><span className="nm-ic" aria-hidden="true">{engine.icon}</span>{engine.name}</Link>)}
-              </span>
-              {showClips && <Link href="/clips" data-nav-item="more:clips"><UiLabel>Clips</UiLabel></Link>}
-              <Link href="/spaces" data-nav-item="more:spaces"><UiLabel>Spaces</UiLabel></Link>
-              <Link href="/claude-connector" data-nav-item="more:mcp"><UiLabel>MCP</UiLabel></Link>
-              {/* KINEO-MENU-VIDEO-LIMPO-2026-10-09 — par do mega-menu: só Examples fica. */}
-              <Link className="nav-mobile-more" href="/examples" data-nav-item="examples"><UiLabel>Examples</UiLabel></Link>
+              {/* KINEO-HOME-REMODELA-2010 — par do topo no celular: o rótulo "More tools" e os itens dele saíram (Images, Clips, Spaces, Examples seguem no rodapé) */}
               {initialUser
                 ? null
                 : <Link className="btn btn-w" data-auth-modal="signup" href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav-mobile'}><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>}
@@ -1036,12 +1012,12 @@ export default function KineoLanding({
       {showThreeCards ? <HomeThreeCards signedIn={isSignedIn} /> : ( // KINEO-HOME-3-CARDS-1910
       <HomeTwoDoors signedIn={isSignedIn} filmOffer={filmDoorOffer} adsOffer={adsDoorOffer} />
       ) /* KINEO-HOME-3-CARDS-1910 */}
-      {clipsFirst && <HomeClipsStrip signedIn={isSignedIn} />}
+      {showClips && <HomeClipsStrip signedIn={isSignedIn} />}{/* KINEO-HOME-REMODELA-2010 — fundador 20/10 "dobrar o número de clips": 8 clipes, nos DOIS braços do A/B, logo depois dos cards do topo */}
 
       <header className="hero">
         <div className="glow" />
         <div className="wrap">
-          {clipsFirst && (
+          {(clipsFirst || showClips) && ( // KINEO-HOME-REMODELA-2010 — a faixa de Clipes agora abre a página nos 2 braços: o título "Narrated films" separa os filmes dela
             <>
               <div className="home-business-heading" style={{ marginBottom: 6 }}>
                 <h2><UiLabel>Narrated films</UiLabel></h2>
@@ -1093,9 +1069,9 @@ export default function KineoLanding({
 
       {/* KINEO-DUAS-PORTAS-2026-10-13 — "More tools": a fileira de 4 cards (Claude · Ads · Clips · Nano Banana Pro) que abria a
           página, agora DEPOIS dos filmes. Os 4 ficam (grade sempre cheia, regra do fundador), mesmo o de Ads repetindo a porta. */}
-      <section className="home-more-tools" aria-label="More tools">
-        <div className="wrap"><div className="home-business-heading" style={{ margin: '34px 0 0' }}><h2><UiLabel>More tools</UiLabel></h2></div></div>
-        <PromoCards cards={promoCardsFor({ clips: clipsVisible(initialEmail) })} />
+      <section className="home-more-tools" aria-label={HOME_GALLERY_TITLE}>{/* KINEO-HOME-REMODELA-2010 — "More tools" virou "Images made by Kineo" */}
+        <div className="wrap"><div className="home-business-heading" style={{ margin: '34px 0 0' }}><h2><UiLabel>{HOME_GALLERY_TITLE}</UiLabel></h2></div></div>{/* KINEO-HOME-REMODELA-2010 */}
+        {/* KINEO-HOME-REMODELA-2010 — fundador 20/10: "no More Tools, eu quero extinguir esses cards"; os exemplos foram para a faixa de Clipes e para a galeria */}
         <HomeImageGallery />{/* KINEO-HOME-LIMPA-1410 */}
       </section>
 

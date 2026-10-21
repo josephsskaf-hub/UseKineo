@@ -1,0 +1,9 @@
+{
+  "app/KineoLanding.tsx": 11,
+  "app/examples/page.tsx": 2,
+  "app/trending/page.tsx": 2,
+  "components/Footer.tsx": 3,
+  "components/home/HomeClipsStrip.tsx": 18,
+  "components/home/HomeImageGallery.tsx": 15,
+  "scripts/test-support/desfaz-menu-ugc-2010.mjs": 2
+}
