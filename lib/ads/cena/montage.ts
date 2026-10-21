@@ -20,11 +20,11 @@ export function buildCenaMontage(s: CenaState): Record<string, unknown> {
   if (backdrop) { delete backdrop.source; delete backdrop.fit; delete backdrop.animations; backdrop.type = 'shape'; backdrop.path = 'M 0 0 L 100 0 L 100 100 L 0 100 L 0 0 Z'; backdrop.fill_color = '#ffffff' }
   // Cartão CENA dentro da zona segura: título, selo e CTA em trilhas próprias, CTA acima de y1480.
   for (const e of card.filter(e => e.type === 'text')) {
-    if (e.track === 24) e.y = '60.5%'
-    if (e.track === 25) e.y = '67%'
+    if (e.track === 24) e.y = '65%'
+    if (e.track === 25) e.y = '69%'
     if (e.track === 26) e.y = '74%'
     const n = String(e.text ?? '').length
-    if (e.track === 25 || e.track === 26) e.font_size = Math.max(38, Math.min(Number(e.font_size), Math.floor(width * 0.78 / Math.max(1, n * 0.55))))
+    if (e.track === 24 || e.track === 25 || e.track === 26) e.font_size = Math.max(38, Math.min(Number(e.font_size), e.track === 24 ? 70 : e.track === 25 ? 60 : 64, Math.floor(width * 0.78 / Math.max(1, n * 0.55))))
   }
   els.push(...card)
   const beats = [{ text: s.plan.script.hook, start: 0, seconds: 3 }, { text: s.plan.script.use, start: 3, seconds: 7 }, { text: s.plan.script.benefit, start: 10, seconds: 3 }]
