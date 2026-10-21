@@ -26,5 +26,11 @@
       "  const semMarca = BEBE_QUE_FALA_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !semHomeCardsClaros2010(rd(f), f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: as linhas do véu mais claro (camada mais nova) saem antes da conferência da marca",
       "  const semMarca = BEBE_QUE_FALA_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !rd(f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) })"
     ]
+  ],
+  "scripts/test-verbatim-intocavel-2010.mjs": [
+    [
+      "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-BEBE-QUE-FALA-2010', '--grep=KINEO-MCP-STUDIO-AJUSTE-2010', `--grep=${MARCA_HOME_REMODELA_2010}`, '--grep=KINEO-HOME-CARDS-CLAROS-2010', 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-HOME-REMODELA-2010 — a última versão alheia pula também os commits da home remodelada (os merges da fila e as reâncoras) // KINEO-HOME-CARDS-CLAROS-2010 — reancorado: os commits do véu mais claro dos cards (20/10 23:30) também são de depois",
+      "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-BEBE-QUE-FALA-2010', '--grep=KINEO-MCP-STUDIO-AJUSTE-2010', `--grep=${MARCA_HOME_REMODELA_2010}`, 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-HOME-REMODELA-2010 — a última versão alheia pula também os commits da home remodelada (os merges da fila e as reâncoras)"
+    ]
   ]
 }
