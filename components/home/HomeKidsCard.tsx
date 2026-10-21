@@ -10,7 +10,7 @@ import { useEffect, useRef } from 'react'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { trackEvent } from '@/lib/analytics'
 import { HOME_CARD_EVENT } from '@/lib/ui/homeThreeCards'
-import { HOME_KIDS_CARD_BADGE, HOME_KIDS_CARD_CLIP, HOME_KIDS_CARD_ID, homeKidsCardClickMetadata, homeKidsCardCopy, homeKidsCardHref } from '@/lib/ui/homeKidsCard'
+import { HOME_KIDS_CARD_CLIP, HOME_KIDS_CARD_ID, homeKidsCardClickMetadata, homeKidsCardCopy, homeKidsCardHref } from '@/lib/ui/homeKidsCard' // KINEO-HOME-CARDS-CLAROS-2010 — HOME_KIDS_CARD_BADGE saiu do import (sem o selo do motor no card)
 
 function KidsMedia() {
   const ref = useRef<HTMLSpanElement>(null)
@@ -44,7 +44,7 @@ export default function HomeKidsCard({ signedIn }: { signedIn: boolean }) {
       <KidsMedia />
       <span className="k3c-shade" aria-hidden="true" />
       <span className="k3c-glass" aria-hidden="true" />
-      <span className="k3c-badge" aria-hidden="true">{HOME_KIDS_CARD_BADGE}</span>
+      {/* KINEO-HOME-CARDS-CLAROS-2010 — sem o selo do motor (fundador 21/10: "pode tirar o motor de todos os cards desses 4 primeiros"); era: <span className="k3c-badge" aria-hidden="true">{HOME_KIDS_CARD_BADGE}</span> */}
       <span className="k3c-body">
         <h2 className="k3c-title">{title}</h2>
         <p className="k3c-sub">{line}</p>
