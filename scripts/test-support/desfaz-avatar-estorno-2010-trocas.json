@@ -108,5 +108,9 @@
   "scripts/test-support/desfaz-ads-nota9-2110.mjs": {
     "acrescimos": 2,
     "trocas": []
+  },
+  "scripts/test-desenho-nota9-2110.mjs": {
+    "acrescimos": 2,
+    "trocas": []
   }
 }
