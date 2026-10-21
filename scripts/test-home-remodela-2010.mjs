@@ -17,6 +17,7 @@
 //   D. desfaz exato (cada arquivo tocado, desfeito, é a base), encadeado como camada mais nova (semMenuUgc2010 chama este primeiro);
 //   M. mutantes: cada regra acima fica vermelha quando a quebramos de propósito (aplicação provada antes de medir).
 import fs from 'node:fs'
+import { semBebeQueFala2010, BEBE_QUE_FALA_2010_ARQUIVOS, BEBE_QUE_FALA_2010_NOVOS } from './test-support/desfaz-bebe-que-fala-2010.mjs' // reancorado KINEO-BEBE-QUE-FALA-2010 — o desenho infantil/bebê-podcast (20/10) foi mesclado depois: sai em memória; arquivos e commits dele fora da conta
 import path from 'node:path'
 import vm from 'node:vm'
 import { execFileSync } from 'node:child_process'
@@ -226,7 +227,7 @@ function checaDesfaz() {
     if (lf(semHomeRemodela2010(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)) !== b) e.push(`${rel}: desfeito com CRLF ≠ base`)
   }
   for (const n of HOME_REMODELA_2010_NOVOS) if (!fs.existsSync(path.join(ROOT, n))) e.push(`novo ausente: ${n}`)
-  const cabeca = rd('scripts/test-support/desfaz-menu-ugc-2010.mjs')
+  const cabeca = semBebeQueFala2010(rd('scripts/test-support/desfaz-menu-ugc-2010.mjs'), 'scripts/test-support/desfaz-menu-ugc-2010.mjs') // reancorado KINEO-BEBE-QUE-FALA-2010
   const i = cabeca.indexOf('export function semMenuUgc2010(')
   const corpo = cabeca.slice(i, cabeca.indexOf('\n}', i))
   const l1 = corpo.split('\n')[1] ?? ''

@@ -21,6 +21,7 @@
 //   (M) MUTANTES em disco: tirar o reenvio, tirar o job da falha, tirar o `.is('title', null)` ou o reenvio do status
 //       deixa (R)/(T) vermelho.
 import fs from 'node:fs'
+import { semBebeQueFala2010, BEBE_QUE_FALA_2010_ARQUIVOS, BEBE_QUE_FALA_2010_NOVOS } from './test-support/desfaz-bebe-que-fala-2010.mjs' // reancorado KINEO-BEBE-QUE-FALA-2010 — o desenho infantil/bebê-podcast (20/10) foi mesclado depois: sai em memória; arquivos e commits dele fora da conta
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { pathToFileURL, fileURLToPath } from 'node:url'
@@ -323,7 +324,7 @@ ok(/<ShowcaseGrid \/>/.test(S.page) && /^import ShowcaseGrid from '\.\/ShowcaseG
 ok(/Live in Claude/.test(S.page) && /Live in ChatGPT/.test(S.page) && /\{ key: 'chatgpt', label: 'ChatGPT' \},\n\]/.test(S.page) && !/· soon/.test(S.page), '(D8) topo: "Live in Claude" e "Live in ChatGPT"; azulejo do ChatGPT sem "soon"')
 ok(!/['"`]#[0-9a-fA-F]{3,8}\b/.test(code(S.grid)) && !/['"`]#[0-9a-fA-F]{3,8}\b/.test(code(S.section)), '(D9) cores só da paleta (vitrine e seção)')
 for (const rel of ['lib/engineWall.ts', 'lib/homeVideoCuration.ts', 'app/api/mcp/route.ts', 'lib/mcp/kineoMcp.ts', 'lib/mcp/connectorHandoff.ts', 'app/api/generate-video-cinematic/route.ts', 'app/api/compose/route.ts']) {
-  ok(base(rel) !== null && read(rel) === base(rel), `(D10) ${rel} intocado byte a byte`)
+  ok(base(rel) !== null && semBebeQueFala2010(read(rel), rel) === base(rel), `(D10) ${rel} intocado byte a byte`) // reancorado KINEO-BEBE-QUE-FALA-2010
 }
 ok(/MCP_STUDIO_LIVE|Kineo Studio/.test(S.doc) && /ChatGPT/.test(S.doc) && /reenvi/.test(S.doc), '(D11) doc da entrega registra o que mudou (título, reenvio, ChatGPT, página)')
 
@@ -339,13 +340,15 @@ for (const rel of MCP_STUDIO_AJUSTE_2010_NOVOS) {
 const changed = [...new Set([...git('diff', '--name-only', MCP_STUDIO_AJUSTE_2010_BASE).split('\n'), ...git('ls-files', '--others', '--exclude-standard').split('\n')].filter(Boolean))]
 const declared = [...MCP_STUDIO_AJUSTE_2010_ARQUIVOS, ...MCP_STUDIO_AJUSTE_2010_NOVOS]
 declared.push(...HOME_REMODELA_2010_ARQUIVOS, ...HOME_REMODELA_2010_NOVOS, HOME_REMODELA_2010_JSON) // KINEO-HOME-REMODELA-2010 — os arquivos da home remodelada (entrega de depois) não são desta
+declared.push(...BEBE_QUE_FALA_2010_ARQUIVOS, ...BEBE_QUE_FALA_2010_NOVOS) // reancorado KINEO-BEBE-QUE-FALA-2010 — os arquivos do desenho infantil (entrega de depois) não são desta
 ok(changed.every((f) => declared.includes(f)), `(F3) o diff contra a base só toca arquivos declarados (${changed.filter((f) => !declared.includes(f)).join(', ') || 'ok'})`)
 const commits = git('log', '--format=%s', `${MCP_STUDIO_AJUSTE_2010_BASE}..HEAD`).split('\n').filter(Boolean)
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_HOME_REMODELA_2010))) // KINEO-HOME-REMODELA-2010 — os commits (e os merges da fila) da home remodelada levam a marca deles
+commits.splice(0, commits.length, ...commits.filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010'))) // reancorado KINEO-BEBE-QUE-FALA-2010 — os commits do desenho infantil levam a marca deles
 ok(commits.every((s) => s.includes(MARCA_MCP_STUDIO_AJUSTE_2010)), `(F4) todo commit da entrega leva a marca (${commits.length})`)
 ok(semMcpStudioAjuste2010('sem marca', F.page) === 'sem marca' && semMcpStudioAjuste2010(raw(F.page), 'outro/arquivo.ts') === raw(F.page), '(F5) desfaz idempotente fora do alvo')
 {
-  const V = read('scripts/test-support/desfaz-verbatim-intocavel-2010.mjs')
+  const V = semBebeQueFala2010(read('scripts/test-support/desfaz-verbatim-intocavel-2010.mjs'), 'scripts/test-support/desfaz-verbatim-intocavel-2010.mjs') // reancorado KINEO-BEBE-QUE-FALA-2010
   ok(/import \{ semMcpStudioAjuste2010 \} from '\.\/desfaz-mcp-studio-ajuste-2010\.mjs'/.test(V) && /export function semVerbatimIntocavel2010NaCadeia\(texto, p\) \{\n\s+texto = semMcpStudioAjuste2010\(texto, p\)/.test(V) && /export function semVerbatimIntocavel2010\(caminho, src\) \{\n\s+if \(typeof src !== 'string'\) return src\n\s+src = semMcpStudioAjuste2010\(src, rel\(caminho\)\)/.test(V) && /texto = semVerbatimIntocavel2010NaCadeia\(texto, p\)/.test(read('scripts/test-support/desfaz-avatar-preso-2010.mjs')), '(F6) encadeado: a camada de antes (verbatim, chamada primeiro por semAvatarPreso2010) tira esta camada primeiro')
   let lancou = false
   try { semMcpStudioAjuste2010(raw('scripts/test-mcp-studio-2010.mjs') + '\n// linha a mais ' + MARCA_MCP_STUDIO_AJUSTE_2010, 'scripts/test-mcp-studio-2010.mjs') } catch { lancou = true }

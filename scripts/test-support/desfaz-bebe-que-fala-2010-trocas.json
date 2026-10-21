@@ -103,6 +103,12 @@
    "const LAND = read('app/KineoLanding.tsx')"
   ]
  ],
+ "scripts/test-home-remodela-2010.mjs": [
+  [
+   "  const cabeca = semBebeQueFala2010(rd('scripts/test-support/desfaz-menu-ugc-2010.mjs'), 'scripts/test-support/desfaz-menu-ugc-2010.mjs') // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "  const cabeca = rd('scripts/test-support/desfaz-menu-ugc-2010.mjs')"
+  ]
+ ],
  "scripts/test-kling25-variedade-2026-09-28.mjs": [
   [
    "  vm.runInNewContext(js, { exports: exp, console: { log() {}, warn() {}, error() {} }, JSON, Math, Number, Array, Object, Set, Map, String, RegExp, process: { env: {} }, romanceAdulto: { ativo: false }, desenhoInfantil: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op) · desenhoInfantil: reancorado KINEO-BEBE-QUE-FALA-2010 (sem kids_cartoon a linha é no-op)",
@@ -121,6 +127,16 @@
   [
    "const commits = git('log', '--format=%s', `${MCP_STUDIO_2010_BASE}..HEAD`).split('\\n').filter(Boolean).filter((s) => !s.includes(MARCA_META95_PERSONAGEM_2010)).filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010')) /* reancorado KINEO-BEBE-QUE-FALA-2010 */ // reancorado KINEO-META95-PERSONAGEM-2010: os commits da folha de personagem levam a marca deles",
    "const commits = git('log', '--format=%s', `${MCP_STUDIO_2010_BASE}..HEAD`).split('\\n').filter(Boolean).filter((s) => !s.includes(MARCA_META95_PERSONAGEM_2010)) // reancorado KINEO-META95-PERSONAGEM-2010: os commits da folha de personagem levam a marca deles"
+  ]
+ ],
+ "scripts/test-mcp-studio-ajuste-2010.mjs": [
+  [
+   "  ok(base(rel) !== null && semBebeQueFala2010(read(rel), rel) === base(rel), `(D10) ${rel} intocado byte a byte`) // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "  ok(base(rel) !== null && read(rel) === base(rel), `(D10) ${rel} intocado byte a byte`)"
+  ],
+  [
+   "  const V = semBebeQueFala2010(read('scripts/test-support/desfaz-verbatim-intocavel-2010.mjs'), 'scripts/test-support/desfaz-verbatim-intocavel-2010.mjs') // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "  const V = read('scripts/test-support/desfaz-verbatim-intocavel-2010.mjs')"
   ]
  ],
  "scripts/test-menu-ugc-2010.mjs": [
