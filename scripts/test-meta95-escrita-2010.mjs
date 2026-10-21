@@ -1,3 +1,4 @@
+import { semMcpDesenho2110, MCP_DESENHO_2110_ARQUIVOS, MCP_DESENHO_2110_NOVOS, MARCA_MCP_DESENHO_2110 } from './test-support/desfaz-mcp-desenho-2110.mjs' // KINEO-MCP-DESENHO-2110 — reâncora: a camada cartoon sai primeiro; arquivos/commits próprios
 // [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] KINEO-META95-ESCRITA-2010 — guardião da legenda na escrita do roteiro.
 //
 //     node scripts/test-meta95-escrita-2010.mjs
@@ -44,7 +45,7 @@ const ROOT = path.resolve(import.meta.dirname, '..')
 const ts = require(path.join(ROOT, 'node_modules', 'typescript'))
 const MARCA = MARCA_META95_ESCRITA_2010
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
+const rd = (rel) => lf(semMcpDesenho2110(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)) // KINEO-MCP-DESENHO-2110 — retira a camada cartoon antes da comparação antiga
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (rel) => { try { return lf(git('show', `${META95_ESCRITA_2010_BASE}:${rel}`)) } catch { return null } }
 let pass = 0
@@ -307,6 +308,7 @@ console.log('\nD. desfaz\n')
   const TOPO = git('log', '--format=%H', `--grep=${MARCA}`, '-1', 'HEAD').trim() || 'HEAD' // inclui o merge da main nesta entrega (a base é a main mesclada)
   const tocados = new Set([...git('diff', '--name-only', META95_ESCRITA_2010_BASE, TOPO).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n')].filter(Boolean))
   const permitidos = new Set([...META95_ESCRITA_2010_ARQUIVOS, ...META95_ESCRITA_2010_NOVOS])
+  for (const f of [...MCP_DESENHO_2110_ARQUIVOS, ...MCP_DESENHO_2110_NOVOS]) permitidos.add(f) // KINEO-MCP-DESENHO-2110 — arquivos próprios do cartoon, com desfaz exato
   const fora = [...tocados].filter((f) => !permitidos.has(f))
   const semMarca = META95_ESCRITA_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !semAvatarPreso2010(semBebeQueFala2010(rd(f), f) /* reancorado KINEO-BEBE-QUE-FALA-2010 */, f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) }) // reancorado KINEO-AVATAR-PRESO-2010: as linhas do avatar preso não são desta entrega
   ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && ![...tocados].some((f) => /engineCost|pricing|lib\/credits\//.test(f)),

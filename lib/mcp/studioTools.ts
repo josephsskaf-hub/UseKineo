@@ -17,10 +17,12 @@ import { fetchUserPlan } from '@/lib/plan'
 import { isTrialActive } from '@/lib/reverseTrial'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { mintUserSession } from '@/lib/mcp/studioSession'
+import { KIDS_HANDOFF_PROMPT_MAX_CHARS } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-MCP-DESENHO-2110
 import {
   ACTIVE_JOB_WINDOW_MS,
   TOOL_CREATE,
   engineCatalog,
+  cartoonCatalog, // KINEO-MCP-DESENHO-2110
   estimatedMinutes,
   studioEngineLabel,
   type CreateVideoInput,
@@ -37,6 +39,8 @@ export const STUDIO_REFUSED_EVENT = 'mcp_studio_refused'
 export const STUDIO_EVENT_PATH = '/api/mcp/studio'
 /** A rota do site que o conector chama — a mesma do botão Generate. */
 export const STUDIO_GENERATE_PATH = '/api/generate-video-cinematic'
+export const STUDIO_STORY_PATH = '/api/kids-cartoon/story' // KINEO-MCP-DESENHO-2110 — o MESMO escritor moderado da tela.
+export const STUDIO_STORY_TIMEOUT_MS = 65_000 // KINEO-MCP-DESENHO-2110 — a rota da história tem maxDuration 60 s.
 export const STUDIO_USER_AGENT = 'kineo-mcp-studio/1.0'
 /** O despacho do site responde em < 90 s na aba; aqui há folga para a fila da fal. */
 export const STUDIO_DISPATCH_TIMEOUT_MS = 170_000
@@ -115,6 +119,7 @@ export async function studioAccount(ctx: StudioCtx, pausedEngines: readonly stri
     credits,
     can_render_now: credits > 0 && credits >= cheapest,
     engines,
+    formats: [cartoonCatalog(pausedEngines)], // KINEO-MCP-DESENHO-2110 — preço/personagens/durações da fonte do site.
     plans_url: `${ctx.publicOrigin}/pricing?utm_source=claude_studio_connector`,
     library_url: `${ctx.publicOrigin}/library`,
     note: 'Credits are per film: the engine and the length decide the price. A 15-second Seedance 1.5 film is the cheapest way to try.',
@@ -161,6 +166,7 @@ export async function studioCreateVideo(ctx: StudioCtx, input: CreateVideoInput,
     }
   }
   if (!ctx.email) return { ok: false, error: 'This account has no e-mail on file, so the connector cannot sign in for it. Nothing was charged.', details: { reason: 'no_email' } }
+  if (input.format === 'cartoon' && !input.cartoon) return { ok: false, error: 'Send a valid cartoon character and story idea. Nothing was charged.', details: { reason: 'invalid_cartoon', charged: false } } // KINEO-MCP-DESENHO-2110
 
   const startedAt = io.now()
   const minted = await io.mint(ctx.userId, ctx.email) // KINEO-MCP-STUDIO-AJUSTE-2010: mintUserSession(ctx.userId, ctx.email) pelo I/O injetável
@@ -181,6 +187,36 @@ export async function studioCreateVideo(ctx: StudioCtx, input: CreateVideoInput,
   let res: Response | null = null
   let data: Record<string, unknown> = {}
   try {
+    // KINEO-MCP-DESENHO-2110 — história ANTES do filme, na mesma sessão da pessoa. A rota aplica moderação de
+    // entrada/saída e regra infantil; erro aqui nunca é um despacho pago ambíguo, nunca grava job nem tenta o filme.
+    if (input.format === 'cartoon' && input.cartoon) {
+      let storyRes: Response
+      let story: Record<string, unknown>
+      try {
+        storyRes = await io.fetch(`${ctx.origin}${STUDIO_STORY_PATH}`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', cookie: minted.session.cookie, 'user-agent': STUDIO_USER_AGENT, 'x-kineo-mcp-studio': '1' },
+          body: JSON.stringify(input.cartoon),
+          cache: 'no-store',
+          signal: AbortSignal.timeout(STUDIO_STORY_TIMEOUT_MS),
+        })
+        const raw: unknown = await storyRes.json()
+        story = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as Record<string, unknown> : {}
+      } catch {
+        return { ok: false, error: 'Kineo could not write the cartoon story right now. Try again in a minute. Nothing was charged.', details: { reason: 'story_unavailable', charged: false } }
+      }
+      if (!storyRes.ok) {
+        const message = typeof story.error === 'string' && story.error ? story.error : 'Kineo could not write this cartoon story. Try another story idea.'
+        return { ok: false, error: `${message} Nothing was charged.`, details: { reason: typeof story.reason === 'string' ? story.reason : `story_http_${storyRes.status}`, http_status: storyRes.status, charged: false } }
+      }
+      const script = typeof story.script === 'string' ? story.script.trim() : ''
+      if (!script || script.length > KIDS_HANDOFF_PROMPT_MAX_CHARS) {
+        return { ok: false, error: 'Kineo did not return a usable cartoon story. Try again in a minute. Nothing was charged.', details: { reason: 'story_invalid', charged: false } }
+      }
+      body.prompt = script
+      body.script_mode = 'verbatim'
+      body.kids_cartoon = input.cartoon.character
+    }
     // KINEO-MCP-STUDIO-AJUSTE-2010 — `pending` = a MESMA geração ainda fechando: reenvia o MESMO corpo (o claim casa pela
     // impressão digital) enquanto houver prazo, como a aba do site faz. Nada novo é cobrado: a chave do débito é a geração.
     for (let attempt = 0; attempt <= STUDIO_PENDING_REPLAYS; attempt++) {

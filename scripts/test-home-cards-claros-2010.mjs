@@ -1,3 +1,4 @@
+import { semMcpDesenho2110, MCP_DESENHO_2110_ARQUIVOS, MCP_DESENHO_2110_NOVOS, MARCA_MCP_DESENHO_2110 } from './test-support/desfaz-mcp-desenho-2110.mjs' // KINEO-MCP-DESENHO-2110 — reâncora: a camada cartoon sai primeiro; arquivos/commits próprios
 // KINEO-HOME-CARDS-CLAROS-2010 — guardião da "parte de baixo dos vídeos clara e nítida" nos 4 cards da home.
 // Fundador 20/10 23:30: "a parte de baixo dos vídeos tá bem escura, arruma isso pra hoje". A v1 (véu mais leve + vidro fosco) virou
 // mancha — fundador 21/10: "ainda está com problema na parte de baixo, parece uma sombra". v2: o vidro fosco SAIU, sobra um degradê curto
@@ -30,7 +31,7 @@ import { semMenuUgc2010 } from './test-support/desfaz-menu-ugc-2010.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const lf = (s) => s.replace(/\r\n/g, '\n')
-const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))
+const rd = (p) => lf(semMcpDesenho2110(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-MCP-DESENHO-2110 — conteúdo anterior à camada cartoon
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return lf(git('show', `${B}:${p}`)) } catch { return null } }
 const F = { three: 'components/home/HomeThreeCards.tsx', bebe: 'scripts/test-support/desfaz-bebe-que-fala-2010.mjs' }
@@ -140,6 +141,7 @@ console.log('\nD. desfaz exato, diff, encadeamento')
   const TOPO = git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, '-1', 'HEAD').trim() || 'HEAD'
   const tocados = new Set([...git('diff', '--name-only', B, TOPO).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard', 'scripts').trim().split('\n').filter((f) => f.includes('home-cards-claros-2010'))].filter(Boolean))
   const permitidos = new Set([...HOME_CARDS_CLAROS_2010_ARQUIVOS, ...HOME_CARDS_CLAROS_2010_NOVOS])
+  for (const f of [...MCP_DESENHO_2110_ARQUIVOS, ...MCP_DESENHO_2110_NOVOS]) permitidos.add(f) // KINEO-MCP-DESENHO-2110 — arquivos próprios do cartoon, com desfaz exato
   const fora = [...tocados].filter((f) => !permitidos.has(f))
   const semMarca = HOME_CARDS_CLAROS_2010_ARQUIVOS.filter((f) => { const b = new Set(base(f).split('\n')); return !rd(f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) })
   const intocados = ['lib/engineWall.ts', 'lib/homeVideoCuration.ts', 'lib/ui/homeKidsCard.ts', 'components/home/HomeKidsCard.tsx', 'components/home/HomeProductAdsReel.tsx', 'lib/ui/homeThreeCards.ts'].filter((f) => existsSync(join(ROOT, f)) && rd(f) !== base(f))

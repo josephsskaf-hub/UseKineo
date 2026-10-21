@@ -1,3 +1,4 @@
+import { semMcpDesenho2110 } from './desfaz-mcp-desenho-2110.mjs' // KINEO-MCP-DESENHO-2110 — camada mais nova, sem ciclos
 // KINEO-HOME-CARDS-CLAROS-2010 — DESFAZ, em memória, a entrega "a parte de baixo dos vídeos mais clara" nos 4 cards da home (fundador 20/10 23:30:
 // KINEO-HOME-CARDS-CLAROS-2010 — "a parte de baixo dos vídeos tá bem escura, arruma isso pra hoje"): véu (.k3c-shade/.k3c-glass) mais leve em
 // KINEO-HOME-CARDS-CLAROS-2010 — components/home/HomeThreeCards.tsx + sombra no título/linha, e as reâncoras dos guardiões da home.
@@ -41,6 +42,7 @@ export const HOME_CARDS_CLAROS_2010_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semHomeCardsClaros2010(texto, p) {
+  texto = semMcpDesenho2110(texto, p) // KINEO-MCP-DESENHO-2110 — a camada cartoon sai PRIMEIRO
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_HOME_CARDS_CLAROS_2010) || !HOME_CARDS_CLAROS_2010_ARQUIVOS.includes(rel)) return texto
   const crlf = texto.includes('\r\n')

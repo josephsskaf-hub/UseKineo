@@ -1,3 +1,4 @@
+import { semMcpDesenho2110, MCP_DESENHO_2110_ARQUIVOS, MCP_DESENHO_2110_NOVOS, MARCA_MCP_DESENHO_2110 } from './test-support/desfaz-mcp-desenho-2110.mjs' // KINEO-MCP-DESENHO-2110 — reâncora: a camada cartoon sai primeiro; arquivos/commits próprios
 // KINEO-MENU-UGC-2010 — guardião do item "AI UGC Ads" no menu do topo do site (fundador 20/10: "o 2 no menu no topo, sim").
 //
 // O QUE ELE PROVA (lendo os arquivos reais, EXECUTANDO a lib pura num vm e comparando com a base no git):
@@ -32,7 +33,7 @@ const ts = require('typescript')
 const ROOT = path.resolve(import.meta.dirname, '..')
 const MARCA = 'KINEO-MENU-UGC-2010'
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
+const rd = (rel) => lf(semMcpDesenho2110(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)) // KINEO-MCP-DESENHO-2110 — retira a camada cartoon antes da comparação antiga
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (rel) => { try { return lf(git('show', `${MENU_UGC_2010_BASE}:${rel}`)) } catch { return null } }
 let pass = 0
@@ -251,6 +252,7 @@ console.log('\nD. desfaz exato, encadeamento, diff, commits')
   const TOPO = git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, '-1', 'HEAD').trim() || 'HEAD'
   const tocados = new Set([...git('diff', '--name-only', MENU_UGC_2010_BASE, TOPO).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n')].filter(Boolean))
   const permitidos = new Set([...MENU_UGC_2010_ARQUIVOS, ...MENU_UGC_2010_NOVOS])
+  for (const f of [...MCP_DESENHO_2110_ARQUIVOS, ...MCP_DESENHO_2110_NOVOS]) permitidos.add(f) // KINEO-MCP-DESENHO-2110 — arquivos próprios do cartoon, com desfaz exato
   const fora = [...tocados].filter((f) => !permitidos.has(f))
   const semMarca = MENU_UGC_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !semHomeRemodela2010(semBebeQueFala2010(rd(f), f), f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-HOME-REMODELA-2010 // reancorado KINEO-BEBE-QUE-FALA-2010
   ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && ![...tocados].some((f) => /engineCost|pricing|lib\/credits\/|lib\/ads\/|app\/api\//.test(f)),

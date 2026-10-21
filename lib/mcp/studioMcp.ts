@@ -18,6 +18,12 @@ import { ENGINE_LABELS } from '@/lib/gptHandoff'
 import { creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import { supportedDurationsFor } from '@/lib/durationByEngine'
 import { NARRATION_LANGUAGE_CODES } from '@/lib/textLanguage'
+// KINEO-MCP-DESENHO-2110 — o contrato do desenho e suas ideias vêm do mesmo módulo da tela.
+import {
+  KIDS_CARTOON_ENGINE, KIDS_CARTOON_DURATIONS, KIDS_CARTOON_DEFAULT_DURATION,
+  KIDS_CARTOON_LANGUAGES, KIDS_CHARACTERS, KIDS_CHARACTER_IDS, KIDS_IDEAS, KIDS_IDEA_MAX_CHARS,
+  validateKidsCartoonRequest, type KidsCartoonRequest,
+} from '@/lib/kidsCartoon/kidsCartoon'
 import {
   JSONRPC_INVALID_PARAMS,
   JSONRPC_INVALID_REQUEST,
@@ -51,7 +57,7 @@ export const STUDIO_ENGINE_QUALITY: Readonly<Record<StudioEngine, Quality>> = {
 export const STUDIO_DEFAULT_ENGINE: StudioEngine = 'seedance'
 export const STUDIO_DURATIONS = [15, 30, 35, 60, 90] as const
 export const STUDIO_DEFAULT_DURATION = 35
-export const STUDIO_FORMATS = ['film', 'product_ad', 'ugc_ad', 'kids_cartoon'] as const
+export const STUDIO_FORMATS = ['film', 'product_ad', 'ugc_ad', 'kids_cartoon', 'cartoon'] as const // KINEO-MCP-DESENHO-2110
 export type StudioFormat = (typeof STUDIO_FORMATS)[number]
 export const STUDIO_ASPECTS = ['9:16', '16:9', '1:1', '4:5'] as const
 export const STUDIO_SCRIPT_MAX_CHARS = 6000
@@ -84,6 +90,19 @@ export function engineCatalog(pausedEngines: readonly string[]): { engine: Studi
     family: engine === 'hollywood' || engine === 'h3' ? 'premium' : 'standard',
     durations: durationsFor(engine).map((seconds) => ({ seconds, credits: estimateCredits(engine, seconds) })),
   }))
+}
+
+/** KINEO-MCP-DESENHO-2110 — catálogo próprio, sem inventar preço, personagem ou duração. */
+export function cartoonCatalog(pausedEngines: readonly string[]) {
+  return {
+    format: 'cartoon',
+    description: '3D kids cartoon story with the same character in every scene',
+    engine: KIDS_CARTOON_ENGINE,
+    available: !pausedEngines.includes(KIDS_CARTOON_ENGINE),
+    characters: KIDS_CHARACTERS.map(({ id, name, kind }) => ({ id, name, description: kind.en })),
+    languages: [...KIDS_CARTOON_LANGUAGES],
+    durations: KIDS_CARTOON_DURATIONS.map((seconds) => ({ seconds, credits: estimateCredits(KIDS_CARTOON_ENGINE, seconds) })),
+  }
 }
 
 /** Minutos que a pessoa deve esperar (ordem de grandeza medida no site: clássico ~3-6 min, premium ~8-15). */
@@ -129,10 +148,34 @@ export type CreateVideoInput = {
   aspect: (typeof STUDIO_ASPECTS)[number]
   idempotencyKey: string | null
   title: string | null
+  cartoon?: KidsCartoonRequest // KINEO-MCP-DESENHO-2110 — pedido validado da mesma tela, antes da história moderada.
 }
 export type CreateValidation = { ok: true; value: CreateVideoInput } | { ok: false; error: string }
 
 export function validateCreateInput(args: Record<string, unknown>, pausedEngines: readonly string[]): CreateValidation {
+  // KINEO-MCP-DESENHO-2110 — cartoon não aceita roteiro direto: a história sempre passa pela rota infantil.
+  if (args.format === 'cartoon') {
+    if (args.idea !== undefined || args.script !== undefined) return { ok: false, error: 'For cartoon, send story_idea instead of idea or script.' }
+    if (args.script_mode !== undefined && args.script_mode !== 'verbatim') return { ok: false, error: 'Cartoon uses the moderated story verbatim.' }
+    if (args.engine !== undefined && args.engine !== KIDS_CARTOON_ENGINE) return { ok: false, error: 'Cartoon uses Seedance 1.5 (seedance).' }
+    if (args.aspect !== undefined && args.aspect !== '9:16') return { ok: false, error: 'Cartoon uses vertical 9:16.' }
+    if (args.story_idea !== undefined && typeof args.story_idea !== 'string') return { ok: false, error: 'story_idea must be text, or empty for a ready idea.' }
+    const v = validateKidsCartoonRequest({
+      character: args.character,
+      language: args.language === undefined ? 'en' : args.language,
+      duration: args.duration === undefined ? KIDS_CARTOON_DEFAULT_DURATION : args.duration,
+      idea: args.story_idea ?? '', ideaId: KIDS_IDEAS[0].id,
+    })
+    if (!v.ok) return { ok: false, error: v.error }
+    // Reutiliza as guardas comuns (motor pausado, título e chave), sem duplicar as regras do filme.
+    const common = validateCreateInput({
+      format: 'film', idea: v.value.idea, engine: KIDS_CARTOON_ENGINE, duration: v.value.duration,
+      language: v.value.language, aspect: '9:16', script_mode: 'verbatim',
+      title: args.title, idempotency_key: args.idempotency_key,
+    }, pausedEngines)
+    return common.ok ? { ok: true, value: { ...common.value, format: 'cartoon', cartoon: v.value } } : common
+  }
+  if (args.character !== undefined || args.story_idea !== undefined) return { ok: false, error: 'character and story_idea require format cartoon.' }
   const idea = typeof args.idea === 'string' ? args.idea.trim() : ''
   const script = typeof args.script === 'string' ? args.script.trim() : ''
   if (!idea && !script) return { ok: false, error: 'Send either idea (a topic or one-line brief) or script (the full narration).' }
@@ -209,9 +252,6 @@ export type StudioTool = {
 export function buildStudioTools(opts: { pausedEngines: readonly string[] }): StudioTool[] {
   const catalog = engineCatalog(opts.pausedEngines)
   const engines = catalog.map((c) => c.engine)
-  const priceLine = catalog
-    .map((c) => `${c.engine} = ${c.label} (${c.durations.map((d) => `${d.seconds}s: ${d.credits} cr`).join(', ')})`)
-    .join('; ')
   const accountTitle = 'Get my Kineo plan, credits and engines'
   const createTitle = 'Create a video in my Kineo account'
   const statusTitle = 'Check a Kineo video job'
@@ -221,8 +261,7 @@ export function buildStudioTools(opts: { pausedEngines: readonly string[] }): St
       name: TOOL_ACCOUNT,
       title: accountTitle,
       description:
-        "Returns the signed-in person's Kineo plan, credit balance, whether they can render right now, and every available engine with the credits it costs per film length. " +
-        'Read-only; call it before kineo_create_video to confirm the balance covers the chosen engine and length.',
+        'Returns the person\'s plan, credits and costs per engine and length. Includes cartoon characters: 3D kids cartoon story with the same character in every scene. Read-only; call before kineo_create_video.', // KINEO-MCP-DESENHO-2110
       inputSchema: { type: 'object', properties: {}, additionalProperties: false },
       annotations: { title: accountTitle, readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
@@ -230,22 +269,21 @@ export function buildStudioTools(opts: { pausedEngines: readonly string[] }): St
       name: TOOL_CREATE,
       title: createTitle,
       description:
-        'Starts a REAL video render in the person\'s own Kineo account and spends their credits — the same rules, moderation and price as pressing Generate in Kineo Studio. ' +
-        `Credits per engine and length: ${priceLine}. ` +
-        'Send idea (a topic; Kineo writes the narration) or script (the exact narration, read verbatim). ' +
-        'The call returns a job_id in under two minutes; the film itself takes several minutes, so tell the person it is rendering and call kineo_video_status with the job_id about once a minute until status is completed. ' +
-        'If the account has no plan or not enough credits, nothing is charged and the response carries a link to the plans page. ' +
-        'Pass the same idempotency_key when retrying the same request so the person is never charged twice. ' +
-        `Formats: film renders now; product_ad, ugc_ad and kids_cartoon are not available through the connector yet and return a Kineo Studio link instead of charging.`,
+        'Creates a film or cartoon in the person\'s account using their credits and the site\'s moderation. Confirm costs with kineo_account first. ' + // KINEO-MCP-DESENHO-2110
+        'cartoon: 3D kids cartoon story with the same character in every scene. ' + // KINEO-MCP-DESENHO-2110
+        'Returns job_id; rendering takes several minutes. Poll kineo_video_status about once a minute. ' + // KINEO-MCP-DESENHO-2110
+        'Insufficient credits returns the plans page. Reuse idempotency_key for retries.', // KINEO-MCP-DESENHO-2110
       inputSchema: {
         type: 'object',
         properties: {
           idea: { type: 'string', maxLength: STUDIO_IDEA_MAX_CHARS, description: 'Topic or one-line brief. Kineo writes a narration sized for the length and engine.' },
           script: { type: 'string', maxLength: STUDIO_SCRIPT_MAX_CHARS, description: 'The full narration, read exactly as written. Use idea OR script.' },
-          format: { type: 'string', enum: [...STUDIO_FORMATS], default: 'film', description: 'film = narrated short film (available now). Other formats return a Studio link without charging.' },
+          format: { type: 'string', enum: [...STUDIO_FORMATS], default: 'film', description: 'film = narrated short film. cartoon = 3D kids cartoon story with the same character in every scene. Other formats return a Studio link.' }, // KINEO-MCP-DESENHO-2110
+          character: { type: 'string', enum: [...KIDS_CHARACTER_IDS], description: 'Required for cartoon. Choose one fixed character for every scene.' }, // KINEO-MCP-DESENHO-2110
+          story_idea: { type: 'string', maxLength: KIDS_IDEA_MAX_CHARS, description: 'Cartoon story idea. Empty or omitted picks a ready idea. Child-friendly content only.' }, // KINEO-MCP-DESENHO-2110
           engine: { type: 'string', enum: engines, default: STUDIO_DEFAULT_ENGINE, description: `Video engine: ${catalog.map((c) => `${c.engine} = ${c.label}`).join(', ')}. Use ${STUDIO_DEFAULT_ENGINE} unless the person names another.` },
-          duration: { type: 'integer', enum: [...STUDIO_DURATIONS], default: STUDIO_DEFAULT_DURATION, description: `Film length in seconds. Allowed per engine: ${catalog.map((c) => `${c.engine}: ${c.durations.map((d) => d.seconds).join('/')}`).join('; ')}.` },
-          language: { type: 'string', enum: [...NARRATION_LANGUAGE_CODES], default: 'en', description: 'Narration language code.' },
+          duration: { type: 'integer', enum: [...STUDIO_DURATIONS], default: STUDIO_DEFAULT_DURATION, description: `Cartoon: 15 or 35 seconds. Film lengths per engine: ${catalog.map((c) => `${c.engine}: ${c.durations.map((d) => d.seconds).join('/')}`).join('; ')}.` }, // KINEO-MCP-DESENHO-2110
+          language: { type: 'string', enum: [...NARRATION_LANGUAGE_CODES], default: 'en', description: 'Narration language. Cartoon supports en, pt and es.' }, // KINEO-MCP-DESENHO-2110
           aspect: { type: 'string', enum: [...STUDIO_ASPECTS], default: '9:16', description: '9:16 vertical for Shorts/TikTok/Reels unless the person asks for widescreen (16:9), square (1:1) or feed (4:5).' },
           script_mode: { type: 'string', enum: ['verbatim', 'ai'], description: 'verbatim = narrate the script word for word (default when script is sent); ai = let Kineo structure the text (default for idea).' },
           title: { type: 'string', maxLength: 120, description: 'Optional short title for the person\'s library.' },
@@ -345,7 +383,7 @@ async function callStudioTool(name: string, args: Record<string, unknown>, deps:
   if (!v.ok) return { ok: false, refused: 'invalid_input', result: toolError(v.error) }
   const input = v.value
   const estimate = estimateCredits(input.engine, input.duration)
-  if (input.format !== 'film') {
+  if (input.format !== 'film' && input.format !== 'cartoon') { // KINEO-MCP-DESENHO-2110
     const studio = `${deps.plansUrl.replace(/\/pricing.*$/, '')}/studio?utm_source=claude_studio_connector&format=${input.format}`
     return {
       ok: false,

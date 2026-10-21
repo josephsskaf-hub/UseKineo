@@ -1,3 +1,4 @@
+import { semMcpDesenho2110, MCP_DESENHO_2110_ARQUIVOS, MCP_DESENHO_2110_NOVOS, MARCA_MCP_DESENHO_2110 } from './test-support/desfaz-mcp-desenho-2110.mjs' // KINEO-MCP-DESENHO-2110 — reâncora: a camada cartoon sai primeiro; arquivos/commits próprios
 // KINEO-BEBE-QUE-FALA-2010 — guardião do "AI Kids Cartoon Stories" / "Histórias infantis em desenho 3D com IA" (fundador 20/10: "começa
 // hoje"; nota 10 ao curta de teste 4f6c8a40) e do 4º card da home. O 2º modo (bebê-podcast) só tem interruptor e decisão anotada.
 //
@@ -37,7 +38,7 @@ const { renderToStaticMarkup } = require('react-dom/server')
 const ROOT = path.resolve(import.meta.dirname, '..')
 const MARCA = 'KINEO-BEBE-QUE-FALA-2010'
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
+const rd = (rel) => lf(semMcpDesenho2110(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)) // KINEO-MCP-DESENHO-2110 — retira a camada cartoon antes da comparação antiga
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (rel) => { try { return lf(git('show', `${BEBE_QUE_FALA_2010_BASE}:${rel}`)) } catch { return null } }
 let pass = 0
@@ -433,6 +434,7 @@ console.log('\nK. desfaz exato, encadeamento, diff, commits')
   const TOPO = git('log', '--format=%H', `--grep=${MARCA}`, '-1', 'HEAD').trim() || 'HEAD' // o último commit da entrega, merge incluso (a base é a origin/main do último merge)
   const tocados = new Set([...git('diff', '--name-only', BEBE_QUE_FALA_2010_BASE, TOPO).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n')].filter(Boolean))
   const permitidos = new Set([...BEBE_QUE_FALA_2010_ARQUIVOS, ...BEBE_QUE_FALA_2010_NOVOS])
+  for (const f of [...MCP_DESENHO_2110_ARQUIVOS, ...MCP_DESENHO_2110_NOVOS]) permitidos.add(f) // KINEO-MCP-DESENHO-2110 — arquivos próprios do cartoon, com desfaz exato
   const fora = [...tocados].filter((f) => !permitidos.has(f))
   const semMarca = BEBE_QUE_FALA_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !semHomeCardsClaros2010(rd(f), f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: as linhas do véu mais claro (camada mais nova) saem antes da conferência da marca
   ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && ![...tocados].some((f) => /engineCost|lib\/credits\//.test(f)), `K6 o diff da base só toca a lista e os novos; toda linha nova traz a marca; nenhuma tabela de preço/crédito (${[...fora.map((f) => `fora: ${f}`), ...semMarca.map((f) => `sem marca: ${f}`)].join('; ') || 'ok'})`)

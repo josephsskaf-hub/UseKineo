@@ -1,0 +1,61 @@
+{
+  "_marca": "KINEO-MCP-DESENHO-2110",
+  "scripts/test-avatar-preso-2010.mjs": [
+    [
+      "const rd = (rel) => lf(semMcpDesenho2110(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)) // KINEO-MCP-DESENHO-2110 — retira a camada cartoon antes da comparação antiga",
+      "const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))"
+    ]
+  ],
+  "scripts/test-bebe-que-fala-2010.mjs": [
+    [
+      "const rd = (rel) => lf(semMcpDesenho2110(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)) // KINEO-MCP-DESENHO-2110 — retira a camada cartoon antes da comparação antiga",
+      "const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))"
+    ]
+  ],
+  "scripts/test-home-cards-claros-2010.mjs": [
+    [
+      "const rd = (p) => lf(semMcpDesenho2110(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-MCP-DESENHO-2110 — conteúdo anterior à camada cartoon",
+      "const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))"
+    ]
+  ],
+  "scripts/test-mcp-studio-2010.mjs": [
+    [
+      "ok(M.engineCatalog(PAUSED).find((c) => c.engine === 'seedance')?.durations.find((d) => d.seconds === 35)?.credits === seed35 && M.engineCatalog(PAUSED).find((c) => c.engine === 'hollywood')?.durations.find((d) => d.seconds === 60)?.credits === k3_60 && /3D kids cartoon story with the same character in every scene/.test(cd) && /job_id/.test(cd) && /kineo_video_status/.test(cd) && /several minutes/.test(cd) && /idempotency_key/.test(cd) && /plans page/.test(cd), '(C4) descrição curta e preços do catálogo DERIVADOS de creditCostForDuration') // KINEO-MCP-DESENHO-2110 — preço fica no catálogo compartilhado, descrição curta",
+      "ok(cd.includes(`35s: ${seed35} cr`) && cd.includes(`60s: ${k3_60} cr`) && /job_id/.test(cd) && /kineo_video_status/.test(cd) && /several minutes/.test(cd) && /idempotency_key/.test(cd) && /plans page/.test(cd), `(C4) descrição do create: preço DERIVADO de creditCostForDuration (seedance 35s=${seed35}, kling3 60s=${k3_60}), avisa job_id/status/minutos/idempotência/planos`)"
+    ],
+    [
+      "ok(M.engineCatalog(PAUSED).map((e) => ({ ...e, durations: e.durations.map((d) => ({ ...d, credits: d.credits + 1 })) })).some((e) => e.durations.some((d) => d.credits !== M.estimateCredits(e.engine, d.seconds))), '(M5) preço do catálogo diferente da função → (C4/C7) vermelho') // KINEO-MCP-DESENHO-2110 — mutante acompanha a prova do preço compartilhado",
+      "ok(!cd.replace(`35s: ${seed35} cr`, `35s: ${seed35 + 1} cr`).includes(`35s: ${seed35} cr`), '(M5) preço digitado diferente da função → (C4) vermelho')"
+    ]
+  ],
+  "scripts/test-mcp-studio-ajuste-2010.mjs": [
+    [
+      "const read = (rel) => lf(semMcpDesenho2110(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)) // KINEO-MCP-DESENHO-2110 — conteúdo anterior à camada cartoon",
+      "const read = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))"
+    ]
+  ],
+  "scripts/test-menu-ugc-2010.mjs": [
+    [
+      "const rd = (rel) => lf(semMcpDesenho2110(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)) // KINEO-MCP-DESENHO-2110 — retira a camada cartoon antes da comparação antiga",
+      "const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))"
+    ]
+  ],
+  "scripts/test-meta95-escrita-2010.mjs": [
+    [
+      "const rd = (rel) => lf(semMcpDesenho2110(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)) // KINEO-MCP-DESENHO-2110 — retira a camada cartoon antes da comparação antiga",
+      "const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))"
+    ]
+  ],
+  "scripts/test-meta95-personagem-2010.mjs": [
+    [
+      "const rd = (rel) => lf(semMcpDesenho2110(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)) // KINEO-MCP-DESENHO-2110 — retira a camada cartoon antes da comparação antiga",
+      "const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))"
+    ],
+    [
+      "  const commitsDaEntrega = desdeABase.filter(({ s }) => !s.includes(MARCA_MCP_DESENHO_2110)).filter(({ s }) => !s.includes('KINEO-BEBE-QUE-FALA-2010')) /* reancorado KINEO-BEBE-QUE-FALA-2010: os commits de 20/10 levam a marca deles */ .filter(({ h, s }) => s.includes(MARCA) || git('diff-tree', '--no-commit-id', '--name-only', '-r', '-m', h).trim().split('\\n').some((f) => permitidos.has(f))) // KINEO-MCP-DESENHO-2110 — commits próprios do cartoon",
+      "  const commitsDaEntrega = desdeABase.filter(({ s }) => !s.includes('KINEO-BEBE-QUE-FALA-2010')) /* reancorado KINEO-BEBE-QUE-FALA-2010: os commits de 20/10 levam a marca deles */ .filter(({ h, s }) => s.includes(MARCA) || git('diff-tree', '--no-commit-id', '--name-only', '-r', '-m', h).trim().split('\\n').some((f) => permitidos.has(f)))"
+    ]
+  ],
+  "scripts/test-support/desfaz-home-cards-claros-2010.mjs": [],
+  "scripts/test-support/desfaz-mcp-studio-ajuste-2010.mjs": []
+}

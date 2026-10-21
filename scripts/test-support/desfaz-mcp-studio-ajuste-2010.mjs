@@ -1,3 +1,4 @@
+import { semMcpDesenho2110 } from './desfaz-mcp-desenho-2110.mjs' // KINEO-MCP-DESENHO-2110 — camada mais nova, sem ciclos
 // KINEO-MCP-STUDIO-AJUSTE-2010 — DESFAZ, em memória, o ajuste do conector "Kineo Studio" (título na biblioteca, reconexão da
 // geração presa, cópia neutra Claude/ChatGPT, passos do ChatGPT e a /claude-connector clara com a vitrine de 9), para os
 // guardiões que conferem arquivos BYTE A BYTE contra uma base antiga. Módulo auxiliar; não é teste.
@@ -70,6 +71,7 @@ function baseOf(rel) {
 
 /** O texto do arquivo sem a entrega. Fora da lista ou sem a marca = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semMcpStudioAjuste2010(texto, p) {
+  texto = semMcpDesenho2110(texto, p) // KINEO-MCP-DESENHO-2110 — a camada cartoon sai PRIMEIRO
   texto = semBebeQueFala2010(texto, p) // KINEO-BEBE-QUE-FALA-2010 — a camada mais nova sai primeiro
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_MCP_STUDIO_AJUSTE_2010) || !MCP_STUDIO_AJUSTE_2010_ARQUIVOS.includes(rel)) return texto

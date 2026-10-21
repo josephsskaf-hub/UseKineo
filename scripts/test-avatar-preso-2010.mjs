@@ -1,3 +1,4 @@
+import { semMcpDesenho2110, MCP_DESENHO_2110_ARQUIVOS, MCP_DESENHO_2110_NOVOS, MARCA_MCP_DESENHO_2110 } from './test-support/desfaz-mcp-desenho-2110.mjs' // KINEO-MCP-DESENHO-2110 — reâncora: a camada cartoon sai primeiro; arquivos/commits próprios
 // KINEO-AVATAR-PRESO-2010 [TRAVA 8.2 — vai do fundador 20/10 "vai pra tudo"] — guardião do conserto da montagem PRESA do /avatar.
 //
 // O CASO REAL (teste de 20/10, render 9087456e, geração bebe-2010-e27670a6c6f44136): o generate-avatar debitou e assinou 70 (preço fixo
@@ -36,7 +37,7 @@ const ROOT = path.resolve(import.meta.dirname, '..')
 process.chdir(ROOT) // o carregador offline resolve '@/...' a partir do cwd
 const MARCA = 'KINEO-AVATAR-PRESO-2010'
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
+const rd = (rel) => lf(semMcpDesenho2110(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)) // KINEO-MCP-DESENHO-2110 — retira a camada cartoon antes da comparação antiga
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (rel) => { try { return lf(git('show', `${AVATAR_PRESO_2010_BASE}:${rel}`)) } catch { return null } }
 let pass = 0
@@ -290,6 +291,7 @@ console.log('\nD. desfaz, encadeamento e diff')
   for (const f of git('diff', '--name-only', 'HEAD').split('\n').filter(Boolean)) tocados.add(f)
   for (const f of git('ls-files', '--others', '--exclude-standard').split('\n').filter(Boolean)) tocados.add(f)
   const permitidos = new Set([...AVATAR_PRESO_2010_ARQUIVOS, ...AVATAR_PRESO_2010_NOVOS])
+  for (const f of [...MCP_DESENHO_2110_ARQUIVOS, ...MCP_DESENHO_2110_NOVOS]) permitidos.add(f) // KINEO-MCP-DESENHO-2110 — arquivos próprios do cartoon, com desfaz exato
   const fora = [...tocados].filter((f) => !permitidos.has(f))
   ok(fora.length === 0, `D7 o diff da entrega só toca a lista e os novos${fora.length ? ' — fora: ' + fora.join(', ') : ''}`)
   const meus = commits.filter(([, s]) => !s.includes('KINEO-BEBE-QUE-FALA-2010')).filter(([h]) => { const fs2 = git('diff-tree', '--no-commit-id', '--name-only', '-r', h).split('\n'); return fs2.some((f) => AVATAR_PRESO_2010_NOVOS.includes(f)) }) // reancorado KINEO-BEBE-QUE-FALA-2010 — os commits de 20/10 que reancoraram este guardião levam a marca deles

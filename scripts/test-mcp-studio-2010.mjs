@@ -1,3 +1,4 @@
+import { semMcpDesenho2110, MCP_DESENHO_2110_ARQUIVOS, MCP_DESENHO_2110_NOVOS, MARCA_MCP_DESENHO_2110 } from './test-support/desfaz-mcp-desenho-2110.mjs' // KINEO-MCP-DESENHO-2110 — reâncora: a camada cartoon sai primeiro; arquivos/commits próprios
 // KINEO-MCP-STUDIO-2010 — guardião do conector "Kineo Studio" (servidor MCP /api/mcp/studio que gera o filme NA CONTA da
 import { semMcpStudioAjuste2010, MARCA_MCP_STUDIO_AJUSTE_2010, MCP_STUDIO_AJUSTE_2010_ARQUIVOS } from './test-support/desfaz-mcp-studio-ajuste-2010.mjs' // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: o ajuste do conector (entrega de depois) sai em memória antes do byte a byte
 // pessoa, adicionado por URL no Claude; fundador 20/10 "vai pra tudo").
@@ -151,7 +152,7 @@ ok(byName.kineo_account.annotations.readOnlyHint && byName.kineo_video_status.an
 const cd = byName.kineo_create_video.description
 const seed35 = EC.creditCostForDuration('cinematic_ai', true, 35)
 const k3_60 = EC.creditCostForDuration('cinematic_hollywood', true, 60)
-ok(cd.includes(`35s: ${seed35} cr`) && cd.includes(`60s: ${k3_60} cr`) && /job_id/.test(cd) && /kineo_video_status/.test(cd) && /several minutes/.test(cd) && /idempotency_key/.test(cd) && /plans page/.test(cd), `(C4) descrição do create: preço DERIVADO de creditCostForDuration (seedance 35s=${seed35}, kling3 60s=${k3_60}), avisa job_id/status/minutos/idempotência/planos`)
+ok(M.engineCatalog(PAUSED).find((c) => c.engine === 'seedance')?.durations.find((d) => d.seconds === 35)?.credits === seed35 && M.engineCatalog(PAUSED).find((c) => c.engine === 'hollywood')?.durations.find((d) => d.seconds === 60)?.credits === k3_60 && /3D kids cartoon story with the same character in every scene/.test(cd) && /job_id/.test(cd) && /kineo_video_status/.test(cd) && /several minutes/.test(cd) && /idempotency_key/.test(cd) && /plans page/.test(cd), '(C4) descrição curta e preços do catálogo DERIVADOS de creditCostForDuration') // KINEO-MCP-DESENHO-2110 — preço fica no catálogo compartilhado, descrição curta
 for (const rel of [F.launch, F.oauth, F.store, F.mcp, F.session, F.tools, F.route]) ok([...code(S[Object.keys(F).find((k) => F[k] === rel)]).matchAll(/\$\d/g)].length === 0, `(C5) nenhum "$<número>" digitado em ${rel}`)
 ok(![...code(S.mcp).matchAll(/\b(credits?|cr)\b\s*[:=]\s*\d+|\b\d+\s*(credits|cr)\b/gi)].length, '(C6) nenhum número de crédito digitado em studioMcp.ts (vem de creditCostForDuration)')
 ok(M.estimateCredits('seedance', 35) === seed35 && M.estimateCredits('hollywood', 60) === k3_60, '(C7) estimateCredits = creditCostForDuration(quality do motor, pago, segundos)')
@@ -284,6 +285,7 @@ changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) 
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !ARQUIVOS_VERBATIM_INTOCAVEL_2010.includes(f))) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 — os arquivos do conserto do verbatim não são desta
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !MCP_STUDIO_AJUSTE_2010_ARQUIVOS.includes(f) || MCP_STUDIO_2010_ARQUIVOS.includes(f))) // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: os arquivos do ajuste do conector (entrega de depois, com desfaz próprio) não são desta
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !HOME_REMODELA_2010_ARQUIVOS.includes(f) && f !== HOME_REMODELA_2010_JSON)) // KINEO-HOME-REMODELA-2010 — reancorado: os arquivos da home remodelada não são desta
+changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !MCP_DESENHO_2110_ARQUIVOS.includes(f))) // KINEO-MCP-DESENHO-2110 — somente os arquivos desta camada saem da conta antiga
 ok(changedExisting.every((f) => MCP_STUDIO_2010_ARQUIVOS.includes(f)), `(F3) o diff contra a base só toca arquivos declarados (existentes alterados: ${changedExisting.join(', ') || 'nenhum ainda commitado'})`)
 const commits = git('log', '--format=%s', `${MCP_STUDIO_2010_BASE}..HEAD`).split('\n').filter(Boolean).filter((s) => !s.includes(MARCA_META95_PERSONAGEM_2010)).filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010')) /* reancorado KINEO-BEBE-QUE-FALA-2010 */ // reancorado KINEO-META95-PERSONAGEM-2010: os commits da folha de personagem levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_HOME_CARDS_CLAROS_2010))) // KINEO-HOME-CARDS-CLAROS-2010 — os commits do véu mais claro (entrega de depois) levam a marca deles
@@ -292,6 +294,7 @@ commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_AVA
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_VERBATIM_INTOCAVEL_2010))) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 — os commits do conserto do verbatim levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_MCP_STUDIO_AJUSTE_2010))) // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: os commits do ajuste do conector levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_HOME_REMODELA_2010))) // KINEO-HOME-REMODELA-2010 — reancorado: os commits (e o merge da fila) da home remodelada levam a marca deles
+commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_MCP_DESENHO_2110))) // KINEO-MCP-DESENHO-2110 — cada entrega leva sua marca
 ok(commits.every((s) => s.includes(MARCA_MCP_STUDIO_2010)), `(F4) todo commit da entrega leva a marca no assunto (${commits.length} commit(s))`)
 ok(semMcpStudio2010('sem marca', 'lib/claudeConnect.ts') === 'sem marca' && semMcpStudio2010(raw(F.page), 'outro/arquivo.ts') === raw(F.page), '(F5) desfaz é idempotente fora do alvo')
 
@@ -303,7 +306,7 @@ ok(O.validateAuthorizeParams(new URLSearchParams(good), { ...client, redirect_ur
 ok(O.pkceVerify(O.base64url(randomBytes(48)), challenge) === false, '(M3) verifier de outro pedido → PKCE reprova')
 let mt = JSON.parse(JSON.stringify(tools)); mt[1].annotations.readOnlyHint = true
 ok(mt[1].annotations.readOnlyHint === true && !tools[1].annotations.readOnlyHint, '(M4) create marcado read-only → (C3) vermelho')
-ok(!cd.replace(`35s: ${seed35} cr`, `35s: ${seed35 + 1} cr`).includes(`35s: ${seed35} cr`), '(M5) preço digitado diferente da função → (C4) vermelho')
+ok(M.engineCatalog(PAUSED).map((e) => ({ ...e, durations: e.durations.map((d) => ({ ...d, credits: d.credits + 1 })) })).some((e) => e.durations.some((d) => d.credits !== M.estimateCredits(e.engine, d.seconds))), '(M5) preço do catálogo diferente da função → (C4/C7) vermelho') // KINEO-MCP-DESENHO-2110 — mutante acompanha a prova do preço compartilhado
 created = []
 const depsSemSaldoCheck = mkDeps({ balance: async () => ({ credits: 0, plan: 'free', canRender: false }) })
 r = await call({ jsonrpc: '2.0', id: 90, method: 'tools/call', params: { name: 'kineo_create_video', arguments: { idea: 'x' } } }, depsSemSaldoCheck)

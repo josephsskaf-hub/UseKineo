@@ -1,3 +1,4 @@
+import { semMcpDesenho2110, MCP_DESENHO_2110_ARQUIVOS, MCP_DESENHO_2110_NOVOS, MARCA_MCP_DESENHO_2110 } from './test-support/desfaz-mcp-desenho-2110.mjs' // KINEO-MCP-DESENHO-2110 — reâncora: a camada cartoon sai primeiro; arquivos/commits próprios
 // KINEO-MCP-STUDIO-AJUSTE-2010 — guardião do ajuste do conector "Kineo Studio" (fundador 20/10, depois do 1º filme real no
 // Claude, job fa216362, e no ChatGPT, job 6ce0763f). EXECUTA lib/mcp/studioTools.ts e lib/mcp/studioOauth.ts de verdade (TS via
 // registerHooks com o alias `@/`), com DUBLÊS: banco em memória, rota do site falsa com um razão de créditos, sessão falsa,
@@ -35,7 +36,7 @@ import {
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const read = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
+const read = (rel) => lf(semMcpDesenho2110(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)) // KINEO-MCP-DESENHO-2110 — conteúdo anterior à camada cartoon
 const raw = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8')
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (rel) => { try { return lf(git('show', `${MCP_STUDIO_AJUSTE_2010_BASE}:${rel}`)) } catch { return null } }
@@ -343,11 +344,13 @@ const declared = [...MCP_STUDIO_AJUSTE_2010_ARQUIVOS, ...MCP_STUDIO_AJUSTE_2010_
 declared.push(...HOME_REMODELA_2010_ARQUIVOS, ...HOME_REMODELA_2010_NOVOS, HOME_REMODELA_2010_JSON) // KINEO-HOME-REMODELA-2010 — os arquivos da home remodelada (entrega de depois) não são desta
 declared.push(...BEBE_QUE_FALA_2010_ARQUIVOS, ...BEBE_QUE_FALA_2010_NOVOS) // reancorado KINEO-BEBE-QUE-FALA-2010 — os arquivos do desenho infantil (entrega de depois) não são desta
 declared.push(...HOME_CARDS_CLAROS_2010_ARQUIVOS, ...HOME_CARDS_CLAROS_2010_NOVOS) // KINEO-HOME-CARDS-CLAROS-2010 — os arquivos do véu mais claro (entrega de depois) não são desta
+declared.push(...MCP_DESENHO_2110_ARQUIVOS, ...MCP_DESENHO_2110_NOVOS) // KINEO-MCP-DESENHO-2110 — diff próprio do cartoon
 ok(changed.every((f) => declared.includes(f)), `(F3) o diff contra a base só toca arquivos declarados (${changed.filter((f) => !declared.includes(f)).join(', ') || 'ok'})`)
 const commits = git('log', '--format=%s', `${MCP_STUDIO_AJUSTE_2010_BASE}..HEAD`).split('\n').filter(Boolean)
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_HOME_REMODELA_2010))) // KINEO-HOME-REMODELA-2010 — os commits (e os merges da fila) da home remodelada levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010'))) // reancorado KINEO-BEBE-QUE-FALA-2010 — os commits do desenho infantil levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_HOME_CARDS_CLAROS_2010))) // KINEO-HOME-CARDS-CLAROS-2010 — os commits do véu mais claro levam a marca deles
+commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_MCP_DESENHO_2110))) // KINEO-MCP-DESENHO-2110 — cada entrega leva sua marca
 ok(commits.every((s) => s.includes(MARCA_MCP_STUDIO_AJUSTE_2010)), `(F4) todo commit da entrega leva a marca (${commits.length})`)
 ok(semMcpStudioAjuste2010('sem marca', F.page) === 'sem marca' && semMcpStudioAjuste2010(raw(F.page), 'outro/arquivo.ts') === raw(F.page), '(F5) desfaz idempotente fora do alvo')
 {
