@@ -298,6 +298,7 @@ console.log('\nD. desfaz, encadeamento e diff')
   meus.splice(0, meus.length, ...meus.filter(([, s]) => !s.includes(MARCA_VERBATIM_INTOCAVEL_2010))) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 — os commits do conserto do verbatim (reâncoras no desfaz e no guardião desta entrega) levam a marca deles
   meus.splice(0, meus.length, ...meus.filter(([, s]) => !s.includes('KINEO-MCP-STUDIO-AJUSTE-2010'))) // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: os commits do ajuste do conector (reâncoras no guardião desta entrega) levam a marca deles
   meus.splice(0, meus.length, ...meus.filter(([, s]) => !s.includes('KINEO-HOME-REMODELA-2010'))) // KINEO-HOME-REMODELA-2010 — os commits da home remodelada (reâncoras neste guardião) levam a marca deles
+  meus.splice(0, meus.length, ...meus.filter(([, s]) => !s.includes(MARCA_MCP_DESENHO_2110))) // KINEO-MCP-DESENHO-2110 — o commit do cartoon só reancora este guardião; leva sua própria marca
   ok(meus.every(([, s]) => s.includes(MARCA) && s.includes('[TRAVA 8.2')), 'D8 todo commit da entrega leva a marca e a [TRAVA 8.2] no assunto')
 }
 

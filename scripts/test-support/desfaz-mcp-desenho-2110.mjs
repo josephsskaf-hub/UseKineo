@@ -11,7 +11,7 @@ export const MARCA_MCP_DESENHO_2110 = 'KINEO-MCP-DESENHO-2110'
 export const MCP_DESENHO_2110_BASE = 'f53733122fbdd8393a9950444ab70e0695c3c9f1'
 export const MCP_DESENHO_2110_INTEIROS = Object.freeze(['lib/mcp/studioMcp.ts', 'lib/mcp/studioTools.ts'])
 export const ACRESCIMOS_MCP_DESENHO_2110 = {
-  "scripts/test-avatar-preso-2010.mjs": 2,
+  "scripts/test-avatar-preso-2010.mjs": 3,
   "scripts/test-bebe-que-fala-2010.mjs": 2,
   "scripts/test-home-cards-claros-2010.mjs": 2,
   "scripts/test-mcp-studio-2010.mjs": 3,
