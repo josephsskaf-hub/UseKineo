@@ -291,10 +291,13 @@ function renderFaixa(threeSrc, props, { lang = 'en', kidsCardSrc = rd(F.card) } 
 function homeProblems(threeSrc = rd(F.three), land = rd(F.land), cardSrc = rd(F.card)) {
   const p = []
   const baseThree = base(F.three)
+  const C0 = puro(cardSrc, 'homeKidsCard')
+  if (!/video:not\(\[data-trio\]\)\{object-position:50% 92%\}/.test(C0.HOME_CARDS_AJUSTE_CSS) || !/ugc_ads"\] \.k3c-media video\{object-position:50% 70%/.test(C0.HOME_CARDS_AJUSTE_CSS)) p.push('enquadramento dos cards (letreiro fora da borda) ausente')
   for (const signedIn of [false, true]) {
     const antes = renderFaixa(baseThree, { signedIn })
-    if (renderFaixa(threeSrc, { signedIn }, { kidsCardSrc: cardSrc }) !== antes) p.push(`sem a prop (signedIn=${signedIn}) a faixa mudou`)
-    if (renderFaixa(threeSrc, { signedIn, kidsCard: false }, { kidsCardSrc: cardSrc }) !== antes) p.push(`kidsCard=false (signedIn=${signedIn}) a faixa mudou`)
+    const tira = (h) => h.split(`<style>${C0.HOME_CARDS_AJUSTE_CSS}</style>`).join('') // o enquadramento (sempre) é a única diferença permitida sem o 4º card
+    if (tira(renderFaixa(threeSrc, { signedIn }, { kidsCardSrc: cardSrc })) !== antes) p.push(`sem a prop (signedIn=${signedIn}) a faixa mudou`)
+    if (tira(renderFaixa(threeSrc, { signedIn, kidsCard: false }, { kidsCardSrc: cardSrc })) !== antes) p.push(`kidsCard=false (signedIn=${signedIn}) a faixa mudou`)
   }
   const C = puro(cardSrc, 'homeKidsCard')
   const com = renderFaixa(threeSrc, { signedIn: false, kidsCard: true }, { kidsCardSrc: cardSrc })

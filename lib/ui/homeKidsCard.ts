@@ -83,6 +83,29 @@ export function homeProductAdsReel(cardClip: { src: string; poster: string }): r
   return [{ ...cardClip, trio: false }, ...HOME_PRODUCT_ADS_REEL_TRIOS.map((c) => ({ ...c, trio: true }))]
 }
 
+/**
+ * O ENQUADRAMENTO dos 3 cards de hoje (fundador 20/10, 21:55, no print da home no ar: "escapou ali no UGC" e o UGC mais escuro). Vale
+ * SEMPRE (com ou sem o 4º card), num <style> próprio depois do CSS dos cards. Nenhum letreiro queimado do vídeo fica cortado na borda:
+ *  · AI UGC Ads (Atheeri, 720×1280): o letreiro mora a ~15–19 % da altura → a janela começa a ≥ 22 % (fora do quadro). Card 5:6
+ *    (computador com 3 cards e celular) = 50% 70% (janela 22,8–90 %); card 3:4 (tablet e modo 4 cards) = 50% 88% (22–97 %). E o card fica
+ *    mais claro (brilho +14 %, sombra de cima mais leve), igual aos outros;
+ *  · AI Product Ads (Close real LUME): letreiros a ~18–27 % (1ºs planos) e ~70–77 % (planos de perto) → card 5:6 = 50% 92% (janela
+ *    30–97 %: o de cima fora, o de baixo inteiro); card 3:4 = 50% 60% (15–90 %: os dois inteiros). Os trios do reel ficam no contain deles.
+ */
+export const HOME_CARDS_AJUSTE_CSS = `
+.k3c-card[data-home-card="product_ads"] .k3c-media video:not([data-trio]){object-position:50% 92%}
+.k3c-card[data-home-card="ugc_ads"] .k3c-media video{object-position:50% 70%;filter:brightness(1.14) saturate(1.04)}
+.k3c-card[data-home-card="ugc_ads"] .k3c-shade{opacity:.72}
+@media (max-width:1100px) and (min-width:761px){
+.k3c-card[data-home-card="product_ads"] .k3c-media video:not([data-trio]){object-position:50% 60%}
+.k3c-card[data-home-card="ugc_ads"] .k3c-media video{object-position:50% 88%}
+}
+@media (min-width:761px){
+.k3c-grid[data-k3c-cols="4"] .k3c-card[data-home-card="product_ads"] .k3c-media video:not([data-trio]){object-position:50% 60%}
+.k3c-grid[data-k3c-cols="4"] .k3c-card[data-home-card="ugc_ads"] .k3c-media video{object-position:50% 88%}
+}
+`
+
 /** O CSS SÓ do modo 4 cards: entra num <style> próprio, emitido apenas com o card ligado (desligado = bytes de hoje). */
 export const HOME_KIDS_CARD_CSS = `
 @media (min-width:761px){

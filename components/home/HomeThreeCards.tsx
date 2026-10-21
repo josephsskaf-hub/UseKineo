@@ -26,7 +26,7 @@ import {
 } from '@/lib/ui/homeThreeCards'
 import HomeProductAdsReel from '@/components/home/HomeProductAdsReel' // KINEO-BEBE-QUE-FALA-2010 — o reel do card de produto no modo 4 cards
 import HomeKidsCard from '@/components/home/HomeKidsCard' // KINEO-BEBE-QUE-FALA-2010 — o 4º card (AI Kids Cartoons), só com o interruptor
-import { HOME_KIDS_CARD_CSS } from '@/lib/ui/homeKidsCard' // KINEO-BEBE-QUE-FALA-2010 — a grade de 4 colunas mora num <style> próprio, emitido só com o card ligado
+import { HOME_CARDS_AJUSTE_CSS, HOME_KIDS_CARD_CSS } from '@/lib/ui/homeKidsCard' // KINEO-BEBE-QUE-FALA-2010 — a grade de 4 colunas mora num <style> próprio, emitido só com o card ligado
 import { UGC_PILLAR_PATH, UGC_PILLAR_PT_PATH } from '@/lib/seo/paginasUgc2010' // KINEO-PAGINAS-UGC-2010 — o guia do AI UGC Ads ao lado do título dos cards
 
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)'
@@ -132,6 +132,7 @@ export default function HomeThreeCards({ signedIn, kidsCard = false }: { signedI
   return (
     <section className="k3c" aria-label={copy('Choose what to make')} data-home-3-cards="1">
       <style dangerouslySetInnerHTML={{ __html: HOME_THREE_CARDS_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: HOME_CARDS_AJUSTE_CSS }} />{/* KINEO-BEBE-QUE-FALA-2010 — enquadramento dos cards de hoje (letreiro do vídeo nunca cortado na borda; UGC mais claro), sempre */}
       {kidsCard ? <style dangerouslySetInnerHTML={{ __html: HOME_KIDS_CARD_CSS }} /> : null}{/* KINEO-BEBE-QUE-FALA-2010 — desligado: nem o <style> nasce */}
       <div className="wrap">
         <div className="k3c-head"><p className="k3c-kicker"><UiLabel>Choose what to make</UiLabel></p><Link className="k3c-more" href={language === 'pt' ? UGC_PILLAR_PT_PATH : UGC_PILLAR_PATH} data-home-ugc-guide="1"><UiLabel>How AI UGC ads work</UiLabel> →</Link></div>{/* KINEO-PAGINAS-UGC-2010 */}
