@@ -90,5 +90,9 @@
   "lib/credits/composeHold.ts": {
     "acrescimos": 4,
     "trocas": []
+  },
+  "scripts/test-mcp-studio-2010.mjs": {
+    "acrescimos": 4,
+    "trocas": []
   }
 }

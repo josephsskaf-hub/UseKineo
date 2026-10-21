@@ -27,7 +27,7 @@ function fixture({ status = 'done', url = '', amount = 70, age = OLD, kind = 'vi
   const responseHash = response ? C.avatarValueHash(response) : ''
   const metadata = { generation_id: GEN, status, fingerprint: 'fp-estorno', credit_cost: 70, ...(response ? { response, response_hash: responseHash } : {}) }
   metadata.authority = C.signAvatarClaim(SECRET, { claimId, userId: USER, generationId: GEN, status, fingerprint: metadata.fingerprint, creditCost: 70, ...(responseHash ? { responseHash } : {}) })
-  return { credit_debits: [{ render_id: REF, user_id: USER, amount, created_at: age, kind, refunded_at: refunded }], events: [{ id: claimId, user_id: USER, name: C.AVATAR_CLAIM_EVENT, path: C.AVATAR_CLAIM_PATH, session_id: GEN, metadata }], videos: [] }
+  return { credit_debits: [{ render_id: REF, user_id: USER, amount, created_at: age, kind, refunded_at: refunded }], events: [{ id: claimId, user_id: USER, name: C.AVATAR_CLAIM_EVENT, path: C.AVATAR_CLAIM_PATH, session_id: GEN, metadata }], videos: [], avatar_jobs: [] }
 }
 const contains = (obj, sub) => obj != null && Object.entries(sub).every(([k, v]) => v && typeof v === 'object' ? contains(obj[k], v) : obj[k] === v)
 const field = (row, key) => key.split(/->>?/).reduce((v, k) => v?.[k], row)
@@ -264,7 +264,7 @@ await check('replay pending aguardando refund não apaga marker; mutante DELETE 
   await stalePendingRace(src)
   const anchor = ".is('metadata->>abandoned_refund_claimed_at', null) // KINEO-AVATAR-ESTORNO-2010 — replay pending"
   assert.ok(src.includes(anchor))
-  await assert.rejects(() => stalePendingRace(src.replace(anchor, '// KINEO-AVATAR-ESTORNO-2010 — replay pending')))
+  await assert.rejects(() => stalePendingRace(src.replace(anchor, '// KINEO-AVATAR-ESTORNO-2010 — replay pending')), { code: 'ERR_ASSERTION' })
 })
 function complete(src, db) {
   const begin = src.indexOf('    async function completeAvatarClaim('), end = src.indexOf('    if (!dryRun) {', begin)
