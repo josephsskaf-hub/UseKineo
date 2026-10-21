@@ -39,6 +39,8 @@ export const TROCAS_DESENHO_NOTA9_2110 = {
 export const ACRESCIMOS_DESENHO_NOTA9_2110 = {
   'scripts/test-bebe-que-fala-2010.mjs': 0,
   'scripts/test-home-cards-claros-2010.mjs': 1,
+  'scripts/test-mcp-studio-2010.mjs': 2,
+  'scripts/test-mcp-studio-ajuste-2010.mjs': 3,
   'scripts/test-support/desfaz-home-cards-claros-2010.mjs': 2,
 }
 export const DESENHO_NOTA9_2110_ARQUIVOS = Object.freeze(Object.keys(ACRESCIMOS_DESENHO_NOTA9_2110))
