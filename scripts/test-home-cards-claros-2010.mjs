@@ -156,13 +156,15 @@ console.log('\nD. desfaz exato, diff, encadeamento')
   ok(difs.length === 0 && novos, `D1 ${HOME_CARDS_CLAROS_2010_ARQUIVOS.length} arquivos tocados, desfeitos, = base ${B}; ${HOME_CARDS_CLAROS_2010_NOVOS.length} novos existem e não existiam (${difs.join('; ') || 'ok'})`)
 
   const TOPO = git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, '-1', 'HEAD').trim() || 'HEAD'
-  const tocados = new Set([...git('diff', '--name-only', B, TOPO).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard', 'scripts').trim().split('\n').filter((f) => f.includes('home-cards-claros-2010'))].filter(Boolean))
-  const permitidos = new Set([...HOME_CARDS_CLAROS_2010_ARQUIVOS, ...HOME_CARDS_CLAROS_2010_NOVOS])
+  const tocados = new Set([...git('log', '--no-merges', '--format=', '--name-only', `--grep=${MARCA}`, `${B}..HEAD`).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard', 'scripts').trim().split('\n').filter((f) => f.includes('home-cards-claros-2010'))].filter(Boolean))
+  const REANCORAS_DEPOIS = ['scripts/test-desenho-nota9-2110.mjs'] // reâncoras em guardiões de entregas mescladas depois (KINEO-DESENHO-NOTA9-2110): toda linha que esta entrega mudou nelas traz a marca
+  const reancOk = REANCORAS_DEPOIS.every((f) => { const d = git('log', '--no-merges', '-p', '-U0', '--format=', `--grep=${MARCA}`, `${B}..HEAD`, '--', f); return d.replace(/\r/g, '').split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).every((l) => l.includes(MARCA)) })
+  const permitidos = new Set([...HOME_CARDS_CLAROS_2010_ARQUIVOS, ...HOME_CARDS_CLAROS_2010_NOVOS, ...REANCORAS_DEPOIS])
   const fora = [...tocados].filter((f) => !permitidos.has(f))
   const semMarca = HOME_CARDS_CLAROS_2010_ARQUIVOS.filter((f) => { const b = new Set(base(f).split('\n')); return !semDesenhoNota9_2110(rd(f), f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-DESENHO-NOTA9-2110 — reâncora: as linhas da camada mais nova saem antes; era: return !rd(f).split(...)
   const intocados = ['lib/engineWall.ts', 'lib/homeVideoCuration.ts', 'lib/ui/homeKidsCard.ts', 'components/home/HomeProductAdsReel.tsx', 'lib/ui/homeThreeCards.ts'].filter((f) => existsSync(join(ROOT, f)) && rd(f) !== base(f))
   const trocasOk = Object.entries(TROCAS_HOME_CARDS_CLAROS_2010).every(([f, t]) => HOME_CARDS_CLAROS_2010_ARQUIVOS.includes(f) && t.every(([nova, velha]) => nova.includes(MARCA) && !velha.includes(MARCA)))
-  ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && intocados.length === 0 && trocasOk && !/KINEO-BEBE|KINEO-HOME-CARDS-BOTOES|KINEO-HOME-REMODELA/.test(MARCA),
+  ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && intocados.length === 0 && trocasOk && reancOk && !/KINEO-BEBE|KINEO-HOME-CARDS-BOTOES|KINEO-HOME-REMODELA/.test(MARCA),
     `D2 o diff só toca a lista e os novos; toda linha nova com a marca; vídeos/curadoria/enquadramento/4º card intocados (${[...fora.map((f) => `fora: ${f}`), ...semMarca.map((f) => `sem marca: ${f}`), ...intocados.map((f) => `mexeu: ${f}`)].join('; ') || 'ok'})`)
 
   const cadeia = /export function semBebeQueFala2010\(texto, p\) \{\n  texto = semHomeCardsClaros2010\(texto, p\)/.test(rd(F.bebe))
