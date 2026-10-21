@@ -29,6 +29,7 @@ import {
 import { semMenuUgc2010 } from './test-support/desfaz-menu-ugc-2010.mjs'
 import { semUgcAjustes2010 } from './test-support/desfaz-ugc-ajustes-2010.mjs'
 import { semHomeCardsClaros2010 } from './test-support/desfaz-home-cards-claros-2010.mjs' // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: o véu dos cards ficou mais claro depois (fundador 20/10 23:30: "a parte de baixo dos vídeos tá bem escura, arruma isso pra hoje"); a faixa e as linhas são conferidas sem aquela camada
+import { semDesenhoSom2110 } from './test-support/desfaz-desenho-som-2110.mjs' // KINEO-DESENHO-SOM-2110 — reâncora: o som do desenho infantil (21/10) mexe na rota do filme, só com desenhoInfantil.ativo
 
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
@@ -159,7 +160,7 @@ function gateProblems(libSrc = rd(F.lib)) {
   if ((L.comPersonagemInfantil(jaTem, leo.sheet).split(leo.sheet).length - 1) !== 1) p.push('ficha duplicada quando a cena já a traz')
   return p
 }
-function wiringProblems(rota = rd(F.rota)) {
+function wiringProblems(rota0 = rd(F.rota)) { const rota = semDesenhoSom2110(rota0, F.rota) // KINEO-DESENHO-SOM-2110 — reâncora: as 5 linhas do som do desenho (vertical infantil e claim) saem antes da conferência da fiação; era: function wiringProblems(rota = rd(F.rota)) {
   const p = []
   const linhas = rota.split('\n')
   const i = (s) => linhas.findIndex((l) => !l.trimStart().startsWith('//') && l.includes(s))

@@ -26,7 +26,17 @@ export const TROCAS_DESENHO_SOM_2110 = {
       '  emotion: MusicEmotion',
     ],
   ],
+  'scripts/test-bebe-que-fala-2010.mjs': [
+    [
+      "function wiringProblems(rota0 = rd(F.rota)) { const rota = semDesenhoSom2110(rota0, F.rota) // KINEO-DESENHO-SOM-2110 — reâncora: as 5 linhas do som do desenho (vertical infantil e claim) saem antes da conferência da fiação; era: function wiringProblems(rota = rd(F.rota)) {",
+      "function wiringProblems(rota = rd(F.rota)) {",
+    ],
+  ],
   'scripts/test-desenho-nota9-2110.mjs': [
+    [
+      "  const semMarca = DESENHO_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !semDesenhoSom2110(rd(f), f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-DESENHO-SOM-2110 — reâncora: as linhas do som do desenho (camada mais nova) saem antes da conferência da marca; era: return !rd(f).split(...)",
+      "  const semMarca = DESENHO_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !rd(f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) })",
+    ],
     [
       "    if (semDesenhoSom2110(rd(f), f) !== b) p.push(`${f} mudou`) // KINEO-DESENHO-SOM-2110 — reâncora: as linhas do som do desenho (camada mais nova, só para kids_cartoon) saem antes; era: if (rd(f) !== b)",
       "    if (rd(f) !== b) p.push(`${f} mudou`)",
@@ -40,7 +50,8 @@ export const ACRESCIMOS_DESENHO_SOM_2110 = {
   'lib/musicDirection.ts': 2,
   'lib/narration/niche-mapping.ts': 2,
   'scripts/test-desenho-nota9-2110.mjs': 1,
-  'scripts/test-mcp-studio-2010.mjs': 2,
+  'scripts/test-bebe-que-fala-2010.mjs': 1,
+  'scripts/test-mcp-studio-2010.mjs': 3,
   'scripts/test-mcp-studio-ajuste-2010.mjs': 3,
   'scripts/test-support/desfaz-desenho-nota9-2110.mjs': 2,
 }

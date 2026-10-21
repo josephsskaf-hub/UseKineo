@@ -210,7 +210,7 @@ console.log('\nK. desfaz encadeado e diff da base')
   const tocados = new Set([...git('diff', '--name-only', BASE, TOPO).trim().split('\n'), ...git('diff', '--name-only', 'HEAD').trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard', 'scripts', 'public/kids-cartoon').trim().split('\n').filter((f) => f.includes('desenho-nota9') || f.startsWith('public/kids-cartoon/'))].filter(Boolean))
   const permitidos = new Set([...DESENHO_NOTA9_2110_ARQUIVOS, ...DESENHO_NOTA9_2110_NOVOS, ...DESENHO_NOTA9_2110_REESCRITOS])
   const fora = [...tocados].filter((f) => !permitidos.has(f))
-  const semMarca = DESENHO_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !rd(f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) })
+  const semMarca = DESENHO_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !semDesenhoSom2110(rd(f), f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-DESENHO-SOM-2110 — reâncora: as linhas do som do desenho (camada mais nova) saem antes da conferência da marca; era: return !rd(f).split(...)
   const reescritosMarcados = DESENHO_NOTA9_2110_REESCRITOS.every((f) => rd(f).includes(MARCA))
   ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && reescritosMarcados, `K5 o diff da base só toca a lista, os reescritos e os novos; toda linha nova por linha traz a marca (${[...fora.map((f) => `fora: ${f}`), ...semMarca.map((f) => `sem marca: ${f}`)].join('; ') || 'ok'})`)
 }
