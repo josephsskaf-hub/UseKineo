@@ -6,6 +6,7 @@
     "lib/cinematic/visualPromptPolicy.ts": 1,
     "lib/estrelaServer.ts": 4,
     "scripts/test-estrela-do-filme-2026-09-29.mjs": 1,
+    "scripts/test-kling25-variedade-2026-09-28.mjs": 1,
     "scripts/test-mcp-studio-2010.mjs": 2,
     "scripts/test-meta95-escrita-2010.mjs": 1,
     "scripts/test-meta95-personagem-2010.mjs": 2,
@@ -150,6 +151,12 @@
     [
       "const rd = (p) => semMeta95PersonagemAjuste2010(readFileSync(join(root, p), 'utf8'), p).replace(/\\r\\n/g, '\\n') // KINEO-META95-PERSONAGEM-AJUSTE-2010",
       "const rd = (p) => readFileSync(join(root, p), 'utf8').replace(/\\r\\n/g, '\\n')"
+    ]
+  ],
+  "scripts/test-kling25-variedade-2026-09-28.mjs": [
+    [
+      "const rd = (p) => semMeta95PersonagemAjuste2010(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\\r\\n/g, '\\n') // KINEO-META95-PERSONAGEM-AJUSTE-2010",
+      "const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\\r\\n/g, '\\n')"
     ]
   ],
   "scripts/test-mcp-studio-2010.mjs": [

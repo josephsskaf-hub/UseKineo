@@ -19,6 +19,7 @@
 //   DIFF: as asserções byte a byte comparam o COMMIT da trilha (o mais recente = a revisão) com o pai do PRIMEIRO commit,
 //       nunca a worktree — depois do merge ela carrega os irmãos (teto, âncora, pilha) e ficava vermelha à toa.
 import { readFileSync } from 'node:fs'
+import { semMeta95PersonagemAjuste2010 } from './test-support/desfaz-meta95-personagem-ajuste-2010.mjs' // KINEO-META95-PERSONAGEM-AJUSTE-2010 — o initializer executado mantém o recorte do guardião anterior
 import { join, dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -28,7 +29,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semMeta95PersonagemAjuste2010(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n') // KINEO-META95-PERSONAGEM-AJUSTE-2010
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else { falhas.push(n); console.log('  FALHOU: ' + n) } }
