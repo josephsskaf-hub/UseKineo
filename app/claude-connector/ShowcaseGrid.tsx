@@ -6,7 +6,9 @@
 // as amostras de apresentador e de estilo do Studio Ads (lib/ads/v2Flow.ts ADS_V2_START_FROM) e os filmes da porta da home
 // (lib/ui/homeTwoDoors.ts, motor conferido lá). Todos 9:16, mudos, em loop, playsInline, com pôster. LEVE: o vídeo só
 // recebe `src` quando a grade chega perto da tela (IntersectionObserver); antes disso, e sem JS, aparece o pôster. Quadro 4:5
-// (recorte central do 9:16) numa grade de até 960 px: as 3 fileiras cabem sem virar um paredão no computador.
+// … (era 4:5) — KINEO-MCP-STUDIO-AJUSTE-2010, polimento: quadro 9:16 INTEIRO (nenhum letreiro gravado no clipe fica cortado na
+// borda), grade de até 720 px; o título vai ABAIXO do quadro (fora do vídeo, nada de texto por cima do letreiro do clipe) e no
+// vídeo fica só um selo curto do motor/produto, no canto de baixo, que cabe inteiro a 390 px.
 // Selo honesto: o produto/motor real do clipe, nunca preço.
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { MCP_PALETTE as C } from './palette'
@@ -21,9 +23,9 @@ export const SHOWCASE_GROUPS: readonly ShowcaseGroup[] = [
     line: 'An AI person holds the product and tells why to buy.',
     href: '/ads',
     clips: [
-      { src: '/previews/home-card-ugc-presenter.mp4', poster: '/posters/home-card-ugc-presenter.webp', title: 'Perfume, told by an AI presenter', badge: 'Studio Ads · Kling Avatar' },
-      { src: '/ads/presenters/sofia.mp4', poster: '/ads/presenters/sofia.webp', title: 'Sofia, UGC presenter', badge: 'Studio Ads · UGC' },
-      { src: '/ads/presenters/amara.mp4', poster: '/ads/presenters/amara.webp', title: 'Amara, UGC in the snow', badge: 'Studio Ads · UGC' },
+      { src: '/previews/home-card-ugc-presenter.mp4', poster: '/posters/home-card-ugc-presenter.webp', title: 'Perfume, told by an AI presenter', badge: 'Kling Avatar' },
+      { src: '/ads/presenters/sofia.mp4', poster: '/ads/presenters/sofia.webp', title: 'Sofia, UGC presenter', badge: 'Studio Ads' },
+      { src: '/ads/presenters/amara.mp4', poster: '/ads/presenters/amara.webp', title: 'Amara, UGC in the snow', badge: 'Studio Ads' },
     ],
   },
   {
@@ -32,7 +34,7 @@ export const SHOWCASE_GROUPS: readonly ShowcaseGroup[] = [
     line: 'Real product photos become a ready-to-run ad.',
     href: '/ads',
     clips: [
-      { src: '/previews/home-card-close-real-en.mp4', poster: '/posters/home-card-close-real-en.webp', title: 'LUME perfume, real product close-up', badge: 'Studio Ads · Close' },
+      { src: '/previews/home-card-close-real-en.mp4', poster: '/posters/home-card-close-real-en.webp', title: 'LUME perfume, real product close-up', badge: 'Studio Ads' },
       { src: '/ads-styles/product_closeup.mp4', poster: '/ads-styles/product_closeup.jpg', title: 'Product close-up in the rain', badge: 'Studio Ads' },
       { src: '/ads-styles/giant_product.mp4', poster: '/ads-styles/giant_product.jpg', title: 'Giant product in neon', badge: 'Studio Ads' },
     ],
@@ -70,12 +72,12 @@ export default function ShowcaseGrid() {
     return () => io.disconnect()
   }, [])
 
-  const tile: CSSProperties = { position: 'relative', aspectRatio: '4 / 5', borderRadius: 18, overflow: 'hidden', background: C.placeholder, border: `1px solid ${C.line}`, boxShadow: C.shadowHi, minWidth: 0 }
-  const badge: CSSProperties = { position: 'absolute', left: 8, top: 8, maxWidth: 'calc(100% - 16px)', background: C.overlay, color: C.onOverlay, borderRadius: 999, padding: '4px 9px', fontSize: 10.5, fontWeight: 700, letterSpacing: '0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
-  const caption: CSSProperties = { position: 'absolute', left: 0, right: 0, bottom: 0, padding: '28px 10px 10px', background: `linear-gradient(180deg, transparent, ${C.overlay})`, color: C.onOverlay, fontSize: 'clamp(0.72rem, 2.6vw, 0.86rem)', fontWeight: 650, lineHeight: 1.25 }
+  const tile: CSSProperties = { position: 'relative', aspectRatio: '9 / 16', borderRadius: 16, overflow: 'hidden', background: C.placeholder, border: `1px solid ${C.line}`, boxShadow: C.shadowHi, minWidth: 0 }
+  const badge: CSSProperties = { position: 'absolute', left: 6, bottom: 6, background: C.overlay, color: C.onOverlay, borderRadius: 999, padding: '3px 7px', fontSize: 'clamp(9px, 2.4vw, 10.5px)', fontWeight: 700, letterSpacing: '0.01em', whiteSpace: 'nowrap', lineHeight: 1.3 }
+  const caption: CSSProperties = { margin: '8px 2px 0', color: C.body, fontSize: 'clamp(0.74rem, 2.6vw, 0.88rem)', fontWeight: 600, lineHeight: 1.3 }
 
   return (
-    <div ref={ref} style={{ display: 'grid', gap: 'clamp(22px, 4vw, 34px)', maxWidth: 960, margin: '0 auto' }}>
+    <div ref={ref} style={{ display: 'grid', gap: 'clamp(22px, 4vw, 34px)', maxWidth: 720, margin: '0 auto' }}>
       {SHOWCASE_GROUPS.map((g) => (
         <div key={g.key}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', margin: '0 0 12px' }}>
@@ -86,19 +88,21 @@ export default function ShowcaseGrid() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 'clamp(8px, 2vw, 16px)' }}>
             {g.clips.map((c) => (
-              <figure key={c.src} style={{ ...tile, margin: 0 }}>
-                <video
-                  src={near ? c.src : undefined}
-                  poster={c.poster}
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="none"
-                  aria-label={`${c.title} — made with Kineo (${c.badge})`}
-                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                />
-                <span style={badge}>{c.badge}</span>
+              <figure key={c.src} style={{ margin: 0, minWidth: 0 }}>
+                <div style={tile}>
+                  <video
+                    src={near ? c.src : undefined}
+                    poster={c.poster}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="none"
+                    aria-label={`${c.title} — made with Kineo (${c.badge})`}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                  <span style={badge}>{c.badge}</span>
+                </div>
                 <figcaption style={caption}>{c.title}</figcaption>
               </figure>
             ))}

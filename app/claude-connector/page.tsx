@@ -217,11 +217,8 @@ export default function ClaudeConnectorPage() {
               <span style={livePill}><span aria-hidden style={liveDot} />Live in ChatGPT</span>
             </div>
             <p style={{ fontSize: 'clamp(1rem, 2.4vw, 1.12rem)', color: C.body, lineHeight: 1.65, margin: '20px auto 0', maxWidth: 720 }}>
-              Two connectors, one Kineo. <strong>Kineo MCP</strong> (the server URL below) reads Kineo&apos;s live plans and
-              engines, writes your script and sends it to Kineo Studio as a one-click link with the length, frame and engine
-              already set — Kineo MCP never renders a video, never creates an account and never charges anything; you press
-              Generate in Studio. <strong>Kineo Studio</strong> (<a href={`#${CLAUDE_STUDIO_CONNECT_ANCHOR}`} style={{ color: C.accent, textDecoration: 'none', fontWeight: 700 }}>below</a>) connects your Kineo account to Claude or ChatGPT
-              and makes the film in your account, spending your account&apos;s credits.
+              <strong>Kineo MCP</strong> writes your script and sends it to Studio as a one-click link — it never renders, creates an
+              account or charges. <strong>Kineo Studio</strong> (<a href={`#${CLAUDE_STUDIO_CONNECT_ANCHOR}`} style={{ color: C.accent, textDecoration: 'none', fontWeight: 700 }}>below</a>) makes the film in your Kineo account, using your credits.
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, margin: '26px 0 0' }}>
               <a href={`#${CLAUDE_CONNECT_ANCHOR}`} style={{ ...pill, background: C.accent, color: C.onAccent }}>Connect Kineo →</a>

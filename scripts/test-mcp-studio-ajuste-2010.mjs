@@ -285,7 +285,10 @@ ok(/claimStatus === 'released'[\s\S]{0,120}finish\('refunded'\)/.test(S.tools) &
 
 // ─── (C) cópia ───────────────────────────────────────────────────────────────
 const heroVis = code(S.page)
-ok(/Kineo MCP never renders a video, never creates an account and never charges anything/.test(heroVis.replace(/\s+/g, ' ')) && /<strong>Kineo Studio<\/strong>[\s\S]{0,260}spending your account&apos;s credits/.test(S.page) && !/The connector never renders a video/.test(S.page), '(C1) herói: "nunca renderiza/cobra" é do Kineo MCP; o Kineo Studio faz o filme e gasta os créditos da conta')
+{
+  const hero = (heroVis.match(/<strong>Kineo MCP<\/strong>[\s\S]*?using your credits\./) || [''])[0].replace(/\s+/g, ' ')
+  ok(/<strong>Kineo MCP<\/strong> writes your script[^.]*— it never renders, creates an account or charges\./.test(hero) && /<strong>Kineo Studio<\/strong>[\s\S]{0,200}makes the film in your Kineo account, using your credits\./.test(hero) && hero.split(/\.\s/).length <= 2 && !/The connector never renders a video/.test(S.page), '(C1) herói em 2 frases: "nunca renderiza/cria conta/cobra" é do Kineo MCP; o Kineo Studio faz o filme e usa os créditos da conta')
+}
 ok(O.studioClientApp('https://chatgpt.com/connector/oauth/MFqQ3YG_LGPO', 'ChatGPT') === 'ChatGPT' && O.studioClientApp('https://claude.ai/api/mcp/auth_callback', 'Claude') === 'Claude', '(C2) app pelo host do redirect: chatgpt.com → ChatGPT, claude.ai → Claude')
 ok(O.studioClientApp('https://evil.example/cb', 'Claude') === 'Claude' && O.studioClientApp('https://evil.example/cb', '<script>Free credits</script>') === null && O.studioClientApp('http://localhost:3118/callback', 'Claude Code') === 'Claude Code', '(C3) client_name só vale se for um nome conhecido (texto livre da DCR nunca vira frase)')
 ok(O.studioRevokeWhere('ChatGPT') === 'in ChatGPT' && O.studioRevokeWhere(null) === 'in the app you connected (Claude, ChatGPT…)' && O.studioBackTo(null).startsWith('Go back to the app you were connecting'), '(C4) revogação: "in ChatGPT" / neutra quando não sabe')
@@ -313,6 +316,7 @@ ok(all.length === 9 && missing.length === 0 && new Set(all.map((c) => c.src)).si
 const used = [read('lib/ui/homeThreeCards.ts'), read('lib/ads/v2Flow.ts'), read('lib/ui/homeTwoDoors.ts')].join('\n')
 const unused = all.filter((c) => { const name = path.basename(c.src, '.mp4'); return !used.includes(name.replace(/^door-/, '')) && !used.includes(c.src) })
 ok(unused.length === 0, `(D5) todo clipe já é usado no site (cards da home, amostras do Studio Ads, porta da home) — ${unused.map((c) => c.src).join(', ') || 'ok'}`)
+ok(/aspectRatio: '9 \/ 16'/.test(S.grid) && /<\/div>\n\s+<figcaption style=\{caption\}>\{c\.title\}<\/figcaption>/.test(S.grid) && all.every((c) => c.badge.length <= 13 && !c.badge.includes('·')) && !/textOverflow: 'ellipsis'/.test(S.grid), '(D12) polimento: quadro 9:16 inteiro (letreiro do clipe nunca cortado), título ABAIXO do quadro, selo curto que cabe sem reticências')
 ok(/autoPlay\n\s+muted\n\s+loop\n\s+playsInline\n\s+preload="none"/.test(S.grid) && /poster=\{c\.poster\}/.test(S.grid) && /src=\{near \? c\.src : undefined\}/.test(S.grid) && /IntersectionObserver/.test(S.grid), '(D6) vídeos mudos, autoplay, loop, playsInline, pôster, e só carregam perto da tela (leve)')
 ok(/<ShowcaseGrid \/>/.test(S.page) && /^import ShowcaseGrid from '\.\/ShowcaseGrid'/m.test(S.page) && /gridTemplateColumns: 'repeat\(3, minmax\(0, 1fr\)\)'/.test(S.grid), '(D7) a página mostra a vitrine; grade de 3 colunas encolhíveis (sem rolagem lateral no celular)')
 ok(/Live in Claude/.test(S.page) && /Live in ChatGPT/.test(S.page) && /\{ key: 'chatgpt', label: 'ChatGPT' \},\n\]/.test(S.page) && !/· soon/.test(S.page), '(D8) topo: "Live in Claude" e "Live in ChatGPT"; azulejo do ChatGPT sem "soon"')
