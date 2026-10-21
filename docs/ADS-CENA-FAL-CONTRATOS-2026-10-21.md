@@ -19,13 +19,13 @@
 
 ## Estimativa solicitada pelo fundador
 
-**HIPÓTESE — estimativa aritmética, não fatura:** `lib/ads/cena/adapters.ts:183` multiplica as tarifas públicas consultadas em **21/10/2026**. Inclui áudio e dois keyframes, sem novas tentativas. A meta solicitada é cerca de **US$ 3,70** por anúncio final de **15 s**.
+**HIPÓTESE — estimativa aritmética, não fatura:** `lib/ads/cena/adapters.ts` multiplica as tarifas públicas consultadas em **21/10/2026**. Inclui áudio e dois keyframes com duas candidatas cada (quatro imagens), sem refação adicional. A meta solicitada é cerca de **US$ 3,70** por anúncio final de **15 s**.
 
-| Rota | Tarifa de vídeo | Geração faturável planejada | Vídeo | 2 keyframes | Subtotal conhecido |
+| Rota | Tarifa de vídeo | Geração faturável planejada | Vídeo | 2 keyframes × best-of-2 | Subtotal conhecido |
 |---|---:|---:|---:|---:|---:|
-| Kling 3 Pro, sem elements | US$ 0,168/s | 15s | US$ 2,52 | US$ 0,30 | **US$ 2,82** |
-| Seedance 2 standard 720p | US$ 0,3024/s | 15s | US$ 4,536 | US$ 0,30 | **US$ 4,836** |
-| Veo 3.1 720p com áudio | US$ 0,40/s | 16s, cortar para 15s | US$ 6,40 | US$ 0,30 | **US$ 6,70** |
+| Kling 3 Pro, sem elements | US$ 0,168/s | 15s | US$ 2,52 | US$ 0,60 | **US$ 3,12** |
+| Seedance 2 standard 720p | US$ 0,3024/s | 15s | US$ 4,536 | US$ 0,60 | **US$ 5,136** |
+| Veo 3.1 720p com áudio | US$ 0,40/s | 16s, cortar para 15s | US$ 6,40 | US$ 0,60 | **US$ 7,00** |
 
 **FATO CONFIRMADO — fontes da estimativa:** [Kling](https://fal.ai/models/fal-ai/kling-video/v3/pro/image-to-video), [Seedance standard](https://fal.ai/models/bytedance/seedance-2.0/reference-to-video), [Veo](https://fal.ai/models/fal-ai/veo3.1/reference-to-video), [Nano Banana Pro: US$ 0,15/imagem, 4K em dobro](https://fal.ai/models/fal-ai/nano-banana-pro/edit), consulta em **21/10/2026**.
 

@@ -9,7 +9,7 @@ export interface CenaJob {
   endpoint: string; input: Record<string, unknown>; kind: 'image' | 'video'; index: number; seconds: number; keepSeconds: number;
   status: 'new' | 'submitting' | 'pending' | 'done' | 'failed'; requestId?: string; claimedAt?: number; url?: string; verdict?: CenaVerdict;
 }
-export interface CenaState { plan: CenaPlan; route: CenaRoute; phase: 'images' | 'judge' | 'video' | 'ready' | 'failed'; imageRound: number; videoAttempt: number; jobs: CenaJob[]; keyframe?: string; reason?: string; voiceUrl?: string; voiceClaimedAt?: number }
+export interface CenaState { plan: CenaPlan; route: CenaRoute; phase: 'images' | 'judge' | 'video' | 'ready' | 'failed'; imageRound: number; videoAttempt: number; jobs: CenaJob[]; keyframe?: string; keyframes?: [string, string]; reason?: string; voiceUrl?: string; voiceClaimedAt?: number }
 export interface CenaDeps {
   now(): number; save(state: CenaState): Promise<void>; json: CenaJson;
   submit(job: CenaJob): Promise<{ kind: 'accepted'; requestId: string } | { kind: 'ambiguous' | 'rejected' }>;
@@ -23,7 +23,7 @@ export function cenaOf(plan: unknown): CenaState | null {
   return c?.plan?.marker === 'KINEO-ADS-CENA-2110' && ['kling3', 'seedance2', 'veo31'].includes(c.route) ? c : null
 }
 function images(s: CenaState): CenaJob[] {
-  return s.plan.keyframePrompts.map((prompt, index) => ({ ...cenaKeyframeRequest({ productUrl: s.plan.input.foto, prompt, actorUrl: s.plan.input.actorUrl, attempt: s.imageRound }), index, kind: 'image', seconds: 0, keepSeconds: 0, status: 'new' }))
+  return s.plan.keyframePrompts.flatMap((prompt, slot) => [0, 1].map(candidate => ({ ...cenaKeyframeRequest({ productUrl: s.plan.input.foto, prompt: `${prompt} Composition candidate ${candidate + 1}.`, actorUrl: s.plan.input.actorUrl, attempt: s.imageRound }), index: slot * 2 + candidate, kind: 'image' as const, seconds: 0, keepSeconds: 0, status: 'new' as const })))
 }
 async function failed(s: CenaState, reason: string, d: CenaDeps): Promise<void> {
   if (s.phase === 'video' && s.videoAttempt < CENA_VIDEO_ATTEMPTS) {
@@ -41,18 +41,18 @@ export async function stepCena(s: CenaState, d: CenaDeps): Promise<void> {
   if (s.phase === 'judge') {
     for (const j of s.jobs.filter(j => j.kind === 'image' && !j.verdict)) {
       let verdict: CenaVerdict
-      try { verdict = judgeCena(await d.json({ model: 'gpt-4o', system: CENA_JUDGE_QUESTION, text: 'Image 1 = exact customer product. Image 2 = candidate. Fail closed for ambiguous hand ownership or product fidelity.', images: [s.plan.input.foto, j.url!] })) }
+      try { verdict = judgeCena(await d.json({ model: 'gpt-4o', system: CENA_JUDGE_QUESTION, text: 'Image 1 = exact customer product. Image 2 = candidate. Image 3 = actor identity. Fail closed for ambiguous hand ownership, actor or product fidelity.', images: [s.plan.input.foto, j.url!, ...(s.plan.input.actorUrl ? [s.plan.input.actorUrl] : [])] })) }
       catch { verdict = { approved: false, score: 0, reasons: ['judge_unavailable'] } }
       j.verdict = verdict; await d.save(s)
       await d.event('ads_cena_keyframe_judged', { index: j.index, round: s.imageRound, ...verdict })
     }
-    const best = s.jobs.filter(j => j.kind === 'image' && j.verdict?.approved).sort((a, b) => b.verdict!.score - a.verdict!.score)[0]
-    if (!best?.url) return failed(s, 'cena_keyframes_rejected', d)
-    s.keyframe = best.url; s.phase = 'video'; await d.save(s); return
+    const best = [0, 1].map(slot => s.jobs.filter(j => j.kind === 'image' && Math.floor(j.index / 2) === slot && j.verdict?.approved).sort((a, b) => b.verdict!.score - a.verdict!.score)[0])
+    if (best.some(j => !j?.url)) return failed(s, 'cena_keyframes_rejected', d)
+    s.keyframes = [best[0].url!, best[1].url!]; s.keyframe = best[0].url; s.phase = 'video'; await d.save(s); return
   }
   const kind = s.phase === 'images' ? 'image' : 'video'
   if (!s.jobs.some(j => j.kind === kind)) {
-    const jobs: CenaJob[] = kind === 'image' ? images(s) : cenaVideoRequests(s.route, { keyframeUrl: s.keyframe!, productUrl: s.plan.input.foto, prompt: s.plan.videoPrompt, language: s.plan.input.language, segmentPrompts: s.plan.segmentPrompts }).map((j, index) => ({ endpoint: j.endpoint, input: j.input, seconds: j.seconds, keepSeconds: j.keepSeconds, index, kind: 'video', status: 'new' }))
+    const jobs: CenaJob[] = kind === 'image' ? images(s) : cenaVideoRequests(s.route, { keyframeUrl: s.keyframes![0], endKeyframeUrl: s.keyframes![1], productUrl: s.plan.input.foto, prompt: s.plan.videoPrompt, language: s.plan.input.language, segmentPrompts: s.plan.segmentPrompts }).map((j, index) => ({ endpoint: j.endpoint, input: j.input, seconds: j.seconds, keepSeconds: j.keepSeconds, index, kind: 'video', status: 'new' }))
     s.jobs.push(...jobs); await d.save(s)
   }
   const j = s.jobs.find(j => j.kind === kind && j.status !== 'done')

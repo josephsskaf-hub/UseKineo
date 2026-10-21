@@ -1149,7 +1149,7 @@ async function failRequiredUgc(admin: SupabaseClient, order: AdsV2OrderRow, reas
   const result = await failAdsV2Order(admin, order, reason, '/lib/ads/v2Advance') // KINEO-ADS-CENA-2110
   if (result.won) await writeServerEvent({ name: 'ads_v2_ugc_failed', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, reason, refund: result.refund, credits_returned: result.amount, charged: false } }) // KINEO-ADS-CENA-2110
 } // KINEO-ADS-CENA-2110
-
+// KINEO-ADS-CENA-2110
 // ── montagem ──────────────────────────────────────────────────────────────────────────────────────────────────────
 const SECTOR_MOOD: Readonly<Record<string, MusicMood>> = {
   restaurant: 'emotional', clinic: 'emotional', real_estate: 'nature', gym: 'hustle',

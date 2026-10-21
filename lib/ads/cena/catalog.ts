@@ -11,6 +11,7 @@ export const CENA_CATALOG = {
   other: { format: 'hands_demo', setting: 'a bright tidy worktable', actor: 'one adult, only their own arms and hands visible', interaction: 'picks up and turns the product to show its real front and side', scale: 'the actual product proportions, no enlargement' },
 } as const
 export type CenaCategory = keyof typeof CENA_CATALOG
+export const CENA_ACTORS: Record<CenaCategory, string> = { wearable: 'jade', skincare: 'clara', perfume: 'sofia', footwear: 'jade', bag: 'hannah', bottle: 'jade', supplement: 'jade', other: 'sofia' }
 export function cenaCategory(value: unknown): value is CenaCategory { return typeof value === 'string' && Object.hasOwn(CENA_CATALOG, value) }
 
 // Recebe um booleano derivado SOMENTE da lista EXATA do auth do Studio Ads. Não usa padrões de métricas.

@@ -81,6 +81,7 @@ export type CenaVideoRequest = {
 
 export type CenaVideoRequestInput = {
   keyframeUrl: string
+  endKeyframeUrl?: string
   productUrl: string
   prompt: string
   language?: string
@@ -111,6 +112,8 @@ export function cenaVideoRequests(route: CenaRoute, data: CenaVideoRequestInput)
   const info = CENA_ROUTES[route]
   const keyframeUrl = requiredUrl(data.keyframeUrl, 'keyframe_url')
   const productUrl = requiredUrl(data.productUrl, 'product_url')
+  const endKeyframeUrl = data.endKeyframeUrl ? requiredUrl(data.endKeyframeUrl, 'end_keyframe_url') : null
+  const refs = endKeyframeUrl ? [keyframeUrl, endKeyframeUrl, productUrl] : [keyframeUrl, productUrl]
   const prompt = requiredPrompt(data.prompt)
   const language = String(data.language || 'en').trim().toLowerCase().split(/[-_]/)[0]
   const nativeSpeechSupported = info.nativeSpeechLanguages ? info.nativeSpeechLanguages.includes(language) : null
@@ -120,7 +123,7 @@ export function cenaVideoRequests(route: CenaRoute, data: CenaVideoRequestInput)
     const speechRule = nativeSpeechSupported ? '' : '\nAUDIO RULE: ambient sound and product interaction sound only. No spoken dialogue, no narration and no mouth speaking; a separate voiceover will be added in editing. Do not translate the supplied script into English.'
     return [{
       endpoint: info.endpoint,
-      input: { start_image_url: keyframeUrl, prompt: `${prompt}${speechRule}`, duration: '15', generate_audio: true },
+      input: { start_image_url: keyframeUrl, ...(endKeyframeUrl ? { end_image_url: endKeyframeUrl } : {}), prompt: `${prompt}${speechRule}`, duration: '15', generate_audio: true },
       seconds: 15, keepSeconds: 15, offsetSeconds: 0, nativeSpeechSupported, warnings,
     }]
   }
@@ -128,8 +131,8 @@ export function cenaVideoRequests(route: CenaRoute, data: CenaVideoRequestInput)
   if (route === 'seedance2') return [{
     endpoint: info.endpoint,
     input: {
-      prompt: `@Image1 is the approved scene and actor. @Image2 is the customer's exact product reference; preserve its identity.\n${prompt}`,
-      image_urls: [keyframeUrl, productUrl], duration: '15', aspect_ratio: '9:16', resolution: '720p', generate_audio: true,
+      prompt: `@Image1 is the approved opening and actor. ${endKeyframeUrl ? '@Image2 is the approved use scene with the same actor. @Image3' : '@Image2'} is the customer's exact product reference; preserve its identity.\n${prompt}`,
+      image_urls: refs, duration: '15', aspect_ratio: '9:16', resolution: '720p', generate_audio: true,
     },
     seconds: 15, keepSeconds: 15, offsetSeconds: 0, nativeSpeechSupported, warnings,
   }]
@@ -137,8 +140,8 @@ export function cenaVideoRequests(route: CenaRoute, data: CenaVideoRequestInput)
   return [0, 8].map((offsetSeconds, index) => ({
     endpoint: info.endpoint,
     input: {
-      prompt: `The first reference is the approved scene and actor; the second is the customer's exact product. Preserve both identities.\n${data.segmentPrompts?.[index] ?? prompt}\nSEGMENT ${index + 1}/2: local 0s equals absolute ${offsetSeconds}s. ${index === 0 ? 'End with ongoing product interaction.' : 'Continue from absolute 8s. The last generated second will be trimmed.'}`,
-      image_urls: [keyframeUrl, productUrl], duration: '8s', aspect_ratio: '9:16', resolution: '720p', generate_audio: true,
+      prompt: `The first reference is the approved opening and actor; ${endKeyframeUrl ? 'the second is the approved use scene; the third' : 'the second'} is the customer's exact product. Preserve all identities.\n${data.segmentPrompts?.[index] ?? prompt}\nSEGMENT ${index + 1}/2: local 0s equals absolute ${offsetSeconds}s. ${index === 0 ? 'End with ongoing product interaction.' : 'Continue from absolute 8s. The last generated second will be trimmed.'}`,
+      image_urls: refs, duration: '8s', aspect_ratio: '9:16', resolution: '720p', generate_audio: true,
     },
     seconds: 8, keepSeconds: index === 0 ? 8 : 7, offsetSeconds, nativeSpeechSupported, warnings: [...warnings],
   }))
@@ -185,7 +188,7 @@ function costFor(route: CenaRoute): CenaCostEstimate {
   const info = CENA_ROUTES[route]
   const generatedSeconds = info.secondsPerRequest * info.requestsFor15Seconds
   const videoUsd = Number((generatedSeconds * info.videoUsdPerSecond).toFixed(4))
-  const keyframesBestOf2Usd = Number((2 * CENA_KEYFRAME_USD).toFixed(4))
+  const keyframesBestOf2Usd = Number((4 * CENA_KEYFRAME_USD).toFixed(4))
   const knownSubtotalUsd = Number((videoUsd + keyframesBestOf2Usd).toFixed(4))
   return {
     route, checkedAt: CENA_CONTRACTS_CHECKED_AT, estimated: true, currency: 'USD', outputSeconds: 15,
