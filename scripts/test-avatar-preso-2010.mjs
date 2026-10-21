@@ -289,7 +289,7 @@ console.log('\nD. desfaz, encadeamento e diff')
   const permitidos = new Set([...AVATAR_PRESO_2010_ARQUIVOS, ...AVATAR_PRESO_2010_NOVOS])
   const fora = [...tocados].filter((f) => !permitidos.has(f))
   ok(fora.length === 0, `D7 o diff da entrega só toca a lista e os novos${fora.length ? ' — fora: ' + fora.join(', ') : ''}`)
-  const meus = commits.filter(([h]) => { const fs2 = git('diff-tree', '--no-commit-id', '--name-only', '-r', h).split('\n'); return fs2.some((f) => AVATAR_PRESO_2010_NOVOS.includes(f)) })
+  const meus = commits.filter(([h, s]) => { const fs2 = git('diff-tree', '--no-commit-id', '--name-only', '-r', h).split('\n'); return fs2.some((f) => AVATAR_PRESO_2010_NOVOS.includes(f)) && !s.includes('KINEO-MCP-STUDIO-AJUSTE-2010') }) // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: o commit do ajuste do conector (entrega de depois) reancora arquivos desta, com a marca dele
   ok(meus.every(([, s]) => s.includes(MARCA) && s.includes('[TRAVA 8.2')), 'D8 todo commit da entrega leva a marca e a [TRAVA 8.2] no assunto')
 }
 
