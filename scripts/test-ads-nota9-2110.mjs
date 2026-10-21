@@ -34,6 +34,7 @@ import { semHomeCardsClaros2010 } from './test-support/desfaz-home-cards-claros-
 import { semDesenhoNota9_2110 } from './test-support/desfaz-desenho-nota9-2110.mjs'
 import { semBebeQueFala2010 } from './test-support/desfaz-bebe-que-fala-2010.mjs'
 import { semMenuUgc2010 } from './test-support/desfaz-menu-ugc-2010.mjs'
+import { semAdsQualidade2110 } from './test-support/desfaz-ads-qualidade-2110.mjs' // KINEO-ADS-QUALIDADE-2110 — reancorado: a qualidade do Studio Ads (21/10) veio depois
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -274,7 +275,7 @@ console.log('\nD. desfaz exato, diff, encadeamento')
   const tocados = daEntrega()
   const permitidos = new Set([...ADS_NOTA9_2110_ARQUIVOS, ...ADS_NOTA9_2110_NOVOS])
   const fora = [...tocados].filter((f) => !permitidos.has(f))
-  const semMarca = ADS_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !rd(f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) })
+  const semMarca = ADS_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\n')); return !lf(semAdsQualidade2110(rd(f), f)).split('\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-ADS-QUALIDADE-2110 — reancorado: as linhas da qualidade (entrega de depois) levam a marca dela
   const trocasOk = Object.entries(TROCAS_ADS_NOTA9_2110).filter(([f]) => f !== '__acrescimos').every(([f, t]) => ADS_NOTA9_2110_ARQUIVOS.includes(f) && t.every(([nova, velha]) => nova.includes(MARCA) && !velha.includes(MARCA)))
   ok(tocados.size > 0 && fora.length === 0 && semMarca.length === 0 && trocasOk && !/KINEO-HOME-CARDS-CLAROS|KINEO-BEBE|KINEO-MENU-UGC|KINEO-DESENHO-NOTA9/.test(MARCA),
     `D2 o diff só toca a lista e os novos; toda linha nova com a marca; trocas de linha inteira (${[...fora.map((f) => `fora: ${f}`), ...semMarca.map((f) => `sem marca: ${f}`)].join('; ') || 'ok'})`)

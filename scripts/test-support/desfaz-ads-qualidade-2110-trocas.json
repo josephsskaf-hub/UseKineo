@@ -10,6 +10,9 @@
     "lib/ads/v2PlanCore.ts": 8,
     "lib/ads/v2PresenterV2.ts": 61,
     "scripts/test-ads-bola-2110.mjs": 1,
+    "scripts/test-ads-nota9-2110.mjs": 1,
+    "scripts/test-mcp-studio-2010.mjs": 13,
+    "scripts/test-mcp-studio-ajuste-2010.mjs": 13,
     "scripts/test-support/desfaz-ads-bola-2110.mjs": 2
   },
   "app/(dashboard)/ads/v2/AdsV2Client.tsx": [
@@ -171,6 +174,14 @@
       "await check('X5 toda linha diferente da base nos arquivos tocados carrega a marca (o desfaz só tira linha marcada)', () => ADS_BOLA_2110_ARQUIVOS.every((p) => { const b = new Set(base(p).split('\\n')); return rd(p).split('\\n').every((l) => b.has(l) || l.includes(MARCA_ADS_BOLA_2110)) }))"
     ]
   ],
+  "scripts/test-ads-nota9-2110.mjs": [
+    [
+      "  const semMarca = ADS_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !lf(semAdsQualidade2110(rd(f), f)).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-ADS-QUALIDADE-2110 — reancorado: as linhas da qualidade (entrega de depois) levam a marca dela",
+      "  const semMarca = ADS_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !rd(f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) })"
+    ]
+  ],
+  "scripts/test-mcp-studio-2010.mjs": [],
+  "scripts/test-mcp-studio-ajuste-2010.mjs": [],
   "scripts/test-support/desfaz-ads-bola-2110.mjs": [
     [
       "export const ADS_BOLA_2110_BASE = '58b03e12d' // KINEO-ADS-QUALIDADE-2110 — merge da fila: a base da bola é a origin/main 58b03e12d",
