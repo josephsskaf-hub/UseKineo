@@ -42,6 +42,7 @@ import { cenaEnabled } from '@/lib/ads/cena/catalog' // KINEO-ADS-CENA-2110
 import { isAdsInternalEmail } from '@/lib/ads/access' // KINEO-ADS-CENA-2110
 import { cenaOf } from '@/lib/ads/cena/pipeline' // KINEO-ADS-CENA-2110
 import { cenaCosts } from '@/lib/ads/cena/adapters' // KINEO-ADS-CENA-2110
+import { cena95CostTableOf } from '@/lib/ads/cena/plan95' // KINEO-ADS-CENA-95-2110
 
 /** Prazo para abrir envios novos nesta chamada (o resto sai pelo avanço da tela/cron). */
 const DISPATCH_BUDGET_MS = 40_000
@@ -89,7 +90,7 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
 
     const cost = adsV2Credits(order.tier, order.seconds)
     const usd = estimateAdUsd({ tier: order.tier, shots: plan.shots.map((s) => ({ kind: s.kind, source: s.source, styled: !!s.effect })), seconds: plan.totalSeconds, presenter: !!plan.presenter }) // KINEO-ESTILOS-PRODUTO-2026-10-09 — o plano com estilo custa o efeito · KINEO-ATOR-ANUNCIO-2026-10-09 — o ator custa a foto e o vídeo falado
-    if (cena && dryRun) return v2Json({ dry_run: true, charged: false, order_id: orderId, credits: cost, plan: cena.plan, costs: cena.plan.voice_mode ? cenaCosts(undefined, cena.plan.voice_mode) : cenaCosts() }) // KINEO-ADS-CENA-2110 KINEO-ADS-CENA-AJUSTE-2110 — o ensaio também respeita o modo salvo; legado sem modo conserva estimativa antiga.
+    if (cena && dryRun) return v2Json({ dry_run: true, charged: false, order_id: orderId, credits: cost, plan: cena.plan, costs: cena95CostTableOf(cena.plan) ?? (cena.plan.voice_mode ? cenaCosts(undefined, cena.plan.voice_mode) : cenaCosts()) }) // KINEO-ADS-CENA-2110 KINEO-ADS-CENA-AJUSTE-2110 — o ensaio também respeita o modo salvo; legado sem modo conserva estimativa antiga.
 
     // ENSAIO DE US$ 0: plano + custo, sem débito e sem fal. Para aqui.
     if (dryRun) {
@@ -154,7 +155,7 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     }
 
     // Planos da geração (text nasce 'skipped_text' e nunca vai à fal).
-    if (cena) { const costs = cena.plan.voice_mode ? cenaCosts(undefined, cena.plan.voice_mode) : cenaCosts(); locked = null; await writeServerEvent({ name: 'ads_cena_started', userId: uid, path: '/api/ads/v2/start', metadata: { order_id: orderId, route: cena.route, credits: cost, costs } }); return v2Json({ order_id: orderId, status: 'generating', credits: cost, costs, status_url: `/api/ads/v2/status?order_id=${orderId}` }, 202) } // KINEO-ADS-CENA-2110 KINEO-ADS-CENA-AJUSTE-2110 — resposta e evento usam o modo salvo; nenhum plano legado é enviado; /status e cron avançam a cena
+    if (cena) { const costs = cena95CostTableOf(cena.plan) ?? (cena.plan.voice_mode ? cenaCosts(undefined, cena.plan.voice_mode) : cenaCosts()); locked = null; await writeServerEvent({ name: 'ads_cena_started', userId: uid, path: '/api/ads/v2/start', metadata: { order_id: orderId, route: cena.route, credits: cost, costs } }); return v2Json({ order_id: orderId, status: 'generating', credits: cost, costs, status_url: `/api/ads/v2/status?order_id=${orderId}` }, 202) } // KINEO-ADS-CENA-2110 KINEO-ADS-CENA-AJUSTE-2110 — resposta e evento usam o modo salvo; nenhum plano legado é enviado; /status e cron avançam a cena
     const rows = buildInitialShotRows(orderId, order.tier, plan)
     const ins = await admin.from('ads_v2_shots').upsert(rows, { onConflict: 'order_id,idx,attempt', ignoreDuplicates: true })
     if (ins.error) {

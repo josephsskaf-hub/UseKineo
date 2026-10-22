@@ -9,9 +9,10 @@ export const CENA95_ACTORS: Record<CenaCategory, readonly string[]> = {
   bag: ['hannah', 'kenji', 'sofia', 'rahul', 'chloe'],
   bottle: ['jade', 'marcus', 'rahul', 'sofia', 'chloe'],
   supplement: ['marcus', 'jade', 'rahul', 'sofia', 'chloe'],
+  tea: ['sofia', 'clara', 'hannah', 'rahul', 'robert'],
   other: ['sofia', 'clara', 'hannah', 'marcus', 'rahul', 'robert'],
 }
-export const CENA95_MUSIC = { wearable: 'hustle', footwear: 'hustle', skincare: 'nature', perfume: 'emotional', bag: 'tech', bottle: 'nature', supplement: 'hustle', other: 'tech' } as const
+export const CENA95_MUSIC = { wearable: 'hustle', footwear: 'hustle', skincare: 'nature', perfume: 'emotional', bag: 'tech', bottle: 'nature', supplement: 'hustle', tea: 'nature', other: 'tech' } as const
 export interface Cena95Presenter { id: string; name: string; portrait: string; look: string; gender: 'female' | 'male'; age: 'young_adult' | 'adult' | 'mature' }
 const profile = (p: AdsV2PresenterEntry): Cena95Presenter => ({ id: p.id, name: p.name, portrait: `https://www.usekineo.com${p.portrait}`, look: p.look, gender: p.gender === 'woman' ? 'female' : 'male', age: p.ageMin >= 50 ? 'mature' : p.ageMax <= 30 ? 'young_adult' : 'adult' })
 /** History is already ordered newest first and scoped by user_id on the server. Never use a caller-supplied history. */

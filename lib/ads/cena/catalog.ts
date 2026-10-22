@@ -9,6 +9,7 @@ export const CENA_CATALOG = {
   bag: { format: 'lifestyle_demo', setting: 'a street outside a modern office', actor: 'one adult commuting', interaction: 'places the bag on their own shoulder and walks into the office', scale: 'a bag fitted naturally to the actor shoulder' },
   bottle: { format: 'hands_demo', setting: 'a bright kitchen after a workout', actor: 'one adult athlete', interaction: 'opens the bottle, pours the drink into a glass and holds the glass below chest level', scale: 'a bottle of realistic handheld size' },
   supplement: { format: 'hands_demo', setting: 'a kitchen counter beside a gym bag', actor: 'one adult athlete, their own hands visible', interaction: 'opens the container and prepares a serving in a shaker without drinking on camera', scale: 'a container of realistic handheld size' },
+  tea: { format: 'hands_demo', setting: 'a bright calm kitchen counter', actor: 'one adult preparing tea', interaction: 'opens the tea package with their own hands and prepares the tea in a cup, keeping everything below chest level without drinking on camera', scale: 'the real tea package beside an ordinary cup, no enlargement' },
   other: { format: 'hands_demo', setting: 'a bright tidy worktable', actor: 'one adult, only their own arms and hands visible', interaction: 'picks up and turns the product to show its real front and side', scale: 'the actual product proportions, no enlargement' },
 } as const
 export type CenaCategory = keyof typeof CENA_CATALOG
@@ -20,9 +21,10 @@ export const CENA_WARDROBE: Record<CenaCategory, string> = {
   bag: 'a plain ivory short-sleeve blouse and charcoal trousers, no jewellery or accessories',
   bottle: 'a plain cobalt-blue short-sleeve athletic shirt and charcoal trousers',
   supplement: 'a plain cobalt-blue short-sleeve athletic shirt and charcoal trousers',
+  tea: 'a plain cream short-sleeve cotton shirt and charcoal trousers, no jewellery or accessories',
   other: 'a plain cream short-sleeve cotton shirt and charcoal trousers, no jewellery or accessories',
 }
-export const CENA_ACTORS: Record<CenaCategory, string> = { wearable: 'jade', skincare: 'clara', perfume: 'sofia', footwear: 'jade', bag: 'hannah', bottle: 'jade', supplement: 'jade', other: 'sofia' }
+export const CENA_ACTORS: Record<CenaCategory, string> = { wearable: 'jade', skincare: 'clara', perfume: 'sofia', footwear: 'jade', bag: 'hannah', bottle: 'jade', supplement: 'jade', tea: 'sofia', other: 'sofia' }
 export function cenaCategory(value: unknown): value is CenaCategory { return typeof value === 'string' && Object.hasOwn(CENA_CATALOG, value) }
 
 // Recebe um booleano derivado SOMENTE da lista EXATA do auth do Studio Ads. Não usa padrões de métricas.

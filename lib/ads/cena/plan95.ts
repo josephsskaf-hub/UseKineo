@@ -6,6 +6,7 @@ import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { chooseCena95Presenter, CENA95_MUSIC, type Cena95Presenter } from './presenters95'
 import { parseCena95Script, type Cena95Script } from './script95'
 import { estimateCena95Cost } from './costs95'
+import { cena95NarratedVoiceRequest, type Cena95VoiceLanguage } from './voice95'
 export interface Cena95Usage { inputTokens: number; outputTokens: number; calls: number; measuredCalls: number }
 export interface Cena95Plan extends CenaPlan {
   script: Cena95Script
@@ -22,7 +23,7 @@ export async function planCena95(input: CenaInput, route: CenaRoute, json: CenaJ
   const planningUsage: Cena95Usage = { inputTokens: 0, outputTokens: 0, calls: 0, measuredCalls: 0 }
   const call: CenaJson = async c => {
     planningUsage.calls++
-    const request = { ...c, onUsage: (usage: { prompt_tokens?: number; completion_tokens?: number }) => { if (Number.isFinite(usage.prompt_tokens) && Number.isFinite(usage.completion_tokens)) { planningUsage.inputTokens += usage.prompt_tokens!; planningUsage.outputTokens += usage.completion_tokens!; planningUsage.measuredCalls++ } } }
+    const request = { ...c, maxOutputTokens: 2048, onUsage: (usage: { prompt_tokens?: number; completion_tokens?: number }) => { if (Number.isFinite(usage.prompt_tokens) && Number.isFinite(usage.completion_tokens)) { planningUsage.inputTokens += usage.prompt_tokens!; planningUsage.outputTokens += usage.completion_tokens!; planningUsage.measuredCalls++ } } }
     if (c.images.length) request.system += ' Also return photo_is_isolated_product:true ONLY when the source photo shows the product alone, with no hand or person; unknown=false. The final shot uses this exact photograph, so an existing hand cannot be removed.'
     const value = await json(request)
     if (c.images.length) { const r = typeof value === 'string' ? JSON.parse(value) : value; if (!r || r.photo_is_isolated_product !== true) throw new Error('cena95_packshot_required') }
@@ -49,6 +50,7 @@ export async function planCena95(input: CenaInput, route: CenaRoute, json: CenaJ
     `${base} Local 0-3s: strong natural movement with person AND product, then 3-8s ${row.interaction}. ${mode === 'narrated' ? silent : `${nativeVoice} Face and speaking mouth visible. Say ONLY: ${words.slice(0, boundary).join(' ')}`}`,
     `${base} Continue the same action from absolute 8s. Local 0-2s: ${row.interaction}; keep speaking naturally to absolute15s, last generated second trimmed. ${mode === 'narrated' ? silent : `${nativeVoice} Face and mouth visible. Say ONLY: ${words.slice(boundary).join(' ')}. At absolute13s pause .35 seconds before the CTA.`}`,
   ]
-  const costs = Object.fromEntries((['kling3', 'seedance2', 'veo31'] as const).map(r => [r, estimateCena95Cost(r, mode, { characters: script!.narration.length + 8 })])) as Cena95Plan['quality95']['costs']
+  const characters = mode === 'narrated' ? cena95NarratedVoiceRequest({ beforeCta: script.beforeCta, cta: script.cta, pauseSeconds: script.pauseSeconds, language: input.language as Cena95VoiceLanguage, gender: presenter.gender, age: presenter.age, formato: input.formato }).billingCharacters : 0
+  const costs = Object.fromEntries((['kling3', 'seedance2', 'veo31'] as const).map(r => [r, estimateCena95Cost(r, mode, { characters, planningCalls: planningUsage.calls })])) as Cena95Plan['quality95']['costs']
   return { marker: 'KINEO-ADS-CENA-2110', input, category, product: classification.product, format: row.format, setting: row.setting, actor: presenter.look, interaction: row.interaction, script, voice_mode: mode, audioMode: mode === 'narrated' ? 'voiceover' : 'native', continuity: { actorUrl: presenter.portrait, wardrobe, productWrist: category === 'wearable' ? 'left' : null }, keyframePrompts: [`${base} SHARED BASE KEYFRAME: person and product, upper torso and both connected arms, natural posture before movement. ${mode === 'narrated' ? 'Mouth closed.' : 'Face ready to speak.'}`, `${base} Same shared keyframe reference.`], videoPrompt: `${base} ${mode === 'narrated' ? silent : nativeVoice}`, segmentPrompts, quality95: { version: 'KINEO-ADS-CENA-95-2110', presenter, wardrobe, musicMood: CENA95_MUSIC[category], closePhoto: input.foto, shots: [{ kind: 'hook', start: 0, seconds: 3 }, { kind: 'use', start: 3, seconds: 7 }, { kind: 'close', start: 10, seconds: 5 }], costs, planningUsage, nativeVoice } }
 }

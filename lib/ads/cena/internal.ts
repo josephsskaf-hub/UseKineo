@@ -3,9 +3,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { isAdsInternalEmail } from '../access'
 import { cenaEnabled } from './catalog'
-import { cenaInput, planCena, type CenaJson } from './plan'
-import { cenaAssertVoiceRoute, cenaCosts, cenaResolveRoute, isCenaRoute } from './adapters'
-import { newCenaState } from './pipeline'
+import { cenaInput, type CenaJson } from './plan'
+import { cenaAssertVoiceRoute, cenaResolveRoute, isCenaRoute } from './adapters'
+import { planCena95 } from './plan95'
+import { newCena95State } from './pipeline95'
+import { cena95ActorFromOrder } from './presenters95'
 import { planShots } from '../v2ShotLists'
 import { v2Fail, v2Json } from '../v2Server'
 import { adsV2Credits } from '../v2Tiers'
@@ -15,6 +17,7 @@ export interface CenaInternalDeps {
   moderate(text: string): Promise<boolean>;
   admin: SupabaseClient;
   start(orderId: string): Promise<Response>;
+  recentActors?(userId: string): Promise<string[]>;
 }
 export async function internalCenaFor(user: AdsV2Caller, body: unknown, d: CenaInternalDeps): Promise<Response> {
   if (!cenaEnabled(isAdsInternalEmail(user.email))) return v2Fail('cena_internal_only', 403)
@@ -27,13 +30,18 @@ export async function internalCenaFor(user: AdsV2Caller, body: unknown, d: CenaI
     const route = cenaResolveRoute(voiceMode, b.rota)
     cenaAssertVoiceRoute(route, voiceMode, input.language)
     if (!await d.moderate([input.frase, input.oferta, ...(input.beneficios ?? [])].join('\n'))) return v2Fail('moderation', 422)
-    const plan = await planCena(input, route, d.json)
-    const costs = cenaCosts(undefined, voiceMode)
-    const response = { dry_run: b.dry_run === true, charged: false, rota: route, voice_mode: voiceMode, plan, costs, credits: adsV2Credits('commercial', 15), note: 'Planejamento usa GPT-4o-mini; dry_run não gera imagem/vídeo, não debita créditos nem grava pedido. Totais USD incluem parcelas desconhecidas.' }
+    const history = d.recentActors ? await d.recentActors(user.id) : await (async () => {
+      const r = await d.admin.from('ads_v2_orders').select('id,plan,created_at').eq('user_id', user.id).order('created_at', { ascending: false }).order('id', { ascending: false }).limit(3)
+      if (r.error || !Array.isArray(r.data)) throw new Error('cena95_history_unavailable')
+      return r.data.map(row => cena95ActorFromOrder(row.plan) ?? '')
+    })()
+    const plan = await planCena95(input, route, d.json, { userId: user.id, recentActors: history })
+    const costs = plan.quality95.costs
+    const response = { dry_run: b.dry_run === true, charged: false, rota: route, voice_mode: voiceMode, plan, costs, credits: adsV2Credits('commercial', 15), note: 'KINEO-ADS-CENA-95-2110: previsão completa com tarifas públicas e reservas declaradas; actualTotalUsd só após medição e confirmação de tarifas. Dry run planeja com visão; não gera mídia, não debita e não grava pedido.' }
     if (b.dry_run === true) return v2Json(response)
     // Nenhum preço novo: canário custa o mesmo nível Comercial. O start v2 confirma débito e garante uma geração ativa.
     const skeleton = planShots({ sector: 'store', tier: 'commercial', seconds: 15, photos: [{ id: '00000000-0000-4000-8000-000000000001', url: input.foto, kind: 'text' }] })
-    const stored = { ...skeleton, overlays: [], narration: plan.script.narration, cena: newCenaState(plan, route) }
+    const stored = { ...skeleton, overlays: [], narration: plan.script.narration, cena: newCena95State(plan, route) }
     const ins = await d.admin.from('ads_v2_orders').insert({ user_id: user.id, status: 'planned', tier: 'commercial', seconds: 15, sector: 'store', language: input.language, narration: true, card_url: input.foto, photos: [], brief: { sentence: input.frase, business: plan.product, offer: plan.input.oferta, kind: 'product', cena: true, voice_mode: voiceMode }, plan: stored }).select('id').maybeSingle()
     if (ins.error || !ins.data) return v2Fail('cena_order_failed', 503)
     const started = await d.start(String(ins.data.id))
@@ -41,7 +49,8 @@ export async function internalCenaFor(user: AdsV2Caller, body: unknown, d: CenaI
     return v2Json({ ...result, rota: route, voice_mode: voiceMode, ...(started.ok ? { costs } : {}) }, started.status)
   } catch (e) {
     const message = e instanceof Error ? e.message : 'cena_plan_failed'
-    const inputError = message.startsWith('cena_bad_') || message === 'cena_kling_native_speech_unsupported'
+    if (message === 'cena95_history_unavailable') return v2Fail(message, 503)
+    const inputError = message.startsWith('cena_bad_') || message === 'cena_kling_native_speech_unsupported' || ['cena95_packshot_required', 'cena95_actor_not_approved', 'cena95_actor_recent', 'cena95_voice_language_unsupported'].includes(message)
     return v2Fail(inputError ? message : 'cena_plan_failed', inputError ? 400 : 502)
   }
 }

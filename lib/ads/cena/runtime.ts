@@ -16,7 +16,9 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { CreatomateSubmitError, estimateMp3DurationSeconds, submitCreatomateRender, uploadVoiceoverToSupabase } from '@/lib/compose'
 import { synthesizeTtsFallback } from '@/lib/ttsFallback'
 export const cenaJson: CenaJson = async c => {
-  const result = await openai.chat.completions.create({ model: c.model, response_format: { type: 'json_object' }, temperature: 0.3, max_tokens: 1000, messages: [{ role: 'system', content: c.system }, { role: 'user', content: [{ type: 'text', text: c.text }, ...c.images.map(url => ({ type: 'image_url' as const, image_url: { url, detail: 'high' as const } }))] }] }, { timeout: 20_000, maxRetries: 0 })
+  const measured = c as typeof c & { maxOutputTokens?: number; onUsage?: (u: { prompt_tokens?: number; completion_tokens?: number }) => void }
+  const result = await openai.chat.completions.create({ model: c.model, response_format: { type: 'json_object' }, temperature: 0.3, max_tokens: measured.maxOutputTokens ?? 1000, messages: [{ role: 'system', content: c.system }, { role: 'user', content: [{ type: 'text', text: c.text }, ...c.images.map(url => ({ type: 'image_url' as const, image_url: { url, detail: 'high' as const } }))] }] }, { timeout: 20_000, maxRetries: 0 })
+  if (result.usage) measured.onUsage?.(result.usage)
   return result.choices[0]?.message?.content ?? ''
 }
 export async function failCenaOrder(admin: SupabaseClient, order: AdsV2OrderRow, reason: string): Promise<void> {
@@ -31,6 +33,12 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
   if (state.plan.voice_mode) {
     try { cenaAssertVoiceRoute(state.route, state.plan.voice_mode, state.plan.input.language) }
     catch (e) { await failCenaOrder(admin, order, e instanceof Error ? e.message : 'cena_bad_voice_mode'); return }
+  }
+  // KINEO-ADS-CENA-95-2110 — só novos planos marcados; pedidos anteriores conservam o avanço existente.
+  if ('quality95' in state.plan) {
+    const { advanceCena95Order } = await import('./runtime95')
+    await advanceCena95Order(admin, order, { json: cenaJson, fail: reason => failCenaOrder(admin, order, reason) })
+    return
   }
   // A mesma coluna de lease da montagem, enquanto generating. Um vencedor; relógio da segunda tentativa próprio.
   if (order.assembly_lease_at && Date.now() - Date.parse(order.assembly_lease_at) < 5 * 60_000) return
