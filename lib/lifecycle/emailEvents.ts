@@ -42,6 +42,7 @@
  * este usuário". Lido por `loadLifecycleSuppression` como quinta fonte.
  */
 export const LIFECYCLE_EMAIL_EVENT_NAMES = [
+  'kids_launch_email_sent', // KINEO-CARTOON-TRACAO-2210; accepted email only, never a preview/claim
   'mrr_ready_film_sent', // founder-only reviewed campaign; never emitted by dry-run
   // ── campanhas de admin (carimbo `*_emailed_v1`) ──────────────────────────
   'season_letter_emailed_v1',
