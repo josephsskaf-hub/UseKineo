@@ -275,9 +275,11 @@ for (const p of new Set([...ADS_CENA_95_2110_ARQUIVOS, ...KIDS_VENDA_2010_ARQUIV
 const ordemAntes = (src, primeira, segunda) => src.indexOf(primeira) >= 0 && src.indexOf(primeira) < src.indexOf(segunda)
 ok(ordemAntes(rd('scripts/test-support/desfaz-ads-cena-ajuste-2110.mjs'), 'texto = semPaginasIaClaras2110(texto, p)', 'texto = semAdsCena952110(texto, p)') && ordemAntes(rd('scripts/test-support/desfaz-ads-cena-95-2110.mjs'), 'texto = semPaginasIaClaras2110(texto, p)', "const rel = String(p ?? '')") && ordemAntes(rd('scripts/test-support/desfaz-bing-seo-1510.mjs'), 'src = semPaginasIaClaras2110(src, rel)', "const key = String(rel ?? '')"), 'X8 camadas mais novas saem antes das consultas/trocas de Cena95, Ajuste e Bing')
 const declarados = new Set([...PAGINAS_IA_CLARAS_2110_ARQUIVOS, ...PAGINAS_IA_CLARAS_2110_NOVOS])
-const alterados = execFileSync('git', ['diff', '--name-only', BASE], { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
+const CAMADAS_POSTERIORES_PAGINAS_2110 = ['KINEO-CARDS-SEM-LEGENDA-2210'] // KINEO-CARDS-SEM-LEGENDA-2210 — camada posterior (só mídia em public/) fora da conta desta trava
+const arquivosPosteriores = new Set(execFileSync('git', ['log', '--name-only', '--format=', ...CAMADAS_POSTERIORES_PAGINAS_2110.map(m => '--grep=' + m), BASE + '..HEAD'], { encoding: 'utf8' }).trim().split('\n').filter(Boolean)) // KINEO-CARDS-SEM-LEGENDA-2210
+const alterados = execFileSync('git', ['diff', '--name-only', BASE], { encoding: 'utf8' }).trim().split('\n').filter(Boolean).filter(p => !arquivosPosteriores.has(p)) // KINEO-CARDS-SEM-LEGENDA-2210
 ok(alterados.length > 0 && alterados.every(p => declarados.has(p)), 'X9 diff completo contra a main só contém arquivos declarados da camada')
-const assuntos = execFileSync('git', ['log', '--format=%s', BASE + '..HEAD'], { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
+const assuntos = execFileSync('git', ['log', '--format=%s', BASE + '..HEAD'], { encoding: 'utf8' }).trim().split('\n').filter(Boolean).filter(t => !CAMADAS_POSTERIORES_PAGINAS_2110.some(m => t.startsWith(m + ' '))) // KINEO-CARDS-SEM-LEGENDA-2210
 ok(assuntos.length > 0 && assuntos.every(ehCommitPaginasIaClaras2110), 'X10 todo commit próprio leva prefixo e TRAVA exatos; nenhum assunto alheio é excluído')
 
 // ── M. mutantes ─────────────────────────────────────────────────────────────────────────────────────────────────────
