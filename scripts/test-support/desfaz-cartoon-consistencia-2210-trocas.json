@@ -19,7 +19,8 @@
     "scripts/test-kling25-planos-5s-2026-09-28.mjs": 0,
     "scripts/test-moderacao-2026-09-25.mjs": 0,
     "scripts/test-seedance-15s-3x6-2026-09-29.mjs": 0,
-    "scripts/test-trilha-15s-1610.mjs": 13
+    "scripts/test-trilha-15s-1610.mjs": 13,
+    "scripts/test-filmes-f1f4-1910.mjs": 0
   },
   "__contextos": {
     "app/api/generate-video-cinematic/route.ts": [
@@ -163,6 +164,12 @@
     [
       "  assuntos.splice(0, assuntos.length, ...assuntos.filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010') && !s.includes('KINEO-KIDS-VENDA-2010') && !s.includes('KINEO-KIDS-VENDA-LIGA-2110') && !(s.startsWith('KINEO-CARTOON-CONSISTENCIA-2210 ') && s.includes('[TRAVA 8.2 — vai do fundador 22/10 \"vamos dar tração em todas\"]')))) // reancorado KINEO-KIDS-VENDA-2010 [TRAVA 8.2 — vai do fundador 20/10 \"três sim\"]: os commits do desenho infantil (template e venda, 20/10) levam o selo deles // KINEO-CARTOON-CONSISTENCIA-2210 — só os commits nominais e autorizados desta entrega saem do selo ancestral.",
       "  assuntos.splice(0, assuntos.length, ...assuntos.filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010') && !s.includes('KINEO-KIDS-VENDA-2010') && !s.includes('KINEO-KIDS-VENDA-LIGA-2110'))) // reancorado KINEO-KIDS-VENDA-2010 [TRAVA 8.2 — vai do fundador 20/10 \"três sim\"]: os commits do desenho infantil (template e venda, 20/10) levam o selo deles"
+    ]
+  ],
+  "scripts/test-filmes-f1f4-1910.mjs": [
+    [
+      "  const rdAlheio = (p) => { try { const sha = execFileSync('git', ['log', '--format=%H%x09%s', '--invert-grep', `--grep=${MARCA_FILMES_F1F4_1910}`, '--grep=KINEO-CLOSE-REAL-AJUSTE-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-HOME-3-CARDS-1910' /* reancorado KINEO-HOME-3-CARDS-1910: pula os commits dos 3 cards */, '--grep=KINEO-META95-ESCRITA-2010' /* reancorado KINEO-META95-ESCRITA-2010: pula os commits da legenda na escrita do roteiro */, '--grep=KINEO-BEBE-QUE-FALA-2010' /* reancorado KINEO-BEBE-QUE-FALA-2010: pula os commits do desenho infantil */, '--', p], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim().split('\\n').filter(Boolean).map(line => ({ sha: line.slice(0, line.indexOf('\\t')), subject: line.slice(line.indexOf('\\t') + 1) })).find(item => !(item.subject.startsWith('KINEO-CARTOON-CONSISTENCIA-2210 ') && item.subject.includes('[TRAVA 8.2 — vai do fundador 22/10 \"vamos dar tração em todas\"]')))?.sha; return sha ? lf(execFileSync('git', ['show', `${sha}:${p}`], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()) : null } catch { return null } } // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: a versão 'alheia' pula também os commits do ajuste do Close real // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo // KINEO-CARTOON-CONSISTENCIA-2210 — referência alheia exclui somente commits próprios com prefixo e autorização literais.",
+      "  const rdAlheio = (p) => { try { const sha = execFileSync('git', ['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F4_1910}`, '--grep=KINEO-CLOSE-REAL-AJUSTE-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-HOME-3-CARDS-1910' /* reancorado KINEO-HOME-3-CARDS-1910: pula os commits dos 3 cards */, '--grep=KINEO-META95-ESCRITA-2010' /* reancorado KINEO-META95-ESCRITA-2010: pula os commits da legenda na escrita do roteiro */, '--grep=KINEO-BEBE-QUE-FALA-2010' /* reancorado KINEO-BEBE-QUE-FALA-2010: pula os commits do desenho infantil */, '--', p], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); return sha ? lf(execFileSync('git', ['show', `${sha}:${p}`], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()) : null } catch { return null } } // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: a versão 'alheia' pula também os commits do ajuste do Close real // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo"
     ]
   ]
 }
