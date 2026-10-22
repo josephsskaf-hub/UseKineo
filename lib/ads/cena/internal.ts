@@ -49,8 +49,10 @@ export async function internalCenaFor(user: AdsV2Caller, body: unknown, d: CenaI
     return v2Json({ ...result, rota: route, voice_mode: voiceMode, ...(started.ok ? { costs } : {}) }, started.status)
   } catch (e) {
     const message = e instanceof Error ? e.message : 'cena_plan_failed'
+    console.warn('[ads-cena] plan_failed', message) // KINEO-ADS-CENA-95-PLAN-FAILED-2110 — rota restrita à conta da casa.
     if (message === 'cena95_history_unavailable') return v2Fail(message, 503)
     const inputError = message.startsWith('cena_bad_') || message === 'cena_kling_native_speech_unsupported' || ['cena95_packshot_required', 'cena95_actor_not_approved', 'cena95_actor_recent', 'cena95_voice_language_unsupported'].includes(message)
-    return v2Fail(inputError ? message : 'cena_plan_failed', inputError ? 400 : 502)
+    if (inputError) return v2Fail(message, 400)
+    return v2Fail('cena_plan_failed', 502, { reason: message.slice(0, 200) }) // KINEO-ADS-CENA-95-PLAN-FAILED-2110
   }
 }

@@ -44,7 +44,7 @@ export function cena95DefaultWindows(script: { hook: string; use: string; benefi
  * A faster measured voice may finish its CTA before the final overlay starts at13s; timing is never shifted to pretend otherwise. */
 export function cena95NarratedWindows(script: { hook: string; use: string; benefit: string; cta: string; narration: string }, language: string, voiceSeconds: number): Cena95SpeechWindow[] {
   const pause = 0.35, parts = [script.hook, script.use, script.benefit, script.cta]
-  if (!(Number.isFinite(voiceSeconds) && voiceSeconds > pause && voiceSeconds <= 15) || parts.some(s => !tokens(s).length)) throw new Error('cena95_narrated_duration_invalid')
+  if (!(Number.isFinite(voiceSeconds) && voiceSeconds > pause && voiceSeconds <= 15) || [parts[0], parts[1], parts[3]].some(s => !tokens(s).length)) throw new Error('cena95_narrated_duration_invalid') // KINEO-ADS-CENA-95-PLAN-FAILED-2110 — benefício/oferta ausentes não criam fala fictícia.
   if (tokens(parts.join(' ')).join(' ') !== tokens(script.narration).join(' ')) throw new Error('cena95_narrated_text_mismatch')
   const weights = parts.map(s => tokens(s).reduce((sum, word) => sum + cena95Syllables(word, language), 0)), total = weights.reduce((a, b) => a + b, 0)
   const speechSeconds = voiceSeconds - pause
@@ -53,7 +53,7 @@ export function cena95NarratedWindows(script: { hook: string; use: string; benef
     const start = r6(speechSeconds * before / total + (k === 3 ? pause : 0))
     before += weights[k]
     return { text, start, end: k === 3 ? voiceSeconds : r6(speechSeconds * before / total) }
-  })
+  }).filter(w => tokens(w.text).length > 0) // KINEO-ADS-CENA-95-PLAN-FAILED-2110 — retirar apenas a janela sem fala; preservar CTA e pausa.
   if (windows.some(w => !validWindow(w))) throw new Error('cena95_narrated_duration_invalid')
   return windows
 }

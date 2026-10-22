@@ -16,7 +16,7 @@ export function parseCena95Script(raw: unknown, input: CenaInput, product: strin
   const hooks = Array.isArray(r.hooks) ? r.hooks.map(clean) : []
   if (hooks.length !== 3 || new Set(hooks.map(fold)).size !== 3 || hooks.some(h => !h || cena95WordCount(h) > 7 || cena95WordCount(h) / CENA95_TARGET_WPS > 1.5)) throw new Error('cena95_hook_too_long')
   const pain = clean(r.pain), demonstration = clean(r.demonstration), benefit = clean(r.benefit), offer = clean(r.offer), cta = clean(r.cta)
-  if (!pain || !demonstration || !benefit || !cta || offer !== (input.oferta ?? '')) throw new Error('cena95_script_structure')
+  if (!pain || !demonstration || typeof r.benefit !== 'string' || (input.beneficios?.length && !benefit) || !cta || offer !== (input.oferta ?? '')) throw new Error('cena95_script_structure') // KINEO-ADS-CENA-95-PLAN-FAILED-2110 — sem benefício fornecido, não obrigar o modelo a inventar um.
   const beforeCta = [hooks[0], pain, demonstration, benefit, offer].filter(Boolean).join(' ')
   const narration = `${beforeCta} ${cta}`, words = cena95WordCount(narration)
   const estimatedSeconds = words / CENA95_TARGET_WPS + CENA95_PAUSE_SECONDS

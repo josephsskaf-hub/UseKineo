@@ -7,15 +7,16 @@ import { CALIBRATION_CASES, DEFAULT_FOUNDER_PHOTOS } from './ads-cena-calibracao
 import { semAdsCena952110, ADS_CENA_95_2110_BASE, ADS_CENA_95_2110_FORK_BASE, ADS_CENA_95_2110_ARQUIVOS, ADS_CENA_95_2110_NOVOS, MARCA_ADS_CENA_95_2110 } from './test-support/desfaz-ads-cena-95-2110.mjs'
 import { semKidsVenda2010, KIDS_VENDA_2010_ARQUIVOS } from './test-support/desfaz-kids-venda-2010.mjs' // KINEO-ADS-CENA-95-2110 — prova as duas camadas, sem apagar a venda ao desfazer95.
 import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — apply 95 integrity mutants after reversing only our later layer.
+import { semAdsCena95PlanFailed2110 } from './test-support/desfaz-ads-cena-95-plan-failed-2110.mjs' // KINEO-ADS-CENA-95-PLAN-FAILED-2110 — régua histórica; o novo guardião testa a fonte real.
 const plain = x => JSON.parse(JSON.stringify(x)), same = (a,b) => assert.deepEqual(plain(a),plain(b))
-const read = p => readFileSync(p,'utf8').replace(/\r\n/g,'\n')
+const read = p => semAdsCena95PlanFailed2110(readFileSync(p,'utf8').replace(/\r\n/g,'\n'), p) // KINEO-ADS-CENA-95-PLAN-FAILED-2110
 const git = (...args) => execFileSync('git',args,{encoding:'utf8',maxBuffer:1<<26}).replace(/\r\n/g,'\n')
 const deliveryHead = git('log','--format=%H','--grep=^'+MARCA_ADS_CENA_95_2110,'-1','HEAD').trim() // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — bind historical scope to its own delivery; runtime/mutants still read current files.
 assert.ok(deliveryHead,'commit final marcado da entrega95 existe') // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 const F = {cat:'lib/ads/cena/catalog.ts',start:'lib/ads/v2StartCore.ts'}
 const photo = 'https://offline.example/product.png'
 const serverDouble = { v2Json:(x,status=200)=>new Response(JSON.stringify(x),{status}),v2Fail:(error,status,extra={})=>new Response(JSON.stringify({error,...extra}),{status}) }
-function loader(over={},mocks={},globals={}) { return createOfflineLoader({mocks,globals:{Response,Request,Error,...globals},source:(p,s)=>over[p]??s}) }
+function loader(over={},mocks={},globals={}) { return createOfflineLoader({mocks,globals:{Response,Request,Error,...globals},source:(p,s)=>over[p]??semAdsCena95PlanFailed2110(s,p)}) } // KINEO-ADS-CENA-95-PLAN-FAILED-2110 — overrides mutados nunca são desfeitos.
 function database(tables, onUpdate = () => {}) {
   const queryLog = []
   const db = { tables, queryLog, auth: { admin: { getUserById: async () => ({ error: null, data: { user: { email: 'josephsskaf@gmail.com' } } }) } }, from(table) {
