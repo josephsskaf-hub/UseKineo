@@ -17,6 +17,7 @@
 // lib (prompt, durações, teto, assistentes) chega por PROPS do server
 // component app/chatgpt/page.tsx. Evento pelo MESMO trackEvent das páginas
 // públicas. Sem CSS novo: vocabulário inline da página (CARD/ACCENT/MUTED).
+// KINEO-PAGINAS-IA-CLARAS-2110 — cores em var(--kpl-*, <cor de antes>): claras só dentro de <main className="kpl"> (as páginas de entrada do ChatGPT); nas outras páginas, a cor de antes.
 import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { trackEvent } from '@/lib/analytics'

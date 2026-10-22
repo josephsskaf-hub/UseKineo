@@ -37,13 +37,14 @@ import { registerHooks } from 'node:module'
 import { semHomeRemodela2010, HOME_REMODELA_2010_ARQUIVOS, HOME_REMODELA_2010_NOVOS, HOME_REMODELA_2010_JSON, MARCA_HOME_REMODELA_2010 } from './test-support/desfaz-home-remodela-2010.mjs' // KINEO-HOME-REMODELA-2010 — a home remodelada (20/10, entrega de depois, com desfaz próprio) não é desta
 import { ADS_BOLA_2110_ARQUIVOS, ADS_BOLA_2110_NOVOS } from './test-support/desfaz-ads-bola-2110.mjs'; import { ADS_QUALIDADE_2110_ARQUIVOS, ADS_QUALIDADE_2110_NOVOS } from './test-support/desfaz-ads-qualidade-2110.mjs' // KINEO-ADS-QUALIDADE-2110 — reancorado: o anúncio da bola e a qualidade do Studio Ads (21/10, entregas de depois, desfaz próprio) não são desta
 import { randomBytes } from 'node:crypto'
+import { semPaginasIaClaras2110, PAGINAS_IA_CLARAS_2110_ARQUIVOS, PAGINAS_IA_CLARAS_2110_NOVOS, MARCA_PAGINAS_IA_CLARAS_2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — a camada clara das páginas de entrada do ChatGPT sai da conta deste guardião (prova própria em scripts/test-paginas-ia-claras-2110.mjs)
 import {
   MARCA_MCP_STUDIO_AJUSTE_2010, MCP_STUDIO_AJUSTE_2010_ARQUIVOS, MCP_STUDIO_AJUSTE_2010_BASE, MCP_STUDIO_AJUSTE_2010_NOVOS, semMcpStudioAjuste2010,
 } from './test-support/desfaz-mcp-studio-ajuste-2010.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const read = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
+const read = (rel) => semPaginasIaClaras2110(lf(fs.readFileSync(path.join(ROOT, rel), 'utf8')), rel) // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 const raw = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8')
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (rel) => { try { return lf(git('show', `${MCP_STUDIO_AJUSTE_2010_BASE}:${rel}`)) } catch { return null } }
@@ -358,6 +359,7 @@ declared.push(...DESENHO_SOM_2110_ARQUIVOS, ...DESENHO_SOM_2110_NOVOS, ...DESENH
 declared.push(...Object.keys(REGRAS_AVATAR_ESTORNO_2010), ...Object.keys(REGRAS_LEGENDA_BENGALI_2010), 'scripts/test-avatar-estorno-2010.mjs', 'scripts/test-legenda-bengali-2010.mjs', 'scripts/test-support/desfaz-avatar-estorno-2010.mjs', 'scripts/test-support/desfaz-avatar-estorno-2010-trocas.json', 'scripts/test-support/desfaz-legenda-bengali-2010.mjs', 'scripts/test-support/desfaz-legenda-bengali-2010-trocas.json') // KINEO-AVATAR-ESTORNO-2010 — os arquivos do estorno/legenda bengali (entrega de depois, com desfaz e guardião próprios) não são desta
 declared.push(...[...ADS_BOLA_2110_ARQUIVOS, ...ADS_BOLA_2110_NOVOS, ...ADS_QUALIDADE_2110_ARQUIVOS, ...ADS_QUALIDADE_2110_NOVOS, 'docs/HANDOFF-ADS-BOLA-2110.md', 'docs/ADS-BOLA-DIAGNOSTICO-2026-10-21.md', 'scripts/test-support/desfaz-legenda-bengali-2010.mjs']) // KINEO-ADS-QUALIDADE-2110 — reancorado: os arquivos da bola e da qualidade (entregas de depois) não são desta
 declared.push(...ADS_CENA_2110_ARQUIVOS, ...ADS_CENA_2110_NOVOS) // KINEO-ADS-CENA-2110 — excluir só os arquivos declarados da entrega posterior; o guardião dela confere o escopo inteiro.
+declared.push(...PAGINAS_IA_CLARAS_2110_ARQUIVOS, ...PAGINAS_IA_CLARAS_2110_NOVOS) // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — os arquivos das páginas claras (entrega de depois, desfaz próprio) não são desta
 ok(changed.every((f) => declared.includes(f)), `(F3) o diff contra a base só toca arquivos declarados (${changed.filter((f) => !declared.includes(f)).join(', ') || 'ok'})`)
 const commits = git('log', '--format=%s', `${MCP_STUDIO_AJUSTE_2010_BASE}..HEAD`).split('\n').filter(Boolean)
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_HOME_REMODELA_2010))) // KINEO-HOME-REMODELA-2010 — os commits (e os merges da fila) da home remodelada levam a marca deles
@@ -370,6 +372,7 @@ commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_DES
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes('KINEO-AVATAR-ESTORNO-2010') && !s.includes('KINEO-LEGENDA-BENGALI-2010'))) // KINEO-AVATAR-ESTORNO-2010 — os commits do estorno/legenda bengali levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes('KINEO-ADS-BOLA-2110') && !s.includes('KINEO-ADS-QUALIDADE-2110'))) // KINEO-ADS-QUALIDADE-2110 — reancorado: os commits (e os merges da fila) da bola e da qualidade levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.startsWith(MARCA_ADS_CENA_2110 + ' '))) // KINEO-ADS-CENA-2110 — apenas commits com o prefixo exato desta camada posterior.
+commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_PAGINAS_IA_CLARAS_2110))) // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — os commits das páginas claras levam a marca deles
 ok(commits.every((s) => s.includes(MARCA_MCP_STUDIO_AJUSTE_2010)), `(F4) todo commit da entrega leva a marca (${commits.length})`)
 ok(semMcpStudioAjuste2010('sem marca', F.page) === 'sem marca' && semMcpStudioAjuste2010(raw(F.page), 'outro/arquivo.ts') === raw(F.page), '(F5) desfaz idempotente fora do alvo')
 {

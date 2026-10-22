@@ -19,9 +19,10 @@ import { semPaginasQueVendemFonte, edicoesPaginasQueVendemFonte, EDICOES_PAGINAS
 // própria de até 155 caracteres. A normalização desfaz SÓ essas 4 edições exatas da fonte ANTES de tudo (e as exige); a meta
 // própria e o guia são provados, com mutantes, por scripts/test-paginas-motor-1610.mjs. O resto segue travado como estava.
 import { semPaginasMotor1610Fonte, edicoesPaginasMotor1610Fonte, EDICOES_PAGINAS_MOTOR_1610_FONTE } from './test-support/paginas-motor-1610.mjs'
+import { semPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — a camada clara das páginas de entrada do ChatGPT sai da conta deste guardião (prova própria em scripts/test-paginas-ia-claras-2110.mjs)
 
 const file = 'app/ai-video-generator/[engine]/page.tsx'
-const currentFile = fs.readFileSync(file, 'utf8') // KINEO-PAGINAS-MOTOR-1610
+const currentFile = semPaginasIaClaras2110(fs.readFileSync(file, 'utf8'), file) // KINEO-PAGINAS-MOTOR-1610 // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 assert.equal(edicoesPaginasMotor1610Fonte(currentFile), EDICOES_PAGINAS_MOTOR_1610_FONTE, 'as 4 edições do guia 1610 existem (a normalização tem sujeito)')
 const currentRaw = semPaginasMotor1610Fonte(currentFile)
 assert.equal(edicoesPaginasQueVendemFonte(currentRaw), EDICOES_PAGINAS_QUE_VENDEM_FONTE, 'as 6 edições da rodada existem (a normalização tem sujeito)')

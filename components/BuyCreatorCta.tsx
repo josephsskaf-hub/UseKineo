@@ -6,6 +6,7 @@
 // botão que leva à Stripe (useCheckoutLaunch: trava de clique duplo, "Opening secure checkout…", sondas de resgate e o
 // evento checkout_cta_clicked com o mesmo session_id do checkout_attempted do servidor). Clique modificado (nova aba) segue
 // a âncora nativa. O botão grátis de cada página continua ao lado, como secundário.
+// KINEO-PAGINAS-IA-CLARAS-2110 — cores em var(--kpl-*, <cor de antes>): claras só dentro de <main className="kpl"> (as páginas de entrada do ChatGPT); nas outras páginas, a cor de antes.
 import type { MouseEvent, ReactNode } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'

@@ -141,10 +141,10 @@ export default function TextToVideoShortsPage() {
         <h1 style={{ fontSize: 'clamp(1.9rem, 5vw, 2.85rem)', fontWeight: 650, lineHeight: 1.1, margin: '18px 0 0' }}>
           Turn Text Into a Finished YouTube Short
         </h1>
-        <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título */}
         <p style={{ fontSize: '1.08rem', color: '#5A5F67', lineHeight: 1.6, margin: '16px 0 0' }}>
           Paste a topic, prompt, or full script. Kineo turns it into a faceless vertical video with AI voiceover, visuals, captions, and an MP4 export for YouTube Shorts, TikTok, and Reels.
         </p>
+        <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
         {/* KINEO-BING-SEO-1510 — a resposta direta à pergunta "qual a melhor IA para Shorts a partir de texto?" */}
         <section data-kineo="bing-seo-1510-answer" style={{ ...card, margin: '18px 0 0', borderColor: 'rgba(10,92,255,0.35)' }}>
           <h2 style={{ fontSize: '1.05rem', fontWeight: 650, margin: '0 0 8px' }}>What is the best AI tool for creating YouTube Shorts from text?</h2>

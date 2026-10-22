@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process'
 import { root, source, offlineModules, renderToStaticMarkup, checks } from './gpt24h-offline-support.mjs'
 import { engineFixture } from './gpt24h-engine-fixture.mjs'
 import { edicoesIndiceHtml, semIndiceHtml } from './test-support/indice-video-ia-2026-10-06.mjs' // KINEO-INDICE-VIDEO-IA-2026-10-06
+import { semPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — a camada clara das páginas de entrada do ChatGPT sai da conta deste guardião (prova própria em scripts/test-paginas-ia-claras-2110.mjs)
 const { check, finish } = checks()
 const pagePath = 'app/ai-video-generator/[engine]/page.tsx'
 const proofPath = 'lib/growth/paidEngineProof.ts'
@@ -29,7 +30,7 @@ for (const [slug, config] of Object.entries(PAID_ENGINE_PROOF)) {
   for (const v of samples) check(`${slug}: preview and poster exist ${v.id}`, existsSync(resolve(root,'public'+v.videoUrl)) && existsSync(resolve(root,'public'+v.posterUrl)))
 }
 const before = execFileSync('git',['show','365e663a:app/ai-video-generator/[engine]/page.tsx'],{cwd:root,encoding:'utf8'})
-const after = readFileSync(resolve(root,pagePath),'utf8')
+const after = semPaginasIaClaras2110(readFileSync(resolve(root,pagePath),'utf8'), pagePath) // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 const bridge = s => s.slice(s.indexOf('{/* KINEO-PONTE-ACIMA'), s.indexOf('{/* KINEO-GALERIA-DA-CASA')).replace(/\r\n/g,'\n')
 check('bridge and Kineo 1 starter untouched', bridge(before) === bridge(after))
 const beforeLoad = engineFixture({[pagePath]:before})

@@ -34,10 +34,11 @@ import { offlineModules, renderToStaticMarkup } from './gpt24h-offline-support.m
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semBingSeo1510 } from './test-support/desfaz-bing-seo-1510.mjs'
 import { edicoesMotoresGeo } from './test-support/motores-geo-2026-10-06.mjs'
+import { semPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — a camada clara das páginas de entrada do ChatGPT sai da conta deste guardião (prova própria em scripts/test-paginas-ia-claras-2110.mjs)
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT) // o carregador offline resolve '@/' a partir do cwd
-const rd = (rel) => readFileSync(join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+const rd = (rel) => semPaginasIaClaras2110(readFileSync(join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n'), rel) // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }

@@ -1,3 +1,4 @@
+// KINEO-PAGINAS-IA-CLARAS-2110 — cores em var(--kpl-*, <cor de antes>): claras só dentro de <main className="kpl"> (as páginas de entrada do ChatGPT); nas outras páginas, a cor de antes.
 import { agencyPacksHref, type AgencyDistributionEntry } from '@/lib/agencyDistribution'
 import { BULK_PACKS, formatCheckoutMoney } from '@/lib/checkoutPricing'
 // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — com os pacotes avulsos fora da vitrine (lib/bulkPacksPublic.ts), a faixa vira a do

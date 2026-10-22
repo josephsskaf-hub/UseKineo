@@ -1,3 +1,4 @@
+// KINEO-PAGINAS-IA-CLARAS-2110 — cores em var(--kpl-*, <cor de antes>): claras só dentro de <main className="kpl"> (as páginas de entrada do ChatGPT); nas outras páginas, a cor de antes.
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import type { NarrationLanguage } from '@/lib/textLanguage'
 
@@ -34,7 +35,7 @@ export default function LocalizedScriptHandoff({
         padding: '22px 20px',
         border: '1px solid var(--kpl-accent-line, rgba(41,151,255,0.42))',
         borderRadius: 22,
-        background: 'linear-gradient(145deg, var(--kpl-accent-soft, rgba(41,151,255,0.14)), rgba(19,19,22,0.94) 56%)',
+        background: 'linear-gradient(145deg, var(--kpl-accent-soft, rgba(41,151,255,0.14)), var(--kpl-card, rgba(19,19,22,0.94)) 56%)',
       }}
     >
       <p style={{ margin: '0 0 7px', color: 'var(--kpl-accent, #2997ff)', fontSize: 12, fontWeight: 850, letterSpacing: '0.1em', textTransform: 'uppercase' }}>

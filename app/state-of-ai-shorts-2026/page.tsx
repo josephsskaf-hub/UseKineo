@@ -146,10 +146,10 @@ export default function StateOfAiShortsPage() {
         <h1 style={{ fontSize: '2.2rem', fontWeight: 650, lineHeight: 1.15, margin: '0 0 16px' }}>
           State of AI Shorts 2026
         </h1>
-        <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título */}
         <p style={{ color: MUTED, fontSize: '1.08rem', lineHeight: 1.6, margin: '0 0 8px' }}>
           {VIEW.lead}
         </p>
+        <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
         <p data-kineo="state-source" style={{ color: MUTED, fontSize: '0.9rem', lineHeight: 1.6, margin: '0 0 40px' }}>
           {VIEW.sourceLine} Free to cite with a link to this page. Medians and rates only — no counts and no individual
           creator data.

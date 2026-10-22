@@ -1,3 +1,4 @@
+// KINEO-PAGINAS-IA-CLARAS-2110 — cores em var(--kpl-*, <cor de antes>): claras só dentro de <main className="kpl"> (as páginas de entrada do ChatGPT); nas outras páginas, a cor de antes.
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import BuyCreatorCta from '@/components/BuyCreatorCta'
 

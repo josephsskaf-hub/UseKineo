@@ -12,6 +12,7 @@
 // Sem <video> e sem resolução escrita (a página dos motores pagos é travada assim por scripts/test-paid-engine-proof).
 // KINEO-GEO-RODADA2-2026-10-08 — no slug do Seedance 1.5 o cartão termina com components/SeedanceAnswerSections.tsx ("é grátis?
 // e para quem", Seedance 1.5 × 2.5, filmes reais da vitrine com a ideia) — provado por scripts/test-geo-rodada2-2026-10-08.mjs.
+// KINEO-PAGINAS-IA-CLARAS-2110 — cores em var(--kpl-*, <cor de antes>): claras só dentro de <main className="kpl"> (as páginas de entrada do ChatGPT); nas outras páginas, a cor de antes.
 import type { CSSProperties } from 'react'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import SeedanceAnswerSections from '@/components/SeedanceAnswerSections' // KINEO-GEO-RODADA2-2026-10-08
@@ -50,7 +51,7 @@ function rowLabel(r: CitationPriceRow): { title: string; detail: string } {
     : { title: `${r.seconds}-second video`, detail: 'Script, voice, captions and music, ready to post' }
 }
 
-export function EnginePriceCard({ geo, ctaHref, campaign }: { geo: EngineCitation; ctaHref: string; campaign: string }) {
+export function EnginePriceCard({ geo, ctaHref, campaign, semGaleriaVelha = false }: { geo: EngineCitation; ctaHref: string; campaign: string; semGaleriaVelha?: boolean }) { // KINEO-PAGINAS-IA-CLARAS-2110 — + semGaleriaVelha (a página clara do motor tira os filmes velhos do Seedance; a vitrine atual entra no lugar)
   // KINEO-S25-ABRE-2026-10-06 — sem clipe avulso à venda (o Seedance 2.5), a tabela não tem linha de clipe.
   const rows = [geo.rows.clip, geo.rows.film35, geo.rows.film60].filter((r): r is CitationPriceRow => r !== null)
   const th: CSSProperties = { textAlign: 'left', padding: '11px 10px', fontWeight: 700, color: MUTED, whiteSpace: 'nowrap' }
@@ -149,7 +150,7 @@ export function EnginePriceCard({ geo, ctaHref, campaign }: { geo: EngineCitatio
       {/* KINEO-GEO-RODADA2-2026-10-08 — só na página do Seedance 1.5: "é grátis?", 1.5 × 2.5 e filmes reais com a ideia (camada
           citável extra, dentro do cartão: os guardiões de trava da página descontam o cartão inteiro; a prova desta camada é
           scripts/test-geo-rodada2-2026-10-08.mjs). Sem <section> aninhada: o cartão termina no primeiro </section>. */}
-      {geo.slug === 'seedance' ? <SeedanceAnswerSections geo={geo} s25={engineGeoFor('seedance-2-5')} /> : null}
+      {geo.slug === 'seedance' ? <SeedanceAnswerSections geo={geo} s25={engineGeoFor('seedance-2-5')} galeria={!semGaleriaVelha} /> : null}{/* KINEO-PAGINAS-IA-CLARAS-2110 */}
     </section>
   )
 }

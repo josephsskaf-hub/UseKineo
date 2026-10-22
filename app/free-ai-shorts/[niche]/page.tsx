@@ -584,10 +584,10 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
           <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 650, lineHeight: 1.15, margin: 0 }}>
             {n.h1}
           </h1>
-          <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título */}
           <p style={{ fontSize: '1.02rem', color: '#2A2F37', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 620 }}>
             {n.intro}
           </p>
+          <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
           <p style={{ fontSize: '0.85rem', color: '#5A5F67', margin: '10px 0 0' }}>
             Script • Voiceover • Captions • AI-generated scenes • Ready in about 6 minutes · <b style={{ color: '#0A5CFF' }}>{ft(OFFER, 'up to 3 watermarked Fast videos / 24h', OFFER.copy.chipLower)}</b>, no card
           </p>

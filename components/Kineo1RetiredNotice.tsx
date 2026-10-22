@@ -7,6 +7,7 @@
 // ?from=kineo-1 (next.config.js) e esta faixa diz o que mudou e o que existe hoje. A página do motor é estática
 // (force-static), então a leitura do ?from= é no navegador — sem a marca, nada aparece (e nada muda para o resto).
 // Números lidos das fontes (FREE_FILM_LABEL, creatorSeedanceFilms), nunca digitados.
+// KINEO-PAGINAS-IA-CLARAS-2110 — cores em var(--kpl-*, <cor de antes>): claras só dentro de <main className="kpl"> (as páginas de entrada do ChatGPT); nas outras páginas, a cor de antes.
 import { useEffect, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer'

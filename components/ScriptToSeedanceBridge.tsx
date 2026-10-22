@@ -17,6 +17,7 @@
 // NENHUM NÚMERO DIGITADO: o preço vem de TIER_PRICES via formatCheckoutMoney, os filmes de TIER_CREDITS ÷
 // creditCostForDuration('cinematic_ai', pago, 35 s). lib/credits/engineCost não importa nada, e
 // lib/checkoutPricing já é importado no cliente (components/TopupUnavailableNote).
+// KINEO-PAGINAS-IA-CLARAS-2110 — cores em var(--kpl-*, <cor de antes>): claras só dentro de <main className="kpl"> (as páginas de entrada do ChatGPT); nas outras páginas, a cor de antes.
 import Link from 'next/link'
 import { useEffect, useRef } from 'react'
 import { trackEvent } from '@/lib/analytics'

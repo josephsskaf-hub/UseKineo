@@ -16,6 +16,7 @@ import { semPaginasMotor1610Fonte, edicoesPaginasMotor1610Fonte, EDICOES_PAGINAS
 // nas páginas grátis o primeiro CTA passou a ser a COMPRA (BuyCreatorCta), com o botão grátis de secundário — a ordem
 // "pago antes do grátis" que esta trava protegia continua valendo, agora com a compra à frente da prova.
 import { semPaginasQueVendemFonte, edicoesPaginasQueVendemFonte, EDICOES_PAGINAS_QUE_VENDEM_FONTE } from './test-support/paginas-que-vendem-2026-10-12.mjs'
+import { semPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — a camada clara das páginas de entrada do ChatGPT sai da conta deste guardião (prova própria em scripts/test-paginas-ia-claras-2110.mjs)
 const { check, finish } = checks()
 const events = []
 const mocks = { 'lib/analytics.ts': { trackEvent: (...args) => events.push(args) } }
@@ -74,7 +75,7 @@ const S25_GSP_BASE = '  return ENGINE_SLUGS.map((engine) => ({ engine }))'
 const MARCA_OG_NOVO = "    openGraph: { title, description, url, siteName: 'Kineo (usekineo.com)', type: 'website' },"
 const MARCA_OG_BASE = "    openGraph: { title, description, url, type: 'website' },"
 {
-  const arquivo1610 = source('app/ai-video-generator/[engine]/page.tsx') // KINEO-PAGINAS-MOTOR-1610
+  const arquivo1610 = semPaginasIaClaras2110(source('app/ai-video-generator/[engine]/page.tsx'), 'app/ai-video-generator/[engine]/page.tsx') // KINEO-PAGINAS-MOTOR-1610 // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
   check('S24-01 (PÁGINAS DE MOTOR 1610) as 4 edições do guia existem, inteiras', edicoesPaginasMotor1610Fonte(arquivo1610) === EDICOES_PAGINAS_MOTOR_1610_FONTE)
   const atualRaw = semPaginasMotor1610Fonte(arquivo1610)
   check('S24-01 (PÁGINAS QUE VENDEM) as 6 edições da rodada existem, inteiras', edicoesPaginasQueVendemFonte(atualRaw) === EDICOES_PAGINAS_QUE_VENDEM_FONTE)

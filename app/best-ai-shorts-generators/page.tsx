@@ -368,8 +368,8 @@ export default function BestAiShortsGeneratorsPage() {
         <h1 style={{ fontSize: '2.2rem', fontWeight: 650, lineHeight: 1.15, margin: '0 0 16px' }}>
           {PAGE_HEADING}
         </h1>
-        <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título */}
         {best ? <p data-kineo="geo-r3-answer" style={{ color: '#0E1116', fontSize: '1.08rem', lineHeight: 1.6, margin: '0 0 14px' }}>{best.lead}</p> : null}
+        <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
         <p style={{ color: MUTED, fontSize: '1.08rem', lineHeight: 1.6, margin: '0 0 8px' }}>
           The best AI tools for YouTube Shorts are not doing the same job. Some generate a
           whole video from an idea, some re-clip

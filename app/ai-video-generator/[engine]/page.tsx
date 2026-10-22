@@ -166,11 +166,11 @@ export default async function EnginePage({ params }: { params: { engine: string 
             {e.name} · {engineCostLabel(e)}
           </div>
           <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 650, lineHeight: 1.15, margin: '16px 0 0' }}>{e.h1}</h1>
-          <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título */}
           {/* KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — quem chega pelo 301 do Kineo 1 (?from=kineo-1) lê o que mudou; no Seedance o
               botão principal do hero passou a ser a compra direta do Creator (SeedanceHeroActions buyPage). */}
           {params.engine === 'seedance' && <Kineo1RetiredNotice />}
           {geo && <EngineAnswerLead geo={geo} />}
+          <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
           {!enginePaused(e.param) && <PaidEngineBudget slug={params.engine} />}
           {enginePaused(e.param) && (
             <div role="status" style={{ margin: '14px 0 0', padding: '12px 14px', borderRadius: 12, border: '1px solid #A35A00', background: '#FFF4E5', color: '#A35A00', fontSize: 14.5, lineHeight: 1.6 }}>
@@ -202,7 +202,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
           {/* Honestidade explícita: nunca prometer grátis um motor de Studio. */}
           <p style={{ fontSize: '0.82rem', color: '#5A5F67', margin: '12px 0 0' }}>{tierNote}</p>
         </section>
-        {geo && <EnginePriceCard geo={geo} ctaHref={signupUrl} campaign={campaign} />}
+        {geo && <EnginePriceCard geo={geo} ctaHref={signupUrl} campaign={campaign} semGaleriaVelha />}{/* KINEO-PAGINAS-IA-CLARAS-2110 — sem os filmes velhos do Seedance: a vitrine atual vem logo abaixo */}
         <EngineBuyerGuide slug={params.engine} ctaHref={signupUrl} campaign={campaign} />{/* KINEO-PAGINAS-MOTOR-1610 — resumo, preço por duração, limites, quando não usar */}
 
         {/* KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — medido 23/09: esta página recebe a maior fatia do ChatGPT (228 sessões,

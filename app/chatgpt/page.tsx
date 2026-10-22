@@ -136,13 +136,13 @@ export default function ChatgptPastePage() {
         <h1 style={{ fontSize: 'clamp(2rem, 5vw, 2.9rem)', fontWeight: 650, lineHeight: 1.1, margin: '18px 0 0' }}>
           You write the script with ChatGPT. Kineo turns it into the film.
         </h1>
-        <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título */}
         <p style={{ fontSize: '1.08rem', color: '#2A2F37', lineHeight: 1.65, margin: '16px 0 0', maxWidth: 780 }}>
           Two ways in. Connect Kineo Studio to ChatGPT once and ask for the film right in the chat (you sign in to Kineo when
           you connect). Or, with no account needed to start, copy the prompt below into ChatGPT, Claude or Gemini and let it
           write the narration. Paste what it wrote into the box, and Kineo Studio opens with your script, length and engine
           already filled in. Nothing is generated until you press Generate there.
         </p>
+        <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
         <p style={{ fontSize: 13, color: ACCENT, fontWeight: 700, margin: '12px 0 0' }}>
           {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · Free to start ·{' '}
           <Link href={PRICING_HREF} style={link}>See plans</Link>

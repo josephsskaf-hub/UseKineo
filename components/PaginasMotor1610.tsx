@@ -4,6 +4,7 @@
 // datadas). Sem <video> e sem resolução escrita (as páginas dos motores pagos têm exatamente duas prévias — test-paid-engine-proof).
 // Cada bloco leva data-kineo próprio: é por ele que os guardiões de trava das páginas descontam SÓ esta mudança
 // (scripts/test-support/paginas-motor-1610.mjs) e é por ele que scripts/test-paginas-motor-1610.mjs prova o conteúdo.
+// KINEO-PAGINAS-IA-CLARAS-2110 — cores em var(--kpl-*, <cor de antes>): claras só dentro de <main className="kpl"> (as páginas de entrada do ChatGPT); nas outras páginas, a cor de antes.
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import OrganicCtaLink from '@/components/OrganicCtaLink'

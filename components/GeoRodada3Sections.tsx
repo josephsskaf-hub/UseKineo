@@ -3,6 +3,7 @@
 // da casa com "Make one like this" e os links internos (motor, /pricing, /studio). Os dados vêm de lib/seo/geoRodada3Answers.ts.
 // Componente de SERVIDOR (sem hook): o texto sai no HTML estático — é o que o OAI-SearchBot e o Bing leem.
 // Sem <video> (capa leve em <img>, carregamento tardio): as páginas que recebem esta seção não ganham mídia pesada.
+// KINEO-PAGINAS-IA-CLARAS-2110 — cores em var(--kpl-*, <cor de antes>): claras só dentro de <main className="kpl"> (as páginas de entrada do ChatGPT); nas outras páginas, a cor de antes.
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
