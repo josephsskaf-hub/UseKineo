@@ -149,6 +149,14 @@ import { adsV2AiPersonLabel } from '@/lib/ads/v2PresenterHolds' // KINEO-ADS-REF
 import { adsPalcoVoltarCopy, brandKitConflict, brandKitRetract, type AdsKitFilled } from '@/lib/ads/v2PalcoVoltar' // KINEO-ADS-PALCO-VOLTAR-1410 — "✕ Fechar estilos" e o kit que sai quando o anúncio é de outra marca
 import { adBrandConflict, adBrandCopy, adBrandFill, adBrandForEvidence, adBrandFromScreen, adBrandToKit, adBrandVoice, type AdBrandFields, type AdBrandView } from '@/lib/ads/brands' // KINEO-ADS-MARCAS-1510 — a marca escolhida no topo preenche o kit (mesma regra de conflito)
 import AdsV2AfterDelivery from './AdsV2AfterDelivery' // KINEO-ADS-POS-ENTREGA-1510 — editar, aprovação do cliente e 3 formatos depois da entrega
+import { ADS_NOTA9_CSS, AdsNota9Faces, AdsNota9Stage, type AdsNota9StageData } from '@/components/ads/AdsNota9' // KINEO-ADS-NOTA9-2110 — a tela FOCO dos cards da home: quem apresenta, o palco do apresentador e o "Avançado" recolhido
+import { adsNota9Copy, adsNota9Cost, adsNota9Fill, adsNota9Focus, adsNota9Step, adsNota9TinyPhoto } from '@/lib/ads/v2Nota9' // KINEO-ADS-NOTA9-2110 — modo foco, número do passo, linha única de custo e as frases (lib pura)
+import { homeCardClip } from '@/lib/ui/homeThreeCards' // KINEO-ADS-NOTA9-2110 — o anúncio real da casa no formato do card (o mesmo vídeo do card da home), no palco sem escolha/foto
+import { ADS_V2_SMALL_PHOTO_MIN_SIDE, adsV2SmallPhotoSide } from '@/lib/ads/v2BolaFix' // KINEO-ADS-QUALIDADE-2110 — o limite único da foto pequena (lado menor < 500 px), o mesmo do /plan
+const RUNNING_ORDER_COPY: Record<'en' | 'pt' | 'es', { text: string; view: string }> = { en: { text: 'Your ad is still being made —', view: 'view it' }, pt: { text: 'Seu anúncio ainda está sendo feito —', view: 'ver' }, es: { text: 'Tu anuncio todavía se está haciendo —', view: 'verlo' } } // KINEO-ADS-QUALIDADE-2110 — a entrada nova da home abre um pedido NOVO; o que está em andamento fica a um clique
+type PhotoWarnKind = 'small' | 'lifestyle' // KINEO-ADS-QUALIDADE-2110
+interface PhotoWarn { kind: PhotoWarnKind; title: string; body: string; confirm: string; replace: string } // KINEO-ADS-QUALIDADE-2110 — o aviso da foto do produto (pequena / estilo de vida) que o /plan devolve
+const photoWarnOf = (kind: PhotoWarnKind, b: unknown): PhotoWarn | null => { const o = (b && typeof b === 'object' ? b : {}) as Record<string, unknown>; const s = (k: string) => (typeof o[k] === 'string' ? (o[k] as string) : ''); return s('title') && s('body') ? { kind, title: s('title'), body: s('body'), confirm: s('confirm') || 'Continue anyway', replace: s('replace') || 'Replace photo' } : null } // KINEO-ADS-QUALIDADE-2110
 
 // ─── tipos ────────────────────────────────────────────────────────────────────────────────────
 
@@ -217,6 +225,8 @@ interface PlanResponse {
   /** KINEO-UGC-AJUSTES-2010 — 'presenter_cap': a entrada UGC da amostra saiu no Close real porque as amostras com a pessoa de hoje acabaram. */
   sample_fallback?: string // KINEO-UGC-AJUSTES-2010
   plans_left?: number | null // KINEO-ADS-FIEL-2-1510 — roteiros que ainda cabem hoje (null = conta da casa, sem teto)
+  product_photo_small?: { width: number; height: number; min: number; title: string; body: string; confirm: string; replace: string } // KINEO-ADS-QUALIDADE-2110 — a foto do produto com o lado menor < 500 px (aviso suave do /plan)
+  product_photo_lifestyle?: { title: string; body: string; confirm: string; replace: string } // KINEO-ADS-QUALIDADE-2110 — a foto do produto é de estilo de vida (mão/pessoa domina): aviso suave do /plan
 }
 interface Plan extends PlanResponse {
   sig: string
@@ -594,7 +604,10 @@ export function AdsV2SimpleSession({
   marcas, // KINEO-ADS-MARCAS-1510
   entry = null, // KINEO-HOME-3-CARDS-1910
   sampleProbe = false, // KINEO-UGC-AJUSTES-2010
+  producao = false, // KINEO-ADS-NOTA9-2110 — o atalho da Produção (/ads/producao) dentro do "Avançado" da tela foco
 }: {
+  /** KINEO-ADS-NOTA9-2110 — a conta vê a Produção (page.tsx → AdsV2Client); só o link dentro do "Avançado" da tela foco. */
+  producao?: boolean // KINEO-ADS-NOTA9-2110
   /** KINEO-HOME-3-CARDS-1910 — a entrada do card da home (page.tsx validou ?entry=): a tela abre no formato do card; na amostra, 'ugc' = com a pessoa. */
   entry?: AdsSampleEntry | null // KINEO-HOME-3-CARDS-1910
   /** KINEO-UGC-AJUSTES-2010 — o teste interno da amostra (o page.tsx decide): ?sample_probe=1 no /plan e no /start. */
@@ -752,7 +765,16 @@ export function AdsV2SimpleSession({
   const [notReady, setNotReady] = useState(false)
   // KINEO-ADS-UX-MARCA-2026-10-10 — frases novas (16 línguas), reordenar por arrasto, editor de enquadramento, a imagem do
   // cartão final para a prévia ao vivo e o kit da marca (aplicado na abertura; salvo depois que o anúncio começou).
-  const ux: AdsV2UxCopy = adsV2UxCopy(lang)
+  const focus = adsNota9Focus(entry) // KINEO-ADS-NOTA9-2110 — só pelos cards da home (?entry=ugc|product); sem entrada = a tela de sempre
+  const n9 = adsNota9Copy(lang) // KINEO-ADS-NOTA9-2110
+  const [advOpen, setAdvOpen] = useState(false) // KINEO-ADS-NOTA9-2110 — o "Avançado" começa recolhido (o pedido sai idêntico sem abrir)
+  const n9TextRef = useRef<HTMLTextAreaElement | null>(null) // KINEO-ADS-NOTA9-2110 — a caixa da frase da tela foco
+  const [tinyOk, setTinyOk] = useState<string | null>(null) // KINEO-ADS-NOTA9-2110 — a foto pequena confirmada pela pessoa ("usar mesmo assim"), pela chave da foto
+  const [runningOrderId, setRunningOrderId] = useState<string | null>(null) // KINEO-ADS-QUALIDADE-2110 — o anúncio em andamento quando a pessoa entrou por um card da home (não sequestra a entrada nova)
+  const [photoWarnOk, setPhotoWarnOk] = useState<Record<string, true>>({}) // KINEO-ADS-QUALIDADE-2110 — "Continuar assim" por plano (plan.sig:tipo)
+  const [photoRefusal, setPhotoRefusal] = useState<PhotoWarn | null>(null) // KINEO-ADS-QUALIDADE-2110 — o /plan recusou (trava ligada) até a pessoa confirmar
+  const photoOkRef = useRef<{ small: boolean; lifestyle: boolean }>({ small: false, lifestyle: false }) // KINEO-ADS-QUALIDADE-2110 — vai no corpo do /plan (small_photo_ok / lifestyle_photo_ok)
+  const ux: AdsV2UxCopy = ((u) => (focus ? { ...u, steps: { ...u.steps, product: focus === 'ugc' ? n9.photoUgc : n9.photoProduct } } : u))(adsV2UxCopy(lang)) // KINEO-ADS-NOTA9-2110 — na tela foco o passo do produto diz "Envie a foto do produto (ou o link)"; era: const ux: AdsV2UxCopy = adsV2UxCopy(lang)
   const qc = adsV2QuadroCopy(lang) // KINEO-ADS-QUADRO-STUDIO-1510
   const [dragKey, setDragKey] = useState<string | null>(null)
   const [dropKey, setDropKey] = useState<string | null>(null)
@@ -1087,6 +1109,7 @@ export function AdsV2SimpleSession({
         }
         const active = (list.data.orders ?? []).find((o) => isActiveOrderStatus(o.status))
         wanted = active ? active.id : null
+        if (wanted && entry) { setRunningOrderId(wanted); setPhase('build'); return } // KINEO-ADS-QUALIDADE-2110 — veio de um card da home (?entry=) sem ?order=: abre o formulário NOVO; o anúncio em andamento vira um link
       }
       if (!wanted) {
         setPhase('build')
@@ -2010,7 +2033,7 @@ export function AdsV2SimpleSession({
       setBusyNote(copy.plan.notePlan)
       const r = await api<PlanResponse>(adsSampleProbeUrl('/api/ads/v2/plan', sampleProbe), { // KINEO-UGC-AJUSTES-2010 — era: api<PlanResponse>('/api/ads/v2/plan', {
         method: 'POST',
-        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}), ...(format !== '9:16' ? { format } : {}), ...(closeRealOn ? { close_real: true } : {}), ...(kitOfferT ? { offer: kitOfferT } : {}), ...(samplePresenter ? { sample_entry: 'ugc' } : {}) }, // KINEO-HOME-3-CARDS-1910 — a entrada UGC da amostra (o servidor confere) · KINEO-ADS-MELHORIAS-1410 — o formato só fora do 9:16 · KINEO-CLOSE-REAL-1910 — + o Close do produto real; era: a mesma linha sem close_real · KINEO-KIT-BF-1910 — + a oferta do kit (só com oferta)
+        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}), ...(format !== '9:16' ? { format } : {}), ...(closeRealOn ? { close_real: true } : {}), ...(kitOfferT ? { offer: kitOfferT } : {}), ...(samplePresenter ? { sample_entry: 'ugc' } : {}), ...(photoOkRef.current.small ? { small_photo_ok: true } : {}), ...(photoOkRef.current.lifestyle ? { lifestyle_photo_ok: true } : {}) }, // KINEO-HOME-3-CARDS-1910 — a entrada UGC da amostra (o servidor confere) · KINEO-ADS-MELHORIAS-1410 — o formato só fora do 9:16 · KINEO-CLOSE-REAL-1910 — + o Close do produto real; era: a mesma linha sem close_real · KINEO-KIT-BF-1910 — + a oferta do kit (só com oferta) · KINEO-ADS-QUALIDADE-2110 — + a confirmação da foto pequena / de estilo de vida ("Continuar assim")
       })
       if (!aliveRef.current) return
       if (!r.ok) {
@@ -2018,11 +2041,13 @@ export function AdsV2SimpleSession({
         if (VIDEO_TO_PHOTOS_CODES.includes(r.code)) void videoBackToFrames(typeof r.body.footage_id === 'string' ? r.body.footage_id : null)
         if (r.code === 'too_many_videos') void videosPastLimitToFrames()
         if (r.code === 'not_editable') setDraft(null)
+        if (r.code === 'product_photo_small' || r.code === 'product_photo_lifestyle') { const w = photoWarnOf(r.code === 'product_photo_small' ? 'small' : 'lifestyle', r.body); if (w) { setPhotoRefusal(w); return } } // KINEO-ADS-QUALIDADE-2110 — a trava da foto: o cartão com "Trocar a foto" / "Continuar assim" no lugar do erro
         if (r.code === 'daily_limit' && typeof r.body.plans_left === 'number') setPlansLeft(r.body.plans_left) // KINEO-ADS-FIEL-2-1510
         setPlanError(failText(r)) // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
         return
       }
       rememberPlan(r.data)
+      setPhotoRefusal(null) // KINEO-ADS-QUALIDADE-2110
       setPresenterCapNote(r.data.sample_fallback === ADS_SAMPLE_PRESENTER_FALLBACK) // KINEO-UGC-AJUSTES-2010 — o /plan trocou a pessoa pelo Close real (sub-teto do dia): a tela diz
       setPlansLeft(typeof r.data.plans_left === 'number' ? r.data.plans_left : null) // KINEO-ADS-FIEL-2-1510
       setPlan({ ...r.data, sig: JSON.stringify({ base: baseAtStart, facts: chosen }), cardSig: card.sig })
@@ -2099,6 +2124,7 @@ export function AdsV2SimpleSession({
 
   async function makeAd() {
     if (!plan || !planFresh || busy || cost === null) return
+    if (photoWarnList.length) { document.getElementById('adv2-photo-warn')?.scrollIntoView({ block: 'center', behavior: 'smooth' }); return } // KINEO-ADS-QUALIDADE-2110 — foto pequena / de estilo de vida sem resposta: o cartão primeiro (bloqueio leve)
     if (copyEdit) {
       setPlanError(fix.saveFirst)
       return
@@ -2339,10 +2365,34 @@ export function AdsV2SimpleSession({
     if (b && !b.disabled && !goDisabled) b.click()
     else goToSection('adv2s-sec4')
   }
+  // KINEO-ADS-NOTA9-2110 — a LINHA ÚNICA de custo (o mesmo shownCost do botão/do /start; o saldo do servidor) e o botão Gerar da tela foco.
+  const n9Tiny = focus ? adsNota9TinyPhoto(inAd, ADS_V2_SMALL_PHOTO_MIN_SIDE) : null // KINEO-ADS-NOTA9-2110 — a foto pequena (lado menor < 500 px) da tela foco · KINEO-ADS-QUALIDADE-2110 — o limite único da tela e do /plan (ADS_V2_SMALL_PHOTO_MIN_SIDE); era: adsNota9TinyPhoto(inAd)
+  const n9Count = kitN > 1 ? kitN : variations && three && !closeRealOn ? 3 : 1 // KINEO-ADS-NOTA9-2110 — "3 anúncios" no kit/variações
+  const n9Cost = adsNota9Cost({ copy: n9, lang, seconds: ADS_V2_SCREEN_SECONDS, credits: shownCost, balance, sample: !!scopy, count: n9Count }) // KINEO-ADS-NOTA9-2110
+  const n9Label = busy === 'start' ? copy.plan.starting : planFresh || missing.length ? (scopy ? scopy.make : n9.generate) : busy === 'plan' || !autoPaused ? n9.writing : n9.writeNow // KINEO-ADS-NOTA9-2110 — o roteiro grátis sai sozinho 1,2 s depois (roteiro automático); pausado depois de um erro, o botão escreve de novo
+  const n9Note = busy === 'plan' ? n9.writing : !planFresh && missing.length ? missing[0] : !planFresh ? (autoPaused ? fc.auto.paused : fc.auto.note) : ux.preview.delivery // KINEO-ADS-NOTA9-2110
+  /** KINEO-ADS-NOTA9-2110 — Gerar da tela foco: com o roteiro em dia (ou nada faltando) é o MESMO caminho de sempre (goFromBar → o botão do cartão de revisão: plano grátis ou makeAd); faltando algo, leva ao campo que falta. */
+  function goFocus() { // KINEO-ADS-NOTA9-2110
+    if (planFresh && n9Tiny && tinyOk !== n9Tiny.key) { document.getElementById('adv2n-tiny')?.scrollIntoView({ block: 'center', behavior: 'smooth' }); return } // KINEO-ADS-NOTA9-2110 — foto pequena: confirma antes de gerar (bloqueio leve)
+    if (planFresh || missing.length === 0) { goFromBar(); return } // KINEO-ADS-NOTA9-2110
+    if (linkBusy || videoBusy > 0 || logo?.busy) return // KINEO-ADS-NOTA9-2110 — esperando a leitura: o aviso embaixo do botão já diz
+    if (inAd.length < ADS_V2_SIMPLE_MIN_IN_AD || inAd.every((p) => p.video)) { focusDrop(); return } // KINEO-ADS-NOTA9-2110
+    if (!adsV2SentenceReady(sentence) || sentence.length > ADS_V2_SCREEN_SENTENCE_MAX) { n9TextRef.current?.focus(); return } // KINEO-ADS-NOTA9-2110
+    setAdvOpen(true) // KINEO-ADS-NOTA9-2110 — o que falta mora no "Avançado" (nível, cena, conferência do link)
+  } // KINEO-ADS-NOTA9-2110
+  const n9Stage: AdsNota9StageData | null = focus ? { focus, tint: styleTint, presenter: presenterOn ? adsV2PresenterById(presenterPick) : null, houseClip: homeCardClip(focus === 'ugc' ? 'ugc_ads' : 'product_ads', lang), photo: inAd[0] ? { srcUrl: inAd[0].srcUrl, position: focalPosition(inAd[0].fx, inAd[0].fy) } : null, productName: liveData.productName, voice: liveData.voice } : null // KINEO-ADS-NOTA9-2110
+  const photoWarnList: PhotoWarn[] = photoRefusal ? [photoRefusal] : plan && planFresh ? [...(plan.product_photo_small && !n9Tiny ? [photoWarnOf('small', plan.product_photo_small)] : []), ...(plan.product_photo_lifestyle ? [photoWarnOf('lifestyle', plan.product_photo_lifestyle)] : [])].filter((w): w is PhotoWarn => !!w && !photoWarnOk[`${plan.sig}:${w.kind}`]) : [] // KINEO-ADS-QUALIDADE-2110 — os avisos da foto do produto ainda sem resposta
+  function replacePhoto() { const pp = inAd.find((p) => !p.video); if (pp) removeItem(pp.key); photoOkRef.current = { small: false, lifestyle: false }; setPhotoRefusal(null); focusDrop() } // KINEO-ADS-QUALIDADE-2110 — "Trocar a foto": tira a foto do produto e abre a área de enviar
+  function continuePhoto(kind: PhotoWarnKind) { photoOkRef.current = { ...photoOkRef.current, [kind]: true }; if (photoRefusal) { setPhotoRefusal(null); void planAd(); return } if (plan) setPhotoWarnOk((cur) => ({ ...cur, [`${plan.sig}:${kind}`]: true })) } // KINEO-ADS-QUALIDADE-2110 — "Continuar assim": recusado = pede o roteiro de novo com a confirmação; aviso suave = só some
+  const photoWarnCard = photoWarnList.length ? <div id="adv2-photo-warn" className="adsw-warn" role="alert" data-kineo="ads-photo-warn" style={{ display: 'grid', gap: 10 }}>{photoWarnList.map((w) => <div key={w.kind} data-kind={w.kind}><b>{w.title}</b><p style={{ margin: '4px 0 8px' }}>{w.body}</p><div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><button type="button" className="adsw-btn small" disabled={busy !== null} onClick={replacePhoto}>{w.replace}</button><button type="button" className="adsw-btn ghost small" disabled={busy !== null} onClick={() => continuePhoto(w.kind)}>{w.confirm}</button></div></div>)}</div> : null // KINEO-ADS-QUALIDADE-2110 — o cartão claro: "Trocar a foto" / "Continuar assim"
+  const orderHasPerson = !!order && (order.shots.some((s) => s.ai_person === true || s.kind === 'presenter' || s.kind === 'people') || (plan ? plan.presenter === true : false)) // KINEO-ADS-QUALIDADE-2110 — o aviso de "pessoas realistas de IA" só no anúncio COM pessoa (UGC/apresentador); Product Ads (só o produto) não
+  const runCopy = RUNNING_ORDER_COPY[(lang === 'pt' || lang === 'es' ? lang : 'en') as 'en' | 'pt' | 'es'] // KINEO-ADS-QUALIDADE-2110
 
   return (
-    <div className="adv2-layout">
+    <div className="adv2-layout" data-nota9={focus ?? undefined} data-adv={focus ? (advOpen ? 'open' : 'closed') : undefined}>{/* KINEO-ADS-NOTA9-2110 — na tela foco o "Avançado" recolhe o resto da tela de sempre (CSS em ADS_NOTA9_CSS); era: <div className="adv2-layout"> */}
       <style dangerouslySetInnerHTML={{ __html: SIMPLE_CSS + SIMPLE_UX_CSS }} />
+      {runningOrderId && phase === 'build' ? <p className="adsw-hint" role="status" data-kineo="ads-running-order">{runCopy.text} <a className="adsw-link" href={`/ads/v2?order=${encodeURIComponent(runningOrderId)}`}>{runCopy.view}</a></p> : null}{/* KINEO-ADS-QUALIDADE-2110 — o anúncio em andamento a um clique (a entrada nova da home não o sequestra) */}
+      {focus ? <style dangerouslySetInnerHTML={{ __html: ADS_NOTA9_CSS }} /> : null}{/* KINEO-ADS-NOTA9-2110 */}
       <style dangerouslySetInnerHTML={{ __html: TELA_CONSERTOS_CSS }} />{/* KINEO-ADS-CONSERTOS-TELA-1410 */}
       <div className="adv2-main">
         {notReady ? <p className="adv2-note" role="status">{copy.notReady}</p> : null}
@@ -2362,9 +2412,18 @@ export function AdsV2SimpleSession({
                 de 4 botões saiu (o quadro inteiro cabe na tela; o ✓ de cada passo pronto mora no chip .n do rótulo). Só
                 recomposição: os campos, os estados e as funções são os de sempre. */}
             <div className="adv2q-board" data-kineo="ads-quadro-studio">
+            {focus === 'ugc' ? (/* KINEO-ADS-NOTA9-2110 — o 1º passo do UGC: QUEM APRESENTA, os rostos aprovados em tiles grandes (o mesmo presenterPick; "Me surpreenda" = o sorteio de sempre) */
+              <section className="adv2q-step adv2n-who" aria-labelledby="adv2n-who-h" data-kineo="ads-nota9-who">{/* KINEO-ADS-NOTA9-2110 */}
+                <h2 id="adv2n-who-h" className="lab"><span className="n" aria-hidden="true">{presenterPick ? '✓' : adsNota9Step(focus, 'who')}</span>{n9.who}</h2>{/* KINEO-ADS-NOTA9-2110 */}
+                <p className="adv2n-hint">{n9.whoHint}</p>{/* KINEO-ADS-NOTA9-2110 */}
+                <AdsNota9Faces value={presenterPick} onChange={setPresenterPick} disabled={locked} copy={n9} voiceLanguage={presenterV2Voice} tags={adsV2PresenterPickerCopy(lang).tags} />{/* KINEO-ADS-NOTA9-2110 */}
+                {presenterWhy ? <p className="adsw-hint" role="status">{presenterWhy}</p> : null}{/* KINEO-ADS-NOTA9-2110 — sem voz (ou foto de tela) a pessoa não entra: a tela diz por quê */}
+                {sample && presenterCapNote ? <p className="adsw-hint" role="status" data-kineo="ads-nota9-presenter-cap">{adsSamplePresenterCapNote(lang)}</p> : null}{/* KINEO-ADS-NOTA9-2110 — o aviso honesto do sub-teto da amostra com a pessoa, à vista */}
+              </section> /* KINEO-ADS-NOTA9-2110 */
+            ) : null}{/* KINEO-ADS-NOTA9-2110 */}
             {/* 1. Arquivos */}
             <section id="adv2s-sec1" className="adv2q-step" aria-labelledby="adv2s-s1">
-              <h2 id="adv2s-s1" className="lab"><span className="n" aria-hidden="true">{steps[0].done ? '✓' : 1}</span>{ux.steps.product}</h2>
+              <h2 id="adv2s-s1" className="lab"><span className="n" aria-hidden="true">{steps[0].done ? '✓' : focus ? adsNota9Step(focus, 'product') : 1}</span>{ux.steps.product}</h2>{/* KINEO-ADS-NOTA9-2110 — na tela foco do UGC o produto é o 2º passo (o 1º é quem apresenta) */}
               <div className="mdlbtn adv2q-box">{/* KINEO-ADS-QUADRO-STUDIO-1510 — a caixa do motor do Studio (.mdlbtn) guarda link + fotos */}
               {/* KINEO-ADS-FLUXO-2026-10-13 — LINK PRIMEIRO (Topview/Creatify): a caixa grande com "Colar"; colar já busca; Enter ou o
                   botão também (o MESMO importLink de sempre). Depois, "Lemos sua página" para corrigir; a foto vira a 2ª opção. */}
@@ -2494,6 +2553,32 @@ export function AdsV2SimpleSession({
               </div>
             </section>
 
+            {focus ? (/* KINEO-ADS-NOTA9-2110 — a FRASE (uma linha; com link a gente já preenche) e a LINHA ÚNICA de custo em cima do Gerar; o resto vai para o "Avançado" */
+              <>{/* KINEO-ADS-NOTA9-2110 */}
+              <section className="adv2q-step" aria-labelledby="adv2n-text-h" data-kineo="ads-nota9-text">{/* KINEO-ADS-NOTA9-2110 */}
+                <h2 id="adv2n-text-h" className="lab"><span className="n" aria-hidden="true">{steps[1].done ? '✓' : adsNota9Step(focus, 'text')}</span>{focus === 'ugc' ? n9.sayUgc : n9.sayProduct}</h2>{/* KINEO-ADS-NOTA9-2110 */}
+                <p className="adv2n-opt">{n9.optional}</p>{/* KINEO-ADS-NOTA9-2110 — opcional com link (a página lida já preenche a frase) */}
+                <textarea ref={n9TextRef} className="adv2q-prompt" aria-labelledby="adv2n-text-h" aria-describedby="adv2n-count" rows={2} value={text} disabled={busy === 'start'} onChange={(e) => setText(e.target.value)} placeholder={focus === 'ugc' ? n9.placeholderUgc : textAsk.placeholder} />{/* KINEO-ADS-NOTA9-2110 — o MESMO estado da caixa de sempre, SEM cortar: passou do limite = aviso claro e o roteiro espera (copy.plan.textTooLong) */}
+                <p id="adv2n-count" className={text.length > ADS_V2_SCREEN_SENTENCE_MAX ? 'adsw-warn adv2n-count' : 'adv2n-count'} role={text.length > ADS_V2_SCREEN_SENTENCE_MAX ? 'alert' : undefined} data-kineo="ads-nota9-count">{text.length > ADS_V2_SCREEN_SENTENCE_MAX ? adsNota9Fill(n9.tooLong, { n: text.length, max: ADS_V2_SCREEN_SENTENCE_MAX }) : adsNota9Fill(n9.counter, { n: text.length, max: ADS_V2_SCREEN_SENTENCE_MAX })}</p>{/* KINEO-ADS-NOTA9-2110 — contador visível */}
+              </section>{/* KINEO-ADS-NOTA9-2110 */}
+              <div className="adv2q-go adv2n-go" data-kineo="ads-nota9-go">{/* KINEO-ADS-NOTA9-2110 */}
+                {n9Tiny ? <p id="adv2n-tiny" className="adsw-warn adv2n-tiny" role="status" data-kineo="ads-nota9-tiny">{adsNota9Fill(n9.tiny, { w: n9Tiny.w, h: n9Tiny.h })} {tinyOk === n9Tiny.key ? <b>✓ {n9.tinyDone}</b> : <button type="button" className="adsw-btn ghost small" onClick={() => setTinyOk(n9Tiny.key)}>{n9.tinyOk}</button>}</p> : null}{/* KINEO-ADS-NOTA9-2110 — foto pequena: aviso claro e confirmação antes de gerar */}
+                {photoWarnCard}{/* KINEO-ADS-QUALIDADE-2110 — foto pequena (do /plan) / de estilo de vida: "Trocar a foto" / "Continuar assim" */}
+                <p className="adv2n-cost" data-kind={n9Cost.kind} role="status" data-kineo="ads-nota9-cost"><span>{n9Cost.text}</span>{n9Cost.plans ? <a href="/pricing" target="_blank" rel="noopener" data-kineo="ads-nota9-plans">{n9.plans}</a> : null}</p>{/* KINEO-ADS-NOTA9-2110 — a única linha de custo da tela */}
+                <button type="button" className={`go ${goDisabled ? 'no' : 'ok'}`} aria-disabled={goDisabled || (planFresh && !!n9Tiny && tinyOk !== n9Tiny.key)} onClick={goFocus} data-kineo="ads-nota9-generate">{n9Label}</button>{/* KINEO-ADS-NOTA9-2110 */}
+                <p className="gnote" role="status">{n9Note}</p>{/* KINEO-ADS-NOTA9-2110 */}
+                {planFresh ? <button type="button" className="adv2n-script" onClick={() => { setAdvOpen(true); window.setTimeout(() => goToSection('adv2s-sec4'), 40) }}>{n9.seeScript}</button> : null}{/* KINEO-ADS-NOTA9-2110 — o roteiro grátis continua à mão (abre o "Avançado" no cartão de revisão) */}
+                {planError ? <p className="adsw-err" role="alert">{planError}</p> : null}{/* KINEO-ADS-NOTA9-2110 — o erro do roteiro à vista (moderação, teto do dia) */}
+                {busyNote ? <p className="adsw-hint" role="status">{busyNote}</p> : null}{/* KINEO-ADS-NOTA9-2110 */}
+                {scopy && sampleCap ? <p className="adsw-warn" role="alert">{business ? acopy.cap : scopy.cap} <a className="adsw-link" href={business ? business.checkoutHref : '/pricing'}>{business ? fillAfterSample(acopy.cta, business) : scopy.paidOnly} →</a></p> : null}{/* KINEO-ADS-NOTA9-2110 — o teto do dia da amostra à vista */}
+                {adsV2PlansLeftText(f2, plansLeft, ADS_V2_PLAN_LEFT_WARN) ? <p className="adsw-hint">{adsV2PlansLeftText(f2, plansLeft, ADS_V2_PLAN_LEFT_WARN)}</p> : null}{/* KINEO-ADS-NOTA9-2110 */}
+              </div>{/* KINEO-ADS-NOTA9-2110 */}
+              <div className="adv2n-adv" data-kineo="ads-nota9-advanced">{/* KINEO-ADS-NOTA9-2110 — UM "Avançado": marca, cena, formato, oferta e variações do kit, estilos, nível, voz, frases, cartão final, roteiro */}
+                <button type="button" aria-expanded={advOpen} onClick={() => setAdvOpen((v) => !v)}>{n9.advanced}<span>· {n9.advancedHint}</span></button>{/* KINEO-ADS-NOTA9-2110 */}
+                {advOpen ? <p className="ways">{n9.moreWays}<a href="/ads/v2?mode=batch">{fc.tabs.batch}</a><a href="/ads/v2?mode=full">{copy.shell.toFull}</a>{producao ? <a href="/ads/producao">{fc.tabs.production} →</a> : null}</p> : null}{/* KINEO-ADS-NOTA9-2110 — as abas e os atalhos do topo moram aqui na tela foco */}
+              </div>{/* KINEO-ADS-NOTA9-2110 */}
+              </> /* KINEO-ADS-NOTA9-2110 */
+            ) : null}{/* KINEO-ADS-NOTA9-2110 */}
             {/* 2. O texto */}
             <section id="adv2s-sec2" className="adv2q-step" aria-labelledby="adv2s-s2">
               {/* KINEO-ADS-QUADRO-STUDIO-1510 — "2 Seu anúncio" com as pílulas do tipo (produto/lugar: a única escolha de TIPO que o
@@ -2899,11 +2984,13 @@ export function AdsV2SimpleSession({
               </label>
               {busyNote ? <p className="adsw-hint" role="status">{busyNote}</p> : null}
               {planError ? <p className="adsw-err" role="alert">{planError}</p> : null}
+              {photoWarnCard}{/* KINEO-ADS-QUALIDADE-2110 — o mesmo cartão da foto no modo simples de sempre */}
               {/* KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — teto do dia: "amostras cheias hoje, volte amanhã ou assine o Business" (com o link do checkout). */}
               {scopy && sampleCap ? <p className="adsw-warn" role="alert">{business ? acopy.cap : scopy.cap} {business ? <><a className="adsw-link" href={business.checkoutHref}>{fillAfterSample(acopy.cta, business)} →</a>{' · '}</> : null}<a className="adsw-link" href="/pricing" target="_blank" rel="noopener">{scopy.paidOnly} →</a></p> : null}
             </section>
             {/* KINEO-ADS-FLUXO-2026-10-13 — o PALCO DO ESTILO (no lugar da prévia ao vivo): o vídeo do estilo escolhido, a cor dele no
                 brilho, e as miniaturas para ver a sua abertura e o quadro final. No celular ele vem primeiro, menor. */}
+            {n9Stage ? <AdsNota9Stage slot={previewSlot} data={n9Stage} copy={n9} /> : null}{/* KINEO-ADS-NOTA9-2110 — na tela foco o palco mostra o apresentador escolhido (UGC) ou o seu produto (sem preço) */}
             <AdsStyleStage slot={previewSlot} data={stageData} copy={fc} labels={{ product: ux.preview.product, voice: ux.preview.voice, delivery: ux.preview.delivery, empty: ux.preview.empty, presenter: ux.preview.presenter }} />
             {/* KINEO-ADS-FLUXO-2026-10-13 — no celular, a barra que gruda embaixo leva o botão principal do cartão de revisão. */}
             <MobilePreviewBar data={liveData} copy={ux} go={{ label: planFresh ? goLabel : busy === 'plan' ? copy.plan.planning : fc.review.planShort, onClick: goFromBar, disabled: goDisabled }} />
@@ -2945,8 +3032,9 @@ export function AdsV2SimpleSession({
               ) : null}
               <Link className="adsw-link" href="/history">{copy.done.open}</Link>
             </div>
-            {downloadNote ? <p className="adsw-warn" role="status">{downloadNote}</p> : null}
+            {downloadNote ? <p className="adsw-warn" role="status">{downloadNote}</p> : null}{orderHasPerson ? (<>{/* KINEO-ADS-QUALIDADE-2110 — o aviso de pessoas realistas de IA só no anúncio com pessoa */}
             <p className="adv2-note" role="note">{adsV2AiLabelNotice(lang)}</p>
+            </>) : null}{/* KINEO-ADS-QUALIDADE-2110 */}
             {video?.video_url ? (
               <video className="adv2-player" src={video.video_url} controls playsInline preload="metadata" />
             ) : (
@@ -3055,7 +3143,7 @@ function ItemCard({
   // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — foto que veio do LINK é do site da própria marca: nada de "cópia de app de conversa".
   // Ela só ganha um aviso neutro quando é pequena DE VERDADE para 1080×1920 (recorte abaixo de metade da largura).
   const crop = cropRect(item.w, item.h, item.fx, item.fy)
-  const small = item.fromLink ? crop.sw < ADS_V2_LINK_SMALL_WIDTH : isSmallCrop(crop)
+  const small = adsV2SmallPhotoSide(item.w, item.h) && (item.fromLink ? crop.sw < ADS_V2_LINK_SMALL_WIDTH : isSmallCrop(crop)) // KINEO-ADS-QUALIDADE-2110 — só com o lado menor < 500 px (a 640×1146 avisava pelo recorte < 720); era: const small = item.fromLink ? crop.sw < ADS_V2_LINK_SMALL_WIDTH : isSmallCrop(crop)
   const canDrag = !locked && !out
 
   function down(e: ReactPointerEvent<HTMLDivElement>) {

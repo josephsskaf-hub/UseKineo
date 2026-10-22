@@ -27,6 +27,7 @@ import { semKitBfVenda2010 } from './test-support/desfaz-kit-bf-venda-2010.mjs'
 import { semFilmesF1F3Publico2010 } from './test-support/desfaz-filmes-f1f3-publico-2010.mjs'
 import { semApresentadorOlhos1910 } from './test-support/desfaz-apresentador-olhos-1910.mjs'
 import { semHomeCardsBotoes2010 } from './test-support/desfaz-home-cards-botoes-2010.mjs'
+import { semAdsBola2110 } from './test-support/desfaz-ads-bola-2110.mjs' // KINEO-ADS-QUALIDADE-2110 — reancorado: a bola (que tira a qualidade primeiro) veio depois
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -58,7 +59,7 @@ function loadPure(text) {
 /** Carrega `rel` pelo carregador offline; `over` = { arquivo: texto } (mutantes); `mocks` = dublês. */
 const loadVia = (rel, mocks = {}, over = {}) => createOfflineLoader({ mocks, source: (r, text) => (over[r] !== undefined ? over[r] : text) })(rel)
 
-const V2 = loadPure(rd(F.v2))
+const V2 = loadPure(semAdsBola2110(rd(F.v2), F.v2)) // KINEO-ADS-QUALIDADE-2110 — reancorado: a faixa e a régua desta entrega são provadas sem o anúncio da bola e a qualidade (21/10, entregas de depois, desfaz próprio)
 const LIB = createOfflineLoader({})(F.presenter).ADS_V2_PRESENTER_LIBRARY
 
 // ═══ A. a lista aprovada ═════════════════════════════════════════════════════════════════════════════════════════════════
@@ -201,7 +202,7 @@ await check('P3 a tela: o page.tsx decide pelo reason do SERVIDOR (só interna),
 // ═══ F. a faixa do roteiro do apresentador ═══════════════════════════════════════════════════════════════════════════════
 console.log('\nF. faixa do roteiro: pede 19–21, aceita até 23 (piso 19)')
 const JSONS = Object.fromEntries(['lib/ui/refinementCopy.json'].map((rel) => ['@/' + rel, JSON.parse(rd(rel))]))
-const BR = (over = {}) => createOfflineLoader({ mocks: { '@/lib/openai': { openai: {} }, ...JSONS }, source: (rel, text) => (over[rel] !== undefined ? over[rel] : text) })(F.brief)
+const BR = (over = {}) => createOfflineLoader({ mocks: { '@/lib/openai': { openai: {} }, ...JSONS }, source: (rel, text) => (over[rel] !== undefined ? over[rel] : semAdsBola2110(text, rel)) })(F.brief) // KINEO-ADS-QUALIDADE-2110 — reancorado: a faixa e a régua desta entrega são provadas sem o anúncio da bola e a qualidade (21/10, entregas de depois, desfaz próprio)
 const BRIEF_LUME = { business: 'Perfume LUME', offer: null, contact: null, extra: {} }
 const PAL = 'Este é o Perfume LUME feito para o dia a dia com notas leves que acompanham você do trabalho ao jantar sem pesar nem cansar e garanta o seu hoje mesmo agora sim'.split(' ')
 const fala = (n) => { const w = PAL.slice(0, n); return w.join(' ') + '.' }
@@ -235,7 +236,7 @@ await check(`D1 cada arquivo tocado, desfeito (scripts/test-support/desfaz-ugc-a
 await check('D2 toda linha nova traz a marca; o diff contra a base só toca os arquivos da lista, os novos e o mp3; a marca não contém a de outra camada; nada de cobrança, motor ou preço', () => {
   const tocados = git('diff', '--name-only', B, git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, '-1', 'HEAD').trim() || 'HEAD').trim().split('\n').filter(Boolean) // reancorado KINEO-MENU-UGC-2010 — mede da base até o último commit DESTA entrega (o menu do topo veio depois, na mesma fila, e toca outros arquivos)
   const permitidos = new Set([...UGC_AJUSTES_2010_ARQUIVOS, ...UGC_AJUSTES_2010_NOVOS, F.mp3])
-  const linhas = UGC_AJUSTES_2010_ARQUIVOS.every((f) => git('diff', '-U0', '--no-color', B, '--', f).replace(/\r/g, '').split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).every((l) => l.includes(MARCA)))
+  const linhas = UGC_AJUSTES_2010_ARQUIVOS.every((f) => git('diff', '-U0', '--no-color', B, '--', f).replace(/\r/g, '').split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++') && !l.includes('KINEO-ADS-NOTA9-2110') && !l.includes('KINEO-ADS-BOLA-2110') && !l.includes('KINEO-ADS-QUALIDADE-2110')).every((l) => l.includes(MARCA))) // reancorado KINEO-ADS-NOTA9-2110 — as linhas da tela foco (21/10, camada mais nova) não contam como desta entrega // KINEO-ADS-QUALIDADE-2110 — reancorado: as linhas da bola e da qualidade levam a marca delas
   const trocasOk = UGC_AJUSTES_2010_ARQUIVOS.every((f) => (TROCAS_UGC_AJUSTES_2010[f] ?? []).every(([nova, velha]) => nova.includes(MARCA) && !velha.includes(MARCA)))
   return tocados.length > 0 && tocados.every((f) => permitidos.has(f)) && linhas && trocasOk && !/KINEO-(KIT|HOME|APRESENTADOR|FILMES|CLOSE)/.test(MARCA) &&
     ['lib/ads/v2Tiers.ts', 'lib/ads/v2Billing.ts', 'lib/ads/v2Advance.ts', 'lib/ads/adV2Montage.ts', 'lib/ads/sample.ts', 'lib/compose.ts'].every((f) => !tocados.includes(f)) &&

@@ -4,6 +4,7 @@
 //                   versão nova (ads_v2_versions) montada no Creatomate. NUNCA chama a fal, voz, modelo, débito ou estorno.
 // Tabela não aplicada (migrations_pending/20261015120000_ads_v2_pos_entrega.sql) = 503 'not_ready', nunca 500.
 import { NextRequest } from 'next/server'
+import { adsV2BusinessName } from '@/lib/ads/v2BolaFix' // KINEO-ADS-BOLA-2110 — o nome do negócio limpo
 import { writeServerEvent } from '@/lib/serverEvents'
 import { isMissingAdsTable } from '@/lib/ads/serverAccess'
 import { isUuid } from '@/lib/ads/v2Contract'
@@ -75,7 +76,7 @@ export async function GET(req: NextRequest) {
       presenter: Boolean(base.presenter),
       card: {
         url: base.cardUrl,
-        business: str(brief.business)?.split(/\s+[—–-]\s+/)[0] ?? '',
+        business: adsV2BusinessName(str(brief.business) ?? ''), // KINEO-ADS-BOLA-2110 — era: split(/ — /)[0] ("— bola de futebol" passava com o travessão)
         price: str(brief.price) ?? '',
         contact: str(brief.contact) ?? '',
         logo_url: logoUrl,

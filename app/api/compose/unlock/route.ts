@@ -25,6 +25,8 @@ import { normalizeAspect } from '@/lib/aspect' // LOTE2-EXPORT-LIMPO-FIEL-2026-0
 import { salvageScriptNarration, stripScriptMarkers } from '@/lib/scriptParser'
 import { selectMusicForScript } from '@/lib/musicScore'
 import { grafiaDoRoteiro } from '@/lib/captionScriptSpelling' // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28
+import { escritaDivergente } from '@/lib/escritaDaLegenda' // [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] KINEO-META95-ESCRITA-2010 — a legenda sai na escrita do roteiro (linha própria)
+import { transcreverNaEscritaDoRoteiro } from '@/lib/whisperNaEscrita' // KINEO-META95-ESCRITA-2010 — Whisper com o idioma que a escrita do roteiro diz (linha própria)
 // KINEO-CREDIT-INTENT-2026-07-11 — record the engine + intended cost for the
 // clean re-render so /api/compose/status bills it from the server-side intent
 // (not the client ?quality param), exactly like /api/compose does.
@@ -574,8 +576,9 @@ export async function POST(req: NextRequest) {
     // Captions (best-effort word-level sync, same as /api/compose).
     let whisperWords: WhisperWord[] | undefined
     try {
-      const words = await transcribeTTSWithTimestamps(audioBuffer)
+      const words = await transcreverNaEscritaDoRoteiro(audioBuffer, scaledScript) // KINEO-META95-ESCRITA-2010 — Whisper na escrita do roteiro
       if (words.length > 0) whisperWords = words
+      if (whisperWords && escritaDivergente(whisperWords, scaledScript)) whisperWords = undefined // KINEO-META95-ESCRITA-2010 — ainda em outra escrita: legenda pelo texto do roteiro (plano B)
     } catch {
       whisperWords = undefined
     }

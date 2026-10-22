@@ -100,6 +100,7 @@ const citablePageLinks=['/seedance-kling-veo-in-one-place','/faceless-youtube-sh
 // 13/10 (KINEO-AGENCIAS-2026-10-13, fundador "tudo sim"): one documented ADDITION — the agency partner program page
 // (/agencies). Typed on purpose; the exact multiset below still fails on any other missing or extra link.
 const addedNavigationLinks=['/claude-connector?src=footer#connect', ...(pure('lib/showcaseTelemetry.ts').SHOWCASE_PUBLIC ? ['/showcase'] : []), ...citablePageLinks, '/agencies']
+addedNavigationLinks.push('/clips', '/spaces', '/examples') // KINEO-HOME-REMODELA-2010 — 20/10 (fundador: "more tools a gente vai cancelar"): 3 ADIÇÕES documentadas — Clipes, Espaços e Exemplos saíram do topo e seguem a 1 clique no rodapé; o multiset exato abaixo continua falhando com qualquer outro link a mais ou a menos.
 equal(links(footerAfter),[...links(footerBefore).map(h=>h==='/business-video-ads'?'/ads':h).filter(h=>!retiredNavigationLinks.has(h)&&!(avatarOffCatalogue&&h==='/ai-avatar')),...segmentLinks,...addedNavigationLinks].sort(),'footer preserves all destinations except documented navigation removals and off-catalogue Avatar, with direct Ads, derived segment doors and the documented Claude connector addition, plus the four documented citable pages')
 equal((footerAfter.match(/<details /g)||[]).length,4,'four footer navigation groups')
 console.log(`PASS ${checks} locale and workspace checks; no network, database, email or generation`)

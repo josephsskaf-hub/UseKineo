@@ -13,11 +13,12 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { semKidsVenda2010 } from './desfaz-kids-venda-2010.mjs' // KINEO-KIDS-VENDA-2010 — a venda do desenho infantil veio depois: sai PRIMEIRO (encadeado; texto sem a marca passa igual)
+import { semHomeCardsClaros2010 } from './desfaz-home-cards-claros-2010.mjs' // KINEO-HOME-CARDS-CLAROS-2010 — a parte de baixo dos cards mais clara (20/10 23:30) veio depois: sai PRIMEIRO (encadeado; texto sem a marca passa igual)
 
 export const MARCA_BEBE_QUE_FALA_2010 = 'KINEO-BEBE-QUE-FALA-2010'
 
-/** A base da entrega: origin/main de 20/10 (KINEO-MENU-UGC-2010 na ponta). */
-export const BEBE_QUE_FALA_2010_BASE = 'b7662b717a0d8513d9c59cc2527c7fd834a49f56'
+/** A base da entrega: origin/main de 20/10 depois do merge (a fila entrega-atual: KINEO-VERBATIM-INTOCAVEL-2010 sobre KINEO-AVATAR-PRESO-2010, KINEO-META95-ESCRITA-2010, KINEO-META95-PERSONAGEM-2010, KINEO-MCP-STUDIO-2010 e KINEO-MENU-UGC-2010). */
+export const BEBE_QUE_FALA_2010_BASE = 'ce885baefc3432fdc1a74b8681fbee1e460342d5'
 
 /** [linha nova (inteira), linha da base] por arquivo. */
 export const TROCAS_BEBE_QUE_FALA_2010 = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-bebe-que-fala-2010-trocas.json'), 'utf8'))
@@ -25,20 +26,56 @@ export const TROCAS_BEBE_QUE_FALA_2010 = JSON.parse(readFileSync(join(dirname(fi
 export const ACRESCIMOS_BEBE_QUE_FALA_2010 = {
   'app/(dashboard)/generate/GenerateClient.tsx': 3,
   'app/KineoLanding.tsx': 2,
+  'app/api/generate-avatar/route.ts': 5,
   'app/api/generate-video-cinematic/route.ts': 9,
-  'app/llms.txt/route.ts': 2,
-  'app/sitemap.ts': 3,
-  'components/home/HomeThreeCards.tsx': 4,
+  'app/llms.txt/route.ts': 3,
+  'app/sitemap.ts': 5,
+  'components/home/HomeThreeCards.tsx': 6,
+  'scripts/test-avatar-preso-2010.mjs': 1,
+  'scripts/test-cena-negacao-1510.mjs': 0,
+  'scripts/test-contrato-classicos-1410.mjs': 0,
+  'scripts/test-filmes-f1-virgula-1910.mjs': 0,
+  'scripts/test-filmes-f1f3-ajuste-1910.mjs': 0,
+  'scripts/test-filmes-f1f4-1910.mjs': 0,
+  'scripts/test-home-3-cards-1910.mjs': 1,
+  'scripts/test-home-remodela-2010.mjs': 1,
+  'scripts/test-kling25-variedade-2026-09-28.mjs': 0,
+  'scripts/test-mcp-studio-2010.mjs': 1,
+  'scripts/test-mcp-studio-ajuste-2010.mjs': 3,
+  'scripts/test-menu-ugc-2010.mjs': 1,
+  'scripts/test-meta95-escrita-2010.mjs': 1,
+  'scripts/test-meta95-personagem-2010.mjs': 1,
+  'scripts/test-moderacao-2026-09-25.mjs': 1,
+  'scripts/test-showcase-2026-10-02.mjs': 1,
+  'scripts/test-studio-fantasma-1510.mjs': 0,
+  'scripts/test-support/desfaz-avatar-preso-2010.mjs': 2,
+  'scripts/test-support/desfaz-home-remodela-2010.mjs': 2,
+  'scripts/test-support/desfaz-mcp-studio-ajuste-2010.mjs': 2,
   'scripts/test-support/desfaz-menu-ugc-2010.mjs': 2,
+  'scripts/test-support/desfaz-meta95-escrita-2010.mjs': 2,
+  'scripts/test-support/desfaz-verbatim-intocavel-2010.mjs': 3,
+  'scripts/test-trilha-15s-1610.mjs': 0,
+  'scripts/test-veo-marcado-2026-09-29.mjs': 0,
+  'scripts/test-veo-modo-ia-2026-09-29.mjs': 0,
+  'scripts/test-verbatim-intocavel-2010.mjs': 1,
+  'scripts/test-visual-contract-2026-09-11.mjs': 0,
 }
 export const BEBE_QUE_FALA_2010_ARQUIVOS = Object.freeze(Object.keys(ACRESCIMOS_BEBE_QUE_FALA_2010))
 /** Arquivos novos da entrega (não existiam na base). */
 export const BEBE_QUE_FALA_2010_NOVOS = [
+  'app/(dashboard)/baby-podcast/page.tsx',
   'app/(dashboard)/kids-cartoon/page.tsx',
+  'app/ai-baby-podcast-videos/page.tsx',
   'app/ai-kids-cartoon-videos/page.tsx',
+  'app/api/baby-podcast/prepare/route.ts',
   'app/api/kids-cartoon/story/route.ts',
   'app/desenho-infantil-3d-com-ia/page.tsx',
+  'app/videos-bebe-podcast-ia/page.tsx',
   'components/home/HomeKidsCard.tsx',
+  'components/home/HomeProductAdsReel.tsx',
+  'components/kidsCartoon/BabyCtaLink.tsx',
+  'components/kidsCartoon/BabyPodcastPages.tsx',
+  'components/kidsCartoon/BabyPodcastTemplate.tsx',
   'components/kidsCartoon/KidsCartoonPages.tsx',
   'components/kidsCartoon/KidsCartoonTemplate.tsx',
   'components/kidsCartoon/KidsCtaLink.tsx',
@@ -49,13 +86,14 @@ export const BEBE_QUE_FALA_2010_NOVOS = [
   'public/posters/home-card-kids-cartoon-leo.webp',
   'public/previews/home-card-kids-cartoon-leo.mp4',
   'scripts/test-bebe-que-fala-2010.mjs',
-  'scripts/test-support/desfaz-bebe-que-fala-2010.mjs',
   'scripts/test-support/desfaz-bebe-que-fala-2010-trocas.json',
+  'scripts/test-support/desfaz-bebe-que-fala-2010.mjs',
 ]
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semBebeQueFala2010(texto, p) {
   texto = semKidsVenda2010(texto, p) // KINEO-KIDS-VENDA-2010 — a camada mais nova sai primeiro
+  texto = semHomeCardsClaros2010(texto, p) // KINEO-HOME-CARDS-CLAROS-2010 — a camada mais nova sai primeiro
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_BEBE_QUE_FALA_2010) || !BEBE_QUE_FALA_2010_ARQUIVOS.includes(rel)) return texto
   const crlf = texto.includes('\r\n')

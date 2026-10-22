@@ -44,13 +44,21 @@ const CSS = `
 .kitbf .kitbf-ends{font-size:12px;opacity:.8}
 .kitbf .kitbf-inc{font-size:13px;font-weight:700;color:#8a6a00}
 `
+const SLIM_CSS = `.kitbf.kitbf-slim{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:0 0 12px;padding:7px 8px 7px 12px;border-radius:12px;font-size:13px;line-height:1.35}.kitbf.kitbf-slim b{font-weight:800}.kitbf.kitbf-slim .kitbf-p{font-size:12.5px;font-weight:700;color:#FFD400}.kitbf.kitbf-slim a.kitbf-cta{margin-inline-start:auto;padding:5px 12px;font-size:12.5px;border-radius:9px}` // KINEO-ADS-NOTA9-2110 — a faixa de uma linha
 
 /** O cartão do kit. `lang` = a língua da interface (16; desconhecida = inglês). */
-export function KitBfBuyCard({ lang = 'en', surface }: { lang?: string; surface: 'ads' | 'pricing' }) {
+export function KitBfBuyCard({ lang = 'en', surface, slim = false }: { lang?: string; surface: 'ads' | 'pricing'; slim?: boolean }) { // KINEO-ADS-NOTA9-2110 — + slim: a faixa de uma linha da tela foco do Studio Ads; era: export function KitBfBuyCard({ lang = 'en', surface }: { lang?: string; surface: 'ads' | 'pricing' }) {
   const o = useBfOffers()
   if (!o || o.kit.state === 'closed') return null
   const t = kitBfCardText(lang, o.kit.daysLeft)
   const included = o.kit.state === 'included'
+  if (slim) return ( // KINEO-ADS-NOTA9-2110 — a mesma decisão do servidor (venda aberta / incluído), o MESMO link de compra; só o desenho encolhe
+    <section className="kitbf kitbf-slim" id="kit-bf" data-kineo="kit-bf-buy" data-surface={surface} data-state={o.kit.state} data-slim="true" aria-label={t.title}>{/* KINEO-ADS-NOTA9-2110 */}
+      <style dangerouslySetInnerHTML={{ __html: CSS + SLIM_CSS }} />{/* KINEO-ADS-NOTA9-2110 */}
+      <b>{t.title}</b><span className="kitbf-p">{included ? t.included : t.priceLine}</span>{/* KINEO-ADS-NOTA9-2110 */}
+      {included ? <span className="kitbf-inc" data-kineo="kit-bf-included">{t.includedNote}</span> : <a className="kitbf-cta" data-kineo="kit-bf-cta" href={`${KIT_BF_CHECKOUT_HREF}&surface=${surface}`}>{t.cta.split(' — ')[0]}</a>}{/* KINEO-ADS-NOTA9-2110 — o preço já está na faixa: o botão sem o travessão */}
+    </section> /* KINEO-ADS-NOTA9-2110 */
+  ) // KINEO-ADS-NOTA9-2110
   return (
     <section className="kitbf" id="kit-bf" data-kineo="kit-bf-buy" data-surface={surface} data-state={o.kit.state} aria-label={t.title}>
       <style dangerouslySetInnerHTML={{ __html: CSS }} />

@@ -31,7 +31,7 @@ import { KIDS_CARTOON_LIVE, KIDS_CHARACTER_IDS, type KidsCartoonDuration, type K
 export const KIDS_VENDA_MARK = 'KINEO-KIDS-VENDA-2010'
 
 /** Interruptor da VENDA (as 3 formas). false = nada muda para ninguém de fora: checkout recusa, cartões somem, amostra recusa. */
-export const KIDS_SALES_LIVE = false
+export const KIDS_SALES_LIVE = true
 /**
  * O que o PÚBLICO vê: a venda só abre com o template também aberto (KIDS_CARTOON_LIVE, lib/kidsCartoon/kidsCartoon.ts) — o cron
  * escreve a história pela rota do template, que responde 404 com ele fechado; vender antes seria cobrar sem conseguir entregar.

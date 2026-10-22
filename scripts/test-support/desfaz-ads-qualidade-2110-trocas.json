@@ -1,0 +1,217 @@
+{
+  "__acrescimos": {
+    "app/(dashboard)/ads/v2/AdsV2Client.tsx": 0,
+    "app/(dashboard)/ads/v2/AdsV2Simple.tsx": 25,
+    "lib/ads/adV2Montage.ts": 5,
+    "lib/ads/v2Advance.ts": 11,
+    "lib/ads/v2BolaFix.ts": 4,
+    "lib/ads/v2Brief.ts": 5,
+    "lib/ads/v2CloseReal.ts": 1,
+    "lib/ads/v2PlanCore.ts": 8,
+    "lib/ads/v2PresenterV2.ts": 61,
+    "scripts/test-ads-bola-2110.mjs": 1,
+    "scripts/test-ads-nota9-2110.mjs": 1,
+    "scripts/test-close-real-1910.mjs": 2,
+    "scripts/test-kit-bf-1910.mjs": 1,
+    "scripts/test-mcp-studio-2010.mjs": 3,
+    "scripts/test-mcp-studio-ajuste-2010.mjs": 3,
+    "scripts/test-support/desfaz-ads-bola-2110.mjs": 2,
+    "scripts/test-ugc-ajustes-2010.mjs": 1,
+    "scripts/test-verbatim-intocavel-2010.mjs": 0
+  },
+  "app/(dashboard)/ads/v2/AdsV2Client.tsx": [
+    [
+      "          key={`${session}:${entry ?? ''}`} /* KINEO-ADS-QUALIDADE-2110 — outra entrada da home (?entry=ugc|product) = um pedido NOVO (remonta); era: key={session} */",
+      "          key={session}"
+    ]
+  ],
+  "app/(dashboard)/ads/v2/AdsV2Simple.tsx": [
+    [
+      "        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}), ...(format !== '9:16' ? { format } : {}), ...(closeRealOn ? { close_real: true } : {}), ...(kitOfferT ? { offer: kitOfferT } : {}), ...(samplePresenter ? { sample_entry: 'ugc' } : {}), ...(photoOkRef.current.small ? { small_photo_ok: true } : {}), ...(photoOkRef.current.lifestyle ? { lifestyle_photo_ok: true } : {}) }, // KINEO-HOME-3-CARDS-1910 — a entrada UGC da amostra (o servidor confere) · KINEO-ADS-MELHORIAS-1410 — o formato só fora do 9:16 · KINEO-CLOSE-REAL-1910 — + o Close do produto real; era: a mesma linha sem close_real · KINEO-KIT-BF-1910 — + a oferta do kit (só com oferta) · KINEO-ADS-QUALIDADE-2110 — + a confirmação da foto pequena / de estilo de vida (\"Continuar assim\")",
+      "        body: { mode: 'simple', order_id: orderId, sector, logo_footage_id: logo?.footageId ?? null, ...(presenterOn ? { presenter: true } : {}), photos: uploaded, videos, card_footage_id: card.footageId, facts: chosen, ...(style !== 'none' ? { style } : {}), ...(presenterOn && presenterPick ? { presenter_id: presenterPick } : {}), ...(format !== '9:16' ? { format } : {}), ...(closeRealOn ? { close_real: true } : {}), ...(kitOfferT ? { offer: kitOfferT } : {}), ...(samplePresenter ? { sample_entry: 'ugc' } : {}) }, // KINEO-HOME-3-CARDS-1910 — a entrada UGC da amostra (o servidor confere) · KINEO-ADS-MELHORIAS-1410 — o formato só fora do 9:16 · KINEO-CLOSE-REAL-1910 — + o Close do produto real; era: a mesma linha sem close_real · KINEO-KIT-BF-1910 — + a oferta do kit (só com oferta)"
+    ],
+    [
+      "  const n9Tiny = focus ? adsNota9TinyPhoto(inAd, ADS_V2_SMALL_PHOTO_MIN_SIDE) : null // KINEO-ADS-NOTA9-2110 — a foto pequena (lado menor < 500 px) da tela foco · KINEO-ADS-QUALIDADE-2110 — o limite único da tela e do /plan (ADS_V2_SMALL_PHOTO_MIN_SIDE); era: adsNota9TinyPhoto(inAd)",
+      "  const n9Tiny = focus ? adsNota9TinyPhoto(inAd) : null // KINEO-ADS-NOTA9-2110 — a foto pequena (lado menor < 500 px) da tela foco"
+    ],
+    [
+      "            {downloadNote ? <p className=\"adsw-warn\" role=\"status\">{downloadNote}</p> : null}{orderHasPerson ? (<>{/* KINEO-ADS-QUALIDADE-2110 — o aviso de pessoas realistas de IA só no anúncio com pessoa */}",
+      "            {downloadNote ? <p className=\"adsw-warn\" role=\"status\">{downloadNote}</p> : null}"
+    ],
+    [
+      "  const small = adsV2SmallPhotoSide(item.w, item.h) && (item.fromLink ? crop.sw < ADS_V2_LINK_SMALL_WIDTH : isSmallCrop(crop)) // KINEO-ADS-QUALIDADE-2110 — só com o lado menor < 500 px (a 640×1146 avisava pelo recorte < 720); era: const small = item.fromLink ? crop.sw < ADS_V2_LINK_SMALL_WIDTH : isSmallCrop(crop)",
+      "  const small = item.fromLink ? crop.sw < ADS_V2_LINK_SMALL_WIDTH : isSmallCrop(crop)"
+    ]
+  ],
+  "lib/ads/adV2Montage.ts": [
+    [
+      "  if (q?.video) elements.push(...q.video({ url: presenter.url.trim(), track: ADS_V2_PRESENTER_TRACK, duration: r3(t.cut + ADS_V2_PRESENTER_V2_DISSOLVE), cut: t.cut })); else elements.push({ type: 'video', track: ADS_V2_PRESENTER_TRACK, time: 0, duration: r3(t.cut + ADS_V2_PRESENTER_V2_DISSOLVE), source: presenter.url.trim(), fit: 'cover', loop: false, trim_start: 0, x: '50%', y: '50%', width: '100%', height: '100%', volume: '100%' }) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + o dissolve inteiro por baixo do close · KINEO-ADS-QUALIDADE-2110 — com a camada: o punch-in de UGC no meio da fala",
+      "  elements.push({ type: 'video', track: ADS_V2_PRESENTER_TRACK, time: 0, duration: r3(t.cut + ADS_V2_PRESENTER_V2_DISSOLVE), source: presenter.url.trim(), fit: 'cover', loop: false, trim_start: 0, x: '50%', y: '50%', width: '100%', height: '100%', volume: '100%' }) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + o dissolve inteiro por baixo do close"
+    ],
+    [
+      "  elements.push(...(q?.close ? q.close(t.cut, r3(ADS_V2_PRESENTER_V2_CLOSE_SECONDS + ADS_V2_MONTAGE_FADE)) : adsV2PackshotElements(v2.closeUrl, ADS_V2_PRESENTER_V2_CLOSE_TRACK, t.cut, r3(ADS_V2_PRESENTER_V2_CLOSE_SECONDS + ADS_V2_MONTAGE_FADE), { enter_transition: { type: 'fade', duration: ADS_V2_PRESENTER_V2_DISSOLVE } }))) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — trilha ACIMA do apresentador (era a mesma: não cruzava) e fade de 0,35 s · KINEO-ADS-QUALIDADE-2110 — com a camada: o produto inteiro sobre o próprio fundo desfocado",
+      "  elements.push(...adsV2PackshotElements(v2.closeUrl, ADS_V2_PRESENTER_V2_CLOSE_TRACK, t.cut, r3(ADS_V2_PRESENTER_V2_CLOSE_SECONDS + ADS_V2_MONTAGE_FADE), { enter_transition: { type: 'fade', duration: ADS_V2_PRESENTER_V2_DISSOLVE } })) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — trilha ACIMA do apresentador (era a mesma: não cruzava) e fade de 0,35 s"
+    ],
+    [
+      "  if (q?.card) elements.push(...q.card(t.cardStart, r3(cardSeconds))); else elements.push({ type: 'image', track: ADS_V2_PRESENTER_V2_CARD_TRACK, time: t.cardStart, duration: r3(cardSeconds), source: input.cardUrl.trim(), fit: 'cover', x: '50%', y: '50%', width: '100%', height: '100%', enter_transition: { type: 'fade', duration: ADS_V2_MONTAGE_FADE } }) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — acima do close (o close subiu para a 3) · KINEO-ADS-QUALIDADE-2110 — com a camada: o cartão final v3 (produto inteiro, nome, selo da oferta, botão)",
+      "  elements.push({ type: 'image', track: ADS_V2_PRESENTER_V2_CARD_TRACK, time: t.cardStart, duration: r3(cardSeconds), source: input.cardUrl.trim(), fit: 'cover', x: '50%', y: '50%', width: '100%', height: '100%', enter_transition: { type: 'fade', duration: ADS_V2_MONTAGE_FADE } }) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — acima do close (o close subiu para a 3)"
+    ]
+  ],
+  "lib/ads/v2Advance.ts": [
+    [
+      "  const pick = pv.lib.adsV2PresenterV2PickWhole({ both, freeHands: hands, phoneUi, productWhole: whole, handCounts: handInv.map((h) => (h ? (typeof h.count === 'number' ? h.count : h.hands.length) : null)), rects, poses: handInv.map((h) => h?.pose ?? null) }) // KINEO-ADS-QUALIDADE-2110 — + a pose (encostando no rosto, altura, segurado, escala) · KINEO-APRESENTADOR-V2-1710 · KINEO-ADS-BOLA-2110 — era PickClean: o produto INTEIRO decide primeiro, depois as 2 mãos (pedido 618a6680: a bola cortada na borda nas 4)",
+      "  const pick = pv.lib.adsV2PresenterV2PickWhole({ both, freeHands: hands, phoneUi, productWhole: whole, handCounts: handInv.map((h) => (h ? (typeof h.count === 'number' ? h.count : h.hands.length) : null)), rects }) // KINEO-APRESENTADOR-V2-1710 · KINEO-ADS-BOLA-2110 — era PickClean: o produto INTEIRO decide primeiro, depois as 2 mãos (pedido 618a6680: a bola cortada na borda nas 4)"
+    ],
+    [
+      "  await writeServerEvent({ name: 'ads_v2_product_locked', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, idx: row.idx, attempt: row.attempt, mode: 'presenter_v2', entry: pv.v2.entryId, options: kept.length, chosen: kept.indexOf(chosen), why: pick.why, both_objects: both, free_hands: hands, phone_ui: phoneUi, hand_counts: handInv.map((h) => (h ? h.hands.length : null)), product_rect: productRect, product_whole: whole, product_at_edge: rects.map((r) => pv.lib.adsV2PresenterV2RectAtEdge(r)), poses: handInv.map((h) => h?.pose ?? null), charged: false } }).catch(() => null) // KINEO-APRESENTADOR-V2-1710 — o evento da trava de sempre (lista fechada), com o modo novo · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + free_hands · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + phone_ui, hand_counts, product_rect · KINEO-ADS-BOLA-2110 — a foto inteira no close; o produto inteiro no evento · KINEO-ADS-QUALIDADE-2110 — + a pose de cada opção",
+      "  await writeServerEvent({ name: 'ads_v2_product_locked', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, idx: row.idx, attempt: row.attempt, mode: 'presenter_v2', entry: pv.v2.entryId, options: kept.length, chosen: kept.indexOf(chosen), why: pick.why, both_objects: both, free_hands: hands, phone_ui: phoneUi, hand_counts: handInv.map((h) => (h ? h.hands.length : null)), product_rect: productRect, product_whole: whole, product_at_edge: rects.map((r) => pv.lib.adsV2PresenterV2RectAtEdge(r)), charged: false } }).catch(() => null) // KINEO-APRESENTADOR-V2-1710 — o evento da trava de sempre (lista fechada), com o modo novo · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + free_hands · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + phone_ui, hand_counts, product_rect · KINEO-ADS-BOLA-2110 — a foto inteira no close; o produto inteiro no evento"
+    ],
+    [
+      "        presenter: { url: presenterClip.url, measuredSeconds: presenterClip.measuredSeconds, insertOrder, ...(presenterV2 ? { v2: { speechSeconds: voiceSeconds ?? 0, closeUrl: presenterV2Close ?? presenterV2.productUrl, productRect: presenterV2.v2?.productRect ?? null, quality: qPresenter } } : {}) }, // KINEO-ADS-QUALIDADE-2110 — + quality · // KINEO-APRESENTADOR-V2-1710 — a estrutura de 15 s: corte no fim real da fala + close da foto real + cartão · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + o retângulo do produto (a frase acima dele) · KINEO-ADS-BOLA-2110 — a foto inteira no close; o produto inteiro no evento",
+      "        presenter: { url: presenterClip.url, measuredSeconds: presenterClip.measuredSeconds, insertOrder, ...(presenterV2 ? { v2: { speechSeconds: voiceSeconds ?? 0, closeUrl: presenterV2Close ?? presenterV2.productUrl, productRect: presenterV2.v2?.productRect ?? null } } : {}) }, // KINEO-APRESENTADOR-V2-1710 — a estrutura de 15 s: corte no fim real da fala + close da foto real + cartão · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + o retângulo do produto (a frase acima dele) · KINEO-ADS-BOLA-2110 — a foto inteira no close; o produto inteiro no evento"
+    ],
+    [
+      "      closeRealSource = buildAdV2CloseRealSource({ width: crFrame.width, height: crFrame.height, heroUrl: hero?.url ?? null, heroFallbackUrl: closeRealPlan.product?.url ?? closeRealPlan.photos[0], photos: closeRealPlan.photos, phrases: (plan.overlays ?? []).map((o) => (o && typeof o.text === 'string' ? o.text : '')), fontFamily: captionFontFor(language), cardUrl: order.card_url, cardSeconds: ADS_V2_CARD_SECONDS, musicUrl, musicTrimStart: adsV2MusicTrimStart(musicUrl), voiceUrl, voiceSeconds, watermark: isAdsSampleRef(order.billing_ref) ? ADS_V2_CLOSE_REAL_WATERMARK : null, narration, closeCard: hero?.cardUrl && adsV2CloseRealCardName(order.brief?.business) ? { url: hero.cardUrl, name: adsV2CloseRealCardName(order.brief?.business), cta: adsV2CloseRealCta(language), ink: hero.ink } : null, photoBoxes: crBoxes, quality: crQuality }) // KINEO-CLOSE-REAL-V3-1910 — + a cor do botão (ink, o tom da embalagem) e a caixa do produto em cada foto (photoBoxes: a legenda nunca cobre o produto) · KINEO-ADS-QUALIDADE-2110 — + quality (gancho e cartão v3)",
+      "      closeRealSource = buildAdV2CloseRealSource({ width: crFrame.width, height: crFrame.height, heroUrl: hero?.url ?? null, heroFallbackUrl: closeRealPlan.product?.url ?? closeRealPlan.photos[0], photos: closeRealPlan.photos, phrases: (plan.overlays ?? []).map((o) => (o && typeof o.text === 'string' ? o.text : '')), fontFamily: captionFontFor(language), cardUrl: order.card_url, cardSeconds: ADS_V2_CARD_SECONDS, musicUrl, musicTrimStart: adsV2MusicTrimStart(musicUrl), voiceUrl, voiceSeconds, watermark: isAdsSampleRef(order.billing_ref) ? ADS_V2_CLOSE_REAL_WATERMARK : null, narration, closeCard: hero?.cardUrl && adsV2CloseRealCardName(order.brief?.business) ? { url: hero.cardUrl, name: adsV2CloseRealCardName(order.brief?.business), cta: adsV2CloseRealCta(language), ink: hero.ink } : null, photoBoxes: crBoxes }) // KINEO-CLOSE-REAL-V3-1910 — + a cor do botão (ink, o tom da embalagem) e a caixa do produto em cada foto (photoBoxes: a legenda nunca cobre o produto)"
+    ]
+  ],
+  "lib/ads/v2BolaFix.ts": [],
+  "lib/ads/v2Brief.ts": [
+    [
+      "  const ad: AdsV2AdVoice | null = productAd || args.presenter === true ? { product: productAd, presenter: args.presenter === true, ...(args.presenter === true && args.presenterTalk === true ? { talk: true } : {}), ...(args.benefitRule === true && productAd ? { benefits: adsV2TypedBenefits(brief) } : {}) } : null // KINEO-ADS-QUALIDADE-2110 — + os benefícios digitados (só com benefitRule) · KINEO-APRESENTADOR-OLHOS-1910 — + talk (só o apresentador v2)",
+      "  const ad: AdsV2AdVoice | null = productAd || args.presenter === true ? { product: productAd, presenter: args.presenter === true, ...(args.presenter === true && args.presenterTalk === true ? { talk: true } : {}) } : null // KINEO-APRESENTADOR-OLHOS-1910 — + talk (só o apresentador v2)"
+    ]
+  ],
+  "lib/ads/v2CloseReal.ts": [
+    [
+      "  if (input.quality?.hook) { elements.push(...input.quality.hook(0, hookDur)) } else if (isHttps(input.heroUrl)) { // KINEO-ADS-QUALIDADE-2110 — com a camada: a foto inteira do produto (nunca mais o recorte pequeno no fundo marrom)",
+      "  if (isHttps(input.heroUrl)) {"
+    ],
+    [
+      "  const cc = !input.quality?.card && input.closeCard && isHttps(input.closeCard.url) ? input.closeCard : null // KINEO-ADS-QUALIDADE-2110 — com o cartão v3, nem o nome nem o botão de antes · KINEO-CLOSE-REAL-AJUSTE-1910 — o cartão do formato (fundo na cor da embalagem + produto pequeno); sem ele, o cartão do pedido",
+      "  const cc = input.closeCard && isHttps(input.closeCard.url) ? input.closeCard : null // KINEO-CLOSE-REAL-AJUSTE-1910 — o cartão do formato (fundo na cor da embalagem + produto pequeno); sem ele, o cartão do pedido"
+    ],
+    [
+      "  if (input.quality?.card) elements.push(...input.quality.card(t.cardStart, cardSeconds)); else elements.push({ type: 'image', track: T.card, time: t.cardStart, duration: cardSeconds, source: (cc ? cc.url : input.cardUrl).trim(), fit: 'cover', x: '50%', y: '50%', width: '100%', height: '100%', enter_transition: { type: 'fade', duration: F } }) // KINEO-CLOSE-REAL-AJUSTE-1910 — era: source: input.cardUrl.trim() · KINEO-ADS-QUALIDADE-2110 — com a camada: o cartão final v3",
+      "  elements.push({ type: 'image', track: T.card, time: t.cardStart, duration: cardSeconds, source: (cc ? cc.url : input.cardUrl).trim(), fit: 'cover', x: '50%', y: '50%', width: '100%', height: '100%', enter_transition: { type: 'fade', duration: F } }) // KINEO-CLOSE-REAL-AJUSTE-1910 — era: source: input.cardUrl.trim()"
+    ],
+    [
+      "  const capWindows = adsV2CloseRealPlanWindows({ timeline: t, shotPhotos, photoBoxes: input.photoBoxes ?? null, hookCutout: !input.quality?.hook && isHttps(input.heroUrl), frameW: width, frameH: height }) // KINEO-CLOSE-REAL-V3-1910 — onde o produto mora em cada plano (gancho e fotos) · KINEO-ADS-QUALIDADE-2110 — o gancho da camada é a foto inteira (a regra das fotos)",
+      "  const capWindows = adsV2CloseRealPlanWindows({ timeline: t, shotPhotos, photoBoxes: input.photoBoxes ?? null, hookCutout: isHttps(input.heroUrl), frameW: width, frameH: height }) // KINEO-CLOSE-REAL-V3-1910 — onde o produto mora em cada plano (gancho e fotos)"
+    ]
+  ],
+  "lib/ads/v2PlanCore.ts": [
+    [
+      "      const v2 = presenterV2Lib.planAdsV2PresenterV2({ entry: v2Entry, sector, setting: sceneSetting, performancePrompt: ADS_V2_PRESENTER_PERFORMANCE_PROMPT, product: `${sentenceCopy} ${extracted.brief.business ?? ''}` }) // KINEO-ADS-QUALIDADE-2110 — + o produto (a escala real na pose) · KINEO-APRESENTADOR-V2-1710 — 2 referências, boca neutra, só o produto, o lugar do cliente",
+      "      const v2 = presenterV2Lib.planAdsV2PresenterV2({ entry: v2Entry, sector, setting: sceneSetting, performancePrompt: ADS_V2_PRESENTER_PERFORMANCE_PROMPT }) // KINEO-APRESENTADOR-V2-1710 — 2 referências, boca neutra, só o produto, o lugar do cliente"
+    ]
+  ],
+  "lib/ads/v2PresenterV2.ts": [
+    [
+      "export const ADS_V2_PRESENTER_V2_ONLY_PRODUCT = 'One hand holds only the product itself: if the SECOND reference photo also shows a box or other packaging, leave the box out of the frame. Exactly one product item in the frame.' // KINEO-ADS-QUALIDADE-2110 — sem \"close to the face\"",
+      "export const ADS_V2_PRESENTER_V2_ONLY_PRODUCT = 'One hand holds only the product itself, close to the face: if the SECOND reference photo also shows a box or other packaging, leave the box out of the frame. Exactly one product item in the frame.'"
+    ],
+    [
+      "export const ADS_V2_PRESENTER_V2_FREE_HAND = 'The other arm rests relaxed at the side, out of the frame; only the hand holding the product is in the frame.' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 · KINEO-ADS-QUALIDADE-2110 — era: a mão aberta no peito (fundador 21/10: \"a pessoa encostando\" — mão no corpo não é natural)",
+      "export const ADS_V2_PRESENTER_V2_FREE_HAND = 'The other hand rests open on the chest, clearly visible and fully inside the frame, relaxed and complete with five natural fingers, never cut by the edge of the frame.' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710"
+    ],
+    [
+      "export function adsV2PresenterV2Prompt(i: { look: string; pronoun: 'She' | 'He'; sector: string | null | undefined; setting?: string | null; freeHand: boolean; product?: string | null }): string { // KINEO-ADS-QUALIDADE-2110 — + product: o tipo do produto escolhe a escala real",
+      "export function adsV2PresenterV2Prompt(i: { look: string; pronoun: 'She' | 'He'; sector: string | null | undefined; setting?: string | null; freeHand: boolean }): string {"
+    ],
+    [
+      "    `Realistic vertical 9:16 smartphone selfie photo, UGC style: the person from the FIRST reference photo, ${i.look}, holds the product from the SECOND reference photo in one hand at chest height, label facing the camera, clearly visible.`, // KINEO-ADS-QUALIDADE-2110 — era: \"near ${their} face\" (o pote encostava no rosto)",
+      "    `Realistic vertical 9:16 smartphone selfie photo, UGC style: the person from the FIRST reference photo, ${i.look}, holds the product from the SECOND reference photo in one hand near ${their} face, label facing the camera, clearly visible.`,"
+    ],
+    [
+      "export function planAdsV2PresenterV2(i: { entry: { id: string; gender: 'woman' | 'man'; look: string; pronoun: 'She' | 'He'; portrait: string | null } | null | undefined; sector: string | null | undefined; setting?: string | null; performancePrompt: string; product?: string | null }): AdsV2PresenterV2Plan | null { // KINEO-ADS-QUALIDADE-2110 — + product",
+      "export function planAdsV2PresenterV2(i: { entry: { id: string; gender: 'woman' | 'man'; look: string; pronoun: 'She' | 'He'; portrait: string | null } | null | undefined; sector: string | null | undefined; setting?: string | null; performancePrompt: string }): AdsV2PresenterV2Plan | null {"
+    ],
+    [
+      "  return { v: 1, entryId: e.id, gender: e.gender, portraitUrl, prompt: adsV2PresenterV2Prompt({ look: e.look, pronoun: e.pronoun, sector: i.sector, setting: i.setting ?? null, freeHand: adsV2PresenterV2FreeHand(i.performancePrompt), product: i.product ?? null }) } // KINEO-ADS-QUALIDADE-2110 — + o produto (a escala)",
+      "  return { v: 1, entryId: e.id, gender: e.gender, portraitUrl, prompt: adsV2PresenterV2Prompt({ look: e.look, pronoun: e.pronoun, sector: i.sector, setting: i.setting ?? null, freeHand: adsV2PresenterV2FreeHand(i.performancePrompt) }) }"
+    ],
+    [
+      "  return freeHand === true ? ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_LIVELY : ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_LIVELY // KINEO-ADS-QUALIDADE-2110 — a atuação viva para toda foto (fundador 21/10: \"não tem muita movimentação dela\"); a pose nova tem 1 mão só",
+      "  return freeHand === true ? ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT : ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL"
+    ],
+    [
+      "  return typeof rowPrompt === 'string' || rowPrompt == null ? ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_LIVELY : ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL // KINEO-ADS-QUALIDADE-2110 — toda linha do v2 sai com a atuação viva · KINEO-APRESENTADOR-OLHOS-1910 — a linha planejada ANTES desta entrega (texto da R3) também sai com os olhos abertos; qualquer outra = a das mãos paradas",
+      "  return rowPrompt === ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT || rowPrompt === ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_R3 ? ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT : ADS_V2_PRESENTER_V2_PERFORMANCE_PROMPT_STILL // KINEO-APRESENTADOR-OLHOS-1910 — a linha planejada ANTES desta entrega (texto da R3) também sai com os olhos abertos; qualquer outra = a das mãos paradas"
+    ],
+    [
+      "export const ADS_V2_PRESENTER_V2_HANDS_QUESTION = 'Image 1 is a photo of a person with a product. \"product_whole\": is the WHOLE product inside the frame? \"no\" when any part of the product is cut by or touches the edge of the image, \"yes\" when it is entirely visible with some space around it, \"unsure\" when you cannot tell. How many separate hands are visible? Count each human hand once. \"hand_count\": that number. \"hands\": one entry per hand; for each: is it holding the product? \"holding_product\": \"yes\" or \"no\". And \"whole\": \"yes\" when the entire hand is inside the frame and in view (fingers wrapped around the product still count), \"no\" when part of it is cut by the edge of the frame or hidden, \"unsure\" when you cannot tell. \"phone_ui\": is there any phone camera interface, on-screen buttons or overlaid text drawn in the image? \"yes\", \"no\" or \"unsure\" (the printed label on the product itself does not count).' + ADS_V2_PRESENTER_POSE_QUESTION + ' Answer with JSON: {\"product_whole\": \"\", \"hand_count\": 0, \"hands\": [{\"holding_product\": \"\", \"whole\": \"\"}], \"phone_ui\": \"\", ' + ADS_V2_PRESENTER_POSE_JSON + '}.' // KINEO-ADS-QUALIDADE-2110 — + a pose (encostando no rosto, altura, segurado, escala) na MESMA chamada · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — \"how many separate hands are visible; for each: is it holding the product (yes/no)\" + a interface de celular · KINEO-ADS-BOLA-2110 — + \"product_whole\" (produto cortado na borda = a opção perde)",
+      "export const ADS_V2_PRESENTER_V2_HANDS_QUESTION = 'Image 1 is a photo of a person with a product. \"product_whole\": is the WHOLE product inside the frame? \"no\" when any part of the product is cut by or touches the edge of the image, \"yes\" when it is entirely visible with some space around it, \"unsure\" when you cannot tell. How many separate hands are visible? Count each human hand once. \"hand_count\": that number. \"hands\": one entry per hand; for each: is it holding the product? \"holding_product\": \"yes\" or \"no\". And \"whole\": \"yes\" when the entire hand is inside the frame and in view (fingers wrapped around the product still count), \"no\" when part of it is cut by the edge of the frame or hidden, \"unsure\" when you cannot tell. \"phone_ui\": is there any phone camera interface, on-screen buttons or overlaid text drawn in the image? \"yes\", \"no\" or \"unsure\" (the printed label on the product itself does not count). Answer with JSON: {\"product_whole\": \"\", \"hand_count\": 0, \"hands\": [{\"holding_product\": \"\", \"whole\": \"\"}], \"phone_ui\": \"\"}.' // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — \"how many separate hands are visible; for each: is it holding the product (yes/no)\" + a interface de celular · KINEO-ADS-BOLA-2110 — + \"product_whole\" (produto cortado na borda = a opção perde)"
+    ],
+    [
+      "export interface AdsV2PresenterV2Hands { hands: { holds: AdsV2PresenterV2Tri; whole: AdsV2PresenterV2Tri }[]; count?: number | null; phoneUi?: AdsV2PresenterV2Tri; productWhole?: AdsV2PresenterV2Tri; pose?: AdsV2PresenterPose } // KINEO-ADS-QUALIDADE-2110 — + a pose · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + a contagem e a interface de celular · KINEO-ADS-BOLA-2110 — + o produto inteiro no quadro",
+      "export interface AdsV2PresenterV2Hands { hands: { holds: AdsV2PresenterV2Tri; whole: AdsV2PresenterV2Tri }[]; count?: number | null; phoneUi?: AdsV2PresenterV2Tri; productWhole?: AdsV2PresenterV2Tri } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + a contagem e a interface de celular · KINEO-ADS-BOLA-2110 — + o produto inteiro no quadro"
+    ],
+    [
+      "  return { hands: list.filter((h) => h && typeof h === 'object').map((h) => ({ holds: triV2((h as { holding_product?: unknown; holds_product?: unknown }).holding_product ?? (h as { holds_product?: unknown }).holds_product), whole: triV2((h as { whole?: unknown }).whole) })), count: typeof count === 'number' && Number.isFinite(count) ? count : null, phoneUi: triV2((o as { phone_ui?: unknown }).phone_ui), productWhole: triV2((o as { product_whole?: unknown }).product_whole), pose: adsV2ParsePresenterPose(o) } // KINEO-ADS-QUALIDADE-2110 — + a pose · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — holding_product (a pergunta nova) + hand_count + phone_ui · KINEO-ADS-BOLA-2110 — + product_whole",
+      "  return { hands: list.filter((h) => h && typeof h === 'object').map((h) => ({ holds: triV2((h as { holding_product?: unknown; holds_product?: unknown }).holding_product ?? (h as { holds_product?: unknown }).holds_product), whole: triV2((h as { whole?: unknown }).whole) })), count: typeof count === 'number' && Number.isFinite(count) ? count : null, phoneUi: triV2((o as { phone_ui?: unknown }).phone_ui), productWhole: triV2((o as { product_whole?: unknown }).product_whole) } // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — holding_product (a pergunta nova) + hand_count + phone_ui · KINEO-ADS-BOLA-2110 — + product_whole"
+    ],
+    [
+      "export function adsV2PresenterV2PickWhole(i: { both: readonly (boolean | null)[]; freeHands: readonly (boolean | null)[]; phoneUi: readonly (AdsV2PresenterV2Tri | null)[]; productWhole: readonly (AdsV2PresenterV2Tri | null)[]; handCounts: readonly (number | null)[]; rects?: readonly (AdsV2PresenterV2Rect | null)[]; poses?: readonly (AdsV2PresenterPose | null)[] }): { index: number; why: AdsV2PresenterV2PickWhy | AdsV2PresenterV2HandWhy } { // KINEO-ADS-BOLA-2110 · KINEO-ADS-QUALIDADE-2110 — + poses",
+      "export function adsV2PresenterV2PickWhole(i: { both: readonly (boolean | null)[]; freeHands: readonly (boolean | null)[]; phoneUi: readonly (AdsV2PresenterV2Tri | null)[]; productWhole: readonly (AdsV2PresenterV2Tri | null)[]; handCounts: readonly (number | null)[]; rects?: readonly (AdsV2PresenterV2Rect | null)[] }): { index: number; why: AdsV2PresenterV2PickWhy | AdsV2PresenterV2HandWhy } { // KINEO-ADS-BOLA-2110"
+    ],
+    [
+      "  const poseS = (k: number): number => adsV2PresenterPoseScore(at(i.poses, k), at(i.handCounts, k)) // KINEO-ADS-QUALIDADE-2110",
+      "  const handScore = (k: number): number => (at(i.freeHands, k) === true ? 0 : at(i.handCounts, k) === 2 ? 1 : 2) // KINEO-ADS-BOLA-2110"
+    ],
+    [
+      "  const best = live.slice().sort((a, b) => poseB(a) - poseB(b) || cut(a) - cut(b) || poseS(a) - poseS(b) || handScore(a) - handScore(b) || a - b)[0] // KINEO-ADS-BOLA-2110 · KINEO-ADS-QUALIDADE-2110 — a pose natural decide primeiro, depois o produto inteiro",
+      "  const best = live.slice().sort((a, b) => cut(a) - cut(b) || handScore(a) - handScore(b) || a - b)[0] // KINEO-ADS-BOLA-2110"
+    ]
+  ],
+  "scripts/test-ads-bola-2110.mjs": [
+    [
+      "  const load = createOfflineLoader({ mocks, source: (r, text) => (over[r] !== undefined ? over[r] : onBase ? (base(r) ?? text) : semAdsQualidade2110(text, r)) }) // KINEO-ADS-QUALIDADE-2110 — reancorado: sem a camada da qualidade",
+      "  const load = createOfflineLoader({ mocks, source: (r, text) => (over[r] !== undefined ? over[r] : onBase ? (base(r) ?? text) : text) })"
+    ],
+    [
+      "  load.text = (p) => (over[p] !== undefined ? lf(over[p]) : onBase ? (base(p) ?? rd(p)) : lf(semAdsQualidade2110(rd(p), p))) // KINEO-ADS-QUALIDADE-2110 — reancorado: sem a camada da qualidade",
+      "  load.text = (p) => (over[p] !== undefined ? lf(over[p]) : onBase ? (base(p) ?? rd(p)) : rd(p))"
+    ],
+    [
+      "await check('X5 toda linha diferente da base nos arquivos tocados carrega a marca (o desfaz só tira linha marcada)', () => ADS_BOLA_2110_ARQUIVOS.every((p) => { const b = new Set(base(p).split('\\n')); return lf(semAdsQualidade2110(rd(p), p)).split('\\n').every((l) => b.has(l) || l.includes(MARCA_ADS_BOLA_2110)) })) // KINEO-ADS-QUALIDADE-2110 — reancorado: as linhas da qualidade levam a marca dela",
+      "await check('X5 toda linha diferente da base nos arquivos tocados carrega a marca (o desfaz só tira linha marcada)', () => ADS_BOLA_2110_ARQUIVOS.every((p) => { const b = new Set(base(p).split('\\n')); return rd(p).split('\\n').every((l) => b.has(l) || l.includes(MARCA_ADS_BOLA_2110)) }))"
+    ]
+  ],
+  "scripts/test-ads-nota9-2110.mjs": [
+    [
+      "  const semMarca = ADS_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !lf(semAdsQualidade2110(rd(f), f)).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-ADS-QUALIDADE-2110 — reancorado: as linhas da qualidade (entrega de depois) levam a marca dela",
+      "  const semMarca = ADS_NOTA9_2110_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !rd(f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) })"
+    ]
+  ],
+  "scripts/test-close-real-1910.mjs": [],
+  "scripts/test-kit-bf-1910.mjs": [
+    [
+      "const carregar = (over = {}, velho = false, mocks = {}) => createOfflineLoader({ mocks: { 'node:zlib': zlib, ...JSONS, ...mocks }, source: (rel, text) => (Object.hasOwn(over, rel) ? over[rel] : velho ? semKitBf1910(text, rel) : semAdsBola2110(text, rel)) }) // KINEO-ADS-QUALIDADE-2110 — reancorado: o texto de hoje sem a bola e a qualidade (21/10, entregas de depois, desfaz próprio)",
+      "const carregar = (over = {}, velho = false, mocks = {}) => createOfflineLoader({ mocks: { 'node:zlib': zlib, ...JSONS, ...mocks }, source: (rel, text) => (Object.hasOwn(over, rel) ? over[rel] : velho ? semKitBf1910(text, rel) : text) })"
+    ]
+  ],
+  "scripts/test-mcp-studio-2010.mjs": [],
+  "scripts/test-mcp-studio-ajuste-2010.mjs": [],
+  "scripts/test-support/desfaz-ads-bola-2110.mjs": [],
+  "scripts/test-ugc-ajustes-2010.mjs": [
+    [
+      "const V2 = loadPure(semAdsBola2110(rd(F.v2), F.v2)) // KINEO-ADS-QUALIDADE-2110 — reancorado: a faixa e a régua desta entrega são provadas sem o anúncio da bola e a qualidade (21/10, entregas de depois, desfaz próprio)",
+      "const V2 = loadPure(rd(F.v2))"
+    ],
+    [
+      "const BR = (over = {}) => createOfflineLoader({ mocks: { '@/lib/openai': { openai: {} }, ...JSONS }, source: (rel, text) => (over[rel] !== undefined ? over[rel] : semAdsBola2110(text, rel)) })(F.brief) // KINEO-ADS-QUALIDADE-2110 — reancorado: a faixa e a régua desta entrega são provadas sem o anúncio da bola e a qualidade (21/10, entregas de depois, desfaz próprio)",
+      "const BR = (over = {}) => createOfflineLoader({ mocks: { '@/lib/openai': { openai: {} }, ...JSONS }, source: (rel, text) => (over[rel] !== undefined ? over[rel] : text) })(F.brief)"
+    ],
+    [
+      "  const linhas = UGC_AJUSTES_2010_ARQUIVOS.every((f) => git('diff', '-U0', '--no-color', B, '--', f).replace(/\\r/g, '').split('\\n').filter((l) => l.startsWith('+') && !l.startsWith('+++') && !l.includes('KINEO-ADS-NOTA9-2110') && !l.includes('KINEO-ADS-BOLA-2110') && !l.includes('KINEO-ADS-QUALIDADE-2110')).every((l) => l.includes(MARCA))) // reancorado KINEO-ADS-NOTA9-2110 — as linhas da tela foco (21/10, camada mais nova) não contam como desta entrega // KINEO-ADS-QUALIDADE-2110 — reancorado: as linhas da bola e da qualidade levam a marca delas",
+      "  const linhas = UGC_AJUSTES_2010_ARQUIVOS.every((f) => git('diff', '-U0', '--no-color', B, '--', f).replace(/\\r/g, '').split('\\n').filter((l) => l.startsWith('+') && !l.startsWith('+++') && !l.includes('KINEO-ADS-NOTA9-2110')).every((l) => l.includes(MARCA))) // reancorado KINEO-ADS-NOTA9-2110 — as linhas da tela foco (21/10, camada mais nova) não contam como desta entrega"
+    ]
+  ],
+  "scripts/test-verbatim-intocavel-2010.mjs": [
+    [
+      "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-' + 'BEBE-QUE-FALA-2010', '--grep=KINEO-' + 'MCP-STUDIO-AJUSTE-2010', `--grep=${MARCA_HOME_REMODELA_2010}`, '--grep=KINEO-' + 'HOME-CARDS-CLAROS-2010', '--grep=KINEO-' + 'DESENHO-NOTA9-2110', '--grep=KINEO-' + 'DESENHO-SOM-2110', '--grep=KINEO-' + 'META95-PERSONAGEM-AJUSTE-2010', '--grep=KINEO-AVATAR-ESTORNO-2010', '--grep=KINEO-LEGENDA-BENGALI-2010', '--grep=KINEO-' + 'ADS-BOLA-2110', '--grep=KINEO-' + 'ADS-QUALIDADE-2110', 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-AVATAR-ESTORNO-2010 — reancorado na integração 21/10: os commits do estorno/legenda bengali (Codex, camada mais nova; o desfaz da cadeia já os tira do atual) também não são alheios · KINEO-ADS-QUALIDADE-2110 — reancorado: os commits da bola e da qualidade (21/10) também não são alheios",
+      "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-' + 'BEBE-QUE-FALA-2010', '--grep=KINEO-' + 'MCP-STUDIO-AJUSTE-2010', `--grep=${MARCA_HOME_REMODELA_2010}`, '--grep=KINEO-' + 'HOME-CARDS-CLAROS-2010', '--grep=KINEO-' + 'DESENHO-NOTA9-2110', '--grep=KINEO-' + 'DESENHO-SOM-2110', '--grep=KINEO-' + 'META95-PERSONAGEM-AJUSTE-2010', '--grep=KINEO-AVATAR-ESTORNO-2010', '--grep=KINEO-LEGENDA-BENGALI-2010', 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-AVATAR-ESTORNO-2010 — reancorado na integração 21/10: os commits do estorno/legenda bengali (Codex, camada mais nova; o desfaz da cadeia já os tira do atual) também não são alheios"
+    ]
+  ]
+}

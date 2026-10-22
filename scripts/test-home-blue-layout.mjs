@@ -18,7 +18,8 @@ for(const signedIn of [false,true])for(const source of [null,'chatgpt','taaft'])
  // reancorado KINEO-HOME-LIMPA-1410 — o fundador tirou "Start with the full toolkit" + os 3 cards (14/10): AUSENTES no render.
  // As portas reais seguem: o menu (acima) e a galeria de More tools, que leva a /images.
  check(!html.includes('class="home-start"')&&!html.includes('class="home-create')&&!html.includes('Start with the full toolkit'),'full toolkit block removed (KINEO-HOME-LIMPA-1410)')
- check(html.includes('href="/images"'),'home keeps real destination /images')
+ // KINEO-HOME-REMODELA-2010 — reancorado 20/10 (fundador: "more tools a gente vai cancelar"): o menu não leva mais a /images; a porta real é a galeria "Images made by Kineo" (cada foto → /images, provado em scripts/test-home-limpa-1410.mjs e scripts/test-home-remodela-2010.mjs) e o rodapé.
+ check(html.includes('<section class="home-more-tools" aria-label="Images made by Kineo">'),'home keeps real destination /images (gallery section)') // KINEO-HOME-REMODELA-2010
  check(html.indexOf('class="home-more-tools"')>0&&html.indexOf('class="home-more-tools"')<html.indexOf('class="home-proof"'),'More tools precedes grouped proof')
  check(html.includes('class="kineo-bolt mk"') && html.includes('>ϟ</span>'),'brand mark uses the approved shared lightning')
 }

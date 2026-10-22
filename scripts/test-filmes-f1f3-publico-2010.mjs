@@ -19,6 +19,7 @@ import { semFilmesF1F3Publico2010, desfazFilmesF1F3Publico2010, diffSoFilmesF1F3
 import { semHomeCardsBotoes2010 } from './test-support/desfaz-home-cards-botoes-2010.mjs'
 import { semApresentadorOlhos1910 } from './test-support/desfaz-apresentador-olhos-1910.mjs'
 import { semHome3Cards1910 } from './test-support/desfaz-home-3-cards-1910.mjs'
+import { semMeta95Escrita2010 } from './test-support/desfaz-meta95-escrita-2010.mjs' // KINEO-META95-ESCRITA-2010 — reancorado: a legenda na escrita do roteiro (a camada mais nova) sai em memória antes do byte a byte
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ) // o carregador offline resolve '@/' a partir do cwd
@@ -129,7 +130,7 @@ check('D1 cada arquivo tocado, desfeito (scripts/test-support/desfaz-filmes-f1f3
 check('D2 toda linha nova traz a marca; o diff da base até o último commit da entrega só toca a lista, os novos e o doc; lib/compose, hookFirstFrame, lyriaMusic, as rotas do compose/unlock e a cobrança intocados', () => {
   const tocados = git('diff', '--name-only', BASE, TOPO).trim().split('\n').concat(git('diff', '--name-only', 'HEAD').trim().split('\n').filter((f) => f && !diffSoFilmesF1F3Publico2010(git('diff', '-U0', '--no-color', 'HEAD', '--', f), f))).filter(Boolean)
   const permitidos = new Set([...FILMES_F1F3_PUBLICO_2010_ARQUIVOS, ...FILMES_F1F3_PUBLICO_2010_NOVOS, 'docs/FILMES-F1-F4-1910.md'])
-  const linhas = FILMES_F1F3_PUBLICO_2010_ARQUIVOS.every((f) => { const b = new Set(base(f).split('\n')); return rd(f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) })
+  const linhas = FILMES_F1F3_PUBLICO_2010_ARQUIVOS.every((f) => { const b = new Set(base(f).split('\n')); return semMeta95Escrita2010(rd(f), f).split('\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-META95-ESCRITA-2010 — reancorado: as linhas da legenda na escrita do roteiro (camada mais nova) saem em memória
   return tocados.length > 0 && tocados.every((f) => permitidos.has(f)) && linhas && !/KINEO-FILMES-F1-F4|KINEO-FILMES-F1F3-AJUSTE|KINEO-FILMES-F1-VIRGULA|KINEO-HOME/.test(MARCA) &&
     ['lib/compose.ts', 'lib/hookFirstFrame.ts', 'lib/lyriaMusic.ts', ROTA, UNLOCK, 'lib/engineCost.ts'].every((f) => !tocados.includes(f))
 })
@@ -138,7 +139,7 @@ check('D3 encadeamento: semHomeCardsBotoes2010 (e, por ela, semApresentadorOlhos
     const raw = readFileSync(join(RAIZ, f), 'utf8'), semEste = semFilmesF1F3Publico2010(raw, f)
     return semHomeCardsBotoes2010(raw, f) === semHomeCardsBotoes2010(semEste, f) && semApresentadorOlhos1910(raw, f) === semApresentadorOlhos1910(semEste, f) && semHome3Cards1910(raw, f) === semHome3Cards1910(semEste, f)
   }) && /export function semHomeCardsBotoes2010\(texto, p\) \{\n  texto = semFilmesF1F3Publico2010\(texto, p\)/.test(rd('scripts/test-support/desfaz-home-cards-botoes-2010.mjs')) &&
-    semFilmesF1F3Publico2010(rd(ROTA), ROTA) === rd(ROTA) && semFilmesF1F3Publico2010(rd(F15), 'outro/arquivo.ts') === rd(F15) && desfazFilmesF1F3Publico2010(F15, null) === null &&
+    semFilmesF1F3Publico2010(rd(ROTA), ROTA) === semMeta95Escrita2010(rd(ROTA), ROTA) && semFilmesF1F3Publico2010(rd(F15), 'outro/arquivo.ts') === rd(F15) && desfazFilmesF1F3Publico2010(F15, null) === null && // KINEO-META95-ESCRITA-2010 — reancorado: a rota ganhou a legenda na escrita do roteiro (camada mais nova, que a cadeia tira); esta camada segue sem tocá-la
     Object.values(ACRESCIMOS_FILMES_F1F3_PUBLICO_2010).every((n) => Number.isInteger(n) && n >= 0)
 })
 check('D4 todo commit da entrega traz a marca e a [TRAVA 8.2 — vai do fundador 20/10 "nota 10"] no assunto', () => {

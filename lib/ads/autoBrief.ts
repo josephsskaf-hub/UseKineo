@@ -15,6 +15,7 @@ import type { AdsBrief } from './types'
 import { ADS_MODELS, adsModelMissingInputs, type AdsModel, type AdsModelId } from './models'
 import { inventedNumbers } from './scriptPrompt'
 import { ADS_BRIEF_LIMITS } from './orderContract'
+import { adsV2CleanBusiness, adsV2ComposeBusiness } from './v2BolaFix' // KINEO-ADS-BOLA-2110 — o nome do negócio limpo e composto de {name, sells}
 
 export const ADS_AUTO_TEXT_MAX_CHARS = 1500
 export const ADS_AUTO_TEXT_MIN_CHARS = 12
@@ -49,11 +50,11 @@ export function buildAutoBriefMessages(text: string, languageName: string): { sy
     'If a field is not in the text, return an empty string for it. An empty field is always better than a guessed one.',
     'The contact must be copied character by character from the text (phone, WhatsApp number, address, website or @handle). If there is none, return "".',
     `Write business, offer, audience and extra values in ${languageName}, as short phrases (not sentences), keeping every number and name exactly as written.`,
-    'business is written as "<business name> — <what it sells>" (name, a space, an em dash, a space, then what it sells). If the text has no name, use only what it sells.',
+    'name: the business or brand name exactly as written in the text; "" when the text has no name (never a placeholder, never a marketplace such as Amazon or Mercado Livre). sells: what it sells or advertises, a short phrase (e.g. "soccer ball"). Never put a dash, colon or other punctuation at the start or end of name or sells.', // KINEO-ADS-BOLA-2110 — era "business = <nome> — <o que vende>": sem nome saía "— bola de futebol"
     `cta: one of ${CTAS.join(', ')} — whatsapp if the text mentions WhatsApp; call for a phone; visit for an address; buy for an online store link; book for appointments or reservations; signup for events, courses or classes.`,
     `tone: one of ${TONES.join(', ')}.`,
     `model_hint: the ad format that best fits the text, one of ${MODEL_IDS.join(', ')}.`,
-    'Answer with JSON only: {"business":"","offer":"","cta":"","contact":"","audience":"","tone":"","extra":{' + ADS_AUTO_EXTRA_KEYS.map((k) => `"${k}":""`).join(',') + '},"model_hint":""}',
+    'Answer with JSON only: {"name":"","sells":"","offer":"","cta":"","contact":"","audience":"","tone":"","extra":{' + ADS_AUTO_EXTRA_KEYS.map((k) => `"${k}":""`).join(',') + '},"model_hint":""}', // KINEO-ADS-BOLA-2110 — name + sells no lugar de business (o código compõe)
   ].join('\n')
   const user = `Business text (the only facts you may use):\n"""\n${text}\n"""`
   return { system, user }
@@ -95,7 +96,8 @@ export function parseAutoBrief(raw: string, text: string, language: string): Aut
     if (numbersNotInText(value, text).length > 0) { dropped.push(name); return '' }
     return value
   }
-  const business = keep('business', clip(p.business, ADS_BRIEF_LIMITS.business))
+  const composed = typeof p.name === 'string' || typeof p.sells === 'string' ? adsV2ComposeBusiness(clip(p.name, ADS_BRIEF_LIMITS.business), clip(p.sells, ADS_BRIEF_LIMITS.business)) : adsV2CleanBusiness(clip(p.business, ADS_BRIEF_LIMITS.business)) // KINEO-ADS-BOLA-2110 — "<nome> — <o que vende>" só com os DOIS; resposta no formato antigo = limpa dos dois lados
+  const business = keep('business', composed.slice(0, ADS_BRIEF_LIMITS.business)) // KINEO-ADS-BOLA-2110 — era: keep('business', clip(p.business, …))
   // KINEO-ADS-TESTE1-2026-09-26 — "sapatos, flats e roupas" virou Offer. Oferta só com sinal de oferta: número, %, grátis,
   // desconto, promoção ou prazo. Sem isso o campo fica vazio (e o roteiro não inventa urgência em cima dele).
   const offerRaw = keep('offer', clip(p.offer, ADS_BRIEF_LIMITS.offer))

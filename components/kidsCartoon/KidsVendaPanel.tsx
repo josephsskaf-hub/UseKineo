@@ -26,29 +26,33 @@ const UI = {
 const LANG_LABEL: Record<KidsCartoonLanguage, string> = { en: 'English', pt: 'Português', es: 'Español' }
 
 export const KIDS_VENDA_PANEL_CSS = `
-.kvp{max-width:980px;margin:0 auto;padding:22px 20px 0;font-family:var(--font-sans),Inter,system-ui,sans-serif;color:var(--txt,#0E1116)}
-.kvp-sec{border:1px solid #E4E4E0;border-radius:18px;padding:18px;margin:0 0 14px;background:#fff}
-html[data-theme=dark] .kvp-sec{background:#10141B;border-color:#1F2530;color:#F2F4F7}
-.kvp-sec h2{font-size:14px;letter-spacing:.06em;text-transform:uppercase;opacity:.7;margin:0 0 12px;font-weight:800}
-.kvp-order{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-size:14px;margin:0 0 10px}
+/* KINEO-KIDS-VENDA-LIGA-2110 — mesmas cores, cantos e larguras do KINEO-DESENHO-NOTA9-2110; sem recuperar a tela antiga. */
+.kvp{--card:#fff;--line:#E4E4E0;--txt:#0E1116;--muted:#5A5F67;--blue:#0A5CFF;--soft:#E8EFFF;max-width:980px;margin:0 auto;padding:28px 20px 0;font-family:var(--font-sans),Inter,system-ui,sans-serif;color:var(--txt)}
+html[data-theme=dark] .kvp{--card:#10141B;--line:#1F2530;--txt:#F2F4F7;--muted:#9AA3B2;--blue:#4D8DFF;--soft:#12203A}
+.kvp *,.kvp *::before,.kvp *::after{box-sizing:border-box}
+.kvp-sec{border:1px solid var(--line);border-radius:18px;padding:18px;margin:0 0 14px;background:var(--card);scroll-margin-top:24px}
+.kvp-sec h2{font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 12px;font-weight:800}
+.kvp-order{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-size:14px;margin:0 0 10px;overflow-wrap:anywhere}
 .kvp-order b{font-weight:800}
-.kvp-pill{font-size:11px;font-weight:800;letter-spacing:.08em;padding:4px 9px;border-radius:999px;background:#E8EFFF;color:#0A5CFF}
+.kvp-pill{font-size:11px;font-weight:800;letter-spacing:.08em;padding:4px 9px;border-radius:999px;background:var(--soft);color:var(--blue)}
 .kvp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin:10px 0 0}
-.kvp-ep{border:1px solid #E4E4E0;border-radius:12px;padding:8px;font-size:12px}
-html[data-theme=dark] .kvp-ep{border-color:#1F2530}
+.kvp-ep{border:1px solid var(--line);border-radius:12px;padding:8px;font-size:12px;min-width:0;overflow-wrap:anywhere}
 .kvp-ep video{width:100%;aspect-ratio:9/16;border-radius:8px;background:#000}
 .kvp-ep b{display:block;margin:6px 0 4px;font-size:13px}
-.kvp-btn{border:1px solid #E4E4E0;background:transparent;color:inherit;border-radius:999px;padding:7px 12px;font:inherit;font-size:13px;cursor:pointer;text-decoration:none;display:inline-block}
-.kvp-go{border:0;border-radius:999px;background:#7B6CFF;color:#fff!important;font:inherit;font-weight:750;font-size:14px;padding:11px 18px;cursor:pointer;text-decoration:none;display:inline-block}
-.kvp-go[disabled]{opacity:.55;cursor:default}
+.kvp-btn{border:1px solid var(--line);background:transparent;color:inherit;border-radius:999px;min-height:44px;padding:10px 16px;font:inherit;font-size:13px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.kvp-go{border:0;border-radius:999px;background:var(--blue);color:#fff!important;font:inherit;font-weight:750;font-size:14px;min-height:44px;padding:11px 18px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+.kvp-go[disabled],.kvp-btn[disabled]{opacity:.55;cursor:default}
 .kvp-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0 0}
+.kvp-row>label{min-width:0}
 .kvp-chars{display:flex;flex-wrap:wrap;gap:8px}
-.kvp-char{border:2px solid #E4E4E0;background:transparent;color:inherit;border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
-.kvp-char[aria-pressed=true]{border-color:#7B6CFF;background:rgba(123,108,255,.12)}
-.kvp input{width:100%;border-radius:12px;border:1px solid #E4E4E0;padding:10px 12px;font:inherit;background:transparent;color:inherit}
-.kvp-note{font-size:13px;opacity:.75;margin:8px 0 0;line-height:1.5}
-.kvp-ok{color:#1B7F3B;font-size:14px;margin:8px 0 0}
-.kvp-err{color:#C62828;font-size:14px;margin:8px 0 0}
+.kvp-char{border:2px solid var(--line);background:transparent;color:inherit;border-radius:999px;min-height:44px;padding:8px 14px;font:inherit;font-size:13px;cursor:pointer}
+.kvp-char[aria-pressed=true]{border-color:var(--blue);background:var(--soft);color:var(--blue)}
+.kvp input,.kvp select{width:100%;min-height:44px;border-radius:12px;border:1px solid var(--line);padding:10px 12px;font:inherit;background:var(--card);color:inherit}
+.kvp :is(a,button,input,select):focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+.kvp-note{font-size:13px;color:var(--muted);margin:8px 0 0;line-height:1.5}
+.kvp-ok{color:#1B7F3B;font-size:14px;margin:8px 0 12px}
+.kvp-err{color:#C62828;font-size:14px;margin:8px 0 12px}
+@media(max-width:760px){.kvp{padding:18px 16px 0}.kvp-row>label{flex:1 1 100%!important}.kvp-row>.kvp-go,.kvp-row>.kvp-btn{width:100%}}
 `
 
 async function downloadBlob(url: string, filename: string): Promise<void> {
@@ -162,7 +166,7 @@ export default function KidsVendaPanel() {
         </ul>
         <div className="kvp-row">
           {!activeAutopilot ? <a className="kvp-go" data-kineo="kids-cta-autopilot" href={kidsCheckoutHref('autopilot', series)} onClick={() => { void trackEvent('kids_checkout_click', { kind: 'autopilot', character, language }) }}>{card.ctaAutopilot}</a> : null}
-          <a className="kvp-go" data-kineo="kids-cta-pack" href={kidsCheckoutHref('pack', series)} style={{ background: '#0A5CFF' }} onClick={() => { void trackEvent('kids_checkout_click', { kind: 'pack', character, language }) }}>{card.ctaPack}</a>
+          <a className="kvp-go" data-kineo="kids-cta-pack" href={kidsCheckoutHref('pack', series)} onClick={() => { void trackEvent('kids_checkout_click', { kind: 'pack', character, language }) }}>{card.ctaPack}</a>
           {st.sample.eligible ? <button type="button" className="kvp-btn" data-kineo="kids-cta-sample" onClick={() => { void requestSample() }} disabled={busy}>{card.ctaSample}</button> : (!hasPaid && st.sample.reason === 'already_used' ? <span className="kvp-note">{t.sampleUsed}</span> : null)}
         </div>
         <p className="kvp-note">{card.honest}</p>

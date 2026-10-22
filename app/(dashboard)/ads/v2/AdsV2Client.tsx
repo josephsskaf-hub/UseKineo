@@ -110,6 +110,7 @@ import { adsV2AiPersonLabel } from '@/lib/ads/v2PresenterHolds' // KINEO-ADS-REF
 import { intervaloDePoll, POLL_RAPIDO_ADS_MS } from '@/lib/pollingRapido' // KINEO-FILME-RAPIDO-1710 · polling — o anúncio em andamento a cada 3 s nos 2 primeiros minutos (linha própria)
 import { KitBfBuyCard } from '@/components/ads/KitBfBuyCard' // KINEO-KIT-BF-VENDA-2010 — o cartão "Kit Black Friday — US$ 49" (o servidor decide: venda aberta; Business = incluído)
 import AdsV2AfterDelivery from './AdsV2AfterDelivery' // KINEO-ADS-POS-ENTREGA-1510 — editar, aprovação do cliente e 3 formatos depois da entrega
+import { adsNota9Copy, adsNota9Focus } from '@/lib/ads/v2Nota9' // KINEO-ADS-NOTA9-2110 — o cabeçalho da tela foco (cards da home): título do produto, sem abas nem atalhos no topo
 
 // ─── tipos ────────────────────────────────────────────────────────────────────────────────────
 
@@ -536,6 +537,8 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
   const shell = mode === 'full' ? ADS_V2_SIMPLE_COPY.en.shell : pickInterfaceCopy(ADS_V2_SIMPLE_COPY, lang).shell
   const nav = pickInterfaceCopy(ADS_V2_SIMPLE_COPY, lang).shell
   useProductStage('ads') // KINEO-ABAS-PALCO-2026-10-01 — a cor do Ads pinta a tela e a barra lateral
+  const n9Focus = mode === 'simple' || mode === null ? adsNota9Focus(entry) : null // KINEO-ADS-NOTA9-2110 — a tela foco: só o modo simples aberto por um card da home (null = o instante antes de ler a URL: o título já nasce certo)
+  const n9Head = n9Focus ? ((c) => (n9Focus === 'ugc' ? { title: c.titleUgc, sub: c.subUgc } : { title: c.titleProduct, sub: c.subProduct }))(adsNota9Copy(lang)) : null // KINEO-ADS-NOTA9-2110
 
   // ?mode=full abre o construtor completo; qualquer outra coisa, o simples.
   useEffect(() => {
@@ -637,10 +640,10 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
       <style dangerouslySetInnerHTML={{ __html: ADS_PALCO_VOLTAR_CSS }} />{/* KINEO-ADS-PALCO-VOLTAR-1410 — por último: a coluna do quadro é minmax(0,1fr) */}
       <header className="adsw-header adv2-head">
         <div>
-          <h1>{shell.title}</h1>
-          <p className="sub">{mode === 'full' ? shell.sub : shell.subSimple}</p>
+          <h1>{n9Head ? n9Head.title : shell.title}</h1>{/* KINEO-ADS-NOTA9-2110 — era: <h1>{shell.title}</h1> */}
+          <p className="sub">{n9Head ? n9Head.sub : mode === 'full' ? shell.sub : shell.subSimple}</p>{/* KINEO-ADS-NOTA9-2110 */}
           {/* KINEO-ADS-FLUXO-2026-10-13 — as abas do topo: Um anúncio (simples) · Lote (?mode=batch) · Produção (?mode=full). */}
-          {mode ? <AdsFlowTabs active={adsV2FlowTabFor(mode)} copy={adsV2FlowCopy(mode === 'full' ? 'en' : lang)} /> : null}
+          {mode && !n9Head ? <AdsFlowTabs active={adsV2FlowTabFor(mode)} copy={adsV2FlowCopy(mode === 'full' ? 'en' : lang)} /> : null}{/* KINEO-ADS-NOTA9-2110 — na tela foco as abas moram no "Avançado" */}
           {/* KINEO-ADS-V2-VIRADA-2026-09-29 — o assistente antigo continua existindo como opção clássica (discreto, <a> sem prefetch). */}
           {/* KINEO-ADS-AMOSTRA-2026-10-09 — o clássico é pago: a amostra não mostra o atalho. */}
           {!sample && classicCredits !== null && mode === 'full' ? (
@@ -648,7 +651,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
               <a href="/ads/new?classic=1">Prefer a narrated 35-second ad? Use the classic maker ({classicCredits} credits)</a>
             </p>
           ) : null}
-          {mode ? (
+          {mode && !n9Head ? (/* KINEO-ADS-NOTA9-2110 — "I prefer to fill in everything myself" também vai para o "Avançado" na tela foco */
             <p className="adv2-classic">
               <a href={mode === 'simple' ? '/ads/v2?mode=full' : '/ads/v2'}>{mode === 'simple' ? nav.toFull : nav.toSimple}</a>
             </p>
@@ -666,7 +669,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
               <a href="/ads/team"><UiLabel>Team — invite teammates to make ads with your credits</UiLabel></a>
             </p>
           ) : null}
-          {producao ? (
+          {producao && !n9Head ? (/* KINEO-ADS-NOTA9-2110 — o atalho da Produção vai para o "Avançado" na tela foco */
             <p className="adv2-classic">
               <a href="/ads/producao"><UiLabel>New: Production — one character, shot by shot, with your logo</UiLabel></a>
             </p>
@@ -698,7 +701,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
       <div className="kps-panel">
       {/* KINEO-ADS-MARCAS-1510 — "Marca: X ▾" no topo do formulário (a caixa do motor do "Make a film"): escolher a marca preenche o kit do anúncio novo. */}
       {marcasOn && marcas.state.status === 'ready' ? <AdsBrandSwitcher lang={lang} state={marcas.state} selected={marcas.selected} onSelect={marcas.select} onNew={() => setBrandDlg({ brand: null })} onEdit={(b) => setBrandDlg({ brand: b })} /> : null}{/* KINEO-ADS-MARCAS-1510 */}
-      {(mode === 'simple' || mode === 'batch') && workspace?.role !== 'member' ? <KitBfBuyCard lang={lang} surface="ads" /> : null}{/* KINEO-KIT-BF-VENDA-2010 — no topo do quadro do Studio Ads (onde o kit vive: oferta + 1 · 3 · 5 variações); membro de equipe usa o saldo do dono e não compra */}
+      {(mode === 'simple' || mode === 'batch') && workspace?.role !== 'member' ? <KitBfBuyCard lang={lang} surface="ads" slim={!!n9Head} /* KINEO-ADS-NOTA9-2110 — na tela foco o kit vira uma faixa de uma linha (o link de compra fica) */ /> : null}{/* KINEO-KIT-BF-VENDA-2010 — no topo do quadro do Studio Ads (onde o kit vive: oferta + 1 · 3 · 5 variações); membro de equipe usa o saldo do dono e não compra */}
       {/* KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a amostra já foi usada: a oferta do Business no lugar da sessão (e do erro genérico). */}
       {sampleGone && sample && business && mode ? (
         <AdsAfterSampleOffer lang={mode === 'full' ? 'en' : lang} business={business} />
@@ -721,7 +724,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
         <AdsV2BatchSession key={session} balance={balance} onBalance={refreshBalance} sample={sample} business={business} brandId={marcasOn ? marcas.selectedId : null} />/* KINEO-ADS-MARCAS-1510 — o lote inteiro sai na marca escolhida */
       ) : mode === 'simple' ? (
         <AdsV2SimpleSession
-          key={session}
+          key={`${session}:${entry ?? ''}`} /* KINEO-ADS-QUALIDADE-2110 — outra entrada da home (?entry=ugc|product) = um pedido NOVO (remonta); era: key={session} */
           resume={session === 0}
           lang={lang}
           balance={balance}
@@ -737,6 +740,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
           onSampleGone={() => setSampleGone(true)}
           entry={entry} /* KINEO-HOME-3-CARDS-1910 */
           sampleProbe={sampleProbe} /* KINEO-UGC-AJUSTES-2010 */
+          producao={producao} /* KINEO-ADS-NOTA9-2110 — o link da Produção dentro do "Avançado" da tela foco */
           rowSlot={rowSlot}
           marcas={{ mode: marcas.state.status === 'ready' ? (marcasOn ? 'ready' : 'legacy') : marcas.state.status, list: marcas.brands, selected: marcasOn ? marcas.selected : null, onPick: marcas.select, onSave: marcas.save }} // KINEO-ADS-MARCAS-1510 — 'legacy' = o kit único de sempre
         />

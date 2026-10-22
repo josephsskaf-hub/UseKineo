@@ -15,6 +15,8 @@
 //             Falha terminal → failAdsV2Order (UPDATE condicional →failed; só o vencedor estorna).
 //   Creatomate ambíguo (carimbo sem id) NUNCA é reenviado: passado o prazo, falha com estorno.
 import { randomUUID } from 'node:crypto'
+import { cenaApplyCaptions, cenaUgcFailureAction, cenaUgcAttemptDeadline, cenaUgcAttemptExpired } from '@/lib/ads/v2CenaQuality' // KINEO-ADS-CENA-2110
+import { adsV2BusinessName } from '@/lib/ads/v2BolaFix' // KINEO-ADS-BOLA-2110 — o título da Biblioteca sem travessão solto
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ReasonClass } from '@/lib/cinematic/sceneDisposition'
 import {
@@ -444,6 +446,10 @@ function inHandLib() { // KINEO-ADS-PRODUTO-NA-MAO-1610
 } // KINEO-ADS-PRODUTO-NA-MAO-1610
 // ── KINEO-APRESENTADOR-V2-1710 — o apresentador v2 (2 referências, 4 opções, escolha por "frasco e caixa", voz por língua, 15 s): só conta interna ──
 /** KINEO-APRESENTADOR-V2-1710 — a lib do apresentador v2 (lib/ads/v2PresenterV2.ts, pura) por import DINÂMICO: falha = o ator de antes. */
+/** KINEO-ADS-QUALIDADE-2110 — a camada de qualidade (lib/ads/v2AdsQualidade.ts, pura) por import DINÂMICO: falha = a montagem de antes. */
+function qualidadeLib() { return import('@/lib/ads/v2AdsQualidade').then((m) => (typeof m.adsV2EndCardV3Elements === 'function' ? m : null)).catch(() => null) } // KINEO-ADS-QUALIDADE-2110
+/** KINEO-ADS-QUALIDADE-2110 — o que o cartão v3 diz, pelo brief do pedido: o nome, a oferta DIGITADA, a chamada na língua e o contato. */
+function qualidadeCard(q: NonNullable<Awaited<ReturnType<typeof qualidadeLib>>>, brief: Record<string, unknown> | null, language: string) { const b = brief ?? {}; const ex = (b.extracted && typeof b.extracted === 'object' ? b.extracted : {}) as Record<string, unknown>; return q.adsV2EndCardV3Of({ business: b.business ?? ex.business, offer: (typeof ex.offer === 'string' && ex.offer.trim() ? ex.offer : b.offer), ctaKind: ex.cta ?? b.cta, contact: (typeof b.contact === 'string' && b.contact.trim() ? b.contact : ex.contact), language, buyLabel: adsV2CloseRealCta(language) }) } // KINEO-ADS-QUALIDADE-2110
 function presenterV2Lib() { // KINEO-APRESENTADOR-V2-1710
   return import('@/lib/ads/v2PresenterV2').then((m) => (typeof m.adsV2PresenterV2Of === 'function' ? m : null)).catch(() => null) // KINEO-APRESENTADOR-V2-1710
 } // KINEO-APRESENTADOR-V2-1710
@@ -469,15 +475,17 @@ async function finishPresenterV2Image(admin: SupabaseClient, order: AdsV2OrderRo
   const handInv = await Promise.all(kept.map((u) => (vis && typeof vis.adsV2PresenterV2HandsRaw === 'function' ? vis.adsV2PresenterV2HandsRaw(u, pv.lib.ADS_V2_PRESENTER_V2_HANDS_QUESTION).then((raw) => pv.lib.adsV2PresenterV2ParseHands(raw)).catch(() => null) : Promise.resolve(null)))) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — UMA chamada por opção: as mãos (contagem; cada uma segura o produto?) e a interface de celular
   const hands = handInv.map((h) => pv.lib.adsV2PresenterV2FreeHandOf(h)) // KINEO-APRESENTADOR-V2-AJUSTE-1710 — a mão livre inteira em cada opção (presença; null = não leu) · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — só 2 mãos confirmadas (uma no produto, outra vazia)
   const phoneUi = handInv.map((h) => pv.lib.adsV2PresenterV2PhoneUiOf(h)) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — interface de câmera desenhada: 'yes' descarta; 'unsure' só no log
-  const pick = pv.lib.adsV2PresenterV2PickClean(both, hands, phoneUi) // KINEO-APRESENTADOR-V2-1710 · KINEO-APRESENTADOR-V2-AJUSTE-1710 — entre as limpas, a 1ª com a mão livre inteira · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — interface de celular = descartada
+  const whole = handInv.map((h) => pv.lib.adsV2PresenterV2ProductWholeOf(h)) // KINEO-ADS-BOLA-2110 — o produto inteiro no quadro (a MESMA chamada das mãos)
+  const rects = invs.map((inv) => pv.lib.adsV2PresenterV2ProductRect(inv ?? null)) // KINEO-ADS-BOLA-2110 — o retângulo do produto em cada opção (encostado na borda = cortado)
+  const pick = pv.lib.adsV2PresenterV2PickWhole({ both, freeHands: hands, phoneUi, productWhole: whole, handCounts: handInv.map((h) => (h ? (typeof h.count === 'number' ? h.count : h.hands.length) : null)), rects, poses: handInv.map((h) => h?.pose ?? null) }) // KINEO-ADS-QUALIDADE-2110 — + a pose (encostando no rosto, altura, segurado, escala) · KINEO-APRESENTADOR-V2-1710 · KINEO-ADS-BOLA-2110 — era PickClean: o produto INTEIRO decide primeiro, depois as 2 mãos (pedido 618a6680: a bola cortada na borda nas 4)
   const chosen = kept[pick.index] ?? kept[0] // KINEO-APRESENTADOR-V2-1710
   const chosenHand = hands[kept.indexOf(chosen)] ?? null // KINEO-APRESENTADOR-V2-AJUSTE-1710
   if (!(await markShot(admin, row, ['image_submitted'], { status: 'image_done', image_url: chosen, prompt: pv.lib.adsV2PresenterV2Performance(chosenHand) }))) return // KINEO-APRESENTADOR-V2-1710 — só quem vence grava as opções · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + a atuação do v2 pela foto escolhida (mão livre = gesto pequeno; senão mãos paradas), na PRÓPRIA linha
   const presenter = adsV2PresenterPlanOf(order.plan) // KINEO-APRESENTADOR-V2-1710
-  const options = kept.map((url, k) => ({ url, bothObjects: both[k] ?? null, freeHand: hands[k] ?? null, phoneUi: phoneUi[k] ?? null })) // KINEO-APRESENTADOR-V2-1710 · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + freeHand · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + phoneUi
+  const options = kept.map((url, k) => ({ url, bothObjects: both[k] ?? null, freeHand: hands[k] ?? null, phoneUi: phoneUi[k] ?? null, productWhole: whole[k] ?? null })) // KINEO-APRESENTADOR-V2-1710 · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + freeHand · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + phoneUi · KINEO-ADS-BOLA-2110 — + productWhole
   const productRect = pv.lib.adsV2PresenterV2ProductRect(invs[kept.indexOf(chosen)] ?? null) // KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — o produto na foto escolhida: a frase de tela vai acima dele
   if (order.plan && presenter) { try { await admin.from('ads_v2_orders').update({ plan: { ...order.plan, presenter: { ...presenter, v2: { ...pv.v2, options, chosen: kept.indexOf(chosen), chosenWhy: pick.why, productRect } } } }).eq('id', order.id).eq('status', 'generating') } catch { /* KINEO-APRESENTADOR-V2-1710 — as opções são para revisão: falhar aqui não para o pedido */ } } // KINEO-APRESENTADOR-V2-1710 · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + productRect
-  await writeServerEvent({ name: 'ads_v2_product_locked', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, idx: row.idx, attempt: row.attempt, mode: 'presenter_v2', entry: pv.v2.entryId, options: kept.length, chosen: kept.indexOf(chosen), why: pick.why, both_objects: both, free_hands: hands, phone_ui: phoneUi, hand_counts: handInv.map((h) => (h ? h.hands.length : null)), product_rect: productRect, charged: false } }).catch(() => null) // KINEO-APRESENTADOR-V2-1710 — o evento da trava de sempre (lista fechada), com o modo novo · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + free_hands · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + phone_ui, hand_counts, product_rect
+  await writeServerEvent({ name: 'ads_v2_product_locked', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, idx: row.idx, attempt: row.attempt, mode: 'presenter_v2', entry: pv.v2.entryId, options: kept.length, chosen: kept.indexOf(chosen), why: pick.why, both_objects: both, free_hands: hands, phone_ui: phoneUi, hand_counts: handInv.map((h) => (h ? h.hands.length : null)), product_rect: productRect, product_whole: whole, product_at_edge: rects.map((r) => pv.lib.adsV2PresenterV2RectAtEdge(r)), poses: handInv.map((h) => h?.pose ?? null), charged: false } }).catch(() => null) // KINEO-APRESENTADOR-V2-1710 — o evento da trava de sempre (lista fechada), com o modo novo · KINEO-APRESENTADOR-V2-AJUSTE-1710 — + free_hands · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + phone_ui, hand_counts, product_rect · KINEO-ADS-BOLA-2110 — a foto inteira no close; o produto inteiro no evento · KINEO-ADS-QUALIDADE-2110 — + a pose de cada opção
 } // KINEO-APRESENTADOR-V2-1710
 /**
  * KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — a voz do pedido com ~0,6 s de silêncio no fim, SÓ para o Kling (o clipe ganha um fim de boca fechada; voice_url e voice_seconds continuam a fala
@@ -613,7 +621,7 @@ async function submitImageFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
   const actor = row.kind === ADS_V2_PRESENTER_KIND ? adsV2PresenterPlanOf(order.plan) : null
   const pv = actor ? await presenterV2Of(order) : null // KINEO-APRESENTADOR-V2-1710 — o apresentador v2: o retrato + a foto real (2 referências), o prompt de boca neutra e 4 opções
   const basePrompt = actor ? (pv ? pv.v2.prompt : actor.actorPrompt) : planned?.scenePrompt ?? null // KINEO-APRESENTADOR-V2-1710
-  const baseRefs = actor ? (pv ? pv.lib.adsV2PresenterV2Refs(pv.v2, actor.productUrl) : [actor.productUrl]) : planned?.referenceUrls ?? [] // KINEO-APRESENTADOR-V2-1710
+  const baseRefs = actor ? (pv ? pv.lib.adsV2PresenterV2Refs(pv.v2, pv.lib.adsV2PresenterV2ProductSource(actor) ?? actor.productUrl) : [actor.productUrl]) : planned?.referenceUrls ?? [] // KINEO-APRESENTADOR-V2-1710 · KINEO-ADS-BOLA-2110 — o v2 recebe a foto INTEIRA do produto (o recorte 9:16 cortava a bola dos dois lados)
   // O still da A entra como ÚLTIMA referência (as fotos do cliente continuam sendo a referência do lugar e do produto).
   const prompt = basePrompt && anchorUrl ? `${basePrompt} ${ADS_V2_SAME_PERSON_LINE}` : basePrompt
   const refs = anchorUrl && baseRefs.length > 0 ? [...baseRefs, anchorUrl] : baseRefs
@@ -720,6 +728,7 @@ async function submitVideoFor(admin: SupabaseClient, order: AdsV2OrderRow, row: 
  * Kling O3 em série com pausa curta; Seedance/H3/Nano Banana em lotes de 3. Para de abrir envio novo no prazo.
  */
 export async function dispatchAdsV2Shots(admin: SupabaseClient, order: AdsV2OrderRow, deadlineMs: number): Promise<number> {
+  if ((order.plan as { cena?: { plan?: { marker?: string } } } | null)?.cena?.plan?.marker === 'KINEO-ADS-CENA-2110') return 0 // KINEO-ADS-CENA-2110 — nenhuma cena envia planos pelo motor legado
   // Pedido que já falhou/entregou (outra lambda venceu entre a leitura e aqui) não manda NADA à fal.
   if (order.status !== 'generating') return 0
   const rows = await loadAdsV2Shots(admin, order.id)
@@ -857,7 +866,7 @@ async function pollOne(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2Sh
         else if (ageMs(row.updated_at) > ADS_V2_COPY_MAX_MS) await failShot(admin, row, ['image_submitted'], 'image_copy_failed', 'unknown')
       } else if (p.state === 'failed') {
         await failShot(admin, row, ['image_submitted'], 'image_provider_failed', 'unknown')
-      } else if (ageMs(row.image_submit_claimed_at ?? row.updated_at) > (row.kind === ADS_V2_PRESENTER_KIND ? ADS_V2_SHOT_STUCK_MS : ADS_V2_FAST_IMAGE_STUCK_MS)) { // KINEO-ADS-FIEL-1510 — prazo curto da imagem (o ator mantém o de antes)
+      } else if (ageMs(row.image_submit_claimed_at ?? row.updated_at) > (row.kind === ADS_V2_PRESENTER_KIND ? Math.max(ADS_V2_SHOT_STUCK_MS, cenaUgcAttemptDeadline(row)) : ADS_V2_FAST_IMAGE_STUCK_MS)) { // KINEO-ADS-FIEL-1510 — prazo curto da imagem (o ator mantém o de antes) // KINEO-ADS-CENA-2110
         if (await markShot(admin, row, ['image_submitted'], { status: 'stuck', reason: 'image_stuck', reason_class: 'unknown' })) cancelAbandoned(row, 'image') // KINEO-ADS-FIEL-1510 — na fila, a fal não cobra
       }
       return
@@ -870,7 +879,7 @@ async function pollOne(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2Sh
         if (p.state === 'failed') { await failShot(admin, row, ['submitted'], 'provider_failed', 'unknown'); return }
         if (p.state !== 'done' || !p.url) {
           const ihLate = inHandTagOf(order, row.idx) // KINEO-ADS-MAO-AJUSTE-1610 — o plano "produto na mão" tem prazo próprio no Kling
-          const late = ageMs(row.submitted_at ?? row.updated_at) > (row.kind === ADS_V2_PRESENTER_KIND ? ADS_V2_SHOT_STUCK_MS : ihLate && row.engine === 'kling_o3' ? ADS_V2_IN_HAND_VIDEO_STUCK_MS : ADS_V2_FAST_VIDEO_STUCK_MS) // KINEO-ADS-FIEL-1510 — prazo curto por tentativa (o ator mantém o de antes) · KINEO-ADS-MAO-AJUSTE-1610 — Kling do produto na mão: 5 min
+          const late = ageMs(row.submitted_at ?? row.updated_at) > (row.kind === ADS_V2_PRESENTER_KIND ? Math.max(ADS_V2_SHOT_STUCK_MS, cenaUgcAttemptDeadline(row)) : ihLate && row.engine === 'kling_o3' ? ADS_V2_IN_HAND_VIDEO_STUCK_MS : ADS_V2_FAST_VIDEO_STUCK_MS) // KINEO-ADS-FIEL-1510 — prazo curto por tentativa (o ator mantém o de antes) · KINEO-ADS-MAO-AJUSTE-1610 — Kling do produto na mão: 5 min // KINEO-ADS-CENA-2110
           const again = late && ihLate ? await pollFalJob(ADS_V2_ENGINES[row.engine].slug, row.request_id, 'video', ctx) : null // KINEO-ADS-MAO-AJUSTE-1610 — ANTES do "travado", a fal de novo: COMPLETED = usa o clipe (no T1 pagamos 5 e usamos 1)
           if (again?.state === 'failed') { await failShot(admin, row, ['submitted'], 'provider_failed', 'unknown'); return } // KINEO-ADS-MAO-AJUSTE-1610
           if (again?.state !== 'done' || !again.url) { // KINEO-ADS-MAO-AJUSTE-1610 — nem pronto na 2ª consulta: o travado de sempre
@@ -905,7 +914,7 @@ async function pollOne(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2Sh
  * motivo terminal quando não há mais tentativa (o pedido inteiro falha e estorna).
  */
 async function retryOrTerminal(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow, stills: { used: number } = { used: 0 }): Promise<string | null> { // KINEO-ADS-FIEL-1510 — stills: fotos paradas já usadas no pedido
-  // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator NUNCA é terminal: 2ª tentativa sem cobrar, depois desiste e o anúncio normal sai.
+  // KINEO-ADS-CENA-2110 — UGC exige a pessoa: uma refação, depois falha terminal com estorno.
   if (row.kind === ADS_V2_PRESENTER_KIND) return retryPresenter(admin, order, row)
   if (row.kind === 'text') return `text_shot_${row.idx}_${row.status}` // nunca acontece: text nasce skipped_text
   if (row.kind === 'user_video') return `user_video_shot_${row.idx}_${row.status}` // nunca acontece: nasce 'done', sem IA
@@ -964,11 +973,13 @@ async function retryOrTerminal(admin: SupabaseClient, order: AdsV2OrderRow, row:
 
 /**
  * KINEO-ATOR-ANUNCIO-2026-10-09 — o ator que falhou ganha UMA 2ª tentativa sem cobrar (a foto pronta é reaproveitada; sem
- * foto, recomeça pela foto). Desistiu (adsV2PresenterGaveUp: 2ª falha, sem acesso, saldo, recusa nossa, sem voz, prazo)
- * = nada a fazer aqui: a montagem sai sem ele. Devolve SEMPRE null (o ator nunca mata o pedido).
+ * KINEO-ADS-CENA-2110 — foto, recomeça pela foto). O prazo antigo repete UMA vez, com relógio novo e maior.
+ * KINEO-ADS-CENA-2110 — falha terminal devolve motivo ao estorno do pedido; nunca entrega UGC sem pessoa.
  */
-async function retryPresenter(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow): Promise<null> {
-  if (adsV2PresenterGaveUp(row)) return null
+async function retryPresenter(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow): Promise<string | null> { // KINEO-ADS-CENA-2110
+  const action = cenaUgcFailureAction(row) // KINEO-ADS-CENA-2110
+  if (action === 'refund') return `ugc_presenter_failed:${row.reason ?? row.status}` // KINEO-ADS-CENA-2110
+  if (action !== 'retry') return null // KINEO-ADS-CENA-2110
   const keepImage = !!row.image_url
   const next = {
     order_id: order.id,
@@ -995,6 +1006,7 @@ async function retryPresenter(admin: SupabaseClient, order: AdsV2OrderRow, row: 
       path: '/lib/ads/v2Advance',
       metadata: { order_id: order.id, idx: row.idx, attempt: next.attempt, engine: row.engine, presenter: true, previous_reason: row.reason, previous_class: row.reason_class, charged: false },
     })
+    await writeServerEvent({ name: 'ads_v2_ugc_retried', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, attempt: next.attempt, previous_reason: row.reason, deadline_ms: cenaUgcAttemptDeadline({ ...row, attempt: next.attempt }), charged: false } }) // KINEO-ADS-CENA-2110
   }
   return null
 }
@@ -1064,7 +1076,7 @@ async function presenterV2FitVoice(order: AdsV2OrderRow, narration: string, lang
     const pv = await presenterV2Of(order) // KINEO-APRESENTADOR-V2-AJUSTE-1710
     if (!pv || !order.plan) return null // KINEO-APRESENTADOR-V2-AJUSTE-1710
     const voice = pv.lib.adsV2PresenterV2VoiceFor(narrationLanguage(order.language) ?? 'en', pv.v2.gender) // KINEO-APRESENTADOR-V2-AJUSTE-1710
-    const fit = pv.lib.adsV2PresenterV2VoiceFit({ seconds: voiceSeconds, text: narration, canSpeed: voice.engine === 'minimax' }) // KINEO-APRESENTADOR-V2-AJUSTE-1710 — só a voz com voice id aceita speed
+    const fit = pv.lib.adsV2PresenterV2VoiceFit({ seconds: voiceSeconds, text: narration, canSpeed: voice.engine === 'minimax', language: narrationLanguage(order.language) ?? 'en' }) // KINEO-APRESENTADOR-V2-AJUSTE-1710 — só a voz com voice id aceita speed · KINEO-ADS-BOLA-2110 — + a língua: a voz CURTA ganha a frase a mais na língua do anúncio
     const record = pv.lib.adsV2PresenterV2VoiceFitRecord(fit, { seconds: voiceSeconds, text: narration }) // KINEO-APRESENTADOR-V2-AJUSTE-1710
     if (fit.action === 'ok' || !record) return null // KINEO-APRESENTADOR-V2-AJUSTE-1710
     const buf = await adsV2NarrationVoice(order, speakableForTts(adsV2NarrationForTts(fit.text, adsV2PronounceOf(order.brief)), language), false, fit.speed !== 1 ? fit.speed : undefined) // KINEO-APRESENTADOR-V2-AJUSTE-1710
@@ -1109,8 +1121,8 @@ async function ensureAdsV2Voice(admin: SupabaseClient, order: AdsV2OrderRow): Pr
 }
 
 /**
- * KINEO-ATOR-ANUNCIO-2026-10-09 — um passo do ator, antes do despacho. Sem narração = desiste (sem voz não há ator). Prazo
- * (ADS_V2_PRESENTER_GIVEUP_MS desde o início) = desiste. Senão garante a voz (que a montagem usaria de qualquer jeito) e
+ * KINEO-ADS-CENA-2110 — um passo do ator, antes do despacho. Sem voz ou prazo: marca a tentativa como falha.
+ * KINEO-ADS-CENA-2110 — a política de refação/estorno decide o pedido; prazo novo na segunda tentativa. Garante a voz e
  * desiste se ela passar do teto do ator. Devolve o pedido com a voz para o despacho mandar o vídeo falado.
  */
 async function stepPresenter(admin: SupabaseClient, order: AdsV2OrderRow, row: AdsV2ShotRow | null): Promise<AdsV2OrderRow> {
@@ -1120,8 +1132,8 @@ async function stepPresenter(admin: SupabaseClient, order: AdsV2OrderRow, row: A
     await failShot(admin, row, [row.status], 'presenter_no_voice', 'local_policy_gate')
     return order
   }
-  if (ageMs(order.started_at) > Math.min(ADS_V2_PRESENTER_GIVEUP_MS, ADS_V2_PRESENTER_BUDGET_MS)) { // KINEO-ADS-FIEL-1510 — o ator desiste em 10 min (era 45): o anúncio sai sem ele
-    await failShot(admin, row, [row.status], 'presenter_deadline', 'local_policy_gate')
+  if (cenaUgcAttemptExpired(row, order.started_at, Date.now())) { // KINEO-ADS-CENA-2110 — a tentativa nova tem prazo próprio e maior.
+    if (await failShot(admin, row, [row.status], 'presenter_deadline', 'local_policy_gate')) cancelAbandoned(row, row.status === 'image_submitted' ? 'image' : 'video') // KINEO-ADS-CENA-2110
     return order
   }
   const voice = await ensureAdsV2Voice(admin, order)
@@ -1133,6 +1145,11 @@ async function stepPresenter(admin: SupabaseClient, order: AdsV2OrderRow, row: A
   return { ...order, voice_url: voice.voiceUrl, voice_seconds: voice.voiceSeconds }
 }
 
+async function failRequiredUgc(admin: SupabaseClient, order: AdsV2OrderRow, reason: string): Promise<void> { // KINEO-ADS-CENA-2110
+  const result = await failAdsV2Order(admin, order, reason, '/lib/ads/v2Advance') // KINEO-ADS-CENA-2110
+  if (result.won) await writeServerEvent({ name: 'ads_v2_ugc_failed', userId: order.user_id, path: '/lib/ads/v2Advance', metadata: { order_id: order.id, reason, refund: result.refund, credits_returned: result.amount, charged: false } }) // KINEO-ADS-CENA-2110
+} // KINEO-ADS-CENA-2110
+// KINEO-ADS-CENA-2110
 // ── montagem ──────────────────────────────────────────────────────────────────────────────────────────────────────
 const SECTOR_MOOD: Readonly<Record<string, MusicMood>> = {
   restaurant: 'emotional', clinic: 'emotional', real_estate: 'nature', gym: 'hustle',
@@ -1141,7 +1158,7 @@ const SECTOR_MOOD: Readonly<Record<string, MusicMood>> = {
 
 function businessName(order: AdsV2OrderRow): string {
   const b = order.brief && typeof order.brief.business === 'string' ? order.brief.business : ''
-  return b.split(/\s+[—–-]\s+/)[0].trim().slice(0, 120) || 'Studio Ads'
+  return adsV2BusinessName(b).slice(0, 120) || 'Studio Ads' // KINEO-ADS-BOLA-2110 — era: b.split(/ — /)[0] (não limpava "— bola de futebol" nem "Perfume LUME —"; 48 de 71 títulos)
 }
 
 async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, leaseToken: string, shots: AdsV2ShotRow[]): Promise<void> {
@@ -1150,6 +1167,10 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
     await failAdsV2Order(admin, order, 'assembly_missing_plan_or_card', '/lib/ads/v2Advance')
     return
   }
+  if (adsV2PresenterPlanOf(plan)) { // KINEO-ADS-CENA-2110
+    const actor = latestShots(shots).find(isAdsV2PresenterRow) // KINEO-ADS-CENA-2110
+    if (!actor || actor.status !== 'done' || !actor.stored_url || !num(actor.measured_seconds)) { await failRequiredUgc(admin, order, 'ugc_presenter_failed:assembly_missing_person'); return } // KINEO-ADS-CENA-2110
+  } // KINEO-ADS-CENA-2110
   const language = narrationLanguage(order.language) ?? 'en'
   const mood = SECTOR_MOOD[order.sector ?? 'other'] ?? 'emotional'
   // 1. Música: Lyria (instrumental) copiada para o NOSSO bucket; sem Lyria, a trilha Pixabay de sempre.
@@ -1207,11 +1228,17 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
   latest.forEach((r, k) => { const a = avoid.get(r.idx); if (a) montageShots[k].avoid = a }) // KINEO-ADS-FIEL-3-1510
   let shotsSeconds = montageShots.reduce((s, x) => s + x.cutSeconds, 0) // KINEO-ADS-FIEL-2-1510 — let: o encaixe na duração pedida pode encolher os planos
   // KINEO-ATOR-ANUNCIO-2026-10-09 — ator pronto (no nosso bucket e medido) = ele vira a trilha base, com a voz DELE (a TTS
-  // separada não entra: duas vozes, nunca). Qualquer recusa da montagem com ator = o anúncio de sempre (nunca mata o pedido).
+  // KINEO-ADS-CENA-2110 — separada não entra: duas vozes, nunca). Recusa da montagem com ator = falha com estorno.
   const presenterClip = presenterRow && presenterRow.status === 'done' && presenterRow.stored_url && num(presenterRow.measured_seconds) ? { url: presenterRow.stored_url, measuredSeconds: num(presenterRow.measured_seconds) as number } : null
   let presenterSource: Record<string, unknown> | null = null
   let presenterMiss: string | null = presenterRow ? (presenterClip ? null : `presenter_${presenterRow.status}:${presenterRow.reason ?? ''}`.slice(0, 160)) : null
   const presenterV2 = presenterClip && (await presenterV2Of(order)) ? adsV2PresenterPlanOf(plan) : null // KINEO-APRESENTADOR-V2-1710 — o pedido no apresentador v2 (a foto real do close = a 2ª referência)
+  const presenterV2Close = presenterV2 ? ((await presenterV2Lib())?.adsV2PresenterV2ProductSource(presenterV2) ?? presenterV2.productUrl) : null // KINEO-ADS-BOLA-2110 — o close de 2 s = a foto INTEIRA (o montador encaixa em "contain"; o recorte de 126 px ampliado saía borrado e cortado)
+  const qLib = await qualidadeLib() // KINEO-ADS-QUALIDADE-2110
+  const qCard = qLib ? qualidadeCard(qLib, order.brief, language) : null // KINEO-ADS-QUALIDADE-2110 — null = o cartão do pedido (PNG da tela)
+  const qFrame = renderOutputSpecFor('9:16') // KINEO-ADS-QUALIDADE-2110
+  const qFont = captionFontFor(language) // KINEO-ADS-QUALIDADE-2110
+  const qPresenter = qLib && presenterV2 && typeof presenterV2Close === 'string' && /^https:\/\//i.test(presenterV2Close) ? { video: (i: { url: string; track: number; duration: number; cut: number }) => qLib.adsV2PresenterVideoElements({ ...i, rect: presenterV2.v2?.productRect ?? null }), hookSeconds: qLib.ADS_V2_PRESENTER_HOOK_SECONDS, hook: (time: number, d: number) => qLib.adsV2SoftPackshotElements(presenterV2Close, 10, time, d, { zoomEnd: '104%' }), close: (time: number, d: number) => qLib.adsV2SoftPackshotElements(presenterV2Close, 13, time, d, { extra: { enter_transition: { type: 'fade', duration: 0.35 } } }), ...(qCard ? { card: (time: number, d: number) => qLib.adsV2EndCardV3Elements({ productUrl: presenterV2Close, card: qCard, fontFamily: qFont, width: qFrame.width, height: qFrame.height, time, duration: d, track: 20 }) } : {}) } : null // KINEO-ADS-QUALIDADE-2110 — o UGC: punch-in, gancho do produto, close e cartão v3
   if (presenterClip) {
     try {
       const frame = renderOutputSpecFor('9:16')
@@ -1234,11 +1261,13 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
         voiceUrl: null,
         voiceSeconds: null,
         tint: variationTintOf(order.brief) ?? null,
-        presenter: { url: presenterClip.url, measuredSeconds: presenterClip.measuredSeconds, insertOrder, ...(presenterV2 ? { v2: { speechSeconds: voiceSeconds ?? 0, closeUrl: presenterV2.productUrl, productRect: presenterV2.v2?.productRect ?? null } } : {}) }, // KINEO-APRESENTADOR-V2-1710 — a estrutura de 15 s: corte no fim real da fala + close da foto real + cartão · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + o retângulo do produto (a frase acima dele)
+        presenter: { url: presenterClip.url, measuredSeconds: presenterClip.measuredSeconds, insertOrder, ...(presenterV2 ? { v2: { speechSeconds: voiceSeconds ?? 0, closeUrl: presenterV2Close ?? presenterV2.productUrl, productRect: presenterV2.v2?.productRect ?? null, quality: qPresenter } } : {}) }, // KINEO-ADS-QUALIDADE-2110 — + quality · // KINEO-APRESENTADOR-V2-1710 — a estrutura de 15 s: corte no fim real da fala + close da foto real + cartão · KINEO-APRESENTADOR-V2-AJUSTE-3-1710 — + o retângulo do produto (a frase acima dele) · KINEO-ADS-BOLA-2110 — a foto inteira no close; o produto inteiro no evento
       })
     } catch (e) {
       presenterSource = null
       presenterMiss = `presenter_montage:${e instanceof Error ? e.message : String(e)}`.slice(0, 160)
+      await failRequiredUgc(admin, order, `ugc_presenter_failed:${presenterMiss}`) // KINEO-ADS-CENA-2110
+      return // KINEO-ADS-CENA-2110
     }
   }
   // KINEO-CLOSE-REAL-1910 — o CLOSE DO PRODUTO REAL (lib/ads/v2CloseReal.ts): gancho com o produto recortado sobre o fundo na cor dele (o recorte falhou =
@@ -1256,8 +1285,10 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
     const kitCardUrl = hero && kitBf?.offer ? await import('@/lib/ads/v2KitBfServer').then((m) => m.adsV2KitBfCardUrl({ userId: order.user_id, orderId: order.id, product: closeRealPlan.product })).catch(() => null) : null // KINEO-KIT-BF-1910 — o fundo do cartão com oferta (o recorte do cache); falhou = o cartão de sempre
     closeRealHero = hero ? 'cutout' : 'photo' // KINEO-CLOSE-REAL-1910
     const crFrame = renderOutputSpecFor('9:16') // KINEO-CLOSE-REAL-1910 — o Close real é só vertical
+    const crProduct = [closeRealPlan.product?.originalUrl, closeRealPlan.product?.url, closeRealPlan.photos[0]].find((u): u is string => typeof u === 'string' && /^https:\/\//i.test(u.trim())) ?? null // KINEO-ADS-QUALIDADE-2110 — a foto INTEIRA do produto (a original)
+    const crQuality = qLib && crProduct ? { hook: (time: number, d: number) => qLib.adsV2SoftPackshotElements(crProduct, 2, time, d, { zoomEnd: '110%', containTrack: 4 }), ...(qCard && !kitCardUrl ? { card: (time: number, d: number) => qLib.adsV2EndCardV3Elements({ productUrl: crProduct, card: qCard, fontFamily: qFont, width: crFrame.width, height: crFrame.height, time, duration: d, track: 20 }) } : {}) } : null // KINEO-ADS-QUALIDADE-2110 — o Product Ads: gancho e cartão v3 (o Kit BF segue com o cartão dele)
     try { // KINEO-CLOSE-REAL-1910
-      closeRealSource = buildAdV2CloseRealSource({ width: crFrame.width, height: crFrame.height, heroUrl: hero?.url ?? null, heroFallbackUrl: closeRealPlan.product?.url ?? closeRealPlan.photos[0], photos: closeRealPlan.photos, phrases: (plan.overlays ?? []).map((o) => (o && typeof o.text === 'string' ? o.text : '')), fontFamily: captionFontFor(language), cardUrl: order.card_url, cardSeconds: ADS_V2_CARD_SECONDS, musicUrl, musicTrimStart: adsV2MusicTrimStart(musicUrl), voiceUrl, voiceSeconds, watermark: isAdsSampleRef(order.billing_ref) ? ADS_V2_CLOSE_REAL_WATERMARK : null, narration, closeCard: hero?.cardUrl && adsV2CloseRealCardName(order.brief?.business) ? { url: hero.cardUrl, name: adsV2CloseRealCardName(order.brief?.business), cta: adsV2CloseRealCta(language), ink: hero.ink } : null, photoBoxes: crBoxes }) // KINEO-CLOSE-REAL-V3-1910 — + a cor do botão (ink, o tom da embalagem) e a caixa do produto em cada foto (photoBoxes: a legenda nunca cobre o produto)
+      closeRealSource = buildAdV2CloseRealSource({ width: crFrame.width, height: crFrame.height, heroUrl: hero?.url ?? null, heroFallbackUrl: closeRealPlan.product?.url ?? closeRealPlan.photos[0], photos: closeRealPlan.photos, phrases: (plan.overlays ?? []).map((o) => (o && typeof o.text === 'string' ? o.text : '')), fontFamily: captionFontFor(language), cardUrl: order.card_url, cardSeconds: ADS_V2_CARD_SECONDS, musicUrl, musicTrimStart: adsV2MusicTrimStart(musicUrl), voiceUrl, voiceSeconds, watermark: isAdsSampleRef(order.billing_ref) ? ADS_V2_CLOSE_REAL_WATERMARK : null, narration, closeCard: hero?.cardUrl && adsV2CloseRealCardName(order.brief?.business) ? { url: hero.cardUrl, name: adsV2CloseRealCardName(order.brief?.business), cta: adsV2CloseRealCta(language), ink: hero.ink } : null, photoBoxes: crBoxes, quality: crQuality }) // KINEO-CLOSE-REAL-V3-1910 — + a cor do botão (ink, o tom da embalagem) e a caixa do produto em cada foto (photoBoxes: a legenda nunca cobre o produto) · KINEO-ADS-QUALIDADE-2110 — + quality (gancho e cartão v3)
       if (closeRealSource && kitBf?.offer) closeRealSource = adsV2KitBfApplyMontage(closeRealSource, { offer: kitBf.offer, heroRect: hero?.rect ?? null, kitCardUrl }) // KINEO-KIT-BF-1910 — o selo da oferta no gancho (fora do produto) e a oferta grande no cartão
     } catch (e) { // KINEO-CLOSE-REAL-1910
       await failAdsV2Order(admin, order, `montage_invalid:${e instanceof Error ? e.message : String(e)}`, '/lib/ads/v2Advance') // KINEO-CLOSE-REAL-1910
@@ -1324,6 +1355,7 @@ async function prepareAndSubmit(admin: SupabaseClient, order: AdsV2OrderRow, lea
     await failAdsV2Order(admin, order, `montage_invalid:${e instanceof Error ? e.message : String(e)}`, '/lib/ads/v2Advance')
     return
   }
+  source = cenaApplyCaptions({ source, text: narration, seconds: voiceSeconds, start: presenterSource ? 0 : ADS_V2_VOICE_START, legacyTextTrack: closeRealSource || presenterV2 ? 5 : 4, fontFamily: captionFontFor(language) }) // KINEO-ADS-CENA-2110
   // KINEO-HOME-3-CARDS-1910 — a amostra grátis fora do Close real (a do card UGC, com a pessoa, ou o anúncio de reserva dela se o ator desistir) leva a MESMA
   // KINEO-HOME-3-CARDS-1910 — marca-d'água do Close real (que já a desenha): um texto por cima de tudo, do 0 ao fim. Pago nunca passa aqui (chave 'adsv2').
   if (isAdsSampleRef(order.billing_ref) && !closeRealSource) source = adsSampleWatermarkSource(source, { text: ADS_V2_CLOSE_REAL_WATERMARK, fontFamily: captionFontFor(language), width: Number(source.width) || out.width }) // KINEO-HOME-3-CARDS-1910
@@ -1536,7 +1568,7 @@ export function adsV2View(order: AdsV2OrderRow, shots: readonly AdsV2ShotRow[]):
 function presenterView(shots: readonly AdsV2ShotRow[]): { presenter?: NonNullable<AdsV2OrderView['presenter']> } {
   const r = latestShots(shots).find(isAdsV2PresenterRow)
   if (!r) return {}
-  const state = READY.has(r.status) ? 'ready' : r.status === 'failed' || r.status === 'stuck' ? (adsV2PresenterGaveUp(r) ? 'skipped' : 'working') : 'working'
+  const state = READY.has(r.status) ? 'ready' : 'working' // KINEO-ADS-CENA-2110
   return { presenter: { state, status: r.status, attempt: r.attempt } }
 }
 
@@ -1571,6 +1603,7 @@ export async function advanceAdsV2Order(admin: SupabaseClient, orderId: string, 
 }
 
 async function stepGenerating(admin: SupabaseClient, order: AdsV2OrderRow, deadlineMs: number): Promise<void> {
+  if ((order.plan as { cena?: { plan?: { marker?: string } } } | null)?.cena?.plan?.marker === 'KINEO-ADS-CENA-2110') { await (await import('@/lib/ads/cena/runtime')).advanceCenaOrder(admin, order); return } // KINEO-ADS-CENA-2110 — pedido marcado usa a cena; ausente = o corpo anterior byte a byte
   let rows = await loadAdsV2Shots(admin, order.id)
   if (!rows) return
   // Linhas que faltam (o /start caiu entre o débito e o insert): recria pelo plano gravado, sem duplicar.
@@ -1612,7 +1645,7 @@ async function stepGenerating(admin: SupabaseClient, order: AdsV2OrderRow, deadl
   for (const r of latestShots(rows).filter((x) => x.status === 'failed' || x.status === 'stuck')) {
     const terminal = await retryOrTerminal(admin, order, r, stills) // KINEO-ADS-FIEL-1510
     if (terminal) {
-      await failAdsV2Order(admin, order, terminal, '/lib/ads/v2Advance')
+      if (terminal.startsWith('ugc_presenter_failed:')) await failRequiredUgc(admin, order, terminal); else await failAdsV2Order(admin, order, terminal, '/lib/ads/v2Advance') // KINEO-ADS-CENA-2110
       return
     }
   }
@@ -1624,7 +1657,7 @@ async function stepGenerating(admin: SupabaseClient, order: AdsV2OrderRow, deadl
   if (overdue.every((x) => !!x.url) && (inHandPlan ? adsV2OverdueToStillsAt({ elapsedMs: ageMs(order.started_at), working: overdue.length, stillsUsed: stillsUsedOf(rows), stillAtMs: ADS_V2_IN_HAND_STILL_AT_MS }) : adsV2OverdueToStills({ elapsedMs: ageMs(order.started_at), working: overdue.length, stillsUsed: stillsUsedOf(rows) }))) { // KINEO-ADS-FIEL-1510 · KINEO-ADS-MAO-AJUSTE-1610 — produto na mão: o prazo de 8 min
     for (const x of overdue) { if (await stillFallback(admin, order, x.r, x.url as string, `overdue:${x.r.status}`)) cancelAbandoned(x.r, x.r.status === 'image_submitted' ? 'image' : 'video') } // KINEO-ADS-FIEL-1510
   } // KINEO-ADS-FIEL-1510
-  // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator: sem voz/prazo = desiste; senão garante a voz (o despacho manda o vídeo falado).
+  // KINEO-ADS-CENA-2110 — sem voz/prazo: falha da tentativa; UGC nunca vira anúncio de produto em silêncio.
   rows = (await loadAdsV2Shots(admin, order.id)) ?? rows
   const withVoice = await stepPresenter(admin, order, latestShots(rows).find(isAdsV2PresenterRow) ?? null)
   // 3. Envia o que ficou pronto para sair (imagens das cenas antes do vídeo).
@@ -1633,9 +1666,13 @@ async function stepGenerating(admin: SupabaseClient, order: AdsV2OrderRow, deadl
   rows = (await loadAdsV2Shots(admin, order.id)) ?? rows
   const latest = latestShots(rows).filter(isAdsV2PlanShotRow)
   if (latest.length === 0 || latest.length < planned.length || !latest.every((r) => READY.has(r.status))) return
-  // KINEO-ATOR-ANUNCIO-2026-10-09 — o ator ainda trabalhando segura a montagem; pronto ou desistiu = segue.
+  // KINEO-ADS-CENA-2110 — só o ator pronto libera a montagem UGC; falha terminal exige estorno.
   const actor = latestShots(rows).find(isAdsV2PresenterRow)
-  if (actor && !READY.has(actor.status) && !adsV2PresenterGaveUp(actor)) return
+  if (adsV2PresenterPlanOf(order.plan) && !actor) { await failRequiredUgc(admin, order, 'ugc_presenter_failed:missing_person'); return } // KINEO-ADS-CENA-2110
+  if (actor && !READY.has(actor.status)) { // KINEO-ADS-CENA-2110
+    if (cenaUgcFailureAction(actor) === 'refund') await failRequiredUgc(admin, order, `ugc_presenter_failed:${actor.reason ?? actor.status}`) // KINEO-ADS-CENA-2110
+    return // KINEO-ADS-CENA-2110
+  } // KINEO-ADS-CENA-2110
   const token = nowIso()
   const claim = await admin
     .from('ads_v2_orders')

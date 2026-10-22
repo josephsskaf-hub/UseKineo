@@ -19,6 +19,9 @@
 //   D.  desfaz exato (cada arquivo tocado, desfeito, é a base), encadeado (semMeta95Ideia1910 chama este primeiro), o diff da entrega só toca a
 //       lista + os novos, todo commit com a marca e o selo da TRAVA 8.2;
 //   M.  mutantes: cada regra acima fica vermelha quando a quebramos de propósito (aplicação provada antes de medir).
+import { MARCA_AVATAR_PRESO_2010 } from './test-support/desfaz-avatar-preso-2010.mjs' // reancorado KINEO-AVATAR-PRESO-2010 [TRAVA 8.2 — vai do fundador 20/10 "vai pra tudo"]: a camada do avatar preso não é desta entrega
+import { MARCA_VERBATIM_INTOCAVEL_2010 } from './test-support/desfaz-verbatim-intocavel-2010.mjs' // reancorado KINEO-VERBATIM-INTOCAVEL-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: as reâncoras do conserto do verbatim não são desta entrega (o D1 já as tira pela cadeia: desfaz-avatar-preso chama o desfaz do verbatim primeiro)
+import { semHomeRemodela2010, HOME_REMODELA_2010_ARQUIVOS, HOME_REMODELA_2010_JSON, MARCA_HOME_REMODELA_2010 } from './test-support/desfaz-home-remodela-2010.mjs' // KINEO-HOME-REMODELA-2010 — a home e o menu remodelados (20/10, entrega de depois, com desfaz próprio) não são desta entrega
 import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
@@ -28,16 +31,18 @@ import {
   semMeta95Personagem2010, MARCA_META95_PERSONAGEM_2010, META95_PERSONAGEM_2010_BASE, META95_PERSONAGEM_2010_ARQUIVOS, META95_PERSONAGEM_2010_NOVOS,
   ACRESCIMOS_META95_PERSONAGEM_2010, TROCAS_META95_PERSONAGEM_2010,
 } from './test-support/desfaz-meta95-personagem-2010.mjs'
+import { semBebeQueFala2010 } from './test-support/desfaz-bebe-que-fala-2010.mjs' // reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories (20/10) entrou depois e toca a rota, o desfaz do menu e o guardião da trilha: sai em memória antes do D1
+import { MARCA_META95_ESCRITA_2010, META95_ESCRITA_2010_ARQUIVOS } from './test-support/desfaz-meta95-escrita-2010.mjs' // KINEO-META95-ESCRITA-2010 — reancorado: a legenda na escrita do roteiro (entrega de depois) mede até HEAD junto; os commits e arquivos dela saem da conta
+import { semMeta95PersonagemAjuste2010 } from './test-support/desfaz-meta95-personagem-ajuste-2010.mjs' // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: os consertos da folha (rota e crítico) saem em memória — este guardião prova a folha de 20/10 como ela nasceu
 
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const MARCA = MARCA_META95_PERSONAGEM_2010
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
+const rd = (rel) => lf(semMeta95PersonagemAjuste2010(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — era: lf(fs.readFileSync(…)); o ajuste (scripts/test-meta95-personagem-ajuste-2010.mjs) prova o resto
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 // a base de comparação: a origin/main do ÚLTIMO merge desta entrega (2º pai do merge marcado mais novo); sem merge, a base da entrega
-import { semBebeQueFala2010, MARCA_BEBE_QUE_FALA_2010 } from './test-support/desfaz-bebe-que-fala-2010.mjs' // reancorado KINEO-KIDS-VENDA-2010: o template do desenho infantil (KINEO-BEBE-QUE-FALA-2010) e a venda dele (KINEO-KIDS-VENDA-2010) entraram na fila depois; as linhas deles saem em memória (a cabeça bebe chama a kids primeiro) e os commits deles levam a marca deles
 import { MARCA_KIDS_VENDA_2010 } from './test-support/desfaz-kids-venda-2010.mjs' // reancorado KINEO-KIDS-VENDA-2010
 const BASE_CMP = (() => { try { const m = git('log', '--format=%H', '--merges', `--grep=${MARCA}`, 'HEAD').trim().split('\n').filter(Boolean); return m.length ? git('rev-parse', `${m[0]}^2`).trim() : META95_PERSONAGEM_2010_BASE } catch { return META95_PERSONAGEM_2010_BASE } })()
 const base = (rel) => { try { return lf(git('show', `${BASE_CMP}:${rel}`)) } catch { return null } }
@@ -346,7 +351,7 @@ console.log('\nD. desfaz, encadeamento, diff e commits')
   const probs = []
   for (const f of META95_PERSONAGEM_2010_ARQUIVOS) {
     const b = base(f)
-    const d = tenta(() => lf(semMeta95Personagem2010(semBebeQueFala2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f), f))) // reancorado KINEO-KIDS-VENDA-2010: desenho infantil (template + venda) fora antes
+    const d = tenta(() => lf(semMeta95Personagem2010(semHomeRemodela2010(semBebeQueFala2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f), f), f))) // KINEO-HOME-REMODELA-2010 — a home remodelada pôs 1 linha na cabeça da cadeia (desfaz-menu-ugc): sai antes // reancorado KINEO-BEBE-QUE-FALA-2010
     if (b === null) probs.push(`${f}: sem base`)
     else if (Array.isArray(d)) probs.push(`${f}: ${d[0]}`)
     else if (d !== b) probs.push(`${f}: desfeito ≠ base`)
@@ -368,7 +373,20 @@ console.log('\nD. desfaz, encadeamento, diff e commits')
   ok(marcados.length === 0 || tocados.every((f) => permitidos.has(f)), `D6 os commits da entrega só tocam a lista + os novos (${tocados.filter((f) => !permitidos.has(f)).join(', ') || 'ok'})`)
   // todo commit desde a base que toca um arquivo da entrega é desta entrega (marca + selo); os merges da origin/main também levam a marca e o selo
   const desdeABase = (() => { try { return git('log', '--format=%H%x09%s', `${BASE_CMP}..HEAD`).trim().split('\n').filter(Boolean).map((l) => { const [h, ...s] = l.split('\t'); return { h, s: s.join('\t') } }) } catch { return [] } })() // só o que NÃO está na origin/main mesclada: os commits desta entrega e os merges dela
-  const commitsDaEntrega = desdeABase.filter(({ s }) => !s.includes(MARCA_BEBE_QUE_FALA_2010) && !s.includes(MARCA_KIDS_VENDA_2010)).filter(({ h, s }) => s.includes(MARCA) || git('diff-tree', '--no-commit-id', '--name-only', '-r', '-m', h).trim().split('\n').some((f) => permitidos.has(f))) // reancorado KINEO-KIDS-VENDA-2010: os commits do desenho infantil (template + venda) são de outras entregas
+  const commitsDaEntrega = desdeABase.filter(({ s }) => !s.includes('KINEO-BEBE-QUE-FALA-2010')) /* reancorado KINEO-BEBE-QUE-FALA-2010: os commits de 20/10 levam a marca deles */ .filter(({ h, s }) => s.includes(MARCA) || git('diff-tree', '--no-commit-id', '--name-only', '-r', '-m', h).trim().split('\n').some((f) => permitidos.has(f)))
+  commitsDaEntrega.splice(0, commitsDaEntrega.length, ...commitsDaEntrega.filter(({ s }) => !s.includes(MARCA_META95_ESCRITA_2010))) // KINEO-META95-ESCRITA-2010 — reancorado: os commits (e o merge) da legenda na escrita do roteiro não são desta entrega
+  commitsDaEntrega.splice(0, commitsDaEntrega.length, ...commitsDaEntrega.filter(({ s }) => !s.includes(MARCA_AVATAR_PRESO_2010))) // KINEO-AVATAR-PRESO-2010 — reancorado: os commits (e os merges) do avatar preso não são desta entrega
+  commitsDaEntrega.splice(0, commitsDaEntrega.length, ...commitsDaEntrega.filter(({ s }) => !s.includes(MARCA_VERBATIM_INTOCAVEL_2010))) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 — os commits do conserto do verbatim (reâncoras) não são desta entrega
+  commitsDaEntrega.splice(0, commitsDaEntrega.length, ...commitsDaEntrega.filter(({ s }) => !s.includes('KINEO-MCP-STUDIO-AJUSTE-2010'))) // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: os commits (e o merge da fila) do ajuste do conector não são desta entrega
+  commitsDaEntrega.splice(0, commitsDaEntrega.length, ...commitsDaEntrega.filter(({ s }) => !s.includes(MARCA_HOME_REMODELA_2010))) // KINEO-HOME-REMODELA-2010 — reancorado: os commits (e o merge da fila) da home remodelada não são desta entrega
+  commitsDaEntrega.splice(0, commitsDaEntrega.length, ...commitsDaEntrega.filter(({ s }) => !s.includes('KINEO-HOME-CARDS-CLAROS-2010'))) // KINEO-HOME-CARDS-CLAROS-2010 — reancorado: os commits do véu mais claro dos cards (fundador 20/10 23:30: "a parte de baixo dos vídeos tá bem escura, arruma isso pra hoje") não são desta entrega
+  commitsDaEntrega.splice(0, commitsDaEntrega.length, ...commitsDaEntrega.filter(({ s }) => !s.includes('KINEO-META95-PERSONAGEM-AJUSTE-2010'))) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — os commits dos consertos da folha (e o merge da integração) levam a marca deles; o guardião deles confere
+  commitsDaEntrega.splice(0, commitsDaEntrega.length, ...commitsDaEntrega.filter(({ s }) => !s.includes('KINEO-ADS-NOTA9-2110'))) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — os commits (e o merge da fila) do Studio Ads nota 9 (21/10) também não são desta (vermelho na main pura desde 20e67c05)
+  commitsDaEntrega.splice(0, commitsDaEntrega.length, ...commitsDaEntrega.filter(({ s }) => !s.includes('KINEO-DESENHO-NOTA9-2110'))) // KINEO-HOME-CARDS-CLAROS-2010 — reancorado ao mesclar a fila: os commits do desenho nota 9 (21/10) também não são desta entrega
+  commitsDaEntrega.splice(0, commitsDaEntrega.length, ...commitsDaEntrega.filter(({ s }) => !s.includes('KINEO-DESENHO-SOM-2110') && !s.includes('KINEO-DESENHO-NOTA9-2110'))) // KINEO-DESENHO-SOM-2110 — reancorado: os commits (e o merge da fila) da tela clara e do som do desenho infantil (21/10, rota do filme só com kids_cartoon) não são desta entrega
+  commitsDaEntrega.splice(0, commitsDaEntrega.length, ...commitsDaEntrega.filter(({ s }) => !s.includes('KINEO-AVATAR-ESTORNO-2010') && !s.includes('KINEO-LEGENDA-BENGALI-2010'))) // KINEO-AVATAR-ESTORNO-2010 — reancorado na integração 21/10: os commits do estorno do avatar abandonado e da legenda bengali (Codex) não são desta entrega
+  commitsDaEntrega.splice(0, commitsDaEntrega.length, ...commitsDaEntrega.filter(({ s }) => !s.includes('KINEO-ADS-CENA-2110') && !s.includes('KINEO-ADS-QUALIDADE-2110') && !s.includes('KINEO-ADS-BOLA-2110'))) // KINEO-ADS-CENA-2110 — reancorado: os commits (e os merges da fila) do anúncio por cena, da qualidade e da bola (21/10) tocam arquivos da folha só por reancoragem de guardião; não são desta entrega
+  commitsDaEntrega.splice(0, commitsDaEntrega.length, ...commitsDaEntrega.filter(({ s }) => !s.includes(MARCA_KIDS_VENDA_2010) && !s.includes('KINEO-KIDS-VENDA-LIGA-2110'))) // KINEO-KIDS-VENDA-2010 — os commits da venda levam sua marca
   ok(commitsDaEntrega.length > 0 && commitsDaEntrega.every(({ s }) => s.includes(MARCA) && s.includes('[TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]')), `D7 todo commit da entrega (e todo merge dela) traz a marca e o selo da TRAVA 8.2 (${commitsDaEntrega.length} commit(s); base ${BASE_CMP.slice(0, 10)})`, commitsDaEntrega.filter(({ s }) => !s.includes(MARCA)).map(({ s }) => s.slice(0, 60)).join(' | '))
   ok(fs.existsSync(path.join(ROOT, 'docs/META95-PERSONAGEM-2026-10-20.md')) && /formatFlags/.test(rd('docs/META95-PERSONAGEM-2026-10-20.md')), 'D8 o desenho está em docs/META95-PERSONAGEM-2026-10-20.md, com o jeito de ligar por pedido')
 }

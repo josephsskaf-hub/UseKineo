@@ -35,7 +35,7 @@ export function adsScriptMinWords(model: Pick<AdsModel, 'seconds' | 'words'>): n
 }
 
 export function countWords(text: string): number {
-  return text.trim().split(/\s+/).filter(Boolean).length
+  return text.trim().split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length // KINEO-ADS-BOLA-2110 — travessão e pontuação solta nunca contam como palavra ("Conheça — bola" = 2, não 3)
 }
 
 /** Todo o texto factual do brief, para conferir números e o contato. */

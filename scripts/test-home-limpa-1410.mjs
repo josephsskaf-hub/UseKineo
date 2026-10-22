@@ -40,10 +40,22 @@ const PROVENANCE = {
   'clock-brass.webp': '45271a5a-a385-4885-842b-bcb43d50877e',
   'cube.webp': 'ed4fb4a0-1937-400b-8027-d3045816c2b8',
   'toycar.webp': '93b1f69f-3327-4608-81f0-ca5fa2b07bea',
+  // KINEO-HOME-REMODELA-2010 — fundador 20/10: "Imagens feitas pelo Kineo. Eu quero mais 10 fotos feitas pelo Kineo. 10 fotos boas que lembrem de ads." + "more tools a gente vai cancelar": 10 fotos de anúncio (Nano Banana Pro, conta do fundador, 20/10, consulta read-only na tabela images) + a foto do antigo card Nano Banana Pro (30/09).
+  'ad-01.webp': '75499b73-03c4-4d15-89eb-801e139c3e7b', // KINEO-HOME-REMODELA-2010
+  'ad-02.webp': '520e4483-2827-47ff-82c9-7180806446b4', // KINEO-HOME-REMODELA-2010
+  'ad-03.webp': '3bdf5481-e172-4a01-8b38-f223186a4865', // KINEO-HOME-REMODELA-2010
+  'ad-04.webp': '7940ba49-85c2-4819-9e1f-158dee6a4c6c', // KINEO-HOME-REMODELA-2010
+  'ad-05.webp': '7b570120-2745-4f21-88c1-1e2eabe7a158', // KINEO-HOME-REMODELA-2010
+  'ad-06.webp': '2df783da-2ca2-403c-84b5-667bd9f22b44', // KINEO-HOME-REMODELA-2010
+  'ad-07.webp': '044c191b-5ef1-43be-88c0-671240e59622', // KINEO-HOME-REMODELA-2010
+  'ad-08.webp': '131d04f5-e663-489a-a6e0-659d1a9eb643', // KINEO-HOME-REMODELA-2010
+  'ad-09.webp': '23eb4cb6-308c-43b3-b646-fbaf812048a5', // KINEO-HOME-REMODELA-2010
+  'ad-10.webp': 'b39de5bd-bdec-4731-8734-4ddb98b38750', // KINEO-HOME-REMODELA-2010
+  'perfume-splash.webp': '21f6d198-fa61-40fb-8c99-9aeb2c4eb1e8', // KINEO-HOME-REMODELA-2010
 }
 
 // Sequência do menu do topo (data-nav-item, desktop + celular) medida na origin/main de 14/10 antes desta mudança.
-const NAV_ITEMS = ['video', 'video', 'examples', 'business', 'more:tools', 'image', 'more:clips', 'more:spaces', 'more:mcp', 'more:trending', 'pricing', 'login', 'video', 'business', 'more:trending', 'pricing', 'login', 'image', 'image', 'image', 'image', 'image', 'image', 'image', 'more:clips', 'more:spaces', 'more:mcp', 'examples']
+const NAV_ITEMS = ['video', 'video', 'examples', 'business', 'more:cartoon', 'more:mcp', 'more:trending', 'pricing', 'login', 'video', 'business', 'more:cartoon', 'more:mcp', 'more:trending', 'pricing', 'login'] // KINEO-HOME-REMODELA-2010 — reancorado 20/10 (fundador 20/10: "Imagens feitas pelo Kineo. Eu quero mais 10 fotos feitas pelo Kineo. 10 fotos boas que lembrem de ads." + "more tools a gente vai cancelar"): o "More tools" (topo e celular) saiu; entraram "AI Cartoon Videos" e "Claude & ChatGPT" (o "AI UGC Ads" é componente — stub no render)
 
 // Frases dos 3 blocos removidos (como aparecem no render).
 const GONE_TEXT = [
@@ -59,10 +71,10 @@ function sourceProblems(src) {
   if (/<AgencyVolumeBridge\b/.test(src) || src.includes("from '@/components/AgencyVolumeBridge'")) p.push('banner Business (AgencyVolumeBridge) voltou')
   if (src.includes('businessShowcase') || /<BusinessVisualReferences\b/.test(src) || src.includes("from '@/components/BusinessVisualReferences'")) p.push('seção de empresas voltou')
   if (src.includes('home-create') || src.includes('home-start') || src.includes('Start with the full toolkit')) p.push('bloco "full toolkit" voltou')
-  const more = src.indexOf('<section className="home-more-tools" aria-label="More tools">')
+  const more = src.indexOf('<section className="home-more-tools" aria-label={HOME_GALLERY_TITLE}>') // KINEO-HOME-REMODELA-2010 — a seção "More tools" virou "Images made by Kineo" (só a galeria)
   const moreEnd = more >= 0 ? src.indexOf('</section>', more) : -1
   const gal = src.indexOf('<HomeImageGallery />')
-  if (!(more >= 0 && gal > more && gal < moreEnd)) p.push('galeria fora da seção More tools')
+  if (!(more >= 0 && gal > more && gal < moreEnd)) p.push('galeria fora da seção Images made by Kineo') // KINEO-HOME-REMODELA-2010
   if ((src.match(/<HomeImageGallery \/>/g) || []).length !== 1) p.push('galeria montada 0 ou 2+ vezes')
   if (!src.includes("import HomeImageGallery from '@/components/home/HomeImageGallery'")) p.push('import da galeria ausente')
   if (!src.includes("import HomeAuthModal from '@/components/auth/HomeAuthModal'") || !/<HomeAuthModal signedIn=\{isSignedIn\} \/>/.test(src)) p.push('modal de login desmontado')
@@ -97,7 +109,7 @@ function webpSize(buf) {
 }
 function fileProblems(list, readFile, listDir, sizeOf) {
   const p = []
-  if (list.length < 10 || list.length > 15) p.push(`galeria com ${list.length} imagens (precisa 10–15)`)
+  if (list.length < 20 || list.length > 30) p.push(`galeria com ${list.length} imagens (precisa 20–30)`) // KINEO-HOME-REMODELA-2010 — 13 de antes + 10 de anúncio + 1 do card Nano Banana = 24
   if (new Set(list.map((i) => i.file)).size !== list.length) p.push('imagem repetida na galeria')
   for (const img of list) {
     if (!/^[a-z0-9-]+\.webp$/.test(img.file)) { p.push(`${img.file}: nome/extensão fora do padrão`); continue }
@@ -139,7 +151,7 @@ function galleryRenderProblems(block) {
   if (!block.includes('data-home-section="image-gallery"')) { p.push('galeria não renderiza'); return p }
   if (!block.includes('Made with Kineo Images · Nano Banana')) p.push('selo honesto da galeria ausente')
   const imgs = [...block.matchAll(/<img [^>]*>/g)].map((m) => m[0])
-  if (imgs.length < 10 || imgs.length > 15) p.push(`render com ${imgs.length} imagens na galeria`)
+  if (imgs.length < 20 || imgs.length > 30) p.push(`render com ${imgs.length} imagens na galeria`) // KINEO-HOME-REMODELA-2010
   for (const tag of imgs) {
     const src = tag.match(/src="([^"]+)"/)?.[1] ?? ''
     if (!src.startsWith(GALLERY_DIR_URL) || src.includes('..') || !src.endsWith('.webp')) p.push(`imagem fora da pasta permitida: ${src}`)
@@ -184,7 +196,7 @@ mut('M2 bloco "full toolkit" volta', sourceProblems(LAND.replace('<HomeImageGall
 mut('M3 seção de empresas volta (fonte)', sourceProblems(LAND.replace('<HomeImageGallery />', '<HomeImageGallery />{businessShowcase}')))
 mut('M3b seção de empresas volta (render)', homeRenderProblems(H + '<section class="home-business-showcase"><h2>Videos for your business.</h2></section>', false))
 mut('M4 imagem de fora da pasta permitida', galleryRenderProblems(GHTML.replace('src="/home-images/apple.webp"', 'src="https://example.com/x.webp"')))
-mut('M5 galeria com 9 imagens', fileProblems(LIST.slice(0, 9), fsRead, () => LIST.slice(0, 9).map((i) => i.file), fsSize))
+mut('M5 galeria com 19 imagens', fileProblems(LIST.slice(0, 19), fsRead, () => LIST.slice(0, 19).map((i) => i.file), fsSize)) // KINEO-HOME-REMODELA-2010
 mut('M6 arquivo acima de 150 KB', fileProblems(LIST, fsRead, fsList, (f) => (f === 'apple.webp' ? 200 * 1024 : fsSize(f))))
 mut('M7 item do menu do topo some', homeRenderProblems(H.replace('data-nav-item="pricing"', 'data-nav-item="x"'), false))
 mut('M8 Log in perde o modal', homeRenderProblems(H.split('data-auth-modal="login"').join(''), false))

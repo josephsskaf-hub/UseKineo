@@ -1,0 +1,61 @@
+{
+  "lib/textLanguage.ts": {
+    "acrescimos": 1,
+    "trocas": [
+      [
+        "export type NarrationLanguage = 'en' | 'pt' | 'es' | 'hi' | 'fr' | 'de' | 'it' | 'nl' | 'pl' | 'tr' | 'ru' | 'uk' | 'ar' | 'ur' | 'id' | 'vi' | 'bn' // KINEO-LEGENDA-BENGALI-2010 — a língua atravessa as rotas até a fonte do Creatomate",
+        [
+          "export type NarrationLanguage = 'en' | 'pt' | 'es' | 'hi' | 'fr' | 'de' | 'it' | 'nl' | 'pl' | 'tr' | 'ru' | 'uk' | 'ar' | 'ur' | 'id' | 'vi'"
+        ]
+      ]
+    ]
+  },
+  "scripts/test-idiomas-15-2026-09-17.mjs": {
+    "acrescimos": 1,
+    "trocas": [
+      [
+        "const rd = (p) => semLegendaBengali2010(readFileSync(join(root, p), 'utf8').replace(/\\r\\n/g, '\\n'), p) // KINEO-LEGENDA-BENGALI-2010 — Bengali tem prova própria; as provas históricas permanecem idênticas",
+        [
+          "const rd = (p) => readFileSync(join(root, p), 'utf8').replace(/\\r\\n/g, '\\n')"
+        ]
+      ]
+    ]
+  },
+  "scripts/test-portas-16-linguas-2026-09-20.mjs": {
+    "acrescimos": 1,
+    "trocas": [
+      [
+        "const rd = (p) => semLegendaBengali2010(readFileSync(join(root, p), 'utf8').replace(/\\r\\n/g, '\\n'), p) // KINEO-LEGENDA-BENGALI-2010 — Bengali tem prova própria; as provas históricas permanecem idênticas",
+        [
+          "const rd = (p) => readFileSync(join(root, p), 'utf8').replace(/\\r\\n/g, '\\n')"
+        ]
+      ]
+    ]
+  },
+  "scripts/test-ritmo-por-idioma-15s-2026-09-29.mjs": {
+    "acrescimos": 1,
+    "trocas": [
+      [
+        "const L = createOfflineLoader({ source: (rel, texto) => reguaDe95No15s(rel, semLegendaBengali2010(texto, rel)) }) // reancorado 30/09 (KINEO-COBERTURA-15S): esta prova é da régua de 95 % do 15 s de 29/09 — a régua de 75 % de 30/09 volta a 95 % em memória aqui e tem guardião próprio (test-cobertura-15s-2026-09-30) // KINEO-LEGENDA-BENGALI-2010 — camada posterior desfeita antes da régua histórica",
+        [
+          "const L = createOfflineLoader({ source: reguaDe95No15s }) // reancorado 30/09 (KINEO-COBERTURA-15S): esta prova é da régua de 95 % do 15 s de 29/09 — a régua de 75 % de 30/09 volta a 95 % em memória aqui e tem guardião próprio (test-cobertura-15s-2026-09-30)"
+        ]
+      ]
+    ]
+  },
+  "scripts/test-support/desfaz-avatar-estorno-2010.mjs": {
+    "acrescimos": 2,
+    "trocas": []
+  },
+  "lib/seo/freeShortsGeneratorLangs.ts": {
+    "acrescimos": 0,
+    "trocas": [
+      [
+        "  code: Exclude<NarrationLanguage, 'en' | 'pt' | 'es' | 'bn'> // KINEO-LEGENDA-BENGALI-2010 — páginas traduzidas seguem nas 16 línguas existentes; bn entra só na narração",
+        [
+          "  code: Exclude<NarrationLanguage, 'en' | 'pt' | 'es'>"
+        ]
+      ]
+    ]
+  }
+}

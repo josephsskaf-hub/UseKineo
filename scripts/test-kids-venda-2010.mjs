@@ -1,5 +1,5 @@
 // KINEO-KIDS-VENDA-2010 — guardião das 3 FORMAS DE VENDER o AI Kids Cartoon Stories (fundador 20/10 "três sim"; CEO: US$ 29/mês · 30 vídeos,
-// US$ 49 o pack de 30, BRL pela fórmula da casa; KIDS_SALES_LIVE=false até o fundador ligar). Roda com `node scripts/test-kids-venda-2010.mjs`
+// US$ 49 o pack de 30, BRL pela fórmula da casa; KIDS_SALES_LIVE=true autorizado pelo fundador 21/10). Roda com `node scripts/test-kids-venda-2010.mjs`
 // na raiz do repo, sem rede, sem banco, sem Stripe: o checkout, as regras puras, o banco (dublê) e as intercepções do webhook são EXECUTADOS
 // (scripts/test-support/offline-ts-loader.mjs); as rotas gigantes (webhook, filme, cron) são conferidas pela ORDEM das linhas.
 //
@@ -7,7 +7,7 @@
 //   P  PREÇO SÓ DO SERVIDOR: pack cobra 4900 (mode payment, price_data inline, metadata.pack=kids_pack, SEM pack_credits); piloto cobra 2900
 //      (mode subscription, price_data inline com recurring month — nenhum Price do painel — metadata.kids_product na sessão E na assinatura);
 //      a query string com preço/créditos é ignorada; Brasil em reais pela fórmula da casa; margem positiva no pior caso (15 s = 9 cr);
-//   S  INTERRUPTOR DESLIGADO = NADA MUDA: KIDS_SALES_LIVE false no disco; checkout recusa quem não é da casa ('sales_closed') e aceita a casa;
+//   S  INTERRUPTOR LIGADO NO DISCO: KIDS_SALES_LIVE true; público liberado; ao desligar em memória, checkout recusa quem não é da casa ('sales_closed') e aceita a casa;
 //      cartões devolvem null; rota da amostra 404; desfaz exato = base em todo arquivo tocado;
 //   C  30 POR CICLO, CONTADOS POR CICLO: posição/restante puros; ciclo de 30 dias da assinatura; 1/dia (24 h) e recuperação (8 h) quando
 //      atrasado; renovação pela fatura zera a contagem e é idempotente por invoice; teto de crédito por ciclo (× 1,25);
@@ -39,7 +39,7 @@ const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail+
 const trocar = (src, a, b) => { const n = src.split(a).length - 1; if (n !== 1) throw new Error('mutante não aplicou (' + n + 'x): ' + a.slice(0, 70)); const out = src.split(a).join(b); if (out === src) throw new Error('mutante sem efeito'); return out }
 
 const F = {
-  lib: 'lib/kidsVenda/kidsVenda.ts', server: 'lib/kidsVenda/server.ts', cron: 'lib/kidsVenda/cron.ts', wh: 'lib/kidsVenda/webhook.ts', checkoutKids: 'lib/stripe/kidsVendaCheckout.ts',
+  kids: 'lib/kidsCartoon/kidsCartoon.ts', lib: 'lib/kidsVenda/kidsVenda.ts', server: 'lib/kidsVenda/server.ts', cron: 'lib/kidsVenda/cron.ts', wh: 'lib/kidsVenda/webhook.ts', checkoutKids: 'lib/stripe/kidsVendaCheckout.ts',
   checkout: 'app/api/stripe/checkout/route.ts', webhook: 'app/api/stripe/webhook/route.ts', film: 'app/api/generate-video-cinematic/route.ts', cronRoute: 'app/api/cron/autopilot-generate/route.ts',
   cards: 'components/kidsCartoon/KidsVendaCards.tsx', panel: 'components/kidsCartoon/KidsVendaPanel.tsx', sample: 'app/api/kids-venda/sample/route.ts', status: 'app/api/kids-venda/status/route.ts',
   statusRoute: 'app/api/compose/status/[renderId]/route.ts', stranded: 'app/api/cron/finish-stranded-renders/route.ts', pricing: 'app/pricing/PricingClient.tsx', pages: 'components/kidsCartoon/KidsCartoonPages.tsx', page: 'app/(dashboard)/kids-cartoon/page.tsx', precos: 'lib/checkoutPricing.ts', engine: 'lib/credits/engineCost.ts', settle: 'lib/settlementCurrency.ts',
@@ -124,8 +124,12 @@ async function provas(over = {}) {
   r.P7_tema_fere_regra_infantil = c3.calls.length === 0 && /checkout_error=/.test(c3.res.url)
 
   // S — interruptor
-  r.S1_desligado_no_disco = K.KIDS_SALES_LIVE === false && K.KIDS_SALES_OPEN_FOR_PUBLIC === false && K.kidsSalesOpen(false, false) === false && K.kidsSalesOpen(false, true) === true && K.kidsSalesOpen(true, false) === true
-  const cOff = await checkoutKids(over, { kind: 'pack', internal: false })
+  r.S1_ligado_no_disco = K.KIDS_SALES_LIVE === true && K.KIDS_SALES_OPEN_FOR_PUBLIC === true && K.kidsSalesOpen(false, false) === false && K.kidsSalesOpen(false, true) === true && K.kidsSalesOpen(true, false) === true
+  const desligado = { ...over, [F.lib]: src(F.lib).replace('export const KIDS_SALES_LIVE = true', 'export const KIDS_SALES_LIVE = false') }
+  const cPublic = await checkoutKids(over, { kind: 'pack', internal: false })
+  const cAutoPublic = await checkoutKids(over, { kind: 'autopilot', internal: false })
+  r.S0_checkout_publico_ligado = cPublic.calls.length === 1 && cPublic.res.url === 'https://checkout.stripe.test/cs_test_kids' && cAutoPublic.calls.length === 1 && cAutoPublic.calls[0].params.mode === 'subscription'
+  const cOff = await checkoutKids(desligado, { kind: 'pack', internal: false })
   r.S2_checkout_recusa_fora_da_casa = cOff.calls.length === 0 && /checkout_error=/.test(cOff.res.url) && cOff.events.some((e) => e.name === 'checkout_failed' && e.meta.blocked === 'sales_closed')
   r.S3_cartoes_somem = /^\s*if \(!KIDS_SALES_OPEN_FOR_PUBLIC\) return null$/m.test(src(F.cards)) && /KIDS_SALES_OPEN_FOR_PUBLIC/.test(src(F.sample)) && /return NextResponse\.json\(\{ error: 'Not found\.' \}, \{ status: 404 \}\)/.test(src(F.sample)) && /kidsSalesOpen\(KIDS_SALES_OPEN_FOR_PUBLIC, internal\)/.test(src(F.sample)) && /kidsSalesOpen\(KIDS_SALES_OPEN_FOR_PUBLIC, internal\)/.test(src(F.status))
 
@@ -257,7 +261,7 @@ for (const p of KIDS_VENDA_2010_ARQUIVOS) {
   const b0 = base(p)
   const b = b0 ?? (() => { try { return lf(git('show', `${KIDS_VENDA_2010_MERGED_MAIN}:${p}`)) } catch { return null } })()
   let des = null
-  try { des = b0 !== null ? semMeta95Personagem2010(semKidsVenda2010(disco(p), p), p) : semKidsVenda2010(disco(p), p) } catch (e) { console.log('       (' + e.message + ')') }
+  try { des = b0 !== null ? semKidsVenda2010(disco(p), p) : semKidsVenda2010(disco(p), p) } catch (e) { console.log('       (' + e.message + ')') }
   ok(b !== null && des === b, `D1 desfaz exato = ${b0 !== null ? 'base (sem esta camada e sem a folha de personagem)' : 'origin/main mesclada (sem esta camada)'}: ${p}`)
 }
 ok(KIDS_VENDA_2010_NOVOS.every((p) => existsSync(join(ROOT, p)) && base(p) === null), 'D2 os arquivos novos existem e não estavam na base')
@@ -283,7 +287,8 @@ const MUT = [
   ['M2 pack 4900→3900', F.lib, "pack: { usdMinor: 4900,", "pack: { usdMinor: 3900,", 'P1_precos'],
   ['M3 valor vindo da URL', F.checkoutKids, '  const unitAmount = price.usdMinor\n', "  const unitAmount = Number(req.nextUrl.searchParams.get('amount')) || price.usdMinor\n", 'P2_pack_valor_servidor'],
   ['M4 piloto sem recurring', F.checkoutKids, "      ...(kind === 'autopilot' ? { recurring: { interval: 'month' as const } } : {}),\n", '\n', 'P3_piloto_assinatura_inline'],
-  ['M5 venda ligada', F.lib, 'export const KIDS_SALES_LIVE = false', 'export const KIDS_SALES_LIVE = true', 'S1_desligado_no_disco'],
+  ['M5 venda desligada sem autorização', F.lib, 'export const KIDS_SALES_LIVE = true', 'export const KIDS_SALES_LIVE = false', 'S1_ligado_no_disco'],
+  ['M26 template desligado fecha a venda pública', F.kids, 'export const KIDS_CARTOON_LIVE = true', 'export const KIDS_CARTOON_LIVE = false', 'S1_ligado_no_disco'],
   ['M6 checkout ignora o interruptor', F.checkoutKids, '  if (!kidsSalesOpen(KIDS_SALES_OPEN_FOR_PUBLIC, isInternalEmail(user.email))) {', '  if (false) {', 'S2_checkout_recusa_fora_da_casa'],
   ['M7 35 s (prejuízo)', F.lib, 'export const KIDS_VENDA_DURATION: KidsCartoonDuration = 15', 'export const KIDS_VENDA_DURATION: KidsCartoonDuration = 35', 'P5_margem_positiva_pior_caso'],
   ['M8 2º piloto passa', F.checkoutKids, "    if (has) { skuContext.blocked = 'has_autopilot'; return redirectError(KIDS_CHECKOUT_MSG.hasAutopilot) }", '', 'P6_um_piloto_por_conta'],

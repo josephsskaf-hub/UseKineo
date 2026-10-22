@@ -23,6 +23,7 @@ import { semCloseRealAjuste1910 } from './test-support/desfaz-close-real-ajuste-
 import { semFilmesF1Virgula1910 } from './test-support/desfaz-filmes-f1-virgula-1910.mjs' // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a camada mais nova sai primeiro
 import { semCloseReal1910, CLOSE_REAL_1910_ARQUIVOS, CLOSE_REAL_1910_NOVOS, CLOSE_REAL_1910_BASE, MARCA_CLOSE_REAL_1910, TROCAS_CLOSE_REAL_1910 } from './test-support/desfaz-close-real-1910.mjs'
 import { semFilmesF1F4_1910 } from './test-support/desfaz-filmes-f1f4-1910.mjs' // reancorado KINEO-FILMES-F1-F4-1910 [TRAVA 8.2 — vai do fundador 19/10 "vai, sim pra tudo"]: as linhas marcadas do Faceless 15 s saem antes da comparação com a base
+import { semAdsQualidade2110 } from './test-support/desfaz-ads-qualidade-2110.mjs' // KINEO-ADS-QUALIDADE-2110 — reancorado: a qualidade do Studio Ads (21/10) veio depois
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -274,6 +275,7 @@ await check(`D1 cada arquivo tocado, desfeito (scripts/test-support/desfaz-close
 await check('D2 toda linha nova traz a marca (troca listada inteira); nada de cobrança, preço ou motor de vídeo no diff (v2Tiers, v2Billing, v2Engines, v2Shots, v2Images, compose)', () => {
   const trocas = Object.values(TROCAS_CLOSE_REAL_1910).flat()
   const tocados = git('diff', '--name-only', CLOSE_REAL_1910_BASE, 'HEAD').trim().split('\n').filter(Boolean).concat(git('diff', '--name-only', 'HEAD').trim().split('\n').filter(Boolean))
+  tocados.splice(0, tocados.length, ...tocados.filter((f) => { try { return lf(git('show', `${CLOSE_REAL_1910_BASE}:${f}`)) !== lf(semAdsQualidade2110(readFileSync(join(ROOT, f), 'utf8'), f)) } catch { return true } })) // KINEO-ADS-QUALIDADE-2110 — reancorado: arquivo cuja mudança desde a base é SÓ a camada da qualidade (21/10, desfaz próprio) não conta
   return trocas.length > 0 && trocas.every(([nova]) => nova.includes(MARCA)) && ['lib/ads/v2Tiers.ts', 'lib/ads/v2Billing.ts', 'lib/ads/v2Engines.ts', 'lib/ads/v2Shots.ts', 'lib/ads/v2Images.ts', 'lib/compose.ts', 'lib/ads/adV2Montage.ts', 'lib/credits/engineCost.ts'].every((f) => !tocados.includes(f))
 })
 await check('D3 encadeamento: os guardiões byte a byte tiram esta camada PRIMEIRO (semCloseReal1910 colado no readFileSync); texto sem a marca e arquivo fora da lista passam igual', () => {

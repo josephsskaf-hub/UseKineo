@@ -20,9 +20,9 @@
 export const KIDS_CARTOON_MARK = 'KINEO-BEBE-QUE-FALA-2010'
 
 /** Interruptor do PRODUTO (template + `kids_cartoon` no filme). false = só as contas da casa veem e usam. */
-export const KIDS_CARTOON_LIVE = false
+export const KIDS_CARTOON_LIVE = true // LIGADO 20/10 noite: nota 10 do fundador ao curta 4f6c8a40 e "os 4 cards no ar hoje"
 /** Interruptor das PÁGINAS públicas (EN/PT). false = 404 + fora do sitemap/llms.txt (o IndexNow do cron só envia o que está no sitemap). */
-export const KIDS_CARTOON_PAGES_LIVE = false
+export const KIDS_CARTOON_PAGES_LIVE = true // LIGADO 20/10 noite: o menu do topo (home remodelada) aponta "AI Cartoon Videos" → /ai-kids-cartoon-videos
 
 /** O produto abre para esta conta? (puro: `internal` = isInternalEmail do e-mail verificado da sessão). */
 export function kidsCartoonOn(live: boolean, internal: boolean): boolean {
@@ -64,21 +64,21 @@ export interface KidsCharacter {
   kind: { en: string; pt: string; es: string }
   /** A FICHA canônica (começa por "Nome, …" — lib/cinematic/sceneStyle mentionsStoryCharacter reconhece o nome). */
   sheet: string
-  /** Retrato fixo gerado por nós. '' = placeholder até o teste aprovar os retratos (o template mostra a inicial). */
+  /** Retrato fixo gerado por nós (KINEO-DESENHO-NOTA9-2110: Nano Banana Pro, 1:1, na conta do fundador, um por ficha; public/kids-cartoon/<id>.webp). */
   portrait: string
 }
 export const KIDS_CHARACTERS: readonly KidsCharacter[] = [
-  { id: 'leo', name: 'Leo', kind: { en: 'Boy', pt: 'Menino', es: 'Niño' }, portrait: '',
+  { id: 'leo', name: 'Leo', kind: { en: 'Boy', pt: 'Menino', es: 'Niño' }, portrait: '/kids-cartoon/leo.webp',
     sheet: 'Leo, a cheerful 5-year-old boy 3D cartoon character with curly brown hair, big round green eyes, rosy cheeks, a bright yellow raincoat over a blue striped shirt and red rubber boots' },
-  { id: 'mia', name: 'Mia', kind: { en: 'Girl', pt: 'Menina', es: 'Niña' }, portrait: '',
+  { id: 'mia', name: 'Mia', kind: { en: 'Girl', pt: 'Menina', es: 'Niña' }, portrait: '/kids-cartoon/mia.webp',
     sheet: 'Mia, a curious 5-year-old girl 3D cartoon character with two puffy black pigtails tied with pink ribbons, big brown eyes, a small gap-tooth smile, a purple dress with white polka dots and white sneakers' },
-  { id: 'dino', name: 'Dino', kind: { en: 'Little dinosaur', pt: 'Dinossaurinho', es: 'Dinosaurito' }, portrait: '',
+  { id: 'dino', name: 'Dino', kind: { en: 'Little dinosaur', pt: 'Dinossaurinho', es: 'Dinosaurito' }, portrait: '/kids-cartoon/dino.webp',
     sheet: 'Dino, a friendly little green dinosaur 3D cartoon character with a round belly, tiny arms, big shiny amber eyes, soft orange spots on his back and a short wobbly tail' },
-  { id: 'pip', name: 'Pip', kind: { en: 'Puppy', pt: 'Filhote de cachorro', es: 'Cachorrito' }, portrait: '',
+  { id: 'pip', name: 'Pip', kind: { en: 'Puppy', pt: 'Filhote de cachorro', es: 'Cachorrito' }, portrait: '/kids-cartoon/pip.webp',
     sheet: 'Pip, a fluffy cream-colored puppy 3D cartoon character with floppy brown ears, a black button nose, big blue eyes and a red collar with a little gold bell' },
-  { id: 'bibi', name: 'Bibi', kind: { en: 'Bunny', pt: 'Coelhinha', es: 'Conejita' }, portrait: '',
+  { id: 'bibi', name: 'Bibi', kind: { en: 'Bunny', pt: 'Coelhinha', es: 'Conejita' }, portrait: '/kids-cartoon/bibi.webp',
     sheet: 'Bibi, a little white bunny 3D cartoon character with long pink-lined ears, a round fluffy tail, big violet eyes and a tiny yellow scarf' },
-  { id: 'ollie', name: 'Ollie', kind: { en: 'Baby elephant', pt: 'Elefantinho', es: 'Elefantito' }, portrait: '',
+  { id: 'ollie', name: 'Ollie', kind: { en: 'Baby elephant', pt: 'Elefantinho', es: 'Elefantito' }, portrait: '/kids-cartoon/ollie.webp',
     sheet: 'Ollie, a baby elephant 3D cartoon character with soft grey skin, big flappy ears with pink insides, a short curly trunk and a tiny green cap' },
 ]
 export const KIDS_CHARACTER_IDS: readonly KidsCharacterId[] = KIDS_CHARACTERS.map((c) => c.id)
@@ -250,25 +250,163 @@ export function kidsPostCaption(language: KidsCartoonLanguage, characterId: Kids
   return `A ${c.name} story for little ones 🌈 Made with AI (AI-generated 3D cartoon) at usekineo.com #MadeWithAI #KidsStories #AIgenerated`
 }
 
-// ── a tela do template (EN/PT; o resto das línguas vê o inglês) ─────────────────────────────────────────────────
+// ── a tela do template (EN/PT/ES; o resto das línguas vê o inglês) ─────────────────────────────────────────────
+// KINEO-DESENHO-NOTA9-2110 [TRAVA 8.2 — vai do fundador 21/10 "experiência no mínimo 9"] — o fluxo inteiro mora na tela clara do
+// /kids-cartoon: personagem com rosto → ideia → a história aparece para revisar/editar → UMA linha de custo (o preço real do
+// servidor para a duração) → um botão grande → progresso e o filme pronto com download, na MESMA tela. Nunca mais o /generate escuro.
 export const KIDS_TEMPLATE_COPY = {
   en: {
-    title: 'AI Kids Cartoon Stories', lead: 'Type a story idea, pick a character and get a narrated 3D cartoon with captions.',
+    title: 'AI Cartoon Videos', lead: 'Pick a character, give a story idea and get a narrated 3D cartoon with captions — all on this page.',
     character: 'Character', idea: 'Story idea', ideaPlaceholder: 'e.g. learns to say sorry to a friend', ready: 'Or pick a ready idea',
     language: 'Narration language', duration: 'Length', write: 'Write my story', writing: 'Writing the story…', story: 'Your story',
-    make: 'Make my cartoon', makeNote: 'Opens the Studio on Seedance 1.5 with your story. The price shows on the Generate button there.',
+    storyHint: 'Read it and change anything you like — the narrator says exactly this text.', make: 'Make my cartoon', starting: 'Starting…',
     caption: 'Post caption (with the AI label)', copy: 'Copy', copied: 'Copied', label: 'Made with AI — turn on the AI label when you post.',
     rules: 'Kids content stays innocent: no romance, violence, mocking or adult products.', again: 'Write another version',
+    plans: 'See plans', shorter: 'Make it 15 seconds instead', back: 'Change the idea', captionsToggle: 'Captions on the video', captionsHint: 'Turn off to post without burned-in captions.',
+    stepScenes: 'Drawing the scenes', stepVoice: 'Adding the voice and captions', stepReady: 'Your cartoon is ready',
+    wait: 'Usually 3 to 6 minutes. You can close this page — we finish it and email you, and it stays in your library.',
+    download: 'Download video', library: 'Open my library', another: 'Make another cartoon', failed: 'The cartoon did not finish', retry: 'Try again',
   },
   pt: {
-    title: 'Histórias infantis em desenho 3D com IA', lead: 'Escreva a ideia da história, escolha o personagem e receba um desenho 3D narrado e com legenda.',
+    title: 'Vídeos de desenho com IA', lead: 'Escolha o personagem, dê a ideia da história e receba um desenho 3D narrado e com legenda — tudo nesta página.',
     character: 'Personagem', idea: 'Ideia da história', ideaPlaceholder: 'ex.: aprende a pedir desculpas a um amigo', ready: 'Ou escolha uma ideia pronta',
     language: 'Língua da narração', duration: 'Duração', write: 'Escrever minha história', writing: 'Escrevendo a história…', story: 'Sua história',
-    make: 'Fazer meu desenho', makeNote: 'Abre o Studio no Seedance 1.5 com a sua história. O preço aparece no botão de gerar de lá.',
+    storyHint: 'Leia e mude o que quiser — o narrador fala exatamente este texto.', make: 'Fazer meu desenho', starting: 'Começando…',
     caption: 'Legenda para postar (com o selo de IA)', copy: 'Copiar', copied: 'Copiado', label: 'Feito com IA — ligue o rótulo de IA ao postar.',
     rules: 'Conteúdo infantil é inocente: sem romance, violência, zombaria ou produto adulto.', again: 'Escrever outra versão',
+    plans: 'Ver planos', shorter: 'Fazer com 15 segundos', back: 'Mudar a ideia', captionsToggle: 'Legenda no vídeo', captionsHint: 'Desligue para postar sem legenda queimada no vídeo.',
+    stepScenes: 'Desenhando as cenas', stepVoice: 'Colocando a voz e a legenda', stepReady: 'Seu desenho está pronto',
+    wait: 'Leva de 3 a 6 minutos. Pode fechar esta página — a gente termina, avisa por e-mail e ele fica na sua biblioteca.',
+    download: 'Baixar vídeo', library: 'Abrir minha biblioteca', another: 'Fazer outro desenho', failed: 'O desenho não terminou', retry: 'Tentar de novo',
+  },
+  es: {
+    title: 'Videos de dibujos con IA', lead: 'Elige el personaje, da la idea del cuento y recibe un dibujo 3D narrado y con subtítulos — todo en esta página.',
+    character: 'Personaje', idea: 'Idea del cuento', ideaPlaceholder: 'ej.: aprende a pedir perdón a un amigo', ready: 'O elige una idea lista',
+    language: 'Idioma de la narración', duration: 'Duración', write: 'Escribir mi cuento', writing: 'Escribiendo el cuento…', story: 'Tu cuento',
+    storyHint: 'Léelo y cambia lo que quieras — el narrador dice exactamente este texto.', make: 'Hacer mi dibujo', starting: 'Empezando…',
+    caption: 'Texto para publicar (con la etiqueta de IA)', copy: 'Copiar', copied: 'Copiado', label: 'Hecho con IA — activa la etiqueta de IA al publicar.',
+    rules: 'El contenido infantil es inocente: sin romance, violencia, burlas ni productos para adultos.', again: 'Escribir otra versión',
+    plans: 'Ver planes', shorter: 'Hacerlo de 15 segundos', back: 'Cambiar la idea', captionsToggle: 'Subtítulos en el video', captionsHint: 'Desactívalos para publicar sin subtítulos grabados en el video.',
+    stepScenes: 'Dibujando las escenas', stepVoice: 'Poniendo la voz y los subtítulos', stepReady: 'Tu dibujo está listo',
+    wait: 'Suele tardar de 3 a 6 minutos. Puedes cerrar esta página — lo terminamos, te avisamos por e-mail y queda en tu biblioteca.',
+    download: 'Descargar video', library: 'Abrir mi biblioteca', another: 'Hacer otro dibujo', failed: 'El dibujo no terminó', retry: 'Intentar de nuevo',
   },
 } as const
-export function kidsTemplateCopy(language: string | null | undefined) {
-  return language === 'pt' ? KIDS_TEMPLATE_COPY.pt : KIDS_TEMPLATE_COPY.en
+export type KidsTemplateCopy = { readonly [K in keyof (typeof KIDS_TEMPLATE_COPY)['en']]: string }
+export function kidsTemplateCopy(language: string | null | undefined): KidsTemplateCopy {
+  return language === 'pt' ? KIDS_TEMPLATE_COPY.pt : language === 'es' ? KIDS_TEMPLATE_COPY.es : KIDS_TEMPLATE_COPY.en
+}
+
+// ── KINEO-DESENHO-NOTA9-2110 — a linha de custo (o número vem do chamador: creditCostForDuration('cinematic_ai', true, s),
+// a MESMA conta que o servidor debita; aqui só o texto) ────────────────────────────────────────────────────────────────
+export const KIDS_PLANS_PATH = '/pricing'
+type KidsLang = 'en' | 'pt' | 'es'
+function kidsLang(l: string | null | undefined): KidsLang {
+  return l === 'pt' || l === 'es' ? l : 'en'
+}
+function kidsNum(n: number, l: KidsLang): string {
+  const locale = l === 'pt' ? 'pt-BR' : l === 'es' ? 'es-ES' : 'en-US'
+  return Math.round(n).toLocaleString(locale)
+}
+function kidsCr(n: number, l: KidsLang): string {
+  if (l === 'en') return n === 1 ? 'credit' : 'credits'
+  return n === 1 ? 'crédito' : 'créditos'
+}
+/** A pílula de duração: "15 s · 9 credits". */
+export function kidsDurationChip(language: string | null | undefined, seconds: number, cost: number): string {
+  const l = kidsLang(language)
+  return `${seconds} s · ${kidsNum(cost, l)} ${kidsCr(cost, l)}`
+}
+/** A ÚNICA linha de custo acima do botão. balance null = saldo ainda não lido (mostra só o preço; o servidor é a guarda final). */
+export function kidsCostLine(language: string | null | undefined, i: { seconds: number; cost: number; balance: number | null }): { text: string; enough: boolean | null } {
+  const l = kidsLang(language)
+  const c = kidsNum(i.cost, l)
+  const cr = kidsCr(i.cost, l)
+  let head = `${i.seconds}-second cartoon · ${c} ${cr}`
+  if (l === 'pt') head = `Desenho de ${i.seconds} segundos · ${c} ${cr}`
+  if (l === 'es') head = `Dibujo de ${i.seconds} segundos · ${c} ${cr}`
+  if (typeof i.balance !== 'number' || !Number.isFinite(i.balance)) return { text: head, enough: null }
+  const b = kidsNum(i.balance, l)
+  if (i.balance < i.cost) {
+    if (l === 'pt') return { enough: false, text: `Você precisa de ${c} ${cr} — você tem ${b}.` }
+    if (l === 'es') return { enough: false, text: `Necesitas ${c} ${cr} — tienes ${b}.` }
+    return { enough: false, text: `You need ${c} ${cr} — you have ${b}.` }
+  }
+  const left = kidsNum(i.balance - i.cost, l)
+  if (l === 'pt') return { enough: true, text: `${head} · você tem ${b} → sobram ${left}` }
+  if (l === 'es') return { enough: true, text: `${head} · tienes ${b} → te quedan ${left}` }
+  return { enough: true, text: `${head} · you have ${b} → ${left} left` }
+}
+
+// ── KINEO-DESENHO-NOTA9-2110 — os pedidos do filme, montados aqui (puro) com os MESMOS campos que o /generate manda ────────
+/** O corpo do POST /api/generate-video-cinematic: o do /generate no Seedance 1.5 com "Use my script as is" e kids_cartoon. */
+export function kidsCinematicPayload(i: { generationId: string; script: string; request: Pick<KidsCartoonRequest, 'character' | 'language' | 'duration'>; captions?: boolean }) {
+  return {
+    generationId: i.generationId,
+    prompt: String(i.script ?? '').trim(),
+    duration: i.request.duration,
+    language: i.request.language,
+    script_mode: 'verbatim' as const,
+    engine: KIDS_CARTOON_ENGINE,
+    kids_cartoon: i.request.character,
+    ...(i.captions === false ? { kids_captions: false as const } : {}), // KINEO-DESENHO-SOM-2110 — o botão "Captions on the video" desligado; ligado (padrão) = corpo de antes
+  }
+}
+/** O corpo do POST /api/compose do caminho clássico (o mesmo composePayload do /generate para um filme do Seedance 1.5). */
+export function kidsComposePayload(i: { generationId: string; clipUrls: string[]; voiceover: string; captions: string[]; duration: number; topic: string; quality: string; language: string; speed: number | null }) {
+  return {
+    generationId: i.generationId,
+    clip_urls: i.clipUrls,
+    voiceover_script: i.voiceover,
+    scene_captions: i.captions,
+    duration: i.duration,
+    topic: i.topic,
+    quality: i.quality,
+    language: i.language,
+    ...(typeof i.speed === 'number' ? { speed: i.speed } : {}),
+  }
+}
+
+// ── KINEO-DESENHO-SOM-2110 [TRAVA 8.2 — vai do fundador 21/10 "experiência no mínimo 9"] — o SOM do desenho infantil ──────────────
+// Fundador deu 9,5 aos dois curtas do Ollie: "o que me incomodou foi a trilha, tem que ser diferente; o resto está perfeito". E a
+// pesquisa de mercado (docs/MERCADO-DESENHO-INFANTIL-OPCOES-2026-10-21.md): o padrão é um NARRADOR CONTADOR DE HISTÓRIAS caloroso,
+// não voz de criança. Tudo aqui vale SÓ para o filme com `kids_cartoon` (Seedance 1.5); filme comum = byte a byte o de antes.
+//   · VOZ: a rota do filme põe `vertical = KIDS_NARRATION_VERTICAL` no pedido infantil; lib/narration/niche-mapping devolve a persona
+//     KIDS_NARRATION_PERSONA (nova, a contadora calorosa — 2,55 × 0,97 = 2,47 pal/s, dentro da régua de 2,5 do Seedance 1.5) antes de
+//     qualquer palpite por palavra-chave (que mandava "learns…" para o narrador de documentário). Vai ASSINADA no claim
+//     (`narration_voice`, também no 35 s), então a montagem, a retomada e o resgate do cron falam a mesma voz.
+//   · TRILHA: lib/musicDirection devolve a direção 'kids' para esse `vertical` (Lyria: música leve de programa infantil — ukulele,
+//     glockenspiel, xilofone, piano suave, alegre, sem bateria/épico/tensão) e o /api/compose baixa a trilha para KIDS_MUSIC_VOLUME.
+//   · LEGENDA: o botão "Captions on the video" da tela (ligado por padrão). Desligado, o pedido manda `kids_captions:false`, a rota
+//     assina `kids_cartoon.captions=false` no claim e o /api/compose tira as legendas faladas (trilhas 5/7). Marca d'água fica.
+export const KIDS_SOM_MARK = 'KINEO-DESENHO-SOM-2110'
+/** O `vertical` do filme infantil (literal espelhado em lib/narration/niche-mapping.ts e lib/musicDirection.ts — o guardião confere). */
+export const KIDS_NARRATION_VERTICAL = 'kids_story'
+/** A persona do narrador infantil: a contadora de histórias calorosa (lib/narration/personas.ts, voz nova). */
+export const KIDS_NARRATION_PERSONA = 'emotional-storyteller'
+/** Volume da trilha no desenho infantil (o filme comum fica em 12% — lib/compose MUSIC_VOLUME). */
+export const KIDS_MUSIC_VOLUME = '8%'
+/** O que vai assinado no claim do filme infantil (a montagem e o resgate do cron leem daqui). */
+export function kidsClaimField(i: { character: KidsCharacterId; captions: boolean }): { character: KidsCharacterId; captions: boolean } {
+  return { character: i.character, captions: i.captions !== false }
+}
+/** O desenho infantil assinado no claim (response.kids_cartoon). null = filme comum (nada muda) ou campo inválido. */
+export function desenhoDoClaim(response: unknown): { character: KidsCharacterId; captions: boolean } | null {
+  const r = response && typeof response === 'object' ? (response as Record<string, unknown>) : null
+  const k = r?.kids_cartoon
+  if (!k || typeof k !== 'object' || Array.isArray(k)) return null
+  const { character, captions } = k as Record<string, unknown>
+  if (!isKidsCharacterId(character) || typeof captions !== 'boolean') return null
+  return { character, captions }
+}
+/** A trilha (áudio da trilha 8 do RenderScript) mais baixa no desenho infantil. Puro: devolve um source novo; o resto intacto. */
+export function kidsMusicQuieter<T extends Record<string, unknown>>(source: T): { source: T; changed: number } {
+  const els = source && typeof source === 'object' ? (source as { elements?: unknown }).elements : undefined
+  if (!Array.isArray(els)) return { source, changed: 0 }
+  let changed = 0
+  const next = els.map((e) => {
+    if (e && typeof e === 'object' && (e as { type?: unknown }).type === 'audio' && Number((e as { track?: unknown }).track) === 8) { changed++; return { ...(e as Record<string, unknown>), volume: KIDS_MUSIC_VOLUME } }
+    return e
+  })
+  return { source: { ...source, elements: next }, changed }
 }

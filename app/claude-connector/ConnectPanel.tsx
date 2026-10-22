@@ -9,9 +9,13 @@
 // da Buzzy: abas com ícone (Claude · Claude Code · Cursor · Other MCP clients · ChatGPT em breve) e, em cada aba, 3
 // CARTÕES NUMERADOS LADO A LADO (empilham no celular). A aba Cursor é nova (~/.cursor/mcp.json). Eventos, ?copied=,
 // ?src= e a âncora #connect seguem iguais. Cores de ./palette (fonte única da página).
+//
+// KINEO-MCP-STUDIO-AJUSTE-2010 — a aba ChatGPT deixa de ser "em breve": o Kineo Studio (o conector que faz o filme na conta
+// da pessoa) funciona no ChatGPT desde 20/10 (job 6ce0763f), por Developer mode → custom MCP server, com os passos que o
+// fundador conferiu. O app "Kineo MCP" na loja do ChatGPT segue em análise — nota pequena e honesta.
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { trackEvent } from '@/lib/analytics'
-import { CLAUDE_CONNECT_ANCHOR, CLAUDE_CONNECT_EVENTS, CLAUDE_START_PROMPT, claudeConnectSource, isMobileClient, type ClaudeConnectSource } from '@/lib/claudeConnect'
+import { CLAUDE_CONNECT_ANCHOR, CLAUDE_CONNECT_EVENTS, CLAUDE_START_PROMPT, CLAUDE_STUDIO_MCP_SERVER_URL, claudeConnectSource, isMobileClient, type ClaudeConnectSource } from '@/lib/claudeConnect' // KINEO-MCP-STUDIO-AJUSTE-2010: + a URL do Kineo Studio (aba ChatGPT)
 import { copyUrlAndOpenClaude } from '@/lib/claudeConnectClient'
 import { ClientGlyph, type ClientKey } from './ClientGlyphs'
 import { MCP_PALETTE as C, MONO } from './palette'
@@ -26,7 +30,7 @@ const TABS: readonly { key: TabKey; label: string; soon?: true }[] = [
   { key: 'claude_code', label: 'Claude Code' },
   { key: 'cursor', label: 'Cursor' },
   { key: 'other', label: 'Other MCP clients' },
-  { key: 'chatgpt', label: 'ChatGPT', soon: true },
+  { key: 'chatgpt', label: 'ChatGPT' }, // KINEO-MCP-STUDIO-AJUSTE-2010: no ar (Kineo Studio por Developer mode)
 ]
 
 export function CopyField({ value, label, block = false }: { value: string; label: string; block?: boolean }) {
@@ -261,21 +265,29 @@ export default function ConnectPanel({ serverUrl, startHref }: { serverUrl: stri
       {tab === 'chatgpt' && (
         <div role="tabpanel" aria-label="ChatGPT">
           <ol style={STEP_GRID}>
-            <StepCard n={1} title="Not available yet">
+            <StepCard n={1} title="Turn on Developer mode">
               <p style={p}>
-                <strong>Coming soon.</strong> A Kineo app for ChatGPT is not available yet.
+                In ChatGPT: <strong>Settings → Apps &amp; Connectors</strong> (called <strong>Plugins</strong> in some versions) →{' '}
+                <strong>Advanced settings</strong> → turn on <strong>Developer mode</strong>. It needs a paid ChatGPT plan (Plus or higher).
               </p>
             </StepCard>
-            <StepCard n={2} title="Write the script in ChatGPT">
-              <p style={p}>Today you can still write your script in ChatGPT as usual and copy it.</p>
-            </StepCard>
-            <StepCard n={3} title="Paste it into Kineo">
+            <StepCard n={2} title="Add Kineo Studio">
               <p style={p}>
-                Paste it on the{' '}
-                <a href="/chatgpt" style={{ color: C.accent, textDecoration: 'none', fontWeight: 700 }}>
-                  paste page
-                </a>{' '}
-                and open it in Kineo Studio the same way.
+                Click <strong>Create</strong> (or &ldquo;Add custom MCP server&rdquo;). Name: <strong>Kineo Studio</strong>. Authentication:{' '}
+                <strong>OAuth</strong>. Tick &ldquo;I trust this application&rdquo;. URL:
+              </p>
+              <div style={{ marginTop: 'auto' }}>
+                <CopyField value={CLAUDE_STUDIO_MCP_SERVER_URL} label="Kineo Studio connector URL" block />
+              </div>
+            </StepCard>
+            <StepCard n={3} title="Allow and ask for a film">
+              <p style={p}>
+                Sign in to Kineo and click <strong>Allow</strong>. In a new chat, turn on Kineo Studio from the <strong>+</strong> /
+                Developer mode menu and ask for a film. It is made in your Kineo account and uses its credits.
+              </p>
+              <p style={small}>
+                Prefer to paste? The <a href="/chatgpt" style={{ color: C.accent, textDecoration: 'none', fontWeight: 700 }}>paste page</a>{' '}
+                still works. The Kineo MCP app for the ChatGPT store is in review.
               </p>
             </StepCard>
           </ol>

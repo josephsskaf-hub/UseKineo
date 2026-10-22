@@ -78,6 +78,8 @@ import {
 // reivindicação, para o reenvio de quem reconecta não reler), antes do GPT/TTS e antes do débito. Falha fechada.
 import { moderateContent } from '@/lib/safety/contentModeration'
 import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/moderationPolicy'
+import { KIDS_REFUSAL_MESSAGE, kidsContentRefusal } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010 [TRAVA 8.2 — vai do fundador 20/10 "começa hoje"] — a regra infantil sobre os retratos do bebê-podcast
+import { isBabyPodcastAvatarUrl } from '@/lib/kidsCartoon/babyPodcast' // KINEO-BEBE-QUE-FALA-2010
 
 // A origem tem de estar na pasta do PRÓPRIO usuário (avatars/<uid>/). URL normalizada: `..`/`%2e` não escapam da pasta.
 function isOwnAvatarUrl(url: string, userId: string, supabaseUrl: string): boolean {
@@ -337,6 +339,7 @@ export async function POST(req: NextRequest) {
           .eq('id', claimId)
           .eq('user_id', userId)
           .eq('name', AVATAR_CLAIM_EVENT)
+          .is('metadata->>abandoned_refund_claimed_at', null) // KINEO-AVATAR-ESTORNO-2010 — cleanup tardio não remove a revogação de entrega reservada pelo sweep
         if (error) console.error('[generate-avatar] claim release failed:', error.message)
         else ownsAvatarClaim = false
       }
@@ -396,6 +399,7 @@ export async function POST(req: NextRequest) {
           { status: 409 },
         )
       }
+      if (metadata.abandoned_refund_claimed_at) return safetyUnavailable() // KINEO-AVATAR-ESTORNO-2010 — claim reservado para estorno nunca expõe resposta por replay
       if (status === 'done' || status === 'settled') {
         if (!response || !responseHash || avatarValueHash(response) !== responseHash) {
           console.error(`[generate-avatar] rejected corrupt replay response id=${claimId}`)
@@ -429,6 +433,7 @@ export async function POST(req: NextRequest) {
           .eq('name', AVATAR_CLAIM_EVENT)
           .eq('metadata->>status', 'pending')
           .eq('metadata->>authority', metadata.authority as string)
+          .is('metadata->>abandoned_refund_claimed_at', null) // KINEO-AVATAR-ESTORNO-2010 — replay pending iniciado antes do sweep não apaga o claim marcado enquanto o refund aguardava
           .select('id')
           .maybeSingle()
         if (deleteError || deleted?.id !== claimId) {
@@ -474,6 +479,7 @@ export async function POST(req: NextRequest) {
         const currentMetadata = currentRow.metadata && typeof currentRow.metadata === 'object'
           ? currentRow.metadata as Record<string, unknown>
           : {}
+        if (currentMetadata.abandoned_refund_claimed_at) return false // KINEO-AVATAR-ESTORNO-2010 — o submit/enriquecimento tardio não pode reabrir entrega depois da reserva do sweep
         if (currentMetadata.status === 'settled') return true
         if (currentMetadata.status !== 'pending' && currentMetadata.status !== 'done') {
           console.error('[generate-avatar] claim has invalid completion status:', currentMetadata.status)
@@ -525,6 +531,7 @@ export async function POST(req: NextRequest) {
           .eq('user_id', userId)
           .eq('name', AVATAR_CLAIM_EVENT)
           .eq('metadata->>authority', currentAuthority)
+          .is('metadata->>abandoned_refund_claimed_at', null) // KINEO-AVATAR-ESTORNO-2010 — CAS contra a reserva concorrente, inclusive se o worker leu antes dela
           // Optional B-roll enrichment can finish after the client has already
           // composed and paid. Never downgrade that concurrently-settled hold
           // back to `done`.
@@ -756,6 +763,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // KINEO-BEBE-QUE-FALA-2010 — retrato do bebê-podcast (avatars/<uid>/baby-podcast-*, copiado pelo /api/baby-podcast/prepare): o roteiro passa também pela regra
+    // KINEO-BEBE-QUE-FALA-2010 — infantil (sem romance, violência, zombaria, produto adulto) — vale fora da tela também. Antes do TTS e do débito; barrado = solta tudo.
+    if (!dryRun && !videoMode && isBabyPodcastAvatarUrl(avatarImageUrl, userId) && kidsContentRefusal(prompt)) { await releaseAvatarSubmission(); return NextResponse.json({ error: KIDS_REFUSAL_MESSAGE.en, code: 'kids_rule' }, { status: 422 }) } // KINEO-BEBE-QUE-FALA-2010
     const parsed = parseUserScript(prompt)
     const verbatim = parsed.hasMarkers && parsed.segments.length > 0
     let narration: string

@@ -14,7 +14,7 @@ import { UiLabel, useInterfaceLanguage, useUiCopy } from '@/components/Interface
 import { trackEvent } from '@/lib/analytics'
 import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample' // KINEO-HOME-CARDS-BOTOES-2010 — o rótulo grátis agora vem de homeCardAdsCta
 import {
-  HOME_CARD_BADGE,
+  // HOME_CARD_BADGE saiu do import — KINEO-HOME-CARDS-CLAROS-2010: o selo do motor não aparece mais nos cards (fundador 21/10: "pode tirar o motor de todos os cards desses 4 primeiros")
   HOME_CARD_COPY,
   HOME_CARD_EVENT,
   HOME_CARD_ORDER,
@@ -24,8 +24,9 @@ import {
   homeCardHref,
   type HomeCardId,
 } from '@/lib/ui/homeThreeCards'
+import HomeProductAdsReel from '@/components/home/HomeProductAdsReel' // KINEO-BEBE-QUE-FALA-2010 — o reel do card de produto no modo 4 cards
 import HomeKidsCard from '@/components/home/HomeKidsCard' // KINEO-BEBE-QUE-FALA-2010 — o 4º card (AI Kids Cartoons), só com o interruptor
-import { HOME_KIDS_CARD_CSS } from '@/lib/ui/homeKidsCard' // KINEO-BEBE-QUE-FALA-2010 — a grade de 4 colunas mora num <style> próprio, emitido só com o card ligado
+import { HOME_CARDS_AJUSTE_CSS, HOME_KIDS_CARD_CSS } from '@/lib/ui/homeKidsCard' // KINEO-BEBE-QUE-FALA-2010 — a grade de 4 colunas mora num <style> próprio, emitido só com o card ligado
 import { UGC_PILLAR_PATH, UGC_PILLAR_PT_PATH } from '@/lib/seo/paginasUgc2010' // KINEO-PAGINAS-UGC-2010 — o guia do AI UGC Ads ao lado do título dos cards
 
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)'
@@ -46,13 +47,19 @@ export const HOME_THREE_CARDS_CSS = `
 .k3c-card[data-home-card="films"] .k3c-media video{object-position:50% 16%}
 .k3c-card[data-home-card="product_ads"] .k3c-media video{object-position:50% 86%}
 .k3c-card[data-home-card="ugc_ads"] .k3c-media video{object-position:50% 60%}
-.k3c-shade{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(5,7,11,.38) 0%,rgba(5,7,11,0) 16%,rgba(5,7,11,0) 50%,rgba(5,7,11,.55) 68%,rgba(5,7,11,.88) 100%)}
-.k3c-glass{position:absolute;left:0;right:0;bottom:0;height:46%;z-index:1;pointer-events:none;-webkit-backdrop-filter:blur(18px) saturate(1.15);backdrop-filter:blur(18px) saturate(1.15);-webkit-mask-image:linear-gradient(180deg,transparent 0%,#000 38%);mask-image:linear-gradient(180deg,transparent 0%,#000 38%);background:linear-gradient(180deg,rgba(6,8,13,0) 0%,rgba(6,8,13,.5) 45%,rgba(6,8,13,.72) 100%)}
+.k3c-shade{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,rgba(5,7,11,.12) 0%,rgba(5,7,11,0) 14%,rgba(5,7,11,0) 62%,rgba(5,7,11,.28) 80%,rgba(5,7,11,.5) 100%)} /* KINEO-HOME-CARDS-CLAROS-2010 — v2 (fundador 21/10: "ainda está com problema na parte de baixo, parece uma sombra"): só um degradê curto e leve atrás do texto */
+.k3c-glass{display:none} /* KINEO-HOME-CARDS-CLAROS-2010 — v2: o vidro fosco saiu (o desfoque virava mancha escura); o vídeo fica nítido até embaixo */
+.k3c-card[data-home-card="films"] .k3c-media video{object-position:50% 0% !important;transform-origin:50% 0;transform:scale(1.1)} /* KINEO-HOME-CARDS-CLAROS-2010 — v2 letreiro: sem o vidro, o letreiro queimado do vídeo não pode cair cortado atrás do título/botão (farol: o letreiro de baixo, a ~70% do vídeo, sai do quadro) */
+.k3c-card[data-home-card="films"]:hover .k3c-media video{transform:scale(1.14)} /* KINEO-HOME-CARDS-CLAROS-2010 — v2 letreiro: sem o vidro, o letreiro queimado do vídeo não pode cair cortado atrás do título/botão */
+.k3c-card[data-home-card="product_ads"] .k3c-media video:not([data-trio]){object-position:50% 0% !important;transform-origin:50% 0;transform:scale(1.12)} /* KINEO-HOME-CARDS-CLAROS-2010 — v2 letreiro: sem o vidro, o letreiro queimado do vídeo não pode cair cortado atrás do título/botão (LUME: o letreiro de baixo, a ~70–77%, sai; o de cima, a ~18–27%, fica inteiro no meio do card) */
+.k3c-card[data-home-card="product_ads"]:hover .k3c-media video:not([data-trio]){transform:scale(1.16)} /* KINEO-HOME-CARDS-CLAROS-2010 — v2 letreiro: sem o vidro, o letreiro queimado do vídeo não pode cair cortado atrás do título/botão */
+.k3c-card[data-home-card="kids_cartoon"] .k3c-media video{object-position:50% 70% !important} /* KINEO-HOME-CARDS-CLAROS-2010 — v2 letreiro: sem o vidro, o letreiro queimado do vídeo não pode cair cortado atrás do título/botão (desenho: o letreiro, a ~55–62% do vídeo, sobe inteiro para cima do título) */
+@media (max-width:760px){.k3c-card[data-home-card="kids_cartoon"] .k3c-media video{object-position:50% 100% !important}} /* KINEO-HOME-CARDS-CLAROS-2010 — v2 letreiro: sem o vidro, o letreiro queimado do vídeo não pode cair cortado atrás do título/botão (no celular o card é 5:6: o letreiro sobe ainda mais, para cima do título) */
 .k3c-badge{position:absolute;left:16px;top:16px;z-index:2;display:inline-flex;align-items:center;gap:7px;font-size:10.5px;font-weight:800;letter-spacing:.11em;padding:7px 10px;border-radius:999px;color:#fff;background:rgba(10,12,18,.46);border:1px solid rgba(255,255,255,.2);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 .k3c-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:#7CF0B2;box-shadow:0 0 0 3px rgba(124,240,178,.18)}
 .k3c-body{position:absolute;left:0;right:0;bottom:0;z-index:2;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:22px 22px 22px}
-.k3c-title{margin:0;font-size:clamp(1.3rem,1.75vw,1.7rem);line-height:1.08;letter-spacing:-.025em;font-weight:800;color:#fff;text-shadow:0 1px 12px rgba(0,0,0,.35)}
-.k3c-sub{margin:0;max-width:34ch;font-size:15px;line-height:1.42;color:rgba(255,255,255,.84)}
+.k3c-title{margin:0;font-size:clamp(1.3rem,1.75vw,1.7rem);line-height:1.08;letter-spacing:-.025em;font-weight:800;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.45),0 2px 18px rgba(0,0,0,.55)} /* KINEO-HOME-CARDS-CLAROS-2010 — v2: a leitura vem da sombra do texto, não de laje nem de vidro */
+.k3c-sub{margin:0;max-width:34ch;font-size:15px;line-height:1.42;color:rgba(255,255,255,.88);text-shadow:0 1px 3px rgba(0,0,0,.45),0 2px 18px rgba(0,0,0,.55)} /* KINEO-HOME-CARDS-CLAROS-2010 — v2: era .84 sem sombra */
 .klp .k3c-cta{margin-top:8px;display:inline-flex;align-items:center;gap:8px;padding:11px 16px;font-size:14px;font-weight:750;border-radius:999px}
 .k3c-cta .k3c-arrow{display:inline-block;transition:transform .3s ease}
 .k3c-card:hover .k3c-arrow{transform:translateX(3px)}
@@ -131,16 +138,17 @@ export default function HomeThreeCards({ signedIn, kidsCard = false }: { signedI
   return (
     <section className="k3c" aria-label={copy('Choose what to make')} data-home-3-cards="1">
       <style dangerouslySetInnerHTML={{ __html: HOME_THREE_CARDS_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: HOME_CARDS_AJUSTE_CSS }} />{/* KINEO-BEBE-QUE-FALA-2010 — enquadramento dos cards de hoje (letreiro do vídeo nunca cortado na borda; UGC mais claro), sempre */}
       {kidsCard ? <style dangerouslySetInnerHTML={{ __html: HOME_KIDS_CARD_CSS }} /> : null}{/* KINEO-BEBE-QUE-FALA-2010 — desligado: nem o <style> nasce */}
       <div className="wrap">
         <div className="k3c-head"><p className="k3c-kicker"><UiLabel>Choose what to make</UiLabel></p><Link className="k3c-more" href={language === 'pt' ? UGC_PILLAR_PT_PATH : UGC_PILLAR_PATH} data-home-ugc-guide="1"><UiLabel>How AI UGC ads work</UiLabel> →</Link></div>{/* KINEO-PAGINAS-UGC-2010 */}
         <div className="k3c-grid" data-k3c-cols={kidsCard ? '4' : undefined}>{/* KINEO-BEBE-QUE-FALA-2010 — undefined = o atributo nem é emitido (home de hoje); era: <div className="k3c-grid"> */}
           {HOME_CARD_ORDER.map((card) => (
             <Link key={card} href={homeCardHref(card, signedIn)} className="k3c-card" data-home-card={card} onClick={() => track(card)}>
-              <CardMedia card={card} language={language} />
+              {kidsCard && card === 'product_ads' ? <HomeProductAdsReel language={language} /> : <CardMedia card={card} language={language} />}{/* KINEO-BEBE-QUE-FALA-2010 — modo 4 cards: o reel Lume + 3 trios no card de produto; era: <CardMedia card={card} language={language} /> */}
               <span className="k3c-shade" aria-hidden="true" />
               <span className="k3c-glass" aria-hidden="true" />
-              <span className="k3c-badge" aria-hidden="true">{HOME_CARD_BADGE[card]}</span>
+              {/* KINEO-HOME-CARDS-CLAROS-2010 — sem o selo do motor (fundador 21/10: "pode tirar o motor de todos os cards desses 4 primeiros"); era: <span className="k3c-badge" aria-hidden="true">{HOME_CARD_BADGE[card]}</span> */}
               <span className="k3c-body">
                 <h2 className="k3c-title">{copy(HOME_CARD_COPY[card].title)}</h2>
                 <p className="k3c-sub">{copy(HOME_CARD_COPY[card].line)}</p>

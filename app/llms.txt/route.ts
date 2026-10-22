@@ -53,6 +53,7 @@ import { paginasUgcLlmsSection } from '@/lib/seo/paginasUgc2010' // KINEO-PAGINA
 import { ugcNicheLabel } from '@/lib/growth/paginasUgc2010Content' // KINEO-PAGINAS-UGC-2010 — módulo puro (só import type)
 import { paginasKidsLlmsSection } from '@/lib/seo/paginasKidsCartoon2010' // KINEO-BEBE-QUE-FALA-2010 — o trecho do AI Kids Cartoon Stories (vazio com o interruptor desligado)
 import { KIDS_CARTOON_PAGES_LIVE } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010
+import { BABY_PODCAST_PAGES_LIVE, babyPagesLlmsSection } from '@/lib/kidsCartoon/babyPodcast' // KINEO-BEBE-QUE-FALA-2010 — o trecho do bebê-podcast (vazio desligado)
 // KINEO-LLMS-PAGINAS-CITADAS-2026-09-07 — módulo puro (só constantes, nenhum
 // import): é a MESMA derivação que lib/kineoFacts.ts usa para ENGINE_FACTS[].url,
 // então o path do motor nunca é digitado aqui.
@@ -383,7 +384,7 @@ ${STUDIO_ADS_FACT ? `- [${STUDIO_ADS_FACT.name}](${STUDIO_ADS_FACT.url}): ${STUD
 - Ad creation does not include buying media, managing advertising campaigns or guaranteed sales. Use the public pages above to choose a path; they do not start a purchase automatically.
 
 ${/* KINEO-PAGINAS-UGC-2010 — os 3 carros-chefes com o nome do mercado (AI Faceless Videos, AI Product Ads, AI UGC Ads) e as páginas do UGC e do Kit Black Friday; com o Studio Ads desligado, nada (as páginas vendem anúncio). */ STUDIO_ADS_FACT ? paginasUgcLlmsSection(BASE, ugcNicheLabel) : ''}
-${/* KINEO-BEBE-QUE-FALA-2010 — AI Kids Cartoon Stories: '' com o interruptor desligado (o /llms.txt de hoje, byte a byte) */ paginasKidsLlmsSection(BASE, KIDS_CARTOON_PAGES_LIVE)}## Videos from an idea or a script
+${/* KINEO-BEBE-QUE-FALA-2010 — AI Kids Cartoon Stories: '' com o interruptor desligado (o /llms.txt de hoje, byte a byte) */ paginasKidsLlmsSection(BASE, KIDS_CARTOON_PAGES_LIVE)}${babyPagesLlmsSection(BASE, BABY_PODCAST_PAGES_LIVE)}## Videos from an idea or a script
 
 For from-scratch video generation, the input is a sentence: you type a
 topic, or paste your own script and ask for it to be narrated word for word.

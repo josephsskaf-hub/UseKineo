@@ -9,11 +9,12 @@
   "app/api/stripe/webhook/route.ts": 52,
   "app/pricing/PricingClient.tsx": 2,
   "components/kidsCartoon/KidsCartoonPages.tsx": 2,
-  "scripts/test-mcp-studio-2010.mjs": 2,
+  "scripts/test-mcp-studio-2010.mjs": 3,
   "scripts/test-meta95-personagem-2010.mjs": 2,
   "scripts/test-saida-regiao-2026-10-07.mjs": 3,
   "scripts/test-support/desfaz-bebe-que-fala-2010.mjs": 2,
-  "scripts/test-trilha-15s-1610.mjs": 1
+  "scripts/test-trilha-15s-1610.mjs": 1,
+  "scripts/test-support/desfaz-ads-cena-ajuste-2110.mjs": 2
  },
  "app/(dashboard)/kids-cartoon/page.tsx": [
   [
@@ -39,34 +40,10 @@
    "        if (!duplicateSession || (duplicateSession.mode !== 'subscription' && !duplicateSafeObservation && !isDfyOrderSession(duplicateSession) && !isDfyFilms3Session(duplicateSession))) {"
   ]
  ],
- "scripts/test-mcp-studio-2010.mjs": [
-  [
-   "  ok(base(rel) !== null && lf(semMeta95Personagem2010(semBebeQueFala2010(raw(rel), rel), rel)) === base(rel), `(E2) ${rel} intocada por esta entrega (nenhuma rota de geração mudou — a trava 8.2 não foi tocada; a folha de personagem, entrega de depois, sai em memória)`) // reancorado KINEO-META95-PERSONAGEM-2010 // reancorado KINEO-KIDS-VENDA-2010: o template do desenho infantil e a venda dele saem antes (a cabeça bebe chama a kids primeiro)",
-   "  ok(base(rel) !== null && lf(semMeta95Personagem2010(raw(rel), rel)) === base(rel), `(E2) ${rel} intocada por esta entrega (nenhuma rota de geração mudou — a trava 8.2 não foi tocada; a folha de personagem, entrega de depois, sai em memória)`) // reancorado KINEO-META95-PERSONAGEM-2010"
-  ],
-  [
-   "const changedExisting = git('diff', '--name-only', MCP_STUDIO_2010_BASE, 'HEAD').split('\\n').filter(Boolean).filter((f) => base(f) !== null).filter((f) => !META95_PERSONAGEM_2010_ARQUIVOS.includes(f)).filter((f) => !BEBE_QUE_FALA_2010_ARQUIVOS.includes(f) && !KIDS_VENDA_2010_ARQUIVOS.includes(f)) /* reancorado KINEO-KIDS-VENDA-2010: arquivos do desenho infantil (template + venda) são de outras entregas */ // reancorado KINEO-META95-PERSONAGEM-2010: os arquivos da folha de personagem (entrega de depois, com desfaz próprio) ficam fora desta conta",
-   "const changedExisting = git('diff', '--name-only', MCP_STUDIO_2010_BASE, 'HEAD').split('\\n').filter(Boolean).filter((f) => base(f) !== null).filter((f) => !META95_PERSONAGEM_2010_ARQUIVOS.includes(f)) // reancorado KINEO-META95-PERSONAGEM-2010: os arquivos da folha de personagem (entrega de depois, com desfaz próprio) ficam fora desta conta"
-  ],
-  [
-   "const commits = git('log', '--format=%s', `${MCP_STUDIO_2010_BASE}..HEAD`).split('\\n').filter(Boolean).filter((s) => !s.includes(MARCA_META95_PERSONAGEM_2010)).filter((s) => !s.includes(MARCA_BEBE_QUE_FALA_2010) && !s.includes(MARCA_KIDS_VENDA_2010)) /* reancorado KINEO-KIDS-VENDA-2010 */ // reancorado KINEO-META95-PERSONAGEM-2010: os commits da folha de personagem levam a marca deles",
-   "const commits = git('log', '--format=%s', `${MCP_STUDIO_2010_BASE}..HEAD`).split('\\n').filter(Boolean).filter((s) => !s.includes(MARCA_META95_PERSONAGEM_2010)) // reancorado KINEO-META95-PERSONAGEM-2010: os commits da folha de personagem levam a marca deles"
-  ]
- ],
- "scripts/test-meta95-personagem-2010.mjs": [
-  [
-   "    const d = tenta(() => lf(semMeta95Personagem2010(semBebeQueFala2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f), f))) // reancorado KINEO-KIDS-VENDA-2010: desenho infantil (template + venda) fora antes",
-   "    const d = tenta(() => lf(semMeta95Personagem2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f)))"
-  ],
-  [
-   "  const commitsDaEntrega = desdeABase.filter(({ s }) => !s.includes(MARCA_BEBE_QUE_FALA_2010) && !s.includes(MARCA_KIDS_VENDA_2010)).filter(({ h, s }) => s.includes(MARCA) || git('diff-tree', '--no-commit-id', '--name-only', '-r', '-m', h).trim().split('\\n').some((f) => permitidos.has(f)))\r // reancorado KINEO-KIDS-VENDA-2010: os commits do desenho infantil (template + venda) são de outras entregas",
-   "  const commitsDaEntrega = desdeABase.filter(({ h, s }) => s.includes(MARCA) || git('diff-tree', '--no-commit-id', '--name-only', '-r', '-m', h).trim().split('\\n').some((f) => permitidos.has(f)))"
-  ]
- ],
  "scripts/test-trilha-15s-1610.mjs": [
   [
-   "  relata('F toda linha nova/trocada da rota e do visualPromptPolicy leva a marca', add.length > 0 && add.every((l) => linhaDaTrilha15s1610(l) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || l.includes('KINEO-BEBE-QUE-FALA-2010') || l.includes('KINEO-KIDS-VENDA-2010') /* reancorado KINEO-KIDS-VENDA-2010: o template do desenho infantil e a venda dele (20/10) levam a marca deles */), add.filter((l) => !linhaDaTrilha15s1610(l) && !l.includes('KINEO-META95-ASSUNTO-1910')).slice(0, 2).join(' | '))",
-   "  relata('F toda linha nova/trocada da rota e do visualPromptPolicy leva a marca', add.length > 0 && add.every((l) => linhaDaTrilha15s1610(l) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */), add.filter((l) => !linhaDaTrilha15s1610(l) && !l.includes('KINEO-META95-ASSUNTO-1910')).slice(0, 2).join(' | '))"
+   "  const add = git('diff', base, '--', ROTA, VPP).replace(/\\r/g, '').split('\\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).filter((l) => !l.includes('KINEO-KIDS-VENDA-2010')) // KINEO-KIDS-VENDA-2010 — apenas linhas da venda (desfaz próprio) fora da conta da trilha",
+   "  const add = git('diff', base, '--', ROTA, VPP).replace(/\\r/g, '').split('\\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))"
   ]
  ]
 }

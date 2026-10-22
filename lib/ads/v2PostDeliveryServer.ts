@@ -9,6 +9,8 @@
 // Aprovação: cópia do MP4 para renders/share/<aleatório>.mp4 (o caminho original carrega o id da conta), token assinado
 // (lib/ads/v2ApprovalToken.ts), decisão por UPDATE condicional pending → approved | changes_requested (uma decisão por link).
 import { randomBytes, randomUUID } from 'node:crypto'
+import { cenaApplyCaptions } from '@/lib/ads/v2CenaQuality' // KINEO-ADS-CENA-2110
+import { adsV2BusinessName } from '@/lib/ads/v2BolaFix' // KINEO-ADS-BOLA-2110 — o nome das versões sem travessão solto
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { CreatomateSubmitError, pollCreatomateRender, submitCreatomateRender } from '@/lib/compose'
 import { persistRenderAssets } from '@/lib/renderAssets'
@@ -134,16 +136,17 @@ export function editBaseFromOrder(order: AdsV2OrderRow, shots: readonly AdsV2Sho
 export function buildVersionSource(base: AdsV2EditBase, edit: AdsV2EditResolved, format: AdsV2Format, language: string | null): Record<string, unknown> {
   const frame = renderOutputSpecFor(format)
   const f = { width: frame.width, height: frame.height, fontFamily: captionFontFor(language), format }
+  const captioned = (source: Record<string, unknown>) => cenaApplyCaptions({ source, text: null, seconds: null, legacyTextTrack: 4, fontFamily: f.fontFamily }) // KINEO-ADS-CENA-2110 — edited copy and its windows survive export; captions match Studio Ads.
   if (base.presenter) {
     try {
-      return buildAdV2Source(adsV2EditMontageInput(base, edit, f))
+      return captioned(buildAdV2Source(adsV2EditMontageInput(base, edit, f))) // KINEO-ADS-CENA-2110
     } catch (e) {
       const m = posErr(e)
       if (m.startsWith('ads_v2_edit_')) throw e
     }
-    return buildAdV2Source(adsV2EditMontageInput(adsV2EditWithoutPresenter(base), edit, f))
+    return captioned(buildAdV2Source(adsV2EditMontageInput(adsV2EditWithoutPresenter(base), edit, f))) // KINEO-ADS-CENA-2110
   }
-  return buildAdV2Source(adsV2EditMontageInput(base, edit, f))
+  return captioned(buildAdV2Source(adsV2EditMontageInput(base, edit, f))) // KINEO-ADS-CENA-2110
 }
 
 export async function loadAdsV2Versions(admin: SupabaseClient, orderId: string, userId: string): Promise<{ rows: AdsV2VersionRow[]; error: { code?: string } | null }> {
@@ -216,7 +219,7 @@ export async function submitAdsV2Version(
 
 function businessName(order: Pick<AdsV2OrderRow, 'brief'>): string {
   const b = order.brief && typeof order.brief.business === 'string' ? order.brief.business : ''
-  return b.split(/\s+[—–-]\s+/)[0].trim().slice(0, 120) || 'Studio Ads'
+  return adsV2BusinessName(b).slice(0, 120) || 'Studio Ads' // KINEO-ADS-BOLA-2110 — a MESMA limpeza do título da Biblioteca (v2Advance businessName)
 }
 
 /** Um passo das versões em andamento do pedido (tela). Nunca lança. Até `max` consultas ao Creatomate por chamada. */

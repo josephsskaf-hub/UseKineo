@@ -175,7 +175,7 @@ function rules(F) {
   ok('R9', F.landing.includes("data-auth-modal=\"signup\" href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav-mobile'}"), 'celular: "Start free" abre o modal, mesmo href')
   ok('R9', F.landing.includes('<HomeAuthModal signedIn={isSignedIn} />'), 'a home monta o modal')
   const navCount = (src) => (src.match(/data-nav-item=/g) ?? []).length
-  ok('R9', BASES.landing !== null && navCount(F.landing) === navCount(BASES.landing) + 2, `o menu não encolheu (${navCount(F.landing)} itens data-nav-item, base + 2 do "AI UGC Ads")`) // reancorado KINEO-MENU-UGC-2010 — o menu só cresce: +1 item no topo e +1 no celular; a ordem dos antigos é provada em scripts/test-menu-ugc-2010.mjs
+  ok('R9', BASES.landing !== null && navCount(F.landing) === navCount(BASES.landing) + 2 - 10 + 4, `o menu só mudou pela ordem do fundador (${navCount(F.landing)} itens data-nav-item, base + 2 do "AI UGC Ads" − 10 do "More tools" + 4 de "AI Cartoon Videos"/"Claude & ChatGPT")`) // KINEO-HOME-REMODELA-2010 — reancorado 20/10 (fundador 20/10: "esses vão ser os quatro principais, e ao lado vai ser o MCP do Claude e do GPT… more tools a gente vai cancelar"); a ordem nova é provada em scripts/test-home-remodela-2010.mjs
   ok('R9', BASES.engineWall !== null && F.engineWall === BASES.engineWall.replace(/\r\n/g, '\n'), 'lib/engineWall.ts intocado')
   ok('R9', BASES.curation !== null && F.curation === BASES.curation.replace(/\r\n/g, '\n'), 'lib/homeVideoCuration.ts intocado')
 

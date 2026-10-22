@@ -7,7 +7,7 @@
  ],
  "app/llms.txt/route.ts": [
   [
-   "${/* KINEO-BEBE-QUE-FALA-2010 — AI Kids Cartoon Stories: '' com o interruptor desligado (o /llms.txt de hoje, byte a byte) */ paginasKidsLlmsSection(BASE, KIDS_CARTOON_PAGES_LIVE)}## Videos from an idea or a script",
+   "${/* KINEO-BEBE-QUE-FALA-2010 — AI Kids Cartoon Stories: '' com o interruptor desligado (o /llms.txt de hoje, byte a byte) */ paginasKidsLlmsSection(BASE, KIDS_CARTOON_PAGES_LIVE)}${babyPagesLlmsSection(BASE, BABY_PODCAST_PAGES_LIVE)}## Videos from an idea or a script",
    "## Videos from an idea or a script"
   ]
  ],
@@ -19,6 +19,216 @@
   [
    "        <div className=\"k3c-grid\" data-k3c-cols={kidsCard ? '4' : undefined}>{/* KINEO-BEBE-QUE-FALA-2010 — undefined = o atributo nem é emitido (home de hoje); era: <div className=\"k3c-grid\"> */}",
    "        <div className=\"k3c-grid\">"
+  ],
+  [
+   "              {kidsCard && card === 'product_ads' ? <HomeProductAdsReel language={language} /> : <CardMedia card={card} language={language} />}{/* KINEO-BEBE-QUE-FALA-2010 — modo 4 cards: o reel Lume + 3 trios no card de produto; era: <CardMedia card={card} language={language} /> */}",
+   "              <CardMedia card={card} language={language} />"
+  ]
+ ],
+ "scripts/test-avatar-preso-2010.mjs": [
+  [
+   "  const mudados = INTOCADOS.filter((rel) => { const b = base(rel); return b === null || semBebeQueFala2010(rd(rel), rel) !== b }) // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "  const mudados = INTOCADOS.filter((rel) => { const b = base(rel); return b === null || rd(rel) !== b })"
+  ],
+  [
+   "  const ruins = AVATAR_PRESO_2010_ARQUIVOS.filter((rel) => { try { return semAvatarPreso2010(semHomeRemodela2010(semBebeQueFala2010(rd(rel), rel), rel), rel) !== base(rel) } catch { return true } }) // KINEO-HOME-REMODELA-2010 // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "  const ruins = AVATAR_PRESO_2010_ARQUIVOS.filter((rel) => { try { return semAvatarPreso2010(semHomeRemodela2010(rd(rel), rel), rel) !== base(rel) } catch { return true } }) // KINEO-HOME-REMODELA-2010"
+  ],
+  [
+   "  const contagem = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => semVerbatimIntocavel2010NaCadeia(semBebeQueFala2010(rd(rel), rel), rel).split('\\n').filter((l) => l.includes(MARCA)).length === ACRESCIMOS_AVATAR_PRESO_2010[rel] + (TROCAS_AVATAR_PRESO_2010[rel] ?? []).length) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 [TRAVA 8.2 — vai do fundador 19/10 \"Vai pra meta do 95\"]: as reâncoras do conserto do verbatim (camada de depois) saem antes da contagem // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "  const contagem = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => semVerbatimIntocavel2010NaCadeia(rd(rel), rel).split('\\n').filter((l) => l.includes(MARCA)).length === ACRESCIMOS_AVATAR_PRESO_2010[rel] + (TROCAS_AVATAR_PRESO_2010[rel] ?? []).length) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 [TRAVA 8.2 — vai do fundador 19/10 \"Vai pra meta do 95\"]: as reâncoras do conserto do verbatim (camada de depois) saem antes da contagem"
+  ],
+  [
+   "  const semMarcaNova = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\\n'); const bs = new Set(b); return semVerbatimIntocavel2010NaCadeia(semBebeQueFala2010(rd(rel), rel), rel).split('\\n').every((l) => bs.has(l) || l.includes(MARCA)) }) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 [TRAVA 8.2 — vai do fundador 19/10 \"Vai pra meta do 95\"]: as reâncoras do conserto do verbatim (camada de depois) saem antes da contagem // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "  const semMarcaNova = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\\n'); const bs = new Set(b); return semVerbatimIntocavel2010NaCadeia(rd(rel), rel).split('\\n').every((l) => bs.has(l) || l.includes(MARCA)) }) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 [TRAVA 8.2 — vai do fundador 19/10 \"Vai pra meta do 95\"]: as reâncoras do conserto do verbatim (camada de depois) saem antes da contagem"
+  ],
+  [
+   "  const semMarcaNovaSemHome = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\\n'); const bs = new Set(b); return semVerbatimIntocavel2010NaCadeia(semHomeRemodela2010(semBebeQueFala2010(rd(rel), rel), rel), rel).split('\\n').every((l) => bs.has(l) || l.includes(MARCA)) }) // KINEO-HOME-REMODELA-2010 — a home remodelada (20/10, camada mais nova) pôs 1 linha na cabeça da cadeia geral: sai antes, como a do verbatim // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "  const semMarcaNovaSemHome = AVATAR_PRESO_2010_ARQUIVOS.every((rel) => { const b = base(rel).split('\\n'); const bs = new Set(b); return semVerbatimIntocavel2010NaCadeia(semHomeRemodela2010(rd(rel), rel), rel).split('\\n').every((l) => bs.has(l) || l.includes(MARCA)) }) // KINEO-HOME-REMODELA-2010 — a home remodelada (20/10, camada mais nova) pôs 1 linha na cabeça da cadeia geral: sai antes, como a do verbatim"
+  ],
+  [
+   "  const MU = semHomeRemodela2010(semBebeQueFala2010(rd('scripts/test-support/desfaz-menu-ugc-2010.mjs'), 'scripts/test-support/desfaz-menu-ugc-2010.mjs'), 'scripts/test-support/desfaz-menu-ugc-2010.mjs') // KINEO-HOME-REMODELA-2010 // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "  const MU = semHomeRemodela2010(rd('scripts/test-support/desfaz-menu-ugc-2010.mjs'), 'scripts/test-support/desfaz-menu-ugc-2010.mjs') // KINEO-HOME-REMODELA-2010"
+  ],
+  [
+   "  ok(/export function semMenuUgc2010\\(texto, p\\) \\{\\n(?:  texto = semBebeQueFala2010\\(texto, p\\)[^\\n]*\\n)?  texto = semAvatarPreso2010NosGuardioes\\(texto, p\\)/.test(MU) && /^import \\{ semAvatarPreso2010NosGuardioes \\} from '\\.\\/desfaz-avatar-preso-2010\\.mjs'/m.test(MU), 'D4b encadeado na cabeça da cadeia geral: semMenuUgc2010 tira as reâncoras desta camada (só scripts/) primeiro; o /api/compose segue intacto nela (é a última versão alheia)') // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "  ok(/export function semMenuUgc2010\\(texto, p\\) \\{\\n  texto = semAvatarPreso2010NosGuardioes\\(texto, p\\)/.test(MU) && /^import \\{ semAvatarPreso2010NosGuardioes \\} from '\\.\\/desfaz-avatar-preso-2010\\.mjs'/m.test(MU), 'D4b encadeado na cabeça da cadeia geral: semMenuUgc2010 tira as reâncoras desta camada (só scripts/) primeiro; o /api/compose segue intacto nela (é a última versão alheia)')"
+  ],
+  [
+   "  const meus = commits.filter(([, s]) => !s.includes('KINEO-BEBE-QUE-FALA-2010')).filter(([h]) => { const fs2 = git('diff-tree', '--no-commit-id', '--name-only', '-r', h).split('\\n'); return fs2.some((f) => AVATAR_PRESO_2010_NOVOS.includes(f)) }) // reancorado KINEO-BEBE-QUE-FALA-2010 — os commits de 20/10 que reancoraram este guardião levam a marca deles",
+   "  const meus = commits.filter(([h]) => { const fs2 = git('diff-tree', '--no-commit-id', '--name-only', '-r', h).split('\\n'); return fs2.some((f) => AVATAR_PRESO_2010_NOVOS.includes(f)) })"
+  ]
+ ],
+ "scripts/test-cena-negacao-1510.mjs": [
+  [
+   "  relata('F toda linha nova/trocada da rota e do sceneTruth leva a marca', add.length > 0 && add.every((l) => l.includes(MARCA) || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */ || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || l.includes('KINEO-BEBE-QUE-FALA-2010') /* reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories (20/10) também é de depois da base; provado em scripts/test-bebe-que-fala-2010.mjs */), add.filter((l) => !l.includes(MARCA) && !linhaDaTrilha15s1610(l) && !l.includes('KINEO-META95-ASSUNTO-1910') && !l.includes('KINEO-BEBE-QUE-FALA-2010')).slice(0, 2).join(' | '))",
+   "  relata('F toda linha nova/trocada da rota e do sceneTruth leva a marca', add.length > 0 && add.every((l) => l.includes(MARCA) || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */ || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */), add.filter((l) => !l.includes(MARCA) && !linhaDaTrilha15s1610(l) && !l.includes('KINEO-META95-ASSUNTO-1910')).slice(0, 2).join(' | '))"
+  ]
+ ],
+ "scripts/test-contrato-classicos-1410.mjs": [
+  [
+   "        romanceAdulto: { ativo: false }, aplicarRomanceAdulto: (p) => p, desenhoInfantil: { ativo: false }, // reancorado KINEO-BEBE-QUE-FALA-2010 — sem kids_cartoon a linha do desenho infantil é no-op",
+   "        romanceAdulto: { ativo: false }, aplicarRomanceAdulto: (p) => p,"
+  ],
+  [
+   "  return add.length > 0 && add.every((l) => l.includes(MARCA) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || l.includes('KINEO-BEBE-QUE-FALA-2010') /* reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories (20/10) também é de depois da base; provado em scripts/test-bebe-que-fala-2010.mjs */ || linhaDoParceiroEyebible2_1410(l) || linhaDaAncoraLegenda1410(l) /* KINEO-ANCORA-LEGENDA-1410 */ || linhaDoJuizStill1410(l) /* reancorado KINEO-JUIZ-STILL-1410 */ || linhaDaCenaNegacao1510(l) /* reancorado KINEO-CENA-NEGACAO-1510 */ || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */) // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410: as linhas da 2ª leva levam a marca DELA",
+   "  return add.length > 0 && add.every((l) => l.includes(MARCA) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || linhaDoParceiroEyebible2_1410(l) || linhaDaAncoraLegenda1410(l) /* KINEO-ANCORA-LEGENDA-1410 */ || linhaDoJuizStill1410(l) /* reancorado KINEO-JUIZ-STILL-1410 */ || linhaDaCenaNegacao1510(l) /* reancorado KINEO-CENA-NEGACAO-1510 */ || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */) // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410: as linhas da 2ª leva levam a marca DELA"
+  ]
+ ],
+ "scripts/test-filmes-f1-virgula-1910.mjs": [
+  [
+   "  const alheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA}`, '--grep=KINEO-CLOSE-REAL-LEGENDA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-BEBE-QUE-FALA-2010' /* reancorado KINEO-BEBE-QUE-FALA-2010: pula os commits do desenho infantil */, '--grep=KINEO-KIT-BF-1910' /* reancorado KINEO-KIT-BF-1910: o commit do kit (que reancora o guardião da rodada 3) não é a versão alheia */, '--grep=KINEO-HOME-3-CARDS-1910' /* reancorado KINEO-HOME-3-CARDS-1910: pula os commits dos 3 cards */, '--grep=KINEO-APRESENTADOR-OLHOS-1910' /* reancorado KINEO-APRESENTADOR-OLHOS-1910: pula os commits dos olhos abertos (merge e reâncoras) */, '--grep=KINEO-FILMES-F1F3-PUBLICO-2010' /* reancorado KINEO-FILMES-F1F3-PUBLICO-2010: pula os commits da virada F1+F3 públicas */, '--grep=KINEO-META95-ESCRITA-2010' /* reancorado KINEO-META95-ESCRITA-2010: pula os commits da legenda na escrita do roteiro */, '--grep=KINEO-AVATAR-PRESO-2010', 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } } // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a versão 'alheia' pula também os commits da legenda menor do Close real · reancorado KINEO-AVATAR-PRESO-2010: pula também os commits do avatar preso (merges da fila e reâncoras)",
+   "  const alheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA}`, '--grep=KINEO-CLOSE-REAL-LEGENDA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-KIT-BF-1910' /* reancorado KINEO-KIT-BF-1910: o commit do kit (que reancora o guardião da rodada 3) não é a versão alheia */, '--grep=KINEO-HOME-3-CARDS-1910' /* reancorado KINEO-HOME-3-CARDS-1910: pula os commits dos 3 cards */, '--grep=KINEO-APRESENTADOR-OLHOS-1910' /* reancorado KINEO-APRESENTADOR-OLHOS-1910: pula os commits dos olhos abertos (merge e reâncoras) */, '--grep=KINEO-FILMES-F1F3-PUBLICO-2010' /* reancorado KINEO-FILMES-F1F3-PUBLICO-2010: pula os commits da virada F1+F3 públicas */, '--grep=KINEO-META95-ESCRITA-2010' /* reancorado KINEO-META95-ESCRITA-2010: pula os commits da legenda na escrita do roteiro */, '--grep=KINEO-AVATAR-PRESO-2010', 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } } // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: a versão 'alheia' pula também os commits da legenda menor do Close real · reancorado KINEO-AVATAR-PRESO-2010: pula também os commits do avatar preso (merges da fila e reâncoras)"
+  ]
+ ],
+ "scripts/test-filmes-f1f3-ajuste-1910.mjs": [
+  [
+   "  const alheio = (() => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=KINEO-FILMES-F1-VIRGULA-1910`, `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-BEBE-QUE-FALA-2010' /* reancorado KINEO-BEBE-QUE-FALA-2010: pula os commits do desenho infantil */, '--grep=KINEO-META95-ESCRITA-2010' /* reancorado KINEO-META95-ESCRITA-2010: pula os commits da legenda na escrita do roteiro */, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } })() // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo",
+   "  const alheio = (() => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=KINEO-FILMES-F1-VIRGULA-1910`, `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-META95-ESCRITA-2010' /* reancorado KINEO-META95-ESCRITA-2010: pula os commits da legenda na escrita do roteiro */, 'HEAD', '--', p]).trim(); return sha ? lf(git(['show', `${sha}:${p}`])) : null } catch { return null } })() // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo"
+  ],
+  [
+   "  const rdAlheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, '--grep=KINEO-CLOSE-REAL-V3-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-BEBE-QUE-FALA-2010' /* reancorado KINEO-BEBE-QUE-FALA-2010: pula os commits do desenho infantil */, '--grep=KINEO-HOME-3-CARDS-1910' /* reancorado KINEO-HOME-3-CARDS-1910: pula os commits dos 3 cards */, '--grep=KINEO-APRESENTADOR-OLHOS-1910' /* reancorado KINEO-APRESENTADOR-OLHOS-1910: pula os commits dos olhos abertos (merge e reâncoras) */, '--grep=KINEO-FILMES-F1F3-PUBLICO-2010' /* reancorado KINEO-FILMES-F1F3-PUBLICO-2010: pula os commits da virada F1+F3 públicas */, '--grep=KINEO-META95-ESCRITA-2010' /* reancorado KINEO-META95-ESCRITA-2010: pula os commits da legenda na escrita do roteiro */, 'HEAD', '--', p]).trim(); return sha ? lf(semCloseRealV3_1910(git(['show', `${sha}:${p}`]), p)) : null } catch { return null } } // KINEO-CLOSE-REAL-V3-1910 — reancorado: a versão 'alheia' pula também os commits da rodada 3 do Close real (e sai sem a camada dela) · KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo",
+   "  const rdAlheio = (p) => { try { const sha = git(['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F3_AJUSTE_1910}`, '--grep=KINEO-CLOSE-REAL-V3-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-HOME-3-CARDS-1910' /* reancorado KINEO-HOME-3-CARDS-1910: pula os commits dos 3 cards */, '--grep=KINEO-APRESENTADOR-OLHOS-1910' /* reancorado KINEO-APRESENTADOR-OLHOS-1910: pula os commits dos olhos abertos (merge e reâncoras) */, '--grep=KINEO-FILMES-F1F3-PUBLICO-2010' /* reancorado KINEO-FILMES-F1F3-PUBLICO-2010: pula os commits da virada F1+F3 públicas */, '--grep=KINEO-META95-ESCRITA-2010' /* reancorado KINEO-META95-ESCRITA-2010: pula os commits da legenda na escrita do roteiro */, 'HEAD', '--', p]).trim(); return sha ? lf(semCloseRealV3_1910(git(['show', `${sha}:${p}`]), p)) : null } catch { return null } } // KINEO-CLOSE-REAL-V3-1910 — reancorado: a versão 'alheia' pula também os commits da rodada 3 do Close real (e sai sem a camada dela) · KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo"
+  ]
+ ],
+ "scripts/test-filmes-f1f4-1910.mjs": [
+  [
+   "  const rdAlheio = (p) => { try { const sha = execFileSync('git', ['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F4_1910}`, '--grep=KINEO-CLOSE-REAL-AJUSTE-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-HOME-3-CARDS-1910' /* reancorado KINEO-HOME-3-CARDS-1910: pula os commits dos 3 cards */, '--grep=KINEO-META95-ESCRITA-2010' /* reancorado KINEO-META95-ESCRITA-2010: pula os commits da legenda na escrita do roteiro */, '--grep=KINEO-BEBE-QUE-FALA-2010' /* reancorado KINEO-BEBE-QUE-FALA-2010: pula os commits do desenho infantil */, '--', p], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); return sha ? lf(execFileSync('git', ['show', `${sha}:${p}`], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()) : null } catch { return null } } // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: a versão 'alheia' pula também os commits do ajuste do Close real // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo",
+   "  const rdAlheio = (p) => { try { const sha = execFileSync('git', ['log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_FILMES_F1F4_1910}`, '--grep=KINEO-CLOSE-REAL-AJUSTE-1910', '--grep=KINEO-FILMES-F1-VIRGULA-1910', '--grep=KINEO-META95-ASSUNTO-1910' /* reancorado KINEO-META95-ASSUNTO-1910 */, '--grep=KINEO-HOME-3-CARDS-1910' /* reancorado KINEO-HOME-3-CARDS-1910: pula os commits dos 3 cards */, '--grep=KINEO-META95-ESCRITA-2010' /* reancorado KINEO-META95-ESCRITA-2010: pula os commits da legenda na escrita do roteiro */, '--', p], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); return sha ? lf(execFileSync('git', ['show', `${sha}:${p}`], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()) : null } catch { return null } } // KINEO-CLOSE-REAL-AJUSTE-1910 — reancorado: a versão 'alheia' pula também os commits do ajuste do Close real // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: pula também os commits do export limpo"
+  ]
+ ],
+ "scripts/test-home-3-cards-1910.mjs": [
+  [
+   "const LAND = semBebeQueFala2010(read('app/KineoLanding.tsx'), 'app/KineoLanding.tsx') // reancorado KINEO-BEBE-QUE-FALA-2010 — a landing sem o 4º card = a de antes (o kidsCard pelo interruptor é provado em scripts/test-bebe-que-fala-2010.mjs)",
+   "const LAND = read('app/KineoLanding.tsx')"
+  ]
+ ],
+ "scripts/test-home-remodela-2010.mjs": [
+  [
+   "  const cabeca = semBebeQueFala2010(rd('scripts/test-support/desfaz-menu-ugc-2010.mjs'), 'scripts/test-support/desfaz-menu-ugc-2010.mjs') // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "  const cabeca = rd('scripts/test-support/desfaz-menu-ugc-2010.mjs')"
+  ]
+ ],
+ "scripts/test-kling25-variedade-2026-09-28.mjs": [
+  [
+   "  vm.runInNewContext(js, { exports: exp, console: { log() {}, warn() {}, error() {} }, JSON, Math, Number, Array, Object, Set, Map, String, RegExp, process: { env: {} }, romanceAdulto: { ativo: false }, desenhoInfantil: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op) · desenhoInfantil: reancorado KINEO-BEBE-QUE-FALA-2010 (sem kids_cartoon a linha é no-op)",
+   "  vm.runInNewContext(js, { exports: exp, console: { log() {}, warn() {}, error() {} }, JSON, Math, Number, Array, Object, Set, Map, String, RegExp, process: { env: {} }, romanceAdulto: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op)"
+  ]
+ ],
+ "scripts/test-mcp-studio-2010.mjs": [
+  [
+   "  ok(base(rel) !== null && lf(semMeta95Personagem2010(semAvatarPreso2010(semBebeQueFala2010(raw(rel), rel), rel), rel)) === base(rel) /* reancorado KINEO-BEBE-QUE-FALA-2010 */, `(E2) ${rel} intocada por esta entrega (nenhuma rota de geração mudou — a trava 8.2 não foi tocada; a folha de personagem, entrega de depois, sai em memória)`) // reancorado KINEO-META95-PERSONAGEM-2010 · reancorado KINEO-AVATAR-PRESO-2010: o conserto do avatar preso no /api/compose (entrega de depois) sai em memória",
+   "  ok(base(rel) !== null && lf(semMeta95Personagem2010(semAvatarPreso2010(raw(rel), rel), rel)) === base(rel), `(E2) ${rel} intocada por esta entrega (nenhuma rota de geração mudou — a trava 8.2 não foi tocada; a folha de personagem, entrega de depois, sai em memória)`) // reancorado KINEO-META95-PERSONAGEM-2010 · reancorado KINEO-AVATAR-PRESO-2010: o conserto do avatar preso no /api/compose (entrega de depois) sai em memória"
+  ],
+  [
+   "const changedExisting = git('diff', '--name-only', MCP_STUDIO_2010_BASE, 'HEAD').split('\\n').filter(Boolean).filter((f) => base(f) !== null).filter((f) => !META95_PERSONAGEM_2010_ARQUIVOS.includes(f)).filter((f) => !BEBE_QUE_FALA_2010_ARQUIVOS.includes(f)) /* reancorado KINEO-BEBE-QUE-FALA-2010 */ // reancorado KINEO-META95-PERSONAGEM-2010: os arquivos da folha de personagem (entrega de depois, com desfaz próprio) ficam fora desta conta",
+   "const changedExisting = git('diff', '--name-only', MCP_STUDIO_2010_BASE, 'HEAD').split('\\n').filter(Boolean).filter((f) => base(f) !== null).filter((f) => !META95_PERSONAGEM_2010_ARQUIVOS.includes(f)) // reancorado KINEO-META95-PERSONAGEM-2010: os arquivos da folha de personagem (entrega de depois, com desfaz próprio) ficam fora desta conta"
+  ],
+  [
+   "const commits = git('log', '--format=%s', `${MCP_STUDIO_2010_BASE}..HEAD`).split('\\n').filter(Boolean).filter((s) => !s.includes(MARCA_META95_PERSONAGEM_2010)).filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010')) /* reancorado KINEO-BEBE-QUE-FALA-2010 */ // reancorado KINEO-META95-PERSONAGEM-2010: os commits da folha de personagem levam a marca deles",
+   "const commits = git('log', '--format=%s', `${MCP_STUDIO_2010_BASE}..HEAD`).split('\\n').filter(Boolean).filter((s) => !s.includes(MARCA_META95_PERSONAGEM_2010)) // reancorado KINEO-META95-PERSONAGEM-2010: os commits da folha de personagem levam a marca deles"
+  ]
+ ],
+ "scripts/test-mcp-studio-ajuste-2010.mjs": [
+  [
+   "  ok(base(rel) !== null && semBebeQueFala2010(read(rel), rel) === base(rel), `(D10) ${rel} intocado byte a byte`) // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "  ok(base(rel) !== null && read(rel) === base(rel), `(D10) ${rel} intocado byte a byte`)"
+  ],
+  [
+   "  const V = semBebeQueFala2010(read('scripts/test-support/desfaz-verbatim-intocavel-2010.mjs'), 'scripts/test-support/desfaz-verbatim-intocavel-2010.mjs') // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "  const V = read('scripts/test-support/desfaz-verbatim-intocavel-2010.mjs')"
+  ]
+ ],
+ "scripts/test-menu-ugc-2010.mjs": [
+  [
+   "  const semMarca = MENU_UGC_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !semHomeRemodela2010(semBebeQueFala2010(rd(f), f), f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-HOME-REMODELA-2010 // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "  const semMarca = MENU_UGC_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !semHomeRemodela2010(rd(f), f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) }) // KINEO-HOME-REMODELA-2010"
+  ]
+ ],
+ "scripts/test-meta95-escrita-2010.mjs": [
+  [
+   "    try { out = semMeta95Escrita2010(semAvatarPreso2010(semBebeQueFala2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f), f), f) /* reancorado KINEO-BEBE-QUE-FALA-2010 */ } catch (e) { difs.push(`${f}: ${e.message}`); continue } // reancorado KINEO-AVATAR-PRESO-2010: sem a camada do avatar preso (mais nova), em memória",
+   "    try { out = semMeta95Escrita2010(semAvatarPreso2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f), f) } catch (e) { difs.push(`${f}: ${e.message}`); continue } // reancorado KINEO-AVATAR-PRESO-2010: sem a camada do avatar preso (mais nova), em memória"
+  ],
+  [
+   "    const raw = semBebeQueFala2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f), semEste = semMeta95Escrita2010(raw, f) // reancorado KINEO-BEBE-QUE-FALA-2010 — sem a camada de 20/10 (mais nova), em memória",
+   "    const raw = fs.readFileSync(path.join(ROOT, f), 'utf8'), semEste = semMeta95Escrita2010(raw, f)"
+  ],
+  [
+   "  const semMarca = META95_ESCRITA_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !semAvatarPreso2010(semBebeQueFala2010(rd(f), f) /* reancorado KINEO-BEBE-QUE-FALA-2010 */, f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) }) // reancorado KINEO-AVATAR-PRESO-2010: as linhas do avatar preso não são desta entrega",
+   "  const semMarca = META95_ESCRITA_2010_ARQUIVOS.filter((f) => { const b = new Set((base(f) ?? '').split('\\n')); return !semAvatarPreso2010(rd(f), f).split('\\n').every((l) => b.has(l) || l.includes(MARCA)) }) // reancorado KINEO-AVATAR-PRESO-2010: as linhas do avatar preso não são desta entrega"
+  ]
+ ],
+ "scripts/test-meta95-personagem-2010.mjs": [
+  [
+   "    const d = tenta(() => lf(semMeta95Personagem2010(semHomeRemodela2010(semBebeQueFala2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f), f), f))) // KINEO-HOME-REMODELA-2010 — a home remodelada pôs 1 linha na cabeça da cadeia (desfaz-menu-ugc): sai antes // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "    const d = tenta(() => lf(semMeta95Personagem2010(semHomeRemodela2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f), f))) // KINEO-HOME-REMODELA-2010 — a home remodelada pôs 1 linha na cabeça da cadeia (desfaz-menu-ugc): sai antes"
+  ],
+  [
+   "  const commitsDaEntrega = desdeABase.filter(({ s }) => !s.includes('KINEO-BEBE-QUE-FALA-2010')) /* reancorado KINEO-BEBE-QUE-FALA-2010: os commits de 20/10 levam a marca deles */ .filter(({ h, s }) => s.includes(MARCA) || git('diff-tree', '--no-commit-id', '--name-only', '-r', '-m', h).trim().split('\\n').some((f) => permitidos.has(f)))",
+   "  const commitsDaEntrega = desdeABase.filter(({ h, s }) => s.includes(MARCA) || git('diff-tree', '--no-commit-id', '--name-only', '-r', '-m', h).trim().split('\\n').some((f) => permitidos.has(f)))"
+  ]
+ ],
+ "scripts/test-moderacao-2026-09-25.mjs": [
+  [
+   "ok(imp.length === 34 && imp.every((p) => !/^\\s*['\"]use client['\"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`) // reancorado KINEO-BEBE-QUE-FALA-2010 — era 32 (+2)",
+   "ok(imp.length === 32 && imp.every((p) => !/^\\s*['\"]use client['\"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`)"
+  ]
+ ],
+ "scripts/test-studio-fantasma-1510.mjs": [
+  [
+   "ok(hunks.length > 0 && hunks.every((h) => { const add = h.split(NL).filter((l) => l.startsWith('+') && !l.startsWith('+++')); return add.length === 0 || add.some((l) => l.includes('KINEO-STUDIO-FANTASMA-1510')) || add.every((l) => l.includes('KINEO-FILME-RAPIDO-1710')) || add.every((l) => l.includes('KINEO-FILME-RAPIDO-1710') || l.includes('KINEO-BEBE-QUE-FALA-2010')) /* reancorado KINEO-BEBE-QUE-FALA-2010: blocos do kids_cartoon (um deles colado no import da filme-rápido), todos marcados */ /* reancorado KINEO-FILME-RAPIDO-1710: blocos dela, todos marcados */ }), 'todo bloco novo no GenerateClient traz a marca KINEO-STUDIO-FANTASMA-1510')",
+   "ok(hunks.length > 0 && hunks.every((h) => { const add = h.split(NL).filter((l) => l.startsWith('+') && !l.startsWith('+++')); return add.length === 0 || add.some((l) => l.includes('KINEO-STUDIO-FANTASMA-1510')) || add.every((l) => l.includes('KINEO-FILME-RAPIDO-1710')) /* reancorado KINEO-FILME-RAPIDO-1710: blocos dela, todos marcados */ }), 'todo bloco novo no GenerateClient traz a marca KINEO-STUDIO-FANTASMA-1510')"
+  ]
+ ],
+ "scripts/test-trilha-15s-1610.mjs": [
+  [
+   "  relata('F toda linha nova/trocada da rota e do visualPromptPolicy leva a marca', add.length > 0 && add.every((l) => linhaDaTrilha15s1610(l) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || l.includes('KINEO-BEBE-QUE-FALA-2010') /* reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories (20/10) também é de depois da base; provado em scripts/test-bebe-que-fala-2010.mjs */), add.filter((l) => !linhaDaTrilha15s1610(l) && !l.includes('KINEO-META95-ASSUNTO-1910') && !l.includes('KINEO-BEBE-QUE-FALA-2010')).slice(0, 2).join(' | '))",
+   "  relata('F toda linha nova/trocada da rota e do visualPromptPolicy leva a marca', add.length > 0 && add.every((l) => linhaDaTrilha15s1610(l) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */), add.filter((l) => !linhaDaTrilha15s1610(l) && !l.includes('KINEO-META95-ASSUNTO-1910')).slice(0, 2).join(' | '))"
+  ],
+  [
+   "  const assuntos = git('log', '--format=%s', `${base}..HEAD`, '--', ROTA, VPP, LIB).split('\\n').map((s) => s.trim()).filter(Boolean).filter((s) => !s.includes('KINEO-FILME-RAPIDO-1710')).filter((s) => !s.includes('KINEO-META95-ASSUNTO-1910')).filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010')) /* reancorado KINEO-BEBE-QUE-FALA-2010: os commits de 20/10 levam o selo deles */ // reancorado KINEO-FILME-RAPIDO-1710: os commits da entrega de 17/10 levam o selo deles · reancorado KINEO-META95-ASSUNTO-1910: os de 19/10 levam o selo \"Vai pra meta do 95\"",
+   "  const assuntos = git('log', '--format=%s', `${base}..HEAD`, '--', ROTA, VPP, LIB).split('\\n').map((s) => s.trim()).filter(Boolean).filter((s) => !s.includes('KINEO-FILME-RAPIDO-1710')).filter((s) => !s.includes('KINEO-META95-ASSUNTO-1910')) // reancorado KINEO-FILME-RAPIDO-1710: os commits da entrega de 17/10 levam o selo deles · reancorado KINEO-META95-ASSUNTO-1910: os de 19/10 levam o selo \"Vai pra meta do 95\""
+  ]
+ ],
+ "scripts/test-veo-marcado-2026-09-29.mjs": [
+  [
+   "const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) || linhaDosFilmesF1F4_1910(l) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || l.includes('KINEO-BEBE-QUE-FALA-2010') /* reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories (20/10) também é de depois da base; provado em scripts/test-bebe-que-fala-2010.mjs */ /* reancorado KINEO-FILMES-F1-F4-1910 */ // reancorado KINEO-FILME-RAPIDO-1710",
+   "const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) || linhaDosFilmesF1F4_1910(l) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ /* reancorado KINEO-FILMES-F1-F4-1910 */ // reancorado KINEO-FILME-RAPIDO-1710"
+  ]
+ ],
+ "scripts/test-veo-modo-ia-2026-09-29.mjs": [
+  [
+   "const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) || linhaDosFilmesF1F4_1910(l) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || l.includes('KINEO-BEBE-QUE-FALA-2010') /* reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories (20/10) também é de depois da base; provado em scripts/test-bebe-que-fala-2010.mjs */ /* reancorado KINEO-FILMES-F1-F4-1910 */ // reancorado KINEO-FILME-RAPIDO-1710",
+   "const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) || linhaDosFilmesF1F4_1910(l) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ /* reancorado KINEO-FILMES-F1-F4-1910 */ // reancorado KINEO-FILME-RAPIDO-1710"
+  ]
+ ],
+ "scripts/test-verbatim-intocavel-2010.mjs": [
+  [
+   "    const atual = semHomeRemodela2010(semBebeQueFala2010(rd(rel), rel), rel) // KINEO-HOME-REMODELA-2010 — reancorado: a reâncora da home remodelada (entrega de depois) sai antes // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "    const atual = semHomeRemodela2010(rd(rel), rel) // KINEO-HOME-REMODELA-2010 — reancorado: a reâncora da home remodelada (entrega de depois) sai antes"
+  ],
+  [
+   "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-BEBE-QUE-FALA-2010', '--grep=KINEO-MCP-STUDIO-AJUSTE-2010', 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // reancorado KINEO-MCP-STUDIO-AJUSTE-2010: os commits do ajuste do conector (camada de depois) também não são \"alheios\" aqui — o desfaz do verbatim já os tira primeiro",
+   "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-MCP-STUDIO-AJUSTE-2010', 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // reancorado KINEO-MCP-STUDIO-AJUSTE-2010: os commits do ajuste do conector (camada de depois) também não são \"alheios\" aqui — o desfaz do verbatim já os tira primeiro"
+  ],
+  [
+   "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-BEBE-QUE-FALA-2010', '--grep=KINEO-MCP-STUDIO-AJUSTE-2010', `--grep=${MARCA_HOME_REMODELA_2010}`, 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-HOME-REMODELA-2010 — a última versão alheia pula também os commits da home remodelada (os merges da fila e as reâncoras)",
+   "    try { h = gitTxt('log', '-1', '--format=%H', '--invert-grep', `--grep=${MARCA_VERBATIM_INTOCAVEL_2010}`, '--grep=KINEO-MCP-STUDIO-AJUSTE-2010', `--grep=${MARCA_HOME_REMODELA_2010}`, 'HEAD', '--', rel).trim(); alheia = h ? gitTxt('show', `${h}:${rel}`).split(String.fromCharCode(13) + NL).join(NL) : null } catch { alheia = null } // KINEO-HOME-REMODELA-2010 — a última versão alheia pula também os commits da home remodelada (os merges da fila e as reâncoras)"
+  ],
+  [
+   "  const av = semHomeRemodela2010(semBebeQueFala2010(rd('scripts/test-support/desfaz-avatar-preso-2010.mjs'), 'scripts/test-support/desfaz-avatar-preso-2010.mjs'), 'scripts/test-support/desfaz-avatar-preso-2010.mjs') // KINEO-HOME-REMODELA-2010 — a home remodelada (camada de depois) entra antes desta dentro de semAvatarPreso2010; sem ela, esta segue a 1ª // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "  const av = semHomeRemodela2010(rd('scripts/test-support/desfaz-avatar-preso-2010.mjs'), 'scripts/test-support/desfaz-avatar-preso-2010.mjs') // KINEO-HOME-REMODELA-2010 — a home remodelada (camada de depois) entra antes desta dentro de semAvatarPreso2010; sem ela, esta segue a 1ª"
+  ],
+  [
+   "  checa('o guardião do avatar preso tira esta camada antes da contagem do D3', semBebeQueFala2010(rd('scripts/test-avatar-preso-2010.mjs'), 'scripts/test-avatar-preso-2010.mjs').split('semVerbatimIntocavel2010NaCadeia(rd(rel), rel).split(').length - 1 === 2) // reancorado KINEO-BEBE-QUE-FALA-2010",
+   "  checa('o guardião do avatar preso tira esta camada antes da contagem do D3', rd('scripts/test-avatar-preso-2010.mjs').split('semVerbatimIntocavel2010NaCadeia(rd(rel), rel).split(').length - 1 === 2)"
+  ]
+ ],
+ "scripts/test-visual-contract-2026-09-11.mjs": [
+  [
+   "    { exports, console: { log() {}, warn() {}, error() {} }, process: { env: {} }, fetch: noNetwork, romanceAdulto: { ativo: false }, desenhoInfantil: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op) · desenhoInfantil: reancorado KINEO-BEBE-QUE-FALA-2010 (sem kids_cartoon a linha é no-op)",
+   "    { exports, console: { log() {}, warn() {}, error() {} }, process: { env: {} }, fetch: noNetwork, romanceAdulto: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op)"
   ]
  ]
 }
