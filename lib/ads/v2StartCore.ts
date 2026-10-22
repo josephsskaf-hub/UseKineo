@@ -43,12 +43,14 @@ import { isAdsInternalEmail } from '@/lib/ads/access' // KINEO-ADS-CENA-2110
 import { cenaOf } from '@/lib/ads/cena/pipeline' // KINEO-ADS-CENA-2110
 import { cenaCosts } from '@/lib/ads/cena/adapters' // KINEO-ADS-CENA-2110
 import { cena95CostTableOf } from '@/lib/ads/cena/plan95' // KINEO-ADS-CENA-95-2110
+import type { Cena95Plan } from '@/lib/ads/cena/plan95' // KINEO-ADS-CENA-95-PACING-2110
+import { cena95Preflight } from '@/lib/ads/cena/preflight95' // KINEO-ADS-CENA-95-PACING-2110
 
 /** Prazo para abrir envios novos nesta chamada (o resto sai pelo avanço da tela/cron). */
 const DISPATCH_BUDGET_MS = 40_000
 
 /** O início do anúncio v2 para `user`, com o acesso `access` já resolvido. `readBody` lê o corpo só depois das portas. */
-export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, readBody: () => Promise<unknown>, started: number = Date.now()): Promise<NextResponse> {
+export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, readBody: () => Promise<unknown>, started: number = Date.now(), dependencies: { moderate?: typeof moderateContent } = {}): Promise<NextResponse> { // KINEO-ADS-CENA-95-PACING-2110 — server-only DI; request bodies cannot supply it.
   let locked: { id: string; user_id: string; billing_ref: string | null } | null = null
   let admin: Awaited<ReturnType<typeof loadAdsAccess>>['admin'] | null = null
   try {
@@ -76,6 +78,7 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     if (order.status !== 'draft' && order.status !== 'planned') return v2Fail('not_startable', 409, { status: order.status })
     const plan = order.plan
     const cena = cenaOf(plan); if (cena && !cenaEnabled(isAdsInternalEmail(user.email))) return v2Fail('cena_internal_only', 403) // KINEO-ADS-CENA-2110
+    if (cena) { const p = cena.plan as Cena95Plan; if (p.script?.normalization) cena95Preflight(p.script, p.input, cena.route, p.quality95.presenter) } // KINEO-ADS-CENA-95-PACING-2110 — identical pure gate before debit; legacy plans keep their path.
     if (!plan || !Array.isArray(plan.shots) || plan.shots.length === 0) return v2Fail('plan_required', 409)
     if (!order.card_url) return v2Fail('card_required', 400)
     // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra só sai no nível e na duração dela (a tela trava o resto; aqui é a lei).
@@ -85,7 +88,7 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
 
     // Moderação (a régua do v1, superfície ads_render): o texto que vira VOZ e TELA.
     const text = [plan.narration ?? '', ...(plan.overlays ?? []).map((o) => o.text)].filter(Boolean).join('\n')
-    const safety = await moderateContent({ surface: 'ads_render', stage: 'input', userId: user.id, text, meta: { order_id: orderId, v2: true } })
+    const safety = await (dependencies.moderate ?? moderateContent)({ surface: 'ads_render', stage: 'input', userId: user.id, text, meta: { order_id: orderId, v2: true } }) // KINEO-ADS-CENA-95-PACING-2110 — default always moderates; internal request reuses the same verdict.
     if (!safety.ok) return v2Fail(safety.reason === 'blocked' ? 'moderation' : `moderation_${safety.reason}`, safety.reason === 'unavailable' ? 503 : 422)
 
     const cost = adsV2Credits(order.tier, order.seconds)

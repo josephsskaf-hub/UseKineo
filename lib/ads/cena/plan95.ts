@@ -1,15 +1,14 @@
 // KINEO-ADS-CENA-95-2110 — três tomadas, roteiro calibrado e escolha de ator antes de reservar créditos.
 import { CENA_WARDROBE } from './catalog' // KINEO-ADS-CENA-95-PACING-2110 — catálogo derivado sem alterar o caminho legado.
 import { cena95Composition, type Cena95Composition } from './composition95' // KINEO-ADS-CENA-95-PACING-2110
+import { cena95Preflight } from './preflight95' // KINEO-ADS-CENA-95-PACING-2110
 import { classifyCena, type CenaInput, type CenaJson, type CenaPlan } from './plan'
 import { cenaAssertVoiceRoute, type CenaRoute } from './adapters'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { chooseCena95Presenter, CENA95_MUSIC, type Cena95Presenter } from './presenters95'
 import { parseCena95Script, type Cena95Script } from './script95'
 import { estimateCena95Cost } from './costs95'
-import { cena95NarratedVoiceRequest, type Cena95VoiceLanguage } from './voice95'
-import { cena95NativeSegments } from './adapters95'
-import { cena95Captions, cena95DefaultWindows } from './captions95'
+import { cena95NativeSegments, cena95NativePause } from './adapters95' // KINEO-ADS-CENA-95-PACING-2110
 import { cena95ScriptContract, cena95ScriptRepair } from './script95Contract' // KINEO-ADS-CENA-95-PLAN-FAILED-2110
 export interface Cena95Usage { inputTokens: number; outputTokens: number; calls: number; measuredCalls: number }
 export interface Cena95Plan extends CenaPlan {
@@ -42,10 +41,9 @@ export async function planCena95(input: CenaInput, route: CenaRoute, json: CenaJ
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       // KINEO-ADS-CENA-95-PLAN-FAILED-2110 — o JSON solicitado tem exatamente o contrato validado, inclusive nos três ganchos.
-      previous = await call({ model: AI_TEXT_MODELS.ads, images: [], system: cena95ScriptContract(input.language ?? 'en'), text: JSON.stringify({ product: classification.product, frase: input.frase, benefits: input.beneficios, offer: input.oferta, categoryAction: composition.interaction, correction, ...(attempt ? { repair: cena95ScriptRepair(previous, correction) } : {}) }) }) // KINEO-ADS-CENA-95-PACING-2110
+      previous = await call({ model: AI_TEXT_MODELS.ads, images: [], system: cena95ScriptContract(input.language ?? 'en'), text: JSON.stringify({ product: classification.product, frase: input.frase, benefits: input.beneficios, offer: input.oferta, cta: input.cta, visualDirectionOnly: composition.interaction, correction, ...(attempt ? { repair: cena95ScriptRepair(previous, correction, input.language) } : {}) }) }) // KINEO-ADS-CENA-95-PACING-2110
       script = parseCena95Script(previous, input, classification.product)
-      if (mode === 'talking') cena95NativeSegments(script, route === 'kling3' ? [3, 7, 5] : route === 'seedance2' ? [3, 12] : [8, 7])
-      cena95Captions({ text: script.narration, language: input.language ?? 'en', speechWindows: cena95DefaultWindows(script) })
+      cena95Preflight(script, input, route, presenter) // KINEO-ADS-CENA-95-PACING-2110 — dry/live share this exact gate before branching.
       break
     } catch (e) { script = undefined; correction = e instanceof Error ? e.message : 'cena95_script_invalid' }
   }
@@ -55,12 +53,13 @@ export async function planCena95(input: CenaInput, route: CenaRoute, json: CenaJ
   const silent = 'No speech, dialogue or lip-sync. Mouth closed in every frame. Silent scene; a separate narrator is added later.'
   const nativeVoice = `One consistent ${presenter.gender} ${presenter.age.replace('_', ' ')} voice in ${input.language}, ${input.formato === 'ugc' ? 'conversational' : 'confident and clear'}, matching this actor across every segment. Native speech only, no second narrator.`
   const words = script.narration.split(' '), boundary = Math.round(words.length * 8 / 15)
-  const veoSpeech = mode === 'talking' && route === 'veo31' ? cena95NativeSegments(script, [8, 7]).map(p => p.text) : [words.slice(0, boundary).join(' '), words.slice(boundary).join(' ')]
+  const veoSegments = mode === 'talking' && route === 'veo31' ? cena95NativeSegments(script, [8, 7]) : [] // KINEO-ADS-CENA-95-PACING-2110
+  const veoSpeech = veoSegments.length ? veoSegments.map(p => p.text) : [words.slice(0, boundary).join(' '), words.slice(boundary).join(' ')]
   const segmentPrompts: [string, string] = [
-    `${base} Local 0-3s: ${composition.opening}, then 3-8s ${composition.interaction}. ${mode === 'narrated' ? silent : `${nativeVoice} Face and speaking mouth visible within the locked crop. Say ONLY: ${veoSpeech[0]}`}`, // KINEO-ADS-CENA-95-PACING-2110
-    `${base} Continue the same action from absolute 8s. Local 0-2s: ${composition.interaction}; ${mode === 'narrated' ? 'continue the same silent product action to absolute15s' : 'keep speaking naturally to absolute15s'}, last generated second trimmed. ${mode === 'narrated' ? silent : `${nativeVoice} Face and mouth visible within the locked crop. Say ONLY: ${veoSpeech[1]}. Pause .35 seconds immediately before the complete CTA.`}`, // KINEO-ADS-CENA-95-PACING-2110
+    `${base} Local 0-3s: ${composition.opening}, then 3-8s ${composition.interaction}. ${mode === 'narrated' ? silent : `${nativeVoice} Face and speaking mouth visible within the locked crop. ${cena95NativePause(veoSegments[0], script.cta)}Say ONLY: ${veoSpeech[0]}`}`, // KINEO-ADS-CENA-95-PACING-2110
+    `${base} Continue the same action from absolute 8s. Local 0-2s: ${composition.interaction}; ${mode === 'narrated' ? 'continue the same silent product action to absolute15s' : 'keep speaking naturally to absolute15s'}, last generated second trimmed. ${mode === 'narrated' ? silent : `${nativeVoice} Face and mouth visible within the locked crop. ${cena95NativePause(veoSegments[1], script.cta)}Say ONLY: ${veoSpeech[1]}`}`, // KINEO-ADS-CENA-95-PACING-2110
   ]
-  const characters = mode === 'narrated' ? cena95NarratedVoiceRequest({ beforeCta: script.beforeCta, cta: script.cta, pauseSeconds: script.pauseSeconds, language: input.language as Cena95VoiceLanguage, gender: presenter.gender, age: presenter.age, formato: input.formato }).billingCharacters : 0
+  const characters = cena95Preflight(script, input, route, presenter).voiceRequest?.billingCharacters ?? 0 // KINEO-ADS-CENA-95-PACING-2110
   const costs = Object.fromEntries((['kling3', 'seedance2', 'veo31'] as const).map(r => [r, estimateCena95Cost(r, mode, { characters, planningCalls: planningUsage.calls })])) as Cena95Plan['quality95']['costs']
   return { marker: 'KINEO-ADS-CENA-2110', input, category, product: classification.product, format: composition.format, setting: composition.setting, actor: composition.productDominant ? composition.actor : presenter.look, interaction: composition.interaction, script, voice_mode: mode, audioMode: mode === 'narrated' ? 'voiceover' : 'native', continuity: { actorUrl: presenter.portrait, wardrobe, productWrist: category === 'wearable' ? 'left' : null }, keyframePrompts: [`${base} SHARED BASE KEYFRAME: ${composition.keyframe}. ${mode === 'narrated' ? 'Any visible mouth is closed.' : 'Face ready to speak within the locked crop.'}`, `${base} Same shared keyframe reference and the exact locked composition.`], videoPrompt: `${base} ${mode === 'narrated' ? silent : nativeVoice}`, segmentPrompts, quality95: { version: 'KINEO-ADS-CENA-95-2110', presenter, wardrobe, musicMood: CENA95_MUSIC[category], closePhoto: input.foto, shots: [{ kind: 'hook', start: 0, seconds: 3 }, { kind: 'use', start: 3, seconds: 7 }, { kind: 'close', start: 10, seconds: 5 }], costs, planningUsage, nativeVoice, composition } } // KINEO-ADS-CENA-95-PACING-2110
 }

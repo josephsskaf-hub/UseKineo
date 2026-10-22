@@ -3,13 +3,32 @@ import { CENA_ROUTES, cenaKeyframeRequest, type CenaRoute } from './adapters'
 import type { Cena95Plan } from './plan95'
 import { CENA95_TARGET_WPS } from './script95'
 export interface Cena95Request { family: 'base' | 'person0' | 'person1' | 'close'; candidate: number; kind: 'image' | 'video'; endpoint: string; input: Record<string, unknown>; seconds: number; keepSeconds: number; unitUsd: number; photoReference?: string }
-export interface Cena95NativeSegment { text: string; start: number; seconds: number; pauseSeconds: number; spokenSeconds: number; estimatedWordsPerSecond: number; timingBasis: 'planning_assumption_not_measured' }
+export interface Cena95NativeSegment { text: string; start: number; seconds: number; pauseSeconds: number; pauseBeforeWord?: number; spokenSeconds: number; estimatedWordsPerSecond: number; timingBasis: 'planning_assumption_not_measured' }
+export function cena95NativePause(segment: Cena95NativeSegment | undefined, cta: string): string { // KINEO-ADS-CENA-95-PACING-2110
+  if (!segment?.pauseSeconds) return ''
+  return segment.pauseBeforeWord !== undefined ? `Pause ${segment.pauseSeconds}s immediately before word ${segment.pauseBeforeWord} of this segment, where the CTA begins. Continue the same utterance across takes without repeating it. ` : `Pause ${segment.pauseSeconds}s immediately before the final ${cta.trim().split(/\s+/u).length} words (the complete CTA). `
+}
 /** KINEO-ADS-CENA-95-2110 — cortes de PALAVRAS da narração inteira. Pausa/CTA só no último trecho.
  * Taxa é orçamento de planejamento, não duração medida do áudio. Se quantização ou CTA não cabem, refazer ANTES de cobrar.
  */
-export function cena95NativeSegments(script: Pick<Cena95Plan['script'], 'narration' | 'cta' | 'pauseSeconds'>, durations: readonly number[]): Cena95NativeSegment[] {
+export function cena95NativeSegments(script: Pick<Cena95Plan['script'], 'narration' | 'cta' | 'pauseSeconds' | 'wordsPerSecond'>, durations: readonly number[]): Cena95NativeSegment[] {
   const words = script.narration.trim().split(/\s+/u).filter(Boolean), cta = script.cta.trim().split(/\s+/u).filter(Boolean), pause = script.pauseSeconds
   if (!words.length || !cta.length || !Number.isFinite(pause) || pause < 0 || pause >= 1 || durations.length < 1 || durations.some(s => !Number.isFinite(s) || s <= 0) || Math.abs(durations.reduce((a, b) => a + b, 0) - 15) > 1e-8 || words.slice(-cta.length).join(' ') !== cta.join(' ')) throw new Error('cena95_native_speech_does_not_fit')
+  if (script.wordsPerSecond !== undefined) { // KINEO-ADS-CENA-95-PACING-2110 — continue one utterance across takes; never drop a CTA because it crosses a cut.
+    const rate = script.wordsPerSecond, ctaStart = words.length - cta.length
+    if (!Number.isFinite(rate) || rate <= 0 || words.length / rate + pause > 15) throw new Error('cena95_required_speech_does_not_fit')
+    const result: Cena95NativeSegment[] = []; let at = 0, start = 0, pauseAssigned = false
+    for (const [k, seconds] of durations.entries()) {
+      const last = k === durations.length - 1
+      const end = last ? words.length : Math.max(at + (k === 0 ? 1 : 0), Math.min(words.length, Math.round(words.length * (start + seconds) / 15)))
+      const here: boolean = !pauseAssigned && ctaStart >= at && ctaStart < end
+      const pauseSeconds = here ? pause : 0
+      result.push({ text: words.slice(at, end).join(' '), start, seconds, pauseSeconds, ...(here ? { pauseBeforeWord: ctaStart - at + 1 } : {}), spokenSeconds: seconds - pauseSeconds, estimatedWordsPerSecond: (end - at) / (seconds - pauseSeconds), timingBasis: 'planning_assumption_not_measured' })
+      pauseAssigned ||= here; at = end; start += seconds
+    }
+    if (!pauseAssigned) throw new Error('cena95_required_speech_does_not_fit')
+    return result
+  }
   const available = durations.map((s, n) => s - (n === durations.length - 1 ? pause : 0))
   const capacities = available.map(s => Math.floor(s * CENA95_TARGET_WPS + 1e-9)), speakingTime = available.reduce((a, b) => a + b, 0)
   if (capacities.some(n => n < 1) || words.length > capacities.reduce((a, b) => a + b, 0) || cta.length > capacities[capacities.length - 1]) throw new Error('cena95_native_speech_does_not_fit')
@@ -34,7 +53,7 @@ export function cena95VideoRequests(plan: Cena95Plan, route: CenaRoute, baseUrl:
   const talking = plan.voice_mode === 'talking', root = plan.videoPrompt
   const productComposition = plan.quality95.composition?.productDominant ? plan.quality95.composition : undefined // KINEO-ADS-CENA-95-PACING-2110
   const native = talking && route !== 'veo31' ? cena95NativeSegments(plan.script, route === 'kling3' ? [3, 7, 5] : [3, 12]) : []
-  const speech = (segment?: Cena95NativeSegment) => talking && segment ? `${plan.quality95.nativeVoice} ${productComposition ? 'Keep the cropped lower face and speaking mouth visible as secondary context; the whole product stays the foreground focal subject.' : 'Face and mouth visible and speaking.'} Deliver the supplied words within ${segment.seconds}s, with no repetition or extra words. ${segment.pauseSeconds ? `Pause ${segment.pauseSeconds}s immediately before the final ${plan.script.cta.trim().split(/\s+/u).length} words (the complete CTA). ` : ''}Say ONLY: ${segment.text}` : `No speech, no dialogue, no lip-sync. ${productComposition ? 'Any visible lips remain closed throughout.' : 'Lips remain closed throughout.'} generate_audio is disabled.` // KINEO-ADS-CENA-95-PACING-2110
+  const speech = (segment?: Cena95NativeSegment) => talking && segment ? `${plan.quality95.nativeVoice} ${productComposition ? 'Keep the cropped lower face and speaking mouth visible as secondary context; the whole product stays the foreground focal subject.' : 'Face and mouth visible and speaking.'} Deliver the supplied words within ${segment.seconds}s, with no repetition or extra words. ${cena95NativePause(segment, plan.script.cta)}Say ONLY: ${segment.text}` : `No speech, no dialogue, no lip-sync. ${productComposition ? 'Any visible lips remain closed throughout.' : 'Lips remain closed throughout.'} generate_audio is disabled.` // KINEO-ADS-CENA-95-PACING-2110
   const hook = `${root} HOOK: ${productComposition ? productComposition.opening : 'strong forward movement with person AND whole product; energetic but anatomically natural'}. ${speech(native[0])}` // KINEO-ADS-CENA-95-PACING-2110
   const use = `${root} DEMONSTRATION: ${plan.interaction}. ${speech(native[1])}`
   const jobs: Cena95Request[] = []

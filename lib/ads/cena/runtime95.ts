@@ -7,7 +7,7 @@ import { prepareCena95Voice, prepareCena95Music, type Cena95FinishDeps } from '.
 import { synthesizeCena95NarratedVoice } from './audio95Runtime'
 import { extractCena95Frames } from './frames95'
 import { buildCena95Montage } from './montage95'
-import { cena95Captions, cena95DefaultWindows, cena95NarratedWindows } from './captions95'
+import { cena95Preflight } from './preflight95' // KINEO-ADS-CENA-95-PACING-2110
 import { cena95UsageObservation } from './usage95'
 import { submeterLyria, esperarLyria, lyriaPromptFor } from '@/lib/lyriaMusic'
 import { CreatomateSubmitError, estimateMp3DurationSeconds, submitCreatomateRender, uploadVoiceoverToSupabase } from '@/lib/compose'
@@ -81,8 +81,8 @@ export async function advanceCena95Order(admin: SupabaseClient, order: AdsV2Orde
     if (!s.musicState && !canSpend(50_000)) return
     await prepareCena95Music(s, audio)
     if (!s.musicState || !canSpend(25_000)) return
-    const speechWindows = s.plan.voice_mode === 'narrated' ? cena95NarratedWindows(s.plan.script, s.plan.input.language ?? 'en', s.voiceSeconds!) : cena95DefaultWindows(s.plan.script)
-    const captions = cena95Captions({ text: s.plan.script.narration, language: s.plan.input.language ?? 'en', words: s.words, speechWindows })
+    const prepared = cena95Preflight(s.plan.script, s.plan.input, s.route, s.plan.quality95.presenter, { ...(s.plan.voice_mode === 'narrated' ? { voiceSeconds: s.voiceSeconds! } : {}), words: s.words }) // KINEO-ADS-CENA-95-PACING-2110
+    const speechWindows = prepared.speechWindows, captions = prepared.captions // KINEO-ADS-CENA-95-PACING-2110
     s.captionTimingSource = captions.timingSource; s.words = captions.words
     const source = buildCena95Montage({ plan: s.plan, selectedClips: s.selectedClips, nativeAudioClips: s.nativeAudioClips, voiceUrl: s.voiceUrl, voiceSeconds: s.voiceSeconds, musicUrl: s.musicUrl, words: s.words, speechWindows })
     const render = s.plan.quality95.costs[s.route].breakdown.find(p => p.component === 'creatomate')!

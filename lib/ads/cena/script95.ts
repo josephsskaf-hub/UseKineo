@@ -3,31 +3,24 @@ import { inventedClaims, inventedNumbers } from '../scriptPrompt'
 import { honestyIssues } from '../v2Honesty'
 import type { AdsBrief } from '../types'
 import type { CenaInput, CenaScript } from './plan'
+import { repairCena95Text, type Cena95RepairOptions, type Cena95TextRepair } from './script95Repair' // KINEO-ADS-CENA-95-PACING-2110
 export const CENA95_CLICHES = ['game changer', 'game-changer', 'revolutionary', 'revolucionario', 'voce precisa', 'you need this', 'elevate your', 'upgrade your life', 'must have', 'must-have', 'enjoy it', 'embrace the essence', 'transform your life', 'experimente a revolucao'] as const
 export const CENA95_PAUSE_SECONDS = 0.35
 export const CENA95_TARGET_WPS = 2.9
 const clean = (x: unknown): string => typeof x === 'string' ? x.replace(/\s+/gu, ' ').trim() : ''
 const fold = (s: string): string => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
 export const cena95WordCount = (s: string): number => clean(s).split(/\s+/u).filter(Boolean).length
-export interface Cena95Script extends CenaScript { pain: string; demonstration: string; offer: string; beforeCta: string; words: number; hookEstimatedSeconds: number; estimatedSeconds: number; timingBasis: 'rate_estimate'; pauseSeconds: number }
-export function parseCena95Script(raw: unknown, input: CenaInput, product: string): Cena95Script {
-  const r = (typeof raw === 'string' ? JSON.parse(raw) : raw) as Record<string, unknown>
-  if (!r || typeof r !== 'object') throw new Error('cena95_script_json')
-  const hooks = Array.isArray(r.hooks) ? r.hooks.map(clean) : []
-  if (hooks.length !== 3 || new Set(hooks.map(fold)).size !== 3 || hooks.some(h => !h || cena95WordCount(h) > 7 || cena95WordCount(h) / CENA95_TARGET_WPS > 1.5)) throw new Error('cena95_hook_too_long')
-  const pain = clean(r.pain), demonstration = clean(r.demonstration), benefit = clean(r.benefit), offer = clean(r.offer), cta = clean(r.cta)
-  if (!pain || !demonstration || typeof r.benefit !== 'string' || (input.beneficios?.length && !benefit) || !cta || offer !== (input.oferta ?? '')) throw new Error('cena95_script_structure') // KINEO-ADS-CENA-95-PLAN-FAILED-2110 — sem benefício fornecido, não obrigar o modelo a inventar um.
-  const beforeCta = [hooks[0], pain, demonstration, benefit, offer].filter(Boolean).join(' ')
-  const narration = `${beforeCta} ${cta}`, words = cena95WordCount(narration)
-  const estimatedSeconds = words / CENA95_TARGET_WPS + CENA95_PAUSE_SECONDS
-  if (words < 39 || words > 43 || estimatedSeconds > 15 || words / 15 < 2.6 || words / 15 > 2.9) throw new Error('cena95_speech_pacing')
-  const facts = [input.frase, input.oferta, ...(input.beneficios ?? [])].join(' ')
-  const all = [...hooks, pain, demonstration, benefit, offer, cta].join(' ')
-  if (CENA95_CLICHES.some(c => fold(all).includes(c))) throw new Error('cena95_cliche')
-  if ((input.beneficios ?? []).some(b => !fold(benefit).includes(fold(b)))) throw new Error('cena95_missing_typed_benefit')
-  const name = fold(product).split(/\s+/).filter(w => w.length > 2)
-  if (name.length && !name.some(w => fold(cta).includes(w))) throw new Error('cena95_specific_cta_required')
-  const brief: AdsBrief = { business: input.frase, offer: input.oferta ?? '', contact: '', cta: 'buy', audience: '', tone: 'direct', language: input.language ?? 'en', extra: { benefits: (input.beneficios ?? []).join('; ') } }
-  if (inventedNumbers(all, brief).length || inventedClaims(all, brief).length || honestyIssues(all, { source: facts, typed: facts, product: true, places: [], presenter: true }, 'narration').length) throw new Error('cena95_unsubstantiated_script')
-  return { hooks: hooks as [string, string, string], hook: hooks[0], pain, demonstration, use: [pain, demonstration].join(' '), benefit: [benefit, offer].filter(Boolean).join(' '), offer, cta, narration, beforeCta, words, estimatedSeconds, hookEstimatedSeconds: cena95WordCount(hooks[0]) / CENA95_TARGET_WPS, pauseSeconds: CENA95_PAUSE_SECONDS, timingBasis: 'rate_estimate' }
+export interface Cena95Script extends CenaScript { pain: string; demonstration: string; offer: string; spokenOffer?: string; rawBenefit?: string; beforeCta: string; words: number; hookEstimatedSeconds: number; estimatedSeconds: number; timingBasis: 'rate_estimate'; pauseSeconds: number; language?: string; wordsPerSecond?: number; normalization?: Cena95TextRepair['normalization'] }
+export function parseCena95Script(raw: unknown, input: CenaInput, product: string, options: Cena95RepairOptions = {}): Cena95Script {
+  // KINEO-ADS-CENA-95-PACING-2110 — length is repaired deterministically; honesty remains a hard constraint.
+  const facts = [input.frase, input.oferta, input.cta, ...(input.beneficios ?? [])].filter(Boolean).join(' ')
+  const brief: AdsBrief = { business: input.frase, offer: input.oferta ?? '', contact: '', cta: 'buy', audience: '', tone: 'direct', language: input.language ?? 'en', extra: { benefits: (input.beneficios ?? []).join('; '), typedCta: input.cta ?? '' } }
+  const honest = (text: string) => !CENA95_CLICHES.some(c => fold(text).includes(c)) && !inventedNumbers(text, brief).length && !inventedClaims(text, brief).length && !honestyIssues(text, { source: facts, typed: facts, product: true, places: [], presenter: true }, 'narration').length
+  const r = repairCena95Text(raw, input, product, { ...options, acceptSentence: honest })
+  const { hooks, pain, demonstration, offer, spokenOffer, cta, wordsPerSecond, language, normalization } = r
+  const beforeCta = [hooks[0], pain, demonstration, r.benefit, spokenOffer].filter(Boolean).join(' ')
+  const narration = `${beforeCta} ${cta}`, words = cena95WordCount(narration), estimatedSeconds = words / wordsPerSecond + CENA95_PAUSE_SECONDS
+  if (!honest(narration)) throw new Error('cena95_unsubstantiated_script')
+  if (estimatedSeconds > 15) throw new Error('cena95_required_speech_does_not_fit')
+  return { hooks, hook: hooks[0], pain, demonstration, use: [pain, demonstration].filter(Boolean).join(' '), benefit: [r.benefit, spokenOffer].filter(Boolean).join(' '), rawBenefit: r.benefit, offer, spokenOffer, cta, narration, beforeCta, words, estimatedSeconds, hookEstimatedSeconds: cena95WordCount(hooks[0]) / wordsPerSecond, pauseSeconds: CENA95_PAUSE_SECONDS, timingBasis: 'rate_estimate', wordsPerSecond, language, normalization }
 }
