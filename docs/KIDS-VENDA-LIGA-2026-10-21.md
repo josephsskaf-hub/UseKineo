@@ -15,9 +15,9 @@
 | `scripts/test-support/desfaz-menu-ugc-2010.mjs` | Preservadas as duas camadas posteriores do merge. |
 | `scripts/test-trilha-15s-1610.mjs` | Mantidas regras da main e separação da camada de venda. |
 
-**FATO CONFIRMADO — visual:** `KidsVendaPanel` permanece montado antes do template novo (`app/(dashboard)/kids-cartoon/page.tsx:23`); `KidsVendaCards` continua nas páginas públicas/pricing. Cores, bordas, foco e mobile acompanham a tela clara. `KidsCartoonTemplate.tsx` e o módulo Kids da main permanecem idênticos à base; nenhuma tela antiga foi recuperada. Prévia autocontida e imagem antes/depois em `docs/previews/kids-venda-liga-2110.html` e `.png`.
+**FATO CONFIRMADO — visual:** `KidsVendaPanel` permanece montado antes do template novo (`app/(dashboard)/kids-cartoon/page.tsx:20`); `KidsVendaCards` continua nas páginas públicas/pricing. Cores, bordas, foco e mobile acompanham a tela clara. `KidsCartoonTemplate.tsx` e o módulo Kids da main permanecem idênticos à base; nenhuma tela antiga foi recuperada. Prévia estática autocontida com estado de entrega ilustrativo, e imagem antes/depois em `docs/previews/kids-venda-liga-2110.html` e `.png`.
 
-**FATO CONFIRMADO — guardiões reancorados:** consolidação pendente dos resultados finais desta sessão.
+**FATO CONFIRMADO — guardiões reancorados:** MCP Studio, Meta95 personagem, Trilha 15s, Saída Região e Negação de Cena/Ads Cena/Cena Ajuste isolam somente a camada Kids declarada. A cadeia `desfaz-ads-cena-ajuste` → demais camadas e `desfaz-bebe-que-fala` remove a venda primeiro. O desfaz Kids restaura exatamente 18 arquivos à main `72d23210c`, preservando CRLF e idempotência (`scripts/test-support/desfaz-kids-venda-2010.mjs:27`; tabela `desfaz-kids-venda-2010-trocas.json`). O guardião da venda exige público liberado para pack/piloto; desligamento em memória, template fechado, antifarm, cobrança e 26 mutantes continuam cobertos (`scripts/test-kids-venda-2010.mjs:126`, `:283`).
 
 **FATO CONFIRMADO — TESTADO LOCALMENTE, 21/10/2026:** tabela antes × depois e comparação de checagens serão preenchidas ao terminar a suíte integral. Execução offline com rede, leitura de `.env` e herança de credenciais bloqueadas; fixtures e mutantes em cópia isolada. Sem alteração de prazos/assertions do produto para acomodar o ambiente.
 
