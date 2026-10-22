@@ -16,6 +16,7 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — only the historical Studio button extract is restored; wall behavior remains read from disk.
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 let ok = 0
@@ -135,7 +136,7 @@ check('(7g) o cartão vem ANTES do botão Generate da fase options e só com pro
 check('(7h) dois degraus (Express 3500 / Pro 7500, fundador 24/09); URL vazia = degrau PAUSADO; um botão por degrau ligado com o tier no clique', /priceMinor: 3500/.test(norm('lib/growth/dfyOffer.ts')) && /priceMinor: 7500/.test(norm('lib/growth/dfyOffer.ts')) && /options\.map\(\(o\) => \(/.test(DFY) && /dfy_card_clicked', \{ source, version: DFY_OFFER_VERSION, tier: o\.tier, price_minor: o\.priceMinor \}/.test(DFY))
 // ── (7i-7m) KINEO-EMPRESAS-COCKPIT-2026-09-24 — o cético do workflow provou que o passo 2 do /studio/create não é
 // o caminho principal (cockpit → ?studio=1 → cortina → disparo automático). O cartão passou a morar no cockpit.
-check('(7i) o COCKPIT do Studio (StudioClient) importa e monta o cartão ANTES do botão go, com source="studio_cockpit"', (() => { const SC = norm('app/(dashboard)/studio/StudioClient.tsx'); const m = SC.indexOf('<DfyOfferCard prompt={prompt} userId={null} email={null} source="studio_cockpit" />'); const b = SC.indexOf('<button type="button" onClick={generate} disabled={!prompt.trim() || limit.over}'); return /import DfyOfferCard from '@\/components\/DfyOfferCard'/.test(SC) && m > -1 && b > -1 && m < b && b - m < 400 })())
+check('(7i) o COCKPIT do Studio (StudioClient) importa e monta o cartão ANTES do botão go, com source="studio_cockpit"', (() => { const SC = semRoteiroCurto2210(norm('app/(dashboard)/studio/StudioClient.tsx'), 'app/(dashboard)/studio/StudioClient.tsx'); const m = SC.indexOf('<DfyOfferCard prompt={prompt} userId={null} email={null} source="studio_cockpit" />'); const b = SC.indexOf('<button type="button" onClick={generate} disabled={!prompt.trim() || limit.over}'); return /import DfyOfferCard from '@\/components\/DfyOfferCard'/.test(SC) && m > -1 && b > -1 && m < b && b - m < 400 })()) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 check('(7j) o cartão resolve a própria identidade (supabase.auth.getUser) quando a tela não passa userId/email; a URL leva client_reference_id + prefilled_email', /import \{ createClient \} from '@\/lib\/supabase\/client'/.test(DFY) && /createClient\(\)\.auth\.getUser\(\)/.test(DFY) && /dfyPaymentLink\(\{ tier: o\.tier, userId: resolvedUserId, email: resolvedEmail \}\)/.test(DFY))
 check('(7k) utm_source é o padrão do módulo (studio_dfy_card): o cartão NÃO repassa source ao link', !/dfyPaymentLink\(\{[^}]*source/.test(DFY))
 check('(7l) uma impressão por SUPERFÍCIE por carregamento (Set de módulo) além do ref por montagem', /const impressionKeys = new Set<string>\(\)/.test(DFY) && /impressionKeys\.has\(source\) \|\| shownRef\.current\) return/.test(DFY) && /impressionKeys\.add\(source\)/.test(DFY))

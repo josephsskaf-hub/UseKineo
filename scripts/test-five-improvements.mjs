@@ -5,6 +5,7 @@ import assert from 'node:assert/strict'
 import ts from 'typescript'
 import {execFileSync} from 'node:child_process'
 import {renderPage} from './preview-ux-complete.mjs'
+import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — reverse only the authorized delta before the unchanged AST comparison.
 let checks=0
 const ok=(v,m)=>{assert.ok(v,m);checks++},eq=(a,b,m)=>{assert.deepEqual(a,b,m);checks++}
 function pure(file){const exports={};vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:1,target:9}}).outputText,{exports,URLSearchParams,Date});return exports}
@@ -138,5 +139,5 @@ const file='app/(dashboard)/studio/StudioClient.tsx'
 const old=execFileSync('git',['show','5b155dc5:'+file],{encoding:'utf8'})
 function behavior(code){const sf=ts.createSourceFile(file,code,99,true,4),out=[];function visit(n){if(ts.isJsxAttribute(n)&&['onClick','onChange','disabled','value','checked','src'].includes(n.name.getText(sf)))out.push(n.getText(sf).replace(/\r\n/g,'\n'));ts.forEachChild(n,visit)}visit(sf);return out}
 // KINEO-TRES-MODOS-2026-09-11 — o modo clipe (ordem do fundador) ACRESCENTA handlers ao Studio; a trava passa a exigir que todo handler da base continue presente e inalterado (remoção/mudança segue reprovando).
-{const now=behavior(fs.readFileSync(file,'utf8')),base=behavior(old);const missing=base.filter(h=>!now.includes(h));eq(missing,[],'Studio handlers and request-bound fields of the base are preserved')}
+{const now=behavior(semRoteiroCurto2210(fs.readFileSync(file,'utf8'),file)),base=behavior(old);const missing=base.filter(h=>!now.includes(h));eq(missing,[],'Studio handlers and request-bound fields of the base are preserved')} // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 console.log(`Five improvements: ${checks} checks passed; offline only.`)

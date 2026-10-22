@@ -23,6 +23,7 @@
 //   G  desfaz (scripts/test-support/desfaz-filme-rapido-1710.mjs): cada arquivo protegido, desfeito, é EXATAMENTE a base.
 //   M  mutantes: cada um é aplicado (provado por diferença de texto) e deixa a verificação-alvo VERMELHA.
 import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
+import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — historical byte comparisons undo this delta first; feature checks keep the actual source.
 import fs from 'node:fs'
 import { semFilmesF1F4_1910 } from './test-support/desfaz-filmes-f1f4-1910.mjs' // reancorado KINEO-FILMES-F1-F4-1910 [TRAVA 8.2 — vai do fundador 19/10 "vai, sim pra tudo"]: as linhas marcadas da rota do compose (Faceless 15 s) saem antes da comparação com a base
 import { semFilmesF1Virgula1910 } from './test-support/desfaz-filmes-f1-virgula-1910.mjs' // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a camada mais nova sai primeiro
@@ -34,7 +35,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import ts from 'typescript'
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => semCloseReal1910(semFilmesF1F4_1910(semFilmesF1Virgula1910(fs.readFileSync(path.join(RAIZ, p), 'utf8'), p), p), p).replace(/\r\n/g, '\n') /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */ // reancorado KINEO-FILMES-F1-F4-1910: o Faceless 15 s (camada mais nova) sai primeiro, por dentro do Close real · KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a fiação do Faceless 15 s no export limpo (a mais nova) sai PRIMEIRO
+const rd = (p, historico2210 = false) => semCloseReal1910(semFilmesF1F4_1910(semFilmesF1Virgula1910((historico2210 ? semRoteiroCurto2210 : (s) => s)(fs.readFileSync(path.join(RAIZ, p), 'utf8'), p), p), p), p).replace(/\r\n/g, '\n') /* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — only historical snapshots opt in, before the older reversals. */ /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */ // reancorado KINEO-FILMES-F1-F4-1910: o Faceless 15 s (camada mais nova) sai primeiro, por dentro do Close real · KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a fiação do Faceless 15 s no export limpo (a mais nova) sai PRIMEIRO
 const git = (...a) => execFileSync('git', ['-C', RAIZ, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 let ok = 0
 const falhas = []
@@ -427,7 +428,7 @@ try {
   for (const p of SUP.ARQUIVOS_PROTEGIDOS_FILME_RAPIDO_1710) {
     let base = null
     try { base = git('show', `${BASE}:${p}`).replace(/\r\n/g, '\n') } catch { base = null }
-    if (base === null || SUP.semFilmeRapido1710(semFilmesF1F4_1910(desfazApresentadorV2Libera1910(p, rd(p)), p), p) !== base) ruins.push(p) // reancorado KINEO-APRESENTADOR-V2-LIBERA-1910: era SUP.semFilmeRapido1710(rd(p), p) · reancorado KINEO-FILMES-F1-F4-1910
+    if (base === null || SUP.semFilmeRapido1710(semFilmesF1F4_1910(desfazApresentadorV2Libera1910(p, rd(p, true)), p), p) !== base) ruins.push(p) /* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 */ // reancorado KINEO-APRESENTADOR-V2-LIBERA-1910: era SUP.semFilmeRapido1710(rd(p), p) · reancorado KINEO-FILMES-F1-F4-1910
   }
   checa(`G1 ${SUP.ARQUIVOS_PROTEGIDOS_FILME_RAPIDO_1710.length} arquivos protegidos: desfeitos = base ${String(BASE).slice(0, 10)}`, !!BASE && SUP.ARQUIVOS_PROTEGIDOS_FILME_RAPIDO_1710.length >= 8 && ruins.length === 0, ruins.join(', '))
   checa('G2 o desfaz é idempotente (sem a marca devolve igual) e nunca toca linha sem a marca', SUP.semFilmeRapido1710('a\nb', 'x') === 'a\nb' && SUP.semFilmeRapido1710('a\nb // KINEO-FILME-RAPIDO-1710\nc', 'x') === 'a\nc')

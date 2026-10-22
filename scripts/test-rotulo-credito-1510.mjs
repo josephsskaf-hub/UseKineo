@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — credit labels use the same person's event names, excluding only script preparation.
 // KINEO-ROTULO-CREDITO-1510 — guardião do rótulo de crédito da coluna "Doing now" do painel /admin.
 //
 // O defeito: app/api/admin/live/route.ts escrevia "⚡ modal de crédito" para QUALQUER evento com 'topup' no nome — e o chip
@@ -76,7 +77,7 @@ function verificar(files) {
   // R8 — o painel usa a regra e a regra velha morreu.
   const route = src(ROUTE)
   ok(/^import \{ rotuloCredito \} from '@\/lib\/admin\/rotuloCredito'/m.test(route), 'R8: a rota importa rotuloCredito')
-  ok(/const names = new Set\(row\.events\)/.test(route), 'R8: names é o Set dos eventos da janela da pessoa')
+  ok(/const names = new Set\(row\.details\.filter\(\(event\) => !isNarrationCompletionEvent\(event\)\)\.map\(\(event\) => event\.name\)\)/.test(route), 'R8: names é o Set dos eventos da janela da pessoa')
   ok(/const credito = rotuloCredito\(names\)\n\s*if \(credito\) did\.push\(credito\)/.test(route), 'R8: a rota chama rotuloCredito(names) e empurra o resultado na coluna')
   ok(!/n\.includes\('topup'\)/.test(route), "R8: a regra velha (qualquer 'topup' = modal) saiu da rota")
   ok(!route.includes('⚡ modal de crédito'), 'R8: o rótulo do modal não é escrito à mão na rota (só a regra o devolve)')

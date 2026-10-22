@@ -121,11 +121,14 @@ for (const p of ADS_CENA_AJUSTE_2110_ARQUIVOS) {
 }
 assert.equal(semAdsCenaAjuste2110('fora\n', 'lib/fora.ts'), 'fora\n')
 const declared = new Set([...ADS_CENA_AJUSTE_2110_ARQUIVOS, ...ADS_CENA_AJUSTE_2110_NOVOS])
-const changed = git('diff', '--ignore-cr-at-eol', '--name-only', ADS_CENA_AJUSTE_2110_BASE).trim().split('\n').filter(Boolean)
+// KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — freeze this older delivery's scope at its own last marked commit; runtime/integrity checks above still read current files.
+const deliveryHead = git('log', '--format=%H', '--grep=' + MARCA_ADS_CENA_AJUSTE_2110, '-1', 'HEAD').trim()
+assert.ok(deliveryHead, 'commit final do complemento antigo existe')
+const changed = git('diff', '--ignore-cr-at-eol', '--name-only', ADS_CENA_AJUSTE_2110_BASE, deliveryHead).trim().split('\n').filter(Boolean)
 assert.ok(changed.length > 0 && changed.every(p => declared.has(p)), 'escopo completo do complemento, sem arquivo estranho')
 for (const p of ADS_CENA_AJUSTE_2110_NOVOS) assert.ok(readFileSync(p).length > 0, 'artefato novo existe: ' + p)
 const oldUndo = source('scripts/test-support/desfaz-ads-cena-2110.mjs')
 assert.ok(oldUndo.indexOf('texto = semAdsCenaAjuste2110(texto, p)') < oldUndo.indexOf("const rel = String(p ?? '')"), 'desfaz da camada mais nova vem primeiro')
-const subjects = git('log', '--format=%s', ADS_CENA_AJUSTE_2110_BASE + '..HEAD').trim().split('\n').filter(Boolean)
+const subjects = git('log', '--format=%s', ADS_CENA_AJUSTE_2110_BASE + '..' + deliveryHead).trim().split('\n').filter(Boolean)
 assert.ok(subjects.every(s => s.startsWith('KINEO-ADS-CENA-2110 ') && s.includes('[TRAVA 8.2 — vai do fundador 21/10 "A e B, vamo time"]')), 'marca e trava em todos os commits do complemento')
 console.log('ok desfaz encadeado, fontes exatas, CRLF, idempotência, mutantes de integridade e escopo do complemento')

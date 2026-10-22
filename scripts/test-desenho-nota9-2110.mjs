@@ -1,3 +1,4 @@
+import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — undo only this task in memory before legacy contracts
 // KINEO-DESENHO-NOTA9-2110 — guardião de "o desenho infantil inteiro na tela clara" (fundador 21/10: "experiência do cliente no mínimo
 // nota 9"; o "Make my cartoon" caía no /generate antigo: escuro, categorias adultas com Billionaire marcado, parede de motores, "+21",
 // mediana, "35s costs 21 credits — you have 0…").
@@ -33,7 +34,7 @@ import { semMeta95PersonagemAjuste2010 } from './test-support/desfaz-meta95-pers
 import { semDesenhoSom2110 } from './test-support/desfaz-desenho-som-2110.mjs' // KINEO-DESENHO-SOM-2110 — reâncora: o som do desenho (camada mais nova) mexe na rota do filme e no compose, só para kids_cartoon
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\r\n/g, '\n')
+const rd = (f) => semRoteiroCurto2210(fs.readFileSync(path.join(ROOT, f), 'utf8'), f).replace(/\r\n/g, '\n')
 const git = (...a) => { try { return execFileSync('git', a, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 * 1024 * 1024 }) } catch { return '' } }
 const base = (f) => { const s = git('show', `${BASE}:${f}`); return s ? s.replace(/\r\n/g, '\n') : null }
 const claroDepois = (f) => git('log', '--no-merges', '--format=%H', '--grep=KINEO-HOME-CARDS-CLAROS-2010', `${BASE}..HEAD`, '--', f).trim() !== '' // KINEO-HOME-CARDS-CLAROS-2010 — reâncora: arquivo que a entrega do selo (fundador 21/10: "pode tirar o motor de todos os cards desses 4 primeiros") continuou mexendo depois desta base não tem versão pura para comparar; confere-se que o desfaz tira as linhas desta camada sem lançar
