@@ -38,6 +38,8 @@ const SCOPE = {
   "scripts/test-kids-venda-2010.mjs": 2,
   "scripts/test-leva-confiabilidade-2026-08-28.mjs": 1,
   "scripts/test-mcp-studio-ajuste-2010.mjs": 2,
+  "scripts/test-meta95-personagem-2010.mjs": 2,
+  "scripts/test-meta95-personagem-ajuste-2010.mjs": 2,
   "scripts/test-motor-15s-1510.mjs": 2,
   "scripts/test-mrr-studio-near-idea-2026-10-01.mjs": 2,
   "scripts/test-parceiro-eyebible-2-1410.mjs": 2,
@@ -68,7 +70,7 @@ try {
   const { undo, hunks } = context.proof
   const actualScope = Object.fromEntries(Object.entries(hunks).map(([file, changes]) => [file, changes.length]))
   assert(JSON.stringify(actualScope) === JSON.stringify(SCOPE) && undo('unrelated ' + MARK, 'unrelated.ts') === 'unrelated ' + MARK,
-    'Adapter scope must be exactly the 35 existing task sources/121 hunks; unrelated sources must survive')
+    'Adapter scope must be exactly the 37 existing task sources/125 hunks; unrelated sources must survive')
 
   for (const [file, changes] of Object.entries(hunks)) {
     const candidate = read(file)
@@ -121,7 +123,7 @@ try {
     }
     console.log('PASS ' + file + ': exact roundtrip, base/CRLF/Windows, outside mutation preserved; ' + changes.length + ' hunks mutation/missing/duplicate rejected')
   }
-  if (passed !== 660) throw new Error('Proof changed scope: expected 660 checks, found ' + passed)
+  if (passed !== 686) throw new Error('Proof changed scope: expected 686 checks, found ' + passed)
   console.log('KINEO-ROTEIRO-CURTO-UNDO-2210: ' + passed + ' passed, 0 failed.')
 } catch (e) {
   console.error('FAIL ' + e.message)

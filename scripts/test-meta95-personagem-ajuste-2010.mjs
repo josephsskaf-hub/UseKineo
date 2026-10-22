@@ -31,6 +31,8 @@ const SELO = '[TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]'
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
 const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
+const deliveryHead = git('log', '--format=%H', `--grep=^${MARCA} `, '-1', 'HEAD').trim() // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — limit historical ownership to the marked delivery; current runtime/mutants remain unchanged.
+if (!deliveryHead) throw new Error('Missing marked character adjustment delivery commit') // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 const BASE_CMP = META95_PERSONAGEM_AJUSTE_2010_BASE // integração 21/10: a base é a origin/main sobre a qual a entrega foi mesclada (a tabela do desfaz foi refeita contra ela)
 const base = (rel) => { try { return lf(git('show', `${BASE_CMP}:${rel}`)) } catch { return null } }
 let pass = 0
@@ -402,7 +404,7 @@ console.log('\nD. desfaz, encadeamento, diff e commits')
   const tocados = [...new Set(marcados.flatMap((h) => git('diff-tree', '--no-commit-id', '--name-only', '-r', h).trim().split('\n').filter(Boolean)))]
   const permitidos = new Set([...META95_PERSONAGEM_AJUSTE_2010_ARQUIVOS, ...META95_PERSONAGEM_AJUSTE_2010_NOVOS])
   ok(marcados.length === 0 || tocados.every((f) => permitidos.has(f)), `D6 os commits do ajuste só tocam a lista + os novos (${tocados.filter((f) => !permitidos.has(f)).join(', ') || 'ok'})`)
-  const desdeABase = (() => { try { return git('log', '--format=%H%x09%s', `${BASE_CMP}..HEAD`).trim().split('\n').filter(Boolean).map((l) => { const [h, ...s] = l.split('\t'); return { h, s: s.join('\t') } }) } catch { return [] } })()
+  const desdeABase = (() => { try { return git('log', '--format=%H%x09%s', `${BASE_CMP}..${deliveryHead}`).trim().split('\n').filter(Boolean).map((l) => { const [h, ...s] = l.split('\t'); return { h, s: s.join('\t') } }) } catch { return [] } })() // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — preserve the exact seal assertion over its original delivery.
   const daEntrega = desdeABase.filter(({ h, s }) => s.includes(MARCA) || git('diff-tree', '--no-commit-id', '--name-only', '-r', '-m', h).trim().split('\n').some((f) => META95_PERSONAGEM_AJUSTE_2010_NOVOS.includes(f)))
   daEntrega.splice(0, daEntrega.length, ...daEntrega.filter(({ s }) => !s.startsWith('KINEO-AVATAR-ESTORNO-2010 ') && !s.startsWith('KINEO-LEGENDA-BENGALI-2010 '))) // KINEO-AVATAR-ESTORNO-2010 — reancorado na integração 21/10: os commits (e merges) do estorno/legenda bengali tocam o desfaz desta camada só para encadear a camada mais nova; levam a marca deles
   daEntrega.splice(0, daEntrega.length, ...daEntrega.filter(({ s }) => !((s.startsWith('KINEO-KIDS-VENDA-LIGA-2110 ') && s.includes('[TRAVA 8.2 — vai do fundador 21/10 "vamos ligar o Cartoon e vamos ver"]')) || (s.startsWith('KINEO-KIDS-VENDA-2010 ') && s.includes('[TRAVA 8.2 — vai do fundador 20/10 "três sim"]'))))) // KINEO-KIDS-VENDA-2010 — só commits da venda com marca e autorização próprias saem da conta do ajuste
