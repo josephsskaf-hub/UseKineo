@@ -371,7 +371,7 @@ for (const path of ADS_CENA_2110_ARQUIVOS) {
   assert.equal(semAdsCena2110(restored, path), baseline, 'desfaz idempotente: ' + path)
   assert.equal(semAdsCena2110(original.replace(/\n/g, '\r\n'), path), baseline.replace(/\n/g, '\r\n'), 'desfaz preserva CRLF: ' + path)
   const delta = execFileSync('git', ['diff', '--ignore-cr-at-eol', '--unified=0', ADS_CENA_2110_BASE, '--', path], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
-  const unmarked = delta.split('\n').filter(l => l.startsWith('+') && !l.startsWith('+++') && l.trim() !== '+' && !l.includes(MARCA_ADS_CENA_2110))
+  const unmarked = delta.split('\n').filter(l => l.startsWith('+') && !l.startsWith('+++') && l.trim() !== '+' && !l.includes(MARCA_ADS_CENA_2110)).filter(l => !l.includes(MARCA_PAGINAS_IA_CLARAS_2110)) // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — as linhas das páginas claras (entrega de depois) levam a marca delas
   assert.equal(unmarked.length, 0, 'toda linha tocada carrega marca: ' + path)
 }
 for (const path of [...Object.values(F).filter(p => p.includes('/cena/') || p === F.captions), F.route, 'scripts/test-ads-cena-2110.mjs']) assert.ok(ADS_CENA_2110_NOVOS.includes(path), 'novo arquivo coberto no desfaz: ' + path)

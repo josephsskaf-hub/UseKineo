@@ -6,8 +6,8 @@
 // tem guardião próprio (scripts/test-paginas-ia-claras-2110.mjs) e, nos guardiões antigos, SAI DA CONTA por aqui: cada um lê
 // semPaginasIaClaras2110(texto, arquivo) e confere o que conferia na base 72d23210c.
 //
-// Como desfaz: a tabela desfaz-paginas-ia-claras-2110-trocas.json guarda, por arquivo, os blocos [base, novo] do diff da
-// entrega (2 linhas de contexto), na ordem do arquivo. Cada bloco novo tem de ser achado em linhas inteiras, depois do anterior
+// Como desfaz: a tabela desfaz-paginas-ia-claras-2110-trocas.json guarda, por arquivo, os blocos [base, novo, só-acréscimo] do diff da
+// entrega (SEM contexto: só as linhas desta entrega; bloco só de remoção leva 1 linha de âncora), na ordem do arquivo. Cada bloco novo tem de ser achado em linhas inteiras, depois do anterior
 // (senão LANÇA: mudança alheia no trecho ou conserto pela metade não passa em silêncio). Arquivo fora da tabela ou sem a marca =
 // volta intocado (a camada ainda não está nesta árvore). Fim de linha: o do próprio texto (LF ou CRLF). Idempotente.
 // ENCADEAR: esta é a camada mais nova — quem já desfaz outra camada dos mesmos arquivos aplica esta PRIMEIRO.
@@ -32,11 +32,11 @@ export function semPaginasIaClaras2110(texto, p) {
   const crlf = texto.includes('\r\n')
   let s = '\n' + texto.replace(/\r\n/g, '\n') + '\n'
   let cursor = 0
-  for (const [base, novo] of TABELA[r]) {
+  for (const [base, novo, soAcrescimo] of TABELA[r]) {
     const alvo = '\n' + novo + '\n'
     const i = s.indexOf(alvo, cursor)
     if (i < 0) throw new Error(`desfaz ${MARCA_PAGINAS_IA_CLARAS_2110} em ${r}: bloco não achado — ${novo.split('\n').find((l) => l.trim())?.trim().slice(0, 80)}`)
-    const troca = '\n' + base + '\n'
+    const troca = soAcrescimo ? '\n' : '\n' + base + '\n' // linhas só acrescentadas: saem inteiras
     s = s.slice(0, i) + troca + s.slice(i + alvo.length)
     cursor = i + troca.length - 1
   }
