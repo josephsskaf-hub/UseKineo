@@ -12,6 +12,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semRoteiroCurto2210 } from './desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — restore the exact later script-test delta before historical marked-line counts.
 
 export const MARCA_FILMES_F1_VIRGULA_1910 = 'KINEO-FILMES-F1-VIRGULA-1910'
 
@@ -34,6 +35,7 @@ export const ARQUIVOS_FILMES_F1_VIRGULA_1910 = [...new Set([...Object.keys(ACRES
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semFilmesF1Virgula1910(texto, p) {
+  if (ARQUIVOS_FILMES_F1_VIRGULA_1910.includes(p)) texto = semRoteiroCurto2210(texto, p) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — declared historical targets only; keep all original counts and fail-closed checks.
   if (typeof texto !== 'string' || !texto.includes(MARCA_FILMES_F1_VIRGULA_1910) || !ARQUIVOS_FILMES_F1_VIRGULA_1910.includes(p)) return texto
   const crlf = texto.includes('\r\n')
   const trocas = new Map((TROCAS_FILMES_F1_VIRGULA_1910[p] ?? []).map(([nova, base]) => [nova, base]))

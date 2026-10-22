@@ -37,6 +37,7 @@ const SCOPE = {
   "scripts/test-five-improvements.mjs": 2,
   "scripts/test-kids-venda-2010.mjs": 2,
   "scripts/test-leva-confiabilidade-2026-08-28.mjs": 1,
+  "scripts/test-mcp-studio-2010.mjs": 3,
   "scripts/test-mcp-studio-ajuste-2010.mjs": 2,
   "scripts/test-meta95-personagem-2010.mjs": 2,
   "scripts/test-meta95-personagem-ajuste-2010.mjs": 2,
@@ -49,7 +50,9 @@ const SCOPE = {
   "scripts/test-script-preflight.mjs": 3,
   "scripts/test-studio-duracao-saldo-1510.mjs": 2,
   "scripts/test-studio-fantasma-1510.mjs": 2,
-  "scripts/test-support/desfaz-ads-cena-95-2110.mjs": 2
+  "scripts/test-support/desfaz-ads-cena-95-2110.mjs": 2,
+  "scripts/test-support/desfaz-filmes-f1-virgula-1910.mjs": 2,
+  "scripts/test-verbatim-intocavel-2010.mjs": 1
 }
 const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8')
 const unavailable = () => { throw new Error('Offline adapter proof forbids external operations') }
@@ -70,7 +73,7 @@ try {
   const { undo, hunks } = context.proof
   const actualScope = Object.fromEntries(Object.entries(hunks).map(([file, changes]) => [file, changes.length]))
   assert(JSON.stringify(actualScope) === JSON.stringify(SCOPE) && undo('unrelated ' + MARK, 'unrelated.ts') === 'unrelated ' + MARK,
-    'Adapter scope must be exactly the 37 existing task sources/125 hunks; unrelated sources must survive')
+    'Adapter scope must be exactly the 40 existing task sources/131 hunks; unrelated sources must survive')
 
   for (const [file, changes] of Object.entries(hunks)) {
     const candidate = read(file)
@@ -123,7 +126,7 @@ try {
     }
     console.log('PASS ' + file + ': exact roundtrip, base/CRLF/Windows, outside mutation preserved; ' + changes.length + ' hunks mutation/missing/duplicate rejected')
   }
-  if (passed !== 686) throw new Error('Proof changed scope: expected 686 checks, found ' + passed)
+  if (passed !== 725) throw new Error('Proof changed scope: expected 725 checks, found ' + passed)
   console.log('KINEO-ROTEIRO-CURTO-UNDO-2210: ' + passed + ' passed, 0 failed.')
 } catch (e) {
   console.error('FAIL ' + e.message)
