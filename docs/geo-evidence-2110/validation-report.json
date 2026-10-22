@@ -1,0 +1,70 @@
+{
+  "classification": "EVIDÊNCIA DA VERIFICAÇÃO DO ARTEFATO — sem teste de produto",
+  "checkedAtUtc": "2026-10-22T02:56:27.836Z",
+  "task": "KINEO-GEO-NOITE-2110",
+  "audit": {
+    "questions": 100,
+    "uniqueIds": 100,
+    "queryRecords": 100,
+    "kineoReturned": 13,
+    "method": "Busca web, não teste de citação no ChatGPT"
+  },
+  "citationBlocks": {
+    "pages": 8,
+    "languageBlocks": 16,
+    "words": [
+      49,
+      53,
+      51,
+      56,
+      49,
+      55,
+      48,
+      50,
+      51,
+      54,
+      49,
+      52,
+      48,
+      53,
+      51,
+      55
+    ],
+    "faqs": [
+      5,
+      5,
+      5,
+      5,
+      5,
+      5,
+      5,
+      5,
+      5,
+      5,
+      5,
+      5,
+      5,
+      5,
+      5,
+      5
+    ]
+  },
+  "sources": {
+    "entries": 40,
+    "drafts": 40,
+    "actualAiCitationUse": "DESCONHECIDO"
+  },
+  "kit": {
+    "completeBlocks": 36,
+    "emailVariants": 12
+  },
+  "summary": {
+    "rankedActions": 10
+  },
+  "localLinkIssues": [],
+  "proposalOnly": {
+    "branchDisabled": true,
+    "existingCronsPreserved": true,
+    "applied": false
+  }
+}

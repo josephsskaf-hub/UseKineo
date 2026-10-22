@@ -79,4 +79,3 @@
 ~~~
 
 [QUESTÃO PENDENTE / DESCONHECIDO] O trecho acima é uma proposta de configuração adicional, não uma substituição do vercel.json inteiro. Não foi aplicado e nenhum push foi usado como teste para descobrir se haveria deploy.
-
