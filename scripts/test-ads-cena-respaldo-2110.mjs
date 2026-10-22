@@ -240,7 +240,8 @@ export async function proofRespaldoMutants(){
 
 async function undoProof(){
   const U=await import('./test-support/desfaz-ads-cena-respaldo-2110.mjs');assert.equal(U.CENA_RESPALDO_BASE,BASE);assert.equal(U.CENA_RESPALDO_MARK,MARK);assert.ok(U.CENA_RESPALDO_FILES.length>0,'strict snapshot table cannot be empty')
-  for(const file of U.CENA_RESPALDO_FILES){const actual=read(file),before=git('show',BASE+':'+file);assert.ok(actual.includes(MARK));assert.equal(U.semAdsCenaRespaldo2110(actual,file),before);assert.equal(U.semAdsCenaRespaldo2110(before,file),before);assert.equal(U.semAdsCenaRespaldo2110(actual.replace(/\n/g,'\r\n'),file),before.replace(/\n/g,'\r\n'));assert.throws(()=>U.semAdsCenaRespaldo2110(actual+'\n// mutation\n',file),/fonte divergente/);assert.notEqual(U.semAdsCenaRespaldo2110(actual.replaceAll(MARK,'REMOVED'),file),before)}
+  // Pages belongs to BASE: inspect the raw source before undoing the newer Respaldo layer.
+  for(const file of U.CENA_RESPALDO_FILES){const actual=readFileSync(file,'utf8').replace(/\r\n/g,'\n'),before=git('show',BASE+':'+file);assert.ok(actual.includes(MARK));assert.equal(U.semAdsCenaRespaldo2110(actual,file),before);assert.equal(U.semAdsCenaRespaldo2110(before,file),before);assert.equal(U.semAdsCenaRespaldo2110(actual.replace(/\n/g,'\r\n'),file),before.replace(/\n/g,'\r\n'));assert.throws(()=>U.semAdsCenaRespaldo2110(actual+'\n// mutation\n',file),/fonte divergente/);assert.notEqual(U.semAdsCenaRespaldo2110(actual.replaceAll(MARK,'REMOVED'),file),before)}
   assert.ok(U.CENA_RESPALDO_NEW.includes('scripts/test-ads-cena-respaldo-2110.mjs'))
   for(const p of U.CENA_RESPALDO_NEW){assert.ok(readFileSync(p).length);assert.throws(()=>git('show',BASE+':'+p))}
   const inventory=new Set([...U.CENA_RESPALDO_FILES,...U.CENA_RESPALDO_NEW]);assert.ok(git('diff','--name-only',BASE).trim().split('\n').filter(Boolean).every(p=>inventory.has(p)))
