@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 
 const argument = process.argv.find((arg) => arg.startsWith('--root='))?.slice('--root='.length)
 const ROOT = path.resolve(argument || process.env.TEST_ROOT || path.join(path.dirname(fileURLToPath(import.meta.url)), '..'))
-const BASE = '72d23210c'
+const BASE = 'f3532d7d2' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — preserve Cartoon/Cena95 merged-main layers.
 const HELPER = 'scripts/test-support/desfaz-roteiro-curto-2210.mjs'
 const MARK = 'KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22'
 const SCOPE = {
@@ -20,6 +20,7 @@ const SCOPE = {
   "components/ChatGptWelcomeBanner.tsx": 6,
   "scripts/diagnose-studio-continuation.mjs": 1,
   "scripts/test-ads-cena-2110.mjs": 2,
+  "scripts/test-ads-cena-95-2110.mjs": 2,
   "scripts/test-ads-cena-ajuste-2110.mjs": 2,
   "scripts/test-ads-fluxo-1310.mjs": 2,
   "scripts/test-bebe-que-fala-2010.mjs": 4,
@@ -34,6 +35,7 @@ const SCOPE = {
   "scripts/test-failure-screen-40.mjs": 3,
   "scripts/test-filme-rapido-1710.mjs": 3,
   "scripts/test-five-improvements.mjs": 2,
+  "scripts/test-kids-venda-2010.mjs": 2,
   "scripts/test-leva-confiabilidade-2026-08-28.mjs": 1,
   "scripts/test-mcp-studio-ajuste-2010.mjs": 2,
   "scripts/test-motor-15s-1510.mjs": 2,
@@ -44,7 +46,8 @@ const SCOPE = {
   "scripts/test-rotulo-credito-1510.mjs": 2,
   "scripts/test-script-preflight.mjs": 3,
   "scripts/test-studio-duracao-saldo-1510.mjs": 2,
-  "scripts/test-studio-fantasma-1510.mjs": 2
+  "scripts/test-studio-fantasma-1510.mjs": 2,
+  "scripts/test-support/desfaz-ads-cena-95-2110.mjs": 2
 }
 const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8')
 const unavailable = () => { throw new Error('Offline adapter proof forbids external operations') }
@@ -65,7 +68,7 @@ try {
   const { undo, hunks } = context.proof
   const actualScope = Object.fromEntries(Object.entries(hunks).map(([file, changes]) => [file, changes.length]))
   assert(JSON.stringify(actualScope) === JSON.stringify(SCOPE) && undo('unrelated ' + MARK, 'unrelated.ts') === 'unrelated ' + MARK,
-    'Adapter scope must be exactly the 32 existing task sources/114 hunks; unrelated sources must survive')
+    'Adapter scope must be exactly the 35 existing task sources/120 hunks; unrelated sources must survive')
 
   for (const [file, changes] of Object.entries(hunks)) {
     const candidate = read(file)
@@ -118,7 +121,7 @@ try {
     }
     console.log('PASS ' + file + ': exact roundtrip, base/CRLF/Windows, outside mutation preserved; ' + changes.length + ' hunks mutation/missing/duplicate rejected')
   }
-  if (passed !== 617) throw new Error('Proof changed scope: expected 617 checks, found ' + passed)
+  if (passed !== 656) throw new Error('Proof changed scope: expected 656 checks, found ' + passed)
   console.log('KINEO-ROTEIRO-CURTO-UNDO-2210: ' + passed + ' passed, 0 failed.')
 } catch (e) {
   console.error('FAIL ' + e.message)

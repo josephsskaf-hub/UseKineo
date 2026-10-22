@@ -9,6 +9,8 @@ import { semKidsVenda2010, KIDS_VENDA_2010_ARQUIVOS } from './test-support/desfa
 const plain = x => JSON.parse(JSON.stringify(x)), same = (a,b) => assert.deepEqual(plain(a),plain(b))
 const read = p => readFileSync(p,'utf8').replace(/\r\n/g,'\n')
 const git = (...args) => execFileSync('git',args,{encoding:'utf8',maxBuffer:1<<26}).replace(/\r\n/g,'\n')
+const deliveryHead = git('log','--format=%H','--grep=^'+MARCA_ADS_CENA_95_2110,'-1','HEAD').trim() // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — bind historical scope to its own delivery; runtime/mutants still read current files.
+assert.ok(deliveryHead,'commit final marcado da entrega95 existe') // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 const F = {cat:'lib/ads/cena/catalog.ts',start:'lib/ads/v2StartCore.ts'}
 const photo = 'https://offline.example/product.png'
 const serverDouble = { v2Json:(x,status=200)=>new Response(JSON.stringify(x),{status}),v2Fail:(error,status,extra={})=>new Response(JSON.stringify({error,...extra}),{status}) }
@@ -129,15 +131,15 @@ for(const p of KIDS_VENDA_2010_ARQUIVOS) {
   assert.equal(semKidsVenda2010(current,p),beforeKids,'tirar95 e Kids restaura72 exata: '+p)
   assert.equal(semKidsVenda2010(semAdsCena952110(current,p),p),beforeKids,'composição95→Kids: '+p)
 }
-assert.equal(git('diff',ADS_CENA_95_2110_BASE,'--','app','components','lib/kidsVenda','lib/stripe/kidsVendaCheckout.ts','migrations_pending/2026-10-20_kids_venda.sql'),'','produto Kids e app preservados da main')
+assert.equal(git('diff',ADS_CENA_95_2110_BASE,deliveryHead,'--','app','components','lib/kidsVenda','lib/stripe/kidsVendaCheckout.ts','migrations_pending/2026-10-20_kids_venda.sql'),'','produto Kids e app preservados da main') // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 console.log('ok composição exata:95→be103e493 com Kids preservado→Kids→72d23210, sem diff no produto Kids')
 const oldUndo=read('scripts/test-support/desfaz-ads-cena-ajuste-2110.mjs')
 assert.ok(oldUndo.indexOf('texto = semAdsCena952110(texto, p)')<oldUndo.indexOf("const rel = String(p ?? '')"))
 const declared=new Set([...ADS_CENA_95_2110_ARQUIVOS,...ADS_CENA_95_2110_NOVOS])
-const changed=git('diff','--name-only',ADS_CENA_95_2110_BASE).trim().split('\n').filter(Boolean)
+const changed=git('diff','--name-only',ADS_CENA_95_2110_BASE,deliveryHead).trim().split('\n').filter(Boolean) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 assert.ok(changed.length && changed.every(p=>declared.has(p)),'escopo95 exato: '+changed.filter(p=>!declared.has(p)).join(','))
 for(const p of ADS_CENA_95_2110_NOVOS)assert.ok(readFileSync(p).length>0,'novo artefato: '+p)
 for(const p of ['lib/engineWall.ts','lib/homeVideoCuration.ts','lib/checkoutPricing.ts','lib/ads/v2Billing.ts','lib/ads/v2Tiers.ts']) assert.equal(git('diff',ADS_CENA_95_2110_BASE,'--',p),'','intocado: '+p)
-const subjects=git('log','--format=%s',ADS_CENA_95_2110_BASE+'..HEAD').trim().split('\n').filter(Boolean)
+const subjects=git('log','--format=%s',ADS_CENA_95_2110_BASE+'..'+deliveryHead).trim().split('\n').filter(Boolean) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 assert.ok(subjects.length && subjects.every(s=>s.startsWith(MARCA_ADS_CENA_95_2110)&&s.includes('[TRAVA 8.2 — vai do fundador 21/10 "quero chegar a 9.5 de mínimo"]')),'trava e marca95 em todos os commits')
 console.log('ok desfaz95 exato, CRLF, idempotência, integridade, encadeamento, escopo e trava')
