@@ -21,7 +21,7 @@ import { KIDS_VENDA_2010_ARQUIVOS, KIDS_VENDA_2010_NOVOS } from './test-support/
 //   (F) DESFAZ: desfeita a entrega, cada arquivo declarado é a base; o diff só toca arquivos declarados + novos.
 //   (M) MUTANTES em disco: tirar o reenvio, tirar o job da falha, tirar o `.is('title', null)` ou o reenvio do status
 //       deixa (R)/(T) vermelho.
-import { PAGINAS_IA_CLARAS_2110_ARQUIVOS, PAGINAS_IA_CLARAS_2110_NOVOS, ehCommitPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
+import { semPaginasIaClaras2110, PAGINAS_IA_CLARAS_2110_ARQUIVOS, PAGINAS_IA_CLARAS_2110_NOVOS, ehCommitPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 import fs from 'node:fs'
 import { ADS_CENA_2110_ARQUIVOS, ADS_CENA_2110_NOVOS, MARCA_ADS_CENA_2110 } from './test-support/desfaz-ads-cena-2110.mjs' // KINEO-ADS-CENA-2110 — a camada nova tem inventário, commits e desfaz próprios.
 import { semBebeQueFala2010, BEBE_QUE_FALA_2010_ARQUIVOS, BEBE_QUE_FALA_2010_NOVOS } from './test-support/desfaz-bebe-que-fala-2010.mjs' // reancorado KINEO-BEBE-QUE-FALA-2010 — o desenho infantil/bebê-podcast (20/10) foi mesclado depois: sai em memória; arquivos e commits dele fora da conta
@@ -45,7 +45,7 @@ import {
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const read = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
+const read = (rel) => semPaginasIaClaras2110(lf(fs.readFileSync(path.join(ROOT, rel), 'utf8')), rel) // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — fonte histórica antes de S e dos mutantes; raw conserva a fonte atual.
 const raw = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8')
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (rel) => { try { return lf(git('show', `${MCP_STUDIO_AJUSTE_2010_BASE}:${rel}`)) } catch { return null } }
