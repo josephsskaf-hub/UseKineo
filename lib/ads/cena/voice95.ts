@@ -32,7 +32,7 @@ export function cena95NarratedVoiceRequest(data: Cena95NarratedVoiceInput) {
   // Direções de planejamento independentes, não uma calibração medida de speed→palavras/s; a resposta mede duration_ms.
   const speed = data.speed ?? 1.05, wps = data.estimatedWordsPerSecond ?? 2.9
   if (!Number.isFinite(speed) || speed < 0.5 || speed > 2) throw new Error('cena95_voice_bad_speed')
-  if (!Number.isFinite(wps) || wps < 2.6 || wps > 2.9) throw new Error('cena95_voice_bad_estimated_rate')
+  if (!Number.isFinite(wps) || wps < 2 || wps > 2.9) throw new Error('cena95_voice_bad_estimated_rate') // KINEO-ADS-CENA-95-PACING-2110 — conservative per-language planning; model speed remains unchanged.
   const voiceId = CENA95_NARRATOR_VOICES[language][gender][age]
   const languageBoost = ({ en: 'English', pt: 'Portuguese', es: 'Spanish' } as const)[language]
   const formato = data.formato ?? 'product'

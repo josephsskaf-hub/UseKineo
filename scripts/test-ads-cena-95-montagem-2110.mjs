@@ -3,9 +3,10 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semAdsCena95Pacing2110 } from './test-support/desfaz-ads-cena-95-pacing-2110.mjs' // KINEO-ADS-CENA-95-PACING-2110
 const CAP = 'lib/ads/cena/captions95.ts', MONT = 'lib/ads/cena/montage95.ts'
 const plain = x => JSON.parse(JSON.stringify(x))
-const read = p => readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
+const read = p => semAdsCena95Pacing2110(readFileSync(p, 'utf8').replace(/\r\n/g, '\n'), p) // KINEO-ADS-CENA-95-PACING-2110 — fonte histórica antes dos mutantes.
 const strip = s => s.replace(/\[\/?color(?: #[A-Fa-f0-9]+)?\]/g, '').replace(/\s+/g, ' ').trim()
 export function fixture95(mode = 'narrated', route = 'kling3') {
   const hook = 'Seu treino merece companhia no pulso.'
@@ -26,7 +27,7 @@ export function fixture95(mode = 'narrated', route = 'kling3') {
   ]
   return { plan, selectedClips, ...(mode === 'narrated' ? { voiceUrl: 'https://offline.example/tts.mp3', voiceSeconds: 15 } : { nativeAudioClips: route === 'veo31' ? [{ url: first, start: 0, seconds: 8, keepSeconds: 8, hasSpeech: true }, { url: second, start: 8, seconds: 8, keepSeconds: 7, hasSpeech: true }] : [{ url: first, start: 0, seconds: 15, keepSeconds: 15, hasSpeech: true }] }), musicUrl: 'https://offline.example/lyria-sport.mp3' }
 }
-function modules(over = {}) { const load = createOfflineLoader({ source: (p, s) => over[p] ?? s }); return { C: load(CAP), M: load(MONT) } }
+function modules(over = {}) { const load = createOfflineLoader({ source: (p, s) => over[p] ?? semAdsCena95Pacing2110(s, p) }); return { C: load(CAP), M: load(MONT) } } // KINEO-ADS-CENA-95-PACING-2110 — override mutado não passa pelo desfaz.
 function assertTimeline(els, end) {
   let at = 0
   for (const e of els) { assert.ok(Math.abs(e.time - at) < .00001); at += e.duration }

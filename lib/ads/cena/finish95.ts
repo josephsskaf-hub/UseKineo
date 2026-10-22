@@ -1,7 +1,8 @@
 // KINEO-ADS-CENA-95-2110 — intenções de áudio persistidas antes do gasto; música é estritamente opcional.
 import type { Cena95State } from './pipeline95'
 import { reserveCena95 } from './pipeline95'
-import { cena95NarratedVoiceRequest, type Cena95VoiceLanguage } from './voice95'
+import type { cena95NarratedVoiceRequest } from './voice95' // KINEO-ADS-CENA-95-PACING-2110
+import { cena95Preflight } from './preflight95' // KINEO-ADS-CENA-95-PACING-2110
 export interface Cena95FinishDeps {
   now(): number; save(s: Cena95State): Promise<void>;
   voice(request: ReturnType<typeof cena95NarratedVoiceRequest>): Promise<{ url: string; durationMs: number }>;
@@ -13,12 +14,13 @@ export async function prepareCena95Voice(s: Cena95State, d: Cena95FinishDeps): P
   if (s.phase !== 'videos' || s.voiceUrl) return
   if (s.voiceClaimedAt) throw new Error('cena95_voice_submit_unconfirmed')
   const p = s.plan.quality95.presenter
-  const request = cena95NarratedVoiceRequest({ beforeCta: s.plan.script.beforeCta, cta: s.plan.script.cta, pauseSeconds: s.plan.script.pauseSeconds, language: s.plan.input.language as Cena95VoiceLanguage, gender: p.gender, age: p.age, formato: s.plan.input.formato })
+  const request = cena95Preflight(s.plan.script, s.plan.input, s.route, p, { product: s.plan.product }).voiceRequest! // KINEO-ADS-CENA-95-PACING-2110
   s.voiceClaimedAt = d.now()
   await reserveCena95(s, d, 'voice', 'narrated_voice', request.billingCharacters * 0.0001)
   await d.save(s)
   const result = await d.voice(request)
   if (!/^https:\/\//u.test(result.url) || !(Number.isInteger(result.durationMs) && result.durationMs > 0 && result.durationMs <= 15_000)) throw new Error('cena95_voice_does_not_fit')
+  cena95Preflight(s.plan.script, s.plan.input, s.route, p, { voiceSeconds: result.durationMs / 1000, product: s.plan.product }) // KINEO-ADS-CENA-95-PACING-2110 — validate measured timing before spending on person videos.
   s.voiceUrl = result.url; s.voiceSeconds = result.durationMs / 1000; await d.save(s)
 }
 export async function prepareCena95Music(s: Cena95State, d: Cena95FinishDeps): Promise<void> {

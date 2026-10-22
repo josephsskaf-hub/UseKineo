@@ -7,10 +7,11 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { CALIBRATION_CASES, DEFAULT_FOUNDER_PHOTOS } from './ads-cena-calibracao-2110.mjs'
 import { semAdsCena95PlanFailed2110, ADS_CENA_95_PLAN_FAILED_BASE, ADS_CENA_95_PLAN_FAILED_FILES, ADS_CENA_95_PLAN_FAILED_NEW, ADS_CENA_95_PLAN_FAILED_MARK } from './test-support/desfaz-ads-cena-95-plan-failed-2110.mjs'
 import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs'
-import { semPaginasIaClaras2110, PAGINAS_IA_CLARAS_2110_ARQUIVOS, PAGINAS_IA_CLARAS_2110_NOVOS } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
+import { semPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
+import { semAdsCena95Pacing2110 } from './test-support/desfaz-ads-cena-95-pacing-2110.mjs' // KINEO-ADS-CENA-95-PACING-2110
 
 const F = { internal: 'lib/ads/cena/internal.ts', plan: 'lib/ads/cena/plan95.ts', script: 'lib/ads/cena/script95.ts', contract: 'lib/ads/cena/script95Contract.ts', captions: 'lib/ads/cena/captions95.ts', catalog: 'lib/ads/cena/catalog.ts', route: 'app/api/admin/ads-cena/route.ts' }
-const read = p => readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
+const read = p => semAdsCena95Pacing2110(semPaginasIaClaras2110(readFileSync(p, 'utf8').replace(/\r\n/g, '\n'), p), p) // KINEO-ADS-CENA-95-PACING-2110 — régua BUG1 antes dos mutantes e do seu desfaz exato.
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8', maxBuffer: 1 << 25 }).replace(/\r\n/g, '\n')
 const plain = x => JSON.parse(JSON.stringify(x))
 const same = (a, b) => assert.deepEqual(plain(a), plain(b))
@@ -71,7 +72,7 @@ async function request(c, options = {}, over = {}) {
     '../_shared/db': { isAdminEmail: email => email === house.email },
   }
   for (const name of ['v2Server', 'v2Billing', 'v2Shots', 'v2Images']) mocks['../' + name] = mocks['@/lib/ads/' + name]
-  const load = createOfflineLoader({ mocks, globals: { Response, Request, Error, console: { log() {}, error() {}, warn: (...args) => warnings.push(args) } }, source: (p, text) => over[p] ?? text })
+  const load = createOfflineLoader({ mocks, globals: { Response, Request, Error, console: { log() {}, error() {}, warn: (...args) => warnings.push(args) } }, source: (p, text) => over[p] ?? semAdsCena95Pacing2110(semPaginasIaClaras2110(text, p), p) }) // KINEO-ADS-CENA-95-PACING-2110 — override mutado não passa pelo desfaz.
   const POST = load(F.route).POST
   const response = await POST(new Request('https://offline.example/api/admin/ads-cena', { method: 'POST', body: JSON.stringify(c.body) }))
   return { status: response.status, body: await response.json(), calls, scriptCalls, warnings, history, effects, load }
@@ -161,7 +162,7 @@ for (const [label, proof, file, from, to] of [
 }
 
 for (const file of ADS_CENA_95_PLAN_FAILED_FILES) {
-  const actual = semPaginasIaClaras2110(read(file), file), before = git('show', ADS_CENA_95_PLAN_FAILED_BASE + ':' + file) // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — retirar Páginas ANTES de criar os mutantes desta camada.
+  const actual = semPaginasIaClaras2110(read(file), file), before = git('show', ADS_CENA_95_PLAN_FAILED_BASE + ':' + file)
   assert.equal(semAdsCena95PlanFailed2110(actual, file), before, 'desfaz exato: ' + file)
   assert.equal(semAdsCena95PlanFailed2110(before, file), before, 'idempotente: ' + file)
   assert.equal(semAdsCena95PlanFailed2110(actual.replace(/\n/g, '\r\n'), file), before.replace(/\n/g, '\r\n'), 'CRLF: ' + file)
@@ -173,13 +174,11 @@ const short = 'scripts/test-support/desfaz-roteiro-curto-2210.mjs'
 assert.equal(semAdsCena95PlanFailed2110(read(short), short), git('show', ADS_CENA_95_PLAN_FAILED_BASE + ':' + short))
 const older = 'scripts/test-support/desfaz-ads-cena-95-2110.mjs'
 assert.equal(semRoteiroCurto2210(read(older), older), git('show', 'f3532d7d2:' + older))
-for (const p of ['lib/engineWall.ts', 'lib/homeVideoCuration.ts', 'lib/checkoutPricing.ts', 'lib/ads/v2Billing.ts', 'lib/ads/v2Tiers.ts', 'app/api/admin/ads-cena/route.ts']) assert.equal(git('diff', ADS_CENA_95_PLAN_FAILED_BASE, '--', p), '', 'intocado: ' + p)
+const deliveryHead = git('log', '--format=%H%x09%s', ADS_CENA_95_PLAN_FAILED_BASE + '..HEAD').trim().split('\n').find(line => { const subject = line.slice(line.indexOf('\t') + 1); return (subject.startsWith(ADS_CENA_95_PLAN_FAILED_MARK + ' ') || subject.startsWith(ADS_CENA_95_PLAN_FAILED_MARK + ': ')) && subject.includes('[TRAVA 8.2 — vai do fundador 21/10 "quero chegar a 9.5 de mínimo"]') })?.split('\t')[0] // KINEO-ADS-CENA-95-PACING-2110 — só a entrega BUG1 com marca/fronteira e autorização exatas.
+assert.ok(deliveryHead, 'commit final marcado e autorizado da entrega BUG1 existe') // KINEO-ADS-CENA-95-PACING-2110
+for (const p of ['lib/engineWall.ts', 'lib/homeVideoCuration.ts', 'lib/checkoutPricing.ts', 'lib/ads/v2Billing.ts', 'lib/ads/v2Tiers.ts', 'app/api/admin/ads-cena/route.ts']) assert.equal(git('diff', ADS_CENA_95_PLAN_FAILED_BASE, deliveryHead, '--', p), '', 'intocado: ' + p) // KINEO-ADS-CENA-95-PACING-2110 — mesma proteção no commit histórico BUG1, inclusive sua rota intocada.
 const declared = new Set([...ADS_CENA_95_PLAN_FAILED_FILES, ...ADS_CENA_95_PLAN_FAILED_NEW])
-const changed = git('diff', ADS_CENA_95_PLAN_FAILED_BASE, '--name-only').trim().split('\n').filter(Boolean).filter(p => { // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
-  if (declared.has(p)) return true // KINEO-PAGINAS-IA-CLARAS-2110 — todos os caminhos PLAN-FAILED continuam na asserção de escopo.
-  if (PAGINAS_IA_CLARAS_2110_NOVOS.includes(p)) return false // KINEO-PAGINAS-IA-CLARAS-2110 — arquivos novos declarados e provados pelo guardião de Páginas.
-  return !PAGINAS_IA_CLARAS_2110_ARQUIVOS.includes(p) || semPaginasIaClaras2110(read(p), p) !== git('show', ADS_CENA_95_PLAN_FAILED_BASE + ':' + p) // KINEO-PAGINAS-IA-CLARAS-2110 — só retira diff cuja fonte integral restaurada é literalmente a base; alheios falham.
-})
+const changed = git('diff', ADS_CENA_95_PLAN_FAILED_BASE, deliveryHead, '--name-only').trim().split('\n').filter(Boolean) // KINEO-ADS-CENA-95-PACING-2110 — preservar o escopo exato de BUG1, sem unir os arquivos da camada nova.
 assert.ok(changed.every(p => declared.has(p)), 'escopo exato: ' + changed.filter(p => !declared.has(p)).join(','))
 for (const file of ADS_CENA_95_PLAN_FAILED_NEW) assert.ok(read(file).length)
 const fingerprint = createHash('sha256').update(JSON.stringify(cases.map(c => ({ body: c.body, script: c.script })))).digest('hex')

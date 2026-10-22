@@ -42,9 +42,9 @@ export function cena95DefaultWindows(script: { hook: string; use: string; benefi
 /** Estimate word windows within measured TTS duration, including the 0.35s silence already inserted by the audio composer.
  * This helper schedules that pause; it cannot prove a pause exists in an audio file. Native speech keeps planned windows.
  * A faster measured voice may finish its CTA before the final overlay starts at13s; timing is never shifted to pretend otherwise. */
-export function cena95NarratedWindows(script: { hook: string; use: string; benefit: string; cta: string; narration: string }, language: string, voiceSeconds: number): Cena95SpeechWindow[] {
+export function cena95NarratedWindows(script: { hook: string; use: string; benefit: string; cta: string; narration: string; normalization?: unknown }, language: string, voiceSeconds: number): Cena95SpeechWindow[] {
   const pause = 0.35, parts = [script.hook, script.use, script.benefit, script.cta]
-  if (!(Number.isFinite(voiceSeconds) && voiceSeconds > pause && voiceSeconds <= 15) || [parts[0], parts[1], parts[3]].some(s => !tokens(s).length)) throw new Error('cena95_narrated_duration_invalid') // KINEO-ADS-CENA-95-PLAN-FAILED-2110 — benefício/oferta ausentes não criam fala fictícia.
+  if (!(Number.isFinite(voiceSeconds) && voiceSeconds > pause && voiceSeconds <= 15) || (script.normalization ? [parts[0], parts[3]] : [parts[0], parts[1], parts[3]]).some(s => !tokens(s).length)) throw new Error('cena95_narrated_duration_invalid') // KINEO-ADS-CENA-95-PACING-2110 — a repaired core may have no optional middle sentence.
   if (tokens(parts.join(' ')).join(' ') !== tokens(script.narration).join(' ')) throw new Error('cena95_narrated_text_mismatch')
   const weights = parts.map(s => tokens(s).reduce((sum, word) => sum + cena95Syllables(word, language), 0)), total = weights.reduce((a, b) => a + b, 0)
   const speechSeconds = voiceSeconds - pause
@@ -60,7 +60,7 @@ export function cena95NarratedWindows(script: { hook: string; use: string; benef
 
 function alignment(i: Cena95CaptionInput): { words: Cena95Word[]; timingSource: Cena95CaptionResult['timingSource'] } {
   const textWords = tokens(i.text)
-  if (!textWords.length || textWords.some(w => /[\[\]]/u.test(w))) throw new Error('cena95_caption_bad_text')
+  if (!textWords.length) throw new Error('cena95_caption_bad_text') // KINEO-ADS-CENA-95-PACING-2110 — escape brackets in display, preserve the spoken words.
   if (i.words !== undefined) {
     if (!Array.isArray(i.words) || i.words.length !== textWords.length) throw new Error('cena95_caption_alignment_mismatch')
     let previous = 0
@@ -99,6 +99,21 @@ function captionLines(words: Cena95Word[], font: number, width: number): Cena95W
   }
   return lines
 }
+// KINEO-ADS-CENA-95-PACING-2110 — page an unbreakable label at grapheme boundaries instead of failing or shrinking the market font.
+const displayWord = (s: string): string => s.replace(/\[/gu, '［').replace(/\]/gu, '］')
+function longWordPages(word: string, font: number, width: number, maxLines: number): string[] {
+  const lines: string[] = []; let line = '', advance = 0
+  const glyphs = Array.from(new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(displayWord(word)), x => x.segment)
+  for (const glyph of glyphs) {
+    const size = Array.from(glyph.normalize('NFD')).reduce((n, c) => n + (/\p{M}/u.test(c) ? 0 : /[MWmw@%]/u.test(c) ? 1.1 : /[A-Z]/u.test(c) ? 1 : /[a-z]/u.test(c) ? .75 : 1.2), 0) * font
+    if (line && advance + size > width) { lines.push(line); line = ''; advance = 0 }
+    line += glyph; advance += size
+  }
+  if (line) lines.push(line)
+  const pages: string[] = []
+  for (let k = 0; k < lines.length; k += maxLines) pages.push(lines.slice(k, k + maxLines).join('\n'))
+  return pages
+}
 function balancedBlocks(words: Cena95Word[], font: number, width: number, height: number, stroke: number): Cena95Word[][][] {
   const minimum = Math.max(1, Math.ceil(words.length / 6)), maximum = Math.max(minimum, Math.floor(words.length / 3))
   for (let n = minimum; n <= maximum; n++) {
@@ -124,17 +139,27 @@ export function cena95Captions(i: Cena95CaptionInput): Cena95CaptionResult {
   const runs: Cena95Word[][] = []
   for (const [index, word] of words.entries()) {
     const last = runs[runs.length - 1]
-    if (!last || word.start - last[last.length - 1].end >= 0.15 && last.length >= 3 && words.length - index >= 3) runs.push([word]); else last.push(word)
+    const long = captionLines([word], font, width * .84 - stroke * 2) === null
+    const lastLong = last?.length === 1 && captionLines(last, font, width * .84 - stroke * 2) === null
+    if (!last || long || lastLong || word.start - last[last.length - 1].end >= 0.15 && last.length >= 3 && words.length - index >= 3) runs.push([word]); else last.push(word)
   }
-  for (const run of runs) for (const lines of balancedBlocks(run, font, width * 0.84 - stroke * 2, captionHeight, stroke)) {
+  for (const run of runs) {
+    if (run.length === 1 && captionLines(run, font, width * .84 - stroke * 2) === null) {
+      const w = run[0], maxLines = Math.max(1, Math.floor((captionHeight - stroke * 2) / (font * 1.1)))
+      const pages = longWordPages(w.word, font, width * .84 - stroke * 2, maxLines)
+      for (const [k, text] of pages.entries()) elements.push({ ...base, time: r6(w.start + (w.end - w.start) * k / pages.length), duration: r6((w.end - w.start) / pages.length), text: `[color #FFD400]${text}[/color]` })
+      continue
+    }
+    for (const lines of balancedBlocks(run, font, width * 0.84 - stroke * 2, captionHeight, stroke)) {
     const block = lines.flat()
-    const text = (active?: Cena95Word): string => lines.map(line => line.map(x => x === active ? `[color #FFD400]${x.word}[/color]` : x.word).join(' ')).join('\n')
+    const text = (active?: Cena95Word): string => lines.map(line => line.map(x => x === active ? `[color #FFD400]${displayWord(x.word)}[/color]` : displayWord(x.word)).join(' ')).join('\n')
     for (let k = 0; k < block.length; k++) {
       const w = block[k]
       elements.push({ ...base, time: w.start, duration: r6(w.end - w.start), text: text(w) })
       const next = block[k + 1]
       if (next && next.start > w.end + 1e-6) elements.push({ ...base, time: w.end, duration: r6(next.start - w.end), text: text() })
     }
+  }
   }
   // Audio ducking uses actual word extents, never a full 15s guess. Short gaps are merged; CTA silence remains.
   const speechWindows: Cena95SpeechWindow[] = []
