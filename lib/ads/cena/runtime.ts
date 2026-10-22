@@ -15,6 +15,7 @@ import { persistSceneImage } from '../v2Images'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { CreatomateSubmitError, estimateMp3DurationSeconds, submitCreatomateRender, uploadVoiceoverToSupabase } from '@/lib/compose'
 import { synthesizeTtsFallback } from '@/lib/ttsFallback'
+import type { AjusteState, CenaAjusteLive } from './ajusteMedia' // KINEO-ADS-CENA-RETOMADA-2110
 export const cenaJson: CenaJson = async c => {
   const measured = c as typeof c & { maxOutputTokens?: number; onUsage?: (u: { prompt_tokens?: number; completion_tokens?: number }) => void }
   const result = await openai.chat.completions.create({ model: c.model, response_format: { type: 'json_object' }, temperature: 0.3, max_tokens: measured.maxOutputTokens ?? 1000, messages: [{ role: 'system', content: c.system }, { role: 'user', content: [{ type: 'text', text: c.text }, ...c.images.map(url => ({ type: 'image_url' as const, image_url: { url, detail: 'high' as const } }))] }] }, { timeout: 20_000, maxRetries: 0 })
@@ -74,15 +75,39 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
     })
     if (state.phase === 'failed') { await failCenaOrder(admin, order, state.reason ?? 'cena_failed'); return }
     if (state.phase !== 'ready') return
+    const ajusteLive = (state.plan as typeof state.plan & { ajusteLive?: CenaAjusteLive }).ajusteLive?.version === 'KINEO-ADS-CENA-RETOMADA-2110' // KINEO-ADS-CENA-RETOMADA-2110
+    const adjusted = state as AjusteState // KINEO-ADS-CENA-RETOMADA-2110
+    if (ajusteLive) { // KINEO-ADS-CENA-RETOMADA-2110
+      const { stepAjusteMedia } = await import('./ajusteMedia') // KINEO-ADS-CENA-RETOMADA-2110
+      const media = await stepAjusteMedia(adjusted, { now: Date.now, save, // KINEO-ADS-CENA-RETOMADA-2110
+        submitClose: async j => { // KINEO-ADS-CENA-RETOMADA-2110
+          const r = await submitShotOnce(j.endpoint, j.input, context) // KINEO-ADS-CENA-RETOMADA-2110
+          if (r.kind === 'accepted') return { kind: 'accepted', requestId: r.requestId } // KINEO-ADS-CENA-RETOMADA-2110
+          if (r.kind === 'ambiguous') { // KINEO-ADS-CENA-RETOMADA-2110
+            let timer: ReturnType<typeof setTimeout> | undefined // KINEO-ADS-CENA-RETOMADA-2110
+            try { const id = await Promise.race([r.late, new Promise<null>(resolve => { timer = setTimeout(() => resolve(null), 5000) })]); if (id) return { kind: 'accepted', requestId: id } } // KINEO-ADS-CENA-RETOMADA-2110
+            finally { if (timer) clearTimeout(timer) } // KINEO-ADS-CENA-RETOMADA-2110
+          } // KINEO-ADS-CENA-RETOMADA-2110
+          return { kind: r.kind === 'ambiguous' ? 'ambiguous' : 'rejected' } // KINEO-ADS-CENA-RETOMADA-2110
+        }, // KINEO-ADS-CENA-RETOMADA-2110
+        pollClose: j => pollFalJob(j.endpoint, j.requestId!, 'video', context), // KINEO-ADS-CENA-RETOMADA-2110
+        persistClose: j => persistShotClip({ ...context, idx: 90, attempt: j.attempt, falUrl: j.falUrl! }), // KINEO-ADS-CENA-RETOMADA-2110
+        submitMusic: async mood => { const { submeterLyria, lyriaPromptFor } = await import('@/lib/lyriaMusic'); return submeterLyria(lyriaPromptFor(mood)) }, // KINEO-ADS-CENA-RETOMADA-2110
+        pollMusic: async handle => { const { esperarLyria } = await import('@/lib/lyriaMusic'); return esperarLyria(handle, Math.min(deadlineMs - 1000, Date.now() + 5000)) }, // KINEO-ADS-CENA-RETOMADA-2110
+        event: async (name, metadata) => { await writeServerEvent({ name, userId: order.user_id, path: '/lib/ads/cena', metadata: { order_id: order.id, route: state.route, ...metadata } }) }, // KINEO-ADS-CENA-RETOMADA-2110
+      }) // KINEO-ADS-CENA-RETOMADA-2110
+      if (media === 'failed') { await failCenaOrder(admin, order, adjusted.ajusteMedia?.close.reason ?? 'cena_ajuste_close_failed'); return } // KINEO-ADS-CENA-RETOMADA-2110
+      if (media !== 'ready') return // KINEO-ADS-CENA-RETOMADA-2110
+    } // KINEO-ADS-CENA-RETOMADA-2110
     if (cenaVoiceModeOf(state.plan) === 'narrated' && !state.voiceUrl) {
       if (state.voiceClaimedAt) { await failCenaOrder(admin, order, 'cena_voice_submit_unconfirmed'); return }
       state.voiceClaimedAt = Date.now(); await save(state)
       const audio = await synthesizeTtsFallback(state.plan.script.narration, { userId: order.user_id, generationId: order.id })
       const seconds = estimateMp3DurationSeconds(audio)
       if (!(seconds > 0 && seconds <= 15)) { await failCenaOrder(admin, order, 'cena_voice_does_not_fit'); return }
-      state.voiceUrl = await uploadVoiceoverToSupabase(order.user_id, audio); await save(state)
+      state.voiceUrl = await uploadVoiceoverToSupabase(order.user_id, audio); if (ajusteLive && adjusted.ajusteMedia) adjusted.ajusteMedia.voiceSeconds = seconds; await save(state) // KINEO-ADS-CENA-RETOMADA-2110
     }
-    const source = buildCenaMontage(state)
+    const source = ajusteLive ? (await import('./ajusteMontage')).buildAjusteMontage(adjusted) : buildCenaMontage(state) // KINEO-ADS-CENA-RETOMADA-2110
     // Carimbo ANTES do POST; erro ambíguo passa ao prazo v2, nunca reenviar Creatomate.
     const stamp = await admin.from('ads_v2_orders').update({ status: 'assembling', assembly_submit_at: new Date().toISOString() }).eq('id', order.id).eq('status', 'generating').eq('assembly_lease_at', token).is('assembly_submit_at', null).select('id').maybeSingle()
     if (stamp.error || !stamp.data) return
