@@ -43,13 +43,13 @@ function benefitSentence(raw: string, language: string): string {
   if (language === 'pt') {
     if (/^(?:o|a|os|as|você|voce|este|esta|ele|ela)\s/iu.test(text)) return spokenSentence(fragment, language)
     if (/^(?:não|nao|pode|tem|é|hidrata|ajuda|oferece|possui|mantém|mantem|reduz|protege|contém|contem|dura)(?=\s|$)/iu.test(text)) return stop('O produto ' + text)
-    if (/^(?:leve|macio|macia|flexível|flexivel|ajustável|ajustavel|impermeável|impermeavel)$/iu.test(text)) return stop('O produto é ' + text.replace(/macia$/iu, 'macio'))
+    if (text.split(/\s*(?:,|\be\b)\s*/iu).filter(Boolean).every(t => /^(?:leve|macio|macia|flexível|flexivel|ajustável|ajustavel|impermeável|impermeavel|confortável|confortavel|respirável|respiravel)$/iu.test(t))) return stop('O produto é ' + text.replace(/\bmacia\b/giu, 'macio'))
     return stop('O produto oferece ' + text)
   }
   if (language === 'es') return stop('El producto ofrece ' + text)
   if (/^(?:it|you|the|this|these|they)\s/iu.test(text)) return spokenSentence(fragment, language)
   if (/^(?:does\s+not|doesn't|can|is|hydrates|helps|offers|has|keeps|reduces|protects|contains|lasts|supports)\b/iu.test(text)) return stop('It ' + text)
-  if (/^(?:lightweight|soft|flexible|adjustable|waterproof|comfortable|water[ -]resistant)$/iu.test(text) || /^(?:easy\s+to|suitable\s+for)\b/iu.test(text)) return stop('It is ' + text)
+  if (text.split(/\s*(?:,|\band\b)\s*/iu).filter(Boolean).every(t => /^(?:lightweight|soft|flexible|adjustable|waterproof|comfortable|breathable|water[ -]resistant)$/iu.test(t)) || /^(?:easy\s+to|suitable\s+for)\b/iu.test(text)) return stop('It is ' + text)
   const noArticle = /^(?:a|an|the|your|free|no|up\s+to)\b/iu.test(text) || /\b(?:comfort|hydration|shipping|storage|support|protection|flexibility|durability|energy)\b/iu.test(text) || /\b\p{L}{3,}s$/u.test(text)
   return stop('It offers ' + (noArticle ? '' : /^[aeiou]/iu.test(text) ? 'an ' : 'a ') + text)
 }

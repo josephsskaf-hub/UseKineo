@@ -7,7 +7,18 @@ export const CENA95_PACING_MARK = 'KINEO-ADS-CENA-95-PACING-2110'
 export const CENA95_PACING_BASE = '2b2ea93971ca7fef45ec1bfa46d94d48281bd934'
 const table = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-ads-cena-95-pacing-2110-fontes.json'), 'utf8'))
 export const CENA95_PACING_FILES = Object.freeze(Object.keys(table))
-export const CENA95_PACING_NEW = Object.freeze([])
+export const CENA95_PACING_NEW = Object.freeze([
+  "docs/ADS-CENA-95-PACING-2026-10-22.md",
+  "lib/ads/cena/composition95.ts",
+  "lib/ads/cena/moderation95.ts",
+  "lib/ads/cena/preflight95.ts",
+  "lib/ads/cena/script95Repair.ts",
+  "lib/ads/cena/speech95Policy.ts",
+  "scripts/test-ads-cena-95-pacing-2110.mjs",
+  "scripts/test-support/ads-cena-95-pacing-fixtures-2110.mjs",
+  "scripts/test-support/desfaz-ads-cena-95-pacing-2110-fontes.json",
+  "scripts/test-support/desfaz-ads-cena-95-pacing-2110.mjs"
+])
 export function semAdsCena95Pacing2110(texto, file) {
   const relative = String(file ?? '').replace(/\\/g, '/'), known = table[relative]
   if (!known || typeof texto !== 'string' || !texto.includes(CENA95_PACING_MARK)) return texto

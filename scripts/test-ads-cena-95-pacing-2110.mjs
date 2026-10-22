@@ -138,6 +138,7 @@ async function coreProof(over = {}) {
   const clauses = [
     ['pt', 'Não contém fragrância.', 'O produto não contém fragrância.'], ['pt', 'Pode ser usado diariamente.', 'O produto pode ser usado diariamente.'],
     ['en', 'Easy to clean.', 'It is easy to clean.'], ['en', 'Does not leave residue.', 'It does not leave residue.'], ['en', 'Up to 12 hours of battery life.', 'It offers up to 12 hours of battery life.'],
+    ['en', 'Lightweight and comfortable.', 'It is lightweight and comfortable.'], ['pt', 'Leve e flexível.', 'O produto é leve e flexível.'], ['pt', 'É ajustável.', 'O produto é ajustável.'],
   ]
   for (const [language, benefit, expected] of clauses) { const c = pacingShort(language); const r = parse(c.raw, { ...c.input, beneficios: [benefit] }, c.product); assert.ok(r.rawBenefit.includes(expected), r.rawBenefit) }
   for (const c of PACING_FIXTURES) { const r = parse(c.raw, c.input, c.product); assert.equal(r.spokenOffer, c.input.oferta) }
