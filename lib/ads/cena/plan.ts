@@ -110,13 +110,14 @@ export async function planCena(input: CenaInput, route: string, call: CenaJson, 
 
 export interface CenaVerdict { approved: boolean; score: number; reasons: string[] }
 export const CENA_JUDGE_QUESTION = 'Compare the candidate with the customer product reference and actor reference. Return JSON: {"own_hands_attached":true,"extra_hands":false,"extra_people":false,"product_whole":true,"product_faithful":true,"real_scale":true,"touching_face":false,"actor_identity_match":true,"score":90}. Check visible continuous wrist/forearm ownership, not only finger count. Unknown, occlusion or uncertainty MUST fail the corresponding check. The label and shape must match the reference. Actor identity must match the actor reference; hands-only frames may match visible skin/arms without inventing a face.'
-export function judgeCena(raw: unknown, continuity?: CenaPlan['continuity']): CenaVerdict {
+export function judgeCena(raw: unknown, continuity?: CenaPlan['continuity'], expectsUgcFace = false): CenaVerdict { // KINEO-ADS-CENA-RETOMADA-2110
   let r: Record<string, unknown>
   try { r = jsonObject(raw) } catch { return { approved: false, score: 0, reasons: ['invalid_json'] } }
   const reasons = ['own_hands_attached', 'product_whole', 'product_faithful', 'real_scale', 'actor_identity_match'].filter(k => r[k] !== true)
   reasons.push(...['extra_hands', 'extra_people', 'touching_face'].filter(k => r[k] !== false))
   if (continuity && r.wardrobe_match !== true) reasons.push('wardrobe_match')
   if (continuity?.productWrist === 'left' && r.product_wrist_match !== true) reasons.push('product_wrist_match')
+  if (expectsUgcFace && r.ugc_face_visible !== true) reasons.push('ugc_face_visible') // KINEO-ADS-CENA-RETOMADA-2110 — UGC must retain a visible creator, not silently become hands-only.
   const score = typeof r.score === 'number' && Number.isFinite(r.score) && r.score >= 0 && r.score <= 100 ? r.score : 0
   if (score < 80) reasons.push('score')
   return { approved: reasons.length === 0, score, reasons }

@@ -15,7 +15,7 @@ export function ajusteMusicElements(url: string | undefined, voiceSeconds: numbe
   return [...new Set([0, speechEnd, 15])].sort((a, b) => a - b).slice(0, -1).flatMap((start, k, edges) => {
     const end = k + 1 < edges.length ? edges[k + 1] : 15
     if (end <= start) return []
-    return [{ type: 'audio', track: 60, time: start, duration: r6(end - start), source: url, trim_start: start, volume: `${r6(100 * Math.pow(10, (start < speechEnd ? -24 : -18) / 20))}%`, ...(start === 0 ? { audio_fade_in: 0.2 } : {}), ...(end === 15 ? { audio_fade_out: 0.35 } : {}) }]
+    return [{ type: 'audio', track: 60, time: start, duration: r6(end - start), source: url, trim_start: start, volume: `${r6(100 * Math.pow(10, (start < speechEnd ? -18 : -15) / 20))}%`, ...(start === 0 ? { audio_fade_in: 0.2 } : {}), ...(end === 15 ? { audio_fade_out: 0.35 } : {}) }]
   })
 }
 export function buildAjusteMontage(s: AjusteState): Record<string, unknown> {
