@@ -8,7 +8,7 @@ import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { chooseCena95Presenter, CENA95_MUSIC, type Cena95Presenter } from './presenters95'
 import { parseCena95Script, type Cena95Script } from './script95'
 import { estimateCena95Cost } from './costs95'
-import { cena95NativeSegments, cena95NativePause } from './adapters95' // KINEO-ADS-CENA-95-PACING-2110
+import { cena95NativeSegments, cena95NativePause, cena95NativeSilence } from './adapters95' // KINEO-ADS-CENA-95-PACING-2110
 import { cena95ScriptContract, cena95ScriptRepair } from './script95Contract' // KINEO-ADS-CENA-95-PLAN-FAILED-2110
 export interface Cena95Usage { inputTokens: number; outputTokens: number; calls: number; measuredCalls: number }
 export interface Cena95Plan extends CenaPlan {
@@ -56,8 +56,8 @@ export async function planCena95(input: CenaInput, route: CenaRoute, json: CenaJ
   const veoSegments = mode === 'talking' && route === 'veo31' ? cena95NativeSegments(script, [8, 7]) : [] // KINEO-ADS-CENA-95-PACING-2110
   const veoSpeech = veoSegments.length ? veoSegments.map(p => p.text) : [words.slice(0, boundary).join(' '), words.slice(boundary).join(' ')]
   const segmentPrompts: [string, string] = [
-    `${base} Local 0-3s: ${composition.opening}, then 3-8s ${composition.interaction}. ${mode === 'narrated' ? silent : `${nativeVoice} Face and speaking mouth visible within the locked crop. ${cena95NativePause(veoSegments[0], script.cta)}Say ONLY: ${veoSpeech[0]}`}`, // KINEO-ADS-CENA-95-PACING-2110
-    `${base} Continue the same action from absolute 8s. Local 0-2s: ${composition.interaction}; ${mode === 'narrated' ? 'continue the same silent product action to absolute15s' : 'keep speaking naturally to absolute15s'}, last generated second trimmed. ${mode === 'narrated' ? silent : `${nativeVoice} Face and mouth visible within the locked crop. ${cena95NativePause(veoSegments[1], script.cta)}Say ONLY: ${veoSpeech[1]}`}`, // KINEO-ADS-CENA-95-PACING-2110
+    `${base} Local 0-3s: ${composition.opening}, then 3-8s ${composition.interaction}. ${mode === 'narrated' ? silent : cena95NativeSilence(veoSegments[0]) || `${nativeVoice} Face and speaking mouth visible within the locked crop. ${cena95NativePause(veoSegments[0], script.cta)}Say ONLY: ${veoSpeech[0]}`}`, // KINEO-ADS-CENA-95-PACING-2110
+    `${base} Continue the same action from absolute 8s. Local 0-2s: ${composition.interaction}; ${mode === 'narrated' || cena95NativeSilence(veoSegments[1]) ? 'continue the same silent product action to absolute15s' : 'keep speaking naturally to absolute15s'}, last generated second trimmed. ${mode === 'narrated' ? silent : cena95NativeSilence(veoSegments[1]) || `${nativeVoice} Face and mouth visible within the locked crop. ${cena95NativePause(veoSegments[1], script.cta)}Say ONLY: ${veoSpeech[1]}`}`, // KINEO-ADS-CENA-95-PACING-2110
   ]
   const characters = cena95Preflight(script, input, route, presenter).voiceRequest?.billingCharacters ?? 0 // KINEO-ADS-CENA-95-PACING-2110
   const costs = Object.fromEntries((['kling3', 'seedance2', 'veo31'] as const).map(r => [r, estimateCena95Cost(r, mode, { characters, planningCalls: planningUsage.calls })])) as Cena95Plan['quality95']['costs']

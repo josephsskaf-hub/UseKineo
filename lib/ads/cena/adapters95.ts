@@ -8,6 +8,12 @@ export function cena95NativePause(segment: Cena95NativeSegment | undefined, cta:
   if (!segment?.pauseSeconds) return ''
   return segment.pauseBeforeWord !== undefined ? `Pause ${segment.pauseSeconds}s immediately before word ${segment.pauseBeforeWord} of this segment, where the CTA begins. Continue the same utterance across takes without repeating it. ` : `Pause ${segment.pauseSeconds}s immediately before the final ${cta.trim().split(/\s+/u).length} words (the complete CTA). `
 }
+export function cena95NativeSilence(segment: Cena95NativeSegment | undefined): string { // KINEO-ADS-CENA-95-PACING-2110
+  return segment && !segment.text.trim() ? 'This segment has NO spoken words. Continue the product action with the mouth closed; no dialogue, lip-sync, narration or invented words. Other segments retain their exact supplied native speech.' : ''
+}
+export function cena95WindowSpeech(script: Cena95Plan['script'], route: CenaRoute, start: number, end: number): boolean { // KINEO-ADS-CENA-95-PACING-2110
+  return cena95NativeSegments(script, route === 'kling3' ? [3, 7, 5] : route === 'seedance2' ? [3, 12] : [8, 7]).some(p => p.text.trim() && p.start < end && p.start + p.seconds > start)
+}
 /** KINEO-ADS-CENA-95-2110 — cortes de PALAVRAS da narração inteira. Pausa/CTA só no último trecho.
  * Taxa é orçamento de planejamento, não duração medida do áudio. Se quantização ou CTA não cabem, refazer ANTES de cobrar.
  */
@@ -53,7 +59,7 @@ export function cena95VideoRequests(plan: Cena95Plan, route: CenaRoute, baseUrl:
   const talking = plan.voice_mode === 'talking', root = plan.videoPrompt
   const productComposition = plan.quality95.composition?.productDominant ? plan.quality95.composition : undefined // KINEO-ADS-CENA-95-PACING-2110
   const native = talking && route !== 'veo31' ? cena95NativeSegments(plan.script, route === 'kling3' ? [3, 7, 5] : [3, 12]) : []
-  const speech = (segment?: Cena95NativeSegment) => talking && segment ? `${plan.quality95.nativeVoice} ${productComposition ? 'Keep the cropped lower face and speaking mouth visible as secondary context; the whole product stays the foreground focal subject.' : 'Face and mouth visible and speaking.'} Deliver the supplied words within ${segment.seconds}s, with no repetition or extra words. ${cena95NativePause(segment, plan.script.cta)}Say ONLY: ${segment.text}` : `No speech, no dialogue, no lip-sync. ${productComposition ? 'Any visible lips remain closed throughout.' : 'Lips remain closed throughout.'} generate_audio is disabled.` // KINEO-ADS-CENA-95-PACING-2110
+  const speech = (segment?: Cena95NativeSegment) => talking && segment ? cena95NativeSilence(segment) || `${plan.quality95.nativeVoice} ${productComposition ? 'Keep the cropped lower face and speaking mouth visible as secondary context; the whole product stays the foreground focal subject.' : 'Face and mouth visible and speaking.'} Deliver the supplied words within ${segment.seconds}s, with no repetition or extra words. ${cena95NativePause(segment, plan.script.cta)}Say ONLY: ${segment.text}` : `No speech, no dialogue, no lip-sync. ${productComposition ? 'Any visible lips remain closed throughout.' : 'Lips remain closed throughout.'} generate_audio is disabled.` // KINEO-ADS-CENA-95-PACING-2110
   const hook = `${root} HOOK: ${productComposition ? productComposition.opening : 'strong forward movement with person AND whole product; energetic but anatomically natural'}. ${speech(native[0])}` // KINEO-ADS-CENA-95-PACING-2110
   const use = `${root} DEMONSTRATION: ${plan.interaction}. ${speech(native[1])}`
   const jobs: Cena95Request[] = []
