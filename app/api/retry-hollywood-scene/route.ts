@@ -17,6 +17,7 @@ import { H3MAX_MODELS, H3MAX_I2V_MODEL, H3MAX_RESOLUTION, H3_PROMPT_EXPANSION } 
 import { openai } from '@/lib/openai'
 import { normalizeAspect } from '@/lib/aspect' // LOTE2-RESGATE-FIEL-2026-09-23
 import { CLASSIC, CLASSIC_I2V } from '@/lib/classicSceneRetry' // KINEO-CENA-CLASSICA-2026-09-28
+import { desenhoDoClaim } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-CARTOON-CONSISTENCIA-2210 — a retomada só lê o desenho do claim verificado
 
 // KINEO-CENA-CLASSICA-2026-09-28 — teto EXPLÍCITO de 60 s (antes a rota herdava o padrão da plataforma). O marcador
 // 'submitting' do mutex vale 120 s no compose, no /api/compose/active e aqui: com a OpenAI a 20 s sem retentativa e o POST
@@ -213,6 +214,7 @@ export async function POST(req: NextRequest) {
   try { loaded = await loadVerifiedCinematicClaim(args) }
   catch { return NextResponse.json({ error: 'Generation verification unavailable', retryable: false }, { status: 503 }) }
   if (!loaded.ok || !loaded.claim || !retryableSlot(loaded.claim, slot)) return refused()
+  if (desenhoDoClaim(loaded.claim.response) && Number(loaded.claim.response?.duration) === 15) return NextResponse.json({ error: 'No extra scene was started. This cartoon can be composed only if its original footage covers the full length.', reason: 'kids_scene_retry_budget', sceneSkipped: true, retryable: false }, { status: 409 }) // KINEO-CARTOON-CONSISTENCIA-2210 — antes de mutex, OpenAI ou fal: o teto do desenho de 15 s não financia outra cena paga
   // KINEO-CENA-CLASSICA-2026-09-28 — motor clássico: o payload assinado; família hollywood: a cena assinada, como sempre.
   const classic = CLASSIC.has(slot.model)
   // KINEO-RETENTAR-CENA-1410 — em modo serviço a família hollywood segue a regra da clássica na DÚVIDA: registro antes do gasto,
