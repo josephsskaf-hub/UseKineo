@@ -1,0 +1,103 @@
+{
+  "classification": "EVIDÊNCIA DE PRODUÇÃO — histórico público do GitHub",
+  "source": "https://api.github.com/repos/josephsskaf-hub/UseKineo/deployments?per_page=12",
+  "capturedAtUtc": "2026-10-22T02:52:01.9800884Z",
+  "deployments": [
+    {
+      "id": 7242122560,
+      "sha": "99096acad51e9011ee0baaa4b05544f320aa3eb9",
+      "ref": "99096acad51e9011ee0baaa4b05544f320aa3eb9",
+      "environment": "Preview",
+      "created_at": "2026-10-22T02:23:02Z",
+      "statuses_url": "https://api.github.com/repos/josephsskaf-hub/UseKineo/deployments/7242122560/statuses"
+    },
+    {
+      "id": 7240407088,
+      "sha": "72d23210c829278f81e39f7d7cdf42826137297c",
+      "ref": "72d23210c829278f81e39f7d7cdf42826137297c",
+      "environment": "Production",
+      "created_at": "2026-10-22T00:15:29Z",
+      "statuses_url": "https://api.github.com/repos/josephsskaf-hub/UseKineo/deployments/7240407088/statuses"
+    },
+    {
+      "id": 7239793818,
+      "sha": "72d23210c829278f81e39f7d7cdf42826137297c",
+      "ref": "72d23210c829278f81e39f7d7cdf42826137297c",
+      "environment": "Preview",
+      "created_at": "2026-10-21T23:31:19Z",
+      "statuses_url": "https://api.github.com/repos/josephsskaf-hub/UseKineo/deployments/7239793818/statuses"
+    },
+    {
+      "id": 7236470979,
+      "sha": "b77f8f79a2031b8af4fffca0b1b32d6eacc24f4a",
+      "ref": "b77f8f79a2031b8af4fffca0b1b32d6eacc24f4a",
+      "environment": "Production",
+      "created_at": "2026-10-21T20:24:47Z",
+      "statuses_url": "https://api.github.com/repos/josephsskaf-hub/UseKineo/deployments/7236470979/statuses"
+    },
+    {
+      "id": 7236013364,
+      "sha": "5c13a0856a13b7a02ba168e84f0bbafcd2ed2f1f",
+      "ref": "5c13a0856a13b7a02ba168e84f0bbafcd2ed2f1f",
+      "environment": "Preview",
+      "created_at": "2026-10-21T20:02:51Z",
+      "statuses_url": "https://api.github.com/repos/josephsskaf-hub/UseKineo/deployments/7236013364/statuses"
+    },
+    {
+      "id": 7231968751,
+      "sha": "4cbd06b1b126e59bf8c1c41c2f13cc8e5f017ff4",
+      "ref": "4cbd06b1b126e59bf8c1c41c2f13cc8e5f017ff4",
+      "environment": "Production",
+      "created_at": "2026-10-21T16:53:49Z",
+      "statuses_url": "https://api.github.com/repos/josephsskaf-hub/UseKineo/deployments/7231968751/statuses"
+    },
+    {
+      "id": 7231730216,
+      "sha": "42035e9df3a322b635bbbc1fe498fe6898e67005",
+      "ref": "42035e9df3a322b635bbbc1fe498fe6898e67005",
+      "environment": "Production",
+      "created_at": "2026-10-21T16:44:00Z",
+      "statuses_url": "https://api.github.com/repos/josephsskaf-hub/UseKineo/deployments/7231730216/statuses"
+    },
+    {
+      "id": 7231361887,
+      "sha": "c66a27d319e691051e2222b5712b2f98e3f50a14",
+      "ref": "c66a27d319e691051e2222b5712b2f98e3f50a14",
+      "environment": "Production",
+      "created_at": "2026-10-21T16:29:09Z",
+      "statuses_url": "https://api.github.com/repos/josephsskaf-hub/UseKineo/deployments/7231361887/statuses"
+    },
+    {
+      "id": 7230507959,
+      "sha": "ea4559a467ef8ad711b7ec1acaf7b0a65633cc7a",
+      "ref": "ea4559a467ef8ad711b7ec1acaf7b0a65633cc7a",
+      "environment": "Production",
+      "created_at": "2026-10-21T15:52:13Z",
+      "statuses_url": "https://api.github.com/repos/josephsskaf-hub/UseKineo/deployments/7230507959/statuses"
+    },
+    {
+      "id": 7229871821,
+      "sha": "58b03e12d2deeca601ccd7fe243103f38c1080db",
+      "ref": "58b03e12d2deeca601ccd7fe243103f38c1080db",
+      "environment": "Production",
+      "created_at": "2026-10-21T15:25:11Z",
+      "statuses_url": "https://api.github.com/repos/josephsskaf-hub/UseKineo/deployments/7229871821/statuses"
+    },
+    {
+      "id": 7229271789,
+      "sha": "3e18da3bf10c6158c1a68230b57ff11c05e1e27a",
+      "ref": "3e18da3bf10c6158c1a68230b57ff11c05e1e27a",
+      "environment": "Preview",
+      "created_at": "2026-10-21T14:57:01Z",
+      "statuses_url": "https://api.github.com/repos/josephsskaf-hub/UseKineo/deployments/7229271789/statuses"
+    },
+    {
+      "id": 7229222566,
+      "sha": "1a9254123feccb20d8d72ab1d5a9ba4c44f3e035",
+      "ref": "1a9254123feccb20d8d72ab1d5a9ba4c44f3e035",
+      "environment": "Production",
+      "created_at": "2026-10-21T14:55:06Z",
+      "statuses_url": "https://api.github.com/repos/josephsskaf-hub/UseKineo/deployments/7229222566/statuses"
+    }
+  ]
+}

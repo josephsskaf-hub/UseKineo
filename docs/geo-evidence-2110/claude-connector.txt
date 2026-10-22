@@ -1,0 +1,205 @@
+Kineo MCP — connect Kineo to Claude, Claude Code and Cursor | Kineo Home / Kineo MCP See plans → Claude 
+ Claude Code 
+ Cursor 
+ Any MCP client 
+ ChatGPT 
+ MCP server · v 1.0.0
+ Kineo MCP for any AI
+ Live in Claude Live in ChatGPT 
+ Kineo MCP writes your script and sends it to Studio as a one-click link — it never renders, creates an account or charges. Kineo Studio ( below ) makes the film in your Kineo account, using your credits.
+ Connect Kineo → Browse presets 
+ Server URL
+ https://www.usekineo.com/api/mcp Copy 
+ Made with Kineo
+ UGC ads, product ads and narrated films — real videos made in Kineo.
+ UGC ads · An AI person holds the product and tells why to buy. 
+ Open in Kineo → 
+ Kling Avatar 
+ Perfume, told by an AI presenter Studio Ads 
+ Sofia, UGC presenter Studio Ads 
+ Amara, UGC in the snow 
+ Product ads · Real product photos become a ready-to-run ad. 
+ Open in Kineo → 
+ Studio Ads 
+ LUME perfume, real product close-up Studio Ads 
+ Product close-up in the rain Studio Ads 
+ Giant product in neon 
+ Films · Type an idea, get a narrated Short in minutes. 
+ Open in Kineo → 
+ Seedance 1.5 
+ The Flannan Isles lighthouse Kling 3 
+ The deep-sea robot Veo 3.1 
+ Titanic 
+ Connect in three steps
+ Pick where you use AI. No sign-in to Kineo is needed to connect.
+ Claude Claude Code Cursor Other MCP clients ChatGPT 
+ 1 Open connector settings
+ One click copies the Kineo server URL and opens Claude's “Add custom connector” window.
+ Copy URL & open Claude → 
+ 2 Add the Kineo connector
+ Name: Kineo . URL: paste it. Click Continue .
+ https://www.usekineo.com/api/mcp Copy 
+ 3 Connect and start
+ Claude detects that no login is needed: click Add . On the Kineo connector page, click Connect . Done.
+ Start in Claude → 
+ Try it in Claude
+ Each “Try in Claude” opens a new Claude chat with the request already typed in. Review it and press send. Claude uses Kineo only if the connector is added and turned on in that chat; every request ends by asking Claude to help you connect Kineo first if it is not.
+ All Shorts Ads Clips Plans 
+ Clips Engine set · Seedance 1.5 
+ Clip from an idea
+ One sentence becomes a 15-second clip script, saved to Kineo Studio.
+ Try in Claude ↗ Learn more 
+ Shorts Engine set · Kling 3 
+ Narrated 35-second film
+ From one line to a narrated Short with a hook, a build and a twist.
+ Try in Claude ↗ Learn more 
+ Ads Engine set · Veo 3.1 
+ Product ad in 3 variations
+ Three angles on the same offer, each saved as its own Studio link.
+ Try in Claude ↗ Learn more 
+ Shorts Engine set · MiniMax H3 
+ 60-second mystery Short
+ A full mystery story sized for 60 seconds, with the engine already set.
+ Try in Claude ↗ Learn more 
+ Shorts Engine set · Kling 2.5 
+ History in 35 seconds
+ One moment from history told as a Short, ready to open in Studio.
+ Try in Claude ↗ Learn more 
+ Plans 
+ Kineo plans & prices
+ Live plans, free trial and credits per engine, straight from Kineo.
+ Try in Claude ↗ Learn more 
+ The tools
+ Get Kineo plans, pricing and engines Read only 
+ kineo_facts
+ Returns Kineo's current product facts as published on usekineo.com: subscription plans with USD prices and monthly credits, the free trial for new accounts, video engines with the credits each one costs, business video ad options, and what Kineo is not suited for. Read-only. Use it when the user asks about Kineo's pricing, plans, credits, trial, engines or capabilities. The optional topic narrows the result (overview, plans, engines, business or all).
+ Send a script to Kineo Studio Saves a script · not destructive 
+ create_video_handoff
+ Saves an approved narration script on Kineo and returns a link (https://www.usekineo.com/go/...) that opens Kineo Studio with the script, duration, frame and engine already filled in. Use it when the user asks to send a finished script to Kineo. This tool does not create an account, render a video or charge anything: the link stays valid for 7 days, and nothing is made until the person opens it and chooses to create the video in their own Kineo account. Script: plain text, up to 5000 characters; section labels on their own line (HOOK:, MICRO REWARD:, ESCALATION:, PAYOFF:) are optional and are not narrated. Narration pace is about 3.1 spoken words per second on standard engines (fast = Kineo 1, seedance = Seedance 1.5, kling = Kling 2.5, veo = Veo 3.1), about 186 words for 60 seconds, and about 2.3 on premium engines (hollywood = Kling 3, h3 = MiniMax H3), about 138 words for 60 seconds. The response includes words (the server's count of spoken words, labels excluded), outcome.kind (at_target or shorter_film) with outcomeMessage, and the link. Invalid input returns an error that names what to change, such as the maximum spoken words for the chosen duration.
+ Kineo Studio: your Kineo account inside Claude and ChatGPT Available to every Kineo account 
+ Kineo MCP (the server above) writes scripts and hands them to Studio — it never renders or charges. Kineo Studio is the second, separate connector for people who already have a Kineo account: you add it by URL, sign in once, and from then on Claude or ChatGPT places the order and Kineo makes the film in your account, spending your account's credits — the same engines, prices and rules as pressing Generate in Studio. Credits are spent only when a render actually starts; with no plan or balance, the assistant gets a link to the plans instead.
+ Kineo Studio connector URL
+ https://www.usekineo.com/api/mcp/studio Copy 
+ In Claude Live 
+ 1 Open Claude connector settings
+ In Claude (web or desktop): Customize → Connectors → “Add custom connector”.
+ 2 Paste the Kineo Studio URL
+ Name it “Kineo Studio”, paste the URL below and continue. Claude detects the sign-in on its own.
+ 3 Sign in to your Kineo account
+ Claude opens the Kineo login you already use. Allow the connection and you are back in Claude.
+ 4 Ask for a film
+ Say what you want, pick the engine and the length. Claude orders the film, your account pays the credits, and Claude hands you the link when it is ready.
+ In ChatGPT Live 
+ 1 Turn on Developer mode
+ In ChatGPT: Settings → Apps & Connectors (called Plugins in some versions) → Advanced settings → turn on Developer mode. Needs a paid ChatGPT plan (Plus or higher).
+ 2 Add a custom MCP server
+ Click Create (or “Add custom MCP server”). Name it “Kineo Studio”, paste the URL below, choose Authentication: OAuth and tick “I trust this application”.
+ 3 Sign in and allow
+ ChatGPT opens the Kineo login you already use. Click Allow on the Kineo screen and you are back in ChatGPT.
+ 4 Turn it on in a chat
+ In a new chat, enable Kineo Studio from the “+” / Developer mode menu, then ask for a film the same way.
+ Open Claude's “Add custom connector” dialog ↗ · Tools: kineo_account, kineo_create_video, kineo_video_status, kineo_list_videos. Each render is one film; a 15-second Seedance 1.5 film is the cheapest way to try. To revoke access at any time, remove the connector in the app you connected (Claude or ChatGPT). Current prices: plans .
+ Em português: Kineo Studio, crie vídeos no Claude e no ChatGPT Disponível para toda conta Kineo 
+ O Kineo MCP (o servidor acima) escreve roteiros e os manda para o Studio — ele não produz vídeo nem cobra. O Kineo Studio é o segundo conector, separado, para quem já tem conta na Kineo: você adiciona pela URL, entra uma vez, e dali em diante o Claude ou o ChatGPT faz o pedido e a Kineo produz o filme na sua conta, gastando os créditos dela — mesmos motores, preços e regras de apertar Gerar no Studio. Os créditos só saem quando a produção realmente começa; sem plano ou saldo, o assistente recebe um link para os planos em vez de cobrar.
+ URL do conector Kineo Studio
+ https://www.usekineo.com/api/mcp/studio Copy 
+ No Claude No ar 
+ 1 Abra os conectores do Claude
+ No Claude (web ou desktop): Personalizar → Conectores → “Adicionar conector personalizado”.
+ 2 Cole a URL do Kineo Studio
+ Dê o nome “Kineo Studio”, cole a URL abaixo e continue. O Claude detecta o login sozinho.
+ 3 Entre na sua conta Kineo
+ O Claude abre o login da Kineo que você já usa. Autorize a conexão e volte ao Claude.
+ 4 Peça um filme
+ Diga o que quer, escolha o motor e a duração. O Claude faz o pedido, a sua conta paga os créditos e o Claude te entrega o link quando ficar pronto.
+ No ChatGPT No ar 
+ 1 Ligue o modo desenvolvedor
+ No ChatGPT: Configurações → Apps e Conectores (em algumas versões, Plugins) → Configurações avançadas → ligue o Modo desenvolvedor. Precisa de plano pago do ChatGPT (Plus ou superior).
+ 2 Adicione um servidor MCP personalizado
+ Clique em Criar (ou “Adicionar servidor MCP personalizado”). Nome: “Kineo Studio”, cole a URL abaixo, escolha Autenticação: OAuth e marque “Confio neste aplicativo”.
+ 3 Entre e autorize
+ O ChatGPT abre o login da Kineo que você já usa. Clique em Permitir (Allow) na tela da Kineo e volte ao ChatGPT.
+ 4 Ligue numa conversa
+ Numa conversa nova, ative o Kineo Studio no menu “+” / Modo desenvolvedor e peça o filme do mesmo jeito.
+ Para revogar o acesso, remova o conector no app em que você conectou (Claude ou ChatGPT). Dúvidas: support@usekineo.com .
+ What happens after the link
+ The link shows the saved script. People without a Kineo account sign up first and come straight back to it; then Studio opens pre-filled and waits. Creating the video is a separate step the person takes in their own Kineo account, under that account's plan and credits. The link works for 7 days, and scripts can be up to 5,000 characters. Current prices are on the pricing page and in the kineo_facts tool.
+ Data handling
+ kineo_facts stores nothing. create_video_handoff stores only what it receives — the script, length, frame, engine, language and optional title — plus a one-way hash of the calling IP address and the user agent, used for rate limiting. It does not receive or store your Claude conversation, memory or files. Details in the privacy policy .
+ Support
+ Questions or problems: support@usekineo.com . Server version 1.0.0 . Prefer to paste instead? The paste page does the same handoff from any assistant.
+ ϟ Kineo Turn one idea into a ready-to-post faceless YouTube Short — script, AI voiceover, footage & captions in a few minutes. Start with 10 free credits in supported countries. The cost depends on your engine and duration. Trial videos are watermarked; upgrade for clean downloads. Paid plans unlock clean MP4s.
+ English Português Español Français Deutsch Italiano Nederlands Polski Türkçe Русский Українська العربية اردو हिन्दी Bahasa Indonesia Tiếng Việt 
+ Product
+ Videos for businesses Video ads for… Restaurants 
+ Dentists & clinics 
+ Real estate 
+ Gyms & studios 
+ Salons & beauty 
+ Online stores 
+ Local services 
+ Courses & events 
+ Showcase 
+ AI image generator — 6 engines 
+ AI clips — photo or text to clip 
+ Spaces — empty space in, finished space out 
+ Examples — real renders, every engine 
+ AI voice generator (text to speech) 
+ AI video upscaler & enhancer 
+ Kineo facts & numbers (citable) 
+ Free AI Shorts generator 
+ Faceless video generator 
+ AI faceless YouTube Shorts generator 
+ Seedance, Kling and Veo in one place 
+ Kineo vs kineo.studio 
+ AI Video Index (render time per engine) 
+ YouTube Shorts from a topic 
+ Text to video Shorts 
+ ChatGPT script to YouTube Short 
+ Use Kineo in Claude 
+ Cheapest AI Shorts maker 
+ Shorts without filming 
+ Faceless channel ideas (2026) 
+ Faceless niche picker 
+ Shorts idea widget 
+ State of AI Shorts 2026 
+ Live case study: our channel on Autopilot 
+ AI Shorts for agencies & client work 
+ Agency partner program - resell Kineo 
+ Trust Center — privacy, payments & ownership 
+ Affiliate program - 30% recurring 
+ Pricing 
+ Start free 
+ Free tools
+ Free AI Shorts generator 
+ Free AI Shorts by niche 
+ Free script generator 
+ Comment to Short script 
+ Product video ad script 
+ Business video content planner 
+ Client video brief generator 
+ Real estate video maker 
+ Free hook generator 
+ Shorts title & hashtag generator 
+ Shorts script timer 
+ Free viral score 
+ Shorts money calculator 
+ Shorts money & growth
+ Make money clipping with AI 
+ How much do Shorts pay? 
+ Shorts RPM by niche (2026) 
+ Best AI Shorts generators 
+ Can you monetize AI videos? 
+ TikTok vs Shorts: which pays more? 
+ Compare
+ All comparisons 
+ Kineo vs OpusClip 
+ Kineo vs InVideo 
+ Kineo vs HeyGen 
+ Vidyo.ai / Quso pricing 
+ © 2026 Kineo · All rights reserved
+ Terms of Service · Privacy Policy · Your privacy choices · Do not sell or share · Trust Center · Contact 
+ Settings × 
+ Appearance
+ Choose how Kineo looks on this device.
+ Appearance Light Soft white surfaces. Dark Deep navy surfaces. Your choice is saved automatically on this device.

@@ -1,0 +1,61 @@
+User-Agent: *
+Allow: /
+Allow: /llms.txt
+Allow: /api/facts
+Disallow: /api/
+Disallow: /generate
+Disallow: /history
+Disallow: /checkout/
+Disallow: /admin
+Disallow: /v2
+Disallow: /create
+Disallow: /revive
+Disallow: /studio/create
+
+User-Agent: GPTBot
+User-Agent: OAI-SearchBot
+User-Agent: ChatGPT-User
+User-Agent: ClaudeBot
+User-Agent: Claude-SearchBot
+User-Agent: Claude-User
+User-Agent: anthropic-ai
+User-Agent: PerplexityBot
+User-Agent: Perplexity-User
+User-Agent: Google-Extended
+User-Agent: CCBot
+Allow: /
+Allow: /llms.txt
+Allow: /api/facts
+Disallow: /api/
+Disallow: /generate
+Disallow: /history
+Disallow: /checkout/
+Disallow: /admin
+Disallow: /v2
+Disallow: /create
+Disallow: /revive
+Disallow: /studio/create
+
+User-Agent: Bingbot
+Allow: /
+Allow: /llms.txt
+Allow: /api/facts
+Disallow: /api/
+Disallow: /generate
+Disallow: /history
+Disallow: /checkout/
+Disallow: /admin
+Disallow: /v2
+Disallow: /create
+Disallow: /revive
+Disallow: /studio/create
+
+Host: https://www.usekineo.com
+
+# LLM / answer-engine readers: a curated, dated, plain-text fact sheet about
+# this product lives at https://www.usekineo.com/llms.txt
+# The same facts as JSON (CORS open, safe to fetch at query time):
+# https://www.usekineo.com/api/facts
+Sitemap: https://www.usekineo.com/sitemap.xml
+Sitemap: https://www.usekineo.com/video-sitemap.xml
+

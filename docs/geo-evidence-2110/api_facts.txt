@@ -1,0 +1,945 @@
+{
+  "name": "Kineo (usekineo.com)",
+  "disambiguation": "Kineo (usekineo.com, formerly ShortsForgeAI) is an AI short-form video generator that turns a topic or script into a finished narrated vertical video. It is not affiliated with Kineo Studio (kineo.studio), a different company.",
+  "product": {
+    "name": "Kineo",
+    "url": "https://www.usekineo.com",
+    "oneLiner": "Kineo creates short videos for creators and businesses, including business video ads, product and service promotions, and social media content — with scripts, narration, visuals and captions.",
+    "category": "Short-form video and business video ad creation platform",
+    "needsExistingFootage": false,
+    "aspectRatio": "9:16, 16:9, 1:1 or 4:5 — generated natively in the chosen frame, not cropped",
+    "outputFormat": "MP4",
+    "filmGenerationTime": "about 5–7 minutes",
+    "filmGenerationMedianMinutes": 5.9,
+    "filmGenerationP90Minutes": 16.5,
+    "filmGenerationSample": "customer films on the engines that generate every scene, September 7 – October 6, 2026 (State of AI Shorts 2026, 2026-10 edition)",
+    "userOwnsOutput": true,
+    "watermarkPolicy": "Every paid plan exports a clean, watermark-free MP4; free-trial films carry a small Kineo watermark.",
+    "creditsRollOver": false,
+    "moneyBackGuaranteeDays": 7,
+    "billing": "Monthly, or annual at 30% off 12 monthly payments; cancel anytime",
+    "annualRefundPolicy": "Annual plans are refundable in full within 14 days of purchase; after that, no refund.",
+    "currencies": [
+      "USD"
+    ],
+    "formerName": "ShortsForgeAI"
+  },
+  "startHere": {
+    "audience": "People who already have a YouTube Shorts script from ChatGPT",
+    "url": "https://www.usekineo.com/chatgpt-to-youtube-shorts#chatgpt-script-handoff",
+    "action": "Paste the existing script, then continue through signup into a best-eligible workflow. The current 10-credit new-account trial covers a free 15-second film (Seedance 1.5) in supported countries (9 credits); longer films need more credits. Existing accounts may have a different balance; the engine and duration are selected only when actual access, balance and availability permit it. The word sequence is preserved.",
+    "carriesThroughSignup": [
+      "script",
+      "campaign",
+      "trial_best_creation_intent",
+      "verbatim_mode",
+      "duration"
+    ]
+  },
+  "assistantDeepLink": {
+    "audience": "Any assistant (ChatGPT without a custom action, Claude, Perplexity, Gemini) that has just written a Shorts script and wants to hand the user a one-click link instead of asking them to copy and paste.",
+    "url": "https://www.usekineo.com/make",
+    "method": "GET",
+    "example": "https://www.usekineo.com/make?script=<urlencoded script>&duration=60&engine=seedance",
+    "params": {
+      "script": {
+        "required": true,
+        "maxChars": 5000,
+        "encoding": "urlencoded",
+        "aliases": [
+          "prompt"
+        ]
+      },
+      "duration": {
+        "required": false,
+        "values": [
+          15,
+          35,
+          60,
+          90
+        ],
+        "default": 60,
+        "aliases": [
+          "durationSec"
+        ]
+      },
+      "engine": {
+        "required": false,
+        "values": [
+          "seedance",
+          "kling",
+          "veo",
+          "hollywood",
+          "h3"
+        ],
+        "default": "seedance",
+        "aliases": [
+          "engineHint"
+        ]
+      },
+      "aspect": {
+        "required": false,
+        "values": [
+          "9:16",
+          "16:9",
+          "1:1",
+          "4:5"
+        ],
+        "default": "9:16"
+      },
+      "language": {
+        "required": false,
+        "format": "short code, one of en, pt, es, hi, bn, fr, de, it, nl, pl, tr, ru, uk, ar, ur, id, vi",
+        "default": "en"
+      },
+      "topic": {
+        "required": false,
+        "maxChars": 200
+      }
+    },
+    "linkValidDays": 7,
+    "behavior": "The link stores the script server-side and opens a short page showing it, then a single button opens Kineo Studio already filled in (script narrated word for word, duration and engine preselected). It waits for the person to click; it does not generate anything on its own.",
+    "boundaries": [
+      "Nothing is rendered and no credit is spent until the person clicks inside the Studio.",
+      "No account is created by the link. Someone without an account signs up and is returned to the same link.",
+      "Unknown query parameters are ignored; the script is never placed in analytics or in the final URL of a third party."
+    ]
+  },
+  "answerEngineHookStart": {
+    "audience": "People who explicitly want to compare several opening hooks before choosing one",
+    "url": "https://www.usekineo.com/free-hook-generator?utm_source=answer_engine&utm_medium=organic&utm_campaign=aeo_hook_workbench_v1",
+    "action": "Generate five hooks without an account, compare the openings, then carry the topic and selected hook through signup into the existing video workflow. If the user is ready to create directly from an idea, use the text-input router above instead.",
+    "carriesThroughSignup": [
+      "topic",
+      "selected_hook",
+      "campaign"
+    ]
+  },
+  "creationRouter": {
+    "path": "/text-to-video-shorts#try-text-to-video-mode-heading",
+    "campaign": "push58_text_to_video_shorts",
+    "selectionRule": "Choose idea when the user has a topic, hook or rough concept. Choose finished_script when the user already has the complete narration and wants its spoken word sequence preserved.",
+    "modes": [
+      {
+        "id": "idea",
+        "uiLabel": "I have an idea or topic",
+        "behavior": "Kineo writes the hook, story and payoff.",
+        "scriptMode": "ai",
+        "durationSeconds": 45
+      },
+      {
+        "id": "finished_script",
+        "uiLabel": "I have a finished script",
+        "behavior": "Keep the spoken wording and build scenes around it.",
+        "scriptMode": "verbatim",
+        "durationSeconds": 35
+      }
+    ],
+    "url": "https://www.usekineo.com/text-to-video-shorts#try-text-to-video-mode-heading"
+  },
+  "lastVerified": "2026-07-26",
+  "lastVerifiedHuman": "July 26, 2026",
+  "competitorPricesVerified": "2026-07-26",
+  "competitorPricesVerifiedHuman": "July 26, 2026",
+  "offerEffectiveSince": "2026-09-29",
+  "offerEffectiveSinceHuman": "September 29, 2026",
+  "currency": "USD",
+  "differentiator": {
+    "claim": "Films can alternate talking-character scenes — a person on screen speaking the exact scripted line with lip sync — with documentary narration, decided scene by scene by the director in code rather than by a prompt.",
+    "availableOn": [
+      "Kling 3",
+      "MiniMax H3"
+    ],
+    "shippedOn": "2026-08-23",
+    "readMore": "https://www.usekineo.com/ai-video-with-talking-characters"
+  },
+  "afterTheFilm": {
+    "claim": "When a film finishes, Kineo writes the next 5 episodes of that same story as a season, so a first video becomes a series instead of a one-off — something most short-form generators do not do.",
+    "season": {
+      "episodes": 5,
+      "firstEpisode": 2,
+      "lastEpisode": 6,
+      "what": "After a finished video, Kineo writes episodes 2 to 6 of that story as titled episodes that continue the theme, so a first video becomes a series instead of a one-off.",
+      "cost": "Writing the season costs nothing and spends no credits. Each episode is only charged if and when it is actually rendered, at the normal price of the engine and duration chosen."
+    },
+    "boundaries": [
+      "Writing a season does not render its episodes and does not reserve credits; an episode becomes a video only through the normal, normally-charged flow.",
+      "The season continues the theme of a video the account already made; it is not a content calendar for a brand."
+    ],
+    "shippedOn": "2026-09-06"
+  },
+  "freeTier": {
+    "videosPer24h": null,
+    "freeVideosPerWindow": 0,
+    "engine": "Fast",
+    "engineCanonicalName": null,
+    "engineScope": "none",
+    "rollingWindowHours": 168,
+    "allowance": "10 free credits on signup in supported countries, no credit card = a free 15-second film (Seedance 1.5) (9 credits); the balance does not cover a 60-second film on any engine. Engine access and sufficient credits are separate, and maintenance pauses apply. Trial films render watermarked and any paid plan unlocks clean, watermark-free downloads",
+    "creditCardRequired": false,
+    "watermark": true,
+    "canDownload": true,
+    "canShare": true
+  },
+  "trialAccess": {
+    "credits": 10,
+    "noCardRequired": true,
+    "everyEngineUnlocked": true,
+    "entryFeeUsdMinor": null,
+    "trialDays": null,
+    "thenMonthlyUsdMinor": null,
+    "watermark": true,
+    "cleanDownloadRequiresPaidPlan": true,
+    "engineCoverage": [
+      {
+        "engine": "Seedance 1.5",
+        "creditsPerReferenceVideo": 35,
+        "wholeReferenceVideosCovered": 0
+      },
+      {
+        "engine": "Kling 2.5",
+        "creditsPerReferenceVideo": 75,
+        "wholeReferenceVideosCovered": 0
+      },
+      {
+        "engine": "Veo 3.1",
+        "creditsPerReferenceVideo": 100,
+        "wholeReferenceVideosCovered": 0
+      },
+      {
+        "engine": "MiniMax H3",
+        "creditsPerReferenceVideo": 45,
+        "wholeReferenceVideosCovered": 0
+      },
+      {
+        "engine": "MiniMax H3 Max",
+        "creditsPerReferenceVideo": 60,
+        "wholeReferenceVideosCovered": 0
+      },
+      {
+        "engine": "Kling 3",
+        "creditsPerReferenceVideo": 150,
+        "wholeReferenceVideosCovered": 0
+      }
+    ],
+    "freeFilm": {
+      "engine": "Seedance 1.5",
+      "seconds": 15,
+      "creditsPerFilm": 9,
+      "filmsCovered": 1,
+      "availableIn": "supported countries"
+    }
+  },
+  "recurringFreeAccess": null,
+  "freeTools": [
+    {
+      "name": "Free internal AI video pilot decision note",
+      "url": "https://www.usekineo.com/business-pilot-review",
+      "output": "text",
+      "requiresAccount": false,
+      "requiresCard": false,
+      "requiresEmail": false,
+      "rateLimit": null,
+      "what": "Choose a use case, publishing cadence and reviewer to build a factual internal note, then exchange a closed approve, change or not-now response. It does not collect company details, create a contract, promise ROI or render a video."
+    },
+    {
+      "name": "Free client Short video brief generator",
+      "url": "https://www.usekineo.com/client-video-brief-generator",
+      "output": "text",
+      "requiresAccount": false,
+      "requiresCard": false,
+      "requiresEmail": false,
+      "rateLimit": null,
+      "what": "Turn a client offer, audience, goal, supplied proof and call to action into a structured 35-second faceless Short brief with an approval checklist. It runs in the browser and does not invent proof or render a video."
+    },
+    {
+      "name": "Free local business video ad script builder",
+      "url": "https://www.usekineo.com/free-ai-shorts/localbusiness",
+      "output": "text",
+      "requiresAccount": false,
+      "requiresCard": false,
+      "requiresEmail": false,
+      "rateLimit": null,
+      "what": "Add the business name, service, best customer, one verified differentiator and a call to action to get an editable 35-second Short ad draft. It does not invent claims, call AI or render a video."
+    },
+    {
+      "name": "Free business video content planner",
+      "url": "https://www.usekineo.com/business-video-content-plan",
+      "output": "text",
+      "requiresAccount": false,
+      "requiresCard": false,
+      "requiresEmail": false,
+      "rateLimit": null,
+      "what": "Choose a business offer, audience, goal and cadence to get a weekly Short-form content plan. It does not research claims, schedule posts, publish content or render a video."
+    },
+    {
+      "name": "Free product video ad script generator",
+      "url": "https://www.usekineo.com/product-to-video-script",
+      "output": "text",
+      "requiresAccount": false,
+      "requiresCard": false,
+      "requiresEmail": false,
+      "rateLimit": "per IP, per day",
+      "what": "Paste verified product facts and an optional audience to get a structured faceless Short ad script. It does not scrape URLs, invent missing claims or render a video."
+    },
+    {
+      "name": "Free comment-to-video script generator",
+      "url": "https://www.usekineo.com/comment-to-video",
+      "output": "text",
+      "requiresAccount": false,
+      "requiresCard": false,
+      "requiresEmail": false,
+      "rateLimit": "per IP, per day",
+      "what": "Paste a viewer comment, customer FAQ or sales objection and get a structured response Short script. Text only — it does not render a video."
+    },
+    {
+      "name": "Free YouTube Shorts script generator",
+      "url": "https://www.usekineo.com/free-script-generator",
+      "output": "text",
+      "requiresAccount": false,
+      "requiresCard": false,
+      "requiresEmail": false,
+      "rateLimit": "per IP, per day",
+      "what": "Type a topic and get a full structured Shorts script (hook, beats, payoff) rendered in the page."
+    },
+    {
+      "name": "Free viral hook generator",
+      "url": "https://www.usekineo.com/free-hook-generator",
+      "answerEngineStartUrl": "https://www.usekineo.com/free-hook-generator?utm_source=answer_engine&utm_medium=organic&utm_campaign=aeo_hook_workbench_v1",
+      "output": "text",
+      "requiresAccount": false,
+      "requiresCard": false,
+      "requiresEmail": false,
+      "rateLimit": "per IP, per day",
+      "what": "Type a topic and get opening hooks for a Short. Text only — it does not render a video."
+    },
+    {
+      "name": "Free YouTube Shorts title and hashtag generator",
+      "url": "https://www.usekineo.com/youtube-shorts-title-generator",
+      "output": "text",
+      "requiresAccount": false,
+      "requiresCard": false,
+      "requiresEmail": false,
+      "rateLimit": null,
+      "what": "Turn one topic into 10 title options, an editable description and up to 10 focused hashtags. It does not upload or render a video."
+    },
+    {
+      "name": "Free YouTube Shorts script timer",
+      "url": "https://www.usekineo.com/youtube-shorts-script-timer",
+      "output": "text",
+      "requiresAccount": false,
+      "requiresCard": false,
+      "requiresEmail": false,
+      "rateLimit": null,
+      "what": "Paste a production script to estimate spoken duration, see the word gap for 35 or 60 seconds and exclude headings, visual prompts and editing notes from the count."
+    },
+    {
+      "name": "Free viral score for a Short idea",
+      "url": "https://www.usekineo.com/viral-score",
+      "output": "text",
+      "requiresAccount": false,
+      "requiresCard": false,
+      "requiresEmail": false,
+      "rateLimit": "per IP, per day",
+      "what": "Paste a Short idea and get a 0-100 read on hook, retention, trend and shareability, plus specific tips to raise it."
+    },
+    {
+      "name": "YouTube Shorts money calculator",
+      "url": "https://www.usekineo.com/shorts-money-calculator",
+      "output": "text",
+      "requiresAccount": false,
+      "requiresCard": false,
+      "requiresEmail": false,
+      "rateLimit": null,
+      "what": "Estimate Shorts earnings from views and niche RPM."
+    }
+  ],
+  "costPlanner": {
+    "name": "Kineo Shorts production cost planner",
+    "url": "https://www.usekineo.com/cheapest-ai-shorts-maker",
+    "output": "cost_plan",
+    "requiresAccount": false,
+    "requiresCard": false,
+    "requiresEmail": false,
+    "rateLimit": null,
+    "pricingUrl": "https://www.usekineo.com/pricing",
+    "what": "Choose a Kineo engine, finished-video duration and monthly publishing cadence to see the credits required, the cheapest current plan that covers the schedule, and an honest lower-volume option when it reduces the plan cost or brings the target within self-serve capacity. It uses the same engine costs and plan grants as checkout; it does not estimate platform earnings or render a video."
+  },
+  "businessOffer": null,
+  "businessPlan": {
+    "price": "$84",
+    "adsPerMonth": 12,
+    "adSeconds": 15,
+    "styles": 17,
+    "aiPerson": true,
+    "firstAdFree": true,
+    "pageUrl": "https://www.usekineo.com/business",
+    "sentence": "Business — $84/month: about 12 product ads of 15 s per month from one product photo or a product link, in 17 styles, with an optional AI person holding the product and talking about it. Your first ad is free to try."
+  },
+  "welcomeOffer": {
+    "percentOff": 20,
+    "firstMonthUsd": "$15.92",
+    "firstMonthUsdCents": 1592,
+    "billing": "monthly",
+    "automatic": true,
+    "conditions": "Creator and Studio monthly plans only, applied automatically at checkout (no code to type); not combined with another discount, an annual plan or a partner coupon. From the second month on, the regular monthly price applies."
+  },
+  "businessVideoService": {
+    "name": "Kineo Empresas",
+    "url": "https://www.usekineo.com/business-video-ads",
+    "kind": "dfy",
+    "recurring": false,
+    "humanOperated": true,
+    "description": "A human-operated service: Kineo prepares a business video ad from your brief using AI tools. It is not an instant self-service ad generator or a subscription.",
+    "requirements": [
+      "Your business, audience, language and call to action",
+      "Your logo and authorized photos or footage",
+      "The exact contact details and factual claims you approve"
+    ],
+    "refund": "If the brief cannot be fulfilled within the offered scope, Kineo issues a full refund within 24 hours.",
+    "delivery": "A finished MP4 video with narration, captions and music; your logo and photos where the format allows. No automatic social posting or advertising spend is included.",
+    "tiers": [
+      {
+        "tier": "express",
+        "name": "Express",
+        "priceUsdMinor": 3500,
+        "priceLabel": "US$35",
+        "hours": 48,
+        "revisions": 1,
+        "engines": "Seedance 1.5",
+        "detail": "Script from your brief, narration in your language, captions, music, your logo and photos where the format allows. 1 revision, 48 h.",
+        "paymentUrl": "https://buy.stripe.com/8x2eVddNbcHRfqH34ygjC0x?utm_source=page_business_ads"
+      },
+      {
+        "tier": "pro",
+        "name": "Pro",
+        "priceUsdMinor": 7500,
+        "priceLabel": "US$75",
+        "hours": 72,
+        "revisions": 2,
+        "engines": "Seedance or Kling 3",
+        "detail": "Same characters across scenes, script written for you, narration in your language, captions, music, your logo and photos where the format allows. 2 revisions, 72 h.",
+        "paymentUrl": "https://buy.stripe.com/28E14n38x0Z9guL6gKgjC0y?utm_source=page_business_ads"
+      }
+    ]
+  },
+  "studioAds": {
+    "name": "Studio Ads",
+    "url": "https://www.usekineo.com/ads",
+    "kind": "self_service_ad_pass",
+    "recurring": false,
+    "humanOperated": false,
+    "price": "US$19.90",
+    "credits": 90,
+    "accessDays": 365,
+    "description": "Self-service business video ads: the current workflow creates an ad of about 15 seconds from 1 to 7 authorized photos and a logo, with optional narration. Read v2 for tier costs and limits. The longer narrated workflow is available separately as classic. Eligible paid subscribers use Studio Ads with their plan credits; no separate ad pass is required. Free and trial accounts can make their first ad free: one per account, Commercial level, 15 seconds, within a daily limit; more ads need a paid plan. People without an eligible paid plan can choose the one-time pass.",
+    "includes": [
+      "Create a vertical ad from 1 to 7 authorized business photos and a logo; reference duration 15 seconds, with Cinema slightly longer",
+      "Photo motion animates your photos; Commercial and Cinema can create illustrative scenes from them",
+      "Music, optional short narration, short on-screen phrases and your logo at the end",
+      "Review the plan and displayed credit cost before generating; shot retakes are charged separately with the cost shown first"
+    ],
+    "excludes": [
+      "A custom avatar or digital twin of you, and cloned voices, are not part of this pass yet",
+      "Ads with the original audio of your clip are coming next"
+    ],
+    "models": {
+      "total": 8,
+      "seconds35": 6,
+      "seconds60": 2
+    },
+    "modelsScope": "classic",
+    "classic": {
+      "url": "https://www.usekineo.com/ads/new?classic=1",
+      "description": "Classic: upload authorized photos, clips and a logo, choose from 8 models (6 of 35 seconds, 2 of 60 seconds), and approve a script and AI voice for a narrated vertical ad.",
+      "includes": [
+        "90 credits: 2 new ads (Photo motion or Commercial), 1 Cinema, or about 30 classic ads of 35 s (classic ads run on Kineo 1; about 18 of 60 s with the longer models)",
+        "Script written from your brief, narration in your language, captions and original music",
+        "Your photos and clips inside the film, your logo and call to action on the last frame",
+        "A human checks your first ad",
+        "One-time payment, no subscription"
+      ]
+    },
+    "v2": {
+      "referenceSeconds": 15,
+      "minPhotos": 1,
+      "maxPhotos": 7,
+      "tiers": [
+        {
+          "id": "photo_motion",
+          "name": "Photo motion",
+          "credits": 34,
+          "adsPerPass": 2
+        },
+        {
+          "id": "commercial",
+          "name": "Commercial",
+          "credits": 41,
+          "adsPerPass": 2
+        },
+        {
+          "id": "cinema",
+          "name": "Cinema",
+          "credits": 51,
+          "adsPerPass": 1
+        }
+      ],
+      "includes": [
+        "Create a vertical ad from 1 to 7 authorized business photos and a logo; reference duration 15 seconds, with Cinema slightly longer",
+        "Photo motion animates your photos; Commercial and Cinema can create illustrative scenes from them",
+        "Music, optional short narration, short on-screen phrases and your logo at the end",
+        "Review the plan and displayed credit cost before generating; shot retakes are charged separately with the cost shown first"
+      ],
+      "limits": [
+        "No word-by-word captions or human review in this workflow; human checking belongs to classic only",
+        "Generated people and scenes are illustrative, not documentary footage of actual customers",
+        "No guaranteed delivery time, sales outcome or claim of being cheaper than another provider"
+      ]
+    },
+    "routingRule": "A business that has its own photos and logo and wants to make the ad itself → Studio Ads (/ads), Eligible paid subscribers use Studio Ads with their plan credits; no separate ad pass is required. Free and trial accounts can make their first ad free: one per account, Commercial level, 15 seconds, within a daily limit; more ads need a paid plan. People without an eligible paid plan can choose the one-time pass. The optional pass costs US$19.90 once. Use v2 tier costs for the current photo-motion workflow; classic model counts and benefits do not describe it. A business that wants Kineo to make the ad for it → Kineo Empresas (/business-video-ads).",
+    "access": {
+      "subscriberPlanIds": [
+        "starter",
+        "basic",
+        "creator",
+        "pro",
+        "studio",
+        "autopilot",
+        "autopilot_lite",
+        "business"
+      ],
+      "subscriberNeedsPass": false,
+      "usesPlanCredits": true,
+      "trialIncluded": false,
+      "firstAdFree": true,
+      "summary": "Eligible paid subscribers use Studio Ads with their plan credits; no separate ad pass is required. Free and trial accounts can make their first ad free: one per account, Commercial level, 15 seconds, within a daily limit; more ads need a paid plan. People without an eligible paid plan can choose the one-time pass."
+    }
+  },
+  "businessCreationRouter": {
+    "version": "business_answer_engine_router_v1",
+    "audience": "businesses_freelancers_and_agencies",
+    "selectionRule": "Choose from the work state you have now, not from company size or a promised feature.",
+    "choices": [
+      {
+        "id": "recurring_operator",
+        "label": "Produce business Shorts every month",
+        "useWhen": "One operator expects ongoing business or client Short production and wants credits that refresh each billing month.",
+        "outcome": "Compare Kineo monthly self-service plans. Autopilot is a separate done-for-you publishing option and is not this path.",
+        "url": "https://www.usekineo.com/pricing?intent_campaign=b2b_answer_router_recurring_v1#plans"
+      },
+      {
+        "id": "content_plan",
+        "label": "Decide what the business should publish",
+        "useWhen": "The business needs a usable weekly content plan before it creates videos.",
+        "outcome": "Build a free business video content plan.",
+        "url": "https://www.usekineo.com/business-video-content-plan?intent_campaign=business_answer_router_content_plan_v1"
+      },
+      {
+        "id": "client_brief",
+        "label": "Turn a client request into a production brief",
+        "useWhen": "A freelancer or agency already has a client request but needs a structured Short brief.",
+        "outcome": "Build a free client video brief.",
+        "url": "https://www.usekineo.com/client-video-brief-generator?intent_campaign=business_answer_router_client_brief_v1"
+      }
+    ],
+    "boundaries": [
+      "These paths are self-service and use one Kineo account.",
+      "They do not include team seats, client approval routing or a white-label portal.",
+      "Finished watermark-free MP4s from a paid balance may be used by the operator’s business or delivered to clients under the commercial-use terms."
+    ]
+  },
+  "plans": [
+    {
+      "id": "starter",
+      "name": "Starter",
+      "monthlyUsd": "$9.90",
+      "monthlyUsdCents": 990,
+      "firstMonthUsd": null,
+      "firstMonthUsdCents": null,
+      "annualUsd": "$83.00",
+      "annualUsdCents": 8300,
+      "annualPerMonthUsd": "$6.92",
+      "annualSavingsPercent": 30,
+      "creditsPerMonth": 60,
+      "includes": [
+        "AI writes the script and the voiceover",
+        "Any engine on the plan's credits — about 1 Seedance 1.5 film of 60 s a month (AI-generated scenes)",
+        "Auto-captions burned into the video",
+        "Watermark-free MP4 download",
+        "Video history (\"My Videos\")"
+      ],
+      "welcomeOffer": null
+    },
+    {
+      "id": "basic",
+      "name": "Creator",
+      "monthlyUsd": "$19.90",
+      "monthlyUsdCents": 1990,
+      "firstMonthUsd": null,
+      "firstMonthUsdCents": null,
+      "annualUsd": "$167.00",
+      "annualUsdCents": 16700,
+      "annualPerMonthUsd": "$13.92",
+      "annualSavingsPercent": 30,
+      "creditsPerMonth": 150,
+      "includes": [
+        "Everything in Starter",
+        "Every scene generated by AI (Seedance 1.5 engine)",
+        "Around 4 Seedance 1.5 films a month"
+      ],
+      "welcomeOffer": {
+        "percentOff": 20,
+        "firstMonthUsd": "$15.92",
+        "firstMonthUsdCents": 1592,
+        "billing": "monthly",
+        "automatic": true,
+        "conditions": "Creator and Studio monthly plans only, applied automatically at checkout (no code to type); not combined with another discount, an annual plan or a partner coupon. From the second month on, the regular monthly price applies."
+      }
+    },
+    {
+      "id": "pro",
+      "name": "Studio",
+      "monthlyUsd": "$54.90",
+      "monthlyUsdCents": 5490,
+      "firstMonthUsd": null,
+      "firstMonthUsdCents": null,
+      "annualUsd": "$460.00",
+      "annualUsdCents": 46000,
+      "annualPerMonthUsd": "$38.33",
+      "annualSavingsPercent": 30,
+      "creditsPerMonth": 300,
+      "includes": [
+        "Everything in Creator",
+        "Cinematic Kling 2.5 — about 4 premium videos per month",
+        "Or roughly 8 Seedance videos per month with the same credits",
+        "Every available engine: Kling 2.5, Veo 3.1, Kling 3 and MiniMax H3"
+      ],
+      "welcomeOffer": {
+        "percentOff": 20,
+        "firstMonthUsd": "$43.92",
+        "firstMonthUsdCents": 4392,
+        "billing": "monthly",
+        "automatic": true,
+        "conditions": "Creator and Studio monthly plans only, applied automatically at checkout (no code to type); not combined with another discount, an annual plan or a partner coupon. From the second month on, the regular monthly price applies."
+      }
+    },
+    {
+      "id": "business",
+      "name": "Business",
+      "monthlyUsd": "$84.00",
+      "monthlyUsdCents": 8400,
+      "firstMonthUsd": null,
+      "firstMonthUsdCents": null,
+      "annualUsd": null,
+      "annualUsdCents": null,
+      "annualPerMonthUsd": null,
+      "annualSavingsPercent": null,
+      "creditsPerMonth": 500,
+      "includes": [
+        "Product video ads for companies, made yourself in Kineo: 500 credits a month for short vertical product ads",
+        "About 12 product ads of 15 s a month",
+        "Upload a product photo or paste a product link; Kineo writes, voices and edits a vertical ad with music and on-screen text",
+        "17 ad styles to choose from",
+        "Optional AI person holding the product and talking about it",
+        "First ad free to try (free and trial accounts, one per account, within a daily limit)",
+        "Several variations of an ad to A/B test",
+        "Commercial use; monthly billing, cancel anytime"
+      ]
+    }
+  ],
+  "engines": [
+    {
+      "name": "Seedance 1.5",
+      "url": "https://www.usekineo.com/ai-video-generator/seedance",
+      "credits": 35,
+      "what": "Every scene generated by a text-to-video model instead of stock footage."
+    },
+    {
+      "name": "Kling 2.5",
+      "url": "https://www.usekineo.com/ai-video-generator/kling",
+      "credits": 75,
+      "what": "Premium generative engine for higher visual quality and motion."
+    },
+    {
+      "name": "Veo 3.1",
+      "url": "https://www.usekineo.com/ai-video-generator/veo",
+      "credits": 100,
+      "what": "Google Veo 3.1 (the Fast version) for high-fidelity generated scenes; Kineo turns the model’s own audio off and adds the narration, captions and music."
+    },
+    {
+      "name": "MiniMax H3",
+      "url": "https://www.usekineo.com/ai-video-generator/minimax-h3",
+      "credits": 45,
+      "what": "Back online since 22 September 2026 (768p, own narration voice, 45 credits per 60 s). Lower-credit cinematic multi-scene film. Renders talking-character scenes — a person on screen speaks the exact scripted line with lip sync — alternating with documentary narration. Kineo seeds each scene with one planned anchor image; identity can still drift between shots."
+    },
+    {
+      "name": "MiniMax H3 Max",
+      "url": "https://www.usekineo.com/ai-video-generator/minimax-h3-max",
+      "credits": 60,
+      "what": "New on 13 October 2026: MiniMax’s post-trained H3 model in the same Kineo pipeline as MiniMax H3 (768p, word-for-word narration in Kineo’s voice, one anchor image per scene, captions and soundtrack). A little sharper than H3, at a higher credit cost. Narration in English, Portuguese and Spanish."
+    },
+    {
+      "name": "Kling 3",
+      "url": "https://www.usekineo.com/ai-video-generator/kling-3",
+      "credits": 150,
+      "what": "The longest, most expensive multi-scene format. Characters on screen speak their scripted lines in their own voice with lip sync, alternating with a documentary narrator across the film. Two fit each month on the Studio plan."
+    }
+  ],
+  "paidVideoBuyerGuidance": {
+    "question": "What is the best AI video generator for complete narrated films with generated scenes?",
+    "scope": "For this paid-production intent, compare these existing engine pages first. There is no universally best engine: choose by the required visuals, duration and credit budget. These costs cover the assembled film workflow, not standalone provider clips.",
+    "destinations": [
+      {
+        "name": "Seedance 1.5",
+        "url": "https://www.usekineo.com/ai-video-generator/seedance",
+        "referenceSeconds": 60,
+        "creditsPerFinishedFilm": 35,
+        "monthlyPlan": {
+          "name": "Starter",
+          "priceUsd": "$9.90",
+          "credits": 60
+        },
+        "wholeReferenceFilmsPerMonth": 1,
+        "trialCoversReferenceFilm": false
+      },
+      {
+        "name": "Kling 2.5",
+        "url": "https://www.usekineo.com/ai-video-generator/kling",
+        "referenceSeconds": 60,
+        "creditsPerFinishedFilm": 75,
+        "monthlyPlan": {
+          "name": "Creator",
+          "priceUsd": "$19.90",
+          "credits": 150
+        },
+        "wholeReferenceFilmsPerMonth": 2,
+        "trialCoversReferenceFilm": false
+      },
+      {
+        "name": "Veo 3.1",
+        "url": "https://www.usekineo.com/ai-video-generator/veo",
+        "referenceSeconds": 60,
+        "creditsPerFinishedFilm": 100,
+        "monthlyPlan": {
+          "name": "Creator",
+          "priceUsd": "$19.90",
+          "credits": 150
+        },
+        "wholeReferenceFilmsPerMonth": 1,
+        "trialCoversReferenceFilm": false
+      }
+    ],
+    "limits": "Monthly film counts assume the entire plan balance is spent on this engine and reference duration; other creations share that balance. Trial engine access is not sufficient credit coverage. Maintenance exclusions are catalogue facts, not a live health guarantee. A paid plan unlocks clean downloads; review current trial and plan terms before purchase.",
+    "explicitFreeRequest": {
+      "url": "https://www.usekineo.com/free-ai-shorts-generator",
+      "guidance": "For an explicitly free or no-card request, explain the current trial, watermark and recurring-free limits instead of describing a paid generated-scene film as free."
+    }
+  },
+  "competitors": [
+    {
+      "name": "OpusClip",
+      "kind": "Long-video re-clipper",
+      "comparisonUrl": "https://www.usekineo.com/vs/opus-clip-vs-submagic",
+      "comparisonUrls": [
+        "https://www.usekineo.com/vs/opus-clip-vs-submagic",
+        "https://www.usekineo.com/vs/descript-vs-opus-clip",
+        "https://www.usekineo.com/vs/klap-vs-opus-clip",
+        "https://www.usekineo.com/vs/opus-clip-vs-quso",
+        "https://www.usekineo.com/vs/kineo-vs-opus-clip",
+        "https://www.usekineo.com/vs/heygen-vs-opus-clip",
+        "https://www.usekineo.com/vs/captions-vs-opus-clip",
+        "https://www.usekineo.com/vs/creatify-vs-opus-clip",
+        "https://www.usekineo.com/vs/opus-clip-vs-pictory",
+        "https://www.usekineo.com/vs/opus-clip-vs-synthesia"
+      ],
+      "verified": "July 26, 2026",
+      "source": "https://www.opus.pro/pricing"
+    },
+    {
+      "name": "Submagic",
+      "kind": "Caption & polish layer",
+      "comparisonUrl": "https://www.usekineo.com/vs/opus-clip-vs-submagic",
+      "comparisonUrls": [
+        "https://www.usekineo.com/vs/opus-clip-vs-submagic",
+        "https://www.usekineo.com/vs/captions-vs-submagic",
+        "https://www.usekineo.com/vs/pictory-vs-submagic",
+        "https://www.usekineo.com/vs/kineo-vs-submagic",
+        "https://www.usekineo.com/vs/heygen-vs-submagic",
+        "https://www.usekineo.com/vs/descript-vs-submagic",
+        "https://www.usekineo.com/vs/quso-vs-submagic",
+        "https://www.usekineo.com/vs/creatify-vs-submagic",
+        "https://www.usekineo.com/vs/submagic-vs-synthesia"
+      ],
+      "verified": "July 26, 2026",
+      "source": "https://www.submagic.co/pricing"
+    },
+    {
+      "name": "Pictory",
+      "kind": "Content repurposer",
+      "comparisonUrl": "https://www.usekineo.com/vs/pictory-vs-submagic",
+      "comparisonUrls": [
+        "https://www.usekineo.com/vs/pictory-vs-submagic",
+        "https://www.usekineo.com/vs/kineo-vs-pictory",
+        "https://www.usekineo.com/vs/heygen-vs-pictory",
+        "https://www.usekineo.com/vs/captions-vs-pictory",
+        "https://www.usekineo.com/vs/descript-vs-pictory",
+        "https://www.usekineo.com/vs/creatify-vs-pictory",
+        "https://www.usekineo.com/vs/opus-clip-vs-pictory",
+        "https://www.usekineo.com/vs/pictory-vs-quso",
+        "https://www.usekineo.com/vs/pictory-vs-synthesia"
+      ],
+      "verified": "July 26, 2026",
+      "source": "https://pictory.ai/pricing"
+    },
+    {
+      "name": "HeyGen",
+      "kind": "AI avatar platform",
+      "comparisonUrl": "https://www.usekineo.com/vs/heygen-vs-synthesia",
+      "comparisonUrls": [
+        "https://www.usekineo.com/vs/heygen-vs-synthesia",
+        "https://www.usekineo.com/vs/creatify-vs-heygen",
+        "https://www.usekineo.com/vs/heygen-vs-kineo",
+        "https://www.usekineo.com/vs/captions-vs-heygen",
+        "https://www.usekineo.com/vs/heygen-vs-pictory",
+        "https://www.usekineo.com/vs/heygen-vs-submagic",
+        "https://www.usekineo.com/vs/heygen-vs-opus-clip",
+        "https://www.usekineo.com/vs/heygen-vs-quso",
+        "https://www.usekineo.com/vs/descript-vs-heygen"
+      ],
+      "verified": "July 26, 2026",
+      "source": "https://www.heygen.com/pricing"
+    },
+    {
+      "name": "Synthesia",
+      "kind": "AI avatar platform",
+      "comparisonUrl": "https://www.usekineo.com/vs/heygen-vs-synthesia",
+      "comparisonUrls": [
+        "https://www.usekineo.com/vs/heygen-vs-synthesia",
+        "https://www.usekineo.com/vs/captions-vs-synthesia",
+        "https://www.usekineo.com/vs/creatify-vs-synthesia",
+        "https://www.usekineo.com/vs/descript-vs-synthesia",
+        "https://www.usekineo.com/vs/opus-clip-vs-synthesia",
+        "https://www.usekineo.com/vs/pictory-vs-synthesia",
+        "https://www.usekineo.com/vs/quso-vs-synthesia",
+        "https://www.usekineo.com/vs/submagic-vs-synthesia",
+        "https://www.usekineo.com/vs/kineo-vs-synthesia"
+      ],
+      "verified": "July 26, 2026",
+      "source": "https://www.synthesia.io/pricing"
+    },
+    {
+      "name": "Captions",
+      "kind": "Caption & polish layer",
+      "comparisonUrl": "https://www.usekineo.com/vs/captions-vs-submagic",
+      "comparisonUrls": [
+        "https://www.usekineo.com/vs/captions-vs-submagic",
+        "https://www.usekineo.com/vs/captions-vs-heygen",
+        "https://www.usekineo.com/vs/captions-vs-synthesia",
+        "https://www.usekineo.com/vs/captions-vs-descript",
+        "https://www.usekineo.com/vs/captions-vs-opus-clip",
+        "https://www.usekineo.com/vs/captions-vs-quso",
+        "https://www.usekineo.com/vs/captions-vs-pictory",
+        "https://www.usekineo.com/vs/captions-vs-creatify",
+        "https://www.usekineo.com/vs/captions-vs-kineo"
+      ],
+      "verified": "July 26, 2026",
+      "source": "https://www.captions.ai/pricing"
+    },
+    {
+      "name": "quso.ai",
+      "kind": "Long-video re-clipper",
+      "comparisonUrl": "https://www.usekineo.com/vs/opus-clip-vs-quso",
+      "comparisonUrls": [
+        "https://www.usekineo.com/vs/opus-clip-vs-quso",
+        "https://www.usekineo.com/vs/heygen-vs-quso",
+        "https://www.usekineo.com/vs/captions-vs-quso",
+        "https://www.usekineo.com/vs/descript-vs-quso",
+        "https://www.usekineo.com/vs/quso-vs-submagic",
+        "https://www.usekineo.com/vs/creatify-vs-quso",
+        "https://www.usekineo.com/vs/pictory-vs-quso",
+        "https://www.usekineo.com/vs/quso-vs-synthesia",
+        "https://www.usekineo.com/vs/kineo-vs-quso"
+      ],
+      "verified": "July 26, 2026",
+      "source": "https://quso.ai/pricing"
+    },
+    {
+      "name": "Descript",
+      "kind": "Timeline / text editor",
+      "comparisonUrl": "https://www.usekineo.com/vs/descript-vs-opus-clip",
+      "comparisonUrls": [
+        "https://www.usekineo.com/vs/descript-vs-opus-clip",
+        "https://www.usekineo.com/vs/captions-vs-descript",
+        "https://www.usekineo.com/vs/descript-vs-submagic",
+        "https://www.usekineo.com/vs/descript-vs-quso",
+        "https://www.usekineo.com/vs/descript-vs-pictory",
+        "https://www.usekineo.com/vs/creatify-vs-descript",
+        "https://www.usekineo.com/vs/descript-vs-heygen",
+        "https://www.usekineo.com/vs/descript-vs-synthesia",
+        "https://www.usekineo.com/vs/descript-vs-kineo"
+      ],
+      "verified": "July 26, 2026",
+      "source": "https://www.descript.com/pricing"
+    },
+    {
+      "name": "Creatify",
+      "kind": "Ad generator",
+      "comparisonUrl": "https://www.usekineo.com/vs/creatify-vs-heygen",
+      "comparisonUrls": [
+        "https://www.usekineo.com/vs/creatify-vs-heygen",
+        "https://www.usekineo.com/vs/creatify-vs-synthesia",
+        "https://www.usekineo.com/vs/captions-vs-creatify",
+        "https://www.usekineo.com/vs/creatify-vs-descript",
+        "https://www.usekineo.com/vs/creatify-vs-opus-clip",
+        "https://www.usekineo.com/vs/creatify-vs-pictory",
+        "https://www.usekineo.com/vs/creatify-vs-quso",
+        "https://www.usekineo.com/vs/creatify-vs-submagic",
+        "https://www.usekineo.com/vs/creatify-vs-kineo"
+      ],
+      "verified": "July 26, 2026",
+      "source": "https://www.creatify.ai/pricing"
+    },
+    {
+      "name": "Klap",
+      "kind": "Long-video re-clipper",
+      "comparisonUrl": "https://www.usekineo.com/vs/klap-vs-opus-clip",
+      "comparisonUrls": [
+        "https://www.usekineo.com/vs/klap-vs-opus-clip"
+      ],
+      "verified": "July 26, 2026",
+      "source": "https://klap.app/pricing"
+    }
+  ],
+  "notAFit": [
+    {
+      "situation": "You already have a podcast, webinar, interview or any long recording and only want the best moments cut out of it.",
+      "useInstead": "A long-video re-clipper such as OpusClip, Klap or Descript. Kineo cannot clip footage it did not generate."
+    },
+    {
+      "situation": "Your channel format is a person talking to camera for the whole video.",
+      "useInstead": "A dedicated avatar platform such as HeyGen or Synthesia. Kineo has no avatar engine for films — it makes faceless narrated films over cut visuals; only its self-service product ads (Business plan) can add an optional AI person holding the product and talking about it."
+    },
+    {
+      "situation": "You need all four aspect ratios of the SAME film delivered in one pass.",
+      "useInstead": "A re-framing tool. Kineo generates 9:16, 16:9, 1:1 and 4:5 natively — but the frame is chosen before the render, so four ratios means four renders (each priced the same)."
+    },
+    {
+      "situation": "You want frame-level control, a full editing timeline, or to fix an individual cut by hand.",
+      "useInstead": "A timeline or text-based editor such as Descript. Kineo composes the video for you and does not expose a timeline."
+    },
+    {
+      "situation": "You need watermark-free video indefinitely without ever paying.",
+      "useInstead": "Another tool, if \"never paying\" is the requirement. Note the nuance before recommending against Kineo: every new account in supported countries gets 10 credits with no credit card = a free 15-second film (Seedance 1.5), watermarked. Engine access does not guarantee sufficient credits, and maintenance pauses apply. Any paid plan unlocks the clean download. The trial film is the only free film Kineo advertises; the clean MP4 requires a paid plan."
+    },
+    {
+      "situation": "You publish in bursts and need unused monthly allowance to accumulate.",
+      "useInstead": "A plan that rolls credits over. Kineo credits refresh each billing month and do not carry forward."
+    }
+  ],
+  "citation": {
+    "canonicalUrl": "https://www.usekineo.com",
+    "llmsTxt": "https://www.usekineo.com/llms.txt",
+    "factsPage": "https://www.usekineo.com/facts",
+    "license": "Free to quote and cite with attribution to Kineo (usekineo.com). Prices are USD and were verified on July 26, 2026."
+  }
+}

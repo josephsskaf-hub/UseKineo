@@ -1,0 +1,111 @@
+{
+  "classification": "EVIDÊNCIA DE PRODUÇÃO — declarações públicas; não teste de execução",
+  "task": "KINEO-GEO-NOITE-2110",
+  "note": "HTTP GET público sem cookies, login, render ou checkout. storedAtUtc é a hora de gravação aproximada da captura. HTML normalizado perde layout; hash é do corpo original salvo, incluindo a codificação do arquivo local.",
+  "snapshots": [
+    {
+      "url": "https://www.usekineo.com/llms.txt",
+      "status": 200,
+      "storedAtUtc": "2026-10-22T02:45:39.667Z",
+      "bodySha256": "4e41a301b35becbb9bcf095a963dd76f165b17b11159edf790a13070a44afa67",
+      "snapshot": "llms_txt.txt",
+      "format": "plain text"
+    },
+    {
+      "url": "https://www.usekineo.com/pricing",
+      "status": 200,
+      "storedAtUtc": "2026-10-22T02:45:40.010Z",
+      "bodySha256": "87fc4ffc997929fb0e582d25343659823a29c5aadfcefd311c6165c9dac018c3",
+      "snapshot": "pricing.txt",
+      "format": "normalized visible text"
+    },
+    {
+      "url": "https://www.usekineo.com/facts",
+      "status": 200,
+      "storedAtUtc": "2026-10-22T02:45:40.095Z",
+      "bodySha256": "21bcca9bfd16ee3215a41b42b3b40eb01207df54674ebeac77150f8647c8c3a1",
+      "snapshot": "facts.txt",
+      "format": "normalized visible text"
+    },
+    {
+      "url": "https://www.usekineo.com/api/facts",
+      "status": 200,
+      "storedAtUtc": "2026-10-22T02:45:40.482Z",
+      "bodySha256": "79e014a3cb6b5668382d96f360cd5cbfa4114337cfe61a62c93ebabfb56856b0",
+      "snapshot": "api_facts.txt",
+      "format": "json"
+    },
+    {
+      "url": "https://www.usekineo.com/robots.txt",
+      "status": 200,
+      "storedAtUtc": "2026-10-22T02:45:40.757Z",
+      "bodySha256": "ace682ac9cf45c5d5c07c4ba14a75c160d7fa08a8cffee4358364c3b986ddf8d",
+      "snapshot": "robots_txt.txt",
+      "format": "plain text"
+    },
+    {
+      "url": "https://www.usekineo.com/ai-ugc-ads",
+      "status": 200,
+      "storedAtUtc": "2026-10-22T02:45:41.373Z",
+      "bodySha256": "e209c2ddd01828250627596f463b8d65cfa179fee573010e5fac007ae679b892",
+      "snapshot": "ai-ugc-ads.txt",
+      "format": "normalized visible text"
+    },
+    {
+      "url": "https://www.usekineo.com/business",
+      "status": 200,
+      "storedAtUtc": "2026-10-22T02:45:41.801Z",
+      "bodySha256": "60340ac13a6c0a07f8e5d1080cc375471a4255610b02616d81980e91e13d9962",
+      "snapshot": "business.txt",
+      "format": "normalized visible text"
+    },
+    {
+      "url": "https://www.usekineo.com/",
+      "status": 200,
+      "storedAtUtc": "2026-10-22T02:47:52.769Z",
+      "bodySha256": "38eae235e4c5fd46ba44e4d093f1e134df6ee590603ec2a93f5e748f92f3db32",
+      "snapshot": "home.txt",
+      "format": "normalized visible text"
+    },
+    {
+      "url": "https://www.usekineo.com/ads",
+      "status": 200,
+      "storedAtUtc": "2026-10-22T02:47:44.211Z",
+      "bodySha256": "3dd8654a3d427c8390db76c9d198a31ddcbfbc2fa000e8637ed1a67fcbb41ad6",
+      "snapshot": "ads.txt",
+      "format": "normalized visible text"
+    },
+    {
+      "url": "https://www.usekineo.com/ai-kids-cartoon-videos",
+      "status": 200,
+      "storedAtUtc": "2026-10-22T02:47:43.545Z",
+      "bodySha256": "4eefce3d6a6363395076adeaa7b202225f0a83d1e7c3d58bae36034e9d90f4d9",
+      "snapshot": "ai-kids-cartoon-videos.txt",
+      "format": "normalized visible text"
+    },
+    {
+      "url": "https://www.usekineo.com/desenho-infantil-3d-com-ia",
+      "status": 200,
+      "storedAtUtc": "2026-10-22T02:47:43.646Z",
+      "bodySha256": "d2d372e4cdd29bc8f127d4f7dfc5803553fdd781358770b83df1923b4a79a721",
+      "snapshot": "desenho-infantil-3d-com-ia.txt",
+      "format": "normalized visible text"
+    },
+    {
+      "url": "https://www.usekineo.com/anuncios-ugc-com-ia",
+      "status": 200,
+      "storedAtUtc": "2026-10-22T02:47:43.728Z",
+      "bodySha256": "f463ec29e30c542c69c319ae73cfa6e3ea3f922cb4c7994323d341a0b57e64f3",
+      "snapshot": "anuncios-ugc-com-ia.txt",
+      "format": "normalized visible text"
+    },
+    {
+      "url": "https://www.usekineo.com/claude-connector",
+      "status": 200,
+      "storedAtUtc": "2026-10-22T02:47:57.708Z",
+      "bodySha256": "de67f81ef7ddb87f858cf8698fa51e71d5b6d39aa89fd1a8f1ad9a3aa56cde30",
+      "snapshot": "claude-connector.txt",
+      "format": "normalized visible text"
+    }
+  ]
+}
