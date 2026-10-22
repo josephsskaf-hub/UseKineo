@@ -2,10 +2,11 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semAdsCena95Pacing2110 } from './test-support/desfaz-ads-cena-95-pacing-2110.mjs' // KINEO-ADS-CENA-95-PACING-2110
 const files = { voice: 'lib/ads/cena/voice95.ts', costs: 'lib/ads/cena/costs95.ts', transport: 'lib/ads/cena/audio95Runtime.ts' }
 const plain = v => JSON.parse(JSON.stringify(v))
 const same = (a, b) => assert.deepEqual(plain(a), plain(b))
-function loader(over = {}, extraMocks = {}) { return createOfflineLoader({ globals: { Error }, mocks: { '@fal-ai/client': { createFalClient: () => { throw new Error('SDK real proibido; injete o dublê') } }, ...extraMocks }, source: (p, text) => over[p] ?? text }) }
+function loader(over = {}, extraMocks = {}) { return createOfflineLoader({ globals: { Error }, mocks: { '@fal-ai/client': { createFalClient: () => { throw new Error('SDK real proibido; injete o dublê') } }, ...extraMocks }, source: (p, text) => over[p] ?? semAdsCena95Pacing2110(text, p) }) } // KINEO-ADS-CENA-95-PACING-2110 — override mutado não passa pelo desfaz.
 const voiceInput = { beforeCta: 'Meet Pulse. A watch for your run.', cta: 'Shop Pulse now.', language: 'en', gender: 'female', age: 'adult', formato: 'ugc' }
 function voiceProof(over = {}) {
   const V = loader(over)(files.voice)
@@ -132,7 +133,7 @@ function actualProof(over = {}) {
   assert.equal(native.actualTotalUsd, 0.1, 'talking nunca exige medição de TTS não executado')
 }
 for (const [label, run] of [['MiniMax narrado: perfis/idioma reais, pausa real numa síntese, WPS só estimado', voiceProof], ['resposta requer duração real; nunca fabrica word timestamps', resultProof], ['previsão completa/teto por rota+modo, descartes, juiz, CPU e plano público identificados', costProof], ['transporte do cliente existente totalmente dublado, timeout e zero retry ambíguo', transportProof], ['medição completa exige todas parcelas, recibos/unidades e tarifas confirmadas', actualProof]]) { await run(); console.log('ok ' + label) }
-function changed(file, from, to) { const text = readFileSync(file, 'utf8').replace(/\r\n/gu, '\n'); assert.equal(text.split(from).length - 1, 1, 'mutante aplica uma vez: ' + from); return { [file]: text.replace(from, to) } }
+function changed(file, from, to) { const text = semAdsCena95Pacing2110(readFileSync(file, 'utf8').replace(/\r\n/gu, '\n'), file); assert.equal(text.split(from).length - 1, 1, 'mutante aplica uma vez: ' + from); return { [file]: text.replace(from, to) } } // KINEO-ADS-CENA-95-PACING-2110 — desfaz somente antes da substituição do mutante.
 const mutants = [
   ['muda modelo MiniMax existente', voiceProof, files.voice, "CENA95_MINIMAX_ENDPOINT = 'fal-ai/minimax/speech-2.8-hd'", "CENA95_MINIMAX_ENDPOINT = 'invented/model'"],
   ['pausa textual some', voiceProof, files.voice, '<#${pause.toFixed(2)}#>', ''],

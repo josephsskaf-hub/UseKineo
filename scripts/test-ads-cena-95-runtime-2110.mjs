@@ -3,8 +3,10 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semAdsCena95Pacing2110 } from './test-support/desfaz-ads-cena-95-pacing-2110.mjs' // KINEO-ADS-CENA-95-PACING-2110
 
 const F = { finish: 'lib/ads/cena/finish95.ts', runtime: 'lib/ads/cena/runtime95.ts', audio: 'lib/ads/cena/audio95Runtime.ts', usage: 'lib/ads/cena/usage95.ts', internal: 'lib/ads/cena/internal.ts', route: 'app/api/admin/ads-cena/route.ts', plan: 'lib/ads/cena/plan95.ts', script: 'lib/ads/cena/script95.ts', presenters: 'lib/ads/cena/presenters95.ts', catalog: 'lib/ads/cena/catalog.ts', pipe: 'lib/ads/cena/pipeline95.ts', legacyRuntime: 'lib/ads/cena/runtime.ts', advance: 'lib/ads/v2Advance.ts', earlyAudio: 'lib/ads/v2AudioCedo.ts' }
+const read = file => semAdsCena95Pacing2110(readFileSync(file, 'utf8').replace(/\r\n/g, '\n'), file) // KINEO-ADS-CENA-95-PACING-2110 — fonte histórica antes de gerar overrides.
 const plain = x => JSON.parse(JSON.stringify(x))
 const photo = 'https://offline.example/calm-leaf.png', voice = 'https://offline.example/narration.mp3'
 const house = { id: 'owner-95', email: 'josephsskaf@gmail.com' }
@@ -12,7 +14,7 @@ const input = { foto: photo, frase: 'Calm Leaf tea. Caffeine-free blend. Individ
 const classification = { category: 'tea', confidence: .99, product: 'Calm Leaf', offer: input.oferta, benefits: input.beneficios, photo_is_isolated_product: true }
 const script = { hooks: ['Tea before scrolling?', 'Ready for tea?', 'Time for tea?'], pain: 'Make room for a short break between your busy daily tasks.', demonstration: 'Open Calm Leaf and prepare your tea in a cup.', benefit: 'Caffeine-free blend. Individually wrapped bags.', offer: input.oferta, cta: 'Choose Calm Leaf for your next tea break.' }
 const server = { v2Json: (body, status = 200) => new Response(JSON.stringify(body), { status }), v2Fail: (error, status) => new Response(JSON.stringify({ error }), { status }) }
-function loader(over = {}, mocks = {}, globals = {}) { return createOfflineLoader({ mocks, globals: { Response, Request, Error, ...globals }, source: (file, text) => over[file] ?? text }) }
+function loader(over = {}, mocks = {}, globals = {}) { return createOfflineLoader({ mocks, globals: { Response, Request, Error, ...globals }, source: (file, text) => over[file] ?? semAdsCena95Pacing2110(text, file) }) } // KINEO-ADS-CENA-95-PACING-2110 — override mutado não passa pelo desfaz.
 async function makePlan(over = {}, values = {}) {
   const load = loader(over), P = load(F.plan), calls = []
   const plan = await P.planCena95({ ...input, ...values }, values.voice_mode === 'talking' ? 'veo31' : 'kling3', async call => { calls.push(plain(call)); call.onUsage?.({ prompt_tokens: 100, completion_tokens: 50 }); return call.images.length ? classification : script }, { userId: house.id, recentActors: [] })
@@ -210,13 +212,13 @@ async function musicResumeProof(over = {}) {
   const timed = runtimeWorld(plan, load, over, { musicPending: true }); await timed.run(); timed.clock.now += 180001; await timed.run()
   assert.equal(timed.counts.musicSubmit, 1); assert.equal(timed.counts.musicPoll, 0); assert.equal(timed.counts.renders, 1); assert.equal(timed.counts.refunds, 0); assert.equal(timed.state.plan.cena.score95.musicState, 'skipped')
 }
-const unusedImports = file => Object.fromEntries([...readFileSync(file, 'utf8').matchAll(/\bfrom\s*['"]([^'"]+)['"]/gu)].map(m => [m[1], {}]))
+const unusedImports = file => Object.fromEntries([...read(file).matchAll(/\bfrom\s*['"]([^'"]+)['"]/gu)].map(m => [m[1], {}])) // KINEO-ADS-CENA-95-PACING-2110
 async function deadlinePropagationProof(over = {}) {
   const { plan } = await makePlan(over), supplied = Date.now() + 12345; let reached
   // Só expõe a função privada no VM do teste; o corpo completo vem da fonte real.
   const runtimeMocks = { ...unusedImports(F.legacyRuntime), '../access': { isAdsInternalEmail: email => email === house.email }, './catalog': { cenaEnabled: internal => internal }, './pipeline': { cenaOf: p => p.cena }, './adapters': { cenaAssertVoiceRoute() {} }, './runtime95': { advanceCena95Order: async (_, __, deps) => { reached = deps.deadlineMs } } }
   const realRuntime = loader(over, runtimeMocks)(F.legacyRuntime)
-  const advanceSource = (over[F.advance] ?? readFileSync(F.advance, 'utf8')) + '\nexport { stepGenerating as offlineStepGenerating }\n'
+  const advanceSource = (over[F.advance] ?? read(F.advance)) + '\nexport { stepGenerating as offlineStepGenerating }\n' // KINEO-ADS-CENA-95-PACING-2110
   const advance = loader({ ...over, [F.advance]: advanceSource }, { ...unusedImports(F.advance), '@/lib/ads/cena/runtime': { advanceCenaOrder: realRuntime.advanceCenaOrder } })(F.advance)
   await advance.offlineStepGenerating({ auth: { admin: { getUserById: async () => ({ error: null, data: { user: house } }) } } }, { id: 'offline-forward', user_id: house.id, status: 'generating', plan: { cena: { plan, route: 'kling3' } } }, supplied)
   assert.equal(reached, supplied, 'v2Advance → runtime legado → runtime95 preservam o prazo absoluto')
@@ -256,14 +258,14 @@ async function internalProof(over = {}) {
   assert.equal(failed.status, 503); assert.equal((await failed.json()).error, 'cena95_history_unavailable'); assert.equal(counts.json, 0); assert.equal(counts.insert, 0); assert.equal(counts.start, 0)
   const forbidden = { json: async () => { throw new Error('blocked_json') }, moderate: async () => { throw new Error('blocked_moderation') }, admin: { from: () => { throw new Error('blocked_db') } }, start: async () => { throw new Error('blocked_start') } }
   assert.equal((await I.internalCenaFor({ id: 'external', email: 'buyer@example.com' }, input, forbidden)).status, 403)
-  const catalog = readFileSync(F.catalog, 'utf8').replace("= 'internal'", "= 'off'")
+  const catalog = read(F.catalog).replace("= 'internal'", "= 'off'") // KINEO-ADS-CENA-95-PACING-2110
   assert.equal((await loader({ ...over, [F.catalog]: catalog }, { '../v2Server': server })(F.internal).internalCenaFor(house, input, forbidden)).status, 403)
 }
 async function routeGateProof(over = {}) {
   for (const external of [false, true]) {
     let jsonCalls = 0, accessCalls = 0
     const mocks = { '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: external ? { id: 'external', email: 'buyer@example.com' } : house } }) } }) }, '@/lib/ads/serverAccess': { loadAdsAccess: async () => { accessCalls++; throw new Error('gate_before_db') } }, '@/lib/ads/cena/internal': { internalCenaFor: async () => { throw new Error('gate_before_internal') } }, '@/lib/ads/cena/runtime': { cenaJson: async () => { throw new Error('gate_before_ai') } }, '@/lib/ads/v2StartCore': { adsV2StartFor: async () => { throw new Error('gate_before_start') } }, '@/lib/safety/contentModeration': { moderateContent: async () => { throw new Error('gate_before_moderation') } }, '@/lib/ads/v2Server': server, '../_shared/db': { isAdminEmail: email => email === house.email } }
-    const local = external ? over : { ...over, [F.catalog]: readFileSync(F.catalog, 'utf8').replace("= 'internal'", "= 'off'") }
+    const local = external ? over : { ...over, [F.catalog]: read(F.catalog).replace("= 'internal'", "= 'off'") } // KINEO-ADS-CENA-95-PACING-2110
     const result = await loader(local, mocks)(F.route).POST({ json: async () => { jsonCalls++; return input } })
     assert.equal(result.status, 403); assert.equal(accessCalls, 0); assert.equal(jsonCalls, 0)
   }
@@ -322,6 +324,6 @@ const mutations = [
   ['runtime volta a voz de 90s', F.runtime, 'timeoutMs: 30_000, downloadTimeoutMs: 10_000', 'timeoutMs: 90_000, downloadTimeoutMs: 10_000', beforeVideoProof],
 ]
 let killed = 0
-for (const [name, file, from, to, proof] of mutations) await check('mutante real fica VERMELHO: ' + name, async () => { const source = readFileSync(file, 'utf8').replace(/\r\n/g, '\n'); assert.equal(source.split(from).length, 2, 'mutante exige um alvo exato: ' + name); const changed = source.replace(from, to); assert.notEqual(changed, source); let red = false; try { await proof({ [file]: changed }) } catch (e) { assert.ok(!['SyntaxError', 'ReferenceError'].includes(e.name) && !/Unexpected import:|Offline test forbids|Module outside test workspace:/u.test(e.message), 'mutante inválido por sintaxe/import: ' + name + ' → ' + e.message); red = true } assert.ok(red, 'mutante sobreviveu: ' + name); killed++ })
+for (const [name, file, from, to, proof] of mutations) await check('mutante real fica VERMELHO: ' + name, async () => { const source = read(file); assert.equal(source.split(from).length, 2, 'mutante exige um alvo exato: ' + name); const changed = source.replace(from, to); assert.notEqual(changed, source); let red = false; try { await proof({ [file]: changed }) } catch (e) { assert.ok(!['SyntaxError', 'ReferenceError'].includes(e.name) && !/Unexpected import:|Offline test forbids|Module outside test workspace:/u.test(e.message), 'mutante inválido por sintaxe/import: ' + name + ' → ' + e.message); red = true } assert.ok(red, 'mutante sobreviveu: ' + name); killed++ }) // KINEO-ADS-CENA-95-PACING-2110 — normalizar a base antes, nunca a fonte já mutada.
 console.log(`\ntest-ads-cena-95-runtime-2110: ${good} verdes, ${bad} vermelhos; ${killed}/${mutations.length} mutantes reais vermelhos esperados; nenhum serviço, env, banco ou render real`)
 process.exitCode = bad ? 1 : 0

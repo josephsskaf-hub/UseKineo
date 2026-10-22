@@ -3,9 +3,10 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semAdsCena95Pacing2110 } from './test-support/desfaz-ads-cena-95-pacing-2110.mjs' // KINEO-ADS-CENA-95-PACING-2110
 import { fixture95 } from './test-ads-cena-95-montagem-2110.mjs'
 const ADAPT = 'lib/ads/cena/adapters95.ts', PIPE = 'lib/ads/cena/pipeline95.ts'
-const read = p => readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
+const read = p => semAdsCena95Pacing2110(readFileSync(p, 'utf8').replace(/\r\n/g, '\n'), p) // KINEO-ADS-CENA-95-PACING-2110 — fonte histórica antes dos mutantes.
 const plain = x => JSON.parse(JSON.stringify(x))
 export function planFixture95(mode = 'narrated') {
   const base = fixture95(mode).plan
@@ -15,7 +16,7 @@ export function planFixture95(mode = 'narrated') {
   const presenter = { id: 'jade', name: 'Jade', portrait: 'https://www.usekineo.com/fixtures/approved-jade.jpg', look: 'one approved adult runner', gender: 'female', age: 'young_adult' }
   return { ...base, product: 'Pulse watch', input: { ...base.input, frase: 'Pulse watch with battery for seven days', oferta: offer, beneficios: [benefit], actorUrl: presenter.portrait, language: 'en' }, script, continuity: { actorUrl: presenter.portrait, wardrobe: 'yellow athletic shirt', productWrist: 'left' }, quality95: { version: 'KINEO-ADS-CENA-95-2110', presenter, wardrobe: 'yellow athletic shirt', musicMood: 'hustle', closePhoto: base.input.foto, shots: [{ kind: 'hook', start: 0, seconds: 3 }, { kind: 'use', start: 3, seconds: 7 }, { kind: 'close', start: 10, seconds: 5 }], costs: Object.fromEntries(['kling3', 'seedance2', 'veo31'].map(route => [route, { budgetMaxUsd: 100, assumptions: [], items: [] }])), planningUsage: { inputTokens: 10, outputTokens: 20, calls: 1, measuredCalls: 1 }, nativeVoice: 'one consistent natural woman voice in English' } }
 }
-function modules(over = {}) { const load = createOfflineLoader({ source: (p, s) => over[p] ?? s }); return { P: load(PIPE), A: load(ADAPT), M: load('lib/ads/cena/montage95.ts') } }
+function modules(over = {}) { const load = createOfflineLoader({ source: (p, s) => over[p] ?? semAdsCena95Pacing2110(s, p) }); return { P: load(PIPE), A: load(ADAPT), M: load('lib/ads/cena/montage95.ts') } } // KINEO-ADS-CENA-95-PACING-2110 — override mutado não passa pelo desfaz.
 const booleans = ['product_faithful', 'product_whole', 'no_invented_text', 'real_scale', 'no_extra_hands', 'own_hands_attached', 'five_fingers', 'natural_face', 'same_actor', 'same_wardrobe', 'correct_wrist', 'no_extra_people', 'nothing_near_face', 'mouth_closed', 'mouth_speaking', 'motion_visible', 'no_hands', 'no_people', 'no_extra_objects']
 export const goodVerdict = (score = 99) => Object.fromEntries([...booleans.map(k => [k, true]), ['score', score]])
 function harness(P, route = 'kling3', mode = 'narrated', options = {}) {

@@ -3,8 +3,9 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semAdsCena95Pacing2110 } from './test-support/desfaz-ads-cena-95-pacing-2110.mjs' // KINEO-ADS-CENA-95-PACING-2110
 const FILE = 'scripts/ads-cena-calibracao-2110.mjs', PLAN = 'lib/ads/cena/plan95.ts'
-const read = p => readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
+const read = p => semAdsCena95Pacing2110(readFileSync(p, 'utf8').replace(/\r\n/g, '\n'), p) // KINEO-ADS-CENA-95-PACING-2110 — somente a régua do teste; CLI real permanece atual.
 const plain = x => JSON.parse(JSON.stringify(x))
 // Exact references supplied by Joseph in the conversation on21/10. No GET, HEAD, image decode or model sees these files.
 const expected = {
@@ -21,7 +22,7 @@ async function scriptModule(source = read(FILE)) {
   return import('data:text/javascript;base64,' + Buffer.from(code).toString('base64'))
 }
 export async function calibrationProof(source = read(FILE), overrides = {}) {
-  const m = await scriptModule(source), loadReal = createOfflineLoader({ source: (p, s) => overrides[p] ?? s })
+  const m = await scriptModule(source), loadReal = createOfflineLoader({ source: (p, s) => overrides[p] ?? semAdsCena95Pacing2110(s, p) }) // KINEO-ADS-CENA-95-PACING-2110 — override mutado não passa pelo desfaz.
   let loads = 0, reads = 0, fetches = 0
   const deps = { load: p => { loads++; return loadReal(p) }, readFile: async () => { reads++; return JSON.stringify(expected) } }
   assert.equal(typeof m.main, 'function'); assert.equal(typeof m.runCalibration, 'function'); assert.equal(loads, 0, 'importar não executa main')
