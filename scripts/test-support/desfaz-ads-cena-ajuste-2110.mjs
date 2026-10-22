@@ -4,11 +4,13 @@ import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semAdsCena952110, ADS_CENA_95_2110_ARQUIVOS, ADS_CENA_95_2110_NOVOS } from './desfaz-ads-cena-95-2110.mjs' // KINEO-ADS-CENA-95-2110
 export const MARCA_ADS_CENA_AJUSTE_2110 = 'KINEO-ADS-CENA-AJUSTE-2110'
 export const ADS_CENA_AJUSTE_2110_BASE = 'b77f8f79a2031b8af4fffca0b1b32d6eacc24f4a'
 const table = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-ads-cena-ajuste-2110-fontes.json'), 'utf8'))
 export const ADS_CENA_AJUSTE_2110_ARQUIVOS = Object.freeze(Object.keys(table))
 export const ADS_CENA_AJUSTE_2110_NOVOS = Object.freeze([
+  ...ADS_CENA_95_2110_ARQUIVOS, ...ADS_CENA_95_2110_NOVOS, // KINEO-ADS-CENA-95-2110 — a camada posterior tem prova própria.
   'scripts/test-support/desfaz-ads-cena-ajuste-2110.mjs',
   'scripts/test-support/desfaz-ads-cena-ajuste-2110-fontes.json',
   'scripts/test-ads-cena-ajuste-2110.mjs',
@@ -20,6 +22,7 @@ export const ADS_CENA_AJUSTE_2110_NOVOS = Object.freeze([
 ])
 const lf = s => s.replace(/\r\n/g, '\n')
 export function semAdsCenaAjuste2110(texto, p) {
+  texto = semAdsCena952110(texto, p) // KINEO-ADS-CENA-95-2110 — mais nova sai antes da leitura de qualquer marca anterior.
   const rel = String(p ?? '').replace(/\\/g, '/')
   const known = table[rel]
   if (!known || typeof texto !== 'string' || !texto.includes(MARCA_ADS_CENA_AJUSTE_2110)) return texto

@@ -1,5 +1,6 @@
 // KINEO-ADS-CENA-2110 — tabela única editável: a visão escolhe a categoria, nunca inventa cenário nem ação.
 // KINEO-ADS-CENA-AJUSTE-2110 — figurino explícito e estável nas duas imagens, tomadas e refações.
+// KINEO-ADS-CENA-95-2110 — chá tem preparo próprio em vez de girar a embalagem como produto genérico.
 export const ADS_CENA_LIVE: 'off' | 'internal' = 'internal'
 export const CENA_CATALOG = {
   wearable: { format: 'athlete_demo', setting: 'an outdoor running track at dawn', actor: 'one adult runner in sportswear', interaction: 'wears the watch on their own LEFT wrist, runs, slows down and looks at the watch', scale: 'a watch fitted around the LEFT wrist' },

@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { ADS_CENA_95_2110_BASE } from './test-support/desfaz-ads-cena-95-2110.mjs' // KINEO-ADS-CENA-95-2110
 import { semAdsCena2110, ADS_CENA_2110_BASE, ADS_CENA_2110_ARQUIVOS, ADS_CENA_2110_NOVOS, MARCA_ADS_CENA_2110 } from './test-support/desfaz-ads-cena-2110.mjs'
 import { semAdsCenaAjuste2110 } from './test-support/desfaz-ads-cena-ajuste-2110.mjs' // KINEO-ADS-CENA-AJUSTE-2110 — o guardião original continua provando a camada original.
 const F = { cat: 'lib/ads/cena/catalog.ts', plan: 'lib/ads/cena/plan.ts', pipe: 'lib/ads/cena/pipeline.ts', adapt: 'lib/ads/cena/adapters.ts', montage: 'lib/ads/cena/montage.ts', runtime: 'lib/ads/cena/runtime.ts', internal: 'lib/ads/cena/internal.ts', route: 'app/api/admin/ads-cena/route.ts', start: 'lib/ads/v2StartCore.ts', captions: 'lib/ads/v2CenaQuality.ts' }
@@ -369,7 +370,7 @@ for (const path of ADS_CENA_2110_ARQUIVOS) {
   assert.equal(restored, baseline, 'desfaz exato: ' + path)
   assert.equal(semAdsCena2110(restored, path), baseline, 'desfaz idempotente: ' + path)
   assert.equal(semAdsCena2110(original.replace(/\n/g, '\r\n'), path), baseline.replace(/\n/g, '\r\n'), 'desfaz preserva CRLF: ' + path)
-  const delta = execFileSync('git', ['diff', '--ignore-cr-at-eol', '--unified=0', ADS_CENA_2110_BASE, '--', path], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  const delta = execFileSync('git', ['diff', '--ignore-cr-at-eol', '--unified=0', ADS_CENA_2110_BASE, ADS_CENA_95_2110_BASE, '--', path], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }) // KINEO-ADS-CENA-95-2110 — prova histórica antes da camada com desfaz próprio.
   const unmarked = delta.split('\n').filter(l => l.startsWith('+') && !l.startsWith('+++') && l.trim() !== '+' && !l.includes(MARCA_ADS_CENA_2110))
   assert.equal(unmarked.length, 0, 'toda linha tocada carrega marca: ' + path)
 }
@@ -379,7 +380,7 @@ assert.throws(() => semAdsCena2110(read(F.start) + '\n// KINEO-ADS-CENA-2110 ine
 const declared = new Set([...ADS_CENA_2110_ARQUIVOS, ...ADS_CENA_2110_NOVOS])
 const changedFiles = execFileSync('git', ['diff', '--ignore-cr-at-eol', '--name-only', ADS_CENA_2110_BASE], { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
 assert.ok(changedFiles.length > 0 && changedFiles.every(p => declared.has(p)), 'escopo completo da camada Cena: somente arquivos declarados')
-const subjects = execFileSync('git', ['log', '--format=%s', ADS_CENA_2110_BASE + '..HEAD'], { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
+const subjects = execFileSync('git', ['log', '--format=%s', ADS_CENA_2110_BASE + '..HEAD'], { encoding: 'utf8' }).trim().split('\n').filter(Boolean).filter(s => !s.startsWith('KINEO-ADS-CENA-95-2110')) // KINEO-ADS-CENA-95-2110 — validação da trava nova no guardião novo.
 assert.ok(subjects.length > 0 && subjects.every(s => s.startsWith(MARCA_ADS_CENA_2110 + ' ') && s.includes('[TRAVA 8.2 — vai do fundador 21/10 "A e B, vamo time"]')), 'todo commit da camada Cena leva marca e autorização exatas')
 console.log('ok desfaz mais novo exato em onze arquivos, idempotente, CRLF, marcas e escopo completo')
 function changed(path, from, to) {

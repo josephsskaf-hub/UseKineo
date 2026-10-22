@@ -3,10 +3,11 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semAdsCena952110 } from './test-support/desfaz-ads-cena-95-2110.mjs' // KINEO-ADS-CENA-95-2110 — histórico do ajuste preservado; motor novo tem guardião próprio.
 import { semAdsCenaAjuste2110, ADS_CENA_AJUSTE_2110_ARQUIVOS, ADS_CENA_AJUSTE_2110_NOVOS, ADS_CENA_AJUSTE_2110_BASE, MARCA_ADS_CENA_AJUSTE_2110 } from './test-support/desfaz-ads-cena-ajuste-2110.mjs'
-const source = p => readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
+const source = p => semAdsCena952110(readFileSync(p, 'utf8'), p).replace(/\r\n/g, '\n') // KINEO-ADS-CENA-95-2110
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8', maxBuffer: 1 << 26 }).replace(/\r\n/g, '\n')
-const load = createOfflineLoader({ globals: { Response, Request, Error }, mocks: { '../v2Server': {
+const load = createOfflineLoader({ source: (p, s) => semAdsCena952110(s, p), globals: { Response, Request, Error }, mocks: { '../v2Server': { // KINEO-ADS-CENA-95-2110
   v2Json: (body, status = 200) => new Response(JSON.stringify(body), { status }),
   v2Fail: (error, status, extra = {}) => new Response(JSON.stringify({ error, ...extra }), { status }),
 } } })
@@ -86,7 +87,7 @@ async function startCostsProof(override) {
       '@/lib/ads/v2Server': { v2Json: (body, status = 200) => new Response(JSON.stringify(body), { status }), v2Fail: (error, status) => new Response(JSON.stringify({ error }), { status }) },
       '@/lib/ads/sample': {}, '@/lib/ads/sampleEntry': {}, '@/lib/ads/v2CloseReal': {},
     }
-    const current = createOfflineLoader({ globals: { Response, Request, Error }, mocks, source: (p, s) => p === 'lib/ads/v2StartCore.ts' && override ? override : s })
+    const current = createOfflineLoader({ globals: { Response, Request, Error }, mocks, source: (p, s) => p === 'lib/ads/v2StartCore.ts' && override ? override : semAdsCena952110(s, p) }) // KINEO-ADS-CENA-95-2110
     const response = await current('lib/ads/v2StartCore.ts').adsV2StartFor({ id: 'house', email: 'josephsskaf@gmail.com' }, { reason: 'internal', admin }, async () => ({}))
     assert.equal(response.status, dry ? 200 : 202)
     const result = await response.json(), costs = current('lib/ads/cena/adapters.ts').cenaCosts(undefined, mode)
@@ -126,6 +127,6 @@ assert.ok(changed.length > 0 && changed.every(p => declared.has(p)), 'escopo com
 for (const p of ADS_CENA_AJUSTE_2110_NOVOS) assert.ok(readFileSync(p).length > 0, 'artefato novo existe: ' + p)
 const oldUndo = source('scripts/test-support/desfaz-ads-cena-2110.mjs')
 assert.ok(oldUndo.indexOf('texto = semAdsCenaAjuste2110(texto, p)') < oldUndo.indexOf("const rel = String(p ?? '')"), 'desfaz da camada mais nova vem primeiro')
-const subjects = git('log', '--format=%s', ADS_CENA_AJUSTE_2110_BASE + '..HEAD').trim().split('\n').filter(Boolean)
+const subjects = git('log', '--format=%s', ADS_CENA_AJUSTE_2110_BASE + '..HEAD').trim().split('\n').filter(Boolean).filter(s => !s.startsWith('KINEO-ADS-CENA-95-2110')) // KINEO-ADS-CENA-95-2110 — a trava nova é verificada pelo guardião novo.
 assert.ok(subjects.every(s => s.startsWith('KINEO-ADS-CENA-2110 ') && s.includes('[TRAVA 8.2 — vai do fundador 21/10 "A e B, vamo time"]')), 'marca e trava em todos os commits do complemento')
 console.log('ok desfaz encadeado, fontes exatas, CRLF, idempotência, mutantes de integridade e escopo do complemento')

@@ -89,6 +89,12 @@ async function transportProof(over = {}) {
   }
   same(await R.synthesizeCena95NarratedVoice(request, deps), { url: 'https://offline.example/stored.mp3', durationMs: 14350, timingSource: 'not_returned_by_endpoint' })
   same(trace, ['submit', 'download', 'upload'], 'uma síntese + uma cópia, sem retry implícito')
+  const bounded = []
+  await R.synthesizeCena95NarratedVoice(request, { ...deps, timeoutMs: 30000, downloadTimeoutMs: 10000,
+    subscribe: async (endpoint, args) => { bounded.push(args.timeout); return { audio: { url: 'https://offline.example/provider.mp3' }, duration_ms: 14350 } },
+    download: async (_url, timeout) => { bounded.push(timeout); return Buffer.from('offline-audio') },
+  })
+  same(bounded, [30000, 10000], 'runtime limita síntese/download ao prazo restante')
   let calls = 0
   await assert.rejects(R.synthesizeCena95NarratedVoice(request, { ...deps, subscribe: async () => { calls++; throw new Error('ambiguous-timeout') } }), /ambiguous-timeout/)
   assert.equal(calls, 1, 'timeout ambíguo nunca repete POST')
@@ -145,7 +151,9 @@ const mutants = [
   ['render arredonda para baixo', costProof, files.costs, 'Math.ceil(render.width * render.height', 'Math.floor(render.width * render.height'],
   ['previsão vira custo real fictício', costProof, files.costs, 'actualTotalUsd: null', 'actualTotalUsd: totalUsd'],
   ['tarifa desconhecida recebe default silencioso', costProof, files.costs, 'options.renderTariff === undefined ? CENA95_ESSENTIAL_PUBLIC : options.renderTariff', 'options.renderTariff ?? CENA95_ESSENTIAL_PUBLIC'],
-  ['transporte repete síntese paga', transportProof, files.transport, 'const raw = await subscribe(request.endpoint, { input: request.input, timeout: 90_000 })', 'await subscribe(request.endpoint, { input: request.input, timeout: 90_000 }); const raw = await subscribe(request.endpoint, { input: request.input, timeout: 90_000 })'],
+  ['transporte repete síntese paga', transportProof, files.transport, 'const raw = await subscribe(request.endpoint, { input: request.input, timeout: deps.timeoutMs ?? 90_000 })', 'await subscribe(request.endpoint, { input: request.input, timeout: deps.timeoutMs ?? 90_000 }); const raw = await subscribe(request.endpoint, { input: request.input, timeout: deps.timeoutMs ?? 90_000 })'],
+  ['síntese ignora prazo do chamador', transportProof, files.transport, 'timeout: deps.timeoutMs ?? 90_000', 'timeout: 90_000'],
+  ['download ignora prazo do chamador', transportProof, files.transport, 'deps.downloadTimeoutMs ?? 20_000', '20_000'],
   ['retry interno do SDK chega ao fornecedor', transportProof, files.transport, "if (posted) throw new Error('cena95_voice_submit_unconfirmed'); posted = true", 'posted = true'],
   ['parcela real faltante vira total completo', actualProof, files.costs, 'actualTotalUsd: missing.length ? null : partialMeasuredUsd', 'actualTotalUsd: partialMeasuredUsd'],
   ['tarifa referência fingecontaconfirmada', actualProof, files.costs, "item.tariffBasis === 'confirmed_account'", 'true'],
