@@ -81,7 +81,7 @@ export async function advanceCena95Order(admin: SupabaseClient, order: AdsV2Orde
     if (!s.musicState && !canSpend(50_000)) return
     await prepareCena95Music(s, audio)
     if (!s.musicState || !canSpend(25_000)) return
-    const prepared = cena95Preflight(s.plan.script, s.plan.input, s.route, s.plan.quality95.presenter, { ...(s.plan.voice_mode === 'narrated' ? { voiceSeconds: s.voiceSeconds! } : {}), words: s.words }) // KINEO-ADS-CENA-95-PACING-2110
+    const prepared = cena95Preflight(s.plan.script, s.plan.input, s.route, s.plan.quality95.presenter, { ...(s.plan.voice_mode === 'narrated' ? { voiceSeconds: s.voiceSeconds! } : {}), words: s.words, product: s.plan.product }) // KINEO-ADS-CENA-95-PACING-2110
     const speechWindows = prepared.speechWindows, captions = prepared.captions // KINEO-ADS-CENA-95-PACING-2110
     s.captionTimingSource = captions.timingSource; s.words = captions.words
     const source = buildCena95Montage({ plan: s.plan, selectedClips: s.selectedClips, nativeAudioClips: s.nativeAudioClips, voiceUrl: s.voiceUrl, voiceSeconds: s.voiceSeconds, musicUrl: s.musicUrl, words: s.words, speechWindows })

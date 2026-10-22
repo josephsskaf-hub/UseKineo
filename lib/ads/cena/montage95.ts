@@ -15,6 +15,34 @@ export interface Cena95MontageInput {
 export const CENA95_MUSIC_DB = -18
 export const CENA95_DUCK_DB = -24
 const r6 = (n: number): number => Math.round(n * 1e6) / 1e6
+const literal95 = (s: string): string => s.replace(/\[/gu, '［').replace(/\]/gu, '］') // KINEO-ADS-CENA-95-PACING-2110
+/** Exceptional final labels page at the market font instead of failing after media was generated. */
+function pagedFinal95(plan: CenaPlan, words: Cena95Word[]): Record<string, unknown>[] { // KINEO-ADS-CENA-95-PACING-2110
+  const rows = [{ text: plan.product, track: 44, y: '62%' }, ...(plan.input.oferta ? [{ text: plan.input.oferta, track: 45, y: '67%' }] : []), { text: plan.script.cta, track: 46, y: '72%' }]
+  const font = 63, width = 1080 * .84 - 14, spoken = words.slice(-plan.script.cta.trim().split(/\s+/u).length)
+  return rows.flatMap(row => {
+    const pages: { text: string; index: number }[][] = []; let line: { text: string; index: number }[] = [], used = 0
+    for (const [index, word] of row.text.trim().split(/\s+/u).entries()) {
+      let chunk = '', size = 0
+      const flush = () => { if (chunk) { line.push({ text: chunk, index }); used += size; chunk = ''; size = 0 } }
+      for (const { segment } of new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(literal95(word))) {
+        const advance = Array.from(segment.normalize('NFD')).reduce((n, c) => n + (/\p{M}/u.test(c) ? 0 : /[MWmw@%]/u.test(c) ? 1.1 : /[A-Z]/u.test(c) ? 1 : /[a-z]/u.test(c) ? .75 : 1.2), 0) * font
+        if (used + size + advance + (line.length && !chunk ? font * .5 : 0) > width) { flush(); if (line.length) pages.push(line); line = []; used = 0 }
+        if (!chunk && line.length) used += font * .5
+        chunk += segment; size += advance
+      }
+      flush()
+    }
+    if (line.length) pages.push(line)
+    const edges = [...new Set([13, 15, ...pages.map((_, k) => 13 + 2 * k / pages.length), ...(row.track === 46 ? spoken.flatMap(w => [Math.max(13, Math.min(15, w.start)), Math.max(13, Math.min(15, w.end))]) : [])])].sort((a, b) => a - b)
+    return edges.slice(0, -1).map((start, k) => {
+      const end = edges[k + 1], mid = (start + end) / 2, active = row.track === 46 ? spoken.findIndex(w => mid >= w.start && mid < w.end) : -1
+      const candidates = active < 0 ? [] : pages.filter(p => p.some(t => t.index === active))
+      const page = candidates.length ? candidates[Math.min(candidates.length - 1, Math.floor((mid - spoken[active].start) / (spoken[active].end - spoken[active].start) * candidates.length))] : pages[Math.min(pages.length - 1, Math.floor((mid - 13) / 2 * pages.length))]
+      return { type: 'text', track: row.track, time: r6(start), duration: r6(end - start), text: page.map(p => p.index === active ? `[color #FFD400]${p.text}[/color]` : p.text).join(' '), x: '50%', y: row.y, x_anchor: '50%', y_anchor: '50%', x_alignment: '50%', y_alignment: '50%', width: '84%', height: 84, text_wrap: false, text_clip: true, clip: true, font_family: 'Inter', font_size: font, font_weight: '800', line_height: '110%', fill_color: '#ffffff', stroke_color: '#000000', stroke_width: 7 }
+    })
+  })
+}
 const https = (s: unknown): s is string => typeof s === 'string' && /^https:\/\/\S+$/iu.test(s)
 const near = (a: number, b: number): boolean => Math.abs(a - b) < 1e-5
 function clipValid(c: Cena95NativeAudioClip): boolean {
@@ -41,7 +69,12 @@ export function cena95MusicElements(url: string | undefined, speech: Cena95Speec
 
 /** Highlight the spoken CTA on its own final text track, without a second caption behind the offer/name. */
 export function cena95FinalTextElements(plan: CenaPlan, words: Cena95Word[]): Record<string, unknown>[] {
-  const base = cenaFinalTextElements(plan), cta = base.find(e => e.track === 46)!
+  // KINEO-ADS-CENA-95-PACING-2110 — only new plans escape literal markup and repair exceptional final layout.
+  const repaired = Boolean((plan.script as CenaPlan['script'] & { normalization?: unknown }).normalization)
+  const display = repaired ? { ...plan, product: literal95(plan.product), input: { ...plan.input, oferta: literal95(plan.input.oferta ?? '') }, script: { ...plan.script, cta: literal95(plan.script.cta) } } : plan
+  let base: Record<string, unknown>[]
+  try { base = cenaFinalTextElements(display) } catch (error) { if (repaired && error instanceof Error && error.message === 'cena_final_text_does_not_fit') return pagedFinal95(plan, words); throw error }
+  const cta = base.find(e => e.track === 46)!
   const count = plan.script.cta.trim().split(/\s+/u).length, spoken = words.slice(-count)
   const edges = [...new Set([13, 15, ...spoken.flatMap(w => [Math.max(13, Math.min(15, w.start)), Math.max(13, Math.min(15, w.end))])])].sort((a, b) => a - b)
   const active = edges.slice(0, -1).flatMap((start, k) => {
