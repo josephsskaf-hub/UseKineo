@@ -259,14 +259,16 @@ const cases = {
   },
   async exactUndo() {
     const { semCartoonTracao2210: undo, CARTOON_TRACAO_HUNKS: hunks, CARTOON_TRACAO_MARK: marker } = await import('./test-support/desfaz-cartoon-tracao-2210.mjs')
-    const expected = [PAGE, 'lib/lifecycle/emailEvents.ts', '.github/workflows/guardiao.yml', 'scripts/test-support/desfaz-kids-venda-2010.mjs', 'scripts/test-support/desfaz-ads-cena-95-plan-failed-2110.mjs']
-    ok(JSON.stringify(Object.keys(hunks)) === JSON.stringify(expected), 'undo has exact five existing task sources, no unrelated source')
+    const expected = [PAGE, 'lib/lifecycle/emailEvents.ts', '.github/workflows/guardiao.yml', 'scripts/test-support/desfaz-kids-venda-2010.mjs', 'scripts/test-support/desfaz-ads-cena-95-plan-failed-2110.mjs', 'scripts/test-support/desfaz-ads-cena-95-pacing-2110.mjs', 'scripts/test-ads-cena-95-pacing-2110.mjs']
+    ok(JSON.stringify(Object.keys(hunks)) === JSON.stringify(expected), 'undo has exact seven existing task sources, no unrelated source')
     for (const [file, changes] of Object.entries(hunks)) {
       const candidate = read(file), base = git('show', BASE + ':' + file).replace(/\r\n/g, '\n')
       ok(undo(candidate, file) === base, 'exact reverse to immutable base: ' + file)
       ok(undo(candidate.replace(/\n/g, '\r\n'), file) === base.replace(/\n/g, '\r\n'), 'CRLF exact reverse: ' + file)
       ok(undo(base, file) === base && undo(candidate, file.replace(/\//g, '\\')) === base, 'base idempotence plus Windows paths: ' + file)
       ok(undo('// outside edit\n' + candidate, file) === '// outside edit\n' + base, 'edits outside exact task hunks survive: ' + file)
+      assert.throws(() => assert.equal(undo('X' + candidate, file), base), assert.AssertionError, 'one-character mutation outside task hunks remains red against the immutable base: ' + file)
+      checks++
       // Context-sensitive replacements must never hide later edits inside an owned hunk.
       for (const [index, hunk] of changes.entries()) {
         ok(candidate.split(hunk.after).length === 2, 'candidate hunk applies once: ' + file + '#' + index)
@@ -285,6 +287,41 @@ const cases = {
       try { git('cat-file', '-e', BASE + ':' + file) } catch { existed = false }
       ok(fs.existsSync(file) && !existed, 'new task file absent at base: ' + file)
     }
+  },
+  async historicalHashChain() {
+    const { semCartoonTracao2210: undo } = await import('./test-support/desfaz-cartoon-tracao-2210.mjs')
+    const { compileOffline } = await import('./test-support/truncamento-dedupe-offline.mjs')
+    const pacingFile = 'scripts/test-support/desfaz-ads-cena-95-pacing-2110.mjs'
+    const dependencies = { 'node:fs': { readFileSync: fs.readFileSync }, 'node:crypto': await import('node:crypto'), 'node:path': await import('node:path'), 'node:url': await import('node:url'), './desfaz-cartoon-tracao-2210.mjs': { semCartoonTracao2210: undo } }
+    const compile = source => compileOffline(source.replace('fileURLToPath(import.meta.url)', JSON.stringify(path.join(ROOT, pacingFile))), dependencies).semAdsCena95Pacing2110
+    const source = read(pacingFile), pacing = compile(source)
+    const file = 'scripts/test-support/desfaz-ads-cena-95-plan-failed-2110.mjs'
+    const snapshots = JSON.parse(read('scripts/test-support/desfaz-ads-cena-95-pacing-2110-fontes.json'))
+    ok(pacing(read(file), file) === snapshots[file].before, 'direct pacing callers remove exact Cartoon delta before preserving the historical hash')
+    const unrelated = 'X' + undo(read(file), file)
+    assert.throws(() => pacing(unrelated, file), /fonte divergente/, 'historical whole-source hash still rejects any other edit')
+    checks++
+    const withoutAdapter = compile(source.replace('texto = semCartoonTracao2210(texto, file)', 'texto = texto'))
+    assert.throws(() => withoutAdapter(read(file), file), /fonte divergente/, 'in-memory mutant removing direct adapter breaks the actual direct caller')
+    checks++
+    const withoutStrictHash = compile(source.replace('if (hash !== known.afterHash) throw', 'if (false) throw'))
+    ok(withoutStrictHash(unrelated, file) === snapshots[file].before, 'in-memory mutant bypassing historical hash wrongly accepts unrelated edit and is detected')
+  },
+  async scope() {
+    const { CARTOON_TRACAO_HUNKS: hunks } = await import('./test-support/desfaz-cartoon-tracao-2210.mjs')
+    const allowed = new Set([...Object.keys(hunks), ROUTE, HELPER,
+      'scripts/test-cartoon-tracao.mjs', 'scripts/test-support/desfaz-cartoon-tracao-2210.mjs', 'scripts/test-support/desfaz-cartoon-tracao-2210-hunks.json',
+      'docs/CARTOON-INSTAGRAM-2210.md', 'docs/CARTOON-TRACAO-2210.md',
+      'docs/previews/cartoon-tracao-2210.html', 'docs/previews/cartoon-tracao-2210-en-desktop.png', 'docs/previews/cartoon-tracao-2210-en-mobile.png',
+      'docs/previews/cartoon-tracao-2210-pt-desktop.png', 'docs/previews/cartoon-tracao-2210-pt-mobile.png'])
+    const changed = git('diff', '--name-only', BASE).trim().split('\n').filter(Boolean)
+    const untracked = git('ls-files', '--others', '--exclude-standard').trim().split('\n').filter(Boolean)
+    const assertScope = files => assert.ok(files.length > 0 && files.every(file => allowed.has(file)), 'finite Cartoon scope violated: ' + files.filter(file => !allowed.has(file)).join(', '))
+    assertScope([...changed, ...untracked]); checks++
+    assert.throws(() => assertScope([...changed, 'lib/compose.ts']), assert.AssertionError, 'in-memory scope mutant adding an unrelated production path is red'); checks++
+    assert.throws(() => assertScope([...changed, 'docs/unrelated.md']), assert.AssertionError, 'in-memory scope mutant adding an unrelated document is red'); checks++
+    const subjects = git('log', '--format=%s', BASE + '..HEAD').trim().split('\n').filter(Boolean)
+    ok(subjects.length > 0 && subjects.every(subject => subject.includes('[TRAVA 8.2 — vai do fundador 22/10 "de 1 ao 4, vamos dar tração em todas"]')), 'all current task commits carry the full founder authorization token')
   },
 }
 
