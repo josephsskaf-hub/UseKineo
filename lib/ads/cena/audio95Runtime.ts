@@ -6,6 +6,7 @@ export interface Cena95VoiceTransport {
   subscribe?(endpoint: string, request: { input: Request['input']; timeout: number }): Promise<unknown>;
   download?(url: string, timeoutMs: number): Promise<Buffer>;
   fetchImpl?: typeof fetch;
+  timeoutMs?: number; downloadTimeoutMs?: number;
   upload(audio: Buffer): Promise<string>;
 }
 /** O runtime do pedido deve salvar a intenção ANTES de chamar. Erro/timeout não autoriza outra síntese. */
@@ -20,14 +21,14 @@ export async function synthesizeCena95NarratedVoice(request: Request, deps: Cena
     return doFetch(resource, init)
   }
   const subscribe = deps.subscribe ?? ((endpoint, args) => createFalClient({ fetch: onePostFetch }).subscribe(endpoint, args))
-  const raw = await subscribe(request.endpoint, { input: request.input, timeout: 90_000 })
+  const raw = await subscribe(request.endpoint, { input: request.input, timeout: deps.timeoutMs ?? 90_000 })
   const result = cena95VoiceResult(raw)
   const download = deps.download ?? (async (url: string, timeoutMs: number) => {
     const response = await doFetch(url, { signal: AbortSignal.timeout(timeoutMs) })
     if (!response.ok) throw new Error('cena95_voice_download_failed')
     return Buffer.from(await response.arrayBuffer())
   })
-  const audio = await download(result.url, 20_000)
+  const audio = await download(result.url, deps.downloadTimeoutMs ?? 20_000)
   if (!Buffer.isBuffer(audio) || audio.length === 0 || audio.length > 10 * 1024 * 1024) throw new Error('cena95_voice_bad_download')
   const storedUrl = await deps.upload(audio)
   const stored = cena95VoiceResult({ audio: { url: storedUrl }, duration_ms: Math.round(result.seconds * 1000) })

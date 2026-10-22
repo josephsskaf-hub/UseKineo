@@ -126,7 +126,7 @@ export async function pipelineProof95(over = {}) {
     assert.equal(new Set(s.reservations.map(r => r.id)).size, s.reservations.length)
     assert.ok(Math.abs(s.reservedUsd - s.reservations.reduce((sum, r) => sum + r.usd, 0)) < .00001)
     const out = M.buildCena95Montage({ plan: s.plan, selectedClips: s.selectedClips, nativeAudioClips: s.nativeAudioClips, ...(mode === 'narrated' ? { voiceUrl: 'https://offline.example/tts.mp3', voiceSeconds: 15 } : {}) })
-    assert.equal(out.duration, 15); assert.equal(out.elements.filter(e => e.type === 'video').at(-1).duration, 5)
+    assert.equal(out.duration, 15); assert.equal(out.elements.filter(e => e.type === 'video' && e.track === 2).at(-1).duration, 5)
     const previous = h.submissions.length; await P.stepCena95(s, h.deps); assert.equal(h.submissions.length, previous, 'ready não cria outro trabalho')
   }
   const retry = await drain(P, harness(P, 'kling3', 'narrated', { verdict: ({ family, round }) => family === 'close' && round === 1 ? { ...goodVerdict(), no_hands: false } : goodVerdict() }))

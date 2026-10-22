@@ -9,15 +9,17 @@ import { extractCena95Frames } from './frames95'
 import { buildCena95Montage } from './montage95'
 import { cena95Captions, cena95DefaultWindows, cena95NarratedWindows } from './captions95'
 import { cena95UsageObservation } from './usage95'
-import { getLyriaMusicUrl } from '@/lib/lyriaMusic'
+import { submeterLyria, esperarLyria, lyriaPromptFor } from '@/lib/lyriaMusic'
 import { CreatomateSubmitError, estimateMp3DurationSeconds, submitCreatomateRender, uploadVoiceoverToSupabase } from '@/lib/compose'
 import { submitShotOnce, pollFalJob, persistShotClip } from '../v2Shots'
 import { persistSceneImage } from '../v2Images'
 import { writeServerEvent } from '@/lib/serverEvents'
-export async function advanceCena95Order(admin: SupabaseClient, order: AdsV2OrderRow, d: { json: CenaJson; fail(reason: string): Promise<void> }): Promise<void> {
+export async function advanceCena95Order(admin: SupabaseClient, order: AdsV2OrderRow, d: { json: CenaJson; fail(reason: string): Promise<void>; deadlineMs?: number }): Promise<void> {
   const outer = (order.plan as unknown as { cena?: { score95?: Cena95State } }).cena
   const s = outer?.score95
   if (!s || s.version !== 'KINEO-ADS-CENA-95-2110' || s.plan.quality95?.version !== s.version || s.route !== (outer as { route?: string }).route) { await d.fail('cena95_state_invalid'); return }
+  const deadlineMs = d.deadlineMs ?? Date.now() + 60_000, canSpend = (ms: number) => deadlineMs - Date.now() >= ms
+  if (!canSpend(10_000)) return
   if (order.assembly_lease_at && Date.now() - Date.parse(order.assembly_lease_at) < 5 * 60_000) return
   const token = new Date().toISOString()
   let claim = admin.from('ads_v2_orders').update({ assembly_lease_at: token }).eq('id', order.id).eq('status', 'generating')
@@ -32,11 +34,16 @@ export async function advanceCena95Order(admin: SupabaseClient, order: AdsV2Orde
   }
   const event = async (name: string, metadata: Record<string, unknown>) => { await writeServerEvent({ name, userId: order.user_id, path: '/lib/ads/cena', metadata: { order_id: order.id, route: s.route, quality: s.version, ...metadata } }) }
   const audio: Cena95FinishDeps = { now: Date.now, save, event,
-    voice: request => synthesizeCena95NarratedVoice(request, { upload: buffer => uploadVoiceoverToSupabase(order.user_id, buffer) }),
+    voice: request => synthesizeCena95NarratedVoice(request, { timeoutMs: 30_000, downloadTimeoutMs: 10_000, upload: buffer => uploadVoiceoverToSupabase(order.user_id, buffer) }),
     music: async () => {
-      const url = await getLyriaMusicUrl(s.plan.category, s.plan.quality95.musicMood)
-      if (!url) return null
-      const r = await fetch(url, { signal: AbortSignal.timeout(15_000) })
+      if (!s.musicHandle) {
+        const handle = await submeterLyria(lyriaPromptFor(s.plan.quality95.musicMood))
+        if (!handle) return null
+        s.musicHandle = handle; await save(s); return { pending: true }
+      }
+      const url = await esperarLyria(s.musicHandle, Math.min(deadlineMs - 30_000, Date.now() + 8_000))
+      if (!url) return { pending: true }
+      const r = await fetch(url, { signal: AbortSignal.timeout(10_000) })
       if (!r.ok || Number(r.headers.get('content-length')) > 10 * 1024 * 1024) return null
       const buffer = Buffer.from(await r.arrayBuffer())
       if (!buffer.length || buffer.length > 10 * 1024 * 1024 || estimateMp3DurationSeconds(buffer) < 15) return null
@@ -48,8 +55,9 @@ export async function advanceCena95Order(admin: SupabaseClient, order: AdsV2Orde
     const planning = s.plan.quality95.costs[s.route].breakdown.filter(p => ['planning_text_input', 'classifier_image_input', 'planning_output'].includes(p.component)).reduce((n, p) => n + p.usd, 0)
     await reserveCena95(s, audio, 'planning', 'planning', planning)
     // Detecta voz longa/ambígua ANTES de gastar os candidatos de vídeo de pessoa.
+    if (s.phase === 'videos' && s.plan.voice_mode === 'narrated' && !s.voiceUrl && !canSpend(55_000)) return
     await prepareCena95Voice(s, audio)
-    await stepCena95(s, { now: Date.now, save, json: d.json, event,
+    await stepCena95(s, { now: Date.now, save, json: d.json, event, canSpend, maxJobsPerStep: 1,
       submit: async j => {
         const r = await submitShotOnce(j.endpoint, j.input, context)
         if (r.kind === 'accepted') return { kind: 'accepted', requestId: r.requestId }
@@ -66,11 +74,13 @@ export async function advanceCena95Order(admin: SupabaseClient, order: AdsV2Orde
         const r = await persistShotClip({ ...context, idx: j.index, attempt: j.round, falUrl: j.url! })
         return r && r.measuredSeconds >= j.seconds - 0.1 ? r.storedUrl : null
       },
-      frames: async j => (await extractCena95Frames(j.url!, j.seconds))?.frames ?? null,
+      frames: async j => (await extractCena95Frames(j.url!, j.seconds, { falKey: process.env.FAL_KEY || process.env.FAL_API_KEY, timeoutMs: 40_000 }))?.frames ?? null,
     })
     if (s.phase === 'failed') { await d.fail(s.reason ?? 'cena95_failed'); return }
     if (s.phase !== 'ready') return
+    if (!s.musicState && !canSpend(50_000)) return
     await prepareCena95Music(s, audio)
+    if (!s.musicState || !canSpend(25_000)) return
     const speechWindows = s.plan.voice_mode === 'narrated' ? cena95NarratedWindows(s.plan.script, s.plan.input.language ?? 'en', s.voiceSeconds!) : cena95DefaultWindows(s.plan.script)
     const captions = cena95Captions({ text: s.plan.script.narration, language: s.plan.input.language ?? 'en', words: s.words, speechWindows })
     s.captionTimingSource = captions.timingSource; s.words = captions.words

@@ -25,7 +25,7 @@ export async function failCenaOrder(admin: SupabaseClient, order: AdsV2OrderRow,
   const r = await failAdsV2Order(admin, order, reason, '/lib/ads/cena')
   if (r.won) await writeServerEvent({ name: 'ads_cena_failed', userId: order.user_id, path: '/lib/ads/cena', metadata: { order_id: order.id, reason, refund: r.refund, credits_returned: r.amount } })
 }
-export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderRow): Promise<void> {
+export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderRow, deadlineMs = Date.now() + 60_000): Promise<void> {
   const state = cenaOf(order.plan)
   if (!state || order.status !== 'generating') return
   const auth = await admin.auth.admin.getUserById(order.user_id)
@@ -37,7 +37,7 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
   // KINEO-ADS-CENA-95-2110 — só novos planos marcados; pedidos anteriores conservam o avanço existente.
   if ('quality95' in state.plan) {
     const { advanceCena95Order } = await import('./runtime95')
-    await advanceCena95Order(admin, order, { json: cenaJson, fail: reason => failCenaOrder(admin, order, reason) })
+    await advanceCena95Order(admin, order, { json: cenaJson, fail: reason => failCenaOrder(admin, order, reason), deadlineMs })
     return
   }
   // A mesma coluna de lease da montagem, enquanto generating. Um vencedor; relógio da segunda tentativa próprio.

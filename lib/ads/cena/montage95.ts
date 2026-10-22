@@ -71,8 +71,8 @@ export function buildCena95Montage(s: Cena95MontageInput): Record<string, unknow
   if (s.voiceSeconds !== undefined && !(Number.isFinite(s.voiceSeconds) && s.voiceSeconds > 0 && s.voiceSeconds <= 15)) throw new Error('cena95_voice_duration_invalid')
   const captions = cena95Captions({ text: s.plan.script.narration, language: s.plan.input.language ?? 'en', words: s.words, speechWindows: s.speechWindows ?? cena95DefaultWindows(s.plan.script) })
   const elements: Record<string, unknown>[] = clips.map(c => ({ type: 'video', track: 2, time: c.start, duration: c.keepSeconds, source: c.url, trim_start: c.trimStart ?? 0, loop: false, fit: 'cover', x: '50%', y: '50%', width: '100%', height: '100%', volume: '0%' }))
-  // Native audio is detached from the visuals, so the real i2v close cannot erase the last sentence/CTA.
-  if (mode === 'talking') elements.push(...native.map(c => ({ type: 'audio', track: 50, time: c.start, duration: c.keepSeconds, source: c.url, trim_start: c.trimStart ?? 0, volume: c.hasSpeech ? '100%' : '0%' })))
+  // MP4 é vídeo pelo schema oficial. Sua imagem fica sob a cena opaca da trilha2, sem apagar a voz até15s.
+  if (mode === 'talking') elements.push(...native.map(c => ({ type: 'video', track: 1, time: c.start, duration: c.keepSeconds, source: c.url, trim_start: c.trimStart ?? 0, volume: c.hasSpeech ? '100%' : '0%', fit: 'cover', x: '50%', y: '50%', width: '100%', height: '100%', loop: false })))
   else elements.push({ type: 'audio', track: 50, time: 0, duration: s.voiceSeconds ?? 15, source: s.voiceUrl!, volume: '100%' })
   // Final overlays take the caption region from 13s. Native/TTS CTA keeps playing, with no duplicate caption behind it.
   elements.push(...captions.elements.flatMap(e => { const start = Number(e.time), end = Math.min(13, start + Number(e.duration)); return end > start ? [{ ...e, duration: r6(end - start) }] : [] }))

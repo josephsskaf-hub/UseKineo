@@ -91,15 +91,16 @@ export function proof95(over = {}) {
     const f = fixture95(mode, route), out = M.buildCena95Montage(f), els = out.elements
     assert.equal(out.duration, 15); assert.equal(out.frame_rate, 24); assert.equal(out.height, 1920)
     assert.ok(els.every(e => ['video', 'text', 'audio'].includes(e.type)), 'sem imagem parada, cartão ou caixa')
-    const videos = els.filter(e => e.type === 'video')
+    const videos = els.filter(e => e.type === 'video' && e.track === 2)
     assertTimeline(videos, 15)
     assert.equal(videos[0].duration, 3); assert.equal(videos.at(-1).time, 10); assert.equal(videos.at(-1).duration, 5)
     assert.ok(videos.every(e => e.volume === '0%' && e.loop === false && e.track === 2))
     assert.equal(videos.at(-1).source, f.selectedClips.at(-1).url)
     assert.ok(!els.some(e => e.source === f.plan.input.foto), 'foto só como referência do i2v, nunca foto congelada no filme')
-    const voice = els.filter(e => e.type === 'audio' && e.track === 50)
+    const voice = els.filter(e => mode === 'narrated' ? e.type === 'audio' && e.track === 50 : e.type === 'video' && e.track === 1)
     assertTimeline(voice, 15); assert.ok(voice.every(e => e.volume === '100%'))
     assert.equal(voice[0].source, mode === 'narrated' ? f.voiceUrl : f.nativeAudioClips[0].url)
+    if (mode === 'talking') { assert.ok(!els.some(e => e.type === 'audio' && /\.mp4/u.test(e.source ?? '')), 'MP4 usa elemento vídeo documentado'); assert.ok(voice.every(e => e.track < videos[0].track), 'a cena visível cobre a trilha da voz nativa') }
     if (route === 'veo31') { assert.deepEqual(plain(videos.map(e => [e.time, e.duration, e.trim_start])), [[0, 3, 0], [3, 5, 3], [8, 2, 0], [10, 5, 0]]); if (mode === 'talking') assert.deepEqual(plain(voice.map(e => [e.time, e.duration])), [[0, 8], [8, 7]]) }
     const final = els.filter(e => e.type === 'text' && e.time === 13)
     assert.deepEqual(plain(final.map(e => strip(e.text))), [f.plan.product, f.plan.input.oferta, f.plan.script.cta])

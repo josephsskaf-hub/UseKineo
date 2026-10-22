@@ -12,8 +12,8 @@ export interface Cena95Verdict { approved: boolean; score: number; reasons: stri
 export interface Cena95Job extends Cena95Request { index: number; round: number; status: 'new' | 'submitting' | 'pending' | 'done' | 'failed'; requestId?: string; claimedAt?: number; url?: string; frames?: Cena95Frame[]; frameClaimedAt?: number; judgeClaims?: Record<string, number>; verdicts?: Record<string, Cena95Verdict> }
 export interface Cena95Clip { url: string; kind: 'hook' | 'use' | 'close'; seconds: number; keepSeconds: number; start: number; trimStart?: number; hasSpeech: boolean; photoReference?: string }
 export interface Cena95AudioClip { url: string; start: number; seconds: number; keepSeconds: number; trimStart?: number; hasSpeech: boolean }
-export interface Cena95State { version: 'KINEO-ADS-CENA-95-2110'; phase: 'base' | 'videos' | 'ready' | 'failed'; plan: Cena95Plan; route: CenaRoute; rounds: Record<Cena95Request['family'], number>; jobs: Cena95Job[]; baseUrl?: string; reason?: string; selectedClips: Cena95Clip[]; nativeAudioClips: Cena95AudioClip[]; budgetMaxUsd: number; reservedUsd: number; reservations: { id: string; component: string; usd: number; at: number }[]; videoTokens: { input: number; output: number; measuredCalls: number }; voiceClaimedAt?: number; voiceUrl?: string; voiceSeconds?: number; musicClaimedAt?: number; musicUrl?: string; musicState?: 'done' | 'skipped'; captionTimingSource?: string; words?: { word: string; start: number; end: number }[] }
-export interface Cena95Deps { now(): number; save(s: Cena95State): Promise<void>; json: CenaJson; submit(j: Cena95Job): Promise<{ kind: 'accepted'; requestId: string } | { kind: 'ambiguous' | 'rejected' }>; poll(j: Cena95Job): Promise<{ state: string; url: string | null }>; persist(j: Cena95Job): Promise<string | null>; frames(j: Cena95Job): Promise<Cena95Frame[] | null>; event(name: string, data: Record<string, unknown>): Promise<void> }
+export interface Cena95State { version: 'KINEO-ADS-CENA-95-2110'; phase: 'base' | 'videos' | 'ready' | 'failed'; plan: Cena95Plan; route: CenaRoute; rounds: Record<Cena95Request['family'], number>; jobs: Cena95Job[]; baseUrl?: string; reason?: string; selectedClips: Cena95Clip[]; nativeAudioClips: Cena95AudioClip[]; budgetMaxUsd: number; reservedUsd: number; reservations: { id: string; component: string; usd: number; at: number }[]; videoTokens: { input: number; output: number; measuredCalls: number }; voiceClaimedAt?: number; voiceUrl?: string; voiceSeconds?: number; musicClaimedAt?: number; musicHandle?: { requestId: string; statusUrl: string; responseUrl: string }; musicUrl?: string; musicState?: 'done' | 'skipped'; captionTimingSource?: string; words?: { word: string; start: number; end: number }[] }
+export interface Cena95Deps { now(): number; save(s: Cena95State): Promise<void>; json: CenaJson; submit(j: Cena95Job): Promise<{ kind: 'accepted'; requestId: string } | { kind: 'ambiguous' | 'rejected' }>; poll(j: Cena95Job): Promise<{ state: string; url: string | null }>; persist(j: Cena95Job): Promise<string | null>; frames(j: Cena95Job): Promise<Cena95Frame[] | null>; event(name: string, data: Record<string, unknown>): Promise<void>; canSpend?(minimumMs: number): boolean; maxJobsPerStep?: number }
 export function newCena95State(plan: Cena95Plan, route: CenaRoute) {
   const budgetMaxUsd = plan.quality95.costs[route].budgetMaxUsd
   if (!(Number.isFinite(budgetMaxUsd) && budgetMaxUsd > 0)) throw new Error('cena95_cost_budget_required')
@@ -55,6 +55,7 @@ function windows(s: Cena95State, j: Cena95Job): { key: string; start: number; en
 }
 async function assess(s: Cena95State, j: Cena95Job, d: Cena95Deps): Promise<void> {
   if (j.kind === 'video' && !j.frames) {
+    if (d.canSpend && !d.canSpend(50_000)) return
     if (j.frameClaimedAt) { j.verdicts = Object.fromEntries(windows(s, j).map(w => [w.key, rejected('frame_submit_unconfirmed')])); await d.save(s); return }
     j.frameClaimedAt = d.now(); await reserveCena95(s, d, `frames-${j.index}`, 'frame_extraction_reserve', 0.012); await d.save(s)
     try { j.frames = (await d.frames(j)) ?? [] } catch { j.frames = [] }
@@ -63,6 +64,7 @@ async function assess(s: Cena95State, j: Cena95Job, d: Cena95Deps): Promise<void
   for (const w of windows(s, j)) {
     j.verdicts ??= {}; j.judgeClaims ??= {}
     if (j.verdicts[w.key]) continue
+    if (d.canSpend && !d.canSpend(25_000)) return
     const frames = j.kind === 'image' ? [{ url: j.url!, t: 0 }] : sample(j.frames!, w.start, w.end)
     if (!frames.length || j.judgeClaims[w.key]) { j.verdicts[w.key] = rejected('frames_or_judge_unavailable'); await d.save(s); continue }
     j.judgeClaims[w.key] = d.now(); await reserveCena95(s, d, `judge-${j.index}-${w.key}`, 'vision_token_reserve', 0.04608); await d.save(s)
@@ -96,7 +98,7 @@ export async function stepCena95(s: Cena95State, d: Cena95Deps): Promise<void> {
   const active = s.jobs.filter(j => j.round === s.rounds[j.family] && (s.phase === 'base' ? j.family === 'base' : j.family !== 'base'))
   const fresh = active.filter(j => j.status === 'new')
   if (fresh.length) {
-    for (const j of fresh) { j.status = 'submitting'; j.claimedAt = d.now(); await reserveCena95(s, d, `model-${j.index}`, j.kind, j.unitUsd); await d.save(s)
+    for (const j of fresh.slice(0, d.maxJobsPerStep ?? fresh.length)) { if (d.canSpend && !d.canSpend(35_000)) return; j.status = 'submitting'; j.claimedAt = d.now(); await reserveCena95(s, d, `model-${j.index}`, j.kind, j.unitUsd); await d.save(s)
       const r = await d.submit(j)
       if (r.kind === 'accepted') { j.requestId = r.requestId; j.status = 'pending' } else if (r.kind === 'rejected') j.status = 'failed'
       await d.save(s)
@@ -104,8 +106,9 @@ export async function stepCena95(s: Cena95State, d: Cena95Deps): Promise<void> {
     return
   }
   for (const j of active.filter(j => j.status === 'submitting')) if (d.now() - (j.claimedAt ?? 0) > 20 * 60_000) { s.phase = 'failed'; s.reason = 'cena95_submit_unconfirmed'; await d.save(s); return }
-  const pending = active.filter(j => j.status === 'pending')
+  const pending = active.filter(j => j.status === 'pending').slice(0, d.maxJobsPerStep ?? active.length)
   if (pending.length) {
+    if (d.canSpend && !d.canSpend(35_000)) return
     const results = await Promise.all(pending.map(j => d.poll(j)))
     for (let i = 0; i < pending.length; i++) { const j = pending[i], r = results[i]
       if (r.state === 'failed') j.status = 'failed'

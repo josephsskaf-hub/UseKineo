@@ -5,7 +5,7 @@ import { cena95NarratedVoiceRequest, type Cena95VoiceLanguage } from './voice95'
 export interface Cena95FinishDeps {
   now(): number; save(s: Cena95State): Promise<void>;
   voice(request: ReturnType<typeof cena95NarratedVoiceRequest>): Promise<{ url: string; durationMs: number }>;
-  music(): Promise<string | null>;
+  music(): Promise<string | null | { pending: true }>;
   event(name: string, data: Record<string, unknown>): Promise<void>;
 }
 export async function prepareCena95Voice(s: Cena95State, d: Cena95FinishDeps): Promise<void> {
@@ -23,11 +23,12 @@ export async function prepareCena95Voice(s: Cena95State, d: Cena95FinishDeps): P
 }
 export async function prepareCena95Music(s: Cena95State, d: Cena95FinishDeps): Promise<void> {
   if (s.phase !== 'ready' || s.musicState) return
-  if (s.musicClaimedAt) { s.musicState = 'skipped'; await d.save(s); return }
-  s.musicClaimedAt = d.now()
+  if (s.musicClaimedAt && (!s.musicHandle || d.now() - s.musicClaimedAt > 3 * 60_000)) { s.musicState = 'skipped'; await d.save(s); return }
+  s.musicClaimedAt ??= d.now()
   try {
     await reserveCena95(s, d, 'music', 'music', 0.08); await d.save(s)
     const url = await d.music()
+    if (url && typeof url === 'object') { await d.save(s); return }
     if (url && /^https:\/\//u.test(url)) { s.musicUrl = url; s.musicState = 'done' } else s.musicState = 'skipped'
   } catch (e) {
     if (e instanceof Error && e.message === 'cena95_lease_lost') throw e

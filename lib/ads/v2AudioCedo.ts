@@ -44,6 +44,7 @@ const num = (v: unknown): number | null => {
 export function adsV2AudioCedoFalta(order: Pick<AdsV2OrderRow, 'status' | 'plan' | 'narration' | 'music_url' | 'voice_url' | 'voice_seconds'>): { musica: boolean; voz: boolean; narracao: string | null } {
   const nada = { musica: false, voz: false, narracao: null }
   if (order.status !== 'generating' || !order.plan) return nada
+  if ((order.plan as { cena?: { plan?: { quality95?: { version?: string } } } }).cena?.plan?.quality95?.version === 'KINEO-ADS-CENA-95-2110') return nada // KINEO-ADS-CENA-95-2110 — áudio durável próprio; nunca duplicar TTS/música no cron legado.
   if (adsV2PresenterPlanOf(order.plan) || (order.plan as { presenter?: unknown }).presenter) return nada // o ator: caminho dele, intocado
   // ≡ prepareAndSubmit: a narração só existe com o pedido marcado e o texto do plano.
   const narracao = order.narration && typeof order.plan.narration === 'string' && order.plan.narration.trim() ? order.plan.narration.trim() : null
