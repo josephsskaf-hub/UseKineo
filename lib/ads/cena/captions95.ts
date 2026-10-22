@@ -1,0 +1,108 @@
+// KINEO-ADS-CENA-95-2110 — pure karaoke layout; supplied alignment or an explicitly labelled syllable estimate.
+export interface Cena95Word { word: string; start: number; end: number }
+export interface Cena95SpeechWindow { start: number; end: number; text?: string }
+export interface Cena95CaptionInput {
+  text: string; language: string; words?: Cena95Word[]; speechWindows?: Cena95SpeechWindow[];
+  width?: number; height?: number; track?: number;
+}
+export interface Cena95CaptionResult {
+  elements: Record<string, unknown>[]; words: Cena95Word[];
+  timingSource: 'provided_alignment' | 'syllable_estimate'; speechWindows: Cena95SpeechWindow[];
+}
+const r6 = (n: number): number => Math.round(n * 1e6) / 1e6
+const tokens = (s: string): string[] => String(s ?? '').trim().split(/\s+/u).filter(Boolean)
+const key = (s: string): string => s.normalize('NFC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')
+const validWindow = (w: Cena95SpeechWindow): boolean => Number.isFinite(w.start) && Number.isFinite(w.end) && w.start >= 0 && w.end > w.start && w.end <= 15
+
+/** Orthographic timing weight, not a phonetic transcription or forced alignment. PT treats common diphthongs as one nucleus. */
+export function cena95Syllables(word: string, language: string): number {
+  const raw = word.toLowerCase().normalize('NFC').replace(/[^\p{L}]/gu, '')
+  if (!raw) return 1
+  if (/^pt(?:-|$)/i.test(language)) {
+    const units = raw.replace(/qu(?=[eiéê])/gu, 'q').replace(/gu(?=[eiéê])/gu, 'g')
+      .replace(/(?:ãe|ão|õe|ai|au|ei|eu|oi|ou|ui)/gu, 'a')
+    return Math.max(1, (units.match(/[aeiouáéíóúâêôãõàü]/gu) ?? []).length)
+  }
+  if (/^en(?:-|$)/i.test(language)) {
+    let units = raw.replace(/(?:[^aeiouy])e$/u, m => m[0])
+    if (/[^aeiouy]le$/u.test(raw)) units = raw
+    let n = (units.match(/[aeiouy]+/gu) ?? []).length
+    if (/[^td]ed$/u.test(raw) && n > 1) n--
+    return Math.max(1, n)
+  }
+  // Other languages retain a deterministic vowel-nucleus estimate; never label this measured alignment.
+  return Math.max(1, (raw.normalize('NFD').replace(/\p{M}/gu, '').match(/[aeiouy]+/gu) ?? []).length)
+}
+
+/** CTA pause is explicit. A fallback never fabricates sub-second measured precision. */
+export function cena95DefaultWindows(script: { hook: string; use: string; benefit: string; cta: string }): Cena95SpeechWindow[] {
+  return [{ start: 0, end: 1.5, text: script.hook }, { start: 1.5, end: 10, text: script.use }, { start: 10, end: 13, text: script.benefit }, { start: 13.35, end: 15, text: script.cta }]
+}
+
+function alignment(i: Cena95CaptionInput): { words: Cena95Word[]; timingSource: Cena95CaptionResult['timingSource'] } {
+  const textWords = tokens(i.text)
+  if (!textWords.length || textWords.some(w => /[\[\]]/u.test(w))) throw new Error('cena95_caption_bad_text')
+  if (i.words !== undefined) {
+    if (!Array.isArray(i.words) || i.words.length !== textWords.length) throw new Error('cena95_caption_alignment_mismatch')
+    let previous = 0
+    const words = i.words.map((w, k) => {
+      if (!w || typeof w.word !== 'string' || key(w.word) !== key(textWords[k]) || !validWindow(w) || w.start < previous - 1e-6) throw new Error('cena95_caption_bad_alignment')
+      previous = w.end
+      return { word: textWords[k], start: w.start, end: w.end }
+    })
+    return { words, timingSource: 'provided_alignment' }
+  }
+  const windows = i.speechWindows
+  if (!windows?.length || windows.some((w, k) => !validWindow(w) || k > 0 && w.start < windows[k - 1].end)) throw new Error('cena95_caption_windows_required')
+  if (windows.some(w => typeof w.text !== 'string')) throw new Error('cena95_caption_window_text_required')
+  if (tokens(windows.map(w => w.text).join(' ')).map(key).join('|') !== textWords.map(key).join('|')) throw new Error('cena95_caption_window_text_mismatch')
+  let cursor = 0
+  const words = windows.flatMap(w => {
+    const parts = tokens(w.text!), weights = parts.map(s => cena95Syllables(s, i.language)), total = weights.reduce((a, b) => a + b, 0)
+    let before = 0
+    return parts.map((_, k) => {
+      const start = r6(w.start + (w.end - w.start) * before / total)
+      before += weights[k]
+      return { word: textWords[cursor++], start, end: r6(w.start + (w.end - w.start) * before / total) }
+    })
+  })
+  return { words, timingSource: 'syllable_estimate' }
+}
+
+function balancedBlocks(words: Cena95Word[]): Cena95Word[][] {
+  const n = Math.max(1, Math.ceil(words.length / 6)), size = Math.floor(words.length / n), extra = words.length % n
+  let cursor = 0
+  return Array.from({ length: n }, (_, k) => { const count = size + (k < extra ? 1 : 0); const block = words.slice(cursor, cursor + count); cursor += count; return block })
+}
+
+/** Same full block on one track for each active-word interval. Creatomate inline [color] is already used by lib/compose.ts. */
+export function cena95Captions(i: Cena95CaptionInput): Cena95CaptionResult {
+  const width = i.width ?? 1080, height = i.height ?? 1920
+  if (!(Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0)) throw new Error('cena95_caption_bad_frame')
+  const { words, timingSource } = alignment(i)
+  const font = Math.round(height * 0.033), stroke = 7 * height / 1920
+  const base = { type: 'text', track: i.track ?? 40, x: '50%', y: '67%', x_anchor: '50%', y_anchor: '50%', x_alignment: '50%', width: '84%', font_family: 'Inter', font_size: font, font_weight: '800', line_height: '110%', fill_color: '#ffffff', stroke_color: '#000000', stroke_width: stroke }
+  const elements: Record<string, unknown>[] = []
+  // Keep blocks inside speech windows, including the explicit pre-CTA pause. Very short beats may have <3 words truthfully.
+  const runs: Cena95Word[][] = []
+  for (const [index, word] of words.entries()) {
+    const last = runs[runs.length - 1]
+    if (!last || word.start - last[last.length - 1].end >= 0.15 && last.length >= 3 && words.length - index >= 3) runs.push([word]); else last.push(word)
+  }
+  for (const run of runs) for (const block of balancedBlocks(run)) {
+    for (let k = 0; k < block.length; k++) {
+      const w = block[k]
+      elements.push({ ...base, time: w.start, duration: r6(w.end - w.start), text: block.map((x, j) => j === k ? `[color #FFD400]${x.word}[/color]` : x.word).join(' ') })
+      const next = block[k + 1]
+      if (next && next.start > w.end + 1e-6) elements.push({ ...base, time: w.end, duration: r6(next.start - w.end), text: block.map(x => x.word).join(' ') })
+    }
+  }
+  // Audio ducking uses actual word extents, never a full 15s guess. Short gaps are merged; CTA silence remains.
+  const speechWindows: Cena95SpeechWindow[] = []
+  for (const w of words) {
+    const last = speechWindows[speechWindows.length - 1]
+    if (last && w.start - last.end < 0.15) last.end = w.end
+    else speechWindows.push({ start: w.start, end: w.end })
+  }
+  return { elements, words, timingSource, speechWindows }
+}
