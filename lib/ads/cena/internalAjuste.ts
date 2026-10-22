@@ -8,6 +8,7 @@ import { cenaAssertVoiceRoute, cenaResolveRoute, cenaCosts, isCenaRoute } from '
 import { newCenaState } from './pipeline'
 import { cena95ModerationFailure } from './moderation95'
 import { preflightCenaAjuste } from './ajustePreflight'
+import { AjusteScriptError } from './ajusteRespaldo' // KINEO-ADS-CENA-RESPALDO-2110
 import { planShots } from '../v2ShotLists'
 import { v2Fail, v2Json } from '../v2Server'
 import { adsV2Credits } from '../v2Tiers'
@@ -37,6 +38,8 @@ export async function internalCenaAjusteFor(user: AdsV2Caller, body: unknown, d:
     const message = e instanceof Error ? e.message : 'cena_plan_failed'
     console.warn('[ads-cena] ajuste_plan_failed', message)
     if (message.startsWith('cena_bad_') || message === 'cena_kling_native_speech_unsupported') return v2Fail(message, 400)
-    return v2Fail('cena_plan_failed', 502, { reason: message.slice(0, 200) })
+    const reason_detail = e instanceof AjusteScriptError ? e.reason_detail : message.slice(0, 1000) // KINEO-ADS-CENA-RESPALDO-2110
+    if (message === 'cena_ajuste_required_text_does_not_fit') return v2Fail(message, 422, { reason: message, reason_detail }) // KINEO-ADS-CENA-RESPALDO-2110
+    return v2Fail('cena_plan_failed', 502, { reason: message.slice(0, 200), reason_detail }) // KINEO-ADS-CENA-RESPALDO-2110
   }
 }
