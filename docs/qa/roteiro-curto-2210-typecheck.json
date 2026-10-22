@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-22",
+  "command": "node node_modules/typescript/bin/tsc --noEmit --incremental false",
+  "positive": {
+    "exit": 2,
+    "rejected": true,
+    "diagnostic": "lib/roteiroCurtoTypecheckPositiveControl2210.ts(2,14): error TS2322: Type 'string' is not assignable to type 'number'."
+  },
+  "positiveControlRemoved": true,
+  "final": {
+    "exit": 0,
+    "diagnostic": ""
+  },
+  "generateSha256": "6929241974422d9ac63237ddec189ff7fdb25fe8a753c6f099852ae6922371e3",
+  "task": "KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22",
+  "checkedGitRevision": "4af78b030c780f163b77a22f40a5be682c320179",
+  "checkedGenerateGitBlob": "cb21c6ba298ee40ddd767357c52cb8316afcdad7",
+  "lineEndingNote": "Worktree subsequently normalized CRLF to LF; tracked application content is unchanged from checkedGitRevision. generateSha256 records the physical bytes at typecheck completion.",
+  "applicationDiffFromCheckedRevision": ""
+}

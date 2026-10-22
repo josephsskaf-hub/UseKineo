@@ -1,0 +1,21 @@
+# KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
+
+**FATO CONFIRMADO — base e escopo, 22/10/2026:** origin/main `72d23210c829278f81e39f7d7cdf42826137297c`; branch `codex/roteiro-curto-sem-falha-2210`; worktree isolada. Todos os commits incluem a autorização exata do fundador. Nenhuma alteração em `lib/engineWall.ts` ou `lib/homeVideoCuration.ts`.
+
+**FATO CONFIRMADO — IMPLEMENTADO:** os dois 422 de narração curta abrem revisão neutra, sem registrar falha ou entrar em `failed`. A escrita mostra “Writing the rest of your script…”. O roteiro fica visível/editável antes de Generate; esse clique aprova o texto, refaz a análise e gera com novo identificador, duração aprovada e proteção contra clique duplicado. Fontes: `app/(dashboard)/generate/GenerateClient.tsx:7975`, `:8088`, `:8166`, `:8544`, `:10206`, `:10452`, `:16345`. A oferta visível emite `script_completion_offered {speech_seconds,target_seconds,words_after}` em `:8158`.
+
+**FATO CONFIRMADO — IMPLEMENTADO:** URL isolada é barrada antes dos pedidos no Studio, quickstart e Generate, com a mensagem solicitada. A ideia original disponível na chegada/sessão é oferecida somente por clique. Fontes: `lib/scriptInput.ts:6`; `app/(dashboard)/studio/StudioClient.tsx:887`; `components/ChatGptWelcomeBanner.tsx:128`; `GenerateClient.tsx:14209`.
+
+**FATO CONFIRMADO — IMPLEMENTADO:** /admin filtra cada falha identificável como roteiro curto, inclusive eventos históricos, preservando falhas reais da mesma pessoa. Escrita/revisão encerra a indicação de render em andamento. Fontes: `app/api/admin/live/route.ts:549`, `:604`; `lib/admin/narrationCompletion.ts:2`.
+
+**TESTADO LOCALMENTE — 22/10/2026:** TypeScript bruto verde; controle positivo TS2322 reprovado e removido antes do verde final. Guardião do código real: 90 verificações verdes, 10/10 mutantes em disco reprovados, restauração exata por Buffer e positivo final verde. Desfazimento histórico: 617 verificações verdes, cobrindo 32 fontes/114 hunks, sem ocultar alterações externas. Evidência: [typecheck](qa/roteiro-curto-2210-typecheck.json).
+
+**TESTADO LOCALMENTE — suíte completa, 22/10/2026:** base `72d23210c`: 981 arquivos, 815 verdes/166 não verdes; candidato `8755c992`: 983/983 cobertos, 819 verdes/164 não verdes herdados. **Zero regressões, novas asserções vermelhas, novos timeouts ou arquivos faltantes.** Clientes Generate/Studio: base 227 (167/60), final 229 (169/60), sem vermelho novo. A execução inteira foi complementada por repetições dos testes afetados, mantendo todas as tentativas. Os não verdes incluem oito timeouts na base e cinco testes incompatíveis com a lista de comandos do isolamento offline; não são certificados como falhas comprovadas do produto. Dois testes antigos passaram no candidato após repetição, sem atribuir isso a melhora do produto. Evidência por arquivo/asserção: [consolidado](qa/roteiro-curto-2210-suite.json); [reprodução](qa/roteiro-curto-2210-validation/README.md).
+
+**FATO CONFIRMADO — o que pode melhorar:** guardiões históricos congelam arquivos inteiros e também outros testes. As reâncoras desfazem exclusivamente o delta aprovado em memória, com contexto exato e recusa de mutação/ausência/duplicação. Os guardiões novos leem a implementação real. Isso conserva as proteções das outras entregas.
+
+**FATO CONFIRMADO — prévia:** [antes/depois estático, desktop/mobile](qa/roteiro-curto-2210-preview.html) e [imagem](qa/roteiro-curto-2210-desktop-mobile.png). Painel de revisão renderizado do JSX real com texto fictício; entradas por URL/admin são exemplos visuais do contrato. Sem filme pago, banco, leitura de .env, build ou deploy.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** resultado comercial e validação em produção dependem de publicação futura, fora desta tarefa. Eventos antigos de chegada não oferecem resgate cliente do texto completo; o fallback preserva a cópia disponível na URL/sessão, sem consultar produção.
+
+**SUGESTÃO — próximo passo recomendado:** após publicar em ação separada, medir por sete dias pessoas externas distintas: zero `generation_failed_screen_shown` com causa `narration_short`; entre quem recebeu `narration_guard_blocked`, conclusão de filme ≥90%. Os 60% de referência vêm do briefing de Joseph de 22/10, não de nova consulta à produção.
