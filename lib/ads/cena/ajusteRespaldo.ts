@@ -39,7 +39,7 @@ export function ajusteProductCase(raw: unknown, input: CenaInput, product: strin
   for (const [field, text] of lines(r)) {
     const changed = text.replace(new RegExp(`(?<![\\p{L}\\p{N}])${esc(product)}(?![\\p{L}\\p{N}])`, 'giu'), (_m, offset: number) => {
       const start = !text.slice(0, offset).trim() || /[.!?]\s*$/u.test(text.slice(0, offset))
-      return start ? name.charAt(0).toLocaleUpperCase() + name.slice(1) : name
+      return start && common.test(typed.split(/\s+/u)[0]) ? name.charAt(0).toLocaleUpperCase() + name.slice(1) : name
     })
     if (field.startsWith('hooks.')) (out.hooks as unknown[])[Number(field.slice(6))] = changed
     else out[field] = changed
@@ -79,16 +79,18 @@ function benefitSentence(benefit: string, product: string, pt: boolean): string 
   const b = clean(benefit).replace(/[.!?]+$/u, ''), low = b.charAt(0).toLocaleLowerCase() + b.slice(1)
   if (!b) return ''
   if (pt) {
-    if (/^(?:não|pode|ajuda|é|tem|contém|hidrata|protege)\b/iu.test(b)) return finish(b)
+    if (/^(?:não|pode|ajuda|é|tem|contém|hidrata|protege)(?=\s|$)/iu.test(b)) return finish(b)
     if (/^sem\s/iu.test(b)) return finish(`${product} vem ${low}`)
     if (/^(?:leve|confortável|respirável|macio|macia|fácil|resistente|impermeável)\b/iu.test(b)) return finish(`${product} é ${low}`)
     return finish(`${product} tem ${low}`)
   }
   if (/^(?:does|is|has|can|helps|keeps|lasts|contains)\b/iu.test(b)) return finish(`${product} ${low}`)
-  return finish(`${product} ${/^(?:lightweight|light|comfortable|breathable|soft|easy|waterproof|made\s)/iu.test(b) ? 'is' : 'has'} ${low}`)
+  const plural = /\b(?:shoes|sneakers|boots|trainers|leaves)\b/iu.test(product)
+  const adjective = /^(?:lightweight|light|comfortable|breathable|soft|easy|waterproof|fragrance-free|scent-free|unscented|made\s)/iu.test(b) && !/\b(?:material|mesh|fabric|design|battery|support)$/iu.test(b)
+  return finish(`${product} ${adjective ? plural ? 'are' : 'is' : plural ? 'have' : 'has'} ${low}`)
 }
 export function repairAjusteLines(raw: unknown, input: CenaInput, product: string, issues: readonly AjusteIssue[]): Record<string, unknown> {
-  const r = data(raw), pt = input.language === 'pt', label = product
+  const r = data(raw), pt = (input.language ?? 'en').toLowerCase().startsWith('pt'), label = product
   const benefit = clean(input.beneficios?.[0]).replace(/[.!?]+$/u, '')
   const hooks = [benefit && words(benefit) <= 10 ? `${benefit}?` : pt ? `Conhece ${label}?` : `Have you seen ${label}?`, pt ? `Vamos conhecer ${label}?` : `Meet ${label}?`, pt ? `${label} na sua rotina?` : `A closer look at ${label}?`]
   const neutral: Record<string, string> = { use: finish(`${pt ? 'Conheça' : 'Meet'} ${label}`), benefit: [...(input.beneficios ?? []).map(b => benefitSentence(b, label, pt)), ...(input.oferta ? [finish(input.oferta)] : [])].join(' '), cta: finish(input.cta || `${pt ? 'Peça' : 'Choose'} ${label}`) }
@@ -106,7 +108,12 @@ export function repairAjusteLines(raw: unknown, input: CenaInput, product: strin
         out[field] = [original, ...missing.map(b => b === input.oferta ? finish(b) : benefitSentence(b, label, pt))].filter(Boolean).join(' ')
       } else {
         const remaining = original.replace(issue.phrase, '').trim()
-        const replacement = remaining.includes(neutral[field]) ? '' : neutral[field]
+        let replacement = remaining.includes(neutral[field]) ? '' : neutral[field]
+        if (field === 'benefit') {
+          const missing = adsV2MissingBenefits(speech({ ...out, benefit: remaining }), [...(input.beneficios ?? []), ...(input.oferta ? [input.oferta] : [])])
+          replacement = missing.map(b => b === input.oferta ? finish(b) : benefitSentence(b, label, pt)).join(' ')
+          if (!remaining && !replacement) replacement = finish(`${pt ? 'Conheça' : 'Meet'} ${label}`)
+        }
         out[field] = original.replace(issue.phrase, replacement).replace(/\s+/gu, ' ').trim()
       }
     }
