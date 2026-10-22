@@ -14,6 +14,7 @@
 //   X. o desfaz dos guardiões antigos (scripts/test-support/desfaz-paginas-ia-claras-2110.mjs) é exato e fecha em falha;
 //   M. mutantes: cada verificador acusa a mutação que devia acusar.
 import { readFileSync, existsSync } from 'node:fs'
+import { semAdsCenaRespaldo2110 } from './test-support/desfaz-ads-cena-respaldo-2110.mjs' // KINEO-ADS-CENA-RESPALDO-2110
 import { execFileSync } from 'node:child_process'
 import ts from 'typescript'
 import { React, offlineModules, renderToStaticMarkup } from './gpt24h-offline-support.mjs'
@@ -23,7 +24,7 @@ import { semKidsVenda2010, KIDS_VENDA_2010_ARQUIVOS } from './test-support/desfa
 import { renderCardArrival } from './test-support/paginas-ia-claras-cards-harness.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 — efeito e cliques reais do componente compartilhado.
 
 const BASE = '1b991815ca62701c2c6e06a69aa2eba068e63d5f' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
-const rd = (p) => readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semAdsCenaRespaldo2110(readFileSync(p, 'utf8').replace(/\r\n/g, '\n'), p) // KINEO-ADS-CENA-RESPALDO-2110 — camada mais nova antes do snapshot Pages.
 const base = (p) => execFileSync('git', ['show', `${BASE}:${p}`], { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }).replace(/\r\n/g, '\n')
 let falhas = 0, oks = 0
 const ok = (cond, msg) => { if (cond) { oks++; console.log('  ok  ' + msg) } else { falhas++; console.log('  FALHA  ' + msg) } }
@@ -256,9 +257,9 @@ for (const [name, file, from, to] of [
 
 // ── X. o desfaz dos guardiões antigos ───────────────────────────────────────────────────────────────────────────────
 console.log('\nX. desfaz exato da camada (para os guardiões antigos)')
-const difs = PAGINAS_IA_CLARAS_2110_ARQUIVOS.filter((f) => { try { return semPaginasIaClaras2110(readFileSync(f, 'utf8'), f).replace(/\r\n/g, '\n') !== base(f) } catch { return true } })
+const difs = PAGINAS_IA_CLARAS_2110_ARQUIVOS.filter((f) => { try { return semPaginasIaClaras2110(rd(f), f).replace(/\r\n/g, '\n') !== base(f) } catch { return true } }) // KINEO-ADS-CENA-RESPALDO-2110
 ok(PAGINAS_IA_CLARAS_2110_BASE === BASE && PAGINAS_IA_CLARAS_2110_ARQUIVOS.length > 0 && difs.length === 0, `X1 os ${PAGINAS_IA_CLARAS_2110_ARQUIVOS.length} arquivos tocados, desfeitos, = base ${BASE} (${difs.join(', ') || 'ok'})`)
-ok(PAGINAS_IA_CLARAS_2110_ARQUIVOS.every((f) => readFileSync(f, 'utf8').includes(MARCA_PAGINAS_IA_CLARAS_2110)), 'X2 todo arquivo tocado leva a marca')
+ok(PAGINAS_IA_CLARAS_2110_ARQUIVOS.every((f) => rd(f).includes(MARCA_PAGINAS_IA_CLARAS_2110)), 'X2 todo arquivo tocado leva a marca') // KINEO-ADS-CENA-RESPALDO-2110
 const novosOk = PAGINAS_IA_CLARAS_2110_NOVOS.every((f) => existsSync(f) && (() => { try { base(f); return false } catch { return true } })())
 ok(novosOk && ['components/seo/PaginaClara.tsx', 'lib/seo/paginasIaClaras2110.ts', 'app/claude-connector/AiOrigin.tsx', 'scripts/test-paginas-ia-claras-2110.mjs'].every((f) => PAGINAS_IA_CLARAS_2110_NOVOS.includes(f)), `X3 os ${PAGINAS_IA_CLARAS_2110_NOVOS.length} arquivos novos existem e não existiam na base`)
 const motorPath = 'app/ai-video-generator/[engine]/page.tsx'
@@ -275,11 +276,13 @@ for (const p of new Set([...ADS_CENA_95_2110_ARQUIVOS, ...KIDS_VENDA_2010_ARQUIV
 const ordemAntes = (src, primeira, segunda) => src.indexOf(primeira) >= 0 && src.indexOf(primeira) < src.indexOf(segunda)
 ok(ordemAntes(rd('scripts/test-support/desfaz-ads-cena-ajuste-2110.mjs'), 'texto = semPaginasIaClaras2110(texto, p)', 'texto = semAdsCena952110(texto, p)') && ordemAntes(rd('scripts/test-support/desfaz-ads-cena-95-2110.mjs'), 'texto = semPaginasIaClaras2110(texto, p)', "const rel = String(p ?? '')") && ordemAntes(rd('scripts/test-support/desfaz-bing-seo-1510.mjs'), 'src = semPaginasIaClaras2110(src, rel)', "const key = String(rel ?? '')"), 'X8 camadas mais novas saem antes das consultas/trocas de Cena95, Ajuste e Bing')
 const declarados = new Set([...PAGINAS_IA_CLARAS_2110_ARQUIVOS, ...PAGINAS_IA_CLARAS_2110_NOVOS])
+const paginasDeliveryHead = execFileSync('git', ['log', '--format=%H%x09%s', BASE + '..HEAD'], { encoding: 'utf8' }).trim().split('\n').find(line => ehCommitPaginasIaClaras2110(line.slice(line.indexOf('\t') + 1)))?.split('\t')[0] // KINEO-ADS-CENA-RESPALDO-2110 — escopo da própria entrega validada, antes das camadas futuras.
+if (!paginasDeliveryHead) throw new Error('commit final marcado e autorizado da camada Pages ausente') // KINEO-ADS-CENA-RESPALDO-2110
 const CAMADAS_POSTERIORES_PAGINAS_2110 = ['KINEO-CARDS-SEM-LEGENDA-2210'] // KINEO-CARDS-SEM-LEGENDA-2210 — camada posterior (só mídia em public/) fora da conta desta trava
-const arquivosPosteriores = new Set(execFileSync('git', ['log', '--name-only', '--format=', ...CAMADAS_POSTERIORES_PAGINAS_2110.map(m => '--grep=' + m), BASE + '..HEAD'], { encoding: 'utf8' }).trim().split('\n').filter(Boolean)) // KINEO-CARDS-SEM-LEGENDA-2210
-const alterados = execFileSync('git', ['diff', '--name-only', BASE], { encoding: 'utf8' }).trim().split('\n').filter(Boolean).filter(p => !arquivosPosteriores.has(p)) // KINEO-CARDS-SEM-LEGENDA-2210
+const arquivosPosteriores = new Set(execFileSync('git', ['log', '--name-only', '--format=', ...CAMADAS_POSTERIORES_PAGINAS_2110.map(m => '--grep=' + m), BASE + '..' + paginasDeliveryHead], { encoding: 'utf8' }).trim().split('\n').filter(Boolean)) // KINEO-CARDS-SEM-LEGENDA-2210 KINEO-ADS-CENA-RESPALDO-2110
+const alterados = execFileSync('git', ['diff', '--name-only', BASE, paginasDeliveryHead], { encoding: 'utf8' }).trim().split('\n').filter(Boolean).filter(p => !arquivosPosteriores.has(p)) // KINEO-CARDS-SEM-LEGENDA-2210 KINEO-ADS-CENA-RESPALDO-2110
 ok(alterados.length > 0 && alterados.every(p => declarados.has(p)), 'X9 diff completo contra a main só contém arquivos declarados da camada')
-const assuntos = execFileSync('git', ['log', '--format=%s', BASE + '..HEAD'], { encoding: 'utf8' }).trim().split('\n').filter(Boolean).filter(t => !CAMADAS_POSTERIORES_PAGINAS_2110.some(m => t.startsWith(m + ' '))) // KINEO-CARDS-SEM-LEGENDA-2210
+const assuntos = execFileSync('git', ['log', '--format=%s', BASE + '..' + paginasDeliveryHead], { encoding: 'utf8' }).trim().split('\n').filter(Boolean).filter(t => !CAMADAS_POSTERIORES_PAGINAS_2110.some(m => t.startsWith(m + ' '))) // KINEO-CARDS-SEM-LEGENDA-2210 KINEO-ADS-CENA-RESPALDO-2110
 ok(assuntos.length > 0 && assuntos.every(ehCommitPaginasIaClaras2110), 'X10 todo commit próprio leva prefixo e TRAVA exatos; nenhum assunto alheio é excluído')
 
 // ── M. mutantes ─────────────────────────────────────────────────────────────────────────────────────────────────────
