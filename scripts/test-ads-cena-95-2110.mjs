@@ -6,6 +6,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { CALIBRATION_CASES, DEFAULT_FOUNDER_PHOTOS } from './ads-cena-calibracao-2110.mjs'
 import { semAdsCena952110, ADS_CENA_95_2110_BASE, ADS_CENA_95_2110_FORK_BASE, ADS_CENA_95_2110_ARQUIVOS, ADS_CENA_95_2110_NOVOS, MARCA_ADS_CENA_95_2110 } from './test-support/desfaz-ads-cena-95-2110.mjs'
 import { semKidsVenda2010, KIDS_VENDA_2010_ARQUIVOS } from './test-support/desfaz-kids-venda-2010.mjs' // KINEO-ADS-CENA-95-2110 — prova as duas camadas, sem apagar a venda ao desfazer95.
+import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — apply 95 integrity mutants after reversing only our later layer.
 const plain = x => JSON.parse(JSON.stringify(x)), same = (a,b) => assert.deepEqual(plain(a),plain(b))
 const read = p => readFileSync(p,'utf8').replace(/\r\n/g,'\n')
 const git = (...args) => execFileSync('git',args,{encoding:'utf8',maxBuffer:1<<26}).replace(/\r\n/g,'\n')
@@ -116,7 +117,7 @@ for(const [label,proof,file,from,to] of [
   assert.ok(failed,'mutante deve ficar vermelho: '+label);console.log('ok mutante vermelho: '+label)
 }
 for(const p of ADS_CENA_95_2110_ARQUIVOS) {
-  const actual=read(p),before=git('show',ADS_CENA_95_2110_BASE+':'+p)
+  const actual=semRoteiroCurto2210(read(p),p),before=git('show',ADS_CENA_95_2110_BASE+':'+p) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — same SHA/CRLF/missing-marker assertions on the exact 95 layer.
   assert.ok(actual.includes(MARCA_ADS_CENA_95_2110),'marca da camada: '+p)
   const restored=semAdsCena952110(actual,p);assert.equal(restored,before,'desfaz exato '+p)
   assert.equal(semAdsCena952110(restored,p),before,'idempotência '+p)
