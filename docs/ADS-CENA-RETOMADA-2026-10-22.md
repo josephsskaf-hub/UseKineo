@@ -44,7 +44,24 @@ Data: 22/10/2026. Base: `796333e9a07ee0c83bb414312a062b63f8fc32bb`.
 
 ## Provas locais e desfaz
 
-**TESTADO LOCALMENTE:** resultados finais da suíte, TypeScript, mutantes e desfaz serão registrados aqui antes da entrega. A execução é offline, com provedores, banco e cobrança substituídos por dublês. A referência da comparação é a base acima, sem atribuir falhas históricas à nova camada.
+**TESTADO LOCALMENTE — 22/10/2026:** suíte completa na candidata `4a7857a05a6c296830e1c42f35a3945315d030dd`, com rede, SDKs, banco e cobrança substituídos ou bloqueados. Resultado comparado por nome e por mensagens das falhas, sem afrouxar os guardiões:
+
+| Snapshot | Scripts executados | Verdes | Vermelhos |
+| --- | ---: | ---: | ---: |
+| Base `796333e9a` | 988 | 839 | 149 |
+| Candidata `4a7857a0` | 989 | 840 | 149 |
+
+**TESTADO LOCALMENTE:** zero vermelho novo e zero alteração nas falhas históricas. Os 988 scripts compartilhados mantêm os mesmos 149 nomes vermelhos e os mesmos 71 cabeçalhos de exceção; nenhum log faltante. Os sete testes mutadores passaram em fase serial, com zero alteração residual. Nenhuma guarda de rede/segredo foi acionada e nenhum timeout externo ocorreu na candidata. Fonte: recibos locais `.claude/ads-cena-retomada-proof-2210/ads-cena-retomada-final-4a7857-{round,comparison,exceptions}.json`.
+
+**TESTADO LOCALMENTE:** `scripts/test-ads-cena-retomada-2110.mjs` passou com POST, start e avanço reais sobre dublês; 33 mutantes válidos morreram por `ERR_ASSERTION`, sem contar erro de sintaxe ou import como prova. Cobertura: seleção AJUSTE/95, equivalência do 95 ligado com a base, UGC/product, fala natural, foto contextual aceita em dry/live, pedidos antigos, voz única, close durável, retry limitado, falha/estorno existente, música opcional, trilhas e montagem legada idêntica. Os guardiões Ads históricos conservaram seus 189 mutantes detectados no mesmo recibo.
+
+**TESTADO LOCALMENTE:** `node node_modules/typescript/bin/tsc --noEmit --incremental false` terminou com código 0 na fonte `7a92ae9a3ebbd8ca71b00c3b76db05fef5bb2850` (sessão 86007). Os 1.822 arquivos de entrada TS/configuração são idênticos na candidata; o recibo foi reutilizado somente após essa prova, sem alegar outra compilação. Fonte: `root-tsc-7a92.json` e `ads-cena-retomada-final-4a7857-tsc-source-equivalence.json` na mesma pasta de provas. Duração dessa compilação não foi medida.
+
+**TESTADO LOCALMENTE:** desfaz exato de oito fontes anteriores, com hashes, LF/CRLF, idempotência e rejeição de divergência; inventário de 12 arquivos novos. O desfaz da retomada roda antes da camada Pacing, preservando a cadeia anterior. A reâncora histórica mantém as asserções e os 32 mutantes próprios do Pacing. Os 93 arquivos protegidos de motores, preços e custos e todos os arquivos de `app/` e `components/` mantêm os blobs da base. Fonte: `retomada-source-scope-proof.json` e guardião novo.
+
+**TESTADO LOCALMENTE:** a coleta da base foi retomada após falta de espaço (`ENOSPC`) e bloqueio de rename (`EPERM`). Foram preservados os exit codes efetivamente registrados e todos os logs; nenhum código foi inferido por texto. A candidata completou sem retry nem incidente de infraestrutura. A duração total da base permanece desconhecida. Proveniência preservada no recibo `ads-cena-retomada-origin-main-round.json`.
+
+**TESTADO LOCALMENTE:** comparação visual [HTML autocontido](previews/ads-cena-retomada-2110.html) e [PNG](previews/ads-cena-retomada-2110.png), inspecionada localmente. Ilustrações sintéticas; os textos, tempos e trilhas vêm dos planos e JSONs reais com dublês. Não são quadros de um vídeo gerado.
 
 ## Limites e próximo passo
 
