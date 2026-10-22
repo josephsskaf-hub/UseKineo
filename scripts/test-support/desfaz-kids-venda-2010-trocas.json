@@ -16,7 +16,8 @@
   "scripts/test-trilha-15s-1610.mjs": 1,
   "scripts/test-support/desfaz-ads-cena-ajuste-2110.mjs": 2,
   "scripts/test-ads-cena-2110.mjs": 4,
-  "scripts/test-ads-cena-ajuste-2110.mjs": 3
+  "scripts/test-ads-cena-ajuste-2110.mjs": 3,
+  "scripts/test-cena-negacao-1510.mjs": 1
  },
  "app/(dashboard)/kids-cartoon/page.tsx": [
   [
