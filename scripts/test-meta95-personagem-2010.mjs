@@ -43,6 +43,8 @@ const MARCA = MARCA_META95_PERSONAGEM_2010
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
 const rd = (rel) => lf(semMeta95PersonagemAjuste2010(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)) // reancorado KINEO-META95-PERSONAGEM-AJUSTE-2010 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] — era: lf(fs.readFileSync(…)); o ajuste (scripts/test-meta95-personagem-ajuste-2010.mjs) prova o resto
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
+const deliveryHead = git('log', '--format=%H', `--grep=^${MARCA} `, '-1', 'HEAD').trim() // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — historical commit ownership belongs to this delivery; runtime/integrity still read current sources.
+if (!deliveryHead) throw new Error('Missing marked character delivery commit') // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 // a base de comparação: a origin/main do ÚLTIMO merge desta entrega (2º pai do merge marcado mais novo); sem merge, a base da entrega
 import { MARCA_KIDS_VENDA_2010 } from './test-support/desfaz-kids-venda-2010.mjs' // reancorado KINEO-KIDS-VENDA-2010
 const BASE_CMP = (() => { try { const m = git('log', '--format=%H', '--merges', `--grep=${MARCA}`, 'HEAD').trim().split('\n').filter(Boolean); return m.length ? git('rev-parse', `${m[0]}^2`).trim() : META95_PERSONAGEM_2010_BASE } catch { return META95_PERSONAGEM_2010_BASE } })()
@@ -373,7 +375,7 @@ console.log('\nD. desfaz, encadeamento, diff e commits')
   const permitidos = new Set([...META95_PERSONAGEM_2010_ARQUIVOS, ...META95_PERSONAGEM_2010_NOVOS])
   ok(marcados.length === 0 || tocados.every((f) => permitidos.has(f)), `D6 os commits da entrega só tocam a lista + os novos (${tocados.filter((f) => !permitidos.has(f)).join(', ') || 'ok'})`)
   // todo commit desde a base que toca um arquivo da entrega é desta entrega (marca + selo); os merges da origin/main também levam a marca e o selo
-  const desdeABase = (() => { try { return git('log', '--format=%H%x09%s', `${BASE_CMP}..HEAD`).trim().split('\n').filter(Boolean).map((l) => { const [h, ...s] = l.split('\t'); return { h, s: s.join('\t') } }) } catch { return [] } })() // só o que NÃO está na origin/main mesclada: os commits desta entrega e os merges dela
+  const desdeABase = (() => { try { return git('log', '--format=%H%x09%s', `${BASE_CMP}..${deliveryHead}`).trim().split('\n').filter(Boolean).map((l) => { const [h, ...s] = l.split('\t'); return { h, s: s.join('\t') } }) } catch { return [] } })() // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — mesmos commits e selo da entrega, sem incorporar merges posteriores alheios.
   const commitsDaEntrega = desdeABase.filter(({ s }) => !s.includes('KINEO-BEBE-QUE-FALA-2010')) /* reancorado KINEO-BEBE-QUE-FALA-2010: os commits de 20/10 levam a marca deles */ .filter(({ h, s }) => s.includes(MARCA) || git('diff-tree', '--no-commit-id', '--name-only', '-r', '-m', h).trim().split('\n').some((f) => permitidos.has(f)))
   commitsDaEntrega.splice(0, commitsDaEntrega.length, ...commitsDaEntrega.filter(({ s }) => !s.includes(MARCA_META95_ESCRITA_2010))) // KINEO-META95-ESCRITA-2010 — reancorado: os commits (e o merge) da legenda na escrita do roteiro não são desta entrega
   commitsDaEntrega.splice(0, commitsDaEntrega.length, ...commitsDaEntrega.filter(({ s }) => !s.includes(MARCA_AVATAR_PRESO_2010))) // KINEO-AVATAR-PRESO-2010 — reancorado: os commits (e os merges) do avatar preso não são desta entrega

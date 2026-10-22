@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url'
 import vm from 'node:vm'
 import ts from 'typescript'
 import crypto from 'node:crypto'
+import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — remove only the exact approved input guard before legacy contracts.
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
@@ -40,7 +41,7 @@ const an = rd('app/api/analyze-idea/route.ts')
 checa('analyze-idea recusa a pílula sozinha com 400 logo depois da recusa de tela colada', an.includes('if (isBareStarter(prompt)) {') && an.indexOf('if (isBareStarter(prompt)) {') > an.indexOf('if (looksLikeOurOwnUi(prompt)) {') && an.includes('{ error: BARE_STARTER_MESSAGE, reason: BARE_STARTER_REASON }'))
 const ft = rd('app/api/generate-video-fast/route.ts')
 checa('generate-video-fast recusa ANTES de classificar/planejar/cobrar, sem custo', ft.includes("recordFastFailure('generating', BARE_STARTER_REASON, 400, user.id)") && ft.indexOf('if (isBareStarter(prompt)) {') < ft.indexOf("name: 'generation_dispatch_received'") && ft.includes('reason: BARE_STARTER_REASON, charged: false'))
-const st = rd('app/(dashboard)/studio/StudioClient.tsx')
+const st = semRoteiroCurto2210(rd('app/(dashboard)/studio/StudioClient.tsx'), 'app/(dashboard)/studio/StudioClient.tsx') // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 checa('Studio: generate() não navega com a pílula sozinha (devolve o foco), dica sob a caixa; o atributo disabled da base fica intacto (trava de handlers 6f6eca73)', st.includes("const bareStarter = scriptMode !== 'clip' && isBareStarter(prompt)") && st.includes('if (bareStarter) { promptRef.current?.focus(); return }') && st.indexOf('if (bareStarter) {') > st.indexOf('if (limit.over) return') && st.includes('data-kineo="pilula-sozinha"') && st.includes('disabled={!prompt.trim() || limit.over} className'))
 
 console.log('== (b) o juiz ==')

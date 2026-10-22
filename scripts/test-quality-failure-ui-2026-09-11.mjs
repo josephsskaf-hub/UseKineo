@@ -8,6 +8,7 @@ import React from 'react'
 import * as jsxRuntime from 'react/jsx-runtime'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — restore only the exact approved delta before the historical callback harness.
 
 let checks = 0
 const eq = (a, b, label) => { assert.deepEqual(JSON.parse(JSON.stringify(a)), b, label); checks++ }
@@ -68,7 +69,7 @@ for (const language of ['en', 'es', 'hi']) {
   ok(!/retry safely|have been returned|were returned/.test(uncertain), 'Uncertain state does not claim a refund')
 }
 
-const clientSource = fs.readFileSync('app/(dashboard)/generate/GenerateClient.tsx', 'utf8')
+const clientSource = semRoteiroCurto2210(fs.readFileSync('app/(dashboard)/generate/GenerateClient.tsx', 'utf8'), 'app/(dashboard)/generate/GenerateClient.tsx') // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 const ast = ts.createSourceFile('GenerateClient.tsx', clientSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
 const nodes = []
 function visit(node) { nodes.push(node); ts.forEachChild(node, visit) }

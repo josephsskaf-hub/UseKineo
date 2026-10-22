@@ -1,3 +1,4 @@
+import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — undo only this task in memory before legacy contracts
 // KINEO-ADS-FLUXO-2026-10-13 — guardião do FLUXO NOVO do Studio Ads (modo simples do /ads/v2), no formato do Studio de filmes.
 // Fundador, 13/10: "o design do estúdio de fazer filme está muito bom; traz para o Ads" (benchmark-ads-fluxo-2026-10-13.md, seções
 // 4 e 5: itens 1, 3, 4, 5 e 6). Prova, lendo E EXECUTANDO o código real (lib pelo carregador offline da casa; os componentes
@@ -52,7 +53,7 @@ import { semFiel3_1510 } from './test-support/desfaz-ads-fiel-3-1510.mjs' // rea
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
-const read = (rel) => semMarcas1510(rel, semLinkTela1510(rel, semLista1510(rel, semFiel2_1510(rel, semFiel3_1510(rel, semCloseReal1910(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel)))))) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-LINK-TELA-1510 — a tela do leitor de link (a mais nova) sai antes das marcas · reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai antes de todos · reancorado KINEO-ADS-FIEL-2-1510 (o mais novo, por dentro do desfaz da lista) · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
+const read = (rel) => semMarcas1510(rel, semLinkTela1510(rel, semLista1510(rel, semFiel2_1510(rel, semFiel3_1510(rel, semCloseReal1910(semRoteiroCurto2210(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel), rel)))))) // reancorado KINEO-ADS-MARCAS-1510 — as marcas (clientes) saem primeiro, em memória (provadas em test-ads-marcas-1510) · reancorado KINEO-ADS-LINK-TELA-1510 — a tela do leitor de link (a mais nova) sai antes das marcas · reancorado KINEO-ADS-LISTA-1510 — a lista "Seus anúncios" (a mais nova) sai antes de todos · reancorado KINEO-ADS-FIEL-2-1510 (o mais novo, por dentro do desfaz da lista) · reancorado KINEO-ADS-FIEL-3-1510 — os consertos da validação paga da trava (15/10) saem primeiro, em memória /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }

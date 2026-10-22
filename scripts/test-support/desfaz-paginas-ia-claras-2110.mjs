@@ -5,10 +5,10 @@
 // texto da galeria "Try it in Claude"…) contra bases antigas. O fundador trocou o visual e a vitrine em 21/10; a camada nova
 // tem guardião próprio (scripts/test-paginas-ia-claras-2110.mjs) e, nos guardiões antigos, SAI DA CONTA por aqui: cada um lê
 // semPaginasIaClaras2110(texto, arquivo) e confere o que conferia antes desta camada. Na integração, esta camada devolve
-// f3532d7d (com Cena95 e Kids preservados); os respectivos desfaz continuam responsáveis pelas camadas anteriores.
+// 3e7ef8a42 (com Cena95 e Kids preservados); os respectivos desfaz continuam responsáveis pelas camadas anteriores.
 //
 // Como desfaz: a tabela desfaz-paginas-ia-claras-2110-trocas.json guarda, por arquivo, [base, novo, só-acréscimo]. Na integração,
-// base e novo são a fonte INTEGRAL contra f3532d7d: também se recusa adulteração fora dos antigos blocos de diff. A fonte deve
+// base e novo são a fonte INTEGRAL contra 3e7ef8a42: também se recusa adulteração fora dos antigos blocos de diff. A fonte deve
 // coincidir INTEIRA (senão LANÇA: mudança alheia ou conserto pela metade não passa em silêncio). Arquivo fora da tabela ou sem a marca =
 // volta intocado (a camada ainda não está nesta árvore). Fim de linha: o do próprio texto (LF ou CRLF). Idempotente.
 // ENCADEAR: esta é a camada mais nova — quem já desfaz outra camada dos mesmos arquivos aplica esta PRIMEIRO.

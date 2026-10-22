@@ -21,6 +21,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import vm from 'node:vm'
+import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — preserve the original handoff assertions after the exact approved delta.
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(join(root, 'package.json'))
@@ -373,7 +374,7 @@ checa('mutante: evento por tecla (useEffect) → vermelho', porTecla !== clientS
 const comTexto = clientSrc.replace("          placement,\n          destination: '/studio',", "          placement,\n          script,\n          destination: '/studio',")
 checa('mutante: evento do clique leva o roteiro → vermelho', comTexto !== clientSrc && auditaClique(comTexto).length > 0)
 // o Studio lê o que o CTA manda, e a ideia atravessa o cadastro com a campanha (executado: destinoDaIdeia)
-const studioSrc = rd('app/(dashboard)/studio/StudioClient.tsx')
+const studioSrc = semRoteiroCurto2210(rd('app/(dashboard)/studio/StudioClient.tsx'), 'app/(dashboard)/studio/StudioClient.tsx') // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 checa("Studio lê ?prompt, ?script_mode=verbatim, ?duration=60 e ?intent_campaign",
   /const p = sp\.get\('prompt'\)\n\s*if \(p\) setPrompt\(p\)/.test(studioSrc)
   && /if \(requestedScriptMode === 'ai' \|\| requestedScriptMode === 'verbatim'\)/.test(studioSrc)

@@ -39,9 +39,9 @@ check('o claim nasce com debitConfirmed:false', route.includes('debitConfirmed: 
 
 console.log('GenerateClient.tsx — a tela explica o estorno')
 check('a linha do estorno existe', gen.includes('KINEO-ESTORNO-EXPLICADO-2026-09-02'))
-check('ela diz que os créditos voltaram, com o número', gen.includes('Your {selectedCost} credits are back in your account.'))
-check('ela só aparece na recusa REAL do servidor, nunca no preflight', /\{phase === 'failed' && \([\s\S]{0,400}credits are back in your account/.test(gen))
-check('ela promete o próximo passo (um clique renderiza)', gen.includes('renders on one click'))
+check('a recusa sem débito informa Nothing was charged sem inventar estorno', gen.includes('Nothing was charged. Review the script before generating.') && !gen.includes('Your {selectedCost} credits are back in your account.')) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
+check('a recusa curta abre revisão neutra fora da tela de falha', gen.includes("{phase === 'script_completion' && scriptTooShort && (") && !gen.includes("{phase === 'failed' && scriptTooShort && (")) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
+check('o próximo passo é Generate após texto visível, só o clique autoriza a continuação', gen.includes('onClick={acceptAuthoredScript}') && gen.includes("completionApproved: true") && gen.includes("if (phase !== 'options' || !approvedCompletionRef.current || !analysis) return")) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 
 console.log('aritmética do caso real (40s de fala para alvo de 60s)')
 const WPS = 2.3, MIN_COVERAGE = 0.95

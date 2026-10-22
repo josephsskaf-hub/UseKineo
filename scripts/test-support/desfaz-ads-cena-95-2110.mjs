@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semRoteiroCurto2210 } from './desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — remove only the exact later delta before the SHA-256 guard.
 export const MARCA_ADS_CENA_95_2110 = 'KINEO-ADS-CENA-95-2110'
 export const ADS_CENA_95_2110_FORK_BASE = '72d23210c829278f81e39f7d7cdf42826137297c'
 export const ADS_CENA_95_2110_BASE = 'be103e4930ee45111884b19230225474ca8fe60c' // KINEO-ADS-CENA-95-2110 — desfaz somente95, preservando a venda Kids já integrada.
@@ -20,6 +21,7 @@ export const ADS_CENA_95_2110_NOVOS = Object.freeze([
 const lf = s => s.replace(/\r\n/g, '\n')
 export function semAdsCena952110(texto, p) {
   texto = semPaginasIaClaras2110(texto, p) // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
+  texto = semRoteiroCurto2210(texto, p) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — preserve 95/Kids and every integrity check below.
   const rel = String(p ?? '').replace(/\\/g, '/'), known = table[rel]
   if (!known || typeof texto !== 'string' || !texto.includes(MARCA_ADS_CENA_95_2110)) return texto
   const source = lf(texto), hash = createHash('sha256').update(source).digest('hex')

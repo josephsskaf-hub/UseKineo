@@ -14,7 +14,10 @@ const t = (nome, cond) => { if (cond) ok++; else falhas.push(nome) }
 
 // ── 1. o gatilho novo existe e cobre os tres cards ──────────────────────────
 t('failureScreenKind declarado', /const failureScreenKind:/.test(src))
-t('failureScreenKind cobre narration_short', /scriptTooShort \? 'narration_short'/.test(src))
+// KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — preparation has a neutral screen outside the render workspace.
+const neutralReview = src.indexOf("{phase === 'script_completion' && scriptTooShort && (")
+const renderWorkspace = src.indexOf('{showRender && (')
+t('narracao curta usa revisao neutra fora do render', neutralReview > 0 && renderWorkspace > neutralReview && !/const failureScreenKind:[^=]*'narration_short'/.test(src))
 t('failureScreenKind cobre credits_held', /creditsHeld \? 'credits_held'/.test(src))
 t('failureScreenKind cai em generic', /: 'generic'/.test(src))
 t('failureScreenKind e null fora de failed', /phase !== 'failed' \? null/.test(src))
@@ -29,12 +32,12 @@ t('evento carrega screen', /screen: failureScreenKind/.test(efeito))
 t('evento carrega cause da tela', /cause: failureScreenCause/.test(efeito))
 t('evento carrega deterministic da tela', /deterministic: failureScreenDeterministic/.test(efeito))
 t('evento carrega has_message', /has_message:/.test(efeito))
-t('has_message le a mensagem do card curto', /Boolean\(scriptTooShort\?\.message\)/.test(efeito))
+t('has_message ignora revisao neutra e le apenas a falha real', /has_message: Boolean\(error\)/.test(efeito) && !/Boolean\(scriptTooShort\?\.message\)/.test(efeito)) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 t('deps incluem failureScreenKind', /failureScreenKind,\n\s+failureScreenCause/.test(efeito))
 t('deps incluem scriptTooShort', /scriptTooShort,\n\s+error,/.test(efeito))
 
 // ── 3. classificacao honesta de cada card ──────────────────────────────────
-t('narracao curta e deterministica', /failureScreenKind === 'narration_short'\n\s+\? true/.test(src))
+t('narracao curta fica fora da classificacao de falhas', /phase !== 'failed' \|\| qualityFailure \|\| scriptTooShort \? null/.test(src) && !/return 'narration_short'/.test(src)) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 t('credito preso NAO e deterministico', /failureScreenKind === 'credits_held'\n\s+\? false/.test(src))
 t('generico herda a heuristica antiga', /: failureIsDeterministic/.test(src))
 
@@ -44,16 +47,18 @@ t('failureWillRepeat exige showGenericFailure',
 
 // ── 5. todo botao de saida emite o clique ──────────────────────────────────
 const cliques = [...src.matchAll(/trackEvent\('generation_retry_clicked', \{([\s\S]{0,700}?)\}\)/g)].map(m => m[1])
-t('ha 5 emissores de generation_retry_clicked', cliques.length === 5)
-const acoes = cliques.map(c => (c.match(/action: '([a-z_]+)'/) || [])[1]).filter(Boolean)
+// KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — preserve all five gestures; three now belong to preparation, not failure retry.
+const completionClicks = [...src.matchAll(/trackEvent\('script_completion_action_clicked', \{([\s\S]{0,700}?)\}\)/g)].map(m => m[1])
+t('ha 2 retries de falha e 3 gestos de conclusao neutra', cliques.length === 2 && completionClicks.length === 3)
+const acoes = [...cliques, ...completionClicks].map(c => (c.match(/action: '([a-z_]+)'/) || [])[1]).filter(Boolean)
 for (const a of ['expand_script', 'shorter_duration', 'edit_my_text', 'recheck_credits']) {
   t(`acao ${a} instrumentada`, acoes.includes(a))
 }
 t('card generico continua sem action (retry puro)', cliques.some(c => !/action:/.test(c)))
 t('todo clique carrega screen ou e o generico',
-  cliques.every(c => /screen: '(narration_short|credits_held)'/.test(c) || !/action:/.test(c)))
-t('cliques do card curto se dizem deterministicos',
-  cliques.filter(c => /screen: 'narration_short'/.test(c)).every(c => /deterministic: true/.test(c)))
+  cliques.every(c => /screen: 'credits_held'/.test(c) || !/action:/.test(c))) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
+t('gestos do card curto sao neutros e nunca retries de falha',
+  completionClicks.length === 3 && completionClicks.every(c => /screen: 'narration_short'/.test(c)) && !cliques.some(c => /narration_short/.test(c))) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 t('clique do credito preso se diz NAO deterministico',
   cliques.filter(c => /screen: 'credits_held'/.test(c)).every(c => /deterministic: false/.test(c)))
 

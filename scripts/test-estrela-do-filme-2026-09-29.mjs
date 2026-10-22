@@ -13,6 +13,7 @@
 //   D. a tela, o /studio/create, o analyze-idea, o interruptor, os eventos.
 //   E. mutantes (dono, autorização, sobretaxa depois do débito, regra REAL PEOPLE aberta, interruptor aberto) ficam vermelhos.
 import { readFileSync } from 'node:fs'
+import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — reverse this exact delta before any historical reversal or snapshot assertion.
 import { desfazAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 import { desfazJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 import { execFileSync } from 'node:child_process'
@@ -49,8 +50,8 @@ const SRC = {
   srv: rd('lib/estrelaServer.ts'),
   rota: rd('app/api/generate-video-cinematic/route.ts'),
   fast: rd('app/api/generate-video-fast/route.ts'),
-  studio: rd('app/(dashboard)/studio/StudioClient.tsx'),
-  gen: rd('app/(dashboard)/generate/GenerateClient.tsx'),
+  studio: semRoteiroCurto2210(rd('app/(dashboard)/studio/StudioClient.tsx'), 'app/(dashboard)/studio/StudioClient.tsx'), // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
+  gen: semRoteiroCurto2210(rd('app/(dashboard)/generate/GenerateClient.tsx'), 'app/(dashboard)/generate/GenerateClient.tsx'), // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
   analyze: rd('app/api/analyze-idea/route.ts'),
   launch: rd('lib/engineLaunch.ts'),
   me: rd('app/api/me/credits/route.ts'),

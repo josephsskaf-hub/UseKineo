@@ -33,6 +33,7 @@ import {
   trialFirstDeliveryOwnsRoute,
 } from '@/lib/growth/chatgptWelcomeArbitration'
 import { formatLimitCounter, promptLimitState, trimPromptToLimit } from '@/lib/studioPromptLimit'
+import { CHATGPT_LINK_MESSAGE, ORIGINAL_IDEA_SESSION_KEY, isStandaloneHttpUrl, originalIdeaFromArrival, usableOriginalIdea } from '@/lib/scriptInput' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 
 const DISMISS_KEY = 'kineo_chatgpt_welcome_dismissed'
 const SHOWN_EVENT_KEY = `${CHATGPT_QUICKSTART_VARIANT}:shown`
@@ -76,6 +77,15 @@ export default function ChatGptWelcomeBanner() {
   const [show, setShow] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
+  const [originalIdea, setOriginalIdea] = useState<string | null>(null) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
+  // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — keep the idea that arrived through auth available after a mistaken link paste.
+  useEffect(() => {
+    const arrived = originalIdeaFromArrival(searchParams)
+    try {
+      if (arrived) sessionStorage.setItem(ORIGINAL_IDEA_SESSION_KEY, arrived)
+      setOriginalIdea(arrived ?? usableOriginalIdea(sessionStorage.getItem(ORIGINAL_IDEA_SESSION_KEY)))
+    } catch { setOriginalIdea(arrived) }
+  }, [searchParams])
   const intentCampaign = searchParams.get('intent_campaign')
   // KINEO-PLUGIN-SEM-PROMO-2026-10-05 — quem chega pelo app do ChatGPT (revisão da OpenAI: sem promoção de compra/upgrade
   // no percurso do plugin) não vê a linha de oferta. As outras portas do ChatGPT seguem iguais.
@@ -113,7 +123,9 @@ export default function ChatGptWelcomeBanner() {
 
   return (
     <ChatGptWelcomeCard
+      originalIdea={originalIdea /* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 */}
       onSelect={(choice, input) => {
+        if (isStandaloneHttpUrl(input)) return // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — before classification, tracking and navigation.
         const href = buildChatGptQuickstartHref(choice, input)
         if (!href) return
         try { sessionStorage.setItem(DISMISS_KEY, '1') } catch { /* best effort */ }
@@ -137,9 +149,11 @@ export default function ChatGptWelcomeBanner() {
 export function ChatGptWelcomeCard({
   onSelect,
   onDismiss,
+  originalIdea = null, // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 }: {
   onSelect: (choice: ChatGptQuickstartChoice, input: string) => void
   onDismiss: () => void
+  originalIdea?: string | null // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 }) {
   const [input, setInput] = useState('')
   const [trimNotice, setTrimNotice] = useState<string | null>(null)
@@ -148,7 +162,9 @@ export function ChatGptWelcomeCard({
     () => promptLimitState(input, CHATGPT_QUICKSTART_INPUT_LIMIT),
     [input],
   )
-  const ready = limit.length > 0 && !limit.over
+  const linkOnlyInput = isStandaloneHttpUrl(input) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
+  const fallbackIdea = usableOriginalIdea(originalIdea) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
+  const ready = limit.length > 0 && !limit.over && !linkOnlyInput // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 
   const trimToFit = () => {
     const result = trimPromptToLimit(input, CHATGPT_QUICKSTART_INPUT_LIMIT)
@@ -191,6 +207,13 @@ export function ChatGptWelcomeCard({
             setTrimNotice(null)
           }}
         />
+        {/* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — a link stays editable; no selection or server request happens. */}
+        {linkOnlyInput && (
+          <div role="status" className={styles.trimNotice} data-kineo="script-link-blocked">
+            <p>{CHATGPT_LINK_MESSAGE}</p>
+            {fallbackIdea && <button type="button" className={styles.ideaButton} onClick={() => { setInput(fallbackIdea); setTrimNotice(null) }}>Use my original idea</button>}
+          </div>
+        )}
         <div className={styles.limitRow}>
           <span
             className={`${styles.counter}${limit.over ? ` ${styles.counterOver}` : ''}`}

@@ -6,10 +6,11 @@ import path from 'node:path'
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
+import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — retain the historical callback harness after the exact authorized delta.
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
 const root = path.resolve(import.meta.dirname, '..')
-const text = fs.readFileSync(path.join(root, 'app/(dashboard)/studio/StudioClient.tsx'), 'utf8')
+const text = semRoteiroCurto2210(fs.readFileSync(path.join(root, 'app/(dashboard)/studio/StudioClient.tsx'), 'utf8'), 'app/(dashboard)/studio/StudioClient.tsx') // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 const source = ts.createSourceFile('StudioClient.tsx', text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
 const all = []
 function visit(node) { all.push(node); ts.forEachChild(node, visit) }

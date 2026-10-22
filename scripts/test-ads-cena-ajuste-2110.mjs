@@ -1,13 +1,14 @@
 import { KIDS_VENDA_2010_ARQUIVOS, KIDS_VENDA_2010_NOVOS, MARCA_KIDS_VENDA_2010 } from './test-support/desfaz-kids-venda-2010.mjs' // KINEO-KIDS-VENDA-2010 — a venda do Cartoon sai da conta alheia, com desfaz exato próprio
 // KINEO-ADS-CENA-AJUSTE-2110 — prova integrada da decisão A/B/C, sem SDK/rede/banco/render pago.
-import { PAGINAS_IA_CLARAS_2110_ARQUIVOS, PAGINAS_IA_CLARAS_2110_NOVOS, ehCommitPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
+import { semPaginasIaClaras2110, PAGINAS_IA_CLARAS_2110_ARQUIVOS, PAGINAS_IA_CLARAS_2110_NOVOS, ehCommitPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 import assert from 'node:assert/strict'
+import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — restore this task before hashes of older guardian sources
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semAdsCena952110 } from './test-support/desfaz-ads-cena-95-2110.mjs' // KINEO-ADS-CENA-95-2110 — histórico do ajuste preservado; motor novo tem guardião próprio.
 import { semAdsCenaAjuste2110, ADS_CENA_AJUSTE_2110_ARQUIVOS, ADS_CENA_AJUSTE_2110_NOVOS, ADS_CENA_AJUSTE_2110_BASE, MARCA_ADS_CENA_AJUSTE_2110 } from './test-support/desfaz-ads-cena-ajuste-2110.mjs'
-const source = p => semAdsCena952110(readFileSync(p, 'utf8'), p).replace(/\r\n/g, '\n') // KINEO-ADS-CENA-95-2110
+const source = p => semAdsCena952110(semRoteiroCurto2210(semPaginasIaClaras2110(readFileSync(p, 'utf8').replace(/\r\n/g, '\n'), p), p), p) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — desfazer roteiro antes da camada Cena95; manter ambas as provas.
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8', maxBuffer: 1 << 26 }).replace(/\r\n/g, '\n')
 const load = createOfflineLoader({ source: (p, s) => semAdsCena952110(s, p), globals: { Response, Request, Error }, mocks: { '../v2Server': { // KINEO-ADS-CENA-95-2110
   v2Json: (body, status = 200) => new Response(JSON.stringify(body), { status }),
@@ -123,15 +124,15 @@ for (const p of ADS_CENA_AJUSTE_2110_ARQUIVOS) {
   assert.notEqual(semAdsCenaAjuste2110(actual.replaceAll(MARCA_ADS_CENA_AJUSTE_2110, 'MARCA_REMOVIDA'), p), before, 'mutante sem marca não finge restauração: ' + p)
 }
 assert.equal(semAdsCenaAjuste2110('fora\n', 'lib/fora.ts'), 'fora\n')
-const declared = new Set([...ADS_CENA_AJUSTE_2110_ARQUIVOS, ...ADS_CENA_AJUSTE_2110_NOVOS, ...PAGINAS_IA_CLARAS_2110_ARQUIVOS, ...PAGINAS_IA_CLARAS_2110_NOVOS]) // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
-const changed = git('diff', '--ignore-cr-at-eol', '--name-only', ADS_CENA_AJUSTE_2110_BASE).trim().split('\n').filter(Boolean)
-changed.splice(0, changed.length, ...changed.filter(p => !KIDS_VENDA_2010_ARQUIVOS.includes(p) && !KIDS_VENDA_2010_NOVOS.includes(p))) // KINEO-KIDS-VENDA-2010 — só arquivos declarados pela camada posterior
+const declared = new Set([...ADS_CENA_AJUSTE_2110_ARQUIVOS, ...ADS_CENA_AJUSTE_2110_NOVOS])
+// KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — freeze this older delivery's scope at its own last marked commit; runtime/integrity checks above still read current files.
+const deliveryHead = git('log', '--format=%H', '--grep=' + MARCA_ADS_CENA_AJUSTE_2110, '-1', 'HEAD').trim()
+assert.ok(deliveryHead, 'commit final do complemento antigo existe')
+const changed = git('diff', '--ignore-cr-at-eol', '--name-only', ADS_CENA_AJUSTE_2110_BASE, deliveryHead).trim().split('\n').filter(Boolean)
 assert.ok(changed.length > 0 && changed.every(p => declared.has(p)), 'escopo completo do complemento, sem arquivo estranho')
 for (const p of ADS_CENA_AJUSTE_2110_NOVOS) assert.ok(readFileSync(p).length > 0, 'artefato novo existe: ' + p)
 const oldUndo = source('scripts/test-support/desfaz-ads-cena-2110.mjs')
 assert.ok(oldUndo.indexOf('texto = semAdsCenaAjuste2110(texto, p)') < oldUndo.indexOf("const rel = String(p ?? '')"), 'desfaz da camada mais nova vem primeiro')
-const subjects = git('log', '--format=%s', ADS_CENA_AJUSTE_2110_BASE + '..HEAD').trim().split('\n').filter(Boolean).filter(s => !s.startsWith('KINEO-ADS-CENA-95-2110')) // KINEO-ADS-CENA-95-2110 — a trava nova é verificada pelo guardião novo.
-subjects.splice(0, subjects.length, ...subjects.filter(s => !s.includes(MARCA_KIDS_VENDA_2010) && !s.includes('KINEO-KIDS-VENDA-LIGA-2110'))) // KINEO-KIDS-VENDA-2010 — cada camada conserva sua marca/autorização
-subjects.splice(0, subjects.length, ...subjects.filter(s => !ehCommitPaginasIaClaras2110(s))) // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
+const subjects = git('log', '--format=%s', ADS_CENA_AJUSTE_2110_BASE + '..' + deliveryHead).trim().split('\n').filter(Boolean)
 assert.ok(subjects.every(s => s.startsWith('KINEO-ADS-CENA-2110 ') && s.includes('[TRAVA 8.2 — vai do fundador 21/10 "A e B, vamo time"]')), 'marca e trava em todos os commits do complemento')
 console.log('ok desfaz encadeado, fontes exatas, CRLF, idempotência, mutantes de integridade e escopo do complemento')

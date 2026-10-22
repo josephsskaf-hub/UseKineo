@@ -348,7 +348,10 @@ for (const rel of MCP_STUDIO_AJUSTE_2010_ARQUIVOS) {
 for (const rel of MCP_STUDIO_AJUSTE_2010_NOVOS) {
   ok(fs.existsSync(path.join(ROOT, rel)) && base(rel) === null && read(rel).includes(MARCA_MCP_STUDIO_AJUSTE_2010), `(F2) ${rel}: novo e leva a marca`) // a tabela .json leva a marca nas linhas novas
 }
-const changed = [...new Set([...git('diff', '--name-only', MCP_STUDIO_AJUSTE_2010_BASE).split('\n'), ...git('ls-files', '--others', '--exclude-standard').split('\n')].filter(Boolean))]
+// KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — the old delivery owns its marked commit range; runtime and exact source checks above still inspect the current tree.
+const deliveryHead = git('log', '--format=%H', '--grep=' + MARCA_MCP_STUDIO_AJUSTE_2010, '-1', 'HEAD').trim()
+if (!deliveryHead) throw new Error('Missing marked MCP delivery commit')
+const changed = [...new Set(git('diff', '--name-only', MCP_STUDIO_AJUSTE_2010_BASE, deliveryHead).split('\n').filter(Boolean))]
 const declared = [...MCP_STUDIO_AJUSTE_2010_ARQUIVOS, ...MCP_STUDIO_AJUSTE_2010_NOVOS]
 declared.push(...HOME_REMODELA_2010_ARQUIVOS, ...HOME_REMODELA_2010_NOVOS, HOME_REMODELA_2010_JSON) // KINEO-HOME-REMODELA-2010 — os arquivos da home remodelada (entrega de depois) não são desta
 declared.push(...BEBE_QUE_FALA_2010_ARQUIVOS, ...BEBE_QUE_FALA_2010_NOVOS) // reancorado KINEO-BEBE-QUE-FALA-2010 — os arquivos do desenho infantil (entrega de depois) não são desta
@@ -363,7 +366,7 @@ declared.push(...ADS_CENA_2110_ARQUIVOS, ...ADS_CENA_2110_NOVOS) // KINEO-ADS-CE
 declared.push(...PAGINAS_IA_CLARAS_2110_ARQUIVOS, ...PAGINAS_IA_CLARAS_2110_NOVOS) // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 declared.push(...KIDS_VENDA_2010_ARQUIVOS, ...KIDS_VENDA_2010_NOVOS) // KINEO-KIDS-VENDA-2010 — só arquivos declarados da camada posterior fora da conta do conector
 ok(changed.every((f) => declared.includes(f)), `(F3) o diff contra a base só toca arquivos declarados (${changed.filter((f) => !declared.includes(f)).join(', ') || 'ok'})`)
-const commits = git('log', '--format=%s', `${MCP_STUDIO_AJUSTE_2010_BASE}..HEAD`).split('\n').filter(Boolean)
+const commits = git('log', '--format=%s', `${MCP_STUDIO_AJUSTE_2010_BASE}..${deliveryHead}`).split('\n').filter(Boolean)
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_HOME_REMODELA_2010))) // KINEO-HOME-REMODELA-2010 — os commits (e os merges da fila) da home remodelada levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010'))) // reancorado KINEO-BEBE-QUE-FALA-2010 — os commits do desenho infantil levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_HOME_CARDS_CLAROS_2010))) // KINEO-HOME-CARDS-CLAROS-2010 — os commits do véu mais claro levam a marca deles

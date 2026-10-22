@@ -224,7 +224,7 @@ try {
   includes(generate, 'scriptMode !== activationContract.scriptMode', 'caller waits for script mode state')
   includes(generate, 'duration !== activationContract.duration', 'caller waits for duration state')
   includes(generate, 'structureFirst: activationContract.structureFirst', 'caller disables the rewriter for verbatim handoffs')
-  includes(generate, 'JSON.stringify({ prompt: source, duration: alvoAnalise, language, scriptMode })', 'analysis API receives the committed or safely fitted duration')
+  includes(generate, 'JSON.stringify({ prompt: source, duration: alvoAnalise, language, scriptMode: opts?.scriptModeOverride ?? scriptMode })', 'analysis API receives the committed or safely fitted duration and the approved literal mode') // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
   includes(analyze, "body.scriptMode === 'verbatim'", 'API has the verbatim fast path')
   includes(analyze, 'normalizeWords(polished) === normalizeWords(text)', 'punctuation polish is rejected if the word sequence changes')
   includes(parser, 'if (rotulos < 2) return null', 'parser requires two speech labels before promising speech-only mode')

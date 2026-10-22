@@ -53,6 +53,8 @@ const lf = (s) => String(s).replace(/\r\n/g, '\n')
 const read = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
 const raw = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8')
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
+const deliveryHead = git('log', '--format=%H', `--grep=^${MARCA_MCP_STUDIO_2010} `, '-1', 'HEAD').trim() // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — historical scope/subjects belong to this delivery; runtime and mutants still read current sources.
+if (!deliveryHead) throw new Error('Missing marked MCP Studio delivery commit') // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 const base = (rel) => { try { return lf(git('show', `${MCP_STUDIO_2010_BASE}:${rel}`)) } catch { return null } }
 const code = (s) => s.replace(/^\s*\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '')
 let pass = 0
@@ -288,7 +290,7 @@ for (const rel of MCP_STUDIO_2010_ARQUIVOS) {
 for (const rel of MCP_STUDIO_2010_NOVOS) {
   ok(fs.existsSync(path.join(ROOT, rel)) && base(rel) === null && read(rel).includes(MARCA_MCP_STUDIO_2010), `(F2) ${rel}: novo (não existia na base) e leva a marca`)
 }
-const changedExisting = git('diff', '--name-only', MCP_STUDIO_2010_BASE, 'HEAD').split('\n').filter(Boolean).filter((f) => base(f) !== null).filter((f) => !META95_PERSONAGEM_2010_ARQUIVOS.includes(f)).filter((f) => !BEBE_QUE_FALA_2010_ARQUIVOS.includes(f)) /* reancorado KINEO-BEBE-QUE-FALA-2010 */ // reancorado KINEO-META95-PERSONAGEM-2010: os arquivos da folha de personagem (entrega de depois, com desfaz próprio) ficam fora desta conta
+const changedExisting = git('diff', '--name-only', MCP_STUDIO_2010_BASE, deliveryHead).split('\n').filter(Boolean).filter((f) => base(f) !== null).filter((f) => !META95_PERSONAGEM_2010_ARQUIVOS.includes(f)).filter((f) => !BEBE_QUE_FALA_2010_ARQUIVOS.includes(f)) /* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — same declared-file assertion on the marked historical delivery. */ /* reancorado KINEO-BEBE-QUE-FALA-2010 */ // reancorado KINEO-META95-PERSONAGEM-2010: os arquivos da folha de personagem (entrega de depois, com desfaz próprio) ficam fora desta conta
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !META95_ESCRITA_2010_ARQUIVOS.includes(f))) // KINEO-META95-ESCRITA-2010 — reancorado: os arquivos da legenda na escrita do roteiro (entrega de depois) não são desta
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !AVATAR_PRESO_2010_ARQUIVOS.includes(f))) // KINEO-AVATAR-PRESO-2010 — reancorado: os arquivos do avatar preso (entrega de depois, com desfaz próprio) não são desta
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !ARQUIVOS_VERBATIM_INTOCAVEL_2010.includes(f))) // reancorado KINEO-VERBATIM-INTOCAVEL-2010 — os arquivos do conserto do verbatim não são desta
@@ -303,7 +305,7 @@ changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) 
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !KIDS_VENDA_2010_ARQUIVOS.includes(f))) // KINEO-KIDS-VENDA-2010 — a venda do desenho infantil tem desfaz exato próprio
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter(f => !PAGINAS_IA_CLARAS_2110_ARQUIVOS.includes(f))) // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 ok(changedExisting.every((f) => MCP_STUDIO_2010_ARQUIVOS.includes(f)), `(F3) o diff contra a base só toca arquivos declarados (existentes alterados: ${changedExisting.join(', ') || 'nenhum ainda commitado'})`)
-const commits = git('log', '--format=%s', `${MCP_STUDIO_2010_BASE}..HEAD`).split('\n').filter(Boolean).filter((s) => !s.includes(MARCA_META95_PERSONAGEM_2010)).filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010')) /* reancorado KINEO-BEBE-QUE-FALA-2010 */ // reancorado KINEO-META95-PERSONAGEM-2010: os commits da folha de personagem levam a marca deles
+const commits = git('log', '--format=%s', `${MCP_STUDIO_2010_BASE}..${deliveryHead}`).split('\n').filter(Boolean).filter((s) => !s.includes(MARCA_META95_PERSONAGEM_2010)).filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010')) /* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — preserve the exact subject assertion over its own delivery. */ /* reancorado KINEO-BEBE-QUE-FALA-2010 */ // reancorado KINEO-META95-PERSONAGEM-2010: os commits da folha de personagem levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_HOME_CARDS_CLAROS_2010))) // KINEO-HOME-CARDS-CLAROS-2010 — os commits do véu mais claro (entrega de depois) levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_META95_ESCRITA_2010))) // KINEO-META95-ESCRITA-2010 — reancorado: os commits da legenda na escrita do roteiro levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_AVATAR_PRESO_2010))) // KINEO-AVATAR-PRESO-2010 — reancorado: os commits (e os merges) do avatar preso levam a marca deles

@@ -170,7 +170,11 @@ const mDet = client.match(/const failureIsDeterministic =([\s\S]*?)\n  const sho
 check('6.1 achei a lista de causas deterministicas', Boolean(mDet))
 check('6.2 empty_plan NAO esta na lista (16 de 34 recuperaram em 5 min)',
   Boolean(mDet) && !mDet[1].includes('empty_plan'))
-check('6.3 as deterministicas antigas continuam la', Boolean(mDet) && mDet[1].includes('narration_short'))
+// KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — short narration leaves failure; all remaining deterministic guards stay protected.
+check('6.3 narracao curta e neutra; demais deterministicas continuam la', Boolean(mDet)
+  && !mDet[1].includes('narration_short')
+  && ['voiceover_script_missing', 'daily_free_limit', 'real_person_guard', 'plan_or_credits'].every(cause => mDet[1].includes(cause))
+  && client.includes("setPhase('script_completion')"))
 
 console.log('7) O ramo do Joscha (planned>0) ficou intacto')
 check('7.1 a mensagem antiga continua no route', route.includes(MSG_FORNECEDOR))

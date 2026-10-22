@@ -12,6 +12,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 import crypto from 'node:crypto'
+import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — reverse only this delta before the historical checksum; duration behavior still uses the actual file.
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -103,7 +104,7 @@ console.log('4 — só isto mudou no Studio (desfeito, é a base byte a byte)')
 const { semDuracaoSaldo1510 } = await import('./test-support/desfaz-duracao-saldo-1510.mjs')
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex')
 // A impressão do Studio de antes deste conserto (a mesma do D4 de scripts/test-ads-fluxo-1310.mjs).
-const desfeito = (() => { try { return semDuracaoSaldo1510(ST) } catch (e) { console.log('  (desfaz lançou: ' + e.message + ')'); return null } })()
+const desfeito = (() => { try { return semDuracaoSaldo1510(semRoteiroCurto2210(ST, 'app/(dashboard)/studio/StudioClient.tsx')) } catch (e) { console.log('  (desfaz lançou: ' + e.message + ')'); return null } })() // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 ok(desfeito !== null && sha(desfeito) === 'f14aced01385418c88fd1a3fc7218c7a6ca83a805d36d776f14c7d2a371fc25c','desfeitos import + 2 blocos ▼▲ + 5 onClickCapture, o StudioClient é EXATAMENTE a base')
 let lancou = false
 try { semDuracaoSaldo1510(ST.replace('  const shortestDuration = ', '  const x = 1 // KINEO-STUDIO-DURACAO-SALDO-1510\n  const shortestDuration = ')) } catch { lancou = true }

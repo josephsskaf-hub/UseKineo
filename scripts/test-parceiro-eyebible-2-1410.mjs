@@ -32,6 +32,7 @@ import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semParceiroEyebible2_1410, ARQUIVOS_PARCEIRO_EYEBIBLE_2_1410, FORMA_PARCEIRO_EYEBIBLE_2_1410, MARCA_PARCEIRO_EYEBIBLE_2_1410 } from './test-support/desfaz-parceiro-eyebible-2-1410.mjs'
 import { semFilmesF1Virgula1910 } from './test-support/desfaz-filmes-f1-virgula-1910.mjs' // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a camada mais nova sai primeiro
+import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — reverse only our exact delta before historical snapshots, leaving feature and mutant reads untouched.
 const desfazAncoraEJuizStill1410 = (p, s) => desfazAncoraLegenda1410(p, desfazJuizStill1410(p, s)) // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -180,7 +181,7 @@ const checa = (nome, cond, detalhe = '') => {
 
 console.log('\n── 5 · desfeito o conserto, cada arquivo é EXATAMENTE o pai do commit')
 for (const p of ARQUIVOS_PARCEIRO_EYEBIBLE_2_1410) {
-  const atual = semFilmesF1Virgula1910(lerDisco(p), p) // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a fiação do Faceless 15 s no export limpo (só acréscimos) sai PRIMEIRO
+  const atual = semFilmesF1Virgula1910(semRoteiroCurto2210(lerDisco(p), p), p) /* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 */ // KINEO-FILMES-F1-VIRGULA-1910 — reancorado: a fiação do Faceless 15 s no export limpo (só acréscimos) sai PRIMEIRO
   const base = lf(execFileSync('git', ['show', `${BASE}:${p}`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }))
   let desfeito = null
   try { desfeito = semParceiroEyebible2_1410(p, desfazAncoraEJuizStill1410(p, desfazPaywallFilmePrimeiro1510(p, desfazStudioFantasma1510(p, semCenaNegacao1510(semTrilha15s1610(atual, p) /* reancorado KINEO-TRILHA-15S */, p))))) /* KINEO-ANCORA-LEGENDA-1410 · reancorado KINEO-PAYWALL-FILME-PRIMEIRO-1510 · reancorado KINEO-STUDIO-FANTASMA-1510 · reancorado KINEO-CENA-NEGACAO-1510 */ } catch (e) { desfeito = `ERRO ${e.message}` }
