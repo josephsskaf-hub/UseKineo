@@ -20,7 +20,12 @@
   "scripts/test-cena-negacao-1510.mjs": 1,
   "scripts/test-contrato-classicos-1410.mjs": 1,
   "scripts/test-veo-marcado-2026-09-29.mjs": 1,
-  "scripts/test-veo-modo-ia-2026-09-29.mjs": 1
+  "scripts/test-veo-modo-ia-2026-09-29.mjs": 1,
+  "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs": 2,
+  "scripts/test-home-cards-claros-2010.mjs": 1,
+  "scripts/test-meta95-personagem-ajuste-2010.mjs": 1,
+  "scripts/test-verbatim-intocavel-2010.mjs": 1,
+  "scripts/test-mcp-studio-ajuste-2010.mjs": 4
  },
  "app/(dashboard)/kids-cartoon/page.tsx": [
   [
@@ -50,6 +55,12 @@
   [
    "  const add = git('diff', base, '--', ROTA, VPP).replace(/\\r/g, '').split('\\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).filter((l) => !l.includes('KINEO-KIDS-VENDA-2010')) // KINEO-KIDS-VENDA-2010 — apenas linhas da venda (desfaz próprio) fora da conta da trilha",
    "  const add = git('diff', base, '--', ROTA, VPP).replace(/\\r/g, '').split('\\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))"
+  ]
+ ],
+ "scripts/test-home-cards-claros-2010.mjs": [
+  [
+   "const rd = (p) => lf(semKidsVenda2010(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-KIDS-VENDA-2010 — a camada nova sai em memória antes dos checks e dos mutantes da home",
+   "const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))"
   ]
  ]
 }

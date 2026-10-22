@@ -1,3 +1,4 @@
+import { semKidsVenda2010 } from './test-support/desfaz-kids-venda-2010.mjs' // KINEO-KIDS-VENDA-2010 — desfaz exato da venda antes de ler camadas anteriores
 // KINEO-HOME-CARDS-CLAROS-2010 — guardião da "parte de baixo dos vídeos clara e nítida" nos 4 cards da home.
 // Fundador 20/10 23:30: "a parte de baixo dos vídeos tá bem escura, arruma isso pra hoje". A v1 (véu mais leve + vidro fosco) virou
 // mancha — fundador 21/10: "ainda está com problema na parte de baixo, parece uma sombra". v2: o vidro fosco SAIU, sobra um degradê curto
@@ -35,7 +36,7 @@ import { semDesenhoNota9_2110 } from './test-support/desfaz-desenho-nota9-2110.m
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const lf = (s) => s.replace(/\r\n/g, '\n')
-const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))
+const rd = (p) => lf(semKidsVenda2010(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-KIDS-VENDA-2010 — a camada nova sai em memória antes dos checks e dos mutantes da home
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (p) => { try { return lf(git('show', `${B}:${p}`)) } catch { return null } }
 const F = { kids: 'components/home/HomeKidsCard.tsx', three: 'components/home/HomeThreeCards.tsx', bebe: 'scripts/test-support/desfaz-bebe-que-fala-2010.mjs' }
