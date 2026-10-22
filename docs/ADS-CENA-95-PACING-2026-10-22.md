@@ -10,7 +10,7 @@
 
 **FATO CONFIRMADO — IMPLEMENTADO.** Direções visuais/vocais reconhecíveis são retiradas da fala opcional do GPT; os benefícios são reconstruídos somente a partir dos fatos de entrada, com sujeito/verbo, maiúscula e pontuação. Oferta imperativa não recebe outro imperativo na frente. CTA digitado é preservado, inclusive um verbo como “Veja” ou um qualificador como “[Pro]”; não passa pelo filtro de instruções do GPT. `visualDirectionOnly` fica separado no pedido de roteiro (`lib/ads/cena/plan95.ts:44`). Regras de números, alegações e clichês continuam no parser; instruções de cena não ganham autorização para virar promessa de produto.
 
-**FATO CONFIRMADO — IMPLEMENTADO.** Product usa uma tabela de planos próximos por categoria, com produto inteiro, mãos/antebraços/pés pertinentes e roupa contínua; não herda o `athlete_demo` de UGC. UGC preserva a cena humana. Product/talking mantém a boca recortada como contexto secundário; Product/narrated permite rosto fora do quadro. O juiz exige produto protagonista e ausência de corpo inteiro nesses planos, mantendo anatomia, fidelidade e roupa (`lib/ads/cena/composition95.ts:18`, `:78`; `lib/ads/cena/pipeline95.ts:32`). Planos antigos sem a nova composição mantêm seu contrato original.
+**FATO CONFIRMADO — IMPLEMENTADO.** Product usa uma tabela de planos próximos por categoria, com produto inteiro, mãos/antebraços/pés pertinentes e roupa contínua; não herda o `athlete_demo` de UGC. UGC preserva a cena humana. Product/talking mantém a boca recortada como contexto secundário; Product/narrated permite rosto fora do quadro. O juiz exige produto protagonista e ausência de corpo inteiro nesses planos, mantendo anatomia, fidelidade e roupa (`lib/ads/cena/composition95.ts:19`, `:78`; `lib/ads/cena/pipeline95.ts:32`). Planos antigos sem a nova composição mantêm seu contrato original.
 
 **FATO CONFIRMADO — IMPLEMENTADO.** Um preflight puro verifica roteiro canônico, requisição de voz, divisão nativa e legenda durante o planejamento, antes da divisão dry/live. O start reutiliza o mesmo preflight antes do débito; preparação da voz e montagem também o chamam (`lib/ads/cena/preflight95.ts:12`; `lib/ads/v2StartCore.ts:81`; `lib/ads/cena/finish95.ts:23`; `lib/ads/cena/runtime95.ts:84`). Nunca se reinterpreta o roteiro canônico como JSON bruto, o que duplicaria a oferta.
 
@@ -25,3 +25,36 @@
 **SUGESTÃO — próximo passo recomendado.** Depois da revisão e publicação autorizadas em outra rodada, repetir os pedidos literais do Cowork e conferir plano, fala, frases removidas e enquadramento. Depois, validar a duração medida e o anúncio final. O avanço aqui deve ser classificado como implementado/testado offline, não como qualidade audiovisual validada.
 
 **QUESTÃO PENDENTE — documento histórico.** O caminho solicitado anteriormente `docs/ESTUDO-LIDERES-ANUNCIOS-PRODUTO-UGC-2026-10-21.md` não existe na base desta tarefa. Foram consultados o estudo disponível de16/10 e `docs/ADS-QUALIDADE-2026-10-21.md`; não se alega ter lido as seções7/8 do arquivo ausente.
+
+
+**TESTADO LOCALMENTE — provas concluídas em22/10/2026.** O novo `scripts/test-ads-cena-95-pacing-2110.mjs` executa POST, `cenaJson`, planejador e start reais com transportes, banco e ledger dublados. As duas fixtures longas PT/EN têm três ganchos curtos válidos e reproduzem `cena95_speech_pacing` na base; passam após o reparo. Também prova CTA/oferta protegidos, frases de benefícios, direções removidas, moderação e cache por requisição, nove categorias nos dois modos, juiz de rosto/mãos, palavra longa, texto final, silêncio nativo e voz medida antes de vídeo. São32mutantes reais, com sintaxe válida e falha por asserção; erro de importação/sintaxe não conta como mutante detectado. O desfaz final cobre22fontes existentes e declara os10arquivos novos.
+
+**TESTADO LOCALMENTE — suíte inteira e deltas identificados.** Baseline imutável `2b2ea93971ca7fef45ec1bfa46d94d48281bd934`; rodada integral em `b5c86aae73eacee45507c55dd7cb7238a3fb52d5`; correção exclusiva de guardião/metadata em `2b61b9f5f771f43b49e37acc492920478804f21c`. Não houve uma segunda execução dos988 no último SHA. O consolidado retém983resultados integrais e incorpora cinco execuções reais dos guardiões afetados na segunda snapshot. O commit posterior altera somente este relatório.
+
+| Execução | Scripts | Verdes | Vermelhos |
+|---|---:|---:|---:|
+| Base2b, integral |987|838|149|
+| b5c, integral bruta preservada |988|838|150|
+| 2b61, deltas afetados |5|5|0|
+| Consolidado integral + deltas |988|839|149|
+
+**FATO CONFIRMADO — reancoragem estrita.** O único vermelho novo da integral foi4c de `test-moderacao-2026-09-25.mjs`: a varredura conta imports usados só como tipos, e os dois novos caminhos elevaram36para38. O ajuste exige os dois caminhos exatos, mantém a proibição de `use client` em todos e prova que os dois imports somem do JavaScript compilado; o guardião encerrou60/60. Os cinco deltas verdes foram `test-moderacao-2026-09-25.mjs`, `test-ads-cena-95-pacing-2110.mjs`, `test-ads-cena-2110.mjs`, `test-ads-cena-ajuste-2110.mjs` e `test-ads-qualidade-2110.mjs`.
+
+**FATO CONFIRMADO — resultados dos recibos.** `newRed=[]`, `changedRedChecks=[]`, `fixed=[]`: os149scripts ainda vermelhos são os mesmos da base, com os mesmos checks; não se apresenta a suíte como totalmente verde. Foram comparados987logs compartilhados e71cabeçalhos de exceção de cada lado, sem exceção adicionada/removida. Guardas offline e timeouts externos:0. Os sete testes que mutam fontes terminaram com código0, zero reparos de bytes e snapshots limpas. O grupo focado preservou157mutantes históricos e detectou os32novos; essa não é uma contagem global do repositório. O desfaz anterior do roteiro curto manteve725verificações.
+
+**TESTADO LOCALMENTE — tipos e igualdade.** `tsc --noEmit --incremental false` passou na base e na snapshot integral b5c. Depois da reancoragem MJS, a prova comparou5606arquivos rastreados: somente o guardião de moderação e seu JSON de desfaz mudaram; os outros5604blobs são iguais. Também conferiu1845arquivos reais TS/produto/config byte a byte. O resultado TSCb5c foi reutilizado por essa igualdade, sem alegar outro compilador no2b61.
+
+**FATO CONFIRMADO — arquivos e custos.** `git diff 2b2ea9397 2b61b9f5 --name-only` contém32arquivos:19de produto (17em `lib/ads/cena/`, a rota admin e `lib/ads/v2StartCore.ts`), nove de provas/fixtures, três de desfaz e este relatório. Não foram adicionadas dependências, endpoints ou tarifas, nem proposta de preço. Créditos, cobrança e estorno conservam o caminho existente. A paginação excepcional garante representação do texto; sua legibilidade em vídeo de dois segundos não foi validada com render.
+
+**FATO CONFIRMADO — recibos locais auditáveis.** Pasta `.claude/ads-cena-95-pacing-proof-2210/` na árvore principal do repositório. Brutos, stdout/stderr, inventários, tentativas e comparadores originais da base permanecem preservados. O consolidado declara `wholeSuiteRunAtFinalCommit:false` e a proveniência de cada linha. SHA-256 conferidos:
+
+| Recibo | SHA-256 |
+|---|---|
+| `ads-cena-95-pacing-origin-main-round.json` | `e7fe9030e899153bb8f0b0f2bd4d55c91d1ccece55e76d372970bc07086ae15a` |
+| `ads-cena-95-pacing-final-b5c-round.json` | `804f38fb2c809397114eae5a4f22e19167d2ab44d875f124aa25347267b43786` |
+| `ads-cena-95-pacing-final-2b61-deltas.json` | `8ce536ada6f05d3384101e7e6530149df8b1c3eddcc79237ed0c9f3993230b44` |
+| `ads-cena-95-pacing-final-2b61-round.json` | `a2677cb5d933df46ce7b9b0187e524bf5d3d895c27bb3df2b3d4bb0e6f5daef1` |
+| `ads-cena-95-pacing-final-2b61-comparison.json` | `2b9339f41e4e8b3d7b15c4c425b739fea237c1496983054e5d900824c5a23772` |
+| `ads-cena-95-pacing-final-2b61-exceptions.json` | `2f96baacf00adc81dfb82adda71ea20d75ba40cec2ecccfb43e4c623c6d33b3d` |
+| `2b61-source-equality-proof.json` | `ddf2c085aa773ee8230886d9dadfa7f462525b0b76ecbd2f71af65209a759334` |
+| `ads-cena-95-pacing-final-2b61-summary.json` | `167afdce00a0d8835006ee527e91eb0bc4f6d5652c6414807d924fe98e596a90` |
