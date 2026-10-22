@@ -8,7 +8,7 @@
 //      (mode subscription, price_data inline com recurring month — nenhum Price do painel — metadata.kids_product na sessão E na assinatura);
 //      a query string com preço/créditos é ignorada; Brasil em reais pela fórmula da casa; margem positiva no pior caso (15 s = 9 cr);
 //   S  INTERRUPTOR LIGADO NO DISCO: KIDS_SALES_LIVE true; público liberado; ao desligar em memória, checkout recusa quem não é da casa ('sales_closed') e aceita a casa;
-//      cartões devolvem null; rota da amostra 404; desfaz exato = base em todo arquivo tocado;
+//      ao desligar, cartões devolvem null e a amostra retorna 404; desfaz exato = origin/main 72d23210c em todo arquivo tocado;
 //   C  30 POR CICLO, CONTADOS POR CICLO: posição/restante puros; ciclo de 30 dias da assinatura; 1/dia (24 h) e recuperação (8 h) quando
 //      atrasado; renovação pela fatura zera a contagem e é idempotente por invoice; teto de crédito por ciclo (× 1,25);
 //   Q  PACK EM FILA: 2 por pedido por passada, 6 por passada no total, piloto 1 por passada; a run nasce ANTES do gasto (unique = trava);
@@ -23,8 +23,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
-import { semMeta95Personagem2010 } from './test-support/desfaz-meta95-personagem-2010.mjs' // a folha de personagem (origin/main fbe47c467, mesclada DEPOIS da base desta entrega) sai antes de comparar com a base
-import { semKidsVenda2010, KIDS_VENDA_2010_ARQUIVOS, KIDS_VENDA_2010_NOVOS, KIDS_VENDA_2010_BASE, KIDS_VENDA_2010_MERGED_MAIN, MARCA_KIDS_VENDA_2010, ACRESCIMOS_KIDS_VENDA_2010, TROCAS_KIDS_VENDA_2010 } from './test-support/desfaz-kids-venda-2010.mjs'
+import { semKidsVenda2010, KIDS_VENDA_2010_ARQUIVOS, KIDS_VENDA_2010_NOVOS, KIDS_VENDA_2010_BASE, MARCA_KIDS_VENDA_2010, ACRESCIMOS_KIDS_VENDA_2010, TROCAS_KIDS_VENDA_2010 } from './test-support/desfaz-kids-venda-2010.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -256,13 +255,12 @@ async function provas(over = {}) {
 // ── D — desfaz exato, novos, marca, encadeamento ──────────────────────────────────────────────────────────────────────────
 console.log('D — desfaz / novos / marca')
 for (const p of KIDS_VENDA_2010_ARQUIVOS) {
-  // arquivo que já existia na base 7d0e71806: desfeita esta camada E a folha de personagem (origin/main mesclada depois), sobra a base;
-  // arquivo que NASCEU na origin/main mesclada (guardiões do conector/da folha, reancorados aqui): desfeita só esta camada, sobra a origin/main.
-  const b0 = base(p)
-  const b = b0 ?? (() => { try { return lf(git('show', `${KIDS_VENDA_2010_MERGED_MAIN}:${p}`)) } catch { return null } })()
+  // Retira somente a venda; todas as camadas da main (tela clara, som e folha de personagem) continuam na comparação.
+  const b = base(p)
   let des = null
-  try { des = b0 !== null ? semKidsVenda2010(disco(p), p) : semKidsVenda2010(disco(p), p) } catch (e) { console.log('       (' + e.message + ')') }
-  ok(b !== null && des === b, `D1 desfaz exato = ${b0 !== null ? 'base (sem esta camada e sem a folha de personagem)' : 'origin/main mesclada (sem esta camada)'}: ${p}`)
+  try { des = semKidsVenda2010(disco(p), p) } catch (e) { console.log('       (' + e.message + ')') }
+  ok(b !== null && des === b, `D1 desfaz exato = origin/main ${KIDS_VENDA_2010_BASE} (sem somente a venda): ${p}`)
+
 }
 ok(KIDS_VENDA_2010_NOVOS.every((p) => existsSync(join(ROOT, p)) && base(p) === null), 'D2 os arquivos novos existem e não estavam na base')
 ok(KIDS_VENDA_2010_NOVOS.filter((p) => /\.(ts|tsx|mjs|sql)$/.test(p)).every((p) => disco(p).includes(MARCA)), 'D3 todo arquivo novo carrega a marca')

@@ -6,8 +6,8 @@
 //   · ACRÉSCIMO — linha nova: sai inteira (contagem EXATA por arquivo);
 //   · TROCA — a linha da base foi reescrita: reconhecida INTEIRA, volta a ser o texto da base. Tabela em desfaz-kids-venda-2010-trocas.json.
 // Só age nos arquivos declarados; qualquer outro texto passa igual (idempotente). Preserva CRLF. A marca NÃO contém a de nenhuma camada de antes.
-// ENCADEAMENTO: é a camada MAIS NOVA — semBebeQueFala2010 (que semMenuUgc2010 chama primeiro) chama ESTE primeiro. Este não importa ninguém.
-// O guardião scripts/test-kids-venda-2010.mjs prova que, desfeito isto, cada arquivo é EXATAMENTE a base (KIDS_VENDA_2010_BASE).
+// ENCADEAMENTO: é a camada MAIS NOVA — semAdsCenaAjuste2110 chama ESTE primeiro; semBebeQueFala2010 também chama antes da cadeia antiga. Este não importa ninguém.
+// O guardião scripts/test-kids-venda-2010.mjs prova que, retirada somente a venda, cada arquivo é EXATAMENTE a origin/main 72d23210c.
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -16,7 +16,7 @@ export const MARCA_KIDS_VENDA_2010 = 'KINEO-KIDS-VENDA-2010'
 
 /** A base da entrega: origin/main de 21/10, incluindo a tela clara e o som do desenho, antes de ligar a venda. */
 export const KIDS_VENDA_2010_BASE = '72d23210c'
-/** A origin/main mesclada DEPOIS da base (conector Kineo Studio + folha de personagem): arquivos que nasceram nela comparam com ela. */
+/** Compatibilidade com guardiões anteriores: agora a main mesclada e a base exata são a mesma ponta 72d23210c. */
 export const KIDS_VENDA_2010_MERGED_MAIN = '72d23210c'
 
 const TABELA = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-kids-venda-2010-trocas.json'), 'utf8'))
@@ -37,6 +37,10 @@ export const KIDS_VENDA_2010_NOVOS = [
   'lib/kidsVenda/webhook.ts',
   'lib/stripe/kidsVendaCheckout.ts',
   'migrations_pending/2026-10-20_kids_venda.sql',
+  'docs/KIDS-VENDA-LIGA-2026-10-21.md',
+  'docs/previews/kids-venda-liga-2110.html',
+  'docs/previews/kids-venda-liga-2110.png',
+  'docs/previews/kids-venda-liga-2110-mobile.png',
   'scripts/test-kids-venda-2010.mjs',
   'scripts/test-support/desfaz-kids-venda-2010.mjs',
   'scripts/test-support/desfaz-kids-venda-2010-trocas.json',

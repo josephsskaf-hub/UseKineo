@@ -14,7 +14,9 @@
   "scripts/test-saida-regiao-2026-10-07.mjs": 3,
   "scripts/test-support/desfaz-bebe-que-fala-2010.mjs": 2,
   "scripts/test-trilha-15s-1610.mjs": 1,
-  "scripts/test-support/desfaz-ads-cena-ajuste-2110.mjs": 2
+  "scripts/test-support/desfaz-ads-cena-ajuste-2110.mjs": 2,
+  "scripts/test-ads-cena-2110.mjs": 4,
+  "scripts/test-ads-cena-ajuste-2110.mjs": 3
  },
  "app/(dashboard)/kids-cartoon/page.tsx": [
   [

@@ -1,3 +1,4 @@
+import { KIDS_VENDA_2010_ARQUIVOS, KIDS_VENDA_2010_NOVOS, MARCA_KIDS_VENDA_2010 } from './test-support/desfaz-kids-venda-2010.mjs' // KINEO-KIDS-VENDA-2010 — a venda do Cartoon sai da conta alheia, com desfaz exato próprio
 // KINEO-ADS-CENA-AJUSTE-2110 — prova integrada da decisão A/B/C, sem SDK/rede/banco/render pago.
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -122,10 +123,12 @@ for (const p of ADS_CENA_AJUSTE_2110_ARQUIVOS) {
 assert.equal(semAdsCenaAjuste2110('fora\n', 'lib/fora.ts'), 'fora\n')
 const declared = new Set([...ADS_CENA_AJUSTE_2110_ARQUIVOS, ...ADS_CENA_AJUSTE_2110_NOVOS])
 const changed = git('diff', '--ignore-cr-at-eol', '--name-only', ADS_CENA_AJUSTE_2110_BASE).trim().split('\n').filter(Boolean)
+changed.splice(0, changed.length, ...changed.filter(p => !KIDS_VENDA_2010_ARQUIVOS.includes(p) && !KIDS_VENDA_2010_NOVOS.includes(p))) // KINEO-KIDS-VENDA-2010 — só arquivos declarados pela camada posterior
 assert.ok(changed.length > 0 && changed.every(p => declared.has(p)), 'escopo completo do complemento, sem arquivo estranho')
 for (const p of ADS_CENA_AJUSTE_2110_NOVOS) assert.ok(readFileSync(p).length > 0, 'artefato novo existe: ' + p)
 const oldUndo = source('scripts/test-support/desfaz-ads-cena-2110.mjs')
 assert.ok(oldUndo.indexOf('texto = semAdsCenaAjuste2110(texto, p)') < oldUndo.indexOf("const rel = String(p ?? '')"), 'desfaz da camada mais nova vem primeiro')
 const subjects = git('log', '--format=%s', ADS_CENA_AJUSTE_2110_BASE + '..HEAD').trim().split('\n').filter(Boolean)
+subjects.splice(0, subjects.length, ...subjects.filter(s => !s.includes(MARCA_KIDS_VENDA_2010) && !s.includes('KINEO-KIDS-VENDA-LIGA-2110'))) // KINEO-KIDS-VENDA-2010 — cada camada conserva sua marca/autorização
 assert.ok(subjects.every(s => s.startsWith('KINEO-ADS-CENA-2110 ') && s.includes('[TRAVA 8.2 — vai do fundador 21/10 "A e B, vamo time"]')), 'marca e trava em todos os commits do complemento')
 console.log('ok desfaz encadeado, fontes exatas, CRLF, idempotência, mutantes de integridade e escopo do complemento')

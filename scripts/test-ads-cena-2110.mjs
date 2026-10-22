@@ -1,3 +1,4 @@
+import { KIDS_VENDA_2010_ARQUIVOS, KIDS_VENDA_2010_NOVOS, MARCA_KIDS_VENDA_2010 } from './test-support/desfaz-kids-venda-2010.mjs' // KINEO-KIDS-VENDA-2010 — a venda do Cartoon sai da conta alheia, com desfaz exato próprio
 // KINEO-ADS-CENA-2110 — principal guardião, executado com o loader VM offline da casa.
 // Nenhuma credencial, env, banco, rede, fal ou OpenAI real. Dublês medem efeitos; mutantes alteram fontes executadas.
 import assert from 'node:assert/strict'
@@ -371,6 +372,7 @@ for (const path of ADS_CENA_2110_ARQUIVOS) {
   assert.equal(semAdsCena2110(original.replace(/\n/g, '\r\n'), path), baseline.replace(/\n/g, '\r\n'), 'desfaz preserva CRLF: ' + path)
   const delta = execFileSync('git', ['diff', '--ignore-cr-at-eol', '--unified=0', ADS_CENA_2110_BASE, '--', path], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
   const unmarked = delta.split('\n').filter(l => l.startsWith('+') && !l.startsWith('+++') && l.trim() !== '+' && !l.includes(MARCA_ADS_CENA_2110))
+  unmarked.splice(0, unmarked.length, ...unmarked.filter(l => !l.includes(MARCA_KIDS_VENDA_2010))) // KINEO-KIDS-VENDA-2010 — as reâncoras posteriores têm marca própria e desfaz exato
   assert.equal(unmarked.length, 0, 'toda linha tocada carrega marca: ' + path)
 }
 for (const path of [...Object.values(F).filter(p => p.includes('/cena/') || p === F.captions), F.route, 'scripts/test-ads-cena-2110.mjs']) assert.ok(ADS_CENA_2110_NOVOS.includes(path), 'novo arquivo coberto no desfaz: ' + path)
@@ -378,8 +380,10 @@ assert.equal(semAdsCena2110('untouched\n', 'lib/elsewhere.ts'), 'untouched\n')
 assert.throws(() => semAdsCena2110(read(F.start) + '\n// KINEO-ADS-CENA-2110 inesperado\n', F.start), /desfaz-ads-cena-2110/)
 const declared = new Set([...ADS_CENA_2110_ARQUIVOS, ...ADS_CENA_2110_NOVOS])
 const changedFiles = execFileSync('git', ['diff', '--ignore-cr-at-eol', '--name-only', ADS_CENA_2110_BASE], { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
+changedFiles.splice(0, changedFiles.length, ...changedFiles.filter(p => !KIDS_VENDA_2010_ARQUIVOS.includes(p) && !KIDS_VENDA_2010_NOVOS.includes(p))) // KINEO-KIDS-VENDA-2010 — só arquivos declarados pela camada posterior
 assert.ok(changedFiles.length > 0 && changedFiles.every(p => declared.has(p)), 'escopo completo da camada Cena: somente arquivos declarados')
 const subjects = execFileSync('git', ['log', '--format=%s', ADS_CENA_2110_BASE + '..HEAD'], { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
+subjects.splice(0, subjects.length, ...subjects.filter(s => !s.includes(MARCA_KIDS_VENDA_2010) && !s.includes('KINEO-KIDS-VENDA-LIGA-2110'))) // KINEO-KIDS-VENDA-2010 — cada camada conserva sua marca/autorização
 assert.ok(subjects.length > 0 && subjects.every(s => s.startsWith(MARCA_ADS_CENA_2110 + ' ') && s.includes('[TRAVA 8.2 — vai do fundador 21/10 "A e B, vamo time"]')), 'todo commit da camada Cena leva marca e autorização exatas')
 console.log('ok desfaz mais novo exato em onze arquivos, idempotente, CRLF, marcas e escopo completo')
 function changed(path, from, to) {
