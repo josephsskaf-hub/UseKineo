@@ -1,26 +1,33 @@
 # KINEO-KIDS-VENDA-LIGA-2110 — venda do Cartoon
 
-**FATO CONFIRMADO — escopo, 21/10/2026:** integração na própria `codex/kids-venda-2010`, ponta inicial `99096acad51e9011ee0baaa4b05544f320aa3eb9`, com `origin/main` fixada em `72d23210c829278f81e39f7d7cdf42826137297c` (167 commits a incorporar, `git rev-list --count 99096acad..72d23210c`). Trabalho em worktree isolada; a working tree principal e sua `main` foram preservadas. Autorização desta tarefa: `[TRAVA 8.2 — vai do fundador 21/10 "vamos ligar o Cartoon e vamos ver"]`.
+**FATO CONFIRMADO — 21/10/2026:** integrada a `origin/main` `72d23210c` na própria `codex/kids-venda-2010`, desde `99096acad` (167 commits incorporados, `git rev-list --count 99096acad..72d23210c`). Código final verificado: `b4327f23`. Todos os commits desta tarefa levam `[TRAVA 8.2 — vai do fundador 21/10 "vamos ligar o Cartoon e vamos ver"]`.
 
-**FATO CONFIRMADO — IMPLEMENTADO:** venda ligada em `lib/kidsVenda/kidsVenda.ts:34`; abertura pública exige também o template ligado (`:40`, `lib/kidsCartoon/kidsCartoon.ts:23`). Preservados US$29/mês com 30 desenhos, pack US$49/30, primeiro grátis com marca-d'água, duração de 15s, Seedance e tetos existentes (`lib/kidsVenda/kidsVenda.ts:48`, `:73`, `:74`, `:87`, `:94`).
+**FATO CONFIRMADO — IMPLEMENTADO:** `KIDS_SALES_LIVE=true` (`lib/kidsVenda/kidsVenda.ts:34`), com template já ligado (`lib/kidsCartoon/kidsCartoon.ts:23`). Preservados US$29/mês/30 desenhos, pack US$49/30, primeiro grátis com marca-d'água, 15s, Seedance e tetos (`lib/kidsVenda/kidsVenda.ts:48`, `:73`, `:74`, `:87`, `:94`). Neste módulo, a única diferença para a ponta inicial é a flag.
 
-**FATO CONFIRMADO — conflitos resolvidos:**
+**FATO CONFIRMADO — seis conflitos resolvidos:**
 
 | Arquivo | Resolução |
 |---|---|
-| `app/api/generate-video-cinematic/route.ts` | Mantidas admissão `kids_order` da venda e as duas importações de som da main; restante do merge preserva ambas as camadas. |
-| `scripts/test-mcp-studio-2010.mjs` | Mantidas proteções da main e isolamento exato da camada de venda. |
-| `scripts/test-meta95-personagem-2010.mjs` | Mantida evolução da main e reâncora da venda fora da conta da folha de personagem. |
-| `scripts/test-support/desfaz-bebe-que-fala-2010.mjs` | Cadeia de desfaz preserva as camadas posteriores e remove a venda primeiro. |
-| `scripts/test-support/desfaz-menu-ugc-2010.mjs` | Preservadas as duas camadas posteriores do merge. |
-| `scripts/test-trilha-15s-1610.mjs` | Mantidas regras da main e separação da camada de venda. |
+| `app/api/generate-video-cinematic/route.ts:232` | Preservadas admissão `kids_order`, som novo e todas as camadas da main. |
+| `scripts/test-mcp-studio-2010.mjs:302` | Main preservada; venda fora da conta do conector. |
+| `scripts/test-meta95-personagem-2010.mjs:354` | Main preservada; venda desfeita antes da comparação. |
+| `scripts/test-support/desfaz-bebe-que-fala-2010.mjs:95` | Venda sai primeiro; demais camadas preservadas. |
+| `scripts/test-support/desfaz-menu-ugc-2010.mjs:50` | Cadeia nova da main preservada, passando pelo bebê. |
+| `scripts/test-trilha-15s-1610.mjs:297` | Main preservada; somente linhas Kids fora da conta. |
 
-**FATO CONFIRMADO — visual:** `KidsVendaPanel` permanece montado antes do template novo (`app/(dashboard)/kids-cartoon/page.tsx:20`); `KidsVendaCards` continua nas páginas públicas/pricing. Cores, bordas, foco e mobile acompanham a tela clara. `KidsCartoonTemplate.tsx` e o módulo Kids da main permanecem idênticos à base; nenhuma tela antiga foi recuperada. Prévia estática autocontida com estado de entrega ilustrativo, e imagem antes/depois em `docs/previews/kids-venda-liga-2110.html` e `.png`.
+**FATO CONFIRMADO — visual:** painel na tela nova (`app/(dashboard)/kids-cartoon/page.tsx:20`), cartões claros/azuis, foco e mobile ajustados. O template novo e `lib/engineWall.ts`/`lib/homeVideoCuration.ts` são idênticos à main. Comparação estática desktop/mobile, com pedidos ilustrativos: `docs/previews/kids-venda-liga-2110.html`, `.png` e `-mobile.png`.
 
-**FATO CONFIRMADO — guardiões reancorados:** MCP Studio, Meta95 personagem, Trilha 15s, Saída Região e Negação de Cena/Ads Cena/Cena Ajuste isolam somente a camada Kids declarada. A cadeia `desfaz-ads-cena-ajuste` → demais camadas e `desfaz-bebe-que-fala` remove a venda primeiro. O desfaz Kids restaura exatamente 18 arquivos à main `72d23210c`, preservando CRLF e idempotência (`scripts/test-support/desfaz-kids-venda-2010.mjs:27`; tabela `desfaz-kids-venda-2010-trocas.json`). O guardião da venda exige público liberado para pack/piloto; desligamento em memória, template fechado, antifarm, cobrança e 26 mutantes continuam cobertos (`scripts/test-kids-venda-2010.mjs:126`, `:283`).
+**FATO CONFIRMADO — guardiões reancorados:** MCP Studio/original e ajuste; Meta95 personagem/original e ajuste; Trilha 15s; Saída Região; Ads Cena/Ajuste; Negação de Cena; Contrato Clássicos; Veo marcado/IA; E4; Home clara; Verbatim. Só a camada Kids declarada sai das contas alheias. O desfaz restaura **26 arquivos exatamente à main**, com CRLF/idempotência, e o guardião Kids conserva **26 mutantes**, público liberado e cenários fechados em memória (`scripts/test-support/desfaz-kids-venda-2010.mjs:27`; `scripts/test-kids-venda-2010.mjs:126`, `:283`).
 
-**FATO CONFIRMADO — TESTADO LOCALMENTE, 21/10/2026:** tabela antes × depois e comparação de checagens serão preenchidas ao terminar a suíte integral. Execução offline com rede, leitura de `.env` e herança de credenciais bloqueadas; fixtures e mutantes em cópia isolada. Sem alteração de prazos/assertions do produto para acomodar o ambiente.
+**FATO CONFIRMADO — TESTADO LOCALMENTE, 21/10/2026:**
 
-**QUESTÃO PENDENTE / DESCONHECIDO — produção:** migration informada como aplicada em 20/10 pelo fundador nesta tarefa; não houve acesso ao banco para reconferir. Não houve build, deploy, PR ou chamadas pagas. A venda está habilitada no código da branch, sem publicação ou pagamento externo validado nesta rodada.
+| Suíte | Executados | Verdes | Vermelhos |
+|---|---:|---:|---:|
+| Main `72d23210c` | 976 | 825 | 151 |
+| Venda, resultado consolidado | 977 | 826 | Os mesmos 151 |
 
-**SUGESTÃO — o que pode melhorar / próximo passo recomendado:** avaliar a publicação em rodada própria; depois comprovar pedido externo → entrega → pagamento. Suíte local e interruptor ligado não comprovam venda em produção.
+**FATO CONFIRMADO — prova:** integral no produto final, seguida da repetição dos **20 testes afetados** após todas as reâncoras, com árvore limpa. `newRed=[]`, `changedRedChecks=[]`, nenhum teste removido; zero bloqueios offline/timeouts. `tsc --noEmit --incremental false` verde nos dois lados; nenhum TS/TSX mudou depois da verificação final do produto. `git diff --check 72d23210c HEAD` verde. Logs e tentativas originais preservados em `C:/tmp/kids-venda-liga-2110/`: `origin-main.json`, `kids-venda-final.json`, `kids-venda-scope.json`, `kids-venda-consolidated-comparison.json`, `origin-main-tsc.json` e `target-tsc.json`. Rede, leitura de `.env` e credenciais foram bloqueadas na suíte.
+
+**QUESTÃO PENDENTE / DESCONHECIDO — produção:** migration aplicada em 20/10 segundo o fundador; banco não consultado. Sem build, deploy, PR ou chamada paga nesta tarefa. A main e sua working tree foram preservadas. Habilitado/testado na branch; publicação, entrega e pagamento externo não validados nesta rodada.
+
+**SUGESTÃO — próximo passo recomendado / o que pode melhorar:** em etapa própria, publicar e comprovar pedido externo → entrega → pagamento; os 151 vermelhos herdados continuam registrados, sem mascarar novos erros.
