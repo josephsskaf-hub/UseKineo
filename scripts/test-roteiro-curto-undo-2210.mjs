@@ -7,6 +7,7 @@ import path from 'node:path'
 import vm from 'node:vm'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { semAdsCena95PlanFailed2110 } from './test-support/desfaz-ads-cena-95-plan-failed-2110.mjs' // KINEO-ADS-CENA-95-PLAN-FAILED-2110
 
 const argument = process.argv.find((arg) => arg.startsWith('--root='))?.slice('--root='.length)
 const ROOT = path.resolve(argument || process.env.TEST_ROOT || path.join(path.dirname(fileURLToPath(import.meta.url)), '..'))
@@ -69,7 +70,7 @@ try {
   // Execute the adapter actually on disk. Its private hunk data stays private in production;
   // this VM-only observation avoids adding a new public export solely for this proof.
   const context = vm.createContext({ fetch: unavailable, require: unavailable, setTimeout: unavailable })
-  const helper = read(HELPER)
+  const helper = semAdsCena95PlanFailed2110(read(HELPER), HELPER) // KINEO-ADS-CENA-95-PLAN-FAILED-2110 — executar o helper Roteiro exato antes da VM.
   vm.runInContext(helper.replace(/^export\s+/gm, '') + '\nglobalThis.proof = { undo: semRoteiroCurto2210, hunks: HUNKS }', context, { timeout: 3000, filename: HELPER })
   const { undo, hunks } = context.proof
   const actualScope = Object.fromEntries(Object.entries(hunks).map(([file, changes]) => [file, changes.length]))
@@ -77,7 +78,7 @@ try {
     'Adapter scope must be exactly the 40 existing task sources/131 hunks; unrelated sources must survive')
 
   for (const [file, changes] of Object.entries(hunks)) {
-    const candidate = read(file)
+    const candidate = semAdsCena95PlanFailed2110(read(file), file) // KINEO-ADS-CENA-95-PLAN-FAILED-2110 — manter os725 checks e seus mutantes originais.
     const base = execFileSync('git', ['show', BASE + ':' + file], { cwd: ROOT, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, windowsHide: true })
     const eol = candidate.includes('\r\n') ? '\r\n' : '\n'
     const candidateLf = candidate.replace(/\r\n/g, '\n')

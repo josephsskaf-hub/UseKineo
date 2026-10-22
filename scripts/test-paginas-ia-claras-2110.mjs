@@ -2,7 +2,7 @@
 // páginas de entrada do ChatGPT no visual claro da home. Prova, lendo os arquivos REAIS (sem rede, env ou banco):
 //   A. nenhum fundo escuro nos 9 modelos (toda cor de fundo literal é clara; o preto só existe como véu translúcido de selo);
 //   B. o menu do topo e os 4 cards da home em cada modelo, os cards logo abaixo do título (o mesmo HomeThreeCards da home);
-//   C. <title>, description, canonical, hreflang e JSON-LD intocados (linhas comparadas com a base 3e7ef8a42);
+//   C. <title>, description, canonical, hreflang e JSON-LD intocados (linhas comparadas com a base 2b2ea9397);
 //   D. a vitrine velha saiu (nada de WallMedia/ExampleLiveMedia/ExampleVideoPlayer/NicheHouseFilm na tela) e a nova é a da
 //      /claude-connector; lib/engineWall.ts e lib/homeVideoCuration.ts iguais à base;
 //   E. /claude-connector: utm_source/referrer com chatgpt|openai abre a aba ChatGPT e troca "Try it in Claude" por
@@ -21,7 +21,7 @@ import { semPaginasIaClaras2110, PAGINAS_IA_CLARAS_2110_ARQUIVOS, PAGINAS_IA_CLA
 import { semAdsCena952110, ADS_CENA_95_2110_ARQUIVOS } from './test-support/desfaz-ads-cena-95-2110.mjs'
 import { semKidsVenda2010, KIDS_VENDA_2010_ARQUIVOS } from './test-support/desfaz-kids-venda-2010.mjs'
 
-const BASE = '3e7ef8a42ea6c1f8566a6dbb55f10cc838b0dbdb' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
+const BASE = '2b2ea93971ca7fef45ec1bfa46d94d48281bd934' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 const rd = (p) => readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
 const base = (p) => execFileSync('git', ['show', `${BASE}:${p}`], { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }).replace(/\r\n/g, '\n')
 let falhas = 0, oks = 0
