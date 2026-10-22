@@ -4,7 +4,8 @@ import { createHash } from 'node:crypto'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 export const MARCA_ADS_CENA_95_2110 = 'KINEO-ADS-CENA-95-2110'
-export const ADS_CENA_95_2110_BASE = '72d23210c829278f81e39f7d7cdf42826137297c'
+export const ADS_CENA_95_2110_FORK_BASE = '72d23210c829278f81e39f7d7cdf42826137297c'
+export const ADS_CENA_95_2110_BASE = 'be103e4930ee45111884b19230225474ca8fe60c' // KINEO-ADS-CENA-95-2110 — desfaz somente95, preservando a venda Kids já integrada.
 const table = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-ads-cena-95-2110-fontes.json'), 'utf8'))
 export const ADS_CENA_95_2110_ARQUIVOS = Object.freeze(Object.keys(table))
 export const ADS_CENA_95_2110_NOVOS = Object.freeze([

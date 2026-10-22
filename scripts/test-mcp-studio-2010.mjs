@@ -24,7 +24,7 @@ import { MARCA_AVATAR_ESTORNO_2010, REGRAS_AVATAR_ESTORNO_2010 } from './test-su
 import { MARCA_LEGENDA_BENGALI_2010, REGRAS_LEGENDA_BENGALI_2010 } from './test-support/desfaz-legenda-bengali-2010.mjs' // KINEO-AVATAR-ESTORNO-2010 — entrega posterior, com desfaz exato próprio
 import fs from 'node:fs'
 import path from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { pathToFileURL, fileURLToPath } from 'node:url' // KINEO-ADS-CENA-95-2110 — caminho real no Windows, sem percent-encoding no nome da pasta.
 import { execFileSync } from 'node:child_process'
 import { createHash, randomBytes } from 'node:crypto'
 import { registerHooks } from 'node:module'
@@ -45,8 +45,9 @@ import { ADS_NOTA9_2110_ARQUIVOS, ADS_NOTA9_2110_NOVOS, MARCA_ADS_NOTA9_2110 } f
 import { ADS_CENA_2110_ARQUIVOS, ADS_CENA_2110_NOVOS } from './test-support/desfaz-ads-cena-2110.mjs' // KINEO-ADS-CENA-2110 — reancorado: o anúncio por cena (21/10, entrega de depois, desfaz próprio) não é desta
 import { ADS_BOLA_2110_ARQUIVOS, ADS_BOLA_2110_NOVOS } from './test-support/desfaz-ads-bola-2110.mjs'; import { ADS_QUALIDADE_2110_ARQUIVOS, ADS_QUALIDADE_2110_NOVOS } from './test-support/desfaz-ads-qualidade-2110.mjs' // KINEO-ADS-QUALIDADE-2110 — reancorado: o anúncio da bola e a qualidade do Studio Ads (21/10, entregas de depois, desfaz próprio) não são desta
 
+import { KIDS_VENDA_2010_ARQUIVOS, MARCA_KIDS_VENDA_2010 } from './test-support/desfaz-kids-venda-2010.mjs' // reancorado KINEO-KIDS-VENDA-2010
 const require = createRequire(import.meta.url)
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..')
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..') // KINEO-ADS-CENA-95-2110 — permite executar os checks F4 também em Área de Trabalho.
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
 const read = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
 const raw = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8')
@@ -298,6 +299,7 @@ changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) 
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !Object.hasOwn(REGRAS_AVATAR_ESTORNO_2010, f) && !Object.hasOwn(REGRAS_LEGENDA_BENGALI_2010, f))) // KINEO-AVATAR-ESTORNO-2010 — só arquivos das camadas posteriores verificadas byte a byte por seus guardiões
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => ![...ADS_BOLA_2110_ARQUIVOS, ...ADS_BOLA_2110_NOVOS, ...ADS_QUALIDADE_2110_ARQUIVOS, ...ADS_QUALIDADE_2110_NOVOS, 'docs/HANDOFF-ADS-BOLA-2110.md', 'docs/ADS-BOLA-DIAGNOSTICO-2026-10-21.md', 'scripts/test-support/desfaz-legenda-bengali-2010.mjs'].includes(f))) // KINEO-ADS-QUALIDADE-2110 — reancorado: os arquivos da bola e da qualidade (entregas de depois) não são desta
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => ![...ADS_CENA_2110_ARQUIVOS, ...ADS_CENA_2110_NOVOS].includes(f))) // KINEO-ADS-CENA-2110 — reancorado: os arquivos do anúncio por cena (entrega de depois, desfaz próprio) não são desta
+changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !KIDS_VENDA_2010_ARQUIVOS.includes(f))) // KINEO-KIDS-VENDA-2010 — a venda do desenho infantil tem desfaz exato próprio
 ok(changedExisting.every((f) => MCP_STUDIO_2010_ARQUIVOS.includes(f)), `(F3) o diff contra a base só toca arquivos declarados (existentes alterados: ${changedExisting.join(', ') || 'nenhum ainda commitado'})`)
 const commits = git('log', '--format=%s', `${MCP_STUDIO_2010_BASE}..HEAD`).split('\n').filter(Boolean).filter((s) => !s.includes(MARCA_META95_PERSONAGEM_2010)).filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010')) /* reancorado KINEO-BEBE-QUE-FALA-2010 */ // reancorado KINEO-META95-PERSONAGEM-2010: os commits da folha de personagem levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_HOME_CARDS_CLAROS_2010))) // KINEO-HOME-CARDS-CLAROS-2010 — os commits do véu mais claro (entrega de depois) levam a marca deles
@@ -313,6 +315,8 @@ commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_ADS
 commits.splice(0, commits.length, ...commits.filter((s) => !s.startsWith(MARCA_AVATAR_ESTORNO_2010 + ' ') && !s.startsWith(MARCA_LEGENDA_BENGALI_2010 + ' '))) // KINEO-AVATAR-ESTORNO-2010 — cada entrega posterior guarda seus próprios commits
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes('KINEO-ADS-BOLA-2110') && !s.includes('KINEO-ADS-QUALIDADE-2110'))) // KINEO-ADS-QUALIDADE-2110 — reancorado: os commits (e os merges da fila) da bola e da qualidade levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes('KINEO-ADS-CENA-2110'))) // KINEO-ADS-CENA-2110 — reancorado: os commits (e os merges da fila) do anúncio por cena levam a marca deles
+commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_KIDS_VENDA_2010) && !s.includes('KINEO-KIDS-VENDA-LIGA-2110'))) // KINEO-KIDS-VENDA-2010 — os commits da venda levam sua marca
+commits.splice(0, commits.length, ...commits.filter((s) => !s.startsWith('KINEO-ADS-CENA-95-2110 ') && !s.startsWith('KINEO-ADS-CENA-95-2110: '))) // KINEO-ADS-CENA-95-2110 — somente commits da camada posterior, com trava própria.
 ok(commits.every((s) => s.includes(MARCA_MCP_STUDIO_2010)), `(F4) todo commit da entrega leva a marca no assunto (${commits.length} commit(s))`)
 ok(semMcpStudio2010('sem marca', 'lib/claudeConnect.ts') === 'sem marca' && semMcpStudio2010(raw(F.page), 'outro/arquivo.ts') === raw(F.page), '(F5) desfaz é idempotente fora do alvo')
 

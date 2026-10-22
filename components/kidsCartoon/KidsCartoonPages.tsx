@@ -12,6 +12,7 @@ import Link from 'next/link'
 import Footer from '@/components/Footer'
 import UgcVideo from '@/components/ugc/UgcVideo'
 import KidsCtaLink from '@/components/kidsCartoon/KidsCtaLink'
+import { KidsVendaCards } from '@/components/kidsCartoon/KidsVendaCards' // KINEO-KIDS-VENDA-2010 — piloto/pack/grátis (só com KIDS_SALES_LIVE; 16 línguas; sem promessa de renda)
 import { UGC_PAGE_CSS } from '@/components/ugc/UgcPages'
 import { KIDS_CARTOON_PAGES_LIVE, KIDS_CHARACTERS, KIDS_IDEAS } from '@/lib/kidsCartoon/kidsCartoon'
 import { HOME_KIDS_CARD_CLIP, HOME_KIDS_CARD_CSS } from '@/lib/ui/homeKidsCard'
@@ -166,6 +167,7 @@ export function KidsCartoonPage({ lang }: { lang: KidsLang }) {
           <ul className="kug-rules">{KIDS_IDEAS.map((i) => <li key={i.id}>{i[lang]}</li>)}</ul>
         </div>
       </section>
+      <div className="kug-wrap"><KidsVendaCards lang={lang} surface="page" /></div>{/* KINEO-KIDS-VENDA-2010 — os planos (piloto US$ 29/mês · pack US$ 49 · 1º grátis) antes do FAQ; nada com a venda desligada */}
       <section className="kug-sec" aria-labelledby="kk-faq">
         <div className="kug-wrap">
           <h2 id="kk-faq">{c.faqHeading}</h2>

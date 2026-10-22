@@ -88,6 +88,8 @@ import { BULK_PACK_REPLACEMENT_PATH, BULK_PACK_UNAVAILABLE_MESSAGE, BULK_PACK_UN
 import { ADS_ACCESS_COLUMN } from '@/lib/ads/offer'
 import { KIT_BF_PACK_ID } from '@/lib/ads/kitBfSale' // KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday (US$ 49, pagamento único)
 import { buildKitBfAndRedirect } from '@/lib/stripe/kitBfCheckout' // KINEO-KIT-BF-VENDA-2010
+import { buildKidsVendaAndRedirect } from '@/lib/stripe/kidsVendaCheckout' // KINEO-KIDS-VENDA-2010 — piloto infantil (assinatura, price_data recorrente inline) e pack de 30 (pagamento único); preço só do servidor
+import { KIDS_AUTOPILOT_ID, KIDS_PACK_ID } from '@/lib/kidsVenda/kidsVenda' // KINEO-KIDS-VENDA-2010
 import { annualEarlyOfferPriceMinor } from '@/lib/billing/annualEarlyOffer' // KINEO-KIT-BF-VENDA-2010 — "2 meses grátis no anual" até 21/11 (o MAIOR desconto, sem somar)
 import {
   attributeAffiliateForUser,
@@ -4379,6 +4381,7 @@ export async function GET(req: NextRequest) {
         return await buildDfyFilms3AndRedirect(req)
       }
       if (packParam === KIT_BF_PACK_ID) return await buildKitBfAndRedirect(req, { recordCheckoutEvent, browserSessionIdFrom, checkoutFailureReason, oneTimeIdempotencyKey }) // KINEO-KIT-BF-VENDA-2010 — ANTES do fallback buildPackAndRedirect (que venderia um Starter Pack no lugar)
+      if (packParam === KIDS_PACK_ID || packParam === KIDS_AUTOPILOT_ID) return await buildKidsVendaAndRedirect(req, { recordCheckoutEvent, browserSessionIdFrom, checkoutFailureReason, oneTimeIdempotencyKey }) // KINEO-KIDS-VENDA-2010 — ANTES do fallback buildPackAndRedirect (que venderia um Starter Pack no lugar); KIDS_SALES_LIVE=false recusa quem não é da casa
       if (isBulkPackId(packParam)) {
         const closedPack = await refuseClosedBulkPackCheckout(req, packParam) // KINEO-PAGINAS-QUE-VENDEM-2026-10-12
         if (closedPack) return closedPack

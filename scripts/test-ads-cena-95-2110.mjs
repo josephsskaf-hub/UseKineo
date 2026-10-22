@@ -4,7 +4,8 @@ import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { CALIBRATION_CASES, DEFAULT_FOUNDER_PHOTOS } from './ads-cena-calibracao-2110.mjs'
-import { semAdsCena952110, ADS_CENA_95_2110_BASE, ADS_CENA_95_2110_ARQUIVOS, ADS_CENA_95_2110_NOVOS, MARCA_ADS_CENA_95_2110 } from './test-support/desfaz-ads-cena-95-2110.mjs'
+import { semAdsCena952110, ADS_CENA_95_2110_BASE, ADS_CENA_95_2110_FORK_BASE, ADS_CENA_95_2110_ARQUIVOS, ADS_CENA_95_2110_NOVOS, MARCA_ADS_CENA_95_2110 } from './test-support/desfaz-ads-cena-95-2110.mjs'
+import { semKidsVenda2010, KIDS_VENDA_2010_ARQUIVOS } from './test-support/desfaz-kids-venda-2010.mjs' // KINEO-ADS-CENA-95-2110 — prova as duas camadas, sem apagar a venda ao desfazer95.
 const plain = x => JSON.parse(JSON.stringify(x)), same = (a,b) => assert.deepEqual(plain(a),plain(b))
 const read = p => readFileSync(p,'utf8').replace(/\r\n/g,'\n')
 const git = (...args) => execFileSync('git',args,{encoding:'utf8',maxBuffer:1<<26}).replace(/\r\n/g,'\n')
@@ -99,7 +100,7 @@ async function captionPreflightProof(over={}) {
 }
 await captionPreflightProof();console.log('ok legenda com texto impossível refaz/falha antes de mídia e cobrança, sem truncar')
 await nativePreflightProof();console.log('ok fala por tomada:42 palavras incompatíveis refazem/falham antes de mídia e cobrança')
-await offProof();console.log('ok canário desligado: cinco respostas, eventos, dados e efeitos idênticos à base72d23210')
+await offProof();console.log('ok canário desligado: cinco respostas, eventos, dados e efeitos idênticos à base'+ADS_CENA_95_2110_BASE.slice(0,9))
 await startCostProof();console.log('ok start dry/live/evento devolvem custo completo do plano95, sem alterar41cr')
 for(const [label,proof,file,from,to] of [
   ['resposta legada mudou',offProof,F.start,'usd_estimate: usd,','usd_estimate: {totalUsd:999},'],
@@ -122,6 +123,14 @@ for(const p of ADS_CENA_95_2110_ARQUIVOS) {
   assert.notEqual(semAdsCena952110(actual.replaceAll(MARCA_ADS_CENA_95_2110,'REMOVED'),p),before,'não restaurar marca ausente')
 }
 assert.equal(semAdsCena952110('other\n','lib/other.ts'),'other\n')
+for(const p of KIDS_VENDA_2010_ARQUIVOS) {
+  const current=read(p), kidsOnly=git('show',ADS_CENA_95_2110_BASE+':'+p), beforeKids=git('show',ADS_CENA_95_2110_FORK_BASE+':'+p)
+  assert.equal(semAdsCena952110(current,p),kidsOnly,'tirar somente95 preserva Kids byte a byte: '+p)
+  assert.equal(semKidsVenda2010(current,p),beforeKids,'tirar95 e Kids restaura72 exata: '+p)
+  assert.equal(semKidsVenda2010(semAdsCena952110(current,p),p),beforeKids,'composição95→Kids: '+p)
+}
+assert.equal(git('diff',ADS_CENA_95_2110_BASE,'--','app','components','lib/kidsVenda','lib/stripe/kidsVendaCheckout.ts','migrations_pending/2026-10-20_kids_venda.sql'),'','produto Kids e app preservados da main')
+console.log('ok composição exata:95→be103e493 com Kids preservado→Kids→72d23210, sem diff no produto Kids')
 const oldUndo=read('scripts/test-support/desfaz-ads-cena-ajuste-2110.mjs')
 assert.ok(oldUndo.indexOf('texto = semAdsCena952110(texto, p)')<oldUndo.indexOf("const rel = String(p ?? '')"))
 const declared=new Set([...ADS_CENA_95_2110_ARQUIVOS,...ADS_CENA_95_2110_NOVOS])

@@ -1,3 +1,4 @@
+import { semKidsVenda2010 } from './desfaz-kids-venda-2010.mjs' // KINEO-KIDS-VENDA-2010 — a venda integrada em 21/10 é a camada mais nova
 // KINEO-ADS-CENA-AJUSTE-2110 — camada posterior: restaura a snapshot exata anterior antes da camada Cena original.
 // Fontes inteiras conhecidas, hash SHA-256 de LF, CRLF preservado. Fonte marcada divergente falha fechada.
 import { readFileSync } from 'node:fs'
@@ -23,6 +24,7 @@ export const ADS_CENA_AJUSTE_2110_NOVOS = Object.freeze([
 const lf = s => s.replace(/\r\n/g, '\n')
 export function semAdsCenaAjuste2110(texto, p) {
   texto = semAdsCena952110(texto, p) // KINEO-ADS-CENA-95-2110 — mais nova sai antes da leitura de qualquer marca anterior.
+  texto = semKidsVenda2010(texto, p) // KINEO-KIDS-VENDA-2010 — tira só a venda antes das camadas anteriores
   const rel = String(p ?? '').replace(/\\/g, '/')
   const known = table[rel]
   if (!known || typeof texto !== 'string' || !texto.includes(MARCA_ADS_CENA_AJUSTE_2110)) return texto

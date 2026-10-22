@@ -500,6 +500,9 @@ async function rodaCheckout({ over = {}, url, pais, idioma = null, semLogin = fa
     buildDfyFilms3AndRedirect: nega('buildDfyFilms3AndRedirect'),
     KIT_BF_PACK_ID: 'kit_bf', // reancorado KINEO-KIT-BF-VENDA-2010 — o despacho do GET ganhou o Kit Black Friday (US$ 49)
     buildKitBfAndRedirect: nega('buildKitBfAndRedirect'), // reancorado KINEO-KIT-BF-VENDA-2010
+    KIDS_PACK_ID: 'kids_pack', // reancorado KINEO-KIDS-VENDA-2010 — o despacho do GET ganhou o pack/piloto do desenho infantil
+    KIDS_AUTOPILOT_ID: 'kids_autopilot', // reancorado KINEO-KIDS-VENDA-2010
+    buildKidsVendaAndRedirect: nega('buildKidsVendaAndRedirect'), // reancorado KINEO-KIDS-VENDA-2010
     isBulkPackId: () => false,
     buildBulkPackAndRedirect: nega('buildBulkPackAndRedirect'),
     buildAutopilotPilotAndRedirect: nega('buildAutopilotPilotAndRedirect'),

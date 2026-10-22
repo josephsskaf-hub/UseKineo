@@ -382,6 +382,7 @@ if (rotaBase) {
   const worktreeDiff = git(['diff', '--no-color', '-U0', BASE, '--', ROTA]).replace(/\r/g, '')
   const d = worktreeDiff.length ? worktreeDiff : diff
   const adicionadas = d.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).map((l) => l.slice(1))
+  adicionadas.splice(0, adicionadas.length, ...adicionadas.filter((l) => !l.includes('KINEO-KIDS-VENDA-2010'))) // KINEO-KIDS-VENDA-2010 — só a venda do Cartoon, com marca e desfaz exato próprios, sai da conta do Veo
   const removidas = d.split('\n').filter((l) => l.startsWith('-') && !l.startsWith('---')).map((l) => l.slice(1))
   const permitidas = [blocoMarcado(rota), fatia(rota, '        // [TRAVA 8.2] VEO-MARCADO-2026-09-29 — roteiro marcado: blocos do autor', LINHA_RELATO), IMPORT_MARCADO,
     // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-SEEDANCE-BLOCOS-2026-09-29 — o bloco do Seedance 35/60/90 s (roteiro marcado com mais blocos que clipes) mora em peça própria, marcada, sem import novo; este guardião a aceita
