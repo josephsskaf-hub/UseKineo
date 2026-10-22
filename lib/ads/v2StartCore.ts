@@ -45,6 +45,8 @@ import { cenaCosts } from '@/lib/ads/cena/adapters' // KINEO-ADS-CENA-2110
 import { cena95CostTableOf } from '@/lib/ads/cena/plan95' // KINEO-ADS-CENA-95-2110
 import type { Cena95Plan } from '@/lib/ads/cena/plan95' // KINEO-ADS-CENA-95-PACING-2110
 import { cena95Preflight } from '@/lib/ads/cena/preflight95' // KINEO-ADS-CENA-95-PACING-2110
+import { CENA95_LIVE } from '@/lib/ads/cena/live' // KINEO-ADS-CENA-RETOMADA-2110
+import { preflightCenaAjuste } from '@/lib/ads/cena/ajustePreflight' // KINEO-ADS-CENA-RETOMADA-2110
 
 /** Prazo para abrir envios novos nesta chamada (o resto sai pelo avanço da tela/cron). */
 const DISPATCH_BUDGET_MS = 40_000
@@ -78,6 +80,8 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     if (order.status !== 'draft' && order.status !== 'planned') return v2Fail('not_startable', 409, { status: order.status })
     const plan = order.plan
     const cena = cenaOf(plan); if (cena && !cenaEnabled(isAdsInternalEmail(user.email))) return v2Fail('cena_internal_only', 403) // KINEO-ADS-CENA-2110
+    if (cena && 'quality95' in cena.plan && !CENA95_LIVE) return v2Fail('cena95_disabled_replan', 409, { reason: 'O motor 9,5 está desligado. Gere um novo plano AJUSTE antes de iniciar; nenhum crédito foi debitado.' }) // KINEO-ADS-CENA-RETOMADA-2110 — paid orders continue their saved runtime; this gate is before debit.
+    if (cena?.plan.ajusteLive?.version === 'KINEO-ADS-CENA-RETOMADA-2110') preflightCenaAjuste(cena.plan, cena.route) // KINEO-ADS-CENA-RETOMADA-2110
     if (cena) { const p = cena.plan as Cena95Plan; if (p.script?.normalization) cena95Preflight(p.script, p.input, cena.route, p.quality95.presenter, { product: p.product }) } // KINEO-ADS-CENA-95-PACING-2110 — identical pure gate before debit; legacy plans keep their path.
     if (!plan || !Array.isArray(plan.shots) || plan.shots.length === 0) return v2Fail('plan_required', 409)
     if (!order.card_url) return v2Fail('card_required', 400)

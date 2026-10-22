@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semAdsCenaRetomada2110 } from './desfaz-ads-cena-retomada-2110.mjs' // KINEO-ADS-CENA-RETOMADA-2110
 export const CENA95_PACING_MARK = 'KINEO-ADS-CENA-95-PACING-2110'
 export const CENA95_PACING_BASE = '2b2ea93971ca7fef45ec1bfa46d94d48281bd934'
 const table = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-ads-cena-95-pacing-2110-fontes.json'), 'utf8'))
@@ -20,6 +21,7 @@ export const CENA95_PACING_NEW = Object.freeze([
   "scripts/test-support/desfaz-ads-cena-95-pacing-2110.mjs"
 ])
 export function semAdsCena95Pacing2110(texto, file) {
+  texto = semAdsCenaRetomada2110(texto, file) // KINEO-ADS-CENA-RETOMADA-2110 — antes da marca e do hash da camada anterior.
   const relative = String(file ?? '').replace(/\\/g, '/'), known = table[relative]
   if (!known || typeof texto !== 'string' || !texto.includes(CENA95_PACING_MARK)) return texto
   const hash = createHash('sha256').update(texto.replace(/\r\n/g, '\n')).digest('hex')
