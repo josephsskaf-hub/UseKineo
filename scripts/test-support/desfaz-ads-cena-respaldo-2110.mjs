@@ -7,7 +7,13 @@ export const CENA_RESPALDO_MARK = 'KINEO-ADS-CENA-RESPALDO-2110'
 export const CENA_RESPALDO_BASE = '68d3c13b935a14c17d3a6e7228fe5eab1be027ab'
 const table = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-ads-cena-respaldo-2110-fontes.json'), 'utf8'))
 export const CENA_RESPALDO_FILES = Object.freeze(Object.keys(table))
-export const CENA_RESPALDO_NEW = Object.freeze([])
+export const CENA_RESPALDO_NEW = Object.freeze([
+  "docs/ADS-CENA-RESPALDO-2026-10-22.md",
+  "lib/ads/cena/ajusteRespaldo.ts",
+  "scripts/test-ads-cena-respaldo-2110.mjs",
+  "scripts/test-support/desfaz-ads-cena-respaldo-2110-fontes.json",
+  "scripts/test-support/desfaz-ads-cena-respaldo-2110.mjs"
+])
 export function semAdsCenaRespaldo2110(texto, file) {
   const relative = String(file ?? '').replace(/\\/g, '/'), known = table[relative]
   if (!known || typeof texto !== 'string' || !texto.includes(CENA_RESPALDO_MARK)) return texto
