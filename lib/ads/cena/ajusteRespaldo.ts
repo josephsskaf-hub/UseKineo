@@ -6,7 +6,7 @@ import { honestyIssues } from '../v2Honesty'
 import { adsV2GenericFiller, adsV2MissingBenefits } from '../v2AdsQualidade'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
 
-export interface AjusteIssue { field: string; phrase: string; rules: string[] }
+export interface AjusteIssue { field: string; phrase: string; rules: string[]; missing?: boolean }
 export class AjusteScriptError extends Error {
   readonly reason_detail: string
   constructor(message: string, readonly issues: AjusteIssue[]) {
@@ -63,7 +63,7 @@ export function ajusteRespaldoIssues(raw: unknown, input: CenaInput, product: st
   }
   for (const [field, phrase] of lines(r).filter(([f]) => f.startsWith('hooks.'))) if (words(phrase) > 10) issues.push({ field, phrase, rules: ['Hook exceeds 10 words; use a short neutral question from the typed input.'] })
   const missing = adsV2MissingBenefits(speech(r), [...(input.beneficios ?? []), ...(input.oferta ? [input.oferta] : [])])
-  if (missing.length) issues.push({ field: 'benefit', phrase: '', rules: missing.map(b => `missing typed benefit/offer: ${b}`) })
+  if (missing.length) issues.push({ field: 'benefit', phrase: clean(r.benefit), missing: true, rules: missing.map(b => `missing typed benefit/offer: ${b}`) })
   if (words(speech(r)) > 40) {
     const selected = lines(r).filter(([f]) => !f.startsWith('hooks.') || f === 'hooks.0').flatMap(([f, t]) => t.split(/(?<=[.!?])\s+/u).map(s => [f, s] as [string, string]))
     const longest = words(clean(r.cta)) > 40 ? ['cta', clean(r.cta)] : selected.filter(([f]) => f !== 'cta').sort((a, b) => words(b[1]) - words(a[1]))[0]
@@ -104,7 +104,7 @@ export function repairAjusteLines(raw: unknown, input: CenaInput, product: strin
       ;(out.hooks as unknown[])[slot] = finish(h).replace(/\.$/u, '?')
     } else if (Object.hasOwn(neutral, field)) {
       const original = clean(out[field])
-      if (!issue.phrase && field === 'benefit') {
+      if (issue.missing && field === 'benefit') {
         const missing = adsV2MissingBenefits(speech(out), [...(input.beneficios ?? []), ...(input.oferta ? [input.oferta] : [])])
         out[field] = [original, ...missing.map(b => b === input.oferta ? finish(b) : benefitSentence(b, label, pt))].filter(Boolean).join(' ')
       } else {
