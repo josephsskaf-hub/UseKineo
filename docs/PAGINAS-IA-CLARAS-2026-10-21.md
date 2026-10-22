@@ -113,3 +113,15 @@ antigo ainda diz "sem 1º mês com desconto" — regra de 17/08 superada pela de
   pela coluna `events.path` (o trackEvent grava o pathname).
 - **Modo escuro**: estas páginas ficam sempre claras (a home troca com a aparência escolhida).
 - Não rodei servidor nem build (regra); o render foi conferido offline pelo guardião (react-dom/server, 11 variações).
+
+## Integração da main — 22/10/2026
+
+**FATO CONFIRMADO — IMPLEMENTADO:** a branch recebe `origin/main = f3532d7d21a15b5dfa8859c3a1d2d603ea8cd1a7`, mantendo a venda Kids e Cena95. Os sete conflitos eram de guardiões/desfaz; os arquivos do visual aprovado não tiveram conflito nem nova alteração nesta integração. Fontes: merge Git e `scripts/test-paginas-ia-claras-2110.mjs`.
+
+**FATO CONFIRMADO — desfaz composto:** a tabela de Páginas agora restaura literalmente a fonte deF353 em55 arquivos existentes, com sete arquivos novos declarados. Cada entrada compara a fonte INTEGRAL antes de restaurar: adulteração no meio ou fora dos antigos blocos é recusada. Ordem: Páginas → Cena95 → Kids → Ajuste → camadas anteriores; Bing: Páginas → Bing. O auxiliar95 retira Páginas antes de consultar marca/hash, e Páginas não importa95/Kids, evitando ciclo. As tabelas95 eKids permanecem iguais às recebidas da main. Fontes: `scripts/test-support/desfaz-paginas-ia-claras-2110.mjs`, sua tabela, `desfaz-ads-cena-95-2110.mjs`, `desfaz-ads-cena-ajuste-2110.mjs` e `desfaz-bing-seo-1510.mjs`.
+
+**FATO CONFIRMADO — reâncoras:** os guardiões históricos mantêm asserções, hashes e contagens, retirando somente a camada nova. Os filtros de assunto Páginas exigem prefixo com fronteira de espaço/dois-pontos e aTRAVA exata; o guardião próprio verifica todos os seus commits. Verbatim conserva os filtros95/Kids e acrescenta Páginas na última consulta efetiva. No guardião95, `app/components` são comparados byte a byte SEM Páginas, enquanto os caminhos de produto Kids e os cinco arquivos protegidos mantêm a exigência de diff zero. Fontes: `scripts/test-ads-cena-95-2110.mjs`, `test-kids-venda-2010.mjs`, `test-mcp-studio-2010.mjs`, `test-meta95-personagem-2010.mjs`, `test-meta95-personagem-ajuste-2010.mjs` e `test-verbatim-intocavel-2010.mjs`.
+
+**FATO CONFIRMADO — marcadores:** a busca `git grep -n '^<<<<<<<'` aponta somente bytes de um PNG histórico, inalterado contraF353. A busca textual `git grep -I -n '^<<<<<<<'` está vazia. Nenhuma chamada paga, banco, `.env`, PR, build ou deploy foi executado nesta integração.
+
+**QUESTÃO PENDENTE — TESTES EM ANDAMENTO:** a suíte completa será comparada a uma snapshot limpa deF353; os recibos desta integração ficam em `C:/Users/josep/OneDrive/Área de Trabalho/Usekineo/.claude/paginas-ia-claras-main-proof-2210/`. Os números contra72 e a aprovação visual acima são históricos, não substituem a nova comparação. Resultado final e TypeScript serão registrados abaixo antes do push.

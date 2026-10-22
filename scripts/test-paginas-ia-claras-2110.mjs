@@ -2,7 +2,7 @@
 // páginas de entrada do ChatGPT no visual claro da home. Prova, lendo os arquivos REAIS (sem rede, env ou banco):
 //   A. nenhum fundo escuro nos 9 modelos (toda cor de fundo literal é clara; o preto só existe como véu translúcido de selo);
 //   B. o menu do topo e os 4 cards da home em cada modelo, os cards logo abaixo do título (o mesmo HomeThreeCards da home);
-//   C. <title>, description, canonical, hreflang e JSON-LD intocados (linhas comparadas com a base 72d23210c);
+//   C. <title>, description, canonical, hreflang e JSON-LD intocados (linhas comparadas com a base f3532d7d2);
 //   D. a vitrine velha saiu (nada de WallMedia/ExampleLiveMedia/ExampleVideoPlayer/NicheHouseFilm na tela) e a nova é a da
 //      /claude-connector; lib/engineWall.ts e lib/homeVideoCuration.ts iguais à base;
 //   E. /claude-connector: utm_source/referrer com chatgpt|openai abre a aba ChatGPT e troca "Try it in Claude" por
@@ -17,9 +17,11 @@ import { readFileSync, existsSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import ts from 'typescript'
 import { React, offlineModules, renderToStaticMarkup } from './gpt24h-offline-support.mjs'
-import { semPaginasIaClaras2110, PAGINAS_IA_CLARAS_2110_ARQUIVOS, PAGINAS_IA_CLARAS_2110_NOVOS, PAGINAS_IA_CLARAS_2110_BASE, MARCA_PAGINAS_IA_CLARAS_2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs'
+import { semPaginasIaClaras2110, PAGINAS_IA_CLARAS_2110_ARQUIVOS, PAGINAS_IA_CLARAS_2110_NOVOS, PAGINAS_IA_CLARAS_2110_BASE, MARCA_PAGINAS_IA_CLARAS_2110, PAGINAS_IA_CLARAS_2110_TRAVA, ehCommitPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs'
+import { semAdsCena952110, ADS_CENA_95_2110_ARQUIVOS } from './test-support/desfaz-ads-cena-95-2110.mjs'
+import { semKidsVenda2010, KIDS_VENDA_2010_ARQUIVOS } from './test-support/desfaz-kids-venda-2010.mjs'
 
-const BASE = '72d23210c'
+const BASE = 'f3532d7d21a15b5dfa8859c3a1d2d603ea8cd1a7' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 const rd = (p) => readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
 const base = (p) => execFileSync('git', ['show', `${BASE}:${p}`], { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }).replace(/\r\n/g, '\n')
 let falhas = 0, oks = 0
@@ -217,6 +219,18 @@ try { semPaginasIaClaras2110(rd(motorPath).replace('<PaginaClaraVitrine />', '<P
 ok(lancou && semPaginasIaClaras2110('sem a marca', motorPath) === 'sem a marca' && semPaginasIaClaras2110(rd(motorPath), 'outro/arquivo.tsx') === rd(motorPath) && semPaginasIaClaras2110(null, motorPath) === null, 'X4 trecho mudado por outra mão lança; sem a marca / fora da lista / null volta intocado')
 const crlf = rd(motorPath).replace(/\n/g, '\r\n')
 ok(semPaginasIaClaras2110(crlf, motorPath) === base(motorPath).replace(/\n/g, '\r\n'), 'X5 fim de linha preservado (CRLF entra, CRLF sai)')
+ok(PAGINAS_IA_CLARAS_2110_ARQUIVOS.every(p => { const restored = semPaginasIaClaras2110(rd(p), p); return semPaginasIaClaras2110(restored, p) === restored }), 'X6 desfaz idempotente em todos os arquivos existentes')
+for (const p of new Set([...ADS_CENA_95_2110_ARQUIVOS, ...KIDS_VENDA_2010_ARQUIVOS])) {
+  const atual = rd(p), anterior = base(p)
+  ok(semPaginasIaClaras2110(atual, p) === anterior && semAdsCena952110(atual, p) === semAdsCena952110(anterior, p) && semKidsVenda2010(atual, p) === semKidsVenda2010(anterior, p), `X7 Páginas → main com Cena95/Kids → camadas anteriores exatas: ${p}`)
+}
+const ordemAntes = (src, primeira, segunda) => src.indexOf(primeira) >= 0 && src.indexOf(primeira) < src.indexOf(segunda)
+ok(ordemAntes(rd('scripts/test-support/desfaz-ads-cena-ajuste-2110.mjs'), 'texto = semPaginasIaClaras2110(texto, p)', 'texto = semAdsCena952110(texto, p)') && ordemAntes(rd('scripts/test-support/desfaz-ads-cena-95-2110.mjs'), 'texto = semPaginasIaClaras2110(texto, p)', "const rel = String(p ?? '')") && ordemAntes(rd('scripts/test-support/desfaz-bing-seo-1510.mjs'), 'src = semPaginasIaClaras2110(src, rel)', "const key = String(rel ?? '')"), 'X8 camadas mais novas saem antes das consultas/trocas de Cena95, Ajuste e Bing')
+const declarados = new Set([...PAGINAS_IA_CLARAS_2110_ARQUIVOS, ...PAGINAS_IA_CLARAS_2110_NOVOS])
+const alterados = execFileSync('git', ['diff', '--name-only', BASE], { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
+ok(alterados.length > 0 && alterados.every(p => declarados.has(p)), 'X9 diff completo contra a main só contém arquivos declarados da camada')
+const assuntos = execFileSync('git', ['log', '--format=%s', BASE + '..HEAD'], { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
+ok(assuntos.length > 0 && assuntos.every(ehCommitPaginasIaClaras2110), 'X10 todo commit próprio leva prefixo e TRAVA exatos; nenhum assunto alheio é excluído')
 
 // ── M. mutantes ─────────────────────────────────────────────────────────────────────────────────────────────────────
 console.log('\nM. mutantes (cada verificador acusa o que devia)')
@@ -228,6 +242,10 @@ ok(!cardsLogoAbaixoDoTitulo(motor.replace('<PaginaClaraCards />', '')) && !cards
 ok(JSON.stringify(linhasSeo(motor.replace('AI Video Generator for YouTube Shorts | Kineo', 'X | Kineo'))) !== JSON.stringify(linhasSeo(base(MODELOS[0]))), 'M5 título mudado é acusado')
 ok(corVelha("style={{ color: '#f5f5f7' }}"), 'M6 texto claro do tema preto é acusado')
 ok(escurosNoHtml('<div style="background:#161618;color:#000"></div>').length === 1 && escurosNoHtml('<p style="color:#f5f5f7">x</p>').length === 1 && escurosNoHtml('<div style="background:var(--kpl-card, #161618);color:var(--kpl-text, #f5f5f7)"></div>').length === 0 && escurosNoHtml('<a style="background:#0A5CFF;color:#fff">x</a>').length === 0, 'M7 no HTML: fundo escuro e texto claro acusados; var(--kpl-*) e botão azul passam')
+ok(ehCommitPaginasIaClaras2110(MARCA_PAGINAS_IA_CLARAS_2110 + ' ' + PAGINAS_IA_CLARAS_2110_TRAVA) && ehCommitPaginasIaClaras2110(MARCA_PAGINAS_IA_CLARAS_2110 + ': ' + PAGINAS_IA_CLARAS_2110_TRAVA) && !ehCommitPaginasIaClaras2110(MARCA_PAGINAS_IA_CLARAS_2110 + '-ALHEIO ' + PAGINAS_IA_CLARAS_2110_TRAVA) && !ehCommitPaginasIaClaras2110(MARCA_PAGINAS_IA_CLARAS_2110 + ' sem autorização') && !ehCommitPaginasIaClaras2110('outro ' + MARCA_PAGINAS_IA_CLARAS_2110 + ' ' + PAGINAS_IA_CLARAS_2110_TRAVA), 'M8 prefixo parecido, marca no meio ou TRAVA ausente não escondem commit alheio')
+let extraRejeitada = false
+try { semPaginasIaClaras2110(rd(motorPath) + '\n// fonte adulterada fora do bloco\n', motorPath) } catch { extraRejeitada = true }
+ok(extraRejeitada, 'M9 fonte adulterada fora do bloco também é recusada pelo desfaz integral')
 
 console.log(`\n${oks} ok, ${falhas} falha(s)`)
 process.exit(falhas ? 1 : 0)

@@ -1,3 +1,4 @@
+import { TROCAS_KIDS_VENDA_2010 } from './test-support/desfaz-kids-venda-2010.mjs' // KINEO-KIDS-VENDA-2010 — pares exatos da camada posterior, sem ampliar a permissão do status
 // KINEO-E4-SAIDA-B-2026-09-29 — guardião da E4 [TRAVA 8.2 — aguarda "vai E4" do fundador].
 // Decisões do fundador (29/09): (a) SAÍDA B — o filme grátis só para país rico; (b) cota grátis semanal vira 1 Seedance
 // 1.5 de 15 s por semana, com marca d'água, só país rico; (c) Kineo 1 fora do jogo — conta nova não recebe Kineo 1
@@ -534,6 +535,7 @@ checa('mutante (casa pelos padrões LIKE de isInternalEmail) → vermelho', !pro
     // KINEO-H3MAX-2026-10-13 — reancorado com motivo: o compose/status ganhou o MiniMax H3 Max (motor novo, fundador 13/10) ao lado do H3 em
     // DUAS linhas trocadas de propósito (o tipo Quality e a lista das qualidades cinematográficas) — a nova vem marcada e a velha é a da
     // lista exata (linhasTrocadasH3max). Nada mais pode sair; o unlock segue intocado.
+    mudadas.splice(0, mudadas.length, ...mudadas.filter((l) => !(TROCAS_KIDS_VENDA_2010['app/api/compose/status/[renderId]/route.ts'] ?? []).some(([nova, base]) => mudadas.includes('+' + nova) && mudadas.includes('-' + base) && (l === '+' + nova || l === '-' + base)))) // KINEO-KIDS-VENDA-2010 — só o par inteiro conhecido da venda sai antes da prova de integridade
     const trocadasH3max = linhasTrocadasH3max('app/api/compose/status/[renderId]/route.ts')
     intocados = mudadas.every((l) => (l.startsWith('+') && (l.includes('KINEO-GANCHO-1Q-2026-10-03') || l.includes('KINEO-S25-ABRE-2026-10-06') || l.includes('KINEO-H3MAX-2026-10-13'))) || (l.startsWith('-') && trocadasH3max.includes(l.slice(1))))
   } catch { intocados = !/kineo1Gate/.test(rd('app/api/compose/unlock/route.ts')) }

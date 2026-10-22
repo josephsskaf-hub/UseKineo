@@ -1603,7 +1603,7 @@ export async function advanceAdsV2Order(admin: SupabaseClient, orderId: string, 
 }
 
 async function stepGenerating(admin: SupabaseClient, order: AdsV2OrderRow, deadlineMs: number): Promise<void> {
-  if ((order.plan as { cena?: { plan?: { marker?: string } } } | null)?.cena?.plan?.marker === 'KINEO-ADS-CENA-2110') { await (await import('@/lib/ads/cena/runtime')).advanceCenaOrder(admin, order); return } // KINEO-ADS-CENA-2110 — pedido marcado usa a cena; ausente = o corpo anterior byte a byte
+  if ((order.plan as { cena?: { plan?: { marker?: string } } } | null)?.cena?.plan?.marker === 'KINEO-ADS-CENA-2110') { await (await import('@/lib/ads/cena/runtime')).advanceCenaOrder(admin, order, deadlineMs); return } // KINEO-ADS-CENA-2110 KINEO-ADS-CENA-95-2110 — prazo propagado ao canário; ausente = o corpo anterior byte a byte
   let rows = await loadAdsV2Shots(admin, order.id)
   if (!rows) return
   // Linhas que faltam (o /start caiu entre o débito e o insert): recria pelo plano gravado, sem duplicar.

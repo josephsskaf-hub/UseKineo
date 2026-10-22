@@ -4,11 +4,12 @@
 // Os guardiões antigos dessas páginas travam o corpo delas (cores do tema preto, galeria da casa por motor, filme do nicho, o
 // texto da galeria "Try it in Claude"…) contra bases antigas. O fundador trocou o visual e a vitrine em 21/10; a camada nova
 // tem guardião próprio (scripts/test-paginas-ia-claras-2110.mjs) e, nos guardiões antigos, SAI DA CONTA por aqui: cada um lê
-// semPaginasIaClaras2110(texto, arquivo) e confere o que conferia na base 72d23210c.
+// semPaginasIaClaras2110(texto, arquivo) e confere o que conferia antes desta camada. Na integração, esta camada devolve
+// f3532d7d (com Cena95 e Kids preservados); os respectivos desfaz continuam responsáveis pelas camadas anteriores.
 //
-// Como desfaz: a tabela desfaz-paginas-ia-claras-2110-trocas.json guarda, por arquivo, os blocos [base, novo, só-acréscimo] do diff da
-// entrega (SEM contexto: só as linhas desta entrega; bloco só de remoção leva 1 linha de âncora), na ordem do arquivo. Cada bloco novo tem de ser achado em linhas inteiras, depois do anterior
-// (senão LANÇA: mudança alheia no trecho ou conserto pela metade não passa em silêncio). Arquivo fora da tabela ou sem a marca =
+// Como desfaz: a tabela desfaz-paginas-ia-claras-2110-trocas.json guarda, por arquivo, [base, novo, só-acréscimo]. Na integração,
+// base e novo são a fonte INTEGRAL contra f3532d7d: também se recusa adulteração fora dos antigos blocos de diff. A fonte deve
+// coincidir INTEIRA (senão LANÇA: mudança alheia ou conserto pela metade não passa em silêncio). Arquivo fora da tabela ou sem a marca =
 // volta intocado (a camada ainda não está nesta árvore). Fim de linha: o do próprio texto (LF ou CRLF). Idempotente.
 // ENCADEAR: esta é a camada mais nova — quem já desfaz outra camada dos mesmos arquivos aplica esta PRIMEIRO.
 import { readFileSync } from 'node:fs'
@@ -16,6 +17,8 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 export const MARCA_PAGINAS_IA_CLARAS_2110 = 'KINEO-PAGINAS-IA-CLARAS-2110'
+export const PAGINAS_IA_CLARAS_2110_TRAVA = '[TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]'
+export const ehCommitPaginasIaClaras2110 = s => (s.startsWith(MARCA_PAGINAS_IA_CLARAS_2110 + ' ') || s.startsWith(MARCA_PAGINAS_IA_CLARAS_2110 + ': ')) && s.includes(PAGINAS_IA_CLARAS_2110_TRAVA)
 const TABELA = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-paginas-ia-claras-2110-trocas.json'), 'utf8'))
 export const PAGINAS_IA_CLARAS_2110_BASE = TABELA.__base
 /** Arquivos que já existiam e que a entrega mudou (o desfaz devolve cada um à base). */
@@ -30,18 +33,11 @@ export function semPaginasIaClaras2110(texto, p) {
   const r = rel(p)
   if (typeof texto !== 'string' || !Object.hasOwn(TABELA, r) || r.startsWith('__') || !texto.includes(MARCA_PAGINAS_IA_CLARAS_2110)) return texto
   const crlf = texto.includes('\r\n')
-  let s = '\n' + texto.replace(/\r\n/g, '\n') + '\n'
-  let cursor = 0
-  for (const [base, novo, soAcrescimo] of TABELA[r]) {
-    const alvo = '\n' + novo + '\n'
-    const i = s.indexOf(alvo, cursor)
-    if (i < 0) throw new Error(`desfaz ${MARCA_PAGINAS_IA_CLARAS_2110} em ${r}: bloco não achado — ${novo.split('\n').find((l) => l.trim())?.trim().slice(0, 80)}`)
-    const troca = soAcrescimo ? '\n' : '\n' + base + '\n' // linhas só acrescentadas: saem inteiras
-    s = s.slice(0, i) + troca + s.slice(i + alvo.length)
-    cursor = i + troca.length - 1
-  }
-  const out = s.slice(1, -1)
-  return crlf ? out.replace(/\n/g, '\r\n') : out
+  const blocos = TABELA[r]
+  if (blocos.length !== 1 || blocos[0][2]) throw new Error(`desfaz ${MARCA_PAGINAS_IA_CLARAS_2110} em ${r}: tabela integral inválida`)
+  const [base, novo] = blocos[0]
+  if (texto.replace(/\r\n/g, '\n') !== novo) throw new Error(`desfaz ${MARCA_PAGINAS_IA_CLARAS_2110} em ${r}: fonte divergente`)
+  return crlf ? base.replace(/\n/g, '\r\n') : base
 }
 
 /** Ordem (arquivo, texto), para quem já chama os outros desfaz assim. */

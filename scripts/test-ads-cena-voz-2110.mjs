@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semAdsCena952110 } from './test-support/desfaz-ads-cena-95-2110.mjs' // KINEO-ADS-CENA-95-2110
 
 const F = { plan: 'lib/ads/cena/plan.ts', adapt: 'lib/ads/cena/adapters.ts', cat: 'lib/ads/cena/catalog.ts', internal: 'lib/ads/cena/internal.ts', pipe: 'lib/ads/cena/pipeline.ts', runtime: 'lib/ads/cena/runtime.ts' }
 const plain = value => JSON.parse(JSON.stringify(value))
@@ -13,7 +14,7 @@ const classification = { category: 'wearable', confidence: 0.9, product: 'Pulse 
 const script = { hooks: ['Need a watch for your run?', 'Take Pulse on your next run.', 'A smartwatch for your daily run.'], use: 'Wear Pulse while you run.', benefit: '7-day battery. Free shipping.', cta: 'Shop Pulse now.' }
 const verdict = { own_hands_attached: true, extra_hands: false, extra_people: false, product_whole: true, product_faithful: true, real_scale: true, touching_face: false, actor_identity_match: true, wardrobe_match: true, product_wrist_match: true, score: 93 }
 const server = { v2Json: (body, status = 200) => new Response(JSON.stringify(body), { status }), v2Fail: (error, status) => new Response(JSON.stringify({ error }), { status }) }
-function loader(over = {}, mocks = {}) { return createOfflineLoader({ mocks, globals: { Response, Request, Error }, source: (file, source) => over[file] ?? source }) }
+function loader(over = {}, mocks = {}) { return createOfflineLoader({ mocks, globals: { Response, Request, Error }, source: (file, source) => over[file] ?? semAdsCena952110(source, file) }) } // KINEO-ADS-CENA-95-2110
 async function makePlan(over = {}, route = 'kling3', values = {}, category = 'wearable') {
   const load = loader(over), P = load(F.plan), calls = []
   const plan = await P.planCena(P.cenaInput({ ...customer, ...values }), route, async call => { calls.push(plain(call)); return call.images.length ? { ...classification, category } : script })
@@ -230,7 +231,7 @@ const proofs = [
 ]
 for (const [label, run] of proofs) { await run(); console.log('ok ' + label) }
 function change(file, from, to) {
-  const source = readFileSync(file, 'utf8').replace(/\r\n/g, '\n')
+  const source = semAdsCena952110(readFileSync(file, 'utf8'), file).replace(/\r\n/g, '\n') // KINEO-ADS-CENA-95-2110
   assert.equal(source.split(from).length - 1, 1, 'mutante aplica uma vez: ' + from)
   return { [file]: source.replace(from, to) }
 }

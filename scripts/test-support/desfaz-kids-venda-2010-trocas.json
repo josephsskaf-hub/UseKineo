@@ -1,0 +1,66 @@
+{
+ "__acrescimos": {
+  "app/(dashboard)/kids-cartoon/page.tsx": 1,
+  "app/api/compose/status/[renderId]/route.ts": 0,
+  "app/api/cron/autopilot-generate/route.ts": 4,
+  "app/api/cron/finish-stranded-renders/route.ts": 0,
+  "app/api/generate-video-cinematic/route.ts": 10,
+  "app/api/stripe/checkout/route.ts": 3,
+  "app/api/stripe/webhook/route.ts": 52,
+  "app/pricing/PricingClient.tsx": 2,
+  "components/kidsCartoon/KidsCartoonPages.tsx": 2,
+  "scripts/test-mcp-studio-2010.mjs": 3,
+  "scripts/test-meta95-personagem-2010.mjs": 2,
+  "scripts/test-saida-regiao-2026-10-07.mjs": 3,
+  "scripts/test-support/desfaz-bebe-que-fala-2010.mjs": 2,
+  "scripts/test-trilha-15s-1610.mjs": 1,
+  "scripts/test-support/desfaz-ads-cena-ajuste-2110.mjs": 2,
+  "scripts/test-ads-cena-2110.mjs": 4,
+  "scripts/test-ads-cena-ajuste-2110.mjs": 3,
+  "scripts/test-cena-negacao-1510.mjs": 1,
+  "scripts/test-contrato-classicos-1410.mjs": 1,
+  "scripts/test-veo-marcado-2026-09-29.mjs": 1,
+  "scripts/test-veo-modo-ia-2026-09-29.mjs": 1,
+  "scripts/test-e4-saida-b-cota-seedance-2026-09-29.mjs": 2,
+  "scripts/test-home-cards-claros-2010.mjs": 1,
+  "scripts/test-meta95-personagem-ajuste-2010.mjs": 1,
+  "scripts/test-verbatim-intocavel-2010.mjs": 1,
+  "scripts/test-mcp-studio-ajuste-2010.mjs": 4
+ },
+ "app/(dashboard)/kids-cartoon/page.tsx": [
+  [
+   "  return <><KidsVendaPanel />{/* KINEO-KIDS-VENDA-2010 — acima do template: nada muda no template em si */}<KidsCartoonTemplate /></>",
+   "  return <KidsCartoonTemplate />"
+  ]
+ ],
+ "app/api/compose/status/[renderId]/route.ts": [
+  [
+   "          if (RESEND_API_KEY && user.email && !String(prepaidCinematicClaim?.generationId ?? '').startsWith('kids-')) { // KINEO-KIDS-VENDA-2010 — episódio do desenho infantil vendido (geração kids-<run>): quem avisa é o passe do cron (\"seu vídeo de hoje está pronto\", na língua do pedido, com a contagem e a oferta); este e-mail genérico não sai",
+   "          if (RESEND_API_KEY && user.email) {"
+  ]
+ ],
+ "app/api/cron/finish-stranded-renders/route.ts": [
+  [
+   "    const mayEmail = !!email && !prof?.email_opted_out && !isInternalOrJunkEmail(email) && !String(genId).startsWith('kids-') // KINEO-KIDS-VENDA-2010 — geração do desenho infantil vendido (kids-<run>): monta como sempre, mas quem avisa (pronto/resgate) é o passe do cron do Autopilot, na língua do pedido; nem \"ready\" nem \"um clique para terminar\" daqui",
+   "    const mayEmail = !!email && !prof?.email_opted_out && !isInternalOrJunkEmail(email)"
+  ]
+ ],
+ "app/api/stripe/webhook/route.ts": [
+  [
+   "        if (!duplicateSession || (!isKidsPackSession(duplicateSession) && duplicateSession.mode !== 'subscription' && !duplicateSafeObservation && !isDfyOrderSession(duplicateSession) && !isDfyFilms3Session(duplicateSession))) { // KINEO-KIDS-VENDA-2010 — o pack infantil também retoma (guard por sessão + pedido único por sessão; nada é creditado)",
+   "        if (!duplicateSession || (duplicateSession.mode !== 'subscription' && !duplicateSafeObservation && !isDfyOrderSession(duplicateSession) && !isDfyFilms3Session(duplicateSession))) {"
+  ]
+ ],
+ "scripts/test-trilha-15s-1610.mjs": [
+  [
+   "  const add = git('diff', base, '--', ROTA, VPP).replace(/\\r/g, '').split('\\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).filter((l) => !l.includes('KINEO-KIDS-VENDA-2010')) // KINEO-KIDS-VENDA-2010 — apenas linhas da venda (desfaz próprio) fora da conta da trilha",
+   "  const add = git('diff', base, '--', ROTA, VPP).replace(/\\r/g, '').split('\\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))"
+  ]
+ ],
+ "scripts/test-home-cards-claros-2010.mjs": [
+  [
+   "const rd = (p) => lf(semKidsVenda2010(readFileSync(join(ROOT, p), 'utf8'), p)) // KINEO-KIDS-VENDA-2010 — a camada nova sai em memória antes dos checks e dos mutantes da home",
+   "const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))"
+  ]
+ ]
+}
