@@ -63,25 +63,25 @@ export default function BuyCreatorCta({
             const started = checkout.launch('basic', href, metadata)
             if (started) void trackEvent('buy_creator_cta_clicked', { ...metadata, navigation_mode: 'protected_same_tab' })
           }}
-          style={{ display: 'inline-block', background: '#2997ff', color: '#001b33', fontWeight: 900, padding: '15px 26px', borderRadius: 980, textDecoration: 'none', fontSize: '1.02rem', lineHeight: 1.3 }}
+          style={{ display: 'inline-block', background: 'var(--kpl-accent, #2997ff)', color: 'var(--kpl-on-accent, #001b33)', fontWeight: 900, padding: '15px 26px', borderRadius: 980, textDecoration: 'none', fontSize: '1.02rem', lineHeight: 1.3 }}
         >
           {pending ? (lang === 'pt' ? 'Abrindo o checkout seguro…' : lang === 'es' ? 'Abriendo el pago seguro…' : 'Opening secure checkout…') : copy.button}
         </a>
         {secondary}
       </div>
-      <p style={{ margin: '10px 0 0', color: '#f5f5f7', fontSize: '.92rem', lineHeight: 1.5 }}>
+      <p style={{ margin: '10px 0 0', color: 'var(--kpl-text, #f5f5f7)', fontSize: '.92rem', lineHeight: 1.5 }}>
         {price.firstMonth ? (
           <>
-            <s style={{ color: '#86868b' }}>{price.full}</s> <strong>{price.firstMonth}</strong>{' '}
+            <s style={{ color: 'var(--kpl-muted, #86868b)' }}>{price.full}</s> <strong>{price.firstMonth}</strong>{' '}
             {lang === 'pt' ? `no 1º mês, depois ${price.full}/mês` : lang === 'es' ? `el primer mes, después ${price.full}/mes` : `for the first month, then ${price.full}/month`}
           </>
         ) : (
           <strong>{copy.priceLine}</strong>
         )}
       </p>
-      <p style={{ margin: '4px 0 0', color: '#86868b', fontSize: '.8rem', lineHeight: 1.5 }}>{copy.note}</p>
+      <p style={{ margin: '4px 0 0', color: 'var(--kpl-muted, #86868b)', fontSize: '.8rem', lineHeight: 1.5 }}>{copy.note}</p>
       {checkout.error && (
-        <p role="alert" style={{ margin: '8px 0 0', color: '#ffb454', fontSize: '.85rem' }}>{checkout.error}</p>
+        <p role="alert" style={{ margin: '8px 0 0', color: 'var(--kpl-warn, #ffb454)', fontSize: '.85rem' }}>{checkout.error}</p>
       )}
     </div>
   )

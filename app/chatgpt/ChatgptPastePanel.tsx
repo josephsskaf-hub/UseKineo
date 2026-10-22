@@ -82,6 +82,8 @@ export default function ChatgptPastePanel({
       try {
         const pre = document.getElementById('chatgpt-paste-prompt')
         if (pre) {
+          const caixa = pre.closest('details') // KINEO-PAGINAS-IA-CLARAS-2110 — o prompt mora recolhido: abre antes de selecionar
+          if (caixa) caixa.open = true
           const range = document.createRange()
           range.selectNodeContents(pre)
           const sel = window.getSelection()
@@ -137,8 +139,8 @@ export default function ChatgptPastePanel({
   const words = countWords(script)
   const chars = script.length
   const button: CSSProperties = {
-    background: '#f5f5f7',
-    color: '#000',
+    background: 'var(--kpl-accent, #f5f5f7)',
+    color: 'var(--kpl-on-accent, #000)',
     fontWeight: 800,
     padding: '14px 26px',
     borderRadius: 980,
@@ -149,9 +151,9 @@ export default function ChatgptPastePanel({
   }
   const field: CSSProperties = {
     width: '100%',
-    background: '#0c0c0e',
-    color: '#f5f5f7',
-    border: '1px solid #2a2a2d',
+    background: 'var(--kpl-card, #0c0c0e)',
+    color: 'var(--kpl-text, #f5f5f7)',
+    border: '1px solid var(--kpl-line, #2a2a2d)',
     borderRadius: 12,
     padding: '12px 14px',
     fontSize: '0.95rem',
@@ -170,6 +172,8 @@ export default function ChatgptPastePanel({
           {copied ? 'Now paste it into your AI and answer its one question.' : 'Then paste it into ChatGPT, Claude or Gemini.'}
         </span>
       </div>
+      <details style={{ margin: '0 0 12px' }}>{/* KINEO-PAGINAS-IA-CLARAS-2110 — o prompt técnico fica recolhido; o botão acima copia sem abrir. A caixa de colar não mostra mais os rótulos técnicos. */}
+      <summary style={{ cursor: 'pointer', color: muted, fontSize: '0.9rem', fontWeight: 700, margin: '0 0 10px' }}>Show the prompt</summary>
       <pre
         id="chatgpt-paste-prompt"
         style={{
@@ -181,11 +185,12 @@ export default function ChatgptPastePanel({
           fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
           fontSize: '0.86rem',
           lineHeight: 1.6,
-          color: '#d2d2d7',
+          color: 'var(--kpl-body, #d2d2d7)',
         }}
       >
         {prompt}
       </pre>
+      </details>
 
       {/* ── Passo 2: a caixa ── */}
       <form id="chatgpt-paste-form" onSubmit={submit} style={{ ...cardStyle, padding: '18px 20px', marginTop: 34 }}>
@@ -200,7 +205,7 @@ export default function ChatgptPastePanel({
           maxLength={scriptMaxChars}
           rows={12}
           required
-          placeholder={'HOOK:\nMICRO REWARD:\nESCALATION:\nPAYOFF:'}
+          placeholder="Paste the narration your AI wrote here."
           style={{ ...field, resize: 'vertical', lineHeight: 1.55 }}
         />
         <p style={{ color: muted, fontSize: '0.82rem', margin: '6px 0 14px' }}>
@@ -248,7 +253,7 @@ export default function ChatgptPastePanel({
         </div>
 
         {error && (
-          <p role="alert" style={{ color: '#ffb340', fontSize: '0.95rem', lineHeight: 1.55, margin: '0 0 14px' }}>
+          <p role="alert" style={{ color: 'var(--kpl-warn, #ffb340)', fontSize: '0.95rem', lineHeight: 1.55, margin: '0 0 14px' }}>
             {error}
           </p>
         )}

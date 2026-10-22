@@ -9,24 +9,24 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import type { Round3Answer, Round3Row } from '@/lib/seo/geoRodada3Answers'
 import { HOUSE_FILM_REMIX_LABEL, HOUSE_FILM_REMIX_PLACEMENT, houseFilmRemixHref } from '@/lib/seo/geoRodada3'
 
-const CARD: CSSProperties = { background: '#161618', border: '1px solid #2a2a2d' }
-const MUTED = '#86868b'
+const CARD: CSSProperties = { background: 'var(--kpl-card, #161618)', border: '1px solid var(--kpl-line, #2a2a2d)' }
+const MUTED = 'var(--kpl-muted, #86868b)'
 const TH: CSSProperties = { textAlign: 'left', padding: '11px 12px', fontWeight: 700, color: MUTED, verticalAlign: 'bottom' }
-const TD: CSSProperties = { padding: '11px 12px', verticalAlign: 'top', lineHeight: 1.45, color: '#d2d2d7' }
+const TD: CSSProperties = { padding: '11px 12px', verticalAlign: 'top', lineHeight: 1.45, color: 'var(--kpl-body, #d2d2d7)' }
 
 function Table({ columns, rows, minWidth }: { columns: string[]; rows: Round3Row[]; minWidth: number }) {
   return (
     <div style={{ ...CARD, borderRadius: 16, overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem', minWidth }}>
         <thead>
-          <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
+          <tr style={{ background: 'var(--kpl-zebra, rgba(255,255,255,0.04))' }}>
             {columns.map((c, i) => <th key={`${c}-${i}`} scope="col" style={TH}>{c}</th>)}
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.label} style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-              <th scope="row" style={{ ...TD, fontWeight: 800, color: '#f5f5f7', textAlign: 'left', minWidth: 150 }}>{r.label}</th>
+            <tr key={r.label} style={{ borderTop: '1px solid var(--kpl-hair, rgba(255,255,255,0.06))' }}>
+              <th scope="row" style={{ ...TD, fontWeight: 800, color: 'var(--kpl-text, #f5f5f7)', textAlign: 'left', minWidth: 150 }}>{r.label}</th>
               {r.cells.map((cell, i) => <td key={i} style={TD}>{cell}</td>)}
             </tr>
           ))}
@@ -50,7 +50,7 @@ export default function GeoRodada3Section({ answer }: { answer: Round3Answer }) 
         </div>
       ) : null}
       {sources.length ? (
-        <p data-kineo="geo-r3-sources" style={{ fontSize: '0.78rem', color: '#6e6e73', margin: '10px 0 0', lineHeight: 1.6 }}>
+        <p data-kineo="geo-r3-sources" style={{ fontSize: '0.78rem', color: 'var(--kpl-muted, #6e6e73)', margin: '10px 0 0', lineHeight: 1.6 }}>
           {'Official sources, '}
           {sources.map((s, i) => (
             <span key={s.url}>
@@ -73,14 +73,14 @@ export default function GeoRodada3Section({ answer }: { answer: Round3Answer }) 
             {answer.films.map((f) => (
               <div key={f.id} style={{ ...CARD, borderRadius: 14, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element -- capa estática leve (webp da vitrine), sem otimizador */}
-                <img src={f.posterPath} alt={`${f.title} — a film rendered on ${f.engineName} in Kineo`} loading="lazy" decoding="async" width={240} height={427} style={{ display: 'block', width: '100%', height: 'auto', aspectRatio: '9 / 16', objectFit: 'cover', background: '#000' }} />
-                <p style={{ margin: 0, padding: '9px 10px 2px', fontSize: '11.5px', fontWeight: 700, lineHeight: 1.35, color: 'rgba(255,255,255,0.85)' }}>{f.title}</p>
+                <img src={f.posterPath} alt={`${f.title} — a film rendered on ${f.engineName} in Kineo`} loading="lazy" decoding="async" width={240} height={427} style={{ display: 'block', width: '100%', height: 'auto', aspectRatio: '9 / 16', objectFit: 'cover', background: 'var(--kpl-media, #000)' }} />
+                <p style={{ margin: 0, padding: '9px 10px 2px', fontSize: '11.5px', fontWeight: 700, lineHeight: 1.35, color: 'var(--kpl-body, rgba(255,255,255,0.85))' }}>{f.title}</p>
                 <p style={{ margin: 0, padding: '0 10px 8px', fontSize: '10.5px', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: MUTED }}>{f.engineName}</p>
                 <OrganicCtaLink
                   href={houseFilmRemixHref(f, answer.campaign)}
                   source={answer.campaign}
                   placement={HOUSE_FILM_REMIX_PLACEMENT}
-                  style={{ margin: 'auto 10px 10px', display: 'block', textAlign: 'center', background: '#f5f5f7', color: '#000', fontWeight: 900, fontSize: '0.8rem', padding: '8px 10px', borderRadius: 980, textDecoration: 'none' }}
+                  style={{ margin: 'auto 10px 10px', display: 'block', textAlign: 'center', background: 'var(--kpl-accent, #f5f5f7)', color: 'var(--kpl-on-accent, #000)', fontWeight: 900, fontSize: '0.8rem', padding: '8px 10px', borderRadius: 980, textDecoration: 'none' }}
                 >
                   {HOUSE_FILM_REMIX_LABEL}
                 </OrganicCtaLink>
@@ -94,7 +94,7 @@ export default function GeoRodada3Section({ answer }: { answer: Round3Answer }) 
         {answer.links.map((l, i) => (
           <span key={l.href}>
             {i > 0 ? ' · ' : ''}
-            <Link href={l.href} style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}>{l.label}</Link>
+            <Link href={l.href} style={{ color: 'var(--kpl-accent, #2997ff)', textDecoration: 'none', fontWeight: 700 }}>{l.label}</Link>
           </span>
         ))}
       </nav>

@@ -160,9 +160,9 @@ export default function TopicGeneratorForm({
       style={{
         marginTop,
         scrollMarginTop: 24,
-        border: '1px solid rgba(41,151,255,0.35)',
+        border: '1px solid var(--kpl-accent-line, rgba(41,151,255,0.35))',
         borderRadius: 18,
-        background: 'linear-gradient(145deg, rgba(41,151,255,0.10), rgba(255,255,255,0.025))',
+        background: 'linear-gradient(145deg, var(--kpl-accent-soft, rgba(41,151,255,0.10)), var(--kpl-zebra, rgba(255,255,255,0.025)))',
         padding: 18,
       }}
     >
@@ -197,7 +197,7 @@ export default function TopicGeneratorForm({
           })
         }}
       >
-        <label htmlFor={inputId} style={{ display: 'block', fontSize: 13, fontWeight: 800, color: '#f5f5f7', marginBottom: 9 }}>
+        <label htmlFor={inputId} style={{ display: 'block', fontSize: 13, fontWeight: 800, color: 'var(--kpl-text, #f5f5f7)', marginBottom: 9 }}>
           {copy.label}
         </label>
         <textarea
@@ -217,10 +217,10 @@ export default function TopicGeneratorForm({
             width: '100%',
             resize: 'vertical',
             minHeight: 96,
-            border: '1px solid #3a3a3d',
+            border: '1px solid var(--kpl-line, #3a3a3d)',
             borderRadius: 13,
-            background: '#0b0b0d',
-            color: '#f5f5f7',
+            background: 'var(--kpl-card, #0b0b0d)',
+            color: 'var(--kpl-text, #f5f5f7)',
             padding: '14px 15px',
             font: 'inherit',
             fontSize: 16,
@@ -231,7 +231,7 @@ export default function TopicGeneratorForm({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginTop: 8 }}>
           <span
             aria-live="polite"
-            style={{ color: limit.over ? '#ff8a80' : '#86868b', fontSize: 12, fontWeight: 700 }}
+            style={{ color: limit.over ? 'var(--kpl-err, #ff8a80)' : 'var(--kpl-muted, #86868b)', fontSize: 12, fontWeight: 700 }}
           >
             {formatLimitCounter(limit, limitLocale)}
           </span>
@@ -239,18 +239,18 @@ export default function TopicGeneratorForm({
             <button
               type="button"
               onClick={trimToFit}
-              style={{ border: '1px solid #5c5c60', borderRadius: 999, background: '#161618', color: '#f5f5f7', padding: '6px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
+              style={{ border: '1px solid var(--kpl-line2, #5c5c60)', borderRadius: 999, background: 'var(--kpl-card, #161618)', color: 'var(--kpl-text, #f5f5f7)', padding: '6px 10px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
             >
               {formatPromptLimitTrimAction(limit.excess, limitLocale)}
             </button>
           ) : null}
         </div>
         {limit.over ? (
-          <p role="alert" style={{ color: '#ffb4ab', fontSize: 12, lineHeight: 1.45, margin: '7px 0 0' }}>
+          <p role="alert" style={{ color: 'var(--kpl-err, #ffb4ab)', fontSize: 12, lineHeight: 1.45, margin: '7px 0 0' }}>
             {promptLimitPreservedMessage(limitLocale)}
           </p>
         ) : trimNotice ? (
-          <p role="status" style={{ color: '#a7f3d0', fontSize: 12, lineHeight: 1.45, margin: '7px 0 0' }}>
+          <p role="status" style={{ color: 'var(--kpl-ok, #a7f3d0)', fontSize: 12, lineHeight: 1.45, margin: '7px 0 0' }}>
             {trimNotice}
           </p>
         ) : null}
@@ -274,8 +274,8 @@ export default function TopicGeneratorForm({
             marginTop: 12,
             border: 0,
             borderRadius: 999,
-            background: '#f5f5f7',
-            color: '#000',
+            background: 'var(--kpl-accent, #f5f5f7)',
+            color: 'var(--kpl-on-accent, #000)',
             padding: '14px 22px',
             fontSize: 15,
             fontWeight: 900,
@@ -295,10 +295,10 @@ export default function TopicGeneratorForm({
               type="button"
               onClick={() => startWithExample(example, exampleIndex)}
               style={{
-                border: '1px solid #343438',
+                border: '1px solid var(--kpl-line, #343438)',
                 borderRadius: 999,
-                background: '#161618',
-                color: '#a1a1a6',
+                background: 'var(--kpl-card, #161618)',
+                color: 'var(--kpl-muted, #a1a1a6)',
                 padding: '7px 10px',
                 fontSize: 12,
                 cursor: 'pointer',
@@ -310,7 +310,7 @@ export default function TopicGeneratorForm({
         </div>
       )}
 
-      <p style={{ margin: '13px 0 0', color: '#86868b', fontSize: 12, lineHeight: 1.5 }}>
+      <p style={{ margin: '13px 0 0', color: 'var(--kpl-muted, #86868b)', fontSize: 12, lineHeight: 1.5 }}>
         {copy.note}
       </p>
     </div>

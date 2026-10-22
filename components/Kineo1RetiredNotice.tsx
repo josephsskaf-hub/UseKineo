@@ -36,7 +36,7 @@ export default function Kineo1RetiredNotice() {
     <div
       role="status"
       data-kineo="kineo1-retired-notice"
-      style={{ margin: '18px 0 0', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(41,151,255,.45)', background: 'rgba(41,151,255,.10)', color: '#d6ebff', fontSize: 14.5, lineHeight: 1.6, textAlign: 'left' }}
+      style={{ margin: '18px 0 0', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(41,151,255,.45)', background: 'var(--kpl-accent-soft, rgba(41,151,255,.10))', color: 'var(--kpl-accent, #d6ebff)', fontSize: 14.5, lineHeight: 1.6, textAlign: 'left' }}
     >
       {kineo1RetiredNoticeText()}
     </div>

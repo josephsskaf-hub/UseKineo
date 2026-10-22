@@ -38,6 +38,9 @@ import {
   type PasteAssistant,
 } from '@/lib/gptHandoff'
 import ChatgptPastePanel from './ChatgptPastePanel'
+import { ChatgptConnectSteps } from '@/app/claude-connector/ConnectPanel' // KINEO-PAGINAS-IA-CLARAS-2110 — os MESMOS passos e a MESMA URL da aba ChatGPT da /claude-connector
+import { PaginaClaraCards, PaginaClaraTopo } from '@/components/seo/PaginaClara' // KINEO-PAGINAS-IA-CLARAS-2110 — o menu do topo e os 4 cards da home
+import { PAGINA_CLARA_CLASSE, PAGINA_CLARA_FUNDO } from '@/lib/seo/paginasIaClaras2110' // KINEO-PAGINAS-IA-CLARAS-2110
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -68,9 +71,9 @@ export const metadata: Metadata = {
   },
 }
 
-const ACCENT = '#2997ff'
-const MUTED = '#86868b'
-const CARD: CSSProperties = { background: '#161618', border: '1px solid #2a2a2d', borderRadius: 14 }
+const ACCENT = '#0A5CFF'
+const MUTED = '#5A5F67'
+const CARD: CSSProperties = { background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 14 }
 
 /** Rótulos humanos dos ids de PASTE_ASSISTANTS (a lista é da lib; o rótulo é UI). */
 const ASSISTANT_LABELS: Readonly<Record<PasteAssistant, string>> = {
@@ -89,8 +92,8 @@ const ASSISTANT_LINKS: readonly { label: string; href: string }[] = [
 ]
 
 export default function ChatgptPastePage() {
-  const h2: CSSProperties = { fontSize: 'clamp(1.35rem, 3.5vw, 1.8rem)', fontWeight: 800, margin: '46px 0 12px' }
-  const p: CSSProperties = { fontSize: '1rem', color: '#d2d2d7', lineHeight: 1.7, margin: '0 0 14px' }
+  const h2: CSSProperties = { fontSize: 'clamp(1.35rem, 3.5vw, 1.8rem)', fontWeight: 650, margin: '46px 0 12px' }
+  const p: CSSProperties = { fontSize: '1rem', color: '#2A2F37', lineHeight: 1.7, margin: '0 0 14px' }
   const small: CSSProperties = { fontSize: '0.9rem', color: MUTED, lineHeight: 1.6, margin: '0 0 14px' }
   const link: CSSProperties = { color: ACCENT, textDecoration: 'none' }
   const step: CSSProperties = {
@@ -100,27 +103,29 @@ export default function ChatgptPastePage() {
     letterSpacing: '0.12em',
     textTransform: 'uppercase',
     color: ACCENT,
-    border: '1px solid rgba(41,151,255,0.4)',
-    background: 'rgba(41,151,255,0.12)',
+    border: '1px solid rgba(10,92,255,0.35)',
+    background: '#E8EFFF',
     borderRadius: 999,
     padding: '6px 12px',
   }
 
   return (
     <main
+      className={PAGINA_CLARA_CLASSE}
       style={{
         minHeight: '100vh',
-        background: '#000',
-        color: '#f5f5f7',
+        background: PAGINA_CLARA_FUNDO,
+        color: '#0E1116',
         fontFamily: 'var(--font-sans), Arial, sans-serif',
       }}
     >
-      <div style={{ maxWidth: 860, margin: '0 auto', padding: '64px 20px 88px' }}>
+      <PaginaClaraTopo />{/* KINEO-PAGINAS-IA-CLARAS-2110 */}
+      <div style={{ maxWidth: 860, margin: '0 auto', padding: '40px 20px 88px' }}>
         <nav aria-label="Breadcrumb" style={{ margin: '0 0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>
             <Link href="/" style={{ color: MUTED, textDecoration: 'none', fontSize: '0.85rem' }}>Home</Link>
             <span style={{ color: MUTED, fontSize: '0.85rem' }}> / </span>
-            <span style={{ color: '#d2d2d7', fontSize: '0.85rem' }}>ChatGPT script to video</span>
+            <span style={{ color: '#2A2F37', fontSize: '0.85rem' }}>ChatGPT script to video</span>
           </span>
           {/* K1 — "See plans" visível, etiquetado com o canal. */}
           <Link href={PRICING_HREF} style={{ color: MUTED, fontSize: '0.9rem', textDecoration: 'none' }}>
@@ -128,12 +133,14 @@ export default function ChatgptPastePage() {
           </Link>
         </nav>
 
-        <h1 style={{ fontSize: 'clamp(2rem, 5vw, 2.9rem)', fontWeight: 900, lineHeight: 1.1, margin: '18px 0 0' }}>
+        <h1 style={{ fontSize: 'clamp(2rem, 5vw, 2.9rem)', fontWeight: 650, lineHeight: 1.1, margin: '18px 0 0' }}>
           You write the script with ChatGPT. Kineo turns it into the film.
         </h1>
-        <p style={{ fontSize: '1.08rem', color: '#d2d2d7', lineHeight: 1.65, margin: '16px 0 0', maxWidth: 780 }}>
-          Two steps, no account needed to start. Copy the prompt below into ChatGPT, Claude or Gemini and let it write
-          the narration. Paste what it wrote into the box, and Kineo Studio opens with your script, length and engine
+        <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título */}
+        <p style={{ fontSize: '1.08rem', color: '#2A2F37', lineHeight: 1.65, margin: '16px 0 0', maxWidth: 780 }}>
+          Two ways in. Connect Kineo Studio to ChatGPT once and ask for the film right in the chat (you sign in to Kineo when
+          you connect). Or, with no account needed to start, copy the prompt below into ChatGPT, Claude or Gemini and let it
+          write the narration. Paste what it wrote into the box, and Kineo Studio opens with your script, length and engine
           already filled in. Nothing is generated until you press Generate there.
         </p>
         <p style={{ fontSize: 13, color: ACCENT, fontWeight: 700, margin: '12px 0 0' }}>
@@ -141,15 +148,26 @@ export default function ChatgptPastePage() {
           <Link href={PRICING_HREF} style={link}>See plans</Link>
         </p>
 
-        {/* ── Passo 1 ── */}
+        {/* KINEO-PAGINAS-IA-CLARAS-2110 — fundador 21/10: primeiro o caminho de CONECTAR o Kineo no ChatGPT (os passos da aba ChatGPT da
+            /claude-connector), depois o de copiar o prompt. O prompt técnico fica só dentro da caixa de copiar, recolhido. */}
         <div style={{ marginTop: 40 }}>
-          <span style={step}>Step 1 — the prompt</span>
+          <span style={step}>Option 1 — connect Kineo to ChatGPT</span>
+        </div>
+        <h2 style={{ ...h2, margin: '14px 0 8px' }}>Make the film right inside ChatGPT</h2>
+        <p style={p}>
+          Add Kineo Studio to ChatGPT once. Then ask for a film in any chat: ChatGPT writes it, Kineo makes it in your
+          Kineo account and hands you the link when it is ready.
+        </p>
+        <ChatgptConnectSteps pasteNote={false} />
+
+        {/* ── Passo 1 ── */}
+        <div style={{ marginTop: 48 }}>
+          <span style={step}>Option 2 — copy the prompt</span>
         </div>
         <h2 style={{ ...h2, margin: '14px 0 8px' }}>Copy this into your AI</h2>
         <p style={p}>
-          It asks the AI for narration in the four-part structure Kineo reads (HOOK, MICRO REWARD, ESCALATION,
-          PAYOFF), with the spoken word budget for each length and a rule against anything a voice cannot say. The AI
-          will ask you one question — how long the video should be — then write the script.
+          One copy-and-paste prompt asks your AI for a narration sized to the length you pick, written to be read aloud.
+          The AI will ask you one question — how long the video should be — then write the script.
         </p>
         <ChatgptPastePanel
           prompt={ASSISTANT_PASTE_PROMPT}

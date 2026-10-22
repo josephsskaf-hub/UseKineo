@@ -46,15 +46,15 @@ export default function TextToVideoIntentForm({ formId }: { formId: string }) {
     >
       <div
         style={{
-          border: '1px solid rgba(103,232,249,.28)',
+          border: '1px solid var(--kpl-accent-line, rgba(103,232,249,.28))',
           borderRadius: 18,
-          background: 'linear-gradient(145deg, rgba(103,232,249,.08), rgba(255,255,255,.02))',
+          background: 'linear-gradient(145deg, var(--kpl-accent-soft, rgba(103,232,249,.08)), var(--kpl-zebra, rgba(255,255,255,.02)))',
           padding: 16,
         }}
       >
         <p
           id={`${formId}-mode-heading`}
-          style={{ color: '#f5f5f7', fontSize: 13, fontWeight: 850, margin: '0 0 10px' }}
+          style={{ color: 'var(--kpl-text, #f5f5f7)', fontSize: 13, fontWeight: 850, margin: '0 0 10px' }}
         >
           What are you starting with?
         </p>
@@ -74,17 +74,17 @@ export default function TextToVideoIntentForm({ formId }: { formId: string }) {
                 style={{
                   minHeight: 74,
                   borderRadius: 13,
-                  border: active ? '1px solid #67e8f9' : '1px solid #343438',
-                  background: active ? 'rgba(103,232,249,.12)' : '#111114',
-                  color: '#f5f5f7',
+                  border: active ? '1px solid var(--kpl-accent, #67e8f9)' : '1px solid var(--kpl-line, #343438)',
+                  background: active ? 'var(--kpl-accent-soft, rgba(103,232,249,.12))' : 'var(--kpl-card, #111114)',
+                  color: 'var(--kpl-text, #f5f5f7)',
                   padding: '11px 13px',
                   textAlign: 'left',
                   cursor: 'pointer',
-                  boxShadow: active ? '0 0 0 1px rgba(103,232,249,.12) inset' : 'none',
+                  boxShadow: active ? '0 0 0 1px var(--kpl-accent-soft, rgba(103,232,249,.12)) inset' : 'none',
                 }}
               >
                 <span style={{ display: 'block', fontSize: 13, fontWeight: 900 }}>{mode.label}</span>
-                <span style={{ display: 'block', color: active ? '#bae6fd' : '#86868b', fontSize: 11.5, lineHeight: 1.45, marginTop: 4 }}>
+                <span style={{ display: 'block', color: active ? 'var(--kpl-accent, #bae6fd)' : 'var(--kpl-muted, #86868b)', fontSize: 11.5, lineHeight: 1.45, marginTop: 4 }}>
                   {mode.description}
                 </span>
               </button>

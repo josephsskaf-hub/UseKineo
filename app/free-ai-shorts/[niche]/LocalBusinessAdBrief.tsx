@@ -41,9 +41,9 @@ const pendingViews = new Set<string>()
 const FIELD_STYLE = {
   width: '100%',
   boxSizing: 'border-box' as const,
-  background: '#070708',
-  color: '#f5f5f7',
-  border: '1px solid rgba(255,255,255,.14)',
+  background: 'var(--kpl-card, #070708)',
+  color: 'var(--kpl-text, #f5f5f7)',
+  border: '1px solid var(--kpl-hair, rgba(255,255,255,.14))',
   borderRadius: 11,
   padding: '11px 12px',
   font: 'inherit',
@@ -156,27 +156,27 @@ export default function LocalBusinessAdBrief() {
         marginTop: 28,
         padding: 20,
         borderRadius: 18,
-        background: 'linear-gradient(145deg,rgba(41,151,255,.11),rgba(11,17,32,.9))',
-        border: '1px solid rgba(41,151,255,.3)',
+        background: 'linear-gradient(145deg,var(--kpl-accent-soft, rgba(41,151,255,.11)),var(--kpl-card, rgba(11,17,32,.9)))',
+        border: '1px solid var(--kpl-accent-line, rgba(41,151,255,.3))',
         textAlign: 'left',
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
         <div style={{ maxWidth: 540 }}>
-          <div style={{ color: '#7cc0ff', fontSize: 11, fontWeight: 900, letterSpacing: '.1em', textTransform: 'uppercase' }}>
+          <div style={{ color: 'var(--kpl-accent, #7cc0ff)', fontSize: 11, fontWeight: 900, letterSpacing: '.1em', textTransform: 'uppercase' }}>
             Free business ad brief · no signup
           </div>
           <h2 style={{ margin: '7px 0 5px', fontSize: '1.35rem', fontWeight: 900 }}>
             Turn your real offer into the first script
           </h2>
-          <p style={{ margin: 0, color: '#a1a1a8', lineHeight: 1.55, fontSize: '.9rem' }}>
+          <p style={{ margin: 0, color: 'var(--kpl-muted, #a1a1a8)', lineHeight: 1.55, fontSize: '.9rem' }}>
             Use only facts you can stand behind. The draft is created in this browser, stays editable, and nothing is generated or charged until you choose to continue.
           </p>
         </div>
         <button
           type="button"
           onClick={loadSample}
-          style={{ background: 'transparent', color: '#7cc0ff', border: '1px solid rgba(124,192,255,.35)', borderRadius: 999, padding: '8px 12px', fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' }}
+          style={{ background: 'transparent', color: 'var(--kpl-accent, #7cc0ff)', border: '1px solid rgba(124,192,255,.35)', borderRadius: 999, padding: '8px 12px', fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' }}
         >
           Try a roofing example
         </button>
@@ -196,16 +196,16 @@ export default function LocalBusinessAdBrief() {
         type="button"
         disabled={!complete}
         onClick={generate}
-        style={{ width: '100%', marginTop: 14, background: complete ? '#2997ff' : '#222226', color: complete ? '#050506' : '#6f6f76', border: 0, borderRadius: 12, padding: '13px 16px', fontWeight: 900, cursor: complete ? 'pointer' : 'not-allowed' }}
+        style={{ width: '100%', marginTop: 14, background: complete ? 'var(--kpl-accent, #2997ff)' : 'var(--kpl-card, #222226)', color: complete ? 'var(--kpl-card, #050506)' : 'var(--kpl-muted, #6f6f76)', border: 0, borderRadius: 12, padding: '13px 16px', fontWeight: 900, cursor: complete ? 'pointer' : 'not-allowed' }}
       >
         Build my editable script →
       </button>
 
       {script ? (
-        <div style={{ marginTop: 18, paddingTop: 18, borderTop: '1px solid rgba(255,255,255,.1)' }}>
+        <div style={{ marginTop: 18, paddingTop: 18, borderTop: '1px solid var(--kpl-hair, rgba(255,255,255,.1))' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
             <label htmlFor="local-business-script" style={{ fontWeight: 900 }}>Your 35-second draft</label>
-            <span style={{ color: '#86868b', fontSize: '.78rem' }}>
+            <span style={{ color: 'var(--kpl-muted, #86868b)', fontSize: '.78rem' }}>
               {measurement.spokenWords} spoken words · about {measurement.estimatedSeconds}s
             </span>
           </div>
@@ -217,7 +217,7 @@ export default function LocalBusinessAdBrief() {
             maxLength={600}
             style={{ ...FIELD_STYLE, marginTop: 9, resize: 'vertical', lineHeight: 1.55 }}
           />
-          <p style={{ margin: '8px 0 12px', color: '#86868b', fontSize: '.78rem', lineHeight: 1.45 }}>
+          <p style={{ margin: '8px 0 12px', color: 'var(--kpl-muted, #86868b)', fontSize: '.78rem', lineHeight: 1.45 }}>
             Review every claim. Kineo carries this exact draft into the editor in verbatim mode; you still approve the setup before any video starts.
           </p>
           <Link
@@ -228,7 +228,7 @@ export default function LocalBusinessAdBrief() {
                 localBusinessBriefDraftMetadata(draftSource),
               )
             }}
-            style={{ display: 'block', textAlign: 'center', background: '#34d399', color: '#03110c', borderRadius: 12, padding: '13px 16px', fontWeight: 900, textDecoration: 'none' }}
+            style={{ display: 'block', textAlign: 'center', background: 'var(--kpl-ok, #34d399)', color: 'var(--kpl-on-accent, #03110c)', borderRadius: 12, padding: '13px 16px', fontWeight: 900, textDecoration: 'none' }}
           >
             Continue with this exact script →
           </Link>
@@ -254,8 +254,8 @@ function Field({
   return (
     <label style={{ display: 'block' }}>
       <span style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 6, fontSize: '.78rem' }}>
-        <b style={{ color: '#f5f5f7' }}>{label}</b>
-        <span style={{ color: '#707078' }}>{hint}</span>
+        <b style={{ color: 'var(--kpl-text, #f5f5f7)' }}>{label}</b>
+        <span style={{ color: 'var(--kpl-muted, #707078)' }}>{hint}</span>
       </span>
       <input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} style={FIELD_STYLE} />
     </label>
