@@ -1,4 +1,4 @@
-// KINEO-ADS-CENA-RETOMADA-2110 — AJUSTE copy stays GPT-written. No synthetic spoken sentence or 95 parser.
+// KINEO-ADS-CENA-RETOMADA-2110 — normal AJUSTE copy is GPT-written; RESPALDO permits a bounded neutral repair.
 import type { CenaInput, CenaPlan, CenaScript } from './plan'
 import { ajusteProductCase, ajusteRespaldoIssues, AjusteScriptError } from './ajusteRespaldo' // KINEO-ADS-CENA-RESPALDO-2110
 
@@ -19,8 +19,9 @@ export function naturalAjusteScript(raw: unknown, input: CenaInput, product: str
   // Inspect generated speech, protecting a literal product name such as "Camera case" or "[GLOW]".
   const spoken = all.replace(new RegExp(product.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&'), 'giu'), '')
   if (/\b(?:it offers|o produto oferece|the product offers|watch as|enjoy it|embrace the essence|they\s+(?:put|hold|run|walk|wear|pick|lift|apply|open|tie|smile)|camera\s+(?:pans?|moves?|zooms?|tilts?|tracks?|dollies|pushes)|(?:speak|say|read)\s+(?:slowly|quickly|softly|loudly)|(?:fale|leia)\s+(?:devagar|lentamente|rapidamente)|close-up|push-in)\b|\[[^\]]*\]|\([^)]*\b(?:smiles?|camera|pause|sorri|pausa)\b[^)]*\)/iu.test(spoken)) throw new Error('cena_natural_speech_required')
-  for (const text of [use, benefit, cta].filter(Boolean)) if (!/^[\p{Lu}\p{N}]/u.test(text) || !/[.!?][”"']?$/u.test(text)) throw new Error('cena_complete_sentences_required')
-  // A supplied noun/adjective list alone is not a spoken sentence. Ask GPT again; never prefix it in code.
+  const namedStart = new RegExp(`^${product.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')}(?![\\p{L}\\p{N}])`, 'iu') // KINEO-ADS-CENA-RESPALDO-2110 — preserve a literal brand such as iPhone at sentence start.
+  for (const text of [use, benefit, cta].filter(Boolean)) if ((!/^[\p{Lu}\p{N}]/u.test(text) && !namedStart.test(text)) || !/[.!?][”"']?$/u.test(text)) throw new Error('cena_complete_sentences_required')
+  // A supplied noun/adjective list alone is not spoken copy. GPT regeneration precedes the authorized neutral repair.
   if (benefit && (input.beneficios ?? []).some(b => fold(b).replace(/[.!?]+$/u, '') === fold(benefit).replace(/[.!?]+$/u, '')) && !/(?:^|\s)(?:is|are|has|have|can|does|keeps|helps|lasts|offers|é|tem|pode|ajuda|dura|hidrata|protege|contém|oferece)(?=\s|$)/iu.test(benefit)) throw new Error('cena_benefits_need_sentence')
   return { hooks: hooks as [string, string, string], hook: hooks[0], use, benefit, cta, narration }
 }
