@@ -12,6 +12,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semKidsVenda2010 } from './desfaz-kids-venda-2010.mjs' // KINEO-KIDS-VENDA-2010 — a venda do desenho infantil veio depois: sai PRIMEIRO (encadeado; texto sem a marca passa igual)
 import { semHomeCardsClaros2010 } from './desfaz-home-cards-claros-2010.mjs' // KINEO-HOME-CARDS-CLAROS-2010 — a parte de baixo dos cards mais clara (20/10 23:30) veio depois: sai PRIMEIRO (encadeado; texto sem a marca passa igual)
 
 export const MARCA_BEBE_QUE_FALA_2010 = 'KINEO-BEBE-QUE-FALA-2010'
@@ -91,6 +92,7 @@ export const BEBE_QUE_FALA_2010_NOVOS = [
 
 /** O texto do arquivo sem a entrega (acréscimos fora, trocas desfeitas). Fora da lista ou sem linha marcada = devolve igual; contagem errada = erro. Preserva CRLF. */
 export function semBebeQueFala2010(texto, p) {
+  texto = semKidsVenda2010(texto, p) // KINEO-KIDS-VENDA-2010 — a camada mais nova sai primeiro
   texto = semHomeCardsClaros2010(texto, p) // KINEO-HOME-CARDS-CLAROS-2010 — a camada mais nova sai primeiro
   const rel = String(p ?? '').replace(/\\/g, '/')
   if (typeof texto !== 'string' || !texto.includes(MARCA_BEBE_QUE_FALA_2010) || !BEBE_QUE_FALA_2010_ARQUIVOS.includes(rel)) return texto

@@ -1190,7 +1190,7 @@ export async function GET(
         try {
           const RESEND_API_KEY = process.env.RESEND_API_KEY
           const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Kineo <support@usekineo.com>'
-          if (RESEND_API_KEY && user.email) {
+          if (RESEND_API_KEY && user.email && !String(prepaidCinematicClaim?.generationId ?? '').startsWith('kids-')) { // KINEO-KIDS-VENDA-2010 — episódio do desenho infantil vendido (geração kids-<run>): quem avisa é o passe do cron ("seu vídeo de hoje está pronto", na língua do pedido, com a contagem e a oferta); este e-mail genérico não sai
             const safeTopic = (topic || 'your topic').replace(/[<>]/g, '')
             const safeVideoUrl = finalVideoUrl.replace(/"/g, '')
             // sprint-assinaturas #24 — rodape por situacao (ver

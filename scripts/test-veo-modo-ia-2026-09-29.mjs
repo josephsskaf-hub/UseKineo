@@ -372,6 +372,7 @@ if (rotaBase) {
   const worktreeDiff = git(['diff', '--no-color', '-U0', BASE, '--', ROTA]).replace(/\r/g, '')
   const d = worktreeDiff.length ? worktreeDiff : diff
   const adicionadas = d.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).map((l) => l.slice(1))
+  adicionadas.splice(0, adicionadas.length, ...adicionadas.filter((l) => !l.includes('KINEO-KIDS-VENDA-2010'))) // KINEO-KIDS-VENDA-2010 — só a venda do Cartoon, com marca e desfaz exato próprios, sai da conta do Veo
   const removidas = d.split('\n').filter((l) => l.startsWith('-') && !l.startsWith('---')).map((l) => l.slice(1))
   const permitidas = [blocoVeoDim(rota), linhaVeo(rota), blocoPlano(rota), fatia(rota, '        // [TRAVA 8.2] VEO-MODO-IA-2026-09-29 — modo IA: cenas do escritor', '...(veoAiRelato ? { veo_ai_plan: veoAiRelato } : {}),\n'), fatia(rota, '    // ═══ [TRAVA 8.2] VEO-MODO-IA-2026-09-29 — o escritor do Veo 3.1', '    let veoFootage = 0\n'), fatia(rota, '    // [TRAVA 8.2] VEO-MODO-IA-2026-09-29 — no Veo em modo IA o escritor ouve', '    if (wantsVeo && !verbatim) Object.assign('), fatia(rota, '    // ═══ [TRAVA 8.2] VEO-MODO-IA-2026-09-29 — os segundos de CADA plano', '    let veoAiRelato: '), rota.split('\n').find((l) => l.startsWith('import {') && l.includes("from '@/lib/cinematic/veoShots'") && l.includes(MARCA)),
     // [TRAVA 8.2] VEO-MARCADO-2026-09-29 — o passo seguinte do Veo (roteiro marcado) mora em blocos próprios, marcados; este guardião os aceita

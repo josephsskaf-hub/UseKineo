@@ -1,9 +1,11 @@
+import { KIDS_VENDA_2010_ARQUIVOS, KIDS_VENDA_2010_NOVOS, MARCA_KIDS_VENDA_2010 } from './test-support/desfaz-kids-venda-2010.mjs' // KINEO-KIDS-VENDA-2010 — a venda do Cartoon sai da conta alheia, com desfaz exato próprio
 // KINEO-ADS-CENA-2110 — principal guardião, executado com o loader VM offline da casa.
 // Nenhuma credencial, env, banco, rede, fal ou OpenAI real. Dublês medem efeitos; mutantes alteram fontes executadas.
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { ADS_CENA_95_2110_BASE } from './test-support/desfaz-ads-cena-95-2110.mjs' // KINEO-ADS-CENA-95-2110
 import { semAdsCena2110, ADS_CENA_2110_BASE, ADS_CENA_2110_ARQUIVOS, ADS_CENA_2110_NOVOS, MARCA_ADS_CENA_2110 } from './test-support/desfaz-ads-cena-2110.mjs'
 import { semAdsCenaAjuste2110 } from './test-support/desfaz-ads-cena-ajuste-2110.mjs' // KINEO-ADS-CENA-AJUSTE-2110 — o guardião original continua provando a camada original.
 const F = { cat: 'lib/ads/cena/catalog.ts', plan: 'lib/ads/cena/plan.ts', pipe: 'lib/ads/cena/pipeline.ts', adapt: 'lib/ads/cena/adapters.ts', montage: 'lib/ads/cena/montage.ts', runtime: 'lib/ads/cena/runtime.ts', internal: 'lib/ads/cena/internal.ts', route: 'app/api/admin/ads-cena/route.ts', start: 'lib/ads/v2StartCore.ts', captions: 'lib/ads/v2CenaQuality.ts' }
@@ -372,8 +374,9 @@ for (const path of ADS_CENA_2110_ARQUIVOS) {
   assert.equal(restored, baseline, 'desfaz exato: ' + path)
   assert.equal(semAdsCena2110(restored, path), baseline, 'desfaz idempotente: ' + path)
   assert.equal(semAdsCena2110(original.replace(/\n/g, '\r\n'), path), baseline.replace(/\n/g, '\r\n'), 'desfaz preserva CRLF: ' + path)
-  const delta = execFileSync('git', ['diff', '--ignore-cr-at-eol', '--unified=0', ADS_CENA_2110_BASE, deliveryHead, '--', path], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  const delta = execFileSync('git', ['diff', '--ignore-cr-at-eol', '--unified=0', ADS_CENA_2110_BASE, deliveryHead, '--', path], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — camada Cena original; Cena95 e Kids conservam provas próprias.
   const unmarked = delta.split('\n').filter(l => l.startsWith('+') && !l.startsWith('+++') && l.trim() !== '+' && !l.includes(MARCA_ADS_CENA_2110))
+  unmarked.splice(0, unmarked.length, ...unmarked.filter(l => !l.includes(MARCA_KIDS_VENDA_2010))) // KINEO-KIDS-VENDA-2010 — as reâncoras posteriores têm marca própria e desfaz exato
   assert.equal(unmarked.length, 0, 'toda linha tocada carrega marca: ' + path)
 }
 for (const path of [...Object.values(F).filter(p => p.includes('/cena/') || p === F.captions), F.route, 'scripts/test-ads-cena-2110.mjs']) assert.ok(ADS_CENA_2110_NOVOS.includes(path), 'novo arquivo coberto no desfaz: ' + path)

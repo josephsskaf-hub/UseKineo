@@ -42,6 +42,7 @@ import PricingCreditsBlock from '@/components/pricing/PricingCreditsBlock' // KI
 import TwoProductsPricing from '@/components/pricing/TwoProductsPricing' // KINEO-PRECOS-DOIS-PRODUTOS-2026-10-05
 import PricingBusinessBlock from '@/components/pricing/PricingBusinessBlock' // KINEO-BUSINESS-84-2026-10-09
 import { AnnualEarlyOfferBadge, KitBfBuyCard } from '@/components/ads/KitBfBuyCard' // KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday (US$ 49) e o selo do anual (só quando baixa o preço)
+import { KidsVendaCards } from '@/components/kidsCartoon/KidsVendaCards' // KINEO-KIDS-VENDA-2010 — os planos do desenho infantil (piloto US$ 29/mês · pack US$ 49 · 1º grátis); nada com KIDS_SALES_LIVE=false
 import { AUTOPILOT_PUBLIC } from '@/lib/autopilotPublic' // KINEO-AUTOPILOT-FORA-2026-10-09
 // KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — o cartão que mostra o que o plano compra (imagens, clipes por motor, filmes).
 // KINEO-PRECOS-REFINO-2026-10-09 — o cartão calcula os próprios números (os harnesses de render trocam todo import de @/components por
@@ -1775,6 +1776,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         <PricingBusinessBlock onBuy={() => handleBuy('business')} pending={purchasing === 'business'} switchLabel={switching === 'business' ? 'Switching…' : planSwitchLabel(planSwitch, 'business', 'Business')} switchNote={planSwitch.subscribed && planSwitch.tier !== 'business'} />
 
         <div className="mx-auto max-w-3xl">{billing === 'annual' ? <AnnualEarlyOfferBadge /> : null}<KitBfBuyCard lang="en" surface="pricing" /></div>{/* KINEO-KIT-BF-VENDA-2010 — o selo do anual ("2 meses grátis" até 21/11: só pinta num plano em que baixa o preço; hoje nenhum, o anual de 30% já vence) e o Kit Black Friday embaixo do Business (o Business vê "incluído no seu plano"; venda fechada = nada) */}
+        <div className="mx-auto max-w-3xl"><KidsVendaCards lang="en" surface="pricing" /></div>{/* KINEO-KIDS-VENDA-2010 — embaixo do Kit BF; só com a venda ligada */}
         {PRICING_SHOW_ADS_BLOCK ? <PricingAdsBlock /> : null}
         <PricingCreditsBlock />
         {PRECOS_DOIS_PRODUTOS_PUBLIC ? <TwoProductsPricing /> : null}
