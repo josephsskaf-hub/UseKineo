@@ -124,4 +124,3 @@ Kineo lists and charges plan prices in USD worldwide. Your bank may convert the 
 [SUGESTÃO — verificação] Depois de uma publicação autorizada: conferir a resposta HTTP pública, buscar os termos antigos de BRL e os preços retirados, testar links públicos sem iniciar checkout e repetir o mesmo conjunto de consultas do GEO 1. Medir separadamente presença em busca, resposta citada em uma IA identificada, pessoas externas atribuídas, primeiro filme entregue e pagamentos reconciliados. Não declarar sucesso comercial a partir de indexação.
 
 [QUESTÃO PENDENTE / DESCONHECIDO] Não foi demonstrado que o ChatGPT usa este arquivo para escolher ferramentas; não há garantia de aumento de citações ou vendas.
-

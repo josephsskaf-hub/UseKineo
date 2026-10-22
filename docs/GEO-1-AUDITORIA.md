@@ -1521,4 +1521,939 @@
 11. [play.google.com](https://play.google.com/store/apps/details?hl=ur&id=com.creative.admaker) — Published: 4 months ago; Crawled: 2 months ago
 12. [shortgenius.com](https://shortgenius.com/pk/blog/ai-ugc-ads-generator) — Published: 9 months ago; Crawled: 4 months ago
 
+## Apêndice opcional — mais 40 perguntas nos três nichos
 
+**Registro de pesquisa, 21/10/2026:** a etapa opcional foi executada depois da base de 60, sem mudar suas perguntas ou resultados. São **14 consultas terror/mistério, 13 infantil e 13 finanças**: 19 EN, 12 PT, 3 ES, 3 Hindi e 3 Urdu. Todas usam busca web isolada, resposta longa e sem filtros, **não uma IA conversacional**. Intervalo instrumental dos lotes: 22/10/2026 02:50:48–02:52:06 UTC, equivalente a 21/10/2026 23:50:48–23:52:06 BRT; última resposta concluída às 02:52:10 UTC. Os horários são do registro da ferramenta, não uma alegação de posição estável.
+
+**Registro de pesquisa, 21/10/2026:** a Kineo foi devolvida em **2/40 perguntas extras**, Q64 Horror e Q66 Documentary Shorts, ambas no grupo terror/mistério. Nenhuma URL Kineo veio nas 13 perguntas infantis ou nas 13 financeiras desta amostra. Com a base, são **100 perguntas únicas e 13 com URL Kineo devolvida**. O total é apenas contagem de consultas; não somar como sessões, pessoas ou taxa de conversão. Fonte: Q01–Q100 neste arquivo.
+
+**HIPÓTESE:** a nova URL [Documentary Shorts](https://www.usekineo.com/ai-video-generator/for/documentary-shorts), Q66, é evidência de que a descoberta já se estende além dos seis pontos de entrada informados. **SUGESTÃO:** acrescentar sua corroboração à revisão de oferta antes de multiplicar páginas. A extração devolvida contém preço indexado; a oferta comercial continua dependente da [página de preços ao vivo](https://www.usekineo.com/pricing).
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** os três nichos foram escolhidos pelo pedido do fundador; não foi consultada receita por nicho nesta tarefa. Ausência de URLs infantis/financeiras não prova que o produto não serve esses casos nem estima tamanho do mercado. Consultas Q65/Q74/Q88/Q89/Q95/Q96/Q100 mostram mistura de intenção ou formato; não selecionar apenas as buscas favoráveis.
+
+### Tabela adicional
+
+**Data de todas as linhas: 21/10/2026. Método de todas as linhas: BUSCA WEB, NÃO IA.** Mesmos limites da base de 60; todas as interpretações são **[HIPÓTESE]**.
+
+| ID / idioma / nicho | Pergunta exata | Concorrentes/fontes e URLs devolvidas (amostra) | Kineo devolvida? | Estrutura observada / hipótese de seleção |
+|---|---|---|---|---|
+| Q61 / EN / Terror/mistério | AI horror story video generator with voiceover and captions | Fableclip, CreatVid e Clipwise.<br>[1. fableclip.com](https://fableclip.com/scary-story-video-generator)<br>[2. creatvid.com](https://creatvid.com/videos/horror-story)<br>[3. blog.clipwise.ai](https://blog.clipwise.ai/tools/creepy-horror-stories-video-generator/) | Não devolvida nesta resposta. | [HIPÓTESE] Páginas de terror descrevem voz, legendas, clima e saída numa resposta inicial; isso facilita comparação por entrega. |
+| Q62 / EN / Terror/mistério | best AI tool for creepypasta YouTube Shorts | Nova e OverseerOS; duas URLs da Nova.<br>[1. novaclipper.com](https://novaclipper.com/for/scary-story-video-maker)<br>[2. www.overseeros.com](https://www.overseeros.com/blog/best-youtube-shorts-ai-tools)<br>[3. novaclipper.com](https://novaclipper.com/for/creepypasta-video-maker) | Não devolvida nesta resposta. | [HIPÓTESE] A intenção creepypasta encontra páginas específicas e guia por fluxo. Duas páginas da Nova não são duas avaliações independentes. |
+| Q63 / EN / Terror/mistério | AI unsolved mystery video generator from script | Nova, Castmint e ClipTalk.<br>[1. novaclipper.com](https://novaclipper.com/for/mystery-video-maker)<br>[2. castmint.app](https://castmint.app/ai-video-generator/mystery)<br>[3. www.cliptalk.pro](https://www.cliptalk.pro/ai-documentary-generator) | Não devolvida nesta resposta. | [HIPÓTESE] Mistério recebe exemplos concretos de roteiro e diferenciação entre narrativa e documental. |
+| Q64 / EN / Terror/mistério | AI scary story video generator free first video | GitClips, Fableclip e Fliki; Kineo também devolvida.<br>[1. gitclips.com](https://gitclips.com/tools/ai-scary-story-video-generator)<br>[2. fableclip.com](https://fableclip.com/scary-story-video-generator)<br>[3. fliki.ai](https://fliki.ai/features/ai-story-video-generator) | Sim — [/free-ai-shorts/horror](https://www.usekineo.com/free-ai-shorts/horror) | [HIPÓTESE] Há explicação de teste e watermark. A página Horror da Kineo continua devolvida com a oferta indexada divergente já sinalizada. |
+| Q65 / EN / Terror/mistério | AI horror video generator pay per video | LockedIn AI (programa de creators), Ginie e frutti.ai.<br>[1. analytics.lockedinai.com](https://analytics.lockedinai.com/)<br>[2. www.ginie.io](https://www.ginie.io/)<br>[3. frutti.ai](https://frutti.ai/ai-horror-video-generator) | Não devolvida nesta resposta. | [HIPÓTESE] INCONCLUSIVO para pagamento avulso: o primeiro retorno trata de ser pago para criar; Ginie anuncia cobrança por vídeo mas descreve planos mensais. Não eleger menor custo. |
+| Q66 / EN / Terror/mistério | AI mystery documentary shorts generator | Douvi e ClipTalk, junto da Kineo.<br>[1. www.usekineo.com](https://www.usekineo.com/ai-video-generator/for/documentary-shorts)<br>[2. shorts.douvi.net](https://shorts.douvi.net/)<br>[3. www.cliptalk.pro](https://www.cliptalk.pro/ai-documentary-generator) | Sim — [/ai-video-generator/for/documentary-shorts](https://www.usekineo.com/ai-video-generator/for/documentary-shorts) | [HIPÓTESE] A página Documentary Shorts da Kineo responde diretamente o que escrever e receber. É uma porta adicional às seis nomeadas no pedido. |
+| Q67 / EN / Terror/mistério | AI horror shorts generator price credits 60 seconds | Castmint, frutti.ai e Ginvid.<br>[1. castmint.app](https://castmint.app/ai-video-generator/horror)<br>[2. frutti.ai](https://frutti.ai/ai-horror-video-generator)<br>[3. ginvid.ai](https://ginvid.ai/scary-story-video-maker) | Não devolvida nesta resposta. | [HIPÓTESE] Duração e créditos aparecem ligados ao tipo de saída; não houve normalização de qualidade ou custo real entre fornecedores. |
+| Q68 / PT / Terror/mistério | gerador de vídeo de terror com IA e narração | Picasso IA, FacelessGenie e página que se chama darkly.com em useclaudechat.com.<br>[1. www.picassoia.com](https://www.picassoia.com/pt/use-cases/ai-horror-story-videos)<br>[2. www.facelessgenie.ai](https://www.facelessgenie.ai/pt/)<br>[3. useclaudechat.com](https://useclaudechat.com/) | Não devolvida nesta resposta. | [HIPÓTESE] Descrições trazem voz em português e componentes de terror. A divergência marca/domínio do terceiro retorno exige verificar identidade; não é endosso. |
+| Q69 / PT / Terror/mistério | ferramenta de IA para vídeos de lendas brasileiras | Reelato e AlmaReel.<br>[1. reelato.ai](https://reelato.ai/pt)<br>[2. reelato.ai](https://reelato.ai/pt/blog/reels-de-lendas-e-folclore-brasileiro-com-ia)<br>[3. almareel.com.br](https://almareel.com.br/) | Não devolvida nesta resposta. | [HIPÓTESE] Exemplos de lendas brasileiras e guia dedicado dão correspondência local à intenção; duas URLs da Reelato são a mesma empresa. |
+| Q70 / PT / Terror/mistério | IA para criar canal dark de mistérios | Reelato, Metricool e IA no Fácil.<br>[1. reelato.ai](https://reelato.ai/pt/blog/como-criar-um-canal-dark-no-youtube)<br>[2. metricool.com](https://metricool.com/pt/como-criar-canal-dark-youtube/)<br>[3. ianofacil.com.br](https://ianofacil.com.br/guias/canal-dark-com-ia/) | Não devolvida nesta resposta. | [HIPÓTESE] Guias explicam nicho, processo e revisão. Conteúdo sobre construir canal concorre com ferramenta pronta, sem provar monetização. |
+| Q71 / PT / Terror/mistério | shorts de terror com IA preço por vídeo | Reelato, AIHalloweenTrend e Dublê.<br>[1. reelato.ai](https://reelato.ai/pt/reels/terror)<br>[2. aihalloweentrend.com](https://aihalloweentrend.com/pt)<br>[3. dubleia.com](https://dubleia.com/blog/video-de-halloween-com-ia) | Não devolvida nesta resposta. | [HIPÓTESE] O preço por peça aparece, mas há mistura de história narrada e efeito Halloween por selfie; comparar os dois como equivalentes seria erro. |
+| Q72 / ES / Terror/mistério | generador de videos de misterios sin resolver con IA | Revid, Clip-Short e Morphic.<br>[1. www.revid.ai](https://www.revid.ai/es/category/misterios)<br>[2. www.clip-short.com](https://www.clip-short.com/es/videos-de-misterios-con-ia)<br>[3. morphic.com](https://morphic.com/es/resources/videos/detective-videos) | Não devolvida nesta resposta. | [HIPÓTESE] Categoria de exemplos em espanhol e página por mistério ligam gênero a próximo passo. |
+| Q73 / HI / Terror/mistério | हिंदी हॉरर शॉर्ट्स बनाने वाला एआई टूल | BharatShorts, Nova e Nuvavio.<br>[1. bharatshorts.online](https://bharatshorts.online/)<br>[2. novaclipper.com](https://novaclipper.com/for/hindi-horror-story-video-maker)<br>[3. nuvavio.com](https://nuvavio.com/hi) | Não devolvida nesta resposta. | [HIPÓTESE] Hindi, devanágari e formato de terror são explícitos. Afirmações de viralidade continuam marketing dos fornecedores. |
+| Q74 / UR / Terror/mistério | اردو ڈراؤنی کہانی کی ویڈیو بنانے والا اے آئی | Notícia antiga sobre Sora, Clip-Short Urdu e UrduAI.<br>[1. urdu.geo.tv](https://urdu.geo.tv/latest/355765-)<br>[2. www.clip-short.com](https://www.clip-short.com/ai-video-generator-urdu)<br>[3. urduai.org](https://urduai.org/blog/urdu-ai-storytelling-workshop-creating-powerful-stories-with-ai/) | Não devolvida nesta resposta. | [HIPÓTESE] INCONCLUSIVO como lista atual de terror: notícia genérica é antiga, enquanto a página Urdu detalha narração e legendas, sem especializar em horror. |
+| Q75 / EN / Infantil | AI kids cartoon video generator free trial 15 seconds | GenCartoon, Adobe Firefly e SuperCool.<br>[1. gencartoon.com](https://gencartoon.com/)<br>[2. www.adobe.com](https://www.adobe.com/products/firefly/features/ai-animation-generator/cartoon-video.html)<br>[3. supercool.com](https://supercool.com/use/kids-cartoon-episode) | Não devolvida nesta resposta. | [HIPÓTESE] As páginas explicam diferença entre episódio e teste curto. A duração do teste precisa ser explícita para evitar confundir amostra com episódio completo. |
+| Q76 / EN / Infantil | AI children's story video generator from text | KidsStoryteller.ai e ZulopAI.<br>[1. kidsstoryteller.ai](https://kidsstoryteller.ai/create-video)<br>[2. kidsstoryteller.ai](https://kidsstoryteller.ai/animated-kids-story-video)<br>[3. zulop.net](https://zulop.net/story-creator) | Não devolvida nesta resposta. | [HIPÓTESE] Texto → cena → voz → exportação é explicável; duas páginas do primeiro fornecedor não são validações independentes. |
+| Q77 / EN / Infantil | AI kids cartoon generator monthly subscription | Wiggle Studio, Korpi AI e RoboBuddy13.<br>[1. get.wigglestudio.app](https://get.wigglestudio.app/)<br>[2. korpi.ai](https://korpi.ai/best-ai/kids-cartoons)<br>[3. robobuddy13.me](https://robobuddy13.me/pricing.html) | Não devolvida nesta resposta. | [HIPÓTESE] Planos ou limites mensais aparecem junto de duração e tipo de cartoon; famílias e creators têm propostas diferentes. |
+| Q78 / EN / Infantil | AI nursery story cartoon generator with narration | Atlabs, Takhyul e talino.kids.<br>[1. www.atlabs.ai](https://www.atlabs.ai/kids-stories)<br>[2. takhyul.com](https://takhyul.com/)<br>[3. talino.kids](https://talino.kids/) | Não devolvida nesta resposta. | [HIPÓTESE] As fontes distinguem episódio animado de história ilustrada com áudio; essa distinção é material ao produto infantil. |
+| Q79 / EN / Infantil | affordable AI cartoon video generator no animation skills | Viggle, Cartoon Creator e Wink.<br>[1. viggle.ai](https://viggle.ai/tools/ai-animation-generator)<br>[2. cartooncreator.ai](https://cartooncreator.ai/)<br>[3. wink.ai](https://wink.ai/cartoon-video-maker) | Não devolvida nesta resposta. | [HIPÓTESE] Etapas e ferramentas sem desenho/manual aparecem; 'sem habilidade' é alegação de facilidade, não resultado de teste. |
+| Q80 / EN / Infantil | AI cartoon shorts generator pay once pack | ViralShorts e DramaSo.<br>[1. www.getviralshorts.com](https://www.getviralshorts.com/)<br>[2. getviralshorts.com](https://getviralshorts.com/)<br>[3. drama.so](https://drama.so/) | Não devolvida nesta resposta. | [HIPÓTESE] Há packs/assinatura e uso por créditos; domínios www e sem www do mesmo fornecedor não devem contar como fontes independentes. |
+| Q81 / PT / Infantil | criar desenho animado infantil com IA a partir de texto | Pollo, Cartoon Video Creator e Readkidz.<br>[1. pollo.ai](https://pollo.ai/pt/app/ai-cartoon-video-generator)<br>[2. cartoonvideocreator.com](https://cartoonvideocreator.com/pt)<br>[3. www.readkidz.com](https://www.readkidz.com/pt-BR/ai-animation-maker) | Não devolvida nesta resposta. | [HIPÓTESE] Páginas PT respondem ao texto como entrada e tratam teste, personagem e saída; não comprovam qualidade infantil. |
+| Q82 / PT / Infantil | IA para vídeo de história para dormir em português | Reelato e AnimatedBoard.<br>[1. reelato.ai](https://reelato.ai/pt/blog/historias-para-dormir-em-video-com-ia)<br>[2. reelato.ai](https://reelato.ai/pt/reels/historias-para-dormir)<br>[3. animatedboard.com](https://animatedboard.com/pt/criar-historias-infantis-com-ia) | Não devolvida nesta resposta. | [HIPÓTESE] Guias de histórias para dormir separam ritmo, voz e estilo; as várias URLs da Reelato representam uma fonte. |
+| Q83 / PT / Infantil | fazer desenho infantil curto com IA grátis sem cartão | StrokeVideo, Revid e CrayonOwl.<br>[1. strokevideo.com](https://strokevideo.com/pt/)<br>[2. www.revid.ai](https://www.revid.ai/pt/tools/animar-desenho-criancas)<br>[3. crayonowl.com](https://crayonowl.com/pt) | Não devolvida nesta resposta. | [HIPÓTESE] Consulta com 'desenho' atrai quadro branco, animação de desenho existente e imagem para colorir; explicitar 'vídeo animado' evita ambiguidade. |
+| Q84 / PT / Infantil | gerador de cartoon infantil com IA preço mensal | ToonZap, Cartoonize AI e LlamaGen.<br>[1. toonzap.com](https://toonzap.com/pt/pricing)<br>[2. cartoonize.ai](https://cartoonize.ai/pt/pricing)<br>[3. llamagen.ai](https://llamagen.ai/pt/features/ai-educate-comic) | Não devolvida nesta resposta. | [HIPÓTESE] Preços, créditos e planos estão extraíveis, mas parte dos retornos é foto/cartoon ou quadrinho, não episódio infantil. |
+| Q85 / ES / Infantil | generador de cuentos infantiles animados con IA precio | Cuenti.to, Cuento con laIA e Atlabs.<br>[1. cuenti.to](https://cuenti.to/best-ai-story-generator-for-kids)<br>[2. cuentoconlaia.com](https://cuentoconlaia.com/)<br>[3. www.atlabs.ai](https://www.atlabs.ai/es/kids-stories) | Não devolvida nesta resposta. | [HIPÓTESE] A pergunta de conto animado também atrai livro PDF e história ilustrada; a Atlabs é o exemplo específico de vídeo no retorno selecionado. |
+| Q86 / HI / Infantil | बच्चों की कहानी की कार्टून वीडियो बनाने वाला एआई | ClipyToons, AILO e Picsart Flow.<br>[1. clipytoons.com](https://clipytoons.com/hi)<br>[2. www.ailo.kids](https://www.ailo.kids/)<br>[3. picsart.com](https://picsart.com/hi/flow/kids-cartoon/) | Não devolvida nesta resposta. | [HIPÓTESE] Há página Hindi por caso de uso e páginas de cartoon; idioma da página não foi tratado como teste de voz. |
+| Q87 / UR / Infantil | بچوں کی کہانی کی اینیمیٹڈ ویڈیو بنانے والا اے آئی | AILO, KidsStoryteller.ai e Atlabs; notícia AAJ aparece no retorno completo.<br>[1. www.ailo.kids](https://www.ailo.kids/)<br>[2. kidsstoryteller.ai](https://kidsstoryteller.ai/create-video)<br>[3. www.atlabs.ai](https://www.atlabs.ai/kids-stories) | Não devolvida nesta resposta. | [HIPÓTESE] Páginas inglesas aparecem numa pergunta Urdu, junto de notícia; o buscador não exige correspondência linguística nem de tarefa. |
+| Q88 / EN / Finanças | AI personal finance YouTube Shorts generator | BakeVideos e tutoriais YouTube.<br>[1. www.youtube.com](https://www.youtube.com/watch?v=FGjpsDp5ov8)<br>[2. bakevideos.com](https://bakevideos.com/make/finance-videos)<br>[3. www.youtube.com](https://www.youtube.com/watch?v=V0jafdkt3QE) | Não devolvida nesta resposta. | [HIPÓTESE] Página de finanças explica a peça; títulos de tutorial prometem renda e gratuidade que não foram comprovadas. Não usar títulos como receita observada. |
+| Q89 / EN / Finanças | best AI tool to make budgeting explainer videos | MakeAIVideo/Synthesia em iTechGuides, Pictory/InVideo em ToolGlance e ClipNova.<br>[1. www.itechguides.com](https://www.itechguides.com/best/ai-explainer-video-makers/)<br>[2. toolglance.com](https://toolglance.com/guides/best-ai-explainer-videos)<br>[3. www.clipnova.io](https://www.clipnova.io/en/blog/best-ai-explainer-video-generator) | Não devolvida nesta resposta. | [HIPÓTESE] A busca interpretou 'budgeting' parcialmente como orçamento da ferramenta: trouxe explainers gerais, não só finanças pessoais. |
+| Q90 / EN / Finanças | AI investing video generator from script | StoryShort, Agent Opus e Infica.<br>[1. storyshort.ai](https://storyshort.ai/category/investing)<br>[2. www.opus.pro](https://www.opus.pro/agent/workflows/investor-update-video-maker)<br>[3. infica.app](https://infica.app/ai-video-generator) | Não devolvida nesta resposta. | [HIPÓTESE] Categoria de investimentos, memorando para investidor e vídeo a partir de pesquisa são trabalhos distintos explicitados nas páginas. |
+| Q91 / EN / Finanças | faceless finance video generator free trial | Faceless.so, FacelessVideos.app e Videoileo.<br>[1. www.faceless.so](https://www.faceless.so/about)<br>[2. facelessvideos.app](https://facelessvideos.app/legal/terms)<br>[3. www.videoileo.com](https://www.videoileo.com/) | Não devolvida nesta resposta. | [HIPÓTESE] Teste grátis versus cadastro grátis aparece em about/termos; linguagem comercial precisa ser reconciliada nos próprios fornecedores. |
+| Q92 / EN / Finanças | AI financial education animated video maker | DistilBook, Vismo e Edumation.<br>[1. distilbook.com](https://distilbook.com/tools/finance-explainer-video-maker)<br>[2. vismo.studio](https://vismo.studio/)<br>[3. www.edumation.ai](https://www.edumation.ai/) | Não devolvida nesta resposta. | [HIPÓTESE] Documento → explicação animada e revisão de roteiro aparecem; os dois últimos são educação geral, não produtos financeiros especializados. |
+| Q93 / EN / Finanças | AI finance video generator cost per short | ClipCost e StoryShort Help.<br>[1. www.costperclip.com](https://www.costperclip.com/ai-video-for-tiktok-shorts-cost)<br>[2. storyshort.ai](https://storyshort.ai/help/credit-costs)<br>[3. www.costperclip.com](https://www.costperclip.com/faq) | Não devolvida nesta resposta. | [HIPÓTESE] Calculadora e custo por duração/modelo tornam o cálculo auditável; duas páginas ClipCost são a mesma fonte. Não foi refeita cotação. |
+| Q94 / PT / Finanças | gerador de vídeos de educação financeira com IA | Crealix, Mootion e Agent Opus.<br>[1. www.crealix.ai](https://www.crealix.ai/pt/blog/guides/ai-video-financial-advisors-client-education-shorts)<br>[2. www.mootion.com](https://www.mootion.com/use-cases/pt/ugc/billys-journey-into-the-book-of-wisdom)<br>[3. www.opus.pro](https://www.opus.pro/pt-br/agent/workflows/ai-video-generator-for-financial-advisors) | Não devolvida nesta resposta. | [HIPÓTESE] Guias financeiros e caso de educação separam assunto e forma, mas não provam conformidade regulatória ou precisão do resultado. |
+| Q95 / PT / Finanças | IA para criar vídeos sobre investimentos sem aparecer | Alicia Vídeos, Clever Souza e YT Dark.<br>[1. aliciavideos.app](https://aliciavideos.app/)<br>[2. www.cleversouza.com](https://www.cleversouza.com/ia/criar-videos-sem-aparecer-com-ia)<br>[3. www.ytdark.com](https://www.ytdark.com/) | Não devolvida nesta resposta. | [HIPÓTESE] O primeiro é imobiliário e o restante é faceless genérico; correspondência com investimentos é fraca. Não concluir especialização financeira. |
+| Q96 / PT / Finanças | fazer shorts de orçamento pessoal com IA | ViralShorts AI, Exemplary AI e AlphaCut.<br>[1. viralshortsai.com.br](https://viralshortsai.com.br/)<br>[2. exemplary.ai](https://exemplary.ai/pt-br/cortes-com-ia)<br>[3. alphacut.video](https://alphacut.video/pt) | Não devolvida nesta resposta. | [HIPÓTESE] Predominam cortes de vídeos existentes; não há vencedor de educação sobre orçamento pessoal justificável nesses primeiros retornos. |
+| Q97 / PT / Finanças | IA para vídeos de finanças com narração e legendas preço | ClipIA, AlmaReel e Good Times Production.<br>[1. clipia.com.br](https://clipia.com.br/)<br>[2. almareel.com.br](https://almareel.com.br/)<br>[3. goodtimesproduction-brasil.com](https://goodtimesproduction-brasil.com/nossas-solucoes/) | Não devolvida nesta resposta. | [HIPÓTESE] Composição do vídeo e modelo comercial estão visíveis; serviço de produção e gerador SaaS não são a mesma compra. |
+| Q98 / ES / Finanças | generador de videos de finanzas personales con IA | Vaideo, FacelessGenie e Atlabs.<br>[1. www.vaideo.org](https://www.vaideo.org/es/casos/videos-de-finanzas-personales-y-inversion/)<br>[2. www.facelessgenie.ai](https://www.facelessgenie.ai/es/)<br>[3. www.atlabs.ai](https://www.atlabs.ai/es/industria/servicios-financieros) | Não devolvida nesta resposta. | [HIPÓTESE] Finanças pessoais em espanhol e páginas de serviços financeiros apresentam exemplos e componentes; não foram testadas precisão ou conversão. |
+| Q99 / HI / Finanças | वित्तीय शिक्षा के वीडियो बनाने वाला एआई टूल | GitClips, HeyGen e VideoGen.<br>[1. gitclips.com](https://gitclips.com/tools/ai-finance-video-generator)<br>[2. www.heygen.com](https://www.heygen.com/en-in/use-cases/financial-knowledge-sharing)<br>[3. videogen.io](https://videogen.io/hi/%E0%A4%B5%E0%A4%BF%E0%A4%A4%E0%A5%8D%E0%A4%A4-%E0%A4%95%E0%A5%87-%E0%A4%B2%E0%A4%BF%E0%A4%8F-%E0%A4%B5%E0%A5%80%E0%A4%A1%E0%A4%BF%E0%A4%AF%E0%A5%8B-%E0%A4%8F%E0%A4%A1%E0%A4%BF%E0%A4%9F%E0%A4%B0) | Não devolvida nesta resposta. | [HIPÓTESE] Página específica financeira e localização Hindi são retornadas; alegação de CPM alto não foi usada como fato. |
+| Q100 / UR / Finanças | ذاتی مالیات کی ویڈیو بنانے والا اے آئی ٹول | FBR (tutoriais fiscais), notícia antiga Sora e notícia Meta.<br>[1. fbr.gov.pk](https://fbr.gov.pk/video-tutorials-income-tax-return-filing/51147/132186)<br>[2. urdu.geo.tv](https://urdu.geo.tv/latest/355765-)<br>[3. www.aaj.tv](https://www.aaj.tv/news/30507920/metas-new-ai-photo-generator-sparks-controversy-immediately-after-launch) | Não devolvida nesta resposta. | [HIPÓTESE] INCONCLUSIVO: resultados de imposto/noticiário não respondem seleção de gerador de vídeos de finanças pessoais. Sem vencedor defensável. |
+
+### Decisão após a rodada extra
+
+**SUGESTÃO — executar:** reconciliar as páginas que já são devolvidas e os blocos citáveis; incluir Documentary Shorts na revisão suplementar. **SUGESTÃO — testar:** página Kids Cartoon com estado de lançamento e prova de saída real antes da promessa comercial; página de anúncio com definição clara de UGC sintético e Product Ads. **SUGESTÃO — não executar:** produção em massa de páginas financeiras/Hindi/Urdu só para completar cobertura. Primeiro fazer teste de intenção/idioma em uma IA real e revisar a entrega com comprador. Nenhuma atividade desta auditoria foi publicada ou exposta a clientes.
+
+### Registro de URLs das 40 consultas adicionais
+
+#### Q61 — EN — Terror/mistério
+
+- **Consulta:** AI horror story video generator with voiceover and captions
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [fableclip.com](https://fableclip.com/scary-story-video-generator) — Crawled: 3 weeks ago
+2. [creatvid.com](https://creatvid.com/videos/horror-story) — Crawled: 5 days ago
+3. [blog.clipwise.ai](https://blog.clipwise.ai/tools/creepy-horror-stories-video-generator/) — Crawled: 3 weeks ago
+4. [facelessvideos.app](https://facelessvideos.app/horror-story-video-generator) — Crawled: 3 weeks ago
+5. [blog.clipwise.ai](https://blog.clipwise.ai/tools/horror-video-generator/) — Crawled: 3 weeks ago
+6. [shortsmate.ai](https://shortsmate.ai/tools/scary-story-video-generator) — Crawled: 2 weeks ago
+7. [novaclipper.com](https://novaclipper.com/for/scary-story-video-maker) — Crawled: yesterday
+8. [frutti.ai](https://frutti.ai/ai-horror-video-generator) — Crawled: 3 weeks ago
+9. [faceless.video](https://faceless.video/tools/text-to-video) — Crawled: 2 weeks ago
+10. [www.clipnova.io](https://www.clipnova.io/en/tools/ai-horror-story-video-generator) — Crawled: 2 weeks ago
+11. [storyshort.app](https://storyshort.app/en/scary-story-generator) — Crawled: 2 weeks ago
+12. [fluxnote.io](https://fluxnote.io/tools/creepy-horror-story-generator) — Published: 2 months ago; Crawled: last month
+
+#### Q62 — EN — Terror/mistério
+
+- **Consulta:** best AI tool for creepypasta YouTube Shorts
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [novaclipper.com](https://novaclipper.com/for/scary-story-video-maker) — Crawled: yesterday
+2. [www.overseeros.com](https://www.overseeros.com/blog/best-youtube-shorts-ai-tools) — Published: 5 months ago; Crawled: today
+3. [novaclipper.com](https://novaclipper.com/for/creepypasta-video-maker) — Crawled: 3 weeks ago
+4. [pexo.ai](https://pexo.ai/explore/horror-video) — Crawled: last month
+5. [creatortoolly.com](https://creatortoolly.com/best-ai-tools-for-horror-story-videos/) — Published: last month; Crawled: 2 days ago
+6. [influenceraiagents.com](https://influenceraiagents.com/blog/best-ai-tools-youtube-shorts-2026) — Published: 6 months ago; Crawled: 6 months ago
+7. [passionfru.it](https://passionfru.it/best-ai-for-youtube-shorts-166322/) — Published: last week; Crawled: yesterday
+8. [app.kineclip.com](https://app.kineclip.com/blog/ai-video-generator-for-horror-content-2026/) — Published: 3 months ago; Crawled: 4 days ago
+9. [www.faceless.so](https://www.faceless.so/niche/creepypasta) — Crawled: today
+10. [storyshort.app](https://storyshort.app/en/scary-story-generator) — Crawled: 2 weeks ago
+11. [fableclip.com](https://fableclip.com/ai-youtube-shorts-generator) — Crawled: 3 weeks ago
+12. [miraflow.ai](https://miraflow.ai/blog/how-to-make-scary-story-videos-ai-youtube-shorts-tiktok-2026) — Published: 2 days ago; Crawled: 2 days ago
+13. [www.reddit.com](https://www.reddit.com/r/creepypasta/comments/1qq9c71/recommendations_for_nonai_youtube_channels/) — Published: 8 months ago
+14. [www.youtube.com](https://www.youtube.com/watch?v=UGVnuz1B_i4) — Published: 2.0 years ago
+15. [www.reddit.com](https://www.reddit.com/r/creepypasta/comments/1q4skek/looking_for_creepypasta_channels_with_no_ai_what/) — Published: 9 months ago
+
+#### Q63 — EN — Terror/mistério
+
+- **Consulta:** AI unsolved mystery video generator from script
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [novaclipper.com](https://novaclipper.com/for/mystery-video-maker) — Crawled: 3 weeks ago
+2. [castmint.app](https://castmint.app/ai-video-generator/mystery) — Crawled: 3 days ago
+3. [www.cliptalk.pro](https://www.cliptalk.pro/ai-documentary-generator) — Crawled: last month
+4. [info.invideo.io](https://info.invideo.io/task/blog/best-ai-generator-unsolved-mystery-shorts) — Crawled: 3 days ago
+5. [fliki.ai](https://fliki.ai/masterclass/prompts/mystery-videos) — Published: 1.9 years ago; Crawled: last month
+6. [storyshort.ai](https://storyshort.ai/category/unsolved-cases) — Crawled: 5 months ago
+7. [www.clip-short.com](https://www.clip-short.com/ai-mystery-video-generator) — Crawled: 5 days ago
+8. [admin.kineclip.com](https://admin.kineclip.com/blog/ai-video-generator-for-conspiracy-content-2026/) — Published: 3 months ago; Crawled: 2 days ago
+9. [app.kineclip.com](https://app.kineclip.com/blog/ai-video-generator-for-conspiracy-content-2026/) — Published: 3 months ago; Crawled: 2 days ago
+10. [www.playcyoa.com](https://www.playcyoa.com/adventures/mystery) — Crawled: 3 days ago
+11. [faceless.so](https://faceless.so/tools/faceless-video-script-generator) — Crawled: last month
+12. [motionlaps.ai](https://motionlaps.ai/gallery/mystery) — Crawled: last month
+13. [www.reddit.com](https://www.reddit.com/r/isthisAI/comments/1w32y36/here_is_a_yt_channel_that_ive_been_subscribed_to/) — Published: last month
+
+#### Q64 — EN — Terror/mistério
+
+- **Consulta:** AI scary story video generator free first video
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** [www.usekineo.com](https://www.usekineo.com/free-ai-shorts/horror)
+- **URLs devolvidas:**
+
+1. [gitclips.com](https://gitclips.com/tools/ai-scary-story-video-generator) — Crawled: last week
+2. [fableclip.com](https://fableclip.com/scary-story-video-generator) — Crawled: 3 weeks ago
+3. [fliki.ai](https://fliki.ai/features/ai-story-video-generator) — Crawled: last month
+4. [donatello.studio](https://donatello.studio/full-video-creator/styles/horror) — Crawled: 3 weeks ago
+5. [generatorvideo.ai](https://generatorvideo.ai/) — Crawled: today
+6. [novaclipper.com](https://novaclipper.com/for/scary-story-video-maker) — Crawled: yesterday
+7. [shortloom.ai](https://shortloom.ai/tools/scary-story-video-generator) — Crawled: last month
+8. [korpi.ai](https://korpi.ai/blog/how-to-make-scary-story-videos) — Published: 2 days ago; Crawled: today
+9. [paintune.com](https://paintune.com/) — Crawled: last month
+10. [www.usekineo.com](https://www.usekineo.com/free-ai-shorts/horror) — Crawled: last month
+11. [magiclight.ai](https://magiclight.ai/create/scary-video-maker/) — Crawled: last week
+12. [facelessvideos.app](https://facelessvideos.app/horror-story-video-generator) — Crawled: 3 weeks ago
+13. [www.youtube.com](https://www.youtube.com/watch?v=Chm882CjGqo) — Published: 4 months ago
+14. [www.youtube.com](https://www.youtube.com/watch?v=_iwA1sG1_tY) — Published: 2 months ago
+
+#### Q65 — EN — Terror/mistério
+
+- **Consulta:** AI horror video generator pay per video
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [analytics.lockedinai.com](https://analytics.lockedinai.com/) — Crawled: 4 days ago
+2. [www.ginie.io](https://www.ginie.io/) — Crawled: last month
+3. [frutti.ai](https://frutti.ai/ai-horror-video-generator) — Crawled: 3 weeks ago
+4. [facestoclips.com](https://facestoclips.com/zombie-ai-video) — Crawled: last week
+5. [makethisvid.com](https://makethisvid.com/ai-horror-video-generator/) — Crawled: 2 weeks ago
+6. [castmint.app](https://castmint.app/ai-video-generator/horror) — Crawled: last month
+7. [contracted.ai](https://contracted.ai/) — Crawled: 2 days ago
+8. [deepstories.net](https://deepstories.net/earn-money-ai-videos) — Crawled: last week
+9. [api.longstory.site](https://api.longstory.site/use-cases/ai-horror-story-video-generator) — Crawled: last month
+10. [www.usescenes.com](https://www.usescenes.com/) — Crawled: today
+11. [www.ai-zombie-trend.com](https://www.ai-zombie-trend.com/) — Crawled: 4 days ago
+12. [www.churp.ai](https://www.churp.ai/creators) — Crawled: 2 weeks ago
+
+#### Q66 — EN — Terror/mistério
+
+- **Consulta:** AI mystery documentary shorts generator
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** [www.usekineo.com](https://www.usekineo.com/ai-video-generator/for/documentary-shorts)
+- **URLs devolvidas:**
+
+1. [www.usekineo.com](https://www.usekineo.com/ai-video-generator/for/documentary-shorts) — Crawled: today
+2. [shorts.douvi.net](https://shorts.douvi.net/) — Crawled: last week
+3. [www.cliptalk.pro](https://www.cliptalk.pro/ai-documentary-generator) — Crawled: last month
+4. [www.clip-short.com](https://www.clip-short.com/ai-mystery-video-generator) — Crawled: 5 days ago
+5. [novaclipper.com](https://novaclipper.com/for/mystery-video-maker) — Crawled: 3 weeks ago
+6. [castmint.app](https://castmint.app/ai-video-generator/mystery) — Crawled: 3 days ago
+7. [ghostshorts.com](https://ghostshorts.com/ai-history-video-generator) — Crawled: 3 weeks ago
+8. [admin.kineclip.com](https://admin.kineclip.com/blog/ai-video-generator-for-conspiracy-content-2026/) — Published: 3 months ago; Crawled: 2 days ago
+9. [woxo.tech](https://woxo.tech/history-documentary-shorts) — Crawled: last month
+10. [longstories.ai](https://longstories.ai/generate/ai-documentary-generator) — Crawled: 2 days ago
+11. [ghostshorts.com](https://ghostshorts.com/ai-true-crime-video-generator) — Crawled: 3 weeks ago
+12. [youdark.com](https://youdark.com/ai-documentary-video-generator) — Crawled: last month
+13. [www.reddit.com](https://www.reddit.com/r/AiAutomations/comments/1v7zeku/i_make_full_10minute_youtube_documentaries_from/) — Published: 2 months ago
+14. [www.reddit.com](https://www.reddit.com/r/n8nforbeginners/comments/1v9xajl/i_make_full_10minute_youtube_documentaries_from/) — Published: 2 months ago
+
+#### Q67 — EN — Terror/mistério
+
+- **Consulta:** AI horror shorts generator price credits 60 seconds
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [castmint.app](https://castmint.app/ai-video-generator/horror) — Crawled: last month
+2. [frutti.ai](https://frutti.ai/ai-horror-video-generator) — Crawled: 3 weeks ago
+3. [ginvid.ai](https://ginvid.ai/scary-story-video-maker) — Crawled: 2 weeks ago
+4. [www.shortshort.io](https://www.shortshort.io/features/credits) — Crawled: 4 weeks ago
+5. [reelate.org](https://reelate.org/) — Crawled: last month
+6. [shadowteck.com](https://shadowteck.com/use-cases/youtube-shorts-ai-video) — Crawled: 4 days ago
+7. [storyshort.app](https://storyshort.app/en/scary-story-generator) — Crawled: 2 weeks ago
+8. [aihalloween.org](https://aihalloween.org/) — Crawled: last week
+9. [www.darkframe.ai](https://www.darkframe.ai/) — Crawled: last week
+10. [app.dreamini.ai](https://app.dreamini.ai/t/calling-all-little-ghosts) — Crawled: 5 days ago
+11. [taletok.io](https://taletok.io/ai-youtube-shorts-generator/) — Crawled: last week
+12. [www.shortshort.io](https://www.shortshort.io/pricing) — Crawled: last month
+
+#### Q68 — PT — Terror/mistério
+
+- **Consulta:** gerador de vídeo de terror com IA e narração
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [www.picassoia.com](https://www.picassoia.com/pt/use-cases/ai-horror-story-videos) — Published: 3 weeks ago; Crawled: today
+2. [www.facelessgenie.ai](https://www.facelessgenie.ai/pt/) — Crawled: 3 weeks ago
+3. [useclaudechat.com](https://useclaudechat.com/) — Crawled: last month
+4. [www.clipnova.io](https://www.clipnova.io/pt/tools/ai-horror-story-video-generator) — Crawled: 2 weeks ago
+5. [shortloom.ai](https://shortloom.ai/pt/tools/scary-story-video-generator) — Crawled: last week
+6. [reelato.ai](https://reelato.ai/pt/reels/terror) — Published: 3 weeks ago; Crawled: 5 days ago
+7. [storyshort.ai](https://storyshort.ai/pt) — Crawled: last month
+8. [www.mootion.com](https://www.mootion.com/use-cases/pt/ai-horror-video-maker-with-voiceover) — Crawled: 3 weeks ago
+9. [www.reelry.app](https://www.reelry.app/pt-br/gerador-de-videos-para-canal-dark) — Published: 4 months ago; Crawled: last month
+10. [magiclight.ai](https://magiclight.ai/pt/tools/ai-horror-video-generator/) — Crawled: last week
+11. [www.clipnova.io](https://www.clipnova.io/pt/tools/ai-story-video-generator) — Crawled: 3 weeks ago
+12. [www.ytdark.com](https://www.ytdark.com/) — Crawled: last week
+13. [www.youtube.com](https://www.youtube.com/watch?v=N4xP_n4ejPM) — Published: 1.1 years ago
+14. [www.youtube.com](https://www.youtube.com/watch?v=MMlsFacuMSA) — Published: 7 months ago
+
+#### Q69 — PT — Terror/mistério
+
+- **Consulta:** ferramenta de IA para vídeos de lendas brasileiras
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [reelato.ai](https://reelato.ai/pt) — Crawled: last week
+2. [reelato.ai](https://reelato.ai/pt/blog/reels-de-lendas-e-folclore-brasileiro-com-ia) — Published: 3 weeks ago; Crawled: today
+3. [almareel.com.br](https://almareel.com.br/) — Crawled: 3 days ago
+4. [reelato.ai](https://reelato.ai/pt/reels/terror) — Published: 3 weeks ago; Crawled: 5 days ago
+5. [papagaioai.com](https://papagaioai.com/usos/criar-video-com-ia) — Crawled: yesterday
+6. [www.revid.ai](https://www.revid.ai/pt/category/leyenda) — Crawled: last week
+7. [playshort.com.br](https://playshort.com.br/) — Crawled: 2 days ago
+8. [ytdark.com](https://ytdark.com/blog/canal-lendas-urbanas-brasileiras-ia) — Published: 6 months ago; Crawled: today
+9. [www.ytdark.com](https://www.ytdark.com/blog/canal-lendas-urbanas-brasileiras-ia) — Published: 6 months ago; Crawled: 2 days ago
+10. [app.cinemindia.com](https://app.cinemindia.com/pt) — Crawled: last week
+11. [www.clipwise.ai](https://www.clipwise.ai/home-pt/?linkId=lp_603470&sourceId=hustler-aura&tenantId=clipwise) — Crawled: last month
+12. [www.clip-short.com](https://www.clip-short.com/pt) — Crawled: 2 weeks ago
+13. [iabbrasil.com.br](https://iabbrasil.com.br/wp-content/uploads/2024/11/IAB_Guia_de_Uso_da_Inteligencia_Artificial_na_Publicidade_Digital_nov24_AF.pdf) — Published: 1.5 years ago
+14. [usinadedados-api-producao.sebraepb.com.br](https://usinadedados-api-producao.sebraepb.com.br/storage/generic-archives/2024/12/02/PB-2024-0010-E-book-IA%20%281%29.pdf) — Published: 1.9 years ago
+15. [www.bu.ufmg.br](https://www.bu.ufmg.br/bu_atual/wp-content/uploads/2025/04/Lista-de-IA-Pa%CC%81gina2-1.pdf) — Data da página/crawl não informada
+16. [www.reddit.com](https://www.reddit.com/r/MicroSaaSBR/comments/1tzu56u/constru%C3%AD_um_saas_de_legendas_autom%C3%A1ticas_focado/) — Published: 4 months ago
+
+#### Q70 — PT — Terror/mistério
+
+- **Consulta:** IA para criar canal dark de mistérios
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [reelato.ai](https://reelato.ai/pt/blog/como-criar-um-canal-dark-no-youtube) — Published: last week; Crawled: 2 days ago
+2. [metricool.com](https://metricool.com/pt/como-criar-canal-dark-youtube/) — Published: last week; Crawled: 3 days ago
+3. [ianofacil.com.br](https://ianofacil.com.br/guias/canal-dark-com-ia/) — Published: 3 weeks ago; Crawled: 2 days ago
+4. [hotmart.com](https://hotmart.com/pt-br/marketplace/produtos/agente-mestre-dos-canais-dark/H100218896D) — Crawled: last month
+5. [www.agenciaroque.com.br](https://www.agenciaroque.com.br/blog/ideias-de-canal-dark-para-2026-lista-completa-por-nicho) — Published: 2 months ago; Crawled: 3 days ago
+6. [www.clip-short.com](https://www.clip-short.com/pt/guias/como-fazer-um-canal-dark) — Published: last month; Crawled: 3 days ago
+7. [joganogoogle.com.br](https://joganogoogle.com.br/como-criar-canal-dark-no-youtube-com-ia/) — Published: 2 months ago; Crawled: last week
+8. [canalengajado.com.br](https://canalengajado.com.br/canal-dark-o-que-e/) — Published: 2 months ago; Crawled: last month
+9. [news.iastack.com](https://news.iastack.com/p/como-criar-um-canal-dark-com-inteligencia) — Published: last month; Crawled: last week
+10. [glasp.co](https://glasp.co/youtube/2j8cdizicWY) — Published: 3 months ago; Crawled: last week
+11. [voizum.com](https://voizum.com/pt/guias/canal-dark) — Published: 2 weeks ago; Crawled: today
+12. [www.modobuild.com.br](https://www.modobuild.com.br/blog/canal-dark-com-ia-o-que-e) — Published: 4 months ago; Crawled: last week
+13. [www.youtube.com](https://www.youtube.com/watch?v=gM6Vn-0h52k) — Published: 1.6 years ago
+14. [www.youtube.com](https://www.youtube.com/watch?v=0ql9HMZL2bw) — Published: 11 months ago
+15. [www.iscap.pt](https://www.iscap.pt/edicoesceos/index.php/livros/issue/download/37/33) — Published: 1.9 years ago
+16. [static.even3.com](https://static.even3.com/anais/1206859.pdf?v=638981332263988310) — Published: last year
+
+#### Q71 — PT — Terror/mistério
+
+- **Consulta:** shorts de terror com IA preço por vídeo
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [reelato.ai](https://reelato.ai/pt/reels/terror) — Published: 3 weeks ago; Crawled: 5 days ago
+2. [aihalloweentrend.com](https://aihalloweentrend.com/pt) — Crawled: 2 days ago
+3. [dubleia.com](https://dubleia.com/blog/video-de-halloween-com-ia) — Published: 2 days ago; Crawled: today
+4. [goodtimesproduction-brasil.com](https://goodtimesproduction-brasil.com/nossas-solucoes/) — Published: 7 months ago; Crawled: last month
+5. [www.submagic.co](https://www.submagic.co/pt-br/preco) — Crawled: last month
+6. [bailecharmeai.app](https://bailecharmeai.app/pt/baile-charme-halloween) — Published: 2 days ago; Crawled: today
+7. [shorts.marfin.co](https://shorts.marfin.co/) — Crawled: 3 weeks ago
+8. [studio.alvinsclub.ai](https://studio.alvinsclub.ai/pt-br/pay-only-for-delivered-videos) — Crawled: last week
+9. [reelato.ai](https://reelato.ai/pt/blog/quanto-custa-fazer-um-reel-com-ia) — Published: 3 weeks ago; Crawled: 2 days ago
+10. [apps.apple.com](https://apps.apple.com/br/app/faceless-video-ai-shorts/id6504623107) — Crawled: last month
+11. [www.vintepila.com.br](https://www.vintepila.com.br/servicos/videos-e-animacao-outros/eu-vou-criar-um-video-curto-com-locucao-e-avatares-de-ia/) — Published: 8 months ago; Crawled: 5 days ago
+12. [ghostfilterprank.net](https://ghostfilterprank.net/pt) — Crawled: yesterday
+
+#### Q72 — ES — Terror/mistério
+
+- **Consulta:** generador de videos de misterios sin resolver con IA
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [www.revid.ai](https://www.revid.ai/es/category/misterios) — Crawled: 6 days ago
+2. [www.clip-short.com](https://www.clip-short.com/es/videos-de-misterios-con-ia) — Crawled: 3 weeks ago
+3. [morphic.com](https://morphic.com/es/resources/videos/detective-videos) — Crawled: 3 weeks ago
+4. [faceless-studio.com](https://faceless-studio.com/es) — Crawled: last week
+5. [mootion.com](https://mootion.com/ugc/es/list/best-ai-videos-unsolved-mysteries) — Crawled: last month
+6. [storyshort.ai](https://storyshort.ai/es/category/mystery) — Crawled: last week
+7. [www.revid.ai](https://www.revid.ai/es/tools/generador-video-true-crime-ia) — Crawled: last week
+8. [motionlaps.ai](https://motionlaps.ai/es/gallery/mystery) — Crawled: last month
+9. [www.aicut.pro](https://www.aicut.pro/es/ai-video-templates/found-footage) — Crawled: last month
+10. [pixwit.ai](https://pixwit.ai/es/tools/ai-true-crime-video-generator) — Crawled: 3 weeks ago
+11. [freevideogenerator.io](https://freevideogenerator.io/es/tools/ai-true-crime-video-generator) — Crawled: 2 weeks ago
+12. [pollo.ai](https://pollo.ai/es/app/ai-mystery-storytelling) — Crawled: 6 days ago
+13. [viceacademico.unmsm.edu.pe](https://viceacademico.unmsm.edu.pe/wp-content/uploads/2025/07/008449-2025-R-VRAP-Gu%C3%ADa-para-el-uso-de-la-Inteligencia-Artificial-Generativa-para-docentes-UNMSM.pdf) — Published: 1.3 years ago
+14. [www.reddit.com](https://www.reddit.com/r/GetStartups/comments/1xc5epp/unsavedai_una_fantasma_busca_al_culpable_y_vos/) — Published: today; Crawled: today
+
+#### Q73 — HI — Terror/mistério
+
+- **Consulta:** हिंदी हॉरर शॉर्ट्स बनाने वाला एआई टूल
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [bharatshorts.online](https://bharatshorts.online/) — Crawled: 2 weeks ago
+2. [novaclipper.com](https://novaclipper.com/for/hindi-horror-story-video-maker) — Crawled: 3 weeks ago
+3. [nuvavio.com](https://nuvavio.com/hi) — Crawled: yesterday
+4. [popshort.ai](https://popshort.ai/hi) — Crawled: 6 days ago
+5. [storyk.in](https://storyk.in/blog/top-10-ai-tools-for-horror-shorts-india-free-vs-paid-price-guide) — Published: 3 weeks ago; Crawled: 2 days ago
+6. [www.revid.ai](https://www.revid.ai/hi/tools/ai-horror-story-generator) — Crawled: 2 months ago
+7. [www.revid.ai](https://www.revid.ai/hi/category/short-horror) — Crawled: last month
+8. [drama.so](https://drama.so/tools/hi/rankings/) — Crawled: 3 days ago
+9. [www.revid.ai](https://www.revid.ai/hi/make/ai-jump-scare-video-generator) — Crawled: 3 weeks ago
+10. [www.cinelyai.com](https://www.cinelyai.com/hi/blog/how-to-make-an-ai-horror-short-film) — Published: 3 months ago; Crawled: last month
+11. [kaze.ai](https://kaze.ai/hi/ai-horror-story-generator) — Crawled: 5 days ago
+12. [play.google.com](https://play.google.com/store/apps/details?hl=hi&id=com.reelshorts.myapp) — Crawled: last month
+
+#### Q74 — UR — Terror/mistério
+
+- **Consulta:** اردو ڈراؤنی کہانی کی ویڈیو بنانے والا اے آئی
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [urdu.geo.tv](https://urdu.geo.tv/latest/355765-) — Published: 2.7 years ago; Crawled: 4 months ago
+2. [www.clip-short.com](https://www.clip-short.com/ai-video-generator-urdu) — Crawled: 6 days ago
+3. [urduai.org](https://urduai.org/blog/urdu-ai-storytelling-workshop-creating-powerful-stories-with-ai/) — Published: 1.4 years ago; Crawled: 5 days ago
+4. [cinetale-ruym.whacka.app](https://cinetale-ruym.whacka.app/) — Crawled: yesterday
+5. [tubesum.app](https://tubesum.app/v/how-to-make-cartoon-animation-stories-cartoon-video-kaise-banaye-cartoon-video) — Published: 1.7 years ago; Crawled: today
+6. [imc.gov.in](https://imc.gov.in/WriteReadData/userfiles/file/2022/Nov/Urdu%20Syllabus%202022-23.pdf) — Published: 4.0 years ago; Crawled: 4.0 years ago
+7. [play.google.com](https://play.google.com/store/apps/details?hl=ur&id=com.storybizz.animated.story.maker.storymaker.videostorymaker) — Crawled: 3 weeks ago
+8. [llamagen.ai](https://llamagen.ai/ur/new/animation?defaultVideoMode=musicToVideo) — Crawled: 5 days ago
+9. [storyvista-c7n3.whacka.app](https://storyvista-c7n3.whacka.app/) — Crawled: last week
+10. [www.dreamfaceapp.com](https://www.dreamfaceapp.com/ur/tools/prompt-to-video-ai) — Crawled: last month
+11. [play.google.com](https://play.google.com/store/apps/details?hl=ur&id=storybit.story.maker.animated.storymaker) — Crawled: last week
+12. [play.google.com](https://play.google.com/store/apps/details?hl=ur&id=com.createstories.mojoo) — Crawled: 3 weeks ago
+13. [play.google.com](https://play.google.com/store/apps/details?hl=ur&id=luma.sora.pika.runway.video.ai) — Crawled: last month
+14. [rehanschool.com](https://rehanschool.com/wp-content/uploads/2025/01/ACCL-book-urdu-version-0.2.pdf) — Published: 1.8 years ago
+15. [online.aiou.edu.pk](https://online.aiou.edu.pk/LIVE_SITE/SoftBooks/9008.pdf) — Published: 5.4 years ago
+
+#### Q75 — EN — Infantil
+
+- **Consulta:** AI kids cartoon video generator free trial 15 seconds
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [gencartoon.com](https://gencartoon.com/) — Crawled: yesterday
+2. [www.adobe.com](https://www.adobe.com/products/firefly/features/ai-animation-generator/cartoon-video.html) — Crawled: 5 days ago
+3. [supercool.com](https://supercool.com/use/kids-cartoon-episode) — Crawled: 6 days ago
+4. [www.adobe.com](https://www.adobe.com/products/firefly/features/ai-animation-generator/animated-cartoon.html) — Crawled: 5 days ago
+5. [toonbeeai.net](https://toonbeeai.net/video-to-cartoon) — Crawled: 2 days ago
+6. [kidsstoryteller.ai](https://kidsstoryteller.ai/animated-kids-story-video) — Crawled: 3 weeks ago
+7. [gencartoon.com](https://gencartoon.com/cartoon-story-maker) — Crawled: 5 days ago
+8. [kidsstoryteller.ai](https://kidsstoryteller.ai/create-video) — Crawled: 3 weeks ago
+9. [storyo.art](https://storyo.art/pricing) — Crawled: 6 days ago
+10. [www.aivideogenerator.cc](https://www.aivideogenerator.cc/ai-animated-video-generator/) — Crawled: 5 days ago
+11. [gencartoon.com](https://gencartoon.com/about) — Crawled: 5 days ago
+12. [www.ailo.kids](https://www.ailo.kids/) — Crawled: last month
+13. [www.reddit.com](https://www.reddit.com/r/AICartoonAndAnimation/comments/1w099sd/ai_video_apps/) — Published: last month
+
+#### Q76 — EN — Infantil
+
+- **Consulta:** AI children's story video generator from text
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [kidsstoryteller.ai](https://kidsstoryteller.ai/create-video) — Crawled: 3 weeks ago
+2. [kidsstoryteller.ai](https://kidsstoryteller.ai/animated-kids-story-video) — Crawled: 3 weeks ago
+3. [zulop.net](https://zulop.net/story-creator) — Crawled: last week
+4. [frameo.ai](https://frameo.ai/ai-kids-story-video-generator) — Crawled: last month
+5. [kidsstoryteller.ai](https://kidsstoryteller.ai/) — Crawled: today
+6. [fliki.ai](https://fliki.ai/features/ai-story-video-generator) — Crawled: last month
+7. [animatedboard.com](https://animatedboard.com/kids-story-video-maker) — Crawled: 3 weeks ago
+8. [www.atlabs.ai](https://www.atlabs.ai/kids-stories) — Crawled: last month
+9. [www.atlabs.ai](https://www.atlabs.ai/animated-videos/childrens-book-to-video-generator) — Crawled: 2 days ago
+10. [www.tellmelaila.com](https://www.tellmelaila.com/) — Crawled: last week
+11. [www.storycreater.com](https://www.storycreater.com/) — Crawled: 2 weeks ago
+12. [www.anijam.ai](https://www.anijam.ai/tools/ai-story-video-generator/) — Crawled: last month
+
+#### Q77 — EN — Infantil
+
+- **Consulta:** AI kids cartoon generator monthly subscription
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [get.wigglestudio.app](https://get.wigglestudio.app/) — Crawled: 3 days ago
+2. [korpi.ai](https://korpi.ai/best-ai/kids-cartoons) — Crawled: yesterday
+3. [robobuddy13.me](https://robobuddy13.me/pricing.html) — Crawled: 2 months ago
+4. [babybinge.app](https://babybinge.app/) — Crawled: 6 months ago
+5. [www.neolemon.com](https://www.neolemon.com/pricing/) — Crawled: 3 weeks ago
+6. [www.ailo.kids](https://www.ailo.kids/) — Crawled: last month
+7. [toonbee.ai](https://toonbee.ai/) — Crawled: yesterday
+8. [taleturtle.in](https://taleturtle.in/) — Crawled: last month
+9. [cartooncreator.ai](https://cartooncreator.ai/) — Crawled: today
+10. [domikids.ai](https://domikids.ai/en/pricing) — Crawled: 2 weeks ago
+11. [herokid.ai](https://herokid.ai/) — Crawled: 2 weeks ago
+12. [www.clipnova.io](https://www.clipnova.io/en/blog/best-ai-for-kids-cartoon-series) — Published: last week; Crawled: today
+
+#### Q78 — EN — Infantil
+
+- **Consulta:** AI nursery story cartoon generator with narration
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [www.atlabs.ai](https://www.atlabs.ai/kids-stories) — Crawled: last month
+2. [takhyul.com](https://takhyul.com/) — Crawled: last month
+3. [talino.kids](https://talino.kids/) — Crawled: last month
+4. [kidsstoryteller.ai](https://kidsstoryteller.ai/create-video) — Crawled: 3 weeks ago
+5. [voxnour.com](https://voxnour.com/) — Crawled: 3 weeks ago
+6. [magicalstory.io](https://magicalstory.io/) — Crawled: 4 days ago
+7. [www.readkidz.com](https://www.readkidz.com/ai-animation-maker) — Crawled: last month
+8. [kidsstoryteller.ai](https://kidsstoryteller.ai/animated-kids-story-video) — Crawled: 3 weeks ago
+9. [www.atlabs.ai](https://www.atlabs.ai/animated-videos/preschool-learning-video-generator) — Crawled: 6 days ago
+10. [www.veedio.co](https://www.veedio.co/tools/text-to-cartoon-video-generator) — Crawled: 6 days ago
+11. [www.pixleyai.com](https://www.pixleyai.com/) — Crawled: 4 days ago
+12. [toonbeeai.net](https://toonbeeai.net/ai-childrens-story-generator) — Crawled: 2 weeks ago
+13. [www.reddit.com](https://www.reddit.com/r/ArtificialInteligence/comments/1qir86y/i_built_an_ai_that_turns_your_child_into_the_main/) — Published: 9 months ago
+
+#### Q79 — EN — Infantil
+
+- **Consulta:** affordable AI cartoon video generator no animation skills
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [viggle.ai](https://viggle.ai/tools/ai-animation-generator) — Crawled: last month
+2. [cartooncreator.ai](https://cartooncreator.ai/) — Crawled: today
+3. [wink.ai](https://wink.ai/cartoon-video-maker) — Crawled: last month
+4. [toonbeeai.net](https://toonbeeai.net/ai-cartoon-video-generator) — Crawled: 3 days ago
+5. [www.anijam.ai](https://www.anijam.ai/tools/cartoon-video-generator/) — Crawled: last month
+6. [cartoonvideocreator.com](https://cartoonvideocreator.com/) — Crawled: today
+7. [viggle.ai](https://viggle.ai/tools/ai-cartoon-generator) — Crawled: 4 weeks ago
+8. [thetoonmaker.com](https://thetoonmaker.com/en/landing) — Crawled: last month
+9. [vmake.ai](https://vmake.ai/ai-cartoon-generator) — Crawled: last month
+10. [gencartoon.com](https://gencartoon.com/) — Crawled: yesterday
+11. [yomiage.cloud](https://yomiage.cloud/en) — Crawled: last month
+12. [viraltoonai.com](https://viraltoonai.com/) — Crawled: last month
+13. [www.reddit.com](https://www.reddit.com/r/aitubers/comments/1qm4a0b/what_are_the_best_video_ais_out_there_right_now/) — Published: 9 months ago
+14. [data.opendevelopmentmekong.net](https://data.opendevelopmentmekong.net/dataset/08f19b47-258f-4e1a-8427-bd2076e8f698/resource/e991127a-6f53-4b6c-aa74-b65ca7692b8d/download/the_ultimate_useful_ai_tools_ebook_-_ai_tools_for_workplace_efficiency.pdf?preview=1) — Published: 8 months ago
+15. [static1.squarespace.com](https://static1.squarespace.com/static/66969674ace8c42b2744cec0/t/68381fd77801356c533bd3f9/1748508632211/AI%2Btools%2B19%2BMay%2B2025%2B%284%29.pdf) — Data da página/crawl não informada
+16. [www.mindluster.com](https://www.mindluster.com/certified-courses/download_pdf?course_id=17124) — Published: 5 months ago
+17. [www.reddit.com](https://www.reddit.com/r/aivideomaking/comments/1x6s4ri/looking_for_advice_cheapest_ai_workflow_for/) — Published: 6 days ago
+18. [cambodiaprivatetaxidriver.com](https://cambodiaprivatetaxidriver.com/userfiles/file/613250df-6891-42dc-80b4-75b33d6147f3.pdf) — Published: 1.4 years ago
+
+#### Q80 — EN — Infantil
+
+- **Consulta:** AI cartoon shorts generator pay once pack
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [www.getviralshorts.com](https://www.getviralshorts.com/) — Crawled: last week
+2. [getviralshorts.com](https://getviralshorts.com/) — Crawled: 5 days ago
+3. [drama.so](https://drama.so/) — Crawled: today
+4. [badtimesai.cc](https://badtimesai.cc/pricing) — Crawled: 5 days ago
+5. [cartoonvideocreator.com](https://cartoonvideocreator.com/pricing) — Crawled: 3 weeks ago
+6. [www.animateai.video](https://www.animateai.video/) — Crawled: 2 weeks ago
+7. [sonaraai.co.in](https://sonaraai.co.in/) — Crawled: today
+8. [animateai.video](https://animateai.video/ai-cartoon-generator) — Crawled: 3 weeks ago
+9. [veyrolabs.com](https://veyrolabs.com/) — Crawled: 2 days ago
+10. [cineai.cc](https://cineai.cc/) — Crawled: last week
+11. [kreatorflow.ai](https://kreatorflow.ai/ai-cartoon-series-maker) — Crawled: last week
+12. [kreatorflow.ai](https://kreatorflow.ai/ai-cartoon-maker) — Crawled: last week
+
+#### Q81 — PT — Infantil
+
+- **Consulta:** criar desenho animado infantil com IA a partir de texto
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [pollo.ai](https://pollo.ai/pt/app/ai-cartoon-video-generator) — Crawled: last month
+2. [cartoonvideocreator.com](https://cartoonvideocreator.com/pt) — Crawled: 2 days ago
+3. [www.readkidz.com](https://www.readkidz.com/pt-BR/ai-animation-maker) — Crawled: last month
+4. [clipytoons.com](https://clipytoons.com/pt/ai-kids-video-maker) — Published: last week; Crawled: last week
+5. [picsart.com](https://picsart.com/pt/flow/kids-cartoon/) — Crawled: last month
+6. [veo4.dev](https://veo4.dev/pt/ai-cartoon-video-generator) — Crawled: last week
+7. [www.adobe.com](https://www.adobe.com/br/products/firefly/features/ai-animation-generator.html) — Crawled: last month
+8. [animatedboard.com](https://animatedboard.com/pt) — Crawled: last week
+9. [www.vidio.ai](https://www.vidio.ai/pt-BR/tools/animated-video-maker?path=__index) — Crawled: 3 weeks ago
+10. [magiclight.ai](https://magiclight.ai/pt/create/text-to-cartoon-video/) — Crawled: last month
+11. [www.adobe.com](https://www.adobe.com/br/products/firefly/features/ai-cartoon-generator.html?msockid=103d445b248b6f5109ea52b225a66e28) — Crawled: last month
+12. [www.talkpix.ai](https://www.talkpix.ai/pt/talking-cartoon) — Crawled: last month
+13. [iagora.tec.br](https://iagora.tec.br/Possibilidades%20da%20IA%20Generativa%20na%20Educacao.pdf) — Published: 8 months ago
+14. [www.youtube.com](https://www.youtube.com/watch?v=wfGuwnX3aHk) — Published: 1.1 years ago
+15. [curriculo.sedu.es.gov.br](https://curriculo.sedu.es.gov.br/curriculo/wp-content/uploads/2026/03/Caderno-Pedagogico-de-Inteligencia-Artificial_.pdf) — Published: 7 months ago
+16. [www.youtube.com](https://www.youtube.com/watch?v=YK_340o5Xg8) — Published: 3.5 years ago
+
+#### Q82 — PT — Infantil
+
+- **Consulta:** IA para vídeo de história para dormir em português
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [reelato.ai](https://reelato.ai/pt/blog/historias-para-dormir-em-video-com-ia) — Published: 3 weeks ago; Crawled: 3 days ago
+2. [reelato.ai](https://reelato.ai/pt/reels/historias-para-dormir) — Published: 3 weeks ago; Crawled: last week
+3. [reelato.ai](https://reelato.ai/pt/reels/historia) — Published: 3 weeks ago; Crawled: last week
+4. [animatedboard.com](https://animatedboard.com/pt/criar-historias-infantis-com-ia) — Published: last week; Crawled: 4 days ago
+5. [www.talkpix.ai](https://www.talkpix.ai/pt/make-historical-photos-talk) — Crawled: 3 weeks ago
+6. [cuenti.to](https://cuenti.to/pt/ai-bedtime-stories) — Crawled: 4 weeks ago
+7. [bedtimestoriesbyluma.com](https://bedtimestoriesbyluma.com/pt) — Crawled: 2 days ago
+8. [www.clipnova.io](https://www.clipnova.io/pt/tools/ai-bible-video-generator) — Crawled: 2 weeks ago
+9. [historiadodia.ia.br](https://historiadodia.ia.br/) — Crawled: 2 months ago
+10. [animatedboard.com](https://animatedboard.com/pt/criar-historias-animadas-com-ia) — Published: last week; Crawled: 4 days ago
+11. [clipytoons.com](https://clipytoons.com/pt/bedtime-story-video-maker) — Published: last week; Crawled: last week
+12. [clipnova.in](https://clipnova.in/pt/ai-video-maker) — Crawled: last week
+13. [www.reddit.com](https://www.reddit.com/r/youtubebrasil/comments/1pjkhcj/v%C3%ADdeos_longos_feitos_por_ia_para_descontrair/) — Published: 10 months ago
+14. [www.practiceportuguese.com](https://www.practiceportuguese.com/wp-content/podcast/members/deixa-me-dormir-video.pdf) — Crawled: 5 months ago
+
+#### Q83 — PT — Infantil
+
+- **Consulta:** fazer desenho infantil curto com IA grátis sem cartão
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [strokevideo.com](https://strokevideo.com/pt/) — Crawled: 3 weeks ago
+2. [www.revid.ai](https://www.revid.ai/pt/tools/animar-desenho-criancas) — Crawled: last month
+3. [crayonowl.com](https://crayonowl.com/pt) — Crawled: 3 weeks ago
+4. [animy.ai](https://animy.ai/pt) — Crawled: last month
+5. [cartoonvideocreator.com](https://cartoonvideocreator.com/pt) — Crawled: 2 days ago
+6. [draw-to-life.com](https://draw-to-life.com/pt/) — Crawled: 2 weeks ago
+7. [www.readkidz.com](https://www.readkidz.com/pt-BR/ai-animation-maker) — Crawled: last month
+8. [freevideogenerator.io](https://freevideogenerator.io/pt/tools/animate-kids-drawing) — Crawled: 3 weeks ago
+9. [www.readkidz.com](https://www.readkidz.com/pt-BR/ai-comic-maker) — Crawled: last month
+10. [homiwork.com](https://homiwork.com/pt/app/aiclips/create/animate-drawing) — Crawled: last month
+11. [www.desenhandoecolorindo.com.br](https://www.desenhandoecolorindo.com.br/gerar) — Crawled: 3 weeks ago
+12. [www.readkidz.com](https://www.readkidz.com/pt-PT/ai-animation-maker) — Crawled: last month
+13. [www.youtube.com](https://www.youtube.com/watch?v=ErhCb8l5uz4) — Published: last year
+14. [www.youtube.com](https://www.youtube.com/watch?v=wfGuwnX3aHk) — Published: 1.1 years ago
+
+#### Q84 — PT — Infantil
+
+- **Consulta:** gerador de cartoon infantil com IA preço mensal
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [toonzap.com](https://toonzap.com/pt/pricing) — Crawled: last month
+2. [cartoonize.ai](https://cartoonize.ai/pt/pricing) — Crawled: 4 days ago
+3. [llamagen.ai](https://llamagen.ai/pt/features/ai-educate-comic) — Crawled: last month
+4. [aicartoongenerator.io](https://aicartoongenerator.io/pt/pricing) — Crawled: 4 days ago
+5. [youart.ai](https://youart.ai/pt/generator/ai-cartoon-generator) — Crawled: last month
+6. [apps.apple.com](https://apps.apple.com/br/app/quadrinhos-mang%C3%A1-ia-icartoon/id6742348800?platform=ipad) — Crawled: 3 weeks ago
+7. [similarlabs.com](https://similarlabs.com/pt/p/toonbeeai) — Published: 2 weeks ago; Crawled: last week
+8. [babybinge.app](https://babybinge.app/) — Crawled: 6 months ago
+9. [cartooncreator.ai](https://cartooncreator.ai/) — Crawled: today
+10. [cartoonvideocreator.com](https://cartoonvideocreator.com/pt/pricing) — Crawled: 2 days ago
+11. [iamirim.com.br](https://iamirim.com.br/) — Crawled: 4 days ago
+12. [apps.apple.com](https://apps.apple.com/pt/app/criador-de-cartoons-ia/id6743957404?platform=vision) — Crawled: last week
+
+#### Q85 — ES — Infantil
+
+- **Consulta:** generador de cuentos infantiles animados con IA precio
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [cuenti.to](https://cuenti.to/best-ai-story-generator-for-kids) — Crawled: 2 days ago
+2. [cuentoconlaia.com](https://cuentoconlaia.com/) — Crawled: 3 weeks ago
+3. [fablai.app](https://fablai.app/) — Crawled: 7 months ago
+4. [www.atlabs.ai](https://www.atlabs.ai/es/kids-stories) — Crawled: 2 weeks ago
+5. [storypix.art](https://storypix.art/es) — Crawled: last month
+6. [storysafari.io](https://storysafari.io/es/generador-de-cuentos-infantiles) — Crawled: last month
+7. [bookidgo.com](https://bookidgo.com/es/) — Crawled: last month
+8. [www.infinytale.com](https://www.infinytale.com/apps-de-cuentos-personalizados) — Crawled: 3 days ago
+9. [cuenti.to](https://cuenti.to/) — Crawled: 5 days ago
+10. [www.bedtime-stories.fun](https://www.bedtime-stories.fun/es/blog/mejores-generadores-de-cuentos-con-ia) — Published: 7 months ago; Crawled: last week
+11. [i10x.ai](https://i10x.ai/es/tools/animate-ai) — Crawled: last month
+12. [storybookai.io](https://storybookai.io/es/index.html) — Crawled: 3 days ago
+
+#### Q86 — HI — Infantil
+
+- **Consulta:** बच्चों की कहानी की कार्टून वीडियो बनाने वाला एआई
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [clipytoons.com](https://clipytoons.com/hi) — Crawled: 6 days ago
+2. [www.ailo.kids](https://www.ailo.kids/) — Crawled: last month
+3. [picsart.com](https://picsart.com/hi/flow/kids-cartoon/) — Crawled: last month
+4. [kidsstoryteller.ai](https://kidsstoryteller.ai/create-video) — Crawled: 3 weeks ago
+5. [clipytoons.com](https://clipytoons.com/hi/use-cases) — Crawled: today
+6. [clipytoons.com](https://clipytoons.com/hi/ai-kids-video-maker) — Published: last week; Crawled: today
+7. [kritiverse.com](https://kritiverse.com/hi/cartoon-animation-maker) — Crawled: today
+8. [www.youtube.com](https://www.youtube.com/watch?v=tk8soFV06CE) — Published: 1.1 years ago
+9. [kidsstoryteller.ai](https://kidsstoryteller.ai/animated-kids-story-video) — Crawled: 3 weeks ago
+10. [www.readkidz.com](https://www.readkidz.com/hi/ai-animation-maker) — Crawled: last month
+11. [www.readkidz.com](https://www.readkidz.com/ai-animation-maker) — Crawled: last month
+12. [clipytoons.com](https://clipytoons.com/) — Crawled: today
+13. [www.atlabs.ai](https://www.atlabs.ai/kids-stories) — Crawled: last month
+14. [neec.ncert.gov.in](https://neec.ncert.gov.in/static/archieves/26th/Directory/Video_Directory_26th_AICEAF.pdf) — Published: 4.5 years ago
+15. [www.youtube.com](https://www.youtube.com/watch?v=ajl4_C1QlRg) — Published: 6.1 years ago
+
+#### Q87 — UR — Infantil
+
+- **Consulta:** بچوں کی کہانی کی اینیمیٹڈ ویڈیو بنانے والا اے آئی
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [www.aaj.tv](https://www.aaj.tv/news/30511306) — Published: 2 months ago; Crawled: 2 months ago
+2. [www.ailo.kids](https://www.ailo.kids/) — Crawled: last month
+3. [kidsstoryteller.ai](https://kidsstoryteller.ai/create-video) — Crawled: 3 weeks ago
+4. [kidsstoryteller.ai](https://kidsstoryteller.ai/animated-kids-story-video) — Crawled: 3 weeks ago
+5. [www.atlabs.ai](https://www.atlabs.ai/kids-stories) — Crawled: last month
+6. [domikids.ai](https://domikids.ai/en/home/video) — Crawled: 3 days ago
+7. [cinetale-ruym.whacka.app](https://cinetale-ruym.whacka.app/index.html) — Crawled: yesterday
+8. [play.google.com](https://play.google.com/store/apps/details?hl=ur&id=com.magiclight.app) — Crawled: last month
+9. [kubrio.com](https://kubrio.com/animation/studio) — Crawled: last week
+10. [kidsstoryteller.ai](https://kidsstoryteller.ai/) — Crawled: today
+11. [magiclight.ai](https://magiclight.ai/create/kids-story/) — Crawled: 2 months ago
+12. [kidsstoryteller.ai](https://kidsstoryteller.ai/blog/how-to-make-animated-kids-story-video-ai) — Published: 5 months ago; Crawled: last month
+13. [ekstep-public-prod.s3-ap-south-1.amazonaws.com](https://ekstep-public-prod.s3-ap-south-1.amazonaws.com/content/assets/do_31307182174286643217706/primary-telugu-part-i.pdf?53=) — Published: 6.2 years ago; Crawled: 6.2 years ago
+
+#### Q88 — EN — Finanças
+
+- **Consulta:** AI personal finance YouTube Shorts generator
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [www.youtube.com](https://www.youtube.com/watch?v=FGjpsDp5ov8) — Published: 2 months ago
+2. [bakevideos.com](https://bakevideos.com/make/finance-videos) — Crawled: 2 weeks ago
+3. [www.youtube.com](https://www.youtube.com/watch?v=V0jafdkt3QE) — Published: 9 months ago
+4. [storyshort.app](https://storyshort.app/) — Crawled: last month
+5. [www.prompttovid.com](https://www.prompttovid.com/youtube-shorts/finance) — Crawled: 3 weeks ago
+6. [fableclip.com](https://fableclip.com/ai-youtube-shorts-generator) — Crawled: 3 weeks ago
+7. [storymorphai.com](https://storymorphai.com/tools/finance-explainer-video-generator/) — Crawled: last month
+8. [digitalmaker.ai](https://digitalmaker.ai/ai-youtube-shorts-generator) — Crawled: 4 days ago
+9. [www.trendimo.ai](https://www.trendimo.ai/) — Crawled: today
+10. [shorts.ge](https://shorts.ge/) — Crawled: today
+11. [reel.money](https://reel.money/ai-youtube-shorts-generator) — Crawled: last month
+12. [www.vidrale.com](https://www.vidrale.com/make/ai-youtube-shorts-generator) — Crawled: last month
+13. [bakevideos.com](https://bakevideos.com/for/youtube-shorts) — Crawled: 2 weeks ago
+14. [shorts.io](https://shorts.io/) — Crawled: 4 days ago
+
+#### Q89 — EN — Finanças
+
+- **Consulta:** best AI tool to make budgeting explainer videos
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [www.itechguides.com](https://www.itechguides.com/best/ai-explainer-video-makers/) — Published: last week; Crawled: last week
+2. [toolglance.com](https://toolglance.com/guides/best-ai-explainer-videos) — Crawled: 2 days ago
+3. [www.clipnova.io](https://www.clipnova.io/en/blog/best-ai-explainer-video-generator) — Published: last month; Crawled: 2 days ago
+4. [www.itechfaqs.com](https://www.itechfaqs.com/best/ai-explainer-video-makers/) — Crawled: 3 days ago
+5. [www.itechguides.com](https://www.itechguides.com/best-ai-explainer-video-makers-in-2026-for-clear-lessons-and-product-guides/) — Published: 3 weeks ago; Crawled: last week
+6. [whiteboard-video.com](https://whiteboard-video.com/best-ai-video-generator-for-explainers) — Crawled: today
+7. [pexo.ai](https://pexo.ai/blog/best-ai-explainer-video-maker-9641) — Published: last month; Crawled: today
+8. [techyorker.com](https://techyorker.com/best/ai-explainer-video-makers/) — Crawled: today
+9. [scenema.ai](https://scenema.ai/articles/best-ai-tools-for-long-form-explainer-videos) — Published: last month; Crawled: 2 days ago
+10. [explainium.com](https://explainium.com/) — Crawled: 5 days ago
+11. [diyai.io](https://diyai.io/ai-tools/video-generation/ai-explainer-video-generator/) — Published: 2 months ago; Crawled: 4 days ago
+12. [jupitrr.com](https://jupitrr.com/best/explainer-video-software) — Crawled: 2 weeks ago
+
+#### Q90 — EN — Finanças
+
+- **Consulta:** AI investing video generator from script
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [storyshort.ai](https://storyshort.ai/category/investing) — Crawled: 5 days ago
+2. [www.opus.pro](https://www.opus.pro/agent/workflows/investor-update-video-maker) — Crawled: last week
+3. [infica.app](https://infica.app/ai-video-generator) — Crawled: 2 weeks ago
+4. [fableclip.com](https://fableclip.com/script-to-video) — Crawled: 3 weeks ago
+5. [auraclipy.com](https://auraclipy.com/) — Crawled: yesterday
+6. [text2reel.ai](https://text2reel.ai/) — Crawled: today
+7. [video.greenonion.ai](https://video.greenonion.ai/) — Crawled: last week
+8. [www.opus.pro](https://www.opus.pro/agent/workflows/warren-buffett-ai-video-generator) — Crawled: 4 months ago
+9. [makeaivideo.ai](https://makeaivideo.ai/) — Crawled: 2 days ago
+10. [www.auraclipy.com](https://www.auraclipy.com/) — Crawled: today
+11. [faceless.video](https://faceless.video/tools/text-to-video) — Crawled: 2 weeks ago
+12. [www.atlabs.ai](https://www.atlabs.ai/script-to-video) — Crawled: 3 weeks ago
+
+#### Q91 — EN — Finanças
+
+- **Consulta:** faceless finance video generator free trial
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [www.faceless.so](https://www.faceless.so/about) — Crawled: 2 days ago
+2. [facelessvideos.app](https://facelessvideos.app/legal/terms) — Published: last month; Crawled: 2 days ago
+3. [www.videoileo.com](https://www.videoileo.com/) — Crawled: 2 weeks ago
+4. [facelesscast.com](https://facelesscast.com/pricing) — Published: 3 weeks ago; Crawled: 3 weeks ago
+5. [zerocanvas.ai](https://zerocanvas.ai/faceless-video/) — Published: 2.2 years ago; Crawled: 2 weeks ago
+6. [phantomstudiolabs.com](https://phantomstudiolabs.com/) — Crawled: 4 months ago
+7. [genfaceless.com](https://genfaceless.com/) — Crawled: today
+8. [facelessvideocreator.ai](https://facelessvideocreator.ai/help) — Crawled: 2 days ago
+9. [www.insmind.com](https://www.insmind.com/ai-video-generator/faceless) — Crawled: last month
+10. [faceless.video](https://faceless.video/pricing?business=no&start=1754649269940x537730517309849600) — Crawled: last week
+11. [facelessai.io](https://facelessai.io/) — Crawled: 3 days ago
+12. [facelessmagic.com](https://facelessmagic.com/) — Crawled: 2 weeks ago
+13. [assets.ctfassets.net](https://assets.ctfassets.net/w03g2qbeonda/4e5ft3VtweXkfGp5pIOEXf/7c7616f2f5a0ee755b71f9bb44c93182/AI_Faceless_Video_Profits_Review.pdf) — Published: 8 months ago
+14. [www.reddit.com](https://www.reddit.com/r/FacelessVideos/comments/1tr35ew/i_burned_15_per_short_before_i_figured_out/) — Published: 4 months ago
+
+#### Q92 — EN — Finanças
+
+- **Consulta:** AI financial education animated video maker
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [distilbook.com](https://distilbook.com/tools/finance-explainer-video-maker) — Crawled: last month
+2. [vismo.studio](https://vismo.studio/) — Crawled: 4 days ago
+3. [www.edumation.ai](https://www.edumation.ai/) — Crawled: last month
+4. [www.binai.it](https://www.binai.it/en/features/ai-animated-video-maker) — Crawled: last week
+5. [whiteboard-video.com](https://whiteboard-video.com/educational-video-maker) — Crawled: last week
+6. [animatedboard.com](https://animatedboard.com/educational-video-maker) — Published: 3 weeks ago; Crawled: 3 weeks ago
+7. [leadde.ai](https://leadde.ai/solutions/finance-animation) — Crawled: 6 days ago
+8. [www.shortfast.com](https://www.shortfast.com/styles/cartoon-explainer-video-generator) — Crawled: last week
+9. [hailuoai.video](https://hailuoai.video/generate/ai-video/337681710390841351) — Crawled: 3 weeks ago
+10. [lumen5.com](https://lumen5.com/animated-explainers/) — Crawled: 2 weeks ago
+11. [think.vyond.com](https://think.vyond.com/vyond-for-finance) — Crawled: last month
+12. [storyshort.ai](https://storyshort.ai/category/financial-literacy) — Crawled: last month
+13. [www.educatorstechnology.com](https://www.educatorstechnology.com/wp-content/uploads/2026/02/AI_Video_Lessons_Guide_2026.pdf) — Data da página/crawl não informada
+14. [sgr.unisced.edu.mz](https://sgr.unisced.edu.mz/bitstream/123456789/3659/1/AI%20Tools%20for%20Teachers%202025.pdf) — Data da página/crawl não informada
+
+#### Q93 — EN — Finanças
+
+- **Consulta:** AI finance video generator cost per short
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [www.costperclip.com](https://www.costperclip.com/ai-video-for-tiktok-shorts-cost) — Crawled: yesterday
+2. [storyshort.ai](https://storyshort.ai/help/credit-costs) — Published: 2 weeks ago; Crawled: 3 days ago
+3. [www.costperclip.com](https://www.costperclip.com/faq) — Crawled: yesterday
+4. [www.costperclip.com](https://www.costperclip.com/ai-video-pricing-comparison) — Crawled: yesterday
+5. [www.heygen.com](https://www.heygen.com/blog/ai-video-generator-pricing) — Published: 2 days ago; Crawled: yesterday
+6. [www.clipbudget.com](https://www.clipbudget.com/) — Crawled: 2 months ago
+7. [www.aivideocosts.com](https://www.aivideocosts.com/) — Crawled: yesterday
+8. [sincosphere.com](https://sincosphere.com/pricing/) — Crawled: 2 weeks ago
+9. [www.seeddance.io](https://www.seeddance.io/ai-video-price-index) — Crawled: yesterday
+10. [costperclip.com](https://costperclip.com/ai-video-pricing-comparison) — Crawled: 3 days ago
+11. [viewmade.com](https://viewmade.com/best/best-ai-video-generator-per-video-cost) — Crawled: 3 days ago
+12. [anglr.co](https://anglr.co/tools/ai-video-cost-calculator) — Crawled: 2 days ago
+13. [assets.skool.com](https://assets.skool.com/f/b51c57150c70495899bf4bc8aaee8166/ee60ba71d2b34b92a70c57ebd4ce0ac38aa0d7f668304f70941169a14ab59c21) — Data da página/crawl não informada
+14. [themarketingcrowd.ie](https://themarketingcrowd.ie/wp-content/uploads/2026/03/AI-tools-for-creating-videos-3hr-03.26.pdf) — Published: 7 months ago
+15. [themarketingcrowd.ie](https://themarketingcrowd.ie/wp-content/uploads/2025/09/AI-tools-for-creating-and-manipulating-videos-09.25.pdf) — Published: 1.1 years ago
+16. [themarketingcrowd.ie](https://themarketingcrowd.ie/wp-content/uploads/2025/08/AI-tools-for-creating-and-manipulating-videos.pdf) — Published: 1.1 years ago
+17. [themarketingcrowd.ie](https://themarketingcrowd.ie/wp-content/uploads/2025/10/AI-tools-for-creating-and-manipulating-videos-LEO-Oct-30th.pdf) — Published: last year
+
+#### Q94 — PT — Finanças
+
+- **Consulta:** gerador de vídeos de educação financeira com IA
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [www.crealix.ai](https://www.crealix.ai/pt/blog/guides/ai-video-financial-advisors-client-education-shorts) — Published: last month; Crawled: 3 weeks ago
+2. [www.mootion.com](https://www.mootion.com/use-cases/pt/ugc/billys-journey-into-the-book-of-wisdom) — Crawled: 3 weeks ago
+3. [www.opus.pro](https://www.opus.pro/pt-br/agent/workflows/ai-video-generator-for-financial-advisors) — Crawled: 2 months ago
+4. [iavideo.pt](https://iavideo.pt/tr/index.html) — Crawled: 2 weeks ago
+5. [www.renderforest.com](https://www.renderforest.com/pt/team/education) — Crawled: 3 weeks ago
+6. [www.facelessgenie.ai](https://www.facelessgenie.ai/pt/) — Crawled: 3 weeks ago
+7. [www.x-pilot.ai](https://www.x-pilot.ai/pt) — Crawled: 3 weeks ago
+8. [www.heygen.com](https://www.heygen.com/pt-br/video/ai-banking-explainer-video-maker) — Crawled: 10 months ago
+9. [magiclight.ai](https://magiclight.ai/pt/tools/ai-educational-video-generator/) — Crawled: last week
+10. [www.atlabs.ai](https://www.atlabs.ai/pt/blog/how-to-make-financial-literacy-explainer-videos-using-ai-beginner-guide-for-banks-and-advisors) — Published: last month; Crawled: 4 days ago
+11. [leadde.ai](https://leadde.ai/pt/solutions/finance-animation) — Crawled: 6 days ago
+12. [www.revid.ai](https://www.revid.ai/pt/tools/criador-video-educacional) — Crawled: last month
+13. [curriculo.sedu.es.gov.br](https://curriculo.sedu.es.gov.br/curriculo/wp-content/uploads/2026/03/Caderno-Pedagogico-de-Inteligencia-Artificial_.pdf) — Published: 7 months ago
+14. [iaedu.nees.ufal.br](https://iaedu.nees.ufal.br/wp-content/uploads/2025/04/NT-1-Inteligencia-Artificial-Generativa-na-Educacao.pdf) — Published: 1.9 years ago
+15. [www.aiinschool.com](https://www.aiinschool.com/publicacoes_relevantes/Guias%2C%20Relato%CC%81rios%20e%20Normas%20Te%CC%81cnicas/Tellescom%20-%20Intelige%CC%82ncia%20Artificial%20Generativa%20na%20Educac%CC%A7a%CC%83o.pdf) — Published: 1.9 years ago
+16. [publicacoes.ifc.edu.br](https://publicacoes.ifc.edu.br/index.php/fice/article/download/7268/6130/18898) — Published: 8 months ago
+17. [iagora.tec.br](https://iagora.tec.br/Guia%20para%20a%20IA%20generativa%20na%20educacao%20e%20na%20pesquisa.pdf) — Published: 2.3 years ago
+
+#### Q95 — PT — Finanças
+
+- **Consulta:** IA para criar vídeos sobre investimentos sem aparecer
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [aliciavideos.app](https://aliciavideos.app/) — Crawled: last month
+2. [www.cleversouza.com](https://www.cleversouza.com/ia/criar-videos-sem-aparecer-com-ia) — Crawled: 3 days ago
+3. [www.ytdark.com](https://www.ytdark.com/) — Crawled: last week
+4. [facelessreels.video](https://facelessreels.video/pt-BR) — Crawled: 2 days ago
+5. [www.dropreel.video](https://www.dropreel.video/faceless/) — Crawled: 2 days ago
+6. [cliplifelux.com](https://cliplifelux.com/) — Crawled: 2 days ago
+7. [clipia.com.br](https://clipia.com.br/) — Crawled: 3 weeks ago
+8. [www.facelessgenie.ai](https://www.facelessgenie.ai/pt/) — Crawled: 3 weeks ago
+9. [www.adstudio.dev](https://www.adstudio.dev/) — Crawled: yesterday
+10. [www.freecontent.com.br](https://www.freecontent.com.br/canal-dark-automatico) — Crawled: 5 days ago
+11. [nichoproia.com](https://nichoproia.com/) — Crawled: last month
+12. [overchat.ai](https://overchat.ai/pt/video/faceless-reels) — Crawled: 2 weeks ago
+13. [www.youtube.com](https://www.youtube.com/watch?v=Ua9W8tkpTM0) — Published: 4 months ago
+14. [www.youtube.com](https://www.youtube.com/watch?v=NoykdEhij4k) — Published: 3.2 years ago
+15. [usinadedados-api-producao.sebraepb.com.br](https://usinadedados-api-producao.sebraepb.com.br/storage/generic-archives/2024/12/02/PB-2024-0010-E-book-IA%20%281%29.pdf) — Published: 1.9 years ago
+16. [youtubeinvestor.com](https://youtubeinvestor.com/wp-content/uploads/2024/11/Manual-Pratico-de-03-Passos-para-Criar-um-Canal-no-YouTube-Sem-Aparecer-e-Gerar-Renda-Passiva%E2%80%A6.pdf) — Published: 1.4 years ago
+17. [gtia.uff.br](https://gtia.uff.br/wp-content/uploads/sites/112/2026/02/2025-11-25-Guia-IA-UFF-Ferramentas-IA-para-Otimizac%CC%A7a%CC%83o-do-Trabalho-livro-digital-1.pdf) — Published: 11 months ago
+
+#### Q96 — PT — Finanças
+
+- **Consulta:** fazer shorts de orçamento pessoal com IA
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [viralshortsai.com.br](https://viralshortsai.com.br/) — Crawled: yesterday
+2. [exemplary.ai](https://exemplary.ai/pt-br/cortes-com-ia) — Crawled: 6 days ago
+3. [alphacut.video](https://alphacut.video/pt) — Crawled: last month
+4. [www.razycut.io](https://www.razycut.io/pt/ai-clip-maker) — Crawled: 2 weeks ago
+5. [www.clip-short.com](https://www.clip-short.com/pt) — Crawled: 2 weeks ago
+6. [potto.ai](https://potto.ai/pt/youtube-shorts-maker) — Published: last week; Crawled: today
+7. [www.smartbunny.com.br](https://www.smartbunny.com.br/) — Crawled: 2 days ago
+8. [www.cadeodinheiro.online](https://www.cadeodinheiro.online/) — Crawled: 3 weeks ago
+9. [talentosdigital.com](https://talentosdigital.com/blog/ferramentas-e-ia/como-criar-video-com-ia/) — Published: 3 weeks ago; Crawled: last week
+10. [influenciadoria.com](https://influenciadoria.com/faq/criar-video-com-ia/shorts-ia) — Crawled: 3 weeks ago
+11. [renderster.com](https://renderster.com/pt/cortes-com-ia) — Crawled: last week
+12. [animatedboard.com](https://animatedboard.com/pt/criar-shorts-com-ia) — Crawled: 4 days ago
+13. [goias.gov.br](https://goias.gov.br/social/wp-content/uploads/sites/24/2025/08/Guia-de-ferramentas-gratuitas-de-Inteligencia-Artificial.pdf) — Published: 1.2 years ago
+
+#### Q97 — PT — Finanças
+
+- **Consulta:** IA para vídeos de finanças com narração e legendas preço
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [clipia.com.br](https://clipia.com.br/) — Crawled: 3 weeks ago
+2. [almareel.com.br](https://almareel.com.br/) — Crawled: 3 days ago
+3. [goodtimesproduction-brasil.com](https://goodtimesproduction-brasil.com/nossas-solucoes/) — Published: 7 months ago; Crawled: last month
+4. [pubbly.com.br](https://pubbly.com.br/gerador-de-video-com-ia/) — Published: last month; Crawled: last week
+5. [cortesstudio.com.br](https://cortesstudio.com.br/) — Crawled: last month
+6. [www.vizasound.com](https://www.vizasound.com/pt/pricing/) — Crawled: 3 weeks ago
+7. [www.getvclip.com](https://www.getvclip.com/pt) — Crawled: 2 weeks ago
+8. [www.up2dub.com.br](https://www.up2dub.com.br/) — Crawled: 2 days ago
+9. [filmes.fettle.dev](https://filmes.fettle.dev/) — Crawled: 3 months ago
+10. [reelato.ai](https://reelato.ai/pt/blog/quanto-custa-fazer-um-reel-com-ia) — Published: 3 weeks ago; Crawled: 2 days ago
+11. [www.aivideogenerator.cc](https://www.aivideogenerator.cc/pt/) — Crawled: 2 weeks ago
+12. [autocut.com.br](https://autocut.com.br/) — Crawled: 5 days ago
+
+#### Q98 — ES — Finanças
+
+- **Consulta:** generador de videos de finanzas personales con IA
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [www.vaideo.org](https://www.vaideo.org/es/casos/videos-de-finanzas-personales-y-inversion/) — Crawled: 3 weeks ago
+2. [www.facelessgenie.ai](https://www.facelessgenie.ai/es/) — Crawled: 3 weeks ago
+3. [www.atlabs.ai](https://www.atlabs.ai/es/industria/servicios-financieros) — Crawled: 6 days ago
+4. [www.atlabs.ai](https://www.atlabs.ai/es/casos-de-uso/video-de-ia-usos-finanzas-banca/) — Crawled: last week
+5. [www.revid.ai](https://www.revid.ai/category/finanzas-personales) — Crawled: last week
+6. [www.revid.ai](https://www.revid.ai/es/category/finanzas-personales) — Crawled: last week
+7. [shortloom.ai](https://shortloom.ai/es/tools/finance-video-creator) — Crawled: 6 days ago
+8. [invideo.io](https://invideo.io/es/crear/texto-a-video-en-lineA/) — Crawled: last week
+9. [web.dirua.app](https://web.dirua.app/) — Crawled: 6 days ago
+10. [jrcreator.abacusai.app](https://jrcreator.abacusai.app/) — Crawled: last week
+11. [thrust.finance](https://thrust.finance/es/docs/ai-cfo/) — Published: 9 months ago; Crawled: last month
+12. [claridadpro.com](https://claridadpro.com/) — Crawled: last month
+13. [a-us.storyblok.com](https://a-us.storyblok.com/f/1022107/x/5ef0b88509/ce-ia-para-los-negocios.pdf) — Published: 10 months ago
+14. [gonzo.itam.mx](https://gonzo.itam.mx/Temario/Cursos/Finanzas_Personales_y_de_Negocio_con_IA_para_no_Financieros_VL.pdf) — Published: last year
+15. [www.youtube.com](https://www.youtube.com/watch?v=KSM6Q5gg38g) — Published: 2.2 years ago
+16. [www.youtube.com](https://www.youtube.com/watch?v=RDqZs_ZFgqQ) — Published: 2.6 years ago
+
+#### Q99 — HI — Finanças
+
+- **Consulta:** वित्तीय शिक्षा के वीडियो बनाने वाला एआई टूल
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [gitclips.com](https://gitclips.com/tools/ai-finance-video-generator) — Crawled: 4 days ago
+2. [www.heygen.com](https://www.heygen.com/en-in/use-cases/financial-knowledge-sharing) — Crawled: 4 weeks ago
+3. [videogen.io](https://videogen.io/hi/%E0%A4%B5%E0%A4%BF%E0%A4%A4%E0%A5%8D%E0%A4%A4-%E0%A4%95%E0%A5%87-%E0%A4%B2%E0%A4%BF%E0%A4%8F-%E0%A4%B5%E0%A5%80%E0%A4%A1%E0%A4%BF%E0%A4%AF%E0%A5%8B-%E0%A4%8F%E0%A4%A1%E0%A4%BF%E0%A4%9F%E0%A4%B0) — Crawled: 5 months ago
+4. [wavel.ai](https://wavel.ai/solutions/training-videos/finance-training-videos) — Crawled: 3 months ago
+5. [videozero.ai](https://videozero.ai/) — Crawled: 2 days ago
+6. [videogen.io](https://videogen.io/hi/video-editor-for-finance) — Crawled: 3 months ago
+7. [www.revid.ai](https://www.revid.ai/hi/tools) — Crawled: 3 days ago
+8. [elevenlabs.io](https://elevenlabs.io/hi/edit-video/educational-maker) — Crawled: last month
+9. [www.revid.ai](https://www.revid.ai/hi/tools/prompt-se-video) — Crawled: last month
+10. [getkadrio.com](https://getkadrio.com/ai-educational-video-maker) — Crawled: last month
+11. [www.revid.ai](https://www.revid.ai/hi/tools/banane-wala-video-educative) — Crawled: 2 weeks ago
+12. [luma.ai](https://luma.ai/hi/ai-video-generator) — Published: last month; Crawled: last month
+13. [cdnbbsr.s3waas.gov.in](https://cdnbbsr.s3waas.gov.in/s3b2ab001909a8a6f04b51920306046ce5/uploads/2025/10/202510301265117882.pdf) — Published: last year; Crawled: last year
+
+#### Q100 — UR — Finanças
+
+- **Consulta:** ذاتی مالیات کی ویڈیو بنانے والا اے آئی ٹول
+- **Data/método:** 21/10/2026 · busca web isolada, resposta longa, sem filtros.
+- **Kineo:** nenhuma URL usekineo.com devolvida.
+- **URLs devolvidas:**
+
+1. [fbr.gov.pk](https://fbr.gov.pk/video-tutorials-income-tax-return-filing/51147/132186) — Crawled: 3 days ago
+2. [urdu.geo.tv](https://urdu.geo.tv/latest/355765-) — Published: 2.7 years ago; Crawled: 4 months ago
+3. [www.aaj.tv](https://www.aaj.tv/news/30507920/metas-new-ai-photo-generator-sparks-controversy-immediately-after-launch) — Published: 3 months ago; Crawled: 3 months ago
+4. [removefrom.video](https://removefrom.video/ur) — Crawled: 2 weeks ago
+5. [coursehive.io](https://coursehive.io/courses/income-tax-return-filing-course-pakistan-4761) — Crawled: 3 weeks ago
+6. [urdu.fbr.gov.pk](https://urdu.fbr.gov.pk/%D9%88%DB%8C%DA%88%DB%8C%D9%88-%D9%B9%DB%8C%D9%88%D9%B9%D9%88%D8%B1%DB%8C%D9%84-%D8%A7%D9%86%DA%A9%D9%85-%D9%B9%DB%8C%DA%A9%D8%B3-%D8%B1%DB%8C%D9%B9%D8%B1%D9%86-%D9%81%D8%A7%D8%A6%D9%84%D9%86%DA%AF/131444/132187) — Crawled: 3 days ago
+7. [ipv6.fbr.gov.pk](https://ipv6.fbr.gov.pk/video-tutorials-income-tax-return-filing/132186) — Crawled: 2 weeks ago
+8. [www.aaj.tv](https://www.aaj.tv/news/30516141/) — Published: last month; Crawled: last month
+9. [vitiyagyan.icai.org](https://vitiyagyan.icai.org/wp-content/uploads/sites/13/2022/04/Article_Income-Tax-Guide_URDU.pdf.pdf) — Published: last year
+10. [any2text.com](https://any2text.com/ur) — Crawled: 3 weeks ago
+11. [www.aaj.tv](https://www.aaj.tv/) — Crawled: today
+12. [english.aaj.tv](https://english.aaj.tv/news/330471130) — Published: last month; Crawled: last month
+13. [subkuz.com](https://subkuz.com/news/urdu/details/grok-imagine-ai-image-video-creation/98457) — Published: 1.2 years ago; Crawled: 2 months ago
+14. [dde.manuu.edu.in](https://dde.manuu.edu.in/sites/default/files/DDE/DDE-SelfLearnmaterial/Basics-JournalismBA-BSc-Semester-4.pdf) — Crawled: 3.9 years ago
+15. [static.pib.gov.in](https://static.pib.gov.in/WriteReadData/specificdocs/documents/2025/sep/doc202599631501.pdf) — Published: 1.1 years ago
+16. [static.pib.gov.in](https://static.pib.gov.in/WriteReadData/specificdocs/documents/2026/jan/doc2026121763101.pdf) — Published: 9 months ago

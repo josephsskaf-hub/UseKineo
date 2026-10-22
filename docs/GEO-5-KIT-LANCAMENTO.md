@@ -656,5 +656,3 @@ Prepare um roteiro de narração, confira a contagem de palavras e a avaliação
 **SUGESTÃO:** de manhã, confirmar a oferta Cartoon. Se passar, usar H3/H4, E1–E3 de venda e S1 de venda; se não passar, manter as versões pré-lançamento sem liberar a promessa de compra. Product Ads/UGC têm textos próprios A1/A2 e S2/S3 baseados em páginas atuais. A publicação e o envio continuam a cargo do fundador e dependem de sua decisão; nada foi enviado nesta tarefa.
 
 **HIPÓTESE A MEDIR:** por segmento e por pessoa externa, verificar conclusão, escolha de plano e pagamento. Cliques, e-mails escritos, posts preparados e app descrito não são venda.
-
-

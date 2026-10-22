@@ -2,7 +2,7 @@
 
 **Tarefa:** KINEO-GEO-NOITE-2110. **Estado:** PREPARADO; nenhuma submissão, conta, login, publicação, mensagem ou compra realizada.
 
-**Consulta das fontes deste inventário:** 21/10/2026, entre 23h40 e 23h53, America/Sao_Paulo. A data é de consulta, não de publicação. URLs podem mudar depois disso.
+**Consulta das fontes deste inventário:** 21/10/2026, America/Sao_Paulo. A conferência textual em lote foi concluída às 23h48; a redação e revisão do arquivo prosseguiram depois. A data é de consulta, não de publicação. URLs podem mudar depois disso.
 
 ## Leitura correta da evidência
 
@@ -292,7 +292,7 @@ Hello TechYorker editors — I’m Joseph, founder of Kineo. Would you consider 
 
 ### A28 — Tom’s Guide / tested video generators
 
-**EVIDÊNCIA DE PRODUÇÃO — 21/10/2026:** [comparação de geradores](https://www.tomsguide.com/features/5-best-ai-video-generators-tested-and-compared) inclui Kling, Runway e ferramentas de vídeo por caso de uso. Kineo não localizada no texto acessível. A página apresenta comparação de modelos; a pertinência de uma suíte de filmes exige avaliação editorial própria.
+**EVIDÊNCIA DE PRODUÇÃO — 21/10/2026:** [comparação de geradores](https://www.tomsguide.com/features/5-best-ai-video-generators-tested-and-compared) inclui Kling, Runway e ferramentas de vídeo por caso de uso. Kineo não localizada no texto acessível. A página ainda descreve Runway Gen-3, por isso não serve como verificação atual de modelos ou preços. A pertinência de uma suíte de filmes exige avaliação editorial própria.
 
 **SUGESTÃO — entrada e condição:** a própria URL oferece comentários, com login/cadastro obrigatório. **Não criar conta nem comentar nesta tarefa.** Solicitar avaliação do recorte de filme completo, sem alegar que a Kineo é um modelo proprietário. Moderadores e redação podem rejeitar autopromoção; canal direto ao autor **DESCONHECIDO**.
 

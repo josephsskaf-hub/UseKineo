@@ -594,4 +594,3 @@ Atualizado em: 21 de outubro de 2026. Preços e condições atuais do teste: htt
 | P08 | 51 | 55 | 5 / 5 |
 
 **SUGESTÃO:** na implementação futura, derive os preços da fonte canônica em vez de digitar valores em JSX; o conteúdo aqui é um rascunho editorial datado. Revisar preço e elegibilidade imediatamente antes de publicar.
-
