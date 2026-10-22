@@ -29,7 +29,7 @@ Branch `codex/paginas-ia-claras-2110` (base `origin/main` 72d23210c) · sem publ
 
 | Modelo | Cobre |
 |---|---|
-| `app/ai-video-generator/[engine]/page.tsx` | 6 páginas de motor (seedance, veo, kling, kling-3, minimax-h3, h3max…; o 2.5 tem rota própria e ficou como está) |
+| `app/ai-video-generator/[engine]/page.tsx` | 6 páginas de motor (Seedance 1.5, Veo 3.1, Kling 2.5, Kling 3, MiniMax H3…; o Seedance 2.5 tem rota própria e ficou como está) |
 | `app/ai-video-generator/for/[slug]/page.tsx` | 100 páginas de intenção (inclui /for/urdu) |
 | `app/free-ai-shorts/[niche]/page.tsx` | 37 nichos (30 + 7 do lote 1; inclui /horror) |
 | `app/text-to-video-shorts/page.tsx` | 1 |
@@ -66,7 +66,29 @@ contra a base pelo guardião novo, seção C). Preço e oferta: intocados. A hom
 
 ## Guardiões
 
-@@GUARDIOES@@
+- Typecheck (`tsc --noEmit -p tsconfig.json --incremental false`): **verde**.
+- Guardião novo `scripts/test-paginas-ia-claras-2110.mjs`: **154 ok, 0 falha** — A sem fundo escuro nos 9 modelos ·
+  B menu + 4 cards logo abaixo do título e da 1ª frase · C title/description/canonical/hreflang/JSON-LD iguais à base ·
+  D vitrine nova, curadoria intocada · E aba ChatGPT por utm/referrer + "Try it in ChatGPT" + sem selo do motor ·
+  F /chatgpt conectar → copiar, jargão só na caixa recolhida · R render real (react-dom/server) de 11 variações com o
+  código novo · X desfaz exato · M mutantes.
+- Comparação com a origin/main pura (worktree 72d23210c), lista de **322 guardiões** (todos os que leem algum arquivo
+  tocado, todos com trava por diff/commit, todos os que usam as cadeias de desfaz, + os 5 pedidos):
+  - antes: 37 vermelhos · depois: 37 vermelhos — **os mesmos 37, nenhum vermelho novo** (ex.: chatgpt-paste-page,
+    checkout-currency-truth, faixa-continuar, home-welcome-goal-router, manrope-system, public-video-privacy,
+    guardiao-2026-08-28, meta95-personagem-ajuste-2010, ugc-ajustes-2010… já vermelhos na base).
+  - os 5 pedidos: test-verbatim-intocavel-2010 ✅ · test-mcp-studio-2010 ✅ · test-mcp-studio-ajuste-2010 ✅ ·
+    test-home-cards-claros-2010 ✅ · test-interface-language ✅.
+- Reâncoras no padrão da casa (a camada sai da conta deles; nenhuma asserção afrouxada; toda linha nova leva a marca):
+  - lendo a fonte SEM a camada (`semPaginasIaClaras2110`): citation-engine-metadata, paid-seedance-bridge,
+    indice-video-ia, motores-16-linguas, projeto-1-google, avatar-fora, paid-engine-proof, citation-entry-truth,
+    paginas-motor-1610, motores-geo, geo-rodada2, geo-rodada3, paginas-lote1, mcp-pagina, works-with-claude e o
+    `scripts/gpt24h-engine-fixture.mjs` (seedance/veo-hero-plans, motor-capacidade-35s);
+  - cadeias: `desfaz-bing-seo-1510` (bing-seo, marca-kineo, paginas-citadas-ponte) e a CABEÇA das cadeias
+    `desfaz-ads-cena-ajuste-2110` chamam o desfaz desta camada primeiro; checkout-clareza-1610 idem;
+  - travas por diff/commit: mcp-studio-ajuste-2010, mcp-studio-2010, ads-cena-2110, ads-cena-ajuste-2110,
+    meta95-personagem-2010, verbatim-intocavel-2010 (arquivos e commits desta entrega fora da conta deles).
+- Não rodei a suíte inteira (976): rodar em série leva horas aqui; a lista acima cobre tudo o que lê os arquivos tocados.
 
 ## Ofertas contraditórias com o /pricing
 
