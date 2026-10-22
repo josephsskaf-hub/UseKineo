@@ -13,7 +13,13 @@
     "scripts/test-cena-negacao-1510.mjs": 13,
     "scripts/test-contrato-classicos-1410.mjs": 13,
     "scripts/test-desenho-som-2110.mjs": 1,
-    "lib/audioNoClique.ts": 3
+    "lib/audioNoClique.ts": 3,
+    "scripts/test-veo-marcado-2026-09-29.mjs": 13,
+    "scripts/test-veo-modo-ia-2026-09-29.mjs": 13,
+    "scripts/test-kling25-planos-5s-2026-09-28.mjs": 0,
+    "scripts/test-moderacao-2026-09-25.mjs": 0,
+    "scripts/test-seedance-15s-3x6-2026-09-29.mjs": 0,
+    "scripts/test-trilha-15s-1610.mjs": 13
   },
   "__contextos": {
     "app/api/generate-video-cinematic/route.ts": [
@@ -105,6 +111,58 @@
     [
       "    const audioDoClique = montagemComAudioDoClique({ db: composeAdmin, generationId, lookup: lookupCachedVoiceover, esperarLyria, orcamentoLyriaMs: LYRIA_WAIT_BUDGET_MS, naoRepetirJobAceito: () => cinematicBirthClaim?.quality === 'cinematic_ai' && Number(cinematicBirthClaim.response?.duration) === 15 && desenhoDoClaim(cinematicBirthClaim.response) !== null }) // KINEO-FILME-RAPIDO-1710 — a trilha e a voz pedidas no clique (lib/audioNoClique): pega o pronto, espera um pouco o que está a caminho, senão gera como sempre // KINEO-CARTOON-CONSISTENCIA-2210 — só desenho15 do claim verificado; o corpo não liga esta proteção",
       "    const audioDoClique = montagemComAudioDoClique({ db: composeAdmin, generationId, lookup: lookupCachedVoiceover, esperarLyria, orcamentoLyriaMs: LYRIA_WAIT_BUDGET_MS }) // KINEO-FILME-RAPIDO-1710 — a trilha e a voz pedidas no clique (lib/audioNoClique): pega o pronto, espera um pouco o que está a caminho, senão gera como sempre"
+    ]
+  ],
+  "scripts/test-veo-marcado-2026-09-29.mjs": [
+    [
+      "import { readFileSync, mkdtempSync, writeFileSync, rmSync, rmdirSync } from 'node:fs' // KINEO-CARTOON-CONSISTENCIA-2210 — diff histórico após retirar somente a camada posterior.",
+      "import { readFileSync } from 'node:fs'"
+    ],
+    [
+      "  const d = diffSemCartoon2210(rdBase(ROTA), rd(ROTA), ROTA) // KINEO-CARTOON-CONSISTENCIA-2210 — mesma régua do Veo, após desfaz exato do Cartoon (inclusive a linha vazia contextual).",
+      "  const d = worktreeDiff.length ? worktreeDiff : diff"
+    ]
+  ],
+  "scripts/test-veo-modo-ia-2026-09-29.mjs": [
+    [
+      "import { readFileSync, mkdtempSync, writeFileSync, rmSync, rmdirSync } from 'node:fs' // KINEO-CARTOON-CONSISTENCIA-2210 — diff histórico após retirar somente a camada posterior.",
+      "import { readFileSync } from 'node:fs'"
+    ],
+    [
+      "  const d = diffSemCartoon2210(rdBase(ROTA), rd(ROTA), ROTA) // KINEO-CARTOON-CONSISTENCIA-2210 — mesma régua do Veo, após desfaz exato do Cartoon (inclusive a linha vazia contextual).",
+      "  const d = worktreeDiff.length ? worktreeDiff : diff"
+    ]
+  ],
+  "scripts/test-kling25-planos-5s-2026-09-28.mjs": [
+    [
+      "  vm.runInNewContext(js, { exports: exp, console: { log() {}, warn() {}, error() {} }, JSON, Math, Number, Array, Object, Set, Map, process: { env: {} }, romanceAdulto: { ativo: false }, desenhoInfantil: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op) // KINEO-CARTOON-CONSISTENCIA-2210 — o VM do despacho clássico mantém o contexto sem Cartoon, como o sem romance.",
+      "  vm.runInNewContext(js, { exports: exp, console: { log() {}, warn() {}, error() {} }, JSON, Math, Number, Array, Object, Set, Map, process: { env: {} }, romanceAdulto: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op)"
+    ]
+  ],
+  "scripts/test-moderacao-2026-09-25.mjs": [
+    [
+      "ok(imp.filter(p => p !== 'lib/kidsCartoon/cartoonReferenceServer.ts').length === 38 && imp.includes('lib/kidsCartoon/cartoonReferenceServer.ts') && imp.includes('app/api/admin/ads-cena/route.ts') && cenaTypeConsumers.every(p => imp.includes(p) && !transpila(p).includes('require(\"@/lib/safety/contentModeration\")')) && imp.every((p) => !/^\\s*['\"]use client['\"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`) // KINEO-ADS-CENA-2110 — +1: a porta admin modera antes do plano; exige o caminho exato e preserva a proibição de use client. KINEO-META95-PERSONAGEM-AJUSTE-2010 KINEO-ADS-CENA-AJUSTE-2110 — preservar também a marca ancestral contada pelo guardião da folha. // KINEO-CARTOON-CONSISTENCIA-2210 — o novo servidor modera cada referência antes do clipe pago; os 38 importadores antigos e a barreira use client seguem obrigatórios.",
+      "ok(imp.length === 38 && imp.includes('app/api/admin/ads-cena/route.ts') && cenaTypeConsumers.every(p => imp.includes(p) && !transpila(p).includes('require(\"@/lib/safety/contentModeration\")')) && imp.every((p) => !/^\\s*['\"]use client['\"]/.test(rd(p))), `4c. a porta (chave da OpenAI) só é importada por código de servidor (${imp.length} importadores)`) // KINEO-ADS-CENA-2110 — +1: a porta admin modera antes do plano; exige o caminho exato e preserva a proibição de use client. KINEO-META95-PERSONAGEM-AJUSTE-2010 KINEO-ADS-CENA-AJUSTE-2110 — preservar também a marca ancestral contada pelo guardião da folha."
+    ]
+  ],
+  "scripts/test-seedance-15s-3x6-2026-09-29.mjs": [
+    [
+      "  vm.runInNewContext(js, { exports: exp, console: { log() {}, warn() {}, error() {} }, JSON, Math, Number, Array, Object, Set, Map, process: { env: {} }, romanceAdulto: { ativo: false }, desenhoInfantil: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op) // KINEO-CARTOON-CONSISTENCIA-2210 — o VM do despacho clássico preserva o contexto sem Cartoon, como o sem romance.",
+      "  vm.runInNewContext(js, { exports: exp, console: { log() {}, warn() {}, error() {} }, JSON, Math, Number, Array, Object, Set, Map, process: { env: {} }, romanceAdulto: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op)"
+    ]
+  ],
+  "scripts/test-trilha-15s-1610.mjs": [
+    [
+      "import { readFileSync, writeFileSync, mkdtempSync, rmSync, rmdirSync } from 'node:fs' // KINEO-CARTOON-CONSISTENCIA-2210 — diff histórico em arquivos temporários locais.",
+      "import { readFileSync, writeFileSync } from 'node:fs'"
+    ],
+    [
+      "  const add = [ROTA, VPP].map((p) => diffSemCartoon2210(git('show', `${base}:${p}`), ler(p), p)).join('\\n').replace(/\\r/g, '').split('\\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).filter((l) => !l.includes('KINEO-KIDS-VENDA-2010')) // KINEO-KIDS-VENDA-2010 — apenas linhas da venda (desfaz próprio) fora da conta da trilha // KINEO-CARTOON-CONSISTENCIA-2210 — a folha exata tira somente a camada posterior, inclusive a linha vazia contextual.",
+      "  const add = git('diff', base, '--', ROTA, VPP).replace(/\\r/g, '').split('\\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).filter((l) => !l.includes('KINEO-KIDS-VENDA-2010')) // KINEO-KIDS-VENDA-2010 — apenas linhas da venda (desfaz próprio) fora da conta da trilha"
+    ],
+    [
+      "  assuntos.splice(0, assuntos.length, ...assuntos.filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010') && !s.includes('KINEO-KIDS-VENDA-2010') && !s.includes('KINEO-KIDS-VENDA-LIGA-2110') && !(s.startsWith('KINEO-CARTOON-CONSISTENCIA-2210 ') && s.includes('[TRAVA 8.2 — vai do fundador 22/10 \"vamos dar tração em todas\"]')))) // reancorado KINEO-KIDS-VENDA-2010 [TRAVA 8.2 — vai do fundador 20/10 \"três sim\"]: os commits do desenho infantil (template e venda, 20/10) levam o selo deles // KINEO-CARTOON-CONSISTENCIA-2210 — só os commits nominais e autorizados desta entrega saem do selo ancestral.",
+      "  assuntos.splice(0, assuntos.length, ...assuntos.filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010') && !s.includes('KINEO-KIDS-VENDA-2010') && !s.includes('KINEO-KIDS-VENDA-LIGA-2110'))) // reancorado KINEO-KIDS-VENDA-2010 [TRAVA 8.2 — vai do fundador 20/10 \"três sim\"]: os commits do desenho infantil (template e venda, 20/10) levam o selo deles"
     ]
   ]
 }
