@@ -87,6 +87,17 @@ async function nativePreflightProof(over={}) {
   assert.equal(attempts,2,'fala42 não pode passar; refaz roteiro antes de gerar mídia/cobrar');assert.equal(plan.script.words,baseWords)
   await assert.rejects(()=>P.planCena95(input,'kling3',async call=>call.images.length?classification:longer,{userId:'house',recentActors:[]}),/cena95_native_speech_does_not_fit/)
 }
+async function captionPreflightProof(over={}) {
+  const c=CALIBRATION_CASES.find(c=>c.role==='watchProducten'), input={foto:DEFAULT_FOUNDER_PHOTOS.watchProducten,frase:c.product+'; '+c.benefit,oferta:c.offer,beneficios:[c.benefit],language:'en',formato:'product',voice_mode:'narrated'}
+  const script={hooks:c.hooks,pain:c.pain,demonstration:c.demonstration,benefit:c.benefit,offer:c.offer,cta:c.cta}
+  const oversized={...script,demonstration:script.demonstration.replace(/^\S+/u,'a'.repeat(80))}
+  const classification={category:c.category,confidence:.99,product:c.product,offer:'',benefits:[],photo_is_isolated_product:true}
+  const P=loader(over)('lib/ads/cena/plan95.ts');let attempts=0
+  const p=await P.planCena95(input,'kling3',async call=>call.images.length?classification:++attempts===1?oversized:script,{userId:'house',recentActors:[]})
+  assert.equal(attempts,2,'texto que não cabe refaz antes de mídia/créditos');assert.equal(p.script.demonstration,script.demonstration)
+  await assert.rejects(()=>P.planCena95(input,'kling3',async call=>call.images.length?classification:oversized,{userId:'house',recentActors:[]}),/cena95_caption_text_does_not_fit/)
+}
+await captionPreflightProof();console.log('ok legenda com texto impossível refaz/falha antes de mídia e cobrança, sem truncar')
 await nativePreflightProof();console.log('ok fala por tomada:42 palavras incompatíveis refazem/falham antes de mídia e cobrança')
 await offProof();console.log('ok canário desligado: cinco respostas, eventos, dados e efeitos idênticos à base72d23210')
 await startCostProof();console.log('ok start dry/live/evento devolvem custo completo do plano95, sem alterar41cr')
@@ -95,6 +106,7 @@ for(const [label,proof,file,from,to] of [
   ['custo95 esquecido',startCostProof,F.start,'cena95CostTableOf(cena.plan) ??','null ??'],
   ['capacidade nativa só conferida depois de cobrar',nativePreflightProof,'lib/ads/cena/plan95.ts',"if (mode === 'talking') cena95NativeSegments(script,", "if (false) cena95NativeSegments(script,"],
   ['roteiro inválido sobrevive à última tentativa',nativePreflightProof,'lib/ads/cena/plan95.ts','script = undefined; correction =','correction ='],
+  ['texto impossível só conferido depois de cobrar',captionPreflightProof,'lib/ads/cena/plan95.ts',"cena95Captions({ text: script.narration, language: input.language ?? 'en', speechWindows: cena95DefaultWindows(script) })",'void 0'],
 ]) {
   const src=read(file);assert.ok(src.includes(from));let failed=false
   try {await proof({[file]:src.replaceAll(from,to)})}catch{failed=true}

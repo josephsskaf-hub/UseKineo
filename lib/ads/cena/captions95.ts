@@ -88,10 +88,25 @@ function alignment(i: Cena95CaptionInput): { words: Cena95Word[]; timingSource: 
   return { words, timingSource: 'syllable_estimate' }
 }
 
-function balancedBlocks(words: Cena95Word[]): Cena95Word[][] {
-  const n = Math.max(1, Math.ceil(words.length / 6)), size = Math.floor(words.length / n), extra = words.length % n
-  let cursor = 0
-  return Array.from({ length: n }, (_, k) => { const count = size + (k < extra ? 1 : 0); const block = words.slice(cursor, cursor + count); cursor += count; return block })
+/** Conservative advance allowance, not measured font metrics. Explicit clipping is the renderer's final safety bound. */
+function captionLines(words: Cena95Word[], font: number, width: number): Cena95Word[][] | null {
+  const lines: Cena95Word[][] = []; let used = 0
+  for (const word of words) {
+    const advance = Array.from(word.word.normalize('NFD')).reduce((sum, c) => sum + (/\p{M}/u.test(c) ? 0 : /[MWmw@%]/u.test(c) ? 1.1 : /[A-Z]/u.test(c) ? 1 : /[a-z]/u.test(c) ? 0.75 : 1.2), 0) * font
+    if (advance > width) return null
+    if (!lines.length || used + font * 0.5 + advance > width) { lines.push([word]); used = advance }
+    else { lines[lines.length - 1].push(word); used += font * 0.5 + advance }
+  }
+  return lines
+}
+function balancedBlocks(words: Cena95Word[], font: number, width: number, height: number, stroke: number): Cena95Word[][][] {
+  const minimum = Math.max(1, Math.ceil(words.length / 6)), maximum = Math.max(minimum, Math.floor(words.length / 3))
+  for (let n = minimum; n <= maximum; n++) {
+    const size = Math.floor(words.length / n), extra = words.length % n; let cursor = 0
+    const blocks = Array.from({ length: n }, (_, k) => { const count = size + (k < extra ? 1 : 0); const block = words.slice(cursor, cursor + count); cursor += count; return captionLines(block, font, width) })
+    if (blocks.every((lines): lines is Cena95Word[][] => lines !== null && lines.length * font * 1.1 + stroke * 2 <= height)) return blocks
+  }
+  throw new Error('cena95_caption_text_does_not_fit')
 }
 
 /** Same full block on one track for each active-word interval. Creatomate inline [color] is already used by lib/compose.ts. */
@@ -100,7 +115,10 @@ export function cena95Captions(i: Cena95CaptionInput): Cena95CaptionResult {
   if (!(Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0)) throw new Error('cena95_caption_bad_frame')
   const { words, timingSource } = alignment(i)
   const font = Math.round(height * 0.033), stroke = 7 * height / 1920
-  const base = { type: 'text', track: i.track ?? 40, x: '50%', y: '67%', x_anchor: '50%', y_anchor: '50%', x_alignment: '50%', width: '84%', font_family: 'Inter', font_size: font, font_weight: '800', line_height: '110%', fill_color: '#ffffff', stroke_color: '#000000', stroke_width: stroke }
+  const captionHeight = Math.floor(2 * (height * 1480 / 1920 - height * 0.67 - stroke))
+  if (captionHeight <= 0) throw new Error('cena95_caption_bad_frame')
+  // Fixed dimensions and documented element clipping enforce the lower bound even on unexpected font metrics.
+  const base = { type: 'text', track: i.track ?? 40, x: '50%', y: '67%', x_anchor: '50%', y_anchor: '50%', x_alignment: '50%', y_alignment: '50%', width: '84%', height: captionHeight, text_wrap: false, text_clip: true, clip: true, font_family: 'Inter', font_size: font, font_weight: '800', line_height: '110%', fill_color: '#ffffff', stroke_color: '#000000', stroke_width: stroke }
   const elements: Record<string, unknown>[] = []
   // Keep blocks inside speech windows, including the explicit pre-CTA pause. Very short beats may have <3 words truthfully.
   const runs: Cena95Word[][] = []
@@ -108,12 +126,14 @@ export function cena95Captions(i: Cena95CaptionInput): Cena95CaptionResult {
     const last = runs[runs.length - 1]
     if (!last || word.start - last[last.length - 1].end >= 0.15 && last.length >= 3 && words.length - index >= 3) runs.push([word]); else last.push(word)
   }
-  for (const run of runs) for (const block of balancedBlocks(run)) {
+  for (const run of runs) for (const lines of balancedBlocks(run, font, width * 0.84 - stroke * 2, captionHeight, stroke)) {
+    const block = lines.flat()
+    const text = (active?: Cena95Word): string => lines.map(line => line.map(x => x === active ? `[color #FFD400]${x.word}[/color]` : x.word).join(' ')).join('\n')
     for (let k = 0; k < block.length; k++) {
       const w = block[k]
-      elements.push({ ...base, time: w.start, duration: r6(w.end - w.start), text: block.map((x, j) => j === k ? `[color #FFD400]${x.word}[/color]` : x.word).join(' ') })
+      elements.push({ ...base, time: w.start, duration: r6(w.end - w.start), text: text(w) })
       const next = block[k + 1]
-      if (next && next.start > w.end + 1e-6) elements.push({ ...base, time: w.end, duration: r6(next.start - w.end), text: block.map(x => x.word).join(' ') })
+      if (next && next.start > w.end + 1e-6) elements.push({ ...base, time: w.end, duration: r6(next.start - w.end), text: text() })
     }
   }
   // Audio ducking uses actual word extents, never a full 15s guess. Short gaps are merged; CTA silence remains.

@@ -370,6 +370,7 @@ commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_DES
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes('KINEO-AVATAR-ESTORNO-2010') && !s.includes('KINEO-LEGENDA-BENGALI-2010'))) // KINEO-AVATAR-ESTORNO-2010 — os commits do estorno/legenda bengali levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes('KINEO-ADS-BOLA-2110') && !s.includes('KINEO-ADS-QUALIDADE-2110'))) // KINEO-ADS-QUALIDADE-2110 — reancorado: os commits (e os merges da fila) da bola e da qualidade levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.startsWith(MARCA_ADS_CENA_2110 + ' '))) // KINEO-ADS-CENA-2110 — apenas commits com o prefixo exato desta camada posterior.
+commits.splice(0, commits.length, ...commits.filter((s) => !s.startsWith('KINEO-ADS-CENA-95-2110 ') && !s.startsWith('KINEO-ADS-CENA-95-2110: '))) // KINEO-ADS-CENA-95-2110 — somente a camada posterior95, com escopo/trava/desfaz próprios.
 ok(commits.every((s) => s.includes(MARCA_MCP_STUDIO_AJUSTE_2010)), `(F4) todo commit da entrega leva a marca (${commits.length})`)
 ok(semMcpStudioAjuste2010('sem marca', F.page) === 'sem marca' && semMcpStudioAjuste2010(raw(F.page), 'outro/arquivo.ts') === raw(F.page), '(F5) desfaz idempotente fora do alvo')
 {

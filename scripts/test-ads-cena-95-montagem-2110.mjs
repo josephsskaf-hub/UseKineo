@@ -71,6 +71,9 @@ export function proof95(over = {}) {
   const blocks = new Map()
   for (const e of measured.elements) {
     assert.equal(e.font_size, 63); assert.equal(e.stroke_width, 7); assert.equal(e.fill_color, '#ffffff'); assert.equal(e.stroke_color, '#000000'); assert.equal(e.y, '67%')
+    assert.equal(e.height, 373); assert.equal(e.y_alignment, '50%'); assert.equal(e.text_wrap, false); assert.equal(e.text_clip, true); assert.equal(e.clip, true)
+    assert.ok(1920 * parseFloat(e.y) / 100 + e.height / 2 + e.stroke_width <= 1480, 'caixa inteira e contorno ficam acima1480')
+    assert.ok(e.text.split('\n').length * e.font_size * 1.1 + e.stroke_width * 2 <= e.height, 'texto completo cabe sem depender do clipping')
     assert.ok(!e.background_color && !e.background); assert.ok(!e.type.includes('shape'))
     const k = strip(e.text); blocks.set(k, true)
     if (/\[color/.test(e.text)) assert.equal((e.text.match(/\[color #FFD400\]/g) ?? []).length, 1, 'só a palavra ativa amarela')
@@ -78,6 +81,15 @@ export function proof95(over = {}) {
   }
   for (const block of blocks.keys()) assert.ok(block.split(' ').length >= 3 && block.split(' ').length <= 6, 'blocos3–6 palavras')
   assert.equal([...blocks.keys()].join(' '), s.plan.script.narration)
+  const longWords = Array(6).fill('abcdefghijk'), longText = longWords.join(' ')
+  for (const [width, height] of [[1080, 1920], [540, 960]]) {
+    const dense = C.cena95Captions({ text: longText, language: 'en', width, height, speechWindows: [{ text: longText, start: 0, end: 3 }] })
+    const distinct = [...new Set(dense.elements.map(e => strip(e.text)))]
+    assert.deepEqual(distinct, [longWords.slice(0, 3).join(' '), longWords.slice(3).join(' ')].filter((x, k, a) => a.indexOf(x) === k), 'seis palavras grandes viram grupos3+3, sem cortar palavras')
+    assert.ok(dense.elements.every(e => height * parseFloat(e.y) / 100 + e.height / 2 + e.stroke_width <= height * 1480 / 1920))
+  }
+  const tooWide = 'a'.repeat(80) + ' texto real'
+  assert.throws(() => C.cena95Captions({ text: tooWide, language: 'pt', speechWindows: [{ text: tooWide, start: 0, end: 3 }] }), /text_does_not_fit/, 'nunca trunca um token comprido para caber')
   assert.ok(measured.elements.some(e => e.text.includes('[color #FFD400]Seu[/color]')))
   const naturalPauses = provided.map((w, k) => ({ ...w, start: k * .3, end: k * .3 + .1 }))
   const paused = C.cena95Captions({ text: s.plan.script.narration, language: 'pt', words: naturalPauses })
@@ -145,6 +157,11 @@ export function run95() {
     [CAP, 'legenda ganha caixa', "fill_color: '#ffffff', stroke_color:", "background_color: '#000000', fill_color: '#ffffff', stroke_color:"],
     [CAP, 'legenda abaixo área segura', "y: '67%'", "y: '84%'"],
     [CAP, 'legenda desproporcional', 'height * 0.033', 'height * 0.07'],
+    [CAP, 'limite inferior removido', 'height * 1480 / 1920', 'height * 1800 / 1920'],
+    [CAP, 'renderer deixa texto escapar', 'text_clip: true', 'text_clip: false'],
+    [CAP, 'elemento deixa contorno escapar', 'clip: true, font_family:', 'clip: false, font_family:'],
+    [CAP, 'renderer quebra linhas novamente', 'text_wrap: false', 'text_wrap: true'],
+    [CAP, 'token impossível é truncado silenciosamente', 'if (advance > width) return null', 'if (false) return null'],
     [CAP, 'alinhamento real descartado', 'word: textWords[k], start: w.start, end: w.end', 'word: textWords[k], start: w.start, end: w.end - .02'],
     [CAP, 'TTS medido volta a forçar15s', 'const speechSeconds = voiceSeconds - pause', 'const speechSeconds = 15 - pause'],
     [CAP, 'TTS perde pausa antesCTA', '(k === 3 ? pause : 0)', '(k === 3 ? 0 : 0)'],
