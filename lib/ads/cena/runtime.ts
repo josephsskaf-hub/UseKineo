@@ -54,6 +54,10 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
     if (r.error || !r.data) throw new Error('cena_lease_lost')
   }
   try {
+    if (state.plan.ajusteLive?.version === 'KINEO-ADS-CENA-RETOMADA-2110') { // KINEO-ADS-CENA-RETOMADA-2110 — same planning gate before any resumed paid media.
+      try { (await import('./ajustePreflight')).preflightCenaAjuste(state.plan, state.route) }
+      catch { await failCenaOrder(admin, order, 'cena_ajuste_plan_invalid'); return }
+    }
     await stepCena(state, { now: Date.now, save, json: cenaJson,
       submit: async j => {
         const r = await submitShotOnce(j.endpoint, j.input, context)
