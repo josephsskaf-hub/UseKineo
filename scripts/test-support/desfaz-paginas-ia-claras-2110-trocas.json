@@ -7,7 +7,8 @@
   "lib/seo/paginasIaClaras2110.ts",
   "scripts/test-paginas-ia-claras-2110.mjs",
   "scripts/test-support/desfaz-paginas-ia-claras-2110-trocas.json",
-  "scripts/test-support/desfaz-paginas-ia-claras-2110.mjs"
+  "scripts/test-support/desfaz-paginas-ia-claras-2110.mjs",
+  "docs/qa/paginas-ia-claras-2210-merge-proof.json"
  ],
  "app/ai-video-generator/[engine]/page.tsx": [
   [

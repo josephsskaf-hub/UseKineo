@@ -124,4 +124,16 @@ antigo ainda diz "sem 1º mês com desconto" — regra de 17/08 superada pela de
 
 **FATO CONFIRMADO — marcadores:** a busca `git grep -n '^<<<<<<<'` aponta somente bytes de um PNG histórico, inalterado contraF353. A busca textual `git grep -I -n '^<<<<<<<'` está vazia. Nenhuma chamada paga, banco, `.env`, PR, build ou deploy foi executado nesta integração.
 
-**QUESTÃO PENDENTE — TESTES EM ANDAMENTO:** a suíte completa será comparada a uma snapshot limpa deF353; os recibos desta integração ficam em `C:/Users/josep/OneDrive/Área de Trabalho/Usekineo/.claude/paginas-ia-claras-main-proof-2210/`. Os números contra72 e a aprovação visual acima são históricos, não substituem a nova comparação. Resultado final e TypeScript serão registrados abaixo antes do push.
+**FATO CONFIRMADO — HISTÓRICO:** a integração parcial com F353 foi substituída pela integração final contra 3e7 abaixo. Seus recibos anteriores permanecem preservados; não certificam o merge atual.
+
+## Integração final da main 3e7 — 22/10/2026
+
+**FATO CONFIRMADO — IMPLEMENTADO:** a branch incorpora integralmente a main `3e7ef8a42ea6c1f8566a6dbb55f10cc838b0dbdb`. O visual aprovado de Páginas permanece igual a 2c1803d5e nos caminhos verificados; home, curadoria, preços, produto Kids e billing permanecem iguais à main nos caminhos protegidos. Fontes: inventários e diffs no [recibo portátil](qa/paginas-ia-claras-2210-merge-proof.json).
+
+**FATO CONFIRMADO — reâncoras sem afrouxar:** as fontes integrais de Páginas restauram 3e7 antes das camadas anteriores; ordem Páginas→Roteiro→Cena95→Kids→Ajuste; Bing retira Páginas antes das suas trocas. Além dos guardiões pedidos, os leitores diretos dos dois guardiões do desenho infantil foram corrigidos para retirar Páginas antes de Roteiro. Bases, contagens, mutantes e comparações exatas foram preservados. Fontes: `scripts/test-support/desfaz-ads-cena-95-2110.mjs:23`, `scripts/test-support/desfaz-bing-seo-1510.mjs:23`, `scripts/test-bebe-que-fala-2010.mjs:43`, `scripts/test-desenho-nota9-2110.mjs:38`.
+
+**FATO CONFIRMADO — TESTADO LOCALMENTE — suíte comparada:** referência 991 arquivos (835 verdes, 156 não verdes); candidato 992 (836 verdes, 156 não verdes). Nenhum vermelho novo, nenhuma nova asserção falha nos testes já não verdes, nenhum teste removido/duplicado, nenhuma exceção inesperada e nenhum timeout na seleção final. As primeiras tentativas e todas as repetições permanecem no recibo, com o SHA de origem de cada resultado. A bateria completa foi executada em 27c; a correção posterior de dois testes e tabela foi provada por diff exato e quatro reexecuções em b709. Não se alega uma segunda bateria inteira em b709. Fonte/data: recibo portátil, 22/10/2026.
+
+**FATO CONFIRMADO — TESTADO LOCALMENTE — guardiões:** os cinco pedidos estão verdes; Páginas 195/0, Kids 92/0, MCP 157/0 e Roteiro 90/0. As reâncoras adicionais ficaram verdes: Bebê 53/0, DesenhoNota9 30/0, desfaz de Roteiro 725/0. Os 10 mutantes reais de Roteiro foram rejeitados, com restauração byte a byte das seis fontes e controle positivo verde. TypeScript `tsc --noEmit --incremental false` verde em b709; a primeira tentativa de 300 s expirou, e a repetição de 600 s terminou com código 0 em 321308 ms, sem alteração de configuração. Fontes/data: recibos completos incorporados ao JSON, 22/10/2026.
+
+**FATO CONFIRMADO — escopo da entrega:** somente commits da branch com a TRAVA exata; nenhum comando de PR, build ou deploy foi executado. As provas são locais/offline e não representam validação nova em produção.
