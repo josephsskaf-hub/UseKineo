@@ -72,8 +72,11 @@ chk('resume falhas 1h e presos', h.includes('falhas_1h') && h.includes('presos')
 
 console.log('\nBÔNUS) Ideia minúscula vira roteiro SOZINHA (0 de 7 clicavam no botão)')
 const g2 = ler('app/(dashboard)/generate/GenerateClient.tsx')
-chk('o 422 de ≤12s dispara handleWriteFullScript automaticamente', g2.includes('script_authoring_auto_started') && g2.includes('void handleWriteFullScript({ speechSeconds: falaSeg, targetSeconds: duration })'))
-chk('roteiro real (>12s) mantém o fluxo com aprovação (C1)', g2.includes('if (!ehIdeia) setError('))
+// KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — both routes converge on neutral preparation; <=12s authors and >12s expands after review.
+const offer = g2.slice(g2.indexOf('function offerScriptCompletion('), g2.indexOf('async function handleWriteFullScript('))
+chk('o 422 de ≤12s dispara o escritor na oferta neutra central', offer.includes("setPhase('script_completion')") && offer.includes('if (speechSeconds <= 12)') && offer.includes('script_authoring_auto_started') && offer.includes('void handleWriteFullScript({ speechSeconds, targetSeconds: duration })'))
+const neutralReview = g2.indexOf("{phase === 'script_completion' && scriptTooShort && (")
+chk('roteiro real (>12s) mantém revisao fora do render e aprovacao explicita (C1)', neutralReview > 0 && neutralReview < g2.indexOf('{showRender && (') && g2.includes('if (scriptTooShort.speechSeconds <= 12 || authoring) return') && g2.includes('onClick={acceptExpandedScript}') && g2.includes('completionApproved: true'))
 chk('C1 preservado: o auto só ESCREVE — aprovação continua antes do render', g2.includes('setAuthoredScript(data.script.trim())'))
 
 console.log('\n124-FANTASMAS) Painel live conta JOBS de animação, nunca eventos crus')

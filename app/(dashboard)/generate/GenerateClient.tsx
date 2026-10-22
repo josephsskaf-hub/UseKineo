@@ -5,6 +5,7 @@ import { hasStudioCreateIntent, studioEntryView } from '@/lib/navigation/studioE
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { looksLikeInstruction } from '@/lib/momentumTopic'
+import { isStandaloneHttpUrl, CHATGPT_LINK_MESSAGE, originalIdeaFromArrival, usableOriginalIdea, ORIGINAL_IDEA_SESSION_KEY } from '@/lib/scriptInput' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 import { normalizeAspect } from '@/lib/aspect'
 import { fitFrameToVideo } from '@/lib/frameFit'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -488,6 +489,7 @@ type Phase =
   | 'idle'
   | 'scripting'     // generate-script is running (auto-structure step)
   | 'script_preview' // structured script ready — user reviews before generating
+  | 'script_completion' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — neutral review, no render until click
   | 'analyzing'
   | 'options'
   | 'generating'    // Runway producing clips (or fal.ai submission)
@@ -2359,6 +2361,18 @@ export default function GenerateClient({
   /** Roteiro completo escrito pela IA, esperando leitura e consentimento. */
   const [authoredScript, setAuthoredScript] = useState<string | null>(null)
   const [authoring, setAuthoring] = useState(false)
+  const approvedCompletionRef = useRef(false) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — armed only by review's Generate click
+  const completionClickRef = useRef(false) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — synchronous double-click guard before analysis awaits
+  const [scriptLinkRejected, setScriptLinkRejected] = useState(false) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
+  // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — keep the arrival idea available without sending or opening the pasted URL.
+  const [originalArrivalIdea, setOriginalArrivalIdea] = useState<string | null>(null)
+  useEffect(() => {
+    const arrived = searchParams ? originalIdeaFromArrival(searchParams) : null
+    let stored: string | null = null
+    try { stored = usableOriginalIdea(sessionStorage.getItem(ORIGINAL_IDEA_SESSION_KEY)) } catch { /* storage is optional */ }
+    setOriginalArrivalIdea(arrived ?? stored)
+  }, [searchParams])
+  useEffect(() => { setScriptLinkRejected(false) }, [prompt])
   /** KINEO-351 — roteiro escrito pela IA que ainda não cobre a duração pedida. */
   const [authoredStillShort, setAuthoredStillShort] = useState<{ words: number; minWords: number } | null>(null)
   // #465 — the saved video's DB id, for the public /v/[id] share link on the
@@ -7642,6 +7656,11 @@ export default function GenerateClient({
   // de não ser automático (Contrato C1 + o risco de fato inventado).
   async function handleExpandScript() {
     if (!scriptTooShort || expanding) return
+    // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — never write from a URL, including retry/candidate paths.
+    if ([expandBaseRef.current, expandCandidateRef.current, structuredScriptRef.current ?? prompt].some(isStandaloneHttpUrl)) {
+      setScriptLinkRejected(true)
+      return
+    }
     // ═══ KINEO-350-RODADAS-POR-BASE ═══════════════════════════════════════
     // O teto é por (base imutável, duração). A base é o que a PESSOA escreveu:
     // expandBaseRef só muda quando ela aceita um texto ou digita outra coisa.
@@ -7952,6 +7971,28 @@ export default function GenerateClient({
     }
   }
 
+  // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — completing narration is preparation, not a failed film.
+  function offerScriptCompletion(speechSeconds: number, missingWords: number) {
+    generationInFlightRef.current = false
+    approvedCompletionRef.current = false
+    completionClickRef.current = false // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — one approval per review
+    activationAutoGenerateRef.current = false
+    onboardingAutoGenerateRef.current = false
+    setError(null)
+    setExpandState(null)
+    setExpandedScript(null)
+    setExpandedIsRewrite(false)
+    setExpandedDurationAdjustment(null)
+    setAuthoredScript(null)
+    setAuthoredStillShort(null)
+    setScriptTooShort({ message: '', speechSeconds, missingWords, targetSeconds: duration, suggestedDuration: largestFittingDuration(speechSeconds) ?? 0 })
+    setPhase('script_completion')
+    if (speechSeconds <= 12) {
+      void trackEvent('script_authoring_auto_started', { speech_seconds: speechSeconds, target_seconds: duration, engine: mode === 'cinematic_ai' ? aiEngine : 'fast' })
+      void handleWriteFullScript({ speechSeconds, targetSeconds: duration })
+    }
+  }
+
   // ═══ KINEO-350-ESCREVER-O-ROTEIRO (saída do needs_authoring) ═════════════
   //
   // Quando o texto é uma IDEIA (2s de fala para 60s de vídeo), completar não
@@ -7969,6 +8010,7 @@ export default function GenerateClient({
     if (!alvo || authoring) return
     const ideia = (structuredScriptRef.current ?? prompt).trim()
     if (!ideia) return
+    if (isStandaloneHttpUrl(ideia)) { setScriptLinkRejected(true); return } // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
     setAuthoring(true)
     setError(null)
     void trackEvent('script_authoring_requested', {
@@ -7992,6 +8034,7 @@ export default function GenerateClient({
           language,
           targetSeconds: alvo.targetSeconds,
           forceAuthoring: true,
+          engine: mode === 'fast' || mode === 'creator' ? 'fast' : quality, // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — writer uses the same speech ruler as the guard
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -8043,7 +8086,8 @@ export default function GenerateClient({
    * Nada foi renderizado nem debitado até este clique.
    */
   function acceptAuthoredScript() {
-    if (!authoredScript) return
+    if (!authoredScript?.trim() || isStandaloneHttpUrl(authoredScript) || completionClickRef.current) return // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
+    completionClickRef.current = true // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
     const aceito = authoredScript
     void trackEvent('script_authoring_accepted', {
       approved_words: aceito.split(/\s+/).filter(Boolean).length,
@@ -8063,7 +8107,9 @@ export default function GenerateClient({
     setScriptTooShort(null)
     setError(null)
     setPhase('idle')
-    void handleAnalyze(aceito)
+    // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — the single Generate click approves the visible script, then refreshes its plan.
+    setScriptMode('verbatim')
+    void handleAnalyze(aceito, { skipPreview: true, scriptModeOverride: 'verbatim', completionApproved: true })
   }
 
   // ═══ KINEO-AUTO-COMPLETAR-2026-08-25 (decisão do fundador, caso do cliente
@@ -8078,6 +8124,7 @@ export default function GenerateClient({
   const autoExpandFiredRef = useRef<object | null>(null)
   useEffect(() => {
     if (!scriptTooShort || expandedScript || expanding) return
+    if (scriptTooShort.speechSeconds <= 12 || authoring) return // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — authoring already runs; no competing expansion
     if (autoExpandFiredRef.current === scriptTooShort) return
     // KINEO-P0A-SEM-LOOP-2026-08-26 — trava dupla contra o loop do
     // ofirshu555: (1) já esgotamos as saídas desta tentativa → não redispara;
@@ -8102,9 +8149,23 @@ export default function GenerateClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scriptTooShort])
 
+  // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — offer means a ready script is visibly reviewable, not a render.
+  const completionOfferedRef = useRef<object | null>(null)
+  useEffect(() => {
+    const ready = authoredStillShort ? null : authoredScript ?? (expandState ? null : expandedScript)
+    if (phase !== 'script_completion' || !scriptTooShort || !ready || completionOfferedRef.current === scriptTooShort) return
+    completionOfferedRef.current = scriptTooShort
+    void trackEvent('script_completion_offered', {
+      speech_seconds: scriptTooShort.speechSeconds,
+      target_seconds: expandedDurationAdjustment?.effectiveSeconds ?? scriptTooShort.targetSeconds,
+      words_after: ready.trim().split(/\s+/).filter(Boolean).length,
+    })
+  }, [phase, scriptTooShort, authoredScript, authoredStillShort, expandedScript, expandState, expandedDurationAdjustment])
+
   /** A pessoa aprovou o texto completado: ele vira o roteiro e o fluxo segue. */
   function acceptExpandedScript() {
-    if (!expandedScript) return
+    if (!expandedScript?.trim() || isStandaloneHttpUrl(expandedScript) || completionClickRef.current) return // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
+    completionClickRef.current = true // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
     // KINEO-P0A-2026-08-26 — o texto aprovado é EXATAMENTE o que vai ao guard
     // e à geração: structuredScriptRef é a fonte que handleGenerate lê
     // (`structuredScriptRef.current ?? prompt`), e o prompt acompanha para a
@@ -8124,6 +8185,7 @@ export default function GenerateClient({
     // por sorte, nao por contrato.
     const aprovado = expandedScript
     const ajusteDuracao = expandedDurationAdjustment
+    if (ajusteDuracao) setDuration(ajusteDuracao.effectiveSeconds as Duration) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — dispatch the duration shown in review
     expandBaseRef.current = expandedScript
     expandRoundsRef.current = { key: '', used: 0 }
     expandCandidateRef.current = null
@@ -8166,7 +8228,9 @@ export default function GenerateClient({
     // para a tela de opcoes, onde a pessoa clica para gerar como sempre. O
     // que morreu foi o clique de "analisar de novo o texto que voce acabou
     // de aprovar", que nunca teve resposta possivel alem de sim.
-    void handleAnalyze(aprovado, { afterExpandAccept: true })
+    // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — same one-click approval for completed existing scripts.
+    setScriptMode('verbatim')
+    void handleAnalyze(aprovado, { afterExpandAccept: true, skipPreview: true, scriptModeOverride: 'verbatim', completionApproved: true, targetSeconds: (ajusteDuracao?.effectiveSeconds ?? duration) as Duration })
   }
 
   async function handleAnalyze(
@@ -8187,8 +8251,16 @@ export default function GenerateClient({
       // verbatim (o teaser de 15 s de um roteiro longo). Sem override, vale o estado da tela, como sempre.
       targetSeconds?: Duration
       scriptModeOverride?: 'ai' | 'verbatim'
+      completionApproved?: boolean // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — explicit review click, never autoauthoring
     },
   ) {
+    // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — validate before any writer/analyzer request.
+    if (isStandaloneHttpUrl(overridePrompt ?? structuredScriptRef.current ?? prompt)) {
+      approvedCompletionRef.current = false
+      setScriptLinkRejected(true)
+      return
+    }
+    setScriptLinkRejected(false)
     const duracaoPedida: Duration = opts?.targetSeconds ?? duration
     // KINEO-P0A-2026-08-26 — ideia NOVA começa com as rodadas de expansão
     // zeradas. Sem isto, quem esgotou as duas rodadas num roteiro ficaria sem
@@ -8469,8 +8541,9 @@ export default function GenerateClient({
     // Push #060 / #061 — fire-and-forget event tracking. Endpoint silently
     // Analyze is its own funnel step. The legacy generation-start events now
     // fire only in handleGenerate, when a render is actually dispatched.
-    if (!generationAttemptRef.current || phase === 'idle' || phase === 'done' || phase === 'failed') {
+    if (!generationAttemptRef.current || phase === 'idle' || phase === 'done' || phase === 'failed' || phase === 'script_completion') { // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — a released claim cannot own the approved new script
       generationAttemptRef.current = newGenerationAttemptId()
+      preserveGenerationAttemptRef.current = false // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
     }
     trackEvent('analyze_idea_clicked', {
       attempt_id: generationAttemptRef.current,
@@ -8733,7 +8806,7 @@ export default function GenerateClient({
         return
       }
 
-      const analyzeBody = JSON.stringify({ prompt: source, duration: alvoAnalise, language, scriptMode })
+      const analyzeBody = JSON.stringify({ prompt: source, duration: alvoAnalise, language, scriptMode: opts?.scriptModeOverride ?? scriptMode }) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — analyze the exact approved narration, even before React commits the mode
       const analyzeOnce = () =>
         fetch('/api/analyze-idea', {
           method: 'POST',
@@ -8875,8 +8948,9 @@ export default function GenerateClient({
       const niche = data.niche ?? ''
       setBrollPlanLoading(true)
       setBrollPlan(null)
+      approvedCompletionRef.current = opts?.completionApproved === true // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — arm only after successful fresh analysis
 
-      if (mode === 'creator') {
+      if (mode === 'creator' && !opts?.completionApproved) { // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — review already supplied consent
         // Creator Mode: show the planning phase, then the VisualDirector.
         setPhase('broll_planning')
         // #358 — instrumentation: timestamp the broll-plan call (Creator path).
@@ -9510,6 +9584,9 @@ export default function GenerateClient({
   }
 
   async function handleGenerate() {
+    // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — reject raw links before probes or paid dispatch.
+    if (isStandaloneHttpUrl(structuredScriptRef.current ?? prompt)) { setScriptLinkRejected(true); return }
+    setScriptLinkRejected(false)
     // A terminal quality response never authorizes a blind paid retry. The
     // explicit edit action clears a safely settled state; pending stays blocked.
     if (qualityFailureRef.current) return
@@ -10127,59 +10204,9 @@ export default function GenerateClient({
         // Oferecer + mostrar antes de renderizar preserva o C1 (ela autoriza)
         // e põe olhos humanos no texto novo antes de virar vídeo.
         if (res.status === 422 && data?.narrationTooShort === true) {
-          // ═══ KINEO-IDEIA-VIRA-ROTEIRO-2026-08-28 ═══════════════════════════
-          //
-          // MEDIDO em 14 dias: 7 pessoas bateram neste muro, ZERO clicaram no
-          // botão "write it for me" que existe logo abaixo, e só 1 das 7
-          // conseguiu um vídeo depois. O aviso-com-botão está tecnicamente
-          // certo e humanamente morto: quem digitou 8 palavras num produto
-          // que promete mágica não lê parágrafo de erro — vai embora.
-          //
-          // A distinção que resolve sem trair o Contrato C1: texto com ≤12s
-          // de fala NÃO É UM ROTEIRO — é uma IDEIA. O C1 ("com 'use meu
-          // roteiro' o GPT nunca escreve fala") protege roteiros; tratar 8
-          // palavras como roteiro-verbatim é erro de categoria. Para IDEIA, o
-          // escritor dispara SOZINHO — e o C1 continua de pé onde importa:
-          // NADA vira vídeo sem a pessoa LER o roteiro pronto e aprovar (o
-          // painel de aprovação é o mesmo de sempre; só o clique inútil de
-          // "pode escrever?" morreu). O risco de fato-inventado (caso 22/08,
-          // "200% de chance de monetização") continua coberto pela leitura
-          // obrigatória antes do render.
-          //
-          // Roteiro DE VERDADE só-um-pouco-curto (>12s de fala) mantém o
-          // fluxo antigo: oferta de completar, palavra por palavra da pessoa
-          // preservada, aprovação explícita.
-          const falaSeg = Number(data?.speechSeconds) || 0
-          const ehIdeia = falaSeg <= 12
-          if (!ehIdeia) setError(typeof data?.error === 'string' ? data.error : GENERIC_ERROR)
-          if (ehIdeia) {
-            void trackEvent('script_authoring_auto_started', {
-              speech_seconds: falaSeg,
-              target_seconds: duration,
-            })
-            void handleWriteFullScript({ speechSeconds: falaSeg, targetSeconds: duration })
-          }
-          setScriptTooShort({
-            message: typeof data?.error === 'string' ? data.error : '',
-            speechSeconds: Number(data?.speechSeconds) || 0,
-            // ⚠️ O servidor sugere um múltiplo de 5 (ex.: 50s), mas o seletor
-            // do produto tem uma lista curta. Oferecer "faça 50s" num seletor
-            // que não tem 50 seria um botão que não funciona.
-            //
-            // KINEO-350 — esta lista era `[90, 60, 45, 35]` escrita à mão AQUI,
-            // e 45s saiu do seletor no #333: dava para oferecer uma duração que
-            // a tela não consegue selecionar. Agora vem de
-            // lib/expandPolicy.SUPPORTED_DURATIONS, a mesma fonte do servidor.
-            // Retorna null quando nenhuma duração cabe — e aí não há botão.
-            suggestedDuration: largestFittingDuration(Number(data?.speechSeconds) || 0) ?? 0,
-            missingWords: Number(data?.missingWords) || 0,
-            targetSeconds: duration,
-          })
-          trackGenerationFailure('generating', 'narration_too_short', {
-            httpStatus: 422,
-            detail: `speech=${Number(data?.speechSeconds) || 0}s target=${duration}s`,
-          })
-          setPhase('failed'); return
+          // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — the released claim enters neutral review, never a failure.
+          offerScriptCompletion(Number(data?.speechSeconds) || 0, Number(data?.missingWords) || 0)
+          return
         }
         if (!res.ok) {
           setError(typeof data?.error === 'string' ? data.error : GENERIC_ERROR)
@@ -10423,22 +10450,9 @@ export default function GenerateClient({
         // caixa da cinematic: expandir ("Finish it for me") ou uma duração menor
         // que cabe. Nada cobrado; o autor não é tocado.
         if (res.status === 422 && data?.reason === 'narration_too_short') {
-          const falaSeg = Number(data?.speech_seconds) || 0
-          const ehIdeia = falaSeg <= 12
-          if (!ehIdeia) setError(typeof data?.error === 'string' ? data.error : GENERIC_ERROR)
-          if (ehIdeia) {
-            void trackEvent('script_authoring_auto_started', { speech_seconds: falaSeg, target_seconds: duration, engine: 'fast' })
-            void handleWriteFullScript({ speechSeconds: falaSeg, targetSeconds: duration })
-          }
-          setScriptTooShort({
-            message: typeof data?.error === 'string' ? data.error : '',
-            speechSeconds: falaSeg,
-            suggestedDuration: typeof data?.shorter_duration === 'number' ? data.shorter_duration : (largestFittingDuration(falaSeg) ?? 0),
-            missingWords: Number(data?.missing_words) || 0,
-            targetSeconds: duration,
-          })
-          trackGenerationFailure('generating', 'narration_too_short', { httpStatus: 422, detail: `engine=fast speech=${falaSeg}s target=${duration}s` })
-          setPhase('failed'); return
+          // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — Kineo 1 uses the same review contract.
+          offerScriptCompletion(Number(data?.speech_seconds) || 0, Number(data?.missing_words) || 0)
+          return
         }
         if (!res.ok) {
           console.error('[generate] fast-mode error:', data?.error)
@@ -10723,6 +10737,14 @@ export default function GenerateClient({
       setPhase('failed')
     }
   }
+
+  // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — only the review Generate click can arm this continuation.
+  useEffect(() => {
+    if (phase !== 'options' || !approvedCompletionRef.current || !analysis) return
+    approvedCompletionRef.current = false
+    void handleGenerate()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, analysis])
 
   // Explicit public create intent and the onboarding CTA both promise a
   // generated Short, so complete their resolved path after analysis is ready.
@@ -13623,7 +13645,7 @@ export default function GenerateClient({
   const failureCause = (() => {
     const raw = (error ?? '').toLowerCase()
     if (!raw) return 'unknown'
-    if (raw.includes('seconds of narration')) return 'narration_short'
+    // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — narration completion has its own neutral phase.
     if (raw.includes('voiceover_script is required')) return 'voiceover_script_missing'
     if (raw.includes('voiceover generation failed')) return 'voiceover_provider'
     if (raw.includes('daily_free_limit') || raw.includes('daily free')) return 'daily_free_limit'
@@ -13649,7 +13671,6 @@ export default function GenerateClient({
   // Fora desta lista (falha de fornecedor, rede) o Retry continua sendo a
   // resposta certa e o card nao muda de tom por repeticao.
   const failureIsDeterministic =
-    failureCause === 'narration_short' ||
     failureCause === 'voiceover_script_missing' ||
     failureCause === 'daily_free_limit' ||
     failureCause === 'real_person_guard' ||
@@ -13672,22 +13693,11 @@ export default function GenerateClient({
   // `generation_retry_clicked` com o gesto escolhido. Nada muda de
   // aparencia, nada e escondido, nenhum caminho novo: so para de mentir por
   // omissao no dado que decide a proxima rodada.
-  const failureScreenKind: 'generic' | 'narration_short' | 'credits_held' | null =
-    phase !== 'failed' || qualityFailure ? null : scriptTooShort ? 'narration_short' : creditsHeld ? 'credits_held' : 'generic'
-  const failureScreenCause =
-    failureScreenKind === 'narration_short'
-      ? 'narration_short'
-      : failureScreenKind === 'credits_held'
-        ? 'credits_held'
-        : failureCause
-  // Credito preso NAO e deterministico: ele se resolve sozinho dentro da hora
-  // (ver #33), entao esperar/retentar ali muda de resultado de verdade.
-  const failureScreenDeterministic =
-    failureScreenKind === 'narration_short'
-      ? true
-      : failureScreenKind === 'credits_held'
-        ? false
-        : failureIsDeterministic
+  // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — neutral review never emits failure-screen telemetry, including stale state.
+  const failureScreenKind: 'generic' | 'credits_held' | null =
+    phase !== 'failed' || qualityFailure || scriptTooShort ? null : creditsHeld ? 'credits_held' : 'generic'
+  const failureScreenCause = failureScreenKind === 'credits_held' ? 'credits_held' : failureCause
+  const failureScreenDeterministic = failureScreenKind === 'credits_held' ? false : failureIsDeterministic
   const sameFailureRef = useRef<{ signature: string; count: number }>({ signature: '', count: 0 })
   const [sameFailureCount, setSameFailureCount] = useState(0)
   const failedScreenLoggedRef = useRef<string>('')
@@ -13715,10 +13725,7 @@ export default function GenerateClient({
       // Sem isto nao da para separar "a tela nao apareceu" de "apareceu sem
       // texto": em 20:08 de hoje o card de narracao curta chegou ao evento
       // de estagio como `no_detail`, e nao havia como saber o que a pessoa leu.
-      has_message:
-        failureScreenKind === 'narration_short'
-          ? Boolean(scriptTooShort?.message)
-          : Boolean(error),
+      has_message: Boolean(error), // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
     })
   }, [
     failureScreenKind,
@@ -14197,6 +14204,23 @@ export default function GenerateClient({
             </button>
           </div>
         </div>
+      )}
+      {/* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — links are input guidance, not a failed film. */}
+      {(scriptLinkRejected || isStandaloneHttpUrl(prompt)) && (
+        <section role="status" className="gv-card rounded-2xl p-5 mb-6">
+          <p>{CHATGPT_LINK_MESSAGE}</p>
+          {originalArrivalIdea && (
+            <button type="button" className="rounded-xl px-5 py-2.5 text-sm font-bold" onClick={() => {
+              structuredScriptRef.current = null
+              setPrompt(originalArrivalIdea)
+              setScriptMode('ai')
+              setScriptTooShort(null)
+              setScriptLinkRejected(false)
+              setError(null)
+              setPhase('idle')
+            }}>Use my original idea</button>
+          )}
+        </section>
       )}
       {error && phase !== 'failed' && (
         <div
@@ -16317,234 +16341,15 @@ export default function GenerateClient({
       )}
 
       {/* ── Render / Done / Failed ── */}
-      {showRender && (
-        <>
-          {/* KINEO-WM-CHECKOUT-2026-07-07 — post-purchase status. Shown while the
-              clean re-render runs, or if the auto-unlock could not start (the pack
-              is still active; the user just makes a new clean Fast video). Fixed at
-              the top so it is visible regardless of the current phase. */}
-          {(wmUnlocking || wmUnlockError) && (
-            <div
-              role="status"
-              aria-live="polite"
-              style={{
-                position: 'fixed',
-                top: 16,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                zIndex: 60,
-                maxWidth: 'min(520px, 92vw)',
-                padding: '12px 18px',
-                borderRadius: 18,
-                background: wmUnlockError ? 'rgba(30,20,20,0.96)' : '#131316',
-                border: `1px solid ${wmUnlockError ? 'rgba(248,113,113,.5)' : 'rgba(41,151,255,.5)'}`,
-                boxShadow: '0 12px 40px rgba(0,0,0,.45)',
-                color: 'var(--text)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-              }}
-            >
-              <span style={{ fontSize: 18, lineHeight: 1 }} aria-hidden="true">
-                {wmUnlockError ? '✅' : '✨'}
-              </span>
-              <span style={{ fontSize: '0.85rem', fontWeight: 700, lineHeight: 1.4 }}>
-                {wmUnlockError
-                  ? `Payment received. ${wmUnlockError}`
-                  : 'Removing watermark… your clean video will appear here in a moment.'}
-              </span>
-              {wmUnlockError && (
-                <button
-                  type="button"
-                  onClick={() => setWmUnlockError(null)}
-                  aria-label="Dismiss"
-                  style={{
-                    marginLeft: 4,
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'var(--muted)',
-                    fontSize: 18,
-                    lineHeight: 1,
-                    cursor: 'pointer',
-                  }}
-                >
-                  ×
-                </button>
-              )}
-            </div>
-          )}
-
-          {(phase === 'generating' || phase === 'fal_polling' || phase === 'avatar_polling' || phase === 'clips_ready' || phase === 'composing') && (
-            <>
-            <section
-              className="gv-card render-workspace-primary rounded-2xl mb-6"
-              style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
-            >
-              {/* PUSH #71 — show the real API phase instead of rotating
-                  cosmetic steps after that work has already finished. */}
-              <RenderHeader
-                progress={Math.round(displayProgress)}
-                message={statusMessage}
-              />
-
-
-              {/* Push #087 — Fast Mode gets its own 4-step indicator that
-                  matches the actual Pexels + TTS + assemble pipeline.
-                  Cinematic Mode keeps the 5-stage Runway indicator. */}
-              {(mode === 'fast' || mode === 'creator') ? (
-                <FastPipelineStages step={fastStep} phase={phase} startedAt={fastLoadingStartedAt} />
-              ) : (
-                <PipelineStages
-                  phase={phase}
-                  renderProgress={renderProgress}
-                  finalReady={!!finalVideoUrl}
-                />
-              )}
-            </section>
-            <section className="render-workspace-details" aria-label="Current project">
-              <h2>Current project</h2>
-              <p className="render-workspace-topic">{analysis?.title || prompt}</p>
-              <div className="render-workspace-facts">
-                <span>Requested length <b>{duration}s</b></span>
-                <span>Narration <b>{language.toUpperCase()}</b></span>
-              </div>
-              <details className="render-workspace-disclosure">
-                <summary>Rendering &amp; delivery</summary>
-              <div
-                className="rounded-xl px-3 py-2 mt-4 text-xs"
-                style={{
-                  background: 'var(--accent-soft)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--muted2)',
-                  lineHeight: 1.55,
-                }}
-              >
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span aria-hidden="true"><KineoBolt /></span>
-                  <span className="font-bold" style={{ color: 'var(--accent)' }}>
-                    Kineo rendering engine
-                  </span>
-                </div>
-                {/* KINEO-CREDIT-INTEGRITY-2026-08-05 — esta linha dizia, para
-                    TODOS os modos, "Credits are only charged on successful
-                    delivery". Isso é verdade para Fast/Basic/Pro (o débito
-                    acontece em /api/compose/status DEPOIS que o vídeo existe),
-                    mas é FALSO para os motores de IA: eles debitam no SUBMIT,
-                    antes do fal render o primeiro clipe. Em 05/08 dois renders
-                    cinematográficos cobraram 110 créditos e nunca entregaram,
-                    com esta frase na tela. A promessa agora corresponde ao que
-                    o sistema faz — e a política de reembolso é dita em voz alta. */}
-                <div>
-                  {(mode === 'fast' || mode === 'creator')
-                    ? 'Your Short is being built in multiple AI stages. Credits are only charged on successful delivery.'
-                    : 'Your Short is being built in multiple AI stages. AI engines reserve their credits when the scenes are submitted to the render farm — if this render fails or never delivers, those credits are returned to your balance automatically.'}
-                </div>
-                <div className="mt-1">
-                  {(mode === 'fast' || mode === 'creator')
-                    ? 'Fast renders assemble stock footage, so they skip scene generation; busy queues can take longer.'
-                    : 'AI renders can take several minutes depending on the selected engine.'}
-                </div>
-                {/* KINEO-STRANDED-COPY-2026-08-18 — a promessa "pode fechar a
-                    aba" só é VERDADE nos motores de IA: o cron
-                    finish-stranded-renders (15min) vigia os claims
-                    cinematográficos e manda o e-mail de resgate. O modo Fast
-                    não tem claim — fechar a aba mata o render sem e-mail.
-                    Cada modo diz só a sua verdade.
-
-                    ⚠️ ATUALIZADO EM 21/08 — A SEGUNDA METADE DESSE COMENTÁRIO
-                    DEIXOU DE SER VERDADE E A COPY NÃO ACOMPANHOU. O bloco
-                    KINEO-STRANDED-FAST-2026-08-20 estendeu o cron ao Kineo 1
-                    (ele lê `compose_submission_claim`, não só o claim
-                    cinematográfico). Não é teoria: em 7 dias o `events` tem 15
-                    `stranded_fast_ready_sent` e 19 `stranded_ready_sent` — o
-                    resgate está entregando filme de Fast por e-mail HOJE.
-
-                    Por que trocar a frase importa em dinheiro: "finishes
-                    fastest with the tab open" é literalmente verdade (a aba
-                    persiste o vídeo na hora; fechada, espera-se até 15 min pelo
-                    cron) — só que ela transmite RISCO, e risco numa tela de 3
-                    minutos de espera é exatamente o que faz a pessoa ficar
-                    olhando, cansar e desistir. A frase nova diz as duas coisas
-                    na ordem certa: a aba é mais rápida, E nada se perde sem
-                    ela. Prometer rede de segurança que existe é só parar de
-                    esconder um ativo que já foi construído e pago.
-
-                    ⚠️ ESTA FRASE É UM PAR COM O CRON: se
-                    finish-stranded-renders parar de cobrir o Fast, esta linha
-                    vira mentira. Mexeu num, mexe no outro. */}
-                <div className="mt-1">
-                  {(mode === 'fast' || mode === 'creator')
-                    ? "Keeping this tab open is the fastest way to get it — but you don't have to. If you close it, we finish the render on our servers and email you the link."
-                    : "You can safely close this tab — when your scenes finish rendering, we'll email you a link that completes the film in one click."}
-                </div>
-              </div>
-
-              </details>
-              <details className="render-workspace-disclosure">
-                <summary>Next video idea</summary>
-              <NextIdeaDuringWait
-                ideia={ideiaNaFila}
-                onSave={handleSalvarIdeiaDaEspera}
-                onClear={handleLimparIdeiaDaEspera}
-                /* #45 — MESMA semente que o botao de serie da tela de video
-                   pronto usa (linha do `done_screen`): `analysis?.title ??
-                   prompt`. Uma unica definicao de "o tema deste filme" no
-                   arquivo inteiro; se ela mudar la, muda aqui. */
-                sugestao={analysis?.title ?? prompt}
-                onShown={(visivel) =>
-                  void trackEvent('next_idea_wait_shown', {
-                    stage: phase,
-                    mode,
-                    visivel,
-                    com_sugestao: Boolean(normalizarIdeia(analysis?.title ?? prompt)),
-                  })
-                }
-              />
-              </details>
-
-              {/* The per-clip tile grid was removed in push #031 — the final
-                  output is a single composed MP4, so users only ever see ONE
-                  video on this page (the finalVideoUrl, rendered below in the
-                  `done` section). Progress is communicated through the
-                  spinner + bar above. */}
-
-              {scenes.length > 0 && (
-                <details className="render-workspace-disclosure">
-                  <summary
-                    className="text-xs font-black uppercase tracking-widest cursor-pointer"
-                    style={{ color: 'var(--muted2)' }}
-                  >
-                    Scene prompts
-                  </summary>
-                  <ol
-                    className="mt-2 text-xs space-y-1.5"
-                    style={{ color: 'var(--muted2)', paddingLeft: 20 }}
-                  >
-                    {scenes.map((s, i) => (
-                      <li key={i}>
-                        <span style={{ color: 'var(--accent)', fontWeight: 700 }}>#{i + 1}</span> {s}
-                      </li>
-                    ))}
-                  </ol>
-                </details>
-              )}
-            </section>
-            </>
-          )}
-
-          {/* ═══ KINEO-COMPLETAR-ROTEIRO-2026-08-22 ═══════════════════════
-              A recusa por narração curta NÃO usa o card vermelho de erro, e a
-              escolha é deliberada: vermelho comunica "algo quebrou", e aqui
-              nada quebrou — o produto está evitando entregar um filme com um
-              terço de música sem história, ANTES de cobrar por ele.
-              Card azul, tom de ajuda, e a saída que resolve em um clique. */}
-          {phase === 'failed' && scriptTooShort && (
+      {/* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — review stands outside the rendering/failure workspace. */}
+      {phase === 'script_completion' && scriptTooShort && (
             <section
               className="gv-card rounded-2xl p-5 sm:p-6 mb-6"
               style={{ background: 'rgba(41,151,255,.06)', border: '1px solid rgba(41,151,255,.28)' }}
             >
               <div className="font-black text-base mb-2" style={{ color: '#5cb3ff' }}>
-                Your script is shorter than the video
+                {/* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 */}
+                {authoring || expanding ? 'Writing the rest of your script…' : authoredScript && !authoredStillShort ? 'We wrote the full script from your idea — review it and generate' : expandedScript && !expandState ? 'We completed your script — review it and generate' : 'Review your script to continue'}
               </div>
               <div className="text-sm mb-3" style={{ color: 'var(--muted2)', lineHeight: 1.6 }}>
                 {scriptTooShort.message}
@@ -16564,18 +16369,13 @@ export default function GenerateClient({
                   Esta linha só aparece na recusa REAL do servidor (phase
                   'failed'), nunca no preflight — ali nada foi debitado e dizer
                   "devolvemos" seria mentira. */}
-              {phase === 'failed' && (
-                <div
-                  className="text-sm mb-3 rounded-xl px-3 py-2"
-                  style={{ background: 'rgba(52,199,89,.10)', border: '1px solid rgba(52,199,89,.30)', color: '#7ee2a8', lineHeight: 1.55 }}
-                >
-                  <strong>Your {selectedCost} credits are back in your account.</strong> Nothing was charged —
-                  the film never started. Your balance is exactly what it was a minute ago, and the fixed
-                  script below renders on one click.
-                </div>
-              )}
+              {/* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — server returned charged:false, no refund amount invented. */}
+              <p className="text-sm mb-3" style={{ color: 'var(--muted2)' }}>Nothing was charged. Review the script before generating.</p>
 
-              {authoredScript ? (
+              {/* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — progress while the writer runs. */}
+              {authoring ? (
+                <div role="status" className="text-sm" style={{ color: '#5cb3ff' }}>Writing the rest of your script…</div>
+              ) : authoredScript ? (
                 // ═══ KINEO-350-ROTEIRO-COMPLETO, COM CONSENTIMENTO ═════════
                 // A pessoa CLICOU para a IA escrever o roteiro (o texto dela
                 // era uma ideia, não um roteiro a completar). Nada foi
@@ -16607,11 +16407,12 @@ export default function GenerateClient({
                   )}
                   <div className="flex flex-wrap gap-2">
                     <button
+                      disabled={!authoredScript.trim() || isStandaloneHttpUrl(authoredScript) /* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 */}
                       onClick={acceptAuthoredScript}
                       className="rounded-xl px-5 py-2.5 text-sm font-bold text-white"
                       style={{ background: '#2997ff', border: 'none' }}
                     >
-                      Use this script
+                      Generate {/* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 */}
                     </button>
                     <button
                       onClick={() => {
@@ -16885,11 +16686,12 @@ export default function GenerateClient({
                   )}
                   <div className="flex flex-wrap gap-2">
                     <button
+                      disabled={!expandedScript.trim() || isStandaloneHttpUrl(expandedScript) /* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 */}
                       onClick={acceptExpandedScript}
                       className="rounded-xl px-5 py-2.5 text-sm font-bold text-white"
                       style={{ background: '#2997ff', border: 'none' }}
                     >
-                      Use this script
+                      Generate {/* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 */}
                     </button>
                     <button
                       onClick={() => {
@@ -16910,13 +16712,13 @@ export default function GenerateClient({
                 // tela diz o que está acontecendo em vez de exibir botões.
                 <div className="flex items-center gap-3 text-sm" style={{ color: '#5cb3ff', fontWeight: 700 }}>
                   <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: '#5cb3ff' }} />
-                  Writing the missing {scriptTooShort.missingWords} words for you — keeping every word you wrote…
+                  Writing the rest of your script… {/* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 */}
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => {
-                      void trackEvent('generation_retry_clicked', {
+                      void trackEvent('script_completion_action_clicked', {
                         cause: 'narration_short',
                         screen: 'narration_short',
                         action: 'expand_script',
@@ -16940,7 +16742,7 @@ export default function GenerateClient({
                         setError(null)
                         setPhase('idle')
                         void trackEvent('script_short_used_shorter_duration', { seconds: scriptTooShort.suggestedDuration })
-                        void trackEvent('generation_retry_clicked', {
+                        void trackEvent('script_completion_action_clicked', {
                           cause: 'narration_short',
                           screen: 'narration_short',
                           action: 'shorter_duration',
@@ -16957,7 +16759,7 @@ export default function GenerateClient({
                   )}
                   <button
                     onClick={() => {
-                      void trackEvent('generation_retry_clicked', {
+                      void trackEvent('script_completion_action_clicked', {
                         cause: 'narration_short',
                         screen: 'narration_short',
                         action: 'edit_my_text',
@@ -16974,6 +16776,220 @@ export default function GenerateClient({
                 </div>
               )}
             </section>
+          )}
+      {showRender && (
+        <>
+          {/* KINEO-WM-CHECKOUT-2026-07-07 — post-purchase status. Shown while the
+              clean re-render runs, or if the auto-unlock could not start (the pack
+              is still active; the user just makes a new clean Fast video). Fixed at
+              the top so it is visible regardless of the current phase. */}
+          {(wmUnlocking || wmUnlockError) && (
+            <div
+              role="status"
+              aria-live="polite"
+              style={{
+                position: 'fixed',
+                top: 16,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 60,
+                maxWidth: 'min(520px, 92vw)',
+                padding: '12px 18px',
+                borderRadius: 18,
+                background: wmUnlockError ? 'rgba(30,20,20,0.96)' : '#131316',
+                border: `1px solid ${wmUnlockError ? 'rgba(248,113,113,.5)' : 'rgba(41,151,255,.5)'}`,
+                boxShadow: '0 12px 40px rgba(0,0,0,.45)',
+                color: 'var(--text)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+              }}
+            >
+              <span style={{ fontSize: 18, lineHeight: 1 }} aria-hidden="true">
+                {wmUnlockError ? '✅' : '✨'}
+              </span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, lineHeight: 1.4 }}>
+                {wmUnlockError
+                  ? `Payment received. ${wmUnlockError}`
+                  : 'Removing watermark… your clean video will appear here in a moment.'}
+              </span>
+              {wmUnlockError && (
+                <button
+                  type="button"
+                  onClick={() => setWmUnlockError(null)}
+                  aria-label="Dismiss"
+                  style={{
+                    marginLeft: 4,
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--muted)',
+                    fontSize: 18,
+                    lineHeight: 1,
+                    cursor: 'pointer',
+                  }}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          )}
+
+          {(phase === 'generating' || phase === 'fal_polling' || phase === 'avatar_polling' || phase === 'clips_ready' || phase === 'composing') && (
+            <>
+            <section
+              className="gv-card render-workspace-primary rounded-2xl mb-6"
+              style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
+            >
+              {/* PUSH #71 — show the real API phase instead of rotating
+                  cosmetic steps after that work has already finished. */}
+              <RenderHeader
+                progress={Math.round(displayProgress)}
+                message={statusMessage}
+              />
+
+
+              {/* Push #087 — Fast Mode gets its own 4-step indicator that
+                  matches the actual Pexels + TTS + assemble pipeline.
+                  Cinematic Mode keeps the 5-stage Runway indicator. */}
+              {(mode === 'fast' || mode === 'creator') ? (
+                <FastPipelineStages step={fastStep} phase={phase} startedAt={fastLoadingStartedAt} />
+              ) : (
+                <PipelineStages
+                  phase={phase}
+                  renderProgress={renderProgress}
+                  finalReady={!!finalVideoUrl}
+                />
+              )}
+            </section>
+            <section className="render-workspace-details" aria-label="Current project">
+              <h2>Current project</h2>
+              <p className="render-workspace-topic">{analysis?.title || prompt}</p>
+              <div className="render-workspace-facts">
+                <span>Requested length <b>{duration}s</b></span>
+                <span>Narration <b>{language.toUpperCase()}</b></span>
+              </div>
+              <details className="render-workspace-disclosure">
+                <summary>Rendering &amp; delivery</summary>
+              <div
+                className="rounded-xl px-3 py-2 mt-4 text-xs"
+                style={{
+                  background: 'var(--accent-soft)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--muted2)',
+                  lineHeight: 1.55,
+                }}
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span aria-hidden="true"><KineoBolt /></span>
+                  <span className="font-bold" style={{ color: 'var(--accent)' }}>
+                    Kineo rendering engine
+                  </span>
+                </div>
+                {/* KINEO-CREDIT-INTEGRITY-2026-08-05 — esta linha dizia, para
+                    TODOS os modos, "Credits are only charged on successful
+                    delivery". Isso é verdade para Fast/Basic/Pro (o débito
+                    acontece em /api/compose/status DEPOIS que o vídeo existe),
+                    mas é FALSO para os motores de IA: eles debitam no SUBMIT,
+                    antes do fal render o primeiro clipe. Em 05/08 dois renders
+                    cinematográficos cobraram 110 créditos e nunca entregaram,
+                    com esta frase na tela. A promessa agora corresponde ao que
+                    o sistema faz — e a política de reembolso é dita em voz alta. */}
+                <div>
+                  {(mode === 'fast' || mode === 'creator')
+                    ? 'Your Short is being built in multiple AI stages. Credits are only charged on successful delivery.'
+                    : 'Your Short is being built in multiple AI stages. AI engines reserve their credits when the scenes are submitted to the render farm — if this render fails or never delivers, those credits are returned to your balance automatically.'}
+                </div>
+                <div className="mt-1">
+                  {(mode === 'fast' || mode === 'creator')
+                    ? 'Fast renders assemble stock footage, so they skip scene generation; busy queues can take longer.'
+                    : 'AI renders can take several minutes depending on the selected engine.'}
+                </div>
+                {/* KINEO-STRANDED-COPY-2026-08-18 — a promessa "pode fechar a
+                    aba" só é VERDADE nos motores de IA: o cron
+                    finish-stranded-renders (15min) vigia os claims
+                    cinematográficos e manda o e-mail de resgate. O modo Fast
+                    não tem claim — fechar a aba mata o render sem e-mail.
+                    Cada modo diz só a sua verdade.
+
+                    ⚠️ ATUALIZADO EM 21/08 — A SEGUNDA METADE DESSE COMENTÁRIO
+                    DEIXOU DE SER VERDADE E A COPY NÃO ACOMPANHOU. O bloco
+                    KINEO-STRANDED-FAST-2026-08-20 estendeu o cron ao Kineo 1
+                    (ele lê `compose_submission_claim`, não só o claim
+                    cinematográfico). Não é teoria: em 7 dias o `events` tem 15
+                    `stranded_fast_ready_sent` e 19 `stranded_ready_sent` — o
+                    resgate está entregando filme de Fast por e-mail HOJE.
+
+                    Por que trocar a frase importa em dinheiro: "finishes
+                    fastest with the tab open" é literalmente verdade (a aba
+                    persiste o vídeo na hora; fechada, espera-se até 15 min pelo
+                    cron) — só que ela transmite RISCO, e risco numa tela de 3
+                    minutos de espera é exatamente o que faz a pessoa ficar
+                    olhando, cansar e desistir. A frase nova diz as duas coisas
+                    na ordem certa: a aba é mais rápida, E nada se perde sem
+                    ela. Prometer rede de segurança que existe é só parar de
+                    esconder um ativo que já foi construído e pago.
+
+                    ⚠️ ESTA FRASE É UM PAR COM O CRON: se
+                    finish-stranded-renders parar de cobrir o Fast, esta linha
+                    vira mentira. Mexeu num, mexe no outro. */}
+                <div className="mt-1">
+                  {(mode === 'fast' || mode === 'creator')
+                    ? "Keeping this tab open is the fastest way to get it — but you don't have to. If you close it, we finish the render on our servers and email you the link."
+                    : "You can safely close this tab — when your scenes finish rendering, we'll email you a link that completes the film in one click."}
+                </div>
+              </div>
+
+              </details>
+              <details className="render-workspace-disclosure">
+                <summary>Next video idea</summary>
+              <NextIdeaDuringWait
+                ideia={ideiaNaFila}
+                onSave={handleSalvarIdeiaDaEspera}
+                onClear={handleLimparIdeiaDaEspera}
+                /* #45 — MESMA semente que o botao de serie da tela de video
+                   pronto usa (linha do `done_screen`): `analysis?.title ??
+                   prompt`. Uma unica definicao de "o tema deste filme" no
+                   arquivo inteiro; se ela mudar la, muda aqui. */
+                sugestao={analysis?.title ?? prompt}
+                onShown={(visivel) =>
+                  void trackEvent('next_idea_wait_shown', {
+                    stage: phase,
+                    mode,
+                    visivel,
+                    com_sugestao: Boolean(normalizarIdeia(analysis?.title ?? prompt)),
+                  })
+                }
+              />
+              </details>
+
+              {/* The per-clip tile grid was removed in push #031 — the final
+                  output is a single composed MP4, so users only ever see ONE
+                  video on this page (the finalVideoUrl, rendered below in the
+                  `done` section). Progress is communicated through the
+                  spinner + bar above. */}
+
+              {scenes.length > 0 && (
+                <details className="render-workspace-disclosure">
+                  <summary
+                    className="text-xs font-black uppercase tracking-widest cursor-pointer"
+                    style={{ color: 'var(--muted2)' }}
+                  >
+                    Scene prompts
+                  </summary>
+                  <ol
+                    className="mt-2 text-xs space-y-1.5"
+                    style={{ color: 'var(--muted2)', paddingLeft: 20 }}
+                  >
+                    {scenes.map((s, i) => (
+                      <li key={i}>
+                        <span style={{ color: 'var(--accent)', fontWeight: 700 }}>#{i + 1}</span> {s}
+                      </li>
+                    ))}
+                  </ol>
+                </details>
+              )}
+            </section>
+            </>
           )}
 
           {/* ═══ sprint-v1v4 #33 — SALA DE ESPERA, nao painel de falha ═══════

@@ -24,6 +24,9 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: Typecheck bruto — qualquer erro reprova
         run: npx tsc --noEmit --incremental false
+      # KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — real callers, C1 and exact undo of disk mutants, offline.
+      - name: Roteiro curto — revisão neutra, links e admin
+        run: node scripts/test-roteiro-curto-sem-falha-2210.mjs --mutants
       - name: Admin — paginação, tripwire e dedupe após 1000 linhas
         run: node scripts/test-admin-truncamento-2026-10.mjs
       - name: Admin — contratos dos sete guardiões de campanhas e coerência

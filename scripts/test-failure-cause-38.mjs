@@ -11,7 +11,7 @@ const t = (nome, cond) => { if (cond) { ok++ } else { fail++; console.error('FAL
 const classify = (error) => {
   const raw = (error ?? '').toLowerCase()
   if (!raw) return 'unknown'
-  if (raw.includes('seconds of narration')) return 'narration_short'
+  // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — short narration is no longer classified as a generation failure.
   if (raw.includes('voiceover_script is required')) return 'voiceover_script_missing'
   if (raw.includes('voiceover generation failed')) return 'voiceover_provider'
   if (raw.includes('daily_free_limit') || raw.includes('daily free')) return 'daily_free_limit'
@@ -25,8 +25,8 @@ const classify = (error) => {
 
 // 1) Cada frase real do banco cai na causa certa.
 const reais = [
-  ['Your script is about 33 seconds of narration, but you asked for a 45-second video — that would', 'narration_short'],
-  ['Your script is about 21 seconds of narration, but you asked for a 35-second video — that would', 'narration_short'],
+  ['Your script is about 33 seconds of narration, but you asked for a 45-second video — that would', 'script_completion'], // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
+  ['Your script is about 21 seconds of narration, but you asked for a 35-second video — that would', 'script_completion'], // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
   ['voiceover_script is required.', 'voiceover_script_missing'],
   ['Voiceover generation failed. Please try again.', 'voiceover_provider'],
   ['no_detail:compose_daily_free_limit|stage=clips_ready|http=402', 'daily_free_limit'],
@@ -40,12 +40,15 @@ const reais = [
   ['', 'unknown'],
 ]
 for (const [frase, esperado] of reais) {
-  t(`classifica "${frase.slice(0, 34)}" -> ${esperado}`, classify(frase) === esperado)
+  // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — historical short-script fixtures must reach neutral review and stay out of failure causes.
+  t(`classifica "${frase.slice(0, 34)}" -> ${esperado}`, esperado === 'script_completion'
+    ? classify(frase) === 'other' && src.includes("{phase === 'script_completion' && scriptTooShort && (") && !/return 'narration_short'/.test(src)
+    : classify(frase) === esperado)
 }
 
 // 2) O classificador nao pode devolver 'other' para a causa n1 medida.
-t('narracao curta (12 das 33 pessoas) nunca cai em other',
-  classify('Your script is about 36 seconds of narration, but you asked for a 45-second video') === 'narration_short')
+t('narracao curta (12 das 33 pessoas) nao emite tela de falha',
+  /phase !== 'failed' \|\| qualityFailure \|\| scriptTooShort \? null/.test(src) && src.includes("setPhase('script_completion')")) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 
 // 3) O componente realmente emite os tres eventos novos.
 t('emite generation_failed_screen_shown', src.includes("trackEvent('generation_failed_screen_shown'"))
@@ -73,7 +76,7 @@ t('failureWillRepeat exige >=2 e deterministico',
 const detBlock = src.slice(src.indexOf('const failureIsDeterministic'), src.indexOf('const showGenericFailure'))
 t('voiceover_provider fica FORA de deterministico', !detBlock.includes("'voiceover_provider'"))
 t('submit_failed fica FORA de deterministico', !detBlock.includes("'submit_failed'"))
-t('narration_short esta DENTRO de deterministico', detBlock.includes("'narration_short'"))
+t('narration_short fica FORA de falha deterministica', !detBlock.includes("'narration_short'") && src.includes("setPhase('script_completion')")) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 
 // 8) O caminho de escape preserva o texto: volta para 'idle' sem limpar prompt.
 const editBlock = src.slice(src.indexOf("trackEvent('failed_edit_text_clicked'"), src.indexOf("trackEvent('failed_edit_text_clicked'") + 420)

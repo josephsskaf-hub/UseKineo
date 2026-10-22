@@ -83,6 +83,7 @@ import { formatCheckoutMoney, getTierPrice } from '@/lib/checkoutPricing'
 import SubscriberUpgradeNudge from '@/components/billing/SubscriberUpgradeNudge' // KINEO-ASSINANTE-SOBE-2026-10-06 — clipe sem crédito: o assinante sobe de plano ou recarrega
 import Month2AnnualOffer from '@/components/billing/Month2AnnualOffer' // KINEO-ANUAL-2o-MES-2026-10-08 — aviso dispensável do anual (30%) para quem está no 2º mês
 import { FILM60_ARRIVED_EVENT, FILM60_HANDOFF_KEY, FILM60_VERSION, readFilm60Handoff } from '@/lib/growth/filmReady60sHandoff' // KINEO-VERSAO-60S-2026-10-13 — a volta da versão de 60 s
+import { CHATGPT_LINK_MESSAGE, ORIGINAL_IDEA_SESSION_KEY, isStandaloneHttpUrl, originalIdeaFromArrival, usableOriginalIdea } from '@/lib/scriptInput' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 
 // A chave do card → a Quality que o biller entende. Uma fonte só para os dois
 // (tela e cobrança) evita a classe de bug que este arquivo já teve: custo em
@@ -404,6 +405,8 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
   const adsTileHref = adsTileAccess ? ADS_TILE_WIZARD_HREF : ADS_TILE_DOOR_HREF
   const [preset, setPreset] = useState<string | null>(null)
   const [prompt, setPrompt] = useState('')
+  const [originalIdea, setOriginalIdea] = useState<string | null>(null) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
+  const linkOnlyInput = isStandaloneHttpUrl(prompt) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
   const recordMrr = useMrrStudioFunnel()
   // KINEO-STUDIO-SCRIPTMODE-2026-08-17 (fundador: 'faltou usar a script do
   // jeito que ela esta ou AI ajudar a escrever'): mesmo par de modos do
@@ -489,6 +492,12 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
     if (e && ENGINES.some((x) => x.key === e) && (e !== 's25') && (e !== 'h3max' || h3maxOk) && !ENGINES.find((x) => x.key === e)?.paused) setEngine(e as EngineKey) // KINEO-MOTOR-EM-MANUTENCAO: ?engine= pausado cai no padrão · KINEO-H3MAX-2026-10-13: H3 Max escondido também
     const p = sp.get('prompt')
     if (p) setPrompt(p)
+    // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — save only the original arrival text; a later pasted link never replaces it.
+    const arrivedIdea = originalIdeaFromArrival(sp)
+    try {
+      if (arrivedIdea) sessionStorage.setItem(ORIGINAL_IDEA_SESSION_KEY, arrivedIdea)
+      setOriginalIdea(arrivedIdea ?? usableOriginalIdea(sessionStorage.getItem(ORIGINAL_IDEA_SESSION_KEY)))
+    } catch { setOriginalIdea(arrivedIdea) }
     // KINEO-GO-STUDIO-NOVO-2026-10-01 — o link /go (GPT/assistente) traz ?aspect= quando não é 9:16; antes ele caía no
     // /studio/create, que lia o formato. Só formatos da lista oficial (allAspectSpecs).
     const requestedAspect = sp.get('aspect')
@@ -496,7 +505,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
     const requestedLanguage = narrationLanguage(sp.get('language')) // KINEO-IDIOMAS-15 (páginas de idioma chegam com ?language=)
     if (requestedLanguage) setLanguage(requestedLanguage)
     const requestedScriptMode = sp.get('script_mode')
-    if (requestedScriptMode === 'ai' || requestedScriptMode === 'verbatim') {
+    if ((requestedScriptMode === 'ai' || requestedScriptMode === 'verbatim') && !isStandaloneHttpUrl(p)) { // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
       setScriptMode(requestedScriptMode)
     }
     const requestedDuration = Number(sp.get('duration'))
@@ -509,7 +518,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
       // KINEO-DURACOES-CURTAS-2026-09-29 — ?duration= curta com um motor que a oferece (Kling 2.5/Veo 15; hollywood 15/30).
       setDuration(requestedDuration as StudioDuration)
     }
-    const quickstartChoice = sp.get('chatgpt_quickstart')
+    const quickstartChoice = isStandaloneHttpUrl(p) ? null : sp.get('chatgpt_quickstart') // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
     if (isChatGptQuickstartChoice(quickstartChoice)) {
       setChatGptQuickstart(quickstartChoice)
       window.requestAnimationFrame(() => promptRef.current?.focus())
@@ -796,6 +805,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
     }, 5000)
   }
   const generateClip = async () => {
+    if (isStandaloneHttpUrl(prompt)) { promptRef.current?.focus(); return } // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
     if (!prompt.trim() || clipState.phase === 'submitting' || clipState.phase === 'rendering') return
     const startedAt = Date.now()
     setClipState({ phase: 'submitting', startedAt })
@@ -874,6 +884,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
   }
 
   const generate = () => {
+    if (isStandaloneHttpUrl(prompt)) { promptRef.current?.focus(); return } // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — before camera suffix, navigation and the consent token.
     // VARREDURA-LIMITES-2026-09-23 — o clipe também respeita o teto (6.000, o da rota do clipe) antes de gastar.
     if (scriptMode === 'clip') { if (limit.over) return; void generateClip(); return }
     // Nunca navegar com um texto que o /studio/create vai recusar sem rede:
@@ -1118,18 +1129,26 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                 </button>
               ))}
             </div>
-            <textarea className="studio-prompt" ref={promptRef} value={prompt} onChange={(e) => setPrompt(e.target.value)} onInput={(e) => { if (e.currentTarget.value.trim()) recordMrr('mrr_idea_entered') }} rows={5}
+            {/* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — a pasted URL is never classified as a finished script. */}
+            <textarea className="studio-prompt" ref={promptRef} value={prompt} onChange={(e) => { setPrompt(e.target.value); if (isStandaloneHttpUrl(e.target.value)) setChatGptQuickstart(null) }} onInput={(e) => { if (e.currentTarget.value.trim() && !isStandaloneHttpUrl(e.currentTarget.value)) recordMrr('mrr_idea_entered') }} rows={5}
               placeholder={chatGptQuickstart === 'finished_script'
                 ? (t('Paste the complete script from ChatGPT here…', 'Pega aquí el guion completo de ChatGPT…'))
                 : chatGptQuickstart === 'idea'
                   ? (t('Paste the idea from ChatGPT here…', 'Pega aquí la idea de ChatGPT…'))
                   : (t('What’s your video about? One idea in — a finished film out: voiced, scored and captioned.', '¿De qué trata tu vídeo? Una idea se convierte en un vídeo con voz, música y subtítulos.'))} />
+            {/* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — only an explicit click restores the arrival idea; it never starts rendering. */}
+            {linkOnlyInput && (
+              <div role="status" data-kineo="script-link-blocked" style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, border: '1px solid rgba(103,232,249,.36)', color: 'var(--text2)', fontSize: 13, lineHeight: 1.5 }}>
+                <p>{CHATGPT_LINK_MESSAGE}</p>
+                {originalIdea && <button type="button" className="pill" onClick={() => { setPrompt(originalIdea); setScriptMode('ai'); setChatGptQuickstart('idea'); promptRef.current?.focus() }}>Use my original idea</button>}
+              </div>
+            )}
             {/* KINEO-STUDIO-CLS-2026-10-13 — o cartão do primeiro filme só nasce DEPOIS de três leituras (/api/me/credits,
                 /api/credits, /api/videos). Em cima da caixa ele empurrava a caixa e tudo abaixo quando chegava — e a puxava de
                 volta quando a pessoa digitava a 1ª letra (ele some com texto). Embaixo da caixa, a caixa da ideia não se mexe.
                 Mesma regra de quem vê (firstFilmOffer), mesmo texto. */}
             {!prompt.trim() && scriptMode !== 'clip' && <div className="studio-first-film-slot"><MrrFirstFilm historyEmpty={firstFilmHistoryEmpty} trialActive={trialOn} hasPaid={contaPaga} shortFilmAllowed={entrada15} balance={balance} /></div>}
-            {MRR_NEAR_IDEA_ENABLED && scriptMode !== 'clip' && (
+            {MRR_NEAR_IDEA_ENABLED && scriptMode !== 'clip' && !linkOnlyInput && ( // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
               <StudioNearIdeaAction prompt={prompt} cost={cost} balance={balance} overLimit={limit.over}
                 bareStarter={isBareStarter(prompt)} engineName={eng.name} seconds={duration}
                 onGenerate={() => { recordMrr('mrr_generate_clicked'); generate() }} />
@@ -1456,7 +1475,8 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                 anúncio, ou degraus desligados) e nunca esconde o go. Identidade: o
                 cartão resolve sozinho (o cockpit não conhece userId/e-mail). */}
             <DfyOfferCard prompt={prompt} userId={null} email={null} source="studio_cockpit" />
-            <button type="button" onClick={generate} disabled={!prompt.trim() || limit.over} className={`go ${prompt.trim() && !limit.over ? 'ok' : 'no'}`}
+            {/* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — links cannot dispatch from the final review button either. */}
+            <button type="button" onClick={generate} disabled={!prompt.trim() || limit.over || linkOnlyInput} className={`go ${prompt.trim() && !limit.over && !linkOnlyInput ? 'ok' : 'no'}`}
               onClickCapture={() => { if (scriptMode !== 'clip') recordMrr('mrr_generate_clicked') }}>
               {/* KINEO-PRECO-VISIVEL-2026-09-02 — o custo entra NO BOTÃO, o
                   padrão da Higgsfield ("the exact cost is shown on the Generate

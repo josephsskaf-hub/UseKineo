@@ -24,6 +24,7 @@ import { TIER_CREDITS, type CheckoutPlanTier } from '@/lib/checkoutPricing' // K
 import { carregarCheckoutHonesto, type CheckoutHonestoComCartao } from '@/lib/admin/checkoutHonesto' // KINEO-CHECKOUT-HONESTO-2026-10-07
 import { LEDGER_GRANT_EVENTS, summarizeLedgerGrants, type LedgerGrantEvent } from '@/lib/admin/ledgerGrants' // KINEO-PAINEL-ORIGEM-2026-10-13
 import { rotuloCredito } from '@/lib/admin/rotuloCredito' // KINEO-ROTULO-CREDITO-1510
+import { isNarrationCompletionEvent } from '@/lib/admin/narrationCompletion' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -173,7 +174,7 @@ export async function GET() {
         p_exact_emails: INTERNAL_EXACT_EMAILS,
         p_like_patterns: INTERNAL_LIKE_PATTERNS,
       }),
-      readAll(() => admin.from('events').select('user_id, session_id, name, path, created_at, is_bot:metadata->>is_bot').gte('created_at', iso(ONLINE)).order('created_at', { ascending: false }), { route: '/api/admin/live', table: 'events' }),
+      readAll(() => admin.from('events').select('user_id, session_id, name, path, created_at, metadata, is_bot:metadata->>is_bot').gte('created_at', iso(ONLINE)).order('created_at', { ascending: false }), { route: '/api/admin/live', table: 'events' }), // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
     ])
 
     type Counters = {
@@ -190,7 +191,7 @@ export async function GET() {
     const num = (v: unknown) => (typeof v === 'number' ? v : Number(v ?? 0)) || 0
 
     // ── Quem está online: último evento por usuário logado ─────────────────
-    type OnlineRow = { user_id: string | null; session_id: string | null; name: string; path: string | null; created_at: string; is_bot?: string | null }
+    type OnlineRow = { user_id: string | null; session_id: string | null; name: string; path: string | null; created_at: string; is_bot?: string | null; metadata?: Record<string, unknown> | null } // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
     // KINEO-ONLINE-FANTASMA-2026-09-01 — 'online' e PRESENCA, nao atividade de
     // servidor. Em 01/09 o winback-25 gravou 60 eventos (credito concedido +
     // e-mail enviado) em 1 minuto e o painel mostrou "65 online · navegando"
@@ -211,12 +212,12 @@ export async function GET() {
       if (r.name === 'cinematic_client_poll') return true
       return r.is_bot != null && r.is_bot !== 'true'
     })
-    const byUser = new Map<string, { last: OnlineRow; events: string[] }>()
+    const byUser = new Map<string, { last: OnlineRow; events: string[]; details: OnlineRow[] }>() // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
     for (const row of onlineRows) {
       const uid = row.user_id as string
       const cur = byUser.get(uid)
-      if (!cur) byUser.set(uid, { last: row, events: [row.name] })
-      else cur.events.push(row.name)
+      if (!cur) byUser.set(uid, { last: row, events: [row.name], details: [row] }) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
+      else { cur.events.push(row.name); cur.details.push(row) } // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
     }
     const ids = [...byUser.keys()]
 
@@ -545,7 +546,11 @@ export async function GET() {
       online = (profRes.data ?? [])
         .map((p) => {
           const row = byUser.get(p.id as string)!
-          const names = new Set(row.events)
+          // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — filtrar por evento, nunca apagar falha real da mesma pessoa.
+          const names = new Set(row.details.filter((event) => !isNarrationCompletionEvent(event)).map((event) => event.name))
+          const iCompletion = row.details.findIndex(isNarrationCompletionEvent)
+          const iAttempt = row.events.findIndex((name) => name === 'video_generation_started' || name === 'generate_started')
+          const aguardandoRoteiro = iCompletion >= 0 && (iAttempt < 0 || iCompletion < iAttempt)
           // "Testou algo": traduz eventos crus em sinais que o fundador lê de
           // relance — e ordena por proximidade da compra.
           const did: string[] = []
@@ -560,7 +565,7 @@ export async function GET() {
           if ([...names].some((n) => n.startsWith('checkout') && n !== 'checkout_session_expired')) { did.push('🚨 no checkout'); heat = 3 }
           // KINEO-PAINEL-GERANDO-2026-09-19 — "gerando" só quando a tentativa da janela NÃO terminou em falha; senão o
           // fundador lê "gerando vídeo · 1 FAILED" e acha que há render em curso (caso Axel, 18/09 23:28).
-          const tentouGerar = names.has('video_generation_started') || names.has('generate_started')
+          const tentouGerar = !aguardandoRoteiro && (names.has('video_generation_started') || names.has('generate_started')) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
           const falhouNaJanela = names.has('video_generation_failed') || names.has('generate_failed')
           const terminouNaJanela = names.has('video_generation_completed')
           if (tentouGerar && !falhouNaJanela) { did.push('🎬 gerando vídeo'); heat = Math.max(heat, 2) }
@@ -579,7 +584,7 @@ export async function GET() {
           // KINEO-GUARD-VISIVEL-2026-08-25 (caso Pedro) — o bloqueio educativo
           // de roteiro-curto agora tem nome próprio e vira um chip legível em
           // vez de FAILED genérico. "crédito devolvido" é verdade desde o #325.
-          if (names.has('narration_guard_blocked')) did.push('✋ roteiro curto — barrado, crédito devolvido')
+          if (aguardandoRoteiro || names.has('narration_guard_blocked')) did.push('✍️ completando roteiro ou aguardando revisão') // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
           if (did.length === 0) did.push('👀 navegando')
 
           // KINEO-LIVE-V2-2026-08-19 — o estado que faltava para a tela ser
@@ -593,10 +598,10 @@ export async function GET() {
           // ocorrência MAIS RECENTE; índice menor = mais novo.
           const newestIdx = (name: string) => row.events.indexOf(name)
           const iStart = newestIdx('video_generation_started')
-          const iDoneCandidates = [newestIdx('video_generation_completed'), newestIdx('video_generation_failed')].filter((i) => i >= 0)
+          const iDoneCandidates = [newestIdx('video_generation_completed'), newestIdx('video_generation_failed'), iCompletion].filter((i) => i >= 0) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
           const iDone = iDoneCandidates.length > 0 ? Math.min(...iDoneCandidates) : -1
           const rendering = iStart >= 0 && (iDone === -1 || iStart < iDone)
-          const failed = row.events.filter((n) => n === 'video_generation_failed').length
+          const failed = row.details.filter((event) => event.name === 'video_generation_failed' && !isNarrationCompletionEvent(event)).length // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
           const lastEngine =
             [...names].find((n) => n.startsWith('engine_')) ?? null
           const createdAt = (p as { created_at?: string }).created_at
