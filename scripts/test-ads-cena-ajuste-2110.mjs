@@ -1,10 +1,11 @@
 // KINEO-ADS-CENA-AJUSTE-2110 — prova integrada da decisão A/B/C, sem SDK/rede/banco/render pago.
 import assert from 'node:assert/strict'
+import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — restore this task before hashes of older guardian sources
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semAdsCenaAjuste2110, ADS_CENA_AJUSTE_2110_ARQUIVOS, ADS_CENA_AJUSTE_2110_NOVOS, ADS_CENA_AJUSTE_2110_BASE, MARCA_ADS_CENA_AJUSTE_2110 } from './test-support/desfaz-ads-cena-ajuste-2110.mjs'
-const source = p => readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
+const source = p => semRoteiroCurto2210(readFileSync(p, 'utf8').replace(/\r\n/g, '\n'), p)
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8', maxBuffer: 1 << 26 }).replace(/\r\n/g, '\n')
 const load = createOfflineLoader({ globals: { Response, Request, Error }, mocks: { '../v2Server': {
   v2Json: (body, status = 200) => new Response(JSON.stringify(body), { status }),

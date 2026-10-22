@@ -20,9 +20,10 @@ const SCOPE = {
   "components/ChatGptWelcomeBanner.tsx": 6,
   "scripts/diagnose-studio-continuation.mjs": 1,
   "scripts/test-ads-cena-2110.mjs": 2,
-  "scripts/test-ads-cena-ajuste-2110.mjs": 1,
+  "scripts/test-ads-cena-ajuste-2110.mjs": 2,
   "scripts/test-ads-fluxo-1310.mjs": 2,
   "scripts/test-bebe-que-fala-2010.mjs": 4,
+  "scripts/test-chatgpt-script-handoff.mjs": 1,
   "scripts/test-coerencia-kineo1-2026-09-16.mjs": 2,
   "scripts/test-desenho-nota9-2110.mjs": 2,
   "scripts/test-despacho-vazio-2026-09-04.mjs": 1,
@@ -63,7 +64,7 @@ try {
   const { undo, hunks } = context.proof
   const actualScope = Object.fromEntries(Object.entries(hunks).map(([file, changes]) => [file, changes.length]))
   assert(JSON.stringify(actualScope) === JSON.stringify(SCOPE) && undo('unrelated ' + MARK, 'unrelated.ts') === 'unrelated ' + MARK,
-    'Adapter scope must be exactly the 30 existing task sources/110 hunks; unrelated sources must survive')
+    'Adapter scope must be exactly the 31 existing task sources/112 hunks; unrelated sources must survive')
 
   for (const [file, changes] of Object.entries(hunks)) {
     const candidate = read(file)
@@ -116,7 +117,7 @@ try {
     }
     console.log('PASS ' + file + ': exact roundtrip, base/CRLF/Windows, outside mutation preserved; ' + changes.length + ' hunks mutation/missing/duplicate rejected')
   }
-  if (passed !== 591) throw new Error('Proof changed scope: expected 591 checks, found ' + passed)
+  if (passed !== 604) throw new Error('Proof changed scope: expected 604 checks, found ' + passed)
   console.log('KINEO-ROTEIRO-CURTO-UNDO-2210: ' + passed + ' passed, 0 failed.')
 } catch (e) {
   console.error('FAIL ' + e.message)
