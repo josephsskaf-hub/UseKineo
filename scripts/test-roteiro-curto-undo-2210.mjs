@@ -1,5 +1,5 @@
 // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — reproducible proof of the exact legacy-only in-memory adapter.
-// Reads the actual four candidate files and adapter with readFileSync; git show supplies the immutable base.
+// Reads the actual existing candidate files and adapter with readFileSync; git show supplies the immutable base.
 // No disk mutation, network, SDK, environment files, engineWall or homeVideoCuration are read.
 import fs from 'node:fs'
 import path from 'node:path'
@@ -12,7 +12,38 @@ const ROOT = path.resolve(argument || process.env.TEST_ROOT || path.join(path.di
 const BASE = '72d23210c'
 const HELPER = 'scripts/test-support/desfaz-roteiro-curto-2210.mjs'
 const MARK = 'KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22'
-const SCOPE = { 'app/(dashboard)/generate/GenerateClient.tsx': 34, 'app/(dashboard)/studio/StudioClient.tsx': 9, 'components/ChatGptWelcomeBanner.tsx': 6, 'app/api/admin/live/route.ts': 8 }
+const SCOPE = {
+  ".github/workflows/guardiao.yml": 1,
+  "app/(dashboard)/generate/GenerateClient.tsx": 34,
+  "app/(dashboard)/studio/StudioClient.tsx": 9,
+  "app/api/admin/live/route.ts": 8,
+  "components/ChatGptWelcomeBanner.tsx": 6,
+  "scripts/diagnose-studio-continuation.mjs": 1,
+  "scripts/test-ads-cena-2110.mjs": 2,
+  "scripts/test-ads-cena-ajuste-2110.mjs": 1,
+  "scripts/test-ads-fluxo-1310.mjs": 2,
+  "scripts/test-bebe-que-fala-2010.mjs": 4,
+  "scripts/test-coerencia-kineo1-2026-09-16.mjs": 2,
+  "scripts/test-desenho-nota9-2110.mjs": 2,
+  "scripts/test-despacho-vazio-2026-09-04.mjs": 1,
+  "scripts/test-duracao-rewards-2026-10-06.mjs": 2,
+  "scripts/test-estorno-explicado-2026-09-02.mjs": 1,
+  "scripts/test-estrela-do-filme-2026-09-29.mjs": 2,
+  "scripts/test-failure-cause-38.mjs": 4,
+  "scripts/test-failure-screen-40.mjs": 3,
+  "scripts/test-filme-rapido-1710.mjs": 3,
+  "scripts/test-five-improvements.mjs": 2,
+  "scripts/test-leva-confiabilidade-2026-08-28.mjs": 1,
+  "scripts/test-motor-15s-1510.mjs": 2,
+  "scripts/test-mrr-studio-near-idea-2026-10-01.mjs": 2,
+  "scripts/test-parceiro-eyebible-2-1410.mjs": 2,
+  "scripts/test-parede-v1-2026-09-23.mjs": 2,
+  "scripts/test-quality-failure-ui-2026-09-11.mjs": 2,
+  "scripts/test-rotulo-credito-1510.mjs": 2,
+  "scripts/test-script-preflight.mjs": 3,
+  "scripts/test-studio-duracao-saldo-1510.mjs": 2,
+  "scripts/test-studio-fantasma-1510.mjs": 2
+}
 const read = (file) => fs.readFileSync(path.join(ROOT, file), 'utf8')
 const unavailable = () => { throw new Error('Offline adapter proof forbids external operations') }
 let passed = 0
@@ -32,35 +63,60 @@ try {
   const { undo, hunks } = context.proof
   const actualScope = Object.fromEntries(Object.entries(hunks).map(([file, changes]) => [file, changes.length]))
   assert(JSON.stringify(actualScope) === JSON.stringify(SCOPE) && undo('unrelated ' + MARK, 'unrelated.ts') === 'unrelated ' + MARK,
-    'Adapter scope must be exactly the four task sources/57 hunks; unrelated sources must survive')
+    'Adapter scope must be exactly the 30 existing task sources/110 hunks; unrelated sources must survive')
 
   for (const [file, changes] of Object.entries(hunks)) {
     const candidate = read(file)
     const base = execFileSync('git', ['show', BASE + ':' + file], { cwd: ROOT, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, windowsHide: true })
     const eol = candidate.includes('\r\n') ? '\r\n' : '\n'
-    const expectedBase = eol === '\r\n' ? base.replace(/\n/g, '\r\n') : base
     const candidateLf = candidate.replace(/\r\n/g, '\n')
-    assert(undo(candidate, file) === expectedBase, file + ': actual candidate to immutable base is byte-exact for its newline convention')
+    const rawUndone = undo(candidate, file)
+    const rawOffset = (flatOffset) => {
+      let raw = 0
+      for (let flat = 0; flat < flatOffset; flat++) raw += candidate[raw] === '\r' && candidate[raw + 1] === '\n' ? 2 : 1
+      return raw
+    }
+    const intervals = changes.map((hunk) => {
+      // Each exact hunk uses LF or CRLF; raw offsets also preserve untouched lines in either convention.
+      const flatAt = candidateLf.indexOf(hunk.after)
+      const at = rawOffset(flatAt), end = rawOffset(flatAt + hunk.after.length)
+      const after = candidate.slice(at, end)
+      const before = after.includes('\r\n') ? hunk.before.replace(/\n/g, '\r\n') : hunk.before
+      return { at, after, length: after.length, delta: before.length - after.length }
+    })
+    let outsideAt = -1
+    for (let index = 0; index < candidate.length; index++) {
+      if (!/[\r\n]/.test(candidate[index]) && !intervals.some((range) => index >= range.at && index < range.at + range.length)) { outsideAt = index; break }
+    }
+    if (outsideAt < 0) throw new Error(file + ': no unchanged byte exists outside the exact hunks')
+    const mappedOutsideAt = outsideAt + intervals.filter((range) => range.at < outsideAt).reduce((sum, range) => sum + range.delta, 0)
+    const outsideCharacter = candidate[outsideAt] === '!' ? '?' : '!'
+    const outsideCandidate = candidate.slice(0, outsideAt) + outsideCharacter + candidate.slice(outsideAt + 1)
+    const outsideBase = rawUndone.slice(0, mappedOutsideAt) + outsideCharacter + rawUndone.slice(mappedOutsideAt + 1)
+    assert(undo(candidateLf, file) === base && rawUndone.replace(/\r\n/g, '\n') === base, file + ': actual candidate to immutable base is exact after Git newline normalization')
     assert(undo(base, file) === base, file + ': base without the task marker is unchanged')
     assert(undo(candidateLf.replace(/\n/g, '\r\n'), file) === base.replace(/\n/g, '\r\n'), file + ': CRLF roundtrip is exact')
-    assert(undo('!' + candidate.slice(1), file) === '!' + expectedBase.slice(1), file + ': one-character mutation outside all hunks is preserved')
-    assert(undo(candidate, file.replace(/\//g, '\\')) === expectedBase, file + ': Windows path resolves the same exact source')
+    assert(undo(outsideCandidate, file) === outsideBase, file + ': one-character mutation outside all hunks is preserved')
+    assert(undo(candidate, file.replace(/\//g, '\\')) === rawUndone, file + ': Windows path resolves the same exact source')
     for (const [index, hunk] of changes.entries()) {
-      const after = eol === '\r\n' ? hunk.after.replace(/\n/g, '\r\n') : hunk.after
+      const after = intervals[index].after
       const at = candidate.indexOf(after)
       assert(at >= 0 && candidate.indexOf(after, at + 1) < 0, file + ': candidate hunk ' + (index + 1) + ' exists exactly once')
       let offset = after.indexOf(MARK)
       if (offset < 0) offset = Math.floor(after.length / 2)
       const character = after[offset] === 'X' ? 'Y' : 'X'
       const inside = candidate.slice(0, at + offset) + character + candidate.slice(at + offset + 1)
-      rejects(() => undo(inside, file), file + ': one-character mutation inside hunk ' + (index + 1) + ' must throw')
+      // A single-hunk file can lose its only task marker when the hunk is removed/mutated.
+      // Keep an external marker in that malformed fixture: genuinely unmarked base is intentionally a no-op.
+      const marked = (source) => source.includes(MARK) ? source : source + eol + '# ' + MARK + eol
+      rejects(() => undo(marked(inside), file), file + ': one-character mutation inside hunk ' + (index + 1) + ' must throw')
       const missing = candidate.slice(0, at) + candidate.slice(at + after.length)
-      rejects(() => undo(missing, file), file + ': missing hunk ' + (index + 1) + ' must throw')
+      rejects(() => undo(marked(missing), file), file + ': missing hunk ' + (index + 1) + ' must throw')
       rejects(() => undo(candidate + eol + after, file), file + ': duplicate hunk ' + (index + 1) + ' must throw')
     }
     console.log('PASS ' + file + ': exact roundtrip, base/CRLF/Windows, outside mutation preserved; ' + changes.length + ' hunks mutation/missing/duplicate rejected')
   }
-  if (passed !== 249) throw new Error('Proof changed scope: expected 249 checks, found ' + passed)
+  if (passed !== 591) throw new Error('Proof changed scope: expected 591 checks, found ' + passed)
   console.log('KINEO-ROTEIRO-CURTO-UNDO-2210: ' + passed + ' passed, 0 failed.')
 } catch (e) {
   console.error('FAIL ' + e.message)

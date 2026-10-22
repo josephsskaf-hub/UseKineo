@@ -363,13 +363,16 @@ async function offProof(over = {}) {
   return true
 }
 for (const [label, run] of [['estorno terminal real do v2, vencedor único e evento; entregue nunca estorna', refundProof], ['recibo fal tardio sem repetição e intenção TTS durável antes de gastar', receiptsProof], ['dry_run não grava/debita/invoca fal; allowlist exata e interruptor', internalProof], ['rota admin exige login + admin + conta da casa antes de ler corpo', routeProof], ['interruptor off: cinco respostas start JSON byte a byte contra 4cbd06b1', offProof]]) { await run(); console.log('ok ' + label) }
+// KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — scope/subjects belong to the older marked delivery; source integrity and runtime checks continue against current files.
+const deliveryHead = execFileSync('git', ['log', '--format=%H', '--grep=' + MARCA_ADS_CENA_2110, '-1', 'HEAD'], { encoding: 'utf8' }).trim()
+assert.ok(deliveryHead, 'commit final da camada Cena existe')
 for (const path of ADS_CENA_2110_ARQUIVOS) {
   const original = read(path), baseline = execFileSync('git', ['show', ADS_CENA_2110_BASE + ':' + path], { encoding: 'utf8' }).replace(/\r\n/g, '\n')
   const restored = semAdsCena2110(original, path)
   assert.equal(restored, baseline, 'desfaz exato: ' + path)
   assert.equal(semAdsCena2110(restored, path), baseline, 'desfaz idempotente: ' + path)
   assert.equal(semAdsCena2110(original.replace(/\n/g, '\r\n'), path), baseline.replace(/\n/g, '\r\n'), 'desfaz preserva CRLF: ' + path)
-  const delta = execFileSync('git', ['diff', '--ignore-cr-at-eol', '--unified=0', ADS_CENA_2110_BASE, '--', path], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+  const delta = execFileSync('git', ['diff', '--ignore-cr-at-eol', '--unified=0', ADS_CENA_2110_BASE, deliveryHead, '--', path], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
   const unmarked = delta.split('\n').filter(l => l.startsWith('+') && !l.startsWith('+++') && l.trim() !== '+' && !l.includes(MARCA_ADS_CENA_2110))
   assert.equal(unmarked.length, 0, 'toda linha tocada carrega marca: ' + path)
 }
@@ -377,9 +380,9 @@ for (const path of [...Object.values(F).filter(p => p.includes('/cena/') || p ==
 assert.equal(semAdsCena2110('untouched\n', 'lib/elsewhere.ts'), 'untouched\n')
 assert.throws(() => semAdsCena2110(read(F.start) + '\n// KINEO-ADS-CENA-2110 inesperado\n', F.start), /desfaz-ads-cena-2110/)
 const declared = new Set([...ADS_CENA_2110_ARQUIVOS, ...ADS_CENA_2110_NOVOS])
-const changedFiles = execFileSync('git', ['diff', '--ignore-cr-at-eol', '--name-only', ADS_CENA_2110_BASE], { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
+const changedFiles = execFileSync('git', ['diff', '--ignore-cr-at-eol', '--name-only', ADS_CENA_2110_BASE, deliveryHead], { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
 assert.ok(changedFiles.length > 0 && changedFiles.every(p => declared.has(p)), 'escopo completo da camada Cena: somente arquivos declarados')
-const subjects = execFileSync('git', ['log', '--format=%s', ADS_CENA_2110_BASE + '..HEAD'], { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
+const subjects = execFileSync('git', ['log', '--format=%s', ADS_CENA_2110_BASE + '..' + deliveryHead], { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
 assert.ok(subjects.length > 0 && subjects.every(s => s.startsWith(MARCA_ADS_CENA_2110 + ' ') && s.includes('[TRAVA 8.2 — vai do fundador 21/10 "A e B, vamo time"]')), 'todo commit da camada Cena leva marca e autorização exatas')
 console.log('ok desfaz mais novo exato em onze arquivos, idempotente, CRLF, marcas e escopo completo')
 function changed(path, from, to) {
