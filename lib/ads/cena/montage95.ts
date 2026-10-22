@@ -17,7 +17,8 @@ export const CENA95_DUCK_DB = -24
 const r6 = (n: number): number => Math.round(n * 1e6) / 1e6
 const literal95 = (s: string): string => s.replace(/\[/gu, '［').replace(/\]/gu, '］') // KINEO-ADS-CENA-95-PACING-2110
 /** Exceptional final labels page at the market font instead of failing after media was generated. */
-function pagedFinal95(plan: CenaPlan, words: Cena95Word[]): Record<string, unknown>[] { // KINEO-ADS-CENA-95-PACING-2110
+type Final95Plan = Pick<CenaPlan, 'product' | 'input' | 'script'> // KINEO-ADS-CENA-95-PACING-2110
+function pagedFinal95(plan: Final95Plan, words: Cena95Word[]): Record<string, unknown>[] { // KINEO-ADS-CENA-95-PACING-2110
   const rows = [{ text: plan.product, track: 44, y: '62%' }, ...(plan.input.oferta ? [{ text: plan.input.oferta, track: 45, y: '67%' }] : []), { text: plan.script.cta, track: 46, y: '72%' }]
   const font = 63, width = 1080 * .84 - 14, spoken = words.slice(-plan.script.cta.trim().split(/\s+/u).length)
   return rows.flatMap(row => {
@@ -68,12 +69,12 @@ export function cena95MusicElements(url: string | undefined, speech: Cena95Speec
 }
 
 /** Highlight the spoken CTA on its own final text track, without a second caption behind the offer/name. */
-export function cena95FinalTextElements(plan: CenaPlan, words: Cena95Word[]): Record<string, unknown>[] {
+export function cena95FinalTextElements(plan: Final95Plan, words: Cena95Word[]): Record<string, unknown>[] { // KINEO-ADS-CENA-95-PACING-2110
   // KINEO-ADS-CENA-95-PACING-2110 — only new plans escape literal markup and repair exceptional final layout.
   const repaired = Boolean((plan.script as CenaPlan['script'] & { normalization?: unknown }).normalization)
   const display = repaired ? { ...plan, product: literal95(plan.product), input: { ...plan.input, oferta: literal95(plan.input.oferta ?? '') }, script: { ...plan.script, cta: literal95(plan.script.cta) } } : plan
   let base: Record<string, unknown>[]
-  try { base = cenaFinalTextElements(display) } catch (error) { if (repaired && error instanceof Error && error.message === 'cena_final_text_does_not_fit') return pagedFinal95(plan, words); throw error }
+  try { base = cenaFinalTextElements(display as CenaPlan) } catch (error) { if (repaired && error instanceof Error && error.message === 'cena_final_text_does_not_fit') return pagedFinal95(plan, words); throw error }
   const cta = base.find(e => e.track === 46)!
   const count = plan.script.cta.trim().split(/\s+/u).length, spoken = words.slice(-count)
   const edges = [...new Set([13, 15, ...spoken.flatMap(w => [Math.max(13, Math.min(15, w.start)), Math.max(13, Math.min(15, w.end))])])].sort((a, b) => a - b)

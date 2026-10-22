@@ -1,5 +1,5 @@
 // KINEO-ADS-CENA-95-PACING-2110 — one canonical text/voice/layout gate for planning and measured media.
-import type { CenaInput, CenaPlan } from './plan'
+import type { CenaInput } from './plan'
 import type { Cena95Script } from './script95'
 import type { Cena95Presenter } from './presenters95'
 import type { CenaRoute } from './adapters'
@@ -19,6 +19,6 @@ export function cena95Preflight(script: Cena95Script, input: CenaInput, route: C
   const voiceRequest = mode === 'narrated' ? cena95NarratedVoiceRequest({ beforeCta: script.beforeCta, cta: script.cta, pauseSeconds: script.pauseSeconds, estimatedWordsPerSecond: rate, language: (input.language ?? 'en') as Cena95VoiceLanguage, gender: presenter.gender, age: presenter.age, formato: input.formato }) : null
   const speechWindows = mode === 'narrated' && measured.voiceSeconds !== undefined ? cena95NarratedWindows(script, input.language ?? 'en', measured.voiceSeconds) : cena95DefaultWindows(script)
   const captions = cena95Captions({ text: script.narration, language: input.language ?? 'en', words: measured.words, speechWindows })
-  const finalText = cena95FinalTextElements({ product: measured.product ?? input.frase, input, script } as CenaPlan, captions.words)
+  const finalText = cena95FinalTextElements({ product: measured.product ?? input.frase, input, script }, captions.words)
   return { words, estimatedSeconds: words / rate + script.pauseSeconds, native, voiceRequest, speechWindows, captions, finalText }
 }
