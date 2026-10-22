@@ -108,6 +108,9 @@ jobs:
         run: node scripts/test-cinematic-poll-diagnostic-2026-09-11.mjs
       - name: Recuperação de cena — mutex anterior ao POST pago
         run: node scripts/test-scene-retry-mutex-2026-09-11.mjs
+      # KINEO-CARTOON-TRACAO-2210 — fixture-only campaign/pages, killed disk mutants and exact restoration.
+      - name: Cartoon — campanha protegida e oferta citável
+        run: node scripts/test-cartoon-tracao.mjs --mutants
   legacy:
     name: Diagnóstico legado — manual, não certifica entrega
     if: github.event_name == 'workflow_dispatch'
