@@ -91,7 +91,7 @@ function benefitSentence(benefit: string, product: string, pt: boolean): string 
   return finish(`${product} ${adjective ? plural ? 'are' : 'is' : plural ? 'have' : 'has'} ${low}`)
 }
 export function repairAjusteLines(raw: unknown, input: CenaInput, product: string, issues: readonly AjusteIssue[]): Record<string, unknown> {
-  const r = data(raw), pt = (input.language ?? 'en').toLowerCase().startsWith('pt'), label = product
+  const r = ajusteProductCase(raw, input, product), pt = (input.language ?? 'en').toLowerCase().startsWith('pt'), label = product
   const benefit = clean(input.beneficios?.[0]).replace(/[.!?]+$/u, '')
   const hooks = [benefit && words(benefit) <= 10 ? `${benefit}?` : pt ? `Conhece ${label}?` : `Have you seen ${label}?`, pt ? `Vamos conhecer ${label}?` : `Meet ${label}?`, pt ? `${label} na sua rotina?` : `A closer look at ${label}?`]
   const neutral: Record<string, string> = { use: finish(`${pt ? 'Conheça' : 'Meet'} ${label}`), benefit: [...(input.beneficios ?? []).map(b => benefitSentence(b, label, pt)), ...(input.oferta ? [finish(input.oferta)] : [])].join(' '), cta: finish(input.cta || `${pt ? 'Peça' : 'Choose'} ${label}`) }
