@@ -1,6 +1,7 @@
 // KINEO-ADS-CENA-RETOMADA-2110 — POST/start/advance reais; DB, ledger e fornecedores em dublês sem rede.
 import assert from 'node:assert/strict'
 import { semPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
+import { semAdsCenaRespaldo2110 } from './test-support/desfaz-ads-cena-respaldo-2110.mjs' // KINEO-ADS-CENA-RESPALDO-2110
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
@@ -10,13 +11,15 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { PACING_PHOTO, PACING_HOUSE, PACING_ORDER, pacingShort } from './test-support/ads-cena-95-pacing-fixtures-2110.mjs'
 const BASE='796333e9a07ee0c83bb414312a062b63f8fc32bb', MARK='KINEO-ADS-CENA-RETOMADA-2110'
 const F={route:'app/api/admin/ads-cena/route.ts',internal:'lib/ads/cena/internal.ts',internalAjuste:'lib/ads/cena/internalAjuste.ts',live:'lib/ads/cena/live.ts',plan:'lib/ads/cena/plan.ts',natural:'lib/ads/cena/ajustePlan.ts',preflight:'lib/ads/cena/ajustePreflight.ts',runtime:'lib/ads/cena/runtime.ts',pipeline:'lib/ads/cena/pipeline.ts',start:'lib/ads/v2StartCore.ts',early:'lib/ads/v2AudioCedo.ts',media:'lib/ads/cena/ajusteMedia.ts',montage:'lib/ads/cena/ajusteMontage.ts',legacyMontage:'lib/ads/cena/montage.ts'}
-const read=p=>semPaginasIaClaras2110(readFileSync(p,'utf8').replace(/\r\n/g,'\n'),p) // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — fonte integral restaurada antes de criar os mutantes próprios.
+const read=p=>semPaginasIaClaras2110(semAdsCenaRespaldo2110(readFileSync(p,'utf8').replace(/\r\n/g,'\n'),p),p) // KINEO-ADS-CENA-RESPALDO-2110 — restaura a camada mais nova primeiro, antes dos mutantes e da camada Pages.
 const git=(...a)=>execFileSync('git',a,{encoding:'utf8',maxBuffer:64<<20,stdio:['ignore','pipe','ignore']}).replace(/\r\n/g,'\n')
+const deliveryHead=git('log','--format=%H%x09%s',BASE+'..HEAD').trim().split('\n').find(line=>{const subject=line.slice(line.indexOf('\t')+1);return (subject.startsWith(MARK+' ')||subject.startsWith(MARK+': '))&&subject.includes('[TRAVA 8.2 — vai do fundador 21/10 "quero chegar a 9.5 de mínimo"]')})?.split('\t')[0] // KINEO-ADS-CENA-RESPALDO-2110 — própria entrega Retomada, com fronteira e autorização exatas, antes de BUG3.
+assert.ok(deliveryHead,'commit final marcado e autorizado da RETOMADA existe') // KINEO-ADS-CENA-RESPALDO-2110
 const plain=x=>JSON.parse(JSON.stringify(x)),same=(a,b,why)=>assert.deepEqual(plain(a),plain(b),why)
 const NOW=Date.parse('2026-10-22T20:00:00Z')
 class FixedDate extends Date {constructor(...a){super(...(a.length?a:[NOW]))}static now(){return NOW}}
 class OfflineResponse extends Response {static json(body,init={}){return new OfflineResponse(JSON.stringify(body),{...init,headers:{'Content-Type':'application/json',...init.headers}})}}
-const sourceLoader=(over={},mocks={},globals={})=>createOfflineLoader({mocks,source:(p,s)=>over[p]??semPaginasIaClaras2110(s,p),globals:{Request,Response,Headers,Error,Date:FixedDate,...globals}})
+const sourceLoader=(over={},mocks={},globals={})=>createOfflineLoader({mocks,source:(p,s)=>over[p]??semPaginasIaClaras2110(semAdsCenaRespaldo2110(s,p),p),globals:{Request,Response,Headers,Error,Date:FixedDate,...globals}}) // KINEO-ADS-CENA-RESPALDO-2110 — somente fallback histórico; overrides mutados nunca são desfeitos.
 export const RETOMADA_FIXTURES=[
  {category:'skincare',product:'Creme GLOW',input:{foto:PACING_PHOTO,frase:'Creme GLOW; Não contém fragrância.',beneficios:['Não contém fragrância.'],oferta:'Compre 1 e leve 2.',cta:'Use o cupom GLOW10.',language:'pt',formato:'ugc',voice_mode:'narrated',rota:'kling3'},raw:{hooks:['Qual creme escolher?','Rotina sem perfume?','GLOW na bancada?'],use:'Veja o Creme GLOW na sua rotina.',benefit:'Ele não contém fragrância. Compre 1 e leve 2.',cta:'Use o cupom GLOW10.'}},
  {category:'footwear',product:'Stride shoes',input:{foto:PACING_PHOTO,frase:'Stride shoes; Easy to clean.',beneficios:['Easy to clean.'],oferta:'Buy one, get one free.',cta:'Choose your Stride shoes.',language:'en',formato:'product',voice_mode:'narrated',rota:'kling3'},raw:{hooks:['Ready to leave?','Time to move?','Which shoes today?'],use:'Take a step with Stride shoes.',benefit:'Stride shoes are easy to clean. Buy one, get one free.',cta:'Choose your Stride shoes.'}},
@@ -115,7 +118,7 @@ async function flagProof(over={}) {
   off.tables.ads_v2_orders.push({id:PACING_ORDER,user_id:PACING_HOUSE.id,status:'planned',tier:'commercial',seconds:15,card_url:PACING_PHOTO,plan:{shots:[{idx:0,kind:'text',source:'user_photo'}],cena:saved}})
   for(const dry of[true,false]){const start=await off.start(dry);assert.equal(start.status,409);assert.equal(start.body.error,'cena95_disabled_replan');assert.equal(off.effects.length,0)}
   const paid=world(short(),over,{paid95:true});paid.tables.ads_v2_orders.push({...plain(off.tables.ads_v2_orders[0]),status:'generating'});await paid.advance();assert.ok(paid.effects.some(e=>e[0]==='paid95-resumed'),'already charged 95 retains its stored engine while default flag is off')
-  const changed95=git('diff','--name-only',BASE,'--','lib/ads/cena/*95.ts').trim();assert.equal(changed95,'','all 95 modules remain byte-identical')
+  const changed95=git('diff','--name-only',BASE,deliveryHead,'--','lib/ads/cena/*95.ts').trim();assert.equal(changed95,'','all 95 modules remain byte-identical') // KINEO-ADS-CENA-RESPALDO-2110 — proteção exata da entrega Retomada, sem incorporar alterações de camadas posteriores.
 }
 
 async function compositionProof(over={}) {
@@ -266,8 +269,7 @@ async function undoProof(){
   for(const p of U.CENA_RETOMADA_FILES){const actual=read(p),before=git('show',BASE+':'+p);assert.ok(actual.includes(MARK));assert.equal(U.semAdsCenaRetomada2110(actual,p),before);assert.equal(U.semAdsCenaRetomada2110(before,p),before);assert.equal(U.semAdsCenaRetomada2110(actual.replace(/\n/g,'\r\n'),p),before.replace(/\n/g,'\r\n'));assert.throws(()=>U.semAdsCenaRetomada2110(actual+'\n// mutated\n',p),/fonte divergente/);assert.notEqual(U.semAdsCenaRetomada2110(actual.replaceAll(MARK,'REMOVED'),p),before)}
   for(const p of ['scripts/test-ads-cena-retomada-2110.mjs','docs/previews/ads-cena-retomada-2110.html'])assert.ok(U.CENA_RETOMADA_NEW.includes(p),'guard/preview are in the exact inventory')
   const declared=new Set([...U.CENA_RETOMADA_FILES,...U.CENA_RETOMADA_NEW]);for(const p of U.CENA_RETOMADA_NEW){assert.ok(readFileSync(p).length);assert.throws(()=>git('show',BASE+':'+p))}
-  const deliveryHead=git('log','--format=%H%x09%s',BASE+'..HEAD').trim().split('\n').find(line=>{const subject=line.slice(line.indexOf('\t')+1);return (subject.startsWith(MARK+' ')||subject.startsWith(MARK+': '))&&subject.includes('[TRAVA 8.2 — vai do fundador 21/10 "quero chegar a 9.5 de mínimo"]')})?.split('\t')[0] // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — mesmo escopo no último commit próprio com fronteira e autorização exatas.
-  assert.ok(deliveryHead,'commit final marcado e autorizado da RETOMADA existe') // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
+  assert.ok(deliveryHead,'commit final marcado e autorizado da RETOMADA existe') // KINEO-ADS-CENA-RESPALDO-2110 — mesma âncora histórica usada no escopo e nas fontes95 intocadas.
   assert.ok(git('diff','--name-only',BASE,deliveryHead).trim().split('\n').filter(Boolean).every(p=>declared.has(p)),'all changes belong to the exact undo layer') // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 }
 export async function runRetomada(){await proofRetomada();console.log('ok retomada: HTTP/start/advance reais, AJUSTE/95, áudio, close, música, juiz e legado');await proofRetomadaMutants();await undoProof();console.log('ok retomada: desfaz exato, CRLF, inventário e fontes95 intactas')}
