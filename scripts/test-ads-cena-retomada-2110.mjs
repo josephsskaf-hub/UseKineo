@@ -265,7 +265,8 @@ async function undoProof(){
   for(const p of U.CENA_RETOMADA_FILES){const actual=read(p),before=git('show',BASE+':'+p);assert.ok(actual.includes(MARK));assert.equal(U.semAdsCenaRetomada2110(actual,p),before);assert.equal(U.semAdsCenaRetomada2110(before,p),before);assert.equal(U.semAdsCenaRetomada2110(actual.replace(/\n/g,'\r\n'),p),before.replace(/\n/g,'\r\n'));assert.throws(()=>U.semAdsCenaRetomada2110(actual+'\n// mutated\n',p),/fonte divergente/);assert.notEqual(U.semAdsCenaRetomada2110(actual.replaceAll(MARK,'REMOVED'),p),before)}
   for(const p of ['scripts/test-ads-cena-retomada-2110.mjs','docs/previews/ads-cena-retomada-2110.html'])assert.ok(U.CENA_RETOMADA_NEW.includes(p),'guard/preview are in the exact inventory')
   const declared=new Set([...U.CENA_RETOMADA_FILES,...U.CENA_RETOMADA_NEW]);for(const p of U.CENA_RETOMADA_NEW){assert.ok(readFileSync(p).length);assert.throws(()=>git('show',BASE+':'+p))}
-  assert.ok(git('diff','--name-only',BASE).trim().split('\n').filter(Boolean).every(p=>declared.has(p)),'all changes belong to the exact undo layer')
+  const deliveryHead=git('log','-1','--format=%H','--grep=^'+MARK+' ').trim();assert.ok(deliveryHead,'the delivery final commit must exist') // KINEO-CARTOON-CONSISTENCIA-2210 — os arquivos desta entrega terminam no último commit próprio.
+  assert.ok(git('diff','--name-only',BASE,deliveryHead).trim().split('\n').filter(Boolean).every(p=>declared.has(p)),'all changes belong to the exact undo layer') // KINEO-CARTOON-CONSISTENCIA-2210 — mesma asserção e inventário; camadas posteriores ficam fora da conta.
 }
 export async function runRetomada(){await proofRetomada();console.log('ok retomada: HTTP/start/advance reais, AJUSTE/95, áudio, close, música, juiz e legado');await proofRetomadaMutants();await undoProof();console.log('ok retomada: desfaz exato, CRLF, inventário e fontes95 intactas')}
 if(process.argv[1]&&pathToFileURL(process.argv[1]).href===import.meta.url)await runRetomada()

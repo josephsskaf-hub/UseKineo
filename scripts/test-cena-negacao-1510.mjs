@@ -22,10 +22,12 @@
 //   (G) mutantes, cada um provado aplicado, cada um tem de ficar VERMELHO.
 //
 // Rodar: node scripts/test-cena-negacao-1510.mjs
-import { readFileSync } from 'node:fs'
+import { readFileSync, mkdtempSync, writeFileSync, rmSync, rmdirSync } from 'node:fs' // KINEO-CARTOON-CONSISTENCIA-2210 — diff histórico em arquivos temporários locais.
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
+import { tmpdir } from 'node:os' // KINEO-CARTOON-CONSISTENCIA-2210
+import { semCartoonConsistencia2210 } from './test-support/desfaz-cartoon-consistencia-2210.mjs' // KINEO-CARTOON-CONSISTENCIA-2210
 import vm from 'node:vm'
 import ts from 'typescript'
 import { semCenaNegacao1510, MARCA_CENA_NEGACAO_1510 as MARCA } from './test-support/desfaz-cena-negacao-1510.mjs'
@@ -39,6 +41,17 @@ const ROTA = 'app/api/generate-video-cinematic/route.ts'
 const LIB = 'lib/cinematic/sceneTruth.ts'
 const MODO = 'lib/cinematic/visualMode.ts'
 const ler = (p) => readFileSync(join(RAIZ, p), 'utf8')
+function diffSemCartoon2210(before, atual, arquivo) { // KINEO-CARTOON-CONSISTENCIA-2210
+  const scratch = mkdtempSync(join(tmpdir(), 'kineo-negacao-cartoon-2210-')), a = join(scratch, 'before.ts'), b = join(scratch, 'after.ts') // KINEO-CARTOON-CONSISTENCIA-2210
+  try { // KINEO-CARTOON-CONSISTENCIA-2210
+    writeFileSync(a, before.replace(/\r\n/g, '\n'), 'utf8') // KINEO-CARTOON-CONSISTENCIA-2210
+    writeFileSync(b, semCartoonConsistencia2210(atual, arquivo).replace(/\r\n/g, '\n'), 'utf8') // KINEO-CARTOON-CONSISTENCIA-2210
+    try { return execFileSync('git', ['diff', '--no-index', '--no-color', '--', a, b], { encoding: 'utf8', maxBuffer: 1 << 28 }) } // KINEO-CARTOON-CONSISTENCIA-2210
+    catch (e) { if (e.status === 1 && typeof e.stdout === 'string') return e.stdout; throw e } // KINEO-CARTOON-CONSISTENCIA-2210
+  } finally { // KINEO-CARTOON-CONSISTENCIA-2210
+    rmSync(a, { force: true }); rmSync(b, { force: true }); rmdirSync(scratch) // KINEO-CARTOON-CONSISTENCIA-2210
+  } // KINEO-CARTOON-CONSISTENCIA-2210
+} // KINEO-CARTOON-CONSISTENCIA-2210
 
 function carregar(src) {
   const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText
@@ -186,7 +199,7 @@ relata(`provas A–E no código atual (${falhasAtuais.length} falhas)`, falhasAt
     relata(`F byte a byte: ${p} desfeito == ${base}`, desfeito === daBase)
     relata(`F ${p} tem a marca (o conserto está aplicado)`, atual.includes(MARCA))
   }
-  const add = git('diff', base, '--', LIB, ROTA).replace(/\r/g, '').split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))
+  const add = [LIB, ROTA].flatMap((p) => diffSemCartoon2210(git('show', `${base}:${p}`), ler(p), p).replace(/\r/g, '').split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))) // KINEO-CARTOON-CONSISTENCIA-2210 — a folha exata remove somente a camada posterior, inclusive sua linha vazia contextual.
   add.splice(0, add.length, ...add.filter((l) => !l.includes('KINEO-KIDS-VENDA-2010'))) // KINEO-KIDS-VENDA-2010 — as linhas da venda do Cartoon têm marca e desfaz exato próprios; fora da conta da negação
   relata('F toda linha nova/trocada da rota e do sceneTruth leva a marca', add.length > 0 && add.every((l) => l.includes(MARCA) || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */ || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || l.includes('KINEO-DESENHO-SOM-2110') /* reancorado KINEO-DESENHO-SOM-2110 — o som do desenho infantil (21/10) mexe na rota só com kids_cartoon */ || l.includes('KINEO-BEBE-QUE-FALA-2010') /* reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories (20/10) também é de depois da base; provado em scripts/test-bebe-que-fala-2010.mjs */), add.filter((l) => !l.includes(MARCA) && !linhaDaTrilha15s1610(l) && !l.includes('KINEO-META95-ASSUNTO-1910') && !l.includes('KINEO-BEBE-QUE-FALA-2010')).slice(0, 2).join(' | '))
 }

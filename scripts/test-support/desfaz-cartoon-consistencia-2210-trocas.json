@@ -1,0 +1,110 @@
+{
+  "__acrescimos": {
+    "app/api/compose/route.ts": 9,
+    "app/api/generate-video-cinematic/route.ts": 19,
+    "app/api/retry-hollywood-scene/route.ts": 2,
+    "components/kidsCartoon/KidsCartoonTemplate.tsx": 1,
+    "lib/kidsCartoon/kidsCartoon.ts": 0,
+    "lib/kidsVenda/cron.ts": 8,
+    "scripts/test-ads-cena-retomada-2110.mjs": 1,
+    "scripts/test-support/desfaz-ads-cena-retomada-2110.mjs": 2,
+    "scripts/test-ancora-legenda-1410.mjs": 1,
+    "scripts/test-cena-classica-retentativa-2026-09-28.mjs": 0,
+    "scripts/test-cena-negacao-1510.mjs": 13,
+    "scripts/test-contrato-classicos-1410.mjs": 13,
+    "scripts/test-desenho-som-2110.mjs": 1,
+    "lib/audioNoClique.ts": 3
+  },
+  "__contextos": {
+    "app/api/generate-video-cinematic/route.ts": [
+      [
+        "    } // KINEO-CARTOON-CONSISTENCIA-2210\n\n    // Submit ONE scene",
+        "    } // KINEO-CARTOON-CONSISTENCIA-2210\n    // Submit ONE scene"
+      ]
+    ]
+  },
+  "lib/kidsCartoon/kidsCartoon.ts": [
+    [
+      "  const user = `Story idea: ${i.request.idea}` // KINEO-CARTOON-CONSISTENCIA-2210 — o sistema já fixa o personagem; a ideia completa nunca ganha um nome duplicado",
+      "  const user = `Story idea: ${c.name} ${i.request.idea}`"
+    ],
+    [
+      "  if (!new RegExp(`${B}${c.name}${E}`, 'iu').test(s)) return { ok: false, reason: 'no_character' } // KINEO-CARTOON-CONSISTENCIA-2210 — o mesmo nome em outra caixa continua sendo o personagem, com as mesmas fronteiras",
+      "  if (!new RegExp(`${B}${c.name}${E}`, 'u').test(s)) return { ok: false, reason: 'no_character' }"
+    ]
+  ],
+  "lib/kidsVenda/cron.ts": [
+    [
+      "    const openQ = await db.from(KIDS_RUNS_TABLE).select('seq, attempt, status, credits_funded').eq('order_id', order.id).eq('cycle_key', cycleKey).in('status', ['pending', 'dispatched', 'failed']).range(0, 499) // KINEO-CARTOON-CONSISTENCIA-2210 — o gasto possível sobrevive a estorno e reativação da assinatura",
+      "    const openQ = await db.from(KIDS_RUNS_TABLE).select('seq, attempt, status').eq('order_id', order.id).eq('cycle_key', cycleKey).in('status', ['pending', 'dispatched', 'failed']).range(0, 499)"
+    ]
+  ],
+  "scripts/test-ads-cena-retomada-2110.mjs": [
+    [
+      "  assert.ok(git('diff','--name-only',BASE,deliveryHead).trim().split('\\n').filter(Boolean).every(p=>declared.has(p)),'all changes belong to the exact undo layer') // KINEO-CARTOON-CONSISTENCIA-2210 — mesma asserção e inventário; camadas posteriores ficam fora da conta.",
+      "  assert.ok(git('diff','--name-only',BASE).trim().split('\\n').filter(Boolean).every(p=>declared.has(p)),'all changes belong to the exact undo layer')"
+    ]
+  ],
+  "scripts/test-ancora-legenda-1410.mjs": [
+    [
+      "const rd = (p) => lf(semCartoonConsistencia2210(readFileSync(join(RAIZ, p), 'utf8'), p)) // KINEO-CARTOON-CONSISTENCIA-2210 — somente a camada posterior sai antes do desfaz/hashes históricos.",
+      "const rd = (p) => lf(readFileSync(join(RAIZ, p), 'utf8'))"
+    ]
+  ],
+  "scripts/test-cena-classica-retentativa-2026-09-28.mjs": [
+    [
+      "const roda = (src, globals = {}) => { const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText; const exp = {}; vm.runInNewContext(js, { exports: exp, console, JSON, Math, Set, Array, Object, romanceAdulto: { ativo: false }, desenhoInfantil: { ativo: false }, ...globals }); return exp } // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; pedido sem romance = as linhas da leva são no-op) // KINEO-CARTOON-CONSISTENCIA-2210 — contexto sem Cartoon mantém a régua clássica no caminho antigo.",
+      "const roda = (src, globals = {}) => { const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText; const exp = {}; vm.runInNewContext(js, { exports: exp, console, JSON, Math, Set, Array, Object, romanceAdulto: { ativo: false }, ...globals }); return exp } // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; pedido sem romance = as linhas da leva são no-op)"
+    ]
+  ],
+  "scripts/test-cena-negacao-1510.mjs": [
+    [
+      "import { readFileSync, mkdtempSync, writeFileSync, rmSync, rmdirSync } from 'node:fs' // KINEO-CARTOON-CONSISTENCIA-2210 — diff histórico em arquivos temporários locais.",
+      "import { readFileSync } from 'node:fs'"
+    ],
+    [
+      "  const add = [LIB, ROTA].flatMap((p) => diffSemCartoon2210(git('show', `${base}:${p}`), ler(p), p).replace(/\\r/g, '').split('\\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))) // KINEO-CARTOON-CONSISTENCIA-2210 — a folha exata remove somente a camada posterior, inclusive sua linha vazia contextual.",
+      "  const add = git('diff', base, '--', LIB, ROTA).replace(/\\r/g, '').split('\\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))"
+    ]
+  ],
+  "scripts/test-contrato-classicos-1410.mjs": [
+    [
+      "import { readFileSync, mkdtempSync, writeFileSync, rmSync, rmdirSync } from 'node:fs' // KINEO-CARTOON-CONSISTENCIA-2210 — diff histórico em arquivos temporários locais.",
+      "import { readFileSync } from 'node:fs'"
+    ],
+    [
+      "  const d = [ROTA, LIB].map((p) => diffSemCartoon2210(git(['show', `${BASE}:${p}`]), rd(p), p)).join('\\n').replace(/\\r/g, '') // KINEO-CARTOON-CONSISTENCIA-2210 — remove somente a camada posterior pela folha exata, inclusive a linha vazia contextual.",
+      "  const d = git(['diff', BASE, '--', ROTA, LIB]).replace(/\\r/g, '')"
+    ]
+  ],
+  "scripts/test-desenho-som-2110.mjs": [
+    [
+      "const rd = (f) => semCartoonConsistencia2210(fs.readFileSync(path.join(ROOT, f), 'utf8'), f).replace(/\\r\\n/g, '\\n') // KINEO-CARTOON-CONSISTENCIA-2210 — o som mantém sua régua histórica; a identidade Cartoon tem prova própria.",
+      "const rd = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8').replace(/\\r\\n/g, '\\n')"
+    ]
+  ],
+  "lib/audioNoClique.ts": [
+    [
+      "  if (m.status === 'falhou' && !(a.naoRepetirJobAceito && m.job?.requestId)) return undefined // KINEO-CARTOON-CONSISTENCIA-2210 — job aceito continua na mesma espera",
+      "  if (m.status === 'falhou') return undefined"
+    ],
+    [
+      "    if (m.status === 'falhou' && !(a.naoRepetirJobAceito && m.job?.requestId)) return undefined // KINEO-CARTOON-CONSISTENCIA-2210 — inclusive se o aquecimento terminar durante a espera",
+      "    if (m.status === 'falhou') return undefined"
+    ],
+    [
+      "  if (!job || !job.statusUrl?.startsWith('https://') || !job.responseUrl?.startsWith('https://')) return a.naoRepetirJobAceito && job?.requestId ? null : undefined // KINEO-CARTOON-CONSISTENCIA-2210 — job aceito sem URL utilizável cai no catálogo, nunca em outro POST",
+      "  if (!job || !job.statusUrl?.startsWith('https://') || !job.responseUrl?.startsWith('https://')) return undefined"
+    ],
+    [
+      "      const r = await musicaAquecida({ db: a.db, generationId: a.generationId, prompt, esperarLyria: a.esperarLyria, orcamentoMs: a.orcamentoLyriaMs, agora, dormir, naoRepetirJobAceito }).then(r => naoRepetirJobAceito ? r ?? null : r).catch(() => naoRepetirJobAceito ? null : undefined) // KINEO-CARTOON-CONSISTENCIA-2210 — sem aquecimento útil, desenho15 usa catálogo; outros produtos mantêm o retorno de sempre",
+      "      const r = await musicaAquecida({ db: a.db, generationId: a.generationId, prompt, esperarLyria: a.esperarLyria, orcamentoMs: a.orcamentoLyriaMs, agora, dormir }).catch(() => undefined)"
+    ]
+  ],
+  "app/api/compose/route.ts": [
+    [
+      "    const audioDoClique = montagemComAudioDoClique({ db: composeAdmin, generationId, lookup: lookupCachedVoiceover, esperarLyria, orcamentoLyriaMs: LYRIA_WAIT_BUDGET_MS, naoRepetirJobAceito: () => cinematicBirthClaim?.quality === 'cinematic_ai' && Number(cinematicBirthClaim.response?.duration) === 15 && desenhoDoClaim(cinematicBirthClaim.response) !== null }) // KINEO-FILME-RAPIDO-1710 — a trilha e a voz pedidas no clique (lib/audioNoClique): pega o pronto, espera um pouco o que está a caminho, senão gera como sempre // KINEO-CARTOON-CONSISTENCIA-2210 — só desenho15 do claim verificado; o corpo não liga esta proteção",
+      "    const audioDoClique = montagemComAudioDoClique({ db: composeAdmin, generationId, lookup: lookupCachedVoiceover, esperarLyria, orcamentoLyriaMs: LYRIA_WAIT_BUDGET_MS }) // KINEO-FILME-RAPIDO-1710 — a trilha e a voz pedidas no clique (lib/audioNoClique): pega o pronto, espera um pouco o que está a caminho, senão gera como sempre"
+    ]
+  ]
+}

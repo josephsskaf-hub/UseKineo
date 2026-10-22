@@ -799,7 +799,7 @@ export async function POST(req: NextRequest) {
       auth: { persistSession: false, autoRefreshToken: false },
     })
     const tempo = cronometroDaMontagem() // KINEO-FILME-RAPIDO-1710 · tempo — voz, transcrição, música e envio ao Creatomate, em ms (evento compose_stage_timing)
-    const audioDoClique = montagemComAudioDoClique({ db: composeAdmin, generationId, lookup: lookupCachedVoiceover, esperarLyria, orcamentoLyriaMs: LYRIA_WAIT_BUDGET_MS }) // KINEO-FILME-RAPIDO-1710 — a trilha e a voz pedidas no clique (lib/audioNoClique): pega o pronto, espera um pouco o que está a caminho, senão gera como sempre
+    const audioDoClique = montagemComAudioDoClique({ db: composeAdmin, generationId, lookup: lookupCachedVoiceover, esperarLyria, orcamentoLyriaMs: LYRIA_WAIT_BUDGET_MS, naoRepetirJobAceito: () => cinematicBirthClaim?.quality === 'cinematic_ai' && Number(cinematicBirthClaim.response?.duration) === 15 && desenhoDoClaim(cinematicBirthClaim.response) !== null }) // KINEO-FILME-RAPIDO-1710 — a trilha e a voz pedidas no clique (lib/audioNoClique): pega o pronto, espera um pouco o que está a caminho, senão gera como sempre // KINEO-CARTOON-CONSISTENCIA-2210 — só desenho15 do claim verificado; o corpo não liga esta proteção
     let cinematicBirthClaim: CinematicClaim | null = null
     // KINEO-KLING25-PLANOS-5S-2026-09-28 — segundos de cada clipe e onde a fala de cada um começa, SÓ do claim assinado
     // (nunca do corpo): null = montagem de hoje
