@@ -1,0 +1,17 @@
+{
+  "task": "KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22",
+  "date": "2026-10-22",
+  "sourceRevision": "766ed2fc7c082bc5a5d4d87484116a4497694bcf",
+  "mergedMain": "f3532d7d21a15b5dfa8859c3a1d2d603ea8cd1a7",
+  "command": "node node_modules/typescript/bin/tsc --noEmit --incremental false",
+  "initialExit": 0,
+  "positiveControlExit": 2,
+  "positiveControlExpected": "TS2322",
+  "positiveControlOutput": "lib/roteiroCurtoMergeTypecheckPositiveControl2210.ts(1,14): error TS2322: Type 'string' is not assignable to type 'number'.",
+  "positiveControlRemoved": true,
+  "finalExit": 0,
+  "finalOutput": "",
+  "confirmationRevision": "b7bd5e738094d68cab78667cda1130084e5a55e6",
+  "confirmationExit": 0,
+  "confirmationOutput": ""
+}
