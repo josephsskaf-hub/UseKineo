@@ -11,7 +11,7 @@ export function naturalAjusteScript(raw: unknown, input: CenaInput, product: str
   const r = ajusteProductCase(raw, input, product) // KINEO-ADS-CENA-RESPALDO-2110
   if (!r || typeof r !== 'object' || Array.isArray(r)) throw new Error('cena_invalid_json')
   const hooks = Array.isArray(r.hooks) ? r.hooks.map(clean) : [], use = clean(r.use), benefit = clean(r.benefit), cta = clean(r.cta)
-  if (hooks.length !== 3 || new Set(hooks.map(fold)).size !== 3 || hooks.some(h => !h || h.split(' ').length > 10) || !use || !cta || ((input.beneficios?.length || input.oferta) && !benefit)) throw new Error('cena_invalid_script')
+  if (hooks.length !== 3 || new Set(hooks.map(fold)).size !== 3 || hooks.some(h => !h) || !use || !cta || ((input.beneficios?.length || input.oferta) && !benefit)) throw new Error('cena_invalid_script')
   const narration = [hooks[0], use, benefit, cta].filter(Boolean).join(' '), all = [...hooks, use, benefit, cta].join(' ')
   const rejected = ajusteRespaldoIssues(r, input, product) // KINEO-ADS-CENA-RESPALDO-2110
   if (rejected.length) throw new AjusteScriptError('cena_unsubstantiated_script', rejected) // KINEO-ADS-CENA-RESPALDO-2110
