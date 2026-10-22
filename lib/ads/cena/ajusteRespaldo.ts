@@ -49,7 +49,7 @@ export function ajusteProductCase(raw: unknown, input: CenaInput, product: strin
 export function ajusteRespaldoIssues(raw: unknown, input: CenaInput, product: string): AjusteIssue[] {
   const r = data(raw), facts = source(input), typed = [facts], issues: AjusteIssue[] = []
   const brief: AdsBrief = { business: input.frase, offer: input.oferta ?? '', contact: '', cta: 'buy', audience: '', tone: 'direct', language: input.language ?? 'en', extra: { benefits: (input.beneficios ?? []).join('; '), typedCta: input.cta ?? '' } }
-  for (const [field, text] of lines(r)) for (const phrase of text.split(/(?<=[.!?])\s+(?=[\p{Lu}¿¡])/u).filter(Boolean)) {
+  for (const [field, text] of lines(r)) for (const phrase of text.split(/(?<=[.!?])\s+/u).filter(Boolean)) {
     const rules = [
       ...inventedNumbers(phrase, brief).map(n => `number not typed: ${n}`),
       ...inventedClaims(phrase, brief),
@@ -65,7 +65,7 @@ export function ajusteRespaldoIssues(raw: unknown, input: CenaInput, product: st
   const missing = adsV2MissingBenefits(speech(r), [...(input.beneficios ?? []), ...(input.oferta ? [input.oferta] : [])])
   if (missing.length) issues.push({ field: 'benefit', phrase: '', rules: missing.map(b => `missing typed benefit/offer: ${b}`) })
   if (words(speech(r)) > 40) {
-    const selected = lines(r).filter(([f]) => !f.startsWith('hooks.') || f === 'hooks.0').flatMap(([f, t]) => t.split(/(?<=[.!?])\s+(?=[\p{Lu}¿¡])/u).map(s => [f, s] as [string, string]))
+    const selected = lines(r).filter(([f]) => !f.startsWith('hooks.') || f === 'hooks.0').flatMap(([f, t]) => t.split(/(?<=[.!?])\s+/u).map(s => [f, s] as [string, string]))
     const longest = words(clean(r.cta)) > 40 ? ['cta', clean(r.cta)] : selected.filter(([f]) => f !== 'cta').sort((a, b) => words(b[1]) - words(a[1]))[0]
     if (longest) issues.push({ field: longest[0], phrase: longest[1], rules: ['Speech exceeds the AJUSTE 40-word budget. Shorten this line; keep typed facts and CTA.'] })
   }
