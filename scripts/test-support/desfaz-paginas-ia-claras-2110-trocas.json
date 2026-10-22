@@ -16,7 +16,8 @@
     "docs/previews/paginas-ia-claras-cartoon-first-chatgpt-mobile-2210.png",
     "docs/previews/paginas-ia-claras-cartoon-first-other-desktop-2210.png",
     "docs/previews/paginas-ia-claras-cartoon-first-other-mobile-2210.png",
-    "docs/qa/paginas-ia-claras-cartoon-first-2210-proof.json"
+    "docs/qa/paginas-ia-claras-cartoon-first-2210-proof.json",
+    "docs/qa/paginas-ia-claras-2210-1b991-merge-proof.json"
   ],
   "app/ai-video-generator/[engine]/page.tsx": [
     [
