@@ -20,6 +20,7 @@ import { React, offlineModules, renderToStaticMarkup } from './gpt24h-offline-su
 import { semPaginasIaClaras2110, PAGINAS_IA_CLARAS_2110_ARQUIVOS, PAGINAS_IA_CLARAS_2110_NOVOS, PAGINAS_IA_CLARAS_2110_BASE, MARCA_PAGINAS_IA_CLARAS_2110, PAGINAS_IA_CLARAS_2110_TRAVA, ehCommitPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs'
 import { semAdsCena952110, ADS_CENA_95_2110_ARQUIVOS } from './test-support/desfaz-ads-cena-95-2110.mjs'
 import { semKidsVenda2010, KIDS_VENDA_2010_ARQUIVOS } from './test-support/desfaz-kids-venda-2010.mjs'
+import { renderCardArrival } from './test-support/paginas-ia-claras-cards-harness.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 — efeito e cliques reais do componente compartilhado.
 
 const BASE = '2b2ea93971ca7fef45ec1bfa46d94d48281bd934' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 const rd = (p) => readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
@@ -204,6 +205,53 @@ for (const [file, props, vitrine] of RENDERS) {
   ok(!vitrine || corpo.includes('data-pagina-clara="vitrine"'), `${file} ${JSON.stringify(props)}: ${vitrine ? 'a vitrine atual renderizada' : 'página sem galeria (nada a trocar)'}`)
   const ruins = escurosNoHtml(html)
   ok(ruins.length === 0, `${file} ${JSON.stringify(props)}: nenhum fundo escuro neutro nem texto claro do tema preto no HTML${ruins.length ? ' — ' + ruins.slice(0, 2).join(' | ') : ''}`)
+}
+
+// ── O. complemento do fundador22/10: Cartoon primeiro para origem ChatGPT/OpenAI, na home E nas entradas ────────────
+console.log('\nO. origem → efeito → ordem DOM → posições reais dos cliques (home e páginas compartilham a mesma faixa)')
+const CARD_COMPONENT = 'components/home/HomeThreeCards.tsx', KIDS_COMPONENT = 'components/home/HomeKidsCard.tsx'
+const originalCards = { [CARD_COMPONENT]: base(CARD_COMPONENT), [KIDS_COMPONENT]: base(KIDS_COMPONENT) }
+const legacyCards = new Map()
+for (const signedIn of [false, true]) for (const kidsCard of [false, true]) legacyCards.set(`${signedIn}/${kidsCard}`, renderCardArrival({ signedIn, kidsCard, server: true, overrides: originalCards }))
+const arrivals = [
+  { name: 'UTM ChatGPT', search: '?utm_source=ChatGPT', first: true },
+  { name: 'UTM OPENAI', search: '?utm_source=OPENAI', first: true },
+  { name: 'referrer ChatGPT', referrer: 'https://chatgpt.com/c/fixture', first: true },
+  { name: 'referrer OpenAI', referrer: 'https://www.OpenAI.com/', first: true },
+  { name: 'UTM Google + referrer ChatGPT', search: '?utm_source=google', referrer: 'https://chatgpt.com/', first: true },
+  { name: 'sem origem', first: false },
+  { name: 'Google', search: '?utm_source=google', referrer: 'https://google.com/', first: false },
+  { name: 'Claude', search: '?utm_source=claude', referrer: 'https://claude.ai/', first: false },
+]
+function arrivalCorrect(options, overrides = {}) {
+  const result = renderCardArrival({ ...options, overrides })
+  const before = legacyCards.get(`${options.signedIn}/${options.kidsCard}`)
+  const expected = options.kidsCard && options.first ? ['kids_cartoon', 'films', 'product_ads', 'ugc_ads'] : before.order
+  const domOrder = [...result.html.replace(/<style[\s\S]*?<\/style>/g, '').matchAll(/data-home-card="([^"]+)"/g)].map(m => m[1])
+  const hrefByCard = Object.fromEntries(before.events.map(e => [e.metadata.card, e.metadata.href]))
+  return JSON.stringify(result.order) === JSON.stringify(expected) && JSON.stringify(domOrder) === JSON.stringify(expected) &&
+    new Set(result.order).size === expected.length && result.initialHtml === before.html &&
+    result.events.length === expected.length && result.events.every((e, i) => e.event === 'home_card_clicked' &&
+      e.metadata.card === expected[i] && e.metadata.position === i + 1 && e.metadata.href === hrefByCard[expected[i]] &&
+      result.hrefs[i] === e.metadata.href && e.metadata.signed_in === options.signedIn && e.metadata.surface === 'home' && e.metadata.card_v === 1)
+}
+const arrivalMatrix = arrivals.flatMap(arrival => [false, true].flatMap(signedIn => [false, true].map(kidsCard => ({ ...arrival, signedIn, kidsCard }))))
+for (const options of arrivalMatrix) ok(arrivalCorrect(options), `O ${options.name}; signedIn=${options.signedIn}; kidsCard=${options.kidsCard}: SSR padrão, origem correta, DOM sem duplicação e cliques com posições/destinos reais`)
+for (const [name, file, from, to] of [
+  ['efeito não reconhece origem', CARD_COMPONENT, 'setChatgptArrival(vemDoChatgpt(new URLSearchParams(window.location.search).get(\'utm_source\'), document.referrer))', 'setChatgptArrival(false)'],
+  ['Cartoon primeiro também para Google/Claude', CARD_COMPONENT, '? chatgptArrival ?', '? true ?'],
+  ['referrer ignorado', CARD_COMPONENT, ', document.referrer))', ", ''))"],
+  ['Cartoon duplicado', CARD_COMPONENT, "['kids_cartoon', ...HOME_CARD_ORDER]", "['kids_cartoon', 'kids_cartoon', ...HOME_CARD_ORDER]"],
+  ['interruptor do quarto card ignorado', CARD_COMPONENT, "const cardOrder: readonly (HomeCardId | 'kids_cartoon')[] = kidsCard", "const cardOrder: readonly (HomeCardId | 'kids_cartoon')[] = true"],
+  ['cliques dos três cards guardam posições antigas', CARD_COMPONENT, '...homeCardClickMetadata(card, signedIn), position', '...homeCardClickMetadata(card, signedIn), position: HOME_CARD_ORDER.indexOf(card) + 1'],
+  ['Cartoon continua medido como quarto', KIDS_COMPONENT, '...homeKidsCardClickMetadata(signedIn), position', '...homeKidsCardClickMetadata(signedIn), position: HOME_KIDS_CARD_POSITION'],
+  ['SSR começa com Cartoon primeiro', CARD_COMPONENT, 'useState(false)', 'useState(true)'],
+]) {
+  const source = rd(file), applied = source.split(from).length - 1 === 1
+  const changed = applied ? source.replace(from, to) : source
+  let rejected = false
+  if (applied) try { rejected = !arrivalMatrix.every(options => arrivalCorrect(options, { [file]: changed })) } catch { rejected = true }
+  ok(applied && rejected, `O mutante aplicado e recusado: ${name}`)
 }
 
 // ── X. o desfaz dos guardiões antigos ───────────────────────────────────────────────────────────────────────────────
