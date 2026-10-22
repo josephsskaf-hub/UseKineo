@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
-const F = { finish: 'lib/ads/cena/finish95.ts', runtime: 'lib/ads/cena/runtime95.ts', audio: 'lib/ads/cena/audio95Runtime.ts', usage: 'lib/ads/cena/usage95.ts', internal: 'lib/ads/cena/internal.ts', route: 'app/api/admin/ads-cena/route.ts', plan: 'lib/ads/cena/plan95.ts', script: 'lib/ads/cena/script95.ts', presenters: 'lib/ads/cena/presenters95.ts', catalog: 'lib/ads/cena/catalog.ts', pipe: 'lib/ads/cena/pipeline95.ts' }
+const F = { finish: 'lib/ads/cena/finish95.ts', runtime: 'lib/ads/cena/runtime95.ts', audio: 'lib/ads/cena/audio95Runtime.ts', usage: 'lib/ads/cena/usage95.ts', internal: 'lib/ads/cena/internal.ts', route: 'app/api/admin/ads-cena/route.ts', plan: 'lib/ads/cena/plan95.ts', script: 'lib/ads/cena/script95.ts', presenters: 'lib/ads/cena/presenters95.ts', catalog: 'lib/ads/cena/catalog.ts', pipe: 'lib/ads/cena/pipeline95.ts', legacyRuntime: 'lib/ads/cena/runtime.ts', advance: 'lib/ads/v2Advance.ts', earlyAudio: 'lib/ads/v2AudioCedo.ts' }
 const plain = x => JSON.parse(JSON.stringify(x))
 const photo = 'https://offline.example/calm-leaf.png', voice = 'https://offline.example/narration.mp3'
 const house = { id: 'owner-95', email: 'josephsskaf@gmail.com' }
@@ -92,6 +92,9 @@ async function audioProof(over = {}) {
   assert.deepEqual([subscribe, download, upload], [1, 1, 1])
   for (const duration of [undefined, 15001]) await assert.rejects(A.synthesizeCena95NarratedVoice(request, { ...deps, subscribe: async () => ({ audio: { url: voice }, duration_ms: duration }) }), /cena95_voice_(missing_duration|does_not_fit)/)
   assert.deepEqual([download, upload], [1, 1])
+  const bounded = []
+  await A.synthesizeCena95NarratedVoice(request, { timeoutMs: 30000, downloadTimeoutMs: 10000, subscribe: async (_, args) => { bounded.push(args.timeout); return { audio: { url: voice }, duration_ms: 13200 } }, download: async (_, ms) => { bounded.push(ms); return Buffer.from('offline') }, upload: async () => voice })
+  assert.deepEqual(bounded, [30000, 10000])
   let posts = 0
   const sdk = { createFalClient: options => ({ subscribe: async () => { let last; for (let i = 0; i < 3; i++) try { return await options.fetch('https://offline.example/paid', { method: 'POST' }) } catch (e) { last = e } throw last } }) }
   const B = loader(over, { '@fal-ai/client': sdk })(F.audio)
@@ -114,26 +117,31 @@ function database(row, options = {}) {
   return { admin, state, attempts, patches, fromCalls: () => fromCalls }
 }
 function runtimeWorld(plan, load, over = {}, options = {}) {
+  const clock = options.clock ?? { now: Date.now() }
+  class OfflineDate extends Date { constructor(...args) { super(...(args.length ? args : [clock.now])) } static now() { return clock.now } }
   const state = stateFor(plan, load, options.phase ?? 'ready')
   if (state.phase === 'ready') { state.voiceUrl = voice; state.voiceSeconds = 13.5; state.musicState = 'skipped' }
+  if (options.musicPending) delete state.musicState
   if (state.phase === 'failed') state.reason = 'cena95_base_rejected'
-  const world = database({ id: 'offline-95', user_id: house.id, status: 'generating', plan: { cena: { plan, route: state.route, score95: state } }, billing_ref: 'adsv2-existing', credits_charged: 41, assembly_lease_at: options.busy ? new Date().toISOString() : null, assembly_submit_at: options.stamped ? '2026-10-21T00:00:00Z' : null }, options)
-  const trace = [], counts = { voice: 0, video: 0, renders: 0, refunds: 0 }, events = [], failures = []
+  const world = database({ id: 'offline-95', user_id: house.id, status: 'generating', plan: { cena: { plan, route: state.route, score95: state } }, billing_ref: 'adsv2-existing', credits_charged: 41, assembly_lease_at: options.busy ? new Date(clock.now).toISOString() : null, assembly_submit_at: options.stamped ? '2026-10-21T00:00:00Z' : null }, options)
+  const trace = [], counts = { voice: 0, video: 0, renders: 0, refunds: 0, musicSubmit: 0, musicPoll: 0, musicFetch: 0, musicUpload: 0 }, events = [], failures = []
+  const musicHandle = { requestId: 'lyria-existing-95', statusUrl: 'https://offline.example/lyria/status', responseUrl: 'https://offline.example/lyria/result' }
+  let currentDeadline
   class OfflineCreatomateError extends Error { constructor(ambiguous) { super('offline_creatomate'); this.ambiguous = ambiguous } }
   const mocks = {
     './frames95': { extractCena95Frames: async () => ({ frames: [] }) },
     './captions95': { cena95DefaultWindows: () => [], cena95NarratedWindows: () => [], cena95Captions: () => ({ words: [], timingSource: 'offline_nominal_boundary' }) },
     './montage95': { buildCena95Montage: () => ({ elements: [], duration: 15 }) },
-    './audio95Runtime': { synthesizeCena95NarratedVoice: async request => { counts.voice++; trace.push('voice'); assert.equal(request.endpoint, 'fal-ai/minimax/speech-2.8-hd'); const saved = world.state.plan.cena.score95; assert.ok(saved.voiceClaimedAt); assert.ok(saved.reservations.some(r => r.id === 'voice')); return { url: voice, durationMs: options.longVoice ? 15001 : 13500 } } },
-    '@/lib/lyriaMusic': { getLyriaMusicUrl: async () => null },
-    '@/lib/compose': { CreatomateSubmitError: OfflineCreatomateError, estimateMp3DurationSeconds: () => 15, uploadVoiceoverToSupabase: async () => voice, submitCreatomateRender: async () => { counts.renders++; trace.push('render'); assert.equal(world.state.status, 'assembling'); assert.ok(world.state.assembly_submit_at); if (options.renderError) throw new OfflineCreatomateError(options.renderError === 'ambiguous'); return 'creatomate-offline-95' } },
+    './audio95Runtime': { synthesizeCena95NarratedVoice: async (request, transport) => { counts.voice++; trace.push('voice'); assert.equal(request.endpoint, 'fal-ai/minimax/speech-2.8-hd'); assert.equal(transport.timeoutMs, 30000); assert.equal(transport.downloadTimeoutMs, 10000); const saved = world.state.plan.cena.score95; assert.ok(saved.voiceClaimedAt); assert.ok(saved.reservations.some(r => r.id === 'voice')); return { url: voice, durationMs: options.longVoice ? 15001 : 13500 } } },
+    '@/lib/lyriaMusic': { lyriaPromptFor: mood => 'offline-instrumental-' + mood, submeterLyria: async prompt => { counts.musicSubmit++; assert.equal(prompt, 'offline-instrumental-' + plan.quality95.musicMood); assert.ok(world.state.plan.cena.score95.musicClaimedAt); assert.ok(world.state.plan.cena.score95.reservations.some(r => r.id === 'music')); return options.musicPending ? musicHandle : null }, esperarLyria: async (handle, deadline) => { counts.musicPoll++; assert.deepEqual(plain(handle), musicHandle); assert.deepEqual(world.state.plan.cena.score95.musicHandle, musicHandle); assert.ok(deadline <= clock.now + 8000); assert.ok(deadline <= currentDeadline - 30000); return options.musicPollReady ? 'https://offline.example/lyria.mp3' : null } },
+    '@/lib/compose': { CreatomateSubmitError: OfflineCreatomateError, estimateMp3DurationSeconds: () => 15, uploadVoiceoverToSupabase: async () => { counts.musicUpload++; return 'https://offline.example/music-stored.mp3' }, submitCreatomateRender: async () => { counts.renders++; trace.push('render'); assert.equal(world.state.status, 'assembling'); assert.ok(world.state.assembly_submit_at); if (options.renderError) throw new OfflineCreatomateError(options.renderError === 'ambiguous'); return 'creatomate-offline-95' } },
     '../v2Shots': { submitShotOnce: async () => { counts.video++; trace.push('video'); if (plan.voice_mode === 'narrated') assert.ok(world.state.plan.cena.score95.voiceUrl, 'voz validada antes do vídeo de pessoa'); return { kind: 'accepted', requestId: 'offline-job-' + counts.video } }, pollFalJob: async () => ({ state: 'pending', url: null }), persistShotClip: async () => null },
     '../v2Images': { persistSceneImage: async () => photo },
     '@/lib/serverEvents': { writeServerEvent: async event => { events.push(plain(event)) } },
   }
-  const runtime = loader(over, mocks)(F.runtime)
+  const runtime = loader(over, mocks, { Date: OfflineDate, AbortSignal, fetch: async url => { counts.musicFetch++; assert.equal(url, 'https://offline.example/lyria.mp3'); return new Response(Buffer.from('offline-music'), { headers: { 'content-length': '13' } }) } })(F.runtime)
   const d = { json: async () => { throw new Error('unexpected_vision') }, fail: async reason => { failures.push(reason); if (world.state.status !== 'failed') { world.state.status = 'failed'; if (world.state.billing_ref && world.state.credits_charged) counts.refunds++ } } }
-  return { ...world, counts, trace, events, failures, score95: state, run: () => runtime.advanceCena95Order(world.admin, plain(world.state), d) }
+  return { ...world, counts, trace, events, failures, score95: state, clock, run: deadlineMs => { currentDeadline = deadlineMs ?? clock.now + 60000; return runtime.advanceCena95Order(world.admin, plain(world.state), { ...d, ...(deadlineMs !== undefined ? { deadlineMs } : {}) }) } }
 }
 async function runtimeProof(over = {}) {
   const { plan, load } = await makePlan(over)
@@ -153,11 +161,75 @@ async function runtimeProof(over = {}) {
 async function beforeVideoProof(over = {}) {
   const { plan, load } = await makePlan(over)
   const good = runtimeWorld(plan, load, over, { phase: 'videos' }); await good.run()
-  assert.equal(good.counts.voice, 1); assert.ok(good.counts.video > 0); assert.ok(good.trace.indexOf('voice') < good.trace.indexOf('video')); assert.equal(good.failures.length, 0)
+  assert.equal(good.counts.voice, 1); assert.equal(good.counts.video, 1, 'no máximo um job pago por avanço'); assert.ok(good.trace.indexOf('voice') < good.trace.indexOf('video')); assert.equal(good.failures.length, 0)
   const long = runtimeWorld(plan, load, over, { phase: 'videos', longVoice: true }); await long.run()
   assert.equal(long.counts.voice, 1); assert.equal(long.counts.video, 0); assert.equal(long.counts.refunds, 1); assert.deepEqual(long.failures, ['cena95_voice_does_not_fit'])
   const talkingPlan = { ...plan, voice_mode: 'talking', audioMode: 'native', input: { ...plan.input, voice_mode: 'talking' } }
   const talking = runtimeWorld(talkingPlan, load, over, { phase: 'videos' }); await talking.run(); assert.equal(talking.counts.voice, 0); assert.ok(talking.counts.video > 0)
+}
+async function deadlineProof(over = {}) {
+  const { plan, load } = await makePlan(over)
+  const exhausted = runtimeWorld(plan, load, over, { phase: 'videos' }); await exhausted.run(exhausted.clock.now + 9000)
+  assert.equal(exhausted.fromCalls(), 0); assert.equal(exhausted.counts.voice, 0); assert.equal(exhausted.counts.video, 0)
+  const shortVoice = runtimeWorld(plan, load, over, { phase: 'videos' }); await shortVoice.run(shortVoice.clock.now + 54000)
+  assert.equal(shortVoice.counts.voice, 0); assert.equal(shortVoice.counts.video, 0); assert.equal(shortVoice.failures.length, 0)
+  const shortVideo = runtimeWorld(plan, load, over, { phase: 'videos' }); Object.assign(shortVideo.state.plan.cena.score95, { voiceUrl: voice, voiceSeconds: 13.5 }); await shortVideo.run(shortVideo.clock.now + 34000)
+  assert.equal(shortVideo.counts.video, 0); assert.ok(shortVideo.state.plan.cena.score95.jobs.every(j => !j.claimedAt))
+  const shortMusic = runtimeWorld(plan, load, over, { musicPending: true }); await shortMusic.run(shortMusic.clock.now + 49000)
+  assert.equal(shortMusic.counts.musicSubmit, 0); assert.equal(shortMusic.counts.musicPoll, 0); assert.equal(shortMusic.counts.renders, 0)
+  const shortAssembly = runtimeWorld(plan, load, over); await shortAssembly.run(shortAssembly.clock.now + 24000)
+  assert.equal(shortAssembly.counts.renders, 0); assert.equal(shortAssembly.state.assembly_submit_at, null); assert.equal(shortAssembly.failures.length, 0)
+}
+async function pipelineDeadlineProof(over = {}) {
+  const { plan, load } = await makePlan(over), P = load(F.pipe), s = stateFor(plan, load, 'base')
+  const calls = { submit: 0, poll: 0, frames: 0, judge: 0 }; let budget = 0
+  const d = { now: () => 123456, save: async () => {}, event: async () => {}, canSpend: minimum => budget >= minimum, maxJobsPerStep: 1,
+    submit: async () => { calls.submit++; return { kind: 'accepted', requestId: 'offline-' + calls.submit } }, poll: async () => { calls.poll++; return { state: 'pending', url: null } }, persist: async () => photo,
+    frames: async () => { calls.frames++; return [] }, json: async () => { calls.judge++; return {} } }
+  await P.stepCena95(s, d); assert.equal(calls.submit, 0); assert.ok(s.jobs.every(j => j.status === 'new')); assert.equal(s.reservedUsd, 0)
+  budget = 60000; await P.stepCena95(s, d); assert.equal(calls.submit, 1); await P.stepCena95(s, d); assert.equal(calls.submit, 2)
+  budget = 34000; await P.stepCena95(s, d); assert.equal(calls.poll, 0)
+  budget = 60000; await P.stepCena95(s, d); assert.equal(calls.poll, 1, 'um único poll por avanço')
+  for (const j of s.jobs) { j.status = 'done'; j.url = photo }
+  budget = 24000; await P.stepCena95(s, d); assert.equal(calls.judge, 0); assert.ok(s.jobs.every(j => !j.judgeClaims?.base))
+  const video = stateFor(plan, load)
+  video.jobs = load('lib/ads/cena/adapters95.ts').cena95VideoRequests(plan, 'kling3', video.baseUrl).map((j, index) => ({ ...j, index: 100 + index, round: 1, status: 'done', url: 'https://offline.example/clip-' + index }))
+  budget = 49000; await P.stepCena95(video, d); assert.equal(calls.frames, 0); assert.ok(video.jobs.every(j => !j.frameClaimedAt))
+  video.jobs[0].frames = [0, 1.5, 3, 5, 7, 10].map(t => ({ t, url: 'https://offline.example/frame-' + t }))
+  budget = 24000; await P.stepCena95(video, d); assert.equal(calls.judge, 0); assert.ok(!video.jobs[0].judgeClaims?.hook)
+}
+async function musicResumeProof(over = {}) {
+  const { plan, load } = await makePlan(over), options = { musicPending: true }, w = runtimeWorld(plan, load, over, options)
+  await w.run(); assert.equal(w.counts.musicSubmit, 1); assert.equal(w.counts.musicPoll, 0); assert.equal(w.counts.renders, 0)
+  assert.ok(w.state.plan.cena.score95.musicHandle?.requestId, 'handle precisa estar salvo antes de retomar')
+  const handle = plain(w.state.plan.cena.score95.musicHandle); assert.equal(handle.requestId, 'lyria-existing-95'); assert.equal(w.state.plan.cena.score95.musicState, undefined)
+  await w.run(); assert.equal(w.counts.musicSubmit, 1); assert.equal(w.counts.musicPoll, 1); assert.equal(w.counts.renders, 0); assert.deepEqual(w.state.plan.cena.score95.musicHandle, handle)
+  options.musicPollReady = true; await w.run(); await w.run()
+  assert.equal(w.counts.musicSubmit, 1); assert.equal(w.counts.musicPoll, 2); assert.equal(w.counts.musicFetch, 1); assert.equal(w.counts.musicUpload, 1); assert.equal(w.counts.renders, 1); assert.equal(w.counts.refunds, 0)
+  assert.equal(w.state.plan.cena.score95.musicState, 'done'); assert.equal(w.state.plan.cena.score95.musicUrl, 'https://offline.example/music-stored.mp3')
+  const timed = runtimeWorld(plan, load, over, { musicPending: true }); await timed.run(); timed.clock.now += 180001; await timed.run()
+  assert.equal(timed.counts.musicSubmit, 1); assert.equal(timed.counts.musicPoll, 0); assert.equal(timed.counts.renders, 1); assert.equal(timed.counts.refunds, 0); assert.equal(timed.state.plan.cena.score95.musicState, 'skipped')
+}
+const unusedImports = file => Object.fromEntries([...readFileSync(file, 'utf8').matchAll(/\bfrom\s*['"]([^'"]+)['"]/gu)].map(m => [m[1], {}]))
+async function deadlinePropagationProof(over = {}) {
+  const { plan } = await makePlan(over), supplied = Date.now() + 12345; let reached
+  // Só expõe a função privada no VM do teste; o corpo completo vem da fonte real.
+  const runtimeMocks = { ...unusedImports(F.legacyRuntime), '../access': { isAdsInternalEmail: email => email === house.email }, './catalog': { cenaEnabled: internal => internal }, './pipeline': { cenaOf: p => p.cena }, './adapters': { cenaAssertVoiceRoute() {} }, './runtime95': { advanceCena95Order: async (_, __, deps) => { reached = deps.deadlineMs } } }
+  const realRuntime = loader(over, runtimeMocks)(F.legacyRuntime)
+  const advanceSource = (over[F.advance] ?? readFileSync(F.advance, 'utf8')) + '\nexport { stepGenerating as offlineStepGenerating }\n'
+  const advance = loader({ ...over, [F.advance]: advanceSource }, { ...unusedImports(F.advance), '@/lib/ads/cena/runtime': { advanceCenaOrder: realRuntime.advanceCenaOrder } })(F.advance)
+  await advance.offlineStepGenerating({ auth: { admin: { getUserById: async () => ({ error: null, data: { user: house } }) } } }, { id: 'offline-forward', user_id: house.id, status: 'generating', plan: { cena: { plan, route: 'kling3' } } }, supplied)
+  assert.equal(reached, supplied, 'v2Advance → runtime legado → runtime95 preservam o prazo absoluto')
+}
+async function cronProof(over = {}) {
+  const { plan } = await makePlan(over), counts = { lease: 0, tts: 0, music: 0, storage: 0, db: 0, event: 0 }
+  const mocks = { ...unusedImports(F.earlyAudio), '@/lib/cronLease': { tomarVezDoCron: async () => { counts.lease++; return { ok: true } } }, '@/lib/lyriaMusic': { getLyriaMusicUrl: async () => { counts.music++; return 'https://offline.example/music.mp3' } }, '@/lib/ttsFallback': { synthesizeTtsFallback: async () => { counts.tts++; return Buffer.from('offline') } }, '@/lib/ads/v2Images': { persistAudioCopy: async () => { counts.storage++; return 'https://offline.example/music-stored.mp3' } }, '@/lib/compose': { estimateMp3DurationSeconds: () => 13.5, uploadVoiceoverToSupabase: async () => { counts.storage++; return voice } }, '@/lib/textLanguage': { narrationLanguage: () => 'en' }, '@/lib/ads/speakable': { speakableForTts: s => s }, '@/lib/ads/v2Pronounce': { adsV2NarrationForTts: s => s, adsV2PronounceOf: () => null }, '@/lib/ads/v2Advance': { adsV2PresenterPlanOf: () => null }, '@/lib/ads/v2CloseReal': { adsV2CloseRealOf: () => null }, '@/lib/serverEvents': { writeServerEvent: async () => { counts.event++ } } }
+  const C = loader(over, mocks)(F.earlyAudio), order = { id: 'offline-cron', user_id: house.id, status: 'generating', sector: 'store', language: 'en', narration: true, plan: { narration: plan.script.narration, cena: { plan } }, voice_url: null, music_url: null, voice_seconds: null }
+  const admin = { from: () => { counts.db++; const q = { update: () => q, eq: () => q, is: async () => ({ error: null }) }; return q } }
+  assert.deepEqual(plain(C.adsV2AudioCedoFalta(order)), { musica: false, voz: false, narracao: null })
+  assert.deepEqual(plain(await C.adsV2AudioCedo(admin, order)), { musica: 'pulada', voz: 'pulada' }); assert.ok(Object.values(counts).every(n => n === 0), 'nenhum efeito ou lease do cron para Cena95')
+  const legacy = plain(order); delete legacy.plan.cena
+  assert.deepEqual(plain(await C.adsV2AudioCedo(admin, legacy)), { musica: 'pronta', voz: 'pronta' }); assert.deepEqual(counts, { lease: 1, tts: 1, music: 1, storage: 2, db: 2, event: 1 })
 }
 async function usageProof(over = {}) {
   const { plan, load } = await makePlan(over), state = stateFor(plan, load)
@@ -197,7 +269,7 @@ async function routeGateProof(over = {}) {
   }
 }
 
-const proofs = [['plano real: 39 palavras, gancho, oferta, benefícios, chá e rotação', planProof], ['voz: intenção salva, tentativa incerta e talking sem TTS', voiceProof], ['música opcional: falha/telemetria e intenção incerta sem repetição', musicProof], ['MiniMax real: transporte medido e SDK sem repetir POST', audioProof], ['runtime real: lease, CAS, stamp, montagem e d.fail existente', runtimeProof], ['voz medida antes do vídeo de pessoa e talking sem síntese', beforeVideoProof], ['observação de unidades nunca vira fatura inventada', usageProof], ['histórico real: dono, últimos três, falha fechada e gates', internalProof], ['rota real: off/externo antes de DB e req.json', routeGateProof]]
+const proofs = [['plano real: 39 palavras, gancho, oferta, benefícios, chá e rotação', planProof], ['voz: intenção salva, tentativa incerta e talking sem TTS', voiceProof], ['música opcional: falha/telemetria e intenção incerta sem repetição', musicProof], ['MiniMax real: transporte medido e SDK sem repetir POST', audioProof], ['runtime real: lease, CAS, stamp, montagem e d.fail existente', runtimeProof], ['voz medida antes do vídeo de pessoa e talking sem síntese', beforeVideoProof], ['runtime adia sem janela de voz/vídeo/música/montagem', deadlineProof], ['pipeline respeita prazo e um único submit/poll por avanço', pipelineDeadlineProof], ['música retoma o mesmo handle e timeout é não fatal', musicResumeProof], ['prazo absoluto propagado por v2Advance/runtime/runtime95 reais', deadlinePropagationProof], ['cron legado exclui Cena95 sem efeito e mantém caminho anterior', cronProof], ['observação de unidades nunca vira fatura inventada', usageProof], ['histórico real: dono, últimos três, falha fechada e gates', internalProof], ['rota real: off/externo antes de DB e req.json', routeGateProof]]
 let good = 0, bad = 0
 async function check(name, fn) { try { await fn(); good++; console.log('  ok  ' + name) } catch (e) { bad++; console.log('  FALHA ' + name + ' → ' + e.message); if (process.argv.includes('--debug')) console.error(e.stack) } }
 for (const [name, proof] of proofs) await check(name, proof)
@@ -208,7 +280,7 @@ const mutations = [
   ['talking usa TTS', F.finish, "if (s.plan.voice_mode === 'talking')", 'if (false)', voiceProof],
   ['voz longa aceita antes de vídeo', F.finish, 'result.durationMs <= 15_000', 'result.durationMs <= 30_000', beforeVideoProof],
   ['falha de música derruba anúncio', F.finish, "s.musicUrl = undefined; s.musicState = 'skipped'", 'throw e', musicProof],
-  ['música incerta repetida', F.finish, "if (s.musicClaimedAt) { s.musicState = 'skipped'; await d.save(s); return }", '', musicProof],
+  ['música incerta repetida', F.finish, "if (s.musicClaimedAt && (!s.musicHandle || d.now() - s.musicClaimedAt > 3 * 60_000)) { s.musicState = 'skipped'; await d.save(s); return }", '', musicProof],
   ['telemetria de música passa a fatal', F.finish, "try { await d.event('ads_cena95_music', { state: s.musicState }) } catch { /* best effort */ }", "await d.event('ads_cena95_music', { state: s.musicState })", musicProof],
   ['vídeo de pessoa antes da voz', F.runtime, 'await prepareCena95Voice(s, audio)', 'void 0', beforeVideoProof],
   ['lease recente ignorado', F.runtime, 'if (order.assembly_lease_at && Date.now() - Date.parse(order.assembly_lease_at) < 5 * 60_000) return', '', runtimeProof],
@@ -227,8 +299,29 @@ const mutations = [
   ['chá recebe ação de garrafa', F.catalog, 'prepares the tea in a cup', 'opens a bottle', planProof],
   ['retry do SDK repete POST pago', F.audio, "if (posted) throw new Error('cena95_voice_submit_unconfirmed')", 'if (false) throw new Error(\'disabled\')', audioProof],
   ['rota perde gate antes de DB/JSON', F.route, "if (!isAdminEmail(user.email) || !cenaEnabled(isAdsInternalEmail(user.email)))", 'if (false)', routeGateProof],
+  ['canSpend ignora o prazo real', F.runtime, 'canSpend = (ms: number) => deadlineMs - Date.now() >= ms', 'canSpend = (_ms: number) => true', deadlineProof],
+  ['voz começa sem janela de 55s', F.runtime, "if (s.phase === 'videos' && s.plan.voice_mode === 'narrated' && !s.voiceUrl && !canSpend(55_000)) return", '', deadlineProof],
+  ['música começa sem janela de 50s', F.runtime, 'if (!s.musicState && !canSpend(50_000)) return', '', deadlineProof],
+  ['montagem começa sem janela de 25s', F.runtime, 'if (!s.musicState || !canSpend(25_000)) return', 'if (!s.musicState) return', deadlineProof],
+  ['runtime permite dois jobs no mesmo avanço', F.runtime, 'maxJobsPerStep: 1', 'maxJobsPerStep: 2', beforeVideoProof],
+  ['pipeline ignora limite de submits', F.pipe, 'fresh.slice(0, d.maxJobsPerStep ?? fresh.length)', 'fresh', pipelineDeadlineProof],
+  ['pipeline ignora limite de polls', F.pipe, '.slice(0, d.maxJobsPerStep ?? active.length)', '', pipelineDeadlineProof],
+  ['submit começa sem janela de 35s', F.pipe, 'if (d.canSpend && !d.canSpend(35_000)) return; ', '', pipelineDeadlineProof],
+  ['poll começa sem janela de 35s', F.pipe, 'if (d.canSpend && !d.canSpend(35_000)) return\n    const results', 'const results', pipelineDeadlineProof],
+  ['frames começam sem janela de 50s', F.pipe, 'if (d.canSpend && !d.canSpend(50_000)) return', '', pipelineDeadlineProof],
+  ['juiz começa sem janela de 25s', F.pipe, 'if (d.canSpend && !d.canSpend(25_000)) return', '', pipelineDeadlineProof],
+  ['música pendente é submetida de novo', F.runtime, 'if (!s.musicHandle)', 'if (true)', musicResumeProof],
+  ['handle da música não é salvo', F.runtime, 's.musicHandle = handle; await save(s)', 'await save(s)', musicResumeProof],
+  ['música pendente vira conclusão prematura', F.finish, "if (url && typeof url === 'object') { await d.save(s); return }", '', musicResumeProof],
+  ['música aguarda além dos três minutos', F.finish, 'd.now() - s.musicClaimedAt > 3 * 60_000', 'd.now() - s.musicClaimedAt > 30 * 60_000', musicResumeProof],
+  ['cron duplica áudio da Cena95', F.earlyAudio, ".cena?.plan?.quality95?.version === 'KINEO-ADS-CENA-95-2110'", ".cena?.plan?.quality95?.version === 'disabled_cena95_guard'", cronProof],
+  ['v2Advance perde prazo do chamador', F.advance, 'advanceCenaOrder(admin, order, deadlineMs)', 'advanceCenaOrder(admin, order)', deadlinePropagationProof],
+  ['runtime intermediário perde prazo', F.legacyRuntime, 'fail: reason => failCenaOrder(admin, order, reason), deadlineMs', 'fail: reason => failCenaOrder(admin, order, reason), deadlineMs: undefined', deadlinePropagationProof],
+  ['transporte ignora timeout limitado', F.audio, 'timeout: deps.timeoutMs ?? 90_000', 'timeout: 90_000', audioProof],
+  ['transporte ignora download limitado', F.audio, 'deps.downloadTimeoutMs ?? 20_000', '20_000', audioProof],
+  ['runtime volta a voz de 90s', F.runtime, 'timeoutMs: 30_000, downloadTimeoutMs: 10_000', 'timeoutMs: 90_000, downloadTimeoutMs: 10_000', beforeVideoProof],
 ]
 let killed = 0
-for (const [name, file, from, to, proof] of mutations) await check('mutante real fica VERMELHO: ' + name, async () => { const source = readFileSync(file, 'utf8').replace(/\r\n/g, '\n'); assert.ok(source.includes(from), 'mutante não aplicado: ' + name); const changed = source.replace(from, to); assert.notEqual(changed, source); let red = false; try { await proof({ [file]: changed }) } catch { red = true } assert.ok(red, 'mutante sobreviveu: ' + name); killed++ })
+for (const [name, file, from, to, proof] of mutations) await check('mutante real fica VERMELHO: ' + name, async () => { const source = readFileSync(file, 'utf8').replace(/\r\n/g, '\n'); assert.equal(source.split(from).length, 2, 'mutante exige um alvo exato: ' + name); const changed = source.replace(from, to); assert.notEqual(changed, source); let red = false; try { await proof({ [file]: changed }) } catch (e) { assert.ok(!['SyntaxError', 'ReferenceError'].includes(e.name) && !/Unexpected import:|Offline test forbids|Module outside test workspace:/u.test(e.message), 'mutante inválido por sintaxe/import: ' + name + ' → ' + e.message); red = true } assert.ok(red, 'mutante sobreviveu: ' + name); killed++ })
 console.log(`\ntest-ads-cena-95-runtime-2110: ${good} verdes, ${bad} vermelhos; ${killed}/${mutations.length} mutantes reais vermelhos esperados; nenhum serviço, env, banco ou render real`)
 process.exitCode = bad ? 1 : 0
