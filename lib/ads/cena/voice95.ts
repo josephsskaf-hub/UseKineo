@@ -29,16 +29,18 @@ export function cena95NarratedVoiceRequest(data: Cena95NarratedVoiceInput) {
   const language = data.language, gender = data.gender, age = data.age
   if (!Object.hasOwn(CENA95_NARRATOR_VOICES, language) || !['female', 'male'].includes(gender) || !['young_adult', 'adult', 'mature'].includes(age)) throw new Error('cena95_voice_bad_profile')
   if (data.formato !== undefined && data.formato !== 'ugc' && data.formato !== 'product') throw new Error('cena95_voice_bad_format')
-  const speed = data.speed ?? 1, wps = data.estimatedWordsPerSecond ?? 2.75
+  // Direções de planejamento independentes, não uma calibração medida de speed→palavras/s; a resposta mede duration_ms.
+  const speed = data.speed ?? 1.05, wps = data.estimatedWordsPerSecond ?? 2.9
   if (!Number.isFinite(speed) || speed < 0.5 || speed > 2) throw new Error('cena95_voice_bad_speed')
   if (!Number.isFinite(wps) || wps < 2.6 || wps > 2.9) throw new Error('cena95_voice_bad_estimated_rate')
   const voiceId = CENA95_NARRATOR_VOICES[language][gender][age]
   const languageBoost = ({ en: 'English', pt: 'Portuguese', es: 'Spanish' } as const)[language]
   const formato = data.formato ?? 'product'
+  const emotion: 'happy' | 'neutral' = formato === 'ugc' ? 'happy' : 'neutral'
   return {
     endpoint: CENA95_MINIMAX_ENDPOINT,
     input: { prompt: text, output_format: 'url' as const, language_boost: languageBoost,
-      voice_setting: { voice_id: voiceId, speed, pitch: 0, vol: 1, emotion: 'neutral' as const },
+      voice_setting: { voice_id: voiceId, speed, pitch: 0, vol: 1, emotion },
       audio_setting: { format: 'mp3' as const, sample_rate: 44100, bitrate: 128000, channel: 1 },
     },
     profile: { language, gender, age, voiceId, formato, style: formato === 'ugc' ? 'conversational' : 'confident_product_demonstration',

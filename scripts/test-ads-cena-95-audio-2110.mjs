@@ -18,11 +18,12 @@ function voiceProof(over = {}) {
     assert.equal(r.profile.gender, gender); assert.equal(r.profile.age, age); assert.equal(r.profile.language, language)
     assert.equal(r.profile.ageBasis, 'editorial_direction_not_measured_age')
     assert.equal(r.profile.availability, 'documented_not_audio_validated')
-    assert.equal(r.profile.style, 'conversational'); assert.equal(r.input.voice_setting.emotion, 'neutral')
+    assert.equal(r.profile.style, 'conversational'); assert.equal(r.input.voice_setting.emotion, 'happy')
     assert.ok(!('gender' in r.input) && !('age' in r.input) && !('style' in r.input), 'nenhum parâmetro inventado enviado ao fornecedor')
     same(r.input.audio_setting, { format: 'mp3', sample_rate: 44100, bitrate: 128000, channel: 1 })
     assert.ok(r.estimated.wordsPerSecond >= 2.6 && r.estimated.wordsPerSecond <= 2.9)
     assert.equal(r.estimated.basis, 'planning_assumption_not_measured')
+    assert.equal(r.input.voice_setting.speed, 1.05); assert.equal(r.estimated.wordsPerSecond, 2.9)
   }
   const r = V.cena95NarratedVoiceRequest(voiceInput)
   assert.equal(r.input.prompt, 'Meet Pulse. A watch for your run. <#0.35#> Shop Pulse now.')
@@ -30,6 +31,11 @@ function voiceProof(over = {}) {
   assert.equal(r.estimated.pauseSeconds, 0.35)
   const product = V.cena95NarratedVoiceRequest({ text: 'Veja o Pulse.', language: 'pt', gender: 'male', age: 'mature', formato: 'product' })
   assert.equal(product.profile.style, 'confident_product_demonstration'); assert.equal(product.input.voice_setting.emotion, 'neutral')
+  const ugc = V.cena95NarratedVoiceRequest({ text: 'Veja o Pulse.', language: 'pt', gender: 'male', age: 'mature', formato: 'ugc' })
+  assert.equal(ugc.input.voice_setting.emotion, 'happy', 'formato muda campo DOCUMENTADO do payload, não apenas metadado')
+  same({ ...ugc.input, voice_setting: { ...ugc.input.voice_setting, emotion: 'neutral' } }, product.input)
+  assert.equal(ugc.input.prompt, product.input.prompt, 'direção não vira prefixo falado nem altera copy')
+  assert.equal(V.cena95NarratedVoiceRequest({ ...voiceInput, speed: 1 }).input.voice_setting.speed, 1, 'override de velocidade é preservado')
   for (const bad of [{ language: 'xx' }, { gender: 'unknown' }, { age: 'child' }, { speed: 2.75 }, { estimatedWordsPerSecond: 3.1 }, { pauseSeconds: 0 }]) assert.throws(() => V.cena95NarratedVoiceRequest({ ...voiceInput, ...bad }), /cena95_voice_bad_/)
   assert.throws(() => V.cena95NarratedVoiceRequest({ ...voiceInput, text: 'Do not mix contracts.' }), /cena95_voice_bad_cta_parts/)
   assert.throws(() => V.cena95NarratedVoiceRequest({ text: 'One voice.', language: 'en', gender: 'male', age: 'adult', pauseSeconds: 0.35 }), /cena95_voice_pause_needs_cta_parts/)
@@ -124,6 +130,8 @@ function changed(file, from, to) { const text = readFileSync(file, 'utf8').repla
 const mutants = [
   ['muda modelo MiniMax existente', voiceProof, files.voice, "CENA95_MINIMAX_ENDPOINT = 'fal-ai/minimax/speech-2.8-hd'", "CENA95_MINIMAX_ENDPOINT = 'invented/model'"],
   ['pausa textual some', voiceProof, files.voice, '<#${pause.toFixed(2)}#>', ''],
+  ['formato muda só perfil sem efeito no payload', voiceProof, files.voice, "formato === 'ugc' ? 'happy' : 'neutral'", "'neutral'"],
+  ['velocidade padrão perde direção1.05', voiceProof, files.voice, 'data.speed ?? 1.05', 'data.speed ?? 1'],
   ['caracteres excluem pausa enviada', voiceProof, files.voice, 'billingCharacters: text.length', 'billingCharacters: clean(data.beforeCta).length + clean(data.cta).length'],
   ['ignora duração ausente', resultProof, files.voice, 'const ms = body?.duration_ms', 'const ms = body?.duration_ms ?? 15000'],
   ['best-of-2 vira imagem única', costProof, files.costs, "add('keyframes', 2, 4", "add('keyframes', 1, 4"],
