@@ -1,6 +1,6 @@
 {
   "classification": "EVIDÊNCIA DA VERIFICAÇÃO DO ARTEFATO — sem teste de produto",
-  "checkedAtUtc": "2026-10-22T02:56:27.836Z",
+  "checkedAtUtc": "2026-10-22T02:57:20.122Z",
   "task": "KINEO-GEO-NOITE-2110",
   "audit": {
     "questions": 100,
@@ -63,8 +63,7 @@
   },
   "localLinkIssues": [],
   "proposalOnly": {
-    "branchDisabled": true,
-    "existingCronsPreserved": true,
-    "applied": false
+    "applied": false,
+    "resolution": "Fundador autorizou push de docs com Preview automático da branch codex/*; vercel.json permanece intacto."
   }
 }

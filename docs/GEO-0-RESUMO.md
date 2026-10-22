@@ -64,18 +64,8 @@
 
 [EVIDÊNCIA DE VERIFICAÇÃO LOCAL] Cada etapa foi salva em commit na branch solicitada, sem alterar a main suja do workspace original. O SHA final será informado na mensagem de entrega; ele não é gravado dentro do próprio commit, pois seria autorreferente.
 
-[CONTRADIÇÃO OPERACIONAL / QUESTÃO PENDENTE] O pedido combina “somente docs”, “push” e “sem deploy”. O [histórico público de deployments do repositório](https://api.github.com/repos/josephsskaf-hub/UseKineo/deployments?per_page=12), consultado em 21/10/2026, registra Previews de outras branches. Captura: [github-deployments-public.json](geo-evidence-2110/github-deployments-public.json). A [documentação de Git da Vercel](https://vercel.com/docs/project-configuration/git-configuration), consultada em 21/10/2026, informa que branches não especificadas têm deploy automático habilitado por padrão. As configurações privadas do projeto não foram acessadas. Assim, não é possível garantir “nenhum deploy” apenas com um push documental.
+[SUGESTÃO — orientação expressa do fundador nesta tarefa, 21/10/2026] Joseph esclareceu: “Pode fazer o push sem mexer no vercel.json. Preview de branch codex/* é aceito e não é produção — todas as branches codex fazem isso. Mantenha só docs/ e siga com as etapas restantes.” A entrega mantém somente docs/ e o envio será exclusivamente para codex/geo-noite-2110. Nenhuma configuração de deploy foi alterada, nenhum PR foi aberto e nenhum deploy de produção foi solicitado.
 
-[SUGESTÃO — exceção mínima para revisão, não aplicada] Se o fundador autorizar uma exceção à restrição de alterar somente docs, acrescentar esta chave ao objeto raiz existente de vercel.json, preservando crons e todas as outras chaves. Ela desativa deploy Git apenas desta branch; não altera main. Alternativamente, o fundador pode confirmar que esta branch já está excluída no projeto. Até essa decisão, os commits ficam preservados localmente.
+[EVIDÊNCIA DE PRODUÇÃO — histórico público, consulta 21/10/2026] O [histórico do GitHub](https://api.github.com/repos/josephsskaf-hub/UseKineo/deployments?per_page=12) registra Previews anteriores, preservados em [github-deployments-public.json](geo-evidence-2110/github-deployments-public.json). Um Preview automático desta branch está autorizado; isso não publica os textos nas páginas canônicas de produção.
 
-~~~json
-{
-  "git": {
-    "deploymentEnabled": {
-      "codex/geo-noite-2110": false
-    }
-  }
-}
-~~~
-
-[QUESTÃO PENDENTE / DESCONHECIDO] O trecho acima é uma proposta de configuração adicional, não uma substituição do vercel.json inteiro. Não foi aplicado e nenhum push foi usado como teste para descobrir se haveria deploy.
+[QUESTÃO PENDENTE / DESCONHECIDO] O histórico das versões locais está preservado em commits. O envio remoto é conferido pelo SHA da branch e informado na entrega; indexação, citação em IA e vendas continuam sem validação por este pacote.
