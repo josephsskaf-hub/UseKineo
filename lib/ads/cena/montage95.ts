@@ -67,7 +67,7 @@ export function buildCena95Montage(s: Cena95MontageInput): Record<string, unknow
   if (mode === 'narrated' && (!https(s.voiceUrl) || s.nativeAudioClips?.length)) throw new Error('cena95_narration_required')
   if (mode === 'talking' && s.voiceUrl) throw new Error('cena95_talking_tts_forbidden')
   const native = [...(s.nativeAudioClips ?? [])].sort((a, b) => a.start - b.start)
-  if (mode === 'talking' && !continuous(native, 15)) throw new Error('cena95_native_audio_required')
+  if (mode === 'talking' && (!continuous(native, 15) || !native.every(c => c.hasSpeech === true))) throw new Error('cena95_native_audio_required')
   if (s.voiceSeconds !== undefined && !(Number.isFinite(s.voiceSeconds) && s.voiceSeconds > 0 && s.voiceSeconds <= 15)) throw new Error('cena95_voice_duration_invalid')
   const captions = cena95Captions({ text: s.plan.script.narration, language: s.plan.input.language ?? 'en', words: s.words, speechWindows: s.speechWindows ?? cena95DefaultWindows(s.plan.script) })
   const elements: Record<string, unknown>[] = clips.map(c => ({ type: 'video', track: 2, time: c.start, duration: c.keepSeconds, source: c.url, trim_start: c.trimStart ?? 0, loop: false, fit: 'cover', x: '50%', y: '50%', width: '100%', height: '100%', volume: '0%' }))

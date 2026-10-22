@@ -103,6 +103,8 @@ export function proof95(over = {}) {
   const short = fixture95(); short.selectedClips.at(-1).seconds = 4; assert.throws(() => M.buildCena95Montage(short), /timeline/)
   const hand = fixture95(); hand.selectedClips.at(-1).hasSpeech = true; assert.throws(() => M.buildCena95Montage(hand), /real_photo/)
   const missing = fixture95('talking'); delete missing.nativeAudioClips; assert.throws(() => M.buildCena95Montage(missing), /native_audio/)
+  const mute = fixture95('talking'); mute.nativeAudioClips[0].hasSpeech = false; assert.throws(() => M.buildCena95Montage(mute), /native_audio/, 'talking jamais pode entregar áudio marcado sem fala')
+  const partlyMute = fixture95('talking', 'veo31'); partlyMute.nativeAudioClips[1].hasSpeech = false; assert.throws(() => M.buildCena95Montage(partlyMute), /native_audio/, 'a última frase/CTA nativa também precisa de fala')
   const tts = fixture95('talking'); tts.voiceUrl = 'https://offline.example/wrong-tts.mp3'; assert.throws(() => M.buildCena95Montage(tts), /tts_forbidden/)
   const silent = fixture95(); delete silent.voiceUrl; assert.throws(() => M.buildCena95Montage(silent), /narration_required/)
   const noMusic = fixture95(); delete noMusic.musicUrl; assert.ok(!M.buildCena95Montage(noMusic).elements.some(e => e.track === 60))
@@ -131,6 +133,7 @@ export function run95() {
     [MONT, 'música perde duck', 'duck ? CENA95_DUCK_DB : CENA95_MUSIC_DB', 'CENA95_MUSIC_DB'],
     [MONT, 'música reinicia a cada corte', 'trim_start: start', 'trim_start: 0'],
     [MONT, 'talking aceita TTS', "if (mode === 'talking' && s.voiceUrl)", 'if (false)'],
+    [MONT, 'talking aceita trecho nativo sem fala', ' || !native.every(c => c.hasSpeech === true)', ''],
     [MONT, 'close vira imagem parada', "type: 'video', track: 2", "type: 'image', track: 2"],
     [MONT, 'CTA final perde destaque', '[color #FFD400]${part}[/color]', '[color #ffffff]${part}[/color]'],
   ]
