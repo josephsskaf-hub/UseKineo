@@ -26,6 +26,7 @@ export function cena95Sentences(raw: string): string[] {
 }
 export function cena95VisualDirection(s: string): boolean {
   return /\b(?:watch\s+(?:as|how|the)|see\s+(?:how|the)|look\s+at|they|their|the\s+(?:actor|presenter|athlete)|camera\s+(?:moves|pans|zooms|follows|pushes)|(?:slow|wide|medium|tracking)\s+shot|close[ -]?up|push[ -]?in|cut\s+to|lip[ -]?sync|veja(?:m)?|observe(?:m)?|a\s+c[aâ]mera|enquadramento|plano\s+(?:aberto|fechado)|ela\s+(?:aplica|calça|corre)|ele\s+(?:aplica|calça|corre))\b/iu.test(s)
+    || /^(?:speak|say|narrate|smile|pause|deliver|fale|diga|narre|sorria|pause)\b/iu.test(s.trim())
 }
 function spokenSentence(raw: string, language: string): string {
   let s = clean(raw).replace(/^\s*(?:\d+[.)]\s+|[-–—•]\s*)/u, '')
@@ -41,7 +42,7 @@ function benefitSentence(raw: string, language: string): string {
   if (!text || cena95VisualDirection(text)) return ''
   if (language === 'pt') {
     if (/^(?:o|a|os|as|você|voce|este|esta|ele|ela)\s/iu.test(text)) return spokenSentence(fragment, language)
-    if (/^(?:não|nao|pode|tem|é|hidrata|ajuda|oferece|possui|mantém|mantem|reduz|protege|contém|contem|dura)\b/iu.test(text)) return stop('O produto ' + text)
+    if (/^(?:não|nao|pode|tem|é|hidrata|ajuda|oferece|possui|mantém|mantem|reduz|protege|contém|contem|dura)(?=\s|$)/iu.test(text)) return stop('O produto ' + text)
     if (/^(?:leve|macio|macia|flexível|flexivel|ajustável|ajustavel|impermeável|impermeavel)$/iu.test(text)) return stop('O produto é ' + text.replace(/macia$/iu, 'macio'))
     return stop('O produto oferece ' + text)
   }
@@ -74,9 +75,9 @@ export function repairCena95Text(raw: unknown, input: CenaInput, product: string
   const spokenOffer = offer ? stop(offerIsSentence ? firstUpper(offer) : (language === 'pt' ? /^frete\b/iu.test(offer) ? 'Aproveite o ' : 'Aproveite ' : language === 'es' ? 'Aprovecha ' : 'Get ') + firstLower(offer)) : ''
   const defaultCta = stop((language === 'pt' ? 'Escolha ' : language === 'es' ? 'Elige ' : 'Choose ') + product)
   const ctaChoices = cena95Sentences(input.cta ?? clean(r.cta)).map(s => spokenSentence(s, language)).filter(s => s && accept(s))
-  let cta = input.cta ? spokenSentence(input.cta, language) : ctaChoices[ctaChoices.length - 1] || defaultCta
+  // Typed CTA is required copy, never a GPT stage direction: preserve labels such as [Pro] and verbs such as "Veja".
+  let cta = input.cta ? stop(firstUpper(clean(input.cta))) : ctaChoices[ctaChoices.length - 1] || defaultCta
   if (!input.cta && (cena95CountWords(cta) > (options.maxCtaWords ?? Math.floor(policy.wordsPerSecond * 4.65)) || !fold(cta).includes(fold(product).split(/\s+/u).find(w => w.length > 2) ?? fold(product)))) cta = defaultCta
-  if (input.cta && !spokenSentence(input.cta, language)) throw new Error('cena95_required_speech_does_not_fit')
   const required = [hooks[0], spokenOffer, cta].filter(Boolean).join(' ')
   if (cena95CountWords(required) > maxWords || options.maxCtaWords !== undefined && cena95CountWords(cta) > options.maxCtaWords) throw new Error('cena95_required_speech_does_not_fit')
   const middle = (field: 'pain' | 'demonstration') => cena95Sentences(clean(r[field])).map(s => {
