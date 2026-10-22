@@ -48,6 +48,23 @@ export function proof95(over = {}) {
   const estimated = C.cena95Captions({ text: s.plan.script.narration, language: 'pt', speechWindows: windows })
   assert.equal(estimated.timingSource, 'syllable_estimate'); assert.equal(estimated.words.length, 40)
   assert.ok(!estimated.words.some(w => w.start < 13.35 && w.end > 13), 'estimativa respeita silêncio CTA')
+  for (const seconds of [10, 12.8, 14.123456789, 15]) {
+    const measuredWindows = C.cena95NarratedWindows(s.plan.script, 'pt', seconds)
+    assert.equal(measuredWindows.at(-1).end, seconds, 'fim acompanha duração MEDIDA, nunca força15s')
+    assert.ok(Math.abs(measuredWindows.at(-1).start - measuredWindows[2].end - .35) < .000002, 'pausa do áudio composto fica imediatamente antesCTA')
+    assert.equal(measuredWindows.map(w => w.text).join(' '), s.plan.script.narration)
+    const weighted = C.cena95Captions({ text: s.plan.script.narration, language: 'pt', speechWindows: measuredWindows })
+    assert.equal(weighted.timingSource, 'syllable_estimate'); assert.equal(weighted.words.at(-1).end, seconds)
+    assert.equal(weighted.words.map(w => w.word).join(' '), s.plan.script.narration)
+    assert.ok(!weighted.words.some(w => w.start < measuredWindows[3].start && w.end > measuredWindows[2].end))
+    const firstWeight = s.plan.script.hook.split(' ').reduce((sum, word) => sum + C.cena95Syllables(word, 'pt'), 0)
+    const allWeight = s.plan.script.narration.split(' ').reduce((sum, word) => sum + C.cena95Syllables(word, 'pt'), 0)
+    assert.ok(Math.abs(measuredWindows[0].end - (seconds - .35) * firstWeight / allWeight) < .000002, 'cada trecho recebe peso de sílabas, não contagem de palavras')
+    if (seconds === 10) assert.ok(measuredWindows[3].start < 13, 'voz acelerada não recebe precisão inventada no CTA13s')
+  }
+  for (const bad of [0, .35, 16, NaN, Infinity]) assert.throws(() => C.cena95NarratedWindows(s.plan.script, 'pt', bad), /duration_invalid/)
+  assert.throws(() => C.cena95NarratedWindows({ ...s.plan.script, narration: 'uma frase diferente' }, 'pt', 15), /text_mismatch/)
+  assert.throws(() => C.cena95NarratedWindows({ ...s.plan.script, narration: s.plan.script.narration.replace('.', '!') }, 'pt', 15), /text_mismatch/, 'nem pontuação do texto é descartada')
   const provided = plain(estimated.words).map(w => ({ ...w, end: Math.max(w.start + .001, w.end - .01) }))
   const measured = C.cena95Captions({ text: s.plan.script.narration, language: 'pt', words: provided })
   assert.equal(measured.timingSource, 'provided_alignment'); assert.deepEqual(plain(measured.words), provided, 'timestamps reais preservados exatamente')
@@ -128,6 +145,9 @@ export function run95() {
     [CAP, 'legenda abaixo área segura', "y: '67%'", "y: '84%'"],
     [CAP, 'legenda desproporcional', 'height * 0.033', 'height * 0.07'],
     [CAP, 'alinhamento real descartado', 'word: textWords[k], start: w.start, end: w.end', 'word: textWords[k], start: w.start, end: w.end - .02'],
+    [CAP, 'TTS medido volta a forçar15s', 'const speechSeconds = voiceSeconds - pause', 'const speechSeconds = 15 - pause'],
+    [CAP, 'TTS perde pausa antesCTA', '(k === 3 ? pause : 0)', '(k === 3 ? 0 : 0)'],
+    [CAP, 'TTS perde sílabas por trecho', 'sum + cena95Syllables(word, language)', 'sum + 1'],
     [MONT, 'close aceita referência errada', 'close[0].photoReference !== s.plan.input.foto', 'false'],
     [MONT, 'áudio vídeo concorre TTS', "height: '100%', volume: '0%'", "height: '100%', volume: '100%'"],
     [MONT, 'música perde duck', 'duck ? CENA95_DUCK_DB : CENA95_MUSIC_DB', 'CENA95_MUSIC_DB'],

@@ -39,6 +39,25 @@ export function cena95DefaultWindows(script: { hook: string; use: string; benefi
   return [{ start: 0, end: 1.5, text: script.hook }, { start: 1.5, end: 10, text: script.use }, { start: 10, end: 13, text: script.benefit }, { start: 13.35, end: 15, text: script.cta }]
 }
 
+/** Estimate word windows within measured TTS duration, including the 0.35s silence already inserted by the audio composer.
+ * This helper schedules that pause; it cannot prove a pause exists in an audio file. Native speech keeps planned windows.
+ * A faster measured voice may finish its CTA before the final overlay starts at13s; timing is never shifted to pretend otherwise. */
+export function cena95NarratedWindows(script: { hook: string; use: string; benefit: string; cta: string; narration: string }, language: string, voiceSeconds: number): Cena95SpeechWindow[] {
+  const pause = 0.35, parts = [script.hook, script.use, script.benefit, script.cta]
+  if (!(Number.isFinite(voiceSeconds) && voiceSeconds > pause && voiceSeconds <= 15) || parts.some(s => !tokens(s).length)) throw new Error('cena95_narrated_duration_invalid')
+  if (tokens(parts.join(' ')).join(' ') !== tokens(script.narration).join(' ')) throw new Error('cena95_narrated_text_mismatch')
+  const weights = parts.map(s => tokens(s).reduce((sum, word) => sum + cena95Syllables(word, language), 0)), total = weights.reduce((a, b) => a + b, 0)
+  const speechSeconds = voiceSeconds - pause
+  let before = 0
+  const windows = parts.map((text, k) => {
+    const start = r6(speechSeconds * before / total + (k === 3 ? pause : 0))
+    before += weights[k]
+    return { text, start, end: k === 3 ? voiceSeconds : r6(speechSeconds * before / total) }
+  })
+  if (windows.some(w => !validWindow(w))) throw new Error('cena95_narrated_duration_invalid')
+  return windows
+}
+
 function alignment(i: Cena95CaptionInput): { words: Cena95Word[]; timingSource: Cena95CaptionResult['timingSource'] } {
   const textWords = tokens(i.text)
   if (!textWords.length || textWords.some(w => /[\[\]]/u.test(w))) throw new Error('cena95_caption_bad_text')
@@ -63,7 +82,7 @@ function alignment(i: Cena95CaptionInput): { words: Cena95Word[]; timingSource: 
     return parts.map((_, k) => {
       const start = r6(w.start + (w.end - w.start) * before / total)
       before += weights[k]
-      return { word: textWords[cursor++], start, end: r6(w.start + (w.end - w.start) * before / total) }
+      return { word: textWords[cursor++], start, end: k === parts.length - 1 ? w.end : r6(w.start + (w.end - w.start) * before / total) }
     })
   })
   return { words, timingSource: 'syllable_estimate' }
