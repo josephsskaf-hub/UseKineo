@@ -95,6 +95,54 @@ export function adaptersProof95(over = {}) {
   }
   assert.throws(() => A.cena95VideoRequests(planFixture95(), 'kling3', 'bad'), /base_required/)
 }
+// KINEO-ADS-CENA-95-2110 — nativo divide a narração inteira, em vez de forçar hook+pain em3s.
+export function nativeSegmentsProof95(over = {}) {
+  const { A } = modules(over), count = s => s.trim().split(/\s+/u).length
+  for (const total of [39, 40, 41]) for (const durations of [[3, 7, 5], [3, 12], [8, 7]]) {
+    const words = Array.from({ length: total }, (_, n) => `word${n}`), script = { narration: words.join(' '), cta: words.slice(-4).join(' '), pauseSeconds: .35 }
+    const segments = A.cena95NativeSegments(script, durations)
+    assert.equal(segments.map(s => s.text).join(' '), script.narration, 'nenhuma palavra perdida, duplicada ou fora de ordem')
+    assert.equal(segments.length, durations.length); assert.ok(segments.at(-1).text.endsWith(script.cta), 'CTA inteira só depois da pausa no último trecho')
+    let at = 0
+    for (const [n, segment] of segments.entries()) {
+      assert.equal(segment.start, at); assert.equal(segment.seconds, durations[n]); at += segment.seconds
+      assert.equal(segment.pauseSeconds, n === segments.length - 1 ? .35 : 0)
+      assert.equal(segment.spokenSeconds, segment.seconds - segment.pauseSeconds)
+      assert.equal(segment.estimatedWordsPerSecond, count(segment.text) / segment.spokenSeconds)
+      assert.ok(segment.estimatedWordsPerSecond <= 2.9 + 1e-9, 'cada trecho cabe sem acelerar acima da taxa declarada')
+      assert.equal(segment.timingBasis, 'planning_assumption_not_measured')
+      if (n < segments.length - 1) assert.ok(!segment.text.includes('word' + (total - 4)), 'nenhuma palavra da CTA antes da pausa')
+    }
+    assert.equal(at, 15)
+  }
+  for (const durations of [[3, 7, 5], [3, 12]]) {
+    const words = Array.from({ length: 42 }, (_, n) => `w${n}`)
+    assert.throws(() => A.cena95NativeSegments({ narration: words.join(' '), cta: words.slice(-4).join(' '), pauseSeconds: .35 }, durations), /native_speech_does_not_fit/, '42 palavras não cabem nos cortes inteiros K3/Seedance a≤2.9wps')
+  }
+  const words42 = Array.from({ length: 42 }, (_, n) => `w${n}`)
+  assert.equal(A.cena95NativeSegments({ narration: words42.join(' '), cta: words42.slice(-4).join(' '), pauseSeconds: .35 }, [8, 7]).map(s => s.text).join(' '), words42.join(' '))
+  const p = planFixture95('talking'), baseUrl = 'https://offline.example/base.png'
+  for (const route of ['kling3', 'seedance2']) {
+    const reqs = A.cena95VideoRequests(p, route, baseUrl), durations = route === 'kling3' ? [3, 7, 5] : [3, 12]
+    const segments = A.cena95NativeSegments(p.script, durations)
+    for (const candidate of [0, 1]) {
+      const jobs = reqs.filter(j => j.family !== 'close' && j.candidate === candidate)
+      const prompts = route === 'kling3' ? jobs[0].input.multi_prompt.map(s => s.prompt) : jobs.map(j => j.input.prompt)
+      const spoken = prompts.map(s => s.match(/Say ONLY: ([\s\S]+)$/u)?.[1])
+      assert.deepEqual(plain(spoken), plain(segments.map(s => s.text)))
+      assert.equal(spoken.join(' '), p.script.narration)
+      assert.ok(count(spoken[0]) <= 8 && count(spoken[0]) < count(`${p.script.hook} ${p.script.pain}`), 'primeiro trecho não tenta falar11palavras em3s')
+      assert.ok(spoken[0].startsWith(p.script.hook), 'gancho humano permanece completo no começo')
+      assert.ok(prompts.at(-1).includes('Pause 0.35s immediately before the final 4 words'))
+      assert.ok(prompts.slice(0, -1).every(s => !s.includes('Pause 0.35s')))
+    }
+  }
+  const tooLongCta = { narration: words42.slice(0, 41).join(' '), cta: words42.slice(20, 41).join(' '), pauseSeconds: .35 }
+  assert.throws(() => A.cena95NativeSegments(tooLongCta, [3, 7, 5]), /native_speech_does_not_fit/, 'não corta uma CTA que excede capacidade final')
+  const compactWords = words42.slice(0, 28), largeCta = { narration: compactWords.join(' '), cta: compactWords.slice(-13).join(' '), pauseSeconds: .35 }
+  assert.ok(A.cena95NativeSegments(largeCta, [3, 7, 5]).at(-1).text.endsWith(largeCta.cta), 'ajusta fronteira ideal para manter CTA longa inteira depois da pausa')
+  for (const [script, durations] of [[{ ...p.script, cta: 'wrong ending' }, [3, 7, 5]], [p.script, [3, 7, 4]], [{ ...p.script, pauseSeconds: NaN }, [3, 7, 5]]]) assert.throws(() => A.cena95NativeSegments(script, durations), /native_speech_does_not_fit/)
+}
 export function judgeProof95(over = {}) {
   const { P } = modules(over)
   const required = { base: ['product_faithful', 'product_whole', 'no_invented_text', 'own_hands_attached', 'five_fingers', 'natural_face', 'same_actor', 'same_wardrobe', 'correct_wrist', 'no_extra_people', 'nothing_near_face'], person: ['product_faithful', 'product_whole', 'no_invented_text', 'own_hands_attached', 'five_fingers', 'natural_face', 'same_actor', 'same_wardrobe', 'correct_wrist', 'no_extra_people', 'nothing_near_face', 'motion_visible'], close: ['product_faithful', 'product_whole', 'no_invented_text', 'no_hands', 'no_people', 'no_extra_objects'] }
@@ -185,7 +233,7 @@ export async function effectsProof95(over = {}) {
   pending.advance(26 * 60_000); await P.stepCena95(pending.state, pending.deps); await P.stepCena95(pending.state, pending.deps)
   assert.equal(pending.state.phase, 'failed'); assert.equal(pending.submissions.length, 4, 'deadline permite só uma nova rodada')
 }
-export async function proofAll95(over = {}) { adaptersProof95(over); judgeProof95(over); await pipelineProof95(over); await effectsProof95(over) }
+export async function proofAll95(over = {}) { adaptersProof95(over); nativeSegmentsProof95(over); judgeProof95(over); await pipelineProof95(over); await effectsProof95(over) }
 export async function runPipeline95() {
   await proofAll95(); console.log('ok pipeline95: contratos, best-of-2 pessoa, close único, quadros por segmento, juiz95, famílias, retry1 e efeitos após reserva')
   const mutations = [
@@ -193,6 +241,13 @@ export async function runPipeline95() {
     [ADAPT, 'close usa foto errada', 'photoReference: plan.input.foto', "photoReference: 'https://offline.example/wrong.png'"],
     [ADAPT, 'Kling narrated custa duração errada', 'const duration = talking ? 15 : 10', 'const duration = talking ? 15 : 15'],
     [ADAPT, 'Veo perde segundo segmento', 'keepSeconds: part === 0 ? 8 : 7', 'keepSeconds: part === 0 ? 8 : 6'],
+    [ADAPT, 'restaura hook+pain de11palavras em3s', '${speech(native[0])}', "${plan.quality95.nativeVoice} Say ONLY: ${[plan.script.hook, plan.script.pain].join(' ')}"],
+    [ADAPT, 'duplica palavra na fronteira', 'words.slice(at, end)', 'words.slice(Math.max(0, at - 1), end)'],
+    [ADAPT, 'inverte ordem das palavras', "words.slice(at, end).join(' ')", "words.slice(at, end).reverse().join(' ')"],
+    [ADAPT, 'perde palavra no corte', 'at = end; start += seconds', 'at = end + 1; start += seconds'],
+    [ADAPT, 'pausa deixa de reduzir orçamento', 's - (n === durations.length - 1 ? pause : 0)', 's'],
+    [ADAPT, 'permite42palavras aceleradas', 'Math.floor(s * CENA95_TARGET_WPS + 1e-9)', 'Math.ceil(s * CENA95_TARGET_WPS)'],
+    [ADAPT, 'CTA cortada antes da pausa', 'words.length - cta.length - (durations.length - n - 2)', 'words.length - (durations.length - n - 1)'],
     [PIPE, 'juiz aceita cinco dedos desconhecidos', "'five_fingers', ", ''],
     [PIPE, 'talking aceita boca sem falar', "['mouth_speaking']", '[]'],
     [PIPE, 'juiz aceita campo ausente', 'r[k] !== true', 'r[k] === false'],
