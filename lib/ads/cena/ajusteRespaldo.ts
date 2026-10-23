@@ -19,6 +19,7 @@ const clean = (v: unknown): string => typeof v === 'string' ? v.replace(/\s+/gu,
 const fold = (s: string): string => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
 const esc = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
 const words = (s: string): number => s.trim() ? s.trim().split(/\s+/u).length : 0
+const literalInitialToken = (text: string): boolean => /\p{N}|^\p{Lu}{2,}|\p{Ll}\p{Lu}/u.test(clean(text).split(/\s+/u)[0] ?? '') // KINEO-ADS-CENA-TEXTO-2310 — first-token casing is shared by benefit framing and final sentence completion.
 const commonProductWord = /^(?:creme|cream|face|facial|hidratante|hydrating|moisturizing|moisturising|skincare|tênis|tenis|shoes?|sneakers?|relógio|relogio|smartwatch|watch|perfume|bolsa|handbag|bag|chá|cha|tea|garrafa|bottle|suplemento|supplement|sérum|serum|sabonete|soap)$/iu // KINEO-ADS-CENA-TEXTO-2310
 const truncatedCta = (text: string): boolean => /(?:…|\.{3}|[-—–])\s*[.!?”"']*$/u.test(text) || /\b(?:gar|get|e|ou|para|com|and|or|to|with)\s*[.!?”"']*$/iu.test(text) // KINEO-ADS-CENA-TEXTO-2310 — includes the clipped gar./get. residue of the old punctuation cleanup; never guess the missing words.
 const sameLine = (a: string, b: string): boolean => fold(clean(a)).replace(/[.!?]+$/u, '') === fold(clean(b)).replace(/[.!?]+$/u, '') // KINEO-ADS-CENA-TEXTO-2310
@@ -88,7 +89,7 @@ const finish = (s: string): string => {
 }
 /** No invented property: only neutral grammar around the customer's own benefit text. */
 function benefitSentence(benefit: string, product: string, pt: boolean): string {
-  const b = clean(benefit).replace(/[.!?]+$/u, ''), first = b.split(/\s+/u)[0] ?? '', literalToken = /\p{N}|^\p{Lu}{2,}|\p{Ll}\p{Lu}/u.test(first), low = literalToken ? b : b.charAt(0).toLocaleLowerCase() + b.slice(1) // KINEO-ADS-CENA-TEXTO-2310 — preserve acronym/code/camel-case tokens such as SPF50, SPF 50, GLOW10 and iPhone.
+  const b = clean(benefit).replace(/[.!?]+$/u, ''), literalToken = literalInitialToken(b), low = literalToken ? b : b.charAt(0).toLocaleLowerCase() + b.slice(1) // KINEO-ADS-CENA-TEXTO-2310 — preserve acronym/code/camel-case tokens such as SPF50, SPF 50, GLOW10 and iPhone.
   if (!b) return ''
   if (pt) {
     if (/^[\p{Lu}\p{N}]/u.test(benefit) && /[.!?]$/u.test(clean(benefit)) && /(?:^|\s)(?:não|pode|ajuda|é|tem|contém|hidrata|protege|oferece|dura|deixa)(?=\s|$)/iu.test(b)) return clean(benefit) // KINEO-ADS-CENA-TEXTO-2310 — a complete typed sentence is data, not a noun fragment to reframe.
@@ -99,7 +100,7 @@ function benefitSentence(benefit: string, product: string, pt: boolean): string 
     return finish(/^com\s/iu.test(b) ? `Conte ${low}` : `Conte com ${low}`) // KINEO-ADS-CENA-TEXTO-2310 — the original benefit remains intact; never construct "product tem com ...".
   }
   const plural = /\b(?:shoes|sneakers|boots|trainers|leaves)\b/iu.test(product)
-  if (/^.+\s(?:does|is|are|has|have|can|helps?|keeps?|lasts?|contains?)\s/iu.test(b)) return finish(b) // KINEO-ADS-CENA-TEXTO-2310 — preserve a complete supplied sentence.
+  if (/^.+\s(?:does|is|are|has|have|can|helps?|keeps?|lasts?|contains?)\s/iu.test(b)) return literalToken ? /[.!?][”"']?$/u.test(clean(benefit)) ? clean(benefit) : clean(benefit) + '.' : finish(b) // KINEO-ADS-CENA-TEXTO-2310 — a complete typed iPhone/eSIM sentence keeps its spelling and existing punctuation.
   if (/^(?:does|is|has|can|helps|keeps|lasts|contains)\b/iu.test(b)) return finish(`${plural ? 'They' : 'It'} ${plural ? low.replace(/^(?:does|is|has|helps|keeps|lasts|contains)\b/iu, word => ({ does: 'do', is: 'are', has: 'have', helps: 'help', keeps: 'keep', lasts: 'last', contains: 'contain' } as Record<string, string>)[word.toLowerCase()] ?? word) : low}`) // KINEO-ADS-CENA-TEXTO-2310
   const adjective = /^(?:lightweight|light|comfortable|breathable|soft|easy|waterproof|fragrance-free|scent-free|unscented|made\s)/iu.test(b) && !/\b(?:material|mesh|fabric|design|battery|support)$/iu.test(b)
   if (adjective) return finish(`${plural ? "They're" : "It's"} ${low}`) // KINEO-ADS-CENA-TEXTO-2310
@@ -158,7 +159,7 @@ const complete = (text: string, product: string): string => {
   const value = clean(text)
   if (!value) return ''
   const named = product && fold(value).startsWith(fold(product))
-  const start = named ? value : value.charAt(0).toLocaleUpperCase() + value.slice(1)
+  const start = named || literalInitialToken(value) ? value : value.charAt(0).toLocaleUpperCase() + value.slice(1) // KINEO-ADS-CENA-TEXTO-2310 — do not undo literal token preservation when a benefit contains several complete sentences.
   return /[.!?][”"']?$/u.test(start) ? start : start + '.'
 }
 const directions = /\b(?:it offers|o produto oferece|the product offers|watch as|they\s+(?:put|hold|run|walk|wear|pick|lift|apply|open|tie|smile)|camera\s+(?:pans?|moves?|zooms?|tilts?|tracks?|dollies|pushes)|(?:speak|say|read)\s+(?:slowly|quickly|softly|loudly)|(?:fale|leia)\s+(?:devagar|lentamente|rapidamente)|close-up|push-in)\b|\[[^\]]*\]/iu
