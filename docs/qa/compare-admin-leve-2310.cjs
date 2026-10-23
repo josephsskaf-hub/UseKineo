@@ -5,7 +5,7 @@ if (!baseFile || !candidateFile) throw new Error('Usage: node compare-admin-leve
 const base = JSON.parse(fs.readFileSync(baseFile)), candidate = JSON.parse(fs.readFileSync(candidateFile));
 const reruns = rerunsFile ? JSON.parse(fs.readFileSync(rerunsFile)) : { base: [], candidate: [] };
 const roots = [base.root, candidate.root].filter((s) => s && s !== '.');
-const normalize = (s) => { let n = s.replace(/\\/g, '/'); for (const root of roots) n = n.split(root.replace(/\\/g, '/')).join('<ROOT>'); return n.replaceAll('codex-admin-leve-base-2310', '<WORKTREE>').replaceAll('codex-admin-leve-2310', '<WORKTREE>'); };
+const normalize = (s) => { let n = s.replace(/\\/g, '/'); for (const root of roots) n = n.split(root.replace(/\\/g, '/')).join('<ROOT>'); return n.replaceAll('codex-admin-leve-base-2310', '<WORKTREE>').replaceAll('codex-admin-leve-2310', '<WORKTREE>').replace(/(\/Temp\/kineo-limit-purchase-fit-)[A-Za-z0-9_-]{6}(?=\/)/g, '$1<TEMP>'); };
 const fingerprint = (runFile, run, item) => {
   const log = path.join(path.dirname(runFile), run.label, item.log);
   return { ...item, logSha256: fs.existsSync(log) ? crypto.createHash('sha256').update(fs.readFileSync(log)).digest('hex') : null };
