@@ -7,6 +7,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Footer from '@/components/Footer'
+import { CitationDirectAnswer, CitationDetails } from '@/components/seo/TrafficCitation2310'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 // KINEO-STARTER-NAS-30-2026-08-17 — ver a nota extensa no hero. Client
 // component importado por página server-rendered: padrão suportado pelo App
@@ -584,9 +585,9 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
           <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 650, lineHeight: 1.15, margin: 0 }}>
             {n.h1}
           </h1>
-          <p style={{ fontSize: '1.02rem', color: '#2A2F37', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 620 }}>
+          {params.niche === 'horror' ? <CitationDirectAnswer page="horror" /> : <p style={{ fontSize: '1.02rem', color: '#2A2F37', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 620 }}>
             {n.intro}
-          </p>
+          </p>}
           <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
           <p style={{ fontSize: '0.85rem', color: '#5A5F67', margin: '10px 0 0' }}>
             Script • Voiceover • Captions • AI-generated scenes • Ready in about 6 minutes · <b style={{ color: '#0A5CFF' }}>{ft(OFFER, 'up to 3 watermarked Fast videos / 24h', OFFER.copy.chipLower)}</b>, no card
@@ -704,6 +705,7 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
 
         {/* KINEO-PAGINAS-IA-CLARAS-2110 — o filme velho da casa (NicheHouseFilm) saiu da tela; entra a vitrine atual (a mesma da /claude-connector). */}
         <PaginaClaraVitrine />
+        {params.niche === 'horror' ? <CitationDetails page="horror" /> : null}
 
         {/* How it works */}
         <section style={{ marginTop: 48 }}>

@@ -283,14 +283,13 @@ export const BEST_COST_PER_FILM_USD = Math.min(
 /** "$3.50" — o rótulo pronto, arredondado para centavo. */
 export const BEST_COST_PER_FILM = `$${BEST_COST_PER_FILM_USD.toFixed(2)}`
 
-// KINEO-CURRENCY-TRUTH-2026-09-01 — CheckoutCurrency aceita somente USD.
-// Várias superfícies públicas e pós-vídeo ainda prometiam moeda local e transformavam o
-// último metro numa surpresa. A moeda vem da mesma função que governa a rota
-// da Stripe; home, pricing e JSON-LD importam a mesma frase byte a byte.
+// KINEO-TRAFEGO-2310 — CheckoutCurrency é a referência de vitrine em USD;
+// lib/settlementCurrency.ts governa a liquidação em BRL para o Brasil.
+// Home, pricing e JSON-LD importam a mesma explicação, sem alterar preço ou cobrança.
 const CHECKOUT_CURRENCY =
   CURRENCY_DISPLAY[resolveCheckoutCurrency(null)].label
 export const CHECKOUT_CURRENCY_DISCLOSURE =
-  `Kineo lists and charges plan prices in ${CHECKOUT_CURRENCY} worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees.`
+  `Kineo lists reference plan prices in ${CHECKOUT_CURRENCY}. Customers in Brazil pay in reais (BRL) at checkout. Elsewhere, the checkout shows the final charge currency; your bank may add conversion or cross-border fees.`
 
 // ═══════════════════════════════════════════════════════════════════════════
 // KINEO-CARD-CHEIO-2026-08-25 (fundador, print do Higgsfield ao lado do nosso:

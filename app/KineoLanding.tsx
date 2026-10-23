@@ -20,6 +20,7 @@ import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
 import ExitIntentOffer from '@/components/ExitIntentOffer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import Footer from '@/components/Footer'
+import { CitationDirectAnswer, CitationDetails } from '@/components/seo/TrafficCitation2310'
 import PhWelcomeBanner from '@/components/PhWelcomeBanner'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
 import HomePricingCheckoutLink, { HomePricingCheckoutGroup } from '@/components/HomePricingCheckoutLink'
@@ -1030,6 +1031,7 @@ export default function KineoLanding({
           )}
           {/* Fundador 30/09: "já quero tirar make room for your next big idea, create video… aproximar os dois vídeos". */}
           <h1 style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}><UiLabel>Make room for</UiLabel> <UiLabel>your next big idea.</UiLabel></h1>
+          <CitationDirectAnswer page="home" />
           <div id="samples" aria-label="Films made with Kineo">
             <HomeFeaturedFilms />
           </div>
@@ -1360,6 +1362,7 @@ export default function KineoLanding({
         </div>
       </section>
 
+      <div className="wrap"><CitationDetails page="home" /></div>
       <section id="faq">
         <div className="wrap">
           <div className="sec-h"><span className="sec-eyebrow">FAQ</span><h2><UiLabel>Common questions</UiLabel></h2></div>
