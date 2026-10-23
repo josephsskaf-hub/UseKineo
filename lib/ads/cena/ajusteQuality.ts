@@ -1,4 +1,5 @@
 // KINEO-ADS-CENA-SEGUE-2110 — quality is reviewable evidence, never a cancellation policy.
+import { escolhaView } from './escolhaStills' // KINEO-ADS-ESCOLHA-2310
 export interface AjusteQualityNote {
   stage: 'classification' | 'script' | 'keyframe' | 'voice' | 'preflight' | 'montage';
   code: string; message: string; score?: number; candidate?: number; slot?: number; round?: number; selected?: boolean; reasons?: string[];
@@ -15,5 +16,5 @@ export function ajusteReviewOf(stored: unknown): { narration_used?: string; qual
   if (state?.plan?.ajusteLive?.version !== 'KINEO-ADS-CENA-RETOMADA-2110') return {}
   const target: { quality_notes?: AjusteQualityNote[] } = { quality_notes: [] }
   for (const note of [...(state.plan.quality_notes ?? []), ...(state.quality_notes ?? [])]) addAjusteQuality(target, note)
-  return { narration_used: state.plan.script?.narration ?? '', quality_notes: target.quality_notes }
+  return { narration_used: state.plan.script?.narration ?? '', quality_notes: target.quality_notes, ...escolhaView(stored) } // KINEO-ADS-ESCOLHA-2310 — status exposes the saved previews and customer choice without advancing or charging.
 }

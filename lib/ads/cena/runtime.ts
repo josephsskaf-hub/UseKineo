@@ -42,6 +42,7 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
     await advanceCena95Order(admin, order, { json: cenaJson, fail: reason => failCenaOrder(admin, order, reason), deadlineMs })
     return
   }
+  const escolhaLive = (state.plan as typeof state.plan & { escolha?: { marker?: string } }).escolha?.marker === 'KINEO-ADS-ESCOLHA-2310' // KINEO-ADS-ESCOLHA-2310 — old/95 requests retain their original dispatch and policy.
   // A mesma coluna de lease da montagem, enquanto generating. Um vencedor; relógio da segunda tentativa próprio.
   if (order.assembly_lease_at && Date.now() - Date.parse(order.assembly_lease_at) < 5 * 60_000) return
   const token = new Date().toISOString()
@@ -56,7 +57,23 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
     if (r.error || !r.data) throw new Error('cena_lease_lost')
   }
   try {
-    if (state.plan.ajusteLive?.version === 'KINEO-ADS-CENA-RETOMADA-2110') { // KINEO-ADS-CENA-RETOMADA-2110 — same planning gate before any resumed paid media.
+    const advanceEscolhaMedia = async () => { // KINEO-ADS-ESCOLHA-2310 — injected effects share the existing winner lease and save, never a second billing path.
+      const { stepCenaEscolhaMedia } = await import('./escolhaMedia') // KINEO-ADS-ESCOLHA-2310
+      return stepCenaEscolhaMedia(state, { now: Date.now, save, // KINEO-ADS-ESCOLHA-2310
+        synthesize: async text => { const audio = await synthesizeTtsFallback(text, { userId: order.user_id, generationId: order.id }); return { audio, seconds: estimateMp3DurationSeconds(audio) } }, // KINEO-ADS-ESCOLHA-2310
+        upload: audio => uploadVoiceoverToSupabase(order.user_id, audio), // KINEO-ADS-ESCOLHA-2310
+        submitMusic: async mood => { const { submeterLyria, lyriaPromptFor } = await import('@/lib/lyriaMusic'); return submeterLyria(lyriaPromptFor(mood)) }, // KINEO-ADS-ESCOLHA-2310
+        pollMusic: async handle => { const { esperarLyria } = await import('@/lib/lyriaMusic'); return esperarLyria(handle, Math.min(deadlineMs - 1000, Date.now() + 5000)) }, // KINEO-ADS-ESCOLHA-2310
+      }) // KINEO-ADS-ESCOLHA-2310
+    } // KINEO-ADS-ESCOLHA-2310
+    if (escolhaLive) { // KINEO-ADS-ESCOLHA-2310 — pre-approved stills enter video directly; no legacy images, judge, composition or copy repair.
+      const { preflightCenaEscolha } = await import('./escolhaPlan'); preflightCenaEscolha(state.plan, state.route) // KINEO-ADS-ESCOLHA-2310
+      if (!['video', 'ready'].includes(state.phase) || !state.keyframes || state.keyframes[0] !== state.keyframes[1] || !/^https:\/\/\S+$/u.test(state.keyframes[0])) { await failCenaOrder(admin, order, 'escolha_chosen_still_required'); return } // KINEO-ADS-ESCOLHA-2310
+      const media = await advanceEscolhaMedia() // KINEO-ADS-ESCOLHA-2310 — complete measured narration fits before the first video submission.
+      if (media === 'failed') { await failCenaOrder(admin, order, (state as import('./escolhaMedia').CenaEscolhaState).escolhaMedia?.voice.reason ?? 'escolha_voice_unusable'); return } // KINEO-ADS-ESCOLHA-2310
+      if (media !== 'ready') return // KINEO-ADS-ESCOLHA-2310
+    } // KINEO-ADS-ESCOLHA-2310
+    if (!escolhaLive && state.plan.ajusteLive?.version === 'KINEO-ADS-CENA-RETOMADA-2110') { // KINEO-ADS-ESCOLHA-2310 — same legacy planning gate; never rewrites the chosen scene.
       const nativeSpoken = cenaVoiceModeOf(state.plan) === 'talking' && state.jobs.some(j => j.kind === 'video' && (j.status === 'submitting' || j.status === 'pending' || j.status === 'done' || j.claimedAt !== undefined)) // KINEO-ADS-CENA-SEGUE-2110 — a native-video intent has already committed its spoken text even without a separate TTS URL.
       const spoken = state.voiceUrl || state.voiceClaimedAt || nativeSpoken ? { ...state.plan.script, hooks: [...state.plan.script.hooks] as [string, string, string] } : null // KINEO-ADS-CENA-SEGUE-2110 — paid/available narration is immutable even if a later preflight proposes text changes.
       const nativePrompts = nativeSpoken ? { videoPrompt: state.plan.videoPrompt, segmentPrompts: state.plan.segmentPrompts ? [...state.plan.segmentPrompts] as [string, string] : undefined } : null // KINEO-ADS-CENA-SEGUE-2110
@@ -90,7 +107,7 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
     if (state.phase !== 'ready') return
     const ajusteLive = (state.plan as typeof state.plan & { ajusteLive?: CenaAjusteLive }).ajusteLive?.version === 'KINEO-ADS-CENA-RETOMADA-2110' // KINEO-ADS-CENA-RETOMADA-2110
     const adjusted = state as AjusteState // KINEO-ADS-CENA-RETOMADA-2110
-    if (ajusteLive) { // KINEO-ADS-CENA-RETOMADA-2110
+    if (ajusteLive && !escolhaLive) { // KINEO-ADS-ESCOLHA-2310 — selected scene remains live to15s, without a separately generated original-photo close.
       const { stepAjusteMedia } = await import('./ajusteMedia') // KINEO-ADS-CENA-RETOMADA-2110
       const media = await stepAjusteMedia(adjusted, { now: Date.now, save, // KINEO-ADS-CENA-RETOMADA-2110
         submitClose: async j => { // KINEO-ADS-CENA-RETOMADA-2110
@@ -112,7 +129,7 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
       if (media === 'failed') { await failCenaOrder(admin, order, adjusted.ajusteMedia?.close.reason ?? 'cena_ajuste_close_failed'); return } // KINEO-ADS-CENA-RETOMADA-2110
       if (media !== 'ready') return // KINEO-ADS-CENA-RETOMADA-2110
     } // KINEO-ADS-CENA-RETOMADA-2110
-    if (cenaVoiceModeOf(state.plan) === 'narrated' && !state.voiceUrl) {
+    if (!escolhaLive && cenaVoiceModeOf(state.plan) === 'narrated' && !state.voiceUrl) { // KINEO-ADS-ESCOLHA-2310 — chosen flow already measured its complete narration before video.
       if (state.voiceClaimedAt) { await failCenaOrder(admin, order, 'cena_voice_submit_unconfirmed'); return }
       state.voiceClaimedAt = Date.now(); await save(state)
       const audio = await synthesizeTtsFallback(state.plan.script.narration, { userId: order.user_id, generationId: order.id })
@@ -122,7 +139,8 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
       if (ajusteLive && seconds > 15) addAjusteQuality(state, { stage: 'voice', code: 'voice_duration_extended', message: `Valid narration lasts ${seconds}s. Output duration extends to ${seconds}s, keeping the entire voice and CTA, the final 5s moving close and last 2s overlay; caption timing remains an estimate.` }) // KINEO-ADS-CENA-SEGUE-2110
       state.voiceUrl = await uploadVoiceoverToSupabase(order.user_id, audio); if (ajusteLive && adjusted.ajusteMedia) adjusted.ajusteMedia.voiceSeconds = seconds; await save(state) // KINEO-ADS-CENA-RETOMADA-2110
     }
-    const source = ajusteLive ? (await import('./ajusteMontage')).buildAjusteMontage(adjusted) : buildCenaMontage(state) // KINEO-ADS-CENA-RETOMADA-2110
+    if (escolhaLive) { const media = await advanceEscolhaMedia(); if (media !== 'ready') return } // KINEO-ADS-ESCOLHA-2310 — optional music reuses its durable handle and never submits a close.
+    const source = escolhaLive ? (await import('./escolhaMontage')).buildCenaEscolhaMontage(state) : ajusteLive ? (await import('./ajusteMontage')).buildAjusteMontage(adjusted) : buildCenaMontage(state) // KINEO-ADS-ESCOLHA-2310
     if (ajusteLive) await save(state) // KINEO-ADS-CENA-SEGUE-2110 — persist montage/narration reservations before the render intent.
     // Carimbo ANTES do POST; erro ambíguo passa ao prazo v2, nunca reenviar Creatomate.
     const stamp = await admin.from('ads_v2_orders').update({ status: 'assembling', assembly_submit_at: new Date().toISOString() }).eq('id', order.id).eq('status', 'generating').eq('assembly_lease_at', token).is('assembly_submit_at', null).select('id').maybeSingle()
@@ -137,7 +155,7 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
     }
   } catch (e) {
     if (e instanceof Error && e.message === 'cena_lease_lost') return
-    if (state.phase === 'ready') await failCenaOrder(admin, order, 'cena_montage_or_voice_failed')
+    if (escolhaLive || state.phase === 'ready') await failCenaOrder(admin, order, escolhaLive && e instanceof Error ? e.message : 'cena_montage_or_voice_failed') // KINEO-ADS-ESCOLHA-2310 — technical media failure retains the existing winner-only refund.
     else throw e
   } finally {
     await admin.from('ads_v2_orders').update({ assembly_lease_at: null }).eq('id', order.id).eq('status', 'generating').eq('assembly_lease_at', token)

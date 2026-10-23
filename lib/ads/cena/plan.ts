@@ -19,6 +19,7 @@ export interface CenaJsonCall { model: typeof AI_TEXT_MODELS.ads | typeof AI_TEX
 export type CenaJson = (call: CenaJsonCall) => Promise<unknown>
 export interface CenaScript { hooks: [string, string, string]; hook: string; use: string; benefit: string; cta: string; narration: string }
 export interface CenaPlan {
+  escolha?: import('./escolhaPlan').CenaEscolhaSelection; // KINEO-ADS-ESCOLHA-2310 — only new, explicitly selected scenes.
   marker: 'KINEO-ADS-CENA-2110'; input: CenaInput; category: CenaCategory; product: string; format: string; setting: string; actor: string; interaction: string;
   script: CenaScript; keyframePrompts: [string, string]; videoPrompt: string; segmentPrompts: [string, string]; audioMode: 'native' | 'voiceover';
   voice_mode?: CenaVoiceMode;
