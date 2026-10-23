@@ -163,12 +163,15 @@ const complete = (text: string, product: string): string => {
 }
 const directions = /\b(?:it offers|o produto oferece|the product offers|watch as|they\s+(?:put|hold|run|walk|wear|pick|lift|apply|open|tie|smile)|camera\s+(?:pans?|moves?|zooms?|tilts?|tracks?|dollies|pushes)|(?:speak|say|read)\s+(?:slowly|quickly|softly|loudly)|(?:fale|leia)\s+(?:devagar|lentamente|rapidamente)|close-up|push-in)\b|\[[^\]]*\]/iu
 function naturalAjusteReferences(raw: Record<string, unknown>, input: CenaInput, product: string): Record<string, unknown> { // KINEO-ADS-CENA-TEXTO-2310
-  if ((input.language ?? 'en').toLowerCase().startsWith('pt') || !product || !product.includes(' ') && commonProductWord.test(product)) return raw // KINEO-ADS-CENA-TEXTO-2310 — do not rewrite an isolated ordinary product noun as though it were a repeated brand.
+  if ((input.language ?? 'en').toLowerCase().startsWith('pt') || !product) return raw // KINEO-ADS-CENA-TEXTO-2310
+  const singleCommon = !product.includes(' ') && commonProductWord.test(product) // KINEO-ADS-CENA-TEXTO-2310 — a common noun may refer to the product, an ingredient or a different compound noun.
   const out = { ...raw, hooks: [...raw.hooks as string[]] }, named = new RegExp(`(?<![\\p{L}\\p{N}])(?:(?:the|a|an)\\s+)?${esc(product)}(?![\\p{L}\\p{N}])(?:[’']s|[’'](?=\\s+\\p{L}))?`, 'giu'), pronoun = /\b(?:shoes|sneakers|boots|trainers|leaves)\b/iu.test(product) ? 'them' : 'it'; let seen = false // KINEO-ADS-CENA-TEXTO-2310
   for (const field of ['hooks.0', 'use', 'benefit', 'cta']) { // KINEO-ADS-CENA-TEXTO-2310
     const text = field === 'hooks.0' ? clean(out.hooks[0]) : clean((out as Record<string, unknown>)[field]) // KINEO-ADS-CENA-TEXTO-2310
     const changed = text.split(/(?<=[.!?])\s+/u).map(sentence => sentence.replace(named, (match, offset: number) => { // KINEO-ADS-CENA-TEXTO-2310
       const token = sentence.slice(0, offset).match(/\S*$/u)?.[0] ?? '', after = sentence.slice(offset + match.length), literal = typedSentence(sentence, input) || /(?:https?:\/\/|www\.)/iu.test(token) || /\b(?:code|coupon|cupom|código)\s*$/iu.test(sentence.slice(0, offset)) || /^[\p{L}\p{N}_/@#=%&-]/u.test(after) // KINEO-ADS-CENA-TEXTO-2310
+      const before = sentence.slice(0, offset), possessiveName = /[’']s?$/iu.test(match), commonReference = !singleCommon || !before.trim() && (possessiveName || /^\s+(?:is|are|has|have|can|does|do|helps?|keeps?|lasts?|contains?|feels?|works?|comes?)\b/iu.test(after)) || /^(?:try|choose|meet|see|compare|buy|order)\s*$/iu.test(before) && /^[.!?][”"']?$/u.test(after.trim()) // KINEO-ADS-CENA-TEXTO-2310 — only explicit subjects/possessives and whole action-object lines; never a mid-sentence ingredient or "cream cheese".
+      if (!commonReference) return match // KINEO-ADS-CENA-TEXTO-2310
       if (literal || !seen) { seen = true; return match } // KINEO-ADS-CENA-TEXTO-2310
       const subject = !sentence.slice(0, offset).trim(), possessive = /[’']s?$/iu.test(match), word = possessive ? pronoun === 'them' ? 'their' : 'its' : pronoun === 'them' && subject ? 'they' : pronoun // KINEO-ADS-CENA-TEXTO-2310 — consume the possessive suffix together with the name; never produce "It's formula" or "They' laces".
       return subject ? word.charAt(0).toLocaleUpperCase() + word.slice(1) : word // KINEO-ADS-CENA-TEXTO-2310
