@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semTrafego2310 } from './desfaz-trafego-2310.mjs' // KINEO-TRAFEGO-2310 — exact newer layer before historical source hashes
 
 export const ADS_ESCOLHA_MARK = 'KINEO-ADS-ESCOLHA-2310'
 export const ADS_ESCOLHA_BASE = '36a5286aa9bc8aa16e8b4c72edc42fbf1d1ac7a7'
@@ -29,6 +30,7 @@ export const ADS_ESCOLHA_NEW = Object.freeze([
 ])
 
 export function semAdsEscolha2310(texto, file) {
+  texto = semTrafego2310(texto, file) // KINEO-TRAFEGO-2310 — leaf adapter, no older imports/cycles
   const relative = String(file ?? '').replace(/\\/g, '/'), known = table[relative]
   if (!known || typeof texto !== 'string' || !texto.includes(ADS_ESCOLHA_MARK)) return texto
   const hash = createHash('sha256').update(texto.replace(/\r\n/g, '\n')).digest('hex')

@@ -64,7 +64,7 @@ export async function checkTrafficHealth(admin: SupabaseClient | null, now = Dat
       const id = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
       const { error } = await admin.from('events').insert({
         id, name: TRAFFIC_ALERT_EVENT, path: '/api/cron/finish-orphan-jobs',
-        metadata: { version: 'KINEO-TRAFEGO-2310', reason, hour, email, threshold_minutes: 15 },
+        metadata: { version: 'KINEO-TRAFEGO-2310', reason, hour, first_attempt_email: email, threshold_minutes: 15 },
       }).abortSignal(AbortSignal.timeout(TRAFFIC_QUERY_TIMEOUT_MS))
       recorded = !error || error.code === '23505'
     } catch { /* o log e o e-mail continuam independentes do banco */ }

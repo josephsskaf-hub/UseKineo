@@ -24,6 +24,13 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: Typecheck bruto — qualquer erro reprova
         run: npx tsc --noEmit --incremental false
+      # KINEO-TRAFEGO-2310 — six entry pages, public index and DB-independent alarm.
+      - name: Tráfego — conteúdo citável, sitemap, alarme e desfaz exato
+        run: |
+          node scripts/test-trafego-pages-2310.mjs
+          node scripts/test-trafego-index-2310.mjs
+          node scripts/test-trafego-health-2310.mjs --mutants
+          node scripts/test-trafego-undo-2310.mjs
       # KINEO-ADMIN-LEVE-2310 — real modules, disk mutants and exact source undo; no network.
       - name: Admin leve — aba visível, cache privado e desfaz exato
         run: |

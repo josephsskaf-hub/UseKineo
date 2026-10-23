@@ -288,7 +288,7 @@ export const BEST_COST_PER_FILM = `$${BEST_COST_PER_FILM_USD.toFixed(2)}`
 // Home, pricing e JSON-LD importam a mesma explicação, sem alterar preço ou cobrança.
 const CHECKOUT_CURRENCY =
   CURRENCY_DISPLAY[resolveCheckoutCurrency(null)].label
-export const CHECKOUT_CURRENCY_DISCLOSURE =
+export const CHECKOUT_CURRENCY_DISCLOSURE = // KINEO-TRAFEGO-2310 — Brazil settles in reais
   `Kineo lists reference plan prices in ${CHECKOUT_CURRENCY}. Customers in Brazil pay in reais (BRL) at checkout. Elsewhere, the checkout shows the final charge currency; your bank may add conversion or cross-border fees.`
 
 // ═══════════════════════════════════════════════════════════════════════════

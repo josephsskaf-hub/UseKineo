@@ -4,6 +4,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import vm from 'node:vm'
 import crypto from 'node:crypto'
+import os from 'node:os'
+import { spawnSync } from 'node:child_process'
 import ts from 'typescript'
 import { fileURLToPath } from 'node:url'
 
@@ -48,6 +50,8 @@ function database(rows = [], failure = null, throws = false) {
 const notices = []
 let result = { email: 'sent', webhook: 'skipped', delivered: true }
 const health = load('lib/trafficHealth.ts', { 'node:crypto': crypto, '@/lib/supplier/notify': { async notifyFounder(...args) { notices.push(args); return result } } })
+check(health.TRAFFIC_SILENCE_MS === 15 * 60_000, 'silence threshold is exactly the requested fifteen minutes')
+check(health.TRAFFIC_QUERY_TIMEOUT_MS <= 4000 && health.TRAFFIC_QUERY_TIMEOUT_MS > 0, 'DB timeout stays within four-second monitor budget')
 const activity = (age, name = 'landing_session_started') => ({ name, created_at: new Date(NOW - age).toISOString() })
 let d = database([activity(health.TRAFFIC_SILENCE_MS)])
 let out = await health.checkTrafficHealth(d.db, NOW)
@@ -57,6 +61,8 @@ out = await health.checkTrafficHealth(d.db, NOW)
 check(out.reason === 'no_recent_activity' && out.recorded, 'old activity and fresh machine markers do not hide silence')
 check(notices.at(-1)[1].includes('não comprova indisponibilidade'), 'silence alert explicitly distinguishes absence of activity from outage')
 const notice = notices.at(-1)
+check(notice[1].includes('\n\n') && !notice[1].includes('\\n'), 'real email body has readable paragraphs rather than literal escaped newlines')
+check(d.records[0].metadata.first_attempt_email === 'sent', 'persistent marker labels first attempt, not an invented latest delivery state')
 await health.checkTrafficHealth(d.db, NOW + 60_000)
 check(JSON.stringify(notice) === JSON.stringify(notices.at(-1)), 'concurrent/cold retries use identical payload and key in hour')
 check(d.records[0].id === d.records[1].id, 'record primary key also stable across retries')
@@ -94,6 +100,7 @@ check(route.indexOf('const trafficHealth = await checkTrafficHealth(admin)') < r
 check(route.includes("global: { fetch: freshFetch }") && route.includes("fetchCache = 'force-no-store'"), 'health reads bypass both Next and fetch cache')
 const schedule = JSON.parse(read('vercel.json')).crons.filter((c) => c.path.split('?')[0] === '/api/cron/finish-orphan-jobs')
 check(schedule.length === 1 && schedule[0].schedule === '*/10 * * * *', 'reuses scheduled ten-minute cron')
+check(read('app/api/events/route.ts').includes("'traffic_health_alert'"), 'public event sink reserves operational alert marker for server')
 
 // Execute the real cron entry point up to its health gate. Paid dependencies
 // are traps, so an unauthorized/down-DB invocation cannot reach job work.
@@ -121,3 +128,35 @@ delete routeEnv.NEXT_PUBLIC_SUPABASE_URL
 response = await realRoute.GET(request('Bearer offline-cron-fixture'))
 check(response.status === 503 && monitorCalls === 2 && clientCalls === 1, 'real cron still alerts when DB configuration missing')
 console.log(`KINEO-TRAFEGO-2310-HEALTH: ${passed} passed, 0 failed (offline).`)
+
+if (process.argv.includes('--mutants')) {
+  const files = ['lib/trafficHealth.ts', 'lib/supplier/notify.ts', 'app/api/cron/finish-orphan-jobs/route.ts', 'app/api/events/route.ts', 'vercel.json']
+  const mutations = [
+    ['self-heartbeat', files[0], "'landing_session_started', 'homepage_view'", "'traffic_health_alert', 'landing_session_started', 'homepage_view'"],
+    ['stale-window', files[0], '15 * 60_000', '30 * 60_000'],
+    ['unbounded-probe', files[0], 'TRAFFIC_QUERY_TIMEOUT_MS = 4000', 'TRAFFIC_QUERY_TIMEOUT_MS = 60_000'],
+    ['db-down-silent', files[0], "let reason: HealthReason = 'database_unavailable'", "let reason: HealthReason = 'healthy'"],
+    ['unstable-idempotency', files[0], '${reason}/${hour}`', '${reason}/${now}`'],
+    ['no-idempotency-header', files[1], "'Idempotency-Key': idempotencyKey", "'X-Ignored-Key': idempotencyKey"],
+    ['public-cron', files[2], 'if (!cronSecret) return false', 'if (!cronSecret) return true'],
+    ['forged-alert', files[3], "  'traffic_health_alert',", ''],
+  ]
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kineo-trafego-health-'))
+  try {
+    for (const [name, file, before, after] of mutations) {
+      for (const f of files) { fs.mkdirSync(path.dirname(path.join(dir, f)), { recursive: true }); fs.writeFileSync(path.join(dir, f), read(f)) }
+      const source = read(file)
+      assert.equal(source.split(before).length - 1, 1, 'unique mutation anchor: ' + name)
+      fs.writeFileSync(path.join(dir, file), source.replace(before, after))
+      const child = spawnSync(process.execPath, [fileURLToPath(import.meta.url), '--root=' + dir], { encoding: 'utf8', windowsHide: true, timeout: 60_000 })
+      assert.ok(child.status !== null && child.status !== 0, 'mutant survived or timed out: ' + name)
+      assert.match(child.stderr, /AssertionError|Paid job scan reached/, 'mutant must fail a contract assertion: ' + name)
+      console.log('KILLED ' + name)
+    }
+    console.log(`KINEO-TRAFEGO-2310-HEALTH-MUTANTS: ${mutations.length} killed, 0 survived.`)
+  } finally {
+    const resolved = path.resolve(dir), base = path.resolve(os.tmpdir()) + path.sep
+    if (!resolved.startsWith(base) || !path.basename(resolved).startsWith('kineo-trafego-health-')) throw Error('Unsafe temporary cleanup target')
+    fs.rmSync(resolved, { recursive: true, force: true })
+  }
+}

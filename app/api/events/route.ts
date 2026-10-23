@@ -20,6 +20,7 @@ import { businessAdsStamp } from '@/lib/growth/businessAdsAttribution'
 export const dynamic = 'force-dynamic'
 
 const SERVER_ONLY_EVENTS = new Set([
+  'traffic_health_alert', // KINEO-TRAFEGO-2310 — somente o cron grava o alarme operacional
   'admin_read_truncated',
   'alternative_payment_grant',
   'alternative_payment_processed',
