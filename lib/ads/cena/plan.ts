@@ -12,6 +12,7 @@ import type { AdsBrief } from '../types'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { ajusteScriptPrompt, naturalAjusteScript, ajustePlanComposition } from './ajustePlan' // KINEO-ADS-CENA-RETOMADA-2110
 import { writeAjusteScript } from './ajusteRespaldo' // KINEO-ADS-CENA-RESPALDO-2110
+import { addAjusteQuality, type AjusteQualityNote } from './ajusteQuality' // KINEO-ADS-CENA-SEGUE-2110
 
 export interface CenaInput { foto: string; frase: string; oferta?: string; beneficios?: string[]; cta?: string; language?: string; formato?: 'ugc' | 'product'; actorUrl?: string; voice_mode?: CenaVoiceMode } // KINEO-ADS-CENA-95-PACING-2110
 export interface CenaJsonCall { model: typeof AI_TEXT_MODELS.ads | typeof AI_TEXT_MODELS.adsRetry; system: string; text: string; images: string[] }
@@ -23,6 +24,7 @@ export interface CenaPlan {
   voice_mode?: CenaVoiceMode;
   continuity?: { actorUrl: string; wardrobe: string; productWrist: 'left' | null };
   ajusteLive?: { version: 'KINEO-ADS-CENA-RETOMADA-2110'; music?: boolean }; // KINEO-ADS-CENA-RETOMADA-2110
+  quality_notes?: AjusteQualityNote[]; // KINEO-ADS-CENA-SEGUE-2110
 }
 /** Compatibilidade dos pedidos já gravados: não aplicar o novo default de planejamento ao andamento antigo. */
 export function cenaVoiceModeOf(plan: Pick<CenaPlan, 'voice_mode' | 'audioMode'>): CenaVoiceMode { return plan.voice_mode ?? (plan.audioMode === 'voiceover' ? 'narrated' : 'talking') }
