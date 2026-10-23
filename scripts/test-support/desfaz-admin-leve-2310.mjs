@@ -1,0 +1,189 @@
+// KINEO-ADMIN-LEVE-2310 — exact complete eleven-existing-source delta; pure in-memory undo.
+// Validate all candidate matches before replacing; preserve bytes outside these hunks.
+export const ADMIN_LEVE_2310_BASE = "591399abb34fc93c25300d82d644b6c94444ded6"
+export const ADMIN_LEVE_2310_NEW_PRODUCT_FILES = Object.freeze(['lib/admin/liveCache.ts', 'lib/admin/visiblePolling.ts', 'supabase/migrations/20261023121649_admin_leve_live_counters.sql'])
+export const ADMIN_LEVE_2310_HUNKS = {
+  ".github/workflows/guardiao.yml": [
+    {
+      "before": "      - run: npm ci --ignore-scripts\n      - name: Typecheck bruto — qualquer erro reprova\n        run: npx tsc --noEmit --incremental false\n      # KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — real callers, C1 and exact undo of disk mutants, offline.\n      - name: Roteiro curto — revisão neutra, links e admin\n        run: | # KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22\n",
+      "after": "      - run: npm ci --ignore-scripts\n      - name: Typecheck bruto — qualquer erro reprova\n        run: npx tsc --noEmit --incremental false\n      # KINEO-ADMIN-LEVE-2310 — real modules, disk mutants and exact source undo; no network.\n      - name: Admin leve — aba visível, cache privado e desfaz exato\n        run: |\n          node scripts/test-admin-leve-2310.mjs --mutants\n          node scripts/test-admin-leve-undo-2310.mjs\n      # KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — real callers, C1 and exact undo of disk mutants, offline.\n      - name: Roteiro curto — revisão neutra, links e admin\n        run: | # KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22\n"
+    }
+  ],
+  "app/api/admin/live/route.ts": [
+    {
+      "before": "import { LEDGER_GRANT_EVENTS, summarizeLedgerGrants, type LedgerGrantEvent } from '@/lib/admin/ledgerGrants' // KINEO-PAINEL-ORIGEM-2026-10-13\nimport { rotuloCredito } from '@/lib/admin/rotuloCredito' // KINEO-ROTULO-CREDITO-1510\nimport { isNarrationCompletionEvent } from '@/lib/admin/narrationCompletion' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22\n\nexport const dynamic = 'force-dynamic'\n// ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════\n",
+      "after": "import { LEDGER_GRANT_EVENTS, summarizeLedgerGrants, type LedgerGrantEvent } from '@/lib/admin/ledgerGrants' // KINEO-PAINEL-ORIGEM-2026-10-13\nimport { rotuloCredito } from '@/lib/admin/rotuloCredito' // KINEO-ROTULO-CREDITO-1510\nimport { isNarrationCompletionEvent } from '@/lib/admin/narrationCompletion' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22\nimport { createLiveCache } from '@/lib/admin/liveCache'\n\nexport const dynamic = 'force-dynamic'\n// ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════\n"
+    },
+    {
+      "before": "  generated_at: string\n}\n\nexport async function GET() {\n  try {\n    const supabase = createClient()\n",
+      "after": "  generated_at: string\n}\n\n// KINEO-ADMIN-LEVE-2310 — cache the whole snapshot, including events/ledgers,\n// for 60s per warm instance. Multiple authorized tabs share one refresh.\nconst liveCache = createLiveCache<LiveData>()\n\nexport async function GET() {\n  try {\n    const supabase = createClient()\n"
+    },
+    {
+      "before": "    const admin = serviceClient()\n    if (!admin) return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })\n\n    const now = Date.now()\n    const iso = (msAgo: number) => new Date(now - msAgo).toISOString()\n    const H24 = 24 * 60 * 60 * 1000\n",
+      "after": "    const admin = serviceClient()\n    if (!admin) return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })\n\n    return NextResponse.json(await liveCache.get(() => loadLiveData(admin)), {\n      headers: { 'Cache-Control': 'private, no-store' },\n    })\n  } catch (e) {\n    console.error('[admin/live] failed:', e instanceof Error ? e.message : String(e))\n    return NextResponse.json({ error: 'Failed to load live data.' }, { status: 500 })\n  }\n}\n\nasync function loadLiveData(admin: NonNullable<ReturnType<typeof serviceClient>>): Promise<LiveData> {\n    const now = Date.now()\n    const iso = (msAgo: number) => new Date(now - msAgo).toISOString()\n    const H24 = 24 * 60 * 60 * 1000\n"
+    },
+    {
+      "before": "      signups_7d: number; signups_24h: number\n      videos_24h: number; checkouts_24h: number\n    }\n    // A RPC devolve UMA linha. Se ela falhar, preferimos zero a um número\n    // inventado: o painel mostrando 0 é um defeito visível; o painel mostrando\n    // 435 falso é um defeito que ninguém enxerga — foi exatamente assim que\n    // este bug sobreviveu.\n    if (counters.error) console.warn('[admin/live] admin_live_counters falhou:', counters.error.message)\n    const c = ((counters.data ?? [])[0] ?? {}) as Partial<Counters>\n    const num = (v: unknown) => (typeof v === 'number' ? v : Number(v ?? 0)) || 0\n\n    // ── Quem está online: último evento por usuário logado ─────────────────\n    type OnlineRow = { user_id: string | null; session_id: string | null; name: string; path: string | null; created_at: string; is_bot?: string | null; metadata?: Record<string, unknown> | null } // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22\n",
+      "after": "      signups_7d: number; signups_24h: number\n      videos_24h: number; checkouts_24h: number\n    }\n    // KINEO-ADMIN-LEVE-2310 — failures must not become cached zero counters.\n    if (counters.error) throw new Error('admin_live_counters failed: ' + counters.error.message)\n    if (!counters.data?.[0]) throw new Error('admin_live_counters returned no row')\n    const c = counters.data[0] as Counters\n    const num = (v: unknown) => {\n      if ((typeof v !== 'number' && typeof v !== 'string') || v === '') throw new Error('Invalid live counter')\n      const n = Number(v)\n      if (!Number.isFinite(n) || n < 0) throw new Error('Invalid live counter')\n      return n\n    }\n\n    // ── Quem está online: último evento por usuário logado ─────────────────\n    type OnlineRow = { user_id: string | null; session_id: string | null; name: string; path: string | null; created_at: string; is_bot?: string | null; metadata?: Record<string, unknown> | null } // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22\n"
+    },
+    {
+      "before": "      online,\n      generated_at: new Date().toISOString(),\n    }\n    return NextResponse.json(data)\n  } catch (e) {\n    console.error('[admin/live] failed:', e instanceof Error ? e.message : String(e))\n    return NextResponse.json({ error: 'Failed to load live data.' }, { status: 500 })\n  }\n}\n",
+      "after": "      online,\n      generated_at: new Date().toISOString(),\n    }\n    return data\n}\n"
+    }
+  ],
+  "components/LiveNowPanel.tsx": [
+    {
+      "before": "// checkout em 2 min e hesitou): ele quer ver a pessoa quente ENQUANTO ela está\n// online, com e-mail ao lado e o que ela testou, pra mandar o e-mail na hora.\n//\n// Auto-refresh de 30s (a janela de \"online\" é de 5 min, então 30s dá granularidade\n// de sobra sem martelar o banco). E-mail é clicável: abre o Gmail com assunto já\n// escrito conforme o CALOR do visitante — 🚨 no checkout ganha um assunto\n// diferente de quem só está navegando.\nimport { useEffect, useState } from 'react'\nimport type { LiveData, LiveVisitor } from '@/app/api/admin/live/route'\nimport { EmailBotao, PessoaLink } from '@/components/admin/PessoaLink' // KINEO-ADMIN-PESSOA-1910\n\nconst REFRESH_MS = 30_000\n\nfunction flag(cc: string | null): string {\n  if (!cc || cc.length !== 2) return ''\n",
+      "after": "// checkout em 2 min e hesitou): ele quer ver a pessoa quente ENQUANTO ela está\n// online, com e-mail ao lado e o que ela testou, pra mandar o e-mail na hora.\n//\n// Auto-refresh de 60s, somente com a aba visível. E-mail é clicável: abre o Gmail com assunto já\n// escrito conforme o CALOR do visitante — 🚨 no checkout ganha um assunto\n// diferente de quem só está navegando.\nimport { useEffect, useState } from 'react'\nimport { startVisiblePolling } from '@/lib/admin/visiblePolling'\nimport type { LiveData, LiveVisitor } from '@/app/api/admin/live/route'\nimport { EmailBotao, PessoaLink } from '@/components/admin/PessoaLink' // KINEO-ADMIN-PESSOA-1910\n\nconst REFRESH_MS = 60_000\n\nfunction flag(cc: string | null): string {\n  if (!cc || cc.length !== 2) return ''\n"
+    },
+    {
+      "before": "  useEffect(() => {\n    let cancelled = false\n    const load = () => {\n      void fetch('/api/admin/live', { cache: 'no-store' })\n        .then(async (r) => (r.ok ? (r.json() as Promise<LiveData>) : Promise.reject()))\n        .then((d) => { if (!cancelled) { setData(d); setErr(false) } })\n        .catch(() => { if (!cancelled) setErr(true) })\n    }\n    load()\n    const t = setInterval(load, REFRESH_MS)\n    return () => { cancelled = true; clearInterval(t) }\n  }, [])\n\n  const CARD: React.CSSProperties = { background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14 }\n",
+      "after": "  useEffect(() => {\n    let cancelled = false\n    const load = () => {\n      return fetch('/api/admin/live', { cache: 'no-store' })\n        .then(async (r) => (r.ok ? (r.json() as Promise<LiveData>) : Promise.reject()))\n        .then((d) => { if (!cancelled) { setData(d); setErr(false) } })\n        .catch(() => { if (!cancelled) setErr(true) })\n    }\n    const stopPolling = startVisiblePolling(load, REFRESH_MS)\n    return () => { cancelled = true; stopPolling() }\n  }, [])\n\n  const CARD: React.CSSProperties = { background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14 }\n"
+    },
+    {
+      "before": "        )}\n      </div>\n      <p className=\"text-[10px] mt-2\" style={{ color: 'var(--muted2)' }}>\n        Online = visitante logado com atividade nos últimos 5 min · atualiza a cada 30s · clique no e-mail para abrir a tela da pessoa · ✉ para escrever agora.\n        {' '}<b>rendering</b> = geração em voo: o crédito já saiu, o vídeo ainda não existe — é isso que explica &quot;crédito gasto, zero vídeo&quot;.\n      </p>\n    </section>\n",
+      "after": "        )}\n      </div>\n      <p className=\"text-[10px] mt-2\" style={{ color: 'var(--muted2)' }}>\n        Online = visitante logado com atividade nos últimos 5 min · atualiza a cada 60s com a aba visível · clique no e-mail para abrir a tela da pessoa · ✉ para escrever agora.\n        {' '}<b>rendering</b> = geração em voo: o crédito já saiu, o vídeo ainda não existe — é isso que explica &quot;crédito gasto, zero vídeo&quot;.\n      </p>\n    </section>\n"
+    }
+  ],
+  "app/(dashboard)/admin/users/UsersClient.tsx": [
+    {
+      "before": "'use client'\n\n// Push #066 — Admin Users List (client).\n// Fetches /api/admin/users on mount and polls every 30 s.\n// Renders four headline metric cards + a searchable, scrollable table.\n// Sort defaults to newest first (server already orders that way).\n// Search filters by email/name client-side.\n\nimport Link from 'next/link'\nimport { useEffect, useMemo, useRef, useState } from 'react'\n\nconst POLL_MS = 30_000\n\ninterface AdminUserRow {\n  id: string\n",
+      "after": "'use client'\n\n// Push #066 — Admin Users List (client).\n// Fetches /api/admin/users on visible mount and polls every 60 s while visible.\n// Renders four headline metric cards + a searchable, scrollable table.\n// Sort defaults to newest first (server already orders that way).\n// Search filters by email/name client-side.\n\nimport Link from 'next/link'\nimport { useEffect, useMemo, useRef, useState } from 'react'\nimport { startVisiblePolling } from '@/lib/admin/visiblePolling'\n\nconst POLL_MS = 60_000\n\ninterface AdminUserRow {\n  id: string\n"
+    },
+    {
+      "before": "  const [query, setQuery] = useState('')\n  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)\n  const [secondsAgo, setSecondsAgo] = useState(0)\n  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)\n  const clockRef = useRef<ReturnType<typeof setInterval> | null>(null)\n\n  // Tick the \"X s ago\" clock every second\n",
+      "after": "  const [query, setQuery] = useState('')\n  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)\n  const [secondsAgo, setSecondsAgo] = useState(0)\n  const clockRef = useRef<ReturnType<typeof setInterval> | null>(null)\n\n  // Tick the \"X s ago\" clock every second\n"
+    },
+    {
+      "before": "    return () => { if (clockRef.current) clearInterval(clockRef.current) }\n  }, [lastUpdated])\n\n  // Initial load + 30 s polling\n  useEffect(() => {\n    if (denied) return\n\n",
+      "after": "    return () => { if (clockRef.current) clearInterval(clockRef.current) }\n  }, [lastUpdated])\n\n  // Initial load + 60 s polling, paused while the tab is not visible.\n  useEffect(() => {\n    if (denied) return\n\n"
+    },
+    {
+      "before": "      }\n    }\n\n    fetchUsers(true)\n    timerRef.current = setInterval(() => fetchUsers(false), POLL_MS)\n    return () => { if (timerRef.current) clearInterval(timerRef.current) }\n  }, [denied])\n\n  const stats = useMemo(() => {\n",
+      "after": "      }\n    }\n\n    let isInitial = true\n    return startVisiblePolling(() => {\n      const pending = fetchUsers(isInitial)\n      isInitial = false\n      return pending\n    }, POLL_MS)\n  }, [denied])\n\n  const stats = useMemo(() => {\n"
+    }
+  ],
+  "app/(dashboard)/admin/metrics/MetricsClient.tsx": [
+    {
+      "before": "'use client'\n\n// Push #066 — Conversion Metrics Dashboard (client).\n// Now auto-polls /api/admin/metrics every 30 s — no manual refresh needed.\n// Shows a \"Last updated X s ago\" indicator and a spinning dot while\n// refreshing. Also adds a \"Videos Downloaded\" metric card.\n// The page server component still seeds the initial data on first render\n",
+      "after": "'use client'\n\n// Push #066 — Conversion Metrics Dashboard (client).\n// Auto-polls /api/admin/metrics every 60 s while the tab is visible.\n// Shows a \"Last updated X s ago\" indicator and a spinning dot while\n// refreshing. Also adds a \"Videos Downloaded\" metric card.\n// The page server component still seeds the initial data on first render\n"
+    },
+    {
+      "before": "\nimport Link from 'next/link'\nimport { useEffect, useRef, useState } from 'react'\n\nexport interface MetricsData {\n  totalUsers: number | null\n",
+      "after": "\nimport Link from 'next/link'\nimport { useEffect, useRef, useState } from 'react'\nimport { startVisiblePolling } from '@/lib/admin/visiblePolling'\n\nexport interface MetricsData {\n  totalUsers: number | null\n"
+    },
+    {
+      "before": "  return v.toLocaleString('en-US')\n}\n\nconst POLL_MS = 30_000\n\nexport default function MetricsClient({ metrics: initialMetrics, viewerEmail, denied }: Props) {\n  const [metrics, setMetrics] = useState<MetricsData | undefined>(initialMetrics)\n  const [refreshing, setRefreshing] = useState(false)\n  const [lastUpdated, setLastUpdated] = useState<Date | null>(initialMetrics ? new Date() : null)\n  const [secondsAgo, setSecondsAgo] = useState(0)\n  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)\n  const clockRef = useRef<ReturnType<typeof setInterval> | null>(null)\n  // Push #233 — Basic/Pro checkout-button clicks from public.click_events,\n  // fetched from /api/admin/click-stats and polled alongside the metrics.\n",
+      "after": "  return v.toLocaleString('en-US')\n}\n\nconst POLL_MS = 60_000\n\nexport default function MetricsClient({ metrics: initialMetrics, viewerEmail, denied }: Props) {\n  const [metrics, setMetrics] = useState<MetricsData | undefined>(initialMetrics)\n  const [refreshing, setRefreshing] = useState(false)\n  const [lastUpdated, setLastUpdated] = useState<Date | null>(initialMetrics ? new Date() : null)\n  const [secondsAgo, setSecondsAgo] = useState(0)\n  const clockRef = useRef<ReturnType<typeof setInterval> | null>(null)\n  // Push #233 — Basic/Pro checkout-button clicks from public.click_events,\n  // fetched from /api/admin/click-stats and polled alongside the metrics.\n"
+    },
+    {
+      "before": "    return () => { if (clockRef.current) clearInterval(clockRef.current) }\n  }, [lastUpdated])\n\n  // Poll every 30 s\n  useEffect(() => {\n    if (denied) return\n\n",
+      "after": "    return () => { if (clockRef.current) clearInterval(clockRef.current) }\n  }, [lastUpdated])\n\n  // Poll every 60 s while the tab is visible.\n  useEffect(() => {\n    if (denied) return\n\n"
+    },
+    {
+      "before": "      }\n    }\n\n    timerRef.current = setInterval(poll, POLL_MS)\n    return () => { if (timerRef.current) clearInterval(timerRef.current) }\n  }, [denied])\n\n  // Push #233 — load + poll click_events totals for the two new cards.\n",
+      "after": "      }\n    }\n\n    return startVisiblePolling(poll, POLL_MS, { immediate: false })\n  }, [denied])\n\n  // Push #233 — load + poll click_events totals for the two new cards.\n"
+    },
+    {
+      "before": "        // silent — keep showing whatever we already have\n      }\n    }\n    load()\n    const id = setInterval(load, POLL_MS)\n    return () => { cancelled = true; clearInterval(id) }\n  }, [denied])\n\n  if (denied || !metrics) {\n",
+      "after": "        // silent — keep showing whatever we already have\n      }\n    }\n    const stopPolling = startVisiblePolling(load, POLL_MS)\n    return () => { cancelled = true; stopPolling() }\n  }, [denied])\n\n  if (denied || !metrics) {\n"
+    }
+  ],
+  "app/(dashboard)/admin/ceo/CeoClient.tsx": [
+    {
+      "before": "\nimport Link from 'next/link'\nimport { useEffect, useRef, useState } from 'react'\nimport type { CeoData, FunnelWindow } from '@/app/api/admin/ceo/compute'\nimport LiveNowPanel from '@/components/LiveNowPanel' // KINEO-ADMIN-LIVE-2026-08-19\nimport { PessoaLink } from '@/components/admin/PessoaLink' // KINEO-ADMIN-PESSOA-1910 — o e-mail abre a tela da pessoa\n",
+      "after": "\nimport Link from 'next/link'\nimport { useEffect, useRef, useState } from 'react'\nimport { startVisiblePolling } from '@/lib/admin/visiblePolling'\nimport type { CeoData, FunnelWindow } from '@/app/api/admin/ceo/compute'\nimport LiveNowPanel from '@/components/LiveNowPanel' // KINEO-ADMIN-LIVE-2026-08-19\nimport { PessoaLink } from '@/components/admin/PessoaLink' // KINEO-ADMIN-PESSOA-1910 — o e-mail abre a tela da pessoa\n"
+    },
+    {
+      "before": "  const [lastUpdated, setLastUpdated] = useState<Date | null>(initialData ? new Date() : null)\n  const [secondsAgo, setSecondsAgo] = useState(0)\n  const [win, setWin] = useState<FunnelWindow['key']>('7d')\n  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)\n  const clockRef = useRef<ReturnType<typeof setInterval> | null>(null)\n\n  useEffect(() => {\n",
+      "after": "  const [lastUpdated, setLastUpdated] = useState<Date | null>(initialData ? new Date() : null)\n  const [secondsAgo, setSecondsAgo] = useState(0)\n  const [win, setWin] = useState<FunnelWindow['key']>('7d')\n  const clockRef = useRef<ReturnType<typeof setInterval> | null>(null)\n\n  useEffect(() => {\n"
+    },
+    {
+      "before": "        setRefreshing(false)\n      }\n    }\n    timerRef.current = setInterval(() => { if (typeof document === 'undefined' || !document.hidden) void poll() }, POLL_MS) // KINEO-ADMIN-RAPIDO-1710 — aba escondida não consulta\n    return () => {\n      if (timerRef.current) clearInterval(timerRef.current)\n    }\n  }, [denied])\n\n  if (denied || !data) {\n",
+      "after": "        setRefreshing(false)\n      }\n    }\n    return startVisiblePolling(poll, POLL_MS, { immediate: false })\n  }, [denied])\n\n  if (denied || !data) {\n"
+    }
+  ],
+  "app/(dashboard)/admin/funnel/FunnelClient.tsx": [
+    {
+      "before": "\nimport Link from 'next/link'\nimport { useEffect, useRef, useState } from 'react'\nimport type { FunnelData } from '@/app/api/admin/funnel/route'\nimport { CHATGPT_QUICKSTART_VARIANT } from '@/lib/growth/chatgptQuickstart'\nimport { ACTIVATION_HANDOFF_SURFACE_VERSION } from '@/lib/growth/onboardingGoals'\n",
+      "after": "\nimport Link from 'next/link'\nimport { useEffect, useRef, useState } from 'react'\nimport { startVisiblePolling } from '@/lib/admin/visiblePolling'\nimport type { FunnelData } from '@/app/api/admin/funnel/route'\nimport { CHATGPT_QUICKSTART_VARIANT } from '@/lib/growth/chatgptQuickstart'\nimport { ACTIVATION_HANDOFF_SURFACE_VERSION } from '@/lib/growth/onboardingGoals'\n"
+    },
+    {
+      "before": "  const [refreshing, setRefreshing] = useState(false)\n  const [lastUpdated, setLastUpdated] = useState<Date | null>(initialData ? new Date() : null)\n  const [secondsAgo, setSecondsAgo] = useState(0)\n  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)\n  const clockRef = useRef<ReturnType<typeof setInterval> | null>(null)\n\n  useEffect(() => {\n",
+      "after": "  const [refreshing, setRefreshing] = useState(false)\n  const [lastUpdated, setLastUpdated] = useState<Date | null>(initialData ? new Date() : null)\n  const [secondsAgo, setSecondsAgo] = useState(0)\n  const clockRef = useRef<ReturnType<typeof setInterval> | null>(null)\n\n  useEffect(() => {\n"
+    },
+    {
+      "before": "        if (!cancelled) setRefreshing(false)\n      }\n    }\n    load()\n    timerRef.current = setInterval(() => { if (typeof document === 'undefined' || !document.hidden) load() }, POLL_MS) // KINEO-ADMIN-RAPIDO-1710 — aba escondida não consulta\n    return () => { cancelled = true; if (timerRef.current) clearInterval(timerRef.current) }\n  }, [denied, days])\n\n  if (denied) {\n",
+      "after": "        if (!cancelled) setRefreshing(false)\n      }\n    }\n    const stopPolling = startVisiblePolling(load, POLL_MS)\n    return () => { cancelled = true; stopPolling() }\n  }, [denied, days])\n\n  if (denied) {\n"
+    }
+  ],
+  "app/admin/leads/LeadsClient.tsx": [
+    {
+      "before": "\nimport Link from 'next/link'\nimport { useEffect, useMemo, useState } from 'react'\nimport type { CeoData } from '@/app/api/admin/ceo/compute'\nimport { EmailBotao, PessoaLink } from '@/components/admin/PessoaLink' // KINEO-ADMIN-PESSOA-1910\n\n",
+      "after": "\nimport Link from 'next/link'\nimport { useEffect, useMemo, useState } from 'react'\nimport { startVisiblePolling } from '@/lib/admin/visiblePolling'\nimport type { CeoData } from '@/app/api/admin/ceo/compute'\nimport { EmailBotao, PessoaLink } from '@/components/admin/PessoaLink' // KINEO-ADMIN-PESSOA-1910\n\n"
+    },
+    {
+      "before": "        if (!cancelled) setLoading(false)\n      }\n    }\n    load()\n    const t = setInterval(() => { if (typeof document === 'undefined' || !document.hidden) load() }, POLL_MS) // KINEO-ADMIN-RAPIDO-1710\n    return () => {\n      cancelled = true\n      clearInterval(t)\n    }\n  }, [denied])\n\n",
+      "after": "        if (!cancelled) setLoading(false)\n      }\n    }\n    const stopPolling = startVisiblePolling(load, POLL_MS)\n    return () => {\n      cancelled = true\n      stopPolling()\n    }\n  }, [denied])\n\n"
+    }
+  ],
+  "app/admin/demo/DemoClient.tsx": [
+    {
+      "before": "// conta da casa) e, quando pronta, copiar o link privado \"Sample made by Kineo for <Brand>\" + o texto curto EN/ES/DE.\n// Só fala com /api/admin/demo. `initial` = dados de exemplo (prévia offline); sem ele, a tela busca o GET.\nimport { useCallback, useEffect, useState } from 'react'\nimport { DEMO_ERRORS, DEMO_REASON_MIN, DEMO_SCENE_MAX, DEMO_VOICE_LANGS, DEMO_VOICE_NAMES, type DemoVoiceLang } from '@/lib/ads/demoSobMedida'\n\nexport interface DemoRow {\n",
+      "after": "// conta da casa) e, quando pronta, copiar o link privado \"Sample made by Kineo for <Brand>\" + o texto curto EN/ES/DE.\n// Só fala com /api/admin/demo. `initial` = dados de exemplo (prévia offline); sem ele, a tela busca o GET.\nimport { useCallback, useEffect, useState } from 'react'\nimport { startVisiblePolling } from '@/lib/admin/visiblePolling'\nimport { DEMO_ERRORS, DEMO_REASON_MIN, DEMO_SCENE_MAX, DEMO_VOICE_LANGS, DEMO_VOICE_NAMES, type DemoVoiceLang } from '@/lib/ads/demoSobMedida'\n\nexport interface DemoRow {\n"
+    },
+    {
+      "before": "\n  useEffect(() => {\n    if (denied || initial) return\n    void load()\n    // KINEO-ADMIN-RAPIDO-1710 — o GET agora só LÊ (o avanço é do cron a cada 5 min); 2 min basta, e aba escondida não consulta.\n    const t = window.setInterval(() => { if (!document.hidden) void load() }, 120_000)\n    return () => window.clearInterval(t)\n  }, [denied, initial, load])\n\n  if (denied) return <main className=\"dm\"><style dangerouslySetInnerHTML={{ __html: CSS }} /><h1>Demo sob medida</h1><p className=\"dm-sub\">Sem acesso.</p></main>\n",
+      "after": "\n  useEffect(() => {\n    if (denied || initial) return\n    // KINEO-ADMIN-RAPIDO-1710 — o GET agora só LÊ (o avanço é do cron a cada 5 min); 2 min basta, e aba escondida não consulta.\n    return startVisiblePolling(load, 120_000)\n  }, [denied, initial, load])\n\n  if (denied) return <main className=\"dm\"><style dangerouslySetInnerHTML={{ __html: CSS }} /><h1>Demo sob medida</h1><p className=\"dm-sub\">Sem acesso.</p></main>\n"
+    }
+  ],
+  "scripts/test-admin-rapido-1710.mjs": [
+    {
+      "before": "  v('R7 demo: a tela tem o botão \"Avançar agora\" (PATCH) e não espera o robô a cada 60 s', S.demoClient.includes(\"fetch('/api/admin/demo', { method: 'PATCH'\") && S.demoClient.includes('data-kineo=\"demo-avancar\"') && !S.demoClient.includes('60_000'))\n  v('R7 demo: o cron ads-v2-advance continua chamando o robô, na mesma frequência (2-57/5)', S.adsCron.includes('const demos = await advanceDemosSobMedida(admin, {') && S.vercel.includes('\"path\": \"/api/cron/ads-v2-advance\",\\n      \"schedule\": \"2-57/5 * * * *\"'))\n  // R8\n  v('R8 polling: Funil 5 min com pausa de aba', S.funnelClient.includes('const POLL_MS = 5 * 60_000\\n') && S.funnelClient.includes(\"setInterval(() => { if (typeof document === 'undefined' || !document.hidden) load() }, POLL_MS)\"))\n  v('R8 polling: Visão geral 5 min com pausa de aba', S.ceoClient.includes('const POLL_MS = 5 * 60_000\\n') && S.ceoClient.includes(\"setInterval(() => { if (typeof document === 'undefined' || !document.hidden) void poll() }, POLL_MS)\"))\n  v('R8 polling: Oportunidades 5 min com pausa de aba', S.leads.includes('const POLL_MS = 5 * 60_000\\n') && S.leads.includes(\"setInterval(() => { if (typeof document === 'undefined' || !document.hidden) load() }, POLL_MS)\"))\n  // R9\n  v('R9 coortes: profiles filtrados no banco (ilike active) e o filtro em memória mantido', S.cohort.includes(\".ilike('trial_status', 'active'), { route: '/admin/trial-cohort', table: 'profiles' })\") && S.cohort.includes(\"const trials = profiles.filter((p) => (p.trial_status ?? '').toLowerCase() === 'active')\") && !S.cohort.includes(\"fetchAllRows<TrialProfileRow>(admin, 'profiles'\"))\n  v('R9 coortes: videos e events em fatias paralelas de 15 ids', S.cohort.includes('const COHORT_ID_CHUNK = 15') && S.cohort.includes('Promise.all(fatias.map((f) => fetchAllRows<EventRow>(admin, \\'events\\', \\'user_id, name, created_at\\', { column: \\'user_id\\', values: f }') && S.cohort.includes('const events = eventParts.flat()'))\n",
+      "after": "  v('R7 demo: a tela tem o botão \"Avançar agora\" (PATCH) e não espera o robô a cada 60 s', S.demoClient.includes(\"fetch('/api/admin/demo', { method: 'PATCH'\") && S.demoClient.includes('data-kineo=\"demo-avancar\"') && !S.demoClient.includes('60_000'))\n  v('R7 demo: o cron ads-v2-advance continua chamando o robô, na mesma frequência (2-57/5)', S.adsCron.includes('const demos = await advanceDemosSobMedida(admin, {') && S.vercel.includes('\"path\": \"/api/cron/ads-v2-advance\",\\n      \"schedule\": \"2-57/5 * * * *\"'))\n  // R8\n  v('R8 polling: Funil 5 min com pausa de aba', S.funnelClient.includes('const POLL_MS = 5 * 60_000\\n') && S.funnelClient.includes('startVisiblePolling(load, POLL_MS)'))\n  v('R8 polling: Visão geral 5 min com pausa de aba', S.ceoClient.includes('const POLL_MS = 5 * 60_000\\n') && S.ceoClient.includes('startVisiblePolling(poll, POLL_MS, { immediate: false })'))\n  v('R8 polling: Oportunidades 5 min com pausa de aba', S.leads.includes('const POLL_MS = 5 * 60_000\\n') && S.leads.includes('startVisiblePolling(load, POLL_MS)'))\n  // R9\n  v('R9 coortes: profiles filtrados no banco (ilike active) e o filtro em memória mantido', S.cohort.includes(\".ilike('trial_status', 'active'), { route: '/admin/trial-cohort', table: 'profiles' })\") && S.cohort.includes(\"const trials = profiles.filter((p) => (p.trial_status ?? '').toLowerCase() === 'active')\") && !S.cohort.includes(\"fetchAllRows<TrialProfileRow>(admin, 'profiles'\"))\n  v('R9 coortes: videos e events em fatias paralelas de 15 ids', S.cohort.includes('const COHORT_ID_CHUNK = 15') && S.cohort.includes('Promise.all(fatias.map((f) => fetchAllRows<EventRow>(admin, \\'events\\', \\'user_id, name, created_at\\', { column: \\'user_id\\', values: f }') && S.cohort.includes('const events = eventParts.flat()'))\n"
+    },
+    {
+      "before": "  ['demo: PATCH sem gate', 'demoRoute', '    const gate = await adminUser()\\n    if (!gate.ok) return gate.res\\n    const admin = serviceClient()\\n    if (!admin) return json({ error: \\'unavailable\\' }, 503)\\n    const step', '    const admin = serviceClient()\\n    if (!admin) return json({ error: \\'unavailable\\' }, 503)\\n    const step', 'R7 demo: o PATCH'],\n  ['demo: cron muda de frequência', 'vercel', '\"path\": \"/api/cron/ads-v2-advance\",\\n      \"schedule\": \"2-57/5 * * * *\"', '\"path\": \"/api/cron/ads-v2-advance\",\\n      \"schedule\": \"*/1 * * * *\"', 'R7 demo: o cron ads-v2-advance'],\n  ['funil volta a 30 s', 'funnelClient', 'const POLL_MS = 5 * 60_000\\n', 'const POLL_MS = 30_000\\n', 'R8 polling: Funil'],\n  ['visão geral sem pausa de aba', 'ceoClient', \"setInterval(() => { if (typeof document === 'undefined' || !document.hidden) void poll() }, POLL_MS)\", 'setInterval(poll, POLL_MS)', 'R8 polling: Visão geral'],\n  ['coortes voltam a ler todos os profiles', 'cohort', \".ilike('trial_status', 'active'), { route\", \", { route\", 'R9 coortes: profiles filtrados'],\n  ['índice com nome errado', 'idx', 'events_session_idx on', 'events_session_id_idx on', 'R10 migration dos índices'],\n  ['RPC sem o filtro de internos', 'rpc', \"    and (e.user_id is null or not (e.user_id = any (coalesce(p_internal_ids, '{}'::uuid[]))))\\n\", '', 'R10 migration do RPC'],\n",
+      "after": "  ['demo: PATCH sem gate', 'demoRoute', '    const gate = await adminUser()\\n    if (!gate.ok) return gate.res\\n    const admin = serviceClient()\\n    if (!admin) return json({ error: \\'unavailable\\' }, 503)\\n    const step', '    const admin = serviceClient()\\n    if (!admin) return json({ error: \\'unavailable\\' }, 503)\\n    const step', 'R7 demo: o PATCH'],\n  ['demo: cron muda de frequência', 'vercel', '\"path\": \"/api/cron/ads-v2-advance\",\\n      \"schedule\": \"2-57/5 * * * *\"', '\"path\": \"/api/cron/ads-v2-advance\",\\n      \"schedule\": \"*/1 * * * *\"', 'R7 demo: o cron ads-v2-advance'],\n  ['funil volta a 30 s', 'funnelClient', 'const POLL_MS = 5 * 60_000\\n', 'const POLL_MS = 30_000\\n', 'R8 polling: Funil'],\n  ['visão geral sem pausa de aba', 'ceoClient', 'startVisiblePolling(poll, POLL_MS, { immediate: false })', 'setInterval(poll, POLL_MS)', 'R8 polling: Visão geral'],\n  ['coortes voltam a ler todos os profiles', 'cohort', \".ilike('trial_status', 'active'), { route\", \", { route\", 'R9 coortes: profiles filtrados'],\n  ['índice com nome errado', 'idx', 'events_session_idx on', 'events_session_id_idx on', 'R10 migration dos índices'],\n  ['RPC sem o filtro de internos', 'rpc', \"    and (e.user_id is null or not (e.user_id = any (coalesce(p_internal_ids, '{}'::uuid[]))))\\n\", '', 'R10 migration do RPC'],\n"
+    }
+  ],
+  "scripts/test-roteiro-curto-undo-2210.mjs": [
+    {
+      "before": "// Reads the actual existing candidate files and adapter with readFileSync; git show supplies the immutable base.\n// No disk mutation, network, SDK, environment files, engineWall or homeVideoCuration are read.\nimport fs from 'node:fs'\nimport { semPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 \"a preta está muito longe do que é o site\"]\nimport path from 'node:path'\nimport vm from 'node:vm'\n",
+      "after": "// Reads the actual existing candidate files and adapter with readFileSync; git show supplies the immutable base.\n// No disk mutation, network, SDK, environment files, engineWall or homeVideoCuration are read.\nimport fs from 'node:fs'\nimport { semAdminLeve2310 } from './test-support/desfaz-admin-leve-2310.mjs' // KINEO-ADMIN-LEVE-2310 — remove only the exact later admin delta before historical source integrity checks.\nimport { semPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 \"a preta está muito longe do que é o site\"]\nimport path from 'node:path'\nimport vm from 'node:vm'\n"
+    },
+    {
+      "before": "  \"scripts/test-support/desfaz-filmes-f1-virgula-1910.mjs\": 2,\n  \"scripts/test-verbatim-intocavel-2010.mjs\": 1\n}\nconst read = (file) => semPaginasIaClaras2110(fs.readFileSync(path.join(ROOT, file), 'utf8'), file) // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 \"a preta está muito longe do que é o site\"]\nconst unavailable = () => { throw new Error('Offline adapter proof forbids external operations') }\nlet passed = 0\nfunction assert(condition, message) { if (!condition) throw new Error(message); passed++ }\n",
+      "after": "  \"scripts/test-support/desfaz-filmes-f1-virgula-1910.mjs\": 2,\n  \"scripts/test-verbatim-intocavel-2010.mjs\": 1\n}\nconst read = (file) => semAdminLeve2310(semPaginasIaClaras2110(fs.readFileSync(path.join(ROOT, file), 'utf8'), file), file) // KINEO-ADMIN-LEVE-2310 — exact later layer first. KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 \"a preta está muito longe do que é o site\"]\nconst unavailable = () => { throw new Error('Offline adapter proof forbids external operations') }\nlet passed = 0\nfunction assert(condition, message) { if (!condition) throw new Error(message); passed++ }\n"
+    }
+  ]
+}
+
+const MARK = 'KINEO-ADMIN-LEVE-2310'
+const offsets = (source, needle) => {
+  const result = []
+  for (let at = source.indexOf(needle); at >= 0; at = source.indexOf(needle, at + 1)) result.push(at)
+  return result
+}
+export function semAdminLeve2310(source, file) {
+  const relative = typeof file === 'string' ? file.replace(/\\/g, '/') : file
+  const hunks = ADMIN_LEVE_2310_HUNKS[relative]
+  if (typeof source !== 'string' || !hunks) return source
+  const normalized = source.replace(/\r\n/g, '\n')
+  if (!source.includes(MARK) && hunks.every((h) => h.before && offsets(normalized, h.before).length === 1)) return source
+  const rawOffset = (flat) => {
+    let raw = 0
+    for (let index = 0; index < flat; index++) raw += source[raw] === '\r' && source[raw + 1] === '\n' ? 2 : 1
+    return raw
+  }
+  const plans = hunks.map((h, index) => {
+    const matches = offsets(normalized, h.after)
+    if (matches.length !== 1) throw new Error(MARK + ': ' + relative + ' hunk ' + index + ': expected exactly 1 candidate match, found ' + matches.length)
+    const at = rawOffset(matches[0]), end = rawOffset(matches[0] + h.after.length)
+    return { at, length: end - at, replacement: source.slice(at, end).includes('\r\n') ? h.before.replace(/\n/g, '\r\n') : h.before }
+  }).sort((a, b) => b.at - a.at)
+  for (let index = 1; index < plans.length; index++) if (plans[index].at + plans[index].length > plans[index - 1].at) throw new Error(MARK + ': overlapping candidate hunks in ' + relative)
+  let result = source
+  for (const h of plans) result = result.slice(0, h.at) + h.replacement + result.slice(h.at + h.length)
+  return result
+}
