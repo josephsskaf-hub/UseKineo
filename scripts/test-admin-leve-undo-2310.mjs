@@ -15,7 +15,7 @@ const assert = (condition, message) => { if (!condition) throw new Error(message
 const rejects = (run, message) => { let threw = false; try { run() } catch (e) { threw = /expected exactly 1 candidate match/.test(e.message) } assert(threw, message) }
 
 try {
-  assert(Object.keys(ADMIN_LEVE_2310_HUNKS).length === 13, 'Exactly thirteen existing task sources are covered, including workflow and all historical guardian reanchors')
+  assert(Object.keys(ADMIN_LEVE_2310_HUNKS).length === 14, 'Exactly fourteen existing task sources are covered, including workflow and all historical guardian reanchors')
   for (const [file, hunks] of Object.entries(ADMIN_LEVE_2310_HUNKS)) {
     const actual = read(file), source = lf(actual), base = lf(git('show', ADMIN_LEVE_2310_BASE + ':' + file))
     assert(semAdminLeve2310(source, file) === base, file + ': candidate reverses exactly to immutable base')
@@ -35,6 +35,10 @@ try {
       rejects(() => semAdminLeve2310(marked(source.slice(0, at) + source.slice(at + hunk.after.length)), file), file + ': missing hunk ' + index + ' is rejected')
       rejects(() => semAdminLeve2310(source + '\n' + hunk.after, file), file + ': duplicate hunk ' + index + ' is rejected')
     }
+    if (/\b(?:createLiveCache|startVisiblePolling|semAdminLeve2310)\b|test-admin-leve-(?:undo-)?2310/.test(source)) {
+      const unmarkedTamper = hunks.reduce((s, h) => s.replace(h.after, (match) => (match[0] === 'X' ? 'Y' : 'X') + match.slice(1)), source).replaceAll(MARK, 'REMOVED_TASK_MARK')
+      rejects(() => semAdminLeve2310(unmarkedTamper, file), file + ': tampering every hunk while removing the marker still rejects unmistakable task evidence')
+    }
     console.log('PASS ' + file + ': exact base/LF/CRLF/Windows, idempotence, external bytes, malformed hunks rejected')
   }
   assert(semAdminLeve2310('untouched ' + MARK, 'elsewhere.ts') === 'untouched ' + MARK, 'Unrelated source is never transformed')
@@ -50,5 +54,9 @@ try {
   const originalBody = body(lf(read(oldMigration))), optimizedBody = body(sql)
   const expectedBody = originalBody?.replace('= any (select lower(x) from unnest(p_exact_emails) x)', '= any (array(select lower(x) from unnest(p_exact_emails) x))').replace('or exists (select 1 from unnest(p_like_patterns) pat where lower(p.email) like lower(pat))', 'or lower(p.email) like any (array(select lower(pat) from unnest(p_like_patterns) pat))').replaceAll('and e.user_id in (select id from internos)', 'and e.session_id is not null and e.user_id in (select id from internos)')
   assert(originalBody && optimizedBody === expectedBody, 'SQL changes are exactly materialized exclusion parameters and redundant not-null internal-session filters; six aggregate expressions stay unchanged')
+  const { semRoteiroCurto2210 } = await import('./test-support/desfaz-roteiro-curto-2210.mjs')
+  const oldLive = semRoteiroCurto2210(read('app/api/admin/live/route.ts'), 'app/api/admin/live/route.ts')
+  assert(semAdminLeve2310(oldLive, 'app/api/admin/live/route.ts') === oldLive, 'Admin undo is idempotent even after historical route layers have also been removed')
+  assert(semRoteiroCurto2210(oldLive, 'app/api/admin/live/route.ts') === oldLive, 'The composed historical adapter accepts repeated entry without requiring absent newer hunks')
   console.log(MARK + '-UNDO: ' + passed + ' passed, 0 failed.')
 } catch (e) { console.log('FAIL ' + e.message); console.log(MARK + '-UNDO: ' + passed + ' passed before failure.'); process.exitCode = 1 }

@@ -1,4 +1,4 @@
-// KINEO-ADMIN-LEVE-2310 — exact complete thirteen-existing-source delta; pure in-memory undo.
+// KINEO-ADMIN-LEVE-2310 — exact complete fourteen-existing-source delta; pure in-memory undo.
 // Validate all candidate matches before replacing; preserve bytes outside these hunks.
 export const ADMIN_LEVE_2310_BASE = "591399abb34fc93c25300d82d644b6c94444ded6"
 export const ADMIN_LEVE_2310_NEW_PRODUCT_FILES = Object.freeze(['lib/admin/liveCache.ts', 'lib/admin/visiblePolling.ts', 'supabase/migrations/20261023121649_admin_leve_live_counters.sql'])
@@ -168,6 +168,16 @@ export const ADMIN_LEVE_2310_HUNKS = {
       "before": "   'signups_7d: num(c.signups_7d)', 'signups_24h: num(c.signups_24h)',\n   'videos_24h: num(c.videos_24h)', 'checkouts_24h: num(c.checkouts_24h)']\n    .every((s) => live.includes(s)))\ncheck('falha da RPC vira 0 visível, nunca número inventado',\n  live.includes('admin_live_counters falhou'),\n  'um painel mostrando 435 falso é pior que um mostrando 0')\n\n// ─────────────────────────────────────────────────────────────────────────────\nconsole.log('\\n2) Conta interna: uma fonte só, em todo lugar')\n",
       "after": "   'signups_7d: num(c.signups_7d)', 'signups_24h: num(c.signups_24h)',\n   'videos_24h: num(c.videos_24h)', 'checkouts_24h: num(c.checkouts_24h)']\n    .every((s) => live.includes(s)))\n// KINEO-ADMIN-LEVE-2310 — runtime guardian proves failures never populate the successful snapshot cache.\ncheck('falha da RPC retorna erro explícito 500 sem fabricar contadores zero',\n  liveCodigo.includes(\"if (counters.error) throw new Error('admin_live_counters failed: ' + counters.error.message)\") &&\n  liveCodigo.includes(\"return NextResponse.json({ error: 'Failed to load live data.' }, { status: 500 })\") &&\n  !liveCodigo.includes('[0] ?? {}'),\n  'erro da RPC não pode se tornar um snapshot de zeros cacheado')\n\n// ─────────────────────────────────────────────────────────────────────────────\nconsole.log('\\n2) Conta interna: uma fonte só, em todo lugar')\n"
     }
+  ],
+  "scripts/test-support/desfaz-roteiro-curto-2210.mjs": [
+    {
+      "before": "// Restores only this task IN MEMORY to the merged main, preserving Cartoon and Cena95 layers.\n// Every candidate hunk must match exactly once; missing, duplicated or mutated hunk/context throws.\n// Changes outside all hunks survive. The new guardian always reads real source without this adapter.\nimport { semAdsCena95PlanFailed2110 } from './desfaz-ads-cena-95-plan-failed-2110.mjs' // KINEO-ADS-CENA-95-PLAN-FAILED-2110\nconst MARK = 'KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22'\nconst HUNKS = {\n",
+      "after": "// Restores only this task IN MEMORY to the merged main, preserving Cartoon and Cena95 layers.\n// Every candidate hunk must match exactly once; missing, duplicated or mutated hunk/context throws.\n// Changes outside all hunks survive. The new guardian always reads real source without this adapter.\nimport { semAdminLeve2310 } from './desfaz-admin-leve-2310.mjs' // KINEO-ADMIN-LEVE-2310 — all historical consumers remove only this later exact layer first.\nimport { semAdsCena95PlanFailed2110 } from './desfaz-ads-cena-95-plan-failed-2110.mjs' // KINEO-ADS-CENA-95-PLAN-FAILED-2110\nconst MARK = 'KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22'\nconst HUNKS = {\n"
+    },
+    {
+      "before": "}\n\nexport function semRoteiroCurto2210(source, file) {\n  source = semAdsCena95PlanFailed2110(source, file) // KINEO-ADS-CENA-95-PLAN-FAILED-2110 — antes dos marcadores, hunks e hashes mais antigos.\n  const relative = typeof file === 'string' ? file.replace(/\\\\/g, '/') : file\n  const hunks = HUNKS[relative]\n",
+      "after": "}\n\nexport function semRoteiroCurto2210(source, file) {\n  source = semAdminLeve2310(source, file) // KINEO-ADMIN-LEVE-2310 — cache/polling precedes every older hunk, hash and marker check.\n  source = semAdsCena95PlanFailed2110(source, file) // KINEO-ADS-CENA-95-PLAN-FAILED-2110 — antes dos marcadores, hunks e hashes mais antigos.\n  const relative = typeof file === 'string' ? file.replace(/\\\\/g, '/') : file\n  const hunks = HUNKS[relative]\n"
+    }
   ]
 }
 
@@ -182,7 +192,11 @@ export function semAdminLeve2310(source, file) {
   const hunks = ADMIN_LEVE_2310_HUNKS[relative]
   if (typeof source !== 'string' || !hunks) return source
   const normalized = source.replace(/\r\n/g, '\n')
-  if (!source.includes(MARK) && hunks.every((h) => h.before && offsets(normalized, h.before).length === 1)) return source
+  const hasTaskEvidence = /\b(?:createLiveCache|startVisiblePolling|semAdminLeve2310)\b|test-admin-leve-(?:undo-)?2310/.test(source)
+  if (!source.includes(MARK) && !hasTaskEvidence && hunks.every((h) => h.before && offsets(normalized, h.before).length === 1)) return source
+  // Older adapters may enter this chain again after also removing historical
+  // layers. With neither our mark nor any candidate hunk, this layer is absent.
+  if (!source.includes(MARK) && !hasTaskEvidence && hunks.every((h) => offsets(normalized, h.after).length === 0)) return source
   const rawOffset = (flat) => {
     let raw = 0
     for (let index = 0; index < flat; index++) raw += source[raw] === '\r' && source[raw + 1] === '\n' ? 2 : 1
