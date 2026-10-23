@@ -5,7 +5,7 @@ export function startVisiblePolling(
   options: { immediate?: boolean } = {},
 ): () => void {
   const delayMs = Number.isFinite(intervalMs) ? Math.max(60_000, intervalMs) : 60_000
-  let timer: ReturnType<typeof window.setTimeout> | null = null
+  let timer: number | null = null
   let stopped = false
   let running = false
 
