@@ -235,4 +235,3 @@ function world(fixture=short(),over={},options={}) {
     async get(kind='orders'){const url='https://offline.example/api/ads/v2/'+kind+'?'+(kind==='status'?'order_id':'id')+'='+PACING_ORDER,r=await load(F[kind]).GET(new OfflineRequest(url));return {status:r.status,body:await r.json()}},
   }
 }
-
