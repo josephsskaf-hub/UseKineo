@@ -57,10 +57,13 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
   }
   try {
     if (state.plan.ajusteLive?.version === 'KINEO-ADS-CENA-RETOMADA-2110') { // KINEO-ADS-CENA-RETOMADA-2110 — same planning gate before any resumed paid media.
-      const spoken = state.voiceUrl || state.voiceClaimedAt ? { ...state.plan.script, hooks: [...state.plan.script.hooks] as [string, string, string] } : null // KINEO-ADS-CENA-SEGUE-2110 — paid/available narration is immutable even if a later preflight proposes text changes.
+      const nativeSpoken = cenaVoiceModeOf(state.plan) === 'talking' && state.jobs.some(j => j.kind === 'video' && (j.status === 'submitting' || j.status === 'pending' || j.status === 'done' || j.claimedAt !== undefined)) // KINEO-ADS-CENA-SEGUE-2110 — a native-video intent has already committed its spoken text even without a separate TTS URL.
+      const spoken = state.voiceUrl || state.voiceClaimedAt || nativeSpoken ? { ...state.plan.script, hooks: [...state.plan.script.hooks] as [string, string, string] } : null // KINEO-ADS-CENA-SEGUE-2110 — paid/available narration is immutable even if a later preflight proposes text changes.
+      const nativePrompts = nativeSpoken ? { videoPrompt: state.plan.videoPrompt, segmentPrompts: state.plan.segmentPrompts ? [...state.plan.segmentPrompts] as [string, string] : undefined } : null // KINEO-ADS-CENA-SEGUE-2110
       try { (await import('./ajustePreflight')).preflightCenaAjuste(state.plan, state.route) } // KINEO-ADS-CENA-SEGUE-2110 — the exact shared corrective preflight owns quality; no second runtime policy.
       catch { await failCenaOrder(admin, order, 'cena_ajuste_plan_invalid'); return }
       if (spoken) { if (JSON.stringify(spoken) !== JSON.stringify(state.plan.script)) addAjusteQuality(state, { stage: 'voice', code: 'voice_script_preserved', message: 'Existing narration or its paid intention retains the exact original script; later text suggestions were not substituted under its audio.' }); state.plan.script = spoken } // KINEO-ADS-CENA-SEGUE-2110
+      if (nativePrompts) Object.assign(state.plan, nativePrompts) // KINEO-ADS-CENA-SEGUE-2110 — all remaining native segments retain the wording contracted with the first submitted segment.
       for (const note of state.plan.quality_notes ?? []) addAjusteQuality(state, note); await save(state) // KINEO-ADS-CENA-SEGUE-2110 — lease loss stays outside the input-error handler.
     }
     await stepCena(state, { now: Date.now, save, json: cenaJson,
@@ -114,7 +117,7 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
       state.voiceClaimedAt = Date.now(); await save(state)
       const audio = await synthesizeTtsFallback(state.plan.script.narration, { userId: order.user_id, generationId: order.id })
       const seconds = estimateMp3DurationSeconds(audio)
-      if (!(seconds > 0 && (ajusteLive ? Number.isFinite(seconds) : seconds <= 15))) { await failCenaOrder(admin, order, 'cena_voice_does_not_fit'); return } // KINEO-ADS-CENA-SEGUE-2110 — retain every valid AJUSTE spoken word; legacy duration policy is unchanged.
+      if (!(seconds > 0 && (ajusteLive ? Number.isFinite(seconds) : seconds <= 15))) { if (ajusteLive) { addAjusteQuality(state, { stage: 'voice', code: 'voice_unusable', message: `Narration audio has an unusable duration (${String(seconds)}s); no valid positive-duration audio exists to assemble.` }); await save(state) }; await failCenaOrder(admin, order, ajusteLive ? 'cena_voice_unusable' : 'cena_voice_does_not_fit'); return } // KINEO-ADS-CENA-SEGUE-2110 — retain every valid AJUSTE spoken word; legacy duration policy is unchanged.
       if (ajusteLive) addAjusteQuality(state, { stage: 'voice', code: 'voice_ready', message: `Complete narration duration estimated at ${seconds}s from its audio; no spoken text or CTA was removed.` }) // KINEO-ADS-CENA-SEGUE-2110
       if (ajusteLive && seconds > 15) addAjusteQuality(state, { stage: 'voice', code: 'voice_duration_extended', message: `Valid narration lasts ${seconds}s. Output duration extends to ${seconds}s, keeping the entire voice and CTA, the final 5s moving close and last 2s overlay; caption timing remains an estimate.` }) // KINEO-ADS-CENA-SEGUE-2110
       state.voiceUrl = await uploadVoiceoverToSupabase(order.user_id, audio); if (ajusteLive && adjusted.ajusteMedia) adjusted.ajusteMedia.voiceSeconds = seconds; await save(state) // KINEO-ADS-CENA-RETOMADA-2110
