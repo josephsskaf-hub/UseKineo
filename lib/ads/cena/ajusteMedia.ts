@@ -4,6 +4,7 @@ import type { LyriaHandle } from '@/lib/lyriaMusic'
 import type { CenaPlan } from './plan'
 import type { CenaState } from './pipeline'
 import { CENA_ROUTES, type CenaRoute } from './adapters'
+import { addAjusteQuality } from './ajusteQuality' // KINEO-ADS-CENA-SEGUE-2110
 
 export const CENA_AJUSTE_LIVE_VERSION = 'KINEO-ADS-CENA-RETOMADA-2110' as const
 export interface CenaAjusteLive { version: typeof CENA_AJUSTE_LIVE_VERSION; music?: boolean }
@@ -84,11 +85,11 @@ async function advanceClose(s: AjusteState, d: AjusteMediaDeps): Promise<void> {
   }
   let stored: Awaited<ReturnType<AjusteMediaDeps['persistClose']>> = null
   try { stored = await d.persistClose(j) } catch { /* retry the copy, never the generation */ }
-  if (!stored || !HTTPS(stored.storedUrl) || stored.storedUrl === j.falUrl || stored.storedUrl === j.photoReference || !Number.isFinite(stored.measuredSeconds)) {
+  if (!stored || !HTTPS(stored.storedUrl) || stored.storedUrl === j.falUrl || stored.storedUrl === j.photoReference || !Number.isFinite(stored.measuredSeconds) || stored.measuredSeconds <= 0) { // KINEO-ADS-CENA-SEGUE-2110 — absent/invalid media is technical, a short positive clip is usable.
     if (d.now() - (j.copyStartedAt ?? d.now()) > CLOSE_COPY_MS) await closeFailure(s, d, 'cena_ajuste_close_copy_failed', false)
     return
   }
-  if (stored.measuredSeconds < j.keepSeconds) { await closeFailure(s, d, 'cena_ajuste_close_too_short', true); return }
+  if (stored.measuredSeconds < j.keepSeconds) addAjusteQuality(s, { stage: 'montage', code: 'close_duration_short', message: `Existing close has ${stored.measuredSeconds}s instead of ${j.keepSeconds}s; its moving image will loop to complete the final close.`, round: j.attempt }) // KINEO-ADS-CENA-SEGUE-2110
   j.url = stored.storedUrl; j.measuredSeconds = stored.measuredSeconds; j.status = 'done'; await d.save(s)
 }
 async function advanceMusic(s: AjusteState, d: AjusteMediaDeps): Promise<void> {

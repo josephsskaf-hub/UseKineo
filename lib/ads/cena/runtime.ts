@@ -16,6 +16,7 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { CreatomateSubmitError, estimateMp3DurationSeconds, submitCreatomateRender, uploadVoiceoverToSupabase } from '@/lib/compose'
 import { synthesizeTtsFallback } from '@/lib/ttsFallback'
 import type { AjusteState, CenaAjusteLive } from './ajusteMedia' // KINEO-ADS-CENA-RETOMADA-2110
+import { addAjusteQuality } from './ajusteQuality' // KINEO-ADS-CENA-SEGUE-2110
 export const cenaJson: CenaJson = async c => {
   const measured = c as typeof c & { maxOutputTokens?: number; onUsage?: (u: { prompt_tokens?: number; completion_tokens?: number }) => void }
   const result = await openai.chat.completions.create({ model: c.model, response_format: { type: 'json_object' }, temperature: 0.3, max_tokens: measured.maxOutputTokens ?? 1000, messages: [{ role: 'system', content: c.system }, { role: 'user', content: [{ type: 'text', text: c.text }, ...c.images.map(url => ({ type: 'image_url' as const, image_url: { url, detail: 'high' as const } }))] }] }, { timeout: 20_000, maxRetries: 0 })
@@ -50,13 +51,17 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
   if (won.error || !won.data) return
   const context = { userId: order.user_id, orderId: order.id }
   const save = async (s: CenaState) => {
-    const r = await admin.from('ads_v2_orders').update({ plan: { ...order.plan, cena: s } }).eq('id', order.id).eq('status', 'generating').eq('assembly_lease_at', token).select('id').maybeSingle()
+    if (s.plan.ajusteLive?.version === 'KINEO-ADS-CENA-RETOMADA-2110') for (const note of s.plan.quality_notes ?? []) addAjusteQuality(s, note) // KINEO-ADS-CENA-SEGUE-2110
+    const r = await admin.from('ads_v2_orders').update({ plan: { ...order.plan, ...(s.plan.ajusteLive?.version === 'KINEO-ADS-CENA-RETOMADA-2110' ? { narration: s.plan.script.narration } : {}), cena: s } }).eq('id', order.id).eq('status', 'generating').eq('assembly_lease_at', token).select('id').maybeSingle() // KINEO-ADS-CENA-SEGUE-2110 — canonical spoken text and notes persist together; legacy shape remains unchanged.
     if (r.error || !r.data) throw new Error('cena_lease_lost')
   }
   try {
     if (state.plan.ajusteLive?.version === 'KINEO-ADS-CENA-RETOMADA-2110') { // KINEO-ADS-CENA-RETOMADA-2110 — same planning gate before any resumed paid media.
-      try { (await import('./ajustePreflight')).preflightCenaAjuste(state.plan, state.route) }
+      const spoken = state.voiceUrl || state.voiceClaimedAt ? { ...state.plan.script, hooks: [...state.plan.script.hooks] as [string, string, string] } : null // KINEO-ADS-CENA-SEGUE-2110 — paid/available narration is immutable even if a later preflight proposes text changes.
+      try { (await import('./ajustePreflight')).preflightCenaAjuste(state.plan, state.route) } // KINEO-ADS-CENA-SEGUE-2110 — the exact shared corrective preflight owns quality; no second runtime policy.
       catch { await failCenaOrder(admin, order, 'cena_ajuste_plan_invalid'); return }
+      if (spoken) { if (JSON.stringify(spoken) !== JSON.stringify(state.plan.script)) addAjusteQuality(state, { stage: 'voice', code: 'voice_script_preserved', message: 'Existing narration or its paid intention retains the exact original script; later text suggestions were not substituted under its audio.' }); state.plan.script = spoken } // KINEO-ADS-CENA-SEGUE-2110
+      for (const note of state.plan.quality_notes ?? []) addAjusteQuality(state, note); await save(state) // KINEO-ADS-CENA-SEGUE-2110 — lease loss stays outside the input-error handler.
     }
     await stepCena(state, { now: Date.now, save, json: cenaJson,
       submit: async j => {
@@ -73,6 +78,7 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
       persist: async (j, attempt) => {
         if (j.kind === 'image') return persistSceneImage({ ...context, idx: j.index, attempt, falUrl: j.url!, suffix: `-o${j.index}` })
         const r = await persistShotClip({ ...context, idx: j.index, attempt, falUrl: j.url! })
+        if (state.plan.ajusteLive?.version === 'KINEO-ADS-CENA-RETOMADA-2110' && r && Number.isFinite(r.measuredSeconds) && r.measuredSeconds > 0) { j.measuredSeconds = r.measuredSeconds; if (r.measuredSeconds < j.seconds) addAjusteQuality(state, { stage: 'montage', code: 'video_duration_short', message: `Existing video has ${r.measuredSeconds}s instead of ${j.seconds}s; retain it and loop its moving visual where necessary.`, candidate: j.index, round: attempt }); return r.storedUrl } // KINEO-ADS-CENA-SEGUE-2110
         return r && r.measuredSeconds >= j.seconds - 0.1 ? r.storedUrl : null
       },
       event: async (name, metadata) => { await writeServerEvent({ name, userId: order.user_id, path: '/lib/ads/cena', metadata: { order_id: order.id, route: state.route, ...metadata } }) },
@@ -108,10 +114,13 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
       state.voiceClaimedAt = Date.now(); await save(state)
       const audio = await synthesizeTtsFallback(state.plan.script.narration, { userId: order.user_id, generationId: order.id })
       const seconds = estimateMp3DurationSeconds(audio)
-      if (!(seconds > 0 && seconds <= 15)) { await failCenaOrder(admin, order, 'cena_voice_does_not_fit'); return }
+      if (!(seconds > 0 && (ajusteLive ? Number.isFinite(seconds) : seconds <= 15))) { await failCenaOrder(admin, order, 'cena_voice_does_not_fit'); return } // KINEO-ADS-CENA-SEGUE-2110 — retain every valid AJUSTE spoken word; legacy duration policy is unchanged.
+      if (ajusteLive) addAjusteQuality(state, { stage: 'voice', code: 'voice_ready', message: `Complete narration duration estimated at ${seconds}s from its audio; no spoken text or CTA was removed.` }) // KINEO-ADS-CENA-SEGUE-2110
+      if (ajusteLive && seconds > 15) addAjusteQuality(state, { stage: 'voice', code: 'voice_duration_extended', message: `Valid narration lasts ${seconds}s. Output duration extends to ${seconds}s, keeping the entire voice and CTA, the final 5s moving close and last 2s overlay; caption timing remains an estimate.` }) // KINEO-ADS-CENA-SEGUE-2110
       state.voiceUrl = await uploadVoiceoverToSupabase(order.user_id, audio); if (ajusteLive && adjusted.ajusteMedia) adjusted.ajusteMedia.voiceSeconds = seconds; await save(state) // KINEO-ADS-CENA-RETOMADA-2110
     }
     const source = ajusteLive ? (await import('./ajusteMontage')).buildAjusteMontage(adjusted) : buildCenaMontage(state) // KINEO-ADS-CENA-RETOMADA-2110
+    if (ajusteLive) await save(state) // KINEO-ADS-CENA-SEGUE-2110 — persist montage/narration reservations before the render intent.
     // Carimbo ANTES do POST; erro ambíguo passa ao prazo v2, nunca reenviar Creatomate.
     const stamp = await admin.from('ads_v2_orders').update({ status: 'assembling', assembly_submit_at: new Date().toISOString() }).eq('id', order.id).eq('status', 'generating').eq('assembly_lease_at', token).is('assembly_submit_at', null).select('id').maybeSingle()
     if (stamp.error || !stamp.data) return
@@ -119,7 +128,7 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
       const id = await submitCreatomateRender(source)
       const write = () => admin.from('ads_v2_orders').update({ creatomate_render_id: id }).eq('id', order.id).eq('status', 'assembling').is('creatomate_render_id', null)
       let r = await write(); if (r.error) r = await write()
-      await writeServerEvent({ name: 'ads_cena_assembling', userId: order.user_id, path: '/lib/ads/cena', metadata: { order_id: order.id, route: state.route, video_attempt: state.videoAttempt, image_round: state.imageRound, creatomate_render_id: id, seconds: 15 } })
+      await writeServerEvent({ name: 'ads_cena_assembling', userId: order.user_id, path: '/lib/ads/cena', metadata: { order_id: order.id, route: state.route, video_attempt: state.videoAttempt, image_round: state.imageRound, creatomate_render_id: id, seconds: ajusteLive ? Number(source.duration) : 15 } }) // KINEO-ADS-CENA-SEGUE-2110
     } catch (e) {
       if (!(e instanceof CreatomateSubmitError && e.ambiguous)) await failCenaOrder(admin, order, 'cena_montage_rejected')
     }
