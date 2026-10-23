@@ -1,7 +1,7 @@
 // KINEO-ADS-CENA-2110 — máquina durável, sem SDK: cada intenção é salva ANTES do efeito; não reenvia POST ambíguo.
 // KINEO-ADS-CENA-AJUSTE-2110 — propaga o modo explícito sem reinterpretar trabalhos legados em andamento.
 import { cenaKeyframeRequest, cenaVideoRequests, type CenaRoute } from './adapters'
-import { CENA_JUDGE_QUESTION, judgeCena, type CenaJson, type CenaPlan, type CenaVerdict } from './plan'
+import { CENA_JUDGE_QUESTION, cenaVoiceModeOf, judgeCena, type CenaJson, type CenaPlan, type CenaVerdict } from './plan' // KINEO-ADS-CENA-SEGUE-2110
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { CENA_CATALOG } from './catalog' // KINEO-ADS-CENA-SEGUE-2110
 import { addAjusteQuality, type AjusteQualityNote } from './ajusteQuality' // KINEO-ADS-CENA-SEGUE-2110
@@ -72,6 +72,11 @@ export async function stepCena(s: CenaState, d: CenaDeps): Promise<void> {
     const jobs: CenaJob[] = kind === 'image' ? images(s) : cenaVideoRequests(s.route, { keyframeUrl: s.keyframes![0], endKeyframeUrl: s.keyframes![1], productUrl: s.plan.input.foto, prompt: s.plan.videoPrompt, language: s.plan.input.language, segmentPrompts: s.plan.segmentPrompts, voiceMode: s.plan.voice_mode }).map((j, index) => ({ endpoint: j.endpoint, input: j.input, seconds: j.seconds, keepSeconds: j.keepSeconds, index, kind: 'video', status: 'new' }))
     s.jobs.push(...jobs); await d.save(s)
   }
+  if (ajuste && kind === 'video' && cenaVoiceModeOf(s.plan) === 'talking' && s.jobs.filter(j => j.kind === 'video').every(j => j.status === 'new' && j.claimedAt === undefined && !j.requestId && !j.url)) { // KINEO-ADS-CENA-SEGUE-2110 — a crash may persist unsubmitted inputs before a later corrective preflight changes the narration.
+    const refreshed = cenaVideoRequests(s.route, { keyframeUrl: s.keyframes![0], endKeyframeUrl: s.keyframes![1], productUrl: s.plan.input.foto, prompt: s.plan.videoPrompt, language: s.plan.input.language, segmentPrompts: s.plan.segmentPrompts, voiceMode: s.plan.voice_mode }); let changed = false // KINEO-ADS-CENA-SEGUE-2110
+    for (const j of s.jobs.filter(j => j.kind === 'video' && j.status === 'new')) { const request = refreshed[j.index]; if (request && JSON.stringify([j.endpoint, j.input, j.seconds, j.keepSeconds]) !== JSON.stringify([request.endpoint, request.input, request.seconds, request.keepSeconds])) { Object.assign(j, { endpoint: request.endpoint, input: request.input, seconds: request.seconds, keepSeconds: request.keepSeconds }); changed = true } } // KINEO-ADS-CENA-SEGUE-2110 — only never-submitted jobs may change; paid intentions keep their contracted words.
+    if (changed) await d.save(s) // KINEO-ADS-CENA-SEGUE-2110 — save corrected inputs before the durable submit intention and its paid effect.
+  } // KINEO-ADS-CENA-SEGUE-2110
   const j = s.jobs.find(j => j.kind === kind && j.status !== 'done' && !(ajuste && kind === 'image' && j.status === 'failed')) // KINEO-ADS-CENA-SEGUE-2110
   if (!j) { if (ajuste && kind === 'image' && !s.jobs.some(job => job.kind === 'image' && job.status === 'done' && job.url)) return failed(s, 'cena_image_failed', d); s.phase = kind === 'image' ? 'judge' : 'ready'; await d.save(s); return } // KINEO-ADS-CENA-SEGUE-2110
   if (j.status === 'failed') return failed(s, `cena_${kind}_failed`, d)
