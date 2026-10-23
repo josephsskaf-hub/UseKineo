@@ -33,6 +33,7 @@ import selectorParser from 'postcss-selector-parser'
 import { renderPage } from './preview-ux-complete.mjs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { offlineModules } from './gpt24h-offline-support.mjs'
+import { semPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — a camada clara das páginas de entrada do ChatGPT sai da conta deste guardião (prova própria em scripts/test-paginas-ia-claras-2110.mjs)
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(RAIZ) // o carregador offline resolve '@/' a partir do cwd
@@ -312,7 +313,7 @@ console.log('== (f2) sobras públicas do apresentador: /best-ai-shorts-generator
     const cache = new Map()
     const load = (file) => {
       if (cache.has(file)) return cache.get(file)
-      const js = ts.transpileModule(readFileSync(join(RAIZ, file), 'utf8'), { compilerOptions: { module: 1, jsx: ts.JsxEmit.React, target: 9, esModuleInterop: true } }).outputText
+      const js = ts.transpileModule(semPaginasIaClaras2110(readFileSync(join(RAIZ, file), 'utf8'), file), { compilerOptions: { module: 1, jsx: ts.JsxEmit.React, target: 9, esModuleInterop: true } }).outputText // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
       const box = { exports: {} }
       cache.set(file, box.exports)
       const shim = (id) => {

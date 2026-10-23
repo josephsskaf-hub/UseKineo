@@ -14,6 +14,9 @@ import { adsV2Credits } from '../v2Tiers'
 import type { AdsV2Caller } from '../v2PlanCore'
 import type { ModerationVerdict } from '@/lib/safety/contentModeration' // KINEO-ADS-CENA-95-PACING-2110
 import { cena95ModerationFailure } from './moderation95' // KINEO-ADS-CENA-95-PACING-2110
+import { CENA95_LIVE } from './live' // KINEO-ADS-CENA-RETOMADA-2110
+import { internalCenaAjusteFor } from './internalAjuste' // KINEO-ADS-CENA-RETOMADA-2110
+import { internalCenaEscolhaFor } from './internalEscolha' // KINEO-ADS-ESCOLHA-2310
 export interface CenaInternalDeps {
   json: CenaJson;
   moderate(text: string): Promise<boolean | ModerationVerdict>; // KINEO-ADS-CENA-95-PACING-2110
@@ -23,6 +26,7 @@ export interface CenaInternalDeps {
 }
 export async function internalCenaFor(user: AdsV2Caller, body: unknown, d: CenaInternalDeps): Promise<Response> {
   if (!cenaEnabled(isAdsInternalEmail(user.email))) return v2Fail('cena_internal_only', 403)
+  if (!CENA95_LIVE) return internalCenaEscolhaFor(user, body, d) // KINEO-ADS-ESCOLHA-2310 — saved AJUSTE orders retain their runtime; new requests pause for human selection.
   try {
     const b = body as Record<string, unknown>
     if (!b || typeof b !== 'object' || (b.rota !== undefined && !isCenaRoute(b.rota))) return v2Fail('cena_bad_route', 400)

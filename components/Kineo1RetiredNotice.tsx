@@ -7,6 +7,7 @@
 // ?from=kineo-1 (next.config.js) e esta faixa diz o que mudou e o que existe hoje. A página do motor é estática
 // (force-static), então a leitura do ?from= é no navegador — sem a marca, nada aparece (e nada muda para o resto).
 // Números lidos das fontes (FREE_FILM_LABEL, creatorSeedanceFilms), nunca digitados.
+// KINEO-PAGINAS-IA-CLARAS-2110 — cores em var(--kpl-*, <cor de antes>): claras só dentro de <main className="kpl"> (as páginas de entrada do ChatGPT); nas outras páginas, a cor de antes.
 import { useEffect, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer'
@@ -36,7 +37,7 @@ export default function Kineo1RetiredNotice() {
     <div
       role="status"
       data-kineo="kineo1-retired-notice"
-      style={{ margin: '18px 0 0', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(41,151,255,.45)', background: 'rgba(41,151,255,.10)', color: '#d6ebff', fontSize: 14.5, lineHeight: 1.6, textAlign: 'left' }}
+      style={{ margin: '18px 0 0', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(41,151,255,.45)', background: 'var(--kpl-accent-soft, rgba(41,151,255,.10))', color: 'var(--kpl-accent, #d6ebff)', fontSize: 14.5, lineHeight: 1.6, textAlign: 'left' }}
     >
       {kineo1RetiredNoticeText()}
     </div>

@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-export const CARTOON_TRACAO_BASE = '796333e9a07ee0c83bb414312a062b63f8fc32bb'
+export const CARTOON_TRACAO_BASE = '895d6c99638dc0af65e11ad761f4999141587fa7'
 export const CARTOON_TRACAO_MARK = 'KINEO-CARTOON-TRACAO-2210'
 export const CARTOON_TRACAO_HUNKS = Object.freeze(JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-cartoon-tracao-2210-hunks.json'), 'utf8')))
 

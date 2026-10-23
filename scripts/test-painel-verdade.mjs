@@ -58,9 +58,12 @@ check('os 6 contadores vêm da RPC, nenhum de .count local',
    'signups_7d: num(c.signups_7d)', 'signups_24h: num(c.signups_24h)',
    'videos_24h: num(c.videos_24h)', 'checkouts_24h: num(c.checkouts_24h)']
     .every((s) => live.includes(s)))
-check('falha da RPC vira 0 visível, nunca número inventado',
-  live.includes('admin_live_counters falhou'),
-  'um painel mostrando 435 falso é pior que um mostrando 0')
+// KINEO-ADMIN-LEVE-2310 — runtime guardian proves failures never populate the successful snapshot cache.
+check('falha da RPC retorna erro explícito 500 sem fabricar contadores zero',
+  liveCodigo.includes("if (counters.error) throw new Error('admin_live_counters failed: ' + counters.error.message)") &&
+  liveCodigo.includes("return NextResponse.json({ error: 'Failed to load live data.' }, { status: 500 })") &&
+  !liveCodigo.includes('[0] ?? {}'),
+  'erro da RPC não pode se tornar um snapshot de zeros cacheado')
 
 // ─────────────────────────────────────────────────────────────────────────────
 console.log('\n2) Conta interna: uma fonte só, em todo lugar')

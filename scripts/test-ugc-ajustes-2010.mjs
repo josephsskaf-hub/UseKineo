@@ -192,7 +192,7 @@ const provaRotas = async (over = {}) => {
 await check('P2 EXECUTADO nas duas rotas (/plan e /start, dublês de sessão e acesso): interna + ?sample_probe=1 chega ao núcleo como "none"; interna sem ou com 0 = "internal"; assinante/parceiro/none com 1 = o acesso deles', () => provaRotas())
 const provaTela = (page = rd(F.page), client = rd(F.client), simple = rd(F.simple)) =>
   page.includes('  const sampleProbe = adsSampleProbeOn(reasonOwn, Array.isArray(rawProbe) ? rawProbe[0] : rawProbe)') && page.includes("  const reason = sampleProbe ? 'none' : reasonOwn") &&
-  page.indexOf("  const reason = sampleProbe ? 'none' : reasonOwn") < page.indexOf('  const gate = adsGate(reason)') && page.includes('sampleProbe={sampleProbe} entry={entry} />') &&
+  page.indexOf("  const reason = sampleProbe ? 'none' : reasonOwn") < page.indexOf('  const gate = adsGate(reason)') && page.includes('sampleProbe={sampleProbe} entry={entry} escolhaInternal={cenaEnabled(isAdsInternalEmail(user.email)) && !sampleProbe} escolhaOwnerKey={`${user.id}:${uid}`} />') /* KINEO-ADS-ESCOLHA-2310 — keep the complete legacy probe contract and require the new internal UI to stay off in probe mode. */ &&
   page.includes('<AdsPresenterAllProvider all={isAdsInternalEmail(user.email) && !sampleProbe}>') &&
   (client.match(/adsV2ProbeUrl\('\/api\/ads\/v2\/(plan|start)', sampleProbe\)/g) || []).length === 3 && (simple.match(/adsSampleProbeUrl\('\/api\/ads\/v2\/(plan|start)', sampleProbe\)/g) || []).length === 2 &&
   !/api<[^>]+>\('\/api\/ads\/v2\/(plan|start)'/.test(client.split('\n').filter((l) => !l.includes('era:')).join('\n')) && !/api<[^>]+>\('\/api\/ads\/v2\/(plan|start)'/.test(simple.split('\n').filter((l) => !l.includes('era:')).join('\n')) &&

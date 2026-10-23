@@ -84,6 +84,7 @@ import { ADS_V2_SAME_PERSON_LINE, adsV2AnchorDecision, variationTagOf, variation
 import { ADS_V2_LOCK_CORNER_REASON, adsV2LockCornerStep, adsV2LockSceneOrdinal, adsV2LockSideFor, adsV2LockedScenePromptAt, adsV2ParseLockSeen, type AdsV2LockSide } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-4-1510 — o canto reservado decidido em código; a visão só confere
 import { adsV2LockBoxRound } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-5-1510 — o evento registra se a conferência devolveu caixa "redonda"
 import { adsV2LockCheckTry } from '@/lib/ads/v2ShotLists' // KINEO-ADS-FIEL-6-1610 — 1ª conferência da cena ou a de depois da refação
+import { ajusteReviewOf, type AjusteQualityNote } from '@/lib/ads/cena/ajusteQuality' // KINEO-ADS-CENA-SEGUE-2110
 
 /** Tentativas por plano dentro de UMA geração paga: 1ª + refação automática no principal + reserva H3. */
 export const ADS_V2_MAX_AUTO_ATTEMPTS = 3
@@ -1525,6 +1526,7 @@ export interface AdsV2ShotView {
   ai_person?: true // KINEO-ADS-REFACAO-ATOR-1410
 }
 export interface AdsV2OrderView {
+  narration_used?: string; quality_notes?: AjusteQualityNote[] // KINEO-ADS-CENA-SEGUE-2110 — only the AJUSTE scene engine.
   order_id: string
   status: AdsV2OrderRow['status']
   tier: AdsV2Tier
@@ -1540,6 +1542,7 @@ export interface AdsV2OrderView {
 
 export function adsV2View(order: AdsV2OrderRow, shots: readonly AdsV2ShotRow[]): AdsV2OrderView {
   return {
+    ...ajusteReviewOf(order.plan), // KINEO-ADS-CENA-SEGUE-2110 — status and order GETs share the persisted evidence.
     order_id: order.id,
     status: order.status,
     tier: order.tier,

@@ -75,6 +75,7 @@ function carregador(over = {}) {
       if (id === 'react') return react
       if (id === 'react/jsx-runtime') return require(id)
       if (id === 'react-dom') return { ...require(id), createPortal: () => null }
+      if (id === 'next/dynamic') return { __esModule: true, default: () => function UnexpectedEscolhaMount() { throw Error('ESCOLHA must remain unmounted in the legacy/off proof') } } // KINEO-ADS-ESCOLHA-2310 — external lazy boundary only; the real off wrapper still renders and all historical assertions/mutants remain.
       if (id === 'next/link') return { __esModule: true, default: ({ children, prefetch, ...p }) => React.createElement('a', p, children) }
       if (id === 'next/image') return { __esModule: true, default: ({ priority, fill, ...p }) => React.createElement('img', p) }
       if (id === 'next/navigation') return { useSearchParams: () => new URLSearchParams(), usePathname: () => '/ads/v2', useRouter: () => ({}) }

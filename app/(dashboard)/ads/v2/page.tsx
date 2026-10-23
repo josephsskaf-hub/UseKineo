@@ -29,6 +29,7 @@ import { adsSampleEntryOf, type AdsSampleEntry } from '@/lib/ads/sampleEntry' //
 import { AdsPresenterAllProvider } from '@/components/ads/AdsPresenterPicker' // KINEO-APRESENTADOR-OLHOS-1910 — conta interna vê os 12 apresentadores (os 8 "em teste"); cliente, só os aprovados
 import { ADS_SAMPLE_PROBE_PARAM, adsSampleProbeOn } from '@/lib/ads/sampleEntry' // KINEO-UGC-AJUSTES-2010 — ?sample_probe=1: a conta interna vê (e faz) a amostra grátis de verdade
 import AdsV2Client from './AdsV2Client'
+import { cenaEnabled } from '@/lib/ads/cena/catalog' // KINEO-ADS-ESCOLHA-2310 — share the existing rollout switch.
 
 export const metadata = { title: 'Studio Ads — Kineo' }
 
@@ -82,5 +83,5 @@ export default async function AdsV2Page({ searchParams }: { searchParams?: Recor
 
   // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — quem entra pela amostra leva a oferta do Business pronta (números de lib/businessPlan.ts): a tela a mostra quando a
   // amostra já foi usada (403 'no_access') e no aviso do teto do dia. Assinante/passe/interna: null (a tela de sempre).
-  return <AdsPresenterAllProvider all={isAdsInternalEmail(user.email) && !sampleProbe}><AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} sampleProbe={sampleProbe} entry={entry} /></AdsPresenterAllProvider> // KINEO-UGC-AJUSTES-2010 — + sampleProbe e, com ele, a tela de escolha só com os aprovados, como o cliente vê (a tela repassa ?sample_probe=1 ao /plan e ao /start só para a conta interna); era: a mesma linha sem sampleProbe
+  return <AdsPresenterAllProvider all={isAdsInternalEmail(user.email) && !sampleProbe}><AdsV2Client initialBalance={balance} workspace={workspace} classicCredits={KINEO1_35S_CREDITS} variations={sample ? false : adsVariationsVisible(user.email)} producao={!sample && producaoVisibleFor(PRODUCAO_PUBLIC, isAdsInternalEmail(user.email))} sample={sample} business={sample ? businessAdsOffer() : null} sampleProbe={sampleProbe} entry={entry} escolhaInternal={cenaEnabled(isAdsInternalEmail(user.email)) && !sampleProbe} escolhaOwnerKey={`${user.id}:${uid}`} /></AdsPresenterAllProvider> // KINEO-ADS-ESCOLHA-2310 — exact internal-account check plus existing switch; local storage is scoped to authenticated user and workspace owner.
 }

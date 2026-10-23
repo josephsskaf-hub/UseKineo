@@ -255,10 +255,12 @@ const FAQ: { q: string; a: string }[] = [
   },
 ]
 
-const PAGE_BG = '#000'
-const CARD = { background: '#161618', border: '1px solid #2a2a2d', borderRadius: 14 }
-const ACCENT = '#2997ff'
-const MUTED = '#86868b'
+import { PaginaClaraCards, PaginaClaraTopo } from '@/components/seo/PaginaClara' // KINEO-PAGINAS-IA-CLARAS-2110 — o menu do topo e os 4 cards da home
+import { PAGINA_CLARA_CLASSE, PAGINA_CLARA_FUNDO } from '@/lib/seo/paginasIaClaras2110' // KINEO-PAGINAS-IA-CLARAS-2110
+const PAGE_BG = PAGINA_CLARA_FUNDO // KINEO-PAGINAS-IA-CLARAS-2110 — era '#000'
+const CARD = { background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 14 }
+const ACCENT = '#0A5CFF'
+const MUTED = '#5A5F67'
 const CTA_URL =
   '/free-ai-shorts-generator?utm_source=best-roundup&utm_medium=seo&utm_campaign=seo-sprint'
 
@@ -308,13 +310,14 @@ export default function BestAiShortsGeneratorsPage() {
 
   return (
     <main
+      className={PAGINA_CLARA_CLASSE}
       style={{
         background: PAGE_BG,
         minHeight: '100vh',
-        color: '#f5f5f7',
+        color: '#0E1116',
         fontFamily:
           'var(--font-sans), Arial, sans-serif',
-        padding: '64px 20px 96px',
+        padding: '0 0 96px', // KINEO-PAGINAS-IA-CLARAS-2110 — o respiro do topo desceu para a coluna (o menu do topo encosta na borda)
       }}
     >
       <script
@@ -336,7 +339,8 @@ export default function BestAiShortsGeneratorsPage() {
           gap: 12px;
           align-items: start;
           padding: 12px 14px;
-          background: #0d0d0f;
+          background: #FFFFFF;
+          border: 1px solid #E4E4E0;
           border-radius: 10px;
         }
         @media (max-width: 680px) {
@@ -347,7 +351,8 @@ export default function BestAiShortsGeneratorsPage() {
         }
       `}</style>
 
-      <div style={{ maxWidth: 860, margin: '0 auto' }}>
+      <PaginaClaraTopo />{/* KINEO-PAGINAS-IA-CLARAS-2110 */}
+      <div style={{ maxWidth: 860, margin: '0 auto', padding: '48px 20px 0' }}>{/* KINEO-PAGINAS-IA-CLARAS-2110 — + o respiro que era do <main> */}
         <p
           style={{
             color: ACCENT,
@@ -360,10 +365,11 @@ export default function BestAiShortsGeneratorsPage() {
         >
           Roundup — updated {UPDATED} · tested data and prices checked {competitorCheckedLabel()}
         </p>
-        <h1 style={{ fontSize: '2.2rem', fontWeight: 800, lineHeight: 1.15, margin: '0 0 16px' }}>
+        <h1 style={{ fontSize: '2.2rem', fontWeight: 650, lineHeight: 1.15, margin: '0 0 16px' }}>
           {PAGE_HEADING}
         </h1>
-        {best ? <p data-kineo="geo-r3-answer" style={{ color: '#f5f5f7', fontSize: '1.08rem', lineHeight: 1.6, margin: '0 0 14px' }}>{best.lead}</p> : null}
+        {best ? <p data-kineo="geo-r3-answer" style={{ color: '#0E1116', fontSize: '1.08rem', lineHeight: 1.6, margin: '0 0 14px' }}>{best.lead}</p> : null}
+        <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
         <p style={{ color: MUTED, fontSize: '1.08rem', lineHeight: 1.6, margin: '0 0 8px' }}>
           The best AI tools for YouTube Shorts are not doing the same job. Some generate a
           whole video from an idea, some re-clip
@@ -381,18 +387,18 @@ export default function BestAiShortsGeneratorsPage() {
 
         {/* KINEO-BING-SEO-1510 — FlowShorts × AutoShorts × Revid × Kineo: resposta em 3 frases + preço público com fonte e data. */}
         <section data-kineo="bing-seo-1510-automation" style={{ ...CARD, padding: '20px', margin: '0 0 40px', borderColor: ACCENT }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 10px' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 650, margin: '0 0 10px' }}>
             Fully automated AI Shorts tools: FlowShorts vs AutoShorts vs Revid pricing
           </h2>
           {automation.summary.map((line) => (
-            <p key={line} style={{ color: '#f5f5f7', fontSize: '0.98rem', lineHeight: 1.6, margin: '0 0 8px' }}>{line}</p>
+            <p key={line} style={{ color: '#0E1116', fontSize: '0.98rem', lineHeight: 1.6, margin: '0 0 8px' }}>{line}</p>
           ))}
           <div style={{ overflowX: 'auto', margin: '12px 0 0' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem', minWidth: 620 }}>
               <thead>
                 <tr>
                   {['Tool', 'Public price', 'What you get', 'Cost per Short'].map((h) => (
-                    <th key={h} style={{ textAlign: 'left', color: MUTED, fontWeight: 700, padding: '8px 10px', borderBottom: '1px solid #2a2a2d' }}>{h}</th>
+                    <th key={h} style={{ textAlign: 'left', color: MUTED, fontWeight: 700, padding: '8px 10px', borderBottom: '1px solid #E4E4E0' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -400,21 +406,21 @@ export default function BestAiShortsGeneratorsPage() {
                 {automationTools.map((t) => (
                   <tr key={t.id}>
                     <td style={{ padding: '8px 10px', verticalAlign: 'top', fontWeight: 700 }}>{t.name}</td>
-                    <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#d2d2d7' }}>
+                    <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#2A2F37' }}>
                       {t.publicPrice}{' '}
                       {t.sources.map((s) => (
                         <span key={s.url} style={{ color: MUTED }}>(<a href={s.url} rel="nofollow noopener" target="_blank" style={{ color: ACCENT, textDecoration: 'none' }}>{s.label}</a>, checked {s.checkedOn})</span>
                       ))}
                     </td>
-                    <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#d2d2d7' }}>{t.delivers}</td>
-                    <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#d2d2d7' }}>{t.perShort ?? 'Not published as a fixed cost per video.'}</td>
+                    <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#2A2F37' }}>{t.delivers}</td>
+                    <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#2A2F37' }}>{t.perShort ?? 'Not published as a fixed cost per video.'}</td>
                   </tr>
                 ))}
                 <tr>
                   <td style={{ padding: '8px 10px', verticalAlign: 'top', fontWeight: 700 }}>{kineoRow.name}</td>
-                  <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#d2d2d7' }}>{kineoRow.publicPrice}</td>
-                  <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#d2d2d7' }}>{kineoRow.delivers}</td>
-                  <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#d2d2d7' }}>{kineoRow.perShort}</td>
+                  <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#2A2F37' }}>{kineoRow.publicPrice}</td>
+                  <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#2A2F37' }}>{kineoRow.delivers}</td>
+                  <td style={{ padding: '8px 10px', verticalAlign: 'top', color: '#2A2F37' }}>{kineoRow.perShort}</td>
                 </tr>
               </tbody>
             </table>
@@ -429,8 +435,8 @@ export default function BestAiShortsGeneratorsPage() {
             searches, but the long ranked list made the answer expensive to
             find. This answer-first map lets a buyer self-select by starting
             point before reading thirteen reviews. */}
-        <section style={{ ...CARD, padding: '20px', margin: '0 0 40px', borderColor: '#3a3a3d' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 8px' }}>
+        <section style={{ ...CARD, padding: '20px', margin: '0 0 40px', borderColor: '#E4E4E0' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 650, margin: '0 0 8px' }}>
             The quick answer: choose by what you already have
           </h2>
           <p style={{ color: MUTED, fontSize: '0.92rem', lineHeight: 1.6, margin: '0 0 16px' }}>
@@ -448,7 +454,7 @@ export default function BestAiShortsGeneratorsPage() {
                 key={startingPoint}
                 className="roundup-decision-row"
               >
-                <strong style={{ color: '#f5f5f7', fontSize: '0.9rem' }}>{startingPoint}</strong>
+                <strong style={{ color: '#0E1116', fontSize: '0.9rem' }}>{startingPoint}</strong>
                 <span style={{ color: ACCENT, fontWeight: 700, fontSize: '0.9rem' }}>{picks}</span>
                 <span style={{ color: MUTED, fontSize: '0.88rem', lineHeight: 1.45 }}>{reason}</span>
               </div>
@@ -462,7 +468,7 @@ export default function BestAiShortsGeneratorsPage() {
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 12px' }}>
           How to choose an AI Shorts generator
         </h2>
-        <p style={{ color: '#d2d2d7', fontSize: '0.98rem', lineHeight: 1.65, margin: '0 0 16px' }}>
+        <p style={{ color: '#2A2F37', fontSize: '0.98rem', lineHeight: 1.65, margin: '0 0 16px' }}>
           Before comparing features, answer four questions. They eliminate most of the list
           instantly.
         </p>
@@ -471,7 +477,7 @@ export default function BestAiShortsGeneratorsPage() {
             <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 8px' }}>
               1. From scratch, or re-clip?
             </h3>
-            <p style={{ color: '#d2d2d7', lineHeight: 1.55, fontSize: '0.95rem', margin: 0 }}>
+            <p style={{ color: '#2A2F37', lineHeight: 1.55, fontSize: '0.95rem', margin: 0 }}>
               If you have no footage and want a video from just a topic, you need a from-scratch
               generator (Kineo, InVideo). If you already record long videos or podcasts, a
               re-clipper (OpusClip) cuts them into Shorts far faster than starting over.
@@ -481,7 +487,7 @@ export default function BestAiShortsGeneratorsPage() {
             <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 8px' }}>
               2. Do you want the script and voiceover written for you?
             </h3>
-            <p style={{ color: '#d2d2d7', lineHeight: 1.55, fontSize: '0.95rem', margin: 0 }}>
+            <p style={{ color: '#2A2F37', lineHeight: 1.55, fontSize: '0.95rem', margin: 0 }}>
               Some tools expect you to bring a script (Fliki shines when you do). Others write the
               hook-to-payoff script and narrate it for you, so you never face a blank page. If you
               want to type one topic and walk away, that distinction matters most.
@@ -491,7 +497,7 @@ export default function BestAiShortsGeneratorsPage() {
             <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 8px' }}>
               3. Faceless, or a presenter on screen?
             </h3>
-            <p style={{ color: '#d2d2d7', lineHeight: 1.55, fontSize: '0.95rem', margin: 0 }}>
+            <p style={{ color: '#2A2F37', lineHeight: 1.55, fontSize: '0.95rem', margin: 0 }}>
               For a talking avatar or spokesperson, avatar tools (HeyGen) are purpose-built. For
               fully faceless footage-driven Shorts, a faceless generator fits better. A few tools
               — including Kineo — can do both.
@@ -501,7 +507,7 @@ export default function BestAiShortsGeneratorsPage() {
             <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 8px' }}>
               4. Price and free tier
             </h3>
-            <p style={{ color: '#d2d2d7', lineHeight: 1.55, fontSize: '0.95rem', margin: 0 }}>
+            <p style={{ color: '#2A2F37', lineHeight: 1.55, fontSize: '0.95rem', margin: 0 }}>
               Most tools have a limited free plan or watermarked trial so you can test output
               before paying. Check what the plan really costs every month — an advertised
               first-month price is not the price you will pay — whether credits
@@ -543,7 +549,7 @@ export default function BestAiShortsGeneratorsPage() {
                     {t.slug ? (
                       <a
                         href={`/alternatives/${t.slug}`}
-                        style={{ color: '#f5f5f7', textDecoration: 'none' }}
+                        style={{ color: '#0E1116', textDecoration: 'none' }}
                       >
                         {t.name}
                       </a>
@@ -556,11 +562,11 @@ export default function BestAiShortsGeneratorsPage() {
                   </p>
                 </div>
               </div>
-              <p style={{ color: '#d2d2d7', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 10px' }}>
+              <p style={{ color: '#2A2F37', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 10px' }}>
                 {t.take}
               </p>
               <p style={{ color: MUTED, fontSize: '0.9rem', margin: 0 }}>
-                <strong style={{ color: '#f5f5f7' }}>Best for:</strong> {t.bestFor}
+                <strong style={{ color: '#0E1116' }}>Best for:</strong> {t.bestFor}
                 {t.slug && (
                   <>
                     {' '}
@@ -616,25 +622,25 @@ export default function BestAiShortsGeneratorsPage() {
             <tbody>
               {TOOLS.map((t) => (
                 <tr key={t.name}>
-                  <td style={{ padding: '10px 12px', borderBottom: '1px solid #2a2a2d', fontWeight: 700 }}>
+                  <td style={{ padding: '10px 12px', borderBottom: '1px solid #E4E4E0', fontWeight: 700 }}>
                     {t.slug ? (
-                      <a href={`/alternatives/${t.slug}`} style={{ color: '#f5f5f7', textDecoration: 'none' }}>
+                      <a href={`/alternatives/${t.slug}`} style={{ color: '#0E1116', textDecoration: 'none' }}>
                         {t.name}
                       </a>
                     ) : (
                       <span style={{ color: ACCENT }}>{t.name}</span>
                     )}
                   </td>
-                  <td style={{ padding: '10px 12px', borderBottom: '1px solid #2a2a2d', color: '#d2d2d7' }}>
+                  <td style={{ padding: '10px 12px', borderBottom: '1px solid #E4E4E0', color: '#2A2F37' }}>
                     {t.category}
                   </td>
-                  <td style={{ padding: '10px 12px', borderBottom: '1px solid #2a2a2d', color: '#d2d2d7' }}>
+                  <td style={{ padding: '10px 12px', borderBottom: '1px solid #E4E4E0', color: '#2A2F37' }}>
                     {t.fromScratch}
                   </td>
-                  <td style={{ padding: '10px 12px', borderBottom: '1px solid #2a2a2d', color: '#d2d2d7' }}>
+                  <td style={{ padding: '10px 12px', borderBottom: '1px solid #E4E4E0', color: '#2A2F37' }}>
                     {t.freeTier}
                   </td>
-                  <td style={{ padding: '10px 12px', borderBottom: '1px solid #2a2a2d', color: '#d2d2d7' }}>
+                  <td style={{ padding: '10px 12px', borderBottom: '1px solid #E4E4E0', color: '#2A2F37' }}>
                     {t.startingPrice}
                   </td>
                 </tr>
@@ -648,7 +654,7 @@ export default function BestAiShortsGeneratorsPage() {
           <h2 style={{ fontSize: '1.2rem', fontWeight: 700, margin: '0 0 8px' }}>
             Why Kineo tops the list for from-scratch Shorts
           </h2>
-          <p style={{ color: '#d2d2d7', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 14px' }}>
+          <p style={{ color: '#2A2F37', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 14px' }}>
             Many tools here assume you already have something — a long video to clip, a script to
             narrate, a clip to caption, or an avatar to render. Kineo starts from nothing but a
             topic and hands you a finished, ready-to-post 9:16 Short: hook-first script, AI
@@ -697,7 +703,7 @@ export default function BestAiShortsGeneratorsPage() {
           {faqs.map((item, i) => (
             <section key={i} style={{ ...CARD, padding: '16px 18px' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 8px' }}>{item.q}</h3>
-              <p style={{ color: '#d2d2d7', lineHeight: 1.55, fontSize: '0.95rem', margin: 0 }}>
+              <p style={{ color: '#2A2F37', lineHeight: 1.55, fontSize: '0.95rem', margin: 0 }}>
                 {item.a}
               </p>
             </section>

@@ -6,8 +6,8 @@
 import type { Metadata } from 'next'
 import type { CSSProperties } from 'react'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
-import { PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
-import ExampleLiveMedia from '@/app/examples/ExampleLiveMedia'
+import { PaginaClaraCards, PaginaClaraTopo, PaginaClaraVitrine } from '@/components/seo/PaginaClara' // KINEO-PAGINAS-IA-CLARAS-2110 — o menu do topo, os 4 cards e a vitrine atual da home (no lugar dos 3 exemplos velhos)
+import { PAGINA_CLARA_CLASSE, PAGINA_CLARA_FUNDO, VITRINE_LINHA_PT } from '@/lib/seo/paginasIaClaras2110' // KINEO-PAGINAS-IA-CLARAS-2110
 import ExitIntentOffer from '@/components/ExitIntentOffer'
 import Footer from '@/components/Footer'
 import LocalizedScriptHandoff from '@/components/LocalizedScriptHandoff'
@@ -62,7 +62,7 @@ const FAQ = [
 ]
 
 export default function GeradorDeShortsPage() {
-  const p: CSSProperties = { color: '#86868b', fontSize: '1rem', lineHeight: 1.65, margin: '0 0 12px' }
+  const p: CSSProperties = { color: '#5A5F67', fontSize: '1rem', lineHeight: 1.65, margin: '0 0 12px' }
   const faqJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -74,25 +74,27 @@ export default function GeradorDeShortsPage() {
   }
 
   return (
-    <main lang="pt-BR" style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'var(--font-inter), system-ui, -apple-system, sans-serif' }}>
+    <main lang="pt-BR" className={PAGINA_CLARA_CLASSE} style={{ minHeight: '100vh', background: PAGINA_CLARA_FUNDO, color: '#0E1116', fontFamily: 'var(--font-inter), system-ui, -apple-system, sans-serif' }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }} />
+      <PaginaClaraTopo />{/* KINEO-PAGINAS-IA-CLARAS-2110 */}
       <div style={{ maxWidth: 880, margin: '0 auto', padding: '64px 20px 88px' }}>
-        <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 850, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#2997ff', border: '1px solid rgba(41,151,255,0.4)', background: 'rgba(41,151,255,0.12)', borderRadius: 999, padding: '6px 12px' }}>
+        <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 750, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#0A5CFF', border: '1px solid rgba(10,92,255,0.35)', background: '#E8EFFF', borderRadius: 999, padding: '6px 12px' }}>
           Gerador de Shorts com IA
         </span>
-        <h1 style={{ fontSize: 'clamp(1.9rem, 5vw, 2.9rem)', fontWeight: 900, lineHeight: 1.1, margin: '18px 0 0', fontFamily: 'var(--font-display), var(--font-inter), sans-serif' }}>
+        <h1 style={{ fontSize: 'clamp(1.9rem, 5vw, 2.9rem)', fontWeight: 650, lineHeight: 1.1, margin: '18px 0 0', fontFamily: 'var(--font-display), var(--font-inter), sans-serif' }}>
           Crie um Short sem aparecer — grátis
         </h1>
-        <p style={{ fontSize: '1.08rem', color: '#86868b', lineHeight: 1.6, margin: '16px 0 0' }}>
+        <p style={{ fontSize: '1.08rem', color: '#5A5F67', lineHeight: 1.6, margin: '16px 0 0' }}>
           Digite uma ideia e o Kineo gera o Short vertical completo: roteiro, narração em português, cenas e legendas — pronto para postar no YouTube Shorts, TikTok ou Reels. Sem cartão.
         </p>
+        <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
 
         <BuyCreatorCta
           page="gerador_pt"
           lang="pt"
           align="left"
           secondary={
-            <a href={`#${FORM_ID}`} style={{ display: 'inline-block', border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 800, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>
+            <a href={`#${FORM_ID}`} style={{ display: 'inline-block', border: '1px solid #D2D2CD', color: '#0E1116', fontWeight: 800, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>
               Criar meu Short grátis ↓
             </a>
           }
@@ -130,28 +132,15 @@ export default function GeradorDeShortsPage() {
           note="Com pelo menos dois rótulos de fala, como Voiceover:, Narração: ou Fala:, o Kineo lê somente esses blocos; direções de produção reconhecidas ficam fora da voz. A pontuação pode mudar para ajustar o ritmo, mas a sequência das palavras não."
         />
 
-        {/* Prova viva: 3 exports reais tocando (mesmo motor da home). */}
-        <section style={{ marginTop: 34 }}>
-          <p style={{ margin: '0 0 4px', color: '#2997ff', fontSize: 12, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-            Feito de verdade com o Kineo
-          </p>
-          <p style={{ ...p, marginBottom: 14 }}>Cada um destes começou com uma linha de texto.</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-            {PUBLIC_EXAMPLES.slice(0, 3).map((ex) => (
-              <a key={ex.slug} href={`/examples/${ex.slug}`} style={{ position: 'relative', aspectRatio: '9 / 16', borderRadius: 18, overflow: 'hidden', background: '#000', border: '1px solid #2a2a2d', display: 'block' }}>
-                <ExampleLiveMedia videoPath={ex.videoPath} posterPath={posterWebpPath(ex.posterPath)} />
-                <span style={{ position: 'absolute', left: 10, bottom: 10, right: 10, zIndex: 1, fontSize: 12, fontWeight: 700, color: '#fff', textShadow: '0 1px 8px rgba(0,0,0,.7)' }}>{ex.shortTitle}</span>
-              </a>
-            ))}
-          </div>
-        </section>
+        {/* KINEO-PAGINAS-IA-CLARAS-2110 — os 3 exemplos velhos saíram; entra a vitrine atual (a mesma da /claude-connector). */}
+        <PaginaClaraVitrine titulo="Feito de verdade com o Kineo" linha={VITRINE_LINHA_PT} align="left" />
 
         <section style={{ marginTop: 44 }}>
-          <h2 style={{ fontSize: 'clamp(1.3rem, 3.5vw, 1.75rem)', fontWeight: 800, margin: '0 0 14px', fontFamily: 'var(--font-display), var(--font-inter), sans-serif' }}>
+          <h2 style={{ fontSize: 'clamp(1.3rem, 3.5vw, 1.75rem)', fontWeight: 650, margin: '0 0 14px', fontFamily: 'var(--font-display), var(--font-inter), sans-serif' }}>
             Perguntas frequentes
           </h2>
           {FAQ.map((item) => (
-            <div key={item.q} style={{ background: '#131316', border: '1px solid #2a2a2d', borderRadius: 18, padding: '16px 18px', marginBottom: 12 }}>
+            <div key={item.q} style={{ background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 18, padding: '16px 18px', marginBottom: 12 }}>
               <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 6px' }}>{item.q}</h3>
               <p style={{ ...p, margin: 0, fontSize: '0.95rem' }}>{item.a}</p>
             </div>

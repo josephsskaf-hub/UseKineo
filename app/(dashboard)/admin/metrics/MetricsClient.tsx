@@ -1,7 +1,7 @@
 'use client'
 
 // Push #066 — Conversion Metrics Dashboard (client).
-// Now auto-polls /api/admin/metrics every 30 s — no manual refresh needed.
+// Auto-polls /api/admin/metrics every 60 s while the tab is visible.
 // Shows a "Last updated X s ago" indicator and a spinning dot while
 // refreshing. Also adds a "Videos Downloaded" metric card.
 // The page server component still seeds the initial data on first render
@@ -9,6 +9,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
+import { startVisiblePolling } from '@/lib/admin/visiblePolling'
 
 export interface MetricsData {
   totalUsers: number | null
@@ -38,14 +39,13 @@ function fmt(v: number | null): string {
   return v.toLocaleString('en-US')
 }
 
-const POLL_MS = 30_000
+const POLL_MS = 60_000
 
 export default function MetricsClient({ metrics: initialMetrics, viewerEmail, denied }: Props) {
   const [metrics, setMetrics] = useState<MetricsData | undefined>(initialMetrics)
   const [refreshing, setRefreshing] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(initialMetrics ? new Date() : null)
   const [secondsAgo, setSecondsAgo] = useState(0)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const clockRef = useRef<ReturnType<typeof setInterval> | null>(null)
   // Push #233 — Basic/Pro checkout-button clicks from public.click_events,
   // fetched from /api/admin/click-stats and polled alongside the metrics.
@@ -72,7 +72,7 @@ export default function MetricsClient({ metrics: initialMetrics, viewerEmail, de
     return () => { if (clockRef.current) clearInterval(clockRef.current) }
   }, [lastUpdated])
 
-  // Poll every 30 s
+  // Poll every 60 s while the tab is visible.
   useEffect(() => {
     if (denied) return
 
@@ -94,8 +94,7 @@ export default function MetricsClient({ metrics: initialMetrics, viewerEmail, de
       }
     }
 
-    timerRef.current = setInterval(poll, POLL_MS)
-    return () => { if (timerRef.current) clearInterval(timerRef.current) }
+    return startVisiblePolling(poll, POLL_MS, { immediate: false })
   }, [denied])
 
   // Push #233 — load + poll click_events totals for the two new cards.
@@ -118,9 +117,8 @@ export default function MetricsClient({ metrics: initialMetrics, viewerEmail, de
         // silent — keep showing whatever we already have
       }
     }
-    load()
-    const id = setInterval(load, POLL_MS)
-    return () => { cancelled = true; clearInterval(id) }
+    const stopPolling = startVisiblePolling(load, POLL_MS)
+    return () => { cancelled = true; stopPolling() }
   }, [denied])
 
   if (denied || !metrics) {

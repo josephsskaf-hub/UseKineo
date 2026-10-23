@@ -135,9 +135,9 @@ function verificacoesEstaticas(S) {
   v('R7 demo: a tela tem o botão "Avançar agora" (PATCH) e não espera o robô a cada 60 s', S.demoClient.includes("fetch('/api/admin/demo', { method: 'PATCH'") && S.demoClient.includes('data-kineo="demo-avancar"') && !S.demoClient.includes('60_000'))
   v('R7 demo: o cron ads-v2-advance continua chamando o robô, na mesma frequência (2-57/5)', S.adsCron.includes('const demos = await advanceDemosSobMedida(admin, {') && S.vercel.includes('"path": "/api/cron/ads-v2-advance",\n      "schedule": "2-57/5 * * * *"'))
   // R8
-  v('R8 polling: Funil 5 min com pausa de aba', S.funnelClient.includes('const POLL_MS = 5 * 60_000\n') && S.funnelClient.includes("setInterval(() => { if (typeof document === 'undefined' || !document.hidden) load() }, POLL_MS)"))
-  v('R8 polling: Visão geral 5 min com pausa de aba', S.ceoClient.includes('const POLL_MS = 5 * 60_000\n') && S.ceoClient.includes("setInterval(() => { if (typeof document === 'undefined' || !document.hidden) void poll() }, POLL_MS)"))
-  v('R8 polling: Oportunidades 5 min com pausa de aba', S.leads.includes('const POLL_MS = 5 * 60_000\n') && S.leads.includes("setInterval(() => { if (typeof document === 'undefined' || !document.hidden) load() }, POLL_MS)"))
+  v('R8 polling: Funil 5 min com pausa de aba', S.funnelClient.includes('const POLL_MS = 5 * 60_000\n') && S.funnelClient.includes('startVisiblePolling(load, POLL_MS)'))
+  v('R8 polling: Visão geral 5 min com pausa de aba', S.ceoClient.includes('const POLL_MS = 5 * 60_000\n') && S.ceoClient.includes('startVisiblePolling(poll, POLL_MS, { immediate: false })'))
+  v('R8 polling: Oportunidades 5 min com pausa de aba', S.leads.includes('const POLL_MS = 5 * 60_000\n') && S.leads.includes('startVisiblePolling(load, POLL_MS)'))
   // R9
   v('R9 coortes: profiles filtrados no banco (ilike active) e o filtro em memória mantido', S.cohort.includes(".ilike('trial_status', 'active'), { route: '/admin/trial-cohort', table: 'profiles' })") && S.cohort.includes("const trials = profiles.filter((p) => (p.trial_status ?? '').toLowerCase() === 'active')") && !S.cohort.includes("fetchAllRows<TrialProfileRow>(admin, 'profiles'"))
   v('R9 coortes: videos e events em fatias paralelas de 15 ids', S.cohort.includes('const COHORT_ID_CHUNK = 15') && S.cohort.includes('Promise.all(fatias.map((f) => fetchAllRows<EventRow>(admin, \'events\', \'user_id, name, created_at\', { column: \'user_id\', values: f }') && S.cohort.includes('const events = eventParts.flat()'))
@@ -265,7 +265,7 @@ const MUTANTES = [
   ['demo: PATCH sem gate', 'demoRoute', '    const gate = await adminUser()\n    if (!gate.ok) return gate.res\n    const admin = serviceClient()\n    if (!admin) return json({ error: \'unavailable\' }, 503)\n    const step', '    const admin = serviceClient()\n    if (!admin) return json({ error: \'unavailable\' }, 503)\n    const step', 'R7 demo: o PATCH'],
   ['demo: cron muda de frequência', 'vercel', '"path": "/api/cron/ads-v2-advance",\n      "schedule": "2-57/5 * * * *"', '"path": "/api/cron/ads-v2-advance",\n      "schedule": "*/1 * * * *"', 'R7 demo: o cron ads-v2-advance'],
   ['funil volta a 30 s', 'funnelClient', 'const POLL_MS = 5 * 60_000\n', 'const POLL_MS = 30_000\n', 'R8 polling: Funil'],
-  ['visão geral sem pausa de aba', 'ceoClient', "setInterval(() => { if (typeof document === 'undefined' || !document.hidden) void poll() }, POLL_MS)", 'setInterval(poll, POLL_MS)', 'R8 polling: Visão geral'],
+  ['visão geral sem pausa de aba', 'ceoClient', 'startVisiblePolling(poll, POLL_MS, { immediate: false })', 'setInterval(poll, POLL_MS)', 'R8 polling: Visão geral'],
   ['coortes voltam a ler todos os profiles', 'cohort', ".ilike('trial_status', 'active'), { route", ", { route", 'R9 coortes: profiles filtrados'],
   ['índice com nome errado', 'idx', 'events_session_idx on', 'events_session_id_idx on', 'R10 migration dos índices'],
   ['RPC sem o filtro de internos', 'rpc', "    and (e.user_id is null or not (e.user_id = any (coalesce(p_internal_ids, '{}'::uuid[]))))\n", '', 'R10 migration do RPC'],

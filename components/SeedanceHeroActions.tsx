@@ -1,3 +1,4 @@
+// KINEO-PAGINAS-IA-CLARAS-2110 — cores em var(--kpl-*, <cor de antes>): claras só dentro de <main className="kpl"> (as páginas de entrada do ChatGPT); nas outras páginas, a cor de antes.
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import BuyCreatorCta from '@/components/BuyCreatorCta'
 
@@ -16,7 +17,7 @@ export default function SeedanceHeroActions({ signupHref, campaign, buyPage }: {
       href={signupHref}
       source={campaign}
       placement="hero_account"
-      style={{ display: 'inline-block', border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 800, padding: '14px 24px', borderRadius: 980, textDecoration: 'none' }}
+      style={{ display: 'inline-block', border: '1px solid var(--kpl-line2, #48484a)', color: 'var(--kpl-text, #f5f5f7)', fontWeight: 800, padding: '14px 24px', borderRadius: 980, textDecoration: 'none' }}
     >
       Create your account
     </OrganicCtaLink>
@@ -28,7 +29,7 @@ export default function SeedanceHeroActions({ signupHref, campaign, buyPage }: {
           href="/pricing"
           source={campaign}
           placement="hero"
-          style={{ display: 'inline-block', background: '#f5f5f7', color: '#000', fontWeight: 900, padding: '15px 32px', borderRadius: 980, textDecoration: 'none', fontSize: '1.05rem' }}
+          style={{ display: 'inline-block', background: 'var(--kpl-accent, #f5f5f7)', color: 'var(--kpl-on-accent, #000)', fontWeight: 900, padding: '15px 32px', borderRadius: 980, textDecoration: 'none', fontSize: '1.05rem' }}
         >
           See plans &amp; credits →
         </OrganicCtaLink>
@@ -40,7 +41,7 @@ export default function SeedanceHeroActions({ signupHref, campaign, buyPage }: {
     <>
       <BuyCreatorCta page={buyPage} secondary={accountLink} />
       <p style={{ margin: '8px 0 0', fontSize: '.85rem' }}>
-        <OrganicCtaLink href="/pricing" source={campaign} placement="hero" style={{ color: '#2997ff', fontWeight: 700, textDecoration: 'none' }}>
+        <OrganicCtaLink href="/pricing" source={campaign} placement="hero" style={{ color: 'var(--kpl-accent, #2997ff)', fontWeight: 700, textDecoration: 'none' }}>
           See plans &amp; credits →
         </OrganicCtaLink>
       </p>

@@ -1,3 +1,4 @@
+// KINEO-PAGINAS-IA-CLARAS-2110 — cores em var(--kpl-*, <cor de antes>): claras só dentro de <main className="kpl"> (as páginas de entrada do ChatGPT); nas outras páginas, a cor de antes.
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import type { NarrationLanguage } from '@/lib/textLanguage'
 
@@ -32,18 +33,18 @@ export default function LocalizedScriptHandoff({
       style={{
         marginTop: 34,
         padding: '22px 20px',
-        border: '1px solid rgba(41,151,255,0.42)',
+        border: '1px solid var(--kpl-accent-line, rgba(41,151,255,0.42))',
         borderRadius: 22,
-        background: 'linear-gradient(145deg, rgba(41,151,255,0.14), rgba(19,19,22,0.94) 56%)',
+        background: 'linear-gradient(145deg, var(--kpl-accent-soft, rgba(41,151,255,0.14)), var(--kpl-card, rgba(19,19,22,0.94)) 56%)',
       }}
     >
-      <p style={{ margin: '0 0 7px', color: '#2997ff', fontSize: 12, fontWeight: 850, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+      <p style={{ margin: '0 0 7px', color: 'var(--kpl-accent, #2997ff)', fontSize: 12, fontWeight: 850, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
         {eyebrow}
       </p>
       <h2 id={`${formId}-title`} style={{ margin: 0, fontSize: 'clamp(1.3rem, 3.5vw, 1.75rem)', lineHeight: 1.2, fontWeight: 850 }}>
         {heading}
       </h2>
-      <p style={{ margin: '10px 0 0', color: '#a1a1a6', fontSize: '0.98rem', lineHeight: 1.6 }}>
+      <p style={{ margin: '10px 0 0', color: 'var(--kpl-muted, #a1a1a6)', fontSize: '0.98rem', lineHeight: 1.6 }}>
         {description}
       </p>
       <TopicGeneratorForm

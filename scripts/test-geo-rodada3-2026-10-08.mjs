@@ -35,6 +35,7 @@ import { createRequire } from 'node:module'
 import vm from 'node:vm'
 import nodeCrypto from 'node:crypto'
 import { semBingSeo1510 } from './test-support/desfaz-bing-seo-1510.mjs'
+import { semPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — a camada clara das páginas de entrada do ChatGPT sai da conta deste guardião (prova própria em scripts/test-paginas-ia-claras-2110.mjs)
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -44,7 +45,7 @@ const React = requireRepo('react')
 const jsxRuntime = requireRepo('react/jsx-runtime')
 const { renderToStaticMarkup } = requireRepo('react-dom/server')
 const CR = new RegExp(String.fromCharCode(13), 'g')
-const rd = (rel) => readFileSync(join(ROOT, rel), 'utf8').replace(CR, '')
+const rd = (rel) => semPaginasIaClaras2110(readFileSync(join(ROOT, rel), 'utf8').replace(CR, ''), rel) // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k)
 
 let pass = 0

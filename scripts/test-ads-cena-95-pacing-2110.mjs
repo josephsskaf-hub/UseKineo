@@ -8,17 +8,18 @@ import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { PACING_FIXTURES, PACING_PHOTO, PACING_HOUSE, PACING_ORDER, pacingShort, pacingVerdict } from './test-support/ads-cena-95-pacing-fixtures-2110.mjs'
 import { CENA95_PACING_BASE, CENA95_PACING_FILES, CENA95_PACING_NEW, CENA95_PACING_MARK, semAdsCena95Pacing2110 } from './test-support/desfaz-ads-cena-95-pacing-2110.mjs'
-import { semCartoonTracao2210, CARTOON_TRACAO_BASE } from './test-support/desfaz-cartoon-tracao-2210.mjs' // KINEO-CARTOON-TRACAO-2210 — exact later layer leaves before historical source mutants.
+import { semCartoonTracao2210 } from './test-support/desfaz-cartoon-tracao-2210.mjs' // KINEO-CARTOON-TRACAO-2210
+import { semAdsCenaRetomada2110 } from './test-support/desfaz-ads-cena-retomada-2110.mjs' // KINEO-ADS-CENA-RETOMADA-2110
 
 const MARK = 'KINEO-ADS-CENA-95-PACING-2110', TRAVA = '[TRAVA 8.2 — vai do fundador 21/10 "quero chegar a 9.5 de mínimo"]'
 const F = { route: 'app/api/admin/ads-cena/route.ts', internal: 'lib/ads/cena/internal.ts', runtime: 'lib/ads/cena/runtime.ts', start: 'lib/ads/v2StartCore.ts', plan: 'lib/ads/cena/plan95.ts', repair: 'lib/ads/cena/script95Repair.ts', script: 'lib/ads/cena/script95.ts', policy: 'lib/ads/cena/speech95Policy.ts', preflight: 'lib/ads/cena/preflight95.ts', moderation: 'lib/ads/cena/moderation95.ts', composition: 'lib/ads/cena/composition95.ts', pipeline: 'lib/ads/cena/pipeline95.ts', adapters: 'lib/ads/cena/adapters95.ts', captions: 'lib/ads/cena/captions95.ts', montage: 'lib/ads/cena/montage95.ts', finish: 'lib/ads/cena/finish95.ts', advance: 'lib/ads/cena/runtime95.ts' }
-const read = p => readFileSync(p, 'utf8').replace(/\r\n/g, '\n')
+const read = p => semAdsCenaRetomada2110(semCartoonTracao2210(readFileSync(p, 'utf8').replace(/\r\n/g, '\n'), p), p) /* KINEO-CARTOON-TRACAO-2210 */ // KINEO-ADS-CENA-RETOMADA-2110 — fonte histórica antes dos mutantes e dos hashes próprios.
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 << 20, stdio: ['ignore', 'pipe', 'ignore'] }).replace(/\r\n/g, '\n')
 const plain = x => JSON.parse(JSON.stringify(x)), same = (a, b, why) => assert.deepEqual(plain(a), plain(b), why)
 const NOW = Date.parse('2026-10-22T12:00:00Z')
 class FixedDate extends Date { constructor(...a) { super(...(a.length ? a : [NOW])) } static now() { return NOW } }
 class OfflineResponse extends Response { static json(body, init = {}) { return new OfflineResponse(JSON.stringify(body), { ...init, headers: { 'Content-Type': 'application/json', ...init.headers } }) } }
-const sourceLoader = (over = {}, mocks = {}, globals = {}) => createOfflineLoader({ mocks, source: (p, s) => over[p] ?? s, globals: { Request, Response, Headers, Error, Date: FixedDate, ...globals } })
+const sourceLoader = (over = {}, mocks = {}, globals = {}) => createOfflineLoader({ mocks, source: (p, s) => over[p] ?? semAdsCenaRetomada2110(s, p), globals: { Request, Response, Headers, Error, Date: FixedDate, ...globals } }) // KINEO-ADS-CENA-RETOMADA-2110 — restaura somente a fonte base; override mutado nunca passa pelo desfaz.
 
 function database(tables, effects) {
   return { tables, from(table) {
@@ -289,7 +290,7 @@ function undoProof() {
   assert.equal(CENA95_PACING_MARK, MARK); assert.equal(CENA95_PACING_BASE, '2b2ea93971ca7fef45ec1bfa46d94d48281bd934')
   assert.ok(CENA95_PACING_FILES.length > 0, 'a tabela exata não pode estar vazia')
   for (const p of CENA95_PACING_FILES) {
-    const actual = semCartoonTracao2210(read(p), p), before = git('show', CENA95_PACING_BASE + ':' + p) // KINEO-CARTOON-TRACAO-2210 — marker mutants still exercise the unchanged historical source/hash.
+    const actual = read(p), before = git('show', CENA95_PACING_BASE + ':' + p)
     assert.ok(actual.includes(MARK), 'marca da camada: ' + p); assert.equal(semAdsCena95Pacing2110(actual, p), before, p)
     assert.equal(semAdsCena95Pacing2110(before, p), before, 'idempotência: ' + p)
     assert.equal(semAdsCena95Pacing2110(actual.replace(/\n/g, '\r\n'), p), before.replace(/\n/g, '\r\n'), 'CRLF: ' + p)
@@ -298,9 +299,11 @@ function undoProof() {
   }
   for (const p of ['scripts/test-ads-cena-95-pacing-2110.mjs', 'scripts/test-support/ads-cena-95-pacing-fixtures-2110.mjs']) assert.ok(CENA95_PACING_NEW.includes(p), 'novo guardião/fixture declarados')
   for (const p of CENA95_PACING_NEW) { assert.ok(readFileSync(p).length > 0, p); assert.throws(() => git('show', CENA95_PACING_BASE + ':' + p)) }
-  const declared = new Set([...CENA95_PACING_FILES, ...CENA95_PACING_NEW]), changed = git('diff', '--name-only', CENA95_PACING_BASE, CARTOON_TRACAO_BASE).trim().split('\n').filter(Boolean) // KINEO-CARTOON-TRACAO-2210 — immutable completed Pacing delivery; current delta has its own exact guardian.
+  const deliveryHead = git('log', '--format=%H%x09%s', CENA95_PACING_BASE + '..HEAD').trim().split('\n').find(line => { const subject = line.slice(line.indexOf('\t') + 1); return (subject.startsWith(MARK + ' ') || subject.startsWith(MARK + ': ')) && subject.includes(TRAVA) })?.split('\t')[0] // KINEO-ADS-CENA-RETOMADA-2110 — somente a entrega PACING com fronteira e autorização exatas.
+  assert.ok(deliveryHead, 'commit final marcado e autorizado da entrega PACING existe') // KINEO-ADS-CENA-RETOMADA-2110
+  const declared = new Set([...CENA95_PACING_FILES, ...CENA95_PACING_NEW]), changed = git('diff', '--name-only', CENA95_PACING_BASE, deliveryHead).trim().split('\n').filter(Boolean) // KINEO-ADS-CENA-RETOMADA-2110 — mesma lista histórica, sem unir arquivos da retomada.
   assert.ok(changed.length > 0 && changed.every(p => declared.has(p)), 'escopo exato: ' + changed.filter(p => !declared.has(p)).join(','))
-  const subjects = git('log', '--format=%s', CENA95_PACING_BASE + '..' + CARTOON_TRACAO_BASE).trim().split('\n').filter(Boolean) // KINEO-CARTOON-TRACAO-2210 — retain the exact original prefix/TRAVA requirement for its own commits.
+  const subjects = git('log', '--format=%s', CENA95_PACING_BASE + '..' + deliveryHead).trim().split('\n').filter(Boolean) // KINEO-ADS-CENA-RETOMADA-2110 — commits posteriores mantêm guardião e TRAVA próprios.
   assert.ok(subjects.length > 0 && subjects.every(s => s.startsWith(MARK + ' ') && s.includes(TRAVA)), 'prefixo e autorização em todos os commits próprios')
 }
 

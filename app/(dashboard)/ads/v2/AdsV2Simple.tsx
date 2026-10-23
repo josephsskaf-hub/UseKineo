@@ -1,6 +1,8 @@
 'use client'
 
 import AdsPlanChanges, { usePlanComparison } from '@/components/AdsPlanChanges'
+import dynamic from 'next/dynamic' // KINEO-ADS-ESCOLHA-2310
+import type { ComponentProps } from 'react' // KINEO-ADS-ESCOLHA-2310
 
 // KINEO-ADS-MODO-SIMPLES-2026-09-29 — MODO SIMPLES do /ads/v2 (a entrada padrão). Pedido do fundador, 29/09, depois de
 // tentar anunciar o próprio imóvel: "a pessoa coloca os arquivos que ela quer, fala mais ou menos o que ela quer que
@@ -586,7 +588,11 @@ export function AdsAfterSampleOffer({ lang, business, compact = false }: { lang:
 
 // ─── a sessão do modo simples ─────────────────────────────────────────────────────────────────
 
-export function AdsV2SimpleSession({
+const AdsV2Escolha = dynamic(() => import('./AdsV2Escolha'), { ssr: false }) // KINEO-ADS-ESCOLHA-2310 — external accounts never load the choice catalog.
+export function AdsV2SimpleSession(props: ComponentProps<typeof AdsV2SimpleLegacySession> & { escolhaInternal?: boolean; escolhaOwnerKey?: string }) { // KINEO-ADS-ESCOLHA-2310
+  return props.escolhaInternal === true && props.escolhaOwnerKey ? <AdsV2Escolha key={props.escolhaOwnerKey} lang={props.lang} entry={props.entry} ownerKey={props.escolhaOwnerKey} resume={props.resume} previewSlot={props.previewSlot} onPreview={props.onPreview} onActive={props.onActive} onBalance={props.onBalance} /> : <AdsV2SimpleLegacySession {...props} /> // KINEO-ADS-ESCOLHA-2310 — off never mounts any new request, storage or polling effect.
+} // KINEO-ADS-ESCOLHA-2310
+function AdsV2SimpleLegacySession({ // KINEO-ADS-ESCOLHA-2310 — original body below, unchanged.
   resume,
   lang,
   balance,

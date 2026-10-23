@@ -10,7 +10,7 @@ import { useEffect, useRef } from 'react'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { trackEvent } from '@/lib/analytics'
 import { HOME_CARD_EVENT } from '@/lib/ui/homeThreeCards'
-import { HOME_KIDS_CARD_CLIP, HOME_KIDS_CARD_ID, homeKidsCardClickMetadata, homeKidsCardCopy, homeKidsCardHref } from '@/lib/ui/homeKidsCard' // KINEO-HOME-CARDS-CLAROS-2010 — HOME_KIDS_CARD_BADGE saiu do import (sem o selo do motor no card)
+import { HOME_KIDS_CARD_CLIP, HOME_KIDS_CARD_ID, HOME_KIDS_CARD_POSITION, homeKidsCardClickMetadata, homeKidsCardCopy, homeKidsCardHref } from '@/lib/ui/homeKidsCard' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — posição padrão preservada.
 
 function KidsMedia() {
   const ref = useRef<HTMLSpanElement>(null)
@@ -36,11 +36,11 @@ function KidsMedia() {
   )
 }
 
-export default function HomeKidsCard({ signedIn }: { signedIn: boolean }) {
+export default function HomeKidsCard({ signedIn, position = HOME_KIDS_CARD_POSITION }: { signedIn: boolean; position?: number }) { // KINEO-PAGINAS-IA-CLARAS-2110 — a faixa passa a posição real; usos antigos continuam em 4.
   const language = useInterfaceLanguage()
   const [title, line, cta] = homeKidsCardCopy(language)
   return (
-    <Link href={homeKidsCardHref(signedIn)} className="k3c-card" data-home-card={HOME_KIDS_CARD_ID} onClick={() => { void trackEvent(HOME_CARD_EVENT, homeKidsCardClickMetadata(signedIn)) }}>
+    <Link href={homeKidsCardHref(signedIn)} className="k3c-card" data-home-card={HOME_KIDS_CARD_ID} onClick={() => { void trackEvent(HOME_CARD_EVENT, { ...homeKidsCardClickMetadata(signedIn), position }) }}>
       <KidsMedia />
       <span className="k3c-shade" aria-hidden="true" />
       <span className="k3c-glass" aria-hidden="true" />

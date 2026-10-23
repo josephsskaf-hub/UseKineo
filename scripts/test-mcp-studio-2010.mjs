@@ -1,4 +1,5 @@
 // KINEO-MCP-STUDIO-2010 — guardião do conector "Kineo Studio" (servidor MCP /api/mcp/studio que gera o filme NA CONTA da
+import { PAGINAS_IA_CLARAS_2110_ARQUIVOS, ehCommitPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 import { semMcpStudioAjuste2010, MARCA_MCP_STUDIO_AJUSTE_2010, MCP_STUDIO_AJUSTE_2010_ARQUIVOS } from './test-support/desfaz-mcp-studio-ajuste-2010.mjs' // KINEO-MCP-STUDIO-AJUSTE-2010 — reancorado: o ajuste do conector (entrega de depois) sai em memória antes do byte a byte
 // pessoa, adicionado por URL no Claude; fundador 20/10 "vai pra tudo").
 //
@@ -302,6 +303,7 @@ changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) 
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => ![...ADS_BOLA_2110_ARQUIVOS, ...ADS_BOLA_2110_NOVOS, ...ADS_QUALIDADE_2110_ARQUIVOS, ...ADS_QUALIDADE_2110_NOVOS, 'docs/HANDOFF-ADS-BOLA-2110.md', 'docs/ADS-BOLA-DIAGNOSTICO-2026-10-21.md', 'scripts/test-support/desfaz-legenda-bengali-2010.mjs'].includes(f))) // KINEO-ADS-QUALIDADE-2110 — reancorado: os arquivos da bola e da qualidade (entregas de depois) não são desta
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => ![...ADS_CENA_2110_ARQUIVOS, ...ADS_CENA_2110_NOVOS].includes(f))) // KINEO-ADS-CENA-2110 — reancorado: os arquivos do anúncio por cena (entrega de depois, desfaz próprio) não são desta
 changedExisting.splice(0, changedExisting.length, ...changedExisting.filter((f) => !KIDS_VENDA_2010_ARQUIVOS.includes(f))) // KINEO-KIDS-VENDA-2010 — a venda do desenho infantil tem desfaz exato próprio
+changedExisting.splice(0, changedExisting.length, ...changedExisting.filter(f => !PAGINAS_IA_CLARAS_2110_ARQUIVOS.includes(f))) // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 ok(changedExisting.every((f) => MCP_STUDIO_2010_ARQUIVOS.includes(f)), `(F3) o diff contra a base só toca arquivos declarados (existentes alterados: ${changedExisting.join(', ') || 'nenhum ainda commitado'})`)
 const commits = git('log', '--format=%s', `${MCP_STUDIO_2010_BASE}..${deliveryHead}`).split('\n').filter(Boolean).filter((s) => !s.includes(MARCA_META95_PERSONAGEM_2010)).filter((s) => !s.includes('KINEO-BEBE-QUE-FALA-2010')) /* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — preserve the exact subject assertion over its own delivery. */ /* reancorado KINEO-BEBE-QUE-FALA-2010 */ // reancorado KINEO-META95-PERSONAGEM-2010: os commits da folha de personagem levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_HOME_CARDS_CLAROS_2010))) // KINEO-HOME-CARDS-CLAROS-2010 — os commits do véu mais claro (entrega de depois) levam a marca deles
@@ -319,6 +321,7 @@ commits.splice(0, commits.length, ...commits.filter((s) => !s.includes('KINEO-AD
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes('KINEO-ADS-CENA-2110'))) // KINEO-ADS-CENA-2110 — reancorado: os commits (e os merges da fila) do anúncio por cena levam a marca deles
 commits.splice(0, commits.length, ...commits.filter((s) => !s.includes(MARCA_KIDS_VENDA_2010) && !s.includes('KINEO-KIDS-VENDA-LIGA-2110'))) // KINEO-KIDS-VENDA-2010 — os commits da venda levam sua marca
 commits.splice(0, commits.length, ...commits.filter((s) => !s.startsWith('KINEO-ADS-CENA-95-2110 ') && !s.startsWith('KINEO-ADS-CENA-95-2110: '))) // KINEO-ADS-CENA-95-2110 — somente commits da camada posterior, com trava própria.
+commits.splice(0, commits.length, ...commits.filter(s => !ehCommitPaginasIaClaras2110(s))) // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 ok(commits.every((s) => s.includes(MARCA_MCP_STUDIO_2010)), `(F4) todo commit da entrega leva a marca no assunto (${commits.length} commit(s))`)
 ok(semMcpStudio2010('sem marca', 'lib/claudeConnect.ts') === 'sem marca' && semMcpStudio2010(raw(F.page), 'outro/arquivo.ts') === raw(F.page), '(F5) desfaz é idempotente fora do alvo')
 

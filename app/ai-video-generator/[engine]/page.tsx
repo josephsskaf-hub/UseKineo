@@ -28,12 +28,10 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import SeedanceHeroActions from '@/components/SeedanceHeroActions'
 import Kineo1RetiredNotice from '@/components/Kineo1RetiredNotice' // KINEO-PAGINAS-QUE-VENDEM-2026-10-12
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
-import WallMedia from '@/components/WallMedia'
 import PaidEngineBudget from '@/components/PaidEngineBudget'
-import { paidEngineBudget, paidEngineExamples } from '@/lib/growth/paidEngineProof'
+import { paidEngineBudget } from '@/lib/growth/paidEngineProof'
 import ScriptToSeedanceBridge from '@/components/ScriptToSeedanceBridge' // KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
-import { getEngineRenders, getHouseEngineExamples } from '@/lib/engineWall'
 import {
   getFreeTierOffer,
   swapFreeTierCopy as ft,
@@ -52,6 +50,8 @@ import { EngineBuyerGuide } from '@/components/PaginasMotor1610' // KINEO-PAGINA
 import { S25_PAGE_SLUG } from '@/lib/growth/s25EnginePage' // KINEO-S25-ABRE-2026-10-06 — rota própria do 2.5
 import { enginePaused } from '@/lib/engineLaunch' // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
 import { engineAlternates, LOCALIZED_ENGINE_SLUGS, type LocalizedEngineSlug } from '@/lib/seo/enginePageLangs' // KINEO-MOTORES-16-LINGUAS-2026-09-21
+import { PaginaClaraCards, PaginaClaraTopo, PaginaClaraVitrine } from '@/components/seo/PaginaClara' // KINEO-PAGINAS-IA-CLARAS-2110 — o menu do topo, os 4 cards e a vitrine atual da home
+import { PAGINA_CLARA_CLASSE, PAGINA_CLARA_FUNDO } from '@/lib/seo/paginasIaClaras2110' // KINEO-PAGINAS-IA-CLARAS-2110
 const OFFER = getFreeTierOffer()
 
 export const dynamic = 'force-static'
@@ -99,21 +99,15 @@ export function generateMetadata({ params }: { params: { engine: string } }): Me
   }
 }
 
-const CARD = { background: '#161618', border: '1px solid #2a2a2d' }
+const CARD = { background: '#FFFFFF', border: '1px solid #E4E4E0' }
 
 export default async function EnginePage({ params }: { params: { engine: string } }) {
   const e = ENGINES[params.engine]
   if (!e) notFound()
   const geo = engineGeoFor(params.engine) // KINEO-MOTORES-GEO-2026-10-06 — camada citável; null = motor pausado/aposentado (página no modo antigo)
 
-  // A PROVA. Renders reais daquele motor, do banco, com o quality_mode REAL —
-  // um vídeo só recebe o selo "VEO 3.1" se foi o Veo que o gerou. Falha de
-  // banco ⇒ lista vazia ⇒ a seção some (buildWall já é try/catch), a página
-  // nunca quebra por causa dela.
-  const renders = await getEngineRenders(e.qualityMode, 8)
-  // KINEO-GALERIA-DA-CASA-2026-09-21 — sem vídeo de cliente público, a prova é a vitrine da casa daquele motor.
+  // KINEO-PAGINAS-IA-CLARAS-2110 — a galeria velha (renders do banco + filmes da casa deste motor) saiu; a página mostra a vitrine atual da home.
   const paidBudget = paidEngineBudget(params.engine)
-  const house = renders.length > 0 ? [] : paidBudget ? paidEngineExamples(params.engine, e.name) : getHouseEngineExamples(e.qualityMode, 6)
   // KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — a ponte para o Seedance subiu para logo abaixo do hero (ver bloco).
   const showSeedanceBridge = params.engine === 'kineo-1' && !enginePaused(ENGINES.seedance.param)
 
@@ -152,37 +146,39 @@ export default async function EnginePage({ params }: { params: { engine: string 
     : `${e.name} is unlocked on every account. Its ${e.creditCost}-credit 60-second cost is covered by the ${e.tier} monthly grant; the ${TRIAL_CREDITS_SHOWN}-credit free trial ${TRIAL_CREDITS_SHOWN >= e.creditCost ? 'covers one' : 'does not cover one'}.`
 
   return (
-    <main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'var(--font-sans), Arial, sans-serif' }}>
+    <main className={PAGINA_CLARA_CLASSE} style={{ minHeight: '100vh', background: PAGINA_CLARA_FUNDO, color: '#0E1116', fontFamily: 'var(--font-sans), Arial, sans-serif' }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c') }} />
+      <PaginaClaraTopo />{/* KINEO-PAGINAS-IA-CLARAS-2110 */}
 
       <div style={{ maxWidth: 980, margin: '0 auto', padding: '28px 18px 64px' }}>
-        <nav aria-label="Breadcrumb" style={{ color: '#86868b', fontSize: 13 }}>
-          <Link href="/" style={{ color: '#2997ff', fontWeight: 800, textDecoration: 'none' }}>Kineo</Link>
+        <nav aria-label="Breadcrumb" style={{ color: '#5A5F67', fontSize: 13 }}>
+          <Link href="/" style={{ color: '#0A5CFF', fontWeight: 800, textDecoration: 'none' }}>Kineo</Link>
           <span aria-hidden> / </span>
           <span>AI video generator</span>
           <span aria-hidden> / </span>
-          <span style={{ color: '#d2d2d7' }}>{e.name}</span>
+          <span style={{ color: '#2A2F37' }}>{e.name}</span>
         </nav>
 
         {/* Hero */}
         <section style={{ marginTop: 34, textAlign: 'center' }}>
-          <div style={{ display: 'inline-block', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#2997ff', background: 'rgba(41,151,255,0.1)', borderRadius: 999, padding: '6px 14px' }}>
+          <div style={{ display: 'inline-block', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#0A5CFF', background: '#E8EFFF', borderRadius: 999, padding: '6px 14px' }}>
             {e.name} · {engineCostLabel(e)}
           </div>
-          <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 900, lineHeight: 1.15, margin: '16px 0 0' }}>{e.h1}</h1>
+          <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 650, lineHeight: 1.15, margin: '16px 0 0' }}>{e.h1}</h1>
           {/* KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — quem chega pelo 301 do Kineo 1 (?from=kineo-1) lê o que mudou; no Seedance o
               botão principal do hero passou a ser a compra direta do Creator (SeedanceHeroActions buyPage). */}
           {params.engine === 'seedance' && <Kineo1RetiredNotice />}
           {geo && <EngineAnswerLead geo={geo} />}
+          <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
           {!enginePaused(e.param) && <PaidEngineBudget slug={params.engine} />}
           {enginePaused(e.param) && (
-            <div role="status" style={{ margin: '14px 0 0', padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(255,180,84,.45)', background: 'rgba(255,180,84,.10)', color: '#ffd9a3', fontSize: 14.5, lineHeight: 1.6 }}>
+            <div role="status" style={{ margin: '14px 0 0', padding: '12px 14px', borderRadius: 12, border: '1px solid #A35A00', background: '#FFF4E5', color: '#A35A00', fontSize: 14.5, lineHeight: 1.6 }}>
               <strong>Temporarily paused for maintenance.</strong> {enginePaused(e.param)!.message}{' '}
-              <Link href={`/studio?engine=${enginePaused(e.param)!.alternative.key}&intent_campaign=engine_paused`} style={{ color: '#ffb454', fontWeight: 700 }}>Open {enginePaused(e.param)!.alternative.label} →</Link>
+              <Link href={`/studio?engine=${enginePaused(e.param)!.alternative.key}&intent_campaign=engine_paused`} style={{ color: '#A35A00', fontWeight: 700 }}>Open {enginePaused(e.param)!.alternative.label} →</Link>
             </div>
           )}
-          <p style={{ fontSize: '1.02rem', color: '#86868b', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 680 }}>{e.intro}</p>
+          <p style={{ fontSize: '1.02rem', color: '#5A5F67', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 680 }}>{e.intro}</p>
           {params.engine === 'seedance' || params.engine === 'veo' ? (
             <SeedanceHeroActions signupHref={signupUrl} campaign={campaign} buyPage={params.engine === 'seedance' ? 'seedance' : undefined} />
           ) : <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 22 }}>
@@ -190,7 +186,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
               href={primaryCtaHref}
               source={campaign}
               placement="hero"
-              style={{ display: 'inline-block', background: '#f5f5f7', color: '#000', fontWeight: 900, padding: '15px 32px', borderRadius: 980, textDecoration: 'none', fontSize: '1.05rem' }}
+              style={{ display: 'inline-block', background: '#0A5CFF', color: '#fff', fontWeight: 750, padding: '15px 32px', borderRadius: 980, textDecoration: 'none', fontSize: '1.05rem' }}
             >
               {geo ? geo.ctaLabel : e.tier === 'Free' || TRIAL_CREDITS_SHOWN >= e.creditCost
                 ? `Try ${e.name} free →`
@@ -198,15 +194,15 @@ export default async function EnginePage({ params }: { params: { engine: string 
             </OrganicCtaLink>
             <Link
               href="/pricing"
-              style={{ display: 'inline-block', border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 800, padding: '14px 24px', borderRadius: 980, textDecoration: 'none' }}
+              style={{ display: 'inline-block', border: '1px solid #D2D2CD', color: '#0E1116', fontWeight: 800, padding: '14px 24px', borderRadius: 980, textDecoration: 'none' }}
             >
               See plans &amp; credits
             </Link>
           </div>}
           {/* Honestidade explícita: nunca prometer grátis um motor de Studio. */}
-          <p style={{ fontSize: '0.82rem', color: '#86868b', margin: '12px 0 0' }}>{tierNote}</p>
+          <p style={{ fontSize: '0.82rem', color: '#5A5F67', margin: '12px 0 0' }}>{tierNote}</p>
         </section>
-        {geo && <EnginePriceCard geo={geo} ctaHref={signupUrl} campaign={campaign} />}
+        {geo && <EnginePriceCard geo={geo} ctaHref={signupUrl} campaign={campaign} semGaleriaVelha />}{/* KINEO-PAGINAS-IA-CLARAS-2110 — sem os filmes velhos do Seedance: a vitrine atual vem logo abaixo */}
         <EngineBuyerGuide slug={params.engine} ctaHref={signupUrl} campaign={campaign} />{/* KINEO-PAGINAS-MOTOR-1610 — resumo, preço por duração, limites, quando não usar */}
 
         {/* KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — medido 23/09: esta página recebe a maior fatia do ChatGPT (228 sessões,
@@ -236,70 +232,14 @@ export default async function EnginePage({ params }: { params: { engine: string 
           />
         )}
 
-        {/* KINEO-GALERIA-DA-CASA-2026-09-21 — opção B (fundador): filmes da CASA feitos neste motor, colados no
-            formulário ("vídeos perto de onde a pessoa está fazendo o dela"). Selo honesto: são amostras nossas,
-            renderizadas de verdade neste motor; vídeos de clientes continuam privados. */}
-        {house.length > 0 && (
-          <section style={{ marginTop: 40 }}>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 900, textAlign: 'center', margin: '0 0 6px' }}>Made with {e.name}</h2>
-            <p style={{ textAlign: 'center', color: '#86868b', fontSize: '0.9rem', margin: '0 auto 18px', maxWidth: 620, lineHeight: 1.6 }}>
-              Kineo-owned {paidBudget ? 'previews' : 'samples'} rendered on {e.name} — the badge is the engine that actually made each one. Customer videos stay private.
-            </p>
-            <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', ...(paidBudget ? { maxWidth: 520, margin: '0 auto', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } : {}) }}>
-              {house.map((v) => (
-                <div key={v.id} style={{ overflow: 'hidden', borderRadius: 14, ...CARD }}>
-                  <div style={{ position: 'relative', aspectRatio: '9 / 16', overflow: 'hidden', background: '#000' }}>
-                    <video src={v.videoUrl} poster={v.posterUrl} muted playsInline controls preload="none" style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }} />
-                    <span style={{ position: 'absolute', left: 8, top: 8, zIndex: 10, borderRadius: 6, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.6)', padding: '2px 6px', fontSize: 10, fontWeight: 800, letterSpacing: '0.06em', color: '#fff', pointerEvents: 'none' }}>{v.badge}</span>
-                  </div>
-                  <p style={{ margin: 0, padding: '9px 10px', fontSize: '11.5px', fontWeight: 700, lineHeight: 1.35, color: 'rgba(255,255,255,0.85)' }}>{v.title}</p>
-                </div>
-              ))}
-            </div>
-            <p style={{ textAlign: 'center', margin: '16px 0 0', fontSize: '0.85rem' }}>
-              <Link href="/examples" style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}>See the 20 best across every engine →</Link>
-            </p>
-          </section>
-        )}
-
-        {/* A PROVA — renders reais deste motor */}
-        {renders.length > 0 && (
-          <section style={{ marginTop: 52 }}>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 900, textAlign: 'center', margin: '0 0 6px' }}>
-              Real Shorts rendered by {e.name}
-            </h2>
-            <p style={{ textAlign: 'center', color: '#86868b', fontSize: '0.9rem', margin: '0 auto 20px', maxWidth: 620, lineHeight: 1.6 }}>
-              Not a demo reel. These are finished 9:16 videos from real Kineo accounts, and the badge on each one is the
-              engine that actually rendered it. Open any of them to watch the whole thing and read the script.
-            </p>
-            <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
-              {renders.map((v) => (
-                <Link
-                  key={v.id}
-                  href={`/v/${v.id}`}
-                  style={{ display: 'block', overflow: 'hidden', borderRadius: 14, ...CARD, textDecoration: 'none', color: 'inherit' }}
-                >
-                  <div style={{ position: 'relative', aspectRatio: '9 / 16', overflow: 'hidden', background: '#000' }}>
-                    <WallMedia src={v.videoUrl} />
-                    <span style={{ position: 'absolute', left: 8, top: 8, zIndex: 10, borderRadius: 6, border: '1px solid rgba(255,255,255,0.2)', background: 'rgba(0,0,0,0.6)', padding: '2px 7px', fontSize: '9.5px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                      {v.badge}
-                    </span>
-                  </div>
-                  <p style={{ margin: 0, padding: '9px 10px', fontSize: '11.5px', fontWeight: 700, lineHeight: 1.35, color: 'rgba(255,255,255,0.85)' }}>{v.title}</p>
-                </Link>
-              ))}
-            </div>
-            <p style={{ textAlign: 'center', margin: '16px 0 0', fontSize: '0.85rem' }}>
-              <Link href="/examples" style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}>
-                See the 20 best renders across every engine →
-              </Link>
-            </p>
-          </section>
-        )}
+        <PaginaClaraVitrine />{/* KINEO-PAGINAS-IA-CLARAS-2110 — a vitrine atual (a mesma da /claude-connector) no lugar das galerias velhas deste motor */}
+        <p style={{ textAlign: 'center', margin: '16px 0 0', fontSize: '0.85rem' }}>
+          <Link href="/examples" style={{ color: '#0A5CFF', textDecoration: 'none', fontWeight: 700 }}>See the 20 best across every engine →</Link>
+        </p>
 
         {/* Ficha técnica */}
         <section style={{ marginTop: 52 }}>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 900, textAlign: 'center', margin: '0 0 18px' }}>{e.name} inside Kineo</h2>
+          <h2 style={{ fontSize: '1.3rem', fontWeight: 650, textAlign: 'center', margin: '0 0 18px' }}>{e.name} inside Kineo</h2>
           <div style={{ ...CARD, borderRadius: 16, overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
               <tbody>
@@ -312,9 +252,9 @@ export default async function EnginePage({ params }: { params: { engine: string 
                   ['Best for', e.bestFor],
                   ['Trade-off', e.tradeoff],
                 ].map(([k, v], i) => (
-                  <tr key={k} style={{ borderTop: i === 0 ? 'none' : '1px solid rgba(255,255,255,0.06)', background: i % 2 ? 'transparent' : 'rgba(255,255,255,0.015)' }}>
-                    <td style={{ padding: '12px 14px', color: '#86868b', fontWeight: 700, whiteSpace: 'nowrap', verticalAlign: 'top' }}>{k}</td>
-                    <td style={{ padding: '12px 14px', color: '#f5f5f7', lineHeight: 1.55 }}>{v}</td>
+                  <tr key={k} style={{ borderTop: i === 0 ? 'none' : '1px solid rgba(14,17,22,0.08)', background: i % 2 ? 'transparent' : 'rgba(14,17,22,0.025)' }}>
+                    <td style={{ padding: '12px 14px', color: '#5A5F67', fontWeight: 700, whiteSpace: 'nowrap', verticalAlign: 'top' }}>{k}</td>
+                    <td style={{ padding: '12px 14px', color: '#0E1116', lineHeight: 1.55 }}>{v}</td>
                   </tr>
                 ))}
               </tbody>
@@ -323,8 +263,8 @@ export default async function EnginePage({ params }: { params: { engine: string 
         </section>
 
         {params.engine === 'seedance' ? (
-          <p style={{ fontSize: '0.9rem', color: '#86868b', lineHeight: 1.65, margin: '18px 0 0' }}>
-            Compare credit use in the <Link href="/ai-video-generator/complete-60-second-shorts-cost" style={{ color: '#2997ff' }}>complete 60-second Short cost guide</Link>, then review the <Link href="/vs/invideo-alternatives-faceless-shorts" style={{ color: '#2997ff' }}>faceless video tool comparison</Link> to choose a workflow.
+          <p style={{ fontSize: '0.9rem', color: '#5A5F67', lineHeight: 1.65, margin: '18px 0 0' }}>
+            Compare credit use in the <Link href="/ai-video-generator/complete-60-second-shorts-cost" style={{ color: '#0A5CFF' }}>complete 60-second Short cost guide</Link>, then review the <Link href="/vs/invideo-alternatives-faceless-shorts" style={{ color: '#0A5CFF' }}>faceless video tool comparison</Link> to choose a workflow.
           </p>
         ) : null}
 
@@ -334,7 +274,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
 
         {/* Como funciona */}
         <section style={{ marginTop: 48 }}>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 900, textAlign: 'center', margin: '0 0 18px' }}>How it works</h2>
+          <h2 style={{ fontSize: '1.3rem', fontWeight: 650, textAlign: 'center', margin: '0 0 18px' }}>How it works</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
             {[
               { n: '1', t: 'Type one idea', d: 'A topic, a fact, a hook — one sentence. No prompt engineering, no scene list.' },
@@ -342,9 +282,9 @@ export default async function EnginePage({ params }: { params: { engine: string 
               { n: '3', t: 'Download & post', d: geo ? geo.howStep3 : 'A vertical 9:16 MP4 in a few minutes, ready for YouTube Shorts, TikTok and Reels.' },
             ].map((s) => (
               <div key={s.n} style={{ ...CARD, borderRadius: 14, padding: 16 }}>
-                <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(41,151,255,0.12)', color: '#2997ff', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>{s.n}</div>
+                <div style={{ width: 30, height: 30, borderRadius: 8, background: '#E8EFFF', color: '#0A5CFF', fontWeight: 750, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>{s.n}</div>
                 <div style={{ fontWeight: 800, marginBottom: 4 }}>{s.t}</div>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: '#86868b', lineHeight: 1.5 }}>{s.d}</p>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#5A5F67', lineHeight: 1.5 }}>{s.d}</p>
               </div>
             ))}
           </div>
@@ -353,15 +293,15 @@ export default async function EnginePage({ params }: { params: { engine: string 
         {/* Escolha de motor — a tabela que responde "qual eu uso?" e faz o
             interlinking do cluster inteiro numa superfície só. */}
         <section style={{ marginTop: 48 }}>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 900, textAlign: 'center', margin: '0 0 18px' }}>Every engine, side by side</h2>
+          <h2 style={{ fontSize: '1.3rem', fontWeight: 650, textAlign: 'center', margin: '0 0 18px' }}>Every engine, side by side</h2>
           <div style={{ ...CARD, borderRadius: 16, overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
               <thead>
-                <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
-                  <th style={{ textAlign: 'left', padding: '12px 14px', fontWeight: 700, color: '#86868b' }}>Engine</th>
-                  <th style={{ textAlign: 'left', padding: '12px 10px', fontWeight: 700, color: '#86868b' }}>Cost</th>
-                  <th style={{ textAlign: 'left', padding: '12px 10px', fontWeight: 700, color: '#86868b' }}>Plan</th>
-                  <th style={{ textAlign: 'left', padding: '12px 14px', fontWeight: 700, color: '#86868b' }}>Reach for it when</th>
+                <tr style={{ background: 'rgba(14,17,22,0.025)' }}>
+                  <th style={{ textAlign: 'left', padding: '12px 14px', fontWeight: 700, color: '#5A5F67' }}>Engine</th>
+                  <th style={{ textAlign: 'left', padding: '12px 10px', fontWeight: 700, color: '#5A5F67' }}>Cost</th>
+                  <th style={{ textAlign: 'left', padding: '12px 10px', fontWeight: 700, color: '#5A5F67' }}>Plan</th>
+                  <th style={{ textAlign: 'left', padding: '12px 14px', fontWeight: 700, color: '#5A5F67' }}>Reach for it when</th>
                 </tr>
               </thead>
               <tbody>
@@ -369,36 +309,36 @@ export default async function EnginePage({ params }: { params: { engine: string 
                   const o = ENGINES[slug]
                   const here = slug === params.engine
                   return (
-                    <tr key={slug} style={{ borderTop: '1px solid rgba(255,255,255,0.06)', background: here ? 'rgba(41,151,255,0.07)' : i % 2 ? 'transparent' : 'rgba(255,255,255,0.015)' }}>
+                    <tr key={slug} style={{ borderTop: '1px solid rgba(14,17,22,0.08)', background: here ? '#E8EFFF' : i % 2 ? 'transparent' : 'rgba(14,17,22,0.025)' }}>
                       <td style={{ padding: '11px 14px', fontWeight: 800 }}>
                         {here ? (
-                          <span style={{ color: '#2997ff' }}>{o.name} <span style={{ fontWeight: 600, color: '#6e6e73' }}>· you are here</span></span>
+                          <span style={{ color: '#0A5CFF' }}>{o.name} <span style={{ fontWeight: 600, color: '#5A5F67' }}>· you are here</span></span>
                         ) : (
-                          <Link href={`/ai-video-generator/${slug}`} style={{ color: '#f5f5f7', textDecoration: 'none' }}>{o.name}</Link>
+                          <Link href={`/ai-video-generator/${slug}`} style={{ color: '#0E1116', textDecoration: 'none' }}>{o.name}</Link>
                         )}
                       </td>
-                      <td style={{ padding: '11px 10px', color: '#d2d2d7', whiteSpace: 'nowrap' }}>{o.tier === 'Free' ? 'Free' : `${o.creditCost} cr`}</td>
-                      <td style={{ padding: '11px 10px', color: o.tier === 'Studio' ? '#86868b' : '#2997ff', fontWeight: 700 }}>{o.tier}</td>
-                      <td style={{ padding: '11px 14px', color: '#86868b', lineHeight: 1.5 }}>{o.bestFor}</td>
+                      <td style={{ padding: '11px 10px', color: '#2A2F37', whiteSpace: 'nowrap' }}>{o.tier === 'Free' ? 'Free' : `${o.creditCost} cr`}</td>
+                      <td style={{ padding: '11px 10px', color: o.tier === 'Studio' ? '#5A5F67' : '#0A5CFF', fontWeight: 700 }}>{o.tier}</td>
+                      <td style={{ padding: '11px 14px', color: '#5A5F67', lineHeight: 1.5 }}>{o.bestFor}</td>
                     </tr>
                   )
                 })}
               </tbody>
             </table>
           </div>
-          <p style={{ fontSize: '0.74rem', color: '#6e6e73', textAlign: 'center', margin: '10px 0 0' }}>
+          <p style={{ fontSize: '0.74rem', color: '#5A5F67', textAlign: 'center', margin: '10px 0 0' }}>
             {geo ? geo.costsNote : <>Credit costs read from Kineo&rsquo;s single pricing source (August 2026). Engines and costs may change.</>}
           </p>
         </section>
 
         {/* FAQ */}
         <section style={{ marginTop: 48 }}>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 900, textAlign: 'center', margin: '0 0 18px' }}>Questions, answered</h2>
+          <h2 style={{ fontSize: '1.3rem', fontWeight: 650, textAlign: 'center', margin: '0 0 18px' }}>Questions, answered</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {e.faq.map((f) => (
               <div key={f.q} style={{ ...CARD, borderRadius: 12, padding: '16px 18px' }}>
                 <div style={{ fontWeight: 800, marginBottom: 6, fontSize: '0.95rem' }}>{f.q}</div>
-                <p style={{ margin: 0, color: '#86868b', lineHeight: 1.6, fontSize: '0.9rem' }}>{f.a}</p>
+                <p style={{ margin: 0, color: '#5A5F67', lineHeight: 1.6, fontSize: '0.9rem' }}>{f.a}</p>
               </div>
             ))}
           </div>
@@ -406,50 +346,50 @@ export default async function EnginePage({ params }: { params: { engine: string 
 
         {/* CTA final */}
         <section style={{ marginTop: 48, textAlign: 'center', ...CARD, borderRadius: 18, padding: '28px 20px' }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>Put your own topic through {e.name}</h2>
-          <p style={{ color: '#86868b', margin: '8px 0 18px', fontSize: '0.95rem' }}>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 650, margin: 0 }}>Put your own topic through {e.name}</h2>
+          <p style={{ color: '#5A5F67', margin: '8px 0 18px', fontSize: '0.95rem' }}>
             {geo ? geo.finalLine : <>One idea in, a ready-to-post vertical Short out. No editing timeline. Free to start.</>}
           </p>
           <OrganicCtaLink
             href={primaryCtaHref}
             source={campaign}
             placement="final"
-            style={{ display: 'inline-block', background: '#f5f5f7', color: '#000', fontWeight: 900, padding: '14px 30px', borderRadius: 980, textDecoration: 'none', fontSize: '1.02rem' }}
+            style={{ display: 'inline-block', background: '#0A5CFF', color: '#fff', fontWeight: 750, padding: '14px 30px', borderRadius: 980, textDecoration: 'none', fontSize: '1.02rem' }}
           >
             {geo ? geo.ctaLabel : CARD_ENTRY_COPY.ctaLong}
           </OrganicCtaLink>
-          <p style={{ margin: '14px 0 0', fontSize: '0.82rem', color: '#6e6e73' }}>
+          <p style={{ margin: '14px 0 0', fontSize: '0.82rem', color: '#5A5F67' }}>
             Already have an account?{' '}
-            <Link href={studioUrl} style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}>
+            <Link href={studioUrl} style={{ color: '#0A5CFF', textDecoration: 'none', fontWeight: 700 }}>
               Open the generator with {e.name} selected →
             </Link>
           </p>
         </section>
 
         {/* Interlinking do cluster */}
-        <nav style={{ marginTop: 40, textAlign: 'center', fontSize: '0.85rem', color: '#6e6e73', lineHeight: 2 }}>
+        <nav style={{ marginTop: 40, textAlign: 'center', fontSize: '0.85rem', color: '#5A5F67', lineHeight: 2 }}>
           <div>
             <span>Other engines: </span>
             {ENGINE_SLUGS.filter((s) => s !== params.engine).map((s, i) => (
               <span key={s}>
                 {i > 0 && ' · '}
-                <Link href={`/ai-video-generator/${s}`} style={{ color: '#86868b', textDecoration: 'none' }}>{ENGINES[s].name}</Link>
+                <Link href={`/ai-video-generator/${s}`} style={{ color: '#5A5F67', textDecoration: 'none' }}>{ENGINES[s].name}</Link>
               </span>
             ))}
           </div>
           <div>
-            <Link href="/examples" style={{ color: '#86868b', textDecoration: 'none' }}>Real examples</Link>
+            <Link href="/examples" style={{ color: '#5A5F67', textDecoration: 'none' }}>Real examples</Link>
             {' · '}
-            <Link href="/pricing" style={{ color: '#86868b', textDecoration: 'none' }}>Pricing</Link>
+            <Link href="/pricing" style={{ color: '#5A5F67', textDecoration: 'none' }}>Pricing</Link>
             {' · '}
-            <Link href="/alternatives" style={{ color: '#86868b', textDecoration: 'none' }}>Tool alternatives</Link>
+            <Link href="/alternatives" style={{ color: '#5A5F67', textDecoration: 'none' }}>Tool alternatives</Link>
             {' · '}
-            <Link href="/free-ai-shorts-generator" style={{ color: '#86868b', textDecoration: 'none' }}>Free AI Shorts generator</Link>
+            <Link href="/free-ai-shorts-generator" style={{ color: '#5A5F67', textDecoration: 'none' }}>Free AI Shorts generator</Link>
             {' · '}
-            <Link href="/best-ai-shorts-generators" style={{ color: '#86868b', textDecoration: 'none' }}>Best AI Shorts generators</Link>
+            <Link href="/best-ai-shorts-generators" style={{ color: '#5A5F67', textDecoration: 'none' }}>Best AI Shorts generators</Link>
             {' · '}
             {/* KINEO-INDICE-VIDEO-IA-2026-10-06 — o índice mensal com tempo e custo medidos de cada motor (link discreto). */}
-            <Link href="/ai-video-index" style={{ color: '#86868b', textDecoration: 'none' }}>Real cost and render time</Link>
+            <Link href="/ai-video-index" style={{ color: '#5A5F67', textDecoration: 'none' }}>Real cost and render time</Link>
           </div>
         </nav>
       </div>

@@ -10,6 +10,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semPaginasIaClaras2110 } from './desfaz-paginas-ia-claras-2110.mjs' // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — a camada clara (21/10, mais nova que esta) sai PRIMEIRO
 
 // reancorado KINEO-LEVA3-1510 — o bloco do import em app/sitemap.ts passou a ser só a linha do import das irmãs /vs + a do Bing
 // (o import do KINEO-VS-NOVOS-1610 entra logo abaixo e quebrava o contexto largo); a troca continua exata e única.
@@ -19,6 +20,7 @@ export const ARQUIVOS_BING_SEO_1510 = Object.freeze(Object.keys(TROCAS))
 
 /** Devolve `src` sem a rodada do Bing (só para os arquivos da lista; os outros voltam intocados). */
 export function semBingSeo1510(rel, src) {
+  src = semPaginasIaClaras2110(src, rel) // reancorado KINEO-PAGINAS-IA-CLARAS-2110 — as páginas claras saem antes das trocas do Bing
   const key = String(rel ?? '').replace(/\\/g, '/')
   if (!Object.hasOwn(TROCAS, key) || typeof src !== 'string' || !src.includes(MARCA_BING_SEO_1510)) return src
   const crlf = src.includes('\r\n')

@@ -1,6 +1,7 @@
 import { KIDS_VENDA_2010_ARQUIVOS, KIDS_VENDA_2010_NOVOS, MARCA_KIDS_VENDA_2010 } from './test-support/desfaz-kids-venda-2010.mjs' // KINEO-KIDS-VENDA-2010 — a venda do Cartoon sai da conta alheia, com desfaz exato próprio
 // KINEO-ADS-CENA-2110 — principal guardião, executado com o loader VM offline da casa.
 // Nenhuma credencial, env, banco, rede, fal ou OpenAI real. Dublês medem efeitos; mutantes alteram fontes executadas.
+import { PAGINAS_IA_CLARAS_2110_ARQUIVOS, PAGINAS_IA_CLARAS_2110_NOVOS, ehCommitPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'

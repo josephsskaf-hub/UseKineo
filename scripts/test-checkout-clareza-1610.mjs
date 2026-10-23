@@ -328,7 +328,8 @@ const { semPrecosClipesKling25_1610 } = await import('./test-support/desfaz-prec
 const { semPacote3Filmes1610 } = await import('./test-support/desfaz-pacote-3-filmes-1610.mjs')
 // reancorado KINEO-CONSENTIMENTO-1610 — o consentimento de cookies (eventos, /pricing) chegou depois do pacote: sai antes dele.
 const { semConsentimento1610 } = await import('./test-support/desfaz-consentimento-1610.mjs')
-const semIrmas = (f, t) => semPrecosClipesKling25_1610(f, semAfiliadoDestino1610(f, semAfiliadoPorPost1610(f, semPacote3Filmes1610(f, semConsentimento1610(f, t)))))
+const { semPaginasIaClaras2110 } = await import('./test-support/desfaz-paginas-ia-claras-2110.mjs') // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — as páginas claras (BuyCreatorCta em var(--kpl-*)) chegaram por último: saem primeiro
+const semIrmas = (f, t) => semPrecosClipesKling25_1610(f, semAfiliadoDestino1610(f, semAfiliadoPorPost1610(f, semPacote3Filmes1610(f, semConsentimento1610(f, semPaginasIaClaras2110(t, f)))))) // reancorado KINEO-PAGINAS-IA-CLARAS-2110
 const gitOut = (...a) => execFileSync('git', ['-C', root, ...a], { encoding: 'utf8', maxBuffer: 64 << 20 })
 const meus = gitOut('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, 'HEAD').trim().split('\n').filter(Boolean)
 const PAI = meus.length ? `${meus[meus.length - 1]}~1` : 'HEAD'

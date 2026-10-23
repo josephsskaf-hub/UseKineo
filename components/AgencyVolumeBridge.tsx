@@ -1,3 +1,4 @@
+// KINEO-PAGINAS-IA-CLARAS-2110 — cores em var(--kpl-*, <cor de antes>): claras só dentro de <main className="kpl"> (as páginas de entrada do ChatGPT); nas outras páginas, a cor de antes.
 import { agencyPacksHref, type AgencyDistributionEntry } from '@/lib/agencyDistribution'
 import { BULK_PACKS, formatCheckoutMoney } from '@/lib/checkoutPricing'
 // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — com os pacotes avulsos fora da vitrine (lib/bulkPacksPublic.ts), a faixa vira a do
@@ -50,9 +51,9 @@ export default function AgencyVolumeBridge({ entry }: { entry: AgencyDistributio
         margin: '32px auto 48px',
         padding: '22px',
         borderRadius: 20,
-        border: '1px solid rgba(52,211,153,.34)',
+        border: '1px solid var(--kpl-ok-line, rgba(52,211,153,.34))',
         background:
-          'radial-gradient(circle at 100% 0%, rgba(52,211,153,.14), transparent 42%), #111216',
+          'radial-gradient(circle at 100% 0%, var(--kpl-ok-soft, rgba(52,211,153,.14)), transparent 42%), var(--kpl-card, #111216)',
         textAlign: 'left',
       }}
     >
@@ -60,7 +61,7 @@ export default function AgencyVolumeBridge({ entry }: { entry: AgencyDistributio
       <div>
         <p
           style={{
-            color: '#34d399',
+            color: 'var(--kpl-ok, #34d399)',
             fontSize: 11,
             fontWeight: 900,
             letterSpacing: '.12em',
@@ -72,11 +73,11 @@ export default function AgencyVolumeBridge({ entry }: { entry: AgencyDistributio
         </p>
         <h2
           id={`agency-volume-${entry}`}
-          style={{ color: '#f5f5f7', fontSize: 'clamp(1.28rem, 3vw, 1.72rem)', lineHeight: 1.15, margin: 0, fontWeight: 900 }}
+          style={{ color: 'var(--kpl-text, #f5f5f7)', fontSize: 'clamp(1.28rem, 3vw, 1.72rem)', lineHeight: 1.15, margin: 0, fontWeight: 900 }}
         >
           {CONTEXT[entry]}
         </h2>
-        <p style={{ color: '#aaaab1', fontSize: 14, lineHeight: 1.62, margin: '10px 0 0' }}>
+        <p style={{ color: 'var(--kpl-muted, #aaaab1)', fontSize: 14, lineHeight: 1.62, margin: '10px 0 0' }}>
           Buy 10–50 Fast Shorts once, download clean commercial-use MP4s and keep the margin.
           {/* KINEO-FILME-GRATIS-15S-2026-09-29 — o nome do motor do pacote fica só na página de agências (compra paga). */}
           Packs start at {formatCheckoutMoney('usd', LOWEST_UNIT_PRICE_MINOR)} per finished 60-second film.
@@ -94,8 +95,8 @@ export default function AgencyVolumeBridge({ entry }: { entry: AgencyDistributio
             justifyContent: 'center',
             borderRadius: 13,
             padding: '0 18px',
-            color: '#04110c',
-            background: '#34d399',
+            color: 'var(--kpl-on-accent, #04110c)',
+            background: 'var(--kpl-ok, #34d399)',
             fontSize: 14,
             fontWeight: 900,
             textDecoration: 'none',
@@ -103,7 +104,7 @@ export default function AgencyVolumeBridge({ entry }: { entry: AgencyDistributio
         >
           See one-time volume packs →
         </AgencyVolumeBridgeLink>
-        <p style={{ color: '#85858c', fontSize: 11.5, lineHeight: 1.45, margin: 0, textAlign: 'center' }}>
+        <p style={{ color: 'var(--kpl-muted, #85858c)', fontSize: 11.5, lineHeight: 1.45, margin: 0, textAlign: 'center' }}>
           Self-service · one account · no recurring contract
         </p>
       </div>
@@ -127,9 +128,9 @@ function BusinessPlanBridge({ entry, sectionId }: { entry: AgencyDistributionEnt
         margin: '32px auto 48px',
         padding: '22px',
         borderRadius: 20,
-        border: '1px solid rgba(52,211,153,.34)',
+        border: '1px solid var(--kpl-ok-line, rgba(52,211,153,.34))',
         background:
-          'radial-gradient(circle at 100% 0%, rgba(52,211,153,.14), transparent 42%), #111216',
+          'radial-gradient(circle at 100% 0%, var(--kpl-ok-soft, rgba(52,211,153,.14)), transparent 42%), var(--kpl-card, #111216)',
         textAlign: 'left',
       }}
     >
@@ -137,7 +138,7 @@ function BusinessPlanBridge({ entry, sectionId }: { entry: AgencyDistributionEnt
       <div>
         <p
           style={{
-            color: '#34d399',
+            color: 'var(--kpl-ok, #34d399)',
             fontSize: 11,
             fontWeight: 900,
             letterSpacing: '.12em',
@@ -149,11 +150,11 @@ function BusinessPlanBridge({ entry, sectionId }: { entry: AgencyDistributionEnt
         </p>
         <h2
           id={`agency-volume-${entry}`}
-          style={{ color: '#f5f5f7', fontSize: 'clamp(1.28rem, 3vw, 1.72rem)', lineHeight: 1.15, margin: 0, fontWeight: 900 }}
+          style={{ color: 'var(--kpl-text, #f5f5f7)', fontSize: 'clamp(1.28rem, 3vw, 1.72rem)', lineHeight: 1.15, margin: 0, fontWeight: 900 }}
         >
           Making video ads for a product — yours or a client&apos;s?
         </h2>
-        <p style={{ color: '#aaaab1', fontSize: 14, lineHeight: 1.62, margin: '10px 0 0' }}>
+        <p style={{ color: 'var(--kpl-muted, #aaaab1)', fontSize: 14, lineHeight: 1.62, margin: '10px 0 0' }}>
           {pitch.sentence}
         </p>
       </div>
@@ -169,8 +170,8 @@ function BusinessPlanBridge({ entry, sectionId }: { entry: AgencyDistributionEnt
             justifyContent: 'center',
             borderRadius: 13,
             padding: '0 18px',
-            color: '#04110c',
-            background: '#34d399',
+            color: 'var(--kpl-on-accent, #04110c)',
+            background: 'var(--kpl-ok, #34d399)',
             fontSize: 14,
             fontWeight: 900,
             textDecoration: 'none',
@@ -178,7 +179,7 @@ function BusinessPlanBridge({ entry, sectionId }: { entry: AgencyDistributionEnt
         >
           See the Business plan →
         </AgencyVolumeBridgeLink>
-        <p style={{ color: '#85858c', fontSize: 11.5, lineHeight: 1.45, margin: 0, textAlign: 'center' }}>
+        <p style={{ color: 'var(--kpl-muted, #85858c)', fontSize: 11.5, lineHeight: 1.45, margin: 0, textAlign: 'center' }}>
           Self-service · monthly billing · cancel anytime
         </p>
       </div>

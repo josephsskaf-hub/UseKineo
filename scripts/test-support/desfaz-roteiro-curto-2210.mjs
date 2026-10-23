@@ -3,6 +3,7 @@
 // Restores only this task IN MEMORY to the merged main, preserving Cartoon and Cena95 layers.
 // Every candidate hunk must match exactly once; missing, duplicated or mutated hunk/context throws.
 // Changes outside all hunks survive. The new guardian always reads real source without this adapter.
+import { semAdminLeve2310 } from './desfaz-admin-leve-2310.mjs' // KINEO-ADMIN-LEVE-2310 — all historical consumers remove only this later exact layer first.
 import { semAdsCena95PlanFailed2110 } from './desfaz-ads-cena-95-plan-failed-2110.mjs' // KINEO-ADS-CENA-95-PLAN-FAILED-2110
 const MARK = 'KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22'
 const HUNKS = {
@@ -750,6 +751,7 @@ function offsets(text, needle) {
 }
 
 export function semRoteiroCurto2210(source, file) {
+  source = semAdminLeve2310(source, file) // KINEO-ADMIN-LEVE-2310 — cache/polling precedes every older hunk, hash and marker check.
   source = semAdsCena95PlanFailed2110(source, file) // KINEO-ADS-CENA-95-PLAN-FAILED-2110 — antes dos marcadores, hunks e hashes mais antigos.
   const relative = typeof file === 'string' ? file.replace(/\\/g, '/') : file
   const hunks = HUNKS[relative]

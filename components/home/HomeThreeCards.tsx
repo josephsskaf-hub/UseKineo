@@ -9,7 +9,7 @@
 // Sem preço em lugar nenhum (cartão de vídeo = motor/produto + nome). Os botões dos anúncios dizem "grátis" só com a amostra
 // no ar (ADS_SAMPLE_LIVE) e na língua da interface (lib/ads/sample.ts, 16 línguas).
 import Link from 'next/link'
-import { useEffect, useRef, type RefObject } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 import { UiLabel, useInterfaceLanguage, useUiCopy } from '@/components/InterfaceLanguage'
 import { trackEvent } from '@/lib/analytics'
 import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample' // KINEO-HOME-CARDS-BOTOES-2010 — o rótulo grátis agora vem de homeCardAdsCta
@@ -28,6 +28,7 @@ import HomeProductAdsReel from '@/components/home/HomeProductAdsReel' // KINEO-B
 import HomeKidsCard from '@/components/home/HomeKidsCard' // KINEO-BEBE-QUE-FALA-2010 — o 4º card (AI Kids Cartoons), só com o interruptor
 import { HOME_CARDS_AJUSTE_CSS, HOME_KIDS_CARD_CSS } from '@/lib/ui/homeKidsCard' // KINEO-BEBE-QUE-FALA-2010 — a grade de 4 colunas mora num <style> próprio, emitido só com o card ligado
 import { UGC_PILLAR_PATH, UGC_PILLAR_PT_PATH } from '@/lib/seo/paginasUgc2010' // KINEO-PAGINAS-UGC-2010 — o guia do AI UGC Ads ao lado do título dos cards
+import { vemDoChatgpt } from '@/lib/seo/paginasIaClaras2110' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)'
 
@@ -132,8 +133,15 @@ function CardMedia({ card, language }: { card: HomeCardId; language: string }) {
 export default function HomeThreeCards({ signedIn, kidsCard = false }: { signedIn: boolean; kidsCard?: boolean }) { // KINEO-BEBE-QUE-FALA-2010 — + kidsCard (o 4º card); era: export default function HomeThreeCards({ signedIn }: { signedIn: boolean }) {
   const copy = useUiCopy()
   const language = useInterfaceLanguage()
+  const [chatgptArrival, setChatgptArrival] = useState(false) // KINEO-PAGINAS-IA-CLARAS-2110 — SSR e primeira hidratação usam a mesma ordem.
+  useEffect(() => { // KINEO-PAGINAS-IA-CLARAS-2110 — regra compartilhada pela home e pelas páginas de entrada; sem persistir origem.
+    setChatgptArrival(vemDoChatgpt(new URLSearchParams(window.location.search).get('utm_source'), document.referrer))
+  }, []) // KINEO-PAGINAS-IA-CLARAS-2110
+  const cardOrder: readonly (HomeCardId | 'kids_cartoon')[] = kidsCard // KINEO-PAGINAS-IA-CLARAS-2110
+    ? chatgptArrival ? ['kids_cartoon', ...HOME_CARD_ORDER] : [...HOME_CARD_ORDER, 'kids_cartoon'] // KINEO-PAGINAS-IA-CLARAS-2110
+    : HOME_CARD_ORDER // KINEO-PAGINAS-IA-CLARAS-2110 — interruptor desligado mantém os três cards de sempre.
   // keepalive do trackEvent entrega o POST mesmo com a página saindo pelo link (mesmo padrão das portas).
-  const track = (card: HomeCardId) => { void trackEvent(HOME_CARD_EVENT, homeCardClickMetadata(card, signedIn)) }
+  const track = (card: HomeCardId, position: number) => { void trackEvent(HOME_CARD_EVENT, { ...homeCardClickMetadata(card, signedIn), position }) } // KINEO-PAGINAS-IA-CLARAS-2110 — posição real, inclusive quando o Cartoon vem primeiro.
   const adsCta = (card: HomeCardId) => homeCardAdsCta(card, language, ADS_SAMPLE_LIVE) // KINEO-HOME-CARDS-BOTOES-2010 — um botão diferente por card (fundador 20/10)
   return (
     <section className="k3c" aria-label={copy('Choose what to make')} data-home-3-cards="1">
@@ -143,8 +151,10 @@ export default function HomeThreeCards({ signedIn, kidsCard = false }: { signedI
       <div className="wrap">
         <div className="k3c-head"><p className="k3c-kicker"><UiLabel>Choose what to make</UiLabel></p><Link className="k3c-more" href={language === 'pt' ? UGC_PILLAR_PT_PATH : UGC_PILLAR_PATH} data-home-ugc-guide="1"><UiLabel>How AI UGC ads work</UiLabel> →</Link></div>{/* KINEO-PAGINAS-UGC-2010 */}
         <div className="k3c-grid" data-k3c-cols={kidsCard ? '4' : undefined}>{/* KINEO-BEBE-QUE-FALA-2010 — undefined = o atributo nem é emitido (home de hoje); era: <div className="k3c-grid"> */}
-          {HOME_CARD_ORDER.map((card) => (
-            <Link key={card} href={homeCardHref(card, signedIn)} className="k3c-card" data-home-card={card} onClick={() => track(card)}>
+          {cardOrder.map((card, index) => card === 'kids_cartoon' ? ( // KINEO-PAGINAS-IA-CLARAS-2110 — ordem DOM e teclado seguem a ordem visual; chaves estáveis.
+            <HomeKidsCard key={card} signedIn={signedIn} position={index + 1} /> // KINEO-PAGINAS-IA-CLARAS-2110
+          ) : (
+            <Link key={card} href={homeCardHref(card, signedIn)} className="k3c-card" data-home-card={card} onClick={() => track(card, index + 1)}>
               {kidsCard && card === 'product_ads' ? <HomeProductAdsReel language={language} /> : <CardMedia card={card} language={language} />}{/* KINEO-BEBE-QUE-FALA-2010 — modo 4 cards: o reel Lume + 3 trios no card de produto; era: <CardMedia card={card} language={language} /> */}
               <span className="k3c-shade" aria-hidden="true" />
               <span className="k3c-glass" aria-hidden="true" />
@@ -156,7 +166,6 @@ export default function HomeThreeCards({ signedIn, kidsCard = false }: { signedI
               </span>
             </Link>
           ))}
-          {kidsCard ? <HomeKidsCard signedIn={signedIn} /> : null}{/* KINEO-BEBE-QUE-FALA-2010 — o 4º card, depois dos 3 */}
         </div>
       </div>
     </section>

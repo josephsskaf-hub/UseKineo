@@ -33,6 +33,8 @@ import { stateNicheRankForPath } from '@/lib/seo/stateOfAiShorts'
 // KINEO-PAGINAS-LOTE1-2026-10-12 — 7 nichos novos (desenho 3D, what-if, oceano, desastres, natureza, mistérios antigos, fatos
 // sinistros) com texto útil próprio, FAQ e filme real da casa; os dados vivem em lib/seo/paginasLote1.ts.
 import { LOTE1_NICHES, lote1NicheFilm } from '@/lib/seo/paginasLote1'
+import { PaginaClaraCards, PaginaClaraTopo, PaginaClaraVitrine } from '@/components/seo/PaginaClara' // KINEO-PAGINAS-IA-CLARAS-2110 — o menu do topo, os 4 cards e a vitrine atual da home
+import { PAGINA_CLARA_CLASSE, PAGINA_CLARA_FUNDO } from '@/lib/seo/paginasIaClaras2110' // KINEO-PAGINAS-IA-CLARAS-2110
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -527,7 +529,7 @@ export function generateMetadata({ params }: { params: { niche: string } }): Met
   }
 }
 
-const CARD = { background: 'rgba(11,17,32,0.85)', border: '1px solid rgba(255,255,255,0.08)' }
+const CARD = { background: '#FFFFFF', border: '1px solid rgba(14,17,22,0.08)' }
 
 export default function NicheLandingPage({ params }: { params: { niche: string } }) {
   const n = NICHES[params.niche]
@@ -570,22 +572,24 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
       ]
 
   return (
-    <main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'var(--font-sans), Arial, sans-serif' }}>
+    <main className={PAGINA_CLARA_CLASSE} style={{ minHeight: '100vh', background: PAGINA_CLARA_FUNDO, color: '#0E1116', fontFamily: 'var(--font-sans), Arial, sans-serif' }}>
+      <PaginaClaraTopo />{/* KINEO-PAGINAS-IA-CLARAS-2110 */}
       <div style={{ maxWidth: 780, margin: '0 auto', padding: '28px 18px 64px' }}>
-        <Link href="/" style={{ color: '#2997ff', fontWeight: 800, textDecoration: 'none', fontSize: '1.05rem' }}>
+        <Link href="/" style={{ color: '#0A5CFF', fontWeight: 800, textDecoration: 'none', fontSize: '1.05rem' }}>
           Kineo
         </Link>
 
         {/* Hero */}
         <section style={{ marginTop: 36, textAlign: 'center' }}>
-          <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 900, lineHeight: 1.15, margin: 0 }}>
+          <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 650, lineHeight: 1.15, margin: 0 }}>
             {n.h1}
           </h1>
-          <p style={{ fontSize: '1.02rem', color: '#CBD5E1', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 620 }}>
+          <p style={{ fontSize: '1.02rem', color: '#2A2F37', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 620 }}>
             {n.intro}
           </p>
-          <p style={{ fontSize: '0.85rem', color: '#86868b', margin: '10px 0 0' }}>
-            Script • Voiceover • Captions • AI-generated scenes • Ready in about 6 minutes · <b style={{ color: '#2997ff' }}>{ft(OFFER, 'up to 3 watermarked Fast videos / 24h', OFFER.copy.chipLower)}</b>, no card
+          <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
+          <p style={{ fontSize: '0.85rem', color: '#5A5F67', margin: '10px 0 0' }}>
+            Script • Voiceover • Captions • AI-generated scenes • Ready in about 6 minutes · <b style={{ color: '#0A5CFF' }}>{ft(OFFER, 'up to 3 watermarked Fast videos / 24h', OFFER.copy.chipLower)}</b>, no card
           </p>
           {/* KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — compra direta do Creator na primeira dobra dos 30 nichos; o botão grátis de
               sempre (ou o roteiro de anúncio, no localbusiness) vira o secundário, ao lado. Seedance pausado = hero de antes. */}
@@ -595,7 +599,7 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
               secondary={isLocalBusiness ? (
                 <Link
                   href="#business-ad-builder"
-                  style={{ display: 'inline-block', border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 800, padding: '14px 22px', borderRadius: 14, textDecoration: 'none' }}
+                  style={{ display: 'inline-block', border: '1px solid #D2D2CD', color: '#0E1116', fontWeight: 800, padding: '14px 22px', borderRadius: 14, textDecoration: 'none' }}
                 >
                   Build my business ad script →
                 </Link>
@@ -604,7 +608,7 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
                   href={heroFreeHref}
                   source={campaign}
                   placement="hero"
-                  style={{ display: 'inline-block', border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 800, padding: '14px 22px', borderRadius: 14, textDecoration: 'none' }}
+                  style={{ display: 'inline-block', border: '1px solid #D2D2CD', color: '#0E1116', fontWeight: 800, padding: '14px 22px', borderRadius: 14, textDecoration: 'none' }}
                 >
                   {ft(OFFER, `Generate a free ${n.label} Fast video →`, `Make my best ${n.label} film free →`)}
                 </OrganicCtaLink>
@@ -613,7 +617,7 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
           ) : isLocalBusiness ? (
             <Link
               href="#business-ad-builder"
-              style={{ display: 'inline-block', marginTop: 22, background: '#2997ff', color: '#000', fontWeight: 900, padding: '15px 32px', borderRadius: 14, textDecoration: 'none', fontSize: '1.05rem' }}
+              style={{ display: 'inline-block', marginTop: 22, background: '#0A5CFF', color: '#fff', fontWeight: 750, padding: '15px 32px', borderRadius: 14, textDecoration: 'none', fontSize: '1.05rem' }}
             >
               Build my business ad script →
             </Link>
@@ -622,7 +626,7 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
               href={heroFreeHref}
               source={campaign}
               placement="hero"
-              style={{ display: 'inline-block', marginTop: 22, background: 'linear-gradient(135deg,#2997ff,#2997ff)', color: '#000', fontWeight: 900, padding: '15px 32px', borderRadius: 14, textDecoration: 'none', fontSize: '1.05rem' }}
+              style={{ display: 'inline-block', marginTop: 22, background: '#0A5CFF', color: '#fff', fontWeight: 750, padding: '15px 32px', borderRadius: 14, textDecoration: 'none', fontSize: '1.05rem' }}
             >
               {ft(OFFER, `Generate a free ${n.label} Fast video →`, `Make my best ${n.label} film free →`)}
             </OrganicCtaLink>
@@ -698,27 +702,18 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
           )}
         </section>
 
-        {houseFilm && (
-          <NicheHouseFilm
-            film={houseFilm}
-            nicheLabel={n.label}
-            source={campaign}
-            ctaHref={buildPromptedSignupHref({ prompt: houseFilm.idea, campaign, creationIntent: OFFER.reverseTrial ? 'trial_best' : 'fast' })}
-            stateRank={stateNicheRankForPath(STATE_EDITION, `/free-ai-shorts/${params.niche}`)}
-            honestNote={lote1Film?.honestNote ?? null}
-            ctaLabel={lote1Film?.ctaLabel}
-          />
-        )}
+        {/* KINEO-PAGINAS-IA-CLARAS-2110 — o filme velho da casa (NicheHouseFilm) saiu da tela; entra a vitrine atual (a mesma da /claude-connector). */}
+        <PaginaClaraVitrine />
 
         {/* How it works */}
         <section style={{ marginTop: 48 }}>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 900, textAlign: 'center', margin: '0 0 18px' }}>How it works</h2>
+          <h2 style={{ fontSize: '1.3rem', fontWeight: 650, textAlign: 'center', margin: '0 0 18px' }}>How it works</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
             {steps.map((s) => (
               <div key={s.n} style={{ ...CARD, borderRadius: 14, padding: 16 }}>
-                <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(41,151,255,0.12)', color: '#2997ff', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>{s.n}</div>
+                <div style={{ width: 30, height: 30, borderRadius: 8, background: '#E8EFFF', color: '#0A5CFF', fontWeight: 750, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>{s.n}</div>
                 <div style={{ fontWeight: 800, marginBottom: 4 }}>{s.t}</div>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: '#86868b', lineHeight: 1.5 }}>{s.d}</p>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#5A5F67', lineHeight: 1.5 }}>{s.d}</p>
               </div>
             ))}
           </div>
@@ -730,18 +725,18 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
             {lote1FaqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(lote1FaqJsonLd).replace(/</g, '\\u003c') }} />}
             {lote1.sections.map((s) => (
               <div key={s.h2} style={{ marginBottom: 28 }}>
-                <h2 style={{ fontSize: '1.3rem', fontWeight: 900, margin: '0 0 12px' }}>{s.h2}</h2>
+                <h2 style={{ fontSize: '1.3rem', fontWeight: 650, margin: '0 0 12px' }}>{s.h2}</h2>
                 {s.paragraphs.map((p) => (
-                  <p key={p.slice(0, 40)} style={{ color: '#CBD5E1', fontSize: '0.98rem', lineHeight: 1.7, margin: '0 0 12px' }}>{p}</p>
+                  <p key={p.slice(0, 40)} style={{ color: '#2A2F37', fontSize: '0.98rem', lineHeight: 1.7, margin: '0 0 12px' }}>{p}</p>
                 ))}
               </div>
             ))}
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 900, margin: '8px 0 14px' }}>{n.label} Shorts: questions</h2>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 650, margin: '8px 0 14px' }}>{n.label} Shorts: questions</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {lote1.faq.map((f) => (
                 <div key={f.q} style={{ ...CARD, borderRadius: 12, padding: '14px 16px' }}>
                   <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 6px' }}>{f.q}</h3>
-                  <p style={{ margin: 0, color: '#CBD5E1', fontSize: '0.92rem', lineHeight: 1.6 }}>{f.a}</p>
+                  <p style={{ margin: 0, color: '#2A2F37', fontSize: '0.92rem', lineHeight: 1.6 }}>{f.a}</p>
                 </div>
               ))}
             </div>
@@ -750,14 +745,14 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
 
         {/* Niche ideas */}
         {!isLocalBusiness && <section style={{ marginTop: 48 }}>
-          <h2 style={{ fontSize: '1.3rem', fontWeight: 900, textAlign: 'center', margin: '0 0 18px' }}>
+          <h2 style={{ fontSize: '1.3rem', fontWeight: 650, textAlign: 'center', margin: '0 0 18px' }}>
             Viral {n.label} ideas to start with
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {n.ideas.map((idea) => (
-              <OrganicCtaLink key={idea} href={signupUrlForIdea(idea)} source={campaign} placement="idea" style={{ ...CARD, borderRadius: 12, padding: '14px 16px', textDecoration: 'none', color: '#f5f5f7', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <OrganicCtaLink key={idea} href={signupUrlForIdea(idea)} source={campaign} placement="idea" style={{ ...CARD, borderRadius: 12, padding: '14px 16px', textDecoration: 'none', color: '#0E1116', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                 <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{idea}</span>
-                <span style={{ color: '#2997ff', fontWeight: 900, whiteSpace: 'nowrap' }}>Make it →</span>
+                <span style={{ color: '#0A5CFF', fontWeight: 750, whiteSpace: 'nowrap' }}>Make it →</span>
               </OrganicCtaLink>
             ))}
           </div>
@@ -768,10 +763,10 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
           {/* KINEO-GRANT-COPY-UNICA-2026-08-17 — o número vinha digitado à mão e
               ficou em 40 quando o grant virou 50 hoje: este H2 é o mesmo em 30
               páginas, então era o erro multiplicado por 30. Agora deriva. */}
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>{ft(OFFER, `Make a ${n.label} Fast video free`, `Start free — ${TRIAL_GRANT_CREDITS_COPY} free credits for ${n.label} Shorts` /* KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — não são créditos "Creator" */)}</h2>
-          <p style={{ color: '#CBD5E1', margin: '8px 0 18px', fontSize: '0.95rem' }}>{ft(OFFER, 'Up to 3 watermarked Fast videos every 24h. No card.', OFFER.copy.headline)} Starter is {STARTER_MONTH} when you want clean exports.</p>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 650, margin: 0 }}>{ft(OFFER, `Make a ${n.label} Fast video free`, `Start free — ${TRIAL_GRANT_CREDITS_COPY} free credits for ${n.label} Shorts` /* KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — não são créditos "Creator" */)}</h2>
+          <p style={{ color: '#2A2F37', margin: '8px 0 18px', fontSize: '0.95rem' }}>{ft(OFFER, 'Up to 3 watermarked Fast videos every 24h. No card.', OFFER.copy.headline)} Starter is {STARTER_MONTH} when you want clean exports.</p>
           {isLocalBusiness ? (
-            <Link href="#business-ad-builder" style={{ display: 'inline-block', background: '#2997ff', color: '#000', fontWeight: 900, padding: '14px 30px', borderRadius: 12, textDecoration: 'none', fontSize: '1.02rem' }}>
+            <Link href="#business-ad-builder" style={{ display: 'inline-block', background: '#0A5CFF', color: '#fff', fontWeight: 750, padding: '14px 30px', borderRadius: 12, textDecoration: 'none', fontSize: '1.02rem' }}>
               Build my ad script →
             </Link>
           ) : (
@@ -779,7 +774,7 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
               href={signupUrlForIdea(primaryIdea)}
               source={campaign}
               placement="final"
-              style={{ display: 'inline-block', background: '#2997ff', color: '#000', fontWeight: 900, padding: '14px 30px', borderRadius: 12, textDecoration: 'none', fontSize: '1.02rem' }}
+              style={{ display: 'inline-block', background: '#0A5CFF', color: '#fff', fontWeight: 750, padding: '14px 30px', borderRadius: 12, textDecoration: 'none', fontSize: '1.02rem' }}
             >
               {CARD_ENTRY_COPY.ctaLong}
             </OrganicCtaLink>
@@ -794,9 +789,9 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
             link from a page that is already indexed. */}
         {SCRIPT_VERTICAL_SLUGS.includes(params.niche) && (
           <section style={{ marginTop: 40, textAlign: 'center' }}>
-            <p style={{ fontSize: '0.9rem', color: '#CBD5E1', margin: 0, lineHeight: 1.6 }}>
+            <p style={{ fontSize: '0.9rem', color: '#2A2F37', margin: 0, lineHeight: 1.6 }}>
               Want to see finished scripts first?{' '}
-              <Link href={`/scripts/${params.niche}`} style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 800 }}>
+              <Link href={`/scripts/${params.niche}`} style={{ color: '#0A5CFF', textDecoration: 'none', fontWeight: 800 }}>
                 Read free {n.label} Shorts scripts →
               </Link>
             </p>
@@ -805,24 +800,24 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
 
         {/* KINEO-PAGINAS-LOTE1-2026-10-12 — a irmã em espanhol do nicho nº 1 (horror) e a página de curta-metragem, ligadas daqui. */}
         {params.niche === 'horror' && (
-          <p style={{ marginTop: 32, textAlign: 'center', fontSize: '0.9rem', color: '#CBD5E1' }}>
+          <p style={{ marginTop: 32, textAlign: 'center', fontSize: '0.9rem', color: '#2A2F37' }}>
             En español:{' '}
-            <Link href="/generador-de-videos-de-terror" style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 800 }}>Generador de videos de terror con IA →</Link>
+            <Link href="/generador-de-videos-de-terror" style={{ color: '#0A5CFF', textDecoration: 'none', fontWeight: 800 }}>Generador de videos de terror con IA →</Link>
           </p>
         )}
         {(params.niche === 'horror' || params.niche === 'ocean') && (
-          <p style={{ marginTop: 12, textAlign: 'center', fontSize: '0.9rem', color: '#CBD5E1' }}>
+          <p style={{ marginTop: 12, textAlign: 'center', fontSize: '0.9rem', color: '#2A2F37' }}>
             Want a longer story with a narrator?{' '}
-            <Link href="/ai-short-film-generator" style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 800 }}>AI short film generator →</Link>
+            <Link href="/ai-short-film-generator" style={{ color: '#0A5CFF', textDecoration: 'none', fontWeight: 800 }}>AI short film generator →</Link>
           </p>
         )}
 
-        <nav style={{ marginTop: 40, textAlign: 'center', fontSize: '0.8rem', color: '#64748B' }}>
+        <nav style={{ marginTop: 40, textAlign: 'center', fontSize: '0.8rem', color: '#5A5F67' }}>
           <span>More: </span>
           {NICHE_SLUGS.filter((s) => s !== params.niche).map((s, i) => (
             <span key={s}>
               {i > 0 && ' · '}
-              <Link href={`/free-ai-shorts/${s}`} style={{ color: '#86868b', textDecoration: 'none' }}>{NICHES[s].label}</Link>
+              <Link href={`/free-ai-shorts/${s}`} style={{ color: '#5A5F67', textDecoration: 'none' }}>{NICHES[s].label}</Link>
             </span>
           ))}
         </nav>

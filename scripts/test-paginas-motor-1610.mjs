@@ -17,6 +17,7 @@
 import { createRequire } from 'node:module'
 import { resolve } from 'node:path'
 import { React, root, source, offlineModules, renderToStaticMarkup } from './gpt24h-offline-support.mjs'
+import { fontesSemPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — a camada clara das páginas de entrada do ChatGPT sai da conta deste guardião (prova própria em scripts/test-paginas-ia-claras-2110.mjs)
 
 const require = createRequire(resolve(root, 'package.json'))
 const ts = require('typescript')
@@ -65,7 +66,7 @@ function mundo({ rep = {}, mocks = {} } = {}) {
     'lib/kineoFacts.ts': { ENGINE_FACTS: [] }, // a ficha 'what' cai no bestFor do catálogo; o kineoFacts puxa node:crypto (ads)
     ...mocks,
   }
-  return offlineModules({ replacements: rep, mocks: all })
+  return offlineModules({ replacements: { ...fontesSemPaginasIaClaras2110(source), ...rep }, mocks: all }) // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 }
 
 const unesc = (s) => s.replace(/&#x27;/g, "'").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')

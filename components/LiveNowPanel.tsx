@@ -5,15 +5,15 @@
 // checkout em 2 min e hesitou): ele quer ver a pessoa quente ENQUANTO ela está
 // online, com e-mail ao lado e o que ela testou, pra mandar o e-mail na hora.
 //
-// Auto-refresh de 30s (a janela de "online" é de 5 min, então 30s dá granularidade
-// de sobra sem martelar o banco). E-mail é clicável: abre o Gmail com assunto já
+// Auto-refresh de 60s, somente com a aba visível. E-mail é clicável: abre o Gmail com assunto já
 // escrito conforme o CALOR do visitante — 🚨 no checkout ganha um assunto
 // diferente de quem só está navegando.
 import { useEffect, useState } from 'react'
+import { startVisiblePolling } from '@/lib/admin/visiblePolling'
 import type { LiveData, LiveVisitor } from '@/app/api/admin/live/route'
 import { EmailBotao, PessoaLink } from '@/components/admin/PessoaLink' // KINEO-ADMIN-PESSOA-1910
 
-const REFRESH_MS = 30_000
+const REFRESH_MS = 60_000
 
 function flag(cc: string | null): string {
   if (!cc || cc.length !== 2) return ''
@@ -83,14 +83,13 @@ export default function LiveNowPanel() {
   useEffect(() => {
     let cancelled = false
     const load = () => {
-      void fetch('/api/admin/live', { cache: 'no-store' })
+      return fetch('/api/admin/live', { cache: 'no-store' })
         .then(async (r) => (r.ok ? (r.json() as Promise<LiveData>) : Promise.reject()))
         .then((d) => { if (!cancelled) { setData(d); setErr(false) } })
         .catch(() => { if (!cancelled) setErr(true) })
     }
-    load()
-    const t = setInterval(load, REFRESH_MS)
-    return () => { cancelled = true; clearInterval(t) }
+    const stopPolling = startVisiblePolling(load, REFRESH_MS)
+    return () => { cancelled = true; stopPolling() }
   }, [])
 
   const CARD: React.CSSProperties = { background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 14 }
@@ -238,7 +237,7 @@ export default function LiveNowPanel() {
         )}
       </div>
       <p className="text-[10px] mt-2" style={{ color: 'var(--muted2)' }}>
-        Online = visitante logado com atividade nos últimos 5 min · atualiza a cada 30s · clique no e-mail para abrir a tela da pessoa · ✉ para escrever agora.
+        Online = visitante logado com atividade nos últimos 5 min · atualiza a cada 60s com a aba visível · clique no e-mail para abrir a tela da pessoa · ✉ para escrever agora.
         {' '}<b>rendering</b> = geração em voo: o crédito já saiu, o vídeo ainda não existe — é isso que explica &quot;crédito gasto, zero vídeo&quot;.
       </p>
     </section>
