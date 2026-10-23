@@ -25,6 +25,7 @@ import { carregarCheckoutHonesto, type CheckoutHonestoComCartao } from '@/lib/ad
 import { LEDGER_GRANT_EVENTS, summarizeLedgerGrants, type LedgerGrantEvent } from '@/lib/admin/ledgerGrants' // KINEO-PAINEL-ORIGEM-2026-10-13
 import { rotuloCredito } from '@/lib/admin/rotuloCredito' // KINEO-ROTULO-CREDITO-1510
 import { isNarrationCompletionEvent } from '@/lib/admin/narrationCompletion' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
+import { createLiveCache } from '@/lib/admin/liveCache'
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -123,6 +124,10 @@ export interface LiveData {
   generated_at: string
 }
 
+// KINEO-ADMIN-LEVE-2310 — cache the whole snapshot, including events/ledgers,
+// for 60s per warm instance. Multiple authorized tabs share one refresh.
+const liveCache = createLiveCache<LiveData>()
+
 export async function GET() {
   try {
     const supabase = createClient()
@@ -133,6 +138,16 @@ export async function GET() {
     const admin = serviceClient()
     if (!admin) return NextResponse.json({ error: 'Service unavailable' }, { status: 503 })
 
+    return NextResponse.json(await liveCache.get(() => loadLiveData(admin)), {
+      headers: { 'Cache-Control': 'private, no-store' },
+    })
+  } catch (e) {
+    console.error('[admin/live] failed:', e instanceof Error ? e.message : String(e))
+    return NextResponse.json({ error: 'Failed to load live data.' }, { status: 500 })
+  }
+}
+
+async function loadLiveData(admin: NonNullable<ReturnType<typeof serviceClient>>): Promise<LiveData> {
     const now = Date.now()
     const iso = (msAgo: number) => new Date(now - msAgo).toISOString()
     const H24 = 24 * 60 * 60 * 1000
@@ -182,13 +197,16 @@ export async function GET() {
       signups_7d: number; signups_24h: number
       videos_24h: number; checkouts_24h: number
     }
-    // A RPC devolve UMA linha. Se ela falhar, preferimos zero a um número
-    // inventado: o painel mostrando 0 é um defeito visível; o painel mostrando
-    // 435 falso é um defeito que ninguém enxerga — foi exatamente assim que
-    // este bug sobreviveu.
-    if (counters.error) console.warn('[admin/live] admin_live_counters falhou:', counters.error.message)
-    const c = ((counters.data ?? [])[0] ?? {}) as Partial<Counters>
-    const num = (v: unknown) => (typeof v === 'number' ? v : Number(v ?? 0)) || 0
+    // KINEO-ADMIN-LEVE-2310 — failures must not become cached zero counters.
+    if (counters.error) throw new Error('admin_live_counters failed: ' + counters.error.message)
+    if (!counters.data?.[0]) throw new Error('admin_live_counters returned no row')
+    const c = counters.data[0] as Counters
+    const num = (v: unknown) => {
+      if ((typeof v !== 'number' && typeof v !== 'string') || v === '') throw new Error('Invalid live counter')
+      const n = Number(v)
+      if (!Number.isFinite(n) || n < 0) throw new Error('Invalid live counter')
+      return n
+    }
 
     // ── Quem está online: último evento por usuário logado ─────────────────
     type OnlineRow = { user_id: string | null; session_id: string | null; name: string; path: string | null; created_at: string; is_bot?: string | null; metadata?: Record<string, unknown> | null } // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
@@ -762,9 +780,5 @@ export async function GET() {
       online,
       generated_at: new Date().toISOString(),
     }
-    return NextResponse.json(data)
-  } catch (e) {
-    console.error('[admin/live] failed:', e instanceof Error ? e.message : String(e))
-    return NextResponse.json({ error: 'Failed to load live data.' }, { status: 500 })
-  }
+    return data
 }

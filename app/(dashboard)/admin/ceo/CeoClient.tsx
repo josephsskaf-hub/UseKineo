@@ -17,6 +17,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
+import { startVisiblePolling } from '@/lib/admin/visiblePolling'
 import type { CeoData, FunnelWindow } from '@/app/api/admin/ceo/compute'
 import LiveNowPanel from '@/components/LiveNowPanel' // KINEO-ADMIN-LIVE-2026-08-19
 import { PessoaLink } from '@/components/admin/PessoaLink' // KINEO-ADMIN-PESSOA-1910 — o e-mail abre a tela da pessoa
@@ -47,7 +48,6 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
   const [lastUpdated, setLastUpdated] = useState<Date | null>(initialData ? new Date() : null)
   const [secondsAgo, setSecondsAgo] = useState(0)
   const [win, setWin] = useState<FunnelWindow['key']>('7d')
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const clockRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -78,10 +78,7 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
         setRefreshing(false)
       }
     }
-    timerRef.current = setInterval(() => { if (typeof document === 'undefined' || !document.hidden) void poll() }, POLL_MS) // KINEO-ADMIN-RAPIDO-1710 — aba escondida não consulta
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current)
-    }
+    return startVisiblePolling(poll, POLL_MS, { immediate: false })
   }, [denied])
 
   if (denied || !data) {

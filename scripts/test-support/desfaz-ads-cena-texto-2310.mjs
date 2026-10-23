@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 export const CENA_TEXTO_MARK = 'KINEO-ADS-CENA-TEXTO-2310'
-export const CENA_TEXTO_BASE = '591399abb34fc93c25300d82d644b6c94444ded6'
+export const CENA_TEXTO_BASE = '45b6083a6c39005d076491eb33b5d312f3e7e757'
 const table = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-ads-cena-texto-2310-fontes.json'), 'utf8'))
 export const CENA_TEXTO_FILES = Object.freeze(Object.keys(table))
 export const CENA_TEXTO_NEW = Object.freeze([
