@@ -15,7 +15,7 @@ const assert = (condition, message) => { if (!condition) throw new Error(message
 const rejects = (run, message) => { let threw = false; try { run() } catch (e) { threw = /expected exactly 1 candidate match/.test(e.message) } assert(threw, message) }
 
 try {
-  assert(Object.keys(ADMIN_LEVE_2310_HUNKS).length === 14, 'Exactly fourteen existing task sources are covered, including workflow and all historical guardian reanchors')
+  assert(Object.keys(ADMIN_LEVE_2310_HUNKS).length === 15, 'Exactly fifteen existing task sources are covered, including workflow and all historical guardian reanchors')
   for (const [file, hunks] of Object.entries(ADMIN_LEVE_2310_HUNKS)) {
     const actual = read(file), source = lf(actual), base = lf(git('show', ADMIN_LEVE_2310_BASE + ':' + file))
     assert(semAdminLeve2310(source, file) === base, file + ': candidate reverses exactly to immutable base')

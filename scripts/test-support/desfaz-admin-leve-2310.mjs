@@ -1,4 +1,4 @@
-// KINEO-ADMIN-LEVE-2310 — exact complete fourteen-existing-source delta; pure in-memory undo.
+// KINEO-ADMIN-LEVE-2310 — exact complete fifteen-existing-source delta; pure in-memory undo.
 // Validate all candidate matches before replacing; preserve bytes outside these hunks.
 export const ADMIN_LEVE_2310_BASE = "591399abb34fc93c25300d82d644b6c94444ded6"
 export const ADMIN_LEVE_2310_NEW_PRODUCT_FILES = Object.freeze(['lib/admin/liveCache.ts', 'lib/admin/visiblePolling.ts', 'supabase/migrations/20261023121649_admin_leve_live_counters.sql'])
@@ -177,6 +177,16 @@ export const ADMIN_LEVE_2310_HUNKS = {
     {
       "before": "}\n\nexport function semRoteiroCurto2210(source, file) {\n  source = semAdsCena95PlanFailed2110(source, file) // KINEO-ADS-CENA-95-PLAN-FAILED-2110 — antes dos marcadores, hunks e hashes mais antigos.\n  const relative = typeof file === 'string' ? file.replace(/\\\\/g, '/') : file\n  const hunks = HUNKS[relative]\n",
       "after": "}\n\nexport function semRoteiroCurto2210(source, file) {\n  source = semAdminLeve2310(source, file) // KINEO-ADMIN-LEVE-2310 — cache/polling precedes every older hunk, hash and marker check.\n  source = semAdsCena95PlanFailed2110(source, file) // KINEO-ADS-CENA-95-PLAN-FAILED-2110 — antes dos marcadores, hunks e hashes mais antigos.\n  const relative = typeof file === 'string' ? file.replace(/\\\\/g, '/') : file\n  const hunks = HUNKS[relative]\n"
+    }
+  ],
+  "scripts/test-support/desfaz-paginas-ia-claras-2110.mjs": [
+    {
+      "before": "import { readFileSync } from 'node:fs'\nimport { dirname, join } from 'node:path'\nimport { fileURLToPath } from 'node:url'\n\nexport const MARCA_PAGINAS_IA_CLARAS_2110 = 'KINEO-PAGINAS-IA-CLARAS-2110'\nexport const PAGINAS_IA_CLARAS_2110_TRAVA = '[TRAVA 8.2 — vai do fundador 21/10 \"a preta está muito longe do que é o site\"]'\n",
+      "after": "import { readFileSync } from 'node:fs'\nimport { dirname, join } from 'node:path'\nimport { fileURLToPath } from 'node:url'\nimport { semAdminLeve2310 } from './desfaz-admin-leve-2310.mjs' // KINEO-ADMIN-LEVE-2310 — remove the exact later layer before this complete historical snapshot.\n\nexport const MARCA_PAGINAS_IA_CLARAS_2110 = 'KINEO-PAGINAS-IA-CLARAS-2110'\nexport const PAGINAS_IA_CLARAS_2110_TRAVA = '[TRAVA 8.2 — vai do fundador 21/10 \"a preta está muito longe do que é o site\"]'\n"
+    },
+    {
+      "before": "\n/** O texto sem a camada clara (só para os arquivos da tabela; os outros voltam intocados). Ordem (texto, arquivo). */\nexport function semPaginasIaClaras2110(texto, p) {\n  const r = rel(p)\n  if (typeof texto !== 'string' || !Object.hasOwn(TABELA, r) || r.startsWith('__') || !texto.includes(MARCA_PAGINAS_IA_CLARAS_2110)) return texto\n  const crlf = texto.includes('\\r\\n')\n",
+      "after": "\n/** O texto sem a camada clara (só para os arquivos da tabela; os outros voltam intocados). Ordem (texto, arquivo). */\nexport function semPaginasIaClaras2110(texto, p) {\n  texto = semAdminLeve2310(texto, p) // KINEO-ADMIN-LEVE-2310 — preserve all 65 historical hashes and full-source comparisons below.\n  const r = rel(p)\n  if (typeof texto !== 'string' || !Object.hasOwn(TABELA, r) || r.startsWith('__') || !texto.includes(MARCA_PAGINAS_IA_CLARAS_2110)) return texto\n  const crlf = texto.includes('\\r\\n')\n"
     }
   ]
 }
