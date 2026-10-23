@@ -55,7 +55,7 @@ function founderRecipients(): string[] {
   return Array.from(new Set([FOUNDER_EMAIL, ...extra]))
 }
 
-async function sendEmail(subject: string, text: string): Promise<ChannelResult> {
+async function sendEmail(subject: string, text: string, idempotencyKey?: string): Promise<ChannelResult> {
   const key = process.env.RESEND_API_KEY
   if (!key || key === 'your_resend_api_key_here') {
     console.error('[supplier-alert] RESEND_API_KEY ausente — e-mail de alarme NÃO enviado')
@@ -65,7 +65,7 @@ async function sendEmail(subject: string, text: string): Promise<ChannelResult> 
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       signal: AbortSignal.timeout(CHANNEL_TIMEOUT_MS),
-      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}) },
       body: JSON.stringify({
         from: process.env.RESEND_FROM_EMAIL || 'Kineo <support@usekineo.com>',
         to: founderRecipients(),
@@ -134,6 +134,10 @@ async function sendWebhook(subject: string, text: string): Promise<ChannelResult
 export type AlertChannel = 'email' | 'webhook'
 
 export interface NotifyOptions {
+  /** Chave estável e corpo idêntico nas tentativas: dedupe Resend sem depender do banco. */
+  idempotencyKey?: string
+  /** Monitor de tráfego usa o e-mail existente; evita webhook repetido sem dedupe. */
+  emailOnly?: boolean
   /**
    * KINEO-FAL-CANAL-A-CANAL-2026-09-28 — avisado assim que CADA canal termina, antes do outro. Quem tem teto próprio
    * (lib/falAlert, 3 s) não pode esperar o canal mais lento para saber que o e-mail já saiu. Nunca lança para dentro.
@@ -159,13 +163,13 @@ export async function notifyFounder(subject: string, text: string, opts: NotifyO
       try { opts.onChannel?.(channel, result) } catch { /* o aviso é do chamador; o alarme não pode cair por ele */ }
       return result
     })
-  const [email, webhook] = await Promise.all([avisa('email', sendEmail(subject, text)), avisa('webhook', sendWebhook(subject, text))])
+  const [email, webhook] = await Promise.all([avisa('email', sendEmail(subject, text, opts.idempotencyKey)), avisa('webhook', opts.emailOnly ? Promise.resolve<ChannelResult>('skipped') : sendWebhook(subject, text))])
   const delivered = email === 'sent' || webhook === 'sent'
   if (!delivered) {
     // Último recurso legível: o log de runtime da Vercel. Não substitui um
     // canal, mas garante que o incidente deixe rastro escrito em algum lugar.
     console.error(`[supplier-alert] 🔴 NENHUM CANAL ENTREGOU O ALERTA — ${subject} :: ${text.slice(0, 500)}`)
-  } else if (webhook === 'skipped') {
+  } else if (webhook === 'skipped' && !opts.emailOnly) {
     console.warn(
       '[supplier-alert] rodando com UM canal só (e-mail). Configure KINEO_ALERT_WEBHOOK_URL ' +
         'na Vercel para ter uma segunda via independente do Resend.',

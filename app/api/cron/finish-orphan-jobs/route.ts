@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
+import { checkTrafficHealth } from '@/lib/trafficHealth' // KINEO-TRAFEGO-2310
 import { POST as fastPost } from '@/app/api/generate-video-fast/route'
 import {
   RENDER_JOB_OPENED_EVENT, RENDER_JOB_TAKEN_EVENT, RENDER_JOB_FINISHED_EVENT, RENDER_JOB_VERSION,
@@ -52,8 +53,18 @@ export async function GET(req: NextRequest) {
   if (!isAuthorized(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) return NextResponse.json({ error: 'service unavailable' }, { status: 503 })
+  if (!url || !key) {
+    await checkTrafficHealth(null) // KINEO-TRAFEGO-2310 — alarme mesmo sem banco configurado
+    return NextResponse.json({ error: 'service unavailable' }, { status: 503 })
+  }
   const admin = createAdminClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: freshFetch } })
+
+  // KINEO-TRAFEGO-2310 — antes de qualquer trabalho pago; não escreve uma batida
+  // saudável e não deixa a indisponibilidade do banco impedir o e-mail de alarme.
+  const trafficHealth = await checkTrafficHealth(admin)
+  if (trafficHealth.reason === 'database_unavailable') {
+    return NextResponse.json({ error: 'service unavailable', traffic_health: trafficHealth }, { status: 503 })
+  }
 
   const now = Date.now()
   const minIso = new Date(now - ORPHAN_MAX_AGE_MS).toISOString()
