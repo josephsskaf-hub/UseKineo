@@ -5,6 +5,7 @@ import { inventedClaims, inventedNumbers } from '../scriptPrompt'
 import { honestyIssues } from '../v2Honesty'
 import { adsV2GenericFiller, adsV2MissingBenefits } from '../v2AdsQualidade'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
+import type { AjusteQualityNote } from './ajusteQuality' // KINEO-ADS-CENA-SEGUE-2110
 
 export interface AjusteIssue { field: string; phrase: string; rules: string[]; missing?: boolean }
 export class AjusteScriptError extends Error {
@@ -121,25 +122,95 @@ export function repairAjusteLines(raw: unknown, input: CenaInput, product: strin
   }
   return ajusteProductCase(out, input, product)
 }
-export async function writeAjusteScript(input: CenaInput, product: string, call: CenaJson, parse: (draft: unknown) => CenaScript, prompt: string): Promise<CenaScript> {
+// KINEO-ADS-CENA-SEGUE-2110 — schema/quality repairs are shared by planning and every resumed preflight.
+export function ajusteDraft(raw: unknown): Record<string, unknown> {
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    const r = raw as Record<string, unknown>
+    return r.script && typeof r.script === 'object' && !Array.isArray(r.script) ? r.script as Record<string, unknown> : r
+  }
+  if (typeof raw !== 'string') return {}
+  const text = raw.trim().replace(/^```(?:json)?\s*/iu, '').replace(/\s*```$/u, '')
+  for (const candidate of [text, text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1)]) {
+    try { const r = JSON.parse(candidate.replace(/,\s*([}\]])/gu, '$1')); if (r && typeof r === 'object' && !Array.isArray(r)) return ajusteDraft(r) } catch { /* bounded structural repair below */ }
+  }
+  const recovered: Record<string, unknown> = {}
+  for (const key of ['use', 'benefit', 'cta', 'narration', 'hook']) {
+    const match = text.match(new RegExp(`"${key}"\\s*:\\s*("(?:[^"\\\\]|\\\\.)*")`, 'u'))
+    if (match) try { recovered[key] = JSON.parse(match[1]) } catch { /* keep other usable fields */ }
+  }
+  return recovered
+}
+const complete = (text: string, product: string): string => {
+  const value = clean(text)
+  if (!value) return ''
+  const named = product && fold(value).startsWith(fold(product))
+  const start = named ? value : value.charAt(0).toLocaleUpperCase() + value.slice(1)
+  return /[.!?][”"']?$/u.test(start) ? start : start + '.'
+}
+const directions = /\b(?:it offers|o produto oferece|the product offers|watch as|they\s+(?:put|hold|run|walk|wear|pick|lift|apply|open|tie|smile)|camera\s+(?:pans?|moves?|zooms?|tilts?|tracks?|dollies|pushes)|(?:speak|say|read)\s+(?:slowly|quickly|softly|loudly)|(?:fale|leia)\s+(?:devagar|lentamente|rapidamente)|close-up|push-in)\b|\[[^\]]*\]/iu
+export function fitAjusteScript(raw: unknown, input: CenaInput, product: string, record: (note: AjusteQualityNote) => void = () => {}): CenaScript {
+  const pt = (input.language ?? 'en').toLowerCase().startsWith('pt'), label = clean(product) || clean(input.frase).split(/[;.!?]/u)[0]
+  if (!/[\p{L}\p{N}]/u.test([label, input.frase, input.cta, input.oferta, ...(input.beneficios ?? [])].filter(Boolean).join(' '))) throw new AjusteScriptError('cena_script_unusable', [{ field: 'script', phrase: '', rules: ['No usable customer text or generated narration.'] }])
+  const r = ajusteDraft(raw), fallbackHooks = pt ? ['Vamos conhecer?', 'O que você procura?', 'Que tal conhecer?'] : ['Ready for a closer look?', 'What are you looking for?', 'Shall we take a look?']
+  const supplied = Array.isArray(r.hooks) ? r.hooks : [r.hook]
+  const hooks = [...supplied.map(clean).filter(h => h && words(h) <= 10 && !directions.test(h)), ...fallbackHooks].filter((h, k, all) => all.findIndex(x => fold(x) === fold(h)) === k).slice(0, 3)
+  const neutralUse = complete(`${pt ? 'Conheça' : 'Meet'} ${label}`, label)
+  const neutralBenefit = [...(input.beneficios ?? []).map(b => benefitSentence(b, label, pt)), ...(input.oferta ? [complete(input.oferta, label)] : [])].join(' ')
+  let draft = ajusteProductCase({ hooks, use: complete(clean(r.use) || neutralUse, label), benefit: complete(clean(r.benefit) || neutralBenefit, label), cta: complete(input.cta || clean(r.cta) || `${pt ? 'Peça' : 'Choose'} ${label}`, label) }, input, label)
+  // Keep valid neighboring sentences; replace scene directions and raw benefit lists before factual repair.
+  for (const field of ['use', 'benefit', 'cta']) {
+    const text = clean(draft[field]), fallback = field === 'use' ? neutralUse : field === 'benefit' ? neutralBenefit : complete(input.cta || `${pt ? 'Peça' : 'Choose'} ${label}`, label)
+    const pieces = text.split(/(?<=[.!?])\s+/u)
+    if (pieces.some(p => directions.test(p))) {
+      draft[field] = pieces.map(p => directions.test(p) ? fallback : p).filter(Boolean).join(' ')
+      record({ stage: 'script', code: 'spoken_direction_repaired', message: `${field}: ${text}` })
+    }
+  }
+  if ((input.beneficios ?? []).some(b => fold(b).replace(/[.!?]+$/u, '') === fold(clean(draft.benefit)).replace(/[.!?]+$/u, ''))) draft.benefit = neutralBenefit
+  for (let round = 0; round < 3; round++) {
+    const issues = ajusteRespaldoIssues(draft, input, label).filter(i => !i.rules.every(rule => rule.startsWith('Speech exceeds')))
+    if (!issues.length) break
+    for (const issue of issues) record({ stage: 'script', code: 'script_line_repaired', message: `${issue.field}: ${issue.phrase}`, reasons: issue.rules })
+    draft = repairAjusteLines(draft, input, label, issues)
+  }
+  const residual = ajusteRespaldoIssues(draft, input, label).filter(i => !i.rules.every(rule => rule.startsWith('Speech exceeds')))
+  if (residual.length) {
+    draft = ajusteProductCase({ hooks: fallbackHooks, use: neutralUse, benefit: neutralBenefit, cta: complete(input.cta || `${pt ? 'Peça' : 'Choose'} ${label}`, label) }, input, label)
+    record({ stage: 'script', code: 'typed_copy_fallback', message: 'Generated claims could not be repaired locally; using only the typed product, benefits, offer and CTA.' })
+  }
+  if (!fold(speech(draft)).includes(fold(label))) draft.use = [clean(draft.use), neutralUse].filter(Boolean).join(' ')
+  const before = words(speech(draft)), target = pt ? 30 : 35
+  // Drop complete optional sentences only. Typed facts and CTA remain whole even when the core itself exceeds the target.
+  for (const field of ['use', 'benefit']) {
+    const pieces = clean(draft[field]).split(/(?<=[.!?])\s+/u).filter(Boolean)
+    for (let k = pieces.length - 1; k >= 0 && words(speech(draft)) > target; k--) {
+      const without = pieces.filter((_, index) => index !== k).join(' '), possible = { ...draft, [field]: without }
+      if (!fold(speech(possible)).includes(fold(label)) || adsV2MissingBenefits(speech(possible), [...(input.beneficios ?? []), ...(input.oferta ? [input.oferta] : [])]).length) continue
+      pieces.splice(k, 1); draft[field] = without
+    }
+  }
+  const selectedHooks = (draft.hooks as string[]).map(h => complete(h, label)) as [string, string, string]
+  const use = clean(draft.use), benefit = clean(draft.benefit), cta = clean(draft.cta)
+  const narration = [selectedHooks[0], use, benefit, cta].filter(Boolean).join(' '), after = words(narration)
+  if (after < before) record({ stage: 'script', code: 'word_budget_corrected', message: `${before} to ${after} words; complete optional sentences removed, typed facts and CTA retained.` })
+  if (after > target) record({ stage: 'script', code: 'word_budget_exception', message: `${after} words: the typed core exceeds the ${target}-word target; keep the complete facts and CTA and fit the usable voice in montage.` })
+  return { hooks: selectedHooks, hook: selectedHooks[0], use, benefit, cta, narration }
+}
+export async function writeAjusteScript(input: CenaInput, product: string, call: CenaJson, parse: (draft: unknown) => CenaScript, prompt: string, record: (note: AjusteQualityNote) => void = () => {}): Promise<CenaScript> { // KINEO-ADS-CENA-SEGUE-2110
   let draft: unknown, error: unknown, issues: AjusteIssue[] = []
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       draft = await call({ model: AI_TEXT_MODELS.ads, system: prompt, images: [], text: JSON.stringify({ frase: input.frase, oferta: input.oferta, beneficios: input.beneficios, product, cta: input.cta, correction: attempt ? { rule: 'Use only the typed sentence, offer and benefits. No unsupported superlatives. Change only rejected lines, keep the other lines verbatim.', rejected: issues, previous: draft } : undefined }) })
-      return parse(draft)
-    } catch (e) { error = e; issues = e instanceof AjusteScriptError ? e.issues : [{ field: 'script', phrase: typeof draft === 'string' ? draft.slice(0, 300) : JSON.stringify(draft ?? '').slice(0, 300), rules: [e instanceof Error ? e.message : 'invalid_script'] }] }
-  }
-  if (error instanceof AjusteScriptError && error.message === 'cena_unsubstantiated_script') {
-    // Recheck neutral repairs; never silently disable factual gates. Unrelated good lines survive verbatim.
-    for (let round = 0; round < 6; round++) {
-      draft = repairAjusteLines(draft, input, product, issues)
-      try { return parse(draft) } catch (e) {
-        if (!(e instanceof AjusteScriptError) || e.message !== 'cena_unsubstantiated_script') throw e
-        if (JSON.stringify(e.issues) === JSON.stringify(issues)) throw new AjusteScriptError('cena_ajuste_required_text_does_not_fit', e.issues)
-        issues = e.issues
-      }
+      const recovered = ajusteDraft(draft)
+      const valid = parse(recovered)
+      const fitted = fitAjusteScript(valid, input, product, record)
+      record({ stage: 'script', code: 'script_selected', message: `GPT draft ${attempt + 1} selected after shared text fitting.` })
+      return fitted
+    } catch (e) {
+      error = e; issues = e instanceof AjusteScriptError ? e.issues : [{ field: 'script', phrase: typeof draft === 'string' ? draft.slice(0, 300) : JSON.stringify(draft ?? '').slice(0, 300), rules: [e instanceof Error ? e.message : 'invalid_script'] }]
+      for (const issue of issues) record({ stage: 'script', code: 'script_retry', message: `${issue.field}: ${issue.phrase}`, reasons: issue.rules })
     }
-    throw new AjusteScriptError('cena_ajuste_required_text_does_not_fit', issues)
   }
-  throw error instanceof AjusteScriptError ? error : new AjusteScriptError(error instanceof Error ? error.message : 'cena_script_failed', issues)
+  record({ stage: 'script', code: 'script_fallback', message: error instanceof Error ? error.message : 'GPT did not return a usable script; repair from the typed input.' }) // KINEO-ADS-CENA-SEGUE-2110
+  return fitAjusteScript(draft, input, product, record) // KINEO-ADS-CENA-SEGUE-2110 — quality never becomes 422/502.
 }
