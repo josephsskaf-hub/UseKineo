@@ -3,6 +3,7 @@
 // conta da casa) e, quando pronta, copiar o link privado "Sample made by Kineo for <Brand>" + o texto curto EN/ES/DE.
 // Só fala com /api/admin/demo. `initial` = dados de exemplo (prévia offline); sem ele, a tela busca o GET.
 import { useCallback, useEffect, useState } from 'react'
+import { startVisiblePolling } from '@/lib/admin/visiblePolling'
 import { DEMO_ERRORS, DEMO_REASON_MIN, DEMO_SCENE_MAX, DEMO_VOICE_LANGS, DEMO_VOICE_NAMES, type DemoVoiceLang } from '@/lib/ads/demoSobMedida'
 
 export interface DemoRow {
@@ -111,10 +112,8 @@ export default function DemoClient({ denied, initial }: { denied?: boolean; init
 
   useEffect(() => {
     if (denied || initial) return
-    void load()
     // KINEO-ADMIN-RAPIDO-1710 — o GET agora só LÊ (o avanço é do cron a cada 5 min); 2 min basta, e aba escondida não consulta.
-    const t = window.setInterval(() => { if (!document.hidden) void load() }, 120_000)
-    return () => window.clearInterval(t)
+    return startVisiblePolling(load, 120_000)
   }, [denied, initial, load])
 
   if (denied) return <main className="dm"><style dangerouslySetInnerHTML={{ __html: CSS }} /><h1>Demo sob medida</h1><p className="dm-sub">Sem acesso.</p></main>

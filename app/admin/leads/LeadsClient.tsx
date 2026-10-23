@@ -10,6 +10,7 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
+import { startVisiblePolling } from '@/lib/admin/visiblePolling'
 import type { CeoData } from '@/app/api/admin/ceo/compute'
 import { EmailBotao, PessoaLink } from '@/components/admin/PessoaLink' // KINEO-ADMIN-PESSOA-1910
 
@@ -84,11 +85,10 @@ export default function LeadsClient({ denied }: { denied?: boolean }) {
         if (!cancelled) setLoading(false)
       }
     }
-    load()
-    const t = setInterval(() => { if (typeof document === 'undefined' || !document.hidden) load() }, POLL_MS) // KINEO-ADMIN-RAPIDO-1710
+    const stopPolling = startVisiblePolling(load, POLL_MS)
     return () => {
       cancelled = true
-      clearInterval(t)
+      stopPolling()
     }
   }, [denied])
 

@@ -1,15 +1,16 @@
 'use client'
 
 // Push #066 — Admin Users List (client).
-// Fetches /api/admin/users on mount and polls every 30 s.
+// Fetches /api/admin/users on visible mount and polls every 60 s while visible.
 // Renders four headline metric cards + a searchable, scrollable table.
 // Sort defaults to newest first (server already orders that way).
 // Search filters by email/name client-side.
 
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { startVisiblePolling } from '@/lib/admin/visiblePolling'
 
-const POLL_MS = 30_000
+const POLL_MS = 60_000
 
 interface AdminUserRow {
   id: string
@@ -64,7 +65,6 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
   const [query, setQuery] = useState('')
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const [secondsAgo, setSecondsAgo] = useState(0)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const clockRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Tick the "X s ago" clock every second
@@ -77,7 +77,7 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
     return () => { if (clockRef.current) clearInterval(clockRef.current) }
   }, [lastUpdated])
 
-  // Initial load + 30 s polling
+  // Initial load + 60 s polling, paused while the tab is not visible.
   useEffect(() => {
     if (denied) return
 
@@ -105,9 +105,12 @@ export default function UsersClient({ viewerEmail, denied }: Props) {
       }
     }
 
-    fetchUsers(true)
-    timerRef.current = setInterval(() => fetchUsers(false), POLL_MS)
-    return () => { if (timerRef.current) clearInterval(timerRef.current) }
+    let isInitial = true
+    return startVisiblePolling(() => {
+      const pending = fetchUsers(isInitial)
+      isInitial = false
+      return pending
+    }, POLL_MS)
   }, [denied])
 
   const stats = useMemo(() => {
