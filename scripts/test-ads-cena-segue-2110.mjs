@@ -224,7 +224,12 @@ export async function proofSegueMutants(){
 export async function undoSegueProof(){
   const U=await import('./test-support/desfaz-ads-cena-segue-2110.mjs');assert.equal(U.CENA_SEGUE_BASE,BASE);assert.equal(U.CENA_SEGUE_MARK,MARK);assert.ok(U.CENA_SEGUE_FILES.length>0,'strict Segue snapshot cannot be empty')
   for(const file of U.CENA_SEGUE_FILES){const raw=read(file),before=git('show',BASE+':'+file);assert.ok(raw.includes(MARK),file);assert.equal(U.semAdsCenaSegue2110(raw,file),before);assert.equal(U.semAdsCenaSegue2110(before,file),before);assert.equal(U.semAdsCenaSegue2110(raw.replace(/\n/g,'\r\n'),file),before.replace(/\n/g,'\r\n'));assert.throws(()=>U.semAdsCenaSegue2110(raw+'\n// mutation\n',file),/fonte divergente/);assert.notEqual(U.semAdsCenaSegue2110(raw.replaceAll(MARK,'REMOVED'),file),before)}
-  assert.ok(U.CENA_SEGUE_NEW.includes('scripts/test-ads-cena-segue-2110.mjs'));for(const file of U.CENA_SEGUE_NEW){assert.ok(readFileSync(file).length);assert.throws(()=>git('show',BASE+':'+file))};same([...U.CENA_SEGUE_FILES,...U.CENA_SEGUE_NEW].sort(),git('diff','--name-only',BASE).trim().split('\n').filter(Boolean).sort(),'the final complete inventory has no extra or missing file');assert.equal(git('diff','--name-only',BASE,'--','lib/ads/cena/*95.ts','lib/kidsVenda*','lib/kidsCartoon*','lib/checkoutPricing.ts','lib/ads/v2Tiers.ts').trim(),'','95, Kids and prices are unchanged')
+  assert.ok(U.CENA_SEGUE_NEW.includes('scripts/test-ads-cena-segue-2110.mjs'));for(const file of U.CENA_SEGUE_NEW){assert.ok(readFileSync(file).length);assert.throws(()=>git('show',BASE+':'+file))}
+  // KINEO-ADMIN-LEVE-2310 — a later task adds its own files; Segue still proves every file of its complete declared historical scope.
+  const declared=[...U.CENA_SEGUE_FILES,...U.CENA_SEGUE_NEW],scope=new Set(declared)
+  assert.equal(scope.size,declared.length,'the complete historical Segue scope has no duplicate file')
+  same(declared.slice().sort(),git('diff','--name-only',BASE).trim().split('\n').filter(file=>scope.has(file)).sort(),'the complete historical Segue inventory has no extra or missing declared file')
+  assert.equal(git('diff','--name-only',BASE,'--','lib/ads/cena/*95.ts','lib/kidsVenda*','lib/kidsCartoon*','lib/checkoutPricing.ts','lib/ads/v2Tiers.ts').trim(),'','95, Kids and prices are unchanged')
 }
 export async function runSegue(){await reproduceSegueBase();await proofSegue();console.log('ok segue: HTTP/GET/start/runtime reais, recuperação e notas persistidas, voz integral e95/legado intactos');await proofSegueMutants();await undoSegueProof();console.log('ok segue: desfaz exato RAW→e10, LF/CRLF/tamper e inventário completo')}
 if(process.argv[1]&&pathToFileURL(process.argv[1]).href===import.meta.url)await runSegue()
