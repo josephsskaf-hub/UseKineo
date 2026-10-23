@@ -1,5 +1,6 @@
 // KINEO-ADS-CENA-RESPALDO-2110 — camada mais nova, snapshot exato; usado só pelos guardiões históricos.
 import { readFileSync } from 'node:fs'
+import { semAdsCenaSegue2110 } from './desfaz-ads-cena-segue-2110.mjs' // KINEO-ADS-CENA-SEGUE-2110
 import { createHash } from 'node:crypto'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -15,6 +16,7 @@ export const CENA_RESPALDO_NEW = Object.freeze([
   "scripts/test-support/desfaz-ads-cena-respaldo-2110.mjs"
 ])
 export function semAdsCenaRespaldo2110(texto, file) {
+  texto = semAdsCenaSegue2110(texto, file) // KINEO-ADS-CENA-SEGUE-2110 — restore the newest policy before this snapshot.
   const relative = String(file ?? '').replace(/\\/g, '/'), known = table[relative]
   if (!known || typeof texto !== 'string' || !texto.includes(CENA_RESPALDO_MARK)) return texto
   const hash = createHash('sha256').update(texto.replace(/\r\n/g, '\n')).digest('hex')
