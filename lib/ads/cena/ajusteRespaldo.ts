@@ -91,8 +91,9 @@ function benefitSentence(benefit: string, product: string, pt: boolean): string 
   const b = clean(benefit).replace(/[.!?]+$/u, ''), low = b.charAt(0).toLocaleLowerCase() + b.slice(1)
   if (!b) return ''
   if (pt) {
-    if (/^[\p{Lu}\p{N}]/u.test(benefit) && /[.!?]$/u.test(clean(benefit)) && /(?:^|\s)(?:não|pode|ajuda|é|tem|contém|hidrata|protege|oferece|dura)(?=\s|$)/iu.test(b)) return clean(benefit) // KINEO-ADS-CENA-TEXTO-2310 — a complete typed sentence is data, not a noun fragment to reframe.
-    if (/^(?:não|pode|ajuda|é|tem|contém|hidrata|protege)(?=\s|$)/iu.test(b)) return finish(b)
+    if (/^[\p{Lu}\p{N}]/u.test(benefit) && /[.!?]$/u.test(clean(benefit)) && /(?:^|\s)(?:não|pode|ajuda|é|tem|contém|hidrata|protege|oferece|dura|deixa)(?=\s|$)/iu.test(b)) return clean(benefit) // KINEO-ADS-CENA-TEXTO-2310 — a complete typed sentence is data, not a noun fragment to reframe.
+    if (/^(?:não|pode|ajuda|é|tem|contém|hidrata|protege|deixa)(?=\s|$)/iu.test(b)) return finish(b) // KINEO-ADS-CENA-TEXTO-2310
+    if (/^(?:para|de)\s/iu.test(b)) return finish(`É ${low}`) // KINEO-ADS-CENA-TEXTO-2310 — retain an existing purpose/material phrase without "conte com para/de".
     if (/^sem\s/iu.test(b)) return `Você prefere ${low}?` // KINEO-ADS-CENA-TEXTO-2310 — complete neutral question, no inferred formula, ingredient or causal result.
     if (/^(?:leve|confortável|respirável|macio|macia|fácil|resistente|impermeável)\b/iu.test(b)) return finish(`É ${low}`) // KINEO-ADS-CENA-TEXTO-2310
     return finish(/^com\s/iu.test(b) ? `Conte ${low}` : `Conte com ${low}`) // KINEO-ADS-CENA-TEXTO-2310 — the original benefit remains intact; never construct "product tem com ...".
@@ -163,13 +164,13 @@ const complete = (text: string, product: string): string => {
 const directions = /\b(?:it offers|o produto oferece|the product offers|watch as|they\s+(?:put|hold|run|walk|wear|pick|lift|apply|open|tie|smile)|camera\s+(?:pans?|moves?|zooms?|tilts?|tracks?|dollies|pushes)|(?:speak|say|read)\s+(?:slowly|quickly|softly|loudly)|(?:fale|leia)\s+(?:devagar|lentamente|rapidamente)|close-up|push-in)\b|\[[^\]]*\]/iu
 function naturalAjusteReferences(raw: Record<string, unknown>, input: CenaInput, product: string): Record<string, unknown> { // KINEO-ADS-CENA-TEXTO-2310
   if ((input.language ?? 'en').toLowerCase().startsWith('pt') || !product || !product.includes(' ') && commonProductWord.test(product)) return raw // KINEO-ADS-CENA-TEXTO-2310 — do not rewrite an isolated ordinary product noun as though it were a repeated brand.
-  const out = { ...raw, hooks: [...raw.hooks as string[]] }, named = new RegExp(`(?<![\\p{L}\\p{N}])(?:(?:the|a|an)\\s+)?${esc(product)}(?![\\p{L}\\p{N}])`, 'giu'), pronoun = /\b(?:shoes|sneakers|boots|trainers|leaves)\b/iu.test(product) ? 'them' : 'it'; let seen = false // KINEO-ADS-CENA-TEXTO-2310
+  const out = { ...raw, hooks: [...raw.hooks as string[]] }, named = new RegExp(`(?<![\\p{L}\\p{N}])(?:(?:the|a|an)\\s+)?${esc(product)}(?![\\p{L}\\p{N}])(?:[’']s|[’'](?=\\s+\\p{L}))?`, 'giu'), pronoun = /\b(?:shoes|sneakers|boots|trainers|leaves)\b/iu.test(product) ? 'them' : 'it'; let seen = false // KINEO-ADS-CENA-TEXTO-2310
   for (const field of ['hooks.0', 'use', 'benefit', 'cta']) { // KINEO-ADS-CENA-TEXTO-2310
     const text = field === 'hooks.0' ? clean(out.hooks[0]) : clean((out as Record<string, unknown>)[field]) // KINEO-ADS-CENA-TEXTO-2310
     const changed = text.split(/(?<=[.!?])\s+/u).map(sentence => sentence.replace(named, (match, offset: number) => { // KINEO-ADS-CENA-TEXTO-2310
       const token = sentence.slice(0, offset).match(/\S*$/u)?.[0] ?? '', after = sentence.slice(offset + match.length), literal = typedSentence(sentence, input) || /(?:https?:\/\/|www\.)/iu.test(token) || /\b(?:code|coupon|cupom|código)\s*$/iu.test(sentence.slice(0, offset)) || /^[\p{L}\p{N}_/@#=%&-]/u.test(after) // KINEO-ADS-CENA-TEXTO-2310
       if (literal || !seen) { seen = true; return match } // KINEO-ADS-CENA-TEXTO-2310
-      const subject = !sentence.slice(0, offset).trim(), word = pronoun === 'them' && subject ? 'they' : pronoun // KINEO-ADS-CENA-TEXTO-2310
+      const subject = !sentence.slice(0, offset).trim(), possessive = /[’']s?$/iu.test(match), word = possessive ? pronoun === 'them' ? 'their' : 'its' : pronoun === 'them' && subject ? 'they' : pronoun // KINEO-ADS-CENA-TEXTO-2310 — consume the possessive suffix together with the name; never produce "It's formula" or "They' laces".
       return subject ? word.charAt(0).toLocaleUpperCase() + word.slice(1) : word // KINEO-ADS-CENA-TEXTO-2310
     })).join(' ') // KINEO-ADS-CENA-TEXTO-2310
     if (field === 'hooks.0') out.hooks[0] = changed; else (out as Record<string, unknown>)[field] = changed // KINEO-ADS-CENA-TEXTO-2310
