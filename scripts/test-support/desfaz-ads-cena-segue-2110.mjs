@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semAdsCenaTexto2310 } from './desfaz-ads-cena-texto-2310.mjs' // KINEO-ADS-CENA-TEXTO-2310
 export const CENA_SEGUE_MARK = 'KINEO-ADS-CENA-SEGUE-2110'
 export const CENA_SEGUE_BASE = 'e10f8efeec12b7cf8c7ba29cf80d4075fa8f9f97'
 const table = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-ads-cena-segue-2110-fontes.json'), 'utf8'))
@@ -15,6 +16,7 @@ export const CENA_SEGUE_NEW = Object.freeze([
   'scripts/test-support/desfaz-ads-cena-segue-2110.mjs',
 ])
 export function semAdsCenaSegue2110(texto, file) {
+  texto = semAdsCenaTexto2310(texto, file) // KINEO-ADS-CENA-TEXTO-2310 — newest approved layer first.
   const relative = String(file ?? '').replace(/\\/g, '/'), known = table[relative]
   if (!known || typeof texto !== 'string' || !texto.includes(CENA_SEGUE_MARK)) return texto
   const hash = createHash('sha256').update(texto.replace(/\r\n/g, '\n')).digest('hex')

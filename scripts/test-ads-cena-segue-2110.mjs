@@ -1,5 +1,6 @@
 // KINEO-ADS-CENA-SEGUE-2110 — POST/GET/start/runtime reais, qualidade recuperável e fornecedores em dublês sem rede.
 import assert from 'node:assert/strict'
+import { semAdsCenaTexto2310 } from './test-support/desfaz-ads-cena-texto-2310.mjs' // KINEO-ADS-CENA-TEXTO-2310
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
@@ -10,14 +11,16 @@ import { PACING_PHOTO, PACING_HOUSE, PACING_ORDER, pacingShort } from './test-su
 const BASE='e10f8efeec12b7cf8c7ba29cf80d4075fa8f9f97', MARK='KINEO-ADS-CENA-SEGUE-2110'
 const F={route:'app/api/admin/ads-cena/route.ts',internal:'lib/ads/cena/internal.ts',internalAjuste:'lib/ads/cena/internalAjuste.ts',live:'lib/ads/cena/live.ts',plan:'lib/ads/cena/plan.ts',natural:'lib/ads/cena/ajustePlan.ts',preflight:'lib/ads/cena/ajustePreflight.ts',runtime:'lib/ads/cena/runtime.ts',pipeline:'lib/ads/cena/pipeline.ts',start:'lib/ads/v2StartCore.ts',early:'lib/ads/v2AudioCedo.ts',media:'lib/ads/cena/ajusteMedia.ts',montage:'lib/ads/cena/ajusteMontage.ts',legacyMontage:'lib/ads/cena/montage.ts',respaldo:'lib/ads/cena/ajusteRespaldo.ts'}
 Object.assign(F,{orders:'app/api/ads/v2/orders/route.ts',status:'app/api/ads/v2/status/route.ts',advance:'lib/ads/v2Advance.ts',quality:'lib/ads/cena/ajusteQuality.ts'})
-const read=p=>readFileSync(p,'utf8').replace(/\r\n/g,'\n')
+const read=p=>semAdsCenaTexto2310(readFileSync(p,'utf8').replace(/\r\n/g,'\n'),p) // KINEO-ADS-CENA-TEXTO-2310 — historical assertions keep their own policy.
 const git=(...a)=>execFileSync('git',a,{encoding:'utf8',maxBuffer:64<<20,stdio:['ignore','pipe','ignore']}).replace(/\r\n/g,'\n')
+const deliveryHead=git('log','--format=%H%x09%s',BASE+'..HEAD').trim().split('\n').find(line=>{const subject=line.slice(line.indexOf('\t')+1);return(subject.startsWith(MARK+' ')||subject.startsWith(MARK+': '))&&subject.includes('[TRAVA 8.2 — vai do fundador 21/10 "quero chegar a 9.5 de mínimo"]')})?.split('\t')[0] // KINEO-ADS-CENA-TEXTO-2310
+assert.ok(deliveryHead,'own SEGUE delivery is marked and authorized') // KINEO-ADS-CENA-TEXTO-2310
 const plain=x=>JSON.parse(JSON.stringify(x)),same=(a,b,why)=>assert.deepEqual(plain(a),plain(b),why)
 const NOW=Date.parse('2026-10-22T20:00:00Z')
 class FixedDate extends Date {constructor(...a){super(...(a.length?a:[NOW]))}static now(){return NOW}}
 class OfflineResponse extends Response {static json(body,init={}){return new OfflineResponse(JSON.stringify(body),{...init,headers:{'Content-Type':'application/json',...init.headers}})}}
 class OfflineRequest extends Request {constructor(url,init){super(url,init);this.nextUrl=new URL(url)}}
-const sourceLoader=(over={},mocks={},globals={})=>createOfflineLoader({mocks,source:(p,s)=>over[p]??s,globals:{Request,Response,Headers,Error,Date:FixedDate,...globals}})
+const sourceLoader=(over={},mocks={},globals={})=>createOfflineLoader({mocks,source:(p,s)=>over[p]??semAdsCenaTexto2310(s,p),globals:{Request,Response,Headers,Error,Date:FixedDate,...globals}}) // KINEO-ADS-CENA-TEXTO-2310 — explicit mutation overrides are never stripped.
 export const RETOMADA_FIXTURES=[
  {category:'skincare',product:'Creme GLOW',input:{foto:PACING_PHOTO,frase:'Creme GLOW; Não contém fragrância.',beneficios:['Não contém fragrância.'],oferta:'Compre 1 e leve 2.',cta:'Use o cupom GLOW10.',language:'pt',formato:'ugc',voice_mode:'narrated',rota:'kling3'},raw:{hooks:['Qual creme escolher?','Rotina sem perfume?','GLOW na bancada?'],use:'Veja o Creme GLOW na sua rotina.',benefit:'Ele não contém fragrância. Compre 1 e leve 2.',cta:'Use o cupom GLOW10.'}},
  {category:'footwear',product:'Stride shoes',input:{foto:PACING_PHOTO,frase:'Stride shoes; Easy to clean.',beneficios:['Easy to clean.'],oferta:'Buy one, get one free.',cta:'Choose your Stride shoes.',language:'en',formato:'product',voice_mode:'narrated',rota:'kling3'},raw:{hooks:['Ready to leave?','Time to move?','Which shoes today?'],use:'Take a step with Stride shoes.',benefit:'Stride shoes are easy to clean. Buy one, get one free.',cta:'Choose your Stride shoes.'}},
@@ -224,7 +227,7 @@ export async function proofSegueMutants(){
 export async function undoSegueProof(){
   const U=await import('./test-support/desfaz-ads-cena-segue-2110.mjs');assert.equal(U.CENA_SEGUE_BASE,BASE);assert.equal(U.CENA_SEGUE_MARK,MARK);assert.ok(U.CENA_SEGUE_FILES.length>0,'strict Segue snapshot cannot be empty')
   for(const file of U.CENA_SEGUE_FILES){const raw=read(file),before=git('show',BASE+':'+file);assert.ok(raw.includes(MARK),file);assert.equal(U.semAdsCenaSegue2110(raw,file),before);assert.equal(U.semAdsCenaSegue2110(before,file),before);assert.equal(U.semAdsCenaSegue2110(raw.replace(/\n/g,'\r\n'),file),before.replace(/\n/g,'\r\n'));assert.throws(()=>U.semAdsCenaSegue2110(raw+'\n// mutation\n',file),/fonte divergente/);assert.notEqual(U.semAdsCenaSegue2110(raw.replaceAll(MARK,'REMOVED'),file),before)}
-  assert.ok(U.CENA_SEGUE_NEW.includes('scripts/test-ads-cena-segue-2110.mjs'));for(const file of U.CENA_SEGUE_NEW){assert.ok(readFileSync(file).length);assert.throws(()=>git('show',BASE+':'+file))};same([...U.CENA_SEGUE_FILES,...U.CENA_SEGUE_NEW].sort(),git('diff','--name-only',BASE).trim().split('\n').filter(Boolean).sort(),'the final complete inventory has no extra or missing file');assert.equal(git('diff','--name-only',BASE,'--','lib/ads/cena/*95.ts','lib/kidsVenda*','lib/kidsCartoon*','lib/checkoutPricing.ts','lib/ads/v2Tiers.ts').trim(),'','95, Kids and prices are unchanged')
+  assert.ok(U.CENA_SEGUE_NEW.includes('scripts/test-ads-cena-segue-2110.mjs'));for(const file of U.CENA_SEGUE_NEW){assert.ok(readFileSync(file).length);assert.throws(()=>git('show',BASE+':'+file))};same([...U.CENA_SEGUE_FILES,...U.CENA_SEGUE_NEW].sort(),git('diff','--name-only',BASE,deliveryHead).trim().split('\n').filter(Boolean).sort(),'the final complete inventory has no extra or missing file');assert.equal(git('diff','--name-only',BASE,deliveryHead,'--','lib/ads/cena/*95.ts','lib/kidsVenda*','lib/kidsCartoon*','lib/checkoutPricing.ts','lib/ads/v2Tiers.ts').trim(),'','95, Kids and prices are unchanged') // KINEO-ADS-CENA-TEXTO-2310 — exact own delivery inventory; the new layer has its own full-scope guardian.
 }
 export async function runSegue(){await reproduceSegueBase();await proofSegue();console.log('ok segue: HTTP/GET/start/runtime reais, recuperação e notas persistidas, voz integral e95/legado intactos');await proofSegueMutants();await undoSegueProof();console.log('ok segue: desfaz exato RAW→e10, LF/CRLF/tamper e inventário completo')}
 if(process.argv[1]&&pathToFileURL(process.argv[1]).href===import.meta.url)await runSegue()
