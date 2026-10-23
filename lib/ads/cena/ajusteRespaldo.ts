@@ -88,7 +88,7 @@ const finish = (s: string): string => {
 }
 /** No invented property: only neutral grammar around the customer's own benefit text. */
 function benefitSentence(benefit: string, product: string, pt: boolean): string {
-  const b = clean(benefit).replace(/[.!?]+$/u, ''), low = b.charAt(0).toLocaleLowerCase() + b.slice(1)
+  const b = clean(benefit).replace(/[.!?]+$/u, ''), first = b.split(/\s+/u)[0] ?? '', literalToken = /\p{N}|^\p{Lu}{2,}|\p{Ll}\p{Lu}/u.test(first), low = literalToken ? b : b.charAt(0).toLocaleLowerCase() + b.slice(1) // KINEO-ADS-CENA-TEXTO-2310 — preserve acronym/code/camel-case tokens such as SPF50, SPF 50, GLOW10 and iPhone.
   if (!b) return ''
   if (pt) {
     if (/^[\p{Lu}\p{N}]/u.test(benefit) && /[.!?]$/u.test(clean(benefit)) && /(?:^|\s)(?:não|pode|ajuda|é|tem|contém|hidrata|protege|oferece|dura|deixa)(?=\s|$)/iu.test(b)) return clean(benefit) // KINEO-ADS-CENA-TEXTO-2310 — a complete typed sentence is data, not a noun fragment to reframe.
