@@ -3,7 +3,7 @@ import { ADS_V2_FRAME_RATE } from '../adV2Montage'
 import { cenaCaptionElements } from '../v2CenaQuality'
 import { ajusteFinalTextElements } from './ajusteMontage'
 import { cenaHttps, cenaVoiceModeOf, type CenaPlan } from './plan'
-import { escolhaOf } from './escolhaPlan'
+import { escolhaOf, escolhaHasOffer } from './escolhaPlan'
 import type { CenaEscolhaState } from './escolhaMedia'
 const r6 = (n: number): number => Math.round(n * 1e6) / 1e6
 const literal = (s: string): string => s.replace(/\[/gu, '［').replace(/\]/gu, '］')
@@ -11,7 +11,7 @@ const norm = (s: string): string => s.replace(/\s+/gu, ' ').trim().toLowerCase()
 /** A literal offer occurs in exactly one visual field, even when included in a literal typed CTA. */
 export function escolhaFinalTextElements(plan: CenaPlan): Record<string, unknown>[] {
   const cta = plan.input.cta || plan.script.cta, offer = plan.input.oferta ?? ''
-  const titleHas = !!offer && norm(plan.product).includes(norm(offer)), ctaHas = !!offer && norm(cta).includes(norm(offer))
+  const titleHas = escolhaHasOffer(plan.product, offer), ctaHas = escolhaHasOffer(cta, offer)
   return ajusteFinalTextElements({ ...plan, input: { ...plan.input, oferta: titleHas || ctaHas ? '' : offer }, script: { ...plan.script, cta } }).map(e => ({ ...e, shadow_color: 'rgba(0,0,0,0.65)', shadow_blur: '4px', shadow_y: '3px' }))
 }
 function wrap(text: string, font: number): string {

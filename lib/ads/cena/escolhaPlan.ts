@@ -19,20 +19,32 @@ const fold = (s: string): string => clean(s).normalize('NFD').replace(/\p{M}/gu,
 const words = (s: string): number => clean(s).split(/\s+/u).filter(Boolean).length
 const sentences = (s: string): string[] => clean(s).split(/(?<=[.!?])\s+/u).filter(Boolean)
 const includes = (text: string, value: string): boolean => !!value && fold(text).includes(fold(value))
+const offerKey = (text: string): string => fold(text).replace(/([%$€£])/gu, ' $1 ').replace(/[^\p{L}\p{N}%$€£]+/gu, ' ').trim().replace(/\s+/gu, ' ')
+/** Compare complete offer tokens, ignoring case/punctuation without matching 20 inside 120. */
+export function escolhaHasOffer(text: string, value: string): boolean {
+  const key = offerKey(value)
+  return !!key && ` ${offerKey(text)} `.includes(` ${key} `)
+}
+function stripSpokenOffer(text: string, offer: string): string {
+  const tokens = offerKey(offer).split(' ').filter(Boolean)
+  if (!tokens.length) return text
+  const pattern = tokens.map(t => t.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')).join('[^\\p{L}\\p{N}]*')
+  return text.replace(new RegExp(`(?<![\\p{L}\\p{N}])${pattern}(?![\\p{L}\\p{N}])`, 'giu'), ' ')
+}
 export function escolhaOf(plan: CenaPlan): CenaEscolhaSelection | null {
   const choice = (plan as CenaPlan & { escolha?: CenaEscolhaSelection }).escolha
   return choice?.marker === CENA_ESCOLHA_MARK ? choice : null
 }
 function speechInput(input: CenaInput, product: string): CenaInput {
   const offer = clean(input.oferta), pt = (input.language ?? 'en').startsWith('pt')
-  const cta = offer && includes(input.cta ?? '', offer) ? `${pt ? 'Conheça' : 'Discover'} ${product}.` : input.cta
-  return { ...input, oferta: '', frase: offer ? input.frase.split(offer).join(' ') : input.frase, beneficios: (input.beneficios ?? []).filter(b => !includes(b, offer)), cta }
+  const cta = offer && escolhaHasOffer(input.cta ?? '', offer) ? `${pt ? 'Conheça' : 'Discover'} ${product}.` : input.cta
+  return { ...input, oferta: '', frase: offer ? stripSpokenOffer(input.frase, offer) : input.frase, beneficios: (input.beneficios ?? []).filter(b => !escolhaHasOffer(b, offer)), cta }
 }
 /** A whole-sentence budget, never a substring/ellipsis of the CTA. The original offer stays in input for one final overlay. */
 export function fitCenaEscolhaScript(raw: unknown, input: CenaInput, product: string, maxWords = 30): CenaScript {
   const spoken = speechInput(input, product), base = fitAjusteScript(raw, spoken, product)
   const pt = (input.language ?? 'en').startsWith('pt'), offer = clean(input.oferta)
-  const excludeOffer = (s: string): string => sentences(s).filter(sentence => !includes(sentence, offer)).join(' ')
+  const excludeOffer = (s: string): string => sentences(s).filter(sentence => !escolhaHasOffer(sentence, offer)).join(' ')
   const script: CenaScript = { ...base, hooks: [...base.hooks] as [string, string, string], hook: excludeOffer(base.hook), use: excludeOffer(base.use), benefit: excludeOffer(base.benefit), cta: excludeOffer(base.cta), narration: '' }
   if (!script.cta) script.cta = `${pt ? 'Conheça' : 'Discover'} ${product}.`
   if (!script.hook) script.hook = `${pt ? 'Conhece' : 'Know'} ${product}?`
@@ -97,7 +109,7 @@ export function preflightCenaEscolha(plan: CenaPlan, route: CenaRoute): void {
   if (choice.actorUrl !== actorUrl || plan.input.actorUrl !== actorUrl || plan.continuity?.actorUrl !== actorUrl || choice.captionLane !== scenario.captionLane || plan.category !== choice.category || !choice.wardrobe) throw new Error('escolha_selection_changed')
   cenaAssertVoiceRoute(route, cenaVoiceModeOf(plan), plan.input.language)
   if (!plan.script?.narration || words(plan.script.narration) > 30 || [plan.script.hook, plan.script.use, plan.script.benefit, plan.script.cta].filter(Boolean).join(' ') !== plan.script.narration) throw new Error('escolha_spoken_core_exceeds_15s')
-  if (clean(plan.input.oferta) && includes(plan.script.narration, plan.input.oferta!)) throw new Error('escolha_offer_must_be_visual_only')
+  if (clean(plan.input.oferta) && escolhaHasOffer(plan.script.narration, plan.input.oferta!)) throw new Error('escolha_offer_must_be_visual_only')
   if (!plan.videoPrompt?.trim() || plan.segmentPrompts?.length !== 2 || !plan.segmentPrompts.every(p => p.trim()) || choice.shotPrompts?.length !== 3 || !choice.shotPrompts.every(p => p.trim())) throw new Error('escolha_prompts_missing')
   escolhaVideoRequests(plan, route, plan.input.foto)
 }

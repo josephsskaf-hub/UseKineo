@@ -153,6 +153,13 @@ export async function runEscolhaUiProof({ source = text => text } = {}) {
   choiceLink.responses.push([202, { order_id: ID }]); await choiceLink.click('Gerar vídeo com esta foto')
   check(choiceLink.requests.filter(request => request.body).length === 1 && choiceLink.requests.at(-1).body.stage === 'render' && choiceLink.requests.at(-1).body.still_id === 'still-2', 'UI new choice link renders the same order only after explicit confirmation, without replanning')
 
+  const partial = client({ saved: { ...saved, stage: 'stills', stills: [], still_id: '' } }); partial.render()
+  partial.responses.push([200, { order_id: ID, stage: 'choose', stills: STILLS.slice(0, 3), charged: false }]); await partial.poll()
+  const partialVisible = partial.states[3].length === 3 && partial.states[4] === '' && partial.nodes().some(node => node.type === 'p' && nodeText(node) === 'O fornecedor retornou 3 fotos. Você pode escolher uma opção disponível.') && !partial.requests.some(request => request.body?.stage === 'render')
+  partial.nodes().find(node => node.type === 'input' && node.props.name === 'ace-still' && node.props.value === 'still-2').props.onChange(); partial.render()
+  partial.responses.push([202, { order_id: ID }]); await partial.click('Gerar vídeo com esta foto')
+  check(partialVisible && partial.requests.filter(request => request.body?.stage === 'render').length === 1 && partial.requests.at(-1).body.still_id === 'still-2', 'UI partial supplier result explains three stills without auto-selection and renders exactly the explicitly chosen available still')
+
   const legacy = execFileSync('git', ['show', `${BASE}:${SIMPLE}`], { cwd: process.cwd(), encoding: 'utf8' }).replace(/\r\n/gu, '\n')
   const current = read(SIMPLE).replace(/\r\n/gu, '\n')
   check(legacy.split('export function AdsV2SimpleSession({')[1] === current.split('function AdsV2SimpleLegacySession({ // KINEO-ADS-ESCOLHA-2310 — original body below, unchanged.')[1], 'UI preserves the original legacy session body byte for byte')

@@ -7,6 +7,13 @@ export function escolhaEffects(userId: string, orderId: string): EscolhaEffects 
   return {
     submit: async job => {
       const r = await submitShotOnce(job.endpoint, job.input, context)
+      if (r.kind === 'ambiguous') {
+        let timer: ReturnType<typeof setTimeout> | undefined
+        try {
+          const id = await Promise.race([r.late, new Promise<null>(resolve => { timer = setTimeout(() => resolve(null), 5000) })])
+          if (id) return { kind: 'accepted', requestId: id }
+        } finally { if (timer) clearTimeout(timer) }
+      }
       // Ambiguous means a possibly paid request; a later stills call must not send it again.
       return r.kind === 'accepted' ? { kind: 'accepted', requestId: r.requestId } : { kind: r.kind }
     },

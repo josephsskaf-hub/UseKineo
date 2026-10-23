@@ -105,10 +105,16 @@ export async function stepEscolhaStills(plan: CenaPlan, flow: EscolhaFlow, d: Es
       await d.save(flow)
     }
   }
-  if (flow.stills.length === 4 && flow.stills.every(j => j.status === 'done' && j.url && j.verdict)) flow.stage = 'choose'
-  else if (flow.stills.some(j => j.status === 'failed' && j.attempt >= 2)) {
-    flow.stage = 'failed'
-    flow.reason = flow.quality_notes?.some(n => n.code === 'preview_copy_failed') ? 'cena_preview_copy_failed' : flow.quality_notes?.some(n => n.code === 'preview_submit_unconfirmed') ? 'cena_preview_submit_unconfirmed' : 'cena_preview_provider_failed'
+  const complete = flow.stills.length === 4 && flow.stills.every(j => j.status === 'done' && j.url && j.verdict || j.status === 'failed' && j.attempt >= 2)
+  if (complete) {
+    const available = flow.stills.filter(j => j.status === 'done' && j.url && j.verdict).length
+    if (available) {
+      flow.stage = 'choose'
+      if (available < 4) addAjusteQuality(flow, { stage: 'keyframe', code: 'preview_partial_provider_failure', message: `The provider returned ${available} of four preview images after the bounded retry. All available images remain selectable; no video has started or been charged.` })
+    } else {
+      flow.stage = 'failed'
+      flow.reason = flow.quality_notes?.some(n => n.code === 'preview_copy_failed') ? 'cena_preview_copy_failed' : flow.quality_notes?.some(n => n.code === 'preview_submit_unconfirmed') ? 'cena_preview_submit_unconfirmed' : 'cena_preview_provider_failed'
+    }
   }
   await d.save(flow)
 }
@@ -134,8 +140,10 @@ export function escolhaReadyForStart(stored: unknown): boolean {
 export function escolhaView(stored: unknown) {
   const p = escolhaOf(stored)
   if (!p) return {}
+  const review: { quality_notes?: AjusteQualityNote[] } = {}
+  for (const note of [...(p.cena.plan.quality_notes ?? []), ...(p.escolhaFlow.quality_notes ?? []), ...(p.cena.quality_notes ?? [])]) addAjusteQuality(review, note)
   return { stage: p.escolhaFlow.stage, selected_still_id: p.escolhaFlow.selectedStillId ?? null, presenter_id: p.cena.plan.escolha!.presenterId, scenario_id: p.cena.plan.escolha!.scenarioId,
     stills: p.escolhaFlow.stills.filter(j => j.status === 'done' && j.url).map(j => ({ id: j.id, url: j.url!, score: j.verdict?.score ?? 0, reasons: j.verdict?.reasons ?? [] })).sort((a, b) => anatomyIssues(a.reasons) - anatomyIssues(b.reasons) || b.score - a.score || a.id.localeCompare(b.id)),
-    narration_used: p.cena.plan.script.narration, quality_notes: [...(p.cena.plan.quality_notes ?? []), ...(p.escolhaFlow.quality_notes ?? []), ...(p.cena.quality_notes ?? [])], ...(p.escolhaFlow.reason ? { reason: p.escolhaFlow.reason, reason_detail: p.escolhaFlow.quality_notes?.at(-1)?.message ?? 'The image provider could not produce four usable preview URLs. No video was started or charged.' } : {}) }
+    narration_used: p.cena.plan.script.narration, quality_notes: review.quality_notes ?? [], ...(p.escolhaFlow.reason ? { reason: p.escolhaFlow.reason, reason_detail: p.escolhaFlow.quality_notes?.at(-1)?.message ?? 'The image provider could not produce four usable preview URLs. No video was started or charged.' } : {}) }
 }
 function anatomyIssues(reasons: string[]): number { return reasons.filter(r => /^anatomy:.*:false$/u.test(r) || r.startsWith('Selected face or outfit differs')).length }
