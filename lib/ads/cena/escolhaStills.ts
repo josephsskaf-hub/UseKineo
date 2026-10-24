@@ -1,16 +1,20 @@
 // KINEO-ADS-ESCOLHA-2310 — four persisted previews; the human alone selects the video reference.
+// KINEO-ADS-ESCOLHA-PUBLICO-2410 — shared two-round photo budget and observed product geometry.
 import { cenaKeyframeRequest } from './adapters'
 import { cenaHttps, type CenaPlan, type CenaJson } from './plan'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { addAjusteQuality, type AjusteQualityNote } from './ajusteQuality'
 import { CENA_AMBIGUOUS_MS, CENA_JOB_MS, type CenaJob, type CenaState } from './pipeline'
+import { parseEscolhaGrounding, type EscolhaCaptionGrounding } from './escolhaCaptionLayout'
+import { escolhaStory } from './escolhaShots'
 
 export const ESCOLHA_MARK = 'KINEO-ADS-ESCOLHA-2310'
-export interface EscolhaStill extends CenaJob { id: string; attempt: number; falUrl?: string; copyStartedAt?: number }
+export interface EscolhaStill extends CenaJob { id: string; attempt: number; falUrl?: string; copyStartedAt?: number; grounding?: EscolhaCaptionGrounding }
 export interface EscolhaFlow {
   marker: typeof ESCOLHA_MARK;
   stage: 'planned' | 'stills' | 'choose' | 'chosen' | 'failed';
   stills: EscolhaStill[]; selectedStillId?: string; reason?: string;
+  round?: 1 | 2; previousStills?: EscolhaStill[];
   quality_notes?: AjusteQualityNote[];
 }
 export interface EscolhaStored { cena: CenaState; escolhaFlow: EscolhaFlow; [key: string]: unknown }
@@ -18,21 +22,31 @@ export function escolhaOf(stored: unknown): EscolhaStored | null {
   const p = stored as EscolhaStored | null
   return p?.escolhaFlow?.marker === ESCOLHA_MARK && p.cena?.plan?.escolha?.marker === ESCOLHA_MARK ? p : null
 }
-export function newEscolhaFlow(): EscolhaFlow { return { marker: ESCOLHA_MARK, stage: 'planned', stills: [] } }
-export const ESCOLHA_JUDGE = `Rank this preview; do NOT veto it. Compare the customer product and selected presenter reference with this generated image. Return JSON {"score":0,"reasons":["specific visible defect or strength"],"anatomy":{"limbs_attached":true,"normal_joints":true,"five_fingers":true,"no_reversed_knees":true,"no_reversed_hands":true},"same_face":true,"same_outfit":true}. Inspect the entire visible adult head to feet: arms, legs, hands, feet, joint direction, knees bending naturally (never backwards), five fingers on each visible hand, wrists not inverted and limbs connected to the correct body. Unknown or hidden anatomy must be null, not invented true. Score 0–100 for product fidelity, anatomy, one recognizable selected face, same reference outfit, category-appropriate use, aspirational clean brand-ad lighting, readable unchanged product label outside the reserved caption band. Facial skincare must be applied to the person's own FACE, never forearm. Narrated mode: mouth closed. No extra faces, unrelated dishes, clutter, invented label text, collage, quadrants or split screen. The worst anatomy belongs last; uncertainty is a review note, never a cancellation.`
+export function newEscolhaFlow(): EscolhaFlow { return { marker: ESCOLHA_MARK, stage: 'planned', stills: [], round: 1 } }
+export const ESCOLHA_PHOTO_ROUNDS = 2
+/** A confirmed per-image retry already spends the second photo round; manual regeneration shares that same budget. */
+export function escolhaPhotoRound(flow: EscolhaFlow): 1 | 2 { return flow.round === 2 || flow.stills.some(j => j.attempt >= 2) ? 2 : 1 }
+export function restartEscolhaStills(plan: CenaPlan, flow: EscolhaFlow): void {
+  if (escolhaPhotoRound(flow) >= ESCOLHA_PHOTO_ROUNDS) throw new Error('cena_photo_round_limit')
+  if (flow.stage !== 'choose' && flow.stage !== 'failed') throw new Error('cena_stills_not_ready')
+  flow.previousStills = [...(flow.previousStills ?? []), ...flow.stills]
+  flow.round = 2; flow.stills = previews(plan, 2); flow.stage = 'stills'
+  delete flow.reason; delete flow.selectedStillId
+}
+export const ESCOLHA_JUDGE = `Rank this preview; do NOT veto it. Image1 is the customer product, image2 the selected presenter, image3 the generated preview to inspect. Return JSON {"score":0,"reasons":["specific visible defect or strength"],"anatomy":{"limbs_attached":true,"normal_joints":true,"five_fingers":true,"no_reversed_knees":true,"no_reversed_hands":true},"same_face":true,"same_outfit":true,"product_boxes":[[0.1,0.4,0.5,0.6]],"face_boxes":[[0.2,0.1,0.4,0.3]]}. The box coordinates are examples only: measure the actual image3 pixels. Return normalized [left,top,right,bottom] bounds in 0–1 for EVERY visible part of the actual product including its lid, and each visible face. If the product cannot be located return product_boxes:[]; never infer coordinates from the scenario or desired caption lane. Inspect visible arms, legs, hands, feet, joint direction, knees bending naturally (never backwards), five fingers on each visible hand, wrists not inverted and limbs connected to the correct body. Unknown or hidden anatomy must be null, not invented true. Hidden knees, hands or feet are unassessed: do not lower the score for anatomy that is not visible. Score 0–100 for visible product fidelity, anatomy, one recognizable selected face, same reference outfit, category-appropriate use, aspirational clean brand-ad lighting, readable unchanged product label. For skincare ugc/product format, the opening preview holds the real jar CLOSED, lid fully screwed on, ready for nail taps; no cream or application before opening. For product_in_hand, present the product without applying or wearing it. For unboxing, the CLOSED plain unbranded outer box has a transparent front: the whole original product and label are visible inside, with no invented retail packaging or accessories. Follow the format-specific openingState supplied in the request. Narrated mode: mouth closed. No extra faces, unrelated dishes, clutter, invented label text, collage, quadrants or split screen. The worst visible anatomy belongs last; uncertainty is a review note, never a cancellation.`
 export interface EscolhaStillDeps {
   now(): number; save(flow: EscolhaFlow): Promise<void>; json: CenaJson;
   submit(job: EscolhaStill): Promise<{kind:'accepted';requestId:string}|{kind:'ambiguous'|'rejected'}>;
   poll(job: EscolhaStill): Promise<{state:'pending'|'processing'|'done'|'failed';url:string|null}>;
   persist(job: EscolhaStill): Promise<string|null>;
 }
-function previews(plan: CenaPlan): EscolhaStill[] {
+function previews(plan: CenaPlan, round: 1 | 2 = 1): EscolhaStill[] {
   return Array.from({ length: 4 }, (_, index) => {
-    const request = cenaKeyframeRequest({ productUrl: plan.input.foto, actorUrl: plan.escolha!.actorUrl, prompt: `${plan.keyframePrompts[0]} Preview ${index + 1} of four: a subtle alternative camera angle, same person, same clothes, same scene and product.`, attempt: 1 })
-    if (plan.category === 'skincare') request.input.prompt = String(request.input.prompt).replace('Nothing touches the face.', "Only the selected person's own fingertips apply facial skincare to that same person's own face; the jar stays away from the face.")
+    const request = cenaKeyframeRequest({ productUrl: plan.input.foto, actorUrl: plan.escolha!.actorUrl, prompt: `${plan.keyframePrompts[0]} Preview ${index + 1} of four: a subtle alternative camera angle, same person, same clothes, same scene and product.`, attempt: round })
+    if (plan.category === 'skincare' && plan.input.formato !== 'product_in_hand' && plan.input.formato !== 'unboxing') request.input.prompt = String(request.input.prompt).replace('Nothing touches the face.', "The CLOSED skincare jar stays below and away from the person's own face; no application in this opening photograph.")
     return {
     ...request,
-    id: `still-${index + 1}`, attempt: 1, index, kind: 'image', seconds: 0, keepSeconds: 0, status: 'new',
+    id: round === 1 ? `still-${index + 1}` : `still-r2-${index + 1}`, attempt: round, index, kind: 'image', seconds: 0, keepSeconds: 0, status: 'new',
   }})
 }
 function verdict(raw: unknown) {
@@ -43,7 +57,7 @@ function verdict(raw: unknown) {
     const checks = ['limbs_attached', 'normal_joints', 'five_fingers', 'no_reversed_knees', 'no_reversed_hands']
     const bad = checks.filter(k => r?.anatomy?.[k] === false), unknown = checks.filter(k => r?.anatomy?.[k] !== true && r?.anatomy?.[k] !== false)
     if (bad.length) { score = Math.min(score, Math.max(0, 25 - bad.length * 5)); reasons.push(...bad.map(k => `anatomy:${k}:false`)) }
-    if (unknown.length) { score = Math.min(score, 25); reasons.push(`anatomy:unassessed:${unknown.join(',')}`) }
+    if (unknown.length) reasons.push(`anatomy:unassessed:${unknown.join(',')}`)
     if (r?.same_face === false || r?.same_outfit === false) { score = Math.min(score, 20); reasons.push('Selected face or outfit differs; review before choosing.') }
     return { approved: true, score, reasons }
   } catch { return { approved: true, score: 0, reasons: ['Judge response unavailable; review visually.'] } }
@@ -55,7 +69,7 @@ export async function stepEscolhaStills(plan: CenaPlan, flow: EscolhaFlow, d: Es
   if (!flow.stills.length) { flow.stills = previews(plan); flow.stage = 'stills'; await d.save(flow) }
   for (const j of flow.stills) {
     if (j.status === 'failed' && j.attempt < 2) {
-      j.attempt++; j.status = 'new'; delete j.requestId; delete j.claimedAt; delete j.url; delete j.falUrl; delete j.copyStartedAt
+      j.attempt++; flow.round = 2; j.status = 'new'; delete j.requestId; delete j.claimedAt; delete j.url; delete j.falUrl; delete j.copyStartedAt
       await d.save(flow)
     }
     if (j.status === 'new') {
@@ -98,9 +112,10 @@ export async function stepEscolhaStills(plan: CenaPlan, flow: EscolhaFlow, d: Es
     }
     if (j.status === 'done' && j.url && !j.verdict) {
       let raw: unknown
-      try { raw = await d.json({ model: AI_TEXT_MODELS.adsRetry, system: ESCOLHA_JUDGE, text: JSON.stringify({ category: plan.category, format: plan.input.formato, voice_mode: plan.voice_mode, scenario: plan.setting, captionLane: plan.escolha.captionLane }), images: [plan.input.foto, plan.escolha.actorUrl, j.url] }) }
+      try { raw = await d.json({ model: AI_TEXT_MODELS.adsRetry, system: ESCOLHA_JUDGE, text: JSON.stringify({ category: plan.category, format: plan.input.formato, openingState: escolhaStory(plan.category, plan.input.formato).opening, voice_mode: plan.voice_mode, scenario: plan.setting, captionLane: plan.escolha.captionLane }), images: [plan.input.foto, plan.escolha.actorUrl, j.url] }) }
       catch { raw = null }
       j.verdict = verdict(raw)
+      j.grounding = parseEscolhaGrounding(raw, j.url)
       addAjusteQuality(flow, { stage: 'keyframe', code: 'preview_ranked', message: j.verdict.reasons.join(' ') || 'Review this preview visually.', score: j.verdict.score, reasons: j.verdict.reasons, candidate: j.index, round: j.attempt })
       await d.save(flow)
     }
@@ -124,6 +139,7 @@ export function chooseEscolhaStill(stored: EscolhaStored, stillId: unknown): Esc
   const j = f.stills.find(j => j.id === stillId && j.status === 'done' && cenaHttps(j.url))
   if (!j) throw new Error('cena_still_not_found')
   f.stage = 'chosen'; f.selectedStillId = j.id
+  stored.cena.plan.escolha!.captionGrounding = j.grounding
   // All video takes use the very same, human-selected reference. Ranking never selects implicitly.
   stored.cena.keyframe = j.url; stored.cena.keyframes = [j.url!, j.url!]; stored.cena.phase = 'video'; stored.cena.jobs = []
   for (const note of f.quality_notes ?? []) addAjusteQuality(stored.cena, note)
@@ -142,7 +158,7 @@ export function escolhaView(stored: unknown) {
   if (!p) return {}
   const review: { quality_notes?: AjusteQualityNote[] } = {}
   for (const note of [...(p.cena.plan.quality_notes ?? []), ...(p.escolhaFlow.quality_notes ?? []), ...(p.cena.quality_notes ?? [])]) addAjusteQuality(review, note)
-  return { stage: p.escolhaFlow.stage, selected_still_id: p.escolhaFlow.selectedStillId ?? null, presenter_id: p.cena.plan.escolha!.presenterId, scenario_id: p.cena.plan.escolha!.scenarioId,
+  return { stage: p.escolhaFlow.stage, photo_round: escolhaPhotoRound(p.escolhaFlow), max_photo_rounds: ESCOLHA_PHOTO_ROUNDS, can_regenerate: ['choose', 'failed'].includes(p.escolhaFlow.stage) && escolhaPhotoRound(p.escolhaFlow) < ESCOLHA_PHOTO_ROUNDS, selected_still_id: p.escolhaFlow.selectedStillId ?? null, presenter_id: p.cena.plan.escolha!.presenterId, scenario_id: p.cena.plan.escolha!.scenarioId, format_id: p.cena.plan.input.formato ?? 'product', category: p.cena.plan.category,
     stills: p.escolhaFlow.stills.filter(j => j.status === 'done' && j.url).map(j => ({ id: j.id, url: j.url!, score: j.verdict?.score ?? 0, reasons: j.verdict?.reasons ?? [] })).sort((a, b) => anatomyIssues(a.reasons) - anatomyIssues(b.reasons) || b.score - a.score || a.id.localeCompare(b.id)),
     narration_used: p.cena.plan.script.narration, quality_notes: review.quality_notes ?? [], ...(p.escolhaFlow.reason ? { reason: p.escolhaFlow.reason, reason_detail: p.escolhaFlow.quality_notes?.at(-1)?.message ?? 'The image provider could not produce four usable preview URLs. No video was started or charged.' } : {}) }
 }

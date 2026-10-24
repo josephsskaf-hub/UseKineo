@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore newest layer before every historical reader/undo.
 // [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] KINEO-META95-ESCRITA-2010 — guardião da legenda na escrita do roteiro.
 //
 //     node scripts/test-meta95-escrita-2010.mjs
@@ -44,7 +45,7 @@ const ROOT = path.resolve(import.meta.dirname, '..')
 const ts = require(path.join(ROOT, 'node_modules', 'typescript'))
 const MARCA = MARCA_META95_ESCRITA_2010
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
+const rd = (rel) => semIdiomasFormatos2410(lf(fs.readFileSync(path.join(ROOT, rel), 'utf8')), rel)
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const base = (rel) => { try { return lf(git('show', `${META95_ESCRITA_2010_BASE}:${rel}`)) } catch { return null } }
 let pass = 0
@@ -216,7 +217,7 @@ console.log('\nC. ponta a ponta (rota como está no disco)\n')
     'C2 …e com a GRAFIA DO ROTEIRO no tempo do Whisper (रहस्यमयी, अद्वितीय, जंतर-मंतर — os erros de ouvido somem)')
   const b = await pontaAPonta(ROUTE, E0, BN)
   ok(!b.erro && BENG.test(b.tela) && !DEVA.test(b.tela), `C3 4ecb02ab: legenda em bengali (o Whisper com language=bn, ou o plano B com o texto do roteiro) — nunca devanágari`)
-  const semConserto = await pontaAPonta(semMeta95Escrita2010(fs.readFileSync(path.join(ROOT, P.route), 'utf8'), P.route).replace(/\r\n/g, '\n'), E0, HI)
+  const semConserto = await pontaAPonta(semMeta95Escrita2010(rd(P.route), P.route).replace(/\r\n/g, '\n'), E0, HI)
   ok(!semConserto.erro && ARABE.test(semConserto.tela), 'C4 a mesma simulação na rota SEM esta camada (desfaz) volta a dar legenda em urdu — a prova antes/depois')
 }
 
@@ -286,7 +287,7 @@ console.log('\nD. desfaz\n')
     const b = base(f)
     if (b === null) { difs.push(`${f}: fora da base`); continue }
     let out
-    try { out = semMeta95Escrita2010(semAvatarPreso2010(semBebeQueFala2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f), f), f) /* reancorado KINEO-BEBE-QUE-FALA-2010 */ } catch (e) { difs.push(`${f}: ${e.message}`); continue } // reancorado KINEO-AVATAR-PRESO-2010: sem a camada do avatar preso (mais nova), em memória
+    try { out = semMeta95Escrita2010(semAvatarPreso2010(semBebeQueFala2010(rd(f), f), f), f) /* reancorado KINEO-BEBE-QUE-FALA-2010 */ } catch (e) { difs.push(`${f}: ${e.message}`); continue } // reancorado KINEO-AVATAR-PRESO-2010: sem a camada do avatar preso (mais nova), em memória
     if (lf(out) !== b) difs.push(f)
   }
   ok(difs.length === 0, `D1 ${META95_ESCRITA_2010_ARQUIVOS.length} arquivos tocados, desfeitos, = base ${META95_ESCRITA_2010_BASE.slice(0, 9)} (${difs.join('; ') || 'ok'})`)
@@ -296,12 +297,12 @@ console.log('\nD. desfaz\n')
   const DESFAZ_MENU = rd('scripts/test-support/desfaz-meta95-personagem-2010.mjs')
   const cadeia = /export function semMeta95Personagem2010\(texto, p\) \{\n  texto = semMeta95Escrita2010\(texto, p\)/.test(DESFAZ_MENU)
   const igual = META95_ESCRITA_2010_ARQUIVOS.every((f) => {
-    const raw = semBebeQueFala2010(fs.readFileSync(path.join(ROOT, f), 'utf8'), f), semEste = semMeta95Escrita2010(raw, f) // reancorado KINEO-BEBE-QUE-FALA-2010 — sem a camada de 20/10 (mais nova), em memória
+    const raw = semBebeQueFala2010(rd(f), f), semEste = semMeta95Escrita2010(raw, f) // reancorado KINEO-BEBE-QUE-FALA-2010 — sem a camada de 20/10 (mais nova), em memória
     return semMeta95Personagem2010(raw, f) === semMeta95Personagem2010(semEste, f) && semMenuUgc2010(raw, f) === semMenuUgc2010(semEste, f) && semUgcAjustes2010(raw, f) === semUgcAjustes2010(semEste, f)
   })
   ok(cadeia && igual, 'D4 encadeamento: semMeta95Personagem2010 (a cabeça das cadeias) tira esta camada PRIMEIRO; menu-ugc e ugc-ajustes herdam')
   let lancou = false
-  try { semMeta95Escrita2010(fs.readFileSync(path.join(ROOT, P.route), 'utf8') + `\n// linha nova ${MARCA}`, P.route) } catch { lancou = true }
+  try { semMeta95Escrita2010(rd(P.route) + `\n// linha nova ${MARCA}`, P.route) } catch { lancou = true }
   ok(semMeta95Escrita2010('sem marca', P.route) === 'sem marca' && semMeta95Escrita2010(ROUTE, 'outro/arquivo.ts') === ROUTE && desfazMeta95Escrita2010(P.route, null) === null && lancou,
     'D5 idempotente fora da lista / sem a marca / null; acréscimo a mais lança')
   const TOPO = git('log', '--format=%H', `--grep=${MARCA}`, '-1', 'HEAD').trim() || 'HEAD' // inclui o merge da main nesta entrega (a base é a main mesclada)
@@ -362,7 +363,7 @@ await libMuda('  return escritaDivergente(words, roteiro) ? undefined : words', 
   if (T) ok(provaLigacao(T).length > 0, 'M15 aquecimento com o texto errado (vazio) → L1 vermelho')
   const w2 = muta(WRAP, '    language: idioma,\n', '')
   ok(w2 && !/language: idioma,/.test(w2) && !(/timestamp_granularities: \['word', 'segment'\],\n\s+language: idioma,/.test(w2)), 'M16 wrapper sem `language` → L5 vermelho')
-  const sem = (() => { try { return semMeta95Escrita2010(fs.readFileSync(path.join(ROOT, P.route), 'utf8').replace(/\n[^\n]*cachedVoiceover = null \} \/\/ KINEO-META95-ESCRITA-2010[^\n]*/, ''), P.route) } catch { return 'lancou' } })()
+  const sem = (() => { try { return semMeta95Escrita2010(rd(P.route).replace(/\n[^\n]*cachedVoiceover = null \} \/\/ KINEO-META95-ESCRITA-2010[^\n]*/, ''), P.route) } catch { return 'lancou' } })()
   ok(sem === 'lancou', 'M17 acréscimo marcado a menos no compose → o desfaz lança (contagem exata)')
   const quebrado = muta(rd('scripts/test-support/desfaz-meta95-personagem-2010.mjs'), '  texto = semMeta95Escrita2010(texto, p)', '  void 0')
   ok(quebrado && !/export function semMeta95Personagem2010\(texto, p\) \{\n  texto = semMeta95Escrita2010\(texto, p\)/.test(quebrado), 'M18 cabeça da cadeia sem chamar esta camada → D4 vermelho')

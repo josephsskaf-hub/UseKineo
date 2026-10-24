@@ -1,3 +1,4 @@
+import { narrationTokens, narrationWordCount, joinNarrationTokens } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 // KINEO-ADS-CENA-2110 — shared, offline caption and paid-UGC failure policy. No SDK, environment or storage.
 export const CENA_CAPTION_HEIGHT_RATIO = 0.033
 export const CENA_CAPTION_CENTER = 0.67
@@ -8,14 +9,14 @@ const r3 = (n: number): number => Math.round(n * 1000) / 1000
 
 /** Preserve every word. Balance 3–6 words per block; a whole input shorter than 3 stays truthful. */
 export function cenaCaptionBlocks(text: string): string[] {
-  const words = String(text ?? '').replace(/\s+/gu, ' ').trim().split(' ').filter(Boolean)
+  const words = narrationTokens(String(text ?? '').replace(/\s+/gu, ' ').trim()) // KINEO-IDIOMAS-FORMATOS-2410
   if (!words.length) return []
   const count = Math.max(1, Math.ceil(words.length / 6))
   const size = Math.floor(words.length / count), extra = words.length % count
   let cursor = 0
   return Array.from({ length: count }, (_, k) => {
     const n = size + (k < extra ? 1 : 0)
-    const block = words.slice(cursor, cursor + n).join(' ')
+    const block = joinNarrationTokens(words.slice(cursor, cursor + n)) // KINEO-IDIOMAS-FORMATOS-2410
     cursor += n
     return block
   })
@@ -27,7 +28,7 @@ export function cenaCaptionElements(i: { text: string; width: number; height: nu
   const start = i.start ?? 0
   if (!Number.isFinite(start) || start < 0) throw new Error('cena_caption_bad_start')
   const blocks = cenaCaptionBlocks(i.text)
-  const weights = blocks.map((s) => s.split(' ').length)
+  const weights = blocks.map((s) => narrationWordCount(s)) // KINEO-IDIOMAS-FORMATOS-2410
   const total = weights.reduce((a, b) => a + b, 0)
   let wordsBefore = 0
   return blocks.map((text, k) => {

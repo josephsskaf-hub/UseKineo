@@ -1,0 +1,5 @@
+# Preserve exact evidence bytes across Windows checkouts.
+*.json -text
+# Console evidence retains its original trailing spaces and CRLF bytes.
+*.log -text whitespace=-blank-at-eol,-blank-at-eof,cr-at-eol
+*.cjs -text whitespace=cr-at-eol

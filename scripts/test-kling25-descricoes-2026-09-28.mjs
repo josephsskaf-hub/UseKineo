@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore newest layer before every historical reader/undo.
 // [TRAVA 8.2] KLING25-DESCRICOES — guardião: toda cena tem descrição e o fallback NUNCA é a fala (28/09/2026).
 //
 // FATO (render real 28/09 02:35 UTC, conta do fundador, Kling 2.5 60 s, 18 planos, 18/18 aceitos, filme 72 s, nota 9,5): o
@@ -37,7 +38,7 @@ import { desfaz3x6KlingShots } from './test-support/desfaz-3x6-klingshots.mjs' /
 import { semMonumento } from './test-support/desfaz-monumento-1310.mjs' // KINEO-MONUMENTO-2026-10-13
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'), p)
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else { falhas.push(n); console.log('  FALHOU: ' + n) } }

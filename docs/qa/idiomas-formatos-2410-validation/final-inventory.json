@@ -1,0 +1,24 @@
+{
+  "label": "final-inventory",
+  "root": "C:/kineo2410/.claude/worktrees/main",
+  "base": "8c7cdae291162776af5475dff182a70b132a74da",
+  "started": "2026-10-24T13:49:48.596Z",
+  "finished": "2026-10-24T13:49:59.508Z",
+  "total": 1,
+  "parallel": 1,
+  "serial": 0,
+  "done": 1,
+  "pass": 1,
+  "fail": 0,
+  "results": [
+    {
+      "file": "scripts/test-idiomas-formatos-undo-2410.mjs",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 10872,
+      "log": "scripts__test-idiomas-formatos-undo-2410.mjs.log",
+      "failures": []
+    }
+  ]
+}

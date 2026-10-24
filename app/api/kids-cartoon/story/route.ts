@@ -1,3 +1,4 @@
+import { narrationWordCount } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 // KINEO-BEBE-QUE-FALA-2010 — POST /api/kids-cartoon/story: escreve a HISTÓRIA do "AI Kids Cartoon Stories" (template de 1 clique).
 //
 // Não cobra nada e não gera vídeo: valida o pedido no servidor (personagem/língua/duração/ideia da lista fechada de
@@ -109,6 +110,6 @@ export async function POST(req: NextRequest) {
 
   const href = kidsCartoonGenerateHref({ script, request })
   if (!href) return recusa(502, lang === 'pt' ? 'A história saiu longa demais. Nada foi cobrado — tente de novo.' : 'The story came out too long. Nothing was charged — please try again.', 'handoff_too_long')
-  await writeServerEvent({ name: 'kids_cartoon_story_written', userId: user.id, path: PATH, metadata: { character: request.character, language: request.language, duration: request.duration, idea_id: request.ideaId, words: script.split(/\s+/).length, band, charged: false } }).catch(() => false)
+  await writeServerEvent({ name: 'kids_cartoon_story_written', userId: user.id, path: PATH, metadata: { character: request.character, language: request.language, duration: request.duration, idea_id: request.ideaId, words: narrationWordCount(script, request.language), band, charged: false } }).catch(() => false)
   return NextResponse.json({ script, href, caption: kidsPostCaption(request.language, request.character), band })
 }

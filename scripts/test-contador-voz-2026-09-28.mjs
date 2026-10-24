@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact later source delta before historical readers and extracted functions.
 // STUDIO-CONTADOR-VOZ (28/09/2026) — o contador da tela diz o tamanho REAL do filme com a voz escolhida
 // e que o filme segue o roteiro. Fundador: "a pessoa que escolhe Kling 2.5 não sabe que precisa de N
 // palavras; faz 110 e vira confusão de tempo".
@@ -13,7 +14,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n')
 const semImports = (src) => src.replace(/^import\s[\s\S]*?from\s+'[^']+'\s*;?\s*$/gm, '')
 // expandPolicy RE-EXPORTA MIN_COVERAGE do narrationFit (getter que vira undefined sem o import): os globais juntam só valores definidos.
 const globais = (...mods) => Object.fromEntries(mods.flatMap((m) => Object.entries(m)).filter(([, v]) => v !== undefined))

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 export const CARTOON_CONSISTENCIA_MARK = 'KINEO-CARTOON-CONSISTENCIA-2210'
-export const CARTOON_CONSISTENCIA_BASE = '9501618af9f8ae588988d79b6ea954009c378097'
+export const CARTOON_CONSISTENCIA_BASE = '1c078ed013302ac47c42f783305df688c4e97cfd'
 const table = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-cartoon-consistencia-2210-trocas.json'), 'utf8'))
 export const CARTOON_CONSISTENCIA_ADDITIONS = Object.freeze(table.__acrescimos)
 export const CARTOON_CONSISTENCIA_FILES = Object.freeze(Object.keys(table.__acrescimos))

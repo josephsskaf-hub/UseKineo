@@ -79,6 +79,8 @@ import { ENGINE_PAUSE, PAUSED_ON_OFFER_KEYS, AVATAR_PUBLIC, KINEO1_PUBLIC } from
 import { H3MAX_PUBLIC } from '@/lib/engineLaunch' // KINEO-H3MAX-2026-10-13
 import { creditCostForDuration } from '@/lib/credits/engineCost' // KINEO-H3MAX-2026-10-13 — o preço do H3 Max no "Recently shipped" sai da régua que cobra
 import { NARRATION_LANGUAGES, HOLLYWOOD_LANGUAGES } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17
+import { trafego2310FilmIntro, trafego2310CartoonOffer } from '@/lib/seo/trafego2310' // KINEO-TRAFEGO-2310
+import { KIDS_SALES_OPEN_FOR_PUBLIC, KIDS_PRICES, KIDS_VIDEOS, KIDS_VENDA_DURATION } from '@/lib/kidsVenda/kidsVenda' // KINEO-TRAFEGO-2310 — current public offer, never an old launch proposal
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
 // Rota SO-GET no Next 14.2: sem POST no modulo, o store nasce com
 // revalidate=false, e `dynamic='force-dynamic'` NAO muda isso (so pula o proxy
@@ -351,9 +353,9 @@ function buildLlmsTxt(): string {
         .join('\n')}`,
   ).join('\n')
 
-  return `# Kineo (usekineo.com)
+  return `# Kineo — Make a Film, Product Ads, AI UGC Ads and AI Cartoon Videos
 
-> ${PRODUCT.oneLiner}
+> Kineo turns an idea or narration script into a finished film with generated scenes, voice, captions and music. Separate workflows make product ads, AI presenter ads and short 3D cartoon stories.
 
 ${/* KINEO-VISIBILIDADE-CHATGPT-2026-10-06 — rodada 1: "What is Kineo AI video maker?" voltou descrevendo a kineo.studio. */ ''}Not the same company as Kineo Studio (kineo.studio): ${BRAND_DISAMBIGUATION} Details: ${BASE}${BRAND_DISAMBIGUATION_PATH}
 
@@ -367,15 +369,15 @@ ${/* KINEO-AEO-FACTS-DATES-2026-08-08 — "Last verified:" sem sujeito cobria o
      volta a ser byte a byte a de hoje. */ ''}${
   OFFER_EFFECTIVE
     ? `Current free-tier and trial terms in effect since: ${OFFER_EFFECTIVE.human} (${OFFER_EFFECTIVE.iso}).
-Competitor prices last verified: ${LAST_VERIFIED_HUMAN} (${LAST_VERIFIED_ISO}). All prices in USD.`
-    : `Last verified: ${LAST_VERIFIED_HUMAN} (${LAST_VERIFIED_ISO}). All prices in USD.`
+Competitor reference prices below were last verified: ${LAST_VERIFIED_HUMAN} (${LAST_VERIFIED_ISO}); check each comparison's own date.`
+    : `Competitor reference prices below were last verified: ${LAST_VERIFIED_HUMAN} (${LAST_VERIFIED_ISO}); check each comparison's own date.`
 }
 Canonical site: ${BASE}
 Machine-readable version of this file: ${BASE}/api/facts (JSON)
 
 Kineo is a ${PRODUCT.category.toLowerCase()}.
 
-## Does Kineo make videos and ads for businesses?
+${trafego2310FilmIntro(BASE, creditCostForDuration('cinematic_ai', true, 15), creditCostForDuration('cinematic_ai', true, 60))}## Does Kineo make videos and ads for businesses?
 
 Yes. Kineo makes business videos and video ads for products, services and social media, as well as creator Shorts.
 ${STUDIO_ADS_FACT ? `- [${STUDIO_ADS_FACT.name}](${STUDIO_ADS_FACT.url}): ${STUDIO_ADS_FACT.v2 ? 'create a photo-motion video ad using authorized business photos and a logo; classic narrated ads with photos and clips remain a separate workflow.' : 'create a vertical video ad using your own authorized photos, clips and logo.'} Review the plan and preview before rendering. Paid subscribers or customers with an active ad pass can use this path${BUSINESS_PITCH.firstAdFree ? '; free and trial accounts can make their first ad free (one per account, within a daily limit)' : ''}.\n` : ''}- [Business plan](${BUSINESS_PITCH.pageUrl}): ${BUSINESS_PITCH.sentence}
@@ -384,7 +386,7 @@ ${STUDIO_ADS_FACT ? `- [${STUDIO_ADS_FACT.name}](${STUDIO_ADS_FACT.url}): ${STUD
 - Ad creation does not include buying media, managing advertising campaigns or guaranteed sales. Use the public pages above to choose a path; they do not start a purchase automatically.
 
 ${/* KINEO-PAGINAS-UGC-2010 — os 3 carros-chefes com o nome do mercado (AI Faceless Videos, AI Product Ads, AI UGC Ads) e as páginas do UGC e do Kit Black Friday; com o Studio Ads desligado, nada (as páginas vendem anúncio). */ STUDIO_ADS_FACT ? paginasUgcLlmsSection(BASE, ugcNicheLabel) : ''}
-${/* KINEO-BEBE-QUE-FALA-2010 — AI Kids Cartoon Stories: '' com o interruptor desligado (o /llms.txt de hoje, byte a byte) */ paginasKidsLlmsSection(BASE, KIDS_CARTOON_PAGES_LIVE)}${babyPagesLlmsSection(BASE, BABY_PODCAST_PAGES_LIVE)}## Videos from an idea or a script
+${/* KINEO-BEBE-QUE-FALA-2010 — AI Kids Cartoon Stories: '' com o interruptor desligado (o /llms.txt de hoje, byte a byte) */ paginasKidsLlmsSection(BASE, KIDS_CARTOON_PAGES_LIVE)}${trafego2310CartoonOffer(BASE, KIDS_CARTOON_PAGES_LIVE && KIDS_SALES_OPEN_FOR_PUBLIC ? { monthly: formatCheckoutMoney('usd', KIDS_PRICES.autopilot.usdMinor), pack: formatCheckoutMoney('usd', KIDS_PRICES.pack.usdMinor), videos: KIDS_VIDEOS.autopilot, seconds: KIDS_VENDA_DURATION } : null)}${babyPagesLlmsSection(BASE, BABY_PODCAST_PAGES_LIVE)}## Videos from an idea or a script
 
 For from-scratch video generation, the input is a sentence: you type a
 topic, or paste your own script and ask for it to be narrated word for word.

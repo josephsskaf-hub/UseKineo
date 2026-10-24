@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact later language/format delta leaves historical contracts unchanged.
 // KINEO-ROTEIRO-15S-FRASE-INTEIRA-2026-09-29 [TRAVA 8.2 — "vai" do 15 s] — guardião: o roteiro do filme de 15 s nunca
 // sai com frase cortada no meio nem com CTA de rede social.
 //
@@ -36,7 +37,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ) // o loader offline resolve '@/...' a partir do cwd
 const LF = String.fromCharCode(10), CR = String.fromCharCode(13)
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').split(CR + LF).join(LF)
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).split(CR + LF).join(LF)
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) { ok++; console.log('  ✓ ' + n) } else { falhas.push(n); console.log('  ✗ FALHOU: ' + n) } }

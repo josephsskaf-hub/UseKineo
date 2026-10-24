@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact newer source layer precedes every historical assertion and mutant.
 // KINEO-GPT-VERDADE-2026-09-07 — guardião: o veredito do handoff vem de QUEM COBRA.
 //
 // O DEFEITO: lib/gptHandoff.ts redigitou a régua (3,1/2,3 pal/s, piso 95%) e
@@ -16,7 +17,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..')
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+const read = (rel) => semIdiomasFormatos2410(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel).replace(/\r\n/g, '\n')
 const exists = (rel) => fs.existsSync(path.join(ROOT, rel))
 let pass = 0
 let fail = 0

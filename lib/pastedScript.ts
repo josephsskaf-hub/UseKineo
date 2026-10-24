@@ -10,6 +10,7 @@
 // a ser a contagem da própria pessoa (piso = 90% dela), e a duração do filme segue as palavras, não o seletor.
 // Ideia curta (1-2 linhas) continua ganhando o roteiro completo de sempre.
 
+import { narrationTokens } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 export const PASTED_SCRIPT_MIN_WORDS = 45
 export const PASTED_SCRIPT_VERSION = 'pasted_script_no_padding_v1'
 
@@ -24,10 +25,7 @@ export interface PastedScriptDecision {
 }
 
 export function countSpokenWords(text: string): number {
-  return (text ?? '')
-    .replace(/\[[^\]]*\]/g, ' ') // rubricas [Pexels: …] / [camera: …] não são fala
-    .split(/\s+/)
-    .filter((w) => /[\p{L}\p{N}]/u.test(w)).length
+  return narrationTokens((text ?? '').replace(/\[[^\]]*\]/g, ' ')).filter((w) => /[\p{L}\p{N}]/u.test(w)).length // KINEO-IDIOMAS-FORMATOS-2410
 }
 
 export function detectPastedScript(text: string): PastedScriptDecision {

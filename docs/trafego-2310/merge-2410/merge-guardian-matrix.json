@@ -1,0 +1,528 @@
+{
+  "classification": "FATO CONFIRMADO / TESTADO LOCALMENTE",
+  "date": "2026-10-24",
+  "baselineSha": "dd0abba8cc711be4bde2faaac39f0aef29f3f90d",
+  "candidateSha": "ee2662ae1135b18890a77cd7b6dac375f56cca6b",
+  "baseline": {
+    "normal": 45,
+    "green": 43,
+    "red": [
+      "test-ads-escolha-publico-2410.mjs",
+      "test-locale-readiness.mjs"
+    ],
+    "expectedMutants": 4,
+    "expectedMutantsKilled": 4
+  },
+  "candidate": {
+    "normal": 49,
+    "green": 48,
+    "red": [
+      "test-locale-readiness.mjs"
+    ],
+    "expectedMutants": 4,
+    "expectedMutantsKilled": 4
+  },
+  "newRed": [],
+  "finalVerifiedAt": "2026-10-24T13:06:16.214Z",
+  "trackedChanges": "",
+  "typecheck": {
+    "classification": "TESTADO LOCALMENTE",
+    "date": "2026-10-24",
+    "sha": "ee2662ae1135b18890a77cd7b6dac375f56cca6b",
+    "startedAt": "2026-10-24T13:04:18.875Z",
+    "finishedAt": "2026-10-24T13:05:27.005Z",
+    "milliseconds": 68129,
+    "command": "node node_modules/typescript/bin/tsc --noEmit --incremental false",
+    "node": "v24.18.0",
+    "compiler": "Version 5.9.3",
+    "exit": 0,
+    "signal": null,
+    "error": null,
+    "stdout": "",
+    "stderr": ""
+  },
+  "mutantProofs": [
+    {
+      "file": "test-gpt-5h-a-2026-09-24.mjs",
+      "candidateExit": 1,
+      "assertionFailures": [
+        "FAIL rendered buttons use canonical builder and page attribution"
+      ],
+      "matchesBaseline": true
+    },
+    {
+      "file": "test-gpt-5h-b-2026-09-24.mjs",
+      "candidateExit": 1,
+      "assertionFailures": [
+        "FAIL paused row is not advertised as purchasable"
+      ],
+      "matchesBaseline": true
+    },
+    {
+      "file": "test-gpt-5h-c-2026-09-24.mjs",
+      "candidateExit": 1,
+      "assertionFailures": [
+        "FAIL OpenAPI reads live tier price/deadline without new order endpoint"
+      ],
+      "matchesBaseline": true
+    },
+    {
+      "file": "test-gpt-v31-facts-2026-09-24.mjs",
+      "candidateExit": 1,
+      "assertionFailures": [
+        "FAIL trial copy separates balance from access in same statement"
+      ],
+      "matchesBaseline": true
+    }
+  ],
+  "hindi": {
+    "assertion": "Hindi covers existing UiLabel dictionary: Any video engine — premium engines use more credits per film",
+    "test": "scripts/test-locale-readiness.mjs:14:78",
+    "actual": "undefined",
+    "testAndDictionariesUnchangedFromBaseline": true
+  },
+  "rows": [
+    {
+      "file": "test-ads-escolha-publico-2410.mjs",
+      "baselineExit": 1,
+      "candidateExit": 0,
+      "verdict": "BASELINE_RED_CORRECTED",
+      "candidateMilliseconds": 58379,
+      "candidateSummary": "ok public mutant UI unlocks still radios after credit failure\nok public mutant UI leaks internal judge reasons\nok public: 24 assertion-killed mutants; exact undo; raw routes/builders, no network or paid calls; SQL inspected only",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-ads-escolha-2310.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 53839,
+      "candidateSummary": "ok mutant take dura quinze em vez de cinco\nok mutant oferta volta a duplicar por pontuação\nok escolha: 39 mutantes comportamentais; 29 provas UI; desfaz exato e mídia offline",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-ads-render-fix-2310.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 341,
+      "candidateSummary": "  ok  S12 som ambiente entra a 35% sob a narração\n\n32 ok, 0 falha(s)",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-trafego-pages-2310.mjs",
+      "baselineExit": null,
+      "candidateExit": 0,
+      "verdict": "NEW_COVERAGE_GREEN",
+      "candidateMilliseconds": 1480,
+      "candidateSummary": "PASS KINEO-TRAFEGO-2310 pages: 6 rendered blocks, 40–60 words, 5 FAQs, date, metadata, prices, BRL and slug isolation",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-trafego-index-2310.mjs",
+      "baselineExit": null,
+      "candidateExit": 0,
+      "verdict": "NEW_COVERAGE_GREEN",
+      "candidateMilliseconds": 2965,
+      "candidateSummary": "{\"classification\":\"FATO CONFIRMADO / TESTADO LOCALMENTE\",\"date\":\"2026-10-23\",\"sitemapUrls\":593,\"clearPages\":151,\"cartoonPages\":2,\"missing\":[],\"duplicates\":0,\"llms\":\"Film first; current Cartoon offers; Brazil BRL; real GET\"}",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-trafego-health-2310.mjs",
+      "baselineExit": null,
+      "candidateExit": 0,
+      "verdict": "NEW_COVERAGE_GREEN",
+      "candidateMilliseconds": 3406,
+      "candidateSummary": "KILLED public-cron\nKILLED forged-alert\nKINEO-TRAFEGO-2310-HEALTH-MUTANTS: 8 killed, 0 survived.",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-trafego-undo-2310.mjs",
+      "baselineExit": null,
+      "candidateExit": 0,
+      "verdict": "NEW_COVERAGE_GREEN",
+      "candidateMilliseconds": 2429,
+      "candidateSummary": "KINEO-TRAFEGO-2310-UNDO: 181 passed, 0 failed.",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-admin-leve-2310.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 16483,
+      "candidateSummary": "Disk mutants: 17/17 rejected; exact Buffer undo verified.\nPositive control after exact undo passed.\nKINEO-ADMIN-LEVE-2310: 102 passed, 0 failed.",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-admin-leve-undo-2310.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 1498,
+      "candidateSummary": "PASS scripts/test-support/desfaz-roteiro-curto-2210.mjs: exact base/LF/CRLF/Windows, idempotence, external bytes, malformed hunks rejected\nPASS scripts/test-support/desfaz-paginas-ia-claras-2110.mjs: exact base/LF/CRLF/Windows, idempotence, external bytes, malformed hunks rejected\nKINEO-ADMIN-LEVE-2310-UNDO: 272 passed, 0 failed.",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-roteiro-curto-sem-falha-2210.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 13491,
+      "candidateSummary": "  mutant rejected: writer-url-bypass\nDisk mutants: 10/10 rejected; exact Buffer undo verified.\nPositive control after undo: KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22: 90 passed, 0 failed.",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-roteiro-curto-undo-2210.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 5472,
+      "candidateSummary": "PASS scripts/test-support/desfaz-filmes-f1-virgula-1910.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 2 hunks mutation/missing/duplicate rejected\nPASS scripts/test-verbatim-intocavel-2010.mjs: exact roundtrip, base/CRLF/Windows, outside mutation preserved; 1 hunks mutation/missing/duplicate rejected\nKINEO-ROTEIRO-CURTO-UNDO-2210: 725 passed, 0 failed.",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-admin-truncamento-2026-10.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 1007,
+      "candidateSummary": "OK overview real: helper antigo deixa parcial; novo rejeita falha na página 2\n\n[admin-truncamento] 17 passaram; 0 falharam. Execução offline, sem rede ou envio.",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-afiliados-acordam.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 699,
+      "candidateSummary": "ok   66 sem gatilho agendado, nada a colidir (desligado 24/09)\n\n66 ok / 0 falhas",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-coerencia-kineo1-2026-09-16.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 598,
+      "candidateSummary": "== (f) 👍/👎 no e-mail de entrega ==\n\n49 ok · 0 falhas",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-juiz-still-2026-10-06.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 9338,
+      "candidateSummary": "  ok  (P2 o selo ao lado da nota some) → vermelho — aba: a linha do filme mostra o juiz ao lado da nota (selo 📷 2✗/3) e o detalhe (fotos, recusadas, refeitas, custo, motiv\n\n  RESULTADO: 97 ok · 0 falha(s)",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-carta-da-recusa.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 861,
+      "candidateSummary": "  ✓ a agenda é diária, não de minuto em minuto\n\n59/59 verificações passaram.",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-momentum-topic.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 845,
+      "candidateSummary": "  ✓ copy nao nomeia motor nem preco\n\n44 ok · 0 falhas",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-stalled-frescor-2026-09-05.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 657,
+      "candidateSummary": "10) O que ja funcionava ficou como estava\n\n✅ 68 ok, 0 fail",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-hot-nudge-janela-campanhas.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 728,
+      "candidateSummary": "✅ 30 verdes, 0 vermelhas",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-gpt-v31-facts-2026-09-24.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 342,
+      "candidateSummary": "PASS h3 90s budget accepted by real estimator\nPASS omni 90s budget accepted by real estimator\nPASS only approved handoff POST and facts GET exist",
+      "candidateErrorTail": "Reparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to \\\\?\\C:\\Users\\josep\\OneDrive\\Área de Trabalho\\Usekineo\\.claude\\worktrees\\trafego-merge-guardian-2410\\package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)"
+    },
+    {
+      "file": "test-sharing-safety.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 677,
+      "candidateSummary": "Sharing safety: 71 checks passed; no network, live data or credentials.",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-paid-video-citation-guidance-2026-09-28.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 532,
+      "candidateSummary": "PASS no plan covers film means no recommendation\nPASS invalid film cost fails closed\nPASS current prices propagate without copying offer literals",
+      "candidateErrorTail": "Reparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to \\\\?\\C:\\Users\\josep\\OneDrive\\Área de Trabalho\\Usekineo\\.claude\\worktrees\\trafego-merge-guardian-2410\\package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)"
+    },
+    {
+      "file": "test-seedance-hero-plans-2026-09-28.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 1517,
+      "candidateSummary": "PASS: 6 actual engine pages; Seedance hero-only hierarchy, exact signup intent and two existing click events",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-motores-geo-2026-10-06.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 64295,
+      "candidateSummary": "  ok  M27 a listagem oficial passa a incluir o Standard → vermelho pelo motivo certo (seedance-2-5: Runway (Standard plan) ≈ 240 ≠ cotação oficial 156…)\n\n  RESULTADO: 38 ok · 0 falha(s)",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-ads-aeo-2026-09-24.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 2721,
+      "candidateSummary": "test-ads-aeo-2026-09-24: 41 ok · 0 falhas",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-five-improvements.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 2420,
+      "candidateSummary": "Five improvements: 657 checks passed; offline only.",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-studio-entry-transition.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 797,
+      "candidateSummary": "Studio entry: 53 regression checks passed; no network or generation.",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-locale-readiness.mjs",
+      "baselineExit": 1,
+      "candidateExit": 1,
+      "verdict": "UNCHANGED_BASELINE_RED",
+      "candidateMilliseconds": 395,
+      "candidateSummary": "",
+      "candidateErrorTail": "}\n\nNode.js v24.18.0"
+    },
+    {
+      "file": "test-app-blue-layout.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 3299,
+      "candidateSummary": "App blue: 99 actual-handler, navigation, billing and owner-scoped read checks passed; no external calls.",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-home-curation.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 435,
+      "candidateSummary": "Home curation: 200 checks passed; no database or provider calls.",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-home-blue-layout.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 4961,
+      "candidateSummary": "Home blue: 144 rendered session, referral and language checks passed; offline.",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-home-referral-bridge.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 369,
+      "candidateSummary": "PASS — 69/69 referral home bridge checks",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-home-pricing-checkout.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 100,
+      "candidateSummary": "PASS 36/36 home pricing checkout checks",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-showcase-premium.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 852,
+      "candidateSummary": "Showcase premium: 280 checks passed. Offline helpers + actual React SSR; browser is a separate gate.",
+      "candidateErrorTail": "    at a\n    at default (file:///C:/Users/josep/OneDrive/%C3%81rea%20de%20Trabalho/Usekineo/.claude/worktrees/trafego-merge-guardian-2410/scripts/test-showcase-premium.mjs:22:68)\n    at EngineCycleCard (components/EngineCycleCard.tsx:52:28)"
+    },
+    {
+      "file": "test-cinematic-timeline-2026-09-11.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 725,
+      "candidateSummary": "44 timeline checks passed; provider calls 0; no render, DB, or secrets.",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-cinematic-speech-2026-09-11.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 1411,
+      "candidateSummary": "cinematic-speech: 300 passed; real production payload/compose branches/builder; no external calls",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-music-direction-2026-09-11.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 1693,
+      "candidateSummary": "music-direction: 176/176 passed; external calls=0; no files written",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-visual-contract-2026-09-11.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 2176,
+      "candidateSummary": "437 executable visual-contract checks passed; 48 actual classic-caller simulations; network disabled.",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-quality-rejection-2026-09-11.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 2099,
+      "candidateSummary": "219 quality-rejection checks passed; real claim HMAC/release, fake DB/refund only; zero external calls.",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-quality-route-integration-2026-09-11.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 882,
+      "candidateSummary": "507 route-integration checks passed; actual failure/replay/footage/publication statements; no network, no refund, no provider.",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-quality-failure-ui-2026-09-11.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 959,
+      "candidateSummary": "quality-failure-ui: 141 passed; actual panel SSR and caller callbacks; no external calls",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-active-quality-rejection-2026-09-11.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 1245,
+      "candidateSummary": "active-quality-rejection: 61 passed; actual GET/HMAC helper/consumer; zero writes or provider calls",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-cinematic-terminal-proof-2026-09-11.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 852,
+      "candidateSummary": "cinematic-terminal-proof: 197 passed; actual claim HMAC/CAS and route GET; no external calls",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-cinematic-poll-diagnostic-2026-09-11.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 424,
+      "candidateSummary": "cinematic-poll-diagnostic: 185 passed; no external calls",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-scene-retry-mutex-2026-09-11.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 4264,
+      "candidateSummary": "scene-retry-mutex: 258 passed; actual POST/Fal queue/HMAC/active/compose-lock callers; synthetic DB only",
+      "candidateErrorTail": ""
+    },
+    {
+      "file": "test-gpt-5h-a-2026-09-24.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 154,
+      "candidateSummary": "PASS server sink owns the deployment stamp after client metadata\nPASS page discoverable through sitemap and facts URL\nPASS visible keyboard focus and mobile single column",
+      "candidateErrorTail": "Reparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to \\\\?\\C:\\Users\\josep\\OneDrive\\Área de Trabalho\\Usekineo\\.claude\\worktrees\\trafego-merge-guardian-2410\\package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)"
+    },
+    {
+      "file": "test-gpt-5h-b-2026-09-24.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 321,
+      "candidateSummary": "PASS sora-alternative: discoverable\nPASS omni-flash-vs-sora: 301 to /sora-alternative and out of sitemap/llms\nPASS Studio link, not generate/payment action",
+      "candidateErrorTail": "Reparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to \\\\?\\C:\\Users\\josep\\OneDrive\\Área de Trabalho\\Usekineo\\.claude\\worktrees\\trafego-merge-guardian-2410\\package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)"
+    },
+    {
+      "file": "test-gpt-5h-c-2026-09-24.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 331,
+      "candidateSummary": "PASS llms derives both tiers, requirements and refund from shared source\nPASS llms separates one-time service from recurring revenue\nPASS public facts endpoint actually calls the updated payload",
+      "candidateErrorTail": "Reparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to \\\\?\\C:\\Users\\josep\\OneDrive\\Área de Trabalho\\Usekineo\\.claude\\worktrees\\trafego-merge-guardian-2410\\package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)"
+    },
+    {
+      "file": "test-paginas-ia-claras-2110.mjs",
+      "baselineExit": 0,
+      "candidateExit": 0,
+      "verdict": "PRESERVED_GREEN",
+      "candidateMilliseconds": 17156,
+      "candidateSummary": "  ok  M9 fonte adulterada fora do bloco também é recusada pelo desfaz integral\n\n235 ok, 0 falha(s)",
+      "candidateErrorTail": "fatal: path 'docs/previews/paginas-ia-claras-cartoon-first-other-mobile-2210.png' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'\nfatal: path 'docs/qa/paginas-ia-claras-cartoon-first-2210-proof.json' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'\nfatal: path 'docs/qa/paginas-ia-claras-2210-1b991-merge-proof.json' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'"
+    }
+  ],
+  "limitations": "Offline contracts only. No deployment, production validation, real provider calls, database writes or credentials. The Hindi dictionary failure remains preexisting; the Public2410 inventory was corrected using its immutable delivery range and strict current-main source equality."
+}

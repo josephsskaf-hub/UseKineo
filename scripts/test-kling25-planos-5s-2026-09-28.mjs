@@ -1,3 +1,6 @@
+import { semCartoonConsistencia2210 } from './test-support/desfaz-cartoon-consistencia-2210.mjs' // KINEO-CARTOON-CONSISTENCIA-2210
+function semIdiomasSemCartoon2210(text, file) { return semIdiomasFormatos2410(semCartoonConsistencia2210(text, file), file) } // KINEO-CARTOON-CONSISTENCIA-2210
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore newest layer before every historical reader/undo.
 // KINEO-KLING25-PLANOS-5S-2026-09-28 — guardião dos planos de 5 s do Kling 2.5.
 // Fundador, 28/09, depois do canário c83074b6 ("The Mystery of Moving Rocks", 98 palavras verbatim, 35 s pedidos, 37,7 s
 // entregues, 4 planos de 10 s): "gostei muito… a única coisa é mais variedade de cenas". O claim do canário também mostrou
@@ -42,14 +45,14 @@ const desfazAncoraEJuizStill1410 = (p, s) => desfazAncoraLegenda1410(p, desfazJu
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ) // o loader offline resolve '@/...' a partir do cwd
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasSemCartoon2210(readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'), p)
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else { falhas.push(n); console.log('  FALHOU: ' + n) } }
 const roda = (src, globals = {}) => {
   const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText
   const exp = {}
-  vm.runInNewContext(js, { exports: exp, console: { log() {}, warn() {}, error() {} }, JSON, Math, Number, Array, Object, Set, Map, process: { env: {} }, romanceAdulto: { ativo: false }, desenhoInfantil: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op) // KINEO-CARTOON-CONSISTENCIA-2210 — o VM do despacho clássico mantém o contexto sem Cartoon, como o sem romance.
+  vm.runInNewContext(js, { exports: exp, console: { log() {}, warn() {}, error() {} }, JSON, Math, Number, Array, Object, Set, Map, process: { env: {} }, romanceAdulto: { ativo: false }, ...globals }) // romanceAdulto: KINEO-ROMANCE-ADULTO-2026-10-13 (reancorado; sem romance as linhas da leva são no-op)
   return exp
 }
 const fatia = (src, ini, fim, incluiFim = true) => { const a = src.indexOf(ini); if (a < 0) return null; const b = src.indexOf(fim, a + ini.length); return b < 0 ? null : src.slice(a, incluiFim ? b + fim.length : b) }
@@ -206,7 +209,7 @@ if (rotaBase) {
 }
 
 // (c2) builder real da fal
-const loadLib = createOfflineLoader({ source: (p, s) => desfazAncoraEJuizStill1410(p, s) }) // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
+const loadLib = createOfflineLoader({ source: (p, s) => desfazAncoraEJuizStill1410(p, semIdiomasSemCartoon2210(s, p)) }) // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 const aspect = loadLib('@/lib/aspect')
 const policy = loadLib('@/lib/cinematic/visualPromptPolicy')
 const router = rd('lib/hollywood/router.ts')

@@ -14,6 +14,7 @@
 // KINEO-DESENHO-SOM-2110 — sem a pílula do motor no topo (fundador 21/10: nome de motor na porta de entrada "perde a vontade de comprar"); o botão
 // "Captions on the video" (ligado por padrão) viaja no corpo do filme como kids_captions:false quando desligado.
 import Link from 'next/link'
+import { NARRATION_LANGUAGES, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 import { useEffect, useRef, useState } from 'react'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { trackEvent } from '@/lib/analytics'
@@ -21,7 +22,6 @@ import { creditCostForDuration } from '@/lib/credits/engineCost'
 import {
   KIDS_CARTOON_DEFAULT_DURATION,
   KIDS_CARTOON_DURATIONS,
-  KIDS_CARTOON_LANGUAGES,
   KIDS_CHARACTERS,
   KIDS_HANDOFF_PROMPT_MAX_CHARS,
   KIDS_IDEAS,
@@ -41,7 +41,7 @@ import {
   type KidsIdeaId,
 } from '@/lib/kidsCartoon/kidsCartoon'
 
-const LANG_LABEL: Record<KidsCartoonLanguage, string> = { en: 'English', pt: 'Português', es: 'Español' }
+const LANG_LABEL = Object.fromEntries(NARRATION_LANGUAGES.map(l => [l.code, l.native])) as Record<NarrationLanguage, string> // KINEO-IDIOMAS-FORMATOS-2410
 /** O preço do filme na duração: a MESMA função e os MESMOS argumentos do débito do servidor (generate-video-cinematic). */
 export function kidsCartoonCost(seconds: number): number {
   return creditCostForDuration('cinematic_ai', true, seconds)
@@ -152,11 +152,11 @@ html[data-theme=dark] .kkc{--bg:#07090D;--card:#10141B;--line:#1F2530;--txt:#F2F
 export default function KidsCartoonTemplate() {
   const ui = useInterfaceLanguage()
   const t = kidsTemplateCopy(ui)
-  const ideaLang: KidsCartoonLanguage = isKidsCartoonLanguage(ui) ? ui : 'en'
+  const ideaLang: 'en' | 'pt' | 'es' = ui === 'pt' || ui === 'es' ? ui : 'en' // KINEO-IDIOMAS-FORMATOS-2410 — idioma editorial da interface separado da narração
   const [character, setCharacter] = useState<KidsCharacterId>('leo')
   const [idea, setIdea] = useState('')
   const [ideaId, setIdeaId] = useState<KidsIdeaId | null>(null)
-  const [language, setLanguage] = useState<KidsCartoonLanguage>(ideaLang)
+  const [language, setLanguage] = useState<KidsCartoonLanguage>(isKidsCartoonLanguage(ui) ? ui : 'en')
   const [duration, setDuration] = useState<KidsCartoonDuration>(KIDS_CARTOON_DEFAULT_DURATION)
   const [stage, setStage] = useState<Stage>('idle')
   const [error, setError] = useState<string | null>(null)
@@ -454,7 +454,7 @@ export default function KidsCartoonTemplate() {
             <div className="kkc-row">
               <div>
                 <h2>{t.language}</h2>
-                <div className="kkc-seg">{KIDS_CARTOON_LANGUAGES.map((l) => <button key={l} type="button" aria-pressed={language === l} disabled={busy} onClick={() => setLanguage(l)}>{LANG_LABEL[l]}</button>)}</div>
+                <select aria-label={t.language} value={language} disabled={busy} onChange={e => { if (isKidsCartoonLanguage(e.target.value)) setLanguage(e.target.value) }} style={{ width: '100%', minHeight: 46, padding: '10px 12px', border: '1px solid var(--line)', borderRadius: 12, background: 'var(--card)', color: 'var(--txt)', font: 'inherit', colorScheme: 'inherit' }}>{NARRATION_LANGUAGES.map(l => <option key={l.code} value={l.code} lang={l.code} dir={l.rtl ? 'rtl' : 'ltr'}>{l.native}</option>)}</select>
               </div>
               <div>
                 <h2>{t.duration}</h2>

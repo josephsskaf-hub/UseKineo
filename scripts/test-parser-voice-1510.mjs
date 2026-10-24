@@ -18,6 +18,7 @@
 // (recortado de app/api/generate-script/route.ts). Rodar: node scripts/test-parser-voice-1510.mjs — sem rede, sem custo.
 
 import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs'
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — historical writer slice; current Unicode writer has its own raw guardian.
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -53,7 +54,7 @@ let fonteBase = null
 try { fonteBase = execFileSync('git', ['-C', RAIZ, 'show', `${BASE}:${ARQ}`], { encoding: 'utf8' }) } catch { fonteBase = null }
 
 // O contador do ESCRITOR, recortado da rota real (função pura, sem import).
-const rotaEscritor = readFileSync(join(RAIZ, 'app/api/generate-script/route.ts'), 'utf8').replace(/\r\n/g, '\n')
+const rotaEscritor = semIdiomasFormatos2410(readFileSync(join(RAIZ, 'app/api/generate-script/route.ts'), 'utf8'), 'app/api/generate-script/route.ts').replace(/\r\n/g, '\n')
 const iniEsc = rotaEscritor.indexOf('function scriptWordCount(text: string): number {')
 const fimEsc = iniEsc < 0 ? -1 : rotaEscritor.indexOf('\n}\n', iniEsc)
 const fonteEsc = iniEsc >= 0 && fimEsc > iniEsc ? rotaEscritor.slice(iniEsc, fimEsc + 2) + '\nmodule.exports = { scriptWordCount }\n' : null

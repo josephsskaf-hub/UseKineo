@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact later source delta before historical readers and extracted functions.
 // KINEO-KLING25-VARIEDADE-2026-09-28 — guardião do eixo de variedade por plano do Kling 2.5.
 // Fundador, 28/09, aprovando o canário de 35 s (c83074b6, 38 s entregues) e pedindo o de 60 s chegando a 65-70 s:
 // "a única coisa é mais variedade de cenas" · "melhore o Kling 2.5 (...) nas próximas uma hora foca em melhorar ele".
@@ -28,7 +29,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n')
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else { falhas.push(n); console.log('  FALHOU: ' + n) } }

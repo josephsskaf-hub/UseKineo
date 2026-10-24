@@ -1,3 +1,4 @@
+import { narrationTokens, joinNarrationTokens, captionFontFor, DEFAULT_CAPTION_FONT } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 // KINEO-ADS-CENA-95-2110 — pure karaoke layout; supplied alignment or an explicitly labelled syllable estimate.
 export interface Cena95Word { word: string; start: number; end: number }
 export interface Cena95SpeechWindow { start: number; end: number; text?: string }
@@ -10,7 +11,7 @@ export interface Cena95CaptionResult {
   timingSource: 'provided_alignment' | 'syllable_estimate'; speechWindows: Cena95SpeechWindow[];
 }
 const r6 = (n: number): number => Math.round(n * 1e6) / 1e6
-const tokens = (s: string): string[] => String(s ?? '').trim().split(/\s+/u).filter(Boolean)
+const tokens = (s: string): string[] => narrationTokens(String(s ?? '')) // KINEO-IDIOMAS-FORMATOS-2410
 const key = (s: string): string => s.normalize('NFC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')
 const validWindow = (w: Cena95SpeechWindow): boolean => Number.isFinite(w.start) && Number.isFinite(w.end) && w.start >= 0 && w.end > w.start && w.end <= 15
 
@@ -133,7 +134,7 @@ export function cena95Captions(i: Cena95CaptionInput): Cena95CaptionResult {
   const captionHeight = Math.floor(2 * (height * 1480 / 1920 - height * 0.67 - stroke))
   if (captionHeight <= 0) throw new Error('cena95_caption_bad_frame')
   // Fixed dimensions and documented element clipping enforce the lower bound even on unexpected font metrics.
-  const base = { type: 'text', track: i.track ?? 40, x: '50%', y: '67%', x_anchor: '50%', y_anchor: '50%', x_alignment: '50%', y_alignment: '50%', width: '84%', height: captionHeight, text_wrap: false, text_clip: true, clip: true, font_family: 'Inter', font_size: font, font_weight: '800', line_height: '110%', fill_color: '#ffffff', stroke_color: '#000000', stroke_width: stroke }
+  const base = { type: 'text', track: i.track ?? 40, x: '50%', y: '67%', x_anchor: '50%', y_anchor: '50%', x_alignment: '50%', y_alignment: '50%', width: '84%', height: captionHeight, text_wrap: false, text_clip: true, clip: true, font_family: captionFontFor(i.language) === DEFAULT_CAPTION_FONT ? 'Inter' : captionFontFor(i.language), font_size: font, font_weight: '800', line_height: '110%', fill_color: '#ffffff', stroke_color: '#000000', stroke_width: stroke }
   const elements: Record<string, unknown>[] = []
   // Keep blocks inside speech windows, including the explicit pre-CTA pause. Very short beats may have <3 words truthfully.
   const runs: Cena95Word[][] = []
@@ -152,7 +153,7 @@ export function cena95Captions(i: Cena95CaptionInput): Cena95CaptionResult {
     }
     for (const lines of balancedBlocks(run, font, width * 0.84 - stroke * 2, captionHeight, stroke)) {
     const block = lines.flat()
-    const text = (active?: Cena95Word): string => lines.map(line => line.map(x => x === active ? `[color #FFD400]${displayWord(x.word)}[/color]` : displayWord(x.word)).join(' ')).join('\n')
+    const text = (active?: Cena95Word): string => lines.map(line => joinNarrationTokens(line.map(x => x === active ? `[color #FFD400]${displayWord(x.word)}[/color]` : displayWord(x.word)), i.language)).join('\n')
     for (let k = 0; k < block.length; k++) {
       const w = block[k]
       elements.push({ ...base, time: w.start, duration: r6(w.end - w.start), text: text(w) })

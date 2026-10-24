@@ -11,6 +11,7 @@
 //      vercel.json, eventos no sink, selo, alarme, carta genérica sem o anúncio.
 import { semCloseReal1910 } from './test-support/desfaz-close-real-1910.mjs' // reancorado KINEO-CLOSE-REAL-1910 — a entrega de 19/10 sai primeiro, em memória
 import { readFileSync, existsSync } from 'node:fs'
+import { semAdsEscolhaPublico2410 } from './test-support/desfaz-ads-escolha-publico-2410.mjs' // KINEO-ADS-ESCOLHA-PUBLICO-2410 — previous billing/assembly contract, current terminal transitions independently executed by new guardian.
 import { join, dirname, posix } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
@@ -18,7 +19,7 @@ import ts from 'typescript'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nodeRequire = createRequire(import.meta.url)
-const rd = (p) => semCloseReal1910(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n') /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
+const rd = (p) => semCloseReal1910(semAdsEscolhaPublico2410(readFileSync(join(RAIZ, p), 'utf8'), p), p).replace(/\r\n/g, '\n') /* reancorado KINEO-CLOSE-REAL-1910: a entrega de 19/10 (Close do produto real) sai primeiro, em memória */
 const semComentarios = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').map((l) => l.replace(/(^|[^:'"`\\])\/\/.*$/, '$1')).join('\n')
 // KINEO-SHOPIFY-2026-10-13 (etapa 2) — re-ancorado: o corpo do /plan e do /start foi EXTRAÍDO, sem mudar uma linha, para
 // lib/ads/v2PlanCore.ts e lib/ads/v2StartCore.ts (a rota só lê o cookie e chama o núcleo). A leitura da rota = rota + núcleo,

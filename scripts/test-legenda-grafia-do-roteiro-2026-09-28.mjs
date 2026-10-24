@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact later source delta before historical readers and extracted functions.
 // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28 — guardião da legenda com a grafia do roteiro.
 //
 //     node scripts/test-legenda-grafia-do-roteiro-2026-09-28.mjs
@@ -36,7 +37,7 @@ import vm from 'node:vm'
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
 const ts = require(join(RAIZ, 'node_modules', 'typescript'))
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n')
 
 const LIB = rd('lib/captionScriptSpelling.ts')
 const compose = rd('lib/compose.ts')

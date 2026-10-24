@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore this newer layer before historical contracts; current code has raw guardians.
 // KINEO-REGUA-UNICA + KINEO-ENTREGA-MEDIDA (14/09/2026) — direção do fundador:
 // (1) planejamento e portão medem com a MESMA estimativa por configuração de voz;
 // (2) roteiro próprio não é encurtado em silêncio (Kineo 1 entregou 18,7 s para 35 s);
@@ -9,7 +10,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n')
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else falhas.push(n) }

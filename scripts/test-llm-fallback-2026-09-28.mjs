@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore newest layer before every historical reader/undo.
 // KINEO-PLANO-B-OPENAI-2026-09-28 — guardião do plano B quando a OpenAI cai.
 // O caso: 26/09 16:22Z → 27/09 ~08:35Z a conta da OpenAI ficou sem crédito ("429 You have no credits remaining");
 // 59 tentativas bloqueadas no roteiro, de 9 pessoas externas (47 no escritor de cenas do Kineo 1, 12 no generate-script),
@@ -36,7 +37,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'), p)
 const requireRaiz = createRequire(join(RAIZ, 'package.json'))
 const OpenAIMod = requireRaiz('openai')
 const OpenAI = OpenAIMod.default ?? OpenAIMod.OpenAI ?? OpenAIMod

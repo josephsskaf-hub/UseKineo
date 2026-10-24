@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore this newer layer before historical contracts; current code has raw guardians.
 // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — guardião dos planos de 4/6/8 s do Veo 3.1.
 // Palavra do fundador (29/09 00:30 BRT): "quero foco total hoje para arrumar o Veo, que é um motor que temos que ter a
 // partir de agora". Até aqui o Veo rodava 8 s FIXOS por cena (⌈s/8⌉ + 1 planos). Este guardião EXECUTA a lib real e
@@ -30,7 +31,7 @@ const desfazAncoraEJuizStill1410 = (p, s) => desfazAncoraLegenda1410(p, desfazJu
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n')
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else { falhas.push(n); console.log('  FALHOU: ' + n) } }

@@ -1,4 +1,18 @@
+import { semCartoonConsistencia2210 } from './test-support/desfaz-cartoon-consistencia-2210.mjs' // KINEO-CARTOON-CONSISTENCIA-2210
+function semIdiomasSemCartoon2210(text, file) { return semIdiomasFormatos2410(semCartoonConsistencia2210(text, file), file) } // KINEO-CARTOON-CONSISTENCIA-2210
 #!/usr/bin/env node
+// KINEO-IDIOMAS-FORMATOS-2410 — virtual diff keeps every original marked-line check after exact source restoration.
+function historicalSourceDiff(beforeText, afterText) {
+  const scratch = mkdtempSync(join(tmpdir(), 'kineo-historical-2410-')), before = join(scratch, 'before.ts'), after = join(scratch, 'after.ts')
+  try {
+    writeFileSync(before, beforeText); writeFileSync(after, afterText)
+    try { return execFileSync('git', ['diff', '--no-index', '--no-color', '-U0', '--', before, after], { encoding: 'utf8', maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'ignore'] }) }
+    catch (error) { if (error.status === 1 && typeof error.stdout === 'string') return error.stdout; throw error }
+  } finally { for (const file of [before, after]) { try { unlinkSync(file) } catch (error) { if (error.code !== 'ENOENT') throw error } }; rmdirSync(scratch) }
+}
+import { mkdtempSync, writeFileSync, unlinkSync, rmdirSync } from 'node:fs' // KINEO-IDIOMAS-FORMATOS-2410
+import { tmpdir } from 'node:os' // KINEO-IDIOMAS-FORMATOS-2410
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact newer source layer precedes every historical assertion and mutant.
 // KINEO-CONTRATO-CLASSICOS-1410 [TRAVA 8.2 — vai do fundador 14/10] — guardião do Contrato de Cena no caminho clássico.
 //
 // O que foi medido antes (30 d, `cinematic_submission_claim`): o contrato JÁ roda nos clássicos desde 121b669e (27/08) e
@@ -26,14 +40,12 @@ import { semFilmeRapido1710, linhaDoFilmeRapido1710, linhasTrocadasFilmeRapido17
 const semTrilha15s1610 = (texto, p) => semTrilha15s1610Puro(semFilmeRapido1710(texto, p), p) // reancorado KINEO-FILME-RAPIDO-1710
 const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) // reancorado KINEO-FILME-RAPIDO-1710
 const linhasTrocadasTrilha15s1610 = (p) => [...linhasTrocadasTrilha15s1610Puro(p), ...linhasTrocadasFilmeRapido1710(p)] // reancorado KINEO-FILME-RAPIDO-1710
-import { readFileSync, mkdtempSync, writeFileSync, rmSync, rmdirSync } from 'node:fs' // KINEO-CARTOON-CONSISTENCIA-2210 — diff histórico em arquivos temporários locais.
+import { readFileSync } from 'node:fs'
 import { desfazAncoraLegenda1410, linhaDaAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 import { desfazJuizStill1410, linhaDoJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
-import { tmpdir } from 'node:os' // KINEO-CARTOON-CONSISTENCIA-2210
-import { semCartoonConsistencia2210 } from './test-support/desfaz-cartoon-consistencia-2210.mjs' // KINEO-CARTOON-CONSISTENCIA-2210
 import vm from 'node:vm'
 import ts from 'typescript'
 import { desfazParceiroEyebible1410 } from './test-support/desfaz-parceiro-eyebible-1410.mjs' // reancorado KINEO-PARCEIRO-EYEBIBLE-1410 [TRAVA 8.2 — vai do fundador 14/10]
@@ -46,18 +58,7 @@ const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const ROTA = 'app/api/generate-video-cinematic/route.ts'
 const LIB = 'lib/cinematic/sceneTruth.ts'
 const MODO = 'lib/cinematic/visualMode.ts'
-function diffSemCartoon2210(before, atual, arquivo) { // KINEO-CARTOON-CONSISTENCIA-2210
-  const scratch = mkdtempSync(join(tmpdir(), 'kineo-negacao-cartoon-2210-')), a = join(scratch, 'before.ts'), b = join(scratch, 'after.ts') // KINEO-CARTOON-CONSISTENCIA-2210
-  try { // KINEO-CARTOON-CONSISTENCIA-2210
-    writeFileSync(a, before.replace(/\r\n/g, '\n'), 'utf8') // KINEO-CARTOON-CONSISTENCIA-2210
-    writeFileSync(b, semCartoonConsistencia2210(atual, arquivo).replace(/\r\n/g, '\n'), 'utf8') // KINEO-CARTOON-CONSISTENCIA-2210
-    try { return execFileSync('git', ['diff', '--no-index', '--no-color', '--', a, b], { encoding: 'utf8', maxBuffer: 1 << 28 }) } // KINEO-CARTOON-CONSISTENCIA-2210
-    catch (e) { if (e.status === 1 && typeof e.stdout === 'string') return e.stdout; throw e } // KINEO-CARTOON-CONSISTENCIA-2210
-  } finally { // KINEO-CARTOON-CONSISTENCIA-2210
-    rmSync(a, { force: true }); rmSync(b, { force: true }); rmdirSync(scratch) // KINEO-CARTOON-CONSISTENCIA-2210
-  } // KINEO-CARTOON-CONSISTENCIA-2210
-} // KINEO-CARTOON-CONSISTENCIA-2210
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasSemCartoon2210(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n')
 const git = (args) => execFileSync('git', args, { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }).toString()
 
 let ok = 0
@@ -212,7 +213,7 @@ checa('visualMode intocado (proibidosPorModo é a régua dos dois caminhos)', rd
 checa('proibidosPorModo em diante: byte a byte a base, sem desfazer nada', Boolean(rdBase(MODO)) && atual.modo.slice(atual.modo.indexOf('export function proibidosPorModo')) === rdBase(MODO).slice(rdBase(MODO).indexOf('export function proibidosPorModo')) && atual.modo.includes('export function proibidosPorModo')) // KINEO-PARCEIRO-EYEBIBLE-1410
 checa('toda linha nova/trocada da rota e do sceneTruth leva a marca (o diff não tem linha sem marca)', (() => {
   if (!BASE) return false
-  const d = [ROTA, LIB].map((p) => diffSemCartoon2210(git(['show', `${BASE}:${p}`]), rd(p), p)).join('\n').replace(/\r/g, '') // KINEO-CARTOON-CONSISTENCIA-2210 — remove somente a camada posterior pela folha exata, inclusive a linha vazia contextual.
+  const d = [ROTA, LIB].map(file => historicalSourceDiff(git(['show', `${BASE}:${file}`]), rd(file))).join('\n').replace(/\r/g, '') // KINEO-IDIOMAS-FORMATOS-2410
   const add = d.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))
   add.splice(0, add.length, ...add.filter((l) => !l.includes('KINEO-KIDS-VENDA-2010'))) // KINEO-KIDS-VENDA-2010 — as linhas da venda do Cartoon têm marca e desfaz exato próprios; fora da conta do contrato
   return add.length > 0 && add.every((l) => l.includes(MARCA) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || l.includes('KINEO-DESENHO-SOM-2110') /* reancorado KINEO-DESENHO-SOM-2110 — o som do desenho infantil (21/10) mexe na rota só com kids_cartoon */ || l.includes('KINEO-BEBE-QUE-FALA-2010') /* reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories (20/10) também é de depois da base; provado em scripts/test-bebe-que-fala-2010.mjs */ || linhaDoParceiroEyebible2_1410(l) || linhaDaAncoraLegenda1410(l) /* KINEO-ANCORA-LEGENDA-1410 */ || linhaDoJuizStill1410(l) /* reancorado KINEO-JUIZ-STILL-1410 */ || linhaDaCenaNegacao1510(l) /* reancorado KINEO-CENA-NEGACAO-1510 */ || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */) // reancorado KINEO-PARCEIRO-EYEBIBLE-2-1410: as linhas da 2ª leva levam a marca DELA

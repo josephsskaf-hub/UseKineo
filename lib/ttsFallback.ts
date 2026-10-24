@@ -1,5 +1,6 @@
 import { fal } from '@fal-ai/client'
-import { stripScriptMarkers } from '@/lib/scriptParser'
+import { stripScriptMarkers, salvageScriptNarration } from '@/lib/scriptParser' // KINEO-IDIOMAS-FORMATOS-2410
+import { minimaxLanguageBoost, minimaxVoiceFor, usesMiniMaxNarration, type MiniMaxLanguageBoost } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 import { writeServerEvent } from '@/lib/serverEvents'
 import { alertOpenAiExhausted, looksOpenAiQuotaDead, openAiAlertKind } from '@/lib/openaiAlert'
 import { isOpenAiOutageError, primaryStatusOf, settleWithin, FALLBACK_SIDE_EFFECTS_MS, FAL_BALANCE_ALARM_WAIT_MS } from '@/lib/llmFallback'
@@ -66,8 +67,8 @@ export function ttsFallbackSkipsRetry(err: unknown): boolean {
 }
 
 /** O corpo EXATO da rota /audio para a MiniMax 2.8 HD (nunca inventar parâmetro). */
-export function ttsFallbackInput(text: string): { prompt: string; output_format: 'url'; language_boost: 'auto' } {
-  return { prompt: text, output_format: 'url', language_boost: 'auto' }
+export function ttsFallbackInput(text: string, language?: string, speed = 1): { prompt: string; output_format: 'url'; language_boost: MiniMaxLanguageBoost; voice_setting?: { voice_id: string; speed: number } } { // KINEO-IDIOMAS-FORMATOS-2410
+  return { prompt: text, output_format: 'url', language_boost: minimaxLanguageBoost(language), ...(usesMiniMaxNarration(language) ? { voice_setting: { voice_id: minimaxVoiceFor(language), speed: Math.max(0.7, Math.min(1.3, speed)) } } : {}) } // KINEO-IDIOMAS-FORMATOS-2410
 }
 
 /**
@@ -78,10 +79,10 @@ export function ttsFallbackInput(text: string): { prompt: string; output_format:
  */
 export async function synthesizeTtsFallback(
   script: string,
-  ctx: { userId?: string | null; generationId?: string | null } = {},
+  ctx: { userId?: string | null; generationId?: string | null; language?: string; speed?: number } = {}, // KINEO-IDIOMAS-FORMATOS-2410
 ): Promise<Buffer> {
   try {
-    return await sintetizaPelaFal(script)
+    return await sintetizaPelaFal(script, ctx.language, ctx.speed) // KINEO-IDIOMAS-FORMATOS-2410
   } catch (e) {
     await avisaSaldoDaFalNaVoz(e, ctx)
     throw e
@@ -107,16 +108,16 @@ async function avisaSaldoDaFalNaVoz(e: unknown, ctx: { userId?: string | null; g
   }
 }
 
-async function sintetizaPelaFal(script: string): Promise<Buffer> {
+async function sintetizaPelaFal(script: string, language?: string, speed?: number): Promise<Buffer> { // KINEO-IDIOMAS-FORMATOS-2410
   const falKey = process.env.FAL_KEY
   if (!falKey) throw new Error('FAL_KEY is not set')
   // A mesma limpeza do generateTTS: o narrador nunca lê "[Pexels: …]", "HOOK" ou linha de "speed:".
-  const cleaned = stripScriptMarkers(script)
+  const cleaned = stripScriptMarkers(script) || salvageScriptNarration(script) // KINEO-IDIOMAS-FORMATOS-2410
   const text = (cleaned.length > TTS_FALLBACK_MAX_CHARS ? cleaned.slice(0, TTS_FALLBACK_MAX_CHARS) : cleaned).trim()
   if (!text) throw new Error('fallback TTS: narration is empty after marker strip')
   fal.config({ credentials: falKey })
   const result = (await fal.subscribe(TTS_FALLBACK_MODEL, {
-    input: ttsFallbackInput(text),
+    input: ttsFallbackInput(text, language, speed), // KINEO-IDIOMAS-FORMATOS-2410
     timeout: TTS_FALLBACK_TIMEOUT_MS,
   })) as { data?: { audio?: { url?: string } }; audio?: { url?: string } }
   const url = result?.data?.audio?.url ?? result?.audio?.url ?? null

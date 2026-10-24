@@ -1,5 +1,8 @@
+import { semCartoonConsistencia2210, CARTOON_CONSISTENCIA_NEW } from './test-support/desfaz-cartoon-consistencia-2210.mjs' // KINEO-CARTOON-CONSISTENCIA-2210
+function semIdiomasSemCartoon2210(text, file) { return semIdiomasFormatos2410(semCartoonConsistencia2210(text, file), file) } // KINEO-CARTOON-CONSISTENCIA-2210
 // KINEO-ADS-CENA-RESPALDO-2110 — POST/cenaJson/start reais; DB, ledger e fornecedores em dublês sem rede.
 import assert from 'node:assert/strict'
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — remove only this exact newer source layer before the protected-source comparison.
 import { semAdsCenaSegue2110 } from './test-support/desfaz-ads-cena-segue-2110.mjs' // KINEO-ADS-CENA-SEGUE-2110
 import { semPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 import { readFileSync } from 'node:fs'
@@ -249,6 +252,8 @@ async function undoProof(){
   for(const p of U.CENA_RESPALDO_NEW){assert.ok(readFileSync(p).length);assert.throws(()=>git('show',BASE+':'+p))}
   const inventory=new Set([...U.CENA_RESPALDO_FILES,...U.CENA_RESPALDO_NEW]);assert.ok(git('diff','--name-only',BASE,deliveryHead).trim().split('\n').filter(Boolean).every(p=>inventory.has(p))) // KINEO-ADS-CENA-SEGUE-2110 — exact own delivery scope.
   assert.equal(git('diff','--name-only',BASE,deliveryHead,'--','lib/ads/cena/*95.ts','lib/kidsVenda*','lib/kidsCartoon*') /* KINEO-CARTOON-CONSISTENCIA-2210 — preserve the exact Kids/95 guard at its own completed delivery. */.trim(),'','95 and Kids sources remain byte-identical')
+  const protectedDrift = git('diff','--name-only',BASE,'--','lib/ads/cena/*95.ts','lib/kidsVenda*','lib/kidsCartoon*').trim().split('\n').filter(Boolean).filter(file => !CARTOON_CONSISTENCIA_NEW.includes(file)).filter(file => semIdiomasSemCartoon2210(readFileSync(file,'utf8').replace(/\r\n/g,'\n'),file) !== git('show',BASE+':'+file)).join('\n') // KINEO-IDIOMAS-FORMATOS-2410 — retain the full current diff and catch every change outside the exactly reversed layer.
+  assert.equal(protectedDrift,'','95 and Kids sources remain byte-identical') // KINEO-IDIOMAS-FORMATOS-2410
 }
 export async function runRespaldo(){await reproduceRespaldoBase();await proofRespaldo();console.log('ok respaldo: POST/cenaJson/start reais, primeira+2correções, fallback só da frase barrada, diagnóstico e controles95/legado');await proofRespaldoMutants();await undoProof();console.log('ok respaldo: desfaz estrito, CRLF, inventário e fontes95/Kids intactas')}
 if(process.argv[1]&&pathToFileURL(process.argv[1]).href===import.meta.url)await runRespaldo()

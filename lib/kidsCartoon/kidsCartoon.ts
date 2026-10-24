@@ -1,3 +1,4 @@
+import { NARRATION_LANGUAGE_CODES, LANGUAGE_NAMES, narrationLanguage, narrationWordCount } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 // KINEO-BEBE-QUE-FALA-2010 — "AI Kids Cartoon Stories" / "Histórias infantis em desenho 3D com IA" (fundador 20/10: "começa hoje").
 //
 // POR QUÊ: o anúncio que o fundador viu (promo da OpenArt) vende "Claude escreve a história → sai um curta de desenho 3D infantil
@@ -45,11 +46,11 @@ export const KIDS_CARTOON_DURATIONS = [15, 35] as const
 export type KidsCartoonDuration = (typeof KIDS_CARTOON_DURATIONS)[number]
 export const KIDS_CARTOON_DEFAULT_DURATION: KidsCartoonDuration = 35
 /** As línguas da narração no template (EN/PT no mínimo; ES de brinde — o Seedance 1.5 narra nas 16). */
-export const KIDS_CARTOON_LANGUAGES = ['en', 'pt', 'es'] as const
+export const KIDS_CARTOON_LANGUAGES = NARRATION_LANGUAGE_CODES // KINEO-IDIOMAS-FORMATOS-2410
 export type KidsCartoonLanguage = (typeof KIDS_CARTOON_LANGUAGES)[number]
-export const KIDS_CARTOON_LANGUAGE_NAMES: Record<KidsCartoonLanguage, string> = { en: 'English', pt: 'Brazilian Portuguese', es: 'Spanish' }
+export const KIDS_CARTOON_LANGUAGE_NAMES: Record<KidsCartoonLanguage, string> = LANGUAGE_NAMES // KINEO-IDIOMAS-FORMATOS-2410
 export function isKidsCartoonLanguage(raw: unknown): raw is KidsCartoonLanguage {
-  return typeof raw === 'string' && (KIDS_CARTOON_LANGUAGES as readonly string[]).includes(raw)
+  return typeof raw === 'string' && narrationLanguage(raw) === raw // KINEO-IDIOMAS-FORMATOS-2410
 }
 export function isKidsCartoonDuration(raw: unknown): raw is KidsCartoonDuration {
   return typeof raw === 'number' && (KIDS_CARTOON_DURATIONS as readonly number[]).includes(raw)
@@ -144,14 +145,14 @@ export type KidsCartoonValidation = { ok: true; value: KidsCartoonRequest } | { 
 export function validateKidsCartoonRequest(raw: unknown): KidsCartoonValidation {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
   if (!isKidsCharacterId(r.character)) return { ok: false, error: 'Pick one of the characters.', field: 'character' }
-  if (!isKidsCartoonLanguage(r.language)) return { ok: false, error: 'Pick English, Portuguese or Spanish.', field: 'language' }
+  if (!isKidsCartoonLanguage(r.language)) return { ok: false, error: 'Pick a narration language from the list.', field: 'language' }
   const duration = typeof r.duration === 'string' ? Number(r.duration) : r.duration
   if (!isKidsCartoonDuration(duration)) return { ok: false, error: 'Pick 15 or 35 seconds.', field: 'duration' }
   const idea0 = kidsIdea(r.ideaId)
   const typed = typeof r.idea === 'string' ? r.idea.replace(/[\u0000-\u001f\u007f​-‍⁠﻿]/g, ' ').replace(/\s+/g, ' ').trim() : ''
   if (typed.length > KIDS_IDEA_MAX_CHARS) return { ok: false, error: `Keep the story idea under ${KIDS_IDEA_MAX_CHARS} characters.`, field: 'idea' }
   if (/https?:\/\/|www\./i.test(typed)) return { ok: false, error: 'Describe the story in words, not a link.', field: 'idea' }
-  const idea = typed || (idea0 ? idea0[r.language] : '')
+  const idea = typed || (idea0 ? idea0[r.language === 'pt' || r.language === 'es' ? r.language : 'en'] : '') // KINEO-IDIOMAS-FORMATOS-2410 — a ideia editorial de fallback é traduzida pelo escritor para a língua escolhida
   if (idea.length < KIDS_IDEA_MIN_CHARS) return { ok: false, error: 'Write a story idea or pick one of the ready ideas.', field: 'idea' }
   return { ok: true, value: { character: r.character, language: r.language, duration, idea, ideaId: typed ? null : (idea0?.id ?? null) } }
 }
@@ -163,7 +164,7 @@ export function kidsStoryWriterPrompt(i: { request: KidsCartoonRequest; minWords
   const system = [
     'You write narration for short 3D animated cartoon stories for young children (ages 3 to 7), like a gentle bedtime cartoon.',
     `Write in ${lang}. Plain narration only: no title, no scene labels, no markers, no stage directions, no emojis, no hashtags, no quotes around the text.`,
-    `Length: between ${i.minWords} and ${i.maxWords} words. Short, simple sentences a small child understands.`,
+    `Length: between ${i.minWords} and ${i.maxWords} words. For Chinese, Cantonese, Japanese and Thai, count lexical words with Unicode word segmentation, not spaces; never add spaces between characters. Short, simple sentences a small child understands.`, // KINEO-IDIOMAS-FORMATOS-2410
     `The main character is ${c.name} (${c.sheet}). Name ${c.name} in the first sentence and keep ${c.name} in every part of the story.`,
     'Keep it innocent, kind, warm and a little funny: no romance, no nudity, no violence, no weapons, no danger or scary moments, no making fun of anyone, no brands, no real people, no adult products.',
     'Shape: a happy opening, a small everyday problem, a gentle solution, and one sentence with a kind lesson. End with one short friendly question to the child watching.',
@@ -174,7 +175,7 @@ export function kidsStoryWriterPrompt(i: { request: KidsCartoonRequest; minWords
 
 /** Palavras faladas do texto (o mesmo corte por espaços que a régua da casa conta). */
 export function kidsWordCount(text: string): number {
-  return String(text ?? '').trim().split(/\s+/).filter(Boolean).length
+  return narrationWordCount(text) // KINEO-IDIOMAS-FORMATOS-2410
 }
 /** A história pronta (puro): limpa, no tamanho, com o nome do personagem e inocente. */
 export function kidsStoryCheck(script: string, i: { character: KidsCharacterId; minWords: number; maxWords: number }): { ok: true; script: string } | { ok: false; reason: 'empty' | 'too_short' | 'too_long' | 'no_character' | 'not_innocent' } {

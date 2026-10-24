@@ -21,6 +21,7 @@
 // WHERE refunded_at IS NULL RETURNING) e relê o ledger para confirmar. Perdeu a corrida = outro já estornou/entregou.
 import { createHash } from 'node:crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { writeEscolhaEvent } from './cena/escolhaEvents' // KINEO-ADS-ESCOLHA-PUBLICO-2410
 import { recordRenderIntent } from '@/lib/credits/renderIntent'
 import { debitVideoCredits } from '@/lib/credits/debit'
 import { refundRenderCredits } from '@/lib/credits/refund'
@@ -154,7 +155,7 @@ export async function failAdsV2Order(
     .eq('id', order.id)
     .in('status', ['generating', 'assembling'])
     .is('video_id', null)
-    .select('id')
+    .select('id, plan')
     .maybeSingle()
   if (won.error || !won.data) return { won: false, refund: 'skipped', amount: 0 }
   let refund: 'refunded' | 'missing' | 'unconfirmed' | 'skipped' = 'skipped'
@@ -180,5 +181,6 @@ export async function failAdsV2Order(
       sample: isAdsSampleRef(order.billing_ref), // KINEO-ADS-AMOSTRA-2026-10-09
     },
   })
+  await writeEscolhaEvent('failed', order.user_id, order.id, won.data.plan, { reason: reason.slice(0, 300), refund, credits_returned: amount })
   return { won: true, refund, amount }
 }

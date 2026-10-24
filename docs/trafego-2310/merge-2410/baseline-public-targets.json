@@ -1,0 +1,13 @@
+[
+  {
+    "classification": "TESTADO LOCALMENTE",
+    "date": "2026-10-24",
+    "sha": "dd0abba8cc711be4bde2faaac39f0aef29f3f90d",
+    "file": "test-ads-escolha-publico-2410.mjs",
+    "exit": 1,
+    "signal": null,
+    "milliseconds": 48979,
+    "stdoutTail": "ok public mutant UI forgets second photo round flag\nok public mutant UI unlocks still radios after credit failure\nok public mutant UI leaks internal judge reasons",
+    "stderrTail": "}\n\nNode.js v24.18.0"
+  }
+]

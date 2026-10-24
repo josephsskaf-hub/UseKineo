@@ -1,0 +1,13 @@
+KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22: 90 passed, 0 failed.
+  mutant rejected: phase-failed
+  mutant rejected: failure-cause
+  mutant rejected: url-false
+  mutant rejected: studio-url-bypass
+  mutant rejected: admin-counts-short
+  mutant rejected: c1-auto-render
+  mutant rejected: reuse-released-attempt
+  mutant rejected: stale-duration
+  mutant rejected: offered-wrong-words
+  mutant rejected: writer-url-bypass
+Disk mutants: 10/10 rejected; exact Buffer undo verified.
+Positive control after undo: KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22: 90 passed, 0 failed.

@@ -1,0 +1,18 @@
+PASS all live tiers derive price, deadline and revisions from the offer
+PASS express: valid nominal source, no price in checkout URL
+PASS pro: valid nominal source, no price in checkout URL
+FAIL rendered buttons use canonical builder and page attribution
+PASS no literal tier prices in page or buttons
+PASS real brief summaries separated from fictional clinic
+PASS human scope, materials and refund disclosed
+PASS both events wired, tier on click
+PASS server deployment overwrites client data and stamps exposure
+PASS missing deploy is unknown, not clock-based
+PASS unrelated events untouched
+PASS server sink owns the deployment stamp after client metadata
+PASS page discoverable through sitemap and facts URL
+PASS visible keyboard focus and mobile single column
+(node:2124) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/kineo2410/.claude/worktrees/merge-main-8900/lib/growth/dfyServiceFacts.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\kineo2410\.claude\worktrees\merge-main-8900\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

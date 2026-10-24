@@ -9,11 +9,12 @@ export function escolhaVideoRequests(plan: CenaPlan, route: CenaRoute, keyframeU
   if (route !== 'kling3') return requests
   // Do not send an ending wide reference: the final take is the close of the real product in this same scene.
   const { prompt: _singlePrompt, end_image_url: _endImage, ...input } = requests[0].input
+  if (plan.voice_mode === 'narrated') input.generate_audio = true // KINEO-ADS-RENDER-FIX-2310 — som ambiente nativo (sem fala, pelo prompt); a montagem o deixa baixo sob a narração
   return [{ ...requests[0], input: { ...input, shot_type: 'customize', multi_prompt: selected.shotPrompts.map(prompt => ({ prompt, duration: '5' })) } }]
 }
 
 /** KINEO-ADS-RENDER-FIX-2310 — fal Kling3 prompt maxLength is 2500 (openapi 23/10/2026); the 23/10 render (order 1a09131b) sent 2642–2819 chars per shot and failed with no error recorded. */
-export const ESCOLHA_SHOT_PROMPT_MAX = 2400 // KINEO-ADS-RENDER-FIX-2310 — margin below the provider's 2500
+export const ESCOLHA_SHOT_PROMPT_MAX = 500 // KINEO-ADS-RENDER-FIX-2310 — provider field max is 2500, but the 2369–2384-char shots of order 499b6966 still failed; multi-shot prompts stay short (the chosen still carries identity, outfit and scene)
 /** KINEO-ADS-RENDER-FIX-2310 — keeps the first sentence (chosen still) and the whole shot-specific tail ("Absolute…"), then fills with the shared rules in their original order while they fit; whole sentences only. */
 export function escolhaShotPromptFit(prompt: string, max = ESCOLHA_SHOT_PROMPT_MAX): string { // KINEO-ADS-RENDER-FIX-2310
   const text = prompt.replace(/\s+/g, ' ').trim() // KINEO-ADS-RENDER-FIX-2310

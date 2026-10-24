@@ -1,11 +1,12 @@
+import { semCartoonConsistencia2210 } from './desfaz-cartoon-consistencia-2210.mjs' // KINEO-CARTOON-CONSISTENCIA-2210
 // KINEO-ADS-ESCOLHA-2310 — restore this newest exact layer before every older policy.
 // Leaf helper: it must never import a prior desfaz, which would create a cycle.
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { semAdsEscolhaPublico2410 } from './desfaz-ads-escolha-publico-2410.mjs' // KINEO-ADS-ESCOLHA-PUBLICO-2410
 
-import { semCartoonConsistencia2210 } from './desfaz-cartoon-consistencia-2210.mjs' // KINEO-CARTOON-CONSISTENCIA-2210
 export const ADS_ESCOLHA_MARK = 'KINEO-ADS-ESCOLHA-2310'
 export const ADS_ESCOLHA_BASE = '36a5286aa9bc8aa16e8b4c72edc42fbf1d1ac7a7'
 const table = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-ads-escolha-2310-fontes.json'), 'utf8'))
@@ -30,7 +31,8 @@ export const ADS_ESCOLHA_NEW = Object.freeze([
 ])
 
 export function semAdsEscolha2310(texto, file) {
-  texto = semCartoonConsistencia2210(texto, file) // KINEO-CARTOON-CONSISTENCIA-2210 — leaf undo before the unchanged historical hash.
+  texto = semCartoonConsistencia2210(texto, file) // KINEO-CARTOON-CONSISTENCIA-2210 — newest leaf before Public/Idiomas/Traffic.
+  texto = semAdsEscolhaPublico2410(texto, file) // KINEO-ADS-ESCOLHA-PUBLICO-2410 — newest before every old hash/early return.
   const relative = String(file ?? '').replace(/\\/g, '/'), known = table[relative]
   if (!known || typeof texto !== 'string' || !texto.includes(ADS_ESCOLHA_MARK)) return texto
   const hash = createHash('sha256').update(texto.replace(/\r\n/g, '\n')).digest('hex')

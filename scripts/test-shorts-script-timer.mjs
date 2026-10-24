@@ -1,3 +1,6 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — compile exact historical copies in TEMP; never rewrite production sources.
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs' // KINEO-IDIOMAS-FORMATOS-2410
+import { dirname } from 'node:path' // KINEO-IDIOMAS-FORMATOS-2410
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, rmSync } from 'node:fs'
@@ -8,16 +11,19 @@ import { createRequire } from 'node:module'
 const repo = process.cwd()
 const out = mkdtempSync(join(tmpdir(), 'kineo-script-timer-'))
 const require = createRequire(import.meta.url)
+const inputRoot = join(out, 'source') // KINEO-IDIOMAS-FORMATOS-2410
+for (const file of ["growth/shortsScriptTimer.ts","narrationFit.ts","scriptParser.ts"]) { const dest = join(inputRoot, file); mkdirSync(dirname(dest), { recursive: true }); writeFileSync(dest, semIdiomasFormatos2410(readFileSync(join(repo, 'lib', file), 'utf8'), 'lib/' + file)) } // KINEO-IDIOMAS-FORMATOS-2410
+
 
 try {
   const tsc = require.resolve('typescript/bin/tsc')
 
   execFileSync(process.execPath, [tsc,
-    'lib/growth/shortsScriptTimer.ts',
-    'lib/narrationFit.ts',
-    'lib/scriptParser.ts',
+    join(inputRoot, 'growth/shortsScriptTimer.ts'),
+    join(inputRoot, 'narrationFit.ts'),
+    join(inputRoot, 'scriptParser.ts'),
     '--outDir', out,
-    '--rootDir', 'lib',
+    '--rootDir', inputRoot,
     '--module', 'commonjs',
     '--target', 'ES2020',
     '--moduleResolution', 'node',

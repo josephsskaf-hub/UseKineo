@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact later source delta before historical readers and extracted functions.
 // KINEO-SEEDANCE-BLOCOS-2026-09-29 [TRAVA 8.2 — "vai conserta" do fundador, 29/09] — guardião: no Seedance 1.5 de 35/60/90 s,
 // todo bloco marcado do roteiro vira cena (os vizinhos se juntam), com o MESMO número de clipes de hoje.
 //
@@ -36,7 +37,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ) // o loader offline resolve '@/...' a partir do cwd
 const LF = String.fromCharCode(10), CR = String.fromCharCode(13)
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').split(CR + LF).join(LF)
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).split(CR + LF).join(LF)
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) { ok++; console.log('  ✓ ' + n) } else { falhas.push(n); console.log('  ✗ FALHOU: ' + n) } }

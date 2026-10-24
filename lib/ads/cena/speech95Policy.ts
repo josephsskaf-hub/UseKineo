@@ -1,3 +1,4 @@
+import { narrationWordCount } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 // KINEO-ADS-CENA-95-PACING-2110 — conservative editorial budgets, NOT measured voice speeds.
 export const CENA95_SPEECH_POLICY_VERSION = 'KINEO-ADS-CENA-95-PACING-2110' as const
 export function cena95SpeechPolicy(language = 'en') {
@@ -8,4 +9,4 @@ export function cena95SpeechPolicy(language = 'en') {
     maxWords: Math.floor((seconds - pauseSeconds) * wordsPerSecond), maxHookWords: Math.floor(hookSeconds * wordsPerSecond),
     basis: 'conservative_editorial_budget_not_measured_voice' as const }
 }
-export const cena95CountWords = (s: string): number => s.trim().split(/\s+/u).filter(Boolean).length
+export const cena95CountWords = (s: string): number => narrationWordCount(s) // KINEO-IDIOMAS-FORMATOS-2410

@@ -13,7 +13,7 @@ import { planShots } from '../v2ShotLists'
 import { v2Fail, v2Json } from '../v2Server'
 import { adsV2Credits } from '../v2Tiers'
 export async function internalCenaAjusteFor(user: AdsV2Caller, body: unknown, d: CenaInternalDeps): Promise<Response> {
-  if (!cenaEnabled(isAdsInternalEmail(user.email))) return v2Fail('cena_internal_only', 403)
+  if (!isAdsInternalEmail(user.email) || !cenaEnabled(true)) return v2Fail('cena_internal_only', 403) // KINEO-ADS-ESCOLHA-PUBLICO-2410 — no public legacy entry.
   try {
     const b = body as Record<string, unknown>
     if (!b || typeof b !== 'object' || b.rota !== undefined && !isCenaRoute(b.rota)) return v2Fail('cena_bad_route', 400)

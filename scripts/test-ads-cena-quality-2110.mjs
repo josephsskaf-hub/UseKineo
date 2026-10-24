@@ -9,6 +9,7 @@ function world(over = {}) {
   const events = [], inserted = [], failed = []
   const mocks = Object.fromEntries([...source.matchAll(/from ['"]([^'"]+)['"]/g)].map((m) => [m[1], {}]))
   delete mocks['node:crypto']; delete mocks['@/lib/ads/v2CenaQuality']
+  mocks['@/lib/textLanguage'] = createOfflineLoader()('@/lib/textLanguage') // KINEO-IDIOMAS-FORMATOS-2410 — blanket dependency stubs must retain actual Unicode caption helpers.
   mocks['@/lib/ads/v2ShotLists'] = { ADS_V2_CARD_SECONDS: 2.5 }
   mocks['@/lib/ads/v2Presenter'] = { isAdsV2PresenterPlan: (p) => Boolean(p?.productUrl), ADS_V2_PRESENTER_KIND: 'presenter' }
   mocks['@/lib/serverEvents'] = { writeServerEvent: async (e) => events.push(e) }
@@ -67,7 +68,7 @@ const postRaw = readFileSync(postPath, 'utf8')
 const postMocks = Object.fromEntries([...postRaw.matchAll(/from ['"]([^'"]+)['"]/g)].map((m) => [m[1], {}]))
 delete postMocks['node:crypto']; delete postMocks['@/lib/ads/v2CenaQuality']
 postMocks['@/lib/renderProfile'] = { renderOutputSpecFor: () => ({ width: 1080, height: 1920 }) }
-postMocks['@/lib/textLanguage'] = { captionFontFor: () => 'Inter' }
+postMocks['@/lib/textLanguage'] = { ...createOfflineLoader()('@/lib/textLanguage'), captionFontFor: () => 'Inter' } // KINEO-IDIOMAS-FORMATOS-2410 — retain the font fixture and execute the real Unicode token helpers.
 postMocks['@/lib/ads/v2PostDelivery'] = { adsV2EditMontageInput: () => ({}), adsV2EditWithoutPresenter: (b) => ({ ...b, presenter: null }) }
 postMocks['@/lib/ads/adV2Montage'] = { buildAdV2Source: () => ({ width: 1080, height: 1920, elements: [{ type: 'text', track: 4, text: 'Oferta editada pelo cliente', time: 1, duration: 4, background_color: 'black' }, { type: 'image', track: 3, source: 'real-end-card' }] }) }
 const post = createOfflineLoader({ mocks: postMocks })(postPath)

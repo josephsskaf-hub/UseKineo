@@ -1,3 +1,4 @@
+import { narrationTokens, narrationSentences, joinNarrationTokens } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 import OpenAI from 'openai'
 import { chatWithLlmFallback } from '@/lib/llmFallback'
 
@@ -259,16 +260,13 @@ export function buildCaptionSegments(script: string, maxWords = 7): CaptionSegme
   const clean = (script ?? '').trim().replace(/\s+/g, ' ')
   if (!clean) return []
 
-  const sentences = clean
-    .split(/(?<=[.!?])\s+/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0)
+  const sentences = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]/u.test(clean) ? narrationSentences(clean) : clean.split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter((s) => s.length > 0) // KINEO-IDIOMAS-FORMATOS-2410
 
   const segments: CaptionSegment[] = []
   for (const sentence of sentences) {
-    const words = sentence.split(/\s+/)
+    const words = narrationTokens(sentence) // KINEO-IDIOMAS-FORMATOS-2410
     for (let i = 0; i < words.length; i += maxWords) {
-      const chunk = words.slice(i, i + maxWords).join(' ').trim()
+      const chunk = joinNarrationTokens(words.slice(i, i + maxWords)).trim() // KINEO-IDIOMAS-FORMATOS-2410
       if (!chunk) continue
       segments.push({
         text: chunk,

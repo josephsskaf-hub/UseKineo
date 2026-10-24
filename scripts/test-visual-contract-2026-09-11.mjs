@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact later language/format delta leaves historical contracts unchanged.
 // Offline executable checks: actual route AST/caller + actual builders/still
 // code, mocked only at OpenAI/Fal I/O. No credentials, env files or network.
 import assert from 'node:assert/strict'
@@ -12,7 +13,7 @@ import ts from 'typescript'
 const desfazAncoraEJuizStill1410 = (p, s) => desfazAncoraLegenda1410(p, desfazJuizStill1410(p, s)) // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const read = p => desfazAncoraEJuizStill1410(p, readFileSync(join(root, p), 'utf8')) // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
+const read = p => desfazAncoraEJuizStill1410(p, semIdiomasFormatos2410(readFileSync(join(root, p), 'utf8'), p)) // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 const parse = p => ts.createSourceFile(p, read(p), ts.ScriptTarget.Latest, true)
 const route = parse('app/api/generate-video-cinematic/route.ts')
 const router = parse('lib/hollywood/router.ts')

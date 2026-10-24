@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact newer source layer precedes every historical assertion and mutant.
 // KINEO-LOGO-DA-MARCA-2026-10-01 — guardião do "Your logo": o logo da empresa do cliente no canto de todo filme.
 // Só readFileSync + transpile local (guardião com alias @/ não roda — ver memória "Alias @/").
 import { readFileSync } from 'node:fs'
@@ -8,7 +9,7 @@ import { desfazEstornoNarracao } from './test-support/desfaz-escritor-omni-1310.
 
 let ok = 0, falhas = 0
 function checa(nome, cond) { if (cond) { ok++; console.log('  ✓', nome) } else { falhas++; console.log('  ✗', nome) } }
-const ler = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n')
+const ler = (p) => semIdiomasFormatos2410(readFileSync(new URL(`../${p}`, import.meta.url), 'utf8'), p).replace(/\r\n/g, '\n')
 
 const rota = ler('app/api/compose/route.ts')
 const unlock = ler('app/api/compose/unlock/route.ts')

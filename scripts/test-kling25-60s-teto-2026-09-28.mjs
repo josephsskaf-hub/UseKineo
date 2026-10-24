@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore newest layer before every historical reader/undo.
 // [TRAVA 8.2] KLING25-60S-TETO — guardião do teto de planos do Kling 2.5 no roteiro pronto (28/09/2026).
 // Fundador (28/09): "quero que você melhore o Kling 2.5 (...) teste com 60 segundos para chegar em 65 ou 70". O ensaio de
 // $0 em produção (203 palavras, 60 s, verbatim) saiu com 12 planos [5,10,10,10,10,10,10,5,5,5,10,5] = 95 s de imagem para
@@ -33,7 +34,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'), p)
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else { falhas.push(n); console.log('  FALHOU: ' + n) } }

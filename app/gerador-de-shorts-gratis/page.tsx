@@ -10,6 +10,7 @@ import { PaginaClaraCards, PaginaClaraTopo, PaginaClaraVitrine } from '@/compone
 import { PAGINA_CLARA_CLASSE, PAGINA_CLARA_FUNDO, VITRINE_LINHA_PT } from '@/lib/seo/paginasIaClaras2110' // KINEO-PAGINAS-IA-CLARAS-2110
 import ExitIntentOffer from '@/components/ExitIntentOffer'
 import Footer from '@/components/Footer'
+import { CitationDirectAnswer, CitationDetails } from '@/components/seo/TrafficCitation2310'
 import LocalizedScriptHandoff from '@/components/LocalizedScriptHandoff'
 // KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
 // lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
@@ -84,9 +85,7 @@ export default function GeradorDeShortsPage() {
         <h1 style={{ fontSize: 'clamp(1.9rem, 5vw, 2.9rem)', fontWeight: 650, lineHeight: 1.1, margin: '18px 0 0', fontFamily: 'var(--font-display), var(--font-inter), sans-serif' }}>
           Crie um Short sem aparecer — grátis
         </h1>
-        <p style={{ fontSize: '1.08rem', color: '#5A5F67', lineHeight: 1.6, margin: '16px 0 0' }}>
-          Digite uma ideia e o Kineo gera o Short vertical completo: roteiro, narração em português, cenas e legendas — pronto para postar no YouTube Shorts, TikTok ou Reels. Sem cartão.
-        </p>
+        <CitationDirectAnswer page="portuguese" />
         <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
 
         <BuyCreatorCta
@@ -134,6 +133,7 @@ export default function GeradorDeShortsPage() {
 
         {/* KINEO-PAGINAS-IA-CLARAS-2110 — os 3 exemplos velhos saíram; entra a vitrine atual (a mesma da /claude-connector). */}
         <PaginaClaraVitrine titulo="Feito de verdade com o Kineo" linha={VITRINE_LINHA_PT} align="left" />
+        <CitationDetails page="portuguese" />
 
         <section style={{ marginTop: 44 }}>
           <h2 style={{ fontSize: 'clamp(1.3rem, 3.5vw, 1.75rem)', fontWeight: 650, margin: '0 0 14px', fontFamily: 'var(--font-display), var(--font-inter), sans-serif' }}>

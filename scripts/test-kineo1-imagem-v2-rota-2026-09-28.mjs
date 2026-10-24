@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore newest layer before every historical reader/undo.
 // KINEO1-IMAGEM-V2-2026-09-28 (parte B, commit [TRAVA 8.2]) — guardião da ROTA do Kineo 1 com a imagem nova ligada.
 //
 // Kineo 1 faz 93% dos filmes de cliente; desde 19/09 o juiz dá 53 na IMAGEM (63 de 131 filmes com 40). A parte A
@@ -34,7 +35,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'), p)
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else falhas.push(n) }

@@ -1,3 +1,4 @@
+import { narrationWordCount } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { MIN_COVERAGE, WORDS_PER_SECOND } from '@/lib/narrationFit'
@@ -222,12 +223,7 @@ function missingElements(text: string): string[] {
 // governa os dois caminhos: o que a pessoa escreve e o que a IA escreve.
 const SCRIPT_TARGET_SECONDS = 60
 function scriptWordCount(text: string): number {
-  return text
-    .replace(/^\s*(HOOK|MICRO REWARD ?\d*|ESCALATION|RHYTHM|PAYOFF)\s*(\([^)]*\))?\s*:?/gim, ' ')
-    .replace(/\[[^\]]*\]/g, ' ')   // [Pexels: ...] não é falado
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean).length
+  return narrationWordCount(text.replace(/^\s*(HOOK|MICRO REWARD ?\d*|ESCALATION|RHYTHM|PAYOFF)\s*(\([^)]*\))?\s*:?/gim, ' ').replace(/\[[^\]]*\]/g, ' ').trim()) // KINEO-IDIOMAS-FORMATOS-2410
 }
 /** Palavras mínimas para a narração cobrir MIN_COVERAGE de um vídeo de 60s. */
 const MIN_SCRIPT_WORDS = Math.ceil(SCRIPT_TARGET_SECONDS * MIN_COVERAGE * WORDS_PER_SECOND)
@@ -377,7 +373,7 @@ export async function POST(req: NextRequest) {
     // corte determinístico até caber (lib/shortFilmScript.ts). O teto é o MENOR entre a régua do escritor e a da guarda
     // (maxWordsForShortFilm), contado como a guarda conta. Alvos de 35/60/90 não passam por nada disto.
     const filmeCurto = isShortFilmTarget(alvoSegundos)
-    const falaNaReguaDaGuarda = (t: string) => parseUserScript(t).narration.split(/\s+/).filter(Boolean).length
+    const falaNaReguaDaGuarda = (t: string) => narrationWordCount(parseUserScript(t).narration, language)
     const palavrasDoFilmeCurto = (t: string) => Math.max(scriptWordCount(t), falaNaReguaDaGuarda(t))
     // KINEO-RITMO-POR-IDIOMA-15S — a faixa e o teto duro (idiomaDoRitmo, acima) correm no MESMO ritmo da guarda de roteiro longo,
     // do plano 3x6 e do portão da rota do cinematic. O maxWordsForShortFilm do teto da faixa segue sem língua: no Seedance o

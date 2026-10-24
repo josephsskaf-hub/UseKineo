@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact newer source layer precedes every historical assertion and mutant.
 // KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10 "tudo sim", melhoria nº 8] — o crítico do STILL antes do clipe pago.
 // Prova, sem rede e sem render (OpenAI e fal falsos, relógio falso), executando o BLOCO REAL da rota (o lote de stills do
 // caminho clássico, de `const STILL_POOL = 3` até o log de custo) e a lib real (lib/cinematic/criticoStill.ts):
@@ -32,7 +33,7 @@ const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const ROTA = 'app/api/generate-video-cinematic/route.ts'
 const LIB = 'lib/cinematic/criticoStill.ts'
 const JUIZ = 'lib/hollywood/juizStill.ts'
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n')
 const git = (args) => execFileSync('git', ['-C', RAIZ, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
 
 globalThis.fetch = () => { throw new Error('rede proibida no guardião') }

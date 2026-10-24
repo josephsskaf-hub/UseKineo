@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-23",
+  "state": "TESTADO LOCALMENTE",
+  "pages": [
+    {
+      "page": "/",
+      "answerWords": 49,
+      "faqs": 5,
+      "tableRows": 3
+    },
+    {
+      "page": "/ai-video-generator/seedance",
+      "answerWords": 51,
+      "faqs": 5,
+      "tableRows": 2
+    },
+    {
+      "page": "/text-to-video-shorts",
+      "answerWords": 49,
+      "faqs": 5,
+      "tableRows": 2
+    },
+    {
+      "page": "/free-ai-shorts/horror",
+      "answerWords": 48,
+      "faqs": 5,
+      "tableRows": 2
+    },
+    {
+      "page": "/ai-video-generator/for/urdu",
+      "answerWords": 51,
+      "faqs": 5,
+      "tableRows": 2
+    },
+    {
+      "page": "/gerador-de-shorts-gratis",
+      "answerWords": 52,
+      "faqs": 5,
+      "tableRows": 2
+    }
+  ],
+  "currencyDisclosure": "Kineo lists reference plan prices in USD. Customers in Brazil pay in reais (BRL) at checkout. Elsewhere, the checkout shows the final charge currency; your bank may add conversion or cross-border fees."
+}

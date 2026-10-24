@@ -1,3 +1,6 @@
+import { semCartoonConsistencia2210 } from './test-support/desfaz-cartoon-consistencia-2210.mjs' // KINEO-CARTOON-CONSISTENCIA-2210
+function semIdiomasSemCartoon2210(text, file) { return semIdiomasFormatos2410(semCartoonConsistencia2210(text, file), file) } // KINEO-CARTOON-CONSISTENCIA-2210
+import { semIdiomasFormatos2410, IDIOMAS_FORMATOS_2410_BASE } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore this newer layer before historical contracts; current code has raw guardians.
 // [TRAVA 8.2] VEO-MARCADO-2026-09-29 — guardião do Veo 3.1 com ROTEIRO MARCADO (HOOK/MICRO REWARD/… com [Pexels: …] por bloco).
 // Palavra do fundador (29/09): "quero o Veo pronto pra amanhã". Auditoria de 29/09, dois furos: (1) o #442 dimensiona o verbatim em
 // min(9, …) e resolveVerbatimSegments AMOSTRA 9 blocos por índice (descarta, não funde) — 12 blocos em 60 s viravam 9 cenas; (2) o
@@ -26,7 +29,7 @@ const semTrilha15s1610 = (texto, p) => semTrilha15s1610Puro(semFilmeRapido1710(s
 const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeRapido1710(l) || linhaDosFilmesF1F4_1910(l) || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || l.includes('KINEO-DESENHO-SOM-2110') /* reancorado KINEO-DESENHO-SOM-2110 — o som do desenho infantil (21/10) mexe na rota só com kids_cartoon */ || l.includes('KINEO-BEBE-QUE-FALA-2010') /* reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories (20/10) também é de depois da base; provado em scripts/test-bebe-que-fala-2010.mjs */ /* reancorado KINEO-FILMES-F1-F4-1910 */ // reancorado KINEO-FILME-RAPIDO-1710
 import { linhasTrocadasMeta95Assunto1910 } from './test-support/desfaz-meta95-assunto-1910.mjs' // reancorado KINEO-META95-ASSUNTO-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: as linhas da base da rota que o assunto traduzido / a fala sem buraco trocaram de propósito (lista exata no desfaz; provadas em test-meta95-assunto-1910)
 const linhasTrocadasTrilha15s1610 = (p) => [...linhasTrocadasTrilha15s1610Puro(p), ...linhasTrocadasFilmeRapido1710(p), ...linhasTrocadasMeta95Assunto1910(p)] /* reancorado KINEO-META95-ASSUNTO-1910 */ // reancorado KINEO-FILME-RAPIDO-1710
-import { readFileSync, mkdtempSync, writeFileSync, rmSync, rmdirSync } from 'node:fs' // KINEO-CARTOON-CONSISTENCIA-2210 — diff histórico após retirar somente a camada posterior.
+import { readFileSync } from 'node:fs'
 import { desfazAncoraLegenda1410, linhaDaAncoraLegenda1410, linhasTrocadasAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 import { desfazJuizStill1410, linhaDoJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 import { semCenaNegacao1510, linhaDaCenaNegacao1510, linhasTrocadasCenaNegacao1510 } from './test-support/desfaz-cena-negacao-1510.mjs' // reancorado KINEO-CENA-NEGACAO-1510 [TRAVA 8.2 — vai do fundador 15/10]: as 2 linhas da base trocadas (o if do relato) e as linhas marcadas da negação no contrato de cena
@@ -106,22 +109,9 @@ const semCurtas = (t) => (t == null ? t : t.split('\n').filter((l) => !l.include
 const semTrocadas = (t) => (t == null ? t : t.split('\n').filter((l) => !TROCADAS_CURTAS.includes(l.replace(/\r$/, ''))).join('\n'))
 
 
-import { tmpdir } from 'node:os' // KINEO-CARTOON-CONSISTENCIA-2210
-import { semCartoonConsistencia2210 } from './test-support/desfaz-cartoon-consistencia-2210.mjs' // KINEO-CARTOON-CONSISTENCIA-2210
-function diffSemCartoon2210(before, atual, arquivo) { // KINEO-CARTOON-CONSISTENCIA-2210
-  const scratch = mkdtempSync(join(tmpdir(), 'kineo-veo-cartoon-2210-')), a = join(scratch, 'before.ts'), b = join(scratch, 'after.ts') // KINEO-CARTOON-CONSISTENCIA-2210
-  try { // KINEO-CARTOON-CONSISTENCIA-2210
-    writeFileSync(a, before.replace(/\r\n/g, '\n'), 'utf8') // KINEO-CARTOON-CONSISTENCIA-2210
-    writeFileSync(b, semCartoonConsistencia2210(atual, arquivo).replace(/\r\n/g, '\n'), 'utf8') // KINEO-CARTOON-CONSISTENCIA-2210
-    try { return execFileSync('git', ['diff', '--no-index', '--no-color', '-U0', '--', a, b], { encoding: 'utf8', maxBuffer: 1 << 28 }) } // KINEO-CARTOON-CONSISTENCIA-2210
-    catch (e) { if (e.status === 1 && typeof e.stdout === 'string') return e.stdout; throw e } // KINEO-CARTOON-CONSISTENCIA-2210
-  } finally { // KINEO-CARTOON-CONSISTENCIA-2210
-    rmSync(a, { force: true }); rmSync(b, { force: true }); rmdirSync(scratch) // KINEO-CARTOON-CONSISTENCIA-2210
-  } // KINEO-CARTOON-CONSISTENCIA-2210
-} // KINEO-CARTOON-CONSISTENCIA-2210
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasSemCartoon2210(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n')
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else { falhas.push(n); console.log('  FALHOU: ' + n) } }
@@ -391,9 +381,14 @@ for (const [ini, fim] of fatiasIntocadas) {
 }
 checa('buildFalInput (Seedance, Kling, Sora, Veo t2v/i2v, hollywood) byte a byte igual à base', rotaBase !== null && funcaoDe(desfazH3max(ROTA, rota), 'buildFalInput') === funcaoDe(rotaBase, 'buildFalInput'))
 if (rotaBase) {
-  const diff = git(['diff', '--no-color', '-U0', BASE, 'HEAD', '--', ROTA]).replace(/\r/g, '')
-  const worktreeDiff = git(['diff', '--no-color', '-U0', BASE, '--', ROTA]).replace(/\r/g, '')
-  const d = diffSemCartoon2210(rdBase(ROTA), rd(ROTA), ROTA) // KINEO-CARTOON-CONSISTENCIA-2210 — mesma régua do Veo, após desfaz exato do Cartoon (inclusive a linha vazia contextual).
+  // KINEO-IDIOMAS-FORMATOS-2410 — git target only after exact in-memory undo; source drift stays guarded.
+  const raw = readFileSync(join(RAIZ, ROTA), 'utf8').replace(/\r/g, '')
+  const restored = semIdiomasSemCartoon2210(raw, ROTA)
+  const taskUndone = restored !== raw
+  if (taskUndone && restored !== git(['show', `${IDIOMAS_FORMATOS_2410_BASE}:${ROTA}`]).replace(/\r/g, '')) throw new Error('Restored source diverges from immutable task base: ' + ROTA)
+  const diff = git(['diff', '--no-color', '-U0', BASE, taskUndone ? IDIOMAS_FORMATOS_2410_BASE : 'HEAD', '--', ROTA]).replace(/\r/g, '')
+  const worktreeDiff = taskUndone ? diff : git(['diff', '--no-color', '-U0', BASE, '--', ROTA]).replace(/\r/g, '')
+  const d = worktreeDiff.length ? worktreeDiff : diff
   const adicionadas = d.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).map((l) => l.slice(1))
   adicionadas.splice(0, adicionadas.length, ...adicionadas.filter((l) => !l.includes('KINEO-KIDS-VENDA-2010'))) // KINEO-KIDS-VENDA-2010 — só a venda do Cartoon, com marca e desfaz exato próprios, sai da conta do Veo
   const removidas = d.split('\n').filter((l) => l.startsWith('-') && !l.startsWith('---')).map((l) => l.slice(1))
