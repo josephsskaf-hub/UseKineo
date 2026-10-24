@@ -18,6 +18,7 @@
 
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -27,6 +28,7 @@ const gc = ler('app/(dashboard)/generate/GenerateClient.tsx')
 const bridgeLib = ler('lib/growth/trialBalanceBridge.ts')
 const repeatLib = ler('lib/growth/trialRepeatBeforeCheckout.ts')
 const pricing = ler('lib/pricing.ts')
+const ts = createRequire(join(raiz, 'package.json'))('typescript')
 
 let falhas = 0
 let total = 0
@@ -53,15 +55,21 @@ t('A3 o repeat só cede o slot para a ponte quando ela é elegível',
   /if \(input\.bridgeEligible\) return \{ \.\.\.base, action: 'bridge', reason: 'bridge_first' \}/.test(repeatLib))
 t('A4 na tela, o repeat recebe bridgeEligible da decisão real da ponte',
   /decideTrialRepeatBeforeCheckout\(\{\s*\n\s*trialPhase: trialPostVideoPhase,\s*\n\s*credits,\s*\n\s*bridgeEligible: trialBalanceBridge\.eligible,/.test(gc))
-t('A5 o degrau irmão só fica de pé quando o repeat decide episódio',
-  /const showTrialRepeatEpisode =\s*\n\s*showTrialPostVideoOffer && trialRepeatDecision\.action === 'episode'/.test(gc))
+t('A5 o degrau irmão obedece o dono canonico do slot',
+  gc.includes("const showTrialRepeatEpisode = postDeliverySlotOwner === 'repeat_episode'") &&
+  /askEligible: showTrialPostVideoOffer,[\s\S]{0,250}repeatEligible: trialRepeatDecision\.action === 'episode'/.test(gc))
+const slotModule = { exports: {} }
+new Function('module', 'exports', ts.transpileModule(ler('lib/growth/postDeliverySlot.ts'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText)(slotModule, slotModule.exports)
+const slot = input => slotModule.exports.decidePostDeliverySlot({ askEligible: true, deliveredFilmWatermarked: false, bridgeEligible: false, repeatEligible: true, ...input })
+t('A6 episodio continua disponivel com slot elegivel', slot({}) === 'repeat_episode')
+t('A7 sem slot ou com ponte/filme marcado o episodio cede', slot({ askEligible: false }) === null && slot({ bridgeEligible: true }) === 'balance_bridge' && slot({ deliveredFilmWatermarked: true }) === 'commercial_ask')
 
 // ── B. O RECORTE. Do início do card do episódio até o início da ponte.
 const CONDICAO_REPEAT = '{(!showTrialPostVideoOffer || showTrialRepeatEpisode) && (nextEpisode || nextEpisodeLoading) && ('
 const inicio = gc.indexOf(CONDICAO_REPEAT)
 t('B1 o card do episódio existe e é achado pela sua condição de render', inicio !== -1,
   `procurei por ${JSON.stringify(CONDICAO_REPEAT)}`)
-const DEPOIS = '{showTrialPostVideoOffer && trialBalanceBridge.eligible && ('
+const DEPOIS = "{postDeliverySlotOwner === 'balance_bridge' && ("
 const fim = gc.indexOf(DEPOIS, inicio === -1 ? 0 : inicio)
 t('B2 a ponte vem depois (o recorte tem fim)', inicio !== -1 && fim > inicio)
 const card = inicio !== -1 && fim > inicio ? gc.slice(inicio, fim) : ''
@@ -121,7 +129,7 @@ t('E8 o motivo full_seedance_already_fits ainda é um valor possível da ponte',
 
 // ── F. A PONTE COM PREÇO (02:32) CONTINUA DE PÉ — esta peça é complemento,
 // não substituição.
-const ponte = gc.slice(fim, gc.indexOf('{showTrialPostVideoOffer && !trialBalanceBridge.eligible', fim))
+const ponte = gc.slice(fim, gc.indexOf("{postDeliverySlotOwner === 'commercial_ask' && (", fim))
 t('F1 a ponte segue com o seu link de preço',
   ponte.includes("trial_bridge_subscription_clicked") && ponte.includes('STARTER_PLAN_FACTS.priceLabel'))
 

@@ -11,9 +11,17 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { execFileSync } from 'node:child_process'
+import { createRequire } from 'node:module'
+import vm from 'node:vm'
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
-const comp = readFileSync(join(raiz, 'components/video/NextShortsSection.tsx'), 'utf8')
+// A contribuição de 31/08 foi substituída explicitamente em 01/09. Os seus
+// controles continuam integrais nesta fixture; o produto atual roda abaixo.
+const caminho = 'components/video/NextShortsSection.tsx'
+const frozen = (sha) => execFileSync('git', ['show', `${sha}:${caminho}`], { cwd: raiz, encoding: 'utf8' })
+const comp = frozen('a99c5ec14e12fc74a7a9aa7a35fe80328f09e0c7')
+const current = readFileSync(join(raiz, caminho), 'utf8')
 const caller = readFileSync(join(raiz, 'app/(dashboard)/generate/GenerateClient.tsx'), 'utf8')
 
 const semComentarios = (t) =>
@@ -110,6 +118,68 @@ ver('G5', comp.includes("width: '100%'"), 'card pode encolher no grid')
 ver('H1', comp.includes('SPRINT-V1V4 #7'), 'sem marca da rodada')
 ver('H2', comp.includes('674') && comp.includes('420'), 'sem o numero que escolheu o alvo')
 ver('H3', comp.includes('2.6%'), 'sem a taxa medida')
+
+// O contrato aprovado atual carrega o compositor, limita a três sugestões e
+// mede visibilidade a 35%. Executamos o componente real com hooks/HTTP locais.
+ver('I1', current === frozen('1c078ed01'), 'componente atual divergiu da base aprovada')
+const ts = createRequire(join(raiz, 'package.json'))('typescript')
+function world(source, ideas, reject = false) {
+  const slots = [], effects = [], events = [], picks = [], requests = [], observers = [], loaded = []
+  let cursor = 0
+  const react = {
+    useState(initial) { const i = cursor++; if (!(i in slots)) slots[i] = initial; return [slots[i], value => { slots[i] = value }] },
+    useRef(initial) { const i = cursor++; if (!(i in slots)) slots[i] = { current: initial }; return slots[i] },
+    useEffect(fn, deps) {
+      const i = cursor++, old = slots[i]
+      if (!old || deps.some((dep, j) => !Object.is(dep, old.deps[j]))) {
+        slots[i] = { deps, cleanup: null }; effects.push(() => { old?.cleanup?.(); slots[i].cleanup = fn() })
+      }
+    },
+    createElement(type, props, ...children) {
+      if (props?.ref && typeof props.ref === 'object') props.ref.current = { nodeType: 1 }
+      return { type, props: { ...props, children: children.flat(Infinity) } }
+    },
+  }
+  class Observer {
+    constructor(callback, options) { this.callback = callback; this.options = options; this.disconnected = false; observers.push(this) }
+    observe(element) { this.element = element }
+    disconnect() { this.disconnected = true }
+  }
+  const module = { exports: {} }
+  const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.React } }).outputText
+  vm.runInNewContext(js, { module, exports: module.exports, React: react,
+    require(id) { if (id === 'react') return react; throw new Error('unexpected import ' + id) },
+    IntersectionObserver: Observer,
+    fetch: async (url, options) => { requests.push({ url, options }); if (url !== '/api/next-shorts') throw new Error('network forbidden'); if (reject) throw new Error('synthetic failure'); return { json: async () => ({ ideas }) } },
+  }, { filename: caminho, timeout: 5000 })
+  const props = { topic: 'topic', title: 'title', niche: 'niche', hook: 'hook', onPick: idea => picks.push(idea), onEvent: (name, meta) => events.push({ name, meta }), onLoaded: count => loaded.push(count) }
+  function render() { cursor = 0; const tree = module.exports.default(props); effects.splice(0).forEach(run => run()); return tree }
+  return { render, events, picks, requests, observers, loaded }
+}
+function nodes(tree, type) {
+  if (!tree || typeof tree !== 'object') return []
+  return [...(tree.type === type ? [tree] : []), ...(tree.props?.children ?? []).flatMap(child => nodes(child, type))]
+}
+const fixture = Array.from({ length: 5 }, (_, i) => ({ title: `Episode ${i}`, prompt: `Exact prompt ${i}`, angle: `Angle ${i}` }))
+async function ready(w) { w.render(); await new Promise(setImmediate); return w.render() }
+const w = world(current, fixture), tree = await ready(w), buttons = nodes(tree, 'button')
+ver('I2', buttons.length === 3 && w.loaded.join(',') === '3', 'lista não limitada a três ou onLoaded incorreto')
+ver('I3', w.requests.length === 1 && w.requests[0].options.method === 'POST' && JSON.parse(w.requests[0].options.body).topic === 'topic', 'requisição de ideias incorreta')
+ver('I4', JSON.stringify(tree).includes('Load into the composer'), 'ação permanente atual ausente')
+buttons[0]?.props.onClick()
+ver('I5', w.picks.length === 1 && w.picks[0].prompt === fixture[0].prompt && w.requests.length === 1, 'clique deve só carregar o prompt, sem gerar/requisitar')
+ver('I6', w.events.filter(event => event.name === 'next_shorts_shown').length === 1 && w.events.some(event => event.name === 'next_shorts_picked'), 'telemetria de carga/escolha perdida')
+const observer = w.observers[0]
+observer?.callback([{ isIntersecting: true, intersectionRatio: 0.34 }])
+ver('I7', !w.events.some(event => event.name === 'next_shorts_seen'), 'carga ou visibilidade insuficiente contou como visto')
+observer?.callback([{ isIntersecting: true, intersectionRatio: 0.35 }])
+observer?.callback([{ isIntersecting: true, intersectionRatio: 1 }])
+ver('I8', w.events.filter(event => event.name === 'next_shorts_seen').length === 1 && observer?.disconnected && observer.options.threshold.includes(0.35), 'visibilidade deve contar uma vez a partir de35%')
+ver('I9', await ready(world(current, [])) === null && await ready(world(current, fixture, true)) === null, 'lista vazia/erro deve sumir silenciosamente')
+const mutant = current.replace('onPick(idea)', 'void idea')
+const bad = world(mutant, fixture), badTree = await ready(bad)
+nodes(badTree, 'button')[0]?.props.onClick()
+ver('I10', mutant !== current && bad.picks.length === 0, 'controle não detectou remoção do carregamento do compositor')
 
 console.log(`${ok} verificacoes ok, ${falhas.length} falhas`)
 if (falhas.length) { for (const f of falhas) console.log('  ✗ ' + f); process.exit(1) }

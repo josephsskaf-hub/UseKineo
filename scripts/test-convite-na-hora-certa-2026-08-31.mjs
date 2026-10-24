@@ -16,6 +16,7 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { execFileSync } from 'node:child_process'
 
 const aqui = path.dirname(fileURLToPath(import.meta.url))
 const raiz = path.resolve(aqui, '..')
@@ -163,8 +164,20 @@ const trechoPopup = iPopup > 0 ? download.slice(iPopup, iPopup + 1200) : ''
 checa('não anuncia no fallback de popup', !trechoPopup.includes('anunciarVideoEntregue'))
 
 // ── BLOCO C ────────────────────────────────────────────────────────────────
-console.log('C) NextShortsSection.tsx — verdade da visibilidade e convite')
-const secao = readFileSync(path.join(raiz, 'components/video/NextShortsSection.tsx'), 'utf8')
+console.log('C) contribuição31/08 congelada — visibilidade e convite históricos')
+const componente = 'components/video/NextShortsSection.tsx'
+const frozen = (sha) => execFileSync('git', ['show', `${sha}:${componente}`], { cwd: raiz, encoding: 'utf8' })
+const secao = frozen('a99c5ec14e12fc74a7a9aa7a35fe80328f09e0c7')
+const atual = readFileSync(path.join(raiz, componente), 'utf8')
+// A rodada01/09 substituiu a convocação por download por visibilidade35%.
+// As provas anteriores continuam acima/abaixo; esta é a fronteira vigente.
+checa('componente atual corresponde à substituição aprovada na main', atual === frozen('1c078ed01'))
+checa('atual separa carregado de visto com guarda uma vez', atual.includes("'next_shorts_shown'") && atual.includes("'next_shorts_seen'") && atual.includes('if (seenRef.current) return'))
+checa('atual mede35% com observador e desconecta', atual.includes('intersectionRatio >= 0.35') && atual.includes('io?.disconnect()'))
+checa('atual mantém escolha que só carrega o compositor', atual.includes('onPick(idea)') && atual.includes('Load into the composer') && !atual.includes('handleGenerate'))
+checa('substituição aprovada remove convocação e mantém aviso de Generate', !atual.includes('ouvirVideoEntregue') && atual.includes('no credit is spent until you press Generate'))
+const caller = readFileSync(path.join(raiz, 'app/(dashboard)/generate/GenerateClient.tsx'), 'utf8')
+checa('componente atual permanece ligado à tela pronta e ao compositor', caller.includes('<NextShortsSection') && caller.includes('setPrompt(idea.prompt)'))
 
 checa('importa ouvirVideoEntregue', /import\s*\{\s*ouvirVideoEntregue\s*\}\s*from\s*'@\/lib\/postVideoSignal'/.test(secao))
 checa('assina o sinal', /ouvirVideoEntregue\(/.test(secao))

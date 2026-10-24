@@ -19,6 +19,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { createRequire } from 'node:module'
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 const CAMINHO = join(raiz, 'app', '(dashboard)', 'generate', 'GenerateClient.tsx')
@@ -34,6 +35,14 @@ function semComentarios(texto) {
     .join('\n')
 }
 const codigo = semComentarios(bruto)
+const ts = createRequire(join(raiz, 'package.json'))('typescript')
+const ast = ts.createSourceFile('GenerateClient.tsx', bruto, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+const nodes = []
+function visit(node) { nodes.push(node); ts.forEachChild(node, visit) }
+visit(ast)
+const helperNode = nodes.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'trackGenerationFailure')
+const ledgerSource = readFileSync(join(raiz, 'lib/failureLedger.ts'), 'utf8')
+const ledgerCode = semComentarios(ledgerSource)
 
 let ok = 0
 const falhas = []
@@ -52,13 +61,15 @@ checar('A1 carimbo KINEO-CAUSA-SEMPRE-2026-08-31 presente', bruto.includes('KINE
 checar('A2 função sintetizarCausa existe', /function sintetizarCausa\(/.test(codigo))
 checar('A3 sintetizarCausa recebe stage, reason e httpStatus',
   /function sintetizarCausa\(\s*stage: Phase,\s*reason: string,\s*httpStatus: number \| null,\s*\): string/.test(codigo))
-checar('A4 a síntese usa o prefixo no_detail:', codigo.includes('`no_detail:${reason}`'))
-checar('A5 a síntese carrega o stage', codigo.includes('`stage=${stage}`'))
+checar('A4 a síntese compartilhada usa o prefixo no_detail:', ledgerCode.includes('`no_detail:${reason}`'))
+checar('A5 a síntese compartilhada carrega o stage', ledgerCode.includes('`stage=${stage}`'))
 checar('A6 a síntese carrega o http (ou a palavra none)',
-  codigo.includes("`http=${typeof httpStatus === 'number' ? httpStatus : 'none'}`"))
-checar('A7 a síntese é truncada em 180', trecho(codigo, 'function sintetizarCausa(', 14).includes('.slice(0, 180)'))
+  ledgerCode.includes("`http=${typeof httpStatus === 'number' ? httpStatus : 'none'}`"))
+checar('A7 a síntese é truncada em180 e o caller usa a fonte canonica', ledgerCode.includes('.slice(0, 180)') && codigo.includes('return sintetizarCausaCompartilhada(stage, reason, httpStatus)'))
 
-const helper = trecho(codigo, 'function trackGenerationFailure(', 60)
+// Later signal/telemetry additions exceeded the old sixty-line cut. Scope the
+// actual function, so assertions cannot pass on an unrelated event elsewhere.
+const helper = helperNode ? semComentarios(helperNode.getText(ast)) : ''
 checar('A8 helper calcula detalhe a partir de extra.detail', /const detalhe =/.test(helper))
 checar('A9 helper calcula mensagem a partir de extra.message', /const mensagem =/.test(helper))
 checar('A10 detalhe exige string não-vazia (trim)', helper.includes("typeof extra?.detail === 'string' && extra.detail.trim().length > 0"))
@@ -79,15 +90,17 @@ checar('A20 mensagem é truncada em 200', helper.includes('.trim().slice(0, 200)
 checar('A21 http_status continua aceitando null explícito',
   helper.includes('const httpStatusValue = ') && helper.includes('http_status: httpStatusValue,'))
 checar('A22 o helper continua dentro de try/catch (analytics nunca quebra render)',
-  /function trackGenerationFailure\([\s\S]{0,2600}\} catch \{/.test(codigo))
+  helperNode && ts.isTryStatement(helperNode.body.statements[0]) && !!helperNode.body.statements[0].catchClause)
 checar('A23 nenhuma atribuição literal error: null sobrou no arquivo inteiro',
   !/\berror:\s*null\b/.test(codigo))
 
 // ── B. OS RAMOS QUE TINHAM O TEXTO NA MÃO AGORA O ENTREGAM ─────────────────
-const bAnalyze = trecho(codigo, "'analyze_not_ok'", 8)
+const analyzeCall = nodes.find(node => ts.isCallExpression(node) && node.expression.getText(ast) === 'trackGenerationFailure' && node.arguments[1]?.getText(ast) === "'analyze_not_ok'")
+const bAnalyze = analyzeCall ? semComentarios(analyzeCall.getText(ast)) : ''
 checar('B1 analyze_not_ok passa httpStatus', bAnalyze.includes('httpStatus: res.status'))
 checar('B2 analyze_not_ok leva o texto do servidor como detail',
-  bAnalyze.includes("detail: typeof data?.error === 'string' ? data.error : undefined"))
+  bAnalyze.includes('detail: servidorDisse') && bAnalyze.includes('prompt_len=') &&
+  nodes.some(node => ts.isVariableDeclaration(node) && node.name.getText(ast) === 'servidorDisse' && node.initializer?.getText(ast).includes("typeof data?.error === 'string' && data.error.trim().length > 0 ? data.error.trim() : ''")))
 checar('B3 analyze_not_ok marca responded: true', bAnalyze.includes('responded: true'))
 checar('B4 analyze_not_ok segue sendo emitido pelo helper',
   codigo.includes("trackGenerationFailure('analyzing', 'analyze_not_ok', {"))
@@ -130,6 +143,18 @@ checar('C7 o campo message continua existindo no evento', helper.includes('messa
 checar('C8 elapsed_ms preservado', helper.includes('elapsed_ms:'))
 checar('C9 responded preservado', helper.includes('responded:'))
 checar('C10 attempt_id preservado', helper.includes('attempt_id: generationAttemptRef.current,'))
+
+const executeLedger = source => {
+  const module = { exports: {} }
+  new Function('module', 'exports', ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText)(module, module.exports)
+  return module.exports
+}
+const ledger = executeLedger(ledgerSource)
+checar('runtime: causa sem detalhe conserva motivo, estagio e HTTP', ledger.sintetizarCausa('clips_ready', 'provider_queued', 503) === 'no_detail:provider_queued|stage=clips_ready|http=503')
+checar('runtime: HTTP desconhecido e none, nunca null', ledger.sintetizarCausa('idle', 'missing', null) === 'no_detail:missing|stage=idle|http=none')
+checar('runtime: causa longa respeita180', ledger.sintetizarCausa('idle', 'x'.repeat(500), null).length === 180)
+const longMutant = executeLedger(ledgerSource.replace('partes.join(\'|\').slice(0, 180)', 'partes.join(\'|\').slice(0, 181)'))
+checar('mutante: teto incorreto reprova a fixture longa', longMutant.sintetizarCausa('idle', 'x'.repeat(500), null).length !== 180)
 
 console.log(`\n[causa-sempre] ${ok} verificações ok, ${falhas.length} falhas`)
 if (falhas.length) {

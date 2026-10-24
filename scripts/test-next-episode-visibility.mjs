@@ -3,9 +3,19 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { createRequire } from 'node:module'
+import { execFileSync } from 'node:child_process'
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 const src = readFileSync(join(raiz, 'app/(dashboard)/generate/GenerateClient.tsx'), 'utf8')
+const ts = createRequire(join(raiz, 'package.json'))('typescript')
+const ast = ts.createSourceFile('GenerateClient.tsx', src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+const nodes = []
+function visit(node) { nodes.push(node); ts.forEachChild(node, visit) }
+visit(ast)
+const effect = nodes.find(node => ts.isCallExpression(node) && node.expression.getText(ast) === 'useEffect' && node.arguments[0]?.getText(ast).includes('nextEpisodeSeenRef.current'))?.getText(ast) ?? ''
+const button = nodes.find(node => ts.isJsxElement(node) && node.openingElement.tagName.getText(ast) === 'button' && node.openingElement.attributes.properties.some(property => ts.isJsxAttribute(property) && property.name.getText(ast) === 'ref' && property.initializer?.getText(ast) === '{nextEpisodeBtnRef}'))?.getText(ast) ?? ''
+const original = execFileSync('git', ['show', 'd193b072221b21cf35ad6dfd24f8c1d78aca8d83:app/(dashboard)/generate/GenerateClient.tsx'], { cwd: raiz, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 })
 
 let ok = 0
 const falhas = []
@@ -20,7 +30,8 @@ check('fonte done_screen no evento', /series_continue_seen'[\s\S]{0,200}source: 
 check('carrega attempt_id', /series_continue_seen'[\s\S]{0,300}attempt_id: attemptId/.test(src))
 check('carrega seconds_after_ready', /series_continue_seen'[\s\S]{0,300}seconds_after_ready/.test(src))
 check('carrega observed', /series_continue_seen'[\s\S]{0,320}observed,/.test(src))
-check('evento unico no arquivo', src.split("trackEvent('series_continue_seen'").length - 1 === 1)
+check('evento unico no efeito done_screen', effect.split("trackEvent('series_continue_seen'").length - 1 === 1)
+check('porta de cima tem origem propria e nao duplica done_screen', src.includes("source: 'done_screen_top'") && effect.includes("source: 'done_screen'"))
 
 // ── 2. so dispara na tela de video pronto, uma vez por render ──────────────
 check('efeito preso a phase done', /nextEpisodeSeenRef[\s\S]{0,1200}/.test(src) && /useEffect\(\(\) => \{\s*\n\s*if \(phase !== 'done'\) return\s*\n\s*const attemptId = generationAttemptRef\.current\s*\n\s*if \(!attemptId \|\| nextEpisodeSeenRef\.current === attemptId\) return/.test(src))
@@ -34,7 +45,7 @@ check('metade do botao visivel', /threshold: 0\.5/.test(src))
 check('so marca em isIntersecting', /if \(entry\.isIntersecting\) \{\s*\n\s*marcarVisto\(true\)/.test(src))
 check('desconecta no primeiro acerto', /marcarVisto\(true\)\s*\n\s*observer\?\.disconnect\(\)/.test(src))
 check('fallback sem IO marca observed:false', /if \(typeof IntersectionObserver === 'undefined'\) \{\s*\n\s*marcarVisto\(false\)/.test(src))
-check('nao ha marcarVisto(true) fora do observer', src.split('marcarVisto(true)').length - 1 === 1)
+check('nao ha marcarVisto(true) fora do observer done_screen', effect.split('marcarVisto(true)').length - 1 === 1)
 
 // ── 4. nao vaza timer nem observer ─────────────────────────────────────────
 check('retentativa limitada', /if \(tentativas > 25\) return/.test(src))
@@ -49,8 +60,9 @@ check('copy do botao intacta', src.includes('Build the next episode →'))
 check('subtitulo intacto', src.includes('Same settings stay selected · new hook, facts and payoff'))
 
 // ── 6. o botao deixou de ser rodape ────────────────────────────────────────
-check('fundo azul de acao', /ref=\{nextEpisodeBtnRef\}[\s\S]{0,700}background: 'rgba\(41,151,255,\.10\)'/.test(src))
-check('borda azul de acao', /ref=\{nextEpisodeBtnRef\}[\s\S]{0,700}border: '1px solid rgba\(41,151,255,\.40\)'/.test(src))
+check('fixture41 preserva fundo azul de acao original', /ref=\{nextEpisodeBtnRef\}[\s\S]{0,700}background: 'rgba\(41,151,255,\.10\)'/.test(original))
+check('fixture41 preserva borda azul de acao original', /ref=\{nextEpisodeBtnRef\}[\s\S]{0,700}border: '1px solid rgba\(41,151,255,\.40\)'/.test(original))
+check('botao atual usa tokens de acao do tema', button.includes("background: 'var(--accent-soft)'") && button.includes("border: '1px solid var(--border)'") && button.includes("color: 'var(--accent)'"))
 check('cinza de rodape removido do botao', !/ref=\{nextEpisodeBtnRef\}[\s\S]{0,700}rgba\(255,255,255,\.055\)/.test(src))
 
 // ── 7. pista alheia intocada (regra 2) ─────────────────────────────────────

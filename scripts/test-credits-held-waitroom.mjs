@@ -31,7 +31,7 @@ t('ramo 402 normaliza a idade sem inventar zero minutos', ramo.includes('Math.ma
 t('evento registra estado e idade sem conteudo do filme', ramo.includes('hold_state:') && ramo.includes('minutes_ago:'))
 
 // ── o painel vermelho generico nao aparece mais neste caso ────────────────
-t('politica de falha generica exclui o credito preso', src.includes("const showGenericFailure = phase === 'failed' && !scriptTooShort && !creditsHeld"))
+t('politica de falha generica exclui qualidade, revisao e credito preso', src.includes("const showGenericFailure = phase === 'failed' && !qualityFailure && !scriptTooShort && !creditsHeld"))
 t('painel vermelho obedece a politica calculada', src.includes('{showGenericFailure && ('))
 t('painel de espera renderiza no phase failed', src.includes("{phase === 'failed' && creditsHeld && ("))
 
