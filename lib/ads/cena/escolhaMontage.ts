@@ -1,10 +1,13 @@
 // KINEO-ADS-ESCOLHA-2310 — chosen live scene for all15s; no original-photo close, card, opaque box or duration extension.
+// KINEO-ADS-ESCOLHA-PUBLICO-2410 — relocate captions around the human-selected preview's observed product/face boxes.
 import { ADS_V2_FRAME_RATE } from '../adV2Montage'
 import { cenaCaptionElements } from '../v2CenaQuality'
 import { ajusteFinalTextElements } from './ajusteMontage'
 import { cenaHttps, cenaVoiceModeOf, type CenaPlan } from './plan'
 import { escolhaOf, escolhaHasOffer } from './escolhaPlan'
 import type { CenaEscolhaState } from './escolhaMedia'
+import { escolhaCaptionLayout } from './escolhaCaptionLayout'
+import { addAjusteQuality } from './ajusteQuality'
 const r6 = (n: number): number => Math.round(n * 1e6) / 1e6
 const literal = (s: string): string => s.replace(/\[/gu, '［').replace(/\]/gu, '］')
 const norm = (s: string): string => s.replace(/\s+/gu, ' ').trim().toLowerCase()
@@ -23,9 +26,15 @@ function wrap(text: string, font: number): string {
   return lines.join('\n')
 }
 function captions(s: CenaEscolhaState): Record<string, unknown>[] {
-  const choice = escolhaOf(s.plan)!, center = choice.captionLane === 'top' ? 62 : 70
+  const choice = escolhaOf(s.plan)!, grounding = choice.captionGrounding?.imageUrl === s.keyframe ? choice.captionGrounding : undefined
+  const layout = escolhaCaptionLayout(choice.captionLane, grounding)
+  if (!layout) {
+    addAjusteQuality(s, { stage: 'montage', code: 'caption_grounding_unavailable', message: 'Narration captions were omitted because the selected preview has no reliable product geometry or no empty caption band. The complete narration and final customer copy remain; no guessed band covers the product.' })
+    return []
+  }
+  const { center, height } = layout
+  addAjusteQuality(s, { stage: 'montage', code: 'caption_preview_grounded', message: `Caption band at ${center}% avoids the product and face observed in the chosen preview. This is opening-image grounding; later moving video frames have not been measured.` })
   const duration = cenaVoiceModeOf(s.plan) === 'narrated' ? s.escolhaMedia!.voice.seconds! : 15
-  const height = Math.floor(2 * (1480 - 7 - 1920 * center / 100))
   // Timing is a proportional word estimate from measured audio length, never claimed forced alignment.
   return cenaCaptionElements({ text: literal(s.plan.script.narration), seconds: duration, width: 1080, height: 1920, track: 40 }).flatMap(e => {
     const time = Number(e.time), end = Math.min(13, time + Number(e.duration))
