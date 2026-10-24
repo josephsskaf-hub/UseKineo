@@ -8,16 +8,20 @@ const plan = { cena:{plan:{escolha:{sample:'KINEO-AMOSTRA-ANUNCIO-2410'}}} }, le
 (async()=>{
 const db = new PGlite();
 await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;
-alter default privileges in schema public grant all on tables to service_role;
 create table public.ads_v2_orders(id uuid primary key,user_id uuid,status text,assembly_lease_at timestamptz,plan jsonb,video_id uuid,credits_charged integer,billing_ref text);
 create table public.events(id uuid primary key default gen_random_uuid(),name text,user_id uuid,path text,metadata jsonb,created_at timestamptz default now());
-grant usage on schema public to service_role;grant select,insert,update on public.ads_v2_orders,public.events to service_role;`);
+grant usage on schema public to service_role;grant select,insert,update on public.ads_v2_orders,public.events to service_role;
+alter default privileges in schema public grant all on tables to service_role;`);
 await db.exec(fs.readFileSync(migration,'utf8'));
 const q = async(sql,args=[]) => (await db.query(sql,args)).rows;
 const scalar = async(sql,args=[]) => Object.values((await q(sql,args))[0])[0];
 const add = async(n,actor=uuid(n+100),p=plan) => { await q('insert into ads_v2_orders(id,user_id,status,assembly_lease_at,plan) values($1,$2,$3,$4,$5)',[uuid(n),actor,'planned',lease,p]);return actor; };
 const asService = () => db.exec('set role service_role'), reset = () => db.exec('reset role');
 const reserve = async(n,actor=uuid(n+100),owner=actor,l=lease,internal=false) => scalar('select public.reserve_ads_escolha_sample($1,$2,$3,$4,$5)',[uuid(n),actor,owner,l,internal]);
+for(const table of ['ads_escolha_sample_days','ads_escolha_samples','ads_escolha_sample_alerts']) {
+ for(const privilege of ['SELECT','INSERT','UPDATE','DELETE','TRUNCATE']) assert.equal(await scalar('select has_table_privilege($1,$2,$3)',['service_role','public.'+table,privilege]),['SELECT','INSERT','UPDATE'].includes(privilege),'inherited default ACL reset: '+table+' '+privilege);
+ await asService();await assert.rejects(q('delete from public.'+table+' where false'),/permission denied/);await reset();
+}
 for(let n=1;n<=12;n++) await add(n);
 await asService();
 // Promise pressure hits the actual atomic SQL function; PGlite serializes engine access, not independent live connections.
