@@ -234,9 +234,11 @@ equal((paymentPath.match(/paymentKind:\s*'one_time'/g) ?? []).length, 1, 'paymen
 // KINEO-TROCA-BUSINESS-2026-10-10 — re-ancorado: +1 chamador de assinatura, a fatura da subida para o Business (always_invoice),
 // que paga a comissão idempotente por fatura com o tier da assinatura viva.
 equal((webhookSource.match(/paymentKind:\s*'subscription'/g) ?? []).length, 8, 'all eight subscription commission callers classify payment explicitly')
-equal((webhookSource.match(/paymentKind:\s*'one_time'/g) ?? []).length, 1, 'exactly one one-time commission caller exists')
+equal((webhookSource.match(/paymentKind:\s*'one_time'/g) ?? []).length, 2, 'legacy pack and atomic one-time item each classify their commission')
+const oneTimeItemPath = webhookSource.slice(webhookSource.indexOf('if (isOneTimeItemSession(session))'), webhookSource.indexOf('// ── Path A: Legacy one-time credit-pack purchase'))
+ok(oneTimeItemPath.indexOf('await fulfillOneTimeItem(supabase, session)') >= 0 && oneTimeItemPath.indexOf('await recordAffiliateCommission(supabase') > oneTimeItemPath.indexOf('await fulfillOneTimeItem(supabase, session)'), 'atomic one-time delivery precedes its idempotent affiliate commission')
 // KINEO-TROCA-BUSINESS-2026-10-10 — re-ancorado: 8 → 9 (o mesmo chamador novo da subida para o Business).
-equal((webhookSource.match(/await recordAffiliateCommission\(supabase/g) ?? []).length, 9, 'all nine real commission callers remain present')
+equal((webhookSource.match(/await recordAffiliateCommission\(supabase/g) ?? []).length, 10, 'all eight subscription and both one-time commission callers remain present')
 ok(/paymentKind:\s*AffiliatePaymentKind/.test(webhookSource), 'recordAffiliateCommission requires explicit payment kind')
 // Retry now also includes the checkout-analytics sink. Assert each cause and
 // the composed guard instead of freezing the former two-term source line.

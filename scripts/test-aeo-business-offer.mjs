@@ -85,14 +85,15 @@ ok(offer.boundaries.some((line) => line.includes('may not be resold')), 'commerc
 
 const canonical = read('lib/kineoFacts.ts')
 ok(canonical.includes('buildBusinessOfferFact('), 'canonical facts execute the business-offer builder')
-ok(canonical.includes('businessOffer: BUSINESS_OFFER_FACT'), '/api/facts payload exposes businessOffer')
-ok(canonical.includes('ENGINE_FACTS[0].name'), 'named pack engine follows the public engine catalog')
+// KINEO-PAGINAS-QUE-VENDEM-2026-10-12 retired public bulk packs; the structured fact obeys that same gate.
+ok(canonical.includes('businessOffer: BULK_PACKS_PUBLIC ? BUSINESS_OFFER_FACT : null'), '/api/facts exposes businessOffer only while canonical public packs are enabled')
+ok(/buildBusinessOfferFact\(\s*BASE,\s*KINEO1_ENGINE_FACT\.name/.test(canonical), 'named paid pack engine follows Kineo 1 even when the free catalog starts with Seedance')
 
 const llms = read('app/llms.txt/route.ts')
 ok(llms.includes('BUSINESS_OFFER_FACT.packs.map'), 'llms text derives pack rows from the structured fact')
 ok(llms.includes('BUSINESS_OFFER_FACT.boundaries.map'), 'llms text derives boundaries from the structured fact')
 ok(llms.includes('BUSINESS_OFFER_FACT.volumeFitReview.url'), 'llms text exposes the existing optional fit review')
-ok(!llms.includes("from '@/lib/checkoutPricing'"), 'llms text no longer rebuilds the business offer separately')
+ok(!llms.includes('buildBusinessOfferFact(') && !/BULK_PACK_IDS|BULK_PACKS\[/.test(llms), 'llms text consumes the shared business fact instead of rebuilding its pack offer')
 
 const page = read('app/facts/page.tsx')
 ok(page.includes('BUSINESS_PACK_LIST'), 'human fact sheet derives the four-pack sentence')

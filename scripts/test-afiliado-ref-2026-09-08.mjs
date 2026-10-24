@@ -21,7 +21,8 @@ checa('/a/CODE grava clique e cookies de 90 dias', /COOKIE_MAX_AGE = 90 \* 24 \*
 checa('/a/CODE ignora robô de preview', /isAffiliatePreviewBot\(userAgent\)/.test(a))
 checa('o callback do cadastro fecha a atribuição pelo cookie', /finalizeAffiliateSignupAttribution\(\{[\s\S]{0,200}sf_aff/.test(rd('app/auth/callback/route.ts')))
 checa('rascunhos de diretório usam /a/CODE', !/usekineo\.com\/\?ref=/.test(rd('docs/RASCUNHOS-DIRETORIOS-2026-09-07.md')))
-checa('kit dos criadores existe e usa /a/CODE', /usekineo\.com\/a\/CODE/.test(rd('docs/KIT-AFILIADOS-2026-09-08.md')))
+const kit = rd('docs/KIT-AFILIADOS-2026-09-08.md')
+checa('kit dos criadores usa /a/YOURCODE nas quatro entradas rastreadas', ['faceless', 'video', 'script', 'business'].every((to) => kit.includes(`https://www.usekineo.com/a/YOURCODE?to=${to}`)) && kit.includes('Replace `YOURCODE`'))
 
 // a regex do middleware executada
 const re = /^[A-Z0-9]{8}$/

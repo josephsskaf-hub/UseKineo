@@ -6,24 +6,17 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import ts from 'typescript'
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 let ok = 0, fail = 0
 const t = (nome, cond) => { if (cond) { ok++ } else { fail++; console.error('  FALHOU: ' + nome) } }
 
-// ── Bloco A ── decisao pura, transpilada na unha (o lib e TS puro sem imports)
+// ── Bloco A ── decisão pura: transpilar também as declarações posteriores sem regex parcial de tipos.
 const src = fs.readFileSync(path.join(raiz, 'lib/durationGhost.ts'), 'utf8')
-const js = src
-  .replace(/^\s*export type Resgate = \{[\s\S]*?\n\}\n/m, '')
-  .replace(/: readonly number\[\]/g, '')
-  .replace(/: number \| null \| undefined/g, '')
-  .replace(/: unknown/g, '')
-  .replace(/: boolean/g, '')
-  .replace(/\): Resgate \| null \{/g, ') {')
-  .replace(/\): boolean \{/g, ') {')
-  .replace(/export function/g, 'function')
-  .replace(/args: \{[\s\S]*?\n\}\) \{/m, 'args) {')
-const mod = new Function(js + '; return { ehAlvoFantasma, deveResgatar }')()
+const js = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText
+const mod = {}
+new Function('exports', js)(mod)
 const { ehAlvoFantasma, deveResgatar } = mod
 const OFER = [35, 60, 90]
 
@@ -80,20 +73,20 @@ t('fala fracionaria e arredondada para telemetria',
 // ── Bloco B ── o resgate esta LIGADO na rota paga
 console.log('BLOCO B — a rota')
 const rota = fs.readFileSync(path.join(raiz, 'app/api/generate-video-cinematic/route.ts'), 'utf8')
-t('rota importa deveResgatar', /import \{ deveResgatar \} from '@\/lib\/durationGhost'/.test(rota))
+t('rota importa deveResgatar e a aterrissagem posterior', /import \{ deveResgatar, deveAterrissar \} from '@\/lib\/durationGhost'/.test(rota))
 t('rota CHAMA deveResgatar', /deveResgatar\(\{/.test(rota))
 t('duration virou `let` (o resgate precisa reatribuir)', /let duration = Number\(body\.duration\) \|\| 45/.test(rota))
-t('fit virou `let` (remedido depois do resgate)', /let fit = narrationFit\(parsedScript\.narration, duration\)/.test(rota))
-t('o resgate usa SUPPORTED_DURATIONS (fonte unica, nao lista na unha)', /oferecidas: SUPPORTED_DURATIONS/.test(rota))
+t('fit mutável usa a régua da voz selecionada', /let fit = narrationFitAt\(parsedScript\.narration, duration, narrationRate\)/.test(rota))
+t('o resgate usa presets canônicos e admite o preset curto que o motor realmente oferece', /oferecidas: oferecidasDoPortao/.test(rota) && rota.includes('supportedDurationsFor(typeof body.engine') && rota.includes('? [...SUPPORTED_DURATIONS, duration] : SUPPORTED_DURATIONS'))
 t('o resgate usa largestFittingDuration (mesma regua do cliente)', /maiorQueCabe: largestFittingDuration\(fit\.speech\)/.test(rota))
-t('remede o fit depois de trocar o alvo', /duration = resgate\.alvo\s*\n\s*fit = narrationFit\(/.test(rota))
+t('remede o fit com a mesma régua da voz depois de trocar o alvo', /duration = resgate\.alvo\s*\n\s*fit = narrationFitAt\(parsedScript\.narration, duration, narrationRate\)/.test(rota))
 t('emite duration_ghost_rescued', /name: 'duration_ghost_rescued'/.test(rota))
 t('telemetria grava o fantasma e o destino', /ghost_seconds: resgate\.fantasma/.test(rota) && /rescued_to_seconds: resgate\.alvo/.test(rota))
 t('telemetria registra se AINDA ficou curto', /still_short: !fit\.ok/.test(rota))
 t('telemetria nunca derruba a resposta (try/catch)', /duration_ghost_rescued[\s\S]{0,400}?\} catch \{/.test(rota))
 
 const iResgate = rota.indexOf('const resgate = deveResgatar')
-const iFit = rota.indexOf('let fit = narrationFit(parsedScript.narration, duration)')
+const iFit = rota.indexOf('let fit = narrationFitAt(parsedScript.narration, duration, narrationRate)')
 const iRelease = rota.indexOf("releaseBirthClaim('narration_too_short_no_charge')")
 const i422 = rota.indexOf('narrationTooShort: true')
 t('resgate vem DEPOIS do primeiro fit', iResgate > iFit && iFit > 0)
@@ -103,8 +96,9 @@ t('o guard 422 CONTINUA existindo (nao foi removido)', i422 > 0 && /status: 422/
 t('o estorno do claim CONTINUA existindo', iRelease > 0)
 t('narration_guard_blocked continua sendo emitido', /name: 'narration_guard_blocked'/.test(rota))
 t('o resgate so roda no caminho verbatim', /if \(verbatim && parsedScript\.narration\) \{\s*\n\s*let fit = narrationFit/.test(rota))
-t('duration NAO e reatribuido em nenhum outro ponto da rota',
-  (rota.match(/^\s*duration = /gm) || []).length === 1)
+const assignments = [...rota.matchAll(/^\s*duration = ([^\n]+)/gm)].map((m) => m[1].trim())
+t('só os resgates aprovados reatribuem a duração; nenhuma escrita extra',
+  assignments.length === 4 && ['degrau.effectiveSeconds', 'resgate.alvo', 'pouso.alvo', 'seguir.to'].every((value) => assignments.includes(value)))
 
 // ── Bloco C ── nada de dinheiro foi tocado
 console.log('BLOCO C — preco intacto')
