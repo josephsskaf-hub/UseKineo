@@ -1,6 +1,6 @@
+#!/usr/bin/env node
 import { semCartoonConsistencia2210 } from './test-support/desfaz-cartoon-consistencia-2210.mjs' // KINEO-CARTOON-CONSISTENCIA-2210
 function semIdiomasSemCartoon2210(text, file) { return semIdiomasFormatos2410(semCartoonConsistencia2210(text, file), file) } // KINEO-CARTOON-CONSISTENCIA-2210
-#!/usr/bin/env node
 // KINEO-CENA-NEGACAO-1510 [TRAVA 8.2 — vai do fundador 15/10 "vai, vamos fazer isso rápido"] — guardião da NEGAÇÃO no
 // Contrato de Cena (lib/cinematic/sceneTruth.ts).
 //

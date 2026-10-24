@@ -1,6 +1,6 @@
+#!/usr/bin/env node
 import { semCartoonConsistencia2210 } from './test-support/desfaz-cartoon-consistencia-2210.mjs' // KINEO-CARTOON-CONSISTENCIA-2210
 function semIdiomasSemCartoon2210(text, file) { return semIdiomasFormatos2410(semCartoonConsistencia2210(text, file), file) } // KINEO-CARTOON-CONSISTENCIA-2210
-#!/usr/bin/env node
 import { semIdiomasFormatos2410, IDIOMAS_FORMATOS_2410_BASE } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore the exact newest layer before historical readers, diffs and seals.
 // KINEO-TRILHA-15S [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"] — guardião da TRILHA do clipe na estrada clássica.
 //

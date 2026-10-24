@@ -1,6 +1,6 @@
+#!/usr/bin/env node
 import { semCartoonConsistencia2210 } from './test-support/desfaz-cartoon-consistencia-2210.mjs' // KINEO-CARTOON-CONSISTENCIA-2210
 function semIdiomasSemCartoon2210(text, file) { return semIdiomasFormatos2410(semCartoonConsistencia2210(text, file), file) } // KINEO-CARTOON-CONSISTENCIA-2210
-#!/usr/bin/env node
 // KINEO-IDIOMAS-FORMATOS-2410 — virtual diff keeps every original marked-line check after exact source restoration.
 function historicalSourceDiff(beforeText, afterText) {
   const scratch = mkdtempSync(join(tmpdir(), 'kineo-historical-2410-')), before = join(scratch, 'before.ts'), after = join(scratch, 'after.ts')

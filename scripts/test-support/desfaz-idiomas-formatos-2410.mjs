@@ -1,6 +1,7 @@
-// KINEO-IDIOMAS-FORMATOS-2410 — exact leaf layer; no import of another task's undo chain.
+// KINEO-IDIOMAS-FORMATOS-2410 — fixed historical hashes after the newer Cartoon leaf is removed. // KINEO-CARTOON-CONSISTENCIA-2210
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
+import { semCartoonConsistencia2210 } from './desfaz-cartoon-consistencia-2210.mjs' // KINEO-CARTOON-CONSISTENCIA-2210
 
 export const IDIOMAS_FORMATOS_2410_BASE = 'dd0abba8cc711be4bde2faaac39f0aef29f3f90d'
 export const IDIOMAS_FORMATOS_2410_MANIFEST = JSON.parse(readFileSync(new URL('./desfaz-idiomas-formatos-2410-fontes.json', import.meta.url), 'utf8'))
@@ -15,6 +16,7 @@ export function semIdiomasFormatos2410(text, file) {
   const rel = String(file ?? '').replace(/\\/g, '/')
   const known = IDIOMAS_FORMATOS_2410_MANIFEST.sources[rel]
   if (!known || typeof text !== 'string') return text
+  text = semCartoonConsistencia2210(text, file) // KINEO-CARTOON-CONSISTENCIA-2210
   const hash = sourceHash(text.replace(/\r\n/g, '\n'))
   if (hash === known.beforeHash) { verifiedBefore(known, false, rel); return text }
   if (known.integratedBeforeHash && hash === known.integratedBeforeHash) { verifiedBefore(known, true, rel); return text }
