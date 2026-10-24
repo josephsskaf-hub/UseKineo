@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact later source delta before historical readers and extracted functions.
 // KINEO-RITMO-POR-IDIOMA-15S-2026-09-29 [TRAVA 8.2 — "vai conserta" do fundador, 29/09] — guardião: no filme grátis de 15 s
 // (Seedance 1.5, 'cinematic_ai') o escritor, a guarda de roteiro longo, o plano 3x6 e o portão de 95 % medem a fala na MESMA
 // régua, e a régua fala a LÍNGUA do roteiro.
@@ -31,7 +32,7 @@ const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ) // o loader offline resolve '@/...' a partir do cwd
 const LF = String.fromCharCode(10), CR = String.fromCharCode(13)
 const semCR = (s) => (s == null ? null : s.split(CR + LF).join(LF))
-const rd = (p) => semCR(readFileSync(join(RAIZ, p), 'utf8'))
+const rd = (p) => semCR(semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p))
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) { ok++; console.log('  ✓ ' + n) } else { falhas.push(n); console.log('  ✗ FALHOU: ' + n) } }

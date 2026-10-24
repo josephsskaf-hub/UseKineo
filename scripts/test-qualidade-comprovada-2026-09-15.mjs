@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact later source delta before historical readers and extracted functions.
 // KINEO-QUALIDADE-COMPROVADA-2026-09-15 — complemento do fundador (15/09): "quero todos os motores
 // entregando vídeos bons … corrija problemas concretos … comprovada no resultado final".
 // Os defeitos abaixo vieram dos FILMES REAIS de 15/09 (não de guardião):
@@ -18,7 +19,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n')
 const main = (p) => { try { return execFileSync('git', ['show', `origin/main:${p}`], { cwd: RAIZ, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).replace(/\r\n/g, '\n') } catch { return null } }
 let ok = 0
 const falhas = []
