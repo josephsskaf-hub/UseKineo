@@ -15,6 +15,25 @@ let checks = 0
 function ok(value, message) { assert.ok(value, message); checks++ }
 function equal(actual, expected, message) { assert.deepEqual(actual, expected, message); checks++ }
 
+// Fixtures name the real component state instead of depending on another feature's hook count.
+const adsAst = ts.createSourceFile(adsFile, fs.readFileSync(path.join(root, adsFile), 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+const adsComponent = adsAst.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'AdsV2Escolha')
+assert.ok(adsComponent?.body, 'the real Ads choice component must exist')
+const adsHooks = {}, adsStateNames = []
+for (const statement of adsComponent.body.statements) {
+  if (!ts.isVariableStatement(statement)) continue
+  for (const declaration of statement.declarationList.declarations) {
+    if (!declaration.initializer || !ts.isCallExpression(declaration.initializer) || declaration.initializer.expression.getText(adsAst) !== 'useState') continue
+    assert.ok(ts.isArrayBindingPattern(declaration.name), 'Ads state fixture requires a named hook binding')
+    const name = declaration.name.elements[0].name.getText(adsAst)
+    adsHooks[name] = adsStateNames.length; adsStateNames.push(name)
+  }
+}
+const adsState = values => Object.fromEntries(Object.entries(values).map(([name, value]) => {
+  assert.ok(Object.hasOwn(adsHooks, name), `unknown Ads state fixture: ${name}`)
+  return [adsHooks[name], value]
+}))
+
 function environment({ state = {}, effects = [], track = async () => true, storage = new Map(), fetcher = noNetwork, sources = {}, disabled = false, visible = false, checkoutLauncher = null } = {}) {
   let index = 0
   const cache = new Map(), states = { ...state }
@@ -23,6 +42,7 @@ function environment({ state = {}, effects = [], track = async () => true, stora
     if (cache.has(file)) return cache.get(file)
     const box = { exports: {} }; cache.set(file, box.exports)
     let source = sources[file] ?? fs.readFileSync(path.join(root, file), 'utf8')
+    if (file.endsWith('.json')) { const json = JSON.parse(source); cache.set(file, json); return json } // Reviewed presenter candidates are real JSON data, never a stubbed catalog.
     if (disabled && file === 'lib/oneTimeItem.ts') source = source.replace('export const ONE_TIME_ITEMS_LIVE = true', 'export const ONE_TIME_ITEMS_LIVE = false')
     const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText
     vm.runInNewContext(code, { module: box, exports: box.exports, URL, URLSearchParams, AbortController, console, Date, Map, Set, Promise, setTimeout, clearTimeout, fetch: fetcher, process: { env: { NODE_ENV: 'production' } }, sessionStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) }, IntersectionObserver: class { constructor(callback) { this.callback = callback } observe() { this.callback([{ isIntersecting: true }]) } disconnect() {} }, require: id => {
@@ -152,28 +172,63 @@ const adsForm = { foto: '', frase: 'Produto', oferta: '', beneficios: '', cta: '
 async function adsCreditFailure(code, stage, sources = {}) {
   const stills = stage === 'choose' ? [{ id: 'still-1', url: 'https://offline.invalid/still.jpg' }] : []
   const orderId = '00000000-0000-4000-8000-000000000001'
-  const e = environment({ sources, state: { 0: adsForm, 1: stage, 2: orderId, 3: stills, 4: 'still-1', 7: 41, 11: true }, fetcher: async () => ({ status: 402, ok: false, json: async () => ({ error: code, ...(stage === 'choose' ? { stage: 'chosen', selected_still_id: 'still-1' } : {}) }) }) })
+  const e = environment({ sources, state: adsState({ form: adsForm, stage, orderId, stills, stillId: 'still-1', credits: 41, ready: true }), fetcher: async () => ({ status: 402, ok: false, json: async () => ({ error: code, ...(stage === 'choose' ? { stage: 'chosen', selected_still_id: 'still-1' } : {}) }) }) })
   const props = { lang: 'pt', ownerKey: 'offline', resume: false, balance: 0, onBalance: async () => {} }
   const tree = e.expand(React.createElement(e.load(adsFile).default, props))
   const button = e.all(tree, n => n.type === 'button' && e.text(n).includes(stage === 'choose' ? 'Gerar vídeo com esta foto' : 'Preparar quatro fotos'))[0]
   ok(button, 'the real creation action is available in the fixture')
   button.props.onClick(); await flush()
-  equal(e.states[1], stage, 'insufficient credit preserves the creation stage')
-  equal(e.states[2], orderId, 'insufficient credit preserves the existing order')
-  equal(e.states[3], stills, 'insufficient credit preserves all stills')
-  equal(e.states[4], 'still-1', 'insufficient credit preserves the selected still')
-  equal(e.states[9], '', 'insufficient credit does not add a red error')
-  equal(e.states[19], true, 'server credit refusal opens the neutral one-off choice')
-  if (stage === 'choose') equal(e.states[18], true, 'the server-selected photo remains locked across payment')
+  equal(e.states[adsHooks.stage], stage, 'insufficient credit preserves the creation stage')
+  equal(e.states[adsHooks.orderId], orderId, 'insufficient credit preserves the existing order')
+  equal(e.states[adsHooks.stills], stills, 'insufficient credit preserves all stills')
+  equal(e.states[adsHooks.stillId], 'still-1', 'insufficient credit preserves the selected still')
+  equal(e.states[adsHooks.error], '', 'insufficient credit does not add a red error')
+  equal(e.states[adsHooks.creditBlocked], true, 'server credit refusal opens the neutral one-off choice')
+  if (stage === 'choose') equal(e.states[adsHooks.choiceLocked], true, 'the server-selected photo remains locked across payment')
 }
 await adsCreditFailure('insufficient_credits', 'choose')
 await adsCreditFailure('cena_photo_credits_required', 'planned')
 for (const [balance, member, expected] of [[0, false, true], [41, false, false], [0, true, false]]) {
-  const e = environment({ state: { 0: adsForm, 1: 'planned', 2: '00000000-0000-4000-8000-000000000001', 7: 41, 11: true } })
+  const e = environment({ state: adsState({ form: adsForm, stage: 'planned', orderId: '00000000-0000-4000-8000-000000000001', credits: 41, ready: true }) })
   const html = e.render(adsFile, { lang: 'pt', ownerKey: 'offline', balance, oneTimeMember: member })
   equal(html.includes('data-kineo="one-time-item-offer"'), expected, 'offer follows real balance and workspace membership')
   if (member) ok(html.includes('Peça ao dono do espaço'), 'member receives an owner-credit instruction without checkout')
 }
+
+async function sampleUpgradeWithOneTime(sources = {}) {
+  const orderId = '00000000-0000-4000-8000-000000000001', stills = [{ id: 'sample-2', url: 'https://offline.invalid/sample-still.jpg' }]
+  const calls = [], e = environment({ sources, state: adsState({ form: adsForm, stage: 'delivered', orderId, stills, stillId: 'sample-2', credits: 0, videoUrl: 'https://offline.invalid/sample.mp4', ready: true, choiceLocked: true, sampleMode: true }), fetcher: async (url, init) => { calls.push({ url, body: JSON.parse(init.body) }); return { status: 402, ok: false, json: async () => ({ error: 'out_of_credits', needed: 41, balance: 0 }) } } })
+  const props = { lang: 'pt', ownerKey: 'offline', resume: false, balance: 0, sampleAvailable: true, initialSample: true, onBalance: async () => {} }
+  const tree = e.expand(React.createElement(e.load(adsFile).default, props))
+  const upgrade = e.all(tree, node => node.type === 'button' && e.text(node).includes('Gerar a versão completa'))[0]
+  ok(upgrade && !upgrade.props.disabled, 'delivered free sample retains the explicit full-version action beside the one-off feature')
+  upgrade.props.onClick(); await flush()
+  equal(calls, [{ url: '/api/ads/v2/cena', body: { stage: 'upgrade', order_id: orderId } }], 'sample upgrade reuses the exact server order without replacing any selection')
+  equal(e.states[adsHooks.stage], 'delivered', 'sample upgrade credit refusal retains the delivered stage')
+  equal(e.states[adsHooks.orderId], orderId, 'sample upgrade credit refusal retains the original order')
+  equal(e.states[adsHooks.stillId], 'sample-2', 'sample upgrade credit refusal retains the exact selected still')
+  equal(e.states[adsHooks.videoUrl], 'https://offline.invalid/sample.mp4', 'sample upgrade credit refusal retains the playable sample')
+  equal(e.states[adsHooks.showPlans], true, 'sample 402 reaches its plan choice instead of the generic one-off credit handler')
+  equal(e.states[adsHooks.purchaseBalance], 0, 'sample plan choice shows the authoritative checkout balance')
+  equal(e.states[adsHooks.creditBlocked], false, 'sample upgrade does not silently become a blocked paid creation')
+  const html = e.render(adsFile, props)
+  equal((html.match(new RegExp(`ads_sample_order=${orderId}`, 'g')) ?? []).length, 4, 'every sample plan checkout retains the saved sample order')
+  ok(html.includes('41 créditos') && !html.includes('data-kineo="one-time-item-offer"'), 'sample upgrade keeps its full credit amount and its existing plan purchase flow')
+}
+await sampleUpgradeWithOneTime()
+
+function freeSampleAfterPaidCreditFailure(sources = {}) {
+  const e = environment({ sources, state: adsState({ form: adsForm, stage: 'edit', ready: true, creditBlocked: true }) })
+  const props = { lang: 'pt', ownerKey: 'offline', resume: false, balance: 0, sampleAvailable: true }
+  const tree = e.expand(React.createElement(e.load(adsFile).default, props))
+  const chooseSample = e.all(tree, node => node.type === 'button' && e.text(node).includes('Amostra grátis'))[0]
+  ok(chooseSample && !chooseSample.props.disabled, 'a customer with a paid credit refusal can still select the free sample')
+  chooseSample.props.onClick()
+  const html = e.render(adsFile, props)
+  ok(html.includes('2 fotos') && html.includes('sem cobrar créditos'), 'the free sample remains free after switching from a paid credit refusal')
+  ok(!html.includes('data-kineo="one-time-item-offer"') && !html.includes('Peça ao dono do espaço'), 'a stale paid credit refusal cannot offer payment or owner funding inside the free sample')
+}
+freeSampleAfterPaidCreditFailure()
 
 function clock() {
   let now = 0, id = 0; const tasks = new Map()
@@ -225,6 +280,8 @@ async function kills(name, task) { try { await task() } catch (error) { if (erro
 const offerSource = fs.readFileSync(path.join(root, offerFile), 'utf8'), confirmSource = fs.readFileSync(path.join(root, confirmationFile), 'utf8')
 const adsSource = fs.readFileSync(path.join(root, adsFile), 'utf8')
 const paywallSource = fs.readFileSync(path.join(root, 'components/PricingCards.tsx'), 'utf8')
+await kills('generic one-off credit handler swallows sample upgrade', () => sampleUpgradeWithOneTime({ [adsFile]: adsSource.replace('if (!r.ok && !sampleMode && ONE_TIME_ITEMS_LIVE', 'if (!r.ok && ONE_TIME_ITEMS_LIVE') }))
+await kills('stale paid refusal shows checkout inside the free sample', () => freeSampleAfterPaidCreditFailure({ [adsFile]: adsSource.replace('needsOneTime && !sampleMode && !sessionDenied', 'needsOneTime && !sessionDenied') }))
 await kills('live paywall drops the one-off option', () => activePaywall({ 'components/PricingCards.tsx': paywallSource.replace('<OneTimeItemOffer surface="generate_paywall" checkout={checkout} />', '') }))
 await kills('payment offer bypasses server-selected photo lock', () => adsCreditFailure('out_of_credits', 'choose', { [adsFile]: adsSource.replace("if (action === 'render') absorb(data); setCreditBlocked(true)", 'setCreditBlocked(true)') }))
 await kills('displayed price drifts from canonical source', () => offerContract({ [offerFile]: offerSource.replace('label = oneTimeItemPriceLabel(sku)', "label = 'WRONG_PRICE'") }))
