@@ -7,7 +7,7 @@ import { CARTOON_CONSISTENCIA_FILES, CARTOON_CONSISTENCIA_NEW } from './test-sup
 import { CARTOON_TRACAO_HUNKS } from './test-support/desfaz-cartoon-tracao-2210.mjs'
 
 const manifest = JSON.parse(readFileSync(new URL('./test-support/cartoon-merge-sources-2410.json', import.meta.url), 'utf8'))
-const expected = { main: '1c078ed013302ac47c42f783305df688c4e97cfd', tracao: '189e7e2b5', consistencia: '153e9f31f', cardsGiro: '3ec6c9d9b790e00c05650ccab7e9af426cd106d1' }
+const expected = { main: '1c078ed013302ac47c42f783305df688c4e97cfd', tracao: '189e7e2b5', consistencia: '153e9f31f', cardsGiro: '3ec6c9d9b790e00c05650ccab7e9af426cd106d1', cardsBordas: '7ab62db2b10bea45b0c550879c7353f03caf3a6a' }
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 << 20, stdio: ['ignore', 'pipe', 'ignore'] }).replace(/\r\n/g, '\n')
 const requests = Object.entries(manifest.targets).flatMap(([target, entry]) => Object.keys(entry.files).map(file => ({ target, file, ref: entry.sha + ':' + file })))
 const blobs = execFileSync('git', ['cat-file', '--batch'], { input: requests.map(item => item.ref).join('\n') + '\n', maxBuffer: 64 << 20, stdio: ['pipe', 'pipe', 'ignore'] })
@@ -61,7 +61,7 @@ const tractionNew = [
   'docs/previews/cartoon-tracao-2210-pt-desktop.png', 'docs/previews/cartoon-tracao-2210-pt-mobile.png',
 ]
 const allowed = new Set([...CARTOON_CONSISTENCIA_FILES, ...CARTOON_CONSISTENCIA_NEW, ...Object.keys(CARTOON_TRACAO_HUNKS), ...tractionNew, ...integrationFiles])
-const tracked = git('diff', '--name-only', expected.cardsGiro, '--').trim().split('\n').filter(Boolean) // Inventory only is anchored to latest main; all original source hashes remain immutable.
+const tracked = git('diff', '--name-only', expected.cardsBordas, '--').trim().split('\n').filter(Boolean) // Inventory only is anchored to latest main; all original source hashes remain immutable.
 const untracked = git('ls-files', '--others', '--exclude-standard').trim().split('\n').filter(Boolean)
 const assertInventory = (files, extras) => assert.ok(files.length + extras.length > 0 && [...files, ...extras].every(file => allowed.has(file)),
   'finite live Cartoon integration inventory: ' + [...files, ...extras].filter(file => !allowed.has(file)).join(', '))

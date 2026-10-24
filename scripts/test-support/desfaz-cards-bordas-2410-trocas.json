@@ -1,0 +1,32 @@
+{
+ "arquivos": {
+  "lib/ui/homeThreeCards.ts": [
+   {
+    "depois": "    { src: '/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4', poster: '/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-h.webp', objectPosition: '50% 12%', mobileObjectPosition: '50% 12%', scale: 1.36 }, // KINEO-CARDS-BORDAS-2410 — zoom esconde a marca usekineo.com/free (topo) e a legenda (baixo)",
+    "antes": "    { src: '/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4', poster: '/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-h.webp', objectPosition: '50% 0%', mobileObjectPosition: '50% 0%' },"
+   },
+   {
+    "depois": "    { src: '/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-v.mp4', poster: '/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-h.webp', objectPosition: '50% 30%', mobileObjectPosition: '50% 30%', scale: 1.32 }, // KINEO-CARDS-BORDAS-2410 — idem",
+    "antes": "    { src: '/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-v.mp4', poster: '/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-h.webp', objectPosition: '50% 0%', mobileObjectPosition: '50% 0%' },"
+   },
+   {
+    "depois": "    { ...preview('home-card-close-real-en', '50% 35%') }, // KINEO-CARDS-BORDAS-2410 — cover (sem faixa preta); 35% mantém rosto e tênis (conferido no navegador)",
+    "antes": "    { ...preview('home-card-close-real-en', '50% 0%'), objectFit: 'contain' },"
+   },
+   {
+    "depois": "    { ...preview('home-card-close-real-pt', '50% 35%') }, // KINEO-CARDS-BORDAS-2410",
+    "antes": "    { ...preview('home-card-close-real-pt', '50% 0%'), objectFit: 'contain' },"
+   },
+   {
+    "depois": "  kids_cartoon: { default: [{ ...preview('home-card-kids-cartoon-leo', '50% 70%', '50% 100%') }] }, // KINEO-CARDS-BORDAS-2410 — cover (sem faixa preta), o enquadramento de antes do giro",
+    "antes": "  kids_cartoon: { default: [{ ...preview('home-card-kids-cartoon-leo', '50% 0%', '50% 0%'), objectFit: 'contain' }] },"
+   }
+  ],
+  "scripts/test-idiomas-formatos-undo-2410.mjs": [
+   {
+    "depois": "const actual = [...new Set([...git('diff', '--name-only', INTEGRATION_BASE).trim().split('\\n'), ...git('ls-files', '--others', '--exclude-standard').trim().split('\\n')])].filter(file => file && !file.startsWith('scripts/test-support/desfaz-cards-bordas-2410') && (!giroFiles.has(file) || idiomaFiles.has(file))).sort() // KINEO-CARDS-GIRO-2410 · KINEO-CARDS-BORDAS-2410",
+    "antes": "const actual = [...new Set([...git('diff', '--name-only', INTEGRATION_BASE).trim().split('\\n'), ...git('ls-files', '--others', '--exclude-standard').trim().split('\\n')])].filter(file => file && (!giroFiles.has(file) || idiomaFiles.has(file))).sort() // KINEO-CARDS-GIRO-2410"
+   }
+  ]
+ }
+}

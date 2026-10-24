@@ -1,4 +1,5 @@
 // KINEO-CARDS-GIRO-2410 — exact source undo, fixed points, EOL, Windows paths, tamper rejection and bounded task inventory; no writes.
+import { semCardsBordas2410 } from './test-support/desfaz-cards-bordas-2410.mjs' // KINEO-CARDS-BORDAS-2410
 import assert from 'node:assert/strict'
 import { readFileSync, existsSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
@@ -9,7 +10,7 @@ const git = (...args) => execFileSync('git',args,{encoding:'utf8',windowsHide:tr
 const lf = source => source.replace(/\r\n/g,'\n'), crlf=source=>lf(source).replace(/\n/g,'\r\n'), hash=source=>createHash('sha256').update(source).digest('hex')
 assert.equal(manifest.base,BASE)
 for (const [file,item] of Object.entries(manifest.sources)) {
-  const raw=cartoonMergeSource2410(readFileSync(file,'utf8'),file,'cardsGiro'), current=lf(raw), before=git('show',BASE+':'+file)
+  const raw=semCardsBordas2410(cartoonMergeSource2410(readFileSync(file,'utf8'),file,'cardsGiro'),file), current=lf(raw) /* KINEO-CARDS-BORDAS-2410 */, before=git('show',BASE+':'+file)
   assert.equal(item.before,before,'before bytes come from immutable base: '+file)
   assert.equal(item.beforeHash,hash(before),'base hash: '+file)
   assert.equal(item.afterHash,hash(current),'complete current source hash: '+file)
