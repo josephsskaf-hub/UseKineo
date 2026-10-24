@@ -13,7 +13,7 @@ const current = read(file), base = execFileSync('git',['show','1c078ed013302ac47
 const load = createOfflineLoader(), T = load('@/lib/textLanguage'), V = load('@/lib/ads/presenterVoice2410')
 const candidates = JSON.parse(read('lib/ads/presenterCandidates2410.json'))
 const ids = ['liana','mateo','zuri','omar','meilin','diego','priya','samir','elena','joao','naomi','tariq']
-assert.deepEqual(candidates.map(c=>c.id),ids,'the exact new-candidate scope is explicit')
+assert(ids.every(id => candidates.some(c => c.id === id)), 'the initial prepared batch remains in a growing catalog')
 const legacy = ['sofia','amara','rahul','kenji','jade','robert'], men = new Set(['rahul','kenji','robert'])
 const plain = value => JSON.parse(JSON.stringify(value))
 function compiled(source,name) {

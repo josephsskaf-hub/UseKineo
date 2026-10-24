@@ -4,6 +4,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { semIdiomasFormatos2410 as undo, IDIOMAS_FORMATOS_2410_BASE as BASE, IDIOMAS_FORMATOS_2410_MANIFEST as manifest } from './test-support/desfaz-idiomas-formatos-2410.mjs'
+import { semApresentadores2410, APRESENTADORES_2410_MANIFEST } from './test-support/desfaz-apresentadores-2410.mjs' // KINEO-APRESENTADORES-2410
 
 const INTEGRATION_BASE = '8900a4f6ee5154a7a5cc13b2077c3ae0c2ae8405'
 const PREVIOUS = 'b01cfe2cb2d9f244df0ee22baa649daa8d6103fe'
@@ -21,7 +22,7 @@ assert.deepEqual(Object.entries(manifest.sources).filter(([, item]) => Object.ha
 assert.deepEqual(Object.entries(manifest.sources).filter(([, item]) => Object.hasOwn(item, 'sourceBase')).map(([file]) => file), [UPSTREAM_READER], 'only the new upstream reader has its own source base')
 for (const [file, item] of Object.entries(manifest.sources)) {
   const sourceBase = item.sourceBase ?? BASE
-  const raw = readFileSync(file, 'utf8'), current = lf(raw), originalBase = git('show', sourceBase + ':' + file)
+  const raw = readFileSync(file, 'utf8'), current = lf(semApresentadores2410(raw, file)), originalBase = git('show', sourceBase + ':' + file) // KINEO-APRESENTADORES-2410 — historical hash after exact newer-layer undo.
   const integratedBase = git('show', INTEGRATION_BASE + ':' + file)
   assert.equal(item.before, originalBase, 'before bytes come from their immutable source base: ' + file)
   assert.equal(item.beforeHash, hash(originalBase), 'immutable before hash: ' + file)
@@ -74,7 +75,11 @@ for (const file of manifest.newFiles) {
   assert.throws(() => git('show', INTEGRATION_BASE + ':' + file), undefined, 'task source did not exist in the integrated upstream: ' + file)
 }
 for (const file of manifest.artifacts) assert.ok(file.startsWith('docs/') && existsSync(file), 'artifact is under docs: ' + file)
-const actual = [...new Set([...git('diff', '--name-only', INTEGRATION_BASE).trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard').trim().split('\n')])].filter(Boolean).sort()
+const actual = [...new Set([...git('diff', '--name-only', INTEGRATION_BASE).trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard').trim().split('\n')])].filter(Boolean).filter(file => { // KINEO-APRESENTADORES-2410 — newer files and source-only deltas belong to their own exact guardian.
+  if (APRESENTADORES_2410_MANIFEST.added.includes(file)) return false // KINEO-APRESENTADORES-2410
+  if (!APRESENTADORES_2410_MANIFEST.sources[file]) return true // KINEO-APRESENTADORES-2410
+  try { return semApresentadores2410(readFileSync(file, 'utf8'), file).replace(/\r\n/g, '\n') !== git('show', INTEGRATION_BASE + ':' + file) } catch { return true } // KINEO-APRESENTADORES-2410
+}).sort() // KINEO-APRESENTADORES-2410
 assert.deepEqual([...Object.keys(manifest.sources), ...manifest.newFiles, ...manifest.artifacts].sort(), actual, 'task inventory is relative to integrated upstream; upstream-only files are not attributed to this task')
 assert.equal(undo('unrelated\r\n', 'lib/unrelated.ts'), 'unrelated\r\n')
 console.log(`ok idiomas/formatos undo: ${Object.keys(manifest.sources).length} exact sources; original dd0 history preserved; exactly 3 upstream overlaps; current undo equals ${INTEGRATION_BASE}; idempotent; LF/CRLF/Windows; tampering rejected; full integration inventory; no network or filesystem mutation`)

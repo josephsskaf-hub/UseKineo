@@ -6,7 +6,8 @@ import { createHash } from 'node:crypto'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const JSON_FILE = 'lib/ads/presenterCandidates2410.json'
-const rows = JSON.parse(fs.readFileSync(JSON_FILE, 'utf8'))
+const actualRows = JSON.parse(fs.readFileSync(JSON_FILE, 'utf8'))
+const rows = actualRows.map(p => ({ ...p, status: 'pending', reviewedBy: null, reviewedAt: null, checks: { eyesOpen: false, naturalHands: false, neutralClothes: false, identityMatch: false, voiceMatch: false }, portrait: null, facePortrait: null, voiceSample: null, assetHashes: null }))
 const plain = v => JSON.parse(JSON.stringify(v))
 const existing = ['sofia', 'amara', 'rahul', 'kenji', 'jade', 'robert']
 function world(data = rows, source = null) {
@@ -18,10 +19,10 @@ const promoted = p => ({ ...plain(p), status: 'approved', reviewedBy: 'Joseph Sk
   portrait: `/ads/presenters/${p.id}.webp`, facePortrait: `/ads/presenters/${p.id}-face.webp`, voiceSample: `/ads/presenters/${p.id}-voice.mp3`,
   assetHashes: { portrait: 'a'.repeat(64), facePortrait: 'b'.repeat(64), voiceSample: 'c'.repeat(64) } })
 
-assert.equal(rows.length, 12)
+assert(rows.length >= 12, 'the prepared batch is retained as the catalog grows')
 assert.equal(new Set(rows.map(p => p.id)).size, 12)
-assert.equal(rows.filter(p => p.gender === 'woman').length, 6)
-assert.equal(rows.filter(p => p.gender === 'man').length, 6)
+assert(rows.filter(p => p.gender === 'woman').length >= 6)
+assert(rows.filter(p => p.gender === 'man').length >= 6)
 assert.equal(Math.min(...rows.map(p => p.ageMin)), 20)
 assert.equal(Math.max(...rows.map(p => p.ageMax)), 65)
 assert(rows.every(p => p.status === 'pending' && !p.portrait && !p.facePortrait && !p.voiceSample && !p.assetHashes))
@@ -74,7 +75,16 @@ for (const category of Object.keys(W.R.CENA95_ACTORS)) {
 }
 
 // Promotion guard checks actual shipped bytes, not just status strings.
-for (const p of W.C.PRESENTER_CANDIDATES_APPROVED_2410) for (const field of ['portrait', 'facePortrait', 'voiceSample']) {
+const REAL = world(actualRows)
+const approvedActual = actualRows.filter(p => p.status === 'approved')
+assert.equal(REAL.E.CENA_ESCOLHA_PRESENTERS.length, existing.length + approvedActual.length)
+assert.equal(REAL.P.ADS_V2_PRESENTER_LIBRARY.length, 12 + approvedActual.length)
+for (const p of actualRows) {
+  assert(['pending', 'approved', 'rejected'].includes(p.status))
+  assert.equal(REAL.C.presenterCandidateApproved2410(p), p.status === 'approved', 'every recorded approval must be complete: ' + p.id)
+  assert.equal(!!REAL.E.escolhaPresenter(p.id), p.status === 'approved', 'actual public gate: ' + p.id)
+}
+for (const p of REAL.C.PRESENTER_CANDIDATES_APPROVED_2410) for (const field of ['portrait', 'facePortrait', 'voiceSample']) {
   const bytes = fs.readFileSync('public' + p[field])
   assert.equal(createHash('sha256').update(bytes).digest('hex'), p.assetHashes[field])
 }

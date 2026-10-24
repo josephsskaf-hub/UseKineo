@@ -40,8 +40,7 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
   const read = file => source(rawCurrent ? readFileSync(resolve(process.cwd(), file), 'utf8') : semAdsEscolhaPublico2410(readFileSync(resolve(process.cwd(), file), 'utf8'), file), file)
   const pure = createOfflineLoader({ source: (file, text) => source(rawCurrent ? text : semAdsEscolhaPublico2410(text, file), file) }) // KINEO-IDIOMAS-FORMATOS-2410 — current:true retains every current language/format source.
   const componentCode = compile(read(COMPONENT), COMPONENT)
-  const catalog = {}
-  new Function('exports', compile(read(CATALOG), CATALOG))(catalog)
+  const catalog = pure(CATALOG) // KINEO-APRESENTADORES-2410 — current catalog has a reviewed JSON dependency; execute its real imports.
   const tiers = {}; new Function('exports', compile(read('lib/ads/v2Tiers.ts'), 'lib/ads/v2Tiers.ts'))(tiers)
   const checks = []
   const check = (value, message) => { assert.ok(value, message); checks.push(message) }
