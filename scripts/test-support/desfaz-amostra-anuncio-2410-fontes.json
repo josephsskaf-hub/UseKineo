@@ -191,6 +191,7 @@
     "docs/previews/amostra-anuncio-2410-mobile.png",
     "docs/previews/amostra-anuncio-2410.html",
     "docs/previews/amostra-anuncio-2410.png",
-    "docs/previews/render-amostra-anuncio-2410.cjs"
+    "docs/previews/render-amostra-anuncio-2410.cjs",
+    "docs/qa/amostra-anuncio-2410-gates.json"
   ]
 }
