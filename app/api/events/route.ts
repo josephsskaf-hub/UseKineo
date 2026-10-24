@@ -20,6 +20,14 @@ import { businessAdsStamp } from '@/lib/growth/businessAdsAttribution'
 export const dynamic = 'force-dynamic'
 
 const SERVER_ONLY_EVENTS = new Set([
+  // KINEO-ADS-ESCOLHA-PUBLICO-2410 — real server transitions; the browser cannot forge the daily funnel.
+  'ads_escolha_plan',
+  'ads_escolha_stills_ready',
+  'ads_escolha_chosen',
+  'ads_escolha_render_started',
+  'ads_escolha_delivered',
+  'ads_escolha_failed',
+  'ads_escolha_ready_email_sent',
   'admin_read_truncated',
   'alternative_payment_grant',
   'alternative_payment_processed',
