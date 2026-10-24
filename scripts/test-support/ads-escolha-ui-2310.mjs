@@ -5,6 +5,7 @@ import { resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { semAdsEscolhaPublico2410 } from './desfaz-ads-escolha-publico-2410.mjs' // KINEO-ADS-ESCOLHA-PUBLICO-2410 — old UI contracts run after exact layer restoration.
+import { createOfflineLoader } from './offline-ts-loader.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — resolve actual shared pure modules through the existing isolated loader.
 
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
@@ -37,6 +38,7 @@ function walk(node, result = []) {
 /** Reads RAW sources relative to the caller's workspace, optionally applying an explicit source mutation. Never runs on import. */
 export async function runEscolhaUiProof({ source = text => text, current: rawCurrent = false, scenario = null } = {}) {
   const read = file => source(rawCurrent ? readFileSync(resolve(process.cwd(), file), 'utf8') : semAdsEscolhaPublico2410(readFileSync(resolve(process.cwd(), file), 'utf8'), file), file)
+  const pure = createOfflineLoader({ source: (file, text) => source(rawCurrent ? text : semAdsEscolhaPublico2410(text, file), file) }) // KINEO-IDIOMAS-FORMATOS-2410 — current:true retains every current language/format source.
   const componentCode = compile(read(COMPONENT), COMPONENT)
   const catalog = {}
   new Function('exports', compile(read(CATALOG), CATALOG))(catalog)
@@ -66,6 +68,7 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
       : id === 'react-dom' ? { createPortal: value => value }
         : id.includes('escolhaCatalog') ? catalog
           : id.includes('v2Tiers') ? tiers
+          : id === '@/lib/textLanguage' || id.includes('escolhaShots') ? pure(id) // KINEO-IDIOMAS-FORMATOS-2410 — real catalogue/token/format exports, never empty stubs or alias fallback to Node.
           : id.includes('uploadFootage') ? { uploadFootage() { throw new Error('upload_not_exercised_offline') }, AdsUploadError: class extends Error {} }
             : id.includes('interfaceLanguage') ? { INTERFACE_LANGUAGE_OPTIONS: [{ code: 'pt', native: 'Português' }, { code: 'en', native: 'English' }] }
               : require(id)

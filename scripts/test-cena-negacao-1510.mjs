@@ -22,7 +22,9 @@
 //   (G) mutantes, cada um provado aplicado, cada um tem de ficar VERMELHO.
 //
 // Rodar: node scripts/test-cena-negacao-1510.mjs
-import { readFileSync } from 'node:fs'
+import { readFileSync, mkdtempSync, writeFileSync, unlinkSync, rmdirSync } from 'node:fs' // KINEO-IDIOMAS-FORMATOS-2410 — local virtual historical diff; production sources never rewritten.
+import { tmpdir } from 'node:os' // KINEO-IDIOMAS-FORMATOS-2410
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -186,7 +188,15 @@ relata(`provas A–E no código atual (${falhasAtuais.length} falhas)`, falhasAt
     relata(`F byte a byte: ${p} desfeito == ${base}`, desfeito === daBase)
     relata(`F ${p} tem a marca (o conserto está aplicado)`, atual.includes(MARCA))
   }
-  const add = git('diff', base, '--', LIB, ROTA).replace(/\r/g, '').split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++'))
+  const diffHistorico = (p) => { // KINEO-IDIOMAS-FORMATOS-2410 — compare the real base with current source after reversing only the exact new layer.
+    const scratch = mkdtempSync(join(tmpdir(), 'kineo-negacao-2410-')), before = join(scratch, 'before.ts'), after = join(scratch, 'after.ts') // KINEO-IDIOMAS-FORMATOS-2410
+    try { // KINEO-IDIOMAS-FORMATOS-2410
+      writeFileSync(before, git('show', `${base}:${p}`)); writeFileSync(after, semIdiomasFormatos2410(ler(p), p)) // KINEO-IDIOMAS-FORMATOS-2410
+      try { return execFileSync('git', ['diff', '--no-index', '--no-color', '--', before, after], { cwd: RAIZ, encoding: 'utf8', maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'ignore'] }) } // KINEO-IDIOMAS-FORMATOS-2410
+      catch (error) { if (error.status === 1 && typeof error.stdout === 'string') return error.stdout; throw error } // KINEO-IDIOMAS-FORMATOS-2410
+    } finally { for (const file of [before, after]) { try { unlinkSync(file) } catch (error) { if (error.code !== 'ENOENT') throw error } }; rmdirSync(scratch) } // KINEO-IDIOMAS-FORMATOS-2410
+  } // KINEO-IDIOMAS-FORMATOS-2410
+  const add = [LIB, ROTA].map(diffHistorico).join('\n').replace(/\r/g, '').split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')) // KINEO-IDIOMAS-FORMATOS-2410 — original all-added-lines assertion remains below.
   add.splice(0, add.length, ...add.filter((l) => !l.includes('KINEO-KIDS-VENDA-2010'))) // KINEO-KIDS-VENDA-2010 — as linhas da venda do Cartoon têm marca e desfaz exato próprios; fora da conta da negação
   relata('F toda linha nova/trocada da rota e do sceneTruth leva a marca', add.length > 0 && add.every((l) => l.includes(MARCA) || linhaDaTrilha15s1610(l) /* reancorado KINEO-TRILHA-15S */ || l.includes('KINEO-META95-ASSUNTO-1910') /* reancorado KINEO-META95-ASSUNTO-1910 */ || l.includes('KINEO-DESENHO-SOM-2110') /* reancorado KINEO-DESENHO-SOM-2110 — o som do desenho infantil (21/10) mexe na rota só com kids_cartoon */ || l.includes('KINEO-BEBE-QUE-FALA-2010') /* reancorado KINEO-BEBE-QUE-FALA-2010 — o AI Kids Cartoon Stories (20/10) também é de depois da base; provado em scripts/test-bebe-que-fala-2010.mjs */), add.filter((l) => !l.includes(MARCA) && !linhaDaTrilha15s1610(l) && !l.includes('KINEO-META95-ASSUNTO-1910') && !l.includes('KINEO-BEBE-QUE-FALA-2010')).slice(0, 2).join(' | '))
 }
