@@ -8,6 +8,7 @@ import { cenaAssertVoiceRoute, cenaResolveRoute, cenaCosts, isCenaRoute } from '
 import { newCenaState } from './pipeline'
 import { cena95ModerationFailure } from './moderation95'
 import { preflightCenaAjuste } from './ajustePreflight'
+import { AjusteScriptError } from './ajusteRespaldo' // KINEO-ADS-CENA-RESPALDO-2110
 import { planShots } from '../v2ShotLists'
 import { v2Fail, v2Json } from '../v2Server'
 import { adsV2Credits } from '../v2Tiers'
@@ -26,7 +27,7 @@ export async function internalCenaAjusteFor(user: AdsV2Caller, body: unknown, d:
     const safety = cena95ModerationFailure(await d.moderate(plan.script.narration))
     if (safety) return v2Fail(safety.error, safety.status)
     const costs = cenaCosts(undefined, plan.voice_mode), engine = 'AJUSTE-2110', note = 'AJUSTE aprovado + música opcional e close i2v da foto original. Subtotais legados não incluem essas extensões; totalUsd permanece desconhecido. Dry run não gera mídia, grava pedido ou debita.'
-    if (b.dry_run === true) return v2Json({ dry_run: true, charged: false, engine, rota: route, voice_mode: plan.voice_mode, plan, costs, credits: adsV2Credits('commercial', 15), note })
+    if (b.dry_run === true) return v2Json({ dry_run: true, charged: false, engine, rota: route, voice_mode: plan.voice_mode, plan, narration_used: plan.script.narration, quality_notes: plan.quality_notes ?? [], costs, credits: adsV2Credits('commercial', 15), note }) // KINEO-ADS-CENA-SEGUE-2110
     const skeleton = planShots({ sector: 'store', tier: 'commercial', seconds: 15, photos: [{ id: '00000000-0000-4000-8000-000000000001', url: input.foto, kind: 'text' }] })
     const stored = { ...skeleton, overlays: [], narration: plan.script.narration, cena: newCenaState(plan, route) }
     const ins = await d.admin.from('ads_v2_orders').insert({ user_id: user.id, status: 'planned', tier: 'commercial', seconds: 15, sector: 'store', language: input.language, narration: true, card_url: input.foto, photos: [], brief: { sentence: input.frase, business: plan.product, offer: plan.input.oferta, kind: 'product', cena: true, voice_mode: plan.voice_mode }, plan: stored }).select('id').maybeSingle()
@@ -37,6 +38,8 @@ export async function internalCenaAjusteFor(user: AdsV2Caller, body: unknown, d:
     const message = e instanceof Error ? e.message : 'cena_plan_failed'
     console.warn('[ads-cena] ajuste_plan_failed', message)
     if (message.startsWith('cena_bad_') || message === 'cena_kling_native_speech_unsupported') return v2Fail(message, 400)
-    return v2Fail('cena_plan_failed', 502, { reason: message.slice(0, 200) })
+    const reason_detail = e instanceof AjusteScriptError ? e.reason_detail : message.slice(0, 1000) // KINEO-ADS-CENA-RESPALDO-2110
+    // KINEO-ADS-CENA-SEGUE-2110 — quality is repaired before this boundary; no word-budget 422.
+    return v2Fail('cena_plan_failed', 502, { reason: message.slice(0, 200), reason_detail }) // KINEO-ADS-CENA-RESPALDO-2110
   }
 }

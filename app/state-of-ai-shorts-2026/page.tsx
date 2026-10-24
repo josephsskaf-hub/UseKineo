@@ -56,10 +56,12 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-const PAGE_BG = '#000'
-const CARD = { background: '#161618', border: '1px solid #2a2a2d', borderRadius: 14 }
-const ACCENT = '#2997ff'
-const MUTED = '#86868b'
+import { PaginaClaraCards, PaginaClaraTopo } from '@/components/seo/PaginaClara' // KINEO-PAGINAS-IA-CLARAS-2110 — o menu do topo e os 4 cards da home
+import { PAGINA_CLARA_CLASSE, PAGINA_CLARA_FUNDO } from '@/lib/seo/paginasIaClaras2110' // KINEO-PAGINAS-IA-CLARAS-2110
+const PAGE_BG = PAGINA_CLARA_FUNDO // KINEO-PAGINAS-IA-CLARAS-2110 — era '#000'
+const CARD = { background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 14 }
+const ACCENT = '#0A5CFF'
+const MUTED = '#5A5F67'
 
 export default function StateOfAiShortsPage() {
   // KINEO-PONTE-ACIMA-DA-DOBRA-2026-09-23 — medido 23/09: esta é a página mais citada pelo ChatGPT (238 sessões
@@ -81,7 +83,7 @@ export default function StateOfAiShortsPage() {
       <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 8px' }}>
         Test the data yourself — free
       </h2>
-      <p style={{ color: '#d2d2d7', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 4px' }}>
+      <p style={{ color: '#2A2F37', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 4px' }}>
         Start with one of the three leading niches in this study — or type your own topic.
         {VIEW.time ? ` Expect about ${VIEW.time.median}.` : ''} {ft(OFFER, 'Up to 3 watermarked videos every 24 hours, no card.', OFFER.copy.headline)}
       </p>
@@ -105,12 +107,13 @@ export default function StateOfAiShortsPage() {
 
   return (
     <main
+      className={PAGINA_CLARA_CLASSE}
       style={{
         background: PAGE_BG,
         minHeight: '100vh',
-        color: '#f5f5f7',
+        color: '#0E1116',
         fontFamily: 'var(--font-sans), Arial, sans-serif',
-        padding: '64px 20px 96px',
+        padding: '0 0 96px', // KINEO-PAGINAS-IA-CLARAS-2110 — o respiro do topo desceu para a coluna (o menu do topo encosta na borda)
       }}
     >
       <script
@@ -125,7 +128,8 @@ export default function StateOfAiShortsPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(VIEW.jsonLd.faq).replace(/</g, '\\u003c') }}
       />
-      <div style={{ maxWidth: 820, margin: '0 auto' }}>
+      <PaginaClaraTopo />{/* KINEO-PAGINAS-IA-CLARAS-2110 */}
+      <div style={{ maxWidth: 820, margin: '0 auto', padding: '48px 20px 0' }}>{/* KINEO-PAGINAS-IA-CLARAS-2110 — + o respiro que era do <main> */}
         <p
           data-kineo="state-seal"
           style={{
@@ -139,12 +143,13 @@ export default function StateOfAiShortsPage() {
         >
           Original research · {VIEW.seal}
         </p>
-        <h1 style={{ fontSize: '2.2rem', fontWeight: 800, lineHeight: 1.15, margin: '0 0 16px' }}>
+        <h1 style={{ fontSize: '2.2rem', fontWeight: 650, lineHeight: 1.15, margin: '0 0 16px' }}>
           State of AI Shorts 2026
         </h1>
         <p style={{ color: MUTED, fontSize: '1.08rem', lineHeight: 1.6, margin: '0 0 8px' }}>
           {VIEW.lead}
         </p>
+        <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
         <p data-kineo="state-source" style={{ color: MUTED, fontSize: '0.9rem', lineHeight: 1.6, margin: '0 0 40px' }}>
           {VIEW.sourceLine} Free to cite with a link to this page. Medians and rates only — no counts and no individual
           creator data.
@@ -169,7 +174,7 @@ export default function StateOfAiShortsPage() {
                 {f.stat}
               </p>
               <h3 style={{ fontSize: '0.98rem', fontWeight: 700, margin: '0 0 8px' }}>{f.label}</h3>
-              <p style={{ color: '#d2d2d7', fontSize: '0.88rem', lineHeight: 1.55, margin: 0 }}>
+              <p style={{ color: '#2A2F37', fontSize: '0.88rem', lineHeight: 1.55, margin: 0 }}>
                 {f.detail}
               </p>
             </section>
@@ -202,7 +207,7 @@ export default function StateOfAiShortsPage() {
                 <p style={{ color: MUTED, fontSize: '0.85rem', margin: 0 }}>of renders that started were delivered</p>
               </div>
             </div>
-            <p style={{ color: '#d2d2d7', fontSize: '0.88rem', lineHeight: 1.55, margin: '16px 0 0' }}>
+            <p style={{ color: '#2A2F37', fontSize: '0.88rem', lineHeight: 1.55, margin: '16px 0 0' }}>
               {VIEW.time.caption} Engine by engine:{' '}
               <Link href="/ai-video-index" style={{ color: ACCENT, fontWeight: 700 }}>Kineo AI Video Index</Link>.
             </p>
@@ -218,11 +223,11 @@ export default function StateOfAiShortsPage() {
                 <li key={b.label} style={{ ...CARD, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
                   <span style={{ fontWeight: 700, fontSize: '0.95rem', minWidth: 170 }}>{b.label}</span>
                   <div style={{ height: 8, flex: `0 1 ${Math.max(4, Math.round(b.pct))}%`, background: ACCENT, borderRadius: 4, opacity: 0.85 }} />
-                  <span style={{ color: '#d2d2d7', fontSize: '0.85rem', fontWeight: 600 }}>{b.text}</span>
+                  <span style={{ color: '#2A2F37', fontSize: '0.85rem', fontWeight: 600 }}>{b.text}</span>
                 </li>
               ))}
             </ol>
-            <p style={{ color: '#d2d2d7', fontSize: '0.88rem', lineHeight: 1.55, margin: '0 0 48px' }}>
+            <p style={{ color: '#2A2F37', fontSize: '0.88rem', lineHeight: 1.55, margin: '0 0 48px' }}>
               Writing for a full minute? Check a script against the one-minute mark with the free{' '}
               <Link href="/tiktok-creator-rewards-length-checker" style={{ color: ACCENT, fontWeight: 700 }}>TikTok Creator Rewards length checker</Link>.
             </p>
@@ -245,10 +250,10 @@ export default function StateOfAiShortsPage() {
               <p style={{ color: MUTED, fontSize: '0.85rem', margin: '0 0 10px' }}>{t.rule}</p>
               <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {t.items.map((it) => (
-                  <li key={it.key} style={{ border: '1px solid #2a2a2d', borderRadius: 999, padding: '6px 12px', fontSize: '0.88rem' }}>
+                  <li key={it.key} style={{ border: '1px solid #E4E4E0', borderRadius: 999, padding: '6px 12px', fontSize: '0.88rem' }}>
                     <span style={{ color: ACCENT, fontWeight: 800 }}>#{it.rank}</span>{' '}
                     {it.path ? (
-                      <Link href={it.path} style={{ color: '#f5f5f7', textDecoration: 'none', fontWeight: 700 }}>{it.label}</Link>
+                      <Link href={it.path} style={{ color: '#0E1116', textDecoration: 'none', fontWeight: 700 }}>{it.label}</Link>
                     ) : (
                       <span style={{ fontWeight: 700 }}>{it.label}</span>
                     )}
@@ -266,10 +271,10 @@ export default function StateOfAiShortsPage() {
           {VIEW.insights.map((ins) => (
             <section key={ins.title} style={{ ...CARD, padding: '16px 18px' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 8px' }}>{ins.title}</h3>
-              <p style={{ color: '#d2d2d7', lineHeight: 1.55, fontSize: '0.95rem', margin: 0 }}>{ins.body}</p>
+              <p style={{ color: '#2A2F37', lineHeight: 1.55, fontSize: '0.95rem', margin: 0 }}>{ins.body}</p>
             </section>
           ))}
-          <p style={{ color: '#d2d2d7', lineHeight: 1.55, fontSize: '0.92rem', margin: '4px 0 0' }}>
+          <p style={{ color: '#2A2F37', lineHeight: 1.55, fontSize: '0.92rem', margin: '4px 0 0' }}>
             {/* KINEO-BENCHMARK-MOTORES-2026-09-23 — liga a página de dados irmã (sem link interno ela nasce órfã). */}
             Choosing an engine? <Link href="/seedance-vs-veo-vs-kling" style={{ color: ACCENT, fontWeight: 700 }}>Seedance vs Veo vs Kling, measured</Link>
             {' · '}
@@ -282,7 +287,7 @@ export default function StateOfAiShortsPage() {
           {VIEW.faq.map((f) => (
             <section key={f.q} style={{ ...CARD, padding: '16px 18px' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 8px' }}>{f.q}</h3>
-              <p style={{ color: '#d2d2d7', lineHeight: 1.55, fontSize: '0.92rem', margin: 0 }}>{f.a}</p>
+              <p style={{ color: '#2A2F37', lineHeight: 1.55, fontSize: '0.92rem', margin: 0 }}>{f.a}</p>
             </section>
           ))}
         </div>

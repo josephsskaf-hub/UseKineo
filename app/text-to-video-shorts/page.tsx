@@ -4,7 +4,8 @@ import Link from 'next/link'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
-import ExampleVideoPlayer from '@/app/examples/ExampleVideoPlayer'
+import { PaginaClaraCards, PaginaClaraTopo, PaginaClaraVitrine } from '@/components/seo/PaginaClara' // KINEO-PAGINAS-IA-CLARAS-2110 — o menu do topo, os 4 cards e a vitrine atual da home (no lugar do player do exemplo velho)
+import { PAGINA_CLARA_CLASSE, PAGINA_CLARA_FUNDO } from '@/lib/seo/paginasIaClaras2110' // KINEO-PAGINAS-IA-CLARAS-2110
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import { TEXT_TO_VIDEO_CAMPAIGN } from '@/lib/growth/textToVideoIntent'
@@ -93,9 +94,9 @@ export const metadata: Metadata = {
 
 export default function TextToVideoShortsPage() {
   const signupUrl = buildBlankStudioSignupHref({ campaign: CAMPAIGN })
-  const h2: CSSProperties = { fontSize: 'clamp(1.3rem, 3.5vw, 1.75rem)', fontWeight: 850, margin: '44px 0 12px' }
-  const p: CSSProperties = { color: '#86868b', fontSize: '1rem', lineHeight: 1.65, margin: '0 0 12px' }
-  const card: CSSProperties = { background: '#161618', border: '1px solid #2a2a2d', borderRadius: 14, padding: '16px 18px' }
+  const h2: CSSProperties = { fontSize: 'clamp(1.3rem, 3.5vw, 1.75rem)', fontWeight: 650, margin: '44px 0 12px' }
+  const p: CSSProperties = { color: '#5A5F67', fontSize: '1rem', lineHeight: 1.65, margin: '0 0 12px' }
+  const card: CSSProperties = { background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 14, padding: '16px 18px' }
   const faqJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -128,28 +129,30 @@ export default function TextToVideoShortsPage() {
   }
 
   return (
-    <main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'var(--font-sans), Arial, sans-serif' }}>
+    <main className={PAGINA_CLARA_CLASSE} style={{ minHeight: '100vh', background: PAGINA_CLARA_FUNDO, color: '#0E1116', fontFamily: 'var(--font-sans), Arial, sans-serif' }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd).replace(/</g, '\\u003c') }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(videoJsonLd).replace(/</g, '\\u003c') }} />
+      <PaginaClaraTopo />{/* KINEO-PAGINAS-IA-CLARAS-2110 */}
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '64px 20px 88px' }}>
-        <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 850, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#2997ff', border: '1px solid rgba(41,151,255,0.4)', background: 'rgba(41,151,255,0.12)', borderRadius: 999, padding: '6px 12px' }}>
+        <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 750, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#0A5CFF', border: '1px solid rgba(10,92,255,0.35)', background: '#E8EFFF', borderRadius: 999, padding: '6px 12px' }}>
           Text to video shorts
         </span>
-        <h1 style={{ fontSize: 'clamp(1.9rem, 5vw, 2.85rem)', fontWeight: 900, lineHeight: 1.1, margin: '18px 0 0' }}>
+        <h1 style={{ fontSize: 'clamp(1.9rem, 5vw, 2.85rem)', fontWeight: 650, lineHeight: 1.1, margin: '18px 0 0' }}>
           Turn Text Into a Finished YouTube Short
         </h1>
-        <p style={{ fontSize: '1.08rem', color: '#86868b', lineHeight: 1.6, margin: '16px 0 0' }}>
+        <p style={{ fontSize: '1.08rem', color: '#5A5F67', lineHeight: 1.6, margin: '16px 0 0' }}>
           Paste a topic, prompt, or full script. Kineo turns it into a faceless vertical video with AI voiceover, visuals, captions, and an MP4 export for YouTube Shorts, TikTok, and Reels.
         </p>
+        <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
         {/* KINEO-BING-SEO-1510 — a resposta direta à pergunta "qual a melhor IA para Shorts a partir de texto?" */}
-        <section data-kineo="bing-seo-1510-answer" style={{ ...card, margin: '18px 0 0', borderColor: 'rgba(41,151,255,0.4)' }}>
-          <h2 style={{ fontSize: '1.05rem', fontWeight: 800, margin: '0 0 8px' }}>What is the best AI tool for creating YouTube Shorts from text?</h2>
+        <section data-kineo="bing-seo-1510-answer" style={{ ...card, margin: '18px 0 0', borderColor: 'rgba(10,92,255,0.35)' }}>
+          <h2 style={{ fontSize: '1.05rem', fontWeight: 650, margin: '0 0 8px' }}>What is the best AI tool for creating YouTube Shorts from text?</h2>
           {ANSWER_1510.summary.map((line) => (
-            <p key={line} style={{ ...p, color: '#d2d2d7', fontSize: 15, margin: '0 0 6px' }}>{line}</p>
+            <p key={line} style={{ ...p, color: '#2A2F37', fontSize: 15, margin: '0 0 6px' }}>{line}</p>
           ))}
           <p style={{ ...p, fontSize: 14, margin: 0 }}>
-            Compare by starting point in the <Link href="/best-ai-shorts-generators" style={{ color: '#2997ff' }}>13-tool roundup</Link>.
+            Compare by starting point in the <Link href="/best-ai-shorts-generators" style={{ color: '#0A5CFF' }}>13-tool roundup</Link>.
           </p>
         </section>
         {/* KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — compra direta do Creator na primeira dobra; o botão grátis vira o secundário. */}
@@ -158,7 +161,7 @@ export default function TextToVideoShortsPage() {
             page="text_to_video_shorts"
             align="left"
             secondary={
-              <OrganicCtaLink href={`#${FORM_ID}`} source={CAMPAIGN} placement="hero" style={{ border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 800, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>
+              <OrganicCtaLink href={`#${FORM_ID}`} source={CAMPAIGN} placement="hero" style={{ border: '1px solid #D2D2CD', color: '#0E1116', fontWeight: 800, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>
                 Try text to video free
               </OrganicCtaLink>
             }
@@ -167,35 +170,22 @@ export default function TextToVideoShortsPage() {
         {!enginePaused(ENGINES.seedance.param) && <PaidSeedanceBridge from="text_to_video_shorts" compact />}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '26px 0 0' }}>
           {enginePaused(ENGINES.seedance.param) && (
-            <OrganicCtaLink href={`#${FORM_ID}`} source={CAMPAIGN} placement="hero" style={{ background: '#f5f5f7', color: '#000', fontWeight: 850, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>
+            <OrganicCtaLink href={`#${FORM_ID}`} source={CAMPAIGN} placement="hero" style={{ background: '#0A5CFF', color: '#fff', fontWeight: 750, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>
               Try text to video free
             </OrganicCtaLink>
           )}
-          <OrganicCtaLink href={signupUrl} source={CAMPAIGN} placement="hero_signup" style={{ border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 750, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>
+          <OrganicCtaLink href={signupUrl} source={CAMPAIGN} placement="hero_signup" style={{ border: '1px solid #D2D2CD', color: '#0E1116', fontWeight: 750, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>
             Start with a blank prompt
           </OrganicCtaLink>
         </div>
-        <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 750, margin: '12px 0 0' }}>
+        <p style={{ fontSize: 13, color: '#0A5CFF', fontWeight: 750, margin: '12px 0 0' }}>
           {ft(OFFER, 'Up to 3 watermarked Fast videos every 24h. No card required.', OFFER.copy.headline)}
         </p>
 
         <TextToVideoIntentForm formId={FORM_ID} />
 
-        <section id="real-output" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 24, alignItems: 'center', marginTop: 38, padding: 22, background: '#101012', border: '1px solid #2a2a2d', borderRadius: 18 }}>
-          <div style={{ width: '100%', maxWidth: 280, margin: '0 auto', aspectRatio: '9 / 16', overflow: 'hidden', borderRadius: 18, background: '#000' }}>
-            <ExampleVideoPlayer slug={FEATURED_EXAMPLE.slug} title={FEATURED_EXAMPLE.title} src={FEATURED_EXAMPLE.videoPath} poster={FEATURED_EXAMPLE.posterPath} />
-          </div>
-          <div>
-            <p style={{ margin: '0 0 8px', color: '#2997ff', fontSize: 12, fontWeight: 850, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              Real Kineo output
-            </p>
-            <h2 style={{ fontSize: 'clamp(1.35rem, 4vw, 1.9rem)', fontWeight: 900, lineHeight: 1.2, margin: 0 }}>
-              Text in. Vertical video out.
-            </h2>
-            <p style={{ ...p, marginTop: 12 }}>{FEATURED_EXAMPLE.description}</p>
-            <p style={{ ...p, fontSize: 14 }}>This preview demonstrates output format, not views or revenue performance.</p>
-          </div>
-        </section>
+        {/* KINEO-PAGINAS-IA-CLARAS-2110 — o player do exemplo velho saiu; a âncora #real-output (embedUrl do JSON-LD) fica na vitrine atual. */}
+        <PaginaClaraVitrine id="real-output" eyebrow="Real Kineo output" titulo="Text in. Vertical video out." nota="These previews demonstrate output format, not views or revenue performance." align="left" />
 
         <AgencyVolumeBridge entry="text_to_video" />
 
@@ -203,7 +193,7 @@ export default function TextToVideoShortsPage() {
         <div style={{ display: 'grid', gap: 12 }}>
           {STEPS.map((s) => (
             <div id={`step-${s.n}`} key={s.n} style={card}>
-              <div style={{ color: '#2997ff', fontSize: 12, fontWeight: 850, letterSpacing: '0.1em' }}>STEP {s.n}</div>
+              <div style={{ color: '#0A5CFF', fontSize: 12, fontWeight: 750, letterSpacing: '0.1em' }}>STEP {s.n}</div>
               <h3 style={{ margin: '7px 0 6px', fontSize: '1.04rem' }}>{s.t}</h3>
               <p style={{ ...p, fontSize: 14, margin: 0 }}>{s.d}</p>
             </div>
@@ -215,30 +205,30 @@ export default function TextToVideoShortsPage() {
           This is the workflow for faceless channels, explainers, mystery videos, money facts, history clips, and educational Shorts. If you already have a long video, a clipper may be enough. If you only have an idea, Kineo creates the Short from scratch.
         </p>
         <p style={p}>
-          For adjacent workflows, compare <Link href="/youtube-shorts-from-topic" style={{ color: '#2997ff' }}>YouTube Shorts from a topic</Link>, <Link href="/ai-shorts-without-filming" style={{ color: '#2997ff' }}>Shorts without filming</Link>, and the <Link href="/cheapest-ai-shorts-maker" style={{ color: '#2997ff' }}>affordable AI Shorts maker</Link> breakdown.
+          For adjacent workflows, compare <Link href="/youtube-shorts-from-topic" style={{ color: '#0A5CFF' }}>YouTube Shorts from a topic</Link>, <Link href="/ai-shorts-without-filming" style={{ color: '#0A5CFF' }}>Shorts without filming</Link>, and the <Link href="/cheapest-ai-shorts-maker" style={{ color: '#0A5CFF' }}>affordable AI Shorts maker</Link> breakdown.
         </p>
         {/* KINEO-CHATGPT-INTENT-2026-08-10 — link contextual (não só rodapé)
             para a página nova: esta é a irmã mais próxima em intenção, e quem
             chega aqui com "colei um texto" muito frequentemente escreveu esse
             texto no ChatGPT dois minutos antes. */}
         <p style={p}>
-          Wrote the text in ChatGPT? <Link href="/chatgpt-to-youtube-shorts" style={{ color: '#2997ff' }}>The ChatGPT to YouTube Shorts workflow</Link> covers the prompt that returns narration instead of an essay, the spoken word budget per Short, and the six things to strip out before a voice engine reads it.
+          Wrote the text in ChatGPT? <Link href="/chatgpt-to-youtube-shorts" style={{ color: '#0A5CFF' }}>The ChatGPT to YouTube Shorts workflow</Link> covers the prompt that returns narration instead of an essay, the spoken word budget per Short, and the six things to strip out before a voice engine reads it.
         </p>
 
         <h2 style={h2}>Frequently asked questions</h2>
         <div style={{ display: 'grid', gap: 10 }}>
           {FAQ.map((f) => (
             <div key={f.q} style={card}>
-              <div style={{ fontWeight: 750, color: '#f5f5f7' }}>{f.q}</div>
+              <div style={{ fontWeight: 750, color: '#0E1116' }}>{f.q}</div>
               <p style={{ ...p, fontSize: 14, margin: '6px 0 0' }}>{f.a}</p>
             </div>
           ))}
         </div>
 
-        <div style={{ marginTop: 44, textAlign: 'center', background: 'radial-gradient(circle at 50% 0%, rgba(41,151,255,0.14), #0c0c0e 70%)', border: '1px solid rgba(41,151,255,0.25)', borderRadius: 18, padding: '34px 22px' }}>
-          <div style={{ fontSize: 'clamp(1.3rem, 4vw, 1.85rem)', fontWeight: 900 }}>Paste text. Get a Short.</div>
-          <p style={{ color: '#86868b', margin: '8px 0 18px' }}>{OFFER.copy.headline}</p>
-          <OrganicCtaLink href={`#${FORM_ID}`} source={CAMPAIGN} placement="final" style={{ background: '#f5f5f7', color: '#000', fontWeight: 850, padding: '14px 30px', borderRadius: 980, textDecoration: 'none' }}>
+        <div style={{ marginTop: 44, textAlign: 'center', background: 'radial-gradient(circle at 50% 0%, #E8EFFF, #FFFFFF 70%)', border: '1px solid rgba(10,92,255,0.35)', borderRadius: 18, padding: '34px 22px' }}>
+          <div style={{ fontSize: 'clamp(1.3rem, 4vw, 1.85rem)', fontWeight: 750 }}>Paste text. Get a Short.</div>
+          <p style={{ color: '#5A5F67', margin: '8px 0 18px' }}>{OFFER.copy.headline}</p>
+          <OrganicCtaLink href={`#${FORM_ID}`} source={CAMPAIGN} placement="final" style={{ background: '#0A5CFF', color: '#fff', fontWeight: 750, padding: '14px 30px', borderRadius: 980, textDecoration: 'none' }}>
             Try my text
           </OrganicCtaLink>
         </div>

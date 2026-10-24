@@ -510,7 +510,7 @@ type AdsV2WorkspaceProp = { role: 'owner' | 'member'; ownerLabel: string | null;
 // último anúncio entregue da conta. Sem a prop (assinante, passe, interna), nada muda.
 // KINEO-HOME-3-CARDS-1910 — entry: a entrada do card da home (page.tsx validou ?entry=product|ugc; tipo espelhado de lib/ads/sampleEntry.ts sem importar) — vai à
 // KINEO-HOME-3-CARDS-1910 — sessão do modo simples, que abre no formato do card e, na amostra, manda a entrada ao /plan. null/ausente = a tela de sempre.
-export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null, business = null, entry = null, sampleProbe = false }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp; business?: AdsBusinessOffer | null; entry?: 'product' | 'ugc' | null; sampleProbe?: boolean }) { // KINEO-UGC-AJUSTES-2010 — + sampleProbe (o page.tsx só manda true para a conta interna com ?sample_probe=1)
+export default function AdsV2Client({ initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null, business = null, entry = null, sampleProbe = false, escolhaInternal = false, escolhaOwnerKey = '' }: { initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp; business?: AdsBusinessOffer | null; entry?: 'product' | 'ugc' | null; sampleProbe?: boolean; escolhaInternal?: boolean; escolhaOwnerKey?: string }) { // KINEO-ADS-ESCOLHA-2310 — server-authenticated internal rollout; all original defaults preserved.
   const [sampleGone, setSampleGone] = useState(false) // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
   const [session, setSession] = useState(0)
   const [groupId, setGroupId] = useState<string | null>(null)
@@ -726,6 +726,7 @@ export default function AdsV2Client({ initialBalance, classicCredits = null, var
         <AdsV2SimpleSession
           key={`${session}:${entry ?? ''}`} /* KINEO-ADS-QUALIDADE-2110 — outra entrada da home (?entry=ugc|product) = um pedido NOVO (remonta); era: key={session} */
           resume={session === 0}
+          escolhaInternal={escolhaInternal} escolhaOwnerKey={escolhaOwnerKey} /* KINEO-ADS-ESCOLHA-2310 */
           lang={lang}
           balance={balance}
           onBalance={refreshBalance}

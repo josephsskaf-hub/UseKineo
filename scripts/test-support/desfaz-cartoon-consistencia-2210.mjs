@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 export const CARTOON_CONSISTENCIA_MARK = 'KINEO-CARTOON-CONSISTENCIA-2210'
-export const CARTOON_CONSISTENCIA_BASE = '1b991815ca62701c2c6e06a69aa2eba068e63d5f'
+export const CARTOON_CONSISTENCIA_BASE = '9501618af9f8ae588988d79b6ea954009c378097'
 const table = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-cartoon-consistencia-2210-trocas.json'), 'utf8'))
 export const CARTOON_CONSISTENCIA_ADDITIONS = Object.freeze(table.__acrescimos)
 export const CARTOON_CONSISTENCIA_FILES = Object.freeze(Object.keys(table.__acrescimos))
@@ -24,7 +24,7 @@ export function semCartoonConsistencia2210(texto, file) {
   let normalized = texto.replace(/\r\n/g, '\n')
   for (const [after, before] of table.__contextos?.[relative] ?? []) {
     if (normalized.split(after).length - 1 !== 1) throw new Error('desfaz-cartoon-consistencia-2210: contexto divergente ' + relative)
-    normalized = normalized.replace(after, before)
+    normalized = normalized.replace(after, () => before)
   }
   let removed = 0
   for (const line of normalized.split('\n')) {

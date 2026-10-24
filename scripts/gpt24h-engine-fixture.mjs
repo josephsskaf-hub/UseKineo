@@ -1,4 +1,5 @@
-import { React, offlineModules } from './gpt24h-offline-support.mjs'
+import { React, offlineModules, source } from './gpt24h-offline-support.mjs' // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]: + source
+import { fontesSemPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — a página do motor e os componentes dela renderizam SEM a camada clara (prova própria em scripts/test-paginas-ia-claras-2110.mjs); substituição explícita de quem chama vence
 // Offline UI boundaries only. No customer data, provider, browser or network.
 export function engineFixture(replacements = {}) {
   const plain = name => function Mock({ children }) { return React.createElement('div', { 'data-offline-boundary': name }, children) }
@@ -17,5 +18,5 @@ export function engineFixture(replacements = {}) {
           posterUrl: v.posterPath ?? v.arenaPosterPath, badge: engine }))
     },
   }
-  return offlineModules({ replacements, mocks })
+  return offlineModules({ replacements: { ...fontesSemPaginasIaClaras2110(source), ...replacements }, mocks }) // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 }

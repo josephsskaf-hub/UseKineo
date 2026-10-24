@@ -47,6 +47,8 @@ import type { Cena95Plan } from '@/lib/ads/cena/plan95' // KINEO-ADS-CENA-95-PAC
 import { cena95Preflight } from '@/lib/ads/cena/preflight95' // KINEO-ADS-CENA-95-PACING-2110
 import { CENA95_LIVE } from '@/lib/ads/cena/live' // KINEO-ADS-CENA-RETOMADA-2110
 import { preflightCenaAjuste } from '@/lib/ads/cena/ajustePreflight' // KINEO-ADS-CENA-RETOMADA-2110
+import { escolhaReadyForStart } from '@/lib/ads/cena/escolhaStills' // KINEO-ADS-ESCOLHA-2310
+import { preflightCenaEscolha } from '@/lib/ads/cena/escolhaPlan' // KINEO-ADS-ESCOLHA-2310
 
 /** Prazo para abrir envios novos nesta chamada (o resto sai pelo avanço da tela/cron). */
 const DISPATCH_BUDGET_MS = 40_000
@@ -81,7 +83,10 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     const plan = order.plan
     const cena = cenaOf(plan); if (cena && !cenaEnabled(isAdsInternalEmail(user.email))) return v2Fail('cena_internal_only', 403) // KINEO-ADS-CENA-2110
     if (cena && 'quality95' in cena.plan && !CENA95_LIVE) return v2Fail('cena95_disabled_replan', 409, { reason: 'O motor 9,5 está desligado. Gere um novo plano AJUSTE antes de iniciar; nenhum crédito foi debitado.' }) // KINEO-ADS-CENA-RETOMADA-2110 — paid orders continue their saved runtime; this gate is before debit.
-    if (cena?.plan.ajusteLive?.version === 'KINEO-ADS-CENA-RETOMADA-2110') preflightCenaAjuste(cena.plan, cena.route) // KINEO-ADS-CENA-RETOMADA-2110
+    if (cena?.plan.escolha?.marker === 'KINEO-ADS-ESCOLHA-2310') { // KINEO-ADS-ESCOLHA-2310 — human choice is required before the existing credit claim.
+      if (!escolhaReadyForStart(plan)) return v2Fail('cena_still_choice_required', 409)
+      preflightCenaEscolha(cena.plan, cena.route); if (plan) plan.narration = cena.plan.script.narration
+    } else if (cena?.plan.ajusteLive?.version === 'KINEO-ADS-CENA-RETOMADA-2110') { preflightCenaAjuste(cena.plan, cena.route); if (plan) plan.narration = cena.plan.script.narration } // KINEO-ADS-CENA-RETOMADA-2110 KINEO-ADS-CENA-SEGUE-2110
     if (cena) { const p = cena.plan as Cena95Plan; if (p.script?.normalization) cena95Preflight(p.script, p.input, cena.route, p.quality95.presenter, { product: p.product }) } // KINEO-ADS-CENA-95-PACING-2110 — identical pure gate before debit; legacy plans keep their path.
     if (!plan || !Array.isArray(plan.shots) || plan.shots.length === 0) return v2Fail('plan_required', 409)
     if (!order.card_url) return v2Fail('card_required', 400)
@@ -132,7 +137,7 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     const billingRef = sampleRun ? adsSampleRef(orderId, generationId) : adsV2BillingRef(orderId, generationId)
     const lock = await admin
       .from('ads_v2_orders')
-      .update({ status: 'generating', generation_id: generationId, billing_ref: billingRef, credits_charged: sampleRun ? 0 : cost, started_at: new Date().toISOString(), error: null })
+      .update({ status: 'generating', generation_id: generationId, billing_ref: billingRef, credits_charged: sampleRun ? 0 : cost, started_at: new Date().toISOString(), error: null, ...(cena?.plan.ajusteLive?.version === 'KINEO-ADS-CENA-RETOMADA-2110' ? { plan } : {}) }) // KINEO-ADS-CENA-SEGUE-2110 — persist corrected copy/notes in the existing atomic start claim.
       .eq('id', orderId)
       .eq('user_id', uid)
       .in('status', ['draft', 'planned'])

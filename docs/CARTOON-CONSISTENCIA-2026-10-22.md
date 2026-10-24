@@ -1,4 +1,16 @@
-# KINEO-CARTOON-CONSISTENCIA-2210 — 22/10/2026
+# KINEO-CARTOON-CONSISTENCIA-2210 — reâncora de 23/10/2026
+
+**FATO CONFIRMADO / IMPLEMENTADO:** esta atualização da branch `codex/cartoon-consistencia-2210` incorpora `origin/main` `9501618af9f8ae588988d79b6ea954009c378097`, obtida depois do push da tração `189e7e2b537e48df18849ca1a1867a1b78128493`. A main avançou além de `895d6c996` com a correção de prompt dos anúncios; essa correção e seu teste foram preservados.
+
+**FATO CONFIRMADO / IMPLEMENTADO:** os sete arquivos de produto existentes e os três módulos Cartoon novos permanecem iguais à ponta original `62b306ad51fa5c65a32ee768262848e2ff2d2d00`. A reâncora resolve três conflitos de testes/desfaz, mantém as asserções e snapshots históricos e passa a desfazer exatamente 26 arquivos para a nova base. O inventário do Escolha usa sua entrega encerrada em `895d6c99638dc0af65e11ad761f4999141587fa7`; a base da consistência é `9501618a`. O desfaz usa substituição literal para preservar também sequências `$&` presentes nas fontes históricas. Fontes: `scripts/test-support/desfaz-cartoon-consistencia-2210.mjs:6`, `scripts/test-ads-escolha-2310.mjs:11`.
+
+**TESTADO LOCALMENTE:** TypeScript verde (`--noEmit --incremental false`, saída 0). A preparação do desfaz passou em 142 provas sobre os 26 arquivos, incluindo retorno exato, LF/CRLF, idempotência, rejeição de alterações extras e preservação das sete entradas de produto. Não houve leitura de `.env`, chamada paga, aplicação de migration, envio de mensagem ou push na main.
+
+**TESTADO LOCALMENTE:** guardião real verde: 210 provas integradas + 104 de história/reinício + 24 de retry + 36 de orçamento de episódio + 68 de música + 30 de duração = 472 provas; 20/20 mutantes integrados e 5/5 de duração rejeitados. Escolha (39 mutantes), Retomada (33), moderação e render-fix também passaram na rodada focada. A primeira execução do Respaldo, anterior ao commit de merge, não encontrava sua entrega no histórico local; o resultado foi preservado e será repetido após o commit.
+
+**QUESTÃO PENDENTE:** comparação completa com a nova base em andamento. Os resultados de 22/10 abaixo são históricos; não substituem a validação desta reâncora.
+
+## Evidência histórica de 22/10/2026
 
 **FATO CONFIRMADO / IMPLEMENTADO:** trabalho na branch `codex/cartoon-consistencia-2210`; base final `origin/main` `1b991815ca62701c2c6e06a69aa2eba068e63d5f`, incorporada sem conflitos. Commits próprios com `[TRAVA 8.2 — vai do fundador 22/10 "vamos dar tração em todas"]`. Sem deploy, PR, chamadas pagas, leitura de `.env`, migration ou mudança de preços, motor e tetos. `lib/engineWall.ts` e `lib/homeVideoCuration.ts` preservados.
 

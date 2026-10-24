@@ -23,6 +23,7 @@
 //       seletor só abre o formato da entrada;
 //   (M) mutantes: cada regra acima fica vermelha quando a quebramos de propósito.
 import fs from 'node:fs'
+import { semPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 import path from 'node:path'
 import vm from 'node:vm'
 import { createRequire } from 'node:module'
@@ -32,7 +33,7 @@ import { semApresentadorOlhos1910 } from './test-support/desfaz-apresentador-olh
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
 const ROOT = path.resolve(import.meta.dirname, '..')
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+const read = (rel) => semPaginasIaClaras2110(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel).replace(/\r\n/g, '\n') // KINEO-PAGINAS-IA-CLARAS-2110 — retirar a ordem por origem antes das asserções e dos mutantes históricos.
 let pass = 0
 let fail = 0
 function ok(cond, msg) {

@@ -38,7 +38,8 @@ import { ENGINE_LABELS, HANDOFF_TTL_DAYS, SCRIPT_MAX_CHARS, type HandoffEngine }
 import { MCP_SERVER_VERSION, buildTools } from '@/lib/mcp/kineoMcp'
 import { CLAUDE_CONNECT_ANCHOR, CLAUDE_MCP_SERVER_URL, CLAUDE_START_PROMPT, CLAUDE_STUDIO_CONNECT_ANCHOR, claudePromptHref } from '@/lib/claudeConnect' // KINEO-MCP-STUDIO-AJUSTE-2010: + âncora do Kineo Studio
 import ConnectPanel, { CopyField } from './ConnectPanel'
-import ClaudePromptLink from './ClaudePromptLink'
+import { TryInLink, TryItHeading } from './AiOrigin' // KINEO-PAGINAS-IA-CLARAS-2110 — quem veio do ChatGPT vê "Try it in ChatGPT" (mesmo catálogo)
+import { chatgptPromptHref } from '@/lib/seo/paginasIaClaras2110' // KINEO-PAGINAS-IA-CLARAS-2110
 import PresetFilter from './PresetFilter'
 import StudioSection from './StudioSection' // KINEO-MCP-STUDIO-2010
 import ShowcaseGrid from './ShowcaseGrid' // KINEO-MCP-STUDIO-AJUSTE-2010
@@ -243,26 +244,21 @@ export default function ClaudeConnectorPage() {
         <ConnectPanel serverUrl={SERVER_URL} startHref={claudePromptHref(CLAUDE_START_PROMPT)} />
 
         <section id="presets" style={{ scrollMarginTop: 24 }}>
-          <h2 style={h2}>Try it in Claude</h2>
-          <p style={{ ...p, maxWidth: 760 }}>
-            Each &ldquo;Try in Claude&rdquo; opens a new Claude chat with the request already typed in. Review it and press
-            send. Claude uses Kineo only if the connector is added and turned on in that chat; every request ends by
-            asking Claude to help you connect Kineo first if it is not.
-          </p>
+          <TryItHeading h2Style={h2} pStyle={{ ...p, maxWidth: 760 }} />{/* KINEO-PAGINAS-IA-CLARAS-2110 — o texto de antes mora em ./AiOrigin (versão Claude, igual) */}
           <PresetFilter categories={PRESET_CATEGORIES}>
             {PRESETS.map((pr) => (
               <div key={pr.title} data-cat={pr.cat} style={{ ...CARD, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ padding: '18px 18px 18px', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
                   <p style={{ margin: 0, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.accent, background: C.accentSoft, borderRadius: 999, padding: '3px 9px' }}>{PRESET_CATEGORIES.find((c) => c.key === pr.cat)?.label}</span>
-                    {pr.engine && <span style={{ fontSize: 11, fontWeight: 700, color: C.muted, border: `1px solid ${C.line}`, borderRadius: 999, padding: '3px 9px' }}>Engine set · {ENGINE_LABELS[pr.engine]}</span>}
+                    {/* KINEO-PAGINAS-IA-CLARAS-2110 — o selo "Engine set · <motor>" saiu dos cartões (o pedido continua nomeando o motor) */}
                   </p>
                   <p style={{ margin: 0, fontWeight: 700, fontSize: '1.08rem', letterSpacing: '-0.01em' }}>{pr.title}</p>
                   <p style={{ ...small, margin: 0, flex: 1 }}>{pr.line}</p>
                   <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', marginTop: 4 }}>
-                    <ClaudePromptLink href={claudePromptHref(pr.prompt)} preset={pr.id} title={pr.prompt} style={{ background: C.accent, color: C.onAccent, borderRadius: 999, padding: '9px 16px', fontSize: '0.92rem', fontWeight: 800, textDecoration: 'none' }}>
+                    <TryInLink claudeHref={claudePromptHref(pr.prompt)} chatgptHref={chatgptPromptHref(pr.prompt)} preset={pr.id} title={pr.prompt} style={{ background: C.accent, color: C.onAccent, borderRadius: 999, padding: '9px 16px', fontSize: '0.92rem', fontWeight: 800, textDecoration: 'none' }}>
                       Try in Claude ↗
-                    </ClaudePromptLink>
+                    </TryInLink>{/* KINEO-PAGINAS-IA-CLARAS-2110 */}
                     <Link href={pr.learnMore} style={{ ...link, fontSize: '0.9rem', fontWeight: 700 }}>Learn more</Link>
                   </div>
                 </div>

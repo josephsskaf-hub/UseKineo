@@ -23,6 +23,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — historical marked-line counts undo only the exact later delta.
 import { semKidsVenda2010, KIDS_VENDA_2010_ARQUIVOS, KIDS_VENDA_2010_NOVOS, KIDS_VENDA_2010_BASE, MARCA_KIDS_VENDA_2010, ACRESCIMOS_KIDS_VENDA_2010, TROCAS_KIDS_VENDA_2010 } from './test-support/desfaz-kids-venda-2010.mjs'
 
@@ -260,13 +261,13 @@ for (const p of KIDS_VENDA_2010_ARQUIVOS) {
   const b = base(p)
   let des = null
   try { des = semKidsVenda2010(disco(p), p) } catch (e) { console.log('       (' + e.message + ')') }
-  ok(b !== null && des === b, `D1 desfaz exato = origin/main ${KIDS_VENDA_2010_BASE} (sem95 e sem venda): ${p}`) // KINEO-ADS-CENA-95-2110
+  ok(b !== null && des === b, `D1 desfaz exato = origin/main ${KIDS_VENDA_2010_BASE} (sem páginas claras, sem95 e sem venda): ${p}`) // KINEO-ADS-CENA-95-2110 // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 
 }
 ok(KIDS_VENDA_2010_NOVOS.every((p) => existsSync(join(ROOT, p)) && base(p) === null), 'D2 os arquivos novos existem e não estavam na base')
 ok(KIDS_VENDA_2010_NOVOS.filter((p) => /\.(ts|tsx|mjs|sql)$/.test(p)).every((p) => disco(p).includes(MARCA)), 'D3 todo arquivo novo carrega a marca')
 ok(MARCA_KIDS_VENDA_2010 === MARCA && Object.keys(TROCAS_KIDS_VENDA_2010).every((k) => KIDS_VENDA_2010_ARQUIVOS.includes(k)), 'D4 trocas só em arquivos declarados')
-ok(KIDS_VENDA_2010_ARQUIVOS.every((p) => { const n = semRoteiroCurto2210(disco(p), p).split('\n').filter((l) => l.includes(MARCA)).length; return n === (ACRESCIMOS_KIDS_VENDA_2010[p] ?? 0) + (TROCAS_KIDS_VENDA_2010[p] ?? []).length }), 'D5 contagem de linhas marcadas = acréscimos + trocas') // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
+ok(KIDS_VENDA_2010_ARQUIVOS.every((p) => { const n = semRoteiroCurto2210(semPaginasIaClaras2110(disco(p), p), p).split('\n').filter((l) => l.includes(MARCA)).length; return n === (ACRESCIMOS_KIDS_VENDA_2010[p] ?? 0) + (TROCAS_KIDS_VENDA_2010[p] ?? []).length }), 'D5 contagem de linhas marcadas = acréscimos + trocas') // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 ok(semKidsVenda2010('qualquer texto sem marca', F.webhook) === 'qualquer texto sem marca' && semKidsVenda2010(disco(F.lib), F.lib) === disco(F.lib), 'D6 idempotente fora da lista e sem marca')
 {
   const { semMenuUgc2010 } = await import('./test-support/desfaz-menu-ugc-2010.mjs')

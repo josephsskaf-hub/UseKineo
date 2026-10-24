@@ -25,10 +25,11 @@ import { engineFixture } from './gpt24h-engine-fixture.mjs'
 import { React, offlineModules, renderToStaticMarkup } from './gpt24h-offline-support.mjs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semBingSeo1510 } from './test-support/desfaz-bing-seo-1510.mjs'
+import { semPaginasIaClaras2110, fontesSemPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — a camada clara das páginas de entrada do ChatGPT sai da conta deste guardião (prova própria em scripts/test-paginas-ia-claras-2110.mjs)
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
-const rd = (rel) => readFileSync(join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+const rd = (rel) => semPaginasIaClaras2110(readFileSync(join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n'), rel) // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }
@@ -96,7 +97,7 @@ function stateMocks(world) {
 }
 function nicheModules(world) {
   return offlineModules({
-    replacements: world.rep,
+    replacements: { ...fontesSemPaginasIaClaras2110(rd), ...world.rep }, // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
     mocks: {
       'components/Footer.tsx': { __esModule: true, default: plain('Footer') },
       'app/youtube-shorts-from-topic/TopicGeneratorForm.tsx': { __esModule: true, default: plain('TopicGeneratorForm') },
@@ -125,7 +126,7 @@ function edicaoImportada(rep) {
 /** Tudo o que esta rodada promete, medido no código real com as trocas do `world`. [] = verde. */
 async function problemas(world = { rep: {} }) {
   const p = []
-  const rep = world.rep
+  const rep = { ...fontesSemPaginasIaClaras2110(rd), ...world.rep } // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
   const fx = engineFixture(rep)
   const cost = fx('lib/credits/engineCost.ts')
   const pricing = fx(PRICING)

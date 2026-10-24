@@ -1,6 +1,7 @@
 // Actual page/metadata/FAQ rendered offline; no paid generation, credentials or events.
 import assert from 'node:assert/strict'
 import {React,offlineModules,renderToStaticMarkup,source} from './gpt24h-offline-support.mjs'
+import { semPaginasIaClaras2110, fontesSemPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — a camada clara das páginas de entrada do ChatGPT sai da conta deste guardião (prova própria em scripts/test-paginas-ia-claras-2110.mjs)
 const boundary=()=>({__esModule:true,default:()=>null})
 const mocks=Object.fromEntries(['components/Footer.tsx','components/AgencyVolumeBridge.tsx','components/StickyFreeShortCTA.tsx','components/WallMedia.tsx','components/ExitIntentOffer.tsx','components/AffiliateLandingContext.tsx','app/examples/ExampleVideoPlayer.tsx','app/examples/ExampleLiveMedia.tsx','app/youtube-shorts-from-topic/TopicGeneratorForm.tsx','app/text-to-video-shorts/TextToVideoIntentForm.tsx'].map(p=>[p,boundary()]))
 mocks['lib/analytics.ts']={trackEvent:()=>{throw Error('No analytics in offline render')}}
@@ -9,7 +10,7 @@ const canonical=offlineModules()('lib/freeTierOffer.ts')
 let count=0
 for(const enabled of [false,true]){
 const offer=canonical.buildFreeTierOffer(enabled)
-const load=offlineModules({mocks:{...mocks,'lib/freeTierOffer.ts':{...canonical,getFreeTierOffer:()=>offer}}})
+const load=offlineModules({mocks:{...mocks,'lib/freeTierOffer.ts':{...canonical,getFreeTierOffer:()=>offer}},replacements:fontesSemPaginasIaClaras2110(source)}) // reancorado KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 for(const route of ['free-ai-shorts-generator','text-to-video-shorts']){
   const file=`app/${route}/page.tsx`,page=load(file),html=renderToStaticMarkup(React.createElement(page.default,{searchParams:{}}))
   assert.ok(page.metadata.description.includes(offer.copy.planLimitLine));count++
@@ -25,7 +26,7 @@ for(const route of ['free-ai-shorts-generator','text-to-video-shorts']){
     const answer=faq.mainEntity.find(q=>q.name==='What happens after your free film?').acceptedAnswer.text
     assert.ok(answer.includes(offer.copy.sentence)&&answer.includes('before making your first film'));count++
     assert.ok(!answer.includes('free daily limit'));count++
-    const badSource=source(file).replace('`${OFFER.copy.sentence} For recurring production, compare the monthly plans and the credits required by your chosen engine and duration. You can choose a plan before making your first film.`',"'You can keep testing with watermarked Fast videos within the free daily limit.'")
+    const badSource=semPaginasIaClaras2110(source(file),file).replace('`${OFFER.copy.sentence} For recurring production, compare the monthly plans and the credits required by your chosen engine and duration. You can choose a plan before making your first film.`',"'You can keep testing with watermarked Fast videos within the free daily limit.'") // reancorado KINEO-PAGINAS-IA-CLARAS-2110
     const mutated=offlineModules({mocks:{...mocks,'lib/freeTierOffer.ts':{...canonical,getFreeTierOffer:()=>offer}},replacements:{[file]:badSource}})(file)
     const badHtml=renderToStaticMarkup(React.createElement(mutated.default,{searchParams:{}}))
     const badFaq=JSON.parse([...badHtml.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(m=>m[1]).find(s=>s.includes('FAQPage')))

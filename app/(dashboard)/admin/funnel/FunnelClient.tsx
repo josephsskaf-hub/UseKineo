@@ -7,6 +7,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
+import { startVisiblePolling } from '@/lib/admin/visiblePolling'
 import type { FunnelData } from '@/app/api/admin/funnel/route'
 import { CHATGPT_QUICKSTART_VARIANT } from '@/lib/growth/chatgptQuickstart'
 import { ACTIVATION_HANDOFF_SURFACE_VERSION } from '@/lib/growth/onboardingGoals'
@@ -48,7 +49,6 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
   const [refreshing, setRefreshing] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date | null>(initialData ? new Date() : null)
   const [secondsAgo, setSecondsAgo] = useState(0)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const clockRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -77,9 +77,8 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
         if (!cancelled) setRefreshing(false)
       }
     }
-    load()
-    timerRef.current = setInterval(() => { if (typeof document === 'undefined' || !document.hidden) load() }, POLL_MS) // KINEO-ADMIN-RAPIDO-1710 — aba escondida não consulta
-    return () => { cancelled = true; if (timerRef.current) clearInterval(timerRef.current) }
+    const stopPolling = startVisiblePolling(load, POLL_MS)
+    return () => { cancelled = true; stopPolling() }
   }, [denied, days])
 
   if (denied) {

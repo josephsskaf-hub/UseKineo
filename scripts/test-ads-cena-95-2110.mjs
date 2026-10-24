@@ -1,4 +1,5 @@
 // KINEO-ADS-CENA-95-2110 — isolamento do canário, custos no start e desfaz exato; nenhum efeito real.
+import { semPaginasIaClaras2110, PAGINAS_IA_CLARAS_2110_ARQUIVOS, PAGINAS_IA_CLARAS_2110_NOVOS, ehCommitPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
@@ -118,7 +119,7 @@ for(const [label,proof,file,from,to] of [
   assert.ok(failed,'mutante deve ficar vermelho: '+label);console.log('ok mutante vermelho: '+label)
 }
 for(const p of ADS_CENA_95_2110_ARQUIVOS) {
-  const actual=semRoteiroCurto2210(read(p),p),before=git('show',ADS_CENA_95_2110_BASE+':'+p) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — same SHA/CRLF/missing-marker assertions on the exact 95 layer.
+  const actual=semRoteiroCurto2210(semPaginasIaClaras2110(read(p),p),p),before=git('show',ADS_CENA_95_2110_BASE+':'+p) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — same SHA/CRLF/missing-marker assertions on the exact 95 layer.
   assert.ok(actual.includes(MARCA_ADS_CENA_95_2110),'marca da camada: '+p)
   const restored=semAdsCena952110(actual,p);assert.equal(restored,before,'desfaz exato '+p)
   assert.equal(semAdsCena952110(restored,p),before,'idempotência '+p)

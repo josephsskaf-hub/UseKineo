@@ -12,6 +12,7 @@
 //   F6 cena 1    — a floresta do Dino (ninguém citado) perde "characters act naturally" e ganha "No people…" no construtor real;
 //   O  desligado — sem o interruptor: o vetor de prompts, o bloco e o crítico (sem as opções novas) são os de sempre;
 //   D  desfaz exato e encadeado, commits com marca e selo; M mutantes (cada regra fica vermelha quando quebrada).
+import { ehCommitPaginasIaClaras2110 } from './test-support/desfaz-paginas-ia-claras-2110.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
@@ -409,6 +410,7 @@ console.log('\nD. desfaz, encadeamento, diff e commits')
   daEntrega.splice(0, daEntrega.length, ...daEntrega.filter(({ s }) => !s.startsWith('KINEO-AVATAR-ESTORNO-2010 ') && !s.startsWith('KINEO-LEGENDA-BENGALI-2010 '))) // KINEO-AVATAR-ESTORNO-2010 — reancorado na integração 21/10: os commits (e merges) do estorno/legenda bengali tocam o desfaz desta camada só para encadear a camada mais nova; levam a marca deles
   daEntrega.splice(0, daEntrega.length, ...daEntrega.filter(({ s }) => !((s.startsWith('KINEO-KIDS-VENDA-LIGA-2110 ') && s.includes('[TRAVA 8.2 — vai do fundador 21/10 "vamos ligar o Cartoon e vamos ver"]')) || (s.startsWith('KINEO-KIDS-VENDA-2010 ') && s.includes('[TRAVA 8.2 — vai do fundador 20/10 "três sim"]'))))) // KINEO-KIDS-VENDA-2010 — só commits da venda com marca e autorização próprias saem da conta do ajuste
   daEntrega.splice(0, daEntrega.length, ...daEntrega.filter(({ s }) => !((s.startsWith('KINEO-ADS-CENA-95-2110 ') || s.startsWith('KINEO-ADS-CENA-95-2110: ')) && s.includes('[TRAVA 8.2 — vai do fundador 21/10 "quero chegar a 9.5 de mínimo"]')))) // KINEO-ADS-CENA-95-2110 — somente a camada posterior com marca e autorização exatas.
+  daEntrega.splice(0, daEntrega.length, ...daEntrega.filter(({ s }) => !ehCommitPaginasIaClaras2110(s))) // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
   ok(daEntrega.every(({ s }) => s.startsWith(`${MARCA} ${SELO}`)), `D7 todo commit do ajuste começa por "${MARCA} ${SELO}" (${daEntrega.length} commit(s) desde ${BASE_CMP.slice(0, 10)})`, daEntrega.filter(({ s }) => !s.startsWith(`${MARCA} ${SELO}`)).map(({ s }) => s.slice(0, 60)).join(' | '))
   ok(fs.existsSync(path.join(ROOT, 'docs/META95-PERSONAGEM-AJUSTE-2026-10-20.md')) && /formatFlags/.test(rd('docs/META95-PERSONAGEM-AJUSTE-2026-10-20.md')), 'D8 o desenho e os 6 consertos estão em docs/META95-PERSONAGEM-AJUSTE-2026-10-20.md')
 }

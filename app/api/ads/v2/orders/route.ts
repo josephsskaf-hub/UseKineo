@@ -13,6 +13,7 @@ import { isUuid, sanitizeAssetsBody, sanitizeCreateOrderBody, sanitizePatchBody 
 import { applyAdsV2CopyEdit } from '@/lib/ads/v2Contract' // KINEO-ANUNCIO-CONSERTOS-2026-10-12 — o texto do plano editado pela pessoa (pura)
 import { adsV2Credits } from '@/lib/ads/v2Tiers'
 import { adsV2View, loadAdsV2Order, loadAdsV2Shots } from '@/lib/ads/v2Advance'
+import { ajusteReviewOf } from '@/lib/ads/cena/ajusteQuality' // KINEO-ADS-CENA-SEGUE-2110
 import { ownedFootage, v2Fail, v2Json } from '@/lib/ads/v2Server'
 // KINEO-ADS-AMOSTRA-2026-10-09 — a amostra grátis abre o POST e o PATCH para a conta free/trial que ainda não usou a dela;
 // o rascunho da amostra só nasce no nível e na duração da amostra (o /start confere de novo antes de qualquer custo).
@@ -44,7 +45,7 @@ export async function GET(req: NextRequest) {
       if (error) return isMissingAdsTable(error.code) ? v2Fail('not_ready', 503) : v2Fail('orders_failed', 502)
       if (!order) return v2Fail('order_not_found', 404)
       const shots = (await loadAdsV2Shots(admin, order.id)) ?? []
-      return v2Json({ order: adsV2View(order, shots), plan: order.plan, brief: order.brief, card_url: order.card_url, photos: order.photos })
+      return v2Json({ order: adsV2View(order, shots), plan: order.plan, brief: order.brief, card_url: order.card_url, photos: order.photos, ...ajusteReviewOf(order.plan) }) // KINEO-ADS-CENA-SEGUE-2110 — same review fields as status, only for AJUSTE.
     }
     if (req.nextUrl.searchParams.get('list') === 'brands') { // KINEO-ADS-MARCAS-1510 — "Seus anúncios": só os que começaram, com a marca; ?brand=<id>|none filtra
       const f = adBrandFilter(req.nextUrl.searchParams.get('brand')) // KINEO-ADS-MARCAS-1510

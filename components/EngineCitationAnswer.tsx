@@ -12,6 +12,7 @@
 // Sem <video> e sem resolução escrita (a página dos motores pagos é travada assim por scripts/test-paid-engine-proof).
 // KINEO-GEO-RODADA2-2026-10-08 — no slug do Seedance 1.5 o cartão termina com components/SeedanceAnswerSections.tsx ("é grátis?
 // e para quem", Seedance 1.5 × 2.5, filmes reais da vitrine com a ideia) — provado por scripts/test-geo-rodada2-2026-10-08.mjs.
+// KINEO-PAGINAS-IA-CLARAS-2110 — cores em var(--kpl-*, <cor de antes>): claras só dentro de <main className="kpl"> (as páginas de entrada do ChatGPT); nas outras páginas, a cor de antes.
 import type { CSSProperties } from 'react'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import SeedanceAnswerSections from '@/components/SeedanceAnswerSections' // KINEO-GEO-RODADA2-2026-10-08
@@ -33,12 +34,12 @@ export function engineGeoFor(slug: string): EngineCitation | null {
   return Object.prototype.hasOwnProperty.call(ENGINE_GEO, slug) ? ENGINE_GEO[slug] : null
 }
 
-const CARD: CSSProperties = { background: '#161618', border: '1px solid #2a2a2d' }
-const MUTED = '#86868b'
+const CARD: CSSProperties = { background: 'var(--kpl-card, #161618)', border: '1px solid var(--kpl-line, #2a2a2d)' }
+const MUTED = 'var(--kpl-muted, #86868b)'
 
 export function EngineAnswerLead({ geo }: { geo: EngineCitation }) {
   return (
-    <p data-kineo="engine-answer" style={{ fontSize: '1.06rem', color: '#d2d2d7', lineHeight: 1.6, margin: '14px auto 0', maxWidth: 720 }}>
+    <p data-kineo="engine-answer" style={{ fontSize: '1.06rem', color: 'var(--kpl-body, #d2d2d7)', lineHeight: 1.6, margin: '14px auto 0', maxWidth: 720 }}>
       {geo.answerLead} {geo.planLine}
     </p>
   )
@@ -50,7 +51,7 @@ function rowLabel(r: CitationPriceRow): { title: string; detail: string } {
     : { title: `${r.seconds}-second video`, detail: 'Script, voice, captions and music, ready to post' }
 }
 
-export function EnginePriceCard({ geo, ctaHref, campaign }: { geo: EngineCitation; ctaHref: string; campaign: string }) {
+export function EnginePriceCard({ geo, ctaHref, campaign, semGaleriaVelha = false }: { geo: EngineCitation; ctaHref: string; campaign: string; semGaleriaVelha?: boolean }) { // KINEO-PAGINAS-IA-CLARAS-2110 — + semGaleriaVelha (a página clara do motor tira os filmes velhos do Seedance; a vitrine atual entra no lugar)
   // KINEO-S25-ABRE-2026-10-06 — sem clipe avulso à venda (o Seedance 2.5), a tabela não tem linha de clipe.
   const rows = [geo.rows.clip, geo.rows.film35, geo.rows.film60].filter((r): r is CitationPriceRow => r !== null)
   const th: CSSProperties = { textAlign: 'left', padding: '11px 10px', fontWeight: 700, color: MUTED, whiteSpace: 'nowrap' }
@@ -66,7 +67,7 @@ export function EnginePriceCard({ geo, ctaHref, campaign }: { geo: EngineCitatio
       <div style={{ ...CARD, borderRadius: 16, overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem', minWidth: 620 }}>
           <thead>
-            <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
+            <tr style={{ background: 'var(--kpl-zebra, rgba(255,255,255,0.04))' }}>
               <th style={th}>{geo.name}</th>
               <th style={th}>Credits</th>
               <th style={th}>About US$*</th>
@@ -79,15 +80,15 @@ export function EnginePriceCard({ geo, ctaHref, campaign }: { geo: EngineCitatio
             {rows.map((r) => {
               const label = rowLabel(r)
               return (
-                <tr key={r.key} style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <tr key={r.key} style={{ borderTop: '1px solid var(--kpl-hair, rgba(255,255,255,0.06))' }}>
                   <td style={{ ...td, minWidth: 190 }}>
-                    <div style={{ fontWeight: 800, color: '#f5f5f7' }}>{label.title}</div>
+                    <div style={{ fontWeight: 800, color: 'var(--kpl-text, #f5f5f7)' }}>{label.title}</div>
                     <div style={{ color: MUTED, fontSize: '0.8rem' }}>{label.detail}</div>
                   </td>
-                  <td style={{ ...td, fontWeight: 800, color: '#f5f5f7' }}>{`${r.credits} cr`}</td>
-                  <td style={{ ...td, color: '#d2d2d7' }}>{usd(r.usdCents)}</td>
+                  <td style={{ ...td, fontWeight: 800, color: 'var(--kpl-text, #f5f5f7)' }}>{`${r.credits} cr`}</td>
+                  <td style={{ ...td, color: 'var(--kpl-body, #d2d2d7)' }}>{usd(r.usdCents)}</td>
                   {r.perPlan.map((pp) => (
-                    <td key={pp.tier} style={{ ...td, color: pp.count > 0 ? '#d2d2d7' : '#6e6e73' }}>{pp.count > 0 ? `${pp.count} per month` : '—'}</td>
+                    <td key={pp.tier} style={{ ...td, color: pp.count > 0 ? 'var(--kpl-body, #d2d2d7)' : 'var(--kpl-muted, #6e6e73)' }}>{pp.count > 0 ? `${pp.count} per month` : '—'}</td>
                   ))}
                 </tr>
               )
@@ -95,13 +96,13 @@ export function EnginePriceCard({ geo, ctaHref, campaign }: { geo: EngineCitatio
           </tbody>
         </table>
       </div>
-      <p style={{ fontSize: '0.78rem', color: '#6e6e73', margin: '10px 0 0', lineHeight: 1.55 }}>
+      <p style={{ fontSize: '0.78rem', color: 'var(--kpl-muted, #6e6e73)', margin: '10px 0 0', lineHeight: 1.55 }}>
         {`* At the ${geo.reference.label} plan’s credit price (${money(geo.reference.usdCents)} for ${geo.reference.credits} credits). Counts are whole items per monthly credit grant, rounded down.`}
       </p>
 
       <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: '26px 0 8px' }}>{`Using ${geo.name} directly instead`}</h3>
       {geo.direct.length > 0 ? (
-        <ul style={{ margin: 0, paddingLeft: 18, color: '#d2d2d7', fontSize: '0.9rem', lineHeight: 1.65 }}>
+        <ul style={{ margin: 0, paddingLeft: 18, color: 'var(--kpl-body, #d2d2d7)', fontSize: '0.9rem', lineHeight: 1.65 }}>
           <li>
             <strong>Kineo</strong>
             {geo.rows.clip
@@ -115,7 +116,7 @@ export function EnginePriceCard({ geo, ctaHref, campaign }: { geo: EngineCitatio
               {r.sources.map((s, i) => (
                 <span key={s.url}>
                   {i > 0 ? ' · ' : ''}
-                  <a href={s.url} target="_blank" rel="nofollow noopener noreferrer" style={{ color: '#2997ff', textDecoration: 'none' }}>{s.label}</a>
+                  <a href={s.url} target="_blank" rel="nofollow noopener noreferrer" style={{ color: 'var(--kpl-accent, #2997ff)', textDecoration: 'none' }}>{s.label}</a>
                 </span>
               ))}
             </li>
@@ -123,9 +124,9 @@ export function EnginePriceCard({ geo, ctaHref, campaign }: { geo: EngineCitatio
         </ul>
       ) : null}
       {geo.directNote ? (
-        <p style={{ color: '#d2d2d7', fontSize: '0.9rem', lineHeight: 1.65, margin: '0 0 6px' }}>
+        <p style={{ color: 'var(--kpl-body, #d2d2d7)', fontSize: '0.9rem', lineHeight: 1.65, margin: '0 0 6px' }}>
           {`${geo.directNote.text} (${geo.directCheckedLabel}). `}
-          <a href={geo.directNote.source.url} target="_blank" rel="nofollow noopener noreferrer" style={{ color: '#2997ff', textDecoration: 'none' }}>{geo.directNote.source.label}</a>
+          <a href={geo.directNote.source.url} target="_blank" rel="nofollow noopener noreferrer" style={{ color: 'var(--kpl-accent, #2997ff)', textDecoration: 'none' }}>{geo.directNote.source.label}</a>
         </p>
       ) : null}
       {geo.direct.length > 0 ? (
@@ -139,17 +140,17 @@ export function EnginePriceCard({ geo, ctaHref, campaign }: { geo: EngineCitatio
           href={ctaHref}
           source={campaign}
           placement="price_card"
-          style={{ display: 'inline-block', background: '#2997ff', color: '#fff', fontWeight: 900, padding: '14px 28px', borderRadius: 980, textDecoration: 'none', fontSize: '1.02rem' }}
+          style={{ display: 'inline-block', background: 'var(--kpl-accent, #2997ff)', color: '#fff', fontWeight: 900, padding: '14px 28px', borderRadius: 980, textDecoration: 'none', fontSize: '1.02rem' }}
         >
           {geo.ctaLabel}
         </OrganicCtaLink>
-        <p style={{ color: '#d2d2d7', fontSize: '0.95rem', margin: '12px auto 0', maxWidth: 560, lineHeight: 1.55 }}>{ENGINE_GEO_BRAND_LINE}</p>
+        <p style={{ color: 'var(--kpl-body, #d2d2d7)', fontSize: '0.95rem', margin: '12px auto 0', maxWidth: 560, lineHeight: 1.55 }}>{ENGINE_GEO_BRAND_LINE}</p>
         <p style={{ color: MUTED, fontSize: '0.82rem', margin: '6px 0 0' }}>{ENGINE_GEO_REWARDS_LINE}</p>
       </div>
       {/* KINEO-GEO-RODADA2-2026-10-08 — só na página do Seedance 1.5: "é grátis?", 1.5 × 2.5 e filmes reais com a ideia (camada
           citável extra, dentro do cartão: os guardiões de trava da página descontam o cartão inteiro; a prova desta camada é
           scripts/test-geo-rodada2-2026-10-08.mjs). Sem <section> aninhada: o cartão termina no primeiro </section>. */}
-      {geo.slug === 'seedance' ? <SeedanceAnswerSections geo={geo} s25={engineGeoFor('seedance-2-5')} /> : null}
+      {geo.slug === 'seedance' ? <SeedanceAnswerSections geo={geo} s25={engineGeoFor('seedance-2-5')} galeria={!semGaleriaVelha} /> : null}{/* KINEO-PAGINAS-IA-CLARAS-2110 */}
     </section>
   )
 }
