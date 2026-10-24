@@ -1,4 +1,5 @@
 // KINEO-ADS-ESCOLHA-2310 — authenticated Studio Ads entry; the same staged planner as the house admin test.
+// KINEO-ADS-ESCOLHA-PUBLICO-2410 — the public switch never bypasses the existing workspace/paywall gate.
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { isAdsInternalEmail } from '@/lib/ads/access'

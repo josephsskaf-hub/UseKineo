@@ -27,6 +27,22 @@ revoke all on public.ads_escolha_ready_notices from public, anon, authenticated;
 grant select, insert, update on public.ads_escolha_ready_notices to service_role;
 create index ads_escolha_ready_pending on public.ads_escolha_ready_notices(claimed_at nulls first) where closed_at is null;
 
+-- Commit delivery and its notice together: a lambda dying after UPDATE cannot lose the e-mail.
+create function public.queue_ads_escolha_ready_notice()
+returns trigger language plpgsql security invoker set search_path = '' as $$
+begin
+  if new.status = 'delivered' and old.status is distinct from new.status
+    and new.plan #>> '{escolhaFlow,marker}' = 'KINEO-ADS-ESCOLHA-2310' then
+    insert into public.ads_escolha_ready_notices(order_id) values (new.id) on conflict (order_id) do nothing;
+  end if;
+  return new;
+end;
+$$;
+revoke all on function public.queue_ads_escolha_ready_notice() from public, anon, authenticated;
+grant execute on function public.queue_ads_escolha_ready_notice() to service_role;
+create trigger ads_escolha_delivery_notice after update of status on public.ads_v2_orders
+for each row execute function public.queue_ads_escolha_ready_notice();
+
 create function public.reserve_ads_escolha_photos(p_order_id uuid, p_owner_id uuid, p_actor_id uuid, p_lease_at timestamptz)
 returns jsonb language plpgsql security invoker set search_path = '' as $$
 declare

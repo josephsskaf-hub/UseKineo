@@ -1,4 +1,5 @@
 // KINEO-ADS-ESCOLHA-2310 — plan → four persisted stills → explicit choice → existing v2 debit/start.
+// KINEO-ADS-ESCOLHA-PUBLICO-2410 — same access gate, reserved photo allowance and server transition funnel.
 import type { CenaInternalDeps } from './internal'
 import type { AdsV2Caller } from '../v2PlanCore'
 import { isAdsInternalEmail } from '../access'

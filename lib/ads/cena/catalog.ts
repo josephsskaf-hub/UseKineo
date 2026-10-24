@@ -1,4 +1,5 @@
 // KINEO-ADS-CENA-2110 — tabela única editável: a visão escolhe a categoria, nunca inventa cenário nem ação.
+// KINEO-ADS-ESCOLHA-PUBLICO-2410 — rollout visibility; access is still resolved separately by adsGate.
 // KINEO-ADS-CENA-AJUSTE-2110 — figurino explícito e estável nas duas imagens, tomadas e refações.
 // KINEO-ADS-CENA-95-2110 — chá tem preparo próprio em vez de girar a embalagem como produto genérico.
 export const ADS_CENA_LIVE: 'off' | 'internal' | 'public' = 'public'
