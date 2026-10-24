@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 })
 
-    let body: { action?: string; contentType?: string; sizeBytes?: number; path?: string; kind?: string; purpose?: string }
+    let body: { action?: string; contentType?: string; sizeBytes?: number; path?: string; kind?: string; purpose?: string; ads_sample_escolha?: boolean }
     try {
       body = await req.json()
     } catch {
@@ -205,7 +205,7 @@ export async function POST(req: NextRequest) {
     // (user_id = dono, created_by = membro), com a cota e o plano do dono — os pedidos do workspace só aceitam arquivo do dono
     // (ownedFootage). Fora do purpose 'ads' (My footage, filmes, clipes, imagens) nada muda: estritamente por conta. Erro = pessoal.
     let teamOwnerId: string | null = null
-    if (body.purpose === 'ads' && (body.action === 'upload-url' || body.action === 'confirm')) {
+    if (body.ads_sample_escolha !== true && body.purpose === 'ads' && (body.action === 'upload-url' || body.action === 'confirm')) {
       try {
         const ws = await loadAdsAccess(user.id, user.email, { workspace: true })
         if (ws.role === 'member' && ws.ownerId !== user.id && adsGate(ws.reason) === 'ok') teamOwnerId = ws.ownerId
@@ -216,7 +216,13 @@ export async function POST(req: NextRequest) {
     const folderId: string = teamOwnerId ?? user.id
     // KINEO-ADS-AMOSTRA-2026-10-09 — upload da amostra grátis: só pelo montador do Ads, só com a amostra aberta. Erro = fechado.
     let sampleUpload = false
-    if (!teamOwnerId && !entitlement.treatAsPaid && body.purpose === 'ads' && (body.action === 'upload-url' || body.action === 'confirm')) {
+    if (body.ads_sample_escolha === true && body.purpose === 'ads' && ['upload-url', 'confirm'].includes(body.action ?? '')) {
+      const { escolhaSampleAccountOk, escolhaSampleUsed } = await import('@/lib/ads/cena/escolhaSampleServer')
+      const acc = await loadAdsAccess(user.id, user.email)
+      sampleUpload = await escolhaSampleAccountOk(acc.admin, user.id) && !await escolhaSampleUsed(acc.admin, user.id)
+      if (!sampleUpload) return NextResponse.json({ error: 'A confirmed eligible account with an unused sample is required.' }, { status: 403 })
+    }
+    if (body.ads_sample_escolha !== true && !teamOwnerId && !entitlement.treatAsPaid && body.purpose === 'ads' && (body.action === 'upload-url' || body.action === 'confirm')) {
       try {
         const acc = await loadAdsAccess(user.id, user.email)
         sampleUpload = adsGate(acc.reason) === 'no_access' && (await adsSampleOpen(acc.admin, user.id, acc.reason))

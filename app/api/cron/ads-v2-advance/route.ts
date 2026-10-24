@@ -11,6 +11,7 @@ import { footageAdminClient } from '@/lib/userFootage'
 import { isMissingAdsTable } from '@/lib/ads/serverAccess'
 import { advanceAdsV2Order } from '@/lib/ads/v2Advance'
 import { retryEscolhaNotices } from '@/lib/ads/cena/escolhaNotify' // KINEO-ADS-ESCOLHA-PUBLICO-2410
+import { checkEscolhaSampleConversionAlert } from '@/lib/ads/cena/escolhaSampleServer' // KINEO-AMOSTRA-ANUNCIO-2410
 // KINEO-ADS-LOTE-1310 — com a aba fechada, a fila do modo lote anda aqui: depois de avançar os pedidos, a próxima linha de
 // cada lote começa pelo /start de sempre (adsV2StartFor). Nunca lança; sem fila, uma leitura só.
 import { drainAdsV2Batches } from '@/lib/ads/v2Batch'
@@ -49,6 +50,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'orders_read_failed' })
   }
   const results: { order_id: string; before: string; after: string | null }[] = []
+  await checkEscolhaSampleConversionAlert(admin, started + TOTAL_BUDGET_MS) // KINEO-AMOSTRA-ANUNCIO-2410 — evaluate the stopping signal before render work can exhaust the cron budget.
   for (const o of (data ?? []) as { id: string; status: string }[]) {
     if (Date.now() - started > TOTAL_BUDGET_MS) break
     const view = await advanceAdsV2Order(admin, o.id, { deadlineMs: Math.min(started + TOTAL_BUDGET_MS, Date.now() + PER_ORDER_BUDGET_MS) })

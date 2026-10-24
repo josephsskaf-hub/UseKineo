@@ -283,6 +283,7 @@ async function noticeProof(over = {}) {
       },
     }
     const run = actualFunction(F.notify, 'notifyEscolhaDelivered', {
+      isEscolhaSamplePlan: w.load('lib/ads/cena/escolhaSamplePolicy.ts').isEscolhaSamplePlan, // KINEO-AMOSTRA-ANUNCIO-2410 — actual new dependency; all existing paid notice assertions remain raw.
       escolhaOf: w.load(F.stills).escolhaOf, isUuid: v => typeof v === 'string' && /^[0-9a-f-]{36}$/u.test(v), process: { env: options.noKey ? {} : { RESEND_API_KEY: 'offline-fixture-only' } },
       claimEmailSlot: async () => { claims++; return { allowed: options.allowed !== false } }, recordResendResponse: async () => {},
       emailFooterText: () => '\nOffline footer', unsubscribeHeaders: () => ({}), writeServerEvent: async e => event.push(plain(e)),
@@ -417,7 +418,7 @@ async function mutant(name, file, from, to, proof) {
 for (const [name, proof] of Object.entries({ accessProof, eligibilityProof, quotaProof, qualityProof, roundsProof, eventsProof, terminalProof, noticeProof, uiProof })) { await proof(); console.log('ok public ' + name) }
 const mutants = [
   ['public remains house only', F.catalog, "flag === 'public'", 'false', accessProof],
-  ['free bypasses Studio gate', F.route, "if (gate !== 'ok')", 'if (false)', accessProof],
+  ['free bypasses Studio gate', F.route, "if (gate !== 'ok' && !sampleMode)", 'if (false)', accessProof], // KINEO-AMOSTRA-ANUNCIO-2410 — same paid-gate mutant at its current production condition.
   ['low balance buys free photos', F.quota, 'balance >= needed', 'balance >= 0', eligibilityProof],
   ['forty-one is rejected', F.quota, 'balance >= needed', 'balance > needed', eligibilityProof],
   ['unknown RPC opens paid boundary', F.quota, "if (r.error || !row || !['ok', 'cena_photo_daily_limit'].includes(row.code))", "if (false)", quotaProof],

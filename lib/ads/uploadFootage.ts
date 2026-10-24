@@ -241,7 +241,7 @@ export interface UploadFootageResult extends AdsMediaItem {
  * Envia UM arquivo pelo /api/footage e devolve o item no formato do pedido (AdsMediaItem).
  * Lança AdsUploadError com `reason` curto e mensagem pronta para a tela.
  */
-export async function uploadFootage(input: File, opts: { isLogo?: boolean } = {}): Promise<UploadFootageResult> {
+export async function uploadFootage(input: File, opts: { isLogo?: boolean; sampleEscolha?: boolean } = {}): Promise<UploadFootageResult> {
   const isLogo = opts.isLogo === true
   const prepared = await prepareFootageFile(input, { isLogo })
   const { file, type, kind } = prepared
@@ -253,7 +253,7 @@ export async function uploadFootage(input: File, opts: { isLogo?: boolean } = {}
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       // KINEO-ADS-AMOSTRA-2026-10-09 — purpose 'ads': a conta free com a amostra grátis aberta pode subir fotos por aqui.
-      body: JSON.stringify({ action: 'upload-url', contentType: type, sizeBytes: file.size, purpose: 'ads' }),
+      body: JSON.stringify({ action: 'upload-url', contentType: type, sizeBytes: file.size, purpose: 'ads', ...(opts.sampleEscolha ? { ads_sample_escolha: true } : {}) }),
     })
   } catch {
     throw new AdsUploadError('upload_failed', 'No connection. Check your internet and try again.')
@@ -280,7 +280,7 @@ export async function uploadFootage(input: File, opts: { isLogo?: boolean } = {}
     confirmRes = await fetch('/api/footage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'confirm', path: start.path, kind: typeof start.kind === 'string' ? start.kind : kind, sizeBytes: file.size, purpose: 'ads' }),
+      body: JSON.stringify({ action: 'confirm', path: start.path, kind: typeof start.kind === 'string' ? start.kind : kind, sizeBytes: file.size, purpose: 'ads', ...(opts.sampleEscolha ? { ads_sample_escolha: true } : {}) }),
     })
   } catch {
     throw new AdsUploadError('upload_failed', 'No connection. Check your internet and try again.')

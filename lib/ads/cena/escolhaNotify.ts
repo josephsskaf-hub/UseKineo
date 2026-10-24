@@ -5,6 +5,7 @@ import { isUuid } from '../v2Contract'
 import { claimEmailSlot, recordResendResponse } from '@/lib/email/quota'
 import { emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { isEscolhaSamplePlan } from './escolhaSamplePolicy'
 
 type ReadyOrder = { id: string; user_id: string; status: string; plan: unknown; language: string | null; video_id: string | null }
 export async function notifyEscolhaDelivered(admin: SupabaseClient, order: ReadyOrder): Promise<boolean> {
@@ -36,7 +37,7 @@ export async function notifyEscolhaDelivered(admin: SupabaseClient, order: Ready
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', 'Idempotency-Key': `ads-escolha-ready-${order.id}` },
       body: JSON.stringify({ from: 'Kineo <hello@usekineo.com>', reply_to: 'support@usekineo.com', to: email,
         subject: pt ? 'Seu anúncio está pronto' : 'Your ad is ready',
-        text: (pt ? 'Seu anúncio de 15 segundos está pronto. Abra o Studio Ads para assistir e baixar:' : 'Your 15-second ad is ready. Open Studio Ads to watch and download:') + `\n\n${link}` + emailFooterText(userId),
+        text: (isEscolhaSamplePlan(p.cena.plan) ? pt ? 'Sua amostra grátis de 8 segundos está pronta. Assista e gere a versão completa no Studio Ads:' : 'Your free 8-second sample is ready. Watch it and generate the full version in Studio Ads:' : pt ? 'Seu anúncio de 15 segundos está pronto. Abra o Studio Ads para assistir e baixar:' : 'Your 15-second ad is ready. Open Studio Ads to watch and download:') + `\n\n${link}` + emailFooterText(userId),
         headers: unsubscribeHeaders(userId),
       }),
     })

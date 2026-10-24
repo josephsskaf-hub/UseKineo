@@ -46,7 +46,7 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
   const checks = []
   const check = (value, message) => { assert.ok(value, message); checks.push(message) }
 
-  function client({ form = FORM, saved = null, owner = 'user-a:owner-a', query = '', lang = 'pt', internalControls = true } = {}) {
+  function client({ form = FORM, saved = null, owner = 'user-a:owner-a', query = '', lang = 'pt', internalControls = true, sampleAvailable = false, initialSample = false } = {}) {
     const states = [], refs = [], effects = [], responses = [], requests = [], timers = new Map()
     const storageKey = `kineo:ads-escolha:v1:${owner}`
     const storage = new Map(saved ? [[storageKey, JSON.stringify(saved)]] : [])
@@ -68,7 +68,7 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
       : id === 'react-dom' ? { createPortal: value => value }
         : id.includes('escolhaCatalog') ? catalog
           : id.includes('v2Tiers') ? tiers
-          : id === '@/lib/textLanguage' || id.includes('escolhaShots') ? pure(id) // KINEO-IDIOMAS-FORMATOS-2410 — real catalogue/token/format exports, never empty stubs or alias fallback to Node.
+          : id === '@/lib/textLanguage' || id.includes('escolhaShots') || id.includes('checkoutPricing') ? pure(id) // KINEO-AMOSTRA-ANUNCIO-2410 — execute the real single price source for result purchase.
           : id.includes('uploadFootage') ? { uploadFootage() { throw new Error('upload_not_exercised_offline') }, AdsUploadError: class extends Error {} }
             : id.includes('interfaceLanguage') ? { INTERFACE_LANGUAGE_OPTIONS: [{ code: 'pt', native: 'Português' }, { code: 'en', native: 'English' }] }
               : require(id)
@@ -85,7 +85,7 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
     function render() {
       for (let round = 0; round < 8; round++) {
         changed = false; stateIndex = refIndex = effectIndex = 0; pending = []
-        tree = module.exports.default({ lang, internalControls, ownerKey: owner, resume: true, onBalance: async () => {} })
+        tree = module.exports.default({ lang, internalControls, sampleAvailable, initialSample, ownerKey: owner, resume: true, onBalance: async () => {} })
         for (const effect of pending) effect()
         if (!changed) return tree
       }
