@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore newest layer before every historical reader/undo.
 // KINEO-KLING25-PLANOS-5S-2026-09-28 — guardião dos planos de 5 s do Kling 2.5.
 // Fundador, 28/09, depois do canário c83074b6 ("The Mystery of Moving Rocks", 98 palavras verbatim, 35 s pedidos, 37,7 s
 // entregues, 4 planos de 10 s): "gostei muito… a única coisa é mais variedade de cenas". O claim do canário também mostrou
@@ -42,7 +43,7 @@ const desfazAncoraEJuizStill1410 = (p, s) => desfazAncoraLegenda1410(p, desfazJu
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ) // o loader offline resolve '@/...' a partir do cwd
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'), p)
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else { falhas.push(n); console.log('  FALHOU: ' + n) } }
@@ -206,7 +207,7 @@ if (rotaBase) {
 }
 
 // (c2) builder real da fal
-const loadLib = createOfflineLoader({ source: (p, s) => desfazAncoraEJuizStill1410(p, s) }) // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
+const loadLib = createOfflineLoader({ source: (p, s) => desfazAncoraEJuizStill1410(p, semIdiomasFormatos2410(s, p)) }) // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 const aspect = loadLib('@/lib/aspect')
 const policy = loadLib('@/lib/cinematic/visualPromptPolicy')
 const router = rd('lib/hollywood/router.ts')

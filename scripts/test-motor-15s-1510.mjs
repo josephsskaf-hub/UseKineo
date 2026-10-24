@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore newest layer before every historical reader/undo.
 // KINEO-MOTOR-15S-1510 [TRAVA 8.2 — vai do fundador 15/10] — guardião do filme grátis de 15 s que ficava no roteirista.
 //
 // Defeito A (medido 15/10): contas de teste/região com saldo para o Seedance 1.5 de 15 s apertavam Gerar e paravam no
@@ -35,7 +36,7 @@ const { createOfflineLoader } = await import(pathToFileURL(path.join(ROOT, 'scri
 const { semMotor15s1510, FORMA_MOTOR_15S_1510 } = await import(pathToFileURL(path.join(ROOT, 'scripts/test-support/desfaz-motor-15s-1510.mjs')).href)
 const { semModeracao1410 } = await import(pathToFileURL(path.join(ROOT, 'scripts/test-support/desfaz-moderacao-1410.mjs')).href) // reancorado KINEO-MODERACAO-1410: a régua completa do texto (acréscimos) sai PRIMEIRO
 const { semRegua35a90_1410 } = await import(pathToFileURL(path.join(ROOT, 'scripts/test-support/desfaz-regua-35-60-90-1410.mjs')).href) // reancorado KINEO-REGUA-35-60-90-1410: o conserto seguinte reescreveu a linha da régua; desfeito ANTES do desfaz do 15 s
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+const read = (rel) => semIdiomasFormatos2410(fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n'), rel)
 let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }
@@ -104,7 +105,7 @@ async function postar({ routeSrc = ROUTE, helperSrc = HELPER, body, gpt, moderac
       '@/lib/safety/contentModeration': { moderateContent: async () => moderacao },
       '@/lib/reverseTrial': { getEffectiveEntitlement: () => ({ maxDurationSeconds: null }), TRIAL_ENTITLEMENT_COLUMNS: 'plan' },
     },
-    source: (rel, src) => (rel === ROUTE_REL ? routeSrc : rel === HELPER_REL ? helperSrc : src),
+    source: (rel, src) => (rel === ROUTE_REL ? routeSrc : rel === HELPER_REL ? helperSrc : semIdiomasFormatos2410(src, rel)),
   })
   const route = load('@/' + ROUTE_REL)
   const req = { json: async () => body }

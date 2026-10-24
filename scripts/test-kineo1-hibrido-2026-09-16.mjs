@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore newest layer before every historical reader/undo.
 // KINEO-1-HIBRIDO-2026-09-16 — guardião: cena que o banco de imagens não cobre vira still gerado (fundador 16/09:
 // "Vai! Já é uma melhora significativa"). Prova: (a) a decisão é pura e nomeia o motivo; (b) a heurística de nome
 // próprio pega os casos reais do dia (Bezos, Ayodhya, Strasbourg 1518) e não dispara em fala genérica; (c) o prompt
@@ -12,7 +13,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'), p)
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else falhas.push(n) }
