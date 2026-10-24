@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — compile exact historical copies in TEMP; never rewrite production sources.
 // ═══ KINEO-DEGRAU-2026-09-03 — o gate de narracao vira DEGRAU, nao porta ═════
 //
 // O caso: em 30 dias a trava de narracao (`narration_guard_blocked`) recusou
@@ -43,7 +44,7 @@ const TSC = acharTsc(raiz)
 const saida = mkdtempSync(join(tmpdir(), 'kineo-degrau-'))
 const requerer = createRequire(join(saida, 'x.cjs'))
 mkdirSync(join(saida, 'src'), { recursive: true })
-writeFileSync(join(saida, 'src', 'narrationFit.ts'), readFileSync(join(raiz, 'lib/narrationFit.ts'), 'utf8'))
+writeFileSync(join(saida, 'src', 'narrationFit.ts'), semIdiomasFormatos2410(readFileSync(join(raiz, 'lib/narrationFit.ts'), 'utf8'), 'lib/narrationFit.ts')) // KINEO-IDIOMAS-FORMATOS-2410
 writeFileSync(join(saida, 'src', 'engineCost.ts'), readFileSync(join(raiz, 'lib/credits/engineCost.ts'), 'utf8'))
 try {
   execFileSync(process.execPath, [

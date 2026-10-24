@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — compile exact historical copies in TEMP; never rewrite production sources.
+import { mkdirSync } from 'node:fs' // KINEO-IDIOMAS-FORMATOS-2410
 // ═══ KINEO-EXPANSOR-DEGRAU-2026-09-03 ══════════════════════════════════════
 //
 // O DEFEITO QUE ESTE TESTE TRANCA: o expansor recusava um roteiro que o
@@ -30,14 +32,18 @@ import { createRequire } from 'node:module'
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 const saida = mkdtempSync(join(tmpdir(), 'kineo-degrau-'))
 const requerer = createRequire(join(saida, 'x.cjs'))
+const entradaHistorica = join(saida, 'source') // KINEO-IDIOMAS-FORMATOS-2410
+mkdirSync(entradaHistorica, { recursive: true }) // KINEO-IDIOMAS-FORMATOS-2410
+for (const file of ['expandPolicy.ts', 'narrationFit.ts', 'scriptParser.ts']) writeFileSync(join(entradaHistorica, file), semIdiomasFormatos2410(readFileSync(join(raiz, 'lib', file), 'utf8'), 'lib/' + file)) // KINEO-IDIOMAS-FORMATOS-2410
+
 
 execFileSync(
   process.execPath,
   [
     join(raiz, 'node_modules', 'typescript', 'bin', 'tsc'),
-    join(raiz, 'lib', 'expandPolicy.ts'),
-    join(raiz, 'lib', 'narrationFit.ts'),
-    join(raiz, 'lib', 'scriptParser.ts'),
+    join(entradaHistorica, 'expandPolicy.ts'),
+    join(entradaHistorica, 'narrationFit.ts'),
+    join(entradaHistorica, 'scriptParser.ts'),
     '--outDir', saida, '--module', 'commonjs', '--target', 'es2022',
     '--moduleResolution', 'node', '--skipLibCheck',
   ],

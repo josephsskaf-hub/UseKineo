@@ -1,3 +1,6 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — compile exact historical copies in TEMP; never rewrite production sources.
+import { mkdirSync, writeFileSync } from 'node:fs' // KINEO-IDIOMAS-FORMATOS-2410
+import { dirname } from 'node:path' // KINEO-IDIOMAS-FORMATOS-2410
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
@@ -8,6 +11,9 @@ import { createRequire } from 'node:module'
 const repo = process.cwd()
 const out = mkdtempSync(join(tmpdir(), 'kineo-local-business-'))
 const require = createRequire(import.meta.url)
+const inputRoot = join(out, 'source') // KINEO-IDIOMAS-FORMATOS-2410
+for (const file of ["growth/localBusinessAdBrief.ts","toolActivationHref.ts","creationHandoff.ts","authRedirect.ts","textLanguage.ts"]) { const dest = join(inputRoot, file); mkdirSync(dirname(dest), { recursive: true }); writeFileSync(dest, semIdiomasFormatos2410(readFileSync(join(repo, 'lib', file), 'utf8'), 'lib/' + file)) } // KINEO-IDIOMAS-FORMATOS-2410
+
 let checks = 0
 const check = (condition, message) => { assert.ok(condition, message); checks += 1 }
 const equal = (actual, expected, message) => { assert.deepEqual(actual, expected, message); checks += 1 }
@@ -15,12 +21,12 @@ const equal = (actual, expected, message) => { assert.deepEqual(actual, expected
 try {
   const tsc = require.resolve('typescript/bin/tsc')
   execFileSync(process.execPath, [tsc,
-    'lib/growth/localBusinessAdBrief.ts',
-    'lib/toolActivationHref.ts',
-    'lib/creationHandoff.ts',
-    'lib/authRedirect.ts',
+    join(inputRoot, 'growth/localBusinessAdBrief.ts'),
+    join(inputRoot, 'toolActivationHref.ts'),
+    join(inputRoot, 'creationHandoff.ts'),
+    join(inputRoot, 'authRedirect.ts'),
     '--outDir', out,
-    '--rootDir', 'lib',
+    '--rootDir', inputRoot,
     '--module', 'commonjs',
     '--target', 'ES2020',
     '--moduleResolution', 'node',
@@ -115,7 +121,7 @@ try {
   check(component.includes('Review every claim'), 'client tells the business owner to verify claims')
   check(component.includes('nothing is generated or charged'), 'client states the no-side-effect boundary before signup')
   check(!/fetch\(|supabase|create_intent/.test(component), 'builder has no direct API, Supabase or auto-render call')
-  check(!/fetch\(|trackEvent|supabase|render/.test(readFileSync(join(repo, 'lib/growth/localBusinessAdBrief.ts'), 'utf8')), 'brief algorithm is browser-only')
+  check(!/fetch\(|trackEvent|supabase|render/.test(readFileSync(join(inputRoot, 'growth/localBusinessAdBrief.ts'), 'utf8')), 'brief algorithm is browser-only')
   check(signupPage.includes("const explicitRedirect = normalizeInternalRedirect(params.get('redirect'))"), 'the real signup caller validates and prioritizes the saved destination')
   check(generateClient.includes("const initialPrompt = searchParams.get('prompt')"), 'the real editor initializes from the carried draft')
   check(generateClient.includes('if (handoff.scriptMode) setScriptMode(handoff.scriptMode)'), 'the real editor applies verbatim mode')
