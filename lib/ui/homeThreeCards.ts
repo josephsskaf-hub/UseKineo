@@ -89,27 +89,57 @@ export const HOME_CARD_BADGE: Record<HomeCardId, string> = {
 }
 
 /** Um vídeo de card: prévia leve em public/previews/ (≤ 1,5 MB, sem áudio, faststart) + pôster .webp em public/posters/. */
-export type HomeCardClip = { src: string; poster: string }
-const preview = (name: string): HomeCardClip => ({ src: `/previews/${name}.mp4`, poster: `/posters/${name}.webp` })
+export type HomeCycleCardId = HomeCardId | 'kids_cartoon'
+export type HomeCardClip = { src: string; poster: string; objectPosition: string; mobileObjectPosition?: string; objectFit?: 'cover' | 'contain'; scale?: number }
+export type HomeCardPlaylist = readonly [HomeCardClip, ...HomeCardClip[]]
+const preview = (name: string, objectPosition = '50% 0%', mobileObjectPosition = objectPosition): HomeCardClip => ({ src: `/previews/${name}.mp4`, poster: `/posters/${name}.webp`, objectPosition, mobileObjectPosition })
 
 /**
- * Os vídeos reais da casa (nenhum render novo):
- *  · films: o farol de Flannan, Seedance 1.5 (filme 970d03e6, conta hotmail do fundador = sem a marca usekineo.com/free), 0–11 s em 720p;
- *  · product_ads: o canário v3 do Close real (19/10, nota 8,5 nos dois) — pedido 885e8cb1 (EN) e f96ac6e7 (PT), perfume LUME,
- *    COM a língua da interface: português vê o PT, o resto vê o EN;
- *  · ugc_ads: o apresentador v2 R3 (17/10, pedido 84a5d07f, NOTA 9 do fundador), perfume Atheeri — o único com nota 9; a fala
- *    é em PT (no card toca mudo).
+ * KINEO-CARDS-GIRO-2410 — inspection of the actual local files on 24/10, no new render:
+ * films: Flannan + approved night train / volcano previews (lib/homeVideoCuration.ts).
+ * product_ads: the current lifestyle sneaker ad (contain preserves both face and shoe), isolated rotating sneaker,
+ * and perfume image with camera movement. EN/PT retain their original first-preview paths.
+ * ugc_ads: current GLOW cream presenter; kids: current Leo cartoon. Only one suitable existing preview each:
+ * keep those approved clips until replacements are available; never relabel the non-speaking product trios as UGC.
+ * Full-frame product close-ups in the original UGC/cartoon are retained; CSS must not crop faces further.
  */
-export const HOME_CARD_CLIPS: Record<HomeCardId, { default: HomeCardClip; pt?: HomeCardClip }> = {
-  films: { default: preview('home-card-film-flannan') },
-  product_ads: { default: preview('home-card-close-real-en'), pt: preview('home-card-close-real-pt') },
-  ugc_ads: { default: preview('home-card-ugc-presenter') },
+// KINEO-CARDS-GIRO-2410 — edit only these lists to replace approved local previews; framing belongs to each clip.
+export const HOME_CARD_PLAYLISTS: Record<HomeCycleCardId, { default: HomeCardPlaylist; pt?: HomeCardPlaylist }> = {
+  films: { default: [
+    // Preserve the original top-anchored crop: the burned-in bottom caption stays outside the card.
+    { ...preview('home-card-film-flannan', '50% 0%'), scale: 1.1 },
+    { src: '/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4', poster: '/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-h.webp', objectPosition: '50% 0%', mobileObjectPosition: '50% 0%' },
+    { src: '/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-v.mp4', poster: '/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-h.webp', objectPosition: '50% 0%', mobileObjectPosition: '50% 0%' },
+  ] },
+  product_ads: { default: [
+    { ...preview('home-card-close-real-en', '50% 0%'), objectFit: 'contain' },
+    preview('efeito-product_360', '50% 50%'),
+    preview('promo-images-1', '50% 50%'),
+  ], pt: [
+    { ...preview('home-card-close-real-pt', '50% 0%'), objectFit: 'contain' },
+    preview('efeito-product_360', '50% 50%'),
+    preview('promo-images-1', '50% 50%'),
+  ] },
+  ugc_ads: { default: [preview('home-card-ugc-presenter', '50% 0%', '50% 0%')] },
+  kids_cartoon: { default: [{ ...preview('home-card-kids-cartoon-leo', '50% 0%', '50% 0%'), objectFit: 'contain' }] },
 }
 
-/** O vídeo do card na língua da interface (sem versão na língua = o padrão). */
-export function homeCardClip(card: HomeCardId, language: string | null | undefined): HomeCardClip {
-  const c = HOME_CARD_CLIPS[card]
+/** Single-preview consumers (UGC pages) retain the original API, derived from the same lists. */
+export const HOME_CARD_CLIPS: Record<HomeCardId, { default: HomeCardClip; pt?: HomeCardClip }> = {
+  films: { default: HOME_CARD_PLAYLISTS.films.default[0] },
+  product_ads: { default: HOME_CARD_PLAYLISTS.product_ads.default[0], pt: HOME_CARD_PLAYLISTS.product_ads.pt?.[0] },
+  ugc_ads: { default: HOME_CARD_PLAYLISTS.ugc_ads.default[0] },
+}
+
+/** Ordered clips in the interface language; first clip is also the SSR/reduced-motion poster. */
+export function homeCardClips(card: HomeCycleCardId, language: string | null | undefined): HomeCardPlaylist {
+  const c = HOME_CARD_PLAYLISTS[card]
   return (language === 'pt' && c.pt) || c.default
+}
+
+/** First clip retained for callers of the original single-preview API. */
+export function homeCardClip(card: HomeCardId, language: string | null | undefined): HomeCardClip {
+  return homeCardClips(card, language)[0]
 }
 // KINEO-HOME-CARDS-BOTOES-2010 ─────────────────────────────────────────────────────────────────────────
 /** KINEO-HOME-CARDS-BOTOES-2010 — um botão diferente por card de anúncio (fundador 20/10: "o botão do UGC e do Product ficou parecido"). [grátis produto, grátis UGC, produto, UGC] por língua. */

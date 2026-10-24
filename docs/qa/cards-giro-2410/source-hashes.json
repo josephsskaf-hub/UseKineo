@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-24",
+  "base": "1c078ed0",
+  "algorithm": "sha256",
+  "normalization": "LF",
+  "files": {
+    "components/home/HomeCardCycleMedia.tsx": "43c07f4d0e7c7849446de93b0575a021c8161cb7b21dbcbf8416a3fc12a75d87",
+    "components/home/HomeThreeCards.tsx": "c843c156f74f008fbdc6bd5b5c8c327161c90d7ce5785a10d8e5f6a25d3d0602",
+    "components/home/HomeKidsCard.tsx": "6bc13463ab0e30480cbc8599b7cdcc422de1f54c5918fa32c2debd2cfd6a3dd4",
+    "components/home/HomeProductAdsReel.tsx": "17ddd1463a76b4daf15c8b187bd0c97b6612e7748448cb63f3a792564ec397bb",
+    "lib/ui/homeCardPlayback.ts": "afdfaa2013cff2ac509e4f66c28b2d117dc1918c66deb3de2e029e9f5bc901d0",
+    "lib/ui/homeThreeCards.ts": "393e382903627c6d1934de1d61b2b6498efd2fa7cef7db6791d62c7b000f2be2"
+  },
+  "sourceCommit": "6fe45076cd2152df35f2ab5dc2c9e80492de321b",
+  "patchBase": "cf4c15bd"
+}

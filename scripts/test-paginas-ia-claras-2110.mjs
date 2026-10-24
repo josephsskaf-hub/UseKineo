@@ -22,9 +22,10 @@ import { semPaginasIaClaras2110, PAGINAS_IA_CLARAS_2110_ARQUIVOS, PAGINAS_IA_CLA
 import { semAdsCena952110, ADS_CENA_95_2110_ARQUIVOS } from './test-support/desfaz-ads-cena-95-2110.mjs'
 import { semKidsVenda2010, KIDS_VENDA_2010_ARQUIVOS } from './test-support/desfaz-kids-venda-2010.mjs'
 import { renderCardArrival } from './test-support/paginas-ia-claras-cards-harness.mjs' // KINEO-PAGINAS-IA-CLARAS-2110 — efeito e cliques reais do componente compartilhado.
+import { semCardsGiro2410 } from './test-support/desfaz-cards-giro-2410.mjs' // KINEO-CARDS-GIRO-2410 — preserve the exact historical media fixture and its origin mutants.
 
 const BASE = '1b991815ca62701c2c6e06a69aa2eba068e63d5f' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
-const rd = (p) => semAdsCenaRespaldo2110(readFileSync(p, 'utf8').replace(/\r\n/g, '\n'), p) // KINEO-ADS-CENA-RESPALDO-2110 — camada mais nova antes do snapshot Pages.
+const rd = (p) => semCardsGiro2410(semAdsCenaRespaldo2110(readFileSync(p, 'utf8').replace(/\r\n/g, '\n'), p), p) // KINEO-CARDS-GIRO-2410 — historical assertions and mutants see the same pre-Giro sources.
 const base = (p) => execFileSync('git', ['show', `${BASE}:${p}`], { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }).replace(/\r\n/g, '\n')
 let falhas = 0, oks = 0
 const ok = (cond, msg) => { if (cond) { oks++; console.log('  ok  ' + msg) } else { falhas++; console.log('  FALHA  ' + msg) } }
@@ -211,7 +212,8 @@ for (const [file, props, vitrine] of RENDERS) {
 // ── O. complemento do fundador22/10: Cartoon primeiro para origem ChatGPT/OpenAI, na home E nas entradas ────────────
 console.log('\nO. origem → efeito → ordem DOM → posições reais dos cliques (home e páginas compartilham a mesma faixa)')
 const CARD_COMPONENT = 'components/home/HomeThreeCards.tsx', KIDS_COMPONENT = 'components/home/HomeKidsCard.tsx'
-const originalCards = { [CARD_COMPONENT]: base(CARD_COMPONENT), [KIDS_COMPONENT]: base(KIDS_COMPONENT) }
+const cardsBeforeGiro = Object.fromEntries([CARD_COMPONENT, KIDS_COMPONENT, 'components/home/HomeProductAdsReel.tsx', 'lib/ui/homeThreeCards.ts'].map(file => [file, rd(file)])) // KINEO-CARDS-GIRO-2410 — only this later media layer is removed; current origin logic remains.
+const originalCards = { ...cardsBeforeGiro, [CARD_COMPONENT]: base(CARD_COMPONENT), [KIDS_COMPONENT]: base(KIDS_COMPONENT) } // KINEO-CARDS-GIRO-2410
 const legacyCards = new Map()
 for (const signedIn of [false, true]) for (const kidsCard of [false, true]) legacyCards.set(`${signedIn}/${kidsCard}`, renderCardArrival({ signedIn, kidsCard, server: true, overrides: originalCards }))
 const arrivals = [
@@ -225,7 +227,7 @@ const arrivals = [
   { name: 'Claude', search: '?utm_source=claude', referrer: 'https://claude.ai/', first: false },
 ]
 function arrivalCorrect(options, overrides = {}) {
-  const result = renderCardArrival({ ...options, overrides })
+  const result = renderCardArrival({ ...options, overrides: { ...cardsBeforeGiro, ...overrides } }) // KINEO-CARDS-GIRO-2410 — old complete SSR equality stays intact, including all origin mutants.
   const before = legacyCards.get(`${options.signedIn}/${options.kidsCard}`)
   const expected = options.kidsCard && options.first ? ['kids_cartoon', 'films', 'product_ads', 'ugc_ads'] : before.order
   const domOrder = [...result.html.replace(/<style[\s\S]*?<\/style>/g, '').matchAll(/data-home-card="([^"]+)"/g)].map(m => m[1])

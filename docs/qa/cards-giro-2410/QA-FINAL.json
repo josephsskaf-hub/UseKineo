@@ -1,0 +1,1397 @@
+{
+  "date": "2026-10-24",
+  "classification": "TESTADO LOCALMENTE",
+  "scope": "3 filmes + 3 produtos + 1 UGC + 1 desenho: escolha confirmada pelo fundador em 24/10/2026",
+  "runtime": {
+    "date": "2026-10-24",
+    "base": "1c078ed0",
+    "checks": [
+      {
+        "check": "real ended → playing → opacity transitionend round 1",
+        "status": "pass"
+      },
+      {
+        "check": "real ended → playing → opacity transitionend round 2",
+        "status": "pass"
+      },
+      {
+        "check": "real ended → playing → opacity transitionend round 3",
+        "status": "pass"
+      },
+      {
+        "check": "viewport pause/resume",
+        "status": "pass",
+        "beforePause": [
+          {
+            "src": "/previews/home-card-film-flannan.mp4",
+            "time": 0.6908
+          },
+          {
+            "src": "/previews/home-card-close-real-en.mp4",
+            "time": 0.7413
+          },
+          {
+            "src": "/previews/home-card-ugc-presenter.mp4",
+            "time": 0.9733
+          },
+          {
+            "src": "/previews/home-card-kids-cartoon-leo.mp4",
+            "time": 0.7229
+          }
+        ],
+        "offscreen": [
+          {
+            "src": "/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4",
+            "paused": true
+          },
+          {
+            "src": "/previews/home-card-film-flannan.mp4",
+            "paused": true
+          },
+          {
+            "src": "/previews/efeito-product_360.mp4",
+            "paused": true
+          },
+          {
+            "src": "/previews/home-card-close-real-en.mp4",
+            "paused": true
+          },
+          {
+            "src": "/previews/home-card-ugc-presenter.mp4",
+            "paused": true
+          },
+          {
+            "src": "/previews/home-card-kids-cartoon-leo.mp4",
+            "paused": true
+          }
+        ]
+      },
+      {
+        "check": "SSR first poster; zero video source/download",
+        "status": "pass",
+        "state": [
+          {
+            "card": "films",
+            "poster": "/posters/home-card-film-flannan.webp",
+            "videos": [
+              {
+                "src": null,
+                "preload": "none"
+              },
+              {
+                "src": null,
+                "preload": "none"
+              }
+            ]
+          },
+          {
+            "card": "product_ads",
+            "poster": "/posters/home-card-close-real-en.webp",
+            "videos": [
+              {
+                "src": null,
+                "preload": "none"
+              },
+              {
+                "src": null,
+                "preload": "none"
+              }
+            ]
+          },
+          {
+            "card": "ugc_ads",
+            "poster": "/posters/home-card-ugc-presenter.webp",
+            "videos": [
+              {
+                "src": null,
+                "preload": "none"
+              },
+              {
+                "src": null,
+                "preload": "none"
+              }
+            ]
+          },
+          {
+            "card": "kids_cartoon",
+            "poster": "/posters/home-card-kids-cartoon-leo.webp",
+            "videos": [
+              {
+                "src": null,
+                "preload": "none"
+              },
+              {
+                "src": null,
+                "preload": "none"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "check": "prefers-reduced-motion static first poster; zero MP4 requests",
+        "status": "pass",
+        "state": [
+          {
+            "card": "films",
+            "poster": "/posters/home-card-film-flannan.webp",
+            "videos": [
+              {
+                "src": null,
+                "paused": true,
+                "display": "none"
+              },
+              {
+                "src": null,
+                "paused": true,
+                "display": "none"
+              }
+            ]
+          },
+          {
+            "card": "product_ads",
+            "poster": "/posters/home-card-close-real-en.webp",
+            "videos": [
+              {
+                "src": null,
+                "paused": true,
+                "display": "none"
+              },
+              {
+                "src": null,
+                "paused": true,
+                "display": "none"
+              }
+            ]
+          },
+          {
+            "card": "ugc_ads",
+            "poster": "/posters/home-card-ugc-presenter.webp",
+            "videos": [
+              {
+                "src": null,
+                "paused": true,
+                "display": "none"
+              },
+              {
+                "src": null,
+                "paused": true,
+                "display": "none"
+              }
+            ]
+          },
+          {
+            "card": "kids_cartoon",
+            "poster": "/posters/home-card-kids-cartoon-leo.webp",
+            "videos": [
+              {
+                "src": null,
+                "paused": true,
+                "display": "none"
+              },
+              {
+                "src": null,
+                "paused": true,
+                "display": "none"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "check": "live reduced-motion toggle resets to first poster",
+        "status": "pass"
+      }
+    ],
+    "screenshots": [],
+    "errors": [],
+    "initial": [
+      {
+        "card": "films",
+        "slots": 2,
+        "assigned": [
+          {
+            "src": "/previews/home-card-film-flannan.mp4",
+            "preload": "none",
+            "on": true
+          },
+          {
+            "src": "/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4",
+            "preload": "auto",
+            "on": false
+          }
+        ]
+      },
+      {
+        "card": "product_ads",
+        "slots": 2,
+        "assigned": [
+          {
+            "src": "/previews/home-card-close-real-en.mp4",
+            "preload": "none",
+            "on": true
+          },
+          {
+            "src": "/previews/efeito-product_360.mp4",
+            "preload": "auto",
+            "on": false
+          }
+        ]
+      },
+      {
+        "card": "ugc_ads",
+        "slots": 2,
+        "assigned": [
+          {
+            "src": "/previews/home-card-ugc-presenter.mp4",
+            "preload": "none",
+            "on": true
+          }
+        ]
+      },
+      {
+        "card": "kids_cartoon",
+        "slots": 2,
+        "assigned": [
+          {
+            "src": "/previews/home-card-kids-cartoon-leo.mp4",
+            "preload": "none",
+            "on": true
+          }
+        ]
+      }
+    ],
+    "events": [
+      {
+        "type": "loadedmetadata",
+        "card": "kids_cartoon",
+        "slot": "0",
+        "src": "/previews/home-card-kids-cartoon-leo.mp4",
+        "t": 486.5
+      },
+      {
+        "type": "loadedmetadata",
+        "card": "films",
+        "slot": "0",
+        "src": "/previews/home-card-film-flannan.mp4",
+        "t": 487.10000002384186
+      },
+      {
+        "type": "loadedmetadata",
+        "card": "product_ads",
+        "slot": "0",
+        "src": "/previews/home-card-close-real-en.mp4",
+        "t": 487.39999997615814
+      },
+      {
+        "type": "loadedmetadata",
+        "card": "ugc_ads",
+        "slot": "0",
+        "src": "/previews/home-card-ugc-presenter.mp4",
+        "t": 487.8000000715256
+      },
+      {
+        "type": "playing",
+        "card": "kids_cartoon",
+        "slot": "0",
+        "src": "/previews/home-card-kids-cartoon-leo.mp4",
+        "t": 856.1000000238419
+      },
+      {
+        "type": "playing",
+        "card": "films",
+        "slot": "0",
+        "src": "/previews/home-card-film-flannan.mp4",
+        "t": 868.3000000715256
+      },
+      {
+        "type": "playing",
+        "card": "product_ads",
+        "slot": "0",
+        "src": "/previews/home-card-close-real-en.mp4",
+        "t": 869.5
+      },
+      {
+        "type": "playing",
+        "card": "ugc_ads",
+        "slot": "0",
+        "src": "/previews/home-card-ugc-presenter.mp4",
+        "t": 879.7000000476837
+      },
+      {
+        "type": "loadedmetadata",
+        "card": "product_ads",
+        "slot": "1",
+        "src": "/previews/efeito-product_360.mp4",
+        "t": 893.8000000715256
+      },
+      {
+        "type": "loadedmetadata",
+        "card": "films",
+        "slot": "1",
+        "src": "/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4",
+        "t": 894.3000000715256
+      },
+      {
+        "type": "playing",
+        "card": "kids_cartoon",
+        "slot": "0",
+        "src": "/previews/home-card-kids-cartoon-leo.mp4",
+        "t": 1825.6000000238419
+      },
+      {
+        "type": "playing",
+        "card": "product_ads",
+        "slot": "0",
+        "src": "/previews/home-card-close-real-en.mp4",
+        "t": 1855.5
+      },
+      {
+        "type": "playing",
+        "card": "ugc_ads",
+        "slot": "0",
+        "src": "/previews/home-card-ugc-presenter.mp4",
+        "t": 1856.2000000476837
+      },
+      {
+        "type": "playing",
+        "card": "films",
+        "slot": "0",
+        "src": "/previews/home-card-film-flannan.mp4",
+        "t": 1867.7000000476837
+      },
+      {
+        "type": "transitionend",
+        "card": "films",
+        "slot": "0",
+        "src": "/previews/home-card-film-flannan.mp4",
+        "property": "opacity",
+        "t": 2082.7000000476837
+      },
+      {
+        "type": "transitionend",
+        "card": "product_ads",
+        "slot": "0",
+        "src": "/previews/home-card-close-real-en.mp4",
+        "property": "opacity",
+        "t": 2083.600000023842
+      },
+      {
+        "type": "transitionend",
+        "card": "ugc_ads",
+        "slot": "0",
+        "src": "/previews/home-card-ugc-presenter.mp4",
+        "property": "opacity",
+        "t": 2083.7000000476837
+      },
+      {
+        "type": "transitionend",
+        "card": "kids_cartoon",
+        "slot": "0",
+        "src": "/previews/home-card-kids-cartoon-leo.mp4",
+        "property": "opacity",
+        "t": 2083.7000000476837
+      },
+      {
+        "type": "playing",
+        "card": "ugc_ads",
+        "slot": "0",
+        "src": "/previews/home-card-ugc-presenter.mp4",
+        "t": 2245.7000000476837
+      },
+      {
+        "type": "pause",
+        "card": "ugc_ads",
+        "slot": "0",
+        "src": "/previews/home-card-ugc-presenter.mp4",
+        "t": 2376.100000023842
+      },
+      {
+        "type": "ended",
+        "card": "ugc_ads",
+        "slot": "0",
+        "src": "/previews/home-card-ugc-presenter.mp4",
+        "t": 2376.100000023842
+      },
+      {
+        "type": "playing",
+        "card": "ugc_ads",
+        "slot": "0",
+        "src": "/previews/home-card-ugc-presenter.mp4",
+        "t": 2393.5
+      },
+      {
+        "type": "playing",
+        "card": "kids_cartoon",
+        "slot": "0",
+        "src": "/previews/home-card-kids-cartoon-leo.mp4",
+        "t": 2439
+      },
+      {
+        "type": "pause",
+        "card": "kids_cartoon",
+        "slot": "0",
+        "src": "/previews/home-card-kids-cartoon-leo.mp4",
+        "t": 2569.2000000476837
+      },
+      {
+        "type": "ended",
+        "card": "kids_cartoon",
+        "slot": "0",
+        "src": "/previews/home-card-kids-cartoon-leo.mp4",
+        "t": 2569.3000000715256
+      },
+      {
+        "type": "playing",
+        "card": "kids_cartoon",
+        "slot": "0",
+        "src": "/previews/home-card-kids-cartoon-leo.mp4",
+        "t": 2588
+      },
+      {
+        "type": "playing",
+        "card": "product_ads",
+        "slot": "0",
+        "src": "/previews/home-card-close-real-en.mp4",
+        "t": 2636.600000023842
+      },
+      {
+        "type": "playing",
+        "card": "films",
+        "slot": "0",
+        "src": "/previews/home-card-film-flannan.mp4",
+        "t": 2761.5
+      },
+      {
+        "type": "pause",
+        "card": "product_ads",
+        "slot": "0",
+        "src": "/previews/home-card-close-real-en.mp4",
+        "t": 2768.100000023842
+      },
+      {
+        "type": "ended",
+        "card": "product_ads",
+        "slot": "0",
+        "src": "/previews/home-card-close-real-en.mp4",
+        "t": 2768.2000000476837
+      },
+      {
+        "type": "playing",
+        "card": "product_ads",
+        "slot": "1",
+        "src": "/previews/efeito-product_360.mp4",
+        "t": 2768.899999976158
+      },
+      {
+        "type": "pause",
+        "card": "films",
+        "slot": "0",
+        "src": "/previews/home-card-film-flannan.mp4",
+        "t": 2893.2000000476837
+      },
+      {
+        "type": "ended",
+        "card": "films",
+        "slot": "0",
+        "src": "/previews/home-card-film-flannan.mp4",
+        "t": 2893.2000000476837
+      },
+      {
+        "type": "playing",
+        "card": "films",
+        "slot": "1",
+        "src": "/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4",
+        "t": 2893.8000000715256
+      },
+      {
+        "type": "playing",
+        "card": "films",
+        "slot": "1",
+        "src": "/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4",
+        "t": 2995.2000000476837
+      },
+      {
+        "type": "transitionend",
+        "card": "product_ads",
+        "slot": "1",
+        "src": "/previews/efeito-product_360.mp4",
+        "property": "opacity",
+        "t": 3431.2000000476837
+      },
+      {
+        "type": "loadedmetadata",
+        "card": "product_ads",
+        "slot": "0",
+        "src": "/previews/promo-images-1.mp4",
+        "t": 3456.7000000476837
+      },
+      {
+        "type": "transitionend",
+        "card": "films",
+        "slot": "1",
+        "src": "/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4",
+        "property": "opacity",
+        "t": 3553.5
+      },
+      {
+        "type": "loadedmetadata",
+        "card": "films",
+        "slot": "0",
+        "src": "/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-v.mp4",
+        "t": 3583.2000000476837
+      },
+      {
+        "type": "playing",
+        "card": "ugc_ads",
+        "slot": "0",
+        "src": "/previews/home-card-ugc-presenter.mp4",
+        "t": 4076.8000000715256
+      },
+      {
+        "type": "transitionend",
+        "card": "product_ads",
+        "slot": "0",
+        "src": "/previews/promo-images-1.mp4",
+        "property": "opacity",
+        "t": 4091.5
+      },
+      {
+        "type": "pause",
+        "card": "ugc_ads",
+        "slot": "0",
+        "src": "/previews/home-card-ugc-presenter.mp4",
+        "t": 4207.399999976158
+      },
+      {
+        "type": "ended",
+        "card": "ugc_ads",
+        "slot": "0",
+        "src": "/previews/home-card-ugc-presenter.mp4",
+        "t": 4207.399999976158
+      },
+      {
+        "type": "playing",
+        "card": "ugc_ads",
+        "slot": "0",
+        "src": "/previews/home-card-ugc-presenter.mp4",
+        "t": 4232.200000047684
+      },
+      {
+        "type": "transitionend",
+        "card": "films",
+        "slot": "0",
+        "src": "/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-v.mp4",
+        "property": "opacity",
+        "t": 4396.800000071526
+      },
+      {
+        "type": "playing",
+        "card": "kids_cartoon",
+        "slot": "0",
+        "src": "/previews/home-card-kids-cartoon-leo.mp4",
+        "t": 4474.5
+      },
+      {
+        "type": "playing",
+        "card": "films",
+        "slot": "1",
+        "src": "/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4",
+        "t": 4555.100000023842
+      },
+      {
+        "type": "playing",
+        "card": "product_ads",
+        "slot": "1",
+        "src": "/previews/efeito-product_360.mp4",
+        "t": 4586.899999976158
+      },
+      {
+        "type": "pause",
+        "card": "kids_cartoon",
+        "slot": "0",
+        "src": "/previews/home-card-kids-cartoon-leo.mp4",
+        "t": 4605.899999976158
+      },
+      {
+        "type": "ended",
+        "card": "kids_cartoon",
+        "slot": "0",
+        "src": "/previews/home-card-kids-cartoon-leo.mp4",
+        "t": 4605.899999976158
+      },
+      {
+        "type": "playing",
+        "card": "kids_cartoon",
+        "slot": "0",
+        "src": "/previews/home-card-kids-cartoon-leo.mp4",
+        "t": 4615.800000071526
+      },
+      {
+        "type": "pause",
+        "card": "films",
+        "slot": "1",
+        "src": "/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4",
+        "t": 4685.800000071526
+      },
+      {
+        "type": "ended",
+        "card": "films",
+        "slot": "1",
+        "src": "/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4",
+        "t": 4685.800000071526
+      },
+      {
+        "type": "playing",
+        "card": "films",
+        "slot": "0",
+        "src": "/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-v.mp4",
+        "t": 4686.600000023842
+      },
+      {
+        "type": "pause",
+        "card": "product_ads",
+        "slot": "1",
+        "src": "/previews/efeito-product_360.mp4",
+        "t": 4717.300000071526
+      },
+      {
+        "type": "ended",
+        "card": "product_ads",
+        "slot": "1",
+        "src": "/previews/efeito-product_360.mp4",
+        "t": 4717.300000071526
+      },
+      {
+        "type": "playing",
+        "card": "product_ads",
+        "slot": "0",
+        "src": "/previews/promo-images-1.mp4",
+        "t": 4717.800000071526
+      },
+      {
+        "type": "playing",
+        "card": "product_ads",
+        "slot": "0",
+        "src": "/previews/promo-images-1.mp4",
+        "t": 4839.600000023842
+      },
+      {
+        "type": "transitionend",
+        "card": "films",
+        "slot": "0",
+        "src": "/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-v.mp4",
+        "property": "opacity",
+        "t": 5341.5
+      },
+      {
+        "type": "loadedmetadata",
+        "card": "films",
+        "slot": "1",
+        "src": "/previews/home-card-film-flannan.mp4",
+        "t": 5362.5
+      },
+      {
+        "type": "transitionend",
+        "card": "product_ads",
+        "slot": "0",
+        "src": "/previews/promo-images-1.mp4",
+        "property": "opacity",
+        "t": 5375.800000071526
+      },
+      {
+        "type": "loadedmetadata",
+        "card": "product_ads",
+        "slot": "1",
+        "src": "/previews/home-card-close-real-en.mp4",
+        "t": 5399.600000023842
+      },
+      {
+        "type": "playing",
+        "card": "ugc_ads",
+        "slot": "0",
+        "src": "/previews/home-card-ugc-presenter.mp4",
+        "t": 5829.800000071526
+      },
+      {
+        "type": "pause",
+        "card": "ugc_ads",
+        "slot": "0",
+        "src": "/previews/home-card-ugc-presenter.mp4",
+        "t": 5962.899999976158
+      },
+      {
+        "type": "ended",
+        "card": "ugc_ads",
+        "slot": "0",
+        "src": "/previews/home-card-ugc-presenter.mp4",
+        "t": 5962.899999976158
+      },
+      {
+        "type": "playing",
+        "card": "ugc_ads",
+        "slot": "0",
+        "src": "/previews/home-card-ugc-presenter.mp4",
+        "t": 5983.200000047684
+      },
+      {
+        "type": "transitionend",
+        "card": "films",
+        "slot": "1",
+        "src": "/previews/home-card-film-flannan.mp4",
+        "property": "opacity",
+        "t": 5991.700000047684
+      },
+      {
+        "type": "transitionend",
+        "card": "product_ads",
+        "slot": "1",
+        "src": "/previews/home-card-close-real-en.mp4",
+        "property": "opacity",
+        "t": 6008.600000023842
+      },
+      {
+        "type": "playing",
+        "card": "product_ads",
+        "slot": "0",
+        "src": "/previews/promo-images-1.mp4",
+        "t": 6083.800000071526
+      },
+      {
+        "type": "playing",
+        "card": "kids_cartoon",
+        "slot": "0",
+        "src": "/previews/home-card-kids-cartoon-leo.mp4",
+        "t": 6089.399999976158
+      },
+      {
+        "type": "playing",
+        "card": "films",
+        "slot": "0",
+        "src": "/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-v.mp4",
+        "t": 6131.600000023842
+      },
+      {
+        "type": "pause",
+        "card": "product_ads",
+        "slot": "0",
+        "src": "/previews/promo-images-1.mp4",
+        "t": 6214.200000047684
+      },
+      {
+        "type": "ended",
+        "card": "product_ads",
+        "slot": "0",
+        "src": "/previews/promo-images-1.mp4",
+        "t": 6214.200000047684
+      },
+      {
+        "type": "playing",
+        "card": "product_ads",
+        "slot": "1",
+        "src": "/previews/home-card-close-real-en.mp4",
+        "t": 6214.700000047684
+      },
+      {
+        "type": "pause",
+        "card": "kids_cartoon",
+        "slot": "0",
+        "src": "/previews/home-card-kids-cartoon-leo.mp4",
+        "t": 6221.800000071526
+      },
+      {
+        "type": "ended",
+        "card": "kids_cartoon",
+        "slot": "0",
+        "src": "/previews/home-card-kids-cartoon-leo.mp4",
+        "t": 6221.800000071526
+      },
+      {
+        "type": "playing",
+        "card": "kids_cartoon",
+        "slot": "0",
+        "src": "/previews/home-card-kids-cartoon-leo.mp4",
+        "t": 6233.600000023842
+      },
+      {
+        "type": "pause",
+        "card": "films",
+        "slot": "0",
+        "src": "/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-v.mp4",
+        "t": 6262
+      },
+      {
+        "type": "ended",
+        "card": "films",
+        "slot": "0",
+        "src": "/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-v.mp4",
+        "t": 6262.100000023842
+      },
+      {
+        "type": "playing",
+        "card": "films",
+        "slot": "1",
+        "src": "/previews/home-card-film-flannan.mp4",
+        "t": 6262.899999976158
+      },
+      {
+        "type": "playing",
+        "card": "films",
+        "slot": "1",
+        "src": "/previews/home-card-film-flannan.mp4",
+        "t": 6361.399999976158
+      },
+      {
+        "type": "transitionend",
+        "card": "product_ads",
+        "slot": "1",
+        "src": "/previews/home-card-close-real-en.mp4",
+        "property": "opacity",
+        "t": 6858.300000071526
+      },
+      {
+        "type": "loadedmetadata",
+        "card": "product_ads",
+        "slot": "0",
+        "src": "/previews/efeito-product_360.mp4",
+        "t": 6873.600000023842
+      },
+      {
+        "type": "transitionend",
+        "card": "films",
+        "slot": "1",
+        "src": "/previews/home-card-film-flannan.mp4",
+        "property": "opacity",
+        "t": 6892.100000023842
+      }
+    ]
+  },
+  "network": {
+    "date": "2026-10-24",
+    "checks": [
+      "autoplay muted without browser policy override",
+      "exactly active + next assigned, hidden empty slots preload none",
+      "only next video fetched, third clip unfetched before ended",
+      "no source switch before ended",
+      "no HTTP 404 or error"
+    ],
+    "initial": [
+      {
+        "card": "films",
+        "expected": [
+          "/previews/home-card-film-flannan.mp4",
+          "/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4",
+          "/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-v.mp4"
+        ],
+        "slots": [
+          {
+            "src": "/previews/home-card-film-flannan.mp4",
+            "preload": "none",
+            "on": true,
+            "muted": true
+          },
+          {
+            "src": "/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4",
+            "preload": "auto",
+            "on": false,
+            "muted": true
+          }
+        ]
+      },
+      {
+        "card": "product_ads",
+        "expected": [
+          "/previews/home-card-close-real-en.mp4",
+          "/previews/efeito-product_360.mp4",
+          "/previews/promo-images-1.mp4"
+        ],
+        "slots": [
+          {
+            "src": "/previews/home-card-close-real-en.mp4",
+            "preload": "none",
+            "on": true,
+            "muted": true
+          },
+          {
+            "src": "/previews/efeito-product_360.mp4",
+            "preload": "auto",
+            "on": false,
+            "muted": true
+          }
+        ]
+      },
+      {
+        "card": "ugc_ads",
+        "expected": [
+          "/previews/home-card-ugc-presenter.mp4"
+        ],
+        "slots": [
+          {
+            "src": "/previews/home-card-ugc-presenter.mp4",
+            "preload": "none",
+            "on": true,
+            "muted": true
+          },
+          {
+            "src": null,
+            "preload": "none",
+            "on": false,
+            "muted": true
+          }
+        ]
+      },
+      {
+        "card": "kids_cartoon",
+        "expected": [
+          "/previews/home-card-kids-cartoon-leo.mp4"
+        ],
+        "slots": [
+          {
+            "src": "/previews/home-card-kids-cartoon-leo.mp4",
+            "preload": "none",
+            "on": true,
+            "muted": true
+          },
+          {
+            "src": null,
+            "preload": "none",
+            "on": false,
+            "muted": true
+          }
+        ]
+      }
+    ],
+    "requests": [
+      "http://127.0.0.1:4181/after.html",
+      "http://127.0.0.1:4181/posters/home-card-film-flannan.webp",
+      "http://127.0.0.1:4181/posters/home-card-close-real-en.webp",
+      "http://127.0.0.1:4181/posters/home-card-ugc-presenter.webp",
+      "http://127.0.0.1:4181/posters/home-card-kids-cartoon-leo.webp",
+      "http://127.0.0.1:4181/react.js",
+      "http://127.0.0.1:4181/react-dom.js",
+      "http://127.0.0.1:4181/after.js",
+      "http://127.0.0.1:4181/previews/home-card-kids-cartoon-leo.mp4",
+      "http://127.0.0.1:4181/previews/home-card-film-flannan.mp4",
+      "http://127.0.0.1:4181/previews/home-card-close-real-en.mp4",
+      "http://127.0.0.1:4181/previews/home-card-ugc-presenter.mp4",
+      "http://127.0.0.1:4181/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-h.webp",
+      "http://127.0.0.1:4181/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4",
+      "http://127.0.0.1:4181/posters/efeito-product_360.webp",
+      "http://127.0.0.1:4181/previews/efeito-product_360.mp4"
+    ],
+    "failed": []
+  },
+  "files": {
+    "date": "2026-10-24",
+    "counts": {
+      "films": 3,
+      "product_ads": 3,
+      "ugc_ads": 1,
+      "kids_cartoon": 1
+    },
+    "uniqueVideoFiles": 9,
+    "files": [
+      {
+        "url": "/previews/home-card-film-flannan.mp4",
+        "bytes": 1258632
+      },
+      {
+        "url": "/posters/home-card-film-flannan.webp",
+        "bytes": 26570
+      },
+      {
+        "url": "/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4",
+        "bytes": 324993
+      },
+      {
+        "url": "/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-h.webp",
+        "bytes": 11932
+      },
+      {
+        "url": "/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-v.mp4",
+        "bytes": 980172
+      },
+      {
+        "url": "/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-h.webp",
+        "bytes": 21352
+      },
+      {
+        "url": "/previews/home-card-close-real-en.mp4",
+        "bytes": 1422720
+      },
+      {
+        "url": "/posters/home-card-close-real-en.webp",
+        "bytes": 27562
+      },
+      {
+        "url": "/previews/efeito-product_360.mp4",
+        "bytes": 753315
+      },
+      {
+        "url": "/posters/efeito-product_360.webp",
+        "bytes": 40116
+      },
+      {
+        "url": "/previews/promo-images-1.mp4",
+        "bytes": 329014
+      },
+      {
+        "url": "/posters/promo-images-1.webp",
+        "bytes": 37042
+      },
+      {
+        "url": "/previews/home-card-close-real-pt.mp4",
+        "bytes": 1422720
+      },
+      {
+        "url": "/posters/home-card-close-real-pt.webp",
+        "bytes": 27562
+      },
+      {
+        "url": "/previews/home-card-ugc-presenter.mp4",
+        "bytes": 1282568
+      },
+      {
+        "url": "/posters/home-card-ugc-presenter.webp",
+        "bytes": 41264
+      },
+      {
+        "url": "/previews/home-card-kids-cartoon-leo.mp4",
+        "bytes": 1464306
+      },
+      {
+        "url": "/posters/home-card-kids-cartoon-leo.webp",
+        "bytes": 27346
+      }
+    ]
+  },
+  "hover": {
+    "date": "2026-10-24",
+    "checks": [
+      {
+        "card": "films",
+        "before": {
+          "position": "50% 0%",
+          "scale": 1.1,
+          "origin": "165px 0px",
+          "fit": "cover"
+        },
+        "hover": {
+          "position": "50% 0%",
+          "scale": 1.1,
+          "origin": "165px 0px",
+          "fit": "cover"
+        },
+        "posterScale": 1.1
+      },
+      {
+        "card": "product_ads",
+        "before": {
+          "position": "50% 0%",
+          "scale": 1,
+          "origin": "165px 0px",
+          "fit": "contain"
+        },
+        "hover": {
+          "position": "50% 0%",
+          "scale": 1,
+          "origin": "165px 0px",
+          "fit": "contain"
+        },
+        "posterScale": 1
+      },
+      {
+        "card": "ugc_ads",
+        "before": {
+          "position": "50% 0%",
+          "scale": 1,
+          "origin": "165px 0px",
+          "fit": "cover"
+        },
+        "hover": {
+          "position": "50% 0%",
+          "scale": 1,
+          "origin": "165px 0px",
+          "fit": "cover"
+        },
+        "posterScale": 1
+      },
+      {
+        "card": "kids_cartoon",
+        "before": {
+          "position": "50% 0%",
+          "scale": 1,
+          "origin": "165px 0px",
+          "fit": "contain"
+        },
+        "hover": {
+          "position": "50% 0%",
+          "scale": 1,
+          "origin": "165px 0px",
+          "fit": "contain"
+        },
+        "posterScale": 1
+      }
+    ]
+  },
+  "visual": {
+    "desktop": {
+      "before": "comparison-desktop-before.png",
+      "after": "comparison-desktop-after.png"
+    },
+    "mobile": {
+      "before": {
+        "films": "comparison-mobile-before-films.png",
+        "product_ads": "comparison-mobile-before-product_ads.png",
+        "ugc_ads": "comparison-mobile-before-ugc_ads.png",
+        "kids_cartoon": "comparison-mobile-before-kids_cartoon.png"
+      },
+      "after": {
+        "films": "comparison-mobile-after-films.png",
+        "product_ads": "comparison-mobile-after-product_ads.png",
+        "ugc_ads": "comparison-mobile-after-ugc_ads.png",
+        "kids_cartoon": "comparison-mobile-after-kids_cartoon.png"
+      }
+    },
+    "gallery": {
+      "desktop": [
+        {
+          "card": "films",
+          "src": "/previews/home-card-film-flannan.mp4",
+          "position": "50% 0%",
+          "transform": "matrix(1.1, 0, 0, 1.1, 0, 0)",
+          "scale": 1.1,
+          "expectedScale": 1.1,
+          "expectedPosition": "50% 0%",
+          "fit": "cover",
+          "frame": 0.6,
+          "index": 0,
+          "file": "gallery-desktop-films-0.png"
+        },
+        {
+          "card": "product_ads",
+          "src": "/previews/home-card-close-real-en.mp4",
+          "position": "50% 0%",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)",
+          "scale": 1,
+          "expectedScale": 1,
+          "expectedPosition": "50% 0%",
+          "fit": "contain",
+          "frame": 0.6,
+          "index": 0,
+          "file": "gallery-desktop-product_ads-0.png"
+        },
+        {
+          "card": "ugc_ads",
+          "src": "/previews/home-card-ugc-presenter.mp4",
+          "position": "50% 0%",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)",
+          "scale": 1,
+          "expectedScale": 1,
+          "expectedPosition": "50% 0%",
+          "fit": "cover",
+          "frame": 0.6,
+          "index": 0,
+          "file": "gallery-desktop-ugc_ads-0.png"
+        },
+        {
+          "card": "kids_cartoon",
+          "src": "/previews/home-card-kids-cartoon-leo.mp4",
+          "position": "50% 0%",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)",
+          "scale": 1,
+          "expectedScale": 1,
+          "expectedPosition": "50% 0%",
+          "fit": "contain",
+          "frame": 0.6,
+          "index": 0,
+          "file": "gallery-desktop-kids_cartoon-0.png"
+        },
+        {
+          "card": "films",
+          "src": "/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4",
+          "position": "50% 0%",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)",
+          "scale": 1,
+          "expectedScale": 1,
+          "expectedPosition": "50% 0%",
+          "fit": "cover",
+          "frame": 0.6,
+          "index": 1,
+          "file": "gallery-desktop-films-1.png"
+        },
+        {
+          "card": "product_ads",
+          "src": "/previews/efeito-product_360.mp4",
+          "position": "50% 50%",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)",
+          "scale": 1,
+          "expectedScale": 1,
+          "expectedPosition": "50% 50%",
+          "fit": "cover",
+          "frame": 0.6,
+          "index": 1,
+          "file": "gallery-desktop-product_ads-1.png"
+        },
+        {
+          "card": "films",
+          "src": "/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-v.mp4",
+          "position": "50% 0%",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)",
+          "scale": 1,
+          "expectedScale": 1,
+          "expectedPosition": "50% 0%",
+          "fit": "cover",
+          "frame": 0.6,
+          "index": 2,
+          "file": "gallery-desktop-films-2.png"
+        },
+        {
+          "card": "product_ads",
+          "src": "/previews/promo-images-1.mp4",
+          "position": "50% 50%",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)",
+          "scale": 1,
+          "expectedScale": 1,
+          "expectedPosition": "50% 50%",
+          "fit": "cover",
+          "frame": 0.6,
+          "index": 2,
+          "file": "gallery-desktop-product_ads-2.png"
+        }
+      ],
+      "mobile": [
+        {
+          "card": "films",
+          "src": "/previews/home-card-film-flannan.mp4",
+          "position": "50% 0%",
+          "transform": "matrix(1.1, 0, 0, 1.1, 0, 0)",
+          "scale": 1.1,
+          "expectedScale": 1.1,
+          "expectedPosition": "50% 0%",
+          "fit": "cover",
+          "frame": 0.6,
+          "index": 0,
+          "file": "gallery-mobile-films-0.png"
+        },
+        {
+          "card": "films",
+          "src": "/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4",
+          "position": "50% 0%",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)",
+          "scale": 1,
+          "expectedScale": 1,
+          "expectedPosition": "50% 0%",
+          "fit": "cover",
+          "frame": 0.6,
+          "index": 1,
+          "file": "gallery-mobile-films-1.png"
+        },
+        {
+          "card": "films",
+          "src": "/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-v.mp4",
+          "position": "50% 0%",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)",
+          "scale": 1,
+          "expectedScale": 1,
+          "expectedPosition": "50% 0%",
+          "fit": "cover",
+          "frame": 0.6,
+          "index": 2,
+          "file": "gallery-mobile-films-2.png"
+        },
+        {
+          "card": "product_ads",
+          "src": "/previews/home-card-close-real-en.mp4",
+          "position": "50% 0%",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)",
+          "scale": 1,
+          "expectedScale": 1,
+          "expectedPosition": "50% 0%",
+          "fit": "contain",
+          "frame": 0.6,
+          "index": 0,
+          "file": "gallery-mobile-product_ads-0.png"
+        },
+        {
+          "card": "product_ads",
+          "src": "/previews/efeito-product_360.mp4",
+          "position": "50% 50%",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)",
+          "scale": 1,
+          "expectedScale": 1,
+          "expectedPosition": "50% 50%",
+          "fit": "cover",
+          "frame": 0.6,
+          "index": 1,
+          "file": "gallery-mobile-product_ads-1.png"
+        },
+        {
+          "card": "product_ads",
+          "src": "/previews/promo-images-1.mp4",
+          "position": "50% 50%",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)",
+          "scale": 1,
+          "expectedScale": 1,
+          "expectedPosition": "50% 50%",
+          "fit": "cover",
+          "frame": 0.6,
+          "index": 2,
+          "file": "gallery-mobile-product_ads-2.png"
+        },
+        {
+          "card": "ugc_ads",
+          "src": "/previews/home-card-ugc-presenter.mp4",
+          "position": "50% 0%",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)",
+          "scale": 1,
+          "expectedScale": 1,
+          "expectedPosition": "50% 0%",
+          "fit": "cover",
+          "frame": 0.6,
+          "index": 0,
+          "file": "gallery-mobile-ugc_ads-0.png"
+        },
+        {
+          "card": "kids_cartoon",
+          "src": "/previews/home-card-kids-cartoon-leo.mp4",
+          "position": "50% 0%",
+          "transform": "matrix(1, 0, 0, 1, 0, 0)",
+          "scale": 1,
+          "expectedScale": 1,
+          "expectedPosition": "50% 0%",
+          "fit": "contain",
+          "frame": 0.6,
+          "index": 0,
+          "file": "gallery-mobile-kids_cartoon-0.png"
+        }
+      ]
+    }
+  },
+  "sourceHashes": {
+    "components/home/HomeCardCycleMedia.tsx": "43c07f4d0e7c7849446de93b0575a021c8161cb7b21dbcbf8416a3fc12a75d87",
+    "components/home/HomeThreeCards.tsx": "c843c156f74f008fbdc6bd5b5c8c327161c90d7ce5785a10d8e5f6a25d3d0602",
+    "components/home/HomeKidsCard.tsx": "6bc13463ab0e30480cbc8599b7cdcc422de1f54c5918fa32c2debd2cfd6a3dd4",
+    "components/home/HomeProductAdsReel.tsx": "17ddd1463a76b4daf15c8b187bd0c97b6612e7748448cb63f3a792564ec397bb",
+    "lib/ui/homeCardPlayback.ts": "afdfaa2013cff2ac509e4f66c28b2d117dc1918c66deb3de2e029e9f5bc901d0",
+    "lib/ui/homeThreeCards.ts": "393e382903627c6d1934de1d61b2b6498efd2fa7cef7db6791d62c7b000f2be2"
+  },
+  "sourceNormalization": "LF",
+  "guardian": {
+    "exit_code": 0,
+    "mutants_rejected": 14,
+    "date": "2026-10-24",
+    "groups": 4
+  },
+  "sourceCommit": "6fe45076cd2152df35f2ab5dc2c9e80492de321b",
+  "patchBase": "cf4c15bd",
+  "typecheck": {
+    "date": "2026-10-24",
+    "command": "tsc --noEmit --incremental false",
+    "exit_code": 0,
+    "classification": "TESTADO LOCALMENTE",
+    "sourceCommit": "6fe45076cd2152df35f2ab5dc2c9e80492de321b"
+  },
+  "frameChange": "Escala opcional por clipe. Somente Flannan 1.1, origem superior; demais 1. Hover preserva a mesma escala. Poster SSR e buffer reciclado seguem o clipe.",
+  "guardianSourceSha256Lf": "e056dbb48b832ca40d7ac208998770cf2c34165db708daa3edd161d066530a9b"
+}
