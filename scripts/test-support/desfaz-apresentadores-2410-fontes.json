@@ -91,6 +91,20 @@
     "docs/previews/apresentadores-2410.png",
     "docs/previews/apresentadores-2410-desktop.png",
     "docs/APRESENTADORES-2410-ENTREGA.md",
-    "docs/qa/apresentadores-2410/validation.json"
+    "docs/qa/apresentadores-2410/validation.json",
+    "docs/qa/apresentadores-2410/baseline-locale-readiness.log",
+    "docs/qa/apresentadores-2410/candidate-locale-readiness.log",
+    "docs/qa/apresentadores-2410/retry-gpt5c-mutant.log",
+    "docs/qa/apresentadores-2410/retry-gpt5c.log",
+    "docs/qa/apresentadores-2410/retry-gptv31-mutant.log",
+    "docs/qa/apresentadores-2410/retry-gptv31.log",
+    "docs/qa/apresentadores-2410/retry-idiomas-undo.log",
+    "docs/qa/apresentadores-2410/retry-paidcitation.log",
+    "docs/qa/apresentadores-2410/retry-public-escolha.log",
+    "docs/qa/apresentadores-2410/test-apresentadores-2410.mjs.final.log",
+    "docs/qa/apresentadores-2410/test-apresentadores-admin-2410.mjs.final.log",
+    "docs/qa/apresentadores-2410/test-apresentadores-legacy-voice-2410.mjs.final.log",
+    "docs/qa/apresentadores-2410/test-apresentadores-undo-2410.mjs.final.log",
+    "docs/qa/apresentadores-2410/test-apresentadores-voice-2410.mjs.final.log"
   ]
 }
