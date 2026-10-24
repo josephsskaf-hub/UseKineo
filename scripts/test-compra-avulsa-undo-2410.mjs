@@ -1,3 +1,4 @@
+import { levaTaskSource, levaTaskInventory, levaCurrentInventory } from './test-support/leva-integration-2410.mjs' // KINEO-LEVA-2410 — sealed live source and complete current-tree inventory.
 // KINEO-COMPRA-AVULSA-2410 — exact whole-task inventory and source restoration, with tamper rejection.
 import assert from 'node:assert/strict'
 import { readFileSync, existsSync } from 'node:fs'
@@ -9,7 +10,7 @@ const lf = text => text.replace(/\r\n/g, '\n'), crlf = text => text.replace(/\n/
 const hash = text => createHash('sha256').update(text).digest('hex')
 assert.equal(manifest.base, BASE)
 for (const [file, known] of Object.entries(manifest.sources)) {
-  const before = git('show', `${BASE}:${file}`), current = lf(readFileSync(file, 'utf8'))
+  const before = git('show', `${BASE}:${file}`), current = lf(levaTaskSource(readFileSync(file, 'utf8'), file, 'purchase'))
   assert.equal(hash(before), known.beforeHash, 'immutable source base: ' + file)
   assert.equal(hash(current), known.afterHash, 'current source fingerprint: ' + file)
   assert.equal(undo(current, file), before, 'exact LF restoration: ' + file)
@@ -26,7 +27,7 @@ for (const file of manifest.newFiles) {
   assert.throws(() => git('show', `${BASE}:${file}`), undefined, 'new source absent from base: ' + file)
 }
 for (const file of manifest.artifacts) assert.ok(file.startsWith('docs/') && existsSync(file), file)
-const actual = [...new Set([...git('diff', '--name-only', BASE).trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard').trim().split('\n')])].filter(Boolean).sort()
+const actual = levaTaskInventory('purchase', levaCurrentInventory(BASE)) // KINEO-LEVA-2410 — current tree verified before original task projection.
 assert.deepEqual([...Object.keys(manifest.sources), ...manifest.newFiles, ...manifest.artifacts].sort(), actual, 'complete task inventory; no hidden changes')
 assert.equal(undo('unrelated\r\n', 'lib/unrelated.ts'), 'unrelated\r\n')
 console.log(`PASS compra avulsa undo: ${Object.keys(manifest.sources).length} exact sources; full task inventory; LF/CRLF/Windows; tamper rejected; base ${BASE}`)

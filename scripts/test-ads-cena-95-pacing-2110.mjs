@@ -19,7 +19,10 @@ const plain = x => JSON.parse(JSON.stringify(x)), same = (a, b, why) => assert.d
 const NOW = Date.parse('2026-10-22T12:00:00Z')
 class FixedDate extends Date { constructor(...a) { super(...(a.length ? a : [NOW])) } static now() { return NOW } }
 class OfflineResponse extends Response { static json(body, init = {}) { return new OfflineResponse(JSON.stringify(body), { ...init, headers: { 'Content-Type': 'application/json', ...init.headers } }) } }
-const sourceLoader = (over = {}, mocks = {}, globals = {}) => createOfflineLoader({ mocks, source: (p, s) => over[p] ?? semAdsCenaRetomada2110(s, p), globals: { Request, Response, Headers, Error, Date: FixedDate, ...globals } }) // KINEO-ADS-CENA-RETOMADA-2110 — restaura somente a fonte base; override mutado nunca passa pelo desfaz.
+// KINEO-LEVA-2410 — nested synchronous imports include exact historical projection
+// and TypeScript compilation. Parallel offline suites need a setup budget; this
+// does not change product deadlines or any behavioral/mutant assertion below.
+const sourceLoader = (over = {}, mocks = {}, globals = {}) => createOfflineLoader({ mocks, evaluationTimeoutMs: 30_000, source: (p, s) => over[p] ?? semAdsCenaRetomada2110(s, p), globals: { Request, Response, Headers, Error, Date: FixedDate, ...globals } }) // KINEO-ADS-CENA-RETOMADA-2110 — restaura somente a fonte base; override mutado nunca passa pelo desfaz.
 
 function database(tables, effects) {
   return { tables, from(table) {

@@ -1,3 +1,4 @@
+import { levaTaskSource, levaTaskInventory, levaCurrentInventory } from './test-support/leva-integration-2410.mjs' // KINEO-LEVA-2410 — sealed live source and complete current-tree inventory.
 // KINEO-AMOSTRA-ANUNCIO-2410 — exact source restoration, tamper rejection and legacy layer preservation.
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -7,7 +8,7 @@ import { semAmostraAnuncio2410, AMOSTRA_ANUNCIO_2410 as manifest } from './test-
 const hash = text => createHash('sha256').update(text).digest('hex')
 assert.equal(manifest.base, '1c078ed013302ac47c42f783305df688c4e97cfd')
 for (const [file, known] of Object.entries(manifest.sources)) {
-  const originalBuffer = readFileSync(file), source = originalBuffer.toString('utf8'), normalized = source.replace(/\r\n/g, '\n')
+  const originalBuffer = readFileSync(file), source = levaTaskSource(originalBuffer.toString('utf8'), file, 'sample'), normalized = source.replace(/\r\n/g, '\n')
   const before = execFileSync('git', ['show', manifest.base + ':' + file], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 64 << 20 }).replace(/\r\n/g, '\n')
   assert.equal(known.before, before, 'base blob: ' + file); assert.equal(hash(before), known.beforeHash); assert.equal(hash(normalized), known.afterHash, 'candidate source: ' + file)
   assert.equal(semAmostraAnuncio2410(normalized, file), before, 'exact undo: ' + file)

@@ -1,3 +1,4 @@
+import { levaUndoPrefix, semLevaIntegration2410, levaBlob } from './leva-integration-2410.mjs' // KINEO-LEVA-2410
 // KINEO-COMPRA-AVULSA-2410 — pure leaf: only this task, exact reverse hunks + before/after hashes, no historical imports.
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
@@ -5,6 +6,12 @@ export const COMPRA_AVULSA_2410_BASE = '7950e41134dd03388e67c131501d3e2bce61a3eb
 export const COMPRA_AVULSA_2410_MANIFEST = JSON.parse(readFileSync(new URL('./desfaz-compra-avulsa-2410-fontes.json', import.meta.url), 'utf8'))
 const hash = text => createHash('sha256').update(text).digest('hex')
 export function semCompraAvulsa2410(text, file) {
+  text = semLevaIntegration2410(text, file) // KINEO-LEVA-2410 — exact reviewed integration edits only.
+  const immutable = COMPRA_AVULSA_2410_MANIFEST.sources[String(file ?? '').replace(/\\/g, '/')]
+  if (immutable && hash(levaBlob(COMPRA_AVULSA_2410_BASE, String(file ?? "").replace(/\\/g, "/"))) !== immutable.beforeHash) throw Error('desfaz-compra-avulsa-2410: before divergente ' + file)
+  const prefix = levaUndoPrefix(text, file, 'purchase')
+  if (prefix !== null) return prefix // KINEO-LEVA-2410 — preserves every older sibling byte.
+
   const rel = String(file ?? '').replace(/\\/g, '/'), known = COMPRA_AVULSA_2410_MANIFEST.sources[rel]
   if (!known || typeof text !== 'string') return text
   const lf = text.replace(/\r\n/g, '\n'), current = hash(lf)

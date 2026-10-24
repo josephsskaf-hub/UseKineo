@@ -10,7 +10,7 @@ const compiledSources = new Map()
 
 // `source(relPath, text)` (opcional) transforma a fonte antes de transpilar — ex.: um guardião histórico que precisa da
 // régua da época (scripts/test-support/desfaz-cobertura-15s.mjs). Sem ele, a fonte real, como sempre.
-export function createOfflineLoader({ mocks = {}, env = {}, globals = {}, source: transformSource = null } = {}) {
+export function createOfflineLoader({ mocks = {}, env = {}, globals = {}, source: transformSource = null, evaluationTimeoutMs = 5000 } = {}) {
   const root = process.cwd(), cache = new Map()
   const unavailable = name => { throw new Error(`Offline test forbids ${name}`) }
   const external = {
@@ -50,7 +50,7 @@ export function createOfflineLoader({ mocks = {}, env = {}, globals = {}, source
     }
     vm.runInNewContext(code, {
       ...context, exports, require: name => load(name, path.dirname(filename)),
-    }, { timeout: 5000, filename })
+    }, { timeout: evaluationTimeoutMs, filename })
     return exports
   }
   return load

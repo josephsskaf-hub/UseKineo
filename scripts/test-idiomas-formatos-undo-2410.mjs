@@ -1,3 +1,4 @@
+import { levaTaskSource, levaTaskInventory, levaCurrentInventory } from './test-support/leva-integration-2410.mjs' // KINEO-LEVA-2410 — sealed live source and complete current-tree inventory.
 // KINEO-IDIOMAS-FORMATOS-2410 — both immutable histories, exact integration undo and complete task inventory; no filesystem mutation.
 import { semCompraAvulsa2410, COMPRA_AVULSA_2410_MANIFEST as compraAvulsaManifest } from './test-support/desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.
 import assert from 'node:assert/strict'
@@ -28,7 +29,7 @@ assert.deepEqual(Object.entries(manifest.sources).filter(([, item]) => Object.ha
 assert.deepEqual(Object.entries(manifest.sources).filter(([, item]) => Object.hasOwn(item, 'sourceBase')).map(([file]) => file), [UPSTREAM_READER], 'only the new upstream reader has its own source base')
 for (const [file, item] of Object.entries(manifest.sources)) {
   const sourceBase = item.sourceBase ?? BASE
-  const raw = semCardsGiro2410(semCartoonTracao2210(semAmostraAnuncio2410(semApresentadores2410(semCompraAvulsa2410(readFileSync(file, 'utf8'), file), file), file), file), file), current = lf(raw), originalBase = git('show', sourceBase + ':' + file) // KINEO-CARDS-GIRO-2410
+  const raw = levaTaskSource(readFileSync(file, 'utf8'), file, 'languages'), current = lf(raw), originalBase = git('show', sourceBase + ':' + file) // KINEO-CARDS-GIRO-2410
   const integratedBase = git('show', INTEGRATION_BASE + ':' + file)
   assert.equal(item.before, originalBase, 'before bytes come from their immutable source base: ' + file)
   assert.equal(item.beforeHash, hash(originalBase), 'immutable before hash: ' + file)
@@ -82,7 +83,7 @@ for (const file of manifest.newFiles) {
 }
 for (const file of manifest.artifacts) assert.ok(file.startsWith('docs/') && existsSync(file), 'artifact is under docs: ' + file)
 const giroFiles = new Set([...Object.keys(cardsGiro.sources), ...cardsGiro.newFiles, ...(cardsGiro.artifacts ?? [])]), idiomaFiles = new Set([...Object.keys(manifest.sources), ...manifest.newFiles, ...manifest.artifacts]) // KINEO-CARDS-GIRO-2410 — exclude only this separately verified layer; keep every original Idiomas source.
-const actual = [...new Set([...git('diff', '--name-only', INTEGRATION_BASE).trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard').trim().split('\n')])].filter(file => file && (!giroFiles.has(file) || idiomaFiles.has(file))).sort() // KINEO-CARDS-GIRO-2410
+const actual = levaTaskInventory('languages', levaCurrentInventory(INTEGRATION_BASE)) // KINEO-LEVA-2410 — every current entry checked; original task inventory preserved.
 assert.deepEqual([...Object.keys(manifest.sources), ...manifest.newFiles, ...manifest.artifacts].sort(), actual, 'task inventory is relative to integrated upstream; upstream-only files are not attributed to this task')
 assert.equal(undo('unrelated\r\n', 'lib/unrelated.ts'), 'unrelated\r\n')
 console.log(`ok idiomas/formatos undo: ${Object.keys(manifest.sources).length} exact sources; original dd0 history preserved; exactly 3 upstream overlaps; current undo equals ${INTEGRATION_BASE}; idempotent; LF/CRLF/Windows; tampering rejected; full integration inventory; no network or filesystem mutation`)

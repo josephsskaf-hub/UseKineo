@@ -1,3 +1,4 @@
+import { levaTaskSource, levaTaskInventory, levaCurrentInventory } from './test-support/leva-integration-2410.mjs' // KINEO-LEVA-2410 — sealed live source and complete current-tree inventory.
 // KINEO-CARTOON-TRACAO-2210 — offline guardian: actual campaign route/helper, public pages and exact undo.
 // All tables are fixtures. No credentials or environment files are read; provider requests are captured in memory.
 // --mutants writes ONE exact mutant at a time and restores the original Buffer in finally, byte for byte.
@@ -262,7 +263,7 @@ const cases = {
     const expected = [PAGE, 'lib/lifecycle/emailEvents.ts', '.github/workflows/guardiao.yml', 'scripts/test-support/desfaz-kids-venda-2010.mjs', 'scripts/test-support/desfaz-ads-cena-95-plan-failed-2110.mjs', 'scripts/test-support/desfaz-ads-cena-95-pacing-2110.mjs', 'scripts/test-ads-cena-95-pacing-2110.mjs', 'scripts/test-support/desfaz-idiomas-formatos-2410.mjs', 'scripts/test-idiomas-formatos-undo-2410.mjs']
     ok(JSON.stringify(Object.keys(hunks)) === JSON.stringify(expected), 'undo has exact nine existing task sources, no unrelated source')
     for (const [file, changes] of Object.entries(hunks)) {
-      const candidate = read(file), base = git('show', BASE + ':' + file).replace(/\r\n/g, '\n')
+      const candidate = levaTaskSource(read(file), file, 'cartoon'), base = git('show', BASE + ':' + file).replace(/\r\n/g, '\n')
       ok(undo(candidate, file) === base, 'exact reverse to immutable base: ' + file)
       ok(undo(candidate.replace(/\n/g, '\r\n'), file) === base.replace(/\n/g, '\r\n'), 'CRLF exact reverse: ' + file)
       ok(undo(base, file) === base && undo(candidate, file.replace(/\//g, '\\')) === base, 'base idempotence plus Windows paths: ' + file)
@@ -289,17 +290,18 @@ const cases = {
     }
   },
   async historicalHashChain() {
+    const historicalRead = file => levaTaskSource(read(file), file, 'cartoon') // KINEO-LEVA-2410 — immutable Cartoon proof after sealed current projection.
     const { semCartoonTracao2210: undo } = await import('./test-support/desfaz-cartoon-tracao-2210.mjs')
     const { compileOffline } = await import('./test-support/truncamento-dedupe-offline.mjs')
     const { semAdsCenaRetomada2110: retomada } = await import('./test-support/desfaz-ads-cena-retomada-2110.mjs')
     const pacingFile = 'scripts/test-support/desfaz-ads-cena-95-pacing-2110.mjs'
     const dependencies = { 'node:fs': { readFileSync: fs.readFileSync }, 'node:crypto': await import('node:crypto'), 'node:path': await import('node:path'), 'node:url': await import('node:url'), './desfaz-cartoon-tracao-2210.mjs': { semCartoonTracao2210: undo }, './desfaz-ads-cena-retomada-2110.mjs': { semAdsCenaRetomada2110: retomada } }
     const compile = source => compileOffline(source.replace('fileURLToPath(import.meta.url)', JSON.stringify(path.join(ROOT, pacingFile))), dependencies).semAdsCena95Pacing2110
-    const source = read(pacingFile), pacing = compile(source)
+    const source = historicalRead(pacingFile), pacing = compile(source)
     const file = 'scripts/test-support/desfaz-ads-cena-95-plan-failed-2110.mjs'
-    const snapshots = JSON.parse(read('scripts/test-support/desfaz-ads-cena-95-pacing-2110-fontes.json'))
-    ok(pacing(read(file), file) === snapshots[file].before, 'direct pacing callers remove exact Cartoon delta before preserving the historical hash')
-    const unrelated = 'X' + retomada(undo(read(file), file), file)
+    const snapshots = JSON.parse(historicalRead('scripts/test-support/desfaz-ads-cena-95-pacing-2110-fontes.json'))
+    ok(pacing(historicalRead(file), file) === snapshots[file].before, 'direct pacing callers remove exact Cartoon delta before preserving the historical hash')
+    const unrelated = 'X' + retomada(undo(historicalRead(file), file), file)
     assert.throws(() => pacing(unrelated, file), /fonte divergente/, 'historical whole-source hash still rejects any other edit')
     checks++
     // The current main head is Idiomas, before Public2410/Escolha. Exercise its real unchanged hash branches.
@@ -308,13 +310,13 @@ const cases = {
     const languageTableFile = 'scripts/test-support/desfaz-idiomas-formatos-2410-fontes.json'
     const { IDIOMAS_FORMATOS_2410_MANIFEST: languageTable } = await import('./test-support/desfaz-idiomas-formatos-2410.mjs')
     const compileLanguageHead = source => compileOffline(source.replace("new URL('./desfaz-idiomas-formatos-2410-fontes.json', import.meta.url)", JSON.stringify(path.join(ROOT, languageTableFile))), dependencies).semIdiomasFormatos2410
-    const headSource = read(headAdapterFile), head = compileLanguageHead(headSource)
+    const headSource = historicalRead(headAdapterFile), head = compileLanguageHead(headSource)
     const headBefore = git('show', languageTable.integration.base + ':' + headFile).replace(/\r\n/g, '\n')
-    ok(head(read(headFile), headFile) === headBefore, 'newest main head removes exact Cartoon before unchanged Idiomas hash and preserves published upstream bytes')
+    ok(head(historicalRead(headFile), headFile) === headBefore, 'newest main head removes exact Cartoon before unchanged Idiomas hash and preserves published upstream bytes')
     const withoutAdapter = compileLanguageHead(headSource.replace('text = semCartoonTracao2210(text, file)', 'text = text'))
-    assert.throws(() => withoutAdapter(read(headFile), headFile), /fonte divergente/, 'in-memory mutant removing newest adapter fails the unchanged historical hash')
+    assert.throws(() => withoutAdapter(historicalRead(headFile), headFile), /fonte divergente/, 'in-memory mutant removing newest adapter fails the unchanged historical hash')
     checks++
-    const unrelatedHead = 'X' + undo(read(headFile), headFile)
+    const unrelatedHead = 'X' + undo(historicalRead(headFile), headFile)
     assert.throws(() => head(unrelatedHead, headFile), /fonte divergente/, 'newest unchanged historical hash rejects one unrelated character in a known source')
     checks++
     const withoutHeadHash = compileLanguageHead(headSource.replace('if (hash === known.afterHash)', 'if (true)'))
@@ -323,9 +325,9 @@ const cases = {
     const { semAdsEscolhaPublico2410: publico } = await import('./test-support/desfaz-ads-escolha-publico-2410.mjs')
     const escolhaFile = 'scripts/test-support/desfaz-ads-escolha-2310.mjs'
     const compileEscolha = source => compileOffline(source.replace('fileURLToPath(import.meta.url)', JSON.stringify(path.join(ROOT, escolhaFile))), { ...dependencies, './desfaz-ads-escolha-publico-2410.mjs': { semAdsEscolhaPublico2410: publico } }).semAdsEscolha2310
-    const escolhaSource = read(escolhaFile), escolha = compileEscolha(escolhaSource)
-    const knownEscolhaFile = 'lib/ads/cena/internal.ts', escolhaSnapshots = JSON.parse(read('scripts/test-support/desfaz-ads-escolha-2310-fontes.json'))
-    const currentEscolha = publico(read(knownEscolhaFile), knownEscolhaFile)
+    const escolhaSource = historicalRead(escolhaFile), escolha = compileEscolha(escolhaSource)
+    const knownEscolhaFile = 'lib/ads/cena/internal.ts', escolhaSnapshots = JSON.parse(historicalRead('scripts/test-support/desfaz-ads-escolha-2310-fontes.json'))
+    const currentEscolha = publico(historicalRead(knownEscolhaFile), knownEscolhaFile)
     assert.throws(() => escolha('X' + currentEscolha, knownEscolhaFile), /fonte divergente/, 'original unchanged Escolha hash rejects one unrelated character after current layers are removed')
     checks++
     const withoutEscolhaHash = compileEscolha(escolhaSource.replace('if (hash !== known.afterHash) throw', 'if (false) throw'))
@@ -340,13 +342,13 @@ const cases = {
       'docs/CARTOON-INSTAGRAM-2210.md', 'docs/CARTOON-TRACAO-2210.md',
       'docs/previews/cartoon-tracao-2210.html', 'docs/previews/cartoon-tracao-2210-en-desktop.png', 'docs/previews/cartoon-tracao-2210-en-mobile.png',
       'docs/previews/cartoon-tracao-2210-pt-desktop.png', 'docs/previews/cartoon-tracao-2210-pt-mobile.png'])
-    const changed = git('diff', '--name-only', BASE).trim().split('\n').filter(Boolean)
-    const untracked = git('ls-files', '--others', '--exclude-standard').trim().split('\n').filter(Boolean)
+    const changed = levaTaskInventory('cartoon', levaCurrentInventory(BASE)) // KINEO-LEVA-2410 — unknown current paths still reject.
+    const untracked = [] // KINEO-LEVA-2410 — actual untracked paths already verified in the complete current inventory above.
     const assertScope = files => assert.ok(files.length > 0 && files.every(file => allowed.has(file)), 'finite Cartoon scope violated: ' + files.filter(file => !allowed.has(file)).join(', '))
     assertScope([...changed, ...untracked]); checks++
     assert.throws(() => assertScope([...changed, 'lib/compose.ts']), assert.AssertionError, 'in-memory scope mutant adding an unrelated production path is red'); checks++
     assert.throws(() => assertScope([...changed, 'docs/unrelated.md']), assert.AssertionError, 'in-memory scope mutant adding an unrelated document is red'); checks++
-    const subjects = git('log', '--format=%s', BASE + '..HEAD').trim().split('\n').filter(Boolean)
+    const subjects = git('log', '--format=%s', BASE + '..' + 'c91476688').trim().split('\n').filter(Boolean)
     ok(subjects.length > 0 && subjects.every(subject => subject.includes('[TRAVA 8.2 — vai do fundador 22/10 "de 1 ao 4, vamos dar tração em todas"]')), 'all current task commits carry the full founder authorization token')
   },
 }

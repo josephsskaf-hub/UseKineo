@@ -1,3 +1,4 @@
+import { semCartoonTracao2210 } from './desfaz-cartoon-tracao-2210.mjs' // KINEO-LEVA-2410
 // KINEO-CARDS-GIRO-2410 — exact leaf; immutable before bytes, complete target hash, no writes and no older undo imports.
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
@@ -7,6 +8,7 @@ export const CARDS_GIRO_2410_FILES = Object.freeze(Object.keys(CARDS_GIRO_2410_M
 export const CARDS_GIRO_2410_NEW = Object.freeze(CARDS_GIRO_2410_MANIFEST.newFiles)
 const hash = source => createHash('sha256').update(source).digest('hex')
 export function semCardsGiro2410(text, file) {
+  text = semCartoonTracao2210(text, file) // KINEO-LEVA-2410 — newest merged layers before Giro hashes.
   const relative = String(file ?? '').replace(/\\/g, '/'), known = CARDS_GIRO_2410_MANIFEST.sources[relative]
   if (typeof text !== 'string' || !known) return text
   if (hash(known.before) !== known.beforeHash) throw Error('desfaz-cards-giro-2410: manifesto divergente ' + relative)

@@ -4,9 +4,9 @@ import { semCompraAvulsa2410 } from './desfaz-compra-avulsa-2410.mjs' // KINEO-C
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { semCardsGiro2410 } from './desfaz-cards-giro-2410.mjs' // KINEO-CARDS-GIRO-2410 — remove the exact newer layer before every historical chain.
+import { semAmostraAnuncio2410 } from './desfaz-amostra-anuncio-2410.mjs'
 
 import { semCartoonTracao2210 } from './desfaz-cartoon-tracao-2210.mjs' // KINEO-CARTOON-TRACAO-2210
-import { semAmostraAnuncio2410 } from './desfaz-amostra-anuncio-2410.mjs'
 
 export const IDIOMAS_FORMATOS_2410_BASE = 'dd0abba8cc711be4bde2faaac39f0aef29f3f90d'
 export const IDIOMAS_FORMATOS_2410_MANIFEST = JSON.parse(readFileSync(new URL('./desfaz-idiomas-formatos-2410-fontes.json', import.meta.url), 'utf8'))
@@ -18,7 +18,7 @@ function verifiedBefore(known, integrated, rel) {
   return text
 }
 export function semIdiomasFormatos2410(text, file) {
-  text = semCardsGiro2410(semCartoonTracao2210(semAmostraAnuncio2410(semApresentadores2410(semCompraAvulsa2410(text, file), file), file), file), file) // KINEO-CARDS-GIRO-2410 — leaf has no older imports, so this creates no cycle.
+  text = semCardsGiro2410(text, file) // KINEO-LEVA-2410 — Cards → Cartoon → Amostra → Apresentadores → Compra; each newer leaf is called exactly once before historical hashes.
   const rel = String(file ?? '').replace(/\\/g, '/')
   const known = IDIOMAS_FORMATOS_2410_MANIFEST.sources[rel]
   if (!known || typeof text !== 'string') return text
