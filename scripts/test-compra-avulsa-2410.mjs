@@ -76,6 +76,8 @@ async function proofs(overrides = {}) {
   const anon = await checkout('pack=one_time_ad&surface=ads_choice', { anon: true }, overrides)
   assert.equal(anon.calls.length, 0); assert.match(anon.result.location, /\/login\?/)
   assert.match(decodeURIComponent(anon.result.location), /pack=one_time_ad.*surface=ads_choice.*resumed=1/)
+  const livePaywall = await checkout('pack=one_time_film35&surface=generate_paywall', {}, overrides)
+  assert.equal(livePaywall.calls[0].metadata.surface, 'generate_paywall', 'the actual pre-video paywall keeps its attribution')
   const loop = await checkout('pack=one_time_ad&resumed=1', { anon: true }, overrides)
   assert.match(loop.result.location, /checkout_error=/)
   const owned = await checkout(`pack=one_time_ad&surface=ads_choice&order=${ORDER}`, {}, overrides)

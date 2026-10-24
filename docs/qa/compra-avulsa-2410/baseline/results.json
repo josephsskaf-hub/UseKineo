@@ -806,6 +806,16 @@
       "ok": true,
       "elapsedMs": 10321,
       "log": "retry-test-juiz-still-2026-10-06.log"
+    },
+    {
+      "file": "scripts/test-inline-pricing-decision-funnel.mjs",
+      "args": [],
+      "expected": "pass",
+      "suite": "pertinent_additional_live_paywall",
+      "exit": 0,
+      "ok": true,
+      "log": "extra-inline-pricing-decision-funnel.log",
+      "date": "2026-10-24"
     }
   ]
 }

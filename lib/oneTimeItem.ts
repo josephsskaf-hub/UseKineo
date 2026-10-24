@@ -8,14 +8,14 @@ import { settlementAmountMinor } from '@/lib/settlementCurrency'
 export const ONE_TIME_ITEMS_LIVE = true
 export const ONE_TIME_ITEM_VERSION = 'one_time_item_v1' as const
 export type OneTimeItemId = keyof typeof ONE_TIME_ITEM_USD_MINOR
-export type OneTimeItemSurface = 'pricing' | 'post_video_paywall' | 'ads_choice'
+export type OneTimeItemSurface = 'pricing' | 'generate_paywall' | 'ads_choice'
 export const ONE_TIME_ITEM_EVENTS = { viewed: 'one_time_item_viewed', started: 'checkout_started', purchased: 'one_time_item_purchased' } as const
 
 export function isOneTimeItemId(value: unknown): value is OneTimeItemId {
   return value === 'one_time_ad' || value === 'one_time_film35'
 }
 export function oneTimeItemSurface(value: unknown): OneTimeItemSurface {
-  return value === 'post_video_paywall' || value === 'ads_choice' ? value : 'pricing'
+  return value === 'generate_paywall' || value === 'ads_choice' ? value : 'pricing'
 }
 export function oneTimeItemOrderId(value: unknown): string | null {
   return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value) ? value.toLowerCase() : null

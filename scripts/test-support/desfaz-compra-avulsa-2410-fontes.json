@@ -117,17 +117,17 @@
         }
       ]
     },
-    "components/PostVideoPaywall.tsx": {
-      "beforeHash": "1ef6cf9053a7816e9885fc70f922462133c4af2f09306f01bcbaf69cd1cca8e1",
-      "afterHash": "c3005368663ca7c56cb5a472b6d1ea9527ec6cd896314819e16c7b275d7672c9",
+    "components/PricingCards.tsx": {
+      "beforeHash": "ae8d882faf2622604166c0ae3bd3f0f421f13ffca7f555b978f486846b23d843",
+      "afterHash": "d0f476ff8586af1f0a04fc20d88dab2c5bde53f4372f00389d85386c655e4692",
       "changes": [
         {
-          "before": "\nimport { useState } from 'react'\nimport { PLANS } from '@/lib/pricing'\n// KINEO-PILOT-99-2026-07-26 — em USD, igual ao resto deste card (PLANS.*.priceLabel\n",
-          "after": "\nimport { useState } from 'react'\nimport OneTimeItemOffer from '@/components/OneTimeItemOffer' // KINEO-COMPRA-AVULSA-2410\nimport { PLANS } from '@/lib/pricing'\n// KINEO-PILOT-99-2026-07-26 — em USD, igual ao resto deste card (PLANS.*.priceLabel\n"
+          "before": "import { trackClosedEvent, trackEvent } from '@/lib/analytics'\nimport { useCheckoutLaunch } from '@/lib/checkoutTelemetry'\nimport RegionalFirstPack from '@/components/RegionalFirstPack'\nimport {\n",
+          "after": "import { trackClosedEvent, trackEvent } from '@/lib/analytics'\nimport { useCheckoutLaunch } from '@/lib/checkoutTelemetry'\nimport OneTimeItemOffer from '@/components/OneTimeItemOffer' // KINEO-COMPRA-AVULSA-2410 — this grid is mounted by GenerateClient on Step 1.\nimport RegionalFirstPack from '@/components/RegionalFirstPack'\nimport {\n"
         },
         {
-          "before": "      </div>\n\n      {/* ROBO-ENTRY-490 (Joseph aprovou 30/06) — lowest-commitment option on the\n          post-Short nudge. A free user who just made their first Short faces a\n",
-          "after": "      </div>\n\n      <OneTimeItemOffer surface=\"post_video_paywall\" checkout={checkout} />{/* KINEO-COMPRA-AVULSA-2410 — the same one-off choices alongside the monthly plans. */}\n\n      {/* ROBO-ENTRY-490 (Joseph aprovou 30/06) — lowest-commitment option on the\n          post-Short nudge. A free user who just made their first Short faces a\n"
+          "before": "      </div>\n\n      {/* ══════════════════════════════════════════════════════════════════\n          KINEO-PILOT-99-2026-07-26 — AUTOPILOT BAND.\n",
+          "after": "      </div>\n\n      <OneTimeItemOffer surface=\"generate_paywall\" checkout={checkout} />{/* KINEO-COMPRA-AVULSA-2410 — one-off choice beside the active pre-video plans, with the same checkout latch. */}\n\n      {/* ══════════════════════════════════════════════════════════════════\n          KINEO-PILOT-99-2026-07-26 — AUTOPILOT BAND.\n"
         }
       ]
     },
@@ -480,6 +480,7 @@
     "docs/qa/compra-avulsa-2410/baseline/68-test-pricing-plan-choice-attribution.log",
     "docs/qa/compra-avulsa-2410/baseline/69-test-pricing-diz-a-verdade-2026-09-27.log",
     "docs/qa/compra-avulsa-2410/baseline/BASELINE.md",
+    "docs/qa/compra-avulsa-2410/baseline/extra-inline-pricing-decision-funnel.log",
     "docs/qa/compra-avulsa-2410/baseline/offline-guard.cjs",
     "docs/qa/compra-avulsa-2410/baseline/results.json",
     "docs/qa/compra-avulsa-2410/baseline/retry-dependencies.mjs",
