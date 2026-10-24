@@ -108,20 +108,20 @@ export const HOME_CARD_PLAYLISTS: Record<HomeCycleCardId, { default: HomeCardPla
   films: { default: [
     // Preserve the original top-anchored crop: the burned-in bottom caption stays outside the card.
     { ...preview('home-card-film-flannan', '50% 0%'), scale: 1.1 },
-    { src: '/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4', poster: '/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-h.webp', objectPosition: '50% 0%', mobileObjectPosition: '50% 0%' },
-    { src: '/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-v.mp4', poster: '/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-h.webp', objectPosition: '50% 0%', mobileObjectPosition: '50% 0%' },
+    { src: '/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4', poster: '/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-h.webp', objectPosition: '50% 12%', mobileObjectPosition: '50% 12%', scale: 1.36 }, // KINEO-CARDS-BORDAS-2410 — zoom esconde a marca usekineo.com/free (topo) e a legenda (baixo)
+    { src: '/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-v.mp4', poster: '/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-h.webp', objectPosition: '50% 30%', mobileObjectPosition: '50% 30%', scale: 1.32 }, // KINEO-CARDS-BORDAS-2410 — idem
   ] },
   product_ads: { default: [
-    { ...preview('home-card-close-real-en', '50% 0%'), objectFit: 'contain' },
+    { ...preview('home-card-close-real-en', '50% 35%') }, // KINEO-CARDS-BORDAS-2410 — cover (sem faixa preta); 35% mantém rosto e tênis (conferido no navegador)
     preview('efeito-product_360', '50% 50%'),
     preview('promo-images-1', '50% 50%'),
   ], pt: [
-    { ...preview('home-card-close-real-pt', '50% 0%'), objectFit: 'contain' },
+    { ...preview('home-card-close-real-pt', '50% 35%') }, // KINEO-CARDS-BORDAS-2410
     preview('efeito-product_360', '50% 50%'),
     preview('promo-images-1', '50% 50%'),
   ] },
   ugc_ads: { default: [preview('home-card-ugc-presenter', '50% 0%', '50% 0%')] },
-  kids_cartoon: { default: [{ ...preview('home-card-kids-cartoon-leo', '50% 0%', '50% 0%'), objectFit: 'contain' }] },
+  kids_cartoon: { default: [{ ...preview('home-card-kids-cartoon-leo', '50% 70%', '50% 100%') }] }, // KINEO-CARDS-BORDAS-2410 — cover (sem faixa preta), o enquadramento de antes do giro
 }
 
 /** Single-preview consumers (UGC pages) retain the original API, derived from the same lists. */
