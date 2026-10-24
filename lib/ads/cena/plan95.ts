@@ -36,7 +36,7 @@ export async function planCena95(input: CenaInput, route: CenaRoute, json: CenaJ
   const presenter = chooseCena95Presenter(classification.category, context.userId, context.recentActors, input.actorUrl)
   input = { ...input, voice_mode: mode, actorUrl: presenter.portrait, oferta: input.oferta || classification.offer, beneficios: [...new Set([...(input.beneficios ?? []), ...classification.benefits])] }
   const category = classification.category, wardrobe = CENA_WARDROBE[category] // KINEO-ADS-CENA-95-PACING-2110
-  const composition = cena95Composition(category, input.formato, mode) // KINEO-ADS-CENA-95-PACING-2110
+  const composition = cena95Composition(category, input.formato === 'ugc' ? 'ugc' : 'product', mode) // KINEO-IDIOMAS-FORMATOS-2410 — new formats are storyboarded by escolha, legacy composition keeps its existing two modes.
   let script: Cena95Script | undefined, correction = '', previous: unknown
   for (let attempt = 0; attempt < 2; attempt++) {
     try {

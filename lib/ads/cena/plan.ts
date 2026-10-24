@@ -1,3 +1,5 @@
+import { escolhaFormat, type CenaEscolhaFormat } from './escolhaShots'
+import { narrationLanguage } from '@/lib/textLanguage'
 // KINEO-ADS-CENA-2110 — planejamento sem SDK; chamadas JSON/visão injetadas. Nenhum fallback comercial inventado.
 // KINEO-ADS-CENA-AJUSTE-2110 — narrated/talking é intenção explícita; nenhum fallback entre os modos.
 import { CENA_CATALOG, CENA_ACTORS, CENA_WARDROBE, cenaCategory, type CenaCategory } from './catalog'
@@ -14,7 +16,7 @@ import { ajusteScriptPrompt, naturalAjusteScript, ajustePlanComposition } from '
 import { writeAjusteScript } from './ajusteRespaldo' // KINEO-ADS-CENA-RESPALDO-2110
 import { addAjusteQuality, type AjusteQualityNote } from './ajusteQuality' // KINEO-ADS-CENA-SEGUE-2110
 
-export interface CenaInput { foto: string; frase: string; oferta?: string; beneficios?: string[]; cta?: string; language?: string; formato?: 'ugc' | 'product'; actorUrl?: string; voice_mode?: CenaVoiceMode } // KINEO-ADS-CENA-95-PACING-2110
+export interface CenaInput { foto: string; frase: string; oferta?: string; beneficios?: string[]; cta?: string; language?: string; formato?: CenaEscolhaFormat; actorUrl?: string; voice_mode?: CenaVoiceMode } // KINEO-ADS-CENA-95-PACING-2110
 export interface CenaJsonCall { model: typeof AI_TEXT_MODELS.ads | typeof AI_TEXT_MODELS.adsRetry; system: string; text: string; images: string[] }
 export type CenaJson = (call: CenaJsonCall) => Promise<unknown>
 export interface CenaScript { hooks: [string, string, string]; hook: string; use: string; benefit: string; cta: string; narration: string }
@@ -41,11 +43,11 @@ export function cenaInput(raw: unknown): CenaInput {
   if (b.oferta !== undefined && (typeof b.oferta !== 'string' || b.oferta.length > 300)) throw new Error('cena_bad_offer')
   if (b.cta !== undefined && (typeof b.cta !== 'string' || !clean(b.cta) || b.cta.length > 300)) throw new Error('cena_bad_cta') // KINEO-ADS-CENA-95-PACING-2110
   if (b.beneficios !== undefined && (!Array.isArray(b.beneficios) || b.beneficios.length > 6 || b.beneficios.some(x => typeof x !== 'string' || !clean(x) || x.length > 160))) throw new Error('cena_bad_benefits')
-  if (b.formato !== undefined && b.formato !== 'ugc' && b.formato !== 'product') throw new Error('cena_bad_format')
-  if (b.language !== undefined && (typeof b.language !== 'string' || !/^[a-z]{2}$/.test(b.language))) throw new Error('cena_bad_language')
+  if (b.formato !== undefined && !escolhaFormat(b.formato)) throw new Error('cena_bad_format')
+  if (b.language !== undefined && !narrationLanguage(b.language)) throw new Error('cena_bad_language')
   if (b.actorUrl !== undefined && !cenaHttps(b.actorUrl)) throw new Error('cena_bad_actor')
   if (b.voice_mode !== undefined && !isCenaVoiceMode(b.voice_mode)) throw new Error('cena_bad_voice_mode')
-  return { foto: b.foto, frase, oferta: clean(b.oferta), beneficios: (b.beneficios as string[] | undefined)?.map(clean) ?? [], language: clean(b.language) || 'en', formato: b.formato === 'ugc' ? 'ugc' : 'product', voice_mode: b.voice_mode ?? 'narrated', ...(b.actorUrl ? { actorUrl: b.actorUrl as string } : {}), ...(b.cta ? { cta: clean(b.cta) } : {}) } // KINEO-ADS-CENA-95-PACING-2110
+  return { foto: b.foto, frase, oferta: clean(b.oferta), beneficios: (b.beneficios as string[] | undefined)?.map(clean) ?? [], language: narrationLanguage(b.language) ?? 'en', formato: escolhaFormat(b.formato) ? b.formato : 'product', voice_mode: b.voice_mode ?? 'narrated', ...(b.actorUrl ? { actorUrl: b.actorUrl as string } : {}), ...(b.cta ? { cta: clean(b.cta) } : {}) } // KINEO-ADS-CENA-95-PACING-2110
 }
 function jsonObject(raw: unknown): Record<string, unknown> {
   const v = typeof raw === 'string' ? JSON.parse(raw) : raw

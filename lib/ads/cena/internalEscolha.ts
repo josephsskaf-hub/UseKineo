@@ -133,6 +133,7 @@ export async function internalCenaEscolhaFor(user: AdsV2Caller, body: unknown, d
   } catch (e) {
     const message = e instanceof Error ? e.message : 'cena_plan_failed'
     console.warn('[ads-cena] escolha_failed', message)
+    if (message === 'escolha_script_language_unavailable') return v2Fail(message, 502, { reason: message, reason_detail: 'Não foi possível preparar um roteiro no idioma escolhido. Nenhuma foto ou vídeo foi gerado. Tente novamente.' })
     if (message.startsWith('escolha_')) return v2Fail(message, message.includes('core_exceeds') ? 422 : message.includes('changed') ? 409 : 400, { reason: message.slice(0, 200), reason_detail: message.includes('core_exceeds') ? 'O nome e o CTA obrigatório não cabem em 15 segundos. Encurte o texto para continuar.' : message.slice(0, 1000) })
     if (/^cena_(bad_|presenter_|scenario_|still_|stills_not_ready|choice_|required_text)/u.test(message)) return v2Fail(message, message.includes('not_ready') || message.includes('locked') || message.includes('lease') ? 409 : 400, { reason: message.slice(0, 200) })
     return v2Fail('cena_plan_failed', 502, { reason: message.slice(0, 200), reason_detail: message.slice(0, 1000) })
