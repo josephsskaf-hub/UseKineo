@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore this newer layer before historical contracts; current code has raw guardians.
 // KINEO-VERSAO-60S-2026-10-13 — guardião da AÇÃO 1 de vendas ("Faça a versão de 60 s deste filme", fundador 13/10).
 // Prova por COMPORTAMENTO (módulo puro executado) e amarrado ao lugar que decide:
 //   (a) o bloco só existe para conta que NÃO paga (has_paid=false + plano lido fora da assinatura) com o filme CURTO do
@@ -20,7 +21,7 @@ import { semClareza1610 } from './test-support/desfaz-checkout-clareza-1610.mjs'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
 const ts = require(join(root, 'node_modules', 'typescript'))
-const rd = (p) => semClareza1610(p, readFileSync(join(root, p), 'utf8')).replace(/\r\n/g, '\n') // reancorado KINEO-CHECKOUT-CLAREZA-1610
+const rd = (p) => semClareza1610(p, semIdiomasFormatos2410(readFileSync(join(root, p), 'utf8'), p)).replace(/\r\n/g, '\n') // reancorado KINEO-CHECKOUT-CLAREZA-1610
 
 let passed = 0
 const falhas = []

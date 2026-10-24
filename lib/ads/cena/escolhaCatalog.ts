@@ -1,3 +1,4 @@
+// KINEO-ADS-ESCOLHA-PUBLICO-2410 — translated previews preserve the Portuguese default.
 // KINEO-ADS-ESCOLHA-2310 — public/isomorphic choice data; every preview is an illustration, never generated output.
 import type { CenaCategory } from './catalog'
 export const CENA_ESCOLHA_MARK = 'KINEO-ADS-ESCOLHA-2310'
@@ -113,4 +114,9 @@ export const CENA_ESCOLHA_SCENARIOS: readonly CenaEscolhaScenario[] = Object.fre
 export function escolhaPresenter(id: unknown) { return typeof id === 'string' ? CENA_ESCOLHA_PRESENTERS.find(p => p.id === id) ?? null : null }
 export function escolhaScenario(id: unknown): CenaEscolhaScenario | null { return typeof id === 'string' ? CENA_ESCOLHA_SCENARIOS.find(s => s.id === id) ?? null : null }
 export function escolhaScenarios(category: unknown): readonly CenaEscolhaScenario[] { return CENA_ESCOLHA_SCENARIOS.filter(s => s.category === category) }
-export function escolhaPreviewDataUrl(id: unknown): string { const s = escolhaScenario(id); return s ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(s.previewSvg)}` : '' }
+export function escolhaPreviewDataUrl(id: unknown, language: 'pt' | 'en' = 'pt'): string {
+  const scene = escolhaScenario(id)
+  if (!scene) return ''
+  const svg = language === 'en' ? scene.previewSvg.replaceAll(xml(scene.label.pt), xml(scene.label.en)).replaceAll('PRÉVIA ILUSTRATIVA', 'ILLUSTRATIVE PREVIEW').replaceAll('prévia ilustrativa', 'illustrative preview') : scene.previewSvg
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+}

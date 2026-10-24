@@ -1,0 +1,16 @@
+PASS .github/workflows/guardiao.yml: exact base/LF/CRLF/Windows, idempotence, external bytes, malformed hunks rejected
+PASS app/api/admin/live/route.ts: exact base/LF/CRLF/Windows, idempotence, external bytes, malformed hunks rejected
+PASS components/LiveNowPanel.tsx: exact base/LF/CRLF/Windows, idempotence, external bytes, malformed hunks rejected
+PASS app/(dashboard)/admin/users/UsersClient.tsx: exact base/LF/CRLF/Windows, idempotence, external bytes, malformed hunks rejected
+PASS app/(dashboard)/admin/metrics/MetricsClient.tsx: exact base/LF/CRLF/Windows, idempotence, external bytes, malformed hunks rejected
+PASS app/(dashboard)/admin/ceo/CeoClient.tsx: exact base/LF/CRLF/Windows, idempotence, external bytes, malformed hunks rejected
+PASS app/(dashboard)/admin/funnel/FunnelClient.tsx: exact base/LF/CRLF/Windows, idempotence, external bytes, malformed hunks rejected
+PASS app/admin/leads/LeadsClient.tsx: exact base/LF/CRLF/Windows, idempotence, external bytes, malformed hunks rejected
+PASS app/admin/demo/DemoClient.tsx: exact base/LF/CRLF/Windows, idempotence, external bytes, malformed hunks rejected
+PASS scripts/test-admin-rapido-1710.mjs: exact base/LF/CRLF/Windows, idempotence, external bytes, malformed hunks rejected
+PASS scripts/test-roteiro-curto-undo-2210.mjs: exact base/LF/CRLF/Windows, idempotence, external bytes, malformed hunks rejected
+PASS scripts/test-ads-cena-segue-2110.mjs: exact base/LF/CRLF/Windows, idempotence, external bytes, malformed hunks rejected
+PASS scripts/test-painel-verdade.mjs: exact base/LF/CRLF/Windows, idempotence, external bytes, malformed hunks rejected
+PASS scripts/test-support/desfaz-roteiro-curto-2210.mjs: exact base/LF/CRLF/Windows, idempotence, external bytes, malformed hunks rejected
+PASS scripts/test-support/desfaz-paginas-ia-claras-2110.mjs: exact base/LF/CRLF/Windows, idempotence, external bytes, malformed hunks rejected
+KINEO-ADMIN-LEVE-2310-UNDO: 272 passed, 0 failed.

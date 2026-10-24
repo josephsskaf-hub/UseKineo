@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410, IDIOMAS_FORMATOS_2410_BASE } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore this newer layer before historical contracts; current code has raw guardians.
 // [TRAVA 8.2] VEO-MARCADO-2026-09-29 — guardião do Veo 3.1 com ROTEIRO MARCADO (HOOK/MICRO REWARD/… com [Pexels: …] por bloco).
 // Palavra do fundador (29/09): "quero o Veo pronto pra amanhã". Auditoria de 29/09, dois furos: (1) o #442 dimensiona o verbatim em
 // min(9, …) e resolveVerbatimSegments AMOSTRA 9 blocos por índice (descarta, não funde) — 12 blocos em 60 s viravam 9 cenas; (2) o
@@ -108,7 +109,7 @@ const semTrocadas = (t) => (t == null ? t : t.split('\n').filter((l) => !TROCADA
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n')
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else { falhas.push(n); console.log('  FALHOU: ' + n) } }
@@ -378,8 +379,13 @@ for (const [ini, fim] of fatiasIntocadas) {
 }
 checa('buildFalInput (Seedance, Kling, Sora, Veo t2v/i2v, hollywood) byte a byte igual à base', rotaBase !== null && funcaoDe(desfazH3max(ROTA, rota), 'buildFalInput') === funcaoDe(rotaBase, 'buildFalInput'))
 if (rotaBase) {
-  const diff = git(['diff', '--no-color', '-U0', BASE, 'HEAD', '--', ROTA]).replace(/\r/g, '')
-  const worktreeDiff = git(['diff', '--no-color', '-U0', BASE, '--', ROTA]).replace(/\r/g, '')
+  // KINEO-IDIOMAS-FORMATOS-2410 — git target only after exact in-memory undo; source drift stays guarded.
+  const raw = readFileSync(join(RAIZ, ROTA), 'utf8').replace(/\r/g, '')
+  const restored = semIdiomasFormatos2410(raw, ROTA)
+  const taskUndone = restored !== raw
+  if (taskUndone && restored !== git(['show', `${IDIOMAS_FORMATOS_2410_BASE}:${ROTA}`]).replace(/\r/g, '')) throw new Error('Restored source diverges from immutable task base: ' + ROTA)
+  const diff = git(['diff', '--no-color', '-U0', BASE, taskUndone ? IDIOMAS_FORMATOS_2410_BASE : 'HEAD', '--', ROTA]).replace(/\r/g, '')
+  const worktreeDiff = taskUndone ? diff : git(['diff', '--no-color', '-U0', BASE, '--', ROTA]).replace(/\r/g, '')
   const d = worktreeDiff.length ? worktreeDiff : diff
   const adicionadas = d.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).map((l) => l.slice(1))
   adicionadas.splice(0, adicionadas.length, ...adicionadas.filter((l) => !l.includes('KINEO-KIDS-VENDA-2010'))) // KINEO-KIDS-VENDA-2010 — só a venda do Cartoon, com marca e desfaz exato próprios, sai da conta do Veo

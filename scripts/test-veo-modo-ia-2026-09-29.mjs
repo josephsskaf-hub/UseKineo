@@ -27,6 +27,7 @@ const linhaDaTrilha15s1610 = (l) => linhaDaTrilha15s1610Puro(l) || linhaDoFilmeR
 import { linhasTrocadasMeta95Assunto1910 } from './test-support/desfaz-meta95-assunto-1910.mjs' // reancorado KINEO-META95-ASSUNTO-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"]: as linhas da base da rota que o assunto traduzido / a fala sem buraco trocaram de propósito (lista exata no desfaz; provadas em test-meta95-assunto-1910)
 const linhasTrocadasTrilha15s1610 = (p) => [...linhasTrocadasTrilha15s1610Puro(p), ...linhasTrocadasFilmeRapido1710(p), ...linhasTrocadasMeta95Assunto1910(p)] /* reancorado KINEO-META95-ASSUNTO-1910 */ // reancorado KINEO-FILME-RAPIDO-1710
 import { readFileSync } from 'node:fs'
+import { semIdiomasFormatos2410, IDIOMAS_FORMATOS_2410_BASE } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact newest layer before historical slices and diff.
 import { desfazAncoraLegenda1410, linhaDaAncoraLegenda1410, linhasTrocadasAncoraLegenda1410 } from './test-support/desfaz-ancora-legenda-1410.mjs' // reancorado KINEO-ANCORA-LEGENDA-1410 [TRAVA 8.2 — vai do fundador 14/10]: Seedance com still em todas as cenas + legenda 9:16 centralizada saem em memória antes do byte a byte
 import { desfazJuizStill1410, linhaDoJuizStill1410 } from './test-support/desfaz-juiz-still-1410.mjs' // reancorado KINEO-JUIZ-STILL-1410 [TRAVA 8.2 — vai do fundador 14/10]: as 58 linhas do crítico do still (só acréscimos) saem em memória antes do byte a byte
 import { semCenaNegacao1510, linhaDaCenaNegacao1510, linhasTrocadasCenaNegacao1510 } from './test-support/desfaz-cena-negacao-1510.mjs' // reancorado KINEO-CENA-NEGACAO-1510 [TRAVA 8.2 — vai do fundador 15/10]: as 2 linhas da base trocadas (o if do relato) e as linhas marcadas da negação no contrato de cena
@@ -107,7 +108,7 @@ const semTrocadas = (t) => (t == null ? t : t.split('\n').filter((l) => !TROCADA
 
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ)
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n')
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else { falhas.push(n); console.log('  FALHOU: ' + n) } }
@@ -368,8 +369,11 @@ for (const [ini, fim] of fatiasIntocadas) {
 checa('buildFalInput (Seedance, Kling, Sora, Veo t2v/i2v, hollywood) byte a byte igual à base', rotaBase !== null && funcaoDe(desfazH3max(ROTA, rota), 'buildFalInput') === funcaoDe(rotaBase, 'buildFalInput'))
 if (rotaBase) {
   // TODA linha que mudou na rota mora nos blocos do modo IA do Veo: import, dimensionamento, escritor, planos, ensaio.
-  const diff = git(['diff', '--no-color', '-U0', BASE, 'HEAD', '--', ROTA]).replace(/\r/g, '')
-  const worktreeDiff = git(['diff', '--no-color', '-U0', BASE, '--', ROTA]).replace(/\r/g, '')
+  const raw = readFileSync(join(RAIZ, ROTA), 'utf8').replace(/\r/g, '') // KINEO-IDIOMAS-FORMATOS-2410
+  const restored = semIdiomasFormatos2410(raw, ROTA), taskUndone = restored !== raw // KINEO-IDIOMAS-FORMATOS-2410
+  if (taskUndone && restored !== git(['show', `${IDIOMAS_FORMATOS_2410_BASE}:${ROTA}`]).replace(/\r/g, '')) throw new Error('Restored source diverges from immutable task base: ' + ROTA) // KINEO-IDIOMAS-FORMATOS-2410
+  const diff = git(['diff', '--no-color', '-U0', BASE, taskUndone ? IDIOMAS_FORMATOS_2410_BASE : 'HEAD', '--', ROTA]).replace(/\r/g, '') // KINEO-IDIOMAS-FORMATOS-2410
+  const worktreeDiff = taskUndone ? diff : git(['diff', '--no-color', '-U0', BASE, '--', ROTA]).replace(/\r/g, '') // KINEO-IDIOMAS-FORMATOS-2410
   const d = worktreeDiff.length ? worktreeDiff : diff
   const adicionadas = d.split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++')).map((l) => l.slice(1))
   adicionadas.splice(0, adicionadas.length, ...adicionadas.filter((l) => !l.includes('KINEO-KIDS-VENDA-2010'))) // KINEO-KIDS-VENDA-2010 — só a venda do Cartoon, com marca e desfaz exato próprios, sai da conta do Veo

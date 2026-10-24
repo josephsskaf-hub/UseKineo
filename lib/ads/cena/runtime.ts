@@ -32,6 +32,7 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
   if (!state || order.status !== 'generating') return
   const auth = await admin.auth.admin.getUserById(order.user_id)
   if (auth.error || !cenaEnabled(isAdsInternalEmail(auth.data.user?.email))) { await failCenaOrder(admin, order, 'cena_internal_only'); return }
+  if (!state.plan.escolha && !isAdsInternalEmail(auth.data.user?.email)) { await failCenaOrder(admin, order, 'cena_internal_only'); return } // KINEO-ADS-ESCOLHA-PUBLICO-2410
   if (state.plan.voice_mode) {
     try { cenaAssertVoiceRoute(state.route, state.plan.voice_mode, state.plan.input.language) }
     catch (e) { await failCenaOrder(admin, order, e instanceof Error ? e.message : 'cena_bad_voice_mode'); return }
@@ -60,7 +61,7 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
     const advanceEscolhaMedia = async () => { // KINEO-ADS-ESCOLHA-2310 — injected effects share the existing winner lease and save, never a second billing path.
       const { stepCenaEscolhaMedia } = await import('./escolhaMedia') // KINEO-ADS-ESCOLHA-2310
       return stepCenaEscolhaMedia(state, { now: Date.now, save, // KINEO-ADS-ESCOLHA-2310
-        synthesize: async text => { const audio = await synthesizeTtsFallback(text, { userId: order.user_id, generationId: order.id }); return { audio, seconds: estimateMp3DurationSeconds(audio) } }, // KINEO-ADS-ESCOLHA-2310
+        synthesize: async text => { const audio = await synthesizeTtsFallback(text, { userId: order.user_id, generationId: order.id, language: state.plan.input.language }); return { audio, seconds: estimateMp3DurationSeconds(audio) } }, // KINEO-ADS-ESCOLHA-2310
         upload: audio => uploadVoiceoverToSupabase(order.user_id, audio), // KINEO-ADS-ESCOLHA-2310
         submitMusic: async mood => { const { submeterLyria, lyriaPromptFor } = await import('@/lib/lyriaMusic'); return submeterLyria(lyriaPromptFor(mood)) }, // KINEO-ADS-ESCOLHA-2310
         pollMusic: async handle => { const { esperarLyria } = await import('@/lib/lyriaMusic'); return esperarLyria(handle, Math.min(deadlineMs - 1000, Date.now() + 5000)) }, // KINEO-ADS-ESCOLHA-2310
@@ -132,7 +133,7 @@ export async function advanceCenaOrder(admin: SupabaseClient, order: AdsV2OrderR
     if (!escolhaLive && cenaVoiceModeOf(state.plan) === 'narrated' && !state.voiceUrl) { // KINEO-ADS-ESCOLHA-2310 — chosen flow already measured its complete narration before video.
       if (state.voiceClaimedAt) { await failCenaOrder(admin, order, 'cena_voice_submit_unconfirmed'); return }
       state.voiceClaimedAt = Date.now(); await save(state)
-      const audio = await synthesizeTtsFallback(state.plan.script.narration, { userId: order.user_id, generationId: order.id })
+      const audio = await synthesizeTtsFallback(state.plan.script.narration, { userId: order.user_id, generationId: order.id, language: state.plan.input.language })
       const seconds = estimateMp3DurationSeconds(audio)
       if (!(seconds > 0 && (ajusteLive ? Number.isFinite(seconds) : seconds <= 15))) { if (ajusteLive) { addAjusteQuality(state, { stage: 'voice', code: 'voice_unusable', message: `Narration audio has an unusable duration (${String(seconds)}s); no valid positive-duration audio exists to assemble.` }); await save(state) }; await failCenaOrder(admin, order, ajusteLive ? 'cena_voice_unusable' : 'cena_voice_does_not_fit'); return } // KINEO-ADS-CENA-SEGUE-2110 — retain every valid AJUSTE spoken word; legacy duration policy is unchanged.
       if (ajusteLive) addAjusteQuality(state, { stage: 'voice', code: 'voice_ready', message: `Complete narration duration estimated at ${seconds}s from its audio; no spoken text or CTA was removed.` }) // KINEO-ADS-CENA-SEGUE-2110

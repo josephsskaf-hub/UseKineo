@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410, IDIOMAS_FORMATOS_2410_BASE } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore this newer layer before historical contracts; current code has raw guardians.
 // KINEO-SEEDANCE-15S-3X6-2026-09-29 [TRAVA 8.2 — "vai" do 3x6] — guardião do filme de 15 s no Seedance 1.5 em 3 clipes.
 // Fundador, 29/09: "3x6 gostei dessa opção bora fazer". Canário real de 29/09 04:34 UTC (conta interna, verbatim de 45
 // palavras): 17,8 s com 2 clipes de 10 s e a montagem REPETIU o 1º clipe nos últimos 2,9 s.
@@ -57,7 +58,7 @@ import { linhasTrocadasParceiroEyebible2_1410 } from './test-support/desfaz-parc
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 process.chdir(RAIZ) // o loader offline resolve '@/...' a partir do cwd
 const LF = String.fromCharCode(10), CR = String.fromCharCode(13)
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').split(CR + LF).join(LF)
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).split(CR + LF).join(LF)
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) { ok++; console.log('  ✓ ' + n) } else { falhas.push(n); console.log('  ✗ FALHOU: ' + n) } }
@@ -418,7 +419,12 @@ checa('ensaio de $0 da rota: relatório do 15 s com os segundos reais de cada cl
 // (4h) a rota só GANHOU linhas
 function soAcrescimos(p) {
   if (!BASE) return false
-  const diff = execFileSync('git', ['diff', '--unified=0', '--no-color', BASE, '--', p], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024 }).toString().split(CR + LF).join(LF)
+  // KINEO-IDIOMAS-FORMATOS-2410 — remove only this exact newest layer in memory; any source drift still throws or remains in the diff.
+  const raw = readFileSync(join(RAIZ, p), 'utf8').split(CR + LF).join(LF)
+  const restored = semIdiomasFormatos2410(raw, p)
+  const taskUndone = restored !== raw
+  if (taskUndone && restored !== git(['show', `${IDIOMAS_FORMATOS_2410_BASE}:${p}`]).split(CR + LF).join(LF)) throw new Error('Restored source diverges from immutable task base: ' + p)
+  const diff = execFileSync('git', ['diff', '--unified=0', '--no-color', BASE, ...(taskUndone ? [IDIOMAS_FORMATOS_2410_BASE] : []), '--', p], { cwd: RAIZ, maxBuffer: 64 * 1024 * 1024 }).toString().split(CR + LF).join(LF)
   // Reancorado KINEO-DURACOES-CURTAS-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4']: as SEIS linhas da base que a
   // entrega das durações curtas trocou de propósito (a frase da recusa pelo motor; o resgate com as curtas; o "alvo fantasma" nas duas
   // chamadas do portão; o piso 30 → 15 do alvo hollywood; o C1 para roteiro curto) — cada substituta está marcada KINEO-DURACOES-CURTAS e

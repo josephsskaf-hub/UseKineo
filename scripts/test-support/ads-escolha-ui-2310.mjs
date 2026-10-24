@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
+import { semAdsEscolhaPublico2410 } from './desfaz-ads-escolha-publico-2410.mjs' // KINEO-ADS-ESCOLHA-PUBLICO-2410 — old UI contracts run after exact layer restoration.
+import { createOfflineLoader } from './offline-ts-loader.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — resolve actual shared pure modules through the existing isolated loader.
 
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
@@ -34,15 +36,17 @@ function walk(node, result = []) {
 }
 
 /** Reads RAW sources relative to the caller's workspace, optionally applying an explicit source mutation. Never runs on import. */
-export async function runEscolhaUiProof({ source = text => text } = {}) {
-  const read = file => source(readFileSync(resolve(process.cwd(), file), 'utf8'), file)
+export async function runEscolhaUiProof({ source = text => text, current: rawCurrent = false, scenario = null } = {}) {
+  const read = file => source(rawCurrent ? readFileSync(resolve(process.cwd(), file), 'utf8') : semAdsEscolhaPublico2410(readFileSync(resolve(process.cwd(), file), 'utf8'), file), file)
+  const pure = createOfflineLoader({ source: (file, text) => source(rawCurrent ? text : semAdsEscolhaPublico2410(text, file), file) }) // KINEO-IDIOMAS-FORMATOS-2410 — current:true retains every current language/format source.
   const componentCode = compile(read(COMPONENT), COMPONENT)
   const catalog = {}
   new Function('exports', compile(read(CATALOG), CATALOG))(catalog)
+  const tiers = {}; new Function('exports', compile(read('lib/ads/v2Tiers.ts'), 'lib/ads/v2Tiers.ts'))(tiers)
   const checks = []
   const check = (value, message) => { assert.ok(value, message); checks.push(message) }
 
-  function client({ form = FORM, saved = null, owner = 'user-a:owner-a', query = '' } = {}) {
+  function client({ form = FORM, saved = null, owner = 'user-a:owner-a', query = '', lang = 'pt', internalControls = true } = {}) {
     const states = [], refs = [], effects = [], responses = [], requests = [], timers = new Map()
     const storageKey = `kineo:ads-escolha:v1:${owner}`
     const storage = new Map(saved ? [[storageKey, JSON.stringify(saved)]] : [])
@@ -63,6 +67,8 @@ export async function runEscolhaUiProof({ source = text => text } = {}) {
     const localRequire = id => id === 'react' ? hooks
       : id === 'react-dom' ? { createPortal: value => value }
         : id.includes('escolhaCatalog') ? catalog
+          : id.includes('v2Tiers') ? tiers
+          : id === '@/lib/textLanguage' || id.includes('escolhaShots') ? pure(id) // KINEO-IDIOMAS-FORMATOS-2410 — real catalogue/token/format exports, never empty stubs or alias fallback to Node.
           : id.includes('uploadFootage') ? { uploadFootage() { throw new Error('upload_not_exercised_offline') }, AdsUploadError: class extends Error {} }
             : id.includes('interfaceLanguage') ? { INTERFACE_LANGUAGE_OPTIONS: [{ code: 'pt', native: 'Português' }, { code: 'en', native: 'English' }] }
               : require(id)
@@ -79,7 +85,7 @@ export async function runEscolhaUiProof({ source = text => text } = {}) {
     function render() {
       for (let round = 0; round < 8; round++) {
         changed = false; stateIndex = refIndex = effectIndex = 0; pending = []
-        tree = module.exports.default({ lang: 'pt', ownerKey: owner, resume: true, onBalance: async () => {} })
+        tree = module.exports.default({ lang, internalControls, ownerKey: owner, resume: true, onBalance: async () => {} })
         for (const effect of pending) effect()
         if (!changed) return tree
       }
@@ -95,6 +101,7 @@ export async function runEscolhaUiProof({ source = text => text } = {}) {
     return { states, responses, requests, storage, storageKey, timers, render, click, poll, nodes: () => walk(tree) }
   }
 
+  if (scenario) return scenario({ client, read, check, nodeText, walk, compile }) // KINEO-ADS-ESCOLHA-PUBLICO-2410 — new raw UI proof reuses only the offline hook boundary.
   const ui = client(); ui.render()
   check(ui.requests.length === 0, 'UI does not automatically plan or render')
   ui.responses.push([201, { order_id: ID, stage: 'planned', plan: { script: { narration: 'Narração final.' } } }])
@@ -185,7 +192,7 @@ export const ESCOLHA_UI_MUTANTS = Object.freeze([
 export async function runEscolhaUiMutants() {
   const killed = []
   for (const mutant of ESCOLHA_UI_MUTANTS) {
-    const raw = readFileSync(resolve(process.cwd(), mutant.file), 'utf8')
+    const raw = semAdsEscolhaPublico2410(readFileSync(resolve(process.cwd(), mutant.file), 'utf8'), mutant.file)
     assert.equal(raw.split(mutant.from).length - 1, 1, `unique UI mutation anchor: ${mutant.name}`)
     const changed = raw.replace(mutant.from, mutant.to)
     compile(changed, mutant.file)

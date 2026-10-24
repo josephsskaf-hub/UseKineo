@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore this newer layer before historical contracts; current code has raw guardians.
 // KINEO-REGUA-35-60-90-1410 [TRAVA 8.2 — vai do fundador 14/10] — guardião da régua do roteiro de 35/60/90 s pedido SEM motor.
 //
 // Defeito (14/10): o 15 s sem motor já escrevia na régua do 15 s (KINEO-MOTOR-15S-1510), mas 35/60/90 s sem motor — o "Write
@@ -36,7 +37,7 @@ const { semRegua35a90_1410, FORMA_REGUA_35_60_90_1410 } = await import(pathToFil
 const { semMotor15s1510 } = await import(pathToFileURL(path.join(ROOT, 'scripts/test-support/desfaz-motor-15s-1510.mjs')).href)
 const { semModeracao1410 } = await import(pathToFileURL(path.join(ROOT, 'scripts/test-support/desfaz-moderacao-1410.mjs')).href) // reancorado KINEO-MODERACAO-1410: a régua completa do texto (acréscimos) sai PRIMEIRO
 
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+const read = (rel) => semIdiomasFormatos2410(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel).replace(/\r\n/g, '\n')
 const show = (ref, rel) => { try { return git(['show', ref + ':' + rel]).replace(/\r\n/g, '\n') } catch { return '' } }
 let pass = 0
 let fail = 0

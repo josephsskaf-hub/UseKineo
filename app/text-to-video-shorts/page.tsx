@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
+import { CitationDirectAnswer, CitationDetails } from '@/components/seo/TrafficCitation2310'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
 import { PaginaClaraCards, PaginaClaraTopo, PaginaClaraVitrine } from '@/components/seo/PaginaClara' // KINEO-PAGINAS-IA-CLARAS-2110 — o menu do topo, os 4 cards e a vitrine atual da home (no lugar do player do exemplo velho)
@@ -141,9 +142,7 @@ export default function TextToVideoShortsPage() {
         <h1 style={{ fontSize: 'clamp(1.9rem, 5vw, 2.85rem)', fontWeight: 650, lineHeight: 1.1, margin: '18px 0 0' }}>
           Turn Text Into a Finished YouTube Short
         </h1>
-        <p style={{ fontSize: '1.08rem', color: '#5A5F67', lineHeight: 1.6, margin: '16px 0 0' }}>
-          Paste a topic, prompt, or full script. Kineo turns it into a faceless vertical video with AI voiceover, visuals, captions, and an MP4 export for YouTube Shorts, TikTok, and Reels.
-        </p>
+        <CitationDirectAnswer page="text" />
         <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
         {/* KINEO-BING-SEO-1510 — a resposta direta à pergunta "qual a melhor IA para Shorts a partir de texto?" */}
         <section data-kineo="bing-seo-1510-answer" style={{ ...card, margin: '18px 0 0', borderColor: 'rgba(10,92,255,0.35)' }}>
@@ -186,6 +185,7 @@ export default function TextToVideoShortsPage() {
 
         {/* KINEO-PAGINAS-IA-CLARAS-2110 — o player do exemplo velho saiu; a âncora #real-output (embedUrl do JSON-LD) fica na vitrine atual. */}
         <PaginaClaraVitrine id="real-output" eyebrow="Real Kineo output" titulo="Text in. Vertical video out." nota="These previews demonstrate output format, not views or revenue performance." align="left" />
+        <CitationDetails page="text" />
 
         <AgencyVolumeBridge entry="text_to_video" />
 

@@ -13,7 +13,7 @@ process.chdir(ROOT)
 const ROUTE = 'app/api/admin/send-kids-launch/route.ts'
 const HELPER = 'lib/growth/kidsLaunchEmail.ts'
 const PAGE = 'components/kidsCartoon/KidsCartoonPages.tsx'
-const BASE = '895d6c99638dc0af65e11ad761f4999141587fa7'
+const BASE = '7950e41134dd03388e67c131501d3e2bce61a3eb'
 const read = p => fs.readFileSync(path.join(ROOT, p), 'utf8').replace(/\r\n/g, '\n')
 const git = (...args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 16 << 20, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] })
 const profile = (id, patch = {}) => ({ id, email: `${id}@example.test`, email_opted_out: false, signup_country: 'US', last_country: null, created_at: '2026-10-22T12:00:00Z', ...patch })
@@ -259,7 +259,7 @@ const cases = {
   },
   async exactUndo() {
     const { semCartoonTracao2210: undo, CARTOON_TRACAO_HUNKS: hunks, CARTOON_TRACAO_MARK: marker } = await import('./test-support/desfaz-cartoon-tracao-2210.mjs')
-    const expected = [PAGE, 'lib/lifecycle/emailEvents.ts', '.github/workflows/guardiao.yml', 'scripts/test-support/desfaz-kids-venda-2010.mjs', 'scripts/test-support/desfaz-ads-cena-95-plan-failed-2110.mjs', 'scripts/test-support/desfaz-ads-cena-95-pacing-2110.mjs', 'scripts/test-ads-cena-95-pacing-2110.mjs', 'scripts/test-support/desfaz-ads-escolha-2310.mjs', 'scripts/test-ads-escolha-2310.mjs']
+    const expected = [PAGE, 'lib/lifecycle/emailEvents.ts', '.github/workflows/guardiao.yml', 'scripts/test-support/desfaz-kids-venda-2010.mjs', 'scripts/test-support/desfaz-ads-cena-95-plan-failed-2110.mjs', 'scripts/test-support/desfaz-ads-cena-95-pacing-2110.mjs', 'scripts/test-ads-cena-95-pacing-2110.mjs', 'scripts/test-support/desfaz-idiomas-formatos-2410.mjs', 'scripts/test-idiomas-formatos-undo-2410.mjs']
     ok(JSON.stringify(Object.keys(hunks)) === JSON.stringify(expected), 'undo has exact nine existing task sources, no unrelated source')
     for (const [file, changes] of Object.entries(hunks)) {
       const candidate = read(file), base = git('show', BASE + ':' + file).replace(/\r\n/g, '\n')
@@ -302,20 +302,34 @@ const cases = {
     const unrelated = 'X' + retomada(undo(read(file), file), file)
     assert.throws(() => pacing(unrelated, file), /fonte divergente/, 'historical whole-source hash still rejects any other edit')
     checks++
-    // The newest main adapter now also removes Cartoon. Mutate that head, rather than a redundant inner adapter.
+    // The current main head is Idiomas, before Public2410/Escolha. Exercise its real unchanged hash branches.
+    const headFile = '.github/workflows/guardiao.yml'
+    const headAdapterFile = 'scripts/test-support/desfaz-idiomas-formatos-2410.mjs'
+    const languageTableFile = 'scripts/test-support/desfaz-idiomas-formatos-2410-fontes.json'
+    const { IDIOMAS_FORMATOS_2410_MANIFEST: languageTable } = await import('./test-support/desfaz-idiomas-formatos-2410.mjs')
+    const compileLanguageHead = source => compileOffline(source.replace("new URL('./desfaz-idiomas-formatos-2410-fontes.json', import.meta.url)", JSON.stringify(path.join(ROOT, languageTableFile))), dependencies).semIdiomasFormatos2410
+    const headSource = read(headAdapterFile), head = compileLanguageHead(headSource)
+    const headBefore = git('show', languageTable.integration.base + ':' + headFile).replace(/\r\n/g, '\n')
+    ok(head(read(headFile), headFile) === headBefore, 'newest main head removes exact Cartoon before unchanged Idiomas hash and preserves published upstream bytes')
+    const withoutAdapter = compileLanguageHead(headSource.replace('text = semCartoonTracao2210(text, file)', 'text = text'))
+    assert.throws(() => withoutAdapter(read(headFile), headFile), /fonte divergente/, 'in-memory mutant removing newest adapter fails the unchanged historical hash')
+    checks++
+    const unrelatedHead = 'X' + undo(read(headFile), headFile)
+    assert.throws(() => head(unrelatedHead, headFile), /fonte divergente/, 'newest unchanged historical hash rejects one unrelated character in a known source')
+    checks++
+    const withoutHeadHash = compileLanguageHead(headSource.replace('if (hash === known.afterHash)', 'if (true)'))
+    ok(withoutHeadHash(unrelatedHead, headFile) === headBefore, 'in-memory newest-hash bypass accepts an unrelated edit and is detected')
+    // Retain a separate proof for the original Escolha hash; later adapters must not weaken it.
+    const { semAdsEscolhaPublico2410: publico } = await import('./test-support/desfaz-ads-escolha-publico-2410.mjs')
     const escolhaFile = 'scripts/test-support/desfaz-ads-escolha-2310.mjs'
-    const compileHead = text => compileOffline(text.replace('fileURLToPath(import.meta.url)', JSON.stringify(path.join(ROOT, escolhaFile))), dependencies).semAdsEscolha2310
-    const headSource = read(escolhaFile), head = compileHead(headSource)
-    const headFile = '.github/workflows/guardiao.yml', headBefore = git('show', BASE + ':' + headFile).replace(/\r\n/g, '\n')
-    ok(head(read(headFile), headFile) === headBefore, 'newest main adapter removes exact Cartoon before handing unrelated sources to earlier unchanged hashes')
-    const withoutAdapter = compileHead(headSource.replace('texto = semCartoonTracao2210(texto, file)', 'texto = texto'))
-    assert.throws(() => assert.equal(withoutAdapter(read(headFile), headFile), headBefore), assert.AssertionError, 'in-memory mutant removing newest adapter leaves the Cartoon delta and fails exact historical input')
+    const compileEscolha = source => compileOffline(source.replace('fileURLToPath(import.meta.url)', JSON.stringify(path.join(ROOT, escolhaFile))), { ...dependencies, './desfaz-ads-escolha-publico-2410.mjs': { semAdsEscolhaPublico2410: publico } }).semAdsEscolha2310
+    const escolhaSource = read(escolhaFile), escolha = compileEscolha(escolhaSource)
+    const knownEscolhaFile = 'lib/ads/cena/internal.ts', escolhaSnapshots = JSON.parse(read('scripts/test-support/desfaz-ads-escolha-2310-fontes.json'))
+    const currentEscolha = publico(read(knownEscolhaFile), knownEscolhaFile)
+    assert.throws(() => escolha('X' + currentEscolha, knownEscolhaFile), /fonte divergente/, 'original unchanged Escolha hash rejects one unrelated character after current layers are removed')
     checks++
-    const knownHeadFile = 'lib/ads/cena/internal.ts', headSnapshots = JSON.parse(read('scripts/test-support/desfaz-ads-escolha-2310-fontes.json'))
-    assert.throws(() => head('X' + read(knownHeadFile), knownHeadFile), /fonte divergente/, 'newest unchanged historical hash rejects one unrelated character in a known source')
-    checks++
-    const withoutHeadHash = compileHead(headSource.replace('if (hash !== known.afterHash) throw', 'if (false) throw'))
-    ok(withoutHeadHash('X' + read(knownHeadFile), knownHeadFile) === headSnapshots[knownHeadFile].before, 'in-memory newest-hash bypass accepts an unrelated edit and is detected')
+    const withoutEscolhaHash = compileEscolha(escolhaSource.replace('if (hash !== known.afterHash) throw', 'if (false) throw'))
+    ok(withoutEscolhaHash('X' + currentEscolha, knownEscolhaFile) === escolhaSnapshots[knownEscolhaFile].before, 'in-memory original Escolha hash bypass remains detected')
     const withoutStrictHash = compile(source.replace('if (hash !== known.afterHash) throw', 'if (false) throw'))
     ok(withoutStrictHash(unrelated, file) === snapshots[file].before, 'in-memory mutant bypassing historical hash wrongly accepts unrelated edit and is detected')
   },

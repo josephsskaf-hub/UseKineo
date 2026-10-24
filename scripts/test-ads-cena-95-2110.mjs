@@ -142,7 +142,7 @@ const declared=new Set([...ADS_CENA_95_2110_ARQUIVOS,...ADS_CENA_95_2110_NOVOS])
 const changed=git('diff','--name-only',ADS_CENA_95_2110_BASE,deliveryHead).trim().split('\n').filter(Boolean) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 assert.ok(changed.length && changed.every(p=>declared.has(p)),'escopo95 exato: '+changed.filter(p=>!declared.has(p)).join(','))
 for(const p of ADS_CENA_95_2110_NOVOS)assert.ok(readFileSync(p).length>0,'novo artefato: '+p)
-for(const p of ['lib/engineWall.ts','lib/homeVideoCuration.ts','lib/checkoutPricing.ts','lib/ads/v2Billing.ts','lib/ads/v2Tiers.ts']) assert.equal(git('diff',ADS_CENA_95_2110_BASE,'--',p),'','intocado: '+p)
+for(const p of ['lib/engineWall.ts','lib/homeVideoCuration.ts','lib/checkoutPricing.ts','lib/ads/v2Billing.ts','lib/ads/v2Tiers.ts']) assert.equal(git('diff',ADS_CENA_95_2110_BASE,deliveryHead,'--',p),'','intocado na entrega95: '+p) // KINEO-ADS-ESCOLHA-PUBLICO-2410 — historical immutable-file scope ends at its own delivery, like the two checks above; current refund/terminal behavior is tested by the public guardian.
 const subjects=git('log','--format=%s',ADS_CENA_95_2110_BASE+'..'+deliveryHead).trim().split('\n').filter(Boolean) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 assert.ok(subjects.length && subjects.every(s=>s.startsWith(MARCA_ADS_CENA_95_2110)&&s.includes('[TRAVA 8.2 — vai do fundador 21/10 "quero chegar a 9.5 de mínimo"]')),'trava e marca95 em todos os commits')
 console.log('ok desfaz95 exato, CRLF, idempotência, integridade, encadeamento, escopo e trava')

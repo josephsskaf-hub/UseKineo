@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore newest layer before every historical reader/undo.
 // KINEO1-DIVISOR-POLIGLOTA + KINEO1-SUJEITO-CABECA (18/09, fundador: "Vai nos 2") — guardião com os rastros REAIS
 // dos 6 filmes do painel de coerência de 18/09. Sem rede, sem banco.
 import { readFileSync } from 'node:fs'
@@ -8,7 +9,7 @@ import vm from 'node:vm'
 const require = createRequire(import.meta.url)
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const ts = require(join(RAIZ, 'node_modules', 'typescript'))
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n'), p)
 let ok = 0; const falhas = []
 const checa = (n, c) => { if (c) ok++; else { falhas.push(n); console.error('  ✗ ' + n) } }
 const transpile = (src, file) => ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 }, fileName: file }).outputText

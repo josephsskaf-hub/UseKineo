@@ -1,0 +1,11 @@
+{
+  "classification": "TESTADO LOCALMENTE",
+  "date": "2026-10-23",
+  "testedCodeSha": "09a4047fbd609b39d5fb0cead2b18529bcd1ed93",
+  "source": "completed root tool executions; all offline, no environment files",
+  "checks": [
+    { "command": "node scripts/test-admin-leve-undo-2310.mjs", "exit": 0, "passed": 272, "failed": 0 },
+    { "command": "node scripts/test-paginas-ia-claras-2110.mjs", "exit": 0, "passed": 235, "failed": 0 }
+  ],
+  "finalVerification": "GUARDIAN-MATRIX.json and final-affected.json record the frozen suite and the affected reruns on a8410090"
+}

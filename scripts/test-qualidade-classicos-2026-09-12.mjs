@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore this newer layer before historical contracts; current code has raw guardians.
 // V3-ESCRITOR-LE-O-BRIEFING-2026-09-23 — âncora reancorada: o escritor de cenas lê até SCENE_WRITER_INPUT_MAX_CHARS (era 1.200); a prova segue sendo a ordem e os argumentos.
 // KINEO-QUALIDADE-CLASSICOS-2026-09-12 — guardião da leva "5 ações de qualidade"
 // (fundador, 12/09 00:00): o pente fino de $0 reprovou os 4 clássicos com o
@@ -13,7 +14,7 @@ import ts from 'typescript'
 import { semRetentarCena1410, ARQUIVO_CRON_1410 } from './test-support/desfaz-retentar-cena-1410.mjs' // KINEO-RETENTAR-CENA-1410
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n')
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else falhas.push(n) }

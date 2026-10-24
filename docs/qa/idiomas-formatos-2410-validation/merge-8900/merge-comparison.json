@@ -1,0 +1,981 @@
+{
+  "utc": "2026-10-24T16:52:05.143Z",
+  "scope": "unified critical workflow, compiler, requested Ads/Traffic/current-layer guardians and two inherited diagnostic extras; not a new full legacy suite",
+  "baseline": {
+    "sha": "8900a4f6ee5154a7a5cc13b2077c3ae0c2ae8405",
+    "total": 55,
+    "done": 55,
+    "pass": 53,
+    "fail": 2,
+    "sourcesRestored": true
+  },
+  "candidate": {
+    "sha": "d09cf5d91417a2b6626707ab8e9849a7546b6a54",
+    "total": 59,
+    "done": 59,
+    "pass": 57,
+    "fail": 2,
+    "sourcesRestored": true
+  },
+  "complete": true,
+  "missing": [],
+  "newFailures": [],
+  "changedFailures": [],
+  "timeouts": [],
+  "duplicates": {
+    "baseline": 0,
+    "candidate": 0
+  },
+  "newGuardians": [
+    {
+      "args": [
+        "scripts/test-idiomas-2410.mjs"
+      ],
+      "status": 0,
+      "passed": true
+    },
+    {
+      "args": [
+        "scripts/test-language-segmentation-2410.mjs"
+      ],
+      "status": 0,
+      "passed": true
+    },
+    {
+      "args": [
+        "scripts/test-ads-formatos-escolha-2410.mjs"
+      ],
+      "status": 0,
+      "passed": true
+    },
+    {
+      "args": [
+        "scripts/test-idiomas-formatos-undo-2410.mjs"
+      ],
+      "status": 0,
+      "passed": true
+    }
+  ],
+  "expectedMutants": [
+    {
+      "args": [
+        "scripts/test-gpt-5h-a-2026-09-24.mjs",
+        "--mutant"
+      ],
+      "status": 1,
+      "contract": "FAIL rendered buttons use canonical builder and page attribution"
+    },
+    {
+      "args": [
+        "scripts/test-gpt-5h-b-2026-09-24.mjs",
+        "--mutant"
+      ],
+      "status": 1,
+      "contract": "FAIL paused row is not advertised as purchasable"
+    },
+    {
+      "args": [
+        "scripts/test-gpt-5h-c-2026-09-24.mjs",
+        "--mutant"
+      ],
+      "status": 1,
+      "contract": "FAIL OpenAPI reads live tier price/deadline without new order endpoint"
+    },
+    {
+      "args": [
+        "scripts/test-gpt-v31-facts-2026-09-24.mjs",
+        "--mutant"
+      ],
+      "status": 1,
+      "contract": "FAIL trial copy separates balance from access in same statement"
+    }
+  ],
+  "inheritedFailures": [
+    {
+      "args": [
+        "scripts/test-locale-readiness.mjs"
+      ],
+      "before": {
+        "faults": [
+          "AssertionError [ERR_ASSERTION]: Hindi covers existing UiLabel dictionary: Any video engine — premium engines use more credits per film"
+        ],
+        "details": [
+          "actual: undefined,",
+          "expected: true,",
+          "operator: '==',",
+          "diff: 'simple'"
+        ],
+        "summaries": []
+      },
+      "after": {
+        "faults": [
+          "AssertionError [ERR_ASSERTION]: Hindi covers existing UiLabel dictionary: Any video engine — premium engines use more credits per film"
+        ],
+        "details": [
+          "actual: undefined,",
+          "expected: true,",
+          "operator: '==',",
+          "diff: 'simple'"
+        ],
+        "summaries": []
+      }
+    },
+    {
+      "args": [
+        "scripts/test-plan-film-language.mjs"
+      ],
+      "before": {
+        "faults": [
+          "AssertionError [ERR_ASSERTION]: current Starter grant buys eight paid Kineo 1 films"
+        ],
+        "details": [
+          "actual: 12,",
+          "expected: 8,",
+          "operator: 'deepStrictEqual',",
+          "diff: 'simple'"
+        ],
+        "summaries": []
+      },
+      "after": {
+        "faults": [
+          "AssertionError [ERR_ASSERTION]: current Starter grant buys eight paid Kineo 1 films"
+        ],
+        "details": [
+          "actual: 12,",
+          "expected: 8,",
+          "operator: 'deepStrictEqual',",
+          "diff: 'simple'"
+        ],
+        "summaries": []
+      }
+    }
+  ],
+  "normalization": {
+    "exactWorktreeAliases": [
+      "C:\\kineo2410\\.claude\\worktrees\\merge-main-8900",
+      "C:\\kineo2410\\.claude\\worktrees\\main"
+    ]
+  },
+  "results": [
+    {
+      "args": [
+        "node_modules/typescript/bin/tsc",
+        "--noEmit",
+        "--incremental",
+        "false"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-idiomas-2410.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "5d17c58ce84ff750d028ca9ceac6ab85dcfc7c2028c5a8ba1effc1023e12997e",
+      "baseline": null
+    },
+    {
+      "args": [
+        "scripts/test-language-segmentation-2410.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "ff98ed46f540a4f6b7f7cdfeca6425ca72e451c13aaef957b3ac31dc2cf2af2b",
+      "baseline": null
+    },
+    {
+      "args": [
+        "scripts/test-ads-formatos-escolha-2410.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "11ff25a1afb4e02988295cdd0f27e705ab08fa6624bd8b7e9370daed59b30ee6",
+      "baseline": null
+    },
+    {
+      "args": [
+        "scripts/test-idiomas-formatos-undo-2410.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "e94c91fa12dac92851b8417822bf7dae71c6a2b4b52a90a94e78669278443b44",
+      "baseline": null
+    },
+    {
+      "args": [
+        "scripts/test-ads-escolha-publico-2410.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "576e7d679891469eef93d0c0962872cd8ce4d5a59b8085cc48c4aa47418619cc",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "576e7d679891469eef93d0c0962872cd8ce4d5a59b8085cc48c4aa47418619cc"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-ads-escolha-2310.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "65fbd89a261adb8de3658f8b2488f90f9b54a2ec02c205a6d77b2769a38e5c9b",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "65fbd89a261adb8de3658f8b2488f90f9b54a2ec02c205a6d77b2769a38e5c9b"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-ads-render-fix-2310.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "50efe6d9d0b283bf26c0728ae24649cf4332a3c70591d833329e5649cfc929f2",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "50efe6d9d0b283bf26c0728ae24649cf4332a3c70591d833329e5649cfc929f2"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-trafego-pages-2310.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "7db319e1995641910f5824f67e873dacac00726efc92cec74f8d569f056f8220",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "7db319e1995641910f5824f67e873dacac00726efc92cec74f8d569f056f8220"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-trafego-index-2310.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "c9c046d85908719d4eb67b77983922a9d409f4b7effc2e35e11e9bae44e02971",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "c9c046d85908719d4eb67b77983922a9d409f4b7effc2e35e11e9bae44e02971"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-trafego-health-2310.mjs",
+        "--mutants"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "cc729a5f80632d716b6757ee55fc06826beadbb91e7caf82faad94d4e77d8092",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "cc729a5f80632d716b6757ee55fc06826beadbb91e7caf82faad94d4e77d8092"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-trafego-undo-2310.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "a9eb15da15415c88544b7408709618859fed8666fce608ca5ab1b1143cdce99a",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "34138d73463fdc2622725f58b793edd6e421cfacfb73df89b9aa35c0e04c1866"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-admin-leve-2310.mjs",
+        "--mutants"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "ece5d5058f1f4bbea78a8caacce289f0dc8581a5b859cfe252dae80851126304",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "ece5d5058f1f4bbea78a8caacce289f0dc8581a5b859cfe252dae80851126304"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-admin-leve-undo-2310.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "dd0f5dd179bd6849083f35a2870c3856b5abccdca1d3e41797ed9b33c26b4cfb",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "dd0f5dd179bd6849083f35a2870c3856b5abccdca1d3e41797ed9b33c26b4cfb"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-roteiro-curto-sem-falha-2210.mjs",
+        "--mutants"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "71dab0e0358bc46276b66600afa2d35d4210b7075c87a28158fcf8ccf53ceec9",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "71dab0e0358bc46276b66600afa2d35d4210b7075c87a28158fcf8ccf53ceec9"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-roteiro-curto-undo-2210.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "ed0e9142f9bcf4b72624795fa033d84fda39bff54944c80494e47af060e3f2d0",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "ed0e9142f9bcf4b72624795fa033d84fda39bff54944c80494e47af060e3f2d0"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-admin-truncamento-2026-10.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "5fedd2ed44244f1cc0a123e7805112fd73a03e64369530f85350660c65e97323",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "5fedd2ed44244f1cc0a123e7805112fd73a03e64369530f85350660c65e97323"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-afiliados-acordam.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "c8491d35d7dd505694535317c72baa588fba69cdb31e273f8463e9113b9cefe4",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "c8491d35d7dd505694535317c72baa588fba69cdb31e273f8463e9113b9cefe4"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-coerencia-kineo1-2026-09-16.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "4420bcf8e1aba4c8ccf0e355d60213866f152c492693c5731505e71217ef8502",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "4420bcf8e1aba4c8ccf0e355d60213866f152c492693c5731505e71217ef8502"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-juiz-still-2026-10-06.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "9146ad61631e884090bdd11587000534d5c8bdfcb3f5cd5f5cc59f212f6f9d81",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "9146ad61631e884090bdd11587000534d5c8bdfcb3f5cd5f5cc59f212f6f9d81"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-carta-da-recusa.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "888c5a3765c2d4dc8c26f330d47b9092bedac1424eb94158b351a78201ab2b01",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "888c5a3765c2d4dc8c26f330d47b9092bedac1424eb94158b351a78201ab2b01"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-momentum-topic.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "c83dc17db40f837d1667648a251a356f4ff2abf31971d88c98d4af500ca34a2a",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "c83dc17db40f837d1667648a251a356f4ff2abf31971d88c98d4af500ca34a2a"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-stalled-frescor-2026-09-05.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "01b75625deebc0ac0c44d6cf3022f7d5ea41e9733d38f14b354236d8d4d0d3c6",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "01b75625deebc0ac0c44d6cf3022f7d5ea41e9733d38f14b354236d8d4d0d3c6"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-hot-nudge-janela-campanhas.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "b673a48a7f110ec648e1111833bbf3be4287eeef950b944129b22878145b3441",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "b673a48a7f110ec648e1111833bbf3be4287eeef950b944129b22878145b3441"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-gpt-5h-a-2026-09-24.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "e41abb9e8c653a51317c335a6d4be7be0711c898ecedc2471bb47c9966970eef",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "545d4b6f895bf942c052eec8223bc6589674b86d9bb2f1c8a2869887347099d7"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-gpt-5h-a-2026-09-24.mjs",
+        "--mutant"
+      ],
+      "expectedExit": 1,
+      "status": 1,
+      "passed": true,
+      "sha256": "54d743ba6ab9873c226bad06c22b29f9fe66c671b525d441decd8757aac9a462",
+      "baseline": {
+        "status": 1,
+        "passed": true,
+        "sha256": "18cb8ece5a4dde83dee225d27e8c6f2c2fb4ec06dd931e3f1b67346e59684345"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-gpt-5h-b-2026-09-24.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "9b126f0b6c159c2fb4e89e001e360f25474bc5c64b97e193c1a703701dd00e66",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "215c78ae6a47e1327abef7479c3fbe56d21cdb8fc69800dbb28cceb640a2b3f9"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-gpt-5h-b-2026-09-24.mjs",
+        "--mutant"
+      ],
+      "expectedExit": 1,
+      "status": 1,
+      "passed": true,
+      "sha256": "ec3e227a705c118022b7bc175ede30bfa83598b5739584363a30d686c0afba1e",
+      "baseline": {
+        "status": 1,
+        "passed": true,
+        "sha256": "e38496954d3c8ec64e6e09bf686330e1d748995711f8bf13be05a16726740348"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-gpt-5h-c-2026-09-24.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "44956e54e6f3231f2ecaa6a3ad03e5843ec9744d95ad5f37daef6bdf0e7d1b73",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "6528ed9104c30eee67f80d00ef44c8bb94200e83fb5e51057d96f83c5efdcb1c"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-gpt-5h-c-2026-09-24.mjs",
+        "--mutant"
+      ],
+      "expectedExit": 1,
+      "status": 1,
+      "passed": true,
+      "sha256": "8bf138c53ea23f8c2720eef9a866d68799ba7a0921462cf842c5bad6abe92fe8",
+      "baseline": {
+        "status": 1,
+        "passed": true,
+        "sha256": "8fec56e0cc4eed14d3f40eb67e9493d84599ef09d48a0c3b03315d5717faf794"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-gpt-v31-facts-2026-09-24.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "2ca335ad703c3f1e6fdfbd4d1d6f459c49543234bc1360e5c7169987fa050b32",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "7c35d6122a2059411e985ddc8bacd342e15b38a913971a52a96c93633bace285"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-gpt-v31-facts-2026-09-24.mjs",
+        "--mutant"
+      ],
+      "expectedExit": 1,
+      "status": 1,
+      "passed": true,
+      "sha256": "4b2360ebbd7af144af9279decb39528507b673fbaf5aed7b3555ec6825aafa12",
+      "baseline": {
+        "status": 1,
+        "passed": true,
+        "sha256": "0550fd2a12ada0efaa5e1ee85dcf39a8023e2787f8e97a1255a88e58c2067557"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-sharing-safety.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "3b2ec1a3df96a8de7a04be89e814de3ada46b28b7eb978a84a221039b40a6dda",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "3b2ec1a3df96a8de7a04be89e814de3ada46b28b7eb978a84a221039b40a6dda"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-paid-video-citation-guidance-2026-09-28.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "b6c2daa94a75609eea834ad5c0d4f1feeef6e71ef1584d80f7695f3acac60aa7",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "22acfacee5dc4ef158c968bdf48cb87c7240d00780907fd5ea92f5ff12ea6922"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-seedance-hero-plans-2026-09-28.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "b281f13db647a08752628e6ae90e3e99fdb1510f10fa0b955cd6b6c544551ac4",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "b281f13db647a08752628e6ae90e3e99fdb1510f10fa0b955cd6b6c544551ac4"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-motores-geo-2026-10-06.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "db9c429ac8efee9d5dacd61098edef023ec7aaa893b0d2d8f91bff08c4ebeb74",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "db9c429ac8efee9d5dacd61098edef023ec7aaa893b0d2d8f91bff08c4ebeb74"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-ads-aeo-2026-09-24.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "56f93eea038c1c5cbda89ca5861166cab57d73d3431749a75c59f92ee260abd6",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "56f93eea038c1c5cbda89ca5861166cab57d73d3431749a75c59f92ee260abd6"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-five-improvements.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "dbf83a9bd3f013b78095244211369154fb7204e14aa5948921729184a2cea960",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "dbf83a9bd3f013b78095244211369154fb7204e14aa5948921729184a2cea960"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-studio-entry-transition.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "2a08548fdac663ae654447e85a98f25e1f1d8e73ac724fbe21bba9b0a6d3cfac",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "2a08548fdac663ae654447e85a98f25e1f1d8e73ac724fbe21bba9b0a6d3cfac"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-locale-readiness.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 1,
+      "passed": false,
+      "sha256": "2cbb097c4926497ae02622d8c8a8746bd16398fbc8b3d6eb39e7f74700452a09",
+      "baseline": {
+        "status": 1,
+        "passed": false,
+        "sha256": "577a00c9f0545e1115a18430be5baf1d90734e8e4afec1d58ef9cd556ff1d51a"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-app-blue-layout.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "9cf849a9acd9c527a20dd68a7f2a3c27773b981f49bff13eba2c6b7706abeeb4",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "9cf849a9acd9c527a20dd68a7f2a3c27773b981f49bff13eba2c6b7706abeeb4"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-home-curation.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "f0717b2fc3e3abe427cbf72f1e5bd808406bbcd2dd085244c9f3616b723bfd96",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "f0717b2fc3e3abe427cbf72f1e5bd808406bbcd2dd085244c9f3616b723bfd96"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-home-blue-layout.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "e11f4da74c572568a769a2caecf6a4820b1630117417538cbca8fb631e4d40ce",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "e11f4da74c572568a769a2caecf6a4820b1630117417538cbca8fb631e4d40ce"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-home-referral-bridge.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "aea24a555ac371b781e1dde51f60bd8efde4960854c24b77e51ccee6d4178a57",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "aea24a555ac371b781e1dde51f60bd8efde4960854c24b77e51ccee6d4178a57"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-home-pricing-checkout.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "b4b8198773e1e63e9c4e4b9dbbfa31f6bf9de3f5883378eae9f7ef7b9cd417ab",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "b4b8198773e1e63e9c4e4b9dbbfa31f6bf9de3f5883378eae9f7ef7b9cd417ab"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-showcase-premium.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "39ce3c54e31c7bb0902ac80165a5e88b450edc2e2e54a992b57d18e77747e81f",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "f78c240689ebebd0de5e4e3ff9047268e8ab4ba87ddbd184825f406b1d14cd9b"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-cinematic-timeline-2026-09-11.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "cfcfe1f62887bda55c85f100882ab058de2d6ec2f206fb95a84600d91e62ca75",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "cfcfe1f62887bda55c85f100882ab058de2d6ec2f206fb95a84600d91e62ca75"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-cinematic-speech-2026-09-11.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "165ce9da199e90600419417f71b02c89d12c6492fd8c3dffc988feb340af9e0e",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "165ce9da199e90600419417f71b02c89d12c6492fd8c3dffc988feb340af9e0e"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-music-direction-2026-09-11.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "6965670b6d96eeaf8be00474d865ef8f6305ea496c1e5ce100327eb6d37b7b99",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "6965670b6d96eeaf8be00474d865ef8f6305ea496c1e5ce100327eb6d37b7b99"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-visual-contract-2026-09-11.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "808a1eecaf05d905f2f3db9128011f3df5355de6e206dcde56ebf72395f0ff4e",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "808a1eecaf05d905f2f3db9128011f3df5355de6e206dcde56ebf72395f0ff4e"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-quality-rejection-2026-09-11.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "c4819e3bad6ca190afb489f70809e8a5df0de8bc3543b56a81ea6deb6aa788f2",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "c4819e3bad6ca190afb489f70809e8a5df0de8bc3543b56a81ea6deb6aa788f2"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-quality-route-integration-2026-09-11.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "e83ff1ad0efc6e9cea35f4399e2e69235e8bb650c84346ec1ad3c2b17f3daaf4",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "e83ff1ad0efc6e9cea35f4399e2e69235e8bb650c84346ec1ad3c2b17f3daaf4"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-quality-failure-ui-2026-09-11.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "e3a9b82b592d3f231b6f105445362882a840f274956dd68cc4523ab653ab590e",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "e3a9b82b592d3f231b6f105445362882a840f274956dd68cc4523ab653ab590e"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-active-quality-rejection-2026-09-11.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "0e48a24c544e240e082f1ade8d4e94b9f04c34d9f39050cf76da96085440ed4f",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "0e48a24c544e240e082f1ade8d4e94b9f04c34d9f39050cf76da96085440ed4f"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-cinematic-terminal-proof-2026-09-11.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "4099e237a5b24a6867a4f1431fd6372516ee3120f8a6de910c72d3d621e27a5e",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "4099e237a5b24a6867a4f1431fd6372516ee3120f8a6de910c72d3d621e27a5e"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-cinematic-poll-diagnostic-2026-09-11.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "96280f6b517fd6b34b771a7deb0be4dbe46bf3cd6bba4bd3ac4df4f0c744eecf",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "96280f6b517fd6b34b771a7deb0be4dbe46bf3cd6bba4bd3ac4df4f0c744eecf"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-scene-retry-mutex-2026-09-11.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "c4c1ecfe4859b266ea508b79b56b4f13b216f51def9b0bb52d61913e44e1e5d7",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "c4c1ecfe4859b266ea508b79b56b4f13b216f51def9b0bb52d61913e44e1e5d7"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-paginas-ia-claras-2110.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 0,
+      "passed": true,
+      "sha256": "90a5235d62bc4580a708363d6b07563a4900e87ba2320081bf470f435c5dc235",
+      "baseline": {
+        "status": 0,
+        "passed": true,
+        "sha256": "90a5235d62bc4580a708363d6b07563a4900e87ba2320081bf470f435c5dc235"
+      }
+    },
+    {
+      "args": [
+        "scripts/test-plan-film-language.mjs"
+      ],
+      "expectedExit": 0,
+      "status": 1,
+      "passed": false,
+      "sha256": "7ce7df4dacd0768059df01ebff1014a8e4e8d049ffa14427767386e8510d62af",
+      "baseline": {
+        "status": 1,
+        "passed": false,
+        "sha256": "3c25589e54cdca7aa000a1b6b0890450a21ea5c264e4b87ff045176b6ba79037"
+      }
+    }
+  ]
+}

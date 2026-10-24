@@ -1,3 +1,4 @@
+import { narrationTokens, joinNarrationTokens } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 type VerbatimSegment = {
   voiceover: string
   pexelsQuery: string
@@ -14,8 +15,8 @@ type VerbatimSource = {
 // Agora cada corte ideal (o mesmo de antes: tamanhos equilibrados, o mesmo número de cenas, todas as palavras) escorrega até [KINEO-PARCEIRO-EYEBIBLE-1410]
 // meia cena para o fim de frase mais próximo; sem frase no alcance, para a vírgula/ponto-e-vírgula; sem nenhum, fica onde estava. [KINEO-PARCEIRO-EYEBIBLE-1410]
 // Texto sem pontuação sai byte a byte igual ao de antes. [KINEO-PARCEIRO-EYEBIBLE-1410]
-const FIM_DE_FRASE = /[.!?…]["”»’')\]]*$/u // KINEO-PARCEIRO-EYEBIBLE-1410
-const FIM_DE_ORACAO = /[,;:—–]["”»’')\]]*$/u // KINEO-PARCEIRO-EYEBIBLE-1410
+const FIM_DE_FRASE = /[.!?…。！？]["”»’')\]]*$/u // KINEO-PARCEIRO-EYEBIBLE-1410
+const FIM_DE_ORACAO = /[,;:—–，、；：]["”»’')\]]*$/u // KINEO-PARCEIRO-EYEBIBLE-1410
 function cortesNaFrase(words: string[], beatCount: number, baseSize: number, extra: number): number[] { // KINEO-PARCEIRO-EYEBIBLE-1410
   const n = words.length // KINEO-PARCEIRO-EYEBIBLE-1410
   const tol = Math.max(1, Math.floor(baseSize / 2)) // KINEO-PARCEIRO-EYEBIBLE-1410
@@ -59,14 +60,14 @@ export function resolveVerbatimSegments(
   const narration = (parsed.narration ?? '').trim().replace(/\s+/gu, ' ')
   if (!narration) return []
 
-  const words = narration.split(' ')
+  const words = narrationTokens(narration) // KINEO-IDIOMAS-FORMATOS-2410
   const beatCount = Math.min(count, words.length)
   const baseSize = Math.floor(words.length / beatCount)
   const extra = words.length % beatCount
   const cortes = cortesNaFrase(words, beatCount, baseSize, extra) // KINEO-PARCEIRO-EYEBIBLE-1410
 
   return Array.from({ length: beatCount }, (_, index) => {
-    const voiceover = words.slice(cortes[index], cortes[index + 1]).join(' ') // KINEO-PARCEIRO-EYEBIBLE-1410 — o corte cai no fim da frase
+    const voiceover = joinNarrationTokens(words.slice(cortes[index], cortes[index + 1])) // KINEO-PARCEIRO-EYEBIBLE-1410 — o corte cai no fim da frase
     const visualWords = voiceover
       .normalize('NFKC')
       .replace(/[^\p{L}\p{N}\s'-]/gu, ' ')

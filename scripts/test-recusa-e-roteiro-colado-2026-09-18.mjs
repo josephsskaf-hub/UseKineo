@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore this newer layer before historical contracts; current code has raw guardians.
 // KINEO-RECUSA-ANTES-DE-COBRAR + KINEO-ROTEIRO-COLADO-NAO-ENGORDA (18/09, fundador: "Vai no 4 e no não engordar
 // roteiro colado"). Sem rede, sem banco: decisões puras com mutante + as três portas (Studio, generate-script, analyze-idea).
 import { readFileSync } from 'node:fs'
@@ -7,7 +8,7 @@ import { createRequire } from 'node:module'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
 const ts = require(join(root, 'node_modules', 'typescript'))
-const rd = (p) => readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(root, p), 'utf8'), p).replace(/\r\n/g, '\n')
 let ok = 0; const falhas = []
 const checa = (nome, cond) => { if (cond) { ok += 1; return } falhas.push(nome); console.error('  ✗ ' + nome) }
 function roda(src) {

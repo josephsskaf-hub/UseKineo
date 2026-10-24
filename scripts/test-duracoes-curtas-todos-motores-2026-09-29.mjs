@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact later language/format delta leaves historical contracts unchanged.
 // ═══ KINEO-DURACOES-CURTAS-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] — guardião ═══
 // Fundador (29/09): "nem todo mundo faz vídeo de um minuto" — 15 s em TODOS os motores (e 30 s na estrada hollywood).
 // Este guardião EXECUTA (readFileSync + transpile + vm; sem rede, sem banco, sem fornecedor, sem alias @/ resolvido pelo node):
@@ -21,7 +22,7 @@ import vm from 'node:vm'
 const RAIZ = resolve(join(dirname(fileURLToPath(import.meta.url)), '..'))
 const requireDaRaiz = createRequire(join(RAIZ, 'package.json'))
 const ts = requireDaRaiz('typescript')
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n')
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) ok++; else { falhas.push(n); console.log('  FALHOU: ' + n) } }

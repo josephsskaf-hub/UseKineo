@@ -1,0 +1,157 @@
+
+KINEO — trilha do clipe na estrada clássica (KINEO-TRILHA-15S)
+
+  ok A contagem diferente (4 blocos, 3 cenas): plano ignorado
+  ok A contagem igual e cenas = blocos: plano usado
+  ok A mesma contagem mas cenas re-divididas (fala ≠ bloco): ignorado
+  ok A sem plano: nada a aplicar (sem_plano)
+  ok A modo IA (escritor reescreve as falas) com a mesma contagem: ignorado
+  ok A prosa verbatim (sem blocos) com a mesma contagem: ignorado
+  ok A espaço/quebra de linha não descasa (normaliza)
+  ok A cena sem fala nunca prova alinhamento
+  ok A só a última cena descasa (blocos 3+4 juntos): ignorado
+  ok B 657b6ea3: o roteiro tem 4 blocos e o plano 4 cenas; o filme tem 3 clipes (a mesma divisão do claim)
+  ok B 657b6ea3: clip_word_starts reproduzidos = os do claim
+  ok B 657b6ea3 ANTIGO: clipe i recebe o prompt do bloco i do plano (a troca)
+  ok B 657b6ea3 ANTIGO: o prompt enviado é o do claim, cena a cena
+  ok B 657b6ea3 ANTIGO: o prompt do PAYOFF (bloco 4) nunca é usado
+  ok B 657b6ea3 ANTIGO: algum clipe tem prompt de um bloco cuja fala NÃO é a dele
+  ok B 657b6ea3 ANTIGO: descritor #441 desligado
+  ok B 657b6ea3 NOVO: nenhum clipe recebe prompt do plano
+  ok B 657b6ea3 NOVO: descritor #441 ligado (escreve pela fala real)
+  ok B 657b6ea3 NOVO: evento broll_plan_descartado (4 blocos, 3 cenas, contagem_diferente)
+  ok B 657b6ea3 NOVO: o clipe 3 fala o PAYOFF e o piso do descritor cita o sujeito dele
+  ok B 657b6ea3 NOVO: a fala das 3 cenas é a narração inteira, palavra por palavra
+  ok B 91a25fbb: o roteiro tem 4 blocos e o plano 4 cenas; o filme tem 3 clipes (a mesma divisão do claim)
+  ok B 91a25fbb: clip_word_starts reproduzidos = os do claim
+  ok B 91a25fbb ANTIGO: clipe i recebe o prompt do bloco i do plano (a troca)
+  ok B 91a25fbb ANTIGO: o prompt enviado é o do claim, cena a cena
+  ok B 91a25fbb ANTIGO: o prompt do PAYOFF (bloco 4) nunca é usado
+  ok B 91a25fbb ANTIGO: algum clipe tem prompt de um bloco cuja fala NÃO é a dele
+  ok B 91a25fbb ANTIGO: descritor #441 desligado
+  ok B 91a25fbb NOVO: nenhum clipe recebe prompt do plano
+  ok B 91a25fbb NOVO: descritor #441 ligado (escreve pela fala real)
+  ok B 91a25fbb NOVO: evento broll_plan_descartado (4 blocos, 3 cenas, contagem_diferente)
+  ok B 91a25fbb NOVO: o clipe 3 fala o PAYOFF e o piso do descritor cita o sujeito dele
+  ok B 91a25fbb NOVO: a fala das 3 cenas é a narração inteira, palavra por palavra
+  ok B 60518b82: o roteiro tem 4 blocos e o plano 4 cenas; o filme tem 3 clipes (a mesma divisão do claim)
+  ok B 60518b82: clip_word_starts reproduzidos = os do claim
+  ok B 60518b82 ANTIGO: clipe i recebe o prompt do bloco i do plano (a troca)
+  ok B 60518b82 ANTIGO: o prompt enviado é o do claim, cena a cena
+  ok B 60518b82 ANTIGO: o prompt do PAYOFF (bloco 4) nunca é usado
+  ok B 60518b82 ANTIGO: algum clipe tem prompt de um bloco cuja fala NÃO é a dele
+  ok B 60518b82 ANTIGO: descritor #441 desligado
+  ok B 60518b82 NOVO: nenhum clipe recebe prompt do plano
+  ok B 60518b82 NOVO: descritor #441 ligado (escreve pela fala real)
+  ok B 60518b82 NOVO: evento broll_plan_descartado (4 blocos, 3 cenas, contagem_diferente)
+  ok B 60518b82 NOVO: o clipe 3 fala o PAYOFF e o piso do descritor cita o sujeito dele
+  ok B 60518b82 NOVO: a fala das 3 cenas é a narração inteira, palavra por palavra
+  ok B 01ca7fce: o roteiro tem 4 blocos e o plano 4 cenas; o filme tem 3 clipes (a mesma divisão do claim)
+  ok B 01ca7fce: clip_word_starts reproduzidos = os do claim
+  ok B 01ca7fce ANTIGO: clipe i recebe o prompt do bloco i do plano (a troca)
+  ok B 01ca7fce ANTIGO: o prompt enviado é o do claim, cena a cena
+  ok B 01ca7fce ANTIGO: o prompt do PAYOFF (bloco 4) nunca é usado
+  ok B 01ca7fce ANTIGO: algum clipe tem prompt de um bloco cuja fala NÃO é a dele
+  ok B 01ca7fce ANTIGO: descritor #441 desligado
+  ok B 01ca7fce NOVO: nenhum clipe recebe prompt do plano
+  ok B 01ca7fce NOVO: descritor #441 ligado (escreve pela fala real)
+  ok B 01ca7fce NOVO: evento broll_plan_descartado (4 blocos, 3 cenas, contagem_diferente)
+  ok B 01ca7fce NOVO: o clipe 3 fala o PAYOFF e o piso do descritor cita o sujeito dele
+  ok B 01ca7fce NOVO: a fala das 3 cenas é a narração inteira, palavra por palavra
+  ok B 748e13a2: o roteiro tem 4 blocos e o plano 4 cenas; o filme tem 3 clipes (a mesma divisão do claim)
+  ok B 748e13a2: clip_word_starts reproduzidos = os do claim
+  ok B 748e13a2 ANTIGO: clipe i recebe o prompt do bloco i do plano (a troca)
+  ok B 748e13a2 ANTIGO: o prompt enviado é o do claim, cena a cena
+  ok B 748e13a2 ANTIGO: o prompt do PAYOFF (bloco 4) nunca é usado
+  ok B 748e13a2 ANTIGO: algum clipe tem prompt de um bloco cuja fala NÃO é a dele
+  ok B 748e13a2 ANTIGO: descritor #441 desligado
+  ok B 748e13a2 NOVO: nenhum clipe recebe prompt do plano
+  ok B 748e13a2 NOVO: descritor #441 ligado (escreve pela fala real)
+  ok B 748e13a2 NOVO: evento broll_plan_descartado (4 blocos, 3 cenas, contagem_diferente)
+  ok B 748e13a2 NOVO: o clipe 3 fala o PAYOFF e o piso do descritor cita o sujeito dele
+  ok B 748e13a2 NOVO: a fala das 3 cenas é a narração inteira, palavra por palavra
+  ok C 35 s: 7 blocos no plano, 5 clipes
+  ok C 35 s ANTIGO: os blocos 6 e 7 (o PAYOFF) nunca viram imagem
+  ok C 35 s NOVO: plano ignorado, descritor ligado
+  ok C 60 s prosa: 12 frases no plano, 8 clipes, sem blocos
+  ok C 60 s prosa ANTIGO: o clipe 8 recebe a frase 8 (a fala dele é a das frases 15-16)
+  ok C 60 s prosa NOVO: plano ignorado, descritor ligado
+  ok C 15 s 3/3: plano com a mesma contagem e cenas = blocos → USADO, igual ao antigo
+  ok C 35 s 4/4: plano com a mesma contagem e cenas = blocos → USADO, igual ao antigo
+  ok C modo IA: plano ignorado, a descrição do escritor (escrita com a fala) fica
+  ok C hollywood: comportamento byte a byte o de antes (plano por posição), sem evento
+  ok C sem plano: igual ao antigo (descritor ligado, nenhum evento)
+  ok D Exu (real): o antigo reproduz "a silhouette of a lost standing alone"
+  ok D Exu (real): o novo mantém "lost man", sem rosto, e a frase fecha
+  ok D "A vibrant red rooster aggressively chasing a": substantivo mantido, forma sem rosto
+  ok D "A man in a vibrant blue jalabiya stands at t": substantivo mantido, forma sem rosto
+  ok D "A tracking shot of a lone man standing at a ": substantivo mantido, forma sem rosto
+  ok D "a young man holding a golden coin": substantivo mantido, forma sem rosto
+  ok D "An old woman slowly pouring tea, steam risin": substantivo mantido, forma sem rosto
+  ok D "A man and a woman walk on the beach at dusk": substantivo mantido, forma sem rosto
+  ok D "people walking in the rain under umbrellas": substantivo mantido, forma sem rosto
+  ok D "The crowd gathers in the square": substantivo mantido, forma sem rosto
+  ok D byte a byte igual ao antigo: "Close-up shot of a man and a woman standing "
+  ok D byte a byte igual ao antigo: "A close-up of a man's weathered hands"
+  ok D byte a byte igual ao antigo: "A drone shot over the empty Nevada desert at"
+  ok D byte a byte igual ao antigo: "A sweeping view of a human skeleton model"
+  ok D byte a byte igual ao antigo: "Napoleon rides across the snow"
+  ok D byte a byte igual ao antigo: "An empty desert at dawn"
+  ok D byte a byte igual ao antigo: "A close-up shot of the Earth from space, sho"
+  ok D byte a byte igual ao antigo: "A drone shot capturing the curvature of the "
+  ok D byte a byte igual ao antigo: "A tracking shot along a rugged coastline whe"
+  ok D byte a byte igual ao antigo: "A dark, empty road at night with a silhouett"
+  ok D byte a byte igual ao antigo: "A drone shot capturing a desolate road under"
+  ok D byte a byte igual ao antigo: "A tracking shot of a lone standing at a cros"
+  ok D byte a byte igual ao antigo: "A close-up shot of an enormous human hand gr"
+  ok D byte a byte igual ao antigo: "Aerial drone footage of an oversized weight "
+  ok D byte a byte igual ao antigo: "A tracking shot of a model skeleton with exa"
+  ok D byte a byte igual ao antigo: "A close-up shot of a brilliant supernova exp"
+  ok D byte a byte igual ao antigo: "A close-up of a supernova explosion, with br"
+  ok D byte a byte igual ao antigo: "A dynamic tracking shot that captures the br"
+  ok D byte a byte igual ao antigo: "A close-up view of a dusty chandelier hangin"
+  ok D byte a byte igual ao antigo: "Aerial drone footage showcasing a thick fog "
+  ok D byte a byte igual ao antigo: "A tracking shot that follows the path of a l"
+  ok D nenhuma saída leva a marca interna U+E000
+  ok D a cauda fixa (", faceless cinematic b-roll, …") é a MESMA nos dois, em todo caso
+  ok D modo character_story: byte a byte igual ao antigo
+  ok D modo presenter: byte a byte igual ao antigo
+  ok D "Mouth closed, not speaking" no fim do visual segue intacto
+  ok E a rota importa a lib
+  ok E o descritor #441 roda quando o plano NÃO foi aplicado
+  ok E o L2B só aplica com o plano aprovado
+  ok E hollywood segue por posição
+  ok E evento broll_plan_descartado e campo broll_plan no ensaio de $0
+  ok E a lib é pura (sem import)
+  ok F app/api/generate-video-cinematic/route.ts: desfeito == 60002d581 byte a byte
+  ok F app/api/generate-video-cinematic/route.ts: 2 troca(s) + 5 acréscimo(s) + 0 bloco(s), toda linha marcada no comentário
+  ok F lib/cinematic/visualPromptPolicy.ts: desfeito == 60002d581 byte a byte
+  ok F lib/cinematic/visualPromptPolicy.ts: 1 troca(s) + 1 acréscimo(s) + 1 bloco(s), toda linha marcada no comentário
+  ok F toda linha nova/trocada da rota e do visualPromptPolicy leva a marca
+  ok F lib/cinematic/planoDeBroll.ts é arquivo novo (não existe na base)
+  ok F lib/hollywood/varietyAxis.ts intocado (cauda protegida, contrato, divisor e descritor)
+  ok F lib/cinematic/sceneTruth.ts intocado (cauda protegida, contrato, divisor e descritor)
+  ok F lib/cinematic/sceneStyle.ts intocado (cauda protegida, contrato, divisor e descritor)
+  ok F lib/cinematic/sceneDescriptions.ts intocado (cauda protegida, contrato, divisor e descritor)
+  ok F lib/durationByEngine.ts intocado (cauda protegida, contrato, divisor e descritor)
+  ok F lib/broll/scene-splitter.ts intocado (cauda protegida, contrato, divisor e descritor)
+  ok F lib/cinematic/speechImageAlign.ts intocado (cauda protegida, contrato, divisor e descritor)
+  ok F todo commit do conserto traz o selo [TRAVA 8.2 — vai do fundador 16/10 "vai nos 2"]
+
+(G) mutantes
+  ok M1 lib: sem a checagem de contagem (4 blocos aplicados em 3 cenas): aplicado e VERMELHO (7 caem: A contagem diferente (4 blocos, 3 cenas): plano ignorado — {"aplicar":false,"motivo":"cena)
+  ok M2 lib: sem a comparação cena a cena: aplicado e VERMELHO (3 caem: A mesma contagem mas cenas re-divididas (fala ≠ bloco): ignorado — {"aplicar":true,"motivo)
+  ok M3 lib: modo IA usa o plano: aplicado e VERMELHO (2 caem: A modo IA (escritor reescreve as falas) com a mesma contagem: ignorado — {"aplicar":true,")
+  ok M4 lib: só a 1ª cena é comparada com o bloco: aplicado e VERMELHO (1 caem: A só a última cena descasa (blocos 3+4 juntos): ignorado — {"aplicar":true,"motivo":"alinh)
+  ok M5 rota: descritor volta a exigir "nenhum plano": aplicado e VERMELHO (8 caem: B 657b6ea3 NOVO: descritor #441 ligado (escreve pela fala real))
+  ok M6 rota: L2B volta a aplicar qualquer plano: aplicado e VERMELHO (9 caem: B 657b6ea3 NOVO: nenhum clipe recebe prompt do plano)
+  ok M7 rota: hollywood passa pela regra nova: aplicado e VERMELHO (2 caem: C hollywood: comportamento byte a byte o de antes (plano por posição), sem evento)
+  ok M8 rota: sem o evento: aplicado e VERMELHO (7 caem: B 657b6ea3 NOVO: evento broll_plan_descartado (4 blocos, 3 cenas, contagem_diferente) — [])
+  ok M9 visualPromptPolicy: sem o passo do protagonista (volta a apagar): aplicado e VERMELHO (9 caem: D Exu (real): o novo mantém "lost man", sem rosto, e a frase fecha — A dark, empty road at)
+  ok M10 visualPromptPolicy: a marca U+E000 não sai: aplicado e VERMELHO (10 caem: D Exu (real): o novo mantém "lost man", sem rosto, e a frase fecha — A dark, empty road at)
+  ok M11 visualPromptPolicy: sem as mãos em close: aplicado e VERMELHO (2 caem: D "a young man holding a golden coin": substantivo mantido, forma sem rosto — a young man )
+  ok M12 visualPromptPolicy: "of a man" também é reescrito: aplicado e VERMELHO (1 caem: D byte a byte igual ao antigo: "Close-up shot of a man and a woman standing ")
+  ok M13 visualPromptPolicy: o substantivo não é protegido (o PERSON_NOUN_RE o apaga): aplicado e VERMELHO (9 caem: D Exu (real): o novo mantém "lost man", sem rosto, e a frase fecha — A dark, empty road at)
+  ok M14 visualPromptPolicy: plural vira silhueta única: aplicado e VERMELHO (3 caem: D "A man and a woman walk on the beach at dusk": substantivo mantido, forma sem rosto — A )
+
+150/150 verificações — VERDE

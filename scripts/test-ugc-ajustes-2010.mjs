@@ -22,6 +22,7 @@ import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semAdsEscolhaPublico2410 } from './test-support/desfaz-ads-escolha-publico-2410.mjs' // KINEO-ADS-ESCOLHA-PUBLICO-2410 — historical probe assertion keeps exact pre-public props; raw public gate is tested in test-ads-escolha-publico-2410.
 import { semUgcAjustes2010, UGC_AJUSTES_2010_ARQUIVOS, UGC_AJUSTES_2010_NOVOS, UGC_AJUSTES_2010_BASE, UGC_AJUSTES_2010_BINARIOS, MARCA_UGC_AJUSTES_2010, ACRESCIMOS_UGC_AJUSTES_2010, TROCAS_UGC_AJUSTES_2010 } from './test-support/desfaz-ugc-ajustes-2010.mjs'
 import { semKitBfVenda2010 } from './test-support/desfaz-kit-bf-venda-2010.mjs'
 import { semFilmesF1F3Publico2010 } from './test-support/desfaz-filmes-f1f3-publico-2010.mjs'
@@ -33,7 +34,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const MARCA = 'KINEO-UGC-AJUSTES-2010'
 const lf = (s) => String(s).replace(/\r\n/g, '\n')
-const rd = (p) => lf(readFileSync(join(ROOT, p), 'utf8'))
+const rd = (p) => semAdsEscolhaPublico2410(lf(readFileSync(join(ROOT, p), 'utf8')), p)
 const git = (...a) => execFileSync('git', ['-C', ROOT, ...a], { encoding: 'utf8', maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'ignore'] })
 const B = UGC_AJUSTES_2010_BASE
 const base = (p) => { try { return lf(git('show', `${B}:${p}`)) } catch { return null } }
@@ -234,9 +235,10 @@ await check(`D1 cada arquivo tocado, desfeito (scripts/test-support/desfaz-ugc-a
   UGC_AJUSTES_2010_ARQUIVOS.length >= 11 && UGC_AJUSTES_2010_ARQUIVOS.every((f) => base(f) !== null && semUgcAjustes2010(rd(f), f) === base(f) && !semUgcAjustes2010(rd(f), f).includes(MARCA)) &&
   MARCA_UGC_AJUSTES_2010 === MARCA && UGC_AJUSTES_2010_NOVOS.every((f) => existsSync(join(ROOT, f)) && base(f) === null) && base(F.mp3) !== null)
 await check('D2 toda linha nova traz a marca; o diff contra a base só toca os arquivos da lista, os novos e o mp3; a marca não contém a de outra camada; nada de cobrança, motor ou preço', () => {
-  const tocados = git('diff', '--name-only', B, git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, '-1', 'HEAD').trim() || 'HEAD').trim().split('\n').filter(Boolean) // reancorado KINEO-MENU-UGC-2010 — mede da base até o último commit DESTA entrega (o menu do topo veio depois, na mesma fila, e toca outros arquivos)
+  const historicalDelivery = git('log', '--no-merges', '--format=%H', `--grep=${MARCA}`, '-1', 'HEAD').trim() || 'HEAD' // KINEO-ADS-ESCOLHA-PUBLICO-2410 — both scope assertions inspect the same original delivery; every original line marker check remains.
+  const tocados = git('diff', '--name-only', B, historicalDelivery).trim().split('\n').filter(Boolean) // reancorado KINEO-MENU-UGC-2010 — mede da base até o último commit DESTA entrega (o menu do topo veio depois, na mesma fila, e toca outros arquivos)
   const permitidos = new Set([...UGC_AJUSTES_2010_ARQUIVOS, ...UGC_AJUSTES_2010_NOVOS, F.mp3])
-  const linhas = UGC_AJUSTES_2010_ARQUIVOS.every((f) => git('diff', '-U0', '--no-color', B, '--', f).replace(/\r/g, '').split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++') && !l.includes('KINEO-ADS-NOTA9-2110') && !l.includes('KINEO-ADS-BOLA-2110') && !l.includes('KINEO-ADS-QUALIDADE-2110')).every((l) => l.includes(MARCA))) // reancorado KINEO-ADS-NOTA9-2110 — as linhas da tela foco (21/10, camada mais nova) não contam como desta entrega // KINEO-ADS-QUALIDADE-2110 — reancorado: as linhas da bola e da qualidade levam a marca delas
+  const linhas = UGC_AJUSTES_2010_ARQUIVOS.every((f) => git('diff', '-U0', '--no-color', B, historicalDelivery, '--', f).replace(/\r/g, '').split('\n').filter((l) => l.startsWith('+') && !l.startsWith('+++') && !l.includes('KINEO-ADS-NOTA9-2110') && !l.includes('KINEO-ADS-BOLA-2110') && !l.includes('KINEO-ADS-QUALIDADE-2110')).every((l) => l.includes(MARCA))) // reancorado KINEO-ADS-NOTA9-2110 — as linhas da tela foco (21/10, camada mais nova) não contam como desta entrega // KINEO-ADS-QUALIDADE-2110 — reancorado: as linhas da bola e da qualidade levam a marca delas
   const trocasOk = UGC_AJUSTES_2010_ARQUIVOS.every((f) => (TROCAS_UGC_AJUSTES_2010[f] ?? []).every(([nova, velha]) => nova.includes(MARCA) && !velha.includes(MARCA)))
   return tocados.length > 0 && tocados.every((f) => permitidos.has(f)) && linhas && trocasOk && !/KINEO-(KIT|HOME|APRESENTADOR|FILMES|CLOSE)/.test(MARCA) &&
     ['lib/ads/v2Tiers.ts', 'lib/ads/v2Billing.ts', 'lib/ads/v2Advance.ts', 'lib/ads/adV2Montage.ts', 'lib/ads/sample.ts', 'lib/compose.ts'].every((f) => !tocados.includes(f)) &&

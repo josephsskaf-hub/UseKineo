@@ -1,3 +1,16 @@
+// KINEO-IDIOMAS-FORMATOS-2410 — virtual diff keeps every original marked-line check after exact source restoration.
+function historicalSourceDiff(beforeText, afterText) {
+  const scratch = mkdtempSync(join(tmpdir(), 'kineo-historical-2410-')), before = join(scratch, 'before.ts'), after = join(scratch, 'after.ts')
+  try {
+    writeFileSync(before, beforeText); writeFileSync(after, afterText)
+    try { return execFileSync('git', ['diff', '--no-index', '--no-color', '-U0', '--', before, after], { encoding: 'utf8', maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'ignore'] }) }
+    catch (error) { if (error.status === 1 && typeof error.stdout === 'string') return error.stdout; throw error }
+  } finally { for (const file of [before, after]) { try { unlinkSync(file) } catch (error) { if (error.code !== 'ENOENT') throw error } }; rmdirSync(scratch) }
+}
+import { mkdtempSync, writeFileSync, unlinkSync, rmdirSync } from 'node:fs' // KINEO-IDIOMAS-FORMATOS-2410
+import { tmpdir } from 'node:os' // KINEO-IDIOMAS-FORMATOS-2410
+import { join } from 'node:path' // KINEO-IDIOMAS-FORMATOS-2410
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact newer source layer precedes every historical assertion and mutant.
 // KINEO-LEGENDA-BENGALI-2010 [TRAVA 8.2 — vai do fundador 20/10 "vai pra tudo"]
 // Catálogo + payload REAL do montador, executados offline. Nenhum render, SDK ou rede.
 // A base reproduz Montserrat para bn; a árvore escolhe Noto Sans Bengali.
@@ -15,7 +28,7 @@ import { semDesenhoSom2110 } from './test-support/desfaz-desenho-som-2110.mjs' /
 const ROOT = path.resolve(import.meta.dirname, '..')
 process.chdir(ROOT)
 const lf = s => String(s).replace(/\r\n/g, '\n')
-const rd = p => lf(fs.readFileSync(path.join(ROOT, p), 'utf8'))
+const rd = p => lf(semIdiomasFormatos2410(fs.readFileSync(path.join(ROOT, p), 'utf8'), p))
 const git = (...args) => execFileSync('git', ['-C', ROOT, ...args], { encoding: 'utf8', maxBuffer: 1 << 26 })
 const base = p => lf(git('show', `${BASE}:${p}`))
 const F = 'lib/textLanguage.ts', COMPOSE = 'lib/compose.ts'
@@ -27,7 +40,7 @@ function load(overrides = {}) {
   const forbidden = () => { throw new Error('Teste offline: serviço proibido') }
   const L = createOfflineLoader({
     mocks: { '@/lib/openai': { buildCaptionSegments: forbidden, pickHighlightWord: forbidden, OPENAI_TTS_TIMEOUT_MS: 1, OPENAI_WHISPER_TIMEOUT_MS: 1 } },
-    source: (rel, source) => Object.hasOwn(overrides, rel) ? overrides[rel] : source,
+    source: (rel, source) => Object.hasOwn(overrides, rel) ? overrides[rel] : semIdiomasFormatos2410(source, rel),
   })
   return { T: L('@/lib/textLanguage'), compose: L('@/lib/compose') }
 }
@@ -130,7 +143,7 @@ await check('desfaz exato, idempotente, CRLF, marcas e cadeia mais nova', () => 
     assert.equal(semLegendaBengali2010(semLegendaBengali2010(src, file), file), old, file)
     assert.equal(semLegendaBengali2010(src.replace(/\n/g, '\r\n'), file), old.replace(/\n/g, '\r\n'), file)
     assert.equal(semLegendaBengali2010(src, file.replace(/\//g, '\\')), old, file)
-    const diff = git('diff', '--unified=0', BASE, '--', file)
+    const diff = historicalSourceDiff(base(file), rd(file)) // KINEO-IDIOMAS-FORMATOS-2410
     for (const line of lf(diff).split('\n').filter(l => l.startsWith('+') && !l.startsWith('+++'))) assert.ok(line.includes(MARCA), file + ': linha nova sem marca')
   }
   assert.equal(semAvatarEstorno2010(rd(F), F), base(F))

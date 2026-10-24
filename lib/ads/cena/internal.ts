@@ -25,7 +25,7 @@ export interface CenaInternalDeps {
   recentActors?(userId: string): Promise<string[]>;
 }
 export async function internalCenaFor(user: AdsV2Caller, body: unknown, d: CenaInternalDeps): Promise<Response> {
-  if (!cenaEnabled(isAdsInternalEmail(user.email))) return v2Fail('cena_internal_only', 403)
+  if (!isAdsInternalEmail(user.email) || !cenaEnabled(true)) return v2Fail('cena_internal_only', 403) // KINEO-ADS-ESCOLHA-PUBLICO-2410 — admin engines remain internal.
   if (!CENA95_LIVE) return internalCenaEscolhaFor(user, body, d) // KINEO-ADS-ESCOLHA-2310 — saved AJUSTE orders retain their runtime; new requests pause for human selection.
   try {
     const b = body as Record<string, unknown>

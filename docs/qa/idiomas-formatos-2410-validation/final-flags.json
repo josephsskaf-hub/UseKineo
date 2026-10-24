@@ -1,0 +1,43 @@
+{
+  "utc": "2026-10-24T13:40:58.533Z",
+  "head": "ab5a67b685bd08d9ab3eea8fe67786330d89fce5",
+  "root": "C:/kineo2410/.claude/worktrees/flags",
+  "results": [
+    {
+      "args": [
+        "scripts/test-admin-leve-2310.mjs",
+        "--mutants"
+      ],
+      "status": 0,
+      "ms": 13906,
+      "log": "scripts_test-admin-leve-2310.mjs.log",
+      "sha256": "ece5d5058f1f4bbea78a8caacce289f0dc8581a5b859cfe252dae80851126304"
+    },
+    {
+      "args": [
+        "scripts/test-roteiro-curto-sem-falha-2210.mjs",
+        "--mutants"
+      ],
+      "status": 0,
+      "ms": 11061,
+      "log": "scripts_test-roteiro-curto-sem-falha-2210.mjs.log",
+      "sha256": "71dab0e0358bc46276b66600afa2d35d4210b7075c87a28158fcf8ccf53ceec9"
+    },
+    {
+      "args": [
+        "node_modules/typescript/bin/tsc",
+        "--noEmit",
+        "--incremental",
+        "false",
+        "--pretty",
+        "false"
+      ],
+      "status": 0,
+      "ms": 59274,
+      "log": "node_modules_typescript_bin_tsc.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "cleanAfter": true,
+  "status": ""
+}

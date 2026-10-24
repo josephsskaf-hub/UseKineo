@@ -1,0 +1,71 @@
+{
+  "utc": "2026-10-24T16:48:14.432Z",
+  "head": "d09cf5d91417a2b6626707ab8e9849a7546b6a54",
+  "parents": "b01cfe2cb2d9f244df0ee22baa649daa8d6103fe 8900a4f6ee5154a7a5cc13b2077c3ae0c2ae8405",
+  "fromUpstream": [
+    "app/KineoLanding.tsx",
+    "app/ai-video-generator/[engine]/page.tsx",
+    "app/ai-video-generator/for/[slug]/page.tsx",
+    "app/api/cron/finish-orphan-jobs/route.ts",
+    "app/api/events/route.ts",
+    "app/free-ai-shorts/[niche]/page.tsx",
+    "app/gerador-de-shorts-gratis/page.tsx",
+    "app/llms.txt/route.ts",
+    "app/sitemap.ts",
+    "app/text-to-video-shorts/page.tsx",
+    "components/seo/TrafficCitation2310.tsx",
+    "lib/marketingPrice.ts",
+    "lib/seo/trafego2310.ts",
+    "lib/seo/trafficCitation2310.ts",
+    "lib/supplier/notify.ts",
+    "lib/trafficHealth.ts"
+  ],
+  "fromTask": [
+    "app/(dashboard)/ads/v2/AdsV2Escolha.tsx",
+    "app/api/generate-script/route.ts",
+    "app/api/generate-video-cinematic/route.ts",
+    "app/api/generate-video-fast/route.ts",
+    "app/api/kids-cartoon/story/route.ts",
+    "components/kidsCartoon/KidsCartoonTemplate.tsx",
+    "components/kidsCartoon/KidsVendaPanel.tsx",
+    "lib/ads/cena/captions95.ts",
+    "lib/ads/cena/escolhaMedia.ts",
+    "lib/ads/cena/escolhaMontage.ts",
+    "lib/ads/cena/escolhaPlan.ts",
+    "lib/ads/cena/escolhaShots.ts",
+    "lib/ads/cena/escolhaStills.ts",
+    "lib/ads/cena/internalEscolha.ts",
+    "lib/ads/cena/plan.ts",
+    "lib/ads/cena/plan95.ts",
+    "lib/ads/cena/runtime.ts",
+    "lib/ads/cena/script95.ts",
+    "lib/ads/cena/script95Repair.ts",
+    "lib/ads/cena/speech95Policy.ts",
+    "lib/ads/cena/voice95.ts",
+    "lib/ads/v2CenaQuality.ts",
+    "lib/broll/scene-splitter.ts",
+    "lib/cinematic/klingShots.ts",
+    "lib/cinematic/verbatimBeats.ts",
+    "lib/compose.ts",
+    "lib/durationByEngine.ts",
+    "lib/kidsCartoon/kidsCartoon.ts",
+    "lib/narrationFit.ts",
+    "lib/openai.ts",
+    "lib/pastedScript.ts",
+    "lib/runway.ts",
+    "lib/seo/freeShortsGeneratorLangs.ts",
+    "lib/shortFilmScript.ts",
+    "lib/textLanguage.ts",
+    "lib/ttsFallback.ts"
+  ],
+  "earlierManifestBlobs": {
+    "public": {
+      "upstream": "bdd5099ac41c8f639e13bf7bb3f57669cc698343",
+      "candidate": "bdd5099ac41c8f639e13bf7bb3f57669cc698343"
+    },
+    "traffic": {
+      "upstream": "aa65d1d6fdc6ceba61dce28e94c7daa576f58f92",
+      "candidate": "aa65d1d6fdc6ceba61dce28e94c7daa576f58f92"
+    }
+  }
+}

@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — compile exact historical copies in TEMP; never rewrite production sources.
+import { mkdirSync } from 'node:fs' // KINEO-IDIOMAS-FORMATOS-2410
 // ═══ KINEO-SEMENTE-NAO-E-ROTEIRO — sprint-assinaturas #8 (2026-09-03) ══════
 //
 // O QUE ESTE TESTE TRANCA
@@ -39,6 +41,10 @@ import { createRequire } from 'node:module'
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 const saida = mkdtempSync(join(tmpdir(), 'kineo-semente-'))
 const requerer = createRequire(join(saida, 'x.cjs'))
+const entradaHistorica = join(saida, 'source') // KINEO-IDIOMAS-FORMATOS-2410
+mkdirSync(entradaHistorica, { recursive: true }) // KINEO-IDIOMAS-FORMATOS-2410
+for (const file of ['expandPolicy.ts', 'narrationFit.ts', 'scriptParser.ts']) writeFileSync(join(entradaHistorica, file), semIdiomasFormatos2410(readFileSync(join(raiz, 'lib', file), 'utf8'), 'lib/' + file)) // KINEO-IDIOMAS-FORMATOS-2410
+
 
 /**
  * O tsc do PRÓPRIO repositório — mas toda entrega desta sprint nasce numa
@@ -71,9 +77,9 @@ try {
     process.execPath,
     [
       acharTsc(),
-      join(raiz, 'lib', 'expandPolicy.ts'),
-      join(raiz, 'lib', 'narrationFit.ts'),
-      join(raiz, 'lib', 'scriptParser.ts'),
+      join(entradaHistorica, 'expandPolicy.ts'),
+      join(entradaHistorica, 'narrationFit.ts'),
+      join(entradaHistorica, 'scriptParser.ts'),
       '--outDir', saida,
       '--module', 'commonjs',
       '--target', 'es2022',

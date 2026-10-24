@@ -1,3 +1,4 @@
+import { narrationSentences } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 // KINEO-ADS-CENA-95-PACING-2110 — repair whole sentences, never truncate the spoken core to a word count.
 import type { CenaInput } from './plan'
 import { cena95CountWords, cena95SpeechPolicy, CENA95_SPEECH_POLICY_VERSION } from './speech95Policy'
@@ -6,10 +7,11 @@ const clean = (v: unknown): string => typeof v === 'string' ? v.replace(/\s+/gu,
 const fold = (s: string): string => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
 const firstUpper = (s: string): string => s ? s[0].toLocaleUpperCase() + s.slice(1) : ''
 const firstLower = (s: string): string => s ? s[0].toLocaleLowerCase() + s.slice(1) : ''
-const stop = (s: string): string => /[.!?][”"']?$/u.test(s) ? s : s + '.'
+const stop = (s: string): string => /[.!?。！？][”"']?$/u.test(s) ? s : s + '.' // KINEO-IDIOMAS-FORMATOS-2410
 
 /** Decimal points and abbreviations are not sentence boundaries. No substring/word truncation. */
 export function cena95Sentences(raw: string): string[] {
+  if (/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]/u.test(raw)) return narrationSentences(raw) // KINEO-IDIOMAS-FORMATOS-2410
   const s = raw.replace(/(?:\r?\n)+|\s*[•;]\s*/gu, '. ').trim(), parts: string[] = []
   let start = 0
   for (let at = 0; at < s.length; at++) {
@@ -47,6 +49,7 @@ function benefitSentence(raw: string, language: string): string {
     return stop('O produto oferece ' + text)
   }
   if (language === 'es') return stop('El producto ofrece ' + text)
+  if (language !== 'en') return spokenSentence(fragment, language) // KINEO-IDIOMAS-FORMATOS-2410 — preserve supplied non-English benefit.
   if (/^(?:it|you|the|this|these|they)\s/iu.test(text)) return spokenSentence(fragment, language)
   if (/^(?:does\s+not|doesn't|can|is|hydrates|helps|offers|has|keeps|reduces|protects|contains|lasts|supports)\b/iu.test(text)) return stop('It ' + text)
   if (text.split(/\s*(?:,|\band\b)\s*/iu).filter(Boolean).every(t => /^(?:lightweight|soft|flexible|adjustable|waterproof|comfortable|breathable|water[ -]resistant)$/iu.test(t)) || /^(?:easy\s+to|suitable\s+for)\b/iu.test(text)) return stop('It is ' + text)
@@ -66,18 +69,19 @@ export function repairCena95Text(raw: unknown, input: CenaInput, product: string
   const removedSentences: string[] = [], omittedBenefits: string[] = []
   const originalHooks = (Array.isArray(r.hooks) ? r.hooks : [r.hook ?? r.hooks]).map(clean).filter(Boolean)
   const accept = (s: string) => !options.acceptSentence || options.acceptSentence(s)
-  const fallbacks = language === 'pt' ? ['Qual você escolhe?', 'O que prefere?', 'Já decidiu?'] : language === 'es' ? ['¿Cuál prefieres?', '¿Ya elegiste?', '¿Qué eliges?'] : ['Which suits you?', 'What fits you?', 'Are you ready?']
+  const fallbacks = language === 'pt' ? ['Qual você escolhe?', 'O que prefere?', 'Já decidiu?'] : language === 'es' ? ['¿Cuál prefieres?', '¿Ya elegiste?', '¿Qué eliges?'] : language === 'en' ? ['Which suits you?', 'What fits you?', 'Are you ready?'] : [] // KINEO-IDIOMAS-FORMATOS-2410 — new languages require generated native hooks, never English fallback.
   const hooks = [...originalHooks.flatMap(cena95Sentences).map(s => spokenSentence(s, language)).filter(s => s && cena95CountWords(s) <= policy.maxHookWords && accept(s)), ...fallbacks].filter((s, k, all) => all.findIndex(x => fold(x) === fold(s)) === k).slice(0, 3) as [string, string, string]
   // Replace an invalid entire hook with a complete alternative; pacing never removes the selected hook.
   if (hooks.length !== 3) throw new Error('cena95_required_speech_does_not_fit')
   const offer = input.oferta ?? ''
   const offerIsSentence = /^(?:buy|get|save|shop|order|choose|claim|compre|leve|ganhe|economize|aproveite|peça|peca|escolha|compra|elige|aprovecha)\b/iu.test(offer)
-  const spokenOffer = offer ? stop(offerIsSentence ? firstUpper(offer) : (language === 'pt' ? /^frete\b/iu.test(offer) ? 'Aproveite o ' : 'Aproveite ' : language === 'es' ? 'Aprovecha ' : 'Get ') + firstLower(offer)) : ''
-  const defaultCta = stop((language === 'pt' ? 'Escolha ' : language === 'es' ? 'Elige ' : 'Choose ') + product)
+  const spokenOffer = offer ? stop(!['en', 'pt', 'es'].includes(language) ? offer : offerIsSentence ? firstUpper(offer) : (language === 'pt' ? /^frete\b/iu.test(offer) ? 'Aproveite o ' : 'Aproveite ' : language === 'es' ? 'Aprovecha ' : 'Get ') + firstLower(offer)) : ''
+  const defaultCta = ['en', 'pt', 'es'].includes(language) ? stop((language === 'pt' ? 'Escolha ' : language === 'es' ? 'Elige ' : 'Choose ') + product) : '' // KINEO-IDIOMAS-FORMATOS-2410
   const ctaChoices = cena95Sentences(input.cta ?? clean(r.cta)).map(s => spokenSentence(s, language)).filter(s => s && accept(s))
   // Typed CTA is required copy, never a GPT stage direction: preserve labels such as [Pro] and verbs such as "Veja".
   let cta = input.cta ? stop(firstUpper(clean(input.cta))) : ctaChoices[ctaChoices.length - 1] || defaultCta
   if (!input.cta && (cena95CountWords(cta) > (options.maxCtaWords ?? Math.floor(policy.wordsPerSecond * 4.65)) || !fold(cta).includes(fold(product).split(/\s+/u).find(w => w.length > 2) ?? fold(product)))) cta = defaultCta
+  if (!cta) throw new Error('cena95_native_cta_required') // KINEO-IDIOMAS-FORMATOS-2410 — request corrected copy before paid video.
   const required = [hooks[0], spokenOffer, cta].filter(Boolean).join(' ')
   if (cena95CountWords(required) > maxWords || options.maxCtaWords !== undefined && cena95CountWords(cta) > options.maxCtaWords) throw new Error('cena95_required_speech_does_not_fit')
   const middle = (field: 'pain' | 'demonstration') => cena95Sentences(clean(r[field])).map(s => {

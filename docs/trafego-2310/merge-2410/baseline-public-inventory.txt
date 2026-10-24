@@ -1,0 +1,195 @@
+ok public accessProof
+ok public eligibilityProof
+ok public quotaProof
+ok public qualityProof
+ok public roundsProof
+ok public eventsProof
+ok public terminalProof
+ok public noticeProof
+ok public uiProof
+ok public mutant public remains house only
+ok public mutant free bypasses Studio gate
+ok public mutant low balance buys free photos
+ok public mutant forty-one is rejected
+ok public mutant unknown RPC opens paid boundary
+ok public mutant daily cap grows to seven
+ok public mutant quota serializes by workspace owner
+ok public mutant hidden knee caps score
+ok public mutant grounding from another chosen image
+ok public mutant caption returns to default product band
+ok public mutant final copy stays over the product
+ok public mutant third manual photo round allowed
+ok public mutant retry budget ignores spent automatic round
+ok public mutant event metadata trusts supplied category
+ok public mutant choice event repeated by polling
+ok public mutant delivered event removed from actual winner
+ok public mutant failed event removed from actual refund winner
+ok public mutant transactional notice ignores closed claim
+ok public mutant retry outbox emails a still-generating order
+ok public mutant browser can forge delivered funnel event
+ok public mutant free sample mounts paid photos
+ok public mutant UI forgets second photo round flag
+ok public mutant UI unlocks still radios after credit failure
+ok public mutant UI leaks internal judge reasons
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: complete changed/new inventory; exact source undo covers code/workflow/test adapters; document artifacts are inventoried
++ actual - expected
+... Skipped lines
+
+  [
+    '.github/workflows/guardiao.yml',
+    'app/(dashboard)/ads/v2/AdsV2Client.tsx',
+    'app/(dashboard)/ads/v2/AdsV2Escolha.tsx',
+    'app/(dashboard)/ads/v2/AdsV2Simple.tsx',
+...
+    'docs/qa/ads-escolha-caption-layout-2410.png',
+-   'docs/trafego-2310/merge-2410/baseline-targets.json',
+-   'docs/trafego-2310/merge-2410/main-public-inventory-audit.json',
+-   'docs/trafego-2310/merge-2410/run-targets.mjs',
+    'lib/ads/cena/catalog.ts',
+    'lib/ads/cena/escolhaCaptionLayout.ts',
+    'lib/ads/cena/escolhaCatalog.ts',
+    'lib/ads/cena/escolhaEvents.ts',
+    'lib/ads/cena/escolhaMontage.ts',
+...
+    'lib/ads/v2StartCore.ts',
+-   'public/posters/home-card-close-real-en.webp',
+-   'public/posters/home-card-close-real-pt.webp',
+-   'public/posters/home-card-ugc-presenter.webp',
+-   'public/previews/home-card-close-real-en.mp4',
+-   'public/previews/home-card-close-real-pt.mp4',
+-   'public/previews/home-card-ugc-presenter.mp4',
+    'scripts/test-ads-cena-95-2110.mjs',
+    'scripts/test-ads-escolha-2310.mjs',
+    'scripts/test-ads-escolha-publico-2410.mjs',
+    'scripts/test-ads-v2-servidor-2026-09-28.mjs',
+    'scripts/test-support/ads-escolha-publico-sql-2410.cjs',
+
+    at equal (file:///C:/Users/josep/OneDrive/%C3%81rea%20de%20Trabalho/Usekineo/.claude/worktrees/trafego-main-2410/scripts/test-ads-escolha-publico-2410.mjs:22:41)
+    at undoProof (file:///C:/Users/josep/OneDrive/%C3%81rea%20de%20Trabalho/Usekineo/.claude/worktrees/trafego-main-2410/scripts/test-ads-escolha-publico-2410.mjs:388:3)
+    at file:///C:/Users/josep/OneDrive/%C3%81rea%20de%20Trabalho/Usekineo/.claude/worktrees/trafego-main-2410/scripts/test-ads-escolha-publico-2410.mjs:431:7 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: [
+    '.github/workflows/guardiao.yml',
+    'app/(dashboard)/ads/v2/AdsV2Client.tsx',
+    'app/(dashboard)/ads/v2/AdsV2Escolha.tsx',
+    'app/(dashboard)/ads/v2/AdsV2Simple.tsx',
+    'app/(dashboard)/ads/v2/page.tsx',
+    'app/api/ads/v2/cena/route.ts',
+    'app/api/cron/ads-v2-advance/route.ts',
+    'app/api/events/route.ts',
+    'docs/DECISIONS.md',
+    'docs/KINEO-ADS-ESCOLHA-PUBLICO-2410.md',
+    'docs/previews/ADS-ESCOLHA-PUBLICO-2410-intro-desktop.png',
+    'docs/previews/ADS-ESCOLHA-PUBLICO-2410-intro-en-desktop.png',
+    'docs/previews/ADS-ESCOLHA-PUBLICO-2410-intro-en-mobile.png',
+    'docs/previews/ADS-ESCOLHA-PUBLICO-2410-intro-mobile.png',
+    'docs/previews/ADS-ESCOLHA-PUBLICO-2410-limits-desktop.png',
+    'docs/previews/ADS-ESCOLHA-PUBLICO-2410-limits-mobile.png',
+    'docs/previews/ADS-ESCOLHA-PUBLICO-2410-product-desktop.png',
+    'docs/previews/ADS-ESCOLHA-PUBLICO-2410-product-mobile.png',
+    'docs/previews/ADS-ESCOLHA-PUBLICO-2410-stills-desktop.png',
+    'docs/previews/ADS-ESCOLHA-PUBLICO-2410-stills-mobile.png',
+    'docs/previews/ADS-ESCOLHA-PUBLICO-2410.html',
+    'docs/previews/render-ads-escolha-publico-2410.cjs',
+    'docs/qa/ads-escolha-caption-layout-2410.html',
+    'docs/qa/ads-escolha-caption-layout-2410.png',
+    'lib/ads/cena/catalog.ts',
+    'lib/ads/cena/escolhaCaptionLayout.ts',
+    'lib/ads/cena/escolhaCatalog.ts',
+    'lib/ads/cena/escolhaEvents.ts',
+    'lib/ads/cena/escolhaMontage.ts',
+    'lib/ads/cena/escolhaNotify.ts',
+    'lib/ads/cena/escolhaPlan.ts',
+    'lib/ads/cena/escolhaQuota.ts',
+    'lib/ads/cena/escolhaStills.ts',
+    'lib/ads/cena/internal.ts',
+    'lib/ads/cena/internalAjuste.ts',
+    'lib/ads/cena/internalEscolha.ts',
+    'lib/ads/cena/runtime.ts',
+    'lib/ads/v2Advance.ts',
+    'lib/ads/v2Billing.ts',
+    'lib/ads/v2StartCore.ts',
+    'scripts/test-ads-cena-95-2110.mjs',
+    'scripts/test-ads-escolha-2310.mjs',
+    'scripts/test-ads-escolha-publico-2410.mjs',
+    'scripts/test-ads-v2-servidor-2026-09-28.mjs',
+    'scripts/test-support/ads-escolha-publico-sql-2410.cjs',
+    'scripts/test-support/ads-escolha-ui-2310.mjs',
+    'scripts/test-support/desfaz-ads-escolha-2310.mjs',
+    'scripts/test-support/desfaz-ads-escolha-publico-2410-fontes.json',
+    'scripts/test-support/desfaz-ads-escolha-publico-2410.mjs',
+    'scripts/test-ugc-ajustes-2010.mjs',
+    'supabase/migrations/20261024035403_ads_escolha_photo_quota.sql'
+  ],
+  expected: [
+    '.github/workflows/guardiao.yml',
+    'app/(dashboard)/ads/v2/AdsV2Client.tsx',
+    'app/(dashboard)/ads/v2/AdsV2Escolha.tsx',
+    'app/(dashboard)/ads/v2/AdsV2Simple.tsx',
+    'app/(dashboard)/ads/v2/page.tsx',
+    'app/api/ads/v2/cena/route.ts',
+    'app/api/cron/ads-v2-advance/route.ts',
+    'app/api/events/route.ts',
+    'docs/DECISIONS.md',
+    'docs/KINEO-ADS-ESCOLHA-PUBLICO-2410.md',
+    'docs/previews/ADS-ESCOLHA-PUBLICO-2410-intro-desktop.png',
+    'docs/previews/ADS-ESCOLHA-PUBLICO-2410-intro-en-desktop.png',
+    'docs/previews/ADS-ESCOLHA-PUBLICO-2410-intro-en-mobile.png',
+    'docs/previews/ADS-ESCOLHA-PUBLICO-2410-intro-mobile.png',
+    'docs/previews/ADS-ESCOLHA-PUBLICO-2410-limits-desktop.png',
+    'docs/previews/ADS-ESCOLHA-PUBLICO-2410-limits-mobile.png',
+    'docs/previews/ADS-ESCOLHA-PUBLICO-2410-product-desktop.png',
+    'docs/previews/ADS-ESCOLHA-PUBLICO-2410-product-mobile.png',
+    'docs/previews/ADS-ESCOLHA-PUBLICO-2410-stills-desktop.png',
+    'docs/previews/ADS-ESCOLHA-PUBLICO-2410-stills-mobile.png',
+    'docs/previews/ADS-ESCOLHA-PUBLICO-2410.html',
+    'docs/previews/render-ads-escolha-publico-2410.cjs',
+    'docs/qa/ads-escolha-caption-layout-2410.html',
+    'docs/qa/ads-escolha-caption-layout-2410.png',
+    'docs/trafego-2310/merge-2410/baseline-targets.json',
+    'docs/trafego-2310/merge-2410/main-public-inventory-audit.json',
+    'docs/trafego-2310/merge-2410/run-targets.mjs',
+    'lib/ads/cena/catalog.ts',
+    'lib/ads/cena/escolhaCaptionLayout.ts',
+    'lib/ads/cena/escolhaCatalog.ts',
+    'lib/ads/cena/escolhaEvents.ts',
+    'lib/ads/cena/escolhaMontage.ts',
+    'lib/ads/cena/escolhaNotify.ts',
+    'lib/ads/cena/escolhaPlan.ts',
+    'lib/ads/cena/escolhaQuota.ts',
+    'lib/ads/cena/escolhaStills.ts',
+    'lib/ads/cena/internal.ts',
+    'lib/ads/cena/internalAjuste.ts',
+    'lib/ads/cena/internalEscolha.ts',
+    'lib/ads/cena/runtime.ts',
+    'lib/ads/v2Advance.ts',
+    'lib/ads/v2Billing.ts',
+    'lib/ads/v2StartCore.ts',
+    'public/posters/home-card-close-real-en.webp',
+    'public/posters/home-card-close-real-pt.webp',
+    'public/posters/home-card-ugc-presenter.webp',
+    'public/previews/home-card-close-real-en.mp4',
+    'public/previews/home-card-close-real-pt.mp4',
+    'public/previews/home-card-ugc-presenter.mp4',
+    'scripts/test-ads-cena-95-2110.mjs',
+    'scripts/test-ads-escolha-2310.mjs',
+    'scripts/test-ads-escolha-publico-2410.mjs',
+    'scripts/test-ads-v2-servidor-2026-09-28.mjs',
+    'scripts/test-support/ads-escolha-publico-sql-2410.cjs',
+    'scripts/test-support/ads-escolha-ui-2310.mjs',
+    'scripts/test-support/desfaz-ads-escolha-2310.mjs',
+    'scripts/test-support/desfaz-ads-escolha-publico-2410-fontes.json',
+    'scripts/test-support/desfaz-ads-escolha-publico-2410.mjs',
+    'scripts/test-ugc-ajustes-2010.mjs',
+    'supabase/migrations/20261024035403_ads_escolha_photo_quota.sql'
+  ],
+  operator: 'deepStrictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.18.0

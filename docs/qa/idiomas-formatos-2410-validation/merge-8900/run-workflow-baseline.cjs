@@ -1,0 +1,24 @@
+const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process');
+const root=path.resolve(process.argv[2]),label=process.argv[3]||'baseline-8900',out=path.resolve('C:/kineo2410/qa-merge'),preload='C:/kineo2410/qa-merge/offline-preload.cjs';
+const git=(...args)=>cp.execFileSync('git',args,{cwd:root,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
+const file=path.join(out,label+'.commands.json'),dest=path.join(out,label),start=Date.now();fs.mkdirSync(dest,{recursive:true});fs.mkdirSync(path.join(out,'tmp'),{recursive:true});
+let commands;
+if(process.argv[4])commands=JSON.parse(fs.readFileSync(process.argv[4],'utf8'));
+else{
+ const text=fs.readFileSync(path.join(root,'.github/workflows/guardiao.yml'),'utf8').split(/\n  legacy:/)[0];commands=[{id:'typescript',args:['node_modules/typescript/bin/tsc','--noEmit','--incremental','false'],expectedExit:0,source:'workflow typecheck'}];let gpt=false;
+ for(const raw of text.split(/\r?\n/)){
+  const line=raw.trim().replace(/^run:\s*/,''),m=line.match(/^(if\s+)?node\s+("[^"]+"|scripts\/\S+?)(?:\s+(.*))?$/);if(!m)continue;
+  let target=m[2].replace(/^"|"$/g,''),rest=(m[3]||'').replace(/;\s*then\s*$/,'').trim();
+  if(target.includes('${item}')){if(!gpt){for(const item of['a','b','c'])for(const mutant of[false,true]){const p=target.replace('${item}',item),args=[p,...(mutant?['--mutant']:[])];commands.push({id:p.replace(/^scripts\//,'')+(mutant?'--mutant':''),args,expectedExit:mutant?1:0,source:'workflow GPT loop'})}gpt=true}continue}
+  const args=[target,...rest.split(/\s+/).filter(Boolean)];commands.push({id:target.replace(/^scripts\//,'')+(rest?' '+rest:''),args,expectedExit:m[1]?1:0,source:'workflow node command'});
+ }
+ for(const p of['scripts/test-paginas-ia-claras-2110.mjs','scripts/test-plan-film-language.mjs'])if(!commands.some(c=>c.args[0]===p))commands.push({id:p.replace(/^scripts\//,''),args:[p],expectedExit:0,source:'requested extra'});
+}
+fs.writeFileSync(file,JSON.stringify(commands,null,2));
+const environment={};for(const name of['PATH','Path','SystemRoot','SYSTEMROOT','WINDIR','COMSPEC','PATHEXT','APPDATA','LOCALAPPDATA','USERPROFILE','HOMEDRIVE','HOMEPATH','NUMBER_OF_PROCESSORS'])if(process.env[name])environment[name]=process.env[name];
+Object.assign(environment,{NODE_OPTIONS:'--require='+JSON.stringify(preload),NO_COLOR:'1',FORCE_COLOR:'0',KINEO_QA_OUTPUT_DIR:out,TEMP:path.join(out,'tmp'),TMP:path.join(out,'tmp')});
+const receipt={label,root,base:git('rev-parse','HEAD'),started:new Date(start).toISOString(),commandsFile:file,offlinePreload:preload,serial:true,initialStatus:git('status','--porcelain=v1','--untracked-files=all'),total:commands.length,results:[]};
+if(receipt.initialStatus)throw Error('Baseline worktree must start clean: '+receipt.initialStatus);
+function save(){receipt.finished=new Date().toISOString();receipt.done=receipt.results.length;receipt.pass=receipt.results.filter(r=>r.passed).length;receipt.fail=receipt.done-receipt.pass;fs.writeFileSync(path.join(out,label+'.json'),JSON.stringify(receipt,null,2));}
+async function run(c,i){const at=Date.now();return new Promise(resolve=>{let output='',timedOut=false;const p=cp.spawn(process.execPath,['--require',preload,...c.args],{cwd:root,env:environment,windowsHide:true,stdio:['ignore','pipe','pipe']});for(const stream of[p.stdout,p.stderr])stream.on('data',b=>{output+=b.toString();if(output.length>16<<20)p.kill()});const timer=setTimeout(()=>{timedOut=true;p.kill()},300000);p.on('error',e=>output+='\nError '+e.message);p.on('close',(status,signal)=>{clearTimeout(timer);const log=String(i+1).padStart(2,'0')+'-'+c.id.replace(/[^a-zA-Z0-9.-]/g,'_')+'.log';fs.writeFileSync(path.join(dest,log),output);const failures=output.replace(/\x1b\[[0-9;]*m/g,'').split(/\r?\n/).filter(l=>/^\s*(?:[✗✘×❌]|FAIL\b|not ok\b|AssertionError\b|Error\b|FALH|\[FAIL\]|x )/i.test(l)||/KINEO_OFFLINE_BLOCKED/.test(l)).map(l=>l.trim());const assertionDeath=c.expectedExit===0||failures.some(l=>!/KINEO_OFFLINE_BLOCKED/.test(l));const passed=status===c.expectedExit&&!timedOut&&assertionDeath&&!output.includes('KINEO_OFFLINE_BLOCKED');receipt.results.push({...c,status,signal,timedOut,ms:Date.now()-at,log,passed,failures});save();console.log(`${label} ${i+1}/${commands.length} ${passed?'PASS':'FAIL'} ${c.id} exit=${status} expected=${c.expectedExit} (${Date.now()-at}ms)`);resolve()})})}
+(async()=>{save();for(let i=0;i<commands.length;i++)await run(commands[i],i);receipt.finalStatus=git('status','--porcelain=v1','--untracked-files=all');receipt.finalHead=git('rev-parse','HEAD');receipt.sourcesRestored=receipt.finalStatus===receipt.initialStatus&&receipt.finalHead===receipt.base;save();console.log(JSON.stringify({file:path.join(out,label+'.json'),pass:receipt.pass,fail:receipt.fail,sourcesRestored:receipt.sourcesRestored}));})().catch(e=>{receipt.runnerError=e.message;save();console.error(e);process.exitCode=1});

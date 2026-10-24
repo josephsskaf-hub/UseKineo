@@ -1,0 +1,14 @@
+{
+  "classification": "EVIDÊNCIA DE PRODUÇÃO",
+  "date": "2026-10-23",
+  "mode": "submitted",
+  "httpStatus": 200,
+  "urlCount": 605,
+  "host": "www.usekineo.com",
+  "endpoint": "https://api.indexnow.org/indexnow",
+  "submittedAt": "2026-10-23T23:53:56.808Z",
+  "command": "node scripts/submit-indexnow.mjs --submit",
+  "source": "currently published sitemap.xml and video-sitemap.xml",
+  "credentials": "public IndexNow key file; no environment file read",
+  "limit": "HTTP 200 confirms receipt, not crawling, indexing or traffic growth. Branch content was not deployed."
+}

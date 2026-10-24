@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact later source delta before historical readers and extracted functions.
 // KINEO-COBERTURA-15S-2026-09-30 — guardião da régua de narração no filme de 15 s (piso do seletor clássico).
 // Caso real: cadastro novo do ChatGPT (30/09), Seedance 15 s, roteiro próprio com ~12 s de fala → 3 recusas seguidas
 // ("faltam 6 palavras") pela régua de 95 %. Fundador: "Vai tenta puxar ele pra gente".
@@ -12,7 +13,7 @@ import { createRequire } from 'node:module'
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
 const ts = require(path.join(ROOT, 'node_modules', 'typescript'))
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+const read = (rel) => semIdiomasFormatos2410(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel).replace(/\r\n/g, '\n')
 let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }

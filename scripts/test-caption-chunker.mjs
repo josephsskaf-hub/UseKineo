@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — exact later language/format delta leaves historical contracts unchanged.
 // KINEO-SPRINT-12H-2026-07-29 — regression test for the caption chunker.
 //
 // ⚠️ READ THIS FIRST: unlike every other file in scripts/, this one touches
@@ -39,7 +40,7 @@ import vm from 'node:vm'
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
 const ts = require(join(RAIZ, 'node_modules', 'typescript'))
-const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(RAIZ, p), 'utf8'), p).replace(/\r\n/g, '\n')
 const compose = rd('lib/compose.ts')
 const openai = rd('lib/openai.ts')
 

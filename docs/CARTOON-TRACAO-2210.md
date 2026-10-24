@@ -1,4 +1,18 @@
-# KINEO-CARTOON-TRACAO-2210 — entrega de 22/10 e reancoragem de 23/10/2026
+# KINEO-CARTOON-TRACAO-2210 — entrega de 22/10 e reancoragens de 23–24/10/2026
+
+## Reancoragem de 24/10/2026
+
+**FATO CONFIRMADO — IMPLEMENTADO:** integração por merge, sem rebase, da main `7950e41134dd03388e67c131501d3e2bce61a3eb` sobre a ponta já publicada `189e7e2b537e48df18849ca1a1867a1b78128493` da branch `codex/cartoon-tracao-2210`. Campanha, helper de e-mail, páginas, Instagram e previews permanecem iguais à entrega publicada. Preços, URLs, metadados, `lib/engineWall.ts` e `lib/homeVideoCuration.ts` permanecem iguais à main incorporada ou à entrega anterior, conforme a fonte correspondente. Evidência: `C:/tmp/cartoon-reanchor-2410/tracao-boundaries.json`.
+
+**FATO CONFIRMADO — IMPLEMENTADO / TESTADO LOCALMENTE:** o guardião e o desfaz agora usam a base `7950e411` (`scripts/test-cartoon-tracao.mjs:16`; `scripts/test-support/desfaz-cartoon-tracao-2210.mjs:8`). Nove fontes existentes e 24 blocos exatos voltam à main em memória, com CRLF, caminhos Windows, idempotência e rejeição de blocos alterados, ausentes ou duplicados. A camada Cartoon sai antes dos hashes de Idiomas/Public/Escolha; o inventário histórico de Idiomas fica fixado na entrega `7950e411`, enquanto o guardião Cartoon continua conferindo uma lista finita do escopo atual (`scripts/test-idiomas-formatos-undo-2410.mjs:9`). O teste e o helper Escolha da main foram preservados integralmente; nenhum manifesto, hash ou snapshot histórico foi recapturado.
+
+**FATO CONFIRMADO — TESTADO LOCALMENTE, 24/10:** a primeira execução do guardião reancorado passou com **330 verificações e 17 mutantes reais de disco**, detectados por assertivas e restaurados byte a byte. A cadeia histórica passou suas nove provas adicionais, incluindo a retirada do adapter mais novo e o bypass dos hashes de Idiomas, Escolha e Pacing. TypeScript `--noEmit --incremental false` encerrou com código zero e saídas vazias. Hashes RAW das fontes antes/depois permaneceram idênticos. Fontes: `C:/tmp/cartoon-reanchor-2410/tracao-guardian-first.json`, `tracao-head-first.json` e `tracao-tsc-first.json`, com logs correspondentes.
+
+**FATO CONFIRMADO — TESTADO LOCALMENTE, 24/10:** os testes reais de Idiomas e Public passaram: o primeiro verificou 104 fontes exatas, as duas histórias imutáveis e o inventário; o segundo passou suas nove provas e 24 mutantes detectados por assertiva, usando os controladores e builders atuais. Fontes: `C:/tmp/cartoon-reanchor-2410/tracao-idiomas-first.json` e `tracao-public-first.json`. Essas execuções e o guardião usaram bloqueio de rede/arquivos de ambiente e serviços simulados, sem banco real, chamada paga ou envio. Os recibos preservam os hashes das fontes.
+
+**QUESTÃO PENDENTE / DESCONHECIDO — 24/10:** a comparação independente ampliada da main `7950e411` com o candidato reancorado ainda está em preparação/execução nesta revisão. Os resultados completos de 22/10 e 23/10 abaixo são históricos; não são apresentados como resultado desta nova main. Publicação da branch depende do fechamento dessa comparação pelo agente responsável. Nenhum push foi feito nesta etapa de reancoragem.
+
+**FATO CONFIRMADO — TESTADO LOCALMENTE:** os seis assets de home que impediram a primeira tentativa de merge estavam byte a byte iguais à ponta `189e7e2b`, mas marcados com `skip-worktree`. Houve backup RAW e recibo de SHA, limpeza dessa marca apenas nesses seis caminhos e restauração pontual autorizada; o merge trouxe os bytes da main. Evidência: `C:/tmp/cartoon-reanchor-2410/tracao-public-before/receipt.json`. Os demais arquivos de mídia foram preservados.
 
 ## Reancoragem de 23/10/2026
 

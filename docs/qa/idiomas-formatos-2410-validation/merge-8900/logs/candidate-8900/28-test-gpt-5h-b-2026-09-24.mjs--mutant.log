@@ -1,0 +1,21 @@
+PASS official API source and exact dated statement
+PASS three named replacement rows, no Omni
+PASS Seedance 1.5 cost derives from engine and plan source
+PASS Seedance 1.5 pause derives from shared gate
+PASS Kling 3 cost derives from engine and plan source
+PASS Kling 3 pause derives from shared gate
+PASS Veo 3.1 cost derives from engine and plan source
+PASS Veo 3.1 pause derives from shared gate
+FAIL paused row is not advertised as purchasable
+PASS cost allocation is not a new per-film offer
+PASS sora-alternative: dated sourced API statement and shared Studio bridge
+PASS sora-alternative: no expired trial/ranking promise
+PASS omni-flash-vs-sora: dated sourced API statement and shared Studio bridge
+PASS omni-flash-vs-sora: no expired trial/ranking promise
+PASS sora-alternative: discoverable
+PASS omni-flash-vs-sora: 301 to /sora-alternative and out of sitemap/llms
+PASS Studio link, not generate/payment action
+(node:36756) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/kineo2410/.claude/worktrees/main/lib/growth/soraMigrationFacts.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\kineo2410\.claude\worktrees\main\package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)

@@ -1,0 +1,2 @@
+# Preserve raw evidence bytes so SHA-256 receipts also match Git checkouts.
+logs/*.log -text

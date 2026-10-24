@@ -1,0 +1,35 @@
+{
+  "label": "baseline-8900-rechecks",
+  "root": "C:\\kineo2410\\.claude\\worktrees\\merge-main-8900",
+  "base": "8900a4f6ee5154a7a5cc13b2077c3ae0c2ae8405",
+  "started": "2026-10-24T16:47:34.751Z",
+  "commandsFile": "C:\\kineo2410\\qa-merge\\baseline-8900-rechecks.commands.json",
+  "offlinePreload": "C:/kineo2410/qa-merge/offline-preload.cjs",
+  "serial": true,
+  "initialStatus": "",
+  "total": 1,
+  "results": [
+    {
+      "id": "test-trafego-undo-2310.mjs",
+      "args": [
+        "scripts/test-trafego-undo-2310.mjs"
+      ],
+      "expectedExit": 0,
+      "source": "workflow node command",
+      "status": 0,
+      "signal": null,
+      "timedOut": false,
+      "ms": 1562,
+      "log": "01-test-trafego-undo-2310.mjs.log",
+      "passed": true,
+      "failures": []
+    }
+  ],
+  "finished": "2026-10-24T16:47:36.504Z",
+  "done": 1,
+  "pass": 1,
+  "fail": 0,
+  "finalStatus": "",
+  "finalHead": "8900a4f6ee5154a7a5cc13b2077c3ae0c2ae8405",
+  "sourcesRestored": true
+}

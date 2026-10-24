@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — compile exact historical copies in TEMP; never rewrite production sources.
+import { mkdirSync } from 'node:fs' // KINEO-IDIOMAS-FORMATOS-2410
 // ═══ KINEO-350-TESTES-COMPORTAMENTAIS-2026-08-26 ═══════════════════════════
 //
 // A DIFERENÇA PARA O TESTE DO #349: aquele lia o FONTE com regex e checava se
@@ -29,15 +31,19 @@ const saida = mkdtempSync(join(tmpdir(), 'kineo-350-'))
 // CommonJS + createRequire: o tsc emite `require('./narrationFit')` sem
 // extensão, que o ESM do Node recusa. CJS resolve isso sem gambiarra de loader.
 const requerer = createRequire(join(saida, 'x.cjs'))
+const entradaHistorica = join(saida, 'source') // KINEO-IDIOMAS-FORMATOS-2410
+mkdirSync(entradaHistorica, { recursive: true }) // KINEO-IDIOMAS-FORMATOS-2410
+for (const file of ['expandPolicy.ts', 'narrationFit.ts', 'scriptParser.ts']) writeFileSync(join(entradaHistorica, file), semIdiomasFormatos2410(readFileSync(join(raiz, 'lib', file), 'utf8'), 'lib/' + file)) // KINEO-IDIOMAS-FORMATOS-2410
+
 
 function compilar() {
   execFileSync(
     process.execPath,
     [
       join(raiz, 'node_modules', 'typescript', 'bin', 'tsc'),
-      join(raiz, 'lib', 'expandPolicy.ts'),
-      join(raiz, 'lib', 'narrationFit.ts'),
-      join(raiz, 'lib', 'scriptParser.ts'),
+      join(entradaHistorica, 'expandPolicy.ts'),
+      join(entradaHistorica, 'narrationFit.ts'),
+      join(entradaHistorica, 'scriptParser.ts'),
       '--outDir', saida,
       '--module', 'commonjs',
       '--target', 'es2022',
@@ -232,7 +238,7 @@ checa('speechSeconds reexportado é o mesmo da régua',
 
 // ── 16. NADA aqui toca fornecedor, débito ou render ────────────────────────
 // Garantia estrutural: expandPolicy não importa nada além da régua.
-const fonte = readFileSync(join(raiz, 'lib', 'expandPolicy.ts'), 'utf8')
+const fonte = readFileSync(join(entradaHistorica, 'expandPolicy.ts'), 'utf8')
 checa('expandPolicy não importa fal, supabase, stripe nem openai',
   !/(from ['"].*\b(fal|supabase|stripe|openai)\b)/i.test(fonte))
 checa('expandPolicy não fala em débito/crédito/render',

@@ -1,3 +1,4 @@
+import { narrationTokens, joinNarrationTokens } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 // ═══ KINEO-KLING25-PLANOS-5S-2026-09-28 — Kling 2.5 em planos de 5 s ═══════════════════════════════════════════════
 // Fundador, 28/09, depois do canário do Kling 2.5 (c83074b6, "The Mystery of Moving Rocks", 98 palavras verbatim, 35 s
 // pedidos, 37,7 s entregues): "gostei muito… a única coisa é mais variedade de cenas". Até aqui o Kling 2.5 rodava
@@ -87,7 +88,7 @@ export const KLING25_FILM_MAX_SECONDS = 90
 export const KLING25_TIKTOK_FLOOR_SECONDS = 61.5
 
 const round1 = (v: number): number => Math.round(v * 10) / 10
-const splitWords = (text: string | null | undefined): string[] => String(text ?? '').trim().split(/\s+/).filter(Boolean)
+const splitWords = (text: string | null | undefined): string[] => narrationTokens(String(text ?? ''))
 const wordsIn = (text: string | null | undefined): number => splitWords(text).length
 const positive = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0
 
@@ -212,8 +213,8 @@ export function kling25AverageShotSeconds(count: number, footageSeconds: number)
 // os divisores que cabem, o mais barato; no mesmo preço, o que corta em fim de frase; depois vírgula dentro de frase que
 // não cabe num plano; palavra só quando não há outro jeito. Nenhuma palavra some, nenhuma muda de ordem.
 
-const SENTENCE_END = /[.!?…]["'”’)\]]*$/u
-const CLAUSE_END = /[,;:—–]["'”’)\]]*$/u
+const SENTENCE_END = /[.!?…。！？]["'”’)\]]*$/u
+const CLAUSE_END = /[,;:—–，、；：]["'”’)\]]*$/u
 const ABBREVIATION = /^(mr|mrs|ms|dr|st|jr|sr|vs|etc|e\.g|i\.e|u\.s|u\.k|mt|ft|approx)\.$/iu
 const INITIAL = /^\p{Lu}\.$/u
 
@@ -252,7 +253,7 @@ export function kling25VerbatimPlan(
   narration: string,
   opts: { durationSeconds: number; wordsPerSecond?: number; maxShots?: number },
 ): Kling25VerbatimPlan {
-  const words = String(narration ?? '').trim().replace(/\s+/gu, ' ').split(' ').filter(Boolean)
+  const words = narrationTokens(String(narration ?? '').trim().replace(/\s+/gu, ' '))
   const W = words.length
   const pace = kling25PlanPace(opts.wordsPerSecond, W)
   const fitShort = kling25WordsFit(KLING25_SHOT_SECONDS - KLING25_SHORT_FIT_SLACK_SECONDS, pace) // [TRAVA 8.2] KLING25-60S-TETO: folga contra voz mais lenta que o passo
@@ -326,7 +327,7 @@ export function kling25VerbatimPlan(
   const chunks: string[] = []
   const lens: number[] = []
   let a = 0
-  for (const c of best.cuts) { chunks.push(words.slice(a, c).join(' ')); lens.push(c - a); a = c }
+  for (const c of best.cuts) { chunks.push(joinNarrationTokens(words.slice(a, c))); lens.push(c - a); a = c }
   const seconds = kling25SceneSeconds(chunks, needSeconds, { wordCounts: lens, fitFirst: true, fitWords: fitShort })
   return { chunks, seconds, pace, fitShort, fitLong, needSeconds }
 }

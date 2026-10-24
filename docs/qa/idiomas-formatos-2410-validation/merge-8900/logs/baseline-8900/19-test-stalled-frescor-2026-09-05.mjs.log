@@ -1,0 +1,29 @@
+
+1) A campanha passa a saber QUANDO, nao so QUEM
+
+2) .range() sem ORDER BY era o defeito do broll-gc
+  ✓ stalled: GET real lê 2500 linhas e não envia indevidamente
+  ✓ stalled: falha da segunda página responde 500 e zero envio/carimbo
+  ✓ stalled: mutante vivo sem readAll envia uma carta indevida e é morto
+  ✓ stalled: mutante vivo que aceita página parcial viola o HTTP 500
+  ✓ readAll real: 2500 ids exatos e ORDER estável antes de todos os range
+  ✓ mutante vivo sem desempate por id perde linhas com empates e é morto
+  ✓ frescor e coorte completos: 2500 inícios, conclusão além de 1000 e alvo excluído
+
+3) fresh_hours e opcional, clampado, e ausente NAO muda nada
+
+4) O filtro fresco le o mapa real e falha para o lado seguro
+
+5) NAO AFROUXOU — o que segurava a campanha continua de pe
+
+6) A rota nova nasce dry-run — o SEND e do fundador
+
+7) Zero duplicacao: a faixa rapida chama a rota admin
+
+8) Auth fail-closed e cache desligado
+
+9) A entrada horaria existe e NAO carrega query string
+
+10) O que ja funcionava ficou como estava
+
+✅ 68 ok, 0 fail
