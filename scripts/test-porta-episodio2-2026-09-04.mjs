@@ -209,7 +209,7 @@ ok(!client.includes("from '@/lib/compose'"), '6.0b a tela nao importa o motor de
 // de roteiro. Se um dia ela passar a calcular segundos de fala, esta cai.
 ok(client.includes("import { MIN_COVERAGE, minCoverageFor, autofitDown } from '@/lib/narrationFit'"),
   '6.0c o import pre-existente da regua de narracao ficou byte a byte o de antes')
-ok(!blocoPorta.includes('speechSeconds') && !blocoPorta.includes('MIN_COVERAGE'),
+ok(['speechSeconds', 'MIN_COVERAGE', 'minCoverageFor', 'autofitDown', 'contadorVoz', 'falaNaReguaDaTela'].every(name => !blocoPorta.includes(name)),
   '6.0d e a porta nova nao chama a regua de narracao')
 ok(cont.includes('This is the next episode in the same Short series'),
   '6.2 o texto do prompt de continuacao ficou byte a byte o de hoje')
