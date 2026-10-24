@@ -14,11 +14,13 @@
 // `if` por `true` tem de deixar o guardião vermelho.
 
 import { readFileSync, existsSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 
-const RAIZ = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')
+const RAIZ = fileURLToPath(new URL('..', import.meta.url))
 
 function ler(caminho) {
-  const cheio = `${RAIZ}${caminho}`
+  const cheio = join(RAIZ, caminho)
   if (!existsSync(cheio)) return null
   // CRLF normalizado na LEITURA: no checkout do Windows toda regex de duas
   // linhas falha em silêncio (memória `guardiao-crlf-falso-vermelho`).

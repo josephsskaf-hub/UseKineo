@@ -46,6 +46,11 @@ function criaLoader(sobrescritas = {}) {
     if (Object.hasOwn(externos, spec)) return externos[spec]
     let f = spec.startsWith('@/') ? join(root, spec.slice(2)) : spec.startsWith('.') ? resolve(pai, spec) : resolve(root, spec)
     if (!f.startsWith(root + sep)) throw new Error('fora do repo: ' + spec)
+    // Presenter candidates are a checked-in JSON array, not TypeScript exports.
+    if (f.endsWith('.json') && existsSync(f)) {
+      const rel = f.slice(root.length + 1).split(sep).join('/')
+      return JSON.parse(Object.hasOwn(sobrescritas, rel) ? sobrescritas[rel] : readFileSync(f, 'utf8'))
+    }
     if (!existsSync(f)) f += '.ts'
     if (!existsSync(f) && existsSync(f.replace(/\.ts$/, '.tsx'))) f = f.replace(/\.ts$/, '.tsx')
     if (!existsSync(f)) throw new Error('import inesperado: ' + spec)

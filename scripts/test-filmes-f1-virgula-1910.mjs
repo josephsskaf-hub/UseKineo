@@ -30,6 +30,11 @@ const lf = (s) => String(s).replace(/\r\n/g, '\n')
 import { semMeta95Assunto1910 } from './test-support/desfaz-meta95-assunto-1910.mjs' // KINEO-META95-ASSUNTO-1910 — reancorado: o assunto traduzido (19/10, a camada mais nova nos guardiões reancorados) sai PRIMEIRO, em memória
 import { semMeta95Escrita2010 } from './test-support/desfaz-meta95-escrita-2010.mjs' // KINEO-META95-ESCRITA-2010 — reancorado: a legenda na escrita do roteiro (a camada mais nova) sai em memória antes do byte a byte
 import { semAvatarPreso2010 } from './test-support/desfaz-avatar-preso-2010.mjs' // reancorado KINEO-AVATAR-PRESO-2010 [TRAVA 8.2 — vai do fundador 20/10 "vai pra tudo"]: a camada do avatar preso sai em memória
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs'
+import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs'
+import { semAdsQualidade2110 } from './test-support/desfaz-ads-qualidade-2110.mjs'
+import { semAdsBola2110 } from './test-support/desfaz-ads-bola-2110.mjs'
+import { semCloseRealV3_1910 } from './test-support/desfaz-close-real-v3-1910.mjs'
 const rd = (p) => lf(readFileSync(join(RAIZ, p), 'utf8'))
 let ok = 0
 const falhas = []
@@ -190,16 +195,31 @@ mut('token colado ("5 AM") consome só uma original (o alinhamento escorrega)',
   }
   const unlock = rd(UNLOCK)
   for (const [n, v] of Object.entries(provasRota(unlock))) checa(n, v === true)
-  // desfeito = a última versão alheia (o unlock e os guardiões reancorados)
+  // A later guardian reanchor is not the pre-feature baseline. Pin each target to the parent of its FIRST
+  // contribution, undoing every declared later layer newest first before checking the exact original delta.
+  const originalBase = (p) => {
+    const first = git(['log', '--reverse', '--no-merges', '--format=%H', `--grep=${MARCA}`, 'HEAD', '--', p]).trim().split('\n')[0]
+    if (!first) throw Error('missing original F1 contribution: ' + p)
+    return lf(git(['show', `${first}~1:${p}`]))
+  }
+  const beforeLaterLayers = (text, p) => {
+    for (const undo of [semIdiomasFormatos2410, semRoteiroCurto2210, semAdsQualidade2110, semAdsBola2110, semAvatarPreso2010, semMeta95Escrita2010, semMeta95Assunto1910, semCloseRealLegenda1910]) text = undo(text, p)
+    return text
+  }
   const ruins = []
   for (const p of ARQUIVOS_FILMES_F1_VIRGULA_1910) {
-    const vivo = semCloseRealLegenda1910(semMeta95Assunto1910(rd(p), p), p) /* reancorado KINEO-META95-ASSUNTO-1910: a camada do assunto traduzido sai primeiro */ // KINEO-CLOSE-REAL-LEGENDA-1910 — reancorado: sem a camada da legenda menor (mais nova), em memória
-    const base = alheio(p)
+    const vivo = beforeLaterLayers(rd(p), p)
+    const base = originalBase(p)
     const trocas = TROCAS_FILMES_F1_VIRGULA_1910[p] ?? []
-    if (base === null || !trocas.every(([nova, antiga]) => vivo.split('\n').includes(nova) && base.split('\n').includes(antiga) && nova.includes(MARCA) && !antiga.includes(MARCA))) { ruins.push(p); continue }
-    try { if (semFilmesF1Virgula1910(vivo, p) !== base) ruins.push(p) } catch { ruins.push(p) }
+    try {
+      const ownUndone = semFilmesF1Virgula1910(vivo, p)
+      if (!trocas.every(([nova, antiga]) => vivo.split('\n').includes(nova) && ownUndone.split('\n').includes(antiga) && nova.includes(MARCA) && !antiga.includes(MARCA))) { ruins.push(p); continue }
+      // These two were first wired before Close real V3, then reanchored after it: their nested V3 leaves AFTER F1.
+      const restored = ['scripts/test-filmes-f1f3-ajuste-1910.mjs', 'scripts/test-close-real-ajuste-1910.mjs'].includes(p) ? semCloseRealV3_1910(ownUndone, p) : ownUndone
+      if (restored !== base) ruins.push(p)
+    } catch { ruins.push(p) }
   }
-  checa(`U4 ${ARQUIVOS_FILMES_F1_VIRGULA_1910.length} arquivos (unlock + guardiões reancorados): desfeita a entrega = a última versão alheia byte a byte; acréscimos na contagem exata`, ARQUIVOS_FILMES_F1_VIRGULA_1910.length === 10 && ruins.length === 0)
+  checa(`U4 ${ARQUIVOS_FILMES_F1_VIRGULA_1910.length} arquivos (unlock + guardiões reancorados): desfeita a entrega = a base anterior à primeira contribuição byte a byte; acréscimos na contagem exata${ruins.length ? ' — divergentes: ' + ruins.join(', ') : ''}`, ARQUIVOS_FILMES_F1_VIRGULA_1910.length === 10 && ruins.length === 0)
   checa('U5 o desfaz só age nos arquivos declarados e recusa contagem errada', semFilmesF1Virgula1910(`a // ${MARCA}`, 'lib/x.ts') === `a // ${MARCA}` && (() => { try { semFilmesF1Virgula1910(`${unlock}\nx // ${MARCA}`, UNLOCK); return false } catch { return true } })())
   // comportamento: a montagem do export limpo (watermark:false, endCard:false) com a receita
   {
