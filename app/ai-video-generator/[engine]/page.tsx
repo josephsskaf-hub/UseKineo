@@ -23,6 +23,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Footer from '@/components/Footer'
+import { CitationDirectAnswer, CitationDetails } from '@/components/seo/TrafficCitation2310'
 import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import SeedanceHeroActions from '@/components/SeedanceHeroActions'
@@ -169,7 +170,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
           {/* KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — quem chega pelo 301 do Kineo 1 (?from=kineo-1) lê o que mudou; no Seedance o
               botão principal do hero passou a ser a compra direta do Creator (SeedanceHeroActions buyPage). */}
           {params.engine === 'seedance' && <Kineo1RetiredNotice />}
-          {geo && <EngineAnswerLead geo={geo} />}
+          {params.engine === 'seedance' ? <CitationDirectAnswer page="seedance" /> : geo && <EngineAnswerLead geo={geo} />}
           <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
           {!enginePaused(e.param) && <PaidEngineBudget slug={params.engine} />}
           {enginePaused(e.param) && (
@@ -233,6 +234,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
         )}
 
         <PaginaClaraVitrine />{/* KINEO-PAGINAS-IA-CLARAS-2110 — a vitrine atual (a mesma da /claude-connector) no lugar das galerias velhas deste motor */}
+        {params.engine === 'seedance' ? <CitationDetails page="seedance" /> : null}
         <p style={{ textAlign: 'center', margin: '16px 0 0', fontSize: '0.85rem' }}>
           <Link href="/examples" style={{ color: '#0A5CFF', textDecoration: 'none', fontWeight: 700 }}>See the 20 best across every engine →</Link>
         </p>

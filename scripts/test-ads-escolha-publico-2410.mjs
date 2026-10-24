@@ -3,13 +3,14 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { semIdiomasFormatos2410, IDIOMAS_FORMATOS_2410_BASE } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — historical exact undo excludes only the new inventoried task layer; behavioral proofs stay raw.
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — historical exact undo excludes only the new inventoried task layer; behavioral proofs stay raw.
 import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { createEscolhaWorld, escolhaFixture } from './test-ads-escolha-2310.mjs'
 import { PACING_HOUSE, PACING_ORDER } from './test-support/ads-cena-95-pacing-fixtures-2110.mjs'
 import * as Undo from './test-support/desfaz-ads-escolha-publico-2410.mjs'
 import { runEscolhaUiProof } from './test-support/ads-escolha-ui-2310.mjs'
+import { semTrafego2310 } from './test-support/desfaz-trafego-2310.mjs' // KINEO-TRAFEGO-2310 — exact restoration only inside the historical undo proof; runtime and mutants remain raw.
 
 const F = {
   catalog: 'lib/ads/cena/catalog.ts', core: 'lib/ads/cena/internalEscolha.ts', route: 'app/api/ads/v2/cena/route.ts',
@@ -368,14 +369,27 @@ async function uiProof(over = {}) {
 }
 
 async function undoProof() {
+  // KINEO-TRAFEGO-2310 — merging main on 24/10 preserves the Public2410 delivery's immutable inventory and hashes.
+  // The current public routes/builders/UI and assertion-killed mutants above still read the real integrated source.
+  const delivery = 'f6ddd3f4f48384a9b78a0228147f1cdeea5d410f'
+  const currentMain = 'dd0abba8cc711be4bde2faaac39f0aef29f3f90d'
+  const integrationMain = '8900a4f6ee5154a7a5cc13b2077c3ae0c2ae8405' // KINEO-IDIOMAS-FORMATOS-2410 — retain the published Traffic layer until its own exact undo.
+  const manifestPath = 'scripts/test-support/desfaz-ads-escolha-publico-2410-fontes.json'
   const table = JSON.parse(read('scripts/test-support/desfaz-ads-escolha-publico-2410-fontes.json'))
+  equal(table, JSON.parse(git('show', `${currentMain}:${manifestPath}`)), 'Public2410 manifest is unchanged from the reviewed current main; never recaptured from the merge')
   const hash = s => createHash('sha256').update(s).digest('hex')
   assert.equal(Undo.ADS_ESCOLHA_PUBLICO_BASE, '07f1da96cdfdf69ade9e5514d0c4c524cb8b2294')
   assert.ok(Undo.ADS_ESCOLHA_PUBLICO_FILES.length >= 12, 'exact undo manifest covers the complete public layer')
   for (const file of Undo.ADS_ESCOLHA_PUBLICO_FILES) {
-    const raw = semIdiomasFormatos2410(read(file), file), before = git('show', `${Undo.ADS_ESCOLHA_PUBLICO_BASE}:${file}`), item = table.sources[file] // KINEO-IDIOMAS-FORMATOS-2410
+    const integrated = read(file), withoutLanguages = semIdiomasFormatos2410(integrated, file), raw = semTrafego2310(withoutLanguages, file), before = git('show', `${Undo.ADS_ESCOLHA_PUBLICO_BASE}:${file}`), item = table.sources[file] // KINEO-IDIOMAS-FORMATOS-2410
+    assert.equal(withoutLanguages, git('show', `${integrationMain}:${file}`), 'exact Idiomas removal preserves the published Traffic source: ' + file) // KINEO-IDIOMAS-FORMATOS-2410
+    const mainSource = git('show', `${currentMain}:${file}`)
+    assert.equal(hash(mainSource), item.afterHash, 'reviewed current main still matches the immutable Public2410 source manifest: ' + file)
+    assert.equal(raw, mainSource, 'exact Trafego removal preserves the complete current-main Public2410 source: ' + file)
     assert.equal(item.before, before); assert.equal(item.beforeHash, hash(before)); assert.equal(item.afterHash, hash(raw))
     assert.ok(raw.includes(Undo.ADS_ESCOLHA_PUBLICO_MARK), 'every modified exact source identifies the public layer: ' + file)
+    assert.equal(Undo.semAdsEscolhaPublico2410(integrated, file), before, 'integrated Trafego then Public2410 chain restores exact base bytes: ' + file)
+    assert.equal(Undo.semAdsEscolhaPublico2410(integrated.replace(/\n/g, '\r\n'), file), before.replace(/\n/g, '\r\n'), 'integrated chain preserves CRLF: ' + file)
     assert.equal(Undo.semAdsEscolhaPublico2410(raw, file), before, 'exact base bytes restored: ' + file)
     assert.equal(Undo.semAdsEscolhaPublico2410(before, file), before, 'idempotent: ' + file)
     assert.equal(Undo.semAdsEscolhaPublico2410(raw.replace(/\n/g, '\r\n'), file), before.replace(/\n/g, '\r\n'), 'CRLF: ' + file)
@@ -384,9 +398,8 @@ async function undoProof() {
   }
   for (const file of Undo.ADS_ESCOLHA_PUBLICO_NEW) { assert.ok(readFileSync(file).length > 0); assert.throws(() => git('show', `${Undo.ADS_ESCOLHA_PUBLICO_BASE}:${file}`)) }
   for (const file of Undo.ADS_ESCOLHA_PUBLICO_ARTIFACTS) { assert.ok(file.startsWith('docs/')); assert.ok(readFileSync(file).length > 0); assert.ok(git('show', `${Undo.ADS_ESCOLHA_PUBLICO_BASE}:${file}`)) }
-  const actual = git('diff', '--name-only', Undo.ADS_ESCOLHA_PUBLICO_BASE, IDIOMAS_FORMATOS_2410_BASE).trim().split('\n').filter(Boolean) // KINEO-IDIOMAS-FORMATOS-2410 — reproduce the immutable pre-task inventory, including its existing later-home-assets diagnostic.
-  const unknown = [] // KINEO-IDIOMAS-FORMATOS-2410 — pre-task commit has no untracked inputs; the new exact-undo guardian inventories every current addition.
-  equal([...Undo.ADS_ESCOLHA_PUBLICO_FILES, ...Undo.ADS_ESCOLHA_PUBLICO_NEW, ...Undo.ADS_ESCOLHA_PUBLICO_ARTIFACTS].sort(), [...new Set([...actual, ...unknown])].sort(), 'complete changed/new inventory; exact source undo covers code/workflow/test adapters; document artifacts are inventoried')
+  const actual = git('diff', '--name-only', Undo.ADS_ESCOLHA_PUBLICO_BASE, delivery).trim().split('\n').filter(Boolean)
+  equal([...Undo.ADS_ESCOLHA_PUBLICO_FILES, ...Undo.ADS_ESCOLHA_PUBLICO_NEW, ...Undo.ADS_ESCOLHA_PUBLICO_ARTIFACTS].sort(), actual.sort(), 'complete immutable Public2410 delivery inventory; later Trafego and main layers have their own current-source guardians')
   assert.equal(Undo.semAdsEscolhaPublico2410('unrelated\n', 'lib/unrelated.ts'), 'unrelated\n')
 }
 

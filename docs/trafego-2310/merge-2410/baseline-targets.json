@@ -1,0 +1,35 @@
+[
+  {
+    "classification": "TESTADO LOCALMENTE",
+    "date": "2026-10-24",
+    "sha": "dd0abba8cc711be4bde2faaac39f0aef29f3f90d",
+    "file": "test-ads-escolha-2310.mjs",
+    "exit": 0,
+    "signal": null,
+    "milliseconds": 39493,
+    "tail": "ok mutant música na frente da voz\nok mutant fala longa vira upload e corte\nok mutant TTS duplicado em talking\nok mutant Kling sem três tomadas\nok mutant Kling decide planos sem respeitar três takes\nok mutant take dura quinze em vez de cinco\nok mutant oferta volta a duplicar por pontuação\nok escolha: 39 mutantes comportamentais; 29 provas UI; desfaz exato e mídia offline",
+    "summary": "ok escolha: 39 mutantes comportamentais; 29 provas UI; desfaz exato e mídia offline"
+  },
+  {
+    "classification": "TESTADO LOCALMENTE",
+    "date": "2026-10-24",
+    "sha": "dd0abba8cc711be4bde2faaac39f0aef29f3f90d",
+    "file": "test-ads-render-fix-2310.mjs",
+    "exit": 0,
+    "signal": null,
+    "milliseconds": 270,
+    "tail": "  ok  S7 creme abre com o tap das unhas na tampa\n  ok  S8 o pote é aberto antes de aparecer creme\n  ok  S9 aplica no rosto uma vez só (sem repetição)\n  ok  S10 narrado pede só som ambiente, fala proibida\n  ok  S11 Kling gera o som ambiente no narrado\n  ok  S12 som ambiente entra a 35% sob a narração\n\n32 ok, 0 falha(s)",
+    "summary": "32 ok, 0 falha(s)"
+  },
+  {
+    "classification": "TESTADO LOCALMENTE",
+    "date": "2026-10-24",
+    "sha": "dd0abba8cc711be4bde2faaac39f0aef29f3f90d",
+    "file": "test-paginas-ia-claras-2110.mjs",
+    "exit": 0,
+    "signal": null,
+    "milliseconds": 10264,
+    "tail": "fatal: path 'scripts/test-support/paginas-ia-claras-cards-harness.mjs' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'\nfatal: path 'docs/previews/paginas-ia-claras-cartoon-first-2210.html' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'\nfatal: path 'docs/previews/paginas-ia-claras-cartoon-first-chatgpt-desktop-2210.png' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'\nfatal: path 'docs/previews/paginas-ia-claras-cartoon-first-chatgpt-mobile-2210.png' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'\nfatal: path 'docs/previews/paginas-ia-claras-cartoon-first-other-desktop-2210.png' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'\nfatal: path 'docs/previews/paginas-ia-claras-cartoon-first-other-mobile-2210.png' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'\nfatal: path 'docs/qa/paginas-ia-claras-cartoon-first-2210-proof.json' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'\nfatal: path 'docs/qa/paginas-ia-claras-2210-1b991-merge-proof.json' exists on disk, but not in '1b991815ca62701c2c6e06a69aa2eba068e63d5f'",
+    "summary": "235 ok, 0 falha(s)"
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "sha": "a8410090fe89406b74e3c4b7084c39f9e0bf1d64",
+    "file": "test-ads-aeo-2026-09-24.mjs",
+    "exit": 0,
+    "tail": "test-ads-aeo-2026-09-24: 41 ok · 0 falhas"
+  },
+  {
+    "sha": "a8410090fe89406b74e3c4b7084c39f9e0bf1d64",
+    "file": "test-trafego-index-2310.mjs",
+    "exit": 0,
+    "tail": "{\"classification\":\"FATO CONFIRMADO / TESTADO LOCALMENTE\",\"date\":\"2026-10-23\",\"sitemapUrls\":593,\"clearPages\":151,\"cartoonPages\":2,\"missing\":[],\"duplicates\":0,\"llms\":\"Film first; current Cartoon offers; Brazil BRL; real GET\"}"
+  },
+  {
+    "sha": "a8410090fe89406b74e3c4b7084c39f9e0bf1d64",
+    "file": "test-trafego-undo-2310.mjs",
+    "exit": 0,
+    "tail": "KINEO-TRAFEGO-2310-UNDO: 169 passed, 0 failed."
+  },
+  {
+    "sha": "a8410090fe89406b74e3c4b7084c39f9e0bf1d64",
+    "file": "test-paid-video-citation-guidance-2026-09-28.mjs",
+    "exit": 0,
+    "tail": "To eliminate this warning, add \"type\": \"module\" to \\\\?\\C:\\Users\\josep\\OneDrive\\Área de Trabalho\\Usekineo\\.claude\\worktrees\\trafego-candidate-guardian-2310\\package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)"
+  },
+  {
+    "sha": "a8410090fe89406b74e3c4b7084c39f9e0bf1d64",
+    "file": "test-gpt-5h-c-2026-09-24.mjs",
+    "exit": 0,
+    "tail": "To eliminate this warning, add \"type\": \"module\" to \\\\?\\C:\\Users\\josep\\OneDrive\\Área de Trabalho\\Usekineo\\.claude\\worktrees\\trafego-candidate-guardian-2310\\package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)"
+  },
+  {
+    "sha": "a8410090fe89406b74e3c4b7084c39f9e0bf1d64",
+    "file": "test-gpt-v31-facts-2026-09-24.mjs",
+    "exit": 0,
+    "tail": "To eliminate this warning, add \"type\": \"module\" to \\\\?\\C:\\Users\\josep\\OneDrive\\Área de Trabalho\\Usekineo\\.claude\\worktrees\\trafego-candidate-guardian-2310\\package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)"
+  }
+]

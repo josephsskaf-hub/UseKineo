@@ -1,18 +1,33 @@
-// KINEO-IDIOMAS-FORMATOS-2410 — exact newest source layer, before historical guardians.
+// KINEO-IDIOMAS-FORMATOS-2410 — exact leaf layer; no import of another task's undo chain.
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 
 export const IDIOMAS_FORMATOS_2410_BASE = 'dd0abba8cc711be4bde2faaac39f0aef29f3f90d'
 export const IDIOMAS_FORMATOS_2410_MANIFEST = JSON.parse(readFileSync(new URL('./desfaz-idiomas-formatos-2410-fontes.json', import.meta.url), 'utf8'))
+const sourceHash = text => createHash('sha256').update(text).digest('hex')
+function verifiedBefore(known, integrated, rel) {
+  const text = integrated ? known.integratedBefore : known.before
+  const expected = integrated ? known.integratedBeforeHash : known.beforeHash
+  if (typeof text !== 'string' || typeof expected !== 'string' || sourceHash(text) !== expected) throw new Error('desfaz-idiomas-formatos-2410: manifesto divergente ' + rel)
+  return text
+}
 export function semIdiomasFormatos2410(text, file) {
   const rel = String(file ?? '').replace(/\\/g, '/')
   const known = IDIOMAS_FORMATOS_2410_MANIFEST.sources[rel]
   if (!known || typeof text !== 'string') return text
-  const hash = createHash('sha256').update(text.replace(/\r\n/g, '\n')).digest('hex')
-  if (hash === known.beforeHash) return text
-  // Historical guards re-enter the chain with older sources and their own mutants.
-  // Only an identifiable current layer can be undone; task evidence survives removed comments.
-  if (hash !== known.afterHash && !text.includes('KINEO-IDIOMAS-FORMATOS-2410') && !(known.evidence ?? []).some(fragment => text.includes(fragment))) return text
-  if (hash !== known.afterHash) throw new Error('desfaz-idiomas-formatos-2410: fonte divergente ' + rel)
-  return text.includes('\r\n') ? known.before.replace(/\n/g, '\r\n') : known.before
+  const hash = sourceHash(text.replace(/\r\n/g, '\n'))
+  if (hash === known.beforeHash) { verifiedBefore(known, false, rel); return text }
+  if (known.integratedBeforeHash && hash === known.integratedBeforeHash) { verifiedBefore(known, true, rel); return text }
+  // The merged current source restores the upstream source; the original pre-integration
+  // source still restores its original dd0 base. Equal after hashes have the same before.
+  let before
+  if (hash === known.afterHash) before = verifiedBefore(known, Object.hasOwn(known, 'integratedBefore'), rel)
+  else if (known.originalAfterHash && hash === known.originalAfterHash) before = verifiedBefore(known, false, rel)
+  else {
+    // Historical guardians re-enter with older sources and their own mutants.
+    // Only an identifiable task layer can be undone; evidence survives removed comments.
+    if (!text.includes('KINEO-IDIOMAS-FORMATOS-2410') && !(known.evidence ?? []).some(fragment => text.includes(fragment))) return text
+    throw new Error('desfaz-idiomas-formatos-2410: fonte divergente ' + rel)
+  }
+  return text.includes('\r\n') ? before.replace(/\n/g, '\r\n') : before
 }

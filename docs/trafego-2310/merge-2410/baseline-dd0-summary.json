@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-24",
+  "baseline": "dd0abba8cc711be4bde2faaac39f0aef29f3f90d",
+  "state": "TESTADO LOCALMENTE",
+  "executions": 45,
+  "normal": 41,
+  "greenNormal": 40,
+  "redNormal": [
+    {
+      "file": "test-locale-readiness.mjs",
+      "arguments": [],
+      "exit": 1,
+      "signal": null,
+      "milliseconds": 611
+    }
+  ],
+  "expectedMutants": 4,
+  "killedAtExpectedAssertions": true,
+  "timeouts": 0,
+  "trackedWorkingTreeCleanAfterEveryProcess": true,
+  "mutantFailures": {
+    "a": "rendered buttons use canonical builder and page attribution",
+    "b": "paused row is not advertised as purchasable",
+    "c": "OpenAPI reads live tier price/deadline without new order endpoint",
+    "v31": "trial copy separates balance from access in same statement"
+  },
+  "failureDetail": "test-locale-readiness.mjs:14:78 — Hindi covers existing UiLabel dictionary: Any video engine — premium engines use more credits per film; actual undefined",
+  "skippedAlreadyRunByGuardian": [
+    "test-ads-escolha-publico-2410.mjs",
+    "test-ads-escolha-2310.mjs",
+    "test-ads-render-fix-2310.mjs",
+    "test-paginas-ia-claras-2110.mjs"
+  ],
+  "boundary": "fetch/http/https/net/tls denied at process preload; net.Socket.connect denied; NODE_OPTIONS inherited by child Node processes; sensitive env names filtered; no env-file loader, credential access or external services"
+}

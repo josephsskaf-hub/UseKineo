@@ -1,0 +1,336 @@
+{
+  "sha": "dd0abba8cc711be4bde2faaac39f0aef29f3f90d",
+  "results": [
+    {
+      "file": "test-admin-leve-2310.mjs",
+      "arguments": [
+        "--mutants"
+      ],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 25843
+    },
+    {
+      "file": "test-admin-leve-undo-2310.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 4155
+    },
+    {
+      "file": "test-roteiro-curto-sem-falha-2210.mjs",
+      "arguments": [
+        "--mutants"
+      ],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 20338
+    },
+    {
+      "file": "test-roteiro-curto-undo-2210.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 11397
+    },
+    {
+      "file": "test-admin-truncamento-2026-10.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 1392
+    },
+    {
+      "file": "test-afiliados-acordam.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 761
+    },
+    {
+      "file": "test-coerencia-kineo1-2026-09-16.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 784
+    },
+    {
+      "file": "test-juiz-still-2026-10-06.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 17237
+    },
+    {
+      "file": "test-carta-da-recusa.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 982
+    },
+    {
+      "file": "test-momentum-topic.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 1001
+    },
+    {
+      "file": "test-stalled-frescor-2026-09-05.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 998
+    },
+    {
+      "file": "test-hot-nudge-janela-campanhas.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 1432
+    },
+    {
+      "file": "test-gpt-v31-facts-2026-09-24.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 509
+    },
+    {
+      "file": "test-sharing-safety.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 866
+    },
+    {
+      "file": "test-paid-video-citation-guidance-2026-09-28.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 732
+    },
+    {
+      "file": "test-seedance-hero-plans-2026-09-28.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 2250
+    },
+    {
+      "file": "test-motores-geo-2026-10-06.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 166018
+    },
+    {
+      "file": "test-ads-aeo-2026-09-24.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 5365
+    },
+    {
+      "file": "test-five-improvements.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 3333
+    },
+    {
+      "file": "test-studio-entry-transition.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 1376
+    },
+    {
+      "file": "test-locale-readiness.mjs",
+      "arguments": [],
+      "exit": 1,
+      "signal": null,
+      "milliseconds": 611
+    },
+    {
+      "file": "test-app-blue-layout.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 9366
+    },
+    {
+      "file": "test-home-curation.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 687
+    },
+    {
+      "file": "test-home-blue-layout.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 11548
+    },
+    {
+      "file": "test-home-referral-bridge.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 803
+    },
+    {
+      "file": "test-home-pricing-checkout.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 335
+    },
+    {
+      "file": "test-showcase-premium.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 1511
+    },
+    {
+      "file": "test-cinematic-timeline-2026-09-11.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 1238
+    },
+    {
+      "file": "test-cinematic-speech-2026-09-11.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 1959
+    },
+    {
+      "file": "test-music-direction-2026-09-11.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 2443
+    },
+    {
+      "file": "test-visual-contract-2026-09-11.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 4999
+    },
+    {
+      "file": "test-quality-rejection-2026-09-11.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 2654
+    },
+    {
+      "file": "test-quality-route-integration-2026-09-11.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 1247
+    },
+    {
+      "file": "test-quality-failure-ui-2026-09-11.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 1418
+    },
+    {
+      "file": "test-active-quality-rejection-2026-09-11.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 1647
+    },
+    {
+      "file": "test-cinematic-terminal-proof-2026-09-11.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 1110
+    },
+    {
+      "file": "test-cinematic-poll-diagnostic-2026-09-11.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 549
+    },
+    {
+      "file": "test-scene-retry-mutex-2026-09-11.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 8550
+    },
+    {
+      "file": "test-gpt-5h-a-2026-09-24.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 233
+    },
+    {
+      "file": "test-gpt-5h-b-2026-09-24.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 249
+    },
+    {
+      "file": "test-gpt-5h-c-2026-09-24.mjs",
+      "arguments": [],
+      "exit": 0,
+      "signal": null,
+      "milliseconds": 431
+    },
+    {
+      "file": "test-gpt-5h-a-2026-09-24.mjs",
+      "arguments": [
+        "--mutant"
+      ],
+      "expectedFailure": true,
+      "exit": 1,
+      "mutantKilled": true,
+      "milliseconds": 220
+    },
+    {
+      "file": "test-gpt-5h-b-2026-09-24.mjs",
+      "arguments": [
+        "--mutant"
+      ],
+      "expectedFailure": true,
+      "exit": 1,
+      "mutantKilled": true,
+      "milliseconds": 430
+    },
+    {
+      "file": "test-gpt-5h-c-2026-09-24.mjs",
+      "arguments": [
+        "--mutant"
+      ],
+      "expectedFailure": true,
+      "exit": 1,
+      "mutantKilled": true,
+      "milliseconds": 451
+    },
+    {
+      "file": "test-gpt-v31-facts-2026-09-24.mjs",
+      "arguments": [
+        "--mutant"
+      ],
+      "expectedFailure": true,
+      "exit": 1,
+      "mutantKilled": true,
+      "milliseconds": 445
+    }
+  ]
+}

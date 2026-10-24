@@ -47,6 +47,7 @@ import { PAGINAS_UGC_PATHS, PAGINAS_UGC_REVIEWED_ISO, PAGINAS_UGC_TOUCHED_PATHS 
 import { PAGINAS_KIDS_REVIEWED_ISO, paginasKidsSitemapPaths } from '@/lib/seo/paginasKidsCartoon2010' // KINEO-BEBE-QUE-FALA-2010 — as páginas do AI Kids Cartoon Stories (módulo puro)
 import { KIDS_CARTOON_PAGES_LIVE } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010 — o interruptor das páginas (desligado = nenhuma URL)
 import { BABY_PODCAST_PAGES_LIVE, babyPagesSitemapPaths } from '@/lib/kidsCartoon/babyPodcast' // KINEO-BEBE-QUE-FALA-2010 — as páginas do bebê-podcast (interruptor próprio)
+import { trafego2310Sitemap } from '@/lib/seo/trafego2310' // KINEO-TRAFEGO-2310 — public clear templates and Cartoon, reviewed 23/10
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -411,7 +412,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: 'daily' as const,
     priority: 0.8,
   }))
-  return carimbaBingSeo1510([ // KINEO-BING-SEO-1510 — lastmod das páginas tocadas (ver carimbaBingSeo1510)
+  return trafego2310Sitemap(carimbaBingSeo1510([ // KINEO-BING-SEO-1510 — lastmod das páginas tocadas (ver carimbaBingSeo1510)
     ...effectSitemapEntries(),
     // House portfolio: discoverable only while the public page is enabled.
     // Its own review date must not re-date the unrelated acquisition pages.
@@ -505,7 +506,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly' as const,
       priority: 0.8,
     },
-  ])
+  ]), [...paginasKidsSitemapPaths(KIDS_CARTOON_PAGES_LIVE), ...babyPagesSitemapPaths(BABY_PODCAST_PAGES_LIVE)]) // KINEO-TRAFEGO-2310 — no dashboard/auth URLs; gated public Cartoon paths only
 }
 
 // KINEO-BING-SEO-1510 — as páginas que esta rodada mudou (título/description/alt/conteúdo, lista em lib/seo/bingSeo1510.ts)

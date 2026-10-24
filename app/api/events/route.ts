@@ -28,6 +28,7 @@ const SERVER_ONLY_EVENTS = new Set([
   'ads_escolha_delivered',
   'ads_escolha_failed',
   'ads_escolha_ready_email_sent',
+  'traffic_health_alert', // KINEO-TRAFEGO-2310 — somente o cron grava o alarme operacional
   'admin_read_truncated',
   'alternative_payment_grant',
   'alternative_payment_processed',

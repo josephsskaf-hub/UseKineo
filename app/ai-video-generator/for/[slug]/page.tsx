@@ -10,6 +10,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Footer from '@/components/Footer'
+import { CitationDirectAnswer, CitationDetails } from '@/components/seo/TrafficCitation2310'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { FREE_FILM_LABEL, getFreeTierOffer, swapFreeTierCopy as ft, trialFilmsForEngine, TRIAL_CREDITS_SHOWN, TRIAL_SEEDANCE15_FILMS } from '@/lib/freeTierOffer'
 import { STARTER_MONTH, STARTER_CREDITS, creditsPerReferenceVideo } from '@/lib/marketingPrice'
@@ -139,7 +140,7 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
             {ENGINE_NAME[p.engine]} · {engineCost} credits per 60-second film
           </div>
           <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 650, lineHeight: 1.15, margin: '16px 0 0' }}>{p.h1}</h1>
-          <p style={{ fontSize: '1.02rem', color: '#5A5F67', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 680 }}>{p.intro}</p>
+          {params.slug === 'urdu' ? <CitationDirectAnswer page="urdu" /> : <p style={{ fontSize: '1.02rem', color: '#5A5F67', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 680 }}>{p.intro}</p>}
           <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 22 }}>
             <OrganicCtaLink href={cta} source={campaign} placement="hero" style={{ display: 'inline-block', background: '#0A5CFF', color: '#fff', fontWeight: 750, padding: '15px 32px', borderRadius: 980, textDecoration: 'none', fontSize: '1.05rem' }}>
@@ -187,6 +188,7 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
         {/* KINEO-PAGINAS-IA-CLARAS-2110 — a galeria velha (3 filmes da casa deste motor) saiu da tela; entra a vitrine atual (a mesma da /claude-connector).
             O VideoObject do JSON-LD segue como estava (regra: JSON-LD intocado) — ver docs/PAGINAS-IA-CLARAS-2026-10-21.md. */}
         <PaginaClaraVitrine />
+        {params.slug === 'urdu' ? <CitationDetails page="urdu" /> : null}
 
         {/* FAQ */}
         <section style={{ marginTop: 44 }}>
