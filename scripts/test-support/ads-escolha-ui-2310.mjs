@@ -64,10 +64,12 @@ export async function runEscolhaUiProof({ source = text => text, current: rawCur
         if (!old || !dependencies || dependencies.some((value, n) => value !== old.dependencies?.[n])) pending.push(() => { old?.cleanup?.(); effects[index] = { dependencies, cleanup: callback() } })
       },
     }
+    const purchaseModules = createOfflineLoader({ mocks: { react: hooks, 'react/jsx-runtime': require('react/jsx-runtime'), '@/lib/analytics': { trackEvent: async () => true }, '@/lib/checkoutTelemetry': { useCheckoutLaunch() { throw new Error('checkout_launcher_not_exercised_offline') } } }, source: (file, text) => file.endsWith('.tsx') ? ts.transpileModule(source(text, file), { compilerOptions }).outputText : source(text, file) }) // KINEO-COMPRA-AVULSA-2410 — execute actual purchase module/component exports; transport boundaries stay offline.
     const localRequire = id => id === 'react' ? hooks
       : id === 'react-dom' ? { createPortal: value => value }
         : id.includes('escolhaCatalog') ? catalog
           : id.includes('v2Tiers') ? tiers
+          : id === '@/lib/oneTimeItem' || id === '@/components/OneTimeItemOffer' ? purchaseModules(id) // KINEO-COMPRA-AVULSA-2410 — explicit whitelist; current:true retains the complete raw purchase layer.
           : id === '@/lib/textLanguage' || id.includes('escolhaShots') ? pure(id) // KINEO-IDIOMAS-FORMATOS-2410 — real catalogue/token/format exports, never empty stubs or alias fallback to Node.
           : id.includes('uploadFootage') ? { uploadFootage() { throw new Error('upload_not_exercised_offline') }, AdsUploadError: class extends Error {} }
             : id.includes('interfaceLanguage') ? { INTERFACE_LANGUAGE_OPTIONS: [{ code: 'pt', native: 'Português' }, { code: 'en', native: 'English' }] }

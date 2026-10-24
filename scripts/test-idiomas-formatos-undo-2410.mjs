@@ -1,4 +1,5 @@
 // KINEO-IDIOMAS-FORMATOS-2410 — both immutable histories, exact integration undo and complete task inventory; no filesystem mutation.
+import { semCompraAvulsa2410, COMPRA_AVULSA_2410_MANIFEST as compraAvulsaManifest } from './test-support/desfaz-compra-avulsa-2410.mjs' // KINEO-COMPRA-AVULSA-2410 — exact newer leaf before historical assertions.
 import assert from 'node:assert/strict'
 import { readFileSync, existsSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
@@ -21,7 +22,7 @@ assert.deepEqual(Object.entries(manifest.sources).filter(([, item]) => Object.ha
 assert.deepEqual(Object.entries(manifest.sources).filter(([, item]) => Object.hasOwn(item, 'sourceBase')).map(([file]) => file), [UPSTREAM_READER], 'only the new upstream reader has its own source base')
 for (const [file, item] of Object.entries(manifest.sources)) {
   const sourceBase = item.sourceBase ?? BASE
-  const raw = readFileSync(file, 'utf8'), current = lf(raw), originalBase = git('show', sourceBase + ':' + file)
+  const raw = semCompraAvulsa2410(readFileSync(file, 'utf8'), file), current = lf(raw), originalBase = git('show', sourceBase + ':' + file) // KINEO-COMPRA-AVULSA-2410
   const integratedBase = git('show', INTEGRATION_BASE + ':' + file)
   assert.equal(item.before, originalBase, 'before bytes come from their immutable source base: ' + file)
   assert.equal(item.beforeHash, hash(originalBase), 'immutable before hash: ' + file)
@@ -74,7 +75,12 @@ for (const file of manifest.newFiles) {
   assert.throws(() => git('show', INTEGRATION_BASE + ':' + file), undefined, 'task source did not exist in the integrated upstream: ' + file)
 }
 for (const file of manifest.artifacts) assert.ok(file.startsWith('docs/') && existsSync(file), 'artifact is under docs: ' + file)
-const actual = [...new Set([...git('diff', '--name-only', INTEGRATION_BASE).trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard').trim().split('\n')])].filter(Boolean).sort()
+const compraOnly = new Set([...compraAvulsaManifest.newFiles, ...compraAvulsaManifest.artifacts]) // KINEO-COMPRA-AVULSA-2410 — explicitly inventoried newer files.
+for (const file of Object.keys(compraAvulsaManifest.sources)) { // KINEO-COMPRA-AVULSA-2410
+  let upstream; try { upstream = git('show', INTEGRATION_BASE + ':' + file) } catch { continue } // KINEO-COMPRA-AVULSA-2410
+  if (lf(semCompraAvulsa2410(readFileSync(file, 'utf8'), file)) === upstream) compraOnly.add(file) // KINEO-COMPRA-AVULSA-2410 — exclude only exact upstream bytes after undo.
+} // KINEO-COMPRA-AVULSA-2410
+const actual = [...new Set([...git('diff', '--name-only', INTEGRATION_BASE).trim().split('\n'), ...git('ls-files', '--others', '--exclude-standard').trim().split('\n')])].filter(Boolean).filter(file => !compraOnly.has(file)).sort() // KINEO-COMPRA-AVULSA-2410
 assert.deepEqual([...Object.keys(manifest.sources), ...manifest.newFiles, ...manifest.artifacts].sort(), actual, 'task inventory is relative to integrated upstream; upstream-only files are not attributed to this task')
 assert.equal(undo('unrelated\r\n', 'lib/unrelated.ts'), 'unrelated\r\n')
 console.log(`ok idiomas/formatos undo: ${Object.keys(manifest.sources).length} exact sources; original dd0 history preserved; exactly 3 upstream overlaps; current undo equals ${INTEGRATION_BASE}; idempotent; LF/CRLF/Windows; tampering rejected; full integration inventory; no network or filesystem mutation`)
