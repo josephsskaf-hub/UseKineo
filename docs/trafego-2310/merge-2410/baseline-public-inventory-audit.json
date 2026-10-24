@@ -1,0 +1,21 @@
+{
+  "classification": "FATO CONFIRMADO",
+  "date": "2026-10-24",
+  "historicalBase": "07f1da96cdfdf69ade9e5514d0c4c524cb8b2294",
+  "publicDelivery": "f6ddd3f4f48384a9b78a0228147f1cdeea5d410f",
+  "currentMain": "dd0abba8cc711be4bde2faaac39f0aef29f3f90d",
+  "declaredFiles": 51,
+  "currentMainChangedFiles": 57,
+  "publicDeliveryMatchesManifestExactly": true,
+  "missingDeclaredFiles": [],
+  "laterApprovedAssets": [
+    "public/posters/home-card-close-real-en.webp",
+    "public/posters/home-card-close-real-pt.webp",
+    "public/posters/home-card-ugc-presenter.webp",
+    "public/previews/home-card-close-real-en.mp4",
+    "public/previews/home-card-close-real-pt.mp4",
+    "public/previews/home-card-ugc-presenter.mp4"
+  ],
+  "method": "git diff --name-only between immutable commits; excludes all untracked proof files",
+  "runtimeAndMutants": "current integrated sources; historical normalization only inside undoProof"
+}

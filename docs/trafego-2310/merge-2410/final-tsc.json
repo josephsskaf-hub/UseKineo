@@ -1,0 +1,16 @@
+{
+  "classification": "TESTADO LOCALMENTE",
+  "date": "2026-10-24",
+  "sha": "ee2662ae1135b18890a77cd7b6dac375f56cca6b",
+  "startedAt": "2026-10-24T13:04:18.875Z",
+  "finishedAt": "2026-10-24T13:05:27.005Z",
+  "milliseconds": 68129,
+  "command": "node node_modules/typescript/bin/tsc --noEmit --incremental false",
+  "node": "v24.18.0",
+  "compiler": "Version 5.9.3",
+  "exit": 0,
+  "signal": null,
+  "error": null,
+  "stdout": "",
+  "stderr": ""
+}
