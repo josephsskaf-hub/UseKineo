@@ -1,4 +1,30 @@
-# KINEO-CARTOON-TRACAO-2210 — entrega de 22/10/2026
+# KINEO-CARTOON-TRACAO-2210 — entrega de 22/10 e reancoragem de 23/10/2026
+
+## Reancoragem de 23/10/2026
+
+**FATO CONFIRMADO — IMPLEMENTADO:** merge real, sem rebase, da main `895d6c99638dc0af65e11ad761f4999141587fa7` na branch `codex/cartoon-tracao-2210`. O commit de código `c09262a3005171c5b7c8732afad98d5374d3255c` tem como pais a ponta anterior `f1df9a4e800558a8a109b9201c593e3bb72f3688` e essa main. Campanha, páginas, preços e Instagram permanecem iguais à entrega anterior; os ajustes próprios desta rodada integram os guardiões da main.
+
+**FATO CONFIRMADO — IMPLEMENTADO / TESTADO LOCALMENTE:** a base Cartoon foi reancorada na nova main (`scripts/test-cartoon-tracao.mjs:16`). O desfaz recomposto cobre nove fontes existentes e 23 blocos exatos, incluindo a cabeça Escolha (`scripts/test-support/desfaz-ads-escolha-2310.mjs:33`). O Pacing mantém o seletor histórico da main; o inventário próprio de Escolha fica fixado na sua entrega encerrada, enquanto o escopo atual Cartoon segue finito (`scripts/test-ads-escolha-2310.mjs:11`; `scripts/test-cartoon-tracao.mjs:322`). Nenhum hash ou snapshot histórico foi atualizado para aceitar o merge. As provas preservam a rejeição de um caractere externo e detectam a retirada do adapter mais novo ou do hash (`scripts/test-cartoon-tracao.mjs:291`).
+
+**FATO CONFIRMADO — TESTADO LOCALMENTE, 23/10:** `--mutants` passou com 324 verificações e 17 mutantes de disco detectados/restaurados byte a byte. A execução sem essa opção na bateria ampla passou com 268 verificações. TypeScript `--noEmit --incremental false` retornou zero. Fontes: `C:/tmp/cartoon-reanchor-2310/tracao-guardian-final.log`, `tracao-tsc-result.json` e `tracao-895-resumed/test-cartoon-tracao.mjs.log`.
+
+**FATO CONFIRMADO — TESTADO LOCALMENTE, 23/10:** comparação independente completa, por arquivo e por falha interna:
+
+| Execução | Arquivos concluídos | Verdes | Vermelhos |
+|---|---:|---:|---:|
+| Main original, preservada | 996 | 843 | 153 |
+| Main consolidada após quatro reruns em série | 996 | 846 | 150 |
+| Candidato reancorado | 997 | 847 | 150 |
+
+**FATO CONFIRMADO — TESTADO LOCALMENTE:** zero novos vermelhos, testes removidos, falhas internas alteradas, diferenças de exit/signal, timeouts ou bloqueios offline na comparação consolidada. Os 150 resultados herdados são falhas de teste no ambiente offline; não equivalem a 150 defeitos comprovados do produto. Os quatro reruns preservaram fontes e assertions: I4/Segue/Texto passaram; Demo concluiu com as mesmas D6/D10 do candidato. O raw original e os motivos permanecem separados em `main-895-complete.json`, `main-895-reruns.json`, `main-895-reruns-integrity.json` e `main-895-effective.json` em `C:/tmp/cartoon-reanchor-2310/`.
+
+**FATO CONFIRMADO — TESTADO LOCALMENTE:** a cobertura do candidato foi retomada com mais paralelismo no mesmo HEAD limpo: 320 resultados já concluídos, ledger e logs preservados byte a byte, seguidos dos 677 arquivos restantes. A tentativa original incompleta não foi apresentada como bateria concluída. A proveniência foi conferida por SHA e por arquivo; as fontes permaneceram intactas. Os sete testes que escrevem mutantes de fonte rodaram somente na fase exclusiva, com restauração.
+
+**FATO CONFIRMADO — TESTADO LOCALMENTE:** 33 diferenças literais de saída foram revisadas individualmente: inventários, PIDs, UUID de amostra, fixtures/timestamps/Git local e diagnóstico tsc. O TS2307 foi reproduzido com os dois comandos originais nas fixtures existentes; quatro fontes e compilador permaneceram idênticos, stdout igual após substituir somente o caminho exato e stderr vazio. Nos agregados F1 A4b/U4, os 15/10 membros, referências, conteúdos e membros falhos também são iguais. Recibo final: `C:/tmp/cartoon-reanchor-2310/tracao-895-independent-final-receipt.json`; detalhes por teste: `tracao-895-resumed-independent-comparison.json`; provas auxiliares: `tracao-895-resume-member-audit.json` e `limit-fit-diagnostics.json`.
+
+**FATO CONFIRMADO:** `lib/engineWall.ts`, `lib/homeVideoCuration.ts` e `lib/kidsVenda/kidsVenda.ts` são byte a byte iguais à main incorporada. Não houve leitura de `.env`, chamada paga, envio, escrita em banco real ou comando de build/deploy. A pasta principal foi preservada; o destino de push desta entrega é somente a branch.
+
+## Registro inicial de 22/10/2026 — evidências históricas
 
 **FATO CONFIRMADO — IMPLEMENTADO / TESTADO LOCALMENTE:** base `origin/main` obtida no início da tarefa, `796333e9a07ee0c83bb414312a062b63f8fc32bb`; branch `codex/cartoon-tracao-2210`. A árvore principal foi preservada. Autorização: instrução do fundador em 22/10, “de 1 ao 4, vamos dar tração em todas”; publicação somente na branch, sem envio ou chamada paga.
 
