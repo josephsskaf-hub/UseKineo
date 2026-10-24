@@ -10,6 +10,9 @@ export function semIdiomasFormatos2410(text, file) {
   if (!known || typeof text !== 'string') return text
   const hash = createHash('sha256').update(text.replace(/\r\n/g, '\n')).digest('hex')
   if (hash === known.beforeHash) return text
+  // Historical guards re-enter the chain with older sources and their own mutants.
+  // Only an identifiable current layer can be undone; task evidence survives removed comments.
+  if (hash !== known.afterHash && !text.includes('KINEO-IDIOMAS-FORMATOS-2410') && !(known.evidence ?? []).some(fragment => text.includes(fragment))) return text
   if (hash !== known.afterHash) throw new Error('desfaz-idiomas-formatos-2410: fonte divergente ' + rel)
   return text.includes('\r\n') ? known.before.replace(/\n/g, '\r\n') : known.before
 }

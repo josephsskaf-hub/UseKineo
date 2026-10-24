@@ -18,6 +18,8 @@ for (const [file, item] of Object.entries(manifest.sources)) {
   assert.equal(undo(current, file), base); assert.equal(undo(base, file), base)
   assert.equal(undo(current.replace(/\n/g, '\r\n'), file), base.replace(/\n/g, '\r\n'))
   assert.equal(undo(current, file.replace(/\//g, '\\')), base)
+  const historical = git('show', BASE + '^:' + file)
+  assert.equal(undo(historical, file), historical, 'older exact source can re-enter the historical adapter chain: ' + file)
   assert.throws(() => undo(current + '\n// source tampered\n', file), /fonte divergente/)
   const removed = current.replaceAll('KINEO-IDIOMAS-FORMATOS-2410', 'REMOVED_TASK_MARK')
   if (removed !== current) assert.throws(() => undo(removed, file), /fonte divergente/)
