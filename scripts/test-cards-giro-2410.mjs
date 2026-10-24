@@ -187,17 +187,35 @@ for(const card of before.HOME_CARD_ORDER)for(const signedIn of [false,true])asse
 for(const file of ['lib/engineWall.ts','lib/homeVideoCuration.ts','lib/ui/homeKidsCard.ts'])assert.equal(rd(file),execFileSync('git',['show',BASE+':'+file],{encoding:'utf8',maxBuffer:32<<20}).replace(/\r\n/g,'\n'),'protected source unchanged: '+file)
 const {renderCardArrival}=await import(pathToFileURL(path.join(ROOT,'scripts/test-support/paginas-ia-claras-cards-harness.mjs')))
 const kids=moduleOf(rd('lib/ui/homeKidsCard.ts'))
-for(const signedIn of [false,true])for(const language of ['en','pt']) {
-  const actual=renderCardArrival({root:ROOT,signedIn,language,kidsCard:true})
-  assert.deepEqual(plain(actual.order),['films','product_ads','ugc_ads','kids_cartoon'],'actual rendered four-card order')
-  assert.equal(actual.events.length,4,'one event per actual clicked card')
+const arrivals=[
+  {name:'ChatGPT UTM',search:'?utm_source=ChatGPT',first:true},
+  {name:'OpenAI UTM',search:'?utm_source=OPENAI',first:true},
+  {name:'ChatGPT referrer',referrer:'https://chatgpt.com/c/fixture',first:true},
+  {name:'OpenAI referrer',referrer:'https://www.OpenAI.com/',first:true},
+  {name:'Google UTM with ChatGPT referrer',search:'?utm_source=google',referrer:'https://chatgpt.com/',first:true},
+  {name:'No source',first:false},
+  {name:'Google',search:'?utm_source=google',referrer:'https://google.com/',first:false},
+  {name:'Claude',search:'?utm_source=claude',referrer:'https://claude.ai/',first:false},
+]
+for(const arrival of arrivals)for(const signedIn of [false,true])for(const kidsCard of [false,true])for(const language of ['en','pt']) {
+  const options={root:ROOT,...arrival,signedIn,language,kidsCard},actual=renderCardArrival(options)
+  const initial=[...before.HOME_CARD_ORDER,...(kidsCard?['kids_cartoon']:[])]
+  const expected=kidsCard&&arrival.first?['kids_cartoon',...before.HOME_CARD_ORDER]:initial
+  const server=renderCardArrival({...options,server:true})
+  assert.deepEqual(plain(actual.initialOrder),initial,'SSR starts in canonical order before browser origin effect: '+arrival.name)
+  assert.equal(actual.initialHtml,server.html,'actual current SSR is deterministic for session, language, 3/4 cards and arrival')
+  assert.deepEqual(plain(actual.order),expected,'actual origin effect preserves 3/4 card order: '+arrival.name)
+  const domOrder=[...actual.html.replace(/<style[\s\S]*?<\/style>/g,'').matchAll(/data-home-card="([^"]+)"/g)].map(match=>match[1])
+  assert.deepEqual(domOrder,expected,'actual DOM has exactly the intended cards, without duplicates')
+  assert.equal(actual.events.length,expected.length,'one event per actual clicked card')
   for(const [index,card] of actual.order.entries()) {
     assert.equal(actual.events[index].event,before.HOME_CARD_EVENT,'same event name on actual card')
-    const expected=card==='kids_cartoon'?kids.homeKidsCardClickMetadata(signedIn):before.homeCardClickMetadata(card,signedIn)
-    assert.deepEqual(plain(actual.events[index].metadata),plain(expected),'actual click preserves card, position and href: '+card)
+    const legacy=card==='kids_cartoon'?kids.homeKidsCardClickMetadata(signedIn):before.homeCardClickMetadata(card,signedIn)
+    assert.deepEqual(plain(actual.events[index].metadata),plain({...legacy,position:index+1}),'actual click preserves card, current position and href: '+card)
+    assert.equal(actual.hrefs[index],actual.events[index].metadata.href,'click destination equals rendered href: '+card)
   }
 }
-ok(true,'actual four-card clicks, legacy API and protected sources equal immutable base')
+ok(true,'64 actual EN/PT arrival variants: canonical SSR, 3/4 cards, UTM/referrer origin effects, deduplicated DOM and real current click positions/hrefs; protected sources unchanged')
 
 if(process.argv.includes('--mutants')) {
   let appliedMutations=0
