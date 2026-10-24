@@ -28,7 +28,7 @@ check(factBlock.includes('one verified differentiator'), 'canonical copy preserv
 check(factBlock.includes('does not invent claims, call AI or render a video'), 'canonical copy names all three boundaries')
 
 check(tools.includes("'/free-ai-shorts/localbusiness':"), 'tools hub has presentation metadata for the live route')
-check(tools.includes("prompt: 'I need a local business ad script'"), 'hub names the exact B2B job')
+check(tools.includes("prompt: 'Local Business Ad Script'"), 'hub names the exact B2B job')
 check(tools.includes("cta: 'Build my business ad'"), 'hub exposes a concrete action')
 // Compare positions instead of a newline-sensitive text block. Windows CRLF
 // checkouts and Linux LF checkouts must prove the same product ordering.
@@ -36,15 +36,15 @@ const productScriptIndex = tools.indexOf("'/product-to-video-script',", tools.in
 const localBusinessIndex = tools.indexOf("'/free-ai-shorts/localbusiness',", tools.indexOf('const TOOL_ORDER'))
 const weeklyPlanIndex = tools.indexOf("'/business-video-content-plan',", tools.indexOf('const TOOL_ORDER'))
 check(productScriptIndex < localBusinessIndex && localBusinessIndex < weeklyPlanIndex, 'B2B ad sits between product script and weekly planning')
-check(tools.includes('ad briefs, scripts, hooks'), 'metadata now describes the newly discoverable output')
+check(tools.includes('free tools for scripts, hooks, publishing and planning'), 'current editor-and-creator metadata still describes script tools')
 // The upstream hub added production schedule to the inventory. Assert the
 // promised business inputs, not the old punctuation around the shorter list.
-check(tools.includes('product, business offer, content goal') && tools.includes('revenue target'), 'hero inventory includes a real business offer')
+check(tools.includes("eyebrow: 'Start with a real business offer'"), 'local business card still starts with a real business offer')
 // The cost planner joined the canonical inventory upstream, so the hub maps
 // the composed public array rather than FREE_TOOL_FACTS alone.
 check(tools.includes('const PUBLIC_TOOL_FACTS = [...FREE_TOOL_FACTS, PUBLIC_COST_PLANNER_FACT]') && tools.includes('PUBLIC_TOOL_FACTS.map'), 'hub still derives its cards from canonical facts')
-check(tools.includes('<span>{tools.length} free tools</span>'), 'visible count remains derived rather than hard-coded')
-check(tools.includes('numberOfItems: tools.length'), 'structured ItemList count remains derived')
+check(tools.includes('${PUBLIC_TOOL_FACTS.length} free tools'), 'current metadata creator count remains derived rather than hard-coded')
+check(tools.includes('numberOfItems: EDITING_TOOLS.length + tools.length'), 'structured ItemList count includes both current editing and canonical creator tools')
 
 check(nichePage.includes("params.niche === 'localbusiness'"), 'linked route scopes the B2B builder to local business')
 check(nichePage.includes('<LocalBusinessAdBrief />'), 'linked route renders the actual builder')
@@ -54,7 +54,12 @@ check(!/fetch\(|supabase|create_intent/.test(builder), 'linked builder has no di
 check(llms.includes('FREE_TOOL_FACTS.map'), 'llms.txt discovers the new entry from the same source')
 check(factsPage.includes('FREE_TOOL_FACTS.map'), 'human facts page discovers the new entry from the same source')
 equal((facts.match(/url: `\$\{BASE\}\/free-ai-shorts\/localbusiness`/g) ?? []).length, 1, 'canonical free-tool inventory contains one B2B route entry')
-equal((tools.match(/'\/free-ai-shorts\/localbusiness'/g) ?? []).length, 2, 'hub mentions the route once in metadata and once in ordering')
+equal((tools.match(/'\/free-ai-shorts\/localbusiness'/g) ?? []).length, 3, 'hub declares the route once in metadata, ordering and its discovery category')
+const groups = tools.match(/const TOOL_GROUPS = \[([\s\S]*?)\] as const/)?.[1] ?? ''
+const writeGroup = groups.match(/\{ id: 'write',[\s\S]*?paths: \[([^\]]*)\]/)?.[1] ?? ''
+equal((groups.match(/'\/free-ai-shorts\/localbusiness'/g) ?? []).length, 1, 'local business route belongs to exactly one visible category')
+check(writeGroup.includes("'/free-ai-shorts/localbusiness'"), 'local business script is discoverable in the Write category')
+check(tools.includes('tools.filter(tool => (group.paths as readonly string[]).includes(tool.path)).map'), 'visible categorized cards come from the canonical tool array')
 
 check(preview.includes('BEFORE · 9 tools'), 'visual proof labels the previous inventory')
 check(preview.includes('AFTER · 10 tools'), 'visual proof labels the new inventory')
