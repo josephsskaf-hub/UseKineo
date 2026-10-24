@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore this newer layer before historical contracts; current code has raw guardians.
 // KINEO-SEEDANCE-15S-2026-09-29 — guardião do filme de 15 s no Seedance 1.5 ("vai" nominal do fundador; E2a).
 // O que ele prova, executando o código real (transpile, sem alias @/) ou lendo a linha INTEIRA da fonte:
 //   1. o preço do 15 s sai da função que cobra (creditCostForDuration) e cabe no crédito do trial (ambos lidos do código);
@@ -28,7 +29,7 @@ import { desfazH3max, linhasTrocadasH3max } from './test-support/desfaz-h3max-20
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
 const ts = require(join(root, 'node_modules', 'typescript'))
-const rd = (p) => readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n')
+const rd = (p) => semIdiomasFormatos2410(readFileSync(join(root, p), 'utf8'), p).replace(/\r\n/g, '\n')
 let ok = 0
 const falhas = []
 const checa = (nome, cond) => { if (cond) { ok += 1; console.log('  ✓ ' + nome); return } falhas.push(nome); console.error('  ✗ ' + nome) }

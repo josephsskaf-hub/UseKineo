@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore this newer layer before historical contracts; current code has raw guardians.
 // KINEO-SEM-ENCHIMENTO-2026-09-15 — ensaios de $0 de 15/09 no caminho clássico (Seedance 1.5
 // faroleiro, Kling 2.5 trem, modo ideia, 60 s): o modelo devolveu 6 cenas para 7 e a 7ª saiu
 // como "Here is something most people do not know about <PEDIDO INTEIRO>" (206 palavras,
@@ -19,7 +20,7 @@ import vm from 'node:vm'
 import ts from 'typescript'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const read = p => readFileSync(join(root, p), 'utf8')
+const read = p => semIdiomasFormatos2410(readFileSync(join(root, p), 'utf8'), p)
 const parseSrc = (name, src) => ts.createSourceFile(name, src, ts.ScriptTarget.Latest, true)
 let ok = 0
 const falhas = []

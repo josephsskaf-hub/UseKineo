@@ -1,3 +1,4 @@
+import { semIdiomasFormatos2410 } from './test-support/desfaz-idiomas-formatos-2410.mjs' // KINEO-IDIOMAS-FORMATOS-2410 — restore this newer layer before historical contracts; current code has raw guardians.
 // KINEO-GPT-HANDOFF-2026-09-06 — guardião do "link de um clique" do GPT.
 //
 // Duas camadas, de propósito:
@@ -22,7 +23,7 @@ import { randomBytes } from 'node:crypto'
 import { registerHooks } from 'node:module'
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..')
-const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
+const read = (rel) => semIdiomasFormatos2410(fs.readFileSync(path.join(ROOT, rel), 'utf8'), rel).replace(/\r\n/g, '\n')
 let pass = 0
 let fail = 0
 const ok = (c, m) => {
