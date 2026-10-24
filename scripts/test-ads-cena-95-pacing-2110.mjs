@@ -8,11 +8,12 @@ import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { PACING_FIXTURES, PACING_PHOTO, PACING_HOUSE, PACING_ORDER, pacingShort, pacingVerdict } from './test-support/ads-cena-95-pacing-fixtures-2110.mjs'
 import { CENA95_PACING_BASE, CENA95_PACING_FILES, CENA95_PACING_NEW, CENA95_PACING_MARK, semAdsCena95Pacing2110 } from './test-support/desfaz-ads-cena-95-pacing-2110.mjs'
+import { semCartoonTracao2210 } from './test-support/desfaz-cartoon-tracao-2210.mjs' // KINEO-CARTOON-TRACAO-2210
 import { semAdsCenaRetomada2110 } from './test-support/desfaz-ads-cena-retomada-2110.mjs' // KINEO-ADS-CENA-RETOMADA-2110
 
 const MARK = 'KINEO-ADS-CENA-95-PACING-2110', TRAVA = '[TRAVA 8.2 — vai do fundador 21/10 "quero chegar a 9.5 de mínimo"]'
 const F = { route: 'app/api/admin/ads-cena/route.ts', internal: 'lib/ads/cena/internal.ts', runtime: 'lib/ads/cena/runtime.ts', start: 'lib/ads/v2StartCore.ts', plan: 'lib/ads/cena/plan95.ts', repair: 'lib/ads/cena/script95Repair.ts', script: 'lib/ads/cena/script95.ts', policy: 'lib/ads/cena/speech95Policy.ts', preflight: 'lib/ads/cena/preflight95.ts', moderation: 'lib/ads/cena/moderation95.ts', composition: 'lib/ads/cena/composition95.ts', pipeline: 'lib/ads/cena/pipeline95.ts', adapters: 'lib/ads/cena/adapters95.ts', captions: 'lib/ads/cena/captions95.ts', montage: 'lib/ads/cena/montage95.ts', finish: 'lib/ads/cena/finish95.ts', advance: 'lib/ads/cena/runtime95.ts' }
-const read = p => semAdsCenaRetomada2110(readFileSync(p, 'utf8').replace(/\r\n/g, '\n'), p) // KINEO-ADS-CENA-RETOMADA-2110 — fonte histórica antes dos mutantes e dos hashes próprios.
+const read = p => semAdsCenaRetomada2110(semCartoonTracao2210(readFileSync(p, 'utf8').replace(/\r\n/g, '\n'), p), p) /* KINEO-CARTOON-TRACAO-2210 */ // KINEO-ADS-CENA-RETOMADA-2110 — fonte histórica antes dos mutantes e dos hashes próprios.
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 << 20, stdio: ['ignore', 'pipe', 'ignore'] }).replace(/\r\n/g, '\n')
 const plain = x => JSON.parse(JSON.stringify(x)), same = (a, b, why) => assert.deepEqual(plain(a), plain(b), why)
 const NOW = Date.parse('2026-10-22T12:00:00Z')

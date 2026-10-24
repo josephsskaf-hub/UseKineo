@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { semAdsEscolhaPublico2410 } from './desfaz-ads-escolha-publico-2410.mjs' // KINEO-ADS-ESCOLHA-PUBLICO-2410
 
+import { semCartoonTracao2210 } from './desfaz-cartoon-tracao-2210.mjs' // KINEO-CARTOON-TRACAO-2210
 export const ADS_ESCOLHA_MARK = 'KINEO-ADS-ESCOLHA-2310'
 export const ADS_ESCOLHA_BASE = '36a5286aa9bc8aa16e8b4c72edc42fbf1d1ac7a7'
 const table = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'desfaz-ads-escolha-2310-fontes.json'), 'utf8'))
@@ -30,6 +31,7 @@ export const ADS_ESCOLHA_NEW = Object.freeze([
 ])
 
 export function semAdsEscolha2310(texto, file) {
+  texto = semCartoonTracao2210(texto, file) // KINEO-CARTOON-TRACAO-2210 — compose exact leaf undo before historical hashes.
   texto = semAdsEscolhaPublico2410(texto, file) // KINEO-ADS-ESCOLHA-PUBLICO-2410 — newest before every old hash/early return.
   const relative = String(file ?? '').replace(/\\/g, '/'), known = table[relative]
   if (!known || typeof texto !== 'string' || !texto.includes(ADS_ESCOLHA_MARK)) return texto
