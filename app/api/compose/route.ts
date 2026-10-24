@@ -1895,6 +1895,7 @@ export async function POST(req: NextRequest) {
         !isFreePlan ||
         (hasPaid && creditBalance > 0) ||
         ent.isTrial ||
+        (hasPaid && cinematicUpstreamDebited) || // KINEO-COMPRA-AVULSA-2410 — paid exact-balance film: the owned, HMAC-verified settled birth above already paid; trial rollback cannot refuse delivery.
         (REVERSE_TRIAL_ENABLED && cinematicUpstreamDebited)
 
       if (quality === 'cinematic_ai') {
