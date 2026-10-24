@@ -24,6 +24,14 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: Typecheck bruto — qualquer erro reprova
         run: npx tsc --noEmit --incremental false
+      # KINEO-APRESENTADORES-2410 — approved-only catalogs, real synthesis dispatch, local founder review and exact undo.
+      - name: Apresentadores — aprovação, voz e desfaz exato
+        run: |
+          node scripts/test-apresentadores-2410.mjs
+          node scripts/test-apresentadores-admin-2410.mjs
+          node scripts/test-apresentadores-voice-2410.mjs
+          node scripts/test-apresentadores-legacy-voice-2410.mjs
+          node scripts/test-apresentadores-undo-2410.mjs
       # KINEO-IDIOMAS-FORMATOS-2410 — actual shared language/voice, Unicode captions and chosen-shot builders; offline mutants + exact undo.
       - name: Idiomas e formatos — voz, escrita, tomadas e desfaz
         run: |

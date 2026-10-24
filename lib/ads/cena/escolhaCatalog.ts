@@ -1,3 +1,4 @@
+import { PRESENTER_APPROVED_ENTRIES_2410 } from '../presenterCandidates2410' // KINEO-APRESENTADORES-2410
 // KINEO-ADS-ESCOLHA-PUBLICO-2410 — translated previews preserve the Portuguese default.
 // KINEO-ADS-ESCOLHA-2310 — public/isomorphic choice data; every preview is an illustration, never generated output.
 import type { CenaCategory } from './catalog'
@@ -14,6 +15,7 @@ export const CENA_ESCOLHA_PRESENTERS = Object.freeze([
   { id: 'kenji', name: 'Kenji', portrait: '/ads/presenters/kenji.webp' },
   { id: 'jade', name: 'Jade', portrait: '/ads/presenters/jade.webp' },
   { id: 'robert', name: 'Robert', portrait: '/ads/presenters/robert.webp' },
+  ...PRESENTER_APPROVED_ENTRIES_2410.map(p => ({ id: p.id, name: p.name, portrait: p.portrait! })), // KINEO-APRESENTADORES-2410
 ] as const)
 export const CENA_ESCOLHA_CATEGORY_LABELS: Record<CenaCategory, { pt: string; en: string }> = {
   wearable: { pt: 'Relógio e wearable', en: 'Watch and wearable' }, skincare: { pt: 'Skincare', en: 'Skincare' }, perfume: { pt: 'Perfume', en: 'Perfume' }, footwear: { pt: 'Tênis e calçado', en: 'Shoes' }, bag: { pt: 'Bolsa', en: 'Bag' }, bottle: { pt: 'Garrafa', en: 'Bottle' }, supplement: { pt: 'Suplemento', en: 'Supplement' }, tea: { pt: 'Chá', en: 'Tea' }, other: { pt: 'Outro produto', en: 'Other product' },

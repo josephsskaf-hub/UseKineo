@@ -9,7 +9,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const root = path.resolve(process.argv[2] ?? process.cwd()); process.chdir(root)
 const file = 'lib/ads/v2Advance.ts', read = name => readFileSync(path.join(root,name),'utf8').replace(/\r\n/g,'\n')
-const current = read(file), base = execFileSync('git',['show','origin/main:'+file],{cwd:root,encoding:'utf8',windowsHide:true,maxBuffer:64<<20}).replace(/\r\n/g,'\n')
+const current = read(file), base = execFileSync('git',['show','1c078ed013302ac47c42f783305df688c4e97cfd:'+file],{cwd:root,encoding:'utf8',windowsHide:true,maxBuffer:64<<20}).replace(/\r\n/g,'\n')
 const load = createOfflineLoader(), T = load('@/lib/textLanguage'), V = load('@/lib/ads/presenterVoice2410')
 const candidates = JSON.parse(read('lib/ads/presenterCandidates2410.json'))
 const ids = ['liana','mateo','zuri','omar','meilin','diego','priya','samir','elena','joao','naomi','tariq']

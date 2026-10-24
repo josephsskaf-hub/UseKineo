@@ -9,7 +9,7 @@ import { get } from 'node:http'
 import { CATALOG, CHECKS, FOUNDER, loadCatalog, updateCatalog, inspectAssets, decide, generationJob, buildPlan, importCandidate, generateCandidates, startAdmin, webpSize, renderAdmin } from './lib/apresentadores-admin2410.mjs'
 
 const sourceRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const fixtureEntry = (index) => ({ id: `candidate${index}`, name: `Pessoa ${index}`, gender: index % 2 ? 'woman' : 'man', ageMin: 25, ageMax: 30, tag: 'casual', look: 'an adult with a plain shirt', ethnicity: 'Teste', style: 'Estudante', pronoun: 'She', voiceProfile: 'young', status: 'pending', reviewedBy: null, reviewedAt: null, checks: Object.fromEntries(CHECKS.map(key => [key, false])), portrait: null, facePortrait: null, voiceSample: null, assetHashes: null })
+const fixtureEntry = (index) => ({ id: `candidate${String.fromCharCode(97 + index)}`, name: `Pessoa ${index}`, gender: index % 2 ? 'woman' : 'man', ageMin: 25, ageMax: 30, tag: 'casual', look: 'an adult with a plain shirt', ethnicity: 'Teste', style: 'Estudante', pronoun: index % 2 ? 'She' : 'He', voiceProfile: 'young', status: 'pending', reviewedBy: null, reviewedAt: null, checks: Object.fromEntries(CHECKS.map(key => [key, false])), portrait: null, facePortrait: null, voiceSample: null, assetHashes: null })
 async function fixture(t, { assets = false } = {}) {
   const root = await mkdtemp(join(tmpdir(), 'kineo-presenters-2410-'))
   assert.equal(dirname(root), resolve(tmpdir()))
@@ -18,12 +18,12 @@ async function fixture(t, { assets = false } = {}) {
   await writeFile(join(root, CATALOG), JSON.stringify(Array.from({ length: 12 }, (_, index) => fixtureEntry(index))))
   if (assets) {
     await mkdir(join(root, 'public', 'ads', 'presenters'), { recursive: true })
-    for (const suffix of ['', '-face']) await copyFile(join(sourceRoot, 'public', 'ads', 'presenters', 'sofia.webp'), join(root, 'public', 'ads', 'presenters', `candidate0${suffix}.webp`))
-    await copyFile(join(sourceRoot, 'public', 'ads', 'presenters', 'sofia-voice.mp3'), join(root, 'public', 'ads', 'presenters', 'candidate0-voice.mp3'))
+    for (const suffix of ['', '-face']) await copyFile(join(sourceRoot, 'public', 'ads', 'presenters', 'sofia.webp'), join(root, 'public', 'ads', 'presenters', `candidatea${suffix}.webp`))
+    await copyFile(join(sourceRoot, 'public', 'ads', 'presenters', 'sofia-voice.mp3'), join(root, 'public', 'ads', 'presenters', 'candidatea-voice.mp3'))
   }
   return root
 }
-const review = (catalog, action = 'approve') => ({ id: 'candidate0', action, expectedHash: catalog.hash, reviewedBy: FOUNDER, founderAcknowledgement: true, checks: Object.fromEntries(CHECKS.map(key => [key, true])) })
+const review = (catalog, action = 'approve') => ({ id: 'candidatea', action, expectedHash: catalog.hash, reviewedBy: FOUNDER, founderAcknowledgement: true, checks: Object.fromEntries(CHECKS.map(key => [key, true])) })
 
 test('plan prepares twelve existing-route jobs without generating', () => {
   const plan = buildPlan(Array.from({ length: 12 }, (_, i) => fixtureEntry(i)))
@@ -38,8 +38,8 @@ test('plan prepares twelve existing-route jobs without generating', () => {
   }
 })
 test('generation fails closed before credentials or network without allow-paid', async () => {
-  await assert.rejects(generateCandidates('/nonexistent', { id: 'candidate0' }, {}), /--allow-paid/)
-  await assert.rejects(generateCandidates('/nonexistent', { id: 'candidate0', all: true, allowPaid: true }, {}), /exatamente/)
+  await assert.rejects(generateCandidates('/nonexistent', { id: 'candidatea' }, {}), /--allow-paid/)
+  await assert.rejects(generateCandidates('/nonexistent', { id: 'candidatea', all: true, allowPaid: true }, {}), /exatamente/)
 })
 test('explicit future generation reuses the route, keeps cookie first-party and never silently retries', async (t) => {
   const root = await fixture(t)
@@ -52,9 +52,9 @@ test('explicit future generation reuses the route, keeps cookie first-party and 
   }
   t.after(() => { globalThis.fetch = originalFetch })
   const env = { KINEO_BASE_URL: 'https://www.usekineo.com', KINEO_FOUNDER_COOKIE: 'test-session=offline-fixture' }
-  await assert.rejects(generateCandidates(root, { id: 'candidate0', allowPaid: true }, { ...env, KINEO_BASE_URL: 'https://untrusted.example' }), /cookie nunca/)
+  await assert.rejects(generateCandidates(root, { id: 'candidatea', allowPaid: true }, { ...env, KINEO_BASE_URL: 'https://untrusted.example' }), /cookie nunca/)
   assert.equal(calls.length, 0)
-  const results = await generateCandidates(root, { id: 'candidate0', allowPaid: true }, env)
+  const results = await generateCandidates(root, { id: 'candidatea', allowPaid: true }, env)
   assert.equal(results.length, 1)
   assert.equal(calls.length, 2)
   assert.equal(calls[0].url, 'https://www.usekineo.com/api/images/generate')
@@ -62,7 +62,7 @@ test('explicit future generation reuses the route, keeps cookie first-party and 
   assert.equal(calls[0].options.headers.Cookie, env.KINEO_FOUNDER_COOKIE)
   assert.equal(calls[1].options.headers, undefined)
   assert.deepEqual(await readFile(results[0].file), image)
-  await assert.rejects(generateCandidates(root, { id: 'candidate0', allowPaid: true }, env), /já existe/)
+  await assert.rejects(generateCandidates(root, { id: 'candidatea', allowPaid: true }, env), /já existe/)
   assert.equal(calls.length, 2)
   assert.equal((await loadCatalog(root)).entries[0].status, 'pending')
 })
@@ -116,7 +116,7 @@ test('stale decisions and concurrent lock cannot overwrite another review', asyn
 test('changed audio bytes invalidate the previous approved hash', async (t) => {
   const root = await fixture(t, { assets: true })
   const catalog = await decide(root, review(await loadCatalog(root)))
-  const audioPath = join(root, 'public', 'ads', 'presenters', 'candidate0-voice.mp3')
+  const audioPath = join(root, 'public', 'ads', 'presenters', 'candidatea-voice.mp3')
   const bytes = await readFile(audioPath)
   bytes[bytes.length - 1] ^= 1
   await writeFile(audioPath, bytes)
@@ -128,21 +128,21 @@ test('safe local import revokes approval and keeps rejected candidates rejected'
   const root = await fixture(t, { assets: true })
   const approved = await decide(root, review(await loadCatalog(root)))
   const source = join(sourceRoot, 'public', 'ads', 'presenters', 'sofia.webp')
-  const imported = await importCandidate(root, { id: 'candidate0', source, faceSource: source })
+  const imported = await importCandidate(root, { id: 'candidatea', source, faceSource: source })
   assert.equal(imported.entries[0].status, 'pending')
   assert.equal(imported.entries[0].assetHashes, null)
   const rejected = await decide(root, review(imported, 'reject'))
   assert.equal(rejected.entries[0].status, 'rejected')
-  const stillRejected = await importCandidate(root, { id: 'candidate0', voiceSource: join(sourceRoot, 'public', 'ads', 'presenters', 'sofia-voice.mp3') })
+  const stillRejected = await importCandidate(root, { id: 'candidatea', voiceSource: join(sourceRoot, 'public', 'ads', 'presenters', 'sofia-voice.mp3') })
   assert.equal(stillRejected.entries[0].status, 'rejected')
   assert.ok(approved.hash !== imported.hash)
 })
 test('import refuses env paths, malformed images and unknown candidates', async (t) => {
   const root = await fixture(t)
-  await assert.rejects(importCandidate(root, { id: 'candidate0', source: '.env.local', faceSource: 'other.webp' }), /\.env/)
+  await assert.rejects(importCandidate(root, { id: 'candidatea', source: '.env.local', faceSource: 'other.webp' }), /\.env/)
   const bad = join(root, 'bad.webp')
   await writeFile(bad, 'not an image')
-  await assert.rejects(importCandidate(root, { id: 'candidate0', source: bad, faceSource: bad }), /WebP/)
+  await assert.rejects(importCandidate(root, { id: 'candidatea', source: bad, faceSource: bad }), /WebP/)
   await assert.rejects(importCandidate(root, { id: '../outside', source: bad }), /desconhecido/)
   assert.equal(webpSize(Buffer.from('not an image')), null)
 })

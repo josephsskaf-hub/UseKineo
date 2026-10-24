@@ -29,6 +29,7 @@ export function createOfflineLoader({ mocks = {}, env = {}, globals = {}, source
     let filename = specifier.startsWith('@/') ? path.join(root, specifier.slice(2))
       : specifier.startsWith('.') ? path.resolve(parent, specifier) : path.resolve(root, specifier)
     if (!filename.startsWith(root + path.sep)) throw new Error(`Module outside test workspace: ${specifier}`)
+    if (/\.json$/.test(filename) && fs.existsSync(filename)) return JSON.parse(fs.readFileSync(filename, 'utf8')) // KINEO-APRESENTADORES-2410
     if (!fs.existsSync(filename)) filename += '.ts'
     if (!fs.existsSync(filename) || !/\.tsx?$/.test(filename)) throw new Error(`Unexpected import: ${specifier}`)
     if (cache.has(filename)) return cache.get(filename)

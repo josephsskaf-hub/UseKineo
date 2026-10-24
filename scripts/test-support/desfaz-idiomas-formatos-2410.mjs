@@ -1,3 +1,4 @@
+import { semApresentadores2410 } from './desfaz-apresentadores-2410.mjs' // KINEO-APRESENTADORES-2410
 // KINEO-IDIOMAS-FORMATOS-2410 — exact leaf layer; no import of another task's undo chain.
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
@@ -12,6 +13,7 @@ function verifiedBefore(known, integrated, rel) {
   return text
 }
 export function semIdiomasFormatos2410(text, file) {
+  text = semApresentadores2410(text, file) // KINEO-APRESENTADORES-2410
   const rel = String(file ?? '').replace(/\\/g, '/')
   const known = IDIOMAS_FORMATOS_2410_MANIFEST.sources[rel]
   if (!known || typeof text !== 'string') return text
