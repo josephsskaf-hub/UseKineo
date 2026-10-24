@@ -94,5 +94,17 @@
     "scripts/test-support/desfaz-cards-giro-2410-fontes.json",
     "scripts/test-support/desfaz-cards-giro-2410.mjs"
   ],
-  "artifacts": []
+  "artifacts": [
+    "docs/qa/cards-giro-2410/PREVIEW-HOME.html",
+    "docs/qa/cards-giro-2410/QA-FINAL.json",
+    "docs/qa/cards-giro-2410/README.md",
+    "docs/qa/cards-giro-2410/comparison-mobile-overview.png",
+    "docs/qa/cards-giro-2410/comparison-overview.png",
+    "docs/qa/cards-giro-2410/guardian.json",
+    "docs/qa/cards-giro-2410/media-inspection.json",
+    "docs/qa/cards-giro-2410/source-hashes.json",
+    "docs/qa/cards-giro-2410/suite-comparison.json",
+    "docs/qa/cards-giro-2410/typecheck.json",
+    "docs/qa/cards-giro-2410/ugc-framing-before-after.jpg"
+  ]
 }

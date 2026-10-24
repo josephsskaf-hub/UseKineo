@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-24",
+  "command": "node node_modules/typescript/bin/tsc --noEmit --incremental false",
+  "exitCode": 0,
+  "output": "",
+  "state": "TESTADO LOCALMENTE",
+  "sourceHashesLF": {
+    "lib/ui/homeThreeCards.ts": "fa8436886f53d9d7ebcb5204b5b3237214f94b83c8a731982b16911b8ee283a8",
+    "lib/ui/homeCardPlayback.ts": "f2b6e8db4edb26b002973ffb7fef923860bb6e0727f785cb39de2e5c5753b1d1",
+    "components/home/HomeCardCycleMedia.tsx": "6b07b8cfff230a984a267d2adc4889f38350e116ed1aafc6095053d63c721e0f",
+    "components/home/HomeThreeCards.tsx": "c843c156f74f008fbdc6bd5b5c8c327161c90d7ce5785a10d8e5f6a25d3d0602",
+    "components/home/HomeKidsCard.tsx": "6bc13463ab0e30480cbc8599b7cdcc422de1f54c5918fa32c2debd2cfd6a3dd4",
+    "components/home/HomeProductAdsReel.tsx": "17ddd1463a76b4daf15c8b187bd0c97b6612e7748448cb63f3a792564ec397bb"
+  }
+}

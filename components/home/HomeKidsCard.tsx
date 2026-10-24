@@ -10,30 +10,13 @@ import { useEffect, useRef } from 'react'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { trackEvent } from '@/lib/analytics'
 import { HOME_CARD_EVENT } from '@/lib/ui/homeThreeCards'
-import { HOME_KIDS_CARD_CLIP, HOME_KIDS_CARD_ID, HOME_KIDS_CARD_POSITION, homeKidsCardClickMetadata, homeKidsCardCopy, homeKidsCardHref } from '@/lib/ui/homeKidsCard' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — posição padrão preservada.
+import { HOME_KIDS_CARD_ID, HOME_KIDS_CARD_POSITION, homeKidsCardClickMetadata, homeKidsCardCopy, homeKidsCardHref } from '@/lib/ui/homeKidsCard' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"] — posição padrão preservada.
+
+import HomeCardCycleMedia from '@/components/home/HomeCardCycleMedia' // KINEO-CARDS-GIRO-2410
 
 function KidsMedia() {
-  const ref = useRef<HTMLSpanElement>(null)
-  useEffect(() => {
-    const root = ref.current
-    if (!root || !HOME_KIDS_CARD_CLIP) return
-    const reduce = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const set = (visible: boolean) => root.querySelectorAll<HTMLVideoElement>('video').forEach((v) => {
-      if (visible && !reduce) { v.muted = true; v.play().catch(() => { /* fica o pôster */ }) } else v.pause()
-    })
-    if (typeof IntersectionObserver === 'undefined') { set(true); return }
-    const io = new IntersectionObserver((es) => es.forEach((e) => set(e.isIntersecting)), { threshold: 0.3 })
-    io.observe(root)
-    return () => io.disconnect()
-  }, [])
-  return (
-    <span className="k3c-media" ref={ref}>
-      <span className="k3c-kids-art" aria-hidden="true" data-home-kids-placeholder="1" />
-      {HOME_KIDS_CARD_CLIP
-        ? <video src={HOME_KIDS_CARD_CLIP.src} poster={HOME_KIDS_CARD_CLIP.poster} muted loop playsInline preload="none" disablePictureInPicture aria-hidden="true" tabIndex={-1} />
-        : null}
-    </span>
-  )
+  const language = useInterfaceLanguage()
+  return <HomeCardCycleMedia card="kids_cartoon" language={language} />
 }
 
 export default function HomeKidsCard({ signedIn, position = HOME_KIDS_CARD_POSITION }: { signedIn: boolean; position?: number }) { // KINEO-PAGINAS-IA-CLARAS-2110 — a faixa passa a posição real; usos antigos continuam em 4.

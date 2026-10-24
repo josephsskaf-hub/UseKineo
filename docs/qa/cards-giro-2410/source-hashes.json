@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-24",
+  "base": "1c078ed0",
+  "algorithm": "sha256",
+  "files": {
+    "components/home/HomeCardCycleMedia.tsx": "6b07b8cfff230a984a267d2adc4889f38350e116ed1aafc6095053d63c721e0f",
+    "components/home/HomeThreeCards.tsx": "d46c88f538546214ab55eeea5328bc18f49feb92fa31fa73f58da43a3d14fa55",
+    "components/home/HomeKidsCard.tsx": "6ff2ffc9c504bda54637e5bd79763b03c0cec138249ad1498417b709f9f7a474",
+    "components/home/HomeProductAdsReel.tsx": "17ddd1463a76b4daf15c8b187bd0c97b6612e7748448cb63f3a792564ec397bb",
+    "lib/ui/homeCardPlayback.ts": "f2b6e8db4edb26b002973ffb7fef923860bb6e0727f785cb39de2e5c5753b1d1",
+    "lib/ui/homeThreeCards.ts": "7e1134bf27275dcaf6ae098b8b0d687a6b49aff287773ff0e4fb76ffcef2c571"
+  }
+}

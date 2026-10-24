@@ -1,0 +1,9 @@
+{
+  "date": "2026-10-24",
+  "state": "TESTADO LOCALMENTE",
+  "command": "node --require ./docs/qa/idiomas-formatos-2410-validation/offline-preload.cjs scripts/test-cards-giro-2410.mjs --mutants",
+  "exitCode": 0,
+  "appliedMutants": 13,
+  "rejectedMutants": 13,
+  "groups": 4
+}

@@ -9,7 +9,7 @@
 // Sem preço em lugar nenhum (cartão de vídeo = motor/produto + nome). Os botões dos anúncios dizem "grátis" só com a amostra
 // no ar (ADS_SAMPLE_LIVE) e na língua da interface (lib/ads/sample.ts, 16 línguas).
 import Link from 'next/link'
-import { useEffect, useRef, useState, type RefObject } from 'react' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
+import { useEffect, useState } from 'react' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 import { UiLabel, useInterfaceLanguage, useUiCopy } from '@/components/InterfaceLanguage'
 import { trackEvent } from '@/lib/analytics'
 import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample' // KINEO-HOME-CARDS-BOTOES-2010 — o rótulo grátis agora vem de homeCardAdsCta
@@ -30,7 +30,7 @@ import { HOME_CARDS_AJUSTE_CSS, HOME_KIDS_CARD_CSS } from '@/lib/ui/homeKidsCard
 import { UGC_PILLAR_PATH, UGC_PILLAR_PT_PATH } from '@/lib/seo/paginasUgc2010' // KINEO-PAGINAS-UGC-2010 — o guia do AI UGC Ads ao lado do título dos cards
 import { vemDoChatgpt } from '@/lib/seo/paginasIaClaras2110' // KINEO-PAGINAS-IA-CLARAS-2110 [TRAVA 8.2 — vai do fundador 21/10 "a preta está muito longe do que é o site"]
 
-const REDUCED_MOTION = '(prefers-reduced-motion: reduce)'
+import HomeCardCycleMedia, { HOME_CARD_CYCLE_CSS } from '@/components/home/HomeCardCycleMedia' // KINEO-CARDS-GIRO-2410
 
 export const HOME_THREE_CARDS_CSS = `
 .klp .k3c{position:relative;z-index:1;padding:26px 0 8px}
@@ -85,49 +85,9 @@ export const HOME_THREE_CARDS_CSS = `
 @media (prefers-reduced-motion:reduce){.k3c-card,.k3c-media video,.k3c-arrow{transition:none}.k3c-card:hover .k3c-media video{transform:none}}
 `
 
-/** Toca o vídeo do card só enquanto ele está na tela; reduced-motion = parado no pôster. */
-function useCardPlayback(ref: RefObject<HTMLElement>) {
-  useEffect(() => {
-    const root = ref.current
-    if (!root) return
-    const reduce = typeof window.matchMedia === 'function' && window.matchMedia(REDUCED_MOTION).matches
-    const set = (visible: boolean) => {
-      root.querySelectorAll<HTMLVideoElement>('video').forEach((video) => {
-        if (visible && !reduce) {
-          video.muted = true
-          video.play().catch(() => { /* autoplay recusado: fica o pôster */ })
-        } else {
-          video.pause()
-        }
-      })
-    }
-    if (typeof IntersectionObserver === 'undefined') { set(true); return }
-    const io = new IntersectionObserver((entries) => entries.forEach((entry) => set(entry.isIntersecting)), { threshold: 0.3 })
-    io.observe(root)
-    return () => io.disconnect()
-  }, [ref])
-}
-
+// KINEO-CARDS-GIRO-2410 — all cards share the event-driven double buffer.
 function CardMedia({ card, language }: { card: HomeCardId; language: string }) {
-  const ref = useRef<HTMLSpanElement>(null)
-  const clip = homeCardClip(card, language)
-  useCardPlayback(ref)
-  return (
-    <span className="k3c-media" ref={ref}>
-      <video
-        key={clip.src}
-        src={clip.src}
-        poster={clip.poster}
-        muted
-        loop
-        playsInline
-        preload="none"
-        disablePictureInPicture
-        aria-hidden="true"
-        tabIndex={-1}
-      />
-    </span>
-  )
+  return <HomeCardCycleMedia card={card} language={language} />
 }
 
 export default function HomeThreeCards({ signedIn, kidsCard = false }: { signedIn: boolean; kidsCard?: boolean }) { // KINEO-BEBE-QUE-FALA-2010 — + kidsCard (o 4º card); era: export default function HomeThreeCards({ signedIn }: { signedIn: boolean }) {
@@ -148,6 +108,7 @@ export default function HomeThreeCards({ signedIn, kidsCard = false }: { signedI
       <style dangerouslySetInnerHTML={{ __html: HOME_THREE_CARDS_CSS }} />
       <style dangerouslySetInnerHTML={{ __html: HOME_CARDS_AJUSTE_CSS }} />{/* KINEO-BEBE-QUE-FALA-2010 — enquadramento dos cards de hoje (letreiro do vídeo nunca cortado na borda; UGC mais claro), sempre */}
       {kidsCard ? <style dangerouslySetInnerHTML={{ __html: HOME_KIDS_CARD_CSS }} /> : null}{/* KINEO-BEBE-QUE-FALA-2010 — desligado: nem o <style> nasce */}
+      <style dangerouslySetInnerHTML={{ __html: HOME_CARD_CYCLE_CSS }} />{/* KINEO-CARDS-GIRO-2410 */}
       <div className="wrap">
         <div className="k3c-head"><p className="k3c-kicker"><UiLabel>Choose what to make</UiLabel></p><Link className="k3c-more" href={language === 'pt' ? UGC_PILLAR_PT_PATH : UGC_PILLAR_PATH} data-home-ugc-guide="1"><UiLabel>How AI UGC ads work</UiLabel> →</Link></div>{/* KINEO-PAGINAS-UGC-2010 */}
         <div className="k3c-grid" data-k3c-cols={kidsCard ? '4' : undefined}>{/* KINEO-BEBE-QUE-FALA-2010 — undefined = o atributo nem é emitido (home de hoje); era: <div className="k3c-grid"> */}

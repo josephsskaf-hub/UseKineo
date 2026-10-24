@@ -1,0 +1,209 @@
+{
+  "inspectedAt": "2026-10-24",
+  "base": "1c078ed0",
+  "method": "ffprobe stream/format; top-level ISO BMFF atom scan; contact sheet at min(1s,duration/2) for all 134 eligible MP4; 1fps timelines for candidates; ffmpeg complete decode selected candidates",
+  "totalMp4": 175,
+  "eligibleMp4": 134,
+  "requirement": {
+    "maxBytes": 1500000,
+    "noAudio": true,
+    "moovBeforeMdat": true
+  },
+  "selections": {
+    "films": [
+      {
+        "src": "/previews/home-card-film-flannan.mp4",
+        "poster": "/posters/home-card-film-flannan.webp",
+        "posterExists": true,
+        "bytes": 1258632,
+        "durationSeconds": 11,
+        "width": 720,
+        "height": 1280,
+        "audioStreams": 0,
+        "moovOffset": 32,
+        "mdatOffset": 4735,
+        "fullDecodePassed": true,
+        "sha256": "3031fc743a5bb4a56f3250c83f490e9e1ac39b807354625e3b8c65d5c63c4de9",
+        "desktopPosition": "50% 0%",
+        "mobilePosition": "50% 0%",
+        "objectFit": "cover",
+        "observedContent": "Lighthouse, no visible face in entire preview. Existing first card.",
+        "sourceReference": "lib/ui/homeThreeCards.ts:103"
+      },
+      {
+        "src": "/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-v.mp4",
+        "poster": "/previews/curation-sep16/ed95d4a6-79f9-444e-8b29-0d6b9c1c05eb-h.webp",
+        "posterExists": true,
+        "bytes": 324993,
+        "durationSeconds": 6,
+        "width": 540,
+        "height": 960,
+        "audioStreams": 0,
+        "moovOffset": 32,
+        "mdatOffset": 2571,
+        "fullDecodePassed": true,
+        "sha256": "a596e23034bfd49dc5507236342eba9ea8777411864d536dcfcfd77e17a71762",
+        "desktopPosition": "50% 0%",
+        "mobilePosition": "50% 0%",
+        "objectFit": "cover",
+        "observedContent": "Night train: full head visible in 1fps timeline. Founder-approved September 16 curation.",
+        "sourceReference": "lib/homeVideoCuration.ts:36"
+      },
+      {
+        "src": "/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-v.mp4",
+        "poster": "/previews/curation-sep16/6b9b363c-3185-4db7-a877-46b77e334f06-h.webp",
+        "posterExists": true,
+        "bytes": 980172,
+        "durationSeconds": 6,
+        "width": 540,
+        "height": 960,
+        "audioStreams": 0,
+        "moovOffset": 32,
+        "mdatOffset": 2579,
+        "fullDecodePassed": true,
+        "sha256": "9113a6d9d678f3665c36b5751024c58aebd1e9fcebaef9ab7c82a25f119cd074",
+        "desktopPosition": "50% 0%",
+        "mobilePosition": "50% 0%",
+        "objectFit": "cover",
+        "observedContent": "Volcano watcher: full head from behind visible in 1fps timeline. Founder-approved September 16 curation.",
+        "sourceReference": "lib/homeVideoCuration.ts:37"
+      }
+    ],
+    "product_ads": [
+      {
+        "src": "/previews/home-card-close-real-en.mp4",
+        "poster": "/posters/home-card-close-real-en.webp",
+        "posterExists": true,
+        "bytes": 1422720,
+        "durationSeconds": 11,
+        "width": 720,
+        "height": 1280,
+        "audioStreams": 0,
+        "moovOffset": 32,
+        "mdatOffset": 3887,
+        "fullDecodePassed": true,
+        "sha256": "8380ea7fefdf2f1942be5ea398492ae5692d8288ec311a9f6a56640384c24adf",
+        "desktopPosition": "50% 0%",
+        "mobilePosition": "50% 0%",
+        "objectFit": "contain",
+        "observedContent": "Current lifestyle sneaker ad. Woman demonstrates, wears, runs; final product close-up. Contains full source to preserve face and shoe simultaneously. PT twin is byte-identical.",
+        "sourceReference": "lib/ui/homeThreeCards.ts:105"
+      },
+      {
+        "src": "/previews/efeito-product_360.mp4",
+        "poster": "/posters/efeito-product_360.webp",
+        "posterExists": true,
+        "bytes": 753315,
+        "durationSeconds": 5.041667,
+        "width": 720,
+        "height": 1280,
+        "audioStreams": 0,
+        "moovOffset": 32,
+        "mdatOffset": 2303,
+        "fullDecodePassed": true,
+        "sha256": "00ecb71461ce3413b71720af5c7a92cf2ca772808e7b343d3a2f299d4a85b6d1",
+        "desktopPosition": "50% 40%",
+        "mobilePosition": "50% 40%",
+        "objectFit": "cover",
+        "observedContent": "Blue sneaker rotates on platform; product only. Generated from product photo, documented Kling 2.5 effect.",
+        "sourceReference": "lib/clips/clipEffects.ts:130"
+      },
+      {
+        "src": "/previews/promo-images-1.mp4",
+        "poster": "/posters/promo-images-1.webp",
+        "posterExists": true,
+        "bytes": 329014,
+        "durationSeconds": 5,
+        "width": 768,
+        "height": 522,
+        "audioStreams": 0,
+        "moovOffset": 32,
+        "mdatOffset": 2652,
+        "fullDecodePassed": true,
+        "sha256": "fd1e04aa60147a57038dcdb2356d7d72ba7dc80bbe23df4a337e82917adc4c70",
+        "desktopPosition": "50% 50%",
+        "mobilePosition": "50% 50%",
+        "objectFit": "cover",
+        "observedContent": "Perfume bottle on rock; still photo with slow zoom, not generated bottle movement.",
+        "sourceReference": "lib/ui/promoCards.ts:104"
+      }
+    ],
+    "ugc_ads": [
+      {
+        "src": "/previews/home-card-ugc-presenter.mp4",
+        "poster": "/posters/home-card-ugc-presenter.webp",
+        "posterExists": true,
+        "bytes": 1282568,
+        "durationSeconds": 12,
+        "width": 720,
+        "height": 1280,
+        "audioStreams": 0,
+        "moovOffset": 32,
+        "mdatOffset": 4306,
+        "fullDecodePassed": true,
+        "sha256": "e856d9c38444406655e93fa5e1e722dd84580d1ea4f0e90eb9bb6f19ed9ba301",
+        "desktopPosition": "50% 0%",
+        "mobilePosition": "50% 0%",
+        "objectFit": "cover",
+        "observedContent": "Woman applies GLOW cream; retains hair/face in face shots. No clear talking established from silent preview. Source intentionally closes on product with face cropped t5-9. Prefer contain if entire product must also be preserved in face close-up.",
+        "sourceReference": "lib/ui/homeThreeCards.ts:106"
+      }
+    ],
+    "kids_cartoon": [
+      {
+        "src": "/previews/home-card-kids-cartoon-leo.mp4",
+        "poster": "/posters/home-card-kids-cartoon-leo.webp",
+        "posterExists": true,
+        "bytes": 1464306,
+        "durationSeconds": 10,
+        "width": 540,
+        "height": 960,
+        "audioStreams": 0,
+        "moovOffset": 32,
+        "mdatOffset": 3615,
+        "fullDecodePassed": true,
+        "sha256": "21f846bba4980fd8b7d150d3149f578d94ad7523f48c61f73490542330bfe50f",
+        "desktopPosition": "50% 0%",
+        "mobilePosition": "50% 0%",
+        "objectFit": "cover",
+        "observedContent": "Boy in yellow hoodie, duckling. One source only. Head preserved in portrait shots; source already crops head in close-up t5-7.",
+        "sourceReference": "lib/ui/homeKidsCard.ts:32"
+      }
+    ]
+  },
+  "limitations": [
+    "Only one existing kids animation; no three distinct eligible kids videos.",
+    "Only current UGC file demonstrates a person with a product; no three verified talking-product UGC clips.",
+    "Current UGC is a GLOW cream application demonstration; speech is not verified from silent preview.",
+    "Current UGC has product close-ups at t5-9 with face already outside source frame. Current kids has close-ups t5-7 with face already partially outside source frame. CSS cannot restore missing source pixels.",
+    "Strict product-isolated selection has two files; third current Close is a lifestyle sneaker ad.",
+    "Perfume promo-images-1 is a still image with a slow zoom, not animated product generation.",
+    "No files were added/modified under the repository or prohibited curation modules."
+  ],
+  "rejectedAlternatives": [
+    {
+      "src": "/previews/promo-ads-3var-1.mp4",
+      "reason": "Three women drink/pose/smile with bottle. Talking not verified; people dominate image."
+    },
+    {
+      "src": "/previews/promo-ads-3var-2.mp4",
+      "reason": "Three men pose/wear headphones/drink coffee. Talking not verified; people dominate image."
+    },
+    {
+      "src": "/previews/promo-ads-3var-3.mp4",
+      "reason": "Three women show sneakers and smile/raise arms. Talking not verified; people dominate image."
+    },
+    {
+      "src": "/previews/promo-images-2.mp4",
+      "reason": "Astronaut and sunflowers, not a product."
+    },
+    {
+      "src": "/previews/promo-images-3.mp4",
+      "reason": "Lighthouse, not a product."
+    },
+    {
+      "src": "/previews/efeito-secret_cake.mp4",
+      "reason": "Handbag cut open as cake: transformation effect, not a truthful isolated handbag product ad."
+    }
+  ]
+}
