@@ -131,10 +131,37 @@ async function permissionProof(db) {
   })
 }
 
+async function preflightProof(source = sql) {
+  const prerequisites = [
+    ['profiles', 'id'], ['profiles', 'video_credits'], ['profiles', 'has_paid'], ['profiles', 'ads_access_until'],
+    ['stripe_events', 'id'], ['events', 'id'], ['events', 'name'], ['events', 'user_id'], ['events', 'session_id'], ['events', 'path'], ['events', 'metadata'],
+  ]
+  const invalidSchemas = [
+    ...prerequisites.map(([table, column]) => `alter table public.${table} drop column ${column} cascade`),
+    "alter table public.profiles alter column ads_access_until type text using ads_access_until::text",
+    "alter table public.profiles alter column video_credits type numeric using video_credits::numeric",
+    "alter table public.events alter column metadata type text using metadata::text",
+    'alter table public.events alter column id drop default',
+  ]
+  for (const invalidate of invalidSchemas) {
+    const pending = new PGlite()
+    try {
+      await pending.exec(bootstrap)
+      await pending.exec(invalidate)
+      await assert.rejects(() => pending.exec(source), /one_time_item: prerequisite/, 'incomplete prerequisites must reject installation: ' + invalidate)
+      await pending.exec('rollback')
+      const s = (await pending.query(`select to_regclass('public.one_time_item_purchases')::text as receipt,
+        to_regprocedure('${PROC}')::text as rpc`)).rows[0]
+      assert.deepEqual(s, { receipt: null, rpc: null }, 'failed installation leaves no readiness table or RPC')
+    } finally { await pending.close() }
+  }
+}
+
 let proofs = 0
 async function check(name, run) { await run(); proofs++; console.log('ok SQL ' + name) }
 const db = await world()
 try {
+  await check('every missing dependency, wrong type or missing event default aborts the entire migration', () => preflightProof())
   await check('migration can re-run; the SQL V1 matches the actual existing cost/settlement sources', async () => {
     await db.exec(sql)
     const load = createOfflineLoader({ mocks: { './checkoutPricing': {} } })
@@ -221,5 +248,8 @@ if (process.argv.includes('--mutants')) {
     finally { await mutated.close() }
     proofs++; console.log('ok SQL mutant rejected: ' + name)
   }
+  const preflightBlock = sql.slice(sql.indexOf('do $preflight$'), sql.indexOf('$preflight$;') + '$preflight$;'.length)
+  await assert.rejects(() => preflightProof(replaceOnce(sql, preflightBlock, '')), 'a migration without dependency preflight must fail this gate')
+  proofs++; console.log('ok SQL mutant rejected: omit migration dependency preflight')
 }
 console.log(`ok ${proofs} SQL proofs; actual PostgreSQL/WASM, no network or credentials; proposed migration remains unapplied`)

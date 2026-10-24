@@ -11,6 +11,49 @@
 
 begin;
 
+-- PL/pgSQL does not resolve every body column at CREATE FUNCTION time. Refuse the WHOLE installation
+-- if its prerequisites are absent/wrongly typed: receipt-table presence must never certify an unusable grant.
+do $preflight$
+declare
+  v_required record;
+  v_actual_type oid;
+begin
+  for v_required in select * from (values
+    ('profiles', 'id', 'uuid'::regtype),
+    ('profiles', 'video_credits', 'integer'::regtype),
+    ('profiles', 'has_paid', 'boolean'::regtype),
+    ('profiles', 'ads_access_until', 'timestamptz'::regtype),
+    ('stripe_events', 'id', 'text'::regtype),
+    ('events', 'id', 'uuid'::regtype),
+    ('events', 'name', 'text'::regtype),
+    ('events', 'user_id', 'uuid'::regtype),
+    ('events', 'session_id', 'text'::regtype),
+    ('events', 'path', 'text'::regtype),
+    ('events', 'metadata', 'jsonb'::regtype)
+  ) as required(table_name, column_name, column_type)
+  loop
+    select attribute.atttypid into v_actual_type
+      from pg_catalog.pg_attribute attribute
+      join pg_catalog.pg_class relation on relation.oid = attribute.attrelid
+      join pg_catalog.pg_namespace namespace on namespace.oid = relation.relnamespace
+     where namespace.nspname = 'public' and relation.relname = v_required.table_name
+       and relation.relkind in ('r', 'p') and attribute.attname = v_required.column_name
+       and attribute.attnum > 0 and not attribute.attisdropped;
+    if v_actual_type is distinct from v_required.column_type::oid then
+      raise exception 'one_time_item: prerequisite public.%.% must exist with type %',
+        v_required.table_name, v_required.column_name, v_required.column_type;
+    end if;
+  end loop;
+  if not exists (
+    select 1 from pg_catalog.pg_attrdef default_value
+    join pg_catalog.pg_attribute attribute on attribute.attrelid = default_value.adrelid and attribute.attnum = default_value.adnum
+    where default_value.adrelid = 'public.events'::regclass and attribute.attname = 'id'
+  ) then
+    raise exception 'one_time_item: prerequisite public.events.id must have a UUID default';
+  end if;
+end;
+$preflight$;
+
 create table if not exists public.one_time_item_purchases (
   stripe_session_id text primary key,
   user_id uuid not null references public.profiles(id) on delete cascade,
