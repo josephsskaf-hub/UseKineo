@@ -202,3 +202,13 @@ test('HTTP server only binds loopback and rejects foreign host/origin and CSRF',
   assert.equal((await loadCatalog(root)).entries[0].status, 'rejected')
   assert.equal((await fetch(`${origin}/asset/../outside/portrait`)).status, 404)
 })
+
+test('voice import keeps the existing 120 KiB catalog sample limit', async (t) => {
+  const root = await fixture(t)
+  const before = await loadCatalog(root)
+  const sample = await readFile(join(sourceRoot, 'public', 'ads', 'presenters', 'sofia-voice.mp3'))
+  const source = join(root, 'oversize-voice.mp3')
+  await writeFile(source, Buffer.concat([sample, Buffer.alloc(120 * 1024 + 1 - sample.length)]))
+  await assert.rejects(importCandidate(root, { id: 'candidatea', voiceSource: source }), /limite/)
+  assert.equal((await loadCatalog(root)).hash, before.hash)
+})

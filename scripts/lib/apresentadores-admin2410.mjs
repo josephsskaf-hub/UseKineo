@@ -73,7 +73,7 @@ export function webpSize(bytes) {
 }
 
 function validMp3(bytes) {
-  if (bytes.length < 128 || bytes.length > 5 * 1024 * 1024) return false
+  if (bytes.length < 128 || bytes.length > 120 * 1024) return false
   let start = 0
   if (bytes.toString('ascii', 0, 3) === 'ID3') {
     if ([6, 7, 8, 9].some((i) => bytes[i] > 127)) return false
@@ -102,7 +102,7 @@ export async function inspectAssets(root, entry) {
       const asset = await safeAsset(root, entry.id, key)
       const dimensions = key === 'voiceSample' ? null : webpSize(asset.bytes)
       const ok = key === 'voiceSample' ? validMp3(asset.bytes) : !!dimensions && !dimensions.animated && dimensions.width * 16 === dimensions.height * 9 && dimensions.width >= 360 && asset.bytes.length <= MAX_IMAGE
-      if (!ok) throw new Error(key === 'voiceSample' ? 'MP3 inválido ou maior que 5 MiB' : 'exige WebP 9:16 estático, largura mínima 360 px, até 120 KiB')
+      if (!ok) throw new Error(key === 'voiceSample' ? 'MP3 inválido ou maior que 120 KiB' : 'exige WebP 9:16 estático, largura mínima 360 px, até 120 KiB')
       assets[key] = { path: asset.path, hash: hash(asset.bytes), bytes: asset.bytes.length, ...dimensions }
     } catch (error) { errors.push(`${key}: ${error.code === 'ENOENT' ? 'arquivo pendente' : error.message}`) }
   }
@@ -216,7 +216,7 @@ export async function importCandidate(root, options) {
       if (!size || size.animated || size.width < 360 || size.width * 16 !== size.height * 9 || bytes.length > MAX_IMAGE) throw fail('Importe WebP 9:16 estático, mínimo 360 px de largura, até 120 KiB, para corpo E rosto.')
     }
   }
-  if (options.voiceSource) { voice = await cappedFile(resolve(options.voiceSource), 5 * 1024 * 1024); if (!validMp3(voice)) throw fail('Amostra de voz MP3 inválida.') }
+  if (options.voiceSource) { voice = await cappedFile(resolve(options.voiceSource), 120 * 1024); if (!validMp3(voice)) throw fail('Amostra de voz MP3 inválida.') }
   // Revoke approval BEFORE replacing bytes, so partial writes fail closed. Keep rejected people rejected.
   return updateCatalog(root, current.hash, (entries) => {
     const index = entries.findIndex((item) => item.id === entry.id)

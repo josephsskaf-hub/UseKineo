@@ -39,7 +39,7 @@ node scripts/apresentadores-2410.mjs --generate --allow-paid --all
 node scripts/apresentadores-2410.mjs --import --id liana --source docs/assets/apresentadores-2410/liana-source.bin --crop 0.25,0.02,0.5,0.45 --sharp-module C:/caminho/ja-instalado/sharp/lib/index.js
 ```
 
-**FATO CONFIRMADO:** sem conversor disponível, a importação também aceita dois WebP previamente preparados. Corpo e rosto devem ser verticais 9:16, estáticos, ter pelo menos 360 px de largura e até 120 KiB cada. A inspeção técnica valida estrutura/dimensões; olhos, mãos, identidade e enquadramento exigem revisão visual do fundador. A voz exige MP3 até 5 MiB e revisão auditiva (`scripts/lib/apresentadores-admin2410.mjs:57`, `scripts/lib/apresentadores-admin2410.mjs:97`).
+**FATO CONFIRMADO:** sem conversor disponível, a importação também aceita dois WebP previamente preparados. Corpo e rosto devem ser verticais 9:16, estáticos, ter pelo menos 360 px de largura e até 120 KiB cada. A inspeção técnica valida estrutura/dimensões; olhos, mãos, identidade e enquadramento exigem revisão visual do fundador. A voz exige MP3 até 120 KiB e revisão auditiva (`scripts/lib/apresentadores-admin2410.mjs:57`, `scripts/lib/apresentadores-admin2410.mjs:97`).
 
 ```powershell
 node scripts/apresentadores-2410.mjs --import --id liana --source C:/retratos/liana.webp --face-source C:/retratos/liana-face.webp --voice-source C:/retratos/liana-voice.mp3
